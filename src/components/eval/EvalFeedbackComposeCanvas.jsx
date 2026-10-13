@@ -76,6 +76,12 @@ const DEFAULT_LABELS = {
   threadEmpty: '이 항목에 연결된 피드백이 없어요',
   close: '닫기',
   incomingReq: '받은 피드백 요청',
+  // [PW-1736] 팀원이 동료에게 보낸 요청·이미 답한 요청도 스레드에 기록으로 보인다 — 팀원 본인 화면
+  // (EvalFeedbackCanvas 보낸 요청 말풍선)과 같은 말을 쓴다.
+  requestPending: '대기중',
+  requestAnswered: '응답됨',
+  kindManager: '매니저',
+  kindPeer: '동료',
   composePlaceholder:
     'SBI 형식을 참고해 자유롭게 작성해 주세요.\n상황(S): 언제, 어떤 맥락에서\n행동(B): 구체적으로 어떤 행동을\n영향(I): 팀/OKR에 어떤 영향이 있었는지',
   aiDraft: 'AI 추천 받기',
@@ -238,11 +244,17 @@ function previewEntries(items) {
   return entries.sort((a, b) => new Date(a.at) - new Date(b.at)).slice(-2);
 }
 
+/* [PW-1736] 스레드에는 팀원의 KR 피드백이 전부 온다 — 동료·다른 매니저가 쓴 글, 팀원이 동료에게
+   보낸 요청, 이미 답한 요청까지(OKR 「피드백 n건」 칩과 같은 건수). 내가 쓴 글·나에게 온 요청만 내 일이다.
+   두 칸을 모르는 옛 응답은 종전대로 모두 내 것으로 본다. */
+const isMine = (it) => it.itemType === 'feedback' && it.mine !== false;
+const isToMe = (it) => it.itemType === 'request' && (!it.recipient || it.recipient.toMe !== false);
+
 function BlockCard({ block, member, L, onOpen }) {
   const isKr = block.type === 'kr';
   const isEtc = block.type === 'etc';
   const items = block.items;
-  const incoming = items.filter((i) => i.itemType === 'request');
+  const incoming = items.filter(isToMe);
   const barColor = isKr ? krColor(block.progress ?? 0) : C.purple;
   const latest = previewEntries(items);
   /* [PW-1054] 답하지 않은 요청이 있을 때만 「내 차례」. 같은 화면 팀 목록의 「요청 N」은 서버가
@@ -252,7 +264,7 @@ function BlockCard({ block, member, L, onOpen }) {
   /* [PW-1538] 「대기」는 마지막으로 보낸 피드백에 팀원이 아직 답하지 않았을 때만 (screen-feedback-manager
      §3.5 「피드백 전송 후 응답 대기」). 피드백이 있기만 하면 띄우던 종전 판정은 답이 온 뒤에도 남았다. */
   const lastFeedback = [...items]
-    .filter((i) => i.itemType === 'feedback')
+    .filter(isMine)
     .sort((a, b) => new Date(a.sentAt) - new Date(b.sentAt))
     .at(-1);
   const isWaiting = !!lastFeedback && !lastFeedback.memberReply;
@@ -288,8 +300,8 @@ function BlockCard({ block, member, L, onOpen }) {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {latest.map(({ key, kind, item: it, at }) => {
-            // 요청·답은 팀원이 쓴 것, 피드백은 내가 쓴 것
-            const name = kind === 'request' ? it.author?.name : kind === 'reply' ? member?.name : L.me;
+            // 요청·답은 팀원이 쓴 것, 피드백은 내가 쓴 것 — 남이 쓴 피드백은 쓴 사람 이름 (PW-1736)
+            const name = kind === 'request' ? it.author?.name : kind === 'reply' ? member?.name : isMine(it) ? L.me : it.author?.name;
             const photo = kind === 'reply' ? member?.avatar : it.author?.avatar;
             const text = kind === 'reply' ? it.memberReply.text || L.replyConfirmed : it.text || L.emptyItemText;
             return (
@@ -423,7 +435,10 @@ function FeedbackBubble({ item, member, L, canModify, onEdit, onDelete }) {
   const [editText, setEditText] = useState(item.text || '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
-  const modifiable = canModify && !item.memberReply;
+  // 동료·다른 매니저가 쓴 글은 읽기만 한다 (PW-1736).
+  const mine = isMine(item);
+  const author = mine ? L.me : item.author?.name;
+  const modifiable = canModify && mine && !item.memberReply;
 
   const cancelEdit = () => {
     setEditing(false);
@@ -457,10 +472,10 @@ function FeedbackBubble({ item, member, L, canModify, onEdit, onDelete }) {
   return (
     <div data-testid={`fbmgr-feedback-${item.id}`}>
       <div style={{ display: 'flex', gap: 8 }}>
-        <Avatar name={L.me} photo={item.author?.avatar} size={30} />
+        <Avatar name={author} photo={item.author?.avatar} size={30} />
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-text-xs)', marginBottom: 3 }}>
-            <span style={{ fontWeight: 700, color: C.text }}>{L.me}</span>
+            <span style={{ fontWeight: 700, color: C.text }}>{author}</span>
             <span style={{ color: C.sub }}>{fmtDate(item.sentAt)}</span>
             {modifiable && !editing && (
               <span style={{ marginLeft: 'auto', display: 'flex', gap: 10 }}>
@@ -510,14 +525,29 @@ function FeedbackBubble({ item, member, L, canModify, onEdit, onDelete }) {
     </div>
   );
 }
+/**
+ * 팀원이 보낸 요청. 나에게 온 것은 「받은 피드백 요청」, 동료에게 간 것은 받는 사람을 붙인 「요청」이다.
+ * 답했는지는 팀원 본인 화면의 보낸 요청 말풍선과 같은 「대기중 / 응답됨」 칩으로 보인다 (PW-1736).
+ * 이 말풍선에는 버튼이 없다 — 나에게 온 열린 요청의 답은 「받은 피드백 요청」 칸과 아래 작성칸이 맡는다.
+ */
 function RequestBubble({ item, L }) {
+  const toMe = isToMe(item);
+  const resolved = !!item.resolvedAt;
   return (
-    <div style={{ display: 'flex', gap: 8 }}>
+    <div style={{ display: 'flex', gap: 8 }} data-testid={`fbmgr-request-${item.id}`}>
       <Avatar name={item.author?.name} photo={item.author?.avatar} size={30} />
       <div style={{ minWidth: 0, flex: 1 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-text-xs)', marginBottom: 3 }}>
           <span style={{ fontWeight: 700, color: C.text }}>{item.author?.name}</span>
-          <Chip tone="accent" icon={<MailIcon size={11} />}>{L.incomingReq}</Chip>
+          {!toMe && item.recipient && (
+            <span style={{ color: C.sub }}>
+              → {item.recipient.name} ({item.recipientKind === 'peer' ? L.kindPeer : L.kindManager})
+            </span>
+          )}
+          <Chip tone="accent" icon={<MailIcon size={11} />}>{toMe ? L.incomingReq : L.requestChip}</Chip>
+          {(resolved || !toMe) && (
+            <Chip tone={resolved ? 'success' : 'warning'}>{resolved ? L.requestAnswered : L.requestPending}</Chip>
+          )}
           <span style={{ color: C.sub }}>{fmtDate(item.sentAt)}</span>
         </div>
         <div style={{ background: C.accentBg, border: `1px solid ${C.accentBd}`, borderRadius: '0 10px 10px 10px', padding: 10, fontSize: 13, color: C.text }}>
@@ -734,13 +764,11 @@ function ThreadScreen({ member, thread, krs, initiatives, okrGroups, snippets, L
   };
   // 딥링크로 열린 모달을 사용자가 닫았는가 — 닫은 뒤 재조회로 되살아나지 않게.
   const [linkDismissed, setLinkDismissed] = useState(false);
-  // 답한(해결된) 요청은 이 화면에서 뺀다 — 같은 대상으로 피드백을 보내면 사라진다(§3.4 · §3.6).
-  const items = useMemo(
-    () => (thread?.items || []).filter((i) => !(i.itemType === 'request' && i.resolvedAt)),
-    [thread],
-  );
+  // [PW-1736] 팀원의 피드백은 전부 블록에 남긴다 — 답한 요청·동료에게 간 요청도 기록이다(OKR 칩과 같은 건수).
+  // 「받은 피드백 요청」 칸만 나에게 온 아직 답하지 않은 요청이다 — 같은 대상으로 피드백을 보내면 사라진다(§3.4 · §3.6).
+  const items = useMemo(() => thread?.items || [], [thread]);
   const { krBlocks, initBlocks, etc } = useMemo(() => groupBlocks(items, krs, initiatives), [items, krs, initiatives]);
-  const openRequests = useMemo(() => items.filter((i) => i.itemType === 'request'), [items]);
+  const openRequests = useMemo(() => items.filter((i) => isToMe(i) && !i.resolvedAt), [items]);
 
   // 딥링크 진입(OKR 타인 KR 「전체 보기」 → `/feedback/team?member=…&kr=…`).
   // 멤버 뷰와 같은 규칙 — 열 블록은 **파생값**이고 state 로 복사하지 않는다.
