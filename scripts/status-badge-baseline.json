@@ -2145,6 +2145,9 @@
   "okr.css|.okr-role-badge.is-gray": {
    "background": "#8b929c / 어두운 화면 #94979c"
   },
+  "okr.css|.okr-role-badge.is-orange": {
+   "background": "#ef6820"
+  },
   "onboarding.css|.onb-btn-pill.is-on": {
    "color": "--onb-success"
   },

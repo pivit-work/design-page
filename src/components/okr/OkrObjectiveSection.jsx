@@ -170,6 +170,11 @@ export default function OkrObjectiveSection({
                   <div className="okr-p-col-label">
                     <img className="okr-p-comment-avatar" src={comment.avatar} alt={comment.author} draggable={false} />
                     <span className="okr-p-comment-name">{comment.author}</span>
+                    {/* 쓴 사람의 자리(매니저·동료·본인) — 같은 KR 피드백의 옛 창(OkrKrFeedbackModal)에 그린 배지 그대로.
+                        소비처가 라벨을 못 정하면 role 을 비워 배지를 그리지 않는다 (PW-1719). */}
+                    {comment.role && (
+                      <StatusBadge className={`okr-role-badge is-${comment.roleTone ?? 'gray'}`}>{comment.role}</StatusBadge>
+                    )}
                     <span className="okr-p-comment-date">{comment.date}</span>
                   </div>
                   <div className="okr-p-col-main">
