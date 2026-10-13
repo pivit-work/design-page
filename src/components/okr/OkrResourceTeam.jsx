@@ -11,23 +11,36 @@ import { OKR_RESOURCE_DEFAULT_LABELS } from './okrResourceLabels.js';
  * 스탯 4(팀원 총원/여유/몰입/과부하) → 팀원 카드: 아바타·이름·직함·상태 배지·
  * 투입% + 스택 바 + 색상 불릿 + 우측 '항목 n/코멘트 n' 메타와 펼침 화살표
  * (닫힘 ▼ / 펼침 ▲ — Figma 23487 rotate-180 은 펼친 상태). 펼치면 매니저 코멘트
- * 스레드 + 입력줄. [코멘트 남기기] 는 로컬로 스레드에 즉시 달리고(작성자 =
- * data.commentAuthor), onComment(member, text) 로 호스트에도 알린다.
+ * 스레드 + 입력줄. [코멘트 남기기] 는 onComment(member, text) 의 결과를 기다린 뒤 스레드에
+ * 달고(작성자 = data.commentAuthor) 입력칸을 비운다(정책서 §9 「저장 후 입력창 비움」).
+ * false 를 돌려주거나 실패하면 스레드에 달지 않고 쓴 글을 입력칸에 그대로 둔다 — 저장 안 된
+ * 코멘트가 목록에 남고 글은 지워지던 일을 막는다(PW-1787). 기다리는 동안 다시 눌러도 한 번만 보낸다.
  */
 export default function OkrResourceTeam({ data, icons, baseUrl = '', onComment, labels: L = OKR_RESOURCE_DEFAULT_LABELS }) {
   const T = L.team;
   const [openIds, setOpenIds] = useState({});
   const [drafts, setDrafts] = useState({});
   const [added, setAdded] = useState({});
+  const [sending, setSending] = useState({});
   const toggle = (id) => setOpenIds((p) => ({ ...p, [id]: !p[id] }));
 
   // 펼침·초안·추가 코멘트는 모두 rowKey 로 담는다. 이름으로 담으면 동명이인 둘이
   // 한 칸을 나눠 써서, 한 명을 펼치면 둘 다 펼쳐지고 초안·코멘트가 섞인다 (PW-308).
   const commentsOf = (member, i) => [...member.comments, ...(added[rowKey(member, i)] ?? [])];
-  const submit = (member, i) => {
+  const submit = async (member, i) => {
     const rk = rowKey(member, i);
     const text = (drafts[rk] ?? '').trim();
-    if (!text) return;
+    if (!text || sending[rk]) return;
+    setSending((p) => ({ ...p, [rk]: true }));
+    let ok;
+    try {
+      ok = await onComment?.(member, text);
+    } catch {
+      ok = false;
+    } finally {
+      setSending((p) => ({ ...p, [rk]: false }));
+    }
+    if (ok === false) return;
     const comment = {
       author: data.commentAuthor?.name ?? T.me,
       avatar: data.commentAuthor?.avatar,
@@ -36,7 +49,6 @@ export default function OkrResourceTeam({ data, icons, baseUrl = '', onComment, 
     };
     setAdded((p) => ({ ...p, [rk]: [...(p[rk] ?? []), comment] }));
     setDrafts((p) => ({ ...p, [rk]: '' }));
-    onComment?.(member, text);
   };
 
   return (
