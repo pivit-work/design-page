@@ -446,7 +446,7 @@ function CheckboxListPicker({ field, selected, onToggle, onSetMany }) {
     );
   };
   return (
-    <div className="intg-picker-wrap" role="group" aria-label={field.label} data-testid={`intg-picker-${field.key}`}>
+    <div role="group" aria-label={field.label} data-testid={`intg-picker-${field.key}`}>
       <div className="intg-picker">
         {list.message ? (
           <div className="intg-picker-message" data-testid={`intg-picker-message-${field.key}`}>{list.message}</div>
