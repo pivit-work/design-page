@@ -28,6 +28,9 @@ import Icon from '../shared/Icon.jsx';
  *   - 「그 외 인원」은 참석자 행으로 붙이지 않고 태그로 둔다. 태그마다 × 버튼으로 뺀다.
  *   - directory({ id, name, email, department }[]) 가 드롭다운 후보다. 후보를 못 불러왔으면
  *     directoryFailed — 「검색 결과 없음」 대신 labels.directoryLoadFailed 를 보인다.
+ *   - 외부 공유 링크를 못 불러왔으면 shareUrlFailed — 빈 링크 칸과 [복사] 대신 같은 줄에
+ *     labels.shareUrlLoadFailed 와 [labels.retry](onShareUrlRetry)를 보인다 (pivit-work PW-1792).
+ *     빈 칸을 복사하면 아무것도 안 붙는데 「복사됨」이 떴다.
  */
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -97,6 +100,8 @@ const MeetingShareContent = forwardRef(function MeetingShareContent(
     directory = [],
     directoryFailed = false,
     shareUrl,
+    shareUrlFailed = false,
+    onShareUrlRetry,
     subtitle,
     labels,
     onShareSubmit,
@@ -416,16 +421,37 @@ const MeetingShareContent = forwardRef(function MeetingShareContent(
           {mode === 'external' && (
             <div className="mtg-share-card-body">
               <p className="mtg-share-card-desc">{labels.externalLinkDesc}</p>
-              <div className="mtg-share-link-row">
-                <div className="mtg-share-link-url tl-snippet-textarea">{shareUrl}</div>
-                <button
-                  type="button"
-                  className="mtg-share-copy-btn"
-                  onClick={handleCopy}
-                >
-                  {copied ? labels.copied : labels.copy}
-                </button>
-              </div>
+              {shareUrlFailed ? (
+                <div className="mtg-share-link-row">
+                  <div
+                    className="mtg-share-link-url tl-snippet-textarea"
+                    role="alert"
+                    data-testid="mtg-share-link-failed"
+                  >
+                    {labels.shareUrlLoadFailed}
+                  </div>
+                  {onShareUrlRetry && (
+                    <button
+                      type="button"
+                      className="mtg-share-copy-btn"
+                      onClick={onShareUrlRetry}
+                    >
+                      {labels.retry}
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="mtg-share-link-row">
+                  <div className="mtg-share-link-url tl-snippet-textarea">{shareUrl}</div>
+                  <button
+                    type="button"
+                    className="mtg-share-copy-btn"
+                    onClick={handleCopy}
+                  >
+                    {copied ? labels.copied : labels.copy}
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

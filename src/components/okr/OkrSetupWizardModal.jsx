@@ -127,6 +127,10 @@ export default function OkrSetupWizardModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [alignment, setAlignment] = useState(null);
+  // 정합성 조회 실패 — 4단계 안에서 말하고 [다시 시도]로 다시 묻는다(pivit-work PW-1792).
+  // 앞 단계 초안은 그대로다.
+  const [alignmentFailed, setAlignmentFailed] = useState(false);
+  const [alignmentNonce, setAlignmentNonce] = useState(0);
   const [visionImage, setVisionImage] = useState(init.visionImage ?? null);
   const [visionLoading, setVisionLoading] = useState(false);
 
@@ -149,10 +153,15 @@ export default function OkrSetupWizardModal({
     if (stepKey !== 'alignment' || !onFetchAlignment || blocked) return;
     let alive = true;
     onFetchAlignment(scope, targetId)
-      .then((res) => { if (alive) setAlignment(res); })
-      .catch(() => { if (alive) setError('정합성 조회에 실패했습니다.'); });
+      .then((res) => { if (alive) { setAlignment(res); setAlignmentFailed(false); } })
+      .catch(() => { if (alive) setAlignmentFailed(true); });
     return () => { alive = false; };
-  }, [stepKey, scope, targetId, onFetchAlignment, blocked]);
+  }, [stepKey, scope, targetId, onFetchAlignment, blocked, alignmentNonce]);
+
+  const retryAlignment = () => {
+    setAlignmentFailed(false);
+    setAlignmentNonce((n) => n + 1);
+  };
 
   // 대상 조직을 바꾸면 그 조직 기준으로 다시 확인해야 한다 — 초안은 남기되 미확인으로
   // 되돌리고, 앞 조직의 정렬도는 버린다(정책서 §8 「대상 조직 변경 후」).
@@ -504,7 +513,13 @@ export default function OkrSetupWizardModal({
           <p className="okr-wz-step-eyebrow">STEP4 - Alignment</p>
           <p className="okr-wz-question">팀원들의 OKR 정렬도를 확인합니다</p>
           <p className="okr-wz-desc">미정렬 팀원에게는 1:1을 예약할 수 있습니다. (정렬 = 팀 OKR 을 상위로 연결한 개인 OKR)</p>
-          {!alignmentView && !error && <p className="okr-wz-empty">정합성 조회 중…</p>}
+          {!alignmentView && !error && !alignmentFailed && <p className="okr-wz-empty">정합성 조회 중…</p>}
+          {!alignmentView && alignmentFailed && (
+            <div className="okr-wz-align">
+              <p className="okr-wz-error" role="alert">정합성 조회에 실패했습니다.</p>
+              <button type="button" className="okr-btn is-outline is-sm" onClick={retryAlignment}>다시 시도</button>
+            </div>
+          )}
           {alignmentView && (
             <div className="okr-wz-align">
               {alignmentView.emptyMessage ? (

@@ -352,6 +352,7 @@ const DEFAULT_LABELS = {
   cwDetailPerf: '성과 요약',
   cwCommentsTitle: '위원회 논의',
   cwCommentsEmpty: '아직 논의 코멘트가 없습니다.',
+  cwCommentsFailed: '논의 코멘트를 불러오지 못했습니다. 접었다 다시 펼치면 다시 불러옵니다.',
   cwCommentPlaceholder: '조정 근거·이견을 입력…',
   cwCommentSubmit: '코멘트 등록',
   cwCommentReadonly: 'HR 조회 전용 — 위원만 논의 코멘트를 작성할 수 있습니다.',
@@ -1716,6 +1717,8 @@ export default function EvalCycleSummaryCanvas({
   calibCommentsByMember = null,
   /** 상세를 못 받은 대상자 id — 「불러오는 중」에 머물지 않고 사유를 말한다. */
   calibMemberDetailFailed = [],
+  // 논의 코멘트를 못 받은 사람 — 「아직 코멘트가 없습니다」로 보이지 않게 가른다 (pivit-work PW-1792).
+  calibCommentsFailed = [],
   /** 펼친 행이 바뀔 때마다 펼친 대상자 id 전부를 알린다 — 소비처가 그 사람들의 상세를 불러온다. */
   onExpandCalibRows,
   /**
@@ -5164,7 +5167,11 @@ export default function EvalCycleSummaryCanvas({
                                             {L.cwCommentsTitle}
                                           </div>
                                           <div className="evs-cw-comment-list">
-                                            {rowComments.length === 0 ? (
+                                            {rowComments.length === 0 && calibCommentsFailed.includes(row.memberId) ? (
+                                              <div className="evs-cw-comment-empty" role="alert" data-testid="evs-cw-comments-failed">
+                                                {L.cwCommentsFailed}
+                                              </div>
+                                            ) : rowComments.length === 0 ? (
                                               <div className="evs-cw-comment-empty">
                                                 {L.cwCommentsEmpty}
                                               </div>
