@@ -137,6 +137,42 @@
 .intg-setting-label { font-size: 13px; font-weight: 500; color: var(--text-primary); }
 .intg-setting-check { display: flex; gap: 12px; }
 .intg-setting-check label { display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--text-secondary); cursor: pointer; }
+/* 세로 목록 고르기 (pivit-work PW-1770) — 같은 창의 줄 테두리·13px 글씨·초록 체크·회색 머리를 따른다.
+   위 줄(「수집 범위」)에 바로 붙어 펼쳐지도록 위 줄의 밑줄과 아래 여백을 걷는다. */
+.intg-setting-row:has(+ .intg-setting-row-list) { border-bottom: 0; padding-bottom: 0; }
+.intg-setting-row-list { display: block; padding-top: 10px; }
+.intg-picker { border: 1px solid var(--colors-border-borderSecondary, #e6e8ea); border-radius: var(--radius-md, 10px); overflow: hidden; }
+.intg-picker-head {
+  display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+  background: var(--colors-background-bgSecondary, #f9fafb);
+  border-bottom: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+}
+.intg-picker-search { flex: 1; min-width: 0; }
+/* 칸 모양은 같은 창의 고르기 칸(.intg-select)과 같게 — 회색 머리 위에서 흰 칸으로 보인다. */
+.intg-picker-search .dp-search-input {
+  padding: 6px 10px 6px 30px; border-radius: var(--radius-sm, 8px); font-size: 13px;
+  background: var(--bg-quaternary, #fff); border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+}
+.intg-picker-search .dp-search-icon { left: 10px; }
+.intg-picker-count { font-size: 12px; color: var(--text-secondary); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.intg-picker-all {
+  background: none; border: 0; padding: 0; cursor: pointer; white-space: nowrap;
+  font-family: var(--font-family-body); font-size: 12px; font-weight: 600; color: var(--text-brand-tertiary);
+}
+.intg-picker-all:disabled { opacity: 0.5; cursor: not-allowed; }
+/* 6줄(한 줄 36px)이 넘으면 목록 안에서만 스크롤 — 창 크기는 그대로 둔다. */
+.intg-picker-list { max-height: 216px; overflow-y: auto; }
+.intg-picker-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 9px 12px; border-bottom: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  font-size: 13px; color: var(--text-primary); cursor: pointer;
+}
+.intg-picker-item:last-child { border-bottom: 0; }
+.intg-picker-item-main { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.intg-picker-item-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.intg-picker-item-meta { flex: none; font-size: 12px; color: var(--text-tertiary); white-space: nowrap; }
+.intg-picker-message { padding: 14px 12px; font-size: 13px; color: var(--text-secondary); }
+.intg-picker-hint { margin-top: 8px; font-size: 12px; line-height: 1.5; color: var(--text-tertiary); }
 /* 저장 직후 [저장] 자리에 2초 보이는 「✓ 저장됨」(연동 화면 기획 §6). */
 .intg-saved { display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
 .intg-setting-text { font-size: 13px; color: var(--text-secondary); }

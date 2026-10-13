@@ -8,6 +8,7 @@ import Tabs from '../shared/Tabs.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
 import Switch from '../shared/Switch.jsx';
 import Toast from '../shared/Toast.jsx';
+import SearchInput from '../shared/SearchInput.jsx';
 import { CheckGlyph } from '../shared/lineIcons.jsx';
 import { CATALOG_DEFAULT_LABELS } from './adminIntegrationsCatalogLabels.js';
 import {
@@ -420,6 +421,85 @@ function SettingRow({ label, children }) {
   );
 }
 
+/**
+ * 세로 목록으로 고르는 체크 묶음 (pivit-work PW-1770 — Notion 데이터베이스·Slack 채널).
+ *
+ * 가로로 늘어놓으면 항목이 서너 개만 넘어도 창 밖으로 잘려서, 칸에 `list` 를 주면 이 모양으로 그린다.
+ * 위에 검색칸·「2 / 6개 선택」·[전체 선택], 한 줄에 이름과 `meta`(마지막 수정일·멤버 수), 6줄이 넘으면
+ * 목록 안에서만 스크롤된다. `list.message` 가 있으면(불러오는 중·실패·빈 목록) 목록 자리에 그 글을 보인다.
+ * [전체 선택]은 지금 검색에 걸린 것만 고른다 — 걸린 것이 다 골라져 있으면 [선택 해제]로 바뀐다.
+ */
+function CheckboxListPicker({ field, selected, onToggle, onSetMany }) {
+  const list = field.list;
+  const [query, setQuery] = useState('');
+  const options = field.options ?? [];
+  const q = query.trim().toLowerCase();
+  const visible = q ? options.filter((o) => o.label.toLowerCase().includes(q)) : options;
+  const chosen = options.filter((o) => selected.includes(o.value)).length;
+  const allVisibleChosen = visible.length > 0 && visible.every((o) => selected.includes(o.value));
+  const toggleVisible = () => {
+    const ids = visible.map((o) => o.value);
+    onSetMany(
+      allVisibleChosen
+        ? selected.filter((v) => !ids.includes(v))
+        : [...selected, ...ids.filter((v) => !selected.includes(v))],
+    );
+  };
+  return (
+    <div className="intg-picker-wrap" role="group" aria-label={field.label} data-testid={`intg-picker-${field.key}`}>
+      <div className="intg-picker">
+        {list.message ? (
+          <div className="intg-picker-message" data-testid={`intg-picker-message-${field.key}`}>{list.message}</div>
+        ) : (
+          <>
+            <div className="intg-picker-head">
+              <SearchInput
+                className="dp-search intg-picker-search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={list.searchPlaceholder}
+                iconSize={14}
+              />
+              <span className="intg-picker-count" data-testid={`intg-picker-count-${field.key}`}>
+                {fmt(list.countLabel, { selected: chosen, total: options.length })}
+              </span>
+              <button
+                type="button"
+                className="intg-picker-all"
+                onClick={toggleVisible}
+                disabled={visible.length === 0}
+                data-testid={`intg-picker-all-${field.key}`}
+              >
+                {allVisibleChosen ? list.clearAll : list.selectAll}
+              </button>
+            </div>
+            <div className="intg-picker-list">
+              {visible.length === 0 && list.noMatch && (
+                <div className="intg-picker-message">{list.noMatch}</div>
+              )}
+              {visible.map((o) => (
+                <label key={o.value} className="intg-picker-item">
+                  <span className="intg-picker-item-main">
+                    <input
+                      type="checkbox"
+                      checked={selected.includes(o.value)}
+                      onChange={() => onToggle(o.value)}
+                      style={{ accentColor: 'var(--text-brand-tertiary)' }}
+                    />
+                    <span className="intg-picker-item-name" title={o.label}>{o.label}</span>
+                  </span>
+                  {o.meta && <span className="intg-picker-item-meta">{o.meta}</span>}
+                </label>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+      {list.hint && <div className="intg-picker-hint">{list.hint}</div>}
+    </div>
+  );
+}
+
 /** 칸 값이 처음 값과 같은가 — 체크 묶음은 고른 순서와 무관하게 비교한다. */
 function sameFieldValue(a, b) {
   if (Array.isArray(a) || Array.isArray(b)) {
@@ -544,7 +624,23 @@ function SettingsModal({ modal, labels, baseUrl, onClose, onSave, onDisconnect, 
         </>
       }
     >
-      {(modal.fields ?? []).map((field) => (
+      {(modal.fields ?? []).map((field) => {
+        // `showWhen` 이 맞지 않는 칸은 숨긴다. draft 에는 남아 저장할 때 같이 나간다 — 범위를 「전체」로 바꿔도
+        // 골라 둔 목록은 지워지지 않는다 (PW-1770).
+        if (field.showWhen && draft[field.showWhen.key] !== field.showWhen.value) return null;
+        if (field.kind === 'checkboxGroup' && field.list) {
+          return (
+            <div key={field.key} className="intg-setting-row intg-setting-row-list">
+              <CheckboxListPicker
+                field={field}
+                selected={Array.isArray(draft[field.key]) ? draft[field.key] : []}
+                onToggle={(v) => toggleInGroup(field, v)}
+                onSetMany={(next) => setField(field.key, next)}
+              />
+            </div>
+          );
+        }
+        return (
         <SettingRow key={field.key} label={field.label}>
           {field.kind === 'select' && (
             <SelectInput
@@ -596,7 +692,8 @@ function SettingsModal({ modal, labels, baseUrl, onClose, onSave, onDisconnect, 
             </a>
           )}
         </SettingRow>
-      ))}
+        );
+      })}
     </ModalShell>
   );
 }
