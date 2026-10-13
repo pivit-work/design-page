@@ -9,6 +9,8 @@ import Avatar from '../shared/Avatar.jsx';
 import Chip from '../shared/Chip.jsx';
 import FeedbackOkrPanel from './FeedbackOkrPanel.jsx';
 import { SkeletonList } from '../shared/Skeleton.jsx';
+import { FeedbackTextLimitContext, useFeedbackTextLimit, useFeedbackTextTooLong } from './feedbackTextLimit.js';
+import FeedbackLengthNote from './FeedbackLengthNote.jsx';
 
 /**
  * EvalFeedbackCanvas — 내 피드백 (멤버 뷰, v2 재설계).
@@ -53,6 +55,8 @@ const C = {
 const FONT = 'var(--font-family-body)';
 
 const DEFAULT_LABELS = {
+  // PW-1799 — 입력칸이 본문 최대 길이에 닿았을 때. {max} 는 숫자로 바뀐다.
+  textLimitNote: '최대 {max}자까지 쓸 수 있습니다.',
   title: '내 피드백',
   periodLabel: '기간',
   // 지난 기간 옵션 뒤에 붙는 표시. 이모지 글리프를 쓰지 않는다 — 앱 저장소 규칙 (PW-1261).
@@ -446,6 +450,8 @@ function FeedbackBubble({ item, L, linkedLabel: targetLabel, isPastPeriod, onRep
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
   const submitted = !!item.myReply;
+  const maxLen = useFeedbackTextLimit();
+  const tooLong = useFeedbackTextTooLong(draft);
 
   const send = async () => {
     setBusy(true);
@@ -502,9 +508,11 @@ function FeedbackBubble({ item, L, linkedLabel: targetLabel, isPastPeriod, onRep
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
                   placeholder={L.replyPlaceholder}
+                  maxLength={maxLen}
                   data-testid={`fbm-reply-text-${item.id}`}
                   style={{ width: '100%', border: `1px solid ${C.border}`, borderRadius: 8, padding: 8, fontSize: 13, fontFamily: FONT, resize: 'vertical' }}
                 />
+                <FeedbackLengthNote text={draft} label={L.textLimitNote} color={C.rose} testId={`fbm-reply-limit-${item.id}`} />
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginTop: 4 }}>
                   <button
                     type="button"
@@ -517,7 +525,7 @@ function FeedbackBubble({ item, L, linkedLabel: targetLabel, isPastPeriod, onRep
                   </button>
                   <button
                     type="button"
-                    disabled={busy}
+                    disabled={busy || tooLong}
                     onClick={send}
                     data-testid={`fbm-reply-send-${item.id}`}
                     style={{ background: C.teal, color: 'var(--text-white)', border: 'none', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
@@ -548,6 +556,8 @@ function RequestBubble({ item, L, onEdit, onDelete }) {
   const [editText, setEditText] = useState(item.text || '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const maxLen = useFeedbackTextLimit();
+  const editTooLong = useFeedbackTextTooLong(editText);
 
   const resolved = !!item.resolvedAt;
   const canEdit = !!onEdit && !resolved;
@@ -606,9 +616,11 @@ function RequestBubble({ item, L, onEdit, onDelete }) {
             <textarea
               value={editText}
               onChange={(e) => setEditText(e.target.value)}
+              maxLength={maxLen}
               data-testid="fbm-request-edit-input"
               style={{ width: '100%', minHeight: 72, padding: '8px 10px', borderRadius: 7, border: `1px solid ${C.blueBd}`, fontSize: 12, color: C.text, resize: 'none', boxSizing: 'border-box', fontFamily: FONT, lineHeight: 1.7, outline: 'none', marginBottom: 10 }}
             />
+            <FeedbackLengthNote text={editText} label={L.textLimitNote} color={C.rose} testId="fbm-request-edit-limit" />
             {error && <p style={{ margin: '0 0 8px', fontSize: 12, color: C.rose }}>{error}</p>}
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button
@@ -621,7 +633,7 @@ function RequestBubble({ item, L, onEdit, onDelete }) {
               <button
                 type="button"
                 onClick={save}
-                disabled={busy}
+                disabled={busy || editTooLong}
                 data-testid="fbm-request-edit-save"
                 style={{ padding: '6px 16px', borderRadius: 7, border: 'none', background: C.blue, color: 'var(--text-white)', fontSize: 12, fontWeight: 700, cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1 }}
               >
@@ -697,6 +709,8 @@ function RequestCompose({ block, L, recipients, recipientsFailed = false, locked
   const [text, setText] = useState('');
   const [picked, setPicked] = useState(null);
   const [busy, setBusy] = useState(false);
+  const maxLen = useFeedbackTextLimit();
+  const tooLong = useFeedbackTextTooLong(text);
 
   // 고른 사람이 그 사이 잠기면(다른 탭에서 요청 전송 등) 자동으로 놓는다.
   const recipient = picked && !isLocked(picked) ? picked : firstSelectable;
@@ -827,14 +841,16 @@ function RequestCompose({ block, L, recipients, recipientsFailed = false, locked
         value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder={L.requestTextPlaceholder}
+        maxLength={maxLen}
         data-testid="fbm-request-text"
         style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: 8, fontSize: 13, fontFamily: FONT, resize: 'vertical' }}
       />
+      <FeedbackLengthNote text={text} label={L.textLimitNote} color={C.rose} testId="fbm-request-limit" />
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
         {cancelButton}
         <button
           type="button"
-          disabled={!recipient || busy}
+          disabled={!recipient || busy || tooLong}
           onClick={send}
           data-testid="fbm-request-send"
           style={{ background: C.teal, color: 'var(--text-white)', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: recipient ? 'pointer' : 'not-allowed', opacity: recipient ? 1 : 0.5 }}
@@ -859,6 +875,8 @@ function IncomingRequestSection({ requests, L, isPastPeriod, onSend }) {
   const [openId, setOpenId] = useState(null);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
+  const maxLen = useFeedbackTextLimit();
+  const tooLong = useFeedbackTextTooLong(text);
   if (!requests.length) return null;
 
   const submit = async (req) => {
@@ -922,9 +940,11 @@ function IncomingRequestSection({ requests, L, isPastPeriod, onSend }) {
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                   placeholder={L.incomingPlaceholder}
+                  maxLength={maxLen}
                   data-testid={`fbm-incoming-text-${req.id}`}
                   style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${C.border}`, borderRadius: 7, padding: '8px 11px', fontSize: 13, fontFamily: FONT, lineHeight: 1.7, resize: 'vertical', marginBottom: 10 }}
                 />
+                <FeedbackLengthNote text={text} label={L.textLimitNote} color={C.rose} testId={`fbm-incoming-limit-${req.id}`} />
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                   <button
                     type="button"
@@ -936,7 +956,7 @@ function IncomingRequestSection({ requests, L, isPastPeriod, onSend }) {
                   </button>
                   <button
                     type="button"
-                    disabled={!text.trim() || busy}
+                    disabled={!text.trim() || busy || tooLong}
                     onClick={() => submit(req)}
                     data-testid={`fbm-incoming-send-${req.id}`}
                     style={{ background: C.teal, color: 'var(--text-white)', border: 'none', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: text.trim() && !busy ? 'pointer' : 'not-allowed', opacity: text.trim() && !busy ? 1 : 0.5 }}
@@ -1072,6 +1092,8 @@ export default function EvalFeedbackCanvas({
   onSendIncoming,
   // 첫 로딩 중이면 본문 자리에 스켈레톤만 그린다(screen-feedback-member §7 「전체 로딩」).
   loading = false,
+  // 피드백 본문 최대 길이(PW-1799) — 입력칸 넷이 같이 쓴다. 안 넘기면 제한 없음.
+  textMaxLength,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const [openBlock, setOpenBlock] = useState(null);
@@ -1205,6 +1227,7 @@ export default function EvalFeedbackCanvas({
     : undefined;
 
   return (
+    <FeedbackTextLimitContext.Provider value={textMaxLength}>
     <div className="evc-root" style={{ background: C.bg, fontFamily: FONT }}>
       {/* PW-983 — 공용 Toast 로 그린다(<body> 바로 아래). `.evc-root` 가 position: fixed 라 그 안에
           그리면 z-index 가 앱 위쪽 바를 넘지 못해 알림이 바 밑에 깔려 보이지 않았다(PW-978 과 같은 원인). */}
@@ -1326,5 +1349,6 @@ export default function EvalFeedbackCanvas({
         />
       )}
     </div>
+    </FeedbackTextLimitContext.Provider>
   );
 }

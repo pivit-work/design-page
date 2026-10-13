@@ -7,6 +7,8 @@ import Avatar from '../shared/Avatar.jsx';
 import Chip from '../shared/Chip.jsx';
 import FeedbackOkrPanel from './FeedbackOkrPanel.jsx';
 import { SkeletonList } from '../shared/Skeleton.jsx';
+import { FeedbackTextLimitContext, useFeedbackTextLimit, useFeedbackTextTooLong } from './feedbackTextLimit.js';
+import FeedbackLengthNote from './FeedbackLengthNote.jsx';
 
 /**
  * EvalFeedbackComposeCanvas — 팀 피드백 (매니저 뷰, v2 재설계).
@@ -44,6 +46,8 @@ const C = {
 const FONT = 'var(--font-family-body)';
 
 const DEFAULT_LABELS = {
+  // PW-1799 — 입력칸이 본문 최대 길이에 닿았을 때. {max} 는 숫자로 바뀐다.
+  textLimitNote: '최대 {max}자까지 쓸 수 있습니다.',
   // 내가 쓴 피드백의 작성자 이름 — 영어 화면에서는 소비 측이 'Me' 를 넘긴다.
   me: '나',
   emptyItemText: '(내용 없음)',
@@ -338,6 +342,8 @@ function ModalComposeBox({ block, memberName, L, onSend, onAiDraft }) {
   const [aiState, setAiState] = useState('idle'); // idle | loading | done
   const [personalized, setPersonalized] = useState(false);
   const [busy, setBusy] = useState(false);
+  const maxLen = useFeedbackTextLimit();
+  const tooLong = useFeedbackTextTooLong(text);
   // AI 를 기다리는 동안 매니저가 직접 고쳤는가 — 그러면 늦게 온 초안은 버린다(manager §8-2).
   const typedDuringAi = useRef(false);
 
@@ -387,9 +393,11 @@ function ModalComposeBox({ block, memberName, L, onSend, onAiDraft }) {
           if (aiState === 'done') setAiState('idle');
         }}
         placeholder={L.composePlaceholder}
+        maxLength={maxLen}
         data-testid="fbmgr-compose-text"
         style={{ border: `1px solid ${aiState === 'done' ? C.accentBd : C.border}`, background: aiState === 'done' ? C.accentBg : 'var(--text-white)', borderRadius: 8, padding: 10, fontSize: 13, fontFamily: FONT, resize: 'vertical', whiteSpace: 'pre-wrap' }}
       />
+      <FeedbackLengthNote text={text} label={L.textLimitNote} color={C.red} testId="fbmgr-compose-limit" />
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <span style={{ fontSize: 12, color: C.sub }}>
           {aiState === 'done' ? L.aiHintDone : L.aiHintIdle}
@@ -411,7 +419,7 @@ function ModalComposeBox({ block, memberName, L, onSend, onAiDraft }) {
           )}
           <button
             type="button"
-            disabled={!text.trim() || busy}
+            disabled={!text.trim() || busy || tooLong}
             onClick={send}
             data-testid="fbmgr-send"
             style={{ background: C.accent, color: 'var(--text-white)', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: text.trim() ? 'pointer' : 'not-allowed', opacity: text.trim() ? 1 : 0.5 }}
@@ -435,6 +443,8 @@ function FeedbackBubble({ item, member, L, canModify, onEdit, onDelete }) {
   const [editText, setEditText] = useState(item.text || '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const maxLen = useFeedbackTextLimit();
+  const editTooLong = useFeedbackTextTooLong(editText);
   // 동료·다른 매니저가 쓴 글은 읽기만 한다 (PW-1736).
   const mine = isMine(item);
   const author = mine ? L.me : item.author?.name;
@@ -493,14 +503,16 @@ function FeedbackBubble({ item, member, L, canModify, onEdit, onDelete }) {
               <textarea
                 value={editText}
                 onChange={(e) => setEditText(e.target.value)}
+                maxLength={maxLen}
                 data-testid="fbmgr-feedback-edit-input"
                 style={{ width: '100%', minHeight: 72, padding: '8px 10px', borderRadius: 7, border: `1px solid ${C.accentBd}`, fontSize: 13, color: C.text, resize: 'vertical', boxSizing: 'border-box', fontFamily: FONT, lineHeight: 1.6, marginBottom: 8 }}
               />
+              <FeedbackLengthNote text={editText} label={L.textLimitNote} color={C.red} testId="fbmgr-feedback-edit-limit" />
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
                 <button type="button" onClick={cancelEdit} data-testid="fbmgr-feedback-edit-cancel" style={{ padding: '6px 12px', borderRadius: 7, border: `1px solid ${C.border}`, background: 'transparent', color: C.sub, fontSize: 12, cursor: 'pointer' }}>
                   {L.feedbackEditCancel}
                 </button>
-                <button type="button" onClick={save} disabled={busy || !editText.trim()} data-testid="fbmgr-feedback-edit-save" style={{ padding: '6px 16px', borderRadius: 7, border: 'none', background: C.accent, color: 'var(--text-white)', fontSize: 12, fontWeight: 700, cursor: busy || !editText.trim() ? 'not-allowed' : 'pointer', opacity: busy || !editText.trim() ? 0.5 : 1 }}>
+                <button type="button" onClick={save} disabled={busy || !editText.trim() || editTooLong} data-testid="fbmgr-feedback-edit-save" style={{ padding: '6px 16px', borderRadius: 7, border: 'none', background: C.accent, color: 'var(--text-white)', fontSize: 12, fontWeight: 700, cursor: busy || !editText.trim() ? 'not-allowed' : 'pointer', opacity: busy || !editText.trim() ? 0.5 : 1 }}>
                   {L.feedbackEditSave}
                 </button>
               </div>
@@ -865,6 +877,8 @@ export default function EvalFeedbackComposeCanvas({
   // 연 창(블록 key) — 넘기면 소비 측이 쥔다. 열고 닫을 때 onOpenBlockChange(key | null).
   openBlockKey,
   onOpenBlockChange,
+  // 피드백 본문 최대 길이(PW-1799) — 쓰기·고치기 칸이 같이 쓴다. 안 넘기면 제한 없음.
+  textMaxLength,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const [toast, setToast] = useState(null);
@@ -905,6 +919,7 @@ export default function EvalFeedbackComposeCanvas({
     : undefined;
 
   return (
+    <FeedbackTextLimitContext.Provider value={textMaxLength}>
     <div className="evc-root" style={{ background: C.bg, fontFamily: FONT }}>
       {/* PW-983 — 공용 Toast 로 그린다(<body> 바로 아래). `.evc-root` 가 position: fixed 라 그 안에
           그리면 z-index 가 앱 위쪽 바를 넘지 못해 알림이 바 밑에 깔려 보이지 않았다(PW-978 과 같은 원인). */}
@@ -948,5 +963,6 @@ export default function EvalFeedbackComposeCanvas({
         )}
       </div>
     </div>
+    </FeedbackTextLimitContext.Provider>
   );
 }
