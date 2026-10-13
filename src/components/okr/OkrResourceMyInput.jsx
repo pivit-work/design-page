@@ -42,7 +42,8 @@ import { entryProjectId } from './okrResourceEntries.js';
  *
  * `maxTotal` 을 주면 지금 화면의 합계가 그 값을 넘는 동안 [저장] 이 눌리지 않는다(리소스 흐름도
  * 「합계 200% 초과 → 저장 불가」 · PW-1587). 합계가 슬라이더와 함께 움직이므로 판정도 여기서 한다.
- * 생략하면 늘 눌린다.
+ * 생략하면 늘 눌린다. 막힌 동안에는 [저장] 왼쪽에 `M.overLimit(maxTotal)` 이유를 띄운다(PW-1657) —
+ * 모양은 디자이너가 그린 Total 아래 경고 줄(`.rsx-total-warn`) 그대로다.
  */
 /** 수동 % 와 추정 % 의 차이가 이만큼(%p) 이상이면 «차이 큼» — 리소스 정책서 §5-3.4. */
 export const ESTIMATE_GAP_PP = 15;
@@ -131,6 +132,7 @@ export default function OkrResourceMyInput({
     return Math.abs(entry.value - entry.estimate) >= ESTIMATE_GAP_PP ? M.estimateGap : null;
   };
   const total = entries.reduce((a, e) => a + e.value, 0);
+  const overLimit = maxTotal != null && total > maxTotal;
   // 이미 투입 목록에 있는 항목의 추가 버튼은 숨긴다 — 눌러도 무시되는 버튼을
   // 남겨두면 고장으로 읽힌다. 항목을 삭제(X)하면 버튼이 다시 나타난다.
   // 'PIVIT v2.0'(KR 연결명) vs 'PIVIT V2.0'(항목명)처럼 표기만 다른 같은
@@ -377,10 +379,16 @@ export default function OkrResourceMyInput({
 
       {!readOnly && (
         <div className="rsx-save-row">
+          {overLimit && (
+            <div className="rsx-total-warn" role="status">
+              <Icon src={icons.alertTriangle} size={12} color="var(--text-error-primary)" baseUrl={baseUrl} />
+              <span>{M.overLimit(maxTotal)}</span>
+            </div>
+          )}
           <button
             type="button"
             className="rsx-save-btn"
-            disabled={maxTotal != null && total > maxTotal}
+            disabled={overLimit}
             onClick={() => onSave?.(entries)}
           >
             {M.save}

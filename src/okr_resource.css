@@ -108,7 +108,8 @@
 .rsx-add-note { font-size: 12px; font-weight: 400; line-height: 18px; color: var(--text-tertiary); }
 
 /* ── 저장 / 매니저 코멘트 ── */
-.rsx-save-row { display: flex; justify-content: flex-end; }
+/* 막힌 이유(.rsx-total-warn)가 [저장] 왼쪽에 붙는다 — 간격은 같은 화면 .rsx-add-head 의 12px (PW-1657). */
+.rsx-save-row { display: flex; justify-content: flex-end; align-items: center; gap: 12px; }
 .rsx-save-btn { padding: 10px 14px; background: var(--bg-brand-solid); border: none; border-radius: 10px; font-family: inherit; font-size: 16px; font-weight: 600; line-height: 24px; color: var(--text-white); cursor: pointer; }
 /* 누를 수 없음 — design-page 의 disabled 관례 그대로(.seg-item:disabled · .intg-btn:disabled). */
 .rsx-save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
