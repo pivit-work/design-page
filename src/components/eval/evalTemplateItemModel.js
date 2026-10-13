@@ -1,3 +1,4 @@
+import { resolveKoreanParticles } from '../shared/koreanParticle.js';
 /**
  * 평가 항목 한 개가 «무엇을 가질 수 있는가» — 마법사 2단계와 평가 템플릿 라이브러리가
  * 함께 쓰는 어휘.
@@ -18,11 +19,14 @@
  * §5.11-D(가이드 문구) · §5.12(결과 공개 범위)
  */
 
-/** `{{name}}` 자리를 채운다 — 라벨 묶음이 문장을 통째로 주는 구조라 필요하다. */
+/**
+ * `{{name}}` 자리를 채운다 — 라벨 묶음이 문장을 통째로 주는 구조라 필요하다.
+ * 채운 뒤 「{{name}}은(는)」 같은 괄호 꼴 조사를 받침에 맞춘다 (PW-1790).
+ */
 export const fill = (s, vars) => {
   let out = s == null ? '' : String(s);
   for (const k of Object.keys(vars)) out = out.replace(`{{${k}}}`, vars[k]);
-  return out;
+  return resolveKoreanParticles(out);
 };
 
 /**
