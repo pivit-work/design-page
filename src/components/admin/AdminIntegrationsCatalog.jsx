@@ -10,6 +10,7 @@ import TextInput from '../shared/TextInput.jsx';
 import TextArea from '../shared/TextArea.jsx';
 import assetUrl from '../shared/assetUrl.js';
 import { AlertTriangleGlyph, ArrowRightGlyph, LockGlyph, SettingsGlyph } from '../shared/lineIcons.jsx';
+import { resolveKoreanParticles } from '../shared/koreanParticle.js';
 
 
 /**
@@ -28,7 +29,7 @@ import { AlertTriangleGlyph, ArrowRightGlyph, LockGlyph, SettingsGlyph } from '.
 
 
 function fmt(tpl, vars) {
-  return String(tpl ?? '').replace(/\{\{(\w+)\}\}/g, (_, k) => (vars[k] ?? ''));
+  return resolveKoreanParticles(String(tpl ?? '').replace(/\{\{(\w+)\}\}/g, (_, k) => (vars[k] ?? '')));
 }
 
 const GROUP_ORDER = ['tool', 'send', 'hr'];

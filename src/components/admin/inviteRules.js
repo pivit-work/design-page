@@ -1,3 +1,4 @@
+import { resolveKoreanParticles } from '../shared/koreanParticle.js';
 /**
  * 초대 발송 모달의 순수 규칙 — `screen-admin-employees-invite.policy.md`.
  *
@@ -75,9 +76,10 @@ export function reconcilePrimary(teamIds, primaryTeamId) {
 
 /** `{n}` 자리 치환 — 문구는 소비자(i18n)가 주므로 여기서 조립만 한다. */
 export function fmt(template, vars) {
-  return String(template ?? '').replace(/\{(\w+)\}/g, (m, k) =>
+  // 이름을 채운 뒤 「{names}은(는)」 같은 괄호 꼴 조사를 받침에 맞춘다 (PW-1790)
+  return resolveKoreanParticles(String(template ?? '').replace(/\{(\w+)\}/g, (m, k) =>
     vars[k] === undefined || vars[k] === null ? m : String(vars[k]),
-  );
+  ));
 }
 
 /* ── (직군, 직렬) 쌍 — INV-3 (PW-412) ────────────────────────────────────────

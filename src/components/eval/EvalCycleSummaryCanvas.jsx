@@ -13,6 +13,7 @@ import LoadingState from '../shared/LoadingState.jsx';
 import DateInput from '../shared/DateInput.jsx';
 import { scaleMaxOf } from './evalTemplateItemModel.js';
 import { leaderGradeMarks } from './evalLeaderLive.js';
+import { pickParticle } from '../shared/koreanParticle.js';
 
 /**
  * 탭이 열리는 사이클 단계 (요약 정책 §3). 통합 요약·캘리브레이션 워크스페이스는 캘리브레이션부터,
@@ -690,13 +691,11 @@ function fmt(str, vars) {
   return String(str).replace(/\{(\w+)\}/g, (m, k) => (vars[k] != null ? String(vars[k]) : m));
 }
 /**
- * 이름 뒤 목적격 조사 — 끝 글자 받침이 있으면 「을」, 없으면 「를」. 한글이 아닌 끝 글자(영문 이름 등)는
- * 받침을 알 수 없어 「을(를)」. 「{nameObj} 위원회에서 제외합니다」처럼 쓴다.
+ * 이름 뒤 목적격 조사 — 끝소리로 「을」·「를」을 고른다(영문 이름도 읽는다, PW-1790).
+ * 「{nameObj} 위원회에서 제외합니다」처럼 쓴다.
  */
 function withObjectParticle(name) {
-  const code = String(name).charCodeAt(String(name).length - 1);
-  if (!(code >= 0xac00 && code <= 0xd7a3)) return `${name}을(를)`;
-  return `${name}${(code - 0xac00) % 28 === 0 ? '를' : '을'}`;
+  return `${name}${pickParticle(name, '을(를)')}`;
 }
 /** §3.3② 위원 후보 검색 — 이름·부서·직책 부분일치(q 는 소문자로 다듬은 검색어). */
 function committeeCandidateMatches(c, q) {

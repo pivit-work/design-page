@@ -6,6 +6,7 @@
 // ─────────────────────────────────────────────────────────────
 
 import Tooltip from '../shared/Tooltip.jsx';
+import { resolveKoreanParticles } from '../shared/koreanParticle.js';
 
 const T = {
   font: 'var(--font-family-body)',
@@ -220,7 +221,7 @@ export function UpsellCard({ feature, requiredTier, onNavigate, labels }) {
         >
           {labels?.title
             ? labels.title(featureLabel, tierLabel)
-            : `${featureLabel}은(는) ${tierLabel} 플랜부터 제공됩니다`}
+            : resolveKoreanParticles(`${featureLabel}은(는) ${tierLabel} 플랜부터 제공됩니다`)}
         </div>
         <div
           style={{ fontSize: 13, color: T.sub, lineHeight: 1.7, maxWidth: 360 }}

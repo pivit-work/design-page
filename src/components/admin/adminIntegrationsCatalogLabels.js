@@ -21,7 +21,7 @@ export const CATALOG_DEFAULT_LABELS = {
     loading: '불러오는 중...',
     loadFailed: '툴 카탈로그를 불러오지 못했습니다.',
     retry: '다시 시도',
-    confirmStatusTitle: '{{name}} 을(를) 비활성화할까요?',
+    confirmStatusTitle: '{{name}}을(를) 비활성화할까요?',
     confirmStatusBody: '기존 연동 {{n}}건이 다음 만료 시점에 차단됩니다.',
     confirmStatusNote: '그 전까지는 수집이 계속되고, 만료 뒤에는 다시 연결할 수 없습니다.',
     confirmPersonalTitle: '{{name}} 개인 연동 허용을 끌까요?',

@@ -6,6 +6,7 @@ import ModalShell from '../shared/ModalShell.jsx';
 import AppConfirmModal from '../shared/ConfirmModal.jsx';
 import Toast from '../shared/Toast.jsx';
 import LoadingState from '../shared/LoadingState.jsx';
+import { resolveKoreanParticles } from '../shared/koreanParticle.js';
 
 /**
  * AdminTeamCanvas — 팀 관리 화면(좌: 트리 / 우: 상세) 정본 컴포넌트.
@@ -105,7 +106,7 @@ function mergeLabels(base, provided) {
 const fill = (s, vars) => {
   let out = s == null ? '' : String(s);
   for (const k of Object.keys(vars)) out = out.replace(`{{${k}}}`, vars[k]);
-  return out;
+  return resolveKoreanParticles(out);
 };
 
 function containsId(node, id) {

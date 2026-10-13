@@ -1,3 +1,4 @@
+import { resolveKoreanParticles } from '../shared/koreanParticle.js';
 /**
  * 직군 > 직렬 > 직무 3단 축 유틸 (§1-3-d · §1-3-j).
  *
@@ -221,9 +222,9 @@ export function jobAxisNoticeText(notice, labels) {
   }[notice.kind];
   const tpl = key ? labels[key] : '';
   if (!tpl) return '';
-  return String(tpl)
+  return resolveKoreanParticles(String(tpl)
     .replace('{value}', notice.value ?? '')
-    .replace('{owners}', (notice.owners || []).join(' · '));
+    .replace('{owners}', (notice.owners || []).join(' · ')));
 }
 
 /** 세 칸 연동의 기본 문구 (한국어) — 화면 라벨 묶음에 섞어 쓴다. */

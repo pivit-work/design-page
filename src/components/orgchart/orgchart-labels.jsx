@@ -16,6 +16,7 @@
  * `<b>…</b>` · `<br/>` 가 들어간 문구는 `rich()` 로 그린다 — 그 두 태그만 해석한다.
  */
 import { createContext, useContext, Fragment } from 'react';
+import { resolveKoreanParticles } from '../shared/koreanParticle.js';
 
 export const ORGCHART_LABELS = {
   // ── 탭 줄 · 머리 (세 캔버스 공통) ──
@@ -280,14 +281,14 @@ export const ORGCHART_LABELS = {
   'squad.del.kept': '보존',
   'squad.del.keptLedger': '프로젝트 원장',
   'squad.del.keptActuals': '실제 투입% 이력',
-  'squad.del.note': '되돌릴 수 없습니다. 확인을 위해 스쿼드명 <b>{{name}}</b> 을(를) 입력하세요.',
+  'squad.del.note': '되돌릴 수 없습니다. 확인을 위해 스쿼드명 <b>{{name}}</b>을(를) 입력하세요.',
   'squad.del.input': '삭제 확인용 스쿼드명',
   'squad.del.confirm': '삭제',
   'squad.del.cancel': '취소',
   'squad.status.reopenTitle': '스쿼드를 재개할까요?',
   'squad.status.archiveTitle': '스쿼드를 보관할까요?',
-  'squad.status.reopenDesc': '<b>{{name}}</b> 을(를) 진행중으로 되돌립니다. 이 스쿼드 배정이 캐파 합계에 다시 포함됩니다.',
-  'squad.status.archiveDesc': '<b>{{name}}</b> 을(를) 보관합니다. 목록에서 흐리게 표시되며 캐파 합계에서 계속 제외됩니다. 언제든 복원할 수 있습니다.',
+  'squad.status.reopenDesc': '<b>{{name}}</b>을(를) 진행중으로 되돌립니다. 이 스쿼드 배정이 캐파 합계에 다시 포함됩니다.',
+  'squad.status.archiveDesc': '<b>{{name}}</b>을(를) 보관합니다. 목록에서 흐리게 표시되며 캐파 합계에서 계속 제외됩니다. 언제든 복원할 수 있습니다.',
   'squad.status.reopenOverload': '재개하면 {{count}}명이 과부하(>100%)가 됩니다',
   'squad.status.reopenOverloadNote': '저장은 허용됩니다 — 경고만 표시합니다',
   'squad.status.reopenConfirm': '재개',
@@ -376,7 +377,7 @@ export const ORGCHART_LABELS = {
   'projectDetail.squads.empty': '연결된 스쿼드가 없습니다',
   'projectDetail.del.title': '프로젝트를 삭제할까요?',
   'projectDetail.del.desc': '삭제하면 되돌릴 수 없습니다.',
-  'projectDetail.del.note': '확인을 위해 프로젝트명 <b>{{name}}</b> 을(를) 그대로 입력하세요.',
+  'projectDetail.del.note': '확인을 위해 프로젝트명 <b>{{name}}</b>을(를) 그대로 입력하세요.',
   'projectDetail.del.input': '삭제 확인용 프로젝트명',
   'projectDetail.del.confirm': '삭제',
   'projectDetail.del.cancel': '취소',
@@ -385,7 +386,7 @@ export const ORGCHART_LABELS = {
 
 function interpolate(str, vars) {
   if (!vars) return str;
-  return str.replace(/\{\{\s*(\w+)\s*\}\}/g, (m, k) => (vars[k] == null ? m : String(vars[k])));
+  return resolveKoreanParticles(str.replace(/\{\{\s*(\w+)\s*\}\}/g, (m, k) => (vars[k] == null ? m : String(vars[k]))));
 }
 
 /**
