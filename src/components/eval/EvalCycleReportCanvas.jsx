@@ -92,14 +92,13 @@ function catLabel(a, L) {
  * 셀프 답 목록에 다시 그릴 답인가 (PW-1748).
  *
  * 성장 영역에 이미 나간 답(칸이 있는 답)과, 성장 영역을 끈 리포트의 성장 구분 답은 뺀다.
- * 칸이 없는 성장 답(사이클 만들기 평가지의 「성장 가능성」 점수 같은 것)은 성장 영역이 켜져
- * 있을 때 종전대로 둔다 — 구분이 내부 값이면 빠지고 문장이면 보인다. 어느 쪽으로 맞출지는
- * 기획 판단이라 여기서 정하지 않았다.
+ * 칸이 없는 성장 답(「성장 가능성」 점수 같은 것)은 성장 영역이 켜져 있으면 평가지를 어디서
+ * 만들었든 셀프 목록에 남긴다 — 안 그러면 리포트 어디에도 안 나온다 (PW-1766, 커트 결정 2026-10-13).
  */
 function shownInSelfList(a, growthOn) {
   if (growthOn && a.growthType) return false;
   if (categoryKind(a.itemCategory) !== 'growth') return true;
-  return growthOn && a.itemCategory !== 'growth';
+  return growthOn;
 }
 
 function krColor(p) {
