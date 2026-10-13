@@ -24,10 +24,18 @@ const TAB_OPEN_STATUSES = {
   leaderPattern: ['done'],
   calib: ['done'],
   exec: ['done'],
-  // 「캘리브레이션 단계 이후 활성」 — 캘리브레이션 다음의 인사 검토(hr_review)도 그 «이후» 다.
-  integrated: ['calibration', 'hr_review', 'done'],
-  calib_work: ['calibration', 'hr_review', 'done'],
+  // 「캘리브레이션 단계 이후 활성」 — 캘리브레이션 다음의 리포트 검수(report_review)·인사 검토(hr_review)도
+  // 그 «이후» 다 (PW-1742 ⑤ 커트 결정 2026-10-13 — 단계가 나아가는데 보이는 탭이 줄지 않게).
+  integrated: ['calibration', 'report_review', 'hr_review', 'done'],
+  calib_work: ['calibration', 'report_review', 'hr_review', 'done'],
 };
+
+/** 일시 중단·긴급 중지는 단계가 아니라 «상태»라, 탭은 멈추기 직전 단계(`prevStatus`)로 연다 (PW-1742 ⑤). */
+const PAUSED_STATUSES = ['on_hold', 'emergency_stopped'];
+function tabGateStatus(cycle) {
+  if (!cycle?.status) return null;
+  return PAUSED_STATUSES.includes(cycle.status) ? (cycle.prevStatus ?? cycle.status) : cycle.status;
+}
 
 /**
  * EvalCycleSummaryCanvas — HR 종합 리포트.
@@ -51,6 +59,7 @@ const DEFAULT_LABELS = {
   tabExec: '경영진 대시보드',
   tabNotStarted: '이 단계는 아직 시작되지 않았습니다',
   beforeCalibration: '캘리브레이션 완료 후 접근 가능합니다.',
+  periodNoData: '선택한 기간에 완료된 평가 데이터가 없습니다.',
   tabCalibWork: '캘리브레이션 워크스페이스',
   // §10.G 캘리브레이션 워크스페이스
   cwBanner: '권한: 캘리브레이션 위원회=조정·확정 / HR=조회 전용. 동급자 이해상충 자동 제외.',
@@ -1631,6 +1640,9 @@ export default function EvalCycleSummaryCanvas({
   periods = [],
   selectedCycleId = null,
   onPeriodChange,
+  // 요약 정책 §1.1 빈 상태 — 고른 기간(사이클 하나)에 확정 데이터가 없다. 안내를 띄우고 탭을 모두 잠근다.
+  // 「확정 데이터가 없다」의 판정은 부르는 쪽이 한다(PW-1742 ④).
+  noPeriodData = false,
   totalParticipants = 0,
   selfSubmittedCount = 0,
   gradedCount = 0,
@@ -1807,11 +1819,14 @@ export default function EvalCycleSummaryCanvas({
   // [PW-1466] 주소에 고른 구성원이 있으면 통합 요약 탭으로 연다(`initialTab`).
   const [tab, setTab] = useState(workspaceOnly ? 'calib_work' : initialTab || 'overview');
   // 요약 정책 §2·§3 — 탭마다 열리는 사이클 단계가 다르다. 상태를 모르면(사이클 없음) 막지 않는다.
+  const gateStatus = tabGateStatus(cycle);
+  const periodEmpty = !workspaceOnly && noPeriodData;
   const tabOpen = (key) =>
+    !periodEmpty &&
     (key !== 'calib_work' || workspaceOnly || showCalibWorkTab) &&
-    (!cycle?.status || (TAB_OPEN_STATUSES[key] ?? []).includes(cycle.status));
+    (!gateStatus || (TAB_OPEN_STATUSES[key] ?? []).includes(gateStatus));
   const beforeCalibration =
-    !workspaceOnly && !!cycle?.status && !TAB_OPEN_STATUSES.integrated.includes(cycle.status);
+    !workspaceOnly && !!gateStatus && !TAB_OPEN_STATUSES.integrated.includes(gateStatus);
   const [execSection, setExecSection] = useState('j1');
   const [nbSelectedMember, setNbSelectedMember] = useState(null);
   // §9.F.2 부서별 분석 표 머리글 정렬 — 처음엔 서버 순서.
@@ -2546,6 +2561,11 @@ export default function EvalCycleSummaryCanvas({
         {beforeCalibration && (
           <p className="evc-empty-sub" role="status" data-testid="evs-before-calibration">
             {L.beforeCalibration}
+          </p>
+        )}
+        {periodEmpty && !beforeCalibration && (
+          <p className="evc-empty-sub" role="status" data-testid="evs-period-no-data">
+            {L.periodNoData}
           </p>
         )}
         {/* PW-486 §15.6③ 진행 중 껐지만 조정 이력이 남은 사이클 — 켠 것과 같이 그리되
