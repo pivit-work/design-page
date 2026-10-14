@@ -72,6 +72,7 @@ const DEFAULT_LABELS = {
   refineEditCancel: '취소',
   refineEditPh: '피평가자에게 나갈 글을 직접 쓰세요.',
   refineRetry: '재시도',
+  refineSentLocked: '이미 발송된 리포트입니다.',
   refineFailedNote:
     '다듬지 못했습니다. 다시 시도하거나, 원문 그대로 보내려면 「원문 유지」를 고르세요.',
   refinePendingNote: '다듬는 중입니다. 잠시 뒤 다시 열어 보세요.',
@@ -286,10 +287,18 @@ function RefinementPanel({ memberId, L, load, onDecide, onRetry }) {
     );
   }
   if (!review) return null;
+  // PW-1115 — 그 사람에게 리포트를 보낸 뒤에는 검수를 바꾸지 않는다. 바꾸면 이미 받은
+  // 리포트와 저장된 글이 달라진다. 서버도 같은 때 거절한다.
+  const locked = review.reportSent === true;
 
   return (
     <div className="evrr-refine" data-testid={`evrr-refine-${memberId}`}>
       <p className="evrr-refine-hint">{L.refineHint}</p>
+      {locked && (
+        <p className="evrr-refine-note" data-testid={`evrr-refine-sent-${memberId}`}>
+          {L.refineSentLocked}
+        </p>
+      )}
       {error && (
         <p className="evrr-refine-error" role="alert">{error}</p>
       )}
@@ -300,7 +309,7 @@ function RefinementPanel({ memberId, L, load, onDecide, onRetry }) {
       ) : (
         review.items.map((item) => {
           const meta = REFINE_META[item.status] ?? REFINE_META.pending;
-          const busy = busyId === item.answerId;
+          const busy = locked || busyId === item.answerId;
           const isEditing = editing === item.answerId;
           return (
             <section
