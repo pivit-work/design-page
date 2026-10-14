@@ -52,7 +52,7 @@ export const INVITE_CSV_COLUMNS = [
   { key: 'nickname', labelKey: 'csvColNickname', width: 100 },
   { key: 'employeeCode', labelKey: 'csvColEmployeeCode', width: 100 },
   { key: 'birthDate', labelKey: 'csvColBirthDate', kind: 'date', width: 120 },
-  { key: 'gender', labelKey: 'csvColGender', width: 80 },
+  { key: 'gender', labelKey: 'csvColGender', kind: 'gender', width: 80 },
   { key: 'maritalStatus', labelKey: 'csvColMaritalStatus', width: 90 },
   { key: 'nationality', labelKey: 'csvColNationality', width: 90 },
   // 연락
@@ -320,6 +320,8 @@ export const INVITE_CSV_DEFAULT_LABELS = {
   // 고용형태는 회사가 등록하는 값이 아니라 시스템 고정값이다(PW-1299 · V15) — 「등록된 값이 아니에요」로는
   // 고칠 곳이 없어, 받는 값을 그대로 알려 준다.
   csvErrEmploymentType: '고용형태는 {choices} 중 하나로 적어 주세요',
+  // 성별도 고정값이다(PW-1332 · 초대 정책서 §2-4) — 받는 라벨을 그대로 알려 준다.
+  csvErrGender: '성별은 남성·여성·기타·비공개 중 하나로 적어 주세요',
   csvErrOrgPathNotFound: "조직경로 '{path}'를 찾을 수 없습니다",
   csvErrLadderNeedsFamily: '직군을 함께 지정해주세요',
   csvErrJobPair: '직군에 없는 직렬입니다',
@@ -437,7 +439,7 @@ const TEMPLATE_SAMPLE = {
   nickname: '길동',
   employeeCode: 'EMP001',
   birthDate: '1990-01-15',
-  gender: '남',
+  gender: '남성',
   maritalStatus: '기혼',
   nationality: 'KR',
   phone: '010-1234-5678',
@@ -586,6 +588,21 @@ export function parseBoolCell(value) {
   if (['y', 'yes', 'true', '1', '예', 'o'].includes(v)) return true;
   if (['n', 'no', 'false', '0', '아니오', '아니요', 'x'].includes(v)) return false;
   return null;
+}
+
+/**
+ * 성별 칸이 받는 글자 (PW-1332 · 초대 정책서 §2-4) — 라벨 넷·코드·줄임 남/여·「밝히지 않음」.
+ * 서버 `parseGenderCell` 과 같은 표다. 그 밖의 글자는 `null` — 저장 때 서버도 같은 칸을 막는다.
+ */
+const GENDER_BY_TEXT = {
+  남: 'male', 남성: 'male', male: 'male',
+  여: 'female', 여성: 'female', female: 'female',
+  기타: 'other', other: 'other',
+  비공개: 'undisclosed', '밝히지 않음': 'undisclosed', undisclosed: 'undisclosed',
+};
+
+export function parseGenderCell(value) {
+  return GENDER_BY_TEXT[String(value ?? '').trim().toLowerCase()] ?? null;
 }
 
 /** `YYYY-MM-DD` 이고 실제로 있는 날짜인가 — 서버 `isIsoDate` 와 같은 규칙. */
@@ -906,6 +923,9 @@ export function inviteCsvIssues(row, ctx) {
       add(col.key, fmtCsv(l.csvErrDate, { column: labelOf(col.key), value: v[col.key] }));
     }
     // 예/아니오 칸 (PW-920). 「Y」·「true」·「1」도 받는다 — 파일을 만든 도구마다 다르다.
+    if (col.kind === 'gender' && normalize(v[col.key]) && parseGenderCell(v[col.key]) === null) {
+      add(col.key, l.csvErrGender);
+    }
     if (col.kind === 'bool' && normalize(v[col.key]) && parseBoolCell(v[col.key]) === null) {
       add(col.key, fmtCsv(l.csvErrBool, { column: labelOf(col.key), value: v[col.key] }));
     }
