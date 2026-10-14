@@ -44,7 +44,7 @@ import { AlertIcon, CheckCircleIcon, InfoIcon, ZapIcon } from './evalIcons.jsx';
 import { autoCommitteeIdsOf } from './calibrationAutoCommittee.js';
 // [PW-527 ①③] 항목 설정판과 평가지 렌더는 「평가 템플릿」 화면과 **나눠 쓰는 부품**이다.
 // 여기 안에 두면 마법사 밖에서 쓸 수 없어, 같은 판이 두 화면에 각각 생긴다 (정책 §6.3).
-import { EvalTemplateGradeRows, EvalTemplateItemRow } from './EvalTemplateBuilder.jsx';
+import { EvalTemplateGradeRows, EvalTemplateItemRow, GripIcon } from './EvalTemplateBuilder.jsx';
 import EvalSheetBody from './EvalSheetBody.jsx';
 import {
   CHECK_MAX_OPTIONS,
@@ -95,20 +95,6 @@ import EvalLeaderAssignmentSection from './EvalLeaderAssignmentSection.jsx';
 // 두 곳 이상 쓰는 그림은 design-page `shared/lineIcons.jsx` 한 벌을 부른다(PW-1011).
 function LockIcon({ size = 13 }) {
   return <LockKeyholeSquareGlyph size={size} />;
-}
-
-// 드래그 핸들 그립 아이콘 — 6점 그립(표준 유틸리티 글리프, 인라인 SVG).
-function GripIcon({ size = 14 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-      <circle cx="6" cy="4" r="1.3" />
-      <circle cx="10" cy="4" r="1.3" />
-      <circle cx="6" cy="8" r="1.3" />
-      <circle cx="10" cy="8" r="1.3" />
-      <circle cx="6" cy="12" r="1.3" />
-      <circle cx="10" cy="12" r="1.3" />
-    </svg>
-  );
 }
 
 // 소형 유틸리티 아이콘(인라인 SVG). 이모지 글리프 대신 currentColor·size prop 으로
@@ -5167,12 +5153,11 @@ export default function EvalCycleWizard({
    * PW-433 ④ 등급 서열 이동. **배열 순서가 곧 서열**이라 행을 통째로 맞바꾼다 —
    * 등급명·설명·비율이 함께 움직인다 (policy §5.4.4).
    */
-  const moveGrade = (i, dir) =>
+  const reorderGrade = (from, to) =>
     setTplGrades((gs) => {
-      const to = i + dir;
-      if (to < 0 || to >= gs.length) return gs;
       const next = [...gs];
-      [next[i], next[to]] = [next[to], next[i]];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
       return next;
     });
   const addGrade = () =>
@@ -7846,7 +7831,7 @@ export default function EvalCycleWizard({
                 </Select>
               )}
               {/* [PW-527 ②] 등급 줄은 「평가 템플릿」 화면의 [편집] 창과 **같은 부품**이다 —
-                  ▲▼ 순서 이동이 한쪽에만 있으면 버그로 본다 (정책 §6.3). */}
+                  드래그 순서 이동이 한쪽에만 있으면 버그로 본다 (정책 §6.3). */}
               <EvalTemplateGradeRows
                 grades={tplGrades}
                 labels={L}
@@ -7856,7 +7841,7 @@ export default function EvalCycleWizard({
                   // PW-119: 빈 등급명도 저장을 막으므로 중복명과 똑같이 표시한다.
                   !g.label.trim() || tplDupLabels.has(g.label.trim().toLowerCase())
                 }
-                onMove={moveGrade}
+                onReorder={reorderGrade}
                 onUpdate={updateGrade}
                 onRemove={removeGrade}
               />

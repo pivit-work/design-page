@@ -8832,7 +8832,7 @@
 /* ── PW-433 항목 설정 패널 · 등급 서열 이동 ─────────────────────────────
    policy §5.11-A~D · §5.12 · §5.4.4 */
 
-/* 등급 행: 이동 버튼 + 순번이 앞에 붙어 4열 → 6열이 된다. */
+/* 등급 행: 끌기 손잡이 + 순번이 앞에 붙어 4열 → 6열이 된다. */
 .evc-tpl-grade {
   grid-template-columns: 20px 16px 100px 1fr 72px auto;
 }
@@ -8868,6 +8868,19 @@
   opacity: 0.35;
   cursor: not-allowed;
 }
+/* 등급 줄의 끌기 손잡이 — 평가 항목 줄의 것(.evc-tpl-item-handle)과 같은 모양이다. 끌기는 여기서만
+   시작된다 (policy §5.4.4, PW-433 후속). 끄는 동안 반투명·놓을 자리 테두리도 평가 항목 줄과 맞춘다.
+   등급 줄에는 테두리가 없어, 놓을 자리는 줄 폭을 바꾸지 않는 그림자 선으로 그린다(× 세로 줄 맞춤 유지). */
+.evc-tpl-grade-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  cursor: grab;
+}
+.evc-tpl-grade { border-radius: var(--radius-md); }
+.evc-tpl-grade.is-over { box-shadow: 0 0 0 1px var(--bg-brand-solid); }
+.evc-tpl-grade.is-dragging { opacity: 0.45; }
 .evc-tpl-grade-no {
   font-size: var(--font-size-text-xs);
   font-weight: 700;
