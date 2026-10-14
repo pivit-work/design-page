@@ -58,10 +58,14 @@ export default function MeetingInProgressModal({
   canShare = true,
 }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
+  // 'progress' = 회의 진행 중, 'record' = 종료 → 생성된 회의록, 'share' = 공유.
+  const [phase, setPhase] = useState(initialPhase);
   // 녹음 중 파형 — 1on1 녹음 위젯과 같은 실시간 마이크 이퀄라이저 (9막대·28px).
+  // 파형은 진행 중 단계에만 그려진다. 회의록·공유 단계에서 마이크를 열면 지난 회의를
+  // 열기만 해도 브라우저가 마이크 권한을 묻고 탭에 마이크 표시가 뜬다.
   const waveRef = useRef(null);
   useMicWave(waveRef, {
-    enabled: mode === 'record' && !recordingStopped,
+    enabled: phase === 'progress' && mode === 'record' && !recordingStopped,
     barCount: 6,
     minPx: 3,
     maxPx: 20,
@@ -69,8 +73,6 @@ export default function MeetingInProgressModal({
   const [internalMemo, setInternalMemo] = useState('');
   const memo = memoProp !== undefined ? memoProp : internalMemo;
   const handleMemoChange = onMemoChange ?? setInternalMemo;
-  // 'progress' = 회의 진행 중, 'record' = 종료 → 생성된 회의록, 'share' = 공유.
-  const [phase, setPhase] = useState(initialPhase);
   const [shareSubmitting, setShareSubmitting] = useState(false);
   const isRecord = phase === 'record';
   const isShare = phase === 'share';
