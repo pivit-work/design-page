@@ -7417,7 +7417,10 @@ export default function EvalCycleWizard({
                     peerAssignModes[0] === 'ai_recommend' &&
                     L.peerAiOnlyNote && (
                       <div className="evc-wiz-soft-warn" data-testid="evc-wiz-peer-ai-only">
-                        {L.peerAiOnlyNote}
+                        {fill(L.peerAiOnlyNote, {
+                          self: L.modeSelfSelect,
+                          leader: L.modeLeaderAssign,
+                        })}
                       </div>
                     )}
 
