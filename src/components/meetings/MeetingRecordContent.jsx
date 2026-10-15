@@ -78,6 +78,9 @@ export default function MeetingRecordContent({
   actionItemMaxLength,
   actionItemMaxCount,
   onActionItemLimit,
+  // 회의록을 아직 만들지 않은 회의 (PW-1832) — 요약·주요 논의·결정 사항·액션 아이템 섹션을 그리지 않는다.
+  // 만들지 않은 것을 빈 섹션으로 보이지 않는다. 머리·메타·headerExtra 는 그대로다. 기본은 지금처럼 다 그린다.
+  minutesHidden = false,
 }) {
   // controlled/uncontrolled 패턴: prop 이 주어지면 prop 이 원천, 아니면 내부 state.
   const [internalActions, setInternalActions] = useState([]);
@@ -143,6 +146,8 @@ export default function MeetingRecordContent({
 
       {headerExtra}
 
+      {!minutesHidden && (
+      <>
       {/* 요약 — 발언 기록이 있으면 「요약 | 발언 기록」 탭 (PW-1704). 처음은 요약 탭이다. */}
       {transcriptTab ? (
         <section className="mtg-progress-section mtg-record-section">
@@ -322,6 +327,8 @@ export default function MeetingRecordContent({
           </li>}
         </ul>
       </section>
+      </>
+      )}
 
       {openPicker?.field === 'person' && (
         <ActionPersonPopover
