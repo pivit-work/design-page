@@ -1000,8 +1000,11 @@ input.mtg-record-action-title::placeholder {
   opacity: 0.5;
 }
 
-/* 그 외 인원 — 태그 + 입력창 (pivit-specs meeting-app.jsx EmployeeTagInput · share.policy §5.3) */
-.mtg-share-recipients {
+/* 그 외 인원 — 태그 + 입력창 (pivit-specs meeting-app.jsx EmployeeTagInput · share.policy §5.3)
+   .tl-snippet-textarea(min-height:144 · padding 12/14)를 함께 단다. 클래스 하나로만 덮으면
+   우선순위가 같아 CSS 를 읽는 순서로 승부가 나고, 앱은 timeline.css 를 나중에 읽어 144px 상자가 됐다 (PW-1829).
+   두 클래스를 붙여 써서 읽는 순서와 상관없이 한 줄 높이에서 시작하게 한다. */
+.tl-snippet-textarea.mtg-share-recipients {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
