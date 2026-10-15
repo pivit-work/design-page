@@ -494,6 +494,8 @@ const DEFAULT_LABELS = {
     composerTeam: '소속 팀', composerTeamNone: '선택 안 함 (가입 후 배정)',
     colEmail: '이메일', colInviter: '발송자', colSentAt: '발송일시', colStatus: '상태', colActions: '액션',
     copyLink: '링크 복사', copied: '복사됨', resend: '재발송', cancel: '취소',
+    // [PW-1312] 입사일 자동 초대로 예약된 초대 — 배지 뒤에 예정 시각(MM-DD HH:mm)이 붙는다
+    scheduled: '발송 예정', scheduleFailed: '발송 실패', sendNow: '지금 보내기', cancelSchedule: '예약 취소',
     statusPending: '대기중', statusAccepted: '수락됨', statusExpired: '만료됨',
     empty: '해당 상태의 초대가 없습니다.',
     linkType: '링크',
@@ -1403,9 +1405,25 @@ function InvitesTab({
                 </div>
                 <div className="admin-emp-row-right">
                   <DpStatusBadge className={`admin-emp-invite-badge is-${inv.status}`}>{statusLabel(inv.status)}</DpStatusBadge>
+                  {/* [PW-1312] 예약 초대 — «대기중» 옆에 예정 시각. 보내지 못했으면 경고색 «발송 실패» */}
+                  {inv.status === 'pending' && inv.scheduledLabel && (
+                    <DpStatusBadge
+                      className={`admin-emp-invite-badge ${inv.scheduleFailed ? 'is-schedule-failed' : 'is-scheduled'}`}
+                      data-testid="invite-scheduled-badge"
+                    >
+                      {inv.scheduleFailed ? labels.invites.scheduleFailed : labels.invites.scheduled} {inv.scheduledLabel}
+                    </DpStatusBadge>
+                  )}
                   <div className="admin-emp-actions-cell">
                     <div className="admin-emp-actions">
-                      {inv.status === 'pending' && (
+                      {/* [PW-1312] 예약 초대 — 아직 보내지 않아 링크 복사는 없다. 지금 보내기는 재발송과 같은 호출 */}
+                      {inv.status === 'pending' && inv.scheduledLabel && (
+                        <>
+                          <Button className="admin-emp-btn is-primary is-sm" onClick={() => onResendInvite(inv.id)} data-testid="invite-send-now">{labels.invites.sendNow}</Button>
+                          <button type="button" className="admin-emp-btn is-ghost is-sm admin-emp-danger" onClick={() => onCancelInvite(inv.id)} data-testid="invite-cancel-schedule">{labels.invites.cancelSchedule}</button>
+                        </>
+                      )}
+                      {inv.status === 'pending' && !inv.scheduledLabel && (
                         <>
                           {onCopyInviteLink && (
                             <button type="button" className="admin-emp-btn is-soft is-sm" data-testid="invite-copy-link" onClick={() => copyLink(inv)}>

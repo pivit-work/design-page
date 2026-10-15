@@ -1738,6 +1738,14 @@
    "background": "#f9fafb / 어두운 화면 #22262f",
    "color": "#dc6803 / 어두운 화면 #fdb022"
   },
+  "admin.css|.admin-emp-invite-badge.is-schedule-failed": {
+   "background": "#fffaeb / 어두운 화면 #4e1d09",
+   "color": "#b54708 / 어두운 화면 #fec84b"
+  },
+  "admin.css|.admin-emp-invite-badge.is-scheduled": {
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#10774d"
+  },
   "admin.css|.admin-emp-pill.is-amber": {
    "background": "#f9fafb / 어두운 화면 #22262f",
    "color": "#dc6803 / 어두운 화면 #fdb022"

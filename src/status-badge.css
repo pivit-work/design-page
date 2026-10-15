@@ -379,6 +379,11 @@
 
 .admin-emp-invite-badge.is-expired { background: var(--dp-badge-neutral-bg); color: var(--dp-badge-neutral-fg); }
 
+/* [PW-1312] 입사일 자동 초대 — 예약(브랜드 글자색, 수락됨 배지와 같은 글자색)·발송 실패(경고 배지 색). 새 색 없음 */
+.admin-emp-invite-badge.is-scheduled { background: var(--bg-secondary); color: var(--colors-brand-700, #10774d); }
+
+.admin-emp-invite-badge.is-schedule-failed { background: var(--dp-badge-warning-bg); color: var(--dp-badge-warning-fg); }
+
 /* `증빙 고정본` — AI 출처 배지가 아니라 시점 출처 표기라 중립색(정책 §8) */
 .admin-snap-roster-badge {
   margin-left: 6px;
