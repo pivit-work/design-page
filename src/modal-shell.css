@@ -65,6 +65,8 @@
 .tl-group-modal-top {
   display: flex;
   justify-content: flex-end;
+  /* 닫기 X 옆에 버튼을 더 놓는 창(PW-1827 회의 진행 중 「미니 창 띄우기」)의 사이 — 버튼이 하나면 아무 영향 없다. */
+  gap: 8px;
   padding: 20px 20px 0 48px;
 }
 

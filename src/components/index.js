@@ -99,6 +99,7 @@ export {
   SparkleGlyph,
   ThumbsUpGlyph,
   BookOpenGlyph,
+  PopOutGlyph,
 } from './shared/lineIcons.jsx';
 
 // Layout

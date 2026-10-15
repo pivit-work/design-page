@@ -51,6 +51,9 @@ import { CloseGlyph } from './lineIcons.jsx';
  *   testId               카드(form)의 data-testid
  *   overlayTestId        막의 data-testid
  *   closeTestId          닫기 X 의 data-testid
+ *   topActions           (PW-1827) 닫기 X 왼쪽에 나란히 놓는 버튼들. `[{ key, label, icon, onClick, testId }]`.
+ *                        닫기 X 와 같은 모양(44×44)으로 그린다 — label 은 접근성 이름이자 마우스를 올렸을 때의
+ *                        설명이다. 비우면 종전 마크업 그대로다
  */
 export default function ModalShell({
   title,
@@ -74,6 +77,7 @@ export default function ModalShell({
   testId,
   overlayTestId,
   closeTestId,
+  topActions,
 }) {
   // 막·Esc·스크롤 잠금·겹친 창 순서는 `ModalLayer` 가 갖는다(PW-1013). 여기는 틀만 그린다.
   const requestClose = () => {
@@ -110,6 +114,20 @@ export default function ModalShell({
         data-testid={testId}
       >
         <div className="tl-group-modal-top">
+          {topActions?.map((action) => (
+            <button
+              key={action.key}
+              type="button"
+              className="tl-group-modal-close tl-group-modal-top-action"
+              aria-label={action.label}
+              title={action.label}
+              onClick={action.onClick}
+              disabled={busy || undefined}
+              data-testid={action.testId}
+            >
+              {action.icon}
+            </button>
+          ))}
           <button
             type="button"
             className="tl-group-modal-close"

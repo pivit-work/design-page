@@ -82,6 +82,18 @@ export function CloseGlyph(props) {
   );
 }
 
+/** 밖으로 띄우기 — 창을 따로 떼어 여는 버튼(회의 진행 중 「미니 창 띄우기」, PW-1827).
+ *  `icons-solid/link-external-01.svg` 와 같은 그림을 선으로 옮겼다. */
+export function PopOutGlyph(props) {
+  return (
+    <LineSvg {...props}>
+      <path d="M21 9V3h-6" />
+      <path d="m21 3-8 8" />
+      <path d="M10 5H7.8c-1.68 0-2.52 0-3.162.327a3 3 0 0 0-1.311 1.311C3 7.28 3 8.12 3 9.8v6.4c0 1.68 0 2.52.327 3.162a3 3 0 0 0 1.311 1.311C5.28 21 6.12 21 7.8 21h6.4c1.68 0 2.52 0 3.162-.327a3 3 0 0 0 1.311-1.311C19 18.72 19 17.88 19 16.2V14" />
+    </LineSvg>
+  );
+}
+
 /** 더하기. */
 export function PlusGlyph(props) {
   return (

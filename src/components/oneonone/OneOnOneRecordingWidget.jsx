@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import useMicWave from '../shared/useMicWave.js';
-import { CloseGlyph, PauseGlyph } from '../shared/lineIcons.jsx';
+import { CloseGlyph, PauseGlyph, PopOutGlyph } from '../shared/lineIcons.jsx';
 
 /**
  * 1on1 진행 중 녹음 미니 위젯 — Figma 16972:15514.
@@ -53,6 +53,10 @@ import { CloseGlyph, PauseGlyph } from '../shared/lineIcons.jsx';
  *                    눌러도 아무 일이 없는 버튼을 남기지 않기 위해서다. 접은 뒤의
  *                    모습(앱 안 최소화 위젯)은 소비처가 그린다.
  *   - collapseLabel: 그 버튼의 접근성 라벨. 로케일은 소비처에 있다.
+ *   - onOpenPip    : 「미니 창 띄우기」 버튼 클릭 콜백 (PW-1827). 「접기」 바로 왼쪽에
+ *                    같은 모양으로 둔다. **없으면 버튼을 그리지 않는다** — 미니 창을 못 여는
+ *                    브라우저, 미니 창 안(variant='pip')에서 쓸 때.
+ *   - openPipLabel : 그 버튼의 접근성 라벨·마우스를 올렸을 때의 설명.
  *   - limitNotice  : `idle` 일 때 안내 줄 아래에 붙이는 노드 — 회사 녹음 시간을 다 써서
  *                    녹음을 시작할 수 없다는 앰버 안내(`RecordingLimitNotice`, PW-1023 ·
  *                    policy §5.9). 「녹음 시작」을 눌렀을 때 소비처가 넣는다. 녹음 중인
@@ -132,6 +136,8 @@ export default function OneOnOneRecordingWidget({
   closeLabel = '안내 닫기',
   onCollapse,
   collapseLabel = '접기',
+  onOpenPip,
+  openPipLabel = '미니 창 띄우기',
   limitNotice = null,
 }) {
   const bars = wave && wave.length > 0 ? wave : DEFAULT_WAVE;
@@ -208,6 +214,18 @@ export default function OneOnOneRecordingWidget({
             onClick={onCollapse}
           >
             <MinimizeIcon />
+          </button>
+        )}
+        {/* 미니 창 띄우기 (PW-1827) — 「접기」와 같은 모서리·같은 크기. 접기가 없으면 그 자리에 선다. */}
+        {onOpenPip && (
+          <button
+            type="button"
+            className={`ono-start-rec-pip ${onCollapse ? 'has-collapse' : ''}`.trim()}
+            aria-label={openPipLabel}
+            title={openPipLabel}
+            onClick={onOpenPip}
+          >
+            <PopOutGlyph size={16} />
           </button>
         )}
         <div className="ono-start-rec-head">

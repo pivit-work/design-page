@@ -51,6 +51,8 @@ import LiveGuideCard from './LiveGuideCard.jsx';
  *   - `onCollapseRecording` / `recordingCollapsed` : 녹음 바의 「접기」 (PW-578).
  *     콜백을 주지 않으면 버튼이 없고, `recordingCollapsed` 면 녹음 바 자체를 그리지
  *     않는다 — 접은 모습은 소비처가 그린다.
+ *   - `onOpenPip` / `openPipLabel` : 녹음 바의 「미니 창 띄우기」 (PW-1827). 콜백을 주지 않으면
+ *     버튼이 없다 — 미니 창을 여는 것은 소비처 몫이다.
  *   - `startBlocked` / `onStartBlocked` : 「시작하기」를 가로채 소비처가 안내를 띄운다.
  *     버튼을 잠그는 것이 **아니다** — 잠그는 안은 기획에서 미채택이다(policy §5.1).
  *   - `startLocked` / `startLockedLabel` / `startLockedTitle` / `startLockedNotice` /
@@ -260,6 +262,9 @@ export default function StartOneOnOneView({
   // 준비되지 않았는데 버튼만 있으면 눌러도 아무 일이 없다.
   onCollapseRecording,
   collapseRecordingLabel,
+  // 녹음 바의 「미니 창 띄우기」 (PW-1827). 콜백이 없으면 버튼도 없다.
+  onOpenPip,
+  openPipLabel,
   // 접힌 상태 (PW-578). 접히면 녹음 바를 그리지 않는다 — 접은 모습(앱 안 최소화
   // 위젯)은 소비처가 그리므로, 여기까지 남으면 같은 회차의 위젯이 둘이 된다.
   recordingCollapsed = false,
@@ -586,6 +591,8 @@ export default function StartOneOnOneView({
               : null)}
             onCollapse={onCollapseRecording}
             collapseLabel={collapseRecordingLabel}
+            onOpenPip={onOpenPip}
+            {...(openPipLabel ? { openPipLabel } : null)}
             limitNotice={recordingLimitNotice}
           />
         )}

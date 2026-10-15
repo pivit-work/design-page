@@ -41,6 +41,9 @@ export default function MeetingInProgressModal({
   recordingStopped = false, // 'record' 모드에서 녹음만 종료된 상태 (회색 카드 "녹음만 종료됨.")
   // 진행 phase 메모 칸 위에 caller 가 넣는 노드 — Meet 회의의 머리 안내·[직접 녹음 켜기] 자리 (PW-1716).
   progressExtra,
+  // 진행 phase 의 닫기 X 옆 버튼들 — 「미니 창 띄우기」 자리 (PW-1827). ModalShell 의 topActions 와 같은 모양.
+  // 회의록·공유 단계에는 그리지 않는다 — 회의가 끝난 뒤라 띄울 미니 창이 없다.
+  topActions,
   // record/share phase 에 그대로 forward (caller 주입)
   recordData,
   shareData,
@@ -170,6 +173,7 @@ export default function MeetingInProgressModal({
         titleId={headerless ? undefined : 'mtg-progress-title'}
         ariaLabel={headerless ? headerlessLabel : undefined}
         closeLabel={labels.close}
+        topActions={headerless ? undefined : topActions}
         onClose={() => onClose?.()}
         onOverlayClick={onOverlayClick ?? undefined}
         footer={footer}
