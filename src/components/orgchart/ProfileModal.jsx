@@ -9,6 +9,7 @@ import { MEMBER_STATUSES } from './constants.js';
 import assetUrl from '../shared/assetUrl.js';
 import { useOrgLabels, makeOrgLabels } from './orgchart-labels.jsx';
 import ModalLayer from '../shared/ModalLayer.jsx';
+import DateInput from '../shared/DateInput.jsx';
 
 const DEFAULT_PROFILE = {
   title: '사원',
@@ -108,7 +109,7 @@ function applyTexture(app, objectName, imageSrc) {
 // 본인·퇴사·휴직이어도 막지 않는다(퇴사한 조직장도 해제할 수 있어야 한다).
 // 미지정이면 지금까지처럼 피드백주기·미팅잡기다(시각·레이아웃 변화 없음).
 // slackDmUrl — 연락처의 슬랙 핸들을 누르면 열 DM 주소(PW-1636). member.profile.slack·email 을 주면 연락처가 눌리는 줄이 된다.
-export default function ProfileModal({ member, onClose, statIcons, baseUrl = '', renderAvatar, resolvePhoto, adminMode = false, findSubordinates, showSubordinates = true, subordinatesTitle, directReportChipLabel, onFeedbackClick, onMeetingClick, isSelf = false, labels, actions, hideFeedback = false, slackDmUrl }) {
+export default function ProfileModal({ member, onClose, statIcons, baseUrl = '', renderAvatar, resolvePhoto, adminMode = false, findSubordinates, showSubordinates = true, subordinatesTitle, directReportChipLabel, onFeedbackClick, onMeetingClick, isSelf = false, labels, actions, hideFeedback = false, slackDmUrl, managerHistory, asOf }) {
   // 화면 문구 — 조직도 캔버스 안에서 열리면 캔버스가 받은 번역을 쓰고, 캔버스 밖(소비자가
   // 따로 띄우는 카드)에서는 `labels` 로 받는다(PW-705). 둘 다 없으면 한국어 기본값.
   // `subordinatesTitle`·`directReportChipLabel`(PW-546)은 주면 그것이 이긴다.
@@ -384,6 +385,11 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
           </div>
         </div>
 
+        {/* 매니저 이력 · 날짜별 소속·직급 (pivit-work PW-1837) — 소비자가 볼 수 있는 사람에게만 넘긴다.
+            안 넘기면 칸이 없다(지금 모양). */}
+        <ManagerHistorySection history={managerHistory} L={L} />
+        <AsOfSection asOf={asOf} L={L} />
+
         {/* Team Members — dynamic from org tree or profile.
             showSubordinates=false 면(조직 계층 맥락이 아닌 곳, 예: 어드민 개요) 섹션 숨김. */}
         {showSubordinates && (() => {
@@ -424,6 +430,104 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
       </div>
     </div>
     </ModalLayer>
+  );
+}
+
+/**
+ * 매니저 이력 칸 — 현재 매니저가 맨 위(초록 점 · 「현재」 칩), 지난 매니저는 받은 순서(최신순) 그대로.
+ * history: { status: 'loading' | 'error' | 'ready', current: { name, since } | null, past: [{ name, from, to }] }
+ * ready 인데 현재·지난 둘 다 없으면 칸을 그리지 않는다(정책서 «이력 없음 → 숨김»).
+ */
+function ManagerHistorySection({ history, L }) {
+  if (!history) return null;
+  const { status, current, past = [] } = history;
+  if (status === 'ready' && !current && past.length === 0) return null;
+  return (
+    <div className="modal-info-sections">
+      <div className="modal-info-section" data-testid="profile-manager-history">
+        <div className="modal-info-label">{L('profile.managerHistory')}</div>
+        {status === 'ready' ? (
+          <ul className="modal-project-list">
+            {current && (
+              <li className="modal-project-item" data-testid="profile-manager-history-current">
+                <span className="modal-project-dot modal-history-dot-current" />
+                {current.name}
+                <StatusBadge className="modal-team-chip">{L('profile.managerHistoryCurrent')}</StatusBadge>
+                <span className="modal-history-period">{current.since ? `${current.since} ~` : ''}</span>
+              </li>
+            )}
+            {past.map((m, i) => (
+              <li key={i} className="modal-project-item" data-testid="profile-manager-history-row">
+                <span className="modal-project-dot" />
+                {m.name}
+                <span className="modal-history-period">{`${m.from || ''} ~ ${m.to || ''}`}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="modal-project-item modal-history-note" role={status === 'error' ? 'alert' : undefined}>
+            {L(status === 'error' ? 'profile.managerHistoryError' : 'profile.managerHistoryLoading')}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * 날짜별 소속·직급 칸 — 날짜를 고르면 소비자가 그날 값을 받아 넘긴다.
+ * asOf: { value, onChange, min, max, today, status: 'idle'|'loading'|'error'|'ready',
+ *         result: { found, outOfRange, teamPath, jobLevel } }
+ */
+function AsOfSection({ asOf, L }) {
+  if (!asOf) return null;
+  const { value, onChange, min, max, today, status = 'idle', result } = asOf;
+  let body;
+  if (status === 'loading' || status === 'error' || status === 'idle') {
+    const key = status === 'loading' ? 'profile.asOfLoading' : status === 'error' ? 'profile.asOfError' : 'profile.asOfHint';
+    body = (
+      <div className="modal-project-item modal-history-note" role={status === 'error' ? 'alert' : undefined}>
+        {L(key)}
+      </div>
+    );
+  } else if (!result?.found) {
+    body = (
+      <div className="modal-project-item modal-history-note" data-testid="profile-asof-missing">
+        {L(result?.outOfRange ? 'profile.asOfOutOfRange' : 'profile.asOfNotFound')}
+      </div>
+    );
+  } else {
+    body = (
+      <ul className="modal-project-list" data-testid="profile-asof-result">
+        <li className="modal-project-item">
+          <span className="modal-history-key">{L('profile.asOfDept')}</span>
+          {result.teamPath || L('profile.asOfEmpty')}
+        </li>
+        <li className="modal-project-item">
+          <span className="modal-history-key">{L('profile.asOfLevel')}</span>
+          {result.jobLevel || L('profile.asOfEmpty')}
+        </li>
+      </ul>
+    );
+  }
+  return (
+    <div className="modal-info-sections">
+      <div className="modal-info-section" data-testid="profile-asof">
+        <div className="modal-info-label">{L('profile.asOf')}</div>
+        <div className="modal-history-date">
+          <DateInput
+            className="modal-history-date-input"
+            value={value || ''}
+            onChange={onChange}
+            min={min || undefined}
+            max={max || undefined}
+            today={today || undefined}
+            aria-label={L('profile.asOfDate')}
+          />
+        </div>
+        {body}
+      </div>
+    </div>
   );
 }
 
