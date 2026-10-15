@@ -204,6 +204,29 @@
   flex-shrink: 0;
 }
 
+/* 지난 회의 녹취·회의록 상태 (PW-1819) — 생성 중과 같은 자리·타이포, 색만 상태별로.
+   생성 중·실패와 달리 문구 길이가 바뀌므로(재료 이름·영어) 줄여서 제목을 밀지 않는다. */
+.mtg-row-minutes-status {
+  align-self: center;
+  margin-right: 20px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  flex-shrink: 1;
+  min-width: 0;
+  max-width: 45%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mtg-row-minutes-status.is-success {
+  color: var(--componentColors-utility-success-utilitySuccess700);
+}
+.mtg-row-minutes-status.is-warning {
+  color: var(--componentColors-utility-warning-utilityWarning700);
+}
+
 /* 시작 버튼 — Primary lg */
 .mtg-start-btn {
   align-self: center;

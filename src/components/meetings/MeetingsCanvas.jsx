@@ -54,6 +54,15 @@ function MeetingRow({ meeting, onStart, onRowClick, statusLabels, isStarting, st
         <span className="mtg-row-failed">{statusLabels.failedLabel}</span>
       ) : meeting.generating ? (
         <span className="mtg-row-generating">{statusLabels.generatingLabel}</span>
+      ) : meeting.minutesStatus?.label ? (
+        // 지난 회의의 녹취·회의록 상태 (PW-1819) — 생성 중과 같은 자리·글씨, 색만 tone 으로.
+        // 문구가 길어도 제목을 밀지 않게 말줄임하고, 전문은 title 로 남긴다.
+        <span
+          className={`mtg-row-minutes-status is-${meeting.minutesStatus.tone || 'muted'}`}
+          title={meeting.minutesStatus.label}
+        >
+          {meeting.minutesStatus.label}
+        </span>
       ) : isStarting ? (
         // 이미 이 회의의 녹음이 진행 중(모달이 위젯으로 축소된 상태) —
         // Figma 16817:40731: 비활성 [진행 중] 버튼으로 중복 시작을 막는다.

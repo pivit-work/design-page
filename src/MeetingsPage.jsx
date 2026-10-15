@@ -47,6 +47,8 @@ const PAST_MEETINGS = [
     duration: '30m',
     title: '주간 스탠드업',
     participants: '정은우 · Chris · 김우진 · 박은지',
+    // 지난 회의의 녹취·회의록 상태 (PW-1819). tone: muted(회색)·success(초록)·warning(주황).
+    minutesStatus: { label: 'Meet 녹취 기다리는 중', tone: 'muted' },
   },
   {
     // AI 생성이 실패해 멈춘 회의 — 계속 "생성 중" 이라고 하면 거짓말이라
@@ -64,6 +66,7 @@ const PAST_MEETINGS = [
     duration: '1h',
     title: '2차 기획 미팅',
     participants: '김현주 · 이민호 · 박지민',
+    minutesStatus: { label: '회의록 완료 · Meet 녹취', tone: 'success' },
   },
   {
     id: 'p3',
@@ -71,6 +74,7 @@ const PAST_MEETINGS = [
     duration: '1h 30m',
     title: '인스타 자동화 개발 미팅',
     participants: '최지우 · 홍길동',
+    minutesStatus: { label: '녹취 못 가져옴 · 메모로 만듦', tone: 'warning' },
   },
 ];
 
