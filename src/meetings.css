@@ -941,6 +941,11 @@ input.mtg-record-action-title::placeholder {
   align-items: center;
   gap: 10px;
   padding: 4px 0;
+  cursor: pointer;
+  user-select: none;
+}
+.mtg-share-member-row.is-unreachable {
+  cursor: default;
 }
 .mtg-share-member-name {
   flex: 1;

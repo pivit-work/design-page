@@ -38,15 +38,20 @@ import Icon from '../shared/Icon.jsx';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const DROPDOWN_MAX = 6;
 
-function Checkbox({ checked, onChange, disabled = false }) {
+function Checkbox({ checked, onChange, disabled = false, label }) {
   return (
     <button
       type="button"
       className={`mtg-share-checkbox ${checked ? 'is-checked' : ''}`}
       role="checkbox"
       aria-checked={checked}
+      aria-label={label}
       disabled={disabled}
-      onClick={onChange}
+      onClick={(e) => {
+        // 줄(li)도 같은 토글을 건다 — 여기서 멈추지 않으면 한 번 눌러 두 번 바뀌어 제자리로 돌아간다.
+        e.stopPropagation();
+        onChange();
+      }}
     >
       {checked && (
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
@@ -306,10 +311,14 @@ const MeetingShareContent = forwardRef(function MeetingShareContent(
                   <li
                     key={m.key}
                     className={`mtg-share-member-row ${m.reachable ? '' : 'is-unreachable'}`}
+                    // 기획서 §5.2 클릭 영역은 행 전체 — 이름을 눌러도 체크 상자와 똑같이 바뀐다(PW-1833).
+                    // 키보드는 체크 상자 버튼이 받는다(Tab 으로 가서 Space/Enter).
+                    onClick={() => toggleMember(m.key)}
                   >
                     <Checkbox
                       checked={m.checked}
                       disabled={!m.reachable}
+                      label={m.name}
                       onChange={() => toggleMember(m.key)}
                     />
                     <span className="mtg-record-action-avatar">{m.name.charAt(0)}</span>
