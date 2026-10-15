@@ -56,6 +56,16 @@ export default function MeetingInProgressModal({
   onOverlayClick,
   // 회의 "종료" 확정 콜백 — status=completed 등 서버 반영을 caller 에서 처리.
   onEnd,
+  // 진행 phase 의 [회의 종료] 버튼을 보일지 (PW-1825). 다른 사람이 시작한 회의에 «함께 들어간» 사람은
+  // 회의를 끝내지 않는다 — caller 가 false 로 주고 그 자리에 secondaryAction 을 둔다.
+  showEndButton = true,
+  // 진행 phase 아래 줄의 보조 버튼 { label, onClick } (PW-1825) — 「녹음 종료만 하기」와 같은 모양.
+  // 함께 들어간 사람의 [나가기 — 내 메모는 저장됩니다] · 회의가 끝난 뒤의 [회의 목록으로] 자리.
+  secondaryAction,
+  // 메모 칸을 읽기 전용으로 (PW-1825) — 시작한 사람이 회의를 끝내 함께 들어간 사람의 메모가 잠길 때.
+  memoReadOnly = false,
+  // 메모 칸 아래 caller 가 넣는 노드 (PW-1825) — 「나와 회의록 담당자만 봅니다…」 안내 자리.
+  memoFooter,
   // 회의록 단계의 [공유하기] 버튼을 보일지. 회의 담당자가 아니면 caller 가 false 로
   // 준다 (기획 screen-minutes-review §4.4 "공유하기 버튼 숨김").
   canShare = true,
@@ -145,13 +155,24 @@ export default function MeetingInProgressModal({
             {labels.endRecordingOnly}
           </button>
         )}
-        <button
-          type="button"
-          className="mtg-progress-end-btn"
-          onClick={() => setConfirmOpen(true)}
-        >
-          {labels.endButton}
-        </button>
+        {secondaryAction && (
+          <button
+            type="button"
+            className="mtg-progress-stoprec-btn"
+            onClick={secondaryAction.onClick}
+          >
+            {secondaryAction.label}
+          </button>
+        )}
+        {showEndButton && (
+          <button
+            type="button"
+            className="mtg-progress-end-btn"
+            onClick={() => setConfirmOpen(true)}
+          >
+            {labels.endButton}
+          </button>
+        )}
       </div>
     );
   }
@@ -248,8 +269,10 @@ export default function MeetingInProgressModal({
                 className="tl-snippet-textarea mtg-progress-field"
                 placeholder={labels.memoPlaceholder}
                 value={memo}
+                readOnly={memoReadOnly}
                 onChange={(e) => handleMemoChange(e.target.value)}
               />
+              {memoFooter}
             </section>
           </>
         )}

@@ -14,7 +14,10 @@ import MeetingInProgressModal from './MeetingInProgressModal.jsx';
  * 모든 데이터/라벨은 caller 에서 주입한다. 패키지 내부에는 demo fallback 이 없다.
  */
 
-function MeetingRow({ meeting, onStart, onRowClick, statusLabels, isStarting, startLock }) {
+function MeetingRow({ meeting, onStart, onRowClick, statusLabels, isStarting, startLock: listLock }) {
+  // 다른 사람이 이미 시작한 회의에 «함께 들어가는» 행은 1on1 잠금을 걸지 않는다 (PW-1825) — 녹음을
+  // 시작하지 않으므로 마이크를 다투지 않는다. caller 가 행에 `skipStartLock` 을 준다.
+  const startLock = meeting.skipStartLock ? null : listLock;
   const statusTag = meeting.status ? statusLabels[meeting.status] : null;
   const isOngoing = meeting.status === 'ongoing';
   const clickable = !!onRowClick;
