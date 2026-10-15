@@ -118,7 +118,7 @@ export default function ModalShell({
             <button
               key={action.key}
               type="button"
-              className="tl-group-modal-close tl-group-modal-top-action"
+              className="tl-group-modal-close"
               aria-label={action.label}
               title={action.label}
               onClick={action.onClick}
