@@ -169,6 +169,7 @@ const RECORD_DATA = {
 };
 
 const SHARE_DATA = {
+  initialMode: 'manual',
   calendarParticipants: [
     { key: 'u1', name: '김현주', userId: 'u1' },
     { key: 'u2', name: '이민호', userId: 'u2' },
@@ -198,7 +199,6 @@ const SHARE_DATA = {
     attendees: '참석자',
     addOthers: '그 외에 인원 추가',
     addOthersPlaceholder: '이름 검색 또는 직접 입력 후 Enter',
-    addOthersHint: '이름 검색 또는 Enter로 직접 추가',
     externalLink: '외부 링크',
     externalLinkDesc: '링크를 복사하여 외부에 공유합니다',
     copy: '복사',

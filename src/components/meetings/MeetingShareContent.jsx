@@ -31,6 +31,8 @@ import Icon from '../shared/Icon.jsx';
  *   - 외부 공유 링크를 못 불러왔으면 shareUrlFailed — 빈 링크 칸과 [복사] 대신 같은 줄에
  *     labels.shareUrlLoadFailed 와 [labels.retry](onShareUrlRetry)를 보인다 (pivit-work PW-1792).
  *     빈 칸을 복사하면 아무것도 안 붙는데 「복사됨」이 떴다.
+ *   - initialMode 로 처음 고른 방식을 정한다. 앱은 기획서 §8.1 대로 'manual'(수동 선택)로 연다 (pivit-work PW-1830).
+ *   - labels.addOthersHint 는 넘길 때만 입력칸 아래에 보인다. 기획서 §5.3 은 상시 안내 줄을 두지 않는다 (PW-1830).
  */
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -105,10 +107,11 @@ const MeetingShareContent = forwardRef(function MeetingShareContent(
     subtitle,
     labels,
     onShareSubmit,
+    initialMode = 'participants',
   },
   ref,
 ) {
-  const [mode, setMode] = useState('participants');
+  const [mode, setMode] = useState(initialMode);
   const [members, setMembers] = useState(() => manualMembers.map(toMemberRow));
   const [tags, setTags] = useState([]); // { key, label, userId, email }
   const [query, setQuery] = useState('');
@@ -397,7 +400,7 @@ const MeetingShareContent = forwardRef(function MeetingShareContent(
                   {hint}
                 </p>
               )}
-              <div className="mtg-share-hint">{labels.addOthersHint}</div>
+              {labels.addOthersHint && <div className="mtg-share-hint">{labels.addOthersHint}</div>}
             </div>
           )}
         </div>

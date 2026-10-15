@@ -1138,7 +1138,9 @@ input.mtg-record-action-title::placeholder {
   gap: 8px;
   align-items: stretch;
 }
-.mtg-share-link-url {
+/* .tl-snippet-textarea(min-height:144)를 함께 단다 — 「그 외 인원」 칸(PW-1829)과 같은 이유로 두 클래스를
+   붙여 써서, 앱이 timeline.css 를 나중에 읽어도 한 줄 높이로 보이게 한다 (pivit-work PW-1830). */
+.tl-snippet-textarea.mtg-share-link-url {
   flex: 1;
   min-width: 0;
   height: 44px;
