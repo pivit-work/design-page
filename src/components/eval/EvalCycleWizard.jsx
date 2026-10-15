@@ -653,6 +653,52 @@ const defaultReminders = () => [
   { ...makeReminder(3, ['email']), id: 'r_default_d3' },
   { ...makeReminder(1, ['email', 'slack']), id: 'r_default_d1' },
 ];
+/**
+ * [PW-1591 · 정책 §5.2.1-E J-7] 기본 리마인더를 단계 길이에 맞춘다.
+ * 종료일 − 시작일(날짜 기준) ≥ 3일: D-3·D-1 / 1~2일: D-1 / 같은 날: D-0 1회.
+ * 7일 단계 기본값(D-3·D-1)을 하루짜리 단계에 깔면 둘 다 단계 시작 전에 잡혀 조용히 안 나간다.
+ * 날짜를 못 읽으면 종전 기본값.
+ */
+function presetRemindersFor(slot) {
+  const s = datePart(slot?.start ?? '');
+  const e = datePart(slot?.end ?? '');
+  if (!isIsoDate(s) || !isIsoDate(e)) return defaultReminders();
+  const days = Math.round((isoToDate(e).getTime() - isoToDate(s).getTime()) / DAY_MS);
+  if (days >= 3) return defaultReminders();
+  if (days >= 1) return [{ ...makeReminder(1, ['email', 'slack']), id: 'r_default_d1' }];
+  // 같은 날 — 09:00 과 단계 시작 시각 중 늦은 쪽(시작 전에 잡히지 않게).
+  const startTime = String(slot.start).slice(11, 16);
+  const time = /^\d{2}:\d{2}$/.test(startTime) && startTime > '09:00' ? startTime : '09:00';
+  return [{ ...makeReminder(0, ['email', 'slack']), id: 'r_default_d0', time }];
+}
+/**
+ * 저장된 리마인더 목록이 «그 단계 길이의 기본값 그대로»인가 — 준비 중 사이클·옛 초안은 고치지 않은
+ * 단계의 리마인더도 싣고 온다. 내용이 기본값과 같으면 고치지 않은 것으로 보고 길이 맞춤을 계속한다.
+ * HR 이 고칠 수 있는 칸만 비교한다(서버를 거치며 키 순서·빈 칸·기본 칸이 달라져 와도 같게 본다).
+ * D-0 의 시각은 단계 시작을 따라 바뀌므로 뺀다.
+ */
+function isPresetReminderList(list, slot) {
+  if (!Array.isArray(list)) return false;
+  const canon = (arr) =>
+    JSON.stringify(
+      arr.map(normalizeReminder).map((rm) => [
+        rm.anchor ?? 'before_end',
+        Number(rm.offset),
+        Number(rm.offset) === 0 ? null : rm.time ?? '09:00',
+        [...(rm.channels ?? [])].sort(),
+        !!rm.targets?.leader,
+        !!rm.targets?.hr,
+        rm.targets?.self !== false,
+        rm.message?.template ?? 'default',
+        rm.message?.subject ?? '',
+        rm.message?.body ?? '',
+        !!rm.message?.slackSeparate,
+        rm.slack?.mode ?? 'dm',
+        rm.slack?.channel ?? '',
+      ]),
+    );
+  return canon(list) === canon(presetRemindersFor(slot));
+}
 
 // ── 평가 템플릿(WizardStep3) 모델 ─────────────────────────────
 // 템플릿이 적용될 리뷰 종류 — 리뷰종류 id(self/peer/upward/leader)와 1:1.
@@ -829,6 +875,8 @@ const EMPTY_IDS = [];
 
 /** 소속이 없는 구성원을 모으는 트리 노드 id. 노드가 없으면 그 사람은 고를 방법이 없다(E7). */
 const UNASSIGNED_ORG_ID = '__unassigned__';
+/** [PW-1591 J-3] 정보가 빈 대상자 요약 줄에 이름을 몇 명까지 적나 — 나머지는 「외 N명」. */
+const MISSING_NAMES_MAX = 5;
 
 /**
  * 조직 트리 — 부서(최상위 단위) → 팀(그 아래 인원을 직접 가진 단위) 2계층.
@@ -853,10 +901,19 @@ function buildOrgTree(orgUnits, candidates) {
     // 최상위가 하나뿐이면 그건 「전사」 노드다(시드가 그렇게 만든다). 그 자리는 트리
     // 맨 위의 「전체」 행이 이미 맡고 있으니, 한 단계 내려가 그 자식들을 부서로 삼는다.
     // 안 그러면 부서 열에 회사 이름 하나만 서고 부문·팀이 통째로 한 줄로 눕는다.
-    const roots =
-      top.length === 1 && childrenOf(top[0].id).length > 0
-        ? childrenOf(top[0].id)
-        : top;
+    const collapsed = top.length === 1 && childrenOf(top[0].id).length > 0;
+    const roots = collapsed ? childrenOf(top[0].id) : top;
+    // [PW-1591 J-4 · 정책 §5.5.11] 접은 회사 노드에 직접 붙은 사람(대표)이 있으면 그 노드를
+    // 맨 위 부서 행으로 남긴다. 안 그러면 그 사람은 트리 어디에도 안 걸려 「미지정」으로 떨어진다.
+    if (collapsed && holders.has(top[0].id)) {
+      tree.push({
+        id: top[0].id,
+        name: top[0].name,
+        selfSelectable: true,
+        teams: [],
+        companyRoot: true,
+      });
+    }
     roots.forEach((root) => {
       const teams = [];
       const walk = (unit, prefix) => {
@@ -1060,6 +1117,20 @@ function activePhasesFor(reviewTypes, leaderRounds = 1) {
 const DAY_MS = 86400000;
 
 /** 'YYYY-MM-DD' 에 n일을 더한다. 로컬 자정 기준이라 시간대에 흔들리지 않는다. */
+/**
+ * [PW-1591 J-2 · 정책 §5.1-B] 새 사이클의 평가 대상 기간 기본값 — 직전 사이클 종료일 다음 날부터
+ * 그 사이클과 같은 길이. 직전 사이클이 없거나 날짜를 못 읽으면 빈칸(짐작해 채우지 않는다).
+ * 길이가 1년을 넘어도, 결과가 미래여도 그대로 둔다(엣지 ②③).
+ */
+function defaultPeriodAfter(prev) {
+  const s = datePart(prev?.startDate ?? '');
+  const e = datePart(prev?.endDate ?? '');
+  if (!isIsoDate(s) || !isIsoDate(e) || e < s) return { start: '', end: '' };
+  const len = Math.round((isoToDate(e).getTime() - isoToDate(s).getTime()) / DAY_MS);
+  const start = addDaysIso(e, 1);
+  return { start, end: addDaysIso(start, len) };
+}
+
 function addDaysIso(iso, n) {
   const base = isoToDate(iso);
   return dateToIso(new Date(base.getTime() + n * DAY_MS));
@@ -2491,6 +2562,8 @@ export default function EvalCycleWizard({
    * 그 설정 읽기(프리셋과 같은 칸 + `sourceCycleName`). 실패는 던진다(창 안에 적는다).
    */
   pastCycles = [],
+  /** [PW-1591 J-2] 이 워크스페이스에서 가장 최근에 오픈한 사이클 `{ startDate, endDate }` — 기간 기본값의 근거. */
+  previousCycle = null,
   onLoadPastCycle,
   /** PW-1459 §5.10.2 — 직급이 하나도 없을 때 「어드민 직급 설정」으로 가는 길. */
   onGoToJobLevelSettings,
@@ -2850,11 +2923,15 @@ export default function EvalCycleWizard({
   // 1단계 기간 경고 문구의 id — 두 날짜 칸이 이 문구를 «왜 틀렸나»로 가리킨다 (PW-1012).
   const dateErrorId = `evc-wiz-date-error-${useId().replace(/:/g, '')}`;
   const tplSaveHintId = `${dateErrorId}-tpl`;
+  // [PW-1591 J-2] 초안·관리 진입이 아닌 «새» 사이클일 때만 직전 사이클에 이어 붙인다.
+  const [periodDefault] = useState(() =>
+    D || cycle ? { start: '', end: '' } : defaultPeriodAfter(previousCycle),
+  );
   const [startDate, setStartDate] = useState(() =>
-    datePart(D?.startDate ?? cycle?.startDate ?? ''),
+    datePart(D?.startDate ?? cycle?.startDate ?? periodDefault.start),
   );
   const [endDate, setEndDate] = useState(() =>
-    datePart(D?.endDate ?? cycle?.endDate ?? ''),
+    datePart(D?.endDate ?? cycle?.endDate ?? periodDefault.end),
   );
   // 날짜 picker 팝오버 상태: { field:'start'|'end', rect, el }
   const [picker, setPicker] = useState(null);
@@ -2965,15 +3042,34 @@ export default function EvalCycleWizard({
   const [d0Draft, setD0Draft] = useState(null); // 「치는 중」인 글자(확정값과 분리)
   const [d0Picker, setD0Picker] = useState(null); // 일정 시작일 달력
   const [pendingRebase, setPendingRebase] = useState(null); // 재배치 확인 대기
+  /* [PW-1591 J-6 · 정책 §5.2.1-E] 일정 일괄 배치 — 일수(1~60, 기본 7) · 이어서/같은 기간. */
+  const [bulkDays, setBulkDays] = useState('7');
+  const [bulkMode, setBulkMode] = useState('chain'); // 'chain' 순서대로 이어서 | 'same' 모두 같은 기간
+  const [pendingBulk, setPendingBulk] = useState(null); // 직접 수정한 단계 수 — 확인 대기
   /* 직접 고친 단계 — 어떤 재배치에서도 덮어쓰지 않는다(§5.2.1-A 「수동 수정 우선」).
      관리 모드로 열면 이미 정해진 일정이 들어오는데, 그건 사람이 정한 값이라 보호한다. */
   const [scheduleDirty, setScheduleDirty] = useState(() => {
     if (D?.scheduleDirty) return [...D.scheduleDirty];
     return Object.keys(initialSeq?.schedule ?? {});
   });
-  const [reminders, setReminders] = useState(() => ({
-    ...(D?.reminders ?? initialSeq?.reminders ?? {}),
-  })); // { phaseId: [reminderObj] }
+  /* { phaseId: [reminderObj] } — HR 이 «고친» 단계만 담는다. 없는 단계는 단계 길이 기본값을
+     그 자리에서 계산한다(PW-1591 J-7). 초안은 고친 단계 목록(`remindersCustomized`)을 함께
+     저장하므로 그것만 되살리고, 그 목록이 없는 값(준비 중 사이클 · 옛 초안)은 기본값과 내용이
+     같은 단계를 «안 고침»으로 돌린다. */
+  const [reminders, setReminders] = useState(() => {
+    if (D?.reminders) {
+      // 초안의 reminders 는 원래 고친 단계만 담았다(옛 초안도). 목록이 있으면 그것을 따른다.
+      const keep = Array.isArray(D.remindersCustomized) ? D.remindersCustomized : null;
+      return Object.fromEntries(
+        Object.entries(D.reminders).filter(([id]) => !keep || keep.includes(id)),
+      );
+    }
+    const saved = initialSeq?.reminders ?? {};
+    const slots = initialSeq?.schedule ?? {};
+    return Object.fromEntries(
+      Object.entries(saved).filter(([id]) => !isPresetReminderList(saved[id], slots[id])),
+    );
+  });
   /**
    * 리마인더 하나를 가리키는 화면 상태 키 — «단계 id + 리마인더 id» [PW-889].
    *
@@ -3008,6 +3104,7 @@ export default function EvalCycleWizard({
     if (D?.orgIds) return new Set(D.orgIds);
     return cycle?.targetScope?.orgIds ? new Set(cycle.targetScope.orgIds) : null;
   });
+  const [orgSelTouched, setOrgSelTouched] = useState(false); // [PW-1591 J-4] 이 화면에서 조직 선택을 고쳤나
   const [treeCollapsed, setTreeCollapsed] = useState(() => new Set());
   const [groupCollapsed, setGroupCollapsed] = useState(() => new Set());
   // 필터·검색은 **표시만** 거른다. 카운터 세 값과 저장되는 대상자는 흔들리지 않는다.
@@ -3214,7 +3311,9 @@ export default function EvalCycleWizard({
    * 리마인더가 나갈 줄 안다. 저장도 그런 단계는 싣지 않는다(PW-971 · submit).
    */
   const remindersOf = (id) =>
-    (reminders[id] ?? (openedManage ? [] : defaultReminders())).map(normalizeReminder);
+    (reminders[id] ?? (openedManage ? [] : presetRemindersFor(scheduleOf(id)))).map(
+      normalizeReminder,
+    );
   const middleIds = activePhases.filter((p) => !p.anchor).map((p) => p.id);
   /* [PW-1594 · 정책 §5.13.3] 하향 차수 단계는 순서 안에서 «연속 · 오름차순» 한 묶음이다 — 저장된 순서가
      어떻게 왔든(차수를 늘린 직후 · 옛 초안) 여기서 묶음으로 맞춘다. 서버도 오픈 때 같은 것을 본다. */
@@ -3368,6 +3467,33 @@ export default function EvalCycleWizard({
     setScheduleDirty([]);
     setSchedule({});
     setSchedDraft({});
+  };
+  /**
+   * [PW-1591 J-6] 켜진 단계 전부를 일정 시작일 기준으로 다시 깐다. 결과는 «D0 기준 며칠째»
+   * 오프셋(PW-122 프리셋과 같은 값)으로 담는다 — 그래야 배치 뒤 D0 를 바꿔도 모양을 유지한 채 따라간다.
+   * 직접 고친 값은 비우고 「직접 수정」도 푼다(확인은 requestBulkLayout 이 먼저 받는다).
+   */
+  const applyBulkLayout = () => {
+    const n = Math.max(1, Math.min(60, Math.trunc(Number(bulkDays)) || 1));
+    const offsets = {};
+    displayPhases
+      .filter((p) => !disabledPhases.has(p.id))
+      .forEach((p, k) => {
+        const startDay = bulkMode === 'same' ? 0 : k * n;
+        offsets[p.id] = {
+          startDay,
+          startTime: DEFAULT_TIME.start,
+          endDay: startDay + n - 1,
+          endTime: DEFAULT_TIME.end,
+        };
+      });
+    setPresetOffsets(offsets);
+    rebaseAllSchedule();
+    setPendingBulk(null);
+  };
+  const requestBulkLayout = () => {
+    if (dirtyShown.length > 0) setPendingBulk(dirtyShown.length);
+    else applyBulkLayout();
   };
   /* 지난 날짜 판정은 **날짜 기준**이다. 시각까지 비교하면 오늘 09:00 시작 단계가
      오전에 이미 경고로 뜬다(§5.2.1-A 「과거 날짜」). 차단하지는 않는다.
@@ -5360,15 +5486,28 @@ export default function EvalCycleWizard({
      이라 여기로 안 떨어진다 — 「전부 해제」가 다음 렌더에 도로 켜지지 않는다. */
   const initialAllScope =
     !isManage && allUnitIdsRaw.length > 0 ? new Set(allUnitIdsRaw) : null;
-  const orgSel =
+  const orgSelSaved =
     orgSelEdit ?? legacyScope?.orgIds ?? initialAllScope ?? EMPTY_ORG_SEL;
+  /* [PW-1591 J-4] 회사 노드가 트리에 생기기 전에 저장된 선택은 대표를 「미지정」으로 골랐다.
+     그 값을 그대로 읽으면 대표가 조용히 대상에서 빠지므로, HR 이 이 화면에서 아직 손대지
+     않았다면 「미지정」을 고른 선택에 회사 노드를 함께 켠다. */
+  const companyRootId = orgTree.find((d) => d.companyRoot)?.id;
+  const orgSel =
+    !orgSelTouched &&
+    companyRootId &&
+    orgSelSaved.has(UNASSIGNED_ORG_ID) &&
+    !orgSelSaved.has(companyRootId)
+      ? new Set([...orgSelSaved, companyRootId])
+      : orgSelSaved;
   const manualExcludedIds =
     manualExcludedEdit ?? legacyScope?.manualExclude ?? EMPTY_IDS;
   const keptIds = keptEdit ?? EMPTY_IDS;
   /* 「손대지 않음(null)」을 현재 값으로 확정하고 나서 갱신한다. 이벤트 핸들러는 이
      렌더의 값을 보고 부르므로 함수형 갱신자도 여기서 안전하게 풀린다. */
-  const setOrgSel = (next) =>
+  const setOrgSel = (next) => {
+    setOrgSelTouched(true);
     setOrgSelEdit(typeof next === 'function' ? next(orgSel) : next);
+  };
   const setManualExcludedIds = (next) =>
     setManualExcludedEdit(typeof next === 'function' ? next(manualExcludedIds) : next);
   const setKeptIds = (next) =>
@@ -5514,6 +5653,10 @@ export default function EvalCycleWizard({
   const excludedMembers = scopedCandidates.filter((c) => excludedIds.has(c.id));
   const targetIds = targetMembers.map((c) => c.id);
   const targetCount = targetIds.length;
+  /* [PW-1591 J-3 · 정책 §5.5.11] 직급·입사일이 빈 사람 — 직급별 템플릿·입사일 제외 조건이 이 값을
+     읽어서, 비면 조용히 빗나간다. 요약은 필터·검색과 무관하게 «대상 전체»로 센다. 막지 않는다. */
+  const missingOf = (c) => ({ jobLevel: !c.jobLevel, hireDate: !c.hireDate });
+  const missingTargets = targetMembers.filter((c) => !c.jobLevel || !c.hireDate);
   const exclusionOf = (id) => exclusions.find((e) => e.memberId === id);
   const exclusionReasonOf = (id) => exclusionOf(id)?.exclusionType ?? 'manual';
 
@@ -6066,7 +6209,23 @@ export default function EvalCycleWizard({
     <div key={c.id} className={`evc-roster-row${rosterVirtual ? ' is-fixed' : ''}`}>
       <div className="evc-roster-who">
         <span className="evc-roster-name">{c.name}</span>
-        <span className="evc-roster-meta">{metaOf(c)}</span>
+        <span className="evc-roster-meta">
+          {missingOf(c).jobLevel ? '—' : ''}
+          {metaOf(c) && missingOf(c).jobLevel ? ' · ' : ''}
+          {metaOf(c)}
+          {missingOf(c).jobLevel && (
+            <span className="evc-roster-missing" data-testid={`evc-wiz-missing-level-${c.id}`}>
+              {' '}
+              {L.targetMissingJobLevel}
+            </span>
+          )}
+          {missingOf(c).hireDate && (
+            <span className="evc-roster-missing" data-testid={`evc-wiz-missing-hire-${c.id}`}>
+              {' '}
+              {L.targetMissingHireDate}
+            </span>
+          )}
+        </span>
       </div>
       {keptIds.includes(c.id) && (
         <StatusBadge
@@ -6232,6 +6391,8 @@ export default function EvalCycleWizard({
     scheduleDirty,
     presetOffsets,
     reminders,
+    // [PW-1591 J-7] 리마인더를 직접 고친 단계 — 이어쓰기 뒤 길이 기본값이 이 단계들을 덮지 않게.
+    remindersCustomized: Object.keys(reminders),
     disabledPhases: [...disabledPhases],
     phaseOrder,
     gradeCardPosition,
@@ -7110,6 +7271,12 @@ export default function EvalCycleWizard({
                   )}
                 </div>
               </div>
+              {/* [PW-1591 J-1 · 정책 §5.1-B] 이 기간이 무엇을 자르는지 — 값 유무와 무관하게 늘 보인다. */}
+              {L.periodUsageNote && (
+                <div className="evc-period-usage" data-testid="evc-wiz-period-usage">
+                  <span className="evc-sched-anchor-note">{L.periodUsageNote}</span>
+                </div>
+              )}
               {/* PW-528 ① — 왜 다음으로 못 가는지를 그 자리에서 말한다. 종전에는
                   「다음」이 그냥 살아 있어서 거꾸로 된 기간이 그대로 저장됐다. */}
               {(dateFormatBad('start') || dateFormatBad('end') || dateOrderBad) && (
@@ -7245,6 +7412,14 @@ export default function EvalCycleWizard({
                       </button>
                     ))}
                   </div>
+                  {/* [PW-1591 J-5] AI 추천 하나뿐이면 오픈 뒤 리더가 할 일이 는다는 것을 만들 때 알린다. 막지 않는다. */}
+                  {peerAssignModes.length === 1 &&
+                    peerAssignModes[0] === 'ai_recommend' &&
+                    L.peerAiOnlyNote && (
+                      <div className="evc-wiz-soft-warn" data-testid="evc-wiz-peer-ai-only">
+                        {L.peerAiOnlyNote}
+                      </div>
+                    )}
 
                   {/* PW-433 C안(David 확정 2026-08-23) — 사이클 토글 F2 는 폐지됐다.
                       공개 범위는 항목마다 다를 수 있어 사이클 하나의 ON/OFF 로는 표현되지 않는다.
@@ -8157,6 +8332,49 @@ export default function EvalCycleWizard({
                     {L.scheduleAnchorResetAll}
                   </button>
                 )}
+                {/* [PW-1591 J-6] 둘째 줄 — 하루짜리 8단계를 16칸 고치지 않고 한 번에. */}
+                <div className="evc-sched-bulk" data-testid="evc-sched-bulk">
+                  <span className="evc-sched-anchor-label">{L.scheduleBulkLabel}</span>
+                  <span className="evc-rm-inline">
+                    <span className="evc-rm-dtext">{L.scheduleBulkEach}</span>
+                    <TextInput
+                      type="number"
+                      min={1}
+                      max={60}
+                      className="evc-rm-field evc-rm-offset"
+                      value={bulkDays}
+                      onChange={(e) => setBulkDays(e.target.value)}
+                      aria-label={L.scheduleBulkDaysAria}
+                      data-testid="evc-sched-bulk-days"
+                    />
+                    <span className="evc-rm-unit">{L.scheduleBulkDayUnit}</span>
+                  </span>
+                  <div className="evc-type-row">
+                    {[
+                      ['chain', L.scheduleBulkChain],
+                      ['same', L.scheduleBulkSame],
+                    ].map(([mode, label]) => (
+                      <button
+                        type="button"
+                        key={mode}
+                        className={`evc-type-chip${bulkMode === mode ? ' is-on' : ''}`}
+                        aria-pressed={bulkMode === mode}
+                        onClick={() => setBulkMode(mode)}
+                        data-testid={`evc-sched-bulk-mode-${mode}`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    className="evc-sched-anchor-reset"
+                    onClick={requestBulkLayout}
+                    data-testid="evc-sched-bulk-apply"
+                  >
+                    {L.scheduleBulkApply}
+                  </button>
+                </div>
               </div>
               {d0Picker && (
                 <DatePicker
@@ -9159,6 +9377,23 @@ export default function EvalCycleWizard({
                         </button>
                       )}
                     </div>
+                    {missingTargets.length > 0 && L.targetMissingSummary && (
+                      <div className="evc-wiz-soft-warn is-flat" data-testid="evc-wiz-missing-summary">
+                        {fill(L.targetMissingSummary, {
+                          count: missingTargets.length,
+                          names:
+                            missingTargets
+                              .slice(0, MISSING_NAMES_MAX)
+                              .map((c) => c.name)
+                              .join(', ') +
+                            (missingTargets.length > MISSING_NAMES_MAX
+                              ? ` ${fill(L.targetMissingMore ?? '', {
+                                  count: missingTargets.length - MISSING_NAMES_MAX,
+                                })}`
+                              : ''),
+                        })}
+                      </div>
+                    )}
                     <div
                       className="evc-review-pane-body"
                       onScroll={onRosterScroll}
@@ -9393,7 +9628,15 @@ export default function EvalCycleWizard({
                             >
                               <ArrowLeftIcon size={13} />
                             </button>
-                            <span className="evc-roster-name">{c.name}</span>
+                            <span className="evc-roster-name">
+                              {c.name}
+                              {missingOf(c).jobLevel && (
+                                <span className="evc-roster-missing">{' '}{L.targetMissingJobLevel}</span>
+                              )}
+                              {missingOf(c).hireDate && (
+                                <span className="evc-roster-missing">{' '}{L.targetMissingHireDate}</span>
+                              )}
+                            </span>
                             {/* 사유는 되돌려도 지우지 않는다 — 사라지면 다음 사람이
                                 「왜 이 사람만 포함인가」를 되짚을 수 없다.
                                 규칙이 뺀 것과 사람이 뺀 것을 여기서 가른다. */}
@@ -10306,6 +10549,22 @@ export default function EvalCycleWizard({
 
       {/* [PW-536 · 정책 §5.2.1-A] 기준점을 바꾸면 손대지 않은 단계가 다시 깔린다 —
           직접 고쳐 둔 것이 있을 때만 묻는다. 「그대로 두기」는 지금 날짜를 굳힌다. */}
+      {pendingBulk != null && (
+        <AppConfirmModal
+          title={L.scheduleBulkConfirmTitle}
+          body={
+            <span data-testid="evc-sched-bulk-confirm-body">
+              {fill(L.scheduleBulkConfirmBody ?? '', { count: pendingBulk })}
+            </span>
+          }
+          cancelLabel={L.cancel}
+          confirmLabel={L.scheduleBulkApply}
+          onCancel={() => setPendingBulk(null)}
+          onConfirm={applyBulkLayout}
+          cancelTestId="evc-sched-bulk-cancel"
+          confirmTestId="evc-sched-bulk-ok"
+        />
+      )}
       {pendingRebase && (
         <AppConfirmModal
           title={L.scheduleAnchorRebaseTitle}

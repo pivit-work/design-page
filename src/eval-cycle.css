@@ -10835,3 +10835,44 @@ button.evmh-phase:focus-visible {
   font-weight: 600;
   color: var(--text-primary);
 }
+
+/* ── PW-1591 새 사이클 첫 구성 안내 ───────────────────────────────────────────
+   새 모양을 짓지 않는다 — 같은 위자드에서 디자이너가 그린 모양의 값을 그대로 옮긴다. */
+/* 1단계 평가 대상 기간 용도 안내 — 3단계 「일정 시작일」 상자(.evc-sched-anchor)와 같은 상자 */
+.evc-period-usage {
+  margin-top: var(--spacing-sm);
+  padding: var(--spacing-lg) 14px;
+  border: 1px solid var(--utility-brand-200);
+  border-radius: var(--radius-lg);
+  background: var(--utility-brand-50);
+}
+/* 막지 않는 주황 안내 — 3단계 결과 발송 카드 안내(.evc-sched-guide)와 같은 값 */
+.evc-wiz-soft-warn {
+  margin-top: var(--spacing-sm);
+  font-size: var(--font-size-text-xs);
+  line-height: 1.5;
+  color: var(--utility-warning-600);
+  background: var(--utility-warning-50);
+  border: 1px solid var(--utility-warning-200);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg) var(--spacing-xl);
+}
+/* 대상 패널 머리 바로 아래 — 패널 안 줄이라 바깥 여백·모서리를 뺀다 */
+.evc-wiz-soft-warn.is-flat {
+  margin-top: 0;
+  border-width: 0 0 1px;
+  border-radius: 0;
+}
+/* 3단계 일괄 배치 — 일정 시작일 상자의 둘째 줄 */
+.evc-sched-bulk {
+  flex-basis: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+}
+/* 4단계 직급 없음 · 입사일 없음 — 제외 사유 글(.evc-excluded-reason.is-manual)과 같은 색 */
+.evc-roster-missing {
+  color: var(--utility-warning-700);
+  font-weight: 600;
+}

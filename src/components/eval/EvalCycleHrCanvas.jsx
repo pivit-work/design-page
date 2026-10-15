@@ -1931,6 +1931,18 @@ export default function EvalCycleHrCanvas({
     });
   };
 
+  /* [PW-1591 J-2] 새 사이클 기간 기본값의 근거 — 가장 최근에 오픈한 사이클(초안·회수 제외).
+     `openedAt` 이 가장 늦은 것, 없으면 종료일이 가장 늦은 것. 진행 중이어도 그 종료일 다음 날부터다. */
+  const previousCycle =
+    cycles
+      .filter((c) => c.status !== 'draft' && c.status !== 'revoked' && c.endDate)
+      .sort(
+        (a, b) =>
+          String(b.openedAt ?? '').localeCompare(String(a.openedAt ?? '')) ||
+          String(b.endDate).localeCompare(String(a.endDate)),
+      )
+      .map((c) => ({ startDate: c.startDate ?? null, endDate: c.endDate }))[0] ?? null;
+
   /* PW-1459 §5.9 — 설정을 불러올 수 있는 이전 사이클: 완료·회수. */
   const pastCycles = cycles
     .filter((c) => c.status === 'done' || c.status === 'revoked')
@@ -2113,6 +2125,7 @@ export default function EvalCycleHrCanvas({
           draftSavedByName={resumeTarget?.draftSavedByName ?? null}
           presets={cyclePresets}
           pastCycles={onLoadCycleSettings ? pastCycles : []}
+          previousCycle={previousCycle}
           onLoadPastCycle={onLoadCycleSettings}
           onSavePreset={onSaveCyclePreset}
           onLoadPreset={onLoadCyclePreset}
