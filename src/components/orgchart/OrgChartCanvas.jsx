@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import Icon from '../shared/Icon.jsx';
 import { ConnectorCurveGlyph, ConnectorElbowGlyph } from '../shared/lineIcons.jsx';
 import usePanZoom from '../shared/usePanZoom.js';
+import DateInput from '../shared/DateInput.jsx';
 import OrgNode from './OrgNode.jsx';
 import BezierConnectors from './BezierConnectors.jsx';
 import ProfileModal from './ProfileModal.jsx';
@@ -51,7 +52,7 @@ const MIN_FIT_SCALE = 0.5;
 
 // 조직 축 탭 노출 여부. 소비처가 아직 구현이 끝나지 않은 축을 닫을 수 있게 한다
 // (pivit-work PW-249 — 프로젝트 축 phase 게이트). 기본값은 노출이라 기존 화면은 그대로다.
-export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIcons, baseUrl = '', onMemberClick, renderAvatar, editMode = false, onSubTabChange, findSubordinates, adminMode: adminModeProp = false, onAdminModeChange, showGrade = false, showProjectTab = true, lineStyleLabel: lineStyleLabelProp, labels }) {
+export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIcons, baseUrl = '', onMemberClick, renderAvatar, editMode = false, onSubTabChange, findSubordinates, adminMode: adminModeProp = false, onAdminModeChange, showGrade = false, showProjectTab = true, lineStyleLabel: lineStyleLabelProp, labels, asOf }) {
   // 화면 문구 — 소비자가 번역을 넘긴다(PW-705). 안 넘기면 한국어 기본값.
   const L = useMemo(() => makeOrgLabels(labels), [labels]);
   // `lineStyleLabel` 은 `labels` 보다 먼저 생긴 자리라 그대로 받는다 — 주면 그것이 이긴다.
@@ -224,8 +225,34 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
           {/* 머리글은 회사 카드와 다른 문구를 받을 수 있다 — 회사 카드에만 `· 미배정 N` 을
               붙이는 소비자가 `summaryCount` 로 머리글 문구를 따로 준다. 없으면 카드와 같다. */}
           <span className="brand-count">{orgData?.summaryCount ?? orgData?.count ?? ''}</span>
+          {/* 지난 날짜를 보는 중이면 그 사실을 인원 줄에 잇는다 — 「2026-03-01 기준 · 보기 전용」 */}
+          {asOf?.note && (
+            <>
+              <span className="dot">&#8729;</span>
+              <b data-testid="org-asof-note">{asOf.note}</b>
+            </>
+          )}
         </div>
       </div>
+
+      {/* 기준일 칸(pivit-work PW-1836) — 어드민 As Of 탭의 날짜 칸과 같은 모양.
+          min 은 기록 시작일, max 는 오늘이다. 캡션은 경계를 만나기 전에 늘 보인다. */}
+      {asOf && (
+        <div className="org-asof" data-testid="org-asof">
+          {asOf.caption && <div className="org-asof-caption">{asOf.caption}</div>}
+          <div className="org-asof-picker">
+            <span className="org-asof-label">{asOf.label}</span>
+            <DateInput
+              min={asOf.min}
+              max={asOf.max}
+              value={asOf.value}
+              locale={asOf.locale}
+              today={asOf.max}
+              onChange={(v) => asOf.onChange?.(v)}
+            />
+          </div>
+        </div>
+      )}
 
       <div
         className="canvas-area"
