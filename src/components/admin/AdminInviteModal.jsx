@@ -353,19 +353,21 @@ function OptionSelect({
   // 고정 4종 고용형태도 앱이 같은 조회로 받는다 — 못 받았으면 «미지정»만 남기지 않고 실패를 말한다
   const failed = (!placeholder || placeholder === labels.unset) && list.length === 0 && loadFailed;
   const empty = !placeholder && list.length === 0 && !loadFailed;
+  const blankText = failed ? labels.optionsLoadFailed : placeholder || (empty ? labels.optionsEmpty : labels.unset);
   return (
     <label className="admin-inv-field">
       <span className="admin-inv-label" id={`${id}-label`}>{label}</span>
+      {/* title — 칸이 좁으면 «옵션 없음 — 조직 설정에서 추가» 같은 사유 글이 잘린다(PW-1883 14px 글씨).
+          잘려도 마우스를 올리면 끝까지 읽힌다. */}
       <select
         id={id}
         className="admin-inv-select"
         value={value}
+        title={value ? value : blankText}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
       >
-        <option value="">
-          {failed ? labels.optionsLoadFailed : placeholder || (empty ? labels.optionsEmpty : labels.unset)}
-        </option>
+        <option value="">{blankText}</option>
         {list.map((o) => (
           <option key={o} value={o}>{o}</option>
         ))}
@@ -1460,7 +1462,7 @@ export default function AdminInviteModal({
             남는다(E21). 값 변경은 기존 사람에게 전파하지 않는다(§4-2) — 전파는 두 버튼으로만.
             CSV 탭에는 없다 — 값은 파일이 들고 오고, 잘못된 값은 그 행에서 고친다. */}
         {!isCsv && rows.length >= 2 && (
-        <div className="admin-inv-bulk" data-testid="admin-invite-bulk">
+        <div className="admin-inv-bulk is-direct" data-testid="admin-invite-bulk">
           <div className="admin-inv-bulk-head">
             <span className="admin-inv-bulk-title">{labels.bulkTitle}</span>
             <span className="admin-inv-hint">{labels.bulkHint}</span>
@@ -1477,7 +1479,9 @@ export default function AdminInviteModal({
         </div>
         )}
 
-        <div className="admin-inv-body">
+        {/* is-direct — 직접 입력 탭의 칸 모양(PW-1883)을 이 탭에만 건다. CSV 탭·온보딩 가져오기도
+            같은 칸 클래스를 쓰므로 클래스 자체를 바꾸지 않는다. */}
+        <div className={`admin-inv-body${isCsv ? '' : ' is-direct'}`}>
           {/* 안내 줄(§2-3) — 어드민이 넣는 값과 가입 후 본인이 채우는 값을 가른다 */}
           {!isCsv && (
             <p className="admin-inv-guide">
