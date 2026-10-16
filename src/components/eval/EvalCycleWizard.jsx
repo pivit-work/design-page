@@ -7623,7 +7623,7 @@ export default function EvalCycleWizard({
           )}
 
           {step === 1 && (
-            <div className="evc-wiz-panel">
+            <div className="evc-wiz-panel is-tpl-form">
               {/* PW-434 ③ 편집 컨텍스트 고정 바 — 「템플릿을 수정시 내가 지금 어떤 템플릿을
                   수정하는지 확인이 필요함 · 스크롤을 내리면 위의 선택된 부분이 안보이다 보니
                   어떤 항목인지 헷갈릴 수 있음」(티켓 원문).
@@ -7805,31 +7805,34 @@ export default function EvalCycleWizard({
               <p className="evc-wiz-hint">{L.templateHint}</p>
 
               <span className="evc-field-label">{L.templateTypeLabel}</span>
-              <div className="evc-type-row">
-                {TEMPLATE_TYPES.map((rt) => {
+              {/* [PW-1888] 하나만 고르는 칸 — 공용 세그먼트 버튼(1단계 「하향 차수」와 같은 부품). */}
+              <SegmentedControl
+                className="evc-tpl-seg"
+                ariaLabel={L.templateTypeLabel}
+                value={tplType}
+                onChange={selectTplType}
+                items={TEMPLATE_TYPES.map((rt) => {
                   // [PW-435 ③] 「흐리게」는 상태 표시일 뿐 금지가 아니다 — 눌리면
                   // 사용자는 눌러도 되는 줄 안다. 실제로 그렇게 눌려서, 하향만 켠
-                  // 사이클에서 셀프용 템플릿이 만들어졌다. 여기서 막는다.
+                  // 사이클에서 셀프용 템플릿이 만들어졌다. 여기서 막는다(selectTplType 에도 가드).
                   const inCycle = reviewTypes.includes(rt.id);
-                  return (
-                    <Tooltip key={rt.id} content={inCycle ? undefined : L.tplTypeNotInCycleHint}>
-                      <button
-                        type="button"
-                        disabled={!inCycle}
-                        className={`evc-type-chip${tplType === rt.id ? ' is-on' : ''}${inCycle ? '' : ' is-locked'}`}
-                        onClick={() => selectTplType(rt.id)}
-                        data-testid={`evc-tpl-type-${rt.id}`}
-                      >
-                        {!inCycle && <LockIcon size={11} />}
+                  return {
+                    value: rt.id,
+                    disabled: !inCycle,
+                    title: inCycle ? undefined : L.tplTypeNotInCycleHint,
+                    testId: `evc-tpl-type-${rt.id}`,
+                    label: inCycle ? (
+                      L[rt.nameKey]
+                    ) : (
+                      <>
+                        <LockIcon size={11} />
                         {L[rt.nameKey]}
-                        {!inCycle && (
-                          <span className="evc-type-chip-lock">{L.tplTypeNotInCycle}</span>
-                        )}
-                      </button>
-                    </Tooltip>
-                  );
+                        <span className="evc-type-chip-lock">{L.tplTypeNotInCycle}</span>
+                      </>
+                    ),
+                  };
                 })}
-              </div>
+              />
 
               {/* [PW-1594 · 정책 §5.13.2] 하향 차수 칩 — 하향을 편집 중이고 차수가 2 이상일 때만. 칩 = 지금
                   편집 중인 차수, 점 = 상태 3종(미확정 회색 · 확정 초록 · 확정·수정 중 노랑 — §5.10-D 와 같은 뜻).
@@ -8103,24 +8106,16 @@ export default function EvalCycleWizard({
                         {L.roleLevelsSourceBadge}
                       </StatusBadge>
                     )}
-                    <div className="evc-type-row evc-tpl-rolemode">
-                      <button
-                        type="button"
-                        className={`evc-type-chip${roleMode === 'uniform' ? ' is-on' : ''}`}
-                        onClick={() => setRoleMode('uniform')}
-                        data-testid="evc-tpl-rolemode-uniform"
-                      >
-                        {L.roleModeUniform}
-                      </button>
-                      <button
-                        type="button"
-                        className={`evc-type-chip${roleMode === 'by_role' ? ' is-on' : ''}`}
-                        onClick={() => setRoleMode('by_role')}
-                        data-testid="evc-tpl-rolemode-byrole"
-                      >
-                        {L.roleModeByRole}
-                      </button>
-                    </div>
+                    <SegmentedControl
+                      className="evc-tpl-rolemode"
+                      ariaLabel={L.roleVersionTitle}
+                      value={roleMode}
+                      onChange={setRoleMode}
+                      items={[
+                        { value: 'uniform', label: L.roleModeUniform, testId: 'evc-tpl-rolemode-uniform' },
+                        { value: 'by_role', label: L.roleModeByRole, testId: 'evc-tpl-rolemode-byrole' },
+                      ]}
+                    />
                   </div>
                   {roleFromSettings && (
                     <p className="evc-wiz-hint" data-testid="evc-tpl-role-source-hint">
@@ -8156,17 +8151,16 @@ export default function EvalCycleWizard({
                             {role}
                           </span>
                           <div className="evc-tpl-role-versions">
-                            {TEMPLATE_VERSIONS.map((v) => (
-                              <button
-                                type="button"
-                                key={v.id}
-                                className={`evc-tpl-role-ver${roleVersionOf(role) === v.id ? ' is-on' : ''}`}
-                                onClick={() => setRoleVersion(role, v.id)}
-                                data-testid={`evc-tpl-role-${role}-${v.id}`}
-                              >
-                                {L[v.labelKey]}
-                              </button>
-                            ))}
+                            <SegmentedControl
+                              ariaLabel={role}
+                              value={roleVersionOf(role)}
+                              onChange={(next) => setRoleVersion(role, next)}
+                              items={TEMPLATE_VERSIONS.map((v) => ({
+                                value: v.id,
+                                label: L[v.labelKey],
+                                testId: `evc-tpl-role-${role}-${v.id}`,
+                              }))}
+                            />
                           </div>
                         </div>
                       ))}
@@ -8282,19 +8276,17 @@ export default function EvalCycleWizard({
               {tplType === 'leader' && (
                 <div>
                   <span className="evc-field-label">{L.gradePosLabel}</span>
-                  <div className="evc-type-row">
-                    {['top', 'bottom', 'freeze'].map((pos) => (
-                      <button
-                        type="button"
-                        key={pos}
-                        className={`evc-type-chip${gradeCardPosition === pos ? ' is-on' : ''}`}
-                        onClick={() => setGradeCardPosition(pos)}
-                        data-testid={`evc-wiz-gradepos-${pos}`}
-                      >
-                        {L[`gradePos_${pos}`]}
-                      </button>
-                    ))}
-                  </div>
+                  <SegmentedControl
+                    className="evc-tpl-seg"
+                    ariaLabel={L.gradePosLabel}
+                    value={gradeCardPosition}
+                    onChange={setGradeCardPosition}
+                    items={['top', 'bottom', 'freeze'].map((pos) => ({
+                      value: pos,
+                      label: L[`gradePos_${pos}`],
+                      testId: `evc-wiz-gradepos-${pos}`,
+                    }))}
+                  />
                 </div>
               )}
 
