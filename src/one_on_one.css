@@ -2640,14 +2640,18 @@ button.ono-add-modal-input { cursor: pointer; }
   grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
+/* 「일정 추가」 창 이름표(`.ono-add-modal-field-label`)와 같은 값, 칸과의 사이는 그 창의
+   이름표–칸 간격(`.ono-add-modal-field` gap) (PW-1901) */
 .ono-mem-note-label {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 6px;
+  margin-bottom: var(--spacing-lg);
+  font-family: var(--font-family-body);
+  font-weight: 700;
   font-size: var(--font-size-text-sm);
-  font-weight: 600;
-  color: var(--text-primary);
+  line-height: var(--line-height-text-sm);
+  color: var(--text-secondary);
 }
 .ono-mem-note-box {
   padding: 12px 14px;
@@ -3700,10 +3704,13 @@ button.ono-add-modal-input { cursor: pointer; }
   gap: 6px;
   flex-wrap: wrap;
 }
+/* 「일정 추가」 창 이름표(`.ono-add-modal-field-label`)와 같은 값 (PW-1901) */
 .ono-done-manual-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-primary);
+  font-family: var(--font-family-body);
+  font-weight: 700;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  color: var(--text-secondary);
 }
 .ono-done-manual .ono-start-textarea { background: var(--bg-primary); }
 .ono-done-manual-actions {
@@ -3973,24 +3980,9 @@ button.ono-add-modal-input { cursor: pointer; }
   color: var(--text-secondary);
   overflow-wrap: anywhere;
 }
-.ono-done-action-add {
-  display: flex;
-  gap: 6px;
-  margin-top: 12px;
-}
-.ono-done-action-add input {
-  flex: 1;
-  min-width: 0;
-  box-sizing: border-box;
-  padding: 8px 11px;
-  border: 1px solid var(--border-secondary);
-  border-radius: var(--radius-sm);
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  font-size: 13px;
-  font-family: inherit;
-  outline: none;
-}
+/* 칸·버튼 모양은 `.ono-start-agenda-add` 가 칠한다(PW-1901) — 여기는 카드 안 자리만. */
+.ono-done-action-add { margin-top: 12px; }
+.ono-done-action-add .ono-start-agenda-add-btn:disabled { opacity: 0.6; cursor: default; }
 .ono-done-action-add-btn {
   flex-shrink: 0;
   padding: 8px 14px;

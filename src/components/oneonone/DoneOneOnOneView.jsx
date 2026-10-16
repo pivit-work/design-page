@@ -16,6 +16,7 @@ import {
 import { CloseGlyph } from '../shared/lineIcons.jsx';
 import Spinner from '../shared/Spinner.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
+import TextInput from '../shared/TextInput.jsx';
 
 /**
  * 매니저 **DONE 단계** 뷰 (PW-430).
@@ -579,29 +580,29 @@ function ActionItemsCard({ session, L, icons, baseUrl, actions }) {
       ) : (
         <div className="ono-done-actions">
           {items.map((item) => (
-            <label
-              className={`ono-done-action${item.done ? ' is-done' : ''}`}
-              data-testid="ono-done-action"
-              key={item.id}
-            >
-              <input
-                type="checkbox"
+            // 네모는 같은 화면 「대화 원문도 함께 공개」와 같은 공용 체크박스(PW-1901). 줄 모양은
+            // 이 카드 것이라 className 으로 넘기고, 줄 어디를 눌러도 켜지게 글씨·딱지를 이름표 안에 둔다.
+            <div data-testid="ono-done-action" key={item.id}>
+              <Checkbox
+                className={`ono-done-action${item.done ? ' is-done' : ''}`}
+                inputClassName="dp-check-input"
                 checked={!!item.done}
                 onChange={() => actions?.onToggle?.(item.id)}
-              />
-              <span className="ono-done-action-text">{item.text}</span>
-              <span className="ono-start-flag ono-start-flag-blue">
-                {item.owner === 'member' ? L.roleMember : L.roleManager}
-              </span>
-              {item.dueDate && <StatusBadge className="ono-mem-chip">{item.dueDate}</StatusBadge>}
-            </label>
+              >
+                <span className="ono-done-action-text">{item.text}</span>
+                <span className="ono-start-flag ono-start-flag-blue">
+                  {item.owner === 'member' ? L.roleMember : L.roleManager}
+                </span>
+                {item.dueDate && <StatusBadge className="ono-mem-chip">{item.dueDate}</StatusBadge>}
+              </Checkbox>
+            </div>
           ))}
         </div>
       )}
 
-      <div className="ono-done-action-add">
-        <input
-          type="text"
+      {/* 입력칸·「추가」는 디자이너가 그린 진행 화면 「안건 추가」 줄 모양 그대로(PW-1901) */}
+      <div className="ono-start-agenda-add ono-done-action-add">
+        <TextInput
           value={draft}
           placeholder={L.actionAddPlaceholder}
           onChange={(e) => setDraft(e.target.value)}
@@ -615,7 +616,7 @@ function ActionItemsCard({ session, L, icons, baseUrl, actions }) {
         />
         <button
           type="button"
-          className="ono-done-action-add-btn"
+          className="ono-start-agenda-add-btn"
           onClick={submit}
           disabled={actions?.adding}
           data-testid="ono-done-action-add"
