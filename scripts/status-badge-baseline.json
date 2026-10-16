@@ -1937,10 +1937,6 @@
    "background": "#fffaeb / 어두운 화면 #4e1d09",
    "color": "#b54708 / 어두운 화면 #fec84b"
   },
-  "eval-cycle.css|.evc-tpl-set-row .evc-type-chip.is-warn": {
-   "background": "#fffaeb / 어두운 화면 #4e1d09",
-   "color": "#dc6803 / 어두운 화면 #fdb022"
-  },
   "eval-cycle.css|.evc-type-chip.is-locked:hover": {
    "background": "inherit"
   },
