@@ -63,6 +63,9 @@ const DEFAULT_LABELS = {
   statusLeaderRejected: '제외됨',
   statusPendingLeaderReview: '채택 대기',
   statusDeclined: '제외됨',
+  /** PW-1845 — 리뷰어가 퇴사해 빠졌다(인사담당자가 대체 리뷰어를 넣으면 «대체됨»). */
+  statusReviewerResigned: '퇴사로 빠짐',
+  statusResignedReplaced: '퇴사로 대체됨',
   // F3 자발적 요청 대기
   unsolicitedTitle: '자발적 리뷰 신청 대기',
   unsolicitedSub: '팀원이 직접 신청한 동료 리뷰입니다. 채택하면 리뷰어에게 작성 요청이 발송됩니다.',
@@ -88,10 +91,15 @@ const STATUS_KEY = {
   leader_rejected: 'statusLeaderRejected',
   pending_leader_review: 'statusPendingLeaderReview',
   declined: 'statusDeclined',
+  reviewer_resigned: 'statusReviewerResigned',
+  resigned_replaced: 'statusResignedReplaced',
 };
 
-/** 리더가 뺀 후보 — 확정·발송 대상이 아니다. `leader_rejected` 만 복원할 수 있다(§6.3.0). */
-const REMOVED = new Set(['leader_rejected', 'declined']);
+/**
+ * 리더가 뺀 후보 — 확정·발송 대상이 아니다. `leader_rejected` 만 복원할 수 있다(§6.3.0).
+ * PW-1845 — 퇴사로 빠진 리뷰어도 뺀 후보다(대체는 인사담당자가 진행 현황에서 넣는다).
+ */
+const REMOVED = new Set(['leader_rejected', 'declined', 'reviewer_resigned', 'resigned_replaced']);
 /** 확정·발송에 들어가는 후보 — 뺀 후보와 아직 채택하지 않은 자발적 신청을 뺀 나머지(§6.4). */
 const isKept = (n) => !REMOVED.has(n.status) && n.status !== 'pending_leader_review';
 

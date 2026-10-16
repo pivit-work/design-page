@@ -2566,6 +2566,11 @@ export default function EvalCycleWizard({
    * 그 설정 읽기(프리셋과 같은 칸 + `sourceCycleName`). 실패는 던진다(창 안에 적는다).
    */
   pastCycles = [],
+  /**
+   * PW-1845 · 정책 §12 — 이 조직의 사이클 `[{ id, name }]`. 1단계 이름이 이 중 하나(자기 자신 제외)와
+   * 같으면 이름 칸 아래에 「동일한 이름…」을 적고 「다음」을 막는다. 서버도 만들기·오픈에서 막는다.
+   */
+  existingCycles = [],
   /** [PW-1591 J-2] 이 워크스페이스에서 가장 최근에 오픈한 사이클 `{ startDate, endDate }` — 기간 기본값의 근거. */
   previousCycle = null,
   onLoadPastCycle,
@@ -5845,6 +5850,8 @@ export default function EvalCycleWizard({
   const [leaderToast, setLeaderToast] = useState(null);
   /** 위자드가 아는 사이클 id — 관리 모드의 사이클 · 방금 저장한 초안. 확정·해제 요청에 싣는다. */
   const knownCycleIdRef = useRef(cycle?.id ?? null);
+  /** PW-1845 — 1단계 같은 이름 판정이 «자기 자신»을 빼려고 렌더에서 읽는 값(ref 는 렌더에서 못 읽는다). */
+  const [selfCycleId, setSelfCycleId] = useState(cycle?.id ?? null);
   /* 비동기 응답이 «그때의 값»이 아니라 지금 값을 보게 하는 자리. 렌더 중에는 읽지도 쓰지도 않는다. */
   const leaderLatest = useRef({});
   useLayoutEffect(() => {
@@ -6454,8 +6461,16 @@ export default function EvalCycleWizard({
   };
 
 
+  const nameTaken =
+    !!name.trim() &&
+    existingCycles.some(
+      (c) =>
+        c?.id !== selfCycleId &&
+        String(c?.name ?? '').trim() === name.trim(),
+    );
   const step1Valid =
     name.trim() &&
+    !nameTaken &&
     startDate &&
     endDate &&
     /* PW-528 ① 「채워졌는가」만으로는 부족하다 — 거꾸로 된 기간(종료 < 시작)과
@@ -6678,6 +6693,8 @@ export default function EvalCycleWizard({
         return failed();
       }
       if (!result) return failed();
+      // PW-1845 — 방금 만든 초안이 목록에 같은 이름으로 다시 들어와도 «자기 자신»으로 알아본다.
+      if (result.cycleId) setSelfCycleId(result.cycleId);
       setDraftSavedAt(result.savedAt ?? null);
       setSavedSnapshot(snapshot);
       setDraftFailStreak(0);
@@ -6874,7 +6891,9 @@ export default function EvalCycleWizard({
           : i === 4
             ? committeeValid
             : true;
-  const submitBlockHint = !step1Valid
+  const submitBlockHint = nameTaken
+    ? L.cycleNameTaken
+    : !step1Valid
     ? L.submitBlockBasics
     : scheduleMissing
       ? L.blockScheduleEmpty
@@ -7380,8 +7399,16 @@ export default function EvalCycleWizard({
                 onChange={(e) => setName(e.target.value)}
                 placeholder={L.cycleNamePlaceholder}
                 autoFocus
+                invalid={nameTaken}
+                aria-describedby={nameTaken ? 'evc-wiz-name-taken' : undefined}
                 data-testid="evc-wiz-name"
               />
+              {/* PW-1845 · 정책 §12 — 같은 이름이면 그 자리에서 말하고 「다음」을 막는다(날짜 오류와 같은 줄 모양). */}
+              {nameTaken && (
+                <p id="evc-wiz-name-taken" className="evc-wiz-warn" role="alert" data-testid="evc-wiz-name-taken">
+                  {L.cycleNameTaken}
+                </p>
+              )}
               {/* [PW-536] 1단계의 두 칸은 «무엇을 평가하는가» 다. 단계 일정 칸과 라벨을
                   나눠 둔다 — 같은 `startDate` 를 쓰면 3단계 일정 칸의 이름표까지
                   「평가 대상 기간」이 된다. */}

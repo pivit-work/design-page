@@ -162,6 +162,8 @@ const DEFAULT_LABELS = {
   createTitle: '새 평가 사이클',
   cycleName: '사이클 이름',
   cycleNamePlaceholder: '예: 2026년 상반기 정기 평가',
+  /** PW-1845 · 정책 §12 — 같은 이름의 사이클이 이미 있다. */
+  cycleNameTaken: '동일한 이름의 사이클이 이미 존재합니다.',
   startDate: '시작일',
   endDate: '종료일',
   reviewTypes: '리뷰 종류',
@@ -2095,6 +2097,7 @@ export default function EvalCycleHrCanvas({
 
       {showCreate && (
         <EvalCycleWizard
+          existingCycles={cycles}
           key={wizardKey}
           labels={L}
           candidates={candidates}
@@ -2184,6 +2187,7 @@ export default function EvalCycleHrCanvas({
 
       {manageTarget && (
         <EvalCycleWizard
+          existingCycles={cycles}
           labels={L}
           candidates={candidates}
           orgUnits={orgUnits}

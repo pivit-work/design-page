@@ -9399,6 +9399,25 @@
   gap: var(--spacing-md);
   flex-wrap: wrap;
 }
+/* PW-1845 — 머리 이름 고치기. 제목 글씨는 그대로 두고 누를 수 있다는 것만 커서로 알린다
+   (타임라인 그룹 이름 `.tl-group-header-name.is-editable` 와 같은 방식). 칸은 위자드 이름 칸 `evc-input`. */
+.evc-title-btn {
+  all: unset;
+  cursor: text;
+  border-radius: var(--radius-sm);
+}
+.evc-title-btn:focus-visible {
+  outline: 2px solid var(--utility-brand-500);
+  outline-offset: 2px;
+}
+.evc-title-edit {
+  flex: 1 1 320px;
+  max-width: 560px;
+}
+.evc-title-input {
+  font-size: var(--font-size-display-xs);
+  font-weight: 700;
+}
 .evc-manage-suffix {
   font-size: var(--font-size-text-sm);
   color: var(--text-secondary);

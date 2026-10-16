@@ -1,6 +1,9 @@
+import { useRef, useState } from 'react';
 import { LockIcon, PauseIcon } from './evalIcons.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import LoadingState from '../shared/LoadingState.jsx';
+import TextInput from '../shared/TextInput.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 
 /**
  * EvalCycleManageCanvas — 오픈된 사이클의 «무엇을·어떻게» 를 고치는 화면의 셸
@@ -33,7 +36,111 @@ const DEFAULT_LABELS = {
   onHold: '일시 중단됨',
   onHoldHint: '재개 전까지 제출이 막혀 있습니다 (설정은 고칠 수 있습니다)',
   loading: '불러오는 중…',
+  /** PW-1845 — 이름을 누를 수 있다는 안내(타임라인 그룹 이름 고치기와 같은 말). */
+  renameTip: '이름 변경',
+  renameAria: '사이클 이름',
 };
+
+/**
+ * PW-1845 · 정책 §4.6.2 — 「사이클 **이름만** 헤더에서 인라인 수정한다」.
+ *
+ * 제목을 누르면 그 자리에서 이름 칸(위자드 1단계 이름 칸과 같은 `evc-input`)이 된다. Enter·칸 밖 = 저장,
+ * Esc = 취소. 빈 값·같은 값은 보내지 않는다(타임라인 그룹 이름 고치기와 같은 규칙).
+ * `onRename(name)` 은 약속을 돌려준다 — 문자열로 풀리면 그 문장을 칸 아래에 적고 칸을 연 채 둔다
+ * (입력한 값을 지키려고), 아니면 닫는다.
+ */
+function CycleTitle({ name, onRename, L }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(name);
+  const [error, setError] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const busy = useRef(false);
+
+  if (!onRename) {
+    return (
+      <h1 className="evc-title" data-testid="evmg-title">
+        {name}
+      </h1>
+    );
+  }
+
+  const close = () => {
+    setEditing(false);
+    setError(null);
+  };
+  const commit = async () => {
+    if (busy.current) return;
+    const next = draft.trim();
+    if (!next || next === name) {
+      close();
+      return;
+    }
+    busy.current = true;
+    setSaving(true);
+    try {
+      const failure = await onRename(next);
+      if (typeof failure === 'string' && failure) setError(failure);
+      else close();
+    } finally {
+      busy.current = false;
+      setSaving(false);
+    }
+  };
+
+  if (!editing) {
+    return (
+      <h1 className="evc-title" data-testid="evmg-title">
+        <Tooltip content={L.renameTip}>
+          <button
+            type="button"
+            className="evc-title-btn"
+            data-testid="evmg-title-edit"
+            onClick={() => {
+              setDraft(name);
+              setEditing(true);
+            }}
+          >
+            {name}
+          </button>
+        </Tooltip>
+      </h1>
+    );
+  }
+
+  return (
+    <div className="evc-title-edit">
+      <TextInput
+        className="evc-input evc-title-input"
+        value={draft}
+        autoFocus
+        disabled={saving}
+        invalid={!!error}
+        aria-label={L.renameAria}
+        aria-describedby={error ? 'evmg-title-error' : undefined}
+        data-testid="evmg-title-input"
+        onChange={(e) => {
+          setDraft(e.target.value);
+          setError(null);
+        }}
+        onBlur={() => void commit()}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            void commit();
+          } else if (e.key === 'Escape') {
+            e.preventDefault();
+            close();
+          }
+        }}
+      />
+      {error && (
+        <p id="evmg-title-error" className="evc-wiz-warn" role="alert" data-testid="evmg-title-error">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
 
 export default function EvalCycleManageCanvas({
   cycle = null,
@@ -46,6 +153,11 @@ export default function EvalCycleManageCanvas({
   /** 이 탭이 왜 잠겼는지. `null` 이면 편집 가능. */
   lockReason = null,
   loading = false,
+  /**
+   * PW-1845 — 머리에서 이름 고치기. `(name) => Promise<string | null | void>` — 문자열이면 실패 문장.
+   * 없으면 제목은 읽기 전용이다.
+   */
+  onRename = null,
   labels: providedLabels,
   children,
 }) {
@@ -55,9 +167,12 @@ export default function EvalCycleManageCanvas({
     <div className="evc-root">
       <header className="evc-header">
         <div className="evc-manage-head">
-          <h1 className="evc-title" data-testid="evmg-title">
-            {cycle?.name ?? ''}
-          </h1>
+          {/* key 를 주지 않는다 — 사이클을 읽기 전·후로 같은 제목 요소가 이어져야 한다. */}
+          <CycleTitle
+            name={cycle?.name ?? ''}
+            onRename={cycle ? onRename : null}
+            L={L}
+          />
           {/* 「지금 한 사이클 «안» 에 있다」를 항상 보이게 한다 (정책 §4.6.3) —
               셸 서브네비와 이 탭 줄에 같은 이름이 둘(진행 현황 · 리포트) 있다. */}
           <span className="evc-manage-suffix" data-testid="evmg-suffix">
