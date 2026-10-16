@@ -66,12 +66,26 @@ export function RsStackBar({ segments }) {
   );
 }
 
-/* 프로젝트 불릿 리스트 — 색상별 14 Semibold 불릿. Figma 17478:23485. */
-export function RsBullets({ items }) {
+/*
+ * 프로젝트 불릿 리스트 — 색상별 14 Semibold 불릿. Figma 17478:23485.
+ * `onOpenProject(projectId)` 를 주면 `projectId` 가 있는 줄(원장이 있는 프로젝트)만 눌린다 — 프로젝트 상세로 간다
+ * (PW-1865 · 기획서 screen-project-detail.policy.md §3 진입점 4행). 눌리는 모양은 내 입력의 프로젝트 이름(`rsx-entry-name.is-link`)과 같다.
+ */
+export function RsBullets({ items, onOpenProject, openTitle }) {
   return (
     <ul className="rsx-bullets">
       {items.map((item, i) => (
-        <li key={rowKey(item, i, 'text')} style={{ color: item.color }}>{item.text}</li>
+        <li key={rowKey(item, i, 'text')} style={{ color: item.color }}>
+          {onOpenProject && item.projectId ? (
+            <button
+              type="button"
+              className="rsx-bullet-link"
+              data-testid={`rsx-bullet-open-${item.projectId}`}
+              title={openTitle}
+              onClick={() => onOpenProject(item.projectId)}
+            >{item.text}</button>
+          ) : item.text}
+        </li>
       ))}
     </ul>
   );

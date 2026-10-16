@@ -397,6 +397,16 @@ export const ORGCHART_LABELS = {
   'projectDetail.del.confirm': '삭제',
   'projectDetail.del.cancel': '취소',
   'projectDetail.del.failed': '삭제하지 못했습니다.',
+  'projectDetail.tabs.label': '프로젝트 상세 탭',
+  'projectDetail.tabs.overview': '개요',
+  'projectDetail.tabs.resource': '리소스',
+  'projectDetail.tabs.history': '이력',
+  'projectDetail.tabs.resourcePending': '리소스 탭은 준비 중입니다',
+  'projectDetail.history.empty': '이력이 없습니다',
+  'projectDetail.history.loadFailed': '불러오지 못했습니다',
+  'projectDetail.history.retry': '다시 시도',
+  'projectDetail.history.more': '더 보기',
+  'projectDetail.history.resigned': '(퇴사)',
 };
 
 function interpolate(str, vars) {

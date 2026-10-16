@@ -6,7 +6,12 @@
  *
  * 시안에서 옮기지 않은 것 (이 카드 범위 밖 — 뒤 카드가 붙인다):
  *  - 데모 계정 고르기(기획 데모 전용).
- *  - 개요 | 리소스 | 이력 탭 줄, 리소스·이력 탭.
+ *  - 리소스 탭의 내용. 탭은 보이지만 고를 수 없다(사유는 말풍선).
+ *
+ * 탭 줄과 이력 탭은 PW-1865 에서 붙였다 (§4-0 · §4-3 · §5-4 · 시안 `TABS` · `HistoryTab`).
+ * 탭 줄은 시안의 흰 알약 모양 그대로인 공용 `SegmentedControl` 이다. 이력 한 줄은 시안처럼
+ * 네모 아이콘 · 한 줄 요약 · 오른쪽 «실행자 · 시각» 이고, 줄 사이 선과 간격은 연결 스쿼드 줄(`pd-squad-row`)을 따른다.
+ * 요약 문장·시각 글자는 호스트가 만든다(화면 언어·시간대는 앱이 안다). `onChangeTab` 이 없으면 탭 줄 없이 개요만 그린다.
  *
  * 요약 숫자 3칸(참여 인원 · 계획 합계 · 실제 합계)과 수정 폼의 색상·진행률은 PW-1435 에서 붙였다.
  * 숫자 칸은 내 리소스의 숫자 칸(`RsStatCard`)을 그대로 쓴다 — 같은 «퍼센트 배분» 도메인이다(§1 레이아웃).
@@ -27,9 +32,20 @@ import AnchoredLayer from '../shared/AnchoredLayer.jsx';
 import Button from '../shared/Button.jsx';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
 import DateInput from '../shared/DateInput.jsx';
+import SegmentedControl from '../shared/SegmentedControl.jsx';
+import { SkeletonList } from '../shared/Skeleton.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
+import {
+  ArrowRightGlyph,
+  CloseGlyph,
+  PencilGlyph,
+  PlusGlyph,
+  UserGlyph,
+  UsersGlyph,
+} from '../shared/lineIcons.jsx';
 import useDismissLayer from '../shared/useDismissLayer.js';
-import { CloseIcon, EditIcon, EyeIcon, MoreIcon, WarningIcon } from './squadIcons.jsx';
+import { CloseIcon, EditIcon, EyeIcon, LeadStarIcon, MoreIcon, WarningIcon } from './squadIcons.jsx';
 import { OrgLabelsContext, makeOrgLabels, rich } from './orgchart-labels.jsx';
 import { projectStatusCode, projectStatusText, projectStatusTone } from './project-constants.js';
 import { SQUAD_MENU_Z, SQUAD_MODAL_Z, SQUAD_PALETTE } from './squad-constants.js';
@@ -43,6 +59,22 @@ const PROJECT_TRANSITIONS = {
 };
 
 const MORE_ANCHOR = '[data-project-detail-anchor="more"]';
+
+/** 이력 사건 → 아이콘 (시안 `EVENT_ICON` 의 글리프를 선 아이콘으로). 모르는 사건은 연필. */
+const HISTORY_ICON = {
+  created: PlusGlyph,
+  field_updated: PencilGlyph,
+  status_changed: ArrowRightGlyph,
+  squad_linked: UsersGlyph,
+  squad_unlinked: CloseGlyph,
+  primary_changed: LeadStarIcon,
+  assignment_added: UserGlyph,
+  assignment_updated: PencilGlyph,
+  assignment_removed: CloseGlyph,
+};
+
+/** 탭 (§1 `?tab=overview|resource|history`). 리소스는 내용이 아직 없어 고를 수 없다. */
+const TAB_KEYS = ['overview', 'resource', 'history'];
 
 const clampProgress = (v) => Math.max(0, Math.min(100, Math.round(Number(v) || 0)));
 
@@ -92,6 +124,20 @@ export default function ProjectDetailCanvas({
   onUnlinkSquad,
   /** `(squadId) => void` — 스쿼드 이름을 눌렀을 때. 없으면 이름은 글자뿐이다. */
   onOpenSquad,
+  /** 지금 탭 — `'overview' | 'history'`. 고를 수 없는 탭(리소스)이 오면 개요를 그린다. */
+  tab = 'overview',
+  /** `(tab) => void` — 탭을 눌렀을 때. 없으면 탭 줄을 그리지 않는다. */
+  onChangeTab,
+  /**
+   * 이력 탭 `{ items, loading, error, hasMore, loadingMore }` (§4-3 · §5-4 · §9).
+   * `items[]` = `{ id, eventType, summary, actor, actorResigned, at, atTitle }` — `summary`·`at`(상대 시각)·
+   * `atTitle`(절대 시각, 올리면 뜬다)은 호스트가 만든 글자다. `error` 가 참이면 빈 목록이 아니라 «불러오지 못했습니다».
+   */
+  history = null,
+  /** `() => void` — 「더 보기」 (20건씩). */
+  onLoadMoreHistory,
+  /** `() => void` — 불러오기 실패 뒤 「다시 시도」. */
+  onRetryHistory,
   /** 화면 문구 — `SquadCanvas` 와 같은 계약(`orgchart-labels.jsx`). */
   labels,
 }) {
@@ -120,6 +166,22 @@ export default function ProjectDetailCanvas({
     ? [project.color, ...palette]
     : palette;
   const deleteBlocked = deleteBlockedReason != null || !onDelete;
+  const showTabs = typeof onChangeTab === 'function';
+  const activeTab = showTabs && tab === 'history' ? 'history' : 'overview';
+  // 머리의 딱지는 탭마다 — 이력은 누구에게나 조회 전용이다(§5-1 「탭별 편집 권한에 따라 전환」).
+  const modeEditable = activeTab === 'overview' && editable;
+  const tabItems = TAB_KEYS.map((key) => ({
+    value: key,
+    label: L(`projectDetail.tabs.${key}`),
+    testId: `project-detail-tab-${key}`,
+    ...(key === 'resource' ? { disabled: true, title: L('projectDetail.tabs.resourcePending') } : {}),
+  }));
+  const modeBadge = (
+    <StatusBadge tone={modeEditable ? 'accent' : 'neutral'} className="pd-badge" data-testid="project-detail-mode">
+      {modeEditable ? <EditIcon size={12} /> : <EyeIcon size={12} />}
+      {L(modeEditable ? 'projectDetail.editable' : 'projectDetail.readOnly')}
+    </StatusBadge>
+  );
   const period = `${project.startDate || L('projectDetail.undecided')} ~ ${project.endDate || L('projectDetail.undecided')}`;
 
   /** 콜백을 부르고 실패하면 머리 아래 띠에 사유를 쓴다 (상태 전환 · 主 지정 · 연결 해제). */
@@ -200,11 +262,8 @@ export default function ProjectDetailCanvas({
                 {projectStatusText(L, status)}
               </StatusBadge>
               <span className="pd-spacer" />
-              {/* 편집 가능 / 조회 전용 (시안은 탭 줄 오른쪽 — 탭 줄이 아직 없어 제목 줄 오른쪽에 둔다) */}
-              <StatusBadge tone={editable ? 'accent' : 'neutral'} className="pd-badge" data-testid="project-detail-mode">
-                {editable ? <EditIcon size={12} /> : <EyeIcon size={12} />}
-                {L(editable ? 'projectDetail.editable' : 'projectDetail.readOnly')}
-              </StatusBadge>
+              {/* 편집 가능 / 조회 전용 — 시안대로 탭 줄 오른쪽. 탭 줄이 없으면 제목 줄 오른쪽에 둔다 */}
+              {!showTabs && modeBadge}
               {canManage && (
                 <button
                   type="button"
@@ -276,6 +335,19 @@ export default function ProjectDetailCanvas({
                 {' · '}{period}{' · '}{L('projectDetail.progress', { value: project.progress || 0 })}
               </span>
             </div>
+
+            {showTabs && (
+              <div className="pd-tabs-row">
+                <SegmentedControl
+                  items={tabItems}
+                  value={activeTab}
+                  onChange={(next) => { if (next !== activeTab) onChangeTab(next); }}
+                  ariaLabel={L('projectDetail.tabs.label')}
+                />
+                <span className="pd-spacer" />
+                {modeBadge}
+              </div>
+            )}
           </div>
 
           {actionError && (
@@ -284,6 +356,7 @@ export default function ProjectDetailCanvas({
             </div>
           )}
 
+          {activeTab === 'overview' && (<>
           {/* ── 요약 숫자 3칸 (§4-1 · §5-2) — 실제 합계는 당월, 안 적은 사람은 0 이 아니라 «미입력» 으로 센다(§10) ── */}
           {stats && (
             <div className="pd-stats" data-testid="project-detail-stats">
@@ -460,6 +533,11 @@ export default function ProjectDetailCanvas({
               <p className="pd-empty">{L('projectDetail.squads.empty')}</p>
             )}
           </section>
+          </>)}
+
+          {activeTab === 'history' && (
+            <HistoryTab L={L} history={history} onLoadMore={onLoadMoreHistory} onRetry={onRetryHistory} />
+          )}
         </div>
       </div>
 
@@ -500,5 +578,70 @@ export default function ProjectDetailCanvas({
       )}
     </div>
     </OrgLabelsContext.Provider>
+  );
+}
+
+/** 이력 탭 (§4-3 · §5-4 · §9) — 최신순 한 줄씩, 20건 넘으면 「더 보기」. 실패는 빈 목록이 아니라 다시 시도. */
+function HistoryTab({ L, history, onLoadMore, onRetry }) {
+  const h = history || {};
+  const items = h.items || [];
+  let body;
+  if (h.loading && items.length === 0) {
+    body = <SkeletonList count={3} height={26} gap={20} data-testid="project-detail-history-loading" />;
+  } else if (h.error && items.length === 0) {
+    body = (
+      <div className="pd-hist-fail" role="alert" data-testid="project-detail-history-error">
+        <p className="pd-empty">{L('projectDetail.history.loadFailed')}</p>
+        {onRetry && (
+          <Button className="sq-btn sq-btn-sm sq-btn-outline" data-testid="project-detail-history-retry" onClick={onRetry}>
+            {L('projectDetail.history.retry')}
+          </Button>
+        )}
+      </div>
+    );
+  } else if (items.length === 0) {
+    body = <p className="pd-empty" data-testid="project-detail-history-empty">{L('projectDetail.history.empty')}</p>;
+  } else {
+    body = items.map((item) => {
+      const Glyph = HISTORY_ICON[item.eventType] || PencilGlyph;
+      return (
+        <div key={item.id} className="pd-hist-row" data-testid="project-detail-history-row">
+          <span className="pd-hist-icon"><Glyph size={13} /></span>
+          <span className="pd-hist-text">{item.summary}</span>
+          <Tooltip content={item.atTitle}>
+            <span className="pd-hist-meta">
+              {item.actor}
+              {item.actorResigned && <span className="pd-hist-resigned"> {L('projectDetail.history.resigned')}</span>}
+              {item.actor ? ' · ' : ''}{item.at}
+            </span>
+          </Tooltip>
+        </div>
+      );
+    });
+  }
+  return (
+    <section className="pd-card" data-testid="project-detail-history">
+      {body}
+      {items.length > 0 && h.error && (
+        <div className="pd-hist-more">
+          <span className="pd-empty">{L('projectDetail.history.loadFailed')}</span>
+          {onRetry && (
+            <Button className="sq-btn sq-btn-sm sq-btn-outline" data-testid="project-detail-history-retry" onClick={onRetry}>
+              {L('projectDetail.history.retry')}
+            </Button>
+          )}
+        </div>
+      )}
+      {items.length > 0 && !h.error && h.hasMore && onLoadMore && (
+        <div className="pd-hist-more">
+          <Button
+            className="sq-btn sq-btn-sm sq-btn-outline"
+            data-testid="project-detail-history-more"
+            disabled={!!h.loadingMore}
+            onClick={onLoadMore}
+          >{L('projectDetail.history.more')}</Button>
+        </div>
+      )}
+    </section>
   );
 }

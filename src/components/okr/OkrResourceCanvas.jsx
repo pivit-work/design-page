@@ -56,7 +56,7 @@ export default function OkrResourceCanvas({
   onComment,
   onApplyEstimates,
   onReply,
-  /** 내 입력의 투입 행에서 프로젝트 이름을 눌렀을 때 — `(projectId, { unsaved })`. `OkrResourceMyInput` 참고. */
+  /** 내 입력의 투입 행 프로젝트 이름 · 팀 현황 팀원 칩(PW-1865, 늘 `unsaved: false`)을 눌렀을 때 — `(projectId, { unsaved })`. `OkrResourceMyInput` 참고. */
   onOpenProject,
   placeholder,
   actionError,
@@ -118,7 +118,7 @@ export default function OkrResourceCanvas({
         />
       )}
       {view === 'team' && (
-        <OkrResourceTeam key={data.periodKey} data={data.team} icons={icons} baseUrl={baseUrl} onComment={onComment} labels={L} />
+        <OkrResourceTeam key={data.periodKey} data={data.team} icons={icons} baseUrl={baseUrl} onComment={onComment} onOpenProject={onOpenProject ? (id) => onOpenProject(id, { unsaved: false }) : undefined} labels={L} />
       )}
       {view === 'org' && (
         <OkrResourceOrg key={data.periodKey} data={data.orgView} icons={icons} baseUrl={baseUrl} onOpenTeam={setOpenTeam} labels={L} />

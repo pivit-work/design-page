@@ -55,6 +55,7 @@ export const OKR_RESOURCE_DEFAULT_LABELS = {
     me: '나',
   },
   team: {
+    openProject: '프로젝트 상세 보기',
     total: '팀원 총원',
     relaxed: '여유',
     focused: '몰입',

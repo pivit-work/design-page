@@ -16,7 +16,8 @@ import { OKR_RESOURCE_DEFAULT_LABELS } from './okrResourceLabels.js';
  * false 를 돌려주거나 실패하면 스레드에 달지 않고 쓴 글을 입력칸에 그대로 둔다 — 저장 안 된
  * 코멘트가 목록에 남고 글은 지워지던 일을 막는다(PW-1787). 기다리는 동안 다시 눌러도 한 번만 보낸다.
  */
-export default function OkrResourceTeam({ data, icons, baseUrl = '', onComment, labels: L = OKR_RESOURCE_DEFAULT_LABELS }) {
+/** `onOpenProject(projectId)` — 팀원 칩 가운데 원장이 있는 프로젝트를 눌렀을 때 (PW-1865). 없으면 칩은 글자뿐이다. */
+export default function OkrResourceTeam({ data, icons, baseUrl = '', onComment, onOpenProject, labels: L = OKR_RESOURCE_DEFAULT_LABELS }) {
   const T = L.team;
   const [openIds, setOpenIds] = useState({});
   const [drafts, setDrafts] = useState({});
@@ -83,7 +84,7 @@ export default function OkrResourceTeam({ data, icons, baseUrl = '', onComment, 
                   <p>{T.comments(commentsOf(member, i).length)}</p>
                 </div>
               </div>
-              <RsBullets items={member.items} />
+              <RsBullets items={member.items} onOpenProject={onOpenProject} openTitle={T.openProject} />
             </div>
             <button
               type="button"

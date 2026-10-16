@@ -570,3 +570,56 @@
   font-size: 12px;
   color: var(--text-tertiary);
 }
+
+/* ── 탭 줄 · 이력 탭 (PW-1865 · 시안 project-detail.jsx `TABS`·`HistoryTab`) ── */
+.pd-tabs-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+/* 줄 사이 선·세로 간격은 연결 스쿼드 줄(.pd-squad-row)과 같다. */
+.pd-hist-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border-secondary);
+}
+.pd-hist-row:first-child { border-top: none; padding-top: 0; }
+.pd-hist-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+.pd-hist-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.pd-hist-meta {
+  flex-shrink: 0;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+.pd-hist-resigned { color: var(--text-quaternary); }
+.pd-hist-more,
+.pd-hist-fail {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding-top: 12px;
+}
+.pd-hist-fail { padding-top: 0; }
