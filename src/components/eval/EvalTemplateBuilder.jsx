@@ -8,7 +8,6 @@ import {
   filledOptions,
   isNoteItem,
   scaleMaxOf,
-  sectionColor,
 } from './evalTemplateItemModel.js';
 
 /**
@@ -292,15 +291,8 @@ export function EvalTemplateItemRow({
     >
       {leading}
       {showSection && q.section && (
-        <span
-          className="evc-tpl-item-section"
-          style={{
-            color: sectionColor(q.section, q.category),
-            background: 'color-mix(in srgb, currentColor 8%, transparent)',
-          }}
-        >
-          {q.section}
-        </span>
+        // [PW-1886] 구분별 색은 기획 시안의 것이라 디자이너 근거가 없다 — 매니저 KR 상세 회색 태그로 그린다.
+        <span className="evc-tpl-item-section">{q.section}</span>
       )}
       {textInput && (
         <input

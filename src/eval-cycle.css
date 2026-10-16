@@ -1923,15 +1923,18 @@
   gap: var(--spacing-md);
   margin-bottom: var(--spacing-sm);
 }
+/* [PW-1886] 닫힌 줄·펼친 항목 모두 OKR 「개인 OKR 작성」 창 Objective 카드(.okr-cf-objective, 디자이너) 값 그대로 —
+   흰 바탕·테두리·옅은 그림자·둥글기 12px. 설정은 이 카드 안에 상자 없이 펼친다. */
 .evc-tpl-item {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-md) var(--spacing-lg);
+  gap: 10px;
+  padding: 12px 16px;
   border: 1px solid var(--border-secondary);
-  border-radius: var(--radius-md);
-  background: var(--bg-primary);
+  border-radius: 12px;
+  background: var(--colors-base-white);
+  box-shadow: 0 1px 3px rgba(10, 13, 18, 0.06);
 }
 /* TC-051/052 항목 설명 입력 — 항목 행 아래 전체폭 */
 .evc-tpl-item-desc {
@@ -1943,14 +1946,16 @@
   font-size: var(--font-size-text-xs);
   color: var(--text-secondary);
 }
-/* 시안(템플릿 단계 섹션 배지): 글자 폭만 한 작은 칩 — 최소 폭 없이 안쪽 여백·둥근 모서리 (PW-1030) */
+/* 구분 칩 — 매니저 KR 상세 태그(.mgr-krd-tag, 디자이너) 값 그대로. 구분별 색은 기획 시안 것이라 쓰지 않는다 (PW-1886).
+   글씨만 11px 가 아니라 12px — 평가 화면은 12px 아래를 쓰지 않는다(PW-831). */
 .evc-tpl-item-section {
   font-size: var(--font-size-text-xs);
-  font-weight: 700;
-  color: var(--utility-purple-600);
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--alpha-black-3);
   flex-shrink: 0;
-  padding: 2px 7px;
-  border-radius: var(--radius-xxs);
+  padding: 2px 8px;
+  border-radius: 5px;
   white-space: nowrap;
 }
 .evc-tpl-item-text {
@@ -9027,49 +9032,88 @@
 }
 .evc-tpl-x.is-on { color: var(--utility-brand-600); }
 
-/* 설정 패널 — 항목 행 «바로 아래», 좌측 들여쓰기. 네 변 같은 테두리 (PW-1101 에서 왼쪽 굵은 선을 뺐다). */
+/* 설정 패널 — 항목 카드 안, 항목 줄 «바로 아래». 색 상자 없이 놓는다 (PW-1886 — 연파랑은 안내 색이라 뜻이 맞지 않았다).
+   칸 이름표·간격·입력칸·보조 버튼은 1on1 「일정 추가」 창(one_on_one.css .ono-add-modal-*, 디자이너) 값 그대로:
+   이름표 14px 굵게 회색 · 이름표↔칸 12px · 칸↔칸 24px · 입력칸 옅은 회색 바탕·아주 옅은 테두리·16px. */
 .evc-tpl-settings {
   flex-basis: 100%;
   width: 100%;
   box-sizing: border-box;
-  margin: 4px 0 2px 22px;
-  padding: var(--spacing-lg) var(--spacing-lg);
-  border: 1px solid var(--utility-blue-200);
-  border-radius: var(--radius-md);
-  background: var(--utility-blue-50);
+  margin: 0;
+  padding: var(--spacing-lg) 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3xl);
+  cursor: default;
+}
+.evc-tpl-set-block {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
-  cursor: default;
 }
-.evc-tpl-set-block + .evc-tpl-set-block { padding-top: var(--spacing-md); }
 .evc-tpl-set-block.is-last {
-  border-top: 1px solid var(--utility-blue-200);
-  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--colors-border-borderSecondary);
+  padding-top: var(--spacing-3xl);
 }
 .evc-tpl-set-title {
-  font-size: var(--font-size-text-xs);
   font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: var(--spacing-sm);
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  color: var(--text-secondary);
 }
+.evc-tpl-set-title .evc-tpl-set-note { color: var(--text-tertiary); }
+.evc-tpl-set-block > .seg-control { align-self: flex-start; }
 .evc-tpl-set-row {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: var(--spacing-sm);
-  margin-top: var(--spacing-sm);
+  gap: var(--spacing-md);
 }
-/* 칩이 행 전체를 차지하지 않게 — .evc-type-chip 의 flex:1 을 여기서만 눕힌다. */
+/* 여럿 고르는 공개 대상 — 공용 체크박스를 가로로 늘어놓는다 */
+.evc-tpl-set-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-md) var(--spacing-3xl);
+}
+/* PW-1459 §5.12.3 — 상향 리뷰에서 켠 직속·차상위 조직장은 경고 톤(값은 전의 경고 칩 글씨색 그대로) */
+.evc-tpl-audience-warn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--utility-warning-600);
+}
+.evc-tpl-settings .evc-input {
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--componentColors-alpha-alphaBlack3);
+  border: 1px solid var(--componentColors-alpha-alphaBlack5);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
+  color: var(--text-primary);
+}
+.evc-tpl-settings .evc-input::placeholder { color: var(--text-placeholder); }
+.evc-tpl-settings .evc-tpl-set-textarea {
+  height: 80px;
+  padding: var(--spacing-lg) 14px;
+  resize: none;
+}
+.evc-tpl-settings .evc-btn.is-ghost {
+  align-self: flex-start;
+  padding: 10px var(--spacing-xl);
+  border-radius: var(--radius-md);
+  background: var(--bg-quaternary);
+  border: 1px solid var(--colors-border-borderSecondary);
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
+}
+.evc-tpl-settings .evc-btn.is-ghost:hover { background: var(--bg-secondary); }
+/* 칩이 행 전체를 차지하지 않게 — .evc-type-chip 의 flex:1 을 여기서만 눕힌다. (척도 빠른 선택 바로가기만 남았다) */
 .evc-tpl-set-row .evc-type-chip {
   flex: 0 0 auto;
   padding: 4px 10px;
   font-size: var(--font-size-text-xs);
-}
-.evc-tpl-set-row .evc-type-chip.is-warn {
-  background: var(--utility-warning-50);
-  border-color: var(--utility-warning-500);
-  color: var(--utility-warning-600);
 }
 .evc-tpl-set-num { width: 60px; text-align: right; }
 .evc-tpl-set-note {
@@ -9078,10 +9122,10 @@
   font-weight: 400;
 }
 .evc-tpl-set-help {
-  margin: var(--spacing-sm) 0 0;
+  margin: 0;
   font-size: var(--font-size-text-xs);
-  color: var(--text-secondary);
-  line-height: 1.6;
+  line-height: var(--line-height-text-xs);
+  color: var(--text-tertiary);
 }
 .evc-tpl-set-help.is-warn { color: var(--utility-warning-600); }
 .evc-tpl-options {

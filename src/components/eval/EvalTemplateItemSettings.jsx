@@ -1,4 +1,5 @@
-import Tooltip from '../shared/Tooltip.jsx';
+import Checkbox from '../shared/Checkbox.jsx';
+import SegmentedControl from '../shared/SegmentedControl.jsx';
 import EvalNoteBlock from './EvalNoteBlock.jsx';
 import { AlertIcon } from './evalIcons.jsx';
 import {
@@ -227,15 +228,12 @@ export default function EvalTemplateItemSettings({
             >
               {L.optionAdd}
             </button>
-            <label className="evl-promo-row">
-              <input
-                type="checkbox"
-                checked={!!q.allowMultiple}
-                onChange={(e) => onPatch(q.id, { allowMultiple: e.target.checked })}
-                data-testid={`evc-tpl-allowmultiple-${q.id}`}
-              />
-              <span>{L.optionsAllowMultiple}</span>
-            </label>
+            <Checkbox
+              checked={!!q.allowMultiple}
+              onChange={(e) => onPatch(q.id, { allowMultiple: e.target.checked })}
+              data-testid={`evc-tpl-allowmultiple-${q.id}`}
+              label={L.optionsAllowMultiple}
+            />
           </div>
         </div>
       )}
@@ -246,19 +244,17 @@ export default function EvalTemplateItemSettings({
       {supportsGrowthType(q, reviewType) && (
         <div className="evc-tpl-set-block" data-testid={`evc-tpl-growth-${q.id}`}>
           <div className="evc-tpl-set-title">{L.growthTypeTitle}</div>
-          <div className="evc-tpl-set-row">
-            {GROWTH_TYPE_OPTIONS.map((o) => (
-              <button
-                type="button"
-                key={o.id ?? 'none'}
-                className={`evc-type-chip${(q.growthType ?? null) === o.id ? ' is-on' : ''}`}
-                onClick={() => onPatch(q.id, { growthType: o.id })}
-                data-testid={`evc-tpl-growth-${q.id}-${o.id ?? 'none'}`}
-              >
-                {L[o.labelKey]}
-              </button>
-            ))}
-          </div>
+          {/* [PW-1886] 하나만 고르는 칸은 공용 세그먼트 버튼 — 「해당 없음」(null)은 'none' 으로 실어 보낸다. */}
+          <SegmentedControl
+            ariaLabel={L.growthTypeTitle}
+            items={GROWTH_TYPE_OPTIONS.map((o) => ({
+              value: o.id ?? 'none',
+              label: L[o.labelKey],
+              testId: `evc-tpl-growth-${q.id}-${o.id ?? 'none'}`,
+            }))}
+            value={q.growthType ?? 'none'}
+            onChange={(v) => onPatch(q.id, { growthType: v === 'none' ? null : v })}
+          />
           <p className="evc-tpl-set-help">{L.growthTypeHelp}</p>
         </div>
       )}
@@ -284,20 +280,19 @@ export default function EvalTemplateItemSettings({
             {L.guideLongHint}
           </p>
         )}
-        <div className="evc-tpl-set-row">
-          <span className="evc-tpl-set-note">{L.guideDisplayLabel}</span>
-          {GUIDE_DISPLAYS.map((o) => (
-            <button
-              type="button"
-              key={o.id}
-              className={`evc-type-chip${guideDisplay === o.id ? ' is-on' : ''}`}
-              onClick={() => onPatch(q.id, { descriptionDisplay: o.id })}
-              data-testid={`evc-tpl-guide-${q.id}-${o.id}`}
-            >
-              {L[o.labelKey]}
-            </button>
-          ))}
-        </div>
+      </div>
+      <div className="evc-tpl-set-block">
+        <div className="evc-tpl-set-title">{L.guideDisplayLabel}</div>
+        <SegmentedControl
+          ariaLabel={L.guideDisplayLabel}
+          items={GUIDE_DISPLAYS.map((o) => ({
+            value: o.id,
+            label: L[o.labelKey],
+            testId: `evc-tpl-guide-${q.id}-${o.id}`,
+          }))}
+          value={guideDisplay}
+          onChange={(v) => onPatch(q.id, { descriptionDisplay: v })}
+        />
         {/* 이 오독이 티켓에 실제로 적혀 있었다 — 고정 노출한다 (policy §5.11-D). */}
         <p className="evc-tpl-set-help" data-testid={`evc-tpl-guide-axis-note-${q.id}`}>
           {L.guideAxisNote}
@@ -318,22 +313,20 @@ export default function EvalTemplateItemSettings({
                 «참고로» 보일지는 질문마다 고른다. 처음엔 꺼져 있다(2026-10-06 커트 결정). */}
             {supportsPeerVisible(q, reviewType) && (
               <>
-                <label className="evl-promo-row">
-                  <input
-                    type="checkbox"
-                    checked={!!q.peerVisible}
-                    onChange={(e) => onPatch(q.id, { peerVisible: e.target.checked })}
-                    data-testid={`evc-tpl-peer-visible-${q.id}`}
-                  />
-                  <span>{L.peerVisibleLabel}</span>
-                </label>
+                <Checkbox
+                  checked={!!q.peerVisible}
+                  onChange={(e) => onPatch(q.id, { peerVisible: e.target.checked })}
+                  data-testid={`evc-tpl-peer-visible-${q.id}`}
+                  label={L.peerVisibleLabel}
+                />
                 <p className="evc-tpl-set-help">{L.peerVisibleHelp}</p>
               </>
             )}
           </>
         ) : (
           <>
-            <div className="evc-tpl-set-row">
+            {/* [PW-1886] 여럿 고르는 칸은 공용 체크박스 — 하나만 고르는 세그먼트와 겉모양으로 갈린다. */}
+            <div className="evc-tpl-set-checks">
               {DISCLOSURE_AUDIENCES.map((a) => {
                 const on = (disclosure.audience || []).includes(a.id);
                 // 상향 리뷰의 '직속 조직장' = 평가 대상 본인. 켤 수는 있으나 무엇을 켜는지 알린다.
@@ -342,22 +335,21 @@ export default function EvalTemplateItemSettings({
                    차상위용 툴팁 문구는 기획 확인 대기(PW-1541)라 아직 붙이지 않는다. */
                 const warnOn = on && reviewType === 'upward' && (a.id === 'manager' || a.id === 'upper');
                 return (
-                  <Tooltip key={a.id} content={isTargetSelf ? L.audienceManagerIsTargetHint : undefined}>
-                    <button
-                      type="button"
-                      className={`evc-type-chip${on ? ' is-on' : ''}${warnOn ? ' is-warn' : ''}`}
-                      onClick={() => onToggleAudience(q, a.id)}
-                      data-testid={`evc-tpl-audience-${q.id}-${a.id}`}
-                    >
-                      {L[a.labelKey]}
-                      {warnOn && (
-                        <>
-                          {' '}
-                          <AlertIcon size={12} />
-                        </>
-                      )}
-                    </button>
-                  </Tooltip>
+                  <Checkbox
+                    key={a.id}
+                    title={isTargetSelf ? L.audienceManagerIsTargetHint : undefined}
+                    checked={on}
+                    onChange={() => onToggleAudience(q, a.id)}
+                    data-testid={`evc-tpl-audience-${q.id}-${a.id}`}
+                  >
+                    {warnOn ? (
+                      <span className="evc-tpl-audience-warn">
+                        {L[a.labelKey]} <AlertIcon size={12} />
+                      </span>
+                    ) : (
+                      L[a.labelKey]
+                    )}
+                  </Checkbox>
                 );
               })}
             </div>
@@ -369,37 +361,40 @@ export default function EvalTemplateItemSettings({
                 {L.audienceManagerIsTargetHint}
               </p>
             )}
-            {/* 「보이는가」와 「누가 썼는지 보이는가」는 다른 축이다. */}
-            <div className="evc-tpl-set-row">
-              <span className="evc-tpl-set-note">{L.identityLabel}</span>
-              {IDENTITY_OPTIONS.map((o) => (
-                <Tooltip key={o.id} content={L[o.descKey]}>
-                  <button
-                    type="button"
-                    className={`evc-type-chip${(disclosure.identity || 'anonymous') === o.id ? ' is-on' : ''}`}
-                    onClick={() => onPatchDisclosure(q, { identity: o.id })}
-                    data-testid={`evc-tpl-identity-${q.id}-${o.id}`}
-                  >
-                    {L[o.labelKey]}
-                  </button>
-                </Tooltip>
-              ))}
-            </div>
+          </>
+        )}
+      </div>
+      {/* 작성자 표기·최소 인원·AI 요약은 공개 범위의 나머지 축이다 — 칸마다 이름표를 단다(PW-1886). */}
+      {disclosureSupported && (
+        <>
+          {/* 「보이는가」와 「누가 썼는지 보이는가」는 다른 축이다. */}
+          <div className="evc-tpl-set-block">
+            <div className="evc-tpl-set-title">{L.identityLabel}</div>
+            <SegmentedControl
+              ariaLabel={L.identityLabel}
+              items={IDENTITY_OPTIONS.map((o) => ({
+                value: o.id,
+                label: L[o.labelKey],
+                title: L[o.descKey],
+                testId: `evc-tpl-identity-${q.id}-${o.id}`,
+              }))}
+              value={disclosure.identity || 'anonymous'}
+              onChange={(v) => onPatchDisclosure(q, { identity: v })}
+            />
+          </div>
+          <div className="evc-tpl-set-block">
             {/* 인원이 적으면 익명이 익명이 아니게 된다. */}
             <div className="evc-tpl-set-row">
-              <label className="evl-promo-row">
-                <input
-                  type="checkbox"
-                  checked={disclosure.minResponses != null}
-                  onChange={(e) =>
-                    onPatchDisclosure(q, {
-                      minResponses: e.target.checked ? DEFAULT_MIN_RESPONSES : null,
-                    })
-                  }
-                  data-testid={`evc-tpl-minresponses-on-${q.id}`}
-                />
-                <span>{L.minResponsesLabel}</span>
-              </label>
+              <Checkbox
+                checked={disclosure.minResponses != null}
+                onChange={(e) =>
+                  onPatchDisclosure(q, {
+                    minResponses: e.target.checked ? DEFAULT_MIN_RESPONSES : null,
+                  })
+                }
+                data-testid={`evc-tpl-minresponses-on-${q.id}`}
+                label={L.minResponsesLabel}
+              />
               {disclosure.minResponses != null && (
                 <input
                   type="number"
@@ -416,15 +411,12 @@ export default function EvalTemplateItemSettings({
                 />
               )}
             </div>
-            <label className="evl-promo-row">
-              <input
-                type="checkbox"
-                checked={!!disclosure.aiSummaryOnly}
-                onChange={(e) => onPatchDisclosure(q, { aiSummaryOnly: e.target.checked })}
-                data-testid={`evc-tpl-aisummary-${q.id}`}
-              />
-              <span>{L.aiSummaryOnlyLabel}</span>
-            </label>
+            <Checkbox
+              checked={!!disclosure.aiSummaryOnly}
+              onChange={(e) => onPatchDisclosure(q, { aiSummaryOnly: e.target.checked })}
+              data-testid={`evc-tpl-aisummary-${q.id}`}
+              label={L.aiSummaryOnlyLabel}
+            />
             {onApplyDisclosureToAll && !phaseLocked && (
               <div>
                 <button
@@ -437,9 +429,9 @@ export default function EvalTemplateItemSettings({
                 </button>
               </div>
             )}
-          </>
-        )}
-      </div>
+          </div>
+        </>
+      )}
 
       <div className="evc-tpl-set-foot">
         <button
