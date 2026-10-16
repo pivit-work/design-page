@@ -10897,11 +10897,14 @@
   width: 24px;
   color: var(--text-tertiary);
 }
-/* 상자 폭은 고정이지만 글자는 로케일·단계 이름에 따라 길어진다 — 높이는 내용을 따라 늘고 글자는 줄을 바꾼다. */
+/* 상자 폭은 136px 이 기본이고, 단계 이름은 줄을 바꿔 높이로 늘어난다.
+   단 「평가자 · 팀 평가 관리 ›」 같은 안내 글(.evmh-phase-hint)은 버튼 글자라 꺾지 않는다 —
+   안내 글이 길면 상자가 그 폭만큼 넓어진다 (PW-1880). 가로가 모자라면 .evmh-flow 가 스크롤한다. */
 .evmh-phase {
   position: relative;
-  flex: 0 0 136px;
-  width: 136px;
+  flex: 0 0 auto;
+  width: min-content;
+  min-width: 136px;
   min-height: 128px;
   box-sizing: border-box;
   display: flex;
@@ -10969,6 +10972,7 @@ button.evmh-phase:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 2px;
+  white-space: nowrap;
   font-size: var(--font-size-text-xs);
   font-weight: 600;
   color: var(--utility-brand-600);
@@ -11032,6 +11036,13 @@ button.evmh-phase:focus-visible {
   align-items: center;
   gap: var(--spacing-md);
   flex-wrap: wrap;
+}
+/* PW-1880 — `.evc-type-chip` 의 `flex: 1` 이 일괄 배치 줄에서 칩을 102px 로 눌러
+   「순서대로 이어 / 서」로 꺾였다. 글자 폭만큼 차지하고 꺾이지 않게 한다 (PW-434 직급별 구분 칩과 같은 처방).
+   줄이 모자라면 칩 묶음이 통째로 다음 줄로 내려간다(.evc-sched-bulk 의 flex-wrap). */
+.evc-sched-bulk .evc-type-chip {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 /* 4단계 직급 없음 · 입사일 없음 — 제외 사유 글(.evc-excluded-reason.is-manual)과 같은 색 */
 .evc-roster-missing {

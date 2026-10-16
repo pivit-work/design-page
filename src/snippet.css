@@ -311,14 +311,19 @@
   background: var(--colors-background-bgBrandPrimary);
 }
 
-/* 좌측 날짜 컬럼 */
+/* 좌측 날짜 컬럼 — 100px 에 좌우 20px 여백이면 글자 자리가 60px 뿐이라 「10월 9일 / (금)」으로
+   꺾였다 (PW-1880). 가장 긴 「12월 31일 (수)」·「Wed, 12/31」이 한 줄로 들어가는 폭으로 넓히고 꺾지 않는다.
+   행마다 본문 시작 위치가 같아야 해서 글자 폭을 따르지 않고 고정 폭을 둔다. */
 .snippet-row-date {
-  width: 100px;
+  flex: 0 0 auto;
+  width: 128px;
+  box-sizing: border-box;
+  white-space: nowrap;
   align-self: stretch;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 12px 20px;
+  padding: 12px 14px;
   font-size: 14px;
   font-weight: 600;
   line-height: 20px;

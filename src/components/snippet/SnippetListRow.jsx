@@ -2,7 +2,7 @@
  * SnippetListRow — 스니핏 히스토리 리스트의 한 행.
  * Figma node 16960:20345 (active/recent) / 16960:20362 (regular).
  *
- * 좌측 날짜 컬럼(100px, border-right) + 우측 요약 텍스트(truncate) + 우측 끝
+ * 좌측 날짜 컬럼(128px 고정·한 줄, border-right) + 우측 요약 텍스트(truncate) + 우측 끝
  * 타임스탬프. recent=true 행은 bg-brand-primary 그린 틴트 + "Updated :" 프리픽스,
  * 그 외는 white bg(h:90) + "Written :".
  *
