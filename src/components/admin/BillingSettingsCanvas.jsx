@@ -16,7 +16,8 @@ const T = {
   bg: '#F8FAFC', card: '#fff',
   border: '#E2E8F0', bl: '#F1F5F9',
   text: '#0F172A', sub: '#64748B', muted: '#94A3B8',
-  accent: '#4F6AF5',
+  // 강조색은 앱 브랜드 토큰 (PW-1894) — 채움·테두리는 기본 버튼(.dp-btn--primary) 바탕, 글씨는 1on1 화면의 브랜드 글씨
+  accent: 'var(--bg-brand-solid)', accentText: 'var(--text-brand-secondary)',
   green: '#22C55E', greenBg: '#F0FDF4',
   amber: '#F59E0B', amberBg: '#FFFBEB',
   red: '#DC2626', redBg: '#FEF2F2',
@@ -137,9 +138,12 @@ function Btn({ children, onClick, kind = 'primary', disabled }) {
 
 function FormField({ meta, value, error, disabled, onChange, onBlur, hint, style }) {
   return (
-    <div style={{ marginBottom: 20, ...style }}>
-      <label style={{ display: 'block', fontSize: 13, fontWeight: 700,
-        color: T.text, marginBottom: 6 }}>
+    // 칸 이름표·입력칸 = 디자이너가 그린 1on1 「일정 추가」 창 값 그대로 (PW-1894 · one_on_one.css `.ono-add-modal-*`).
+    // 이름표 14px 굵게 회색 · 이름표 → 칸 12px · 칸 → 다음 칸 24px. 잠긴 칸은 1on1 창에 없어 원래 연회색을 둔다.
+    <div style={{ marginBottom: 'var(--spacing-3xl)', ...style }}>
+      <label style={{ display: 'block', fontFamily: 'var(--font-family-body)', fontWeight: 700,
+        fontSize: 'var(--font-size-text-sm)', lineHeight: 'var(--line-height-text-sm)',
+        color: 'var(--text-secondary)', marginBottom: 'var(--spacing-lg)' }}>
         {meta.label}
         {meta.required && (
           <span style={{ color: T.red, marginLeft: 3 }}>*</span>
@@ -153,12 +157,14 @@ function FormField({ meta, value, error, disabled, onChange, onBlur, hint, style
         onChange={(e) => onChange(e.target.value)}
         onBlur={onBlur}
         style={{
-          width: '100%', boxSizing: 'border-box',
-          fontFamily: T.font,
-          fontSize: 14, padding: '10px 12px', borderRadius: 8,
-          border: `1px solid ${error ? T.red : T.border}`,
-          background: disabled ? T.bl : '#fff',
-          color: disabled ? T.sub : T.text,
+          width: '100%', boxSizing: 'border-box', minHeight: 40,
+          padding: 'var(--spacing-md) var(--spacing-lg)',
+          fontFamily: 'var(--font-family-body)', fontWeight: 400,
+          fontSize: 'var(--font-size-text-md)', lineHeight: 'var(--line-height-text-md)',
+          borderRadius: 'var(--radius-md)',
+          border: `1px solid ${error ? 'var(--colors-error-200)' : 'var(--componentColors-alpha-alphaBlack5, rgba(0,0,0,0.05))'}`,
+          background: disabled ? T.bl : 'var(--componentColors-alpha-alphaBlack3, rgba(0,0,0,0.03))',
+          color: disabled ? T.sub : 'var(--text-primary)',
           outline: 'none', cursor: disabled ? 'not-allowed' : 'text',
         }}
       />

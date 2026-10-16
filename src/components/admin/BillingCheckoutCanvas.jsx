@@ -19,7 +19,8 @@ const T = {
   bg: '#F8FAFC', card: '#fff',
   border: '#E2E8F0', bl: '#F1F5F9',
   text: '#0F172A', sub: '#64748B', muted: '#94A3B8',
-  accent: '#4F6AF5',
+  // 강조색은 앱 브랜드 토큰 (PW-1894) — 채움·테두리는 기본 버튼(.dp-btn--primary) 바탕, 글씨는 1on1 화면의 브랜드 글씨
+  accent: 'var(--bg-brand-solid)', accentText: 'var(--text-brand-secondary)',
   green: '#22C55E', greenBg: '#F0FDF4',
   amber: '#F59E0B', amberBg: '#FFFBEB',
   red: '#DC2626', redBg: '#FEF2F2',
@@ -451,7 +452,7 @@ export default function BillingCheckoutCanvas({
                 <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{labels.termsTitle}</div>
                 {onViewTerms && (
                   <button type="button" onClick={onViewTerms}
-                    style={{ background: 'none', border: 'none', color: T.accent, fontWeight: 700,
+                    style={{ background: 'none', border: 'none', color: T.accentText, fontWeight: 700,
                       fontSize: 12, cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
                     {labels.termsViewFull}
                   </button>
@@ -473,7 +474,7 @@ export default function BillingCheckoutCanvas({
                   {annual ? labels.termsRefundAnnual : labels.termsRefundMonthly}{' '}
                   {labels.termsRefundCooling}{' '}
                   <button type="button" onClick={onViewRefundPolicy}
-                    style={{ background: 'none', border: 'none', color: T.accent, fontWeight: 700,
+                    style={{ background: 'none', border: 'none', color: T.accentText, fontWeight: 700,
                       fontSize: 12, cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
                     {labels.termsViewRefund}
                   </button>
@@ -496,7 +497,7 @@ export default function BillingCheckoutCanvas({
                       : labels.refundTermsMonthly}{' '}
                     {labels.refundCoolingNote}{' '}
                     <button type="button" onClick={onViewRefundPolicy}
-                      style={{ background: 'none', border: 'none', color: T.accent, fontWeight: 700,
+                      style={{ background: 'none', border: 'none', color: T.accentText, fontWeight: 700,
                         fontSize: 13, cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
                       {labels.viewFullPolicy}
                     </button>

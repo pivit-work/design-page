@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import ModalShell from '../shared/ModalShell.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
+import SegmentedControl from '../shared/SegmentedControl.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
 import { BillingCard as Card, BillingBadge as Badge } from './kit/BillingSurface.jsx';
 
@@ -21,7 +22,8 @@ const T = {
   bg: '#F8FAFC', card: '#fff',
   border: '#E2E8F0', bl: '#F1F5F9',
   text: '#0F172A', sub: '#64748B', muted: '#94A3B8',
-  accent: '#4F6AF5',
+  // 강조색은 앱 브랜드 토큰 (PW-1894) — 채움·테두리는 기본 버튼(.dp-btn--primary) 바탕, 글씨는 1on1 화면의 브랜드 글씨
+  accent: 'var(--bg-brand-solid)', accentText: 'var(--text-brand-secondary)',
   green: '#22C55E', greenBg: '#F0FDF4',
   amber: '#F59E0B', amberBg: '#FFFBEB',
   red: '#DC2626', redBg: '#FEF2F2',
@@ -407,7 +409,7 @@ function FeatureCompareTable({ plans, featureKeys, featureLabelMap, currentPlanC
           <RosterTable.HeadCell>{labels.compareFeatureHeader}</RosterTable.HeadCell>
           {plans.map((p) => (
             <RosterTable.HeadCell key={p.code} align="center">
-              <span style={{ fontWeight: 700, color: p.code === currentPlanCode ? T.accent : T.text }}>{p.label}</span>
+              <span style={{ fontWeight: 700, color: p.code === currentPlanCode ? T.accentText : T.text }}>{p.label}</span>
               {p.recommended && <div style={{ fontSize: 10, color: T.purple, fontWeight: 700 }}>{labels.compareRecommendedTag}</div>}
             </RosterTable.HeadCell>
           ))}
@@ -734,17 +736,16 @@ export default function BillingPlansCanvas({
         {/* 청구 주기 토글 */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
           <span style={{ fontSize: 14, color: T.sub }}>{labels.billingCycleLabel}</span>
-          <div style={{ display: 'flex', border: `1px solid ${T.border}`, borderRadius: 10, overflow: 'hidden' }}>
-            {['monthly', 'annual'].map((v) => (
-              <button key={v} type="button" onClick={() => setInterval(v)}
-                style={{ fontFamily: T.font, fontSize: 13, fontWeight: 600,
-                  padding: '7px 18px', cursor: 'pointer', border: 'none',
-                  background: interval === v ? T.accent : '#fff',
-                  color: interval === v ? '#fff' : T.sub }}>
-                {v === 'monthly' ? labels.monthly : labels.annual}
-              </button>
-            ))}
-          </div>
+          {/* 하나만 고르는 칸 = 공용 세그먼트 버튼 (PW-1894) */}
+          <SegmentedControl
+            ariaLabel={labels.billingCycleLabel}
+            items={[
+              { value: 'monthly', label: labels.monthly },
+              { value: 'annual', label: labels.annual },
+            ]}
+            value={interval}
+            onChange={setInterval}
+          />
           {interval === 'annual' && (
             <span style={{ fontSize: 12, color: T.amber }}>{labels.annualToggleNote}</span>
           )}
@@ -799,7 +800,7 @@ export default function BillingPlansCanvas({
           <div data-testid="billing-commitment-notice" style={{ fontSize: 13, color: T.sub, marginBottom: 16 }}>
             {labels.commitmentNotice(commitment.contractEnd)}{' '}
             <button type="button" onClick={onNavigateContactSales}
-              style={{ background: 'none', border: 'none', color: T.accent, fontWeight: 700,
+              style={{ background: 'none', border: 'none', color: T.accentText, fontWeight: 700,
                 fontSize: 13, cursor: 'pointer', padding: 0 }}>{labels.commitmentContactCta}</button>
           </div>
         )}
@@ -861,14 +862,14 @@ export default function BillingPlansCanvas({
             <span>
               {labels.currentActiveSeats(activeSeats)}
               {seats !== activeSeats && (
-                <b style={{ color: seats > activeSeats ? T.accent : T.amber, marginLeft: 6 }}>
+                <b style={{ color: seats > activeSeats ? T.accentText : T.amber, marginLeft: 6 }}>
                   {labels.seatDelta(seats, seats - activeSeats)}
                 </b>
               )}
             </span>
             {seats !== activeSeats && canEdit && (
               <button type="button" onClick={() => setSeatsClamped(activeSeats)}
-                style={{ background: 'none', border: 'none', color: T.accent, fontWeight: 700,
+                style={{ background: 'none', border: 'none', color: T.accentText, fontWeight: 700,
                   fontSize: 13, cursor: 'pointer', padding: 0, whiteSpace: 'nowrap' }}>
                 {labels.matchActiveSeats(activeSeats)}
               </button>
@@ -887,7 +888,7 @@ export default function BillingPlansCanvas({
               {labels.prorationPost}
             </span>
             <button type="button" onClick={onNavigateMembers}
-              style={{ background: 'none', border: 'none', color: T.accent, fontWeight: 700,
+              style={{ background: 'none', border: 'none', color: T.accentText, fontWeight: 700,
                 fontSize: 13, cursor: 'pointer', padding: 0, whiteSpace: 'nowrap' }}>
               {labels.manageMembers}
             </button>

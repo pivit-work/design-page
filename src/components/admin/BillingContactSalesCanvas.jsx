@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { BillingCard as Card } from './kit/BillingSurface.jsx';
+import SegmentedControl from '../shared/SegmentedControl.jsx';
+import Checkbox from '../shared/Checkbox.jsx';
 
 // ─────────────────────────────────────────────────────────────
 // 결제·구독 — 영업 문의 (BillingContactSalesCanvas)  /admin/billing/contact-sales
@@ -19,7 +21,8 @@ const T = {
   bg: '#F8FAFC', card: '#fff',
   border: '#E2E8F0', bl: '#F1F5F9',
   text: '#0F172A', sub: '#64748B', muted: '#94A3B8',
-  accent: '#4F6AF5',
+  // 강조색은 앱 브랜드 토큰 (PW-1894) — 채움·테두리는 기본 버튼(.dp-btn--primary) 바탕, 글씨는 1on1 화면의 브랜드 글씨
+  accent: 'var(--bg-brand-solid)', accentText: 'var(--text-brand-secondary)',
   green: '#22C55E', greenBg: '#F0FDF4',
   red: '#DC2626', redBg: '#FEF2F2',
   purple: '#7C3AED', purpleBg: '#F5F3FF',
@@ -98,10 +101,18 @@ function mergeLabels(provided) {
   return { ...DEFAULT_LABELS, ...provided };
 }
 
+// 칸 이름표·입력칸 = 디자이너가 그린 1on1 「일정 추가」 창 값 그대로 (PW-1894 · one_on_one.css `.ono-add-modal-*`).
+// 이름표 14px 굵게 회색, 이름표 → 칸 12px(`.ono-add-modal-field` gap), 칸 → 다음 칸 24px(`.ono-add-modal-form` gap).
+const FIELD_LABEL_STYLE = {
+  display: 'block', fontFamily: 'var(--font-family-body)', fontWeight: 700,
+  fontSize: 'var(--font-size-text-sm)', lineHeight: 'var(--line-height-text-sm)',
+  color: 'var(--text-secondary)', marginBottom: 'var(--spacing-lg)',
+};
+
 function Field({ label, required, error, children }) {
   return (
-    <div style={{ marginBottom: 18 }}>
-      <label style={{ display: 'block', fontSize: 13, fontWeight: 700, marginBottom: 6 }}>
+    <div style={{ marginBottom: 'var(--spacing-3xl)' }}>
+      <label style={FIELD_LABEL_STYLE}>
         {label}{required && <span style={{ color: T.red }}> *</span>}
       </label>
       {children}
@@ -110,10 +121,17 @@ function Field({ label, required, error, children }) {
   );
 }
 
+// 한 줄 입력칸 = `.ono-add-modal-input`(옅은 회색 바탕·최소 40px) + 글씨 16px, 테두리는 메모 칸
+// `.ono-add-modal-textarea` 의 아주 옅은 테두리. 틀린 칸은 1on1 창의 오류 테두리 색.
 const inputStyle = (err) => ({
-  width: '100%', fontFamily: T.font, fontSize: 14, padding: '10px 12px',
-  borderRadius: 10, border: `1px solid ${err ? '#FCA5A5' : T.border}`,
-  color: T.text, background: '#fff', boxSizing: 'border-box',
+  width: '100%', boxSizing: 'border-box', minHeight: 40,
+  padding: 'var(--spacing-md) var(--spacing-lg)',
+  background: 'var(--componentColors-alpha-alphaBlack3, rgba(0,0,0,0.03))',
+  border: `1px solid ${err ? 'var(--colors-error-200)' : 'var(--componentColors-alpha-alphaBlack5, rgba(0,0,0,0.05))'}`,
+  borderRadius: 'var(--radius-md)', outline: 'none',
+  fontFamily: 'var(--font-family-body)', fontWeight: 400,
+  fontSize: 'var(--font-size-text-md)', lineHeight: 'var(--line-height-text-md)',
+  color: 'var(--text-primary)',
 });
 
 export default function BillingContactSalesCanvas({
@@ -277,39 +295,28 @@ export default function BillingContactSalesCanvas({
               </Field>
 
               <Field label={labels.interestsLabel}>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  {INTEREST_OPTS.map((o) => {
-                    const on = interests.includes(o.id);
-                    return (
-                      <button key={o.id} type="button" onClick={() => toggleInterest(o.id)}
-                        style={{ fontFamily: T.font, fontSize: 13, fontWeight: on ? 700 : 500,
-                          padding: '7px 13px', borderRadius: 999, cursor: 'pointer',
-                          border: `1px solid ${on ? T.accent : T.border}`,
-                          background: on ? '#EEF2FF' : '#fff', color: on ? T.accent : T.sub }}>
-                        {on ? '✓ ' : ''}{o.label}
-                      </button>
-                    );
-                  })}
+                {/* 여럿 고르는 칸 = 공용 체크박스. 줄 사이는 1on1 창 고르기 묶음 간격(12px) */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-lg)' }}>
+                  {INTEREST_OPTS.map((o) => (
+                    <Checkbox key={o.id} label={o.label}
+                      checked={interests.includes(o.id)}
+                      onChange={() => toggleInterest(o.id)} />
+                  ))}
                 </div>
               </Field>
 
               <Field label={labels.timingLabel}>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  {TIMING_OPTS.map((t) => {
-                    const on = f.timing === t;
-                    return (
-                      <button key={t} type="button" onClick={() => set('timing', t)}
-                        style={{ fontFamily: T.font, fontSize: 13, fontWeight: on ? 700 : 500,
-                          padding: '7px 13px', borderRadius: 10, cursor: 'pointer',
-                          border: `1px solid ${on ? T.accent : T.border}`,
-                          background: on ? '#EEF2FF' : '#fff', color: on ? T.accent : T.sub }}>{t}</button>
-                    );
-                  })}
-                </div>
+                {/* 하나만 고르는 칸 = 공용 세그먼트 버튼 */}
+                <SegmentedControl
+                  ariaLabel={labels.timingLabel}
+                  items={TIMING_OPTS.map((t) => ({ value: t, label: t }))}
+                  value={f.timing}
+                  onChange={(t) => set('timing', t)}
+                />
               </Field>
 
               <Field label={labels.messageLabel}>
-                <textarea style={{ ...inputStyle(false), minHeight: 96, resize: 'vertical' }}
+                <textarea style={{ ...inputStyle(false), padding: 'var(--spacing-lg) 14px', minHeight: 96, resize: 'vertical' }}
                   value={f.message} onChange={(e) => set('message', e.target.value)}
                   placeholder={labels.messagePlaceholder} />
               </Field>
