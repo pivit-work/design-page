@@ -23,6 +23,7 @@ import {
   FolderGlyph,
   LockKeyholeSquareGlyph,
   MailGlyph,
+  PaperclipGlyph,
   PencilGlyph,
   SearchGlyph,
   SettingsGlyph,
@@ -142,11 +143,7 @@ function EyeIcon({ size = 16 }) {
 }
 // 불러온 원본 표시 — 클립.
 function PaperclipIcon({ size = 16 }) {
-  return (
-    <svg {...svgProps(size)}>
-      <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
-    </svg>
-  );
+  return <PaperclipGlyph size={size} style={{ verticalAlign: 'middle' }} />;
 }
 // 전체 목록에서 찾기 — 폴더.
 function FolderIcon({ size = 16 }) {
