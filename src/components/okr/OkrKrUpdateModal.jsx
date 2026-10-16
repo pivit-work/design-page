@@ -5,7 +5,7 @@ import FormField from '../shared/FormField.jsx';
 import TextArea from '../shared/TextArea.jsx';
 import Button from '../shared/Button.jsx';
 import LoadingState from '../shared/LoadingState.jsx';
-import { NoteText, NoticeCard } from '../shared/SharedText.jsx';
+import { ModalDescription, NoteText, NoticeCard } from '../shared/SharedText.jsx';
 import { BellIcon } from './okrIcons.jsx';
 import { KR_UPDATE_DEFAULT_LABELS } from './okrKrUpdateLabels.js';
 
@@ -158,9 +158,10 @@ export default function OkrKrUpdateModal({ detail, icons, baseUrl = '', onClose,
 
       {detail.notifyManagerName ? (
         <NoticeCard data-testid="okr-kru-notify">
-          <NoteText>
-            <BellIcon size={12} /> {L.notifyManager(detail.notifyManagerName)}
-          </NoteText>
+          {/* 창 본문 설명 글씨(14/20 2단계) — 12px 흐린 글씨는 연두 바탕에서 잘 안 읽혔다 */}
+          <ModalDescription>
+            <BellIcon size={14} /> {L.notifyManager(detail.notifyManagerName)}
+          </ModalDescription>
         </NoticeCard>
       ) : null}
 
