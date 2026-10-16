@@ -790,11 +790,13 @@ export default function EvalCycleMemberCanvas({
   // [PW-1464] §4.4a — 활동 데이터가 하나도 없으면 전체·항목별 AI 초안 단추를 끈다.
   const aiOff = aiDraftDisabledReason || (selfReview && noActivityData ? L.actNoData : null);
   // [PW-1464] §4.8a 서술 칸 입력 상태 — 아무것도 안 쓴 처음(회색) / 다른 칸을 쓴 뒤 남은 칸(주황) / 쓴 칸(흰색).
+  // [PW-1889] 칸 바탕이 회색이 되어 쓴 칸의 흰색은 is-filled 로 칠한다.
   const anyAnswered = fields.some(
     (f) => state[f.key].textAnswer.trim() || state[f.key].score != null,
   );
   const inputStateClass = (f) => {
-    if (!selfReview || readOnly || state[f.key].textAnswer.trim()) return '';
+    if (!selfReview || readOnly) return '';
+    if (state[f.key].textAnswer.trim()) return ' is-filled';
     return anyAnswered ? ' is-pending' : ' is-blank';
   };
   const handleSubmitClick = () => {
