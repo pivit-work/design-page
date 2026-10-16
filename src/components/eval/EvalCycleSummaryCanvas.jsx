@@ -159,7 +159,7 @@ const DEFAULT_LABELS = {
     '권한은 사람에게 붙고 회사 전체에 적용됩니다. 위원회를 새로 만들거나 다음 사이클이 와도 달라지지 않습니다.',
   cwCompAccessCount: '현재 {n}명이 캘리브레이션에서 보상·연봉을 볼 수 있습니다',
   cwCompAccessNone:
-    '아직 아무도 지정되지 않아 전원에게 가려져 있습니다 — 저장 전까지 그대로 유지됩니다',
+    '아직 아무도 지정되지 않아 전원에게 가려져 있습니다',
   cwCompAccessListLabel: '위원 후보 + 인사담당자',
   cwCompAccessSearch: '이름으로 찾기',
   cwCompAccessSearchEmpty: '검색 결과가 없습니다.',
@@ -250,7 +250,7 @@ const DEFAULT_LABELS = {
   // §10.G.6 변경 로그 — 이름 옆 역할(코드값을 그대로 내지 않는다)
   cwLogRoles: { leader: '조직장', calibration_chair: '위원장', committee: '위원', hr: 'HR' },
   cwDistRec: '권장 {pct}%',
-  cwDistNote: '권장 비율은 정규분포 근사 참고 가이드이며 상대평가를 강제하지 않습니다. 필터·등급 조정에 따라 분포가 실시간 갱신됩니다.',
+  cwDistNote: '권장 비율은 정규분포 근사 참고 가이드이며 상대평가를 강제하지 않습니다.',
   cwDistNoGrade: '등급 없음',
   cwDistNoGradeBar: '등급 없음 {n}명 ({pct}%)',
   cwFilterBtn: '필터',

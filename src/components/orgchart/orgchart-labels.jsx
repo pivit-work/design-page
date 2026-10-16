@@ -244,7 +244,7 @@ export const ORGCHART_LABELS = {
   'squad.pop.stateOver': '초과 {{diff}}%p',
   'squad.pop.stateSlack': '여유 {{diff}}%p',
   'squad.pop.otherSquads': '다른 스쿼드',
-  'squad.pop.notCounted': '이 스쿼드는 {{status}} 상태라 캐파 합계에 포함되지 않습니다. (비중은 상태와 무관하게 계산됩니다)',
+  'squad.pop.notCounted': '이 스쿼드는 {{status}} 상태라 캐파 합계에 포함되지 않습니다.',
   'squad.pop.idleNote': '비중은 잡혀 있는데 캐파 사용이 0입니다 — 저장은 되지만 과부하 판단에 반영되지 않습니다.',
   'squad.pop.requested': '요청됨 — 본인이 설정하면 반영됩니다',
   'squad.pop.request': '캐파 설정 요청 보내기',

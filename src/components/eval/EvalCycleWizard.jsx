@@ -2411,7 +2411,7 @@ function CommitteeCard({
           <span className="evc-wiz-committee-empty-sub">
             {fill(
               L.wizardCommitteeSearchEmptyHint ??
-                '이름 · 부서 · 직책으로 다시 찾아보세요. 선택한 위원 {{count}}명은 검색과 무관하게 유지됩니다.',
+                '이름 · 부서 · 직책으로 다시 찾아보세요.',
               { count: committee.length },
             )}
           </span>
@@ -5803,6 +5803,19 @@ export default function EvalCycleWizard({
   const missingTargets = targetMembers.filter((c) => !c.jobLevel || !c.hireDate);
   const exclusionOf = (id) => exclusions.find((e) => e.memberId === id);
   const exclusionReasonOf = (id) => exclusionOf(id)?.exclusionType ?? 'manual';
+  /* 제외 사유 라벨 — 제외 명단의 사유 칸과 «수동 포함» 배지의 말풍선이 같은 말을 쓴다. */
+  const exclusionLabelOf = (e) =>
+    e.exclusionType === 'manual'
+      ? L.targetManualExclude
+      : e.exclusionType === 'employment_type'
+        ? fill(L.targetReasonEmploymentType, { value: e.exclFieldValue ?? '' })
+        : (L[`exclusionType_${e.exclusionType}`] ?? e.exclusionType);
+  /* [PW-1872] 되돌린 사람의 원래 제외 사유 — 배지에 마우스를 올리면 보인다. 규칙이 바뀌어 더는
+     걸리지 않으면 사유가 없으므로 말풍선도 달지 않는다. */
+  const keptReasonOf = (id) => {
+    const e = autoExclusions.find((x) => x.memberId === id);
+    return e ? exclusionLabelOf(e) : null;
+  };
 
   /* ── PW-1594 §5.13.4 4단계 ④ 하향 평가자 ──────────────────────────────────────
      칸 값은 초안(`leaderAssignments`)에 담기고 복원된다. 확정은 초안이 아니라 서버의 배정 표에
@@ -6374,11 +6387,13 @@ export default function EvalCycleWizard({
         </span>
       </div>
       {keptIds.includes(c.id) && (
-        <StatusBadge
-          className="evc-roster-badge"
-          data-testid={`evc-wiz-kept-${c.id}`}>
-          {L.targetManualInclude}
-        </StatusBadge>
+        <Tooltip content={keptReasonOf(c.id)}>
+          <StatusBadge
+            className="evc-roster-badge"
+            data-testid={`evc-wiz-kept-${c.id}`}>
+            {L.targetManualInclude}
+          </StatusBadge>
+        </Tooltip>
       )}
       <Tooltip content={L.targetReviewExcludeOne}>
         <button
@@ -9873,14 +9888,9 @@ export default function EvalCycleWizard({
                               }`}
                               data-testid={`evc-wiz-reason-${c.id}`}
                             >
-                              {exclusionReasonOf(c.id) === 'manual'
-                                ? L.targetManualExclude
-                                : exclusionReasonOf(c.id) === 'employment_type'
-                                  ? fill(L.targetReasonEmploymentType, {
-                                      value: exclusionOf(c.id)?.exclFieldValue ?? '',
-                                    })
-                                  : (L[`exclusionType_${exclusionReasonOf(c.id)}`] ??
-                                    exclusionReasonOf(c.id))}
+                              {exclusionLabelOf(
+                                exclusionOf(c.id) ?? { exclusionType: 'manual' },
+                              )}
                             </span>
                           </div>
                         ))
@@ -9897,7 +9907,6 @@ export default function EvalCycleWizard({
                   </div>
                 </div>
 
-                <p className="evc-wiz-hint">{L.targetReviewFooter}</p>
               </div>
 
               {/* [PW-1594 · 정책 §5.13.4] ④ 하향 평가자 — 리뷰 & 조정 «아래». 하향 리뷰가 있으면 1차만

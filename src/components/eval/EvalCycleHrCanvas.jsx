@@ -402,7 +402,7 @@ const DEFAULT_LABELS = {
   targetCandidatesLoadError: '구성원 명단을 불러오지 못했습니다',
   targetInactiveSuffix: '(비활성)',
   exclusionEmploymentTypeSuffix: '에 해당하면 제외',
-  targetIncludedToast: '{{count}}명을 수동 포함했습니다 — 규칙 제외를 사람이 뒤집은 것으로 남습니다',
+  targetIncludedToast: '{{count}}명을 포함했습니다',
   targetManualKeptNotice: '수동 조정 {{count}}건은 유지했습니다',
   exclusionUnsupported: '이 조건은 현재 워크스페이스에서 지원하지 않습니다',
   exclusionUnsupportedLabel: '지원하지 않는 조건',
