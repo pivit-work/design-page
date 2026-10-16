@@ -1287,17 +1287,24 @@ function StepBar({
  * [PW-602 ④] 「설명」은 **다섯 번째 응답 유형이 아니다.** 다른 축(`itemKind`)이고,
  * 같은 셀렉트에 두는 이유는 설계자가 «항목을 추가할 때» 한자리에서 고르기 때문뿐이다.
  */
+const ADD_ROW_INITIAL_SECTION = '성과 (What)';
+/** [PW-1831 J-13] 최종 등급 섹션 이름 — 프리셋(`evalTemplatePresets.js`)의 섹션 문자열과 같다. */
+const FINAL_GRADE_SECTION = '최종 등급 결정';
+const ADD_ROW_INITIAL_TYPE = 'textarea';
 function AddQuestionRow({ onAdd, labels: L }) {
-  const [section, setSection] = useState('성과 (What)');
+  const [section, setSection] = useState(ADD_ROW_INITIAL_SECTION);
   const [text, setText] = useState('');
-  const [type, setType] = useState('textarea');
+  const [type, setType] = useState(ADD_ROW_INITIAL_TYPE);
   const isNote = type === NOTE_KIND;
   // 설명은 제목이 «선택»이라 비어 있어도 추가된다 — 본문은 설정 패널에서 적는다.
   const canAdd = isNote || !!text.trim();
   const submit = () => {
     if (!canAdd) return;
     onAdd(section, text, type);
+    // [PW-1831 J-11 · HR §5.10-E] 추가하면 줄이 처음 값으로 돌아간다 — 직전 유형(설명 등)이 남아 다음 항목에 따라오지 않게.
+    setSection(ADD_ROW_INITIAL_SECTION);
     setText('');
+    setType(ADD_ROW_INITIAL_TYPE);
   };
   return (
     <div className="evc-tpl-additem">
@@ -3233,6 +3240,16 @@ export default function EvalCycleWizard({
     return Number.isInteger(r) && r >= 1 && r <= leaderRounds ? r : 1;
   });
   const [tplRoundBuffers, setTplRoundBuffers] = useState(() => ({ ...(D?.tplRoundBuffers ?? {}) }));
+  /* [PW-1831 J-10 · HR §5.10-E] 지금 편집하지 않는 평가 유형의 편집 버퍼(유형 id 키 — 하향은 1차 칸).
+     유형을 옮겨도 미저장 편집이 그 유형에 남고, 확정한 유형은 확정 템플릿 내용으로 열린다.
+     `confirmedId` 는 내려 둘 때의 확정이다 — 그 뒤 확정이 바뀌었으면 내려 둔 것이 아니라 새 확정본을 연다. */
+  const [tplTypeBuffers, setTplTypeBuffers] = useState(() => ({ ...(D?.tplTypeBuffers ?? {}) }));
+  /** [PW-1831 J-8] 등급 체계를 퍼뜨린 칸 이름들 — 「✓ …에 적용했습니다」. 다른 유형으로 옮기면 지운다. */
+  const [gradesSharedTo, setGradesSharedTo] = useState(null);
+  /** [PW-1831 J-8] 등급 체계 퍼뜨리기 확인 대기. */
+  const [pendingGradeShare, setPendingGradeShare] = useState(false);
+  /** [PW-1831 J-9] 공개 범위 퍼뜨리기 확인 대기 — `{ q, count }`. */
+  const [pendingDisclosureShare, setPendingDisclosureShare] = useState(null);
   /** 시작 방식(불러오기·복사·새로 만들기)을 고른 차수. 1차는 처음부터 시작돼 있다. */
   const [tplRoundStarted, setTplRoundStarted] = useState(() => [...(D?.tplRoundStarted ?? [1])]);
   /* PW-433 — 항목 설정 패널. **한 번에 하나만** 연다. 행에는 이미 드래그 핸들·섹션 배지·
@@ -4710,6 +4727,13 @@ export default function EvalCycleWizard({
     /* PW-1459 §5.2 — 동료 리뷰를 끄면 지정 방식 선택도 지운다. 남겨 두면 다시 켰을 때
        사용자가 고른 적 없다고 여기는 방식이 그대로 살아 돌아온다. */
     if (turningOff && t === 'peer') setPeerAssignModes([]);
+    if (turningOff && t in tplTypeBuffers) {
+      setTplTypeBuffers((m) => {
+        const next = { ...m };
+        delete next[t];
+        return next;
+      });
+    }
     if (turningOff) {
       setPhaseTemplateMap((m) => {
         // [PW-1594 · L13] 하향을 끄면 차수별 확정(`leader_2` …)도 함께 버린다.
@@ -4880,6 +4904,20 @@ export default function EvalCycleWizard({
   /** 「수정 중」 비교에 쓰는 항목 목록. [PW-1050] 피평가자 공개 여부가 항목의 결과 공개 범위
       하나로 모여 셀프 전용 정규화(구 `hideFromEvaluatee` 끄기)가 필요 없어졌다. */
   const normalizeQuestions = (qs) => qs || [];
+  /** [PW-1831 J-8] 「수정 중」 지문 — 항목과 등급 체계. 등급만 바꿔도(다른 유형에서 퍼뜨려도) 확정본과 달라진다. */
+  const bufferFingerprint = (questions, grades) =>
+    JSON.stringify({ q: normalizeQuestions(questions), g: grades ?? DEFAULT_GRADES });
+  /** 확정 칸 키의 «지금 편집하지 않는» 버퍼. 편집 중인 칸이면 null(화면 값이 곧 버퍼다). */
+  const parkedBufferOf = (key) => {
+    const base = phaseBaseId(key);
+    const k = base === 'leader' ? leaderRoundOf(key) : 1;
+    if (base === tplType && (base !== 'leader' || k === tplRound)) return null;
+    if (base === 'leader' && k > 1) return tplRoundBuffers[k] ?? null;
+    if (base === 'leader' && tplType === 'leader') return tplRoundBuffers[1] ?? null;
+    const b = tplTypeBuffers[base];
+    // 내려 둔 뒤 확정이 바뀌었으면 그 버퍼는 다시 열리지 않는다 — 견줄 대상이 아니다.
+    return b && (b.confirmedId || '') === (phaseTemplateMap[base] || '') ? b : null;
+  };
   const templateById = new Map(savedTemplates.map((t) => [t.id, t]));
   /** 이름 표기용 조회 — 라이브러리에 없으면 사이클이 가리키는 템플릿 이름표에서 (PW-1654). */
   const cycleTemplateById = new Map((cycleTemplates || []).map((t) => [t.id, t]));
@@ -4923,11 +4961,14 @@ export default function EvalCycleWizard({
     // 지문이 없으면(초안 이어쓰기·관리 모드 프리필) 판단하지 않는다 — 모르는 것을
     // 「수정 중」으로 말하면 확정이 안 된 것처럼 읽힌다.
     const snapshot = confirmSnapshot[key];
+    // [PW-1831] 편집하지 않는 칸도 내려 둔 버퍼로 본다 — 다른 유형에서 등급 체계를 퍼뜨린 확정본이 「수정 중」이 된다.
+    const parked = editing ? null : parkedBufferOf(key);
     const dirty =
       confirmed &&
-      editing &&
       snapshot !== undefined &&
-      snapshot !== JSON.stringify(normalizeQuestions(tplQuestions));
+      (editing
+        ? snapshot !== bufferFingerprint(tplQuestions, tplGrades)
+        : !!parked && snapshot !== bufferFingerprint(parked.questions, parked.grades));
     return {
       type: key,
       baseType: rt.id,
@@ -4977,12 +5018,10 @@ export default function EvalCycleWizard({
    * `apply` 는 확정과 «함께» 일어나야 하는 나머지 작업(불러오기의 버퍼 프리필)이다.
    * 확인 다이얼로그에서 취소하면 확정도 `apply` 도 일어나지 않는다.
    */
-  const confirmTemplateFor = (type, tpl, apply, bufferQuestions) => {
+  const confirmTemplateFor = (type, tpl, apply, bufferQuestions, bufferGrades) => {
     if (!tpl?.id) return;
     const prevId = phaseTemplateMap[type];
-    const snapshot = JSON.stringify(
-      normalizeQuestions(bufferQuestions ?? tpl.questions),
-    );
+    const snapshot = bufferFingerprint(bufferQuestions ?? tpl.questions, bufferGrades ?? tpl.grades);
     const run = () => {
       apply?.();
       setPhaseTemplateMap((m) => ({ ...m, [type]: tpl.id }));
@@ -5046,10 +5085,38 @@ export default function EvalCycleWizard({
       snapshot: JSON.stringify(tpl.questions ?? []),
     },
   });
-  /** k차가 확정한 템플릿으로 만든 버퍼. 확정이 없거나 라이브러리에 없으면 null. */
-  const confirmedRoundBuffer = (k) => {
-    const tpl = templateById.get(phaseTemplateMap[leaderPhaseId(k)]);
+  /** 확정 칸(`self` · `leader` · `leader_2` …)이 확정한 템플릿으로 만든 버퍼. 확정이 없거나 라이브러리에 없으면 null. */
+  const confirmedBufferOf = (key) => {
+    const tpl = templateById.get(phaseTemplateMap[key]);
     return tpl ? tplBufferFrom(tpl) : null;
+  };
+  /** k차가 확정한 템플릿으로 만든 버퍼. 확정이 없거나 라이브러리에 없으면 null. */
+  const confirmedRoundBuffer = (k) => confirmedBufferOf(leaderPhaseId(k));
+  /** 내려 둔 유형 버퍼 — 내려 둔 뒤 그 유형의 확정이 바뀌었으면 쓰지 않는다(새 확정본을 연다). */
+  const parkedTypeBuffer = (bufs, type) => {
+    const b = bufs[type];
+    return b && (b.confirmedId || '') === (phaseTemplateMap[type] || '') ? b : null;
+  };
+  /**
+   * [PW-1831 J-10 · HR §5.10-E] 다른 유형(`type`)의 공유 칸에 올릴 내용. 차례대로 —
+   * ① 내려 둔 그 유형의 버퍼(미저장 편집을 잃지 않는다) ② 그 유형의 확정 템플릿 ③ 종전 동작(손대지 않은 프리셋이면
+   * 그 유형 프리셋으로 다시 깔고, 고쳤으면 지금 내용을 이어 쓴다). `fromConfirmed` 면 「수정 중」 지문을 새로 찍는다 —
+   * 서버가 돌려준 확정본은 보낸 버퍼와 글자가 달라(id·기본값) 옛 지문과 견주면 열자마자 「수정 중」이 된다.
+   */
+  const typeFirstSlot = (bufs, type, base, baseType) => {
+    const parked = parkedTypeBuffer(bufs, type);
+    if (parked) return { buffer: parked, fromConfirmed: false };
+    const confirmed = confirmedBufferOf(type);
+    if (confirmed) return { buffer: confirmed, fromConfirmed: true };
+    return {
+      buffer: !bufferCustomized(base, baseType)
+        ? { ...base, questions: presetFor(base.version, type) }
+        : base,
+      fromConfirmed: false,
+    };
+  };
+  const stampConfirmed = (stamps) => {
+    if (Object.keys(stamps).length > 0) setConfirmSnapshot((m) => ({ ...m, ...stamps }));
   };
   /** 빈 차수 — 시작 방식을 고르기 전에는 항목이 없다(§5.13.2 「빈 차수에서 시작하기」). */
   const emptyRoundBuffer = () => ({
@@ -5093,33 +5160,44 @@ export default function EvalCycleWizard({
     if (type === tplType && k === curRound) return;
     const cur = captureTplBuffer();
     const buffers = { ...tplRoundBuffers };
-    // ① 지금 칸을 내려놓고, 공유 칸에 있어야 할 내용(base)과 그 유형(baseType)을 구한다.
+    const typeBufs = { ...tplTypeBuffers };
+    const stamps = {};
+    // ① 지금 칸을 내려놓고, 지금 유형의 공유 칸 내용(base)을 구한다.
     let base = cur;
-    let baseType = tplType;
     if (tplType === 'leader' && curRound > 1) {
       buffers[curRound] = cur;
       base = buffers[1] ?? confirmedRoundBuffer(1) ?? presetBufferFor('leader');
-      baseType = 'leader';
       delete buffers[1];
     }
-    // ② 가려는 칸을 올린다.
-    if (type === 'leader' && k > 1) {
-      buffers[1] =
-        baseType !== 'leader' && !bufferCustomized(base, baseType)
-          ? { ...base, questions: presetFor(base.version, 'leader') }
-          : base;
-      applyTplBuffer(buffers[k] ?? confirmedRoundBuffer(k) ?? emptyRoundBuffer());
-      delete buffers[k];
-    } else {
-      const next =
-        type !== baseType && !bufferCustomized(base, baseType)
-          ? { ...base, questions: presetFor(base.version, type) }
-          : base;
-      if (next !== cur) applyTplBuffer(next);
+    // ② 가려는 유형의 공유 칸 내용. 같은 유형(하향 차수만 옮김)이면 base 그대로.
+    //    [PW-1831 J-10] 다른 유형이면 지금 유형을 내려 두고, 가려는 유형은 내려 둔 것 → 확정본 → 종전 동작 차례로.
+    let first = base;
+    if (type !== tplType) {
+      typeBufs[tplType] = { ...base, confirmedId: phaseTemplateMap[tplType] || null };
+      const slot = typeFirstSlot(typeBufs, type, base, tplType);
+      first = slot.buffer;
+      if (slot.fromConfirmed) stamps[type] = bufferFingerprint(first.questions, first.grades);
+      delete typeBufs[type];
     }
+    // ③ 가려는 칸을 올린다.
+    if (type === 'leader' && k > 1) {
+      buffers[1] = first;
+      let roundBuf = buffers[k];
+      if (!roundBuf) {
+        roundBuf = confirmedRoundBuffer(k);
+        if (roundBuf) stamps[leaderPhaseId(k)] = bufferFingerprint(roundBuf.questions, roundBuf.grades);
+      }
+      applyTplBuffer(roundBuf ?? emptyRoundBuffer());
+      delete buffers[k];
+    } else if (first !== cur) {
+      applyTplBuffer(first);
+    }
+    stampConfirmed(stamps);
     setTplRoundBuffers(buffers);
+    setTplTypeBuffers(typeBufs);
     setTplType(type);
     setTplRound(k);
+    setGradesSharedTo(null);
   };
   /** 확정 칸 키(`self` · `leader_2` …)로 그 칸을 연다 — 3·6단계에서 2단계로 보낼 때. */
   const openTplKey = (key) => {
@@ -5179,6 +5257,55 @@ export default function EvalCycleWizard({
   const alignGradesToRound1 = () => {
     if (!round1Grades) return;
     setTplGrades(round1Grades.map((g) => ({ ...g })));
+  };
+  /**
+   * [PW-1831 J-8 · HR §5.10-E] 「이 등급 체계를 다른 리뷰 종류에도 적용」의 대상 — 1단계에서 고른 다른 리뷰 종류의
+   * 확정 칸(하향은 차수 칸 전부). 같은 하향의 다른 차수는 `1차 등급 체계로 맞추기` 가 따로 맡는다.
+   */
+  const gradeShareRows = confirmRows.filter((r) => r.baseType !== tplType);
+  const gradeShareNames = gradeShareRows.map((r) => r.label).join(' · ');
+  /**
+   * 그 칸들의 편집 버퍼에서 등급 체계(등급 목록 · 절대/상대 · 상대 비율 적용 범위)만 지금 것으로 바꾼다. 항목은 그대로다.
+   * 라이브러리 원본은 저장할 때까지 그대로이고, 확정된 칸은 확정본과 달라져 「확정 · 수정 중」이 된다.
+   * 버퍼가 없는 칸은 그 칸을 열면 올라올 내용(내려 둔 것 → 확정본 → 종전 동작)에 등급만 바꿔 내려 둔다.
+   */
+  const shareGradesToOtherTypes = () => {
+    setPendingGradeShare(false);
+    if (gradeShareRows.length === 0) return;
+    const withGrades = (b) => ({
+      ...b,
+      grades: tplGrades.map((g) => ({ ...g })),
+      absolute: tplAbsolute,
+      ratioScope: tplRatioScope,
+    });
+    const typeBufs = { ...tplTypeBuffers };
+    const buffers = { ...tplRoundBuffers };
+    const stamps = {};
+    // 지금 유형의 공유 칸 내용 — 버퍼가 없는 유형이 종전 동작으로 이어 쓸 내용이다.
+    const base =
+      tplType === 'leader' && tplRound > 1
+        ? buffers[1] ?? confirmedRoundBuffer(1) ?? presetBufferFor('leader')
+        : captureTplBuffer();
+    for (const type of [...new Set(gradeShareRows.map((r) => r.baseType))]) {
+      const slot = typeFirstSlot(typeBufs, type, base, tplType);
+      if (slot.fromConfirmed) {
+        stamps[type] = bufferFingerprint(slot.buffer.questions, slot.buffer.grades);
+      }
+      typeBufs[type] = { ...withGrades(slot.buffer), confirmedId: phaseTemplateMap[type] || null };
+    }
+    // 하향 2차 이후 — 지금 하향을 편집하지 않으므로 전부 차수 버퍼에 있다.
+    for (const r of gradeShareRows.filter((x) => x.baseType === 'leader' && x.round > 1)) {
+      let b = buffers[r.round];
+      if (!b) {
+        b = confirmedRoundBuffer(r.round);
+        if (b) stamps[r.type] = bufferFingerprint(b.questions, b.grades);
+      }
+      buffers[r.round] = withGrades(b ?? emptyRoundBuffer());
+    }
+    stampConfirmed(stamps);
+    setTplTypeBuffers(typeBufs);
+    setTplRoundBuffers(buffers);
+    setGradesSharedTo(gradeShareNames);
   };
   const tplDrop = (targetIdx) => {
     if (tplDragIdx === null || tplDragIdx === targetIdx) {
@@ -5272,6 +5399,27 @@ export default function EvalCycleWizard({
       audience: cur.includes(aid) ? cur.filter((x) => x !== aid) : [...cur, aid],
     });
   };
+  /** [PW-1831 J-9] 이 평가지에서 `q` 말고 공개 범위를 가진 질문 항목 수 — 설명 블록은 답이 없어 빼고 센다. */
+  const otherQuestionCount = (q) =>
+    tplQuestions.filter((x) => x.id !== q.id && !isNoteItem(x)).length;
+  /** [PW-1831 J-9 · HR §5.10-E] 이 항목의 공개 범위를 이 평가지의 질문 항목 전부에 복사한다(설명 블록 제외). */
+  const shareDisclosureToAll = (id) => {
+    setPendingDisclosureShare(null);
+    const src = tplQuestions.find((x) => x.id === id);
+    if (!src) return;
+    const d = disclosureOf(src);
+    setTplQuestions((qs) =>
+      qs.map((x) =>
+        isNoteItem(x)
+          ? x
+          : { ...x, disclosure: { ...d, audience: [...(d.audience || [])] } },
+      ),
+    );
+  };
+  /** [PW-1831 J-13] 「최종 등급 결정」 섹션의 등급 항목 수. 섹션 밖의 등급 항목(OKR 달성도 등)은 세지 않는다. */
+  const finalGradeItemCount = tplQuestions.filter(
+    (q) => q.section === FINAL_GRADE_SECTION && q.type === 'grade',
+  ).length;
 
   const updateGrade = (i, field, value) =>
     setTplGrades((gs) => gs.map((g, idx) => (idx === i ? { ...g, [field]: value } : g)));
@@ -5315,7 +5463,7 @@ export default function EvalCycleWizard({
         // PW-441 §5.10-D — 저장 «성공» 이 곧 이 사이클의 그 유형 확정이다.
         // 서버가 돌려준 id 로 확정해야 한다(로컬 임시 id 로 적으면 가리킬 대상이 없다).
         // [PW-1594] 하향이면 지금 편집 중인 «차수» 칸을 확정한다.
-        confirmTemplateFor(tplKey, saved, undefined, tpl.questions);
+        confirmTemplateFor(tplKey, saved, undefined, tpl.questions, tpl.grades);
         if (tplType === 'leader') markRoundStarted(tplRound);
       });
       return;
@@ -5351,6 +5499,14 @@ export default function EvalCycleWizard({
        `tplType` 이 하향이 아니면 차수는 늘 1이다(`openTplSlot`). */
     const key = type === 'leader' && tplType === 'leader' ? tplKey : type;
     const apply = () => {
+      // [PW-1831 J-10] 다른 유형의 템플릿을 불러와 유형이 바뀌면 지금 유형의 편집을 그 유형에 내려 둔다.
+      if (type !== tplType && !(tplType === 'leader' && tplRound > 1)) {
+        setTplTypeBuffers((m) => {
+          const next = { ...m, [tplType]: { ...captureTplBuffer(), confirmedId: phaseTemplateMap[tplType] || null } };
+          delete next[type];
+          return next;
+        });
+      }
       setTplType(type);
       if (type === 'leader') markRoundStarted(leaderRoundOf(key));
       setTplName(tpl.name);
@@ -6420,6 +6576,7 @@ export default function EvalCycleWizard({
     leaderRounds: leaderRounds > 1 ? leaderRounds : undefined,
     tplRound: tplRound > 1 ? tplRound : undefined,
     tplRoundBuffers: Object.keys(tplRoundBuffers).length > 0 ? tplRoundBuffers : undefined,
+    tplTypeBuffers: Object.keys(tplTypeBuffers).length > 0 ? tplTypeBuffers : undefined,
     tplRoundStarted: tplRoundStarted.some((k) => k > 1) ? tplRoundStarted : undefined,
     leaderAssignments:
       leaderCells.length > 0 ? leaderCells.map(({ warnings: _w, ...rest }) => rest) : undefined,
@@ -8047,6 +8204,30 @@ export default function EvalCycleWizard({
                   </span>
                 )}
               </div>
+              {/* [PW-1831 J-8 · HR §5.10-E] 등급 체계를 리뷰 종류마다 다시 넣지 않게 — 고른 다른 리뷰 종류가 없으면 버튼도 없다. */}
+              {gradeShareRows.length > 0 && !confirmReadOnly && (
+                <div className="evc-tpl-grade-foot">
+                  <button
+                    type="button"
+                    className="evc-btn is-ghost"
+                    onClick={() => setPendingGradeShare(true)}
+                    disabled={!tplGradesValid}
+                    data-testid="evc-tpl-share-grades"
+                  >
+                    {L.tplShareGrades}
+                  </button>
+                  {gradesSharedTo && (
+                    <span
+                      className="evc-tpl-save-hint is-ok"
+                      role="status"
+                      data-testid="evc-tpl-share-grades-done"
+                    >
+                      <CheckCircleIcon size={13} />{' '}
+                      {fill(L.tplShareGradesDone ?? '', { types: gradesSharedTo })}
+                    </span>
+                  )}
+                </div>
+              )}
 
               {/* §4.2.2-B 최종 등급 카드 위치는 하향 리뷰 템플릿 설정 영역 소속.
                   기본 정보 스텝에 있던 것을 등급 체계 바로 아래로 옮겼다. */}
@@ -8112,6 +8293,11 @@ export default function EvalCycleWizard({
                     onRemoveOption={removeCheckOption}
                     onPatchDisclosure={patchDisclosure}
                     onToggleAudience={toggleAudience}
+                    onApplyDisclosureToAll={
+                      disclosureSupported && otherQuestionCount(q) > 0
+                        ? () => setPendingDisclosureShare({ id: q.id, count: otherQuestionCount(q) })
+                        : undefined
+                    }
                     settingsIcon={<PencilIcon size={15} />}
                     className={`${tplDragOverIdx === idx && tplDragIdx !== idx ? 'is-over' : ''}${tplDragIdx === idx ? ' is-dragging' : ''}`.trim()}
                     containerProps={{
@@ -8182,6 +8368,12 @@ export default function EvalCycleWizard({
                   />
                 ))}
               </div>
+              {/* [PW-1831 J-13 · HR §5.10-E] 한 사람의 최종 등급은 하나다 — 경고만 하고 막지 않는다. */}
+              {finalGradeItemCount > 1 && (
+                <p className="evx-notice is-warn" role="status" data-testid="evc-tpl-final-grade-dup">
+                  {fill(L.tplFinalGradeDupWarn ?? '', { count: finalGradeItemCount })}
+                </p>
+              )}
               <AddQuestionRow onAdd={addQuestion} labels={L} />
 
               <div className="evc-tpl-lib">
@@ -10547,6 +10739,42 @@ export default function EvalCycleWizard({
           }}
           cancelTestId="evc-tpl-load-confirm-cancel"
           confirmTestId="evc-tpl-load-confirm-ok"
+        />
+      )}
+
+      {/* [PW-1831 J-8] 다른 유형의 등급 체계를 덮어쓴다 — 먼저 묻는다. */}
+      {pendingGradeShare && (
+        <AppConfirmModal
+          title={L.tplShareGrades}
+          body={
+            <span data-testid="evc-tpl-share-grades-body">
+              {fill(L.tplShareGradesBody ?? '', { types: gradeShareNames })}
+            </span>
+          }
+          cancelLabel={L.cancel}
+          confirmLabel={L.tplShareApply}
+          onCancel={() => setPendingGradeShare(false)}
+          onConfirm={shareGradesToOtherTypes}
+          cancelTestId="evc-tpl-share-grades-cancel"
+          confirmTestId="evc-tpl-share-grades-ok"
+        />
+      )}
+
+      {/* [PW-1831 J-9] 다른 질문 항목의 공개 범위를 덮어쓴다 — 먼저 묻는다. */}
+      {pendingDisclosureShare && (
+        <AppConfirmModal
+          title={L.tplShareDisclosure}
+          body={
+            <span data-testid="evc-tpl-share-disclosure-body">
+              {fill(L.tplShareDisclosureBody ?? '', { count: pendingDisclosureShare.count })}
+            </span>
+          }
+          cancelLabel={L.cancel}
+          confirmLabel={L.tplShareApply}
+          onCancel={() => setPendingDisclosureShare(null)}
+          onConfirm={() => shareDisclosureToAll(pendingDisclosureShare.id)}
+          cancelTestId="evc-tpl-share-disclosure-cancel"
+          confirmTestId="evc-tpl-share-disclosure-ok"
         />
       )}
 

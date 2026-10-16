@@ -56,6 +56,11 @@ export default function EvalTemplateItemSettings({
   onRemoveOption,
   onPatchDisclosure,
   onToggleAudience,
+  /**
+   * [PW-1831 J-9 · HR §5.10-E] 이 항목의 공개 범위를 평가지의 다른 질문 항목에도 복사한다(확인은 호출부가 받는다).
+   * 안 주면 버튼이 없다 — 셀프 평가지(공개 범위 블록 자체가 없다)·다른 질문 항목이 없을 때·라이브러리 창.
+   */
+  onApplyDisclosureToAll,
   onClose,
   /**
    * [PW-602 ①] 이 단계가 잠겨 있는가(제출이 1건이라도 있는가 — policy §5.10.3 L1·L2).
@@ -420,6 +425,18 @@ export default function EvalTemplateItemSettings({
               />
               <span>{L.aiSummaryOnlyLabel}</span>
             </label>
+            {onApplyDisclosureToAll && !phaseLocked && (
+              <div>
+                <button
+                  type="button"
+                  className="evc-btn is-ghost"
+                  onClick={onApplyDisclosureToAll}
+                  data-testid={`evc-tpl-share-disclosure-${q.id}`}
+                >
+                  {L.tplShareDisclosure}
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>

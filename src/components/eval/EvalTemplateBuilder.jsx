@@ -256,6 +256,8 @@ export function EvalTemplateItemRow({
   onRemoveOption,
   onPatchDisclosure,
   onToggleAudience,
+  /** [PW-1831 J-9] 주면 공개 범위 블록 아래 「이 공개 범위를 모든 질문 항목에 적용」이 생긴다(마법사 2단계). */
+  onApplyDisclosureToAll,
   containerProps = {},
   className = '',
   leading = null,
@@ -396,6 +398,7 @@ export function EvalTemplateItemRow({
           onRemoveOption={onRemoveOption}
           onPatchDisclosure={onPatchDisclosure}
           onToggleAudience={onToggleAudience}
+          onApplyDisclosureToAll={onApplyDisclosureToAll}
           onClose={onToggleSettings}
           phaseLocked={phaseLocked}
         />

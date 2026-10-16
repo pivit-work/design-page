@@ -38,7 +38,18 @@ export const TEMPLATE_PRESETS = {
     { id: 'd9', section: '성장 (Growth)', text: '강점', type: 'textarea', ai: true, growthType: 'strengths' },
     { id: 'd10', section: '성장 (Growth)', text: '개선점 / 성장 영역', type: 'textarea', ai: true, growthType: 'improvements' },
     { id: 'd11', section: '성장 (Growth)', text: '성장 가능성', type: 'rating' },
-    { id: 'd12', section: '최종 등급 결정', text: '승진 추천 여부', type: 'checkbox' },
+    // [PW-1831 J-12 · HR §5.10-E] 선택지 0개 체크 항목은 저장이 막힌다(§5.11-B) — 프리셋이 그 상태로 나가지 않게 둘을 넣는다.
+    {
+      id: 'd12',
+      section: '최종 등급 결정',
+      text: '승진 추천 여부',
+      type: 'checkbox',
+      options: [
+        { id: 'o1', label: '대상임' },
+        { id: 'o2', label: '아직 아님' },
+      ],
+      allowMultiple: false,
+    },
     { id: 'd13', section: '최종 등급 결정', text: '최종 등급을 선택하세요.', type: 'grade' },
   ],
 };
