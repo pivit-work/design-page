@@ -11078,3 +11078,5 @@ button.evmh-phase:focus-visible {
 
 /* PW-1882 · 상세의 답변 — 「·」로 잇지 않고 한 줄에 하나씩. 글씨는 위 차수 댓글 본문과 같다. */
 .evs-answer-lines { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 14px; line-height: 20px; color: var(--text-primary); overflow-wrap: anywhere; }
+/* 긴 이름은 이름만 줄이고 차수 딱지는 꺾이지 않게 한다. */
+.evs-round-comment-author > .okr-role-badge { flex-shrink: 0; white-space: nowrap; }
