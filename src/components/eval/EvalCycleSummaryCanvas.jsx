@@ -6812,11 +6812,11 @@ export default function EvalCycleSummaryCanvas({
           }
         >
           <div className="evc-shell-body">
-            <label className="evs-remind-selectall">
-              <input type="checkbox" checked={allSelected} onChange={toggleAll} data-testid="evs-remind-selectall" />
-              <span>{L.remindSelectAll}</span>
+            {/* PW-1892 — 브라우저 기본 체크박스 대신 공용 체크박스(새 평가 사이클 마법사와 같은 모양). */}
+            <div className="evs-remind-selectall">
+              <Checkbox checked={allSelected} onChange={toggleAll} label={L.remindSelectAll} data-testid="evs-remind-selectall" />
               <span className="evs-remind-counter">{fmt(L.remindSelectedOf, { sel: selected.size, total: selectableIds.length })}</span>
-            </label>
+            </div>
 
             <div className="evs-remind-list">
               {nonSubmitters.map((n) => {
@@ -6824,11 +6824,11 @@ export default function EvalCycleSummaryCanvas({
                 const warn = recentlyReminded(n.lastRemindedAt);
                 return (
                   <div className={`evs-remind-row${isSent ? ' is-sent' : ''}`} key={n.memberId} data-testid="evs-remind-row">
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={selected.has(n.memberId)}
                       disabled={isSent}
                       onChange={() => toggleOne(n.memberId)}
+                      aria-label={n.name || n.memberId}
                       data-testid={`evs-remind-check-${n.memberId}`}
                     />
                     <span className="evs-remind-avatar" style={{ position: 'relative', background: n.color || 'var(--utility-blue-500)' }}>

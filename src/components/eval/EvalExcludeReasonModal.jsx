@@ -62,7 +62,7 @@ export default function EvalExcludeReasonModal({
       onClose={onClose}
       onSubmit={() => onSubmit?.(trimmed)}
     >
-      <label className="evc-sched-modal-field" data-testid="evx-reason-field">
+      <label className="evc-sched-modal-field is-reason" data-testid="evx-reason-field">
         <span className="evc-field-label">{label}</span>
         <textarea
           className={`evc-input${error ? ' is-invalid' : ''}`}

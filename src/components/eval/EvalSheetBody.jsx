@@ -142,11 +142,10 @@ export default function EvalSheetBody({
                 </>
               )}
               {q.type === 'grade' && (
-                <div className="evc-preview-gradechips">
-                  {grades.map((g, i) => (
-                    <span key={i} className="evc-type-chip">{g.label}</span>
-                  ))}
-                </div>
+                // PW-1892 — 보기 전용이라 누를 것 같은 칩이 아니라 글자로 잇는다.
+                <p className="evc-preview-gradetext" data-testid={`evc-preview-gradetext-${q.id}`}>
+                  {grades.map((g) => g.label).join(' · ')}
+                </p>
               )}
               {/* PW-433 ③ 제목 하나가 체크박스가 되던 구조 → 제목 + 선택지 N개.
                   선택지를 정한 적 없는 구 항목은 구 동작으로 폴백하고 그 사실을 표기한다. */}

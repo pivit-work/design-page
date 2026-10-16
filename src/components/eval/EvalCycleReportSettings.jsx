@@ -1,5 +1,6 @@
 import { AlertIcon, InfoIcon } from './evalIcons.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
+import Checkbox from '../shared/Checkbox.jsx';
 
 /**
  * EvalCycleReportSettings — 사이클 관리 › 리포트 탭 (PW-534 ㉰㉱ · 정책 §8.3 · §4.6.5).
@@ -140,26 +141,28 @@ export default function EvalCycleReportSettings({
       <section className="evc-card">
         <h3 className="evc-card-name">{L.sectionsTitle}</h3>
         <p className="evc-wiz-hint">{L.sectionsHint}</p>
-        <div className="evrs-chips" data-testid="evrs-sections">
+        {/* PW-1892 — 알약 안 브라우저 기본 체크박스 대신 공용 체크박스(새 평가 사이클 마법사와 같은 모양).
+            줄 단위 data-testid 는 속성 없는 span 에 남긴다. */}
+        <div className="evc-check-row evrs-chips" data-testid="evrs-sections">
           {sectionOrder.map((key) => {
             const on = sections[key] !== false;
             const isRequired = requiredSet.has(key);
             const locked = isRequired || readOnly;
             return (
               <Tooltip key={key} content={isRequired ? L.requiredHint : undefined}>
-              <label
-                className={`evrs-chip ${on ? 'is-on' : ''} ${locked ? 'is-locked' : ''}`}
-                data-testid={`evrs-section-${key}`}
-              >
-                <input
-                  type="checkbox"
+              <span data-testid={`evrs-section-${key}`}>
+                <Checkbox
                   checked={on}
                   disabled={locked}
                   onChange={() => onToggleSection?.(key)}
+                  label={
+                    <>
+                      {L.sectionLabels?.[key] ?? key}
+                      {isRequired && <span className="evrs-chip-req">{L.required}</span>}
+                    </>
+                  }
                 />
-                <span>{L.sectionLabels?.[key] ?? key}</span>
-                {isRequired && <span className="evrs-chip-req">{L.required}</span>}
-              </label>
+              </span>
               </Tooltip>
             );
           })}
@@ -169,25 +172,24 @@ export default function EvalCycleReportSettings({
       <section className="evc-card">
         <h3 className="evc-card-name">{L.channelsTitle}</h3>
         <p className="evc-wiz-hint">{L.channelsHint}</p>
-        <div className="evrs-chips" data-testid="evrs-channels">
+        <div className="evc-check-row evrs-chips" data-testid="evrs-channels">
           {channelOptions.map((key) => {
             const locked = lockedChannels.includes(key);
             const on = locked || channels.includes(key);
             return (
-              <label
-                key={key}
-                className={`evrs-chip ${on ? 'is-on' : ''} ${readOnly || locked ? 'is-locked' : ''}`}
-                data-testid={`evrs-channel-${key}`}
-              >
-                <input
-                  type="checkbox"
+              <span key={key} data-testid={`evrs-channel-${key}`}>
+                <Checkbox
                   checked={on}
                   disabled={readOnly || locked}
                   onChange={() => onToggleChannel?.(key)}
+                  label={
+                    <>
+                      {L.channelLabels?.[key] ?? key}
+                      {locked && <span className="evrs-chip-req">{L.channelLocked}</span>}
+                    </>
+                  }
                 />
-                <span>{L.channelLabels?.[key] ?? key}</span>
-                {locked && <span className="evrs-chip-req">{L.channelLocked}</span>}
-              </label>
+              </span>
             );
           })}
         </div>

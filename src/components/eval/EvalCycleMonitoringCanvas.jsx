@@ -1000,7 +1000,7 @@ export default function EvalCycleMonitoringCanvas({
               지으면 같은 모양이 두 벌이 된다. */}
           {exportKind === 'answers' && (
             <label
-              className="evc-sched-modal-field"
+              className="evc-sched-modal-field is-reason"
               data-testid="evmon-export-reason-field"
             >
               <span className="evc-field-label">{L.exportReasonLabel}</span>

@@ -856,6 +856,84 @@
   border-color: var(--utility-error-500);
   box-shadow: 0 0 0 3px var(--utility-error-50);
 }
+/* ── PW-1892 평가 템플릿 창 · 사유 창 칸 모양 ──
+   디자이너가 그린 적이 없는 창이라, 디자이너가 그린 1on1 「일정 추가」 창(one_on_one.css
+   .ono-add-modal-*) 값을 그대로 옮긴다 — 이름표 14px 굵게 회색, 이름표–칸 12px, 칸–칸 24px,
+   입력칸은 옅은 회색 바탕 40px·글씨 16px(PW-1887 마법사 is-form 과 같은 값).
+   평가 전 화면이 쓰는 .evc-input·.evc-field-label 은 그대로 두고, 바꾼 창 본문 아래로만 건다.
+   템플릿 창: .evc-shell-body.is-form · 사유 창: .evc-sched-modal-field.is-reason */
+.evc-shell-body.is-form {
+  gap: var(--spacing-lg);
+}
+.evc-shell-body.is-form .evc-field-label,
+.evc-shell-body.is-form > .evc-preview-sec-title,
+.evc-sched-modal-field.is-reason > .evc-field-label {
+  margin: 0;
+  font-weight: 700;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  color: var(--text-secondary);
+}
+/* 칸–칸 24px: 본문 gap(12px)에 이름표 위 12px 를 더한다. 맨 위 이름표는 더하지 않는다.
+   이름표 → 칸은 gap 12px 하나 — 본문 공통 규칙이 이름표 다음 칸을 끌어올리던 것을 되돌린다. */
+.evc-shell-body.is-form > .evc-field-label:not(:first-child),
+.evc-shell-body.is-form > .evc-preview-sec-title:not(:first-child) {
+  margin-top: var(--spacing-lg);
+}
+.evc-shell-body.is-form > .evc-field-label + *,
+.evc-shell-body.is-form > .evc-preview-sec-title + * {
+  margin-top: 0;
+}
+.evc-shell-body.is-form .evc-input,
+.evc-shell-body.is-form .evc-select {
+  min-height: 40px;
+  height: auto;
+  /* 테두리는 평소 투명하게 두고 누르면 대표색으로 — 1px 테두리만큼 위아래 여백을 줄여 40px 를 맞춘다. */
+  padding: 7px var(--spacing-lg);
+  border-color: transparent;
+  border-radius: var(--radius-md);
+  background: var(--componentColors-alpha-alphaBlack3, rgba(0,0,0,0.03));
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
+}
+.evc-shell-body.is-form .evc-input.is-invalid {
+  border-color: var(--utility-error-500);
+  background: var(--utility-error-50);
+}
+.evc-shell-body.is-form .evc-input:focus,
+.evc-shell-body.is-form .evc-select:focus {
+  border-color: var(--utility-brand-500);
+}
+/* 사유 칸 — 「메모」 칸(.ono-add-modal-textarea) 값. PW-1889 리뷰 답 칸과 같다.
+   원본은 높이 80px 고정이지만 사유 칸은 rows 와 세로 늘이기를 그대로 둔다. */
+.evc-sched-modal-field.is-reason {
+  gap: var(--spacing-lg);
+}
+.evc-sched-modal-field.is-reason > textarea.evc-input {
+  padding: var(--spacing-lg) 14px;
+  border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0,0,0,0.05));
+  border-radius: var(--radius-md);
+  background: var(--componentColors-alpha-alphaBlack3, rgba(0,0,0,0.03));
+  font-weight: 400;
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
+}
+.evc-sched-modal-field.is-reason > textarea.evc-input::placeholder {
+  color: var(--text-placeholder);
+}
+.evc-sched-modal-field.is-reason > textarea.evc-input:focus {
+  border-color: var(--utility-brand-500);
+}
+.evc-sched-modal-field.is-reason > textarea.evc-input.is-invalid {
+  border-color: var(--utility-error-500);
+  background: var(--utility-error-50);
+}
+/* 미리보기 등급 문항 — 보기 전용이라 누를 것 같은 칩이 아니라 글자로(옆 체크박스 글씨 14px, 회색). */
+.evc-preview-gradetext {
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  color: var(--text-secondary);
+}
 .evc-field-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -9581,33 +9659,10 @@
   gap: var(--spacing-md);
   margin-top: var(--spacing-lg);
 }
-.evrs-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  height: 32px;
-  padding: 0 var(--spacing-lg);
-  border-radius: var(--radius-full);
-  border: 1px solid var(--border-primary);
-  background: var(--bg-primary);
-  color: var(--text-secondary);
-  font-size: var(--font-size-text-sm);
-  cursor: pointer;
-}
-.evrs-chip.is-on {
-  border-color: var(--brand-600);
-  background: var(--brand-50);
-  color: var(--brand-700);
-  font-weight: 700;
-}
-/* 잠긴 칩은 «보이되 눌리지 않는다». 숨기면 그 섹션이 리포트에 없는 것으로 읽힌다. */
-.evrs-chip.is-locked {
-  cursor: not-allowed;
-}
-.evrs-chip input {
-  width: 13px;
-  height: 13px;
-  margin: 0;
+/* PW-1892 — 섹션·채널은 알약 안 13px 기본 체크박스였다. 공용 체크박스(.dp-check)로 바꾸고
+   줄은 마법사의 .evc-check-row 를 쓴다(체크박스 사이 16px). 위 여백만 여기서 준다. */
+.evrs-chips.evc-check-row {
+  column-gap: var(--spacing-xl);
 }
 .evrs-chip-req {
   font-size: var(--font-size-text-xs);

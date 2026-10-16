@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import ModalShell from '../shared/ModalShell.jsx';
+import Checkbox from '../shared/Checkbox.jsx';
 
 /**
  * EvalSendChannelModal — 리포트 발송 직전의 «발송 채널 선택» 창 (PW-1228 · 정책 §8.4).
@@ -8,8 +9,8 @@ import ModalShell from '../shared/ModalShell.jsx';
  * `SendResultModal` 을 옮겼다. 처음 체크는 사이클 관리 «리포트» 탭의 «발송 채널 기본값»이다
  * (§8.3) — 그 값은 호출부가 `defaults` 로 넣는다.
  *
- * 새 모양을 짓지 않는다 — 껍데기는 공용 `ModalShell`, 칩은 리포트 탭의 채널 칩과 같은
- * 클래스(`evrs-chips` · `evrs-chip`)다. 잠긴 칩(`locked`)은 리포트 탭의 필수 섹션처럼
+ * 새 모양을 짓지 않는다 — 껍데기는 공용 `ModalShell`, 채널은 공용 `Checkbox`(리포트 탭의
+ * 채널과 같은 모양 · PW-1892). 잠긴 채널(`locked`)은 리포트 탭의 필수 섹션처럼
  * «보이되 눌리지 않고» 옆에 사유(`lockedNote`)를 적는다.
  *
  * Props:
@@ -62,24 +63,23 @@ export default function EvalSendChannelModal({
       onClose={onClose}
       onSubmit={() => onSubmit?.(chosen)}
     >
-      <div className="evrs-chips" data-testid="evrr-channel-options">
+      <div className="evc-check-row" data-testid="evrr-channel-options">
         {options.map((o) => {
           const on = isOn(o);
           return (
-            <label
-              key={o.id}
-              className={`evrs-chip ${on ? 'is-on' : ''} ${o.locked ? 'is-locked' : ''}`}
-              data-testid={`evrr-channel-${o.id}`}
-            >
-              <input
-                type="checkbox"
+            <span key={o.id} data-testid={`evrr-channel-${o.id}`}>
+              <Checkbox
                 checked={on}
                 disabled={o.locked}
                 onChange={() => toggle(o.id)}
+                label={
+                  <>
+                    {o.label}
+                    {o.locked && lockedNote && <span className="evrs-chip-req">{lockedNote}</span>}
+                  </>
+                }
               />
-              <span>{o.label}</span>
-              {o.locked && lockedNote && <span className="evrs-chip-req">{lockedNote}</span>}
-            </label>
+            </span>
           );
         })}
       </div>
