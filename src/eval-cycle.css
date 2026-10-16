@@ -10684,6 +10684,19 @@
 .evmon-la .evc-la {
   margin-top: 12px;
 }
+/* PW-1881 — 진행 현황의 두 상자(하향 평가자·퇴사로 빠진 동료 리뷰어)는 표를 틀 없이 회색 카드 위에
+   바로 놓는다. 흰 틀을 두르면 상자 안에 상자가 겹쳐 보이고 위 「단계별 완료율」 상자와 톤이 갈린다.
+   공용 표의 머리줄·가로 스크롤 바닥은 흰색이라 여기서만 걷는다. 4단계 ④ 섹션은 흰 틀을 그대로 쓴다. */
+.evmon-la .rt-table th {
+  background: transparent;
+}
+.evmon-la .rt-scroll::-webkit-scrollbar-track,
+.evmon-la .rt-scroll::-webkit-scrollbar-corner {
+  background: transparent;
+}
+.evmon-la .rt-scroll.is-scroll-x {
+  scrollbar-color: rgba(0, 0, 0, 0.28) transparent;
+}
 .evc-la-cell.is-static {
   cursor: default;
 }

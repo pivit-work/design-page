@@ -137,7 +137,7 @@ export default function EvalPeerResignedSection({
               ))}
             </div>
           ) : (
-            <RosterTable scroll="x" framed tableClassName="evc-la-table" testId="evmon-pr-table">
+            <RosterTable scroll="x" tableClassName="evc-la-table" testId="evmon-pr-table">
               <RosterTable.Head>
                 <RosterTable.HeadCell width={200}>{L.colTarget}</RosterTable.HeadCell>
                 <RosterTable.HeadCell>{L.colGone}</RosterTable.HeadCell>

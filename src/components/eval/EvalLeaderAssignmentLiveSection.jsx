@@ -260,7 +260,7 @@ export default function EvalLeaderAssignmentLiveSection({
               {L.liveEmpty}
             </p>
           ) : (
-            <RosterTable scroll="x" framed tableClassName="evc-la-table" testId="evmon-la-table">
+            <RosterTable scroll="x" tableClassName="evc-la-table" testId="evmon-la-table">
               <RosterTable.Head>
                 <RosterTable.HeadCell width={200}>{L.liveColTarget}</RosterTable.HeadCell>
                 {roundList.map((k) => (
