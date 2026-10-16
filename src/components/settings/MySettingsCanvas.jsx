@@ -1209,7 +1209,7 @@ function CompensationTab({ compensation, isAdmin, labels }) {
   const hasAny = comp.current || (comp.history && comp.history.length > 0);
   return (
     <>
-      <div className="admin-notif-banner is-warn" data-testid="compensation-banner">
+      <div className="admin-notif-banner" data-testid="compensation-banner">
         <span className="admin-notif-banner-icon" aria-hidden="true"><LockIcon size={16} /></span>
         <p className="admin-notif-banner-text">{L.banner}</p>
       </div>
@@ -2541,7 +2541,7 @@ export default function MySettingsCanvas({
                     </div>
 
                     {intg.warning && (
-                      <div className="admin-notif-banner" style={{ marginTop: 12 }} data-testid={`integration-warning-${intg.id}`}>
+                      <div className="admin-notif-banner is-warn" style={{ marginTop: 12 }} data-testid={`integration-warning-${intg.id}`}>
                         <span className="admin-notif-banner-icon" aria-hidden="true">
                           <AlertTriangleIcon size={16} />
                         </span>

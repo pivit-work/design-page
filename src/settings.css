@@ -134,17 +134,19 @@
   gap: 0 16px;
 }
 
+/* 칸 모양은 디자이너가 그린 1on1 「일정 추가」 창 값 그대로 (PW-1898):
+   칸→칸 --spacing-3xl, 이름표→칸 --spacing-lg, 이름표 14px 700 secondary */
 .msc-field {
-  margin-bottom: 16px;
+  margin-bottom: var(--spacing-3xl);
   min-width: 0;
 }
 
 .msc-field-label {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--font-size-text-sm);
+  font-weight: 700;
   color: var(--text-secondary);
   display: block;
-  margin-bottom: 4px;
+  margin-bottom: var(--spacing-lg);
 }
 
 .msc-field-hint {
@@ -190,6 +192,16 @@
 .msc-canvas .admin-emp-input {
   width: 100%;
   box-sizing: border-box;
+}
+
+/* 내 설정 안 입력칸 — 1on1 「일정 추가」 창 입력칸 값 (PW-1898). admin-emp-input 은 어드민과 같이 쓰므로
+   이 화면 안에서만 덮는다. 포커스·오류 테두리는 기존 모양이 이기도록 테두리는 그 둘을 뺀다. */
+.msc-canvas .admin-emp-input {
+  font-size: var(--font-size-text-md);
+  border-radius: var(--radius-md);
+}
+.msc-canvas .admin-emp-input:not(:focus):not([aria-invalid='true']) {
+  border-color: var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
 }
 
 /* 읽기 전용 필드 — admin-emp-input 위 오버라이드 */
@@ -425,7 +437,7 @@
 }
 
 .msc-notif-label {
-  font-size: 12px;
+  font-size: var(--font-size-text-sm);
   font-weight: 600;
   color: var(--text-primary);
 }
@@ -1024,10 +1036,14 @@
   margin-top: 10px;
 }
 
-/* ── 경고 배너 (보상) ── */
+/* ── 경고 배너 (개인 연동 경고) ── 글씨·아이콘은 디자이너 경고 띠(.ons-warning) 색 (PW-1898) */
 .admin-notif-banner.is-warn {
   background: var(--bg-warning-primary);
   border-color: var(--utility-orange-200);
+}
+.admin-notif-banner.is-warn .admin-notif-banner-icon,
+.admin-notif-banner.is-warn .admin-notif-banner-text {
+  color: var(--colors-text-textWarningPrimary);
 }
 
 /* ── 로딩 스켈레톤 (성과 등) ── */
@@ -1116,17 +1132,18 @@
   border-color: var(--colors-error-300);
 }
 
+/* 선호 설정 칸도 1on1 「일정 추가」 창 값 (PW-1898) */
 .msc-pref-stack {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--spacing-3xl);
 }
 
 .msc-pref-label {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--font-size-text-sm);
+  font-weight: 700;
   color: var(--text-secondary);
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-lg);
   display: flex;
   align-items: baseline;
   gap: 6px;
