@@ -8,6 +8,9 @@
  *
  * OKR 큰 % 는 팀원이 셀프 리뷰에 적은 KR 달성률의 가중 평균이다(okr-spec §12.1, PW-1607).
  * KR 이 있는데 `averagePct` 가 null 이면 팀원이 하나도 안 적은 것이라 «미입력» 배지를 그린다(§12.3).
+ *
+ * PW-1844 — 스니핏 하이라이트(leader policy §5.1): 팀원이 스니핏 «잘한 점» 칸에 쓴 글 최근 3건.
+ * 시안처럼 「문구 (월/일)」 한 줄씩이고 누를 곳은 없다. 앱이 이 블록을 안 주면(undefined) 그리지 않는다.
  */
 
 import StatusBadge from '../shared/StatusBadge.jsx';
@@ -73,7 +76,7 @@ function Failed({ L, testId }) {
 
 export default function EvalLeaderEvidenceSignals({ signals, L }) {
   if (!signals) return null;
-  const { okr, healthTrend, oneOnOneActions, snippetActivity } = signals;
+  const { okr, healthTrend, oneOnOneActions, snippetActivity, snippetHighlights } = signals;
   return (
     <div className="evl-signals" data-testid="evl-signals">
       <p className="evl-sig-period" data-testid="evl-sig-period">
@@ -181,6 +184,37 @@ export default function EvalLeaderEvidenceSignals({ signals, L }) {
           </p>
         )}
       </section>
+
+      {/* 스니핏 하이라이트 — PW-1844 */}
+      {snippetHighlights !== undefined && (
+        <section className="evl-sig-block" data-testid="evl-sig-highlights">
+          <span className="evc-field-label">{L.signalsHighlightsTitle}</span>
+          {snippetHighlights == null ? (
+            <Failed L={L} testId="evl-sig-highlights-failed" />
+          ) : snippetHighlights.length === 0 ? (
+            <p className="evc-empty-sub">{L.signalsHighlightsEmpty}</p>
+          ) : (
+            <ul className="evl-sig-krs">
+              {snippetHighlights.map((h) => (
+                <li key={h.snippetId} className="evl-sig-kr" data-testid="evl-sig-highlight">
+                  <span className="evl-sig-kr-head">
+                    <span className="evl-sig-kr-title">
+                      {h.text}
+                      <span className="evl-sig-sub"> ({monthDay(h.date)})</span>
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
     </div>
   );
+}
+
+/** `YYYY-MM-DD` → 「3/11」(시안 표기). 날짜 객체를 거치지 않아 시간대에 흔들리지 않는다. */
+function monthDay(iso) {
+  const [, m, d] = String(iso).split('-');
+  return m && d ? `${Number(m)}/${Number(d)}` : iso;
 }

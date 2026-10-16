@@ -3877,6 +3877,7 @@
 }
 .evm-ai-draft-bar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--spacing-sm);
   font-size: var(--font-size-text-xs);
@@ -4052,6 +4053,40 @@
   margin-top: 6px;
   padding: 4px 10px;
   font-size: var(--font-size-text-xs);
+}
+/* PW-1844 동료 리뷰 §5.7 — 협업 이력이 부족해 초안을 줄 수 없을 때 항목별 단추 자리의 안내.
+   글씨는 «현재 기간 데이터만» 안내(.evm-activity-note)와 같고, 자리는 항목별 단추(.evm-ai-item-draft)와 같다. */
+.evm-ai-draft-unavailable {
+  margin: 6px 0 0;
+  font-size: var(--font-size-text-xs);
+  color: var(--text-tertiary);
+}
+/* PW-1844 AI 초안 출처 배지(시안 SourceBadge 「📎 소스명」). 모양은 옆 [확인] 단추(.evm-ai-draft-confirm)의
+   크기·모서리를 그대로 쓰고, 색만 회색(누르면 원본으로 가는 링크라 경고색이 아니다). */
+.evm-ai-sources {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  min-width: 0;
+}
+.evm-ai-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  max-width: 100%;
+  padding: 2px var(--spacing-md);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-secondary);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.evm-ai-source:hover {
+  color: var(--text-primary);
+  border-color: var(--border-primary);
 }
 /* PW-1460 — 활동 요약 맨 아래 «현재 기간 데이터만» 안내. */
 .evm-activity-note {

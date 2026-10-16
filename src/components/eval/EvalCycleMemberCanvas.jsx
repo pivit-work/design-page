@@ -13,6 +13,7 @@ import {
   NoteIcon,
   UsersIcon,
   SparkleIcon,
+  PaperclipIcon,
   AlertIcon,
   CheckCircleIcon,
   ArrowRightIcon,
@@ -124,6 +125,7 @@ const DEFAULT_LABELS = {
   aiDraftUnconfirmed: 'AI 초안 · 미확인',
   aiDraftEdited: 'AI 수정됨',
   aiDraftConfirmed: 'AI 초안 확인됨',
+  aiDraftSources: '초안 출처',
   aiDraftConfirm: '확인',
   // §4.3.1 — 적용 단계를 켠 화면(상향 리뷰 §5U.4)에서 초안 블록의 두 버튼.
   aiDraftUse: '사용',
@@ -458,6 +460,11 @@ export default function EvalCycleMemberCanvas({
   // [PW-1465] 상향 리뷰 §5U.4 — 초안을 칸에 바로 넣지 않고 칸 아래 노란 블록에 둔다.
   // [사용]을 눌러야 칸에 들어가고, [접기]는 버린다. 적용 전에는 본문을 바꾸지 않는다.
   draftNeedsApply = false,
+  // [PW-1844] 동료 리뷰 member policy §5.7 — 초안은 항목별 [초안 보기]로만 받는다. false 면 아래 줄의
+  // 「전체 AI 초안」 단추를 그리지 않는다(상향 리뷰는 그대로 둔다).
+  aiDraftAllButton = true,
+  // [PW-1844] 초안을 줄 수 없는 이유(동료와 협업 이력 부족). 있으면 항목별 단추 자리에 이 문장을 둔다.
+  aiDraftUnavailable = null,
   // [PW-1465] [임시저장] 단추로 저장하다 실패했을 때. 자동 저장 실패는 폼 아래 띠만 띄운다.
   onSaveError,
 }) {
@@ -481,6 +488,9 @@ export default function EvalCycleMemberCanvas({
   const [draftShort, setDraftShort] = useState(false);
   // [PW-1465] draftNeedsApply 일 때 아직 [사용] 하지 않은 초안. { [fieldKey]: text }
   const [pendingDraft, setPendingDraft] = useState({});
+  // [PW-1844] 초안이 쓴 근거 — { [fieldKey]: [{ key, label, href }] }. 앱이 초안과 함께 넘긴 것만 담고
+  // 저장하지 않는다(다시 열면 칸에는 사용자 글만 남는다).
+  const [draftSources, setDraftSources] = useState({});
   const dropPendingDraft = (key) =>
     setPendingDraft((prev) => {
       const next = { ...prev };
@@ -714,6 +724,14 @@ export default function EvalCycleMemberCanvas({
         ),
       );
       if (!only) setDraftDoneAll(true);
+      setDraftSources((prev) => {
+        const next = { ...prev };
+        for (const d of drafted) {
+          const f = fields[d.index];
+          if (f && d.textAnswer?.trim()) next[f.key] = Array.isArray(d.sources) ? d.sources : [];
+        }
+        return next;
+      });
       if (draftNeedsApply) {
         setPendingDraft((prev) => {
           const next = { ...prev };
@@ -1290,7 +1308,12 @@ export default function EvalCycleMemberCanvas({
                       data-testid={`evm-text-${f.key}`}
                     />
                     {/* [PW-1460] 항목별 AI 초안 — 빈 칸에만. 이미 쓴 칸은 덮어쓰지 않는다. */}
-                    {onAiDraft && !readOnly && !state[f.key].textAnswer.trim() && !pendingDraft[f.key] && (
+                    {onAiDraft && !readOnly && aiDraftUnavailable && !state[f.key].textAnswer.trim() && (
+                      <p className="evm-ai-draft-unavailable" data-testid={`evm-ai-draft-unavailable-${f.key}`}>
+                        {aiDraftUnavailable}
+                      </p>
+                    )}
+                    {onAiDraft && !readOnly && !aiDraftUnavailable && !state[f.key].textAnswer.trim() && !pendingDraft[f.key] && (
                       <button
                         type="button"
                         className="evc-btn is-ghost evm-ai-item-draft"
@@ -1320,6 +1343,7 @@ export default function EvalCycleMemberCanvas({
                       <div className="evm-ai-draft-pending" data-testid={`evm-ai-pending-${f.key}`}>
                         <span className="evm-ai-draft-badge">{L.aiDraftUnconfirmed}</span>
                         <p className="evm-ai-draft-pending-text">{pendingDraft[f.key]}</p>
+                        <AiDraftSources sources={draftSources[f.key]} label={L.aiDraftSources} testId={`evm-ai-sources-${f.key}`} />
                         <div className="evm-ai-draft-bar is-unconfirmed">
                           <button
                             type="button"
@@ -1360,6 +1384,7 @@ export default function EvalCycleMemberCanvas({
                             {L.aiDraftConfirm}
                           </button>
                         )}
+                        <AiDraftSources sources={draftSources[f.key]} label={L.aiDraftSources} testId={`evm-ai-sources-${f.key}`} />
                       </div>
                     )}
                   </>
@@ -1443,7 +1468,7 @@ export default function EvalCycleMemberCanvas({
                 {aiDraftDisabledReason}
               </span>
             )}
-            {onAiDraft && !selfReview && (
+            {onAiDraft && !selfReview && aiDraftAllButton && (
               <button
                 type="button"
                 className="evc-btn is-ghost"
@@ -1505,5 +1530,32 @@ export default function EvalCycleMemberCanvas({
         />
       )}
     </div>
+  );
+}
+
+/**
+ * [PW-1844] AI 초안 출처 배지 — spec-eval-cycle §4.3.2·§4.3.4, member policy §4.3.1 「📎 소스명」.
+ * 누르면 원본(스니핏·원온원·피드백·OKR)을 새 탭으로 연다 — 쓰던 초안을 잃지 않게(§4.3.1 「모달 또는 새 탭」).
+ * 출처가 없으면 아무것도 그리지 않는다.
+ */
+function AiDraftSources({ sources, label, testId }) {
+  if (!sources || sources.length === 0) return null;
+  return (
+    <span className="evm-ai-sources" role="list" aria-label={label} data-testid={testId}>
+      {sources.map((src) => (
+        <a
+          key={src.key}
+          role="listitem"
+          className="evm-ai-source"
+          href={src.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          data-testid="evm-ai-source"
+        >
+          <PaperclipIcon size={11} />
+          {src.label}
+        </a>
+      ))}
+    </span>
   );
 }

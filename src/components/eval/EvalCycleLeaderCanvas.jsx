@@ -160,6 +160,8 @@ const DEFAULT_LABELS = {
   signalsDone: '완료',
   signalsTotal: '전체',
   signalsSnippetTitle: '스니핏 활동량',
+  signalsHighlightsTitle: '스니핏 하이라이트',
+  signalsHighlightsEmpty: '작성된 하이라이트가 없습니다',
   signalsDays: '일',
   signalsRate: '작성률',
   // TC-046/047 상단고정(Freeze) 안내
