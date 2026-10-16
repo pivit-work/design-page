@@ -125,6 +125,7 @@ export default function MemberCard({ member, parentId, index, showWorkHours, sho
       ref={memberNodeRef}
       className={`member-node ${isDragging ? 'member-dragging' : ''} ${isDetached ? 'member-detached' : ''}`}
       data-detached={isDetached ? 'true' : undefined}
+      data-self={member.isSelf ? 'true' : undefined}
       onMouseDown={handleMouseDown}
       onClick={handleClick}
       style={{

@@ -52,7 +52,9 @@ const MIN_FIT_SCALE = 0.5;
 
 // 조직 축 탭 노출 여부. 소비처가 아직 구현이 끝나지 않은 축을 닫을 수 있게 한다
 // (pivit-work PW-249 — 프로젝트 축 phase 게이트). 기본값은 노출이라 기존 화면은 그대로다.
-export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIcons, baseUrl = '', onMemberClick, renderAvatar, editMode = false, onSubTabChange, findSubordinates, adminMode: adminModeProp = false, onAdminModeChange, showGrade = false, showProjectTab = true, lineStyleLabel: lineStyleLabelProp, labels, asOf }) {
+// highlight `{ unitIds }` — 회사 루트부터 내 소속까지의 단위 id. 주면 그 길의 연결선을 강조한다
+// (pivit-specs org-chart-public-card-spec.md §5.4-B). 안 주면 강조가 없다 — 다른 화면은 넘기지 않는다.
+export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIcons, baseUrl = '', onMemberClick, renderAvatar, editMode = false, onSubTabChange, findSubordinates, adminMode: adminModeProp = false, onAdminModeChange, showGrade = false, showProjectTab = true, lineStyleLabel: lineStyleLabelProp, labels, asOf, highlight }) {
   // 화면 문구 — 소비자가 번역을 넘긴다(PW-705). 안 넘기면 한국어 기본값.
   const L = useMemo(() => makeOrgLabels(labels), [labels]);
   // `lineStyleLabel` 은 `labels` 보다 먼저 생긴 자리라 그대로 받는다 — 주면 그것이 이긴다.
@@ -270,7 +272,7 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
           transformOrigin: '0 0',
           position: 'relative',
         }}>
-          <BezierConnectors containerRef={canvasInnerRef} scale={scale} lineStyle={lineStyle} />
+          <BezierConnectors containerRef={canvasInnerRef} scale={scale} lineStyle={lineStyle} highlightIds={highlight?.unitIds} />
           <OrgNode node={orgData} showWorkHours={true} showVacation={true} editMode={editMode} adminMode={adminMode} showGrade={showGrade} baseUrl={baseUrl} />
         </div>
 
