@@ -312,6 +312,29 @@ body:has(.okr-ctx-banner) .tl-group-modal.okr-shell { max-height: calc(100vh - 6
 /* 전략·팀 서브탭 — 공용 Tabs(PW-836). 타임라인 자리의 바깥 여백(20px 0 0 12px)은 OKR 본문에서 걷는다. */
 .tl-tabs-row.okr-s-tabs-row { margin: 0; }
 
+/* 팀 서브탭 줄 — 팀이 많을 때 (PW-1876). 줄바꿈 없이 옆으로 굴러가고, 줄 끝에 「팀 고르기」.
+   굴림막대는 숨긴다(36px 줄 높이를 지킨다) — 마우스만 쓰는 사람은 「팀 고르기」로 고른다. */
+.okr-team-tabs-scroll { flex: 1 1 auto; min-width: 0; height: 100%; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+.okr-team-tabs-scroll::-webkit-scrollbar { display: none; }
+.okr-team-tabs-scroll .tl-tabs { height: 100%; width: max-content; }
+.okr-team-tabs-scroll .tl-tab { flex-shrink: 0; white-space: nowrap; }
+
+/* 「팀 고르기」 버튼 — 글씨는 옆 탭(.tl-tab)과 같은 16/24 Medium, 활성 탭 색. */
+.okr-team-picker-trigger { flex: 0 0 auto; max-width: 220px; height: 32px; display: inline-flex; align-items: center; gap: 4px; padding: 0 8px 0 10px; background: transparent; border: 1px solid var(--border-primary); border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 500; line-height: 20px; color: var(--text-primary); cursor: pointer; }
+.okr-team-picker-trigger:hover,
+.okr-team-picker-trigger.is-open { background: var(--bg-secondary); }
+.okr-team-picker-trigger svg { flex-shrink: 0; color: var(--text-tertiary); }
+.okr-team-picker-value { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* 펼친 목록 — 면·항목은 구성원 목록 «⋯» 메뉴(.admin-emp-row-menu · -item)와 같은 값. */
+.okr-team-picker-panel { z-index: 60; display: flex; flex-direction: column; gap: 6px; background: var(--bg-quaternary); border-radius: var(--radius-md, 10px); border: 1px solid var(--border-primary); box-shadow: 0 6px 20px rgba(10, 13, 18, 0.1); padding: 6px; }
+.okr-team-picker-search { flex-shrink: 0; }
+.okr-team-picker-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+.okr-team-picker-item { display: block; width: 100%; text-align: left; padding: 7px 10px; border: none; background: transparent; border-radius: 7px; font-family: var(--font-family-body); font-size: var(--font-size-text-xs, 12px); font-weight: 600; color: var(--text-primary); cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.okr-team-picker-item:hover { background: var(--bg-secondary); }
+.okr-team-picker-item.is-active { background: var(--bg-secondary); }
+.okr-team-picker-empty { padding: 7px 10px; font-size: var(--font-size-text-xs, 12px); font-weight: 500; color: var(--text-tertiary); }
+
 .okr-s-toolbar { display: flex; align-items: center; justify-content: space-between; }
 .okr-s-error { font-size: 13px; font-weight: 500; line-height: 20px; color: var(--utility-error-600, #d92d20); }
 .okr-s-toolbar-right { display: flex; gap: 8px; }
