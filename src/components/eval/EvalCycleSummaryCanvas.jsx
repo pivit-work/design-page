@@ -276,6 +276,13 @@ const DEFAULT_LABELS = {
   cwExcludedRemove: '제외 해제',
   cwFilterEmploymentType: '고용형태',
   cwFilterEmploymentStatus: '재직상태',
+  cwFilterJobLevel: '직급',
+  cwFilterJobRank: '직위',
+  cwFilterJobPosition: '직책',
+  cwFilterSquad: '스쿼드',
+  cwFilterPrevGrade: '이전 등급',
+  /** 켜면 조직 층(회사가 정한 층 이름)마다 칸을 세운다. 층 이름은 데이터에서 온다. */
+  cwFilterOrgLevels: true,
   cwEmploymentStatusLabels: { active: '재직', probation: '수습', on_leave: '휴직', terminated: '퇴사' },
   cwFilterRangeTitle: '기간',
   cwFilterRangeHireDate: '입사일',
@@ -520,6 +527,12 @@ const DEFAULT_LABELS = {
   cdDelegateNote: '구성원별 등급 변경·변경 사유·변경 로그는 캘리브레이션 워크스페이스(탭 G)에서 실명·이력 원본으로 확인합니다. 본 탭은 전사 분포·통계 관점만 제공합니다.',
   cdOpenWorkspace: '캘리브레이션 워크스페이스 열기 →',
   cdGuideExceed: '가이드라인 초과',
+  // PW-1847 §7.D.2 조정 결과 설명 텍스트 — AI 종합 요약. 상자는 통합 요약 탭의 AI 요약 상자와 같은 모양이다.
+  cdAiReasons: 'AI 설명 · 조정 사유',
+  cdAiIssues: 'AI 설명 · 주요 이슈',
+  cdAiNextCycle: 'AI 설명 · 다음 사이클 참고 사항',
+  cdAiLoading: 'AI 가 조정 결과 설명을 쓰고 있습니다…',
+  cdAiFailed: '데이터를 불러오지 못했습니다.',
   // [PW-1466] 정책 §7.D.3·§7.D.7 — 조정 내역의 순변화가 분포 차이와 어긋나면 그래프를 그리지 않는다.
   cdMismatch: '조정 내역과 분포가 일치하지 않습니다',
   // §5.B 부서별 분석
@@ -857,6 +870,53 @@ function ManagerNoteLines({ note, L }) {
  * [PW-1466] 통합 요약 AI 요약 한 칸 (정책 §8.3). 검수 전(미확인)이면 노란 배경 — AI 결과는 확인 전까지
  * 노랑(기획 절대 규칙 3). 요약이 없으면 그리지 않는다 — 아래 원문이 그대로 보인다.
  */
+/**
+ * [PW-1847] 캘리브레이션 결과 탭 §7.D.2 「조정 결과 설명 텍스트 — AI 생성 종합 요약(조정 사유·주요 이슈·다음 사이클
+ * 참고 사항)」. 개인 이름은 담지 않는다(§7.D.4). 못 불러오면 §7.D.5 인라인 에러 + 다시 시도.
+ * `insight` 가 없거나 `none`(조정 없음)·`unavailable`(AI 를 쓸 수 없는 조직)이면 그리지 않는다 — 계산 요약 문장은 그대로 남는다.
+ */
+function CalibResultInsight({ L, insight, onRetry, onLoad }) {
+  // 아직 없으면(missing) 이 탭이 처음 그려질 때 한 번 만들게 알린다 — 다른 탭만 보는 사람 몫으로 AI 를 부르지 않는다.
+  const status = insight?.status;
+  useEffect(() => {
+    if (status === 'missing') onLoad?.();
+  }, [status, onLoad]);
+  if (!insight || status === 'unavailable' || status === 'none') return null;
+  if (status === 'loading' || status === 'missing') {
+    return (
+      <div className="evs-re-ai" data-testid="evs-cd-ai-loading">
+        <p className="evs-re-ai-text">{L.cdAiLoading}</p>
+      </div>
+    );
+  }
+  if (status === 'failed') {
+    return (
+      <div className="evs-re-alert is-error" role="alert" data-testid="evs-cd-ai-failed">
+        <span>{L.cdAiFailed}</span>
+        {onRetry && (
+          <button type="button" className="evc-btn is-ghost" onClick={onRetry} data-testid="evs-cd-ai-retry">{L.reRetry}</button>
+        )}
+      </div>
+    );
+  }
+  const parts = [
+    ['reasons', L.cdAiReasons],
+    ['issues', L.cdAiIssues],
+    ['nextCycle', L.cdAiNextCycle],
+  ].filter(([k]) => insight[k]);
+  if (parts.length === 0) return null;
+  return (
+    <div data-testid="evs-cd-ai">
+      {parts.map(([k, label]) => (
+        <div key={k} className="evs-re-ai" data-testid={`evs-cd-ai-${k}`}>
+          <div className="evs-re-ai-k">{label}</div>
+          <p className="evs-re-ai-text">{insight[k]}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function AiSummaryText({ L, text, status, testId }) {
   if (!text) return null;
   return (
@@ -1505,27 +1565,61 @@ function calibFilterFields(rows, L) {
       label: L.cwFilterEmploymentStatus,
       get: (r) => (r.employmentStatus ? L.cwEmploymentStatusLabels?.[r.employmentStatus] ?? null : null),
     },
+    // PW-1847 §6.2·§6.3 — 직급(Intern~C-Level)·직위(사원~부장)·직책·스쿼드·이전 등급. 값이 하나도 없는
+    // 축(스쿼드를 안 쓰는 회사 등)은 칸을 세우지 않는다(optional). 스쿼드는 한 사람이 여럿일 수 있다.
+    { key: 'jobLevel', label: L.cwFilterJobLevel, get: (r) => r.jobLevel || null, optional: true },
+    { key: 'jobRank', label: L.cwFilterJobRank, get: (r) => r.jobRank || null, optional: true },
+    { key: 'position', label: L.cwFilterJobPosition, get: (r) => r.level || null, optional: true },
+    { key: 'squad', label: L.cwFilterSquad, get: (r) => r.squads ?? [], optional: true },
+    { key: 'prevGrade', label: L.cwFilterPrevGrade, get: (r) => r.previousGradeLabel || null, optional: true },
+    // PW-1374 §7.1 — 회사의 조직 층(예: 부문·본부·팀)마다 한 칸. 이름은 회사가 정한 층 이름 그대로다.
+    // 사람의 조직 경로에 위 층이 들어 있으므로, 위 층을 고르면 그 아래 사람이 모두 걸린다.
+    ...(L.cwFilterOrgLevels ? orgLevelFields(rows) : []),
   ];
   return defs
     .map((f) => ({
       ...f,
-      values: [...new Set(rows.map(f.get).filter(Boolean))],
+      values: [...new Set(rows.flatMap((r) => f.get(r)).filter(Boolean))],
     }))
-    .filter((f) => f.label);
+    .filter((f) => f.label && (!f.optional || f.values.length > 0));
+}
+/** 행의 조직 경로(위 층 → 아래 층)에 나온 층을 처음 나온 깊이 순으로 한 칸씩. */
+function orgLevelFields(rows) {
+  const levels = new Map();
+  for (const r of rows) {
+    (r.orgPath ?? []).forEach((p, depth) => {
+      if (p.levelId && p.levelName && !levels.has(p.levelId)) {
+        levels.set(p.levelId, { name: p.levelName, depth });
+      }
+    });
+  }
+  return [...levels]
+    .sort((a, b) => a[1].depth - b[1].depth)
+    .map(([levelId, { name }]) => ({
+      key: `org:${levelId}`,
+      label: name,
+      get: (r) => (r.orgPath ?? []).find((p) => p.levelId === levelId)?.unitName ?? null,
+      optional: true,
+    }));
+}
+/** 고른 값에 이 행이 걸리나 — 값이 여럿인 축(스쿼드)은 하나라도 걸리면 걸린다. */
+function fieldHit(f, row, picked) {
+  const v = f.get(row);
+  return Array.isArray(v) ? v.some((x) => picked.includes(x)) : picked.includes(v);
 }
 function condsMatch(row, conds, fields, op, ranges) {
   const active = fields.filter((f) => conds[f.key]?.length);
   const rangeKeys = activeRangeKeys(ranges);
   if (active.length === 0 && rangeKeys.length === 0) return true;
   const hits = [
-    ...active.map((f) => conds[f.key].includes(f.get(row))),
+    ...active.map((f) => fieldHit(f, row, conds[f.key])),
     ...rangeKeys.map((k) => rangeHit(row, k, ranges[k])),
   ];
   return op === 'OR' ? hits.some(Boolean) : hits.every(Boolean);
 }
 function condsAny(row, conds, fields) {
   return fields.some(
-    (f) => conds[f.key]?.length && conds[f.key].includes(f.get(row)),
+    (f) => conds[f.key]?.length && fieldHit(f, row, conds[f.key]),
   );
 }
 function rowPassesCalibFilter(row, fs, fields) {
@@ -1660,6 +1754,12 @@ export default function EvalCycleSummaryCanvas({
   deptStats = [],
   deptOutliers = [],
   calibResult = null,
+  /**
+   * [PW-1847] §7.D.2 AI 종합 설명 — { status: 'none'|'missing'|'loading'|'ready'|'failed'|'unavailable', reasons, issues, nextCycle }.
+   * 'missing' 이면 결과 탭이 그려질 때 `onLoadCalibResultInsight` 를 한 번 부른다. 실패 후 [재시도]도 같은 콜백이다.
+   */
+  calibResultInsight = null,
+  onLoadCalibResultInsight,
   /**
    * PW-486 — 이 사이클이 캘리브레이션 단계를 쓰는가. 기본 `true` 라 켠 사이클은 종전과
    * 동일하게 그려진다. 판정과 「값이 없으면 켠 것」 규칙은 호출부가 가진다.
@@ -3065,6 +3165,7 @@ export default function EvalCycleSummaryCanvas({
               {calibResult.summary && (
                 <p className="evs-cd-summary" data-testid="evs-cd-summary">{calibResult.summary}</p>
               )}
+              <CalibResultInsight L={L} insight={calibResultInsight} onRetry={onLoadCalibResultInsight} onLoad={onLoadCalibResultInsight} />
             </section>
 
             {/* Block 3 — 개별 조정 위임 카드 */}
