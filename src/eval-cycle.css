@@ -5589,10 +5589,12 @@
 .evr-highlight .evr-answer { gap: var(--spacing-xs); min-width: 0; }
 
 /* [PW-1846] 내 평가 리포트 [PDF 저장] — 리포트가 떠 있을 때만 인쇄 모양을 바꾼다.
+   메뉴(왼쪽 메뉴·위쪽 바·평가 탭 줄 .evnav-nav)와 머리 버튼은 인쇄본에서 뺀다(팀원 정책 §7.3).
    셸(.app)은 높이 고정·넘침 잘림, 메뉴·본문 칸은 position:fixed 라 그대로 찍으면 첫 쪽에서 잘린다. */
 @media print {
   body:has(.evr-print-root) .sidebar,
   body:has(.evr-print-root) .top-nav,
+  body:has(.evr-print-root) .evnav-nav,
   body:has(.evr-print-root) [data-print-hide] {
     display: none !important;
   }
@@ -5600,7 +5602,8 @@
   body:has(.evr-print-root),
   body:has(.evr-print-root) #root,
   body:has(.evr-print-root) .app,
-  body:has(.evr-print-root) .app *:has(.evr-print-root) {
+  body:has(.evr-print-root) .app *:has(.evr-print-root),
+  body:has(.evr-print-root) .evr-print-root {
     position: static !important;
     inset: auto !important;
     width: auto !important;
@@ -5610,7 +5613,11 @@
     overflow: visible !important;
     transform: none !important;
   }
+  /* 리포트 칸 자신도 화면에선 메뉴 오른쪽에 붙은 고정 칸(.evc-root)이다 — 쪽 너비 전체를 쓰게 한다. */
+  .evr-print-root { padding: 0 !important; }
   .evr-print-root .evc-card { break-inside: avoid; }
+  /* 긴 카드는 쪽을 넘기 마련이라, 답 하나(항목 이름 + 글)만은 한 쪽에 둔다. */
+  .evr-print-root .evr-answer { break-inside: avoid; }
 }
 
 /* ── G9: 등급 앵커 툴팁 ── */
