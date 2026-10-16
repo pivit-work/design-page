@@ -6581,17 +6581,33 @@
 .evs-cw-review-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--spacing-lg);
+}
+/* 재검토 결정의 「재조정 등급」 이름표·고르기 칸 = 1on1 칸 이름표·입력칸 (PW-1891). 칸 폭은 값 길이만큼. */
+.evs-cw-review-row > .evs-cw-review-k {
+  margin-bottom: 0;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+}
+.evs-cw-review-row > .evs-cw-create-input {
+  width: auto;
+  min-width: 160px;
 }
 .evs-cw-review-note {
   width: 100%;
-  border-radius: 8px;
-  border: 1px solid var(--border-primary);
-  padding: 8px 10px;
-  font-size: var(--font-size-text-xs);
-  font-family: inherit;
-  color: var(--text-primary);
+  box-sizing: border-box;
+  min-height: 80px;
+  padding: var(--spacing-lg) 14px;
+  background: var(--componentColors-alpha-alphaBlack3, rgba(0,0,0,0.03));
+  border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0,0,0,0.05));
+  border-radius: var(--radius-md);
+  outline: none;
   resize: vertical;
+  font-family: var(--font-family-body);
+  font-weight: 400;
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
+  color: var(--text-primary);
 }
 .evs-cw-review-actions {
   display: flex;
@@ -6701,42 +6717,61 @@
 
 .evs-cw-create-lbl {
   display: block;
-  font-size: 12px;
+  font-family: var(--font-family-body);
   font-weight: 700;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
   color: var(--text-secondary);
-  margin: 14px 0 6px;
+  margin: var(--spacing-3xl) 0 var(--spacing-lg);
 }
+/* ── 캘리브레이션 창 칸 (PW-1891) ──
+   디자이너가 그린 1on1 「일정 추가」 창의 칸 모양을 값 그대로 옮긴다 — 평가 화면은 one_on_one.css 를 싣지 않는다.
+   원문과 값이 같은지는 pivit-work 의 calibrationFormLook 가드 테스트가 본다.
+   · 칸 제목 = `.ono-add-modal-field-label`. 제목과 칸 사이 12px(`.ono-add-modal-field` gap), 칸과 칸 사이 24px.
+   · 한 줄 입력칸 = `.ono-add-modal-input`(겉 상자) + `-input-el`(글씨). 원본은 겉 상자 안에 테두리 없는 칸을 넣는데,
+     여기는 칸 하나라 겉 상자 값을 칸에 바로 준다. 테두리는 메모 칸 `.ono-add-modal-textarea` 의 아주 옅은 테두리.
+   · 글 쓰는 칸 = 메모 칸. 원본은 높이 80px 고정이지만 글이 길어지므로 최소 80px, 세로 크기 조절은 남긴다.
+   · 「대상」·「위원」 칸은 색 상자로 묶지 않는다 — 1on1 창은 칸을 상자로 묶지 않는다. */
 .evs-cw-create-input {
   width: 100%;
   box-sizing: border-box;
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--border-primary);
-  font-size: 13px;
-  font-family: inherit;
+  min-height: 40px;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--componentColors-alpha-alphaBlack3, rgba(0,0,0,0.03));
+  border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0,0,0,0.05));
+  border-radius: var(--radius-md);
+  font-family: var(--font-family-body);
+  font-weight: 400;
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
   color: var(--text-primary);
 }
+.evs-cw-create-input::placeholder {
+  color: var(--text-placeholder);
+}
+/* 「위원회 만들기」·보상 열람 권한 창 본문(.evc-shell-body)은 칸마다 16px 를 띄우는 세로 줄이다. 위 여백만 두면
+   이름표 위가 40px·이름표 아래가 28px 로 벌어져, 아래 .evc-field-label 과 같은 방법으로 1on1 창 간격
+   (이름표 → 칸 12px, 칸 → 다음 이름표 24px)에 맞춘다. */
+.evc-shell-body > .evs-cw-create-lbl {
+  margin: var(--spacing-md) 0 0;
+}
+.evc-shell-body > .evs-cw-create-lbl + * {
+  margin-top: calc(var(--spacing-lg) - 16px);
+}
+.evc-shell-body > .evs-cw-create-lbl:first-child,
+.evs-cw-create-section > .evs-cw-create-lbl:first-child {
+  margin-top: 0;
+}
+.evc-shell-body > .evs-cw-create-section {
+  margin-top: var(--spacing-md);
+}
 .evs-cw-create-section {
-  margin-top: 14px;
-  border-radius: 12px;
-  padding: 12px 14px;
+  margin: 0;
 }
-.evs-cw-create-section-target {
-  border: 1.5px solid var(--utility-blue-200);
-  background: var(--utility-blue-50);
-}
-.evs-cw-create-section-committee {
-  border: 1.5px solid var(--utility-purple-200);
-  background: var(--utility-purple-50);
-}
-/* PW-134 위원장 이양 선택 — 위원 관리 패널 안에 얹히는 한 줄. 색을 새로 만들지 않고
-   패널 위에서 입력이 읽히도록 배경만 흰색으로 되돌린다. */
+/* PW-134 위원장 이양 선택 — 위원 관리 패널 안에 얹히는 한 줄. */
 .evs-cw-chair-transfer {
   margin-top: 10px;
   padding: 0;
-}
-.evs-cw-chair-transfer select.evs-cw-create-input {
-  background: var(--bg-primary);
 }
 /* §3.4③ 위원장 이양 — 고른 뒤 확인 문구 아래 [취소][넘기기]. 고르기 전에는 버튼 하나. */
 .evs-cw-chair-transfer > .tl-group-modal-btn,
@@ -7203,36 +7238,26 @@
 .evs-cw-filter-op {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--spacing-lg);
 }
+/* 「필드 간 조합」 이름표 = 칸 제목과 같은 1on1 칸 이름표 (PW-1891) */
 .evs-cw-filter-op-label {
-  font-size: 12px;
-  color: var(--text-secondary);
-}
-.evs-cw-filter-op-btn {
-  padding: 3px 11px;
-  border-radius: 6px;
-  font-size: 12px;
+  font-family: var(--font-family-body);
   font-weight: 700;
-  cursor: pointer;
-  font-family: inherit;
-  border: 1.5px solid var(--border-primary);
-  background: var(--bg-primary);
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
   color: var(--text-secondary);
-}
-.evs-cw-filter-op-btn.is-on {
-  border-color: var(--utility-brand-500);
-  background: var(--utility-brand-50);
-  color: var(--utility-brand-600);
 }
 .evs-cw-filter-field {
-  margin-bottom: 10px;
+  margin-bottom: var(--spacing-3xl);
 }
 .evs-cw-filter-field-label {
-  font-size: 12px;
+  font-family: var(--font-family-body);
   font-weight: 700;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
   color: var(--text-secondary);
-  margin-bottom: 5px;
+  margin-bottom: var(--spacing-lg);
 }
 .evs-cw-filter-chips {
   display: flex;
@@ -7648,10 +7673,12 @@
 }
 .evtcal-appeal-label {
   display: block;
-  font-size: 12px;
+  font-family: var(--font-family-body);
   font-weight: 700;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
   color: var(--text-secondary);
-  margin-bottom: var(--spacing-sm);
+  margin-bottom: var(--spacing-lg);
 }
 .evtcal-req {
   color: var(--utility-error-500);
@@ -7662,23 +7689,25 @@
   color: var(--text-secondary);
   margin-left: var(--spacing-sm);
 }
+/* 이의 사유 칸·읽기 전용 사유 = 1on1 「일정 추가」 창 메모 칸 (PW-1891, 위 「캘리브레이션 창 칸」 주석) */
 .evtcal-textarea {
   width: 100%;
   box-sizing: border-box;
-  padding: 10px 12px;
-  border: 1px solid var(--border-primary);
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  font-family: inherit;
-  line-height: 1.7;
-  resize: vertical;
-  color: var(--text-primary);
-  background: var(--bg-primary);
-}
-.evtcal-textarea:focus {
+  min-height: 80px;
+  padding: var(--spacing-lg) 14px;
+  background: var(--componentColors-alpha-alphaBlack3, rgba(0,0,0,0.03));
+  border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0,0,0,0.05));
+  border-radius: var(--radius-md);
   outline: none;
-  border-color: var(--utility-warning-400);
-  box-shadow: 0 0 0 3px var(--utility-warning-50);
+  resize: vertical;
+  font-family: var(--font-family-body);
+  font-weight: 400;
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
+  color: var(--text-primary);
+}
+.evtcal-textarea::placeholder {
+  color: var(--text-placeholder);
 }
 .evtcal-appeal-actions {
   display: flex;
@@ -7688,25 +7717,28 @@
   margin-top: var(--spacing-md);
 }
 .evtcal-appeal-done {
-  border-top: 1px dashed var(--utility-blue-200);
+  border-top: 1px dashed var(--border-secondary);
   padding-top: 10px;
 }
 .evtcal-appeal-reason-title {
-  font-size: 12px;
+  font-family: var(--font-family-body);
   font-weight: 700;
-  color: var(--utility-blue-600);
-  margin-bottom: 4px;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-lg);
 }
 .evtcal-appeal-reason {
-  font-size: 12.5px;
-  line-height: 1.7;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
   white-space: pre-wrap;
   color: var(--text-primary);
-  padding: 9px 12px;
-  border-radius: var(--radius-sm);
-  background: var(--utility-blue-50);
-  border: 1px solid var(--utility-blue-100);
-  margin-bottom: var(--spacing-md);
+  padding: var(--spacing-lg) 14px;
+  border-radius: var(--radius-md);
+  background: var(--componentColors-alpha-alphaBlack3, rgba(0,0,0,0.03));
+  border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0,0,0,0.05));
+  margin-bottom: var(--spacing-3xl);
 }
 @media (max-width: 640px) {
   .evtcal-flow {
@@ -7899,15 +7931,6 @@
 .evs-cw-filter-save-name {
   flex: 1;
   min-width: 180px;
-}
-.evs-cw-filter-save-shared {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: var(--text-secondary);
-  white-space: nowrap;
-  cursor: pointer;
 }
 
 /* ── R5b 직급 타임라인 · R4b 개인제외 · R1b 생성 프리뷰 ── */

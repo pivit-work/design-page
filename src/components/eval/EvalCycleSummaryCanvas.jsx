@@ -12,6 +12,7 @@ import AvatarPhoto from './AvatarPhoto';
 import Avatar from '../shared/Avatar.jsx';
 import LoadingState from '../shared/LoadingState.jsx';
 import DateInput from '../shared/DateInput.jsx';
+import Checkbox from '../shared/Checkbox.jsx';
 import { scaleMaxOf } from './evalTemplateItemModel.js';
 import { leaderGradeMarks } from './evalLeaderLive.js';
 import { pickParticle } from '../shared/koreanParticle.js';
@@ -4143,7 +4144,7 @@ export default function EvalCycleSummaryCanvas({
                           <div className="evs-cw-review-row">
                             <span className="evs-cw-review-k">{L.cwNewGradeLabel}</span>
                             <select
-                              className="evs-cw-adjust-select"
+                              className="evs-cw-create-input"
                               data-testid="evs-cw-review-grade"
                               value={reviewGrade}
                               onChange={(e) => setReviewGrade(e.target.value)}
@@ -5928,21 +5929,18 @@ export default function EvalCycleSummaryCanvas({
                       <span className="evs-cw-filter-op-label">
                         {L.cwFilterFieldOp}
                       </span>
-                      {['AND', 'OR'].map((op) => (
-                        <button
-                          type="button"
-                          key={op}
-                          className={`evs-cw-filter-op-btn${calibFilter.includeOp === op ? ' is-on' : ''}`}
-                          onClick={() =>
-                            setCalibFilter((prev) => ({
-                              ...prev,
-                              includeOp: op,
-                            }))
-                          }
-                        >
-                          {op}
-                        </button>
-                      ))}
+                      {/* 하나만 고르는 두 값 — 공용 세그먼트 버튼 (PW-1891) */}
+                      <SegmentedControl
+                        items={['AND', 'OR'].map((op) => ({ value: op, label: op, testId: `evs-cw-filter-op-${op}` }))}
+                        value={calibFilter.includeOp}
+                        onChange={(op) =>
+                          setCalibFilter((prev) => ({
+                            ...prev,
+                            includeOp: op,
+                          }))
+                        }
+                        ariaLabel={L.cwFilterFieldOp}
+                      />
                     </div>
                   </div>
                   {palette('includeConds', 'accent')}
@@ -6030,14 +6028,12 @@ export default function EvalCycleSummaryCanvas({
                   data-testid="evs-cw-filter-preset-name"
                 />
                 {canSharePreset && (
-                <label className="evs-cw-filter-save-shared">
-                  <input
-                    type="checkbox"
-                    checked={presetShared}
-                    onChange={(e) => setPresetShared(e.target.checked)}
-                  />
-                  {L.cwFilterPresetShareLabel}
-                </label>
+                <Checkbox
+                  checked={presetShared}
+                  onChange={(e) => setPresetShared(e.target.checked)}
+                  label={L.cwFilterPresetShareLabel}
+                  data-testid="evs-cw-filter-preset-shared"
+                />
                 )}
                 <button
                   type="button"
@@ -6218,7 +6214,7 @@ export default function EvalCycleSummaryCanvas({
             <div className="evs-cw-create-muted">{L.cwCreateDateHint}</div>
 
             {!committeeManage && (
-            <div className="evs-cw-create-section evs-cw-create-section-target">
+            <div className="evs-cw-create-section">
               <div className="evs-cw-create-lbl">{L.cwCreateTargetLabel}</div>
               {sessionDeptOptions.length === 0 ? (
                 <div className="evs-cw-create-muted">{L.cwCreateNoDept}</div>
@@ -6434,7 +6430,7 @@ export default function EvalCycleSummaryCanvas({
             </div>
             )}
 
-            <div className="evs-cw-create-section evs-cw-create-section-committee">
+            <div className="evs-cw-create-section">
               <div className="evs-cw-create-lbl">
                 {committeeManage ? L.cwManageListLabel : L.cwCreateCommitteeLabel}
               </div>
