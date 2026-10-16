@@ -1048,7 +1048,7 @@
    "background": "#fff",
    "color": "--onb-sub",
    "font-family": "inherit",
-   "border": "1.5px solid var(--onb-border)"
+   "border": "1px solid var(--onb-border)"
   },
   "onboarding.css|.onb-panel-pill": {
    "border-radius": "20px",

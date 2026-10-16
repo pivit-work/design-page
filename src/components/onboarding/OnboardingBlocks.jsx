@@ -23,8 +23,8 @@ const mbClass = (v) => ([8, 12, 16, 20, 24].includes(v) ? `onb-mb-${v}` : undefi
  *   icon       아이콘 노드(SVG). iconTone 으로 색: brand|success|warning|error|muted
  *   badge      제목 위 배지 노드(OnbBadge)
  *   align      'left' | 'center'
- *   size       'lg'(26) | 'md'(24 — 시안 승인 결과)
- *   spacing    'normal'(아래 32) | 'tight'(아래 24)
+ *   size       'lg' | 'md'(시안 승인 결과) — 둘 다 30px, 디자이너 창 제목 크기 (PW-1885)
+ *   spacing    'normal' | 'tight' — 둘 다 아래 24 (PW-1885)
  */
 export function OnbStepHeader({
   title,
@@ -418,7 +418,7 @@ export function OnbSummaryList({ children }) {
   return <div className="onb-summary-list">{children}</div>;
 }
 
-const CONFETTI_COLORS = ['#2563EB', '#16A34A', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
+const CONFETTI_COLORS = ['#2DBD82', '#16A34A', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
 // 렌더를 순수하게 두려고 모듈에서 한 번만 계산한다.
 const CONFETTI_PIECES = Array.from({ length: 30 }, (_, i) => ({
   color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
