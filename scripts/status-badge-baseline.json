@@ -206,16 +206,6 @@
    "font-family": "var(--font-family-body)",
    "border": "1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03))"
   },
-  "admin.css|.admin-snap-chip": {
-   "border-radius": "pill",
-   "padding": "5px 12px",
-   "font-size": "12px",
-   "font-weight": "500",
-   "background": "#f3f4f6 / 어두운 화면 #0c0e12",
-   "color": "#687079 / 어두운 화면 #cecfd2",
-   "font-family": "var(--font-family-body)",
-   "border": "1px solid var(--border-primary)"
-  },
   "admin.css|.admin-snap-jg-pill": {
    "border-radius": "pill",
    "padding": "3px 10px",
@@ -1839,14 +1829,6 @@
   "admin.css|.admin-pill.is-redflag": {
    "background": "#fef3f2 / 어두운 화면 #220905",
    "color": "#d92d20 / 어두운 화면 #f04438"
-  },
-  "admin.css|.admin-snap-chip:hover:not(.is-on)": {
-   "color": "#687079 / 어두운 화면 #cecfd2"
-  },
-  "admin.css|.admin-snap-chip.is-on": {
-   "font-weight": "700",
-   "background": "#f1fffa / 어두운 화면 #072619",
-   "color": "#21a67a / 어두운 화면 #e1fef2"
   },
   "admin.css|.admin-snap-status-badge.is-error": {
    "background": "#fef3f2 / 어두운 화면 #220905",
