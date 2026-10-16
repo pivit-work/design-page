@@ -56,7 +56,7 @@ export default function OkrTeamCanvas({ data, icons, baseUrl = '', activeTeam, o
   return (
     <div className="okr-personal-area">
       {/* 팀 서브탭 — 공용 Tabs, 기간 칩 — 공용 SegmentedControl (PW-836). */}
-      <div className="tl-tabs-row okr-s-tabs-row okr-team-tabs-row">
+      <div className="tl-tabs-row okr-s-tabs-row">
         <div className="okr-team-tabs-scroll" ref={tabsScrollRef}>
           <Tabs
             items={teams.map((name) => ({ value: name, label: name }))}
