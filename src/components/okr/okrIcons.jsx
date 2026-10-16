@@ -32,3 +32,16 @@ export function FlagIcon({ size = 12 }) {
     </svg>
   );
 }
+
+/**
+ * 종 — 「저장하면 매니저에게 알림이 간다」 안내 (PW-1868).
+ * 기획 목업은 `🔔` 글리프였다. 같은 뜻을 선 아이콘으로 그린다.
+ */
+export function BellIcon({ size = 14 }) {
+  return (
+    <svg {...svgProps(size)}>
+      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+    </svg>
+  );
+}
