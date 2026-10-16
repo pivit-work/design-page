@@ -396,6 +396,9 @@ const DEFAULT_LABELS = {
   cwCreateCommitteeSearch: '이름·부서·직책으로 검색',
   cwCommitteeOutsideSearch: '검색 결과 밖 {count}명 포함',
   cwCreateCommitteeSearchEmpty: '검색 결과가 없습니다.',
+  // PW-1874 — 값이 많은 칸(팀·부서·대상자…) 위에 붙는 이름 검색
+  cwChipSearch: '이름으로 찾기',
+  cwChipSearchEmpty: '찾는 이름이 없습니다.',
   cwKindLead: '조직장',
   cwKindSeniorIc: '시니어 IC',
   cwChair: '위원장',
@@ -714,6 +717,51 @@ function withObjectParticle(name) {
 /** §3.3② 위원 후보 검색 — 이름·부서·직책 부분일치(q 는 소문자로 다듬은 검색어). */
 function committeeCandidateMatches(c, q) {
   return [c.name, c.dept, c.jobPosition].some((v) => String(v ?? '').toLowerCase().includes(q));
+}
+/** PW-1874 — 이 개수를 넘는 값 칸에만 이름 검색을 단다. 이하는 예전 화면 그대로다. */
+const CHIP_SEARCH_MIN = 12;
+/**
+ * PW-1874 — 값 버튼 묶음(필터 칸·대상자·위원회 부서/직급). 회사마다 값 개수가 달라 200개도 온다.
+ * 칸 높이는 CSS 로 묶어 그 안에서만 스크롤하고, 값이 많으면 이름 검색을 단다.
+ * 값이 많을 때 고른 값은 맨 앞에 두고 검색에 안 걸려도 남긴다 — 스크롤 아래로 숨지 않게(§3.3 위원 검색과 같은 원칙).
+ * 값이 적을 때는 순서를 그대로 둔다 — 누를 때마다 버튼이 자리를 옮기지 않게.
+ */
+function ChipPicker({ items, keyOf = (v) => v, textOf = (v) => v, isOn, renderChip, listClassName, searchLabel, L, testId }) {
+  const [query, setQuery] = useState('');
+  const many = items.length > CHIP_SEARCH_MIN;
+  const q = query.trim().toLowerCase();
+  const shown = many
+    ? [
+        ...items.filter((v) => isOn(v)),
+        ...items.filter((v) => !isOn(v) && (!q || String(textOf(v) ?? '').toLowerCase().includes(q))),
+      ]
+    : items;
+  return (
+    <div data-testid={testId}>
+      {many && (
+        <input
+          className="evs-cw-create-input evs-cw-create-search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={L.cwChipSearch}
+          aria-label={searchLabel ? `${searchLabel} ${L.cwChipSearch}` : L.cwChipSearch}
+          data-testid="evs-cw-chip-search"
+        />
+      )}
+      {/* 결과 없음은 검색어를 쳤을 때만 — 값이 하나도 없는 칸(등급 미확정 등)은 예전처럼 빈 칸이다. */}
+      {q && shown.length === 0 ? (
+        <div className="evs-cw-create-muted" data-testid="evs-cw-chip-search-empty">
+          {L.cwChipSearchEmpty}
+        </div>
+      ) : (
+        <div className={`${listClassName} evs-cw-chip-picker-list`}>
+          {shown.map((v) => (
+            <Fragment key={keyOf(v)}>{renderChip(v, isOn(v))}</Fragment>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 /** §3.2·§3.3 — 세션 범위 라벨(조직 / 레벨). 고르지 않은 축은 빼고, 둘 다 없으면 전체 조직. */
 function calibScopeLabel(scope, L) {
@@ -5672,24 +5720,24 @@ export default function EvalCycleSummaryCanvas({
             {fields.map((f) => (
               <div key={f.key} className="evs-cw-filter-field">
                 <div className="evs-cw-filter-field-label">{f.label}</div>
-                <div className="evs-cw-filter-chips">
-                  {f.values.map((v) => {
-                    const on = (calibFilter[which]?.[f.key] || []).includes(
-                      v,
-                    );
-                    return (
-                      <button
-                        type="button"
-                        key={v}
-                        className={`evs-cw-chip${on ? ` is-on tone-${tone}` : ''}`}
-                        onClick={() => toggleCond(which, f.key, v)}
-                      >
-                        {on ? (tone === 'red' ? '✕ ' : '✓ ') : ''}
-                        {v}
-                      </button>
-                    );
-                  })}
-                </div>
+                <ChipPicker
+                  items={f.values}
+                  isOn={(v) => (calibFilter[which]?.[f.key] || []).includes(v)}
+                  listClassName="evs-cw-filter-chips"
+                  searchLabel={f.label}
+                  L={L}
+                  testId={`evs-cw-filter-field-${f.key}`}
+                  renderChip={(v, on) => (
+                    <button
+                      type="button"
+                      className={`evs-cw-chip${on ? ` is-on tone-${tone}` : ''}`}
+                      onClick={() => toggleCond(which, f.key, v)}
+                    >
+                      {on ? (tone === 'red' ? '✕ ' : '✓ ') : ''}
+                      {v}
+                    </button>
+                  )}
+                />
               </div>
             ))}
           </div>
@@ -5852,24 +5900,27 @@ export default function EvalCycleSummaryCanvas({
                     ` · ${L.cwExcludedTitle} ${calibFilter.excludeIds.length}`}{' '}
                   <span className="evs-cw-filter-sec-hint">· {L.cwFilterMembersHint}</span>
                 </span>
-                <div className="evs-cw-filter-excluded-list evs-cw-filter-members-list">
-                  {calibTable.rows.map((r) => {
-                    const off = !!calibFilter.excludeIds?.includes(r.memberId);
-                    return (
-                      <button
-                        type="button"
-                        key={r.memberId}
-                        className={`evs-cw-chip evs-cw-member-chip${off ? ' is-excluded' : ''}`}
-                        aria-pressed={off}
-                        title={off ? L.cwExcludedRemove : L.cwExcludeMember}
-                        onClick={() => toggleMember(r.memberId)}
-                        data-testid="evs-cw-filter-member-chip"
-                      >
-                        {r.name}
-                      </button>
-                    );
-                  })}
-                </div>
+                <ChipPicker
+                  items={calibTable.rows}
+                  keyOf={(r) => r.memberId}
+                  textOf={(r) => r.name}
+                  isOn={(r) => !!calibFilter.excludeIds?.includes(r.memberId)}
+                  listClassName="evs-cw-filter-excluded-list evs-cw-filter-members-list"
+                  searchLabel={L.cwFilterMembersTitle}
+                  L={L}
+                  renderChip={(r, off) => (
+                    <button
+                      type="button"
+                      className={`evs-cw-chip evs-cw-member-chip${off ? ' is-excluded' : ''}`}
+                      aria-pressed={off}
+                      title={off ? L.cwExcludedRemove : L.cwExcludeMember}
+                      onClick={() => toggleMember(r.memberId)}
+                      data-testid="evs-cw-filter-member-chip"
+                    >
+                      {r.name}
+                    </button>
+                  )}
+                />
               </div>
               {/* PW-1053 — 저장이 받아들여지는 사람에게만 그린다(호출부가 핸들러를 넘기는 사람).
                   이름은 저장이 «성공한 뒤에» 비운다 — 실패하면 적은 이름이 남는다(PW-966 과 같은 틀). */}
@@ -6076,54 +6127,58 @@ export default function EvalCycleSummaryCanvas({
               {sessionDeptOptions.length === 0 ? (
                 <div className="evs-cw-create-muted">{L.cwCreateNoDept}</div>
               ) : (
-                <div className="evs-cw-create-chips">
-                  {sessionDeptOptions.map((d) => {
-                    const on = createDepts.includes(d);
-                    return (
-                      <button
-                        type="button"
-                        key={d}
-                        className={`evs-cw-chip${on ? ' is-on tone-accent' : ''}`}
-                        onClick={() =>
-                          setCreateDepts((prev) =>
-                            prev.includes(d)
-                              ? prev.filter((x) => x !== d)
-                              : [...prev, d],
-                          )
-                        }
-                      >
-                        {on ? '✓ ' : ''}
-                        {d}
-                      </button>
-                    );
-                  })}
-                </div>
+                <ChipPicker
+                  items={sessionDeptOptions}
+                  isOn={(d) => createDepts.includes(d)}
+                  listClassName="evs-cw-create-chips"
+                  searchLabel={L.cwCreateTargetLabel}
+                  L={L}
+                  testId="evs-cw-create-depts"
+                  renderChip={(d, on) => (
+                    <button
+                      type="button"
+                      className={`evs-cw-chip${on ? ' is-on tone-accent' : ''}`}
+                      onClick={() =>
+                        setCreateDepts((prev) =>
+                          prev.includes(d)
+                            ? prev.filter((x) => x !== d)
+                            : [...prev, d],
+                        )
+                      }
+                    >
+                      {on ? '✓ ' : ''}
+                      {d}
+                    </button>
+                  )}
+                />
               )}
               {sessionLevelOptions.length > 0 && (
                 <>
                   <div className="evs-cw-create-lbl">{L.cwCreateLevelLabel}</div>
-                  <div className="evs-cw-create-chips">
-                    {sessionLevelOptions.map((lv) => {
-                      const on = createLevels.includes(lv);
-                      return (
-                        <button
-                          type="button"
-                          key={lv}
-                          className={`evs-cw-chip${on ? ' is-on tone-accent' : ''}`}
-                          onClick={() =>
-                            setCreateLevels((prev) =>
-                              prev.includes(lv)
-                                ? prev.filter((x) => x !== lv)
-                                : [...prev, lv],
-                            )
-                          }
-                        >
-                          {on ? '✓ ' : ''}
-                          {lv}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <ChipPicker
+                    items={sessionLevelOptions}
+                    isOn={(lv) => createLevels.includes(lv)}
+                    listClassName="evs-cw-create-chips"
+                    searchLabel={L.cwCreateLevelLabel}
+                    L={L}
+                    testId="evs-cw-create-levels"
+                    renderChip={(lv, on) => (
+                      <button
+                        type="button"
+                        className={`evs-cw-chip${on ? ' is-on tone-accent' : ''}`}
+                        onClick={() =>
+                          setCreateLevels((prev) =>
+                            prev.includes(lv)
+                              ? prev.filter((x) => x !== lv)
+                              : [...prev, lv],
+                          )
+                        }
+                      >
+                        {on ? '✓ ' : ''}
+                        {lv}
+                      </button>
+                    )}
+                  />
                 </>
               )}
               <div className="evs-cw-create-hint">{L.cwCreateTargetHint}</div>

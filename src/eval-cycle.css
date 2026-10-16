@@ -7984,6 +7984,17 @@
   gap: 6px;
   margin-top: 6px;
 }
+/* PW-1874 — 값 버튼 묶음(필터 칸·위원회 부서/직급). 값이 회사 수만큼 와도 칸 안에서만 스크롤한다.
+   높이는 아래 대상자 칩 묶음과 같은 값이다. */
+.evs-cw-chip-picker-list {
+  max-height: 160px;
+  overflow-y: auto;
+}
+/* PW-1874 — 저장한 필터가 늘어나도 그 줄 안에서만 스크롤한다(높이는 대상자 칩 묶음과 같은 값). */
+.evs-cw-filter-presets {
+  max-height: 160px;
+  overflow-y: auto;
+}
 /* §6.3 대상자 칩 — 누르면 개인 제외(취소선). 사람이 많으면 칩 묶음만 스크롤한다. */
 .evs-cw-filter-members-list {
   max-height: 160px;
