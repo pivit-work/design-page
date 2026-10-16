@@ -4264,16 +4264,16 @@ export default function EvalCycleWizard({
             <span className="evc-rm-channels">
               {REMINDER_CHANNELS.map((ch) => {
                 const on = rm.channels.includes(ch.id);
+                // PW-1887 — 여럿 고르는 칸이라 공용 체크박스. 마지막 하나는 toggleChannel 이 끄지 않는다.
                 return (
-                  <button
+                  <Checkbox
                     key={ch.id}
-                    type="button"
-                    className={`evc-rm-ch${on ? ' is-on' : ''}`}
-                    onClick={() => toggleChannel(ph.id, rm.id, ch.id)}
+                    checked={on}
+                    onChange={() => toggleChannel(ph.id, rm.id, ch.id)}
                     data-testid={`evc-rm-ch-${ph.id}-${i}-${ch.id}`}
                   >
                     <ch.Icon size={14} /> {L[ch.labelKey]}
-                  </button>
+                  </Checkbox>
                 );
               })}
             </span>
@@ -4295,12 +4295,14 @@ export default function EvalCycleWizard({
               // [PW-529] 당사자도 이제 끌 수 있다 — 막는 것은 중복뿐이다.
               const disabled = dup;
               return (
+                /* PW-1887 — 여럿 고르는 칸이라 공용 체크박스. 당사자와 같은 참조는 꺼진 채 취소선(is-dup). */
                 <Tooltip key={t.id} content={dup ? L.reminderTgtDupHint : undefined}>
-                  <button
-                    type="button"
+                  <Checkbox
                     disabled={disabled}
-                    className={`evc-rm-tgt${on ? ' is-on' : ''}${dup ? ' is-dup' : ''}`}
-                    onClick={async () => {
+                    checked={on}
+                    className={`dp-check evc-rm-check${dup ? ' is-dup' : ''}`}
+                    inputClassName="dp-check-input"
+                    onChange={async () => {
                       if (disabled) return;
                       /* [PW-529] 당사자를 «끄는» 것은 리마인더의 성격을
                          바꾼다(독촉 → 현황 보고). 한 번 확인한다.
@@ -4324,12 +4326,11 @@ export default function EvalCycleWizard({
                     }}
                     data-testid={`evc-rm-tgt-${ph.id}-${i}-${t.id}`}
                   >
-                    {on ? '✓' : '+'}{' '}
                     {isSelf
                       ? (L[PHASE_RESPONDER_SHORT[phaseBaseId(ph.id)]] ?? L.reminderRespSelf)
                       : L[t.labelKey]}
                     {dup ? ` · ${L.reminderTgtDup}` : ''}
-                  </button>
+                  </Checkbox>
                 </Tooltip>
               );
             })}
@@ -4533,25 +4534,24 @@ export default function EvalCycleWizard({
               <div className="evc-rm-send-row" data-testid={`evc-rm-slack-lines-${ph.id}-${i}`}>
                 <span className="evc-rm-send-ch"><ChatIcon size={13} /> {L.reminderChSlack}</span>
                 <div className="evc-rm-send-slack">
-                <div className="evc-rm-tgts">
-                  {SLACK_SEND_MODES.map((m) => {
-                    const on = (rm.slack?.mode ?? 'dm') === m.id;
-                    return (
-                      <button
-                        key={m.id}
-                        type="button"
-                        className={`evc-rm-tgt${on ? ' is-on' : ''}`}
-                        onClick={() =>
-                          patchReminder(ph.id, rm.id, (r) => ({
-                            slack: { ...r.slack, mode: m.id },
-                          }))}
-                        data-testid={`evc-rm-slack-mode-${ph.id}-${i}-${m.id}`}
-                      >
+                {/* PW-1887 — DM·채널 중 하나만 고르는 칸이라 공용 세그먼트 버튼. */}
+                <SegmentedControl
+                  ariaLabel={L.reminderChSlack}
+                  value={rm.slack?.mode ?? 'dm'}
+                  onChange={(mode) =>
+                    patchReminder(ph.id, rm.id, (r) => ({
+                      slack: { ...r.slack, mode },
+                    }))}
+                  items={SLACK_SEND_MODES.map((m) => ({
+                    value: m.id,
+                    label: (
+                      <>
                         <m.Icon size={14} /> {L[m.labelKey]}
-                      </button>
-                    );
-                  })}
-                </div>
+                      </>
+                    ),
+                    testId: `evc-rm-slack-mode-${ph.id}-${i}-${m.id}`,
+                  }))}
+                />
                 {(rm.slack?.mode ?? 'dm') === 'channel' && (() => {
                   /* [PW-530 ④] 어니스트: "공개 채널이 300개가 넘어가다 보니
                      드롭다운 선택은 한계가 있을 것 같아요." 목록에서 고르는
@@ -4585,20 +4585,22 @@ export default function EvalCycleWizard({
                         부를 대상이 없다 — 켜 둘 수 없게 막는다.
                         참조(리더·HR)를 대신 부를지는 아직 정해지지 않았다. */}
                     <Tooltip content={selfOn ? undefined : L.reminderSlackMentionNoSelf}>
-                      <button
-                        type="button"
+                      {/* PW-1887 — 켜고 끄는 칸이라 공용 체크박스. */}
+                      <Checkbox
                         disabled={!selfOn}
-                        className={`evc-rm-tgt${selfOn && rm.slack?.mention ? ' is-on' : ''}${selfOn ? '' : ' is-dup'}`}
-                        onClick={() =>
+                        checked={Boolean(selfOn && rm.slack?.mention)}
+                        className={`dp-check evc-rm-check${selfOn ? '' : ' is-dup'}`}
+                        inputClassName="dp-check-input"
+                        onChange={() =>
                           selfOn &&
                           patchReminder(ph.id, rm.id, (r) => ({
                             slack: { ...r.slack, mention: !r.slack?.mention },
                           }))}
                         data-testid={`evc-rm-slack-mention-${ph.id}-${i}`}
                       >
-                        {selfOn && rm.slack?.mention ? '✓' : '+'} {L.reminderSlackMention}
+                        {L.reminderSlackMention}
                         {selfOn ? '' : ` · ${L.reminderSlackMentionNoSelfTag}`}
-                      </button>
+                      </Checkbox>
                     </Tooltip>
                     {/* 🔴 목록을 못 읽어도 위자드는 멈추지 않는다 — 사이클 생성이
                         슬랙 연동 상태에 인질로 잡히면 안 된다. 직접 입력으로
@@ -7362,7 +7364,7 @@ export default function EvalCycleWizard({
 
         <div className="evc-wiz-body">
           {step === 0 && (
-            <div className="evc-wiz-panel">
+            <div className="evc-wiz-panel is-form">
               {/* TC-028 저장된 설정 프리셋 불러오기 — 관리 모드에서는 숨긴다
                   (이미 값이 들어 있는 사이클을 프리셋으로 덮어쓰는 건 수정이 아니다). */}
               {/* PW-1459 §5.9 — 이전 사이클·저장한 설정이 하나도 없어도 자리는 둔다. 열면
@@ -7497,17 +7499,16 @@ export default function EvalCycleWizard({
               )}
 
               <span className="evc-field-label">{L.reviewTypes}</span>
-              <div className="evc-type-row">
+              {/* PW-1887 — 여럿 고르는 칸이라 공용 체크박스. 하나만 고르는 칸(하향 차수)은 세그먼트 버튼이다. */}
+              <div className="evc-check-row">
                 {['self', 'peer', 'upward', 'leader'].map((t) => (
-                  <button
-                    type="button"
+                  <Checkbox
                     key={t}
-                    className={`evc-type-chip${reviewTypes.includes(t) ? ' is-on' : ''}`}
-                    onClick={() => toggleType(t)}
+                    checked={reviewTypes.includes(t)}
+                    onChange={() => toggleType(t)}
                     data-testid={`evc-wiz-type-${t}`}
-                  >
-                    {L[REVIEW_TYPE_KEYS[t]]}
-                  </button>
+                    label={L[REVIEW_TYPE_KEYS[t]]}
+                  />
                 ))}
               </div>
               {reviewTypes.length === 0 && (
@@ -8527,7 +8528,7 @@ export default function EvalCycleWizard({
           )}
 
           {step === 2 && (
-            <div className="evc-wiz-panel">
+            <div className="evc-wiz-panel is-form">
               <p className="evc-wiz-hint">{L.scheduleHint}</p>
               {/* PW-536 — 일정 시작일(D0). 모든 단계 일정의 기준점(정책 §5.2.1-A).
                   대상 기간(무엇을 평가하는가)과 운영 일정(언제 진행하는가)은 다른 축이라
@@ -8591,23 +8592,16 @@ export default function EvalCycleWizard({
                     />
                     <span className="evc-rm-unit">{L.scheduleBulkDayUnit}</span>
                   </span>
-                  <div className="evc-type-row">
-                    {[
-                      ['chain', L.scheduleBulkChain],
-                      ['same', L.scheduleBulkSame],
-                    ].map(([mode, label]) => (
-                      <button
-                        type="button"
-                        key={mode}
-                        className={`evc-type-chip${bulkMode === mode ? ' is-on' : ''}`}
-                        aria-pressed={bulkMode === mode}
-                        onClick={() => setBulkMode(mode)}
-                        data-testid={`evc-sched-bulk-mode-${mode}`}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
+                  {/* PW-1887 — 하나만 고르는 칸이라 공용 세그먼트 버튼. */}
+                  <SegmentedControl
+                    ariaLabel={L.scheduleBulkLabel}
+                    value={bulkMode}
+                    onChange={setBulkMode}
+                    items={[
+                      { value: 'chain', label: L.scheduleBulkChain, testId: 'evc-sched-bulk-mode-chain' },
+                      { value: 'same', label: L.scheduleBulkSame, testId: 'evc-sched-bulk-mode-same' },
+                    ]}
+                  />
                   <button
                     type="button"
                     className="evc-sched-anchor-reset"
@@ -9016,7 +9010,7 @@ export default function EvalCycleWizard({
           )}
 
           {step === 3 && (
-            <div className="evc-wiz-panel">
+            <div className="evc-wiz-panel is-form">
               {/* PW-980 — 후보 명단을 못 받으면 「대상이 없다」로 읽히지 않게 말하고 다시 받게
                   한다. PW-1459 §5.5.5 부터 그 자리는 가운데 명단이다(아래). */}
               {/* PW-443 — 상단 「대상 범위」 탭 7종과 딸린 축 값 칩·개별 선택 명단을
@@ -9052,6 +9046,7 @@ export default function EvalCycleWizard({
                   )}
                   <Checkbox
                     className="evl-promo-row"
+                    inputClassName="dp-check-input"
                     checked={excludeOnLeave}
                     onChange={(e) => setExcludeOnLeave(e.target.checked)}
                     data-testid="evc-wiz-excl-leave"
@@ -9060,6 +9055,7 @@ export default function EvalCycleWizard({
                   </Checkbox>
                   <Checkbox
                     className="evl-promo-row"
+                    inputClassName="dp-check-input"
                     checked={excludeHireDate}
                     onChange={(e) => setExcludeHireDate(e.target.checked)}
                     data-testid="evc-wiz-excl-hiredate"
@@ -9084,27 +9080,22 @@ export default function EvalCycleWizard({
                           <span style={{ opacity: 0.45 }}>YYYY-MM-DD</span>
                         )}
                       </button>
-                      <div className="evc-type-row">
-                        {[
-                          ['after', L.exclusionAfter],
-                          ['before', L.exclusionBefore],
-                        ].map(([dir, label]) => (
-                          <button
-                            type="button"
-                            key={dir}
-                            className={`evc-type-chip${hireDateDirection === dir ? ' is-on' : ''}`}
-                            onClick={() => setHireDateDirection(dir)}
-                            data-testid={`evc-wiz-excl-dir-${dir}`}
-                          >
-                            {label}
-                          </button>
-                        ))}
-                      </div>
+                      {/* PW-1887 — 하나만 고르는 칸이라 공용 세그먼트 버튼. */}
+                      <SegmentedControl
+                        ariaLabel={L.exclusionAfter}
+                        value={hireDateDirection}
+                        onChange={setHireDateDirection}
+                        items={[
+                          { value: 'after', label: L.exclusionAfter, testId: 'evc-wiz-excl-dir-after' },
+                          { value: 'before', label: L.exclusionBefore, testId: 'evc-wiz-excl-dir-before' },
+                        ]}
+                      />
                     </div>
                   )}
                   {/* 발령 이력 기반 — 현재 값이 아니라 '언제 바뀌었나'를 본다. */}
                   <Checkbox
                     className="evl-promo-row"
+                    inputClassName="dp-check-input"
                     checked={excludeRoleChange}
                     onChange={(e) => setExcludeRoleChange(e.target.checked)}
                     data-testid="evc-wiz-excl-rolechange"
@@ -9113,6 +9104,7 @@ export default function EvalCycleWizard({
                   </Checkbox>
                   <Checkbox
                     className="evl-promo-row"
+                    inputClassName="dp-check-input"
                     checked={excludePromotion}
                     onChange={(e) => setExcludePromotion(e.target.checked)}
                     data-testid="evc-wiz-excl-promotion"
@@ -9137,22 +9129,16 @@ export default function EvalCycleWizard({
                           <span style={{ opacity: 0.45 }}>YYYY-MM-DD</span>
                         )}
                       </button>
-                      <div className="evc-type-row">
-                        {[
-                          ['after', L.exclusionPromotedAfter],
-                          ['before', L.exclusionPromotedBefore],
-                        ].map(([dir, label]) => (
-                          <button
-                            type="button"
-                            key={dir}
-                            className={`evc-type-chip${promotionDirection === dir ? ' is-on' : ''}`}
-                            onClick={() => setPromotionDirection(dir)}
-                            data-testid={`evc-wiz-excl-promo-dir-${dir}`}
-                          >
-                            {label}
-                          </button>
-                        ))}
-                      </div>
+                      {/* PW-1887 — 하나만 고르는 칸이라 공용 세그먼트 버튼. */}
+                      <SegmentedControl
+                        ariaLabel={L.exclusionPromotedAfter}
+                        value={promotionDirection}
+                        onChange={setPromotionDirection}
+                        items={[
+                          { value: 'after', label: L.exclusionPromotedAfter, testId: 'evc-wiz-excl-promo-dir-after' },
+                          { value: 'before', label: L.exclusionPromotedBefore, testId: 'evc-wiz-excl-promo-dir-before' },
+                        ]}
+                      />
                     </div>
                   )}
                   {(excludeRoleChange || excludePromotion) &&
@@ -9193,7 +9179,8 @@ export default function EvalCycleWizard({
                       「인턴은 평가하지 않는다」 같은 정책은 여기, 이번 사이클만의 예외는
                       아래 명단에서 필터로 좁혀 「보이는 N명 제외」로. */}
                   <Checkbox
-                    className="evl-promo-row" title={L.exclusionEmploymentTypeHint}
+                    className="evl-promo-row"
+                    inputClassName="dp-check-input" title={L.exclusionEmploymentTypeHint}
                     checked={excludeEmploymentType}
                     onChange={(e) => setExcludeEmploymentType(e.target.checked)}
                     data-testid="evc-wiz-excl-employment"
@@ -9202,21 +9189,19 @@ export default function EvalCycleWizard({
                   </Checkbox>
                   {excludeEmploymentType && (
                     <div className="evc-excl-date" data-testid="evc-wiz-excl-employment-values">
-                      <div className="evc-type-row evc-excl-values">
+                      {/* PW-1887 — 여럿 고르는 칸이라 공용 체크박스. */}
+                      <div className="evc-check-row evc-excl-values">
                         {employmentTypeOptions.length === 0 ? (
                           <span className="evc-wiz-hint">
                             {L.targetFilterNoValues}
                           </span>
                         ) : (
                           employmentTypeOptions.map((v) => (
-                            <button
-                              type="button"
+                            <Checkbox
                               key={v}
-                              className={`evc-type-chip${
-                                employmentTypeValues.includes(v) ? ' is-on' : ''
-                              }`}
-                              aria-pressed={employmentTypeValues.includes(v)}
-                              onClick={() =>
+                              checked={employmentTypeValues.includes(v)}
+                              label={v}
+                              onChange={() =>
                                 setEmploymentTypeValues((prev) =>
                                   prev.includes(v)
                                     ? prev.filter((x) => x !== v)
@@ -9224,14 +9209,12 @@ export default function EvalCycleWizard({
                                 )
                               }
                               data-testid={`evc-wiz-excl-employment-${v}`}
-                            >
-                              {v}
-                            </button>
+                            />
                           ))
                         )}
                       </div>
                       {/* PW-1459 §5.3.1 — 무엇을 하는 조건인지 값 바로 뒤에 말한다. */}
-                      <span data-testid="evc-wiz-excl-employment-suffix">
+                      <span className="evc-excl-suffix" data-testid="evc-wiz-excl-employment-suffix">
                         {L.exclusionEmploymentTypeSuffix}
                       </span>
                       <span
@@ -9258,6 +9241,7 @@ export default function EvalCycleWizard({
                     <Tooltip key={k} content={L.exclusionUnsupported}>
                       <Checkbox
                         className="evl-promo-row"
+                        inputClassName="dp-check-input"
                         checked={false}
                         disabled
                         onChange={() => {}}

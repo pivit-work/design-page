@@ -1558,26 +1558,7 @@
 }
 .evc-rm-channels {
   display: inline-flex;
-  gap: var(--spacing-xs);
-}
-.evc-rm-ch {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  padding: 5px 9px;
-  border-radius: 99px;
-  border: 1px solid var(--border-secondary);
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
-  font-size: var(--font-size-text-xs);
-  font-weight: 700;
-  font-family: inherit;
-  cursor: pointer;
-}
-.evc-rm-ch.is-on {
-  border-color: var(--border-brand);
-  background: var(--bg-brand-secondary);
-  color: var(--text-brand-secondary);
+  gap: var(--spacing-lg);
 }
 .evc-rm-del {
   width: 26px;
@@ -1751,34 +1732,8 @@
 .evc-rm-tgts {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--spacing-sm);
-}
-.evc-rm-tgt {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  padding: 5px 10px;
-  border-radius: 99px;
-  border: 1px solid var(--border-secondary);
-  background: var(--bg-primary);
-  color: var(--text-secondary);
-  font-size: var(--font-size-text-xs);
-  font-weight: 700;
-  font-family: inherit;
-  cursor: pointer;
-}
-.evc-rm-tgt.is-on {
-  border-color: var(--border-brand);
-  background: var(--bg-brand-secondary);
-  color: var(--text-brand-secondary);
-}
-.evc-rm-tgt.is-dup {
-  opacity: 0.45;
-  text-decoration: line-through;
-  cursor: default;
-}
-.evc-rm-tgt:disabled {
-  cursor: default;
+  column-gap: var(--spacing-xl);
+  row-gap: var(--spacing-md);
 }
 /* [PW-529] 받는 사람 0명 — 저장이 막힌다. 오류 색으로 세운다. */
 .evc-rm-tgt-error {
@@ -2846,17 +2801,10 @@
   flex: 0 0 auto;
   width: 160px;
 }
-/* PW-443 3차 — 고용유형 «값 체크» 줄. `.evc-type-row` 를 그대로 쓰면 칩이 `flex: 1` 이라
-   좁은 조건 행 안에서 내용보다 작게 줄어들어 「정규 직」처럼 낱말이 잘려 감긴다.
-   값은 관리자 정의·로케일 전환으로 길이가 흔들리므로(「정규직」 ↔ 「Full-time」)
-   칩을 내용 너비로 두고 줄바꿈은 «칩 단위»로만 일어나게 한다. */
+/* PW-443 3차 — 고용유형 «값 체크» 줄. 값은 관리자 정의·로케일 전환으로 길이가 흔들리므로
+   (「정규직」 ↔ 「Full-time」) 줄바꿈은 «체크박스 단위»로만 일어나게 한다 (PW-1887 에 칩 → 체크박스). */
 .evc-excl-values {
   flex-wrap: wrap;
-}
-.evc-excl-values > .evc-type-chip {
-  flex: 0 0 auto;
-  white-space: nowrap;
-  padding: 6px 12px;
 }
 .evc-review-cols {
   display: grid;
@@ -8186,12 +8134,15 @@
 
 /* ── PW-444: 위자드 위원회 스텝 ① 대상(조직·직급) + 실시간 대상자 명단 ──
    워크스페이스 「＋ 위원회 생성」 모달(.evs-cw-create-*)과 같은 축·같은 값을 다룬다. */
+/* PW-1887 — 연파랑은 안내 상자 색이라 걷어 낸다. 다른 칸과 같은 흐름(이름표–칸 12px, 칸–칸 24px). */
 .evc-wiz-calibscope {
-  margin-top: 10px;
-  padding: 12px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--utility-blue-200);
-  background: var(--utility-blue-50);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  margin-top: var(--spacing-3xl);
+}
+.evc-wiz-calibscope > .evc-wiz-calibscope-label {
+  margin: var(--spacing-lg) 0 0;
 }
 .evc-wiz-calibscope-head {
   display: flex;
@@ -8222,11 +8173,13 @@
   font-weight: 700;
   color: var(--text-primary);
 }
+/* PW-1887 — 일정 추가 창 이름표(14px 굵게 회색, 아래 칸까지 12px) */
 .evc-wiz-calibscope-label {
   display: block;
-  margin: 10px 0 5px;
-  font-size: var(--font-size-text-xs);
-  font-weight: 600;
+  margin: 0 0 var(--spacing-lg);
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  font-weight: 700;
   color: var(--text-secondary);
 }
 .evc-wiz-calibscope-name {
@@ -8281,10 +8234,11 @@
   color: var(--utility-brand-700);
   font-weight: 700;
 }
+/* PW-1887 — 파란 상자를 걷었으니 구분선도 다른 칸과 같은 회색. 위 칸과 24px(상자 gap 12 + 12). */
 .evc-wiz-calibscope-roster {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid var(--utility-blue-200);
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--border-secondary);
 }
 .evc-wiz-calibscope-roster-head {
   display: flex;
@@ -11050,13 +11004,6 @@ button.evmh-phase:focus-visible {
   gap: var(--spacing-md);
   flex-wrap: wrap;
 }
-/* PW-1880 — `.evc-type-chip` 의 `flex: 1` 이 일괄 배치 줄에서 칩을 102px 로 눌러
-   「순서대로 이어 / 서」로 꺾였다. 글자 폭만큼 차지하고 꺾이지 않게 한다 (PW-434 직급별 구분 칩과 같은 처방).
-   줄이 모자라면 칩 묶음이 통째로 다음 줄로 내려간다(.evc-sched-bulk 의 flex-wrap). */
-.evc-sched-bulk .evc-type-chip {
-  flex: 0 0 auto;
-  white-space: nowrap;
-}
 /* 4단계 직급 없음 · 입사일 없음 — 제외 사유 글(.evc-excluded-reason.is-manual)과 같은 색 */
 .evc-roster-missing {
   color: var(--utility-warning-700);
@@ -11080,3 +11027,108 @@ button.evmh-phase:focus-visible {
 .evs-answer-lines { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 14px; line-height: 20px; color: var(--text-primary); overflow-wrap: anywhere; }
 /* 긴 이름은 이름만 줄이고 차수 딱지는 꺾이지 않게 한다. */
 .evs-round-comment-author > .okr-role-badge { flex-shrink: 0; white-space: nowrap; }
+
+/* ── PW-1887 마법사 1·3·4·5단계 칸 모양 ──
+   이 마법사는 디자이너가 그린 적이 없다. 디자이너가 그린 1on1 「일정 추가」 창
+   (one_on_one.css .ono-add-modal-*)을 값 그대로 따른다 — 이름표 14px 굵게 회색, 이름표–칸 12px,
+   칸–칸 24px, 입력칸은 테두리 없는 옅은 회색 바탕 40px·글씨 16px.
+   2단계(평가 템플릿)는 따로 카드라 `is-form` 을 단 패널 아래로만 건다. */
+.evc-wiz-panel.is-form {
+  gap: var(--spacing-lg);
+}
+.evc-wiz-panel.is-form .evc-field-label,
+.evc-wiz-panel.is-form .evc-sched-anchor-label {
+  margin: 0;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+/* 칸–칸 24px: 패널 gap(12px)에 이름표 위 12px 를 더한다. 맨 위 이름표는 더하지 않는다. */
+.evc-wiz-panel.is-form > .evc-field-label:not(:first-child),
+.evc-wiz-panel.is-form > .evc-field-grid,
+.evc-wiz-panel.is-form > .evc-wiz-rounds {
+  margin-top: var(--spacing-lg);
+}
+.evc-wiz-panel.is-form .evc-field-grid {
+  column-gap: 17px;
+}
+.evc-wiz-panel.is-form .evc-field-grid > div,
+.evc-wiz-rounds {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+.evc-wiz-panel.is-form .evc-field-grid .evc-field-note {
+  margin: 0;
+}
+.evc-wiz-panel.is-form > .evc-input,
+.evc-wiz-panel.is-form .evc-field-grid .evc-input,
+.evc-wiz-calibscope-name.evc-wiz-calibscope-name {
+  min-height: 40px;
+  height: auto;
+  /* 테두리는 평소 투명하게 두고 누르면 대표색으로 — 1px 테두리만큼 위아래 여백을 줄여 40px 를 맞춘다. */
+  padding: 7px var(--spacing-lg);
+  border-color: transparent;
+  border-radius: var(--radius-md);
+  background: var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
+}
+/* 여럿 고르는 칸 — 공용 체크박스를 한 줄에 늘어놓는다. */
+.evc-check-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--spacing-xl);
+  row-gap: var(--spacing-md);
+}
+.evc-check-row .dp-check {
+  white-space: nowrap;
+}
+/* 리마인드 받는 사람 — 당사자와 같은 참조는 꺼진 채 취소선(정책 §5.2.1 · PW-529). */
+.evc-rm-check.is-dup {
+  opacity: 0.45;
+  text-decoration: line-through;
+  cursor: default;
+}
+.evc-rm-check {
+  white-space: nowrap;
+}
+/* 고용 형태 값 뒤 「에 해당하면 제외」 — 옆 체크박스 글씨와 같은 크기 */
+.evc-excl-suffix {
+  font-size: var(--font-size-text-sm);
+  line-height: 20px;
+  color: var(--text-primary);
+  font-weight: 400;
+}
+/* 3단계 단계 카드 안 — 시작·종료 일시, 리마인더, 적용 템플릿도 같은 간격(이름표–칸 12px, 칸–칸 24px). */
+.evc-wiz-panel.is-form .evc-sched-fields {
+  column-gap: 17px;
+  margin-top: var(--spacing-lg);
+}
+.evc-wiz-panel.is-form .evc-sched-field {
+  gap: var(--spacing-lg);
+}
+.evc-wiz-panel.is-form .evc-rm-block {
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-lg);
+}
+.evc-wiz-panel.is-form .evc-rm-head {
+  margin-bottom: var(--spacing-lg);
+}
+.evc-wiz-panel.is-form .evc-sched-tpl > * {
+  margin-top: 0;
+}
+.evc-wiz-panel.is-form .evc-sched-tpl {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-lg);
+}
+.evc-wiz-panel.is-form > .evc-input:focus,
+.evc-wiz-panel.is-form .evc-field-grid .evc-input:focus,
+.evc-wiz-calibscope-name.evc-wiz-calibscope-name:focus {
+  border-color: var(--utility-brand-500);
+}

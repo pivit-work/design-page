@@ -200,6 +200,7 @@ export default function EvalLeaderAssignmentSection({
         </span>
         <Checkbox
           className="evc-la-bar-toggle"
+          inputClassName="dp-check-input"
           checked={warnOnly}
           onChange={(e) => setWarnOnly(e.target.checked)}
           label={L.leaderAsgWarnOnly}
