@@ -45,6 +45,8 @@ import Spinner from '../shared/Spinner.jsx';
  *   보이고 스크립트 전문·스테퍼·페이스·네비게이션은 그리지 않는다. 준비 화면은 읽는
  *   자리가 아니라 「준비됐는지」를 보는 자리다. `LIVE 전용` 태그도 달지 않는다 —
  *   그 자리에서는 사실이 아니기 때문이다.
+ * - `inputsChanged` — 생성 뒤 아젠다·팀원 작성 내용이 바뀌었다(policy §5.2.1 · §9). 카드에
+ *   캡션 한 줄만 띄운다 — 다시 만들지는 않는다. 판정은 서버가 하고 재생성하면 꺼진다.
  * - `labels` — 소비처(i18n)가 주는 문구 묶음. 안 주면 한국어 기본값.
  */
 
@@ -96,6 +98,7 @@ const DEFAULT_LABELS = {
   completeStage: '이 단계 완료 → 다음',
   completeLast: '이 단계 완료 — 가이드 마침',
   allDone: '전체 단계 완료',
+  inputsChanged: '생성 이후 준비 내용이 바뀌었습니다',
   footnote:
     '가이드는 참고용입니다 — 대화 흐름에 따라 자유롭게 건너뛰세요. 이 내용은 DONE 요약·피드백에 포함되지 않으며 멤버에게 보이지 않습니다.',
 };
@@ -118,6 +121,7 @@ export default function LiveGuideCard({
   elapsedSec = null,
   paceHidden = false,
   summaryOnly = false,
+  inputsChanged = false,
   memberName = '',
   sourceLabels = [],
   // 단계 진행을 소비처가 쥘 때 (PW-578 · policy §5.7 N3). 둘 다 안 주면 자체 state.
@@ -311,6 +315,13 @@ export default function LiveGuideCard({
             </button>
           </Tooltip>
         </div>
+      )}
+
+      {/* ── 생성 뒤 준비 내용이 바뀜 (§5.2.1) — 알리기만 하고 다시 만들지 않는다 ── */}
+      {generated && !loading && inputsChanged && (
+        <p className="ono-guide-stale" data-testid="ono-live-guide-stale">
+          {L.inputsChanged}
+        </p>
       )}
 
       {/* ── 미생성: 수동 트리거 (자동 생성 없음) ── */}

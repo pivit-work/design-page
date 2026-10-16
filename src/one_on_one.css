@@ -3312,6 +3312,13 @@ button.ono-add-modal-input { cursor: pointer; }
   margin: 10px 0;
   color: var(--colors-text-textTertiary);
 }
+/* 생성 뒤 준비 내용이 바뀜 — 미생성 설명(.ono-guide-intro)과 같은 글씨 */
+.ono-guide-stale {
+  font-size: 12px;
+  line-height: 1.65;
+  margin: 10px 0;
+  color: var(--colors-text-textTertiary);
+}
 .ono-guide-sources {
   display: flex;
   gap: 5px;
