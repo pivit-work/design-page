@@ -11,6 +11,7 @@ import { LockGlyph } from '../shared/lineIcons.jsx';
 import { groupHistoryRows } from './appointmentHistoryRows.js';
 import Tabs from '../shared/Tabs.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
+import Checkbox from '../shared/Checkbox.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
 import { readCsvFileText } from '../shared/csvFileText.js';
 import Pagination from '../shared/Pagination.jsx';
@@ -1004,20 +1005,19 @@ function AppointmentSingleView({
 
         <div className="admin-snap-panel">
           <p className="admin-snap-panel-head">{labels.selectFields}</p>
-          <div className="admin-snap-fieldchips">
+          {/* 여럿 고르는 칸이라 공용 체크박스 — 하나만 고르는 칩과 구별된다(PW-1895). */}
+          <div className="admin-snap-check-row">
             {changeableFields.map((f) => (
-              <button
+              <Checkbox
                 key={f}
-                type="button"
-                className={`admin-snap-chip${selectedFields.has(f) ? ' is-on' : ''}`}
-                onClick={() => toggleField(f)}
-              >
-                {selectedFields.has(f) ? '✓ ' : ''}{labels.fieldLabels[f] ?? f}
-              </button>
+                checked={selectedFields.has(f)}
+                onChange={() => toggleField(f)}
+                label={labels.fieldLabels[f] ?? f}
+              />
             ))}
           </div>
 
-          <div className="admin-snap-appt-info" style={{ marginTop: 16 }}>
+          <div className="admin-snap-appt-info">
             <div className="admin-snap-field">
               <label className="admin-snap-field-label">{labels.appointmentType}</label>
               <select className="admin-snap-select" value={appointmentType} onChange={(e) => setAppointmentType(e.target.value)} data-testid="appointment-single-type">
@@ -1121,8 +1121,9 @@ function AppointmentSingleView({
             <EmptyState description={labels.noFieldsSelected} />
           )}
 
+          {/* 저장 실패는 오류(빨강). 노란 상자는 덮어쓰기를 묻는 경고에만 쓴다(PW-1895). */}
           {submitError && (
-            <div className="admin-snap-warnbox" role="alert">{submitError}</div>
+            <p className="dp-field-error admin-snap-error" role="alert">{submitError}</p>
           )}
           {pendingConflict && (
             <div className="admin-snap-warnbox admin-snap-overwrite" role="alert" data-testid="snap-pending-overwrite">
@@ -1415,16 +1416,14 @@ function AppointmentBulkView({
         {step === 1 && (
           <div>
             <p className="admin-snap-subheading">{labels.selectColumns}</p>
-            <div className="admin-snap-fieldchips" style={{ marginBottom: 16 }}>
+            <div className="admin-snap-check-row" style={{ marginBottom: 16 }}>
               {bulkFields.map((f) => (
-                <button
+                <Checkbox
                   key={f}
-                  type="button"
-                  className={`admin-snap-chip${selectedColumns.has(f) ? ' is-on' : ''}`}
-                  onClick={() => toggleColumn(f)}
-                >
-                  {selectedColumns.has(f) ? '✓ ' : ''}{labels.fieldLabels[f] ?? f}
-                </button>
+                  checked={selectedColumns.has(f)}
+                  onChange={() => toggleColumn(f)}
+                  label={labels.fieldLabels[f] ?? f}
+                />
               ))}
             </div>
             {selectedColumns.size > 0 && (
@@ -1448,7 +1447,7 @@ function AppointmentBulkView({
                 {labels.templateColumnsPrefix} {fields.map((f) => labels.fieldLabels[f] ?? f).join(', ')} {labels.templateColumnsSuffix}
               </span>
             </div>
-            <div className="admin-snap-field" style={{ marginBottom: 16 }}>
+            <div className="admin-snap-field is-form" style={{ marginBottom: 24 }}>
               <label className="admin-snap-field-label">{labels.reason}</label>
               <input className="admin-snap-input" value={reason} onChange={(e) => setReason(e.target.value)} placeholder={labels.bulkReasonPlaceholder} />
             </div>
@@ -1478,9 +1477,7 @@ function AppointmentBulkView({
               </div>
             )}
             {parseError && (
-              <div className="admin-snap-hint" role="alert" style={{ color: 'var(--colors-warning-600, #dc6803)' }}>
-                {parseError}
-              </div>
+              <p className="dp-field-error admin-snap-error" role="alert">{parseError}</p>
             )}
             <div className="admin-snap-actions">
               <button type="button" className="admin-emp-btn is-soft" onClick={() => setStep(1)}>← {labels.prev}</button>
@@ -1611,7 +1608,7 @@ function AppointmentBulkView({
             ) : (
               <EmptyState description={labels.bulkPreviewPending} />
             )}
-            <div className="admin-snap-appt-info" style={{ gridTemplateColumns: '1fr 1fr', marginBottom: 0 }}>
+            <div className="admin-snap-appt-info" style={{ gridTemplateColumns: '1fr 1fr' }}>
               <div className="admin-snap-field">
                 <label className="admin-snap-field-label">{labels.appointmentDate}</label>
                 <DateInput className="admin-snap-input" value={date} onChange={setDate} />
@@ -1623,7 +1620,7 @@ function AppointmentBulkView({
               </div>
             </div>
             {submitError && (
-              <div className="admin-snap-warnbox" role="alert">{submitError}</div>
+              <p className="dp-field-error admin-snap-error" role="alert">{submitError}</p>
             )}
             <div className="admin-snap-actions" style={{ justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', gap: 8 }}>

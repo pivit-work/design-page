@@ -2494,13 +2494,14 @@
   border-radius: var(--radius-lg, 12px);
   padding: 16px;
 }
+/* 발령 단건의 칸 제목(대상자·변경 항목 선택) — 1on1 「일정 추가」 창 이름표 값(PW-1895) */
 .admin-snap-panel-head {
   font-family: var(--font-family-body);
-  font-size: 13px;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
   font-weight: 700;
-  letter-spacing: -0.01em;
   color: var(--text-secondary);
-  margin: 0 0 10px;
+  margin: 0 0 var(--spacing-lg);
 }
 .admin-snap-search {
   width: 100%;
@@ -2549,40 +2550,25 @@
 }
 .admin-snap-target-meta .admin-snap-mono { font-family: var(--font-family-body); }
 
-/* 변경 항목 칩 */
-.admin-snap-fieldchips { display: flex; flex-wrap: wrap; gap: 7px; }
-.admin-snap-chip {
-  padding: 5px 12px;
-  border-radius: 99px;
-  border: 1px solid var(--border-primary);
-  background: var(--bg-primary);
-  font-family: var(--font-family-body);
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+/* 변경 항목 고르기 — 여럿 고르는 칸이라 공용 체크박스(form-field.css .dp-check)를 한 줄에 늘어놓는다.
+   줄 간격은 평가 마법사 체크박스 줄(eval-cycle.css .evc-check-row)과 같다 (PW-1895). */
+.admin-snap-check-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--spacing-xl);
+  row-gap: var(--spacing-md);
 }
-.admin-snap-chip:hover:not(.is-on) {
-  border-color: var(--text-tertiary);
-  color: var(--text-secondary);
-}
-.admin-snap-chip.is-on {
-  border-color: var(--utility-brand-200, #b3fade);
-  background: var(--utility-brand-50);
-  color: var(--text-brand-tertiary);
-  font-weight: 700;
-}
+.admin-snap-check-row .dp-check { white-space: nowrap; }
 
 /* 발령 정보 입력 행 */
+/* PW-1895 — 발령 유형·일자·사유 칸은 디자이너가 그린 1on1 「일정 추가」 창(one_on_one.css .ono-add-modal-*) 값 그대로.
+   어드민은 one_on_one.css 를 싣지 않아 옮겨 적었다. 칸 → 칸 24px, 이름표 → 칸 12px, 칸을 회색 상자로 묶지 않는다. */
 .admin-snap-appt-info {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
-  gap: 12px;
-  padding: 12px 16px;
-  background: var(--bg-secondary);
-  border-radius: var(--radius-md, 10px);
-  margin-bottom: 14px;
+  gap: var(--spacing-3xl);
+  margin: var(--spacing-3xl) 0;
 }
 .admin-snap-field { display: flex; flex-direction: column; gap: 5px; }
 .admin-snap-field-label {
@@ -2612,6 +2598,36 @@
   box-shadow: inset 0 0 0 1px var(--colors-foreground-fgBrandPrimary, #2dbd82);
 }
 .admin-snap-input.is-mono { font-family: var(--font-family-body); }
+.admin-snap-appt-info > .admin-snap-field,
+.admin-snap-field.is-form { gap: var(--spacing-lg); }
+.admin-snap-appt-info .admin-snap-field-label,
+.admin-snap-field.is-form .admin-snap-field-label {
+  font-weight: 700;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  letter-spacing: normal;
+  color: var(--text-secondary);
+}
+/* 1on1 칸: 옅은 회색 바탕 · 아주 옅은 테두리(1on1 메모 칸 · PW-1889 와 같은 값) · 16px · 높이 40 */
+.admin-snap-appt-info .admin-snap-input,
+.admin-snap-appt-info .admin-snap-select,
+.admin-snap-field.is-form .admin-snap-input {
+  height: 40px; /* 1on1 칸 높이 40 — 테두리 1px 를 더해도 40 으로 맞춘다(border-box) */
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0,0,0,0.05));
+  background: var(--componentColors-alpha-alphaBlack3, rgba(0,0,0,0.03));
+  font-weight: 400;
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
+}
+.admin-snap-appt-info .admin-snap-input::placeholder,
+.admin-snap-field.is-form .admin-snap-input::placeholder { color: var(--text-placeholder); }
+.admin-snap-appt-info .admin-snap-input:focus,
+.admin-snap-appt-info .admin-snap-select:focus,
+.admin-snap-field.is-form .admin-snap-input:focus { border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82); }
+/* 저장 실패·파일 읽기 실패 — design-page 오류 문구(form-field.css p.dp-field-error)에 위아래 띄움만 더한다 */
+p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
 
 /* 변경 전/후 표 */
 /* 칸 여백·머리 행·구분선·줄 색·스크롤은 명단 표(roster-table.css)가 정한다 (PW-839). */
