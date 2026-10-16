@@ -9412,6 +9412,13 @@
 }
 .evc-title-edit {
   flex: 0 1 420px;
+  min-width: 200px;
+}
+/* 머리(`.evc-header`)는 flex 라 이 줄은 글자 폭만큼만 잡힌다 — 칸을 여는 동안에는 남은 폭을 다 쓰고 줄을
+   바꾸지 않아, 「· 사이클 관리」·상태 배지가 칸 옆에 그대로 남는다. */
+.evc-manage-head:has(.evc-title-edit) {
+  flex: 1 1 auto;
+  flex-wrap: nowrap;
   min-width: 0;
 }
 /* 칸이 제목보다 높아지면 머리가 커지고 옆 배지가 아랫줄로 밀린다 — 위아래 여백을 줄여 제목 높이에 맞춘다. */
