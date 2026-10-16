@@ -5460,6 +5460,14 @@
   font-size: var(--font-size-text-sm); font-weight: 700; color: var(--text-primary);
 }
 .evs-nb-count:hover { color: var(--utility-brand-600); }
+/* PW-1877 — 「외 N명」은 같은 화면 승진 요청 카드의 「전체 보기」 링크 모양(.evs-pr-showall)을 그대로 쓴다 */
+.evs-nb-more { align-self: flex-start; padding: 1px 0; }
+/* PW-1877 — 전원 목록: 위원 후보 고르기(.evs-cw-create-search · .evs-cw-create-candidates)와 같은 검색 + 높이 제한 스크롤 */
+.evs-nb-search { margin-bottom: 0; }
+.evs-nb-list {
+  display: flex; flex-direction: column; gap: 3px;
+  max-height: 240px; overflow-y: auto;
+}
 .evs-j1-sort {
   background: none; border: none; padding: 0; cursor: pointer;
   font: inherit; color: inherit; text-align: inherit;

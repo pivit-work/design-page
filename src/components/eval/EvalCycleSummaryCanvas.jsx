@@ -492,6 +492,10 @@ const DEFAULT_LABELS = {
   // 키 이름은 서버 줄 키(recommended/deferred/not_yet) 그대로다.
   // summary policy §9.F.4 — 칸마다 인원 수, 누르면 이름이 펼쳐진다.
   nbCount: '{n}명',
+  // PW-1877 — 펼친 칸은 앞 몇 명만 보이고 나머지는 「외 N명」으로 접힌다. 누르면 검색 + 스크롤 목록.
+  nbMore: '외 {n}명',
+  nbSearch: '이름·부서로 검색',
+  nbSearchEmpty: '검색 결과가 없습니다.',
   nbYRecommended: '대상',
   nbYNotYet: '비대상',
   nbYDeferred: '보류',
@@ -1712,26 +1716,70 @@ const PERIOD_TYPE_KEYS = {
   half: 'periodHalf',
   annual: 'periodAnnual',
 };
+/** PW-1877 — 펼친 칸에 바로 보이는 이름 수. 넘는 사람은 「외 N명」으로 접힌다. */
+const NINE_BOX_NAME_PREVIEW = 5;
 /**
  * summary policy §9.F.4 9블록 한 칸 — 인원 수를 보이고, 누르면 이름 목록이 펼쳐진다.
  * 이름을 그리는 법(누를 수 있는 버튼인지)은 부르는 쪽이 `renderName` 으로 정한다.
+ * PW-1877 — 한 칸에 수백 명이 들어와도 칸(과 같은 줄의 다른 칸)이 끝없이 늘지 않게,
+ * 앞 NINE_BOX_NAME_PREVIEW 명만 보이고 나머지는 「외 N명」으로 접는다. 그걸 누르면
+ * 위원 후보 고르기와 같은 모양의 검색 + 높이 제한 스크롤 목록으로 전원을 보인다.
  */
 function NineBoxCellBody({ members, L, renderName, testId }) {
   const [open, setOpen] = useState(false);
+  const [showAll, setShowAll] = useState(false);
+  const [search, setSearch] = useState('');
   if (members.length === 0) return <span className="evs-nb-empty-cell">—</span>;
+  const q = search.trim().toLowerCase();
+  const listed = q ? members.filter((m) => committeeCandidateMatches(m, q)) : members;
+  const hidden = members.length - NINE_BOX_NAME_PREVIEW;
+  const toggle = () => {
+    setOpen((v) => !v);
+    setShowAll(false);
+    setSearch('');
+  };
   return (
     <>
       <button
         type="button"
         className="evs-nb-count"
         aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
+        onClick={toggle}
         data-testid={testId}
       >
         {fmt(L.nbCount, { n: members.length })}
         {open ? <ChevronUpIcon size={12} /> : <ChevronDownIcon size={12} />}
       </button>
-      {open && members.map(renderName)}
+      {open && !showAll && members.slice(0, NINE_BOX_NAME_PREVIEW).map(renderName)}
+      {open && !showAll && hidden > 0 && (
+        <button
+          type="button"
+          className="evs-pr-showall evs-nb-more"
+          onClick={() => setShowAll(true)}
+          data-testid={testId ? `${testId}-more` : undefined}
+        >
+          {fmt(L.nbMore, { n: hidden })}
+        </button>
+      )}
+      {open && showAll && (
+        <>
+          <input
+            className="evs-cw-create-input evs-cw-create-search evs-nb-search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={L.nbSearch}
+            aria-label={L.nbSearch}
+            data-testid={testId ? `${testId}-search` : undefined}
+          />
+          <div className="evs-nb-list" data-testid={testId ? `${testId}-list` : undefined}>
+            {listed.length === 0 ? (
+              <span className="evs-nb-empty-cell">{L.nbSearchEmpty}</span>
+            ) : (
+              listed.map(renderName)
+            )}
+          </div>
+        </>
+      )}
     </>
   );
 }
