@@ -2751,7 +2751,9 @@ export default function EvalCycleWizard({
    */
   onSaveMessage,
   /**
-   * PW-435 ⑥ — AI 문구 다듬기. `({ phaseId, subject, body }) => Promise<{subject, body}|null>`.
+   * PW-435 ⑥ — AI 문구 다듬기. `({ phaseId, subject, body }) => Promise<{subject, body}|{notice}|null>`.
+   * PW-1848 — `{ notice: ReactNode }` 를 돌려주면 실패가 아니라 그 안내를 버튼 아래에 띄운다
+   * (체험 AI 소진 때 앱이 결제 안내를 넣는다 · hr.policy §9.4).
    *
    * design-page 는 네트워크를 모른다 — 호출은 소비 측이 넘긴다. 안 넘기면 버튼을 숨긴다.
    * 🔴 **실패가 위자드를 넘어뜨리면 안 된다** — 작성 중이던 문구가 통째로 날아간다.
@@ -3711,6 +3713,7 @@ export default function EvalCycleWizard({
   const [aiDraft, setAiDraft] = useState({});
   const [aiBusy, setAiBusy] = useState(() => new Set());
   const [aiError, setAiError] = useState(() => new Set());
+  const [aiNotice, setAiNotice] = useState({});
   const markSet = (setter, key, on) =>
     setter((prev) => {
       const n = new Set(prev);
@@ -3746,6 +3749,7 @@ export default function EvalCycleWizard({
     const curBody = cur[conf.field] ?? '';
     markSet(setAiBusy, key, true);
     markSet(setAiError, key, false);
+    setAiNotice((prev) => (prev[key] ? { ...prev, [key]: null } : prev));
     try {
       const out = await onPolishMessage({
         phaseId: phaseBaseId(ph.id),
@@ -3758,6 +3762,10 @@ export default function EvalCycleWizard({
       });
       if (!out) {
         markSet(setAiError, key, true);
+        return;
+      }
+      if (out.notice) {
+        setAiNotice((prev) => ({ ...prev, [key]: out.notice }));
         return;
       }
       // 치환 변수가 원본과 달라졌으면 경고를 붙인다 — AI 가 {link} 를 지우면
@@ -3940,6 +3948,9 @@ export default function EvalCycleWizard({
           <p className="evc-rm-ai-error" data-testid={`evc-rm-ai-error${sfx}-${ph.id}-${i}`}>
             {L.reminderAiFailed}
           </p>
+        )}
+        {aiNotice[key] && (
+          <div data-testid={`evc-rm-ai-notice${sfx}-${ph.id}-${i}`}>{aiNotice[key]}</div>
         )}
         {/* AI 초안 = 미확인(노랑). [적용] 전에는 본문을 건드리지 않는다. */}
         {draft && (

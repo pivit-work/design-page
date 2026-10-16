@@ -245,6 +245,7 @@ function SectionPanel({ row, L, sectionOrder, requiredSections, canEdit, onToggl
 function RefinementPanel({ memberId, L, load, onDecide, onRetry }) {
   const [review, setReview] = useState(null);
   const [error, setError] = useState(null);
+  const [notice, setNotice] = useState(null);
   const [busyId, setBusyId] = useState(null);
   const [editing, setEditing] = useState(null);
   const [draft, setDraft] = useState('');
@@ -268,8 +269,15 @@ function RefinementPanel({ memberId, L, load, onDecide, onRetry }) {
   const run = async (answerId, fn) => {
     setBusyId(answerId);
     setError(null);
+    setNotice(null);
     try {
       const next = await fn();
+      // PW-1848 — `{ notice }` 는 실패가 아니라 AI 를 부르지 않은 까닭(체험 AI 소진 결제 안내)이다.
+      // 목록은 그대로 두고 그 안내만 띄운다.
+      if (next?.notice) {
+        setNotice(next.notice);
+        return;
+      }
       if (next) setReview(next);
       setEditing(null);
     } catch {
@@ -302,6 +310,7 @@ function RefinementPanel({ memberId, L, load, onDecide, onRetry }) {
       {error && (
         <p className="evrr-refine-error" role="alert">{error}</p>
       )}
+      {notice && <div data-testid={`evrr-refine-notice-${memberId}`}>{notice}</div>}
       {review.items.length === 0 ? (
         <p className="evrr-refine-hint" data-testid={`evrr-refine-empty-${memberId}`}>
           {L.refineNone}
@@ -467,6 +476,7 @@ function ReviewRow({
 }) {
   const [comment, setComment] = useState('');
   const [regenBusy, setRegenBusy] = useState(false);
+  const [regenNotice, setRegenNotice] = useState(null);
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
   const [refineOpen, setRefineOpen] = useState(false);
@@ -507,8 +517,11 @@ function ReviewRow({
 
   const regenerate = async () => {
     setRegenBusy(true);
+    setRegenNotice(null);
     try {
-      await onRegenerate(row.memberId);
+      // PW-1848 — `{ notice }` 를 돌려받으면 AI 를 부르지 않은 까닭(체험 AI 소진)을 줄 아래에 띄운다.
+      const out = await onRegenerate(row.memberId);
+      if (out?.notice) setRegenNotice(out.notice);
     } finally {
       setRegenBusy(false);
     }
@@ -694,6 +707,9 @@ function ReviewRow({
         )}
       </div>
     </div>
+    {regenNotice && aiState === 'failed' && (
+      <div data-testid={`evrr-ai-regenerate-notice-${row.memberId}`}>{regenNotice}</div>
+    )}
     {open && hasSections && (
       <SectionPanel
         row={row}
@@ -852,9 +868,10 @@ export default function EvalReportReviewCanvas({
 
   const handleRegenerate = async (memberId) => {
     try {
-      await onRegenerate?.(memberId);
+      return await onRegenerate?.(memberId);
     } catch {
       showToast(L.aiRegenerateError, 'error');
+      return null;
     }
   };
 
