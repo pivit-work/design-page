@@ -1690,10 +1690,30 @@
 }
 /* 세 칸 + 버튼이 520px 모달 안에서 한 줄에 들어가도록 basis 를 좁게 잡는다 —
    넘치면 버튼만 아래로 떨어져 폼이 두 덩이로 보인다. */
-.admin-emp-sal-add-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; }
+.admin-emp-sal-add-row { display: flex; gap: var(--spacing-3xl) 17px; flex-wrap: wrap; align-items: flex-end; }
 .admin-emp-sal-add-row .admin-emp-field { flex: 1 1 104px; min-width: 0; }
 .admin-emp-sal-add-row .admin-emp-field.is-reason { flex: 2 1 130px; }
-.admin-emp-sal-add-row .admin-emp-input { padding: 10px 12px; }
+/* 칸 이름표·이름표↔칸·칸 사이·입력칸 — 디자이너가 그린 1on1 「일정 추가」 창(.ono-add-modal-*) 값 그대로 (PW-1896).
+   위아래 칸 사이 24px, 옆 칸 사이 17px(.ono-add-modal-row). .admin-emp-field·-label·-input 은 구성원 시트
+   다른 창도 쓰므로 이 추가 칸 안에서만 덮는다. */
+.admin-emp-sal-add-row .admin-emp-field { gap: var(--spacing-lg); }
+.admin-emp-sal-add-row .admin-emp-field-label {
+  font-family: var(--font-family-body);
+  font-weight: 700;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  color: var(--text-secondary);
+}
+.admin-emp-sal-add-row .admin-emp-input {
+  /* 높이는 min-height 40px(.ono-add-modal-input)이 정한다 — 글 칸과 고르기 칸 높이가 같게 */
+  padding: 7px 12px;
+  border-color: var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
+  color: var(--text-primary);
+}
+.admin-emp-sal-add-row .admin-emp-input:focus { border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82); }
 .admin-emp-sal-add-row .admin-emp-btn { min-height: 40px; flex: 0 0 auto; }
 /* 날짜 입력은 브라우저 기본 date 입력(mm/dd/yyyy)이 아니라 공용 DatePicker 를
    여는 버튼이다 — 로케일에 따라 표기가 갈리지 않고 다른 화면과 생김새가 같다. */

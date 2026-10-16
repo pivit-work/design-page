@@ -202,19 +202,37 @@
 .admin-kit-cell-input.is-changed,
 .admin-kit-cell-input.is-changed:focus { background: var(--bg-brand-secondary); }
 
-/* ── 필드 칸 ── */
+/* ── 필드 칸 ──
+   칸 이름표·이름표↔칸·칸 사이·고르기 칸 — 디자이너가 그린 1on1 「일정 추가」 창(.ono-add-modal-*) 값 그대로 (PW-1896).
+   위아래 칸 사이 24px, 옆 칸 사이 17px(.ono-add-modal-row). */
 .admin-kit-field-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 10px;
+  gap: var(--spacing-3xl) 17px;
 }
+/* CsvField 의 겉(.admin-inv-field)은 초대 창도 쓰므로 이 칸 묶음 안에서만 간격을 덮는다 */
+.admin-kit-field-grid .admin-inv-field { gap: var(--spacing-lg); }
 .admin-kit-field-label {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 11px;
-  font-weight: 600;
+  font-family: var(--font-family-body);
+  font-weight: 700;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
   color: var(--text-secondary);
+}
+/* 칸 묶음 안 고르기 칸 = .ono-add-modal-input 채움 + .ono-add-modal-textarea 의 옅은 테두리 · 글씨 16px.
+   .admin-kit-select 는 표 칸·필터에도 쓰여 여기서만 덮는다. 상태 테두리(is-invalid 등)는 아래 규칙이 그대로 이긴다. */
+.admin-kit-field-grid .admin-kit-select {
+  min-height: 40px;
+  padding: 8px 12px;
+  border-color: var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
+  border-radius: var(--radius-md);
+  background: var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
+  color: var(--text-primary);
 }
 .admin-kit-required { color: var(--colors-error-500, #f04438); }
 .admin-kit-marker { display: inline-flex; color: var(--text-brand-tertiary); flex-shrink: 0; }
@@ -598,8 +616,32 @@
 }
 .admin-offb-person-position { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
 .admin-offb-person-meta { margin: 2px 0 0; font-size: 12px; color: var(--text-secondary); overflow-wrap: anywhere; }
-.admin-offb-fields { display: flex; flex-wrap: wrap; gap: 16px; }
+.admin-offb-fields { display: flex; flex-wrap: wrap; gap: 24px 17px; }
 .admin-offb-field { flex: 1 1 200px; min-width: 0; }
+/* 퇴사 유형 세그먼트는 네 칸이라 날짜 칸과 한 줄에 두면 좁다 — 한 줄을 다 쓴다 */
+.admin-offb-field.is-type { flex-basis: 100%; }
+/* 칸 이름표·이름표↔칸·칸 사이 — 디자이너가 그린 1on1 「일정 추가」 창(.ono-add-modal-field·-label) 값 그대로 (PW-1896).
+   공용 .dp-field-label 은 다른 화면도 쓰므로 이 화면 안에서만 덮는다. */
+.admin-offb-field,
+.admin-offb-reason,
+.admin-offb-name { display: flex; flex-direction: column; gap: var(--spacing-lg); }
+.admin-offb .dp-field-label {
+  font-family: var(--font-family-body);
+  font-weight: 700;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  color: var(--text-secondary);
+}
+.admin-offb-segment { align-self: flex-start; max-width: 100%; }
+/* 입력칸 — .ono-add-modal-input 채움 + .ono-add-modal-textarea 의 옅은 테두리 · 글씨 16px */
+.admin-offb .dp-input {
+  border-color: var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-text-md);
+  color: var(--text-primary);
+}
+.admin-offb .dp-input:focus { border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82); }
+.admin-offb .dp-input:disabled { color: var(--text-tertiary); }
 /* 퇴사일·마지막 출근일 — 타임라인 날짜 상자(.tl-date-picker)와 같은 채움·모서리·달력 아이콘 (PW-1187).
    날짜 칸 부품(DateInput)은 겉 상자를 그리지 않아서 여기서 준다. 아이콘은 누르는 것을 가로채지 않아
    아이콘을 눌러도 칸이 눌려 달력이 뜬다. */
@@ -614,15 +656,16 @@
   width: 100%;
   min-width: 0;
   box-sizing: border-box;
+  min-height: 40px;
   padding: 8px 14px 8px 38px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.03);
+  border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
+  border-radius: var(--radius-md);
+  background: var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
   font-family: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 20px;
-  color: var(--text-secondary);
+  font-size: var(--font-size-text-md);
+  font-weight: 400;
+  line-height: var(--line-height-text-md);
+  color: var(--text-primary);
   cursor: pointer;
   outline: none;
   transition: border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
@@ -634,7 +677,6 @@
   box-shadow: inset 0 0 0 1px var(--colors-foreground-fgBrandPrimary, #2dbd82);
 }
 .admin-offb-date-input:disabled { cursor: default; opacity: 0.6; }
-.admin-offb-options { display: flex; flex-wrap: wrap; gap: 6px; }
 .admin-offb-areas { display: flex; flex-direction: column; gap: 8px; }
 .admin-offb-area {
   display: flex;
@@ -658,10 +700,18 @@
   background: var(--bg-secondary);
 }
 .admin-offb-area-detail-text { margin: 0; font-size: 12px; line-height: 1.6; color: var(--text-secondary); }
-.admin-offb-choice { display: flex; flex-direction: column; gap: 6px; padding-top: 6px; }
-.admin-offb-choice-label { margin: 0; font-size: 12px; font-weight: 700; color: var(--text-primary); }
-.admin-offb-choice-why { margin: 0; font-size: 11px; line-height: 1.5; color: var(--text-secondary); }
-.admin-offb-reason { margin-top: 4px; }
+.admin-offb-choice { display: flex; flex-direction: column; gap: var(--spacing-lg); padding-top: 6px; }
+.admin-offb-choice-head { display: flex; flex-direction: column; gap: var(--spacing-xs); }
+/* 처분 제목 = 1on1 「일정 추가」 칸 이름표, 설명 = 공용 칸 안내 줄(.dp-field-hint) 값 (PW-1896) */
+.admin-offb-choice-label {
+  margin: 0;
+  font-family: var(--font-family-body);
+  font-weight: 700;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  color: var(--text-secondary);
+}
+.admin-offb-choice-why { margin: 0; font-size: var(--font-size-text-xs); line-height: 16px; color: var(--text-tertiary); }
 .admin-offb-stack { display: flex; flex-direction: column; gap: 12px; }
 .admin-offb-effects {
   margin: 0;

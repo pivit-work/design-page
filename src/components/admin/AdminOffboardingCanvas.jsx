@@ -2,9 +2,9 @@ import { useState } from 'react';
 import DpStatusBadge from '../shared/StatusBadge.jsx';
 import Avatar from '../shared/Avatar.jsx';
 import Button from '../shared/Button.jsx';
-import Chip from '../shared/Chip.jsx';
 import DateInput from '../shared/DateInput.jsx';
 import FormField from '../shared/FormField.jsx';
+import SegmentedControl from '../shared/SegmentedControl.jsx';
 import TextArea from '../shared/TextArea.jsx';
 import TextInput from '../shared/TextInput.jsx';
 import { ArrowLeftGlyph, CalendarGlyph } from '../shared/lineIcons.jsx';
@@ -129,21 +129,23 @@ function AreaCard({
       {/* 고를 수 있는 자리 — 없는 영역에는 컨트롤 자체를 만들지 않는다(§1-A 2) */}
       {choice && (
         <div className="admin-offb-choice">
-          <p className="admin-offb-choice-label">{choiceText.label}</p>
-          <p className="admin-offb-choice-why">{choiceText.why}</p>
-          <div className="admin-offb-options">
-            {choice.options.map((opt) => (
-              <Chip
-                key={opt}
-                selected={value === opt}
-                disabled={disabled}
-                onClick={() => onPick(opt)}
-                data-testid={`offboarding-pick-${choice.key}-${opt}`}
-              >
-                {choiceText.options?.[opt] ?? opt}
-              </Chip>
-            ))}
+          <div className="admin-offb-choice-head">
+            <p className="admin-offb-choice-label">{choiceText.label}</p>
+            <p className="admin-offb-choice-why">{choiceText.why}</p>
           </div>
+          {/* 하나만 고른다 — 칩은 몇 개를 고를 수 있는지 말하지 않는다 (PW-1896) */}
+          <SegmentedControl
+            className="admin-offb-segment"
+            ariaLabel={choiceText.label}
+            value={value}
+            onChange={onPick}
+            items={choice.options.map((opt) => ({
+              value: opt,
+              label: choiceText.options?.[opt] ?? opt,
+              disabled,
+              testId: `offboarding-pick-${choice.key}-${opt}`,
+            }))}
+          />
           {/* 덮어쓰면 사유를 남긴다(Q2) — 사유 없는 예외는 감사에 답할 수 없다 */}
           {overridden && (
             <FormField
@@ -296,20 +298,19 @@ export default function AdminOffboardingCanvas({
         </div>
 
         <div className="admin-offb-fields">
-          <FormField group label={labels.typeLabel} className="admin-offb-field">
-            <div className="admin-offb-options">
-              {OFFBOARDING_TYPE_IDS.map((id) => (
-                <Chip
-                  key={id}
-                  selected={type === id}
-                  disabled={running}
-                  onClick={() => setType(id)}
-                  data-testid={`offboarding-type-${id}`}
-                >
-                  {labels.types[id] ?? id}
-                </Chip>
-              ))}
-            </div>
+          <FormField group label={labels.typeLabel} className="admin-offb-field is-type">
+            <SegmentedControl
+              className="admin-offb-segment"
+              ariaLabel={labels.typeLabel}
+              value={type}
+              onChange={setType}
+              items={OFFBOARDING_TYPE_IDS.map((id) => ({
+                value: id,
+                label: labels.types[id] ?? id,
+                disabled: running,
+                testId: `offboarding-type-${id}`,
+              }))}
+            />
           </FormField>
           <FormField
             className="dp-field admin-offb-field"
