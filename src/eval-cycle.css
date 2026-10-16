@@ -11062,3 +11062,19 @@ button.evmh-phase:focus-visible {
   color: var(--utility-warning-700);
   font-weight: 600;
 }
+
+/* PW-1882 · 대상자 상세 「매니저 코멘트」 차수 댓글 — 디자이너 OKR 「KR 피드백」 댓글(okr.css `.okr-krfb-*`, 2026-07-13)
+   값을 그대로 옮겼다(평가 화면에는 okr.css 가 안 실린다). 다른 점은 둘: 답변 글씨 16px → 14px(상세 열이 좁다),
+   차수 사이는 선 없이 간격만. 역할 딱지(`.okr-role-badge`)·사람 원(`.dp-avatar`)·등급 딱지(`.evs-cw-badge`)는 원래 부품. */
+.evs-round-comments { display: flex; flex-direction: column; gap: 20px; padding: 4px 0 4px 16px; }
+.evs-round-comment { display: flex; flex-direction: column; gap: 8px; }
+.evs-round-comment-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.evs-round-comment-author { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.evs-round-comment-avatar { flex: 0 0 24px; border: 0.5px solid var(--border-secondary-alt); }
+.evs-round-comment-name { font-size: 14px; font-weight: 700; line-height: 20px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.evs-round-comment-meta { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.evs-round-comment-date { font-size: 12px; font-weight: 500; line-height: 18px; color: var(--text-primary); white-space: nowrap; }
+.evs-round-comment-body { display: flex; flex-direction: column; gap: 8px; padding-left: 32px; }
+
+/* PW-1882 · 상세의 답변 — 「·」로 잇지 않고 한 줄에 하나씩. 글씨는 위 차수 댓글 본문과 같다. */
+.evs-answer-lines { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; font-size: 14px; line-height: 20px; color: var(--text-primary); overflow-wrap: anywhere; }

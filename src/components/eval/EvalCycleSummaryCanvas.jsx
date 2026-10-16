@@ -9,6 +9,7 @@ import { AlertIcon, ChevronDownIcon, ChevronUpIcon, InfoIcon, LockIcon, RefreshI
 import { ClockGlyph, CloseGlyph } from '../shared/lineIcons.jsx';
 import { autoCommitteeIdsOf } from './calibrationAutoCommittee.js';
 import AvatarPhoto from './AvatarPhoto';
+import Avatar from '../shared/Avatar.jsx';
 import LoadingState from '../shared/LoadingState.jsx';
 import DateInput from '../shared/DateInput.jsx';
 import { scaleMaxOf } from './evalTemplateItemModel.js';
@@ -350,6 +351,7 @@ const DEFAULT_LABELS = {
     skipped: '{k}차 — 건너뜀',
     pending: '{k}차 — 미제출',
     unknownEvaluator: '평가자 미지정',
+    submittedOn: '{date} 제출',
     confidentialTitle: '위원회 전용 — 구성원 비공개',
     promoStatusLabel: '승진 의견',
   },
@@ -856,7 +858,7 @@ function CalibRowPreview({ row, detail, failed, L }) {
           <div className="evs-cw-preview-k">{L.cwHoverManager}</div>
           {detail.manager?.rounds?.length ? (
             <div className="evs-cw-preview-body">
-              <LeaderRoundsDetail rounds={detail.manager.rounds} L={L} notes={false} max={140} />
+              <LeaderRoundsPreview rounds={detail.manager.rounds} L={L} max={140} />
             </div>
           ) : (
             <div className="evs-cw-preview-body">{answerSummary(detail.manager?.answers) || L.cwDetailEmpty}</div>
@@ -1052,62 +1054,131 @@ function IntegratedSummaryActions({ L, detail, status, statusLabel, failed, view
   );
 }
 
+/** 답변 글 — 「·」로 잇지 않고 한 줄에 하나씩(PW-1882). 글이 하나도 없으면 `empty` 한 줄. */
+function AnswerLines({ answers, empty, testId }) {
+  const texts = (answers ?? []).map((a) => a.textAnswer).filter(Boolean);
+  if (!texts.length) return <div className="evs-cw-detail-body">{empty}</div>;
+  return (
+    <ul className="evs-answer-lines" data-testid={testId}>
+      {texts.map((text, i) => (
+        <li key={i}>{text}</li>
+      ))}
+    </ul>
+  );
+}
+
+/** 차수 묶음 안의 비공개 의견(위원회 전용) — 차수마다 나눠 보인다. 그릴 것이 없으면 null. */
+function LeaderRoundNotes({ r, L }) {
+  const R = L.leaderRoundDetail || {};
+  const promoLabel = { recommended: L.nbYRecommended, not_yet: L.nbYNotYet, deferred: L.nbYDeferred };
+  const promoStatus = r.promotionStatus ? promoLabel[r.promotionStatus] : null;
+  if (!r.confidentialComment?.trim() && !r.promotionReason?.trim() && !promoStatus) return null;
+  return (
+    <div data-testid="evs-leader-round-notes">
+      <div className="evs-cw-review-k">
+        <LockIcon size={12} /> {R.confidentialTitle}
+      </div>
+      {promoStatus && (
+        <div className="evs-cw-detail-body" data-testid="evs-leader-round-promo-status">
+          <span className="evs-cw-committee-k">{R.promoStatusLabel}</span>
+          {promoStatus}
+        </div>
+      )}
+      <ManagerNoteLines
+        note={{ confidentialComment: r.confidentialComment, promotionReason: r.promotionReason }}
+        L={L}
+      />
+    </div>
+  );
+}
+
+/** 건너뛴 차수·아직 안 낸 차수는 한 줄. */
+function LeaderRoundGap({ r, R }) {
+  return (
+    <div
+      className="evs-cw-detail-body"
+      data-testid={r.skipped ? 'evs-leader-round-skipped' : 'evs-leader-round-pending'}
+    >
+      {fmt(r.skipped ? R.skipped : R.pending, { k: r.round })}
+    </div>
+  );
+}
+
 /**
  * [PW-1594 · spec-calibration §20.2] 대상자 상세의 하향 리뷰를 차수 순으로 나눈다.
  * `rounds` 는 차수별 배정 사이클에서만 서버가 싣는다 — 없으면 소비처가 종전 한 덩어리를 그린다.
- * 차수 머리 `{k}차 · 작성자 · 등급`, 서술 요약, 그 차수의 비공개 의견(위원회 전용)을 차수 안에 둔다.
- * 건너뛴 차수·아직 안 낸 차수는 한 줄. `notes=false` 면 비공개 의견을 그리지 않는다(호버 미리보기).
+ *
+ * [PW-1882] 한 차수 = 댓글 하나. 디자이너의 OKR 「KR 피드백」 댓글(2026-07-13, okr.css `.okr-krfb-*`)을
+ * 따른다 — 사람 원 + 평가자 이름 + 차수 딱지(역할 딱지 모양), 오른쪽 끝에 제출 날짜 + 등급 딱지, 아래 답변.
+ * 등급 딱지는 원본의 초록 하나가 아니라 이 화면의 등급 색(`gradeTone`)이다 — 초록이면 중간 등급도 최고처럼 보인다.
+ * 답변 글씨는 원본 16px 대신 14px(상세 열이 좁다). 그 차수의 비공개 의견은 댓글 안에 둔다.
+ * `grades` 는 위가 먼저인 등급 목록({ gradeKey }[]) — 모르면 딱지가 회색이다.
  */
-function LeaderRoundsDetail({ rounds, L, notes = true, max }) {
+function LeaderRoundsDetail({ rounds, L, grades }) {
   const R = L.leaderRoundDetail || {};
-  const promoLabel = { recommended: L.nbYRecommended, not_yet: L.nbYNotYet, deferred: L.nbYDeferred };
+  const sorted = [...rounds].sort((a, b) => a.round - b.round);
+  return (
+    <div className="evs-round-comments" data-testid="evs-leader-rounds">
+      {sorted.map((r) => {
+        const k = r.round;
+        if (r.skipped || !r.submittedAt) return <LeaderRoundGap key={k} r={r} R={R} />;
+        return (
+          <div key={k} className="evs-round-comment" data-testid="evs-leader-round" data-round={k}>
+            <div className="evs-round-comment-head" data-testid="evs-leader-round-head">
+              <div className="evs-round-comment-author">
+                <Avatar name={r.evaluatorName} size={24} className="evs-round-comment-avatar" />
+                <span className="evs-round-comment-name">{r.evaluatorName || R.unknownEvaluator}</span>
+                <StatusBadge
+                  className={`okr-role-badge ${k === 1 ? 'is-blue' : 'is-gray'}`}
+                  data-testid="evs-leader-round-badge"
+                >
+                  {fmt(R.round, { k })}
+                </StatusBadge>
+              </div>
+              <div className="evs-round-comment-meta">
+                <span className="evs-round-comment-date" data-testid="evs-leader-round-date">
+                  {fmt(R.submittedOn || '{date}', { date: fmtDate(r.submittedAt) })}
+                </span>
+                {r.gradeLabel && (
+                  <StatusBadge
+                    className={`evs-cw-badge tone-${gradeTone(r.gradeKey, grades)}`}
+                    data-testid="evs-leader-round-grade"
+                  >
+                    {r.gradeLabel}
+                  </StatusBadge>
+                )}
+              </div>
+            </div>
+            <div className="evs-round-comment-body">
+              <AnswerLines answers={r.answers} empty={L.cwDetailEmpty} testId="evs-leader-round-answers" />
+              <LeaderRoundNotes r={r} L={L} />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * 행 호버 미리보기의 차수 묶음 — 작은 창이라 종전 모양(`{k}차 · 작성자 · 등급` + 140자로 자른 한 줄)을 지킨다
+ * (PW-1882 「이번에 안 하는 것」). 비공개 의견은 그리지 않는다.
+ */
+function LeaderRoundsPreview({ rounds, L, max = 140 }) {
+  const R = L.leaderRoundDetail || {};
   const sorted = [...rounds].sort((a, b) => a.round - b.round);
   return (
     <div className="evs-cw-detail-logs" data-testid="evs-leader-rounds">
       {sorted.map((r) => {
         const k = r.round;
-        if (r.skipped || !r.submittedAt) {
-          return (
-            <div
-              key={k}
-              className="evs-cw-detail-body"
-              data-testid={r.skipped ? 'evs-leader-round-skipped' : 'evs-leader-round-pending'}
-            >
-              {fmt(r.skipped ? R.skipped : R.pending, { k })}
-            </div>
-          );
-        }
+        if (r.skipped || !r.submittedAt) return <LeaderRoundGap key={k} r={r} R={R} />;
         const head = [fmt(R.round, { k }), r.evaluatorName || R.unknownEvaluator, r.gradeLabel]
           .filter(Boolean)
           .join(' · ');
-        const summary =
-          max != null
-            ? answerSummary(r.answers, max)
-            : (r.answers ?? []).map((a) => a.textAnswer).filter(Boolean).join(' · ');
-        const promoStatus = r.promotionStatus ? promoLabel[r.promotionStatus] : null;
-        const hasNotes =
-          notes && (r.confidentialComment?.trim() || r.promotionReason?.trim() || promoStatus);
         return (
           <div key={k} className="evs-cw-detail-block" data-testid="evs-leader-round" data-round={k}>
             <div className="evs-cw-review-k" data-testid="evs-leader-round-head">{head}</div>
-            <div className="evs-cw-detail-body">{summary || L.cwDetailEmpty}</div>
-            {hasNotes && (
-              <div data-testid="evs-leader-round-notes">
-                <div className="evs-cw-review-k">
-                  <LockIcon size={12} /> {R.confidentialTitle}
-                </div>
-                {promoStatus && (
-                  <div className="evs-cw-detail-body" data-testid="evs-leader-round-promo-status">
-                    <span className="evs-cw-committee-k">{R.promoStatusLabel}</span>
-                    {promoStatus}
-                  </div>
-                )}
-                <ManagerNoteLines
-                  note={{ confidentialComment: r.confidentialComment, promotionReason: r.promotionReason }}
-                  L={L}
-                />
-              </div>
-            )}
+            <div className="evs-cw-detail-body">{answerSummary(r.answers, max) || L.cwDetailEmpty}</div>
           </div>
         );
       })}
@@ -2132,6 +2203,8 @@ export default function EvalCycleSummaryCanvas({
     effectiveCalibSort,
     calibTable?.orderedGrades ?? [],
   );
+  // PW-1882 차수 댓글의 등급 딱지 색 — 표의 등급 순서, 표가 없는 탭(리포트 검수)에서는 분포의 순서(위가 먼저).
+  const roundGrades = calibTable?.orderedGrades?.length ? calibTable.orderedGrades : gradeDistribution;
   // R4b 프리셋 저장 입력
   const [presetName, setPresetName] = useState('');
   const [presetShared, setPresetShared] = useState(false);
@@ -3709,7 +3782,7 @@ export default function EvalCycleSummaryCanvas({
                     <h3 className="evc-card-name evs-re-sec-manager">{L.reManagerTitle}</h3>
                     <AiSummaryText L={L} text={memberDetail.integratedSummary?.managerSummary} status={memberDetail.integratedSummary?.status} testId="evs-re-ai-manager" />
                     {memberDetail.manager?.rounds?.length ? (
-                      <LeaderRoundsDetail rounds={memberDetail.manager.rounds} L={L} />
+                      <LeaderRoundsDetail rounds={memberDetail.manager.rounds} L={L} grades={roundGrades} />
                     ) : memberDetail.manager?.submitted ? (
                       <>
                         {memberDetail.manager.gradeLabel && (
@@ -5132,16 +5205,7 @@ export default function EvalCycleSummaryCanvas({
                                               {L.cwDetailSelf}
                                             </DetailSectionHead>
                                             {secOpen('self') && (
-                                              <div className="evs-cw-detail-body">
-                                                {detail.self?.answers?.filter(
-                                                  (a) => a.textAnswer,
-                                                ).length
-                                                  ? detail.self.answers
-                                                      .filter((a) => a.textAnswer)
-                                                      .map((a) => a.textAnswer)
-                                                      .join(' · ')
-                                                  : L.cwDetailEmpty}
-                                              </div>
+                                              <AnswerLines answers={detail.self?.answers} empty={L.cwDetailEmpty} testId="evs-cw-self-answers" />
                                             )}
                                           </div>
                                           <div className="evs-cw-detail-block">
@@ -5149,18 +5213,9 @@ export default function EvalCycleSummaryCanvas({
                                               {L.cwDetailManager}
                                             </DetailSectionHead>
                                             {secOpen('manager') && detail.manager?.rounds?.length ? (
-                                              <LeaderRoundsDetail rounds={detail.manager.rounds} L={L} />
+                                              <LeaderRoundsDetail rounds={detail.manager.rounds} L={L} grades={roundGrades} />
                                             ) : secOpen('manager') && (
-                                              <div className="evs-cw-detail-body">
-                                                {detail.manager?.answers?.filter(
-                                                  (a) => a.textAnswer,
-                                                ).length
-                                                  ? detail.manager.answers
-                                                      .filter((a) => a.textAnswer)
-                                                      .map((a) => a.textAnswer)
-                                                      .join(' · ')
-                                                  : L.cwDetailEmpty}
-                                              </div>
+                                              <AnswerLines answers={detail.manager?.answers} empty={L.cwDetailEmpty} testId="evs-cw-manager-answers" />
                                             )}
                                           </div>
                                           <div className="evs-cw-detail-block">
@@ -5168,16 +5223,7 @@ export default function EvalCycleSummaryCanvas({
                                               {L.cwDetailPeer}
                                             </DetailSectionHead>
                                             {secOpen('peer') && (
-                                              <div className="evs-cw-detail-body">
-                                                {detail.peer?.answers?.filter(
-                                                  (a) => a.textAnswer,
-                                                ).length
-                                                  ? detail.peer.answers
-                                                      .filter((a) => a.textAnswer)
-                                                      .map((a) => a.textAnswer)
-                                                      .join(' · ')
-                                                  : L.cwDetailEmpty}
-                                              </div>
+                                              <AnswerLines answers={detail.peer?.answers} empty={L.cwDetailEmpty} testId="evs-cw-peer-answers" />
                                             )}
                                           </div>
                                           <div className="evs-cw-detail-block">
@@ -5185,16 +5231,7 @@ export default function EvalCycleSummaryCanvas({
                                               {L.cwDetailUpward}
                                             </DetailSectionHead>
                                             {secOpen('upward') && (
-                                              <div className="evs-cw-detail-body">
-                                                {detail.upward?.answers?.filter(
-                                                  (a) => a.textAnswer,
-                                                ).length
-                                                  ? detail.upward.answers
-                                                      .filter((a) => a.textAnswer)
-                                                      .map((a) => a.textAnswer)
-                                                      .join(' · ')
-                                                  : L.cwDetailUpwardEmpty}
-                                              </div>
+                                              <AnswerLines answers={detail.upward?.answers} empty={L.cwDetailUpwardEmpty} testId="evs-cw-upward-answers" />
                                             )}
                                           </div>
                                           {(() => {
