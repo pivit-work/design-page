@@ -6,7 +6,7 @@ import TextArea from '../shared/TextArea.jsx';
 import Button from '../shared/Button.jsx';
 import LoadingState from '../shared/LoadingState.jsx';
 import { ModalDescription, NoteText, NoticeCard } from '../shared/SharedText.jsx';
-import { BellIcon } from './okrIcons.jsx';
+import { BellIcon, ChevronIcon } from './okrIcons.jsx';
 import { KR_UPDATE_DEFAULT_LABELS } from './okrKrUpdateLabels.js';
 
 
@@ -176,7 +176,7 @@ export default function OkrKrUpdateModal({ detail, icons, baseUrl = '', onClose,
             onClick={() => setHistoryOpen((o) => !o)}
             data-testid="okr-kru-history-toggle"
           >
-            {L.historyToggle(history.total, historyOpen)}
+            <ChevronIcon open={historyOpen} /> {L.historyToggle(history.total, historyOpen)}
           </Button>
           {historyOpen && (
             <div className="mgr-krd-list" data-testid="okr-kru-history">

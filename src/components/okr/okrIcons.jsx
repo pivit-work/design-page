@@ -45,3 +45,14 @@ export function BellIcon({ size = 14 }) {
     </svg>
   );
 }
+
+/**
+ * 펼침 꺾쇠 — 「이력 보기」 토글 (PW-1868). 접힘(오른쪽)·펼침(아래)을 글리프 대신 선으로 그린다.
+ */
+export function ChevronIcon({ size = 12, open = false }) {
+  return (
+    <svg {...svgProps(size)}>
+      <path d={open ? 'm6 9 6 6 6-6' : 'm9 18 6-6-6-6'} />
+    </svg>
+  );
+}
