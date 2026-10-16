@@ -468,10 +468,10 @@ body:has(.okr-ctx-banner) .tl-group-modal.okr-shell { max-height: calc(100vh - 6
 .okr-cf-method-desc { font-size: 11px; font-weight: 500; line-height: 16px; color: var(--text-tertiary); }
 .okr-cf-method.is-active .okr-cf-method-label, .okr-cf-method.is-active .okr-cf-method-desc { color: var(--text-white); }
 /* 실행 항목(Initiative) 편집 블록 — okr-policy §4A.3.
-   새 시각 언어를 만들지 않는다: 블록은 KR 카드 안쪽 톤, 라벨은 보기 모드
-   Initiative 라벨과 같은 색, 추가 버튼은 `okr-cf-kr-add-btn` 을 한 단계 축소한 점선판. */
+   새 시각 언어를 만들지 않는다: 블록은 KR 카드 안쪽 톤, 라벨은 같은 창
+   Objective 제목과 같은 글씨(PW-1899), 추가 버튼은 `okr-cf-kr-add-btn` 을 한 단계 축소한 점선판. */
 .okr-cf-init { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; background: var(--utility-blue-50); border: 1px solid var(--border-secondary-alt); border-radius: 10px; }
-.okr-cf-init-label { font-size: 11px; font-weight: 700; line-height: 16px; letter-spacing: .5px; text-transform: uppercase; color: var(--utility-blue-500); }
+.okr-cf-init-label { font-size: 15px; font-weight: 700; color: var(--text-primary); }
 .okr-cf-init-row { display: flex; align-items: center; gap: 6px; }
 .okr-cf-init-status { flex: none; padding: 6px 8px; background: var(--bg-quaternary); border: 1px solid var(--border-secondary); border-radius: 8px; font-family: inherit; font-size: 12px; font-weight: 600; color: var(--text-secondary); cursor: pointer; outline: none; }
 .okr-cf-init-status:focus-visible { box-shadow: 0 0 0 2px var(--utility-brand-200); }
@@ -508,7 +508,7 @@ body:has(.okr-ctx-banner) .tl-group-modal.okr-shell { max-height: calc(100vh - 6
 .okr-cf-pick-panel { z-index: 1100; box-sizing: border-box; display: flex; flex-direction: column; gap: 4px; padding: 6px; background: var(--bg-quaternary); border: 1px solid var(--border-secondary); border-radius: 10px; box-shadow: 0 12px 32px -8px rgba(15, 23, 42, 0.24); }
 .okr-cf-pick-search { position: relative; display: flex; align-items: center; flex-shrink: 0; }
 .okr-cf-pick-search svg { position: absolute; left: 9px; color: var(--text-placeholder); pointer-events: none; }
-.okr-cf-pick-search-input { width: 100%; box-sizing: border-box; padding: 7px 9px 7px 29px; border: 1px solid var(--border-secondary); border-radius: 7px; background: var(--bg-secondary); font-family: inherit; font-size: 12px; color: var(--text-primary); outline: none; }
+.okr-cf-pick-search-input { width: 100%; box-sizing: border-box; padding: 8px 12px 8px 29px; border: none; border-radius: 8px; background: var(--alpha-black-3); font-family: inherit; font-size: 14px; font-weight: 400; line-height: 20px; color: var(--text-primary); outline: none; }
 .okr-cf-pick-search-input::placeholder { color: var(--text-placeholder); }
 .okr-cf-pick-list { min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 1px; }
 .okr-cf-pick-opt { display: flex; align-items: center; gap: 8px; width: 100%; padding: 6px 8px; border: none; border-radius: 7px; background: transparent; font-family: inherit; text-align: left; cursor: pointer; }
@@ -615,21 +615,21 @@ body:has(.okr-ctx-banner-flag) .tl-group-modal.okr-wz-modal { height: min(1118px
 .okr-wz-footer-hint { flex: 1; text-align: left; font-size: 14px; font-weight: 400; line-height: 20px; color: var(--text-tertiary); }
 /* 설정 마법사 Step2~3 (엔지니어링 포팅 — 시안 okr-setup-wizard.jsx) */
 .okr-wz-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
-.okr-wz-empty { padding: 28px 16px; text-align: center; border: 1px dashed var(--border-secondary); border-radius: 10px; color: var(--text-tertiary); font-size: 12px; }
+.okr-wz-empty { padding: 28px 16px; text-align: center; border: 1px dashed var(--border-secondary); border-radius: 10px; color: var(--text-tertiary); font-size: 14px; font-weight: 400; line-height: 20px; }
 .okr-wz-draft { padding: 12px; border-radius: 12px; background: var(--utility-warning-50); border: 1.5px solid var(--utility-warning-200); }
 .okr-wz-draft.is-confirmed { background: var(--utility-success-50); border-color: var(--utility-success-200); }
-.okr-wz-draft-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-.okr-wz-krrow { display: grid; grid-template-columns: 18px 1.6fr 72px 72px 64px 24px; gap: 7px; align-items: center; padding: 8px; background: var(--bg-secondary); border: 1px solid var(--border-secondary); border-radius: 8px; margin-bottom: 6px; }
-.okr-wz-krno { font-size: 11px; color: var(--text-tertiary); text-align: center; }
-.okr-wz-krcell { padding: 6px 8px; border: none; border-radius: 6px; background: var(--alpha-black-3); color: var(--text-primary); font-size: 12px; font-family: inherit; outline: none; min-width: 0; }
+.okr-wz-draft-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.okr-wz-krrow { display: grid; grid-template-columns: 18px 1.6fr 72px 72px 64px 24px; gap: 12px; align-items: center; padding: 8px; background: var(--bg-secondary); border: 1px solid var(--border-secondary); border-radius: 8px; margin-bottom: 12px; }
+.okr-wz-krno { font-size: 14px; font-weight: 400; line-height: 20px; color: var(--text-tertiary); text-align: center; }
+.okr-wz-krcell { padding: 8px 12px; border: none; border-radius: 6px; background: var(--alpha-black-3); color: var(--text-primary); font-size: 14px; line-height: 20px; font-family: inherit; outline: none; min-width: 0; }
 .okr-wz-krcell.is-num, .okr-wz-krcell.is-unit { text-align: center; }
-.okr-wz-addkr { width: 100%; padding: 8px; margin-top: 4px; border: 1px dashed var(--border-secondary); border-radius: 8px; background: transparent; color: var(--text-secondary); font-size: 11px; font-weight: 600; font-family: inherit; cursor: pointer; }
+.okr-wz-addkr { width: 100%; padding: 8px; border: 1px dashed var(--border-secondary); border-radius: 8px; background: transparent; color: var(--text-secondary); font-size: 14px; font-weight: 600; line-height: 20px; font-family: inherit; cursor: pointer; }
 .okr-wz-source { margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--border-secondary); }
-.okr-wz-source-title { font-size: 12px; font-weight: 700; color: var(--text-secondary); margin: 0 0 8px; }
-.okr-wz-source-body { margin: 0; padding: 10px 12px; background: var(--bg-secondary); border-radius: 6px; font-size: 12px; line-height: 1.7; color: var(--text-primary); white-space: pre-wrap; overflow-wrap: anywhere; }
+.okr-wz-source-title { font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-secondary); margin: 0 0 12px; }
+.okr-wz-source-body { margin: 0; padding: 10px 12px; background: var(--bg-secondary); border-radius: 6px; font-size: 14px; font-weight: 400; line-height: 20px; color: var(--text-primary); white-space: pre-wrap; overflow-wrap: anywhere; }
 .okr-wz-objective-banner { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; padding: 10px 12px; border-radius: 8px; background: var(--utility-success-50); border: 1px solid var(--utility-success-200); }
-.okr-wz-objective-banner-tag { flex-shrink: 0; font-size: 10px; font-weight: 700; color: var(--utility-success-700); }
-.okr-wz-objective-banner-text { font-size: 12px; font-weight: 700; line-height: 1.5; color: var(--text-primary); overflow-wrap: anywhere; }
+.okr-wz-objective-banner-tag { flex-shrink: 0; font-size: 12px; font-weight: 500; line-height: 18px; color: var(--utility-success-700); }
+.okr-wz-objective-banner-text { font-size: 16px; font-weight: 700; line-height: 24px; color: var(--text-primary); overflow-wrap: anywhere; }
 .okr-wz-krpreview { margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--border-secondary); }
 .okr-wz-krpreview-title { font-size: 12px; font-weight: 700; color: var(--text-secondary); margin: 0 0 8px; }
 .okr-wz-krpreview-row { display: flex; align-items: center; gap: 10px; padding: 6px 10px; background: var(--bg-secondary); border-radius: 6px; margin-bottom: 4px; font-size: 12px; color: var(--text-primary); }
@@ -638,14 +638,14 @@ body:has(.okr-ctx-banner-flag) .tl-group-modal.okr-wz-modal { height: min(1118px
 .okr-wz-error { margin: 10px 0 0; font-size: 12px; color: var(--utility-error-500); }
 /* 체험 AI 소진 등 AI 버튼 바로 아래 안내 자리 (마법사 정책서 §5) */
 .okr-wz-ai-notice { margin: 8px 0 12px; }
-.okr-wz-align { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.okr-wz-align { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
 .okr-wz-align-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 1px solid var(--border-secondary); border-radius: 10px; background: var(--bg-secondary); }
 .okr-wz-align-row.is-warn { border-color: var(--utility-error-200); background: var(--utility-error-50); }
 .okr-wz-align-info { flex: 1; display: flex; flex-direction: column; gap: 2px; }
-.okr-wz-align-name { font-size: 13px; font-weight: 700; color: var(--text-primary); }
-.okr-wz-align-role { font-size: 11px; font-weight: 400; color: var(--text-tertiary); }
-.okr-wz-align-note { font-size: 11px; color: var(--text-secondary); }
-.okr-wz-align-status { font-size: 12px; font-weight: 700; color: var(--utility-error-500); }
+.okr-wz-align-name { font-size: 14px; font-weight: 700; line-height: 20px; color: var(--text-primary); }
+.okr-wz-align-role { font-size: 14px; font-weight: 400; line-height: 20px; color: var(--text-tertiary); }
+.okr-wz-align-note { font-size: 12px; font-weight: 500; line-height: 18px; color: var(--text-secondary); }
+.okr-wz-align-status { font-size: 14px; font-weight: 700; line-height: 20px; color: var(--utility-error-500); }
 .okr-wz-align-status.is-ok { color: var(--utility-success-500); }
 .okr-btn:disabled { opacity: 0.5; cursor: default; }
 /* AI 버튼도 같은 비활성 표시를 쓴다 — KR 내용이 비었을 때 눌리지 않는다는
