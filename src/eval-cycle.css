@@ -11350,7 +11350,8 @@ button.evmh-phase:focus-visible {
 
 /* ── 수시 피드백 화면의 입력칸·버튼 (PW-1890) ──
    디자이너가 그린 1on1 「일정 추가」 창(Figma 16816:27101)의 모양을 값 그대로 옮긴다 — 평가 화면은
-   one_on_one.css 를 싣지 않는다. 원문과 값이 같은지는 pivit-work 의 feedbackFormLook 가드 테스트가 본다.
+   one_on_one.css 를 싣지 않는다. 색은 평가 화면 팔레트 이름으로 적었다 — 그려지는 색은 원본과 같다
+   (원본 secondary 바탕 `--colors-background-bgPrimary_alt` 는 정의가 없어 대체값 흰색으로 그려지므로 `--bg-quaternary`). 원문과 값이 같은지는 pivit-work 의 feedbackFormLook 가드 테스트가 본다.
    · 입력칸 = 메모 칸 `.ono-add-modal-textarea` (one_on_one.css). 원본은 높이 80px 고정이지만
      답글·작성 칸은 글이 길어지므로 최소 80px 로만 둔다.
    · 버튼 = 하단 `.tl-group-modal-btn` + `-primary`/`-secondary` (modal-shell.css). 원본의 flex: 1
@@ -11360,8 +11361,8 @@ button.evmh-phase:focus-visible {
   width: 100%;
   min-height: 80px;
   padding: var(--spacing-lg) 14px;
-  background: var(--componentColors-alpha-alphaBlack3, rgba(0,0,0,0.03));
-  border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0,0,0,0.05));
+  background: var(--alpha-black-3);
+  border: 1px solid var(--alpha-black-5);
   border-radius: var(--radius-md);
   outline: none;
   resize: none;
@@ -11395,7 +11396,7 @@ button.evmh-phase:focus-visible {
   cursor: not-allowed;
 }
 .evf-btn-secondary {
-  background: var(--colors-background-bgPrimary_alt, #ffffff);
+  background: var(--bg-quaternary);
   color: var(--text-secondary);
   border: 1px solid var(--border-primary);
 }
@@ -11403,12 +11404,12 @@ button.evmh-phase:focus-visible {
   background: var(--bg-primary);
 }
 .evf-btn-primary {
-  background: var(--colors-background-bgBrandSolid, #2dbd82);
-  color: #fff;
+  background: var(--bg-brand-solid);
+  color: var(--text-white);
   border: none;
 }
 .evf-btn-primary:hover:not(:disabled) {
-  background: var(--colors-background-bgBrandSolidHover, #21a67a);
+  background: var(--colors-background-bgBrandSolidHover);
 }
 
 /* 기간 고르기 — 이름표 옆에 공용 고르기 칸(`dp-input dp-select`) 하나. 진행 현황 부서 고르기
