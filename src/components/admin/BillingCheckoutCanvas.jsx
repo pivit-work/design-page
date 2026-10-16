@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
+import Checkbox from '../shared/Checkbox.jsx';
 import { BillingCard as Card } from './kit/BillingSurface.jsx';
 
 // ─────────────────────────────────────────────────────────────
@@ -200,6 +201,8 @@ export default function BillingCheckoutCanvas({
 
   const [agreeRefund, setAgreeRefund] = useState(false);
   const [agreeCommitment, setAgreeCommitment] = useState(false);
+  const refundId = useId();
+  const commitmentId = useId();
 
   // 협의 단가 모드 (PW-344 ④). `blocked` 는 **서버 재검증 결과**다 — 화면이 유효기간을
   // 다시 계산하지 않는다(판정을 두 벌 두면 한쪽만 느슨해진다).
@@ -486,11 +489,13 @@ export default function BillingCheckoutCanvas({
             {/* 해지·환불 정책 동의 (결제 전 필수) */}
             {hasProfile && (
               <Card style={{ marginBottom: 16, padding: 16 }}>
-                <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={agreeRefund}
+                {/* 공용 체크박스(영업 문의 「관심 기능」과 같은 네모). 글이 여러 줄이라 네모는 첫 줄에 맞추고
+                    글은 htmlFor 로 이어 눌러도 켜지게 한다 */}
+                <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                  <Checkbox id={refundId} checked={agreeRefund}
                     onChange={(e) => setAgreeRefund(e.target.checked)}
-                    style={{ marginTop: 3, width: 16, height: 16, cursor: 'pointer', flexShrink: 0 }} />
-                  <span style={{ fontSize: 13, color: T.text, lineHeight: 1.6 }}>
+                    style={{ marginTop: 2 }} />
+                  <label htmlFor={refundId} style={{ fontSize: 13, color: T.text, lineHeight: 1.6, cursor: 'pointer' }}>
                     <b>{labels.refundAgreeIntro}</b>{labels.refundAgreeSuffix}{' '}
                     {annual
                       ? labels.refundTermsAnnual
@@ -501,23 +506,23 @@ export default function BillingCheckoutCanvas({
                         fontSize: 13, cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
                       {labels.viewFullPolicy}
                     </button>
-                  </span>
-                </label>
+                  </label>
+                </div>
               </Card>
             )}
 
             {/* 연간 협의 계약 — 약정·선결제 동의 (PW-344). 해지·환불 동의와 따로 받는다. */}
             {hasProfile && needCommitment && (
               <Card style={{ marginBottom: 16, padding: 16 }}>
-                <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={agreeCommitment}
+                <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                  <Checkbox id={commitmentId} checked={agreeCommitment}
                     data-testid="checkout-commitment-agree"
                     onChange={(e) => setAgreeCommitment(e.target.checked)}
-                    style={{ marginTop: 3, width: 16, height: 16, cursor: 'pointer', flexShrink: 0 }} />
-                  <span style={{ fontSize: 13, color: T.text, lineHeight: 1.6 }}>
+                    style={{ marginTop: 2 }} />
+                  <label htmlFor={commitmentId} style={{ fontSize: 13, color: T.text, lineHeight: 1.6, cursor: 'pointer' }}>
                     {labels.commitmentAgree(total, quote.contractStart, quote.contractEnd)}
-                  </span>
-                </label>
+                  </label>
+                </div>
               </Card>
             )}
 
