@@ -2647,6 +2647,9 @@
   flex-direction: column;
   gap: var(--spacing-xs);
   margin-top: var(--spacing-xs);
+  /* PW-1875 직급 수는 회사마다 다르다 — 위원 후보 목록(.evc-wiz-committee-list)과 같은 상한에서 칸 안 스크롤 */
+  max-height: 300px;
+  overflow-y: auto;
 }
 /* 직급 라벨 열은 고정 폭이 아니라 `minmax(72px, 120px)` 다 — 직급명은 회사 설정값 그대로이고
    (`role_level VARCHAR(100)`) 길이를 통제할 수 없다. 넘치면 말줄임된다. */
@@ -8238,6 +8241,21 @@
   display: flex;
   flex-wrap: wrap;
   gap: 5px;
+}
+/* PW-1875 조직·직급 값은 회사마다 100~200개도 온다 — 약 3줄에서 멈추고 칸 안에서 스크롤.
+   상한·스크롤은 위원 후보 목록(.evc-wiz-committee-list)과 같은 방식이다. */
+.evc-wiz-chippicker-list {
+  max-height: 92px;
+  overflow-y: auto;
+  align-content: flex-start;
+}
+/* 고른 값 요약 — 위원 선택 요약(.evc-wiz-committee-summary)처럼 개수 글씨 뒤에 고른 칩을 잇는다 */
+.evc-wiz-chippicker-selected {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  margin: 8px 0;
 }
 .evc-wiz-calibscope-chip {
   padding: 4px 10px;

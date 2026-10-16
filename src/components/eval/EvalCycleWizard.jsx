@@ -47,6 +47,8 @@ import { autoCommitteeIdsOf } from './calibrationAutoCommittee.js';
 // 여기 안에 두면 마법사 밖에서 쓸 수 없어, 같은 판이 두 화면에 각각 생긴다 (정책 §6.3).
 import { EvalTemplateGradeRows, EvalTemplateItemRow, GripIcon } from './EvalTemplateBuilder.jsx';
 import EvalSheetBody from './EvalSheetBody.jsx';
+import EvalWizardChipPicker from './EvalWizardChipPicker.jsx';
+import { CHIP_PICKER_SEARCH_MIN, filterByQuery } from './chipPickerFilter.js';
 import {
   CHECK_MAX_OPTIONS,
   CHECK_MIN_OPTIONS,
@@ -2013,23 +2015,13 @@ function CommitteeCard({
               {L.wizardCommitteeDeptLabel ??
                 '조직 (복수 선택 · 고르지 않으면 전 조직)'}
             </div>
-            <div className="evc-wiz-calibscope-chips">
-              {committeeDeptOptions.map((d) => {
-                const on = committeeDepts.includes(d);
-                return (
-                  <button
-                    type="button"
-                    key={d}
-                    className={`evc-wiz-calibscope-chip${on ? ' is-on' : ''}`}
-                    aria-pressed={on}
-                    onClick={() => toggleCommitteeDept(d)}
-                    data-testid={`evc-wiz-committee-dept-${d}`}
-                  >
-                    {d}
-                  </button>
-                );
-              })}
-            </div>
+            <EvalWizardChipPicker
+              options={committeeDeptOptions}
+              selected={committeeDepts}
+              onToggle={toggleCommitteeDept}
+              testIdPrefix="evc-wiz-committee-dept"
+              labels={L}
+            />
           </>
         )}
 
@@ -2039,35 +2031,16 @@ function CommitteeCard({
               {L.wizardCommitteeLevelLabel ??
                 '직급 (복수 선택 · 고르지 않으면 전 직급)'}
             </div>
-            <div className="evc-wiz-calibscope-chips">
-              {committeeLevelOptions.map((lv) => {
-                const on = committeeLevels.includes(lv);
-                return (
-                  <button
-                    type="button"
-                    key={lv}
-                    className={`evc-wiz-calibscope-chip${on ? ' is-on' : ''}`}
-                    aria-pressed={on}
-                    onClick={() => toggleCommitteeLevel(lv)}
-                    data-testid={`evc-wiz-committee-level-${lv}`}
-                  >
-                    {lv}
-                  </button>
-                );
-              })}
-              {card.levels.map((lv) => (
-                <button
-                  type="button"
-                  key={`legacy-${lv}`}
-                  className="evc-wiz-calibscope-chip is-on"
-                  aria-pressed
-                  onClick={() => removeCommitteeLegacyLevel(lv)}
-                  data-testid={`evc-wiz-committee-legacy-level-${lv}`}
-                >
-                  {lv}
-                </button>
-              ))}
-            </div>
+            <EvalWizardChipPicker
+              options={committeeLevelOptions}
+              selected={committeeLevels}
+              onToggle={toggleCommitteeLevel}
+              testIdPrefix="evc-wiz-committee-level"
+              labels={L}
+              extraSelected={card.levels}
+              onRemoveExtra={removeCommitteeLegacyLevel}
+              extraTestIdPrefix="evc-wiz-committee-legacy-level"
+            />
           </>
         )}
 
@@ -3278,6 +3251,8 @@ export default function EvalCycleWizard({
    */
   const [tplLoadedFrom, setTplLoadedFrom] = useState(null);
   // 직급별 템플릿 버전 (시안 eval_role_template_map). 직급은 멤버 position 에서 도출.
+  // PW-1875 직급별 템플릿 행 검색 — 보이는 행만 거른다. 고른 버전(roleVersions)은 건드리지 않는다.
+  const [roleQuery, setRoleQuery] = useState('');
   const [roleMode, setRoleMode] = useState(
     () => D?.roleMode ?? initialSeq?.roleMode ?? 'uniform',
   ); // 'uniform' | 'by_role'
@@ -8143,8 +8118,22 @@ export default function EvalCycleWizard({
                       })}
                     </p>
                   ) : (
-                    <div className="evc-tpl-roles">
-                      {roleLevels.map((role) => (
+                    <>
+                    {roleLevels.length > CHIP_PICKER_SEARCH_MIN && (
+                      <TextInput
+                        className="evc-wiz-committee-search"
+                        value={roleQuery}
+                        onChange={(e) => setRoleQuery(e.target.value)}
+                        placeholder={L.roleSearch}
+                        aria-label={L.roleSearch}
+                        data-testid="evc-tpl-role-search"
+                      />
+                    )}
+                    <div className="evc-tpl-roles" data-testid="evc-tpl-roles">
+                      {(roleLevels.length > CHIP_PICKER_SEARCH_MIN
+                        ? filterByQuery(roleLevels, roleQuery)
+                        : roleLevels
+                      ).map((role) => (
                         <div key={role} className="evc-tpl-role-row">
                           {/* PW-1459 §12 — 회사 직급명은 길이를 통제할 수 없다. 말줄임 + title 툴팁. */}
                           <span className="evc-tpl-role-name" title={role}>
@@ -8165,7 +8154,15 @@ export default function EvalCycleWizard({
                           </div>
                         </div>
                       ))}
+                      {roleQuery.trim() &&
+                        roleLevels.length > CHIP_PICKER_SEARCH_MIN &&
+                        filterByQuery(roleLevels, roleQuery).length === 0 && (
+                          <span className="evc-wiz-hint" data-testid="evc-tpl-role-search-empty">
+                            {fill(L.wizardValueSearchEmpty, { query: roleQuery.trim() })}
+                          </span>
+                        )}
                     </div>
+                    </>
                   )}
                 </>
               )}
