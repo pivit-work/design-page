@@ -9411,12 +9411,15 @@
   outline-offset: 2px;
 }
 .evc-title-edit {
-  flex: 1 1 320px;
-  max-width: 560px;
+  flex: 0 1 420px;
+  min-width: 0;
 }
+/* 칸이 제목보다 높아지면 머리가 커지고 옆 배지가 아랫줄로 밀린다 — 위아래 여백을 줄여 제목 높이에 맞춘다. */
 .evc-title-input {
   font-size: var(--font-size-display-xs);
   font-weight: 700;
+  line-height: 1.2;
+  padding: 0 var(--spacing-sm);
 }
 .evc-manage-suffix {
   font-size: var(--font-size-text-sm);

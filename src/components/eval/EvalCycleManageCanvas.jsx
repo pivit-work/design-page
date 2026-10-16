@@ -113,7 +113,8 @@ function CycleTitle({ name, onRename, L }) {
         className="evc-input evc-title-input"
         value={draft}
         autoFocus
-        disabled={saving}
+        /* 잠그지(disabled) 않는다 — 잠그면 커서가 빠져, 실패 뒤 Esc·Enter 가 칸에 닿지 않는다. */
+        readOnly={saving}
         invalid={!!error}
         aria-label={L.renameAria}
         aria-describedby={error ? 'evmg-title-error' : undefined}

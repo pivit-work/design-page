@@ -102,7 +102,8 @@ export default function EvalPeerResignedSection({
         data-testid="evmon-pr-toggle"
       >
         <span className="evc-card-name">{L.title}</span>
-        <span className="evc-la-hint">{fill(L.sub, { count: rows.length })}</span>
+        {/* 읽지 못했을 때 「0건」을 적지 않는다 — 없는 게 아니라 모르는 것이다. */}
+        {rows.length > 0 && <span className="evc-la-hint">{fill(L.sub, { count: rows.length })}</span>}
         <span className="evmon-la-toggle-end">
           {open ? L.collapse : L.expand}
           {open ? <ChevronUpIcon size={14} /> : <ChevronDownIcon size={14} />}
