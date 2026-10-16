@@ -5,7 +5,7 @@ import { ChevronLeftIcon, PauseIcon, StopIcon } from './evalIcons.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
-import Select from '../shared/Select.jsx';
+import SearchSelect from '../shared/SearchSelect.jsx';
 
 /**
  * EvalCycleMonitoringCanvas — HR 진행 현황 (단계 진행·완료율·멤버 상태·리마인더·비상정지).
@@ -47,6 +47,8 @@ const DEFAULT_LABELS = {
   retiredBadge: '퇴사 처리됨',
   // [PW-1462] 부서 고르기 (정책 §6.4)
   deptFilterLabel: '부서',
+  deptSearchPlaceholder: '부서 이름으로 찾기',
+  deptSearchEmpty: '일치하는 부서가 없습니다',
   navTemplate: '템플릿',
   navCalibration: '캘리브레이션',
   navReport: '종합 리포트',
@@ -710,15 +712,19 @@ export default function EvalCycleMonitoringCanvas({
             지금 무엇을 보고 있는지가 흐려진다. 「← 단계 목록」으로 돌아온다. */}
         {/* [PW-1462 · 정책 §6.4] 부서 고르기 — 구성원 표와 단계 상세가 함께 따른다. */}
         {departmentOptions && departmentOptions.length > 1 && (
-          <label className="evmon-dept-filter" data-testid="evmon-dept-filter">
-            <span className="evc-field-label">{L.deptFilterLabel}</span>
-            <Select
+          <div className="evmon-dept-filter" data-testid="evmon-dept-filter">
+            <span className="evc-field-label" id="evmon-dept-label">{L.deptFilterLabel}</span>
+            {/* [PW-1879] 부서가 수백 개인 회사도 이름 일부로 찾는다 — 칸 모양은 전과 같은 `dp-select`. */}
+            <SearchSelect
               value={departmentValue ?? ''}
-              onChange={(e) => onSelectDepartment?.(e.target.value)}
+              onChange={(v) => onSelectDepartment?.(v)}
               options={departmentOptions}
+              aria-labelledby="evmon-dept-label"
+              searchPlaceholder={L.deptSearchPlaceholder}
+              noResultLabel={L.deptSearchEmpty}
               data-testid="evmon-dept-select"
             />
-          </label>
+          </div>
         )}
         {selectedStage ? (
           <section className="evc-card" data-testid="evmon-stage-detail">

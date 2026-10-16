@@ -35,6 +35,9 @@ export { default as Select } from './shared/Select.jsx';
 export { default as Checkbox } from './shared/Checkbox.jsx';
 export { default as Radio } from './shared/Radio.jsx';
 export { default as SearchInput } from './shared/SearchInput.jsx';
+// 이름을 쳐서 찾는 «하나 고르기» 칸 (PW-1879). 스타일은 search-select.css(App.css 가 끌어온다)
+export { default as SearchSelect } from './shared/SearchSelect.jsx';
+export { filterSearchOptions } from './shared/searchOptions.js';
 // 빈 화면 안내 · 사람 원 · 칩 (PW-1014). 스타일은 empty-state.css · avatar.css · status-badge.css 의 「칩」 절
 export { default as EmptyState } from './shared/EmptyState.jsx';
 export { default as Avatar } from './shared/Avatar.jsx';

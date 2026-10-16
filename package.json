@@ -31,6 +31,7 @@
     "./styles/okr.css": "./src/okr.css",
     "./styles/okr-resource.css": "./src/okr_resource.css",
     "./styles/form-controls.css": "./src/form-controls.css",
+    "./styles/search-select.css": "./src/search-select.css",
     "./styles/form-field.css": "./src/form-field.css",
     "./styles/avatar.css": "./src/avatar.css",
     "./styles/empty-state.css": "./src/empty-state.css",

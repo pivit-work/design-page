@@ -43,6 +43,7 @@ import {
   IconMore, IconPlus, IconSettings, IconUser, IconX,
 } from './employeesIcons.jsx';
 import useDismissLayer from '../shared/useDismissLayer.js';
+import { filterSearchOptions } from '../shared/searchOptions.js';
 import Pagination from '../shared/Pagination.jsx';
 import { SkeletonList } from '../shared/Skeleton.jsx';
 import LoadingState from '../shared/LoadingState.jsx';
@@ -100,6 +101,9 @@ const DEFAULT_LABELS = {
      세우면 늘 0건인 축이 생긴다(E6, 빠져 있던 것과 같은 이유다). */
   filters: {
     dept: '소속(기능조직)',
+    // [PW-1879] 필터 펼침 목록 위 검색칸
+    search: '이름으로 찾기',
+    searchNoResult: '일치하는 항목이 없습니다',
     jobCategory: '직종',
     businessTitle: '직함',
     squad: '스쿼드',
@@ -1162,12 +1166,20 @@ function UnassignedTab({
  * 백지가 됐다. 스타일(admin-emp-select*)은 admin.css 에 그대로 있어, 원래
  * 정의를 되살려 붙인다.
  * ------------------------------------------------------------ */
-function FilterDropdown({ testId, label, value, options, onChange }) {
+function FilterDropdown({ testId, label, value, options, onChange, searchable = false, searchLabels }) {
   const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
   const ref = useRef(null);
-  useDismissLayer(() => setOpen(false), ref, null, open);
+  const close = () => { setOpen(false); setQ(''); };
+  useDismissLayer(close, ref, null, open);
 
   const opts = options.map((o) => (typeof o === 'object' ? o : { id: o, label: o }));
+  /* [PW-1879] 값이 수백 개인 회사도 이름 일부로 찾는다. 검색칸·「결과 없음」은 같은 화면 매니저 고르기의
+     `admin-emp-select-search`·`-empty` 그대로. 「전체」 줄은 검색과 상관없이 남긴다. */
+  const shown = searchable
+    ? filterSearchOptions(opts.map((o) => (o.id === ALL || o.id === '전체' ? { ...o, keep: true } : o)), q)
+    : opts;
+  const noResult = searchable && q.trim() !== '' && !shown.some((o) => !o.group && !o.keep);
   const selected = opts.find((o) => o.id === value) || null;
   const isDefault = value === 'all' || value === '전체';
   const triggerText = isDefault ? label : (selected ? selected.label : label);
@@ -1180,14 +1192,27 @@ function FilterDropdown({ testId, label, value, options, onChange }) {
         data-testid={testId}
         aria-haspopup="listbox"
         aria-expanded={open}
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => (open ? close() : setOpen(true))}
       >
         <span className="admin-emp-select-value">{triggerText}</span>
         <span className="admin-emp-select-chevron"><IconChevronDown size={13} /></span>
       </button>
       {open && (
         <div className="admin-emp-select-menu" role="listbox">
-          {opts.map((o, i) => {
+          {searchable && (
+            <input
+              type="text"
+              className="admin-emp-select-search"
+              value={q}
+              autoFocus
+              placeholder={searchLabels?.placeholder}
+              aria-label={searchLabels?.placeholder}
+              onChange={(e) => setQ(e.target.value)}
+              data-testid={testId ? `${testId}-search` : undefined}
+            />
+          )}
+          {noResult && <div className="admin-emp-select-empty" role="status">{searchLabels?.noResult}</div>}
+          {shown.map((o, i) => {
             /* 묶음 머리(직군 미선택 때 직렬 선택지의 직군 이름 · admin-spec §3.1) — 고를 수 없다. */
             if (o.group) {
               return (
@@ -1207,7 +1232,7 @@ function FilterDropdown({ testId, label, value, options, onChange }) {
                 // 계층 옵션(소속)은 depth 당 12px 들여쓴다 — 공백문자로 들여쓰지
                 // 않는다(시트의 같은 목록과 같은 규칙, §5-A P1).
                 style={o.depth ? { paddingLeft: 10 + o.depth * 12 } : undefined}
-                onClick={() => { onChange(o.id); setOpen(false); }}
+                onClick={() => { onChange(o.id); close(); }}
               >
                 <span className="admin-emp-select-item-label">{o.label}</span>
                 {isSel && <span className="admin-emp-select-item-check"><IconCheckmark size={15} /></span>}
@@ -2650,6 +2675,7 @@ function EmployeesListView({
       onPick: () => setBulkModal('deactivate'),
     });
   }
+  const filterSearch = { placeholder: labels.filters.search, noResult: labels.filters.searchNoResult };
   const hasFilter = q || dept !== LIST_ALL || squad !== LIST_ALL || position !== LIST_ALL
     || level !== LIST_ALL || family !== LIST_ALL || ladder !== LIST_ALL || duty !== LIST_ALL
     || category !== LIST_ALL || bizTitle !== LIST_ALL
@@ -3153,31 +3179,31 @@ function EmployeesListView({
       </div>
 
       <div className="admin-emp-filterbar">
-        <FilterDropdown testId="list-filter-dept" label={labels.filters.dept} value={dept} options={depts} onChange={(v) => { setDept(v); setPage(1); }} />
-        <FilterDropdown testId="list-filter-squads" label={labels.filters.squad} value={squad} options={squads} onChange={(v) => { setSquad(v); setPage(1); }} />
+        <FilterDropdown testId="list-filter-dept" searchable searchLabels={filterSearch} label={labels.filters.dept} value={dept} options={depts} onChange={(v) => { setDept(v); setPage(1); }} />
+        <FilterDropdown testId="list-filter-squads" searchable searchLabels={filterSearch} label={labels.filters.squad} value={squad} options={squads} onChange={(v) => { setSquad(v); setPage(1); }} />
         {/* 🔴 필터 칩도 표 열과 같은 «두 덩어리» 순서다 (PW-547). 칩과 열의 순서가
             어긋나면 「직군으로 좁혀 놓고 표에서 직군 열을 찾는」 동작이 매번 어긋난다. */}
         {optionalFields.job_category === true && (
-          <FilterDropdown testId="list-filter-jobCategory" label={labels.filters.jobCategory} value={category} options={categories} onChange={(v) => { setCategory(v); setPage(1); }} />
+          <FilterDropdown testId="list-filter-jobCategory" searchable searchLabels={filterSearch} label={labels.filters.jobCategory} value={category} options={categories} onChange={(v) => { setCategory(v); setPage(1); }} />
         )}
-        <FilterDropdown testId="list-filter-jobFamily" label={labels.filters.family} value={family} options={families} onChange={changeFamily} />
-        <FilterDropdown testId="list-filter-jobTitle" label={labels.filters.ladder} value={ladder} options={ladders} onChange={(v) => { setLadderCleared(false); changeLadder(v); }} />
+        <FilterDropdown testId="list-filter-jobFamily" searchable searchLabels={filterSearch} label={labels.filters.family} value={family} options={families} onChange={changeFamily} />
+        <FilterDropdown testId="list-filter-jobTitle" searchable searchLabels={filterSearch} label={labels.filters.ladder} value={ladder} options={ladders} onChange={(v) => { setLadderCleared(false); changeLadder(v); }} />
         {ladderCleared && (
           <span className="admin-emp-filter-notice" role="status" data-testid="list-filter-ladder-cleared">
             {labels.ladderFilterCleared}
           </span>
         )}
-        <FilterDropdown testId="list-filter-jobDuty" label={labels.filters.duty} value={duty} options={duties} onChange={(v) => { setDuty(v); setPage(1); }} />
-        <FilterDropdown testId="list-filter-jobPosition" label={labels.filters.position} value={position} options={positions} onChange={(v) => { setPosition(v); setPage(1); }} />
-        <FilterDropdown testId="list-filter-jobLevel" label={labels.filters.level} value={level} options={levels} onChange={(v) => { setLevel(v); setPage(1); }} />
+        <FilterDropdown testId="list-filter-jobDuty" searchable searchLabels={filterSearch} label={labels.filters.duty} value={duty} options={duties} onChange={(v) => { setDuty(v); setPage(1); }} />
+        <FilterDropdown testId="list-filter-jobPosition" searchable searchLabels={filterSearch} label={labels.filters.position} value={position} options={positions} onChange={(v) => { setPosition(v); setPage(1); }} />
+        <FilterDropdown testId="list-filter-jobLevel" searchable searchLabels={filterSearch} label={labels.filters.level} value={level} options={levels} onChange={(v) => { setLevel(v); setPage(1); }} />
         {optionalFields.business_title === true && (
-          <FilterDropdown testId="list-filter-businessTitle" label={labels.filters.businessTitle} value={bizTitle} options={bizTitles} onChange={(v) => { setBizTitle(v); setPage(1); }} />
+          <FilterDropdown testId="list-filter-businessTitle" searchable searchLabels={filterSearch} label={labels.filters.businessTitle} value={bizTitle} options={bizTitles} onChange={(v) => { setBizTitle(v); setPage(1); }} />
         )}
-        <FilterDropdown testId="list-filter-workCountry" label={labels.filters.workCountry} value={country} options={countries} onChange={(v) => { setCountry(v); setPage(1); }} />
-        <FilterDropdown testId="list-filter-workLocation" label={labels.filters.workLocation} value={location} options={locations} onChange={(v) => { setLocation(v); setPage(1); }} />
-        <FilterDropdown testId="list-filter-workBuilding" label={labels.filters.workBuilding} value={building} options={buildings} onChange={(v) => { setBuilding(v); setPage(1); }} />
-        <FilterDropdown testId="list-filter-employmentType" label={labels.filters.employmentType} value={empType} options={empTypes} onChange={(v) => { setEmpType(v); setPage(1); }} />
-        <FilterDropdown testId="list-filter-managerId" label={labels.filters.manager} value={mgrFilter} options={mgrOpts} onChange={(v) => { setMgrFilter(v); setPage(1); }} />
+        <FilterDropdown testId="list-filter-workCountry" searchable searchLabels={filterSearch} label={labels.filters.workCountry} value={country} options={countries} onChange={(v) => { setCountry(v); setPage(1); }} />
+        <FilterDropdown testId="list-filter-workLocation" searchable searchLabels={filterSearch} label={labels.filters.workLocation} value={location} options={locations} onChange={(v) => { setLocation(v); setPage(1); }} />
+        <FilterDropdown testId="list-filter-workBuilding" searchable searchLabels={filterSearch} label={labels.filters.workBuilding} value={building} options={buildings} onChange={(v) => { setBuilding(v); setPage(1); }} />
+        <FilterDropdown testId="list-filter-employmentType" searchable searchLabels={filterSearch} label={labels.filters.employmentType} value={empType} options={empTypes} onChange={(v) => { setEmpType(v); setPage(1); }} />
+        <FilterDropdown testId="list-filter-managerId" searchable searchLabels={filterSearch} label={labels.filters.manager} value={mgrFilter} options={mgrOpts} onChange={(v) => { setMgrFilter(v); setPage(1); }} />
         {/* 바로 왼쪽 「매니저」와 재는 것이 다르다 — 매니저는 「이 사람에게 상급자가
             정해져 있나」, 권한은 「이 사람이 무엇인가」다(PW-693 · PW-884 ③). */}
         <FilterDropdown testId="list-filter-orgRole" label={labels.filters.role} value={roleFilter} options={roleOpts} onChange={(v) => { setRoleFilter(v); setPage(1); }} />

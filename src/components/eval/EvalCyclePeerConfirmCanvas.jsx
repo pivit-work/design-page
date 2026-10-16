@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import { SkeletonList } from '../shared/Skeleton.jsx';
 import { ChevronRightIcon } from './evalIcons.jsx';
+import SearchSelect from '../shared/SearchSelect.jsx';
 
 /**
  * EvalCyclePeerConfirmCanvas — 동료 리뷰어 확정 (리더 게이트, 신규).
@@ -39,6 +40,8 @@ const DEFAULT_LABELS = {
   addPlaceholder: '+ 동료 리뷰어 직접 추가',
   // §6.3.2 조직 + 이름(한글·영문) 검색 — 2글자 이상, 최대 10건
   searchDeptAll: '전체 조직',
+  searchDeptPlaceholder: '조직 이름으로 찾기',
+  searchDeptEmpty: '일치하는 조직이 없습니다',
   searchPlaceholder: '이름 (한글·영문)',
   searchHint: '이름을 2글자 이상 입력하세요.',
   searchEmpty: '일치하는 구성원이 없습니다.',
@@ -142,17 +145,17 @@ function PeerSearch({ addable, L, onPick }) {
   return (
     <div className="evp-search" data-testid="evp-search">
       <div className="evp-search-row">
-        <select
+        {/* [PW-1879] 조직이 수백 개인 회사도 이름 일부로 찾는다 — 칸 모양은 전과 같은 `evc-input`. */}
+        <SearchSelect
           className="evc-input evp-search-dept"
           value={dept}
-          onChange={(e) => setDept(e.target.value)}
+          onChange={setDept}
+          options={[{ value: '', label: L.searchDeptAll, keep: true }, ...depts.map((d) => ({ value: d, label: d }))]}
+          aria-label={L.searchDeptAll}
+          searchPlaceholder={L.searchDeptPlaceholder}
+          noResultLabel={L.searchDeptEmpty}
           data-testid="evp-search-dept"
-        >
-          <option value="">{L.searchDeptAll}</option>
-          {depts.map((d) => (
-            <option key={d} value={d}>{d}</option>
-          ))}
-        </select>
+        />
         <input
           className="evc-input evp-search-input"
           value={q}
