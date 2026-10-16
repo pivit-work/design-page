@@ -1,5 +1,8 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import Toast from '../shared/Toast.jsx';
+import Button from '../shared/Button.jsx';
+import TextArea from '../shared/TextArea.jsx';
+import Select from '../shared/Select.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import { TargetIcon, CpuIcon, MailIcon, SparkleIcon, ClockIcon, ChatIcon, ChevronDownIcon } from './evalIcons';
@@ -388,7 +391,7 @@ function ModalComposeBox({ block, memberName, L, onSend, onAiDraft }) {
 
   return (
     <div style={{ padding: 14, borderTop: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <textarea
+      <TextArea
         rows={4}
         value={text}
         onChange={(e) => {
@@ -399,7 +402,7 @@ function ModalComposeBox({ block, memberName, L, onSend, onAiDraft }) {
         placeholder={L.composePlaceholder}
         maxLength={maxLen}
         data-testid="fbmgr-compose-text"
-        style={{ border: `1px solid ${aiState === 'done' ? C.accentBd : C.border}`, background: aiState === 'done' ? C.accentBg : 'var(--text-white)', borderRadius: 8, padding: 10, fontSize: 13, fontFamily: FONT, resize: 'vertical', whiteSpace: 'pre-wrap' }}
+        className="evf-textarea" style={aiState === 'done' ? { borderColor: C.accentBd, background: C.accentBg } : undefined}
       />
       <FeedbackLengthNote text={text} label={L.textLimitNote} color={C.red} testId="fbmgr-compose-limit" />
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -421,15 +424,15 @@ function ModalComposeBox({ block, memberName, L, onSend, onAiDraft }) {
               {aiState === 'loading' ? L.aiDrafting : <><SparkleIcon size={13} /> {L.aiDraft}</>}
             </button>
           )}
-          <button
+          <Button
             type="button"
             disabled={!text.trim() || busy || tooLong}
             onClick={send}
             data-testid="fbmgr-send"
-            style={{ background: C.accent, color: 'var(--text-white)', border: 'none', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: text.trim() ? 'pointer' : 'not-allowed', opacity: text.trim() ? 1 : 0.5 }}
+            className="evf-btn evf-btn-primary"
           >
             {L.send}
-          </button>
+          </Button>
         </span>
       </div>
       {aiState === 'done' && grounded && <p style={{ fontSize: 12, color: C.sub, margin: 0 }}><CpuIcon size={11} /> {L.aiFooter}</p>}
@@ -504,21 +507,21 @@ function FeedbackBubble({ item, member, L, canModify, onEdit, onDelete }) {
           </div>
           {editing ? (
             <div style={{ background: C.surface, border: `1px solid ${C.accentBd}`, borderRadius: '0 10px 10px 10px', padding: 10 }}>
-              <textarea
+              <TextArea
                 value={editText}
                 onChange={(e) => setEditText(e.target.value)}
                 maxLength={maxLen}
                 data-testid="fbmgr-feedback-edit-input"
-                style={{ width: '100%', minHeight: 72, padding: '8px 10px', borderRadius: 7, border: `1px solid ${C.accentBd}`, fontSize: 13, color: C.text, resize: 'vertical', boxSizing: 'border-box', fontFamily: FONT, lineHeight: 1.6, marginBottom: 8 }}
+                className="evf-textarea" style={{ marginBottom: 8 }}
               />
               <FeedbackLengthNote text={editText} label={L.textLimitNote} color={C.red} testId="fbmgr-feedback-edit-limit" />
               <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                <button type="button" onClick={cancelEdit} data-testid="fbmgr-feedback-edit-cancel" style={{ padding: '6px 12px', borderRadius: 7, border: `1px solid ${C.border}`, background: 'transparent', color: C.sub, fontSize: 12, cursor: 'pointer' }}>
+                <Button type="button" onClick={cancelEdit} data-testid="fbmgr-feedback-edit-cancel" className="evf-btn evf-btn-secondary">
                   {L.feedbackEditCancel}
-                </button>
-                <button type="button" onClick={save} disabled={busy || !editText.trim() || editTooLong} data-testid="fbmgr-feedback-edit-save" style={{ padding: '6px 16px', borderRadius: 7, border: 'none', background: C.accent, color: 'var(--text-white)', fontSize: 12, fontWeight: 700, cursor: busy || !editText.trim() ? 'not-allowed' : 'pointer', opacity: busy || !editText.trim() ? 0.5 : 1 }}>
+                </Button>
+                <Button type="button" onClick={save} disabled={busy || !editText.trim() || editTooLong} data-testid="fbmgr-feedback-edit-save" className="evf-btn evf-btn-primary">
                   {L.feedbackEditSave}
-                </button>
+                </Button>
               </div>
             </div>
           ) : (
@@ -673,14 +676,23 @@ function ThreadModal({ block, member, memberName, L, isPastPeriod, onSend, onAiD
 
 function PeriodSelector({ periodKey, options, isPastPeriod, onChange, L }) {
   if (!options || options.length === 0) return null;
+  // 공용 고르기 칸 + 이름표 (PW-1890). 지난 기간이면 이름표만 경고색이고, 칸 안 글에 「(과거 기간)」이 붙는다.
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: isPastPeriod ? C.amberBg : C.surface, border: `1px solid ${isPastPeriod ? C.amberBd : C.border}`, borderRadius: 8, padding: '4px 10px' }}>
-      <span style={{ fontSize: 12, color: isPastPeriod ? C.amber : C.sub }}>{L.periodLabel}</span>
-      <select value={periodKey} onChange={(e) => onChange(e.target.value)} data-testid="fbmgr-period" style={{ border: 'none', background: 'transparent', fontSize: 13, fontWeight: 600, color: isPastPeriod ? C.amber : C.text, fontFamily: FONT, cursor: 'pointer' }}>
+    <span className="evf-period">
+      <span className={`evf-period-label${isPastPeriod ? ' is-past' : ''}`}>{L.periodLabel}</span>
+      <Select
+        value={periodKey}
+        onChange={(e) => onChange(e.target.value)}
+        aria-label={L.periodLabel}
+        data-testid="fbmgr-period"
+      >
         {options.map((o) => (
-          <option key={o.key} value={o.key}>{o.label}{o.isCurrent ? '' : L.pastPeriodMark}</option>
+          <option key={o.key} value={o.key}>
+            {o.label}
+            {o.isCurrent ? '' : L.pastPeriodMark}
+          </option>
         ))}
-      </select>
+      </Select>
     </span>
   );
 }

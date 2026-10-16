@@ -11347,3 +11347,89 @@ button.evmh-phase:focus-visible {
   border-color: var(--utility-error-500);
   background: var(--utility-error-50);
 }
+
+/* ── 수시 피드백 화면의 입력칸·버튼 (PW-1890) ──
+   디자이너가 그린 1on1 「일정 추가」 창(Figma 16816:27101)의 모양을 값 그대로 옮긴다 — 평가 화면은
+   one_on_one.css 를 싣지 않는다. 원문과 값이 같은지는 pivit-work 의 feedbackFormLook 가드 테스트가 본다.
+   · 입력칸 = 메모 칸 `.ono-add-modal-textarea` (one_on_one.css). 원본은 높이 80px 고정이지만
+     답글·작성 칸은 글이 길어지므로 최소 80px 로만 둔다.
+   · 버튼 = 하단 `.tl-group-modal-btn` + `-primary`/`-secondary` (modal-shell.css). 원본의 flex: 1
+     (창 폭을 둘이 나눠 채움)은 옮기지 않는다 — 여기 버튼은 칸 아래 오른쪽에 붙는 자리다. */
+.evf-textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 80px;
+  padding: var(--spacing-lg) 14px;
+  background: var(--componentColors-alpha-alphaBlack3, rgba(0,0,0,0.03));
+  border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0,0,0,0.05));
+  border-radius: var(--radius-md);
+  outline: none;
+  resize: none;
+  font-family: var(--font-family-body);
+  font-weight: 400;
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
+  color: var(--text-primary);
+}
+.evf-textarea::placeholder {
+  color: var(--text-placeholder);
+}
+
+.evf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  padding: 10px 16px;
+  min-height: 44px;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s, opacity 0.15s;
+}
+.evf-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.evf-btn-secondary {
+  background: var(--colors-background-bgPrimary_alt, #ffffff);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-primary);
+}
+.evf-btn-secondary:hover:not(:disabled) {
+  background: var(--bg-primary);
+}
+.evf-btn-primary {
+  background: var(--colors-background-bgBrandSolid, #2dbd82);
+  color: #fff;
+  border: none;
+}
+.evf-btn-primary:hover:not(:disabled) {
+  background: var(--colors-background-bgBrandSolidHover, #21a67a);
+}
+
+/* 기간 고르기 — 이름표 옆에 공용 고르기 칸(`dp-input dp-select`) 하나. 진행 현황 부서 고르기
+   (.evmon-dept-filter)와 같은 쓰임이라 같은 배치를 쓴다. 지난 기간이면 이름표만 경고색이다. */
+.evf-period {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+.evf-period .dp-select {
+  width: auto;
+}
+/* 이름표 = 1on1 「일정 추가」 창 칸 이름표 `.ono-add-modal-field-label` 값 그대로 */
+.evf-period-label {
+  font-family: var(--font-family-body);
+  font-weight: 700;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.evf-period-label.is-past {
+  color: var(--utility-warning-700);
+}

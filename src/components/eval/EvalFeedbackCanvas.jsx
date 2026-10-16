@@ -1,5 +1,8 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import Toast from '../shared/Toast.jsx';
+import Button from '../shared/Button.jsx';
+import TextArea from '../shared/TextArea.jsx';
+import Select from '../shared/Select.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import { ChatIcon, ClockIcon, MailIcon, SparkleIcon } from './evalIcons';
@@ -503,35 +506,35 @@ function FeedbackBubble({ item, L, linkedLabel: targetLabel, isPastPeriod, onRep
               </button>
             ) : (
               <div>
-                <textarea
+                <TextArea
                   rows={2}
                   value={draft}
                   onChange={(e) => setDraft(e.target.value)}
                   placeholder={L.replyPlaceholder}
                   maxLength={maxLen}
                   data-testid={`fbm-reply-text-${item.id}`}
-                  style={{ width: '100%', border: `1px solid ${C.border}`, borderRadius: 8, padding: 8, fontSize: 13, fontFamily: FONT, resize: 'vertical' }}
+                  className="evf-textarea"
                 />
                 <FeedbackLengthNote text={draft} label={L.textLimitNote} color={C.rose} testId={`fbm-reply-limit-${item.id}`} />
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginTop: 4 }}>
-                  <button
+                  <Button
                     type="button"
                     disabled={busy}
                     onClick={() => { setReplying(false); setDraft(''); }}
                     data-testid={`fbm-reply-cancel-${item.id}`}
-                    style={{ background: 'none', color: C.sub, border: `1px solid ${C.border}`, borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                    className="evf-btn evf-btn-secondary"
                   >
                     {L.replyCancel}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
                     disabled={busy || tooLong}
                     onClick={send}
                     data-testid={`fbm-reply-send-${item.id}`}
-                    style={{ background: C.teal, color: 'var(--text-white)', border: 'none', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                    className="evf-btn evf-btn-primary"
                   >
                     {L.replySend}
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
@@ -613,32 +616,32 @@ function RequestBubble({ item, L, onEdit, onDelete }) {
 
         {editing ? (
           <div style={{ background: C.surface, border: `1px solid ${C.blueBd}`, borderRadius: '10px 0 10px 10px', padding: 12 }}>
-            <textarea
+            <TextArea
               value={editText}
               onChange={(e) => setEditText(e.target.value)}
               maxLength={maxLen}
               data-testid="fbm-request-edit-input"
-              style={{ width: '100%', minHeight: 72, padding: '8px 10px', borderRadius: 7, border: `1px solid ${C.blueBd}`, fontSize: 12, color: C.text, resize: 'none', boxSizing: 'border-box', fontFamily: FONT, lineHeight: 1.7, outline: 'none', marginBottom: 10 }}
+              className="evf-textarea" style={{ marginBottom: 10 }}
             />
             <FeedbackLengthNote text={editText} label={L.textLimitNote} color={C.rose} testId="fbm-request-edit-limit" />
             {error && <p style={{ margin: '0 0 8px', fontSize: 12, color: C.rose }}>{error}</p>}
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button
+              <Button
                 type="button"
                 onClick={cancelEdit}
-                style={{ padding: '6px 12px', borderRadius: 7, border: `1px solid ${C.border}`, background: 'transparent', color: C.sub, fontSize: 12, cursor: 'pointer' }}
+                className="evf-btn evf-btn-secondary"
               >
                 {L.requestEditCancel}
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 onClick={save}
                 disabled={busy || editTooLong}
                 data-testid="fbm-request-edit-save"
-                style={{ padding: '6px 16px', borderRadius: 7, border: 'none', background: C.blue, color: 'var(--text-white)', fontSize: 12, fontWeight: 700, cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1 }}
+                className="evf-btn evf-btn-primary"
               >
                 {L.requestEditSave}
-              </button>
+              </Button>
             </div>
           </div>
         ) : item.text ? (
@@ -745,14 +748,14 @@ function RequestCompose({ block, L, recipients, recipientsFailed = false, locked
   };
 
   const cancelButton = (
-    <button
+    <Button
       type="button"
       onClick={cancel}
       data-testid="fbm-request-cancel"
-      style={{ padding: '8px 14px', borderRadius: 8, border: `1px solid ${C.border}`, background: 'transparent', color: C.sub, fontSize: 13, cursor: 'pointer' }}
+      className="evf-btn evf-btn-secondary"
     >
       {L.requestCancel}
-    </button>
+    </Button>
   );
 
   // 대상이 없거나(§10-9) 후보를 못 불러왔으면(§8) 고를 칩도 보낼 곳도 없다 — 안내와 취소만.
@@ -764,10 +767,10 @@ function RequestCompose({ block, L, recipients, recipientsFailed = false, locked
         </p>
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
           {cancelButton}
-          <button type="button" disabled data-testid="fbm-request-send" style={{ background: C.teal, color: 'var(--text-white)', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: 'not-allowed', opacity: 0.5 }}>
+          <Button type="button" disabled data-testid="fbm-request-send" className="evf-btn evf-btn-primary">
             {L.kindManager + L.requestSendSuffix}
             <SendArrow />
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -836,28 +839,28 @@ function RequestCompose({ block, L, recipients, recipientsFailed = false, locked
           {lockedCount === recipients.length ? L.requestAllRequestedHint : L.requestAlreadyHint}
         </p>
       )}
-      <textarea
+      <TextArea
         rows={2}
         value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder={L.requestTextPlaceholder}
         maxLength={maxLen}
         data-testid="fbm-request-text"
-        style={{ border: `1px solid ${C.border}`, borderRadius: 8, padding: 8, fontSize: 13, fontFamily: FONT, resize: 'vertical' }}
+        className="evf-textarea"
       />
       <FeedbackLengthNote text={text} label={L.textLimitNote} color={C.rose} testId="fbm-request-limit" />
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
         {cancelButton}
-        <button
+        <Button
           type="button"
           disabled={!recipient || busy || tooLong}
           onClick={send}
           data-testid="fbm-request-send"
-          style={{ background: C.teal, color: 'var(--text-white)', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 600, cursor: recipient ? 'pointer' : 'not-allowed', opacity: recipient ? 1 : 0.5 }}
+          className="evf-btn evf-btn-primary"
         >
           {(recipient?.kind === 'peer' ? L.kindPeer : L.kindManager) + L.requestSendSuffix}
           <SendArrow />
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -925,44 +928,44 @@ function IncomingRequestSection({ requests, L, isPastPeriod, onSend }) {
                 <ClockIcon size={11} /> {L.incomingPastReadonly}
               </div>
             ) : openId !== req.id ? (
-              <button
+              <Button
                 type="button"
                 onClick={() => { setOpenId(req.id); setText(''); }}
                 data-testid={`fbm-incoming-write-${req.id}`}
-                style={{ marginTop: 8, padding: '5px 12px', borderRadius: 20, cursor: 'pointer', border: `1px solid ${C.border}`, background: 'transparent', fontSize: 'var(--font-size-text-xs)', fontWeight: 600, color: C.sub }}
+                className="evf-btn evf-btn-secondary" style={{ marginTop: 8 }}
               >
                 {L.incomingWrite}
-              </button>
+              </Button>
             ) : (
               <div style={{ marginTop: 8, background: C.bg, border: `1px solid ${C.border}`, borderRadius: '0 10px 10px 10px', padding: '12px 14px' }}>
-                <textarea
+                <TextArea
                   rows={3}
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                   placeholder={L.incomingPlaceholder}
                   maxLength={maxLen}
                   data-testid={`fbm-incoming-text-${req.id}`}
-                  style={{ width: '100%', boxSizing: 'border-box', border: `1px solid ${C.border}`, borderRadius: 7, padding: '8px 11px', fontSize: 13, fontFamily: FONT, lineHeight: 1.7, resize: 'vertical', marginBottom: 10 }}
+                  className="evf-textarea" style={{ marginBottom: 10 }}
                 />
                 <FeedbackLengthNote text={text} label={L.textLimitNote} color={C.rose} testId={`fbm-incoming-limit-${req.id}`} />
                 <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                  <button
+                  <Button
                     type="button"
                     onClick={() => { setOpenId(null); setText(''); }}
                     data-testid={`fbm-incoming-cancel-${req.id}`}
-                    style={{ border: `1px solid ${C.border}`, background: 'transparent', color: C.sub, borderRadius: 8, padding: '6px 14px', fontSize: 13, cursor: 'pointer' }}
+                    className="evf-btn evf-btn-secondary"
                   >
                     {L.incomingCancel}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
                     disabled={!text.trim() || busy || tooLong}
                     onClick={() => submit(req)}
                     data-testid={`fbm-incoming-send-${req.id}`}
-                    style={{ background: C.teal, color: 'var(--text-white)', border: 'none', borderRadius: 8, padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: text.trim() && !busy ? 'pointer' : 'not-allowed', opacity: text.trim() && !busy ? 1 : 0.5 }}
+                    className="evf-btn evf-btn-primary"
                   >
                     {L.incomingSend}
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
@@ -975,24 +978,15 @@ function IncomingRequestSection({ requests, L, isPastPeriod, onSend }) {
 
 function PeriodSelector({ periodKey, options, isPastPeriod, onChange, L }) {
   if (!options || options.length === 0) return null;
+  // 공용 고르기 칸 + 이름표 (PW-1890). 지난 기간이면 이름표만 경고색이고, 칸 안 글에 「(과거 기간)」이 붙는다.
   return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 6,
-        background: isPastPeriod ? C.amberBg : C.surface,
-        border: `1px solid ${isPastPeriod ? C.amberBd : C.border}`,
-        borderRadius: 8,
-        padding: '4px 10px',
-      }}
-    >
-      <span style={{ fontSize: 12, color: isPastPeriod ? C.amber : C.sub }}>{L.periodLabel}</span>
-      <select
+    <span className="evf-period">
+      <span className={`evf-period-label${isPastPeriod ? ' is-past' : ''}`}>{L.periodLabel}</span>
+      <Select
         value={periodKey}
         onChange={(e) => onChange(e.target.value)}
+        aria-label={L.periodLabel}
         data-testid="fbm-period"
-        style={{ border: 'none', background: 'transparent', fontSize: 13, fontWeight: 600, color: isPastPeriod ? C.amber : C.text, fontFamily: FONT, cursor: 'pointer' }}
       >
         {options.map((o) => (
           <option key={o.key} value={o.key}>
@@ -1000,7 +994,7 @@ function PeriodSelector({ periodKey, options, isPastPeriod, onChange, L }) {
             {o.isCurrent ? '' : L.pastPeriodMark}
           </option>
         ))}
-      </select>
+      </Select>
     </span>
   );
 }

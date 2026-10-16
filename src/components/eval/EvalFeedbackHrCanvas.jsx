@@ -1,5 +1,7 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import Toast from '../shared/Toast.jsx';
+import Button from '../shared/Button.jsx';
+import Checkbox from '../shared/Checkbox.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import { DownloadIcon, AlertIcon, UsersIcon, CheckCircleIcon, RefreshIcon, ChatIcon, ClipboardIcon } from './evalIcons';
 import Avatar from '../shared/Avatar.jsx';
@@ -270,15 +272,15 @@ function AtRiskMembers({ atRisk, L, onNudge, isSent }) {
                 <span style={{ fontSize: 12, color: C.sub, width: 180, flexShrink: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={m.managerName || undefined}>{m.managerName ? `${L.managerName} ${m.managerName}` : ''}</span>
                 {/* 못 누르는 이유를 말풍선으로 (정책 §3.3·§8-1). */}
                 <Tooltip content={!m.managerName ? L.noManagerTooltip : sent ? L.sentTooltip : null}>
-                  <button
+                  <Button
                     type="button"
                     disabled={!m.managerName || sent}
                     onClick={() => onNudge({ type: 'request', targetManagerId: m.managerId, targetManagerName: m.managerName, memberId: m.id, memberName: m.name })}
                     data-testid={`fbhr-nudge-atrisk-${m.id}`}
-                    style={{ border: `1px solid ${C.navy}`, background: sent ? C.borderL : 'var(--text-white)', color: sent ? C.muted : C.navy, borderRadius: 8, padding: '5px 10px', fontSize: 'var(--font-size-text-xs)', fontWeight: 600, cursor: !m.managerName || sent ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap', opacity: !m.managerName ? 0.5 : 1 }}
+                    className="evf-btn evf-btn-secondary"
                   >
                     {!m.managerName ? L.noManager : sent ? L.sent : L.nudgeManager}
-                  </button>
+                  </Button>
                 </Tooltip>
               </div>
             );
@@ -324,15 +326,15 @@ function ManagerActivity({ rows, L, onNudge, isSent, notice }) {
               </span>
               {r.activityScore < 70 && (
                 <Tooltip content={sent ? L.sentTooltip : null}>
-                  <button
+                  <Button
                     type="button"
                     disabled={sent}
                     onClick={() => onNudge({ type: 'encourage', targetManagerId: r.id, targetManagerName: r.name, memberId: null, memberName: null })}
                     data-testid={`fbhr-nudge-encourage-${r.id}`}
-                    style={{ border: `1px solid ${C.navy}`, background: sent ? C.borderL : 'var(--text-white)', color: sent ? C.muted : C.navy, borderRadius: 8, padding: '5px 10px', fontSize: 'var(--font-size-text-xs)', fontWeight: 600, cursor: sent ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap' }}
+                    className="evf-btn evf-btn-secondary"
                   >
                     {sent ? L.sent : L.encourage}
-                  </button>
+                  </Button>
                 </Tooltip>
               )}
             </div>
@@ -384,16 +386,18 @@ function NudgeModal({ target, channels, L, onConfirm, onClose }) {
       testId="fbhr-nudge-modal"
     >
       <div>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0', opacity: collabAvail ? 1 : 0.5 }}>
-          <input type="checkbox" checked={collab && collabAvail} disabled={!collabAvail} onChange={(e) => setCollab(e.target.checked)} data-testid="fbhr-ch-collab" />
-          <span style={{ fontSize: 13, color: C.text }}>{L.channelCollab}</span>
-          {!collabAvail && <span style={{ fontSize: 12, color: C.sub }}>({L.notIntegrated})</span>}
-        </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0', opacity: emailAvail ? 1 : 0.5 }}>
-          <input type="checkbox" checked={email && emailAvail} disabled={!emailAvail} onChange={(e) => setEmail(e.target.checked)} data-testid="fbhr-ch-email" />
-          <span style={{ fontSize: 13, color: C.text }}>{L.channelEmail}</span>
-          {!emailAvail && <span style={{ fontSize: 12, color: C.sub }}>({L.notIntegrated})</span>}
-        </label>
+        <div style={{ padding: '8px 0', opacity: collabAvail ? 1 : 0.5 }}>
+          <Checkbox checked={collab && collabAvail} disabled={!collabAvail} onChange={(e) => setCollab(e.target.checked)} data-testid="fbhr-ch-collab">
+            {L.channelCollab}
+            {!collabAvail && <span style={{ fontSize: 12, color: C.sub }}> ({L.notIntegrated})</span>}
+          </Checkbox>
+        </div>
+        <div style={{ padding: '8px 0', opacity: emailAvail ? 1 : 0.5 }}>
+          <Checkbox checked={email && emailAvail} disabled={!emailAvail} onChange={(e) => setEmail(e.target.checked)} data-testid="fbhr-ch-email">
+            {L.channelEmail}
+            {!emailAvail && <span style={{ fontSize: 12, color: C.sub }}> ({L.notIntegrated})</span>}
+          </Checkbox>
+        </div>
         <p style={{ fontSize: 12, margin: '8px 0 0', color: !collabAvail && !emailAvail ? C.red : !collabAvail ? C.amber : C.sub }}>
           {!collabAvail && <><AlertIcon size={13} /> </>}
           {!collabAvail && !emailAvail ? L.channelNone : !collabAvail ? L.channelEmailOnly : L.channelHint}
