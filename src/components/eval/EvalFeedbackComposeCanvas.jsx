@@ -341,6 +341,9 @@ function ModalComposeBox({ block, memberName, L, onSend, onAiDraft }) {
   const [text, setText] = useState('');
   const [aiState, setAiState] = useState('idle'); // idle | loading | done
   const [personalized, setPersonalized] = useState(false);
+  // 초안이 KR 달성률·스니핏을 재료로 썼나. 거짓이면 «스니핏·OKR 기반» 안내를 숨긴다 —
+  // 메모만으로 쓴 초안에 그 문구가 붙으면 근거 있는 글로 믿게 된다. 값을 안 주면 예전처럼 띄운다.
+  const [grounded, setGrounded] = useState(true);
   const [busy, setBusy] = useState(false);
   const maxLen = useFeedbackTextLimit();
   const tooLong = useFeedbackTextTooLong(text);
@@ -365,6 +368,7 @@ function ModalComposeBox({ block, memberName, L, onSend, onAiDraft }) {
     }
     setText(draft);
     setPersonalized(typeof res === 'object' ? !!res.personalized : false);
+    setGrounded(typeof res === 'object' ? res.grounded !== false : true);
     setAiState('done');
   };
   const send = async () => {
@@ -428,7 +432,7 @@ function ModalComposeBox({ block, memberName, L, onSend, onAiDraft }) {
           </button>
         </span>
       </div>
-      {aiState === 'done' && <p style={{ fontSize: 12, color: C.sub, margin: 0 }}><CpuIcon size={11} /> {L.aiFooter}</p>}
+      {aiState === 'done' && grounded && <p style={{ fontSize: 12, color: C.sub, margin: 0 }}><CpuIcon size={11} /> {L.aiFooter}</p>}
     </div>
   );
 }
