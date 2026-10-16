@@ -41,7 +41,7 @@ const DEFAULT_LABELS = {
  */
 export default function EvalPeerResignedSection({
   labels,
-  /** `[{ id, evaluateeId, evaluateeName, evaluatorId, evaluatorName }]`. */
+  /** `[{ id, evaluateeId, evaluateeName, evaluatorId, evaluatorName, takenReviewerIds }]`. */
   rows = [],
   /** 대체 후보 `[{ id, name, org, resigned }]` — 퇴사자·대상자 본인은 목록에서 뺀다. */
   people = [],
@@ -83,6 +83,8 @@ export default function EvalPeerResignedSection({
           !p.resigned &&
           p.id !== openRow.evaluateeId &&
           p.id !== openRow.evaluatorId &&
+          /* 이미 그 대상자와 짝이 있는 사람은 고를 수 없다(서버가 거절한다). */
+          !(openRow.takenReviewerIds ?? []).includes(p.id) &&
           (!q ||
             String(p.name ?? '').toLowerCase().includes(q) ||
             String(p.org ?? '').toLowerCase().includes(q)),
