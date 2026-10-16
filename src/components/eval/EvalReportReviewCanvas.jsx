@@ -76,6 +76,12 @@ const DEFAULT_LABELS = {
   refineFailedNote:
     '다듬지 못했습니다. 다시 시도하거나, 원문 그대로 보내려면 「원문 유지」를 고르세요.',
   refinePendingNote: '다듬는 중입니다. 잠시 뒤 다시 열어 보세요.',
+  // PW-1853 — 체험 AI 횟수를 다 써서 정제를 건너뛴 «대기 중» (정책 §9.4 ②). 정제 실패와 같은 두 선택.
+  refineTrialSkippedNote:
+    '체험 AI 사용 횟수를 모두 써서 다듬지 않았습니다. 원문 그대로 보내거나 발송을 보류하세요.',
+  refineSendOriginal: '원문 그대로 발송',
+  refineHold: '발송 보류',
+  refineHeldNote: '발송을 보류했습니다. 검수를 끝낼 때까지 이 구성원의 리포트는 나가지 않습니다.',
   refineDecided: '검수 완료',
   refineError: '검수 결과를 저장하지 못했습니다.',
   refineLoadError: '검수 목록을 불러오지 못했습니다.',
@@ -249,6 +255,8 @@ function RefinementPanel({ memberId, L, load, onDecide, onRetry }) {
   const [busyId, setBusyId] = useState(null);
   const [editing, setEditing] = useState(null);
   const [draft, setDraft] = useState('');
+  /** PW-1853 — 「발송 보류」를 고른 리뷰. 서버에 남기는 값이 아니다 — 보류는 «검수 미완 그대로 둔다»이다(§8.5-B). */
+  const [held, setHeld] = useState(() => new Set());
 
   // 칸을 펼칠 때 한 번 읽어 온다. `setError(null)` 을 여기서 부르지 않는 것은
   // 렌더가 연쇄로 도는 것을 막기 위해서다 — 이 칸은 펼칠 때 새로 생기므로 초기값이 곧 비움이다.
@@ -356,8 +364,16 @@ function RefinementPanel({ memberId, L, load, onDecide, onRetry }) {
               {item.status === 'failed' && (
                 <p className="evrr-refine-note">{L.refineFailedNote}</p>
               )}
-              {item.status === 'pending' && (
+              {item.status === 'pending' && !item.trialSkipped && (
                 <p className="evrr-refine-note">{L.refinePendingNote}</p>
+              )}
+              {item.status === 'pending' && item.trialSkipped && (
+                <p
+                  className="evrr-refine-note"
+                  data-testid={`evrr-refine-trial-skipped-${item.answerId}`}
+                >
+                  {held.has(item.answerId) ? L.refineHeldNote : L.refineTrialSkippedNote}
+                </p>
               )}
 
               {isEditing ? (
@@ -395,6 +411,40 @@ function RefinementPanel({ memberId, L, load, onDecide, onRetry }) {
               ) : item.status === 'refined' ? (
                 <span className="evrr-muted" data-testid={`evrr-refine-done-${item.answerId}`}>
                   {L.refineDecided}
+                </span>
+              ) : item.status === 'pending' && item.trialSkipped ? (
+                <span className="evrr-refine-actions">
+                  <button
+                    type="button"
+                    className="evc-btn"
+                    disabled={busy}
+                    onClick={() => run(item.answerId, () => onRetry(item.answerId))}
+                    data-testid={`evrr-refine-retry-${item.answerId}`}
+                  >
+                    {L.refineRetry}
+                  </button>
+                  <button
+                    type="button"
+                    className="evc-btn"
+                    disabled={busy}
+                    onClick={() =>
+                      run(item.answerId, () =>
+                        onDecide(item.answerId, 'keep_original'),
+                      )
+                    }
+                    data-testid={`evrr-refine-keep-${item.answerId}`}
+                  >
+                    {L.refineSendOriginal}
+                  </button>
+                  <button
+                    type="button"
+                    className="evc-btn"
+                    disabled={busy || held.has(item.answerId)}
+                    onClick={() => setHeld((prev) => new Set(prev).add(item.answerId))}
+                    data-testid={`evrr-refine-hold-${item.answerId}`}
+                  >
+                    {L.refineHold}
+                  </button>
                 </span>
               ) : (
                 <span className="evrr-refine-actions">
@@ -473,6 +523,7 @@ function ReviewRow({
   canReject,
   onAskReject,
   onRegenerate,
+  trialAiNotice,
 }) {
   const [comment, setComment] = useState('');
   const [regenBusy, setRegenBusy] = useState(false);
@@ -496,6 +547,13 @@ function ReviewRow({
     !excluded &&
     (row.status === 'pending' || row.status === 'leader_rejected');
   const aiState = row.aiInsightState ?? 'none';
+  // PW-1853 — 체험 AI 횟수를 다 써서 리포트 해설이나 톤 정제를 건너뛴 줄. 누르지 않아도 결제 안내를 띄운다(정책 §9.4 ①②).
+  const trialRowNotice =
+    !excluded &&
+    trialAiNotice &&
+    (aiState === 'trial_exhausted' || row.peerRefinementTrialSkipped === true)
+      ? trialAiNotice
+      : null;
   const meta = excluded
     ? EXCLUDED_META
     : (STATUS_META[row.status] ?? STATUS_META.pending);
@@ -629,9 +687,11 @@ function ReviewRow({
             {L.aiGenerating}
           </span>
         )}
-        {!excluded && aiState === 'failed' && (
-          <span className="evrr-ai-state" data-testid={`evrr-ai-failed-${row.memberId}`}>
-            <StatusBadge className="evrr-badge is-failed">{L.aiFailed}</StatusBadge>
+        {!excluded && (aiState === 'failed' || aiState === 'trial_exhausted') && (
+          <span className="evrr-ai-state" data-testid={`evrr-ai-${aiState === 'failed' ? 'failed' : 'trial'}-${row.memberId}`}>
+            {aiState === 'failed' && (
+              <StatusBadge className="evrr-badge is-failed">{L.aiFailed}</StatusBadge>
+            )}
             {canReject && onRegenerate && (
               <button
                 type="button"
@@ -707,7 +767,10 @@ function ReviewRow({
         )}
       </div>
     </div>
-    {regenNotice && aiState === 'failed' && (
+    {trialRowNotice && (
+      <div data-testid={`evrr-trial-notice-${row.memberId}`}>{trialRowNotice}</div>
+    )}
+    {regenNotice && !trialRowNotice && (aiState === 'failed' || aiState === 'trial_exhausted') && (
       <div data-testid={`evrr-ai-regenerate-notice-${row.memberId}`}>{regenNotice}</div>
     )}
     {open && hasSections && (
@@ -779,6 +842,12 @@ export default function EvalReportReviewCanvas({
    * 실패하면 throw 한다. 버튼은 `queue.canReject`(인사담당자) 일 때만 그린다.
    */
   onRegenerate = null,
+  /**
+   * PW-1853 — 체험 AI 횟수를 다 써서 리포트 해설(`aiInsightState: 'trial_exhausted'`)이나 톤 정제
+   * (`peerRefinementTrialSkipped`)를 건너뛴 줄 아래에 «누르지 않아도» 띄울 결제 안내 노드(정책 §9.4 ①②).
+   * 호출부가 지금도 소진인지 보고 넘긴다 — 결제한 뒤에는 안 준다. 안 주면 그리지 않는다.
+   */
+  trialAiNotice = null,
   onApprove,
   onSend,
 }) {
@@ -1110,6 +1179,7 @@ export default function EvalReportReviewCanvas({
                 canReject={canReject}
                 onAskReject={onReject ? askReject : null}
                 onRegenerate={onRegenerate ? handleRegenerate : null}
+                trialAiNotice={trialAiNotice}
               />
             ))
           )}
