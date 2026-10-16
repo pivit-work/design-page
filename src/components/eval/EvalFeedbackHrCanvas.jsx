@@ -289,7 +289,7 @@ function AtRiskMembers({ atRisk, L, onNudge, isSent }) {
   );
 }
 
-function ManagerActivity({ rows, L, onNudge, isSent }) {
+function ManagerActivity({ rows, L, onNudge, isSent, notice }) {
   if (!rows || rows.length === 0) {
     return (
       <div style={CARD_STYLE} data-testid="fbhr-managers-empty">
@@ -303,6 +303,8 @@ function ManagerActivity({ rows, L, onNudge, isSent }) {
       <div style={{ fontSize: 'var(--font-size-text-sm)', fontWeight: 700, color: C.text }}>{L.managerActivityTitle}</div>
       <div style={{ fontSize: 'var(--font-size-text-xs)', color: C.sub, marginBottom: 4 }}>{L.managerActivitySub}</div>
       <div data-testid="fbhr-activity-usage-notice" style={{ fontSize: 'var(--font-size-text-xs)', color: C.sub, marginBottom: 12 }}>{L.managerActivityUsageNotice}</div>
+      {/* PW-1848 — 체험 AI 소진이면 SBI 판정을 안 해 준수율이 멈춘다. 그 까닭을 누르지 않아도 안내문 아래에 띄운다(feedback-hr.policy §2.5) */}
+      {notice}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {rows.map((r, i) => {
           const sent = isSent('encourage', r.id, null);
@@ -425,6 +427,8 @@ export default function EvalFeedbackHrCanvas({
    * 앱이 명단을 다시 받아 보니 비었으면 `'empty'` 를 돌려준다 → 「내보낼 데이터가 없습니다」.
    */
   onExport,
+  /** 「매니저별 피드백 활동」 안내문 아래에 거는 안내(ReactNode) — 체험 AI 소진 때 앱이 결제 안내를 넣는다 (PW-1848). */
+  managerActivityNotice = null,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const kpi = dashboard?.kpi ?? { total: 0, covered: 0, coveragePct: null, avgInterval: 0, reactionRate: 0 };
@@ -558,7 +562,7 @@ export default function EvalFeedbackHrCanvas({
           : <AtRiskMembers atRisk={atRisk} L={L} onNudge={openNudge} isSent={isSent} />}
         {view.managerActivity === 'loading' ? <SectionLoading testId="fbhr-managers-loading" />
           : view.managerActivity === 'error' ? <SectionError L={L} onRetry={retry('managerActivity')} testId="fbhr-managers-error" />
-          : <ManagerActivity rows={managerActivity} L={L} onNudge={openNudge} isSent={isSent} />}
+          : <ManagerActivity rows={managerActivity} L={L} onNudge={openNudge} isSent={isSent} notice={managerActivityNotice} />}
       </div>
       {nudgeTarget && (
         <NudgeModal target={nudgeTarget} channels={channels} L={L} onConfirm={handleNudgeConfirm} onClose={() => setNudgeTarget(null)} />
