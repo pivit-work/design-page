@@ -5559,6 +5559,60 @@
   white-space: pre-wrap;
 }
 
+/* [PW-1846] 성과 하이라이트 — 번호 원 + 답 글 + 출처 딱지 */
+.evr-highlights {
+  list-style: none;
+  margin: var(--spacing-md) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+.evr-highlight {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+}
+.evr-highlight-num {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-text-xs);
+  font-weight: 700;
+  background: var(--bg-success-primary);
+  color: var(--text-success-primary);
+}
+.evr-highlight .evr-answer { gap: var(--spacing-xs); min-width: 0; }
+
+/* [PW-1846] 내 평가 리포트 [PDF 저장] — 리포트가 떠 있을 때만 인쇄 모양을 바꾼다.
+   셸(.app)은 높이 고정·넘침 잘림, 메뉴·본문 칸은 position:fixed 라 그대로 찍으면 첫 쪽에서 잘린다. */
+@media print {
+  body:has(.evr-print-root) .sidebar,
+  body:has(.evr-print-root) .top-nav,
+  body:has(.evr-print-root) [data-print-hide] {
+    display: none !important;
+  }
+  html:has(.evr-print-root),
+  body:has(.evr-print-root),
+  body:has(.evr-print-root) #root,
+  body:has(.evr-print-root) .app,
+  body:has(.evr-print-root) .app *:has(.evr-print-root) {
+    position: static !important;
+    inset: auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    transform: none !important;
+  }
+  .evr-print-root .evc-card { break-inside: avoid; }
+}
+
 /* ── G9: 등급 앵커 툴팁 ── */
 .evr-grade-anchor {
   position: relative;

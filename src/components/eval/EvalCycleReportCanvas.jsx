@@ -15,6 +15,12 @@ import { scaleMaxOf, categoryKind } from './evalTemplateItemModel.js';
  *
  * `leaderComment`(선택) — 매니저가 리포트 검수에서 남긴 최종 코멘트. «리더 코멘트» 카드
  * 맨 위에 그린다. 하향 답이 없어도 이 글이 있으면 카드를 그린다.
+ *
+ * `highlights`(선택) — [PW-1846] 「성과 하이라이트」: `{ text, date }[]`(평가 기간 스니핏 「하이라이트」 칸).
+ * 끌 수 없는 필수 칸이라 `sections` 를 보지 않고, 0건이면 칸을 그리지 않는다.
+ *
+ * `onPrint`(선택) — [PW-1846] 머리 오른쪽 [PDF 저장]. 넘기면 버튼을 그린다(소비 측은 `window.print`).
+ * 인쇄 때는 버튼·셸 메뉴를 빼고 본문만 찍는다(`eval-cycle.css` 의 `@media print`).
  */
 
 const DEFAULT_LABELS = {
@@ -47,6 +53,10 @@ const DEFAULT_LABELS = {
   /** PW-1458 — 응답 인원이 공개 기준 미만이라 뺀 동료 항목이 있을 때 (정책 §12). */
   peerBelowMin: '응답 인원이 공개 기준 미만입니다',
   growthTitle: '성장 영역 & 개선',
+  highlightsTitle: '성과 하이라이트',
+  /** `{date}` 자리에 「M/D」. */
+  highlightSource: '스니핏 {date}',
+  printButton: 'PDF 저장',
   selfTitle: '나의 셀프 리뷰',
   catWork: '업적',
   catCompetency: '역량',
@@ -260,6 +270,37 @@ function AiInsight({ insight, L }) {
   );
 }
 
+// ── [PW-1846] 성과 하이라이트 — 스니핏 「하이라이트」 칸, 줄마다 출처 날짜 ──
+function shortDate(iso) {
+  const [, m, d] = String(iso || '').split('-');
+  return m && d ? `${Number(m)}/${Number(d)}` : '';
+}
+function Highlights({ highlights, L }) {
+  if (!highlights || highlights.length === 0) return null;
+  return (
+    <section className="evc-card" data-testid="evr-highlights">
+      <h3 className="evc-card-name">{L.highlightsTitle}</h3>
+      <ol className="evr-highlights">
+        {highlights.map((h, i) => (
+          <li className="evr-highlight" key={`${h.date}-${i}`}>
+            <span className="evr-highlight-num" aria-hidden>
+              {i + 1}
+            </span>
+            <div className="evr-answer">
+              <p className="evr-answer-text">{h.text}</p>
+              <span>
+                <StatusBadge className="evr-insight-badge">
+                  {String(L.highlightSource || '').replace('{date}', shortDate(h.date))}
+                </StatusBadge>
+              </span>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
 // ── 성장 영역 & 개선 ──
 function GrowthAreas({ selfAnswers, L }) {
   const byType = useMemo(() => {
@@ -315,6 +356,8 @@ export default function EvalCycleReportCanvas({
   peerBelowDisclosureMin = false,
   selfGap = [],
   insight = null,
+  highlights = [],
+  onPrint,
   sections,
   labels: providedLabels,
 }) {
@@ -342,12 +385,24 @@ export default function EvalCycleReportCanvas({
   }
 
   return (
-    <div className="evc-root">
+    <div className="evc-root evr-print-root">
       <header className="evc-header">
         <div>
           <h1 className="evc-title">{L.title}</h1>
           {cycle?.name && <p className="evc-summary">{cycle.name}</p>}
         </div>
+        {onPrint && (
+          <div className="evc-header-actions" data-print-hide>
+            <button
+              type="button"
+              className="evc-btn is-primary"
+              onClick={onPrint}
+              data-testid="evr-print"
+            >
+              {L.printButton}
+            </button>
+          </div>
+        )}
       </header>
 
       <div className="evc-list">
@@ -421,6 +476,8 @@ export default function EvalCycleReportCanvas({
             {peerAnswers.length > 0 && <AnswerList answers={peerAnswers} L={L} />}
           </section>
         )}
+
+        <Highlights highlights={highlights} L={L} />
 
         {on('growth') && <GrowthAreas selfAnswers={selfAnswers} L={L} />}
 
