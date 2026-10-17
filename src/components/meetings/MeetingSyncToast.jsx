@@ -12,6 +12,8 @@ import Icon from '../shared/Icon.jsx';
  *   - onClose 를 안 주면 닫기(X)를 그리지 않는다 — 닫을 수 없는 경고도 있다
  *   - closeLabel 로 닫기 버튼의 읽는 이름을 바꿀 수 있다 (기본 '닫기')
  *   - 나머지 속성(data-* 등)은 겉 상자에 그대로 붙는다
+ *   - portal={false} 면 body 로 옮기지 않고 그 자리에 그린다 — 여러 알림을 한 자리에 쌓는 호출부가
+ *     위치를 정한다 (PW-1928 캘리브레이션 위원회 화면 오른쪽 아래)
  */
 export default function MeetingSyncToast({
   title,
@@ -21,9 +23,10 @@ export default function MeetingSyncToast({
   onClose,
   closeLabel = '닫기',
   baseUrl = '',
+  portal = true,
   ...rest
 }) {
-  return createPortal(
+  const toast = (
     <div className="meeting-sync-toast" role="alert" {...rest}>
       <Icon
         src="/icons-solid/alert-circle.svg"
@@ -46,7 +49,7 @@ export default function MeetingSyncToast({
           <Icon src="/icons-solid/x-close.svg" size={20} color="var(--text-tertiary)" baseUrl={baseUrl} />
         </button>
       )}
-    </div>,
-    document.body
+    </div>
   );
+  return portal ? createPortal(toast, document.body) : toast;
 }

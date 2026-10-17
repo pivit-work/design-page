@@ -1,7 +1,9 @@
 import { useState, useMemo, useEffect, useRef, Fragment } from 'react';
+import { createPortal } from 'react-dom';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
+import MeetingSyncToast from '../meetings/MeetingSyncToast.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Tabs from '../shared/Tabs.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
@@ -53,7 +55,6 @@ const DEFAULT_LABELS = {
   periodQuarter: '분기',
   periodHalf: '반기',
   periodAnnual: '연간',
-  workspaceSubtitle: '조견표 로스터 → 9칼럼 조정 테이블 → 어필 1인 재검토',
   tabOverview: '전사 요약',
   tabDept: '부서별 분석',
   tabIntegrated: '피평가자 통합 요약',
@@ -94,9 +95,7 @@ const DEFAULT_LABELS = {
   // summary policy §10.G.2 — 완료 세션은 회색 「완료」 배지.
   cwStatusClosed: '완료',
   cwCommitBtn: '최종 확정',
-  cwClosedBadge: '확정 완료 — 조정·위원 변경 불가',
   cwBack: '← 목록',
-  cwReadOnlyBadge: '조회 전용 — 조정·확정은 위원장만',
   cwColNo: '#',
   cwColName: '이름',
   cwColJob: '직무',
@@ -149,8 +148,6 @@ const DEFAULT_LABELS = {
   cwPromoReadyYes: '승진 고려 대상으로 표시함',
   cwCompNoteLabel: '보상 메모',
   cwCompOpinionLabel: '보상 조정 의견',
-  cwCompUnassignedBanner:
-    '보상·연봉 열람 권한이 아직 지정되지 않아 가려져 있습니다. 인사담당자가 설정에서 지정할 수 있습니다.',
   cwCompAssign: '지정하기',
   cwCompBannerClose: '닫기',
   cwCompAccessBtn: '보상 열람 권한 {n}명',
@@ -227,7 +224,7 @@ const DEFAULT_LABELS = {
   cwDistTitle: '등급 분포',
   cwDistCount: '{n}명',
   // 요약 정책 §10.G.3 — 무엇을 셌는지 머리에 적는다. 필터 결과 0명이면 막대에 「대상자 없음」.
-  cwDistAll: '전체 · {n}명',
+  cwDistAll: '{n}명',
   cwDistFiltered: '필터 선별 · {n}명 / 전체 {total}명',
   cwDistNoTargets: '대상자 없음',
   // §10.G.5·§10.G.9 필터 결과 0건
@@ -243,8 +240,6 @@ const DEFAULT_LABELS = {
   cwExpandAllCapped: '50행만 펼쳐집니다',
   // §10.G.7 같은 직급 이해상충 숨김
   cwConflictHidden: '{n}명이 이해상충으로 제외되었습니다.',
-  cwConflictShow: '보기',
-  cwConflictHide: '다시 숨기기',
   // arch 조정자 표기 · §10.G.6 어필 중
   cwAdjusterBadge: '조정자 {name}',
   cwAppealInProgress: '어필 중',
@@ -332,7 +327,6 @@ const DEFAULT_LABELS = {
   cwReviewedByLabel: '결정',
   cwReviewOnlyNote: 'HR은 조회 전용입니다. 재검토는 위원회 위원만 가능합니다.',
   cwExclusionBanner: '이해상충 자동 제외 적용 중 — {n}명(위원 겸 대상자) 제외됨',
-  cwExportCsv: 'CSV',
   cwDetailSelf: '올해 셀프 서머리',
   cwDetailManager: '매니저 코멘트',
   cwDetailPeer: '동료 리뷰 요약(익명)',
@@ -345,7 +339,6 @@ const DEFAULT_LABELS = {
   cwDetailFailed: '대상자 정보를 불러오지 못했습니다. 접었다 다시 펼치면 다시 불러옵니다.',
   cwDetailLogs: '변경 로그',
   cwLevelMixWarn: '이 세션에 여러 직급·레벨이 혼재합니다. 동일 레벨끼리 비교하는 것을 권장합니다.',
-  cwLevelMixLabel: '레벨 구성',
   cwLevelMixCount: '{level} {n}명',
   cwLevelUnassigned: '미지정',
   cwDetailEmpty: '내용 없음',
@@ -427,6 +420,24 @@ const DEFAULT_LABELS = {
     '이어받을 위원이 없습니다. 위원을 먼저 추가한 뒤 제외하세요.',
   // 기획 spec-calibration §3.4④ 문구 그대로 — 표 맨 위와 위원 관리 창에 같은 문장.
   cwManageChairAuto: '위원장이 자동 지정되었습니다 — 변경하려면 위원 관리에서 이양하세요',
+  // PW-1928 표 위 정리 — 제목 옆 상태·권한, 버튼 줄, 오른쪽 아래 알림, 등급 분포 한 줄 범례.
+  cwStateClosed: '확정 완료',
+  cwModeReadOnly: '조회 전용',
+  cwModeReadOnlyHint: '등급 조정·확정은 위원장만 할 수 있습니다.',
+  cwModeClosedHint: '확정 완료된 위원회는 등급 조정·위원 변경을 할 수 없습니다.',
+  cwConflictBtn: '이해상충 제외',
+  cwConflictShowHint: '누르면 다시 보입니다.',
+  cwConflictShownHint: '직급이 같은 {n}명을 표에 보이는 중입니다. 누르면 다시 뺍니다.',
+  cwManageMenu: '관리',
+  cwExportCsvMenu: 'CSV 받기',
+  cwCompToastTitle: '보상 열람 권한을 가진 사람이 없습니다',
+  cwCompToastDetail: '지정하기 전까지 모든 위원에게 보상 정보가 가려집니다.',
+  cwDistSegTip: '{label} {n}명 · {pct}%',
+  cwDistRatio: '{pct}% · 권장 {rec}%',
+  cwDistPct: '{pct}%',
+  cwDistOverRec: '권장보다 {p}%p 많음',
+  cwDistUnderRec: '권장보다 {p}%p 적음',
+  cwLevelMixShort: '직급 {n}개 섞임',
   // summary policy §10.G.2-D — 위원 관리 창 안의 위원장 부재 배너(이름 포함).
   cwManageChairAutoNamed: '위원장이 자동 지정되었습니다({name}). 변경하려면 이양하세요',
   cwManageLastMember: '위원회에는 최소 1명의 위원이 필요합니다',
@@ -1549,7 +1560,14 @@ function distributionHue(index, total) {
   return hues ? hues[index - 1] : DIST_EXTRA_HUES[(index - 1) % DIST_EXTRA_HUES.length];
 }
 
-function CalibDistributionBar({ rows, orderedGrades, L, total = rows.length, filterActive = false }) {
+/**
+ * §4.1 등급 분포 · §4.5 레벨 구성 (PW-1928) — 테두리 상자 없이 머리 한 줄 + 높이 12 쌓은 막대 + 한 줄 범례.
+ * 막대는 OKR 내 리소스의 쌓은 막대(.rsx-stackbar), 빨간 알약은 같은 화면의 「초과」 알약(.rsx-total-warn),
+ * 직급 경고 세모는 팀 스니핏 KR별 탭의 경고 세모를 따른다.
+ * 비율·권장(%)과 직급별 인원은 기획서가 «늘 보이게» 정해 두어 회색 글로 남긴다 — 말풍선으로 옮길지는
+ * PW-1929 에서 기획 답을 기다린다.
+ */
+function CalibDistributionBar({ rows, orderedGrades, L, total = rows.length, filterActive = false, levelMix = null }) {
   const n = rows.length;
   const seg = orderedGrades.map((g, i) => ({
     ...g,
@@ -1561,10 +1579,11 @@ function CalibDistributionBar({ rows, orderedGrades, L, total = rows.length, fil
   const graded = seg.reduce((sum, g) => sum + g.count, 0);
   const noGrade = n - graded;
   const pct = (c) => (n ? Math.round((c / n) * 1000) / 10 : 0);
+  const levels = (levelMix?.entries ?? []).filter((e) => e.key != null);
   return (
     <div className="evs-cw-dist" data-testid="evs-cw-dist">
       <div className="evs-cw-dist-head">
-        <span className="evs-cw-dist-title">{L.cwDistTitle}</span>
+        <span className="evs-cw-dist-title">{L.cwDistTitle} ·</span>
         <span className="evs-cw-dist-count" data-testid="evs-cw-dist-count">
           {filterActive ? fmt(L.cwDistFiltered, { n, total }) : fmt(L.cwDistAll, { n })}
         </span>
@@ -1579,77 +1598,100 @@ function CalibDistributionBar({ rows, orderedGrades, L, total = rows.length, fil
             <InfoIcon size={16} />
           </span>
         </Tooltip>
-      </div>
-      <div className="evs-cw-dist-bar">
-        {n === 0 ? (
-          <div className="evs-cw-dist-empty">{L.cwDistNoTargets}</div>
-        ) : (
-          <>
-            {seg.map((g) =>
-              g.count > 0 ? (
-                <Tooltip key={g.gradeKey} content={`${g.label} ${g.count} (${pct(g.count)}%)`}>
-                  <div
-                    className={`evs-cw-dist-seg hue-${g.hue}`}
-                    style={{ width: `${(g.count / n) * 100}%` }}
-                    data-testid="evs-cw-dist-seg"
-                  >
-                    {g.count / n >= 0.09 ? `${g.label} ${pct(g.count)}%` : ''}
-                  </div>
-                </Tooltip>
-              ) : null,
-            )}
-            {noGrade > 0 && (
-              <Tooltip content={fmt(L.cwDistNoGradeBar, { n: noGrade, pct: pct(noGrade) })}>
-              <div
-                className="evs-cw-dist-seg is-nograde"
-                style={{ width: `${(noGrade / n) * 100}%` }}
-                data-testid="evs-cw-dist-seg-nograde"
-              >
-                {noGrade / n >= 0.09
-                  ? fmt(L.cwDistNoGradeBar, { n: noGrade, pct: pct(noGrade) })
-                  : ''}
-              </div>
-              </Tooltip>
-            )}
-          </>
+        {/* §4.5 — 세션에 직급이 둘 이상 섞이면 경고. 직급을 아무도 안 적은 회사에서는 셀 것이 없어 띄우지 않는다. */}
+        {levelMix?.mixed && (
+          <Tooltip content={L.cwLevelMixWarn}>
+            <span className="evs-cw-dist-levelwarn" tabIndex={0} data-testid="evs-cw-levelmix">
+              <AlertIcon size={16} />
+              {fmt(L.cwLevelMixShort, { n: levels.length })}
+            </span>
+          </Tooltip>
+        )}
+        {levels.length > 0 && (
+          <span className="evs-cw-dist-levels" data-testid="evs-cw-levelmix-bar">
+            {(levelMix?.entries ?? []).map((e, i) => (
+              <Fragment key={e.key ?? '__none'}>
+                {i > 0 ? ' · ' : ''}
+                <span data-testid="evs-cw-levelmix-chip">
+                  {fmt(L.cwLevelMixCount, { level: e.key ?? L.cwLevelUnassigned, n: e.n })}
+                </span>
+              </Fragment>
+            ))}
+          </span>
         )}
       </div>
-      <div className="evs-cw-dist-chips">
+      {n === 0 ? (
+        <div className="evs-cw-dist-empty">{L.cwDistNoTargets}</div>
+      ) : (
+        <div className="evs-cw-dist-bar">
+          {seg.map((g) =>
+            g.count > 0 ? (
+              <Tooltip
+                key={g.gradeKey}
+                content={fmt(L.cwDistSegTip, { label: g.label, n: g.count, pct: pct(g.count) })}
+              >
+                <div
+                  className={`evs-cw-dist-seg hue-${g.hue}`}
+                  style={{ flexGrow: g.count }}
+                  data-testid="evs-cw-dist-seg"
+                />
+              </Tooltip>
+            ) : null,
+          )}
+          {noGrade > 0 && (
+            <Tooltip content={fmt(L.cwDistNoGradeBar, { n: noGrade, pct: pct(noGrade) })}>
+              <div
+                className="evs-cw-dist-seg is-nograde"
+                style={{ flexGrow: noGrade }}
+                data-testid="evs-cw-dist-seg-nograde"
+              />
+            </Tooltip>
+          )}
+        </div>
+      )}
+      <div className="evs-cw-dist-legend">
         {seg.map((g) => {
           const p = pct(g.count);
           const rec = g.recommendedPct;
           const delta = rec == null ? 0 : Math.round((p - rec) * 10) / 10;
           const off = Math.abs(delta) >= 10;
           return (
-            <StatusBadge as="div"
+            <span
               key={g.gradeKey}
-              className={`evs-cw-dist-chip hue-${g.hue}${off ? ' is-off' : ''}${g.count === 0 ? ' is-zero' : ''}`}
-              data-testid="evs-cw-dist-chip">
+              className={`evs-cw-dist-item${g.count === 0 ? ' is-zero' : ''}`}
+              data-testid="evs-cw-dist-chip"
+            >
               <span className={`evs-cw-dist-dot hue-${g.hue}`} />
-              <span className="evs-cw-dist-chip-label">{g.label}</span>
-              <span className="evs-cw-dist-chip-count">{g.count}</span>
-              {rec != null && (
-                <span className="evs-cw-dist-chip-rec">
-                  {fmt(L.cwDistRec, { pct: rec })}
-                  {delta !== 0 && (
-                    <span className={`evs-cw-dist-delta${off ? ' is-off' : ''}`}>
-                      {delta > 0 ? ' ▲' : ' ▼'}
-                      {Math.abs(delta)}p
-                    </span>
-                  )}
+              <span className="evs-cw-dist-item-label">{g.label}</span>
+              <b className="evs-cw-dist-item-count">{g.count}</b>
+              {/* §4.1 — 비율은 늘 보인다. 권장이 있는 템플릿이면 권장과 차이를 붙인다. */}
+              <span className="evs-cw-dist-ratio">
+                {rec != null ? fmt(L.cwDistRatio, { pct: p, rec }) : fmt(L.cwDistPct, { pct: p })}
+                {rec != null && (
+                  <>
+                    {!off && delta !== 0 && (
+                      <span className="evs-cw-dist-delta">
+                        {delta > 0 ? ' ▲' : ' ▼'}
+                        {Math.abs(delta)}p
+                      </span>
+                    )}
+                  </>
+                )}
+              </span>
+              {off && (
+                <span className="evs-cw-dist-off" data-testid="evs-cw-dist-off">
+                  {fmt(delta > 0 ? L.cwDistOverRec : L.cwDistUnderRec, { p: Math.round(Math.abs(delta)) })}
                 </span>
               )}
-            </StatusBadge>
+            </span>
           );
         })}
         {noGrade > 0 && (
-          <StatusBadge as="div"
-            className="evs-cw-dist-chip is-nograde"
-            data-testid="evs-cw-dist-chip-nograde">
+          <span className="evs-cw-dist-item is-nograde" data-testid="evs-cw-dist-chip-nograde">
             <span className="evs-cw-dist-dot is-nograde" />
-            <span className="evs-cw-dist-chip-label">{L.cwDistNoGrade}</span>
-            <span className="evs-cw-dist-chip-count">{noGrade}</span>
-          </StatusBadge>
+            <span className="evs-cw-dist-item-label">{L.cwDistNoGrade}</span>
+            <b className="evs-cw-dist-item-count">{noGrade}</b>
+          </span>
         )}
       </div>
     </div>
@@ -2218,6 +2260,28 @@ export default function EvalCycleSummaryCanvas({
     conflictShown || conflictIds.length === 0
       ? (calibTable?.rows ?? [])
       : (calibTable?.rows ?? []).filter((r) => !conflictIds.includes(r.memberId));
+  /** PW-1928 「이해상충 제외 N」 — 지금 표에서 빠져 있는 사람(위원 겸 대상자 + 숨긴 같은 직급). */
+  const conflictExcludedCount =
+    (calibTable?.excludedCount ?? 0) + (conflictShown ? 0 : conflictIds.length);
+  // PW-1928 「관리 ▾」 — 가끔 쓰는 위원 관리·보상 열람 권한·CSV 를 묶는다. 바깥을 누르거나 Esc 로 닫는다.
+  const [manageMenuOpen, setManageMenuOpen] = useState(false);
+  const manageMenuRef = useRef(null);
+  useEffect(() => {
+    if (!manageMenuOpen) return undefined;
+    const onDown = (e) => {
+      if (manageMenuRef.current && !manageMenuRef.current.contains(e.target)) setManageMenuOpen(false);
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') setManageMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [manageMenuOpen]);
+  const [chairToastClosed, setChairToastClosed] = useState(false);
   // §10.G.9 「모두 펼치기」가 50행에서 멈췄다는 안내 — 접거나 세션을 바꾸면 걷힌다.
   const [expandCappedSession, setExpandCappedSession] = useState(null);
   // §10.G.4 행 호버 — 500ms 머물면 상세를 불러 달라고 알린다.
@@ -2383,6 +2447,42 @@ export default function EvalCycleSummaryCanvas({
   // 위원 목록은 모달을 연 뒤 비동기로 도착한다. 도착 시 한 번만 체크 상태를 심는다 —
   // 매번 덮으면 사용자가 방금 바꾼 선택이 되돌아간다.
   const seededSessionRef = useRef(null);
+  /** PW-1928 「관리 ▾」 안의 항목 — 보이는 조건은 예전 버튼마다의 조건 그대로다. */
+  const manageItems = [
+    onOpenCommittee && {
+      key: 'committee',
+      testId: 'evs-cw-committee',
+      label: fmt(L.cwManageBtn, { n: calibTable?.session?.committeeCount ?? 0 }),
+    },
+    // PW-519 — 보상·연봉 열람 권한. 인사담당자에게만 있다(명단도 인사 정보다).
+    compView?.canManage && onOpenCompensationAccess && {
+      key: 'comp',
+      testId: 'evs-cw-comp-access-btn',
+      label: compView.unassigned
+        ? L.cwCompAccessBtnNone
+        : fmt(L.cwCompAccessBtn, { n: compView.holderCount ?? 0 }),
+    },
+    // §10·§14 — 위원회·HR 만 받는다(서버가 canExportCsv 로 알려 준다). 파일은 지금 화면에 걸러진 행 그대로다.
+    calibTable?.canExportCsv && onExportCalibCsv && {
+      key: 'csv',
+      testId: 'evs-cw-csv',
+      label: L.cwExportCsvMenu,
+    },
+  ].filter(Boolean);
+  const runManageAction = (key) => {
+    if (key === 'committee') {
+      setShowCreate(true);
+      setCommitteeManage(true);
+      setCommitteeSearch('');
+      setCreateCommittee([]);
+      seededSessionRef.current = null;
+      onOpenCommittee?.();
+    } else if (key === 'comp') {
+      openCompAccess();
+    } else if (key === 'csv') {
+      onExportCalibCsv?.(calibShownRows, calibFilter);
+    }
+  };
   useEffect(() => {
     if (!showCreate || !committeeManage || !sessionCommittee) return;
     if (seededSessionRef.current === sessionCommittee.sessionId) return;
@@ -2782,10 +2882,8 @@ export default function EvalCycleSummaryCanvas({
             {workspaceOnly ? L.workspaceTitle : L.title}
           </h1>
           {workspaceOnly ? (
-            <p className="evc-summary">
-              {L.workspaceSubtitle}
-              {cycle?.name ? ` · ${cycle.name}` : ''}
-            </p>
+            /* PW-1928 — 만든 사람의 메모(「조견표 로스터 → …」)는 빼고 사이클 이름만 남긴다. */
+            cycle?.name && <p className="evc-summary">{cycle.name}</p>
           ) : (
             cycle?.name && (
               <p className="evc-summary">
@@ -3895,6 +3993,8 @@ export default function EvalCycleSummaryCanvas({
 
         {shownTab === 'calib_work' && workspaceOnly && (
           <div className="evs-cw" data-testid="evs-calib-workspace">
+            {/* PW-1928 — 위원회를 열면 권한은 제목 옆 「조회 전용」/「위원장」이 말하므로 이 줄을 걷는다. */}
+            {!selectedCalibSessionId && (
             <div className="evs-cw-banner-row">
               <div
                 className={`evs-cw-banner${cwBannerTone === 'brand' ? ' is-brand' : ''}`}
@@ -3914,6 +4014,7 @@ export default function EvalCycleSummaryCanvas({
                 </button>
               )}
             </div>
+            )}
 
             {showNineBox && nineBox && (
               <ModalShell
@@ -4425,9 +4526,8 @@ export default function EvalCycleSummaryCanvas({
             ) : (
               /* G2 — 세션 9칼럼 테이블 (read-only) */
               <div className="evs-cw-table-view">
-                {/* PW-1927 — 세션 이름이 버튼에 밀려 꺾이지 않게 제목 줄과 버튼 줄을 나눈다
-                    (사이클 관리 머리 `.evc-manage-head` 와 같은 방식). */}
-                <div className="evs-cw-table-head" data-testid="evs-cw-table-head">
+                {/* PW-1928 — 표 위를 «뜻 하나에 부품 하나»로 줄인다. 「목록」은 제목 위 한 줄. */}
+                <div className="evs-cw-back-row">
                   <button
                     type="button"
                     className="evc-btn is-ghost"
@@ -4436,35 +4536,101 @@ export default function EvalCycleSummaryCanvas({
                   >
                     {L.cwBack}
                   </button>
+                </div>
+                {/* PW-1927 · PW-1928 — 제목 줄: 이름 · 범위 · 상태 딱지 · 내가 고칠 수 있나.
+                    모양은 1on1 상세 창 머리(제목 + 완료 딱지 + 「열람모드」 회색 글)를 따른다. */}
+                <div className="evs-cw-table-head" data-testid="evs-cw-table-head">
                   <div className="evs-cw-table-title">{calibTable?.session?.name ?? ''}</div>
                   {calibTable?.session && (
                     <span className="evs-cw-session-meta" data-testid="evs-cw-table-scope">
                       {calibScopeLabel(calibTable.session.scope, L)}
                     </span>
                   )}
-                  {calibTable?.session?.status === 'closed' ? (
-                    /* §7.4 확정 완료 — 위원장에게도 조회 전용이라 사유를 따로 밝힌다. */
-                    <span className="evs-cw-readonly" data-testid="evs-cw-closed">
-                      {L.cwClosedBadge}
+                  {calibTable?.session && (
+                    <span
+                      className={`evs-cw-state-badge is-${
+                        calibTable.session.status === 'closed'
+                          ? 'done'
+                          : calibTable.session.status === 'in_progress'
+                            ? 'live'
+                            : 'draft'
+                      }`}
+                      data-testid="evs-cw-state"
+                    >
+                      {calibTable.session.status === 'closed'
+                        ? L.cwStateClosed
+                        : calibTable.session.status === 'in_progress'
+                          ? L.cwStatusInProgress
+                          : L.cwStatusDraft}
                     </span>
-                  ) : (
-                    calibTable?.readOnly && (
-                      <span className="evs-cw-readonly" data-testid="evs-cw-readonly">
-                        {L.cwReadOnlyBadge}
-                      </span>
-                    )
                   )}
+                  {calibTable?.session &&
+                    (calibTable.session.canCalibrate ? (
+                      <span className="evs-cw-mode" data-testid="evs-cw-mode">
+                        {L.cwRoleChair}
+                      </span>
+                    ) : (
+                      /* §7.4 확정 완료는 위원장에게도 조회 전용이라 사유를 말풍선으로 밝힌다. */
+                      <Tooltip
+                        content={
+                          calibTable.session.status === 'closed'
+                            ? L.cwModeClosedHint
+                            : L.cwModeReadOnlyHint
+                        }
+                      >
+                        <span className="evs-cw-mode" tabIndex={0} data-testid="evs-cw-mode">
+                          {L.cwModeReadOnly}
+                        </span>
+                      </Tooltip>
+                    ))}
                 </div>
+                {/* 버튼 줄 — 자주 쓰는 것은 밖에, 가끔 쓰는 것은 「관리 ▾」 안에, 마지막 한 번은 오른쪽 끝.
+                    회색 버튼은 팀 스니핏 버튼 줄(.mgr-ts-chip), 내림 메뉴는 OKR 「고르기」 메뉴 값을 따른다. */}
                 <div className="evs-cw-table-actions" data-testid="evs-cw-table-actions">
                   <button
                     type="button"
-                    className={`evc-btn is-ghost evs-cw-filter-btn${isCalibFilterActive(calibFilter) ? ' is-active' : ''}`}
+                    className={`evs-cw-tool evs-cw-filter-btn${isCalibFilterActive(calibFilter) ? ' is-active' : ''}`}
                     onClick={() => setShowCalibFilter(true)}
                     data-testid="evs-cw-filter-btn"
                   >
                     {L.cwFilterBtn}
                     {isCalibFilterActive(calibFilter) ? ' ●' : ''}
                   </button>
+                  {/* §8 · §10.G.7 — 이해상충으로 빠진 사람. 위원 겸 대상자(서버가 뺀다)는 되돌릴 수 없고,
+                      나와 직급이 같은 사람(화면이 숨긴다)만 눌러서 다시 보인다. */}
+                  {calibTable && (calibTable.excludedCount > 0 || conflictIds.length > 0) && (
+                    <Tooltip
+                      content={[
+                        calibTable.excludedCount > 0
+                          ? fmt(L.cwExclusionBanner, { n: calibTable.excludedCount })
+                          : null,
+                        conflictIds.length > 0
+                          ? conflictShown
+                            ? fmt(L.cwConflictShownHint, { n: conflictIds.length })
+                            : `${fmt(L.cwConflictHidden, { n: conflictIds.length })} ${L.cwConflictShowHint}`
+                          : null,
+                      ]
+                        .filter(Boolean)
+                        .join(' ')}
+                    >
+                      <button
+                        type="button"
+                        className={`evs-cw-tool evs-cw-conflict-btn${conflictExcludedCount > 0 ? ' is-active' : ''}`}
+                        aria-pressed={conflictExcludedCount > 0}
+                        aria-disabled={conflictIds.length === 0}
+                        onClick={() => {
+                          if (conflictIds.length === 0) return;
+                          setConflictShownSession(conflictShown ? null : selectedCalibSessionId);
+                        }}
+                        data-testid="evs-cw-conflict-toggle"
+                      >
+                        {L.cwConflictBtn}
+                        {conflictExcludedCount > 0 && (
+                          <b data-testid="evs-cw-conflict-count">{conflictExcludedCount}</b>
+                        )}
+                      </button>
+                    </Tooltip>
+                  )}
                   {/* §6.3 — 저장한 프리셋은 창을 열지 않고 표 위에서 한 번에 적용한다. */}
                   {filterPresets.length > 0 && (
                     <select
@@ -4485,31 +4651,12 @@ export default function EvalCycleSummaryCanvas({
                       ))}
                     </select>
                   )}
-                  {onOpenCommittee && (
-                    <button
-                      type="button"
-                      className="evc-btn is-ghost"
-                      onClick={() => {
-                        setShowCreate(true);
-                        setCommitteeManage(true);
-                        setCommitteeSearch('');
-                        setCreateCommittee([]);
-                        seededSessionRef.current = null;
-                        onOpenCommittee?.();
-                      }}
-                      data-testid="evs-cw-committee"
-                    >
-                      {fmt(L.cwManageBtn, {
-                        n: calibTable?.session?.committeeCount ?? 0,
-                      })}
-                    </button>
-                  )}
                   {/* PW-520 표시 항목 — 필터(행 고르기)와 별개 버튼·별개 창이다. 위원도 열어 볼 수는 있다. */}
                   {calibDisplay && (
                     <Tooltip content={canEditDisplay ? L.cwDisplayBtnHintEdit : L.cwDisplayBtnHintView}>
                       <button
                         type="button"
-                        className="evc-btn is-ghost"
+                        className="evs-cw-tool"
                         onClick={() => {
                           setDisplayDraft(null);
                           setDisplaySaveError(false);
@@ -4521,31 +4668,41 @@ export default function EvalCycleSummaryCanvas({
                       </button>
                     </Tooltip>
                   )}
-                  {/* PW-519 — 보상·연봉 열람 권한. 인사담당자에게만 버튼이 있다(명단도 인사 정보다). */}
-                  {compView?.canManage && onOpenCompensationAccess && (
-                    <button
-                      type="button"
-                      className={`evc-btn is-ghost evs-cw-comp-access-btn${compView.unassigned ? ' is-warn' : ''}`}
-                      onClick={openCompAccess}
-                      data-testid="evs-cw-comp-access-btn"
-                    >
-                      <LockIcon size={12} />{' '}
-                      {compView.unassigned
-                        ? L.cwCompAccessBtnNone
-                        : fmt(L.cwCompAccessBtn, { n: compView.holderCount ?? 0 })}
-                    </button>
-                  )}
-                  {/* §10·§14 — 위원회·HR 만 받는다(서버가 canExportCsv 로 알려 준다). 파일은 지금 화면에
-                      걸러진 행 그대로다 — 필터 상태는 함께 넘겨 다운로드 기록에 남긴다. */}
-                  {calibTable?.canExportCsv && onExportCalibCsv && (
-                    <button
-                      type="button"
-                      className="evc-btn is-ghost evs-cw-csv"
-                      onClick={() => onExportCalibCsv(calibShownRows, calibFilter)}
-                      data-testid="evs-cw-csv"
-                    >
-                      {L.cwExportCsv}
-                    </button>
+                  <span className="evs-cw-actions-spacer" />
+                  {manageItems.length > 0 && (
+                    <div className="evs-cw-manage-wrap" ref={manageMenuRef}>
+                      <button
+                        type="button"
+                        className={`evs-cw-tool evs-cw-manage-btn${manageMenuOpen ? ' is-open' : ''}`}
+                        aria-haspopup="menu"
+                        aria-expanded={manageMenuOpen}
+                        onClick={() => setManageMenuOpen((v) => !v)}
+                        data-testid="evs-cw-manage-btn"
+                      >
+                        {L.cwManageMenu}
+                        <ChevronDownIcon size={16} />
+                      </button>
+                      {manageMenuOpen && (
+                        <div className="evs-cw-manage-menu" role="menu" data-testid="evs-cw-manage-menu">
+                          {manageItems.map((item) => (
+                            <div className="evs-cw-manage-item" key={item.key}>
+                              <button
+                                type="button"
+                                role="menuitem"
+                                className="evs-cw-manage-item-inner"
+                                onClick={() => {
+                                  setManageMenuOpen(false);
+                                  runManageAction(item.key);
+                                }}
+                                data-testid={item.testId}
+                              >
+                                {item.label}
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   )}
                   {/* §7.4 최종 확정 — 위원장이고 아직 확정 전일 때만.
                       canCalibrate 는 서버가 (chair && status !== 'closed') 로 내려준다. */}
@@ -4561,84 +4718,40 @@ export default function EvalCycleSummaryCanvas({
                   )}
                 </div>
 
-                {/* §3.4④ — 위원장이 자동 승계로 앉은 상태는 화면 맨 위에서 알린다(위원 관리 창 안에만 두면
-                    그 창을 열기 전엔 아무도 모른다). */}
-                {calibTable?.chairAutoAssigned && (
-                  <div className="evs-cw-exclusion" role="status" data-testid="evs-cw-chair-auto-banner">
-                    {L.cwManageChairAuto}
-                  </div>
-                )}
-
-                {/* PW-519 §4.5-A-4 — 아무에게도 권한이 없으면 조용히 가리지 않고 알린다. */}
-                {compView?.unassigned && !compBannerClosed && (
-                  <div className="evs-cw-exclusion evs-cw-comp-banner" data-testid="evs-cw-comp-banner">
-                    <LockIcon size={12} />
-                    <span className="evs-cw-comp-banner-text">{L.cwCompUnassignedBanner}</span>
-                    {compView.canManage && onOpenCompensationAccess && (
-                      <button
-                        type="button"
-                        className="evs-cw-comp-banner-btn"
-                        onClick={openCompAccess}
-                        data-testid="evs-cw-comp-banner-assign"
-                      >
-                        {L.cwCompAssign}
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      className="evs-cw-comp-banner-x"
-                      aria-label={L.cwCompBannerClose}
-                      onClick={() => setCompBannerClosed(true)}
-                    >
-                      ×
-                    </button>
-                  </div>
-                )}
-                {calibTable && calibTable.excludedCount > 0 && (
-                  <div className="evs-cw-exclusion" data-testid="evs-cw-exclusion">
-                    {fmt(L.cwExclusionBanner, { n: calibTable.excludedCount })}
-                  </div>
-                )}
-                {calibTable && conflictIds.length > 0 && (
-                  <div className="evs-cw-exclusion evs-cw-conflict" data-testid="evs-cw-conflict">
-                    {fmt(L.cwConflictHidden, { n: conflictIds.length })}{' '}
-                    <button
-                      type="button"
-                      className="evs-cw-filter-clear"
-                      onClick={() =>
-                        setConflictShownSession(conflictShown ? null : selectedCalibSessionId)
-                      }
-                      data-testid="evs-cw-conflict-toggle"
-                    >
-                      {conflictShown ? L.cwConflictHide : L.cwConflictShow}
-                    </button>
-                  </div>
-                )}
-                {/* PW-1610 §4.5 레벨 구성 — 캘리브레이션은 같은 직급끼리 비교한다. 세션에 직급이 둘 이상
-                    섞이면 경고. 직급을 아무도 안 적은 회사에서는 셀 것이 없어 띄우지 않는다. */}
-                {calibLevelMix.entries.some((e) => e.key != null) && (
-                  <div
-                    className={`evs-cw-levelmix-bar${calibLevelMix.mixed ? ' is-mixed' : ''}`}
-                    data-testid="evs-cw-levelmix-bar"
-                  >
-                    <span className="evs-cw-levelmix-label">{L.cwLevelMixLabel}</span>
-                    {calibLevelMix.entries.map((e) => (
-                      <StatusBadge
-                        key={e.key ?? '__none'}
-                        className="evs-cw-roster-tag"
-                        data-testid="evs-cw-levelmix-chip"
-                      >
-                        {fmt(L.cwLevelMixCount, { level: e.key ?? L.cwLevelUnassigned, n: e.n })}
-                      </StatusBadge>
-                    ))}
-                    {calibLevelMix.mixed && (
-                      <span className="evs-cw-levelmix-warn" data-testid="evs-cw-levelmix">
-                        <AlertIcon size={14} /> {L.cwLevelMixWarn}
-                      </span>
-                    )}
-                  </div>
-                )}
-
+                {/* §3.4④ 위원장 자동 승계 · PW-519 §4.5-A-4 보상 열람 권한 없음 — 어쩌다 생기는 알림이라
+                    표 위 상자 대신 화면 오른쪽 아래 알림으로 띄운다(회의록 목록의 캘린더 동기화 알림 모양). */}
+                {/* 이 화면의 창이 열려 있는 동안은 숨긴다 — 알림이 창의 어두운 막 위에 밝게 남아 창과 겹쳤다. */}
+                {!(showCompAccess || showCreate || showDisplay || showCalibFilter || showNineBox) &&
+                  ((calibTable?.chairAutoAssigned && !chairToastClosed) ||
+                  (compView?.unassigned && !compBannerClosed)) &&
+                  createPortal(
+                    <div className="evs-cw-toast-dock" data-testid="evs-cw-toast-dock">
+                      {calibTable?.chairAutoAssigned && !chairToastClosed && (
+                        <MeetingSyncToast
+                          portal={false}
+                          title={L.cwManageChairAuto}
+                          onClose={() => setChairToastClosed(true)}
+                          closeLabel={L.cwCompBannerClose}
+                          data-testid="evs-cw-chair-auto-banner"
+                        />
+                      )}
+                      {compView?.unassigned && !compBannerClosed && (
+                        <MeetingSyncToast
+                          portal={false}
+                          title={L.cwCompToastTitle}
+                          detail={L.cwCompToastDetail}
+                          retryLabel={L.cwCompAssign}
+                          onRetry={
+                            compView.canManage && onOpenCompensationAccess ? openCompAccess : undefined
+                          }
+                          onClose={() => setCompBannerClosed(true)}
+                          closeLabel={L.cwCompBannerClose}
+                          data-testid="evs-cw-comp-banner"
+                        />
+                      )}
+                    </div>,
+                    document.body,
+                  )}
                 {calibTableLoading || !calibTable ? (
                   <div className="evs-cw-empty">
                     <div className="evs-cw-empty-sub">{L.cwLoadingTable}</div>
@@ -4665,6 +4778,7 @@ export default function EvalCycleSummaryCanvas({
                         L={L}
                         total={calibBaseRows.length}
                         filterActive={filterActive}
+                        levelMix={calibLevelMix}
                       />
                       {filterActive && (
                         <div

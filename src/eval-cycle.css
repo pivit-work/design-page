@@ -6553,24 +6553,153 @@ button.evm-ai-source {
 .evs-cw-table-head .evs-cw-session-meta {
   white-space: nowrap;
 }
+/* PW-1928 — 버튼 줄. 팀 스니핏 버튼 줄(.mgr-ts-chips)처럼 6 간격, 가운데 빈칸이 「관리 ▾」·「최종 확정」을 오른쪽으로 민다. */
 .evs-cw-table-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
-/* 오른쪽 끝은 「최종 확정」 하나다. CSV 의 margin-left: auto 를 그대로 두면 둘이 남는 폭을 나눠
-   CSV 가 줄 가운데로 뜬다. */
-.evs-cw-table-actions .evs-cw-csv {
-  margin-left: 0;
+.evs-cw-actions-spacer {
+  flex: 1;
 }
-.evs-cw-table-actions .evs-cw-commit {
-  margin-left: auto;
-}
+/* 이름은 1on1 상세 창 머리의 이름(.ood-person b) 크기 */
 .evs-cw-table-title {
-  font-size: var(--font-size-text-sm);
+  font-size: 18px;
   font-weight: 700;
+  line-height: 28px;
   color: var(--text-primary);
+}
+.evs-cw-back-row {
+  display: flex;
+}
+/* 상태 딱지 — 확정 완료는 1on1 「완료」 딱지(.ood-done-badge), 진행 중은 파랑 딱지(.rsx-badge.is-blue) 값. */
+.evs-cw-state-badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  white-space: nowrap;
+}
+.evs-cw-state-badge.is-done {
+  background: var(--utility-success-50);
+  border-color: var(--utility-success-200);
+  color: var(--utility-success-700);
+}
+.evs-cw-state-badge.is-live {
+  background: var(--utility-blue-50);
+  border-color: var(--utility-blue-200);
+  color: var(--utility-blue-700);
+}
+.evs-cw-state-badge.is-draft {
+  background: var(--utility-gray-50);
+  border-color: var(--utility-gray-200);
+  color: var(--utility-gray-700);
+}
+/* 「조회 전용」/「위원장」 — 1on1 「열람모드」(.ood-mode) 값 */
+.evs-cw-mode {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+  color: var(--text-secondary);
+}
+/* 회색 버튼 — 팀 스니핏 레드 플래그 버튼(.mgr-ts-chip.is-redflag) 값. 숫자 알약도 같은 것. */
+.evs-cw-tool {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 14px;
+  background: var(--alpha-black-3);
+  border: none;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.evs-cw-tool:hover,
+.evs-cw-tool.is-open {
+  background: var(--bg-active);
+}
+.evs-cw-tool.is-active {
+  background: var(--bg-tertiary);
+}
+.evs-cw-tool[aria-disabled='true'] {
+  cursor: default;
+}
+.evs-cw-tool b {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--utility-error-50);
+  border: 1px solid var(--utility-error-200);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--utility-error-700);
+}
+/* 「관리 ▾」 메뉴 — OKR 「고르기」 메뉴(.okr-select-menu) 값. 오른쪽 끝 버튼이라 오른쪽에 맞춘다. */
+.evs-cw-manage-wrap {
+  position: relative;
+}
+.evs-cw-manage-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 100%;
+  background: var(--bg-quaternary);
+  border: 1px solid var(--border-secondary-alt);
+  border-radius: 10px;
+  padding: 4px 0;
+  box-shadow: var(--shadows-shadow3xl);
+  z-index: 100;
+}
+.evs-cw-manage-item {
+  display: flex;
+  align-items: center;
+  padding: 1px 6px;
+}
+.evs-cw-manage-item-inner {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  text-align: left;
+  cursor: pointer;
+}
+.evs-cw-manage-item-inner:hover,
+.evs-cw-manage-item-inner:focus-visible {
+  background: var(--alpha-black-3);
+}
+/* 오른쪽 아래 알림 자리 — 알림 모양은 MeetingSyncToast 그대로, 자리만 이 칸이 정한다. */
+.evs-cw-toast-dock {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.evs-cw-toast-dock .meeting-sync-toast {
+  position: static;
+  transform: none;
 }
 .evs-cw-readonly {
   margin-left: auto;
@@ -7267,18 +7396,16 @@ button.evm-ai-source {
 }
 
 /* §4.1 R3 실시간 등급 분포 바 */
+/* PW-1928 — 테두리 상자를 걷는다. 표를 내려도 머리에 붙어 있는 것(sticky)은 그대로다. */
 .evs-cw-dist {
   position: sticky;
   top: 8px;
   z-index: 20;
   background: var(--bg-primary);
-  border: 1px solid var(--border-primary);
-  border-radius: 12px;
-  padding: 12px 16px;
-  box-shadow: 0 4px 16px rgba(10, 13, 18, 0.06);
+  padding: 8px 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 .evs-cw-dist-head {
   display: flex;
@@ -7287,17 +7414,19 @@ button.evm-ai-source {
   flex-wrap: wrap;
 }
 .evs-cw-dist-title {
-  font-size: 12.5px;
-  font-weight: 800;
-  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--text-secondary);
 }
 .evs-cw-dist-count {
   font-size: 12px;
-  color: var(--text-secondary);
+  font-weight: 700;
+  line-height: 18px;
+  color: var(--text-primary);
 }
 /* PW-1116 안내문은 늘 떠 있지 않고 ⓘ 에 올렸을 때만 */
 .evs-cw-dist-info {
-  margin-left: auto;
   display: inline-flex;
   color: var(--text-secondary);
   cursor: help;
@@ -7307,12 +7436,13 @@ button.evm-ai-source {
 .evs-cw-dist-info:focus-visible {
   color: var(--text-secondary);
 }
+/* PW-1928 — OKR 내 리소스의 쌓은 막대(.rsx-stackbar) 값 그대로: 높이 12 · 조각 사이 10 · 모서리 4. */
 .evs-cw-dist-bar {
   display: flex;
   width: 100%;
-  height: 24px;
-  border-radius: 7px;
-  overflow: hidden;
+  height: 12px;
+  gap: 10px;
+  border-radius: 4px;
   background: var(--bg-secondary);
 }
 .evs-cw-dist-empty {
@@ -7324,18 +7454,10 @@ button.evm-ai-source {
   color: var(--text-secondary);
 }
 .evs-cw-dist-seg {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 800;
-  color: var(--text-white);
-  white-space: nowrap;
-  overflow: hidden;
-  border-right: 1px solid var(--bg-primary);
-}
-.evs-cw-dist-seg:last-child {
-  border-right: 0;
+  flex-basis: 0;
+  min-width: 4px;
+  height: 12px;
+  border-radius: 4px;
 }
 /* PW-1116 분포 카드 색 — 등급마다 다른 색(가운데 등급끼리 같은 파랑이 되지 않게) */
 .evs-cw-dist-seg.hue-green,
@@ -7368,17 +7490,64 @@ button.evm-ai-source {
 }
 /* 등급 없는 사람 — 회색 빗금 */
 .evs-cw-dist-seg.is-nograde {
-  color: var(--text-secondary);
-  background: repeating-linear-gradient(
-    135deg,
-    var(--bg-secondary) 0 6px,
-    var(--utility-gray-200) 6px 12px
-  );
+  background: var(--utility-gray-200);
 }
-.evs-cw-dist-chips {
+/* PW-1928 — 칩 대신 한 줄 범례. */
+.evs-cw-dist-legend {
   display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: 16px;
   flex-wrap: wrap;
+}
+.evs-cw-dist-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 18px;
+}
+.evs-cw-dist-item-label {
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+.evs-cw-dist-item-count {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+/* 비율·권장은 기획서가 늘 보이게 정해 두어 한 단계 약한 회색 글로 남긴다(PW-1929 답 대기). */
+.evs-cw-dist-ratio {
+  font-weight: 400;
+  color: var(--text-tertiary);
+}
+/* 권장에서 10%p 넘게 벗어난 등급 — OKR 내 리소스의 「초과」 알약(.rsx-total-warn) 값 그대로. */
+.evs-cw-dist-off {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--utility-error-50);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--text-error-primary);
+}
+/* 직급 섞임 경고 — 팀 스니핏 KR별 탭의 빨간 경고 세모. */
+.evs-cw-dist-levelwarn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--text-error-primary);
+  cursor: help;
+}
+.evs-cw-dist-levelwarn svg {
+  color: var(--utility-error-500);
+}
+.evs-cw-dist-levels {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+  color: var(--text-tertiary);
 }
 .evs-cw-dist-dot {
   width: 9px;
@@ -7389,28 +7558,9 @@ button.evm-ai-source {
 .evs-cw-dist-dot.is-nograde {
   background: var(--utility-gray-200);
 }
-.evs-cw-dist-chip-label {
-  font-size: 12px;
-  font-weight: 800;
-  color: var(--text-primary);
-}
-.evs-cw-dist-chip-count {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-.evs-cw-dist-chip-rec {
-  font-size: 12px;
-  color: var(--text-secondary);
-  border-left: 1px solid var(--border-primary);
-  padding-left: 6px;
-}
 .evs-cw-dist-delta {
   margin-left: 3px;
   font-weight: 700;
-}
-.evs-cw-dist-delta.is-off {
-  color: var(--utility-error-600);
 }
 
 /* §6.3 R4 대상자 선별 필터 */
