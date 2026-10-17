@@ -583,6 +583,9 @@ function parseGoals(text) {
  * - 인사담당자(`onSave` 를 받았을 때): 보내기 전까지 고쳐 [저장]한다.
  * - 그 밖: 읽기 전용 줄 목록.
  */
+/** 팀장이 승인한 뒤 발송 전 — 본부장 승인 대기(PW-1839)·HR 검수 대기·승인 완료. 이때 제안은 인사담당자만 고친다. */
+const GOALS_LOCKED_FOR_LEADER = new Set(['leader_approved', 'exec_pending', 'hr_approved']);
+
 function NextGoalsPanel({ row, L, text, onText, mode, onSave }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
@@ -659,7 +662,7 @@ function NextGoalsPanel({ row, L, text, onText, mode, onSave }) {
       )}
       {mode === 'read' && row.status === 'sent' ? (
         <p className="evrr-sections-note">{L.nextGoalsLocked}</p>
-      ) : mode === 'read' && row.status === 'leader_approved' ? (
+      ) : mode === 'read' && GOALS_LOCKED_FOR_LEADER.has(row.status) ? (
         <p className="evrr-sections-note">{L.nextGoalsReadOnly}</p>
       ) : null}
       {error && (
