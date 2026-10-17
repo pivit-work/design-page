@@ -7,7 +7,7 @@ import Radio from '../shared/Radio.jsx';
 import { FieldInfo, FieldVisibility } from './evalFieldMeta.jsx';
 import EvalNoteBlock, { EvalMarkdownLite } from './EvalNoteBlock.jsx';
 import { isNoteItem, categoryKind } from './evalTemplateItemModel.js';
-import { AlertIcon, LockIcon, ZapIcon } from './evalIcons.jsx';
+import { AlertIcon, LockIcon } from './evalIcons.jsx';
 import { fieldsShape, reseedKeepingEdits } from './reseedAnswers.js';
 import EvalLeaderEvidenceSignals from './EvalLeaderEvidenceSignals.jsx';
 import EvalLeaderPriorRounds from './EvalLeaderPriorRounds.jsx';
@@ -164,8 +164,6 @@ const DEFAULT_LABELS = {
   signalsHighlightsEmpty: '작성된 하이라이트가 없습니다',
   signalsDays: '일',
   signalsRate: '작성률',
-  // TC-046/047 상단고정(Freeze) 안내
-  freezeNote: '헤더 프리즈 중 — 스크롤해도 상단 고정',
   // PW-1461 leader §5.3.1 — 위치 일시 토글. {position} = 템플릿 기본 위치 이름
   gradePosTop: '상단',
   gradePosBottom: '하단',
@@ -824,66 +822,116 @@ export default function EvalCycleLeaderCanvas({
   const gradePos = gradePosPicked ?? templatePos;
   const isFreeze = gradePos === 'freeze';
   const gradeAtTop = gradePos === 'top' || isFreeze;
-  const gradeCard = (
+  const gradePosSwitch = (
+    <SegmentedControl
+      ariaLabel={L.gradePosAria}
+      value={gradePos}
+      onChange={setGradePosPicked}
+      items={GRADE_POSITIONS.map((p) => ({
+        value: p,
+        label: L[GRADE_POS_LABEL_KEY[p]],
+        testId: `evl-grade-pos-${p}`,
+      }))}
+    />
+  );
+  const gradePosNote = (
+    <span className="evl-grade-caption" data-testid="evl-grade-pos-note">
+      {fillLabel(L.gradePosNote, { position: L[GRADE_POS_LABEL_KEY[templatePos]] })}
+    </span>
+  );
+  const gradeCaptions = [
+    calibrationEnabled && L.gradeCaptionCalibOn && (
+      <p className="evl-grade-caption" data-testid="evl-grade-caption" key="calib">{L.gradeCaptionCalibOn}</p>
+    ),
+    L.gradeDecisionNote && (
+      <p className="evl-grade-caption" data-testid="evl-grade-decision-note" key="decision">{L.gradeDecisionNote}</p>
+    ),
+  ];
+  const gradeWarnings = [
+    !calibrationEnabled && (
+      <p className="evl-calib-off-note" data-testid="evl-calib-off-note" key="calib-off">
+        <AlertIcon size={14} /> {L.calibOffGradeNote}
+      </p>
+    ),
+    gradeLocked && !formLocked && L.gradeLockedNote && (
+      <p className="evl-calib-off-note" data-testid="evl-grade-locked-note" key="locked">
+        <AlertIcon size={14} /> {L.gradeLockedNote}
+      </p>
+    ),
+  ];
+  const gradeButtons = (
+    <div className="evl-grade-row">
+      {gradeOptions.map((g) => (
+        <button
+          type="button"
+          key={g.key}
+          className={`evl-grade-btn${grade === g.key ? ' is-on' : ''}`}
+          disabled={formLocked || gradeLocked}
+          onClick={() => setGrade(g.key)}
+          data-testid={`evl-grade-${g.key}`}
+        >
+          {g.label}
+        </button>
+      ))}
+    </div>
+  );
+  /* PW-1594 §5.13.4 — 하향 등급은 «제출된 가장 높은 차수»의 값이다(위 차수가 배정된 경우에만). */
+  const gradeRoundNote = higherRoundAssigned && L.gradeRoundNote && (
+    <p className="evl-grade-round-note" data-testid="evl-grade-round-note">
+      {fillLabel(L.gradeRoundNote, { next: round + 1 })}
+    </p>
+  );
+  const gradeCardClass = `evc-card${isFreeze ? ' evl-grade-freeze' : ''}${triedSubmit && !grade ? ' evl-grade-missing' : ''}`;
+  // PW-1845 §5.3.1 — 상단고정은 «제목·등급 버튼·위치 전환만 있는 한 줄 띠»다. 안내 문장·경고까지 따라붙으면
+  // 띠가 화면의 40% 를 덮어 바로 아래 의견 칸이 가려졌다. 안내·경고는 띠 바로 아래(스크롤하면 사라지는 자리)로
+  // 내리고, 안내 문장은 제목 옆 (i) 말풍선으로도 본다. 상단·하단일 때는 한 카드 그대로다.
+  const gradeInfoText = [
+    calibrationEnabled && L.gradeCaptionCalibOn,
+    L.gradeDecisionNote,
+    fillLabel(L.gradePosNote, { position: L[GRADE_POS_LABEL_KEY[templatePos]] }),
+  ]
+    .filter(Boolean)
+    .join('\n');
+  const gradeCard = isFreeze ? (
+    <>
+      <section
+        className={gradeCardClass}
+        ref={gradeRef}
+        data-testid="evl-grade-card"
+        data-position={gradePos}
+      >
+        <div className="evl-grade-strip" data-testid="evl-grade-strip">
+          <h3 className="evc-card-name">
+            {L.gradeTitle}
+            <FieldInfo description={gradeInfoText} />
+          </h3>
+          {gradeButtons}
+          <div className="evl-grade-strip-pos">{gradePosSwitch}</div>
+        </div>
+      </section>
+      <div className="evl-grade-freeze-notes" data-testid="evl-grade-freeze-notes">
+        {gradeCaptions}
+        {gradeWarnings}
+        {gradePosNote}
+        {gradeRoundNote}
+      </div>
+    </>
+  ) : (
     <section
-      className={`evc-card${isFreeze ? ' evl-grade-freeze' : ''}${triedSubmit && !grade ? ' evl-grade-missing' : ''}`}
+      className={gradeCardClass}
       ref={gradeRef}
       data-testid="evl-grade-card"
       data-position={gradePos}
     >
       <div className="evl-grade-pos">
-        <SegmentedControl
-          ariaLabel={L.gradePosAria}
-          value={gradePos}
-          onChange={setGradePosPicked}
-          items={GRADE_POSITIONS.map((p) => ({
-            value: p,
-            label: L[GRADE_POS_LABEL_KEY[p]],
-            testId: `evl-grade-pos-${p}`,
-          }))}
-        />
-        <span className="evl-grade-caption" data-testid="evl-grade-pos-note">
-          {fillLabel(L.gradePosNote, { position: L[GRADE_POS_LABEL_KEY[templatePos]] })}
-        </span>
+        {gradePosSwitch}
+        {gradePosNote}
       </div>
-      {isFreeze && <p className="evl-freeze-note" data-testid="evl-freeze-note"><ZapIcon size={14} /> {L.freezeNote}</p>}
       <h3 className="evc-card-name">{L.gradeTitle}</h3>
-      {calibrationEnabled && L.gradeCaptionCalibOn && (
-        <p className="evl-grade-caption" data-testid="evl-grade-caption">{L.gradeCaptionCalibOn}</p>
-      )}
-      {L.gradeDecisionNote && (
-        <p className="evl-grade-caption" data-testid="evl-grade-decision-note">{L.gradeDecisionNote}</p>
-      )}
-      {!calibrationEnabled && (
-        <p className="evl-calib-off-note" data-testid="evl-calib-off-note">
-          <AlertIcon size={14} /> {L.calibOffGradeNote}
-        </p>
-      )}
-      {gradeLocked && !formLocked && L.gradeLockedNote && (
-        <p className="evl-calib-off-note" data-testid="evl-grade-locked-note">
-          <AlertIcon size={14} /> {L.gradeLockedNote}
-        </p>
-      )}
-      <div className="evl-grade-row">
-        {gradeOptions.map((g) => (
-          <button
-            type="button"
-            key={g.key}
-            className={`evl-grade-btn${grade === g.key ? ' is-on' : ''}`}
-            disabled={formLocked || gradeLocked}
-            onClick={() => setGrade(g.key)}
-            data-testid={`evl-grade-${g.key}`}
-          >
-            {g.label}
-          </button>
-        ))}
-      </div>
-      {/* PW-1594 §5.13.4 — 하향 등급은 «제출된 가장 높은 차수»의 값이다(위 차수가 배정된 경우에만). */}
-      {higherRoundAssigned && L.gradeRoundNote && (
-        <p className="evl-grade-round-note" data-testid="evl-grade-round-note">
-          {fillLabel(L.gradeRoundNote, { next: round + 1 })}
-        </p>
-      )}
+      {gradeCaptions}
+      {gradeWarnings}
+      {gradeButtons}
+      {gradeRoundNote}
     </section>
   );
 

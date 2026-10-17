@@ -4663,7 +4663,7 @@
   position: sticky;
   top: 0;
   z-index: 3;
-  padding: var(--spacing-lg) var(--spacing-xl);
+  padding: var(--spacing-md) var(--spacing-xl);
   border: 1.5px solid var(--utility-brand-500);
   box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
 }
@@ -4678,14 +4678,30 @@
 .evl-grade-pos .evl-grade-caption {
   margin: 0;
 }
-.evl-grade-freeze .evc-card-name {
-  display: inline-block;
-  margin: 0 var(--spacing-md) 0 0;
+/* PW-1845 — 상단고정 띠는 한 줄: 제목(ⓘ) · 등급 버튼 · 위치 전환. 안내·경고는 띠 아래 .evl-grade-freeze-notes */
+.evl-grade-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm) var(--spacing-md);
+}
+.evl-grade-strip .evc-card-name {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin: 0;
   font-size: var(--font-size-text-sm);
 }
-.evl-grade-freeze .evl-grade-row {
-  display: inline-flex;
-  vertical-align: middle;
+.evl-grade-strip-pos {
+  margin-left: auto;
+}
+.evl-grade-freeze-notes {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.evl-grade-freeze-notes .evl-calib-off-note {
+  align-self: stretch;
 }
 /* PW-486 캘리브레이션을 끈 사이클 — 최종 등급 카드의 경고 캡션(amber). */
 .evl-calib-off-note {
