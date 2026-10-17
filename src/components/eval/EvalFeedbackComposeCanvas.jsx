@@ -56,6 +56,8 @@ const DEFAULT_LABELS = {
   emptyItemText: '(내용 없음)',
   // 본문 없이 «확인» 만 누른 팀원 답 (PW-1538 — 스레드 창에 박혀 있던 문구를 라벨로 뺐다)
   replyConfirmed: '확인했습니다',
+  // 팀원 답장이 Slack DM 의 [답장]으로 들어왔을 때 말풍선 아래 한 줄 (PW-1908)
+  replyViaSlack: 'Slack 에서 보냄',
   title: '팀 피드백',
   subtitle: '팀원별로 OKR 달성 과정에 대한 피드백을 남깁니다.',
   cardRequests: '피드백 요청',
@@ -536,8 +538,16 @@ function FeedbackBubble({ item, member, L, canModify, onEdit, onDelete }) {
         // 팀원 답변 — 팀원 아바타 + 텍스트 (screen-feedback-manager §3.8).
         <div data-testid="fbmgr-member-reply" style={{ marginLeft: 38, marginTop: 6, display: 'flex', gap: 8 }}>
           <Avatar name={member?.name} photo={member?.avatar} size={24} />
-          <div style={{ minWidth: 0, flex: 1, background: C.borderL, border: `1px solid ${C.border}`, borderRadius: 10, padding: '8px 10px', fontSize: 13, color: C.text }}>
-            {item.memberReply.text || L.replyConfirmed}
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ background: C.borderL, border: `1px solid ${C.border}`, borderRadius: 10, padding: '8px 10px', fontSize: 13, color: C.text }}>
+              {item.memberReply.text || L.replyConfirmed}
+            </div>
+            {/* 출처 표시는 피드백 위 이름·날짜 줄과 같은 작은 회색 글씨 (PW-1908) */}
+            {item.memberReply.source === 'slack' && (
+              <div data-testid="fbmgr-reply-via-slack" style={{ fontSize: 12, color: C.sub, marginTop: 3 }}>
+                {L.replyViaSlack}
+              </div>
+            )}
           </div>
         </div>
       )}

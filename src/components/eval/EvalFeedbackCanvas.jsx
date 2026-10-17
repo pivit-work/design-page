@@ -93,6 +93,8 @@ const DEFAULT_LABELS = {
   replySend: '전송',
   replyCancel: '취소',
   replyConfirmed: '✓ 확인했습니다',
+  // 답장이 Slack DM 의 [답장]으로 들어왔을 때 말풍선 아래 한 줄 (PW-1908)
+  replyViaSlack: 'Slack 에서 보냄',
   requestTag: '요청',
   requestTagFull: '피드백 요청',
   requestPending: '대기중',
@@ -487,10 +489,16 @@ function FeedbackBubble({ item, L, linkedLabel: targetLabel, isPastPeriod, onRep
 
       {/* 내 답변(1개) */}
       {submitted ? (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginTop: 6 }}>
           <div style={{ background: C.tealBg, border: `1px solid ${C.tealBd}`, borderRadius: '10px 0 10px 10px', padding: '8px 10px', fontSize: 13, color: C.text, maxWidth: '80%' }}>
             {item.myReply.text || L.replyConfirmed}
           </div>
+          {/* 출처 표시는 말풍선 위 이름·날짜 줄과 같은 작은 회색 글씨 (PW-1908) */}
+          {item.myReply.source === 'slack' && (
+            <span data-testid={`fbm-reply-via-slack-${item.id}`} style={{ fontSize: 'var(--font-size-text-xs)', color: C.sub, marginTop: 3 }}>
+              {L.replyViaSlack}
+            </span>
+          )}
         </div>
       ) : (
         !isPastPeriod && (
