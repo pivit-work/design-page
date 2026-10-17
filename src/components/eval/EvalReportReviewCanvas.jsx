@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import { Fragment, useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Toast from '../shared/Toast.jsx';
 import EvalSendChannelModal from './EvalSendChannelModal.jsx';
@@ -6,7 +6,9 @@ import ModalShell from '../shared/ModalShell.jsx';
 import TextArea from '../shared/TextArea.jsx';
 import Spinner from '../shared/Spinner.jsx';
 import Tabs from '../shared/Tabs.jsx';
-import { ArrowRightIcon } from './evalIcons.jsx';
+import AnchoredLayer from '../shared/AnchoredLayer.jsx';
+import useDismissLayer from '../shared/useDismissLayer.js';
+import { ArrowRightIcon, MoreIcon } from './evalIcons.jsx';
 
 /**
  * EvalReportReviewCanvas — 리포트 검수/발송 파이프라인 (G6).
@@ -52,6 +54,15 @@ const DEFAULT_LABELS = {
   approve: '승인',
   approved: '승인 완료',
   finalCommentPh: '최종 코멘트 (선택)',
+  moreActions: '더 보기',
+  refineMenu: '동료 리뷰 검수하기',
+  approveModalTitle: '리포트 승인',
+  approveModalDesc: '{name}님 리포트를 승인합니다',
+  approveCommentLabel: '최종 코멘트 (선택)',
+  approveCommentPh: '리포트에 함께 실릴 한마디를 적어 주세요',
+  approveCancel: '취소',
+  approveClose: '닫기',
+  approveError: '승인하지 못했습니다. 다시 시도해 주세요.',
   sendSelected: '선택 발송',
   sendAllApproved: '승인분 일괄 발송',
   noRows: '검수할 리포트가 없습니다.',
@@ -674,6 +685,49 @@ function NextGoalsPanel({ row, L, text, onText, mode, onSave }) {
   );
 }
 
+/**
+ * PW-1922 — 줄의 [⋯] 메뉴. 표(`.evrr-table`)가 `overflow: hidden` 이라 칸 안에 그리면 마지막 줄에서
+ * 잘린다 — 공용 껍데기 `AnchoredLayer`(포털 · 창 좌표 · 아래가 좁으면 위로)에 태운다. 면·항목 모양은
+ * 구성원 목록 «⋯» 메뉴(`.admin-emp-row-menu`)와 같은 값이다.
+ */
+function RowMenu({ anchorSelector, items, onClose }) {
+  const ref = useRef(null);
+  useDismissLayer(onClose, ref, anchorSelector);
+  const firstDanger = items.findIndex((it) => it.danger);
+  return (
+    <AnchoredLayer
+      anchorSelector={anchorSelector}
+      align="right"
+      panelRef={ref}
+      className="evrr-row-menu"
+      role="menu"
+      style={{ zIndex: ROW_MENU_Z }}
+    >
+      {items.map((it, i) => (
+        <Fragment key={it.key}>
+          {i === firstDanger && i > 0 && <div className="evrr-row-menu-divider" />}
+          <button
+            type="button"
+            role="menuitem"
+            className={`evrr-row-menu-item${it.danger ? ' is-danger' : ''}`}
+            disabled={it.disabled}
+            onClick={() => {
+              it.onClick();
+              onClose();
+            }}
+            data-testid={it.testId}
+          >
+            {it.label}
+          </button>
+        </Fragment>
+      ))}
+    </AnchoredLayer>
+  );
+}
+
+/** 표 위에 뜨는 줄 메뉴의 겹침 순서 — 구성원 목록 «⋯» 메뉴와 같은 값. */
+const ROW_MENU_Z = 1000;
+
 function ReviewRow({
   row,
   L,
@@ -705,6 +759,9 @@ function ReviewRow({
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
   const [refineOpen, setRefineOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [approveAsk, setApproveAsk] = useState(false);
+  const [approveError, setApproveError] = useState(false);
   const isMyReport = row.leaderId === myUserId;
   const excluded = row.excluded === true;
   // PW-1053 — 누를 수 있나는 서버가 줄마다 준 값(`canApprove`)을 쓴다. 담당 리더 id 로 따로
@@ -779,15 +836,19 @@ function ReviewRow({
   const leaderStep = isLeaderStep(row.status);
   const approve = async () => {
     setBusy(true);
+    setApproveError(false);
     try {
       // PW-1839 — 화면이 본 상태를 함께 넘긴다. 그 사이 다른 사람이 처리했으면 서버가 거절한다.
       // PW-1860 — 화면에 보인(고친) 제안을 함께 보낸다. 승인한 순간의 값으로 굳는다.
-      await onApprove(
+      const ok = await onApprove(
         row.memberId,
         leaderStep ? comment.trim() || null : undefined,
         row.status,
         goalLines,
+        { inline: approveAsk },
       );
+      if (ok === false) setApproveError(true);
+      else setApproveAsk(false);
     } finally {
       setBusy(false);
     }
@@ -805,6 +866,53 @@ function ReviewRow({
   const selectable = sendable || canApprove;
   // 동료 리뷰 검수가 남아 막히는 것은 «보내기»다 — 승인할 줄은 막지 않는다.
   const lockedForSend = sendable && blocked && !canApprove;
+
+  // PW-1922 — 줄 오른쪽에는 [승인]과 [⋯]만 둔다. 나머지 동작은 이 메뉴에 모으고, 돌려보내는 동작은
+  // 예외라 맨 아래 빨간 글씨로 둔다. 항목마다 보이는 조건은 종전 버튼 그대로다.
+  const menuItems = [
+    refinement && refineMeta && {
+      key: 'refine',
+      label: L.refineMenu,
+      onClick: () => setRefineOpen((v) => !v),
+      testId: `evrr-refine-toggle-${row.memberId}`,
+    },
+    goalsMode && {
+      key: 'goals',
+      label: L.nextGoalsOpen.replace('{count}', String((row.nextGoals ?? []).length)),
+      onClick: () => setGoalsOpen((v) => !v),
+      testId: `evrr-goals-toggle-${row.memberId}`,
+    },
+    hasSections && {
+      key: 'sections',
+      label: L.sectionsOpen,
+      onClick: () => setOpen((v) => !v),
+      testId: `evrr-sections-toggle-${row.memberId}`,
+    },
+    // PW-1839 — 인사담당자가 본부장 승인 대기를 건너뛴다(정책 §8.6 「본부장 승인 우회」).
+    canSend && onPromote && row.status === 'exec_pending' && !excluded && {
+      key: 'promote',
+      label: L.promote,
+      disabled: busy,
+      onClick: promote,
+      testId: `evrr-promote-${row.memberId}`,
+    },
+    // PW-1839 — 본부장 자기 차례인 줄의 [팀장에게 반려] (서버가 줄마다 준 값).
+    row.canExecReject === true && onAskReject && {
+      key: 'exec-reject',
+      label: L.execReject,
+      danger: true,
+      onClick: () => onAskReject(row, 'exec'),
+      testId: `evrr-exec-reject-${row.memberId}`,
+    },
+    // PW-1458 — 서버가 줄마다 준 «돌려보낼 수 있나»와 보는 사람(인사담당자)을 함께 본다.
+    canReject && onAskReject && row.rejectable === true && {
+      key: 'reject',
+      label: L.reject,
+      danger: true,
+      onClick: () => onAskReject(row, 'hr'),
+      testId: `evrr-reject-${row.memberId}`,
+    },
+  ].filter(Boolean);
 
   return (
     <>
@@ -906,7 +1014,7 @@ function ReviewRow({
             {canReject && onRegenerate && (
               <button
                 type="button"
-                className="evc-btn"
+                className="evc-link-btn evrr-regen-link"
                 disabled={regenBusy}
                 onClick={regenerate}
                 data-testid={`evrr-ai-regenerate-${row.memberId}`}
@@ -917,105 +1025,82 @@ function ReviewRow({
           </span>
         )}
       </div>
-      <div className="evrr-cell">
-        {refinement && refineMeta && (
-          <button
-            type="button"
-            className="evc-btn"
-            aria-expanded={refineOpen}
-            onClick={() => setRefineOpen((v) => !v)}
-            data-testid={`evrr-refine-toggle-${row.memberId}`}
-          >
-            {refineOpen ? L.refineClose : L.refineOpen}
-          </button>
-        )}
-        {goalsMode && (
-          <button
-            type="button"
-            className="evc-btn evrr-sections-toggle"
-            aria-expanded={goalsOpen}
-            onClick={() => setGoalsOpen((v) => !v)}
-            data-testid={`evrr-goals-toggle-${row.memberId}`}
-          >
-            {goalsOpen
-              ? L.nextGoalsClose
-              : L.nextGoalsOpen.replace('{count}', String((row.nextGoals ?? []).length))}
-          </button>
-        )}
-        {hasSections && (
-          <button
-            type="button"
-            className="evc-btn evrr-sections-toggle"
-            aria-expanded={open}
-            onClick={() => setOpen((v) => !v)}
-            data-testid={`evrr-sections-toggle-${row.memberId}`}
-          >
-            {open ? L.sectionsClose : L.sectionsOpen}
-          </button>
-        )}
+      <div className="evrr-cell evrr-actions">
         {canApprove ? (
-          <div className="evrr-approve">
-            {leaderStep && (
-              <input
-                className="evrr-comment"
-                type="text"
-                value={comment}
-                placeholder={L.finalCommentPh}
-                onChange={(e) => setComment(e.target.value)}
-                data-testid={`evrr-comment-${row.memberId}`}
-              />
-            )}
-            <button
-              type="button"
-              className="evc-btn is-primary"
-              disabled={busy || goalsInvalid}
-              onClick={approve}
-              data-testid={`evrr-approve-${row.memberId}`}
-            >
-              {L.approve}
-            </button>
-          </div>
+          <button
+            type="button"
+            className="evc-btn is-primary"
+            disabled={busy || goalsInvalid}
+            // PW-1922 — 최종 코멘트는 리더 단계에서만 받는다. 그 단계면 작은 창에서 적고(선택) 승인하고,
+            // 본부장·인사담당자 단계는 받을 것이 없어 바로 승인한다.
+            onClick={leaderStep ? () => setApproveAsk(true) : approve}
+            data-testid={`evrr-approve-${row.memberId}`}
+          >
+            {L.approve}
+          </button>
         ) : excluded ? null : row.status === 'sent' ? (
           <span className="evrr-muted">{L.statusSent}</span>
         ) : row.status === 'hr_approved' ? (
           <span className="evrr-muted">{L.approved}</span>
         ) : null}
-        {/* PW-1839 — 인사담당자가 본부장 승인 대기를 건너뛴다(정책 §8.6 「본부장 승인 우회」). */}
-        {canSend && onPromote && row.status === 'exec_pending' && !excluded && (
+        {menuItems.length > 0 && (
           <button
             type="button"
-            className="evc-btn"
-            disabled={busy}
-            onClick={promote}
-            data-testid={`evrr-promote-${row.memberId}`}
+            className="evc-btn evrr-more"
+            aria-label={L.moreActions}
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((v) => !v)}
+            data-testid={`evrr-more-${row.memberId}`}
           >
-            {L.promote}
-          </button>
-        )}
-        {/* PW-1839 — 본부장 자기 차례인 줄의 [팀장에게 반려] (서버가 줄마다 준 값). */}
-        {row.canExecReject === true && onAskReject && (
-          <button
-            type="button"
-            className="evc-btn"
-            onClick={() => onAskReject(row, 'exec')}
-            data-testid={`evrr-exec-reject-${row.memberId}`}
-          >
-            {L.execReject}
-          </button>
-        )}
-        {/* PW-1458 — 서버가 줄마다 준 «돌려보낼 수 있나»와 보는 사람(인사담당자)을 함께 본다. */}
-        {canReject && onAskReject && row.rejectable === true && (
-          <button
-            type="button"
-            className="evc-btn"
-            onClick={() => onAskReject(row, 'hr')}
-            data-testid={`evrr-reject-${row.memberId}`}
-          >
-            {L.reject}
+            <MoreIcon size={16} />
           </button>
         )}
       </div>
     </div>
+    {menuOpen && menuItems.length > 0 && (
+      <RowMenu
+        anchorSelector={`[data-testid="evrr-more-${row.memberId}"]`}
+        items={menuItems}
+        onClose={() => setMenuOpen(false)}
+      />
+    )}
+    {approveAsk && (
+      <ModalShell
+        title={L.approveModalTitle}
+        description={L.approveModalDesc.replace('{name}', row.name || row.memberId)}
+        titleId={`evrr-approve-modal-title-${row.memberId}`}
+        submitLabel={L.approve}
+        cancelLabel={L.approveCancel}
+        closeLabel={L.approveClose}
+        canSubmit={!busy && !goalsInvalid}
+        busy={busy}
+        onOverlayClick={null}
+        onClose={() => {
+          setApproveAsk(false);
+          setApproveError(false);
+        }}
+        onSubmit={approve}
+        testId={`evrr-approve-modal-${row.memberId}`}
+      >
+        <label className="evrr-reject-field" htmlFor={`evrr-comment-${row.memberId}`}>
+          <span className="evrr-reject-label">{L.approveCommentLabel}</span>
+          <TextArea
+            id={`evrr-comment-${row.memberId}`}
+            rows={3}
+            value={comment}
+            placeholder={L.approveCommentPh}
+            onChange={(e) => setComment(e.target.value)}
+            data-testid={`evrr-comment-${row.memberId}`}
+          />
+        </label>
+        {approveError && (
+          <p className="evrr-refine-error" role="alert" data-testid={`evrr-approve-error-${row.memberId}`}>
+            {L.approveError}
+          </p>
+        )}
+      </ModalShell>
+    )}
     {trialRowNotice && (
       <div data-testid={`evrr-trial-notice-${row.memberId}`}>{trialRowNotice}</div>
     )}
@@ -1188,12 +1273,15 @@ export default function EvalReportReviewCanvas({
   const notYetApproved =
     (c.pending ?? 0) + (c.leaderRejected ?? 0) + (c.execPending ?? 0) + (c.leaderApproved ?? 0);
 
-  const handleApprove = async (memberId, comment, seenStatus, nextGoals) => {
+  const handleApprove = async (memberId, comment, seenStatus, nextGoals, { inline = false } = {}) => {
     try {
       await onApprove?.(memberId, comment, seenStatus, nextGoals);
       showToast(L.toastApproved);
+      return true;
     } catch {
-      showToast(L.toastError, 'error');
+      // PW-1922 — 승인 창에서 실패하면 창이 닫히지 않고 창 안에 알린다. 토스트는 창 뒤 막에 깔려 흐리게 보였다.
+      if (!inline) showToast(L.toastError, 'error');
+      return false;
     }
   };
 

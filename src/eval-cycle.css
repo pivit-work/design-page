@@ -5981,8 +5981,9 @@ button.evm-ai-source {
 }
 .evrr-row {
   display: grid;
-  /* PW-711 — 「동료 피드백 다듬기」 칸이 담당 리더와 상태 사이에 하나 늘었다. */
-  grid-template-columns: 36px 1.3fr 0.7fr 0.9fr 1.1fr 0.8fr 1.5fr;
+  /* PW-711 — 「동료 피드백 다듬기」 칸이 담당 리더와 상태 사이에 하나 늘었다.
+     PW-1922 — 오른쪽 칸은 [승인]·[⋯] 둘만 남아 1.5fr → 1fr. */
+  grid-template-columns: 36px 1.3fr 0.7fr 0.9fr 1.1fr 0.8fr 1fr;
   align-items: center;
   gap: var(--spacing-md);
   padding: var(--spacing-lg) var(--spacing-xl);
@@ -6018,19 +6019,50 @@ button.evm-ai-source {
   font-size: var(--font-size-text-sm);
   color: var(--text-secondary);
 }
-.evrr-approve {
+/* PW-1922 — 줄 오른쪽은 [승인]과 [⋯] 둘만, 오른쪽 끝에 붙인다. */
+.evrr-actions {
   display: flex;
-  gap: var(--spacing-sm);
   align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
 }
-.evrr-comment {
-  flex: 1;
-  min-width: 0;
-  border: 1px solid var(--bg-active);
-  border-radius: var(--radius-md);
-  padding: var(--spacing-sm) var(--spacing-md);
-  font-size: var(--font-size-text-sm);
-  font-family: inherit;
+.evrr-more {
+  padding: 8px;
+}
+/* 줄 [⋯] 메뉴 — 면·항목은 구성원 목록 «⋯» 메뉴(.admin-emp-row-menu · -item)와 같은 값.
+   자리·겹침 순서는 `AnchoredLayer` 가 인라인으로 준다. */
+.evrr-row-menu {
+  width: 180px;
+  background: var(--bg-quaternary);
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--border-primary);
+  box-shadow: 0 6px 20px rgba(10, 13, 18, 0.1);
+  padding: 6px;
+}
+.evrr-row-menu-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 7px 10px;
+  border: none;
+  background: transparent;
+  border-radius: 7px;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 600;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.evrr-row-menu-item:hover:not(:disabled) { background: var(--bg-secondary); }
+.evrr-row-menu-item:disabled { opacity: 0.45; cursor: not-allowed; }
+.evrr-row-menu-item.is-danger { color: var(--text-error-primary); }
+.evrr-row-menu-divider { height: 1px; background: var(--bg-secondary); margin: 4px 0; }
+/* PW-1922 — 「생성 실패」 옆 [재생성]은 테두리 버튼이 아니라 글자 버튼(칸 높이를 줄인다). */
+.evrr-regen-link {
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+  color: var(--text-brand-secondary);
 }
 .evrr-muted {
   font-size: var(--font-size-text-xs);
