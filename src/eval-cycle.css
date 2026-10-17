@@ -6421,6 +6421,12 @@ button.evm-ai-source {
   font-weight: 600;
   color: var(--utility-error-700);
 }
+/* PW-1925 — 위원이 보는 권한 배너는 brand tint. 색은 같은 워크스페이스의 .evs-cw-filter-active 를 따른다. */
+.evs-cw-banner.is-brand {
+  background: var(--utility-brand-50);
+  border-color: var(--utility-brand-200);
+  color: var(--utility-brand-700);
+}
 .evs-cw-roster {
   display: flex;
   flex-direction: column;

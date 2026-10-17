@@ -2097,6 +2097,9 @@ export default function EvalCycleSummaryCanvas({
    */
   toolbar = null,
   workspaceOnly = false,
+  // [PW-1925] 요약 정책 캘리브레이션 워크스페이스 「권한 배너」 — 위원이 보면 'brand'(브랜드 색), HR 이 보면 'error'(빨강).
+  // 안 주면 예전처럼 빨강이다.
+  cwBannerTone = 'error',
   // [PW-1465] 요약 정책 §3 탭 G — 위원회에 초대된 사람에게만 탭을 만든다. false 면 탭 자체가 없다.
   showCalibWorkTab = true,
 }) {
@@ -3893,7 +3896,12 @@ export default function EvalCycleSummaryCanvas({
         {shownTab === 'calib_work' && workspaceOnly && (
           <div className="evs-cw" data-testid="evs-calib-workspace">
             <div className="evs-cw-banner-row">
-              <div className="evs-cw-banner">{L.cwBanner}</div>
+              <div
+                className={`evs-cw-banner${cwBannerTone === 'brand' ? ' is-brand' : ''}`}
+                data-testid="evs-cw-banner"
+              >
+                {L.cwBanner}
+              </div>
               {/* 세션을 열면 같은 버튼이 표 위 승진 마킹 요약 줄로 옮겨 간다(§9.1). */}
               {!selectedCalibSessionId && nineBox && nineBox.assessedCount > 0 && (
                 <button
