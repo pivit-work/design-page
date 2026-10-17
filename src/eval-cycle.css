@@ -5845,6 +5845,14 @@
   flex-direction: column;
   align-items: flex-start;
   gap: var(--spacing-xs);
+  min-width: 0;
+}
+/* PW-1839 — 상태 이름은 로케일에 따라 길어진다(«Awaiting HR review»). 칸을 넘어 옆 버튼에 겹치지
+   않게 칸 안에서 말줄임한다. 전체 이름은 딱지의 title 로 뜬다. */
+.evrr-status-cell .evrr-badge {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .evrr-ai-state {
   display: inline-flex;

@@ -383,7 +383,7 @@ function RefinementPanel({ memberId, L, load, onDecide, onRetry }) {
                 {item.itemLabel && (
                   <span className="evrr-refine-q">{item.itemLabel}</span>
                 )}
-                <StatusBadge className={`evrr-badge ${meta.cls}`}>{L[meta.key]}</StatusBadge>
+                <StatusBadge className={`evrr-badge ${meta.cls}`} title={L[meta.key]}>{L[meta.key]}</StatusBadge>
               </header>
 
               <div className="evrr-refine-compare">
