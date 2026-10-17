@@ -1,6 +1,8 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Button from '../shared/Button.jsx';
+import AnchoredLayer from '../shared/AnchoredLayer.jsx';
+import useDismissLayer from '../shared/useDismissLayer.js';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
 import { FieldInfo, FieldVisibility } from './evalFieldMeta.jsx';
 import EvalNoteBlock, { EvalMarkdownLite } from './EvalNoteBlock.jsx';
@@ -126,6 +128,12 @@ const DEFAULT_LABELS = {
   aiDraftEdited: 'AI 수정됨',
   aiDraftConfirmed: 'AI 초안 확인됨',
   aiDraftSources: '초안 출처',
+  // PW-1920 「+N」 단추의 읽어 주는 이름과 창 안 묶음 이름.
+  aiDraftSourcesMore: '출처 {{count}}개 더 보기',
+  aiDraftSourceGroupSnippet: '스니핏',
+  aiDraftSourceGroupFeedback: '받은 피드백',
+  aiDraftSourceGroupOneOnOne: '1on1',
+  aiDraftSourceGroupOkr: 'OKR 달성 기록',
   aiDraftConfirm: '확인',
   // §4.3.1 — 적용 단계를 켠 화면(상향 리뷰 §5U.4)에서 초안 블록의 두 버튼.
   aiDraftUse: '사용',
@@ -1345,7 +1353,7 @@ export default function EvalCycleMemberCanvas({
                       <div className="evm-ai-draft-pending" data-testid={`evm-ai-pending-${f.key}`}>
                         <span className="evm-ai-draft-badge">{L.aiDraftUnconfirmed}</span>
                         <p className="evm-ai-draft-pending-text">{pendingDraft[f.key]}</p>
-                        <AiDraftSources sources={draftSources[f.key]} label={L.aiDraftSources} testId={`evm-ai-sources-${f.key}`} />
+                        <AiDraftSources sources={draftSources[f.key]} L={L} testId={`evm-ai-sources-${f.key}`} />
                         <div className="evm-ai-draft-bar is-unconfirmed">
                           <button
                             type="button"
@@ -1386,7 +1394,7 @@ export default function EvalCycleMemberCanvas({
                             {L.aiDraftConfirm}
                           </button>
                         )}
-                        <AiDraftSources sources={draftSources[f.key]} label={L.aiDraftSources} testId={`evm-ai-sources-${f.key}`} />
+                        <AiDraftSources sources={draftSources[f.key]} L={L} testId={`evm-ai-sources-${f.key}`} />
                       </div>
                     )}
                   </>
@@ -1535,16 +1543,41 @@ export default function EvalCycleMemberCanvas({
   );
 }
 
+/** [PW-1920] 「+N」 없이 보이는 배지 수. */
+const AI_SOURCES_VISIBLE = 3;
+/** 창 안 묶음 순서와 이름표 키. `kind` 가 없는 옛 출처는 태그 글자(S·F·O·K)로 가른다. */
+const AI_SOURCE_GROUPS = [
+  { kind: 'snippet', prefix: 'S', labelKey: 'aiDraftSourceGroupSnippet' },
+  { kind: 'feedback', prefix: 'F', labelKey: 'aiDraftSourceGroupFeedback' },
+  { kind: 'oneOnOne', prefix: 'O', labelKey: 'aiDraftSourceGroupOneOnOne' },
+  { kind: 'okr', prefix: 'K', labelKey: 'aiDraftSourceGroupOkr' },
+];
+const aiSourceKind = (src) =>
+  src.kind ?? AI_SOURCE_GROUPS.find((g) => src.key?.startsWith(g.prefix))?.kind;
+
 /**
  * [PW-1844] AI 초안 출처 배지 — spec-eval-cycle §4.3.2·§4.3.4, member policy §4.3.1 「📎 소스명」.
  * 누르면 원본(스니핏·원온원·피드백·OKR)을 새 탭으로 연다 — 쓰던 초안을 잃지 않게(§4.3.1 「모달 또는 새 탭」).
  * 출처가 없으면 아무것도 그리지 않는다.
+ *
+ * [PW-1920] 많으면 앞 3개(서버가 돌려준 순서)만 보이고 나머지는 「+N」으로 접는다. 「+N」은 출처 전부를
+ * 종류별로 묶은 작은 창을 띄운다(커트가 고른 시안 — 창에는 앞 3개도 함께 든다). 창은 포털로 떠서 아래 항목을
+ * 밀지 않고, 아래가 좁으면 위로 뒤집힌다(AnchoredLayer). 바깥 누르기·Esc 로 닫힌다.
  */
-function AiDraftSources({ sources, label, testId }) {
+function AiDraftSources({ sources, L, testId }) {
+  const [open, setOpen] = useState(false);
+  const moreRef = useRef(null);
+  const panelRef = useRef(null);
+  useDismissLayer(() => setOpen(false), panelRef, moreRef, open);
   if (!sources || sources.length === 0) return null;
+  const hidden = sources.length - AI_SOURCES_VISIBLE;
+  const groups = AI_SOURCE_GROUPS.map((g) => ({
+    ...g,
+    items: sources.filter((src) => aiSourceKind(src) === g.kind),
+  })).filter((g) => g.items.length > 0);
   return (
-    <span className="evm-ai-sources" role="list" aria-label={label} data-testid={testId}>
-      {sources.map((src) => (
+    <span className="evm-ai-sources" role="list" aria-label={L.aiDraftSources} data-testid={testId}>
+      {sources.slice(0, AI_SOURCES_VISIBLE).map((src) => (
         <a
           key={src.key}
           role="listitem"
@@ -1552,12 +1585,68 @@ function AiDraftSources({ sources, label, testId }) {
           href={src.href}
           target="_blank"
           rel="noopener noreferrer"
+          title={src.title || src.label}
           data-testid="evm-ai-source"
         >
           <PaperclipIcon size={11} />
           {src.label}
         </a>
       ))}
+      {hidden > 0 && (
+        <button
+          ref={moreRef}
+          type="button"
+          role="listitem"
+          className="evm-ai-source"
+          aria-haspopup="true"
+          aria-expanded={open}
+          aria-label={fill(L.aiDraftSourcesMore, { count: hidden })}
+          onClick={() => setOpen((v) => !v)}
+          data-testid="evm-ai-sources-more"
+        >
+          +{hidden}
+        </button>
+      )}
+      {open && hidden > 0 && (
+        <AnchoredLayer
+          anchorRef={moreRef}
+          panelRef={panelRef}
+          width={340}
+          maxHeight={320}
+          className="evm-ai-sources-pop"
+          role="group"
+          aria-label={L.aiDraftSources}
+          data-testid="evm-ai-sources-pop"
+        >
+          {groups.map((g) => (
+            <div key={g.kind} className="evm-ai-sources-pop-group" data-testid={`evm-ai-sources-group-${g.kind}`}>
+              <div className="evm-ai-sources-pop-head">
+                {L[g.labelKey]} {g.items.length}
+              </div>
+              {g.items.map((src) => (
+                <a
+                  key={src.key}
+                  className="evm-ai-sources-pop-item"
+                  href={src.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={src.title || src.label}
+                  data-testid="evm-ai-sources-pop-item"
+                >
+                  {src.preview ? (
+                    <>
+                      {src.meta && <span className="evm-ai-sources-pop-meta">{src.meta}</span>}
+                      <span className="evm-ai-sources-pop-preview">{src.preview}</span>
+                    </>
+                  ) : (
+                    <span className="evm-ai-sources-pop-preview">{src.label}</span>
+                  )}
+                </a>
+              ))}
+            </div>
+          ))}
+        </AnchoredLayer>
+      )}
     </span>
   );
 }

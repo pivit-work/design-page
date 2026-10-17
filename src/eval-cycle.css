@@ -4137,6 +4137,67 @@
   color: var(--text-primary);
   border-color: var(--border-primary);
 }
+/* PW-1920 「+N」 단추 — 옆 배지(.evm-ai-source)와 같은 칩이고 단추라 글꼴·커서만 맞춘다. */
+button.evm-ai-source {
+  font-family: inherit;
+  cursor: pointer;
+}
+/* PW-1920 「+N」 창 — 디자이너 원본이 없어 타임라인 필터 메뉴(.tl-filter-menu · stesslee)의 값을 그대로 쓴다.
+   자리는 공용 AnchoredLayer 가 잡고(포털·뒤집기·높이 상한) 면은 여기서. */
+.evm-ai-sources-pop {
+  z-index: 100;
+  padding: 4px 0;
+  background: var(--bg-quaternary);
+  border-radius: 10px;
+  box-shadow:
+    0 14px 60px -2.5px rgba(10, 13, 18, 0.04),
+    0 21px 120px -12px rgba(10, 13, 18, 0.14);
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+/* 묶음 이름 + 개수 — 타임라인 그룹 머리(.tl-group-header-label). */
+.evm-ai-sources-pop-head {
+  padding: 6px 14px 2px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-secondary);
+}
+/* 줄 — 필터 메뉴 항목(.tl-filter-menu-item). */
+.evm-ai-sources-pop-item {
+  margin: 1px 6px;
+  padding: 8px 10px 8px 8px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 24px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  min-width: 0;
+}
+.evm-ai-sources-pop-item:hover {
+  background: var(--bg-secondary);
+}
+/* 줄 앞 칸(날짜·보낸 사람·달성률) — 타임라인 이벤트 개수(.tl-event-count). */
+.evm-ai-sources-pop-meta {
+  flex: none;
+  max-width: 72px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--text-tertiary);
+}
+.evm-ai-sources-pop-preview {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 /* PW-1460 — 활동 요약 맨 아래 «현재 기간 데이터만» 안내. */
 .evm-activity-note {
   margin-top: var(--spacing-md);
