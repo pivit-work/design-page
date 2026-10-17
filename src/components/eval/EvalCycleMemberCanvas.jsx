@@ -1619,7 +1619,7 @@ function AiDraftSources({ sources, L, testId }) {
           data-testid="evm-ai-sources-pop"
         >
           {groups.map((g) => (
-            <div key={g.kind} className="evm-ai-sources-pop-group" data-testid={`evm-ai-sources-group-${g.kind}`}>
+            <div key={g.kind} data-testid={`evm-ai-sources-group-${g.kind}`}>
               <div className="evm-ai-sources-pop-head">
                 {L[g.labelKey]} {g.items.length}
               </div>
