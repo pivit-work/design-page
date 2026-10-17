@@ -713,6 +713,8 @@ const AI_SETUP_PURPOSES = [
   { id: 'compensation', labelKey: 'aiSetupPurposeCompensation' },
   { id: 'promotion', labelKey: 'aiSetupPurposePromotion' },
 ];
+// [PW-1841] 회사 설명 칸 최대 글자 수 — 서버 `INPUT_LIMITS.cycleSetupNote` 와 같다(앱 inputLimits.drift 테스트가 대조).
+const AI_SETUP_NOTE_MAX = 2000;
 // 버전 프리셋(간소형/중간형/세분화형).
 const TEMPLATE_VERSIONS = [
   { id: 'simple', labelKey: 'tplVersionSimple' },
@@ -10822,7 +10824,7 @@ export default function EvalCycleWizard({
               id="evc-wiz-ai-setup-note"
               className="evc-input"
               rows={4}
-              maxLength={2000}
+              maxLength={AI_SETUP_NOTE_MAX}
               placeholder={L.aiSetupNotePh}
               value={aiSetupNote}
               onChange={(e) => setAiSetupNote(e.target.value)}
