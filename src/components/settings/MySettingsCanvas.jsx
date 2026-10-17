@@ -1528,6 +1528,11 @@ export default function MySettingsCanvas({
    */
   nationalIdPresent = false,
   onRevealNationalId,
+  /**
+   * 회사가 주민등록번호 받기를 켰나 (PW-1923 · admin-spec §3.9-F-3). `false` 면 주민등록번호 칸을
+   * 아예 그리지 않는다 — 비활성으로도 두지 않는다(보이면 근거 없는 수집이 생긴다).
+   */
+  nationalIdEnabled = true,
   /* 공개 범위 */
   visibilityGroups = [],
   visibilityError = null,
@@ -2172,7 +2177,9 @@ export default function MySettingsCanvas({
                     />
                   </Field>
                   {/* 주민등록번호 — 입력은 본인만(어드민은 열람만). 저장된 값은 가린 채 두고,
-                      바꿀 때는 새 번호를 아래 칸에 넣어 [변경사항 저장]한다. */}
+                      바꿀 때는 새 번호를 아래 칸에 넣어 [변경사항 저장]한다.
+                      회사가 받기를 끈 경우(nationalIdEnabled=false)에는 칸 자체를 그리지 않는다. */}
+                  {nationalIdEnabled && (
                   <Field
                     label={labels.profile.nationalId}
                     hint={labels.profile.nationalIdHint}
@@ -2211,6 +2218,7 @@ export default function MySettingsCanvas({
                       aria-label={labels.profile.nationalIdChange}
                     />
                   </Field>
+                  )}
                 </div>
                 <Field label={labels.profile.bio} hint={labels.profile.bioHint}>
                   <TextArea

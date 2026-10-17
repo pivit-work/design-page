@@ -647,6 +647,8 @@ export function HrProfileModal({
   confirmDelete,
   // 주민등록번호 [보기] (W62) — `(memberId) => Promise<{ nationalId: string | null }>`. 없으면 버튼이 없다.
   onRevealNationalId,
+  // 회사가 주민등록번호 받기를 켰나 (PW-1923 · admin-spec §3.9-F-3). false 면 주민등록번호 줄 자체를 그리지 않는다.
+  nationalIdEnabled = true,
   // 계좌번호 [보기] (PW-1622 · §3.2.3) — `(memberId) => Promise<{ bankAccount: string | null }>`.
   // 없으면 [보기]가 없고, 계좌가 있는 사람은 끝 네 자리만 보인다(새 번호는 넣을 수 없다).
   onRevealBankAccount,
@@ -865,7 +867,7 @@ export function HrProfileModal({
                   {/* 본인이 넣는 칸 — 여기서는 확인만 한다(§3.2.2 · §3.2.9). 영어 닉네임도 같다(§3.2.2 `nicknameEn`). */}
                   <HrPair k={L.hrNicknameEn || '영어 닉네임'} v={row?.nicknameEn} />
                   <HrPair k={L.hrTshirtSize || '티셔츠 사이즈'} v={identity.tshirtSize} />
-                  {kept(L.hrNationalId || '주민등록번호', (
+                  {nationalIdEnabled && kept(L.hrNationalId || '주민등록번호', (
                     <HrNationalIdRow
                     memberId={row?.id}
                     present={!!identity.nationalId?.present}
@@ -965,7 +967,7 @@ export function HrProfileModal({
                   )}
                   <HrPair k={L.hrNicknameEn || '영어 닉네임'} v={row?.nicknameEn} />
                   <HrPair k={L.hrTshirtSize || '티셔츠 사이즈'} v={identity.tshirtSize} />
-                  {kept(L.hrNationalId || '주민등록번호', (
+                  {nationalIdEnabled && kept(L.hrNationalId || '주민등록번호', (
                     <HrNationalIdRow
                     memberId={row?.id}
                     present={!!identity.nationalId?.present}

@@ -3863,6 +3863,7 @@ function EmployeesEditPanel({
   /* 회사 «기본 통화» — 보상 이력 창 통화 칸의 시작값 (W69). 미주입이면 KRW. */
   defaultCurrency,
   hrRecordHandlers,
+  nationalIdEnabled,
   /* [조직 설정 →] — 직군·직렬·직무에 고를 값이 없을 때 그 자리로 보낸다(§3.5-A A1·A2·A5).
      미주입이면 사유 글만 남고 버튼은 없다. */
   onOpenFieldOptions,
@@ -4832,6 +4833,7 @@ function EmployeesEditPanel({
             onSaveBenefits={canEdit ? hrRecordHandlers?.onSaveBenefits : undefined}
             confirmDelete={hrRecordHandlers?.confirmDelete}
             onRevealNationalId={hrRecordHandlers?.onRevealNationalId}
+            nationalIdEnabled={nationalIdEnabled}
             onRevealBankAccount={hrRecordHandlers?.onRevealBankAccount}
             onSaveRecord={canEdit ? hrRecordHandlers?.onSaveRecord : undefined}
             onDeleteRecord={canEdit ? hrRecordHandlers?.onDeleteRecord : undefined}
@@ -5145,6 +5147,11 @@ export default function AdminEmployeesCanvas({
    * 선다. 빠진 콜백의 자리는 그리지 않는다(교육·복리후생 묶음 / 줄마다 고치기·지우기).
    */
   hrRecordHandlers,
+  /**
+   * 회사가 주민등록번호 받기를 켰나 (PW-1923 · admin-spec §3.9-F-3 · §3.2.9). `false` 면 HR 기록 창의
+   * 주민등록번호 줄을 그리지 않는다(비활성으로도 두지 않는다). 미주입이면 종전대로 보인다.
+   */
+  nationalIdEnabled = true,
   onLoadArchivedRecords,
   onDownloadArchivedRecords,
   onLoadHrProfile,
@@ -5500,6 +5507,7 @@ export default function AdminEmployeesCanvas({
             onAddSalaryHistory={onAddSalaryHistory}
             defaultCurrency={defaultCurrency}
             hrRecordHandlers={hrRecordHandlers}
+            nationalIdEnabled={nationalIdEnabled}
             onLoadArchivedRecords={onLoadArchivedRecords}
             onDownloadArchivedRecords={onDownloadArchivedRecords}
           />
