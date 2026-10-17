@@ -98,6 +98,23 @@ export const OnbInput = forwardRef(function OnbInput(
   );
 });
 
+/**
+ * 여러 줄 입력 칸 — 성향 설정의 «성장 포인트»(PW-1915). 시안에 이 모양이 따로 없어 OnbInput 과 같은
+ * 채움·테두리·글씨를 쓰고 높이만 줄 수(rows)로 늘린다.
+ * Props: invalid + 네이티브 textarea 속성
+ */
+export const OnbTextarea = forwardRef(function OnbTextarea({ invalid = false, rows = 3, ...rest }, ref) {
+  return (
+    <textarea
+      ref={ref}
+      rows={rows}
+      className={cx('onb-input', 'is-textarea', invalid && 'is-invalid')}
+      aria-invalid={invalid || undefined}
+      {...rest}
+    />
+  );
+});
+
 /** 작은 고르기 칸 — 초대의 직급·팀. Props: options [{ value, label }] + 네이티브 select 속성. */
 export function OnbSelect({ options = [], ...rest }) {
   return (

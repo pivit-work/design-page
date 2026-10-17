@@ -13,6 +13,7 @@ export {
 export {
   OnbField,
   OnbInput,
+  OnbTextarea,
   OnbSelect,
   OnbButton,
   OnbGoogleButton,

@@ -3,6 +3,7 @@ import Chip from '../shared/Chip.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
 import Radio from '../shared/Radio.jsx';
 import TextInput from '../shared/TextInput.jsx';
+import TextArea from '../shared/TextArea.jsx';
 import TimeInput from '../shared/TimeInput.jsx';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
 import { SkeletonList } from '../shared/Skeleton.jsx';
@@ -11,7 +12,7 @@ import { InfoIcon } from './settingsIcons.jsx';
 /**
  * 내 설정 › 선호 설정 탭 (pivit-work PW-1366 · 기획 my-settings-spec §5-A, 시안 settings-app.jsx `PreferenceTab`).
  *
- * 배너 → 동의 카드 → 피드백 수신 선호 → 커뮤니케이션 선호 → [변경사항 저장].
+ * 배너 → 동의 카드 → 피드백 수신 선호 → 커뮤니케이션 선호 → 나의 성향 → [변경사항 저장].
  * 입력 중인 값은 이 탭이 갖고, 저장·철회 요청은 호스트가 한다.
  *
  * - `preference` — `{ agreed, agreedDate, feedbackProfile, communicationPreference }`. 불러오는 중·실패면 null.
@@ -23,6 +24,9 @@ import { InfoIcon } from './settingsIcons.jsx';
  * - `onWithdraw()` — 확인 창에서 [철회]를 누르면. 끝날 때까지 창을 잠그고, 끝나면 닫는다.
  * - 값으로 남는 선택지(중점 영역·키워드)는 기획서가 정한 낱말 그대로이고, 화면 글자는 `labels.preference.valueLabels`
  *   로 바꿔 보인다. 표에 없는 값(직접 입력한 키워드)은 그대로 보인다.
+ * - 나의 성향(PW-1915 · spec-onboarding §3 A-7) — `feedbackProfile.personalityTraits`(넷 중 여럿 ·
+ *   글자는 `labels.preference.options[id]`)와 `feedbackProfile.growthPoint`(200자). 시안이 없어 칩은 「회의 시간대」,
+ *   글 칸은 기본 정보 탭 「자기소개」와 같은 모양이다.
  */
 
 const PREFERENCE_FOCUS_AREAS = ['성과', '역량', '커리어', '협업', '워크라이프 밸런스'];
@@ -34,6 +38,8 @@ const SPEEDS = ['immediate', 'same_day', 'within_24h', 'async'];
 const SLOTS = ['morning', 'afternoon', 'evening'];
 const MAX_FOCUS_AREAS = 3;
 const CAREER_GOAL_MAX = 100;
+const PERSONALITY_TRAITS = ['executor', 'analyst', 'empathizer', 'strategist'];
+const GROWTH_POINT_MAX = 200;
 
 const EMPTY = {
   feedbackTone: null,
@@ -46,6 +52,8 @@ const EMPTY = {
   meetingTimeSlots: [],
   focusHoursStart: '',
   focusHoursEnd: '',
+  personalityTraits: [],
+  growthPoint: '',
 };
 
 function draftOf(preference) {
@@ -62,6 +70,8 @@ function draftOf(preference) {
     meetingTimeSlots: c.meetingTimeSlots ?? [],
     focusHoursStart: c.focusHoursStart ?? '',
     focusHoursEnd: c.focusHoursEnd ?? '',
+    personalityTraits: f.personalityTraits ?? [],
+    growthPoint: f.growthPoint ?? '',
   };
 }
 
@@ -357,6 +367,36 @@ export default function PreferenceTab({
         </div>
       </div>
 
+      {/* ── 나의 성향 (PW-1915 · 온보딩 A-7/B-6 과 같은 두 칸) ── */}
+      <div className="admin-card msc-card" data-testid="preference-personality-card">
+        <div className="admin-section-label">{L.personalitySection}</div>
+        <div className="msc-pref-stack">
+          <div>
+            <PrefLabel hint={L.personalityTraitsHint}>{L.personalityTraits}</PrefLabel>
+            <div className="msc-pref-chips">
+              {PERSONALITY_TRAITS.map((id) => (
+                <Chip key={id} selected={draft.personalityTraits.includes(id)}
+                  onClick={() => toggle('personalityTraits', id)} data-testid={`pref-trait-${id}`}>{L.options[id]}</Chip>
+              ))}
+            </div>
+          </div>
+          <div>
+            <PrefLabel hint={L.growthPointHint}>{L.growthPoint}</PrefLabel>
+            <TextArea
+              className="admin-emp-input"
+              rows={3}
+              maxLength={GROWTH_POINT_MAX}
+              value={draft.growthPoint}
+              placeholder={L.growthPointPlaceholder}
+              aria-label={L.growthPoint}
+              onChange={(e) => set('growthPoint', e.target.value)}
+              style={{ resize: 'none', lineHeight: 1.7 }}
+              data-testid="pref-growth-point"
+            />
+            <div className="msc-char-count">{draft.growthPoint.length} / {GROWTH_POINT_MAX}</div>
+          </div>
+        </div>
+      </div>
       <button
         type="button"
         className={`msc-save-btn${saveClass}`}

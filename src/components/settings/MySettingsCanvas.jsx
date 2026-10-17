@@ -386,6 +386,12 @@ const DEFAULT_LABELS = {
     focusHoursHint: '선택',
     focusHoursStart: '집중 시간 시작',
     focusHoursEnd: '집중 시간 종료',
+    personalitySection: '나의 성향',
+    personalityTraits: '나는 어떤 스타일인가요?',
+    personalityTraitsHint: '여러 개 고를 수 있어요',
+    growthPoint: '지금 성장시키고 싶은 것',
+    growthPointHint: '최대 200자',
+    growthPointPlaceholder: '예: 팀원과 더 명확하게 소통하고 싶어요.',
     focusHoursNote:
       '이 시간에는 웹 푸시·이메일·Slack 발송을 멈춥니다. 인앱 알림은 그대로 쌓이고, 시간이 끝나도 밀린 알림을 몰아 보내지 않습니다.\n조직이 필수로 지정한 알림(캐파 설정 요청·업무량 초과 경고)은 이 시간에도 옵니다. 시작이 종료보다 늦으면 자정을 넘는 구간으로 봅니다.',
     options: {
@@ -400,6 +406,10 @@ const DEFAULT_LABELS = {
       morning: '오전 (09–12)',
       afternoon: '오후 (13–17)',
       evening: '저녁 (17 이후)',
+      executor: '실행형',
+      analyst: '분석형',
+      empathizer: '공감형',
+      strategist: '전략형',
     },
     optionDescs: {
       direct: '명확하고 솔직한 방식',
