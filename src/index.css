@@ -207,6 +207,12 @@ body {
   font-family: var(--font-family-body);
   background: var(--bg-primary);
   -webkit-font-smoothing: antialiased;
+  /* 한국어를 낱말 단위로 끊는다. 기본값은 글자마다 끊어서 「주세 / 요.」처럼 마지막 줄에
+     한두 글자만 남는다. 공백 없는 긴 주소·영문은 칸을 넘지 않게 아무 곳에서나 끊고,
+     pretty 로 마지막 줄이 지나치게 짧아지지 않게 줄을 고른다. 셋 다 상속된다. */
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+  text-wrap: pretty;
   overflow: hidden;
   width: 100vw;
   height: 100vh;
