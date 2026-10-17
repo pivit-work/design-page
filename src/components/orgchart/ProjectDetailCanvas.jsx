@@ -403,78 +403,95 @@ export default function ProjectDetailCanvas({
               </dl>
             ) : (
               <div className="pd-form" data-testid="project-detail-form">
-                <input
-                  autoFocus
-                  className="pd-input"
-                  value={draft.name}
-                  maxLength={50}
-                  aria-label={L('projectDetail.form.name')}
-                  placeholder={L('projectDetail.form.name')}
-                  data-testid="project-detail-form-name"
-                  onChange={(e) => { setDraft({ ...draft, name: e.target.value }); setFormError(''); }}
-                />
-                <input
-                  className="pd-input"
-                  value={draft.description}
-                  aria-label={L('projectDetail.form.description')}
-                  placeholder={L('projectDetail.form.description')}
-                  data-testid="project-detail-form-description"
-                  onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-                />
-                <div className="pd-form-dates">
-                  <DateInput
-                    className="pd-input pd-date"
-                    value={draft.startDate}
-                    aria-label={L('projectDetail.form.startDate')}
-                    data-testid="project-detail-form-start"
-                    onChange={(v) => { setDraft((d) => ({ ...d, startDate: v })); setFormError(''); }}
-                  />
-                  <span className="pd-subline-muted">~</span>
-                  <DateInput
-                    className="pd-input pd-date"
-                    value={draft.endDate}
-                    aria-label={L('projectDetail.form.endDate')}
-                    data-testid="project-detail-form-end"
-                    onChange={(v) => { setDraft((d) => ({ ...d, endDate: v })); setFormError(''); }}
+                {/* 칸마다 이름표를 위에 단다 — 안내 글자는 입력하면 사라져 무슨 칸인지 잊는다.
+                    이름표·간격·입력칸은 스쿼드 폼과 같은 1on1 「일정 추가」 창 값 (PW-1900) */}
+                <div className="sq-form-field">
+                  <div className="sq-field-label">{L('projectDetail.form.name')}</div>
+                  <input
+                    autoFocus
+                    className="pd-input"
+                    value={draft.name}
+                    maxLength={50}
+                    aria-label={L('projectDetail.form.name')}
+                    placeholder={L('projectDetail.form.name')}
+                    data-testid="project-detail-form-name"
+                    onChange={(e) => { setDraft({ ...draft, name: e.target.value }); setFormError(''); }}
                   />
                 </div>
-                <div className="sq-swatches pd-swatches" role="radiogroup" aria-label={L('projectDetail.form.color')}>
-                  <span className="sq-swatches-label">{L('projectDetail.form.color')}</span>
-                  {colorChoices.map((c) => (
-                    <button
-                      key={c}
-                      type="button"
-                      role="radio"
-                      aria-checked={draft.color === c}
-                      aria-label={c}
-                      title={c}
-                      data-testid={`project-detail-form-color-${c}`}
-                      className={`sq-swatch${draft.color === c ? ' is-picked' : ''}`}
-                      style={{ background: c }}
-                      onClick={() => setDraft((d) => ({ ...d, color: c }))}
-                    />
-                  ))}
+                <div className="sq-form-field">
+                  <div className="sq-field-label">{L('projectDetail.form.description')}</div>
+                  <input
+                    className="pd-input"
+                    value={draft.description}
+                    aria-label={L('projectDetail.form.description')}
+                    placeholder={L('projectDetail.form.description')}
+                    data-testid="project-detail-form-description"
+                    onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+                  />
                 </div>
-                <div className="pd-form-progress">
-                  <span className="sq-swatches-label">{L('projectDetail.form.progress')}</span>
-                  <div className="rsx-slider" style={{ '--rsx-slider-fill': draft.color }}>
-                    <div className="rsx-slider-track"><i style={{ width: `${draft.progress}%` }} /></div>
-                    <input
-                      type="range" min={0} max={100} step={5} value={draft.progress}
-                      aria-label={L('projectDetail.form.progress')}
-                      data-testid="project-detail-form-progress"
-                      onChange={(e) => setDraft((d) => ({ ...d, progress: clampProgress(e.target.value) }))}
+                <div className="sq-field-row">
+                  <div className="sq-form-field">
+                    <div className="sq-field-label">{L('projectDetail.form.startDate')}</div>
+                    <DateInput
+                      className="pd-input pd-date"
+                      value={draft.startDate}
+                      aria-label={L('projectDetail.form.startDate')}
+                      data-testid="project-detail-form-start"
+                      onChange={(v) => { setDraft((d) => ({ ...d, startDate: v })); setFormError(''); }}
                     />
-                    <span className="rsx-slider-ball" style={{ left: `${draft.progress}%` }} />
                   </div>
-                  <div className="rsx-entry-input">
-                    <input
-                      type="number" min={0} max={100} value={draft.progress}
-                      aria-label={L('projectDetail.form.progressDirect')}
-                      data-testid="project-detail-form-progress-input"
-                      onChange={(e) => setDraft((d) => ({ ...d, progress: clampProgress(e.target.value) }))}
+                  <div className="sq-form-field">
+                    <div className="sq-field-label">{L('projectDetail.form.endDate')}</div>
+                    <DateInput
+                      className="pd-input pd-date"
+                      value={draft.endDate}
+                      aria-label={L('projectDetail.form.endDate')}
+                      data-testid="project-detail-form-end"
+                      onChange={(v) => { setDraft((d) => ({ ...d, endDate: v })); setFormError(''); }}
                     />
-                    <span>%</span>
+                  </div>
+                </div>
+                <div className="sq-form-field">
+                  <div className="sq-field-label">{L('projectDetail.form.color')}</div>
+                  <div className="sq-swatches pd-swatches" role="radiogroup" aria-label={L('projectDetail.form.color')}>
+                    {colorChoices.map((c) => (
+                      <button
+                        key={c}
+                        type="button"
+                        role="radio"
+                        aria-checked={draft.color === c}
+                        aria-label={c}
+                        title={c}
+                        data-testid={`project-detail-form-color-${c}`}
+                        className={`sq-swatch${draft.color === c ? ' is-picked' : ''}`}
+                        style={{ background: c }}
+                        onClick={() => setDraft((d) => ({ ...d, color: c }))}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <div className="sq-form-field">
+                  <div className="sq-field-label">{L('projectDetail.form.progress')}</div>
+                  <div className="pd-form-progress">
+                    <div className="rsx-slider" style={{ '--rsx-slider-fill': draft.color }}>
+                      <div className="rsx-slider-track"><i style={{ width: `${draft.progress}%` }} /></div>
+                      <input
+                        type="range" min={0} max={100} step={5} value={draft.progress}
+                        aria-label={L('projectDetail.form.progress')}
+                        data-testid="project-detail-form-progress"
+                        onChange={(e) => setDraft((d) => ({ ...d, progress: clampProgress(e.target.value) }))}
+                      />
+                      <span className="rsx-slider-ball" style={{ left: `${draft.progress}%` }} />
+                    </div>
+                    <div className="rsx-entry-input">
+                      <input
+                        type="number" min={0} max={100} value={draft.progress}
+                        aria-label={L('projectDetail.form.progressDirect')}
+                        data-testid="project-detail-form-progress-input"
+                        onChange={(e) => setDraft((d) => ({ ...d, progress: clampProgress(e.target.value) }))}
+                      />
+                      <span>%</span>
+                    </div>
                   </div>
                 </div>
                 {/* 상태는 이 폼에 없다 — 전이 규칙 우회 차단 (§5-2 · §6-1) */}

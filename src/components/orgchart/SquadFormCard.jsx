@@ -39,108 +39,120 @@ export default function SquadFormCard({
     >
       <p className="sq-form-title">{L(editing ? 'squad.form.titleEdit' : 'squad.form.titleCreate')}</p>
 
-      <input
-        autoFocus value={form.name} maxLength={30}
-        aria-label={L('squad.form.name')}
-        className={`sq-field${errors.name ? ' is-invalid' : ''}`}
-        onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-        onKeyDown={(e) => { if (e.key === 'Enter') onSubmit(); if (e.key === 'Escape') onCancel(); }}
-        placeholder={L('squad.form.namePlaceholder')}
-      />
-      {errors.name && <div className="sq-field-error">{errors.name}</div>}
+      {/* 칸마다 이름표를 위에 단다 — 안내 글자는 입력하면 사라져 무슨 칸인지 잊는다.
+          이름표·간격·입력칸은 1on1 「일정 추가」 창 값 그대로 (PW-1900, org_squad.css) */}
+      <div className="sq-form-fields">
+        <div className="sq-form-field">
+          <div className="sq-field-label">{L('squad.form.name')}</div>
+          <input
+            autoFocus value={form.name} maxLength={30}
+            aria-label={L('squad.form.name')}
+            className={`sq-field${errors.name ? ' is-invalid' : ''}`}
+            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+            onKeyDown={(e) => { if (e.key === 'Enter') onSubmit(); if (e.key === 'Escape') onCancel(); }}
+            placeholder={L('squad.form.namePlaceholder')}
+          />
+          {errors.name && <div className="sq-field-error">{errors.name}</div>}
+        </div>
 
-      <input
-        value={form.mission} maxLength={60}
-        aria-label={L('squad.form.mission')}
-        className="sq-field"
-        onChange={(e) => setForm((f) => ({ ...f, mission: e.target.value }))}
-        placeholder={L('squad.form.missionPlaceholder')}
-      />
-
-      <div className="sq-field-row">
-        <div>
-          <div className="sq-field-label">{L('squad.form.startDateLabel')}</div>
-          <DateInput
-            value={form.startDate} aria-label={L('squad.form.startDate')}
+        <div className="sq-form-field">
+          <div className="sq-field-label">{L('squad.form.mission')}</div>
+          <input
+            value={form.mission} maxLength={60}
+            aria-label={L('squad.form.mission')}
             className="sq-field"
-            onChange={(v) => setForm((f) => ({ ...f, startDate: v }))}
+            onChange={(e) => setForm((f) => ({ ...f, mission: e.target.value }))}
+            placeholder={L('squad.form.missionPlaceholder')}
           />
         </div>
-        <div>
-          <div className="sq-field-label">{L('squad.form.endDateLabel')}</div>
-          <DateInput
-            value={form.endDate} aria-label={L('squad.form.endDate')}
-            className={`sq-field${errors.endDate ? ' is-invalid' : ''}`}
-            onChange={(v) => setForm((f) => ({ ...f, endDate: v }))}
-          />
-        </div>
-      </div>
-      {errors.endDate && <div className="sq-field-error">{errors.endDate}</div>}
 
-      <div className="sq-swatches">
-        <span className="sq-swatches-label">{L('squad.form.color')}</span>
-        {palette.map((c) => (
-          <div
-            key={c} onClick={() => setForm((f) => ({ ...f, color: c }))} title={c}
-            data-testid={`squad-color-${c}`}
-            className={`sq-swatch${form.color === c ? ' is-picked' : ''}`}
-            style={{ background: c }}
-          />
-        ))}
-      </div>
-
-      {/* 팀장(리드) 선택 — 생성 폼에만. 리드 교체는 배정 편집 팝오버의 책임이라 수정 폼에는 없다 */}
-      {!editing && (
-        <div className="sq-lead-pick">
-          <div className="sq-field-label">
-            <span className="sq-lead-mark"><LeadStarIcon size={11} /></span>{' '}
-            {L('squad.form.leadLabel')}
+        <div className="sq-field-row">
+          <div className="sq-form-field">
+            <div className="sq-field-label">{L('squad.form.startDateLabel')}</div>
+            <DateInput
+              value={form.startDate} aria-label={L('squad.form.startDate')}
+              className="sq-field"
+              onChange={(v) => setForm((f) => ({ ...f, startDate: v }))}
+            />
           </div>
-          {leadPerson ? (
-            <div>
-              <Chip
-                person={{ name: leadPerson.name, photo: leadPerson.avatar }}
-                onRemove={() => setForm((f) => ({ ...f, leadUserId: null }))}
-                removeLabel={L('squad.form.leadClear')}
-                data-testid="sq-lead-chip"
-              >
-                {leadPerson.name}
-              </Chip>
-            </div>
-          ) : leadOpen ? (
-            <div className="sq-lead-search">
-              <input
-                autoFocus value={leadQuery} aria-label={L('squad.form.leadSearch')}
-                className="sq-field"
-                onChange={(e) => setLeadQuery(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Escape') { setLeadOpen(false); setLeadQuery(''); } }}
-                placeholder={L('squad.form.leadSearchPlaceholder')}
-              />
-              <div className="sq-lead-list">
-                {cands.map((n) => (
-                  <div
-                    key={n.id}
-                    className="sq-lead-item"
-                    onClick={() => { setForm((f) => ({ ...f, leadUserId: n.id })); setLeadOpen(false); setLeadQuery(''); }}
-                  >
-                    {n.name} <span className="sq-lead-item-meta">· {n.team} {n.title}</span>
-                  </div>
-                ))}
-                {cands.length === 0 && (
-                  <div className="sq-lead-none">{L('squad.form.leadNoResults')}</div>
-                )}
-              </div>
-            </div>
-          ) : (
-            <button
-              type="button" onClick={() => setLeadOpen(true)}
-              className="sq-btn sq-btn-sm sq-btn-outline"
-            >
-              <PlusIcon size={12} /> {L('squad.form.leadPick')}
-            </button>
-          )}
+          <div className="sq-form-field">
+            <div className="sq-field-label">{L('squad.form.endDateLabel')}</div>
+            <DateInput
+              value={form.endDate} aria-label={L('squad.form.endDate')}
+              className={`sq-field${errors.endDate ? ' is-invalid' : ''}`}
+              onChange={(v) => setForm((f) => ({ ...f, endDate: v }))}
+            />
+            {errors.endDate && <div className="sq-field-error">{errors.endDate}</div>}
+          </div>
         </div>
-      )}
+
+        <div className="sq-form-field">
+          <div className="sq-field-label">{L('squad.form.color')}</div>
+          <div className="sq-swatches">
+            {palette.map((c) => (
+              <div
+                key={c} onClick={() => setForm((f) => ({ ...f, color: c }))} title={c}
+                data-testid={`squad-color-${c}`}
+                className={`sq-swatch${form.color === c ? ' is-picked' : ''}`}
+                style={{ background: c }}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* 팀장(리드) 선택 — 생성 폼에만. 리드 교체는 배정 편집 팝오버의 책임이라 수정 폼에는 없다 */}
+        {!editing && (
+          <div className="sq-form-field sq-lead-pick">
+            <div className="sq-field-label">
+              <span className="sq-lead-mark"><LeadStarIcon size={11} /></span>{' '}
+              {L('squad.form.leadLabel')}
+            </div>
+            {leadPerson ? (
+              <div>
+                <Chip
+                  person={{ name: leadPerson.name, photo: leadPerson.avatar }}
+                  onRemove={() => setForm((f) => ({ ...f, leadUserId: null }))}
+                  removeLabel={L('squad.form.leadClear')}
+                  data-testid="sq-lead-chip"
+                >
+                  {leadPerson.name}
+                </Chip>
+              </div>
+            ) : leadOpen ? (
+              <div className="sq-lead-search">
+                <input
+                  autoFocus value={leadQuery} aria-label={L('squad.form.leadSearch')}
+                  className="sq-field"
+                  onChange={(e) => setLeadQuery(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Escape') { setLeadOpen(false); setLeadQuery(''); } }}
+                  placeholder={L('squad.form.leadSearchPlaceholder')}
+                />
+                <div className="sq-lead-list">
+                  {cands.map((n) => (
+                    <div
+                      key={n.id}
+                      className="sq-lead-item"
+                      onClick={() => { setForm((f) => ({ ...f, leadUserId: n.id })); setLeadOpen(false); setLeadQuery(''); }}
+                    >
+                      {n.name} <span className="sq-lead-item-meta">· {n.team} {n.title}</span>
+                    </div>
+                  ))}
+                  {cands.length === 0 && (
+                    <div className="sq-lead-none">{L('squad.form.leadNoResults')}</div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button" onClick={() => setLeadOpen(true)}
+                className="sq-btn sq-btn-sm sq-btn-outline"
+              >
+                <PlusIcon size={12} /> {L('squad.form.leadPick')}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
 
       {!editing && (
         <p className="sq-form-note">

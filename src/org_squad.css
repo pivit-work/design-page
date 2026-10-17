@@ -1067,18 +1067,20 @@
   line-height: 18px;
   margin-top: 12px;
 }
+/* 삭제 확인 창의 이름 입력칸 — 위 .sq-field 와 같은 1on1 「일정 추가」 창 입력칸 값 (PW-1900) */
 .sq-modal-input {
   width: 100%;
   box-sizing: border-box;
-  margin-top: 8px;
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--border-primary);
-  background: var(--bg-quaternary);
+  margin-top: var(--spacing-lg);
+  min-height: 40px;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
+  background: var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
   color: var(--text-primary);
   font-family: inherit;
-  font-size: 14px;
-  line-height: 20px;
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
   outline: none;
 }
 .sq-modal-input:focus { border-color: var(--fg-brand-primary); }
@@ -1151,50 +1153,59 @@
   line-height: 30px;
   margin-bottom: 16px;
 }
+/* 칸 모양은 디자이너가 그린 1on1 「일정 추가」 창(one_on_one.css .ono-add-modal-*) 값 그대로 (PW-1900):
+   칸→칸 --spacing-3xl, 이름표→칸 --spacing-lg, 이름표 14px 700 secondary,
+   입력칸 alphaBlack3 바탕·--radius-md·16px + 옅은 alphaBlack5 테두리(PW-1898 내 설정과 같게).
+   프로젝트 상세 「수정」 폼(org_project.css .pd-*)도 같은 값을 쓴다. */
+.sq-form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3xl);
+}
+.sq-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  min-width: 0;
+}
 .sq-field {
   width: 100%;
   box-sizing: border-box;
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--border-primary);
-  background: var(--bg-quaternary);
+  min-height: 40px;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
+  background: var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
   color: var(--text-primary);
   font-family: inherit;
-  font-size: 14px;
-  line-height: 20px;
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
   outline: none;
 }
 .sq-field:focus { border-color: var(--fg-brand-primary); }
 .sq-field::placeholder { color: var(--text-placeholder); }
 .sq-field.is-invalid { border-color: var(--utility-error-300); }
-.sq-field + .sq-field { margin-top: 10px; }
 
 .sq-field-label {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-tertiary);
-  line-height: 18px;
-  margin-bottom: 4px;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-sm);
+  font-weight: 700;
+  color: var(--text-secondary);
+  line-height: var(--line-height-text-sm);
 }
 .sq-field-error {
   font-size: 12px;
   line-height: 18px;
   color: var(--text-error-primary);
-  margin-top: 4px;
 }
-.sq-field-row { display: flex; gap: 10px; margin-top: 10px; }
+/* 나란한 두 칸 사이는 1on1 창 .ono-add-modal-row 와 같다 */
+.sq-field-row { display: flex; gap: 17px; }
 .sq-field-row > div { flex: 1; }
 
 .sq-swatches {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-top: 14px;
-}
-.sq-swatches-label {
-  font-size: 12px;
-  color: var(--text-tertiary);
-  margin-right: 2px;
 }
 .sq-swatch {
   width: 18px;
@@ -1209,15 +1220,14 @@
   box-shadow: 0 0 0 2px var(--fg-primary);
 }
 
-.sq-lead-pick { margin-top: 14px; }
 .sq-lead-search {
-  border: 1px solid var(--border-primary);
-  border-radius: 8px;
+  border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 .sq-lead-search .sq-field {
   border: none;
-  border-bottom: 1px solid var(--utility-gray-100);
+  border-bottom: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
   border-radius: 0;
 }
 .sq-lead-list { max-height: 132px; overflow-y: auto; }
@@ -1236,7 +1246,7 @@
   font-size: 12px;
   line-height: 18px;
   color: var(--text-tertiary);
-  margin-top: 14px;
+  margin-top: var(--spacing-3xl);
 }
 .sq-form-actions { display: flex; gap: 8px; margin-top: 16px; }
 
