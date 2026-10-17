@@ -4357,7 +4357,9 @@ export default function EvalCycleSummaryCanvas({
                           : 'muted';
                     const closed = s.status === 'closed';
                     return (
-                      <div key={s.id} className="evs-cw-session-wrap">
+                      /* PW-1927 — 「열기」와 「위원 관리」를 한 상자 안에 둔다. 상자는 바깥 div 가 그리고,
+                         줄을 눌러 여는 버튼과 위원 관리 버튼은 그 안의 형제라 클릭이 섞이지 않는다. */
+                      <div key={s.id} className="evs-cw-session-wrap" data-testid="evs-cw-session-box">
                       <button
                         type="button"
                         className={`evs-cw-session${closed ? ' is-closed' : ''}`}
@@ -4423,7 +4425,9 @@ export default function EvalCycleSummaryCanvas({
             ) : (
               /* G2 — 세션 9칼럼 테이블 (read-only) */
               <div className="evs-cw-table-view">
-                <div className="evs-cw-table-head">
+                {/* PW-1927 — 세션 이름이 버튼에 밀려 꺾이지 않게 제목 줄과 버튼 줄을 나눈다
+                    (사이클 관리 머리 `.evc-manage-head` 와 같은 방식). */}
+                <div className="evs-cw-table-head" data-testid="evs-cw-table-head">
                   <button
                     type="button"
                     className="evc-btn is-ghost"
@@ -4450,6 +4454,8 @@ export default function EvalCycleSummaryCanvas({
                       </span>
                     )
                   )}
+                </div>
+                <div className="evs-cw-table-actions" data-testid="evs-cw-table-actions">
                   <button
                     type="button"
                     className={`evc-btn is-ghost evs-cw-filter-btn${isCalibFilterActive(calibFilter) ? ' is-active' : ''}`}
@@ -4546,7 +4552,7 @@ export default function EvalCycleSummaryCanvas({
                   {calibTable?.session?.canCalibrate && (
                     <button
                       type="button"
-                      className="evc-btn is-primary"
+                      className="evc-btn is-primary evs-cw-commit"
                       onClick={() => onCommitCalibSession?.()}
                       data-testid="evs-cw-commit"
                     >

@@ -6484,15 +6484,31 @@ button.evm-ai-source {
   opacity: 0.65;
   cursor: default;
 }
-/* §10.G.2-D — 세션 줄 옆 「위원 관리」. 줄(열기) 버튼과 형제로 둬 클릭이 섞이지 않는다. */
+/* §10.G.2-D · PW-1927 — 「위원 관리」를 「열기」와 같은 상자 안에 둔다. 상자(테두리·바탕·여백)는
+   바깥 칸이 그리고, 줄(열기) 버튼은 상자 안을 채우는 형제라 클릭이 섞이지 않는다. */
 .evs-cw-session-wrap {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 16px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: 12px;
+  padding: 14px 18px;
+  transition: box-shadow 0.12s;
+}
+.evs-cw-session-wrap:hover {
+  box-shadow: 0 2px 8px rgba(16, 24, 40, 0.06);
 }
 .evs-cw-session-wrap > .evs-cw-session {
   flex: 1;
   min-width: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+}
+.evs-cw-session-wrap > .evs-cw-session:hover {
+  box-shadow: none;
 }
 .evs-cw-session-manage {
   flex-shrink: 0;
@@ -6526,10 +6542,30 @@ button.evm-ai-source {
   flex-direction: column;
   gap: 12px;
 }
+/* PW-1927 — 제목 줄(목록·세션 이름·범위·상태)과 버튼 줄을 나눈다. 제목 줄은 사이클 관리 머리
+   `.evc-manage-head` 처럼 늘어놓고 넘치면 접는다. 이름이 버튼에 밀려 꺾이지 않는다. */
 .evs-cw-table-head {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
+}
+.evs-cw-table-head .evs-cw-session-meta {
+  white-space: nowrap;
+}
+.evs-cw-table-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+/* 오른쪽 끝은 「최종 확정」 하나다. CSV 의 margin-left: auto 를 그대로 두면 둘이 남는 폭을 나눠
+   CSV 가 줄 가운데로 뜬다. */
+.evs-cw-table-actions .evs-cw-csv {
+  margin-left: 0;
+}
+.evs-cw-table-actions .evs-cw-commit {
+  margin-left: auto;
 }
 .evs-cw-table-title {
   font-size: var(--font-size-text-sm);
