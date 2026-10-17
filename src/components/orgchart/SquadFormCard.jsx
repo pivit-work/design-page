@@ -102,7 +102,7 @@ export default function SquadFormCard({
 
         {/* 팀장(리드) 선택 — 생성 폼에만. 리드 교체는 배정 편집 팝오버의 책임이라 수정 폼에는 없다 */}
         {!editing && (
-          <div className="sq-form-field sq-lead-pick">
+          <div className="sq-form-field">
             <div className="sq-field-label">
               <span className="sq-lead-mark"><LeadStarIcon size={11} /></span>{' '}
               {L('squad.form.leadLabel')}
