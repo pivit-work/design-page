@@ -4542,7 +4542,6 @@ export default function EvalCycleSummaryCanvas({
                             ? 'info'
                             : 'neutral'
                       }
-                      className="evs-cw-state"
                       data-testid="evs-cw-state"
                     >
                       {calibTable.session.status === 'closed'
@@ -4603,7 +4602,7 @@ export default function EvalCycleSummaryCanvas({
                     >
                       <button
                         type="button"
-                        className={`evs-cw-tool evs-cw-conflict-btn${conflictExcludedCount > 0 ? ' is-active' : ''}`}
+                        className={`evs-cw-tool${conflictExcludedCount > 0 ? ' is-active' : ''}`}
                         aria-pressed={conflictExcludedCount > 0}
                         aria-disabled={conflictIds.length === 0}
                         onClick={() => {
@@ -4661,7 +4660,7 @@ export default function EvalCycleSummaryCanvas({
                     <div className="evs-cw-manage-wrap" ref={manageMenuRef}>
                       <button
                         type="button"
-                        className={`evs-cw-tool evs-cw-manage-btn${manageMenuOpen ? ' is-open' : ''}`}
+                        className={`evs-cw-tool${manageMenuOpen ? ' is-open' : ''}`}
                         aria-haspopup="menu"
                         aria-expanded={manageMenuOpen}
                         onClick={() => setManageMenuOpen((v) => !v)}
@@ -4697,7 +4696,7 @@ export default function EvalCycleSummaryCanvas({
                   {calibTable?.session?.canCalibrate && (
                     <button
                       type="button"
-                      className="evc-btn is-primary evs-cw-commit"
+                      className="evc-btn is-primary"
                       onClick={() => onCommitCalibSession?.()}
                       data-testid="evs-cw-commit"
                     >
