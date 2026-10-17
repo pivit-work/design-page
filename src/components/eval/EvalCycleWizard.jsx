@@ -707,6 +707,12 @@ const TEMPLATE_TYPES = [
   { id: 'upward', nameKey: 'reviewUpward' },
   { id: 'leader', nameKey: 'reviewLeader' },
 ];
+// [PW-1841] «AI 로 초안 만들기» 평가 목적 — 커트 2026-10-17(PW-1859) 셋. 라벨 키는 aiSetupPurpose{Id}.
+const AI_SETUP_PURPOSES = [
+  { id: 'growth', labelKey: 'aiSetupPurposeGrowth' },
+  { id: 'compensation', labelKey: 'aiSetupPurposeCompensation' },
+  { id: 'promotion', labelKey: 'aiSetupPurposePromotion' },
+];
 // 버전 프리셋(간소형/중간형/세분화형).
 const TEMPLATE_VERSIONS = [
   { id: 'simple', labelKey: 'tplVersionSimple' },
@@ -2733,6 +2739,20 @@ export default function EvalCycleWizard({
    * 실패는 인라인 안내로만 알린다.
    */
   onPolishMessage,
+  /**
+   * PW-1841 — 1단계 «AI 로 초안 만들기». design-page 는 네트워크를 모른다 — 셋 다 소비 측이 넘긴다.
+   * `onAiSetupDraft` 를 안 넘기면 버튼을 숨긴다(관리 모드에서도 숨긴다 — 불러오기와 같다).
+   *
+   * - `onAiSetupContext()` → `Promise<{ industryLabel: string | null, headcount: number }>` — 묻는 창 위
+   *   «업종 ○○ · 구성원 N명». 못 읽으면 reject(창 안에 안내, 만들기는 막지 않는다).
+   * - `onAiSetupDraft({ purpose, companyNote, leaderRoundsMax })` →
+   *   `Promise<{ reviewTypes, leaderRounds, templates: [{ reviewType, name, items, grades }] } | { notice } | null>`.
+   *   `null` = 실패(창 안 문구), `{ notice }` = 체험 AI 소진 안내(그대로 띄운다).
+   * - `onOpenCompanySettings()` — 업종을 바꾸러 회사 설정으로. 안 넘기면(어드민이 아님) 안내 문구만 보인다.
+   */
+  onAiSetupContext,
+  onAiSetupDraft,
+  onOpenCompanySettings,
   /**
    * PW-626 — 「나에게 테스트 발송」. 지금 작성 중인 문구를 **누른 사람 자신에게만** 한 통.
    * `({ phaseId, phaseName, cycleName, schedule, reminder }) => Promise<{ lines } | null>`
@@ -6775,6 +6795,8 @@ export default function EvalCycleWizard({
        위자드 상태에 남는다(§7.A-2). 돌아왔을 때 예전 검색어가 남아 있으면 후보가·대상자가
        몇 명뿐인 것처럼 보인다. */
     const target = exact ? clampStep(next) : seekStep(next, next > step ? 1 : -1);
+    // [PW-1841] AI 가 채운 단계에서 앞으로 넘어가면 «확인 전» 을 지운다.
+    if (target > step) setAiUnconfirmedSteps((prev) => prev.filter((s) => s !== step));
     setStep(target);
     // 이동한 «최종» 단계를 담는다 — `step` 은 이 렌더의 값이라 아직 예전 단계다.
     if (draftEnabled) void saveDraft({ step: target });
@@ -7296,6 +7318,129 @@ export default function EvalCycleWizard({
     }
     void loadPastCycleById(cycleId);
   };
+  /* ── PW-1841 «AI 로 초안 만들기» ─────────────────────────────────────────────────
+     목적·회사 설명을 받아 1단계 리뷰 종류·하향 차수와 2단계 리뷰 종류별 항목·등급을 채운다. 3단계 일정과
+     4단계 대상자는 건드리지 않는다(커트 2026-10-17, PW-1859). 채운 단계는 «확인 전» — 그 단계에서
+     앞으로 넘어가면 지운다(`goStep`). 넘길 때 초안이 저장되므로 «확인 전» 은 초안에 싣지 않는다. */
+  const [aiSetupOpen, setAiSetupOpen] = useState(false);
+  const [aiSetupPurpose, setAiSetupPurpose] = useState('growth');
+  const [aiSetupNote, setAiSetupNote] = useState('');
+  const [aiSetupBusy, setAiSetupBusy] = useState(false);
+  const [aiSetupError, setAiSetupError] = useState(false);
+  const [aiSetupNotice, setAiSetupNotice] = useState(null);
+  const [aiSetupCtx, setAiSetupCtx] = useState({ status: 'idle' });
+  const [aiSetupConfirmOpen, setAiSetupConfirmOpen] = useState(false);
+  /** 이 마법사에 초안을 한 번이라도 넣었나 — 넣은 뒤에는 이름이 비어 있어도 다시 만들 때 묻는다. */
+  const [aiSetupApplied, setAiSetupApplied] = useState(false);
+  const [aiUnconfirmedSteps, setAiUnconfirmedSteps] = useState([]);
+  const aiSetupCtxSeq = useRef(0);
+
+  const openAiSetup = () => {
+    setAiSetupError(false);
+    setAiSetupNotice(null);
+    setAiSetupOpen(true);
+    if (!onAiSetupContext) return;
+    const seq = ++aiSetupCtxSeq.current;
+    setAiSetupCtx({ status: 'loading' });
+    Promise.resolve()
+      .then(() => onAiSetupContext())
+      .then(
+        (c) => {
+          if (seq !== aiSetupCtxSeq.current) return;
+          setAiSetupCtx({
+            status: 'ready',
+            industryLabel: c?.industryLabel ?? null,
+            headcount: Number(c?.headcount) || 0,
+          });
+        },
+        () => {
+          if (seq === aiSetupCtxSeq.current) setAiSetupCtx({ status: 'error' });
+        },
+      );
+  };
+
+  /** 초안 → 마법사. 확정 매핑은 비운다 — AI 항목은 새 내용이라 예전 확정과 이어지지 않는다. */
+  const applyAiSetupDraft = (draft) => {
+    const types = TEMPLATE_TYPES.map((t) => t.id).filter((id) => draft?.reviewTypes?.includes(id));
+    if (types.length === 0) return false;
+    const bufferOf = (type) => {
+      const tpl = (draft.templates || []).find((x) => x.reviewType === type);
+      return {
+        ...emptyRoundBuffer(),
+        name: tpl?.name ?? '',
+        questions: tpl?.items ?? [],
+        grades: tpl?.grades?.length ? tpl.grades : DEFAULT_GRADES,
+      };
+    };
+    const rounds = types.includes('leader') ? clampLeaderRounds(draft.leaderRounds) : 1;
+    // 줄어드는 차수의 일정·리마인더·배정을 버리는 규칙은 차수 바꾸기와 같다.
+    applyLeaderRounds(rounds);
+    setReviewTypes(types);
+    if (!types.includes('peer')) setPeerAssignModes([]);
+    setPhaseTemplateMap({});
+    setConfirmSnapshot({});
+    setGradesSharedTo(null);
+    const parked = {};
+    for (const t of types.slice(1)) parked[t] = { ...bufferOf(t), confirmedId: '' };
+    setTplTypeBuffers(parked);
+    // 하향 2차 이후는 1차와 같은 내용으로 연다 — 오픈은 차수끼리 등급 체계가 같아야 한다(§5.13.5).
+    const leaderBuf = bufferOf('leader');
+    const roundBufs = {};
+    const started = [1];
+    for (let k = 2; k <= rounds; k += 1) {
+      roundBufs[k] = { ...leaderBuf };
+      started.push(k);
+    }
+    setTplRoundBuffers(roundBufs);
+    setTplRoundStarted(started);
+    setTplRound(1);
+    setTplType(types[0]);
+    applyTplBuffer(bufferOf(types[0]));
+    return true;
+  };
+
+  const runAiSetup = async () => {
+    if (!onAiSetupDraft || aiSetupBusy) return;
+    setAiSetupConfirmOpen(false);
+    setAiSetupError(false);
+    setAiSetupNotice(null);
+    setAiSetupBusy(true);
+    try {
+      const res = await onAiSetupDraft({
+        purpose: aiSetupPurpose,
+        companyNote: aiSetupNote,
+        leaderRoundsMax: leaderMax,
+      });
+      if (res?.notice) {
+        setAiSetupNotice(res.notice);
+      } else if (res && applyAiSetupDraft(res)) {
+        setAiSetupApplied(true);
+        setAiUnconfirmedSteps([0, 1]);
+        setAiSetupOpen(false);
+      } else {
+        setAiSetupError(true);
+      }
+    } catch {
+      setAiSetupError(true);
+    } finally {
+      setAiSetupBusy(false);
+    }
+  };
+  /** 이미 넣은 값이 있으면 덮어쓰기 전에 묻는다(이전 설정 불러오기와 같은 판정 + 넣은 초안). */
+  const requestAiSetup = () => {
+    if (wizardDirty || aiSetupApplied) {
+      setAiSetupConfirmOpen(true);
+      return;
+    }
+    void runAiSetup();
+  };
+  const aiUnconfirmedBadge = (s, testId) =>
+    aiUnconfirmedSteps.includes(s) ? (
+      <StatusBadge className="evc-mode-badge is-warn" data-testid={testId}>
+        {L.aiSetupUnconfirmed}
+      </StatusBadge>
+    ) : null;
+
   const loadPendingSource = (key) =>
     String(key).startsWith('cycle:')
       ? loadPastCycleById(String(key).slice('cycle:'.length))
@@ -7369,7 +7514,7 @@ export default function EvalCycleWizard({
                   (이미 값이 들어 있는 사이클을 프리셋으로 덮어쓰는 건 수정이 아니다). */}
               {/* PW-1459 §5.9 — 이전 사이클·저장한 설정이 하나도 없어도 자리는 둔다. 열면
                   「이전 사이클이 없습니다. 새로 작성하세요.」가 뜬다. */}
-              {!isManage && (onLoadPreset || onLoadPastCycle) && (
+              {!isManage && (onLoadPreset || onLoadPastCycle || onAiSetupDraft) && (
                 <div className="evc-wiz-preset-load">
                   <div className="evc-preset-cta">
                     <div className="evc-preset-cta-text">
@@ -7381,14 +7526,29 @@ export default function EvalCycleWizard({
                         })}
                       </span>
                     </div>
-                    <button
-                      type="button"
-                      className="evc-btn is-primary"
-                      onClick={() => setPresetDialogOpen(true)}
-                      data-testid="evc-wiz-preset-open"
-                    >
-                      {L.presetLoadOpen}
-                    </button>
+                    <div className="evc-preset-item-actions">
+                      {onAiSetupDraft && (
+                        <button
+                          type="button"
+                          className="evc-btn is-ghost"
+                          onClick={openAiSetup}
+                          data-testid="evc-wiz-ai-setup-open"
+                        >
+                          <ZapIcon size={14} />
+                          {aiSetupApplied ? L.aiSetupRegenerate : L.aiSetupOpen}
+                        </button>
+                      )}
+                      {(onLoadPreset || onLoadPastCycle) && (
+                        <button
+                          type="button"
+                          className="evc-btn is-primary"
+                          onClick={() => setPresetDialogOpen(true)}
+                          data-testid="evc-wiz-preset-open"
+                        >
+                          {L.presetLoadOpen}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
@@ -7498,7 +7658,10 @@ export default function EvalCycleWizard({
                 />
               )}
 
-              <span className="evc-field-label">{L.reviewTypes}</span>
+              <span className="evc-field-label">
+                {L.reviewTypes}
+                {aiUnconfirmedBadge(0, 'evc-wiz-ai-unconfirmed-0')}
+              </span>
               {/* PW-1887 — 여럿 고르는 칸이라 공용 체크박스. 하나만 고르는 칸(하향 차수)은 세그먼트 버튼이다. */}
               <div className="evc-check-row">
                 {['self', 'peer', 'upward', 'leader'].map((t) => (
@@ -7636,6 +7799,7 @@ export default function EvalCycleWizard({
               <div className="evc-tpl-ctxbar" data-testid="evc-tpl-ctxbar">
                 <div className="evc-tpl-ctxbar-info">
                   <span className="evc-tpl-ctxbar-label">{L.tplEditingNow}</span>
+                  {aiUnconfirmedBadge(1, 'evc-wiz-ai-unconfirmed-1')}
                   <span className="evc-tpl-ctxbar-type" data-testid="evc-tpl-ctxbar-type">
                     {fill(L.tplForType, {
                       // [PW-1594] 하향 차수를 나눴으면 지금 편집 중인 차수까지(`하향 2차용`).
@@ -10570,6 +10734,122 @@ export default function EvalCycleWizard({
               )}
             </div>
         </ModalShell>
+      )}
+
+      {/* [PW-1841] «AI 로 초안 만들기» 묻는 창 — 디자이너 원본이 없어 «이전 설정 불러오기» 창 모양을 따른다
+          (design-review · 대응표는 openspec pw-1841 design.md). */}
+      {aiSetupOpen && (
+        <ModalShell
+          title={L.aiSetupTitle}
+          description={L.aiSetupSub}
+          titleId="evc-wiz-ai-setup-title"
+          closeLabel={L.cancel}
+          onClose={() => !aiSetupBusy && setAiSetupOpen(false)}
+          busy={aiSetupBusy}
+          zIndex={1000}
+          className="evc-shell"
+          overlayTestId="evc-wiz-ai-setup"
+          footer={
+            <>
+              <button
+                type="button"
+                className="tl-group-modal-btn tl-group-modal-btn-secondary"
+                disabled={aiSetupBusy}
+                onClick={() => setAiSetupOpen(false)}
+                data-testid="evc-wiz-ai-setup-cancel"
+              >
+                {L.cancel}
+              </button>
+              <button
+                type="button"
+                className="tl-group-modal-btn tl-group-modal-btn-primary"
+                disabled={aiSetupBusy}
+                onClick={requestAiSetup}
+                data-testid="evc-wiz-ai-setup-run"
+              >
+                {aiSetupBusy ? L.aiSetupRunning : L.aiSetupRun}
+              </button>
+            </>
+          }
+        >
+          <div className="evc-shell-body">
+            <div className="evc-period-usage" data-testid="evc-wiz-ai-setup-context">
+              <span className="evc-sched-anchor-note">
+                {aiSetupCtx.status === 'loading'
+                  ? L.aiSetupContextLoading
+                  : aiSetupCtx.status === 'error'
+                    ? L.aiSetupContextError
+                    : aiSetupCtx.status === 'ready'
+                      ? fill(L.aiSetupContext, {
+                          industry: aiSetupCtx.industryLabel || L.aiSetupIndustryUnset,
+                          count: aiSetupCtx.headcount,
+                        })
+                      : null}
+              </span>
+            </div>
+            {/* 업종을 바꾸는 길은 문장과 한 상자에 붙이지 않고 아래 줄에 둔다(붙이면 문장 끝과 버튼이 맞닿는다). */}
+            {onOpenCompanySettings ? (
+              <div>
+                <button
+                  type="button"
+                  className="evc-btn is-ghost is-sm"
+                  onClick={() => onOpenCompanySettings()}
+                  data-testid="evc-wiz-ai-setup-settings"
+                >
+                  {L.aiSetupOpenSettings}
+                </button>
+              </div>
+            ) : (
+              <p className="evc-field-note" data-testid="evc-wiz-ai-setup-settings-hint">
+                {L.aiSetupSettingsHint}
+              </p>
+            )}
+            <span className="evc-field-label">{L.aiSetupPurposeLabel}</span>
+            <SegmentedControl
+              ariaLabel={L.aiSetupPurposeLabel}
+              value={aiSetupPurpose}
+              onChange={setAiSetupPurpose}
+              items={AI_SETUP_PURPOSES.map((p) => ({
+                value: p.id,
+                label: L[p.labelKey],
+                testId: `evc-wiz-ai-setup-purpose-${p.id}`,
+              }))}
+            />
+            <label className="evc-field-label" htmlFor="evc-wiz-ai-setup-note">
+              {L.aiSetupNoteLabel}
+            </label>
+            <TextArea
+              id="evc-wiz-ai-setup-note"
+              className="evc-input"
+              rows={4}
+              maxLength={2000}
+              placeholder={L.aiSetupNotePh}
+              value={aiSetupNote}
+              onChange={(e) => setAiSetupNote(e.target.value)}
+              data-testid="evc-wiz-ai-setup-note"
+            />
+            <p className="evc-field-note">{L.aiSetupScopeNote}</p>
+            {aiSetupError && (
+              <p className="evc-wiz-warn" role="alert" data-testid="evc-wiz-ai-setup-error">
+                {L.aiSetupError}
+              </p>
+            )}
+            {aiSetupNotice && <div data-testid="evc-wiz-ai-setup-notice">{aiSetupNotice}</div>}
+          </div>
+        </ModalShell>
+      )}
+      {aiSetupConfirmOpen && (
+        <AppConfirmModal
+          title={L.aiSetupOverwriteTitle}
+          body={L.aiSetupOverwriteBody}
+          cancelLabel={L.cancel}
+          confirmLabel={L.aiSetupOverwriteConfirm}
+          danger
+          onCancel={() => setAiSetupConfirmOpen(false)}
+          onConfirm={() => void runAiSetup()}
+          cancelTestId="evc-wiz-ai-setup-overwrite-cancel"
+          confirmTestId="evc-wiz-ai-setup-overwrite-confirm"
+        />
       )}
 
       {/* A4 불러오기 다이얼로그 — 사이클명·저장일·사용 횟수 + '이 설정으로 시작'. */}

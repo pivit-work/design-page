@@ -1453,6 +1453,10 @@ export default function EvalCycleHrCanvas({
   onReloadSavedMessages,
   onSaveMessage,
   onPolishMessage,
+  /** PW-1841 — 1단계 «AI 로 초안 만들기». 셋 다 위자드로 그대로 넘긴다(계약은 EvalCycleWizard). */
+  onAiSetupContext,
+  onAiSetupDraft,
+  onOpenCompanySettings,
   /** PW-626 — 리마인더 「나에게 테스트 발송」. 위자드로 그대로 넘긴다. */
   onTestSendMessage,
   /**
@@ -2154,6 +2158,9 @@ export default function EvalCycleHrCanvas({
           onReloadSavedMessages={onReloadSavedMessages}
           onSaveMessage={onSaveMessage}
           onPolishMessage={onPolishMessage}
+          onAiSetupContext={onAiSetupContext}
+          onAiSetupDraft={onAiSetupDraft}
+          onOpenCompanySettings={onOpenCompanySettings}
           onTestSendMessage={onTestSendMessage}
           onConfirmSelfOff={onConfirmSelfOff}
           slackChannels={slackChannels}
@@ -2231,6 +2238,9 @@ export default function EvalCycleHrCanvas({
           onReloadSavedMessages={onReloadSavedMessages}
           onSaveMessage={onSaveMessage}
           onPolishMessage={onPolishMessage}
+          onAiSetupContext={onAiSetupContext}
+          onAiSetupDraft={onAiSetupDraft}
+          onOpenCompanySettings={onOpenCompanySettings}
           onTestSendMessage={onTestSendMessage}
           onConfirmSelfOff={onConfirmSelfOff}
           slackChannels={slackChannels}
