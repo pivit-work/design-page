@@ -5974,6 +5974,8 @@
 .evrr-muted {
   font-size: var(--font-size-text-xs);
   color: var(--text-secondary);
+  /* [PW-1860] 버튼이 하나 늘어 칸이 좁아지면 「승인 완료」가 「승인 / 완료」로 끊겼다 — 통째로 넘긴다. */
+  white-space: nowrap;
 }
 .evrr-table .evc-empty-sub {
   padding: var(--spacing-3xl);
@@ -11434,3 +11436,14 @@ button.evmh-phase:focus-visible {
 .evf-period-label.is-past {
   color: var(--utility-warning-700);
 }
+
+/* [PW-1860] 리포트 검수 «다음 분기 목표 제안» 읽기 전용 줄 — 「리포트 구성」 항목 줄(.evrr-section)을 세로로 쌓는다. */
+.evrr-goals-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+.evrr-goals-list .evrr-section { cursor: default; align-items: flex-start; }

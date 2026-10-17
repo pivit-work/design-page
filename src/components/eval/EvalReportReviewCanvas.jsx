@@ -6,6 +6,7 @@ import ModalShell from '../shared/ModalShell.jsx';
 import TextArea from '../shared/TextArea.jsx';
 import Spinner from '../shared/Spinner.jsx';
 import Tabs from '../shared/Tabs.jsx';
+import { ArrowRightIcon } from './evalIcons.jsx';
 
 /**
  * EvalReportReviewCanvas — 리포트 검수/발송 파이프라인 (G6).
@@ -141,6 +142,20 @@ const DEFAULT_LABELS = {
   sectionOffNote: '(이 섹션은 최종 리포트에 포함되지 않습니다)',
   // PW-1458 — 캘리브레이션 확정 직후 만드는 AI 해설 (정책 §8.1·§9.3)
   aiBadge: 'AI 생성',
+  // PW-1860 — 다음 분기 목표 제안 (커트 결정 2026-10-17)
+  nextGoalsOpen: '다음 분기 목표 제안 ({count})',
+  nextGoalsClose: '접기',
+  nextGoalsHint:
+    'AI 가 셀프 리뷰·리더 리뷰·OKR 을 읽고 쓴 초안입니다. 한 줄에 제안 하나씩 고치면 승인할 때 함께 저장되어 리포트에 실립니다.',
+  nextGoalsHintHr: '발송 전까지 고쳐 저장할 수 있습니다. 한 줄에 제안 하나씩 적습니다.',
+  nextGoalsPh: '한 줄에 제안 하나씩 적어 주세요',
+  nextGoalsEmpty: '아직 제안이 없습니다.',
+  nextGoalsSave: '저장',
+  nextGoalsLocked: '이미 발송해 바꿀 수 없습니다.',
+  nextGoalsReadOnly: '승인한 제안은 인사담당자만 고칠 수 있습니다.',
+  nextGoalsOff: '리포트 구성에서 꺼져 있어 이 사람의 리포트에는 실리지 않습니다.',
+  nextGoalsTooMany: '제안은 {max}줄, 한 줄 {len}자까지 적을 수 있습니다.',
+  nextGoalsError: '제안을 저장하지 못했습니다.',
   aiGenerating: '리포트 생성 중',
   aiFailed: '생성 실패',
   aiRegenerate: '재생성',
@@ -550,6 +565,112 @@ function RefinementPanel({ memberId, L, load, onDecide, onRetry }) {
   );
 }
 
+/** PW-1860 — 서버와 같은 한도(`NEXT_GOALS_MAX` · `NEXT_GOAL_MAX_LENGTH`). 넘기면 누르기 전에 알린다. */
+const NEXT_GOALS_MAX = 5;
+const NEXT_GOAL_MAX_LENGTH = 300;
+
+function parseGoals(text) {
+  return String(text || '')
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean);
+}
+
+/**
+ * PW-1860 — 그 사람 줄을 펼쳐 «다음 분기 목표 제안»을 보고 고친다 (커트 결정 2026-10-17).
+ *
+ * - 승인할 차례인 조직장: 고친 값이 [승인] 때 함께 저장된다(이 칸에는 저장 버튼이 없다).
+ * - 인사담당자(`onSave` 를 받았을 때): 보내기 전까지 고쳐 [저장]한다.
+ * - 그 밖: 읽기 전용 줄 목록.
+ */
+function NextGoalsPanel({ row, L, text, onText, mode, onSave }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(false);
+  const lines = parseGoals(text);
+  const invalid =
+    lines.length > NEXT_GOALS_MAX || lines.some((l) => l.length > NEXT_GOAL_MAX_LENGTH);
+  const off = row.sections?.nextGoals === false;
+
+  const save = async () => {
+    if (busy || invalid) return;
+    setBusy(true);
+    setError(false);
+    try {
+      await onSave(lines);
+    } catch {
+      // 전역 오류 화면으로 튕기지 않는다 — 고치던 글이 사라진다.
+      setError(true);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="evrr-sections" data-testid={`evrr-goals-${row.memberId}`}>
+      {mode !== 'read' && (
+        <p className="evrr-sections-hint">{mode === 'hr' ? L.nextGoalsHintHr : L.nextGoalsHint}</p>
+      )}
+      {mode === 'read' ? (
+        (row.nextGoals ?? []).length === 0 ? (
+          <p className="evrr-sections-note">{L.nextGoalsEmpty}</p>
+        ) : (
+          <ul className="evrr-goals-list">
+            {row.nextGoals.map((g, i) => (
+              <li className="evrr-section" key={`${i}-${g}`}>
+                <ArrowRightIcon size={14} />
+                <span className="evrr-section-label">{g}</span>
+              </li>
+            ))}
+          </ul>
+        )
+      ) : (
+        <TextArea
+          rows={4}
+          value={text}
+          placeholder={L.nextGoalsPh}
+          onChange={(e) => onText(e.target.value)}
+          data-testid={`evrr-goals-input-${row.memberId}`}
+        />
+      )}
+      {invalid && (
+        <p className="evrr-sections-error" role="alert" data-testid={`evrr-goals-invalid-${row.memberId}`}>
+          {L.nextGoalsTooMany
+            .replace('{max}', String(NEXT_GOALS_MAX))
+            .replace('{len}', String(NEXT_GOAL_MAX_LENGTH))}
+        </p>
+      )}
+      {mode === 'hr' && (
+        <div>
+          <button
+            type="button"
+            className="evc-btn is-primary"
+            disabled={busy || invalid}
+            onClick={save}
+            data-testid={`evrr-goals-save-${row.memberId}`}
+          >
+            {L.nextGoalsSave}
+          </button>
+        </div>
+      )}
+      {off && (
+        <p className="evrr-sections-note" data-testid={`evrr-goals-off-${row.memberId}`}>
+          {L.nextGoalsOff}
+        </p>
+      )}
+      {mode === 'read' && row.status === 'sent' ? (
+        <p className="evrr-sections-note">{L.nextGoalsLocked}</p>
+      ) : mode === 'read' && row.status === 'leader_approved' ? (
+        <p className="evrr-sections-note">{L.nextGoalsReadOnly}</p>
+      ) : null}
+      {error && (
+        <p className="evrr-sections-error" role="alert" data-testid={`evrr-goals-error-${row.memberId}`}>
+          {L.nextGoalsError}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function ReviewRow({
   row,
   L,
@@ -569,8 +690,13 @@ function ReviewRow({
   onRegenerate,
   trialAiNotice,
   onPromote,
+  onSaveNextGoals,
 }) {
   const [comment, setComment] = useState('');
+  const [goalsOpen, setGoalsOpen] = useState(false);
+  // 손대기 전(`null`)에는 서버 값을 그대로 보인다 — AI 초안이 막 나왔거나 저장한 값이 따라온다.
+  const [goalsDraft, setGoalsDraft] = useState(null);
+  const goalsText = goalsDraft ?? (row.nextGoals ?? []).join('\n');
   const [regenBusy, setRegenBusy] = useState(false);
   const [regenNotice, setRegenNotice] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -631,12 +757,34 @@ function ReviewRow({
   };
   const blocked = unresolved > 0;
 
+  const goalLines = parseGoals(goalsText);
+  const goalsInvalid =
+    goalLines.length > NEXT_GOALS_MAX ||
+    goalLines.some((l) => l.length > NEXT_GOAL_MAX_LENGTH);
+  const goalsMode = excluded
+    ? null
+    : canApprove
+      ? 'approve'
+      : onSaveNextGoals && row.status !== 'sent'
+        ? 'hr'
+        : 'read';
+  const saveGoals = async (lines) => {
+    await onSaveNextGoals(row.memberId, lines);
+    setGoalsDraft(null);
+  };
+
   const leaderStep = isLeaderStep(row.status);
   const approve = async () => {
     setBusy(true);
     try {
       // PW-1839 — 화면이 본 상태를 함께 넘긴다. 그 사이 다른 사람이 처리했으면 서버가 거절한다.
-      await onApprove(row.memberId, leaderStep ? comment.trim() || null : undefined, row.status);
+      // PW-1860 — 화면에 보인(고친) 제안을 함께 보낸다. 승인한 순간의 값으로 굳는다.
+      await onApprove(
+        row.memberId,
+        leaderStep ? comment.trim() || null : undefined,
+        row.status,
+        goalLines,
+      );
     } finally {
       setBusy(false);
     }
@@ -778,6 +926,19 @@ function ReviewRow({
             {refineOpen ? L.refineClose : L.refineOpen}
           </button>
         )}
+        {goalsMode && (
+          <button
+            type="button"
+            className="evc-btn evrr-sections-toggle"
+            aria-expanded={goalsOpen}
+            onClick={() => setGoalsOpen((v) => !v)}
+            data-testid={`evrr-goals-toggle-${row.memberId}`}
+          >
+            {goalsOpen
+              ? L.nextGoalsClose
+              : L.nextGoalsOpen.replace('{count}', String((row.nextGoals ?? []).length))}
+          </button>
+        )}
         {hasSections && (
           <button
             type="button"
@@ -804,7 +965,7 @@ function ReviewRow({
             <button
               type="button"
               className="evc-btn is-primary"
-              disabled={busy}
+              disabled={busy || goalsInvalid}
               onClick={approve}
               data-testid={`evrr-approve-${row.memberId}`}
             >
@@ -858,6 +1019,16 @@ function ReviewRow({
     {regenNotice && !trialRowNotice && (aiState === 'failed' || aiState === 'trial_exhausted') && (
       <div data-testid={`evrr-ai-regenerate-notice-${row.memberId}`}>{regenNotice}</div>
     )}
+    {goalsOpen && goalsMode && (
+      <NextGoalsPanel
+        row={row}
+        L={L}
+        text={goalsText}
+        onText={setGoalsDraft}
+        mode={goalsMode}
+        onSave={saveGoals}
+      />
+    )}
     {open && hasSections && (
       <SectionPanel
         row={row}
@@ -894,6 +1065,12 @@ export default function EvalReportReviewCanvas({
    * 안 주면 켜고 끄기가 그려지지 않으므로 기존 시각은 그대로다.
    */
   onToggleSection = null,
+  /**
+   * PW-1860 — 인사담당자가 «다음 분기 목표 제안»을 보내기 전에 고쳐 저장한다.
+   * `(memberId, lines)` 를 받아 저장하고 실패하면 throw 한다(칸 안에서 알린다). 인사담당자 화면
+   * (`queue.canEditSections`)에서만 쓴다. 안 주면 승인할 차례가 아닌 줄은 읽기 전용이다.
+   */
+  onSaveNextGoals = null,
   /** 끌 «수 없는» 항목. 사이클 기본 구성과 같은 둘이다. */
   requiredSections = ['summary', 'highlights'],
   /**
@@ -1008,9 +1185,9 @@ export default function EvalReportReviewCanvas({
   const notYetApproved =
     (c.pending ?? 0) + (c.leaderRejected ?? 0) + (c.execPending ?? 0) + (c.leaderApproved ?? 0);
 
-  const handleApprove = async (memberId, comment, seenStatus) => {
+  const handleApprove = async (memberId, comment, seenStatus, nextGoals) => {
     try {
-      await onApprove?.(memberId, comment, seenStatus);
+      await onApprove?.(memberId, comment, seenStatus, nextGoals);
       showToast(L.toastApproved);
     } catch {
       showToast(L.toastError, 'error');
@@ -1351,6 +1528,7 @@ export default function EvalReportReviewCanvas({
                 onRegenerate={onRegenerate ? handleRegenerate : null}
                 trialAiNotice={trialAiNotice}
                 onPromote={onPromote ? handlePromote : null}
+                onSaveNextGoals={q.canEditSections === true ? onSaveNextGoals : null}
               />
             ))
           )}

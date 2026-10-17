@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
-import { InfoIcon } from './evalIcons.jsx';
+import { ArrowRightIcon, InfoIcon } from './evalIcons.jsx';
 import { scaleMaxOf, categoryKind } from './evalTemplateItemModel.js';
 
 /**
@@ -18,6 +18,9 @@ import { scaleMaxOf, categoryKind } from './evalTemplateItemModel.js';
  *
  * `highlights`(선택) — [PW-1846] 「성과 하이라이트」: `{ text, date }[]`(평가 기간 스니핏 「하이라이트」 칸).
  * 끌 수 없는 필수 칸이라 `sections` 를 보지 않고, 0건이면 칸을 그리지 않는다.
+ *
+ * `nextGoals`(선택) — [PW-1860] 「다음 분기 목표 제안」: `string[]`(검수를 거친 줄). 0건이거나
+ * `sections.nextGoals` 가 꺼졌으면 칸을 그리지 않는다. 줄 앞에 → 표시.
  *
  * `onPrint`(선택) — [PW-1846] 머리 오른쪽 [PDF 저장]. 넘기면 버튼을 그린다(소비 측은 `window.print`).
  * 인쇄 때는 버튼·셸 메뉴를 빼고 본문만 찍는다(`eval-cycle.css` 의 `@media print`).
@@ -53,6 +56,7 @@ const DEFAULT_LABELS = {
   /** PW-1458 — 응답 인원이 공개 기준 미만이라 뺀 동료 항목이 있을 때 (정책 §12). */
   peerBelowMin: '응답 인원이 공개 기준 미만입니다',
   growthTitle: '성장 영역 & 개선',
+  nextGoalsTitle: '다음 분기 목표 제안',
   highlightsTitle: '성과 하이라이트',
   /** `{date}` 자리에 「M/D」. */
   highlightSource: '스니핏 {date}',
@@ -301,6 +305,28 @@ function Highlights({ highlights, L }) {
   );
 }
 
+// [PW-1860] 다음 분기 목표 제안 — 성과 하이라이트 칸과 같은 줄 모양, 번호 대신 → 표시.
+function NextGoals({ goals, L }) {
+  if (!goals || goals.length === 0) return null;
+  return (
+    <section className="evc-card" data-testid="evr-next-goals">
+      <h3 className="evc-card-name">{L.nextGoalsTitle}</h3>
+      <ul className="evr-highlights">
+        {goals.map((g, i) => (
+          <li className="evr-highlight" key={`${i}-${g}`}>
+            <span className="evr-highlight-num" aria-hidden>
+              <ArrowRightIcon size={12} />
+            </span>
+            <div className="evr-answer">
+              <p className="evr-answer-text">{g}</p>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 // ── 성장 영역 & 개선 ──
 function GrowthAreas({ selfAnswers, L }) {
   const byType = useMemo(() => {
@@ -357,6 +383,7 @@ export default function EvalCycleReportCanvas({
   selfGap = [],
   insight = null,
   highlights = [],
+  nextGoals = [],
   onPrint,
   sections,
   labels: providedLabels,
@@ -480,6 +507,8 @@ export default function EvalCycleReportCanvas({
         <Highlights highlights={highlights} L={L} />
 
         {on('growth') && <GrowthAreas selfAnswers={selfAnswers} L={L} />}
+
+        {on('nextGoals') && <NextGoals goals={nextGoals} L={L} />}
 
         {selfAnswers.length > 0 && (
           <section className="evc-card">
