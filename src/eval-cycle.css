@@ -6034,7 +6034,7 @@ button.evm-ai-source {
 .evrr-row-menu {
   width: 180px;
   background: var(--bg-quaternary);
-  border-radius: var(--radius-md, 10px);
+  border-radius: var(--radius-md);
   border: 1px solid var(--border-primary);
   box-shadow: 0 6px 20px rgba(10, 13, 18, 0.1);
   padding: 6px;
@@ -6048,7 +6048,7 @@ button.evm-ai-source {
   background: transparent;
   border-radius: 7px;
   font-family: var(--font-family-body);
-  font-size: var(--font-size-text-xs, 12px);
+  font-size: var(--font-size-text-xs);
   font-weight: 600;
   color: var(--text-primary);
   cursor: pointer;
