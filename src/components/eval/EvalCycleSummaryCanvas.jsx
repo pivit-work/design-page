@@ -281,6 +281,9 @@ const DEFAULT_LABELS = {
   cwFilterJobLevel: '직급',
   cwFilterJobRank: '직위',
   cwFilterJobPosition: '직책',
+  cwFilterRole: '역할',
+  cwRoleLeader: '리더',
+  cwRoleIndividual: '개인기여자',
   cwFilterSquad: '스쿼드',
   cwFilterPrevGrade: '이전 등급',
   /** 켜면 조직 층(회사가 정한 층 이름)마다 칸을 세운다. 층 이름은 데이터에서 온다. */
@@ -1705,6 +1708,17 @@ function calibFilterFields(rows, L) {
     { key: 'jobLevel', label: L.cwFilterJobLevel, get: (r) => r.jobLevel || null, optional: true },
     { key: 'jobRank', label: L.cwFilterJobRank, get: (r) => r.jobRank || null, optional: true },
     { key: 'position', label: L.cwFilterJobPosition, get: (r) => r.level || null, optional: true },
+    // PW-1851 §6.3 «역할» — 조직도에서 조직장이면 리더, 아니면 개인기여자(직책과 별개 축). 값을 안 싣는 앱
+    // (isOrgUnitHead 없음)이면 칸을 세우지 않는다.
+    {
+      key: 'role',
+      label: L.cwFilterRole,
+      get: (r) =>
+        typeof r.isOrgUnitHead === 'boolean'
+          ? r.isOrgUnitHead ? L.cwRoleLeader : L.cwRoleIndividual
+          : null,
+      optional: true,
+    },
     { key: 'squad', label: L.cwFilterSquad, get: (r) => r.squads ?? [], optional: true },
     { key: 'prevGrade', label: L.cwFilterPrevGrade, get: (r) => r.previousGradeLabel || null, optional: true },
     // PW-1374 §7.1 — 회사의 조직 층(예: 부문·본부·팀)마다 한 칸. 이름은 회사가 정한 층 이름 그대로다.
