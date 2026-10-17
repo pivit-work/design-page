@@ -6573,31 +6573,6 @@ button.evm-ai-source {
 .evs-cw-back-row {
   display: flex;
 }
-/* 상태 딱지 — 확정 완료는 1on1 「완료」 딱지(.ood-done-badge), 진행 중은 파랑 딱지(.rsx-badge.is-blue) 값. */
-.evs-cw-state-badge {
-  padding: 2px 8px;
-  border-radius: 999px;
-  border: 1px solid;
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 18px;
-  white-space: nowrap;
-}
-.evs-cw-state-badge.is-done {
-  background: var(--utility-success-50);
-  border-color: var(--utility-success-200);
-  color: var(--utility-success-700);
-}
-.evs-cw-state-badge.is-live {
-  background: var(--utility-blue-50);
-  border-color: var(--utility-blue-200);
-  color: var(--utility-blue-700);
-}
-.evs-cw-state-badge.is-draft {
-  background: var(--utility-gray-50);
-  border-color: var(--utility-gray-200);
-  color: var(--utility-gray-700);
-}
 /* 「조회 전용」/「위원장」 — 1on1 「열람모드」(.ood-mode) 값 */
 .evs-cw-mode {
   font-size: 12px;

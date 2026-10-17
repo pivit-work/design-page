@@ -1,8 +1,8 @@
 import { useState, useMemo, useEffect, useRef, Fragment } from 'react';
-import { createPortal } from 'react-dom';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
+import useDismissLayer from '../shared/useDismissLayer.js';
 import MeetingSyncToast from '../meetings/MeetingSyncToast.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Tabs from '../shared/Tabs.jsx';
@@ -2263,24 +2263,10 @@ export default function EvalCycleSummaryCanvas({
   /** PW-1928 「이해상충 제외 N」 — 지금 표에서 빠져 있는 사람(위원 겸 대상자 + 숨긴 같은 직급). */
   const conflictExcludedCount =
     (calibTable?.excludedCount ?? 0) + (conflictShown ? 0 : conflictIds.length);
-  // PW-1928 「관리 ▾」 — 가끔 쓰는 위원 관리·보상 열람 권한·CSV 를 묶는다. 바깥을 누르거나 Esc 로 닫는다.
+  // PW-1928 「관리 ▾」 — 가끔 쓰는 위원 관리·보상 열람 권한·CSV 를 묶는다. 바깥을 누르거나 Esc 로 닫는다(공용 훅).
   const [manageMenuOpen, setManageMenuOpen] = useState(false);
   const manageMenuRef = useRef(null);
-  useEffect(() => {
-    if (!manageMenuOpen) return undefined;
-    const onDown = (e) => {
-      if (manageMenuRef.current && !manageMenuRef.current.contains(e.target)) setManageMenuOpen(false);
-    };
-    const onKey = (e) => {
-      if (e.key === 'Escape') setManageMenuOpen(false);
-    };
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [manageMenuOpen]);
+  useDismissLayer(() => setManageMenuOpen(false), manageMenuRef, undefined, manageMenuOpen);
   const [chairToastClosed, setChairToastClosed] = useState(false);
   // §10.G.9 「모두 펼치기」가 50행에서 멈췄다는 안내 — 접거나 세션을 바꾸면 걷힌다.
   const [expandCappedSession, setExpandCappedSession] = useState(null);
@@ -4547,14 +4533,16 @@ export default function EvalCycleSummaryCanvas({
                     </span>
                   )}
                   {calibTable?.session && (
-                    <span
-                      className={`evs-cw-state-badge is-${
+                    /* 공용 상태 딱지 — 확정 완료 초록(success) · 진행 중 파랑(info) · 예정 회색(neutral). */
+                    <StatusBadge
+                      tone={
                         calibTable.session.status === 'closed'
-                          ? 'done'
+                          ? 'success'
                           : calibTable.session.status === 'in_progress'
-                            ? 'live'
-                            : 'draft'
-                      }`}
+                            ? 'info'
+                            : 'neutral'
+                      }
+                      className="evs-cw-state"
                       data-testid="evs-cw-state"
                     >
                       {calibTable.session.status === 'closed'
@@ -4562,7 +4550,7 @@ export default function EvalCycleSummaryCanvas({
                         : calibTable.session.status === 'in_progress'
                           ? L.cwStatusInProgress
                           : L.cwStatusDraft}
-                    </span>
+                    </StatusBadge>
                   )}
                   {calibTable?.session &&
                     (calibTable.session.canCalibrate ? (
@@ -4723,8 +4711,7 @@ export default function EvalCycleSummaryCanvas({
                 {/* 이 화면의 창이 열려 있는 동안은 숨긴다 — 알림이 창의 어두운 막 위에 밝게 남아 창과 겹쳤다. */}
                 {!(showCompAccess || showCreate || showDisplay || showCalibFilter || showNineBox) &&
                   ((calibTable?.chairAutoAssigned && !chairToastClosed) ||
-                  (compView?.unassigned && !compBannerClosed)) &&
-                  createPortal(
+                  (compView?.unassigned && !compBannerClosed)) && (
                     <div className="evs-cw-toast-dock" data-testid="evs-cw-toast-dock">
                       {calibTable?.chairAutoAssigned && !chairToastClosed && (
                         <MeetingSyncToast
@@ -4749,8 +4736,7 @@ export default function EvalCycleSummaryCanvas({
                           data-testid="evs-cw-comp-banner"
                         />
                       )}
-                    </div>,
-                    document.body,
+                    </div>
                   )}
                 {calibTableLoading || !calibTable ? (
                   <div className="evs-cw-empty">
