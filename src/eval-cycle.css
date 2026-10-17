@@ -11239,10 +11239,10 @@ button.evmh-phase:focus-visible {
   margin-bottom: var(--spacing-lg);
 }
 /* 사이클에 없는 평가 유형 — 잠금 아이콘·「사이클 미사용」 글을 칸 안에 띄워 둔다. */
-.evc-tpl-seg .seg-item {
+.evc-tpl-choice .seg-item {
   gap: var(--spacing-xs);
 }
-.evc-tpl-seg .evc-type-chip-lock {
+.evc-tpl-choice .evc-type-chip-lock {
   margin-left: 0;
 }
 .evc-wiz-panel.is-tpl-form .evc-tpl-grade .evc-input,

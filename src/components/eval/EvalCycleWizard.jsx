@@ -7807,7 +7807,7 @@ export default function EvalCycleWizard({
               <span className="evc-field-label">{L.templateTypeLabel}</span>
               {/* [PW-1888] 하나만 고르는 칸 — 공용 세그먼트 버튼(1단계 「하향 차수」와 같은 부품). */}
               <SegmentedControl
-                className="evc-tpl-seg"
+                className="evc-tpl-choice"
                 ariaLabel={L.templateTypeLabel}
                 value={tplType}
                 onChange={selectTplType}
@@ -8277,7 +8277,7 @@ export default function EvalCycleWizard({
                 <div>
                   <span className="evc-field-label">{L.gradePosLabel}</span>
                   <SegmentedControl
-                    className="evc-tpl-seg"
+                    className="evc-tpl-choice"
                     ariaLabel={L.gradePosLabel}
                     value={gradeCardPosition}
                     onChange={setGradeCardPosition}
