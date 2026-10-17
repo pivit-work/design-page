@@ -17,7 +17,8 @@ import { memberPalette } from './constants.js';
  *   hour cell edges (2 + 4 = 6).
  *
  * Props:
- *   meeting       meeting object { id, title, participants, ... }
+ *   meeting       meeting object { id, title, participants, colorKey?, ... }
+ *                 colorKey — palette key; 주면 참석자 색 대신 이 한 색으로 칠한다
  *   left          gradient block left (px)
  *   width         gradient block width (px)
  *   gradientTop   gradient block top (px)
@@ -58,8 +59,11 @@ export default function MeetingBlock({
 
   // Dynamic gradient — top = first participant's color, bottom = last participant's color.
   // member.color 는 이제 palette key(예: 'brand') → solid(-600) hex 를 lookup.
-  const topColor = memberPalette(participants[0].member).solid;
-  const bottomColor = memberPalette(participants[participants.length - 1].member).solid;
+  // meeting.colorKey 가 있으면 블록 전체(바탕·곡선·표식)를 그 한 색으로 칠한다 —
+  // 사람 수가 많으면 사람별 색이 구분되지 않아 일정 종류 색으로 칠하는 경우 (PW-1924).
+  const solidOf = (member) => memberPalette(meeting.colorKey || member).solid;
+  const topColor = solidOf(participants[0].member);
+  const bottomColor = solidOf(participants[participants.length - 1].member);
   const gradientStyle = {
     background: `linear-gradient(180deg, ${hexToRgba(topColor, 0.1)} 0%, ${hexToRgba(bottomColor, 0.1)} 100%)`,
   };
@@ -88,7 +92,7 @@ export default function MeetingBlock({
         {participants.map((p) => {
           const localY = p.rowCenterY - gradientTop;
           const midY = (localY + localTitleY) / 2;
-          const solid = memberPalette(p.member).solid;
+          const solid = solidOf(p.member);
           // Cubic bezier — starts vertical at the marker, ends horizontal into title center
           const leftPath = `M ${leftCurveX} ${localY} C ${leftCurveX} ${midY}, ${centerX} ${midY}, ${centerX} ${localTitleY}`;
           const rightPath = `M ${rightCurveX} ${localY} C ${rightCurveX} ${midY}, ${centerX} ${midY}, ${centerX} ${localTitleY}`;
@@ -116,7 +120,7 @@ export default function MeetingBlock({
       {/* Layer 2: chevron markers */}
       {participants.map((p) => {
         const y = p.rowCenterY - gradientTop - MARKER / 2;
-        const solid = memberPalette(p.member).solid;
+        const solid = solidOf(p.member);
         return (
           <Fragment key={p.member.id}>
             <div
