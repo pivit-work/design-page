@@ -37,9 +37,10 @@ const C = {
   green: 'var(--utility-success-600)',
   greenBg: 'var(--utility-success-50)',
   greenBd: 'var(--utility-success-200)',
+  // PW-1930 — 지난 기간 띠·읽기 전용 줄은 경고가 아니라 안내라 연회색(bg-secondary).
+  pastBg: 'var(--bg-secondary)',
   amber: 'var(--utility-warning-700)',
   amberBg: 'var(--utility-warning-50)',
-  amberBd: 'var(--utility-warning-200)',
   red: 'var(--utility-error-600)',
   redBg: 'var(--utility-error-50)',
   purple: 'var(--utility-purple-500)',
@@ -630,7 +631,7 @@ function ThreadModal({ block, member, memberName, L, isPastPeriod, onSend, onAiD
       footer={
         // 「기타」는 한 대상의 스레드가 아니라 새로 쓸 곳이 없다(FB1 — 연결 없는 피드백 작성 UI 미제공).
         isEtc ? null : isPastPeriod ? (
-          <div style={{ padding: 16, background: C.amberBg, color: C.amber, fontSize: 'var(--font-size-text-xs)', textAlign: 'center' }}><ClockIcon size={12} /> {L.pastReadonly}</div>
+          <div style={{ padding: 16, background: C.pastBg, color: C.sub, fontSize: 'var(--font-size-text-xs)', textAlign: 'center' }}><ClockIcon size={12} /> {L.pastReadonly}</div>
         ) : (
           <ModalComposeBox block={block} memberName={memberName} L={L} onSend={onSend} onAiDraft={onAiDraft} />
         )
@@ -686,7 +687,7 @@ function ThreadModal({ block, member, memberName, L, isPastPeriod, onSend, onAiD
 
 function PeriodSelector({ periodKey, options, isPastPeriod, onChange, L }) {
   if (!options || options.length === 0) return null;
-  // 공용 고르기 칸 + 이름표 (PW-1890). 지난 기간이면 이름표만 경고색이고, 칸 안 글에 「(과거 기간)」이 붙는다.
+  // 공용 고르기 칸 + 이름표 (PW-1890). 지난 기간이면 이름표만 회색이고, 칸 안 글에 「(과거 기간)」이 붙는다.
   return (
     <span className="evf-period">
       <span className={`evf-period-label${isPastPeriod ? ' is-past' : ''}`}>{L.periodLabel}</span>
@@ -852,7 +853,7 @@ function ThreadScreen({ member, thread, krs, initiatives, okrGroups, snippets, L
         </span>
       </div>
       {thread?.isPastPeriod && (
-        <div data-testid="fbmgr-past-banner" style={{ background: C.amberBg, border: `1px solid ${C.amberBd}`, color: C.amber, borderRadius: 10, padding: '10px 12px', fontSize: 'var(--font-size-text-xs)' }}><ClockIcon size={12} /> {L.pastBanner}</div>
+        <div data-testid="fbmgr-past-banner" style={{ background: C.pastBg, border: `1px solid ${C.border}`, color: C.sub, borderRadius: 10, padding: '10px 12px', fontSize: 'var(--font-size-text-xs)' }}><ClockIcon size={12} /> {L.pastBanner}</div>
       )}
       <div data-testid="fbmgr-info-banner" style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 12px', fontSize: 'var(--font-size-text-xs)', color: C.sub }}>
         <ChatIcon size={12} /> {fill(L.infoBanner, { name: member.name })}

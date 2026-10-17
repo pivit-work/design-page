@@ -51,9 +51,9 @@ const C = {
   purple: 'var(--utility-purple-500)',
   purpleBg: 'var(--utility-purple-50)',
   purpleBd: 'var(--utility-purple-200)',
+  // PW-1930 — 지난 기간 띠·읽기 전용 줄은 경고가 아니라 안내라 연회색(bg-secondary).
+  pastBg: 'var(--bg-secondary)',
   amber: 'var(--utility-warning-700)',
-  amberBg: 'var(--utility-warning-50)',
-  amberBd: 'var(--utility-warning-200)',
 };
 const FONT = 'var(--font-family-body)';
 
@@ -382,7 +382,7 @@ function ThreadModal({ block, L, isPastPeriod, recipients, recipientsFailed, lin
       footer={
         // 「기타」는 한 대상의 스레드가 아니라 요청을 걸 곳이 없다.
         isEtc ? undefined : isPastPeriod ? (
-          <div style={{ padding: 16, background: C.amberBg, color: C.amber, fontSize: 'var(--font-size-text-xs)', textAlign: 'center' }}>
+          <div style={{ padding: 16, background: C.pastBg, color: C.sub, fontSize: 'var(--font-size-text-xs)', textAlign: 'center' }}>
             {L.pastReadonly}
           </div>
         ) : (
@@ -986,7 +986,7 @@ function IncomingRequestSection({ requests, L, isPastPeriod, onSend }) {
 
 function PeriodSelector({ periodKey, options, isPastPeriod, onChange, L }) {
   if (!options || options.length === 0) return null;
-  // 공용 고르기 칸 + 이름표 (PW-1890). 지난 기간이면 이름표만 경고색이고, 칸 안 글에 「(과거 기간)」이 붙는다.
+  // 공용 고르기 칸 + 이름표 (PW-1890). 지난 기간이면 이름표만 회색이고, 칸 안 글에 「(과거 기간)」이 붙는다.
   return (
     <span className="evf-period">
       <span className={`evf-period-label${isPastPeriod ? ' is-past' : ''}`}>{L.periodLabel}</span>
@@ -1270,7 +1270,7 @@ export default function EvalFeedbackCanvas({
         ) : (
         <>
         {isPastPeriod && (
-          <div data-testid="fbm-past-banner" style={{ background: C.amberBg, border: `1px solid ${C.amberBd}`, color: C.amber, borderRadius: 10, padding: '10px 12px', fontSize: 'var(--font-size-text-xs)' }}>
+          <div data-testid="fbm-past-banner" style={{ background: C.pastBg, border: `1px solid ${C.border}`, color: C.sub, borderRadius: 10, padding: '10px 12px', fontSize: 'var(--font-size-text-xs)' }}>
             <ClockIcon size={12} /> {L.pastBanner}
           </div>
         )}

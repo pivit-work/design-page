@@ -566,8 +566,9 @@ body:has(.okr-ctx-banner-flag) .tl-group-modal.okr-wz-modal { height: min(1118px
 .okr-wz-ctx-entry-title { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--text-primary); }
 .okr-wz-ctx-entry-desc { font-size: 11px; color: var(--text-tertiary); overflow-wrap: anywhere; }
 .okr-wz-ctx-entry-action { flex: none; font-size: 12px; font-weight: 700; color: var(--utility-brand-700); }
-.okr-wz-ctx-notice { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; padding: 12px 14px; border-radius: 10px; background: var(--utility-warning-50); border: 1px solid var(--utility-warning-200); }
-.okr-wz-ctx-notice-text { flex: 1; min-width: 0; margin: 0; font-size: 12px; line-height: 1.6; color: var(--utility-warning-700); overflow-wrap: anywhere; }
+/* PW-1930 — 「선택 사항」 안내라 경고 노랑이 아니라 연회색. */
+.okr-wz-ctx-notice { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; padding: 12px 14px; border-radius: 10px; background: var(--bg-secondary); border: 1px solid var(--border-secondary); }
+.okr-wz-ctx-notice-text { flex: 1; min-width: 0; margin: 0; font-size: 12px; line-height: 1.6; color: var(--text-secondary); overflow-wrap: anywhere; }
 .okr-wz-ctx-notice-hint { color: var(--text-tertiary); }
 .okr-wz-ctx-notice .okr-btn { flex: none; }
 .okr-wz-draft-badges { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
@@ -616,7 +617,8 @@ body:has(.okr-ctx-banner-flag) .tl-group-modal.okr-wz-modal { height: min(1118px
 /* 설정 마법사 Step2~3 (엔지니어링 포팅 — 시안 okr-setup-wizard.jsx) */
 .okr-wz-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
 .okr-wz-empty { padding: 28px 16px; text-align: center; border: 1px dashed var(--border-secondary); border-radius: 10px; color: var(--text-tertiary); font-size: 14px; font-weight: 400; line-height: 20px; }
-.okr-wz-draft { padding: 12px; border-radius: 12px; background: var(--utility-warning-50); border: 1.5px solid var(--utility-warning-200); }
+/* PW-1930 — 확인 전 AI 초안은 디자이너가 AI 가 채운 칸에 쓰는 연보라. 확인 뒤는 초록. */
+.okr-wz-draft { padding: 12px; border-radius: 12px; background: var(--utility-purple-50); border: 1.5px solid var(--utility-purple-200); }
 .okr-wz-draft.is-confirmed { background: var(--utility-success-50); border-color: var(--utility-success-200); }
 .okr-wz-draft-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 .okr-wz-krrow { display: grid; grid-template-columns: 18px 1.6fr 72px 72px 64px 24px; gap: 12px; align-items: center; padding: 8px; background: var(--bg-secondary); border: 1px solid var(--border-secondary); border-radius: 8px; margin-bottom: 12px; }
