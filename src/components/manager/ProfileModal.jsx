@@ -585,13 +585,9 @@ function HrProfileFailure({ notice, onRetry }) {
     <div className="manager-modal-hr-failure">
       <p className="manager-modal-hr-failure-text">{notice.message}</p>
       {notice.retryLabel && (
-        <button
-          type="button"
-          className="manager-modal-hr-retry"
-          onClick={onRetry}
-        >
+        <Button variant="ghost" size="sm" onClick={() => onRetry?.()}>
           {notice.retryLabel}
-        </button>
+        </Button>
       )}
     </div>
   );

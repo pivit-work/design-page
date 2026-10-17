@@ -1,6 +1,7 @@
 import Button from '../shared/Button.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
 import Chip from '../shared/Chip.jsx';
+import SegmentedControl from '../shared/SegmentedControl.jsx';
 import FormField from '../shared/FormField.jsx';
 import TextArea from '../shared/TextArea.jsx';
 import TextInput from '../shared/TextInput.jsx';
@@ -131,17 +132,17 @@ export default function SupportNewCanvas({
 
             <FormField label={labels.categoryLabel} group>
               <div className="sup-cats">
-                {categories.map((c) => (
-                  <Chip
-                    key={c.value}
-                    selected={c.value === category}
-                    onClick={() => onCategoryChange?.(c.value)}
-                    disabled={submitting}
-                    data-testid={`support-cat-${c.value}`}
-                  >
-                    {c.label}
-                  </Chip>
-                ))}
+                <SegmentedControl
+                  ariaLabel={labels.categoryLabel}
+                  value={category}
+                  onChange={(next) => onCategoryChange?.(next)}
+                  items={categories.map((c) => ({
+                    value: c.value,
+                    label: c.label,
+                    disabled: submitting,
+                    testId: `support-cat-${c.value}`,
+                  }))}
+                />
               </div>
               {selected?.hint && (
                 <p className="sup-hint" data-testid="support-cat-hint">

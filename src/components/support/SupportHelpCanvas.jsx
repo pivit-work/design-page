@@ -1,5 +1,6 @@
 import Button from '../shared/Button.jsx';
 import Chip from '../shared/Chip.jsx';
+import SegmentedControl from '../shared/SegmentedControl.jsx';
 import EmptyState from '../shared/EmptyState.jsx';
 import SearchInput from '../shared/SearchInput.jsx';
 import { SkeletonList } from '../shared/Skeleton.jsx';
@@ -310,24 +311,21 @@ export default function SupportHelpCanvas({
             )}
           </div>
 
-          <div className="sup-cats" role="group" aria-label={labels.all}>
-            <Chip
-              selected={category == null}
-              onClick={() => onCategoryChange?.(null)}
-              data-testid="support-help-cat-all"
-            >
-              {labels.all}
-            </Chip>
-            {categories.map((c) => (
-              <Chip
-                key={c.value}
-                selected={c.value === category}
-                onClick={() => onCategoryChange?.(c.value)}
-                data-testid={`support-help-cat-${c.value}`}
-              >
-                {c.label}
-              </Chip>
-            ))}
+          {/* 하나만 고르는 칸이라 공용 세그먼트 버튼 (PW-1902). 「전체」는 null 값 대신 '' 로 싣는다 */}
+          <div className="sup-cats">
+            <SegmentedControl
+              ariaLabel={labels.all}
+              value={category ?? ''}
+              onChange={(next) => onCategoryChange?.(next === '' ? null : next)}
+              items={[
+                { value: '', label: labels.all, testId: 'support-help-cat-all' },
+                ...categories.map((c) => ({
+                  value: c.value,
+                  label: c.label,
+                  testId: `support-help-cat-${c.value}`,
+                })),
+              ]}
+            />
           </div>
 
           <div className={`sup-help-split${opened ? ' is-open' : ''}`}>

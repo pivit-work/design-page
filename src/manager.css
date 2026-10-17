@@ -1111,13 +1111,13 @@
   padding-bottom: var(--spacing-3xl);
 }
 
+/* 같은 창 1on1 탭 제목(.manager-modal-oneonone-title)과 같은 값 — PW-1902 */
 .manager-modal-hr-section-title {
   font-family: var(--font-family-body);
-  font-weight: 700;
-  font-size: var(--font-size-text-xs);
-  line-height: var(--line-height-text-xs);
-  color: var(--text-tertiary);
-  letter-spacing: 0.04em;
+  font-weight: 600;
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
+  color: var(--text-secondary);
 }
 
 .manager-modal-hr-list {
@@ -1183,18 +1183,6 @@
   font-size: var(--font-size-text-sm);
   color: var(--text-tertiary);
   text-align: center;
-}
-
-.manager-modal-hr-retry {
-  padding: var(--spacing-md) var(--spacing-xl);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--radius-sm);
-  background: transparent;
-  cursor: pointer;
-  font-family: var(--font-family-body);
-  font-weight: 600;
-  font-size: var(--font-size-text-xs);
-  color: var(--text-secondary);
 }
 
 /* ── Empty placeholder ── */
