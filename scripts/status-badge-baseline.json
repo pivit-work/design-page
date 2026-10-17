@@ -1920,8 +1920,8 @@
    "color": "#ffffff"
   },
   "eval-cycle.css|.evrr-badge.is-approved": {
-   "background": "#eff8ff / 어두운 화면 #102a56",
-   "color": "#175cd3 / 어두운 화면 #84caff"
+   "background": "#ecfdf3 / 어두운 화면 #053321",
+   "color": "#067647 / 어두운 화면 #75e0a7"
   },
   "eval-cycle.css|.evrr-badge.is-done": {
    "background": "#ecfdf3 / 어두운 화면 #053321",

@@ -745,9 +745,10 @@
   background: var(--dp-badge-warning-bg);
 }
 
+/* 승인 완료도 «끝남» 이라 성공 색 — 파랑은 «알려 주기만» 뜻이라 어긋났다 (2026-10-17 커트) */
 .evrr-badge.is-approved {
-  color: var(--utility-blue-700);
-  background: var(--utility-blue-50);
+  color: var(--utility-success-700);
+  background: var(--utility-success-50);
 }
 
 .evrr-badge.is-sent {

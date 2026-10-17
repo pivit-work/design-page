@@ -5844,8 +5844,8 @@
   background: var(--utility-warning-50);
 }
 .evrr-count.is-approved {
-  color: var(--utility-blue-700);
-  background: var(--utility-blue-50);
+  color: var(--utility-success-700);
+  background: var(--utility-success-50);
 }
 .evrr-count.is-sent {
   color: var(--utility-success-700);
