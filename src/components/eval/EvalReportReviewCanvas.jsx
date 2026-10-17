@@ -5,6 +5,7 @@ import EvalSendChannelModal from './EvalSendChannelModal.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import TextArea from '../shared/TextArea.jsx';
 import Spinner from '../shared/Spinner.jsx';
+import Tabs from '../shared/Tabs.jsx';
 
 /**
  * EvalReportReviewCanvas — 리포트 검수/발송 파이프라인 (G6).
@@ -24,8 +25,28 @@ const DEFAULT_LABELS = {
   colGrade: '등급',
   colLeader: '담당 리더',
   colStatus: '상태',
-  statusPending: '검수 대기',
-  statusApproved: '승인됨',
+  statusPending: '리더 작성 중',
+  statusApproved: '승인 완료',
+  // PW-1839 — 4단계 (정책 §8.6 · PW-1854 커트 결정 2026-10-17)
+  statusExecPending: '본부장 승인 대기',
+  statusHrReview: 'HR 검수 대기',
+  tabAll: '전체',
+  tabLeader: '리더 작성 중',
+  tabExec: '본부장 승인 대기',
+  tabHr: 'HR 검수 대기',
+  tabApproved: '승인 완료',
+  tabSent: '발송 완료',
+  tabEmpty: '이 단계의 리포트가 없습니다.',
+  approveSelected: '선택 항목 일괄 승인',
+  toastApprovedCount: '{count}명을 승인했습니다',
+  toastApproveFailed: '{count}명은 승인하지 못했습니다',
+  promote: 'HR 검수로 승격',
+  toastPromoted: 'HR 검수로 넘겼습니다',
+  execReject: '팀장에게 반려',
+  execRejectModalTitle: '팀장에게 반려',
+  execRejectModalDesc: '{name}님 리포트를 팀장에게 반려하여 다시 승인을 요청합니다',
+  execRejectReasonPh: '팀장에게 전달할 반려 사유를 입력하세요',
+  toastExecRejected: '팀장에게 반려했습니다',
   statusSent: '발송됨',
   approve: '승인',
   approved: '승인 완료',
@@ -49,7 +70,7 @@ const DEFAULT_LABELS = {
   sectionsError: '리포트 구성을 저장하지 못했습니다.',
   // TC-093: 검수 대기 리포트가 남아 있을 때 발송 시 강조
   incompleteSendWarn:
-    '아직 검수 대기 중인 리포트가 {count}건 있습니다. 발송은 승인된 리포트에만 적용됩니다.',
+    '아직 승인 완료되지 않은 리포트가 {count}건 있습니다. 발송은 승인 완료된 리포트에만 적용됩니다.',
   // PW-711 — 동료 피드백 AI 톤 정제 + 인사담당자 검수 (정책 §8.5·§8.5-B)
   colRefine: '동료 피드백 다듬기',
   refinePending: '대기 중',
@@ -149,12 +170,35 @@ function mergeLabels(base, provided) {
   return out;
 }
 
+/**
+ * PW-1839 — 색은 «누가 손을 써야 하나»로 가른다: 기다리는 셋(리더·본부장·HR)은 노랑, HR 이 승인해
+ * 보낼 수 있는 것은 파랑, 보낸 것은 초록. 기존 딱지 색 그대로다.
+ */
 const STATUS_META = {
   pending: { key: 'statusPending', cls: 'is-pending' },
-  leader_approved: { key: 'statusApproved', cls: 'is-approved' },
+  exec_pending: { key: 'statusExecPending', cls: 'is-pending' },
+  leader_approved: { key: 'statusHrReview', cls: 'is-pending' },
+  hr_approved: { key: 'statusApproved', cls: 'is-approved' },
   sent: { key: 'statusSent', cls: 'is-sent' },
   leader_rejected: { key: 'statusRejected', cls: 'is-rejected' },
 };
+
+/**
+ * PW-1839 — 단계 걸러보기 탭(정책 §8.6 「리더 작성 중 / 본부장 승인 대기 / HR 검수 대기 / 승인 완료 /
+ * 발송 완료」) 앞에 «전체»를 둔다 — 없으면 모든 줄을 한눈에 보던 길이 사라진다. 단계 탭의 수와 줄은
+ * 제외된 사람을 넣지 않는다(서버 셈과 같다 · PW-978). 제외된 사람은 «전체»에만 보인다.
+ */
+const STAGE_TABS = [
+  { key: 'all', label: 'tabAll', statuses: null },
+  { key: 'leader', label: 'tabLeader', statuses: ['pending', 'leader_rejected'], count: (c) => (c.pending ?? 0) + (c.leaderRejected ?? 0) },
+  { key: 'exec', label: 'tabExec', statuses: ['exec_pending'], count: (c) => c.execPending ?? 0 },
+  { key: 'hr', label: 'tabHr', statuses: ['leader_approved'], count: (c) => c.leaderApproved ?? 0 },
+  { key: 'approved', label: 'tabApproved', statuses: ['hr_approved'], count: (c) => c.hrApproved ?? 0 },
+  { key: 'sent', label: 'tabSent', statuses: ['sent'], count: (c) => c.sent ?? 0 },
+];
+
+/** 리더 단계의 [승인]만 최종 코멘트를 받는다 — 본부장·HR 승인은 리더 코멘트를 건드리지 않는다. */
+const isLeaderStep = (status) => status === 'pending' || status === 'leader_rejected';
 /** PW-978 — 검수 상태와 다른 축이다. 제외된 사람은 상태가 무엇이든 이 딱지 하나만 보인다. */
 const EXCLUDED_META = { key: 'statusExcluded', cls: 'is-excluded' };
 
@@ -524,6 +568,7 @@ function ReviewRow({
   onAskReject,
   onRegenerate,
   trialAiNotice,
+  onPromote,
 }) {
   const [comment, setComment] = useState('');
   const [regenBusy, setRegenBusy] = useState(false);
@@ -586,24 +631,39 @@ function ReviewRow({
   };
   const blocked = unresolved > 0;
 
+  const leaderStep = isLeaderStep(row.status);
   const approve = async () => {
     setBusy(true);
     try {
-      await onApprove(row.memberId, comment.trim() || null);
+      // PW-1839 — 화면이 본 상태를 함께 넘긴다. 그 사이 다른 사람이 처리했으면 서버가 거절한다.
+      await onApprove(row.memberId, leaderStep ? comment.trim() || null : undefined, row.status);
     } finally {
       setBusy(false);
     }
   };
+  const promote = async () => {
+    setBusy(true);
+    try {
+      await onPromote(row.memberId, row.status);
+    } finally {
+      setBusy(false);
+    }
+  };
+  // PW-1839 — 체크는 «보낼 수 있는 줄»(인사담당자 · 승인 완료)과 «내가 승인할 줄» 둘 다에 단다.
+  const sendable = canSend && row.status === 'hr_approved' && !excluded;
+  const selectable = sendable || canApprove;
+  // 동료 리뷰 검수가 남아 막히는 것은 «보내기»다 — 승인할 줄은 막지 않는다.
+  const lockedForSend = sendable && blocked && !canApprove;
 
   return (
     <>
     <div className="evrr-row" data-testid={`evrr-row-${row.memberId}`}>
       <div className="evrr-cell">
-        {canSend && row.status === 'leader_approved' && !excluded && (
+        {selectable && (
           <input
             type="checkbox"
-            checked={checked && !blocked}
-            disabled={blocked}
+            checked={checked && !lockedForSend}
+            disabled={lockedForSend}
             onChange={() => onToggle(row.memberId)}
             data-testid={`evrr-check-${row.memberId}`}
             aria-label={row.name}
@@ -731,14 +791,16 @@ function ReviewRow({
         )}
         {canApprove ? (
           <div className="evrr-approve">
-            <input
-              className="evrr-comment"
-              type="text"
-              value={comment}
-              placeholder={L.finalCommentPh}
-              onChange={(e) => setComment(e.target.value)}
-              data-testid={`evrr-comment-${row.memberId}`}
-            />
+            {leaderStep && (
+              <input
+                className="evrr-comment"
+                type="text"
+                value={comment}
+                placeholder={L.finalCommentPh}
+                onChange={(e) => setComment(e.target.value)}
+                data-testid={`evrr-comment-${row.memberId}`}
+              />
+            )}
             <button
               type="button"
               className="evc-btn is-primary"
@@ -751,15 +813,38 @@ function ReviewRow({
           </div>
         ) : excluded ? null : row.status === 'sent' ? (
           <span className="evrr-muted">{L.statusSent}</span>
-        ) : row.status === 'leader_approved' ? (
+        ) : row.status === 'hr_approved' ? (
           <span className="evrr-muted">{L.approved}</span>
         ) : null}
+        {/* PW-1839 — 인사담당자가 본부장 승인 대기를 건너뛴다(정책 §8.6 「본부장 승인 우회」). */}
+        {canSend && onPromote && row.status === 'exec_pending' && !excluded && (
+          <button
+            type="button"
+            className="evc-btn"
+            disabled={busy}
+            onClick={promote}
+            data-testid={`evrr-promote-${row.memberId}`}
+          >
+            {L.promote}
+          </button>
+        )}
+        {/* PW-1839 — 본부장 자기 차례인 줄의 [팀장에게 반려] (서버가 줄마다 준 값). */}
+        {row.canExecReject === true && onAskReject && (
+          <button
+            type="button"
+            className="evc-btn"
+            onClick={() => onAskReject(row, 'exec')}
+            data-testid={`evrr-exec-reject-${row.memberId}`}
+          >
+            {L.execReject}
+          </button>
+        )}
         {/* PW-1458 — 서버가 줄마다 준 «돌려보낼 수 있나»와 보는 사람(인사담당자)을 함께 본다. */}
         {canReject && onAskReject && row.rejectable === true && (
           <button
             type="button"
             className="evc-btn"
-            onClick={() => onAskReject(row)}
+            onClick={() => onAskReject(row, 'hr')}
             data-testid={`evrr-reject-${row.memberId}`}
           >
             {L.reject}
@@ -848,11 +933,26 @@ export default function EvalReportReviewCanvas({
    * 호출부가 지금도 소진인지 보고 넘긴다 — 결제한 뒤에는 안 준다. 안 주면 그리지 않는다.
    */
   trialAiNotice = null,
+  /**
+   * PW-1839 — 인사담당자의 «HR 검수로 승격»(정책 §8.6). `(memberId, seenStatus)` — 실패하면 throw.
+   * 안 주면 버튼을 그리지 않는다.
+   */
+  onPromote = null,
+  /**
+   * `(memberId, finalComment, seenStatus)`. PW-1839 — 리더 단계가 아니면 `finalComment` 는 `undefined`,
+   * `seenStatus` 는 화면이 본 그 줄의 상태다(다른 사람이 먼저 처리했으면 서버가 거절한다).
+   */
   onApprove,
   onSend,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const q = queue ?? { rows: [], counts: { pending: 0, leaderApproved: 0, sent: 0 }, canSend: false, canApproveAsLeader: false };
+  /** PW-1839 — 단계 걸러보기. 처음에는 «전체». */
+  const [stage, setStage] = useState('all');
+  const stageTab = STAGE_TABS.find((tab) => tab.key === stage) ?? STAGE_TABS[0];
+  const shownRows = stageTab.statuses
+    ? q.rows.filter((r) => r.excluded !== true && stageTab.statuses.includes(r.status))
+    : q.rows;
   /**
    * 켜고 끌 수 있는 항목 = 필수 둘 + 그 사이클이 쓰는 리뷰의 항목. 순서·목록은 서버가
    * 준 것을 그대로 쓴다 — 화면이 따로 세우면 「리포트」 탭과 갈린다.
@@ -864,8 +964,10 @@ export default function EvalReportReviewCanvas({
   /** PW-1228 — 채널 창에 올린 발송 대상(id 목록). null 이면 창이 닫혀 있다. */
   const [channelAsk, setChannelAsk] = useState(null);
   const [channelSending, setChannelSending] = useState(false);
-  /** PW-1458 — 반려 창에 올린 줄. null 이면 닫혀 있다. */
+  /** PW-1458 — 반려 창에 올린 줄. null 이면 닫혀 있다. PW-1839 — `rejectKind` 는 'hr' | 'exec'. */
   const [rejectAsk, setRejectAsk] = useState(null);
+  const [rejectKind, setRejectKind] = useState('hr');
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [rejectBusy, setRejectBusy] = useState(false);
   const [rejectError, setRejectError] = useState(null);
@@ -893,18 +995,60 @@ export default function EvalReportReviewCanvas({
   // PW-978 — 제외된 사람은 승인돼 있어도 보낼 대상이 아니다. 「검수 미완 N명」과 섞지 않고
   // 따로 알린다(서버도 같은 판정으로 한 번 더 거른다).
   const excludedIds = new Set(q.rows.filter((r) => r.excluded === true).map((r) => r.memberId));
+  // PW-1839 — 보낼 수 있는 것은 HR 이 승인한(승인 완료) 줄뿐이다.
   const approvedRows = q.rows.filter(
-    (r) => r.status === 'leader_approved' && !excludedIds.has(r.memberId),
+    (r) => r.status === 'hr_approved' && !excludedIds.has(r.memberId),
   );
   const approvedIds = approvedRows
     .filter((r) => (r.unresolvedPeerRefinements ?? 0) === 0)
     .map((r) => r.memberId);
   const excludedCount = approvedRows.length - approvedIds.length;
+  // PW-1839 — HR 승인 전인 줄 전부(리더 작성 중·본부장 승인 대기·HR 검수 대기). 발송에서 빠진다.
+  const c = q.counts ?? {};
+  const notYetApproved =
+    (c.pending ?? 0) + (c.leaderRejected ?? 0) + (c.execPending ?? 0) + (c.leaderApproved ?? 0);
 
-  const handleApprove = async (memberId, comment) => {
+  const handleApprove = async (memberId, comment, seenStatus) => {
     try {
-      await onApprove?.(memberId, comment);
+      await onApprove?.(memberId, comment, seenStatus);
       showToast(L.toastApproved);
+    } catch {
+      showToast(L.toastError, 'error');
+    }
+  };
+
+  // PW-1839 — 고른 줄 중 «내가 승인할 줄»과 «보낼 줄»을 따로 센다(한 사람이 둘 다일 수는 없다).
+  const approvableIds = new Set(q.rows.filter((r) => r.canApprove === true).map((r) => r.memberId));
+  const selectedApprovable = [...selected].filter((id) => approvableIds.has(id));
+  const selectedSendable = [...selected].filter((id) => !approvableIds.has(id));
+  const showToolbar = q.canSend || approvableIds.size > 0;
+
+  /** 선택 항목 일괄 승인(정책 §8.6) — 한 명씩 보내고, 실패한 수를 알린다(나머지는 승인된다). */
+  const approveSelected = async () => {
+    setBulkBusy(true);
+    let ok = 0;
+    let failed = 0;
+    for (const id of selectedApprovable) {
+      const row = q.rows.find((r) => r.memberId === id);
+      try {
+        await onApprove?.(id, undefined, row?.status);
+        ok += 1;
+      } catch {
+        failed += 1;
+      }
+    }
+    setBulkBusy(false);
+    setSelected(new Set());
+    const parts = [];
+    if (ok > 0) parts.push(L.toastApprovedCount.replace('{count}', String(ok)));
+    if (failed > 0) parts.push(L.toastApproveFailed.replace('{count}', String(failed)));
+    showToast(parts.join(' · '), failed > 0 ? 'error' : 'success');
+  };
+
+  const handlePromote = async (memberId, seenStatus) => {
+    try {
+      await onPromote?.(memberId, seenStatus);
+      showToast(L.toastPromoted);
     } catch {
       showToast(L.toastError, 'error');
     }
@@ -912,9 +1056,10 @@ export default function EvalReportReviewCanvas({
 
   const canReject = q.canReject === true;
 
-  const askReject = (row) => {
+  const askReject = (row, kind = 'hr') => {
     setRejectReason('');
     setRejectError(null);
+    setRejectKind(kind);
     setRejectAsk(row);
   };
 
@@ -926,7 +1071,7 @@ export default function EvalReportReviewCanvas({
     try {
       await onReject?.(rejectAsk.memberId, reason);
       setRejectAsk(null);
-      showToast(L.toastRejected);
+      showToast(rejectKind === 'exec' ? L.toastExecRejected : L.toastRejected);
     } catch {
       // 창을 닫지 않는다 — 쓰던 사유가 남아야 다시 누를 수 있다.
       setRejectError(L.rejectError);
@@ -1018,10 +1163,13 @@ export default function EvalReportReviewCanvas({
       )}
       {rejectAsk && (
         <ModalShell
-          title={L.rejectModalTitle}
-          description={L.rejectModalDesc.replace('{name}', rejectAsk.name || rejectAsk.memberId)}
+          title={rejectKind === 'exec' ? L.execRejectModalTitle : L.rejectModalTitle}
+          description={(rejectKind === 'exec' ? L.execRejectModalDesc : L.rejectModalDesc).replace(
+            '{name}',
+            rejectAsk.name || rejectAsk.memberId,
+          )}
           titleId="evrr-reject-modal-title"
-          submitLabel={L.rejectSubmit}
+          submitLabel={rejectKind === 'exec' ? L.execReject : L.rejectSubmit}
           cancelLabel={L.rejectCancel}
           closeLabel={L.rejectClose}
           canSubmit={rejectReason.trim().length > 0 && !rejectBusy}
@@ -1036,7 +1184,7 @@ export default function EvalReportReviewCanvas({
               id="evrr-reject-reason"
               rows={4}
               value={rejectReason}
-              placeholder={L.rejectReasonPh}
+              placeholder={rejectKind === 'exec' ? L.execRejectReasonPh : L.rejectReasonPh}
               maxLength={REJECT_REASON_MAX}
               onChange={(e) => setRejectReason(e.target.value.slice(0, REJECT_REASON_MAX))}
               data-testid="evrr-reject-reason"
@@ -1068,18 +1216,23 @@ export default function EvalReportReviewCanvas({
 
       {toolbar && <div className="evc-toolbar">{toolbar}</div>}
 
-      <div className="evc-list">
-        <div className="evrr-counts">
-          <span className="evrr-count is-pending" data-testid="evrr-count-pending">{L.countPending} {q.counts.pending}</span>
-          <span className="evrr-count is-approved" data-testid="evrr-count-approved">{L.countApproved} {q.counts.leaderApproved}</span>
-          <span className="evrr-count is-sent" data-testid="evrr-count-sent">{L.countSent} {q.counts.sent}</span>
-          {(q.counts.leaderRejected ?? 0) > 0 && (
-            <span className="evrr-count is-rejected" data-testid="evrr-count-rejected">
-              {L.countRejected} {q.counts.leaderRejected}
-            </span>
-          )}
-        </div>
+      {/* PW-1839 — 단계 걸러보기(정책 §8.6). 종합 리포트의 하위 탭 줄과 같은 공용 탭이다. */}
+      <div className="tl-tabs-row evc-tabs-row">
+        <Tabs
+          items={STAGE_TABS.map((tab) => ({
+            value: tab.key,
+            label: tab.count ? `${L[tab.label]} ${tab.count(q.counts ?? {})}` : `${L[tab.label]} ${q.rows.length}`,
+            testId: `evrr-tab-${tab.key}`,
+          }))}
+          value={stageTab.key}
+          onChange={(next) => {
+            setStage(next);
+            setSelected(new Set());
+          }}
+        />
+      </div>
 
+      <div className="evc-list">
         {q.canSend && failedIds.length > 0 && (
           <div className="evc-wiz-warn evrr-send-failed" role="alert" data-testid="evrr-send-failed">
             <span>
@@ -1103,9 +1256,9 @@ export default function EvalReportReviewCanvas({
           </div>
         )}
 
-        {q.canSend && q.counts.pending > 0 && (
+        {q.canSend && notYetApproved > 0 && (
           <p className="evc-wiz-warn" data-testid="evrr-incomplete-warn">
-            {L.incompleteSendWarn.replace('{count}', String(q.counts.pending))}
+            {L.incompleteSendWarn.replace('{count}', String(notYetApproved))}
           </p>
         )}
 
@@ -1121,10 +1274,23 @@ export default function EvalReportReviewCanvas({
           </p>
         )}
 
-        {q.canSend && (
+        {showToolbar && (
           <div className="evrr-toolbar">
-            <span className="evc-empty-sub">{L.selectHint}</span>
+            <span className="evc-empty-sub">{q.canSend ? L.selectHint : ''}</span>
             <span className="evrr-toolbar-actions">
+              {approvableIds.size > 0 && (
+                <button
+                  type="button"
+                  className="evc-btn"
+                  disabled={selectedApprovable.length === 0 || bulkBusy}
+                  onClick={approveSelected}
+                  data-testid="evrr-approve-selected"
+                >
+                  {L.approveSelected} ({selectedApprovable.length})
+                </button>
+              )}
+              {q.canSend && (
+              <>
               <button
                 type="button"
                 className="evc-btn"
@@ -1137,12 +1303,14 @@ export default function EvalReportReviewCanvas({
               <button
                 type="button"
                 className="evc-btn is-primary"
-                disabled={selected.size === 0}
-                onClick={() => send([...selected])}
+                disabled={selectedSendable.length === 0}
+                onClick={() => send(selectedSendable)}
                 data-testid="evrr-send-selected"
               >
-                {L.sendSelected} ({selected.size})
+                {L.sendSelected} ({selectedSendable.length})
               </button>
+              </>
+              )}
             </span>
           </div>
         )}
@@ -1159,8 +1327,10 @@ export default function EvalReportReviewCanvas({
           </div>
           {q.rows.length === 0 ? (
             <p className="evc-empty-sub" data-testid="evrr-empty">{L.noRows}</p>
+          ) : shownRows.length === 0 ? (
+            <p className="evc-empty-sub" data-testid="evrr-tab-empty">{L.tabEmpty}</p>
           ) : (
-            q.rows.map((row) => (
+            shownRows.map((row) => (
               <ReviewRow
                 key={row.memberId}
                 row={row}
@@ -1180,6 +1350,7 @@ export default function EvalReportReviewCanvas({
                 onAskReject={onReject ? askReject : null}
                 onRegenerate={onRegenerate ? handleRegenerate : null}
                 trialAiNotice={trialAiNotice}
+                onPromote={onPromote ? handlePromote : null}
               />
             ))
           )}

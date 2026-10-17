@@ -1,6 +1,7 @@
 import { AlertIcon, InfoIcon } from './evalIcons.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
+import Switch from '../shared/Switch.jsx';
 
 /**
  * EvalCycleReportSettings — 사이클 관리 › 리포트 탭 (PW-534 ㉰㉱ · 정책 §8.3 · §4.6.5).
@@ -41,7 +42,16 @@ const DEFAULT_LABELS = {
   timelineBefore:
     '아직 리포트 단계 전입니다 — 캘리브레이션이 확정되면 위 순서가 시작됩니다.',
   timelineFootnote:
-    '조직장 검수 위에 본부장 승인 단계가 한 번 더 있습니다 (정책 §8.6) — 조직 설정에 따라 생략될 수 있습니다.',
+    '아래 «본부장 승인 단계»를 켜 두면 조직장 승인 뒤 본부장이 한 번 더 승인합니다 (정책 §8.6).',
+  // PW-1839 — 회사 단위 «본부장 승인 단계» (PW-1854 커트 결정 ② 2026-10-17)
+  execApprovalTitle: '본부장 승인 단계',
+  execApprovalLabel: '본부장 승인 단계 사용',
+  execApprovalHint:
+    '켜면 조직장이 승인한 리포트를 그 조직장의 바로 위 조직장(본부장)이 한 번 더 승인합니다. 바로 위가 대표뿐이면 건너뜁니다.',
+  execApprovalScope:
+    '회사의 모든 평가 사이클에 적용됩니다. 바꾼 뒤에 조직장이 승인한 리포트부터 적용되고, 이미 승인된 리포트는 그대로 둡니다.',
+  execApprovalSaveError: '본부장 승인 단계를 바꾸지 못했습니다. 잠시 뒤 다시 시도해 주세요.',
+  execApprovalLoadError: '본부장 승인 단계 설정을 불러오지 못했습니다.',
   generatedWarn:
     '이미 생성된 리포트 {{count}}건에는 적용되지 않습니다 — 구성 변경은 다음 생성부터 반영됩니다. 한 사람만 다르게 하려면 「리포트 검수」에서 그 구성원의 예외로 두십시오.',
   openReportReview: '대상자별 리포트 보기',
@@ -115,6 +125,12 @@ export default function EvalCycleReportSettings({
   onToggleChannel,
   onSave,
   onOpenReportReview,
+  /**
+   * PW-1839 — 회사의 «본부장 승인 단계» 스위치 `{ enabled, busy?, error?, loadFailed?, onChange(next) }`.
+   * 섹션 저장과 따로, 누르는 즉시 저장한다 — 사이클이 아니라 회사 값이라 «변경사항 저장»에 묶지 않는다.
+   * 안 주면 이 카드를 그리지 않는다.
+   */
+  execApproval = null,
   labels: providedLabels,
 }) {
   const L = { ...DEFAULT_LABELS, ...(providedLabels || {}) };
@@ -194,6 +210,34 @@ export default function EvalCycleReportSettings({
           })}
         </div>
       </section>
+
+      {execApproval && (
+        <section className="evc-card" data-testid="evrs-exec-approval">
+          <h3 className="evc-card-name">{L.execApprovalTitle}</h3>
+          <p className="evc-wiz-hint">{L.execApprovalHint}</p>
+          {/* 글씨를 눌러도 켜지게 체크박스 줄과 같은 `<label>` 로 묶는다. */}
+          <div className="evc-check-row">
+            <label className="dp-check">
+              <Switch
+                checked={execApproval.enabled === true}
+                disabled={execApproval.busy === true || execApproval.loadFailed === true}
+                onChange={(next) => execApproval.onChange?.(next)}
+                data-testid="evrs-exec-approval-switch"
+              />
+              {L.execApprovalLabel}
+            </label>
+          </div>
+          <p className="evc-wiz-hint evc-manage-lock">
+            <InfoIcon size={14} />
+            <span>{L.execApprovalScope}</span>
+          </p>
+          {(execApproval.error || execApproval.loadFailed) && (
+            <span className="evrs-save-error" role="alert" data-testid="evrs-exec-approval-error">
+              {execApproval.loadFailed ? L.execApprovalLoadError : L.execApprovalSaveError}
+            </span>
+          )}
+        </section>
+      )}
 
       {/* ㉱ 읽기 전용 — 정본 §8.6 을 화면으로 옮긴 것이지 새 규칙이 아니다. */}
       <section className="evc-card">
