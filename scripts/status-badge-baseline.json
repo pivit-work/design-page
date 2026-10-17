@@ -175,16 +175,6 @@
    "line-height": "var(--line-height-text-xs)",
    "border": "1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03))"
   },
-  "admin.css|.admin-notif-filter-chip": {
-   "border-radius": "pill",
-   "padding": "6px 14px",
-   "font-size": "12px",
-   "font-weight": "500",
-   "background": "#f3f4f6 / 어두운 화면 #0c0e12",
-   "color": "#687079 / 어두운 화면 #cecfd2",
-   "font-family": "var(--font-family-body)",
-   "border": "1px solid var(--border-primary)"
-  },
   "admin.css|.admin-notif-role-chip": {
    "border-radius": "8px",
    "padding": "1px 6px",
@@ -1812,11 +1802,6 @@
   "admin.css|.admin-emp-status.is-terminated": {
    "background": "#f9fafb / 어두운 화면 #22262f",
    "color": "#b1b6be / 어두운 화면 #85888e"
-  },
-  "admin.css|.admin-notif-filter-chip.is-active": {
-   "font-weight": "700",
-   "background": "#f1fffa / 어두운 화면 #2dbd82",
-   "color": "#10774d / 어두운 화면 #2dbd82"
   },
   "admin.css|.admin-pill.is-active": {
    "background": "#e1fef2 / 어두운 화면 #10774d",

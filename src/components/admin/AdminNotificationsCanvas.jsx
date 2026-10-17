@@ -6,6 +6,7 @@ import DatePicker from '../shared/DatePicker.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Switch from '../shared/Switch.jsx';
+import Checkbox from '../shared/Checkbox.jsx';
 
 /**
  * AdminNotificationsCanvas — 어드민 "알림 설정" 화면 Pure 컴포넌트.
@@ -355,7 +356,7 @@ function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatC
       onClose={onClose}
       zIndex={1000}
       className="adm-shell"
-      bodyClassName="adm-shell-body"
+      bodyClassName="adm-shell-body admin-notif-edit-body"
       testId="edit-modal"
       overlayTestId="modal-backdrop"
       footer={
@@ -463,56 +464,33 @@ function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatC
         {/* 수신 대상 */}
         <div>
           <SL>{labels.modal.recipients}</SL>
-          <div className="admin-notif-picker-grid">
-            {ROLE_KEYS.map((key) => {
-              const active = recipients.includes(key);
-              return (
-                <div
-                  key={key}
-                  role="checkbox"
-                  aria-checked={active}
-                  aria-label={labels.roles[key]}
-                  tabIndex={0}
-                  onClick={() => toggleRecipient(key)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleRecipient(key); } }}
-                  className={`admin-notif-role-card is-${key}${active ? ' is-active' : ''}`}
-                >
-                  <div className="admin-notif-role-card-label">{labels.roles[key]}</div>
-                </div>
-              );
-            })}
+          {/* 여럿 고르는 칸 — 공용 Checkbox (PW-1897). 칩·타일은 몇 개를 고를 수 있는지 말하지 않았다 */}
+          <div className="admin-notif-check-row">
+            {ROLE_KEYS.map((key) => (
+              <Checkbox
+                key={key}
+                checked={recipients.includes(key)}
+                onChange={() => toggleRecipient(key)}
+                label={labels.roles[key]}
+                data-testid={`notif-recipient-${key}`}
+              />
+            ))}
           </div>
         </div>
 
         {/* 발송 채널 */}
         <div>
           <SL>{labels.modal.channels}</SL>
-          <div className="admin-notif-picker-grid">
-            {CHANNEL_KEYS.map((key) => {
-              const active = channels.includes(key);
-              return (
-                <div
-                  key={key}
-                  role="checkbox"
-                  aria-checked={active}
-                  aria-label={labels.channels[key]}
-                  tabIndex={0}
-                  onClick={() => toggleChannel(key)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleChannel(key); } }}
-                  className={`admin-notif-channel-card${active ? ' is-active' : ''}`}
-                >
-                  <div className="admin-notif-channel-icon">
-                    <Icon
-                      src={CHANNEL_ICON_SRC[key]}
-                      size={18}
-                      color={active ? 'var(--text-brand-secondary)' : 'var(--text-tertiary)'}
-                      baseUrl={baseUrl}
-                    />
-                  </div>
-                  <div className="admin-notif-channel-label">{labels.channels[key]}</div>
-                </div>
-              );
-            })}
+          <div className="admin-notif-check-row">
+            {CHANNEL_KEYS.map((key) => (
+              <Checkbox
+                key={key}
+                checked={channels.includes(key)}
+                onChange={() => toggleChannel(key)}
+                label={labels.channels[key]}
+                data-testid={`notif-channel-${key}`}
+              />
+            ))}
           </div>
         </div>
         </>)}
@@ -610,24 +588,19 @@ export default function AdminNotificationsCanvas({
         <p className="admin-notif-banner-text">{labels.infoBanner}</p>
       </div>
 
-      {/* 역할별 필터 */}
+      {/* 역할별 필터 — 하나만 고르므로 공용 SegmentedControl (PW-1897) */}
       <div className="admin-notif-filter">
         <span className="admin-notif-filter-label">{labels.filterLabel}</span>
-        {[null, ...ROLE_KEYS].map((r) => {
-          const active = filterRole === r;
-          const label = r ? labels.roles[r] : labels.filterAll;
-          return (
-            <button
-              type="button"
-              key={r || 'all'}
-              onClick={() => setFilterRole(r)}
-              data-testid={`filter-${r || 'all'}`}
-              className={`admin-notif-filter-chip${r ? ` is-${r}` : ''}${active ? ' is-active' : ''}`}
-            >
-              {label}
-            </button>
-          );
-        })}
+        <SegmentedControl
+          ariaLabel={labels.filterLabel}
+          value={filterRole || 'all'}
+          onChange={(v) => setFilterRole(v === 'all' ? null : v)}
+          items={[null, ...ROLE_KEYS].map((r) => ({
+            value: r || 'all',
+            label: r ? labels.roles[r] : labels.filterAll,
+            testId: `filter-${r || 'all'}`,
+          }))}
+        />
       </div>
 
       {/* 그룹별 규칙 */}

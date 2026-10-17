@@ -2976,25 +2976,7 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
   font-size: var(--font-size-text-xs);
   color: var(--text-secondary);
 }
-.admin-notif-filter-chip {
-  padding: 6px 14px;
-  border-radius: 99px;
-  cursor: pointer;
-  font-family: var(--font-family-body);
-  font-size: var(--font-size-text-xs);
-  font-weight: 500;
-  border: 1px solid var(--border-primary);
-  background: var(--bg-primary);
-  color: var(--text-secondary);
-  transition: all 0.15s;
-}
-/* 활성 칩은 역할별 색 대신 브랜드 그린 단일 accent 로 통일 (팔레트 절제) */
-.admin-notif-filter-chip.is-active {
-  font-weight: 700;
-  border-color: var(--bg-brand-solid);
-  background: var(--colors-background-bgBrandPrimary, #f1fffa);
-  color: var(--text-brand-secondary);
-}
+/* 필터 버튼은 공용 SegmentedControl (PW-1897) — 칩 모양은 걷었다. */
 
 /* ── 그룹 카드 ───────────────────────────────────────────── */
 .admin-notif-group { padding: 0; overflow: hidden; }
@@ -3181,12 +3163,15 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
 
 /* 모달 내부 작은 라벨 */
 .admin-notif-sl {
-  /* 디자이너 모달 라벨(.modal-info-label) idiom: 12/700, normal-case, text-secondary */
-  font-size: var(--font-size-text-xs);
+  /* 디자이너가 그린 1on1 「일정 추가」 창 이름표(.ono-add-modal-field-label) 값 그대로 — 14/700 회색, 칸까지 12px (PW-1897) */
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
   font-weight: 700;
   color: var(--text-secondary);
-  margin-bottom: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
 }
+/* 칸 사이 24px — 1on1 「일정 추가」 창(.ono-add-modal-form) 값. 이 창 본문에만 건다. */
+.adm-shell-body.admin-notif-edit-body { gap: var(--spacing-3xl); }
 
 /* 활성화 토글 행 */
 .admin-notif-enable-row {
@@ -3230,11 +3215,13 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
 
 /* 입력 공용 — 디자이너 textbox idiom: filled(alphaBlack3) + 미세 border, focus 시 brand */
 .admin-notif-input {
-  padding: 8px var(--spacing-lg);
+  /* 1on1 「일정 추가」 창 입력칸(.ono-add-modal-input) 값 — 최소 40px·글씨 16px (PW-1897) */
+  min-height: 40px;
+  padding: var(--spacing-md) var(--spacing-lg);
   border-radius: var(--radius-md);
   border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
-  font-size: var(--font-size-text-sm);
-  line-height: var(--line-height-text-sm);
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
   font-family: var(--font-family-body);
   color: var(--text-primary);
   background: var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
@@ -3332,30 +3319,15 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
   word-break: keep-all;
 }
 
-/* 수신 대상 / 채널 선택 그리드 */
-.admin-notif-picker-grid { display: flex; gap: var(--spacing-md); }
-.admin-notif-role-card,
-.admin-notif-channel-card {
-  flex: 1;
-  padding: var(--spacing-lg) 0;
-  border-radius: var(--radius-md);
-  text-align: center;
-  cursor: pointer;
-  background: var(--bg-primary);
-  border: 1.5px solid var(--border-primary);
-  transition: all 0.15s;
-  outline: none;
+/* 수신 대상 / 발송 채널 — 공용 Checkbox 줄 (PW-1897). 체크박스 사이 16px 는 PW-1887·1892 와 같은 값. */
+.admin-notif-check-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--spacing-xl);
+  row-gap: var(--spacing-md);
 }
-.admin-notif-role-card-label,
-.admin-notif-channel-label { font-size: var(--font-size-text-sm); font-weight: 700; color: var(--text-secondary); }
-.admin-notif-channel-icon { display: flex; justify-content: center; margin-bottom: var(--spacing-xs); }
-
-/* 선택된 수신 대상 카드 — 역할별 색 대신 브랜드 그린 단일 accent (팔레트 절제) */
-.admin-notif-role-card.is-active { background: var(--colors-background-bgBrandPrimary, #f1fffa); border-color: var(--bg-brand-solid); }
-.admin-notif-role-card.is-active .admin-notif-role-card-label { color: var(--text-brand-secondary); }
-
-.admin-notif-channel-card.is-active { background: var(--colors-background-bgBrandPrimary, #f1fffa); border-color: var(--bg-brand-solid); }
-.admin-notif-channel-card.is-active .admin-notif-channel-label { color: var(--text-brand-secondary); }
+.admin-notif-check-row .dp-check { white-space: nowrap; }
 
 /* ────────────────────────────────────────────────────────────
    구성원 초대 발송 모달 (.admin-inv-*) — PW-114

@@ -7,6 +7,7 @@ import ConfirmModal from '../shared/ConfirmModal.jsx';
 import Tabs from '../shared/Tabs.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
 import Switch from '../shared/Switch.jsx';
+import Checkbox from '../shared/Checkbox.jsx';
 import Toast from '../shared/Toast.jsx';
 import SearchInput from '../shared/SearchInput.jsx';
 import { CheckGlyph } from '../shared/lineIcons.jsx';
@@ -478,18 +479,17 @@ function CheckboxListPicker({ field, selected, onToggle, onSetMany }) {
                 <div className="intg-picker-message">{list.noMatch}</div>
               )}
               {visible.map((o) => (
-                <label key={o.value} className="intg-picker-item">
-                  <span className="intg-picker-item-main">
-                    <input
-                      type="checkbox"
-                      checked={selected.includes(o.value)}
-                      onChange={() => onToggle(o.value)}
-                      style={{ accentColor: 'var(--text-brand-tertiary)' }}
-                    />
-                    <span className="intg-picker-item-name" title={o.label}>{o.label}</span>
-                  </span>
+                // 네모는 공용 Checkbox (PW-1897). 줄 모양은 이 목록의 것을 그대로 쓴다.
+                <div key={o.value} className="intg-picker-item">
+                  <Checkbox
+                    className="intg-picker-item-main"
+                    inputClassName="dp-check-input"
+                    checked={selected.includes(o.value)}
+                    onChange={() => onToggle(o.value)}
+                    label={<span className="intg-picker-item-name" title={o.label}>{o.label}</span>}
+                  />
                   {o.meta && <span className="intg-picker-item-meta">{o.meta}</span>}
-                </label>
+                </div>
               ))}
             </div>
           </>
@@ -653,15 +653,12 @@ function SettingsModal({ modal, labels, baseUrl, onClose, onSave, onDisconnect, 
           {field.kind === 'checkboxGroup' && (
             <div className="intg-setting-check">
               {(field.options ?? []).map((o) => (
-                <label key={o.value}>
-                  <input
-                    type="checkbox"
-                    checked={Array.isArray(draft[field.key]) && draft[field.key].includes(o.value)}
-                    onChange={() => toggleInGroup(field, o.value)}
-                    style={{ accentColor: 'var(--text-brand-tertiary)' }}
-                  />
-                  {o.label}
-                </label>
+                <Checkbox
+                  key={o.value}
+                  checked={Array.isArray(draft[field.key]) && draft[field.key].includes(o.value)}
+                  onChange={() => toggleInGroup(field, o.value)}
+                  label={o.label}
+                />
               ))}
             </div>
           )}
