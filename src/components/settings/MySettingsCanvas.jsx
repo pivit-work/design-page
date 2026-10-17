@@ -12,7 +12,7 @@ import Select from '../shared/Select.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import { InfoIcon, LockIcon, AlertTriangleIcon, HistoryIcon, FolderIcon } from './settingsIcons.jsx';
 import Switch from '../shared/Switch.jsx';
-import { LockGlyph } from '../shared/lineIcons.jsx';
+import { LockGlyph, PaperclipGlyph } from '../shared/lineIcons.jsx';
 import { SkeletonList } from '../shared/Skeleton.jsx';
 import EducationAddForm from './EducationAddForm.jsx';
 import PreferenceTab from './PreferenceTab.jsx';
@@ -158,7 +158,7 @@ const DEFAULT_LABELS = {
     addCert: '+ 자격증 추가',
     documents: '증명서 첨부',
     documentsNote: '학력·경력·자격증 등 증빙 서류를 첨부합니다. PDF·이미지 형식, 파일당 최대 10MB. 본인과 HR(어드민)만 열람할 수 있습니다.',
-    attach: '📎 파일 첨부 (PDF · 이미지, 최대 10MB)',
+    attach: '파일 첨부 (PDF · 이미지, 최대 10MB)',
     download: '다운로드',
     add: '추가',
     cancel: '취소',
@@ -1149,7 +1149,7 @@ function OrgTab({ org, labels, onAdd, onDelete, onUpload, onDownload, onDeleteDo
           <div className="msc-list">
             {(o.documents || []).map((doc) => (
               <div key={doc.id} className="msc-list-row" data-testid={`document-${doc.id}`}>
-                <span aria-hidden="true">📎</span>
+                <PaperclipGlyph size={16} style={{ flexShrink: 0 }} />
                 <div style={{ flex: 1 }}>
                   <div className="msc-notif-label">{doc.fileName}</div>
                   <div className="msc-notif-sub">{[L.docTypeOptions[doc.docType] || doc.docType, doc.uploadedAt].filter(Boolean).join(' · ')}</div>
