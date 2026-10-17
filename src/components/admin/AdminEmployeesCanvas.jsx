@@ -2199,7 +2199,7 @@ function EmployeesListView({
   // 저장 방식 안내(PW-1350) — 즉시 저장되는 스쿼드·소속 팝업에 넘긴다. 캔버스 prop 주석 참조.
   instantSaveNotice,
   // 명부 내보내기 — 시트와 **같은 부품**을 쓴다(PW-411). 미주입이면 버튼이 없다.
-  onExportRoster, exporting = false, exportLabels,
+  onExportRoster, exporting = false, exportLabels, fullExport = false,
   /* 대표(CEO) 지정·해제 (§3.6-A · PW-576 로 시트에서 옮겨 왔다). 미주입이면 행 메뉴에
      그 항목이 아예 없다 — 권한 없는 사람에게 눌리는 자리를 만들지 않는다. */
   onOpenCeo,
@@ -2866,6 +2866,15 @@ function EmployeesListView({
 
   function runExport(scope, includeSalary) {
     if (!onExportRoster) return;
+    /* ④ 전체 필드(PW-1913) — 대상은 ① 과 같은 사람(검색·필터), 열은 서버가 정한다(인사 항목 전부).
+       연봉은 확인 창에서 고른 대로만 담는다 — 화면 연봉 열이 켜져 있는지와 무관하다. */
+    if (scope === 'full') {
+      onExportRoster({
+        scope, columns: [], ids: [], search: q.trim(), filters: { ...exportFilters },
+        rowCount: ordered.length, includeSalary,
+      });
+      return;
+    }
     // 전체(③)는 화면 상태를 무시한다 — 필터·검색어·열을 아예 보내지 않는다(§5-1).
     if (scope === 'all') {
       onExportRoster({
@@ -2891,8 +2900,9 @@ function EmployeesListView({
   }
 
   function pickExportScope(scope) {
+    // 전체 필드(④)는 열 상태와 무관하게 **늘** 확인 창을 거친다(§2-4 · PW-1913).
     // 전체(③)는 연봉을 포함하지 않으므로 확인 모달을 띄우지 않는다(E13).
-    if (scope !== 'all' && salaryVisible) {
+    if (scope === 'full' || (scope !== 'all' && salaryVisible)) {
       setSalaryGateScope(scope);
       return;
     }
@@ -2911,6 +2921,7 @@ function EmployeesListView({
     hasActiveFilter: Boolean(hasFilter),
     salaryVisible,
     selectedRows,
+    includeFull: fullExport,
   });
 
   /* 소속 팝업의 초기 선택 — 칩이 든 조직 id 가 정본, 없으면 `orgUnitIds` 폴백.
@@ -3412,7 +3423,14 @@ function EmployeesListView({
           // 보여주면 창이 말한 인원과 실제 파일의 행 수가 갈린다.
           count={salaryGateScope === 'selected' ? selectedCount : ordered.length}
           columnCount={exportColumns.length}
-          labels={exportLabels}
+          // 전체 필드는 화면 열 수가 아니라 인사 항목 전부라 제목·본문만 그 문구로 바꾼다.
+          labels={salaryGateScope === 'full'
+            ? {
+              ...exportLabels,
+              salaryTitle: exportLabels?.fullTitle || '전체 필드 명부를 내보냅니다',
+              salaryBody: exportLabels?.fullBody || '대상 {count}명 · 인사 항목 전부 · 은행 계좌번호는 담지 않습니다',
+            }
+            : exportLabels}
           onClose={() => setSalaryGateScope(null)}
           onExclude={() => {
             const scope = salaryGateScope;
@@ -5192,6 +5210,8 @@ export default function AdminEmployeesCanvas({
   onExportRoster,
   exporting = false,
   exportLabels,
+  // 「전체 필드」 범위(PW-1913) — 어드민 화면만 켠다. 안 주면 항목이 없다.
+  fullExport = false,
 }) {
   /* `recordLabels` 는 기록 창 3종의 문구다 — 폐기된 시트가 `sheetLabels` 로 받던
      묶음이라 소비자가 그것을 그대로 넘길 수 있게 별도 prop 으로 받고, 여기서 한 번만
@@ -5392,6 +5412,7 @@ export default function AdminEmployeesCanvas({
             onExportRoster={onExportRoster}
             exporting={exporting}
             exportLabels={exportLabels}
+            fullExport={fullExport}
             /* 보던 상태 되살리기 (PW-157) — 시트가 들고 있던 계약이 목록으로 왔다. */
             initialSearch={initialSearch}
             initialFilters={initialFilters ?? EMPTY_OBJECT}

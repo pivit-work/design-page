@@ -36,6 +36,8 @@ export function countTerminated(list) {
  * @param hasActiveFilter 필터·검색어가 하나라도 걸렸는가
  * @param salaryVisible 연봉 열이 보이는가
  * @param selectedRows  ② 대상 행. `null`·빈 배열이면 항목을 만들지 않는다
+ * @param includeFull   「전체 필드」(④ · PW-1913) 항목을 넣는가 — 소비자(어드민 화면)가 켠다.
+ *                      대상 행은 ① 과 같다(viewRows).
  */
 export function buildExportItems({
   labels,
@@ -45,6 +47,7 @@ export function buildExportItems({
   hasActiveFilter,
   salaryVisible,
   selectedRows = null,
+  includeFull = false,
 }) {
   const L = labels || {};
   const fill = fillExportCaption;
@@ -85,5 +88,19 @@ export function buildExportItems({
       // ③ 은 연봉을 포함하지 않는다(§2-2 · E13) — 🔒 예고도 붙이지 않는다.
       sensitive: null,
     },
+    /* ④ 전체 필드(§2-4 · PW-1913) — 화면 열 설정과 무관하게 인사 항목 전부. 열 «수»는 조직의
+       선택 적용 항목·연봉 선택에 따라 달라져 캡션에 숫자를 쓰지 않는다. 연봉은 누를 때마다
+       확인 창에서 고르므로 🔒 예고를 붙인다. */
+    ...(includeFull
+      ? [{
+        id: 'full',
+        label: L.scopeFull || '전체 필드',
+        caption: fill(L.scopeFullCaption || '{count}명 · 인사 항목 전부 · 계좌번호 제외', {
+          count: viewRows.length,
+        }),
+        warn: warnOf(viewRows),
+        sensitive: L.salaryOnConfirm || '연봉은 확인 후 선택',
+      }]
+      : []),
   ];
 }
