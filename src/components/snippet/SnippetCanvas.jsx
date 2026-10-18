@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Icon from '../shared/Icon.jsx';
+import LoadMoreButton from '../shared/LoadMoreButton.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import SnippetMemberAvatars from './SnippetMemberAvatars.jsx';
 import SnippetListRow from './SnippetListRow.jsx';
@@ -90,6 +91,12 @@ export default function SnippetCanvas({
   onSnippetClick,
   // 헤더·본문 대신 페이지 칸에 그릴 것(불러오기 실패 등). 없으면 평소 화면.
   placeholder,
+  // 리스트 맨 아래 [더 보기] `{ label, loadingLabel?, loading? }` (pivit-work PW-1941) — 호스트가 앞 몇 건만
+  // 받았을 때. 검색 중에는 그리지 않는다(검색은 호스트가 기간 안을 다 받아 둔 뒤 거른다). 누르면 `onMore`.
+  more,
+  onMore,
+  // 검색어가 바뀔 때 호스트에 알린다 (PW-1941) — 앞 몇 건만 받은 호스트가 검색 전에 나머지를 받게.
+  onSearchChange,
 }) {
   const [innerDateFrom, setInnerDateFrom] = useState(initialDateFrom ?? new Date(2026, 3, 10));
   const [innerDateTo, setInnerDateTo] = useState(initialDateTo ?? new Date(2026, 3, 15));
@@ -190,7 +197,10 @@ export default function SnippetCanvas({
               type="text"
               placeholder={searchPlaceholder}
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                onSearchChange?.(e.target.value);
+              }}
             />
           </div>
         </div>
@@ -255,6 +265,14 @@ export default function SnippetCanvas({
               />
             ))}
           </div>
+        )}
+        {!hasSearch && !isEmpty && more && (
+          <LoadMoreButton
+            label={more.label}
+            loadingLabel={more.loadingLabel}
+            loading={!!more.loading}
+            onClick={onMore}
+          />
         )}
       </div>
 
