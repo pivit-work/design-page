@@ -12,6 +12,7 @@
     "./styles/app.css": "./src/App.css",
     "./styles/app-overlays.css": "./src/app-overlays.css",
     "./styles/org-chart.css": "./src/org_chart.css",
+    "./styles/load-more.css": "./src/load-more.css",
     "./styles/org-project.css": "./src/org_project.css",
     "./styles/org-squad.css": "./src/org_squad.css",
     "./styles/one-on-one.css": "./src/one_on_one.css",
