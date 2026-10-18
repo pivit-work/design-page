@@ -891,7 +891,8 @@ export default function EvalCycleLeaderCanvas({
     ),
   ];
   const gradeWarnings = [
-    !calibrationEnabled && (
+    /* [PW-1968] 위 차수가 남은 차수는 화면이 이 문구를 비워 보낸다 — 여기서 정한 등급이 최종이 아니다. */
+    !calibrationEnabled && L.calibOffGradeNote && (
       <p className="evl-calib-off-note" data-testid="evl-calib-off-note" key="calib-off">
         <AlertIcon size={14} /> {L.calibOffGradeNote}
       </p>
