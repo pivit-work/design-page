@@ -17,7 +17,8 @@ const T = {
   bg: '#F8FAFC', card: '#fff',
   border: '#E2E8F0', bl: '#F1F5F9',
   text: '#0F172A', sub: '#64748B', muted: '#94A3B8',
-  accent: '#4F6AF5',
+  // 주 버튼·고른 것은 브랜드 초록, 누르는 글자·딱지 글자는 진한 초록 — 「플랜 선택」 탭과 같다 (PW-1936)
+  accent: 'var(--bg-brand-solid)', accentText: 'var(--text-brand-secondary)',
   green: '#22C55E', greenBg: '#F0FDF4',
   amber: '#F59E0B', amberBg: '#FFFBEB',
   red: '#DC2626', redBg: '#FEF2F2',
@@ -116,7 +117,7 @@ const STATUS_META = {
 
 // 청구 사유 배지 메타 — 사유가 없는 옛 청구서는 「정기결제」로 표기한다(policy §7, 필터에서 빼지 않는다)
 const REASON_META = {
-  initial: { color: T.accent, bg: '#EEF2FF' },
+  initial: { color: T.accentText, bg: 'var(--bg-brand-secondary)' },
   rebill: { color: T.sub, bg: T.bl },
   seat_increment: { color: T.amber, bg: T.amberBg },
 };
@@ -125,7 +126,7 @@ const reasonKey = (inv) => (REASON_META[inv.billing_reason] ? inv.billing_reason
 // 환불(Refund) 배지 메타 — cancellation-refund-policy.md §9
 const REFUND_META = {
   completed_full: { color: T.sub, bg: T.bl },
-  completed_partial: { color: T.accent, bg: '#EEF2FF' },
+  completed_partial: { color: T.accentText, bg: 'var(--bg-brand-secondary)' },
   processing: { color: T.amber, bg: T.amberBg },
   failed: { color: T.red, bg: T.redBg },
 };
@@ -143,7 +144,7 @@ function Btn({ children, onClick, kind = 'primary', disabled, size = 'md' }) {
   const styles = {
     primary: { bg: T.accent, color: '#fff', border: 'transparent' },
     secondary: { bg: '#fff', color: T.text, border: T.border },
-    ghost: { bg: 'transparent', color: T.accent, border: 'transparent' },
+    ghost: { bg: 'transparent', color: T.accentText, border: 'transparent' },
     danger: { bg: '#fff', color: T.red, border: '#FCA5A5' },
   }[kind];
   const pad = size === 'sm' ? '6px 12px' : '10px 18px';
@@ -310,7 +311,7 @@ export default function BillingHistoryCanvas({
                         <span style={{ fontSize: 12, color: T.sub, marginLeft: 6 }}>{labels.voidNote}</span>
                       )}
                       {inv.refund && (
-                        <div style={{ fontSize: 12, fontWeight: 600, color: T.accent, marginTop: 2 }}>
+                        <div style={{ fontSize: 12, fontWeight: 600, color: T.accentText, marginTop: 2 }}>
                           {labels.refundAmount(inv.refund.amount)}
                         </div>
                       )}

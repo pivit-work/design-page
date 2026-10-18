@@ -579,14 +579,13 @@ function OrgSnapshotStatusView({
         <div className="admin-snap-header-side">
         <div className="admin-snap-header-actions">
           {onShowCompChange && (
-            <label className="admin-snap-comp-toggle">
-              <input
-                type="checkbox"
-                checked={!!showComp}
-                onChange={(e) => onShowCompChange(e.target.checked)}
-              />
-              {labels.asofShowComp}
-            </label>
+            <Checkbox
+              className="admin-snap-comp-toggle"
+              inputClassName="dp-check-input"
+              checked={!!showComp}
+              onChange={(e) => onShowCompChange(e.target.checked)}
+              label={labels.asofShowComp}
+            />
           )}
           <div className="admin-snap-datepicker">
             <span className="admin-snap-datepicker-label">{labels.queryDate}</span>
@@ -1590,14 +1589,14 @@ function AppointmentBulkView({
                               </div>
                             ))}
                             {onRowAction && (row.actions ?? []).map((a) => (
-                              <label key={a.key} className="admin-snap-aff-action">
-                                <input
-                                  type="checkbox"
-                                  checked={!!a.checked}
-                                  onChange={(e) => toggleRowAction(row, a.key, e.target.checked)}
-                                />
-                                {a.label}
-                              </label>
+                              <Checkbox
+                                key={a.key}
+                                className="admin-snap-aff-action"
+                                inputClassName="dp-check-input"
+                                checked={!!a.checked}
+                                onChange={(e) => toggleRowAction(row, a.key, e.target.checked)}
+                                label={a.label}
+                              />
                             ))}
                           </RosterTable.Cell>
                         </RosterTable.Row>
@@ -2153,14 +2152,13 @@ function AsOfSnapshotView({
             날짜 칸 밑에 붙이면 그 묶음만 키가 커져 세 요소의 높이가 어긋났다(PW-1438). */}
         <div className="admin-snap-header-side">
           <div className="admin-snap-header-actions">
-            <label className="admin-snap-comp-toggle">
-              <input
-                type="checkbox"
-                checked={!!showComp}
-                onChange={(e) => onShowCompChange?.(e.target.checked)}
-              />
-              {labels.asofShowComp}
-            </label>
+            <Checkbox
+              className="admin-snap-comp-toggle"
+              inputClassName="dp-check-input"
+              checked={!!showComp}
+              onChange={(e) => onShowCompChange?.(e.target.checked)}
+              label={labels.asofShowComp}
+            />
             <div className="admin-snap-datepicker">
               <span className="admin-snap-datepicker-label">{labels.asofPresetLabel}</span>
               {/* 미래 시점은 재구성할 이력이 없다 — max 로 선택 자체를 막는다.

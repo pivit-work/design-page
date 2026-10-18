@@ -2,6 +2,7 @@ import { memo, useEffect, useRef, useState } from 'react';
 import RosterTable from '../shared/RosterTable.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
+import Checkbox from '../shared/Checkbox.jsx';
 
 /**
  * 초대 CSV 미리보기 표 — 두 초대 화면(어드민 「구성원 초대」 창 · 온보딩 「구성원 초대」 단계)이
@@ -93,14 +94,13 @@ export default function InviteCsvStagingTable({
           {fmt(labels.csvSummary, { total: rows.length, ok: rows.length - errCount, err: errCount })}
         </span>
         {errCount > 0 && (
-          <label className="admin-inv-csv-toggle">
-            <input
-              type="checkbox"
-              checked={errorsOnly}
-              onChange={(e) => setErrorsOnly(e.target.checked)}
-            />
-            {labels.csvErrorsOnly}
-          </label>
+          <Checkbox
+            className="admin-inv-csv-toggle"
+            inputClassName="dp-check-input"
+            checked={errorsOnly}
+            onChange={(e) => setErrorsOnly(e.target.checked)}
+            label={labels.csvErrorsOnly}
+          />
         )}
       </div>
 

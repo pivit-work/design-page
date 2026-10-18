@@ -3,6 +3,7 @@ import { LeadStarIcon, LeadStarOutlineIcon } from '../orgchart/squadIcons.jsx';
 import { squadStatusMeta } from '../orgchart/squad-constants.js';
 import ModalShell from '../shared/ModalShell.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
+import Checkbox from '../shared/Checkbox.jsx';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
 
 /**
@@ -42,7 +43,7 @@ const T = {
   text: '#0F172A',
   sub: '#64748B',
   muted: '#94A3B8',
-  accent: '#4F6AF5',
+  accent: 'var(--bg-brand-solid)',
   // PW-194 — 리드 표기는 조직도(`org_squad.css` 의 `.sq-lead-mark`)가 정본이라
   // 같은 토큰을 탄다. 별표(표식)와 글자는 역할이 달라 색을 가른다:
   //  · leadMark = warning-500 — 조직도 별표와 같은 주황
@@ -329,12 +330,11 @@ export default function SquadPicker({
                     opacity: closed ? 0.55 : 1,
                   }}
                 >
-                  <input
-                    type="checkbox"
+                  {/* 공용 체크박스 — 브라우저 기본 파란 네모 대신 제품색 16px 네모 (PW-1936) */}
+                  <Checkbox
                     checked={on}
                     onChange={() => toggle(id)}
                     aria-label={sq.name}
-                    style={{ cursor: 'pointer', accentColor: T.accent }}
                   />
                   <span style={{ flex: 1, minWidth: 0, fontSize: 12, color: T.text, overflowWrap: 'anywhere' }}>{sq.name}</span>
 

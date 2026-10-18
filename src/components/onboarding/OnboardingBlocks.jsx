@@ -1,4 +1,6 @@
+import { useId } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import Checkbox from '../shared/Checkbox.jsx';
 /**
  * 온보딩 단계 화면을 이루는 덩어리 — 시안 `8. onboarding/onboarding-app.jsx` 의 단계 제목,
  * 안내 상자, 승인 대기 배지, RequestSummary, 워크스페이스 주소 줄, CSV 올리는 곳,
@@ -305,23 +307,26 @@ export function OnbCheckList({ children, testId }) {
  * Props: checked · disabled · onChange(checked) · title · titleNote · subtitle · note · testId
  */
 export function OnbCheckRow({ checked = false, disabled = false, onChange, title, titleNote, subtitle, note, testId }) {
+  const id = useId();
   return (
-    <label className={cx('onb-check-row', disabled && 'is-disabled')} data-testid={testId}>
-      <input
-        type="checkbox"
+    // 네모만 공용 `Checkbox`(제품색 16px · PW-1936). 줄(`testId` 가 붙는 자리)은 그대로 두고
+    // 이름 쪽은 `htmlFor` 로 이어 눌러도 켜진다.
+    <div className={cx('onb-check-row', disabled && 'is-disabled')} data-testid={testId}>
+      <Checkbox
+        id={id}
         checked={checked}
         disabled={disabled}
         onChange={(e) => onChange?.(e.target.checked)}
       />
-      <span className="onb-check-main">
+      <label className="onb-check-main" htmlFor={id}>
         <span className="onb-check-title">
           {title}
           {titleNote && <small>{titleNote}</small>}
         </span>
         {subtitle && <span className="onb-check-sub">{subtitle}</span>}
-      </span>
+      </label>
       {note && <span className="onb-check-note">{note}</span>}
-    </label>
+    </div>
   );
 }
 

@@ -2,6 +2,7 @@ import { useState, useMemo, useRef } from 'react';
 import { buildOrgTree, findOrgEntry, ORG_PATH_SEP } from './orgTree.js';
 import ModalShell from '../shared/ModalShell.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
+import Checkbox from '../shared/Checkbox.jsx';
 import { ChevronDownGlyph } from '../shared/lineIcons.jsx';
 
 /**
@@ -68,7 +69,10 @@ const T = {
   text: '#0F172A',
   sub: '#64748B',
   muted: '#94A3B8',
-  accent: '#4F6AF5',
+  // 고른 줄·주 소속·키보드 위치는 공용 「이름 쳐서 고르기」(SearchSelect) 처럼 브랜드 초록 (PW-1936)
+  accent: 'var(--text-brand-tertiary)',
+  accentBg: 'var(--bg-secondary)',
+  accentBorder: 'var(--border-brand)',
   amber: '#B45309',
 };
 
@@ -351,7 +355,7 @@ export default function OrgTreePicker({
     borderRadius: 6,
     border: 'none',
     textAlign: 'left',
-    background: selected ? '#EEF2FF' : 'transparent',
+    background: selected ? T.accentBg : 'transparent',
     color: selected ? T.accent : T.text,
     fontWeight: selected ? 700 : 500,
     fontFamily: T.font,
@@ -439,7 +443,7 @@ export default function OrgTreePicker({
                         style={{
                           display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11,
                           color: isPrimary ? T.accent : T.sub, background: T.card,
-                          border: `1px solid ${isPrimary ? '#C7D2FE' : T.border}`,
+                          border: `1px solid ${isPrimary ? T.accentBorder : T.border}`,
                           borderRadius: 99, padding: '2px 9px', boxSizing: 'border-box',
                           overflowWrap: 'anywhere',
                           fontWeight: isPrimary ? 700 : 500,
@@ -571,8 +575,7 @@ export default function OrgTreePicker({
               {multi && !ghost && (
                 // PW-404 — 유지되는 상위 경로는 **켜진 채 잠근다.** 하위 조직에 속한 이상
                 // 끌 수 없는데 끌 수 있는 것처럼 그리면, 눌러도 안 꺼지는 체크박스가 된다.
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={picked.includes(e.id) || retainedActive.has(e.id)}
                   disabled={retainedActive.has(e.id)}
                   onChange={() => { togglePick(e.id); if (navIdx >= 0) setActiveIdx(navIdx); }}
@@ -580,10 +583,6 @@ export default function OrgTreePicker({
                     ? `${e.pathLabel} — ${labels.retainedBadgeTitle}`
                     : e.pathLabel}
                   data-testid={`org-tree-check-${e.id}`}
-                  style={{
-                    cursor: retainedActive.has(e.id) ? 'not-allowed' : 'pointer',
-                    accentColor: T.accent, flexShrink: 0, marginRight: 2,
-                  }}
                 />
               )}
               <button
@@ -630,7 +629,7 @@ export default function OrgTreePicker({
                     style={{
                       flexShrink: 0, fontSize: 9, fontWeight: 800, lineHeight: 1.5,
                       padding: '1px 6px', borderRadius: 99, boxSizing: 'border-box',
-                      background: '#EEF2FF', border: `1px solid #C7D2FE`, color: T.accent,
+                      background: T.accentBg, border: `1px solid ${T.accentBorder}`, color: T.accent,
                     }}
                   >
                     {labels.primary}

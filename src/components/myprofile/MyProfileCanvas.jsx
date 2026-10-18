@@ -109,13 +109,16 @@ function Pair({ label, value, dash, testId }) {
   );
 }
 
-/* ── 히어로 아바타: 사진 있으면 이미지(로드 실패 시 이니셜 폴백), 없으면 이니셜 ── */
+/* ── 히어로 아바타: 사진 있으면 이미지(로드 실패 시 이니셜 폴백), 없으면 이니셜 ──
+   이니셜 원의 색은 공용 사람 원(`Avatar`, avatar.css)과 같다 — 색을 안 주면 브랜드 색
+   (`--text-brand-tertiary`), 바탕은 그 색을 14% 깐 원 (PW-1936, 파란 #4F6AF5 를 걷었다). */
 function HeroAvatar({ photoUrl, initial, color }) {
   const [imgError, setImgError] = useState(false);
   const showImg = Boolean(photoUrl) && !imgError;
+  const tint = color || 'var(--text-brand-tertiary)';
   const style = showImg
     ? undefined
-    : { background: `${color || '#4F6AF5'}1f`, color: color || '#4F6AF5' };
+    : { background: `color-mix(in srgb, ${tint} 14%, var(--bg-primary))`, color: tint };
   return (
     <div className="msc-hero-avatar mp-hero-avatar" style={style} data-testid="myprofile-hero-avatar">
       {showImg ? (

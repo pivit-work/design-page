@@ -19,7 +19,8 @@ const T = {
   bg: '#F8FAFC', card: '#fff',
   border: '#E2E8F0', bl: '#F1F5F9',
   text: '#0F172A', sub: '#64748B', muted: '#94A3B8',
-  accent: '#4F6AF5',
+  // 주 버튼·고른 것은 브랜드 초록, 누르는 글자·딱지 글자는 진한 초록 — 「플랜 선택」 탭과 같다 (PW-1936)
+  accent: 'var(--bg-brand-solid)', accentText: 'var(--text-brand-secondary)',
   green: '#22C55E', greenBg: '#F0FDF4',
   amber: '#F59E0B', amberBg: '#FFFBEB',
   red: '#DC2626', redBg: '#FEF2F2',
@@ -231,7 +232,7 @@ export default function BillingMethodsCanvas({
                         <span style={{ fontSize: 16, fontWeight: 800 }}>
                           {labels.cardDisplay(card.brand, card.last4)}
                         </span>
-                        {card.isDefault && <Badge color={T.accent} bg="#EEF2FF">{labels.defaultBadge}</Badge>}
+                        {card.isDefault && <Badge color={T.accentText} bg="var(--bg-brand-secondary)">{labels.defaultBadge}</Badge>}
                         {expired && <Badge color={T.amber} bg={T.amberBg}>{labels.expiredBadge}</Badge>}
                       </div>
                       {/* 유효기간 — 모르면 줄째 생략 (만료 안내만 있으면 그것만) */}

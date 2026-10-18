@@ -61,7 +61,9 @@ const T = {
   text: '#0F172A',
   sub: '#64748B',
   muted: '#94A3B8',
-  accent: '#4F6AF5',
+  // 주 버튼은 브랜드 초록, 강조 글자·아이콘은 진한 초록, 파일 칸은 회색 점선 — 디자이너 색의 뜻대로 (PW-1936)
+  accent: 'var(--bg-brand-solid)',
+  accentText: 'var(--text-brand-secondary)',
   warnBg: '#FFFBEB',
   warnBd: '#FDE68A',
   warnText: '#92400E',
@@ -71,8 +73,9 @@ const T = {
   okBg: '#ECFDF5',
   okBd: '#A7F3D0',
   okText: '#047857',
-  accentFaint: '#F5F7FF',
-  accentSoft: '#C7D2FE',
+  accentFaint: 'var(--bg-secondary)',
+  accentSoft: 'var(--border-secondary)',
+  dropBorder: 'var(--border-primary)',
 };
 
 const svgProps = {
@@ -182,7 +185,7 @@ const countBy = (sources, status) =>
 
 function Badge({ children, tone = 'default' }) {
   const tones = {
-    default: { bg: '#EEF2FF', bd: '#C7D2FE', color: '#3730A3' },
+    default: { bg: 'var(--utility-brand-50)', bd: 'var(--utility-brand-200)', color: 'var(--text-brand-secondary)' },
     muted: { bg: '#F1F5F9', bd: '#E2E8F0', color: '#64748B' },
     ok: { bg: T.okBg, bd: T.okBd, color: T.okText },
     err: { bg: T.errBg, bd: T.errBd, color: T.errText },
@@ -249,7 +252,7 @@ function SourceRow({ source, labels, onRemove, delayed, onRefresh }) {
         background: failed ? T.errBg : T.card,
       }}
     >
-      <span style={{ color: T.accent, flexShrink: 0, marginTop: 2 }}>
+      <span style={{ color: T.accentText, flexShrink: 0, marginTop: 2 }}>
         <Icon size={20} />
       </span>
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -283,7 +286,7 @@ function SourceRow({ source, labels, onRemove, delayed, onRefresh }) {
                 padding: 0,
                 border: 'none',
                 background: 'none',
-                color: T.accent,
+                color: T.accentText,
                 fontFamily: T.font,
                 fontSize: 11,
                 fontWeight: 700,
@@ -408,8 +411,8 @@ function FileDropzone({ labels, file, onPick }) {
           cursor: 'pointer',
           boxSizing: 'border-box',
           borderRadius: 10,
-          border: `1.5px dashed ${dragging || file ? T.accent : T.border}`,
-          background: dragging || file ? T.accentFaint : T.card,
+          border: `1px dashed ${dragging || file ? T.accent : T.dropBorder}`,
+          background: T.accentFaint,
           transition: 'border-color .15s, background .15s',
         }}
       >
@@ -421,7 +424,7 @@ function FileDropzone({ labels, file, onPick }) {
           onChange={(e) => pickFirst(e.target.files)}
           style={{ display: 'none' }}
         />
-        <span style={{ color: dragging || file ? T.accent : T.muted }}>
+        <span style={{ color: dragging || file ? T.accentText : T.muted }}>
           {file ? <FileIcon size={22} /> : <UploadIcon />}
         </span>
         {file ? (
@@ -537,7 +540,7 @@ function AddSourceComposer({ labels, onAddUrl, onAddText, onAddFile, onCancel, b
         style={{
           padding: 14,
           borderRadius: 12,
-          border: `1.5px dashed ${T.accent}`,
+          border: `1px dashed ${T.dropBorder}`,
           background: '#F8FAFF',
         }}
       >
@@ -561,7 +564,7 @@ function AddSourceComposer({ labels, onAddUrl, onAddText, onAddFile, onCancel, b
                 fontFamily: T.font,
               }}
             >
-              <div style={{ color: T.accent, marginBottom: 6 }}>
+              <div style={{ color: T.accentText, marginBottom: 6 }}>
                 <st.Icon size={20} />
               </div>
               <div style={{ fontSize: 13, fontWeight: 800, color: T.text, marginBottom: 2 }}>
@@ -586,7 +589,7 @@ function AddSourceComposer({ labels, onAddUrl, onAddText, onAddFile, onCancel, b
       style={{
         padding: 14,
         borderRadius: 12,
-        border: `1.5px dashed ${T.accent}`,
+        border: `1px dashed ${T.dropBorder}`,
         background: '#F8FAFF',
         display: 'flex',
         flexDirection: 'column',
@@ -785,7 +788,7 @@ function NextStepBlock({ sources, labels, onStartOkr, onAnalyze, startBtnRef }) 
               display: 'inline-flex',
               alignItems: 'center',
               gap: 6,
-              color: ready === 0 ? T.muted : T.accent,
+              color: ready === 0 ? T.muted : T.accentText,
               opacity: ready === 0 ? 0.6 : 1,
               cursor: ready === 0 ? 'not-allowed' : 'pointer',
             }}
@@ -877,7 +880,7 @@ function AnalysisSection({
               display: 'inline-flex',
               alignItems: 'center',
               gap: 6,
-              color: canRun ? T.accent : T.muted,
+              color: canRun ? T.accentText : T.muted,
               opacity: canRun ? 1 : 0.6,
               cursor: canRun ? 'pointer' : 'not-allowed',
             }}
@@ -1084,7 +1087,7 @@ function UnitPolicySection({ policy, loading, error, readOnly, onChange, labels:
   return (
     <div data-testid="okr-unit-policy" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ color: T.accent, display: 'inline-flex' }}>
+        <span style={{ color: T.accentText, display: 'inline-flex' }}>
           <OrgUnitsIcon />
         </span>
         <div style={{ fontSize: 14, fontWeight: 800, color: T.text }}>{L.unitTitle}</div>
@@ -1247,15 +1250,15 @@ export default function OkrContextSetupCanvas({
     <div style={{ fontFamily: T.font, maxWidth: 880 }} data-testid="okr-context-setup">
       <div
         style={{
-          background: 'linear-gradient(135deg,#EEF2FF 0%, #F5F3FF 100%)',
-          border: '1px solid #C7D2FE',
+          background: T.accentFaint,
+          border: `1px solid ${T.accentSoft}`,
           borderRadius: 14,
           padding: '22px 26px',
           marginBottom: 14,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-          <span style={{ color: T.accent }}>
+          <span style={{ color: T.accentText }}>
             <BrainIcon />
           </span>
           <div style={{ fontSize: 18, fontWeight: 900, color: T.text }}>{L.title}</div>

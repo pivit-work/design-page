@@ -33,6 +33,7 @@ import ArchivedRecordsSection, { ArchivedNote } from './ArchivedRecordsSection.j
 import { ARCHIVED_RECORDS_DEFAULT_LABELS } from './archivedRecordsLabels.js';
 import Select from '../shared/Select.jsx';
 import Radio from '../shared/Radio.jsx';
+import Checkbox from '../shared/Checkbox.jsx';
 import SearchInput from '../shared/SearchInput.jsx';
 import {
   parseAddedAtRange, inAddedAtRange, rangeFromDates, datesOfRange, formatAddedAtRange,
@@ -2120,15 +2121,15 @@ function ColumnMenu({ cols, value, onChange, labels }) {
         <div className="admin-emp-select-menu is-cols" data-testid="employees-list-colmenu">
           <div className="admin-emp-select-title">{labels.listCols.title}</div>
           {cols.map((c) => (
-            <label key={c.id} className="admin-emp-select-check">
-              <input
-                type="checkbox"
-                checked={value[c.id] !== false}
-                data-testid={`employees-list-col-${c.id}`}
-                onChange={() => onChange({ ...value, [c.id]: value[c.id] === false })}
-              />
-              <span>{labels.listCols.cols[c.id] || c.id}</span>
-            </label>
+            <Checkbox
+              key={c.id}
+              className="admin-emp-select-check"
+              inputClassName="dp-check-input"
+              checked={value[c.id] !== false}
+              data-testid={`employees-list-col-${c.id}`}
+              onChange={() => onChange({ ...value, [c.id]: value[c.id] === false })}
+              label={<span>{labels.listCols.cols[c.id] || c.id}</span>}
+            />
           ))}
         </div>
       )}
@@ -2955,9 +2956,8 @@ function EmployeesListView({
          체크박스는 자기 칸 안에서만 눌린다. */
       case 'select':
         return (
-          <input
-            type="checkbox"
-            className="admin-emp-row-check"
+          <Checkbox
+            inputClassName="dp-check-input admin-emp-row-check"
             checked={selectedIds.has(m.id)}
             onChange={() => toggleRow(m.id)}
             data-testid={`employees-list-check-${m.id}`}
@@ -3282,9 +3282,8 @@ function EmployeesListView({
           header: c.id === 'select' ? (
             /* 지금 보고 있는 «쪽»만 켜고 끈다 — 안 보이는 쪽까지 켜면 화면이
                몇 명을 골랐는지 말해 주지 않은 채 숫자만 뛴다. */
-            <input
-              type="checkbox"
-              className="admin-emp-row-check"
+            <Checkbox
+              inputClassName="dp-check-input admin-emp-row-check"
               checked={pageAllChecked}
               onChange={togglePage}
               data-testid="employees-list-check-all"

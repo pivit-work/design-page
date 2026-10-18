@@ -4,6 +4,8 @@ import Button from '../shared/Button.jsx';
 import AnchoredLayer from '../shared/AnchoredLayer.jsx';
 import useDismissLayer from '../shared/useDismissLayer.js';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
+import Checkbox from '../shared/Checkbox.jsx';
+import Radio from '../shared/Radio.jsx';
 import { FieldInfo, FieldVisibility } from './evalFieldMeta.jsx';
 import EvalNoteBlock, { EvalMarkdownLite } from './EvalNoteBlock.jsx';
 import { isNoteItem, categoryKind } from './evalTemplateItemModel.js';
@@ -411,6 +413,18 @@ function seedKrState(krList) {
     };
   }
   return state;
+}
+
+/**
+ * 고르는 칸 하나 — 여럿 고르기면 공용 `Checkbox`, 하나 고르기면 공용 `Radio` (PW-1936).
+ * 예전엔 브라우저 기본 `<input>` 이라 파란 네모·동그라미로 보였다. 줄 모양(`evl-promo-row`)은 그대로.
+ */
+function OptionChoice({ multiple, label, ...rest }) {
+  return multiple ? (
+    <Checkbox className="evl-promo-row" inputClassName="dp-check-input" label={<span>{label}</span>} {...rest} />
+  ) : (
+    <Radio className="evl-promo-row" label={label} {...rest} />
+  );
 }
 
 export default function EvalCycleMemberCanvas({
@@ -1271,40 +1285,38 @@ export default function EvalCycleMemberCanvas({
                   filledOptions(f).length > 0 ? (
                     <div className="evm-options" data-testid={`evm-options-${f.key}`}>
                       {filledOptions(f).map((o) => (
-                        <label className="evl-promo-row" key={o.id}>
-                          <input
-                            type={f.allowMultiple ? 'checkbox' : 'radio'}
-                            name={`evm-opt-${f.key}`}
-                            checked={selectedOptions(state[f.key]).includes(o.id)}
-                            disabled={readOnly}
-                            onChange={() =>
-                              setField(f.key, {
-                                checkedOptions: {
-                                  selected: toggleOption(
-                                    selectedOptions(state[f.key]),
-                                    o.id,
-                                    !!f.allowMultiple,
-                                  ),
-                                },
-                              })
-                            }
-                            data-testid={`evm-option-${f.key}-${o.id}`}
-                          />
-                          <span>{o.label}</span>
-                        </label>
+                        <OptionChoice
+                          key={o.id}
+                          multiple={!!f.allowMultiple}
+                          label={o.label}
+                          name={`evm-opt-${f.key}`}
+                          checked={selectedOptions(state[f.key]).includes(o.id)}
+                          disabled={readOnly}
+                          onChange={() =>
+                            setField(f.key, {
+                              checkedOptions: {
+                                selected: toggleOption(
+                                  selectedOptions(state[f.key]),
+                                  o.id,
+                                  !!f.allowMultiple,
+                                ),
+                              },
+                            })
+                          }
+                          data-testid={`evm-option-${f.key}-${o.id}`}
+                        />
                       ))}
                     </div>
                   ) : (
-                    <label className="evl-promo-row">
-                      <input
-                        type="checkbox"
-                        checked={state[f.key].score === 1}
-                        disabled={readOnly}
-                        onChange={(e) => setField(f.key, { score: e.target.checked ? 1 : 0 })}
-                        data-testid={`evm-check-${f.key}`}
-                      />
-                      <span>{f.label}</span>
-                    </label>
+                    <Checkbox
+                      className="evl-promo-row"
+                      inputClassName="dp-check-input"
+                      checked={state[f.key].score === 1}
+                      disabled={readOnly}
+                      onChange={(e) => setField(f.key, { score: e.target.checked ? 1 : 0 })}
+                      data-testid={`evm-check-${f.key}`}
+                      label={<span>{f.label}</span>}
+                    />
                   )
                 ) : (
                   <>

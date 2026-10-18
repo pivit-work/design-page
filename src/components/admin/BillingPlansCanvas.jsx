@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useId } from 'react';
+import Checkbox from '../shared/Checkbox.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
@@ -505,6 +506,7 @@ export default function BillingPlansCanvas({
   quoteEstimateFailed = false,
   onRetryQuoteEstimate = () => {},
 }) {
+  const seatConfirmId = useId();
   const labels = mergeLabels(providedLabels);
 
   const [intervalState, setIntervalState] = useState('monthly'); // monthly | annual
@@ -1055,13 +1057,13 @@ export default function BillingPlansCanvas({
                     <strong>{labels.seatOverLimitStrong}</strong>
                     {labels.seatOverLimitPost}
                   </div>
-                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8,
-                    marginTop: 10, fontSize: 13, cursor: 'pointer' }}>
-                    <input type="checkbox" checked={downgradeChecked}
-                      onChange={(e) => setDowngradeChecked(e.target.checked)}
-                      style={{ marginTop: 2, accentColor: T.accent }} />
-                    <span>{labels.seatOverLimitConfirm}</span>
-                  </label>
+                  {/* 네모는 공용 `Checkbox`(제품색 16px · PW-1936), 글씨는 `htmlFor` 로 이어 눌러도 켜진다 */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8,
+                    marginTop: 10, fontSize: 13 }}>
+                    <Checkbox id={seatConfirmId} checked={downgradeChecked}
+                      onChange={(e) => setDowngradeChecked(e.target.checked)} />
+                    <label htmlFor={seatConfirmId} style={{ cursor: 'pointer' }}>{labels.seatOverLimitConfirm}</label>
+                  </div>
                 </div>
               )}
 

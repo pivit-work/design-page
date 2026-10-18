@@ -1,4 +1,5 @@
-import { Fragment, useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import { Fragment, useState, useMemo, useRef, useCallback, useEffect, useId } from 'react';
+import Checkbox from '../shared/Checkbox.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Toast from '../shared/Toast.jsx';
 import EvalSendChannelModal from './EvalSendChannelModal.jsx';
@@ -245,6 +246,7 @@ const REFINE_META = {
 function SectionPanel({ row, L, sectionOrder, requiredSections, canEdit, onToggleSection }) {
   const [busyKey, setBusyKey] = useState(null);
   const [error, setError] = useState(false);
+  const uid = useId();
   const locked = row.status === 'sent';
 
   const toggle = async (key) => {
@@ -269,18 +271,22 @@ function SectionPanel({ row, L, sectionOrder, requiredSections, canEdit, onToggl
           const required = requiredSections.includes(key);
           const on = required || row.sections?.[key] !== false;
           return (
-            <label
+            // 줄(`evrr-section` · 테스트가 잡는 자리)은 그대로 두고 네모만 공용 `Checkbox` 로 —
+            // 브라우저 기본 파란 네모 대신 제품색 (PW-1936). 이름 글씨는 `htmlFor` 로 이어 눌러도 켜진다.
+            <div
               key={key}
               className={`evrr-section${on ? '' : ' is-off'}${required ? ' is-required' : ''}`}
               data-testid={`evrr-section-${row.memberId}-${key}`}
             >
-              <input
-                type="checkbox"
+              <Checkbox
+                id={`${uid}-${key}`}
                 checked={on}
                 disabled={required || !canEdit || locked || busyKey === key}
                 onChange={() => toggle(key)}
               />
-              <span className="evrr-section-label">{L.sectionLabels?.[key] ?? key}</span>
+              <label className="evrr-section-label" htmlFor={`${uid}-${key}`}>
+                {L.sectionLabels?.[key] ?? key}
+              </label>
               {required && <span className="evrr-section-req">{L.sectionsRequired}</span>}
               {/* PW-1463 — 꺼 둔 항목은 «빠진다»를 글로도 적는다(리더 정책 §8.3). 취소선만으로는
                   읽기 전용인 리더가 «내가 못 누르는 것»과 «리포트에서 빠지는 것»을 가르지 못한다. */}
@@ -291,7 +297,7 @@ function SectionPanel({ row, L, sectionOrder, requiredSections, canEdit, onToggl
                   {L.sectionOffNote}
                 </span>
               )}
-            </label>
+            </div>
           );
         })}
       </div>
@@ -919,8 +925,7 @@ function ReviewRow({
     <div className="evrr-row" data-testid={`evrr-row-${row.memberId}`}>
       <div className="evrr-cell">
         {selectable && (
-          <input
-            type="checkbox"
+          <Checkbox
             checked={checked && !lockedForSend}
             disabled={lockedForSend}
             onChange={() => onToggle(row.memberId)}

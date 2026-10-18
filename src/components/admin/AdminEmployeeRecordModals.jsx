@@ -11,7 +11,8 @@
  * 그래서 시트를 걷어내기 전에 여기로 **옮겨** 두고, 목록 뷰가 그대로 쓴다.
  * 코드는 옮긴 것이고 동작은 바뀌지 않았다 — 시트에서 열든 패널에서 열든 같은 창이다.
  */
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useId } from 'react';
+import Checkbox from '../shared/Checkbox.jsx';
 import DateInput from '../shared/DateInput.jsx';
 import { todayIsoInZone } from '../shared/calendarDate.js';
 import { IconLock } from './employeeExport.jsx';
@@ -129,6 +130,7 @@ export function CeoConfirmModal({ row, mode, currentCeoName, labels, positionOpt
   const [alsoSetJobPosition, setAlsoSetJobPosition] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const checkId = useId();
 
   if (!row) return null;
   const name = row.name || '';
@@ -150,18 +152,19 @@ export function CeoConfirmModal({ row, mode, currentCeoName, labels, positionOpt
     }
   }
 
+  // 네모는 공용 `Checkbox`(제품색 16px · PW-1936), 글씨는 `htmlFor` 로 이어 눌러도 켜진다.
   const checkbox = (checked, onChange, label, disabled, hint) => (
-    <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12, color: disabled ? T.muted : T.text, cursor: disabled ? 'not-allowed' : 'pointer' }}>
-      <input
-        type="checkbox" checked={checked} disabled={disabled}
+    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12, color: disabled ? T.muted : T.text }}>
+      <Checkbox
+        id={checkId} checked={checked} disabled={disabled}
         onChange={(e) => onChange(e.target.checked)}
-        style={{ marginTop: 2, accentColor: T.accent, cursor: disabled ? 'not-allowed' : 'pointer' }}
+        style={{ cursor: disabled ? 'not-allowed' : 'pointer' }}
       />
-      <span>
+      <label htmlFor={checkId} style={{ cursor: disabled ? 'not-allowed' : 'pointer' }}>
         {label}
         {hint && <span style={{ display: 'block', fontSize: 11, color: T.muted }}>{hint}</span>}
-      </span>
-    </label>
+      </label>
+    </div>
   );
 
   const title = assigning

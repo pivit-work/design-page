@@ -5,6 +5,8 @@ import ModalShell from '../shared/ModalShell.jsx';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
 import Tabs from '../shared/Tabs.jsx';
 import DateInput from '../shared/DateInput.jsx';
+import Checkbox from '../shared/Checkbox.jsx';
+import Radio from '../shared/Radio.jsx';
 import {
   IconAlert, IconChevronDown, IconChevronRight, IconChevronUp, IconDownload, IconPlus, IconTrash, IconUpload, IconUser, IconX,
 } from './employeesIcons.jsx';
@@ -455,26 +457,23 @@ function TeamSearchField({
                   <span className="admin-inv-picked-name">{names[names.length - 1]}</span>
                 </span>
                 {picked.length >= 2 && (
-                  <label className="admin-inv-picked-opt">
-                    <input
-                      type="radio"
-                      name={`inv-${rowKey}-primary`}
-                      checked={row.primaryTeamId === id}
-                      disabled={disabled}
-                      onChange={() => onPrimary(id)}
-                    />
-                    {labels.primaryTeam}
-                  </label>
-                )}
-                <label className="admin-inv-picked-opt">
-                  <input
-                    type="checkbox"
-                    checked={leader}
+                  <Radio
+                    className="admin-inv-picked-opt"
+                    name={`inv-${rowKey}-primary`}
+                    checked={row.primaryTeamId === id}
                     disabled={disabled}
-                    onChange={() => onLeader(id)}
+                    onChange={() => onPrimary(id)}
+                    label={labels.primaryTeam}
                   />
-                  {labels.leaderReserve}
-                </label>
+                )}
+                <Checkbox
+                  className="admin-inv-picked-opt"
+                  inputClassName="dp-check-input"
+                  checked={leader}
+                  disabled={disabled}
+                  onChange={() => onLeader(id)}
+                  label={labels.leaderReserve}
+                />
                 <button
                   type="button"
                   className="admin-emp-btn is-ghost is-sm"

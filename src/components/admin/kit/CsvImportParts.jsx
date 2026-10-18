@@ -185,7 +185,10 @@ export function AdminNotice({ tone = 'neutral', icon, title, children, testId, r
 
 /* ── 올리기 단계 ──────────────────────────────────────────────────── */
 
-/** 파일 끌어놓기 영역 — 초대 창 CSV 탭 모양. label 로 감싸 클릭·끌어놓기가 같은 input 을 쓴다. */
+/**
+ * 파일 끌어놓기 영역 — 초대 창 CSV 탭 모양. label 로 감싸 클릭·끌어놓기가 같은 input 을 쓴다.
+ * testId(바깥 label) · inputTestId(파일 input) · disabled(분석 중 등 — input 을 끈다)는 선택.
+ */
 export function CsvDropZone({
   dragging = false,
   title,
@@ -196,6 +199,9 @@ export function CsvDropZone({
   onDragOver,
   onDragLeave,
   onDrop,
+  disabled = false,
+  testId,
+  inputTestId,
 }) {
   return (
     <label
@@ -203,6 +209,8 @@ export function CsvDropZone({
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
+      aria-disabled={disabled || undefined}
+      data-testid={testId}
     >
       <input
         ref={inputRef}
@@ -210,6 +218,8 @@ export function CsvDropZone({
         accept={accept}
         className="admin-inv-drop-input"
         aria-label={title}
+        disabled={disabled || undefined}
+        data-testid={inputTestId}
         onChange={onFileChange}
       />
       <IconUpload size={22} />

@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import EvalNoteBlock, { EvalMarkdownLite } from './EvalNoteBlock.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
+import Checkbox from '../shared/Checkbox.jsx';
+import Radio from '../shared/Radio.jsx';
 import {
   filledOptions,
   groupBySection,
@@ -8,6 +11,42 @@ import {
   scaleMaxOf,
   sectionColor,
 } from './evalTemplateItemModel.js';
+
+/**
+ * 선택지 미리보기 — 공용 `Checkbox`(여럿) / `Radio`(하나) 로 그린다 (PW-1936 · 예전엔 브라우저
+ * 기본 파란 네모·동그라미). 공용 `Radio` 는 고른 표시를 `checked` 로만 그리므로, 마법사에서
+ * 눌러 볼 수 있게(`interactive`) 고른 것을 이 안에서만 들고 있는다 — 저장하는 경로는 없다.
+ */
+function PreviewOptionChoices({ options, multiple, disabled }) {
+  const [picked, setPicked] = useState([]);
+  const pick = (id) =>
+    setPicked((cur) => {
+      if (!multiple) return [id];
+      return cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id];
+    });
+  return options.map((o) =>
+    multiple ? (
+      <Checkbox
+        key={o.id}
+        className="evl-promo-row"
+        inputClassName="dp-check-input"
+        checked={picked.includes(o.id)}
+        disabled={disabled}
+        onChange={() => pick(o.id)}
+        label={<span>{o.label}</span>}
+      />
+    ) : (
+      <Radio
+        key={o.id}
+        className="evl-promo-row"
+        checked={picked.includes(o.id)}
+        disabled={disabled}
+        onChange={() => pick(o.id)}
+        label={o.label}
+      />
+    ),
+  );
+}
 
 /**
  * 평가지 본문 — **구성원이 실제로 받는 화면 그대로** 그린다. 입력 위젯은 그리되 비활성이다.
@@ -152,24 +191,25 @@ export default function EvalSheetBody({
               {q.type === 'checkbox' &&
                 (filledOptions(q).length > 0 ? (
                   <div className="evc-preview-options">
-                    {filledOptions(q).map((o) => (
-                      <label key={o.id} className="evl-promo-row">
-                        <input type={q.allowMultiple ? 'checkbox' : 'radio'} disabled={dis} />
-                        <span>{o.label}</span>
-                      </label>
-                    ))}
+                    <PreviewOptionChoices options={filledOptions(q)} multiple={!!q.allowMultiple} disabled={dis} />
                     <span className="evc-preview-scale-of">
                       {q.allowMultiple ? L.optionsMultiHint : L.optionsSingleHint}
                     </span>
                   </div>
                 ) : (
-                  <label className="evl-promo-row">
-                    <input type="checkbox" disabled={dis} />
-                    <span>{q.text}</span>
-                    <span className="evc-preview-scale-of" data-testid={`evc-preview-nooptions-${q.id}`}>
-                      {L.optionsUnset}
-                    </span>
-                  </label>
+                  <Checkbox
+                    className="evl-promo-row"
+                    inputClassName="dp-check-input"
+                    disabled={dis}
+                    label={
+                      <>
+                        <span>{q.text}</span>
+                        <span className="evc-preview-scale-of" data-testid={`evc-preview-nooptions-${q.id}`}>
+                          {L.optionsUnset}
+                        </span>
+                      </>
+                    }
+                  />
                 ))}
             </div>
             ),

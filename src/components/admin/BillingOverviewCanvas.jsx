@@ -17,7 +17,8 @@ const T = {
   bg: '#F8FAFC', card: '#fff',
   border: '#E2E8F0', bl: '#F1F5F9',
   text: '#0F172A', sub: '#64748B', muted: '#94A3B8',
-  accent: '#4F6AF5',
+  // 주 버튼·고른 것은 브랜드 초록, 누르는 글자·딱지 글자는 진한 초록 — 「플랜 선택」 탭과 같다 (PW-1936)
+  accent: 'var(--bg-brand-solid)', accentText: 'var(--text-brand-secondary)',
   green: '#22C55E', greenBg: '#F0FDF4',
   amber: '#F59E0B', amberBg: '#FFFBEB',
   red: '#DC2626', redBg: '#FEF2F2',
@@ -31,7 +32,7 @@ const STATUS_META = {
   past_due: { color: T.red, bg: T.redBg },
   canceled: { color: T.sub, bg: T.bl },
   // 체험(PW-1025) — 기획서 시안 billing-app.jsx 의 `trial` 배지 그대로
-  trial: { color: T.accent, bg: '#EEF2FF' },
+  trial: { color: T.accentText, bg: 'var(--bg-brand-secondary)' },
 };
 
 const DEFAULT_LABELS = {
@@ -316,7 +317,7 @@ export default function BillingOverviewCanvas({
               </div>
               {sub.locked && onNavigateExport && (
                 <button type="button" data-testid="billing-locked-export" onClick={onNavigateExport}
-                  style={{ background: 'none', border: 'none', color: T.accent, fontWeight: 700,
+                  style={{ background: 'none', border: 'none', color: T.accentText, fontWeight: 700,
                     fontSize: 13, cursor: 'pointer', padding: 0, marginTop: 6,
                     display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                   {labels.lockedExportLink}
@@ -399,11 +400,11 @@ export default function BillingOverviewCanvas({
                 <span style={{ fontSize: 22, fontWeight: 800 }}>{plan.label}</span>
                 <Badge color={statusMeta.color} bg={statusMeta.bg}>{statusLabel}</Badge>
                 {/* 청구 단가가 플랜 정가와 다른 이유를 한눈에 말한다 (PW-344 ⑤). */}
-                {contract && <Badge color={T.accent} bg="#EEF2FF">{labels.contractBadge}</Badge>}
+                {contract && <Badge color={T.accentText} bg="var(--bg-brand-secondary)">{labels.contractBadge}</Badge>}
                 {sub.status === 'active' && sub.firstCycle && sub.anchorDay != null
                   && sub.firstCycleDaysLeft != null && (
                   <span data-testid="billing-first-cycle-badge">
-                    <Badge color={T.accent} bg="#EEF2FF">
+                    <Badge color={T.accentText} bg="var(--bg-brand-secondary)">
                       {labels.firstCycleBadge(sub.firstCycleDaysLeft, sub.anchorDay)}
                     </Badge>
                   </span>
@@ -516,14 +517,14 @@ export default function BillingOverviewCanvas({
 
           {/* 계약 만료 임박 — 만료를 「종료」로 읽히게 쓰지 않는다. */}
           {contractRenewSoon && (
-            <div style={{ marginTop: 10, padding: '10px 14px', background: '#EEF2FF',
-              border: `1px solid ${T.accent}`, borderRadius: 10, fontSize: 12, color: T.text,
+            <div style={{ marginTop: 10, padding: '10px 14px', background: 'var(--bg-secondary)',
+              border: `1px solid ${T.border}`, borderRadius: 10, fontSize: 12, color: T.text,
               display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <span>
                 {labels.contractRenewSoonNotice(Math.max(0, contract.daysUntilContractEnd))}
               </span>
               <button type="button" onClick={onNavigateContactSales} disabled={!canEdit}
-                style={{ background: 'none', border: 'none', color: T.accent, fontWeight: 700,
+                style={{ background: 'none', border: 'none', color: T.accentText, fontWeight: 700,
                   fontSize: 12, cursor: canEdit ? 'pointer' : 'not-allowed', padding: 0, whiteSpace: 'nowrap' }}>
                 {labels.contractContactSales}
               </button>
@@ -535,7 +536,7 @@ export default function BillingOverviewCanvas({
             justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <span>{labels.seatAutoNote}</span>
             <button type="button" onClick={onNavigateMembers}
-              style={{ background: 'none', border: 'none', color: T.accent, fontWeight: 700,
+              style={{ background: 'none', border: 'none', color: T.accentText, fontWeight: 700,
                 fontSize: 12, cursor: 'pointer', padding: 0, whiteSpace: 'nowrap' }}>
               {labels.manageMembers}
             </button>
@@ -598,7 +599,7 @@ export default function BillingOverviewCanvas({
         {/* 하단 액션 */}
         <Card style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <button type="button" onClick={onNavigateHistory}
-            style={{ background: 'none', border: 'none', color: T.accent, fontWeight: 700,
+            style={{ background: 'none', border: 'none', color: T.accentText, fontWeight: 700,
               fontSize: 14, cursor: 'pointer', padding: 0 }}>
             {labels.viewHistory}
           </button>

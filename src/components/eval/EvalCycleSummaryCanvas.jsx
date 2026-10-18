@@ -5663,21 +5663,23 @@ export default function EvalCycleSummaryCanvas({
               {optional.map((it) => {
                 const on = draft[groupKey]?.[it.key] !== false;
                 return (
-                  <label key={it.key} className="evs-cw-display-row">
-                    <input
-                      type="checkbox"
-                      checked={on}
-                      disabled={!canEditDisplay}
-                      onChange={() => toggle(groupKey, it.key)}
-                      data-testid={`evs-cw-display-toggle-${it.key}`}
-                    />
-                    <span className="evs-cw-display-text">
-                      <span className="evs-cw-display-label">{it.label}</span>
-                      {it.note ? (
-                        <span className="evs-cw-display-note">{it.note}</span>
-                      ) : null}
-                    </span>
-                  </label>
+                  <Checkbox
+                    key={it.key}
+                    className="evs-cw-display-row"
+                    inputClassName="dp-check-input"
+                    checked={on}
+                    disabled={!canEditDisplay}
+                    onChange={() => toggle(groupKey, it.key)}
+                    data-testid={`evs-cw-display-toggle-${it.key}`}
+                    label={
+                      <span className="evs-cw-display-text">
+                        <span className="evs-cw-display-label">{it.label}</span>
+                        {it.note ? (
+                          <span className="evs-cw-display-note">{it.note}</span>
+                        ) : null}
+                      </span>
+                    }
+                  />
                 );
               })}
             </div>

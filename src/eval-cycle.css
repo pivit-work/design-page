@@ -864,7 +864,9 @@
    .ono-add-modal-*) 값을 그대로 옮긴다 — 이름표 14px 굵게 회색, 이름표–칸 12px, 칸–칸 24px,
    입력칸은 옅은 회색 바탕 40px·글씨 16px(PW-1887 마법사 is-form 과 같은 값).
    평가 전 화면이 쓰는 .evc-input·.evc-field-label 은 그대로 두고, 바꾼 창 본문 아래로만 건다.
-   템플릿 창: .evc-shell-body.is-form · 사유 창: .evc-sched-modal-field.is-reason */
+   템플릿 창: .evc-shell-body.is-form · 사유 창: .evc-sched-modal-field.is-reason
+   PW-1936: 창이 아닌 카드(외부 평가 가져오기·템플릿 편집)는 .evc-card.is-form 으로 칸 모양만 건다
+   (이름표·간격은 카드마다 배치가 달라 건드리지 않는다). */
 .evc-shell-body.is-form {
   gap: var(--spacing-lg);
 }
@@ -888,7 +890,9 @@
   margin-top: 0;
 }
 .evc-shell-body.is-form .evc-input,
-.evc-shell-body.is-form .evc-select {
+.evc-shell-body.is-form .evc-select,
+.evc-card.is-form .evc-input,
+.evc-card.is-form .evc-select {
   min-height: 40px;
   height: auto;
   /* 테두리는 평소 투명하게 두고 누르면 대표색으로 — 1px 테두리만큼 위아래 여백을 줄여 40px 를 맞춘다. */
@@ -899,12 +903,15 @@
   font-size: var(--font-size-text-md);
   line-height: var(--line-height-text-md);
 }
-.evc-shell-body.is-form .evc-input.is-invalid {
+.evc-shell-body.is-form .evc-input.is-invalid,
+.evc-card.is-form .evc-input.is-invalid {
   border-color: var(--utility-error-500);
   background: var(--utility-error-50);
 }
 .evc-shell-body.is-form .evc-input:focus,
-.evc-shell-body.is-form .evc-select:focus {
+.evc-shell-body.is-form .evc-select:focus,
+.evc-card.is-form .evc-input:focus,
+.evc-card.is-form .evc-select:focus {
   border-color: var(--utility-brand-500);
 }
 /* 사유 칸 — 「메모」 칸(.ono-add-modal-textarea) 값. PW-1889 리뷰 답 칸과 같다.
@@ -8612,13 +8619,8 @@ button.evm-ai-source {
   flex-wrap: wrap;
   gap: 5px;
 }
-/* PW-1875 조직·직급 값은 회사마다 100~200개도 온다 — 약 3줄에서 멈추고 칸 안에서 스크롤.
-   상한·스크롤은 위원 후보 목록(.evc-wiz-committee-list)과 같은 방식이다. */
-.evc-wiz-chippicker-list {
-  max-height: 92px;
-  overflow-y: auto;
-  align-content: flex-start;
-}
+/* PW-1875 조직·직급 값 목록의 상한·스크롤은 PW-1936 부터 위원 후보 목록(.evc-wiz-committee-list)
+   그 자체를 쓴다(EvalWizardChipPicker). */
 /* 고른 값 요약 — 위원 선택 요약(.evc-wiz-committee-summary)처럼 개수 글씨 뒤에 고른 칩을 잇는다 */
 .evc-wiz-chippicker-selected {
   display: flex;
