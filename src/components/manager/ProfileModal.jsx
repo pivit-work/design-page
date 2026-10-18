@@ -96,6 +96,8 @@ export default function ProfileModal({
   onHrRowAction,
   onHrProfileRetry,
   onSnippetsMore,
+  // 「액션 아이템」 탭 맨 아래 [더 보기] (pivit-work PW-1941) — `profile.actionItems.more` 가 있을 때만 그린다
+  onActionItemsMore,
 }) {
   // splineReady/Failed 를 boolean 으로 두면 새 멤버 모달 진입 시 useEffect 로 reset 해야
   // 하는데, react-hooks/set-state-in-effect 룰을 깬다. 대신 "현재 로드 완료된 멤버 id" 와
@@ -233,7 +235,7 @@ export default function ProfileModal({
               <OneOnOneTab data={profile.oneOnOne} />
             )}
             {activeTab === 'action' && profile?.actionItems && (
-              <ActionItemsTab data={profile.actionItems} />
+              <ActionItemsTab data={profile.actionItems} onMore={onActionItemsMore} />
             )}
             {activeTab === 'hr' && profile?.hrProfile && (
               <HrProfileTab
@@ -434,8 +436,12 @@ function ArrowUpIcon({ size = 16, down = false }) {
  *
  * 시안: `pivit-specs/기획서-UX-UI-UserFlow/I. 매니저-뷰/manager-view.jsx`
  * `DetailActionTab` — 3-그리드 요약 + 항목 행(체크·제목·우선순위·마감).
+ *
+ * 목록 끝 「더 보기」(pivit-work PW-1941) — 같은 창 스니핏 탭의 「더 보기」와 같은 모양·같은 약속이다.
+ * `data.more` 가 `{ label, loadingLabel, loading }` 이면 버튼, `{ error: { message, retryLabel } }` 이면
+ * 실패 문구와 [다시 시도]. 둘 다 `onMore` 로 간다. 더 남은 것이 없으면 호스트가 `more` 를 뺀다.
  */
-function ActionItemsTab({ data }) {
+function ActionItemsTab({ data, onMore }) {
   const items = data.items ?? [];
   const summary = data.summary ?? {};
 
@@ -501,6 +507,21 @@ function ActionItemsTab({ data }) {
             </div>
           ))}
         </div>
+      )}
+
+      {items.length > 0 && data.more && (
+        data.more.error ? (
+          <HrProfileFailure notice={data.more.error} onRetry={onMore} />
+        ) : (
+          <Button
+            variant="ghost"
+            className="manager-modal-snippet-more"
+            disabled={!!data.more.loading}
+            onClick={() => onMore?.()}
+          >
+            {data.more.loading ? data.more.loadingLabel : data.more.label}
+          </Button>
+        )
       )}
     </div>
   );

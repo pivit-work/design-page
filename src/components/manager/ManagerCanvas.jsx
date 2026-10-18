@@ -88,6 +88,7 @@ export default function ManagerCanvas({
   onMemberOpen,
   onHrProfileRetry,
   onSnippetsMore,
+  onActionItemsMore,
   /**
    * KR 드릴다운 멤버 카드 id → 팀원 카드 id. 둘이 다른 id 를 쓰는 소비자(사용자 id ↔ 명부 id)가
    * 넘긴다. 없으면 같은 id 로 본다. 찾는 팀원이 없으면(조회 범위 밖) 상세 창을 열지 않는다(기획 §7-4).
@@ -274,6 +275,7 @@ export default function ManagerCanvas({
       <ProfileModal
         onHrProfileRetry={onHrProfileRetry}
         onSnippetsMore={onSnippetsMore}
+        onActionItemsMore={onActionItemsMore}
         member={openMember}
         onClose={closeProfile}
         baseUrl={baseUrl}
