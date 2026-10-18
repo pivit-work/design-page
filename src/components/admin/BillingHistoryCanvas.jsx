@@ -67,6 +67,8 @@ const DEFAULT_LABELS = {
   },
   refundAmount: (amount) => `환불 −${won(amount)}`,
   partialRefundNote: '부분취소 전표(차액) 발급',
+  // 결제사 환불이 자동 재시도까지 다 실패해 운영팀이 처리한다(PW-1816 답 (나) · PW-1944)
+  refundFailedNote: '운영팀이 연락드립니다',
   voidNote: '취소됨',
 
   filterTabs: {
@@ -340,6 +342,10 @@ export default function BillingHistoryCanvas({
                         {/* 부분취소 전표는 환불이 끝난 뒤에 나온다(policy §7 「완료 후 노출」) */}
                         {inv.refund?.type === 'partial' && inv.refund.status === 'completed' && (
                           <span style={{ fontSize: 11, color: T.muted }}>{labels.partialRefundNote}</span>
+                        )}
+                        {/* 환불 실패는 사용자가 할 일이 없다 — 운영팀이 연락한다는 안내를 같은 모양으로 붙인다 */}
+                        {inv.refund?.status === 'failed' && (
+                          <span style={{ fontSize: 11, color: T.muted }}>{labels.refundFailedNote}</span>
                         )}
                       </div>
                     );
