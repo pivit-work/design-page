@@ -1865,8 +1865,8 @@
    "color": "#10774d / 어두운 화면 #2dbd82"
   },
   "eval-cycle.css|.evc-sched-anchor-badge.is-manual": {
-   "background": "#ebe9fe / 어두운 화면 #3e1c96",
-   "color": "#6938ef / 어두운 화면 #f4f3ff"
+   "background": "#f3f4f6 / 어두운 화면 #22262f",
+   "color": "#596069 / 어두운 화면 #ececed"
   },
   "eval-cycle.css|.evc-status-badge.tone-error": {
    "background": "#fef3f2 / 어두운 화면 #220905",
@@ -1932,8 +1932,8 @@
    "color": "#b42318 / 어두운 화면 #fda29b"
   },
   "eval-cycle.css|.evrr-badge.is-override": {
-   "background": "#f4f3ff / 어두운 화면 #27115f",
-   "color": "#5925dc / 어두운 화면 #fafaff"
+   "background": "#f3f4f6 / 어두운 화면 #22262f",
+   "color": "#596069 / 어두운 화면 #ececed"
   },
   "eval-cycle.css|.evrr-badge.is-pending": {
    "background": "#fffaeb / 어두운 화면 #4e1d09",
@@ -2111,8 +2111,8 @@
    "color": "#2dbd82"
   },
   "one_on_one.css|.ono-done-share-badge.is-on": {
-   "background": "#f4f3ff / 어두운 화면 #27115f",
-   "color": "#5925dc / 어두운 화면 #fafaff"
+   "background": "#ecfdf3 / 어두운 화면 #053321",
+   "color": "#067647 / 어두운 화면 #75e0a7"
   },
   "one_on_one.css|.ono-mem-badge.is-done": {
    "background": "#f9fafb / 어두운 화면 #22262f",
