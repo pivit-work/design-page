@@ -495,6 +495,11 @@ body:has(.okr-ctx-banner) .tl-group-modal.okr-shell { max-height: calc(100vh - 6
 .okr-cf-kr-parents { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
 .okr-cf-parent-add { appearance: none; -webkit-appearance: none; min-width: 120px; max-width: 260px; padding: 4px 26px 4px 8px; border: 1px solid var(--utility-brand-200); border-radius: 6px; background-color: var(--utility-brand-50); background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>"); background-repeat: no-repeat; background-position: right 8px center; color: var(--utility-brand-700); font-size: 12px; font-weight: 500; font-family: inherit; cursor: pointer; outline: none; text-overflow: ellipsis; }
 .okr-cf-parent-add:focus { box-shadow: 0 0 0 2px var(--utility-brand-200); }
+/* 위 두 칸은 이제 SearchSelect 버튼이다(PW-1955) — 꺾쇠는 종전 배경 그림을 그대로 쓰고 부품의 꺾쇠는 숨겨
+   닫힌 모양을 바꾸지 않는다. 「+ 상위 KR 연결」은 늘 비어 있는 칸이라 안내 글이 아니라 종전 글색(브랜드)으로 둔다. */
+.okr-cf-select-real .dp-search-select-chevron,
+.okr-cf-parent-add .dp-search-select-chevron { display: none; }
+.okr-cf-parent-add .dp-search-select-value.is-placeholder { color: inherit; }
 .okr-cf-head-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
 /* ── 담당자(PIC) 검색 드롭다운 — okr-spec §3.8A / okr-policy §5.2B ── */

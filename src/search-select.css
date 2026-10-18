@@ -45,6 +45,8 @@
 }
 /* 검색칸 아래 목록만 스크롤한다(패널 높이 상한은 AnchoredLayer 가 정한다). */
 .dp-search-select-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+/* 검색칸을 끈 칸은 목록이 키보드를 받는다(PW-1955) — 고를 줄은 `is-active` 배경으로 보이니 목록 테두리는 긋지 않는다. */
+.dp-search-select-list:focus { outline: none; }
 .dp-search-select-search {
   width: 100%;
   padding: 7px 10px;

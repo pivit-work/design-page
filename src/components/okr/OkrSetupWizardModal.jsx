@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
+import SearchSelect from '../shared/SearchSelect.jsx';
 
 /**
  * OkrSetupWizardModal — OKR 설정 마법사 (Backward Looking).
@@ -364,14 +365,14 @@ export default function OkrSetupWizardModal({
                 <p className="okr-wz-scope-desc">{card.desc}</p>
               </div>
               {targets.length > 1 ? (
-                <select
+                // 브라우저 기본 목록은 맥 회색 목록으로 뜨고 화면 녹화에 안 잡힌다 — 디자이너 펼친 목록으로 (PW-1955).
+                <SearchSelect
                   className="okr-wz-target-select"
                   value={targetId ?? ''}
                   aria-label={targetLabel}
-                  onChange={(e) => changeTarget(e.target.value)}
-                >
-                  {targets.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
-                </select>
+                  options={targets.map((o) => ({ value: String(o.id), label: o.name }))}
+                  onChange={changeTarget}
+                />
               ) : targets.length === 1 ? (
                 <span className="okr-wz-target-name">{targets[0].name}</span>
               ) : null}

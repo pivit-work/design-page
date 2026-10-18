@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Chip from '../shared/Chip.jsx';
 import Icon from '../shared/Icon.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
+import SearchSelect from '../shared/SearchSelect.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import OkrMemberPicker from './OkrMemberPicker.jsx';
 import OkrProgressBar from './OkrProgressBar.jsx';
@@ -537,17 +538,18 @@ export default function OkrComposeFullModal({
                     />
                     <span className="okr-cf-unit">%</span>
                     {parentOptions.length > 0 && (
-                      <select
+                      // 이 창의 드롭다운 넷은 디자이너 펼친 목록(SearchSelect)이다 — 브라우저 기본 목록은
+                      // 맥 회색 목록으로 뜨고 화면 녹화에 안 잡힌다(PW-1955). 닫힌 칸은 종전 클래스 그대로.
+                      <SearchSelect
                         className="okr-cf-select-real"
                         aria-label="상위 OKR 연결"
                         value={objective.parentId}
-                        onChange={(e) => patchObjective(objective.key, { parentId: e.target.value })}
-                      >
-                        <option value="">상위 OKR 연결 (선택)</option>
-                        {parentOptions.map((p) => (
-                          <option key={p.id} value={p.id}>{p.label}</option>
-                        ))}
-                      </select>
+                        options={[
+                          { value: '', label: '상위 OKR 연결 (선택)', keep: true },
+                          ...parentOptions.map((p) => ({ value: String(p.id), label: p.label })),
+                        ]}
+                        onChange={(v) => patchObjective(objective.key, { parentId: v })}
+                      />
                     )}
                   </div>
 
@@ -656,27 +658,24 @@ export default function OkrComposeFullModal({
                             );
                           })}
                           {parentCandidates.some((c) => !parentIdsOf(kr).includes(c.krId)) && (
-                            <select
+                            <SearchSelect
                               className="okr-cf-parent-add"
                               aria-label={L.parentKrAdd}
                               value=""
-                              onChange={(e) => addParentKr(objective.key, kr, e.target.value)}
-                            >
-                              <option value="">{L.parentKrAdd}</option>
-                              {(minimap.groups ?? []).map((group, gi) => {
+                              placeholder={L.parentKrAdd}
+                              // 미니맵 묶음(상위 조직)마다 머리를 두고 그 아래 아직 안 건 KR 만 — 종전 optgroup 과 같다.
+                              options={(minimap.groups ?? []).flatMap((group, gi) => {
                                 const opts = parentCandidates.filter(
                                   (c) => c.gi === gi && !parentIdsOf(kr).includes(c.krId),
                                 );
-                                if (opts.length === 0) return null;
-                                return (
-                                  <optgroup key={rowKey(group, gi, 'title')} label={group.title}>
-                                    {opts.map((c) => (
-                                      <option key={c.krId} value={c.krId}>{`${c.no} · ${c.title}`}</option>
-                                    ))}
-                                  </optgroup>
-                                );
+                                if (opts.length === 0) return [];
+                                return [
+                                  { group: true, label: group.title },
+                                  ...opts.map((c) => ({ value: c.krId, label: `${c.no} · ${c.title}` })),
+                                ];
                               })}
-                            </select>
+                              onChange={(v) => addParentKr(objective.key, kr, v)}
+                            />
                           )}
                         </div>
                       )}
@@ -692,16 +691,15 @@ export default function OkrComposeFullModal({
                         <p className="okr-cf-init-label">Initiatives</p>
                         {initsOf(kr).map((init) => (
                           <div className="okr-cf-init-row" key={init.key}>
-                            <select
+                            {/* 셋 중 하나라 검색칸은 끈다. */}
+                            <SearchSelect
                               className="okr-cf-init-status"
                               aria-label="실행 항목 상태"
+                              searchable={false}
                               value={init.status}
-                              onChange={(e) => patchInitiative(objective.key, kr, init.key, { status: e.target.value })}
-                            >
-                              {INIT_STATUS.map((st) => (
-                                <option key={st.key} value={st.key}>{st.label}</option>
-                              ))}
-                            </select>
+                              options={INIT_STATUS.map((st) => ({ value: st.key, label: st.label }))}
+                              onChange={(v) => patchInitiative(objective.key, kr, init.key, { status: v })}
+                            />
                             <input
                               className={`okr-cf-input is-init${init.status === 'done' ? ' is-done' : ''}`}
                               placeholder="실행 항목 내용"
