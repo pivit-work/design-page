@@ -985,7 +985,7 @@ export default function EvalCycleLeaderCanvas({
         </p>
       )}
       {alignResult && (
-        <section className="evc-card evl-align-card" data-testid="evl-align-result">
+        <section className="evc-card" data-testid="evl-align-result">
           {alignStale && (
             <p className="evl-calib-off-note" data-testid="evl-align-stale">
               <AlertIcon size={14} /> {L.alignStale}
