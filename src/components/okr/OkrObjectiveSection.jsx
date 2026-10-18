@@ -133,13 +133,15 @@ export default function OkrObjectiveSection({
                 <p className="okr-p-kr-title">{kr.title}</p>
                 <ProgressCell {...kr} />
               </div>
-              {kr.teamLink && (
-                <div className="okr-p-kr-teamlink">
-                  <span className="okr-p-kr-teamlink-badge">↑ 팀{kr.teamLink.team}</span>
-                  <span className="okr-p-kr-teamlink-title">{kr.teamLink.title}</span>
-                  <ProgressCell {...kr.teamLink} />
+              {/* 상위 KR 연결 — 한 KR 이 상위 KR 여럿에 기여할 수 있어(N:M) 배열도 받는다.
+                  `badge` 를 주면 화살표 뒤 글자로 그대로 쓴다(「회사 KR 1-2」처럼 소비자가 번역해 넘긴다). */}
+              {(kr.teamLinks ?? (kr.teamLink ? [kr.teamLink] : [])).map((link, n) => (
+                <div className="okr-p-kr-teamlink" key={link.id ?? n}>
+                  <span className="okr-p-kr-teamlink-badge">↑ {link.badge ?? `팀${link.team}`}</span>
+                  <span className="okr-p-kr-teamlink-title">{link.title}</span>
+                  <ProgressCell {...link} />
                 </div>
-              )}
+              ))}
             </div>
             <div className="okr-p-col-weight is-muted">{kr.weight}</div>
             <div className="okr-p-col-pic"><Pic pic={kr.pic} /></div>
