@@ -7163,8 +7163,8 @@ button.evm-ai-source {
   font-family: inherit;
 }
 .evs-cw-candidate.is-on {
-  border-color: var(--utility-purple-400);
-  background: var(--utility-purple-50);
+  /* PW-1932 — 고른 줄은 디자이너의 1on1 매니저 지정 창(.ons-candidate.is-selected)처럼 브랜드 테두리 */
+  border-color: var(--border-brand);
 }
 .evs-cw-candidate-name {
   font-size: var(--font-size-text-xs);
@@ -7172,17 +7172,10 @@ button.evm-ai-source {
   color: var(--text-primary);
 }
 .evs-cw-candidate-kind {
+  /* PW-1932 — 조직장·시니어 IC 는 «왜 후보인가»를 알리는 곁 정보라 딱지 없는 회색 글자.
+     디자이너의 1on1 매니저 지정 창 후보 직책(.ons-candidate-role)과 같은 값. */
   font-size: 12px;
-  font-weight: 700;
-  padding: 1px 7px;
-  border-radius: 99px;
-}
-.evs-cw-candidate-kind.tone-accent {
-  background: var(--utility-blue-50);
-  color: var(--utility-blue-600);
-}
-.evs-cw-candidate-kind.tone-muted {
-  background: var(--utility-gray-100);
+  font-weight: 400;
   color: var(--text-secondary);
 }
 .evs-cw-candidate-dept {
@@ -7202,16 +7195,16 @@ button.evm-ai-source {
   cursor: not-allowed;
 }
 .evs-cw-candidate-chair {
+  /* PW-1932 — 디자이너가 위원장을 그린 적은 없어, 권한을 가진 사람을 표시한 가장 가까운 모양인
+     OKR «관리자 전용» 딱지(.okr-ctx-admin-badge, status-badge.css)의 값을 그대로 쓴다. */
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--utility-success-50);
+  border: 1px solid var(--utility-success-200);
   font-size: 12px;
-  font-weight: 700;
-  padding: 1px 7px;
-  border-radius: 99px;
-  background: var(--utility-purple-100);
-  color: var(--utility-purple-700);
-}
-/* 캘리브레이션 위원 후보는 보라 강조를 쓰므로 체크박스 강조색만 갈아끼운다 */
-.evs-cw-candidate .evc-member-check {
-  --evc-check-accent: var(--utility-purple-600);
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--utility-success-700);
 }
 .evs-cw-create-hint {
   font-size: 12px;
@@ -7861,14 +7854,15 @@ button.evm-ai-source {
   border-radius: 99px;
   vertical-align: middle;
 }
+/* PW-1932 — 위원장은 위원 관리 창과 같은 «관리자 전용» 딱지 색, 위원·HR 은 회색.
+   파랑은 바로 옆 «진행 중»·«열기», 보라는 AI 몫이라 쓰지 않는다. */
 .evs-cw-myrole.tone-chair {
-  background: var(--utility-purple-100);
-  color: var(--utility-purple-700);
+  background: var(--utility-success-50);
+  border: 1px solid var(--utility-success-200);
+  font-weight: 500;
+  color: var(--utility-success-700);
 }
-.evs-cw-myrole.tone-member {
-  background: var(--utility-blue-50);
-  color: var(--utility-blue-600);
-}
+.evs-cw-myrole.tone-member,
 .evs-cw-myrole.tone-hr {
   background: var(--utility-gray-100);
   color: var(--text-secondary);
@@ -7895,8 +7889,9 @@ button.evm-ai-source {
   color: var(--utility-warning-700);
 }
 .evtcal-redirect {
-  background: var(--utility-purple-50);
-  border: 1px solid var(--utility-purple-200);
+  /* PW-1932 — 화면을 막지 않는 안내라 연회색. 보라는 AI 몫이다. */
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-secondary);
 }
 .evtcal-redirect-line {
   display: flex;
@@ -7909,7 +7904,7 @@ button.evm-ai-source {
   min-width: 0;
   font-size: var(--font-size-text-sm);
   font-weight: 600;
-  color: var(--utility-purple-700);
+  color: var(--text-primary);
 }
 .evtcal-redirect-more {
   flex-shrink: 0;
@@ -7919,7 +7914,7 @@ button.evm-ai-source {
   font: inherit;
   font-size: var(--font-size-text-xs);
   font-weight: 600;
-  color: var(--utility-purple-700);
+  color: var(--text-secondary);
   text-decoration: underline;
   cursor: pointer;
 }
@@ -8147,13 +8142,14 @@ button.evm-ai-source {
   gap: var(--spacing-md);
   padding: var(--spacing-2xl);
   border-radius: var(--radius-lg);
-  border: 1px solid var(--utility-purple-200);
-  background: var(--utility-purple-50);
+  /* PW-1932 — 화면을 막지 않는 안내라 연회색. 보라는 AI 몫이다. */
+  border: 1px solid var(--border-secondary);
+  background: var(--bg-secondary);
 }
 .evs-cw-pointer-title {
   font-size: var(--font-size-text-md);
   font-weight: 700;
-  color: var(--utility-purple-700);
+  color: var(--text-primary);
 }
 .evs-cw-pointer-body {
   margin: 0;

@@ -6646,9 +6646,7 @@ export default function EvalCycleSummaryCanvas({
                           data-testid={`evs-cw-candidate-check-${c.id}`}
                         />
                         <span className="evs-cw-candidate-name">{c.name}</span>
-                        <span
-                          className={`evs-cw-candidate-kind tone-${c.kind === 'lead' ? 'accent' : 'muted'}`}
-                        >
+                        <span className="evs-cw-candidate-kind">
                           {c.kind === 'lead' ? L.cwKindLead : L.cwKindSeniorIc}
                         </span>
                         {c.dept ? (
