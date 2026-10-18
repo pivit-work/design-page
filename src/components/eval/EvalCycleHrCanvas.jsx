@@ -1350,6 +1350,10 @@ export default function EvalCycleHrCanvas({
   ruleExclusions,
   ruleExclusionsError = false,
   onReloadRuleExclusions,
+  /** PW-1945 — 6단계 «팀이 3명 미만인 대상자» 안내 재료. 위자드에 그대로 넘긴다(EvalCycleWizard 참고). */
+  smallTeamMemberIds = null,
+  smallTeamMemberIdsError = false,
+  onReloadSmallTeams,
   onExclusionRulesChange,
   loading = false,
   labels: providedLabels,
@@ -2127,6 +2131,9 @@ export default function EvalCycleHrCanvas({
           ruleExclusions={ruleExclusions}
           ruleExclusionsError={ruleExclusionsError}
           onReloadRuleExclusions={onReloadRuleExclusions}
+          smallTeamMemberIds={smallTeamMemberIds}
+          smallTeamMemberIdsError={smallTeamMemberIdsError}
+          onReloadSmallTeams={onReloadSmallTeams}
           onExclusionRulesChange={onExclusionRulesChange}
           onSubmit={handleCreate}
           onSubmitOpen={onOpenCycle ? handleSubmitOpen : undefined}
@@ -2219,6 +2226,9 @@ export default function EvalCycleHrCanvas({
           ruleExclusions={ruleExclusions}
           ruleExclusionsError={ruleExclusionsError}
           onReloadRuleExclusions={onReloadRuleExclusions}
+          smallTeamMemberIds={smallTeamMemberIds}
+          smallTeamMemberIdsError={smallTeamMemberIdsError}
+          onReloadSmallTeams={onReloadSmallTeams}
           onExclusionRulesChange={onExclusionRulesChange}
           cycle={manageTarget.cycle}
           participants={manageTarget.participants}
