@@ -109,10 +109,30 @@ export default function FormField({
       <FormFieldContext.Provider value={ctx}>{children}</FormFieldContext.Provider>
       {showHint && !hintAbove && hintNode}
       {hasError && (
-        <p id={errorId} className="dp-field-error" role="alert" data-testid={errorTestId}>
+        <FieldError id={errorId} data-testid={errorTestId}>
           {error}
-        </p>
+        </FieldError>
       )}
     </div>
+  );
+}
+
+/**
+ * FieldError — 칸 바로 아래 빨간 오류 문구 하나. `FormField` 가 `error` 로 그리는 것과 같은 모양이다
+ * (`form-field.css` 의 `.dp-field-error` — 12px · 오류 빨강).
+ *
+ * 칸이 표 안에 있거나 칸 여럿에 한 줄을 다는 자리처럼 `FormField` 로 감쌀 수 없는 곳이 쓴다.
+ * 그런 자리는 칸에 `aria-describedby={id}` 를 직접 달아 이 문구와 잇는다.
+ *
+ *   <TextInput invalid aria-describedby="domain-error" … />
+ *   <FieldError id="domain-error">도메인 형식이 아닙니다</FieldError>
+ *
+ * 모양은 바꿀 수 없다 — 화면마다 빨강·크기가 갈리던 것을 막으려고 꺼낸 부품이다(pivit-work PW-1937).
+ */
+export function FieldError({ id, children, ...rest }) {
+  return (
+    <p id={id} className="dp-field-error" role="alert" {...rest}>
+      {children}
+    </p>
   );
 }

@@ -28,7 +28,7 @@ export { default as Spinner } from './shared/Spinner.jsx';
 export { default as Skeleton, SkeletonList } from './shared/Skeleton.jsx';
 export { default as LoadingState } from './shared/LoadingState.jsx';
 // 입력칸 공용 부품 — 이름표·오류 문구 틀과 칸들 (PW-1012). 스타일은 form-field.css(App.css 가 끌어온다)
-export { default as FormField } from './shared/FormField.jsx';
+export { default as FormField, FieldError } from './shared/FormField.jsx';
 export { default as TextInput } from './shared/TextInput.jsx';
 export { default as TextArea } from './shared/TextArea.jsx';
 export { default as Select } from './shared/Select.jsx';
