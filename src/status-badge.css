@@ -680,8 +680,8 @@
 .evm-history-grade {
   font-size: var(--font-size-text-xs);
   font-weight: 700;
-  color: var(--utility-blue-700);
-  background: var(--utility-blue-100);
+  color: var(--utility-gray-700);
+  background: var(--utility-gray-100);
   border-radius: var(--radius-sm);
   padding: 2px 8px;
 }

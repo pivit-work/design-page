@@ -1154,7 +1154,7 @@ function AiReportSection({ value, L, icons, baseUrl }) {
         <div className="ono-mem-ai-confirm" role="group" aria-label={L.aiReportOverwrite} data-testid="ono-ai-report-overwrite">
           <p className="ono-mem-ai-confirm-msg">{L.aiReportOverwrite}</p>
           <div className="ono-mem-actions-end">
-            <button type="button" className="ono-mem-btn" onClick={() => setConfirming(false)}>
+            <button type="button" className="ono-mem-btn is-secondary" onClick={() => setConfirming(false)}>
               {L.aiReportOverwriteCancel}
             </button>
             <button type="button" className="ono-mem-btn" onClick={confirmOverwrite} data-testid="ono-ai-report-overwrite-yes">

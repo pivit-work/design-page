@@ -119,9 +119,10 @@
   margin-top: 2px;
 }
 .sup-notice.is-info {
-  background: var(--utility-blue-50);
-  border-color: var(--utility-blue-200);
-  color: var(--utility-blue-700);
+  /* PW-1934 — 화면을 막지 않는 안내라 디자이너 식 연회색. 파랑은 진행 중·누르는 글자 몫이다. */
+  background: var(--bg-secondary);
+  border-color: var(--border-secondary);
+  color: var(--text-secondary);
 }
 .sup-notice.is-warning {
   background: var(--utility-warning-50);

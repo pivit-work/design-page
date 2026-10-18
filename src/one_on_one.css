@@ -2895,7 +2895,8 @@ button.ono-add-modal-input { cursor: pointer; }
   padding: 8px 16px;
   border: none;
   border-radius: 10px;
-  background: var(--utility-blue-500);
+  /* PW-1934 — 앱의 주 버튼은 초록 */
+  background: var(--bg-brand-solid);
   font-family: inherit;
   font-size: var(--font-size-text-sm);
   font-weight: 600;
@@ -2908,6 +2909,8 @@ button.ono-add-modal-input { cursor: pointer; }
   cursor: default;
 }
 .ono-mem-btn.is-ok { background: var(--utility-green-600); }
+/* PW-1934 — 「취소」처럼 물러나는 버튼. 디자이너의 .ono-add-modal-btn-secondary 와 같은 값 */
+.ono-mem-btn.is-secondary { background: var(--bg-quaternary); border: 1px solid var(--border-secondary); color: var(--text-secondary); }
 .ono-mem-hint { font-size: 11px; color: var(--text-tertiary); }
 
 /* ── 히스토리 타임라인 ── */
@@ -3074,16 +3077,17 @@ button.ono-add-modal-input { cursor: pointer; }
 .ono-past-ratio-min { min-width: 44px; text-align: right; }
 
 .ono-past-guide {
+  /* PW-1934 — 화면을 막지 않는 안내라 디자이너 식 연회색. 파랑은 진행 중·누르는 글자 몫이다. */
   margin-top: 16px;
   padding: 12px 14px;
-  border: 1px solid var(--utility-blue-200, var(--border-secondary));
+  border: 1px solid var(--border-secondary);
   border-radius: 10px;
-  background: var(--utility-blue-50, var(--bg-secondary));
+  background: var(--bg-secondary);
 }
 .ono-past-guide-title {
   font-size: 12px;
   font-weight: 700;
-  color: var(--utility-blue-700, var(--text-primary));
+  color: var(--text-primary);
   margin-bottom: 4px;
 }
 .ono-past-guide-body {
@@ -3645,9 +3649,10 @@ button.ono-add-modal-input { cursor: pointer; }
   color: var(--utility-green-600);
 }
 .ono-done-banner.is-busy {
-  border-color: var(--componentColors-utility-blue-utilityBlue200);
-  background: var(--utility-blue-50);
-  color: var(--utility-blue-700);
+  /* PW-1934 — 화면을 막지 않는 안내라 디자이너 식 연회색. 파랑은 진행 중·누르는 글자 몫이다. */
+  border-color: var(--border-secondary);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
 }
 .ono-done-banner.is-bad {
   border-color: var(--componentColors-utility-error-utilityError200);

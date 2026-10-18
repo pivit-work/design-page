@@ -470,7 +470,8 @@ body:has(.okr-ctx-banner) .tl-group-modal.okr-shell { max-height: calc(100vh - 6
 /* 실행 항목(Initiative) 편집 블록 — okr-policy §4A.3.
    새 시각 언어를 만들지 않는다: 블록은 KR 카드 안쪽 톤, 라벨은 같은 창
    Objective 제목과 같은 글씨(PW-1899), 추가 버튼은 `okr-cf-kr-add-btn` 을 한 단계 축소한 점선판. */
-.okr-cf-init { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; background: var(--utility-blue-50); border: 1px solid var(--border-secondary-alt); border-radius: 10px; }
+/* PW-1934 — 실행 항목 칸은 연회색 (파랑은 진행 중 몫) */
+.okr-cf-init { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; background: var(--bg-secondary); border: 1px solid var(--border-secondary-alt); border-radius: 10px; }
 .okr-cf-init-label { font-size: 15px; font-weight: 700; color: var(--text-primary); }
 .okr-cf-init-row { display: flex; align-items: center; gap: 6px; }
 .okr-cf-init-status { flex: none; padding: 6px 8px; background: var(--bg-quaternary); border: 1px solid var(--border-secondary); border-radius: 8px; font-family: inherit; font-size: 12px; font-weight: 600; color: var(--text-secondary); cursor: pointer; outline: none; }

@@ -482,8 +482,8 @@
    "padding": "2px 8px",
    "font-size": "12px",
    "font-weight": "700",
-   "background": "#d1e9ff / 어두운 화면 #194185",
-   "color": "#175cd3 / 어두운 화면 #84caff"
+   "background": "#f3f4f6 / 어두운 화면 #22262f",
+   "color": "#596069 / 어두운 화면 #ececed"
   },
   "eval-cycle.css|.evr-grade-anchor-pop": {
    "border-radius": "12px",
