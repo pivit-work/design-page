@@ -2,6 +2,7 @@ import { useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import Icon from '../shared/Icon.jsx';
+import LoadMoreButton from '../shared/LoadMoreButton.jsx';
 import MeetingInProgressModal from './MeetingInProgressModal.jsx';
 
 /**
@@ -111,6 +112,12 @@ export default function MeetingsCanvas({
   baseUrl = '',
   todayMeetings,
   pastMeetings,
+  /**
+   * 「지난 회의」 맨 아래 [더 보기] (pivit-work PW-1941) — `{ label, loadingLabel?, loading? }`.
+   * 호스트가 문구까지 만들어 넘기고, 더 남은 것이 없으면 빼서 버튼이 사라진다. 누르면 `onPastMore`.
+   */
+  pastMore,
+  onPastMore,
   todayDateLabel,
   todayCountLabel,
   labels,
@@ -303,6 +310,15 @@ export default function MeetingsCanvas({
             ))}
           </div>
         </section>
+        {/* 지난 회의 섹션은 흐리게 그려진다 — 버튼은 섹션 밖에 둬 또렷하게 누를 수 있게 한다 */}
+        {pastMore && (
+          <LoadMoreButton
+            label={pastMore.label}
+            loadingLabel={pastMore.loadingLabel}
+            loading={!!pastMore.loading}
+            onClick={onPastMore}
+          />
+        )}
       </div>
 
       {activeMeeting && !onStartMeeting && (

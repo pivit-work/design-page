@@ -1,0 +1,21 @@
+/*
+ * 목록 맨 아래 [더 보기] `LoadMoreButton` (pivit-work PW-1941) — `components/shared/LoadMoreButton.jsx`.
+ * 값은 조직도 구성원 표의 `.pj-table-footer`·`.pj-btn-more`(src/org_project.css)에서 그대로 옮겼다.
+ */
+.dp-load-more {
+  margin-top: 16px;
+}
+.dp-load-more__btn {
+  width: 100%;
+  padding: 20px;
+  border: none;
+  background: var(--bg-quaternary);
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.dp-load-more__btn:hover { background: var(--bg-secondary); }
+.dp-load-more__btn:disabled { cursor: default; }
