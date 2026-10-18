@@ -26,6 +26,13 @@ import { DatePickerPopover, TIME_SLOTS, formatTime } from './AddOneOnOneModal.js
  *    실제로 보내는 기능이 없는 호스트가 «눌러도 아무 일 없는» 칸을 보이지 않게.
  *  - renderAvatar(person): 호스트 앱 아바타(이니셜 폴백 등). 미지정 시 avatar URL.
  *  - scheduling: true 면 [일정 등록] 을 잠근다(중복 제출 방지).
+ *  - recordingPlayer: 그 회차의 **녹음 재생기** 노드 (Figma 17413:26357 · 17693:23149).
+ *    AI 미팅 요약 카드 «안» 첫 행, 요약 글 바로 위에 그린다 — 원음은 요약의 근거라
+ *    요약보다 앞에 온다(DoneOneOnOneView 의 SummaryCard 와 같은 자리). 소리를 어떻게
+ *    여는지는 호스트가 안다 — 공용 `RecordingPlayerRow` 에 `<audio>` 와 재생 상태를
+ *    넣어 완성한 노드를 넘긴다. 안 넘기면 그 행 자체를 그리지 않고, 「녹음이 없습니다」
+ *    류의 안내도 두지 않는다 — 녹음이 있다는 사실이 새지 않게(§9-B INV-P5).
+ *    🔴 접기(fold) 와 무관하게 항상 보인다 — 접는 것은 요약 «글» 이다.
  *
  * 창은 공용 창 틀(ModalShell), 네 탭은 공용 Tabs 로 그린다 (PW-836). 틀의 제목 자리에는
  * 멤버 × 매니저를, 설명 자리에는 상태 배지·「열람모드」를 둔다. [일정 등록] 이 본문 안에
@@ -94,6 +101,7 @@ export default function OneOnOneDetailModal({
   showRemind = true,
   renderAvatar,
   scheduling = false,
+  recordingPlayer = null,
 }) {
   const L = { ...DETAIL_DEFAULT_LABELS, ...(labels || {}) };
   const [tab, setTab] = useState('summary');
@@ -170,6 +178,7 @@ export default function OneOnOneDetailModal({
                 </button>
               )}
             </div>
+            {recordingPlayer}
             {!hasSummary && (
               <div className="ood-ai-block">
                 <p className="ood-ai-text">{L.summaryEmpty}</p>

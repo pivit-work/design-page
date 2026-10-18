@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import OneOnOneCanvasV2 from './components/oneonone/OneOnOneCanvasV2.jsx';
+import DemoRecordingPlayer from './devtools/DemoRecordingPlayer.jsx';
 import StateSwitcher from './devtools/StateSwitcher.jsx';
 import { ASYNC_KNOB, LABEL_KNOB, VOLUME_KNOB, knobKey, resize, useKnobs } from './devtools/knobs.js';
 import { stressListMixed } from './devtools/stress.js';
@@ -151,6 +152,10 @@ const makeDetail = (name, avatar) => ({
     growth: '스프린트 리뷰 시 리스크를 더 일찍 공유해주시면 팀 전체가 대응할 시간을 확보할 수 있습니다.',
   },
 });
+
+/* ── 상세(열람모드) 모달 안 녹음 재생기 데모 — Figma 17413:26357 (17693:23149).
+   회의록 상세와 같은 `DemoRecordingPlayer`(devtools). 실 재생기는 pivit-work 가
+   `renderRecordingPlayer` 로 돌려준다. */
 
 /* ── 최초 1on1 진행 셋업 플로우 데모 — 매니저(퍼실리테이터) 후보 (Figma 17416:27850).
    시안의 후보 구성(추천 1 + 일반 1)을 따른다. */
@@ -376,6 +381,7 @@ export default function OneOnOnePage({ icons, baseUrl }) {
         aiDrafts={knobs.async === 'loading' ? null : aiDrafts}
         onGenerateDrafts={handleGenerateDrafts}
         generatingSection={effGenerating}
+        renderRecordingPlayer={() => <DemoRecordingPlayer testIdPrefix="ood-recording" />}
       />
       <StateSwitcher
         spec={KNOBS}

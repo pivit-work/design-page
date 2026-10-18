@@ -108,6 +108,24 @@
 .mtg-row.is-dimmed {
   opacity: 0.5;
 }
+/* 행 전체 클릭(onRowClick)이 연결된 행 — 지난 회의의 회의록 열기 등. 손가락 커서와
+   hover 배경으로 「눌린다」를 알리고, 키보드 포커스 링은 둥근 모서리를 따른다. */
+.mtg-row.is-clickable {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.mtg-row.is-clickable:hover {
+  background: var(--bg-secondary);
+}
+.mtg-row.is-clickable:focus-visible {
+  outline: 2px solid var(--bg-brand-solid);
+  outline-offset: 2px;
+}
+/* AI 회의록 생성이 실패한 행(summaryFailed)에 행 클릭이 연결되지 않았으면 — 열 회의록이 없다는
+   뜻이라 «막힘» 커서로 알린다. 클릭을 연결한 호스트(상세에서 [다시 시도])는 위 규칙이 이긴다. */
+.mtg-row.is-failed:not(.is-clickable) {
+  cursor: not-allowed;
+}
 
 .mtg-row-time {
   display: flex;

@@ -4111,6 +4111,10 @@ button.ono-add-modal-input { cursor: pointer; }
 .ood-ai-list { margin: 0; padding-left: 21px; }
 .ood-ai-list li { font-size: 14px; font-weight: 500; line-height: 24px; color: var(--text-secondary); }
 
+/* 요약 카드 안 녹음 재생기 (Figma 17693:23149) — 공용 `RecordingPlayerRow` 의 `is-flat` 변형
+   (`recording-player.css`). 그라데이션 카드 위라 배경만 흰 90% 로 바꾼다. */
+.ood-ai-card .rec-player.is-flat { background: var(--alpha-white-90); }
+
 /* 액션 아이템 */
 .ood-actions { display: flex; flex-direction: column; gap: 8px; }
 .ood-actions-count { font-size: 14px; font-weight: 500; line-height: 24px; color: var(--text-tertiary); }

@@ -26,6 +26,9 @@ import { PauseGlyph } from './lineIcons.jsx';
  * @param {string}   [props.timeText]      「0:12 / 15:32」 — 글자 조립은 호스트 몫이다.
  * @param {string}   [props.retentionText] 「녹음 보관 D-88」. 없으면 그 자리를 안 그린다.
  * @param {object}   [props.labels]        `{ play, pause, seek }` — 화면 낱말은 호스트가 준다.
+ * @param {string}   [props.className]     바깥 상자에 더하는 클래스. `is-flat` 이면 시안(Figma 17693:23137 ·
+ *                                        17693:23149)의 납작한 모양 — ▶ 는 동그란 버튼 없이 16px 글리프, 회색
+ *                                        진행 바, 흰 22px 볼, 재생 중엔 솔리드 ❚❚. 배경은 두는 곳이 정한다.
  * @param {string}   [props.testIdPrefix]  `data-testid` 앞머리.
  * @param {string}   [props.noticeTestId]  안내 한 줄의 `data-testid` — 화면마다 사연(없음·만료)이
  *                                        달라 이름을 따로 주고 싶을 때만.
@@ -41,6 +44,7 @@ export default function RecordingPlayerRow({
   timeText = '',
   retentionText,
   labels = {},
+  className = '',
   testIdPrefix = 'recording',
   noticeTestId,
   children,
@@ -48,7 +52,7 @@ export default function RecordingPlayerRow({
   if (notice) {
     return (
       <div
-        className="rec-player is-notice"
+        className={`rec-player is-notice ${className}`.trim()}
         role="status"
         data-testid={noticeTestId ?? `${testIdPrefix}-notice`}
       >
@@ -61,10 +65,10 @@ export default function RecordingPlayerRow({
   const ratio = unknown ? 0 : Math.min(1, Math.max(0, progress));
 
   return (
-    <div className="rec-player" data-testid={`${testIdPrefix}-player`}>
+    <div className={`rec-player ${className}`.trim()} data-testid={`${testIdPrefix}-player`}>
       <button
         type="button"
-        className="rec-player-toggle"
+        className={`rec-player-toggle${playing ? ' is-playing' : ''}`}
         onClick={onToggle}
         disabled={toggleDisabled}
         aria-label={playing ? labels.pause : labels.play}

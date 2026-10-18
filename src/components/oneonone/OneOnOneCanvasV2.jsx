@@ -148,6 +148,12 @@ export default function OneOnOneCanvasV2({
   /** 멤버 카드의 아바타 렌더 콜백. 외부에서 호스트 앱의 Avatar 컴포넌트(이니셜
    *  fallback 등) 를 주입할 때 사용. 미지정 시 member.avatar URL 그대로 <img>. */
   renderMemberAvatar,
+  /**
+   * `(member) => node | null` — 카드 클릭으로 연 상세(열람모드) 모달의 **녹음 재생기**
+   * (Figma 17413:26357). 호스트가 공용 `RecordingPlayerRow` 로 만든 노드를 돌려준다.
+   * 안 넘기거나 null 을 돌려주면 모달은 그 행을 그리지 않는다.
+   */
+  renderRecordingPlayer,
 }) {
   const L = { ...DEFAULT_LABELS, ...labels };
   const [addOpen, setAddOpen] = useState(false);
@@ -345,6 +351,7 @@ export default function OneOnOneCanvasV2({
           baseUrl={baseUrl}
           onClose={() => setDetailMember(null)}
           onScheduleNext={() => setDetailMember(null)}
+          recordingPlayer={renderRecordingPlayer?.(detailMember) ?? null}
         />
       )}
       {setupStep === 'mic' && (

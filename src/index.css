@@ -175,6 +175,10 @@
   --alpha-black-3: var(--componentColors-alpha-alphaBlack3);
   --alpha-black-5: var(--componentColors-alpha-alphaBlack5);
   --alpha-white-80: var(--componentColors-alpha-alphaWhite80);
+  --alpha-white-90: var(--componentColors-alpha-alphaWhite90);
+  /* 1on1 상세 모달의 녹음 재생기 (Figma 17413:26357) — 회색 진행 바. */
+  --fg-secondary: var(--colors-foreground-fgSecondary);
+  --fg-disabled-subtle: var(--colors-foreground-fgDisabledSubtle);
 
   /* 평가 화면이 쓰던 이름들 (PW-831). 이 이름들은 정의된 적이 없어, 평가 화면이
      `var(--이름, #색)` 뒤에 적어 둔 값이 그대로 그려지고 있었다 — 옛 보라·청록 브랜드

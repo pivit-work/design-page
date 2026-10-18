@@ -32,7 +32,7 @@ function MeetingRow({ meeting, onStart, onRowClick, statusLabels, isStarting, st
     : undefined;
   return (
     <div
-      className={`mtg-row ${isOngoing ? 'is-ongoing' : ''} ${clickable ? 'is-clickable' : ''}`}
+      className={`mtg-row ${isOngoing ? 'is-ongoing' : ''} ${clickable ? 'is-clickable' : ''} ${meeting.summaryFailed ? 'is-failed' : ''}`}
       onClick={handleRowClick}
       onKeyDown={handleRowKeyDown}
       role={clickable ? 'button' : undefined}
@@ -125,6 +125,10 @@ export default function MeetingsCanvas({
   // 행 전체 클릭 훅: completed 회의의 기록 보기 등, 시작 버튼과 별개 동작을
   // 연결하고 싶을 때 사용. 미지정 시 행은 클릭 불가.
   onRowClick,
+  // `(meeting, { past }) => boolean` — onRowClick 이 있을 때 어느 행을 클릭 가능하게 둘지.
+  // 미지정 시 모든 행. 클릭 불가로 판정된 행은 손가락 커서·role=button 도 붙지 않는다 —
+  // 눌러도 아무 일이 없는 행이 「눌린다」고 말하지 않게.
+  isRowClickable,
   // 액션 아이템 전체 뷰(/meetings/actions) 진입 훅. 미지정 시 링크를 숨긴다.
   onViewActions,
   // 캘린더 일정과 무관하게 "지금 회의를 시작" 하는 진입 훅.
@@ -173,6 +177,8 @@ export default function MeetingsCanvas({
   };
 
   const [activeMeeting, setActiveMeeting] = useState(null);
+  const rowClickOf = (m, past) =>
+    onRowClick && (!isRowClickable || isRowClickable(m, { past })) ? onRowClick : undefined;
   return (
     <main className="mtg-page">
       {/* Page header — 타임라인/다른 페이지와 동일한 공용 스타일 재사용 */}
@@ -271,7 +277,7 @@ export default function MeetingsCanvas({
                   key={m.id}
                   meeting={m}
                   onStart={onStartMeeting ?? setActiveMeeting}
-                  onRowClick={onRowClick}
+                  onRowClick={rowClickOf(m, false)}
                   statusLabels={statusLabels}
                   isStarting={m.id === startingMeetingId}
                   startLock={startLock}
@@ -291,7 +297,7 @@ export default function MeetingsCanvas({
               <MeetingRow
                 key={m.id}
                 meeting={m}
-                onRowClick={onRowClick}
+                onRowClick={rowClickOf(m, true)}
                 statusLabels={statusLabels}
               />
             ))}

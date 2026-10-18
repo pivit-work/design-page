@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { MeetingsCanvas, MeetingStartFlow, MeetingGeneratingModal, MeetingSyncToast } from './components';
+import { MeetingsCanvas, MeetingStartFlow, MeetingGeneratingModal, MeetingInProgressModal, MeetingSyncToast } from './components';
+import DemoRecordingPlayer from './devtools/DemoRecordingPlayer.jsx';
 import StateSwitcher from './devtools/StateSwitcher.jsx';
 import { LABEL_KNOB, VOLUME_KNOB, knobKey, modalKnob, resize, useKnobs } from './devtools/knobs.js';
 import { stressListMixed } from './devtools/stress.js';
@@ -297,6 +298,9 @@ export default function MeetingsPage({ baseUrl, active = true }) {
 
   const [todayMeetings, setTodayMeetings] = useState(TODAY_MEETINGS);
   const [activeMeeting, setActiveMeeting] = useState(null);
+  // 목록 행 클릭 → 그 회의의 회의록 상세 (Figma 16708:33213). 메타 아래·요약 위에 녹음
+  // 재생기(17693:23137)가 `headerExtra` 로 선다. pivit-work 는 같은 자리에 실 재생기를 넣는다.
+  const [recordMeeting, setRecordMeeting] = useState(null);
   const [generatingOpen, setGeneratingOpen] = useState(false);
   // 캘린더 동기화 경고 토스트 (Figma 17420:29469) — 데모: 기본 표시,
   // 재시도 클릭 시 재동기화됐다고 가정하고 닫는다.
@@ -366,8 +370,26 @@ export default function MeetingsPage({ baseUrl, active = true }) {
         todayCountLabel={todayCountLabel}
         labels={viewLabels}
         onStartMeeting={setActiveMeeting}
+        onRowClick={setRecordMeeting}
+        // 지난 회의만 연다. 생성이 실패한 회의는 열 회의록이 없어 막힘 커서로 둔다.
+        isRowClickable={(m, { past }) => past && !m.summaryFailed}
         startingMeetingId={effActive?.id}
       />
+      {recordMeeting && (
+        <MeetingInProgressModal
+          baseUrl={baseUrl}
+          meeting={recordMeeting}
+          initialPhase="record"
+          labels={START_LABELS.progress}
+          recordData={{
+            ...RECORD_DATA,
+            title: recordMeeting.title,
+            headerExtra: <DemoRecordingPlayer testIdPrefix="mtg-recording" />,
+          }}
+          shareData={SHARE_DATA}
+          onClose={() => setRecordMeeting(null)}
+        />
+      )}
       {effActive && (
         <MeetingStartFlow
           baseUrl={baseUrl}

@@ -133,3 +133,67 @@
   height: 0;
   border-top: 1px solid var(--border-secondary);
 }
+
+/* ── 납작한 변형 `.is-flat` — 회의록 상세(Figma 17693:23137)·1on1 상세(17693:23149) 모달 안.
+   ▶ 는 동그란 버튼 없이 16px 글리프 · 회색 진행 바 · 흰 22px 볼(shadow-xl) · 재생 중엔
+   4×14 솔리드 바 둘(17694:23292). 기본 배경은 회의록 모달의 alpha-black-3 이고, 1on1 요약
+   카드는 `one_on_one.css` 에서 alpha-white-90 으로 바꾼다. */
+.rec-player.is-flat {
+  min-height: 0;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--alpha-black-5);
+  border-radius: var(--radius-md);
+  background: var(--alpha-black-3);
+}
+.rec-player.is-flat .rec-player-toggle {
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--fg-primary);
+}
+.rec-player.is-flat .rec-player-toggle:hover:not(:disabled) {
+  background: transparent;
+  color: var(--fg-secondary);
+}
+.rec-player.is-flat .rec-player-toggle svg {
+  width: 16px;
+  height: 16px;
+}
+/* 재생 중 ❚❚ — 공용 글리프(가는 선 둘) 대신 그린다. SVG 선 굵기만 키워서는 바 사이 간격이
+   시안과 맞지 않는다. */
+.rec-player.is-flat .rec-player-toggle.is-playing { gap: 2px; }
+.rec-player.is-flat .rec-player-toggle.is-playing svg { display: none; }
+.rec-player.is-flat .rec-player-toggle.is-playing::before,
+.rec-player.is-flat .rec-player-toggle.is-playing::after {
+  content: '';
+  width: 4px;
+  height: 14px;
+  border-radius: 1px;
+  background: currentColor;
+}
+.rec-player.is-flat .rec-player-seek { height: 22px; }
+.rec-player.is-flat .rec-player-seek-track {
+  top: 9px;
+  border-radius: var(--radius-sm);
+  background: var(--fg-disabled-subtle);
+}
+.rec-player.is-flat .rec-player-seek-track i {
+  border-radius: var(--radius-sm);
+  background: var(--fg-secondary);
+}
+.rec-player.is-flat .rec-player-seek-ball {
+  width: 22px;
+  height: 22px;
+  background: var(--fg-light);
+  border: 1px solid var(--alpha-black-5);
+  box-shadow:
+    0 3px 3px -1.5px var(--colors-effects-shadows-shadowXl03, rgba(10, 13, 18, 0.04)),
+    0 8px 8px -4px var(--colors-effects-shadows-shadowXl02, rgba(10, 13, 18, 0.03)),
+    0 20px 24px -4px var(--colors-effects-shadows-shadowXl01, rgba(10, 13, 18, 0.08));
+}
+.rec-player.is-flat .rec-player-time { font-weight: 400; color: var(--text-secondary); }
+.rec-player.is-flat .rec-player-retention { font-weight: 400; color: var(--text-tertiary); }
+.rec-player.is-flat.is-notice { font-weight: 400; }
