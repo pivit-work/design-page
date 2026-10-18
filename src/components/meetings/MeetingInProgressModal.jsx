@@ -64,6 +64,8 @@ export default function MeetingInProgressModal({
   secondaryAction,
   // 메모 칸을 읽기 전용으로 (PW-1825) — 시작한 사람이 회의를 끝내 함께 들어간 사람의 메모가 잠길 때.
   memoReadOnly = false,
+  /* [PW-1958] 메모 칸 글자 수 한도 — 넘친 글자를 몰래 잘라 내지 않고 칸에서 멈춘다. 없으면 한도 없음. */
+  memoMaxLength,
   // 메모 칸 아래 caller 가 넣는 노드 (PW-1825) — 「나와 회의록 담당자만 봅니다…」 안내 자리.
   memoFooter,
   // 회의록 단계의 [공유하기] 버튼을 보일지. 회의 담당자가 아니면 caller 가 false 로
@@ -270,6 +272,7 @@ export default function MeetingInProgressModal({
                 placeholder={labels.memoPlaceholder}
                 value={memo}
                 readOnly={memoReadOnly}
+                maxLength={memoMaxLength}
                 onChange={(e) => handleMemoChange(e.target.value)}
               />
               {memoFooter}
