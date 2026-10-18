@@ -8859,10 +8859,10 @@ export default function EvalCycleWizard({
                         )}
                         {ph.anchor && <StatusBadge className="evc-mode-badge is-muted">{L.badgeFixed}</StatusBadge>}
                         {!enabled && <StatusBadge className="evc-mode-badge is-muted">{L.badgeUnused}</StatusBadge>}
-                        {/* [PW-1461 · 정책 §4.5] 「동시 진행」은 보라 — 지난 날짜(경고)와 섞이지 않게. */}
+                        {/* [PW-1461 · 정책 §4.5] 「동시 진행」은 파랑(진행) — 지난 날짜(경고)와 섞이지 않게. 보라는 AI 표시에만 쓴다 (PW-1933). */}
                         {enabled && overlapIds.has(ph.id) && (
                           <StatusBadge
-                            className="evc-status-badge tone-purple"
+                            className="evc-status-badge tone-info"
                             data-testid={`evc-sched-parallel-${ph.id}`}>
                             {L.badgeParallel}
                           </StatusBadge>

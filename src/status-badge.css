@@ -621,8 +621,8 @@
 }
 
 .evc-sched-anchor-badge.is-manual {
-  background: var(--utility-purple-100);
-  color: var(--utility-purple-600);
+  background: var(--utility-gray-100);
+  color: var(--utility-gray-700);
 }
 
 .evc-rm-sum-chip {
@@ -903,8 +903,8 @@
 
 /* ── 리포트 검수: 한 사람만의 구성 예외 (PW-863 · 정책 §8.3) ── */
 .evrr-badge.is-override {
-  color: var(--utility-purple-700);
-  background: var(--utility-purple-50);
+  color: var(--utility-gray-700);
+  background: var(--utility-gray-100);
   margin-left: var(--spacing-sm);
 }
 
@@ -1253,9 +1253,9 @@
 }
 
 .ono-done-share-badge.is-on {
-  border-color: var(--componentColors-utility-purple-utilityPurple200);
-  background: var(--utility-purple-50);
-  color: var(--componentColors-utility-purple-utilityPurple700);
+  border-color: var(--utility-success-200);
+  background: var(--utility-success-50);
+  color: var(--utility-success-700);
 }
 
 .ons-ai-tag { display: flex; align-items: center; gap: 4px; padding: 6px; background: var(--dp-badge-progress-bg); border: 1px solid var(--alpha-black-3); border-radius: var(--radius-xs); font-size: 14px; font-weight: 600; line-height: 20px; color: var(--dp-badge-progress-fg); flex-shrink: 0; }

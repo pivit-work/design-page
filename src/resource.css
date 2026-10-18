@@ -160,19 +160,18 @@
   outline: 2px solid var(--colors-foreground-fgBrandPrimary);
   outline-offset: 2px;
 }
-/* 인사이트가 붙은 카드는 테두리로만 구분한다 — 카드 안쪽 칩이 이미 보라라
-   테두리까지 채도를 올리면 그리드 전체가 시끄러워진다. */
-.rs-card.is-warn { border-color: var(--utility-purple-200); }
+/* 과부하 경고 — 디자이너가 경고에 쓰는 주황(.mgr-ts-score.is-warn 값). 보라는 AI 표시에만 쓴다 (PW-1933). */
+.rs-card.is-warn { border-color: var(--utility-warning-200); }
 
 .rs-card-insight {
   display: block;
   padding: 8px 10px;
   margin-bottom: 12px;
   border-radius: 8px;
-  background: var(--utility-purple-100);
+  background: var(--utility-warning-50);
   font-size: 12px;
   line-height: 1.55;
-  color: var(--utility-purple-500);
+  color: var(--utility-warning-700);
 }
 
 .rs-card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }

@@ -876,7 +876,7 @@ function ScheduleEditModal({
                   {/* [PW-1461 · 정책 §4.5] 다른 단계와 기간이 겹치는 줄 — 보라 배지. */}
                   {parallel && (
                     <DpStatusBadge
-                      className="evc-status-badge tone-purple"
+                      className="evc-status-badge tone-info"
                       data-testid={`evc-sched-modal-parallel-${id}`}>
                       {L.badgeParallel}
                     </DpStatusBadge>
