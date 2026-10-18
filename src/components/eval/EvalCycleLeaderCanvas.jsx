@@ -103,6 +103,7 @@ const DEFAULT_LABELS = {
   priorLate: '늦게 제출됨',
   priorEdited: '제출 뒤 수정됨 · {at}',
   priorNoAnswers: '작성된 항목이 없습니다.',
+  priorNoneChecked: '고른 항목이 없습니다.',
   priorPrivateNote: '비공개 코멘트와 승진·보상 의견은 위원회·HR 에게만 전달되어 여기에 보이지 않습니다.',
   priorLoadFailed: '앞 차수 리뷰를 불러오지 못했습니다',
   priorRetry: '다시 시도',

@@ -8,7 +8,7 @@ import Button from '../shared/Button.jsx';
  * 리더 정책 §5.13.3). 2차 이후 평가자가 가장 먼저 확인할 근거다.
  *
  * 앞 차수마다 한 장(아래 차수부터). 머리는 `{j}차 · {작성자} · 제출 MM/DD HH:MM` + 등급 딱지, 본문은
- * 항목별 점수·서술. 기본 펼침은 바로 아래 차수(제출된 것 가운데 가장 높은 차수) 한 장이다.
+ * 항목별 점수·고른 선택지·서술(체크 항목의 `checkedLabels` 는 서버가 그 차수 평가지로 푼 이름, PW-1967). 기본 펼침은 바로 아래 차수(제출된 것 가운데 가장 높은 차수) 한 장이다.
  * 건너뛴 차수·HR 이 앞 차수 없이 연 차수는 한 줄로, 제출 뒤 고친 카드는 warning 딱지를 붙인다.
  *
  * 비공개 코멘트·승진/보상은 서버가 응답에서 이미 뺐다(화면이 숨기는 것이 아니다) — 그 사실만
@@ -88,8 +88,14 @@ function PriorCard({ r, open, onToggle, labelOf, scaleMaxOf, gradeLabelOf, L }) 
               <div key={`${a.templateItemId ?? a.itemCategory ?? ''}-${i}`} data-testid="evl-prior-answer">
                 <span className="evc-field-label">
                   {labelOf(a)}
-                  {a.score != null ? ` · ${a.score}/${scaleMaxOf(a)}` : ''}
+                  {/* 체크 항목은 점수 칸이 아니라 고른 선택지로 보인다 — 옛 체크의 1/0 을 «1/5» 로 적지 않는다. */}
+                  {a.score != null && !Array.isArray(a.checkedLabels) ? ` · ${a.score}/${scaleMaxOf(a)}` : ''}
                 </span>
+                {Array.isArray(a.checkedLabels) ? (
+                  <p className="evl-evi-text" data-testid="evl-prior-checked">
+                    {a.checkedLabels.length > 0 ? a.checkedLabels.join(', ') : L.priorNoneChecked}
+                  </p>
+                ) : null}
                 {a.textAnswer ? <p className="evl-evi-text">{a.textAnswer}</p> : null}
                 {a.rationale ? (
                   <p className="evl-evi-text">
