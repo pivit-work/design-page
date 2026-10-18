@@ -634,7 +634,8 @@ export default function EvalCycleMonitoringCanvas({
           <div className="evmon-stages">
             {stages.map((s) => {
               const pct = s.total > 0 ? Math.round((100 * s.done) / s.total) : 0;
-              const stageLabel = L[STAGE_KEY[s.key]] ?? s.key;
+              /* [PW-1968] 하향 차수 줄(`leader_review_2` …)은 키 표에 없는 이름이라 화면이 이름을 실어 보낸다. */
+              const stageLabel = s.label ?? L[STAGE_KEY[s.key]] ?? s.key;
               const inner = (
                 <>
                   <span className="evmon-stage-label">{stageLabel}</span>
