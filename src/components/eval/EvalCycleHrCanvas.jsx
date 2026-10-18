@@ -1160,6 +1160,15 @@ function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, advancing = 
    * 곧장 열려 단계별 검증이 통째로 무력해진다.
    */
   const isWizardDraft = isDraft && !!cycle.draftState && !!onResumeDraft;
+  /* PW-1989 — 위자드 초안의 대상·리뷰 종류는 사이클 칸이 아니라 마지막 저장본(`draftState`)에 있다.
+     사이클 칸은 오픈 전까지 기본값(셀프·하향)이고 참여자도 없어 「대상 0명」이 된다.
+     요약 칸이 생기기 전에 저장한 초안은 인원을 모르므로 「대상 N명」을 빼고 그린다. */
+  const savedDraft = isWizardDraft ? cycle.draftState : null;
+  const cardReviewTypes =
+    (Array.isArray(savedDraft?.reviewTypes) ? savedDraft.reviewTypes : null) ?? cycle.reviewTypes;
+  const cardMemberCount = savedDraft
+    ? (typeof savedDraft.targetCount === 'number' ? savedDraft.targetCount : null)
+    : (cycle.participantCount ?? 0);
   const isDone = cycle.status === 'done';
   const isOnHold = cycle.status === 'on_hold';
   // 진행 중(active): draft·done·on_hold·회수·비상정지가 아닌 모든 단계
@@ -1185,14 +1194,18 @@ function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, advancing = 
         </div>
         <div className="evc-card-meta">
           <span>{L.period}: {cycle.startDate} ~ {cycle.endDate}</span>
-          <span className="evc-dot">·</span>
-          <span>{fill(L.members, { count: cycle.participantCount ?? 0 })}</span>
+          {cardMemberCount !== null && (
+            <>
+              <span className="evc-dot">·</span>
+              <span data-testid="evc-card-members">{fill(L.members, { count: cardMemberCount })}</span>
+            </>
+          )}
           {/* PW-1116 평가 종류는 칩 줄을 따로 쓰지 않고 기간·대상 줄 끝에 글로 붙인다. */}
-          {Array.isArray(cycle.reviewTypes) && cycle.reviewTypes.length > 0 && (
+          {Array.isArray(cardReviewTypes) && cardReviewTypes.length > 0 && (
             <>
               <span className="evc-dot">·</span>
               <span className="evc-card-types" data-testid="evc-card-types">
-                {cycle.reviewTypes.map((t) => L[REVIEW_TYPE_KEYS[t]] ?? t).join(' · ')}
+                {cardReviewTypes.map((t) => L[REVIEW_TYPE_KEYS[t]] ?? t).join(' · ')}
               </span>
             </>
           )}
@@ -2107,6 +2120,7 @@ export default function EvalCycleHrCanvas({
       {showCreate && (
         <EvalCycleWizard
           existingCycles={cycles}
+          draftCycleId={draftSession?.cycleId ?? null}
           key={wizardKey}
           labels={L}
           candidates={candidates}

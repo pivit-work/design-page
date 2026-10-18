@@ -805,6 +805,9 @@ function clampStep(value) {
   return Math.min(Math.max(Math.trunc(n), 0), WIZARD_STEP_COUNT - 1);
 }
 
+/** PW-1989 — 초안에 함께 싣는 목록 카드용 요약 칸(입력이 아니라 양식 비교에서 뺀다). */
+const DRAFT_SUMMARY_KEYS = ['targetCount'];
+
 /**
  * PW-1459 §5.1-A-6 — 저장된 초안과 지금 위자드의 «칸 목록»이 다른가.
  * 저장본에만 있는 칸은 무시되고, 지금만 있는 칸은 기본값으로 채워진다 — 둘 다 「양식이
@@ -813,10 +816,12 @@ function clampStep(value) {
  */
 function draftShapeChanged(saved, current) {
   if (!saved || typeof saved !== 'object') return false;
+  // PW-1989 — 목록 카드용 요약 칸은 입력이 아니다. 그 칸이 생기기 전 초안도 양식은 같다.
+  const isSummary = (k) => DRAFT_SUMMARY_KEYS.includes(k);
   const differs = (a, b) => {
-    const known = Object.keys(b).filter((k) => b[k] !== undefined);
+    const known = Object.keys(b).filter((k) => b[k] !== undefined && !isSummary(k));
     return (
-      Object.keys(a).some((k) => !(k in b)) ||
+      Object.keys(a).some((k) => !isSummary(k) && !(k in b)) ||
       known.some((k) => !(k in a))
     );
   };
@@ -2634,6 +2639,11 @@ export default function EvalCycleWizard({
    * 넘기지 않으면 종전대로 신규 생성 모드.
    */
   cycle = null,
+  /**
+   * PW-1989 — 「이어서 작성」으로 연 초안의 사이클 id. 초안은 목록에 같은 이름으로 들어 있어,
+   * 이 값이 없으면 1단계 같은 이름 판정이 초안 자신을 «이미 있는 사이클»로 잡는다.
+   */
+  draftCycleId = null,
   /** 관리 모드 대상자 프리필용 현재 참여자 [{ memberId }]. */
   participants = [],
   /**
@@ -5921,9 +5931,9 @@ export default function EvalCycleWizard({
   /** 섹션 토스트 — `'confirmFailed' | 'conflict'`. */
   const [leaderToast, setLeaderToast] = useState(null);
   /** 위자드가 아는 사이클 id — 관리 모드의 사이클 · 방금 저장한 초안. 확정·해제 요청에 싣는다. */
-  const knownCycleIdRef = useRef(cycle?.id ?? null);
+  const knownCycleIdRef = useRef(cycle?.id ?? draftCycleId ?? null);
   /** PW-1845 — 1단계 같은 이름 판정이 «자기 자신»을 빼려고 렌더에서 읽는 값(ref 는 렌더에서 못 읽는다). */
-  const [selfCycleId, setSelfCycleId] = useState(cycle?.id ?? null);
+  const [selfCycleId, setSelfCycleId] = useState(cycle?.id ?? draftCycleId ?? null);
   /* 비동기 응답이 «그때의 값»이 아니라 지금 값을 보게 하는 자리. 렌더 중에는 읽지도 쓰지도 않는다. */
   const leaderLatest = useRef({});
   useLayoutEffect(() => {
@@ -6676,6 +6686,9 @@ export default function EvalCycleWizard({
       leaderCells.length > 0 ? leaderCells.map(({ warnings: _w, ...rest }) => rest) : undefined,
     leaderConfirm: leaderConfirmed ? leaderConfirm : undefined,
     leaderConfirmShape: leaderConfirmed ? (leaderConfirmShape ?? undefined) : undefined,
+    /* [PW-1989] 목록 초안 카드의 「대상 N명」. 입력이 아니라 요약이라 이어쓰기에서는 읽지 않는다.
+       대상자 후보를 아직 못 받았으면 0 이 아니라 비워 둔다 — 카드가 「대상 0명」을 띄우지 않게. */
+    targetCount: candidatesLoading || candidatesError ? undefined : targetCount,
   });
 
   /**
