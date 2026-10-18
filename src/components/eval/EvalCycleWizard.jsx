@@ -3084,6 +3084,10 @@ export default function EvalCycleWizard({
       );
     }
     const saved = initialSeq?.reminders ?? {};
+    // [PW-1959] 오픈된 사이클의 저장값은 발송기가 실제로 보내는 목록이다 — 기본값과 같아도 버리지
+    // 않는다. 버리면 화면이 「리마인더 0회」로 보이고, 그 단계에 하나를 더해 저장하면 저장돼 있던
+    // 기본 리마인더가 지워진다(저장은 단계를 통째로 바꾼다).
+    if (openedManage) return { ...saved };
     const slots = initialSeq?.schedule ?? {};
     return Object.fromEntries(
       Object.entries(saved).filter(([id]) => !isPresetReminderList(saved[id], slots[id])),
