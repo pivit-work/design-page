@@ -2736,7 +2736,11 @@ export default function EvalCycleSummaryCanvas({
       const optedOutCount = typeof result?.optedOut === 'number' ? result.optedOut : 0;
       setSent((prev) => new Set([...prev, ...sentIds]));
       setSelected(new Set());
-      setRemindToast({ sent: sentCount, skipped: skippedCount, optedOut: optedOutCount });
+      /* [PW-1958] 소비 측이 결과를 자기 알림 한 줄로 이미 알렸으면(`notified`) 여기 알림을 또 띄우지
+         않는다 — 두 알림이 겹쳐 «N명 발송»과 경고가 따로 뜬다. */
+      if (!result?.notified) {
+        setRemindToast({ sent: sentCount, skipped: skippedCount, optedOut: optedOutCount });
+      }
     } catch {
       // TC-202 실패 시 전역 에러 대신 에러 토스트(선택 유지 → 재시도 가능).
       setRemindError(true);
