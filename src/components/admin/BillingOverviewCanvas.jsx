@@ -85,7 +85,8 @@ const DEFAULT_LABELS = {
   seatsFreeCount: (seats, limit) => `${seats} / ${limit}`,
   seatsPaidCount: (seats) => `${seats}명`,
   nearLimitWarning: 'Free 좌석 한도에 근접했습니다. 구성원을 더 추가하려면 업그레이드가 필요합니다.',
-  seatAutoNote: '좌석은 재직 구성원 수로 자동 산정됩니다. 구성원 초대·비활성으로 조정 → 다음 청구일 반영.',
+  // 수습도 좌석으로 센다(PW-1348) — 「재직」만 쓰면 수습이 빠지는 것처럼 읽힌다 (PW-1949).
+  seatAutoNote: '좌석은 재직·수습 구성원 수로 자동 산정됩니다. 구성원 초대·비활성으로 조정 → 다음 청구일 반영.',
   manageMembers: '구성원 관리 →',
 
   nextBillingLabel: '다음 청구',
