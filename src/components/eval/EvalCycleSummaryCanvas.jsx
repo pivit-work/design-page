@@ -618,6 +618,7 @@ const DEFAULT_LABELS = {
   // §4.A 미제출자 리마인드
   submitAllDone: '전원 제출 완료',
   submitPending: '미제출 {n}명 · 클릭 → 리마인드',
+  submitPendingCount: '미제출 {n}명',
   remindTitle: '미제출자 리마인드',
   remindSubtitle: '제출 완료율 {pct}% · 미제출 {n}명',
   remindSelectAll: '전체 선택',
@@ -2674,6 +2675,8 @@ export default function EvalCycleSummaryCanvas({
 
   // §4.A 미제출자 리마인드 모달
   const pendingCount = nonSubmitters.length;
+  // PW-1809 — 독촉 손잡이가 없으면(끝난 평가 등) 카드를 누를 수 없다. 창이 열리고 [발송]이 거절되는 일을 막는다.
+  const canRemind = pendingCount > 0 && Boolean(onSendReminders);
   const [showRemind, setShowRemind] = useState(false);
   const [selected, setSelected] = useState(() => new Set());
   const [sent, setSent] = useState(() => new Set());
@@ -2691,7 +2694,7 @@ export default function EvalCycleSummaryCanvas({
     iso && remindOpenedAt ? remindOpenedAt - new Date(iso).getTime() < 24 * 3600 * 1000 : false;
 
   const openRemind = () => {
-    if (pendingCount === 0) return;
+    if (!canRemind) return;
     setRemindOpenedAt(Date.now());
     setSelected(new Set(nonSubmitters.filter((n) => !sent.has(n.memberId)).map((n) => n.memberId)));
     setShowRemind(true);
@@ -2969,19 +2972,21 @@ export default function EvalCycleSummaryCanvas({
                 {cycle?.name && <span className="evs-kpi-sub">{cycle.name}</span>}
               </div>
               <div
-                className={`evs-kpi tone-green${pendingCount > 0 ? ' is-clickable' : ''}`}
+                className={`evs-kpi tone-green${canRemind ? ' is-clickable' : ''}`}
                 data-testid="evs-kpi-submit"
-                role={pendingCount > 0 ? 'button' : undefined}
-                tabIndex={pendingCount > 0 ? 0 : undefined}
-                onClick={pendingCount > 0 ? openRemind : undefined}
-                onKeyDown={pendingCount > 0 ? (e) => { if (e.key === 'Enter' || e.key === ' ') openRemind(); } : undefined}
+                role={canRemind ? 'button' : undefined}
+                tabIndex={canRemind ? 0 : undefined}
+                onClick={canRemind ? openRemind : undefined}
+                onKeyDown={canRemind ? (e) => { if (e.key === 'Enter' || e.key === ' ') openRemind(); } : undefined}
               >
                 <span className="evs-kpi-value">
-                  {submitPct}%{pendingCount > 0 && <span className="evs-kpi-chevron"> ›</span>}
+                  {submitPct}%{canRemind && <span className="evs-kpi-chevron"> ›</span>}
                 </span>
                 <span className="evs-kpi-label">{L.kpiSubmitRate}</span>
-                {pendingCount > 0 ? (
+                {canRemind ? (
                   <span className="evs-kpi-sub evs-kpi-hint">{fmt(L.submitPending, { n: pendingCount })}</span>
+                ) : pendingCount > 0 ? (
+                  <span className="evs-kpi-sub">{fmt(L.submitPendingCount, { n: pendingCount })}</span>
                 ) : selfSubmittedCount >= totalParticipants && totalParticipants > 0 ? (
                   <span className="evs-kpi-sub">{L.submitAllDone}</span>
                 ) : (
