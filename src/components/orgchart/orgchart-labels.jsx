@@ -34,6 +34,8 @@ export const ORGCHART_LABELS = {
   'org.directSlot': '직속 {{count}}명',
   'org.expandChildren': '{{name}} 하위 조직 펼치기',
   'org.collapseChildren': '{{name}} 하위 조직 접기',
+  'org.expandAll': '전체 펼치기 — 모든 조직을 펼친 첫 화면으로',
+  'org.collapseAll': '전체 접기 — 회사와 최상위 조직 카드만 남기고 접기',
 
   // ── 프로필 카드 (프로젝트 탭 · design-page 자체 화면) ──
   'profile.employmentType': '고용형태',

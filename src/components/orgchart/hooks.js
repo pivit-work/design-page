@@ -4,6 +4,36 @@ import { PositionsContext } from './contexts';
 
 const POSITIONS_STORAGE_KEY = 'pivit_orgchart_positions';
 
+/**
+ * 접어 둔 조직 id 를 조직(워크스페이스)마다 기억하는 자리 (pivit-specs org-chart-public-card-spec.md §5.4 「상태 유지」).
+ * **접힘**을 저장한다 — 새로 생긴 조직은 목록에 없으니 펼친 채로 나온다.
+ * `v2` 인 까닭: 종전 키에는 «루트+1depth» 기준 접힘 집합이 통째로 들어 있어 그대로 읽으면
+ * 새 기본값(전체 펼침)이 영영 안 보인다. 종전 키는 읽지도 지우지도 않는다(§5.4 엣지 7).
+ * workspaceId 가 없으면 저장하지 않는다(이번 화면에서만 기억한다).
+ */
+export function collapsedStorageKey(workspaceId) {
+  return workspaceId ? `pivit.orgchart.collapsed.v2.${workspaceId}` : null;
+}
+
+export function loadCollapsed(key) {
+  if (!key) return new Set();
+  try {
+    const parsed = JSON.parse(localStorage.getItem(key) ?? '[]');
+    return new Set(Array.isArray(parsed) ? parsed : []);
+  } catch { return new Set(); }
+}
+
+// 저장소가 막힌 브라우저에서는 조용히 메모리로만 동작한다 — 사용자가 고칠 일이 아니다(§5.4 엣지 4).
+export function saveCollapsed(key, ids) {
+  if (!key) return;
+  try { localStorage.setItem(key, JSON.stringify([...ids])); } catch { /* 이번 화면에서만 기억한다 */ }
+}
+
+export function clearCollapsed(key) {
+  if (!key) return;
+  try { localStorage.removeItem(key); } catch { /* 지울 것도 없다 */ }
+}
+
 export function loadPositions() {
   try {
     const raw = localStorage.getItem(POSITIONS_STORAGE_KEY);

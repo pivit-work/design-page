@@ -455,6 +455,27 @@ export function ConnectorElbowGlyph(props) {
   );
 }
 
+/** 네모 안 더하기(⊞) — 조직도 «전체 펼치기». */
+export function PlusSquareGlyph(props) {
+  return (
+    <LineSvg {...props}>
+      <rect x="3" y="3" width="18" height="18" rx="4" />
+      <path d="M12 8v8" />
+      <path d="M8 12h8" />
+    </LineSvg>
+  );
+}
+
+/** 네모 안 빼기(⊟) — 조직도 «전체 접기». */
+export function MinusSquareGlyph(props) {
+  return (
+    <LineSvg {...props}>
+      <rect x="3" y="3" width="18" height="18" rx="4" />
+      <path d="M8 12h8" />
+    </LineSvg>
+  );
+}
+
 /**
  * 끌어 옮기는 손잡이 — 점 여섯 개. 6×10 틀이라 `size` 가 아니라 `width`·`height` 로 준다.
  * 점 색은 원래 그림대로 회색(#D2D6DB)이 기본이고, `color` 로 바꿀 수 있다.

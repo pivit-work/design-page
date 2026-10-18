@@ -1,23 +1,20 @@
-import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useCallback, useEffect, useLayoutEffect, useMemo } from 'react';
 import Icon from '../shared/Icon.jsx';
-import { ConnectorCurveGlyph, ConnectorElbowGlyph } from '../shared/lineIcons.jsx';
+import { ConnectorCurveGlyph, ConnectorElbowGlyph, PlusSquareGlyph, MinusSquareGlyph } from '../shared/lineIcons.jsx';
 import usePanZoom from '../shared/usePanZoom.js';
 import DateInput from '../shared/DateInput.jsx';
 import OrgNode from './OrgNode.jsx';
 import BezierConnectors from './BezierConnectors.jsx';
 import ProfileModal from './ProfileModal.jsx';
 import { PositionsContext, ModalContext, MoveContext, DragContext, CollapseContext } from './contexts.js';
-import { loadPositions, savePositions } from './hooks.js';
+import { loadPositions, savePositions, collapsedStorageKey, loadCollapsed, saveCollapsed, clearCollapsed } from './hooks.js';
 import { OrgLabelsContext, makeOrgLabels } from './orgchart-labels.jsx';
 
 /**
- * 처음 열었을 때 접어 둘 노드 = **루트를 뺀 모든 하위 조직**.
+ * [전체 접기](⊟)가 접는 노드 = **루트를 뺀 모든 하위 조직**. 회사 카드와 최상위 조직 카드만 남는다.
  *
- * 트리를 전부 펼친 채 그리면 조직이 커질수록 캔버스가 뷰포트를 압도한다
- * (138명 조직 기준 9670×7464px vs 뷰포트 910×646px — 첫 화면에 부서 카드
- * 37개 중 1개만 들어왔다). 전체가 들어오게 축소하면 배율이 8.7% 라 글자를
- * 읽을 수 없다. 그래서 루트만 펼치고 아래는 접은 채 시작하고, 사용자가
- * 필요한 가지만 눌러서 내려간다.
+ * 2026-10-10 까지는 이것이 첫 화면이었다(PW-63). 2026-10-11 기획서 개정으로 첫 화면은
+ * 전체 펼침이 됐고 이 모양은 ⊟ 의 결과로 남았다(PW-1952 · §5.4 「초기 펼침 범위」).
  *
  * **사람만 있는 조직도 접는다** — 하위 조직만 세면 사람만 있는 최상위 조직이 펼쳐진 채
  * 열려, 기획서의 「회사 카드 + 최상위 조직 카드까지 · 그 안은 접힘」과 어긋난다
@@ -46,15 +43,12 @@ function OrthoLineIcon() {
   return <ConnectorElbowGlyph size={20} />;
 }
 
-// 첫 화면이 트리를 담도록 축소할 때의 하한. 이보다 더 줄이면 카드 글자를
-// 못 읽어서 "보인다" 고 할 수 없다 — 나머지는 드래그로 본다.
-const MIN_FIT_SCALE = 0.5;
-
 // 조직 축 탭 노출 여부. 소비처가 아직 구현이 끝나지 않은 축을 닫을 수 있게 한다
 // (pivit-work PW-249 — 프로젝트 축 phase 게이트). 기본값은 노출이라 기존 화면은 그대로다.
 // highlight `{ unitIds }` — 회사 루트부터 내 소속까지의 단위 id. 주면 그 길의 연결선을 강조한다
 // (pivit-specs org-chart-public-card-spec.md §5.4-B). 안 주면 강조가 없다 — 다른 화면은 넘기지 않는다.
-export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIcons, baseUrl = '', onMemberClick, renderAvatar, editMode = false, onSubTabChange, findSubordinates, adminMode: adminModeProp = false, onAdminModeChange, showGrade = false, showProjectTab = true, lineStyleLabel: lineStyleLabelProp, labels, asOf, highlight }) {
+// workspaceId — 접힘 상태를 조직마다 브라우저에 기억할 때 쓴다(§5.4 「상태 유지」). 안 주면 이번 화면에서만 기억한다.
+export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIcons, baseUrl = '', onMemberClick, renderAvatar, editMode = false, onSubTabChange, findSubordinates, adminMode: adminModeProp = false, onAdminModeChange, showGrade = false, showProjectTab = true, lineStyleLabel: lineStyleLabelProp, labels, asOf, highlight, workspaceId }) {
   // 화면 문구 — 소비자가 번역을 넘긴다(PW-705). 안 넘기면 한국어 기본값.
   const L = useMemo(() => makeOrgLabels(labels), [labels]);
   // `lineStyleLabel` 은 `labels` 보다 먼저 생긴 자리라 그대로 받는다 — 주면 그것이 이긴다.
@@ -62,27 +56,45 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
   const [orgData, setOrgData] = useState(initialOrgData);
   const [dropTarget, setDropTarget] = useState(null);
   // 연결선 곡선(기본) ↔ 직각 — 세션 상태다. 새로고침하면 곡선으로 돌아온다(§5.1).
-  // 되돌리기(↺)는 트리 모양을 되돌리는 버튼이라 이 값은 건드리지 않는다.
+  // 전체 펼치기(⊞)·접기(⊟)는 트리 모양을 바꾸는 버튼이라 이 값은 건드리지 않는다.
   const [lineStyle, setLineStyle] = useState('curve');
-  const [collapsedIds, setCollapsedIds] = useState(() => collapsedBelowRoot(initialOrgData));
+  // 첫 화면은 전체 펼침(빈 집합)이다. 기억해 둔 접힘이 있으면 그대로 연다(§5.4 엣지 8).
+  // 기억해 둔 id 가 지금 트리에 없으면(조직 개편) 아무 노드도 안 접힐 뿐이다(엣지 3).
+  const collapseKey = collapsedStorageKey(workspaceId);
+  const [collapsedIds, setCollapsedIds] = useState(() => loadCollapsed(collapseKey));
 
-  // 외부 데이터가 바뀌면 로컬 편집 상태를 재초기화 (render 중 조정 패턴)
+  // 외부 데이터가 바뀌면 로컬 편집 상태를 재초기화 (render 중 조정 패턴).
+  // 접힘은 사용자가 고른 상태라 두고 간다 — 기준일을 바꿔도 접어 둔 조직은 접힌 채다.
   const [prevInitialOrgData, setPrevInitialOrgData] = useState(initialOrgData);
   if (prevInitialOrgData !== initialOrgData) {
     setPrevInitialOrgData(initialOrgData);
     setOrgData(initialOrgData);
-    setCollapsedIds(collapsedBelowRoot(initialOrgData));
   }
+
+  const canvasInnerRef = useRef(null);
+  // 배지로 한 조직을 여닫으면 트리 폭이 바뀌고, 트리는 가운데 정렬이라 화면 전체가 옆으로 밀린다
+  // (브라우저 실측: 최상위 조직 하나를 접자 632px 튀었다). 기획서는 «보던 자리가 튀면 안 된다» —
+  // 누른 카드의 화면 위치를 재 두었다가, 다시 그린 직후 그만큼 이동값을 되돌린다(§5.4 「첫 화면 위치」).
+  const toggleAnchorRef = useRef(null);
+  const findDeptCard = useCallback((id) => {
+    const inner = canvasInnerRef.current;
+    if (!inner) return null;
+    const node = [...inner.querySelectorAll('[data-node-id]')].find(el => el.dataset.nodeId === String(id));
+    return node?.querySelector(':scope > .dept-card') ?? null;
+  }, []);
 
   const isCollapsed = useCallback((id) => collapsedIds.has(id), [collapsedIds]);
   const toggleCollapse = useCallback((id) => {
+    const rect = findDeptCard(id)?.getBoundingClientRect();
+    toggleAnchorRef.current = rect ? { id, left: rect.left, top: rect.top } : null;
     setCollapsedIds(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
+      saveCollapsed(collapseKey, next);
       return next;
     });
-  }, []);
+  }, [collapseKey, findDeptCard]);
   const collapseContext = useMemo(
     () => ({ isCollapsed, toggleCollapse }),
     [isCollapsed, toggleCollapse],
@@ -139,21 +151,32 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
   }, [onMemberClick]);
   const closeModal = useCallback(() => setSelectedMember(null), []);
 
-  const { canvasRef, scale, translate, isDragging, canvasProps, zoomIn, zoomOut, resetView, setView } = usePanZoom({
+  const { canvasRef, scale, translate, isDragging, canvasProps, zoomIn, zoomOut, setView } = usePanZoom({
     ignoreSelector: '.zoom-controls, .member-node, .dept-card',
   });
-  const canvasInnerRef = useRef(null);
 
-  // 초기 카메라를 root 노드가 화면 가로 중앙에 오도록 맞추고, 트리가 뷰포트를
-  // 넘으면 들어올 만큼 축소한다.
-  // 트리는 canvas-inner 안에서 justify-content:center 로 가운데 정렬되므로,
-  // 인원이 많아 트리가 뷰포트보다 넓으면 root 가 오른쪽으로 밀려 초기 뷰(translate 0)
-  // 에서 빈 화면처럼 보인다. 마운트 후(레이아웃·커넥터 안정화 대기) 한 번만 보정한다.
-  // 가로 중앙 정렬만으로는 부족하다 — 루트 직속 인원이 세로로 쌓이면 그 아래
-  // 하위 조직 줄이 뷰포트 밖으로 밀려서, 스크롤바도 없는 캔버스에서는 "하위 조직이
-  // 아예 없다" 로 보인다(PW-63 제보 경로). 그래서 세로도 함께 맞춘다.
-  // 되돌리기 버튼도 이 계산을 다시 쓴다 — nonce 를 올려 effect 를 한 번 더 태운다.
-  // (resetView() 가 먼저 scale 1 / translate 0 으로 돌려놓으므로 아래 실측 전제가 유지된다.)
+  // 첫 화면 위치 — 회사 카드를 캔버스 가로 가운데 · 맨 위에 둔다. **줌 배율은 바꾸지 않는다**
+  // (pivit-specs §5.4 「첫 화면 위치」 2026-10-11). 트리는 canvas-inner 안에서
+  // justify-content:center 로 가운데 정렬되므로, 전체 펼침이면 트리가 뷰포트보다 넓어
+  // translate 0 에서는 회사 카드가 오른쪽 끝(줌 버튼 밑)에 걸린다.
+  // 마운트 후(레이아웃·커넥터 안정화 대기) 한 번 맞추고, ⊞·⊟ 를 누른 직후에도 다시 맞춘다 —
+  // nonce 를 올려 effect 를 한 번 더 태운다. 배지로 한 조직을 여닫을 때는 맞추지 않는다(보던 자리가 튀면 안 된다).
+  // 지금 배율·이동값은 ref 로 읽는다 — effect 의존성에 넣으면 끌 때마다 다시 맞춰 버린다.
+  const viewRef = useRef({ scale, translate });
+  useEffect(() => { viewRef.current = { scale, translate }; }, [scale, translate]);
+  useLayoutEffect(() => {
+    const anchor = toggleAnchorRef.current;
+    if (!anchor) return;
+    toggleAnchorRef.current = null;
+    const rect = findDeptCard(anchor.id)?.getBoundingClientRect();
+    if (!rect) return;
+    const dx = anchor.left - rect.left;
+    const dy = anchor.top - rect.top;
+    if (!dx && !dy) return;
+    // 배율·이동값은 ref 로 읽는다 — 의존성에 넣으면 끄는 동안에도 돌아 카메라가 붙잡힌다.
+    const { scale: s, translate: t } = viewRef.current;
+    setView(s, { x: Math.round(t.x + dx), y: Math.round(t.y + dy) });
+  }, [collapsedIds, setView, findDeptCard]);
   const didCenterRef = useRef(false);
   const [fitNonce, setFitNonce] = useState(0);
   const refitView = useCallback(() => {
@@ -178,24 +201,14 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
         const deptRect = rootDept.getBoundingClientRect();
         if (!areaRect.width || !deptRect.width) return;
 
-        // 이 effect 는 마운트 직후(scale 1 · translate 0) 한 번만 실행되므로,
-        // 지금 재는 좌표가 곧 콘텐츠 로컬 좌표다.
-        // 크기는 **레이아웃 박스**(offsetWidth/Height)로 잰다 — scrollWidth 를 쓰면
-        // 배경 점무늬(`.canvas-inner::before`, 사방 5000px)까지 콘텐츠로 세어서
-        // 트리가 실제보다 훨씬 큰 것으로 나오고 배율이 하한까지 떨어진다.
-        const contentW = inner.offsetWidth;
-        const contentH = inner.offsetHeight;
-        const fit = Math.min(areaRect.width / contentW, areaRect.height / contentH);
-        // 확대는 하지 않는다(작은 조직을 억지로 키우면 카드가 흐려진다). 축소만, 하한까지.
-        const scale = Math.min(1, Math.max(MIN_FIT_SCALE, fit));
-
-        // transformOrigin 이 0 0 이라 로컬 좌표 p 는 innerLeft + tx + scale*p 로 간다.
-        // root 카드 중심을 뷰포트 가로 중앙에 두고, 콘텐츠 위쪽을 캔버스 위에 붙인다.
+        // 재는 좌표는 지금 화면(배율·이동이 걸린 뒤)이다. 배율은 그대로 두고 이동만 그 차이만큼
+        // 옮기면 된다 — transformOrigin 이 0 0 이라 이동은 화면 좌표에 그대로 더해진다.
+        const { scale: s, translate: t } = viewRef.current;
         const areaCenterX = areaRect.left + areaRect.width / 2;
         const deptCenterX = deptRect.left + deptRect.width / 2;
-        setView(scale, {
-          x: Math.round(areaCenterX - innerRect.left - scale * (deptCenterX - innerRect.left)),
-          y: Math.round(areaRect.top - innerRect.top),
+        setView(s, {
+          x: Math.round(t.x + areaCenterX - deptCenterX),
+          y: Math.round(t.y + areaRect.top - innerRect.top),
         });
         didCenterRef.current = true;
       });
@@ -283,10 +296,32 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
           <button className="zoom-btn" onClick={zoomOut}>
             <Icon src={icons.minus} size={20} color="var(--text-primary)" baseUrl={baseUrl} />
           </button>
-          <button className="zoom-btn" onClick={() => { resetView(); resetPositions(); setCollapsedIds(collapsedBelowRoot(initialOrgData)); refitView(); }}>
-            <Icon src={icons.refresh} size={20} color="var(--text-primary)" baseUrl={baseUrl} />
+          {/* ⊞ 전체 펼치기 — 종전 ↺(처음 화면으로) 자리를 잇는다: 접힘을 비우고 기억도 지우고,
+              끌어 옮긴 카드도 제자리로. ⊟ 전체 접기 — 회사·최상위 조직 카드만 남기고 그 상태를 기억한다.
+              둘 다 연결선 모양·줌 배율은 그대로 둔다(§5.4 「전체 펼치기·접기」). */}
+          <button
+            type="button"
+            className="zoom-btn"
+            title={L('org.expandAll')}
+            aria-label={L('org.expandAll')}
+            data-action="expand-all"
+            style={{ color: 'var(--text-primary)' }}
+            onClick={() => { resetPositions(); setCollapsedIds(new Set()); clearCollapsed(collapseKey); refitView(); }}
+          >
+            <PlusSquareGlyph size={20} />
           </button>
-          {/* 네 번째 버튼 — 아이콘은 «지금» 모양을 그린다(어드민 조직단위 설정과 같다). */}
+          <button
+            type="button"
+            className="zoom-btn"
+            title={L('org.collapseAll')}
+            aria-label={L('org.collapseAll')}
+            data-action="collapse-all"
+            style={{ color: 'var(--text-primary)' }}
+            onClick={() => { const next = collapsedBelowRoot(orgData); setCollapsedIds(next); saveCollapsed(collapseKey, next); refitView(); }}
+          >
+            <MinusSquareGlyph size={20} />
+          </button>
+          {/* 다섯 번째 버튼 — 아이콘은 «지금» 모양을 그린다(어드민 조직단위 설정과 같다). */}
           <button
             type="button"
             className="zoom-btn"
