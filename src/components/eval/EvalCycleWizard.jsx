@@ -34,6 +34,7 @@ import {
 import { stampScheduleDateTime } from './evalScheduleStamp.js';
 // [PW-614] 지난 날짜 판정도 두 화면이 같은 것을 쓴다.
 import {
+  isPastScheduleEnd,
   isPastScheduleStart,
   isReminderBeforePhaseStart,
   phaseHasTemplate,
@@ -300,7 +301,7 @@ const dateTimeOutOfOrder = (start, end) => {
  * 눌렀을 때 달력이 뜨는 것도 그대로다. 달라진 것은 캐럿이 생겨 값을 칠 수 있다는 것뿐.
  * 먼 날짜로 가려고 달을 여러 번 넘길 필요가 없어진다.
  */
-function DateField({ value, onType, onOpen, isOpen, invalid, describedBy, testId, ariaLabel, className }) {
+function DateField({ value, onType, onOpen, isOpen, invalid, describedBy, testId, ariaLabel, className, disabled }) {
   return (
     <TextInput
       inputMode="numeric"
@@ -315,6 +316,7 @@ function DateField({ value, onType, onOpen, isOpen, invalid, describedBy, testId
       onClick={onOpen}
       placeholder="YYYY-MM-DD"
       maxLength={10}
+      disabled={disabled}
       aria-label={ariaLabel}
       // 틀림 표시(빨간 테두리·is-invalid)는 공용 칸이 붙인다. 왜 틀렸는지 알리는 문구가 있으면
       // 그 id 를 받아 칸에 잇는다 — 화면 읽기 프로그램이 「이 칸이 틀렸다 — 이유」를 읽는다 (PW-1012).
@@ -2840,6 +2842,12 @@ export default function EvalCycleWizard({
    */
   isScheduleStartReached,
   /**
+   * PW-1988 — 「이 단계는 끝났다」 판정(일정 수정 창과 같은 소품). `(end) => boolean`.
+   * 오픈한 사이클의 단계별 일정 탭에서, 연 순간의 종료 시각이 지난 단계는 날짜·시각 칸을 잠그고
+   * `L.schedulePhaseDoneLocked` 를 띄운다 — 서버가 그 저장을 거절하기 때문이다. 안 넘기면 날짜로 본다.
+   */
+  isScheduleEndReached,
+  /**
    * PW-822 — 관리 모드에서 위원회 단계를 «이미 있는 위원회»로 채운다.
    * `{ committee: [userId…](첫 사람 = 위원장), name, depts, levels, jobLevels, added, excluded }`.
    * `levels` 는 옛 위원회의 직책 조건, `jobLevels` 는 직급 조건이다(PW-1687).
@@ -3551,6 +3559,19 @@ export default function EvalCycleWizard({
     typeof isScheduleStartReached === 'function'
       ? isScheduleStartReached(start)
       : isPastScheduleStart(start);
+  /**
+   * [PW-1988] 오픈한 사이클에서 «연 순간» 이미 끝난 단계 — 서버가 날짜 변경을 거절한다
+   * (「완료된 단계의 날짜는 변경할 수 없습니다.」). 일정 수정 창(`isDone`)과 같은 판정이다.
+   * 고친 값이 아니라 저장돼 있던 종료 시각으로 잰다 — 고친 값으로 재면 어제로 바꾼 순간 잠겨 되돌릴 수 없다.
+   */
+  const isDonePhase = (id) => {
+    if (!openedManage) return false;
+    const end = initialSeq?.schedule?.[id]?.end;
+    if (!end) return false;
+    return typeof isScheduleEndReached === 'function'
+      ? isScheduleEndReached(end)
+      : isPastScheduleEnd(end);
+  };
   const willLockOnSave = (id) =>
     openedManage &&
     phaseHasTemplate(id) &&
@@ -8965,6 +8986,7 @@ export default function EvalCycleWizard({
                                   onOpen={openSchedPicker(ph.id, field)}
                                   isOpen={schedPicker?.phaseId === ph.id && schedPicker?.field === field}
                                   invalid={schedFieldInvalid(ph.id, field)}
+                                  disabled={isDonePhase(ph.id)}
                                   ariaLabel={field === 'start' ? L.startDate : L.endDate}
                                   testId={`evc-sched-${field}-${ph.id}`}
                                 />
@@ -8972,7 +8994,7 @@ export default function EvalCycleWizard({
                                   className="evc-input evc-time-input"
                                   value={timePart(sc[field], field)}
                                   onChange={(v) => updateSchedTime(ph.id, field, v)}
-                                  disabled={!datePart(sc[field])}
+                                  disabled={!datePart(sc[field]) || isDonePhase(ph.id)}
                                   aria-label={field === 'start' ? L.startTime : L.endTime}
                                   data-testid={`evc-sched-${field}-time-${ph.id}`}
                                 />
@@ -8990,6 +9012,15 @@ export default function EvalCycleWizard({
                               </div>
                             </div>
                           ))}
+                        </div>
+                      )}
+                      {/* [PW-1988] 끝난 단계는 칸을 잠그고 왜 잠겼는지 적는다 — 일정 수정 창과 같은 모양·문구. */}
+                      {enabled && isDonePhase(ph.id) && L.schedulePhaseDoneLocked && (
+                        <div
+                          className="evc-sched-modal-locked"
+                          data-testid={`evc-sched-done-${ph.id}`}
+                        >
+                          {L.schedulePhaseDoneLocked}
                         </div>
                       )}
                       {/* [PW-1461 · 정책 §5.10.3] 고친 날짜로 이 단계가 시작되면 저장하는 순간 평가지가
