@@ -4,6 +4,7 @@ import Tabs from '../shared/Tabs.jsx';
 import ReportWeeklyRow from './ReportWeeklyRow.jsx';
 import ReportStatsRow from './ReportStatsRow.jsx';
 import ReportViewerModal from './ReportViewerModal.jsx';
+import LoadMoreButton from '../shared/LoadMoreButton.jsx';
 
 /**
  * ReportCanvas — "리포트" 페이지 Pure 컴포넌트.
@@ -63,6 +64,10 @@ export default function ReportCanvas({
   // 목록 맨 위(이번 기간 행 자리)에 붙이는 안내 노드 — 체험 AI 를 다 써서 생성 버튼이 막혔거나
   // 금요일 자동 생성을 건너뛴 것을 알리는 앰버 안내 (timeline-feed policy §16 · 시안 timeline-app.jsx).
   aiNotice = null,
+  // 목록 맨 아래 [더 보기] `{ label, loadingLabel?, loading? }` (pivit-work PW-1941) — 소비처가 문구까지
+  // 만들어 넘기고, 더 남은 것이 없으면 빼서 버튼이 사라진다. 누르면 `onMore`.
+  more,
+  onMore,
 }) {
   const [internalPeriod, setInternalPeriod] = useState('weekly');
   const effectivePeriod = period ?? internalPeriod;
@@ -157,6 +162,14 @@ export default function ReportCanvas({
             />
           )))}
         </div>
+        {more && (
+          <LoadMoreButton
+            label={more.label}
+            loadingLabel={more.loadingLabel}
+            loading={!!more.loading}
+            onClick={onMore}
+          />
+        )}
       </div>
     </main>
   );
