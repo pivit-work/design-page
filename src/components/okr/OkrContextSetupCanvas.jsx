@@ -541,7 +541,7 @@ function AddSourceComposer({ labels, onAddUrl, onAddText, onAddFile, onCancel, b
           padding: 14,
           borderRadius: 12,
           border: `1px dashed ${T.dropBorder}`,
-          background: '#F8FAFF',
+          background: T.accentFaint,
         }}
       >
         <div style={{ fontSize: 12, fontWeight: 800, color: T.text, marginBottom: 10 }}>
@@ -590,7 +590,7 @@ function AddSourceComposer({ labels, onAddUrl, onAddText, onAddFile, onCancel, b
         padding: 14,
         borderRadius: 12,
         border: `1px dashed ${T.dropBorder}`,
-        background: '#F8FAFF',
+        background: T.accentFaint,
         display: 'flex',
         flexDirection: 'column',
         gap: 10,
