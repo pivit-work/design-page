@@ -1,4 +1,5 @@
 import Icon from '../shared/Icon.jsx';
+import LoadMoreButton from '../shared/LoadMoreButton.jsx';
 import EmptyState from '../shared/EmptyState.jsx';
 import Button from '../shared/Button.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
@@ -266,6 +267,9 @@ function TalkTrend({ trend, L, icons, baseUrl }) {
 function ListScreen({
   memberName,
   sessions,
+  totalCount,
+  more,
+  onMore,
   talkRatioOf,
   L,
   icons,
@@ -287,7 +291,7 @@ function ListScreen({
             {memberName ? fill(L.listTitle, { name: memberName }) : L.listTitleNoName}
           </h1>
         </div>
-        <p className="ono-mem-head-date">{fill(L.totalCount, { count: sessions.length })}</p>
+        <p className="ono-mem-head-date">{fill(L.totalCount, { count: totalCount ?? sessions.length })}</p>
       </header>
 
       {sessions.length === 0 ? (
@@ -358,6 +362,14 @@ function ListScreen({
             );
           })}
         </div>
+      )}
+      {sessions.length > 0 && more && (
+        <LoadMoreButton
+          label={more.label}
+          loadingLabel={more.loadingLabel}
+          loading={!!more.loading}
+          onClick={onMore}
+        />
       )}
     </>
   );
@@ -741,6 +753,11 @@ export default function OneOnOneMemberMeetingsCanvas({
   view = 'list',
   /** 완료 회차만, 최신이 먼저. 필터·정렬은 호스트가 한다. */
   sessions = [],
+  /** 머리의 「총 N회」 — 호스트가 앞 몇 건만 받았을 때 서버가 센 전체 수(pivit-work PW-1941). 없으면 `sessions` 길이 */
+  totalCount,
+  /** 리스트 맨 아래 [더 보기] `{ label, loadingLabel?, loading? }` — 없으면 버튼이 없다. 누르면 `onMore` (PW-1941) */
+  more,
+  onMore,
   /** record/analysis 대상 회차. 없으면 리스트로 떨어뜨린다. */
   session = null,
   /** (session) => { managerPct, memberPct, managerMinutes, memberMinutes } | null */
@@ -844,6 +861,9 @@ export default function OneOnOneMemberMeetingsCanvas({
         <ListScreen
           memberName={memberName}
           sessions={sessions}
+          totalCount={totalCount}
+          more={more}
+          onMore={onMore}
           talkRatioOf={talkRatioOf}
           L={L}
           icons={I}
