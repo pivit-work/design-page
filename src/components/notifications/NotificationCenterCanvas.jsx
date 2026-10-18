@@ -39,7 +39,8 @@ const CATEGORY_ICONS = {
  *   tabUnreadCounts { [filter.value]: number } — 탭마다 붙는 안 읽은 수. 생략한 탭은 items 안에서 센다
  *   more         목록 맨 아래 [더 보기] (pivit-work PW-1942) — `{ label, loadingLabel?, loading? }`.
  *                호스트가 문구까지 만들어 넘기고, 더 남은 알림이 없으면 빼서 버튼이 사라진다. 누르면 `onMore`.
- *                분류 탭은 받아 둔 알림 안에서 거르므로, 그 탭에 받아 둔 것이 없어도(빈 상태) 버튼은 남는다
+ *                분류 탭은 받아 둔 알림 안에서 거르므로, 그 탭에 받아 둔 것이 없어도 버튼은 남는다.
+ *                그때 빈 상태(「알림이 없습니다」)는 그리지 않는다 — 아직 안 받은 것이지 없는 게 아니다
  *   onFilterChange(value) · onItemClick(id) · onActionClick(id) · onMarkAllRead() · onOpenSettings() · onMore()
  */
 export default function NotificationCenterCanvas({
@@ -113,7 +114,8 @@ export default function NotificationCenterCanvas({
           </div>
         )}
 
-        {!loading && visible.length === 0 && (
+        {/* 더 받을 알림이 남았으면 「알림이 없습니다」는 거짓이라 그리지 않는다 — [더 보기]만 남는다 */}
+        {!loading && visible.length === 0 && !more && (
           <div className="ncc-empty" data-testid="notif-empty">
             <div className="ncc-empty-inner">
               <span className="ncc-empty-bell">
