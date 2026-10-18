@@ -3348,7 +3348,22 @@ export default function EvalCycleWizard({
   const defaultSchedule = initSchedule(activePhases, scheduleStart);
   // PW-122 우선순위: 사용자가 직접 고친 값 > 프리셋 오프셋(D0 기준) > 7일 간격 기본값.
   const presetSchedule = offsetsToSchedule(presetOffsets, scheduleStart);
+  /**
+   * [PW-1988] 오픈한 사이클에서 «연 순간» 이미 끝난 단계 — 서버가 날짜 변경을 거절한다
+   * (「완료된 단계의 날짜는 변경할 수 없습니다.」). 일정 수정 창(`isDone`)과 같은 판정이다.
+   * 고친 값이 아니라 저장돼 있던 종료 시각으로 잰다 — 고친 값으로 재면 어제로 바꾼 순간 잠겨 되돌릴 수 없다.
+   * 끝난 단계는 「일정 시작일」·「전체 다시 배치」로도 움직이지 않는다 — 잠긴 칸의 날짜가 말없이 바뀌면 안 된다.
+   */
+  const isDonePhase = (id) => {
+    if (!openedManage) return false;
+    const end = initialSeq?.schedule?.[id]?.end;
+    if (!end) return false;
+    return typeof isScheduleEndReached === 'function'
+      ? isScheduleEndReached(end)
+      : isPastScheduleEnd(end);
+  };
   const scheduleOf = (id) =>
+    (isDonePhase(id) && initialSeq.schedule[id]) ||
     schedule[id] || presetSchedule[id] || defaultSchedule[id] || { start: '', end: '' };
   /*
    * 저장된 값이 구 형태(email.{subject,body})여도 화면은 message 로 읽는다 [PW-435 ⑤].
@@ -3559,19 +3574,6 @@ export default function EvalCycleWizard({
     typeof isScheduleStartReached === 'function'
       ? isScheduleStartReached(start)
       : isPastScheduleStart(start);
-  /**
-   * [PW-1988] 오픈한 사이클에서 «연 순간» 이미 끝난 단계 — 서버가 날짜 변경을 거절한다
-   * (「완료된 단계의 날짜는 변경할 수 없습니다.」). 일정 수정 창(`isDone`)과 같은 판정이다.
-   * 고친 값이 아니라 저장돼 있던 종료 시각으로 잰다 — 고친 값으로 재면 어제로 바꾼 순간 잠겨 되돌릴 수 없다.
-   */
-  const isDonePhase = (id) => {
-    if (!openedManage) return false;
-    const end = initialSeq?.schedule?.[id]?.end;
-    if (!end) return false;
-    return typeof isScheduleEndReached === 'function'
-      ? isScheduleEndReached(end)
-      : isPastScheduleEnd(end);
-  };
   const willLockOnSave = (id) =>
     openedManage &&
     phaseHasTemplate(id) &&
