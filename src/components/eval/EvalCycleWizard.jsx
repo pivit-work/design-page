@@ -505,6 +505,36 @@ const MESSAGE_TEMPLATE_PREVIEW = {
     body: '{stage} 미제출 {pendingCount}명입니다. ({pendingList})',
     cta: '진행 현황 보기 → {link}',
   },
+  /* [PW-1997] 결과 발송·캘리브레이션은 제출하는 단계가 아니라 담당이 발송·등급 확정을 마치는
+     운영 독촉이다 — 「제출해주세요」·「마감 후 제출이 불가합니다」를 쓰지 않는다. */
+  share: {
+    subject: '[{cycleName}] {stage} 마감 D-{offset}',
+    body: '{name}님, 아직 결과 발송이 완료되지 않았습니다. {dueDate}까지 리포트 검수에서 결과를 발송해 주세요.',
+    cta: '결과 발송하러 가기 → {link}',
+  },
+  shareUrgent: {
+    subject: '[{cycleName}] {stage} 마감 임박 — {dueDate}까지',
+    body: '{name}님, 결과 발송 마감이 {dueDate}입니다. 리포트 검수에서 지금 결과를 발송해 주세요.',
+    cta: '결과 발송하러 가기 → {link}',
+  },
+  calibration: {
+    subject: '[{cycleName}] {stage} 마감 D-{offset}',
+    body: '{name}님, 아직 캘리브레이션이 완료되지 않았습니다. {dueDate}까지 등급을 확정해 주세요.',
+    cta: '캘리브레이션하러 가기 → {link}',
+  },
+  calibrationUrgent: {
+    subject: '[{cycleName}] {stage} 마감 임박 — {dueDate}까지',
+    body: '{name}님, 캘리브레이션 마감이 {dueDate}입니다. 지금 등급을 확정해 주세요.',
+    cta: '캘리브레이션하러 가기 → {link}',
+  },
+};
+/** [PW-1997] 자기 문구를 따로 가진 단계 — 기본·마감 임박 두 템플릿만 갈아 끼운다. */
+const OWN_MESSAGE_PHASES = ['share', 'calibration'];
+const previewTemplateKey = (phaseId, template) => {
+  if (OWN_MESSAGE_PHASES.includes(phaseId) && (template === 'default' || template === 'urgent')) {
+    return template === 'urgent' ? `${phaseId}Urgent` : phaseId;
+  }
+  return template;
 };
 /**
  * 한 벌의 문구가 채널마다 어떻게 그려지는가 — **「슬랙 문구는 어디서 확인하나」에 대한
@@ -4081,7 +4111,9 @@ export default function EvalCycleWizard({
    */
   const renderMessageSample = (ph, rm, i, ch) => {
     const msg = messageOf(rm);
-    const tpl = MESSAGE_TEMPLATE_PREVIEW[msg.template] ?? MESSAGE_TEMPLATE_PREVIEW.default;
+    const tpl =
+      MESSAGE_TEMPLATE_PREVIEW[previewTemplateKey(ph.id, msg.template ?? 'default')] ??
+      MESSAGE_TEMPLATE_PREVIEW.default;
     const isCustom = msg.template === 'custom';
     const base = {
       subject: isCustom ? msg.subject ?? '' : tpl.subject,
