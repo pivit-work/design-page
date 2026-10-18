@@ -6,11 +6,16 @@ import OkrProgressBar from './OkrProgressBar.jsx';
  * type 'person' 은 흰 카드 + 역할 표기(폭 축소),
  * 그 외(조직 단위)는 blue-50 배경 + Lead 표기.
  * 드래그는 OkrGroupNode 가 소유 — 여기서는 onMouseDown 만 전달받는다.
+ *
+ * `progress` 가 null/undefined 면 진행 막대와 %를 그리지 않는다 — 공개 범위로 가려진
+ * 개인 칸처럼 «값이 없는» 칸에 0% 를 찍으면 아무것도 안 한 사람처럼 읽힌다
+ * (`okr-policy.md §3.4-A`, PW-1980). 실제 0 은 0% 로 그린다.
  */
 export default function OkrGroupCard({ group, onMouseDown, isDragging }) {
   const isCompany = group.type === 'company';
   const isPerson = group.type === 'person';
   const tone = isCompany ? 'is-company' : isPerson ? 'is-person' : 'is-team';
+  const hasProgress = group.progress != null;
   return (
     <div
       className={`okr-group-card ${tone}${isDragging ? ' okr-block-dragging' : ''}`}
@@ -31,8 +36,12 @@ export default function OkrGroupCard({ group, onMouseDown, isDragging }) {
           <span>{group.lead}</span>
         </div>
       ) : null}
-      <OkrProgressBar percent={group.progress} variant={group.progressVariant} />
-      <p className={`okr-group-percent is-${group.progressVariant}`}>{group.progress}%</p>
+      {hasProgress && (
+        <>
+          <OkrProgressBar percent={group.progress} variant={group.progressVariant} />
+          <p className={`okr-group-percent is-${group.progressVariant}`}>{group.progress}%</p>
+        </>
+      )}
       <p className="okr-group-summary">{group.summary}</p>
     </div>
   );
