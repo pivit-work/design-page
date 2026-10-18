@@ -66,6 +66,9 @@ const DEFAULT_LABELS = {
     error: '오결제 정정',
   },
   refundAmount: (amount) => `환불 −${won(amount)}`,
+  // 돈이 아직 안 돌아간 환불은 금액 줄을 «취소됨»처럼 흐리게 — 끝난 환불로 읽히지 않게(PW-1956)
+  refundPendingAmount: (amount) => `환불 예정 −${won(amount)}`,
+  refundNotDoneAmount: (amount) => `환불 안 됨 −${won(amount)}`,
   partialRefundNote: '부분취소 전표(차액) 발급',
   // 결제사 환불이 자동 재시도까지 다 실패해 운영팀이 처리한다(PW-1816 답 (나) · PW-1944)
   refundFailedNote: '운영팀이 연락드립니다',
@@ -312,9 +315,17 @@ export default function BillingHistoryCanvas({
                       {inv.status === 'void' && (
                         <span style={{ fontSize: 12, color: T.sub, marginLeft: 6 }}>{labels.voidNote}</span>
                       )}
-                      {inv.refund && (
+                      {inv.refund?.status === 'completed' && (
                         <div style={{ fontSize: 12, fontWeight: 600, color: T.accentText, marginTop: 2 }}>
                           {labels.refundAmount(inv.refund.amount)}
+                        </div>
+                      )}
+                      {/* 처리 중·실패 환불은 돈이 아직 안 돌아갔다 — «취소됨»과 같은 흐린 글씨로(PW-1956) */}
+                      {inv.refund && inv.refund.status !== 'completed' && (
+                        <div style={{ fontSize: 12, color: T.sub, marginTop: 2 }}>
+                          {inv.refund.status === 'failed'
+                            ? labels.refundNotDoneAmount(inv.refund.amount)
+                            : labels.refundPendingAmount(inv.refund.amount)}
                         </div>
                       )}
                     </>
