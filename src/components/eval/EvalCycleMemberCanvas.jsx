@@ -489,6 +489,8 @@ export default function EvalCycleMemberCanvas({
   aiDraftUnavailable = null,
   // [PW-1465] [임시저장] 단추로 저장하다 실패했을 때. 자동 저장 실패는 폼 아래 띠만 띄운다.
   onSaveError,
+  // [PW-1966] [임시저장] 단추로 저장이 끝났을 때. 화면이 토스트로 알린다(자동 저장은 부르지 않는다).
+  onSaveSuccess,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   // 평가지에 놓인 순서 그대로의 «항목» 전부 — 질문과 설명이 섞여 있다.
@@ -789,15 +791,8 @@ export default function EvalCycleMemberCanvas({
     }
   };
 
-  // 텍스트 항목만 필수 채움 판정(척도는 점수로). requiresRationale 은 사유도 필요.
-  const textFields = fields.filter((f) => f.type !== 'rating');
-  const filled = textFields.filter((f) => state[f.key].textAnswer.trim()).length;
-  const ratingOk = fields
-    .filter((f) => f.type === 'rating')
-    .every((f) => state[f.key].score != null && (!f.requiresRationale || state[f.key].rationale.trim()));
-  const canSubmit = filled === textFields.length && ratingOk;
-
   // TC-063/134: 제출 시 미입력 항목 자동 스크롤·빨강 강조(훅은 위에서 선언).
+  // 척도는 점수(사유 필수면 사유까지), 서술은 글. 체크 항목은 비어도 제출된다(서버 판정과 같다).
   const isIncomplete = (f) => {
     if (f.type === 'rating')
       return (
@@ -807,6 +802,11 @@ export default function EvalCycleMemberCanvas({
     if (f.type === 'checkbox') return false;
     return !state[f.key].textAnswer.trim();
   };
+  // [PW-1966] 하단 「N/M 작성됨」은 제출에 꼭 필요한 칸(척도·서술)만 센다 — 제출 판정과 같은 기준.
+  // 예전엔 분모가 서술+체크, 분자가 글 있는 칸뿐이라 척도·체크를 골라도 0 에 머물렀다.
+  const requiredFields = fields.filter((f) => f.type !== 'checkbox');
+  const filled = requiredFields.filter((f) => !isIncomplete(f)).length;
+  const canSubmit = filled === requiredFields.length;
   const isAiPending = (f) => aiStateOf(f)?.tone === 'unconfirmed';
   const hasAiPending = fields.some(isAiPending);
   // [PW-1464] §4.4a — 활동 데이터가 하나도 없으면 전체·항목별 AI 초안 단추를 끈다.
@@ -1468,7 +1468,7 @@ export default function EvalCycleMemberCanvas({
                   : L.aiDraftPendingWarn}
               </span>
             ) : (
-              fill(L.progress, { filled, total: textFields.length })
+              fill(L.progress, { filled, total: requiredFields.length })
             )}
           </span>
           {(autoSaving || autoSavedAt) && (
@@ -1517,6 +1517,8 @@ export default function EvalCycleMemberCanvas({
                     dirtyRef.current = false;
                     setAutoSavedAt(new Date());
                     setSaveError(false);
+                    // [PW-1966] 직접 누른 저장만 알린다 — 자동 저장(30초)마다 알리면 시끄럽다.
+                    onSaveSuccess?.();
                   })
                   .catch(() => {
                     setSaveError(true);

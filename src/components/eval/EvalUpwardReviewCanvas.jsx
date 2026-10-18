@@ -26,6 +26,7 @@ import LoadingState from '../shared/LoadingState.jsx';
  * - labels: 사람이 읽는 문구 전부(i18n 은 소비자가 채운다)
  * - onRetry, onSave(items), onSubmit(items), onAiDraft(items), onConfirmLeaderChange()
  * - onSaveError(): [임시저장] 단추가 실패했을 때(§5U.5 토스트는 소비자가 띄운다)
+ * - onSaveSuccess(): [임시저장] 단추로 저장이 끝났을 때(PW-1966 · 토스트는 소비자가 띄운다)
  * - aiDraftDisabledReason: AI 초안 근거가 없을 때의 이유(있으면 버튼이 꺼진다)
  */
 
@@ -163,6 +164,7 @@ export default function EvalUpwardReviewCanvas({
   onAiDraft,
   onConfirmLeaderChange,
   onSaveError,
+  onSaveSuccess,
   aiDraftDisabledReason = null,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
@@ -295,6 +297,7 @@ export default function EvalUpwardReviewCanvas({
       // §5U.4 「적용 전에는 본문을 바꾸지 않는다」 — 초안은 [사용]을 눌러야 칸에 들어간다.
       draftNeedsApply
       onSaveError={onSaveError}
+      onSaveSuccess={onSaveSuccess}
       aiDraftDisabledReason={aiDraftDisabledReason}
       // 항목별 공개 안내는 끈다 — 그 줄은 옛 항목 필드(visibleToRoles)를 읽어, 값이 비면
       // 「피평가자 본인에게도 공개됩니다」라고 적는다. 상향의 공개는 위 익명 안내가 정본이다
