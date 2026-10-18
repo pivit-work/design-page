@@ -17,6 +17,7 @@ import {
 } from './evalSchedulePast.js';
 import { freshOverlapPairs, getOverlapPairs, overlapIdsOf } from './evalScheduleOverlap.js';
 import EvalScheduleOverlapAlert from './EvalScheduleOverlapAlert.jsx';
+import ScheduleChangeConfirm from './ScheduleChangeConfirm.jsx';
 import DateInput from '../shared/DateInput.jsx';
 import TimeInput from '../shared/TimeInput.jsx';
 import LoadingState from '../shared/LoadingState.jsx';
@@ -751,12 +752,6 @@ function ScheduleEditModal({
       (rows[id]?.end ?? '') !== (initialRows[id]?.end ?? ''),
   );
   const [confirming, setConfirming] = useState(false);
-  /* 확인 창의 한 줄 — `시작 ~ 종료`. 비어 있는 끝은 「미정」(—만 두면 무엇이 빠졌는지 안 읽힌다).
-     컴포넌트 안에 두는 이유: 앱의 문구 전달 가드가 이 몸통에서 읽는 문구 이름을 뽑아 대조한다. */
-  const formatRange = (r) => {
-    const one = (v) => (v ? stampScheduleDateTime(v, L) : L.scheduleConfirmEmpty);
-    return `${one(r?.start)} ~ ${one(r?.end)}`;
-  };
 
   const requestSave = () => {
     if (hasError || inFlight.current) return;
@@ -971,40 +966,15 @@ function ScheduleEditModal({
     </div>
       </ModalShell>
     {confirming && (
-      <AppConfirmModal
-        testId="evc-sched-confirm"
-        title={L.scheduleConfirmTitle}
-        body={
-          <div className="evc-sched-confirm">
-            <div>{fill(L.scheduleConfirmBody, { count: changed.length })}</div>
-            <ul className="evc-sched-confirm-list">
-              {changed.map((id) => (
-                <li
-                  key={id}
-                  className="evc-sched-confirm-row"
-                  data-testid={`evc-sched-confirm-row-${id}`}
-                >
-                  <span className="evc-sched-confirm-name">{L[PHASE_NAME_KEYS[id]] ?? id}</span>
-                  <span className="evc-sched-confirm-line">
-                    <span className="evc-sched-confirm-tag">{L.scheduleConfirmBefore}</span>
-                    <span data-testid={`evc-sched-confirm-before-${id}`}>
-                      {formatRange(initialRows[id])}
-                    </span>
-                  </span>
-                  <span className="evc-sched-confirm-line is-after">
-                    <span className="evc-sched-confirm-tag">{L.scheduleConfirmAfter}</span>
-                    <span data-testid={`evc-sched-confirm-after-${id}`}>
-                      {formatRange(rows[id])}
-                    </span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        }
-        confirmLabel={saving ? L.submitting : L.scheduleConfirmSave}
-        cancelLabel={L.scheduleConfirmBack}
-        busy={saving}
+      <ScheduleChangeConfirm
+        rows={changed.map((id) => ({
+          id,
+          name: L[PHASE_NAME_KEYS[id]] ?? id,
+          before: initialRows[id],
+          after: rows[id],
+        }))}
+        labels={L}
+        saving={saving}
         onConfirm={handleSave}
         onCancel={() => {
           if (!saving) setConfirming(false);

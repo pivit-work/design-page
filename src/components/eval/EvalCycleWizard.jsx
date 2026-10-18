@@ -42,6 +42,7 @@ import {
 // [PW-1461 · 정책 §4.5] 겹침 판정·안내 창도 일정 수정 창과 같은 것을 쓴다.
 import { freshOverlapPairs, getOverlapPairs, overlapIdsOf } from './evalScheduleOverlap.js';
 import EvalScheduleOverlapAlert from './EvalScheduleOverlapAlert.jsx';
+import ScheduleChangeConfirm from './ScheduleChangeConfirm.jsx';
 import { AlertIcon, CheckCircleIcon, InfoIcon, ZapIcon } from './evalIcons.jsx';
 import { autoCommitteeIdsOf } from './calibrationAutoCommittee.js';
 // [PW-527 ①③] 항목 설정판과 평가지 렌더는 「평가 템플릿」 화면과 **나눠 쓰는 부품**이다.
@@ -7160,15 +7161,56 @@ export default function EvalCycleWizard({
       onSubmitOpen(payload);
       return;
     }
+    if (isScheduleTab) {
+      const rows = changedScheduleRows();
+      if (rows.length > 0) {
+        setScheduleConfirm({ payload, rows });
+        return;
+      }
+    }
+    await send(payload);
+  };
+
+  const send = async (payload) => {
     setSubmitting(true);
     try {
       await onSubmit(payload);
+      if (isScheduleTab) showWizToast({ kind: 'scheduleSaved' });
     } catch {
       // 소비 측이 실패를 던지면 창을 닫지 않는다 — 입력이 그대로 남아 다시 누를 수 있다.
       setSubmitFailed(true);
     } finally {
       setSubmitting(false);
     }
+  };
+
+  /*
+   * PW-1962 — 관리 › 단계별 일정 탭의 [변경사항 저장]도 사이클 목록의 일정 수정 창과 같은 확인을 거친다
+   * (PW-602 커트 결정 2026-09-18). 일정은 담당자 알림과 평가지 잠금으로 곧장 이어져, 뜻하지 않은 칸까지
+   * 바뀐 채 저장되면 알림이 이미 나간 뒤다. 날짜가 하나도 안 바뀌었으면(리마인더만 고쳤으면) 묻지 않는다.
+   * 견주는 기준은 저장돼 있던 값이다 — 날짜만 저장된 옛 값은 칸과 같은 기본 시각을 붙여 견준다.
+   */
+  const isScheduleTab = isSingleStep && step === SCHEDULE_STEP_INDEX;
+  const [scheduleConfirm, setScheduleConfirm] = useState(null);
+  const normSlot = (slot) => ({
+    start: joinDateTime(datePart(slot?.start), timePart(slot?.start, 'start')),
+    end: joinDateTime(datePart(slot?.end), timePart(slot?.end, 'end')),
+  });
+  const changedScheduleRows = () =>
+    displayPhases
+      .filter((p) => !disabledPhases.has(p.id))
+      .map((p) => ({
+        id: p.id,
+        name: phaseName(p),
+        before: normSlot(initialSeq?.schedule?.[p.id]),
+        after: normSlot(scheduleOf(p.id)),
+      }))
+      .filter((r) => r.before.start !== r.after.start || r.before.end !== r.after.end);
+  const confirmScheduleSave = async () => {
+    if (!scheduleConfirm || submitting) return;
+    await send(scheduleConfirm.payload);
+    // 실패해도 창은 걷는다 — 사유는 저장 버튼 옆에 남고, 입력은 그대로라 다시 누를 수 있다.
+    setScheduleConfirm(null);
   };
 
   // TC-028 현재 위자드 설정을 프리셋으로 저장.
@@ -10718,6 +10760,21 @@ export default function EvalCycleWizard({
       {/* PW-440 이탈 확인 — 구 동작은 바깥 클릭·✕ 에서 경고 없이 닫히고 입력이 사라졌다.
           🔴 **3지선다**다. 2지선다("사라집니다 · 나가시겠습니까?")는 사용자에게 유실
           외의 선택지를 주지 않는다 — 저장이라는 길이 있는데 없는 것처럼 물었다. */}
+      {/* PW-1962 — 저장이 끝났다고 말한다. 목록의 일정 수정 창과 같은 문구·같은 부품. */}
+      {wizToast?.kind === 'scheduleSaved' && (
+        <Toast message={L.toastScheduleSaved} data-testid="evc-wiz-schedule-saved-toast" />
+      )}
+      {scheduleConfirm && (
+        <ScheduleChangeConfirm
+          rows={scheduleConfirm.rows}
+          labels={L}
+          saving={submitting}
+          onConfirm={confirmScheduleSave}
+          onCancel={() => {
+            if (!submitting) setScheduleConfirm(null);
+          }}
+        />
+      )}
       {wizToast?.kind === 'included' && (
         <Toast
           tone="info"
