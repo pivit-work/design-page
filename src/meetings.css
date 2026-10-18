@@ -1295,7 +1295,7 @@ input.mtg-record-action-title::placeholder {
   display: flex;
   align-items: center;
 }
-.mtg-mic-select select {
+.mtg-mic-select-input {
   width: 100%;
   appearance: none;
   padding: 10px 36px 10px 12px;

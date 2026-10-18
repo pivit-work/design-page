@@ -2,7 +2,6 @@ import {
   narrowByParent, groupedChildren, groupedOptionValue, parseGroupedOptionValue,
 } from './jobAxis.js';
 import { IconChevronRight } from './employeesIcons.jsx';
-import { useEffect, useRef } from 'react';
 import Select from '../shared/Select.jsx';
 
 /**
@@ -36,17 +35,8 @@ export default function JobAxisSelect({
 }) {
   const show = (v) => (level === 'family' && familyLabel ? familyLabel(v) : v);
   const groupLabel = (g) => (familyLabel && level === 'ladder' ? familyLabel(g) : g);
-  const selectRef = useRef(null);
   const hasCandidates = Array.isArray(candidates) && candidates.length > 0;
-  /* 후보가 생기면 칸을 펼친다. `showPicker` 를 못 쓰는 브라우저는 칸에 초점만 둔다 —
-     후보만 남아 있으니 고르는 일은 그대로다. */
-  useEffect(() => {
-    if (!hasCandidates || disabled) return;
-    const el = selectRef.current;
-    if (!el) return;
-    el.focus();
-    try { el.showPicker?.(); } catch { /* 사용자 동작 없이 부르면 막는 브라우저가 있다 */ }
-  }, [hasCandidates, disabled]);
+  /* 후보가 생기면 칸을 펼친다 — 후보만 남아 있으니 바로 고르면 된다. */
   const axis = jobAxis || {};
   const families = axis.families || [];
   const ladders = axis.ladders || [];
@@ -111,7 +101,7 @@ export default function JobAxisSelect({
   return (
     <>
       <Select
-        ref={selectRef}
+        autoOpen={hasCandidates && !disabled}
         className={className}
         value={cur}
         disabled={disabled}
@@ -120,7 +110,7 @@ export default function JobAxisSelect({
       >
         <option value="">{placeholder ?? labels.none}</option>
         {/* 지금 값이 목록에 없어도(연결이 끊겼거나 비활성) 선택지에 남긴다 — 없으면
-            select 가 «미지정» 으로 보여, 다른 칸만 고쳐 저장해도 멀쩡한 값이 지워진다. */}
+            칸이 «미지정» 으로 보여, 다른 칸만 고쳐 저장해도 멀쩡한 값이 지워진다. */}
         {cur && !known && (
           <option value={cur}>
             {Array.isArray(inactive) && inactive.includes(cur) ? `${show(cur)} ${labels.inactiveSuffix || '(비활성)'}` : show(cur)}

@@ -7,6 +7,7 @@ import {
   PencilIcon, SearchIcon, MoreVerticalIcon, CrownIcon, StarIcon,
   UserMinusIcon, Building2Icon, UserIcon,
 } from './teamIcons.jsx';
+import Select from '../shared/Select.jsx';
 
 const PRESET_COLORS = ['#3B5BDB', '#2F9E44', '#E03131', '#F08C00', '#7950F2', '#1098AD', '#D6336C', '#495057'];
 
@@ -260,7 +261,7 @@ export default function AdminTeamDetailPanel({
               편집 주인은 여전히 「계층」 탭이고, 여기는 단위에 «배정»하는 자리다. */}
       <div className="tm-section">
         <label className="tm-section-label" htmlFor="tm-level-select">{labels.level}</label>
-        <select
+        <Select
           id="tm-level-select"
           className={`tm-level-select${levelValue ? '' : ' is-unset'}${levelErr ? ' is-invalid' : ''}`}
           data-testid="tm-level-select"
@@ -286,7 +287,7 @@ export default function AdminTeamDetailPanel({
                 : fill(labels.levelArchivedOption, { name: team.levelName || team.type || teamLevelId })}
             </option>
           )}
-        </select>
+        </Select>
         {levelErr ? (
           <p className="tm-level-error" role="alert" data-testid="tm-level-error">{levelErr}</p>
         ) : levelsUnavailable ? (

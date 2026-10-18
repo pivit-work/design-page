@@ -7,6 +7,7 @@ import ModalShell from '../shared/ModalShell.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Switch from '../shared/Switch.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
+import Select from '../shared/Select.jsx';
 
 /**
  * AdminNotificationsCanvas — 어드민 "알림 설정" 화면 Pure 컴포넌트.
@@ -124,7 +125,7 @@ function SegBtn({ options, value, onChange }) {
 function ParamField({ param, value, onChange }) {
   if (param.type === 'select') {
     return (
-      <select
+      <Select
         className="admin-notif-input admin-notif-select"
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
@@ -133,7 +134,7 @@ function ParamField({ param, value, onChange }) {
         {param.options.map((o) => (
           <option key={o.value} value={o.value}>{o.label}</option>
         ))}
-      </select>
+      </Select>
     );
   }
   return (
@@ -184,13 +185,13 @@ function CooldownEditor({ cooldown, onChange, hasTimeParam, options, labels, bas
           onChange={(e) => onChange({ ...cd, interval: Math.max(1, Number(e.target.value)) })}
           aria-label={labels.every}
         />
-        <select
+        <Select
           className="admin-notif-input admin-notif-select"
           value={cd.unit}
           onChange={(e) => onChange({ ...cd, unit: e.target.value, weekDays: [], monthDay: 1 })}
         >
           {options.unitOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-        </select>
+        </Select>
         <span className="admin-notif-inline-label">{labels.per}</span>
       </div>
       {intervalError && (
@@ -224,13 +225,13 @@ function CooldownEditor({ cooldown, onChange, hasTimeParam, options, labels, bas
       {cd.unit === 'month' && (
         <div className="admin-notif-row-inline">
           <span className="admin-notif-inline-label">{labels.monthDayTitle}</span>
-          <select
+          <Select
             className="admin-notif-input admin-notif-select"
             value={cd.monthDay}
             onChange={(e) => onChange({ ...cd, monthDay: Number(e.target.value) })}
           >
             {options.monthDayOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
+          </Select>
         </div>
       )}
 
@@ -243,7 +244,7 @@ function CooldownEditor({ cooldown, onChange, hasTimeParam, options, labels, bas
       ) : (
         <div className="admin-notif-row-inline">
           <span className="admin-notif-inline-label is-fixed">{labels.sendTime}</span>
-          <select
+          <Select
             className="admin-notif-input admin-notif-select"
             value={timeValue}
             onChange={(e) => {
@@ -252,7 +253,7 @@ function CooldownEditor({ cooldown, onChange, hasTimeParam, options, labels, bas
             }}
           >
             {options.timeOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-          </select>
+          </Select>
         </div>
       )}
 

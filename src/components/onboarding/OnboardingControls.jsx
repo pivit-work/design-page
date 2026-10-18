@@ -1,6 +1,7 @@
 import { forwardRef } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import { OnbCloseIcon, OnbGoogleLogo, OnbSpinner } from './onboardingIcons.jsx';
+import Select from '../shared/Select.jsx';
 
 /**
  * 온보딩 입력 부품 — 시안 `8. onboarding/onboarding-app.jsx` 의 Input · Button · Divider · Tag
@@ -118,13 +119,13 @@ export const OnbTextarea = forwardRef(function OnbTextarea({ invalid = false, ro
 /** 작은 고르기 칸 — 초대의 직급·팀. Props: options [{ value, label }] + 네이티브 select 속성. */
 export function OnbSelect({ options = [], ...rest }) {
   return (
-    <select className="onb-select" {...rest}>
+    <Select className="onb-select" {...rest}>
       {options.map((o) => (
         <option key={o.value} value={o.value}>
           {o.label}
         </option>
       ))}
-    </select>
+    </Select>
   );
 }
 

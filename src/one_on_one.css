@@ -454,14 +454,6 @@
   line-height: 20px;
 }
 
-/* 팀 이름이 트리거보다 길 수 있다 — 메뉴는 트리거 폭에 묶지 않는다. */
-.ono-meta-scope .tl-select-menu {
-  right: auto;
-  min-width: 100%;
-  width: max-content;
-  max-width: 320px;
-}
-
 .ono-meta-scope .tl-select-value {
   max-width: 240px;
 }

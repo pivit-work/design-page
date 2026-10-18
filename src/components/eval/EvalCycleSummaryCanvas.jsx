@@ -18,6 +18,7 @@ import Checkbox from '../shared/Checkbox.jsx';
 import { scaleMaxOf } from './evalTemplateItemModel.js';
 import { leaderGradeMarks } from './evalLeaderLive.js';
 import { pickParticle } from '../shared/koreanParticle.js';
+import Select from '../shared/Select.jsx';
 
 /**
  * 탭이 열리는 사이클 단계 (요약 정책 §3). 통합 요약·캘리브레이션 워크스페이스는 캘리브레이션부터,
@@ -1948,7 +1949,7 @@ function PeriodSelector({ periods, selectedCycleId, onChange, L }) {
           if (latest && latest.cycleId !== selectedCycleId) onChange?.(latest.cycleId);
         }}
       />
-      <select
+      <Select
         className="evc-period-select"
         value={selectedCycleId ?? ''}
         onChange={(e) => onChange?.(e.target.value)}
@@ -1959,7 +1960,7 @@ function PeriodSelector({ periods, selectedCycleId, onChange, L }) {
             {p.name} ({p.start} ~ {p.end})
           </option>
         ))}
-      </select>
+      </Select>
     </div>
   );
 }
@@ -4257,7 +4258,7 @@ export default function EvalCycleSummaryCanvas({
                           <div className="evs-cw-review-k">{L.cwReviewDecisionTitle}</div>
                           <div className="evs-cw-review-row">
                             <span className="evs-cw-review-k">{L.cwNewGradeLabel}</span>
-                            <select
+                            <Select
                               className="evs-cw-create-input"
                               data-testid="evs-cw-review-grade"
                               value={reviewGrade}
@@ -4269,7 +4270,7 @@ export default function EvalCycleSummaryCanvas({
                                   {g.label}
                                 </option>
                               ))}
-                            </select>
+                            </Select>
                           </div>
                           <textarea
                             className="evs-cw-review-note"
@@ -4625,7 +4626,7 @@ export default function EvalCycleSummaryCanvas({
                   )}
                   {/* §6.3 — 저장한 프리셋은 창을 열지 않고 표 위에서 한 번에 적용한다. */}
                   {filterPresets.length > 0 && (
-                    <select
+                    <Select
                       className="evc-period-select evs-cw-preset-bar"
                       aria-label={L.cwPresetBarLabel}
                       value=""
@@ -4641,7 +4642,7 @@ export default function EvalCycleSummaryCanvas({
                           {p.name} · {p.isShared ? L.cwFilterPresetShared : L.cwFilterPresetMine}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                   )}
                   {/* PW-520 표시 항목 — 필터(행 고르기)와 별개 버튼·별개 창이다. 위원도 열어 볼 수는 있다. */}
                   {calibDisplay && (
@@ -5045,7 +5046,7 @@ export default function EvalCycleSummaryCanvas({
                                                 고르려 해도 바뀌지 않았다. 「조정 해제」를 고르면 `onAdjustGrade(id, '')`
                                                 — 1차 등급으로 되돌리는 것은 호출부가 한다. 1차 등급이 없는 줄은
                                                 되돌아갈 등급이 없어 해제를 막는다. */}
-                                            <select
+                                            <Select
                                               className={`evs-cw-adjust-select${dir ? ' is-changed' : ''}`}
                                               data-testid="evs-cw-adjust-select"
                                               aria-label={`${row.name} ${L.cwColAdjust}`}
@@ -5062,7 +5063,7 @@ export default function EvalCycleSummaryCanvas({
                                                   {g.label}
                                                 </option>
                                               ))}
-                                            </select>
+                                            </Select>
                                             {dirTag}
                                           </>
                                         )}
@@ -6788,9 +6789,10 @@ export default function EvalCycleSummaryCanvas({
                   <div className="evs-cw-create-lbl">
                     {L.cwDirectTransferLabel}
                   </div>
-                  <select
+                  <Select
                     className="evs-cw-create-input"
                     data-testid="evs-cw-direct-transfer-select"
+            searchable
                     aria-label={L.cwDirectTransferLabel}
                     value={directTransferTo}
                     disabled={committeeSaving}
@@ -6805,7 +6807,7 @@ export default function EvalCycleSummaryCanvas({
                         {m.isTarget ? fmt(L.cwConflictOption, { name: m.name }) : m.name}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                   {directTransferConfirming && directTransferTo ? (
                     <>
                       <div
@@ -6883,9 +6885,10 @@ export default function EvalCycleSummaryCanvas({
                     </div>
                   ) : (
                     <>
-                      <select
+                      <Select
                         className="evs-cw-create-input"
                         data-testid="evs-cw-chair-transfer-select"
+            searchable
                         aria-label={L.cwManageChairTransferLabel}
                         value={chairTransferTo}
                         disabled={committeeReadOnly}
@@ -6899,7 +6902,7 @@ export default function EvalCycleSummaryCanvas({
                             {m.isTarget ? fmt(L.cwConflictOption, { name: m.name }) : m.name}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                       <div className="evs-cw-create-hint">
                         {fmt(L.cwManageChairTransferHint, {
                           name: chairNameOf(chairUserId),

@@ -17,6 +17,7 @@ import { readCsvFileText } from '../shared/csvFileText.js';
 import Pagination from '../shared/Pagination.jsx';
 import LoadingState from '../shared/LoadingState.jsx';
 import Skeleton, { SkeletonList } from '../shared/Skeleton.jsx';
+import Select from '../shared/Select.jsx';
 
 /**
  * OrgSnapshotCanvas — 어드민 "조직 스냅샷" 화면 Pure 컴포넌트.
@@ -1019,10 +1020,10 @@ function AppointmentSingleView({
           <div className="admin-snap-appt-info">
             <div className="admin-snap-field">
               <label className="admin-snap-field-label">{labels.appointmentType}</label>
-              <select className="admin-snap-select" value={appointmentType} onChange={(e) => setAppointmentType(e.target.value)} data-testid="appointment-single-type">
+              <Select className="admin-snap-select" value={appointmentType} onChange={(e) => setAppointmentType(e.target.value)} data-testid="appointment-single-type">
                 <option value="">{labels.selectPlaceholder}</option>
                 {appointmentTypes.map((at) => <option key={at} value={at}>{labels.typeLabels[at] ?? at}</option>)}
-              </select>
+              </Select>
             </div>
             <div className="admin-snap-field">
               <label className="admin-snap-field-label">{labels.appointmentDate}</label>
@@ -1093,14 +1094,15 @@ function AppointmentSingleView({
                               )}
                             </>
                           ) : useSelect ? (
-                            <select
+                            <Select
                               className="admin-snap-select"
                               value={changes[f] ?? ''}
+                              searchable
                               onChange={(e) => setChanges((p) => ({ ...p, [f]: e.target.value }))}
                             >
                               <option value="">{labels.selectPlaceholder}</option>
                               {opts.map((o) => <option key={o} value={o}>{o}</option>)}
-                            </select>
+                            </Select>
                           ) : (
                             <input
                               className="admin-snap-input is-mono"
@@ -1540,9 +1542,10 @@ function AppointmentBulkView({
                               <RosterTable.Cell>
                                 {/* 주소속 미지정·불일치는 여기서 바로 고칠 수 있다(§3-A-3). */}
                                 {onFixPrimary && (row.primaryOptions ?? []).length > 1 ? (
-                                  <select
+                                  <Select
                                     className="admin-snap-input"
                                     aria-label={labels.affSelectPrimary}
+                                    searchable
                                     value={row.primary || ''}
                                     onChange={(e) => fixPrimary(row, e.target.value)}
                                   >
@@ -1550,7 +1553,7 @@ function AppointmentBulkView({
                                     {(row.primaryOptions ?? []).map((opt) => (
                                       <option key={opt} value={opt}>{opt}</option>
                                     ))}
-                                  </select>
+                                  </Select>
                                 ) : (
                                   <span className="admin-snap-pv-after">{row.primary || '—'}</span>
                                 )}
@@ -1778,7 +1781,7 @@ function AppointmentHistoryView({
               </>
             )}
             {(
-              <select
+              <Select
                 className="admin-snap-select admin-snap-hist-typefilter"
                 aria-label={labels.historyType}
                 value={typeFilter}
@@ -1788,7 +1791,7 @@ function AppointmentHistoryView({
                 <option value="">{labels.historyTypeAll}</option>
                 {typeKeys.map((k) => <option key={k} value={k}>{labels.typeLabels[k] ?? k}</option>)}
                 {revisionsWired && <option value="revision">{labels.historyTypeRevision}</option>}
-              </select>
+              </Select>
             )}
             {!showRevisions && (
               <button type="button" className="admin-snap-export-btn" onClick={() => onExport?.()}>↓ {labels.export}</button>

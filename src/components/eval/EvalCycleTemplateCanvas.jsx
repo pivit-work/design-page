@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
+import Select from '../shared/Select.jsx';
 
 /**
  * EvalCycleTemplateCanvas — 평가 템플릿 빌더.
@@ -269,16 +270,16 @@ export default function EvalCycleTemplateCanvas({
           <h3 className="evc-card-name">{L.itemsTitle}</h3>
           {items.map((it, i) => (
             <div className="evtpl-row" key={i} data-testid="evtpl-item-row">
-              <select className="evc-select" value={it.category} onChange={(e) => updateItem(i, { category: e.target.value })} disabled={!editable}>
+              <Select className="evc-select" value={it.category} onChange={(e) => updateItem(i, { category: e.target.value })} disabled={!editable}>
                 {categoryOptions.map((c) => (
                   <option key={c.key} value={c.key}>{c.label}</option>
                 ))}
-              </select>
-              <select className="evc-select" value={it.responseType} onChange={(e) => updateItem(i, { responseType: e.target.value })} disabled={!editable}>
+              </Select>
+              <Select className="evc-select" value={it.responseType} onChange={(e) => updateItem(i, { responseType: e.target.value })} disabled={!editable}>
                 {responseOptions.map((r) => (
                   <option key={r.key} value={r.key}>{r.label}</option>
                 ))}
-              </select>
+              </Select>
               <input className="evc-input" value={it.label} placeholder={L.itemLabelPh} onChange={(e) => updateItem(i, { label: e.target.value })} disabled={!editable} />
               {editable && (
                 <button type="button" className="evc-btn is-ghost" onClick={() => setItems((a) => a.filter((_, idx) => idx !== i))} data-testid="evtpl-item-remove">{L.remove}</button>

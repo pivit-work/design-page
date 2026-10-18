@@ -3,6 +3,7 @@ import StatusBadge from '../shared/StatusBadge.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Skeleton, { SkeletonList } from '../shared/Skeleton.jsx';
 import LoadMoreButton from '../shared/LoadMoreButton.jsx';
+import Select from '../shared/Select.jsx';
 
 /**
  * ActionItemsCanvas — "액션 아이템" 페이지 Pure 컴포넌트.
@@ -241,9 +242,10 @@ export default function ActionItemsCanvas({
           )}
 
           {selects.map((sel) => (
-            <select
+            <Select
               key={sel.key}
               className="ai-select"
+            chevron={false}
               value={sel.value}
               aria-label={sel.label}
               onChange={(e) => sel.onChange?.(e.target.value)}
@@ -253,7 +255,7 @@ export default function ActionItemsCanvas({
                   {o.label}
                 </option>
               ))}
-            </select>
+            </Select>
           ))}
 
           {groupByItems.length > 0 && (

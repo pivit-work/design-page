@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import ModalShell from '../shared/ModalShell.jsx';
 import Icon from '../shared/Icon.jsx';
+import Select from '../shared/Select.jsx';
 
 /**
  * MicSelectModal — 마이크 선택/권한 모달.
@@ -109,12 +110,14 @@ export default function MicSelectModal({
       <div className="mtg-mic-field">
         <span className="mtg-mic-field-label">{labels.deviceLabel}</span>
         <div className="mtg-mic-select">
-          <select
+          <Select
+            className="mtg-mic-select-input"
+            chevron={false}
             value={selectedDevice}
             onChange={(e) => onSelectDevice?.(e.target.value)}
           >
             {devices.map((d) => <option key={d} value={d}>{d}</option>)}
-          </select>
+          </Select>
           <Icon src="/icons-solid/chevron-down.svg" size={18} color="var(--text-tertiary, #b1b6be)" baseUrl={baseUrl} />
         </div>
       </div>

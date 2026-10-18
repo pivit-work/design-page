@@ -49,4 +49,16 @@ export default [
       'pivit/no-literal-font-family': 'error',
     },
   },
+  {
+    // 브라우저 기본 드롭다운(<select>)은 펼친 목록을 운영체제가 그린다 — 디자이너 모양이 아니고 데모
+    // 영상에도 안 찍힌다. 고르기 칸은 공용 Select·SearchSelect 하나로 그린다 (PW-1954). 모양을 입혀도
+    // 펼친 목록은 못 바꾸므로 예외는 두지 않는다. 표본: eslint-rules/fixtures/no-native-select.pw1954.jsx
+    files: ['src/**/*.{js,jsx}'],
+    rules: {
+      'no-restricted-syntax': ['error', {
+        selector: "JSXOpeningElement[name.name='select']",
+        message: '브라우저 기본 <select> 는 쓰지 않는다 — 공용 Select 나 SearchSelect 로 그린다 (PW-1954).',
+      }],
+    },
+  },
 ]

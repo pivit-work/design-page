@@ -21,6 +21,7 @@ import ModalShell from '../shared/ModalShell.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
 import { CheckGlyph, CloseGlyph, CrownGlyph, PlusGlyph } from '../shared/lineIcons.jsx';
 import LoadingState from '../shared/LoadingState.jsx';
+import Select from '../shared/Select.jsx';
 
 /* 시트에서 함께 옮겨 온 토큰 — 이 폴더의 다른 캔버스와 같은 값이다. */
 const T = {
@@ -337,7 +338,7 @@ function HrEditPair({ k, value, onChange, type = 'text', date = false, options, 
     <div style={{ display: 'flex', gap: 8, fontSize: 12, padding: '3px 0', alignItems: 'center' }}>
       <span style={{ minWidth: 88, color: T.muted }}>{k}</span>
       {options ? (
-        <select
+        <Select
           className="admin-emp-input"
           value={value ?? ''}
           onChange={(e) => onChange(e.target.value)}
@@ -349,7 +350,7 @@ function HrEditPair({ k, value, onChange, type = 'text', date = false, options, 
           {options.map((o) => (
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
-        </select>
+        </Select>
       ) : date ? (
         /* 기본 날짜 칸은 영어 브라우저에서 09/29/2026 으로 보인다 (PW-793) */
         <DateInput
@@ -1941,7 +1942,7 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
             <div className="admin-emp-field">
               <label className="admin-emp-field-label" htmlFor="sal-hist-type">{L.salaryHistType || '종류'}</label>
               {/* 고치는 중에는 종류를 못 바꾼다 — 서버도 종류는 그대로 둔다. */}
-              <select
+              <Select
                 id="sal-hist-type"
                 className="admin-emp-input"
                 value={form.compensationType}
@@ -1951,7 +1952,7 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
                 {COMP_TYPES.map((t) => (
                   <option key={t} value={t}>{typeLabel(t)}</option>
                 ))}
-              </select>
+              </Select>
             </div>
             <div className="admin-emp-field">
               <label className="admin-emp-field-label" htmlFor="sal-hist-date">
@@ -1993,7 +1994,7 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
             <div className="admin-emp-field">
               <label className="admin-emp-field-label" htmlFor="sal-hist-currency">{L.salaryHistCurrency || '통화'}</label>
               {/* 줄마다 고른다 — 달러 계약이 섞이면 회사 통화 하나로 표현되지 않는다(§3.2.2). */}
-              <select
+              <Select
                 id="sal-hist-currency"
                 className="admin-emp-input"
                 value={form.currency}
@@ -2002,7 +2003,7 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
                 {(COMP_CURRENCIES.includes(form.currency) ? COMP_CURRENCIES : [...COMP_CURRENCIES, form.currency]).map((c) => (
                   <option key={c} value={c}>{c}</option>
                 ))}
-              </select>
+              </Select>
             </div>
             <div className="admin-emp-field is-reason">
               <label className="admin-emp-field-label" htmlFor="sal-hist-reason">{L.salaryHistReason || '사유'}</label>

@@ -23,6 +23,7 @@ import InviteCsvStagingTable from './InviteCsvStagingTable.jsx';
 import LoadingState from '../shared/LoadingState.jsx';
 import Spinner from '../shared/Spinner.jsx';
 import { readCsvFileText } from '../shared/csvFileText.js';
+import Select from '../shared/Select.jsx';
 
 /**
  * AdminInviteModal — 구성원 초대 발송 모달.
@@ -361,10 +362,11 @@ function OptionSelect({
       <span className="admin-inv-label" id={`${id}-label`}>{label}</span>
       {/* title — 칸이 좁으면 «옵션 없음 — 조직 설정에서 추가» 같은 사유 글이 잘린다(PW-1883 14px 글씨).
           잘려도 마우스를 올리면 끝까지 읽힌다. */}
-      <select
+      <Select
         id={id}
         className="admin-inv-select"
         value={value}
+        searchable
         title={value ? value : blankText}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
@@ -373,7 +375,7 @@ function OptionSelect({
         {list.map((o) => (
           <option key={o} value={o}>{o}</option>
         ))}
-      </select>
+      </Select>
       {failed && onRetry && (
         <button type="button" className="admin-emp-btn is-ghost is-sm" data-testid={`${id}-retry`} onClick={onRetry}>
           {labels.retry}
@@ -1274,7 +1276,7 @@ export default function AdminInviteModal({
     <>
       <label className="admin-inv-field">
         <span className="admin-inv-label">{labels.role}</span>
-        <select
+        <Select
           className="admin-inv-select"
           value={bulk.role}
           onChange={(e) => setBulk({ ...bulk, role: e.target.value })}
@@ -1284,7 +1286,7 @@ export default function AdminInviteModal({
               {labels[`role${id[0].toUpperCase()}${id.slice(1)}`]}
             </option>
           ))}
-        </select>
+        </Select>
       </label>
       <OptionSelect
         {...optionState}
@@ -1660,7 +1662,7 @@ export default function AdminInviteModal({
                   </label>
                   <label className="admin-inv-field" title={rehire ? labels.rehireRoleLocked : undefined}>
                     <span className="admin-inv-label">{labels.role}</span>
-                    <select
+                    <Select
                       className="admin-inv-select"
                       value={rehire ? 'member' : r.role}
                       disabled={sending || Boolean(rehire)}
@@ -1672,7 +1674,7 @@ export default function AdminInviteModal({
                           {labels[`role${id[0].toUpperCase()}${id.slice(1)}`]}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                   </label>
                 </div>
 
@@ -1745,8 +1747,9 @@ export default function AdminInviteModal({
                     {supervisorCandidates && (
                       <div className="admin-inv-field">
                         <label className="admin-inv-label" htmlFor={`inv-${r.key}-managerEmail`}>{labels.manager}</label>
-                        <select
+                        <Select
                           id={`inv-${r.key}-managerEmail`}
+                        searchable
                           className="admin-inv-select"
                           value={r.managerEmail}
                           disabled={sending}
@@ -1758,7 +1761,7 @@ export default function AdminInviteModal({
                               {c.name ? `${c.name} (${c.email})` : c.email}
                             </option>
                           ))}
-                        </select>
+                        </Select>
                         {managerIgnored && <span className="admin-inv-hint">{labels.csvNoteManagerIgnored}</span>}
                       </div>
                     )}

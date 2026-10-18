@@ -12,10 +12,12 @@
  *   1. 저장소 전체 검사 — 오류가 하나라도 있으면 실패 (경고는 통과)
  *   2. 표본 검사 — eslint-rules/fixtures/jsx-no-undef.pw906.jsx (9/22 에 깨졌던 모양) 를
  *      넣어 react/jsx-no-undef 가 DpStatusBadge 를 잡는지 본다. 규칙이 빠지거나 꺼지면 실패
+ *   3. 표본 검사 — eslint-rules/fixtures/no-native-select.pw1954.jsx 의 <select> 를 잡는지 본다 (PW-1954)
  *
  * 실행: npm run check:lint  (lefthook pre-push · publish CI 에서 자동 실행)
  */
 import { ESLint } from 'eslint';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
@@ -47,6 +49,22 @@ if (hits.length === 1 && hits[0].severity === 2 && /DpStatusBadge/.test(hits[0].
   console.error(`✗ 표본 검사: ${FIXTURE} 에서 react/jsx-no-undef 오류 1건(DpStatusBadge)을 기대했는데 받은 것:`);
   for (const m of fixture.messages) console.error(`  ${m.line}:${m.column} ${m.ruleId ?? '(parse)'} ${m.message}`);
   console.error('  → eslint.config.js 에서 react/jsx-no-undef 가 빠졌거나 error 가 아니다.');
+  failed = true;
+}
+
+// 표본 2 — 브라우저 기본 드롭다운 금지(PW-1954). 규칙이 빠지거나 src 밖으로 좁혀지면 실패.
+// 표본은 src 밖이라 src 검사 설정을 그대로 읽게 src 경로인 척 lintText 로 넣는다.
+const SELECT_FIXTURE = 'eslint-rules/fixtures/no-native-select.pw1954.jsx';
+const [selectProbe] = await eslint.lintText(readFileSync(resolve(root, SELECT_FIXTURE), 'utf8'), {
+  filePath: resolve(root, 'src/components/__probe__/NoNativeSelect.jsx'),
+});
+const selectHits = selectProbe.messages.filter((m) => m.ruleId === 'no-restricted-syntax' && m.severity === 2);
+if (selectHits.length === 1 && /select/.test(selectHits[0].message)) {
+  console.log('✓ 표본 검사: 브라우저 기본 <select> 를 오류로 잡는다');
+} else {
+  console.error(`✗ 표본 검사: ${SELECT_FIXTURE} 에서 no-restricted-syntax 오류 1건(<select>)을 기대했는데 받은 것:`);
+  for (const m of selectProbe.messages) console.error(`  ${m.line}:${m.column} ${m.ruleId ?? '(parse)'} ${m.message}`);
+  console.error('  → eslint.config.js 에서 <select> 금지 규칙이 빠졌거나 error 가 아니다.');
   failed = true;
 }
 

@@ -1,6 +1,7 @@
 import AvatarPhoto from './AvatarPhoto.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import { CheckCircleIcon, MailIcon } from './evalIcons.jsx';
+import Select from '../shared/Select.jsx';
 
 /**
  * EvalStageRoster — 진행 현황 «단계 상세»의 「미완료 N / 완료 N」 두 명단과
@@ -117,8 +118,9 @@ export default function EvalStageRoster({
         renderAction={(row) => (
           <>
             {onAdd && row.addCandidates?.length > 0 && (
-              <select
+              <Select
                 className="evc-input evp-add-select"
+                searchable
                 value=""
                 disabled={busy}
                 aria-label={addLabel}
@@ -134,7 +136,7 @@ export default function EvalStageRoster({
                     {c.department ? ` · ${c.department}` : ''}
                   </option>
                 ))}
-              </select>
+              </Select>
             )}
             {onRemindOne && row.canRemind !== false ? (
               <button

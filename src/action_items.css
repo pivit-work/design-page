@@ -159,7 +159,7 @@
 }
 .ai-search input::placeholder { color: var(--text-placeholder); }
 
-/* 드롭다운 — .snippet-date-btn 과 같은 alpha-black-3 pill */
+/* 드롭다운 — .snippet-date-btn 과 같은 alpha-black-3 pill. 화살표는 이 배경 그림이 그린다(칸은 chevron={false}). */
 .ai-select {
   appearance: none;
   padding: 8px 28px 8px 14px;

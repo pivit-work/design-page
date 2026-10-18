@@ -10,25 +10,29 @@
    App.css 가 끌어온다 — 앱 어디서나 깔려 있다.
    ══════════════════════════════════════════════════════════════ */
 
-/* ── 칸(버튼) — 겉 모양은 `dp-input dp-select`(form-field.css) 또는 화면이 준 클래스. 여기는 글·꺾쇠 배치만. */
-.dp-search-select-trigger {
-  display: flex;
+/* ── 칸(버튼) — 겉 모양은 `dp-input dp-select`(form-field.css) 또는 화면이 준 클래스. 여기는 글·꺾쇠 배치만.
+   배치는 :where 로 점수 0 이다 — 브라우저 기본 목록을 쓰던 화면이 칸 클래스로 정한 폭·간격이 그대로 이긴다(PW-1954).
+   inline-flex 인 것도 그래서다: 기본 목록은 글 폭만큼만 차지했다. 공용 모양(`dp-input`)은 폭 100% 라 차이가 없다. */
+:where(.dp-search-select-trigger) {
+  display: inline-flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
   text-align: left;
   cursor: pointer;
 }
-.dp-search-select-trigger:disabled { cursor: default; }
-.dp-search-select-value {
+:where(.dp-search-select-trigger:disabled) { cursor: default; }
+:where(.dp-search-select-value) {
   flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.dp-search-select-value.is-placeholder { color: var(--text-placeholder, #b1b6be); }
-.dp-search-select-chevron { display: inline-flex; flex-shrink: 0; color: var(--text-tertiary); }
+/* 색은 :where 로 낮춘다 — 화면이 `valueClassName`·`chevronClassName` 으로 준 고유 모양이 이긴다(PW-1954). */
+:where(.dp-search-select-value.is-placeholder) { color: var(--text-placeholder, #b1b6be); }
+.dp-search-select-chevron { display: inline-flex; flex-shrink: 0; }
+:where(.dp-search-select-chevron) { color: var(--text-tertiary); }
 
 /* ── 펼친 목록 ── */
 .dp-search-select-menu {
@@ -84,6 +88,8 @@
 .dp-search-select-item:disabled { color: var(--text-disabled); cursor: not-allowed; background: transparent; }
 .dp-search-select-item.is-selected { color: var(--text-brand-tertiary); }
 .dp-search-select-item-label { flex: 1; }
+/* 이름 옆 보조 글 — 타임라인 드롭다운 항목(.tl-select-item-sub, timeline.css)의 값 그대로 (PW-1954). */
+.dp-search-select-item-sub { color: var(--text-tertiary); font-weight: 400; }
 .dp-search-select-item-check { display: inline-flex; color: var(--text-brand-tertiary); }
 .dp-search-select-group {
   padding: 8px 10px 4px;

@@ -19,6 +19,7 @@ import {
   RequestBanner,
   RequestToolModal,
 } from './AdminIntegrationsCatalog.jsx';
+import Select from '../shared/Select.jsx';
 
 /**
  * AdminIntegrationsCanvas — 어드민 "연동(Integrations)" 탭 Pure 컴포넌트.
@@ -201,7 +202,7 @@ function StatusBadge({ status, labels }) {
 
 function SelectInput({ value, options, onChange, ariaLabel }) {
   return (
-    <select
+    <Select
       className="intg-select"
       value={value}
       aria-label={ariaLabel}
@@ -210,7 +211,7 @@ function SelectInput({ value, options, onChange, ariaLabel }) {
       {options.map((o) => (
         <option key={o.value} value={o.value}>{o.label}</option>
       ))}
-    </select>
+    </Select>
   );
 }
 
