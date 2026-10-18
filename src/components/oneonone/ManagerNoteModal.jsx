@@ -43,6 +43,8 @@ const DEFAULT_LABELS = {
  * 공용 창 틀(ModalShell)로 그린다 (PW-836). Esc·막 클릭·닫기 X 는 틀이 onClose 로 부른다.
  * 입력이 곧 자동 저장이라 틀의 취소/확인 푸터는 그리지 않는다(footer=null).
  * 막의 data-testid 는 `manager-note-overlay`, 창은 `manager-note-modal`.
+ *
+ * `memoCount` — 메모 칸 바로 아래 놓을 글자 수 줄(«(n / 10,000자)»). 없으면 아무것도 그리지 않는다.
  */
 export default function ManagerNoteModal({
   members = [],
@@ -54,6 +56,7 @@ export default function ManagerNoteModal({
   onAddMessage,
   onRemoveMessage,
   memoMaxLength,
+  memoCount,
   addDisabled = false,
   limitHint,
   status,
@@ -205,6 +208,8 @@ export default function ManagerNoteModal({
               placeholder={labels.memoPlaceholder}
               onChange={(e) => changeMemo(e.target.value)}
             />
+            {/* 칸 아래 «(n / 최대자)» — 부르는 쪽이 문구를 만들어 넘긴다 (PW-1958). */}
+            {memoCount}
           </section>
 
           <section className="omn-section">
