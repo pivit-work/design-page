@@ -2,6 +2,7 @@ import Icon from '../shared/Icon.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Skeleton, { SkeletonList } from '../shared/Skeleton.jsx';
+import LoadMoreButton from '../shared/LoadMoreButton.jsx';
 
 /**
  * ActionItemsCanvas — "액션 아이템" 페이지 Pure 컴포넌트.
@@ -166,6 +167,10 @@ export default function ActionItemsCanvas({
   //    done, total, ownerName, expanded, items }] }]
   objectives = null,
   onToggleKr,
+  // 목록 뷰 맨 아래 [더 보기] `{ label, loadingLabel?, loading? }` (pivit-work PW-1941) — 끝낸 일을 나눠 받는다.
+  // 소비처가 문구까지 만들어 넘기고, 더 남은 것이 없으면 빼서 버튼이 사라진다. 누르면 `onMore`.
+  more,
+  onMore,
 }) {
   const labels = { ...DEFAULT_LABELS, ...(labelsProp || {}) };
   const pct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
@@ -384,6 +389,14 @@ export default function ActionItemsCanvas({
                 )}
               </section>
             ))
+        )}
+        {!isOkrView && !listLoading && hasRows && more && (
+          <LoadMoreButton
+            label={more.label}
+            loadingLabel={more.loadingLabel}
+            loading={!!more.loading}
+            onClick={onMore}
+          />
         )}
       </div>
     </main>
