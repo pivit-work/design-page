@@ -1054,7 +1054,7 @@ export function HrProfileModal({
               fields={[
                 { key: 'name', label: L.hrDepName || '성명', required: true },
                 { key: 'relation', label: L.hrDepRelation || '관계', required: true, options: optionsOf(L.hrRelation) },
-                { key: 'dateOfBirth', label: L.hrDepBirth || '생년월일', kind: 'date' },
+                { key: 'dateOfBirth', label: L.hrDepBirth || '생년월일', kind: 'date', startView: 'year', max: todayIso, today: todayIso },
                 { key: 'isDependent', label: L.hrDepIsDependent || '부양 여부', kind: 'boolean', options: [{ value: 'true', label: L.hrDep || '부양중' }, { value: 'false', label: L.hrNotDep || '비부양' }] },
               ]}
               render={(d) => `${d.name} · ${relLabel(d.relation)}${d.dateOfBirth ? ` · ${d.dateOfBirth}` : ''} · ${d.isDependent ? (L.hrDep || '부양중') : (L.hrNotDep || '비부양')}`}
@@ -1397,6 +1397,9 @@ function HrRecordListSection({
                 value={form[f.key]}
                 onChange={set(f.key)}
                 date={f.kind === 'date'}
+                startView={f.startView}
+                max={f.max}
+                today={f.today}
                 options={f.options}
                 placeholder={f.placeholder}
               />
