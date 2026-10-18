@@ -53,7 +53,7 @@ export const INVITE_CSV_COLUMNS = [
   { key: 'employeeCode', labelKey: 'csvColEmployeeCode', width: 100 },
   { key: 'birthDate', labelKey: 'csvColBirthDate', kind: 'date', width: 120 },
   { key: 'gender', labelKey: 'csvColGender', kind: 'gender', width: 80 },
-  { key: 'maritalStatus', labelKey: 'csvColMaritalStatus', width: 90 },
+  { key: 'maritalStatus', labelKey: 'csvColMaritalStatus', kind: 'marital', width: 90 },
   { key: 'nationality', labelKey: 'csvColNationality', width: 90 },
   // 연락
   { key: 'phone', labelKey: 'csvColPhone', width: 130 },
@@ -322,6 +322,8 @@ export const INVITE_CSV_DEFAULT_LABELS = {
   csvErrEmploymentType: '고용형태는 {choices} 중 하나로 적어 주세요',
   // 성별도 고정값이다(PW-1332 · 초대 정책서 §2-4) — 받는 라벨을 그대로 알려 준다.
   csvErrGender: '성별은 남성·여성·기타·비공개 중 하나로 적어 주세요',
+  // 결혼 여부도 고정값이다 — 미리보기가 «정상»인데 [발송]에서 서버가 막지 않게 같은 표로 거른다 (PW-1935).
+  csvErrMarital: '결혼 여부는 미혼·기혼·기타 중 하나로 적어 주세요',
   csvErrOrgPathNotFound: "조직경로 '{path}'를 찾을 수 없습니다",
   csvErrLadderNeedsFamily: '직군을 함께 지정해주세요',
   csvErrJobPair: '직군에 없는 직렬입니다',
@@ -603,6 +605,20 @@ const GENDER_BY_TEXT = {
 
 export function parseGenderCell(value) {
   return GENDER_BY_TEXT[String(value ?? '').trim().toLowerCase()] ?? null;
+}
+
+/**
+ * 결혼 여부 칸이 받는 글자 (PW-1935) — 서버 `parseMaritalCell`(`hr-cell.util.ts`)과 같은 표다.
+ * 그 밖의 글자는 `null` — [발송] 때 서버가 «등록되지 않은 값입니다»로 막는 칸이다.
+ */
+const MARITAL_BY_TEXT = {
+  미혼: 'single', single: 'single',
+  기혼: 'married', married: 'married',
+  기타: 'other', other: 'other',
+};
+
+export function parseMaritalCell(value) {
+  return MARITAL_BY_TEXT[String(value ?? '').trim().toLowerCase()] ?? null;
 }
 
 /** `YYYY-MM-DD` 이고 실제로 있는 날짜인가 — 서버 `isIsoDate` 와 같은 규칙. */
@@ -925,6 +941,9 @@ export function inviteCsvIssues(row, ctx) {
     // 예/아니오 칸 (PW-920). 「Y」·「true」·「1」도 받는다 — 파일을 만든 도구마다 다르다.
     if (col.kind === 'gender' && normalize(v[col.key]) && parseGenderCell(v[col.key]) === null) {
       add(col.key, l.csvErrGender);
+    }
+    if (col.kind === 'marital' && normalize(v[col.key]) && parseMaritalCell(v[col.key]) === null) {
+      add(col.key, l.csvErrMarital);
     }
     if (col.kind === 'bool' && normalize(v[col.key]) && parseBoolCell(v[col.key]) === null) {
       add(col.key, fmtCsv(l.csvErrBool, { column: labelOf(col.key), value: v[col.key] }));
