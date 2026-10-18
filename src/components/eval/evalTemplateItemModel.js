@@ -197,6 +197,17 @@ export function categoryKind(category) {
   return SECTION_KIND[raw] ?? null;
 }
 
+/**
+ * [PW-1995] 답에 저장된 분류를 그대로 보여 줄 이름 — 사람이 지은 이름(「성과 (What)」 등)이면 그 이름,
+ * 내부 값(`work_achievement` 같은 영문 소문자·`snake_case`)이거나 비었으면 `null`.
+ * 근거 칸·리포트가 «업적»·«역량» 같은 고정 이름은 `null` 일 때만 붙인다.
+ */
+const CODE_SHAPED = /^[a-z][a-z0-9]*(_[a-z0-9]+)*$/;
+export function storedCategoryName(category) {
+  const raw = String(category ?? '').trim();
+  return raw && !CODE_SHAPED.test(raw) ? raw : null;
+}
+
 /** 섹션별로 항목을 묶는다 — 미리보기·평가지 렌더가 같은 순서로 그리게 한다. */
 export function groupBySection(items) {
   const groups = [];

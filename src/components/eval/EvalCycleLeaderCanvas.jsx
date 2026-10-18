@@ -9,7 +9,7 @@ import Radio from '../shared/Radio.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
 import { FieldInfo, FieldVisibility } from './evalFieldMeta.jsx';
 import EvalNoteBlock, { EvalMarkdownLite } from './EvalNoteBlock.jsx';
-import { isNoteItem, categoryKind } from './evalTemplateItemModel.js';
+import { isNoteItem, categoryKind, storedCategoryName } from './evalTemplateItemModel.js';
 import { AlertIcon, LockIcon } from './evalIcons.jsx';
 import { fieldsShape, reseedKeepingEdits } from './reseedAnswers.js';
 import EvalLeaderEvidenceSignals from './EvalLeaderEvidenceSignals.jsx';
@@ -427,7 +427,9 @@ function evidenceLabel(a, L) {
     // [PW-882] 평가지 답에도 칸(`growthType`)이 찍히게 됐다 — 이름은 여전히 질문 이름이 먼저다.
     return a.itemLabel || L[EVIDENCE_GROWTH_KEY[a.growthType]] || L.catGrowth;
   }
-  return L[EVIDENCE_CAT_KEY[kind]] ?? a.itemCategory ?? '';
+  // [PW-1995] 업적·역량은 평가지에 저장된 분류 이름(「성과 (What)」 등)을 그대로 쓴다 — 고정 이름
+  // (업적·역량)은 내부 값(`work_achievement`·`competency`)으로 저장된 답에만 붙인다.
+  return storedCategoryName(a.itemCategory) ?? L[EVIDENCE_CAT_KEY[kind]] ?? a.itemCategory ?? '';
 }
 
 // 기본값을 렌더마다 새 배열로 만들면 «답이 새로 왔다»로 읽혀 다시 시드하는 렌더가 끝없이 돈다.

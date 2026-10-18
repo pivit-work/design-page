@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import { ArrowRightIcon, InfoIcon } from './evalIcons.jsx';
-import { scaleMaxOf, categoryKind } from './evalTemplateItemModel.js';
+import { scaleMaxOf, categoryKind, storedCategoryName } from './evalTemplateItemModel.js';
 
 /**
  * EvalCycleReportCanvas — 내 평가 리포트 (멤버, 읽기 전용, 원페이지).
@@ -99,7 +99,8 @@ function catLabel(a, L) {
     // 칸이 없는 성장 답(하향 리뷰 성장 답·「성장 가능성」 점수)은 구분 이름 «성장».
     return key ? L[key] : L.catGrowth;
   }
-  return L[CAT_KEY[kind]] ?? a.itemCategory ?? '';
+  // [PW-1995] 업적·역량은 평가지에 저장된 분류 이름(「성과 (What)」 등) 그대로 — 고정 이름은 내부 값에만.
+  return storedCategoryName(a.itemCategory) ?? L[CAT_KEY[kind]] ?? a.itemCategory ?? '';
 }
 
 /**
