@@ -15,6 +15,8 @@ import rowKey from './rowKey.js';
  * 🔴 Objective 가 0건이어도 **노드는 남는다** — 그 기간에 OKR 을 세우지 않은
  * 조직과 트리에서 빠진 조직이 화면에서 같아 보이면 안 된다
  * (`okr-policy.md §3.4-A T2`, PW-413). 빈 자리는 점선 플레이스홀더로 말한다.
+ * 단 `progress` 가 null 인 칸(공개 범위로 가려진 개인)은 «없음»이 아니라 «못 봄»이라
+ * 플레이스홀더를 그리지 않는다 — 「등록된 Objective 없음」은 사실이 아니다 (PW-1980).
  */
 export default function OkrGroupNode({
   group,
@@ -46,7 +48,7 @@ export default function OkrGroupNode({
             />
           ))}
         </div>
-      ) : (
+      ) : group.progress == null ? null : (
         <div className="okr-objective-list okr-objective-empty">{emptyObjectivesLabel}</div>
       )}
       {group.members?.length > 0 && (
