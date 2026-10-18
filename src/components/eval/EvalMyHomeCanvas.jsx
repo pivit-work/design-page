@@ -17,10 +17,11 @@ import { ArrowRightIcon, CheckCircleIcon, ChevronRightIcon } from './evalIcons.j
  *     actionable: 누르면 갈 곳이 있다 · evaluator: 평가자 자격으로 열리는 상자(하향·캘리브레이션)
  *   reportBanner: { cycleId, cycleName, gradeLabel } | null
  *   peerTasks[{ cycleId, evaluateeId, name, due, submitted }]
+ *   peerReceiveOff: 나는 이번 평가에서 동료 리뷰를 받지 않는다(PW-1945) — 동료 리뷰 카드 머리에 안내
  *   state: 'ready' | 'loading' | 'failed'
  *
  * 시안과 다른 곳: 단계 사이 화살표·완료 체크는 글자 대신 인라인 SVG, 색은 공용 딱지 뜻(tone)으로 —
- * 시안의 «팀 3인 미만 비활성 띠»는 배정이 서버 몫이라 그리지 않는다(배정이 없으면 목록이 빈다).
+ * 시안의 «팀 3인 미만 띠»는 막는 띠가 아니라 안내로만 그린다 — 내가 주는 리뷰는 그대로 쓴다(PW-1945 · 구성원 정책 §3.3.1).
  */
 
 const DEFAULT_LABELS = {
@@ -53,6 +54,9 @@ const DEFAULT_LABELS = {
   peerPending: '{count}건 대기 중',
   peerWrite: '리뷰 작성',
   peerDone: '제출 완료',
+  peerReceiveOffTitle: '팀 인원이 3명 미만이라 이번 평가에서는 동료 리뷰를 받지 않습니다',
+  peerReceiveOffSub:
+    '소속 조직의 재직자가 3명보다 적으면 익명이 지켜지지 않아 동료 리뷰를 운영하지 않습니다. 다른 동료에게 쓰는 동료 리뷰는 그대로 작성합니다.',
 };
 
 const STATUS_TONE = { submitted: 'success', in_progress: 'warning', pending: 'neutral' };
@@ -133,6 +137,11 @@ export default function EvalMyHomeCanvas({
   cycles = [],
   reportBanner = null,
   peerTasks = [],
+  /**
+   * PW-1945 — 나는 이번 평가에서 동료 리뷰를 «받지» 않는다(팀이 3명 미만 · 구성원 정책 §3.3.1). 내가 «주는»
+   * 리뷰 목록은 막지 않고 카드 머리에 안내만 붙인다. 판정은 오픈 때 서버가 내렸다.
+   */
+  peerReceiveOff = false,
   labels: providedLabels,
   onRetry,
   onPhaseClick,
@@ -251,6 +260,13 @@ export default function EvalMyHomeCanvas({
               {fill(L.peerPending, { count: pendingPeers })}
             </StatusBadge>
           </div>
+          {peerReceiveOff && (
+            <div className="evc-wiz-soft-warn" data-testid="evmh-peer-receive-off">
+              <strong>{L.peerReceiveOffTitle}</strong>
+              <br />
+              {L.peerReceiveOffSub}
+            </div>
+          )}
           <div className="evmh-peer-list">
             {peerTasks.map((p) => (
               <div className="evmh-peer-row" key={`${p.cycleId}-${p.evaluateeId}`} data-testid="evmh-peer-row">

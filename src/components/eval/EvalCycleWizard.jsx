@@ -2533,6 +2533,19 @@ export default function EvalCycleWizard({
    */
   candidatesError = false,
   /**
+   * PW-1945 — 지금 팀(주 소속 조직 단위의 재직자 · 본인 포함)이 3명 미만인 구성원 id. 서버가 센다
+   * (spec-eval-cycle §4.1.1-K K-3). 6단계가 고른 대상자와 겹쳐 「N명은 동료 리뷰를 받지 않습니다」를
+   * 띄운다(HR 정책 §5.1-C). `null`·안 넘김이면 아직 없다 — 줄을 그리지 않는다(불러오는 중).
+   */
+  smallTeamMemberIds = null,
+  /** PW-1945 — 위 명단을 못 받았다. 「0명」으로 대신하지 않고 「확인하지 못했습니다 · 다시 시도」를 남긴다. */
+  smallTeamMemberIdsError = false,
+  /**
+   * PW-1945 — 명단을 다시 센다. 6단계에 들어설 때마다 부르고(오픈 전 미리 보기라 열 때마다 다시 센다 ·
+   * HR 정책 §5.1-C 엣지 ②), 실패 줄의 「다시 시도」도 이것이다.
+   */
+  onReloadSmallTeams,
+  /**
    * PW-1459 §5.5.2 — 필터 값 목록은 조직 설정(필드 옵션)에서 읽는다. 축 키별 값 배열.
    * `fieldOptions` 는 지금 고를 수 있는 값(설정 순서), `fieldOptionsAll` 은 비활성까지 포함한 전부.
    * 안 넘기면 종전대로 후보가 가진 값에서 뽑는다.
@@ -5821,6 +5834,9 @@ export default function EvalCycleWizard({
   const excludedMembers = scopedCandidates.filter((c) => excludedIds.has(c.id));
   const targetIds = targetMembers.map((c) => c.id);
   const targetCount = targetIds.length;
+  // PW-1945 — 4단계에서 뺀 사람은 «대상»이 아니라 세지 않는다(HR 정책 §5.1-C 엣지 ①).
+  const smallTeamIdSet = new Set(smallTeamMemberIds ?? []);
+  const smallTeamTargets = targetMembers.filter((c) => smallTeamIdSet.has(c.id));
   /* [PW-1591 J-3 · 정책 §5.5.11] 직급·입사일이 빈 사람 — 직급별 템플릿·입사일 제외 조건이 이 값을
      읽어서, 비면 조용히 빗나간다. 요약은 필터·검색과 무관하게 «대상 전체»로 센다. 막지 않는다. */
   const missingOf = (c) => ({ jobLevel: !c.jobLevel, hireDate: !c.hireDate });
@@ -5918,6 +5934,14 @@ export default function EvalCycleWizard({
     if (leaderStale) sendUnconfirm();
     // sendUnconfirm 은 ref 만 읽는다 — 어긋남이 생기는 순간 한 번이면 된다.
   }, [leaderStale]);
+
+  /* PW-1945 — 6단계에 들어설 때마다 «팀이 3명 미만인 대상자»를 다시 센다(HR 정책 §5.1-C 엣지 ②).
+     동료 리뷰가 없거나 연 사이클이면 묻지 않는다 — 그 줄을 그리지 않는다. */
+  const smallTeamsOn = step === 5 && hasPeer && !openedManage;
+  // 소비자는 콜백을 고정해 넘긴다(조직이 바뀔 때만 새로 만든다) — 들어설 때 한 번 묻는다.
+  useEffect(() => {
+    if (smallTeamsOn && typeof onReloadSmallTeams === 'function') onReloadSmallTeams();
+  }, [smallTeamsOn, onReloadSmallTeams]);
 
   /* 추천 — 4단계에 들어올 때 · 명단이 바뀔 때 · 차수가 바뀔 때 · 「다시 시도」. 손대지 않은 칸만
      새 추천으로 바뀐다(조정됨·건너뜀은 서버도 위자드도 덮지 않는다). 명단을 연달아 고치는 동안
@@ -7771,6 +7795,13 @@ export default function EvalCycleWizard({
                         })}
                       </div>
                     )}
+                  {/* [PW-1945 · HR 정책 §5.1-C K-2 ①] 팀이 3명 미만인 대상자는 동료 리뷰를 받지 않는다 —
+                      대상자를 아직 모르므로 인원 없이 일반 안내만. 막지 않는다. 연 사이클에는 두지 않는다(판정이 끝났다). */}
+                  {!openedManage && L.peerSmallTeamNote && (
+                    <div className="evc-wiz-soft-warn" data-testid="evc-wiz-peer-small-team">
+                      {L.peerSmallTeamNote}
+                    </div>
+                  )}
 
                   {/* PW-433 C안(David 확정 2026-08-23) — 사이클 토글 F2 는 폐지됐다.
                       공개 범위는 항목마다 다를 수 있어 사이클 하나의 ON/OFF 로는 표현되지 않는다.
@@ -10364,6 +10395,29 @@ export default function EvalCycleWizard({
                   </b>
                 </div>
               </div>
+              {/* [PW-1945 · HR 정책 §5.1-C K-2 ②] 팀이 3명 미만인 대상자 — 안내이지 차단이 아니다(오픈 버튼은
+                  이 사유로 막히지 않는다). 0명이면 줄이 없고, 못 셌으면 「0명」 대신 못 셌다고 말한다. */}
+              {hasPeer && !openedManage && smallTeamMemberIdsError ? (
+                <div className="evc-wiz-soft-warn" role="status" data-testid="evc-wiz-summary-small-team-error">
+                  {L.summarySmallTeamLoadError}{' '}
+                  {onReloadSmallTeams && (
+                    <button
+                      type="button"
+                      className="evc-link-btn"
+                      onClick={onReloadSmallTeams}
+                      data-testid="evc-wiz-summary-small-team-retry"
+                    >
+                      {L.summarySmallTeamRetry}
+                    </button>
+                  )}
+                </div>
+              ) : hasPeer && !openedManage && smallTeamTargets.length > 0 ? (
+                <div className="evc-wiz-soft-warn" data-testid="evc-wiz-summary-small-team">
+                  <strong>{fill(L.summarySmallTeamTitle, { count: smallTeamTargets.length })}</strong>
+                  {' — '}
+                  {smallTeamTargets.map((c) => c.name).join(', ')}. {L.summarySmallTeamSub}
+                </div>
+              ) : null}
               {/* [PW-1594 · 정책 §5.13.5] 오픈 차단 사유 2종 — 미확정 템플릿 차단과 같은 자리에서 막고, 고치러
                   갈 곳(4단계 ④ 섹션 · 2단계의 그 차수 칩)까지 함께 준다. */}
               {openBlockedByLeader && (

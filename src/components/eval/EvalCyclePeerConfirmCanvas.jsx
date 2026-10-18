@@ -13,6 +13,9 @@ import SearchSelect from '../shared/SearchSelect.jsx';
  * [PW-561] 피평가자 카드는 아코디언이다(리더 정책 §6.3.0) — 기본 접힘, 머리(이름·확정 대상 수·확정 버튼)는
  * 접혀도 보인다. 머리를 누르면 펼치고, 목록 위 「전체 펼치기/접기」로 한꺼번에 바꾼다. 접힘 상태는 화면에만 있다.
  *
+ * [PW-1945] `group.peerOff === 'small_team'` 이면 그 팀원은 이 사이클에서 동료 리뷰를 받지 않는다 — 카드에 안내만
+ *   (`peerOffTitle`·`peerOffSub`)과 `peerOffNotTarget` 을 두고 추가·채택·확정 버튼을 그리지 않는다.
+ *
  * [PW-561] `group.nominationChanged` 이면 머리에 「지정이 변경되었습니다」(§6.3.3). 판정은 서버 몫이다.
  *   - 그 카드를 펼치면 `onSeen(evaluateeId)` 를 부른다 — 상위가 서버에 «봤다»를 알리고 다시 읽는다.
  *   - 표시가 붙은 채 **접힌** 카드의 확정 버튼은 확정하지 않고 카드를 펼치며 안내를 띄운다.
@@ -32,6 +35,11 @@ const DEFAULT_LABELS = {
   nominees: '확정 대상 {{count}}명',
   confirmedBadge: '✓ 확정 · {{count}}명에게 발송됨',
   confirm: '최종 확정 → 발송',
+  // PW-1945 — 팀이 3명 미만이라 이 사이클에서 동료 리뷰를 받지 않는 팀원 카드(리더 정책 §6 엣지).
+  peerOffNotTarget: '확정 대상 아님',
+  peerOffTitle: '팀 인원이 3명 미만이라 이번 평가에서는 동료 리뷰를 받지 않습니다',
+  peerOffSub:
+    '이 팀원에게는 동료 리뷰어를 추가하거나 확정하지 않습니다. 사이클을 열 때 정해진 판정이라 이 화면에서 바꿀 수 없습니다.',
   nominationChanged: '지정이 변경되었습니다',
   nominationChangedConfirmHint: '지정이 변경되었습니다. 목록을 확인한 뒤 확정해 주세요.',
   evaluateeCount: '피평가자 {{count}}명',
@@ -243,6 +251,25 @@ function PeerGroupCard({
     setConfirmHint(false);
     onConfirm(group.evaluatee.id);
   };
+
+  // [PW-1945 · 리더 정책 §6 엣지 · spec §4.1.1-K K-4·K-5] 팀이 3명 미만이라 이 사이클에서 동료 리뷰를 받지
+  // 않는 팀원 — 안내만 두고 추가·채택·확정을 그리지 않는다(확정 대상이 아니다). 판정은 오픈 때 서버가 내렸다.
+  if (group.peerOff === 'small_team') {
+    return (
+      <section className="evc-card evp-group" data-testid="evp-group">
+        <div className="evc-card-head evp-group-head">
+          <h3 className="evc-card-name">{group.evaluatee.name || group.evaluatee.id}</h3>
+          {group.evaluatee.job && <span className="evp-nominee-job">{group.evaluatee.job}</span>}
+          <span className="evc-pending" data-testid="evp-peer-off-badge">{L.peerOffNotTarget}</span>
+        </div>
+        <div className="evc-wiz-soft-warn" data-testid="evp-peer-off">
+          <strong>{L.peerOffTitle}</strong>
+          <br />
+          {L.peerOffSub}
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className={`evc-card evp-group${expanded ? ' is-open' : ''}`} data-testid="evp-group">
