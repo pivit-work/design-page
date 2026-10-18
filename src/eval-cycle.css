@@ -7857,6 +7857,8 @@ button.evm-ai-source {
 /* PW-1932 — 위원장은 위원 관리 창과 같은 «관리자 전용» 딱지 색, 위원·HR 은 회색.
    파랑은 바로 옆 «진행 중»·«열기», 보라는 AI 몫이라 쓰지 않는다. */
 .evs-cw-myrole.tone-chair {
+  /* 테두리 1px 만큼 위아래 여백을 줄여 위원·HR 딱지와 높이를 맞춘다 */
+  padding: 0 7px;
   background: var(--utility-success-50);
   border: 1px solid var(--utility-success-200);
   font-weight: 500;
