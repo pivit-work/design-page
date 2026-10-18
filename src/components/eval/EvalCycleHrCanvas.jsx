@@ -246,6 +246,7 @@ const DEFAULT_LABELS = {
   tplConfirmGoSet: '2단계에서 확정하기',
   tplConfirmMissing: '{{type}}용 템플릿이 아직 확정되지 않았습니다',
   tplConfirmSummaryMissing: '미확정 — 2단계에서 템플릿을 확정하세요',
+  tplSummaryItems: '(항목 {{items}})',
   tplTypeOffTitle: '{{type}} 평가를 끕니다',
   tplTypeOffBody: '{{type}} 적용 템플릿 확정도 함께 해제됩니다. 다시 켜면 새로 확정해야 합니다.',
   // 오픈 차단 — 3단계에서 막던 것을 여기로 옮겼다(policy §5.2.4 엣지 4).

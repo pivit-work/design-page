@@ -325,13 +325,18 @@ export function leaderAssignmentCounts(cells) {
 
 /**
  * L2 — 최고 차수 열에 추천 평가자가 있는 대상자가 하나도 없다(1단계에서 차수를 너무 높게 골랐다).
- * 대상이 없거나 n=1 이면 판정하지 않는다.
+ * 대상이 없거나 n=1 이면 판정하지 않는다. HR 이 그 열의 칸을 모두 건너뛰거나 직접 지정했으면
+ * 안내가 권하는 일을 이미 한 것이라 띄우지 않는다(PW-1964).
  */
 export function topRoundHasNoRecommendation(cells, n) {
   const rounds = clampLeaderRounds(n);
   if (rounds <= 1) return false;
   const top = (cells ?? []).filter((c) => c.round === rounds);
-  return top.length > 0 && top.every((c) => !c.recommendedEvaluatorId);
+  return (
+    top.length > 0 &&
+    top.every((c) => !c.recommendedEvaluatorId) &&
+    top.some((c) => !c.skipped && !c.evaluatorId)
+  );
 }
 
 /** 대표 행 — 모든 차수 칸에 추천이 없다(체인이 비었다 · L1). */

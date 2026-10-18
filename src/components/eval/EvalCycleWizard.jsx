@@ -3225,6 +3225,11 @@ export default function EvalCycleWizard({
   // PW-119: 저장 직후엔 이름이 비므로 "이름을 입력하세요" 안내가 성공 직후 뜬다.
   // 방금 저장했다는 사실을 들고 있다가 안내 대신 확인 문구를 보여준다(프리셋 저장과 같은 방식).
   const [tplSaved, setTplSaved] = useState(false);
+  /**
+   * PW-1964 — [저장] 을 누를 때의 입력. 서버가 거절한 사유(templateSaveError)는 «그 입력»에 대한
+   * 답이라, 이름·항목·등급을 고치면 해소됐을 수 있는 옛 사유를 남기지 않는다. 다시 저장하면 다시 판정한다.
+   */
+  const [tplSaveAttempt, setTplSaveAttempt] = useState(null);
   /* PW-528 ④ 저장 차단 안내 → 템플릿 이름 칸으로 데려가기. */
   const tplNameRef = useRef(null);
   const focusTplName = () => {
@@ -5483,6 +5488,7 @@ export default function EvalCycleWizard({
       ratioScope: tplRatioScope,
     };
     if (libraryMode) {
+      setTplSaveAttempt({ name: tplName, questions: tplQuestions, grades: tplGrades });
       // 🔴 마법사를 끝내거나 사이클을 오픈해야 등재되는 지연 저장은 금지다 —
       // 사용자가 "저장했는데 없다" 고 느끼는 지점이 정확히 여기다(정책 §3).
       Promise.resolve(onSaveTemplate?.(tpl)).then((saved) => {
@@ -8630,7 +8636,10 @@ export default function EvalCycleWizard({
                 >
                   {L.templateSave}
                 </button>
-                {templateSaveError ? (
+                {templateSaveError &&
+                tplSaveAttempt?.name === tplName &&
+                tplSaveAttempt?.questions === tplQuestions &&
+                tplSaveAttempt?.grades === tplGrades ? (
                   /* PW-122 — 서버가 거절한 사유(이름 중복 등)를 여기서 말한다. 전역
                      에러 페이지로 튕기면 작성 중이던 사이클 설정이 통째로 날아간다. */
                   <span
@@ -10112,7 +10121,9 @@ export default function EvalCycleWizard({
                     onAssign={assignLeader}
                     onSkip={skipLeader}
                     onRevert={revertLeader}
-                    topRoundEmpty={topRoundHasNoRecommendation(leaderCells, roundsInUse)}
+                    topRoundEmpty={
+                      !leaderConfirmed && topRoundHasNoRecommendation(leaderCells, roundsInUse)
+                    }
                     formatStamp={stampMonthDayTime}
                   />
                 </div>
@@ -10352,6 +10363,15 @@ export default function EvalCycleWizard({
                         {row.confirmed
                           ? templateNameOf(row) || L.tplConfirmUnknown
                           : L.tplConfirmSummaryMissing}
+                        {/* PW-1964 — 이름만으로는 무엇이 들어갔는지 모른다. 카드의 「항목 N」과 같은 수를 센다. */}
+                        {row.confirmed && Array.isArray(row.tpl?.questions) && (
+                          <span data-testid={`evc-wiz-summary-tpl-items-${row.type}`}>
+                            {' '}
+                            {fill(L.tplSummaryItems ?? '(항목 {{items}})', {
+                              items: questionItems(row.tpl.questions).length,
+                            })}
+                          </span>
+                        )}
                       </span>
                     ))}
                   </b>
