@@ -149,7 +149,7 @@ export default function EvalCycleManageCanvas({
   statusLabel = null,
   statusTone = 'neutral',
   onHold = false,
-  /** 탭 줄. 헤더 «아래», 본문 칸(1080) 안에 선다. */
+  /** 탭 줄. 헤더 «아래», 본문 칸 안에 선다. */
   toolbar = null,
   /** 이 탭이 왜 잠겼는지. `null` 이면 편집 가능. */
   lockReason = null,

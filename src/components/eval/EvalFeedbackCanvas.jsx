@@ -189,6 +189,9 @@ const PROGRESS_BAR_W = 96;
  * 잘리지도 않은 글에 '… 전문 보기' 가 붙는다. 카드 1080px, 좌우 패딩 18px, 아바타
  * 22px + 간격 8px → 본문 약 1014px. 12px 한글 기준 한 줄 ≈ 84자, 2줄 ≈ 168자이고
  * 여기에 기존과 같은 보수 비율(≈76%)을 적용했다. (620px 시절 값은 70자였다.)
+ * PW-1951 에서 본문 폭 제한을 걷어 카드가 창을 따라 넓어진다. 앱은 1400px 보다 좁아지지 않고
+ * 그 창에서 카드가 1080px 이라(브라우저 실측), 카드는 1080 보다 좁아지지 않는다 — 넓은 창에서는
+ * 「안 잘렸는데 표시」쪽으로만 어긋나므로 값은 그대로 둔다.
  */
 const PREVIEW_CLAMP_CHARS = 128;
 const isPreviewTruncated = (text) =>
@@ -1239,7 +1242,7 @@ export default function EvalFeedbackCanvas({
         data-testid="fbm-toast"
       />
 
-      {/* 폭은 .evc-root 의 기본값(1080px)을 그대로 쓴다 — 수시 피드백 3화면과 정기 평가가
+      {/* 폭은 .evc-root 의 기본값(폭 제한 없음, PW-1951)을 그대로 쓴다 — 수시 피드백 3화면과 정기 평가가
           같은 본문 폭이라야 탭을 옮길 때 내용의 좌우 끝이 움직이지 않는다 (PW-218). */}
       <div className="evc-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

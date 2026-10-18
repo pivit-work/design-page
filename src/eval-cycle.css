@@ -27,10 +27,15 @@
   font-family: var(--font-family-body);
 }
 
-/* 내부 콘텐츠는 최대폭 제한 + 왼쪽 정렬 (스크롤바는 콘텐츠 영역 우측 끝).
+/* 내부 콘텐츠는 왼쪽 정렬 (스크롤바는 콘텐츠 영역 우측 끝).
    가운데에 세우면 넓은 창에서 본문이 위쪽 탭 줄(.evnav-nav)보다 오른쪽에서 시작했다 —
-   1440px 창에서 탭 줄 252 · 본문 300. 탭 줄 첫 글자와 같은 왼쪽 줄에 세우고 남는 폭은
-   오른쪽에 둔다 (PW-1656). 이 파일의 다른 1080 칸도 같은 이유로 왼쪽에 붙인다. */
+   1440px 창에서 탭 줄 252 · 본문 300. 탭 줄 첫 글자와 같은 왼쪽 줄에 세운다 (PW-1656).
+   본문 폭 제한(1080px)은 두지 않는다 — 디자이너 화면(스니핏·타임라인·원온원)처럼 창 폭을 다
+   쓴다. 1596px 창에서 셀프 리뷰 본문과 「제출하기」 줄이 중간에서 끝나 잘린 것처럼 보였다.
+   같은 이유로 1400px 보다 좁은 창 폭에서만 켜지던 접기 규칙(@media)도 두지 않는다 — 앱은
+   1400px 보다 좁아지지 않고 가로 스크롤된다 (PW-1951).
+   🔴 오른쪽 여백을 auto 로 두지 않는다 — 폭 제한이 없으면 쓸모가 없고, 세로로 쌓는 flex 칸
+   안에서는 auto 여백 때문에 글자 폭만큼 줄어든다(하향 리뷰 「제출하기」 줄이 613px 로 남았다). */
 .evc-header,
 .evc-toolbar,
 .evc-list,
@@ -39,9 +44,8 @@
 .evc-root > .evc-card,
 .evc-root > .evx-notice,
 .evc-root > .load-failure-notice {
-  max-width: 1080px;
   margin-left: 0;
-  margin-right: auto;
+  margin-right: 0;
 }
 /* 평가 본문 자리 안에 둔 「접근 권한이 없습니다」 화면 — 창 전체 높이(100vh)를 잡으면 본문이
    스크롤된다. 본문 자리 높이 안에서 가운데에 세운다 (PW-1652). */
@@ -49,14 +53,14 @@
   min-height: 100%;
   padding: 0;
 }
-/* 목록 칸(.evc-list) 안에 든 칸은 이미 1080 칸 안이다. 여기서도 좌우 auto 를 두면 세로 flex
+/* 목록 칸(.evc-list) 안에 든 칸은 이미 본문 칸 안이다. 여기서도 좌우 auto 를 두면 세로 flex
    안에서 내용 폭만큼 줄어 가운데에 좁게 뜬다 — 동료 리뷰 탭의 빈 상자가 200px 로 줄고, 외부
    데이터의 제목 줄이 가운데로 몰렸다 (PW-1652). 칸을 꽉 채운다. */
 .evc-list > :is(.evc-header, .evc-list, .evc-empty, .evc-loading) {
   margin-left: 0;
   margin-right: 0;
 }
-/* 목록 끝에서 다음 쪽을 못 불러왔을 때의 한 줄(글 + 「다시 시도」) — 목록과 같은 1080 칸에
+/* 목록 끝에서 다음 쪽을 못 불러왔을 때의 한 줄(글 + 「다시 시도」) — 목록과 같은 칸에
    왼쪽 줄을 맞추고, 마지막 카드와 띄우고, 글과 버튼의 세로 가운데를 맞춘다. 평가 템플릿에서
    빈 상태 글 모양(.evc-empty-sub)만 빌려 써 카드에 붙고 칸 밖으로 삐져나왔다 (PW-1652).
    그 클래스와 함께 쓰지 않는다 — 파일 뒤쪽에 있어 margin 을 덮는다. 글 모양은 여기서 준다. */
@@ -66,8 +70,7 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
-  max-width: 1080px;
-  margin: var(--spacing-xl) auto 0 0;
+  margin: var(--spacing-xl) 0 0;
 }
 /* 목록 칸 안의 제목 줄 — 칸 gap(16) 에 8 을 더해 다른 화면의 제목 아래 간격(24)과 맞춘다. */
 .evc-list > .evc-header {
@@ -94,20 +97,18 @@
 
 /* 종합 리포트의 하위 탭 줄. 공용 탭 줄(.tl-tabs-row)은 타임라인 여백(위 20 · 왼쪽 12 · 아래 0)을
    그대로 가져와, 이 화면에서는 탭 줄이 본문 칸보다 왼쪽으로 삐져나오고 바로 아래 숫자 카드에
-   맞닿았다. 본문 칸(1080)에 맞추고 아래로 카드 사이 간격을 둔다. */
+   맞닿았다. 본문 칸에 맞추고 아래로 카드 사이 간격을 둔다. */
 .tl-tabs-row.evc-tabs-row {
-  max-width: 1080px;
-  margin: 0 auto var(--spacing-xl) 0;
+  margin: 0 0 var(--spacing-xl);
 }
 
-/* [PW-1462] 진행 현황 부서 고르기 (정책 §6.4) — 이름표 옆에 드롭다운 하나. 본문 칸(1080) 왼쪽에 맞춘다. */
+/* [PW-1462] 진행 현황 부서 고르기 (정책 §6.4) — 이름표 옆에 드롭다운 하나. 본문 칸 왼쪽에 맞춘다. */
 .evmon-dept-filter {
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
   width: 100%;
-  max-width: 1080px;
-  margin: 0 auto 0 0;
+  margin: 0;
 }
 .evmon-dept-filter .dp-select {
   width: auto;
@@ -3432,15 +3433,6 @@
   color: var(--utility-warning-700);
 }
 
-@media (width <= 900px) {
-  .evc-review-split {
-    flex-wrap: wrap;
-  }
-  .evc-org-tree,
-  .evc-review-excluded {
-    flex: 1 1 100%;
-  }
-}
 .evc-review-col {
   min-width: 0;
 }
@@ -4074,8 +4066,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--spacing-md);
-  max-width: 1080px;
-  margin: var(--spacing-lg) auto 0 0;
+  margin: var(--spacing-lg) 0 0;
   padding: var(--spacing-lg) var(--spacing-2xl);
   background: var(--bg-quaternary);
   border: 1px solid var(--bg-active);
@@ -4213,8 +4204,7 @@ button.evm-ai-source {
 }
 /* TC-136 저장 실패 배너 */
 .evm-save-error {
-  max-width: 1080px;
-  margin: var(--spacing-md) auto 0 0;
+  margin: var(--spacing-md) 0 0;
   padding: 10px 16px;
   border-radius: var(--radius-md);
   background: var(--utility-error-50);
@@ -4663,7 +4653,7 @@ button.evm-ai-source {
 }
 .evc-root > .seg-control {
   margin-bottom: var(--spacing-lg);
-  /* 1080 칸은 왼쪽에 붙어 서므로(PW-1656) 전환 버튼도 따로 들일 것 없이 본문 왼쪽 줄에서
+  /* 본문 칸은 왼쪽에 붙어 서므로(PW-1656) 전환 버튼도 따로 들일 것 없이 본문 왼쪽 줄에서
      시작한다. 가운데 칸 시절 여기서 칸 여백만큼 들였었다 (PW-1652). */
 }
 
@@ -4674,8 +4664,7 @@ button.evm-ai-source {
   display: flex;
   gap: var(--spacing-2xl);
   align-items: flex-start;
-  max-width: 1080px;
-  margin: 0 auto 0 0;
+  margin: 0;
 }
 .evl-evidence {
   position: sticky;
@@ -4884,8 +4873,7 @@ button.evm-ai-source {
 }
 /* §5.9 「저장됨 HH:MM」 — 화면 우상단, 3초 뒤 사라진다 */
 .evl-autosaved {
-  max-width: 1080px;
-  margin: 0 auto var(--spacing-md) 0;
+  margin: 0 0 var(--spacing-md);
   text-align: right;
   font-size: var(--font-size-text-xs);
   font-weight: 600;
@@ -4955,16 +4943,6 @@ button.evm-ai-source {
 .evl-grade-btn:disabled {
   cursor: not-allowed;
   opacity: 0.6;
-}
-@media (max-width: 1000px) {
-  .evl-2pane {
-    flex-direction: column;
-  }
-  .evl-evidence {
-    position: static;
-    width: auto;
-    max-height: none;
-  }
 }
 
 /* ════════════════════════════════════════════════════════════
@@ -5239,10 +5217,6 @@ button.evm-ai-source {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--spacing-lg);
-}
-@media (max-width: 900px) {
-  .evs-kpis { grid-template-columns: repeat(2, 1fr); }
-  .evs-two-col { grid-template-columns: 1fr; }
 }
 
 
@@ -5520,7 +5494,6 @@ button.evm-ai-source {
 
 /* §8 피평가자 통합 요약 (2열) */
 .evs-re { display: grid; grid-template-columns: 240px 1fr; gap: var(--spacing-lg); align-items: start; }
-@media (max-width: 820px) { .evs-re { grid-template-columns: 1fr; } }
 .evs-re-list { position: sticky; top: 0; max-height: 78vh; overflow-y: auto; }
 .evs-re-access { font-size: var(--font-size-text-xs); color: var(--text-secondary); margin-bottom: var(--spacing-sm); }
 .evs-re-groups { display: flex; flex-direction: column; gap: var(--spacing-md); }
@@ -6140,8 +6113,7 @@ button.evm-ai-source {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
-  max-width: 1080px;
-  margin: 0 auto 0 0;
+  margin: 0;
 }
 .fb-item {
   gap: var(--spacing-sm);
@@ -7797,17 +7769,6 @@ button.evm-ai-source {
   font-size: 12px;
   color: var(--text-secondary);
 }
-@media (max-width: 900px) {
-  .evs-cw-detail-3col {
-    grid-template-columns: 1fr;
-  }
-  .evs-cw-detail-comments {
-    border-left: none;
-    padding-left: 0;
-    border-top: 1px solid var(--border-primary);
-    padding-top: 10px;
-  }
-}
 
 /* §9.1 R7 승진 2축 마킹 */
 .evs-cw-promo-cell {
@@ -8156,13 +8117,6 @@ button.evm-ai-source {
   background: var(--componentColors-alpha-alphaBlack3, rgba(0,0,0,0.03));
   border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0,0,0,0.05));
   margin-bottom: var(--spacing-3xl);
-}
-@media (max-width: 640px) {
-  .evtcal-flow {
-    margin-left: 0;
-    width: 100%;
-    flex-wrap: wrap;
-  }
 }
 
 /* ── 요약 탭 G 포인터 카드(독립 워크스페이스로 유도) ── */
@@ -9292,10 +9246,14 @@ button.evm-ai-source {
   background: var(--bg-primary);
   font-family: var(--font-family-body);
 }
-/* 평가 셸 안에서는 캔버스를 내비 아래로 내린다 */
+/* 평가 셸 안에서는 캔버스를 내비 아래로 내린다.
+   오른쪽 여백은 스니핏 본문 글의 오른쪽 끝(창-68)에 맞춘다 — 스니핏은 바깥 칸 오른쪽 40
+   (`.tl-page`, 이 셸의 탭 줄 오른쪽 40 과 같다) 안에 본문 안쪽 28(`.snippet-body`)을 둔다.
+   본문 폭 제한(1080)을 걷은 뒤 24 그대로면 평가 본문만 16px 더 나갔다 (PW-1951). */
 .evnav-shell .evc-root {
   top: calc(68px + var(--evnav-h));
   padding-left: var(--evnav-pad-left);
+  padding-right: 68px;
 }
 /* 1행 — 모양은 `.tab-nav`(OKR·조직도)가 준다. 키보드로도 고를 수 있게 버튼으로 두고
    버튼 기본 모양만 걷는다. 좁아지면 줄바꿈 대신 가로 스크롤. */
@@ -10074,16 +10032,6 @@ button.evm-ai-source {
   color: var(--utility-error-600);
 }
 
-/* 좁은 화면에서 시점 표가 옆으로 밀리지 않게 한 줄씩 쌓는다. */
-@media (max-width: 720px) {
-  .evrs-timeline-row {
-    flex-wrap: wrap;
-  }
-  .evrs-timeline-when,
-  .evrs-timeline-who {
-    min-width: 0;
-  }
-}
 
 /* ── 위자드를 «화면 안 한 칸» 으로 쓸 때 (PW-534 ㉮ · 정책 §4.6) ──
    창으로 뜰 때의 규격(그림자·최대 높이·자체 스크롤)은 «창이라서» 필요한 값이다.
@@ -10706,12 +10654,6 @@ button.evm-ai-source {
   font-family: inherit;
   font-size: var(--font-size-text-sm);
   resize: vertical;
-}
-/* 좁은 화면에서는 원문·다듬은 글을 위아래로 — 나란히 두면 둘 다 못 읽는다. */
-@media (max-width: 720px) {
-  .evrr-refine-compare {
-    grid-template-columns: 1fr;
-  }
 }
 
 /* W35 — 요약 정책 §10.G.3·§10.G.4·§10.G.6·§10.G.7·§10.G.9 · §7.5 */

@@ -537,7 +537,7 @@ export default function EvalFeedbackHrCanvas({
         tone={toast?.type === 'success' ? 'success' : 'error'}
         data-testid="fbhr-toast"
       />
-      {/* 폭은 .evc-root 의 기본값(1080px)을 그대로 쓴다 — 수시 피드백 3화면과 정기 평가가
+      {/* 폭은 .evc-root 의 기본값(폭 제한 없음, PW-1951)을 그대로 쓴다 — 수시 피드백 3화면과 정기 평가가
           같은 본문 폭이라야 탭을 옮길 때 내용의 좌우 끝이 움직이지 않는다 (PW-218). */}
       <header className="evc-header" style={{ display: 'flex', alignItems: 'center' }}>
         <div>
