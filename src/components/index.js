@@ -406,6 +406,13 @@ export {
   EvalTemplateGradeRows,
   EvalTemplateItemRow,
 } from './eval/EvalTemplateBuilder.jsx';
+// PW-1840 등급별 기대 키워드 — 칸의 글 ↔ 서버 배열. 템플릿을 저장하는 세 화면이 같은 것을 쓴다.
+export {
+  MAX_GRADE_KEYWORDS,
+  formatGradeKeywords,
+  gradeKeywordsForSave,
+  parseGradeKeywords,
+} from './eval/evalGradeKeywords.js';
 // [PW-602 ③④] 평가지 안의 «글» 을 그리는 유일한 렌더러 — 설명 항목 본문과 항목 가이드
 // 문구가 같은 필드라 부분집합·정화도 한 벌만 둔다 (정책 §5.11-D·§5.11-F).
 export { default as EvalNoteBlock, EvalMarkdownLite } from './eval/EvalNoteBlock.jsx';

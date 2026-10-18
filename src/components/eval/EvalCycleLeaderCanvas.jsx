@@ -2,6 +2,8 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import Chip from '../shared/Chip.jsx';
+import { resolveKoreanParticles } from '../shared/koreanParticle.js';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Radio from '../shared/Radio.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
@@ -94,6 +96,22 @@ const DEFAULT_LABELS = {
   // PW-1594 하향 차수(리더 정책 §5.13). `{name}`·`{round}`·`{next}`·`{at}`·`{date}` 자리를 채운다.
   roundTitle: '{name} — 하향 리뷰 · {round}차',
   gradeRoundNote: '이 등급은 {next}차가 제출되면 참고 등급이 됩니다',
+  // PW-1840 평가 정합성 검토 (leader.policy §5.3 · spec §17.3-B) — 「AI」·✦ 를 붙이지 않는다(AI 가 아니다)
+  alignButton: '정합성 검토',
+  alignHint: '고른 등급의 기대 키워드가 글에 들어 있는지 봅니다 · 참고용',
+  alignNeedGrade: '등급을 먼저 고르면 검토할 수 있습니다',
+  alignTitle: '평가 정합성 검토 · {grade}',
+  alignVerdictMatch: '부합',
+  alignVerdictPartial: '부분 부합',
+  alignVerdictMismatch: '불일치',
+  alignCount: '기대 키워드 {total}개 중 {matched}개',
+  // 을(를) — 키워드 받침에 맞춰 고른다(`resolveKoreanParticles`)
+  alignSuggestion: '「{keyword}」을(를) 보여 주는 사례를 덧붙여 보세요',
+  alignFootnote: '참고용 — 제출을 막지 않습니다',
+  alignStale: '글이나 등급이 바뀌었습니다 — 다시 검토해 주세요',
+  alignNoCriteria: '이 등급에 등록된 기대 키워드가 없어 검토할 수 없습니다 — 사이클 관리자가 템플릿 등급에 넣을 수 있습니다',
+  alignTooShort: '평가 내용이 너무 짧아 검토할 수 없습니다',
+  alignFailed: '검토하지 못했습니다. 다시 눌러 주세요',
   priorTitle: '앞 차수 리뷰',
   priorHead: '{round}차 · {name} · 제출 {at}',
   priorUnknownEvaluator: '—',
@@ -596,6 +614,12 @@ export default function EvalCycleLeaderCanvas({
   // TC-098 승진 요청서(4항목)
   promotionRequest = null,
   onSubmitPromotion,
+  /**
+   * PW-1840 「정합성 검토」 — onAlignmentCheck(gradeKey, text) → Promise<{ verdict, matched, missing, total }>.
+   * `verdict` 는 match · partial · mismatch · no_criteria · too_short. 넘기지 않으면 버튼 줄을 그리지 않는다.
+   * 누를 때만 부른다 — 등급을 고르거나 글을 고칠 때 저절로 돌지 않는다(spec §17.3-B A2·A9).
+   */
+  onAlignmentCheck,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const formLocked = locked ?? submitted;
@@ -680,6 +704,9 @@ export default function EvalCycleLeaderCanvas({
   const [rationaleAsk, setRationaleAsk] = useState(null);
   // §5.9 자동 임시저장 표시 — { kind: 'saved', at } | { kind: 'failed' } | null
   const [saveStatus, setSaveStatus] = useState(null);
+  // PW-1840 정합성 검토 — { status: 'loading' } | { status: 'done', result, grade, text } | { status: 'failed' } | null.
+  // 저장하지 않는다 — 화면을 다시 열면 사라진다(A11).
+  const [align, setAlign] = useState(null);
 
   const snapshot = snapshotOf(itemsOf(fields, state), grade);
   const editable = active && !formLocked && !submitted && !showCompletion;
@@ -906,6 +933,103 @@ export default function EvalCycleLeaderCanvas({
   ]
     .filter(Boolean)
     .join('\n');
+  /*
+   * PW-1840 — 평가 정합성 검토 (leader.policy §5.3 「평가 정합성 검토 규칙」 · spec §17.3-B).
+   * 검사할 글은 평가지 답(서술·사유) 전부다. 위원회 전용 코멘트·승진/보상 사유는 이 칸들이 아니라
+   * 따로 든 상태라 들어가지 않는다(A4). 판정은 서버가 한다 — 화면은 글과 등급만 보낸다.
+   */
+  const alignText = fields
+    .flatMap((f) => [state[f.key].textAnswer, state[f.key].rationale])
+    .map((v) => (v || '').trim())
+    .filter(Boolean)
+    .join('\n');
+  const runAlignCheck = async () => {
+    if (!grade || !onAlignmentCheck || align?.status === 'loading') return;
+    const sent = { grade, text: alignText };
+    setAlign({ status: 'loading' });
+    try {
+      const result = await onAlignmentCheck(sent.grade, sent.text);
+      setAlign({ status: 'done', result, ...sent });
+    } catch {
+      setAlign({ status: 'failed' });
+    }
+  };
+  const alignStale = align?.status === 'done' && (align.grade !== grade || align.text !== alignText);
+  const ALIGN_VERDICT = {
+    match: ['success', L.alignVerdictMatch],
+    partial: ['warning', L.alignVerdictPartial],
+    mismatch: ['danger', L.alignVerdictMismatch],
+  };
+  const alignResult = align?.status === 'done' ? align.result : null;
+  const alignVerdict = alignResult && ALIGN_VERDICT[alignResult.verdict];
+  const alignGradeLabel = align?.status === 'done' ? priorGradeLabelOf(align.grade) : '';
+  const alignBlock = onAlignmentCheck && (
+    <div className="evl-align" data-testid="evl-align">
+      <div className="evl-align-row">
+        <button
+          type="button"
+          className="evc-btn is-ghost"
+          onClick={() => void runAlignCheck()}
+          disabled={!grade || align?.status === 'loading'}
+          data-testid="evl-align-run"
+        >
+          {L.alignButton}
+        </button>
+        <p className="evl-grade-caption evl-align-hint" data-testid="evl-align-hint">
+          {grade ? L.alignHint : L.alignNeedGrade}
+        </p>
+      </div>
+      {align?.status === 'failed' && (
+        <p className="evl-calib-off-note" role="alert" data-testid="evl-align-failed">
+          <AlertIcon size={14} /> {L.alignFailed}
+        </p>
+      )}
+      {alignResult && (
+        <section className="evc-card evl-align-card" data-testid="evl-align-result">
+          {alignStale && (
+            <p className="evl-calib-off-note" data-testid="evl-align-stale">
+              <AlertIcon size={14} /> {L.alignStale}
+            </p>
+          )}
+          <div className={`evl-align-body${alignStale ? ' is-stale' : ''}`}>
+            {alignResult.verdict === 'no_criteria' && (
+              <p className="evl-grade-caption" data-testid="evl-align-no-criteria">{L.alignNoCriteria}</p>
+            )}
+            {alignResult.verdict === 'too_short' && (
+              <p className="evl-grade-caption" data-testid="evl-align-too-short">{L.alignTooShort}</p>
+            )}
+            {alignVerdict && (
+              <>
+                <div className="evl-align-head">
+                  <h3 className="evc-card-name">{fillLabel(L.alignTitle, { grade: alignGradeLabel })}</h3>
+                  <StatusBadge tone={alignVerdict[0]} className="evc-status-badge" data-testid="evl-align-verdict">
+                    {alignVerdict[1]}
+                  </StatusBadge>
+                  <span className="evl-grade-caption evl-align-count" data-testid="evl-align-count">
+                    {fillLabel(L.alignCount, { total: alignResult.total, matched: alignResult.matched.length })}
+                  </span>
+                </div>
+                <div className="evl-align-chips" data-testid="evl-align-keywords">
+                  {alignResult.matched.map((k) => (
+                    <Chip key={`m-${k}`} tone="success" data-testid="evl-align-matched">{k}</Chip>
+                  ))}
+                  {alignResult.missing.map((k) => (
+                    <Chip key={`x-${k}`} data-testid="evl-align-missing">{k}</Chip>
+                  ))}
+                </div>
+                {alignResult.missing.slice(0, 3).map((k) => (
+                  <p className="evl-align-suggestion" key={`s-${k}`} data-testid="evl-align-suggestion">
+                    {resolveKoreanParticles(fillLabel(L.alignSuggestion, { keyword: k }))}
+                  </p>
+                ))}
+              </>
+            )}
+            <p className="evl-grade-round-note" data-testid="evl-align-footnote">{L.alignFootnote}</p>
+          </div>
+        </section>
+      )}
+    </div>
+  );
   const gradeCard = isFreeze ? (
     <>
       <section
@@ -1106,6 +1230,7 @@ export default function EvalCycleLeaderCanvas({
         {/* 우: 작성 */}
         <div className="evl-form">
           {gradeAtTop && gradeCard}
+          {gradeAtTop && alignBlock}
           {sections.map((sec) => {
             const isCollapsed = !!collapsed[sec.title];
             const isCompetency = sec.fields.some((x) => isCompetencyCategory(x.category));
@@ -1267,6 +1392,7 @@ export default function EvalCycleLeaderCanvas({
 
           {/* 최종 등급 — 하단 배치(기본)일 때만 여기 렌더 */}
           {!gradeAtTop && gradeCard}
+          {!gradeAtTop && alignBlock}
 
           {/* F5 위원회 전용 코멘트 + 승진·보상 — leader §5.7·§5.8 비공개 영역(연빨강 바탕·빨간 테두리·빨간 안내) */}
           <div className="evl-assessment" data-testid="evl-assessment">

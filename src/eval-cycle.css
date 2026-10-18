@@ -4805,6 +4805,53 @@ button.evm-ai-source {
   font-size: var(--font-size-text-xs);
   color: var(--text-tertiary);
 }
+/* PW-1840 평가 정합성 검토 (leader.policy §5.3) — 최종 등급 카드 바로 아래 한 줄 + 결과 카드.
+   새 모양은 없다: 버튼은 「임시저장」(.evc-btn.is-ghost), 설명은 등급 카드 캡션(.evl-grade-caption),
+   결과는 같은 화면 카드(.evc-card), 판정은 상태 딱지, 키워드는 상태 칩. 여기는 줄 세우기만 한다. */
+.evl-align {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+.evl-align-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+}
+.evl-align-row .evl-align-hint,
+.evl-align-head .evl-align-count {
+  margin: 0;
+}
+.evl-align-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+/* 검토 뒤 글·등급이 바뀌면 결과는 흐리게 남는다 */
+.evl-align-body.is-stale {
+  opacity: 0.5;
+}
+.evl-align-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+.evl-align-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+.evl-align-suggestion {
+  margin: 0;
+  font-size: var(--font-size-text-sm);
+  color: var(--text-primary);
+}
+.evl-align-body .evl-grade-round-note,
+.evl-align-body .evl-grade-caption {
+  margin: 0;
+}
 /* PW-1594 §5.13.3 — 근거 칸 맨 위 「앞 차수 리뷰」 */
 .evl-prior {
   display: flex;
@@ -9330,9 +9377,14 @@ button.evm-ai-source {
 /* ── PW-433 항목 설정 패널 · 등급 서열 이동 ─────────────────────────────
    policy §5.11-A~D · §5.12 · §5.4.4 */
 
-/* 등급 행: 끌기 손잡이 + 순번이 앞에 붙어 4열 → 6열이 된다. */
+/* 등급 행: 끌기 손잡이 + 순번이 앞에 붙어 4열 → 6열이 된다. PW-1840 설명 오른쪽에 기대 키워드 칸이 붙어 7열 —
+   키워드 칸은 안내 문구(「…정합성 검토 기준」)가 잘리지 않게 조금 넓다. */
 .evc-tpl-grade {
-  grid-template-columns: 20px 16px 100px 1fr 72px auto;
+  grid-template-columns: 20px 16px 100px 1fr 1.25fr 72px auto;
+}
+/* PW-1840 기대 키워드 21개 이상 — 그 칸 바로 아래 줄에 비율 합 경고와 같은 빨간 작은 글씨 */
+.evc-tpl-grade-kw-over {
+  grid-column: 5 / 6;
 }
 /* 배분율 칸이 없는 등급(절대 평가)은 × 가 72px 칸으로 밀려 들어가 가운데에 서서, 아래 평가
    항목 줄의 × 와 세로 줄이 안 맞았다 (PW-1652). × 는 언제나 마지막 칸 오른쪽 끝에 둔다. */

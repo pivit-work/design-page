@@ -47,6 +47,7 @@ import { autoCommitteeIdsOf } from './calibrationAutoCommittee.js';
 // [PW-527 ①③] 항목 설정판과 평가지 렌더는 「평가 템플릿」 화면과 **나눠 쓰는 부품**이다.
 // 여기 안에 두면 마법사 밖에서 쓸 수 없어, 같은 판이 두 화면에 각각 생긴다 (정책 §6.3).
 import { EvalTemplateGradeRows, EvalTemplateItemRow, GripIcon } from './EvalTemplateBuilder.jsx';
+import { gradeKeywordsForSave } from './evalGradeKeywords.js';
 import EvalSheetBody from './EvalSheetBody.jsx';
 import EvalWizardChipPicker from './EvalWizardChipPicker.jsx';
 import { CHIP_PICKER_SEARCH_MIN, filterByQuery } from './chipPickerFilter.js';
@@ -7104,6 +7105,8 @@ export default function EvalCycleWizard({
             label: g.label,
             desc: g.desc,
             ratio: g.ratio,
+            // PW-1840 칸의 글(`keywords`)을 배열로. 보관함에서 불러온 등급은 호출부가 글로 바꿔 넘긴다.
+            expectedKeywords: gradeKeywordsForSave(g.keywords),
           })),
         })),
       // 구 flat due 컬럼은 review_sequence 로 대체 — back-compat 위해 null 전달.

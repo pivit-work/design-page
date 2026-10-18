@@ -2,6 +2,7 @@ import { useState } from 'react';
 import EvalTemplateItemSettings from './EvalTemplateItemSettings.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
+import { MAX_GRADE_KEYWORDS, parseGradeKeywords } from './evalGradeKeywords.js';
 import {
   QUESTION_TYPES,
   fill,
@@ -59,7 +60,7 @@ export function GripIcon({ size = 14 }) {
 }
 
 /**
- * 등급 줄 목록 — ⋮⋮ 손잡이 · 순번 · 이름 · 설명 · (상대평가면) 비율 · 삭제.
+ * 등급 줄 목록 — ⋮⋮ 손잡이 · 순번 · 이름 · 설명 · 기대 키워드(PW-1840) · (상대평가면) 비율 · 삭제.
  *
  * 순서는 평가 항목과 같은 드래그 앤 드롭으로 바꾼다 (policy §5.4.4, PW-433 후속 2026-10-14).
  * 종전에는 ▲▼ 버튼이었다 — 행 안 입력칸 3개에서 글자를 끌면 행이 끌려가기 때문이다. 그래서
@@ -68,6 +69,9 @@ export function GripIcon({ size = 14 }) {
  *
  * `onReorder(from, to)` — `from` 행을 빼서 `to` 자리에 넣는다.
  */
+// 21번째부터는 저장하지 않는다 — 칸 아래 안내(hr.policy §5.4.5 엣지)
+const keywordsOver = (g) => parseGradeKeywords(g.keywords).length > MAX_GRADE_KEYWORDS;
+
 export function EvalTemplateGradeRows({
   grades,
   labels: L,
@@ -146,6 +150,16 @@ export function EvalTemplateGradeRows({
             onChange={(e) => onUpdate(i, 'desc', e.target.value)}
             data-testid={`${testPrefix}-desc-${i}`}
           />
+          {/* PW-1840 · hr.policy §5.4.5 — 등급 설명과 같은 입력칸. 하향 리뷰 「정합성 검토」의 기준이다.
+              글(`g.keywords`)로 받아 그대로 두고, 나누는 것은 저장하는 쪽(`gradeKeywordsForSave`)이다. */}
+          <input
+            className={`evc-input${keywordsOver(g) ? ' is-invalid' : ''}`}
+            value={g.keywords ?? ''}
+            placeholder={L.gradeKeywordsPlaceholder}
+            aria-label={L.gradeKeywordsPlaceholder}
+            onChange={(e) => onUpdate(i, 'keywords', e.target.value)}
+            data-testid={`${testPrefix}-keywords-${i}`}
+          />
           {!absolute && (
             <input
               type="number"
@@ -165,6 +179,12 @@ export function EvalTemplateGradeRows({
           >
             ✕
           </button>
+          {/* × 뒤에 둔다 — 키워드 칸 아래(다음 줄 5열)로 내려가고 × 는 제 줄에 남는다 */}
+          {keywordsOver(g) && (
+            <span className="evc-tpl-ratiosum is-invalid evc-tpl-grade-kw-over" data-testid={`${testPrefix}-keywords-over-${i}`}>
+              {L.gradeKeywordsMax}
+            </span>
+          )}
         </div>
       ))}
     </div>
