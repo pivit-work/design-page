@@ -1,5 +1,6 @@
 import Icon from '../shared/Icon.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
+import LoadMoreButton from '../shared/LoadMoreButton.jsx';
 
 // 분류 아이콘 — design-page 아이콘 모음(public/icons-solid). 색은 감싸는 요소의 color 로 준다.
 const CATEGORY_ICONS = {
@@ -36,7 +37,10 @@ const CATEGORY_ICONS = {
  *   unreadCount  제목 옆 안 읽은 수 · 「모두 읽음」 잠금의 기준. 생략하면 items 안에서 센다.
  *                items 가 최신 N건만 담기면 그 밖의 안 읽은 알림을 못 세므로, 호출부가 전체 수를 준다 (PW-1065)
  *   tabUnreadCounts { [filter.value]: number } — 탭마다 붙는 안 읽은 수. 생략한 탭은 items 안에서 센다
- *   onFilterChange(value) · onItemClick(id) · onActionClick(id) · onMarkAllRead() · onOpenSettings()
+ *   more         목록 맨 아래 [더 보기] (pivit-work PW-1942) — `{ label, loadingLabel?, loading? }`.
+ *                호스트가 문구까지 만들어 넘기고, 더 남은 알림이 없으면 빼서 버튼이 사라진다. 누르면 `onMore`.
+ *                분류 탭은 받아 둔 알림 안에서 거르므로, 그 탭에 받아 둔 것이 없어도(빈 상태) 버튼은 남는다
+ *   onFilterChange(value) · onItemClick(id) · onActionClick(id) · onMarkAllRead() · onOpenSettings() · onMore()
  */
 export default function NotificationCenterCanvas({
   baseUrl,
@@ -52,6 +56,8 @@ export default function NotificationCenterCanvas({
   onOpenSettings,
   unreadCount: unreadCountProp,
   tabUnreadCounts = {},
+  more,
+  onMore,
 }) {
   const unreadCount = unreadCountProp ?? items.filter((n) => n.unread).length;
   const visible =
@@ -176,6 +182,15 @@ export default function NotificationCenterCanvas({
               );
             })}
           </div>
+        )}
+
+        {!loading && more && (
+          <LoadMoreButton
+            label={more.label}
+            loadingLabel={more.loadingLabel}
+            loading={!!more.loading}
+            onClick={onMore}
+          />
         )}
 
         <div className="ncc-foot">
