@@ -67,6 +67,8 @@ const DEFAULT_LABELS = {
   modeSelfSelect: '본인 지명',
   modeLeaderAssign: '리더 추가',
   modeHrAssign: 'HR 지정',
+  /** PW-1946 — AI 추천이 빈 사람에게 같은 팀에서 넣은 후보. */
+  modeOrgChart: '조직도 기반 추천',
   statusAssigned: '대기',
   statusCompleted: '제출 완료',
   statusLeaderApproved: '확정',
@@ -93,6 +95,7 @@ const MODE_KEY = {
   leader_assign: 'modeLeaderAssign',
   hr_assign: 'modeHrAssign',
   unsolicited: 'modeUnsolicited',
+  org_chart: 'modeOrgChart',
 };
 const STATUS_KEY = {
   assigned: 'statusAssigned',

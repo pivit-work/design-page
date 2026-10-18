@@ -3062,6 +3062,13 @@ export default function EvalCycleWizard({
     if (cycle?.peerAssignMode) return [cycle.peerAssignMode];
     return ['ai_recommend'];
   });
+  /**
+   * PW-1946 · HR 정책 §5.1-D — 협업 기록이 적어 AI 추천이 빈 사람에게 줄 것. `manual`(기본) | `org_chart`.
+   * AI 추천을 체크했을 때만 뜻이 있다 — 풀면 기본으로 돌아간다(L-5).
+   */
+  const [peerFallback, setPeerFallback] = useState(
+    () => D?.peerFallback ?? cycle?.peerFallback ?? 'manual',
+  );
   // 단계별 일정(review_sequence) 상태
   const [schedule, setSchedule] = useState(() => ({
     ...(D?.schedule ?? initialSeq?.schedule ?? {}),
@@ -3334,6 +3341,16 @@ export default function EvalCycleWizard({
   ];
 
   const hasPeer = reviewTypes.includes('peer');
+  // PW-1946 L-5 — 동료 리뷰가 있고 AI 추천을 체크했을 때만 칸이 보이고 값이 실린다. 아니면 늘 직접 지명.
+  const showPeerFallback = hasPeer && peerAssignModes.includes('ai_recommend');
+  const peerFallbackValue = showPeerFallback ? peerFallback : 'manual';
+  // AI 추천이나 동료 리뷰를 풀면 칸이 사라지고 값은 기본으로 돌아간다 — 다시 체크하면 직접 지명부터(HR §5.1-D 엣지 ②).
+  // 칸이 사라지는 그 렌더에서 맞춘다(effect 로 미루면 한 번 옛 값으로 그려진다).
+  const [peerFallbackShown, setPeerFallbackShown] = useState(showPeerFallback);
+  if (peerFallbackShown !== showPeerFallback) {
+    setPeerFallbackShown(showPeerFallback);
+    if (!showPeerFallback) setPeerFallback('manual');
+  }
   /** PW-1594 — 이 사이클에 하향 리뷰가 있는가와, 실제로 쓰는 차수(하향이 없으면 1). */
   const hasLeader = reviewTypes.includes('leader');
   const roundsInUse = hasLeader ? leaderRounds : 1;
@@ -6632,6 +6649,7 @@ export default function EvalCycleWizard({
     endDate,
     reviewTypes,
     peerAssignModes,
+    peerFallback: peerFallbackValue,
     // 2단계 — 템플릿 빌더 + 유형별 적용 템플릿
     tplType,
     tplName,
@@ -7034,6 +7052,7 @@ export default function EvalCycleWizard({
       reviewTypes,
       peerAssignMode: hasPeer ? peerAssignModes[0] : undefined,
       peerAssignModes: hasPeer ? peerAssignModes : undefined,
+      peerFallback: peerFallbackValue,
       // v2 SSOT: 단계별 일정/순서/사용여부/리마인더를 review_sequence 로 전달.
       reviewSequence: {
         order: displayPhases.map((p) => p.id),
@@ -7257,6 +7276,7 @@ export default function EvalCycleWizard({
         targetConfig: {
           reviewTypes,
           peerAssignModes,
+          peerFallback: peerFallbackValue,
           // 대상자 «조건» 은 이제 조직 선택이다. 프리셋은 사이클 설정의 복제라 함께 담는다.
           orgIds: [...orgSel],
           exclusionRules: {
@@ -7288,6 +7308,7 @@ export default function EvalCycleWizard({
     if (Array.isArray(cfg.reviewTypes)) setReviewTypes(cfg.reviewTypes);
     if (Array.isArray(cfg.peerAssignModes))
       setPeerAssignModes(cfg.peerAssignModes);
+    setPeerFallback(cfg.peerFallback === 'org_chart' ? 'org_chart' : 'manual');
     // A4: 대상자 조건(범위 축·제외 규칙)도 함께 복원한다.
     if (Array.isArray(cfg.orgIds)) setOrgSel(new Set(cfg.orgIds));
     const ex = cfg.exclusionRules || {};
@@ -7875,9 +7896,30 @@ export default function EvalCycleWizard({
                       </button>
                     ))}
                   </div>
-                  {/* [PW-1591 J-5] AI 추천 하나뿐이면 오픈 뒤 리더가 할 일이 는다는 것을 만들 때 알린다. 막지 않는다. */}
+                  {/* [PW-1946 · HR 정책 §5.1-D] 협업 기록이 적을 때 — AI 추천을 체크했을 때만, 지정 방식 바로 아래.
+                      바로 위 «하향 차수»와 같은 모양(이름 줄 + SegmentedControl + 설명 줄). 막지 않는다. */}
+                  {showPeerFallback && (
+                    <div className="evc-wiz-rounds" data-testid="evc-wiz-peer-fallback">
+                      <span className="evc-field-label">{L.peerFallbackLabel}</span>
+                      <SegmentedControl
+                        ariaLabel={L.peerFallbackLabel}
+                        value={peerFallback}
+                        onChange={setPeerFallback}
+                        items={[
+                          { value: 'manual', label: L.peerFallbackManual, testId: 'evc-wiz-peer-fallback-manual' },
+                          { value: 'org_chart', label: L.peerFallbackOrgChart, testId: 'evc-wiz-peer-fallback-org_chart' },
+                        ]}
+                      />
+                      <p className="evc-field-note" data-testid="evc-wiz-peer-fallback-hint">
+                        {peerFallback === 'org_chart' ? L.peerFallbackOrgChartHint : L.peerFallbackManualHint}
+                      </p>
+                    </div>
+                  )}
+                  {/* [PW-1591 J-5] AI 추천 하나뿐이면 오픈 뒤 리더가 할 일이 는다는 것을 만들 때 알린다. 막지 않는다.
+                      [PW-1946 L-6] 조직도 기반 추천이면 그 사람에게도 후보가 채워지므로 띄우지 않는다. */}
                   {peerAssignModes.length === 1 &&
                     peerAssignModes[0] === 'ai_recommend' &&
+                    peerFallbackValue !== 'org_chart' &&
                     L.peerAiOnlyNote && (
                       <div className="evc-wiz-soft-warn" data-testid="evc-wiz-peer-ai-only">
                         {fill(L.peerAiOnlyNote, {
@@ -10421,6 +10463,13 @@ export default function EvalCycleWizard({
                         .map((k) => L[PEER_MODES.find((m) => m.key === k)?.label])
                         .join(' · ')}
                     </b>
+                  </div>
+                )}
+                {/* PW-1946 — 협업 기록이 적을 때 (AI 추천을 쓸 때만) */}
+                {showPeerFallback && (
+                  <div className="evc-summary-row" data-testid="evc-summary-peer-fallback">
+                    <span>{L.peerFallbackLabel}</span>
+                    <b>{peerFallback === 'org_chart' ? L.peerFallbackOrgChart : L.peerFallbackManualShort}</b>
                   </div>
                 )}
                 <div className="evc-summary-row">
