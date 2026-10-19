@@ -4,10 +4,10 @@ import { useRef, useEffect } from 'react';
 const STAFF_STUB_Y = 34;
 
 /**
- * 부모-자식 연결선 한 가닥. 곡선(기본)은 베지어, 직각은 수직-수평-수직.
+ * 부모-자식 연결선 한 가닥. 직각(기본)은 수직-수평-수직, 곡선은 베지어.
  * pivit-specs org-chart-public-card-spec.md §5.1 — 세 화면이 같은 모양을 쓴다.
  */
-function connectorPath(x1, y1, x2, y2, lineStyle = 'curve') {
+function connectorPath(x1, y1, x2, y2, lineStyle = 'ortho') {
   const midY = (y1 + y2) / 2;
   return lineStyle === 'ortho'
     ? `M ${x1} ${y1} V ${midY} H ${x2} V ${y2} `
@@ -19,7 +19,7 @@ function connectorPath(x1, y1, x2, y2, lineStyle = 'curve') {
  * 두 id 가 모두 목록에 있는 부모→자식 선과, 그 길을 지나는 사람 카드 줄(마지막 단위에서는 본인 카드
  * `data-self` 까지)을 회색 위에 한 번 더 긋는다. 대표 직속 곁가지 아래면 트렁크는 함께 쓰는 선이라 회색으로 둔다.
  */
-export default function BezierConnectors({ containerRef, scale, lineStyle = 'curve', highlightIds }) {
+export default function BezierConnectors({ containerRef, scale, lineStyle = 'ortho', highlightIds }) {
   const svgRef = useRef(null);
   const rafRef = useRef(null);
   // 배열은 렌더마다 새로 올 수 있다 — 문자열로 묶어 effect 를 다시 걸지 않는다.

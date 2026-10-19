@@ -28,6 +28,8 @@ export const ORGCHART_LABELS = {
   'org.totalHeadcount': '전체 인원',
   'org.dragHint': '화면을 드래그하면 좀 더 쉽게 조직도를 보실 수 있습니다.',
   'org.lineStyle': '연결선 모양 바꾸기 (곡선 ↔ 직각)',
+  'org.lineStyleOrtho': '직각 연결선 · 상위 부서 라인 맞춤 — 누르면 곡선으로',
+  'org.lineStyleCurve': '곡선 연결선 — 누르면 직각(상위 부서 라인 맞춤)으로',
   'org.staffBadge': '대표 직속',
   'org.ceoBadge': '대표',
   'org.selfBadge': '나',

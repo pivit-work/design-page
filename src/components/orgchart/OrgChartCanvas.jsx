@@ -55,9 +55,10 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
   const lineStyleLabel = lineStyleLabelProp || L('org.lineStyle');
   const [orgData, setOrgData] = useState(initialOrgData);
   const [dropTarget, setDropTarget] = useState(null);
-  // 연결선 곡선(기본) ↔ 직각 — 세션 상태다. 새로고침하면 곡선으로 돌아온다(§5.1).
+  // 연결선 직각(기본) ↔ 곡선 — 세션 상태다. 새로고침하면 직각으로 돌아온다.
+  // 직각이 기본인 까닭: 형제 조직의 선이 상위 부서 아래 한 가로줄에서 갈라진다(pivit-work PW-1820, 2026-10-14 회의).
   // 전체 펼치기(⊞)·접기(⊟)는 트리 모양을 바꾸는 버튼이라 이 값은 건드리지 않는다.
-  const [lineStyle, setLineStyle] = useState('curve');
+  const [lineStyle, setLineStyle] = useState('ortho');
   // 첫 화면은 전체 펼침(빈 집합)이다. 기억해 둔 접힘이 있으면 그대로 연다(§5.4 엣지 8).
   // 기억해 둔 id 가 지금 트리에 없으면(조직 개편) 아무 노드도 안 접힐 뿐이다(엣지 3).
   const collapseKey = collapsedStorageKey(workspaceId);
@@ -321,14 +322,18 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
           >
             <MinusSquareGlyph size={20} />
           </button>
-          {/* 다섯 번째 버튼 — 아이콘은 «지금» 모양을 그린다(어드민 조직단위 설정과 같다). */}
+          {/* 다섯 번째 버튼 — 아이콘은 «지금» 모양을 그린다(어드민 조직단위 설정과 같다).
+              직각(상위 부서 라인 맞춤)일 때 눌린 모양이라 지금 상태가 아이콘 말고도 보인다(PW-1820). */}
           <button
             type="button"
             className="zoom-btn"
-            title={lineStyleLabel}
+            title={L(lineStyle === 'ortho' ? 'org.lineStyleOrtho' : 'org.lineStyleCurve')}
             aria-label={lineStyleLabel}
+            aria-pressed={lineStyle === 'ortho'}
             data-line-style={lineStyle}
-            style={{ color: 'var(--text-primary)' }}
+            style={lineStyle === 'ortho'
+              ? { color: 'var(--text-brand-secondary)', background: 'var(--bg-brand-secondary)' }
+              : { color: 'var(--text-primary)' }}
             onClick={() => setLineStyle(prev => (prev === 'ortho' ? 'curve' : 'ortho'))}
           >
             {lineStyle === 'ortho' ? <OrthoLineIcon /> : <CurveLineIcon />}
