@@ -9,6 +9,8 @@
  *    `leader_N`. `reviewSequence` 의 order·enabled·schedule·templateMap·reminders 가 모두 이 id 를 키로 쓴다.
  */
 
+import { fill } from './evalTemplateItemModel.js';
+
 export const LEADER_BASE_ID = 'leader';
 const LEADER_ROUND_RE = /^leader_(\d+)$/;
 
@@ -150,9 +152,15 @@ export function leaderGradeMismatch(entries) {
  */
 export const cellKey = (evaluateeId, round) => `${evaluateeId}:${round}`;
 
-/** 차단 경고 — 확정을 막는다. `leaving` = 그 차수 마감 전에 퇴사한다(PW-2029). */
+/**
+ * 차단 경고 — 확정을 막는다. `leaving` = 그 차수 마감 전에 퇴사한다(PW-2029).
+ * `overload`(평가자 부담 · PW-2065)는 중복처럼 알리기만 한다.
+ */
 export const BLOCKING_WARNINGS = ['self', 'resigned', 'leaving'];
-export const WARNING_KINDS = ['no_evaluator', 'self', 'duplicate', 'resigned', 'leaving'];
+export const WARNING_KINDS = ['no_evaluator', 'self', 'duplicate', 'resigned', 'leaving', 'overload'];
+
+/** PW-2065 — 평가자 부담 경고 기본 기준(spec §4.1.1-M R-6 · 기획 판단 15). 0 = 끔. */
+export const LEADER_LOAD_LIMIT_DEFAULT = 15;
 
 /**
  * 칸마다 경고를 다시 계산한다(HR 이 칸을 바꾼 직후 — 서버가 준 경고는 그 전 값이다).
@@ -198,7 +206,7 @@ export function computeLeaderWarnings(cells, isResigned = () => false, isLeaving
 
 /** 경고 종류별 건수와 합계 · 차단 건수. */
 export function summarizeLeaderWarnings(warningsByCell, visibleKeys = null) {
-  const counts = { no_evaluator: 0, self: 0, duplicate: 0, resigned: 0, leaving: 0 };
+  const counts = { no_evaluator: 0, self: 0, duplicate: 0, resigned: 0, leaving: 0, overload: 0 };
   warningsByCell.forEach((list, key) => {
     if (visibleKeys && !visibleKeys.has(key)) return;
     list.forEach((k) => {
@@ -206,7 +214,12 @@ export function summarizeLeaderWarnings(warningsByCell, visibleKeys = null) {
     });
   });
   const total =
-    counts.no_evaluator + counts.self + counts.duplicate + counts.resigned + counts.leaving;
+    counts.no_evaluator +
+    counts.self +
+    counts.duplicate +
+    counts.resigned +
+    counts.leaving +
+    counts.overload;
   return { ...counts, total, blocking: counts.self + counts.resigned + counts.leaving };
 }
 
@@ -250,15 +263,23 @@ export function mergeRecommendedCells(prevCells, serverCells) {
     const key = cellKey(s.evaluateeId, s.round);
     const old = prev.get(key);
     if (old && old.origin === 'adjusted') {
-      return { ...old, recommendedEvaluatorId: s.recommendedEvaluatorId ?? null, computed: true };
+      return {
+        ...old,
+        recommendedEvaluatorId: s.recommendedEvaluatorId ?? null,
+        ruleCell: s.ruleCell ?? null,
+        computed: true,
+      };
     }
     const next = {
       evaluateeId: s.evaluateeId,
       round: s.round,
       evaluatorId: s.skipped ? null : s.evaluatorId ?? null,
       recommendedEvaluatorId: s.recommendedEvaluatorId ?? null,
-      origin: s.origin === 'adjusted' ? 'adjusted' : 'recommended',
+      origin: s.origin === 'adjusted' || s.origin === 'rule' ? s.origin : 'recommended',
       skipped: !!s.skipped,
+      // PW-2065 — 규칙이 정한 칸의 규칙 번호 · 규칙이 본인을 지정해 추천을 쓴 칸.
+      ruleIndex: s.origin === 'rule' ? s.ruleIndex ?? null : null,
+      ruleSelf: !!s.ruleSelf,
       warnings: Array.isArray(s.warnings) ? s.warnings : undefined,
       // 추천을 한 번이라도 받은 칸 — 다음 추천에서 «바뀌었다»를 셀 수 있는 칸이다.
       computed: true,
@@ -276,27 +297,147 @@ export function mergeRecommendedCells(prevCells, serverCells) {
  * 추천과 다르다는 표시라, 같은 사람인데 조정됨으로 남으면 HR 이 무엇을 바꿨는지 읽을 수 없다.
  */
 export function assignLeaderCell(cell, evaluatorId) {
+  /* 규칙·추천이 정한 바로 그 사람을 다시 고르면 손대지 않은 칸 그대로다(그 칸에 규칙이 걸려 있으면
+     추천과 같은 사람이어도 «조정됨»이다 — 규칙이 그 사람을 정하지 않았기 때문이다). */
+  if (cell.origin !== 'adjusted' && !cell.skipped && evaluatorId === cell.evaluatorId) return cell;
+  const ruled = cell.ruleCell ?? (cell.origin === 'rule' ? cell : null);
+  if (cell.ruleCell && !cell.ruleCell.skipped && evaluatorId === cell.ruleCell.evaluatorId) {
+    return revertLeaderCell(cell);
+  }
   const origin =
-    cell.recommendedEvaluatorId && evaluatorId === cell.recommendedEvaluatorId
+    !ruled && cell.recommendedEvaluatorId && evaluatorId === cell.recommendedEvaluatorId
       ? 'recommended'
       : 'adjusted';
-  return { ...cell, evaluatorId, skipped: false, origin, warnings: undefined };
+  return { ...cell, ...ruleCellOf(cell), evaluatorId, skipped: false, origin, ruleIndex: null, ruleSelf: false, warnings: undefined };
 }
 
 /** 이 차수 건너뛰기 → 조정됨 · 건너뜀. */
 export function skipLeaderCell(cell) {
-  return { ...cell, evaluatorId: null, skipped: true, origin: 'adjusted', warnings: undefined };
+  return {
+    ...cell,
+    ...ruleCellOf(cell),
+    evaluatorId: null,
+    skipped: true,
+    origin: 'adjusted',
+    ruleIndex: null,
+    ruleSelf: false,
+    warnings: undefined,
+  };
 }
 
-/** 추천으로 되돌리기 — 추천이 없으면 평가자 없음. */
+/**
+ * PW-2065 — 고치기 전에 규칙이 정한 칸이었으면 그 결과를 `ruleCell` 로 기억한다. «규칙으로 되돌리기»가
+ * 다음 추천을 기다리지 않고 바로 돌아가게 한다(서버도 고친 칸마다 같은 값을 준다).
+ */
+function ruleCellOf(cell) {
+  if (cell.origin === 'rule') {
+    return {
+      ruleCell: { evaluatorId: cell.evaluatorId ?? null, skipped: !!cell.skipped, ruleIndex: cell.ruleIndex ?? 0 },
+    };
+  }
+  return cell.origin === 'adjusted' ? {} : { ruleCell: null };
+}
+
+/**
+ * 되돌리기 — 그 칸에 규칙이 맞으면 규칙 결과로(`규칙으로 되돌리기`), 아니면 추천으로. 추천이 없으면 평가자 없음.
+ */
 export function revertLeaderCell(cell) {
+  const r = cell.ruleCell;
+  if (r) {
+    return {
+      ...cell,
+      evaluatorId: r.skipped ? null : r.evaluatorId ?? null,
+      skipped: !!r.skipped,
+      origin: 'rule',
+      ruleIndex: r.ruleIndex ?? 0,
+      ruleCell: null,
+      warnings: undefined,
+    };
+  }
   return {
     ...cell,
     evaluatorId: cell.recommendedEvaluatorId ?? null,
     skipped: false,
     origin: 'recommended',
+    ruleIndex: null,
+    ruleCell: null,
     warnings: undefined,
   };
+}
+
+/* ── PW-2065 배정 규칙 · 부담 · 조직별 확정 (HR §5.13.11) ───────────────────── */
+
+/** 빈 규칙 초안. */
+export function emptyLeaderRule(round = 1) {
+  return { units: [], levels: [], positions: [], round, action: 'skip', evaluatorId: null };
+}
+
+/** 저장된 규칙 목록을 고르게 눕힌다(초안·불러오기에서 온 값이 깨져 있어도 화면이 죽지 않게). */
+export function normalizeLeaderRules(rules) {
+  return (Array.isArray(rules) ? rules : [])
+    .filter((r) => r && typeof r === 'object')
+    .map((r) => ({
+      units: Array.isArray(r.units) ? r.units.map(String) : [],
+      levels: Array.isArray(r.levels) ? r.levels.map(String) : [],
+      positions: Array.isArray(r.positions) ? r.positions.map(String) : [],
+      round: clampLeaderRounds(r.round),
+      action: r.action === 'assign' ? 'assign' : 'skip',
+      evaluatorId: r.action === 'assign' && r.evaluatorId ? String(r.evaluatorId) : null,
+    }));
+}
+
+/** 부담 기준 — 0 이상 정수. 비었거나 깨졌으면 기본 15. */
+export function normalizeLoadLimit(v) {
+  const n = Math.trunc(Number(v));
+  return v === null || v === undefined || v === '' || !Number.isFinite(n) || n < 0
+    ? LEADER_LOAD_LIMIT_DEFAULT
+    : n;
+}
+
+/** 평가자별 맡은 칸 수(모든 차수 합 · 건너뜀·평가자 없음 제외). */
+export function leaderLoadByEvaluator(cells) {
+  const out = new Map();
+  (cells ?? []).forEach((c) => {
+    if (c.skipped || !c.evaluatorId) return;
+    out.set(c.evaluatorId, (out.get(c.evaluatorId) ?? 0) + 1);
+  });
+  return out;
+}
+
+/** 기준을 넘는 평가자 id. 기준 0 = 끔. */
+export function overloadedEvaluators(loadBy, limit) {
+  if (!(limit > 0)) return new Set();
+  return new Set([...loadBy].filter(([, n]) => n > limit).map(([id]) => id));
+}
+
+/** 경고 표에 «부담»을 더한다 — 그 사람이 배정된 칸마다. 원본 표는 바꾸지 않는다. */
+export function withOverloadWarnings(warningsByCell, cells, overloaded) {
+  if (!overloaded || overloaded.size === 0) return warningsByCell;
+  const out = new Map(warningsByCell);
+  (cells ?? []).forEach((c) => {
+    if (c.skipped || !c.evaluatorId || !overloaded.has(c.evaluatorId)) return;
+    const key = cellKey(c.evaluateeId, c.round);
+    const list = out.get(key) ?? [];
+    if (!list.includes('overload')) out.set(key, [...list, 'overload']);
+  });
+  return out;
+}
+
+/**
+ * 조직 하나의 확정 지문 — 그 조직 대상자 × 차수 칸의 평가자/건너뜀과 차수. 확정 때 이 값을 함께 남기고,
+ * 지금 지문과 다르면 그 조직은 «다시 확정 필요»다. 칸·규칙·명단·차수 어느 손잡이로 바뀌든 바뀐 칸이
+ * 속한 조직만 풀린다(HR §5.13.11 ④ 「확정 해제」 — 차수 변경은 모든 조직의 지문을 바꾼다).
+ */
+export function leaderGroupSig(cells, evaluateeIds, rounds) {
+  const ids = new Set(evaluateeIds ?? []);
+  const parts = (cells ?? [])
+    .filter((c) => ids.has(c.evaluateeId))
+    .map((c) => {
+      const empty = !c.skipped && !c.evaluatorId;
+      return `${c.evaluateeId}:${c.round}=${c.skipped || empty ? '-' : c.evaluatorId}`;
+    })
+    .sort();
+  return `${clampLeaderRounds(rounds)}|${parts.join(',')}`;
 }
 
 /**
@@ -347,4 +488,29 @@ export function topRoundHasNoRecommendation(cells, n) {
 /** 대표 행 — 모든 차수 칸에 추천이 없다(체인이 비었다 · L1). */
 export function rowHasNoChain(rowCells) {
   return rowCells.length > 0 && rowCells.every((c) => !c.recommendedEvaluatorId);
+}
+
+/**
+ * 규칙 한 줄 글 — `{조건} → {동작}`. 빈 축은 빼고, 다 비면 «모든 대상자». 없어진 조직은 «없는 조직».
+ * 위자드(툴팁)와 오픈 뒤 진행 현황(읽기 전용 목록)이 같은 문장을 쓴다.
+ * @param {Record<string,string>} L 문구
+ * @param {(id: string) => string|null} unitNameOf
+ * @param {(id: string|null) => string|null} personNameOf
+ */
+export function leaderRuleText(L, r, unitNameOf, personNameOf) {
+  const conds = [
+    r.units.length > 0
+      ? `${L.leaderRuleAxisUnit} ${r.units.map((u) => unitNameOf(u) ?? L.leaderRuleUnitMissing).join('·')}`
+      : null,
+    r.levels.length > 0 ? `${L.leaderRuleAxisLevel} ${r.levels.join('·')}` : null,
+    r.positions.length > 0 ? `${L.leaderRuleAxisPosition} ${r.positions.join('·')}` : null,
+  ].filter(Boolean);
+  const action =
+    r.action === 'skip'
+      ? fill(L.leaderRuleActSkip, { round: r.round })
+      : fill(L.leaderRuleActAssign, {
+          round: r.round,
+          name: personNameOf(r.evaluatorId ?? null) ?? L.leaderAsgNone,
+        });
+  return `${conds.join(` ${L.leaderRuleAnd} `) || L.leaderRuleAll} → ${action}`;
 }

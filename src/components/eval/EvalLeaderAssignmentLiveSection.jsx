@@ -10,6 +10,7 @@ import { leavesBeforeDate } from './evalRetiring.js';
 import RetiringTag from './RetiringTag.jsx';
 import { ChevronDownIcon, ChevronUpIcon, LockIcon } from './evalIcons.jsx';
 import { fill } from './evalTemplateItemModel.js';
+import { LEADER_LOAD_LIMIT_DEFAULT, leaderRuleText } from './evalLeaderRounds.js';
 import {
   formatMonthDay,
   isLiveCellSkipped,
@@ -80,6 +81,10 @@ export default function EvalLeaderAssignmentLiveSection({
   onSkip,
   onForceOpen,
   defaultOpen = false,
+  /** PW-2065 — 오픈 때 굳은 배정 규칙(`unitNames`·`evaluatorName` 이 붙어 온다). 읽기만 한다. */
+  rules = [],
+  /** 부담 경고 기준(null = 기본 15 · 0 = 끔). */
+  loadLimit = null,
 }) {
   const L = { ...DEFAULT_LABELS, ...(labels ?? {}) };
   const [open, setOpen] = useState(!!defaultOpen);
@@ -238,6 +243,32 @@ export default function EvalLeaderAssignmentLiveSection({
           <p className="evc-wiz-hint" data-testid="evmon-la-hint">
             {readOnly ? L.liveHintReadOnly : L.liveHint}
           </p>
+          {/* PW-2065 · §5.13.11 ① 「오픈 뒤」 — 규칙은 오픈 때 칸으로 굳었다. 목록만 보인다(고쳐도 다시 계산하지 않는다). */}
+          {rules.length > 0 && (
+            <div className="evc-la-bar evc-la-rules" data-testid="evmon-la-rules">
+              <span className="evc-la-bar-count">
+                {fill(L.leaderRulesHead, { count: rules.length })}{' '}
+                <span className="evc-la-bar-detail">
+                  {(loadLimit ?? LEADER_LOAD_LIMIT_DEFAULT) > 0
+                    ? fill(L.leaderRulesLoadOn, { limit: loadLimit ?? LEADER_LOAD_LIMIT_DEFAULT })
+                    : L.leaderRulesLoadOff}
+                </span>
+              </span>
+              {rules.map((r, i) => (
+                <div key={i} className="evc-la-rule" data-testid={`evmon-la-rule-${i}`}>
+                  <span className="evc-la-hint">{i + 1}</span>
+                  <span className="evc-la-rule-text">
+                    {leaderRuleText(
+                      L,
+                      r,
+                      (u) => r.unitNames?.[r.units.indexOf(u)] ?? null,
+                      () => r.evaluatorName ?? null,
+                    )}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
           {failed && (
             <p className="evc-wiz-warn evc-la-error" role="alert" data-testid="evmon-la-error">
               {L.liveLoadFailed}

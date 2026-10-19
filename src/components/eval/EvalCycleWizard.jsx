@@ -85,16 +85,23 @@ import {
   isLeaderPhaseId,
   leaderAssignmentCounts,
   leaderGradeMismatch,
+  LEADER_LOAD_LIMIT_DEFAULT,
+  leaderGroupSig,
+  leaderLoadByEvaluator,
   leaderPhaseId,
   leaderRoundOf,
   mergeRecommendedCells,
   moveGroupedPhase,
   normalizeLeaderOrder,
+  normalizeLeaderRules,
+  normalizeLoadLimit,
+  overloadedEvaluators,
   phaseBaseId,
   revertLeaderCell,
   skipLeaderCell,
   summarizeLeaderWarnings,
   topRoundHasNoRecommendation,
+  withOverloadWarnings,
 } from './evalLeaderRounds.js';
 import EvalLeaderAssignmentSection from './EvalLeaderAssignmentSection.jsx';
 import { leavesBeforeDate, withoutLeavingBefore } from './evalRetiring.js';
@@ -6034,6 +6041,18 @@ export default function EvalCycleWizard({
   );
   /** 확정이 풀린 사유 `{ kind, count? }` — 요약 바의 「다시 확정 필요」 옆 한 줄. */
   const [leaderUnconfirmed, setLeaderUnconfirmed] = useState(null);
+  /* PW-2065 · §5.13.11 — 배정 규칙 · 부담 기준 · 조직별 확정. 셋 다 초안에 담긴다. 조직별 확정은
+     `{ [묶음 id]: { at, sig } }` 이고, 지금 그 조직 칸의 지문이 `sig` 와 같을 때만 «확정»이다 — 칸·규칙·
+     명단·차수 어느 손잡이로 바뀌든 바뀐 칸의 조직만 풀린다(파생). 전체 확정(서버)은 종전 그대로다. */
+  const [leaderRules, setLeaderRulesState] = useState(() => normalizeLeaderRules(D?.leaderRules));
+  const [leaderLoadLimit, setLeaderLoadLimitState] = useState(() =>
+    normalizeLoadLimit(D?.leaderLoadLimit),
+  );
+  const [leaderGroupConfirms, setLeaderGroupConfirms] = useState(() =>
+    D?.leaderGroupConfirms && typeof D.leaderGroupConfirms === 'object' ? D.leaderGroupConfirms : {},
+  );
+  /** 조직 확정이 풀렸을 때 사유로 쓸 마지막 변경 종류(`cellChanged`·`rules`·…). */
+  const [leaderChangeKind, setLeaderChangeKind] = useState(null);
   /** 추천 응답이 온(또는 실패한) 요청 키. 로딩 여부는 «지금 키»와 견줘 파생한다. */
   const [leaderRecommendDone, setLeaderRecommendDone] = useState({ key: null, failed: false });
   const [leaderReloadTick, setLeaderReloadTick] = useState(0);
@@ -6053,6 +6072,10 @@ export default function EvalCycleWizard({
       confirmShape: leaderConfirmShape,
       recommend: onRecommendLeaderAssignments,
       unconfirm: onUnconfirmLeaderAssignments,
+      rules: leaderRules,
+      doneKey: leaderRecommendDone.key,
+      // `confirmAllGroups` 는 조직 묶음을 센 뒤 아래 효과가 채운다.
+      confirmAllGroups: leaderLatest.current.confirmAllGroups,
     };
   });
 
@@ -6101,7 +6124,11 @@ export default function EvalCycleWizard({
      요청이 쏟아지지 않게 잠깐 모았다 보낸다. 늦게 온 응답은 버린다(정리 함수가 막는다). */
   const recommendOn =
     leaderSectionOn && step === 3 && typeof onRecommendLeaderAssignments === 'function';
-  const recommendKey = recommendOn ? `${leaderShapeKey}#${leaderReloadTick}` : null;
+  /* PW-2065 — 규칙이 바뀌면 다시 받는다(규칙 적용은 서버 한 곳이다). */
+  const leaderRulesKey = JSON.stringify(leaderRules);
+  const recommendKey = recommendOn
+    ? `${leaderShapeKey}#${leaderReloadTick}#${leaderRulesKey}`
+    : null;
   useEffect(() => {
     if (!recommendKey) return undefined;
     const [shape] = recommendKey.split('#');
@@ -6115,22 +6142,37 @@ export default function EvalCycleWizard({
       const adjusted = alignLeaderCells(latest.cells, evaluateeIds, rounds).filter(
         (c) => c.origin === 'adjusted',
       );
+      const rulesChanged =
+        !!latest.doneKey && latest.doneKey.split('#')[2] !== recommendKey.split('#')[2];
       Promise.resolve(
-        latest.recommend?.({ evaluateeIds, rounds, cells: cellsForConfirm(adjusted) }),
+        latest.recommend?.({
+          evaluateeIds,
+          rounds,
+          cells: cellsForConfirm(adjusted),
+          rules: latest.rules,
+        }),
       )
         .then((res) => {
           if (!live) return;
           const now = leaderLatest.current;
           const prev = alignLeaderCells(now.cells, evaluateeIds, rounds);
           const { cells, changed } = mergeRecommendedCells(prev, res?.cells ?? []);
-          setLeaderCells(alignLeaderCells(cells, evaluateeIds, rounds));
+          const aligned = alignLeaderCells(cells, evaluateeIds, rounds);
+          setLeaderCells(aligned);
           setLeaderRecommendDone({ key: recommendKey, failed: false });
-          if (now.confirm && now.confirmShape === null) setLeaderConfirmShape(shape);
+          if (now.confirm && now.confirmShape === null) {
+            setLeaderConfirmShape(shape);
+            /* 조직별 확정이 생기기 전에(또는 다른 화면에서) 전체 확정한 사이클 — 모든 조직을 확정으로 연다. */
+            now.confirmAllGroups?.(aligned);
+          }
+          if (changed > 0) setLeaderChangeKind(rulesChanged ? 'rules' : 'recompute');
           /* 다시 계산으로 손대지 않은 칸이 바뀌었다 — 확정 상태였으면 풀고 그 수를 알린다(§5.13.4 · L8). */
           if (changed > 0 && now.confirm) {
             setLeaderConfirm(null);
             setLeaderConfirmShape(null);
-            setLeaderUnconfirmed({ kind: 'recompute', count: changed });
+            setLeaderUnconfirmed(
+              rulesChanged ? { kind: 'rules' } : { kind: 'recompute', count: changed },
+            );
             void Promise.resolve(
               now.unconfirm?.({ cycleId: knownCycleIdRef.current ?? undefined }),
             ).catch(() => {});
@@ -6188,9 +6230,59 @@ export default function EvalCycleWizard({
     });
     return out;
   })();
-  const leaderWarnSummary = summarizeLeaderWarnings(leaderWarnings);
+  /* PW-2065 · §5.13.11 ③ — 평가자 부담. 칸을 바꾸면 곧바로 다시 센다(서버를 기다리지 않는다). */
+  const leaderLoadBy = leaderLoadByEvaluator(leaderCells);
+  const leaderWarningsAll = withOverloadWarnings(
+    leaderWarnings,
+    leaderCells,
+    overloadedEvaluators(leaderLoadBy, leaderLoadLimit),
+  );
+  const leaderWarnSummary = summarizeLeaderWarnings(leaderWarningsAll);
+
+  /* PW-2065 · §5.13.11 ④ — 확정 단위 = 최상위 조직(대상 고르기 트리의 부서 줄과 같다). 회사 노드에
+     직접 붙은 사람(대표)은 «대표 직속», 트리 밖 소속은 «미지정» 묶음이다. */
+  const leaderDeptOfBucket = new Map();
+  orgTree.forEach((d) => unitsOfDept(d).forEach((u) => leaderDeptOfBucket.set(u, d)));
+  const leaderGroupIdOf = (m) => leaderDeptOfBucket.get(bucketOf(m))?.id ?? UNASSIGNED_ORG_ID;
+  const leaderGroupIds = new Set(targetMembers.map(leaderGroupIdOf));
+  const leaderGroups = [
+    ...orgTree
+      .filter((d) => leaderGroupIds.has(d.id))
+      .map((d) => ({ id: d.id, name: d.companyRoot ? L.leaderAsgGroupRootDirect : d.name })),
+    ...(leaderGroupIds.has(UNASSIGNED_ORG_ID)
+      ? [{ id: UNASSIGNED_ORG_ID, name: L.targetOrgUnassigned }]
+      : []),
+  ];
+  const leaderGroupMembers = (gid) =>
+    targetMembers.filter((m) => leaderGroupIdOf(m) === gid).map((m) => m.id);
+  const leaderGroupSigOf = (gid, cells = leaderCells) =>
+    leaderGroupSig(cells, leaderGroupMembers(gid), roundsInUse);
+  const leaderGroupStates = Object.fromEntries(
+    leaderGroups.map((g) => {
+      const saved = leaderGroupConfirms[g.id];
+      const sig = leaderGroupSigOf(g.id);
+      return [g.id, { confirmed: !!saved && saved.sig === sig, stale: !!saved && saved.sig !== sig, at: saved?.at }];
+    }),
+  );
+  const leaderAllGroupsConfirmed = leaderGroups.every((g) => leaderGroupStates[g.id].confirmed);
+  /** 전체 확정(서버)한 사이클을 열 때 — 모든 조직을 그 칸으로 확정해 둔다. */
+  const confirmAllGroupsFrom = (cells) =>
+    setLeaderGroupConfirms(
+      Object.fromEntries(
+        leaderGroups.map((g) => [
+          g.id,
+          { at: leaderConfirm?.confirmedAt ?? new Date().toISOString(), sig: leaderGroupSigOf(g.id, cells) },
+        ]),
+      ),
+    );
+
+  useLayoutEffect(() => {
+    leaderLatest.current.confirmAllGroups = confirmAllGroupsFrom;
+  });
+
   /** 확정이 지금 명단·차수를 그대로 덮나. 오픈 차단과 6단계 요약이 이 값을 본다. */
-  const leaderConfirmed = !!leaderConfirm && !leaderUnconfirmed && !leaderStale;
+  const leaderConfirmed =
+    !!leaderConfirm && !leaderUnconfirmed && !leaderStale && leaderAllGroupsConfirmed;
   const leaderCounts = leaderAssignmentCounts(leaderCells);
 
   /** 칸 하나를 바꾼다 — 확정 상태였으면 푼다(§5.13.4 「버튼 — 트리거 → 결과」). */
@@ -6199,7 +6291,18 @@ export default function EvalCycleWizard({
     setLeaderCells(
       base.map((c) => (c.evaluateeId === evaluateeId && c.round === round ? fn(c) : c)),
     );
+    setLeaderChangeKind(kind);
     dropLeaderConfirm(kind);
+  };
+  /* PW-2065 — 규칙·부담 기준을 바꾼다. 칸은 다음 추천이 다시 채운다(값이 바뀐 칸의 조직만 풀린다).
+     서버의 전체 확정은 그때의 규칙·기준을 함께 남겼으므로 풀고, 마지막 확정을 다시 받는다. */
+  const setLeaderRules = (next) => {
+    setLeaderRulesState(normalizeLeaderRules(next));
+    dropLeaderConfirm('rules');
+  };
+  const setLeaderLoadLimit = (n) => {
+    setLeaderLoadLimitState(normalizeLoadLimit(n));
+    dropLeaderConfirm('loadLimit');
   };
   const assignLeader = (evaluateeId, round, personId) =>
     editLeaderCell(evaluateeId, round, (c) => assignLeaderCell(c, personId), 'cellChanged');
@@ -6230,6 +6333,8 @@ export default function EvalCycleWizard({
         cycleId: knownCycleIdRef.current ?? undefined,
         cells: cellsForConfirm(leaderCells),
         baseSavedAt,
+        rules: leaderRules,
+        loadLimit: leaderLoadLimit,
       });
       if (Array.isArray(res?.cells) && res.cells.length > 0) {
         setLeaderCells(
@@ -6255,12 +6360,59 @@ export default function EvalCycleWizard({
     }
   };
   /** 확정 해제 사유 한 줄. */
-  const leaderUnconfirmKind = leaderStale ? { kind: leaderStaleKind } : leaderUnconfirmed;
-  const leaderReconfirmReason = !leaderUnconfirmKind
-    ? null
+  const leaderUnconfirmKind = leaderStale
+    ? { kind: leaderStaleKind }
+    : leaderUnconfirmed ?? (leaderChangeKind ? { kind: leaderChangeKind } : null);
+  const leaderReasonText = !leaderUnconfirmKind
+    ? L.leaderAsgReason_cellChanged
     : leaderUnconfirmKind.kind === 'recompute'
       ? fill(L.leaderAsgReasonRecompute, { count: leaderUnconfirmKind.count ?? 0 })
       : L[`leaderAsgReason_${leaderUnconfirmKind.kind}`] ?? L.leaderAsgReason_cellChanged;
+  /* PW-2065 — 풀린 조직 이름을 앞에 붙인다(§5.13.11 ④ 「다시 확정 필요 — {조직} — {사유}」). 조직은 그대로인데
+     전체 확정만 풀렸으면(규칙·기준 변경) 사유만. */
+  const leaderStaleGroupNames = leaderGroups
+    .filter((g) => leaderGroupStates[g.id].stale)
+    .map((g) => g.name);
+  const leaderReconfirmReason =
+    leaderStaleGroupNames.length > 0
+      ? `${leaderStaleGroupNames.join('·')} — ${leaderReasonText}`
+      : leaderAllGroupsConfirmed && !leaderConfirmed && (leaderConfirm || leaderUnconfirmed || leaderStale)
+        ? leaderReasonText
+        : null;
+  /** 모든 조직이 확정됐는데 전체 확정(서버)만 남았다 — 「남은 조직 모두 확정」이 그것을 보낸다. */
+  const leaderPendingFinal =
+    leaderGroups.length > 0 && leaderAllGroupsConfirmed && !leaderConfirmed;
+
+  /**
+   * PW-2065 — 조직 확정. 고른 조직을 지금 칸 지문으로 확정하고, 그 결과 모든 조직이 확정되면 종전
+   * 「확정」(전체 칸 · 서버)을 보낸다. 서버가 거절하면 조직 확정은 남기고 요약 바에서 다시 보낼 수 있다.
+   */
+  const confirmLeaderGroups = (gids) => {
+    const at = new Date().toISOString();
+    const next = { ...leaderGroupConfirms };
+    gids.forEach((gid) => {
+      next[gid] = { at, sig: leaderGroupSigOf(gid) };
+    });
+    setLeaderGroupConfirms(next);
+    setLeaderChangeKind(null);
+    const all = leaderGroups.every((g) => next[g.id]?.sig === leaderGroupSigOf(g.id));
+    if (all && !leaderConfirmed) void confirmLeader();
+  };
+  const confirmRemainingLeaderGroups = () => {
+    const gids = leaderGroups
+      .filter((g) => !leaderGroupStates[g.id].confirmed)
+      .filter((g) => {
+        const keys = new Set(
+          leaderGroupMembers(g.id).flatMap((id) =>
+            Array.from({ length: roundsInUse }, (_, i) => leaderCellKey(id, i + 1)),
+          ),
+        );
+        return summarizeLeaderWarnings(leaderWarningsAll, keys).blocking === 0;
+      })
+      .map((g) => g.id);
+    if (gids.length > 0) confirmLeaderGroups(gids);
+    else if (leaderPendingFinal) void confirmLeader();
+  };
   /** 칸 팝오버의 직원 검색 후보 — 위자드가 이미 받는 구성원 목록. */
   const leaderPeople = candidates.map((c) => ({
     id: c.id,
@@ -6277,6 +6429,56 @@ export default function EvalCycleWizard({
       ? { name: c.name, org: c.department ?? '', resigned: isResignedStatus(c.employmentStatus) }
       : null;
   };
+  /* PW-2065 · §5.13.11 ① — 규칙 조건 값. 조직 = 부서(최상위)와 그 아래 팀(회사 노드 자체는 모든 사람의
+     조상이라 «모든 대상자»와 같아 뺀다). 직급·직책 = 조직 설정 필드 옵션, 못 받았으면 구성원의 값. */
+  const leaderRuleOptions = {
+    units: orgTree
+      .filter((d) => !d.companyRoot && !String(d.id).startsWith('dept:'))
+      .flatMap((d) => [
+        { id: d.id, label: d.name },
+        ...d.teams.map((t) => ({ id: t.id, label: `${d.name} · ${t.name}` })),
+      ]),
+    levels:
+      fieldOptions?.jobLevel ?? [...new Set(candidates.map((c) => c.jobLevel).filter(Boolean))],
+    positions:
+      fieldOptions?.jobPosition ??
+      [...new Set(candidates.map((c) => c.jobPosition).filter(Boolean))],
+    people: leaderPeople.filter((p) => !p.resigned),
+  };
+  const leaderUnitById = new Map((Array.isArray(orgUnits) ? orgUnits : []).map((u) => [u.id, u]));
+  const leaderUnitLabelOf = (id) => leaderUnitById.get(id)?.name ?? null;
+  /* PW-2065 · §5.13.11 ② — 조직장이 비어 있는 조직(대상자가 속한 곳만 · R8). 조직장 정보를 싣지 않는
+     소비 측(옛 응답·미리보기)에서는 «모두 공석»으로 잘못 읽지 않게 아예 띄우지 않는다. */
+  const leaderHeadKnown = [...leaderUnitById.values()].some((u) => 'headUserId' in u);
+  const leaderUnitPath = (u) => {
+    const names = [];
+    const seen = new Set();
+    let cur = u;
+    while (cur && !seen.has(cur.id)) {
+      seen.add(cur.id);
+      names.unshift(cur.name);
+      cur = cur.parentId ? leaderUnitById.get(cur.parentId) : null;
+    }
+    // 회사 노드는 경로에서 뺀다 — 모든 경로의 머리라 읽는 데 보태는 것이 없다.
+    return (names.length > 1 && companyRootId ? names.slice(1) : names).join(' › ');
+  };
+  const leaderVacantUnits = !leaderHeadKnown
+    ? []
+    : [...leaderUnitById.values()]
+        .filter((u) => !u.headUserId)
+        .map((u) => {
+          const members = targetMembers.filter((m) => m.orgUnitId === u.id);
+          if (members.length === 0) return null;
+          const first = leaderCells.find((c) => c.evaluateeId === members[0].id && c.round === 1);
+          return {
+            id: u.id,
+            path: leaderUnitPath(u),
+            count: members.length,
+            climbedName:
+              leaderPersonOf(first?.recommendedEvaluatorId)?.name ?? L.leaderAsgNone,
+          };
+        })
+        .filter(Boolean);
   /* 규칙 5 — 「수동 포함」 배지를 붙일 수 있는 사람. 규칙이 뺀 사람만이다. */
   const ruleExcludedIds = new Set(autoExclusions.map((e) => e.memberId));
   /* 고용유형 조건의 값 목록 — 시스템 고정 4종이다(§5.5.2 · PW-1459). 「해당 N명」은 조건이
@@ -6819,6 +7021,11 @@ export default function EvalCycleWizard({
     leaderAssignments:
       leaderCells.length > 0 ? leaderCells.map(({ warnings: _w, ...rest }) => rest) : undefined,
     leaderConfirm: leaderConfirmed ? leaderConfirm : undefined,
+    // [PW-2065] 배정 규칙 · 부담 기준 · 조직별 확정 — 기본값이면 싣지 않는다(위 주석과 같은 이유).
+    leaderRules: leaderRules.length > 0 ? leaderRules : undefined,
+    leaderLoadLimit: leaderLoadLimit !== LEADER_LOAD_LIMIT_DEFAULT ? leaderLoadLimit : undefined,
+    leaderGroupConfirms:
+      Object.keys(leaderGroupConfirms).length > 0 ? leaderGroupConfirms : undefined,
     leaderConfirmShape: leaderConfirmed ? (leaderConfirmShape ?? undefined) : undefined,
     /* [PW-1989] 목록 초안 카드의 「대상 N명」. 입력이 아니라 요약이라 이어쓰기에서는 읽지 않는다.
        대상자 후보를 아직 못 받았으면 0 이 아니라 비워 둔다 — 카드가 「대상 0명」을 띄우지 않게. */
@@ -7455,6 +7662,11 @@ export default function EvalCycleWizard({
       setTplRoundBuffers({});
       setTplRoundStarted([1]);
       setLeaderCells([]);
+    }
+    /* [PW-2065 · spec R-8] 이전 사이클의 배정 규칙·부담 기준도 가져온다. 조직별 확정은 이 사이클 것이 아니다. */
+    if (Array.isArray(preset?.leaderRules)) setLeaderRulesState(normalizeLeaderRules(preset.leaderRules));
+    if (preset && 'leaderLoadLimit' in preset) {
+      setLeaderLoadLimitState(normalizeLoadLimit(preset.leaderLoadLimit));
     }
     // PW-122 일정은 '며칠째'로 바꿔 들고, 사이클 시작일에 맞춰 다시 깐다.
     // 원본 사이클의 절대 날짜를 그대로 넣으면 새 사이클 기간 밖 날짜가 박힌다.
@@ -10375,15 +10587,29 @@ export default function EvalCycleWizard({
                       id: m.id,
                       name: m.name,
                       sub: [m.department, m.jobPosition].filter(Boolean).join(' · '),
+                      groupId: leaderGroupIdOf(m),
                     }))}
                     cells={leaderCells}
-                    warningsByCell={leaderWarnings}
+                    warningsByCell={leaderWarningsAll}
+                    groups={onConfirmLeaderAssignments ? leaderGroups : []}
+                    groupStates={leaderGroupStates}
+                    onConfirmGroup={(gid) => confirmLeaderGroups([gid])}
+                    onConfirmRemaining={confirmRemainingLeaderGroups}
+                    pendingFinal={leaderPendingFinal}
+                    rules={leaderRules}
+                    onRulesChange={setLeaderRules}
+                    loadLimit={leaderLoadLimit}
+                    onLoadLimitChange={setLeaderLoadLimit}
+                    ruleOptions={leaderRuleOptions}
+                    unitLabelOf={leaderUnitLabelOf}
+                    vacantUnits={leaderVacantUnits}
+                    loadBy={leaderLoadBy}
                     people={leaderPeople}
                     roundDeadline={leaderRoundEnd}
                     personOf={leaderPersonOf}
                     status={leaderRecommendStatus}
                     onRetry={() => setLeaderReloadTick((n) => n + 1)}
-                    confirm={leaderStale ? null : leaderConfirm}
+                    confirm={leaderConfirmed ? leaderConfirm : null}
                     reconfirmReason={leaderReconfirmReason}
                     confirming={leaderConfirming}
                     onConfirm={onConfirmLeaderAssignments ? confirmLeader : undefined}

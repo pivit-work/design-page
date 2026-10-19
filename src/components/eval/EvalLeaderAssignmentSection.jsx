@@ -5,12 +5,20 @@ import TextInput from '../shared/TextInput.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import Skeleton from '../shared/Skeleton.jsx';
+import Chip from '../shared/Chip.jsx';
+import Select from '../shared/Select.jsx';
 import AnchoredLayer from '../shared/AnchoredLayer.jsx';
 import useDismissLayer from '../shared/useDismissLayer.js';
 import { SearchGlyph } from '../shared/lineIcons.jsx';
 import { AlertIcon, CheckCircleIcon } from './evalIcons.jsx';
 import { fill } from './evalTemplateItemModel.js';
-import { cellKey, rowHasNoChain, summarizeLeaderWarnings } from './evalLeaderRounds.js';
+import {
+  cellKey,
+  emptyLeaderRule,
+  leaderRuleText,
+  rowHasNoChain,
+  summarizeLeaderWarnings,
+} from './evalLeaderRounds.js';
 import { withoutLeavingBefore } from './evalRetiring.js';
 import RetiringTag from './RetiringTag.jsx';
 
@@ -63,11 +71,39 @@ export default function EvalLeaderAssignmentSection({
   topRoundEmpty = false,
   /** 확정 시각 표기(`MM/DD HH:MM`). */
   formatStamp = (iso) => iso,
+  /* ── PW-2065 · HR §5.13.11 ─────────────────────────────────────────────── */
+  /** 최상위 조직 묶음 `[{ id, name }]` — 행의 `groupId` 와 짝. 비면 묶음 머리 줄 없이 종전처럼 그린다. */
+  groups = [],
+  /** 묶음 id → `{ confirmed, at }`. */
+  groupStates = {},
+  /** 조직 하나 확정. 없으면 종전 «확정» 버튼 하나(`onConfirm`). */
+  onConfirmGroup,
+  /** 남은 조직 모두 확정. */
+  onConfirmRemaining,
+  /** 모든 조직이 확정됐는데 전체 확정(서버)만 남았다 — 「남은 조직 모두 확정」이 그것을 보낸다. */
+  pendingFinal = false,
+  /** 배정 규칙 목록. */
+  rules = [],
+  /** 규칙 목록을 바꾼다. 없으면 규칙 칸이 읽기 전용이다(오픈 뒤). */
+  onRulesChange,
+  /** 평가자 부담 경고 기준(0 = 끔). */
+  loadLimit = 0,
+  onLoadLimitChange,
+  /** 규칙 조건·평가자 값 목록 `{ units: [{ id, label }], levels: [], positions: [], people: [{ id, name, org }] }`. */
+  ruleOptions = { units: [], levels: [], positions: [], people: [] },
+  /** 조직 단위 id → 이름(없는 조직이면 null). */
+  unitLabelOf = () => null,
+  /** 조직장이 비어 있는 조직 `[{ id, path, count, climbedName }]`. */
+  vacantUnits = [],
+  /** 평가자 id → 맡은 칸 수. */
+  loadBy = new Map(),
 }) {
   const [warnOnly, setWarnOnly] = useState(false);
   const [query, setQuery] = useState('');
   const [openCell, setOpenCell] = useState(null); // { key, evaluateeId, round }
   const [pickQuery, setPickQuery] = useState('');
+  const [rulesOpen, setRulesOpen] = useState(false);
+  const [ruleDraft, setRuleDraft] = useState(() => emptyLeaderRule(Math.min(2, rounds)));
   const panelRef = useRef(null);
   useDismissLayer(
     () => {
@@ -97,6 +133,87 @@ export default function EvalLeaderAssignmentSection({
     !onConfirm || confirming || loading || failed || confirmBlocked || !!confirm || rows.length === 0;
   const byName = (by) => (by && typeof by === 'object' ? by.name : by) || '';
 
+  /* PW-2065 — 조직별 확정. 묶음마다 경고·차단 수, 확정 상태. */
+  const grouped = groups.length > 0 && typeof onConfirmGroup === 'function';
+  const groupKeys = (gid) =>
+    new Set(
+      rows
+        .filter((r) => r.groupId === gid)
+        .flatMap((r) => roundList.map((k) => cellKey(r.id, k))),
+    );
+  const groupSummary = (gid) => summarizeLeaderWarnings(warningsByCell, groupKeys(gid));
+  const confirmedGroups = groups.filter((g) => groupStates[g.id]?.confirmed).length;
+  const remainingConfirmable = groups.filter(
+    (g) => !groupStates[g.id]?.confirmed && groupSummary(g.id).blocking === 0,
+  ).length;
+  const remainingDisabled =
+    confirming ||
+    loading ||
+    failed ||
+    rows.length === 0 ||
+    (remainingConfirmable === 0 && !pendingFinal);
+  const fullyConfirmed = !!confirm && !reconfirmReason;
+  const overloadPeople = loadLimit > 0 ? [...loadBy.values()].filter((n) => n > loadLimit).length : 0;
+
+  /* 규칙 요약 — 조건(빈 축 생략 · 다 비면 «모든 대상자») → 동작. 없어진 조직은 취소선 + «없는 조직»(R7). */
+  const ruleRoundMissing = (r) => r.round > rounds;
+  const ruleEvaluatorGone = (r) =>
+    r.action === 'assign' && !!r.evaluatorId && !!personOf(r.evaluatorId)?.resigned;
+  const ruleCondition = (r) => {
+    const parts = [];
+    if (r.units.length > 0) {
+      parts.push(
+        <span key="u">
+          {L.leaderRuleAxisUnit}{' '}
+          {r.units.map((u, i) => {
+            const name = unitLabelOf(u);
+            return (
+              <span key={u}>
+                {i > 0 ? '·' : ''}
+                {name ?? (
+                  <>
+                    <s>{u}</s> <span className="evc-la-hint is-warn">{L.leaderRuleUnitMissing}</span>
+                  </>
+                )}
+              </span>
+            );
+          })}
+        </span>,
+      );
+    }
+    if (r.levels.length > 0) parts.push(<span key="l">{`${L.leaderRuleAxisLevel} ${r.levels.join('·')}`}</span>);
+    if (r.positions.length > 0)
+      parts.push(<span key="p">{`${L.leaderRuleAxisPosition} ${r.positions.join('·')}`}</span>);
+    if (parts.length === 0) return L.leaderRuleAll;
+    return parts.flatMap((el, i) => (i === 0 ? [el] : [` ${L.leaderRuleAnd} `, el]));
+  };
+  const ruleAction = (r) =>
+    r.action === 'skip'
+      ? fill(L.leaderRuleActSkip, { round: r.round })
+      : fill(L.leaderRuleActAssign, {
+          round: r.round,
+          name: personOf(r.evaluatorId)?.name ?? L.leaderAsgNone,
+        });
+  /** 툴팁용 글 — 요소가 아니라 문장. */
+  const ruleTextPlain = (r) =>
+    leaderRuleText(L, r, unitLabelOf, (id) => (id ? personOf(id)?.name ?? null : null));
+  const moveRule = (i, d) => {
+    const next = [...rules];
+    [next[i], next[i + d]] = [next[i + d], next[i]];
+    onRulesChange?.(next);
+  };
+  const toggleIn = (arr, v) => (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
+  const draftInvalid = ruleDraft.action === 'assign' && !ruleDraft.evaluatorId;
+  const addRule = () => {
+    if (draftInvalid) return;
+    onRulesChange?.([
+      ...rules,
+      { ...ruleDraft, evaluatorId: ruleDraft.action === 'assign' ? ruleDraft.evaluatorId : null },
+    ]);
+    setRuleDraft(emptyLeaderRule(Math.min(ruleDraft.round, rounds)));
+  };
+  const editable = typeof onRulesChange === 'function';
+
   const pq = pickQuery.trim().toLowerCase();
   const pickList = withoutLeavingBefore(people, openCell ? roundDeadline(openCell.round) : '').filter(
     (p) =>
@@ -117,7 +234,19 @@ export default function EvalLeaderAssignmentSection({
     const ev = !c.skipped && c.evaluatorId ? personOf(c.evaluatorId) : null;
     const recName = c.recommendedEvaluatorId ? personOf(c.recommendedEvaluatorId)?.name : null;
     const adjusted = c.origin === 'adjusted';
-    const tip = adjusted ? fill(L.leaderAsgAdjustedTip, { name: recName || L.leaderAsgNone }) : undefined;
+    const rule = c.origin === 'rule' ? rules[c.ruleIndex ?? -1] : null;
+    const tip = adjusted
+      ? fill(L.leaderAsgAdjustedTip, { name: recName || L.leaderAsgNone })
+      : rule
+        ? fill(L.leaderAsgRuleTip, { rule: ruleTextPlain(rule) })
+        : c.ruleSelf
+          ? L.leaderAsgRuleSelfTip
+          : undefined;
+    const ruleBadge = c.origin === 'rule' && (
+      <StatusBadge tone="accent" className="evc-status-badge" data-testid={`evc-la-rule-${key}`}>
+        {L.leaderAsgBadgeRule}
+      </StatusBadge>
+    );
     return (
       <Tooltip content={tip}>
         <button
@@ -138,7 +267,10 @@ export default function EvalLeaderAssignmentSection({
           data-state={c.skipped ? 'skipped' : ev || c.evaluatorId ? c.origin : 'empty'}
         >
           {c.skipped ? (
-            <span className="evc-la-muted">{L.leaderAsgSkipped}</span>
+            <span className="evc-la-name-row">
+              <span className="evc-la-muted">{L.leaderAsgSkipped}</span>
+              {ruleBadge}
+            </span>
           ) : !c.evaluatorId ? (
             <>
               <span className="evc-la-empty">
@@ -151,11 +283,13 @@ export default function EvalLeaderAssignmentSection({
               <span className={`evc-la-name${ev?.resigned ? ' is-resigned' : ''}`}>
                 {ev?.name ?? c.evaluatorName ?? c.evaluatorId}
               </span>
-              <StatusBadge
-                className={`evc-status-badge ${adjusted ? 'tone-info' : 'tone-neutral'}`}
-              >
-                {adjusted ? L.leaderAsgBadgeAdjusted : L.leaderAsgBadgeRecommended}
-              </StatusBadge>
+              {ruleBadge || (
+                <StatusBadge
+                  className={`evc-status-badge ${adjusted ? 'tone-info' : 'tone-neutral'}`}
+                >
+                  {adjusted ? L.leaderAsgBadgeAdjusted : L.leaderAsgBadgeRecommended}
+                </StatusBadge>
+              )}
             </span>
           )}
           {warns
@@ -163,7 +297,7 @@ export default function EvalLeaderAssignmentSection({
             .map((w) => (
               <span
                 key={w}
-                className={`evc-la-warn${w === 'duplicate' ? '' : ' is-block'}`}
+                className={`evc-la-warn${w === 'duplicate' || w === 'overload' ? '' : ' is-block'}`}
                 data-testid={`evc-la-warn-${key}-${w}`}
               >
                 {w === 'self'
@@ -172,7 +306,12 @@ export default function EvalLeaderAssignmentSection({
                     ? L.leaderAsgWarnResigned
                     : w === 'leaving'
                       ? L.leaderAsgWarnLeaving
-                      : L.leaderAsgWarnDuplicate}
+                      : w === 'overload'
+                        ? fill(L.leaderAsgWarnOverload, {
+                            count: loadBy.get(c.evaluatorId) ?? 0,
+                            limit: loadLimit,
+                          })
+                        : L.leaderAsgWarnDuplicate}
               </span>
             ))}
         </button>
@@ -186,11 +325,209 @@ export default function EvalLeaderAssignmentSection({
     <div className="evc-la" data-testid="evc-leader-assign">
       <div className="evc-la-head">
         <span className="evc-field-label">{L.leaderAsgTitle}</span>
-        <p className="evc-wiz-hint">{L.leaderAsgSub}</p>
+        <p className="evc-wiz-hint">{grouped ? L.leaderAsgSubGrouped : L.leaderAsgSub}</p>
+        {grouped && editable && (
+          <span className="evc-la-hint" data-testid="evc-la-order">
+            {L.leaderAsgOrder}
+          </span>
+        )}
       </div>
 
+      {/* PW-2065 · §5.13.11 ② — 조직장이 비어 있는 조직. 막지 않는 안내라 디자이너의 연회색 안내 띠. */}
+      {editable && vacantUnits.length > 0 && (
+        <div className="evx-notice evc-la-vacant" data-testid="evc-la-vacant">
+          <span>
+            {fill(L.leaderAsgVacantHead, { count: vacantUnits.length })}
+            {vacantUnits.map((v) => (
+              <span key={v.id} className="evc-la-vacant-line" data-testid={`evc-la-vacant-${v.id}`}>
+                {fill(L.leaderAsgVacantLine, { path: v.path, count: v.count, name: v.climbedName })}
+              </span>
+            ))}
+            <span className="evc-la-hint">{L.leaderAsgVacantFoot}</span>
+          </span>
+        </div>
+      )}
+
+      {/* PW-2065 · §5.13.11 ①③ — 배정 규칙 · 부담 경고 기준(접기). 오픈 뒤에는 목록만 읽는다. */}
+      {(editable || rules.length > 0) && (
+        <div className="evc-la-bar evc-la-rules" data-testid="evc-la-rules">
+          <button
+            type="button"
+            className="evc-la-rules-head"
+            aria-expanded={rulesOpen}
+            onClick={() => setRulesOpen((o) => !o)}
+            data-testid="evc-la-rules-toggle"
+          >
+            <span className="evc-la-bar-count">
+              {fill(L.leaderRulesHead, { count: rules.length })}
+            </span>
+            <span className="evc-la-bar-detail">
+              {loadLimit > 0 ? fill(L.leaderRulesLoadOn, { limit: loadLimit }) : L.leaderRulesLoadOff}
+            </span>
+            <span className="evc-la-hint">{rulesOpen ? L.leaderRulesCollapse : L.leaderRulesExpand}</span>
+          </button>
+          {rulesOpen && (
+            <div className="evc-la-rules-body">
+              {editable && <span className="evc-la-hint">{L.leaderRulesGuide}</span>}
+              {rules.length === 0 ? (
+                <span className="evc-la-hint" data-testid="evc-la-rules-empty">
+                  {L.leaderRulesEmpty}
+                </span>
+              ) : (
+                rules.map((r, i) => (
+                  <div
+                    key={i}
+                    className={`evc-la-rule${ruleRoundMissing(r) ? ' is-off' : ''}`}
+                    data-testid={`evc-la-rule-row-${i}`}
+                  >
+                    <span className="evc-la-hint">{i + 1}</span>
+                    <span className="evc-la-rule-text">
+                      {ruleCondition(r)} → {ruleAction(r)}
+                      {ruleRoundMissing(r) && (
+                        <span className="evc-la-hint" data-testid={`evc-la-rule-off-${i}`}>
+                          {' '}
+                          {fill(L.leaderRuleNoRound, { round: r.round })}
+                        </span>
+                      )}
+                      {ruleEvaluatorGone(r) && (
+                        <span className="evc-la-warn is-block" data-testid={`evc-la-rule-gone-${i}`}>
+                          {L.leaderRuleResigned}
+                        </span>
+                      )}
+                    </span>
+                    {editable && (
+                      <>
+                        <button
+                          type="button"
+                          className="evc-btn is-ghost"
+                          disabled={i === 0}
+                          aria-label={L.leaderRuleUp}
+                          onClick={() => moveRule(i, -1)}
+                          data-testid={`evc-la-rule-up-${i}`}
+                        >
+                          ▲
+                        </button>
+                        <button
+                          type="button"
+                          className="evc-btn is-ghost"
+                          disabled={i === rules.length - 1}
+                          aria-label={L.leaderRuleDown}
+                          onClick={() => moveRule(i, 1)}
+                          data-testid={`evc-la-rule-down-${i}`}
+                        >
+                          ▼
+                        </button>
+                        <button
+                          type="button"
+                          className="evc-btn is-ghost"
+                          onClick={() => onRulesChange(rules.filter((_, j) => j !== i))}
+                          data-testid={`evc-la-rule-del-${i}`}
+                        >
+                          {L.leaderRuleDelete}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                ))
+              )}
+              {editable && (
+                <div className="evc-la-rule-form" data-testid="evc-la-rule-form">
+                  <span className="evc-la-bar-detail">{L.leaderRuleAddHead}</span>
+                  {[
+                    ['units', L.leaderRuleAxisUnit, ruleOptions.units.map((u) => [u.id, u.label])],
+                    ['levels', L.leaderRuleAxisLevel, ruleOptions.levels.map((v) => [v, v])],
+                    ['positions', L.leaderRuleAxisPosition, ruleOptions.positions.map((v) => [v, v])],
+                  ].map(([axis, label, opts]) =>
+                    opts.length === 0 ? null : (
+                      <div key={axis} className="evc-la-rule-axis">
+                        <span className="evc-la-hint">{label}</span>
+                        {opts.map(([v, text]) => (
+                          <Chip
+                            key={v}
+                            selected={ruleDraft[axis].includes(v)}
+                            onClick={() => setRuleDraft((d) => ({ ...d, [axis]: toggleIn(d[axis], v) }))}
+                            data-testid={`evc-la-rule-chip-${axis}-${v}`}
+                          >
+                            {text}
+                          </Chip>
+                        ))}
+                      </div>
+                    ),
+                  )}
+                  <div className="evc-la-rule-axis">
+                    <span className="evc-la-hint">{L.leaderRuleThen}</span>
+                    <Select
+                      className="evc-la-rule-select"
+                      value={String(ruleDraft.round)}
+                      options={roundList.map((k) => ({
+                        value: String(k),
+                        label: fill(L.leaderAsgColRound, { round: k }),
+                      }))}
+                      aria-label={L.leaderRuleRound}
+                      onChange={(e) => setRuleDraft((d) => ({ ...d, round: Number(e.target.value) }))}
+                      data-testid="evc-la-rule-round"
+                    />
+                    <Select
+                      className="evc-la-rule-select"
+                      value={ruleDraft.action}
+                      options={[
+                        { value: 'skip', label: L.leaderRuleActionSkip },
+                        { value: 'assign', label: L.leaderRuleActionAssign },
+                      ]}
+                      aria-label={L.leaderRuleAction}
+                      onChange={(e) =>
+                        setRuleDraft((d) => ({ ...d, action: e.target.value, evaluatorId: null }))
+                      }
+                      data-testid="evc-la-rule-action"
+                    />
+                    {ruleDraft.action === 'assign' && (
+                      <Select
+                        className="evc-la-rule-select"
+                        searchable
+                        value={ruleDraft.evaluatorId ?? ''}
+                        placeholder={L.leaderRulePickPerson}
+                        options={ruleOptions.people.map((p) => ({
+                          value: p.id,
+                          label: p.org ? `${p.name} · ${p.org}` : p.name,
+                        }))}
+                        aria-label={L.leaderRulePickPerson}
+                        onChange={(e) => setRuleDraft((d) => ({ ...d, evaluatorId: e.target.value || null }))}
+                        data-testid="evc-la-rule-person"
+                      />
+                    )}
+                    <button
+                      type="button"
+                      className="evc-btn is-ghost"
+                      disabled={draftInvalid}
+                      onClick={addRule}
+                      data-testid="evc-la-rule-add"
+                    >
+                      {L.leaderRuleAdd}
+                    </button>
+                  </div>
+                </div>
+              )}
+              <div className="evc-la-rule-axis" data-testid="evc-la-load">
+                <span className="evc-la-hint">{L.leaderLoadBefore}</span>
+                <TextInput
+                  className="evc-input evc-la-load-input"
+                  type="number"
+                  min={0}
+                  value={String(loadLimit)}
+                  disabled={!onLoadLimitChange}
+                  aria-label={L.leaderLoadAria}
+                  onChange={(e) => onLoadLimitChange?.(Math.max(0, Math.trunc(Number(e.target.value) || 0)))}
+                  data-testid="evc-la-load-input"
+                />
+                <span className="evc-la-hint">{L.leaderLoadAfter}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       <div
-        className={`evc-la-bar${confirm && !reconfirmReason ? '' : ' is-warn'}`}
+        className={`evc-la-bar${fullyConfirmed || !editable ? '' : ' is-warn'}`}
         data-testid="evc-la-bar"
       >
         <span className="evc-la-bar-count" data-testid="evc-la-summary">
@@ -203,6 +540,7 @@ export default function EvalLeaderAssignmentSection({
             c: summary.duplicate,
             d: summary.resigned,
             e: summary.leaving,
+            f: overloadPeople,
           })}
         </span>
         <Checkbox
@@ -226,6 +564,43 @@ export default function EvalLeaderAssignmentSection({
             data-testid="evc-la-search"
           />
         </span>
+        {grouped ? (
+          <span className="evc-la-bar-right">
+            {fullyConfirmed ? (
+              <span className="evc-la-state is-done" data-testid="evc-la-state">
+                <CheckCircleIcon size={13} />{' '}
+                {byName(confirm.confirmedBy)
+                  ? fill(L.leaderAsgConfirmedAll, {
+                      at: formatStamp(confirm.confirmedAt),
+                      by: byName(confirm.confirmedBy),
+                    })
+                  : fill(L.leaderAsgConfirmedAllNoBy, { at: formatStamp(confirm.confirmedAt) })}
+              </span>
+            ) : (
+              <span className="evc-la-state is-warn" data-testid="evc-la-state">
+                {fill(L.leaderAsgGroupProgress, { a: confirmedGroups, b: groups.length })}
+                {reconfirmReason ? ` · ${L.leaderAsgReconfirm} — ${reconfirmReason}` : ''}
+              </span>
+            )}
+            <Tooltip
+              content={
+                confirmBlocked && remainingConfirmable === 0 && !fullyConfirmed
+                  ? fill(L.leaderAsgConfirmBlocked, { count: summary.blocking })
+                  : undefined
+              }
+            >
+              <button
+                type="button"
+                className="evc-btn is-primary"
+                disabled={remainingDisabled}
+                onClick={() => onConfirmRemaining?.()}
+                data-testid="evc-la-confirm"
+              >
+                {confirming ? L.leaderAsgConfirming : L.leaderAsgConfirmRemaining}
+              </button>
+            </Tooltip>
+          </span>
+        ) : (
         <span className="evc-la-bar-right">
           {confirm && !reconfirmReason ? (
             <span className="evc-la-state is-done" data-testid="evc-la-state">
@@ -259,6 +634,7 @@ export default function EvalLeaderAssignmentSection({
             </button>
           </Tooltip>
         </span>
+        )}
       </div>
 
       {failed && (
@@ -323,7 +699,56 @@ export default function EvalLeaderAssignmentSection({
                 </RosterTable.Cell>
               </RosterTable.Row>
             ) : (
-              visibleRows.map((r) => {
+              (grouped
+                ? groups.flatMap((g) => {
+                    const gRows = visibleRows.filter((r) => r.groupId === g.id);
+                    return gRows.length === 0 ? [] : [{ group: g, count: rows.filter((r) => r.groupId === g.id).length }, ...gRows];
+                  })
+                : visibleRows
+              ).map((r) => {
+                if (r.group) {
+                  const g = r.group;
+                  const gs = groupSummary(g.id);
+                  const st = groupStates[g.id] ?? {};
+                  return (
+                    <RosterTable.GroupRow key={`g:${g.id}`} colSpan={rounds + 1} data-testid={`evc-la-group-${g.id}`}>
+                      <span className="evc-la-group">
+                        <span className="evc-la-person-name">{g.name}</span>
+                        <span className="evc-la-hint">
+                          {fill(L.leaderAsgGroupMeta, { n: r.count, w: gs.total })}
+                        </span>
+                        {editable && (
+                          <span className="evc-la-bar-right">
+                            {st.confirmed ? (
+                              <span className="evc-la-state is-done" data-testid={`evc-la-group-done-${g.id}`}>
+                                <CheckCircleIcon size={13} />{' '}
+                                {fill(L.leaderAsgGroupConfirmed, { at: formatStamp(st.at) })}
+                              </span>
+                            ) : (
+                              <Tooltip
+                                content={
+                                  gs.blocking > 0
+                                    ? fill(L.leaderAsgConfirmBlocked, { count: gs.blocking })
+                                    : undefined
+                                }
+                              >
+                                <button
+                                  type="button"
+                                  className="evc-btn is-ghost"
+                                  disabled={gs.blocking > 0 || confirming || loading || failed}
+                                  onClick={() => onConfirmGroup(g.id)}
+                                  data-testid={`evc-la-group-confirm-${g.id}`}
+                                >
+                                  {L.leaderAsgGroupConfirm}
+                                </button>
+                              </Tooltip>
+                            )}
+                          </span>
+                        )}
+                      </span>
+                    </RosterTable.GroupRow>
+                  );
+                }
                 const rowCells = roundList.map((k) => cellOf(r.id, k)).filter(Boolean);
                 const noChain = rowHasNoChain(rowCells) && rowCells.every((c) => c.origin !== 'adjusted');
                 return (
@@ -387,6 +812,11 @@ export default function EvalLeaderAssignmentSection({
                 >
                   <span className={p.resigned ? 'evc-la-name is-resigned' : 'evc-la-name'}>{p.name}</span>
                   {p.org && <span className="evc-la-hint">{p.org}</span>}
+                  {loadLimit > 0 && (loadBy.get(p.id) ?? 0) >= loadLimit && (
+                    <span className="evc-la-hint is-warn" data-testid={`evc-la-pick-load-${p.id}`}>
+                      {fill(L.leaderAsgPickLoad, { count: loadBy.get(p.id) })}
+                    </span>
+                  )}
                   {p.resigned && (
                     <StatusBadge className="evc-status-badge tone-error">
                       {L.leaderAsgResignedTag}
@@ -422,7 +852,7 @@ export default function EvalLeaderAssignmentSection({
                 }}
                 data-testid="evc-la-revert"
               >
-                {L.leaderAsgRevert}
+                {openCellObj.ruleCell ? L.leaderAsgRevertRule : L.leaderAsgRevert}
               </button>
             )}
           </div>

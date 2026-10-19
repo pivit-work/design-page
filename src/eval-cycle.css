@@ -11230,6 +11230,71 @@ button.evm-ai-source {
 }
 .evc-la-state.is-done { color: var(--utility-success-700); }
 .evc-la-state.is-warn { color: var(--utility-warning-700); }
+/* PW-2065 · HR §5.13.11 — 배정 규칙 칸·공석 안내·조직 묶음 머리. 새 모양을 만들지 않는다: 틀은 위 요약 바,
+   글씨는 요약 바·힌트, 칩·선택 칸·버튼은 공용 부품 그대로다(design.md 「디자이너 모양 대응표」). */
+.evc-la-rules {
+  flex-direction: column;
+  align-items: stretch;
+}
+.evc-la-rules-head {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+}
+.evc-la-rules-head > .evc-la-hint { margin-left: auto; }
+.evc-la-rules-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+.evc-la-rule {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: 6px 8px;
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+.evc-la-rule.is-off { opacity: 0.55; }
+.evc-la-rule-text {
+  flex: 1;
+  font-size: var(--font-size-text-xs);
+  color: var(--text-primary);
+}
+.evc-la-rule-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: 8px;
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--border-secondary);
+}
+.evc-la-rule-axis {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+.evc-la-rule-axis > .evc-la-hint:first-child { min-width: 40px; }
+.evc-la-rule-select { min-width: 120px; }
+.evc-la-load-input { width: 64px; }
+.evc-la-vacant > span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.evc-la-vacant-line { font-weight: 500; }
+.evc-la-group {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
 .evc-la-error {
   display: flex;
   align-items: center;
