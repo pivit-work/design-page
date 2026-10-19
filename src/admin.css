@@ -3328,6 +3328,10 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
   row-gap: var(--spacing-md);
 }
 .admin-notif-check-row .dp-check { white-space: nowrap; }
+/* 단계별 발송 채널 표(PW-1986) — 단계 이름 칸 폭을 고정해 줄마다 채널 체크가 세로로 맞게 한다.
+   긴 이름은 이 칸 안에서 줄바꿈한다. */
+.admin-notif-stage-row { flex-wrap: nowrap; }
+.admin-notif-stage-row .admin-notif-param-label { flex: 0 0 136px; }
 
 /* ────────────────────────────────────────────────────────────
    구성원 초대 발송 모달 (.admin-inv-*) — PW-114

@@ -485,7 +485,7 @@ function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatC
           <SL>{labels.modal.stageChannels}</SL>
           <div className="admin-notif-param-list" data-testid="notif-stage-channels">
             {stageChannels.map((stage) => (
-              <div key={stage.key} className="admin-notif-param-row" data-testid={`notif-stage-${stage.key}`}>
+              <div key={stage.key} className="admin-notif-param-row admin-notif-stage-row" data-testid={`notif-stage-${stage.key}`}>
                 <span className="admin-notif-param-label">{stage.label}</span>
                 <div className="admin-notif-check-row">
                   {CHANNEL_KEYS.map((key) => (
