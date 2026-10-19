@@ -47,7 +47,8 @@ import { AlertIcon, CheckCircleIcon, InfoIcon, ZapIcon } from './evalIcons.jsx';
 import { autoCommitteeIdsOf } from './calibrationAutoCommittee.js';
 // [PW-527 ①③] 항목 설정판과 평가지 렌더는 「평가 템플릿」 화면과 **나눠 쓰는 부품**이다.
 // 여기 안에 두면 마법사 밖에서 쓸 수 없어, 같은 판이 두 화면에 각각 생긴다 (정책 §6.3).
-import { EvalTemplateGradeRows, EvalTemplateItemRow, GripIcon } from './EvalTemplateBuilder.jsx';
+import { EvalTemplateGradeRows, EvalTemplateItemRow, GripIcon, ReorderHandle } from './EvalTemplateBuilder.jsx';
+import { useHandleReorder } from './useHandleReorder.js';
 import { gradeKeywordsForSave } from './evalGradeKeywords.js';
 import EvalSheetBody from './EvalSheetBody.jsx';
 import EvalWizardChipPicker from './EvalWizardChipPicker.jsx';
@@ -3345,8 +3346,22 @@ export default function EvalCycleWizard({
      질문·유형 배지·AI 배지·이유 토글·버튼 3개가 있어 설정을 더 붙이면 행이 읽히지 않는다
      (policy §5.11-C). */
   const [tplEditingId, setTplEditingId] = useState(null);
-  const [tplDragIdx, setTplDragIdx] = useState(null);
-  const [tplDragOverIdx, setTplDragOverIdx] = useState(null);
+  // 평가 항목 순서 — ⋮⋮ 손잡이로만 끈다(마우스·↑/↓·터치). 등급 줄과 같은 조작이다 (PW-1971 · §4.2.2-A).
+  const {
+    bindList: bindTplList,
+    rowProps: tplRowProps,
+    rowClass: tplRowClass,
+    handleProps: tplHandleProps,
+  } = useHandleReorder({
+    count: tplQuestions.length,
+    onReorder: (from, to) =>
+      setTplQuestions((qs) => {
+        const next = [...qs];
+        const [moved] = next.splice(from, 1);
+        next.splice(to, 0, moved);
+        return next;
+      }),
+  });
   const [tplPreview, setTplPreview] = useState(null); // null | 'all' | {questionId}
   /**
    * PW-434 ⑤ 「전체 목록에서 찾기」 모달 · ② 상단 카드에서 «불러오기 전» 여는 전체 미리보기.
@@ -5435,21 +5450,6 @@ export default function EvalCycleWizard({
     setTplTypeBuffers(typeBufs);
     setTplRoundBuffers(buffers);
     setGradesSharedTo(gradeShareNames);
-  };
-  const tplDrop = (targetIdx) => {
-    if (tplDragIdx === null || tplDragIdx === targetIdx) {
-      setTplDragIdx(null);
-      setTplDragOverIdx(null);
-      return;
-    }
-    setTplQuestions((qs) => {
-      const next = [...qs];
-      const [moved] = next.splice(tplDragIdx, 1);
-      next.splice(targetIdx, 0, moved);
-      return next;
-    });
-    setTplDragIdx(null);
-    setTplDragOverIdx(null);
   };
   const toggleRationale = (id) =>
     setTplQuestions((qs) =>
@@ -8699,7 +8699,7 @@ export default function EvalCycleWizard({
                   <EyeIcon size={15} /> {L.templatePreview}
                 </button>
               </div>
-              <div className="evc-tpl-items">
+              <div className="evc-tpl-items" ref={bindTplList}>
                 {tplQuestions.map((q, idx) => (
                   /* [PW-527 ①] 항목 줄과 그 아래 설정 패널은 「평가 템플릿」 화면의
                      [편집] 창과 **같은 부품**이다. 마법사에만 있는 것(드래그 재배열 ·
@@ -8729,20 +8729,14 @@ export default function EvalCycleWizard({
                         : undefined
                     }
                     settingsIcon={<PencilIcon size={15} />}
-                    className={`${tplDragOverIdx === idx && tplDragIdx !== idx ? 'is-over' : ''}${tplDragIdx === idx ? ' is-dragging' : ''}`.trim()}
-                    containerProps={{
-                      draggable: true,
-                      onDragStart: () => setTplDragIdx(idx),
-                      onDragOver: (e) => { e.preventDefault(); setTplDragOverIdx(idx); },
-                      onDrop: () => tplDrop(idx),
-                      onDragEnd: () => { setTplDragIdx(null); setTplDragOverIdx(null); },
-                    }}
+                    className={tplRowClass(idx)}
+                    containerProps={tplRowProps(idx)}
                     leading={
-                      <Tooltip content={L.phaseDragHint}>
-                        <span className="evc-tpl-item-handle">
-                          <GripIcon size={12} />
-                        </span>
-                      </Tooltip>
+                      <ReorderHandle
+                        handleProps={tplHandleProps(idx)}
+                        label={L.phaseDragHint}
+                        testId={`evc-tpl-item-handle-${idx}`}
+                      />
                     }
                     trailing={
                       <>

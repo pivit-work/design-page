@@ -2518,7 +2518,8 @@
   justify-content: space-between;
   margin-top: var(--spacing-md);
 }
-.evc-tpl-item { cursor: grab; }
+/* grab 커서는 끌기가 실제로 시작되는 손잡이에만 쓴다 — 줄 전체에 두면 손잡이 없는 줄(잠긴 평가지 등)도
+   끌릴 것처럼 보인다 (spec-eval-cycle §4.2.2-A, PW-1971). */
 .evc-tpl-item.is-over { border-color: var(--bg-brand-solid); }
 .evc-tpl-item.is-dragging { opacity: 0.45; }
 .evc-tpl-item-handle {
@@ -2526,6 +2527,16 @@
   align-items: center;
   color: var(--text-tertiary);
   flex-shrink: 0;
+  cursor: grab;
+}
+/* 두 손잡이 공통 — 터치로 끄는 동안 화면이 스크롤되지 않게 하고, 키보드(↑/↓)로 잡았을 때 어디인지 보인다.
+   포커스 테두리는 마법사 단계 표(.evc-step.is-clickable)의 것과 같다. */
+.evc-tpl-item-handle,
+.evc-tpl-grade-handle { touch-action: none; border-radius: var(--radius-xs); }
+.evc-tpl-item-handle:focus-visible,
+.evc-tpl-grade-handle:focus-visible {
+  outline: 2px solid var(--utility-brand-500);
+  outline-offset: 1px;
 }
 .evc-tpl-ai {
   background: color-mix(in srgb, var(--utility-purple-600) 12%, transparent);

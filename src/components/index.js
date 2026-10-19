@@ -405,7 +405,10 @@ export {
   EvalTemplateAddRow,
   EvalTemplateGradeRows,
   EvalTemplateItemRow,
+  ReorderHandle,
 } from './eval/EvalTemplateBuilder.jsx';
+// PW-1971 — 등급·항목 줄 순서를 ⋮⋮ 손잡이 하나로 바꾸는 조작(마우스·↑/↓·터치). 세 화면이 같은 것을 쓴다.
+export { useHandleReorder, reorderedIndex } from './eval/useHandleReorder.js';
 // PW-1840 등급별 기대 키워드 — 칸의 글 ↔ 서버 배열. 템플릿을 저장하는 세 화면이 같은 것을 쓴다.
 export {
   MAX_GRADE_KEYWORDS,

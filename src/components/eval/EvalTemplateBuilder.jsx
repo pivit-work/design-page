@@ -1,7 +1,7 @@
-import { useState } from 'react';
 import EvalTemplateItemSettings from './EvalTemplateItemSettings.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
+import { useHandleReorder } from './useHandleReorder.js';
 import { MAX_GRADE_KEYWORDS, parseGradeKeywords } from './evalGradeKeywords.js';
 import {
   QUESTION_TYPES,
@@ -60,11 +60,27 @@ export function GripIcon({ size = 14 }) {
 }
 
 /**
+ * ⋮⋮ 손잡이 — 평가 항목 줄과 등급 줄이 같은 것을 쓴다. 조작(마우스·키보드·터치)은
+ * `useHandleReorder` 가 갖고, 이 부품은 그 조작을 손잡이 모양에 얹기만 한다.
+ * 잠긴 목록에는 그리지 않는다 — 손잡이가 보이면 끌린다고 읽힌다 (spec-eval-cycle §4.2.2-A).
+ */
+export function ReorderHandle({ handleProps, label, className = 'evc-tpl-item-handle', testId }) {
+  return (
+    <Tooltip content={label}>
+      <span className={className} aria-label={label} data-testid={testId} {...handleProps}>
+        <GripIcon size={12} />
+      </span>
+    </Tooltip>
+  );
+}
+
+/**
  * 등급 줄 목록 — ⋮⋮ 손잡이 · 순번 · 이름 · 설명 · 기대 키워드(PW-1840) · (상대평가면) 비율 · 삭제.
  *
  * 순서는 평가 항목과 같은 드래그 앤 드롭으로 바꾼다 (policy §5.4.4, PW-433 후속 2026-10-14).
  * 종전에는 ▲▼ 버튼이었다 — 행 안 입력칸 3개에서 글자를 끌면 행이 끌려가기 때문이다. 그래서
  * **손잡이를 누른 동안만** 행을 draggable 로 둔다(`armed`). 입력칸에서 글자를 골라도 행은 그대로다.
+ * 손잡이에서 ↑/↓ 로도, 터치로도 옮긴다 — 평가 항목 줄과 같은 규칙이다 (PW-1971, `useHandleReorder`).
  * 행을 통째로 옮기므로 비율도 행을 따라간다. 순번은 옮긴 뒤 위에서부터 다시 매겨진다.
  *
  * `onReorder(from, to)` — `from` 행을 빼서 `to` 자리에 넣는다.
@@ -83,55 +99,26 @@ export function EvalTemplateGradeRows({
   onRemove,
   testPrefix = 'evc-tpl-grade',
 }) {
-  const [armed, setArmed] = useState(null);
-  const [dragIdx, setDragIdx] = useState(null);
-  const [overIdx, setOverIdx] = useState(null);
-  const reset = () => {
-    setArmed(null);
-    setDragIdx(null);
-    setOverIdx(null);
-  };
-  const drop = (to) => {
-    if (dragIdx !== null && dragIdx !== to) onReorder(dragIdx, to);
-    reset();
-  };
+  // 고리 이름은 꺼내 쓴다 — 묶음째 들고 있으면 렌더 검사가 `ref` 에 건 값과 한 덩어리로 본다.
+  const { bindList, rowProps, rowClass, handleProps } = useHandleReorder({
+    count: grades.length,
+    onReorder,
+  });
   return (
-    <div className="evc-tpl-grades">
+    <div className="evc-tpl-grades" ref={bindList}>
       {grades.map((g, i) => (
         <div
           key={i}
-          className={`evc-tpl-grade${overIdx === i && dragIdx !== i ? ' is-over' : ''}${dragIdx === i ? ' is-dragging' : ''}`}
-          draggable={armed === i}
-          onDragStart={(e) => {
-            if (armed !== i) return;
-            e.dataTransfer.effectAllowed = 'move';
-            // Firefox 는 데이터가 없으면 드래그를 시작하지 않는다.
-            e.dataTransfer.setData('text/plain', String(i));
-            setDragIdx(i);
-          }}
-          onDragOver={(e) => {
-            if (dragIdx === null) return;
-            e.preventDefault();
-            setOverIdx(i);
-          }}
-          onDrop={(e) => {
-            e.preventDefault();
-            drop(i);
-          }}
-          onDragEnd={reset}
+          {...rowProps(i)}
+          className={`evc-tpl-grade ${rowClass(i)}`.trim()}
           data-testid={`${testPrefix}-row-${i}`}
         >
-          <Tooltip content={L.gradeDragHint}>
-            <span
-              className="evc-tpl-grade-handle"
-              onMouseDown={() => setArmed(i)}
-              onMouseUp={() => setArmed(null)}
-              aria-label={L.gradeDragHint}
-              data-testid={`${testPrefix}-handle-${i}`}
-            >
-              <GripIcon size={12} />
-            </span>
-          </Tooltip>
+          <ReorderHandle
+            handleProps={handleProps(i)}
+            label={L.gradeDragHint}
+            className="evc-tpl-grade-handle"
+            testId={`${testPrefix}-handle-${i}`}
+          />
           <span className="evc-tpl-grade-no" data-testid={`${testPrefix}-no-${i}`}>
             {i + 1}
           </span>
