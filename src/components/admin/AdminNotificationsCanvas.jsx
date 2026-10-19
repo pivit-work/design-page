@@ -36,6 +36,10 @@ import Select from '../shared/Select.jsx';
  *    channels: string[],                // 'push' | 'slack' | 'email'
  *    targetsFixed?: string,             // 받는 사람·채널을 다른 화면이 정할 때의 안내. 있으면 수정 창의
  *                                       // 두 칸이 체크 대신 잠금 안내로, 목록 행의 역할·채널 표시도 이 안내로 바뀐다
+ *    stageChannels?: [{ key, label, channels }], // 단계마다 채널을 고르는 규칙(PW-1986 · admin-spec §6.1 «평가»).
+ *                                       // 있으면 받는 사람 칸은 targetsFixed 잠금 안내, 채널 칸은 단계별 표가 되고
+ *                                       // 목록 행은 그 안내 + 표의 합집합 채널(rule.channels)을 보인다
+ *    stageChannelsNote?: string,        // 단계별 표 밑 안내
  *    enabled: bool,
  *    cooldown: { mode:'custom'|'immediate'|'event', ... },
  *  }
@@ -77,6 +81,7 @@ const DEFAULT_LABELS = {
     cooldown: '발송 주기',
     recipients: '수신 대상',
     channels: '발송 채널',
+    stageChannels: '단계별 발송 채널',
     cancel: '취소',
     save: '저장',
     close: '닫기',
@@ -333,6 +338,9 @@ function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatC
   const [cooldown, setCooldown] = useState({ ...rule.cooldown });
   const [recipients, setRecipients] = useState([...rule.recipients]);
   const [channels, setChannels] = useState([...rule.channels]);
+  const [stageChannels, setStageChannels] = useState(
+    rule.stageChannels ? rule.stageChannels.map((s) => ({ ...s, channels: [...s.channels] })) : null,
+  );
 
   const hasTimeParam = rule.conditionSchema?.some((p) => p.isTimeParam) ?? false;
   const conditionPreview = formatCondition(rule.id, conditionValues, rule.conditionFixed);
@@ -345,6 +353,15 @@ function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatC
     setRecipients((p) => (p.includes(r) ? p.filter((x) => x !== r) : [...p, r]));
   const toggleChannel = (c) =>
     setChannels((p) => (p.includes(c) ? p.filter((x) => x !== c) : [...p, c]));
+  const toggleStageChannel = (key, c) =>
+    setStageChannels((p) => p.map((s) => (s.key !== key ? s : {
+      ...s,
+      channels: s.channels.includes(c) ? s.channels.filter((x) => x !== c) : [...s.channels, c],
+    })));
+  // 단계별 표가 있으면 규칙 채널은 표의 합집합이다 — 목록 행 표시가 이것이다.
+  const savedChannels = stageChannels
+    ? CHANNEL_KEYS.filter((c) => stageChannels.some((s) => s.channels.includes(c)))
+    : channels;
 
   return (
     // 껍데기는 공용 창 틀(ModalShell · PW-836). 막 이름표(modal-backdrop)·창 이름표(edit-modal)는
@@ -368,7 +385,10 @@ function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatC
             className="tl-group-modal-btn tl-group-modal-btn-primary"
             disabled={hasErrors}
             data-testid="notif-rule-save"
-            onClick={() => { onSave({ ...rule, enabled, conditionValues, cooldown, recipients, channels }); onClose(); }}
+            onClick={() => {
+              onSave({ ...rule, enabled, conditionValues, cooldown, recipients, channels: savedChannels, ...(stageChannels ? { stageChannels } : {}) });
+              onClose();
+            }}
           >
             {labels.modal.save}
           </button>
@@ -449,8 +469,44 @@ function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatC
           )}
         </div>
 
-        {/* 수신 대상 · 발송 채널 — 다른 화면이 정하면 잠금 안내 하나로 */}
-        {rule.targetsFixed ? (
+        {/* 수신 대상 고정 · 단계별 발송 채널 표 (PW-1986 · admin-spec §6.1 «평가 단계 시작 알림») */}
+        {stageChannels ? (<>
+        <div>
+          <SL>{labels.modal.recipients}</SL>
+          <div className="admin-notif-fixed" data-testid="notif-targets-fixed">
+            <span className="admin-notif-fixed-lock">
+              <Icon src={ICON_LOCK} size={14} color="var(--text-tertiary)" baseUrl={baseUrl} />
+            </span>
+            <span className="admin-notif-fixed-text">{rule.targetsFixed}</span>
+            <span className="admin-notif-fixed-tag">{labels.modal.systemFixed}</span>
+          </div>
+        </div>
+        <div>
+          <SL>{labels.modal.stageChannels}</SL>
+          <div className="admin-notif-param-list" data-testid="notif-stage-channels">
+            {stageChannels.map((stage) => (
+              <div key={stage.key} className="admin-notif-param-row" data-testid={`notif-stage-${stage.key}`}>
+                <span className="admin-notif-param-label">{stage.label}</span>
+                <div className="admin-notif-check-row">
+                  {CHANNEL_KEYS.map((key) => (
+                    <Checkbox
+                      key={key}
+                      checked={stage.channels.includes(key)}
+                      onChange={() => toggleStageChannel(stage.key, key)}
+                      label={labels.channels[key]}
+                      aria-label={`${stage.label} · ${labels.channels[key]}`}
+                      data-testid={`notif-stage-${stage.key}-${key}`}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+            {rule.stageChannelsNote && (
+              <span className="admin-notif-fixed-text" data-testid="notif-stage-note">{rule.stageChannelsNote}</span>
+            )}
+          </div>
+        </div>
+        </>) : rule.targetsFixed ? (
         <div>
           <SL>{labels.modal.recipients}</SL>
           <div className="admin-notif-fixed" data-testid="notif-targets-fixed">
@@ -514,10 +570,12 @@ function RuleRow({ rule, labels, formatCondition, formatCooldown, onEdit, onTogg
           )}
         </div>
         <div className="admin-notif-rule-meta">
-          {rule.targetsFixed ? (
+          {rule.targetsFixed && !rule.stageChannels ? (
             <span className="admin-notif-channel-tag" data-testid="notif-rule-targets-fixed">{rule.targetsFixed}</span>
           ) : (<>
-          {rule.recipients.map((r) => (
+          {rule.stageChannels ? (
+            <span className="admin-notif-channel-tag" data-testid="notif-rule-targets-fixed">{rule.targetsFixed}</span>
+          ) : rule.recipients.map((r) => (
             <StatusBadge key={r} className="admin-notif-role-chip">{labels.roles[r]}</StatusBadge>
           ))}
           <span className="admin-notif-meta-sep" aria-hidden="true" />
