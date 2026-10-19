@@ -6632,7 +6632,13 @@ export default function EvalCycleWizard({
   const moveMany = (list, toExcluded) => {
     if (list.length === 0) return 0;
     markManualAdjust();
-    setUndoSnapshot({ manual: [...manualExcludedIds], kept: [...keptIds] });
+    /* [PW-2077 · 정책 §5.5.6 E2] 몇 명을 어느 쪽으로 옮겼는지도 함께 남긴다 — 되돌리기 줄에 적는다. */
+    setUndoSnapshot({
+      manual: [...manualExcludedIds],
+      kept: [...keptIds],
+      count: list.length,
+      toExcluded,
+    });
     const ids = list.map((c) => c.id);
     if (toExcluded) {
       /* 「수동 포함」이던 사람은 규칙 제외로 되돌아갈 뿐 수동 제외가 되지 않는다(규칙 5). */
@@ -10246,6 +10252,16 @@ export default function EvalCycleWizard({
                     </div>
                     {undoSnapshot && (
                       <div className="evc-review-pane-foot is-right">
+                        {/* [PW-2077 · 정책 §5.5.6 E2] 확인 창 대신 «몇 명을 옮겼는지»를 되돌리기 옆에 적는다
+                            — 오픈 전이라 아무도 알림을 받지 않았고 한 번에 되돌릴 수 있다. */}
+                        {undoSnapshot.count > 0 && (
+                          <span className="evc-review-undo-note" data-testid="evc-wiz-undo-note">
+                            {fill(
+                              (undoSnapshot.toExcluded ? L.targetUndoExcluded : L.targetUndoIncluded) ?? '',
+                              { count: undoSnapshot.count },
+                            )}
+                          </span>
+                        )}
                         <button
                           type="button"
                           className="evc-review-undo"

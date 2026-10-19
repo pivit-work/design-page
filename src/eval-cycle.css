@@ -3210,6 +3210,12 @@
 .evc-review-pane-foot.is-right {
   display: flex;
   justify-content: flex-end;
+  /* PW-2077 — 되돌리기 옆 «N명을 제외했습니다» 한 줄과 가운데를 맞춘다. */
+  align-items: center;
+  gap: var(--spacing-md);
+}
+.evc-review-undo-note {
+  font-weight: 600;
 }
 .evc-review-undo {
   display: inline-flex;
