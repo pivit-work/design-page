@@ -382,6 +382,7 @@ const DEFAULT_LABELS = {
     historyAdded: '추가',
     historyRemoved: '삭제',
     historyPurged: '파기됨',
+    historyPurgePending: '파기 예정 — {date}',
     historyWithheld: '변경됨',
     historyNone: '—',
     /* 필드 거르기·더 보기 (정책서 §2-3·§2-4). `{field}` 는 고른 항목 이름. */
@@ -3770,6 +3771,8 @@ function PersonalHistoryList({
                   </div>
                   <div className="admin-emp-hist-values">
                     {h.state === 'purged' ? L.historyPurged
+                      /* 퇴사 정정 기간 — 값은 보이지 않고 파기할 날만 (퇴사 정책 v1.25 E45 · pivit-work PW-2083) */
+                      : h.state === 'purge_pending' ? fill(L.historyPurgePending, { date: h.purgeDueOn || '' })
                       : h.state === 'withheld' ? L.historyWithheld
                         : (
                           <>

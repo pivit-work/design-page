@@ -146,6 +146,13 @@ function AreaCard({
               testId: `offboarding-pick-${choice.key}-${opt}`,
             }))}
           />
+          {/* 선택지의 뜻 한 줄 — 예: «HR 아카이브»가 무엇인지(퇴사 정책 v1.24 §4-B · pivit-work PW-2083).
+              위 «왜» 줄과 같은 보조 글씨다. */}
+          {choiceText.note && (
+            <p className="admin-offb-choice-why" data-testid={`offboarding-note-${choice.key}`}>
+              {choiceText.note}
+            </p>
+          )}
           {/* 덮어쓰면 사유를 남긴다(Q2) — 사유 없는 예외는 감사에 답할 수 없다 */}
           {overridden && (
             <FormField
@@ -421,6 +428,10 @@ export default function AdminOffboardingCanvas({
             </li>
             <li>{labels.effects.candidates}</li>
             <li>{labels.effects.oneOnOne}</li>
+            {/* 지우는 처리가 실행되는 때 — 퇴사 확정 밤(퇴사 정책 v1.25 §2 · pivit-work PW-2083). 날짜는 소비자가 채워 준다 */}
+            {labels.effects.purgeTiming && (
+              <li data-testid="offboarding-purge-timing">{labels.effects.purgeTiming}</li>
+            )}
           </ul>
           <Notice tone="neutral">{labels.effects.retention}</Notice>
         </div>
