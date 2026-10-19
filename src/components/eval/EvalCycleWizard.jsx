@@ -10956,7 +10956,9 @@ export default function EvalCycleWizard({
           labels={L}
           saving={submitting}
           isRunning={(id) =>
-            openedManage && !isDonePhase(id) && startReached(initialSeq?.schedule?.[id]?.start)
+            openedManage &&
+            !isDonePhase(id) &&
+            (isFixedPhase(id) || startReached(initialSeq?.schedule?.[id]?.start))
           }
           onLoadPending={onLoadSchedulePending}
           onConfirm={confirmScheduleSave}

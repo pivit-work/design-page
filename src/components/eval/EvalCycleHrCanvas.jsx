@@ -285,6 +285,7 @@ const DEFAULT_LABELS = {
   openImpactPolicyEdit: '오픈 뒤 대상자 추가·제외와 아직 시작하지 않은 단계의 평가지는 고칠 수 있습니다.',
   openImpactCheck: '대상 {{count}}명 · 위 평가지로 오픈합니다',
   openImpactFailed: '불러오지 못했습니다',
+  openImpactCheckFailed: '대상 수를 불러오지 못해 지금은 오픈할 수 없습니다',
   submitBlockCommittee: '5단계 캘리브레이션 위원회 구성을 완성하세요',
   wizardStepTargets: '대상자',
   targetModeAll: '전체',
@@ -718,11 +719,11 @@ function OpenConfirmModal({ cycle, labels: L, onCancel, onConfirm, onLoadImpact 
             />
             <span className={`evc-member-check${checked ? ' is-on' : ''}`} aria-hidden="true" />
             <span className="evc-open-confirm-check-label">
-              {withImpact
-                ? fill(L.openImpactCheck ?? '', {
-                    count: num(impact.data?.targetCount) ?? L.openImpactFailed,
-                  })
-                : L.openConfirmCheck}
+              {!withImpact
+                ? L.openConfirmCheck
+                : num(impact.data?.targetCount) == null
+                  ? L.openImpactCheckFailed
+                  : fill(L.openImpactCheck ?? '', { count: num(impact.data?.targetCount) })}
             </span>
           </label>
 
@@ -760,6 +761,7 @@ function ScheduleEditModal({
   isScheduleStartReached,
   isScheduleEndReached,
   onLoadPending,
+  startedPhaseIds = null,
 }) {
   const rs = cycle.reviewSequence ?? { order: [], enabled: {}, schedule: {} };
   const phases = (rs.order ?? []).filter((id) => rs.enabled?.[id] !== false);
@@ -791,9 +793,10 @@ function ScheduleEditModal({
   /** [PW-2077 · 정책 §4.5] 연 순간 시작했고 아직 안 끝난 단계 — 종료를 당기면 미제출 인원을 적는다. */
   const isRunning = (id) =>
     !isDone(id) &&
-    (typeof isScheduleStartReached === 'function'
-      ? isScheduleStartReached(initialRows[id]?.start)
-      : isPastScheduleStart(initialRows[id]?.start));
+    ((Array.isArray(startedPhaseIds) && startedPhaseIds.includes(id)) ||
+      (typeof isScheduleStartReached === 'function'
+        ? isScheduleStartReached(initialRows[id]?.start)
+        : isPastScheduleStart(initialRows[id]?.start)));
 
   /** [PW-1461 · 정책 §4.5] 겹침 판정은 마법사 3단계와 같은 모듈을 쓴다. */
   const rowList = (r) =>
@@ -1511,6 +1514,11 @@ export default function EvalCycleHrCanvas({
    * 안 넘기면 미제출 줄 없이 종전 창이다.
    */
   loadSchedulePending,
+  /**
+   * PW-2077 — 일정 수정 창이 «진행 중 단계»로 볼 단계 id(시작 시각 도래 또는 사이클이 그 단계 이상 진행 —
+   * 서버 판정과 같게 소비 측이 준다). 안 넘기면 시작 시각만 본다.
+   */
+  startedPhaseIdsOf,
   onDeleteCycle,
   onManageCycle,
   onViewResults,
@@ -2510,6 +2518,7 @@ export default function EvalCycleHrCanvas({
           onLoadPending={
             loadSchedulePending ? () => loadSchedulePending(scheduleModal) : undefined
           }
+          startedPhaseIds={startedPhaseIdsOf ? startedPhaseIdsOf(scheduleModal) : null}
         />
       )}
     </div>
