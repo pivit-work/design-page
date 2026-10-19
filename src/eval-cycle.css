@@ -11282,7 +11282,6 @@ button.evm-ai-source {
   gap: var(--spacing-sm);
 }
 .evc-la-rule-axis > .evc-la-hint:first-child { min-width: 40px; }
-.evc-la-rule-select { min-width: 120px; }
 .evc-la-load-input { width: 64px; }
 .evc-la-vacant > span {
   display: flex;

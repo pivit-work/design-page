@@ -469,6 +469,7 @@ const DEFAULT_LABELS = {
   leaderAsgGroupRootDirect: "대표 직속",
   leaderAsgReason_rules: "배정 규칙이 바뀌었습니다",
   leaderAsgReason_loadLimit: "부담 경고 기준이 바뀌었습니다",
+  leaderAsgReason_pendingFinal: "전체 확정이 남았습니다. 「남은 조직 모두 확정」을 눌러 주세요",
   tplVanished: '이 단계의 템플릿이 라이브러리에서 사라졌습니다',
   staleDraftsToggle: '오래된 초안 {{count}}건',
   targetOrgLoadError: '조직 정보를 불러오지 못했습니다',

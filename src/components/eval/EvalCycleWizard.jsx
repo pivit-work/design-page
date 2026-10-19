@@ -6378,7 +6378,10 @@ export default function EvalCycleWizard({
       ? `${leaderStaleGroupNames.join('·')} — ${leaderReasonText}`
       : leaderAllGroupsConfirmed && !leaderConfirmed && (leaderConfirm || leaderUnconfirmed || leaderStale)
         ? leaderReasonText
-        : null;
+        : leaderGroups.length > 0 && leaderAllGroupsConfirmed && !leaderConfirmed
+          ? // 사유를 모른 채 전체 확정만 남았다(초안을 다시 열었을 때 등) — 할 일을 말한다.
+            L.leaderAsgReason_pendingFinal
+          : null;
   /** 모든 조직이 확정됐는데 전체 확정(서버)만 남았다 — 「남은 조직 모두 확정」이 그것을 보낸다. */
   const leaderPendingFinal =
     leaderGroups.length > 0 && leaderAllGroupsConfirmed && !leaderConfirmed;

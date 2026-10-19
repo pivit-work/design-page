@@ -457,7 +457,6 @@ export default function EvalLeaderAssignmentSection({
                   <div className="evc-la-rule-axis">
                     <span className="evc-la-hint">{L.leaderRuleThen}</span>
                     <Select
-                      className="evc-la-rule-select"
                       value={String(ruleDraft.round)}
                       options={roundList.map((k) => ({
                         value: String(k),
@@ -468,7 +467,6 @@ export default function EvalLeaderAssignmentSection({
                       data-testid="evc-la-rule-round"
                     />
                     <Select
-                      className="evc-la-rule-select"
                       value={ruleDraft.action}
                       options={[
                         { value: 'skip', label: L.leaderRuleActionSkip },
@@ -482,8 +480,7 @@ export default function EvalLeaderAssignmentSection({
                     />
                     {ruleDraft.action === 'assign' && (
                       <Select
-                        className="evc-la-rule-select"
-                        searchable
+                          searchable
                         value={ruleDraft.evaluatorId ?? ''}
                         placeholder={L.leaderRulePickPerson}
                         options={ruleOptions.people.map((p) => ({
