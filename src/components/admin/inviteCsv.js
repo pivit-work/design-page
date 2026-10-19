@@ -633,6 +633,18 @@ export function isIsoDate(value) {
   return date.getUTCFullYear() === y && date.getUTCMonth() === m - 1 && date.getUTCDate() === d;
 }
 
+/**
+ * 연도가 앞에 오는 날짜(`2026/1/5` · `2026.1.5` · `2026-1-5`) → `YYYY-MM-DD` — 서버 `normalizeYearFirstDate` 와 같은
+ * 규칙. 엑셀이 날짜를 이 꼴로 저장한다(PW-2015). 없는 날짜·다른 꼴(`1/5/2026`)은 다듬은 글자 그대로라 `isIsoDate` 가 거른다.
+ */
+export function normalizeYearFirstDate(value) {
+  const v = normalize(value);
+  const m = /^(\d{4})[-./](\d{1,2})[-./](\d{1,2})$/.exec(v);
+  if (!m) return v;
+  const iso = `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
+  return isIsoDate(iso) ? iso : v;
+}
+
 /** 조직장 칸 한 원소 → true/false. 알 수 없으면 null. */
 const leaderFlag = (v) => {
   const f = fold(v);
@@ -691,6 +703,7 @@ export function parseInviteCsv(
   if (table.length === 0) return { ok: false, error: l.csvErrEmpty };
 
   const columns = inviteCsvColumns({ jobCategoryEnabled });
+  const dateKeys = new Set(columns.filter((c) => c.kind === 'date').map((c) => c.key));
   const namesOf = (c) => [
     l[c.labelKey], INVITE_CSV_DEFAULT_LABELS[c.labelKey], c.key, ...(c.aliases || []),
   ].map(foldHeader).filter(Boolean);
@@ -731,7 +744,9 @@ export function parseInviteCsv(
 
   const rows = body.map((cells) => {
     const values = {};
-    for (const [key, idx] of byKey) values[key] = normalize(cells[idx]);
+    for (const [key, idx] of byKey) {
+      values[key] = dateKeys.has(key) ? normalizeYearFirstDate(cells[idx]) : normalize(cells[idx]);
+    }
     // 조직경로 칸이 비었을 때만 본부·부서·파트를 이어 읽는다 — 양식의 정식 칸은 조직경로다.
     // 빈 단계는 건너뛴다(「본부 / (빈칸) / 파트」 → `본부 > 파트`). 회사에 없는 경로는
     // 조직경로를 직접 적은 것과 같이 「찾을 수 없습니다」로 선다.
