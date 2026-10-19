@@ -435,6 +435,9 @@ export function parseCsv(text) {
  * 양식을 고치지 않고 올리면 예시 줄부터 「등록되지 않은 값」으로 막혔다. 기본 목록이 없는
  * 칸(직렬·직무)과 회사에 그 사람·조직이 있어야 하는 칸(상급자·조직경로)은 비운다. 조직장 칸도
  * 비운다 — 조직경로와 같은 개수로 적어야 해서, 조직경로가 비면 혼자 막힌다.
+ *
+ * 국가 칸(국적·집 주소 국가·근무지 국가)은 언어와 관계없이 한글 이름으로 적는다 (PW-2031 · 기획서
+ * §3.1-B). 저장된 값이 한글 이름이라, 코드(KR)로 두면 그대로 올린 파일이 같은 나라를 «바뀜»으로 잡았다.
  */
 const TEMPLATE_SAMPLE = {
   email: 'hong@example.com',
@@ -443,13 +446,13 @@ const TEMPLATE_SAMPLE = {
   birthDate: '1990-01-15',
   gender: '남성',
   maritalStatus: '기혼',
-  nationality: 'KR',
+  nationality: '대한민국',
   phone: '010-1234-5678',
   personalEmail: 'hong@gmail.com',
   addressDetail: '101동 1001호',
   addressDistrict: '역삼동',
   addressRegion: '서울특별시',
-  addressCountry: 'KR',
+  addressCountry: '대한민국',
   emergencyContactName: '홍부모',
   emergencyContactPhone: '010-9876-5432',
   emergencyContactRelation: '부모',
