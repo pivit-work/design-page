@@ -224,6 +224,8 @@ export default function EvalLeaderAssignmentLiveSection({
   const cols = n + 1 + (bulkOn ? 1 : 0);
   const cellAt = (evaluateeId, round) => cellsByRow.get(evaluateeId)?.find((c) => c.round === round) ?? null;
   const applyBulk = async (action, personId) => {
+    // 지난 결과 줄은 지운다 — 이번이 실패했는데 앞의 «적용했습니다»가 남으면 성공으로 읽힌다.
+    tools.setResult(null);
     const refs = (
       evaluatorView
         ? [...tools.selected].map((k) => {

@@ -80,7 +80,7 @@ export function LeaderToolbar({ L, tools, groups, levels, searchLabel, testPrefi
           />
         </span>
         {target && (
-          <span className="evc-la-rule-pick">
+          <span className="evc-la-sort-pick">
             <Select
               value={tools.sort}
               aria-label={T.leaderToolSortAria}
@@ -263,7 +263,7 @@ export function LeaderBulkBar({
         </AnchoredLayer>
       )}
       {tools.result && (
-        <span className="evc-la-hint" role="status" data-testid={`${testPrefix}-bulk-result`}>
+        <span className="evc-la-bar-detail" role="status" data-testid={`${testPrefix}-bulk-result`}>
           {bulkResultText(T, tools.result)}
         </span>
       )}

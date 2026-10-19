@@ -11205,7 +11205,13 @@ button.evm-ai-source {
 .evc-la-bar.is-info {
   background: var(--utility-brand-50);
   border-color: var(--utility-brand-200);
+  /* 긴 표 아래에서 고른 줄을 체크해도 바가 보이게 — §9-D-1 선택 요약 바(.evc-tpl-ctxbar)처럼 위에 붙는다. */
+  position: sticky;
+  top: 0;
+  z-index: 20;
 }
+/* 정렬 칸 — 「정렬: 경고 먼저 · 조직 순」이 잘리지 않는 폭. */
+.evc-la-sort-pick { width: 220px; }
 /* PW-2066 · §5.13.10 도구 줄 — 줄마다 PW-2065 규칙 칸의 칩 줄(.evc-la-rule-axis)을 쌓는다. */
 .evc-la-tools {
   display: flex;
