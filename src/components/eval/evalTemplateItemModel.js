@@ -69,6 +69,23 @@ export const clampScaleMax = (v) =>
   Math.min(SCALE_MAX_MAX, Math.max(SCALE_MAX_MIN, Math.round(+v) || SCALE_MAX_MIN));
 export const scaleMaxOf = (q) => q?.scaleMax || DEFAULT_SCALE_MAX;
 
+// [PW-2021] 받은 답 읽기 — 체크·선택 답은 서버가 고른 선택지 이름을 `checkedLabels`(배열)로 싣는다.
+//   체크가 아닌 답은 null 이다. 근거 칸·내 리포트·결과 요약·캘리브레이션이 같은 규칙으로 읽는다.
+export const isCheckedAnswer = (a) => Array.isArray(a?.checkedLabels);
+// 점수 꼬리 «3/5» — 체크 답은 점수로 적지 않는다(옛 체크는 1/0 으로 저장돼 «1/5» 로 보이게 된다).
+export const answerScoreText = (a) =>
+  a?.score != null && !isCheckedAnswer(a) ? `${a.score}/${scaleMaxOf(a)}` : null;
+// 체크 답 본문 — 고른 이름을 쉼표로 잇고, 하나도 안 골랐으면 `noneLabel`. 체크가 아니면 null.
+export const checkedAnswerText = (a, noneLabel) =>
+  isCheckedAnswer(a) ? (a.checkedLabels.length ? a.checkedLabels.join(', ') : noneLabel) : null;
+// 한 줄로 모은 답 — «점수 3/5 · 고른 이름 · 서술». 그릴 것이 없으면 빈 문자열.
+export const answerLineText = (a, { scoreLabel, noneLabel }) => {
+  const score = answerScoreText(a);
+  return [score && `${scoreLabel} ${score}`, checkedAnswerText(a, noneLabel), a?.textAnswer]
+    .filter(Boolean)
+    .join(' · ');
+};
+
 // [③] 체크박스 = 제목 + 선택지 목록(구글 폼 구조).
 export const DEFAULT_CHECK_OPTIONS = [
   { id: 'o1', label: '' },

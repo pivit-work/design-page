@@ -9,7 +9,7 @@ import Radio from '../shared/Radio.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
 import { FieldInfo, FieldVisibility } from './evalFieldMeta.jsx';
 import EvalNoteBlock, { EvalMarkdownLite } from './EvalNoteBlock.jsx';
-import { isNoteItem, categoryKind, storedCategoryName } from './evalTemplateItemModel.js';
+import { isNoteItem, categoryKind, storedCategoryName, answerScoreText, checkedAnswerText } from './evalTemplateItemModel.js';
 import { AlertIcon, LockIcon } from './evalIcons.jsx';
 import { fieldsShape, reseedKeepingEdits } from './reseedAnswers.js';
 import EvalLeaderEvidenceSignals from './EvalLeaderEvidenceSignals.jsx';
@@ -1185,8 +1185,12 @@ export default function EvalCycleLeaderCanvas({
               <div className="evl-evi-item" key={a.id} data-testid="evl-self-item">
                 <span className="evc-field-label">
                   {evidenceLabel(a, L)}
-                  {a.score != null ? ` · ${a.score}/${scaleMaxOf(a)}` : ''}
+                  {answerScoreText(a) ? ` · ${answerScoreText(a)}` : ''}
                 </span>
+                {/* [PW-2021] 체크·선택 답은 고른 이름을 쉼표로 — 앞 차수 리뷰(PW-1967)와 같은 줄 */}
+                {checkedAnswerText(a, L.priorNoneChecked) ? (
+                  <p className="evl-evi-text" data-testid="evl-self-checked">{checkedAnswerText(a, L.priorNoneChecked)}</p>
+                ) : null}
                 {a.textAnswer ? <p className="evl-evi-text">{a.textAnswer}</p> : null}
                 {a.rationale ? (
                   <p className="evl-evi-text" data-testid="evl-self-rationale">
@@ -1214,8 +1218,14 @@ export default function EvalCycleLeaderCanvas({
               ) : (
                 peerAnswers.map((a) => (
                   <div className="evl-evi-item" key={a.id} data-testid="evl-peer-item">
-                    <span className="evc-field-label">{evidenceLabel(a, L)}</span>
-                    <p className="evl-evi-text">{a.textAnswer}</p>
+                    <span className="evc-field-label">
+                      {evidenceLabel(a, L)}
+                      {answerScoreText(a) ? ` · ${answerScoreText(a)}` : ''}
+                    </span>
+                    {checkedAnswerText(a, L.priorNoneChecked) ? (
+                      <p className="evl-evi-text" data-testid="evl-peer-checked">{checkedAnswerText(a, L.priorNoneChecked)}</p>
+                    ) : null}
+                    {a.textAnswer ? <p className="evl-evi-text">{a.textAnswer}</p> : null}
                   </div>
                 ))
               )}

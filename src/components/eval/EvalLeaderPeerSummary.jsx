@@ -2,6 +2,7 @@ import { useState } from 'react';
 import ModalShell from '../shared/ModalShell.jsx';
 import Skeleton from '../shared/Skeleton.jsx';
 import Button from '../shared/Button.jsx';
+import { answerScoreText, checkedAnswerText } from './evalTemplateItemModel.js';
 
 /**
  * EvalLeaderPeerSummary — 하향 리뷰 근거 칸의 «동료 피드백 요약» (PW-1613 · 리더 정책 §5.1.1).
@@ -176,8 +177,12 @@ export default function EvalLeaderPeerSummary({ peer, onGenerate, labelOf, L }) 
             <div className="evl-evi-item" key={a.id} data-testid="evl-peer-original-answer">
               <span className="evc-field-label">
                 {labelOf(a)}
-                {a.score != null ? ` · ${a.score}` : ''}
+                {answerScoreText(a) ? ` · ${answerScoreText(a)}` : ''}
               </span>
+              {/* [PW-2021] 체크·선택 답은 고른 이름 — 점수는 만점과 함께 */}
+              {checkedAnswerText(a, L.priorNoneChecked) ? (
+                <p className="evl-evi-text" data-testid="evl-peer-original-checked">{checkedAnswerText(a, L.priorNoneChecked)}</p>
+              ) : null}
               {a.textAnswer ? <p className="evl-evi-text">{a.textAnswer}</p> : null}
             </div>
           ))}

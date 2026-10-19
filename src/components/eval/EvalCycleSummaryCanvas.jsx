@@ -15,7 +15,7 @@ import Avatar from '../shared/Avatar.jsx';
 import LoadingState from '../shared/LoadingState.jsx';
 import DateInput from '../shared/DateInput.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
-import { scaleMaxOf } from './evalTemplateItemModel.js';
+import { scaleMaxOf, answerScoreText, checkedAnswerText, answerLineText } from './evalTemplateItemModel.js';
 import { leaderGradeMarks } from './evalLeaderLive.js';
 import { pickParticle } from '../shared/koreanParticle.js';
 import Select from '../shared/Select.jsx';
@@ -708,6 +708,8 @@ const DEFAULT_LABELS = {
   reCalibOriginal: '원안 확정',
   reLoading: '불러오는 중…',
   reScore: '점수',
+  // [PW-2021] 체크 문항에서 하나도 고르지 않은 답
+  reNoneChecked: '고른 항목이 없습니다.',
   // report control
   reportNotGenerated: '리포트 미생성',
   reportGenerated: '검수 대기',
@@ -846,10 +848,13 @@ function createDelayedCall(delay) {
   };
 }
 
-/** 답변 글을 이어 붙여 한 줄 요약으로 — 팝오버가 상자를 넘지 않게 자른다. */
-function answerSummary(answers, max = 140) {
+/**
+ * 답변 글을 이어 붙여 한 줄 요약으로 — 팝오버가 상자를 넘지 않게 자른다.
+ * [PW-2021] 척도 점수(만점과 함께)·체크 답의 고른 이름도 글과 같이 싣는다 — 서술만 모으면 빈 칸으로 보였다.
+ */
+function answerSummary(answers, max = 140, L = DEFAULT_LABELS) {
   const text = (answers ?? [])
-    .map((a) => a.textAnswer)
+    .map((a) => answerLineText(a, { scoreLabel: L.reScore, noneLabel: L.reNoneChecked }))
     .filter(Boolean)
     .join(' · ');
   return text.length > max ? `${text.slice(0, max)}…` : text;
@@ -871,14 +876,14 @@ function CalibRowPreview({ row, detail, failed, L }) {
       ) : (
         <>
           <div className="evs-cw-preview-k">{L.cwHoverSelf}</div>
-          <div className="evs-cw-preview-body">{answerSummary(detail.self?.answers) || L.cwDetailEmpty}</div>
+          <div className="evs-cw-preview-body">{answerSummary(detail.self?.answers, 140, L) || L.cwDetailEmpty}</div>
           <div className="evs-cw-preview-k">{L.cwHoverManager}</div>
           {leaderRoundsOf(detail.manager) ? (
             <div>
               <LeaderRoundsPreview rounds={leaderRoundsOf(detail.manager)} L={L} max={140} />
             </div>
           ) : (
-            <div className="evs-cw-preview-body">{answerSummary(detail.manager?.answers) || L.cwDetailEmpty}</div>
+            <div className="evs-cw-preview-body">{answerSummary(detail.manager?.answers, 140, L) || L.cwDetailEmpty}</div>
           )}
         </>
       )}
@@ -1080,9 +1085,14 @@ function leaderRoundsOf(manager) {
   return rounds?.length > 1 ? rounds : null;
 }
 
-/** 답변 글 — 「·」로 잇지 않고 한 줄에 하나씩(PW-1882). 글이 하나도 없으면 `empty` 한 줄. */
-function AnswerLines({ answers, empty, testId }) {
-  const texts = (answers ?? []).map((a) => a.textAnswer).filter(Boolean);
+/**
+ * 답변 글 — 「·」로 잇지 않고 한 줄에 하나씩(PW-1882). 글이 하나도 없으면 `empty` 한 줄.
+ * [PW-2021] 한 줄 = 한 답 — 척도 점수(만점과 함께)·체크 답의 고른 이름도 싣는다.
+ */
+function AnswerLines({ answers, empty, testId, L = DEFAULT_LABELS }) {
+  const texts = (answers ?? [])
+    .map((a) => answerLineText(a, { scoreLabel: L.reScore, noneLabel: L.reNoneChecked }))
+    .filter(Boolean);
   if (!texts.length) return <div className="evs-cw-detail-body">{empty}</div>;
   return (
     <ul className="evs-answer-lines" data-testid={testId}>
@@ -1176,7 +1186,7 @@ function LeaderRoundsDetail({ rounds, L, grades }) {
               </div>
             </div>
             <div className="evs-round-comment-body">
-              <AnswerLines answers={r.answers} empty={L.cwDetailEmpty} testId="evs-leader-round-answers" />
+              <AnswerLines answers={r.answers} empty={L.cwDetailEmpty} testId="evs-leader-round-answers" L={L} />
               <LeaderRoundNotes r={r} L={L} />
             </div>
           </div>
@@ -1206,7 +1216,7 @@ function LeaderRoundsPreview({ rounds, L, max = 140 }) {
         return (
           <div key={k} data-testid="evs-leader-round" data-round={k}>
             <div className="evs-cw-preview-k" data-testid="evs-leader-round-head">{head}</div>
-            <div className="evs-cw-preview-body">{answerSummary(r.answers, max) || L.cwDetailEmpty}</div>
+            <div className="evs-cw-preview-body">{answerSummary(r.answers, max, L) || L.cwDetailEmpty}</div>
           </div>
         );
       })}
@@ -3872,7 +3882,8 @@ export default function EvalCycleSummaryCanvas({
                             {a.aiUnconfirmed && (
                               <StatusBadge tone="warning" className="evs-re-unconfirmed" data-testid="evs-re-unconfirmed">{L.reUnconfirmed}</StatusBadge>
                             )}
-                            {a.score != null && <span className="evs-re-score">{L.reScore} {a.score}</span>}
+                            {answerScoreText(a) && <span className="evs-re-score">{L.reScore} {answerScoreText(a)}</span>}
+                            {checkedAnswerText(a, L.reNoneChecked) && <span className="evs-re-atext" data-testid="evs-re-checked">{checkedAnswerText(a, L.reNoneChecked)}</span>}
                             {a.textAnswer && <span className="evs-re-atext">{a.textAnswer}</span>}
                           </div>
                         ))}
@@ -3890,7 +3901,8 @@ export default function EvalCycleSummaryCanvas({
                       <div className="evs-re-answers">
                         {memberDetail.peer.answers.map((a) => (
                           <div className="evs-re-answer" key={a.id}>
-                            {a.score != null && <span className="evs-re-score">{L.reScore} {a.score}</span>}
+                            {answerScoreText(a) && <span className="evs-re-score">{L.reScore} {answerScoreText(a)}</span>}
+                            {checkedAnswerText(a, L.reNoneChecked) && <span className="evs-re-atext" data-testid="evs-re-checked">{checkedAnswerText(a, L.reNoneChecked)}</span>}
                             {a.textAnswer && <span className="evs-re-atext">{a.textAnswer}</span>}
                           </div>
                         ))}
@@ -3914,7 +3926,8 @@ export default function EvalCycleSummaryCanvas({
                         <div className="evs-re-answers">
                           {memberDetail.manager.answers.map((a) => (
                             <div className="evs-re-answer" key={a.id}>
-                              {a.score != null && <span className="evs-re-score">{L.reScore} {a.score}</span>}
+                              {answerScoreText(a) && <span className="evs-re-score">{L.reScore} {answerScoreText(a)}</span>}
+                              {checkedAnswerText(a, L.reNoneChecked) && <span className="evs-re-atext" data-testid="evs-re-checked">{checkedAnswerText(a, L.reNoneChecked)}</span>}
                               {a.textAnswer && <span className="evs-re-atext">{a.textAnswer}</span>}
                             </div>
                           ))}
@@ -4209,13 +4222,13 @@ export default function EvalCycleSummaryCanvas({
                             <div>
                               <div className="evs-cw-review-k">{L.cwDetailSelf}</div>
                               <div className="evs-cw-review-v">
-                                {answerSummary(appealMemberDetail.self?.answers, 400) || L.cwDetailEmpty}
+                                {answerSummary(appealMemberDetail.self?.answers, 400, L) || L.cwDetailEmpty}
                               </div>
                             </div>
                             <div>
                               <div className="evs-cw-review-k">{L.cwDetailManager}</div>
                               <div className="evs-cw-review-v">
-                                {answerSummary(appealMemberDetail.manager?.answers, 400) || L.cwDetailEmpty}
+                                {answerSummary(appealMemberDetail.manager?.answers, 400, L) || L.cwDetailEmpty}
                               </div>
                             </div>
                           </div>
@@ -5354,7 +5367,7 @@ export default function EvalCycleSummaryCanvas({
                                               {L.cwDetailSelf}
                                             </DetailSectionHead>
                                             {secOpen('self') && (
-                                              <AnswerLines answers={detail.self?.answers} empty={L.cwDetailEmpty} testId="evs-cw-self-answers" />
+                                              <AnswerLines answers={detail.self?.answers} empty={L.cwDetailEmpty} testId="evs-cw-self-answers" L={L} />
                                             )}
                                           </div>
                                           <div className="evs-cw-detail-block">
@@ -5364,7 +5377,7 @@ export default function EvalCycleSummaryCanvas({
                                             {secOpen('manager') && leaderRoundsOf(detail.manager) ? (
                                               <LeaderRoundsDetail rounds={leaderRoundsOf(detail.manager)} L={L} grades={roundGrades} />
                                             ) : secOpen('manager') && (
-                                              <AnswerLines answers={detail.manager?.answers} empty={L.cwDetailEmpty} testId="evs-cw-manager-answers" />
+                                              <AnswerLines answers={detail.manager?.answers} empty={L.cwDetailEmpty} testId="evs-cw-manager-answers" L={L} />
                                             )}
                                           </div>
                                           <div className="evs-cw-detail-block">
@@ -5372,7 +5385,7 @@ export default function EvalCycleSummaryCanvas({
                                               {L.cwDetailPeer}
                                             </DetailSectionHead>
                                             {secOpen('peer') && (
-                                              <AnswerLines answers={detail.peer?.answers} empty={L.cwDetailEmpty} testId="evs-cw-peer-answers" />
+                                              <AnswerLines answers={detail.peer?.answers} empty={L.cwDetailEmpty} testId="evs-cw-peer-answers" L={L} />
                                             )}
                                           </div>
                                           <div className="evs-cw-detail-block">
@@ -5380,7 +5393,7 @@ export default function EvalCycleSummaryCanvas({
                                               {L.cwDetailUpward}
                                             </DetailSectionHead>
                                             {secOpen('upward') && (
-                                              <AnswerLines answers={detail.upward?.answers} empty={L.cwDetailUpwardEmpty} testId="evs-cw-upward-answers" />
+                                              <AnswerLines answers={detail.upward?.answers} empty={L.cwDetailUpwardEmpty} testId="evs-cw-upward-answers" L={L} />
                                             )}
                                           </div>
                                           {(() => {

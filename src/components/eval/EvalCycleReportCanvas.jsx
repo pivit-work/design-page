@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import { ArrowRightIcon, InfoIcon } from './evalIcons.jsx';
-import { scaleMaxOf, categoryKind, storedCategoryName } from './evalTemplateItemModel.js';
+import { scaleMaxOf, categoryKind, storedCategoryName, answerScoreText, checkedAnswerText } from './evalTemplateItemModel.js';
 
 /**
  * EvalCycleReportCanvas — 내 평가 리포트 (멤버, 읽기 전용, 원페이지).
@@ -37,6 +37,8 @@ const DEFAULT_LABELS = {
   okrProgress: '달성률',
   okrSelfAchieve: '자기신고',
   okrSelfAchieveMissing: '미입력',
+  // [PW-2021] 체크 문항에서 하나도 고르지 않은 답
+  noneChecked: '고른 항목이 없습니다.',
   gapTitle: '자기평가 갭',
   gapSub: '내 셀프 평가와 최종 평가 점수를 비교합니다.',
   gapSelf: '나(셀프)',
@@ -146,9 +148,13 @@ function AnswerList({ answers, L }) {
         <div className="evr-answer" key={a.id}>
           <span className="evc-field-label">
             {catLabel(a, L)}
-            {a.score != null ? ` · ${a.score}/${scaleMaxOf(a)}` : ''}
+            {answerScoreText(a) ? ` · ${answerScoreText(a)}` : ''}
           </span>
-          <p className="evr-answer-text">{a.textAnswer}</p>
+          {/* [PW-2021] 체크·선택 답은 고른 이름을 쉼표로 — 본문이 빈 줄로 보이던 자리 */}
+          {checkedAnswerText(a, L.noneChecked) ? (
+            <p className="evr-answer-text" data-testid="evr-answer-checked">{checkedAnswerText(a, L.noneChecked)}</p>
+          ) : null}
+          {a.textAnswer ? <p className="evr-answer-text">{a.textAnswer}</p> : null}
         </div>
       ))}
     </div>
