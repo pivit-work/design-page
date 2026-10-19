@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import Icon from '../shared/Icon.jsx';
+import scrollToFocus from '../shared/scrollToFocus.js';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Skeleton, { SkeletonList } from '../shared/Skeleton.jsx';
@@ -45,7 +46,7 @@ function ActionRow({ item, labels, onToggle, renderDeadlineEditor, renderKrPicke
   // 소비처가 이 줄을 가리키면(알림으로 들어온 경우) 그 줄까지 화면을 내린다 (pivit-work PW-2016).
   const rowRef = useRef(null);
   useEffect(() => {
-    if (focused) rowRef.current?.scrollIntoView?.({ block: 'center' });
+    if (focused) return scrollToFocus(rowRef.current);
   }, [focused]);
   return (
     <div

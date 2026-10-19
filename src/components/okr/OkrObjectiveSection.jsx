@@ -5,6 +5,7 @@ import Tooltip from '../shared/Tooltip.jsx';
 import OkrProgressBar from './OkrProgressBar.jsx';
 import OkrUnalignedBadge from './OkrUnalignedBadge.jsx';
 import rowKey from './rowKey.js';
+import scrollToFocus from '../shared/scrollToFocus.js';
 
 /**
  * OkrObjectiveSection — 개인 OKR Objective 행 + 펼침 콘텐츠.
@@ -86,7 +87,8 @@ export default function OkrObjectiveSection({
 }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   // 소비처가 가리킨 KR(또는 목표)이 이 목표 안에 있으면 펼치고 그 줄까지 내린다 (PW-2016).
-  // 내리기는 가리킨 값마다 한 번만 — 사용자가 접었다 다시 펼칠 때마다 화면이 튀지 않게.
+  // 내리기는 사용자가 이 목표를 직접 여닫기 전까지만 — 접었다 다시 펼칠 때 화면이 튀지 않게.
+  // (이펙트 안에서 «했다» 를 적으면 React 개발 모드가 이펙트를 걷었다 다시 돌릴 때 건너뛴다.)
   const focusedKrIndex = focusKrId ? (objective.krs ?? []).findIndex((kr) => kr.krId === focusKrId) : -1;
   const focused = focusedKrIndex >= 0 || Boolean(focusObjectiveId && objective.id === focusObjectiveId);
   const focusKey = focused ? `${focusKrId ?? ''}|${focusObjectiveId ?? ''}` : null;
@@ -101,9 +103,7 @@ export default function OkrObjectiveSection({
   }
   useEffect(() => {
     if (!focusKey || !expanded || scrolledFor.current === focusKey) return;
-    scrolledFor.current = focusKey;
-    const target = focusedKrRef.current ?? rootRef.current;
-    target?.scrollIntoView?.({ block: 'center' });
+    return scrollToFocus(focusedKrRef.current ?? rootRef.current);
   }, [focusKey, expanded]);
   const [openFeedback, setOpenFeedback] = useState({});
   // 배지를 눌러 상태를 넘길 수 있는지. 콜백이 없으면(=배선 안 한 소비처) 권한과
@@ -117,7 +117,13 @@ export default function OkrObjectiveSection({
 
   return (
     <div className="okr-p-objective" ref={rootRef} data-objective-id={objective.id}>
-      <div className="okr-p-row okr-p-obj-row" onClick={() => setExpanded((v) => !v)}>
+      <div
+        className="okr-p-row okr-p-obj-row"
+        onClick={() => {
+          scrolledFor.current = focusKey;
+          setExpanded((v) => !v);
+        }}
+      >
         <div className="okr-p-col-label">
           <span className="okr-p-obj-name">{objective.label}</span>
           <span className={`okr-p-caret${expanded ? ' is-open' : ''}`}>
