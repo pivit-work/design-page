@@ -3449,6 +3449,7 @@ function EmployeesListView({
                 salaryTitle: exportLabels?.compTitle || '보상 열이 포함된 명부를 내보냅니다',
                 salaryBody: exportLabels?.compBody || '대상 {count}명 · {columns}열 · 급여·보상·복리후생 열 포함',
                 salaryExclude: exportLabels?.compExclude || '보상 열 빼고 내보내기',
+                salaryInclude: exportLabels?.compInclude || '포함해 내보내기',
                 salaryNote: exportLabels?.uploadNote || '학력 목록·경력·부양가족·증빙서류·보상 이력은 파일에 없어요 — 앱에서만 관리해요',
               }
               : exportLabels}
