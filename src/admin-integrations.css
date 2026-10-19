@@ -77,6 +77,8 @@
 /* ── 안내/경고/오류 박스 ────────────────────────────────────────────── */
 .intg-note { padding: 8px 12px; border-radius: var(--radius-sm, 8px); font-size: 12px; line-height: 1.5; }
 .intg-note.is-error { background: var(--utility-error-50); border: 1px solid var(--colors-error-200); color: var(--colors-error-600); }
+/* 오류 줄에 [다시 시도] 가 붙을 때 — 안내 줄(is-info)과 같은 배치 (PW-2054 받지 못하는 구성원 창) */
+.intg-note.is-error.has-action { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .intg-note.is-info {
   background: var(--bg-secondary);
   border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);

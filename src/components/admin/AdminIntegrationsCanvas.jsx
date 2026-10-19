@@ -122,6 +122,27 @@ const BASE_LABELS = {
     never: '—',
     empty: '연결된 앱이 없습니다. 앱을 연결하면 수집 현황이 표시됩니다.',
   },
+  /* 「연동 설정」 Slack 카드 · Admin 에게만 — 알림 발송 상태와 Slack 으로 받지 못하는 구성원
+     (pivit-work PW-2054 · screen-integrations.policy §4-B ⑦ ⑧) */
+  slackDelivery: {
+    lastSuccess: '마지막 알림 발송 성공',
+    lastSuccessNone: '아직 없음',
+    failed7d: '최근 7일 발송 실패',
+    failedCount: '{{count}}건',
+    unmatched: 'Slack 으로 받지 못하는 구성원 {{count}}명',
+    unmatchedView: '보기',
+    modalTitle: 'Slack 으로 받지 못하는 구성원',
+    modalDescription: 'Slack 프로필 메일을 회사 메일과 같게 맞추면 다음 발송부터 받습니다. 그때까지 필수 알림은 메일로 갑니다.',
+    colName: '이름',
+    colOrg: '소속',
+    colEmail: 'Pivit 메일',
+    colReason: '사유',
+    reasonNoEmailMatch: 'Slack 에서 같은 메일을 찾지 못함',
+    loadFailed: '목록을 불러오지 못했습니다',
+    retry: '다시 시도',
+    empty: 'Slack 으로 받지 못하는 구성원이 없습니다.',
+    close: '닫기',
+  },
   transfer: {
     ownerLabel: '소유자',
     // 토큰 소유자가 Slack 워크스페이스 관리자일 때 이름 옆 배지 (screen-slack-transfer.policy §2.1)
@@ -240,7 +261,7 @@ function OwnerAvatar({ name, avatar, size = 40 }) {
 
 /* ── 앱 카드 ────────────────────────────────────────────────────────── */
 
-function AppCard({ card, labels, baseUrl, onConnect, onDisconnect, onReconnect, onCancelConnecting, onTriggerSync, onOpenSettings }) {
+function AppCard({ card, labels, baseUrl, onConnect, onDisconnect, onReconnect, onCancelConnecting, onTriggerSync, onOpenSettings, onOpenSlackUnmatched }) {
   const { app, brandName, logo, description, usage, status } = card;
   const usageText = (usage ?? []).join(' · ');
 
@@ -340,6 +361,39 @@ function AppCard({ card, labels, baseUrl, onConnect, onDisconnect, onReconnect, 
             {card.notice.actionLabel}
           </button>
         </div>
+      )}
+
+      {/* Admin 에게만 — 호스트가 값을 받았을 때만 `slackDelivery` 를 싣는다(못 받으면 아래 둘 다 숨김).
+          알림은 회사의 앱 설치로 나가 수집 상태와 따로라, 카드 상태(연결 중·오류)와 관계없이 보인다
+          (pivit-work PW-2054 · 협업툴 연동 §4-B ⑦ ⑧). 줄 모양은 위 «마지막 동기화» 줄과 «다시 연결» 안내 줄 그대로다. */}
+      {card.slackDelivery && (
+        <>
+          <div className="intg-meta" data-testid="intg-slack-last-success">
+            {labels.slackDelivery.lastSuccess}{' '}
+            <span className="intg-meta-accent">
+              {card.slackDelivery.lastSuccessLabel ?? labels.slackDelivery.lastSuccessNone}
+            </span>
+          </div>
+          <div className="intg-meta" data-testid="intg-slack-failed-7d">
+            {labels.slackDelivery.failed7d}{' '}
+            <span className="intg-meta-accent">
+              {fmt(labels.slackDelivery.failedCount, { count: card.slackDelivery.failedLast7Days })}
+            </span>
+          </div>
+          {card.slackDelivery.unmatchedCount > 0 && (
+            <div className="intg-note is-info" data-testid="intg-slack-unmatched">
+              <span>{fmt(labels.slackDelivery.unmatched, { count: card.slackDelivery.unmatchedCount })}</span>
+              <button
+                type="button"
+                className="intg-btn intg-btn-neutral intg-btn-sm"
+                data-testid="intg-slack-unmatched-view"
+                onClick={() => onOpenSlackUnmatched(app)}
+              >
+                {labels.slackDelivery.unmatchedView}
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       {isError && card.errorMessage && (
@@ -841,6 +895,49 @@ function TokenLogItem({ entry, labels }) {
   );
 }
 
+/* 「Slack 으로 받지 못하는 구성원」 창 (PW-2054 · policy §4-B ⑧) — 읽기만 하는 창이라 푸터 없이
+   공용 창 틀(ModalShell)에 명단 표(RosterTable)를 담는다. 사유는 하나뿐이다(메일로 Slack 멤버를 못 찾음).
+   불러오기 실패는 창 안에 그대로 두고 [다시 시도] — 「없습니다」로 보이지 않게 빈 목록과 따로 그린다. */
+function SlackUnmatchedModal({ modal, labels, onClose, onRetry }) {
+  const L = labels.slackDelivery;
+  return (
+    <ModalShell
+      title={L.modalTitle}
+      description={L.modalDescription}
+      titleId="intg-slack-unmatched-title"
+      closeLabel={L.close}
+      onClose={onClose}
+      footer={null}
+      className="adm-shell is-xwide"
+      testId="intg-slack-unmatched-modal"
+    >
+      {modal.state === 'loading' && <div className="intg-table-empty">{labels.loading}</div>}
+      {modal.state === 'error' && (
+        <div className="intg-note is-error has-action" data-testid="intg-slack-unmatched-error">
+          <span>{L.loadFailed}</span>
+          <button type="button" className="intg-btn intg-btn-neutral intg-btn-sm" onClick={onRetry}>
+            {L.retry}
+          </button>
+        </div>
+      )}
+      {modal.state === 'ready' && (
+        <RosterTable
+          columns={[
+            { key: 'name', header: L.colName },
+            { key: 'orgPath', header: L.colOrg },
+            { key: 'email', header: L.colEmail },
+            { key: 'reason', header: L.colReason },
+          ]}
+          rows={modal.rows ?? []}
+          rowKey={(r) => r.id}
+          renderCell={(row, col) => (col.key === 'reason' ? L.reasonNoEmailMatch : row[col.key] || '—')}
+          empty={L.empty}
+        />
+      )}
+    </ModalShell>
+  );
+}
+
 /* 토큰 만료·재인증 확인 창 — 공용 확인 창(ConfirmModal · PW-836). 창 이름표(testId)는
    종전 막에서 창 카드로 옮겨 붙는다. */
 function ExpireModal({ labels, onClose, onConfirm, error }) {
@@ -1099,6 +1196,14 @@ export default function AdminIntegrationsCanvas({
   onOpenRequestModal = () => {},
   onCloseRequestModal = () => {},
   onSubmitRequest = () => {},
+  /**
+   * 「Slack 으로 받지 못하는 구성원」 창 (PW-2054 · policy §4-B ⑧) · 닫혀 있으면 null.
+   * `{ state: 'loading' | 'ready' | 'error', rows: [{ id, name, orgPath, email }] }` — 목록은 [보기] 를 누를 때 호스트가 받는다.
+   */
+  slackUnmatchedModal = null,
+  onOpenSlackUnmatched = () => {},
+  onCloseSlackUnmatched = () => {},
+  onRetrySlackUnmatched = () => {},
 }) {
   const labels = merge(DEFAULT_LABELS, providedLabels);
 
@@ -1198,6 +1303,7 @@ export default function AdminIntegrationsCanvas({
                 onCancelConnecting={onCancelConnecting}
                 onTriggerSync={onTriggerSync}
                 onOpenSettings={onOpenSettings}
+                onOpenSlackUnmatched={onOpenSlackUnmatched}
               />
             ))}
           </div>
@@ -1258,6 +1364,15 @@ export default function AdminIntegrationsCanvas({
           onRequestAction={onRequestAction}
           onRetryCatalog={onRetryCatalog}
           onRetryRequests={onRetryRequests}
+        />
+      )}
+
+      {slackUnmatchedModal && (
+        <SlackUnmatchedModal
+          modal={slackUnmatchedModal}
+          labels={labels}
+          onClose={onCloseSlackUnmatched}
+          onRetry={onRetrySlackUnmatched}
         />
       )}
 
