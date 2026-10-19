@@ -2201,6 +2201,8 @@ function EmployeesListView({
   instantSaveNotice,
   // 명부 내보내기 — 시트와 **같은 부품**을 쓴다(PW-411). 미주입이면 버튼이 없다.
   onExportRoster, exporting = false, exportLabels, fullExport = false,
+  // 「업로드 양식 그대로」(PW-2057) — `{ columnCount, compAllowed }`. 안 주면 항목이 없다.
+  uploadForm = null,
   /* 대표(CEO) 지정·해제 (§3.6-A · PW-576 로 시트에서 옮겨 왔다). 미주입이면 행 메뉴에
      그 항목이 아예 없다 — 권한 없는 사람에게 눌리는 자리를 만들지 않는다. */
   onOpenCeo,
@@ -2870,7 +2872,9 @@ function EmployeesListView({
     if (!onExportRoster) return;
     /* ④ 전체 필드(PW-1913) — 대상은 ① 과 같은 사람(검색·필터), 열은 서버가 정한다(인사 항목 전부).
        연봉은 확인 창에서 고른 대로만 담는다 — 화면 연봉 열이 켜져 있는지와 무관하다. */
-    if (scope === 'full') {
+    /* ⑤ 업로드 양식 그대로(PW-2057)도 같다 — 대상은 ① 과 같은 사람, 열은 서버가 정한다(업로드 양식).
+       보상 열은 확인 창에서 고른 대로만 담는다. */
+    if (scope === 'full' || scope === 'upload_form') {
       onExportRoster({
         scope, columns: [], ids: [], search: q.trim(), filters: { ...exportFilters },
         rowCount: ordered.length, includeSalary,
@@ -2902,6 +2906,13 @@ function EmployeesListView({
   }
 
   function pickExportScope(scope) {
+    // 업로드 양식(⑤)은 보상 열을 받을 수 있을 때만, 그때는 **늘** 확인 창을 거친다(§2-5). 받을 수 없으면
+    // 보상 열이 처음부터 없어 묻지 않는다.
+    if (scope === 'upload_form') {
+      if (uploadForm?.compAllowed) setSalaryGateScope(scope);
+      else runExport(scope, false);
+      return;
+    }
     // 전체 필드(④)는 열 상태와 무관하게 **늘** 확인 창을 거친다(§2-4 · PW-1913).
     // 전체(③)는 연봉을 포함하지 않으므로 확인 모달을 띄우지 않는다(E13).
     if (scope === 'full' || (scope !== 'all' && salaryVisible)) {
@@ -2924,6 +2935,7 @@ function EmployeesListView({
     salaryVisible,
     selectedRows,
     includeFull: fullExport,
+    uploadForm,
   });
 
   /* 소속 팝업의 초기 선택 — 칩이 든 조직 id 가 정본, 없으면 `orgUnitIds` 폴백.
@@ -3421,7 +3433,7 @@ function EmployeesListView({
           // ② 를 고른 채 연봉 확인 창을 열면 «고른 사람 수»가 맞다 — 필터 결과 수를
           // 보여주면 창이 말한 인원과 실제 파일의 행 수가 갈린다.
           count={salaryGateScope === 'selected' ? selectedCount : ordered.length}
-          columnCount={exportColumns.length}
+          columnCount={salaryGateScope === 'upload_form' ? (uploadForm?.columnCount ?? 0) : exportColumns.length}
           // 전체 필드는 화면 열 수가 아니라 인사 항목 전부라 제목·본문만 그 문구로 바꾼다.
           labels={salaryGateScope === 'full'
             ? {
@@ -3429,7 +3441,17 @@ function EmployeesListView({
               salaryTitle: exportLabels?.fullTitle || '전체 필드 명부를 내보냅니다',
               salaryBody: exportLabels?.fullBody || '대상 {count}명 · 인사 항목 전부 · 은행 계좌번호는 담지 않습니다',
             }
-            : exportLabels}
+            /* 업로드 양식(⑤ · §2-5) — 보상 «열 묶음»을 묻는 창이라 제목·본문·버튼을 그 말로 바꾸고, 파일에 없는
+               기록을 한 줄 알린다. */
+            : salaryGateScope === 'upload_form'
+              ? {
+                ...exportLabels,
+                salaryTitle: exportLabels?.compTitle || '보상 열이 포함된 명부를 내보냅니다',
+                salaryBody: exportLabels?.compBody || '대상 {count}명 · {columns}열 · 급여·보상·복리후생 열 포함',
+                salaryExclude: exportLabels?.compExclude || '보상 열 빼고 내보내기',
+                salaryNote: exportLabels?.uploadNote || '학력 목록·경력·부양가족·증빙서류·보상 이력은 파일에 없어요 — 앱에서만 관리해요',
+              }
+              : exportLabels}
           onClose={() => setSalaryGateScope(null)}
           onExclude={() => {
             const scope = salaryGateScope;
@@ -5211,6 +5233,8 @@ export default function AdminEmployeesCanvas({
   exportLabels,
   // 「전체 필드」 범위(PW-1913) — 어드민 화면만 켠다. 안 주면 항목이 없다.
   fullExport = false,
+  // 「업로드 양식 그대로」 범위(PW-2057) — `{ columnCount, compAllowed }`. 안 주면 항목이 없다.
+  uploadForm = null,
 }) {
   /* `recordLabels` 는 기록 창 3종의 문구다 — 폐기된 시트가 `sheetLabels` 로 받던
      묶음이라 소비자가 그것을 그대로 넘길 수 있게 별도 prop 으로 받고, 여기서 한 번만
@@ -5412,6 +5436,7 @@ export default function AdminEmployeesCanvas({
             exporting={exporting}
             exportLabels={exportLabels}
             fullExport={fullExport}
+            uploadForm={uploadForm}
             /* 보던 상태 되살리기 (PW-157) — 시트가 들고 있던 계약이 목록으로 왔다. */
             initialSearch={initialSearch}
             initialFilters={initialFilters ?? EMPTY_OBJECT}

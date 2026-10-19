@@ -38,6 +38,11 @@ export function countTerminated(list) {
  * @param selectedRows  ② 대상 행. `null`·빈 배열이면 항목을 만들지 않는다
  * @param includeFull   「전체 필드」(④ · PW-1913) 항목을 넣는가 — 소비자(어드민 화면)가 켠다.
  *                      대상 행은 ① 과 같다(viewRows).
+ * @param uploadForm    「업로드 양식 그대로」(⑤ · PW-2057) — `{ columnCount, compAllowed }` 를 주면 항목이
+ *                      생긴다. 대상 행은 ① 과 같다(viewRows). 보상 열은 `compAllowed` 일 때만 실린다.
+ *
+ * 항목마다 `purpose`(용도 한 줄 · 정책 §2-2 「용도 줄」)를 싣는다 — 파일 기준이 여럿이라 어느 것을 받아야
+ * 하는지가 메뉴에서 보여야 한다. 라벨에 문구가 없으면 줄을 그리지 않는다.
  */
 export function buildExportItems({
   labels,
@@ -48,6 +53,7 @@ export function buildExportItems({
   salaryVisible,
   selectedRows = null,
   includeFull = false,
+  uploadForm = null,
 }) {
   const L = labels || {};
   const fill = fillExportCaption;
@@ -60,6 +66,7 @@ export function buildExportItems({
     {
       id: 'view',
       label: L.scopeView || '현재 화면 그대로',
+      purpose: L.purposeView || null,
       caption: fill(L.scopeViewCaption || '{count}명 · {columns}열', {
         count: viewRows.length,
         columns: columnCount,
@@ -71,6 +78,7 @@ export function buildExportItems({
       ? [{
         id: 'selected',
         label: fill(L.scopeSelected || '선택한 {count}명', { count: selectedRows.length }),
+        purpose: L.purposeSelected || null,
         caption: fill(L.scopeSelectedCaption || '체크한 행만 · {columns}열', {
           columns: columnCount,
         }),
@@ -81,6 +89,7 @@ export function buildExportItems({
     {
       id: 'all',
       label: L.scopeAll || '전체 구성원 (표준 13열)',
+      purpose: L.purposeAll || null,
       caption: fill(L.scopeAllCaption || '{count}명 · 필터·컬럼 설정 무시', {
         count: allRows.length,
       }),
@@ -95,11 +104,29 @@ export function buildExportItems({
       ? [{
         id: 'full',
         label: L.scopeFull || '전체 필드',
+        purpose: L.purposeFull || null,
         caption: fill(L.scopeFullCaption || '{count}명 · 인사 항목 전부 · 계좌번호 제외', {
           count: viewRows.length,
         }),
         warn: warnOf(viewRows),
         sensitive: L.salaryOnConfirm || '연봉은 확인 후 선택',
+      }]
+      : []),
+    /* ⑤ 업로드 양식 그대로(§2-5 · PW-2057) — 고쳐서 «CSV 업로드»로 다시 올리는 파일. 대상은 ① 과 같고 열은
+       업로드 양식이다. 보상 열을 받을 수 있으면 누를 때마다 확인 창에서 고르므로 🔒 예고를 붙이고, 받을 수
+       없으면 캡션에 «보상 열 없음»을 적는다. */
+    ...(uploadForm
+      ? [{
+        id: 'upload_form',
+        label: fill(L.scopeUpload || '업로드 양식 그대로 ({columns}열)', {
+          columns: uploadForm.columnCount,
+        }),
+        purpose: L.purposeUpload || null,
+        caption: fill(L.scopeUploadCaption || '{count}명 · 업로드 양식 열', {
+          count: viewRows.length,
+        }) + (uploadForm.compAllowed ? '' : ` · ${L.compExcluded || '보상 열 없음'}`),
+        warn: warnOf(viewRows),
+        sensitive: uploadForm.compAllowed ? (L.compIncluded || '보상 포함') : null,
       }]
       : []),
   ];

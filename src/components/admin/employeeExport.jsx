@@ -131,6 +131,12 @@ export function ExportMenu({ items, disabled, busy, labels, onPick }) {
               onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
             >
               <div style={{ fontSize: 12.5, fontWeight: 700, color: T.text }}>{it.label}</div>
+              {/* 용도 한 줄(§2-2) — 아래 캡션과 같은 회색 11px. 파일 기준이 여럿이라 어느 것을 받을지 고르게 한다. */}
+              {it.purpose && (
+                <div data-testid={`export-scope-${it.id}-purpose`} style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>
+                  {it.purpose}
+                </div>
+              )}
               <div style={{ fontSize: 11, color: T.muted, marginTop: 2, display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
                 <span>{it.caption}</span>
                 {/* 제출용 명부에 퇴사자가 섞여 나가는 게 가장 흔한 사고다 —
@@ -212,6 +218,10 @@ export function SalaryExportModal({ count, columnCount, labels, onExclude, onInc
         <div style={{ color: T.muted }}>
           {L.salaryAudit || '이 반출은 감사 로그에 기록됩니다 — 실행자·시각·조건·행 수'}
         </div>
+        {/* 파일에 없는 기록 안내(«업로드 양식 그대로» · §2-5 「안내」) — 주는 범위만 줄이 생긴다. */}
+        {L.salaryNote && (
+          <div data-testid="export-salary-note" style={{ color: T.muted }}>{L.salaryNote}</div>
+        )}
       </div>
     </ModalShell>
   );
