@@ -6,6 +6,7 @@ import useDismissLayer from '../shared/useDismissLayer.js';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
 import Radio from '../shared/Radio.jsx';
+import Chip from '../shared/Chip.jsx';
 import { FieldInfo, FieldVisibility } from './evalFieldMeta.jsx';
 import EvalNoteBlock, { EvalMarkdownLite } from './EvalNoteBlock.jsx';
 import { isNoteItem, categoryKind } from './evalTemplateItemModel.js';
@@ -109,8 +110,17 @@ const DEFAULT_LABELS = {
   growthDemoPlaceholder: '지난 기간 대비 성장한 부분을 기록하세요.',
   save: '임시저장',
   submit: '제출하기',
-  progress: '{{filled}}/{{total}} 작성됨',
-  incompleteWarn: '미입력 항목이 있습니다. 빨간 항목을 작성해주세요.',
+  // [PW-2064 · PW-2082] member policy §4.11 ③ 작성 진행 · §4.8b 하단 바
+  progressTitle: '작성 진행',
+  progressCount: '{{filled}}/{{total}}',
+  progressChipTitle: '{{section}} · {{label}}',
+  remaining: '{{count}}개 항목이 남았습니다',
+  missingCount: '작성하지 않은 항목이 {{count}}개 있습니다',
+  allDone: '모든 항목 작성 완료 — 제출 가능합니다',
+  showMissing: '미작성 항목 보기',
+  // [PW-2064] §4.11 ② 2단 근거 패널 제목
+  evidenceSelfTitle: '근거 · 내 활동',
+  evidencePeerTitle: '근거 · 리뷰 대상',
   // TC-135 자동저장 상태 표시
   autoSaving: '자동 저장 중…',
   autoSaved: '자동 저장됨 · {{time}}',
@@ -153,8 +163,6 @@ const DEFAULT_LABELS = {
   selfRefTitle: '피평가자의 셀프 리뷰 참조 (작성 참고용)',
   selfRefNote: '이 내용은 작성 참고용으로만 제공됩니다.',
   selfRefNotSubmitted: '피평가자가 아직 셀프 리뷰를 제출하지 않았습니다.',
-  selfRefCollapse: '접기',
-  selfRefExpand: '펼치기',
   selfRefEmpty: '(작성하지 않음)',
   historyEmpty: '지난 평가 이력이 아직 없습니다.',
 };
@@ -254,11 +262,11 @@ function isObj(v) {
   return v && typeof v === 'object' && !Array.isArray(v);
 }
 /**
- * [PW-1262 ③] 피평가자 셀프 리뷰 참조 — 읽기 전용, 접을 수 있다(policy §5.5).
+ * [PW-1262 ③] 피평가자 셀프 리뷰 참조 — 읽기 전용(policy §5.5).
  * 인라인에서 답 전문을 보여 주므로 «전체 보기» 창은 두지 않는다.
+ * [PW-2064] 2단 근거 패널에 놓이므로 접기를 없앴다(policy §4.11 ① 「접기 없다」).
  */
 function SelfReferencePanel({ reference, L }) {
-  const [open, setOpen] = useState(true);
   const items = Array.isArray(reference.items) ? reference.items : [];
   return (
     <section className="evm-selfref" data-testid="evm-selfref">
@@ -267,24 +275,12 @@ function SelfReferencePanel({ reference, L }) {
           <NoteIcon size={15} />
           <span>{L.selfRefTitle}</span>
         </div>
-        {reference.submitted && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setOpen((v) => !v)}
-            aria-expanded={open}
-            data-testid="evm-selfref-toggle"
-          >
-            {open ? L.selfRefCollapse : L.selfRefExpand}
-          </Button>
-        )}
       </div>
       {!reference.submitted ? (
         <div className="evm-history-sub" data-testid="evm-selfref-not-submitted">
           {L.selfRefNotSubmitted}
         </div>
       ) : (
-        open && (
           <>
             <div className="evm-selfref-rows">
               {items.map((it) => {
@@ -312,8 +308,58 @@ function SelfReferencePanel({ reference, L }) {
             </div>
             <div className="evm-history-sub evm-selfref-note">{L.selfRefNote}</div>
           </>
-        )
       )}
+    </section>
+  );
+}
+
+/**
+ * [PW-2064] 작성 진행(member policy §4.11 ③) — 입력 영역 맨 위에 붙어 있는 «n/m» 과 항목 칩.
+ * 셈은 하단 바와 같다(PW-2067 — 체크도 센다). 칩을 누르면 그 칸으로 옮기고 포커스를 준다(§4.8b).
+ * 제출을 막은 뒤에는 막은 칸의 칩이 빨강이다 — 비운 체크는 제출을 막지 않아 노랑으로 남는다.
+ */
+function ReviewProgress({ fields, isUnanswered, isIncomplete, tried, onJump, L }) {
+  const total = fields.length;
+  const filled = fields.filter((f) => !isUnanswered(f)).length;
+  const done = filled === total;
+  return (
+    <section className="evm-review-progress" data-testid="evm-review-progress">
+      <div className="evm-review-progress-head">
+        <span className="evm-review-progress-title">{L.progressTitle}</span>
+        <span
+          className={`evm-review-progress-count${done ? ' is-done' : ''}`}
+          data-testid="evm-review-progress-count"
+        >
+          {fill(L.progressCount, { filled, total })}
+        </span>
+        {/* 막대 모양은 리포트 KR 달성 막대(.evr-okr-kr-bar)를 빌려 폭만 늘린다. */}
+        <span className="evr-okr-kr-bar evm-review-progress-bar" aria-hidden>
+          <span
+            className={`evr-okr-kr-fill${done ? ' is-done' : ''}`}
+            style={{ width: `${total ? Math.round((filled / total) * 100) : 100}%` }}
+          />
+        </span>
+      </div>
+      <div className="evm-review-progress-chips">
+        {fields.map((f) => {
+          const open = isUnanswered(f);
+          const state = !open ? 'done' : tried && isIncomplete(f) ? 'invalid' : 'open';
+          return (
+            <Chip
+              key={f.key}
+              tone={state === 'done' ? 'success' : state === 'invalid' ? 'danger' : 'warning'}
+              icon={state === 'done' ? <CheckCircleIcon size={12} /> : null}
+              className="evm-review-progress-chip"
+              title={fill(L.progressChipTitle, { section: f.section, label: f.label })}
+              onClick={() => onJump(f)}
+              data-testid={`evm-progress-chip-${f.key}`}
+              data-state={state}
+            >
+              {f.label}
+            </Chip>
+          );
+        })}
+      </div>
     </section>
   );
 }
@@ -548,6 +594,8 @@ export default function EvalCycleMemberCanvas({
   // TC-063/134: 제출 시 미입력 항목 자동 스크롤·빨강 강조용 훅(early-return 앞에 선언).
   const fieldRefs = useRef({});
   const [triedSubmit, setTriedSubmit] = useState(false);
+  /** [PW-2082] 「미작성 항목 보기」가 마지막으로 옮겨 간 칸 key. */
+  const navCursor = useRef(null);
   /** [PW-1464] 달성률 미입력 KR 확인 창이 떠 있다. */
   const [krAsk, setKrAsk] = useState(false);
   // TC-135 · spec-eval-cycle §4.3.4 E5 — 바뀐 것이 있으면 «60초마다» 자동 임시저장(early-return 앞 선언).
@@ -802,13 +850,22 @@ export default function EvalCycleMemberCanvas({
     if (f.type === 'checkbox') return false;
     return !state[f.key].textAnswer.trim();
   };
-  // [PW-1966] 하단 「N/M 작성됨」은 제출에 꼭 필요한 칸(척도·서술)만 센다 — 제출 판정과 같은 기준.
-  // 예전엔 분모가 서술+체크, 분자가 글 있는 칸뿐이라 척도·체크를 골라도 0 에 머물렀다.
-  const requiredFields = fields.filter((f) => f.type !== 'checkbox');
-  const filled = requiredFields.filter((f) => !isIncomplete(f)).length;
-  const canSubmit = filled === requiredFields.length;
+  // [PW-2067] 작성 진행 «n/m»·남은 칸은 체크 항목도 센다 — 하나 이상 골라야 «작성»(커트 2026-10-20).
+  // 단 비운 체크는 제출을 막지 않는다(위 isIncomplete) — 동료 «함께 일하고 싶다»처럼 안 고른 것이
+  // «아니오»인 항목이 있어서다(커트 2026-10-20, PW-2067 결정 가). 선택지 없는 옛 항목은 점수 칸 1/0 이다.
+  const isUnanswered = (f) => {
+    if (f.type !== 'checkbox') return isIncomplete(f);
+    return filledOptions(f).length > 0
+      ? selectedOptions(state[f.key]).length === 0
+      : state[f.key].score !== 1;
+  };
+  const missingFields = fields.filter(isUnanswered);
+  const filled = fields.length - missingFields.length;
+  const hasBlocking = fields.some(isIncomplete);
   const isAiPending = (f) => aiStateOf(f)?.tone === 'unconfirmed';
   const hasAiPending = fields.some(isAiPending);
+  // [PW-2082] §4.8b 「미작성 항목 보기」가 도는 칸 — 빈 칸, 없으면 확인하지 않은 AI 초안 칸.
+  const navFields = missingFields.length ? missingFields : fields.filter(isAiPending);
   // [PW-1464] §4.4a — 활동 데이터가 하나도 없으면 전체·항목별 AI 초안 단추를 끈다.
   const aiOff = aiDraftDisabledReason || (selfReview && noActivityData ? L.actNoData : null);
   // [PW-1464] §4.8a 서술 칸 입력 상태 — 아무것도 안 쓴 처음(회색) / 다른 칸을 쓴 뒤 남은 칸(주황) / 쓴 칸(흰색).
@@ -821,15 +878,39 @@ export default function EvalCycleMemberCanvas({
     if (state[f.key].textAnswer.trim()) return ' is-filled';
     return anyAnswered ? ' is-pending' : ' is-blank';
   };
+  /**
+   * [PW-2082] §4.8b — 그 칸을 화면 가운데로 옮기고 포커스를 준다. 서술은 입력칸, 점수를 안 고른
+   * 척도는 첫 점수 버튼, 사유만 빈 척도는 사유 칸, 체크는 첫 선택지.
+   */
+  const jumpToField = (f) => {
+    const el = fieldRefs.current[f.key];
+    if (!el) return;
+    navCursor.current = f.key;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    let target = null;
+    if (f.type === 'rating') {
+      target = state[f.key].score == null
+        ? el.querySelector('.evm-score-btns button:not(:disabled)')
+        : el.querySelector('textarea:not(:disabled)');
+    } else if (f.type === 'checkbox') {
+      target = el.querySelector('input:not(:disabled)');
+    } else {
+      target = el.querySelector('textarea:not(:disabled)');
+    }
+    (target || el.querySelector('button, textarea, input'))?.focus({ preventScroll: true });
+  };
+  // 누를 때마다 지난번 칸의 «다음» 칸으로, 끝에서는 처음으로.
+  const jumpToNextMissing = () => {
+    if (!navFields.length) return;
+    const at = navFields.findIndex((f) => f.key === navCursor.current);
+    jumpToField(navFields[(at + 1) % navFields.length]);
+  };
   const handleSubmitClick = () => {
     // 빈 칸이 먼저다 — 다 채운 뒤에야 노란 칸(PW-1614)으로 안내한다.
     const inc = fields.find(isIncomplete) || fields.find(isAiPending);
     if (inc) {
       setTriedSubmit(true);
-      fieldRefs.current[inc.key]?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center',
-      });
+      jumpToField(inc);
       return;
     }
     // [PW-1464] §4.2.1 — 달성률을 안 넣은 KR 이 있으면 묻고, 확인하면 그대로 제출한다(막지 않는다).
@@ -841,83 +922,21 @@ export default function EvalCycleMemberCanvas({
   };
   // [PW-967·PW-1007] 제출 약속을 돌려주면 [제출](공용 `Button`)이 끝날 때까지 스스로 잠근다 —
   // 결과를 안 기다려 두 번 누르면 두 번 나갔다. 실패하면 풀려 다시 누를 수 있다(알림은 화면이 띄운다).
-  const submitNow = () => (onSubmit ? Promise.resolve(onSubmit(toItems())) : undefined);
+  // [PW-2082] §4.8b — 서버가 빈 칸으로 거절하면(화면 판정과 어긋남) 제출 시도 뒤 모양(빨강)을 그린다.
+  const submitNow = () =>
+    onSubmit
+      ? Promise.resolve(onSubmit(toItems())).catch((err) => {
+          setTriedSubmit(true);
+          throw err;
+        })
+      : undefined;
 
-  // 섹션(section) 별 그룹핑 — 등장 순서 유지.
-  const sections = [];
-  // 설명 항목은 «놓인 자리»가 기능의 핵심이라 그룹핑에는 함께 넣는다(맨 앞·사이·맨 뒤).
-  entries.forEach((f) => {
-    let g = sections.find((s) => s.title === f.section);
-    if (!g) {
-      g = { title: f.section, fields: [] };
-      sections.push(g);
-    }
-    g.fields.push(f);
-  });
-
-  return (
-    <div className="evc-root evm-root">
-      <header className="evc-header">
-        <div>
-          <h1 className="evc-title">{L.title}</h1>
-          {cycle?.name && <p className="evc-summary">{cycle.name}</p>}
-        </div>
-      </header>
-
-      {headerSlot}
-
-      {/* [PW-1464] §4.7 셀프 리뷰의 임시저장 실패는 위쪽 빨간 띠로 알린다. */}
-      {selfReview && !readOnly && saveError && (
-        <div className="evc-list">
-          <div className="evm-save-error" role="alert" data-testid="evm-save-error">
-            {L.saveError}
-          </div>
-        </div>
-      )}
-
-      {selfReference && (
-        <div className="evc-list">
-          <SelfReferencePanel reference={selfReference} L={L} />
-        </div>
-      )}
-
-      {/* TC-012 지난 사이클 본인 최종 등급 이력 — 읽기전용 참고(제출 후에도 노출). 이력 있을 때만 */}
-      {Array.isArray(evaluationHistory) && evaluationHistory.length > 0 && (
-       <div className="evc-list">
-        <section className="evm-history" data-testid="evm-history">
-          <div className="evm-history-head">
-            <div className="evm-history-title">
-              <TrendIcon size={15} />
-              <span>{L.historyTitle}</span>
-            </div>
-            <div className="evm-history-sub">{L.historySub}</div>
-          </div>
-          <div className="evm-history-rows">
-            {evaluationHistory.map((h) => (
-              <div
-                className="evm-history-row"
-                key={h.cycleId}
-                data-testid={`evm-history-${h.cycleId}`}
-              >
-                <span className="evm-history-cycle">{h.cycleName}</span>
-                <StatusBadge className="evm-history-grade">{h.gradeLabel}</StatusBadge>
-                {h.endDate && (
-                  <span className="evm-history-date">
-                    {String(h.endDate).slice(0, 7).replace('-', '.')}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-       </div>
-      )}
-
-      {/* §4.2 활동 요약 박스 — 작성 참고용(리뷰 기간 활동 집계). 데이터 있는 블록만 노출 */}
-      {/* §4.2.1 KR 달성률 수기입력 — 참고 영역과 같은 박스에 full-width 로 노출 */}
-      {!submitted &&
-        (selfReview ? activitySummary != null : activitySummary || krList.length > 0) &&
-        (() => {
+  // [PW-1464] §4.2 셀프 리뷰 활동 요약(1:1 · 받은 피드백 · 스니핏 · OKR 과 KR 달성률 입력).
+  // [PW-2064] 2단이면 왼쪽 근거 패널에, 아니면 종전처럼 폼 위에 놓인다.
+  const activityNode =
+    !submitted &&
+    (selfReview ? activitySummary != null : activitySummary || krList.length > 0)
+      ? (() => {
         const failed = activityFailed || {};
         const allBlocks = activitySummary
           ? [
@@ -936,7 +955,6 @@ export default function EvalCycleMemberCanvas({
           : allBlocks.filter((b) => Array.isArray(b.items) && b.items.length > 0);
         if (blocks.length === 0 && krList.length === 0) return null;
         return (
-          <div className="evc-list">
             <section className="evm-activity" data-testid="evm-activity">
               <div className="evm-activity-head">
                 <div className="evm-activity-title">{L.actTitle}</div>
@@ -1053,9 +1071,530 @@ export default function EvalCycleMemberCanvas({
                 </div>
               )}
             </section>
-          </div>
         );
-      })()}
+      })()
+      : null;
+  // [PW-2064] member policy §4.11 ② — 셀프는 2단, 동료는 셀프 참조(셀프 공개)가 있을 때만 2단, 상향은 1단.
+  const evidenceNode =
+    selfReference || activityNode ? (
+      <>
+        {selfReference && <SelfReferencePanel reference={selfReference} L={L} />}
+        {activityNode}
+      </>
+    ) : null;
+  const twoPane = !!evidenceNode && (selfReview || !!selfReference);
+  const evidenceTitle = selfReference ? L.evidencePeerTitle : L.evidenceSelfTitle;
+
+  // 섹션(section) 별 그룹핑 — 등장 순서 유지.
+  const sections = [];
+  // 설명 항목은 «놓인 자리»가 기능의 핵심이라 그룹핑에는 함께 넣는다(맨 앞·사이·맨 뒤).
+  entries.forEach((f) => {
+    let g = sections.find((s) => s.title === f.section);
+    if (!g) {
+      g = { title: f.section, fields: [] };
+      sections.push(g);
+    }
+    g.fields.push(f);
+  });
+
+  // [PW-2064] 입력 영역 — 작성 진행 · 구분선 · AI 초안 · 항목 · 하단 제출 바. 2단이면 오른쪽 칸이다.
+  const formBody = (
+    <>
+      {!submitted && fields.length > 0 && (
+        <ReviewProgress
+          fields={fields}
+          isUnanswered={isUnanswered}
+          isIncomplete={isIncomplete}
+          tried={triedSubmit}
+          onJump={jumpToField}
+          L={L}
+        />
+      )}
+
+        {/* [PW-1464] §4.2.0 참고 영역과 작성 영역의 경계 */}
+        {selfReview && !submitted && (
+          <div className="evc-list">
+            <div className="evm-write-divider" data-testid="evm-write-divider">
+              <span>{L.writeDivider}</span>
+            </div>
+          </div>
+        )}
+
+        {/* [PW-1464] §4.3 AI 초안 카드 — 전체 생성 단추가 하단 바에서 여기로 온다. */}
+        {selfReview && onAiDraft && !readOnly && (
+          <div className="evc-list">
+            <section className="evc-card evm-ai-card" data-testid="evm-ai-card">
+              <div>
+                <div className="evm-ai-card-title" data-testid="evm-ai-card-title">
+                  <SparkleIcon size={15} />
+                  <span>{fill(L.aiCardTitle, { period: aiPeriod || L.aiCardNoPeriod })}</span>
+                </div>
+                <div className="evm-ai-card-sub">{L.aiCardSub}</div>
+              </div>
+              <div className="evc-card-buttons">
+                {aiOff && (
+                  <span className="evm-autosave" data-testid="evm-ai-draft-reason">
+                    {aiOff}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  className="evc-btn is-ghost"
+                  disabled={!!draftBusy || emptyTextFields.length === 0 || !!aiOff}
+                  onClick={() => handleAiDraft()}
+                  data-testid="evm-ai-draft"
+                >
+                  {draftBusy === 'all' ? (
+                    L.aiDrafting
+                  ) : draftDoneAll ? (
+                    <>
+                      <CheckCircleIcon size={15} />
+                      {L.aiDraftDone}
+                    </>
+                  ) : (
+                    <>
+                      <SparkleIcon size={15} />
+                      {L.aiDraft}
+                    </>
+                  )}
+                </button>
+              </div>
+            </section>
+          </div>
+        )}
+
+        <div className="evc-list">
+          {sections.map((sec) => (
+            <section className="evc-card" key={sec.title} data-testid={`evm-section-${sec.title}`}>
+              <h3 className="evc-card-name">{sec.title}</h3>
+              {/* [PW-1464] §4.0 역량 섹션 머리 — 관리자가 정한 역량 항목을 참고할 수 있다는 표시 */}
+              {selfReview && sec.fields.some((f) => categoryKind(f.category) === 'competency') && (
+                <p className="evm-competency-ref" data-testid="evm-competency-ref">
+                  <NoteIcon size={13} />
+                  <span>{L.competencyRefBadge}</span>
+                </p>
+              )}
+              {sec.fields.map((f) =>
+                /* [PW-602 ④] 설명 항목 — 입력 위젯도 번호도 없이 «글»로만 그린다. */
+                f.type === 'note' ? (
+                  <EvalNoteBlock key={f.key} item={f} testId={`evm-note-${f.key}`} />
+                ) : (
+                <div
+                  className="evm-field"
+                  key={f.key}
+                  ref={(el) => {
+                    fieldRefs.current[f.key] = el;
+                  }}
+                >
+                  {(sec.fields.length > 1 || f.description) && (
+                    <span className="evc-field-label">
+                      {f.label}
+                      {/* [PW-602 ③] 표시 방식 셋을 실제로 따른다 — 「표시 안 함」이면 아무것도,
+                          「툴팁」이면 ⓘ 말풍선, 「항목 아래 상시」면 아래 블록으로. */}
+                      {(f.descriptionDisplay || 'tooltip') === 'tooltip' && (
+                        <FieldInfo description={f.description} />
+                      )}
+                    </span>
+                  )}
+                  {f.description && (f.descriptionDisplay || 'tooltip') === 'inline' && (
+                    <EvalMarkdownLite
+                      text={f.description}
+                      className="evc-md evm-field-guide"
+                      testId={`evm-guide-${f.key}`}
+                    />
+                  )}
+                  {f.type === 'rating' ? (
+                    <>
+                      <div className="evm-score-row">
+                        <span className="evc-field-label">{L.scoreLabel}</span>
+                        <div
+                          className={`evm-score-btns${triedSubmit && state[f.key].score == null ? ' is-invalid' : ''}`}
+                        >
+                          {f.scaleAnchorMin && (
+                            <span className="evm-score-anchor">{f.scaleAnchorMin}</span>
+                          )}
+                          {Array.from({ length: scaleMaxOf(f) }, (_, i) => i + 1).map((n) => (
+                            <button
+                              type="button"
+                              key={n}
+                              className={`evm-score-btn${state[f.key].score === n ? ' is-on' : ''}`}
+                              disabled={readOnly}
+                              onClick={() =>
+                                // [PW-1464] §4.5 셀프 리뷰는 같은 점수를 다시 누르면 선택을 푼다.
+                                setField(f.key, {
+                                  score: selfReview && state[f.key].score === n ? null : n,
+                                })
+                              }
+                              data-testid={`evm-score-${f.key}-${n}`}
+                            >
+                              {n}
+                            </button>
+                          ))}
+                          {f.scaleAnchorMax && (
+                            <span className="evm-score-anchor">{f.scaleAnchorMax}</span>
+                          )}
+                          <span className="evm-score-of">/ {scaleMaxOf(f)}</span>
+                        </div>
+                      </div>
+                      {/* PW-118 사유 서술칸은 척도 항목의 일부다(spec-eval-cycle §4.2.2 B6/D4 —
+                          "점수 셀렉터 + 바로 아래 사유 서술 입력칸"). requiresRationale 은
+                          칸의 유무가 아니라 제출 게이팅·미입력 강조만 정한다. */}
+                      <textarea
+                        className={`evm-textarea${triedSubmit && f.requiresRationale && !state[f.key].rationale.trim() ? ' is-invalid' : ''}`}
+                        rows={2}
+                        value={state[f.key].rationale}
+                        placeholder={
+                          f.requiresRationale
+                            ? L.rationalePlaceholder
+                            : L.rationaleOptionalPlaceholder
+                        }
+                        disabled={readOnly}
+                        onChange={(e) => setField(f.key, { rationale: e.target.value })}
+                        data-testid={`evm-rationale-${f.key}`}
+                      />
+                      {triedSubmit && f.requiresRationale && !state[f.key].rationale.trim() && (
+                        <p className="evm-field-error" data-testid={`evm-rationale-error-${f.key}`}>
+                          {L.rationaleRequired}
+                        </p>
+                      )}
+                    </>
+                  ) : f.type === 'checkbox' ? (
+                    /* PW-433 ③ 제목 + 선택지 2층. 선택지를 정한 적 없는 구 항목은
+                       제목 1개짜리 단일 체크로 폴백한다(마이그레이션이 값을 지어내지 않는다). */
+                    filledOptions(f).length > 0 ? (
+                      <div className="evm-options" data-testid={`evm-options-${f.key}`}>
+                        {filledOptions(f).map((o) => (
+                          <OptionChoice
+                            key={o.id}
+                            multiple={!!f.allowMultiple}
+                            label={o.label}
+                            name={`evm-opt-${f.key}`}
+                            checked={selectedOptions(state[f.key]).includes(o.id)}
+                            disabled={readOnly}
+                            onChange={() =>
+                              setField(f.key, {
+                                checkedOptions: {
+                                  selected: toggleOption(
+                                    selectedOptions(state[f.key]),
+                                    o.id,
+                                    !!f.allowMultiple,
+                                  ),
+                                },
+                              })
+                            }
+                            data-testid={`evm-option-${f.key}-${o.id}`}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <Checkbox
+                        className="evl-promo-row"
+                        inputClassName="dp-check-input"
+                        checked={state[f.key].score === 1}
+                        disabled={readOnly}
+                        onChange={(e) => setField(f.key, { score: e.target.checked ? 1 : 0 })}
+                        data-testid={`evm-check-${f.key}`}
+                        label={<span>{f.label}</span>}
+                      />
+                    )
+                  ) : (
+                    <>
+                      <textarea
+                        className={`evm-textarea${triedSubmit && (isIncomplete(f) || isAiPending(f)) ? ' is-invalid' : ''}${aiStateOf(f) ? ` is-ai-${aiStateOf(f).tone}` : ''}${inputStateClass(f)}`}
+                        rows={4}
+                        value={state[f.key].textAnswer}
+                        placeholder={f.placeholder}
+                        disabled={readOnly}
+                        onChange={(e) => setField(f.key, { textAnswer: e.target.value })}
+                        data-testid={`evm-text-${f.key}`}
+                      />
+                      {/* [PW-1460] 항목별 AI 초안 — 빈 칸에만. 이미 쓴 칸은 덮어쓰지 않는다. */}
+                      {onAiDraft && !readOnly && aiDraftUnavailable && !state[f.key].textAnswer.trim() && (
+                        <p className="evm-ai-draft-unavailable" data-testid={`evm-ai-draft-unavailable-${f.key}`}>
+                          {aiDraftUnavailable}
+                        </p>
+                      )}
+                      {onAiDraft && !readOnly && !aiDraftUnavailable && !state[f.key].textAnswer.trim() && !pendingDraft[f.key] && (
+                        <button
+                          type="button"
+                          className="evc-btn is-ghost evm-ai-item-draft"
+                          disabled={!!draftBusy || !!aiOff}
+                          onClick={() => handleAiDraft(f)}
+                          data-testid={`evm-ai-draft-item-${f.key}`}
+                        >
+                          {draftBusy !== f.key && <SparkleIcon size={13} />}
+                          {draftBusy === f.key ? L.aiDrafting : L.aiDraftItem}
+                        </button>
+                      )}
+                      {draftError === f.key && (
+                        <p className="evm-field-error" data-testid={`evm-ai-draft-error-${f.key}`}>
+                          {L.aiDraftError}
+                          <button
+                            type="button"
+                            className="evm-ai-draft-retry"
+                            disabled={!!draftBusy}
+                            onClick={() => handleAiDraft(f)}
+                            data-testid={`evm-ai-draft-retry-${f.key}`}
+                          >
+                            {L.aiDraftRetry}
+                          </button>
+                        </p>
+                      )}
+                      {pendingDraft[f.key] && !readOnly && (
+                        <div className="evm-ai-draft-pending" data-testid={`evm-ai-pending-${f.key}`}>
+                          <span className="evm-ai-draft-badge">{L.aiDraftUnconfirmed}</span>
+                          <p className="evm-ai-draft-pending-text">{pendingDraft[f.key]}</p>
+                          <AiDraftSources sources={draftSources[f.key]} L={L} testId={`evm-ai-sources-${f.key}`} />
+                          <div className="evm-ai-draft-bar is-unconfirmed">
+                            <button
+                              type="button"
+                              className="evm-ai-draft-confirm"
+                              onClick={() => {
+                                setField(f.key, { textAnswer: pendingDraft[f.key] });
+                                dropPendingDraft(f.key);
+                              }}
+                              data-testid={`evm-ai-use-${f.key}`}
+                            >
+                              {L.aiDraftUse}
+                            </button>
+                            <button
+                              type="button"
+                              className="evm-ai-draft-confirm"
+                              onClick={() => dropPendingDraft(f.key)}
+                              data-testid={`evm-ai-fold-${f.key}`}
+                            >
+                              {L.aiDraftFold}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      {aiStateOf(f) && (
+                        <div
+                          className={`evm-ai-draft-bar is-${aiStateOf(f).tone}`}
+                          data-testid={`evm-ai-state-${f.key}`}
+                          data-state={aiStateOf(f).tone}
+                        >
+                          <span className="evm-ai-draft-badge">{aiStateOf(f).label}</span>
+                          {aiStateOf(f).tone === 'unconfirmed' && !readOnly && (
+                            <button
+                              type="button"
+                              className="evm-ai-draft-confirm"
+                              onClick={() => setField(f.key, { isConfirmed: true })}
+                              data-testid={`evm-ai-confirm-${f.key}`}
+                            >
+                              {L.aiDraftConfirm}
+                            </button>
+                          )}
+                          <AiDraftSources sources={draftSources[f.key]} L={L} testId={`evm-ai-sources-${f.key}`} />
+                        </div>
+                      )}
+                    </>
+                  )}
+                  {showVisibility && (
+                    <FieldVisibility
+                      visibleToRoles={f.visibleToRoles}
+                      labels={L}
+                    />
+                  )}
+                </div>
+                ),
+              )}
+            </section>
+          ))}
+        </div>
+
+        {!submitted && aiError && (
+          <div className="evc-list">
+            <p className="evx-notice" data-testid="evm-ai-error" style={{ background: 'var(--utility-error-50)', color: 'var(--utility-error-500)' }}>
+              {L.aiError}
+            </p>
+          </div>
+        )}
+
+        {!submitted && draftError === 'all' && (
+          <div className="evc-list">
+            <p className="evx-notice" data-testid="evm-ai-draft-error" style={{ background: 'var(--utility-error-50)', color: 'var(--utility-error-500)' }}>
+              {L.aiDraftError}
+              <button
+                type="button"
+                className="evm-ai-draft-retry"
+                disabled={!!draftBusy}
+                onClick={() => handleAiDraft()}
+                data-testid="evm-ai-draft-retry"
+              >
+                {L.aiDraftRetry}
+              </button>
+            </p>
+          </div>
+        )}
+
+        {!submitted && !selfReview && saveError && (
+          <div className="evm-save-error" role="alert" data-testid="evm-save-error">
+            {L.saveError}
+          </div>
+        )}
+        {!readOnly && (
+          <div className="evm-submit-bar">
+            {/* [PW-2082] §4.8b — 남은 칸 수(amber) · 제출을 막았으면 빨강 · 다 썼으면 초록. */}
+            <span className="evm-progress">
+              {triedSubmit && hasBlocking ? (
+                <span className="evm-incomplete-warn" data-testid="evm-incomplete-warn">
+                  {fill(L.missingCount, { count: missingFields.length })}
+                </span>
+              ) : triedSubmit && hasAiPending ? (
+                <span className="evm-incomplete-warn" data-testid="evm-ai-pending-warn">
+                  {L.aiDraftPendingCount
+                    ? fill(L.aiDraftPendingCount, { count: fields.filter(isAiPending).length })
+                    : L.aiDraftPendingWarn}
+                </span>
+              ) : missingFields.length ? (
+                <span className="evm-remaining" data-testid="evm-remaining">
+                  {fill(L.remaining, { count: missingFields.length })}
+                </span>
+              ) : (
+                <span className="evm-all-done" data-testid="evm-all-done">
+                  <CheckCircleIcon size={14} />
+                  {L.allDone}
+                </span>
+              )}
+              {navFields.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="evm-show-missing"
+                  onClick={jumpToNextMissing}
+                  data-testid="evm-show-missing"
+                >
+                  {L.showMissing}
+                </Button>
+              )}
+            </span>
+            {(autoSaving || autoSavedAt) && (
+              <span className="evm-autosave" data-testid="evm-autosave">
+                {autoSaving
+                  ? L.autoSaving
+                  : fill(L.autoSaved, {
+                      // 로케일을 안 주면 브라우저 언어를 따라 「03:12 PM」 이 된다 (PW-793)
+                      time: autoSavedAt.toLocaleTimeString(resolveUiLocale(), {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      }),
+                    })}
+              </span>
+            )}
+            <div className="evc-card-buttons">
+              {onAiDraft && !selfReview && aiDraftDisabledReason && (
+                <span className="evm-autosave" data-testid="evm-ai-draft-reason">
+                  {aiDraftDisabledReason}
+                </span>
+              )}
+              {onAiDraft && !selfReview && aiDraftAllButton && (
+                <button
+                  type="button"
+                  className="evc-btn is-ghost"
+                  disabled={!!draftBusy || emptyTextFields.length === 0 || !!aiDraftDisabledReason}
+                  onClick={() => handleAiDraft()}
+                  data-testid="evm-ai-draft"
+                >
+                  {draftBusy !== 'all' && <SparkleIcon size={15} />}
+                  {draftBusy === 'all' ? L.aiDrafting : L.aiDraft}
+                </button>
+              )}
+              {onAiPolish && (
+                <button type="button" className="evc-btn is-ghost" disabled={aiBusy} onClick={handleAiPolish} data-testid="evm-ai-polish">
+                  {!aiBusy && <SparkleIcon size={15} />}
+                  {aiBusy ? L.aiPolishing : L.aiPolish}
+                </button>
+              )}
+              <button
+                type="button"
+                className="evc-btn is-ghost"
+                onClick={() =>
+                  Promise.resolve(onSave?.(toItems()))
+                    .then(() => {
+                      dirtyRef.current = false;
+                      setAutoSavedAt(new Date());
+                      setSaveError(false);
+                      // [PW-1966] 직접 누른 저장만 알린다 — 자동 저장(30초)마다 알리면 시끄럽다.
+                      onSaveSuccess?.();
+                    })
+                    .catch(() => {
+                      setSaveError(true);
+                      onSaveError?.();
+                    })
+                }
+                data-testid="evm-save"
+              >
+                {L.save}
+              </button>
+              <Button
+                className="evc-btn is-primary"
+                onClick={handleSubmitClick}
+                data-testid="evm-submit"
+              >
+                {L.submit}
+              </Button>
+            </div>
+          </div>
+        )}
+    </>
+  );
+
+  return (
+    <div className="evc-root evm-root">
+      <header className="evc-header">
+        <div>
+          <h1 className="evc-title">{L.title}</h1>
+          {cycle?.name && <p className="evc-summary">{cycle.name}</p>}
+        </div>
+      </header>
+
+      {headerSlot}
+
+      {/* [PW-1464] §4.7 셀프 리뷰의 임시저장 실패는 위쪽 빨간 띠로 알린다. */}
+      {selfReview && !readOnly && saveError && (
+        <div className="evc-list">
+          <div className="evm-save-error" role="alert" data-testid="evm-save-error">
+            {L.saveError}
+          </div>
+        </div>
+      )}
+
+      {/* TC-012 지난 사이클 본인 최종 등급 이력 — 읽기전용 참고(제출 후에도 노출). 이력 있을 때만 */}
+      {Array.isArray(evaluationHistory) && evaluationHistory.length > 0 && (
+       <div className="evc-list">
+        <section className="evm-history" data-testid="evm-history">
+          <div className="evm-history-head">
+            <div className="evm-history-title">
+              <TrendIcon size={15} />
+              <span>{L.historyTitle}</span>
+            </div>
+            <div className="evm-history-sub">{L.historySub}</div>
+          </div>
+          <div className="evm-history-rows">
+            {evaluationHistory.map((h) => (
+              <div
+                className="evm-history-row"
+                key={h.cycleId}
+                data-testid={`evm-history-${h.cycleId}`}
+              >
+                <span className="evm-history-cycle">{h.cycleName}</span>
+                <StatusBadge className="evm-history-grade">{h.gradeLabel}</StatusBadge>
+                {h.endDate && (
+                  <span className="evm-history-date">
+                    {String(h.endDate).slice(0, 7).replace('-', '.')}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+       </div>
+      )}
+
+      {/* §4.2 활동 요약 박스 — 작성 참고용(리뷰 기간 활동 집계). 데이터 있는 블록만 노출 */}
+      {/* §4.2.1 KR 달성률 수기입력 — 참고 영역과 같은 박스에 full-width 로 노출 */}
+      {!twoPane && evidenceNode && <div className="evc-list">{evidenceNode}</div>}
 
       {/* [PW-1460] spec §10 — 이 기간 스니핏·OKR 이 비었거나 AI 가 일부 항목을 못 채웠다. */}
       {!submitted && (dataShortage || draftShort) && (
@@ -1132,412 +1671,16 @@ export default function EvalCycleMemberCanvas({
         </div>
       )}
 
-      {/* [PW-1464] §4.2.0 참고 영역과 작성 영역의 경계 */}
-      {selfReview && !submitted && (
-        <div className="evc-list">
-          <div className="evm-write-divider" data-testid="evm-write-divider">
-            <span>{L.writeDivider}</span>
-          </div>
+      {twoPane ? (
+        <div className="evl-2pane evm-2pane">
+          <aside className="evl-evidence" data-testid="evm-evidence">
+            <h3 className="evc-card-name">{evidenceTitle}</h3>
+            {evidenceNode}
+          </aside>
+          <div className="evl-form">{formBody}</div>
         </div>
-      )}
-
-      {/* [PW-1464] §4.3 AI 초안 카드 — 전체 생성 단추가 하단 바에서 여기로 온다. */}
-      {selfReview && onAiDraft && !readOnly && (
-        <div className="evc-list">
-          <section className="evc-card evm-ai-card" data-testid="evm-ai-card">
-            <div>
-              <div className="evm-ai-card-title" data-testid="evm-ai-card-title">
-                <SparkleIcon size={15} />
-                <span>{fill(L.aiCardTitle, { period: aiPeriod || L.aiCardNoPeriod })}</span>
-              </div>
-              <div className="evm-ai-card-sub">{L.aiCardSub}</div>
-            </div>
-            <div className="evc-card-buttons">
-              {aiOff && (
-                <span className="evm-autosave" data-testid="evm-ai-draft-reason">
-                  {aiOff}
-                </span>
-              )}
-              <button
-                type="button"
-                className="evc-btn is-ghost"
-                disabled={!!draftBusy || emptyTextFields.length === 0 || !!aiOff}
-                onClick={() => handleAiDraft()}
-                data-testid="evm-ai-draft"
-              >
-                {draftBusy === 'all' ? (
-                  L.aiDrafting
-                ) : draftDoneAll ? (
-                  <>
-                    <CheckCircleIcon size={15} />
-                    {L.aiDraftDone}
-                  </>
-                ) : (
-                  <>
-                    <SparkleIcon size={15} />
-                    {L.aiDraft}
-                  </>
-                )}
-              </button>
-            </div>
-          </section>
-        </div>
-      )}
-
-      <div className="evc-list">
-        {sections.map((sec) => (
-          <section className="evc-card" key={sec.title} data-testid={`evm-section-${sec.title}`}>
-            <h3 className="evc-card-name">{sec.title}</h3>
-            {/* [PW-1464] §4.0 역량 섹션 머리 — 관리자가 정한 역량 항목을 참고할 수 있다는 표시 */}
-            {selfReview && sec.fields.some((f) => categoryKind(f.category) === 'competency') && (
-              <p className="evm-competency-ref" data-testid="evm-competency-ref">
-                <NoteIcon size={13} />
-                <span>{L.competencyRefBadge}</span>
-              </p>
-            )}
-            {sec.fields.map((f) =>
-              /* [PW-602 ④] 설명 항목 — 입력 위젯도 번호도 없이 «글»로만 그린다. */
-              f.type === 'note' ? (
-                <EvalNoteBlock key={f.key} item={f} testId={`evm-note-${f.key}`} />
-              ) : (
-              <div
-                className="evm-field"
-                key={f.key}
-                ref={(el) => {
-                  fieldRefs.current[f.key] = el;
-                }}
-              >
-                {(sec.fields.length > 1 || f.description) && (
-                  <span className="evc-field-label">
-                    {f.label}
-                    {/* [PW-602 ③] 표시 방식 셋을 실제로 따른다 — 「표시 안 함」이면 아무것도,
-                        「툴팁」이면 ⓘ 말풍선, 「항목 아래 상시」면 아래 블록으로. */}
-                    {(f.descriptionDisplay || 'tooltip') === 'tooltip' && (
-                      <FieldInfo description={f.description} />
-                    )}
-                  </span>
-                )}
-                {f.description && (f.descriptionDisplay || 'tooltip') === 'inline' && (
-                  <EvalMarkdownLite
-                    text={f.description}
-                    className="evc-md evm-field-guide"
-                    testId={`evm-guide-${f.key}`}
-                  />
-                )}
-                {f.type === 'rating' ? (
-                  <>
-                    <div className="evm-score-row">
-                      <span className="evc-field-label">{L.scoreLabel}</span>
-                      <div
-                        className={`evm-score-btns${triedSubmit && state[f.key].score == null ? ' is-invalid' : ''}`}
-                      >
-                        {f.scaleAnchorMin && (
-                          <span className="evm-score-anchor">{f.scaleAnchorMin}</span>
-                        )}
-                        {Array.from({ length: scaleMaxOf(f) }, (_, i) => i + 1).map((n) => (
-                          <button
-                            type="button"
-                            key={n}
-                            className={`evm-score-btn${state[f.key].score === n ? ' is-on' : ''}`}
-                            disabled={readOnly}
-                            onClick={() =>
-                              // [PW-1464] §4.5 셀프 리뷰는 같은 점수를 다시 누르면 선택을 푼다.
-                              setField(f.key, {
-                                score: selfReview && state[f.key].score === n ? null : n,
-                              })
-                            }
-                            data-testid={`evm-score-${f.key}-${n}`}
-                          >
-                            {n}
-                          </button>
-                        ))}
-                        {f.scaleAnchorMax && (
-                          <span className="evm-score-anchor">{f.scaleAnchorMax}</span>
-                        )}
-                        <span className="evm-score-of">/ {scaleMaxOf(f)}</span>
-                      </div>
-                    </div>
-                    {/* PW-118 사유 서술칸은 척도 항목의 일부다(spec-eval-cycle §4.2.2 B6/D4 —
-                        "점수 셀렉터 + 바로 아래 사유 서술 입력칸"). requiresRationale 은
-                        칸의 유무가 아니라 제출 게이팅·미입력 강조만 정한다. */}
-                    <textarea
-                      className={`evm-textarea${triedSubmit && f.requiresRationale && !state[f.key].rationale.trim() ? ' is-invalid' : ''}`}
-                      rows={2}
-                      value={state[f.key].rationale}
-                      placeholder={
-                        f.requiresRationale
-                          ? L.rationalePlaceholder
-                          : L.rationaleOptionalPlaceholder
-                      }
-                      disabled={readOnly}
-                      onChange={(e) => setField(f.key, { rationale: e.target.value })}
-                      data-testid={`evm-rationale-${f.key}`}
-                    />
-                    {triedSubmit && f.requiresRationale && !state[f.key].rationale.trim() && (
-                      <p className="evm-field-error" data-testid={`evm-rationale-error-${f.key}`}>
-                        {L.rationaleRequired}
-                      </p>
-                    )}
-                  </>
-                ) : f.type === 'checkbox' ? (
-                  /* PW-433 ③ 제목 + 선택지 2층. 선택지를 정한 적 없는 구 항목은
-                     제목 1개짜리 단일 체크로 폴백한다(마이그레이션이 값을 지어내지 않는다). */
-                  filledOptions(f).length > 0 ? (
-                    <div className="evm-options" data-testid={`evm-options-${f.key}`}>
-                      {filledOptions(f).map((o) => (
-                        <OptionChoice
-                          key={o.id}
-                          multiple={!!f.allowMultiple}
-                          label={o.label}
-                          name={`evm-opt-${f.key}`}
-                          checked={selectedOptions(state[f.key]).includes(o.id)}
-                          disabled={readOnly}
-                          onChange={() =>
-                            setField(f.key, {
-                              checkedOptions: {
-                                selected: toggleOption(
-                                  selectedOptions(state[f.key]),
-                                  o.id,
-                                  !!f.allowMultiple,
-                                ),
-                              },
-                            })
-                          }
-                          data-testid={`evm-option-${f.key}-${o.id}`}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <Checkbox
-                      className="evl-promo-row"
-                      inputClassName="dp-check-input"
-                      checked={state[f.key].score === 1}
-                      disabled={readOnly}
-                      onChange={(e) => setField(f.key, { score: e.target.checked ? 1 : 0 })}
-                      data-testid={`evm-check-${f.key}`}
-                      label={<span>{f.label}</span>}
-                    />
-                  )
-                ) : (
-                  <>
-                    <textarea
-                      className={`evm-textarea${triedSubmit && (isIncomplete(f) || isAiPending(f)) ? ' is-invalid' : ''}${aiStateOf(f) ? ` is-ai-${aiStateOf(f).tone}` : ''}${inputStateClass(f)}`}
-                      rows={4}
-                      value={state[f.key].textAnswer}
-                      placeholder={f.placeholder}
-                      disabled={readOnly}
-                      onChange={(e) => setField(f.key, { textAnswer: e.target.value })}
-                      data-testid={`evm-text-${f.key}`}
-                    />
-                    {/* [PW-1460] 항목별 AI 초안 — 빈 칸에만. 이미 쓴 칸은 덮어쓰지 않는다. */}
-                    {onAiDraft && !readOnly && aiDraftUnavailable && !state[f.key].textAnswer.trim() && (
-                      <p className="evm-ai-draft-unavailable" data-testid={`evm-ai-draft-unavailable-${f.key}`}>
-                        {aiDraftUnavailable}
-                      </p>
-                    )}
-                    {onAiDraft && !readOnly && !aiDraftUnavailable && !state[f.key].textAnswer.trim() && !pendingDraft[f.key] && (
-                      <button
-                        type="button"
-                        className="evc-btn is-ghost evm-ai-item-draft"
-                        disabled={!!draftBusy || !!aiOff}
-                        onClick={() => handleAiDraft(f)}
-                        data-testid={`evm-ai-draft-item-${f.key}`}
-                      >
-                        {draftBusy !== f.key && <SparkleIcon size={13} />}
-                        {draftBusy === f.key ? L.aiDrafting : L.aiDraftItem}
-                      </button>
-                    )}
-                    {draftError === f.key && (
-                      <p className="evm-field-error" data-testid={`evm-ai-draft-error-${f.key}`}>
-                        {L.aiDraftError}
-                        <button
-                          type="button"
-                          className="evm-ai-draft-retry"
-                          disabled={!!draftBusy}
-                          onClick={() => handleAiDraft(f)}
-                          data-testid={`evm-ai-draft-retry-${f.key}`}
-                        >
-                          {L.aiDraftRetry}
-                        </button>
-                      </p>
-                    )}
-                    {pendingDraft[f.key] && !readOnly && (
-                      <div className="evm-ai-draft-pending" data-testid={`evm-ai-pending-${f.key}`}>
-                        <span className="evm-ai-draft-badge">{L.aiDraftUnconfirmed}</span>
-                        <p className="evm-ai-draft-pending-text">{pendingDraft[f.key]}</p>
-                        <AiDraftSources sources={draftSources[f.key]} L={L} testId={`evm-ai-sources-${f.key}`} />
-                        <div className="evm-ai-draft-bar is-unconfirmed">
-                          <button
-                            type="button"
-                            className="evm-ai-draft-confirm"
-                            onClick={() => {
-                              setField(f.key, { textAnswer: pendingDraft[f.key] });
-                              dropPendingDraft(f.key);
-                            }}
-                            data-testid={`evm-ai-use-${f.key}`}
-                          >
-                            {L.aiDraftUse}
-                          </button>
-                          <button
-                            type="button"
-                            className="evm-ai-draft-confirm"
-                            onClick={() => dropPendingDraft(f.key)}
-                            data-testid={`evm-ai-fold-${f.key}`}
-                          >
-                            {L.aiDraftFold}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                    {aiStateOf(f) && (
-                      <div
-                        className={`evm-ai-draft-bar is-${aiStateOf(f).tone}`}
-                        data-testid={`evm-ai-state-${f.key}`}
-                        data-state={aiStateOf(f).tone}
-                      >
-                        <span className="evm-ai-draft-badge">{aiStateOf(f).label}</span>
-                        {aiStateOf(f).tone === 'unconfirmed' && !readOnly && (
-                          <button
-                            type="button"
-                            className="evm-ai-draft-confirm"
-                            onClick={() => setField(f.key, { isConfirmed: true })}
-                            data-testid={`evm-ai-confirm-${f.key}`}
-                          >
-                            {L.aiDraftConfirm}
-                          </button>
-                        )}
-                        <AiDraftSources sources={draftSources[f.key]} L={L} testId={`evm-ai-sources-${f.key}`} />
-                      </div>
-                    )}
-                  </>
-                )}
-                {showVisibility && (
-                  <FieldVisibility
-                    visibleToRoles={f.visibleToRoles}
-                    labels={L}
-                  />
-                )}
-              </div>
-              ),
-            )}
-          </section>
-        ))}
-      </div>
-
-      {!submitted && aiError && (
-        <div className="evc-list">
-          <p className="evx-notice" data-testid="evm-ai-error" style={{ background: 'var(--utility-error-50)', color: 'var(--utility-error-500)' }}>
-            {L.aiError}
-          </p>
-        </div>
-      )}
-
-      {!submitted && draftError === 'all' && (
-        <div className="evc-list">
-          <p className="evx-notice" data-testid="evm-ai-draft-error" style={{ background: 'var(--utility-error-50)', color: 'var(--utility-error-500)' }}>
-            {L.aiDraftError}
-            <button
-              type="button"
-              className="evm-ai-draft-retry"
-              disabled={!!draftBusy}
-              onClick={() => handleAiDraft()}
-              data-testid="evm-ai-draft-retry"
-            >
-              {L.aiDraftRetry}
-            </button>
-          </p>
-        </div>
-      )}
-
-      {!submitted && !selfReview && saveError && (
-        <div className="evm-save-error" role="alert" data-testid="evm-save-error">
-          {L.saveError}
-        </div>
-      )}
-      {!readOnly && (
-        <div className="evm-submit-bar">
-          <span className="evm-progress">
-            {triedSubmit && !canSubmit ? (
-              <span className="evm-incomplete-warn" data-testid="evm-incomplete-warn">
-                {L.incompleteWarn}
-              </span>
-            ) : triedSubmit && hasAiPending ? (
-              <span className="evm-incomplete-warn" data-testid="evm-ai-pending-warn">
-                {L.aiDraftPendingCount
-                  ? fill(L.aiDraftPendingCount, { count: fields.filter(isAiPending).length })
-                  : L.aiDraftPendingWarn}
-              </span>
-            ) : (
-              fill(L.progress, { filled, total: requiredFields.length })
-            )}
-          </span>
-          {(autoSaving || autoSavedAt) && (
-            <span className="evm-autosave" data-testid="evm-autosave">
-              {autoSaving
-                ? L.autoSaving
-                : fill(L.autoSaved, {
-                    // 로케일을 안 주면 브라우저 언어를 따라 「03:12 PM」 이 된다 (PW-793)
-                    time: autoSavedAt.toLocaleTimeString(resolveUiLocale(), {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    }),
-                  })}
-            </span>
-          )}
-          <div className="evc-card-buttons">
-            {onAiDraft && !selfReview && aiDraftDisabledReason && (
-              <span className="evm-autosave" data-testid="evm-ai-draft-reason">
-                {aiDraftDisabledReason}
-              </span>
-            )}
-            {onAiDraft && !selfReview && aiDraftAllButton && (
-              <button
-                type="button"
-                className="evc-btn is-ghost"
-                disabled={!!draftBusy || emptyTextFields.length === 0 || !!aiDraftDisabledReason}
-                onClick={() => handleAiDraft()}
-                data-testid="evm-ai-draft"
-              >
-                {draftBusy !== 'all' && <SparkleIcon size={15} />}
-                {draftBusy === 'all' ? L.aiDrafting : L.aiDraft}
-              </button>
-            )}
-            {onAiPolish && (
-              <button type="button" className="evc-btn is-ghost" disabled={aiBusy} onClick={handleAiPolish} data-testid="evm-ai-polish">
-                {!aiBusy && <SparkleIcon size={15} />}
-                {aiBusy ? L.aiPolishing : L.aiPolish}
-              </button>
-            )}
-            <button
-              type="button"
-              className="evc-btn is-ghost"
-              onClick={() =>
-                Promise.resolve(onSave?.(toItems()))
-                  .then(() => {
-                    dirtyRef.current = false;
-                    setAutoSavedAt(new Date());
-                    setSaveError(false);
-                    // [PW-1966] 직접 누른 저장만 알린다 — 자동 저장(30초)마다 알리면 시끄럽다.
-                    onSaveSuccess?.();
-                  })
-                  .catch(() => {
-                    setSaveError(true);
-                    onSaveError?.();
-                  })
-              }
-              data-testid="evm-save"
-            >
-              {L.save}
-            </button>
-            <Button
-              className="evc-btn is-primary"
-              onClick={handleSubmitClick}
-              data-testid="evm-submit"
-            >
-              {L.submit}
-            </Button>
-          </div>
-        </div>
+      ) : (
+        formBody
       )}
 
       {krAsk && (

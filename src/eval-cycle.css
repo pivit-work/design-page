@@ -4072,7 +4072,8 @@
 }
 /* 칸을 눌러 들어가거나 글이 길어져 화면이 따라 내려갈 때, 그 칸을 떠 있는 제출 줄 위에
    세운다 (줄 높이 + 아래 띄움 + 여유). */
-.evm-root:has(> .evm-submit-bar) {
+/* [PW-2064] 2단이면 제출 줄이 오른쪽 칸 안에 있어 «바로 아래 자식»이 아니다. */
+.evm-root:has(.evm-submit-bar) {
   scroll-padding-bottom: 112px;
 }
 /* 떠 있는 제출 줄 (PW-843).
@@ -4101,6 +4102,93 @@
   font-size: var(--font-size-text-sm);
   color: var(--text-secondary);
   font-weight: 600;
+}
+/* [PW-2082] §4.8b — 제출 줄 왼쪽: 남은 칸 수(노랑) · 다 썼음(초록) · [미작성 항목 보기]. */
+.evm-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+.evm-remaining {
+  color: var(--utility-warning-700);
+}
+.evm-all-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--utility-success-700);
+}
+
+/* [PW-2064] member policy §4.11 ② — 셀프·동료(셀프 공개) 2단. 틀은 하향 리뷰의 .evl-2pane ·
+   .evl-evidence 를 그대로 쓰고, 패널 안에 든 요약·셀프 참조 상자는 패널이 상자 몫을 하므로 벗긴다. */
+.evm-root > .evc-list + .evm-review-progress,
+.evm-root > .evm-review-progress + .evc-list {
+  margin-top: var(--spacing-xl);
+}
+.evm-root > * + .evm-2pane {
+  margin-top: var(--spacing-xl);
+}
+.evm-2pane .evl-evidence .evm-activity,
+.evm-2pane .evl-evidence .evm-selfref {
+  background: none;
+  border: 0;
+  padding: 0;
+}
+.evm-2pane .evl-evidence .evm-activity-grid {
+  grid-template-columns: 1fr;
+}
+.evm-2pane .evl-form > .evc-list + .evc-list {
+  margin-top: 0;
+}
+
+/* [PW-2064] §4.11 ③ 작성 진행 — 입력 칸 맨 위에 붙어 스크롤해도 보인다. 상자는 아래 제출 줄과 같은 모양. */
+.evm-review-progress {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-xl);
+  background: var(--bg-quaternary);
+  border: 1px solid var(--bg-active);
+  border-radius: var(--radius-2xl);
+}
+.evm-review-progress-head {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+.evm-review-progress-title {
+  font-size: var(--font-size-text-sm);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.evm-review-progress-count {
+  font-size: var(--font-size-text-sm);
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+.evm-review-progress-count.is-done {
+  color: var(--utility-success-700);
+}
+.evr-okr-kr-bar.evm-review-progress-bar {
+  flex: 1;
+  width: auto;
+}
+.evm-review-progress-bar .evr-okr-kr-fill {
+  background: var(--fg-brand-primary);
+}
+.evm-review-progress-bar .evr-okr-kr-fill.is-done {
+  background: var(--utility-success-500);
+}
+.evm-review-progress-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.evm-review-progress-chip {
+  max-width: 200px;
 }
 /* TC-135 자동저장 상태 — 진행 표시 옆 은은한 안내 */
 .evm-autosave {
