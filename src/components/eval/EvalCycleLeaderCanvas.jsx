@@ -112,6 +112,9 @@ const DEFAULT_LABELS = {
   leaveSave: '임시저장 후 나가기',
   leaveDiscard: '저장 없이 나가기',
   leaveStay: '계속 작성',
+  // [PW-2041] 버튼 셋의 차이를 풀어 준다
+  leaveWarn: '저장 없이 나가면 이번에 쓴 내용이 사라집니다.',
+  leaveHint: '임시저장하면 나중에 이 화면에서 이어서 쓸 수 있습니다.',
   // PW-486 캘리브레이션을 끈 사이클 — 조정 단계가 없다는 사실을 채점 «전에» 알린다.
   // 「뒤에서 조정된다」고 믿고 매긴 등급과 「이게 최종」임을 알고 매긴 등급은 다르다.
   calibOffGradeNote:
@@ -182,7 +185,10 @@ const DEFAULT_LABELS = {
   peerSummaryGeneratedAt: '{at} 에 만든 요약',
   peerOriginalOpen: '원본 보기',
   peerOriginalSubmittedAt: '제출 {at}',
-  peerOriginalNote: '동료가 제출한 원문입니다(AI 로 다듬기 전).',
+  // [PW-2036] 원본 창 머리 — 작은 제목 + 회색 알약, 답 없는 질문 표시
+  peerOriginalEyebrow: '동료 피드백 원문',
+  peerOriginalBeforeAi: 'AI 로 다듬기 전',
+  peerOriginalNoAnswer: '답하지 않음',
   peerOriginalClose: '닫기',
   peerBelowMin: '응답 인원이 공개 기준보다 적은 질문 {count}개는 보이지 않습니다.',
   // PW-1461 leader §5.1.2 · spec §4.4-B — 지난 사이클 최종 등급 추이(최근 4회)
@@ -1938,6 +1944,7 @@ export default function EvalCycleLeaderCanvas({
           closeLabel={L.leaveStay}
           onClose={() => onLeaveStay?.()}
           onSubmit={(e) => e?.preventDefault?.()}
+          className="evc-shell"
           testId="evl-leave-confirm"
           overlayTestId="evl-leave-overlay"
           footer={
@@ -1961,7 +1968,17 @@ export default function EvalCycleLeaderCanvas({
               </button>
             </>
           }
-        />
+        >
+          {/* [PW-2041] 높이를 내용만큼(evc-shell)으로 풀고, 버튼 셋의 차이를 두 줄로 — 노란 주의 상자는
+              1on1 시작 화면 «주의» 딱지 색(.ono-start-flag-warning) 그대로 */}
+          <div className="evc-modal-notes">
+            <div className="evc-warn-box" data-testid="evl-leave-warn">
+              <AlertIcon size={18} />
+              {L.leaveWarn}
+            </div>
+            <p className="evc-modal-note" data-testid="evl-leave-hint">{L.leaveHint}</p>
+          </div>
+        </ModalShell>
       )}
     </div>
   );

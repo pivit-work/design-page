@@ -184,7 +184,9 @@ const DEFAULT_LABELS = {
   cwDisplayReadOnly: '인사담당자만 고칠 수 있습니다(조회 중)',
   cwDisplayColumnsGroup: '테이블 열',
   cwDisplaySectionsGroup: '대상자 정보 상자 칸 (행을 펼쳤을 때)',
-  cwDisplayFixedPrefix: '고정 — {why}',
+  // [PW-2041] 고정 줄의 알약 · 묶음 제목 옆 켜진 개수
+  cwDisplayFixedPill: '고정',
+  cwDisplayOnCount: '켜짐 {n}',
   cwDisplayFixedColumns: [
     { key: 'no', label: '순번', why: '행 식별' },
     { key: 'name', label: '이름', why: '행 식별' },
@@ -5658,9 +5660,18 @@ export default function EvalCycleSummaryCanvas({
             ...draft,
             [group]: { ...draft[group], [key]: draft[group]?.[key] === false },
           });
+        // [PW-2041] 줄마다 매니저 지정 창(.ons-candidate)의 선택 카드 — 켠 줄은 흰 바탕 + 초록 테두리, 끈 줄은 회색.
+        // 고정 줄은 자물쇠 + «고정» 알약. 묶음 제목은 18px + 켜진 개수 초록 딱지.
         const group = (title, fixed, optional, groupKey) => (
           <div className="evs-cw-create-section">
-            <div className="evs-cw-create-lbl">{title}</div>
+            <div className="evs-cw-display-group-title">
+              {title}
+              <StatusBadge className="evc-label-chip" data-testid={`evs-cw-display-on-count-${groupKey}`}>
+                {fmt(L.cwDisplayOnCount, {
+                  n: optional.filter((it) => draft[groupKey]?.[it.key] !== false).length,
+                })}
+              </StatusBadge>
+            </div>
             <div className="evs-cw-display-list">
               {fixed.map((it) => (
                 <div
@@ -5669,14 +5680,13 @@ export default function EvalCycleSummaryCanvas({
                   data-testid={`evs-cw-display-fixed-${it.key}`}
                 >
                   <span className="evs-cw-display-lock">
-                    <LockIcon size={14} />
+                    <LockIcon size={16} />
                   </span>
                   <span className="evs-cw-display-text">
                     <span className="evs-cw-display-label">{it.label}</span>
-                    <span className="evs-cw-display-note">
-                      {fmt(L.cwDisplayFixedPrefix, { why: it.why })}
-                    </span>
+                    <span className="evs-cw-display-note">{it.why}</span>
                   </span>
+                  <StatusBadge className="evc-meta-pill">{L.cwDisplayFixedPill}</StatusBadge>
                 </div>
               ))}
               {optional.map((it) => {
@@ -5684,7 +5694,7 @@ export default function EvalCycleSummaryCanvas({
                 return (
                   <Checkbox
                     key={it.key}
-                    className="evs-cw-display-row"
+                    className={`evs-cw-display-row${on ? ' is-on' : ''}`}
                     inputClassName="dp-check-input"
                     checked={on}
                     disabled={!canEditDisplay}

@@ -76,12 +76,11 @@ const DEFAULT_LABELS = {
   exportModalTitleProgress: '진행 상태 CSV 내보내기',
   exportModalTitleAnswers: '평가 응답 CSV 내보내기',
   exportModalBodyProgress: '현재 화면에 보이는 {{count}}명의 단계별 진행 상태를 내려받습니다.',
-  // [PW-1462] 정책 §6.9.4 — 행 수를 미리 밝힌다
-  exportModalBodyAnswers:
-    '평가 응답 원문 {{count}}행을 내려받습니다. 익명 항목의 작성자 정보는 포함되지 않습니다. 사유를 입력해 주세요.',
-  // 행 수를 세지 않는 호출부(`onOpenExport` 없음)는 개정 전 문구 그대로다
-  exportModalBodyAnswersNoCount:
-    '평가 응답 원문을 내려받습니다. 익명 항목의 작성자 정보는 포함되지 않습니다. 사유를 입력해 주세요.',
+  // [PW-1462] 정책 §6.9.4 — 행 수를 미리 밝힌다. [PW-2041] 한 문단이던 세 문장을 부제·알약·딱지로 쪼갰다
+  // (문장은 그대로). 행 수 알약은 행 수를 센 호출부(`onOpenExport`)에서만 보인다.
+  exportModalBodyAnswersShort: '평가 응답 원문을 내려받습니다. 사유를 입력해 주세요.',
+  exportRowCount: '{{count}}행',
+  exportAnonymousNote: '익명 항목의 작성자 정보는 포함되지 않습니다',
   exportAnswersCounting: '내려받을 행 수를 세는 중입니다…',
   exportAnswersCountFailed: '내려받을 행 수를 불러오지 못했습니다. 창을 닫고 다시 열어 주세요.',
   exportReasonLabel: '반출 사유',
@@ -981,12 +980,12 @@ export default function EvalCycleMonitoringCanvas({
           description={
             exportKind === 'answers'
               ? !onOpenExport
-                ? L.exportModalBodyAnswersNoCount
+                ? L.exportModalBodyAnswersShort
                 : answersRowCount === undefined
                   ? L.exportAnswersCounting
                   : answersRowCount === null
                     ? L.exportAnswersCountFailed
-                    : fill(L.exportModalBodyAnswers, { count: answersRowCount.toLocaleString() })
+                    : L.exportModalBodyAnswersShort
               : fill(L.exportModalBodyProgress, { count: visibleCount })
           }
           titleId="evmon-export-modal-title"
@@ -996,12 +995,27 @@ export default function EvalCycleMonitoringCanvas({
           canSubmit={!(exportKind === 'answers' && onOpenExport && answersRowCount === undefined)}
           onClose={closeExport}
           onSubmit={submitExport}
+          className={exportKind === 'answers' ? 'evc-shell' : ''}
         >
           {/* 필드·에러 표기는 일정 수정 모달과 같은 클래스를 쓴다 — 새 클래스를
               지으면 같은 모양이 두 벌이 된다. */}
+          {/* [PW-2041] 부제에 몰려 있던 세 문장을 쪼갠다 — 행 수는 회색 알약(매니저 프로필 창 태그),
+              «익명 작성자는 빠진다»는 초록 딱지(매니저 팀 요약 «구성원»). 높이는 내용만큼(evc-shell). */}
+          {exportKind === 'answers' && (
+            <div className="evc-export-badges">
+              {typeof answersRowCount === 'number' && (
+                <StatusBadge className="evc-meta-pill" data-testid="evmon-export-row-count">
+                  {fill(L.exportRowCount, { count: answersRowCount.toLocaleString() })}
+                </StatusBadge>
+              )}
+              <StatusBadge className="evc-label-chip" data-testid="evmon-export-anon-note">
+                {L.exportAnonymousNote}
+              </StatusBadge>
+            </div>
+          )}
           {exportKind === 'answers' && (
             <label
-              className="evc-sched-modal-field is-reason"
+              className="evc-sched-modal-field is-reason is-export"
               data-testid="evmon-export-reason-field"
             >
               <span className="evc-field-label">{L.exportReasonLabel}</span>

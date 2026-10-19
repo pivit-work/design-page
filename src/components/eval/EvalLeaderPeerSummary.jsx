@@ -2,6 +2,7 @@ import { useState } from 'react';
 import ModalShell from '../shared/ModalShell.jsx';
 import Skeleton from '../shared/Skeleton.jsx';
 import Button from '../shared/Button.jsx';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import { answerScoreText, checkedAnswerText } from './evalTemplateItemModel.js';
 
 /**
@@ -157,35 +158,63 @@ export default function EvalLeaderPeerSummary({ peer, onGenerate, labelOf, L }) 
         </p>
       )}
 
+      {/* [PW-2036] 원본 창 — 머리는 사람 프로필 창(조직도·매니저)의 노란→흰 빛, 글씨 크기는 OKR «KR 피드백» 창,
+          질문 이름은 매니저 팀 요약의 «구성원» 초록 딱지. 보라(AI 표시)는 쓰지 않는다 — 이 창은 AI 로 다듬기 «전» 원문이다.
+          머리를 본문 안에 직접 그려야 빛이 닫기 X 뒤까지 깔리므로 틀의 제목 줄은 비운다. */}
       {open && (
         <ModalShell
-          title={open.label}
-          description={[open.named && open.role, fill(L.peerOriginalSubmittedAt, { at: mmddhhmm(open.submittedAt) })]
-            .filter(Boolean)
-            .join(' · ')}
-          titleId="evl-peer-original-title"
+          ariaLabel={open.label}
           closeLabel={L.peerOriginalClose}
           onClose={() => setOpen(null)}
           onSubmit={(e) => e?.preventDefault?.()}
           footer={null}
+          className="evc-shell evl-peer-original-shell"
           testId="evl-peer-original"
           overlayTestId="evl-peer-original-overlay"
           closeTestId="evl-peer-original-close"
         >
-          <p className="evc-empty-sub">{L.peerOriginalNote}</p>
-          {(open.answers || []).map((a) => (
-            <div className="evl-evi-item" key={a.id} data-testid="evl-peer-original-answer">
-              <span className="evc-field-label">
-                {labelOf(a)}
-                {answerScoreText(a) ? ` · ${answerScoreText(a)}` : ''}
-              </span>
-              {/* [PW-2021] 체크·선택 답은 고른 이름 — 점수는 만점과 함께 */}
-              {checkedAnswerText(a, L.priorNoneChecked) ? (
-                <p className="evl-evi-text" data-testid="evl-peer-original-checked">{checkedAnswerText(a, L.priorNoneChecked)}</p>
-              ) : null}
-              {a.textAnswer ? <p className="evl-evi-text">{a.textAnswer}</p> : null}
+          <div className="evl-peer-original-head" data-testid="evl-peer-original-head">
+            <div className="evl-peer-original-eyebrow">
+              {L.peerOriginalEyebrow}
+              <StatusBadge className="evc-meta-pill" data-testid="evl-peer-original-before-ai">
+                {L.peerOriginalBeforeAi}
+              </StatusBadge>
             </div>
-          ))}
+            <h2 id="evl-peer-original-title" className="tl-group-modal-title">{open.label}</h2>
+            <div className="evl-peer-original-sub">
+              {[open.named && open.role, fill(L.peerOriginalSubmittedAt, { at: mmddhhmm(open.submittedAt) })]
+                .filter(Boolean)
+                .join(' · ')}
+            </div>
+          </div>
+          <div className="evl-peer-original-answers">
+            {(open.answers || []).map((a) => {
+              const checked = checkedAnswerText(a, L.priorNoneChecked);
+              const score = answerScoreText(a);
+              // 분류 이름이 없는 질문은 딱지를 그리지 않는다 — 빈 초록 알약만 남는다
+              const question = [labelOf(a), score].filter(Boolean).join(' · ');
+              return (
+                <div className="evl-peer-original-answer" key={a.id} data-testid="evl-peer-original-answer">
+                  {question ? (
+                    <StatusBadge className="evc-label-chip" data-testid="evl-peer-original-question">
+                      {question}
+                    </StatusBadge>
+                  ) : null}
+                  {/* [PW-2021] 체크·선택 답은 고른 이름 — 점수는 만점과 함께 */}
+                  {checked ? (
+                    <p className="evl-peer-original-text" data-testid="evl-peer-original-checked">{checked}</p>
+                  ) : null}
+                  {a.textAnswer ? <p className="evl-peer-original-text">{a.textAnswer}</p> : null}
+                  {/* 점수도 고른 것도 글도 없으면 질문 이름만 덩그러니 남는다 — 안 답했다고 적는다 */}
+                  {!checked && !a.textAnswer && !score ? (
+                    <p className="evl-peer-original-empty" data-testid="evl-peer-original-no-answer">
+                      {L.peerOriginalNoAnswer}
+                    </p>
+                  ) : null}
+                </div>
+              );
+            })}
+          </div>
         </ModalShell>
       )}
     </section>

@@ -7384,59 +7384,87 @@ button.evm-ai-source {
   color: var(--utility-error-700);
 }
 
-/* PW-520 표시 항목 설정 창 */
+/* PW-520 표시 항목 설정 창
+   [PW-2041] 줄은 매니저 지정 창의 선택 카드(.ons-candidate) 모양 — 회색 바탕 · 투명 2px 테두리(고를 때 자리가
+   안 밀리게), 켠 줄은 흰 바탕 + 초록 테두리. 묶음 제목은 1on1·매니저 섹션 제목(.omn-section-title) 18px 굵게. */
+.evs-cw-display-group-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: var(--spacing-3xl) 0 var(--spacing-lg);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 28px;
+  color: var(--text-primary);
+}
+.evc-shell-body > .evs-cw-create-section:first-child > .evs-cw-display-group-title {
+  margin-top: var(--spacing-md);
+}
+.evs-cw-display-group-title > .evc-label-chip {
+  align-self: center;
+}
 .evs-cw-display-list {
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--border-primary);
-  border-radius: 10px;
-  overflow: hidden;
+  gap: 8px;
 }
 .evs-cw-display-row {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 9px 12px;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
   cursor: pointer;
-  background: var(--bg-primary);
+  background: var(--fg-quaternary);
+  border: 2px solid transparent;
+  border-radius: var(--radius-sm);
+}
+.evs-cw-display-row.is-on {
+  background: var(--bg-quaternary);
+  border-color: var(--border-brand);
 }
 .evs-cw-display-row.is-fixed {
   cursor: default;
-  background: var(--utility-gray-50);
-}
-.evs-cw-display-row input {
-  margin-top: 2px;
 }
 .evs-cw-display-lock {
   display: inline-flex;
-  width: 16px;
+  width: 20px;
   justify-content: center;
   color: var(--text-tertiary);
 }
 .evs-cw-display-text {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 .evs-cw-display-label {
-  font-size: var(--font-size-text-sm);
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
   color: var(--text-primary);
 }
-.evs-cw-display-row.is-fixed .evs-cw-display-label {
-  color: var(--text-secondary);
-}
 .evs-cw-display-note {
-  font-size: var(--font-size-text-xs);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
   color: var(--text-secondary);
-  line-height: 1.5;
 }
+/* 디자이너가 그린 회색 안내 상자가 없어 흰 카드로만 정리했다 — 디자이너 검수 대상(PW-2041 design-review).
+   모서리·여백은 1on1 완료 화면 피드백 카드(.ood-feedback-card). */
 .evs-cw-display-answers {
-  margin-top: 14px;
-  padding: 10px 12px;
-  border: 1px solid var(--border-primary);
-  border-radius: 10px;
-  background: var(--utility-gray-50);
+  margin-top: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid var(--border-secondary);
+  border-radius: 16px;
+  background: var(--bg-quaternary);
+}
+.evs-cw-display-answers > .evs-cw-display-label {
+  font-size: 14px;
+  line-height: 20px;
 }
 .evs-cw-display-readonly {
   color: var(--utility-warning-700);
@@ -10521,6 +10549,126 @@ button.evm-ai-source {
 .tl-group-modal.evc-shell .tl-group-modal-btn {
   flex: 1 1 auto;
   white-space: nowrap;
+}
+/* [PW-2041] 확인 창의 노란 주의 상자 — 색은 1on1 시작 화면 «주의» 딱지(.ono-start-flag-warning) 그대로.
+   상자 모양(여백 10/12 · 모서리 10 · 14px)은 그 딱지를 줄 단위로 키운 것이다. */
+.evc-modal-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.evc-warn-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--componentColors-utility-warning-utilityWarning200);
+  border-radius: 10px;
+  background: var(--componentColors-utility-warning-utilityWarning50);
+  color: var(--componentColors-utility-warning-utilityWarning700);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+}
+.evc-warn-box > svg {
+  margin-top: 1px;
+}
+.evc-modal-note {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--text-secondary);
+}
+/* [PW-2041] 평가 응답 CSV 내보내기 — 행 수 알약 + 익명 딱지 줄, 입력칸 이름은 섹션 제목 18px */
+.evc-export-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.evc-export-badges > .evc-label-chip {
+  align-self: center;
+}
+.evc-sched-modal-field.is-reason.is-export > .evc-field-label {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 28px;
+  color: var(--text-primary);
+}
+
+/* [PW-2036] 동료 피드백 «원본 보기» 창 — 폭·글씨는 OKR «KR 피드백» 창(.okr-shell.is-krfb · .okr-krfb-*),
+   머리 빛은 사람 프로필 창 머리(.modal-header · .manager-modal-header) 그라데이션 그대로.
+   빛이 닫기 X 뒤까지 깔리게 머리를 본문 맨 위에 그리고, 닫기 줄은 그 위에 띄운다. */
+.tl-group-modal.evc-shell.evl-peer-original-shell {
+  width: 650px;
+}
+.tl-group-modal.evl-peer-original-shell > .tl-group-modal-top {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1;
+}
+.tl-group-modal.evc-shell.evl-peer-original-shell .tl-group-modal-content {
+  padding: 0;
+  gap: 0;
+  border-radius: 16px;
+}
+.evl-peer-original-head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 60px 48px 28px;
+  border-radius: 16px 16px 0 0;
+  background: linear-gradient(197.5deg, rgb(182, 125, 42) 0%, rgb(225, 193, 80) 28.5%, rgb(252, 236, 112) 44.7%, rgb(254, 254, 246) 61.6%, var(--bg-quaternary) 100%);
+}
+.evl-peer-original-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 28px;
+  color: var(--text-primary);
+}
+.evl-peer-original-sub {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--text-tertiary);
+}
+.evl-peer-original-answers {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 32px 48px 48px;
+}
+.evl-peer-original-answer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border-secondary);
+}
+.evl-peer-original-answer:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+.evl-peer-original-text {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+}
+.evl-peer-original-empty {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--text-tertiary);
 }
 /* 본문이 길면 머리·푸터는 두고 가운데만 스크롤한다. */
 .tl-group-modal.evc-shell .tl-group-modal-content {
