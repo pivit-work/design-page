@@ -321,9 +321,9 @@ export const INVITE_CSV_DEFAULT_LABELS = {
   // 고칠 곳이 없어, 받는 값을 그대로 알려 준다.
   csvErrEmploymentType: '고용형태는 {choices} 중 하나로 적어 주세요',
   // 성별도 고정값이다(PW-1332 · 초대 정책서 §2-4) — 받는 라벨을 그대로 알려 준다.
-  csvErrGender: '성별은 남성·여성·기타·비공개 중 하나로 적어 주세요',
+  csvErrGender: '성별은 남성·여성·기타·밝히지 않음 중 하나로 적어 주세요',
   // 결혼 여부도 고정값이다 — 미리보기가 «정상»인데 [발송]에서 서버가 막지 않게 같은 표로 거른다 (PW-1935).
-  csvErrMarital: '결혼 여부는 미혼·기혼·기타 중 하나로 적어 주세요',
+  csvErrMarital: '혼인 여부는 미혼·기혼·기타 중 하나로 적어 주세요',
   csvErrOrgPathNotFound: "조직경로 '{path}'를 찾을 수 없습니다",
   csvErrLadderNeedsFamily: '직군을 함께 지정해주세요',
   csvErrJobPair: '직군에 없는 직렬입니다',
@@ -596,14 +596,16 @@ export function parseBoolCell(value) {
 }
 
 /**
- * 성별 칸이 받는 글자 (PW-1332 · 초대 정책서 §2-4) — 라벨 넷·코드·줄임 남/여·「밝히지 않음」.
+ * 성별 칸이 받는 글자 (PW-1332 · PW-1983 · 초대 정책서 §2-4) — 라벨 넷·코드·줄임 남/여/M/F·남자/여자·
+ * 영어 화면 라벨·옛 라벨 「비공개」(이미 내려받은 파일).
  * 서버 `parseGenderCell` 과 같은 표다. 그 밖의 글자는 `null` — 저장 때 서버도 같은 칸을 막는다.
  */
 const GENDER_BY_TEXT = {
-  남: 'male', 남성: 'male', male: 'male',
-  여: 'female', 여성: 'female', female: 'female',
+  남: 'male', 남성: 'male', 남자: 'male', m: 'male', male: 'male',
+  여: 'female', 여성: 'female', 여자: 'female', f: 'female', female: 'female',
   기타: 'other', other: 'other',
   비공개: 'undisclosed', '밝히지 않음': 'undisclosed', undisclosed: 'undisclosed',
+  'prefer not to say': 'undisclosed',
 };
 
 export function parseGenderCell(value) {
