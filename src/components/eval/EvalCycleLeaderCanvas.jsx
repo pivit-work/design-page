@@ -10,7 +10,7 @@ import Checkbox from '../shared/Checkbox.jsx';
 import { FieldInfo, FieldVisibility } from './evalFieldMeta.jsx';
 import EvalNoteBlock, { EvalMarkdownLite } from './EvalNoteBlock.jsx';
 import { isNoteItem, categoryKind, storedCategoryName, answerScoreText, checkedAnswerText } from './evalTemplateItemModel.js';
-import { AlertIcon, LockIcon } from './evalIcons.jsx';
+import { AlertIcon, LockIcon, SparkleIcon, CheckCircleIcon } from './evalIcons.jsx';
 import { fieldsShape, reseedKeepingEdits } from './reseedAnswers.js';
 import EvalLeaderEvidenceSignals from './EvalLeaderEvidenceSignals.jsx';
 import EvalLeaderPriorRounds from './EvalLeaderPriorRounds.jsx';
@@ -54,6 +54,32 @@ const DEFAULT_LABELS = {
   gradeRequired: '제출하려면 최종 등급을 선택하세요.',
   // leader §5.2.1 — 최종 등급은 리더가 정한다는 인라인 안내(AI 등급 제안 없음)
   gradeDecisionNote: '',
+  // PW-1842 · PW-2033 — 하향 리뷰 AI 초안(leader.policy §5.2 · §5.2.1 · §5.4)과 AI 등급 «참고» 제안(spec §17.3-A).
+  aiCardTitle: 'AI 초안',
+  aiCardSub: '근거 데이터로 서술 초안과 점수·등급 참고 제안을 만듭니다. 점수·등급은 직접 고릅니다.',
+  aiDraft: 'AI 초안 생성',
+  aiDraftAgain: 'AI 초안 다시 생성',
+  aiDrafting: '생성 중…',
+  aiDraftNoData: '데이터가 부족합니다. 직접 작성해주세요.',
+  aiDraftError: 'AI 초안 생성에 실패했습니다. 직접 작성해주세요.',
+  aiDraftUnconfirmed: 'AI 초안 · 확인 전',
+  aiDraftEdited: 'AI 수정됨 · 확인 전',
+  aiDraftConfirmed: 'AI 초안 확인됨',
+  aiDraftConfirm: '확인',
+  aiDraftPendingSubmit:
+    '확인되지 않은 AI 초안 항목이 {count}개 있습니다. 제출 전 확인하거나 직접 작성해주세요.',
+  aiSuggestedScore: 'AI 제안 {score}',
+  aiGradeTitle: 'AI 제안 등급',
+  aiGradeChip: 'AI 제안 {grade}',
+  aiGradeNote: '최종 등급은 리더가 근거를 종합하여 직접 결정합니다 · AI 제안 등급은 참고용입니다',
+  aiGradeInsufficient: '근거가 부족해 등급을 제안하지 않았습니다',
+  aiGradeFailed: '등급 제안을 만들지 못했습니다 — 등급은 직접 골라 주세요',
+  aiGradeSourceOkr: 'OKR',
+  aiGradeSourcePeer: '동료 피드백',
+  aiGradeSourceSelf: '셀프 리뷰',
+  aiGradeSourceOneOnOne: '원온원',
+  aiGradeSourceSnippet: '스니핏',
+  aiGradeSourceHistory: '과거 추이',
   // leader §12.1 L2(켠 사이클) — 등급 카드 머리 캡션. 끈 사이클은 calibOffGradeNote
   gradeCaptionCalibOn: '',
   // leader §12.1 L1 — 제출 바 캡션(켠/끈 사이클). 끈 사이클은 굵게·주황
@@ -260,8 +286,28 @@ function itemsOf(fields, state) {
       score: state[f.key].score,
       rationale: state[f.key].rationale || null,
       checkedOptions: state[f.key].checkedOptions,
+      // PW-2033 — AI 초안 상태(원문·확인·점수 제안)는 초안을 쓴 칸에만 싣는다. 안 실은 칸은 서버가 저장값을 잇는다.
+      ...(state[f.key].aiDraft != null
+        ? { aiDraft: state[f.key].aiDraft, isConfirmed: !!state[f.key].isConfirmed }
+        : {}),
+      // undefined = AI 가 손대지 않은 칸(안 보낸다), null = 다시 만든 초안에 점수 제안이 없다(지운다).
+      ...(state[f.key].aiSuggestedScore !== undefined
+        ? { aiSuggestedScore: state[f.key].aiSuggestedScore }
+        : {}),
     }));
 }
+
+/** PW-2033 — AI 초안이 들어가는 칸: 척도는 점수 사유, 서술은 글. 체크 항목은 초안 대상이 아니다. */
+const aiTextKey = (f) => (f.type === 'rating' ? 'rationale' : f.type === 'textarea' ? 'textAnswer' : null);
+
+const AI_GRADE_SOURCE_LABEL_KEY = {
+  okr: 'aiGradeSourceOkr',
+  peer_feedback: 'aiGradeSourcePeer',
+  self_review: 'aiGradeSourceSelf',
+  one_on_one: 'aiGradeSourceOneOnOne',
+  snippet: 'aiGradeSourceSnippet',
+  grade_history: 'aiGradeSourceHistory',
+};
 
 /** 자동 임시저장이 «바뀐 게 있나»를 가르는 값 — 보낼 항목과 등급. */
 const snapshotOf = (items, grade) => JSON.stringify([items, grade ?? null]);
@@ -398,7 +444,15 @@ const toggleOption = (cur, oid, allowMultiple) => {
 function seedState(answers, fields) {
   const state = {};
   for (const f of fields)
-    state[f.key] = { textAnswer: '', score: null, rationale: '', checkedOptions: null };
+    state[f.key] = {
+      textAnswer: '',
+      score: null,
+      rationale: '',
+      checkedOptions: null,
+      aiDraft: null,
+      isConfirmed: false,
+      aiSuggestedScore: undefined,
+    };
   for (const a of answers ?? []) {
     const f = fields.find((x) =>
       x.templateItemId
@@ -411,6 +465,9 @@ function seedState(answers, fields) {
         score: a.score ?? null,
         rationale: a.rationale ?? '',
         checkedOptions: a.checkedOptions ?? null,
+        aiDraft: a.aiDraft ?? null,
+        isConfirmed: !!a.isConfirmed,
+        aiSuggestedScore: a.aiSuggestedScore ?? undefined,
       };
     }
   }
@@ -622,6 +679,21 @@ export default function EvalCycleLeaderCanvas({
    * 누를 때만 부른다 — 등급을 고르거나 글을 고칠 때 저절로 돌지 않는다(spec §17.3-B A2·A9).
    */
   onAlignmentCheck,
+  /**
+   * PW-1842 · PW-2033 「AI 초안 생성」 — onAiDraft(items, templateContext) → Promise<{ items: [{ index, textAnswer }],
+   * scores: [{ index, score }], gradeSuggestion }>. `index` 는 답을 받는 항목 순서. 넘기지 않으면 AI 초안 카드를 그리지 않는다.
+   * 누를 때만 부른다(절대규칙 5). 초안은 빈 칸·손대지 않은 노란 칸에만 넣고, 점수·등급은 칸을 채우지 않는다(spec §17.1).
+   */
+  onAiDraft,
+  /** 근거 데이터가 하나라도 있나 — 없으면 단추를 끄고 `labels.aiDraftNoData`. */
+  aiDraftAvailable = true,
+  /** 단추를 끄는 다른 이유(체험 AI 소진 등) — 단추 옆에 그대로 보인다. */
+  aiDraftDisabledReason = null,
+  /**
+   * 마지막 AI 등급 제안 — { status: 'ok' | 'insufficient' | 'failed', gradeLabel, rationale, sources }.
+   * null 이면 초안을 만들기 전이라 사유 카드를 그리지 않는다. 등급 버튼을 채우지 않는다(R3).
+   */
+  aiGradeSuggestion = null,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const formLocked = locked ?? submitted;
@@ -646,6 +718,18 @@ export default function EvalCycleLeaderCanvas({
     gradeLabels?.[key] ?? gradeOptions.find((g) => g.key === key)?.label ?? key;
   const [state, setState] = useState(() => seedState(leaderAnswers, fields));
   const [pickedGrade, setGrade] = useState(initialGrade);
+  // PW-1842 — AI 등급 제안. 호출부가 다시 읽어 준 값(화면을 다시 열었을 때)과 방금 만든 값 중 나중 것.
+  const [aiHint, setAiHint] = useState(aiGradeSuggestion);
+  const [aiHintFor, setAiHintFor] = useState(aiGradeSuggestion);
+  if (aiHintFor !== aiGradeSuggestion) {
+    setAiHintFor(aiGradeSuggestion);
+    if (aiGradeSuggestion) setAiHint(aiGradeSuggestion);
+  }
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiFailed, setAiFailed] = useState(false);
+  const [aiDrafted, setAiDrafted] = useState(false);
+  // §5.2.1 — 확인 안 한 초안이 남은 채 제출하려 할 때의 경고(막지 않는다)
+  const [aiPendingAsk, setAiPendingAsk] = useState(0);
   // PW-1045 — 등급 칸이 잠겼으면 고르던 등급 대신 호출부가 준 등급(위원회 값)을 쓴다. 화면을 연 사이
   // 위원회가 등급을 바꿔 잠긴 경우(저장이 거절된 뒤 다시 읽은 값)에도 팀장이 누른 등급이 남아
   // 그 값이 저장된 줄 알게 두지 않는다.
@@ -782,6 +866,91 @@ export default function EvalCycleLeaderCanvas({
 
   const toItems = () => itemsOf(fields, state);
 
+  /**
+   * PW-2033 — 「AI 초안 생성」(leader.policy §5.2). 초안은 빈 칸과 «손대지 않은 노란 칸»에만 넣는다 —
+   * 팀장이 쓴 글·확인한 초안은 덮지 않는다. 점수 제안은 칩(`aiSuggestedScore`)만 바꾸고 점수 칸은 그대로,
+   * 등급 제안은 사유 카드만 바꾸고 고른 등급은 그대로다(§5.4 일괄 적용 금지 · spec §17.3-A R3·R7).
+   */
+  const aiTargets = fields.filter((f) => aiTextKey(f));
+  const aiFillable = (f) => {
+    const st = state[f.key];
+    const text = (st[aiTextKey(f)] || '').trim();
+    return !text || (st.aiDraft != null && !st.isConfirmed && st[aiTextKey(f)] === st.aiDraft);
+  };
+  const handleAiDraft = async () => {
+    if (!onAiDraft || aiBusy || aiTargets.length === 0) return;
+    const items = aiTargets.map((f) => ({
+      index: fields.indexOf(f),
+      itemCategory: f.category ?? null,
+      growthType: f.growthType ?? null,
+      label: f.label ?? null,
+      templateItemId: f.templateItemId ?? null,
+    }));
+    const templateContext = {
+      notes: entries
+        .filter((e) => e.type === 'note' && (e.description || e.text))
+        .map((e) => ({ itemId: e.templateItemId, title: e.text ?? null, body: e.description || e.text })),
+      itemGuides: aiTargets
+        .filter((f) => f.templateItemId && f.description)
+        .map((f) => ({ itemId: f.templateItemId, guide: f.description })),
+    };
+    setAiFailed(false);
+    setAiBusy(true);
+    try {
+      const out = await onAiDraft(items, templateContext);
+      setState((prev) => {
+        const next = { ...prev };
+        for (const d of out?.items ?? []) {
+          const f = fields[d.index];
+          const key = f && aiTextKey(f);
+          if (!key || !d.textAnswer?.trim() || !aiFillable(f)) continue;
+          next[f.key] = { ...next[f.key], [key]: d.textAnswer, aiDraft: d.textAnswer, isConfirmed: false };
+        }
+        for (const f of aiTargets.filter((x) => x.type === 'rating')) {
+          const sc = (out?.scores ?? []).find((x) => x.index === fields.indexOf(f));
+          next[f.key] = { ...next[f.key], aiSuggestedScore: sc ? sc.score : null };
+        }
+        return next;
+      });
+      setAiHint(out?.gradeSuggestion ?? { status: 'failed' });
+      setAiDrafted(true);
+    } catch {
+      setAiFailed(true);
+    } finally {
+      setAiBusy(false);
+    }
+  };
+  /** §5.2.1 노랑(미확인)·초록(확인). 초안을 안 쓴 칸·비운 칸은 null. */
+  const aiStateOf = (f) => {
+    const key = aiTextKey(f);
+    const st = state[f.key];
+    if (!key || st.aiDraft == null || !(st[key] || '').trim()) return null;
+    if (st.isConfirmed) return { tone: 'confirmed', label: L.aiDraftConfirmed };
+    return { tone: 'unconfirmed', label: st[key] === st.aiDraft ? L.aiDraftUnconfirmed : L.aiDraftEdited };
+  };
+  const aiPendingCount = fields.filter((f) => aiStateOf(f)?.tone === 'unconfirmed').length;
+  const aiStateBar = (f) =>
+    aiStateOf(f) && (
+      <div
+        className={`evm-ai-draft-bar is-${aiStateOf(f).tone}`}
+        data-testid={`evl-ai-state-${f.key}`}
+        data-state={aiStateOf(f).tone}
+      >
+        <span className="evm-ai-draft-badge">{aiStateOf(f).label}</span>
+        {aiStateOf(f).tone === 'unconfirmed' && !formLocked && (
+          <button
+            type="button"
+            className="evm-ai-draft-confirm"
+            onClick={() => setField(f.key, { isConfirmed: true })}
+            data-testid={`evl-ai-confirm-${f.key}`}
+          >
+            {L.aiDraftConfirm}
+          </button>
+        )}
+      </div>
+    );
+  const aiTone = (f) => (aiStateOf(f) ? ` is-ai-${aiStateOf(f).tone}` : '');
+
   const sections = [];
   // 설명 항목은 «놓인 자리»가 기능의 핵심이라 그룹핑에는 함께 넣는다.
   entries.forEach((f) => {
@@ -818,6 +987,14 @@ export default function EvalCycleLeaderCanvas({
       gradeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
+    // PW-2033 §5.2.1 — 확인 안 한 AI 초안이 남으면 알리고, 그래도 내면 그 칸은 비운 채 제출된다(서버가 비운다).
+    if (aiPendingCount > 0) {
+      setAiPendingAsk(aiPendingCount);
+      return;
+    }
+    askRationaleThenSubmit();
+  };
+  const askRationaleThenSubmit = () => {
     // §5.4 — 점수를 골랐는데 사유가 빈 항목(사유 필수가 아닌 것)은 묻고 낸다. 필수 항목은 위에서 막았다.
     const missing = fields.filter(
       (f) =>
@@ -886,10 +1063,63 @@ export default function EvalCycleLeaderCanvas({
     calibrationEnabled && L.gradeCaptionCalibOn && (
       <p className="evl-grade-caption" data-testid="evl-grade-caption" key="calib">{L.gradeCaptionCalibOn}</p>
     ),
-    L.gradeDecisionNote && (
+    // PW-1842 — AI 사유 카드가 있으면 그 맨 아래 안내(「… · AI 제안 등급은 참고용입니다」)가 이 문장을 대신한다.
+    !aiHint && L.gradeDecisionNote && (
       <p className="evl-grade-caption" data-testid="evl-grade-decision-note" key="decision">{L.gradeDecisionNote}</p>
     ),
   ];
+  /*
+   * PW-1842 — AI 제안 등급 사유 카드(leader.policy §5.2.1 「AI 등급 제안 규칙」 · spec §17.3-A R2~R7·R10).
+   * 칩·카드는 읽기 전용 — 눌러도 등급이 들어가지 않는다. 노랑/초록을 걸지 않는다(제출 출력이 아니다).
+   */
+  const aiGradeChip = aiHint?.status === 'ok' && (
+    <StatusBadge className="evc-mode-badge evc-tpl-ai" data-testid="evl-ai-grade-chip">
+      {fillLabel(L.aiGradeChip, {
+        grade: aiHint.gradeLabel ?? priorGradeLabelOf(aiHint.gradeKey),
+      })}
+    </StatusBadge>
+  );
+  const aiGradeMsg =
+    aiHint && aiHint.status !== 'ok'
+      ? aiHint.status === 'insufficient'
+        ? L.aiGradeInsufficient
+        : L.aiGradeFailed
+      : null;
+  const aiGradeCard = aiHint && (
+    <div className="evl-ai-sugg" data-testid="evl-ai-grade-card" data-status={aiHint.status}>
+      <div className="evl-ai-sugg-head">
+        <span className="evl-ai-sugg-title">
+          <SparkleIcon size={14} />
+          {L.aiGradeTitle}
+        </span>
+        {aiGradeChip}
+        {aiGradeMsg && (
+          <span className="evl-grade-caption" data-testid="evl-ai-grade-msg">{aiGradeMsg}</span>
+        )}
+      </div>
+      {!aiGradeMsg && aiHint.rationale && (
+        <p className="evl-ai-sugg-reason" data-testid="evl-ai-grade-reason">{aiHint.rationale}</p>
+      )}
+      {!aiGradeMsg && (aiHint.sources ?? []).length > 0 && (
+        <span className="evm-ai-sources" data-testid="evl-ai-grade-sources">
+          {aiHint.sources.map((src) => (
+            <span className="evm-ai-source" key={src} data-testid="evl-ai-grade-source">
+              {L[AI_GRADE_SOURCE_LABEL_KEY[src]] ?? ''}
+            </span>
+          ))}
+        </span>
+      )}
+      <p className="evl-grade-caption" data-testid="evl-ai-grade-note">{L.aiGradeNote}</p>
+    </div>
+  );
+  // 상단고정 — 사유 카드를 접고 띠 위에 칩 한 줄만(§5.2.1 「상단고정(Freeze)」).
+  const aiGradeFreezeLine = aiHint && (
+    <div className="evl-ai-sugg-line" data-testid="evl-ai-grade-line">
+      {aiGradeChip || (
+        <span className="evl-grade-caption" data-testid="evl-ai-grade-msg">{aiGradeMsg}</span>
+      )}
+    </div>
+  );
   const gradeWarnings = [
     /* [PW-1968] 위 차수가 남은 차수는 화면이 이 문구를 비워 보낸다 — 여기서 정한 등급이 최종이 아니다. */
     !calibrationEnabled && L.calibOffGradeNote && (
@@ -1041,6 +1271,7 @@ export default function EvalCycleLeaderCanvas({
         data-testid="evl-grade-card"
         data-position={gradePos}
       >
+        {aiGradeFreezeLine}
         <div className="evl-grade-strip" data-testid="evl-grade-strip">
           <h3 className="evc-card-name">
             {L.gradeTitle}
@@ -1069,6 +1300,7 @@ export default function EvalCycleLeaderCanvas({
         {gradePosNote}
       </div>
       <h3 className="evc-card-name">{L.gradeTitle}</h3>
+      {aiGradeCard}
       {gradeCaptions}
       {gradeWarnings}
       {gradeButtons}
@@ -1242,6 +1474,52 @@ export default function EvalCycleLeaderCanvas({
 
         {/* 우: 작성 */}
         <div className="evl-form">
+          {/* PW-2033 §5.2 — AI 초안 단추(수동만). 셀프 리뷰 AI 초안 카드와 같은 모양. */}
+          {onAiDraft && !formLocked && (
+            <section className="evc-card evm-ai-card" data-testid="evl-ai-card">
+              <div>
+                <div className="evm-ai-card-title">
+                  <SparkleIcon size={15} />
+                  <span>{L.aiCardTitle}</span>
+                </div>
+                <div className="evm-ai-card-sub">{L.aiCardSub}</div>
+              </div>
+              <div className="evc-card-buttons">
+                {(aiDraftDisabledReason || !aiDraftAvailable) && (
+                  <span className="evm-autosave" data-testid="evl-ai-draft-reason">
+                    {aiDraftDisabledReason || L.aiDraftNoData}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  className="evc-btn is-ghost"
+                  disabled={aiBusy || !aiDraftAvailable || !!aiDraftDisabledReason || aiTargets.length === 0}
+                  onClick={() => void handleAiDraft()}
+                  data-testid="evl-ai-draft"
+                >
+                  {aiBusy ? (
+                    L.aiDrafting
+                  ) : aiDrafted ? (
+                    <>
+                      <CheckCircleIcon size={15} />
+                      {L.aiDraftAgain}
+                    </>
+                  ) : (
+                    <>
+                      <SparkleIcon size={15} />
+                      {L.aiDraft}
+                    </>
+                  )}
+                </button>
+              </div>
+              {/* 체험 AI 소진처럼 단추를 끈 이유가 왔으면 그 안내가 실패 문구를 대신한다(겹쳐 띄우지 않는다). */}
+              {aiFailed && !aiDraftDisabledReason && (
+                <p className="evm-field-error" role="alert" data-testid="evl-ai-draft-error">
+                  {L.aiDraftError}
+                </p>
+              )}
+            </section>
+          )}
           {gradeAtTop && gradeCard}
           {gradeAtTop && alignBlock}
           {sections.map((sec) => {
@@ -1320,12 +1598,18 @@ export default function EvalCycleLeaderCanvas({
                             <span className="evm-score-anchor">{f.scaleAnchorMax}</span>
                           )}
                           <span className="evm-score-of">/ {scaleMaxOf(f)}</span>
+                          {/* §5.4 AI 제안 참고 칩 — 읽기 전용. 눌러도 점수가 들어가지 않는다. */}
+                          {state[f.key].aiSuggestedScore != null && (
+                            <StatusBadge className="evc-mode-badge evc-tpl-ai" data-testid={`evl-ai-score-${f.key}`}>
+                              {fillLabel(L.aiSuggestedScore, { score: state[f.key].aiSuggestedScore })}
+                            </StatusBadge>
+                          )}
                         </div>
                       </div>
                       {/* PW-118 사유 서술칸은 척도 항목의 일부다(spec-eval-cycle §4.2.2 B6/D4).
                           requiresRationale 은 칸의 유무가 아니라 제출 게이팅만 정한다. */}
                       <textarea
-                        className={`evm-textarea${triedSubmit && isIncomplete(f) ? ' is-invalid' : ''}`}
+                        className={`evm-textarea${triedSubmit && isIncomplete(f) ? ' is-invalid' : ''}${aiTone(f)}`}
                         rows={2}
                         value={state[f.key].rationale}
                         placeholder={
@@ -1337,6 +1621,7 @@ export default function EvalCycleLeaderCanvas({
                         onChange={(e) => setField(f.key, { rationale: e.target.value })}
                         data-testid={`evl-rationale-${f.key}`}
                       />
+                      {aiStateBar(f)}
                       {triedSubmit && isIncomplete(f) && (
                         <p className="evm-field-error" data-testid={`evl-rationale-error-${f.key}`}>
                           {L.rationaleRequired}
@@ -1382,15 +1667,18 @@ export default function EvalCycleLeaderCanvas({
                       />
                     )
                   ) : (
-                    <textarea
-                      className="evm-textarea"
-                      rows={3}
-                      value={state[f.key].textAnswer}
-                      placeholder={f.placeholder}
-                      disabled={formLocked}
-                      onChange={(e) => setField(f.key, { textAnswer: e.target.value })}
-                      data-testid={`evl-text-${f.key}`}
-                    />
+                    <>
+                      <textarea
+                        className={`evm-textarea${aiTone(f)}`}
+                        rows={3}
+                        value={state[f.key].textAnswer}
+                        placeholder={f.placeholder}
+                        disabled={formLocked}
+                        onChange={(e) => setField(f.key, { textAnswer: e.target.value })}
+                        data-testid={`evl-text-${f.key}`}
+                      />
+                      {aiStateBar(f)}
+                    </>
                   )}
                   <FieldVisibility
                     visibleToRoles={f.visibleToRoles}
@@ -1611,6 +1899,20 @@ export default function EvalCycleLeaderCanvas({
             askPromoReasonThenSubmit();
           }}
           testId="evl-rationale-confirm"
+        />
+      )}
+
+      {aiPendingAsk > 0 && (
+        <ConfirmModal
+          title={fillLabel(L.aiDraftPendingSubmit, { count: aiPendingAsk })}
+          confirmLabel={L.rationaleMissingContinue}
+          cancelLabel={L.rationaleMissingCancel}
+          onCancel={() => setAiPendingAsk(0)}
+          onConfirm={() => {
+            setAiPendingAsk(0);
+            askRationaleThenSubmit();
+          }}
+          testId="evl-ai-pending-confirm"
         />
       )}
 

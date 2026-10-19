@@ -4787,6 +4787,58 @@ button.evm-ai-source {
   font-size: var(--font-size-text-xs);
   color: var(--text-secondary);
 }
+/* PW-1842 AI 제안 등급 사유 카드(leader.policy §5.2.1) — 디자이너 원본이 없어 같은 화면군의 디자이너 값으로 짠다:
+   보라는 AI 배지(.evc-tpl-ai · purple-600 12%)와 같은 색을 더 옅게, 칸 모양은 AI 초안 보류 블록(.evm-ai-draft-pending)과
+   같은 padding·radius, 글씨는 등급 카드 안내(.evl-grade-caption)·초안 본문(.evm-ai-draft-pending-text)과 같다. design-review. */
+.evl-ai-sugg {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin: 0 0 var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--utility-purple-600) 4%, transparent);
+  border: 1px solid color-mix(in srgb, var(--utility-purple-600) 20%, transparent);
+}
+.evl-ai-sugg .evl-grade-caption {
+  margin: 0;
+}
+.evl-ai-sugg-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+.evl-ai-sugg-title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--font-size-text-xs);
+  font-weight: 700;
+  color: var(--utility-purple-600);
+}
+.evl-ai-sugg-reason {
+  margin: 0;
+  font-size: var(--font-size-text-sm);
+  color: var(--text-primary);
+  white-space: pre-wrap;
+}
+/* AI 제안 칩(「AI 제안 N」·「AI 제안 {등급}」)은 .evc-mode-badge + .evc-tpl-ai(AI 보라) 조합이다. 공용 딱지 CSS 가
+   여러 화면 CSS 에서 다시 읽혀 뒤에 오면 .evc-mode-badge 의 초록이 보라를 덮는다 — 하향 리뷰 작성 칸 안에서만 같은 값을 한 단계 세게. */
+.evl-form .evc-tpl-ai {
+  background: color-mix(in srgb, var(--utility-purple-600) 12%, transparent);
+  color: var(--utility-purple-600);
+}
+/* 상단고정 띠 위 칩 한 줄 */
+.evl-ai-sugg-line {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-xs);
+}
+.evl-ai-sugg-line .evl-grade-caption {
+  margin: 0;
+}
 /* PW-1594 §5.13.4 — 위 차수가 배정됐을 때 등급 카드 아래 muted. 기획은 11px 이지만 평가 화면 글씨
    아래끝(12px · PW-831 evalTypographyPalette 가드)에 맞춘다. */
 .evl-grade-round-note {
