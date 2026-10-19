@@ -3,8 +3,10 @@
  * onClick 이 있으면 클릭 가능한 필터 타일(active 시 강조).
  * tone 을 주면 숫자에 뜻 색을 입힌다 — success · info · warn · error · violet · muted (PW-760
  * CSV 가져오기 요약: 신규·갱신·빠진 사람·오류가 한눈에 갈려야 한다). 없으면 기존 다크 숫자.
+ * sub2 는 sub 아래 둘째 보조 줄 — sub 와 같은 글자 규격이고 sub2Hint 가 툴팁이다
+ * (개요 «활성 멤버»의 «그중 미가입 N명» · admin-spec §2.2 · PW-2059).
  */
-export default function AdminStatTile({ label, value, sub, onClick, active = false, tone }) {
+export default function AdminStatTile({ label, value, sub, sub2, sub2Hint, onClick, active = false, tone }) {
   const clickable = typeof onClick === 'function';
   return (
     <div
@@ -27,6 +29,11 @@ export default function AdminStatTile({ label, value, sub, onClick, active = fal
       <p className="admin-stat-label">{label}</p>
       <p className="admin-stat-value">{value}</p>
       {sub && <p className="admin-stat-sub">{sub}</p>}
+      {sub2 && (
+        <p className="admin-stat-sub" title={sub2Hint || undefined} data-testid="admin-stat-sub2">
+          {sub2}
+        </p>
+      )}
     </div>
   );
 }

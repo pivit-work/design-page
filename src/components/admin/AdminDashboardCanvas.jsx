@@ -168,6 +168,8 @@ export default function AdminDashboardCanvas({
             label={s.label}
             value={s.value}
             sub={s.sub}
+            sub2={s.sub2}
+            sub2Hint={s.sub2Hint}
             active={!!s.active}
             onClick={onStatClick && s.filterKey ? () => onStatClick(s.filterKey) : undefined}
           />

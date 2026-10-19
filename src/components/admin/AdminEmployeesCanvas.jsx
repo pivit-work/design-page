@@ -84,6 +84,9 @@ const DEFAULT_LABELS = {
   billingSummary: {
     plan: (name) => `${name} 플랜`,
     activeSeats: '활성 좌석',
+    // 활성 좌석 중 가입 전인 사람 — 좌석에서 빼지 않고 «그중»으로 보인다 (admin-spec §3.7 · PW-2059)
+    unjoinedSeats: (n) => `(그중 미가입 ${n}명)`,
+    unjoinedSeatsHint: '가입 전이어도 등록된 재직·수습 구성원은 좌석이에요',
     perSeat: (price) => `좌석당 ₩${Number(price || 0).toLocaleString('ko-KR')}/월`,
     firstCycle: (days) =>
       days == null
@@ -600,6 +603,12 @@ function BillingSummaryBanner({ summary, labels, onGoBilling }) {
         {' · '}
         {labels.activeSeats} <b style={{ color: '#0F172A' }}>{summary.activeSeats}</b>
         {summary.seatLimit != null && <> / {summary.seatLimit}</>}
+        {summary.unjoinedSeats > 0 && labels.unjoinedSeats && (
+          <span data-testid="employees-billing-banner-unjoined" title={labels.unjoinedSeatsHint}>
+            {' '}
+            {labels.unjoinedSeats(summary.unjoinedSeats)}
+          </span>
+        )}
         {summary.seatPrice > 0 && <> · {labels.perSeat(summary.seatPrice)}</>}
         {cycleText && <span style={{ marginLeft: 8, color: '#94A3B8' }}>· {cycleText}</span>}
       </div>
