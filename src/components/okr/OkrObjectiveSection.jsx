@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
@@ -81,8 +81,30 @@ export default function OkrObjectiveSection({
   onUpdateKr,
   onToggleInitiative,
   canEditInitiative = false,
+  focusKrId = null,
+  focusObjectiveId = null,
 }) {
   const [expanded, setExpanded] = useState(defaultExpanded);
+  // 소비처가 가리킨 KR(또는 목표)이 이 목표 안에 있으면 펼치고 그 줄까지 내린다 (PW-2016).
+  // 내리기는 가리킨 값마다 한 번만 — 사용자가 접었다 다시 펼칠 때마다 화면이 튀지 않게.
+  const focusedKrIndex = focusKrId ? (objective.krs ?? []).findIndex((kr) => kr.krId === focusKrId) : -1;
+  const focused = focusedKrIndex >= 0 || Boolean(focusObjectiveId && objective.id === focusObjectiveId);
+  const focusKey = focused ? `${focusKrId ?? ''}|${focusObjectiveId ?? ''}` : null;
+  const rootRef = useRef(null);
+  const focusedKrRef = useRef(null);
+  const scrolledFor = useRef(null);
+  // 가리킨 값이 새로 오면 렌더 중에 한 번 펼친다 (effect 안 setState 를 피하는 React 권장 모양).
+  const [openedFor, setOpenedFor] = useState(null);
+  if (focusKey && openedFor !== focusKey) {
+    setOpenedFor(focusKey);
+    setExpanded(true);
+  }
+  useEffect(() => {
+    if (!focusKey || !expanded || scrolledFor.current === focusKey) return;
+    scrolledFor.current = focusKey;
+    const target = focusedKrRef.current ?? rootRef.current;
+    target?.scrollIntoView?.({ block: 'center' });
+  }, [focusKey, expanded]);
   const [openFeedback, setOpenFeedback] = useState({});
   // 배지를 눌러 상태를 넘길 수 있는지. 콜백이 없으면(=배선 안 한 소비처) 권한과
   // 무관하게 읽기 전용이다 — 눌러도 아무 일이 없는 배지를 「눌리는 것처럼」 그리지 않는다.
@@ -94,7 +116,7 @@ export default function OkrObjectiveSection({
   const toggleFeedback = (i) => setOpenFeedback((prev) => ({ ...prev, [i]: !prev[i] }));
 
   return (
-    <div className="okr-p-objective">
+    <div className="okr-p-objective" ref={rootRef} data-objective-id={objective.id}>
       <div className="okr-p-row okr-p-obj-row" onClick={() => setExpanded((v) => !v)}>
         <div className="okr-p-col-label">
           <span className="okr-p-obj-name">{objective.label}</span>
@@ -120,7 +142,12 @@ export default function OkrObjectiveSection({
       </div>
 
       {expanded && objective.krs?.map((kr, i) => (
-        <div className="okr-p-kr-block" key={rowKey(kr, i, 'label')}>
+        <div
+          className="okr-p-kr-block"
+          key={rowKey(kr, i, 'label')}
+          data-kr-id={kr.krId}
+          ref={i === focusedKrIndex ? focusedKrRef : undefined}
+        >
           <div
             className={`okr-p-row okr-p-kr-row${canUpdateKr(kr) ? '' : ' is-static'}`}
             {...(canUpdateKr(kr) ? { onClick: () => onUpdateKr(kr) } : {})}

@@ -23,6 +23,9 @@ import rowKey from './rowKey.js';
  * 어느 쪽이 정본인지 사용자가 판단해야 하고, 특히 옛 모달 안의 요청 발송 폼은
  * 「이미 스레드가 있는 KR 에 중복 요청 금지」 규칙 바깥에 있어 중복 요청을 실제로
  * 통과시켰다. 옛 패널은 `OkrKrFeedbackModal.jsx` 에 레거시로만 남아 있다.
+ *
+ * focusKrId · focusObjectiveId — 알림을 눌러 들어온 소비처가 «그 KR(목표)» 를 가리킬 때 준다.
+ * 그 KR 이 든 목표를 펼치고 그 줄까지 화면을 내린다. 모양은 바꾸지 않는다 (pivit-work PW-2016).
  */
 export default function OkrBoard({
   board,
@@ -36,6 +39,8 @@ export default function OkrBoard({
   onInsightAction,
   onToggleInitiative,
   canEditInitiative = false,
+  focusKrId = null,
+  focusObjectiveId = null,
 }) {
   const { banner, insights, overall, theme, objectives } = board;
   // 피드백 작성 대상 KR(null=닫힘). 저장 콜백에 krId 를 전달하기 위해 kr 을 보관.
@@ -75,6 +80,8 @@ export default function OkrBoard({
             onUpdateKr={(kr) => kr.updateDetail && setKrUpdate({ ...kr.updateDetail, title: kr.title })}
             onToggleInitiative={onToggleInitiative}
             canEditInitiative={canEditInitiative}
+            focusKrId={focusKrId}
+            focusObjectiveId={focusObjectiveId}
           />
         ))}
       </div>

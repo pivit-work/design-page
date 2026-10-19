@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react';
 import Icon from '../shared/Icon.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
@@ -40,11 +41,18 @@ function initial(name) {
   return (name || '').trim().slice(0, 1) || '·';
 }
 
-function ActionRow({ item, labels, onToggle, renderDeadlineEditor, renderKrPicker, onKrClick }) {
+function ActionRow({ item, labels, onToggle, renderDeadlineEditor, renderKrPicker, onKrClick, focused = false }) {
+  // 소비처가 이 줄을 가리키면(알림으로 들어온 경우) 그 줄까지 화면을 내린다 (pivit-work PW-2016).
+  const rowRef = useRef(null);
+  useEffect(() => {
+    if (focused) rowRef.current?.scrollIntoView?.({ block: 'center' });
+  }, [focused]);
   return (
     <div
+      ref={rowRef}
       className={`ai-row ${item.done ? 'is-done' : ''} ${item.recent ? 'is-recent' : ''}`.trim()}
       data-testid="ai-row"
+      data-item-id={item.id}
     >
       <button
         type="button"
@@ -172,6 +180,9 @@ export default function ActionItemsCanvas({
   // 소비처가 문구까지 만들어 넘기고, 더 남은 것이 없으면 빼서 버튼이 사라진다. 누르면 `onMore`.
   more,
   onMore,
+  // 이 id 의 줄까지 화면을 내린다 — 알림으로 들어온 소비처가 «그 할 일» 을 가리킬 때 (pivit-work PW-2016).
+  // 줄이 접힌 묶음·필터에 가려 있으면 보이게 하는 것은 소비처 몫이다.
+  focusItemId = null,
 }) {
   const labels = { ...DEFAULT_LABELS, ...(labelsProp || {}) };
   const pct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
@@ -329,6 +340,7 @@ export default function ActionItemsCanvas({
                               onKrClick={onKrClick}
                               renderDeadlineEditor={renderDeadlineEditor}
                               renderKrPicker={renderKrPicker}
+                              focused={focusItemId != null && item.id === focusItemId}
                             />
                           ))}
                         </div>
@@ -385,6 +397,7 @@ export default function ActionItemsCanvas({
                       onKrClick={onKrClick}
                       renderDeadlineEditor={renderDeadlineEditor}
                       renderKrPicker={renderKrPicker}
+                      focused={focusItemId != null && item.id === focusItemId}
                     />
                   ))}
                 </div>

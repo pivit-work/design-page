@@ -94,6 +94,13 @@ export default function ManagerCanvas({
    * 넘긴다. 없으면 같은 id 로 본다. 찾는 팀원이 없으면(조회 범위 밖) 상세 창을 열지 않는다(기획 §7-4).
    */
   krMemberProfileId,
+  /**
+   * 이 id 의 팀원 상세 창을 열어 둔 채로 시작한다 — 알림(헬스 하락 등)을 눌러 들어온
+   * 소비자가 «그 팀원» 을 가리킬 때 (pivit-work PW-2016). 값이 바뀔 때마다 한 번씩 열고,
+   * 목록에 그 팀원이 없으면(조회 범위 밖·아직 불러오는 중) 열지 않는다.
+   * 열 때 `onMemberOpen` 은 부르지 않는다 — 가리킨 쪽이 소비자라 이미 알고 있다.
+   */
+  requestedMemberId = null,
 }) {
   // 🔴 열린 멤버는 **id 로** 기억하고 객체는 지금 props 에서 다시 찾는다.
   // 객체를 통째로 state 에 담아 두면, 모달이 열린 뒤 소비자가 그 멤버의 데이터를
@@ -106,6 +113,15 @@ export default function ManagerCanvas({
       : [...(actionQueue?.members ?? []), ...(teamStatus?.members ?? [])].find(
           (m) => m.id === openMemberId,
         ) ?? null;
+  const [openedRequest, setOpenedRequest] = useState(null);
+  if (
+    requestedMemberId != null &&
+    openedRequest !== requestedMemberId &&
+    [...(actionQueue?.members ?? []), ...(teamStatus?.members ?? [])].some((m) => m.id === requestedMemberId)
+  ) {
+    setOpenedRequest(requestedMemberId);
+    setOpenMemberId(requestedMemberId);
+  }
   const openProfile = (m) => { setOpenMemberId(m?.id ?? null); onMemberOpen?.(m); };
   const closeProfile = () => { setOpenMemberId(null); onMemberOpen?.(null); };
   const openKrMemberProfile = (krMemberId) => {

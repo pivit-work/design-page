@@ -22,7 +22,7 @@ import OkrTeamPicker, { TEAM_PICKER_MIN } from './OkrTeamPicker.jsx';
  * 팀이 TEAM_PICKER_MIN 개 이상이면 줄 오른쪽 끝에 검색 달린 「팀 고르기」(OkrTeamPicker)를 단다.
  * teamPickerLabels: { trigger, search, empty } — 소비자 번역. 안 주면 한국어 기본값.
  */
-export default function OkrTeamCanvas({ data, icons, baseUrl = '', activeTeam, onTeamChange, onKrUpdate, onSubmitFeedback, onViewAllFeedback, onWriteFeedback, onRefreshInsights, onInsightAction, onToggleInitiative, canEditInitiative = false, teamPickerLabels }) {
+export default function OkrTeamCanvas({ data, icons, baseUrl = '', activeTeam, onTeamChange, onKrUpdate, onSubmitFeedback, onViewAllFeedback, onWriteFeedback, onRefreshInsights, onInsightAction, onToggleInitiative, canEditInitiative = false, teamPickerLabels , focusKrId = null, focusObjectiveId = null }) {
   const { teams, periodLabel, links, parents, board, history } = data;
   const [internalTeam, setInternalTeam] = useState(teams[1] ?? teams[0]);
   const team = activeTeam ?? internalTeam;
@@ -88,7 +88,7 @@ export default function OkrTeamCanvas({ data, icons, baseUrl = '', activeTeam, o
       ) : (
         <>
           <OkrLinkedParents links={links} parents={parents} />
-          <OkrBoard board={{ ...board, theme: board.theme.replace('{team}', team) }} icons={icons} baseUrl={baseUrl} onKrUpdate={onKrUpdate} onSubmitFeedback={onSubmitFeedback} onViewAllFeedback={onViewAllFeedback} onWriteFeedback={onWriteFeedback} onRefreshInsights={onRefreshInsights} onInsightAction={onInsightAction} onToggleInitiative={onToggleInitiative} canEditInitiative={canEditInitiative} />
+          <OkrBoard board={{ ...board, theme: board.theme.replace('{team}', team) }} icons={icons} baseUrl={baseUrl} onKrUpdate={onKrUpdate} onSubmitFeedback={onSubmitFeedback} onViewAllFeedback={onViewAllFeedback} onWriteFeedback={onWriteFeedback} onRefreshInsights={onRefreshInsights} onInsightAction={onInsightAction} onToggleInitiative={onToggleInitiative} canEditInitiative={canEditInitiative} focusKrId={focusKrId} focusObjectiveId={focusObjectiveId} />
         </>
       )}
     </div>
