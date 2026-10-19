@@ -243,7 +243,6 @@ const DEFAULT_LABELS = {
     title: '표시할 열',
     cols: {
       name: '이름',
-      nickname: '닉네임',
       displayName: '표시 이름',
       email: '이메일',
       phone: '전화번호',
@@ -1630,7 +1629,8 @@ const NO_OPTIONAL_FIELDS = {};
 
 const LIST_OPTIONAL_COLS = [
   { id: 'employeeCode', width: 100 },
-  { id: 'nickname', width: 110 },
+  /* 닉네임은 여기 없다 — 목록 열이 아니라 «전체 구성원» 반출 열이다(admin-spec §3.1 [L]
+     2026-08-22 · TC-ADM-128). 고치는 자리는 편집 패널 › 기본 정보뿐이다(PW-2028). */
   { id: 'displayName', width: 130 },
   { id: 'phone', width: 130 },
   /** 직종 — 근로 형태 대분류(사무직·연구직). 선택 적용 항목이고 인사 분류의
@@ -1665,8 +1665,8 @@ const LIST_OPTIONAL_COLS = [
  * ⚙ 기본값 — `admin-spec.md §3.1` 「⚙ 선택 컬럼 13종 정본표」(PW-401)를 따른다.
  *
  * 정본표의 11종은 켜고 **확정등급·연봉은 숨긴다**(평가 결과 노출·반출 사고). 정본표에 없는 열
- * (닉네임·표시 이름·전화번호·빌딩·퇴사일·학력)은 ⚙ 에서 켤 수 있게 남기되 기본은 끈다 —
- * 닉네임은 목록 열이 아니라 반출 열이라고 정본표가 따로 적었다.
+ * (표시 이름·전화번호·빌딩·퇴사일·학력)은 ⚙ 에서 켤 수 있게 남기되 기본은 끈다.
+ * 닉네임은 목록 열이 아니라 반출 열이라고 정본표가 따로 적어, ⚙ 후보에서도 뺐다(PW-2028).
  */
 const LIST_DEFAULT_ON_OPT_COLS = new Set([
   'employeeCode', 'jobCategory', 'jobRank', 'businessTitle', 'workSchedule',
@@ -2736,7 +2736,6 @@ function EmployeesListView({
     /* 체크박스 — 상시 컬럼 **첫 항목**이다(§3.1). 권한이 없으면 열째 없다. */
     ...(selectable ? [{ id: 'select', label: '', width: 40 }] : []),
     { id: 'name', label: cl.name, width: 200 },
-    ...(optOn('nickname') ? [{ id: 'nickname', label: cl.nickname, width: 110 }] : []),
     ...(optOn('displayName') ? [{ id: 'displayName', label: cl.displayName, width: 130 }] : []),
     { id: 'email', label: cl.email, width: 200 },
     ...(optOn('phone') ? [{ id: 'phone', label: cl.phone, width: 130 }] : []),
@@ -3001,7 +3000,6 @@ function EmployeesListView({
             </span>
           </button>
         );
-      case 'nickname': return <TextCell value={m.nickname} />;
       case 'displayName': return <TextCell value={m.displayName} />;
       case 'email': return <TextCell value={m.email} />;
       case 'phone': return <TextCell value={m.phone} />;
