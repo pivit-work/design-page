@@ -1252,6 +1252,18 @@ function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, advancing = 
               {L.open}
             </button>
           )}
+          {/* [PW-2063 · 정책 §A·§5.7.2 R1] 위자드를 다 마친 초안(회수해 돌아온 사이클 포함)도 초안이라
+              「초안 삭제」가 있다 — 고치려면 [관리], 다시 열려면 [오픈], 치우려면 이 버튼. */}
+          {isDraft && !isWizardDraft && onDeleteDraft && (
+            <button
+              type="button"
+              className="evc-btn is-ghost"
+              onClick={() => onDeleteDraft(cycle)}
+              data-testid="evc-draft-delete"
+            >
+              {L.draftDelete}
+            </button>
+          )}
           {/* 오픈된 사이클을 다음 단계로 — 이 버튼이 없어 사이클이 첫 단계에 영구 정체했다.
               nextStatus 는 서버가 계산(리뷰 종류·단계 ON/OFF 반영). 마지막 단계면 숨긴다. */}
           {isActive && cycle.nextStatus && (

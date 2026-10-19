@@ -47,6 +47,8 @@ const DEFAULT_LABELS = {
   revokeEffectDraft: '초안으로 돌아갑니다. 설정은 그대로 남고, 고쳐서 다시 오픈하거나 초안을 삭제할 수 있습니다.',
   withdrawEffectNotify: '오픈 알림을 받은 {{count}}명에게 「평가가 취소되었습니다」 알림이 갑니다(인앱 + 이메일).',
   revokeEffectSent: '이미 보낸 오픈 알림과 리마인더 {{count}}건은 거둘 수 없습니다.',
+  withdrawEffectNotifyUnknown: '「평가가 취소되었습니다」 알림을 받을 인원: {{status}}',
+  revokeEffectSentUnknown: '이미 보낸 오픈 알림과 리마인더: {{status}}',
   revokeEffectNoRecords: '작성된 응답 0건 · 제출된 리뷰 0건 — 구성원이 남긴 기록이 없어 회수할 수 있습니다.',
   revokeRejected: '그사이 구성원이 작성을 시작해 회수할 수 없습니다. 멈추려면 평가 일시 중단을 쓰십시오.',
   revoking: '회수하는 중…',
@@ -1128,7 +1130,8 @@ export default function EvalCycleMonitoringCanvas({
       {/* [PW-2063 · 정책 §5.7.2] 회수 확인 창 — 일시 중단 창과 같은 공용 확인 창(위험 톤). 수치는 창을 열 때
           호출부가 서버에서 받는다. 못 받으면 «불러오지 못했습니다»를 적고 회수를 막는다. */}
       {withdrawKind === 'revoke' && (() => {
-        const num = (v) => (withdrawImpact === undefined ? L.withdrawLoading : v == null ? L.withdrawLoadFailed : v);
+        // 수를 모르면 «…{N}명에게»에 문구를 끼우지 않고 «무엇: 불러오지 못했습니다» 줄로 쓴다.
+        const unknown = withdrawImpact === undefined ? L.withdrawLoading : L.withdrawLoadFailed;
         const rejected = withdrawStale === 'rejected';
         const lines = rejected
           ? [cycle?.name ?? '']
@@ -1137,8 +1140,16 @@ export default function EvalCycleMonitoringCanvas({
               '',
               L.revokeEffectsTitle,
               `· ${L.revokeEffectDraft}`,
-              `· ${fill(L.withdrawEffectNotify, { count: num(withdrawImpact?.notifiedCount) })}`,
-              `· ${fill(L.revokeEffectSent, { count: num(withdrawImpact?.remindersSent) })}`,
+              `· ${
+                withdrawImpact
+                  ? fill(L.withdrawEffectNotify, { count: withdrawImpact.notifiedCount })
+                  : fill(L.withdrawEffectNotifyUnknown, { status: unknown })
+              }`,
+              `· ${
+                withdrawImpact
+                  ? fill(L.revokeEffectSent, { count: withdrawImpact.remindersSent })
+                  : fill(L.revokeEffectSentUnknown, { status: unknown })
+              }`,
               `· ${L.revokeEffectNoRecords}`,
             ];
         return (
@@ -1174,8 +1185,11 @@ export default function EvalCycleMonitoringCanvas({
       {withdrawKind === 'delete' && (() => {
         const published = withdrawStale === 'published';
         const loaded = !!withdrawImpact;
-        const notified =
-          withdrawImpact === undefined ? L.withdrawLoading : withdrawImpact == null ? L.withdrawLoadFailed : withdrawImpact.notifiedCount;
+        const notifyLine = loaded
+          ? fill(L.withdrawEffectNotify, { count: withdrawImpact.notifiedCount })
+          : fill(L.withdrawEffectNotifyUnknown, {
+              status: withdrawImpact === undefined ? L.withdrawLoading : L.withdrawLoadFailed,
+            });
         const recordsLine = !loaded
           ? withdrawImpact === undefined
             ? L.deleteEffectRecordsLoading
@@ -1194,7 +1208,7 @@ export default function EvalCycleMonitoringCanvas({
           L.deleteEffectsTitle,
           `· ${L.deleteEffectGone}`,
           `· ${recordsLine}`,
-          `· ${fill(L.withdrawEffectNotify, { count: notified })}`,
+          `· ${notifyLine}`,
           `· ${L.deleteEffectAudit}`,
         ];
         return (
