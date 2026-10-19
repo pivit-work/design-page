@@ -13,7 +13,11 @@ import { ArrowRightIcon, CheckCircleIcon, ChevronRightIcon } from './evalIcons.j
  *
  *   cycles[{ id, name, period, calibrationEnabled?, phases[{ id, label, due, status, actionable, evaluator }] }]
  *     calibrationEnabled === false 면 캘리브레이션 칩을 그리지 않는다 (member §10.1 M2).
- *     status: 'submitted' | 'in_progress' | 'pending'
+ *     status: 라벨 사전(member §3.2-A · PW-1970) — 모양은 §3.2 세 가지 중 하나다
+ *       완료(초록+체크): 'submitted' 제출 완료 · 'arrived' 도착
+ *       진행(주황): 'not_started' 작성 전 · 'in_progress' 작성 중 · 'open' 진행 중
+ *       대기(회색): 'not_open' 열리기 전 · 'missed' 미제출 · 'closed' 마감 · 'pending'(옛 값)
+ *     waitsForSelf: 셀프를 먼저 내야 열린다 — 보조 줄 「셀프 완료 후 오픈」. 안 주면 옛 판정(동료·대기·못 누름)
  *     actionable: 누르면 갈 곳이 있다 · evaluator: 평가자 자격으로 열리는 상자(하향·캘리브레이션)
  *   reportBanner: { cycleId, cycleName, gradeLabel } | null
  *   peerTasks[{ cycleId, evaluateeId, name, due, submitted }]
@@ -37,7 +41,17 @@ const DEFAULT_LABELS = {
   inProgress: '진행 중',
   period: '대상 기간: {period}',
   due: '마감 {due}',
-  status: { submitted: '제출 완료', in_progress: '작성 중', pending: '시작 전' },
+  status: {
+    not_open: '열리기 전',
+    not_started: '작성 전',
+    in_progress: '작성 중',
+    submitted: '제출 완료',
+    missed: '미제출',
+    open: '진행 중',
+    closed: '마감',
+    arrived: '도착',
+    pending: '시작 전',
+  },
   chips: {
     self: '셀프 리뷰',
     peer: '동료 리뷰 (주는)',
@@ -59,7 +73,19 @@ const DEFAULT_LABELS = {
     '소속 조직의 재직자가 3명보다 적으면 익명이 지켜지지 않아 동료 리뷰를 운영하지 않습니다. 다른 동료에게 쓰는 동료 리뷰는 그대로 작성합니다.',
 };
 
-const STATUS_TONE = { submitted: 'success', in_progress: 'warning', pending: 'neutral' };
+/** 상태 → 상자 모양(member §3.2 표의 완료·진행 중·시작 전). 모르는 값은 대기 모양이다. */
+const STATUS_SHAPE = {
+  submitted: 'done',
+  arrived: 'done',
+  not_started: 'active',
+  in_progress: 'active',
+  open: 'active',
+  not_open: 'idle',
+  missed: 'idle',
+  closed: 'idle',
+  pending: 'idle',
+};
+const SHAPE_TONE = { done: 'success', active: 'warning', idle: 'neutral' };
 const CHIP_ORDER = ['self', 'peer', 'manager', 'calibration'];
 
 function isObj(v) {
@@ -79,10 +105,15 @@ function fill(tpl, vars) {
 }
 
 function PhaseBox({ cycleId, phase, L, onPhaseClick }) {
-  const done = phase.status === 'submitted';
+  const shape = STATUS_SHAPE[phase.status] || 'idle';
+  const done = shape === 'done';
+  const waitsForSelf =
+    phase.waitsForSelf !== undefined
+      ? phase.waitsForSelf === true
+      : phase.id === 'peer' && phase.status === 'pending' && !phase.actionable && !phase.evaluator;
   const classes = [
     'evmh-phase',
-    phase.evaluator ? 'is-evaluator' : done ? 'is-done' : phase.status === 'in_progress' || phase.actionable ? 'is-active' : '',
+    phase.evaluator ? 'is-evaluator' : done ? 'is-done' : shape === 'active' || phase.actionable ? 'is-active' : '',
     phase.actionable ? '' : 'is-idle',
   ].filter(Boolean).join(' ');
   const body = (
@@ -103,10 +134,10 @@ function PhaseBox({ cycleId, phase, L, onPhaseClick }) {
       </span>
       <span className="evmh-phase-bottom">
         {phase.due && <span className="evmh-phase-due">{fill(L.due, { due: phase.due })}</span>}
-        <StatusBadge tone={STATUS_TONE[phase.status] || 'neutral'} className="evc-status-badge">
+        <StatusBadge tone={SHAPE_TONE[shape]} className="evc-status-badge">
           {L.status[phase.status] || phase.status}
         </StatusBadge>
-        {phase.id === 'peer' && phase.status === 'pending' && !phase.actionable && !phase.evaluator && (
+        {waitsForSelf && (
           <span className="evmh-phase-due">{L.peerWaitsSelf}</span>
         )}
       </span>
