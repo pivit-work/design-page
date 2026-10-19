@@ -1369,8 +1369,10 @@ button.ono-add-modal-input { cursor: pointer; }
   display: flex;
   align-items: flex-start;
   justify-content: flex-end;
-  /* 컨텐츠 카드 상단 12px · 우측 12px 떨어진 위치 (spacing-lg) */
-  padding: 12px 12px 0 0;
+  /* 컨텐츠 카드 상단 12px · 우측 12px 떨어진 위치 (spacing-lg).
+     창이 앱 최소 폭(App.css .app min-width 1400px)보다 좁으면 카드 오른쪽 끝이 창 밖에 있어
+     상자와 [종료]가 잘린다 — 모자란 폭만큼 더 안쪽으로 당긴다. 1400 이상에서는 12px 그대로 (PW-2010). */
+  padding: 12px calc(max(0px, 1400px - 100vw) + 12px) 0 0;
   pointer-events: none;
 }
 /* PiP(Picture-in-Picture) 창에 단독 렌더될 때: sticky 해제, 창 전체를
