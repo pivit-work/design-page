@@ -456,41 +456,47 @@ export default function EvalLeaderAssignmentSection({
                   )}
                   <div className="evc-la-rule-axis">
                     <span className="evc-la-hint">{L.leaderRuleThen}</span>
-                    <Select
-                      value={String(ruleDraft.round)}
-                      options={roundList.map((k) => ({
-                        value: String(k),
-                        label: fill(L.leaderAsgColRound, { round: k }),
-                      }))}
-                      aria-label={L.leaderRuleRound}
-                      onChange={(e) => setRuleDraft((d) => ({ ...d, round: Number(e.target.value) }))}
-                      data-testid="evc-la-rule-round"
-                    />
-                    <Select
-                      value={ruleDraft.action}
-                      options={[
-                        { value: 'skip', label: L.leaderRuleActionSkip },
-                        { value: 'assign', label: L.leaderRuleActionAssign },
-                      ]}
-                      aria-label={L.leaderRuleAction}
-                      onChange={(e) =>
-                        setRuleDraft((d) => ({ ...d, action: e.target.value, evaluatorId: null }))
-                      }
-                      data-testid="evc-la-rule-action"
-                    />
-                    {ruleDraft.action === 'assign' && (
+                    <span className="evc-la-rule-pick">
                       <Select
-                          searchable
-                        value={ruleDraft.evaluatorId ?? ''}
-                        placeholder={L.leaderRulePickPerson}
-                        options={ruleOptions.people.map((p) => ({
-                          value: p.id,
-                          label: p.org ? `${p.name} · ${p.org}` : p.name,
+                        value={String(ruleDraft.round)}
+                        options={roundList.map((k) => ({
+                          value: String(k),
+                          label: fill(L.leaderAsgColRound, { round: k }),
                         }))}
-                        aria-label={L.leaderRulePickPerson}
-                        onChange={(e) => setRuleDraft((d) => ({ ...d, evaluatorId: e.target.value || null }))}
-                        data-testid="evc-la-rule-person"
+                        aria-label={L.leaderRuleRound}
+                        onChange={(e) => setRuleDraft((d) => ({ ...d, round: Number(e.target.value) }))}
+                        data-testid="evc-la-rule-round"
                       />
+                    </span>
+                    <span className="evc-la-rule-pick">
+                      <Select
+                        value={ruleDraft.action}
+                        options={[
+                          { value: 'skip', label: L.leaderRuleActionSkip },
+                          { value: 'assign', label: L.leaderRuleActionAssign },
+                        ]}
+                        aria-label={L.leaderRuleAction}
+                        onChange={(e) =>
+                          setRuleDraft((d) => ({ ...d, action: e.target.value, evaluatorId: null }))
+                        }
+                        data-testid="evc-la-rule-action"
+                      />
+                    </span>
+                    {ruleDraft.action === 'assign' && (
+                      <span className="evc-la-rule-pick">
+                        <Select
+                            searchable
+                          value={ruleDraft.evaluatorId ?? ''}
+                          placeholder={L.leaderRulePickPerson}
+                          options={ruleOptions.people.map((p) => ({
+                            value: p.id,
+                            label: p.org ? `${p.name} · ${p.org}` : p.name,
+                          }))}
+                          aria-label={L.leaderRulePickPerson}
+                          onChange={(e) => setRuleDraft((d) => ({ ...d, evaluatorId: e.target.value || null }))}
+                          data-testid="evc-la-rule-person"
+                        />
+                      </span>
                     )}
                     <button
                       type="button"
