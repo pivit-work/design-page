@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef, Fragment } from 'react';
+import RetiringTag from './RetiringTag.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
@@ -6666,6 +6667,8 @@ export default function EvalCycleSummaryCanvas({
                           data-testid={`evs-cw-candidate-check-${c.id}`}
                         />
                         <span className="evs-cw-candidate-name">{c.name}</span>
+                        {/* PW-2029 — 캘리브레이션 마감 전에 떠나는 사람은 서버가 후보에서 뺐다. 남은 사람에 «퇴사 예정 D-N». */}
+                        <RetiringTag label={c.retiringLabel} testId={`evs-cw-candidate-retiring-${c.id}`} />
                         <span className="evs-cw-candidate-kind">
                           {c.kind === 'lead' ? L.cwKindLead : L.cwKindSeniorIc}
                         </span>

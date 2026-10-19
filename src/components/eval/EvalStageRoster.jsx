@@ -72,7 +72,7 @@ export default function EvalStageRoster({
   onRemindOne,
   /**
    * PW-1227 — 미완료 줄에 「리뷰어 추가」 고르기를 단다(동료 리뷰어 확정 명단에서 인사가 넣는다).
-   * 줄마다 `row.addCandidates`(`[{ id, name, department? }]`)가 있어야 그려진다 — 고를 사람이
+   * 줄마다 `row.addCandidates`(`[{ id, name, department?, retiringLabel? }]`)가 있어야 그려진다 — 고를 사람이
    * 없으면 그 줄엔 안 그린다. 안 주면 지금과 같다.
    */
   addLabel = '',
@@ -134,6 +134,8 @@ export default function EvalStageRoster({
                   <option key={c.id} value={c.id}>
                     {c.name}
                     {c.department ? ` · ${c.department}` : ''}
+                    {/* PW-2029 — 고르기 칸은 글만 담을 수 있어 «퇴사 예정 D-N»을 뒤에 잇는다. */}
+                    {c.retiringLabel ? ` · ${c.retiringLabel}` : ''}
                   </option>
                 ))}
               </Select>

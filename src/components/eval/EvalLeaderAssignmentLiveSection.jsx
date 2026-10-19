@@ -6,6 +6,8 @@ import Tooltip from '../shared/Tooltip.jsx';
 import Skeleton from '../shared/Skeleton.jsx';
 import AnchoredLayer from '../shared/AnchoredLayer.jsx';
 import useDismissLayer from '../shared/useDismissLayer.js';
+import { leavesBeforeDate } from './evalRetiring.js';
+import RetiringTag from './RetiringTag.jsx';
 import { ChevronDownIcon, ChevronUpIcon, LockIcon } from './evalIcons.jsx';
 import { fill } from './evalTemplateItemModel.js';
 import {
@@ -63,8 +65,10 @@ export default function EvalLeaderAssignmentLiveSection({
   rounds,
   /** 서버 `rows` 그대로 — `[{ evaluateeId, evaluateeName, orgName, cells }]`. */
   rows = [],
-  /** 교체 후보 `[{ id, name, org, resigned }]` — 퇴사자는 목록에서 뺀다. */
+  /** 교체 후보 `[{ id, name, org, resigned, lastServingDay?, retiringLabel? }]` — 퇴사자는 목록에서 뺀다. */
   people = [],
+  /** PW-2029 — k차 하향 단계 끝. 그 전에 떠나는 사람은 그 칸 교체 후보에서 빠진다. */
+  roundDeadline = () => '',
   /** 'loading' | 'error' | 'ready'. */
   status = 'ready',
   onRetry,
@@ -116,6 +120,7 @@ export default function EvalLeaderAssignmentLiveSection({
     ? (people ?? []).filter(
         (p) =>
           !p.resigned &&
+          !leavesBeforeDate(p.lastServingDay, roundDeadline(openCell?.round)) &&
           p.id !== openRow.evaluateeId &&
           p.id !== openCell?.evaluatorId &&
           (!pq ||
@@ -329,6 +334,7 @@ export default function EvalLeaderAssignmentLiveSection({
                 >
                   <span className="evc-la-name">{p.name}</span>
                   {p.org && <span className="evc-la-hint">{p.org}</span>}
+                  <RetiringTag label={p.retiringLabel} testId={`evmon-la-pick-retiring-${p.id}`} />
                 </button>
               ))
             )}

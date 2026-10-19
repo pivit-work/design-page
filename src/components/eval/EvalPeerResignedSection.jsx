@@ -5,6 +5,7 @@ import TextInput from '../shared/TextInput.jsx';
 import Skeleton from '../shared/Skeleton.jsx';
 import AnchoredLayer from '../shared/AnchoredLayer.jsx';
 import useDismissLayer from '../shared/useDismissLayer.js';
+import RetiringTag from './RetiringTag.jsx';
 import { ChevronDownIcon, ChevronUpIcon } from './evalIcons.jsx';
 import { fill } from './evalTemplateItemModel.js';
 
@@ -224,6 +225,8 @@ export default function EvalPeerResignedSection({
                 >
                   <span className="evc-la-name">{p.name}</span>
                   {p.org && <span className="evc-la-hint">{p.org}</span>}
+                  {/* PW-2029 — 동료 리뷰 마감 전에 떠나는 사람은 앱이 이미 뺐다. 남은 사람에 «퇴사 예정 D-N». */}
+                  <RetiringTag label={p.retiringLabel} testId={`evmon-pr-pick-retiring-${p.id}`} />
                 </button>
               ))
             )}

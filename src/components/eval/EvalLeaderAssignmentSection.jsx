@@ -11,6 +11,8 @@ import { SearchGlyph } from '../shared/lineIcons.jsx';
 import { AlertIcon, CheckCircleIcon } from './evalIcons.jsx';
 import { fill } from './evalTemplateItemModel.js';
 import { cellKey, rowHasNoChain, summarizeLeaderWarnings } from './evalLeaderRounds.js';
+import { withoutLeavingBefore } from './evalRetiring.js';
+import RetiringTag from './RetiringTag.jsx';
 
 /** 로딩 자리 표시 줄 수 — 표 높이를 미리 잡아 레이아웃이 튀지 않게(§5.13.4 「로딩」). */
 const SKELETON_ROWS = 5;
@@ -39,8 +41,10 @@ export default function EvalLeaderAssignmentSection({
   cells,
   /** cellKey → 경고 목록. */
   warningsByCell,
-  /** 칸 팝오버의 직원 검색 후보 `[{ id, name, org, resigned }]`. */
+  /** 칸 팝오버의 직원 검색 후보 `[{ id, name, org, resigned, lastServingDay?, retiringLabel? }]`. */
   people,
+  /** PW-2029 — k차 하향 단계 끝(`YYYY-MM-DDTHH:mm`). 그 전에 떠나는 사람은 그 칸 고르기에서 빠진다. */
+  roundDeadline = () => '',
   /** 사람 id → `{ name, org, resigned }`(없으면 null). */
   personOf,
   /** 'loading' | 'error' | 'ready' — 추천 계산 상태. */
@@ -94,7 +98,7 @@ export default function EvalLeaderAssignmentSection({
   const byName = (by) => (by && typeof by === 'object' ? by.name : by) || '';
 
   const pq = pickQuery.trim().toLowerCase();
-  const pickList = (people ?? []).filter(
+  const pickList = withoutLeavingBefore(people, openCell ? roundDeadline(openCell.round) : '').filter(
     (p) =>
       !pq ||
       String(p.name ?? '').toLowerCase().includes(pq) ||
@@ -166,7 +170,9 @@ export default function EvalLeaderAssignmentSection({
                   ? L.leaderAsgWarnSelf
                   : w === 'resigned'
                     ? L.leaderAsgWarnResigned
-                    : L.leaderAsgWarnDuplicate}
+                    : w === 'leaving'
+                      ? L.leaderAsgWarnLeaving
+                      : L.leaderAsgWarnDuplicate}
               </span>
             ))}
         </button>
@@ -196,6 +202,7 @@ export default function EvalLeaderAssignmentSection({
             b: summary.self,
             c: summary.duplicate,
             d: summary.resigned,
+            e: summary.leaving,
           })}
         </span>
         <Checkbox
@@ -384,6 +391,9 @@ export default function EvalLeaderAssignmentSection({
                     <StatusBadge className="evc-status-badge tone-error">
                       {L.leaderAsgResignedTag}
                     </StatusBadge>
+                  )}
+                  {!p.resigned && (
+                    <RetiringTag label={p.retiringLabel} testId={`evc-la-pick-retiring-${p.id}`} />
                   )}
                 </button>
               ))

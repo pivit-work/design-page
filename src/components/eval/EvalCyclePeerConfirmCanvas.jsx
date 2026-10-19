@@ -3,6 +3,7 @@ import StatusBadge from '../shared/StatusBadge.jsx';
 import { SkeletonList } from '../shared/Skeleton.jsx';
 import { ChevronRightIcon } from './evalIcons.jsx';
 import SearchSelect from '../shared/SearchSelect.jsx';
+import RetiringTag from './RetiringTag.jsx';
 
 /**
  * EvalCyclePeerConfirmCanvas — 동료 리뷰어 확정 (리더 게이트, 신규).
@@ -193,6 +194,8 @@ function PeerSearch({ addable, L, onPick }) {
               {(c.department || c.job) && (
                 <span className="evp-nominee-job">{[c.department, c.job].filter(Boolean).join(' · ')}</span>
               )}
+              {/* PW-2029 — 동료 리뷰 마감 전에 떠나는 사람은 앱이 후보에서 뺐다. 남은 사람에 «퇴사 예정 D-N». */}
+              <RetiringTag label={c.retiringLabel} testId={`evp-search-retiring-${c.id}`} />
               <button type="button" className="evc-btn is-ghost" onClick={() => pick(c)} data-testid="evp-search-add">
                 {L.searchAdd}
               </button>

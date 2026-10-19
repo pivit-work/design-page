@@ -96,6 +96,8 @@ import {
   topRoundHasNoRecommendation,
 } from './evalLeaderRounds.js';
 import EvalLeaderAssignmentSection from './EvalLeaderAssignmentSection.jsx';
+import { leavesBeforeDate, withoutLeavingBefore } from './evalRetiring.js';
+import RetiringTag from './RetiringTag.jsx';
 
 // 고정 단계 자물쇠 아이콘 — design-page 정본 lock-keyhole-square.
 // 두 곳 이상 쓰는 그림은 design-page `shared/lineIcons.jsx` 한 벌을 부른다(PW-1011).
@@ -2512,6 +2514,10 @@ function CommitteeCard({
                       <span className="evc-wiz-committee-text">
                         <span className="evc-wiz-committee-name">
                           <span className="evc-wiz-committee-name-text" title={c.name}>{c.name}</span>
+                          <RetiringTag
+                            label={c.retiringLabel}
+                            testId={`evc-wiz-committee-retiring-${c.id}`}
+                          />
                           {on && idx === 0 && (
                             <span className="evc-wiz-committee-chair">
                               {L.wizardCommitteeChair}
@@ -6100,18 +6106,32 @@ export default function EvalCycleWizard({
   const candidateById = new Map(candidates.map((c) => [c.id, c]));
   const isResignedId = (id) => isResignedStatus(candidateById.get(id)?.employmentStatus);
   /**
+   * PW-2029 — k차 하향 단계 끝(지금 화면의 일정)과, 그 전에 떠나는 평가자. 일정은 아직 저장 전일 수 있어
+   * 서버 추천 경고가 아니라 화면에서 센다(확정은 서버가 저장된 일정으로 다시 막는다).
+   */
+  const leaderRoundEnd = (round) => scheduleOf(leaderPhaseId(round))?.end ?? '';
+  const isLeavingId = (id, round) =>
+    leavesBeforeDate(candidateById.get(id)?.lastServingDay, leaderRoundEnd(round));
+  /**
    * 칸마다 경고. 서버가 준 경고를 쓰되, HR 이 손댄 칸이 있는 대상자는 화면에서 같은 규칙으로 다시
    * 센다(중복은 한 대상자의 칸끼리 보는 규칙이라 그 사람 칸 전부를 다시 본다).
    */
   const leaderWarnings = (() => {
-    const local = computeLeaderWarnings(leaderCells, isResignedId);
+    const local = computeLeaderWarnings(leaderCells, isResignedId, isLeavingId);
     const touched = new Set(
       leaderCells.filter((c) => !Array.isArray(c.warnings)).map((c) => c.evaluateeId),
     );
     const out = new Map();
     leaderCells.forEach((c) => {
       const key = leaderCellKey(c.evaluateeId, c.round);
-      out.set(key, touched.has(c.evaluateeId) ? local.get(key) ?? [] : c.warnings);
+      // `leaving` 은 언제나 화면 값으로 — 서버 추천은 일정을 모른다(PW-2029).
+      const leaving = (local.get(key) ?? []).includes('leaving') ? ['leaving'] : [];
+      out.set(
+        key,
+        touched.has(c.evaluateeId)
+          ? local.get(key) ?? []
+          : [...c.warnings.filter((w) => w !== 'leaving'), ...leaving],
+      );
     });
     return out;
   })();
@@ -6194,6 +6214,9 @@ export default function EvalCycleWizard({
     name: c.name,
     org: c.department ?? '',
     resigned: isResignedStatus(c.employmentStatus),
+    // PW-2029 — 칸의 차수 마감 전에 떠나면 고르기에서 빠지고, 남으면 «퇴사 예정 D-N».
+    lastServingDay: c.lastServingDay ?? null,
+    retiringLabel: c.retiringLabel ?? null,
   }));
   const leaderPersonOf = (id) => {
     const c = candidateById.get(id);
@@ -10276,6 +10299,7 @@ export default function EvalCycleWizard({
                     cells={leaderCells}
                     warningsByCell={leaderWarnings}
                     people={leaderPeople}
+                    roundDeadline={leaderRoundEnd}
                     personOf={leaderPersonOf}
                     status={leaderRecommendStatus}
                     onRetry={() => setLeaderReloadTick((n) => n + 1)}
@@ -10455,7 +10479,12 @@ export default function EvalCycleWizard({
                   targetMembers={targetMembers}
                   deptOptions={committeeDeptOptions}
                   levelOptions={committeeLevelOptions}
-                  committeeCandidates={committeeCandidates}
+                  /* PW-2029 — 캘리브레이션 마감 전에 떠나는 사람은 위원 후보·상위 조직장 자동 지정에서 뺀다.
+                     일정은 화면에서 고치는 중이라 지금 값으로 거른다. */
+                  committeeCandidates={withoutLeavingBefore(
+                    committeeCandidates,
+                    scheduleOf('calibration')?.end,
+                  )}
                   committeeCandidatesLoading={committeeCandidatesLoading}
                   committeeCandidatesError={committeeCandidatesError}
                   onReloadCommitteeCandidates={onReloadCommitteeCandidates}

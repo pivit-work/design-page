@@ -150,20 +150,23 @@ export function leaderGradeMismatch(entries) {
  */
 export const cellKey = (evaluateeId, round) => `${evaluateeId}:${round}`;
 
-/** 차단 경고 — 확정을 막는다. */
-export const BLOCKING_WARNINGS = ['self', 'resigned'];
-export const WARNING_KINDS = ['no_evaluator', 'self', 'duplicate', 'resigned'];
+/** 차단 경고 — 확정을 막는다. `leaving` = 그 차수 마감 전에 퇴사한다(PW-2029). */
+export const BLOCKING_WARNINGS = ['self', 'resigned', 'leaving'];
+export const WARNING_KINDS = ['no_evaluator', 'self', 'duplicate', 'resigned', 'leaving'];
 
 /**
  * 칸마다 경고를 다시 계산한다(HR 이 칸을 바꾼 직후 — 서버가 준 경고는 그 전 값이다).
  * 규칙은 서버와 같다: 평가자 없음(빈 칸·건너뜀 아님) · 본인 · 퇴사자 · 중복(같은 대상자의
  * 앞 차수에 이미 있는 사람 — 뒤 차수 칸에 붙인다).
  *
+ * PW-2029 — 재직 중이지만 그 차수 마감 전에 떠나는 평가자는 `leaving`(퇴사자면 `resigned` 만).
+ *
  * @param {Array} cells
  * @param {(id: string) => boolean} isResigned
+ * @param {(id: string, round: number) => boolean} [isLeaving]
  * @returns {Map<string, string[]>} cellKey → 경고 목록
  */
-export function computeLeaderWarnings(cells, isResigned = () => false) {
+export function computeLeaderWarnings(cells, isResigned = () => false, isLeaving = () => false) {
   const out = new Map();
   const byEvaluatee = new Map();
   (cells ?? []).forEach((c) => {
@@ -182,6 +185,7 @@ export function computeLeaderWarnings(cells, isResigned = () => false) {
         if (!ev && !c.skipped) w.push('no_evaluator');
         if (ev && ev === c.evaluateeId) w.push('self');
         if (ev && isResigned(ev)) w.push('resigned');
+        else if (ev && isLeaving(ev, c.round)) w.push('leaving');
         if (ev) {
           if (seen.has(ev)) w.push('duplicate');
           seen.add(ev);
@@ -194,15 +198,16 @@ export function computeLeaderWarnings(cells, isResigned = () => false) {
 
 /** 경고 종류별 건수와 합계 · 차단 건수. */
 export function summarizeLeaderWarnings(warningsByCell, visibleKeys = null) {
-  const counts = { no_evaluator: 0, self: 0, duplicate: 0, resigned: 0 };
+  const counts = { no_evaluator: 0, self: 0, duplicate: 0, resigned: 0, leaving: 0 };
   warningsByCell.forEach((list, key) => {
     if (visibleKeys && !visibleKeys.has(key)) return;
     list.forEach((k) => {
       if (k in counts) counts[k] += 1;
     });
   });
-  const total = counts.no_evaluator + counts.self + counts.duplicate + counts.resigned;
-  return { ...counts, total, blocking: counts.self + counts.resigned };
+  const total =
+    counts.no_evaluator + counts.self + counts.duplicate + counts.resigned + counts.leaving;
+  return { ...counts, total, blocking: counts.self + counts.resigned + counts.leaving };
 }
 
 /** 빈 칸(추천도 사람도 없음). 추천을 아직 못 받았거나 체인이 짧을 때. */
