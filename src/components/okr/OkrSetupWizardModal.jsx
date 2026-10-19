@@ -215,11 +215,15 @@ export default function OkrSetupWizardModal({
   const removeKr = (id) => { setKrs((p) => p.filter((k) => k.id !== id)); setKrsConfirmed(false); };
   const addKr = () => { setKrs((p) => [...p, { id: nextId(), title: '', type: 'number', target: 0, current: 0, unit: '' }]); setKrsConfirmed(false); };
 
-  const canNext =
-    stepKey === 'narrative' ? narrative.trim().length >= 30
-      : stepKey === 'krs' ? krs.length > 0 && krs.every((k) => k.title.trim()) && krsConfirmed
-        : stepKey === 'objective' ? !!objective.trim() && objConfirmed
+  const stepDone = (key) =>
+    key === 'narrative' ? narrative.trim().length >= 30
+      : key === 'krs' ? krs.length > 0 && krs.every((k) => k.title.trim()) && krsConfirmed
+        : key === 'objective' ? !!objective.trim() && objConfirmed
           : true;
+  const canNext = stepDone(stepKey);
+  // 위쪽 단계 이름으로는 앞 단계가 모두 채워진 데까지만 간다. 건너뛰면 제목 없는 Objective 가
+  // KR 없이 저장됐다(PW-2026). 되돌아가는 것은 언제나 된다.
+  const canJumpTo = (n) => n <= step || steps.slice(0, n - 1).every((s) => stepDone(s.key));
 
   const nextHint =
     canNext ? ''
@@ -326,7 +330,8 @@ export default function OkrSetupWizardModal({
           <div
             className={`okr-wz-step${i + 1 === step ? ' is-active' : ''}`}
             key={s.key}
-            onClick={() => setStep(i + 1)}
+            onClick={() => { if (canJumpTo(i + 1)) setStep(i + 1); }}
+            aria-disabled={canJumpTo(i + 1) ? undefined : true}
           >
             <p className="okr-wz-step-label">{s.label}</p>
             <p className="okr-wz-step-desc">{s.desc}</p>
