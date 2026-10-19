@@ -2597,7 +2597,10 @@ export default function MySettingsCanvas({
                       </div>
                     )}
 
-                    {intg.connected && intg.subSettings && intg.subSettings.length > 0 && (
+                    {/* 세부 설정은 연결 여부와 상관없이 넘어온 줄을 그린다 — 회사가 연결한 Slack 의 «Slack DM 알림»은
+                        내 계정을 못 찾아도 미리 정할 수 있어야 한다(my-settings-spec §7.2-A · PW-2055).
+                        숨길지는 넘기는 쪽이 정한다. `disabled` 줄은 값만 보이고 누를 수 없다(회사 미연결). */}
+                    {intg.subSettings && intg.subSettings.length > 0 && (
                       <div className="msc-intg-sub">
                         <div className="msc-intg-sub-title">{intg.subSettingsTitle}</div>
                         {intg.subSettings.map((s) => (
@@ -2605,6 +2608,7 @@ export default function MySettingsCanvas({
                             <span className="msc-intg-sub-label">{s.label}</span>
                             <Switch
                               checked={Boolean(s.on)}
+                              disabled={Boolean(s.disabled)}
                               onChange={(next) =>
                                 onToggleIntegrationSetting && onToggleIntegrationSetting(intg.id, s.key, next)
                               }
