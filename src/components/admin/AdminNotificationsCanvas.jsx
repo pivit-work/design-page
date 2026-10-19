@@ -330,7 +330,7 @@ function todayIso() {
 }
 
 /* ── 규칙 수정 모달 ───────────────────────────────────── */
-function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatCooldown, onClose, onSave, baseUrl, validateRule }) {
+function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatCooldown, onClose, onSave, baseUrl, validateRule, busy = false }) {
   const [enabled, setEnabled] = useState(rule.enabled);
   const [conditionValues, setConditionValues] = useState(
     rule.conditionValues ? { ...rule.conditionValues } : null,
@@ -383,11 +383,13 @@ function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatC
           <button
             type="button"
             className="tl-group-modal-btn tl-group-modal-btn-primary"
-            disabled={hasErrors}
+            disabled={hasErrors || busy}
             data-testid="notif-rule-save"
-            onClick={() => {
-              onSave({ ...rule, enabled, conditionValues, cooldown, recipients, channels: savedChannels, ...(stageChannels ? { stageChannels } : {}) });
-              onClose();
+            onClick={async () => {
+              // [PW-2079] 부르는 쪽이 확인 창에서 취소하면 `false` 를 돌려준다 — 그때는 창을 닫지 않아
+              // 고친 값이 그대로 남는다(admin-spec §6.1-B «취소하면»). 그 밖의 값이면 종전대로 닫는다.
+              const ok = await onSave({ ...rule, enabled, conditionValues, cooldown, recipients, channels: savedChannels, ...(stageChannels ? { stageChannels } : {}) });
+              if (ok !== false) onClose();
             }}
           >
             {labels.modal.save}
@@ -556,11 +558,11 @@ function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatC
 }
 
 /* ── 규칙 행 ──────────────────────────────────────────── */
-function RuleRow({ rule, labels, formatCondition, formatCooldown, onEdit, onToggle, baseUrl }) {
+function RuleRow({ rule, labels, formatCondition, formatCooldown, onEdit, onToggle, baseUrl, busy = false }) {
   const conditionText = formatCondition(rule.id, rule.conditionValues, rule.conditionFixed);
   return (
     <div className={`admin-notif-rule${rule.enabled ? '' : ' is-off'}`} data-testid="notif-rule">
-      <Switch checked={rule.enabled} onChange={() => onToggle(rule.id)} label={rule.label} />
+      <Switch checked={rule.enabled} onChange={() => onToggle(rule.id)} label={rule.label} disabled={busy} />
       <div className="admin-notif-rule-main">
         <div className="admin-notif-rule-head">
           <span className="admin-notif-rule-label">{rule.label}</span>
@@ -608,6 +610,11 @@ export default function AdminNotificationsCanvas({
   onBulkSet,
   baseUrl = '/',
   validateRule,
+  /**
+   * [PW-2079] 부르는 쪽이 끄기 전 확인에 쓸 값을 받는 동안 참 — 규칙 줄 스위치 · 일괄 버튼 ·
+   * 수정 창 [저장]을 잠시 잠근다(두 번 눌러 요청이 두 번 나가지 않게 · admin-spec §6.1-B «받는 중»).
+   */
+  busy = false,
 }) {
   const labels = merge(DEFAULT_LABELS, providedLabels);
   const [editTarget, setEditTarget] = useState(null);
@@ -681,6 +688,7 @@ export default function AdminNotificationsCanvas({
                 formatCooldown={formatCooldown}
                 onEdit={setEditTarget}
                 onToggle={onToggleRule}
+                busy={busy}
                 baseUrl={baseUrl}
               />
             ))}
@@ -690,10 +698,10 @@ export default function AdminNotificationsCanvas({
 
       {/* 전체 on/off */}
       <div className="admin-notif-bulk">
-        <button type="button" className="admin-notif-btn is-soft is-block" onClick={() => onBulkSet && onBulkSet(true)} data-testid="enable-all-btn">
+        <button type="button" className="admin-notif-btn is-soft is-block" disabled={busy} onClick={() => onBulkSet && onBulkSet(true)} data-testid="enable-all-btn">
           {labels.enableAll}
         </button>
-        <button type="button" className="admin-notif-btn is-soft is-block" onClick={() => onBulkSet && onBulkSet(false)} data-testid="disable-all-btn">
+        <button type="button" className="admin-notif-btn is-soft is-block" disabled={busy} onClick={() => onBulkSet && onBulkSet(false)} data-testid="disable-all-btn">
           {labels.disableAll}
         </button>
       </div>
@@ -709,6 +717,7 @@ export default function AdminNotificationsCanvas({
           onSave={onSaveRule}
           baseUrl={baseUrl}
           validateRule={validateRule}
+          busy={busy}
         />
       )}
     </div>

@@ -2801,6 +2801,18 @@ export default function EvalCycleWizard({
    * 설정은 그대로 두고 보여 주기만 한다 — 관리자가 다시 켜면 이 설정대로 나간다.
    */
   remindersOffOrgWide = false,
+  /**
+   * PW-2079 · 정책 §5.2.1-G — 오픈한 사이클의 리마인더 줄마다 붙는 발송 상태 칩.
+   * `(phaseId, reminder, scheduleSlot) => { label, tone, title? } | null`.
+   * `tone` 은 `.evc-status-badge` 의 `tone-*` 하나(neutral·info·success·warn·error). `null` 이면
+   * 칩 자리를 비운다(불러오는 중 · 초안). 판정·문구는 부르는 쪽이 한다 — 이 부품은 그리기만 한다.
+   */
+  reminderStatusOf,
+  /**
+   * PW-2079 — 줄의 `L.reminderDispatchLink` 를 누르면 `(phaseId)` 로 부른다(진행 현황의 그 단계
+   * 발송 기록을 펼친 채로 연다). 안 넘기면 링크를 숨긴다 — 위자드(초안)에는 없다.
+   */
+  onOpenReminderDispatches,
   /** 조회 실패 시 「다시 시도」. 안 넘기면 재시도 버튼을 숨긴다. */
   onReloadSavedMessages,
   /**
@@ -9587,7 +9599,31 @@ export default function EvalCycleWizard({
                                     <span className="evc-rm-sum-msg" data-testid={`evc-rm-sum-msg-${ph.id}-${i}`}>
                                       · {reminderMessageKindText(msg)}
                                     </span>
+                                    {(() => {
+                                      // [PW-2079 §5.2.1-G] 나갔는지·왜 안 나갔는지 — 진행 현황 발송 기록과 같은 딱지.
+                                      const st = reminderStatusOf?.(ph.id, rm, scheduleOf(ph.id));
+                                      if (!st) return null;
+                                      return (
+                                        <StatusBadge
+                                          className={`evc-status-badge tone-${st.tone || 'neutral'}`}
+                                          title={st.title || undefined}
+                                          data-testid={`evc-rm-status-${ph.id}-${i}`}
+                                        >
+                                          {st.label}
+                                        </StatusBadge>
+                                      );
+                                    })()}
                                     <span className="evc-rm-actions">
+                                      {onOpenReminderDispatches && L.reminderDispatchLink && (
+                                        <button
+                                          type="button"
+                                          className="evc-rm-edit-btn"
+                                          onClick={() => onOpenReminderDispatches(ph.id)}
+                                          data-testid={`evc-rm-dispatch-link-${ph.id}-${i}`}
+                                        >
+                                          {L.reminderDispatchLink}
+                                        </button>
+                                      )}
                                       <button
                                         type="button"
                                         className="evc-rm-edit-btn"
