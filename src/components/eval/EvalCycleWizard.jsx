@@ -2910,6 +2910,11 @@ export default function EvalCycleWizard({
    */
   fixedPhaseIds = null,
   /**
+   * PW-2077 · 정책 §4.5 — 단계별 일정 탭 저장 확인 창에서 진행 중 단계의 종료를 당길 때 적을 단계별
+   * 미제출 수. `() => Promise<{ [단계 id]: { count, unit: 'people'|'cases' } }>`(진행 현황과 같은 집계).
+   */
+  onLoadSchedulePending,
+  /**
    * PW-822 — 관리 모드에서 위원회 단계를 «이미 있는 위원회»로 채운다.
    * `{ committee: [userId…](첫 사람 = 위원장), name, depts, levels, jobLevels, added, excluded }`.
    * `levels` 는 옛 위원회의 직책 조건, `jobLevels` 는 직급 조건이다(PW-1687).
@@ -10934,6 +10939,10 @@ export default function EvalCycleWizard({
           rows={scheduleConfirm.rows}
           labels={L}
           saving={submitting}
+          isRunning={(id) =>
+            openedManage && !isDonePhase(id) && startReached(initialSeq?.schedule?.[id]?.start)
+          }
+          onLoadPending={onLoadSchedulePending}
           onConfirm={confirmScheduleSave}
           onCancel={() => {
             if (!submitting) setScheduleConfirm(null);

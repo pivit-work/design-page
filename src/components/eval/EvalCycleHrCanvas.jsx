@@ -113,7 +113,8 @@ const DEFAULT_LABELS = {
   editSchedule: '일정 수정',
   editScheduleTitle: '단계별 일정 수정',
   editScheduleNote:
-    '각 단계의 시작·종료 일시를 조정합니다. 단계 간 일정은 겹쳐도 됩니다(병렬 진행). 변경 시 해당 단계 담당자에게 알림이 발송됩니다.',
+    // [PW-2077 · 정책 §4.5] 「담당자에게 알림이 발송됩니다」는 서버가 보내지 않는 알림이라 걷었다.
+    '각 단계의 시작·종료 일시를 조정합니다. 단계 간 일정은 겹쳐도 됩니다(병렬 진행). 저장하면 곧바로 적용되며, 이후 리마인더와 단계 시작 알림은 새 일정으로 나갑니다.',
   // PW-1461 · 정책 §4.5 · §6.5
   overlapAlertTitle: '단계 일정이 겹칩니다',
   overlapAlertBody: '아래 단계는 병렬 진행됩니다. 겹쳐도 저장할 수 있습니다.',
@@ -129,7 +130,11 @@ const DEFAULT_LABELS = {
   toastScheduleSaved: '일정이 수정되었습니다',
   // PW-602 — [일정 저장] 뒤 한 번 더 묻는 창. 바뀐 단계만 «이전 → 변경»으로 보인다.
   scheduleConfirmTitle: '일정을 이렇게 바꿀까요?',
-  scheduleConfirmBody: '아래 {{count}}개 단계의 일정이 바뀝니다. 저장하면 해당 단계 담당자에게 알림이 발송됩니다.',
+  scheduleConfirmBody: '아래 {{count}}개 단계의 일정이 바뀝니다. 저장하면 곧바로 적용되며, 이후 리마인더와 단계 시작 알림은 새 일정으로 나갑니다.',
+  // [PW-2077 · 정책 §4.5] 진행 중 단계의 종료를 당겼을 때만.
+  scheduleConfirmShortened: '{{name}} 미제출 {{count}}명 — 마감이 {{end}}로 당겨집니다.',
+  scheduleConfirmShortenedCases: '{{name}} 미제출 {{count}}건 — 마감이 {{end}}로 당겨집니다.',
+  scheduleConfirmShortenedFailed: '{{name}} 미제출 인원을 불러오지 못했습니다 — 마감이 {{end}}로 당겨집니다.',
   scheduleConfirmBefore: '이전',
   scheduleConfirmAfter: '변경',
   scheduleConfirmEmpty: '미정',
@@ -754,6 +759,7 @@ function ScheduleEditModal({
   onGoToReportReview,
   isScheduleStartReached,
   isScheduleEndReached,
+  onLoadPending,
 }) {
   const rs = cycle.reviewSequence ?? { order: [], enabled: {}, schedule: {} };
   const phases = (rs.order ?? []).filter((id) => rs.enabled?.[id] !== false);
@@ -782,6 +788,12 @@ function ScheduleEditModal({
     typeof isScheduleEndReached === 'function'
       ? isScheduleEndReached(initialRows[id]?.end)
       : isPastScheduleEnd(initialRows[id]?.end);
+  /** [PW-2077 · 정책 §4.5] 연 순간 시작했고 아직 안 끝난 단계 — 종료를 당기면 미제출 인원을 적는다. */
+  const isRunning = (id) =>
+    !isDone(id) &&
+    (typeof isScheduleStartReached === 'function'
+      ? isScheduleStartReached(initialRows[id]?.start)
+      : isPastScheduleStart(initialRows[id]?.start));
 
   /** [PW-1461 · 정책 §4.5] 겹침 판정은 마법사 3단계와 같은 모듈을 쓴다. */
   const rowList = (r) =>
@@ -1083,6 +1095,8 @@ function ScheduleEditModal({
         }))}
         labels={L}
         saving={saving}
+        isRunning={isRunning}
+        onLoadPending={onLoadPending}
         onConfirm={handleSave}
         onCancel={() => {
           if (!saving) setConfirming(false);
@@ -1491,6 +1505,12 @@ export default function EvalCycleHrCanvas({
    * 안 넘기면 종전대로(완료로 넘길 때 어필 확인만) 동작한다.
    */
   loadAdvancePending,
+  /**
+   * PW-2077 · 정책 §4.5 — 일정 수정 창에서 진행 중 단계의 종료를 당길 때 적을 단계별 미제출 수.
+   * `(cycle) => Promise<{ [단계 id]: { count, unit: 'people'|'cases' } }>` — 진행 현황과 같은 서버 집계.
+   * 안 넘기면 미제출 줄 없이 종전 창이다.
+   */
+  loadSchedulePending,
   onDeleteCycle,
   onManageCycle,
   onViewResults,
@@ -2487,6 +2507,9 @@ export default function EvalCycleHrCanvas({
           }
           isScheduleStartReached={isScheduleStartReached}
           isScheduleEndReached={isScheduleEndReached}
+          onLoadPending={
+            loadSchedulePending ? () => loadSchedulePending(scheduleModal) : undefined
+          }
         />
       )}
     </div>
