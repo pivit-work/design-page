@@ -19,6 +19,7 @@ import {
   DownloadGlyph,
   PlusGlyph,
   SearchGlyph,
+  TrashGlyph,
   UploadGlyph,
   UserGlyph,
 } from '../shared/lineIcons.jsx';
@@ -60,12 +61,7 @@ export const IconSettings = ({ size = 14 }) => (
 );
 export const IconSearch = ({ size = 15 }) => <SearchGlyph size={size} {...GLYPH_PROPS} />;
 export const IconCheckmark = ({ size = 15 }) => <CheckGlyph size={size} {...GLYPH_PROPS} />;
-export const IconTrash = ({ size = 14 }) => (
-  <svg {...strokeProps(size)}>
-    <path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-  </svg>
-);
+export const IconTrash = ({ size = 14 }) => <TrashGlyph size={size} {...GLYPH_PROPS} />;
 /* CSV 업로드 탭(PW-212) — 드롭존·템플릿 다운로드. */
 export const IconUpload = ({ size = 20 }) => <UploadGlyph size={size} {...GLYPH_PROPS} />;
 export const IconDownload = ({ size = 14 }) => <DownloadGlyph size={size} {...GLYPH_PROPS} />;

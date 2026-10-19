@@ -19,6 +19,7 @@ import {
   ChevronRightGlyph,
   ChevronUpGlyph,
   DownloadGlyph,
+  TrashGlyph,
   EyeGlyph,
   FileTextGlyph,
   InfoGlyph,
@@ -209,6 +210,21 @@ export function PauseIcon({ size = 16 }) {
       <rect x="14" y="4" width="4" height="16" rx="1" />
     </svg>
   );
+}
+
+// ↩ 사이클 회수 — undo (PW-2063). lucide `undo-2` 와 같은 획.
+export function UndoIcon({ size = 16 }) {
+  return (
+    <svg {...svgProps(size)}>
+      <path d="M9 14 4 9l5-5" />
+      <path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" />
+    </svg>
+  );
+}
+
+// 🗑 사이클 삭제 — trash (PW-2085). 그림은 공용 `TrashGlyph` 한 벌이다(구성원 관리와 같다).
+export function TrashIcon({ size = 16 }) {
+  return <TrashGlyph size={size} style={GLYPH_STYLE} />;
 }
 
 // ⏵ 재개 — play.

@@ -408,6 +408,17 @@ export function DownloadGlyph(props) {
   );
 }
 
+/** 휴지통 — 지우기 (구성원 관리 · 평가 사이클 삭제 · PW-2085). */
+export function TrashGlyph(props) {
+  return (
+    <LineSvg {...props}>
+      <path d="M3 6h18" />
+      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+    </LineSvg>
+  );
+}
+
 /** 톱니바퀴 — 설정. */
 export function SettingsGlyph(props) {
   return (

@@ -1,7 +1,7 @@
 import { Fragment, useMemo, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import DatePicker from '../shared/DatePicker.jsx';
-import { ChevronLeftIcon, PauseIcon, StopIcon } from './evalIcons.jsx';
+import { ChevronLeftIcon, PauseIcon, StopIcon, TrashIcon, UndoIcon } from './evalIcons.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
@@ -37,6 +37,41 @@ const DEFAULT_LABELS = {
   confirmHoldTitle: '평가 일시 중단',
   confirmHoldBody: '평가를 일시 중단하면 구성원이 더 이상 작성·제출할 수 없습니다. 일시 중단하시겠습니까?',
   confirmHoldCancel: '취소',
+  // [PW-2063 · 정책 §5.7.2] 사이클 회수 — 버튼 · 기록이 있으면 비활성 + 버튼 줄 아래 이유 한 줄(PW-2077 정정)
+  revoke: '사이클 회수',
+  revokeBlocked:
+    '구성원 기록 {{count}}건이 있어 회수할 수 없습니다. 멈추려면 평가 일시 중단을, 치우려면 사이클 삭제를 쓰십시오.',
+  revokeBlockedPublished: '구성원 기록 {{count}}건이 있어 회수할 수 없습니다. 멈추려면 평가 일시 중단을 쓰십시오.',
+  confirmRevokeTitle: '사이클을 회수하시겠습니까?',
+  revokeEffectsTitle: '회수하면 일어나는 일',
+  revokeEffectDraft: '초안으로 돌아갑니다. 설정은 그대로 남고, 고쳐서 다시 오픈하거나 초안을 삭제할 수 있습니다.',
+  withdrawEffectNotify: '오픈 알림을 받은 {{count}}명에게 「평가가 취소되었습니다」 알림이 갑니다(인앱 + 이메일).',
+  revokeEffectSent: '이미 보낸 오픈 알림과 리마인더 {{count}}건은 거둘 수 없습니다.',
+  revokeEffectNoRecords: '작성된 응답 0건 · 제출된 리뷰 0건 — 구성원이 남긴 기록이 없어 회수할 수 있습니다.',
+  revokeRejected: '그사이 구성원이 작성을 시작해 회수할 수 없습니다. 멈추려면 평가 일시 중단을 쓰십시오.',
+  revoking: '회수하는 중…',
+  // [PW-2085 · 정책 §5.7.3] 오픈한 사이클 삭제
+  deleteCycle: '사이클 삭제',
+  confirmDeleteTitle: '사이클을 삭제하시겠습니까?',
+  deleteEffectsTitle: '삭제하면 일어나는 일',
+  deleteEffectGone: '이 사이클과 구성원이 남긴 기록이 모두 지워집니다. 되돌릴 수 없습니다.',
+  deleteEffectRecords:
+    '지워지는 기록: 작성 중 응답 {{draft}}건 · 제출된 리뷰 {{submitted}}건 · 동료 추천 {{nominations}}건 · 이의 제기 {{objections}}건',
+  deleteEffectRecordsFailed: '지워지는 기록: 불러오지 못했습니다',
+  deleteEffectRecordsLoading: '지워지는 기록: 불러오는 중…',
+  deleteEffectNoRecords: '구성원이 남긴 기록은 없습니다. 고쳐서 다시 오픈하려면 삭제 대신 사이클 회수를 쓰십시오.',
+  deleteEffectAudit: '삭제한 사람·시각·지운 기록 수는 감사 기록에 남습니다.',
+  deleteReasonLabel: '삭제 사유 (필수 · {{max}}자 이내)',
+  deleteReasonPlaceholder: '예) 대상자를 잘못 넣어 오픈했습니다 — 다시 만들어 엽니다',
+  deleteReasonHint: '사유는 감사 기록에 남습니다.',
+  deleteNameLabel: '확인을 위해 사이클 이름을 입력하십시오',
+  deleteChanged: '그사이 기록이 바뀌었습니다. 바뀐 수를 확인하고 다시 삭제하십시오.',
+  deletePublished: '그사이 결과가 공개되어 삭제할 수 없습니다.',
+  deleting: '삭제하는 중…',
+  withdrawLoading: '불러오는 중…',
+  withdrawLoadFailed: '불러오지 못했습니다',
+  withdrawCancel: '취소',
+  withdrawClose: '닫기',
   exclude: '제외',
   restore: '복원',
   excludedBadge: '제외됨',
@@ -344,6 +379,29 @@ export default function EvalCycleMonitoringCanvas({
    */
   onHold,
   onResume,
+  /**
+   * [PW-2063·2085 · 정책 §5.7.2·§5.7.3] 회수·삭제 버튼의 서버 판정 — `{ canRevoke, canDelete,
+   * recordCount, resultPublished }`. 오픈한 사이클일 때만 넘긴다(안 주면 두 버튼 다 없다).
+   * 회수 버튼은 늘 보이고 `canRevoke` 가 아니면 비활성 + 버튼 줄 아래 이유 한 줄(PW-2077 정정).
+   * 삭제 버튼은 `canDelete` 일 때만 보인다(결과 공개 뒤에는 없다).
+   */
+  withdrawal = null,
+  /**
+   * [PW-2063·2085] 확인 창의 수치 — 창을 열 때 `onOpenWithdraw(kind)` 가 불리면 호출부가 서버에서 받는다.
+   * `undefined` = 받는 중, `null` = 못 받음(실행 버튼을 막는다), 값 = `{ records: { draftAnswers,
+   * submittedReviews, nominations, objections }, notifiedCount, remindersSent }`.
+   */
+  withdrawImpact,
+  onOpenWithdraw,
+  /** [PW-2063] 회수 실행 — `Promise<'done' | 'rejected' | 'failed'>`. rejected = 그사이 기록이 생겼다(409). */
+  onRevoke,
+  /**
+   * [PW-2085] 삭제 실행 — `(reason, expectedCounts) => Promise<'done' | 'changed' | 'published' | 'failed'>`.
+   * changed = 그사이 기록 수가 바뀌었다(호출부가 새 수를 `withdrawImpact` 로 다시 준다 · 입력은 남긴다).
+   */
+  onDeleteCycle,
+  /** [PW-2085 · 정책 §5.7.3 D4] 삭제 사유 최대 글자 수 — 서버 정본 한도를 호출부가 넘긴다. */
+  deleteReasonMaxLength = 200,
   onExclude,
   onRestore,
   onOpenTemplate,
@@ -489,6 +547,52 @@ export default function EvalCycleMonitoringCanvas({
       setHoldConfirmOpen(false);
     }
   };
+  // [PW-2063·2085] 회수·삭제 확인 창 — null | 'revoke' | 'delete' · 창 안 거절 안내 · 입력
+  const [withdrawKind, setWithdrawKind] = useState(null);
+  const [withdrawBusy, setWithdrawBusy] = useState(false);
+  const [withdrawStale, setWithdrawStale] = useState(null);
+  const [deleteReason, setDeleteReason] = useState('');
+  const [deleteTyped, setDeleteTyped] = useState('');
+  const openWithdraw = (kind) => {
+    setWithdrawKind(kind);
+    setWithdrawStale(null);
+    setDeleteReason('');
+    setDeleteTyped('');
+    onOpenWithdraw?.(kind);
+  };
+  const closeWithdraw = () => {
+    if (withdrawBusy) return;
+    setWithdrawKind(null);
+    setWithdrawStale(null);
+  };
+  const impactRecords = withdrawImpact ? withdrawImpact.records : null;
+  const impactTotal = impactRecords
+    ? impactRecords.draftAnswers + impactRecords.submittedReviews + impactRecords.nominations + impactRecords.objections
+    : 0;
+  const deleteNeedsInputs = impactTotal > 0;
+  const deleteInputsOk =
+    !deleteNeedsInputs ||
+    (deleteReason.trim().length > 0 && deleteTyped.trim() === (cycle?.name ?? '').trim());
+  const runWithdraw = async () => {
+    setWithdrawBusy(true);
+    let outcome = 'failed';
+    try {
+      outcome =
+        withdrawKind === 'revoke'
+          ? await onRevoke?.()
+          : await onDeleteCycle?.(deleteReason.trim() || null, impactRecords);
+    } catch {
+      outcome = 'failed';
+    } finally {
+      setWithdrawBusy(false);
+    }
+    // 창 안에 남겨 말하는 거절만 창을 둔다 — 성공은 호출부가 목록으로 옮기고, 그 밖 실패는 호출부 토스트다.
+    if (outcome === 'rejected' || outcome === 'changed' || outcome === 'published') {
+      setWithdrawStale(outcome);
+    } else {
+      setWithdrawKind(null);
+    }
+  };
   /* [PW-1054] 「보이는 N명」은 표에 보이는 줄 수 = 파일 줄 수다. 제외된 사람도 표에 흐리게
      남고, 서버 진행 상태 CSV 도 그 사람을 「제외 여부 Y」 줄로 싣는다(§6.9.2 「보이는 것과
      받는 것이 같아야 한다」). 제외자를 빼고 세면 화면 인원과 파일 줄 수가 갈리고, 전원이
@@ -531,11 +635,23 @@ export default function EvalCycleMonitoringCanvas({
   // [PW-1458] 일시 중단할 수 있는 «진행 중» — 서버(`EvalCycle.hold`)가 막는 상태를 뺀 나머지.
   const canHold =
     !!status && !['draft', 'done', 'on_hold', 'emergency_stopped', 'revoked'].includes(status);
-  const hasControls = stopped
-    ? !!onReopen
-    : isOnHold
-      ? !!onResume || !!(canStop && onEmergencyStop)
-      : !!onRemind || !!(canHold && onHold) || !!(canStop && onEmergencyStop);
+  // [PW-2063·2085] 회수는 늘 보이고(기록이 있으면 비활성), 삭제는 결과 공개 전에만 보인다.
+  const showRevoke = !!(withdrawal && onRevoke);
+  const showDelete = !!(withdrawal?.canDelete && onDeleteCycle);
+  const revokeBlockedNote =
+    showRevoke && !withdrawal.canRevoke
+      ? fill(withdrawal.resultPublished ? L.revokeBlockedPublished : L.revokeBlocked, {
+          count: withdrawal.recordCount ?? 0,
+        })
+      : null;
+  const hasControls =
+    showRevoke ||
+    showDelete ||
+    (stopped
+      ? !!onReopen
+      : isOnHold
+        ? !!onResume || !!(canStop && onEmergencyStop)
+        : !!onRemind || !!(canHold && onHold) || !!(canStop && onEmergencyStop));
   const controls = (
     <div className="evmon-controls">
       {canHold && onHold && (
@@ -569,7 +685,35 @@ export default function EvalCycleMonitoringCanvas({
               <StopIcon size={14} /> {L.emergencyStop}
             </button>
           )}
+      {showRevoke && (
+        <button
+          type="button"
+          className="evc-btn is-danger-ghost"
+          disabled={!withdrawal.canRevoke}
+          onClick={() => openWithdraw('revoke')}
+          aria-describedby={revokeBlockedNote ? 'evmon-revoke-blocked' : undefined}
+          data-testid="evmon-revoke"
+        >
+          <UndoIcon size={14} /> {L.revoke}
+        </button>
+      )}
+      {showDelete && (
+        <button
+          type="button"
+          className="evc-btn is-danger-ghost"
+          onClick={() => openWithdraw('delete')}
+          data-testid="evmon-delete-cycle"
+        >
+          <TrashIcon size={14} /> {L.deleteCycle}
+        </button>
+      )}
     </div>
+  );
+  /* [PW-2077 정정] 툴팁이 아니라 늘 보이는 한 줄 — 눌러 볼 수 없는 버튼의 툴팁은 못 찾는다. */
+  const revokeNote = revokeBlockedNote && (
+    <p className="evc-field-note evmon-revoke-note" id="evmon-revoke-blocked" data-testid="evmon-revoke-blocked">
+      {revokeBlockedNote}
+    </p>
   );
 
   // `embedded` 면 바깥 틀(.evc-root · 머리 · 탭 줄 · .evc-list)을 그리지 않는다 — 틀은
@@ -581,8 +725,12 @@ export default function EvalCycleMonitoringCanvas({
     <Frame {...frameProps('evc-root')}>
       {embedded ? (
         hasControls && (
-          <div className="evmon-embedded-actions" data-testid="evmon-embedded-actions">
+          <div
+            className={`evmon-embedded-actions${revokeNote ? ' has-note' : ''}`}
+            data-testid="evmon-embedded-actions"
+          >
             {controls}
+            {revokeNote}
           </div>
         )
       ) : (
@@ -598,7 +746,14 @@ export default function EvalCycleMonitoringCanvas({
               </p>
             )}
           </div>
-          {controls}
+          {revokeNote ? (
+            <div className="evmon-embedded-actions has-note">
+              {controls}
+              {revokeNote}
+            </div>
+          ) : (
+            controls
+          )}
         </header>
       )}
 
@@ -969,6 +1124,133 @@ export default function EvalCycleMonitoringCanvas({
           cancelTestId="evmon-hold-confirm-cancel"
         />
       )}
+
+      {/* [PW-2063 · 정책 §5.7.2] 회수 확인 창 — 일시 중단 창과 같은 공용 확인 창(위험 톤). 수치는 창을 열 때
+          호출부가 서버에서 받는다. 못 받으면 «불러오지 못했습니다»를 적고 회수를 막는다. */}
+      {withdrawKind === 'revoke' && (() => {
+        const num = (v) => (withdrawImpact === undefined ? L.withdrawLoading : v == null ? L.withdrawLoadFailed : v);
+        const rejected = withdrawStale === 'rejected';
+        const lines = rejected
+          ? [cycle?.name ?? '']
+          : [
+              cycle?.name ?? '',
+              '',
+              L.revokeEffectsTitle,
+              `· ${L.revokeEffectDraft}`,
+              `· ${fill(L.withdrawEffectNotify, { count: num(withdrawImpact?.notifiedCount) })}`,
+              `· ${fill(L.revokeEffectSent, { count: num(withdrawImpact?.remindersSent) })}`,
+              `· ${L.revokeEffectNoRecords}`,
+            ];
+        return (
+          <ConfirmModal
+            title={L.confirmRevokeTitle}
+            body={
+              <>
+                {lines.join('\n')}
+                {rejected && (
+                  <span className="evc-tpl-confirm-error" role="alert" data-testid="evmon-revoke-rejected">
+                    {'\n'}
+                    {L.revokeRejected}
+                  </span>
+                )}
+              </>
+            }
+            danger
+            busy={withdrawBusy}
+            confirmDisabled={rejected || !withdrawImpact}
+            confirmLabel={withdrawBusy ? L.revoking : L.revoke}
+            cancelLabel={rejected ? L.withdrawClose : L.withdrawCancel}
+            onConfirm={() => void runWithdraw()}
+            onCancel={closeWithdraw}
+            testId="evmon-revoke-confirm"
+            confirmTestId="evmon-revoke-confirm-ok"
+            cancelTestId="evmon-revoke-confirm-cancel"
+          />
+        );
+      })()}
+
+      {/* [PW-2085 · 정책 §5.7.3] 삭제 확인 창 — 기록이 있으면 사유와 사이클 이름을 받는다(D4). 입력 칸은 위
+          내보내기 창의 «반출 사유» 칸과 같은 클래스다. 이름을 똑같이 칠 때까지 삭제를 잠근다(조직도 스쿼드 삭제 창과 같은 방식). */}
+      {withdrawKind === 'delete' && (() => {
+        const published = withdrawStale === 'published';
+        const loaded = !!withdrawImpact;
+        const notified =
+          withdrawImpact === undefined ? L.withdrawLoading : withdrawImpact == null ? L.withdrawLoadFailed : withdrawImpact.notifiedCount;
+        const recordsLine = !loaded
+          ? withdrawImpact === undefined
+            ? L.deleteEffectRecordsLoading
+            : L.deleteEffectRecordsFailed
+          : deleteNeedsInputs
+            ? fill(L.deleteEffectRecords, {
+                draft: impactRecords.draftAnswers,
+                submitted: impactRecords.submittedReviews,
+                nominations: impactRecords.nominations,
+                objections: impactRecords.objections,
+              })
+            : L.deleteEffectNoRecords;
+        const lines = [
+          cycle?.name ?? '',
+          '',
+          L.deleteEffectsTitle,
+          `· ${L.deleteEffectGone}`,
+          `· ${recordsLine}`,
+          `· ${fill(L.withdrawEffectNotify, { count: notified })}`,
+          `· ${L.deleteEffectAudit}`,
+        ];
+        return (
+          <ConfirmModal
+            title={L.confirmDeleteTitle}
+            body={
+              <>
+                {published ? cycle?.name ?? '' : lines.join('\n')}
+                {withdrawStale && (
+                  <span className="evc-tpl-confirm-error" role="alert" data-testid="evmon-delete-stale">
+                    {'\n'}
+                    {published ? L.deletePublished : L.deleteChanged}
+                  </span>
+                )}
+                {!published && loaded && deleteNeedsInputs && (
+                  <>
+                    <label className="evc-sched-modal-field is-reason" data-testid="evmon-delete-reason-field">
+                      <span className="evc-field-label">{fill(L.deleteReasonLabel, { max: deleteReasonMaxLength })}</span>
+                      <textarea
+                        className="evc-input"
+                        rows={3}
+                        maxLength={deleteReasonMaxLength}
+                        value={deleteReason}
+                        placeholder={L.deleteReasonPlaceholder}
+                        onChange={(e) => setDeleteReason(e.target.value)}
+                        data-testid="evmon-delete-reason"
+                      />
+                      <span className="evc-field-note">{L.deleteReasonHint}</span>
+                    </label>
+                    <label className="evc-sched-modal-field is-reason" data-testid="evmon-delete-name-field">
+                      <span className="evc-field-label">{L.deleteNameLabel}</span>
+                      <input
+                        className="evc-input"
+                        value={deleteTyped}
+                        placeholder={cycle?.name ?? ''}
+                        onChange={(e) => setDeleteTyped(e.target.value)}
+                        data-testid="evmon-delete-name"
+                      />
+                    </label>
+                  </>
+                )}
+              </>
+            }
+            danger
+            busy={withdrawBusy}
+            confirmDisabled={published || !loaded || !deleteInputsOk}
+            confirmLabel={withdrawBusy ? L.deleting : L.deleteCycle}
+            cancelLabel={published ? L.withdrawClose : L.withdrawCancel}
+            onConfirm={() => void runWithdraw()}
+            onCancel={closeWithdraw}
+            testId="evmon-delete-confirm"
+            confirmTestId="evmon-delete-confirm-ok"
+            cancelTestId="evmon-delete-confirm-cancel"
+          />
+        );
+      })()}
 
       {exportKind && (
         <ModalShell

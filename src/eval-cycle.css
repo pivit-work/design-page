@@ -10150,6 +10150,16 @@ button.evm-ai-source {
   display: flex;
   justify-content: flex-end;
 }
+/* [PW-2063 · PW-2077 정정] 회수할 수 없는 이유 한 줄 — 버튼 줄 바로 아래, 버튼과 같은 오른쪽 끝에 선다.
+   글씨는 1단계 종료일 아래 안내(.evc-field-note)를 그대로 쓴다. */
+.evmon-embedded-actions.has-note {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--spacing-xs);
+}
+.evmon-embedded-actions.has-note > .evmon-revoke-note {
+  margin: 0;
+}
 .evtpl-embedded-bar {
   display: flex;
   align-items: center;
