@@ -3195,12 +3195,20 @@ export default function EvalCycleWizard({
   const [rmEdit, setRmEdit] = useState(null); // [PW-1066] 오른쪽 패널로 연 리마인더 — { pid, rid }
   const [disabledPhases, setDisabledPhases] = useState(() => {
     if (D?.disabledPhases) return new Set(D.disabledPhases);
-    return new Set(
+    const off = new Set(
       Object.entries(initialSeq?.enabled ?? {})
         .filter(([, on]) => on === false)
         .map(([id]) => id),
     );
+    /* [PW-2076 §5.1-D W2-a] 캘리브레이션은 하향 리뷰가 있을 때만 기본으로 켠다 — 조정할 등급은
+       하향 리뷰에서 나온다. 저장된 값이 있으면 그 값을 따른다. */
+    if (initialSeq?.enabled?.[CALIBRATION_PHASE_ID] === undefined && !reviewTypes.includes('leader')) {
+      off.add(CALIBRATION_PHASE_ID);
+    }
+    return off;
   });
+  /** [PW-2076 W2-a] HR 이 3단계 캘리브레이션 토글을 직접 만졌는가 — 만졌으면 평가 종류를 바꿔도 덮지 않는다. */
+  const [calibTouched, setCalibTouched] = useState(() => !!D?.calibTouched);
   const [phaseOrder, setPhaseOrder] = useState(() => [
     ...(D?.phaseOrder ?? initialSeq?.order ?? []),
   ]); // 중간 단계 재배열 순서(id)
@@ -4851,17 +4859,18 @@ export default function EvalCycleWizard({
       </SidePanelShell>
     );
   };
-  const togglePhaseEnabled = (id) =>
+  const togglePhaseEnabled = (id) => {
     /* [PW-1594 · 정책 §5.13.3] 차수 단계는 따로 끄지 않는다 — 차수를 줄이려면 1단계 `하향 차수` 를
        줄인다(한 값이 두 곳에서 바뀌지 않게). 화면의 단추도 잠겨 있지만 함수에서도 막는다. */
-    isLeaderPhaseId(id) && roundsInUse > 1
-      ? undefined
-      : setDisabledPhases((prev) => {
+    if (isLeaderPhaseId(id) && roundsInUse > 1) return;
+    if (id === CALIBRATION_PHASE_ID) setCalibTouched(true);
+    setDisabledPhases((prev) => {
       const n = new Set(prev);
       if (n.has(id)) n.delete(id);
       else n.add(id);
       return n;
     });
+  };
   /**
    * [PW-1461 · 정책 §5.2.2] 순서 안내 — `'locked'`(오픈 뒤라 못 옮긴다) · `'saveFailed'`(옮긴
    * 순서를 저장하지 못해 되돌렸다) · null.
@@ -4927,6 +4936,15 @@ export default function EvalCycleWizard({
     /* PW-1459 §5.2 — 동료 리뷰를 끄면 지정 방식 선택도 지운다. 남겨 두면 다시 켰을 때
        사용자가 고른 적 없다고 여기는 방식이 그대로 살아 돌아온다. */
     if (turningOff && t === 'peer') setPeerAssignModes([]);
+    /* [PW-2076 §5.1-D W2-a] HR 이 캘리브레이션을 직접 만지지 않았으면 하향 리뷰를 따라 켜고 끈다. */
+    if (t === 'leader' && !calibTouched) {
+      setDisabledPhases((prev) => {
+        const n = new Set(prev);
+        if (turningOff) n.add(CALIBRATION_PHASE_ID);
+        else n.delete(CALIBRATION_PHASE_ID);
+        return n;
+      });
+    }
     if (turningOff && t in tplTypeBuffers) {
       setTplTypeBuffers((m) => {
         const next = { ...m };
@@ -5092,9 +5110,6 @@ export default function EvalCycleWizard({
         (b.usageCount || 0) - (a.usageCount || 0),
     )
     .slice(0, MAX_START_TEMPLATES);
-  // 불러온 뒤 항목을 고쳤는가 — 고정 바의 `(수정됨)` 병기 판정 (policy §5.10-C).
-  const tplLoadedEdited =
-    !!tplLoadedFrom && JSON.stringify(tplQuestions) !== tplLoadedFrom.snapshot;
 
   /* ── PW-441 §5.10-D 「이 사이클에 적용할 템플릿」 유형별 확정 ────────────────────
      구조가 이렇다 — 단계 id 와 평가 유형 id 가 같고(`PHASE_TO_REVIEW_TYPE` 는 항등),
@@ -5107,6 +5122,15 @@ export default function EvalCycleWizard({
   /** [PW-1831 J-8] 「수정 중」 지문 — 항목과 등급 체계. 등급만 바꿔도(다른 유형에서 퍼뜨려도) 확정본과 달라진다. */
   const bufferFingerprint = (questions, grades) =>
     JSON.stringify({ q: normalizeQuestions(questions), g: grades ?? DEFAULT_GRADES });
+  /** [PW-2076 §5.1-D W1] 불러온 저장본의 지문 — 항목과 등급 체계 둘 다. */
+  const loadedSnapshotOf = (tpl) => bufferFingerprint(tpl.questions ?? [], tpl.grades);
+  // 불러온 뒤 고쳤는가 — 📎 칩의 «저장본 그대로 / 저장본에서 수정함» 판정 (policy §5.1-D W1).
+  // 예전 버퍼는 항목만 담은 배열(`[` 로 시작)을 들고 있어 그때는 항목만 견준다.
+  const tplLoadedEdited =
+    !!tplLoadedFrom &&
+    (tplLoadedFrom.snapshot.startsWith('[')
+      ? JSON.stringify(tplQuestions)
+      : bufferFingerprint(tplQuestions, tplGrades)) !== tplLoadedFrom.snapshot;
   /** 확정 칸 키의 «지금 편집하지 않는» 버퍼. 편집 중인 칸이면 null(화면 값이 곧 버퍼다). */
   const parkedBufferOf = (key) => {
     const base = phaseBaseId(key);
@@ -5282,7 +5306,7 @@ export default function EvalCycleWizard({
     loadedFrom: {
       name: tpl.name,
       revision: tpl.revision || 1,
-      snapshot: JSON.stringify(tpl.questions ?? []),
+      snapshot: loadedSnapshotOf(tpl),
     },
   });
   /** 확정 칸(`self` · `leader` · `leader_2` …)이 확정한 템플릿으로 만든 버퍼. 확정이 없거나 라이브러리에 없으면 null. */
@@ -5705,7 +5729,7 @@ export default function EvalCycleWizard({
       setTplLoadedFrom({
         name: tpl.name,
         revision: tpl.revision || 1,
-        snapshot: JSON.stringify(tpl.questions),
+        snapshot: loadedSnapshotOf(tpl),
       });
     };
     // 다른 템플릿으로 이미 확정돼 있으면 더 무거운 «A → B» 확인 하나만 띄운다 — 두 번 묻지 않는다.
@@ -5751,10 +5775,12 @@ export default function EvalCycleWizard({
   const includeOne = (id) => {
     markManualAdjust();
     // 수동 제외를 되돌리면 **배지 없이 원상**이다.
-    if (manualExcludedIds.includes(id)) {
+    // [PW-2076 W3-a] 규칙 제외자는 수동 제외 명단에 남아 있어도 규칙 제외로 보이므로 「수동 포함」으로 되돌린다.
+    if (manualExcludedIds.includes(id) && !ruleExcludedIdSet.has(id)) {
       setManualExcludedIds((prev) => prev.filter((x) => x !== id));
       return;
     }
+    setManualExcludedIds((prev) => prev.filter((x) => x !== id));
     setKeptIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
   };
 
@@ -5980,15 +6006,19 @@ export default function EvalCycleWizard({
         (e) => e.exclusionType !== 'manual' && scopedIdSet.has(e.memberId),
       )
     : liveAutoExclusions;
+  /* [PW-2076 §5.1-D W3-a] 규칙 제외가 수동 제외를 이긴다 — `manual_exclude ∩ 규칙 제외자 = ∅`.
+     판정 응답 전에 [모두 제외]를 눌러 퇴사자가 수동 제외 명단에 들어가도, 판정이 오면 사유는
+     `퇴사 처리됨` 이다(«수동 제외»로 덮지 않는다 · §5.5.3 규칙 5). */
+  const ruleExcludedIdSet = new Set(autoExclusions.map((e) => e.memberId));
+  /* [PW-2076 W3-b] 제외 조건 맨 위 고정 행의 «해당 n명» — 서버가 조건과 상관없이 늘 빼는 퇴사자(PW-1963). */
+  const resignedRuleCount = autoExclusions.filter((e) => e.exclusionType === 'resigned').length;
   // 0단계 '리뷰 & 조정' 에서 손으로 뺀 사람(개별 지정 제외).
   const manualExclusions = manualExcludedIds
-    .filter((id) => scopedCandidates.some((c) => c.id === id))
+    .filter((id) => !ruleExcludedIdSet.has(id) && scopedCandidates.some((c) => c.id === id))
     .map((id) => ({ memberId: id, exclusionType: 'manual' }));
   const exclusions = [
     ...manualExclusions,
-    ...autoExclusions.filter(
-      (e) => !manualExcludedIds.includes(e.memberId) && !keptIds.includes(e.memberId),
-    ),
+    ...autoExclusions.filter((e) => !keptIds.includes(e.memberId)),
   ];
   const excludedIds = new Set(exclusions.map((e) => e.memberId));
   const targetMembers = scopedCandidates.filter((c) => !excludedIds.has(c.id));
@@ -6869,7 +6899,8 @@ export default function EvalCycleWizard({
       ]);
     } else {
       /* 수동 제외를 되돌리면 배지 없이 원상, 규칙 제외를 되돌려야 「수동 포함」이다. */
-      const manual = new Set(manualExcludedIds);
+      // [PW-2076 W3-a] 규칙 제외자는 수동 제외 명단에 있어도 규칙 제외로 보이므로 되돌리면 「수동 포함」이다.
+      const manual = new Set(manualExcludedIds.filter((id) => !ruleExcludedIdSet.has(id)));
       setManualExcludedIds((prev) => prev.filter((x) => !ids.includes(x)));
       const toKept = ids.filter((id) => !manual.has(id));
       setKeptIds((prev) => [
@@ -7006,6 +7037,7 @@ export default function EvalCycleWizard({
     // [PW-1591 J-7] 리마인더를 직접 고친 단계 — 이어쓰기 뒤 길이 기본값이 이 단계들을 덮지 않게.
     remindersCustomized: Object.keys(reminders),
     disabledPhases: [...disabledPhases],
+    calibTouched,
     phaseOrder,
     gradeCardPosition,
     // 4단계 — 제외 조건 + 조직 선택 + 수동 가감
@@ -7303,7 +7335,9 @@ export default function EvalCycleWizard({
        고칠 수 있는 것이 아니다. 겹침은 여전히 통과시킨다(병렬 진행이 정상). */
     (step === 2 && scheduleValid && remindersValid) ||
     (step === 3 && targetsValid) ||
-    (step === 4 && committeeValid);
+    /* [PW-2076 §5.1-D W2-c] 미완성 위원회는 [다음]을 막지 않는다 — [평가 오픈하기]에서 막는다(`canSubmit`).
+       미완성 하나로 6단계 확인까지 못 가면 끄는 길을 찾는 것이 HR 몫이 된다. */
+    step === 4;
 
   // 단계 표를 눌러 자유 이동할 수 있으므로(§5.1), 마지막 '생성' 버튼도 같은 조건을 다시 본다.
   // 안 그러면 앞 단계를 건너뛰고 곧장 생성해서 게이트가 통째로 무력해진다.
@@ -7334,6 +7368,7 @@ export default function EvalCycleWizard({
   /**
    * [PW-531] 단계 표의 ✓ 판정 — `다음` 을 막는 조건과 같은 것을 단계별로 본다.
    * 2단계(템플릿)는 경고만 하고 진행을 막지 않으므로(§5.1 표) 늘 완료로 친다.
+   * 5단계(위원회)는 [다음]을 막지 않지만 오픈을 막으므로(PW-2076 W2-c) 미완성이면 ✓ 를 주지 않는다.
    */
   const isStepComplete = (i) =>
     i === 0
@@ -7358,7 +7393,9 @@ export default function EvalCycleWizard({
         : !targetsValid
         ? L.submitBlockTargets
         : !committeeValid
-          ? L.submitBlockCommittee
+          ? incompleteCommitteeCount > 0 && L.submitBlockCommitteeCount
+            ? fill(L.submitBlockCommitteeCount, { count: incompleteCommitteeCount })
+            : L.submitBlockCommittee
           : openBlockedByTemplates
             ? L.submitBlockTemplates
             : openBlockedByLeader
@@ -7478,8 +7515,9 @@ export default function EvalCycleWizard({
         /* PW-700 — 오픈 뒤 대상자 탭이 «오픈 때 쓴 조건»을 그대로 보이려면 조건이 사이클에
            남아 있어야 한다. 초안에만 두면 오픈과 함께 사라진다. */
         exclusionRules: exclusionRulesNow,
-        manualExclude: manualExcludedIds.filter((id) =>
-          scopedCandidates.some((c) => c.id === id),
+        // [PW-2076 W3-a] 규칙으로 빠진 사람은 수동 제외 명단에서 빼고 저장한다.
+        manualExclude: manualExcludedIds.filter(
+          (id) => !ruleExcludedIdSet.has(id) && scopedCandidates.some((c) => c.id === id),
         ),
         manualInclude: keptIds.filter((id) =>
           scopedCandidates.some((c) => c.id === id),
@@ -8317,9 +8355,10 @@ export default function EvalCycleWizard({
                           : L[TEMPLATE_TYPES.find((rt) => rt.id === tplType)?.nameKey] || tplType,
                     })}
                   </span>
-                  <span className="evc-tpl-ctxbar-version">
+                  <span className="evc-tpl-ctxbar-version" data-testid="evc-tpl-ctxbar-version">
                     {L[TEMPLATE_VERSIONS.find((v) => v.id === tplVersion)?.labelKey] || tplVersion}
-                    {tplIsCustomized ? ` ${L.tplCustomized}` : ''}
+                    {/* [PW-2076 W1] 불러왔으면 비교 기준은 저장본이라 여기엔 붙이지 않는다 — 📎 칩이 말한다. */}
+                    {!tplLoadedFrom && tplIsCustomized ? ` · ${L.tplCustomized}` : ''}
                     {roleMode === 'by_role' && !hideRoleVersions ? ` · ${L.roleModeByRole}` : ''}
                   </span>
                   <span className="evc-tpl-ctxbar-meta">
@@ -8335,8 +8374,13 @@ export default function EvalCycleWizard({
                   {tplLoadedFrom && (
                     <span className="evc-tpl-ctxbar-from" data-testid="evc-tpl-ctxbar-from">
                       <PaperclipIcon size={12} /> {tplLoadedFrom.name} v{tplLoadedFrom.revision}
-                      {tplLoadedEdited && (
-                        <strong className="evc-tpl-ctxbar-edited">{L.tplCustomized}</strong>
+                      {tplLoadedEdited ? (
+                        <>
+                          {' · '}
+                          <strong className="evc-tpl-ctxbar-edited">{L.tplLoadedEdited}</strong>
+                        </>
+                      ) : (
+                        ` · ${L.tplLoadedSame}`
                       )}
                     </span>
                   )}
@@ -8741,7 +8785,7 @@ export default function EvalCycleWizard({
                     <span className="evc-tpl-preset-head">
                       <span className="evc-tpl-preset-label">
                         {L[p.labelKey]}
-                        {tplVersion === p.id && tplIsCustomized ? ` ${L.tplCustomized}` : ''}
+                        {!tplLoadedFrom && tplVersion === p.id && tplIsCustomized ? ` · ${L.tplCustomized}` : ''}
                       </span>
                       {p.recommended && <StatusBadge className="evc-mode-badge">{L.recommendedBadge}</StatusBadge>}
                     </span>
@@ -9732,6 +9776,28 @@ export default function EvalCycleWizard({
                       )}
                     </div>
                   )}
+                  {/* [PW-2076 §5.1-D W3-b] 퇴사자는 조건과 상관없이 늘 빠진다 — 숨겨 두면 «수동 제외»처럼
+                      보였다. 끌 수 없는 고정 행으로 드러낸다. 넣어야 하면 제외 명단에서 ← 로 되돌린다. */}
+                  <Checkbox
+                    className="evl-promo-row"
+                    inputClassName="dp-check-input"
+                    checked
+                    readOnly
+                    disabled
+                    title={
+                      L.exclusionResignedFixedHint ??
+                      '퇴사 처리된 사람은 평가를 쓸 수도 받을 수도 없어 늘 뺍니다. 꼭 넣어야 하면 오른쪽 제외 명단에서 ← 로 되돌리십시오.'
+                    }
+                    data-testid="evc-wiz-excl-resigned"
+                  >
+                    <span>
+                      <LockIcon size={11} />{' '}
+                      {fill(
+                        L.exclusionResignedFixed ?? '퇴사 처리된 구성원 · 항상 제외 · 해당 {{count}}명',
+                        { count: resignedRuleCount },
+                      )}
+                    </span>
+                  </Checkbox>
                   <Checkbox
                     className="evl-promo-row"
                     inputClassName="dp-check-input"
@@ -10759,14 +10825,27 @@ export default function EvalCycleWizard({
                 </div>
               )}
               {!committeeInScope ? null : incompleteCommitteeCount > 0 ? (
-                <p className="evc-wiz-calib-alert is-error" data-testid="evc-wiz-calib-incomplete">
-                  <AlertIcon size={14} />
-                  {fill(
-                    L.wizardCalibIncomplete ??
-                      '미완성 캘리브레이션 {{count}}개 — 각 캘리브레이션에 제목 · 대상(1개 이상) · 참여 위원(1명 이상)을 모두 지정하세요.',
-                    { count: incompleteCommitteeCount },
-                  )}
-                </p>
+                <div className="evc-wiz-calib-alert is-error" data-testid="evc-wiz-calib-incomplete">
+                  <span>
+                    <AlertIcon size={14} />{' '}
+                    {fill(
+                      L.wizardCalibIncomplete ??
+                        '미완성 캘리브레이션 {{count}}개 — 각 캘리브레이션에 제목 · 대상(1개 이상) · 참여 위원(1명 이상)을 모두 지정하세요.',
+                      { count: incompleteCommitteeCount },
+                    )}{' '}
+                    {/* [PW-2076 §5.1-D W2-c] [다음]은 열려 있으니 끄는 길을 여기서 알린다. */}
+                    {L.wizardCalibTurnOffHint ??
+                      '캘리브레이션을 쓰지 않으시면 3단계(단계별 일정)에서 끌 수 있습니다.'}
+                  </span>
+                  <button
+                    type="button"
+                    className="evc-btn is-ghost"
+                    onClick={() => goStep(2, { exact: true })}
+                    data-testid="evc-wiz-calib-go-schedule"
+                  >
+                    {L.wizardCalibGoSchedule ?? '3단계로 이동'}
+                  </button>
+                </div>
               ) : (
                 <div className="evc-wiz-calib-alert is-done" data-testid="evc-wiz-calib-done">
                   <span>
