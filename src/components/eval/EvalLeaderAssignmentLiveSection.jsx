@@ -1,7 +1,8 @@
-import { useRef, useState } from 'react';
+import { Fragment, useMemo, useRef, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
 import TextInput from '../shared/TextInput.jsx';
+import Checkbox from '../shared/Checkbox.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import Skeleton from '../shared/Skeleton.jsx';
 import AnchoredLayer from '../shared/AnchoredLayer.jsx';
@@ -18,8 +19,21 @@ import {
   liveCellBadge,
   liveRoundCount,
 } from './evalLeaderLive.js';
+import {
+  LEADER_TOOL_LABELS,
+  allOn,
+  evaluatorLoadRows,
+  filterLeaderRows,
+  hasLeaderFilter,
+  leaderLevelOptions,
+  sortLeaderRows,
+} from './evalLeaderTable.js';
+import { LeaderBulkBar, LeaderEvaluatorView, LeaderToolbar } from './EvalLeaderTableTools.jsx';
+import { useLeaderTableTools } from './useLeaderTableTools.js';
 
 /** 로딩 자리 표시 줄 수 · 표 행 높이(§9-E-1 tbody tr h49) — 4단계 섹션과 같은 값. */
+/** 최상위 조직이 없는 대상자 묶음. */
+const NO_GROUP = '__none';
 const SKELETON_ROWS = 4;
 const ROW_H = 49;
 
@@ -85,8 +99,13 @@ export default function EvalLeaderAssignmentLiveSection({
   rules = [],
   /** 부담 경고 기준(null = 기본 15 · 0 = 끔). */
   loadLimit = null,
+  /**
+   * PW-2066 · §5.13.10 — 일괄 조정 `(refs, action, personId) → Promise<{ applied, skippedSelf, skippedSubmitted } | null>`.
+   * refs = `[{ evaluateeId, round, cell }]`. 확인 창·서버 호출·실패 토스트는 호출부가 한다(null = 취소·실패).
+   */
+  onBulk,
 }) {
-  const L = { ...DEFAULT_LABELS, ...(labels ?? {}) };
+  const L = { ...DEFAULT_LABELS, ...LEADER_TOOL_LABELS, ...(labels ?? {}) };
   const [open, setOpen] = useState(!!defaultOpen);
   const [openCellId, setOpenCellId] = useState(null);
   const [pickQuery, setPickQuery] = useState('');
@@ -107,6 +126,142 @@ export default function EvalLeaderAssignmentLiveSection({
   const pending = new Set(pendingIds ?? []);
   const loading = status === 'loading';
   const failed = status === 'error';
+
+  /* PW-2066 · §5.13.10 — 4단계와 같은 도구. 조직별 확정·규칙 편집은 없다(T-5). */
+  const tools = useLeaderTableTools(n);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const bulkOn = !readOnly && typeof onBulk === 'function';
+  const toolRows = useMemo(
+    () =>
+      rows.map((r) => ({
+        id: r.evaluateeId,
+        name: r.evaluateeName,
+        groupId: r.groupId ?? NO_GROUP,
+        level: r.jobLevel || '',
+        subOrg: r.orgName || '',
+        src: r,
+      })),
+    [rows],
+  );
+  const groups = useMemo(() => {
+    const seen = new Map();
+    rows.forEach((r) => {
+      const id = r.groupId ?? NO_GROUP;
+      if (!seen.has(id)) {
+        seen.set(id, {
+          id,
+          name: !r.groupId
+            ? L.leaderToolGroupNone
+            : r.groupRootDirect
+              ? L.leaderToolGroupRootDirect
+              : r.groupName || L.leaderToolGroupNone,
+          rank: !r.groupId ? 2 : r.groupRootDirect ? 0 : 1,
+        });
+      }
+    });
+    return [...seen.values()].sort(
+      (a, b) => a.rank - b.rank || String(a.name).localeCompare(String(b.name), 'ko'),
+    );
+  }, [rows, L.leaderToolGroupNone, L.leaderToolGroupRootDirect]);
+  /** 오픈 뒤 «경고» = 퇴사한 평가자가 아직 안 낸 칸(재배정 대상 · §5.13.6). */
+  const warned = useMemo(
+    () => new Set(rows.filter((r) => r.cells?.some((c) => c.resigned && c.state !== 'submitted')).map((r) => r.evaluateeId)),
+    [rows],
+  );
+  const liveCells = useMemo(
+    () =>
+      rows.flatMap((r) =>
+        (r.cells ?? []).map((c) => ({ ...c, evaluateeId: r.evaluateeId, skipped: isLiveCellSkipped(c) })),
+      ),
+    [rows],
+  );
+  const cellsByRow = useMemo(() => {
+    const m = new Map();
+    liveCells.forEach((c) => m.set(c.evaluateeId, [...(m.get(c.evaluateeId) ?? []), c]));
+    return m;
+  }, [liveCells]);
+  const visibleRows = useMemo(
+    () =>
+      sortLeaderRows(
+        filterLeaderRows(toolRows, tools.filter, {
+          query: tools.view === 'target' ? tools.query : '',
+          warned,
+          cellsOf: (id) => cellsByRow.get(id) ?? [],
+        }),
+        tools.sort,
+        warned,
+      ),
+    [toolRows, tools.filter, tools.view, tools.query, tools.sort, warned, cellsByRow],
+  );
+  const levelOptions = useMemo(() => leaderLevelOptions(toolRows), [toolRows]);
+  const personMap = useMemo(() => {
+    const m = new Map((people ?? []).map((p) => [p.id, p]));
+    liveCells.forEach((c) => {
+      if (c.evaluatorId && !m.has(c.evaluatorId)) {
+        m.set(c.evaluatorId, { id: c.evaluatorId, name: c.evaluatorName, resigned: !!c.resigned });
+      } else if (c.evaluatorId && c.resigned) {
+        m.set(c.evaluatorId, { ...m.get(c.evaluatorId), resigned: true });
+      }
+    });
+    return m;
+  }, [people, liveCells]);
+  const personOf = (id) => personMap.get(id) ?? null;
+  const loadBy = useMemo(() => {
+    const m = new Map();
+    liveCells.forEach((c) => !c.skipped && c.evaluatorId && m.set(c.evaluatorId, (m.get(c.evaluatorId) ?? 0) + 1));
+    return m;
+  }, [liveCells]);
+  const evaluatorView = tools.view === 'evaluator';
+  const evQuery = tools.query.trim().toLowerCase();
+  const evaluatorRows = evaluatorView
+    ? evaluatorLoadRows(liveCells, n, (id) => personOf(id)?.name).filter(
+        (r) => !evQuery || String(personOf(r.evaluatorId)?.name ?? '').toLowerCase().includes(evQuery),
+      )
+    : [];
+  const liveLoadLimit = loadLimit ?? LEADER_LOAD_LIMIT_DEFAULT;
+  const filtered = hasLeaderFilter(tools.filter) || !!tools.query.trim();
+  const visibleIds = visibleRows.map((r) => r.id);
+  const cols = n + 1 + (bulkOn ? 1 : 0);
+  const cellAt = (evaluateeId, round) => cellsByRow.get(evaluateeId)?.find((c) => c.round === round) ?? null;
+  const applyBulk = async (action, personId) => {
+    const refs = (
+      evaluatorView
+        ? [...tools.selected].map((k) => {
+            const [evaluateeId, round] = k.split(':');
+            return { evaluateeId, round: Number(round) };
+          })
+        : [...tools.selected].map((evaluateeId) => ({ evaluateeId, round: tools.bulkRound }))
+    )
+      .map((r) => ({ ...r, cell: cellAt(r.evaluateeId, r.round) }))
+      .filter((r) => r.cell);
+    setBulkBusy(true);
+    try {
+      const res = await onBulk(refs, action, personId);
+      if (res) {
+        tools.clearSelected();
+        tools.setResult(res);
+      }
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+  const evaluatorCellLabel = (c) => {
+    const badge = liveCellBadge(c);
+    const row = rows.find((r) => r.evaluateeId === c.evaluateeId);
+    return (
+      <span className="evc-la-name-row">
+        <span className="evc-la-name">{row?.evaluateeName ?? ''}</span>
+        <StatusBadge className="evc-type-badge">{fill(L.leaderEvCellRound, { round: c.round })}</StatusBadge>
+        {badge && (
+          <StatusBadge className={`evc-status-badge ${badge.tone}`}>
+            {badge.key === 'liveSubmitted'
+              ? fill(L.liveSubmitted, { date: formatMonthDay(c.submittedAt) }).trim()
+              : L[badge.key]}
+          </StatusBadge>
+        )}
+      </span>
+    );
+  };
 
   let openRow = null;
   let openCell = null;
@@ -269,6 +424,29 @@ export default function EvalLeaderAssignmentLiveSection({
               ))}
             </div>
           )}
+          {rows.length > 0 && (
+            <LeaderToolbar
+              L={L}
+              tools={tools}
+              groups={groups}
+              levels={levelOptions}
+              searchLabel={L.leaderToolSearchTarget}
+              testPrefix="evmon-la"
+            />
+          )}
+          {bulkOn && (
+            <LeaderBulkBar
+              L={L}
+              tools={tools}
+              rounds={n}
+              count={tools.selected.size}
+              people={people}
+              loadBy={loadBy}
+              busy={bulkBusy}
+              onApply={(action, personId) => void applyBulk(action, personId)}
+              testPrefix="evmon-la"
+            />
+          )}
           {failed && (
             <p className="evc-wiz-warn evc-la-error" role="alert" data-testid="evmon-la-error">
               {L.liveLoadFailed}
@@ -295,9 +473,33 @@ export default function EvalLeaderAssignmentLiveSection({
             <p className="evc-la-blank" data-testid="evmon-la-empty">
               {L.liveEmpty}
             </p>
+          ) : evaluatorView ? (
+            <LeaderEvaluatorView
+              L={L}
+              tools={tools}
+              rounds={n}
+              loadRows={evaluatorRows}
+              personOf={personOf}
+              loadLimit={liveLoadLimit}
+              cellLabel={evaluatorCellLabel}
+              canSelect={() => bulkOn}
+              testPrefix="evmon-la"
+            />
           ) : (
             <RosterTable scroll="x" tableClassName="evc-la-table" testId="evmon-la-table">
               <RosterTable.Head>
+                {bulkOn && (
+                  <RosterTable.HeadCell width={36}>
+                    <Checkbox
+                      inputClassName="dp-check-input"
+                      checked={allOn(tools.selected, visibleIds)}
+                      disabled={visibleIds.length === 0}
+                      aria-label={L.leaderToolCheckAll}
+                      onChange={(e) => tools.setSelectedMany(visibleIds, e.target.checked)}
+                      data-testid="evmon-la-check-all"
+                    />
+                  </RosterTable.HeadCell>
+                )}
                 <RosterTable.HeadCell width={200}>{L.liveColTarget}</RosterTable.HeadCell>
                 {roundList.map((k) => (
                   <RosterTable.HeadCell key={k}>
@@ -306,19 +508,88 @@ export default function EvalLeaderAssignmentLiveSection({
                 ))}
               </RosterTable.Head>
               <RosterTable.Body>
-                {rows.map((r) => (
-                  <RosterTable.Row key={r.evaluateeId} data-testid={`evmon-la-row-${r.evaluateeId}`}>
-                    <RosterTable.Cell>
-                      <span className="evc-la-person">
-                        <span className="evc-la-person-name">{r.evaluateeName}</span>
-                        {r.orgName && <span className="evc-la-hint">{r.orgName}</span>}
+                {visibleRows.length === 0 ? (
+                  <RosterTable.Row>
+                    <RosterTable.Cell colSpan={cols}>
+                      <span className="evc-la-blank" data-testid="evmon-la-empty-filter">
+                        {L.leaderToolFilterEmpty}{' '}
+                        {filtered && (
+                          <button
+                            type="button"
+                            className="evc-link-btn"
+                            onClick={() => tools.clearFilter()}
+                            data-testid="evmon-la-show-all"
+                          >
+                            {L.leaderAsgShowAll}
+                          </button>
+                        )}
                       </span>
                     </RosterTable.Cell>
-                    {roundList.map((k) => (
-                      <RosterTable.Cell key={k}>{renderCell(r, k)}</RosterTable.Cell>
-                    ))}
                   </RosterTable.Row>
-                ))}
+                ) : (
+                  groups.map((g) => {
+                    const gRows = visibleRows.filter((r) => r.groupId === g.id);
+                    if (gRows.length === 0) return null;
+                    const gIds = gRows.map((r) => r.id);
+                    const all = toolRows.filter((r) => r.groupId === g.id);
+                    return (
+                      <Fragment key={g.id}>
+                        <RosterTable.GroupRow colSpan={cols} data-testid={`evmon-la-group-${g.id}`}>
+                          <span className="evc-la-group">
+                            {bulkOn && (
+                              <Checkbox
+                                inputClassName="dp-check-input"
+                                checked={allOn(tools.selected, gIds)}
+                                aria-label={fill(L.leaderToolCheckGroup, { name: g.name })}
+                                onChange={(e) => tools.setSelectedMany(gIds, e.target.checked)}
+                                data-testid={`evmon-la-group-check-${g.id}`}
+                              />
+                            )}
+                            <span className="evc-la-person-name">{g.name}</span>
+                            <span className="evc-la-hint">
+                              {fill(L.leaderAsgGroupMeta, {
+                                n: all.length,
+                                w: all.filter((r) => warned.has(r.id)).length,
+                              })}
+                            </span>
+                          </span>
+                        </RosterTable.GroupRow>
+                        {gRows.map(({ src: r }) => (
+                          <RosterTable.Row
+                            key={r.evaluateeId}
+                            tone={tools.selected.has(r.evaluateeId) ? 'selected' : undefined}
+                            data-testid={`evmon-la-row-${r.evaluateeId}`}
+                          >
+                            {bulkOn && (
+                              <RosterTable.Cell>
+                                <Checkbox
+                                  inputClassName="dp-check-input"
+                                  checked={tools.selected.has(r.evaluateeId)}
+                                  aria-label={fill(L.leaderToolCheckRow, { name: r.evaluateeName })}
+                                  onChange={(e) => tools.setSelectedMany([r.evaluateeId], e.target.checked)}
+                                  data-testid={`evmon-la-check-${r.evaluateeId}`}
+                                />
+                              </RosterTable.Cell>
+                            )}
+                            <RosterTable.Cell>
+                              <span className="evc-la-person">
+                                <span className="evc-la-person-name">{r.evaluateeName}</span>
+                                {(r.orgName || r.jobPosition || r.jobLevel) && (
+                                  <span className="evc-la-hint">
+                                    {[r.orgName, r.jobPosition, r.jobLevel].filter(Boolean).join(' · ')}
+                                  </span>
+                                )}
+                              </span>
+                            </RosterTable.Cell>
+                            {roundList.map((k) => (
+                              <RosterTable.Cell key={k}>{renderCell(r, k)}</RosterTable.Cell>
+                            ))}
+                          </RosterTable.Row>
+                        ))}
+                      </Fragment>
+                    );
+                  })
+                )}
               </RosterTable.Body>
             </RosterTable>
           )}

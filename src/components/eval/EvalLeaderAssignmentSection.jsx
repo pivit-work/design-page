@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
 import TextInput from '../shared/TextInput.jsx';
@@ -19,6 +19,18 @@ import {
   rowHasNoChain,
   summarizeLeaderWarnings,
 } from './evalLeaderRounds.js';
+import {
+  LEADER_TOOL_LABELS,
+  allOn,
+  evaluatorLoadRows,
+  filterLeaderRows,
+  hasLeaderFilter,
+  leaderCellRefs,
+  leaderLevelOptions,
+  sortLeaderRows,
+} from './evalLeaderTable.js';
+import { LeaderBulkBar, LeaderEvaluatorView, LeaderToolbar } from './EvalLeaderTableTools.jsx';
+import { useLeaderTableTools } from './useLeaderTableTools.js';
 import { withoutLeavingBefore } from './evalRetiring.js';
 import RetiringTag from './RetiringTag.jsx';
 
@@ -97,9 +109,13 @@ export default function EvalLeaderAssignmentSection({
   vacantUnits = [],
   /** 평가자 id → 맡은 칸 수. */
   loadBy = new Map(),
+  /* ── PW-2066 · HR §5.13.10 ─────────────────────────────────────────────── */
+  /** 일괄 조정 `(refs, action, personId) → { applied, skippedSelf }`. 없으면 체크·일괄 바를 그리지 않는다. */
+  onBulk,
 }) {
   const [warnOnly, setWarnOnly] = useState(false);
-  const [query, setQuery] = useState('');
+  const tools = useLeaderTableTools(rounds);
+  const query = tools.query;
   const [openCell, setOpenCell] = useState(null); // { key, evaluateeId, round }
   const [pickQuery, setPickQuery] = useState('');
   const [rulesOpen, setRulesOpen] = useState(false);
@@ -124,10 +140,37 @@ export default function EvalLeaderAssignmentSection({
   const summary = summarizeLeaderWarnings(warningsByCell);
   const loading = status === 'loading';
   const failed = status === 'error';
-  const q = query.trim().toLowerCase();
-  const visibleRows = rows.filter(
-    (r) => (!warnOnly || rowWarned(r.id)) && (!q || String(r.name ?? '').toLowerCase().includes(q)),
+  /* PW-2066 — 필터는 보이는 행만 줄인다. 경고·확정 계수(위 summary·groupSummary)는 전체 기준이다(T-1). */
+  const warned = useMemo(
+    () => new Set([...warningsByCell].filter(([, w]) => w.length > 0).map(([k]) => k.split(':')[0])),
+    [warningsByCell],
   );
+  const cellsByRow = useMemo(() => {
+    const m = new Map();
+    cells.forEach((c) => {
+      const list = m.get(c.evaluateeId);
+      if (list) list.push(c);
+      else m.set(c.evaluateeId, [c]);
+    });
+    return m;
+  }, [cells]);
+  const visibleRows = useMemo(
+    () =>
+      sortLeaderRows(
+        filterLeaderRows(rows, tools.filter, {
+          query,
+          warnOnly,
+          warned,
+          cellsOf: (id) => cellsByRow.get(id) ?? [],
+        }),
+        tools.sort,
+        warned,
+      ),
+    [rows, tools.filter, query, warnOnly, warned, cellsByRow, tools.sort],
+  );
+  const levelOptions = useMemo(() => leaderLevelOptions(rows), [rows]);
+  const bulkOn = typeof onBulk === 'function';
+  const evaluatorView = tools.view === 'evaluator';
   const confirmBlocked = summary.blocking > 0;
   const confirmDisabled =
     !onConfirm || confirming || loading || failed || confirmBlocked || !!confirm || rows.length === 0;
@@ -317,6 +360,56 @@ export default function EvalLeaderAssignmentSection({
         </button>
       </Tooltip>
     );
+  };
+
+  /* PW-2066 · §5.13.10 — 일괄 조정 · 평가자 기준 보기. */
+  const T = { ...LEADER_TOOL_LABELS, ...L };
+  const cols = rounds + 1 + (bulkOn ? 1 : 0);
+  const visibleIds = visibleRows.map((r) => r.id);
+  const filtered = hasLeaderFilter(tools.filter) || !!query.trim();
+  const rowName = useMemo(() => new Map(rows.map((r) => [r.id, r.name])), [rows]);
+  const evaluatorRows = useMemo(() => {
+    if (!evaluatorView) return [];
+    const q = query.trim().toLowerCase();
+    return evaluatorLoadRows(cells, rounds, (id) => personOf(id)?.name).filter(
+      (r) => !q || String(personOf(r.evaluatorId)?.name ?? '').toLowerCase().includes(q),
+    );
+  }, [evaluatorView, cells, rounds, personOf, query]);
+  /* PW-2029 — 일괄 «평가자 지정» 후보도 칸 고르기와 같이, 고른 칸 중 가장 늦은 차수 마감 전에 떠나는 사람을 뺀다. */
+  const selectedRounds = evaluatorView
+    ? [...tools.selected].map((k) => Number(k.split(':')[1]))
+    : [tools.bulkRound];
+  const bulkPeople = withoutLeavingBefore(
+    people,
+    selectedRounds.length > 0 ? roundDeadline(Math.max(...selectedRounds)) : '',
+  );
+  const evaluatorCellLabel = (c) => (
+    <span className="evc-la-name-row">
+      <span className="evc-la-name">{rowName.get(c.evaluateeId) ?? ''}</span>
+      <StatusBadge className="evc-type-badge">{fill(T.leaderEvCellRound, { round: c.round })}</StatusBadge>
+      {c.origin === 'rule' ? (
+        <StatusBadge tone="accent" className="evc-status-badge">
+          {L.leaderAsgBadgeRule}
+        </StatusBadge>
+      ) : (
+        <StatusBadge className={`evc-status-badge ${c.origin === 'adjusted' ? 'tone-info' : 'tone-neutral'}`}>
+          {c.origin === 'adjusted' ? L.leaderAsgBadgeAdjusted : L.leaderAsgBadgeRecommended}
+        </StatusBadge>
+      )}
+    </span>
+  );
+  const applyBulk = (action, personId) => {
+    // 지난 결과 줄은 지운다 — 이번이 실패했는데 앞의 «적용했습니다»가 남으면 성공으로 읽힌다.
+    tools.setResult(null);
+    const refs = evaluatorView
+      ? [...tools.selected].map((k) => {
+          const [evaluateeId, round] = k.split(':');
+          return { evaluateeId, round: Number(round) };
+        })
+      : leaderCellRefs(tools.selected, tools.bulkRound);
+    const res = onBulk(refs, action, personId);
+    tools.clearSelected();
+    tools.setResult(res ?? null);
   };
 
   const openCellObj = openCell ? cellOf(openCell.evaluateeId, openCell.round) : null;
@@ -554,19 +647,6 @@ export default function EvalLeaderAssignmentSection({
           label={L.leaderAsgWarnOnly}
           data-testid="evc-la-warn-only"
         />
-        <span className="evc-review-search evc-la-search">
-          <span className="evc-review-search-icon">
-            <SearchGlyph size={14} />
-          </span>
-          <TextInput
-            className="evc-input"
-            value={query}
-            placeholder={L.leaderAsgSearch}
-            aria-label={L.leaderAsgSearch}
-            onChange={(e) => setQuery(e.target.value)}
-            data-testid="evc-la-search"
-          />
-        </span>
         {grouped ? (
           <span className="evc-la-bar-right">
             {fullyConfirmed ? (
@@ -661,6 +741,30 @@ export default function EvalLeaderAssignmentSection({
         </p>
       )}
 
+      {rows.length > 0 && (
+        <LeaderToolbar
+          L={L}
+          tools={tools}
+          groups={groups}
+          levels={levelOptions}
+          searchLabel={L.leaderAsgSearch}
+          testPrefix="evc-la"
+        />
+      )}
+      {bulkOn && (
+        <LeaderBulkBar
+          L={L}
+          tools={tools}
+          rounds={rounds}
+          count={tools.selected.size}
+          people={bulkPeople}
+          loadBy={loadBy}
+          busy={confirming}
+          onApply={applyBulk}
+          testPrefix="evc-la"
+        />
+      )}
+
       {rows.length === 0 ? (
         <p className="evc-la-blank" data-testid="evc-la-empty-targets">
           {L.leaderAsgEmptyTargets}
@@ -671,9 +775,33 @@ export default function EvalLeaderAssignmentSection({
             <Skeleton key={i} height={ROW_H - 8} />
           ))}
         </div>
+      ) : evaluatorView ? (
+        <LeaderEvaluatorView
+          L={L}
+          tools={tools}
+          rounds={rounds}
+          loadRows={evaluatorRows}
+          personOf={personOf}
+          loadLimit={loadLimit}
+          cellLabel={evaluatorCellLabel}
+          canSelect={() => bulkOn}
+          testPrefix="evc-la"
+        />
       ) : (
         <RosterTable scroll="x" framed tableClassName="evc-la-table" testId="evc-la-table">
           <RosterTable.Head>
+            {bulkOn && (
+              <RosterTable.HeadCell width={36}>
+                <Checkbox
+                  inputClassName="dp-check-input"
+                  checked={allOn(tools.selected, visibleIds)}
+                  disabled={visibleIds.length === 0}
+                  aria-label={T.leaderToolCheckAll}
+                  onChange={(e) => tools.setSelectedMany(visibleIds, e.target.checked)}
+                  data-testid="evc-la-check-all"
+                />
+              </RosterTable.HeadCell>
+            )}
             <RosterTable.HeadCell width={200}>{L.leaderAsgColTarget}</RosterTable.HeadCell>
             {roundList.map((k) => (
               <RosterTable.HeadCell key={k}>
@@ -684,15 +812,15 @@ export default function EvalLeaderAssignmentSection({
           <RosterTable.Body>
             {visibleRows.length === 0 ? (
               <RosterTable.Row>
-                <RosterTable.Cell colSpan={rounds + 1}>
-                  <span className="evc-la-blank" data-testid="evc-la-empty-warn">
-                    {L.leaderAsgEmptyWarn}{' '}
+                <RosterTable.Cell colSpan={cols}>
+                  <span className="evc-la-blank" data-testid={filtered ? 'evc-la-empty-filter' : 'evc-la-empty-warn'}>
+                    {filtered ? T.leaderToolFilterEmpty : L.leaderAsgEmptyWarn}{' '}
                     <button
                       type="button"
                       className="evc-link-btn"
                       onClick={() => {
                         setWarnOnly(false);
-                        setQuery('');
+                        tools.clearFilter();
                       }}
                       data-testid="evc-la-show-all"
                     >
@@ -705,7 +833,16 @@ export default function EvalLeaderAssignmentSection({
               (grouped
                 ? groups.flatMap((g) => {
                     const gRows = visibleRows.filter((r) => r.groupId === g.id);
-                    return gRows.length === 0 ? [] : [{ group: g, count: rows.filter((r) => r.groupId === g.id).length }, ...gRows];
+                    return gRows.length === 0
+                      ? []
+                      : [
+                          {
+                            group: g,
+                            count: rows.filter((r) => r.groupId === g.id).length,
+                            visibleIds: gRows.map((x) => x.id),
+                          },
+                          ...gRows,
+                        ];
                   })
                 : visibleRows
               ).map((r) => {
@@ -714,8 +851,17 @@ export default function EvalLeaderAssignmentSection({
                   const gs = groupSummary(g.id);
                   const st = groupStates[g.id] ?? {};
                   return (
-                    <RosterTable.GroupRow key={`g:${g.id}`} colSpan={rounds + 1} data-testid={`evc-la-group-${g.id}`}>
+                    <RosterTable.GroupRow key={`g:${g.id}`} colSpan={cols} data-testid={`evc-la-group-${g.id}`}>
                       <span className="evc-la-group">
+                        {bulkOn && (
+                          <Checkbox
+                            inputClassName="dp-check-input"
+                            checked={allOn(tools.selected, r.visibleIds)}
+                            aria-label={fill(T.leaderToolCheckGroup, { name: g.name })}
+                            onChange={(e) => tools.setSelectedMany(r.visibleIds, e.target.checked)}
+                            data-testid={`evc-la-group-check-${g.id}`}
+                          />
+                        )}
                         <span className="evc-la-person-name">{g.name}</span>
                         <span className="evc-la-hint">
                           {fill(L.leaderAsgGroupMeta, { n: r.count, w: gs.total })}
@@ -755,7 +901,22 @@ export default function EvalLeaderAssignmentSection({
                 const rowCells = roundList.map((k) => cellOf(r.id, k)).filter(Boolean);
                 const noChain = rowHasNoChain(rowCells) && rowCells.every((c) => c.origin !== 'adjusted');
                 return (
-                  <RosterTable.Row key={r.id} data-testid={`evc-la-row-${r.id}`}>
+                  <RosterTable.Row
+                    key={r.id}
+                    tone={tools.selected.has(r.id) ? 'selected' : undefined}
+                    data-testid={`evc-la-row-${r.id}`}
+                  >
+                    {bulkOn && (
+                      <RosterTable.Cell>
+                        <Checkbox
+                          inputClassName="dp-check-input"
+                          checked={tools.selected.has(r.id)}
+                          aria-label={fill(T.leaderToolCheckRow, { name: r.name })}
+                          onChange={(e) => tools.setSelectedMany([r.id], e.target.checked)}
+                          data-testid={`evc-la-check-${r.id}`}
+                        />
+                      </RosterTable.Cell>
+                    )}
                     <RosterTable.Cell>
                       <span className="evc-la-person">
                         <span className="evc-la-person-name">{r.name}</span>

@@ -103,6 +103,7 @@ import {
   topRoundHasNoRecommendation,
   withOverloadWarnings,
 } from './evalLeaderRounds.js';
+import { applyLeaderBulk } from './evalLeaderTable.js';
 import EvalLeaderAssignmentSection from './EvalLeaderAssignmentSection.jsx';
 import { leavesBeforeDate, withoutLeavingBefore } from './evalRetiring.js';
 import RetiringTag from './RetiringTag.jsx';
@@ -6310,6 +6311,18 @@ export default function EvalCycleWizard({
     editLeaderCell(evaluateeId, round, skipLeaderCell, 'skipped');
   const revertLeader = (evaluateeId, round) =>
     editLeaderCell(evaluateeId, round, revertLeaderCell, 'reverted');
+  /** PW-2066 · §5.13.10 — 고른 칸 전부에 한 동작. 바뀐 칸의 조직만 풀린다(조직 지문이 그 칸으로 갈린다). */
+  const bulkLeader = (refs, action, personId) => {
+    const base = alignLeaderCells(leaderCellsState, targetIds, roundsInUse);
+    const res = applyLeaderBulk(base, refs, action, personId);
+    if (res.changedIds.size > 0) {
+      const kind = action === 'skip' ? 'skipped' : action === 'revert' ? 'reverted' : 'cellChanged';
+      setLeaderCells(res.cells);
+      setLeaderChangeKind(kind);
+      dropLeaderConfirm(kind);
+    }
+    return { applied: res.applied, skippedSelf: res.skippedSelf };
+  };
 
   /**
    * `확정` — 차단 경고(본인·퇴사자)가 없을 때만. 초안이면 먼저 저장해 잠금 키(`baseSavedAt`)를 맞춘다.
@@ -10589,8 +10602,11 @@ export default function EvalCycleWizard({
                     rows={targetMembers.map((m) => ({
                       id: m.id,
                       name: m.name,
-                      sub: [m.department, m.jobPosition].filter(Boolean).join(' · '),
+                      // PW-2066 · §5.13.10 — 보조 줄 `{팀} · {직책} · {직급}`(빈 값은 뺀다).
+                      sub: [m.department, m.jobPosition, m.jobLevel].filter(Boolean).join(' · '),
                       groupId: leaderGroupIdOf(m),
+                      level: m.jobLevel || '',
+                      subOrg: m.department || '',
                     }))}
                     cells={leaderCells}
                     warningsByCell={leaderWarningsAll}
@@ -10619,6 +10635,7 @@ export default function EvalCycleWizard({
                     onAssign={assignLeader}
                     onSkip={skipLeader}
                     onRevert={revertLeader}
+                    onBulk={bulkLeader}
                     topRoundEmpty={
                       !leaderConfirmed && topRoundHasNoRecommendation(leaderCells, roundsInUse)
                     }

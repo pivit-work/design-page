@@ -11201,6 +11201,23 @@ button.evm-ai-source {
   background: var(--utility-warning-50);
   border-color: var(--utility-warning-200);
 }
+/* PW-2066 · §5.13.10 일괄 바 — 같은 요약 바 틀에 info 틴트(§9-D-1 선택 요약 바의 brand 색). */
+.evc-la-bar.is-info {
+  background: var(--utility-brand-50);
+  border-color: var(--utility-brand-200);
+}
+/* PW-2066 · §5.13.10 도구 줄 — 줄마다 PW-2065 규칙 칸의 칩 줄(.evc-la-rule-axis)을 쌓는다. */
+.evc-la-tools {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+/* 평가자 기준 보기에서 펼친 담당 칸 — 체크 줄을 가로로 흘린다. */
+.evc-la-ev-cells {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm) var(--spacing-lg);
+}
 .evc-la-bar-count {
   font-size: var(--font-size-text-xs);
   font-weight: 700;
