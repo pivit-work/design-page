@@ -11,12 +11,17 @@
  *   <StatusBadge tone="success" className="evc-status-badge">완료</StatusBadge>
  *
  * 색을 바꾸는 것은 디자이너 몫이라, 여기 값을 고치는 것은 디자이너 결정이 있을 때만 한다.
+ *
+ * 색의 뜻은 디자이너가 그린 화면에서 읽었다(PW-1933): 초록 = 고른 것·완료, 파랑 = 진행 중,
+ * 보라 = AI, 주황 = 경고, 빨강 = 실패·위험, 회색 = 직책·막지 않는 안내. 처음 이 표를 만들 때
+ * «진행»을 보라로 칠해서, 디자이너 화면과 거꾸로 «진행 중»이 보라·«알림»이 파랑이 되어 있었다.
+ * 그래서 AI 결과 표시가 파랑으로 칠해지는 일이 생겼다(OKR 마법사 「회사 컨텍스트 반영」).
  * 같은 값이 `src/status-badge.css` 의 `:root` 에도 있고, 둘이 어긋나면
  * `npm run check:status-badges` 가 막는다.
  */
 
 /**
- * 뜻 일곱. `bg`·`fg` 는 `src/status-badge.css` 의 `--dp-badge-<이름>-bg`·`-fg` 와 같아야 한다.
+ * 뜻 여덟. `bg`·`fg` 는 `src/status-badge.css` 의 `--dp-badge-<이름>-bg`·`-fg` 와 같아야 한다.
  * `when` 은 이 뜻을 언제 쓰는지 — 새 상태에 딱지를 붙일 때 여기서 고른다.
  */
 export const TONES = {
@@ -28,13 +33,19 @@ export const TONES = {
   },
   info: {
     label: '정보',
-    when: '알려 주기만 하는 표시 · 갈래 구분 (재촉하지 않는다)',
+    when: '진행 중 상태 (`progress` 와 같은 파랑). 🔴 알려 주기만 하는 표시는 `neutral`, AI 표시는 `ai` 다',
     bg: 'var(--utility-blue-50)',
     fg: 'var(--utility-blue-600)',
   },
   progress: {
     label: '진행',
     when: '하는 중 · 아직 안 끝났지만 늦은 것은 아님',
+    bg: 'var(--utility-blue-50)',
+    fg: 'var(--utility-blue-600)',
+  },
+  ai: {
+    label: 'AI',
+    when: 'AI 가 만든 것 · AI 가 붙인 표시 (AI 와 상관없는 것에는 쓰지 않는다)',
     bg: 'var(--utility-purple-50)',
     fg: 'var(--utility-purple-500)',
   },

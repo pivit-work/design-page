@@ -31,12 +31,15 @@
   /* 중립 — 아무 일도 일어나지 않은 상태 · 해당 없음 · 꺼져 있음 */
   --dp-badge-neutral-bg: var(--bg-secondary);
   --dp-badge-neutral-fg: var(--text-tertiary);
-  /* 정보 — 알려 주기만 하는 표시 · 갈래 구분 */
+  /* 정보 — 진행 중 (progress 와 같은 파랑). 알려 주기만 하는 표시는 중립, AI 표시는 AI */
   --dp-badge-info-bg: var(--utility-blue-50);
   --dp-badge-info-fg: var(--utility-blue-600);
   /* 진행 — 하는 중 · 아직 안 끝났지만 늦은 것은 아님 */
-  --dp-badge-progress-bg: var(--utility-purple-50);
-  --dp-badge-progress-fg: var(--utility-purple-500);
+  --dp-badge-progress-bg: var(--utility-blue-50);
+  --dp-badge-progress-fg: var(--utility-blue-600);
+  /* AI — AI 가 만든 것 · AI 가 붙인 표시 */
+  --dp-badge-ai-bg: var(--utility-purple-50);
+  --dp-badge-ai-fg: var(--utility-purple-500);
   /* 성공 — 끝남 · 됨 · 충족 · 승인됨 */
   --dp-badge-success-bg: var(--utility-green-50);
   --dp-badge-success-fg: var(--utility-green-600);
@@ -73,6 +76,10 @@
 .dp-badge--tone-progress {
   background: var(--dp-badge-progress-bg);
   color: var(--dp-badge-progress-fg);
+}
+.dp-badge--tone-ai {
+  background: var(--dp-badge-ai-bg);
+  color: var(--dp-badge-ai-fg);
 }
 .dp-badge--tone-success {
   background: var(--dp-badge-success-bg);
@@ -288,7 +295,7 @@
   font-weight: 700;
 }
 
-.admin-activity-tag.is-snippet  { background: var(--dp-badge-progress-bg); color: var(--dp-badge-progress-fg); }
+.admin-activity-tag.is-snippet  { background: var(--utility-purple-50); color: var(--utility-purple-500); }
 
 .admin-activity-tag.is-alert    { background: var(--utility-error-50);            color: var(--colors-error-600); }
 
@@ -563,8 +570,8 @@
 }
 
 .evc-status-badge.tone-purple {
-  background: var(--dp-badge-progress-bg);
-  color: var(--dp-badge-progress-fg);
+  background: var(--utility-purple-50);
+  color: var(--utility-purple-500);
 }
 
 .evc-status-badge.tone-success {
@@ -992,7 +999,7 @@
 
 .okr-q-badge.is-blue { background: var(--utility-blue-400); }
 
-.okr-p-ai-chip-auto { padding: 2px 12px; border-radius: 6px; background: var(--dp-badge-progress-bg); font-size: 12px; font-weight: 400; line-height: 18px; color: var(--dp-badge-progress-fg); }
+.okr-p-ai-chip-auto { padding: 2px 12px; border-radius: 6px; background: var(--dp-badge-ai-bg); font-size: 12px; font-weight: 400; line-height: 18px; color: var(--dp-badge-ai-fg); }
 
 .okr-pill { padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; background: var(--bg-quaternary); }
 
@@ -1258,7 +1265,7 @@
   color: var(--utility-success-700);
 }
 
-.ons-ai-tag { display: flex; align-items: center; gap: 4px; padding: 6px; background: var(--dp-badge-progress-bg); border: 1px solid var(--alpha-black-3); border-radius: var(--radius-xs); font-size: 14px; font-weight: 600; line-height: 20px; color: var(--dp-badge-progress-fg); flex-shrink: 0; }
+.ons-ai-tag { display: flex; align-items: center; gap: 4px; padding: 6px; background: var(--dp-badge-ai-bg); border: 1px solid var(--alpha-black-3); border-radius: var(--radius-xs); font-size: 14px; font-weight: 600; line-height: 20px; color: var(--dp-badge-ai-fg); flex-shrink: 0; }
 
 /* ══ org_chart.css 에서 옮겨 온 딱지 ══════════════════════════════════════════════ */
 

@@ -482,7 +482,7 @@ export default function OkrSetupWizardModal({
                 <span className="okr-wz-draft-badges">
                   <StatusBadge className="okr-wz-badge">{krsConfirmed ? '✓ 확인됨' : `AI 초안 (미확인) · ${krs.length}개`}</StatusBadge>
                   {krsContextApplied && contextAppliedLabel && (
-                    <StatusBadge tone="info" data-testid="okr-wz-ctx-applied">{contextAppliedLabel}</StatusBadge>
+                    <StatusBadge tone="ai" data-testid="okr-wz-ctx-applied">{contextAppliedLabel}</StatusBadge>
                   )}
                 </span>
                 {!krsConfirmed && (
