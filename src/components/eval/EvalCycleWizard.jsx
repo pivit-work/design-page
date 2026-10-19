@@ -1861,7 +1861,9 @@ function CommitteeCard({
   targetMembers,
   deptOptions: committeeDeptOptions,
   levelOptions: committeeLevelOptions,
-  committeeCandidates,
+  committeeCandidates: allCommitteeCandidates,
+  /** PW-2029 — 캘리브레이션 단계 끝(지금 화면의 일정). 그 전에 떠나는 사람은 위원 후보·자동 지정에서 빠진다. */
+  calibrationEnd = '',
   committeeCandidatesLoading,
   committeeCandidatesError,
   onReloadCommitteeCandidates,
@@ -1869,6 +1871,9 @@ function CommitteeCard({
   dupIds,
   complete,
 }) {
+  // PW-2029 — 고를 수 있는 후보는 마감 전에 떠나는 사람을 뺀 명단이다. 이미 고른 위원의 이름은 전체 명단에서
+  // 찾는다 — 고른 뒤에 일정·퇴사일이 바뀌어 후보에서 빠져도 칩에 식별 문자열이 보이지 않게.
+  const committeeCandidates = withoutLeavingBefore(allCommitteeCandidates, calibrationEnd);
   const idBase = `evc-wiz-${card.key}`;
   /* 카드 필드 하나를 바꾼다. 값 또는 «이전 값 → 새 값» 함수를 받는다 — 종전 setState 와
      같은 모양이라 아래 화면 코드가 그대로 쓴다. */
@@ -1984,7 +1989,7 @@ function CommitteeCard({
   // 선택 위원은 카드로는 안 보이지만 요약 바에서 확인·해제할 수 있어야 한다.
   const visibleCommitteeIds = new Set(visibleCommitteeCandidates.map((c) => c.id));
   const hiddenSelectedCount = committee.filter((id) => !visibleCommitteeIds.has(id)).length;
-  const committeeById = new Map(committeeCandidates.map((c) => [c.id, c]));
+  const committeeById = new Map(allCommitteeCandidates.map((c) => [c.id, c]));
   const committeeChair = committee.length > 0 ? committeeById.get(committee[0]) : null;
   const toggleCommittee = (id) =>
     setCommittee((prev) =>
@@ -10479,12 +10484,8 @@ export default function EvalCycleWizard({
                   targetMembers={targetMembers}
                   deptOptions={committeeDeptOptions}
                   levelOptions={committeeLevelOptions}
-                  /* PW-2029 — 캘리브레이션 마감 전에 떠나는 사람은 위원 후보·상위 조직장 자동 지정에서 뺀다.
-                     일정은 화면에서 고치는 중이라 지금 값으로 거른다. */
-                  committeeCandidates={withoutLeavingBefore(
-                    committeeCandidates,
-                    scheduleOf('calibration')?.end,
-                  )}
+                  committeeCandidates={committeeCandidates}
+                  calibrationEnd={scheduleOf('calibration')?.end ?? ''}
                   committeeCandidatesLoading={committeeCandidatesLoading}
                   committeeCandidatesError={committeeCandidatesError}
                   onReloadCommitteeCandidates={onReloadCommitteeCandidates}
