@@ -202,6 +202,8 @@ function AreaCard({
  * @param {(payload: object) => void} props.onRun
  * @param {object} [props.labels] 기본 라벨 위에 깊게 덮는다
  * @param {(iso: string) => string} [props.formatDate] 섹션 3 제목의 날짜 표기
+ * @param {(resignationDate: string) => string} [props.confirmDateOf] 고른 퇴사일로 실행하면 퇴사가 확정되는 날
+ *   ('YYYY-MM-DD'). 라벨의 `{confirmDate}` 자리를 채운다 — 규칙(기준일 · 14일)은 소비자가 갖는다 (pivit-work PW-2083)
  */
 export default function AdminOffboardingCanvas({
   member,
@@ -215,6 +217,7 @@ export default function AdminOffboardingCanvas({
   onRun,
   labels: providedLabels,
   formatDate,
+  confirmDateOf,
 }) {
   const labels = merge(ADMIN_OFFBOARDING_DEFAULT_LABELS, providedLabels);
   const sep = labels.listSeparator;
@@ -252,6 +255,8 @@ export default function AdminOffboardingCanvas({
   const underMinimum = typeof minimum === 'number' && afterSeats < minimum;
   const leaderOf = member.leaderOf || [];
   const dateText = formatDate && resignationDate ? formatDate(resignationDate) : resignationDate;
+  const confirmDate = confirmDateOf && resignationDate ? confirmDateOf(resignationDate) : '';
+  const confirmDateText = formatDate && confirmDate ? formatDate(confirmDate) : confirmDate;
 
   const areaLabel = (a) => labels.areas[a.id]?.label ?? a.id;
 
@@ -428,9 +433,11 @@ export default function AdminOffboardingCanvas({
             </li>
             <li>{labels.effects.candidates}</li>
             <li>{labels.effects.oneOnOne}</li>
-            {/* 지우는 처리가 실행되는 때 — 퇴사 확정 밤(퇴사 정책 v1.25 §2 · pivit-work PW-2083). 날짜는 소비자가 채워 준다 */}
+            {/* 지우는 처리가 실행되는 때 — 퇴사 확정 밤(퇴사 정책 v1.25 §2 · pivit-work PW-2083). 날짜는 confirmDateOf 로 */}
             {labels.effects.purgeTiming && (
-              <li data-testid="offboarding-purge-timing">{labels.effects.purgeTiming}</li>
+              <li data-testid="offboarding-purge-timing">
+                {fill(labels.effects.purgeTiming, { confirmDate: confirmDateText })}
+              </li>
             )}
           </ul>
           <Notice tone="neutral">{labels.effects.retention}</Notice>
@@ -442,8 +449,8 @@ export default function AdminOffboardingCanvas({
         n="4"
         title={labels.sections.confirm}
         desc={!due && labels.sections.confirmDescScheduled
-          ? fill(labels.sections.confirmDescScheduled, { date: dateText })
-          : labels.sections.confirmDesc}
+          ? fill(labels.sections.confirmDescScheduled, { date: dateText, confirmDate: confirmDateText })
+          : fill(labels.sections.confirmDesc, { confirmDate: confirmDateText })}
       >
         <div className="admin-offb-stack">
           {missingReason.length > 0 && (
