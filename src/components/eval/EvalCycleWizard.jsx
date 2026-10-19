@@ -2902,6 +2902,14 @@ export default function EvalCycleWizard({
    */
   isScheduleEndReached,
   /**
+   * PW-2078 — 오픈한 사이클에서 «이미 시작했거나 끝난» 단계 id 목록(정책 §5.2.1-A «고정 단계»).
+   * 판정은 소비 측이 서버와 같은 기준(시작 시각 도래 · 사이클이 그 단계 이상 진행)으로 해서 넘긴다.
+   * 이 단계들은 일정 시작일 변경 · 「전체 다시 배치」 · 일괄 배치 어디에서도 날짜가 바뀌지 않고,
+   * 자리도 차지하지 않는다 — 나머지 단계는 마지막 고정 단계 종료 다음 날부터 이어 놓는다.
+   * 마감은 손으로 고칠 수 있다. 안 넘기면 끝난 단계(PW-1988)만 고정이다.
+   */
+  fixedPhaseIds = null,
+  /**
    * PW-822 — 관리 모드에서 위원회 단계를 «이미 있는 위원회»로 채운다.
    * `{ committee: [userId…](첫 사람 = 위원장), name, depts, levels, jobLevels, added, excluded }`.
    * `levels` 는 옛 위원회의 직책 조건, `jobLevels` 는 직급 조건이다(PW-1687).
@@ -3430,9 +3438,6 @@ export default function EvalCycleWizard({
     scheduleStartTouched && isIsoDate(scheduleStartRaw)
       ? scheduleStartRaw
       : defaultScheduleStart(endDate);
-  const defaultSchedule = initSchedule(activePhases, scheduleStart);
-  // PW-122 우선순위: 사용자가 직접 고친 값 > 프리셋 오프셋(D0 기준) > 7일 간격 기본값.
-  const presetSchedule = offsetsToSchedule(presetOffsets, scheduleStart);
   /**
    * [PW-1988] 오픈한 사이클에서 «연 순간» 이미 끝난 단계 — 서버가 날짜 변경을 거절한다
    * (「완료된 단계의 날짜는 변경할 수 없습니다.」). 일정 수정 창(`isDone`)과 같은 판정이다.
@@ -3447,9 +3452,42 @@ export default function EvalCycleWizard({
       ? isScheduleEndReached(end)
       : isPastScheduleEnd(end);
   };
+  /**
+   * [PW-2078 · 정책 §5.2.1-A «고정 단계»] 오픈한 사이클에서 이미 시작했거나 끝난 단계. 어떤
+   * 다시 배치에서도 시작·종료가 그대로다 — 시작된 단계의 시작일이 미래로 밀리면 작성 창이 말없이
+   * 닫힌다. 끝난 단계는 칸까지 잠기고(PW-1988), 시작만 된 단계는 마감을 손으로 고칠 수 있다.
+   */
+  const isFixedPhase = (id) =>
+    openedManage &&
+    (isDonePhase(id) || (Array.isArray(fixedPhaseIds) && fixedPhaseIds.includes(id)));
+  /** 고정 단계의 지금 값 — 손으로 고친 마감이 있으면 그 값, 없으면 저장값. */
+  const fixedValueOf = (id) =>
+    (isDonePhase(id) && initialSeq.schedule[id]) || schedule[id] || initialSeq?.schedule?.[id];
+  /*
+   * [PW-2078] 고정 단계는 자리를 차지하지 않는다. 나머지 단계는 «일정 시작일»과 «고정 단계 중 가장
+   * 늦은 종료의 다음 날» 중 늦은 날(고정 단계 쪽이 이기면 주말은 다음 월요일)부터 이어 놓는다.
+   * 종전에는 기본 배치가 «켜진 단계 순번 × 7일»이라 끝난 단계 몫의 한 주가 빈 채 남았다.
+   */
+  const movablePhases = activePhases.filter((p) => !isFixedPhase(p.id));
+  const layoutStart = (() => {
+    let last = '';
+    activePhases.forEach((p) => {
+      if (!isFixedPhase(p.id)) return;
+      const end = datePart(fixedValueOf(p.id)?.end);
+      if (isIsoDate(end) && end > last) last = end;
+    });
+    if (!last) return scheduleStart;
+    const next = addDaysIso(last, 1);
+    return next > scheduleStart ? nextWeekdayIso(next) : scheduleStart;
+  })();
+  const defaultSchedule = initSchedule(movablePhases, layoutStart);
+  // PW-122 우선순위: 사용자가 직접 고친 값 > 프리셋 오프셋(D0 기준) > 7일 간격 기본값.
+  const presetSchedule = offsetsToSchedule(presetOffsets, layoutStart);
   const scheduleOf = (id) =>
     (isDonePhase(id) && initialSeq.schedule[id]) ||
-    schedule[id] || presetSchedule[id] || defaultSchedule[id] || { start: '', end: '' };
+    schedule[id] ||
+    (isFixedPhase(id) && initialSeq?.schedule?.[id]) ||
+    presetSchedule[id] || defaultSchedule[id] || { start: '', end: '' };
   /*
    * 저장된 값이 구 형태(email.{subject,body})여도 화면은 message 로 읽는다 [PW-435 ⑤].
    *
@@ -3564,7 +3602,8 @@ export default function EvalCycleWizard({
      화면에 보이는 단계 중 「직접 수정」인 것만 센다. 꺼졌다 켜졌다 하며 목록에서
      빠진 옛 단계까지 세면 「현재 N개」가 화면과 안 맞는다. */
   const dirtyShown = displayPhases
-    .filter((p) => scheduleDirty.includes(p.id))
+    // [PW-2078] 고정 단계는 어차피 다시 배치되지 않으니 «직접 수정해 보호 중»으로 세지 않는다.
+    .filter((p) => scheduleDirty.includes(p.id) && !isFixedPhase(p.id))
     .map((p) => p.id);
   const d0Shown = d0Draft ?? scheduleStart;
   /**
@@ -3613,7 +3652,10 @@ export default function EvalCycleWizard({
   /** 「전체 다시 배치」 — 보호를 전부 풀어 D0 기준 기본 배치로 되돌린다. */
   const rebaseAllSchedule = () => {
     setScheduleDirty([]);
-    setSchedule({});
+    // [PW-2078] 고정 단계는 손으로 고친 마감까지 그대로 둔다 — 다시 배치에서 빠지는 단계다.
+    setSchedule((prev) =>
+      Object.fromEntries(Object.entries(prev).filter(([id]) => isFixedPhase(id))),
+    );
     setSchedDraft({});
   };
   /**
@@ -3625,7 +3667,8 @@ export default function EvalCycleWizard({
     const n = Math.max(1, Math.min(60, Math.trunc(Number(bulkDays)) || 1));
     const offsets = {};
     displayPhases
-      .filter((p) => !disabledPhases.has(p.id))
+      // [PW-2078] 고정 단계는 순번에서 빼고 날짜도 바꾸지 않는다(k 는 «고정 단계를 뺀 켜진 단계»의 순번).
+      .filter((p) => !disabledPhases.has(p.id) && !isFixedPhase(p.id))
       .forEach((p, k) => {
         const startDay = bulkMode === 'same' ? 0 : k * n;
         offsets[p.id] = {
@@ -8935,6 +8978,13 @@ export default function EvalCycleWizard({
                 </StatusBadge>
                 <span className="evc-sched-anchor-note">
                   {L.scheduleAnchorNote}
+                  {/* [PW-2078 · §5.2.1-A] 고정 단계가 있으면 다시 배치에서 빠진다는 것을 기준점 안내에도 적는다 */}
+                  {activePhases.some((p) => isFixedPhase(p.id)) && L.scheduleAnchorFixedNote && (
+                    <span data-testid="evc-sched-anchor-fixed">
+                      {' · '}
+                      {L.scheduleAnchorFixedNote}
+                    </span>
+                  )}
                   {dirtyShown.length > 0 && (
                     <strong data-testid="evc-sched-anchor-dirty">
                       {' '}
@@ -9177,6 +9227,16 @@ export default function EvalCycleWizard({
                           data-testid={`evc-sched-done-${ph.id}`}
                         >
                           {L.schedulePhaseDoneLocked}
+                        </div>
+                      )}
+                      {/* [PW-2078 · §5.2.1-A] 시작만 된 단계 — 다시 배치에서 빠진다는 것을 그 행에 적는다.
+                          끝난 단계 안내와 같은 모양(잠금 안내 상자)이다. 끝난 단계는 위 안내가 대신한다. */}
+                      {enabled && isFixedPhase(ph.id) && !isDonePhase(ph.id) && L.schedulePhaseFixedLocked && (
+                        <div
+                          className="evc-sched-modal-locked"
+                          data-testid={`evc-sched-fixed-${ph.id}`}
+                        >
+                          {L.schedulePhaseFixedLocked}
                         </div>
                       )}
                       {/* [PW-1461 · 정책 §5.10.3] 고친 날짜로 이 단계가 시작되면 저장하는 순간 평가지가

@@ -268,6 +268,18 @@ const DEFAULT_LABELS = {
   openConfirmSubmit: '오픈하기',
   openConfirmSubmitting: '오픈하는 중…',
   openConfirmFailed: '평가 오픈에 실패했습니다. 다시 시도해 주세요.',
+  // [PW-2077 · 정책 §5.7.0] 영향 수치를 받을 때의 창 문구.
+  openImpactTitle: '오픈하면 일어나는 일',
+  openImpactTargets: '대상자 {{count}}명의 평가가 시작됩니다.',
+  openImpactFirstPhase: '첫 단계: {{name}} {{start}}~{{end}}',
+  openImpactNotify: '{{count}}명에게 「평가가 시작되었습니다」 알림이 갑니다(인앱 + 이메일).',
+  openImpactLeaders: '리더 {{count}}명에게 «동료 리뷰어 확정» 요청이 갑니다(인앱).',
+  openImpactTemplate: '적용 평가지 — {{type}}:',
+  openImpactTemplateName: '{{name}} v{{revision}}',
+  openImpactPolicyHold: '진행 중 언제든 일시 중단·재개할 수 있습니다(작성 데이터 보존).',
+  openImpactPolicyEdit: '오픈 뒤 대상자 추가·제외와 아직 시작하지 않은 단계의 평가지는 고칠 수 있습니다.',
+  openImpactCheck: '대상 {{count}}명 · 위 평가지로 오픈합니다',
+  openImpactFailed: '불러오지 못했습니다',
   submitBlockCommittee: '5단계 캘리브레이션 위원회 구성을 완성하세요',
   wizardStepTargets: '대상자',
   targetModeAll: '전체',
@@ -517,8 +529,48 @@ const fill = (s, vars) => {
  *   「아무것도 안 바뀌었다」로 읽히면 거짓이 된다.
  * - [PW-513] 포털로 body 에 건다 — 공용 창 틀(ModalShell)이 한다. 이유는 아래 `openBlock` 주석과 같다.
  */
-function OpenConfirmModal({ cycle, labels: L, onCancel, onConfirm }) {
+function OpenConfirmModal({ cycle, labels: L, onCancel, onConfirm, onLoadImpact }) {
   const [checked, setChecked] = useState(false);
+  /*
+   * [PW-2077 · 정책 §5.7.0] 영향 수치 — 대상 N · 오픈 알림 M(· 리더 요청 L) · 평가지 이름·버전 · 첫 단계 일정.
+   * 수치는 서버가 발송과 같은 계산으로 준다(`onLoadImpact`). 못 받으면 수치 자리에 「불러오지 못했습니다」를
+   * 적고 오픈을 막는다 — 회수·삭제 확인 창과 같은 원칙(되돌리기 어려운 조작은 영향을 보고 판단한다).
+   * `onLoadImpact` 를 안 넘기면 종전 창 그대로다.
+   */
+  const withImpact = typeof onLoadImpact === 'function';
+  const [impact, setImpact] = useState({ status: withImpact ? 'loading' : 'off' });
+  /* 소비 측이 그릴 때마다 새 함수를 넘겨도 다시 세지 않게 ref 로 든다 — 창을 연 대상(`cycle`)이 바뀔 때만 센다. */
+  const loadImpact = useRef(onLoadImpact);
+  useEffect(() => {
+    loadImpact.current = onLoadImpact;
+  });
+  useEffect(() => {
+    if (!withImpact) return undefined;
+    let alive = true;
+    Promise.resolve()
+      .then(() => loadImpact.current(cycle))
+      .then((data) => {
+        if (!alive) return;
+        const ok = data && Number.isFinite(data.targetCount) && Number.isFinite(data.notifyCount);
+        setImpact(ok ? { status: 'ready', data } : { status: 'error' });
+      })
+      .catch(() => alive && setImpact({ status: 'error' }));
+    return () => {
+      alive = false;
+    };
+  }, [cycle, withImpact]);
+  const impactReady = impact.status === 'ready';
+  const canOpen = checked && (!withImpact || impactReady);
+  const num = (v) =>
+    impact.status === 'ready' && Number.isFinite(v)
+      ? String(v)
+      : impact.status === 'loading'
+        ? '…'
+        : null;
+  const count = (key, v) => {
+    const n = num(v);
+    return n == null ? L.openImpactFailed : fill(L[key] ?? '', { count: n });
+  };
   const [submitting, setSubmitting] = useState(false);
   const [failure, setFailure] = useState(null);
   /* 한 틱 안의 두 번째 클릭은 아직 `submitting` 이 false 로 보인다 — ref 로 잠근다
@@ -531,7 +583,7 @@ function OpenConfirmModal({ cycle, labels: L, onCancel, onConfirm }) {
   };
 
   const submit = async () => {
-    if (!checked || inFlight.current) return;
+    if (!canOpen || inFlight.current) return;
     inFlight.current = true;
     setSubmitting(true);
     setFailure(null);
@@ -583,7 +635,7 @@ function OpenConfirmModal({ cycle, labels: L, onCancel, onConfirm }) {
             type="button"
             className="tl-group-modal-btn tl-group-modal-btn-primary"
             onClick={submit}
-            disabled={!checked || submitting}
+            disabled={!canOpen || submitting}
             data-testid="evc-open-confirm-submit"
           >
             {submitting ? L.openConfirmSubmitting : L.openConfirmSubmit}
@@ -592,14 +644,63 @@ function OpenConfirmModal({ cycle, labels: L, onCancel, onConfirm }) {
       }
     >
         <div className="evc-open-confirm-body">
-          <div className="evc-open-confirm-policy" data-testid="evc-open-confirm-policy">
-            <div className="evc-open-confirm-policy-title">{L.openConfirmPolicyTitle}</div>
-            <ul className="evc-open-confirm-policy-list">
-              <li>{L.openConfirmPolicyNotify}</li>
-              <li>{L.openConfirmPolicyHold}</li>
-              <li>{L.openConfirmPolicyEdit}</li>
-            </ul>
-          </div>
+          {withImpact ? (
+            <div className="evc-open-confirm-policy" data-testid="evc-open-confirm-policy">
+              <div className="evc-open-confirm-policy-title">{L.openImpactTitle}</div>
+              <ul className="evc-open-confirm-policy-list" data-testid="evc-open-impact">
+                <li data-testid="evc-open-impact-targets">
+                  <strong className="evc-open-confirm-num">
+                    {count('openImpactTargets', impact.data?.targetCount)}
+                  </strong>
+                  {impactReady && impact.data.firstPhase && (
+                    <>
+                      {' '}
+                      {fill(L.openImpactFirstPhase ?? '', {
+                        name: impact.data.firstPhase.name,
+                        start: impact.data.firstPhase.start ?? '',
+                        end: impact.data.firstPhase.end ?? '',
+                      })}
+                    </>
+                  )}
+                </li>
+                <li data-testid="evc-open-impact-notify">
+                  <strong className="evc-open-confirm-num">
+                    {count('openImpactNotify', impact.data?.notifyCount)}
+                  </strong>
+                </li>
+                {impactReady && impact.data.leaderCount != null && (
+                  <li data-testid="evc-open-impact-leaders">
+                    <strong className="evc-open-confirm-num">
+                      {count('openImpactLeaders', impact.data.leaderCount)}
+                    </strong>
+                  </li>
+                )}
+                {impactReady &&
+                  (impact.data.templates ?? []).map((tpl) => (
+                    <li key={tpl.phase ?? tpl.type} data-testid="evc-open-impact-template">
+                      {fill(L.openImpactTemplate ?? '', { type: tpl.type })}{' '}
+                      <strong className="evc-open-confirm-num">
+                        {fill(L.openImpactTemplateName ?? '{{name}} v{{revision}}', {
+                          name: tpl.name,
+                          revision: tpl.revision,
+                        })}
+                      </strong>
+                    </li>
+                  ))}
+                <li>{L.openImpactPolicyHold}</li>
+                <li>{L.openImpactPolicyEdit}</li>
+              </ul>
+            </div>
+          ) : (
+            <div className="evc-open-confirm-policy" data-testid="evc-open-confirm-policy">
+              <div className="evc-open-confirm-policy-title">{L.openConfirmPolicyTitle}</div>
+              <ul className="evc-open-confirm-policy-list">
+                <li>{L.openConfirmPolicyNotify}</li>
+                <li>{L.openConfirmPolicyHold}</li>
+                <li>{L.openConfirmPolicyEdit}</li>
+              </ul>
+            </div>
+          )}
 
           <label className={`evc-open-confirm-check${checked ? ' is-on' : ''}`}>
             <input
@@ -611,7 +712,13 @@ function OpenConfirmModal({ cycle, labels: L, onCancel, onConfirm }) {
               data-testid="evc-open-confirm-check"
             />
             <span className={`evc-member-check${checked ? ' is-on' : ''}`} aria-hidden="true" />
-            <span className="evc-open-confirm-check-label">{L.openConfirmCheck}</span>
+            <span className="evc-open-confirm-check-label">
+              {withImpact
+                ? fill(L.openImpactCheck ?? '', {
+                    count: num(impact.data?.targetCount) ?? L.openImpactFailed,
+                  })
+                : L.openConfirmCheck}
+            </span>
           </label>
 
           {failure && (
@@ -1360,6 +1467,13 @@ export default function EvalCycleHrCanvas({
    * 부른다. 실패하면 throw — 던진 값의 `userMessage`(사람이 읽는 사유)를 창에 적는다.
    */
   onOpenCycle,
+  /**
+   * PW-2077 · 정책 §5.7.0 — 오픈 확인 창의 영향 수치. `({ payload, cycleId } | { cycle }) => Promise<{
+   * targetCount, notifyCount, leaderCount|null, firstPhase: { name, start, end }|null, templates: [{ phase, type, name, revision }] }>`.
+   * 위자드 6단계는 입력값(`payload`)을, 목록 카드의 「오픈」은 저장된 사이클(`cycle`)을 넘긴다.
+   * 실패하면(던지거나 수치가 없으면) 창이 「불러오지 못했습니다」를 적고 오픈을 막는다. 안 넘기면 종전 창.
+   */
+  onLoadOpenImpact,
   /** 오픈된 사이클을 다음 단계로 전진. (id) => Promise */
   onAdvanceCycle,
   /**
@@ -2321,6 +2435,15 @@ export default function EvalCycleHrCanvas({
         <OpenConfirmModal
           cycle={openAfterSubmit}
           labels={L}
+          onLoadImpact={
+            onLoadOpenImpact
+              ? (payload) =>
+                  onLoadOpenImpact({
+                    payload,
+                    cycleId: draftSession?.cycleId ?? createdForOpen.current ?? null,
+                  })
+              : undefined
+          }
           onCancel={() => setOpenAfterSubmit(null)}
           onConfirm={handleConfirmCreateOpen}
         />
@@ -2330,6 +2453,7 @@ export default function EvalCycleHrCanvas({
         <OpenConfirmModal
           cycle={openConfirm}
           labels={L}
+          onLoadImpact={onLoadOpenImpact ? (c) => onLoadOpenImpact({ cycle: c }) : undefined}
           onCancel={() => setOpenConfirm(null)}
           onConfirm={handleConfirmOpen}
         />

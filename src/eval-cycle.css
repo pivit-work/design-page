@@ -739,6 +739,11 @@
 .evc-open-confirm-policy-list li::before {
   content: '· ';
 }
+/* PW-2077 — 영향 수치. 안내 상자 안에서 숫자만 본문 글자색·굵게(기획 시안 OpenConfirmModal 과 같다). */
+.evc-open-confirm-num {
+  color: var(--text-primary);
+  font-weight: 700;
+}
 .evc-open-confirm-check {
   position: relative;
   display: flex;
