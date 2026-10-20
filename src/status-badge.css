@@ -230,26 +230,31 @@
 
 .admin-kit-chip.is-more { border-color: transparent; padding-left: 4px; padding-right: 4px; color: var(--text-tertiary); }
 
+/* [PW-2043] 구성원 목록 창의 재직 상태 — 매니저 팀 요약 점수 딱지(.mgr-ts-score) 색: 재직=좋음 초록,
+   수습·휴직=주의 노랑, 퇴사=회색. 크기는 옆 겸직 딱지(12px)에 맞췄다(점수 딱지 원래 14px 이면 혼자 커진다).
+   대기(초대만 됨)는 예전처럼 브랜드 초록 — 재직과 같은 색이면 아직 안 들어온 사람이 재직자로 읽힌다. */
 .admin-kit-members-status {
   flex-shrink: 0;
   max-width: 40%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  padding: 2px 8px;
-  border-radius: 999px;
-  font-size: 10.5px;
-  font-weight: 700;
-  color: var(--dp-badge-success-fg);
-  background: var(--dp-badge-success-bg);
+  padding: 2px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--utility-success-200);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--utility-success-700);
+  background: var(--utility-success-50);
 }
 
 .admin-kit-members-status.is-probation,
-.admin-kit-members-status.is-on_leave { color: var(--colors-warning-500, #d97706); background: var(--colors-warning-50, #fffbeb); }
+.admin-kit-members-status.is-on_leave { color: var(--utility-warning-700); background: var(--utility-warning-50); border-color: var(--utility-warning-200); }
 
-.admin-kit-members-status.is-terminated { color: var(--dp-badge-neutral-fg); background: var(--dp-badge-neutral-bg); }
+.admin-kit-members-status.is-terminated { color: var(--utility-gray-500); background: var(--utility-gray-50); border-color: var(--utility-gray-200); }
 
-.admin-kit-members-status.is-pending { color: var(--text-brand-tertiary, #21a67a); background: var(--utility-brand-50, #f1fffa); }
+.admin-kit-members-status.is-pending { color: var(--dp-badge-accent-fg); background: var(--utility-brand-100); border-color: var(--alpha-black-3); }
 
 /* ══ admin.css 에서 옮겨 온 딱지 ══════════════════════════════════════════════ */
 

@@ -463,66 +463,41 @@
 }
 .admin-kit-error-row .admin-kit-notice-icon { margin-top: 1px; color: var(--colors-error-600, #d92d20); }
 
-/* ── 구성원 목록 창 ── */
-.admin-kit-members {
-  width: min(560px, 100%);
-  max-height: 85vh;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: var(--bg-quaternary);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--radius-2xl, 16px);
-  box-shadow: 0 24px 60px -12px rgba(10, 13, 18, 0.28);
-  font-family: var(--font-family-body);
-}
-.admin-kit-members-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 16px 20px;
-  border-bottom: 1px solid var(--border-primary);
-}
-.admin-kit-members-headline { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
-.admin-kit-members-title {
-  font-size: 15px;
-  font-weight: 800;
-  color: var(--text-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.admin-kit-members-count { font-size: 12px; font-weight: 700; color: var(--text-brand-tertiary); white-space: nowrap; }
-.admin-kit-members-body { overflow-y: auto; min-height: 0; padding: 8px; }
-.admin-kit-members-body.is-empty { padding: 0; }
-.admin-kit-members-empty { padding: 40px 20px; text-align: center; font-size: 13px; color: var(--text-secondary); }
+/* ── 구성원 목록 창 (PW-2043 — 공용 창 틀 위. 값은 디자이너 모양 그대로, 출처는 줄마다) ── */
+/* 머리(제목+인원)와 목록 사이 32px — 다른 창의 머리·본문 사이(48px)보다 좁게, 전후 그림 그대로 */
+/* 사람이 많으면 목록만 스크롤한다 — 제목·인원 딱지는 위에 남는다. 틀(.adm-shell)은 내용 칸 전체를
+   스크롤하므로 이 창에서만 그 스크롤을 끄고 목록 칸에 넘긴다. 셀렉터에 틀 클래스를 함께 적는 이유는
+   admin.css 의 .adm-shell 규칙과 같다(명시도). */
+.tl-group-modal.adm-shell.admin-kit-members .tl-group-modal-content { overflow: hidden; }
+.admin-kit-members-frame { display: flex; flex-direction: column; gap: 32px; flex: 1; min-height: 0; }
+.admin-kit-members-head { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.admin-kit-members-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin-kit-members-count { align-self: center; flex-shrink: 0; white-space: nowrap; }
+.admin-kit-members-body { display: flex; flex-direction: column; gap: 8px; flex: 1; min-height: 0; overflow-y: auto; }
+.admin-kit-members-empty { padding: 24px 0; text-align: center; font-size: 14px; font-weight: 500; line-height: 20px; color: var(--text-secondary); }
+/* 사람 줄 — 매니저 지정 창의 사람 줄(.ons-candidate) 회색 카드. 누르면 프로필이 열리는 줄은
+   마우스를 올리면 그 창의 «고른 줄»처럼 흰 바탕 + 초록 테두리 */
 .admin-kit-members-row {
-  width: 100%;
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 12px;
-  border: none;
-  border-radius: 10px;
-  background: none;
-  text-align: left;
+  width: 100%;
+  padding: 16px;
+  background: var(--fg-quaternary);
+  border: 2px solid transparent;
+  border-radius: var(--radius-sm);
   font-family: inherit;
+  text-align: left;
   cursor: pointer;
 }
 .admin-kit-members-row:disabled { cursor: default; }
-.admin-kit-members-row:not(:disabled):hover { background: var(--bg-secondary); }
-.admin-kit-members-text { flex: 1; min-width: 0; }
-.admin-kit-members-name,
-.admin-kit-members-sub {
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.admin-kit-members-name { font-size: 13px; font-weight: 700; color: var(--text-primary); }
-.admin-kit-members-sub { font-size: 11.5px; color: var(--text-secondary); }
-.admin-kit-members-tag { margin-left: 6px; vertical-align: 1px; }
+.admin-kit-members-row:not(:disabled):hover { background: var(--bg-quaternary); border-color: var(--border-brand); }
+.admin-kit-members-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.admin-kit-members-name { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 16px; font-weight: 600; line-height: 24px; color: var(--text-primary); }
+.admin-kit-members-name-text,
+.admin-kit-members-sub { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.admin-kit-members-sub { font-size: 14px; font-weight: 500; line-height: 20px; color: var(--text-secondary); }
+.admin-kit-members-tag { align-self: center; flex-shrink: 0; white-space: nowrap; }
 
 /* ── 녹음 사용량 칸 (결제 개요 카드·좌석 막대 모양) ──
    색은 BillingOverviewCanvas 의 T 표(accent #4F6AF5 · amber · red · slate)를 그대로 쓴다 —
