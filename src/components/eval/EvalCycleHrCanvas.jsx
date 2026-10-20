@@ -134,6 +134,7 @@ const DEFAULT_LABELS = {
   // [PW-2077 · 정책 §4.5] 진행 중 단계의 종료를 당겼을 때만.
   scheduleConfirmShortened: '{{name}} 미제출 {{count}}명 — 마감이 {{end}}로 당겨집니다.',
   scheduleConfirmShortenedCases: '{{name}} 미제출 {{count}}건 — 마감이 {{end}}로 당겨집니다.',
+  scheduleConfirmShortenedNoCount: '{{name}} — 마감이 {{end}}로 당겨집니다.',
   scheduleConfirmShortenedFailed: '{{name}} 미제출 인원을 불러오지 못했습니다 — 마감이 {{end}}로 당겨집니다.',
   scheduleConfirmBefore: '이전',
   scheduleConfirmAfter: '변경',

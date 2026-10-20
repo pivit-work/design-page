@@ -25,7 +25,8 @@ const shortStamp = (v) => {
 /**
  * [PW-2077 · 정책 §4.5 «저장 확인 창»] 진행 중인 단계의 종료를 «당겼을 때만» 그 단계마다
  * `{단계} 미제출 K명 — 마감이 MM/DD HH:mm로 당겨집니다.` 를 적는다. K 는 소비 측이 진행 현황과
- * 같은 서버 집계로 준다(`onLoadPending` → `{ [단계 id]: { count, unit: 'people'|'cases' } }`).
+ * 같은 서버 집계로 준다(`onLoadPending` → `{ [단계 id]: { count, unit: 'people'|'cases'|'none' } }`).
+ * `none` 은 «미제출»을 셀 수 없는 단계 — 수 없이 마감만 적는다(PW-2107).
  * 못 받아도 저장은 막지 않는다 — 마감 당김은 경고이지 차단이 아니다(spec §4.1.2-A).
  * `isRunning(id)` 는 «연 순간 시작했고 아직 안 끝난 단계»인가. 안 넘기면 경고 줄이 없다.
  */
@@ -69,6 +70,8 @@ export default function ScheduleChangeConfirm({
       return fill(L.scheduleConfirmShortenedFailed ?? '', { name: r.name, end });
     }
     const hit = pending.status === 'ready' ? pending.data[r.id] : null;
+    // PW-2107 — 셀 «미제출»이 없는 단계(통합 리뷰 요약 검수 등)는 소비 측이 `unit: 'none'` 으로 준다.
+    if (hit?.unit === 'none') return fill(L.scheduleConfirmShortenedNoCount ?? '', { name: r.name, end });
     const key = hit?.unit === 'cases' ? 'scheduleConfirmShortenedCases' : 'scheduleConfirmShortened';
     return fill(L[key] ?? '', { name: r.name, count: hit ? hit.count : '…', end });
   };
