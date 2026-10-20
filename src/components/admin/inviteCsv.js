@@ -184,6 +184,24 @@ export const EMPLOYMENT_STATUS_LABEL_KEY = {
 };
 
 /**
+ * 고용상태 칸이 받는 글자 → 코드. 서버 `hr-cell.util.ts` 의 `EMPLOYMENT_STATUS_BY_TEXT` 와 같은 표다 —
+ * 구성원 설정 › CSV 업로드가 이 표로 읽어, 따로 두었던 초대만 «leave»·«resigned»·다른 언어 라벨을 막았다
+ * (PW-2103). 영어 라벨(「On Leave」)은 소문자·`_` 로 접어 이 표에서 찾는다.
+ */
+const EMPLOYMENT_STATUS_BY_TEXT = {
+  재직: 'active',
+  수습: 'probation',
+  휴직: 'on_leave',
+  퇴사: 'terminated',
+  active: 'active',
+  probation: 'probation',
+  leave: 'on_leave',
+  on_leave: 'on_leave',
+  resigned: 'terminated',
+  terminated: 'terminated',
+};
+
+/**
  * 이 파일이 쓰는 문구의 한국어 기본값. 화면은 `t()` 로 만든 라벨을 넘겨 덮는다.
  * 기본값을 여기 두는 이유: 두 화면이 같은 규칙을 쓰는데 라벨 한 벌이 빠지면 헤더를 못 알아본다.
  */
@@ -205,6 +223,24 @@ export const INVITE_CSV_CODE_LABEL_KEYS = {
     flexible: 'csvWorkFlexible',
   },
 };
+
+/**
+ * 근무 일정·지급 주기의 영어 화면 라벨 — 서버 `hr-cell.util.ts` 의 같은 이름 표와 같다. 영어 화면에서
+ * 내려받은 명단을 올리면 이 글자가 온다(PW-2012). 화면 언어와 상관없이 받는다(PW-2103).
+ */
+const WORK_SCHEDULE_EN_LABELS = {
+  fixed: 'Fixed hours',
+  staggered: 'Staggered hours',
+  selective: 'Selective hours',
+  shift: 'Shift work',
+  flexible: 'Flexible hours',
+};
+const PAY_CYCLE_EN_LABELS = {
+  monthly: 'Monthly',
+  biweekly: 'Every two weeks',
+  weekly: 'Weekly',
+};
+const CODE_EN_LABELS = { workSchedule: WORK_SCHEDULE_EN_LABELS, payCycle: PAY_CYCLE_EN_LABELS };
 
 export const INVITE_CSV_DEFAULT_LABELS = {
   csvColEmail: '이메일',
@@ -331,9 +367,10 @@ export const INVITE_CSV_DEFAULT_LABELS = {
   csvErrDutyPair: '직렬에 없는 직무입니다',
   csvErrDate: "{column}은 YYYY-MM-DD 로 적어 주세요 ('{value}')",
   csvErrEmailFormat: "{column} '{value}'는 이메일 형식이 아니에요",
-  csvErrStatus: "고용상태 '{value}'는 알 수 없는 값이에요",
+  // 고용상태도 고정값이다 — 구성원 설정 › CSV 업로드와 같은 문구로 받는 값을 알려 준다(PW-2103).
+  csvErrStatus: '고용상태는 재직·수습·휴직·퇴사 중 하나로 적어 주세요',
   csvErrStatusNotInvitable: "초대에는 고용상태 '{value}'를 쓸 수 없어요",
-  csvErrFte: "FTE 는 0~100 사이 정수로 적어 주세요 ('{value}')",
+  csvErrFte: 'FTE 는 1~100 사이 정수로 적어 주세요',
   csvErrBool: '{column} 칸은 예/아니오로 적어 주세요 — 「{value}」는 읽을 수 없습니다',
   csvErrHours: '{column} 칸은 시간(숫자)으로 적어 주세요 — 「{value}」는 읽을 수 없습니다',
   csvErrSalary: '연봉은 숫자로 적어 주세요',
@@ -550,6 +587,9 @@ export function resolveEmploymentStatus(raw, labels = {}) {
   const l = withDefaults(labels);
   const v = fold(raw);
   if (!v) return '';
+  const t = normalize(raw);
+  const known = EMPLOYMENT_STATUS_BY_TEXT[t] ?? EMPLOYMENT_STATUS_BY_TEXT[t.toLowerCase().replace(/[\s-]+/g, '_')];
+  if (known) return known;
   for (const [code, key] of Object.entries(EMPLOYMENT_STATUS_LABEL_KEY)) {
     if (v === fold(code) || v === fold(l[key])) return code;
   }
@@ -571,6 +611,7 @@ export function resolveCodeCell(group, raw, labels = {}) {
   if (!v) return null;
   for (const [code, key] of Object.entries(INVITE_CSV_CODE_LABEL_KEYS[group] || {})) {
     if (v === fold(code) || v === fold(l[key]) || v === fold(INVITE_CSV_DEFAULT_LABELS[key])) return code;
+    if (v === fold(CODE_EN_LABELS[group]?.[code])) return code;
   }
   return null;
 }
@@ -1015,7 +1056,8 @@ export function inviteCsvIssues(row, ctx) {
     add('employmentStatus', fmtCsv(l.csvErrStatusNotInvitable, { value: normalize(v.employmentStatus) }));
   }
   const fte = normalize(v.ftePercent);
-  if (fte && !(/^\d+$/.test(fte) && Number(fte) <= 100)) add('ftePercent', fmtCsv(l.csvErrFte, { value: fte }));
+  // 발령·구성원 편집·CSV 업로드와 같은 1~100 — 0 을 받으면 가입 뒤 FTE 0 으로 저장됐다(PW-2103).
+  if (fte && !(/^\d+$/.test(fte) && Number(fte) >= 1 && Number(fte) <= 100)) add('ftePercent', fmtCsv(l.csvErrFte, { value: fte }));
   if (normalize(v.salary) && !/\d/.test(v.salary)) add('salary', l.csvErrSalary);
 
   // 계약 기간 — 시작일이 있어야 보상 이력의 행이 선다(서버와 같은 규칙).
