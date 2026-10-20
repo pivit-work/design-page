@@ -12379,3 +12379,18 @@ button.evmh-phase:focus-visible {
   font-size: var(--font-size-text-sm);
   line-height: 20px;
 }
+
+/* 마법사 4단계 평가자 배정 요약 줄 — 미확정이어도 노란 바탕을 깔지 않고, 경고 수만 주황 글씨로. 글씨는 14px. */
+.evc-la-bar.is-warn {
+  background: var(--bg-primary);
+  border-color: var(--border-secondary);
+}
+.evc-la-bar.is-warn .evc-la-bar-count {
+  color: var(--utility-warning-700);
+}
+.evc-la-bar-count,
+.evc-la-bar-detail,
+.evc-tpl-grade-note {
+  font-size: var(--font-size-text-sm);
+  line-height: 20px;
+}
