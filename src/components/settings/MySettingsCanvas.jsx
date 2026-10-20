@@ -2413,6 +2413,13 @@ export default function MySettingsCanvas({
                       </div>
                     ))}
                   </div>
+                  {/* 묶음 아래 안내 한 줄 — 끌 수 없는 알림이 이 묶음에 행이 없는 까닭 (pivit-work PW-2072).
+                      글씨는 행 설명(msc-notif-sub)과 같다. */}
+                  {group.note && (
+                    <div className="msc-notif-sub" data-testid={`notif-group-note-${group.key}`}>
+                      {group.note}
+                    </div>
+                  )}
                 </Card>
               ))}
             </>
