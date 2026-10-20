@@ -44,6 +44,9 @@ import Select from '../shared/Select.jsx';
  *    stageChannelKeys?: string[],       // 표의 열(채널). 없으면 push·slack·email 전부 (PW-2089 — 이메일·Slack 만)
  *    stageChannelsRequireOne?: bool,    // 줄마다 채널 하나는 남긴다 — 마지막 하나는 끌 수 없다 (PW-2089)
  *    enabled: bool,
+ *    recipientsFixed?: string,          // 받는 사람만 정해진 규칙의 안내(PW-2099 · spec-eval-cycle §14.4 N-2). 있으면
+ *                                       // 수정 창의 받는 사람 칸은 잠금 안내, 채널은 그대로 체크로 고르고, 목록 행은
+ *                                       // 역할 칩 대신 이 안내 + 채널을 보인다
  *    cooldown: { mode:'custom'|'immediate'|'event', ... },
  *  }
  *  cooldownOptions: { unitOptions, weekdayOptions, timeOptions, monthDayOptions } — [{value,label}]
@@ -526,6 +529,18 @@ function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatC
         </div>
         ) : (<>
         {/* 수신 대상 */}
+        {rule.recipientsFixed ? (
+        <div>
+          <SL>{labels.modal.recipients}</SL>
+          <div className="admin-notif-fixed" data-testid="notif-recipients-fixed">
+            <span className="admin-notif-fixed-lock">
+              <Icon src={ICON_LOCK} size={14} color="var(--text-tertiary)" baseUrl={baseUrl} />
+            </span>
+            <span className="admin-notif-fixed-text">{rule.recipientsFixed}</span>
+            <span className="admin-notif-fixed-tag">{labels.modal.systemFixed}</span>
+          </div>
+        </div>
+        ) : (
         <div>
           <SL>{labels.modal.recipients}</SL>
           {/* 여럿 고르는 칸 — 공용 Checkbox (PW-1897). 칩·타일은 몇 개를 고를 수 있는지 말하지 않았다 */}
@@ -541,6 +556,7 @@ function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatC
             ))}
           </div>
         </div>
+        )}
 
         {/* 발송 채널 */}
         <div>
@@ -582,6 +598,8 @@ function RuleRow({ rule, labels, formatCondition, formatCooldown, onEdit, onTogg
           ) : (<>
           {rule.stageChannels ? (
             <span className="admin-notif-channel-tag" data-testid="notif-rule-targets-fixed">{rule.targetsFixed}</span>
+          ) : rule.recipientsFixed ? (
+            <span className="admin-notif-channel-tag" data-testid="notif-rule-recipients-fixed">{rule.recipientsFixed}</span>
           ) : rule.recipients.map((r) => (
             <StatusBadge key={r} className="admin-notif-role-chip">{labels.roles[r]}</StatusBadge>
           ))}
