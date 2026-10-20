@@ -578,11 +578,14 @@ body:has(.okr-ctx-banner-flag) .tl-group-modal.okr-wz-modal { height: min(1118px
 .tl-group-modal.okr-wz-modal { width: 800px; max-width: calc(100vw - 80px); height: min(1118px, calc(100vh - 48px)); }
 /* 스텝바 — bg-tertiary 한 몸 바에 1px alpha 경계 칸, 활성 칸은 brand→purple 그라데이션 */
 /* 회사 컨텍스트 — 진입 배너(어드민)·1단계 미설정 안내·KR 배지 (마법사 정책서 §3-0, 시안 okr-app.jsx WizardScreen) */
-.okr-wz-ctx-entry { display: flex; align-items: center; gap: 10px; width: 100%; margin-bottom: 16px; padding: 10px 14px; box-sizing: border-box; border: 1px solid var(--utility-brand-200); border-radius: 8px; background: var(--utility-brand-50); font-family: inherit; text-align: left; cursor: pointer; }
+/* PW-2035 — OKR 맨 위 컨텍스트 안내 바(.okr-ctx-banner, Figma 17260:22116)와 같은 색: 블루-400 바탕 · 흰 글씨 · 동작만 보라(컨텍스트 분석이 AI 기능).
+   창 안이라 높이·글씨는 예전 값 그대로 낮게 둔다. */
+.okr-wz-ctx-entry { display: flex; align-items: center; gap: 10px; width: 100%; margin-bottom: 16px; padding: 10px 14px; box-sizing: border-box; border: none; border-radius: 8px; background: var(--utility-blue-400); font-family: inherit; text-align: left; cursor: pointer; }
 .okr-wz-ctx-entry-text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
-.okr-wz-ctx-entry-title { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--text-primary); }
-.okr-wz-ctx-entry-desc { font-size: 11px; color: var(--text-tertiary); overflow-wrap: anywhere; }
-.okr-wz-ctx-entry-action { flex: none; font-size: 12px; font-weight: 700; color: var(--utility-brand-700); }
+.okr-wz-ctx-entry-title { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--text-white); }
+.okr-wz-ctx-entry-desc { font-size: 11px; color: var(--alpha-white-80); overflow-wrap: anywhere; }
+/* 값은 .okr-ctx-banner-btn 그대로 — 바 전체가 누르는 자리라 버튼처럼 보이는 표시만 둔다 */
+.okr-wz-ctx-entry-action { flex: none; padding: 4px 8px; border-radius: 8px; background: var(--utility-purple-500); font-size: 12px; font-weight: 600; line-height: 18px; letter-spacing: -0.01em; color: var(--text-white); }
 /* PW-1930 — 「선택 사항」 안내라 경고 노랑이 아니라 연회색. */
 .okr-wz-ctx-notice { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; padding: 12px 14px; border-radius: 10px; background: var(--bg-secondary); border: 1px solid var(--border-secondary); }
 .okr-wz-ctx-notice-text { flex: 1; min-width: 0; margin: 0; font-size: 12px; line-height: 1.6; color: var(--text-secondary); overflow-wrap: anywhere; }
@@ -659,12 +662,13 @@ body:has(.okr-ctx-banner-flag) .tl-group-modal.okr-wz-modal { height: min(1118px
 .okr-wz-ai-notice { margin: 8px 0 12px; }
 .okr-wz-align { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
 .okr-wz-align-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 1px solid var(--border-secondary); border-radius: 10px; background: var(--bg-secondary); }
-.okr-wz-align-row.is-warn { border-color: var(--utility-error-200); background: var(--utility-error-50); }
+/* PW-2035 — 미정렬이어도 다음 단계로 넘어갈 수 있어 막지 않는 경고(주황). 색을 못 가려도 알게 경고 아이콘을 함께 둔다. */
+.okr-wz-align-row.is-warn { border-color: var(--utility-warning-200); background: var(--utility-warning-50); }
 .okr-wz-align-info { flex: 1; display: flex; flex-direction: column; gap: 2px; }
 .okr-wz-align-name { font-size: 14px; font-weight: 700; line-height: 20px; color: var(--text-primary); }
 .okr-wz-align-role { font-size: 14px; font-weight: 400; line-height: 20px; color: var(--text-tertiary); }
 .okr-wz-align-note { font-size: 12px; font-weight: 500; line-height: 18px; color: var(--text-secondary); }
-.okr-wz-align-status { font-size: 14px; font-weight: 700; line-height: 20px; color: var(--utility-error-500); }
+.okr-wz-align-status { display: inline-flex; align-items: center; gap: 4px; font-size: 14px; font-weight: 700; line-height: 20px; color: var(--utility-warning-700); }
 .okr-wz-align-status.is-ok { color: var(--utility-success-500); }
 .okr-btn:disabled { opacity: 0.5; cursor: default; }
 /* AI 버튼도 같은 비활성 표시를 쓴다 — KR 내용이 비었을 때 눌리지 않는다는

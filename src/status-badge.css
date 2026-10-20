@@ -998,7 +998,8 @@
 
 /* ══ okr.css 에서 옮겨 온 딱지 ══════════════════════════════════════════════ */
 
-.okr-policy-chip { padding: 3px 9px; border: 1px solid var(--utility-warning-200); border-radius: 99px; background: var(--dp-badge-warning-bg); font-size: 12px; font-weight: 600; line-height: 18px; color: var(--dp-badge-warning-fg); white-space: nowrap; }
+/* PW-2035 — 회사 설정을 알려 주는 안내일 뿐 경고가 아니라 회색(마법사 「AI 초안 (미확인)」 .okr-wz-badge 의 바탕·글자 + 회색 테두리). */
+.okr-policy-chip { padding: 3px 9px; border: 1px solid var(--border-secondary); border-radius: 99px; background: var(--alpha-black-3); font-size: 12px; font-weight: 600; line-height: 18px; color: var(--text-secondary); white-space: nowrap; }
 
 .okr-q-badge { padding: 2px 6px; border-radius: 4px; font-size: 12px; font-weight: 700; line-height: 18px; color: var(--text-white); white-space: nowrap; }
 
@@ -1013,6 +1014,9 @@
 .okr-pill.is-done { color: var(--utility-green-600); border: 1px solid var(--utility-green-500); }
 
 .okr-pill.is-progress { color: var(--utility-blue-500); border: 1px solid var(--utility-blue-400); }
+
+/* 예정 — 시작 전. 테두리 없는 기본 알약(바탕 bg-quaternary)에 회색 글자라 예정(회색) → 진행 중(파랑) → 완료(초록)로 갈린다 (PW-2035). */
+.okr-pill.is-todo { color: var(--text-secondary); }
 
 /* 실행 항목 상태 배지를 눌러 넘길 수 있을 때만 붙는다 (okr-policy §9.2A · PW-501).
    🔴 권한이 없을 때는 이 클래스가 안 붙을 뿐, 색·opacity 는 그대로다 —
@@ -1049,12 +1053,23 @@
 
 .okr-role-badge.is-gray { background: var(--utility-gray-500); }
 
-/* 본인 — 디자이너가 본인 색을 그리지 않아 기획서 OKR 정책 §8.2 의 주황을 기존 토큰으로 (PW-1719, design-review). */
-.okr-role-badge.is-orange { background: var(--utility-orange-500); }
+/* 본인 — 역할 표시라 경고 주황이 아니라 회색. 「동료」(.is-gray 채움)와 갈리게 마법사 회색 배지(.okr-wz-badge)의 바탕·글자를 쓴다 (PW-2035). */
+.okr-role-badge.is-muted { background: var(--alpha-black-3); color: var(--text-secondary); }
 
 .okr-wz-scope-badge { display: inline-flex; align-items: center; margin-left: 8px; padding: 2px 8px; border-radius: 9999px; background: var(--dp-badge-accent-bg); font-size: 12px; font-weight: 600; line-height: 18px; color: var(--dp-badge-accent-fg); vertical-align: middle; white-space: nowrap; }
 
 .okr-wz-badge { font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 99px; background: var(--alpha-black-3); color: var(--text-secondary); }
+
+/* PW-2035 — AI 표시. 1on1 담당자 고르기 창의 「AI 추천」 태그(.ons-ai-tag, 디자이너)와 같은 바탕·얇은 테두리·보라 글자에 AI 아이콘(AiMark)을 붙인다.
+   KR 초안 상자처럼 바탕이 연보라인 자리에서도 테두리로 딱지임이 보인다. 크기만 옆 .okr-wz-badge 에 맞춰 줄였다. */
+.okr-ai-tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border: 1px solid var(--alpha-black-3); border-radius: 6px; background: var(--dp-badge-ai-bg); font-size: 11px; font-weight: 600; line-height: 16px; color: var(--dp-badge-ai-fg); white-space: nowrap; }
+
+/* PW-2035 — 올린 자료의 처리 상태. 매니저 KR 드릴다운의 상태 알약(.mgr-krd-pill, 디자이너) 값 그대로 — 둥근 알약 · 아이콘 없음.
+   처리 중 = 그쪽 「진행 중」, 준비됨 = 「완료」. 실패는 그 묶음에 디자이너 빨강이 없어 같은 단계의 위험 색(error 700/50/200)을 쓴다. */
+.okr-src-pill { padding: 2px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.okr-src-pill.is-processing { color: var(--utility-blue-500); background: var(--utility-blue-50); border: 1px solid var(--utility-blue-200); }
+.okr-src-pill.is-ready { color: var(--utility-success-700); background: var(--utility-success-50); border: 1px solid var(--utility-success-200); }
+.okr-src-pill.is-failed { color: var(--utility-error-700); background: var(--utility-error-50); border: 1px solid var(--utility-error-200); }
 
 /* ══ okr_resource.css 에서 옮겨 온 딱지 ══════════════════════════════════════════════ */
 

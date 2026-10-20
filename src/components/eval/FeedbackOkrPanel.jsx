@@ -25,9 +25,6 @@ const C = {
   green: 'var(--utility-success-600)',
   amber: 'var(--utility-warning-700)',
   red: 'var(--utility-error-600)',
-  purple: 'var(--utility-purple-500)',
-  purpleBg: 'var(--utility-purple-50)',
-  purpleBd: 'var(--utility-purple-200)',
 };
 const FONT = 'var(--font-family-body)';
 const PROGRESS_BAR_W = 96;
@@ -47,7 +44,8 @@ export default function FeedbackOkrPanel({ groups, krBlocks, initBlocks, snippet
   const krById = new Map(krBlocks.map((b) => [b.id, b]));
   const covered = krBlocks.filter((b) => b.items.length > 0).length;
   const countBadge = (n) =>
-    n > 0 ? <Chip tone="success">{n}{L.countSuffix}</Chip> : null;
+    // 번호·건수·태그는 상태가 아니라 알려 주는 표시라 회색(중립) — 초록(완료)·파랑(진행 중)·보라(AI)와 섞이지 않게 (PW-2035)
+    n > 0 ? <Chip tone="neutral">{n}{L.countSuffix}</Chip> : null;
 
   return (
     <div data-testid={tid('okr-panel')} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10 }}>
@@ -81,15 +79,16 @@ export default function FeedbackOkrPanel({ groups, krBlocks, initBlocks, snippet
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                 <span style={{ fontSize: 'var(--font-size-text-xs)', color: C.text, flex: 1, lineHeight: 1.5 }}>{g.title}</span>
                 <span style={{ width: PROGRESS_BAR_W, height: 6, background: C.borderL, borderRadius: 3, overflow: 'hidden' }}>
-                  <span style={{ display: 'block', width: `${g.progress ?? 0}%`, height: '100%', background: C.accent }} />
+                  <span style={{ display: 'block', width: `${g.progress ?? 0}%`, height: '100%', background: krColor(g.progress ?? 0) }} />
                 </span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: C.accent }}>{g.progress ?? 0}%</span>
+                {/* Objective 도 KR 과 같은 세 단계 — 늘 초록이면 30% 도 잘 가는 것처럼 보인다 (PW-2035) */}
+                <span data-testid={tid(`okr-group-progress-${g.id}`)} style={{ fontSize: 12, fontWeight: 700, color: krColor(g.progress ?? 0) }}>{g.progress ?? 0}%</span>
               </div>
               <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: 0.5, marginBottom: 6 }}>{L.sectionKr}</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {g.krIds.map((id) => krById.get(id)).filter(Boolean).map((b) => (
                   <div key={b.id} data-testid={tid(`okr-kr-${b.id}`)} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Chip tone="info">{b.badge}</Chip>
+                    <Chip tone="neutral">{b.badge}</Chip>
                     <span style={{ fontSize: 12, color: C.sub, flex: 1, lineHeight: 1.4 }}>{b.title}</span>
                     {countBadge(b.items.length)}
                     <span style={{ width: 50, height: 4, background: C.borderL, borderRadius: 2, overflow: 'hidden' }}>
@@ -107,9 +106,7 @@ export default function FeedbackOkrPanel({ groups, krBlocks, initBlocks, snippet
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {initBlocks.map((b) => (
                   <span key={b.id} data-testid={tid(`okr-init-${b.id}`)} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                    <span style={{ fontSize: 12, fontWeight: 500, color: C.purple, background: C.purpleBg, border: `1px solid ${C.purpleBd}`, borderRadius: 20, padding: '2px 9px' }}>
-                      # {b.title}
-                    </span>
+                    <Chip tone="neutral"># {b.title}</Chip>
                     {countBadge(b.items.length)}
                   </span>
                 ))}

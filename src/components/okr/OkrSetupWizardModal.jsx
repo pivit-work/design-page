@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
+import AiMark from '../shared/AiMark.jsx';
+import { AlertTriangleGlyph } from '../shared/lineIcons.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import SearchSelect from '../shared/SearchSelect.jsx';
 
@@ -482,7 +484,7 @@ export default function OkrSetupWizardModal({
                 <span className="okr-wz-draft-badges">
                   <StatusBadge className="okr-wz-badge">{krsConfirmed ? '✓ 확인됨' : `AI 초안 (미확인) · ${krs.length}개`}</StatusBadge>
                   {krsContextApplied && contextAppliedLabel && (
-                    <StatusBadge tone="ai" data-testid="okr-wz-ctx-applied">{contextAppliedLabel}</StatusBadge>
+                    <StatusBadge className="okr-ai-tag" data-testid="okr-wz-ctx-applied"><AiMark />{contextAppliedLabel}</StatusBadge>
                   )}
                 </span>
                 {!krsConfirmed && (
@@ -539,7 +541,7 @@ export default function OkrSetupWizardModal({
                     <span className="okr-wz-align-name">{m.name}<span className="okr-wz-align-role"> · {m.role}</span></span>
                     <span className="okr-wz-align-note">{m.aligned ? '정합성 정상' : m.note}</span>
                   </div>
-                  <span className={`okr-wz-align-status${m.aligned ? ' is-ok' : ''}`}>{m.aligned ? '정렬됨' : '미정렬'}</span>
+                  <span className={`okr-wz-align-status${m.aligned ? ' is-ok' : ''}`}>{!m.aligned && <AlertTriangleGlyph size={14} />}{m.aligned ? '정렬됨' : '미정렬'}</span>
                   {!m.aligned && m.canBookOneOnOne !== false && onBookOneOnOne && (
                     <button type="button" className="okr-btn is-brand is-sm" onClick={() => onBookOneOnOne(m.userId)}>1:1 예약</button>
                   )}

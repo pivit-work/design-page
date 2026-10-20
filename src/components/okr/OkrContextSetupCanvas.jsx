@@ -3,11 +3,12 @@ import {
   AlertTriangleGlyph,
   ArrowRightGlyph,
   CheckGlyph,
-  ClockGlyph,
   LockGlyph,
   PencilGlyph,
 } from '../shared/lineIcons.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
+import StatusBadge from '../shared/StatusBadge.jsx';
+import AiMark from '../shared/AiMark.jsx';
 import Chip from '../shared/Chip.jsx';
 import Switch from '../shared/Switch.jsx';
 import OkrContextAnalysisResult from './OkrContextAnalysisResult.jsx';
@@ -64,6 +65,8 @@ const T = {
   // 주 버튼은 브랜드 초록, 강조 글자·아이콘은 진한 초록, 파일 칸은 회색 점선 — 디자이너 색의 뜻대로 (PW-1936)
   accent: 'var(--bg-brand-solid)',
   accentText: 'var(--text-brand-secondary)',
+  // AI 를 돌리는 버튼은 보라 — 마법사 「AI로 다시 추출」과 같은 AI 색 (PW-2035)
+  ai: 'var(--utility-purple-500)',
   warnBg: '#FFFBEB',
   warnBd: '#FDE68A',
   warnText: '#92400E',
@@ -138,22 +141,15 @@ function LockIcon({ size = 14 }) {
   return <LockGlyph size={size} />;
 }
 
-function ClockIcon({ size = 12 }) {
-  return <ClockGlyph size={size} />;
-}
 function CheckIcon({ size = 12 }) {
   return <CheckGlyph size={size} />;
 }
 function AlertIcon({ size = 12 }) {
   return <AlertTriangleGlyph size={size} />;
 }
-function SparkIcon({ size = 14 }) {
-  return (
-    <svg width={size} height={size} {...svgProps}>
-      <path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z" />
-      <path d="M18 16l.9 2.1L21 19l-2.1.9L18 22l-.9-2.1L15 19l2.1-.9z" />
-    </svg>
-  );
+/* AI 를 돌리는 버튼의 아이콘 — 1on1 「AI 추천」 태그의 AI 아이콘 그대로 (PW-2035). 색은 버튼 글자색을 따른다. */
+function AiIcon({ size = 14 }) {
+  return <AiMark size={size} color="currentColor" />;
 }
 function ArrowRightIcon({ size = 14 }) {
   return <ArrowRightGlyph size={size} />;
@@ -175,9 +171,9 @@ const TYPE_ICON = { file: FileIcon, url: LinkIcon, text: TextIcon };
  * 알 수 없는 값(구버전 응답 등)은 `ready` 로 본다 — 코드값이 화면에 새지 않게.
  */
 const STATUS_META = {
-  processing: { tone: 'muted', Icon: ClockIcon, labelKey: 'statusProcessing' },
-  ready: { tone: 'ok', Icon: CheckIcon, labelKey: 'statusReady' },
-  failed: { tone: 'err', Icon: AlertIcon, labelKey: 'statusFailed' },
+  processing: { labelKey: 'statusProcessing' },
+  ready: { labelKey: 'statusReady' },
+  failed: { labelKey: 'statusFailed' },
 };
 const normalizeStatus = (status) => (STATUS_META[status] ? status : 'ready');
 const countBy = (sources, status) =>
@@ -260,12 +256,10 @@ function SourceRow({ source, labels, onRemove, delayed, onRefresh }) {
           <span style={{ fontSize: 13, fontWeight: 800, color: T.text, wordBreak: 'break-word' }}>
             {source.title}
           </span>
-          <span data-testid={`okr-context-status-${source.id}`}>
-            <Badge tone={meta.tone}>
-              <meta.Icon />
-              {labels[meta.labelKey]}
-            </Badge>
-          </span>
+          {/* 매니저 KR 드릴다운의 상태 알약 모양 — 처리 중 파랑 · 준비됨 초록 · 실패 빨강 (PW-2035) */}
+          <StatusBadge className={`okr-src-pill is-${status}`} data-testid={`okr-context-status-${source.id}`}>
+            {labels[meta.labelKey]}
+          </StatusBadge>
         </div>
         <div
           style={{
@@ -788,12 +782,12 @@ function NextStepBlock({ sources, labels, onStartOkr, onAnalyze, startBtnRef }) 
               display: 'inline-flex',
               alignItems: 'center',
               gap: 6,
-              color: ready === 0 ? T.muted : T.accentText,
+              color: ready === 0 ? T.muted : T.ai,
               opacity: ready === 0 ? 0.6 : 1,
               cursor: ready === 0 ? 'not-allowed' : 'pointer',
             }}
           >
-            <SparkIcon />
+            <AiIcon />
             {labels.analyze}
           </button>
           </Tooltip>
@@ -880,12 +874,12 @@ function AnalysisSection({
               display: 'inline-flex',
               alignItems: 'center',
               gap: 6,
-              color: canRun ? T.accentText : T.muted,
+              color: canRun ? T.ai : T.muted,
               opacity: canRun ? 1 : 0.6,
               cursor: canRun ? 'pointer' : 'not-allowed',
             }}
           >
-            <SparkIcon />
+            <AiIcon />
             {analysis ? labels.analysisRerun : labels.analysisRun}
           </button>
         </Tooltip>
@@ -926,15 +920,11 @@ function AnalysisSection({
               data-testid="okr-context-analysis-retry"
               onClick={onAnalyze}
               style={{
+                ...primaryBtn,
                 padding: '6px 12px',
                 borderRadius: 7,
-                border: 'none',
-                background: T.errText,
-                color: '#fff',
                 fontSize: 11,
                 fontWeight: 700,
-                fontFamily: T.font,
-                cursor: 'pointer',
                 flexShrink: 0,
               }}
             >

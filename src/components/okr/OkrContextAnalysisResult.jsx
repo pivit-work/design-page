@@ -1,4 +1,6 @@
 import { CheckGlyph } from '../shared/lineIcons.jsx';
+import StatusBadge from '../shared/StatusBadge.jsx';
+import AiMark from '../shared/AiMark.jsx';
 
 /**
  * OkrContextAnalysisResult — OKR 컨텍스트 AI 분석 결과 카드 (정책 §3-3·§5).
@@ -12,21 +14,17 @@ import { CheckGlyph } from '../shared/lineIcons.jsx';
  *   onConfirm / confirming: [확인 — OKR 마법사에서 사용].
  *   labels: 사용자 노출 문구(호스트가 i18n 으로 해소해 주입). 빠진 키는 아래 기본값.
  *
- * 미확인은 노랑, 확인은 초록(§5). 키워드는 10개까지 보이고 나머지는 「+ N개」.
+ * 상자는 OKR 설정 마법사 KR 초안 상자(`.okr-wz-draft`)와 같은 모양 — 확인 전 연보라 + AI 딱지,
+ * 확인 뒤 초록 상자 + 회색 「확인됨」 (PW-2035). 아직 확인하지 않은 AI 결과는 경고가 아니라 노랑을 쓰지 않는다.
+ * 키워드는 10개까지 보이고 나머지는 「+ N개」.
  */
 const C = {
   font: 'var(--font-family-body)',
   mono: 'var(--font-family-mono)',
-  card: '#fff',
-  border: '#E2E8F0',
-  text: '#0F172A',
-  sub: '#64748B',
-  warnBg: '#FFFBEB',
-  warnBd: '#FDE68A',
-  warnText: '#92400E',
-  okBg: '#ECFDF5',
-  okBd: '#A7F3D0',
-  okText: '#047857',
+  card: 'var(--bg-primary)',
+  border: 'var(--border-secondary)',
+  text: 'var(--text-primary)',
+  sub: 'var(--text-tertiary)',
 };
 
 const KEYWORD_VISIBLE = 10;
@@ -66,14 +64,8 @@ export default function OkrContextAnalysisResult({
     <div
       data-testid="okr-context-analysis-result"
       data-status={confirmed ? 'confirmed' : 'draft'}
-      style={{
-        padding: 16,
-        borderRadius: 12,
-        background: confirmed ? C.okBg : C.warnBg,
-        border: `1.5px solid ${confirmed ? C.okBd : C.warnBd}`,
-        fontFamily: C.font,
-        textAlign: 'left',
-      }}
+      className={`okr-wz-draft${confirmed ? ' is-confirmed' : ''}`}
+      style={{ fontFamily: C.font, textAlign: 'left' }}
     >
       <div
         style={{
@@ -85,24 +77,21 @@ export default function OkrContextAnalysisResult({
           marginBottom: 10,
         }}
       >
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 4,
-            padding: '3px 8px',
-            borderRadius: 99,
-            background: C.card,
-            border: `1px solid ${confirmed ? C.okBd : C.warnBd}`,
-            color: confirmed ? C.okText : C.warnText,
-            fontSize: 11,
-            fontWeight: 700,
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {confirmed && <CheckGlyph size={12} />}
-          {confirmed ? L.badgeConfirmed : L.badgeDraft}
-        </span>
+        {confirmed ? (
+          <StatusBadge
+            className="okr-wz-badge"
+            data-testid="okr-context-analysis-badge"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+          >
+            <CheckGlyph size={12} />
+            {L.badgeConfirmed}
+          </StatusBadge>
+        ) : (
+          <StatusBadge className="okr-ai-tag" data-testid="okr-context-analysis-badge">
+            <AiMark />
+            {L.badgeDraft}
+          </StatusBadge>
+        )}
         <span style={{ fontSize: 11, color: C.sub, fontWeight: 600 }}>
           {fill(L.counts, {
             sources: analysis.sourceCount ?? 0,
@@ -137,7 +126,7 @@ export default function OkrContextAnalysisResult({
       <div style={{ fontSize: 11, fontWeight: 700, color: C.sub, marginBottom: 6 }}>{L.keywords}</div>
       <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 12 }}>
         {keywords.length === 0 ? (
-          <span style={{ fontSize: 11, color: C.warnText }}>{L.noKeywords}</span>
+          <span style={{ fontSize: 11, color: C.sub }}>{L.noKeywords}</span>
         ) : (
           keywords.slice(0, KEYWORD_VISIBLE).map((kw, i) => (
             <span key={i} style={{ ...chip, padding: '4px 9px', borderRadius: 6, fontFamily: C.mono }}>
@@ -167,18 +156,8 @@ export default function OkrContextAnalysisResult({
           data-testid="okr-context-analysis-confirm"
           onClick={onConfirm}
           disabled={confirming}
-          style={{
-            padding: '7px 16px',
-            borderRadius: 7,
-            border: 'none',
-            background: C.okText,
-            color: '#fff',
-            fontSize: 11,
-            fontWeight: 700,
-            fontFamily: C.font,
-            cursor: confirming ? 'wait' : 'pointer',
-            opacity: confirming ? 0.7 : 1,
-          }}
+          className="okr-btn is-brand is-sm"
+          style={{ cursor: confirming ? 'wait' : 'pointer' }}
         >
           {L.confirm}
         </button>
