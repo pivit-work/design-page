@@ -73,6 +73,19 @@ const DEFAULT_LABELS = {
   flowStatusSaved: '저장된 청구 정보로 결제를 계속합니다.',
   flowStatusEmpty: '사업자명·사업자등록번호를 입력해 주세요.',
 
+  // 카드 등록 진행 모드 (PW-2111 · screen-billing-settings.policy.md §2) — 결제수단 [카드 추가]를 청구 정보 없이
+  // 눌러 들어온 상태. 결제 진행 모드와 같은 모양에 단계·문구만 다르고, 저장 뒤 다음 단계는 카드 인증 창이다.
+  cardSteps: ['청구 정보', '카드 등록'],
+  cardBannerTitle: '카드를 등록하려면 청구 정보가 먼저 필요합니다.',
+  cardBannerDesc:
+    '저장하면 바로 카드 인증 창이 열리고, 인증을 마치면 결제수단 화면으로 돌아와 카드가 등록됩니다. 사업자명·사업자등록번호는 필수입니다.',
+  backToMethods: '결제수단으로 돌아가기',
+  cardContinueSaveLabel: '저장하고 카드 등록',
+  cardContinueLabel: '카드 등록 계속',
+  cardFlowStatusDirty: '저장하면 카드 인증 창이 열립니다.',
+  cardFlowStatusSaved: '저장된 청구 정보로 카드 등록을 계속합니다.',
+  openingCardLabel: '카드 인증 창을 여는 중...',
+
   noPermTitle: '접근 권한이 없습니다.',
   noPermDesc: '청구 정보는 워크스페이스 Owner 또는 billing_admin만 조회·수정할 수 있습니다. 담당자에게 요청하세요.',
 
@@ -212,6 +225,14 @@ export default function BillingSettingsCanvas({
   onContinueToCheckout,
   // [플랜 다시 고르기]
   onReselectPlan,
+  // 카드 등록 진행 모드 (PW-2111) — 결제수단 [카드 추가]에서 들어왔다. 결제 진행 모드(fromCheckout)와 함께 켜지면
+  // 결제 진행 모드가 이긴다(앱은 주소의 from 값 하나로 가르므로 둘이 함께 오지 않는다).
+  fromMethods = false,
+  // 카드 등록 진행 모드에서 저장이 성공한 뒤(또는 저장 없이) 부른다 — 앱이 카드 인증 창을 연다. 약속을 돌려주면
+  // 그동안 버튼이 「카드 인증 창을 여는 중...」으로 막힌다. 인자 { saved } = 이번에 저장했나.
+  onContinueToCard,
+  // [결제수단으로 돌아가기]
+  onBackToMethods,
   // 저장 안 한 변경이 생기고 사라질 때마다 알린다 — 앱이 떠날 때 경고를 건다(§4).
   onDirtyChange,
   // 저장하지 않은 입력값으로 폼을 연다(마지막 저장값은 profile 그대로라 «저장 안 한 변경»으로 보인다).
@@ -248,6 +269,7 @@ export default function BillingSettingsCanvas({
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [openingCard, setOpeningCard] = useState(false);
 
   // dirty — 저장값과 현재 값 다른지 확인
   const isDirty = FIELD_KEYS.some((k) => fields[k] !== saved[k]);
@@ -264,9 +286,27 @@ export default function BillingSettingsCanvas({
   const canSave = canEdit && isDirty && allValid && !saving;
 
   // 결제 진행 모드 (PW-2110) — 저장된 필수 2항목이 있고 고친 것이 없으면 저장 없이 [결제 계속]
-  const flowMode = fromCheckout && canEdit;
+  const checkoutMode = fromCheckout && canEdit;
+  // 카드 등록 진행 모드 (PW-2111) — 같은 규칙으로 [저장하고 카드 등록]/[카드 등록 계속]
+  const cardMode = fromMethods && !fromCheckout && canEdit;
+  const flowMode = checkoutMode || cardMode;
   const hasSavedRequired = REQUIRED_FIELDS.every((k) => !!saved[k]);
-  const canContinue = canEdit && !saving && allValid && (isDirty || hasSavedRequired);
+  const canContinue =
+    canEdit && !saving && !openingCard && allValid && (isDirty || hasSavedRequired);
+
+  // 진행 모드의 다음 단계 — 결제하기로 옮기거나(PW-2110) 카드 인증 창을 연다(PW-2111).
+  const continueFlow = async (r) => {
+    if (!cardMode) {
+      onContinueToCheckout?.(r);
+      return;
+    }
+    setOpeningCard(true);
+    try {
+      await onContinueToCard?.(r);
+    } finally {
+      setOpeningCard(false);
+    }
+  };
 
   // 필드 변경
   const handleChange = (key, raw) => {
@@ -299,7 +339,7 @@ export default function BillingSettingsCanvas({
 
     // 결제 진행 모드에서 고친 것이 없으면 저장 없이 바로 결제로 (PW-2110)
     if (flowMode && !isDirty) {
-      onContinueToCheckout?.({ saved: false });
+      await continueFlow({ saved: false });
       return;
     }
 
@@ -311,7 +351,7 @@ export default function BillingSettingsCanvas({
       // 결제 진행 모드: 저장이 성공하면 곧바로 이어 간다 — 2초 대기·[결제로 돌아가기] 없음 (PW-2110).
       // 이동은 저장 성공을 받은 뒤다 — 실패하면 아래 catch 로 가서 화면에 남는다 (PW-966).
       if (flowMode) {
-        onContinueToCheckout?.({ saved: true });
+        await continueFlow({ saved: true });
         return;
       }
       setSaveSuccess(true);
@@ -335,7 +375,9 @@ export default function BillingSettingsCanvas({
       <div style={{ maxWidth: 680, margin: '0 auto' }}>
 
         {/* 결제 진행 단계 표시 (PW-2110) — 화면 제목 위. ① 플랜 선택 ✓ ② 청구 정보(지금) ③ 카드 등록·결제 */}
-        {flowMode && <BillingCheckoutSteps steps={labels.checkoutSteps} current={1} />}
+        {checkoutMode && <BillingCheckoutSteps steps={labels.checkoutSteps} current={1} />}
+        {/* 카드 등록 단계 표시 (PW-2111) — 같은 부품. ① 청구 정보(지금) ② 카드 등록 */}
+        {cardMode && <BillingCheckoutSteps steps={labels.cardSteps} current={0} />}
 
         {/* 헤더 */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -347,7 +389,7 @@ export default function BillingSettingsCanvas({
         </p>
 
         {/* 결제 진행 안내 (PW-2110) — 고른 요금제 한 줄 + [플랜 다시 고르기]. 결제 대상이 사라졌으면 그 사실을 알린다 */}
-        {flowMode && (
+        {checkoutMode && (
           <Card style={{ marginBottom: 16, background: T.amberBg, border: '1px solid #FDE68A' }}>
             <div
               data-testid="billing-settings-checkout-banner"
@@ -377,7 +419,30 @@ export default function BillingSettingsCanvas({
           </Card>
         )}
 
-        {canEdit && !profile && !fromCheckout && (
+        {/* 카드 등록 안내 (PW-2111) — 왜 여기 왔는지 + 저장하면 무엇이 일어나는지 + [결제수단으로 돌아가기].
+            결제 진행 안내 상자와 같은 모양 */}
+        {cardMode && (
+          <Card style={{ marginBottom: 16, background: T.amberBg, border: '1px solid #FDE68A' }}>
+            <div
+              data-testid="billing-settings-card-banner"
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}
+            >
+              <div>
+                <div style={{ fontWeight: 700, color: T.amber, marginBottom: 4 }}>{labels.cardBannerTitle}</div>
+                <div style={{ fontSize: 13, color: T.text }}>{labels.cardBannerDesc}</div>
+              </div>
+              {onBackToMethods && (
+                <div style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
+                  <Btn kind="secondary" onClick={onBackToMethods}>
+                    {labels.backToMethods}
+                  </Btn>
+                </div>
+              )}
+            </div>
+          </Card>
+        )}
+
+        {canEdit && !profile && !flowMode && (
           <Card style={{ marginBottom: 16, background: T.bl, border: `1px solid ${T.border}` }}>
             <div data-testid="billing-settings-empty" style={{ fontSize: 13, color: T.text }}>
               {labels.emptyNotice}
@@ -474,17 +539,23 @@ export default function BillingSettingsCanvas({
             {/* 저장 버튼 영역 */}
             <Card style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               {flowMode ? (
-                /* 결제 진행 모드 (PW-2110) — 버튼 하나가 «저장 + 다음 단계»를 맡는다 */
+                /* 결제 진행 모드 (PW-2110) · 카드 등록 진행 모드 (PW-2111) — 버튼 하나가 «저장 + 다음 단계»를 맡는다 */
                 <>
                   <div style={{ fontSize: 13, color: T.sub }}>
                     {isDirty
-                      ? labels.flowStatusDirty
+                      ? cardMode ? labels.cardFlowStatusDirty : labels.flowStatusDirty
                       : hasSavedRequired
-                        ? labels.flowStatusSaved
+                        ? cardMode ? labels.cardFlowStatusSaved : labels.flowStatusSaved
                         : labels.flowStatusEmpty}
                   </div>
                   <Btn kind="primary" onClick={handleSave} disabled={!canContinue}>
-                    {saving ? labels.savingLabel : isDirty ? labels.continueSaveLabel : labels.continueLabel}
+                    {saving
+                      ? labels.savingLabel
+                      : openingCard
+                        ? labels.openingCardLabel
+                        : cardMode
+                          ? isDirty ? labels.cardContinueSaveLabel : labels.cardContinueLabel
+                          : isDirty ? labels.continueSaveLabel : labels.continueLabel}
                   </Btn>
                 </>
               ) : (
