@@ -2893,7 +2893,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--spacing-lg);
-  padding: 16px;
+  padding: var(--spacing-xl);
   border: 2px solid transparent;
   border-radius: var(--radius-sm);
   background: var(--fg-quaternary);
@@ -10833,7 +10833,7 @@ button.evm-ai-source {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 16px;
+  padding: var(--spacing-xl);
   border: 2px solid transparent;
   border-radius: var(--radius-sm);
   background: var(--fg-quaternary);
