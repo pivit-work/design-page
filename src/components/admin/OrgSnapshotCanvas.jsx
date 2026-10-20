@@ -1737,8 +1737,29 @@ function AppointmentHistoryView({
   // 구조 개정 필터를 배선하지 않은 호스트는 종전처럼 발령만 본다.
   const revisionsWired = Array.isArray(structureRevisions) || !!structureRevisionsError;
   // 못 불러온 것을 «발령 이력이 없습니다»로 보이면 어드민은 이력이 지워진 줄 안다.
+  /* 구성원 설정 › 발령 이력 머리 줄 — 목록을 못 불러와도 남는다([대량 발령]은 목록 없이도 쓸 수 있다). */
+  const bulkHeader = onOpenBulk ? (
+    <header className="admin-snap-header">
+      <div>
+        <div className="admin-snap-header-title">{labels.historyTitle}</div>
+      </div>
+      <div className="admin-snap-header-side">
+        <div className="admin-snap-header-actions">
+          <Button variant="primary" size="sm" onClick={() => onOpenBulk()} data-testid="snap-hist-open-bulk">
+            {labels.openBulk}
+          </Button>
+        </div>
+      </div>
+    </header>
+  ) : null;
+
   if (error && records.length === 0 && !revisionsWired) {
-    return <div className="admin-snap-warnbox" role="alert">{error}</div>;
+    return bulkHeader ? (
+      <div className="admin-snap-canvas">
+        {bulkHeader}
+        <div className="admin-snap-warnbox" role="alert">{error}</div>
+      </div>
+    ) : <div className="admin-snap-warnbox" role="alert">{error}</div>;
   }
   if (records.length === 0 && !revisionsWired) {
     return <EmptyState size="lg" description={labels.historyEmpty} />;
@@ -1776,20 +1797,7 @@ function AppointmentHistoryView({
 
   return (
     <div className="admin-snap-canvas">
-      {onOpenBulk && (
-        <header className="admin-snap-header">
-          <div>
-            <div className="admin-snap-header-title">{labels.historyTitle}</div>
-          </div>
-          <div className="admin-snap-header-side">
-            <div className="admin-snap-header-actions">
-              <Button variant="primary" size="sm" onClick={() => onOpenBulk()} data-testid="snap-hist-open-bulk">
-                {labels.openBulk}
-              </Button>
-            </div>
-          </div>
-        </header>
-      )}
+      {bulkHeader}
       <div className="admin-snap-hist-layout">
         <div className="admin-snap-hist-main">
           <div className="admin-snap-hist-toolbar">
@@ -2557,13 +2565,20 @@ export default function OrgSnapshotCanvas({
             />
           )}
           {view === 'history' && onGoAppointments && (
-            <div className="admin-snap-asof-note" role="status" data-testid="snap-hist-readonly-note">
-              <span>{labels.historyReadOnlyNotice}</span>
-              <Button variant="secondary" size="sm" onClick={() => onGoAppointments()} data-testid="snap-hist-go-appointments">
-                {labels.historyReadOnlyAction}
-                <ArrowRightGlyph size={14} />
-              </Button>
-            </div>
+            /* 길 안내 한 줄 — 경고가 아니라서 노란 안내 띠가 아니라 조직 현황 머리 줄의 부제 모양을 쓴다. */
+            <header className="admin-snap-header" data-testid="snap-hist-readonly-note">
+              <div>
+                <div className="admin-snap-header-sub">{labels.historyReadOnlyNotice}</div>
+              </div>
+              <div className="admin-snap-header-side">
+                <div className="admin-snap-header-actions">
+                  <Button variant="secondary" size="sm" onClick={() => onGoAppointments()} data-testid="snap-hist-go-appointments">
+                    {labels.historyReadOnlyAction}
+                    <ArrowRightGlyph size={14} />
+                  </Button>
+                </div>
+              </div>
+            </header>
           )}
           {view === 'history' && (
             <AppointmentHistoryView

@@ -1452,6 +1452,10 @@
   padding: 14px 20px;
   border-top: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
   background: var(--bg-secondary, #f8f9fa);
+  /* 묶음이 길어져도 위 입력 칸을 다 가리지 않게 — 넘치면 묶음 안에서 내린다 */
+  max-height: 40vh;
+  overflow-y: auto;
+  flex-shrink: 0;
 }
 .admin-emp-panel-appointment + .admin-emp-panel-footer,
 .admin-emp-panel-appointment + .admin-emp-panel-save-mode { border-top: 0; }
