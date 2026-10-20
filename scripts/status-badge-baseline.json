@@ -495,11 +495,11 @@
   "eval-cycle.css|.evr-grade-hero": {
    "border-radius": "16px",
    "padding": "32px",
-   "background": "#edfcf2 / 어두운 화면 #052e1c",
+   "background": "#f9fafb / 어두운 화면 #22262f",
    "display": "flex",
    "align-items": "center",
    "gap": "4px",
-   "border": "1px solid var(--utility-green-100)"
+   "border": "1px solid var(--border-secondary)"
   },
   "eval-cycle.css|.evr-insight-badge": {
    "border-radius": "pill",

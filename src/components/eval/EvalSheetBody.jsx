@@ -9,7 +9,6 @@ import {
   groupBySection,
   isNoteItem,
   scaleMaxOf,
-  sectionColor,
 } from './evalTemplateItemModel.js';
 
 /**
@@ -108,8 +107,9 @@ export default function EvalSheetBody({
         <div key={s.sec ?? `sec${si}`}>
           {/* 구분이 없는 항목(분류 미해석·레거시)은 머리글 없이 항목만 그린다 —
               빈 제목 줄이 서면 「제목이 사라진 것」처럼 읽힌다. */}
+          {/* [PW-2105] 구역 제목은 색 글자 없이 18px 검정 — 구역마다 다른 색이 오류·상태처럼 읽혔다. */}
           {s.sec && (
-            <div className="evc-preview-sec-title" style={{ color: sectionColor(s.sec) }}>
+            <div className="evc-preview-sec-title">
               {s.sec}
             </div>
           )}
@@ -130,7 +130,7 @@ export default function EvalSheetBody({
                   </Tooltip>
                 )}
                 {q.requiresRationale && (
-                  <StatusBadge className="evc-mode-badge is-warn">{L.rationaleRequired}</StatusBadge>
+                  <StatusBadge className="evc-mode-badge is-muted">{L.rationaleRequired}</StatusBadge>
                 )}
               </div>
               {/* [PW-602 ③④] 상시 표시는 설명 본문과 **같은 렌더러**로 그린다 — 같은 필드라

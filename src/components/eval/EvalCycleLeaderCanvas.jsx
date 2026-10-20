@@ -1346,7 +1346,7 @@ export default function EvalCycleLeaderCanvas({
       <div className="evc-root">
         {header}
         <section className="evc-card evl-done" data-testid="evl-done">
-          <h3 className="evc-card-name">✓ {L.doneTitle}</h3>
+          <h3 className="evc-card-name">{L.doneTitle}</h3>
           <p className="evc-empty-sub" data-testid="evl-done-note">
             {calibrationEnabled ? L.doneCalibOnNote : L.calibOffSubmittedNote}
           </p>
@@ -1378,7 +1378,7 @@ export default function EvalCycleLeaderCanvas({
       )}
       {submitted && (
         <p className="evx-notice is-success" data-testid="evl-submitted" style={{ margin: '0 0 12px' }}>
-          ✓ {L.submittedBanner}
+          {L.submittedBanner}
           {!calibrationEnabled && (
             <span data-testid="evl-submitted-calib-off"> {L.calibOffSubmittedNote}</span>
           )}
@@ -1534,7 +1534,7 @@ export default function EvalCycleLeaderCanvas({
             return (
             <section className="evc-card" key={sec.title} data-testid="evl-section">
               <div className="evl-sec-head">
-                <h3 className="evc-card-name">{sec.title}</h3>
+                <h3 className="evc-card-name evm-section-title">{sec.title}</h3>
                 <button
                   type="button"
                   className="evl-sec-toggle"

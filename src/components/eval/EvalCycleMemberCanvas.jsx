@@ -1166,7 +1166,7 @@ export default function EvalCycleMemberCanvas({
         <div className="evc-list">
           {sections.map((sec) => (
             <section className="evc-card" key={sec.title} data-testid={`evm-section-${sec.title}`}>
-              <h3 className="evc-card-name">{sec.title}</h3>
+              <h3 className="evc-card-name evm-section-title">{sec.title}</h3>
               {/* [PW-1464] §4.0 역량 섹션 머리 — 관리자가 정한 역량 항목을 참고할 수 있다는 표시 */}
               {selfReview && sec.fields.some((f) => categoryKind(f.category) === 'competency') && (
                 <p className="evm-competency-ref" data-testid="evm-competency-ref">
