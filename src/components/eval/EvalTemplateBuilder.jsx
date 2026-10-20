@@ -1,4 +1,5 @@
 import EvalTemplateItemSettings from './EvalTemplateItemSettings.jsx';
+import Select from '../shared/Select.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import { useHandleReorder } from './useHandleReorder.js';
@@ -179,6 +180,65 @@ export function EvalTemplateGradeRows({
 }
 
 /**
+ * 등급 줄 아래 한 줄 — «+ 등급 추가» · 비율 합계 · 막는 이유.
+ *
+ * ## 왜 부품으로 옮겼나 (PW-2094)
+ *
+ * 마법사 2단계의 이 줄(`.evc-tpl-grade-foot`)을 값 그대로 꺼냈다. 다른 두 곳은 «+ 등급 추가»
+ * 버튼만 각자 그려서, 이름이 비거나 겹쳐도 목록 아래에 아무 말이 없었고 등급 수 상한도
+ * 없었다. 판정은 `templateGradeIssues` 한 벌을 받는다(§5.4.2 — 10개면 추가를 막고
+ * «등급은 최대 10개까지», 어긴 칸은 빨갛게 하고 목록 아래에 모아 알린다).
+ */
+export function EvalTemplateGradeFoot({
+  issues,
+  labels: L,
+  absolute = true,
+  onAdd,
+  disabled = false,
+  icon = null,
+  testPrefix = 'evc-tpl',
+}) {
+  return (
+    <div className="evc-tpl-grade-foot">
+      <button
+        type="button"
+        className="evc-btn is-ghost"
+        onClick={onAdd}
+        disabled={disabled || issues.atMax}
+        data-testid={`${testPrefix}-add-grade`}
+      >
+        {icon}
+        {icon ? ' ' : null}
+        {L.templateAddGrade}
+      </button>
+      {issues.atMax && (
+        <span className="evc-tpl-ratiosum" data-testid={`${testPrefix}-max-grades`}>
+          {L.templateMaxGrades}
+        </span>
+      )}
+      {!absolute && (
+        <span
+          className={`evc-tpl-ratiosum${issues.ratioInvalid ? ' is-invalid' : ''}`}
+          data-testid={`${testPrefix}-ratio-sum`}
+        >
+          {fill(L.templateRatioSum, { sum: issues.ratioSum })}
+        </span>
+      )}
+      {issues.hasEmpty && (
+        <span className="evc-tpl-ratiosum is-invalid" data-testid={`${testPrefix}-empty-warn`}>
+          {L.templateBlockGradeLabel}
+        </span>
+      )}
+      {issues.dupLabels.size > 0 && (
+        <span className="evc-tpl-ratiosum is-invalid" data-testid={`${testPrefix}-dup-warn`}>
+          {L.templateDupWarn}
+        </span>
+      )}
+    </div>
+  );
+}
+
+/**
  * 항목 목록 아래의 «추가» 줄 — 질문 추가 · 설명 추가.
  *
  * ## 왜 부품으로 옮겼나 (PW-602 ④)
@@ -208,9 +268,30 @@ export function EvalTemplateAddRow({
   onAddNote,
   icon = null,
   testPrefix = 'evc-tpl',
+  /**
+   * [PW-2094] 새 항목의 응답 유형 고르기 — `[{ value, label }]`. 주면 «항목 추가» 앞에 마법사
+   * 추가 폼과 같은 유형 셀렉트와 «유형은 여기서만 정한다» 안내(§5.11-E)가 선다.
+   * 안 주면 종전대로 버튼만 그린다.
+   */
+  typeOptions = null,
+  typeValue,
+  onTypeChange,
 }) {
   return (
     <div className="evc-tpl-addrow">
+      {typeOptions && (
+        <Select
+          className="evc-input evc-tpl-addrow-type"
+          value={typeValue}
+          onChange={(e) => onTypeChange?.(e.target.value)}
+          aria-label={L.typeLabel}
+          data-testid={`${testPrefix}-add-type`}
+        >
+          {typeOptions.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </Select>
+      )}
       <button
         type="button"
         className="evc-btn is-ghost"
@@ -230,6 +311,11 @@ export function EvalTemplateAddRow({
           {icon}
           {L.addNote}
         </button>
+      )}
+      {typeOptions && L.typeFixedNote && (
+        <span className="evc-tpl-set-note" data-testid={`${testPrefix}-add-type-fixed-note`}>
+          {L.typeFixedNote}
+        </span>
       )}
     </div>
   );

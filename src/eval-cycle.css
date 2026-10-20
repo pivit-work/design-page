@@ -2092,9 +2092,13 @@
    갖고 있던 값 그대로다. */
 .evc-tpl-addrow {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: var(--spacing-sm);
   margin-bottom: var(--spacing-md);
 }
+/* [PW-2094] 유형 셀렉트 — 마법사 추가 폼의 유형 칸(.evc-tpl-additem 셋째 열 96px)과 같은 폭. */
+.evc-tpl-addrow .evc-tpl-addrow-type { width: 96px; flex: none; }
 .evc-tpl-grades {
   display: flex;
   flex-direction: column;

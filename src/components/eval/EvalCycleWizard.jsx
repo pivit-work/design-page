@@ -48,7 +48,19 @@ import { AlertIcon, CheckCircleIcon, InfoIcon, ZapIcon } from './evalIcons.jsx';
 import { autoCommitteeIdsOf } from './calibrationAutoCommittee.js';
 // [PW-527 ①③] 항목 설정판과 평가지 렌더는 「평가 템플릿」 화면과 **나눠 쓰는 부품**이다.
 // 여기 안에 두면 마법사 밖에서 쓸 수 없어, 같은 판이 두 화면에 각각 생긴다 (정책 §6.3).
-import { EvalTemplateGradeRows, EvalTemplateItemRow, GripIcon, ReorderHandle } from './EvalTemplateBuilder.jsx';
+import {
+  EvalTemplateGradeFoot,
+  EvalTemplateGradeRows,
+  EvalTemplateItemRow,
+  GripIcon,
+  ReorderHandle,
+} from './EvalTemplateBuilder.jsx';
+import {
+  TEMPLATE_MAX_GRADES,
+  TEMPLATE_MIN_GRADES,
+  isTemplateGradeInvalid,
+  templateGradeIssues,
+} from './evalTemplateGradeRules.js';
 import { useHandleReorder } from './useHandleReorder.js';
 import { gradeKeywordsForSave } from './evalGradeKeywords.js';
 import EvalSheetBody from './EvalSheetBody.jsx';
@@ -866,14 +878,12 @@ const TEMPLATE_PRESET_META = [
   { id: 'standard', labelKey: 'tplVersionStandard', descKey: 'tplPresetStandardDesc', Icon: StarIcon, recommended: true },
   { id: 'detailed', labelKey: 'tplVersionDetailed', descKey: 'tplPresetDetailedDesc', Icon: LayersIcon },
 ];
-const MAX_GRADES = 10;
-const MIN_GRADES = 2;
+// PW-2094 — 등급 수 한도는 세 화면이 같은 값을 쓴다(evalTemplateGradeRules.js).
+const MAX_GRADES = TEMPLATE_MAX_GRADES;
+const MIN_GRADES = TEMPLATE_MIN_GRADES;
 /* PW-434 ⑤ 상단 「저장된 템플릿에서 시작」 블록에 인라인으로 펴는 카드 수 상한.
    블록은 목록이 아니라 진입점이라 전량 탐색은 「전체 목록에서 찾기」가 맡는다. */
 const MAX_START_TEMPLATES = 4;
-
-// 현재 빌더 상태 → 템플릿 요약 문자열(항목 N · 등급 M단계).
-const gradeSum = (grades) => grades.reduce((a, g) => a + (Number(g.ratio) || 0), 0);
 
 /**
  * PW-443 — 「리뷰 & 조정」 필터 5축.
@@ -5184,36 +5194,12 @@ export default function EvalCycleWizard({
   };
 
   // ── 평가 템플릿 빌더 헬퍼 ──
-  const tplRatioSum = gradeSum(tplGrades);
-  const tplRatioInvalid = !tplAbsolute && tplRatioSum !== 100;
-  // 중복 등급명(공백 제거·대소문자 무시) 집합.
-  const tplDupLabels = (() => {
-    const seen = new Set();
-    const dup = new Set();
-    for (const g of tplGrades) {
-      const l = g.label.trim().toLowerCase();
-      if (!l) continue;
-      if (seen.has(l)) dup.add(l);
-      else seen.add(l);
-    }
-    return dup;
-  })();
-  const tplGradesValid =
-    tplGrades.length >= MIN_GRADES &&
-    tplGrades.every((g) => g.label.trim()) &&
-    tplDupLabels.size === 0 &&
-    !tplRatioInvalid;
+  // [PW-2094] 등급 판정은 「평가 템플릿」 화면 [편집] 창·사이클 관리 탭과 같은 한 벌이다.
+  const tplGradeIssues = templateGradeIssues(tplGrades, { absolute: tplAbsolute });
+  const tplGradesValid = tplGradeIssues.valid;
   // PW-119: 저장 버튼을 비활성으로만 두면 왜 안 눌리는지 알 길이 없다.
   // 막고 있는 첫 번째 사유를 골라 버튼 옆에 그대로 띄운다(위에서부터 우선).
-  const tplSaveBlockKey = !tplName.trim()
-    ? 'templateBlockName'
-    : !tplGrades.every((g) => g.label.trim())
-      ? 'templateBlockGradeLabel'
-      : tplDupLabels.size > 0
-        ? 'templateBlockDupGrade'
-        : tplRatioInvalid
-          ? 'templateBlockRatio'
-          : null;
+  const tplSaveBlockKey = !tplName.trim() ? 'templateBlockName' : tplGradeIssues.blockKey;
   /* PW-1459 §5.10.2 — 직급 목록은 회사가 어드민에서 설정한 직급(job_level, 설정 순서)이다.
      조직 설정을 못 받았을 때만 종전대로 대상 멤버의 직책 값에서 뽑는다. */
   const roleFromSettings = Array.isArray(fieldOptions?.jobLevel);
@@ -9077,36 +9063,18 @@ export default function EvalCycleWizard({
                 minGrades={MIN_GRADES}
                 invalidAt={(g) =>
                   // PW-119: 빈 등급명도 저장을 막으므로 중복명과 똑같이 표시한다.
-                  !g.label.trim() || tplDupLabels.has(g.label.trim().toLowerCase())
+                  isTemplateGradeInvalid(g, tplGradeIssues)
                 }
                 onReorder={reorderGrade}
                 onUpdate={updateGrade}
                 onRemove={removeGrade}
               />
-              <div className="evc-tpl-grade-foot">
-                <button
-                  type="button"
-                  className="evc-btn is-ghost"
-                  onClick={addGrade}
-                  disabled={tplGrades.length >= MAX_GRADES}
-                  data-testid="evc-tpl-add-grade"
-                >
-                  {L.templateAddGrade}
-                </button>
-                {!tplAbsolute && (
-                  <span className={`evc-tpl-ratiosum${tplRatioInvalid ? ' is-invalid' : ''}`}>
-                    {fill(L.templateRatioSum, { sum: tplRatioSum })}
-                  </span>
-                )}
-                {tplDupLabels.size > 0 && (
-                  <span
-                    className="evc-tpl-ratiosum is-invalid"
-                    data-testid="evc-tpl-dup-warn"
-                  >
-                    {L.templateDupWarn}
-                  </span>
-                )}
-              </div>
+              <EvalTemplateGradeFoot
+                issues={tplGradeIssues}
+                labels={L}
+                absolute={tplAbsolute}
+                onAdd={addGrade}
+              />
               {/* [PW-1831 J-8 · HR §5.10-E] 등급 체계를 리뷰 종류마다 다시 넣지 않게 — 고른 다른 리뷰 종류가 없으면 버튼도 없다. */}
               {gradeShareRows.length > 0 && !confirmReadOnly && (
                 <div className="evc-tpl-grade-foot">
@@ -9200,6 +9168,21 @@ export default function EvalCycleWizard({
                         : undefined
                     }
                     settingsIcon={<PencilIcon size={15} />}
+                    // [PW-2094] 추가한 질문의 문구를 이 줄에서 고친다 — 「평가 템플릿」 화면
+                    // [편집] 창·사이클 관리 탭과 같은 입력칸이다(policy §4.6.2 ②). 설명 항목은
+                    // 제목이 비면 본문 첫 줄·「(본문 없음)」을 보여 주는 종전 줄 그대로 둔다.
+                    textInput={
+                      isNoteItem(q)
+                        ? null
+                        : {
+                            value: q.text ?? '',
+                            ariaLabel: fill(L.templateItemTextAria ?? '평가 항목 {{n}}', { n: idx + 1 }),
+                            placeholder: L.templateItemPlaceholder,
+                            invalid: !String(q.text ?? '').trim(),
+                            testId: `evc-tpl-item-text-${q.id}`,
+                            onChange: (e) => patchQuestion(q.id, { text: e.target.value }),
+                          }
+                    }
                     className={tplRowClass(idx)}
                     containerProps={tplRowProps(idx)}
                     leading={

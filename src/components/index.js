@@ -403,12 +403,21 @@ export { default as EvalTemplateItemSettings } from './eval/EvalTemplateItemSett
 export { default as EvalSheetBody } from './eval/EvalSheetBody.jsx';
 export {
   EvalTemplateAddRow,
+  EvalTemplateGradeFoot,
   EvalTemplateGradeRows,
   EvalTemplateItemRow,
   ReorderHandle,
 } from './eval/EvalTemplateBuilder.jsx';
 // PW-1971 — 등급·항목 줄 순서를 ⋮⋮ 손잡이 하나로 바꾸는 조작(마우스·↑/↓·터치). 세 화면이 같은 것을 쓴다.
 export { useHandleReorder, reorderedIndex } from './eval/useHandleReorder.js';
+// PW-2094 등급 체계 저장 전 판정(빈 이름·겹친 이름·2~10개·비율 합) — 세 화면이 같은 것을 쓴다.
+export {
+  TEMPLATE_MAX_GRADES,
+  TEMPLATE_MIN_GRADES,
+  isTemplateGradeInvalid,
+  templateGradeIssues,
+  templateGradeRatioSum,
+} from './eval/evalTemplateGradeRules.js';
 // PW-1840 등급별 기대 키워드 — 칸의 글 ↔ 서버 배열. 템플릿을 저장하는 세 화면이 같은 것을 쓴다.
 export {
   MAX_GRADE_KEYWORDS,
