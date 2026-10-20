@@ -11533,6 +11533,11 @@ button.evm-ai-source {
   flex: 1 1 240px;
   min-width: 0;
 }
+/* 실패 문구는 띠 아래 한 줄로 — 같은 줄에 끼면 설명이 두 줄로 밀리고 단추가 오른쪽 끝에서 떨어진다. */
+.evm-ai-card > .evm-field-error {
+  flex-basis: 100%;
+  margin: 0;
+}
 .evm-ai-card-title {
   display: flex;
   align-items: center;
