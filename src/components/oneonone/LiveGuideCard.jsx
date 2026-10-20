@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import Icon from '../shared/Icon.jsx';
-import { formatLiveElapsed } from './sessionHelpers.js';
 import Spinner from '../shared/Spinner.jsx';
 
 /**
@@ -84,18 +83,21 @@ const DEFAULT_LABELS = {
     '여러 번 시도했지만 생성하지 못했습니다. 가이드 없이 진행하거나 잠시 후 다시 시도해 주세요.',
   intro: (name) =>
     `아이스브레이킹부터 랩업까지, ${name} 님 데이터 기반의 단계별 진행 스크립트를 생성합니다. READY 산출물을 재구성하며 실시간 대화는 분석하지 않습니다.`,
-  generate: (min, count) => `진행 스크립트 생성 — ${min}분 · ${count}단계`,
+  generate: (min, count) => `진행 스크립트 생성 - ${min}분 · ${count}단계`,
   generating: '진행 스크립트를 구성하는 중...',
-  // 뒤 값은 **세션 총 경과**다. 종전 문구 「경과 N분」은 현재 단계에 머문 시간으로
-  // 읽혀, 단계를 옮겨도 리셋되지 않는 값에 잘못된 이름이 붙어 있었다 (PW-478 §5.2.1).
-  pace: (from, to, elapsed) =>
-    `현재 단계 권장 ${from}–${to}분 · 시작 후 ${elapsed}분`,
-  paceLate: (late) => `권장 페이스보다 ${late}분 초과 — 다음 단계 전환을 고려하세요`,
+  // 단계 머리줄 (Figma 17557:26838) — 왼쪽 「권장 0~5분」, 오른쪽 「경과 4분」.
+  // 「경과」의 값은 **세션 총 경과**다(단계에 머문 시간이 아니다 · PW-478 §5.2.1) — 단계를
+  // 옮겨도 리셋되지 않는다. 시안이 이 낱말을 골랐으니 따르되, 뜻은 주석으로 못 박아 둔다.
+  recommend: '권장',
+  stageRange: (from, to) => `${from}~${to}분`,
+  elapsed: (min) => `경과 ${min}분`,
+  paceLate: (late) => `⚠ 권장 페이스보다 ${late}분 초과 — 다음 단계 전환을 고려하세요`,
   scriptSection: '이렇게 말해보세요',
   questionSection: '추천 질문',
-  questionPrefix: 'Q.',
-  prevStage: '이전 단계',
-  completeStage: '이 단계 완료 → 다음',
+  questionPrefix: 'Q',
+  stepperLabel: '대화 단계',
+  prevStage: '이전',
+  completeStage: '다음',
   completeLast: '이 단계 완료 — 가이드 마침',
   allDone: '전체 단계 완료',
   inputsChanged: '생성 이후 준비 내용이 바뀌었습니다',
@@ -233,322 +235,272 @@ export default function LiveGuideCard({
   };
 
   return (
-    <section className="ono-guide-card" data-testid="ono-live-guide">
-      {/* ── 헤더 ── */}
-      <div className="ono-guide-head">
-        <span className="ono-guide-title">
-          <Icon src="/icons-solid/stars-01.svg" size={14} color="currentColor" baseUrl={baseUrl} />
-          {L.title}
-        </span>
-        {!summaryOnly && (
-          <StatusBadge className="ono-guide-tag ono-guide-tag-purple">{L.liveOnly}</StatusBadge>
-        )}
-        {generated && guide?.isFallback && (
-          <StatusBadge
-            className="ono-guide-tag ono-guide-tag-amber"
-            data-testid="ono-live-guide-fallback">
-            {L.fallbackBadge}
-          </StatusBadge>
-        )}
-        <div className="ono-guide-head-right">
-          <span className="ono-guide-timer" data-testid="ono-live-guide-timer">
-            <Icon
-              src="/icons-solid/clock-stopwatch.svg"
-              size={12}
-              color="currentColor"
-              baseUrl={baseUrl}
-            />
-            {clockRunning ? formatLiveElapsed(elapsedSec) : NO_CLOCK}
-          </span>
+    <section
+      className={`ono-guide-card${generated && !summaryOnly && !collapsed ? ' is-generated' : ''}`}
+      data-testid="ono-live-guide"
+    >
+      {/* 스크롤되는 속 — 카드 높이는 고정(시안 720)이고 넘치는 대본은 여기서 넘긴다.
+          아래 [이전]·[다음] 은 카드 바닥에 붙어 있어 스크롤과 무관하게 손에 닿는다. */}
+      <div className="ono-guide-body">
+        {/* ── 헤더 (Figma 17556:26768) — 제목 하나. 재생성·접기는 오른쪽에 작게 남긴다. ── */}
+        <div className="ono-guide-head">
+          <span className="ono-guide-title">{L.title}</span>
+          {generated && guide?.isFallback && (
+            <StatusBadge
+              className="ono-guide-tag ono-guide-tag-amber"
+              data-testid="ono-live-guide-fallback">
+              {L.fallbackBadge}
+            </StatusBadge>
+          )}
           {generated && !loading && (
-            <Tooltip content={regenLeft <= 0 ? L.regenExhaustedTitle : undefined}>
-              <button
-                type="button"
-                className="ono-guide-mini-btn"
-                onClick={onGenerate}
-                disabled={regenLeft <= 0}
-                data-testid="ono-live-guide-regen"
-              >
-                {regenLeft <= 0 ? L.regenExhausted : L.regen(regenLeft)}
-              </button>
-            </Tooltip>
-          )}
-          {generated && !summaryOnly && (
-            <button
-              type="button"
-              className="ono-guide-mini-btn"
-              onClick={() => setCollapsed((v) => !v)}
-              data-testid="ono-live-guide-collapse"
-            >
-              {collapsed ? L.expand : L.collapse}
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* ── 실패 (§7.5.3) — 전역 오류 페이지로 튕기지 않고 카드 안에서 말한다.
-             기존 가이드가 있으면 덮어쓰지 않고 위에 얹기만 한다 (§7.5.2). ── */}
-      {failed && !loading && (
-        <div className="ono-guide-fail" role="alert" data-testid="ono-live-guide-fail">
-          <div className="ono-guide-fail-title">
-            <Icon
-              src="/icons-solid/alert-triangle.svg"
-              size={13}
-              color="currentColor"
-              baseUrl={baseUrl}
-            />
-            {L.failTitle}
-          </div>
-          <p className="ono-guide-fail-body">
-            {retryExhausted ? L.retryExhausted : L[REASON_KEY[failReason] ?? 'reasonModelError']}
-          </p>
-          <p className="ono-guide-fail-body">{L.failBody}</p>
-          <Tooltip content={quotaBlocked ? L.quotaTooltip : undefined}>
-            <button
-              type="button"
-              className="ono-guide-fail-btn"
-              onClick={onGenerate}
-              disabled={retryDisabled}
-              data-testid="ono-live-guide-retry"
-            >
-              {L.retry}
-            </button>
-          </Tooltip>
-        </div>
-      )}
-
-      {/* ── 생성 뒤 준비 내용이 바뀜 (§5.2.1) — 알리기만 하고 다시 만들지 않는다 ── */}
-      {generated && !loading && inputsChanged && (
-        <p className="ono-guide-stale" data-testid="ono-live-guide-stale">
-          {L.inputsChanged}
-        </p>
-      )}
-
-      {/* ── 미생성: 수동 트리거 (자동 생성 없음) ── */}
-      {!generated && !loading && (
-        <>
-          <p className="ono-guide-intro">{L.intro(memberName)}</p>
-          {sourceLabels.length > 0 && (
-            <div className="ono-guide-sources">
-              {sourceLabels.map((s) => (
-                <span key={s} className="ono-guide-source">
-                  {s}
-                </span>
-              ))}
-            </div>
-          )}
-          <button
-            type="button"
-            className="ono-guide-generate"
-            onClick={onGenerate}
-            data-testid="ono-live-guide-generate"
-          >
-            <Icon
-              src="/icons-solid/stars-01.svg"
-              size={16}
-              color="currentColor"
-              baseUrl={baseUrl}
-            />
-            {L.generate(totalMin, stageCount)}
-          </button>
-        </>
-      )}
-
-      {/* ── 생성 중 — 버튼을 숨겨 중복 클릭을 막는다 (§7.5.2) ── */}
-      {loading && (
-        <div className="ono-guide-loading" data-testid="ono-live-guide-loading">
-          <Spinner size={16} />
-          <span>{L.generating}</span>
-        </div>
-      )}
-
-      {/* ── 생성 후 · 요약만 (READY 자리 — policy §4.1.2-A) ──
-             준비 화면은 스크립트 전문을 펼쳐 두지 않는다. 「무엇이 준비됐는지」만
-             보이면 되고, 읽는 것은 미팅 중 LIVE 카드에서 한다. ── */}
-      {generated && !loading && summaryOnly && (
-        <ol className="ono-guide-summary" data-testid="ono-live-guide-summary">
-          {stages.map((s, i) => (
-            <li key={s.id} className="ono-guide-summary-row">
-              <span className="ono-guide-step-num">{s.order ?? i + 1}</span>
-              <span className="ono-guide-summary-title">{s.title}</span>
-              <span className="ono-guide-stage-time">
-                {(s.timeRange ?? [0, 0])[0]}–{(s.timeRange ?? [0, 0])[1]}분
-              </span>
-            </li>
-          ))}
-        </ol>
-      )}
-
-      {/* ── 생성 후 ── */}
-      {generated && !loading && !summaryOnly && !collapsed && stage && (
-        <>
-          {/* 스테퍼 — 클릭으로 자유 이동. 순서를 강제하지 않는다 */}
-          <div className="ono-guide-stepper">
-            {stages.map((s, i) => {
-              const isDone = doneIds.includes(s.id);
-              const isCurrent = i === safeIdx;
-              return (
+            <div className="ono-guide-head-right">
+              <Tooltip content={regenLeft <= 0 ? L.regenExhaustedTitle : undefined}>
                 <button
-                  key={s.id}
                   type="button"
-                  className={`ono-guide-step${isCurrent ? ' is-current' : ''}${
-                    isDone ? ' is-done' : ''
-                  }`}
-                  aria-current={isCurrent ? 'step' : undefined}
-                  onClick={() => applyStage(i, doneIds)}
-                  data-testid={`ono-live-guide-step-${s.id}`}
+                  className="ono-guide-mini-btn"
+                  onClick={onGenerate}
+                  disabled={regenLeft <= 0}
+                  data-testid="ono-live-guide-regen"
                 >
-                  {isDone ? (
-                    <Icon
-                      src="/icons-solid/check.svg"
-                      size={11}
-                      color="currentColor"
-                      baseUrl={baseUrl}
-                    />
-                  ) : (
-                    <span className="ono-guide-step-num">{s.order ?? i + 1}</span>
-                  )}
-                  {s.title}
+                  {regenLeft <= 0 ? L.regenExhausted : L.regen(regenLeft)}
                 </button>
-              );
-            })}
-          </div>
-
-          {/* 페이스 — 안내만 한다. 자동 전환·강제 종료는 없다 (TC-1ON1-105).
-              t0 가 없거나 녹음 없이 진행하는 회차에서는 줄 전체를 감춘다 (PW-478 §5.0). */}
-          {showPace && (
-          <div className={`ono-guide-pace${lateMin > 0 ? ' is-late' : ''}`} data-testid="ono-live-guide-pace">
-            <span className="ono-guide-pace-text">
-              {L.pace(from, to, elapsedMin)}
-            </span>
-            {lateMin > 0 && (
-              <span className="ono-guide-pace-late" data-testid="ono-live-guide-pace-late">
-                <Icon
-                  src="/icons-solid/alert-triangle.svg"
-                  size={11}
-                  color="currentColor"
-                  baseUrl={baseUrl}
-                />
-                {L.paceLate(lateMin)}
-              </span>
-            )}
-          </div>
-          )}
-
-          {/* 현재 단계 */}
-          <div className="ono-guide-stage-head">
-            <span className="ono-guide-stage-title">
-              <span className="ono-guide-step-num">{stage.order ?? safeIdx + 1}</span>
-              {stage.title}
-            </span>
-            <span className="ono-guide-stage-time">
-              {from}–{to}분
-            </span>
-          </div>
-          <p className="ono-guide-goal">{stage.goal}</p>
-
-          {/* 개인화 멘트 — 기본 템플릿에서는 비어 있어 블록째 그리지 않는다 */}
-          {(stage.script ?? []).length > 0 && (
-            <>
-              <div className="ono-guide-section-label ono-guide-section-label-purple">
-                <Icon
-                  src="/icons-solid/message-chat-circle.svg"
-                  size={12}
-                  color="currentColor"
-                  baseUrl={baseUrl}
-                />
-                {L.scriptSection}
-              </div>
-              <div className="ono-guide-scripts">
-                {stage.script.map((line, i) => (
-                  <div key={`${stage.id}-script-${i}`} className="ono-guide-script">
-                    {`“${line}”`}
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-
-          {(stage.questions ?? []).length > 0 && (
-            <>
-              <div className="ono-guide-section-label">{L.questionSection}</div>
-              <div className="ono-guide-questions">
-                {stage.questions.map((q, i) => (
-                  <div key={`${stage.id}-q-${i}`} className="ono-guide-question">
-                    <span className="ono-guide-question-prefix">{L.questionPrefix}</span>
-                    <span>{q}</span>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-
-          {(stage.watchouts ?? []).length > 0 && (
-            <div className="ono-guide-watchouts">
-              {stage.watchouts.map((w, i) => (
-                <div key={`${stage.id}-w-${i}`} className="ono-guide-watchout">
-                  <Icon
-                    src="/icons-solid/alert-triangle.svg"
-                    size={12}
-                    color="currentColor"
-                    baseUrl={baseUrl}
-                  />
-                  <span>{w}</span>
-                </div>
-              ))}
+              </Tooltip>
+              {!summaryOnly && (
+                <button
+                  type="button"
+                  className="ono-guide-mini-btn"
+                  onClick={() => setCollapsed((v) => !v)}
+                  data-testid="ono-live-guide-collapse"
+                >
+                  {collapsed ? L.expand : L.collapse}
+                </button>
+              )}
             </div>
           )}
+        </div>
 
-          <div className="ono-guide-nav">
-            <button
-              type="button"
-              className="ono-guide-nav-prev"
-              onClick={() => applyStage(Math.max(0, safeIdx - 1), doneIds)}
-              disabled={safeIdx === 0}
-              data-testid="ono-live-guide-prev"
-            >
+        {/* ── 실패 (§7.5.3) — 전역 오류 페이지로 튕기지 않고 카드 안에서 말한다.
+               기존 가이드가 있으면 덮어쓰지 않고 위에 얹기만 한다 (§7.5.2). ── */}
+        {failed && !loading && (
+          <div className="ono-guide-fail" role="alert" data-testid="ono-live-guide-fail">
+            <div className="ono-guide-fail-title">
               <Icon
-                src="/icons-solid/chevron-left.svg"
+                src="/icons-solid/alert-triangle.svg"
                 size={13}
                 color="currentColor"
                 baseUrl={baseUrl}
               />
-              {L.prevStage}
-            </button>
+              {L.failTitle}
+            </div>
+            <p className="ono-guide-fail-body">
+              {retryExhausted ? L.retryExhausted : L[REASON_KEY[failReason] ?? 'reasonModelError']}
+            </p>
+            <p className="ono-guide-fail-body">{L.failBody}</p>
+            <Tooltip content={quotaBlocked ? L.quotaTooltip : undefined}>
+              <button
+                type="button"
+                className="ono-guide-fail-btn"
+                onClick={onGenerate}
+                disabled={retryDisabled}
+                data-testid="ono-live-guide-retry"
+              >
+                {L.retry}
+              </button>
+            </Tooltip>
+          </div>
+        )}
+
+        {/* ── 생성 뒤 준비 내용이 바뀜 (§5.2.1) — 알리기만 하고 다시 만들지 않는다 ── */}
+        {generated && !loading && inputsChanged && (
+          <p className="ono-guide-stale" data-testid="ono-live-guide-stale">
+            {L.inputsChanged}
+          </p>
+        )}
+
+        {/* ── 미생성: 수동 트리거 (자동 생성 없음) — Figma 17589:23524 ── */}
+        {!generated && !loading && (
+          <>
+            <p className="ono-guide-intro">{L.intro(memberName)}</p>
+            {sourceLabels.length > 0 && (
+              <div className="ono-guide-sources">
+                {sourceLabels.map((s) => (
+                  <span key={s} className="ono-guide-source">
+                    {s}
+                  </span>
+                ))}
+              </div>
+            )}
             <button
               type="button"
-              className={`ono-guide-nav-next${allDone ? ' is-all-done' : ''}`}
-              onClick={completeStage}
-              data-testid="ono-live-guide-complete"
+              className="ono-guide-generate"
+              onClick={onGenerate}
+              data-testid="ono-live-guide-generate"
             >
-              {allDone ? (
-                <>
-                  <Icon
-                    src="/icons-solid/check.svg"
-                    size={13}
-                    color="currentColor"
-                    baseUrl={baseUrl}
-                  />
-                  {L.allDone}
-                </>
-              ) : isLast ? (
-                L.completeLast
-              ) : (
-                <>
-                  {L.completeStage}
-                  <Icon
-                    src="/icons-solid/chevron-right.svg"
-                    size={13}
-                    color="currentColor"
-                    baseUrl={baseUrl}
-                  />
-                </>
-              )}
+              {L.generate(totalMin, stageCount)}
             </button>
-          </div>
+          </>
+        )}
 
-          <p className="ono-guide-footnote">{L.footnote}</p>
-        </>
+        {/* ── 생성 중 — 버튼을 숨겨 중복 클릭을 막는다 (§7.5.2) ── */}
+        {loading && (
+          <div className="ono-guide-loading" data-testid="ono-live-guide-loading">
+            <Spinner size={16} />
+            <span>{L.generating}</span>
+          </div>
+        )}
+
+        {/* ── 생성 후 · 요약만 (READY 자리 — policy §4.1.2-A) ──
+               준비 화면은 스크립트 전문을 펼쳐 두지 않는다. 「무엇이 준비됐는지」만
+               보이면 되고, 읽는 것은 미팅 중 LIVE 카드에서 한다. ── */}
+        {generated && !loading && summaryOnly && (
+          <ol className="ono-guide-summary" data-testid="ono-live-guide-summary">
+            {stages.map((s, i) => (
+              <li key={s.id} className="ono-guide-summary-row">
+                <span className="ono-guide-step-num">{s.order ?? i + 1}</span>
+                <span className="ono-guide-summary-title">{s.title}</span>
+                <span className="ono-guide-stage-time">
+                  {(s.timeRange ?? [0, 0])[0]}–{(s.timeRange ?? [0, 0])[1]}분
+                </span>
+              </li>
+            ))}
+          </ol>
+        )}
+
+        {/* ── 생성 후 (Figma 17556:26766) ── */}
+        {generated && !loading && !summaryOnly && !collapsed && stage && (
+          <>
+            {/* 스테퍼 — 번호만 있는 세그먼트. 클릭으로 자유 이동, 순서를 강제하지 않는다.
+                단계 이름은 바로 아래 제목이 말한다. */}
+            <div className="ono-guide-stepper" role="group" aria-label={L.stepperLabel}>
+              {stages.map((s, i) => {
+                const isDone = doneIds.includes(s.id);
+                const isCurrent = i === safeIdx;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    title={s.title}
+                    className={`ono-guide-step${isCurrent ? ' is-current' : ''}${
+                      isDone ? ' is-done' : ''
+                    }`}
+                    aria-current={isCurrent ? 'step' : undefined}
+                    onClick={() => applyStage(i, doneIds)}
+                    data-testid={`ono-live-guide-step-${s.id}`}
+                  >
+                    {s.order ?? i + 1}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="ono-guide-stage">
+              {/* 머리줄 — 권장 시간 · 세션 경과. t0 가 없거나 녹음 없이 진행하는 회차에서는
+                  경과를 비운다 (PW-478 §5.0). */}
+              <div className="ono-guide-stage-meta" data-testid="ono-live-guide-pace">
+                <span className="ono-guide-stage-range">
+                  <span>{L.recommend}</span>
+                  <span>{L.stageRange(from, to)}</span>
+                </span>
+                {showPace && (
+                  <span className="ono-guide-elapsed" data-testid="ono-live-guide-timer">
+                    {L.elapsed(elapsedMin)}
+                  </span>
+                )}
+              </div>
+              <p className="ono-guide-stage-title">
+                {stage.order ?? safeIdx + 1}. {stage.title}
+              </p>
+              <p className="ono-guide-goal">{stage.goal}</p>
+            </div>
+
+            {/* 페이스 — 안내만 한다. 자동 전환·강제 종료는 없다 (TC-1ON1-105). */}
+            {showPace && lateMin > 0 && (
+              <div className="ono-guide-callout" data-testid="ono-live-guide-pace-late">
+                {L.paceLate(lateMin)}
+              </div>
+            )}
+
+            {/* 개인화 멘트 — 기본 템플릿에서는 비어 있어 블록째 그리지 않는다 */}
+            {(stage.script ?? []).length > 0 && (
+              <div className="ono-guide-section">
+                <div className="ono-guide-section-label">
+                  <Icon
+                    src="/icons-solid/message-chat-circle.svg"
+                    size={14}
+                    color="currentColor"
+                    baseUrl={baseUrl}
+                  />
+                  {L.scriptSection}
+                </div>
+                <div className="ono-guide-scripts">
+                  {stage.script.map((line, i) => (
+                    <div key={`${stage.id}-script-${i}`} className="ono-guide-script">
+                      {`“${line}”`}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {(stage.questions ?? []).length > 0 && (
+              <div className="ono-guide-section">
+                <div className="ono-guide-section-label">
+                  <Icon
+                    src="/icons-solid/help-circle.svg"
+                    size={14}
+                    color="currentColor"
+                    baseUrl={baseUrl}
+                  />
+                  {L.questionSection}
+                </div>
+                <div className="ono-guide-questions">
+                  {stage.questions.map((q, i) => (
+                    <div key={`${stage.id}-q-${i}`} className="ono-guide-question">
+                      <span className="ono-guide-question-prefix">{L.questionPrefix}</span>
+                      <span>{q}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {(stage.watchouts ?? []).length > 0 && (
+              <div className="ono-guide-watchouts">
+                {stage.watchouts.map((w, i) => (
+                  <div key={`${stage.id}-w-${i}`} className="ono-guide-callout">
+                    {w}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <p className="ono-guide-footnote">{L.footnote}</p>
+          </>
+        )}
+      </div>
+
+      {/* 카드 바닥에 붙는 [이전]·[다음] (Figma 17556:26795) — 위에 22px 흐림을 깔아 대본이
+          그 밑으로 흘러들어도 글자가 버튼에 겹치지 않는다. */}
+      {generated && !loading && !summaryOnly && !collapsed && stage && (
+        <div className="ono-guide-nav">
+          <button
+            type="button"
+            className="ono-guide-nav-prev"
+            onClick={() => applyStage(Math.max(0, safeIdx - 1), doneIds)}
+            disabled={safeIdx === 0}
+            data-testid="ono-live-guide-prev"
+          >
+            {L.prevStage}
+          </button>
+          <button
+            type="button"
+            className={`ono-guide-nav-next${allDone ? ' is-all-done' : ''}`}
+            onClick={completeStage}
+            data-testid="ono-live-guide-complete"
+          >
+            {allDone ? L.allDone : isLast ? L.completeLast : L.completeStage}
+          </button>
+        </div>
       )}
     </section>
   );

@@ -47,6 +47,7 @@
   /* Font Sizes */
   --font-size-display-sm: 30px;
   --font-size-display-xs: 24px;
+  --font-size-text-lg: 18px;
   --font-size-text-md: 16px;
   --font-size-text-sm: 14px;
   --font-size-text-xs: 12px;
@@ -54,6 +55,7 @@
   /* Line Heights */
   --line-height-display-sm: 38px;
   --line-height-display-xs: 32px;
+  --line-height-text-lg: 28px;
   --line-height-text-md: 24px;
   --line-height-text-sm: 20px;
   --line-height-text-xs: 18px;
@@ -168,6 +170,7 @@
   --fg-warning-secondary: var(--colors-foreground-fgWarningSecondary);
   --fg-error-primary: var(--colors-foreground-fgErrorPrimary);
   --fg-light: var(--colors-foreground-fgLight);
+  --text-warning-primary: var(--colors-text-textWarningPrimary);
   --fg-quaternary: var(--colors-foreground-fgQuaternary);
   --bg-tertiary: var(--colors-background-bgTertiary);
   --bg-overlay: var(--colors-background-bgOverlay);

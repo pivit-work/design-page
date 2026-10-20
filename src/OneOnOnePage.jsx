@@ -1,6 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import OneOnOneCanvasV2 from './components/oneonone/OneOnOneCanvasV2.jsx';
 import DemoRecordingPlayer from './devtools/DemoRecordingPlayer.jsx';
+import DoneOneOnOneView from './components/oneonone/DoneOneOnOneView.jsx';
+import { DONE_DEMO_PROPS } from './oneonone-done-demo.jsx';
+import { DEMO_GUIDE, GUIDE_SOURCE_LABELS } from './oneonone-guide-demo-data.js';
+import OneOnOnePastSessionList from './components/oneonone/OneOnOnePastSessionList.jsx';
+import OneOnOneRecordingWidget from './components/oneonone/OneOnOneRecordingWidget.jsx';
+import StartOneOnOneView from './components/oneonone/StartOneOnOneView.jsx';
 import StateSwitcher from './devtools/StateSwitcher.jsx';
 import { ASYNC_KNOB, LABEL_KNOB, VOLUME_KNOB, knobKey, resize, useKnobs } from './devtools/knobs.js';
 import { stressListMixed } from './devtools/stress.js';
@@ -157,6 +163,18 @@ const makeDetail = (name, avatar) => ({
    회의록 상세와 같은 `DemoRecordingPlayer`(devtools). 실 재생기는 pivit-work 가
    `renderRecordingPlayer` 로 돌려준다. */
 
+/* ── 「내 원온원」 탭 — 매니저 자신이 팀원으로 받은 지난 회차 (Figma 17556:23218).
+   날짜·길이는 호스트가 완성된 글자로 넘기는 규칙이라 여기서도 글자로 둔다. */
+const MY_PAST_SESSIONS = [
+  { id: 'my-4', dateLabel: '2026.03.05', durationLabel: '48분', actionDone: 2, actionTotal: 3, summary: '온보딩 플로우 문서화 진행 점검. A팀 협업 채널 개설 필요성 첫 논의.', analyzing: true },
+  { id: 'my-3', dateLabel: '2026.02.12', durationLabel: '48분', actionDone: 2, actionTotal: 3, summary: 'Q1 OKR 중간 점검. 신규 고객 온보딩 프로세스 개선안 합의.' },
+  { id: 'my-2', dateLabel: '2026.01.29', durationLabel: '48분', actionDone: 2, actionTotal: 3, summary: '전환율 A/B 테스트 설계 리뷰. 커리어 관심사(PM 트랙) 첫 언급.' },
+  { id: 'my-1', dateLabel: '2026.01.05', durationLabel: '48분', actionDone: 2, actionTotal: 3, summary: 'Q1 목표 설정. NPS 개선 방향 논의 및 담당 범위 확정.' },
+];
+const MY_MANAGER_NAME = '이서연';
+const ME = { name: '김민준', role: '사원', avatar: 'https://i.pravatar.cc/200?img=52' };
+const fmtElapsed = (sec) => `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
+
 /* ── 최초 1on1 진행 셋업 플로우 데모 — 매니저(퍼실리테이터) 후보 (Figma 17416:27850).
    시안의 후보 구성(추천 1 + 일반 1)을 따른다. */
 const MANAGER_CANDIDATES = [
@@ -299,7 +317,18 @@ const MANY_ACTIONS = [
   { label: '평가 이력 보기' },
 ];
 
-const KNOBS = [VOLUME_KNOB, LABEL_KNOB, ONEONONE_ASYNC_KNOB];
+/* 화면 단계 — 대시보드(기본) · 종료 뒤 DONE 화면 (Figma 16954:15096). 진행(READY/LIVE)
+   화면은 멤버 카드의 [1on1 진행] 으로 들어간다. */
+const VIEW_KNOB = {
+  key: 'view',
+  label: '화면',
+  options: [
+    { value: 'default', label: '대시보드' },
+    { value: 'live', label: '진행 중 (LIVE)' },
+    { value: 'done', label: 'DONE (종료 후)' },
+  ],
+};
+const KNOBS = [VOLUME_KNOB, LABEL_KNOB, ONEONONE_ASYNC_KNOB, VIEW_KNOB];
 const SWITCHER_NOTE = '항목 수: 오늘 예정·주의 필요·양호 팀원 (아주 많음이면 카드 액션도 5개) / 라벨: 이름·직무 / 비동기: AI 초안 생성 중 (실패는 캔버스 prop 에 없음)';
 
 const sizeMembers = (list, volume) =>
@@ -312,9 +341,63 @@ const sizeMembers = (list, volume) =>
  * 1on1 페이지 wrapper — Figma node 16816:33877.
  * demo 데이터 + 라벨 보유, OneOnOneCanvasV2 에 props 로 전달.
  */
-export default function OneOnOnePage({ icons, baseUrl }) {
+/**
+ * active: 현재 라우트가 1on1 인지. App 은 이 페이지를 언마운트하지 않고 숨긴다 — 진행 중인
+ * 1on1 의 녹음 상태와 미니 위젯(body 포털)이 다른 페이지로 가도 살아 있어야 해서다.
+ * 포털류(상태 스위처)는 active 일 때만 그린다. onActivate 는 미니 위젯의 펼치기가 이 페이지로
+ * 돌아올 때 부른다(App 의 라우팅).
+ */
+export default function OneOnOnePage({ icons, baseUrl, active = true, onActivate }) {
   const { values: knobs, set: setKnob, reset: resetKnobs } = useKnobs(KNOBS);
   const { volume, labels: labelMode } = knobs;
+  // 제목 탭 — 「대시보드」(팀원들을 보는 매니저) · 「내 원온원」(자기가 팀원으로 받는 1on1)
+  const [tab, setTab] = useState('dashboard');
+
+  // 데모: 진행 화면 녹음 상태를 페이지가 쥔다 — 「시작하기」 뒤(LIVE)에만 오른쪽 기둥에
+  // AI 대화 네비게이터를 보이기 위해서다(판정은 소비처 몫 · policy §5.2.1).
+  // 「진행 중 (LIVE)」 knob 은 클릭 없이 녹음 중 화면으로 바로 들어간다 (?knobs=view:live).
+  const liveKnob = knobs.view === 'live';
+  const [recordingState, setRecording] = useState(false);
+  const recording = recordingState || liveKnob;
+  const handleRecordingChange = (next) => {
+    setRecording(next);
+    if (next) setElapsedSec(0);
+    if (!next && liveKnob) setKnob('view', 'default');
+  };
+  // 경과 시계는 페이지가 돈다 — 진행 화면·네비게이터·미니 위젯이 같은 값을 봐야 해서다
+  // (실제로는 서버 recordingStartedAt 에서 파생한다).
+  const [elapsedSec, setElapsedSec] = useState(0);
+  useEffect(() => {
+    if (!recording) return undefined;
+    const id = setInterval(() => setElapsedSec((v) => v + 1), 1000);
+    return () => clearInterval(id);
+  }, [recording]);
+  // 진행 중인데 진행 화면이 안 보이는 때(다른 탭·다른 페이지) → 우하단 미니 위젯
+  const showMiniWidget = recording && (tab !== 'dashboard' || !active);
+  // 데모: 진행 스크립트 생성 stub — 0.6초 뒤 DEMO_GUIDE 를 내려준다. 재생성은 generatedAt 만 바꾼다.
+  const [guide, setGuide] = useState(() => (liveKnob ? DEMO_GUIDE : null));
+  const [guideLoading, setGuideLoading] = useState(false);
+  const handleGenerateGuide = () => {
+    setGuideLoading(true);
+    setTimeout(() => {
+      setGuide((prev) => ({
+        ...DEMO_GUIDE,
+        regenCount: prev ? (prev.regenCount ?? 0) + 1 : 0,
+        generatedAt: new Date().toISOString(),
+      }));
+      setGuideLoading(false);
+    }, 600);
+  };
+  const liveGuide = recording
+    ? {
+        guide,
+        loading: guideLoading,
+        onGenerate: handleGenerateGuide,
+        memberName: '김민준',
+        sourceLabels: GUIDE_SOURCE_LABELS,
+        elapsedSec,
+      }
+    : null;
 
   // 데모: AI 초안 생성 stub. section 미지정 = 전체, 지정 = 해당 섹션만 누적.
   const [aiDrafts, setAiDrafts] = useState(null);
@@ -345,8 +428,14 @@ export default function OneOnOnePage({ icons, baseUrl }) {
       <OneOnOneCanvasV2
         key={knobKey(knobs)}
         title="1on1"
+        titleTabs={[
+          { key: 'dashboard', label: '대시보드', active: tab === 'dashboard', onClick: () => setTab('dashboard') },
+          { key: 'mine', label: '내 원온원', active: tab === 'mine', onClick: () => setTab('mine') },
+        ]}
+        metaText={tab === 'mine' ? `${ME.name} ${ME.role}` : undefined}
         managerName="김지수"
         teamCount={today.length + attention.length + good.length}
+        teamCountLabel={`개발팀 ${today.length + attention.length + good.length}명`}
         briefing={BRIEFING}
         message="김서윤의 헬스가 급락 중입니다. 2명의 팀원과 원온원이 3주 이상 밀려 있습니다."
         kpis={KPIS}
@@ -382,14 +471,58 @@ export default function OneOnOnePage({ icons, baseUrl }) {
         onGenerateDrafts={handleGenerateDrafts}
         generatingSection={effGenerating}
         renderRecordingPlayer={() => <DemoRecordingPlayer testIdPrefix="ood-recording" />}
+        startViewProps={{
+          recording,
+          onRecordingChange: handleRecordingChange,
+          elapsedSec: recording ? elapsedSec : null,
+          liveGuide,
+        }}
+        bodyOverride={
+          tab === 'mine' ? (
+            <OneOnOnePastSessionList
+              title={`${MY_MANAGER_NAME} 매니저와의 지난 원온원`}
+              subtitle={`총 ${MY_PAST_SESSIONS.length}회 · 회차를 선택해 기록을 확인하세요`}
+              sessions={MY_PAST_SESSIONS}
+              baseUrl={baseUrl}
+            />
+          ) : knobs.view === 'done' ? (
+            <DoneOneOnOneView {...DONE_DEMO_PROPS} baseUrl={baseUrl} icons={icons} />
+          ) : liveKnob ? (
+            <StartOneOnOneView
+              member={today[0] ?? SCHEDULED_TODAY[0]}
+              onBack={() => setKnob('view', 'default')}
+              baseUrl={baseUrl}
+              data={DEMO_START_DATA}
+              aiDrafts={DEMO_AI_DRAFTS}
+              onGenerateDrafts={handleGenerateDrafts}
+              generatingSection={effGenerating}
+              recording
+              onRecordingChange={handleRecordingChange}
+              elapsedSec={elapsedSec}
+              liveGuide={liveGuide}
+            />
+          ) : null
+        }
       />
-      <StateSwitcher
-        spec={KNOBS}
-        values={knobs}
-        onChange={setKnob}
-        onReset={resetKnobs}
-        note={SWITCHER_NOTE}
-      />
+      {showMiniWidget && (
+        <OneOnOneRecordingWidget
+          variant="mini"
+          member={{ name: ME.name, avatar: ME.avatar, badge: ME.role }}
+          meetingTime="2026.04.08 · 11:00 ~"
+          elapsed={fmtElapsed(elapsedSec)}
+          onStop={() => handleRecordingChange(false)}
+          onExpand={() => { setTab('dashboard'); onActivate?.(); }}
+        />
+      )}
+      {active && (
+        <StateSwitcher
+          spec={KNOBS}
+          values={knobs}
+          onChange={setKnob}
+          onReset={resetKnobs}
+          note={SWITCHER_NOTE}
+        />
+      )}
     </>
   );
 }

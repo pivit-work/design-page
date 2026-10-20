@@ -3197,17 +3197,38 @@ button.ono-add-modal-input { cursor: pointer; }
    전부 AI 가 쓴 문장이고 로케일에 따라 길이가 갈린다. 스테퍼 pill·인용 박스에
    `overflow-wrap: anywhere` 를 걸어 두는 이유다.                                */
 
+/* 시안 갱신 (Figma 17556:26766 생성 후 · 17589:23524 미생성): 진행 화면 오른쪽 기둥의 카드.
+   bg-secondary 바탕 · radius 20 · 안쪽 8px. 생성 뒤에는 높이를 고정(720)하고 대본은 속에서
+   스크롤, [이전]·[다음] 은 바닥에 붙인다. */
 .ono-guide-card {
+  position: relative;
   display: flex;
   flex-direction: column;
-  padding: 16px;
-  border-radius: 16px;
-  margin-bottom: 12px;
   box-sizing: border-box;
-  background:
-    linear-gradient(135deg, rgba(127, 86, 217, 0.06) 0%, rgba(127, 86, 217, 0.02) 100%),
-    var(--colors-base-white);
-  border: 1px solid var(--componentColors-utility-purple-utilityPurple200);
+  width: 100%;
+  padding: 12px;
+  border-radius: var(--radius-3xl, 20px);
+  background: var(--bg-secondary);
+  border: 1px solid var(--alpha-black-5);
+  overflow: hidden;
+}
+.ono-guide-card.is-generated {
+  height: 720px;
+  max-height: 100%;
+}
+.ono-guide-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 8px;
+  min-height: 0;
+  box-sizing: border-box;
+}
+.ono-guide-card.is-generated .ono-guide-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  /* 바닥에 붙은 버튼 줄(흐림 22 + 버튼 44 + 아래 20)만큼 비워 마지막 줄이 가려지지 않게 */
+  padding-bottom: 96px;
 }
 
 .ono-guide-head {
@@ -3217,17 +3238,13 @@ button.ono-add-modal-input { cursor: pointer; }
   flex-wrap: wrap;
 }
 .ono-guide-title {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--componentColors-utility-purple-utilityPurple700);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 28px;
+  color: var(--utility-purple-600);
 }
 .ono-guide-tag-purple {
-  background: var(--componentColors-utility-purple-utilityPurple50);
+  background: var(--utility-purple-50);
   color: var(--componentColors-utility-purple-utilityPurple700);
   border: 0.5px solid var(--componentColors-utility-purple-utilityPurple200);
 }
@@ -3240,37 +3257,28 @@ button.ono-add-modal-input { cursor: pointer; }
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-.ono-guide-timer {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-  color: var(--componentColors-utility-error-utilityError600);
+  gap: 6px;
 }
 .ono-guide-mini-btn {
-  font-size: 10px;
-  padding: 3px 8px;
+  font-size: 12px;
+  line-height: 18px;
+  padding: 2px 8px;
   background: transparent;
   border: 0.5px solid var(--componentColors-utility-purple-utilityPurple200);
-  border-radius: 5px;
+  border-radius: 6px;
   cursor: pointer;
-  color: var(--componentColors-utility-purple-utilityPurple700);
+  color: var(--utility-purple-600);
   font-family: inherit;
   white-space: nowrap;
 }
 .ono-guide-mini-btn:disabled {
   cursor: not-allowed;
-  border-color: var(--colors-border-borderSecondary);
+  border-color: var(--border-secondary);
   color: var(--componentColors-utility-gray-utilityGray400);
 }
 
 /* 실패 (§7.5.3) — 사유가 무엇이든 박스 구조·색은 같다. 문구와 버튼만 갈린다. */
 .ono-guide-fail {
-  margin-top: 12px;
   padding: 12px 14px;
   border-radius: 8px;
   background: var(--componentColors-utility-error-utilityError50);
@@ -3280,22 +3288,22 @@ button.ono-add-modal-input { cursor: pointer; }
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   margin-bottom: 4px;
   color: var(--componentColors-utility-error-utilityError700);
 }
 .ono-guide-fail-body {
-  font-size: 11px;
+  font-size: 12px;
   line-height: 1.55;
   margin: 0 0 8px;
-  color: var(--colors-text-textTertiary);
+  color: var(--text-tertiary);
 }
 .ono-guide-fail-btn {
-  font-size: 11px;
-  padding: 5px 14px;
+  font-size: 12px;
+  padding: 6px 14px;
   background: var(--componentColors-utility-error-utilityError600);
-  color: var(--colors-base-white);
+  color: var(--text-white);
   border: none;
   border-radius: 6px;
   cursor: pointer;
@@ -3307,50 +3315,53 @@ button.ono-add-modal-input { cursor: pointer; }
   background: var(--componentColors-utility-gray-utilityGray300);
 }
 
-/* 미생성 — 수동 트리거 */
+/* 미생성 — 수동 트리거 (Figma 17589:23524): 설명도 보라, 재료는 회색 배지, 버튼은 보라 꽉 채움 */
 .ono-guide-intro {
-  font-size: 12px;
-  line-height: 1.65;
-  margin: 10px 0;
-  color: var(--colors-text-textTertiary);
+  font-size: 14px;
+  line-height: 20px;
+  margin: 0;
+  color: var(--utility-purple-600);
 }
-/* 생성 뒤 준비 내용이 바뀜 — 미생성 설명(.ono-guide-intro)과 같은 글씨 */
+/* 생성 뒤 준비 내용이 바뀜 — 작은 회색 한 줄 */
 .ono-guide-stale {
   font-size: 12px;
-  line-height: 1.65;
-  margin: 10px 0;
-  color: var(--colors-text-textTertiary);
+  line-height: 18px;
+  margin: 0;
+  color: var(--text-tertiary);
 }
 .ono-guide-sources {
   display: flex;
-  gap: 5px;
+  gap: 6px;
   flex-wrap: wrap;
-  margin-bottom: 12px;
 }
 .ono-guide-source {
-  font-size: 10px;
-  padding: 1px 6px;
-  border-radius: 4px;
+  font-size: 12px;
+  line-height: 18px;
+  padding: 2px 6px;
+  border-radius: 8px;
   font-weight: 500;
-  background: var(--componentColors-utility-purple-utilityPurple50);
-  color: var(--componentColors-utility-purple-utilityPurple700);
-  border: 0.5px solid var(--componentColors-utility-purple-utilityPurple200);
+  background: var(--componentColors-utility-gray-utilityGray50);
+  color: var(--componentColors-utility-gray-utilityGray700);
+  border: 1px solid var(--componentColors-utility-gray-utilityGray200);
 }
 .ono-guide-generate {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
+  gap: 6px;
   width: 100%;
-  padding: 11px 0;
+  padding: 10px 12px;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
   font-family: inherit;
-  background: var(--componentColors-utility-purple-utilityPurple600);
-  color: var(--colors-base-white);
+  background: var(--utility-purple-600);
+  /* 다크에서는 purple-600 이 거의 흰색(#f4f3ff)으로 뒤집힌다 — 글자를 purple-50 으로 두면
+     라이트에선 거의 흰색, 다크에선 짙은 보라라 양쪽 다 읽힌다 (textWhite 는 다크에서도 흰색). */
+  color: var(--utility-purple-50);
 }
 
 .ono-guide-loading {
@@ -3364,43 +3375,44 @@ button.ono-add-modal-input { cursor: pointer; }
 }
 /* 도는 표시는 공용 `Spinner`(src/loading.css)로 옮겼다 (PW-1010) */
 
-/* 스테퍼 */
+/* 스테퍼 — 번호만 있는 세그먼트 컨트롤 (Figma 17556:26769) */
 .ono-guide-stepper {
   display: flex;
-  gap: 5px;
-  flex-wrap: wrap;
-  margin: 12px 0;
+  gap: 2px;
+  height: 36px;
+  padding: 4px;
+  box-sizing: border-box;
+  border-radius: 8px;
+  background: var(--alpha-black-3);
 }
 .ono-guide-step {
+  flex: 1 1 0;
+  min-width: 0;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 10px;
-  font-weight: 500;
-  padding: 4px 9px;
-  border-radius: 99px;
-  cursor: pointer;
+  justify-content: center;
+  padding: 0 6px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
   font-family: inherit;
-  white-space: nowrap;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-  background: var(--colors-base-white);
-  color: var(--colors-text-textTertiary);
-  border: 0.5px solid var(--colors-border-borderSecondary);
-  box-sizing: border-box;
-  max-width: 100%;
-  overflow-wrap: anywhere;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
 }
 .ono-guide-step.is-done {
-  background: var(--componentColors-utility-success-utilitySuccess50);
-  color: var(--componentColors-utility-success-utilitySuccess700);
-  border-color: var(--componentColors-utility-success-utilitySuccess200);
+  color: var(--text-brand-tertiary);
 }
 /* 현재 단계가 완료 표시를 이긴다 — 지금 어디인지가 먼저 읽혀야 한다. */
 .ono-guide-step.is-current {
-  font-weight: 600;
-  background: var(--componentColors-utility-purple-utilityPurple600);
-  color: var(--colors-base-white);
-  border-color: var(--componentColors-utility-purple-utilityPurple600);
+  background: var(--fg-light);
+  color: var(--text-secondary);
+  border: 0.5px solid var(--fg-quaternary);
+  box-shadow: 0 4px 3px var(--colors-effects-shadows-shadowLg01, rgba(10, 13, 18, 0.08));
 }
 .ono-guide-step-num {
   font-variant-numeric: tabular-nums;
@@ -3408,8 +3420,7 @@ button.ono-add-modal-input { cursor: pointer; }
 }
 
 /* 요약 목록 — READY 자리의 「7단계 제목·권장 시간」 (policy §4.1.2-A).
-   새 시각을 만들지 않는다: 번호는 스테퍼의 `.ono-guide-step-num`, 시간은 단계 상세의
-   `.ono-guide-stage-time` 을 그대로 쓰고, 여기서는 줄 배치만 준다. */
+   번호는 스테퍼의 `.ono-guide-step-num`, 시간은 `.ono-guide-stage-time` 을 그대로 쓴다. */
 .ono-guide-summary {
   list-style: none;
   margin: 0;
@@ -3424,200 +3435,309 @@ button.ono-add-modal-input { cursor: pointer; }
   gap: 8px;
   padding: 5px 10px;
   border-radius: 6px;
-  background: var(--colors-base-white);
-  border: 0.5px solid var(--colors-border-borderSecondary);
+  background: var(--bg-quaternary);
+  border: 0.5px solid var(--border-secondary);
 }
 .ono-guide-summary-title {
   flex: 1;
   font-size: 12px;
-  color: var(--colors-text-textPrimary);
-  overflow-wrap: anywhere;
-}
-
-/* 페이스 */
-.ono-guide-pace {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  padding: 7px 12px;
-  border-radius: 7px;
-  margin-bottom: 12px;
-  background: var(--colors-base-white);
-  border: 0.5px solid var(--colors-border-borderSecondary);
-}
-.ono-guide-pace.is-late {
-  border-color: var(--componentColors-utility-warning-utilityWarning200);
-}
-.ono-guide-pace-text {
-  font-size: 11px;
-  color: var(--colors-text-textTertiary);
-}
-.ono-guide-pace-late {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 10px;
-  font-weight: 500;
-  padding: 2px 7px;
-  border-radius: 4px;
-  background: var(--componentColors-utility-warning-utilityWarning50);
-  color: var(--componentColors-utility-warning-utilityWarning700);
-}
-
-/* 현재 단계 상세 */
-.ono-guide-stage-head {
-  display: flex;
-  align-items: baseline;
-  gap: 7px;
-  margin-bottom: 4px;
-  flex-wrap: wrap;
-}
-.ono-guide-stage-title {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 6px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--colors-text-textPrimary);
+  color: var(--text-primary);
   overflow-wrap: anywhere;
 }
 .ono-guide-stage-time {
   font-size: 11px;
   font-variant-numeric: tabular-nums;
-  color: var(--colors-text-textTertiary);
-}
-.ono-guide-goal {
-  font-size: 12px;
-  line-height: 1.6;
-  margin: 0 0 10px;
-  color: var(--colors-text-textTertiary);
+  color: var(--text-tertiary);
 }
 
+/* 현재 단계 (Figma 17556:26770) — 머리줄 · 번호 붙은 제목 · 목표 */
+.ono-guide-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ono-guide-stage-meta {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 6px 6px;
+  border-bottom: 1px solid var(--fg-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+}
+.ono-guide-stage-range {
+  display: inline-flex;
+  gap: 8px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+.ono-guide-elapsed {
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-brand-tertiary);
+}
+.ono-guide-stage-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 28px;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.ono-guide-goal {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-primary);
+}
+
+/* 앰버 안내 상자 — 페이스 초과 · 주의 포인트 (Figma 17556:26773 · 26794) */
+.ono-guide-callout {
+  padding: 6px 16px;
+  border-radius: 10px;
+  box-sizing: border-box;
+  background: var(--bg-warning-primary);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--text-warning-primary);
+  overflow-wrap: anywhere;
+}
+
+.ono-guide-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 .ono-guide-section-label {
   display: flex;
   align-items: center;
-  gap: 5px;
-  font-size: 10px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-bottom: 6px;
-  color: var(--colors-text-textTertiary);
-}
-.ono-guide-section-label-purple {
-  color: var(--componentColors-utility-purple-utilityPurple700);
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  letter-spacing: -0.01em;
+  color: var(--utility-purple-600);
 }
 
 .ono-guide-scripts {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-bottom: 12px;
+  gap: 8px;
 }
-/* 상자 없이 글자 옆 선만 — 디자이너 모양(리포트 Weekly 요약 한 줄)과 같은 값 (PW-1101).
-   예전엔 흰 상자·보라 테두리에 보라 3px 를 겹쳐 그렸다. */
+/* 흰 상자에 아주 옅은 그림자 (shadow-xs) — 디자이너 시안 17556:26778 */
 .ono-guide-script {
-  padding: 0 12px;
-  font-size: 13px;
-  line-height: 1.65;
+  padding: 8px 8px 8px 16px;
+  border-radius: 8px;
   box-sizing: border-box;
+  background: var(--bg-quaternary);
+  box-shadow: 0 1px 1px var(--colors-effects-shadows-shadowXs, rgba(10, 13, 18, 0.05));
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 24px;
+  color: var(--text-primary);
   overflow-wrap: anywhere;
-  color: var(--colors-text-textSecondary);
-  border-left: 2px solid var(--componentColors-utility-grayBlue-utilityGrayBlue500);
 }
 
 .ono-guide-questions {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-bottom: 12px;
+  gap: 8px;
 }
 .ono-guide-question {
   display: flex;
-  gap: 7px;
-  font-size: 12px;
-  line-height: 1.6;
-  color: var(--colors-text-textSecondary);
+  gap: 10px;
+  padding: 4px 6px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-primary);
   overflow-wrap: anywhere;
 }
 .ono-guide-question-prefix {
   flex-shrink: 0;
-  color: var(--componentColors-utility-purple-utilityPurple700);
+  font-weight: 600;
+  color: var(--utility-purple-500);
 }
 
 .ono-guide-watchouts {
-  padding: 9px 12px;
-  border-radius: 7px;
-  margin-bottom: 12px;
-  box-sizing: border-box;
-  background: var(--componentColors-utility-warning-utilityWarning50);
-  border: 0.5px solid var(--componentColors-utility-warning-utilityWarning200);
-}
-.ono-guide-watchout {
   display: flex;
-  gap: 6px;
-  font-size: 11px;
-  line-height: 1.6;
-  color: var(--componentColors-utility-warning-utilityWarning700);
-  overflow-wrap: anywhere;
-}
-.ono-guide-watchout + .ono-guide-watchout {
-  margin-top: 5px;
+  flex-direction: column;
+  gap: 8px;
 }
 
+/* 바닥 버튼 줄 (Figma 17556:26795) — 위 22px 는 바탕색으로 흐려지고, 그 아래 보라 50 띠에 둘 */
 .ono-guide-nav {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
   display: flex;
   gap: 8px;
+  padding: 22px 20px 20px;
+  background: linear-gradient(to bottom, transparent 0, var(--utility-purple-50) 22px);
+  border-radius: 0 0 var(--radius-3xl, 20px) var(--radius-3xl, 20px);
 }
 .ono-guide-nav-prev,
 .ono-guide-nav-next {
+  flex: 1 1 0;
+  min-width: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  padding: 9px 0;
-  border-radius: 7px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 10px;
   cursor: pointer;
-  font-size: 12px;
   font-family: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
 }
 .ono-guide-nav-prev {
-  flex: 1;
-  background: var(--colors-base-white);
-  color: var(--colors-text-textTertiary);
-  border: 0.5px solid var(--colors-border-borderSecondary);
+  background: var(--alpha-black-3);
+  color: var(--text-secondary);
 }
 .ono-guide-nav-prev:disabled {
   cursor: not-allowed;
   color: var(--componentColors-utility-gray-utilityGray400);
 }
 .ono-guide-nav-next {
-  flex: 2;
-  border: none;
-  font-weight: 500;
-  background: var(--componentColors-utility-purple-utilityPurple600);
-  color: var(--colors-base-white);
+  background: var(--utility-purple-600);
+  color: var(--utility-purple-50); /* 위 .ono-guide-generate 와 같은 이유 */
 }
 .ono-guide-nav-next.is-all-done {
   background: var(--componentColors-utility-success-utilitySuccess600);
+  color: var(--componentColors-utility-success-utilitySuccess50);
 }
 
 .ono-guide-footnote {
-  font-size: 10px;
-  line-height: 1.5;
-  margin: 10px 0 0;
-  color: var(--componentColors-utility-gray-utilityGray400);
+  font-size: 12px;
+  line-height: 18px;
+  margin: 0;
+  color: var(--text-tertiary);
 }
 
-/* ══ 매니저 DONE 단계 (PW-430) ═══════════════════════════════════════════
-   시안: `1on1-manager-view.jsx` `phase === "done"`. 섹션 껍데기는 회의록과 같은
-   `.ono-mem-card` 를 그대로 쓰고, 여기서는 DONE 에만 있는 조각만 정의한다. */
+/* ══ 매니저 DONE 단계 (PW-430 · Figma 16954:15096 「원온원 매니저」) ═══════════
+   720px 흰 카드 하나(진행 화면 `.ono-start-view-card` 와 같은 껍데기). 몸통은 위 40 ·
+   옆 48 · 아래 48 안쪽 여백에 섹션 사이 48px, 푸터는 윗선 하나에 버튼 둘이 세로로 선다.
+   시안에 없는 카드(대화 분위기 · 아젠다 · 매니저 메모 · 스크립트)는 `.ono-mem-card` 그대로. */
 
 .ono-done-view {
+  position: relative;
+  width: 100%;
+  margin: 0 auto;
+  box-sizing: border-box;
+  background: var(--bg-quaternary);
+  border-radius: var(--radius-2xl);
+  border: 1px solid var(--alpha-black-5);
+  box-shadow: 0 1px 3px var(--colors-effects-shadows-shadowLg01, rgba(10, 13, 18, 0.08));
+}
+.ono-done-body {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 48px; /* TODO: token 없음 (spacing-6xl) */
+  padding: var(--spacing-5xl) 48px 48px;
+}
+.ono-done-footer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-3xl) 48px 48px;
+  border-top: 1px solid var(--border-tertiary);
+}
+
+/* ── 머리 (17556:24905) — 「1on1 • 날짜」 · 팀원 줄(아바타 48 · 이름 18 · 딱지 · 보조 글 12) ── */
+.ono-done-head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+}
+.ono-done-head-title {
+  margin: 0;
+  font-family: var(--font-family-display);
+  font-weight: 700;
+  font-size: var(--font-size-display-sm);
+  line-height: var(--line-height-display-sm);
+  color: var(--fg-primary);
+  overflow-wrap: anywhere;
+}
+.ono-done-head-member {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+}
+.ono-done-head-member .dp-avatar { flex: none; }
+.ono-done-head-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.ono-done-head-name-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+.ono-done-head-name {
+  font-weight: 700;
+  font-size: var(--font-size-text-lg);
+  line-height: var(--line-height-text-lg);
+  color: var(--text-primary);
+}
+.ono-done-head-meta {
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  color: var(--text-secondary);
+}
+
+/* ── 묶음 이름표(14px 600 tertiary) 와 섹션 제목(18px 700) ── */
+.ono-done-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2xl);
+}
+.ono-done-group-body {
+  display: flex;
+  flex-direction: column;
+  gap: 48px; /* TODO: token 없음 (spacing-6xl) */
+}
+.ono-done-eyebrow-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+}
+.ono-done-eyebrow {
+  font-size: var(--font-size-text-sm);
+  font-weight: 600;
+  line-height: var(--line-height-text-sm);
+  color: var(--text-tertiary);
+}
+.ono-done-eyebrow-side {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+.ono-done-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2xl);
+}
+.ono-done-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+}
+.ono-done-section-title {
+  margin: 0;
+  font-weight: 700;
+  font-size: var(--font-size-text-lg);
+  line-height: var(--line-height-text-lg);
+  color: var(--text-primary);
 }
 
 /* ── AI 분석 상태 배너 (policy §6.1) ──
@@ -3719,63 +3839,90 @@ button.ono-add-modal-input { cursor: pointer; }
 
 /* 도는 표시는 공용 `Spinner`(src/loading.css)로 옮겼다 (PW-1010) */
 
-/* ── AI 미팅 요약 ── */
-.ono-done-summary {
-  box-sizing: border-box;
-  padding: 12px 14px;
-  border: 1px solid var(--border-secondary);
-  border-radius: var(--radius-md);
-  background: var(--bg-secondary);
-  font-size: 13px;
-  line-height: 22px;
-  color: var(--text-secondary);
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
+/* ── AI 미팅 요약 (16954:15128) — 그라데이션 카드 + 흰 블록들.
+   카드 배경은 1on1 상세 모달의 `.ood-ai-card` 와 같은 Figma Gradient/Linear/61 실측값.
+   스톱 색은 토큰이 없다. */
+.ono-done-ai {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2xl);
+  padding: var(--spacing-xl);
+  border-radius: var(--radius-sm);
+  background: linear-gradient(225deg, #f7fbfe 0%, #fef5fe 100%); /* TODO: token 없음 */
 }
-.ono-done-block { margin-top: 14px; }
-.ono-done-block-label {
-  display: block;
-  margin-bottom: 8px;
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
+.ono-done-ai-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--spacing-md);
 }
-.ono-done-block-label.is-ok { color: var(--utility-green-600); }
-.ono-done-block-label.is-warn { color: var(--colors-text-textWarningPrimary); }
-.ono-done-block-label.is-ai { color: var(--utility-purple-500); }
+.ono-done-ai-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--font-size-text-sm);
+  font-weight: 600;
+  line-height: var(--line-height-text-sm);
+  color: var(--utility-purple-500);
+}
+.ono-done-ai-fold {
+  padding: var(--spacing-sm);
+  border: 1px solid var(--alpha-black-3);
+  border-radius: var(--radius-xs);
+  background: var(--utility-purple-50);
+  font-family: inherit;
+  font-size: var(--font-size-text-sm);
+  font-weight: 600;
+  line-height: var(--line-height-text-sm);
+  color: var(--utility-purple-500);
+  cursor: pointer;
+}
+.ono-done-ai .rec-player { width: 100%; box-sizing: border-box; }
 
+/* 흰 블록 — 요약 본문 · 결정사항 · 재점검 · 반복 패턴이 같은 상자다 */
 .ono-done-item {
   display: flex;
+  flex-direction: column;
   align-items: flex-start;
-  gap: 8px;
+  gap: var(--spacing-sm);
   box-sizing: border-box;
-  padding: 10px 14px;
-  margin-bottom: 6px;
-  border: 1px solid var(--border-secondary);
-  border-radius: var(--radius-md);
-  background: var(--bg-primary);
-  font-size: 12px;
-  line-height: 18px;
+  width: 100%;
+  padding: var(--spacing-xl);
+  border-radius: var(--radius-sm);
+  background: var(--bg-quaternary);
+  font-size: var(--font-size-text-sm);
+  font-weight: 500;
+  line-height: var(--line-height-text-md);
   color: var(--text-secondary);
   overflow-wrap: anywhere;
 }
-.ono-done-item.is-ok {
-  border-color: var(--componentColors-utility-success-utilitySuccess200);
-  color: var(--utility-green-600);
+.ono-done-summary { white-space: pre-wrap; }
+.ono-done-item-head {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
 }
-.ono-done-item.is-warn {
-  border-color: var(--componentColors-utility-warning-utilityWarning200);
-  background: var(--utility-warning-50);
-  color: var(--colors-text-textWarningPrimary);
+.ono-done-item-title {
+  font-size: var(--font-size-text-md);
+  font-weight: 700;
+  line-height: var(--line-height-text-md);
+  color: var(--text-primary);
 }
-.ono-done-item.is-ai {
-  border-color: var(--componentColors-utility-purple-utilityPurple200);
-  background: var(--utility-purple-50);
-  color: var(--componentColors-utility-purple-utilityPurple700);
+.ono-done-item-text { display: block; width: 100%; }
+.ono-done-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
 }
-.ono-done-item > span:last-child { color: var(--text-secondary); }
+.ono-done-block-label {
+  display: block;
+  padding: 0 var(--spacing-md);
+  font-size: var(--font-size-text-lg);
+  font-weight: 700;
+  line-height: var(--line-height-text-lg);
+  color: var(--text-primary);
+}
 
 /* ── 대화 분위기 ── */
 .ono-done-sentiment {
@@ -3826,12 +3973,58 @@ button.ono-add-modal-input { cursor: pointer; }
 .ono-done-sentiment-legend .is-ok { color: var(--utility-green-600); }
 .ono-done-sentiment-legend .is-bad { color: var(--colors-text-textErrorPrimary); }
 
-/* ── 매니저 피드백 공개 상태 (읽기 전용 · PW-430/PW-274) ── */
+/* ── 매니저 피드백 공개 상태 (읽기 전용 · PW-430/PW-274) — 묶음 이름표 줄 오른쪽에 선다 ── */
 .ono-done-share-row {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
-  margin-bottom: -8px;
+  gap: var(--spacing-sm);
 }
+
+/* ── 매니저 피드백 세 항목 (16954:15208) — 상자 없이 제목 18 · 딱지 · 본문 14 ── */
+.ono-done-fb-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3xl);
+}
+.ono-done-fb {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+/* 확정 전 AI 초안은 예전처럼 노란 상자로 갈라 보인다 (PW-1551) */
+.ono-done-fb.is-ai-unconfirmed {
+  padding: var(--spacing-lg) 14px;
+  border: 1px solid var(--componentColors-utility-warning-utilityWarning200);
+  border-radius: var(--radius-lg);
+  background: var(--utility-warning-50);
+}
+.ono-done-fb-head {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  flex-wrap: wrap;
+}
+.ono-done-fb-title {
+  font-weight: 700;
+  font-size: var(--font-size-text-lg);
+  line-height: var(--line-height-text-lg);
+  color: var(--text-primary);
+}
+.ono-done-fb-tags {
+  display: flex;
+  gap: var(--spacing-lg);
+  flex-wrap: wrap;
+}
+.ono-done-fb-text {
+  margin: 0;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.ono-done-fb .ono-mem-evidence { margin-top: 0; }
 
 /* ── 공개 컨트롤 (PW-432 · policy §6.4.2) ─────────────────────────────────────
    시안 `1on1-manager-view.jsx` 의 `shareState` 블록: 보라 버튼 → 보라 확인 박스 →
@@ -3840,21 +4033,24 @@ button.ono-add-modal-input { cursor: pointer; }
 
    버튼 라벨에는 팀원 이름이 들어가고 로케일에 따라 길이가 크게 흔들린다
    («김민준 님에게 피드백 공개» ↔ «Share feedback with Alexandra»). 고정 폭을 주지 않고
-   `box-sizing: border-box` + `overflow-wrap: anywhere` 로 넘침을 막는다. */
+   `box-sizing: border-box` + `overflow-wrap: anywhere` 로 넘침을 막는다.
+
+   색은 새 시안(16954:16078)을 따라 보라에서 brand 로 — 공개 버튼은 푸터 「다음 원온원
+   예약하기」와 같은 solid 버튼이다. */
 .ono-done-share-control {
-  margin-top: 14px;
+  margin-top: 0;
 }
 .ono-done-share-cta {
   box-sizing: border-box;
   width: 100%;
-  padding: 11px 12px;
+  padding: 10px var(--spacing-lg);
   border: none;
   border-radius: 8px;
   background: var(--bg-brand-solid);
   font-family: inherit;
-  font-size: 13px;
+  font-size: var(--font-size-text-md);
   font-weight: 600;
-  line-height: 18px;
+  line-height: var(--line-height-text-md);
   color: var(--text-white);
   cursor: pointer;
   overflow-wrap: anywhere;
@@ -3953,18 +4149,18 @@ button.ono-add-modal-input { cursor: pointer; }
   cursor: pointer;
 }
 
-/* ── 액션아이템 ── */
+/* ── 액션아이템 (16954:15913) — 테두리 줄 · 체크 · 글 · 딱지 셋 ── */
 .ono-done-count { font-size: 12px; color: var(--text-tertiary); }
-.ono-done-actions { display: flex; flex-direction: column; gap: 6px; }
+.ono-done-actions { display: flex; flex-direction: column; gap: var(--spacing-xs); }
 .ono-done-action {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--spacing-xs);
   box-sizing: border-box;
-  padding: 8px 12px;
+  padding: var(--spacing-md) 14px;
   border: 1px solid var(--border-secondary);
   border-radius: var(--radius-sm);
-  background: var(--bg-primary);
+  background: var(--bg-quaternary);
   cursor: pointer;
 }
 .ono-done-action.is-done { background: var(--bg-secondary); }
@@ -3975,12 +4171,15 @@ button.ono-add-modal-input { cursor: pointer; }
 .ono-done-action-text {
   flex: 1;
   min-width: 0;
-  font-size: 13px;
+  padding: 0 var(--spacing-xxs);
+  font-size: var(--font-size-text-sm);
+  font-weight: 600;
+  line-height: var(--line-height-text-sm);
   color: var(--text-secondary);
   overflow-wrap: anywhere;
 }
-/* 칸·버튼 모양은 `.ono-start-agenda-add` 가 칠한다(PW-1901) — 여기는 카드 안 자리만. */
-.ono-done-action-add { margin-top: 12px; }
+/* 칸·버튼 모양은 `.ono-start-agenda-add` 가 칠한다(PW-1901) — 여기는 목록 아래 자리만. */
+.ono-done-action-add { margin-top: 0; }
 .ono-done-action-add .ono-start-agenda-add-btn:disabled { opacity: 0.6; cursor: default; }
 .ono-done-action-add-btn {
   flex-shrink: 0;
@@ -4003,60 +4202,64 @@ button.ono-add-modal-input { cursor: pointer; }
   color: var(--colors-text-textErrorPrimary);
 }
 
-/* ── 다음 1on1 ── */
+/* ── 다음 원온원 사전 메모 (17590:23920) — 144px 칸, alpha-black-3 바탕 ── */
 .ono-done-memo {
   box-sizing: border-box;
   width: 100%;
-  padding: 9px 11px;
-  border: 1px solid var(--border-secondary);
-  border-radius: var(--radius-sm);
-  background: var(--bg-primary);
+  min-height: 144px;
+  padding: var(--spacing-lg) 14px;
+  border: 1px solid var(--alpha-black-5);
+  border-radius: var(--radius-md);
+  background: var(--alpha-black-3);
   color: var(--text-primary);
-  font-size: 13px;
-  line-height: 20px;
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
   font-family: inherit;
   resize: vertical;
   outline: none;
 }
+.ono-done-memo::placeholder { color: var(--text-placeholder); }
+/* 푸터 (17590:23928) — brand solid 「다음 원온원 예약하기」 */
 .ono-done-book {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: var(--spacing-sm);
   box-sizing: border-box;
   width: 100%;
-  padding: 12px 16px;
-  border: 1px solid var(--bg-brand-solid);
+  padding: 10px var(--spacing-lg);
+  border: 1px solid transparent;
   border-radius: var(--radius-md);
   background: var(--bg-brand-solid);
   color: var(--text-white);
-  font-size: 13px;
-  font-weight: 700;
+  font-size: var(--font-size-text-md);
+  font-weight: 600;
+  line-height: var(--line-height-text-md);
   font-family: inherit;
   cursor: pointer;
 }
 .ono-done-book.is-done {
-  border-color: var(--componentColors-utility-success-utilitySuccess200);
+  border-color: var(--utility-success-200);
   background: var(--utility-success-50);
   color: var(--utility-green-600);
   cursor: default;
 }
-/* 액션아이템 Slack 알림 — 예약 버튼과 같은 자리·같은 크기의 보조 동작이라
-   보라 강조 대신 기본 카드 톤으로 둔다 (시안 1on1-manager-view.jsx §9). */
+/* 액션아이템 Slack 알림 — 예약 버튼 아래 같은 크기의 보조 동작이라 테두리만 있는 2차 버튼 */
 .ono-done-notify {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: var(--spacing-sm);
   box-sizing: border-box;
   width: 100%;
-  padding: 12px 16px;
+  padding: 10px var(--spacing-xl);
   border: 1px solid var(--border-secondary);
   border-radius: var(--radius-md);
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  font-size: 13px;
-  font-weight: 500;
+  background: var(--bg-quaternary);
+  color: var(--text-secondary);
+  font-size: var(--font-size-text-md);
+  font-weight: 600;
+  line-height: var(--line-height-text-md);
   font-family: inherit;
   cursor: pointer;
 }
@@ -4069,6 +4272,184 @@ button.ono-add-modal-input { cursor: pointer; }
   background: var(--utility-success-50);
   color: var(--utility-green-600);
   cursor: default;
+}
+
+/* ── OKR 자가 평가 (16954:15167) — KR 마다 「실제」·「자가 평가」 12px 막대 한 쌍 ── */
+.ono-done-okr-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4xl);
+}
+.ono-done-okr {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+}
+.ono-done-okr-head {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+.ono-done-okr-title {
+  font-size: var(--font-size-text-sm);
+  font-weight: 600;
+  line-height: var(--line-height-text-sm);
+  color: var(--text-secondary);
+}
+.ono-done-okr-bars {
+  display: flex;
+  gap: var(--spacing-2xl);
+  width: 100%;
+}
+.ono-done-okr-col {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+}
+.ono-done-okr-col-label {
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+  line-height: var(--line-height-text-xs);
+  letter-spacing: -0.12px;
+  color: var(--text-tertiary);
+}
+.ono-done-okr-bar-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+}
+.ono-done-okr-bar {
+  flex: 1;
+  min-width: 0;
+  height: 12px;
+  border-radius: var(--radius-xxs);
+  background: var(--bg-secondary);
+  overflow: hidden;
+}
+.ono-done-okr-bar i {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-xxs);
+  background: var(--utility-blue-100);
+}
+.ono-done-okr-pct {
+  flex: none;
+  min-width: 32px;
+  text-align: right;
+  font-size: var(--font-size-text-sm);
+  font-weight: 800;
+  line-height: var(--line-height-text-md);
+  color: var(--utility-blue-500);
+  font-variant-numeric: tabular-nums;
+}
+.ono-done-okr-gap {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  font-size: var(--font-size-text-xs);
+  font-weight: 500;
+  line-height: var(--line-height-text-xs);
+  color: var(--text-error-primary);
+}
+.ono-done-okr-note {
+  font-size: var(--font-size-text-xs);
+  font-weight: 500;
+  line-height: var(--line-height-text-xs);
+  color: var(--text-tertiary);
+}
+
+/* ── 역량 평가 비교 (16954:15284) — 역량 × (멤버 자가 · READY 매니저 · DONE 최종 · 변화) ── */
+.ono-done-cap-table {
+  display: grid;
+  grid-template-columns: auto repeat(3, minmax(0, 1fr)) auto;
+  column-gap: var(--spacing-xl);
+  row-gap: var(--spacing-md);
+  align-items: center;
+}
+.ono-done-cap-row { display: contents; }
+.ono-done-cap-col-head {
+  font-size: var(--font-size-text-xs);
+  font-weight: 500;
+  line-height: var(--line-height-text-xs);
+  color: var(--text-tertiary);
+}
+.ono-done-cap-delta-head,
+.ono-done-cap-label {
+  font-size: var(--font-size-text-sm);
+  font-weight: 600;
+  line-height: var(--line-height-text-sm);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.ono-done-cap-label { padding-right: var(--spacing-xs); }
+.ono-done-cap-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3xl);
+  min-width: 0;
+}
+.ono-done-cap-bar {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: var(--spacing-xxs);
+}
+.ono-done-cap-seg {
+  flex: 1;
+  min-width: 0;
+  height: 12px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-xxs);
+  background: var(--bg-primary);
+}
+.ono-done-cap-seg.is-member { background: var(--utility-blue-100); }
+.ono-done-cap-seg.is-ready { background: var(--utility-purple-200); }
+.ono-done-cap-seg.is-done { background: var(--utility-green-200); }
+.ono-done-cap-bar.is-editable .ono-done-cap-seg { cursor: pointer; }
+.ono-done-cap-bar.is-editable .ono-done-cap-seg:hover { background: var(--utility-green-400); }
+.ono-done-cap-num {
+  flex: none;
+  min-width: 9px;
+  font-size: var(--font-size-text-sm);
+  font-weight: 600;
+  line-height: var(--line-height-text-sm);
+  font-variant-numeric: tabular-nums;
+}
+.ono-done-cap-num.is-member { color: var(--utility-blue-400); }
+.ono-done-cap-num.is-ready { color: var(--utility-purple-400); }
+.ono-done-cap-num.is-done { color: var(--utility-green-400); }
+.ono-done-cap-delta-head,
+.ono-done-cap-delta { text-align: center; min-width: 25px; }
+.ono-done-cap-delta {
+  font-size: var(--font-size-text-sm);
+  font-weight: 600;
+  line-height: var(--line-height-text-sm);
+  color: var(--text-placeholder);
+  font-variant-numeric: tabular-nums;
+}
+.ono-done-cap-delta.is-up { color: var(--utility-green-400); }
+.ono-done-cap-delta.is-down { color: var(--text-error-primary); }
+.ono-done-cap-hint {
+  margin: 0;
+  font-size: var(--font-size-text-xs);
+  font-weight: 500;
+  line-height: var(--line-height-text-xs);
+  color: var(--text-tertiary);
+}
+.ono-done-cap-draft {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin: 0;
+  font-size: var(--font-size-text-xs);
+  font-weight: 500;
+  line-height: var(--line-height-text-xs);
+  color: var(--text-error-primary);
 }
 
 /* ══ 1on1 상세(열람모드) 모달 — Figma 17413:26357/26611/26771/26956 ══
@@ -4328,4 +4709,260 @@ button.ono-add-modal-input { cursor: pointer; }
   line-height: 18px;
   color: var(--componentColors-utility-warning-utilityWarning700);
   overflow-wrap: anywhere;
+}
+
+/* ══ 1on1 제목 탭 (Figma 17556:26509 · 17682:23155) ══════════════════════════
+   매니저가 보는 1on1 의 제목 자리는 「대시보드 / 내 원온원」 두 탭이다. 활성 탭만
+   text-primary, 나머지는 text-quaternary. 글자 크기·줄 높이는 종전 `.ono-title` 과 같다. */
+.ono-title-switch {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.ono-title-switch-btn {
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: var(--font-family-display);
+  font-weight: 700;
+  font-size: var(--font-size-display-sm);
+  line-height: var(--line-height-display-sm);
+  color: var(--text-quaternary);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+.ono-title-switch-btn:hover {
+  color: var(--text-tertiary);
+}
+.ono-title-switch-btn.is-active,
+.ono-title-switch-btn.is-active:hover {
+  color: var(--text-primary);
+  cursor: default;
+}
+
+/* ══ 진행 화면 2단 레이아웃 (Figma 17556:26173 · 17589:22879) ═══════════════════
+   왼쪽 본문 카드 720 · 사이 12 · 오른쪽 기둥 423(녹음 위젯 + AI 대화 네비게이터).
+   기둥은 스크롤을 따라오고(sticky), 기둥이 없으면 본문 카드가 가운데 선다. */
+.ono-start-view {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+}
+.ono-start-view.has-aside {
+  justify-content: flex-start;
+}
+/* 본문 카드는 남는 폭을 채운다 — 창을 넓히면 같이 넓어지고, 기둥(423)은 그대로다.
+   시안(1440)에서는 720 이고 그보다 넓은 창에서는 그만큼 커진다. */
+.ono-start-view-card {
+  flex: 1 1 720px;
+  width: 100%;
+  min-width: 0;
+}
+.ono-start-view-body {
+  max-width: none;
+  margin: 0;
+  padding: 40px 48px 48px;
+}
+.ono-start-view-footer {
+  max-width: none;
+  margin: 0;
+  padding: 24px 48px 48px;
+}
+.ono-start-aside {
+  flex: 0 1 423px;
+  min-width: 320px;
+  position: sticky;
+  top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: calc(100vh - 48px - 24px - 40px);
+}
+/* 카드 하나를 보는 화면(진행 · DONE · 내 원온원)에서는 제목 줄을 고정하지 않는다 —
+   고정해 두면 둥근 카드가 그 밑으로 들어가며 윗모서리가 잘린 것처럼 보인다. 목록 화면(대시보드)의
+   sticky 는 그대로다. */
+.ono-page.is-focus .ono-page-header {
+  position: static;
+}
+/* 기둥에 놓인 녹음 위젯 — 떠 있지 않고 기둥 폭을 채우며 그림자가 없다 (Figma 17556:26520) */
+.ono-start-rec-wrap.is-panel {
+  position: static;
+  height: auto;
+  padding: 0;
+  display: block;
+  flex: none;
+  pointer-events: auto;
+}
+.ono-start-rec-wrap.is-panel .ono-start-rec-mini {
+  width: 100%;
+  box-sizing: border-box;
+  box-shadow: none;
+}
+/* 기둥 안에서 네비게이터는 남은 높이만큼만 — 위젯과 합쳐 화면을 넘지 않게 */
+.ono-start-aside .ono-guide-card.is-generated {
+  flex: 1 1 auto;
+  min-height: 320px;
+  max-height: 720px;
+}
+
+/* ══ 「내 원온원」 지난 회차 목록 (Figma 17556:23218) ══════════════════════════
+   머리(20px 제목 · 14px 부제) 아래 흰 행들. 행은 날짜 120 · 길이+액션 100 · 요약+버튼. */
+.ono-past {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  width: 100%;
+}
+.ono-past-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ono-past-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 30px;
+  color: var(--text-primary);
+}
+.ono-past-subtitle {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--text-secondary);
+}
+.ono-past-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.ono-past-row {
+  display: flex;
+  align-items: stretch;
+  background: var(--bg-quaternary);
+  border-radius: 6px;
+}
+.ono-past-date,
+.ono-past-stat {
+  flex: none;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 20px;
+  border-right: 1px solid var(--border-secondary);
+}
+.ono-past-date {
+  width: auto;
+  min-width: 120px;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.ono-past-stat {
+  width: 100px;
+}
+.ono-past-duration {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  text-align: center;
+  color: var(--text-primary);
+}
+.ono-past-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+  white-space: nowrap;
+  color: var(--text-secondary);
+}
+.ono-past-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+}
+.ono-past-summary {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.ono-past-open {
+  flex: none;
+  padding: 10px 16px;
+  border: 1px solid var(--border-secondary);
+  border-radius: 10px;
+  background: transparent;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.ono-past-open:hover {
+  background: var(--bg-secondary);
+}
+/* 아직 열 기록이 없는 회차 — 버튼 자리에 글자만 (Figma 17556:23609) */
+.ono-past-analyzing {
+  flex: none;
+  padding: 10px 16px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+  color: var(--text-brand-tertiary);
+}
+
+/* ══ 진행 중 다른 곳으로 갔을 때의 미니 녹음 위젯 (Figma 17698:25548) ═══════════
+   회의록 미니 위젯(`.mtg-rec-widget`)과 같은 자리·크기(우하단 40 · 241px). body 포털. */
+.ono-start-rec-wrap.is-mini {
+  position: fixed;
+  top: auto; /* 기본형의 sticky top 을 끈다 */
+  right: 40px;
+  bottom: 40px;
+  z-index: 1100;
+  height: auto;
+  padding: 0;
+  display: block;
+  pointer-events: auto;
+}
+.ono-start-rec-wrap.is-mini .ono-start-rec-mini {
+  width: 241px;
+  box-sizing: border-box;
+}
+.ono-start-rec-wrap.is-mini .ono-start-rec-bar {
+  justify-content: center;
+  gap: 32px;
+}
+.ono-start-rec-expand {
+  position: absolute;
+  top: 13px;
+  right: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--fg-tertiary);
+  cursor: pointer;
 }

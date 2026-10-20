@@ -563,39 +563,11 @@ export default function StartOneOnOneView({
     else if (key === 'support') setSupport(v);
   };
 
+  const showAside = (recording && !recordingCollapsed) || !!liveGuide;
+
   return (
-    <div className="ono-start-view">
+    <div className={`ono-start-view${showAside ? ' has-aside' : ''}`} data-testid="ono-start-view">
       <div className="ono-start-view-card">
-        {recording && !recordingCollapsed && (
-          <OneOnOneRecordingWidget
-            member={member}
-            meetingTime={meetingTime}
-            elapsed={
-              elapsedSec === null ? NO_CLOCK : formatElapsed(elapsedSec)
-            }
-            paused={paused}
-            onPause={onPause}
-            onResume={onResume}
-            onStop={endMeeting}
-            notice={recordingNotice}
-            idle={recordingIdle}
-            onStart={onRestartRecording}
-            {...(recordingRestartLabel
-              ? { startLabel: recordingRestartLabel }
-              : null)}
-            startDisabled={restartLocked}
-            startDisabledTitle={restartLockedTitle}
-            onNoticeClose={onRecordingNoticeClose}
-            {...(recordingNoticeCloseLabel
-              ? { closeLabel: recordingNoticeCloseLabel }
-              : null)}
-            onCollapse={onCollapseRecording}
-            collapseLabel={collapseRecordingLabel}
-            onOpenPip={onOpenPip}
-            {...(openPipLabel ? { openPipLabel } : null)}
-            limitNotice={recordingLimitNotice}
-          />
-        )}
         <div className="ono-start-view-body">
           <p className="ono-start-modal-title">{meetingTitle}</p>
 
@@ -616,11 +588,6 @@ export default function StartOneOnOneView({
               )}
             </div>
           </div>
-
-          {/* LIVE 대화 내비게이터 — 매니저 전용, LIVE 최상단 (policy §5.2.1).
-              렌더 판정(단계·역할)은 소비처가 한다: 이 컴포넌트는 READY·LIVE·DONE 을
-              구분하지 않으므로, 여기서 그리기로 정하면 READY 화면에도 새어 나온다. */}
-          {liveGuide && <LiveGuideCard {...liveGuide} baseUrl={liveGuide.baseUrl ?? baseUrl} />}
 
           {/* 준비도 — spec §4.1.1
               · 멤버: 멤버 READY view 7섹션 완료율 (외부 prop)
@@ -1059,6 +1026,48 @@ export default function StartOneOnOneView({
           )}
         </div>
       </div>
+
+      {/* 오른쪽 기둥 (Figma 17556:26173 · 17589:22879) — 녹음 위젯과 LIVE 「AI 대화 네비게이터」.
+          본문 카드 옆에 서서 스크롤을 따라온다(sticky). 둘 다 없으면 기둥 자체를 세우지 않고
+          본문 카드를 가운데 둔다. 네비게이터의 렌더 판정(단계·역할)은 소비처가 한다 — 이
+          컴포넌트는 READY·LIVE·DONE 을 구분하지 않으므로, 여기서 그리기로 정하면 READY
+          화면에도 새어 나온다 (policy §5.2.1). */}
+      {showAside && (
+        <aside className="ono-start-aside" data-testid="ono-start-aside">
+          {recording && !recordingCollapsed && (
+            <OneOnOneRecordingWidget
+              variant="panel"
+              member={member}
+              meetingTime={meetingTime}
+              elapsed={
+                elapsedSec === null ? NO_CLOCK : formatElapsed(elapsedSec)
+              }
+              paused={paused}
+              onPause={onPause}
+              onResume={onResume}
+              onStop={endMeeting}
+              notice={recordingNotice}
+              idle={recordingIdle}
+              onStart={onRestartRecording}
+              {...(recordingRestartLabel
+                ? { startLabel: recordingRestartLabel }
+                : null)}
+              startDisabled={restartLocked}
+              startDisabledTitle={restartLockedTitle}
+              onNoticeClose={onRecordingNoticeClose}
+              {...(recordingNoticeCloseLabel
+                ? { closeLabel: recordingNoticeCloseLabel }
+                : null)}
+              onCollapse={onCollapseRecording}
+              collapseLabel={collapseRecordingLabel}
+              onOpenPip={onOpenPip}
+              {...(openPipLabel ? { openPipLabel } : null)}
+              limitNotice={recordingLimitNotice}
+            />
+          )}
+          {liveGuide && <LiveGuideCard {...liveGuide} baseUrl={liveGuide.baseUrl ?? baseUrl} />}
+        </aside>
+      )}
     </div>
   );
 }

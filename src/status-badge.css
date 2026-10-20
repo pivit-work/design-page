@@ -1777,3 +1777,21 @@ button.dp-chip {
   font-weight: 500;
   line-height: 18px;
 }
+
+/* ══ one_on_one.css 완료 화면(Figma 16954:15096) 딱지 ═══════════════════════════════
+ * 시안 Badge 공통 — 6/2 여백 · 8px 모서리 · 12px 500. 색은 `tone` 이 정한다
+ * (결정·확인됨 = accent, 직책·날짜 = neutral, 매니저 담당 = success, 멤버 담당 = info,
+ * AI 제안 = ai, 미확인 = warning). `.is-pill` 은 멤버 이름 옆 직책 알약. */
+.ono-done-badge {
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  padding: var(--spacing-xxs) var(--spacing-sm);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-text-xs);
+  font-weight: 500;
+  line-height: var(--line-height-text-xs);
+  white-space: nowrap;
+}
+.ono-done-badge.is-pill { padding: var(--spacing-xxs) var(--spacing-md); border-radius: var(--radius-full); }

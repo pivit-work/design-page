@@ -208,7 +208,16 @@ export default function App() {
         />
       )}
 
-      {currentPage === 'oneonone' && <OneOnOnePage icons={ICONS} baseUrl={BASE} />}
+      {/* 1on1 도 언마운트하지 않는다 — 진행 중인 회차의 녹음 상태와 우하단 미니 위젯(body
+          포털)이 다른 페이지로 이동해도 유지되어야 한다(회의록과 같은 방식). */}
+      <div style={{ display: currentPage === 'oneonone' ? 'contents' : 'none' }}>
+        <OneOnOnePage
+          icons={ICONS}
+          baseUrl={BASE}
+          active={currentPage === 'oneonone'}
+          onActivate={() => handleNavigate('oneonone')}
+        />
+      </div>
       {currentPage === 'timeline' && <TimelinePage icons={ICONS} baseUrl={BASE} />}
       {currentPage === 'report' && <ReportPage baseUrl={BASE} />}
       {currentPage === 'snippet' && <SnippetPage baseUrl={BASE} />}

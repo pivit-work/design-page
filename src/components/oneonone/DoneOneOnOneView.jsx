@@ -5,8 +5,7 @@ import { fill, hostOf, heldAtOf } from './sessionHelpers.js';
 import { doneBannerState, isDonePending } from './doneViewHelpers.js';
 import {
   Section,
-  ManagerFeedback,
-  SessionHeader,
+  EvidenceToggle,
   EditableNotesCard,
   EditBadge,
   EditActions,
@@ -57,6 +56,15 @@ import TextInput from '../shared/TextInput.jsx';
  * 컨트롤은 `share` prop 을 받았을 때만 그린다 — 안 넘기면 지금까지처럼 배지만 나온다.
  * 공개를 다루는 자리를 여기 하나로 둔다. 대시보드 팀원 카드·별도 관리 모달로 갈라지면
  * 어느 쪽이 정답인지 사라진다(PW-274 가 그렇게 되돌려졌다).
+ *
+ * ## 모양 (Figma 16954:15096 「원온원 매니저」 DONE)
+ *
+ * 720px 흰 카드 하나에 위에서부터 — 제목 「1on1 • 날짜」와 팀원 줄 · 「AI 미팅 요약」
+ * 그라데이션 카드(녹음 재생기 · 요약 · 주요 결정사항 · 재점검 필요 · 반복 패턴 감지) ·
+ * 「OKR 자가 평가」 · 「역량 평가 비교」 · 「매니저 피드백 - 공유 관리」 · 「Recognition &
+ * 피드백」(액션 아이템 · 다음 원온원 사전 메모) · 푸터 버튼 둘(다음 원온원 예약 · Slack 알림).
+ * 섹션 사이는 48px. 시안에 없는 카드(대화 분위기 · 아젠다 · 매니저 메모 · 스크립트
+ * 미리보기)는 값이 있을 때만 예전 카드 모양 그대로 그 사이에 선다.
  */
 
 const DEFAULT_ICONS = {
@@ -83,6 +91,8 @@ const DEFAULT_ICONS = {
 const DEFAULT_LABELS = {
   title: '{name}님과의 1on1',
   titleNoName: '1on1',
+  /* 시안(17556:24906)의 제목 — 날짜가 있으면 이것, 없으면 `title` 로 떨어진다. */
+  headTitle: '1on1  •  {date}',
   statusDone: '완료',
   back: '1on1 대시보드',
 
@@ -127,10 +137,30 @@ const DEFAULT_LABELS = {
   /* ── AI 미팅 요약 (§4-4) ── */
   summaryTitle: 'AI 미팅 요약',
   summaryPending: '요약이 만들어지면 여기에 표시됩니다',
+  summaryCollapse: '접기',
+  summaryExpand: '펼치기',
   decisions: '주요 결정사항',
   followUps: '재점검 필요',
   patterns: '반복 패턴 감지',
   patternsDesc: '여러 회차에 걸쳐 되풀이되는 것만 모았습니다',
+
+  /* ── OKR 자가 평가 (Figma 16954:15167) ── */
+  okrSelfTitle: 'OKR 자가 평가',
+  okrActual: '실제',
+  okrSelf: '자가 평가',
+  okrDiscussed: '미팅 중 논의됨',
+  okrGapHigh: '갭 {gap}%p — 자가 평가가 높음',
+  okrGapLow: '갭 {gap}%p — 자가 평가가 낮음',
+
+  /* ── 역량 평가 비교 (Figma 16954:15284) ── */
+  capTitle: '역량 평가 비교',
+  capMemberSelf: '멤버 자가',
+  capReadyManager: 'READY 매니저',
+  capDoneFinal: 'DONE 최종',
+  capDelta: '변화',
+  capHint: '멤버 자가진단 대비 차이가 표시됩니다.',
+  capHintEditable: '멤버 자가진단 대비 차이가 표시됩니다. 클릭해서 수정 가능합니다.',
+  capAiDraft: 'AI 초안 — 반드시 검토 후 확정해주세요. 미확정 내용은 DONE 피드백에 반영되지 않습니다.',
 
   /* ── 대화 분위기 ── */
   sentimentTitle: '대화 분위기',
@@ -157,13 +187,20 @@ const DEFAULT_LABELS = {
 
   /* ── 매니저 피드백 ── */
   managerFeedback: '매니저 피드백',
+  /* 시안(16954:15207)의 묶음 이름표 — 피드백 세 항목과 공개 버튼이 이 아래에 선다. */
+  feedbackSection: '매니저 피드백 - 공유 관리',
   feedbackStrengths: '관찰한 강점',
-  feedbackSbi: '개선 피드백 (SBI)',
+  feedbackSbi: '개선 피드백(SBI)',
   feedbackSupport: '지원 계획',
+  /* SBI 항목 아래 붙는 세 딱지 (16954:15254) */
+  sbiSituation: 'Situation',
+  sbiBehavior: 'Behavior',
+  sbiImpact: 'Impact',
   shareOn: '멤버에게 공개됨',
   shareOff: '비공개',
   /* 회의 후 AI 초안 확정 (PW-1551 · oneonone-spec §8-2) — 공개하면 확정한 항목만 간다. */
   feedbackUnconfirmed: 'AI 미확정',
+  feedbackConfirmed: '확정',
   feedbackConfirm: '확정',
   feedbackConfirmBusy: '확정하는 중…',
   feedbackConfirmFailed: '확정하지 못했습니다. 잠시 후 다시 시도해 주세요.',
@@ -171,7 +208,7 @@ const DEFAULT_LABELS = {
   shareUnconfirmedNotice: '확정하지 않은 {count}개 항목은 공개되지 않습니다.',
 
   /* ── 공개 컨트롤 (PW-432 · policy §6.4.2) ── */
-  shareCta: '{name} 님에게 피드백 공개',
+  shareCta: '{name}님에게 피드백 공개',
   shareCtaNoName: '팀원에게 피드백 공개',
   shareConfirmTitle: '피드백을 {name} 님에게 공개하시겠습니까?',
   shareConfirmTitleNoName: '피드백을 팀원에게 공개하시겠습니까?',
@@ -200,12 +237,17 @@ const DEFAULT_LABELS = {
   evidenceJump: '전문에서 보기',
   evidenceJumpMissing: '해당 구간을 찾을 수 없습니다',
 
+  /* ── Recognition & 피드백 묶음 (Figma 16954:15356) — 액션 아이템 · 다음 원온원 사전 메모 ── */
+  recognitionSection: 'Recognition & 피드백',
+
   /* ── 액션아이템 (policy §6.3) ── */
-  actionItems: '액션아이템',
+  actionItems: '액션 아이템',
   actionCount: '{done} / {total} 완료',
   actionEmpty: '아직 액션아이템이 없습니다',
-  actionAddPlaceholder: '액션아이템 추가 (Enter)',
+  actionAddPlaceholder: '+ 액션 아이템 추가 (Enter)',
   actionAdd: '추가',
+  /* AI 가 뽑은 항목에 붙는 보라 딱지 (16954:16061) */
+  actionAi: 'AI',
   actionAdding: '추가하는 중…',
   actionAddError: '액션아이템을 추가하지 못했습니다.',
   actionToggleError: '액션아이템 상태를 저장하지 못했습니다.',
@@ -220,13 +262,13 @@ const DEFAULT_LABELS = {
     `이 전문은 미팅 시작 후 ${Math.ceil(sec / 60)}분부터 기록됐습니다.`,
 
   /* ── 다음 1on1 (policy §6.6) ── */
-  nextMemoTitle: '다음 1on1 사전 메모',
-  nextMemoPlaceholder: '다음 1on1 때 꼭 확인할 것들을 메모하세요',
+  nextMemoTitle: '다음 원온원 사전 메모',
+  nextMemoPlaceholder: '다음 원온원 때 꼭 확인할 것들을 메모하세요.',
   nextMemoSaving: '저장 중…',
   nextMemoSaved: '저장됨',
   nextMemoError: '사전 메모를 저장하지 못했습니다.',
-  bookNext: '다음 1on1 예약하기 — 55분 기본값',
-  bookNextDone: '다음 1on1 예약 완료',
+  bookNext: '다음 원온원 예약하기',
+  bookNextDone: '다음 원온원 예약 완료',
 
   /* ── 액션아이템 Slack 알림 (oneonone-spec §4-4 「다음 단계」) ── */
   notifySlack: 'Slack 알림 발송',
@@ -435,7 +477,29 @@ function AnalysisBanner({ state, L, icons, baseUrl, retry, summaryRetry, replay,
  * 🔴 재생기가 있으면 요약이 아직 없어도 카드를 그린다. 그러지 않으면 「요약은 못
  * 만들었는데 녹음은 있는」 회차에서 원음을 들을 자리가 통째로 사라진다.
  */
+/**
+ * 결정사항 한 건 — 예전엔 문자열이었고(PW-430), 시안(16954:15149)은 제목 · 「합의」 딱지 ·
+ * 본문 셋을 그린다. 둘 다 받는다: 문자열이면 본문만, 객체면 `{ title, badge, text }`.
+ */
+const decisionOf = (d) => (typeof d === 'string' ? { text: d } : d ?? {});
+
+/** 시안의 소제목(18px 굵게) + 흰 블록 목록 — 결정사항·재점검·반복 패턴이 같은 모양이다. */
+function SummaryBlock({ label, items, testid, render }) {
+  return (
+    <div className="ono-done-block" data-testid={testid}>
+      <span className="ono-done-block-label">{label}</span>
+      {items.map((item, i) => (
+        <div className="ono-done-item" key={`${testid}-${i}`}>
+          {render(item)}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function SummaryCard({ session, L, icons, baseUrl, pending, recordingPlayer }) {
+  // 「접기」 (16954:15137) — 접힌 동안도 카드 머리는 남아 다시 펼 수 있다.
+  const [open, setOpen] = useState(true);
   const summary = session.aiSummary ?? '';
   const decisions = session.keyDecisions ?? [];
   const followUps = session.nextTopics ?? [];
@@ -451,57 +515,217 @@ function SummaryCard({ session, L, icons, baseUrl, pending, recordingPlayer }) {
     return null;
   }
   return (
-    <Section
-      title={L.summaryTitle}
-      icon={icons.ai}
-      icons={icons}
-      baseUrl={baseUrl}
-      collapsible={false}
-    >
-      {recordingPlayer}
-      <div className="ono-done-summary" data-testid="ono-done-summary">
-        {summary ? summary : <span className="ono-mem-hint">{L.summaryPending}</span>}
+    <section className="ono-done-ai" data-testid="ono-done-summary-card">
+      <div className="ono-done-ai-head">
+        <span className="ono-done-ai-label">
+          <Icon src={icons.ai} size={14} color="currentColor" baseUrl={baseUrl} />
+          {L.summaryTitle}
+        </span>
+        <button
+          type="button"
+          className="ono-done-ai-fold"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          data-testid="ono-done-summary-fold"
+        >
+          {open ? L.summaryCollapse : L.summaryExpand}
+        </button>
       </div>
 
-      {has(decisions) && (
-        <div className="ono-done-block" data-testid="ono-done-decisions">
-          <span className="ono-done-block-label is-ok">{L.decisions}</span>
-          {decisions.map((text, i) => (
-            <div className="ono-done-item is-ok" key={`d-${i}`}>
-              <Icon src={icons.check} size={14} color="currentColor" baseUrl={baseUrl} />
-              <span>{text}</span>
-            </div>
-          ))}
-        </div>
-      )}
+      {open && (
+        <>
+          {recordingPlayer}
+          <div className="ono-done-item ono-done-summary" data-testid="ono-done-summary">
+            {summary ? summary : <span className="ono-mem-hint">{L.summaryPending}</span>}
+          </div>
 
-      {has(followUps) && (
-        <div className="ono-done-block" data-testid="ono-done-followups">
-          <span className="ono-done-block-label is-warn">{L.followUps}</span>
-          {followUps.map((text, i) => (
-            <div className="ono-done-item is-warn" key={`f-${i}`}>
-              <Icon src={icons.alert} size={14} color="currentColor" baseUrl={baseUrl} />
-              <span>{text}</span>
-            </div>
-          ))}
-        </div>
-      )}
+          {has(decisions) && (
+            <SummaryBlock
+              label={L.decisions}
+              items={decisions}
+              testid="ono-done-decisions"
+              render={(d) => {
+                const { title, badge, text } = decisionOf(d);
+                return (
+                  <>
+                    {(title || badge) && (
+                      <div className="ono-done-item-head">
+                        {title && <span className="ono-done-item-title">{title}</span>}
+                        {badge && <StatusBadge tone="accent" className="ono-done-badge">{badge}</StatusBadge>}
+                      </div>
+                    )}
+                    {text && <span className="ono-done-item-text">{text}</span>}
+                  </>
+                );
+              }}
+            />
+          )}
 
-      {/* 반복 패턴은 매니저만 보는 산출물이다 (PW-370). 이 화면이 곧 매니저 전용이라
-          여기 두는 것으로 수신자 구분이 성립하고, 서버도 멤버 응답에서 지운다. */}
-      {has(patterns) && (
-        <div className="ono-done-block" data-testid="ono-done-patterns">
-          <span className="ono-done-block-label is-ai">{L.patterns}</span>
-          <p className="ono-mem-hint">{L.patternsDesc}</p>
-          {patterns.map((text, i) => (
-            <div className="ono-done-item is-ai" key={`p-${i}`}>
-              <Icon src={icons.pattern} size={14} color="currentColor" baseUrl={baseUrl} />
-              <span>{text}</span>
-            </div>
-          ))}
-        </div>
+          {has(followUps) && (
+            <SummaryBlock
+              label={L.followUps}
+              items={followUps}
+              testid="ono-done-followups"
+              render={(text) => <span className="ono-done-item-text">{text}</span>}
+            />
+          )}
+
+          {/* 반복 패턴은 매니저만 보는 산출물이다 (PW-370). 이 화면이 곧 매니저 전용이라
+              여기 두는 것으로 수신자 구분이 성립하고, 서버도 멤버 응답에서 지운다. */}
+          {has(patterns) && (
+            <SummaryBlock
+              label={L.patterns}
+              items={patterns}
+              testid="ono-done-patterns"
+              render={(text) => <span className="ono-done-item-text">{text}</span>}
+            />
+          )}
+        </>
       )}
-    </Section>
+    </section>
+  );
+}
+
+/** 섹션 제목 줄 (18px 굵게) + 오른쪽 보조 — 시안의 카드 없는 섹션들이 같은 머리를 쓴다. */
+function DoneSection({ title, side, children, testid, className = '' }) {
+  return (
+    <section className={`ono-done-section ${className}`.trim()} data-testid={testid}>
+      <div className="ono-done-section-head">
+        <h3 className="ono-done-section-title">{title}</h3>
+        {side}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+const pct = (v) => Math.max(0, Math.min(100, Math.round(Number(v) || 0)));
+
+/**
+ * OKR 자가 평가 (Figma 16954:15167) — KR 마다 「실제」·「자가 평가」 막대 한 쌍.
+ *
+ * 값은 팀원이 READY 때 적은 자가 평가와 서버가 아는 실제 진행률이다 — 여기서는 받은
+ * 두 수를 그리고 차이만 센다. 차이가 0 이면 갭 줄을 안 그린다(「갭 0%p」는 말이 아니다).
+ * `okrSelf` 가 비면 섹션을 그리지 않는다.
+ */
+function OkrSelfCard({ rows, L, icons, baseUrl }) {
+  if (!has(rows)) return null;
+  const bar = (label, value) => (
+    <div className="ono-done-okr-col">
+      <span className="ono-done-okr-col-label">{label}</span>
+      <div className="ono-done-okr-bar-row">
+        <div className="ono-done-okr-bar">
+          <i style={{ width: `${pct(value)}%` }} />
+        </div>
+        <span className="ono-done-okr-pct">{pct(value)}%</span>
+      </div>
+    </div>
+  );
+  return (
+    <DoneSection title={L.okrSelfTitle} testid="ono-done-okr-self">
+      <div className="ono-done-okr-list">
+        {rows.map((r, i) => {
+          const gap = pct(r.self) - pct(r.actual);
+          return (
+            <div className="ono-done-okr" key={r.id ?? i} data-testid="ono-done-okr-row">
+              <div className="ono-done-okr-head">
+                <span className="ono-done-okr-title">{r.kr ?? r.title}</span>
+                {r.discussed && <StatusBadge tone="neutral" className="ono-done-badge">{L.okrDiscussed}</StatusBadge>}
+              </div>
+              <div className="ono-done-okr-bars">
+                {bar(L.okrActual, r.actual)}
+                {bar(L.okrSelf, r.self)}
+              </div>
+              {gap !== 0 && (
+                <span className="ono-done-okr-gap" data-testid="ono-done-okr-gap">
+                  <Icon src={icons.alert} size={12} color="currentColor" baseUrl={baseUrl} />
+                  {fill(gap > 0 ? L.okrGapHigh : L.okrGapLow, { gap: Math.abs(gap) })}
+                </span>
+              )}
+              {r.note && <span className="ono-done-okr-note">{r.note}</span>}
+            </div>
+          );
+        })}
+      </div>
+    </DoneSection>
+  );
+}
+
+const CAP_COLS = [
+  { key: 'memberSelf', labelKey: 'capMemberSelf', cls: 'is-member' },
+  { key: 'readyManager', labelKey: 'capReadyManager', cls: 'is-ready' },
+  { key: 'doneFinal', labelKey: 'capDoneFinal', cls: 'is-done' },
+];
+const CAP_MAX = 5;
+
+/**
+ * 역량 평가 비교 (Figma 16954:15284) — 역량마다 멤버 자가 · READY 매니저 · DONE 최종 세
+ * 5칸 막대와 「변화」(DONE − 멤버 자가).
+ *
+ * `onChange(key, value)` 를 넘기면 DONE 칸이 눌려 1~5 를 고친다 — 안 넘기면 읽기 전용이고
+ * 안내 문구도 「클릭해서 수정」을 말하지 않는다. 항목에 `draft` 가 하나라도 있으면 아래에
+ * 빨간 「AI 초안」 한 줄이 선다 — 확정 전 값이 최종인 줄 알고 넘어가지 않게.
+ */
+function CapabilityCard({ rows, onChange, L, icons, baseUrl }) {
+  if (!has(rows)) return null;
+  const editable = typeof onChange === 'function';
+  const hasDraft = rows.some((r) => r.draft);
+  const segs = (value, cls, key, clickable) =>
+    Array.from({ length: CAP_MAX }, (_, i) => {
+      const filled = i < (Number(value) || 0);
+      const className = `ono-done-cap-seg${filled ? ` ${cls}` : ''}`;
+      return clickable ? (
+        <button
+          type="button"
+          key={i}
+          className={className}
+          aria-label={`${i + 1}`}
+          onClick={() => onChange(key, i + 1)}
+          data-testid="ono-done-cap-seg"
+        />
+      ) : (
+        <i key={i} className={className} />
+      );
+    });
+  return (
+    <DoneSection title={L.capTitle} testid="ono-done-capabilities">
+      <div className="ono-done-cap-table" role="table">
+        <span aria-hidden="true" />
+        {CAP_COLS.map((c) => (
+          <span className="ono-done-cap-col-head" key={c.key}>{L[c.labelKey]}</span>
+        ))}
+        <span className="ono-done-cap-delta-head">{L.capDelta}</span>
+        {rows.map((r, i) => {
+          const delta = (Number(r.doneFinal) || 0) - (Number(r.memberSelf) || 0);
+          return (
+            <div className="ono-done-cap-row" key={r.key ?? i} data-testid="ono-done-cap-row">
+              <span className="ono-done-cap-label">{r.label}</span>
+              {CAP_COLS.map((c) => (
+                <span className="ono-done-cap-cell" key={c.key}>
+                  <span className={`ono-done-cap-bar${editable && c.key === 'doneFinal' ? ' is-editable' : ''}`}>
+                    {segs(r[c.key], c.cls, r.key, editable && c.key === 'doneFinal')}
+                  </span>
+                  <span className={`ono-done-cap-num ${c.cls}`}>{r[c.key] ?? '-'}</span>
+                </span>
+              ))}
+              <span
+                className={`ono-done-cap-delta${delta > 0 ? ' is-up' : delta < 0 ? ' is-down' : ''}`}
+                data-testid="ono-done-cap-delta"
+              >
+                {delta === 0 ? '-' : delta > 0 ? `+${delta}` : `${delta}`}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      <p className="ono-done-cap-hint">{editable ? L.capHintEditable : L.capHint}</p>
+      {hasDraft && (
+        <p className="ono-done-cap-draft" data-testid="ono-done-cap-draft">
+          <Icon src={icons.alert} size={12} color="currentColor" baseUrl={baseUrl} />
+          {L.capAiDraft}
+        </p>
+      )}
+    </DoneSection>
   );
 }
 
@@ -563,13 +787,10 @@ function ActionItemsCard({ session, L, icons, baseUrl, actions }) {
   };
 
   return (
-    <Section
+    <DoneSection
       title={L.actionItems}
-      icon={icons.actions}
-      icons={icons}
-      baseUrl={baseUrl}
-      collapsible={false}
-      badge={
+      testid="ono-done-actions-section"
+      side={
         <span className="ono-done-count" data-testid="ono-done-action-count">
           {fill(L.actionCount, { done: doneCount, total: items.length })}
         </span>
@@ -582,6 +803,7 @@ function ActionItemsCard({ session, L, icons, baseUrl, actions }) {
           {items.map((item) => (
             // 네모는 같은 화면 「대화 원문도 함께 공개」와 같은 공용 체크박스(PW-1901). 줄 모양은
             // 이 카드 것이라 className 으로 넘기고, 줄 어디를 눌러도 켜지게 글씨·딱지를 이름표 안에 둔다.
+            // 딱지 셋(16954:15913): 담당(매니저 초록 · 멤버 파랑) · 기한(회색) · AI 가 뽑은 항목(보라).
             <div data-testid="ono-done-action" key={item.id}>
               <Checkbox
                 className={`ono-done-action${item.done ? ' is-done' : ''}`}
@@ -590,10 +812,13 @@ function ActionItemsCard({ session, L, icons, baseUrl, actions }) {
                 onChange={() => actions?.onToggle?.(item.id)}
               >
                 <span className="ono-done-action-text">{item.text}</span>
-                <span className="ono-start-flag ono-start-flag-blue">
+                <StatusBadge tone={item.owner === 'member' ? 'info' : 'success'} className="ono-done-badge">
                   {item.owner === 'member' ? L.roleMember : L.roleManager}
-                </span>
-                {item.dueDate && <StatusBadge className="ono-mem-chip">{item.dueDate}</StatusBadge>}
+                </StatusBadge>
+                {item.dueDate && <StatusBadge tone="neutral" className="ono-done-badge">{item.dueDate}</StatusBadge>}
+                {(item.ai || item.source === 'ai') && (
+                  <StatusBadge tone="ai" className="ono-done-badge">{L.actionAi}</StatusBadge>
+                )}
               </Checkbox>
             </div>
           ))}
@@ -634,7 +859,7 @@ function ActionItemsCard({ session, L, icons, baseUrl, actions }) {
           {L.actionToggleError}
         </p>
       )}
-    </Section>
+    </DoneSection>
   );
 }
 
@@ -725,13 +950,10 @@ function NextMemoCard({ value, L, icons, baseUrl, memo }) {
     if (!touched.current) setDraft(value ?? '');
   }, [value]);
   return (
-    <Section
+    <DoneSection
       title={L.nextMemoTitle}
-      icon={icons.memo}
-      icons={icons}
-      baseUrl={baseUrl}
-      collapsible={false}
-      badge={
+      testid="ono-done-memo-section"
+      side={
         memo?.saving ? (
           <span className="ono-done-count">{L.nextMemoSaving}</span>
         ) : memo?.saved ? (
@@ -741,7 +963,7 @@ function NextMemoCard({ value, L, icons, baseUrl, memo }) {
     >
       <textarea
         className="ono-done-memo"
-        rows={3}
+        rows={5}
         value={draft}
         placeholder={L.nextMemoPlaceholder}
         data-testid="ono-done-memo"
@@ -756,7 +978,7 @@ function NextMemoCard({ value, L, icons, baseUrl, memo }) {
           {L.nextMemoError}
         </p>
       )}
-    </Section>
+    </DoneSection>
   );
 }
 
@@ -908,6 +1130,95 @@ const FEEDBACK_TITLE_KEY = {
   sbi: 'feedbackSbi',
   support: 'feedbackSupport',
 };
+
+/**
+ * 매니저 피드백 세 항목 — 시안(16954:15206)의 카드 없는 모양.
+ *
+ * 예전엔 팀원 캔버스의 `ManagerFeedback`(회색 상자 카드)을 그대로 썼다. 시안은 제목(18px) ·
+ * 「확정」 brand 딱지 · (SBI 는 Situation/Behavior/Impact 회색 딱지) · 본문을 상자 없이
+ * 쌓는다. 근거 발췌(`EvidenceToggle`) · 확정 흐름(PW-1551) · `data-testid` 는 그쪽과 같다 —
+ * 소비처가 보는 것은 그대로고 모양만 다르다.
+ */
+function DoneFeedbackList({ session, evidence, loading, error, onRetry, managerName, L, icons, baseUrl, jump, confirm }) {
+  const items = session.managerFeedback ?? [];
+  const evidenceOf = (key) => (evidence?.items ?? []).find((e) => e.key === key);
+  return (
+    <div className="ono-done-fb-list" data-testid="ono-done-feedback-list">
+      {items.map((item) => {
+        const confirmed = !!confirm?.confirmed?.[item.key];
+        return (
+          <div
+            className={`ono-done-fb${confirm ? (confirmed ? ' is-ai-confirmed' : ' is-ai-unconfirmed') : ''}`}
+            key={item.key}
+            data-testid={confirm ? `ono-feedback-item-${item.key}` : undefined}
+            data-confirmed={confirm ? String(confirmed) : undefined}
+          >
+            <div className="ono-done-fb-head">
+              <span className="ono-done-fb-title">{L[FEEDBACK_TITLE_KEY[item.key]] ?? item.key}</span>
+              {confirm && confirmed && (
+                <StatusBadge tone="accent" className="ono-done-badge" data-testid={`ono-feedback-confirmed-${item.key}`}>
+                  {L.feedbackConfirmed}
+                </StatusBadge>
+              )}
+              {confirm && !confirmed && (
+                <StatusBadge tone="warning" className="ono-done-badge" data-testid={`ono-feedback-unconfirmed-${item.key}`}>
+                  {L.feedbackUnconfirmed}
+                </StatusBadge>
+              )}
+            </div>
+            {item.key === 'sbi' && (
+              <div className="ono-done-fb-tags">
+                {[L.sbiSituation, L.sbiBehavior, L.sbiImpact].map((t) => (
+                  <StatusBadge tone="neutral" className="ono-done-badge" key={t}>{t}</StatusBadge>
+                ))}
+              </div>
+            )}
+            <p className="ono-done-fb-text">{item.text}</p>
+
+            {loading && <p className="ono-mem-evidence-status">{L.evidenceLoading}</p>}
+            {!loading && error && (
+              <p className="ono-mem-evidence-status">
+                {L.evidenceError}{' '}
+                <button type="button" className="ono-mem-evidence-retry" onClick={onRetry}>
+                  {L.evidenceRetry}
+                </button>
+              </p>
+            )}
+            {!loading && !error && (
+              <EvidenceToggle
+                items={evidenceOf(item.key)?.evidence}
+                managerName={managerName}
+                edited={evidenceOf(item.key)?.edited}
+                L={L}
+                icons={icons}
+                baseUrl={baseUrl}
+                jump={jump}
+              />
+            )}
+            {confirm && !confirmed && (
+              <div className="ono-feedback-confirm-row">
+                <button
+                  type="button"
+                  className="ono-feedback-confirm"
+                  onClick={() => confirm.onConfirm?.(item.key)}
+                  disabled={!!confirm.busyKey}
+                  data-testid={`ono-feedback-confirm-${item.key}`}
+                >
+                  {confirm.busyKey === item.key ? L.feedbackConfirmBusy : L.feedbackConfirm}
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      })}
+      {confirm?.error && (
+        <p className="ono-done-inline-error" role="alert" data-testid="ono-feedback-confirm-error">
+          {L.feedbackConfirmFailed}
+        </p>
+      )}
+    </div>
+  );
+}
 
 /**
  * 매니저 피드백 고치기 (PW-1046 · 커트 2026-09-25 (다)).
@@ -1219,6 +1530,27 @@ export default function DoneOneOnOneView({
    * 공개 버튼이 꺼진다. 안 넘기면 예전 모습 그대로다.
    */
   feedbackConfirm,
+  /**
+   * 제목 아래 팀원 줄의 딱지와 보조 글 (Figma 17556:24907). 시안은 이름 옆에 「P미팅」,
+   * 아래에 «2026.04.08 · 수시 · 2026.03.06 – 2026.04.08» 를 둔다. 둘 다 호스트가 만든
+   * 글이다 — 어떤 미팅 종류인지 · 어느 기간인지는 캔버스가 알 수 없다. 안 넘기면 안 그린다.
+   */
+  memberBadge = '',
+  memberMeta = '',
+  /**
+   * OKR 자가 평가 (Figma 16954:15167) — `[{ id, kr, actual, self, discussed, note }]`.
+   * `actual`·`self` 는 0~100. `discussed` 면 「미팅 중 논의됨」 딱지, `note` 는 아래 회색 한 줄.
+   * 비면 섹션을 안 그린다.
+   */
+  okrSelf,
+  /**
+   * 역량 평가 비교 (Figma 16954:15284) — `[{ key, label, memberSelf, readyManager, doneFinal, draft }]`,
+   * 값은 1~5. `draft` 가 하나라도 참이면 「AI 초안 — 반드시 검토 후 확정」 한 줄이 선다.
+   * 비면 섹션을 안 그린다.
+   */
+  capabilities,
+  /** `(key, value) => void` — 넘기면 DONE 칸을 눌러 1~5 를 고칠 수 있다. 안 넘기면 읽기 전용. */
+  onCapabilityChange,
   onBack,
 }) {
   const L = mergeLabels(DEFAULT_LABELS, labels);
@@ -1247,29 +1579,43 @@ export default function DoneOneOnOneView({
   const bannerState =
     summary?.stalled && isDonePending(rawBannerState) ? 'summary-failed' : rawBannerState;
 
+  const date = formatDate ? formatDate(heldAtOf(session)) : null;
+  const duration =
+    session.durationSec > 0 && formatDuration ? formatDuration(session.durationSec) : null;
+  // 팀원 줄 아래 보조 글 — 호스트가 준 것이 먼저고, 없으면 예전처럼 길이만.
+  const meta = memberMeta || duration;
+
   return (
     <div className="ono-done-view">
-      <SessionHeader
-        title={memberName ? fill(L.title, { name: memberName }) : L.titleNoName}
-        status="done"
-        date={formatDate ? formatDate(heldAtOf(session)) : null}
-        duration={
-          session.durationSec > 0 && formatDuration
-            ? formatDuration(session.durationSec)
-            : null
-        }
-        avatar={avatar}
-        L={L}
-        icons={I}
-        baseUrl={baseUrl}
-      >
-        {onBack && (
-          <button type="button" className="ono-mem-back" onClick={onBack}>
-            <Icon src={I.back} size={14} color="currentColor" baseUrl={baseUrl} />
-            {L.back}
-          </button>
-        )}
-      </SessionHeader>
+      <div className="ono-done-body">
+        {/* 머리 (Figma 17556:24905) — 「1on1 • 날짜」 와 팀원 줄(아바타 48 · 이름 · 딱지 · 보조 글) */}
+        <header className="ono-done-head" data-testid="ono-done-head">
+          {onBack && (
+            <button type="button" className="ono-mem-back" onClick={onBack}>
+              <Icon src={I.back} size={14} color="currentColor" baseUrl={baseUrl} />
+              {L.back}
+            </button>
+          )}
+          <h1 className="ono-done-head-title">
+            {date
+              ? fill(L.headTitle, { date })
+              : memberName
+                ? fill(L.title, { name: memberName })
+                : L.titleNoName}
+          </h1>
+          {(memberName || avatar) && (
+            <div className="ono-done-head-member">
+              {avatar}
+              <div className="ono-done-head-info">
+                <div className="ono-done-head-name-row">
+                  <span className="ono-done-head-name">{memberName}</span>
+                  {memberBadge && <StatusBadge tone="neutral" className="ono-done-badge is-pill">{memberBadge}</StatusBadge>}
+                </div>
+                {meta && <span className="ono-done-head-meta">{meta}</span>}
+              </div>
+            </div>
+          )}
+        </header>
 
       {endNotice && (
         <div className="ono-done-banner" data-testid="ono-done-end-notice">
@@ -1296,6 +1642,16 @@ export default function DoneOneOnOneView({
         baseUrl={baseUrl}
         pending={isDonePending(bannerState)}
         recordingPlayer={recordingPlayer}
+      />
+
+      <OkrSelfCard rows={okrSelf} L={L} icons={I} baseUrl={baseUrl} />
+
+      <CapabilityCard
+        rows={capabilities}
+        onChange={onCapabilityChange}
+        L={L}
+        icons={I}
+        baseUrl={baseUrl}
       />
 
       <SentimentCard session={session} L={L} icons={I} baseUrl={baseUrl} />
@@ -1327,13 +1683,30 @@ export default function DoneOneOnOneView({
 
       {/* 피드백이 없는 회차에는 공개할 것도 없다 — 카드 자체를 그리지 않는다. */}
       {has(session.managerFeedback) && (
-        <div data-testid="ono-done-feedback">
-          <div className="ono-done-share-row">
-            <StatusBadge
-              className={`ono-done-share-badge${session.isShared ? ' is-on' : ''}`}
-              data-testid="ono-done-share-badge">
-              {session.isShared ? L.shareOn : L.shareOff}
-            </StatusBadge>
+        <div className="ono-done-group" data-testid="ono-done-feedback">
+          {/* 묶음 이름표 줄 (16954:15207) — 오른쪽에 공개 여부 · 「공개 후 수정됨」 · [편집] */}
+          <div className="ono-done-eyebrow-row">
+            <span className="ono-done-eyebrow">{L.feedbackSection}</span>
+            <span className="ono-done-eyebrow-side ono-done-share-row">
+              {session.feedbackEditedAfterShareAt && (
+                <StatusBadge tone="neutral" className="ono-done-badge" data-testid="ono-feedback-edited-after-share">
+                  {L.feedbackEditedAfterShare}
+                </StatusBadge>
+              )}
+              <StatusBadge
+                className={`ono-done-share-badge${session.isShared ? ' is-on' : ''}`}
+                data-testid="ono-done-share-badge">
+                {session.isShared ? L.shareOn : L.shareOff}
+              </StatusBadge>
+              {feedbackEditable && !feedbackEditing && (
+                <EditBadge
+                  L={L}
+                  until={feedbackEdit.until}
+                  onEdit={() => setFeedbackEditing(true)}
+                  testid="ono-done-feedback-edit"
+                />
+              )}
+            </span>
           </div>
           {feedbackEditing ? (
             <FeedbackEditor
@@ -1345,23 +1718,13 @@ export default function DoneOneOnOneView({
               onDone={() => setFeedbackEditing(false)}
             />
           ) : (
-            <ManagerFeedback
+            <DoneFeedbackList
               session={session}
               managerName={host.name}
               L={L}
               icons={I}
               baseUrl={baseUrl}
               jump={transcript.jump}
-              headerExtra={
-                feedbackEditable ? (
-                  <EditBadge
-                    L={L}
-                    until={feedbackEdit.until}
-                    onEdit={() => setFeedbackEditing(true)}
-                    testid="ono-done-feedback-edit"
-                  />
-                ) : null
-              }
               {...(feedbackEvidence || {})}
               confirm={feedbackConfirm}
             />
@@ -1387,13 +1750,29 @@ export default function DoneOneOnOneView({
         </div>
       )}
 
-      <ActionItemsCard
-        session={session}
-        L={L}
-        icons={I}
-        baseUrl={baseUrl}
-        actions={actions}
-      />
+      {/* Recognition & 피드백 묶음 (16954:15356) — 액션 아이템 · 다음 원온원 사전 메모 */}
+      <div className="ono-done-group" data-testid="ono-done-recognition">
+        <div className="ono-done-eyebrow-row">
+          <span className="ono-done-eyebrow">{L.recognitionSection}</span>
+        </div>
+        <div className="ono-done-group-body">
+          <ActionItemsCard
+            session={session}
+            L={L}
+            icons={I}
+            baseUrl={baseUrl}
+            actions={actions}
+          />
+
+          <NextMemoCard
+            value={session.nextPreMemo ?? ''}
+            L={L}
+            icons={I}
+            baseUrl={baseUrl}
+            memo={memo}
+          />
+        </div>
+      </div>
 
       <TranscriptPreview
         session={session}
@@ -1407,70 +1786,56 @@ export default function DoneOneOnOneView({
           hit: transcript.hit,
         }}
       />
+      </div>
 
-      <NextMemoCard
-        value={session.nextPreMemo ?? ''}
-        L={L}
-        icons={I}
-        baseUrl={baseUrl}
-        memo={memo}
-      />
+      {/* 푸터 (Figma 17590:23928) — brand 「다음 원온원 예약하기」 · 테두리 「Slack 알림 발송」 */}
+      <div className="ono-done-footer">
+        <button
+          type="button"
+          className={`ono-done-book${booking?.done ? ' is-done' : ''}`}
+          data-testid="ono-done-book"
+          onClick={() => {
+            if (booking?.done) return;
+            booking?.onBook?.();
+          }}
+        >
+          {booking?.done && <Icon src={I.check} size={16} color="currentColor" baseUrl={baseUrl} />}
+          {booking?.done ? L.bookNextDone : L.bookNext}
+        </button>
 
-      <button
-        type="button"
-        className={`ono-done-book${booking?.done ? ' is-done' : ''}`}
-        data-testid="ono-done-book"
-        onClick={() => {
-          if (booking?.done) return;
-          booking?.onBook?.();
-        }}
-      >
-        <Icon
-          src={booking?.done ? I.check : I.calendar}
-          size={16}
-          color="currentColor"
-          baseUrl={baseUrl}
-        />
-        {booking?.done ? L.bookNextDone : L.bookNext}
-      </button>
-
-      {slack && (
-        <>
-          <button
-            type="button"
-            className={`ono-done-notify${slack.done ? ' is-done' : ''}`}
-            data-testid="ono-done-notify-slack"
-            disabled={!!slack.busy}
-            onClick={() => {
-              if (slack.done || slack.busy) return;
-              slack.onSend?.();
-            }}
-          >
-            <Icon
-              src={slack.done ? I.check : I.slack}
-              size={16}
-              color="currentColor"
-              baseUrl={baseUrl}
-            />
-            {slack.done
-              ? L.notifySlackDone
-              : slack.busy
-                ? L.notifySlackBusy
-                : L.notifySlack}
-          </button>
-          {slack.error && (
-            <p
-              className="ono-done-inline-error"
-              role="alert"
-              data-testid="ono-done-notify-slack-error"
+        {slack && (
+          <>
+            <button
+              type="button"
+              className={`ono-done-notify${slack.done ? ' is-done' : ''}`}
+              data-testid="ono-done-notify-slack"
+              disabled={!!slack.busy}
+              onClick={() => {
+                if (slack.done || slack.busy) return;
+                slack.onSend?.();
+              }}
             >
-              {SLACK_ERROR_LABEL[slack.error]
-                ? L[SLACK_ERROR_LABEL[slack.error]]
-                : L.notifySlackFailed}
-            </p>
-          )}
-        </>
-      )}
+              {slack.done && <Icon src={I.check} size={16} color="currentColor" baseUrl={baseUrl} />}
+              {slack.done
+                ? L.notifySlackDone
+                : slack.busy
+                  ? L.notifySlackBusy
+                  : L.notifySlack}
+            </button>
+            {slack.error && (
+              <p
+                className="ono-done-inline-error"
+                role="alert"
+                data-testid="ono-done-notify-slack-error"
+              >
+                {SLACK_ERROR_LABEL[slack.error]
+                  ? L[SLACK_ERROR_LABEL[slack.error]]
+                  : L.notifySlackFailed}
+              </p>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }

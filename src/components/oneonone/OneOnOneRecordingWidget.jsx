@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { createPortal } from 'react-dom';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import useMicWave from '../shared/useMicWave.js';
@@ -23,7 +24,17 @@ import { CloseGlyph, PauseGlyph, PopOutGlyph } from '../shared/lineIcons.jsx';
  *                    않는다 (일시정지를 지원하지 않는 소비처의 기존 화면 유지).
  *   - onResume     : "재개" 버튼 클릭 콜백
  *   - onStop       : "종료" 버튼 클릭 콜백
- *   - variant      : 'sticky' (기본) | 'pip' — pip 은 위치 고정 스타일 제거
+ *   - variant      : 'sticky' (기본) | 'pip' | 'panel' | 'mini'
+ *                    pip 은 위치 고정 스타일 제거. panel 은 진행 화면 오른쪽 기둥에 놓이는
+ *                    카드(Figma 17556:26520) — 떠 있지 않고 기둥 폭을 꽉 채우며 그림자가 없다.
+ *                    mini 는 매니저가 진행 중에 다른 탭·다른 페이지로 갔을 때 화면 오른쪽
+ *                    아래에 뜨는 241px 위젯(Figma 17698:25548 · PW-578 「접은 뒤의 모습」).
+ *                    body 로 포털되어 어느 페이지에서든 같은 자리에 선다. 우상단 maximize 로
+ *                    진행 화면에 돌아간다(`onExpand`). 언제 띄울지는 소비처가 정한다.
+ *   - title        : 제목 글자. 기본은 변형별로 「1on1 녹음 중...」 / mini 는 「원온원 녹음중...」,
+ *                    일시정지면 「1on1 녹음 일시정지됨」.
+ *   - onExpand     : mini 의 maximize 버튼 콜백. 없으면 버튼을 그리지 않는다.
+ *   - expandLabel  : 그 버튼의 접근성 이름.
  *   - notice       : 녹음 바 아래에 한 줄로 덧붙일 안내(문자열 또는 노드). 없으면
  *                    그 줄 자체를 그리지 않는다. 문구·노출 조건은 소비처가 쥔다 —
  *                    이 컴포넌트는 「어떻게 보이는가」만 정한다.
@@ -97,6 +108,28 @@ function MinimizeIcon() {
   );
 }
 
+/* 펼치기 — 네 귀를 밖으로 내는 화살표 둘 (icons-solid/maximize-01.svg 와 같은 뜻). */
+function MaximizeIcon() {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M14 10 21 3" />
+      <path d="M15 3h6v6" />
+      <path d="M10 14l-7 7" />
+      <path d="M3 15v6h6" />
+    </svg>
+  );
+}
+
 /* 재개 — 삼각형. fill 도 currentColor 라 상태 색을 그대로 따른다. */
 function ResumeIcon() {
   return (
@@ -115,6 +148,8 @@ function ResumeIcon() {
     </svg>
   );
 }
+
+const VARIANT_CLASS = { pip: 'is-pip', panel: 'is-panel', mini: 'is-mini' };
 
 export default function OneOnOneRecordingWidget({
   member,
@@ -139,6 +174,9 @@ export default function OneOnOneRecordingWidget({
   onOpenPip,
   openPipLabel = '미니 창 띄우기',
   limitNotice = null,
+  title,
+  onExpand,
+  expandLabel = '진행 화면으로 돌아가기',
 }) {
   const bars = wave && wave.length > 0 ? wave : DEFAULT_WAVE;
   // 실시간 마이크 이퀄라이저 — 호스트가 wave 를 직접 주면 그 값을 존중한다.
@@ -163,7 +201,7 @@ export default function OneOnOneRecordingWidget({
 
   if (idle) {
     return (
-      <div className={`ono-start-rec-wrap ${variant === 'pip' ? 'is-pip' : ''}`}>
+      <div className={`ono-start-rec-wrap ${VARIANT_CLASS[variant] ?? ''}`}>
         <div className="ono-start-rec-mini is-idle" data-testid="ono-rec-idle">
           <div className="ono-start-rec-notice is-actionable" role="status">
             <span>{notice}</span>
@@ -198,13 +236,26 @@ export default function OneOnOneRecordingWidget({
     );
   }
 
-  return (
+  const node = (
     <div
-      className={`ono-start-rec-wrap ${variant === 'pip' ? 'is-pip' : ''}`}
+      className={`ono-start-rec-wrap ${VARIANT_CLASS[variant] ?? ''}`}
+      data-testid={variant === 'mini' ? 'ono-rec-mini' : undefined}
     >
       <div className={`ono-start-rec-mini ${paused ? 'is-paused' : ''}`}>
         {/* 손으로 접기 (PW-578). 회의록 미니 위젯의 «우상단 maximize» 와 같은 자리에
             둔다 — 두 위젯을 오가는 동작이 같은 모서리에서 일어나야 익힐 것이 하나다. */}
+        {/* mini 의 펼치기 (Figma 17698:25570) — 회의록 미니 위젯과 같은 모서리·같은 모양. */}
+        {onExpand && (
+          <button
+            type="button"
+            className="ono-start-rec-expand"
+            aria-label={expandLabel}
+            title={expandLabel}
+            onClick={onExpand}
+          >
+            <MaximizeIcon />
+          </button>
+        )}
         {onCollapse && (
           <button
             type="button"
@@ -230,7 +281,7 @@ export default function OneOnOneRecordingWidget({
         )}
         <div className="ono-start-rec-head">
           <p className="ono-start-rec-title">
-            {paused ? '1on1 녹음 일시정지됨' : '1on1 녹음 중...'}
+            {title ?? (paused ? '1on1 녹음 일시정지됨' : variant === 'mini' ? '원온원 녹음중...' : '1on1 녹음 중...')}
           </p>
           <div className="ono-start-rec-member">
             <div className="ono-start-rec-avatar">
@@ -290,4 +341,7 @@ export default function OneOnOneRecordingWidget({
       </div>
     </div>
   );
+  // mini 는 페이지 레이아웃 밖(body)에 띄운다 — 어느 페이지로 가도 같은 자리에 남아야 해서다.
+  if (variant === 'mini' && typeof document !== 'undefined') return createPortal(node, document.body);
+  return node;
 }

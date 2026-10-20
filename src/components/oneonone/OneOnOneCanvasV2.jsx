@@ -154,6 +154,22 @@ export default function OneOnOneCanvasV2({
    * 안 넘기거나 null 을 돌려주면 모달은 그 행을 그리지 않는다.
    */
   renderRecordingPlayer,
+  /**
+   * 대시보드 «대신» 그릴 노드 — 같은 페이지 틀(제목 줄 포함) 안에서 다른 단계 화면을 보일 때.
+   * 예) 종료 뒤 DONE 화면(`DoneOneOnOneView`). 넘기면 대시보드·진행 뷰·[1on1 일정 추가] 를
+   * 그리지 않는다. 라우팅은 호스트가 한다 — 이 캔버스는 받은 노드를 자리에 놓을 뿐이다.
+   */
+  bodyOverride = null,
+  /** 제목 자리의 탭 (Figma 17556:26509). 모양·규칙은 `OneOnOnePageHeader` 의 `titleTabs` 주석. */
+  titleTabs,
+  /** 메타 줄 통째 바꿔 끼우기 (「내 원온원」 탭의 「김민준 사원」). `OneOnOnePageHeader` 주석 참조. */
+  metaText,
+  /**
+   * 내부 진행 뷰(`StartOneOnOneView`)에 그대로 펼쳐 넘길 추가 props — `liveGuide`·`readyGuide`·
+   * 녹음 제어 등. 외부 라우팅(`onStartMember`)을 쓰는 호스트는 자기 페이지에서 직접 넘기므로
+   * 쓸 일이 없다. design-page 데모가 LIVE 네비게이터를 보이기 위해 쓴다.
+   */
+  startViewProps,
 }) {
   const L = { ...DEFAULT_LABELS, ...labels };
   const [addOpen, setAddOpen] = useState(false);
@@ -209,12 +225,14 @@ export default function OneOnOneCanvasV2({
   // 모달 X/오버레이 닫기 — 진행하지 않고 대시보드에 남는다.
   const cancelSetup = () => { setSetupStep(null); setPendingStart(null); };
   return (
-    <main className="ono-page">
+    <main className={`ono-page${startMember || bodyOverride ? ' is-focus' : ''}`}>
       {subNav && <div className="ono-subnav">{subNav}</div>}
       {/* 제목 줄은 `OneOnOnePageHeader` 하나로 모았다 — 진행 화면(pivit-work
           /one-on-one)이 같은 모양을 손으로 다시 그리고 있었다 (PW-477). */}
       <OneOnOnePageHeader
         title={title}
+        titleTabs={titleTabs}
+        metaText={metaText}
         managerName={managerName}
         teamCount={teamCount}
         managerLabel={managerLabel}
@@ -222,7 +240,7 @@ export default function OneOnOneCanvasV2({
         scopeFilter={scopeFilter}
         scopeNotice={scopeNotice}
       >
-        {!startMember && (
+        {!startMember && !bodyOverride && (
           <button type="button" className="ono-add-btn" onClick={handleAdd}>
             <Icon src={icons?.plus} size={20} color="var(--text-white)" baseUrl={baseUrl} />
             <span>{L.addSchedule}</span>
@@ -230,7 +248,7 @@ export default function OneOnOneCanvasV2({
         )}
       </OneOnOnePageHeader>
 
-      {startMember ? (
+      {bodyOverride ? bodyOverride : startMember ? (
         /* "1on1 진행" — 페이지 뷰로 전환 (외부 핸들러 미지정 시 내부 fallback) */
         <StartOneOnOneView
           member={startMember}
@@ -240,6 +258,7 @@ export default function OneOnOneCanvasV2({
           aiDrafts={aiDrafts}
           onGenerateDrafts={onGenerateDrafts}
           generatingSection={generatingSection}
+          {...(startViewProps ?? {})}
         />
       ) : (
         <>

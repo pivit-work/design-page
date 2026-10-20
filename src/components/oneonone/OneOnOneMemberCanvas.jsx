@@ -5,6 +5,8 @@ import EmptyState from '../shared/EmptyState.jsx';
 import Icon from '../shared/Icon.jsx';
 import Tabs from '../shared/Tabs.jsx';
 import { fill, hostOf, healthOf, heldAtOf } from './sessionHelpers.js';
+import { doneBannerState, isDonePending } from './doneViewHelpers.js';
+import OneOnOnePastSessionList from './OneOnOnePastSessionList.jsx';
 import { RatingBar } from './StartOneOnOneView.jsx';
 
 /**
@@ -145,6 +147,10 @@ const DEFAULT_LABELS = {
   blockerHigh: '높음', blockerMedium: '보통',
   emotionTone: '대화 톤', emotionPositive: '긍정', emotionNeutral: '중립', emotionNegative: '부정',
   historyTitle: '지난 1on1', totalCount: '총 {count}회',
+  // 지난 회차 목록 머리·행 (Figma 17556:23218)
+  historyWith: '{name} 매니저와의 지난 원온원',
+  historySubtitle: '총 {count}회 · 회차를 선택해 기록을 확인하세요',
+  historyOpen: '기록보기', historyAnalyzing: 'AI 분석 중', historyAction: '액션',
   pastSessionsEmpty: '지난 1on1 기록이 없습니다',
   backToHistory: '목록으로',
   highlights: '하이라이트', count: '건', countUnit: '건',
@@ -592,7 +598,7 @@ function TranscriptSection({
  * - 항목별로 독립 토글이다. 한 항목을 펼쳐도 나머지는 접힌 채로 둔다.
  * - 어떤 발췌가 보이는지는 서버가 이미 걸러 보낸다. 여기서 출처를 거르지 않는다.
  */
-function EvidenceToggle({ items, managerName, edited, L, icons, baseUrl, jump }) {
+export function EvidenceToggle({ items, managerName, edited, L, icons, baseUrl, jump }) {
   const [open, setOpen] = useState(false);
   if (!items || items.length === 0) return null;
 
@@ -1837,79 +1843,31 @@ function HistoryScreen({ sessions, manager, avatar, renderAvatar, L, icons, base
     );
   }
 
-  return (
-    <>
-      <header className="ono-mem-head">
-        <div className="ono-mem-head-row">
-          <Icon src={icons.history} size={18} color="var(--utility-blue-500)" baseUrl={baseUrl} />
-          <h1 className="ono-mem-head-title">{L.historyTitle}</h1>
-          <span className="ono-mem-elapsed">
-            {avatar}
-            <span className="ono-mem-cell">{manager.name}</span>
-          </span>
-        </div>
-        <p className="ono-mem-head-date">{fill(L.totalCount, { count: done.length })}</p>
-      </header>
+  // 목록은 공용 `OneOnOnePastSessionList` (Figma 17556:23218) — 날짜·길이는 호스트 포맷으로
+  // 완성해 넘기고, AI 분석이 아직 끝나지 않은 회차는 [기록보기] 대신 「AI 분석 중」 이다.
+  const rows = done.map((s) => {
+    const mine = s.actionItems.filter((a) => a.owner === 'member');
+    return {
+      id: s.id,
+      dateLabel: formatDate(heldAtOf(s), 'short'),
+      durationLabel: s.durationSec > 0 ? formatDuration(s.durationSec) : '',
+      actionDone: mine.filter((a) => a.done).length,
+      actionTotal: mine.length,
+      summary: s.aiSummary ?? '',
+      analyzing: isDonePending(doneBannerState(s)),
+    };
+  });
 
-      {done.length === 0 ? (
-        <EmptyState description={L.pastSessionsEmpty} />
-      ) : (
-        <div className="ono-mem-timeline">
-          {done.map((s, i) => {
-            const mine = s.actionItems.filter((a) => a.owner === 'member');
-            const doneCount = mine.filter((a) => a.done).length;
-            const hVal = healthOf(s);
-            return (
-              <button
-                key={s.id}
-                type="button"
-                className="ono-mem-hist"
-                data-testid="ono-history-row"
-                onClick={() => select(s.id)}
-              >
-                <span className={`ono-mem-hist-dot${i === 0 ? ' is-latest' : ''}`} />
-                <span className="ono-mem-hist-body">
-                  <span className="ono-mem-hist-top">
-                    <span className="ono-mem-hist-date">{formatDate(heldAtOf(s), 'short')}</span>
-                    {s.durationSec > 0 && (
-                      <DpStatusBadge className="ono-mem-chip ono-mem-push">
-                        <Icon src={icons.clock} size={12} color="currentColor" baseUrl={baseUrl} />
-                        {formatDuration(s.durationSec)}
-                      </DpStatusBadge>
-                    )}
-                    {hVal != null && (
-                      <span
-                        className="ono-start-flag"
-                        style={{ background: healthBg ? healthBg(hVal) : undefined, borderColor: healthBorder ? healthBorder(hVal) : undefined, color: healthColor ? healthColor(hVal) : undefined }}
-                      >
-                        HC {hVal.toFixed(1)}
-                      </span>
-                    )}
-                  </span>
-                  {s.aiSummary && <span className="ono-mem-hist-summary">{s.aiSummary}</span>}
-                  {s.topicsCovered.length > 0 && (
-                    <span className="ono-start-briefing-badges">
-                      {s.topicsCovered.slice(0, 3).map((hl, hi) => (
-                        <DpStatusBadge key={`${hi}-${hl}`} className="ono-start-topic-badge">{hl}</DpStatusBadge>
-                      ))}
-                    </span>
-                  )}
-                  <span className="ono-mem-hist-meta">
-                    {(s.keyDecisions?.length ?? 0) > 0 && (
-                      <span>{L.keyDecisions} <strong>{s.keyDecisions.length}{L.countUnit}</strong></span>
-                    )}
-                    {mine.length > 0 && (
-                      <span>{L.myActionItems} <strong>{doneCount}/{mine.length} {L.completed}</strong></span>
-                    )}
-                  </span>
-                </span>
-                <Icon src={icons.arrow} size={14} color="var(--text-tertiary)" baseUrl={baseUrl} />
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </>
+  return (
+    <OneOnOnePastSessionList
+      title={fill(L.historyWith, { name: manager.name })}
+      subtitle={fill(L.historySubtitle, { count: done.length })}
+      sessions={rows}
+      onOpen={(r) => select(r.id)}
+      labels={{ open: L.historyOpen, analyzing: L.historyAnalyzing, action: L.historyAction }}
+      emptyText={L.pastSessionsEmpty}
+      baseUrl={baseUrl}
+    />
   );
 }
 

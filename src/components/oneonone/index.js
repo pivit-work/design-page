@@ -16,3 +16,4 @@ export { default as OneOnOneDetailModal } from './OneOnOneDetailModal.jsx';
 export { default as ManagerNoteModal } from './ManagerNoteModal.jsx';
 export { default as MicPermissionModal } from './MicPermissionModal.jsx';
 export { default as ManagerAssignModal } from './ManagerAssignModal.jsx';
+export { default as OneOnOnePastSessionList } from './OneOnOnePastSessionList.jsx';

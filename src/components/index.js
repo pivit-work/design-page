@@ -211,6 +211,7 @@ export {
   OneOnOneDashboardCanvas,
   OneOnOneDetailModal,
   LiveGuideCard as OneOnOneLiveGuideCard,
+  OneOnOnePastSessionList,
   OneOnOneMemberCanvas,
   OneOnOneMemberMeetingsCanvas,
   ManagerNoteModal,

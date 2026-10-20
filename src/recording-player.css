@@ -197,3 +197,60 @@
 .rec-player.is-flat .rec-player-time { font-weight: 400; color: var(--text-secondary); }
 .rec-player.is-flat .rec-player-retention { font-weight: 400; color: var(--text-tertiary); }
 .rec-player.is-flat.is-notice { font-weight: 400; }
+
+/* ── 가운데 정렬 변형 `.is-centered` — 매니저 DONE 화면 「AI 미팅 요약」 카드 안(Figma 17590:23662).
+   흰 블록 위에 ▶(32px 투명 버튼, 16px 글리프) · 320px brand 진행 바(8px, 볼 없음) · 「경과 / 전체」가
+   한 줄 가운데에 서고, 「녹음 보관 D-n」은 둘째 줄 가운데에 따로 선다. */
+.rec-player.is-centered {
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  min-height: 0;
+  padding: 16px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--bg-quaternary);
+}
+.rec-player.is-centered .rec-player-toggle {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg-primary);
+}
+.rec-player.is-centered .rec-player-toggle:hover:not(:disabled) { background: var(--alpha-black-3); }
+.rec-player.is-centered .rec-player-toggle svg { width: 16px; height: 16px; }
+/* 진행 바는 남는 폭을 채운다 — 시안(624 카드)에서 320 이고, 카드가 넓어지면 같이 늘어난다. */
+.rec-player.is-centered .rec-player-seek {
+  flex: 1 1 320px;
+  min-width: 120px;
+  height: 20px;
+}
+.rec-player.is-centered .rec-player-seek-track {
+  top: 6px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--bg-primary);
+}
+.rec-player.is-centered .rec-player-seek-track i {
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--fg-brand-primary);
+}
+/* 시안에는 볼이 없다 — 끌기는 투명한 range 가 그대로 받는다. */
+.rec-player.is-centered .rec-player-seek-ball { display: none; }
+.rec-player.is-centered .rec-player-time {
+  white-space: nowrap;
+  font-size: var(--font-size-text-sm);
+  font-weight: 400;
+  line-height: var(--line-height-text-sm);
+  color: var(--text-primary);
+}
+.rec-player.is-centered .rec-player-retention {
+  flex-basis: 100%;
+  text-align: center;
+  font-weight: 400;
+  color: var(--text-tertiary);
+}
+.rec-player.is-centered.is-notice { justify-content: center; }
