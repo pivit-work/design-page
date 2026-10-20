@@ -21,8 +21,10 @@ import OkrTeamPicker, { TEAM_PICKER_MIN } from './OkrTeamPicker.jsx';
  * 팀이 많을 때 (PW-1876): 탭 줄은 줄바꿈 없이 옆으로 굴러가고, 고른 탭이 보이게 굴려 둔다.
  * 팀이 TEAM_PICKER_MIN 개 이상이면 줄 오른쪽 끝에 검색 달린 「팀 고르기」(OkrTeamPicker)를 단다.
  * teamPickerLabels: { trigger, search, empty } — 소비자 번역. 안 주면 한국어 기본값.
+ * notice: 팀 탭 줄 바로 아래 놓는 안내 한 줄(소비자가 NoteText 등으로 그려 넘긴다). 예: 조직장이 없어
+ *   어드민만 쓸 수 있다는 안내(pivit-work PW-2039). 이 캔버스는 고정 자리라 바깥에 그리면 화면 맨 위 구석에 붙는다.
  */
-export default function OkrTeamCanvas({ data, icons, baseUrl = '', activeTeam, onTeamChange, onKrUpdate, onSubmitFeedback, onViewAllFeedback, onWriteFeedback, onRefreshInsights, onInsightAction, onToggleInitiative, canEditInitiative = false, teamPickerLabels , focusKrId = null, focusObjectiveId = null }) {
+export default function OkrTeamCanvas({ data, icons, baseUrl = '', activeTeam, onTeamChange, onKrUpdate, onSubmitFeedback, onViewAllFeedback, onWriteFeedback, onRefreshInsights, onInsightAction, onToggleInitiative, canEditInitiative = false, teamPickerLabels, notice = null, focusKrId = null, focusObjectiveId = null }) {
   const { teams, periodLabel, links, parents, board, history } = data;
   const [internalTeam, setInternalTeam] = useState(teams[1] ?? teams[0]);
   const team = activeTeam ?? internalTeam;
@@ -68,6 +70,8 @@ export default function OkrTeamCanvas({ data, icons, baseUrl = '', activeTeam, o
           <OkrTeamPicker teams={teams} value={team} onChange={selectTeam} labels={teamPickerLabels} />
         )}
       </div>
+
+      {notice}
 
       <SegmentedControl
         className="okr-p-period"
