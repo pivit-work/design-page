@@ -31,8 +31,32 @@ import {
  */
 
 
-/** 도구 줄 — 보기 전환 · 이름 검색 · 조직/직급/상태 칩 · 정렬(대상자 기준만). */
-export function LeaderToolbar({ L, tools, groups, levels, searchLabel, testPrefix }) {
+/** 이름 검색 칸 — 대상자 기준이면 대상자 이름, 평가자 기준이면 평가자 이름을 찾는다. */
+export function LeaderSearch({ L, tools, searchLabel, testPrefix }) {
+  const T = { ...LEADER_TOOL_LABELS, ...L };
+  const target = tools.view === "target";
+  return (
+    <span className="evc-review-search evc-la-search">
+      <span className="evc-review-search-icon">
+        <SearchGlyph size={14} />
+      </span>
+      <TextInput
+        className="evc-input"
+        value={tools.query}
+        placeholder={target ? searchLabel : T.leaderToolSearchEvaluator}
+        aria-label={target ? searchLabel : T.leaderToolSearchEvaluator}
+        onChange={(e) => tools.setQuery(e.target.value)}
+        data-testid={`${testPrefix}-search`}
+      />
+    </span>
+  );
+}
+
+/**
+ * 도구 줄 — 보기 전환 · 이름 검색 · 조직/직급/상태 칩 · 정렬(대상자 기준만).
+ * `search={false}` 면 검색 칸을 빼고 그린다 — 4단계는 검색을 요약 줄 둘째 줄에 둔다(PW-2113).
+ */
+export function LeaderToolbar({ L, tools, groups, levels, searchLabel, testPrefix, search = true }) {
   const T = { ...LEADER_TOOL_LABELS, ...L };
   const target = tools.view === "target";
   const axes = target
@@ -66,19 +90,7 @@ export function LeaderToolbar({ L, tools, groups, levels, searchLabel, testPrefi
             },
           ]}
         />
-        <span className="evc-review-search evc-la-search">
-          <span className="evc-review-search-icon">
-            <SearchGlyph size={14} />
-          </span>
-          <TextInput
-            className="evc-input"
-            value={tools.query}
-            placeholder={target ? searchLabel : T.leaderToolSearchEvaluator}
-            aria-label={target ? searchLabel : T.leaderToolSearchEvaluator}
-            onChange={(e) => tools.setQuery(e.target.value)}
-            data-testid={`${testPrefix}-search`}
-          />
-        </span>
+        {search && <LeaderSearch L={L} tools={tools} searchLabel={searchLabel} testPrefix={testPrefix} />}
         {target && (
           <span className="evc-la-sort-pick">
             <Select

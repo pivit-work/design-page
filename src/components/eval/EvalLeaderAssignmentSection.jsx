@@ -3,6 +3,7 @@ import StatusBadge from '../shared/StatusBadge.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
 import TextInput from '../shared/TextInput.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
+import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import Skeleton from '../shared/Skeleton.jsx';
 import Chip from '../shared/Chip.jsx';
@@ -29,7 +30,7 @@ import {
   leaderLevelOptions,
   sortLeaderRows,
 } from './evalLeaderTable.js';
-import { LeaderBulkBar, LeaderEvaluatorView, LeaderToolbar } from './EvalLeaderTableTools.jsx';
+import { LeaderBulkBar, LeaderEvaluatorView, LeaderSearch, LeaderToolbar } from './EvalLeaderTableTools.jsx';
 import { useLeaderTableTools } from './useLeaderTableTools.js';
 import { withoutLeavingBefore } from './evalRetiring.js';
 import RetiringTag from './RetiringTag.jsx';
@@ -196,7 +197,20 @@ export default function EvalLeaderAssignmentSection({
     rows.length === 0 ||
     (remainingConfirmable === 0 && !pendingFinal);
   const fullyConfirmed = !!confirm && !reconfirmReason;
+  /* PW-2113 — 조직이 하나뿐이면 «0 / 1» 진행바는 뜻이 없다. 나누지 않는 회사처럼 상태 글씨만 둔다. */
+  const showProgress = grouped && groups.length > 1;
   const overloadPeople = loadLimit > 0 ? [...loadBy.values()].filter((n) => n > loadLimit).length : 0;
+  /* PW-2113 — 0 인 경고 종류는 자리를 차지하지 않는다. */
+  const warnDetail = [
+    [summary.no_evaluator, L.leaderAsgCountNoEvaluator],
+    [summary.self, L.leaderAsgCountSelf],
+    [summary.duplicate, L.leaderAsgCountDuplicate],
+    [summary.resigned, L.leaderAsgCountResigned],
+    [summary.leaving, L.leaderAsgCountLeaving],
+    [overloadPeople, L.leaderAsgCountOverload],
+  ]
+    .filter(([n]) => n > 0)
+    .map(([n, label]) => fill(label, { n }));
 
   /* 규칙 요약 — 조건(빈 축 생략 · 다 비면 «모든 대상자») → 동작. 없어진 조직은 취소선 + «없는 조직»(R7). */
   const ruleRoundMissing = (r) => r.round > rounds;
@@ -622,102 +636,110 @@ export default function EvalLeaderAssignmentSection({
         </div>
       )}
 
-      <div
-        className={`evc-la-bar${fullyConfirmed || !editable ? '' : ' is-warn'}`}
-        data-testid="evc-la-bar"
-      >
-        <span className="evc-la-bar-count" data-testid="evc-la-summary">
-          {fill(L.leaderAsgSummary, { n: rows.length, rounds, w: summary.total })}
-        </span>
-        <span className="evc-la-bar-detail">
-          {fill(L.leaderAsgSummaryDetail, {
-            a: summary.no_evaluator,
-            b: summary.self,
-            c: summary.duplicate,
-            d: summary.resigned,
-            e: summary.leaving,
-            f: overloadPeople,
-          })}
-        </span>
-        <Checkbox
-          className="evc-la-bar-toggle"
-          inputClassName="dp-check-input"
-          checked={warnOnly}
-          onChange={(e) => setWarnOnly(e.target.checked)}
-          label={L.leaderAsgWarnOnly}
-          data-testid="evc-la-warn-only"
-        />
-        {grouped ? (
-          <span className="evc-la-bar-right">
-            {fullyConfirmed ? (
-              <span className="evc-la-state is-done" data-testid="evc-la-state">
-                <CheckCircleIcon size={13} />{' '}
-                {byName(confirm.confirmedBy)
-                  ? fill(L.leaderAsgConfirmedAll, {
-                      at: formatStamp(confirm.confirmedAt),
-                      by: byName(confirm.confirmedBy),
-                    })
-                  : fill(L.leaderAsgConfirmedAllNoBy, { at: formatStamp(confirm.confirmedAt) })}
-              </span>
-            ) : (
-              <span className="evc-la-state is-warn" data-testid="evc-la-state">
+      {/* PW-2113 — 요약 줄 두 줄. 위: 확정 진행(OKR 묶음 카드 «이름 · 진행률» 줄 + 진행바), 아래: 전체/경고만 탭 ·
+          0 이 아닌 경고 · 검색 · 확정 버튼(스니핏 필터 줄). 조직을 나누지 않으면 진행바 없이 상태 글씨만. */}
+      <div className="evc-la-sum" data-testid="evc-la-bar">
+        <div className="evc-la-sum-head">
+          <span data-testid="evc-la-summary">
+            {showProgress && (
+              <span className="evc-la-sum-count" data-testid="evc-la-progress">
                 {fill(L.leaderAsgGroupProgress, { a: confirmedGroups, b: groups.length })}
-                {reconfirmReason ? ` · ${L.leaderAsgReconfirm} — ${reconfirmReason}` : ''}
               </span>
             )}
-            <Tooltip
-              content={
-                confirmBlocked && remainingConfirmable === 0 && !fullyConfirmed
-                  ? fill(L.leaderAsgConfirmBlocked, { count: summary.blocking })
-                  : undefined
-              }
-            >
-              <button
-                type="button"
-                className="evc-btn is-primary"
-                disabled={remainingDisabled}
-                onClick={() => onConfirmRemaining?.()}
-                data-testid="evc-la-confirm"
-              >
-                {confirming ? L.leaderAsgConfirming : L.leaderAsgConfirmRemaining}
-              </button>
-            </Tooltip>
+            <span className="evc-la-sum-sub">
+              {showProgress ? ' · ' : ''}
+              {fill(L.leaderAsgSummary, { n: rows.length, rounds })}
+            </span>
           </span>
-        ) : (
-        <span className="evc-la-bar-right">
-          {confirm && !reconfirmReason ? (
+          {fullyConfirmed ? (
             <span className="evc-la-state is-done" data-testid="evc-la-state">
               <CheckCircleIcon size={13} />{' '}
               {/* 확정한 사람 이름을 못 받았으면(사이클 응답이 id 만 줄 때) 이름 자리를 비우지 않고 뺀다. */}
               {byName(confirm.confirmedBy)
-                ? fill(L.leaderAsgConfirmed, {
+                ? fill(grouped ? L.leaderAsgConfirmedAll : L.leaderAsgConfirmed, {
                     at: formatStamp(confirm.confirmedAt),
                     by: byName(confirm.confirmedBy),
                   })
-                : fill(L.leaderAsgConfirmedNoBy, { at: formatStamp(confirm.confirmedAt) })}
+                : fill(grouped ? L.leaderAsgConfirmedAllNoBy : L.leaderAsgConfirmedNoBy, {
+                    at: formatStamp(confirm.confirmedAt),
+                  })}
             </span>
           ) : (
             <span className="evc-la-state is-warn" data-testid="evc-la-state">
               {reconfirmReason ? `${L.leaderAsgReconfirm} — ${reconfirmReason}` : L.leaderAsgUnconfirmed}
             </span>
           )}
-          <Tooltip
-            content={
-              confirmBlocked ? fill(L.leaderAsgConfirmBlocked, { count: summary.blocking }) : undefined
-            }
+        </div>
+        {showProgress && (
+          <div
+            className="evc-la-sum-track"
+            role="progressbar"
+            aria-label={L.leaderAsgProgressAria}
+            aria-valuemin={0}
+            aria-valuemax={groups.length}
+            aria-valuenow={confirmedGroups}
           >
-            <button
-              type="button"
-              className="evc-btn is-primary"
-              disabled={confirmDisabled}
-              onClick={() => onConfirm?.()}
-              data-testid="evc-la-confirm"
-            >
-              {confirming ? L.leaderAsgConfirming : L.leaderAsgConfirm}
-            </button>
-          </Tooltip>
-        </span>
+            <div
+              className={`evc-la-sum-fill${fullyConfirmed ? ' is-success' : ''}`}
+              style={{ width: `${(confirmedGroups / groups.length) * 100}%` }}
+              data-testid="evc-la-progress-fill"
+            />
+          </div>
         )}
+        <div className="evc-la-sum-row">
+          <SegmentedControl
+            ariaLabel={L.leaderAsgTabsAria}
+            value={warnOnly ? 'warn' : 'all'}
+            onChange={(v) => setWarnOnly(v === 'warn')}
+            items={[
+              { value: 'all', label: fill(L.leaderAsgTabAll, { n: rows.length }), testId: 'evc-la-tab-all' },
+              { value: 'warn', label: fill(L.leaderAsgTabWarn, { w: summary.total }), testId: 'evc-la-warn-only' },
+            ]}
+          />
+          <span className="evc-la-sum-note" data-testid="evc-la-warn-detail">
+            {warnDetail.length > 0 ? warnDetail.join(' · ') : L.leaderAsgNoWarnings}
+          </span>
+          <span className="evc-la-bar-right">
+            {rows.length > 0 && (
+              <LeaderSearch L={L} tools={tools} searchLabel={L.leaderAsgSearch} testPrefix="evc-la" />
+            )}
+            {grouped ? (
+              <Tooltip
+                content={
+                  confirmBlocked && remainingConfirmable === 0 && !fullyConfirmed
+                    ? fill(L.leaderAsgConfirmBlocked, { count: summary.blocking })
+                    : undefined
+                }
+              >
+                <button
+                  type="button"
+                  className="evc-btn is-primary"
+                  disabled={remainingDisabled}
+                  onClick={() => onConfirmRemaining?.()}
+                  data-testid="evc-la-confirm"
+                >
+                  {confirming ? L.leaderAsgConfirming : L.leaderAsgConfirmRemaining}
+                </button>
+              </Tooltip>
+            ) : (
+              <Tooltip
+                content={
+                  confirmBlocked ? fill(L.leaderAsgConfirmBlocked, { count: summary.blocking }) : undefined
+                }
+              >
+                <button
+                  type="button"
+                  className="evc-btn is-primary"
+                  disabled={confirmDisabled}
+                  onClick={() => onConfirm?.()}
+                  data-testid="evc-la-confirm"
+                >
+                  {confirming ? L.leaderAsgConfirming : L.leaderAsgConfirm}
+                </button>
+              </Tooltip>
+            )}
+          </span>
+        </div>
       </div>
 
       {failed && (
@@ -749,6 +771,7 @@ export default function EvalLeaderAssignmentSection({
           levels={levelOptions}
           searchLabel={L.leaderAsgSearch}
           testPrefix="evc-la"
+          search={false}
         />
       )}
       {bulkOn && (
