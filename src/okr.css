@@ -228,9 +228,13 @@ body:has(.okr-ctx-banner) .tl-group-modal.okr-shell { max-height: calc(100vh - 6
 .okr-status-text.is-success { color: var(--utility-success-500); }
 
 /* 테이블 헤더 */
-.okr-p-table-head { display: flex; align-items: center; padding: 8px 22px 0; font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+/* 칸 이름은 아래 줄의 Weight(105px·가운데)·PIC(140px·왼쪽 32px 띄움) 칸과 같은 자리에 선다 (PW-2061).
+   줄에는 오른쪽 여백이 없으므로 머리줄도 오른쪽 여백 없이 끝까지 간다. 표 제목의 왼쪽 22px 는 그대로. */
+.okr-p-table-head { display: flex; align-items: center; padding: 8px 0 0 22px; font-size: 13px; font-weight: 600; color: var(--text-secondary); }
 .okr-p-theme { flex: 1; }
-.okr-p-table-col { width: 90px; text-align: center; color: var(--text-tertiary); font-weight: 700; }
+.okr-p-table-col { flex-shrink: 0; box-sizing: border-box; color: var(--text-tertiary); font-weight: 700; }
+.okr-p-table-col.is-weight { width: 105px; text-align: center; }
+.okr-p-table-col.is-pic { width: 140px; padding-left: 32px; text-align: left; }
 
 /* Objective 테이블 — 하나의 흰 컨테이너, 공통 4컬럼 그리드
    [라벨 206px | 메인 flex | Weight 105px | PIC 140px]

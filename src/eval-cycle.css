@@ -5539,7 +5539,11 @@ button.evm-ai-source {
 .evs-lp-dot.seg-top { background: var(--utility-green-500); }
 .evs-lp-dot.seg-mid { background: var(--utility-brand-500); }
 .evs-lp-dot.seg-bottom { background: var(--utility-error-500); }
-.evs-lp-calib-row { grid-template-columns: 1.2fr 1.2fr auto 1fr; }
+/* 줄마다 따로 그리는 grid 라, 칸 폭이 내용(성향 배지 길이)을 따라가면 머리줄·줄마다 칸 시작이 달라진다 (PW-2061).
+   모든 칸을 내용과 무관한 비율로 고정하고, 긴 이름·배지는 칸 안에서 줄바꿈·말줄임한다. */
+.evs-lp-calib-row { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr); }
+.evs-lp-calib-row > * { min-width: 0; overflow-wrap: anywhere; }
+.evs-lp-calib-row > .evs-lp-tag { justify-self: start; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .evs-lp-delta.is-up { color: var(--utility-green-600); font-variant-numeric: tabular-nums; font-weight: 700; }
 .evs-lp-delta.is-down { color: var(--utility-error-600); font-variant-numeric: tabular-nums; font-weight: 700; }
 .evs-lp-delta.is-muted { color: var(--text-tertiary); }

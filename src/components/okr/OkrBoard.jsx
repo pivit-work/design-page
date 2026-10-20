@@ -61,8 +61,8 @@ export default function OkrBoard({
 
       <div className="okr-p-table-head">
         <span className="okr-p-theme">{theme}</span>
-        <span className="okr-p-table-col">Weight</span>
-        <span className="okr-p-table-col">PIC</span>
+        <span className="okr-p-table-col is-weight">Weight</span>
+        <span className="okr-p-table-col is-pic">PIC</span>
       </div>
 
       <div className="okr-p-objectives">
