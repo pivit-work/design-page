@@ -1647,6 +1647,9 @@ export default function EvalCycleHrCanvas({
   savedMessagesStatus = 'ready',
   /** PW-975 — 회사 전체 «미완료 평가 리마인더»가 꺼져 있다. 위자드로 그대로 넘긴다. */
   remindersOffOrgWide = false,
+  /** PW-2089 — 회사 리마인더 기본값과 불러오기 실패. 위자드로 그대로 넘긴다. */
+  reminderCompanyDefaults,
+  reminderCompanyDefaultsFailed = false,
   onReloadSavedMessages,
   onSaveMessage,
   onPolishMessage,
@@ -2001,6 +2004,8 @@ export default function EvalCycleHrCanvas({
         setManageTarget({
           cycle: detail?.cycle ?? cycle,
           participants: detail?.participants ?? [],
+          // PW-2089 — 리마인더 «이 사이클만» 툴팁의 바꾼 사람 이름(상세가 실어 준다).
+          reminderChangers: detail?.reminderChangers ?? null,
           landing,
         });
       } catch {
@@ -2356,6 +2361,9 @@ export default function EvalCycleHrCanvas({
           savedMessages={savedMessages}
           savedMessagesStatus={savedMessagesStatus}
           remindersOffOrgWide={remindersOffOrgWide}
+          reminderCompanyDefaults={reminderCompanyDefaults}
+          reminderCompanyDefaultsFailed={reminderCompanyDefaultsFailed}
+          reminderChangers={resumeTarget?.reminderChangers ?? undefined}
           onReloadSavedMessages={onReloadSavedMessages}
           onSaveMessage={onSaveMessage}
           onPolishMessage={onPolishMessage}
@@ -2439,6 +2447,9 @@ export default function EvalCycleHrCanvas({
           savedMessages={savedMessages}
           savedMessagesStatus={savedMessagesStatus}
           remindersOffOrgWide={remindersOffOrgWide}
+          reminderCompanyDefaults={reminderCompanyDefaults}
+          reminderCompanyDefaultsFailed={reminderCompanyDefaultsFailed}
+          reminderChangers={manageTarget.reminderChangers ?? undefined}
           onReloadSavedMessages={onReloadSavedMessages}
           onSaveMessage={onSaveMessage}
           onPolishMessage={onPolishMessage}

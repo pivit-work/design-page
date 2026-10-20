@@ -1669,6 +1669,16 @@
   font-size: var(--font-size-text-xs);
   color: var(--text-secondary);
 }
+/* [PW-2089 · 정책 §5.2.1-F] 축 딱지 + «기본값으로» 한 묶음 — 줄이 접혀도 둘이 떨어지지 않게. */
+.evc-rm-inherit {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  white-space: nowrap;
+}
+.evc-rm-inherit > .evc-rm-edit-btn {
+  padding: 2px 8px;
+}
 .evc-rm-actions {
   margin-left: auto;
   flex-shrink: 0;

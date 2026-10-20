@@ -696,6 +696,9 @@ const makeReminder = (offset = 1, channels = ['email']) => ({
   time: '09:00',
   channels,
   targets: { leader: false, hr: false },
+  // [PW-2089 §5.2.1-F] 기본 리마인더·새 리마인더는 두 축 모두 회사 기본값을 따른다 — 채널은
+  // 화면이 회사 값으로 다시 채운다(`withCompanyDefaults`). 여기 채널은 회사 값을 모를 때의 자리값이다.
+  inherit: { channels: true, targets: true },
   // [PW-435 ⑤] 문구는 채널 공통 1벌. 구: email.{template,subject,body}
   message: { ...EMPTY_MESSAGE },
   // 수신은 members.email 자동, CC 는 targets 연동 — 편집 필드가 없다.
@@ -716,6 +719,72 @@ const defaultReminders = () => [
   { ...makeReminder(3, ['email']), id: 'r_default_d3' },
   { ...makeReminder(1, ['email', 'slack']), id: 'r_default_d1' },
 ];
+/**
+ * [PW-2089 · 정책 §5.2.1-F] 리마인더의 채널·받는 사람은 회사 기본값(어드민 › 알림 설정 «미완료 평가
+ * 리마인더»)을 따르고, 손댄 축만 «이 사이클만»이다. 회사 값은 `reminderCompanyDefaults` prop 으로
+ * 받는다 — 안 넘기거나 불러오는 중이면 이 값(종전 기본 프리셋과 같다)으로 그린다.
+ */
+const COMPANY_REMIND_DEFAULT = {
+  channelsFar: ['email'],
+  channelsNear: ['email', 'slack'],
+  targets: { self: true, leader: false, hr: false },
+};
+// 마감 1일 전·당일 = 가까운 쪽 · 2일 이상 전 = 먼 쪽 (서버 `companyChannelsFor` 와 같다).
+const companyRemindChannels = (offset, d) =>
+  [...(Number(offset) <= 1 ? d.channelsNear : d.channelsFar)];
+const sameChannelSet = (a, b) => {
+  const set = new Set(a ?? []);
+  return set.size === b.length && b.every((c) => set.has(c));
+};
+/**
+ * 축마다 회사 기본값을 따르나. 표시가 없는 옛 리마인더는 **값이 회사 기본값과 같으면 따른다**로
+ * 읽는다(F1) — 일부러 고른 값을 회사 값이 덮지 않게.
+ */
+function reminderFollows(rm, d) {
+  const inh = rm?.inherit;
+  const t = rm?.targets ?? {};
+  return {
+    channels:
+      typeof inh?.channels === 'boolean'
+        ? inh.channels
+        : sameChannelSet(rm?.channels, companyRemindChannels(rm?.offset, d)),
+    targets:
+      typeof inh?.targets === 'boolean'
+        ? inh.targets
+        : (t.self !== false) === d.targets.self &&
+          !!t.leader === d.targets.leader &&
+          !!t.hr === d.targets.hr,
+  };
+}
+/** 따르는 축을 회사 값으로 채우고 표시를 분명히 적는다 — 화면에 보이는 값 = 저장·발송되는 값. */
+function withCompanyDefaults(rm, d) {
+  if (!rm) return rm;
+  const f = reminderFollows(rm, d);
+  return {
+    ...rm,
+    channels: f.channels ? companyRemindChannels(rm.offset, d) : rm.channels,
+    targets: f.targets ? { ...(rm.targets ?? {}), ...d.targets } : rm.targets,
+    inherit: { ...(rm.inherit ?? {}), channels: f.channels, targets: f.targets },
+  };
+}
+/**
+ * 축을 이 화면에서 «이 사이클만»으로 바꿨다. 바꾼 사람·시각은 서버가 저장할 때 찍으므로(§5.2.1-F)
+ * 저장 전에는 `unsaved` 로만 표시한다 — 옛 줄의 «바꾼 사람 기록 없음»과 갈라 보이게. 서버는 이 칸을 버린다.
+ */
+function markAxisChanged(inherit, axis) {
+  return {
+    ...(inherit ?? {}),
+    [axis]: false,
+    unsaved: { ...(inherit?.unsaved ?? {}), [axis]: true },
+  };
+}
+/** `YYYY-MM-DD HH:mm` — 툴팁의 바꾼 시각(브라우저 시간대). 못 읽으면 빈 값. */
+function changedAtText(iso) {
+  const d = iso ? new Date(iso) : null;
+  if (!d || Number.isNaN(d.getTime())) return '';
+  const p2 = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}`;
+}
 /**
  * [PW-1591 · 정책 §5.2.1-E J-7] 기본 리마인더를 단계 길이에 맞춘다.
  * 종료일 − 시작일(날짜 기준) ≥ 3일: D-3·D-1 / 1~2일: D-1 / 같은 날: D-0 1회.
@@ -2821,6 +2890,15 @@ export default function EvalCycleWizard({
    */
   remindersOffOrgWide = false,
   /**
+   * PW-2089 · 정책 §5.2.1-F — 회사 리마인더 기본값 `{ channelsFar[], channelsNear[], targets{self,leader,hr} }`.
+   * 안 넘기면(불러오는 중 포함) 종전 기본 프리셋 값이다. 따르는 축은 이 값으로 그리고 저장한다.
+   */
+  reminderCompanyDefaults,
+  /** PW-2089 — 회사 기본값을 불러오지 못했다. 딱지 옆에 `L.reminderInheritLoadFailed` 를 띄운다(저장은 막지 않는다). */
+  reminderCompanyDefaultsFailed = false,
+  /** PW-2089 — 리마인더를 «이 사이클만»으로 바꾼 사람 id → 이름. 없는 id 는 `L.reminderInheritNoChanger`. */
+  reminderChangers,
+  /**
    * PW-2079 · 정책 §5.2.1-G — 오픈한 사이클의 리마인더 줄마다 붙는 발송 상태 칩.
    * `(phaseId, reminder, scheduleSlot) => { label, tone, title? } | null`.
    * `tone` 은 `.evc-status-badge` 의 `tone-*` 하나(neutral·info·success·warn·error). `null` 이면
@@ -3548,9 +3626,10 @@ export default function EvalCycleWizard({
    * 「설정된 리마인더가 없습니다」로 보인다(PW-981). 기본값으로 채워 보이면 HR 은 그 단계에
    * 리마인더가 나갈 줄 안다. 저장도 그런 단계는 싣지 않는다(PW-971 · submit).
    */
+  const companyRemind = reminderCompanyDefaults ?? COMPANY_REMIND_DEFAULT;
   const remindersOf = (id) =>
-    (reminders[id] ?? (openedManage ? [] : presetRemindersFor(scheduleOf(id)))).map(
-      normalizeReminder,
+    (reminders[id] ?? (openedManage ? [] : presetRemindersFor(scheduleOf(id)))).map((rm) =>
+      withCompanyDefaults(normalizeReminder(rm), companyRemind),
     );
   const middleIds = activePhases.filter((p) => !p.anchor).map((p) => p.id);
   /* [PW-1594 · 정책 §5.13.3] 하향 차수 단계는 순서 안에서 «연속 · 오름차순» 한 묶음이다 — 저장된 순서가
@@ -3782,7 +3861,8 @@ export default function EvalCycleWizard({
   /* [PW-1066] 새로 더한 리마인더는 곧바로 패널을 연다 — 목록에는 입력칸이 없어서, 안 열면
      기본값(D-1 · 09:00 · 이메일)으로 조용히 한 줄이 늘 뿐 무엇이 잡혔는지 확인할 자리가 없다. */
   const addReminder = (pid) => {
-    const rm = makeReminder(1, ['email']);
+    // [PW-2089] 새 줄도 회사 기본값 — 종전 «이메일만 켜진 새 줄»을 바꾼다(D-1 이면 이메일+Slack).
+    const rm = withCompanyDefaults(makeReminder(1, ['email']), companyRemind);
     setReminders((r) => ({ ...r, [pid]: [...remindersOf(pid), rm] }));
     setRmEdit({ pid, rid: rm.id });
   };
@@ -3796,7 +3876,39 @@ export default function EvalCycleWizard({
   const patchReminder = (pid, rid, fn) =>
     setReminders((r) => ({
       ...r,
-      [pid]: remindersOf(pid).map((x) => (x.id === rid ? { ...x, ...fn(x) } : x)),
+      [pid]: remindersOf(pid).map((x) => {
+        if (x.id !== rid) return x;
+        const p = fn(x);
+        // [PW-2089 §5.2.1-F] 받는 사람을 고치면 그 축만 «이 사이클만»
+        return p.targets
+          ? { ...x, ...p, inherit: markAxisChanged(x.inherit, 'targets') }
+          : { ...x, ...p };
+      }),
+    }));
+  /** [PW-2089 §5.2.1-F] 축 하나를 회사 기본값으로 되돌린다. 확인 창 없음(되돌릴 수 있다). */
+  const resetReminderAxis = (pid, rid, axis) =>
+    setReminders((r) => ({
+      ...r,
+      [pid]: remindersOf(pid).map((x) => {
+        if (x.id !== rid) return x;
+        const inherit = {
+          ...(x.inherit ?? {}),
+          [axis]: true,
+          unsaved: { ...(x.inherit?.unsaved ?? {}), [axis]: false },
+        };
+        if (axis === 'channels') {
+          return { ...x, channels: companyRemindChannels(x.offset, companyRemind), inherit };
+        }
+        // F4 — 당사자가 다시 켜지면(꺼지면) 문구 후보도 독촉형(현황 보고)으로 함께 옮긴다.
+        const selfWas = x.targets?.self !== false;
+        const selfNext = companyRemind.targets.self;
+        return {
+          ...x,
+          targets: { ...(x.targets ?? {}), ...companyRemind.targets },
+          inherit,
+          ...(selfWas !== selfNext ? { message: migrateTemplate(messageOf(x), !selfNext) } : null),
+        };
+      }),
     }));
   const toggleChannel = (pid, rid, ch) =>
     setReminders((r) => ({
@@ -3808,6 +3920,8 @@ export default function EvalCycleWizard({
         return {
           ...x,
           channels: has ? x.channels.filter((c) => c !== ch) : [...x.channels, ch],
+          // [PW-2089 §5.2.1-F] 채널 칩을 누르면 채널 축만 «이 사이클만»
+          inherit: markAxisChanged(x.inherit, 'channels'),
         };
       }),
     }));
@@ -9575,6 +9689,12 @@ export default function EvalCycleWizard({
                             <span className="evc-rm-count">
                               {fill(L.reminderCount, { count: remindersOf(ph.id).length })}
                             </span>
+                            {/* [PW-2089 §5.2.1-F 로딩·에러] 회사 기본값을 못 불러와도 저장은 막지 않는다. */}
+                            {reminderCompanyDefaultsFailed && remindersOf(ph.id).length > 0 && (
+                              <span className="evc-rm-sum-msg" data-testid={`evc-rm-inherit-failed-${ph.id}`}>
+                                {L.reminderInheritLoadFailed}
+                              </span>
+                            )}
                           </div>
                           {remindersOf(ph.id).length === 0 ? (
                             <div className="evc-rm-empty">{L.reminderEmpty}</div>
@@ -9612,6 +9732,48 @@ export default function EvalCycleWizard({
                                       return (
                                         <span key={cid} className="evc-rm-sum-ch">
                                           <ch.Icon size={13} /> {L[ch.labelKey]}
+                                        </span>
+                                      );
+                                    })}
+                                    {/* [PW-2089 · 정책 §5.2.1-F] 받는 사람·채널 축마다 회사 기본값 / 이 사이클만.
+                                        딱지 = 같은 줄 발송 상태 칩과 같은 `.evc-status-badge`(neutral / info) ·
+                                        «기본값으로» = 같은 줄 [편집] 과 같은 글자 버튼. */}
+                                    {['targets', 'channels'].map((axis) => {
+                                      const inh = rm.inherit ?? {};
+                                      const follows = inh[axis] !== false;
+                                      const byId = inh.changedBy?.[axis];
+                                      const byName = byId ? reminderChangers?.[byId] : null;
+                                      const title = follows
+                                        ? L.reminderInheritDefaultHint
+                                        : inh.unsaved?.[axis]
+                                          ? L.reminderInheritCustomHint
+                                          : byName
+                                            ? fill(L.reminderInheritCustomByHint, {
+                                                name: byName,
+                                                at: changedAtText(inh.changedAt?.[axis]),
+                                              })
+                                            : L.reminderInheritCustomNoChangerHint;
+                                      const axisLabel =
+                                        axis === 'channels' ? L.reminderInheritChannels : L.reminderInheritTargets;
+                                      return (
+                                        <span key={axis} className="evc-rm-inherit">
+                                          <StatusBadge
+                                            className={`evc-status-badge tone-${follows ? 'neutral' : 'info'}`}
+                                            title={title}
+                                            data-testid={`evc-rm-inherit-${axis}-${ph.id}-${i}`}
+                                          >
+                                            {axisLabel} · {follows ? L.reminderInheritDefault : L.reminderInheritCustom}
+                                          </StatusBadge>
+                                          {!follows && (
+                                            <button
+                                              type="button"
+                                              className="evc-rm-edit-btn"
+                                              onClick={() => resetReminderAxis(ph.id, rm.id, axis)}
+                                              data-testid={`evc-rm-inherit-reset-${axis}-${ph.id}-${i}`}
+                                            >
+                                              {L.reminderInheritReset}
+                                            </button>
+                                          )}
                                         </span>
                                       );
                                     })}
