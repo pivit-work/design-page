@@ -2887,26 +2887,49 @@
   overflow-y: auto;
   margin-top: var(--spacing-md);
 }
+/* [PW-2040] 줄은 매니저 지정 창의 선택 카드(.ons-candidate) 모양 — 회색 바탕 · 투명 2px 테두리 · 이름 16px */
 .evc-preset-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--spacing-lg);
-  padding: var(--spacing-lg) var(--spacing-xl);
-  border: 1px solid var(--bg-active);
+  padding: 16px;
+  border: 2px solid transparent;
   border-radius: var(--radius-sm);
-  background: var(--bg-quaternary);
+  background: var(--fg-quaternary);
 }
 .evc-preset-item-main {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   min-width: 0;
 }
 .evc-preset-item-name {
-  font-size: var(--font-size-text-sm);
+  font-size: 16px;
   font-weight: 600;
+  line-height: 24px;
   color: var(--text-primary);
+}
+.evc-preset-item-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+/* [PW-2040] 소제목은 1on1·매니저 섹션 제목(.omn-section-title) 18px 굵게 + 개수 초록 딱지 */
+.evc-preset-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 28px;
+  color: var(--text-primary);
+}
+.evc-shell-body > .evc-preset-section-title:not(:first-child) {
+  margin-top: var(--spacing-md);
+}
+.evc-shell-body > .evc-preset-section-title + .evc-preset-list {
+  margin-top: calc(-1 * var(--spacing-xs));
 }
 .evc-preset-item-meta {
   font-size: var(--font-size-text-xs);
@@ -10803,6 +10826,56 @@ button.evm-ai-source {
   font-weight: 500;
   line-height: 20px;
   color: var(--text-secondary);
+}
+/* [PW-2040] 창 안 회색 카드 한 장 — 매니저 노트 창·매니저 지정 창의 사람 줄(.omn-member · .ons-candidate) 모양.
+   굵은 첫 줄 16px + 설명 14px. 사람이면 왼쪽에 아바타 원이 선다. */
+.evc-pick-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--fg-quaternary);
+}
+.evc-pick-card-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.evc-pick-card-name {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+  color: var(--text-primary);
+}
+.evc-pick-card-name > .evc-meta-pill {
+  margin: 0 2px;
+  vertical-align: 1px;
+}
+.evc-pick-card-sub {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--text-secondary);
+}
+/* [PW-2040] 줄 안의 작은 노란 딱지 — 1on1 시작 화면 «주의» 딱지(.ono-start-flag + -warning) 값 그대로 */
+.evc-warn-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 2px 8px 2px 6px;
+  border: 1px solid var(--componentColors-utility-warning-utilityWarning200);
+  border-radius: 8px;
+  background: var(--componentColors-utility-warning-utilityWarning50);
+  color: var(--componentColors-utility-warning-utilityWarning700);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  white-space: nowrap;
 }
 /* [PW-2041] 평가 응답 CSV 내보내기 — 행 수 알약 + 익명 딱지 줄, 입력칸 이름은 섹션 제목 18px */
 .evc-export-badges {

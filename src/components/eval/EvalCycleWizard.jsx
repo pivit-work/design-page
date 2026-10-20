@@ -2,6 +2,7 @@ import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 're
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Chip from '../shared/Chip.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
+import Avatar from '../shared/Avatar.jsx';
 import SidePanelShell from '../shared/SidePanelShell.jsx';
 import AppConfirmModal from '../shared/ConfirmModal.jsx';
 import DatePicker from '../shared/DatePicker.jsx';
@@ -981,6 +982,19 @@ function stampTime(iso) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+/** [PW-2040] 문장 속 `{{draft}}` 자리에 «초안» 알약을 끼운다. 자리가 없는 문구(옛 소비 측)는 그대로. */
+function withDraftPill(text, label) {
+  const [before, after] = String(text ?? '').split('{{draft}}');
+  if (after === undefined) return before;
+  return (
+    <>
+      {before}
+      <StatusBadge className="evc-meta-pill">{label}</StatusBadge>
+      {after}
+    </>
+  );
 }
 
 /**
@@ -11546,10 +11560,7 @@ export default function EvalCycleWizard({
           지우지 않게, 무엇을 할지 사용자가 고른다. */}
       {draftConflict && (
         <ModalShell
-          title={fill(L.draftConflictBody, {
-            name: draftConflict.savedByName || L.draftConflictSomeone,
-            time: draftConflict.savedAt ? stampTime(draftConflict.savedAt) : '',
-          })}
+          title={L.draftConflictTitle}
           titleId="evc-wiz-conflict-title"
           closeLabel={L.cancel}
           onClose={() => setDraftConflict(null)}
@@ -11589,7 +11600,32 @@ export default function EvalCycleWizard({
             </>
           }
         >
-          {null}
+          {/* [PW-2040] 누가·언제는 매니저 지정 창의 사람 카드(.ons-candidate) 모양으로, «내 화면보다 최신»은
+              1on1 시작 화면 «주의» 딱지(.ono-start-flag-warning) 그대로 */}
+          <div className="evc-modal-notes">
+            <div className="evc-pick-card" data-testid="evc-wiz-conflict-who">
+              {draftConflict.savedByName && <Avatar name={draftConflict.savedByName} size={40} />}
+              <div className="evc-pick-card-main">
+                <span className="evc-pick-card-name">
+                  {draftConflict.savedByName || L.draftConflictSomeone}
+                </span>
+                {stampTime(draftConflict.savedAt) && (
+                  <span className="evc-pick-card-sub">
+                    {fill(L.draftConflictSavedAt, { time: stampTime(draftConflict.savedAt) })}
+                  </span>
+                )}
+              </div>
+              <StatusBadge className="evc-warn-flag">
+                <AlertIcon size={14} />
+                {L.draftConflictNewer}
+              </StatusBadge>
+            </div>
+            <p className="evc-modal-note" data-testid="evc-wiz-conflict-desc">
+              {draftConflict.savedByName
+                ? fill(L.draftConflictDesc, { name: draftConflict.savedByName })
+                : L.draftConflictDescSomeone}
+            </p>
+          </div>
         </ModalShell>
       )}
 
@@ -11645,17 +11681,24 @@ export default function EvalCycleWizard({
             </>
           }
         >
-          <div className="evc-shell-body">
+          {/* [PW-2040] «사라집니다»는 노란 주의 상자(PW-2041 리더 나가기 창과 같은 모양), 임시저장 설명 두 줄은
+              회색 카드 한 장(.omn-member 모양) — 굵은 첫 줄 + 설명 */}
+          <div className="evc-shell-body evc-modal-notes">
               {!(draftError && !isManage) && (
-                <p className="evc-wiz-hint">
+                <div className="evc-warn-box" data-testid="evc-wiz-leave-warn">
+                  <AlertIcon size={18} />
                   {isManage ? L.manageLeaveBody : L.draftLeaveBody}
-                </p>
+                </div>
               )}
               {!isManage && !draftError && (
-                <ul className="evc-wiz-hint-list">
-                  <li>{L.draftLeaveHint1}</li>
-                  <li>{L.draftLeaveHint2}</li>
-                </ul>
+                <div className="evc-pick-card" data-testid="evc-wiz-leave-hints">
+                  <div className="evc-pick-card-main">
+                    <span className="evc-pick-card-name">
+                      {withDraftPill(L.draftLeaveHint1, L.draftLeaveDraftLabel)}
+                    </span>
+                    <span className="evc-pick-card-sub">{L.draftLeaveHint2}</span>
+                  </div>
+                </div>
               )}
               {draftError && !isManage && (
                 <p className="evc-wiz-block" data-testid="evc-wiz-leave-error">
@@ -11812,16 +11855,21 @@ export default function EvalCycleWizard({
             {/* PW-1459 §5.9 — 완료·회수된 이전 사이클. 일정은 가져오지 않는다. */}
             {pastCycles.length > 0 && onLoadPastCycle && (
               <>
-                <span className="evc-field-label">{L.pastCycleSection}</span>
+                <div className="evc-preset-section-title">
+                  {L.pastCycleSection}
+                  <StatusBadge className="evc-label-chip">{pastCycles.length}</StatusBadge>
+                </div>
                 <div className="evc-preset-list" data-testid="evc-wiz-pastcycle-list">
                   {pastCycles.map((c) => (
                     <div key={c.id} className="evc-preset-item">
                       <div className="evc-preset-item-main">
                         <span className="evc-preset-item-name">{c.name}</span>
                         {c.endDate && (
-                          <span className="evc-preset-item-meta">
-                            {fill(L.pastCycleMeta, { date: String(c.endDate).slice(0, 10) })}
-                          </span>
+                          <div className="evc-preset-item-pills">
+                            <StatusBadge className="evc-meta-pill">
+                              {fill(L.pastCycleMeta, { date: String(c.endDate).slice(0, 10) })}
+                            </StatusBadge>
+                          </div>
                         )}
                       </div>
                       <div className="evc-preset-item-actions">
@@ -11849,19 +11897,24 @@ export default function EvalCycleWizard({
               </>
             )}
             {presets.length > 0 && pastCycles.length > 0 && (
-              <span className="evc-field-label">{L.presetSection}</span>
+              <div className="evc-preset-section-title">
+                {L.presetSection}
+                <StatusBadge className="evc-label-chip">{presets.length}</StatusBadge>
+              </div>
             )}
             <div className="evc-preset-list" data-testid="evc-wiz-preset-list">
               {presets.map((p) => (
                 <div key={p.id} className="evc-preset-item">
                   <div className="evc-preset-item-main">
                     <span className="evc-preset-item-name">{p.name}</span>
-                    <span className="evc-preset-item-meta">
-                      {fill(L.presetMeta, {
-                        date: (p.createdAt ?? '').slice(0, 10),
-                        uses: p.usageCount ?? 0,
-                      })}
-                    </span>
+                    <div className="evc-preset-item-pills">
+                      <StatusBadge className="evc-meta-pill">
+                        {fill(L.presetSavedOn, { date: (p.createdAt ?? '').slice(0, 10) })}
+                      </StatusBadge>
+                      <StatusBadge className="evc-meta-pill">
+                        {fill(L.presetUses, { uses: p.usageCount ?? 0 })}
+                      </StatusBadge>
+                    </div>
                   </div>
                   <div className="evc-preset-item-actions">
                     {onDeletePreset && (
