@@ -895,8 +895,9 @@ function TokenLogItem({ entry, labels }) {
   );
 }
 
-/* 「Slack 으로 받지 못하는 구성원」 창 (PW-2054 · policy §4-B ⑧) — 읽기만 하는 창이라 푸터 없이
-   공용 창 틀(ModalShell)에 명단 표(RosterTable)를 담는다. 사유는 하나뿐이다(메일로 Slack 멤버를 못 찾음).
+/* 「Slack 으로 받지 못하는 구성원」 창 (PW-2054 · policy §4-B ⑧) — 공용 창 틀(ModalShell)에 명단 표(RosterTable)를
+   담는다. 사유는 하나뿐이다(메일로 Slack 멤버를 못 찾음). 읽기만 하는 창이라 확인 버튼 없이 [닫기] 하나짜리
+   버튼 줄로 끝내고, 표는 창 안 다른 표(CSV 미리보기)처럼 테두리 틀을 두른다 — 디자이너 창 모양에 맞춘다(PW-2092).
    불러오기 실패는 창 안에 그대로 두고 [다시 시도] — 「없습니다」로 보이지 않게 빈 목록과 따로 그린다. */
 function SlackUnmatchedModal({ modal, labels, onClose, onRetry }) {
   const L = labels.slackDelivery;
@@ -907,7 +908,16 @@ function SlackUnmatchedModal({ modal, labels, onClose, onRetry }) {
       titleId="intg-slack-unmatched-title"
       closeLabel={L.close}
       onClose={onClose}
-      footer={null}
+      footer={
+        <button
+          type="button"
+          className="tl-group-modal-btn tl-group-modal-btn-secondary"
+          onClick={onClose}
+          data-testid="intg-slack-unmatched-close"
+        >
+          {L.close}
+        </button>
+      }
       className="adm-shell is-xwide"
       testId="intg-slack-unmatched-modal"
     >
@@ -932,6 +942,7 @@ function SlackUnmatchedModal({ modal, labels, onClose, onRetry }) {
           rowKey={(r) => r.id}
           renderCell={(row, col) => (col.key === 'reason' ? L.reasonNoEmailMatch : row[col.key] || '—')}
           empty={L.empty}
+          framed
         />
       )}
     </ModalShell>
