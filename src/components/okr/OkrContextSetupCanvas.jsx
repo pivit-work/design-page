@@ -65,8 +65,10 @@ const T = {
   // 주 버튼은 브랜드 초록, 강조 글자·아이콘은 진한 초록, 파일 칸은 회색 점선 — 디자이너 색의 뜻대로 (PW-1936)
   accent: 'var(--bg-brand-solid)',
   accentText: 'var(--text-brand-secondary)',
-  // AI 를 돌리는 버튼은 보라 — 마법사 「AI로 다시 추출」과 같은 AI 색 (PW-2035)
-  ai: 'var(--utility-purple-500)',
+  // AI 를 돌리는 버튼은 보라 — 마법사 「AI로 다시 추출」과 같은 AI 색 (PW-2035).
+  // 이 화면의 버튼 바탕(card)이 흰색 고정이라, 어두운 화면에서 연보라로 뒤집히는 --utility-purple-500 대신
+  // 테마로 안 뒤집히는 팔레트 보라(밝은 화면 값과 같음)를 쓴다.
+  ai: 'var(--colors-purple-500)',
   warnBg: '#FFFBEB',
   warnBd: '#FDE68A',
   warnText: '#92400E',

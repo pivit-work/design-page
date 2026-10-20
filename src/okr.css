@@ -583,9 +583,11 @@ body:has(.okr-ctx-banner-flag) .tl-group-modal.okr-wz-modal { height: min(1118px
 .okr-wz-ctx-entry { display: flex; align-items: center; gap: 10px; width: 100%; margin-bottom: 16px; padding: 10px 14px; box-sizing: border-box; border: none; border-radius: 8px; background: var(--utility-blue-400); font-family: inherit; text-align: left; cursor: pointer; }
 .okr-wz-ctx-entry-text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
 .okr-wz-ctx-entry-title { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--text-white); }
-.okr-wz-ctx-entry-desc { font-size: 11px; color: var(--alpha-white-80); overflow-wrap: anywhere; }
-/* 값은 .okr-ctx-banner-btn 그대로 — 바 전체가 누르는 자리라 버튼처럼 보이는 표시만 둔다 */
-.okr-wz-ctx-entry-action { flex: none; padding: 4px 8px; border-radius: 8px; background: var(--utility-purple-500); font-size: 12px; font-weight: 600; line-height: 18px; letter-spacing: -0.01em; color: var(--text-white); }
+/* 어두운 화면: --alpha-white-80 은 어두운 화면에서 검정 80% 로, --utility-purple-500 은 연보라로 뒤집혀 파랑 바 위 글씨가 안 읽힌다.
+   그래서 설명은 흰 글자에 투명도를, 동작 바탕은 테마로 안 뒤집히는 팔레트 보라(--colors-purple-500 · 밝은 화면 값과 같음)를 쓴다. */
+.okr-wz-ctx-entry-desc { font-size: 11px; color: var(--text-white); opacity: 0.8; overflow-wrap: anywhere; }
+/* 모양은 .okr-ctx-banner-btn 그대로 — 바 전체가 누르는 자리라 버튼처럼 보이는 표시만 둔다 */
+.okr-wz-ctx-entry-action { flex: none; padding: 4px 8px; border-radius: 8px; background: var(--colors-purple-500); font-size: 12px; font-weight: 600; line-height: 18px; letter-spacing: -0.01em; color: var(--text-white); }
 /* PW-1930 — 「선택 사항」 안내라 경고 노랑이 아니라 연회색. */
 .okr-wz-ctx-notice { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; padding: 12px 14px; border-radius: 10px; background: var(--bg-secondary); border: 1px solid var(--border-secondary); }
 .okr-wz-ctx-notice-text { flex: 1; min-width: 0; margin: 0; font-size: 12px; line-height: 1.6; color: var(--text-secondary); overflow-wrap: anywhere; }

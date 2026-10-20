@@ -2295,6 +2295,7 @@
    "color": "#5925dc / 어두운 화면 #fafaff"
   },
   "status-badge.css|.okr-pill.is-todo": {
+   "background": "rgba(0, 0, 0, 0.03) / 어두운 화면 rgba(255, 255, 255, 0.03)",
    "color": "#687079 / 어두운 화면 #cecfd2"
   },
   "status-badge.css|.okr-role-badge.is-muted": {
