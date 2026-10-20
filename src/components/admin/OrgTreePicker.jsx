@@ -183,6 +183,11 @@ export default function OrgTreePicker({
   labels: providedLabels,
   /** 저장 방식 안내(PW-1350) — 바닥줄 왼쪽, 버튼 앞에 그린다. 미주입이면 아무것도 그리지 않는다. */
   saveNotice,
+  /**
+   * 고른 조직 줄 아래 상시 안내 한 줄 (PW-2034 · admin-spec §3.1 소속 팝업) — 구성원 창이
+   * 「부서를 만들거나 옮기는 개편은 조직단위 설정에서 합니다」를 넘긴다. 미주입이면 줄이 없다.
+   */
+  footerNote,
   /** 헤더 부제 — 대상 구성원 이름 등 */
   subtitle,
 }) {
@@ -479,6 +484,14 @@ export default function OrgTreePicker({
                 style={{ display: 'block', marginTop: 4, fontSize: 11, color: T.sub }}
               >
                 {labels.primaryCountNote}
+              </span>
+            )}
+            {footerNote && (
+              <span
+                data-testid="org-tree-picker-footer-note"
+                style={{ display: 'block', marginTop: 4, fontSize: 11, color: T.sub }}
+              >
+                {footerNote}
               </span>
             )}
           </div>

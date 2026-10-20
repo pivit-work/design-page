@@ -1443,6 +1443,24 @@
   border-top: 0;
   padding-top: 10px;
 }
+/* 「발령으로 남습니다」 묶음 (PW-2034 · admin-spec §3.2-B) — 저장 줄 바로 위, 저장 방식 안내와 같은 자리·같은 테두리.
+   바탕은 기획 시안의 bgSection — 이 파일의 보조 바탕(--bg-secondary)이다. */
+.admin-emp-panel-appointment {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
+  background: var(--bg-secondary, #f8f9fa);
+}
+.admin-emp-panel-appointment + .admin-emp-panel-footer,
+.admin-emp-panel-appointment + .admin-emp-panel-save-mode { border-top: 0; }
+/* 유형을 못 고른 사유 — 다른 화면의 경고 글자와 같은 색 */
+.admin-emp-panel-appointment-warn {
+  font-size: var(--font-size-text-xs, 12px);
+  line-height: 16px;
+  color: var(--colors-text-textWarningPrimary, #dc6803);
+}
 /* 칸을 짚지 못한 저장 거절 사유 (PW-727) — 저장 줄 바로 위, 창을 닫지 않고 남긴다. */
 .admin-emp-panel-save-error {
   padding: 10px 20px;

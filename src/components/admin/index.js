@@ -28,7 +28,7 @@ export {
   ORG_FILTER_UNASSIGNED,
 } from './orgTree.js';
 export { TeamIcon, TEAM_ICON_NAMES, resolveTeamIconName } from './teamIcons.jsx';
-export { default as OrgSnapshotCanvas } from './OrgSnapshotCanvas.jsx';
+export { default as OrgSnapshotCanvas, AppointmentHistoryPanel, AppointmentBulkPanel } from './OrgSnapshotCanvas.jsx';
 export { default as AdminNotificationsCanvas } from './AdminNotificationsCanvas.jsx';
 export { default as AdminIntegrationsCanvas } from './AdminIntegrationsCanvas.jsx';
 export { default as AdminAiPromptsCanvas } from './AdminAiPromptsCanvas.jsx';

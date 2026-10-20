@@ -7,7 +7,7 @@ import { applyJobAxisChange, jobAxisNoticeText, JOB_AXIS_DEFAULT_LABELS } from '
 import JobAxisSelect from './JobAxisSelect.jsx';
 import { IconUpload } from './employeesIcons.jsx';
 import DateInput from '../shared/DateInput.jsx';
-import { LockGlyph } from '../shared/lineIcons.jsx';
+import { LockGlyph, ArrowLeftGlyph, ArrowRightGlyph } from '../shared/lineIcons.jsx';
 import { groupHistoryRows } from './appointmentHistoryRows.js';
 import Tabs from '../shared/Tabs.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
@@ -221,6 +221,14 @@ const DEFAULT_LABELS = {
   historyField: '항목',
   historyReason: '사유',
   searchEmployee: '이름 또는 사번 검색',
+  /* 구성원 설정 › 발령 이력 탭 (PW-2034 · screen-admin-employees-appointments.policy §발령 이력 탭) */
+  historyTitle: '발령 이력',
+  openBulk: '대량 발령',
+  bulkTitle: '인사 발령 — 대량',
+  backToHistory: '발령 이력',
+  /* 조직 스냅샷 › 발령 이력은 읽기만 한다 — 발령을 내는 곳으로 보내는 한 줄 */
+  historyReadOnlyNotice: '발령을 내거나 취소하는 곳은 구성원 설정 › 발령 이력이에요',
+  historyReadOnlyAction: '구성원 설정으로',
   /** 대량 발령 한 번을 접은 줄의 대상자 칸. `{count}` 자리에 사람 수 (org-snapshot-spec §4) */
   historyBulkAll: '전체 {count}명',
   historyPeriodFrom: '발령일 시작',
@@ -1212,6 +1220,8 @@ function AffiliationChangeLines({ row, labels }) {
 function AppointmentBulkView({
   members, bulkFields, labels, onSubmit, defaultDate = '',
   parseUpload, onFixPrimary, onRowAction, affiliationTemplate,
+  /* 구성원 설정에서 연 대량 발령의 [← 발령 이력] (PW-2034). 넘기면 머리 줄이 생긴다 — 조직 현황 머리와 같은 모양 */
+  onBack,
 }) {
   const [step, setStep] = useState(1);
   const [selectedColumns, setSelectedColumns] = useState(() => new Set());
@@ -1394,6 +1404,21 @@ function AppointmentBulkView({
 
   return (
     <div className="admin-snap-canvas">
+      {onBack && (
+        <header className="admin-snap-header">
+          <div>
+            <div className="admin-snap-header-title">{labels.bulkTitle}</div>
+          </div>
+          <div className="admin-snap-header-side">
+            <div className="admin-snap-header-actions">
+              <Button variant="secondary" size="sm" onClick={() => onBack()} data-testid="snap-bulk-back">
+                <ArrowLeftGlyph size={14} />
+                {labels.backToHistory}
+              </Button>
+            </div>
+          </div>
+        </header>
+      )}
       <div className="admin-snap-steps">
         {steps.map((s, idx) => (
           <div key={s.num} style={{ display: 'flex', alignItems: 'center' }}>
@@ -1672,6 +1697,9 @@ function HistoryChangesTable({ changes, labels }) {
 function AppointmentHistoryView({
   records, error, labels, onExport, onCancelScheduled,
   structureRevisions, structureRevisionsError, onLoadStructureRevision,
+  /* 구성원 설정 › 발령 이력 탭의 머리 줄 [대량 발령] (PW-2034). 넘기면 제목·버튼 머리 줄이 생긴다.
+     조직 스냅샷의 발령 이력은 읽기만 해서 넘기지 않는다 */
+  onOpenBulk,
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   /** 발령 유형 필터 — '' 전체 · 유형 키 · `revision` 구조 개정 (§4 · PW-1422) */
@@ -1748,6 +1776,20 @@ function AppointmentHistoryView({
 
   return (
     <div className="admin-snap-canvas">
+      {onOpenBulk && (
+        <header className="admin-snap-header">
+          <div>
+            <div className="admin-snap-header-title">{labels.historyTitle}</div>
+          </div>
+          <div className="admin-snap-header-side">
+            <div className="admin-snap-header-actions">
+              <Button variant="primary" size="sm" onClick={() => onOpenBulk()} data-testid="snap-hist-open-bulk">
+                {labels.openBulk}
+              </Button>
+            </div>
+          </div>
+        </header>
+      )}
       <div className="admin-snap-hist-layout">
         <div className="admin-snap-hist-main">
           <div className="admin-snap-hist-toolbar">
@@ -2404,6 +2446,16 @@ export default function OrgSnapshotCanvas({
    */
   rosterExtraColumns = [],
   rosterColumns,
+  /**
+   * 보일 탭 — 기본은 종전 다섯(As Of 는 배선했을 때만). 조직 스냅샷 화면은 발령을 내는 탭을
+   * 구성원 설정으로 옮겨(PW-2034 · spec-admin-rail-ia 3-A) `['snapshot', 'asof', 'history']` 를 넘긴다.
+   */
+  views,
+  /**
+   * 발령 이력 탭 위 한 줄 [구성원 설정으로 →] — 조직 스냅샷의 발령 이력은 읽기만 해서, 발령을
+   * 내는 곳을 알려 준다(PW-2034). 미주입이면 줄이 없다.
+   */
+  onGoAppointments,
   labels: providedLabels,
 }) {
   const labels = merge(DEFAULT_LABELS, providedLabels);
@@ -2413,9 +2465,8 @@ export default function OrgSnapshotCanvas({
 
   // As Of 는 시점 조회 전용 서브탭이다(org-snapshot-spec §5). 호스트가 배선하지
   // 않으면(onAsOfDateChange 없음) 탭 자체를 숨겨 죽은 탭을 만들지 않는다.
-  const viewKeys = onAsOfDateChange
-    ? ['snapshot', 'single', 'bulk', 'history', 'asof']
-    : ['snapshot', 'single', 'bulk', 'history'];
+  const viewKeys = (views || ['snapshot', 'single', 'bulk', 'history', 'asof'])
+    .filter((v) => v !== 'asof' || onAsOfDateChange);
 
   return (
     <div className="admin-snap-canvas">
@@ -2505,6 +2556,15 @@ export default function OrgSnapshotCanvas({
               affiliationTemplate={bulkAffiliationTemplate}
             />
           )}
+          {view === 'history' && onGoAppointments && (
+            <div className="admin-snap-asof-note" role="status" data-testid="snap-hist-readonly-note">
+              <span>{labels.historyReadOnlyNotice}</span>
+              <Button variant="secondary" size="sm" onClick={() => onGoAppointments()} data-testid="snap-hist-go-appointments">
+                {labels.historyReadOnlyAction}
+                <ArrowRightGlyph size={14} />
+              </Button>
+            </div>
+          )}
           {view === 'history' && (
             <AppointmentHistoryView
               records={historyRecords}
@@ -2521,4 +2581,22 @@ export default function OrgSnapshotCanvas({
       )}
     </div>
   );
+}
+
+/**
+ * 발령 이력 화면만 따로 — 구성원 설정 › 발령 이력 탭이 쓴다 (PW-2034). 조직 스냅샷의 발령 이력과
+ * 같은 부품이라 표·필터·상세·예정 취소가 그대로다. `labels` 는 캔버스와 같은 모양으로 덮어쓴다.
+ */
+export function AppointmentHistoryPanel({ labels: providedLabels, records = [], ...rest }) {
+  const labels = merge(DEFAULT_LABELS, providedLabels);
+  return <AppointmentHistoryView records={records} labels={labels} {...rest} />;
+}
+
+/**
+ * 대량 발령 화면만 따로 — 구성원 설정 › 발령 이력 탭의 [대량 발령]이 연다 (PW-2034). `onBack` 을 넘기면
+ * [← 발령 이력] 머리 줄이 생긴다.
+ */
+export function AppointmentBulkPanel({ labels: providedLabels, members = [], bulkFields = [], ...rest }) {
+  const labels = merge(DEFAULT_LABELS, providedLabels);
+  return <AppointmentBulkView members={members} bulkFields={bulkFields} labels={labels} {...rest} />;
 }

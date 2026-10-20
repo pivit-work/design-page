@@ -66,7 +66,7 @@ import LoadingState from '../shared/LoadingState.jsx';
  */
 
 const DEFAULT_LABELS = {
-  tabs: { members: '전체 구성원', unassigned: '미배정 관리', invites: '초대 관리' },
+  tabs: { members: '전체 구성원', unassigned: '미배정 관리', invites: '초대 관리', appointments: '발령 이력' },
   /** 협의 단가 계약 좌석 안내 (PW-344 ⑤) — **차단이 아니라 과금**이라는 사실을 문구가 밝힌다. */
   contract: {
     seatsLabel: '계약 좌석',
@@ -371,6 +371,21 @@ const DEFAULT_LABELS = {
     cancel: '취소',
     save: '저장',
     saving: '저장 중…',
+    /* 「발령으로 남습니다」 묶음 (PW-2034 · admin-spec §3.2-B · admin-app.jsx 시안 문구) */
+    appointment: {
+      title: '발령으로 남습니다',
+      orgField: '소속',
+      unassigned: '미배정',
+      effectiveDate: '적용일',
+      type: '발령 유형',
+      typePlaceholder: '유형을 골라 주세요',
+      typeUnknownLevel: '직급이 목록 밖 값이라 승진·강등을 가를 수 없어 미리 고르지 않았어요. 유형을 골라야 저장할 수 있어요',
+      reason: '사유 (선택)',
+      reasonPlaceholder: '발령 사유',
+      scheduled: (date) => `적용일(${date})에 반영돼요. 그때까지 발령 이력에 예정으로 보이고, 발효 전에는 취소할 수 있어요`,
+    },
+    /* 소속 팝업 아래 상시 안내 (PW-2034 · admin-spec §3.1) */
+    orgPickerFooter: '부서를 만들거나 옮기는 개편은 조직단위 설정에서 합니다',
     /* 개인정보 변경 이력 탭 (PW-460 §2-D) */
     tabInfo: '정보',
     tabHistory: '변경 이력',
@@ -3589,6 +3604,16 @@ const PANEL_PATCH_FIELDS = [
 const PANEL_ROLE_OPTIONS = ['admin', 'member'];
 
 /**
+ * 발령 칸 — 고치면 「발령으로 남습니다」 묶음이 뜨는 칸 (PW-2034 · admin-spec §3.2-B).
+ * 소속은 칩이 아니라 소속 팝업이 따로 들고 있어 여기에 없다. 빌딩·책상·사무실 전화·연봉은 발령이 아니다.
+ * 순서는 묶음에 줄을 세우는 순서다.
+ */
+const APPOINTMENT_PANEL_FIELDS = [
+  'jobFamily', 'jobTitle', 'jobDuty', 'jobPosition', 'jobLevel', 'jobRank',
+  'employmentType', 'workCountry', 'workLocation', 'ftePercent', 'jobCategory', 'businessTitle',
+];
+
+/**
  * 패널의 칸 배치 (§3.2). `kind` 는 그리는 법이고, `catalog` 는 소비자가 넘긴 선택지
  * 이름이다. 카탈로그를 못 받으면 **자유 텍스트로 떨어진다** — 조회 실패가 값 입력을
  * 막지 않게 하려는 것이고, 폐기된 시트가 쓰던 규칙 그대로다.
@@ -3940,8 +3965,21 @@ function EmployeesEditPanel({
      `onDownloadArchivedRecords(memberId, retireDate, reason) => Promise<void>`(실패면 reject).
      미주입이면(어드민 아님) 칸도 «따로 보관 중» 표기도 없다. */
   onLoadArchivedRecords, onDownloadArchivedRecords,
+  /* 「발령으로 남습니다」 묶음 (PW-2034). `appointmentTypeOptions` `[{ value, label }]` 를 넘기면 묶음이 켜지고
+     소속도 팝업 [적용]이 아니라 [저장]에 함께 나간다. `inferAppointmentType(changes)` 는 바뀐 칸
+     `[{ field, before, after }]` 로 미리 고를 유형을 돌려준다(못 가르면 null). 저장은
+     `onSave(patches, appointment)` · `onChangeAffiliations(id, payload, appointment)` 로 나가고
+     `appointment` 는 `{ effectiveDate, appointmentType?, reason?, scheduled, changes }` 다. 미주입이면 종전 그대로다. */
+  appointmentTypeOptions, inferAppointmentType,
 }) {
   const [draft, setDraft] = useState(member);
+  const appointmentWired = Array.isArray(appointmentTypeOptions);
+  /* 팝업에서 고른 소속 — [저장] 전까지 보류한다. 묶음이 꺼져 있으면 쓰지 않는다(팝업이 바로 저장). */
+  const [pendingAffil, setPendingAffil] = useState(null);
+  /* 묶음 입력 — 창을 닫을 때까지 남는다(정책서 §구성원 창). 칸을 되돌려 묶음이 사라져도 지우지 않는다. */
+  const [apptDate, setApptDate] = useState(today || '');
+  const [apptType, setApptType] = useState('');
+  const [apptReason, setApptReason] = useState('');
   const [syncedId, setSyncedId] = useState(member?.id);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -4007,6 +4045,10 @@ function EmployeesEditPanel({
     setSyncedId(member.id);
     setDraft(member);
     setPickerOpen(false);
+    setPendingAffil(null);
+    setApptDate(today || '');
+    setApptType('');
+    setApptReason('');
     setIdentity(null);
     setIdentityDraft(null);
     setIdentityState(onLoadHrProfile ? 'loading' : 'idle');
@@ -4194,8 +4236,15 @@ function EmployeesEditPanel({
   // 소속 팝업의 초기 선택 — 칩이 든 조직 id 가 정본, 없으면 orgUnitIds 폴백.
   const chips = (member.depts || []).filter((d) => d.orgUnitId);
   const fallbackPrimary = primaryOrgEntry(orgTree, member.orgUnitIds)?.id ?? '';
-  const selectedIds = chips.length > 0 ? chips.map((d) => d.orgUnitId) : (fallbackPrimary ? [fallbackPrimary] : []);
-  const primaryUnitId = chips.find((d) => d.isPrimary)?.orgUnitId || fallbackPrimary;
+  const savedSelectedIds = chips.length > 0 ? chips.map((d) => d.orgUnitId) : (fallbackPrimary ? [fallbackPrimary] : []);
+  const savedPrimaryUnitId = chips.find((d) => d.isPrimary)?.orgUnitId || fallbackPrimary;
+  /* 묶음이 켜져 있으면 팝업에서 고른 소속은 [저장] 전까지 이 창에만 보인다 (PW-2034). */
+  const selectedIds = pendingAffil ? pendingAffil.unitIds : savedSelectedIds;
+  const primaryUnitId = pendingAffil ? (pendingAffil.primaryUnitId || pendingAffil.unitIds[0] || '') : savedPrimaryUnitId;
+  const affilChanged = Boolean(pendingAffil) && (
+    primaryUnitId !== savedPrimaryUnitId
+    || [...selectedIds].sort().join(',') !== [...savedSelectedIds].sort().join(',')
+  );
   /* 목록 행 팝업과 같은 계산 — 두 자리가 다른 말을 하면 안 된다 (PW-404). */
   const retainedIds = retainedOrgIds(member, selectedIds);
   const primaryEntry = primaryUnitId ? findOrgEntry(orgTree, primaryUnitId) : null;
@@ -4254,11 +4303,46 @@ function EmployeesEditPanel({
   const patch = buildPatch();
   const identityPatch = buildIdentityPatch();
   const identityDirty = Object.keys(identityPatch).length > 0;
-  const dirty = Object.keys(patch).length > 1 || identityDirty;
+  const dirty = Object.keys(patch).length > 1 || identityDirty || affilChanged;
+
+  /* 「발령으로 남습니다」 묶음 (PW-2034) — 발령 칸이 저장값과 다를 때만 뜬다. */
+  const fieldLabelKey = (key) =>
+    PANEL_FIELD_GROUPS.flatMap((g) => g.fields).find((f) => f.key === key)?.labelKey;
+  const apptChanges = appointmentWired
+    ? APPOINTMENT_PANEL_FIELDS
+      .filter((f) => String(draft[f] ?? '') !== String(member[f] ?? ''))
+      .map((f) => ({ field: f, before: member[f] ?? '', after: draft[f] ?? '' }))
+    : [];
+  const showAppointment = appointmentWired && (apptChanges.length > 0 || affilChanged);
+  /* 소속만 바뀌면 «소속이동»으로 정해진다. 아니면 사람이 고른 것, 안 골랐으면 바뀐 칸으로 미리 고른 것. */
+  const affilOnly = affilChanged && apptChanges.length === 0;
+  const autoApptType = apptChanges.length > 0 ? (inferAppointmentType?.(apptChanges) ?? '') : '';
+  const effectiveApptType = affilOnly ? 'transfer' : (apptType || autoApptType);
+  const apptTypeMissing = showAppointment && !affilOnly && !effectiveApptType;
+  const apptScheduled = Boolean(today) && apptDate > today;
+  const unitNames = (ids) => ids.map((id) => findOrgEntry(orgTree, id)?.name || id);
+  const affilBeforeText = savedSelectedIds.length > 0 ? unitNames(savedSelectedIds).join(' · ') : labels.panel.appointment.unassigned;
+  const affilAfterText = selectedIds.length > 0 ? unitNames(selectedIds).join(' · ') : labels.panel.appointment.unassigned;
+  const apptValueText = (field, v) => {
+    if (v === '' || v == null) return labels.panel.none;
+    return field === 'jobFamily' || field === 'jobTitle' || field === 'jobDuty'
+      ? axisValueLabel(valueLabels, field, v)
+      : String(v);
+  };
+  const appointmentPayload = showAppointment
+    ? {
+        effectiveDate: apptDate,
+        appointmentType: apptChanges.length > 0 ? effectiveApptType : undefined,
+        reason: apptReason.trim() || undefined,
+        scheduled: apptScheduled,
+        changes: apptChanges,
+      }
+    : undefined;
 
   async function handleSave() {
     if (!dirty) { onClose(); return; }
     if (terminationProblem) return;
+    if (apptTypeMissing || (showAppointment && !apptDate)) return;
     setSaving(true);
     setDateError('');
     setSaveError(null);
@@ -4280,9 +4364,21 @@ function EmployeesEditPanel({
          닫히는 것» 을 막기 위해서다. 그러니 여기서 **받아서** 패널을 열어 둔다(방금 친
          값이 남는다). 받지 않고 흘려보내면 [저장] 클릭의 처리되지 않은 오류로 기록돼,
          사용자가 고른 [취소]까지 피드백 제보에 버그처럼 섞인다(PW-647). */
+      /* 소속을 먼저 보낸다 — 소속이 거절되면 직급 등은 아직 안 바뀐 채로 창이 열려 있다. */
+      if (affilChanged && onChangeAffiliations) {
+        try {
+          await onChangeAffiliations(member.id, pendingAffil, appointmentPayload);
+        } catch (e) {
+          setSaveError(panelErrorOf(e));
+          return;
+        }
+        setPendingAffil(null);
+      }
       if (Object.keys(patch).length > 1) {
         try {
-          await onSave([patch]);
+          /* 묶음이 없는 저장은 종전과 같은 한 인자 호출이다 — 시트·목록 저장과 같은 계약. */
+          if (apptChanges.length > 0 && appointmentPayload) await onSave([patch], appointmentPayload);
+          else await onSave([patch]);
         } catch (e) {
           /* 호출부가 확인 창에서 [닫기]를 받으면 되돌릴 칸을 알려 준다(PW-1336 퇴사 취소 —
              닫으면 재직 상태가 «퇴사» 그대로 보여야 한다). */
@@ -4577,10 +4673,14 @@ function EmployeesEditPanel({
                 retainedIds={retainedIds}
                 subtitle={draft.name}
                 labels={labels.orgPicker}
-                onApply={(payload) => onChangeAffiliations(member.id, payload)}
+                onApply={(payload) => (appointmentWired
+                  ? setPendingAffil(payload)
+                  : onChangeAffiliations(member.id, payload))}
                 onClose={() => setPickerOpen(false)}
-                // 패널은 [저장]으로 반영되지만 소속은 [적용] 즉시 저장된다 — 패널의 [취소]로 안 되돌아간다.
-                saveNotice={instantSaveNotice}
+                // 묶음이 없으면 소속은 [적용] 즉시 저장된다 — 패널의 [취소]로 안 되돌아간다.
+                // 묶음이 있으면 [저장]에 함께 나가므로 그 안내를 띄우지 않는다(PW-2034).
+                saveNotice={appointmentWired ? undefined : instantSaveNotice}
+                footerNote={labels.panel.orgPickerFooter}
               />
             )}
           </div>
@@ -4920,6 +5020,80 @@ function EmployeesEditPanel({
             {saveError.message}
           </div>
         )}
+        {panelTab === 'info' && showAppointment && (
+          <div className="admin-emp-panel-appointment" data-testid="employees-panel-appointment">
+            <SectionLabel>{labels.panel.appointment.title}</SectionLabel>
+            <div className="admin-emp-hist-values" data-testid="employees-panel-appointment-changes">
+              {affilChanged && (
+                <div>
+                  {labels.panel.appointment.orgField}{' '}
+                  <span className="admin-emp-hist-before">{affilBeforeText}</span>
+                  {' → '}
+                  <span className="admin-emp-hist-after">{affilAfterText}</span>
+                </div>
+              )}
+              {apptChanges.map((c) => (
+                <div key={c.field}>
+                  {labels.panel[fieldLabelKey(c.field)] || c.field}{' '}
+                  <span className="admin-emp-hist-before">{apptValueText(c.field, c.before)}</span>
+                  {' → '}
+                  <span className="admin-emp-hist-after">{apptValueText(c.field, c.after)}</span>
+                </div>
+              ))}
+            </div>
+            <div className="admin-emp-field-group">
+              <FormField className="admin-emp-field" labelClassName="admin-emp-field-label" label={labels.panel.appointment.effectiveDate}>
+                <DateInput
+                  className="admin-emp-input"
+                  value={apptDate}
+                  onChange={setApptDate}
+                  data-testid="employees-panel-appointment-date"
+                />
+              </FormField>
+              {apptScheduled && (
+                <div className="admin-emp-manager-note" data-testid="employees-panel-appointment-scheduled">
+                  {labels.panel.appointment.scheduled(apptDate)}
+                </div>
+              )}
+              <FormField className="admin-emp-field" labelClassName="admin-emp-field-label" label={labels.panel.appointment.type}>
+                <Select
+                  className="admin-emp-input"
+                  value={effectiveApptType}
+                  disabled={affilOnly}
+                  onChange={(e) => setApptType(e.target.value)}
+                  data-testid="employees-panel-appointment-type"
+                >
+                  {affilOnly ? (
+                    <option value="transfer">
+                      {appointmentTypeOptions.find((o) => o.value === 'transfer')?.label || 'transfer'}
+                    </option>
+                  ) : (
+                    <>
+                      {!effectiveApptType && <option value="">{labels.panel.appointment.typePlaceholder}</option>}
+                      {appointmentTypeOptions.filter((o) => o.value !== 'transfer').map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </>
+                  )}
+                </Select>
+              </FormField>
+              {apptTypeMissing && (
+                <div className="admin-emp-panel-appointment-warn" role="alert" data-testid="employees-panel-appointment-type-missing">
+                  {labels.panel.appointment.typeUnknownLevel}
+                </div>
+              )}
+              <FormField className="admin-emp-field" labelClassName="admin-emp-field-label" label={labels.panel.appointment.reason}>
+                <TextInput
+                  className="admin-emp-input"
+                  value={apptReason}
+                  placeholder={labels.panel.appointment.reasonPlaceholder}
+                  onChange={(e) => setApptReason(e.target.value)}
+                  data-testid="employees-panel-appointment-reason"
+                />
+              </FormField>
+            </div>
+          </div>
+        )}
         {panelTab === 'info' && manualSaveNotice && (
           <div className="admin-emp-panel-save-mode" data-testid="employees-panel-save-mode">{manualSaveNotice}</div>
         )}
@@ -4930,7 +5104,7 @@ function EmployeesEditPanel({
               type="button"
               className="admin-emp-btn is-primary admin-emp-btn-block"
               onClick={handleSave}
-              disabled={saving || !canEdit || !dirty || Boolean(terminationProblem) || axisIncomplete}
+              disabled={saving || !canEdit || !dirty || Boolean(terminationProblem) || axisIncomplete || apptTypeMissing || (showAppointment && !apptDate)}
             >
               {saving ? labels.panel.saving : labels.panel.save}
             </button>
@@ -4945,6 +5119,16 @@ export default function AdminEmployeesCanvas({
   orgUnits = [],
   invites = [],
   initialTab,
+  /**
+   * 넷째 탭 「발령 이력」 (PW-2034 · admin-spec §3.0) — `{ count, render, takeover }`.
+   * `count` 는 아직 반영 전인 예정 발령 수, `render()` 가 탭 본문(`AppointmentHistoryPanel`)을 그린다.
+   * `takeover: true` 면 탭 줄과 안내 띠 없이 `render()` 만 그린다 — [대량 발령]이 화면 전체를
+   * 대량 발령으로 바꾸는 자리다. 미주입이면 탭이 없다.
+   */
+  appointmentsTab,
+  /* 구성원 창 「발령으로 남습니다」 묶음 (PW-2034) — `EmployeesEditPanel` 주석 참조. 미주입이면 묶음이 없다. */
+  appointmentTypeOptions,
+  inferAppointmentType,
   // 전체 구성원 탭의 초기 검색어(딥링크용) — 개요에서 특정 인원 클릭 시 사용.
   initialSearch = '',
   /**
@@ -5267,7 +5451,9 @@ export default function AdminEmployeesCanvas({
   const contractUnderMin =
     Boolean(contract) && contract.activeSeats < contract.minSeats;
   const [tab, setTab] = useState(
-    ['members', 'unassigned', 'invites'].includes(initialTab) ? initialTab : 'members',
+    ['members', 'unassigned', 'invites', ...(appointmentsTab ? ['appointments'] : [])].includes(initialTab)
+      ? initialTab
+      : 'members',
   );
   // 편집 패널이 열린 구성원 id. 패널은 표 **바깥**에 그린다 — 표 안에 두면 탭을
   // 옮길 때 패널까지 함께 묻힌다.
@@ -5351,7 +5537,14 @@ export default function AdminEmployeesCanvas({
     { id: 'members', label: labels.tabs.members, count: members.filter(isListedMember).length },
     { id: 'unassigned', label: labels.tabs.unassigned, count: unassignedCount, warn: unassignedCount > 0 },
     { id: 'invites', label: labels.tabs.invites, count: pendingInviteCount },
+    ...(appointmentsTab
+      ? [{ id: 'appointments', label: labels.tabs.appointments, count: appointmentsTab.count ?? 0 }]
+      : []),
   ];
+
+  if (appointmentsTab?.takeover && tab === 'appointments') {
+    return <div className="admin-emp-canvas">{appointmentsTab.render()}</div>;
+  }
 
   return (
     <div className="admin-emp-canvas">
@@ -5483,6 +5676,8 @@ export default function AdminEmployeesCanvas({
             }
           />
         </div>
+      ) : tab === 'appointments' && appointmentsTab ? (
+        <div data-testid="employees-view-appointments">{appointmentsTab.render()}</div>
       ) : tab === 'unassigned' ? (
         <UnassignedTab
           members={members}
@@ -5538,6 +5733,8 @@ export default function AdminEmployeesCanvas({
             onClose={() => setEditMemberId(null)}
             onSave={onSaveMembers}
             onChangeAffiliations={onChangeAffiliations}
+            appointmentTypeOptions={canEdit ? appointmentTypeOptions : undefined}
+            inferAppointmentType={inferAppointmentType}
             /* 재직 상태별 날짜 칸(§3.2.1) — HR 기록 모달과 **같은** 조회·저장 경로다.
                미주입이면(어드민 아님) 그 칸을 아예 그리지 않는다. */
             onLoadHrProfile={onLoadHrProfile}
