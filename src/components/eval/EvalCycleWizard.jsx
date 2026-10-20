@@ -699,8 +699,11 @@ function normalizeReminder(rm) {
     email: {},
   };
 }
-let __rmSeq = 0;
-const nextRmId = () => `rm_${++__rmSeq}`;
+/* [PW-2121] 번호는 저장된 줄과 겹치면 안 된다. 종전에는 페이지가 뜰 때마다 1부터 다시
+   세어(`rm_1`, `rm_2` …) 새로 연 화면에서 더한 줄이 저장돼 있던 `rm_1` 과 같은 번호를 받았다
+   — 새 줄을 고치면 옛 줄도 바뀌고, 저장하면 옛 줄이 사라졌다. 발송 기록도 이 번호로 남는다. */
+const nextRmId = () =>
+  `rm_${globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`}`;
 const makeReminder = (offset = 1, channels = ['email']) => ({
   id: nextRmId(),
   anchor: 'before_end',
