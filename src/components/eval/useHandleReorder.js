@@ -19,8 +19,12 @@ import { flushSync } from 'react-dom';
  * `ref` 에 건다 — 콜백 ref 라 렌더 중에 ref 를 읽지 않는다(react-hooks/refs).
  *
  * `onReorder(from, to)` — `from` 줄을 빼서 `to` 자리에 넣는다.
+ *
+ * `onStep(i, dir)` (선택) — ↑/↓ 한 칸을 화면이 따로 정할 때 쓴다. 여러 줄이 한 묶음으로 움직이는
+ * 목록(단계 카드의 하향 차수, PW-2097)은 «한 칸» 이 이웃 묶음 하나를 넘는 것이라 순번 ±1 이 아니다.
+ * 옮긴 뒤 포커스할 줄의 순번을, 옮길 수 없으면 null 을 돌려준다.
  */
-export function useHandleReorder({ count, onReorder }) {
+export function useHandleReorder({ count, onReorder, onStep }) {
   const [listEl, setListEl] = useState(null);
   const [armed, setArmed] = useState(null);
   const [dragIdx, setDragIdx] = useState(null);
@@ -89,10 +93,12 @@ export function useHandleReorder({ count, onReorder }) {
       if (!dir) return;
       // 맨 끝에서도 막는다 — 안 막으면 화면이 스크롤된다.
       e.preventDefault();
-      const to = i + dir;
-      if (to < 0 || to >= count) return;
+      let to = null;
       // 옮긴 결과를 바로 그려야 옮겨진 줄의 손잡이를 찾아 포커스를 넘길 수 있다.
-      flushSync(() => onReorder(i, to));
+      flushSync(() => {
+        to = onStep ? onStep(i, dir) : move(i, i + dir) ? i + dir : null;
+      });
+      if (to === null) return;
       listEl?.querySelector(`[data-reorder-handle="${to}"]`)?.focus();
     },
     onPointerDown: (e) => {

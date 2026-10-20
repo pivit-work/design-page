@@ -3337,8 +3337,6 @@ export default function EvalCycleWizard({
   const [phaseOrder, setPhaseOrder] = useState(() => [
     ...(D?.phaseOrder ?? initialSeq?.order ?? []),
   ]); // 중간 단계 재배열 순서(id)
-  const [dragId, setDragId] = useState(null);
-  const [overId, setOverId] = useState(null);
   /**
    * PW-443 대상자 정의 — 조직 트리에서 고른 단위 id 집합.
    *
@@ -5046,15 +5044,16 @@ export default function EvalCycleWizard({
    * 순서를 저장하지 못해 되돌렸다) · null.
    */
   const [orderNotice, setOrderNotice] = useState(null);
-  const movePhase = (targetId) => {
-    if (phaseOrderLocked) return;
-    if (!dragId || dragId === targetId) return;
+  /** `dragId` 단계를 `targetId` 자리로 옮긴다. 옮긴 순서를, 못 옮기면 null 을 돌려준다. */
+  const movePhase = (dragId, targetId) => {
+    if (phaseOrderLocked) return null;
+    if (!dragId || dragId === targetId) return null;
     const prev = [...orderedMiddle];
     /* [PW-1594 · 정책 §5.13.3] 하향 차수 단계는 한 묶음으로 움직인다 — 어느 차수를 끌어도 묶음 전체가
        옮겨 가고 묶음 안 순서는 그대로다. 같은 묶음 안에서 끌면 아무 일도 없다. 묶음이 아닌 단계끼리는
        종전과 같다(대상 자리로 옮긴다). */
     const arr = moveGroupedPhase(orderedMiddle, dragId, targetId);
-    if (!arr) return;
+    if (!arr) return null;
     setPhaseOrder(arr);
     setOrderNotice(null);
     /* [PW-1461 · 정책 §5.2.2 · §12] 초안이면 옮긴 순서를 바로 저장한다. 실패하면 옮기기 전
@@ -5067,7 +5066,29 @@ export default function EvalCycleWizard({
         setOrderNotice('saveFailed');
       });
     }
+    return arr;
   };
+  /* [PW-2097] 단계 카드 순서도 평가 항목·등급 줄과 같은 ⋮⋮ 손잡이로 바꾼다 — 마우스·↑/↓·터치, 끌기는
+     손잡이에서만 시작한다(카드 안 날짜 칸에서 글자를 골라도 카드가 끌리지 않게). 순번은 가운데 단계
+     (`orderedMiddle`) 안의 것이라 고정 카드(셀프 리뷰·결과 발송)는 넘지 않는다. */
+  const {
+    bindList: bindPhaseList,
+    rowProps: phaseRowProps,
+    rowClass: phaseRowClass,
+    handleProps: phaseHandleProps,
+  } = useHandleReorder({
+    count: orderedMiddle.length,
+    onReorder: (from, to) => movePhase(orderedMiddle[from], orderedMiddle[to]),
+    // ↑/↓ 한 칸은 이웃 «묶음» 하나를 넘는다 — 하향 차수 단계끼리는 한 묶음이라 그 안에서는 안 움직인다.
+    onStep: (i, dir) => {
+      const id = orderedMiddle[i];
+      let j = i + dir;
+      while (orderedMiddle[j] && phaseBaseId(orderedMiddle[j]) === phaseBaseId(id)) j += dir;
+      if (!orderedMiddle[j]) return null;
+      const arr = movePhase(id, orderedMiddle[j]);
+      return arr ? arr.indexOf(id) : null;
+    },
+  });
 
   /**
    * 1단계 평가 종류 켜고 끄기.
@@ -9369,7 +9390,7 @@ export default function EvalCycleWizard({
           )}
 
           {step === 2 && (
-            <div className="evc-wiz-panel is-form">
+            <div className="evc-wiz-panel is-form" ref={bindPhaseList}>
               {/* PW-2115 — 오픈한 사이클은 단계를 켜고 끌 수 없으니 «종류에 따라 단계가 구성된다» 안내가 할 일이 없다. */}
               {!phaseTogglesLocked && <p className="evc-wiz-hint">{L.scheduleHint}</p>}
               {/* PW-536 — 일정 시작일(D0). 모든 단계 일정의 기준점(정책 §5.2.1-A).
@@ -9474,28 +9495,15 @@ export default function EvalCycleWizard({
                 return displayPhases.map((ph) => {
                   const enabled = !disabledPhases.has(ph.id);
                   if (enabled) n += 1;
-                  const isOver =
-                    overId === ph.id && !ph.anchor && dragId && dragId !== ph.id;
+                  const mi = orderedMiddle.indexOf(ph.id);
+                  const movable = mi >= 0 && !phaseOrderLocked;
                   const rtype = PHASE_TO_REVIEW_TYPE[phaseBaseId(ph.id)];
                   const sc = scheduleOf(ph.id);
                   return (
                     <div
                       key={ph.id}
-                      draggable={!ph.anchor}
-                      onDragStart={(e) => {
-                        if (ph.anchor) return;
-                        /* [PW-1461] 오픈 뒤에는 끌기를 시작하지 않는다 — 시도한 자리에 이유를 띄운다. */
-                        if (phaseOrderLocked) {
-                          e.preventDefault();
-                          setOrderNotice('locked');
-                          return;
-                        }
-                        setDragId(ph.id);
-                      }}
-                      onDragOver={(e) => { if (!ph.anchor && dragId) { e.preventDefault(); setOverId(ph.id); } }}
-                      onDrop={() => { if (!ph.anchor) movePhase(ph.id); setDragId(null); setOverId(null); }}
-                      onDragEnd={() => { setDragId(null); setOverId(null); }}
-                      className={`evc-sched-card${ph.required ? ' is-required' : ''}${enabled ? '' : ' is-off'}${isOver ? ' is-over' : ''}${enabled && overlapIds.has(ph.id) ? ' has-overlap' : ''}`}
+                      {...(movable ? phaseRowProps(mi) : {})}
+                      className={`evc-sched-card${ph.required ? ' is-required' : ''}${enabled ? '' : ' is-off'}${movable && phaseRowClass(mi) ? ` ${phaseRowClass(mi)}` : ''}${enabled && overlapIds.has(ph.id) ? ' has-overlap' : ''}`}
                       data-testid={`evc-sched-card-${ph.id}`}
                     >
                       <div className="evc-sched-head">
@@ -9507,9 +9515,24 @@ export default function EvalCycleWizard({
                                 ? (phaseOrderLockedHint ?? L.phaseDragHint)
                                 : L.phaseDragHint
                           }>
-                          <span className="evc-sched-handle">
-                            {ph.anchor || phaseOrderLocked ? <LockIcon /> : <GripIcon />}
-                          </span>
+                          {movable ? (
+                            <span
+                              className="evc-sched-handle"
+                              aria-label={L.phaseDragHint}
+                              data-testid={`evc-sched-handle-${ph.id}`}
+                              {...phaseHandleProps(mi)}>
+                              <GripIcon />
+                            </span>
+                          ) : (
+                            /* 자물쇠는 끌기 커서·Tab 을 받지 않는다. [PW-1461] 오픈 뒤 가운데 단계의 자물쇠를
+                               누르면 옮기려 한 것이다 — 그 자리에 이유를 띄운다. */
+                            <span
+                              className="evc-sched-handle is-locked"
+                              data-testid={`evc-sched-handle-${ph.id}`}
+                              onPointerDown={ph.anchor ? undefined : () => setOrderNotice('locked')}>
+                              <LockIcon />
+                            </span>
+                          )}
                         </Tooltip>
                         <span className="evc-sched-num">{enabled ? n : '–'}</span>
                         <span className="evc-sched-name">{phaseName(ph)}</span>

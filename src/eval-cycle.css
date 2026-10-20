@@ -1332,14 +1332,23 @@
   align-items: center;
   gap: var(--spacing-md);
 }
+.evc-sched-card.is-dragging { opacity: 0.5; }
+/* grab 커서는 실제로 끌리는 손잡이에만 — 자물쇠(고정 카드·오픈한 사이클)는 끌릴 것처럼 보이면 안 된다.
+   터치·키보드 처리는 평가 항목 줄 손잡이(.evc-tpl-item-handle)와 같다 (PW-2097). */
 .evc-sched-handle {
   display: inline-flex;
   align-items: center;
   color: var(--text-tertiary);
   cursor: grab;
   flex-shrink: 0;
+  touch-action: none;
+  border-radius: var(--radius-xs);
 }
-.evc-sched-card.is-required .evc-sched-handle { cursor: not-allowed; }
+.evc-sched-handle.is-locked { cursor: default; touch-action: auto; }
+.evc-sched-handle:focus-visible {
+  outline: 2px solid var(--utility-brand-500);
+  outline-offset: 1px;
+}
 .evc-sched-num {
   display: inline-flex;
   align-items: center;
