@@ -11,12 +11,6 @@
       "reason": "내보내기 메뉴 밖 클릭을 받는 투명 막 — 창이 아니라 드롭다운"
     },
     {
-      "file": "components/admin/kit/AdminMemberListDialog.jsx",
-      "kind": "dialog",
-      "count": 2,
-      "reason": "어드민 창 모양(카드)을 제가 그리는 부품 — 막·Esc·겹침 순서는 공용 창 바탕(ModalLayer)이 갖는다 (PW-1013)"
-    },
-    {
       "file": "components/admin/kit/CsvImportParts.jsx",
       "kind": "dialog",
       "count": 2,

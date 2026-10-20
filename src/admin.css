@@ -3164,8 +3164,7 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
 /* ── 창 닫기 버튼 (어드민 공용) ──────────────────────────────
    어드민 창의 막·카드·머리·버튼 줄은 공용 창 틀(ModalShell · PW-836)로 옮겨 갔다
    (종전 `.admin-modal-*` · `.admin-notif-modal-*`). 여기 남은 닫기 버튼은 막을 호출부가
-   그리는 카드 둘 — 구성원 목록 창(`AdminMemberListDialog`)·CSV 가져오기 창
-   (`CsvImportPanel`) — 이 쓴다.
+   그리는 카드 — CSV 가져오기 창(`CsvImportPanel`) — 이 쓴다. 구성원 목록 창은 PW-2043 에 공용 창 틀로 옮겼다.
    ──────────────────────────────────────────────────────────── */
 .admin-modal-close {
   width: 36px;

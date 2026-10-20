@@ -5,7 +5,7 @@
 
    컴포넌트: `components/admin/kit/`
      · CSV 가져오기 창 (CsvImportParts.jsx)
-     · 구성원 목록 창 (AdminMemberListDialog.jsx)
+     · 구성원 목록 창 (AdminMemberListDialog.jsx) — 틀은 공용 창 틀(ModalShell), 여기는 안쪽 모양만 (PW-2043)
      · 녹음 사용량 칸 (BillingUsageCard.jsx)
 
    모양의 출처
