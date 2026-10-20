@@ -11515,12 +11515,23 @@ button.evm-ai-source {
   font-weight: 600;
 }
 /* §4.3 AI 초안 카드 */
-.evm-ai-card {
-  display: flex;
+/* PW-2088 — AI 초안 카드는 연보라 한 줄 띠. 색은 디자이너의 AI 브리프 카드(manager-modal-brief-card)와
+   PW-1930 의 AI 초안 상자(okr-wz-draft) 기준. .evc-card 의 세로 배치를 가로로 되돌려야 글이 왼쪽 끝에서
+   시작하고 단추가 같은 줄 오른쪽에 온다 — 좁으면 단추만 아래로 내려간다. */
+.evc-card.evm-ai-card {
+  flex-direction: row;
   align-items: center;
   justify-content: space-between;
   gap: var(--spacing-lg);
   flex-wrap: wrap;
+  padding: var(--spacing-xl) var(--spacing-3xl);
+  background: var(--utility-purple-50);
+  border-color: var(--utility-purple-200);
+  box-shadow: none;
+}
+.evm-ai-card > :first-child {
+  flex: 1 1 240px;
+  min-width: 0;
 }
 .evm-ai-card-title {
   display: flex;
