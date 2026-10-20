@@ -1405,7 +1405,7 @@ export default function EvalCycleMemberCanvas({
 
         {!submitted && aiError && (
           <div className="evc-list">
-            <p className="evx-notice" data-testid="evm-ai-error" style={{ background: 'var(--utility-error-50)', color: 'var(--utility-error-500)' }}>
+            <p className="evx-notice is-error" data-testid="evm-ai-error">
               {L.aiError}
             </p>
           </div>
@@ -1413,7 +1413,7 @@ export default function EvalCycleMemberCanvas({
 
         {!submitted && draftError === 'all' && (
           <div className="evc-list">
-            <p className="evx-notice" data-testid="evm-ai-draft-error" style={{ background: 'var(--utility-error-50)', color: 'var(--utility-error-500)' }}>
+            <p className="evx-notice is-error" data-testid="evm-ai-draft-error">
               {L.aiDraftError}
               <button
                 type="button"

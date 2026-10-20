@@ -3273,13 +3273,19 @@ export default function EvalCycleWizard({
   /* [PW-1591 J-6 · 정책 §5.2.1-E] 일정 일괄 배치 — 일수(1~60, 기본 7) · 이어서/같은 기간. */
   const [bulkDays, setBulkDays] = useState('7');
   const [bulkMode, setBulkMode] = useState('chain'); // 'chain' 순서대로 이어서 | 'same' 모두 같은 기간
-  const [pendingBulk, setPendingBulk] = useState(null); // 직접 수정한 단계 수 — 확인 대기
+  const [pendingBulk, setPendingBulk] = useState(null); // 직접 고친 단계 이름들 — 확인 대기
   /* 직접 고친 단계 — 어떤 재배치에서도 덮어쓰지 않는다(§5.2.1-A 「수동 수정 우선」).
      관리 모드로 열면 이미 정해진 일정이 들어오는데, 그건 사람이 정한 값이라 보호한다. */
   const [scheduleDirty, setScheduleDirty] = useState(() => {
     if (D?.scheduleDirty) return [...D.scheduleDirty];
     return Object.keys(initialSeq?.schedule ?? {});
   });
+  /* PW-2115 — 관리 모드로 열 때 «이미 정해져 들어온» 단계. 일정 시작일을 바꿀 때는 보호하지만(위),
+     «모든 단계에 적용»은 이 화면에서 손으로 고친 단계만 남긴다 — 들어온 일정까지 남기면 오픈한
+     사이클에서 일괄 배치가 아무것도 바꾸지 못한다. 손으로 고치면 이 목록에서 빠진다. */
+  const [seededSchedule, setSeededSchedule] = useState(() =>
+    D?.scheduleDirty ? [] : Object.keys(initialSeq?.schedule ?? {}),
+  );
   /* { phaseId: [reminderObj] } — HR 이 «고친» 단계만 담는다. 없는 단계는 단계 길이 기본값을
      그 자리에서 계산한다(PW-1591 J-7). 초안은 고친 단계 목록(`remindersCustomized`)을 함께
      저장하므로 그것만 되살리고, 그 목록이 없는 값(준비 중 사이클 · 옛 초안)은 기본값과 내용이
@@ -3666,8 +3672,10 @@ export default function EvalCycleWizard({
 
   /* 단계 일정을 손으로 고치면 그 단계는 「직접 수정」이 된다 — 이후 어떤 재배치에서도
      덮어쓰지 않는다(§5.2.1-A 「수동 수정 우선」). */
-  const markScheduleDirty = (id) =>
+  const markScheduleDirty = (id) => {
     setScheduleDirty((prev) => (prev.includes(id) ? prev : [...prev, id]));
+    setSeededSchedule((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : prev));
+  };
   const updateSchedule = (id, field, value) => {
     markScheduleDirty(id);
     const nextSlot = { ...scheduleOf(id), [field]: value };
@@ -3790,22 +3798,19 @@ export default function EvalCycleWizard({
     setD0Draft(null);
     commitScheduleStart(iso);
   };
-  /** 「전체 다시 배치」 — 보호를 전부 풀어 D0 기준 기본 배치로 되돌린다. */
-  const rebaseAllSchedule = () => {
-    setScheduleDirty([]);
-    // [PW-2078] 고정 단계는 손으로 고친 마감까지 그대로 둔다 — 다시 배치에서 빠지는 단계다.
-    setSchedule((prev) =>
-      Object.fromEntries(Object.entries(prev).filter(([id]) => isFixedPhase(id))),
-    );
-    setSchedDraft({});
-  };
+  /** PW-2115 — 이 화면에서 손으로 고친 단계(켜진 것만) — «모든 단계에 적용»이 그대로 두는 단계. */
+  const handEditedShown = dirtyShown.filter(
+    (id) => !seededSchedule.includes(id) && !disabledPhases.has(id),
+  );
   /**
    * [PW-1591 J-6] 켜진 단계 전부를 일정 시작일 기준으로 다시 깐다. 결과는 «D0 기준 며칠째»
    * 오프셋(PW-122 프리셋과 같은 값)으로 담는다 — 그래야 배치 뒤 D0 를 바꿔도 모양을 유지한 채 따라간다.
-   * 직접 고친 값은 비우고 「직접 수정」도 푼다(확인은 requestBulkLayout 이 먼저 받는다).
+   * PW-2115 — 손으로 고친 단계는 그대로 둔다(«직접 고친 단계는 재배치에서 보호된다»). 그 단계도 순번은
+   * 차지한다 — 뒤 단계가 그 자리를 당겨 쓰면 고친 단계와 겹친다. 들어온 일정(seeded)은 새 배치로 바뀐다.
    */
   const applyBulkLayout = () => {
     const n = Math.max(1, Math.min(60, Math.trunc(Number(bulkDays)) || 1));
+    const keep = new Set(handEditedShown);
     const offsets = {};
     displayPhases
       // [PW-2078] 고정 단계는 순번에서 빼고 날짜도 바꾸지 않는다(k 는 «고정 단계를 뺀 켜진 단계»의 순번).
@@ -3820,12 +3825,22 @@ export default function EvalCycleWizard({
         };
       });
     setPresetOffsets(offsets);
-    rebaseAllSchedule();
+    const kept = (id) => keep.has(id) || isFixedPhase(id);
+    setScheduleDirty((prev) => prev.filter((id) => keep.has(id)));
+    setSeededSchedule([]);
+    setSchedule((prev) => Object.fromEntries(Object.entries(prev).filter(([id]) => kept(id))));
+    setSchedDraft((prev) =>
+      Object.fromEntries(Object.entries(prev).filter(([key]) => keep.has(key.split(':')[0]))),
+    );
     setPendingBulk(null);
   };
+  /** 손으로 고친 단계가 있으면 그 이름을 확인 창에 보이고, 없으면 바로 배치한다. */
   const requestBulkLayout = () => {
-    if (dirtyShown.length > 0) setPendingBulk(dirtyShown.length);
-    else applyBulkLayout();
+    if (handEditedShown.length > 0) {
+      setPendingBulk(
+        handEditedShown.map((id) => phaseName(displayPhases.find((p) => p.id === id))),
+      );
+    } else applyBulkLayout();
   };
   /* 지난 날짜 판정은 **날짜 기준**이다. 시각까지 비교하면 오늘 09:00 시작 단계가
      오전에 이미 경고로 뜬다(§5.2.1-A 「과거 날짜」). 차단하지는 않는다.
@@ -8164,17 +8179,10 @@ export default function EvalCycleWizard({
               {/* PW-1459 §5.9 — 이전 사이클·저장한 설정이 하나도 없어도 자리는 둔다. 열면
                   「이전 사이클이 없습니다. 새로 작성하세요.」가 뜬다. */}
               {!isManage && (onLoadPreset || onLoadPastCycle || onAiSetupDraft) && (
-                <div className="evc-wiz-preset-load">
+                /* PW-2104 — 회색 상자와 «이전 사이클 0개 · 저장된 설정 0개» 문장을 걷고 오른쪽 위 버튼만 둔다.
+                   불러올 것이 없어도 버튼은 남긴다(정책 §5.9 — 열면 «이전 사이클이 없습니다»). */
+                <div className="evc-wiz-preset-load" data-testid="evc-wiz-preset-load">
                   <div className="evc-preset-cta">
-                    <div className="evc-preset-cta-text">
-                      <span className="evc-field-label">{L.presetLoadLabel}</span>
-                      <span className="evc-preset-cta-sub">
-                        {fill(L.presetLoadSub, {
-                          count: presets.length,
-                          cycles: pastCycles.length,
-                        })}
-                      </span>
-                    </div>
                     <div className="evc-preset-item-actions">
                       {onAiSetupDraft && (
                         <button
@@ -8190,7 +8198,7 @@ export default function EvalCycleWizard({
                       {(onLoadPreset || onLoadPastCycle) && (
                         <button
                           type="button"
-                          className="evc-btn is-primary"
+                          className="evc-btn is-ghost"
                           onClick={() => setPresetDialogOpen(true)}
                           data-testid="evc-wiz-preset-open"
                         >
@@ -9362,89 +9370,66 @@ export default function EvalCycleWizard({
 
           {step === 2 && (
             <div className="evc-wiz-panel is-form">
-              <p className="evc-wiz-hint">{L.scheduleHint}</p>
+              {/* PW-2115 — 오픈한 사이클은 단계를 켜고 끌 수 없으니 «종류에 따라 단계가 구성된다» 안내가 할 일이 없다. */}
+              {!phaseTogglesLocked && <p className="evc-wiz-hint">{L.scheduleHint}</p>}
               {/* PW-536 — 일정 시작일(D0). 모든 단계 일정의 기준점(정책 §5.2.1-A).
                   대상 기간(무엇을 평가하는가)과 운영 일정(언제 진행하는가)은 다른 축이라
-                  기준점을 여기 따로 둔다. */}
+                  기준점을 여기 따로 둔다.
+                  PW-2115 — 연두 상자 대신 이름 붙은 흰 줄(디자이너 스니핏 기간 필터 줄 모양). 이름이 없으면
+                  탭만 바꾸고 적용된 줄로 착각한다 — 탭을 바꾸는 것만으로는 아무것도 바뀌지 않는다. */}
               <div className="evc-sched-anchor" data-testid="evc-sched-anchor">
-                <span className="evc-sched-anchor-label">{L.scheduleAnchorLabel}</span>
-                <DateField
-                  value={d0Shown}
-                  onType={typeD0}
-                  onOpen={(e) => {
-                    const el = e.currentTarget;
-                    setD0Picker({ rect: el.getBoundingClientRect(), el });
-                  }}
-                  isOpen={!!d0Picker}
-                  ariaLabel={L.scheduleAnchorLabel}
-                  className="evc-sched-anchor-input"
-                  testId="evc-sched-anchor-date"
-                />
-                <StatusBadge
-                  className={`evc-sched-anchor-badge${scheduleStartTouched ? ' is-manual' : ''}`}
-                  data-testid="evc-sched-anchor-badge">
-                  {scheduleStartTouched
-                    ? L.scheduleAnchorManual
-                    : L.scheduleAnchorAuto}
-                </StatusBadge>
-                <span className="evc-sched-anchor-note">
-                  {L.scheduleAnchorNote}
-                  {/* [PW-2078 · §5.2.1-A] 고정 단계가 있으면 다시 배치에서 빠진다는 것을 기준점 안내에도 적는다 */}
-                  {activePhases.some((p) => isFixedPhase(p.id)) && L.scheduleAnchorFixedNote && (
-                    <span data-testid="evc-sched-anchor-fixed">
-                      {' · '}
-                      {L.scheduleAnchorFixedNote}
-                    </span>
-                  )}
-                  {dirtyShown.length > 0 && (
-                    <strong data-testid="evc-sched-anchor-dirty">
-                      {' '}
-                      {fill(L.scheduleAnchorDirtyCount ?? '(현재 {{count}}개)', {
-                        count: dirtyShown.length,
-                      })}
-                    </strong>
-                  )}
-                </span>
-                {dirtyShown.length > 0 && (
-                  <button
-                    type="button"
-                    className="evc-sched-anchor-reset"
-                    onClick={rebaseAllSchedule}
-                    data-testid="evc-sched-anchor-reset"
-                  >
-                    {L.scheduleAnchorResetAll}
-                  </button>
-                )}
-                {/* [PW-1591 J-6] 둘째 줄 — 하루짜리 8단계를 16칸 고치지 않고 한 번에. */}
+                <span className="evc-sched-anchor-title">{L.scheduleBulkLabel}</span>
                 <div className="evc-sched-bulk" data-testid="evc-sched-bulk">
-                  <span className="evc-sched-anchor-label">{L.scheduleBulkLabel}</span>
-                  <span className="evc-rm-inline">
-                    <span className="evc-rm-dtext">{L.scheduleBulkEach}</span>
-                    <TextInput
-                      type="number"
-                      min={1}
-                      max={60}
-                      className="evc-rm-field evc-rm-offset"
-                      value={bulkDays}
-                      onChange={(e) => setBulkDays(e.target.value)}
-                      aria-label={L.scheduleBulkDaysAria}
-                      data-testid="evc-sched-bulk-days"
+                  <div className="evc-sched-bulk-field">
+                    <span className="evc-sched-anchor-label">{L.scheduleAnchorLabel}</span>
+                    <DateField
+                      value={d0Shown}
+                      onType={typeD0}
+                      onOpen={(e) => {
+                        const el = e.currentTarget;
+                        setD0Picker({ rect: el.getBoundingClientRect(), el });
+                      }}
+                      isOpen={!!d0Picker}
+                      ariaLabel={L.scheduleAnchorLabel}
+                      className="evc-sched-anchor-input"
+                      testId="evc-sched-anchor-date"
                     />
-                    <span className="evc-rm-unit">{L.scheduleBulkDayUnit}</span>
-                  </span>
-                  {/* PW-1887 — 하나만 고르는 칸이라 공용 세그먼트 버튼. */}
-                  <SegmentedControl
-                    ariaLabel={L.scheduleBulkLabel}
-                    value={bulkMode}
-                    onChange={setBulkMode}
-                    items={[
-                      { value: 'chain', label: L.scheduleBulkChain, testId: 'evc-sched-bulk-mode-chain' },
-                      { value: 'same', label: L.scheduleBulkSame, testId: 'evc-sched-bulk-mode-same' },
-                    ]}
-                  />
+                    <span className="evc-sched-anchor-caption" data-testid="evc-sched-anchor-badge">
+                      {scheduleStartTouched ? L.scheduleAnchorManual : L.scheduleAnchorAuto}
+                    </span>
+                  </div>
+                  <div className="evc-sched-bulk-field">
+                    <span className="evc-sched-anchor-label">{L.scheduleBulkEach}</span>
+                    <span className="evc-rm-inline">
+                      <TextInput
+                        type="number"
+                        min={1}
+                        max={60}
+                        className="evc-rm-field evc-rm-offset"
+                        value={bulkDays}
+                        onChange={(e) => setBulkDays(e.target.value)}
+                        aria-label={L.scheduleBulkDaysAria}
+                        data-testid="evc-sched-bulk-days"
+                      />
+                      <span className="evc-rm-unit">{L.scheduleBulkDayUnit}</span>
+                    </span>
+                  </div>
+                  <div className="evc-sched-bulk-field">
+                    <span className="evc-sched-anchor-label">{L.scheduleBulkModeLabel}</span>
+                    {/* PW-1887 — 하나만 고르는 칸이라 공용 세그먼트 버튼. */}
+                    <SegmentedControl
+                      ariaLabel={L.scheduleBulkModeLabel}
+                      value={bulkMode}
+                      onChange={setBulkMode}
+                      items={[
+                        { value: 'chain', label: L.scheduleBulkChain, testId: 'evc-sched-bulk-mode-chain' },
+                        { value: 'same', label: L.scheduleBulkSame, testId: 'evc-sched-bulk-mode-same' },
+                      ]}
+                    />
+                  </div>
                   <button
                     type="button"
-                    className="evc-sched-anchor-reset"
+                    className="evc-btn is-ghost evc-sched-bulk-apply"
                     onClick={requestBulkLayout}
                     data-testid="evc-sched-bulk-apply"
                   >
@@ -9549,9 +9534,9 @@ export default function EvalCycleWizard({
                             {L.badgeParallel}
                           </StatusBadge>
                         )}
-                        {/* [PW-536 · 정책 §5.2.1-A] 직접 고친 단계는 재배치에서 빠진다는
-                            것을 그 자리에서 알린다 — 「전체 다시 배치」를 눌러야 풀린다. */}
-                        {enabled && scheduleDirty.includes(ph.id) && (
+                        {/* [PW-536 · 정책 §5.2.1-A] 직접 고친 단계는 재배치에서 빠진다는 것을 그 자리에서 알린다.
+                            PW-2115 — 관리 모드로 들어온 일정은 «모든 단계에 적용»으로 바뀌므로 표시하지 않는다. */}
+                        {enabled && scheduleDirty.includes(ph.id) && !seededSchedule.includes(ph.id) && (
                           <StatusBadge
                             className="evc-mode-badge is-muted"
                             data-testid={`evc-sched-dirty-${ph.id}`}>
@@ -9667,11 +9652,27 @@ export default function EvalCycleWizard({
                               {L.reminderOrgOff}
                             </p>
                           )}
+                          {/* PW-2115 — 없을 때는 «리마인더 없음 · + 추가» 한 줄. 있으면 머리·목록·추가 버튼 그대로. */}
                           <div className="evc-rm-head">
                             <span className="evc-field-label"><BellIcon size={13} /> {L.reminderLabel}</span>
-                            <span className="evc-rm-count">
-                              {fill(L.reminderCount, { count: remindersOf(ph.id).length })}
-                            </span>
+                            {remindersOf(ph.id).length === 0 ? (
+                              <span className="evc-rm-none" data-testid={`evc-rm-none-${ph.id}`}>
+                                {L.reminderNone}
+                                <span aria-hidden="true">·</span>
+                                <button
+                                  type="button"
+                                  className="evc-rm-add-inline"
+                                  onClick={() => addReminder(ph.id)}
+                                  data-testid={`evc-rm-add-${ph.id}`}
+                                >
+                                  + {L.reminderAddShort}
+                                </button>
+                              </span>
+                            ) : (
+                              <span className="evc-rm-count">
+                                {fill(L.reminderCount, { count: remindersOf(ph.id).length })}
+                              </span>
+                            )}
                             {/* [PW-2089 §5.2.1-F 로딩·에러] 회사 기본값을 못 불러와도 저장은 막지 않는다. */}
                             {reminderCompanyDefaultsFailed && remindersOf(ph.id).length > 0 && (
                               <span className="evc-rm-sum-msg" data-testid={`evc-rm-inherit-failed-${ph.id}`}>
@@ -9679,9 +9680,7 @@ export default function EvalCycleWizard({
                               </span>
                             )}
                           </div>
-                          {remindersOf(ph.id).length === 0 ? (
-                            <div className="evc-rm-empty">{L.reminderEmpty}</div>
-                          ) : (
+                          {remindersOf(ph.id).length === 0 ? null : (
                             <div className="evc-rm-list">
                               {remindersOf(ph.id).map((rm, i) => {
                                 const { msg, selfOn, noRecipient, beforeStart } = reminderFacts(ph, rm);
@@ -9830,14 +9829,16 @@ export default function EvalCycleWizard({
                               })}
                             </div>
                           )}
-                          <button
-                            type="button"
-                            className="evc-rm-add"
-                            onClick={() => addReminder(ph.id)}
-                            data-testid={`evc-rm-add-${ph.id}`}
-                          >
-                            + {L.reminderAdd}
-                          </button>
+                          {remindersOf(ph.id).length > 0 && (
+                            <button
+                              type="button"
+                              className="evc-rm-add"
+                              onClick={() => addReminder(ph.id)}
+                              data-testid={`evc-rm-add-${ph.id}`}
+                            >
+                              + {L.reminderAdd}
+                            </button>
+                          )}
                         </div>
                       )}
                       {/* [PW-441 §5.2.4] 여기서 **고르게 하지 않는다.** 고를 재료(항목·등급)는
@@ -11980,16 +11981,22 @@ export default function EvalCycleWizard({
 
       {/* [PW-536 · 정책 §5.2.1-A] 기준점을 바꾸면 손대지 않은 단계가 다시 깔린다 —
           직접 고쳐 둔 것이 있을 때만 묻는다. 「그대로 두기」는 지금 날짜를 굳힌다. */}
+      {/* PW-2115 — «모든 단계에 적용» 전에 손으로 고친 단계가 그대로 남는다는 것을 그 단계 이름으로 알린다.
+          날짜만 다시 놓는 일이라 확인 버튼은 초록(회의 «종료» 확인 창 틀). */}
       {pendingBulk != null && (
         <AppConfirmModal
           title={L.scheduleBulkConfirmTitle}
           body={
             <span data-testid="evc-sched-bulk-confirm-body">
-              {fill(L.scheduleBulkConfirmBody ?? '', { count: pendingBulk })}
+              {fill((bulkMode === 'same' ? L.scheduleBulkConfirmBodySame : L.scheduleBulkConfirmBody) ?? '', {
+                date: scheduleStart,
+                days: Math.max(1, Math.min(60, Math.trunc(Number(bulkDays)) || 1)),
+                names: pendingBulk.map((n) => `«${n}»`).join(', '),
+              })}
             </span>
           }
           cancelLabel={L.cancel}
-          confirmLabel={L.scheduleBulkApply}
+          confirmLabel={L.scheduleBulkConfirmOk}
           onCancel={() => setPendingBulk(null)}
           onConfirm={applyBulkLayout}
           cancelTestId="evc-sched-bulk-cancel"

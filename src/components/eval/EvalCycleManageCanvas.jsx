@@ -153,6 +153,8 @@ export default function EvalCycleManageCanvas({
   toolbar = null,
   /** 이 탭이 왜 잠겼는지. `null` 이면 편집 가능. */
   lockReason = null,
+  /** PW-2115 — 잠금을 푸는 길. 자물쇠에 마우스를 올리면 말풍선으로 뜬다(한 줄 안내를 짧게 두려고). */
+  lockHint = null,
   loading = false,
   /**
    * PW-1845 — 머리에서 이름 고치기. `(name) => Promise<string | null | void>` — 문자열이면 실패 문장.
@@ -202,8 +204,17 @@ export default function EvalCycleManageCanvas({
 
       {/* 왜 잠겼는지를 «적는다». 탭을 비활성으로 만들지 않는다 (정책 §4.6.6). */}
       {lockReason && (
-        <p className="evx-notice evc-manage-lock" data-testid="evmg-lock">
-          <LockIcon size={14} /> <span>{lockReason}</span>
+        <p className="evc-manage-lock" data-testid="evmg-lock">
+          {lockHint ? (
+            <Tooltip content={lockHint}>
+              <span className="evc-manage-lock-icon" tabIndex={0} data-testid="evmg-lock-hint">
+                <LockIcon size={14} />
+              </span>
+            </Tooltip>
+          ) : (
+            <LockIcon size={14} />
+          )}
+          <span>{lockReason}</span>
         </p>
       )}
 

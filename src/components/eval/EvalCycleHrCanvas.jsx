@@ -7,6 +7,9 @@ import AppConfirmModal from '../shared/ConfirmModal.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import Button from '../shared/Button.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
+import SegmentedControl from '../shared/SegmentedControl.jsx';
+import EvalProgressBar from './EvalProgressBar.jsx';
+import { cycleListTab } from './evalCycleListTab.js';
 import { ChevronDownIcon, ChevronUpIcon, PauseIcon, PlayIcon } from './evalIcons.jsx';
 import { stampScheduleDateTime } from './evalScheduleStamp.js';
 import {
@@ -93,8 +96,14 @@ const DEFAULT_LABELS = {
   onHoldBanner: '이 사이클은 일시 중단되었습니다. 구성원의 작성·제출이 차단됩니다.',
   resume: '재개',
   // PW-1458 — 진행 현황의 [평가 일시 중단]과 같은 확인 창 (정책 §6.6 확인 다이얼로그)
-  confirmHoldTitle: '평가 일시 중단',
-  confirmHoldBody: '평가를 일시 중단하면 구성원이 더 이상 작성·제출할 수 없습니다. 일시 중단하시겠습니까?',
+  confirmHoldTitle: '평가를 일시 중단할까요?',
+  confirmHoldBody: '«{{name}}»의 제출이 재개할 때까지 막힙니다. 작성 중인 내용은 지워지지 않습니다.',
+  listTabsAria: '사이클 상태',
+  listTabAll: '전체',
+  listTabActive: '진행 중',
+  listTabDraft: '초안',
+  listTabDone: '완료',
+  listTabEmpty: '이 상태의 평가 사이클이 없습니다.',
   // PW-1458 — 실패 문구 (정책 §5.7.1 엣지케이스). 실패하면 상태는 그대로다.
   holdError: '일시 중단에 실패했습니다. 다시 시도해 주세요.',
   resumeError: '재개에 실패했습니다. 다시 시도해 주세요.',
@@ -1401,6 +1410,8 @@ function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, advancing = 
             <div className="evc-completion">
               <span className="evc-completion-label">{L.completion}</span>
               <span className="evc-completion-value">{cycle.completionPct}%</span>
+              {/* PW-2115 — 진행 현황 탭과 같은 진행바(디자이너 OKR 묶음 카드 진행바). */}
+              <EvalProgressBar pct={cycle.completionPct} className="evc-completion-bar" testId="evc-completion-bar" />
             </div>
           )
         )}
@@ -1480,7 +1491,8 @@ function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, advancing = 
             )
           )}
           {isActive && (
-            <button type="button" className="evc-btn is-hold" onClick={() => onHold(cycle)} data-testid="evc-hold">
+            /* PW-2115 — 카드마다 주황이 반복되지 않게 다른 버튼과 같은 흰 버튼. 멈춘다는 무게는 누른 뒤 빨간 확인 창이 진다. */
+            <button type="button" className="evc-btn is-ghost" onClick={() => onHold(cycle)} data-testid="evc-hold">
               <PauseIcon size={14} /> {L.hold}
             </button>
           )}
@@ -1947,9 +1959,10 @@ export default function EvalCycleHrCanvas({
   const requestHold = (cycle) => {
     setConfirmModal({
       title: L.confirmHoldTitle,
-      body: L.confirmHoldBody,
+      body: fill(L.confirmHoldBody ?? '', { name: cycle.name ?? '' }),
       confirmLabel: L.hold,
-      danger: false,
+      // PW-2115 — 디자이너 회의 «종료» 확인 창처럼 멈추는 일은 빨간 버튼(MeetingEndConfirmModal).
+      danger: true,
       onConfirm: () => {
         setConfirmModal(null);
         void run(() => onHoldCycle?.(cycle.id), L.toastHeld, L.holdError);
@@ -2166,8 +2179,11 @@ export default function EvalCycleHrCanvas({
 
   /* PW-1459 §5.1-A-6 — 오래된 초안(마지막 저장이 90일 이상 전)은 목록 끝에 접는다. */
   const [showStaleDrafts, setShowStaleDrafts] = useState(false);
-  const staleDrafts = cycles.filter(isStaleDraft);
-  const freshCycles = staleDrafts.length ? cycles.filter((c) => !isStaleDraft(c)) : cycles;
+  /* PW-2115 — 목록 위 탭. 개수는 고른 탭 기준이다. */
+  const [listTab, setListTab] = useState('all');
+  const tabCycles = listTab === 'all' ? cycles : cycles.filter((c) => cycleListTab(c.status) === listTab);
+  const staleDrafts = tabCycles.filter(isStaleDraft);
+  const freshCycles = staleDrafts.length ? tabCycles.filter((c) => !isStaleDraft(c)) : tabCycles;
 
   /** 위자드를 닫는다 — 초안 세션과 복원값을 함께 비운다(다음에 열면 새 초안이다). */
   const closeWizard = () => {
@@ -2202,7 +2218,7 @@ export default function EvalCycleHrCanvas({
       <header className="evc-header">
         <div>
           <h1 className="evc-title">{L.title}</h1>
-          <p className="evc-summary">{fill(L.summary, { count: cycles.length })}</p>
+          <p className="evc-summary" data-testid="evc-summary">{fill(L.summary, { count: tabCycles.length })}</p>
         </div>
         <div className="evc-header-actions">
           {/* PW-1461 · 정책 §4.1-A — 새 위자드를 불러오기 목록(§5.9)이 열린 채로 연다.
@@ -2245,6 +2261,22 @@ export default function EvalCycleHrCanvas({
         </div>
       ) : (
         <div className="evc-list">
+          <div className="evc-list-filter">
+            <SegmentedControl
+              ariaLabel={L.listTabsAria}
+              value={listTab}
+              onChange={setListTab}
+              items={[
+                { value: 'all', label: L.listTabAll, testId: 'evc-list-tab-all' },
+                { value: 'active', label: L.listTabActive, testId: 'evc-list-tab-active' },
+                { value: 'draft', label: L.listTabDraft, testId: 'evc-list-tab-draft' },
+                { value: 'done', label: L.listTabDone, testId: 'evc-list-tab-done' },
+              ]}
+            />
+          </div>
+          {tabCycles.length === 0 && (
+            <p className="evc-list-tab-empty" data-testid="evc-list-tab-empty">{L.listTabEmpty}</p>
+          )}
           {freshCycles.map((cycle) => (
             <CycleCard
               key={cycle.id}

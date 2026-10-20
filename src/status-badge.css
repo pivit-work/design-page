@@ -623,20 +623,6 @@
   color: var(--text-tertiary);
 }
 
-.evc-sched-anchor-badge {
-  font-size: var(--font-size-text-xs);
-  font-weight: 600;
-  padding: 1px var(--spacing-md);
-  border-radius: var(--radius-full);
-  background: var(--utility-brand-100);
-  color: var(--utility-brand-600);
-}
-
-.evc-sched-anchor-badge.is-manual {
-  background: var(--utility-gray-100);
-  color: var(--utility-gray-700);
-}
-
 .evc-rm-sum-chip {
   display: inline-flex;
   align-items: center;

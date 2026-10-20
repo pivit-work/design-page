@@ -1,4 +1,5 @@
 import { Fragment, useMemo, useState } from 'react';
+import EvalProgressBar from './EvalProgressBar.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import DatePicker from '../shared/DatePicker.jsx';
 import { ChevronLeftIcon, PauseIcon, StopIcon, TrashIcon, UndoIcon } from './evalIcons.jsx';
@@ -34,8 +35,8 @@ const DEFAULT_LABELS = {
   resume: '평가 재개',
   // [PW-1458] 진행 중일 때 같은 자리의 [평가 일시 중단] + 확인 창 (정책 §6.6 — 사이클 목록과 같은 문구)
   hold: '평가 일시 중단',
-  confirmHoldTitle: '평가 일시 중단',
-  confirmHoldBody: '평가를 일시 중단하면 구성원이 더 이상 작성·제출할 수 없습니다. 일시 중단하시겠습니까?',
+  confirmHoldTitle: '평가를 일시 중단할까요?',
+  confirmHoldBody: '«{{name}}»의 제출이 재개할 때까지 막힙니다. 작성 중인 내용은 지워지지 않습니다.',
   confirmHoldCancel: '취소',
   // [PW-2063 · 정책 §5.7.2] 사이클 회수 — 버튼 · 기록이 있으면 비활성 + 버튼 줄 아래 이유 한 줄(PW-2077 정정)
   revoke: '사이클 회수',
@@ -137,7 +138,7 @@ const DEFAULT_LABELS = {
   // [PW-585] 단계 상세 (정책 §6.8 · §6.10)
   // 🔴 화살표는 글자가 아니라 인라인 SVG 로 그린다 — 번역 번들에 기호를 넣지 않는다.
   backToStages: '단계 목록',
-  stagesHint: '단계를 클릭하면 상세를 확인할 수 있습니다',
+  stageOpenNow: '진행 중',
   // stage keys
   stageSelfReview: '셀프 리뷰',
   stagePeerAssign: '동료 배정',
@@ -170,6 +171,20 @@ const STAGE_KEY = {
   leader_review: 'stageLeaderReview',
   calibration: 'stageCalibration',
   result_share: 'stageResultShare',
+};
+
+/**
+ * PW-2115 — 진행 현황 단계 줄이 «지금 열려 있나». 단계 키 → 그 단계가 열려 있는 사이클 상태.
+ * 리뷰 작성 단계(`peer_review`)에는 동료·상향·하향이 함께 열려 있다(앱 `PHASE_STAGE` 와 같은 표).
+ */
+const OPEN_STATUS_OF_STAGE = {
+  self_review: ['self_review'],
+  peer_assign: ['peer_assign'],
+  peer_review: ['peer_review'],
+  upward_review: ['peer_review'],
+  leader_review: ['peer_review'],
+  calibration: ['calibration'],
+  result_share: ['report_review', 'hr_review'],
 };
 
 /** `YYYY-MM-DD…` → 로컬 자정 `Date`. 못 읽으면 null. */
@@ -773,7 +788,7 @@ export default function EvalCycleMonitoringCanvas({
       )}
 
       {stopped && (
-        <p className="evx-notice" data-testid="evmon-stopped" style={{ margin: '0 0 12px', background: 'var(--utility-error-50)', color: 'var(--utility-error-500)' }}>
+        <p className="evx-notice is-error" data-testid="evmon-stopped" style={{ margin: '0 0 12px' }}>
           {L.stoppedBanner}
         </p>
       )}
@@ -783,21 +798,30 @@ export default function EvalCycleMonitoringCanvas({
         <section className="evc-card">
           <div className="evmon-completion">
             <span className="evc-field-label">{L.completion}</span>
-            <span className="evmon-completion-value" data-testid="evmon-completion">{completionPct}%</span>
+            {/* PW-2115 — 숫자 옆에 진행바(디자이너 OKR 묶음 카드 진행바). */}
+            <div className="evmon-completion-row">
+              <span className="evmon-completion-value" data-testid="evmon-completion">{completionPct}%</span>
+              <EvalProgressBar pct={completionPct} className="evmon-completion-bar" testId="evmon-completion-bar" />
+            </div>
           </div>
           <h3 className="evc-card-name">{L.stagesTitle}</h3>
-          {onSelectStage && <p className="evc-empty-sub">{L.stagesHint}</p>}
+          {/* PW-2115 — «단계를 클릭하면…» 안내 줄은 뺐다. 줄에 마우스를 올리면 바탕이 들어와 누르는 자리임을 보인다. */}
           <div className="evmon-stages">
             {stages.map((s) => {
-              const pct = s.total > 0 ? Math.round((100 * s.done) / s.total) : 0;
               /* [PW-1968] 하향 차수 줄(`leader_review_2` …)은 키 표에 없는 이름이라 화면이 이름을 실어 보낸다. */
               const stageLabel = s.label ?? L[STAGE_KEY[s.key]] ?? s.key;
+              const isOpenNow = !!status && (OPEN_STATUS_OF_STAGE[s.key] ?? []).includes(status);
               const inner = (
                 <>
-                  <span className="evmon-stage-label">{stageLabel}</span>
-                  <div className="evs-dist-track">
-                    <div className="evs-dist-fill" style={{ width: `${pct}%` }} />
-                  </div>
+                  <span className="evmon-stage-label">
+                    {stageLabel}
+                    {isOpenNow && L.stageOpenNow && (
+                      <span className="evmon-stage-now" data-testid={`evmon-stage-now-${s.key}`}>
+                        {L.stageOpenNow}
+                      </span>
+                    )}
+                  </span>
+                  <EvalProgressBar done={s.done} total={s.total} className="evmon-stage-bar" testId={`evmon-stage-bar-${s.key}`} />
                   <span className="evmon-stage-count">{s.done}/{s.total}</span>
                 </>
               );
@@ -1113,9 +1137,11 @@ export default function EvalCycleMonitoringCanvas({
       {holdConfirmOpen && (
         <ConfirmModal
           title={L.confirmHoldTitle}
-          body={L.confirmHoldBody}
+          body={fill(L.confirmHoldBody ?? '', { name: cycle?.name ?? '' })}
           confirmLabel={L.hold}
           cancelLabel={L.confirmHoldCancel}
+          /* PW-2115 — 사이클 목록과 같은 확인 창(같은 문구 키) — 멈추는 일은 빨간 버튼. */
+          danger
           busy={holdBusy}
           onConfirm={() => void confirmHold()}
           onCancel={() => {
