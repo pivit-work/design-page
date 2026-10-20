@@ -40,6 +40,9 @@ import Select from '../shared/Select.jsx';
  *                                       // 있으면 받는 사람 칸은 targetsFixed 잠금 안내, 채널 칸은 단계별 표가 되고
  *                                       // 목록 행은 그 안내 + 표의 합집합 채널(rule.channels)을 보인다
  *    stageChannelsNote?: string,        // 단계별 표 밑 안내
+ *    stageChannelsTitle?: string,       // 표 제목. 없으면 labels.modal.stageChannels (PW-2089 «리마인더 기본 채널»)
+ *    stageChannelKeys?: string[],       // 표의 열(채널). 없으면 push·slack·email 전부 (PW-2089 — 이메일·Slack 만)
+ *    stageChannelsRequireOne?: bool,    // 줄마다 채널 하나는 남긴다 — 마지막 하나는 끌 수 없다 (PW-2089)
  *    enabled: bool,
  *    cooldown: { mode:'custom'|'immediate'|'event', ... },
  *  }
@@ -354,10 +357,12 @@ function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatC
   const toggleChannel = (c) =>
     setChannels((p) => (p.includes(c) ? p.filter((x) => x !== c) : [...p, c]));
   const toggleStageChannel = (key, c) =>
-    setStageChannels((p) => p.map((s) => (s.key !== key ? s : {
-      ...s,
-      channels: s.channels.includes(c) ? s.channels.filter((x) => x !== c) : [...s.channels, c],
-    })));
+    setStageChannels((p) => p.map((s) => {
+      if (s.key !== key) return s;
+      const on = s.channels.includes(c);
+      if (on && rule.stageChannelsRequireOne && s.channels.length === 1) return s;
+      return { ...s, channels: on ? s.channels.filter((x) => x !== c) : [...s.channels, c] };
+    }));
   // 단계별 표가 있으면 규칙 채널은 표의 합집합이다 — 목록 행 표시가 이것이다.
   const savedChannels = stageChannels
     ? CHANNEL_KEYS.filter((c) => stageChannels.some((s) => s.channels.includes(c)))
@@ -484,13 +489,13 @@ function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatC
           </div>
         </div>
         <div>
-          <SL>{labels.modal.stageChannels}</SL>
+          <SL>{rule.stageChannelsTitle ?? labels.modal.stageChannels}</SL>
           <div className="admin-notif-param-list" data-testid="notif-stage-channels">
             {stageChannels.map((stage) => (
               <div key={stage.key} className="admin-notif-param-row admin-notif-stage-row" data-testid={`notif-stage-${stage.key}`}>
                 <span className="admin-notif-param-label">{stage.label}</span>
                 <div className="admin-notif-check-row">
-                  {CHANNEL_KEYS.map((key) => (
+                  {(rule.stageChannelKeys ?? CHANNEL_KEYS).map((key) => (
                     <Checkbox
                       key={key}
                       checked={stage.channels.includes(key)}
