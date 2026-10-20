@@ -45,6 +45,7 @@ export default function OkrGroupNode({
               objective={objective}
               dragId={`${group.id}:obj:${i}`}
               onClick={() => onOpen(group.id)}
+              stacked={isPerson}
             />
           ))}
         </div>
