@@ -642,7 +642,7 @@ export default function EvalLeaderAssignmentSection({
         <div className="evc-la-sum-head">
           <span data-testid="evc-la-summary">
             {showProgress && (
-              <span className="evc-la-sum-count" data-testid="evc-la-progress">
+              <span data-testid="evc-la-progress">
                 {fill(L.leaderAsgGroupProgress, { a: confirmedGroups, b: groups.length })}
               </span>
             )}
