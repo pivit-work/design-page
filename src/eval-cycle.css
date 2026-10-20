@@ -12262,8 +12262,7 @@ button.evmh-phase:focus-visible {
 .evc-tpl-picker-block-empty,
 .evm-ai-draft-pending,
 .evs-lp-warn,
-.evs-re-alert,
-.evs-cw-comp-access-status {
+.evs-re-alert {
   padding: 0;
   border: 0;
   border-radius: 0;

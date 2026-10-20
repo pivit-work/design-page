@@ -328,14 +328,6 @@
    "border": "1px solid var(--utility-success-200)",
    "flex": "0 0 auto"
   },
-  "eval-cycle.css|.evc-sched-anchor-badge": {
-   "border-radius": "pill",
-   "padding": "1px 8px",
-   "font-size": "12px",
-   "font-weight": "600",
-   "background": "#e1fef2 / 어두운 화면 #0b4b31",
-   "color": "#21a67a / 어두운 화면 #5af3b4"
-  },
   "eval-cycle.css|.evc-status-badge": {
    "border-radius": "8px",
    "padding": "2px 8px",
@@ -1939,10 +1931,6 @@
   "eval-cycle.css|.evc-rm-sum-chip.is-primary": {
    "background": "#e1fef2 / 어두운 화면 #10774d",
    "color": "#10774d / 어두운 화면 #2dbd82"
-  },
-  "eval-cycle.css|.evc-sched-anchor-badge.is-manual": {
-   "background": "#f3f4f6 / 어두운 화면 #22262f",
-   "color": "#596069 / 어두운 화면 #ececed"
   },
   "eval-cycle.css|.evc-status-badge.tone-error": {
    "background": "#fef3f2 / 어두운 화면 #220905",
