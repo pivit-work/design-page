@@ -18,8 +18,9 @@ import { todayIsoInZone } from '../shared/calendarDate.js';
 import { IconLock } from './employeeExport.jsx';
 import { IconChevronRight } from './employeesIcons.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
-import { CheckGlyph, CloseGlyph, CrownGlyph, PlusGlyph } from '../shared/lineIcons.jsx';
+import { AlertTriangleGlyph, CheckGlyph, CloseGlyph, CrownGlyph, PlusGlyph } from '../shared/lineIcons.jsx';
 import LoadingState from '../shared/LoadingState.jsx';
 import Select from '../shared/Select.jsx';
 
@@ -154,16 +155,20 @@ export function CeoConfirmModal({ row, mode, currentCeoName, labels, positionOpt
   }
 
   // 네모는 공용 `Checkbox`(제품색 16px · PW-1936), 글씨는 `htmlFor` 로 이어 눌러도 켜진다.
+  // [PW-2042] 매니저 지정 창의 선택 카드 모양 — 켜면 흰 바탕 + 초록 테두리.
   const checkbox = (checked, onChange, label, disabled, hint) => (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12, color: disabled ? T.muted : T.text }}>
+    <div
+      className={`adm-choice-card${checked ? ' is-selected' : ''}${disabled ? ' is-disabled' : ''}`}
+      data-testid="ceo-position-card"
+    >
       <Checkbox
         id={checkId} checked={checked} disabled={disabled}
         onChange={(e) => onChange(e.target.checked)}
-        style={{ cursor: disabled ? 'not-allowed' : 'pointer' }}
+        style={{ cursor: disabled ? 'not-allowed' : 'pointer', marginTop: 4 }}
       />
-      <label htmlFor={checkId} style={{ cursor: disabled ? 'not-allowed' : 'pointer' }}>
+      <label htmlFor={checkId} className="adm-choice-card-label">
         {label}
-        {hint && <span style={{ display: 'block', fontSize: 11, color: T.muted }}>{hint}</span>}
+        {hint && <span className="adm-choice-card-hint">{hint}</span>}
       </label>
     </div>
   );
@@ -177,6 +182,8 @@ export function CeoConfirmModal({ row, mode, currentCeoName, labels, positionOpt
   return (
     <ModalShell
       title={title}
+      // [PW-2042] 첫 줄은 창 부제로 — 지정 창만. 해제 창 설명은 길어 본문에 둔다.
+      description={assigning ? (L.ceoAssignBody || '이 구성원이 조직도의 최상위가 됩니다.') : undefined}
       titleId="ceo-confirm-title"
       closeLabel={L.cancel || '취소'}
       onClose={onClose}
@@ -205,56 +212,51 @@ export function CeoConfirmModal({ row, mode, currentCeoName, labels, positionOpt
         </>
       }
     >
-      <div className="adm-shell-body" style={{ fontFamily: T.font }}>
-        <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.7 }}>
-          {assigning ? (
-            <>
-              <div>{L.ceoAssignBody || '이 구성원이 조직도의 최상위가 됩니다.'}</div>
-              {currentCeoName && currentCeoName !== name && (
-                <div data-testid="ceo-replace-note">
-                  {(L.ceoAssignReplace || '현재 대표 {name}님의 지정은 해제됩니다.').replace('{name}', currentCeoName)}
-                </div>
-              )}
-            </>
-          ) : (
-            <div>{(L.ceoReleaseBody || '대표 지정을 해제하면 조직도 최상위가 비어 가상 루트 노드로 표시됩니다. {name}님의 매니저는 소속 조직의 조직장으로 다시 계산됩니다. 권한과 직책은 자동으로 되돌리지 않습니다.').replace('{name}', name)}</div>
-          )}
-        </div>
-
-        {assigning && (
-          <div style={{ padding: '12px 14px', border: `1px solid ${T.border}`, borderRadius: 8, background: T.bg, display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {checkbox(
-              alsoSetJobPosition && positionAvailable,
-              setAlsoSetJobPosition,
-              (L.ceoAlsoSetJobPosition || "직책을 '{value}'로 함께 변경").replace('{value}', ceoPositionLabel),
-              !positionAvailable,
-              positionAvailable ? null : (L.ceoPositionMissing || "직책 옵션에 '대표'가 없습니다"),
-            )}
-            {!positionAvailable && onOpenFieldOptions && (
-              <button
-                type="button"
-                className="admin-emp-btn is-ghost is-sm"
-                style={{ alignSelf: 'flex-start' }}
-                onClick={onOpenFieldOptions}
-                data-testid="ceo-position-go-field-options"
-              >
-                {L.ceoPositionGoSettings || '조직 설정'}
-                <IconChevronRight size={14} />
-              </button>
-            )}
+      <div className="adm-shell-body">
+        {/* [PW-2042] «기존 대표가 풀린다»는 노란 주의 상자 — 묻히면 안 되는 한 줄이다. */}
+        {assigning ? (
+          currentCeoName && currentCeoName !== name && (
+            <div className="adm-warn-box" data-testid="ceo-replace-note">
+              <AlertTriangleGlyph size={18} />
+              <span>{(L.ceoAssignReplace || '현재 대표 {name}님의 지정은 해제됩니다.').replace('{name}', currentCeoName)}</span>
+            </div>
+          )
+        ) : (
+          <div className="adm-modal-note" data-testid="ceo-release-body">
+            {(L.ceoReleaseBody || '대표 지정을 해제하면 조직도 최상위가 비어 가상 루트 노드로 표시됩니다. {name}님의 매니저는 소속 조직의 조직장으로 다시 계산됩니다. 권한과 직책은 자동으로 되돌리지 않습니다.').replace('{name}', name)}
           </div>
         )}
 
+        {assigning && checkbox(
+          alsoSetJobPosition && positionAvailable,
+          setAlsoSetJobPosition,
+          (L.ceoAlsoSetJobPosition || "직책을 '{value}'로 함께 변경").replace('{value}', ceoPositionLabel),
+          !positionAvailable,
+          positionAvailable ? null : (L.ceoPositionMissing || "직책 옵션에 '대표'가 없습니다"),
+        )}
+        {assigning && !positionAvailable && onOpenFieldOptions && (
+          <button
+            type="button"
+            className="admin-emp-btn is-ghost is-sm"
+            style={{ alignSelf: 'flex-start' }}
+            onClick={onOpenFieldOptions}
+            data-testid="ceo-position-go-field-options"
+          >
+            {L.ceoPositionGoSettings || '조직 설정'}
+            <IconChevronRight size={14} />
+          </button>
+        )}
+
         {assigning && (
-          <div style={{ fontSize: 11, color: T.muted, lineHeight: 1.8 }}>
-            <div>· {L.ceoNoteManager || '매니저가 없어지고 이후 매니저가 생기지 않습니다 (조직 최상위)'}</div>
-            <div>· {L.ceoNoteRole || '권한은 바뀌지 않습니다 — 권한 관리 화면에서 따로 조정하세요.'}</div>
-            <div>· {L.ceoNoteHistory || '이 변경은 발령 이력에 기록됩니다.'}</div>
-          </div>
+          <ul className="adm-modal-notes" data-testid="ceo-notes">
+            <li className="adm-modal-note">{L.ceoNoteManager || '매니저가 없어지고 이후 매니저가 생기지 않습니다 (조직 최상위)'}</li>
+            <li className="adm-modal-note">{L.ceoNoteRole || '권한은 바뀌지 않습니다 — 권한 관리 화면에서 따로 조정하세요.'}</li>
+            <li className="adm-modal-note is-hint">{L.ceoNoteHistory || '이 변경은 발령 이력에 기록됩니다.'}</li>
+          </ul>
         )}
 
         {error && (
-          <div data-testid="ceo-modal-error" style={{ padding: '8px 12px', borderRadius: 6, background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontSize: 12 }}>
+          <div data-testid="ceo-modal-error" className="adm-modal-error" role="alert">
             {error}
           </div>
         )}
@@ -269,19 +271,26 @@ export function CeoConfirmModal({ row, mode, currentCeoName, labels, positionOpt
 const optionsOf = (map) => Object.entries(map || {}).map(([value, label]) => ({ value, label }));
 /** 코드값을 라벨로 — 라벨이 없으면 코드를 그대로 둔다(서버가 이미 라벨을 줬을 수 있다). */
 const codeLabel = (map, code) => (code && map && map[code]) || code;
-function HrSection({ title, children }) {
+/* [PW-2042] 섹션 이름은 1on1·매니저 섹션 제목 18px 굵게, 개수는 초록 딱지(0이면 회색 알약).
+   클래스는 admin.css 「PW-2042」. `count` 를 안 넘기면 딱지 없이 이름만. */
+function HrSection({ title, count, children }) {
   return (
-    <div style={{ marginBottom: 16 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>{title}</div>
+    <section className="adm-hr-section">
+      <h3 className="adm-hr-section-title">
+        {title}
+        {count != null && (
+          <StatusBadge className={count > 0 ? 'adm-count-chip' : 'adm-meta-pill'} data-testid="hr-section-count">{count}</StatusBadge>
+        )}
+      </h3>
       {children}
-    </div>
+    </section>
   );
 }
 function HrPair({ k, v }) {
   return (
-    <div style={{ display: 'flex', gap: 8, fontSize: 12, padding: '3px 0' }}>
-      <span style={{ minWidth: 88, color: T.muted }}>{k}</span>
-      <span style={{ color: T.text }}>{v == null || v === '' ? '—' : v}</span>
+    <div className="adm-hr-pair">
+      <span className="adm-hr-pair-k">{k}</span>
+      <span className="adm-hr-pair-v">{v == null || v === '' ? '—' : v}</span>
     </div>
   );
 }
@@ -291,8 +300,8 @@ function HrPair({ k, v }) {
  */
 function HrArchivedPair({ k, text }) {
   return (
-    <div style={{ display: 'flex', gap: 8, fontSize: 12, padding: '3px 0', alignItems: 'center' }} data-testid="hr-archived-note">
-      <span style={{ minWidth: 88, color: T.muted }}>{k}</span>
+    <div className="adm-hr-pair" style={{ alignItems: 'center' }} data-testid="hr-archived-note">
+      <span className="adm-hr-pair-k">{k}</span>
       <span style={{ flex: 1, padding: '6px 10px', borderRadius: 8, border: `1px dashed ${T.border}`, background: T.bg, color: T.muted }}>
         {text}
       </span>
@@ -301,12 +310,12 @@ function HrArchivedPair({ k, text }) {
 }
 function HrList({ items, render, empty }) {
   if (items.length === 0) {
-    return <div style={{ fontSize: 12, color: T.muted, padding: '4px 0' }}>{empty}</div>;
+    return <p className="adm-hr-empty">{empty}</p>;
   }
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+    <div className="adm-hr-list">
       {items.map((it, i) => (
-        <div key={it.id ?? i} style={{ fontSize: 12, color: T.text, padding: '7px 10px', background: T.bg, border: `1px solid ${T.border}`, borderRadius: 8 }}>{render(it)}</div>
+        <div key={it.id ?? i} className="adm-hr-card"><span className="adm-hr-card-text">{render(it)}</span></div>
       ))}
     </div>
   );
@@ -336,7 +345,7 @@ function joinAddressLine(address) {
 function HrEditPair({ k, value, onChange, type = 'text', date = false, options, inputMode, startView, max, today, disabled = false, placeholder }) {
   return (
     <div style={{ display: 'flex', gap: 8, fontSize: 12, padding: '3px 0', alignItems: 'center' }}>
-      <span style={{ minWidth: 88, color: T.muted }}>{k}</span>
+      <span className="adm-hr-pair-k">{k}</span>
       {options ? (
         <Select
           className="admin-emp-input"
@@ -550,7 +559,7 @@ function HrNationalIdRow({ memberId, present, onReveal, labels }) {
   };
   return (
     <div style={{ display: 'flex', gap: 8, fontSize: 12, padding: '3px 0', alignItems: 'center' }} data-testid="hr-national-id">
-      <span style={{ minWidth: 88, color: T.muted }}>{label}</span>
+      <span className="adm-hr-pair-k">{label}</span>
       <span style={{ color: T.text, fontVariantNumeric: 'tabular-nums' }}>{value ?? '******-*******'}</span>
       {onReveal && value == null && (
         <button
@@ -608,7 +617,7 @@ function HrBankAccountRow({ name, bankAccount, revealed, state, value, onChange,
   const masked = bankAccount.last4 ? `●●●● ${bankAccount.last4}` : '●●●●';
   return (
     <div style={{ display: 'flex', gap: 8, fontSize: 12, padding: '3px 0', alignItems: 'center' }} data-testid="hr-bank-account">
-      <span style={{ minWidth: 88, color: T.muted }}>{label}</span>
+      <span className="adm-hr-pair-k">{label}</span>
       {/* 옆에 실패 안내가 붙어도 «●●●● 6789»가 두 줄로 꺾이지 않게 한 덩어리로 둔다 */}
       <span style={{ color: T.text, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{masked}</span>
       {onReveal && (
@@ -774,18 +783,23 @@ export function HrProfileModal({
   return (
     // 껍데기는 공용 창 틀(ModalShell · PW-836). 읽기(+신원 저장) 창이라 아래 버튼 줄이 없다 —
     // 신원 저장 버튼은 그 칸 바로 아래에 산다.
+    // [PW-2042] 한 사람의 기록이라 머리를 사람 프로필 창의 노란→흰 빛으로(PW-2036 동료 원본 창과 같은 처리).
+    // 빛이 닫기 X 뒤까지 깔리게 머리를 본문 맨 위에 직접 그리고 틀의 제목 줄은 비운다.
     <ModalShell
-      title={`${row?.name || ''} · ${L.hrProfileTitle || 'HR 기록'}`}
-      description={L.hrProfileDesc || '본인·HR 전용 · 읽기 전용(입력은 본인 내 설정)'}
-      titleId="hr-profile-title"
+      ariaLabel={`${row?.name || ''} · ${L.hrProfileTitle || 'HR 기록'}`}
       closeLabel={L.close || '닫기'}
       onClose={onClose}
       zIndex={1000}
-      className="adm-shell"
+      className="adm-shell adm-hr-shell"
+      bodyClassName="adm-hr-frame"
       testId="hr-profile-modal"
       footer={null}
     >
-      <div style={{ fontFamily: T.font }}>
+      <div className="adm-hr-head" data-testid="hr-profile-head">
+        <h2 id="hr-profile-title" className="tl-group-modal-title">{`${row?.name || ''} · ${L.hrProfileTitle || 'HR 기록'}`}</h2>
+        <StatusBadge className="adm-meta-pill">{L.hrProfileDesc || '본인·HR 전용 · 읽기 전용(입력은 본인 내 설정)'}</StatusBadge>
+      </div>
+      <div className="adm-hr-body">
         {loading ? (
           <LoadingState>{L.loading || '불러오는 중…'}</LoadingState>
         ) : error ? (
@@ -1200,37 +1214,37 @@ function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelet
   const canEdit = Boolean(onAdd);
   const list = rows ?? [];
   return (
-    <HrSection title={`${L.hrTrainings || '수료한 교육 과정'} (${list.length})`}>
+    <HrSection title={L.hrTrainings || '수료한 교육 과정'} count={list.length}>
       <div data-testid="hr-trainings">
         {rows === null ? (
           <LoadingState size="inline">{L.loading || '불러오는 중…'}</LoadingState>
         ) : loadError ? (
           <div style={{ fontSize: 12, color: '#DC2626', padding: '4px 0' }} role="alert">{L.hrTrainingsLoadError || '교육 기록을 불러오지 못했습니다.'}</div>
         ) : list.length === 0 ? (
-          <div style={{ fontSize: 12, color: T.muted, padding: '4px 0' }}>{L.hrTrainingsEmpty || '등록된 교육 과정이 없습니다.'}</div>
+          <p className="adm-hr-empty">{L.hrTrainingsEmpty || '등록된 교육 과정이 없습니다.'}</p>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div className="adm-hr-list">
             {list.map((r) => (
               <div
                 key={r.id}
                 data-testid="hr-training-row"
-                style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: T.text, padding: '7px 10px', background: editingId === r.id ? '#EEF2FF' : T.bg, border: `1px solid ${T.border}`, borderRadius: 8 }}
+                className={`adm-hr-card${editingId === r.id ? ' is-editing' : ''}`}
               >
-                <span style={{ flex: 1 }}>
+                <span className="adm-hr-card-text">
                   {/* 수료일이 없으면 날짜 자리를 비운다 (PW-942). 「이수 중」으로 적으면 초대 CSV 처럼
                       과정명만 받은 기록이 수료하지 않은 것처럼 읽힌다 — 칸 이름이 「수료한 교육 과정」이다. */}
                   {[r.courseName, r.provider, r.completedAt ? `${L.hrTrainingCompletedPrefix || '수료'} ${r.completedAt}` : null, r.note].filter(Boolean).join(' · ')}
                 </span>
                 {canEdit && onUpdate && (
-                  <button type="button" className="admin-emp-btn" onClick={() => startEdit(r)} disabled={busy} style={{ fontSize: 11, padding: '3px 8px' }}>
+                  <button type="button" className="admin-emp-btn is-secondary is-sm" onClick={() => startEdit(r)} disabled={busy}>
                     {L.hrRecordEdit || '고치기'}
                   </button>
                 )}
                 {canEdit && onDelete && (
-                  <button type="button" className="admin-emp-btn" onClick={async () => {
+                  <button type="button" className="admin-emp-btn is-danger-ghost is-sm" onClick={async () => {
                     if (confirmDelete && !(await confirmDelete({ kind: 'training', label: r.courseName }))) return;
                     await run(() => onDelete(memberId, r.id));
-                  }} disabled={busy} style={{ fontSize: 11, padding: '3px 8px' }} aria-label={`${L.hrRecordDelete || '지우기'} ${r.courseName}`}>
+                  }} disabled={busy} aria-label={`${L.hrRecordDelete || '지우기'} ${r.courseName}`}>
                     {L.hrRecordDelete || '지우기'}
                   </button>
                 )}
@@ -1358,29 +1372,29 @@ function HrRecordListSection({
 
   const list = items ?? [];
   return (
-    <HrSection title={`${title} (${list.length})`}>
+    <HrSection title={title} count={list.length}>
       <div data-testid={testId}>
         {list.length === 0 ? (
-          <div style={{ fontSize: 12, color: T.muted, padding: '4px 0' }}>{emptyText}</div>
+          <p className="adm-hr-empty">{emptyText}</p>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div className="adm-hr-list">
             {list.map((r) => (
               <div
                 key={r.id}
                 data-testid={`${testId}-row`}
-                style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: T.text, padding: '7px 10px', background: editingId === r.id ? '#EEF2FF' : T.bg, border: `1px solid ${T.border}`, borderRadius: 8 }}
+                className={`adm-hr-card${editingId === r.id ? ' is-editing' : ''}`}
               >
-                <span style={{ flex: 1 }}>{render(r)}</span>
+                <span className="adm-hr-card-text">{render(r)}</span>
                 {onSave && (
-                  <button type="button" className="admin-emp-btn" onClick={() => startEdit(r)} disabled={busy} style={{ fontSize: 11, padding: '3px 8px' }} aria-label={`${L.hrRecordEdit || '고치기'} ${nameOf(r)}`}>
+                  <button type="button" className="admin-emp-btn is-secondary is-sm" onClick={() => startEdit(r)} disabled={busy} aria-label={`${L.hrRecordEdit || '고치기'} ${nameOf(r)}`}>
                     {L.hrRecordEdit || '고치기'}
                   </button>
                 )}
                 {onDelete && (
-                  <button type="button" className="admin-emp-btn" onClick={async () => {
+                  <button type="button" className="admin-emp-btn is-danger-ghost is-sm" onClick={async () => {
                     if (confirmDelete && !(await confirmDelete({ kind, label: nameOf(r) }))) return;
                     await run(() => onDelete(r.id));
-                  }} disabled={busy} style={{ fontSize: 11, padding: '3px 8px' }} aria-label={`${L.hrRecordDelete || '지우기'} ${nameOf(r)}`}>
+                  }} disabled={busy} aria-label={`${L.hrRecordDelete || '지우기'} ${nameOf(r)}`}>
                     {L.hrRecordDelete || '지우기'}
                   </button>
                 )}
@@ -1463,15 +1477,15 @@ function HrDocumentsSection({
 
   const list = items ?? [];
   return (
-    <HrSection title={`${title} (${list.length})`}>
+    <HrSection title={title} count={list.length}>
       <div data-testid="hr-documents">
         {list.length === 0 ? (
-          <div style={{ fontSize: 12, color: T.muted, padding: '4px 0' }}>{emptyText}</div>
+          <p className="adm-hr-empty">{emptyText}</p>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div className="adm-hr-list">
             {list.map((d) => (
-              <div key={d.id} data-testid="hr-documents-row" style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: T.text, padding: '7px 10px', background: T.bg, border: `1px solid ${T.border}`, borderRadius: 8 }}>
-                <span style={{ flex: 1 }}>
+              <div key={d.id} data-testid="hr-documents-row" className="adm-hr-card">
+                <span className="adm-hr-card-text">
                   {onDownload ? (
                     <button type="button" className="admin-emp-btn" onClick={() => onDownload(d)} style={{ fontSize: 12, padding: 0, border: 'none', background: 'none', color: '#4F46E5', textDecoration: 'underline' }}>
                       {d.fileName}
@@ -1480,10 +1494,10 @@ function HrDocumentsSection({
                   {[typeLabel(d.docType), d.uploadedAt].filter(Boolean).map((x) => ` · ${x}`).join('')}
                 </span>
                 {onDelete && (
-                  <button type="button" className="admin-emp-btn" onClick={async () => {
+                  <button type="button" className="admin-emp-btn is-danger-ghost is-sm" onClick={async () => {
                     if (confirmDelete && !(await confirmDelete({ kind: 'documents', label: d.fileName }))) return;
                     await run(() => onDelete(d.id));
-                  }} disabled={busy} style={{ fontSize: 11, padding: '3px 8px' }} aria-label={`${L.hrRecordDelete || '지우기'} ${d.fileName}`}>
+                  }} disabled={busy} aria-label={`${L.hrRecordDelete || '지우기'} ${d.fileName}`}>
                     {L.hrRecordDelete || '지우기'}
                   </button>
                 )}
@@ -1495,7 +1509,7 @@ function HrDocumentsSection({
           <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${T.bl}` }}>
             <HrEditPair k={`${L.hrDocType || '서류 종류'} *`} value={docType} onChange={setDocType} options={docTypeOptions || []} />
             <div style={{ display: 'flex', gap: 8, fontSize: 12, padding: '3px 0', alignItems: 'center' }}>
-              <span style={{ minWidth: 88, color: T.muted }}>{`${L.hrDocFile || '파일'} *`}</span>
+              <span className="adm-hr-pair-k">{`${L.hrDocFile || '파일'} *`}</span>
               <input
                 key={inputKey}
                 type="file"
@@ -1611,13 +1625,13 @@ function HrBenefitsSection({ memberId, labels, onLoad, onSave }) {
             )}
             <HrEditPair k={L.hrStockOptions || '주식 옵션'} value={d.stockOptions} onChange={set('stockOptions')} />
             <div style={{ display: 'flex', gap: 8, fontSize: 12, padding: '3px 0', alignItems: 'flex-start' }}>
-              <span style={{ minWidth: 88, color: T.muted, paddingTop: 7 }}>{L.hrOtherBenefits || '기타 복리후생'}</span>
+              <span className="adm-hr-pair-k" style={{ paddingTop: 7 }}>{L.hrOtherBenefits || '기타 복리후생'}</span>
               <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {d.otherBenefits.map((o, i) => (
                   <div key={i} style={{ display: 'flex', gap: 4 }} data-testid="hr-other-benefit-row">
                     <input className="admin-emp-input" value={o.name} onChange={(e) => setOther(i, 'name', e.target.value)} placeholder={L.hrOtherBenefitName || '항목 (예: 식대)'} aria-label={L.hrOtherBenefitName || '항목'} style={{ flex: 1, minWidth: 0, height: 30, fontSize: 12 }} />
                     <input className="admin-emp-input" value={o.value} onChange={(e) => setOther(i, 'value', e.target.value)} placeholder={L.hrOtherBenefitValue || '내용 (예: 월 20만원)'} aria-label={L.hrOtherBenefitValue || '내용'} style={{ flex: 1, minWidth: 0, height: 30, fontSize: 12 }} />
-                    <button type="button" className="admin-emp-btn" onClick={() => removeOther(i)} style={{ flexShrink: 0, fontSize: 11, padding: '3px 8px' }}>{L.hrRecordDelete || '지우기'}</button>
+                    <button type="button" className="admin-emp-btn is-danger-ghost is-sm" onClick={() => removeOther(i)} style={{ flexShrink: 0 }}>{L.hrRecordDelete || '지우기'}</button>
                   </div>
                 ))}
                 <button type="button" className="admin-emp-btn" onClick={addOther} style={{ alignSelf: 'flex-start', fontSize: 11, padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: 4 }}>

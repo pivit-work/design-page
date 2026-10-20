@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { fillExportCaption } from './employeeExportItems.js';
 import ModalShell from '../shared/ModalShell.jsx';
+import StatusBadge from '../shared/StatusBadge.jsx';
+import { AlertTriangleGlyph } from '../shared/lineIcons.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import useDismissLayer from '../shared/useDismissLayer.js';
 
@@ -166,7 +168,7 @@ export function ExportMenu({ items, disabled, busy, labels, onPick }) {
  * 기본 포커스는 `[연봉 빼고 내보내기]` 다. 명부 요청의 대다수는 연봉이 필요 없고,
  * 연봉 열은 다른 목적으로 켜 둔 채 잊혀 있기 쉽다 — 실수의 기본값을 안전한 쪽에 둔다.
  */
-export function SalaryExportModal({ count, columnCount, labels, onExclude, onInclude, onClose }) {
+export function SalaryExportModal({ count, columnCount, labels, riskyLast = true, onExclude, onInclude, onClose }) {
   const L = labels || {};
   const excludeRef = useRef(null);
   // Esc·막 클릭·닫기 X 는 공용 창 틀(ModalShell · PW-836)이 onClose 로 부른다.
@@ -175,6 +177,7 @@ export function SalaryExportModal({ count, columnCount, labels, onExclude, onInc
   }, []);
   const fill = (s) =>
     String(s || '').split('{count}').join(String(count)).split('{columns}').join(String(columnCount));
+  const chips = fill(L.salaryBody || '대상 {count}명 · {columns}열 · 연봉 열 포함').split(' · ').filter(Boolean);
   return (
     <ModalShell
       title={L.salaryTitle || '연봉이 포함된 명부를 내보냅니다'}
@@ -213,14 +216,29 @@ export function SalaryExportModal({ count, columnCount, labels, onExclude, onInc
         </>
       }
     >
-      <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.8, fontFamily: T.font }}>
-        <div>{fill(L.salaryBody || '대상 {count}명 · {columns}열 · 연봉 열 포함')}</div>
-        <div style={{ color: T.muted }}>
-          {L.salaryAudit || '이 반출은 감사 로그에 기록됩니다 — 실행자·시각·조건·행 수'}
+      {/* [PW-2042] 요약 한 줄(«대상 N명 · N열 · 연봉 열 포함»)을 « · » 마다 딱지로 — 문구는 그대로다.
+          마지막 조각(무엇이 담기나)만 빨강(매니저 팀 요약의 위험 점수 딱지 색). 전체 필드 창은 마지막이
+          «계좌번호는 담지 않습니다»라 위험이 아니어서 `riskyLast={false}` 로 회색 그대로 둔다.
+          감사 로그 안내는 노란 주의 상자(1on1 시작 화면 «주의» 딱지 색). 클래스는 admin.css 「PW-2042」. */}
+      <div className="adm-shell-body">
+        <div className="adm-modal-badges" data-testid="export-salary-badges">
+          {chips.map((c, i) => (
+            <StatusBadge
+              key={i}
+              className={riskyLast && i === chips.length - 1 && chips.length > 1 ? 'adm-danger-chip' : 'adm-meta-pill'}
+              data-testid="export-salary-chip"
+            >
+              {c}
+            </StatusBadge>
+          ))}
+        </div>
+        <div className="adm-warn-box" data-testid="export-salary-audit">
+          <AlertTriangleGlyph size={18} />
+          <span>{L.salaryAudit || '이 반출은 감사 로그에 기록됩니다 — 실행자·시각·조건·행 수'}</span>
         </div>
         {/* 파일에 없는 기록 안내(«업로드 양식 그대로» · §2-5 「안내」) — 주는 범위만 줄이 생긴다. */}
         {L.salaryNote && (
-          <div data-testid="export-salary-note" style={{ color: T.muted }}>{L.salaryNote}</div>
+          <div data-testid="export-salary-note" className="adm-modal-note">{L.salaryNote}</div>
         )}
       </div>
     </ModalShell>

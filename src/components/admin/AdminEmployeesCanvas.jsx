@@ -3444,6 +3444,8 @@ function EmployeesListView({
           // 보여주면 창이 말한 인원과 실제 파일의 행 수가 갈린다.
           count={salaryGateScope === 'selected' ? selectedCount : ordered.length}
           columnCount={salaryGateScope === 'upload_form' ? (uploadForm?.columnCount ?? 0) : exportColumns.length}
+          // [PW-2042] 전체 필드 창의 마지막 조각은 «계좌번호는 담지 않습니다» — 위험 표시(빨강)를 붙이지 않는다.
+          riskyLast={salaryGateScope !== 'full'}
           // 전체 필드는 화면 열 수가 아니라 인사 항목 전부라 제목·본문만 그 문구로 바꾼다.
           labels={salaryGateScope === 'full'
             ? {

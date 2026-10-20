@@ -929,9 +929,10 @@
   filter: drop-shadow(0 1px 1px rgba(10, 13, 18, 0.05));
 }
 
-/* [PW-2041·2036] 평가 창의 보조 정보 알약(행 수 · «고정» · «AI 로 다듬기 전»)도 이 모양 그대로 */
+/* [PW-2041·2036·2042] 평가 창·어드민 구성원 창의 보조 정보 알약(행 수 · «고정» · «AI 로 다듬기 전»)도 이 모양 그대로 */
 .manager-modal-snippet-tag,
-.evc-meta-pill {
+.evc-meta-pill,
+.adm-meta-pill {
   background: var(--utility-gray-50);
   border: 1px solid var(--utility-gray-200);
   border-radius: var(--radius-full);
@@ -955,9 +956,9 @@
 
 .mgr-ts-filter-chip.is-member { background: var(--utility-brand-100); color: var(--dp-badge-accent-fg); }
 
-/* [PW-2036·2041] 평가 창의 분류 이름표(질문 이름 · «켜짐 N» · 익명 안내) — 매니저 팀 요약 «구성원» 딱지 값 그대로.
+/* [PW-2036·2041·2042] 평가 창의 분류 이름표·어드민 HR 기록 섹션 개수(질문 이름 · «켜짐 N» · 익명 안내) — 매니저 팀 요약 «구성원» 딱지 값 그대로.
    그쪽은 누르는 필터라 끝에 X 자리(오른쪽 4px)와 손 모양 커서가 있다. 읽기만 하는 딱지라 둘은 뺐다. */
-.evc-label-chip { align-self: flex-start; padding: 3px 8px; border-radius: 8px; border: 1px solid var(--alpha-black-3); font-size: 12px; font-weight: 500; line-height: 18px; background: var(--utility-brand-100); color: var(--dp-badge-accent-fg); }
+.evc-label-chip, .adm-count-chip { align-self: flex-start; padding: 3px 8px; border-radius: 8px; border: 1px solid var(--alpha-black-3); font-size: 12px; font-weight: 500; line-height: 18px; background: var(--utility-brand-100); color: var(--dp-badge-accent-fg); }
 
 .mgr-ts-filter-chip.is-flag { background: var(--utility-error-100); color: var(--text-error-primary); }
 
@@ -1754,4 +1755,18 @@ button.dp-chip {
   color: var(--utility-purple-700);
   background: var(--utility-purple-50);
   margin-left: var(--spacing-sm);
+}
+
+/* [PW-2042] 연봉 포함 명부 내보내기 창의 «연봉 열 포함» — 매니저 팀 요약 «위험» 점수 딱지(.mgr-ts-score.is-bad) 색.
+   크기는 옆 알약(.adm-meta-pill, 12px)에 맞췄다 — 점수 딱지 원래 크기(14px)면 한 줄에서 혼자 커진다. */
+.adm-danger-chip {
+  display: inline-flex;
+  padding: 2px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--utility-error-200);
+  background: var(--utility-error-50);
+  color: var(--utility-error-700);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
 }
