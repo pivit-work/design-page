@@ -1461,7 +1461,6 @@ export default function EvalCycleMemberCanvas({
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="evm-show-missing"
                   onClick={jumpToNextMissing}
                   data-testid="evm-show-missing"
                 >
