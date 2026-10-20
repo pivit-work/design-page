@@ -32,6 +32,7 @@ import {
 } from '../shared/lineIcons.jsx';
 // [PW-435 ①] 위자드 3단계와 사이클 목록 일정 수정 창이 같은 표기를 쓴다.
 import { stampScheduleDateTime } from './evalScheduleStamp.js';
+import { pickParticle } from '../shared/koreanParticle.js';
 // [PW-614] 지난 날짜 판정도 두 화면이 같은 것을 쓴다.
 import {
   isPastScheduleEnd,
@@ -619,11 +620,29 @@ const sameVars = (a, b) => {
  * 예시 값이 없는 토큰은 **그대로 둔다** — 지어낸 값으로 채우면 「이렇게 나가는구나」로
  * 읽히기 때문이다. 뜻을 모르는 자리는 모른다고 보이는 편이 낫다.
  */
-const fillSampleVars = (text, L) =>
+/**
+ * 그 단계 리마인더에서 변수 하나가 보일 예시 값.
+ *
+ * 🔴 [PW-2108] `{stage}` 는 편집 중인 단계 이름이다. 예시 값(「셀프 리뷰」)으로 채우면 결과 발송
+ * 리마인더 미리보기 제목이 「셀프 리뷰 마감 D-3」이 되어, 인사담당자는 결과 발송 담당에게
+ * 셀프 리뷰 독촉이 나가는 줄 안다. 실제 발송도 그 단계 이름을 넣는다(백엔드 `REMINDER_PHASE_LABEL`).
+ * 샘플과 칩 설명이 같은 값을 쓰도록 둘 다 이것을 읽는다.
+ */
+const sampleValueOf = (v, L, stageName) =>
+  v.token === '{stage}' && stageName ? stageName : L[v.sampleKey];
+const FORM_OF_PARTICLE = { 이: '이(가)', 가: '이(가)', 은: '은(는)', 는: '은(는)', 을: '을(를)', 를: '을(를)' };
+/** `{stage}` 바로 뒤 조사를 단계 이름 받침에 맞춘다 — 서버 `applyMessageVars` 와 같은 규칙(PW-1961). */
+const fillStageParticle = (text, stageName) =>
+  text.replace(/\{stage\}(이|가|은|는|을|를)(?![가-힣])/g, (m, particle) => {
+    const form = FORM_OF_PARTICLE[particle];
+    const picked = pickParticle(stageName, form);
+    return stageName + (picked === form ? particle : picked);
+  });
+const fillSampleVars = (text, L, stageName) =>
   // [PW-529] 보고형 변수도 함께 채운다 — 안 채우면 「샘플 보기」에 {pendingCount} 가 그대로 남는다.
   [...MESSAGE_VAR_INFO, ...REPORT_VAR_INFO].reduce(
-    (acc, v) => acc.split(v.token).join(L[v.sampleKey] ?? v.token),
-    String(text ?? ''),
+    (acc, v) => acc.split(v.token).join(sampleValueOf(v, L, stageName) ?? v.token),
+    stageName ? fillStageParticle(String(text ?? ''), stageName) : String(text ?? ''),
   );
 /**
  * 당사자를 켜고 끌 때 문구 템플릿을 «후보 안으로» 옮긴다 [PW-529].
@@ -4094,7 +4113,7 @@ export default function EvalCycleWizard({
                칩이 사라지거나 `undefined` 가 보이면 안 된다. */
             const label = L[v.labelKey];
             const desc = L[v.descKey];
-            const sample = L[v.sampleKey];
+            const sample = sampleValueOf(v, L, phaseName(ph));
             const hint = desc
               ? sample
                 ? `${v.token} — ${desc} · ${L.reminderVarEg} ${sample}`
@@ -4222,7 +4241,7 @@ export default function EvalCycleWizard({
       body: isCustom ? msg.body ?? '' : tpl.body,
       cta: isCustom ? '' : tpl.cta,
     };
-    const f = (t) => fillSampleVars(t, L);
+    const f = (t) => fillSampleVars(t, L, phaseName(ph));
     if (ch === 'email') {
       return (
         <div className="evc-rm-preview-body" data-testid={`evc-rm-sample-email-${ph.id}-${i}`}>
