@@ -42,9 +42,6 @@ const DEFAULT_LABELS = {
   cancelReservedBodyPre: '청구 기간 종료 후 Free 플랜으로 전환될 예정입니다. 플랜을 유지하려면 ',
   cancelReservedBodyStrong: '구독 현황',
   cancelReservedBodyPost: '에서 해지를 취소하세요.',
-  profileWarningTitle: '청구 정보가 필요합니다',
-  profileWarningBody: '결제를 진행하기 전에 사업자 정보를 먼저 입력해야 합니다.',
-  profileWarningCta: '청구 정보 입력',
   billingCycleLabel: '청구 주기',
   monthly: '월간',
   annual: '연간',
@@ -519,7 +516,6 @@ export default function BillingPlansCanvas({
     setConfirmTargetState(plan);
   };
   const [downgradeChecked, setDowngradeChecked] = useState(false);
-  const [profileWarning, setProfileWarning] = useState(false);
   const [previewPlanCode, setPreviewPlanCode] = useState(null);
 
   // 청구 주기·좌석 수는 onIntervalChange/onSeatsChange 주입 시 controlled(위임),
@@ -597,12 +593,14 @@ export default function BillingPlansCanvas({
       return;
     }
 
-    // billing_profile 미입력 → 업그레이드 사전 차단
+    // billing_profile 미입력 업그레이드 (PW-2110 · screen-billing-plans.policy.md §4) — 경고 상자 없이
+    // 곧바로 청구 정보로 보낸다. 고른 요금제·주기를 넘겨, 앱이 결제 대상으로 남기고 결제 진행 모드로 연다.
+    // 종전에는 빨간 「청구 정보가 필요합니다」 상자 → [청구 정보 입력] 으로 한 번 더 눌러야 했고,
+    // 고른 요금제가 넘어가지 않아 저장 뒤 다시 골라야 했다.
     if (targetRank > currentRank && !subscription.hasProfile) {
-      setProfileWarning(true);
+      onNavigateBillingSettings(plan.code, interval);
       return;
     }
-    setProfileWarning(false);
 
     if (targetRank > currentRank) {
       // 업그레이드 → checkout 위임
@@ -723,15 +721,6 @@ export default function BillingPlansCanvas({
               <strong>{labels.cancelReservedBodyStrong}</strong>
               {labels.cancelReservedBodyPost}
             </div>
-          </Card>
-        )}
-
-        {/* billing_profile 미입력 경고 */}
-        {profileWarning && (
-          <Card style={{ marginBottom: 16, background: T.redBg, border: '1px solid #FCA5A5' }}>
-            <div style={{ fontWeight: 800, color: T.red, marginBottom: 4 }}>{labels.profileWarningTitle}</div>
-            <div style={{ fontSize: 13, color: T.text, marginBottom: 12 }}>{labels.profileWarningBody}</div>
-            <Btn onClick={onNavigateBillingSettings}>{labels.profileWarningCta}</Btn>
           </Card>
         )}
 

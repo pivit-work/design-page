@@ -1,6 +1,6 @@
 import { useId, useState } from 'react';
 import Checkbox from '../shared/Checkbox.jsx';
-import { BillingCard as Card } from './kit/BillingSurface.jsx';
+import { BillingCard as Card, BillingCheckoutSteps } from './kit/BillingSurface.jsx';
 
 // ─────────────────────────────────────────────────────────────
 // 결제·구독 — 체크아웃 (BillingCheckoutCanvas)  /admin/billing/checkout
@@ -66,16 +66,27 @@ const DEFAULT_LABELS = {
   refundCoolingNote: '최초 결제 후 7일 이내·미사용 시 전액 환불(청약철회)됩니다.',
   viewFullPolicy: '전문 보기',
 
-  payProcessing: '결제창을 여는 중...',
+  // 결제 진행 단계 표시 (PW-2110) — 청구 정보 화면의 결제 진행 모드와 같은 부품·같은 이름
+  checkoutSteps: ['플랜 선택', '청구 정보', '카드 등록·결제'],
+
+  // 결제 버튼은 다음에 무엇이 일어나는지 말한다 (PW-2110 · screen-billing-checkout.policy.md §2) —
+  // 쓸 카드가 없으면(또는 미납으로 카드를 바꾸러 왔으면) 카드 인증 창을 열고, 있으면 그 카드로 바로 결제한다.
+  payProcessing: '카드 인증 창을 여는 중...',
+  payProcessingSavedCard: '결제하는 중...',
   payConfirming: '결제 확인 중...',
   payRetry: '다시 시도',
-  payCta: (total) => `${won(total)} 결제하기`,
+  payCta: (total) => `카드 등록하고 ${won(total)} 결제하기`,
+  payCtaSavedCard: (card, total) => `등록된 카드(${card.brand} •••• ${card.last4})로 ${won(total)} 결제하기`,
+  cardWindowNote: '카드 인증 창이 열립니다. 인증을 마치면 이 화면으로 돌아와 바로 결제됩니다.',
   agreeRefundHint: '해지·환불 정책에 동의해 주세요',
 
   securityNote: '🔒 포트원 보안 결제 · 국내 카드 지원 · 카드 정보는 PIVIT에 저장되지 않습니다',
 
-  overlayProcessing: '결제창 처리 중...',
+  overlayProcessing: '카드 인증 창을 여는 중...',
+  overlayProcessingSavedCard: '결제하는 중...',
   overlayConfirming: '결제 확인 중... (구독 활성화까지 잠시 걸릴 수 있습니다)',
+  // 카드 인증 창에서 돌아와 확인하는 중 — 카드 등록이 끝났다는 것을 먼저 알린다 (PW-2110)
+  overlayConfirmingCardAdded: '카드가 등록되었습니다 · 결제를 확인하는 중... (구독 활성화까지 잠시 걸릴 수 있습니다)',
 
   // ── 협의 단가 (PW-344 ④) ────────────────────────────────
   negotiatedTag: '협의 단가 적용',
@@ -161,6 +172,14 @@ export default function BillingCheckoutCanvas({
   isRenewal = false,
   payState = 'idle',
   failReason = '',
+  /**
+   * 결제에 쓸 등록 카드 `{ brand, last4 }` 또는 `null` (PW-2110). 있으면 카드 인증 창 없이 그 카드로
+   * 결제한다는 버튼을 세운다. 쓸 카드가 없거나 미납으로 카드를 바꾸러 왔으면 앱이 `null` 을 넘긴다
+   * — 그 판정은 앱의 결제 실행(runPay)과 같은 것이어야 한다.
+   */
+  savedCard = null,
+  /** 카드 인증 창에서 막 돌아와 결제를 확인하는 중이다 — 확인 중 문구가 「카드가 등록되었습니다」로 시작한다. */
+  returnedFromCardWindow = false,
   canEdit = true,
   labels: providedLabels,
   /**
@@ -208,6 +227,8 @@ export default function BillingCheckoutCanvas({
   // 다시 계산하지 않는다(판정을 두 벌 두면 한쪽만 느슨해진다).
   const quoteBlocked = quote ? quote.blocked ?? null : null;
   const quoteOk = Boolean(quote) && !quoteBlocked;
+  // 결제 버튼이 카드 인증 창을 여는가 (PW-2110) — 쓸 등록 카드가 없으면 연다
+  const opensCardWindow = !savedCard;
 
   // 협의 단가 모드에서는 플랜·주기·단가·좌석 범위가 견적에서 확정돼 온다. 화면에서 바꿀
   // 수 있는 값은 없다.
@@ -262,6 +283,15 @@ export default function BillingCheckoutCanvas({
         <button type="button" onClick={onBackToPlans}
           style={{ background: 'none', border: 'none', color: T.sub, fontSize: 13,
             cursor: 'pointer', padding: 0, marginBottom: 16 }}>{labels.backToPlans}</button>
+
+        {/* 결제 진행 단계 표시 (PW-2110) — ③ 카드 등록·결제가 지금, 성공하면 세 단계 모두 완료.
+            견적이 막힌 화면에는 두지 않는다(결제를 이어 갈 수 없다). */}
+        {!(quoteBlocked && payState !== 'success') && (
+          <BillingCheckoutSteps
+            steps={labels.checkoutSteps}
+            current={payState === 'success' ? labels.checkoutSteps.length : 2}
+          />
+        )}
 
         <h1 style={{ fontSize: 24, fontWeight: 800, margin: '0 0 24px' }}>{labels.pageTitle}</h1>
 
@@ -532,11 +562,19 @@ export default function BillingCheckoutCanvas({
                 padding: '16px', borderRadius: 12, border: 'none', color: '#fff',
                 background: blocked ? T.muted : T.accent,
                 cursor: blocked ? 'not-allowed' : 'pointer' }}>
-              {payState === 'processing' ? labels.payProcessing
+              {payState === 'processing' ? (opensCardWindow ? labels.payProcessing : labels.payProcessingSavedCard)
                 : payState === 'confirming' ? labels.payConfirming
                 : payState === 'fail' ? labels.payRetry
-                : labels.payCta(total)}
+                : opensCardWindow ? labels.payCta(total)
+                : labels.payCtaSavedCard(savedCard, total)}
             </button>
+            {/* 다음에 무엇이 일어나는지 (PW-2110) — 카드 인증 창은 페이지를 떠났다가 돌아온다 */}
+            {opensCardWindow && (payState === 'idle' || payState === 'fail') && (
+              <div data-testid="checkout-card-window-note"
+                style={{ textAlign: 'center', fontSize: 12, color: T.sub, marginTop: 8 }}>
+                {labels.cardWindowNote}
+              </div>
+            )}
             {hasProfile && !agreeRefund && payState === 'idle' && (
               <div style={{ textAlign: 'center', fontSize: 12, color: T.amber, marginTop: 8 }}>
                 {labels.agreeRefundHint}
@@ -560,7 +598,9 @@ export default function BillingCheckoutCanvas({
             display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
             <div style={{ background: '#fff', borderRadius: 14, padding: '28px 36px',
               fontSize: 15, fontWeight: 700, color: T.text }}>
-              {payState === 'processing' ? labels.overlayProcessing : labels.overlayConfirming}
+              {payState === 'processing'
+                ? (opensCardWindow ? labels.overlayProcessing : labels.overlayProcessingSavedCard)
+                : returnedFromCardWindow ? labels.overlayConfirmingCardAdded : labels.overlayConfirming}
             </div>
           </div>
         )}

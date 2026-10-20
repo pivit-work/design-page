@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react';
-import { BillingCard as Card, BillingBadge as Badge } from './kit/BillingSurface.jsx';
+import {
+  BillingCard as Card,
+  BillingBadge as Badge,
+  BillingCheckoutSteps,
+} from './kit/BillingSurface.jsx';
 
 // ─────────────────────────────────────────────────────────────
 // 결제·구독 — 청구 정보 (BillingSettingsCanvas)  /admin/billing/settings
@@ -53,8 +57,21 @@ const DEFAULT_LABELS = {
   // 아직 저장된 청구 정보가 없을 때(첫 입력) — screen-billing-settings.policy.md §3
   emptyNotice: '아직 청구 정보가 없습니다. 영수증 발행을 위해 입력해 주세요.',
 
-  checkoutBannerTitle: '결제 전 청구 정보를 먼저 입력해 주세요.',
-  checkoutBannerDesc: '저장 후 결제 화면으로 돌아갑니다. 사업자명·사업자등록번호는 필수입니다.',
+  // 결제 진행 모드 (PW-2110 · screen-billing-settings.policy.md §2) — 결제 도중(플랜 화면 업그레이드 ·
+  // 결제하기 [수정]/[입력하러 가기]) 들어온 상태. 위 단계 표시 + 고른 요금제 안내 + 저장이 곧 다음 단계.
+  checkoutSteps: ['플랜 선택', '청구 정보', '카드 등록·결제'],
+  checkoutBannerTitle: (t) => `${t.planLabel} · ${t.intervalLabel} 결제를 위해 청구 정보를 입력해 주세요.`,
+  checkoutBannerDesc: (t) =>
+    `등록 구성원 ${t.seats}명 기준 · 저장하면 바로 카드 등록·결제 단계로 넘어갑니다. 사업자명·사업자등록번호는 필수입니다.`,
+  // 결제 대상(고른 요금제)이 사라졌다 — 30분 경과 등
+  checkoutTargetLostTitle: '결제할 요금제 정보가 만료되었습니다.',
+  checkoutTargetLostDesc: '저장한 뒤 요금제를 다시 고르면 결제로 이어집니다. 사업자명·사업자등록번호는 필수입니다.',
+  reselectPlan: '플랜 다시 고르기',
+  continueSaveLabel: '저장하고 결제 계속',
+  continueLabel: '결제 계속',
+  flowStatusDirty: '저장하면 카드 등록·결제 단계로 넘어갑니다.',
+  flowStatusSaved: '저장된 청구 정보로 결제를 계속합니다.',
+  flowStatusEmpty: '사업자명·사업자등록번호를 입력해 주세요.',
 
   noPermTitle: '접근 권한이 없습니다.',
   noPermDesc: '청구 정보는 워크스페이스 Owner 또는 billing_admin만 조회·수정할 수 있습니다. 담당자에게 요청하세요.',
@@ -71,9 +88,6 @@ const DEFAULT_LABELS = {
   statusNoChanges: '변경 사항이 없습니다.',
   statusDirty: '저장되지 않은 변경 사항이 있습니다.',
   statusSaved: '청구 정보가 저장되었습니다.',
-  statusReturn: '저장되었습니다. 결제 화면으로 돌아가세요.',
-
-  returnToCheckout: '결제로 돌아가기 →',
   saveLabel: '저장',
   savingLabel: '저장 중...',
   savedLabel: '저장됨 ✓',
@@ -97,6 +111,9 @@ function mergeLabels(provided) {
     fields: { ...DEFAULT_LABELS.fields, ...(provided.fields || {}) },
   };
 }
+
+// 문구는 문자열 또는 (값) => 문자열 — 앱이 번역한 함수를 넘긴다.
+const textOf = (label, v) => (typeof label === 'function' ? label(v) : label);
 
 // profile prop → 폼 초기값. null 이면 빈 값 seed.
 function seedFields(profile) {
@@ -183,10 +200,18 @@ function FormField({ meta, value, error, disabled, onChange, onBlur, hint, style
 export default function BillingSettingsCanvas({
   profile = null,
   role = 'owner',
+  // 결제 진행 모드 (PW-2110) — 결제 도중 들어왔다. 저장 영역의 주 버튼이 «저장 + 결제로 이어 가기»가 된다.
   fromCheckout = false,
+  // 결제 진행 모드의 결제 대상 { planLabel, intervalLabel, seats } — null 이면 사라졌다(30분 경과 등).
+  // seats 는 표시용이다(결제 좌석은 서버가 센다 · PW-1102).
+  checkoutTarget = null,
   labels: providedLabels,
   onSave,
-  onReturnToCheckout,
+  // 결제 진행 모드에서 저장이 성공한 뒤(또는 고친 것이 없어 저장 없이) 부른다 — 앱이 결제하기(또는
+  // 결제 대상이 사라졌으면 플랜 화면)로 옮긴다. 인자 { saved } = 이번에 저장했나.
+  onContinueToCheckout,
+  // [플랜 다시 고르기]
+  onReselectPlan,
   // 저장 안 한 변경이 생기고 사라질 때마다 알린다 — 앱이 떠날 때 경고를 건다(§4).
   onDirtyChange,
   // 저장하지 않은 입력값으로 폼을 연다(마지막 저장값은 profile 그대로라 «저장 안 한 변경»으로 보인다).
@@ -223,7 +248,6 @@ export default function BillingSettingsCanvas({
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
-  const [showReturnBtn, setShowReturnBtn] = useState(false);
 
   // dirty — 저장값과 현재 값 다른지 확인
   const isDirty = FIELD_KEYS.some((k) => fields[k] !== saved[k]);
@@ -238,6 +262,11 @@ export default function BillingSettingsCanvas({
   const allValid = FIELD_KEYS.every((k) => !validateField(k, fields[k]));
 
   const canSave = canEdit && isDirty && allValid && !saving;
+
+  // 결제 진행 모드 (PW-2110) — 저장된 필수 2항목이 있고 고친 것이 없으면 저장 없이 [결제 계속]
+  const flowMode = fromCheckout && canEdit;
+  const hasSavedRequired = REQUIRED_FIELDS.every((k) => !!saved[k]);
+  const canContinue = canEdit && !saving && allValid && (isDirty || hasSavedRequired);
 
   // 필드 변경
   const handleChange = (key, raw) => {
@@ -268,16 +297,25 @@ export default function BillingSettingsCanvas({
     setErrors(newErrors);
     if (Object.values(newErrors).some(Boolean)) return;
 
+    // 결제 진행 모드에서 고친 것이 없으면 저장 없이 바로 결제로 (PW-2110)
+    if (flowMode && !isDirty) {
+      onContinueToCheckout?.({ saved: false });
+      return;
+    }
+
     setSaving(true);
     try {
       await onSave?.({ ...fields });
       setSaved({ ...fields });
       setSaving(false);
+      // 결제 진행 모드: 저장이 성공하면 곧바로 이어 간다 — 2초 대기·[결제로 돌아가기] 없음 (PW-2110).
+      // 이동은 저장 성공을 받은 뒤다 — 실패하면 아래 catch 로 가서 화면에 남는다 (PW-966).
+      if (flowMode) {
+        onContinueToCheckout?.({ saved: true });
+        return;
+      }
       setSaveSuccess(true);
-      setTimeout(() => {
-        setSaveSuccess(false);
-        if (fromCheckout) setShowReturnBtn(true);
-      }, 2000);
+      setTimeout(() => setSaveSuccess(false), 2000);
     } catch {
       // 실패하면 마지막으로 저장된 값으로 되돌린다(§3·§5 「폼 값 원복」) — 화면에 남은 값이
       // 저장된 것처럼 읽히지 않게.
@@ -296,6 +334,9 @@ export default function BillingSettingsCanvas({
     <div style={{ fontFamily: T.font, background: T.bg, minHeight: '100vh', padding: 32, color: T.text }}>
       <div style={{ maxWidth: 680, margin: '0 auto' }}>
 
+        {/* 결제 진행 단계 표시 (PW-2110) — 화면 제목 위. ① 플랜 선택 ✓ ② 청구 정보(지금) ③ 카드 등록·결제 */}
+        {flowMode && <BillingCheckoutSteps steps={labels.checkoutSteps} current={1} />}
+
         {/* 헤더 */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>{labels.pageTitle}</h1>
@@ -305,12 +346,33 @@ export default function BillingSettingsCanvas({
           {labels.pageSubtitle}
         </p>
 
-        {/* 체크아웃 복귀 안내 배너 */}
-        {fromCheckout && (
+        {/* 결제 진행 안내 (PW-2110) — 고른 요금제 한 줄 + [플랜 다시 고르기]. 결제 대상이 사라졌으면 그 사실을 알린다 */}
+        {flowMode && (
           <Card style={{ marginBottom: 16, background: T.amberBg, border: '1px solid #FDE68A' }}>
-            <div style={{ fontWeight: 700, color: T.amber, marginBottom: 4 }}>{labels.checkoutBannerTitle}</div>
-            <div style={{ fontSize: 13, color: T.text }}>
-              {labels.checkoutBannerDesc}
+            <div
+              data-testid="billing-settings-checkout-banner"
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}
+            >
+              <div>
+                <div style={{ fontWeight: 700, color: T.amber, marginBottom: 4 }}>
+                  {checkoutTarget
+                    ? textOf(labels.checkoutBannerTitle, checkoutTarget)
+                    : labels.checkoutTargetLostTitle}
+                </div>
+                <div style={{ fontSize: 13, color: T.text }}>
+                  {checkoutTarget
+                    ? textOf(labels.checkoutBannerDesc, checkoutTarget)
+                    : labels.checkoutTargetLostDesc}
+                </div>
+              </div>
+              {onReselectPlan && (
+                // 안내 글이 길어도 버튼 이름은 한 줄로 — 줄어들면 두세 줄로 꺾였다
+                <div style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
+                  <Btn kind="secondary" onClick={onReselectPlan}>
+                    {labels.reselectPlan}
+                  </Btn>
+                </div>
+              )}
             </div>
           </Card>
         )}
@@ -411,22 +473,32 @@ export default function BillingSettingsCanvas({
 
             {/* 저장 버튼 영역 */}
             <Card style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ fontSize: 13, color: T.sub }}>
-                {!isDirty && !saveSuccess && labels.statusNoChanges}
-                {isDirty && !saveSuccess && labels.statusDirty}
-                {saveSuccess && !showReturnBtn && labels.statusSaved}
-                {showReturnBtn && labels.statusReturn}
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                {showReturnBtn && (
-                  <Btn kind="primary" onClick={onReturnToCheckout}>
-                    {labels.returnToCheckout}
+              {flowMode ? (
+                /* 결제 진행 모드 (PW-2110) — 버튼 하나가 «저장 + 다음 단계»를 맡는다 */
+                <>
+                  <div style={{ fontSize: 13, color: T.sub }}>
+                    {isDirty
+                      ? labels.flowStatusDirty
+                      : hasSavedRequired
+                        ? labels.flowStatusSaved
+                        : labels.flowStatusEmpty}
+                  </div>
+                  <Btn kind="primary" onClick={handleSave} disabled={!canContinue}>
+                    {saving ? labels.savingLabel : isDirty ? labels.continueSaveLabel : labels.continueLabel}
                   </Btn>
-                )}
-                <Btn kind={saveBtnKind} onClick={handleSave} disabled={!canSave}>
-                  {saveBtnLabel}
-                </Btn>
-              </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: 13, color: T.sub }}>
+                    {!isDirty && !saveSuccess && labels.statusNoChanges}
+                    {isDirty && !saveSuccess && labels.statusDirty}
+                    {saveSuccess && labels.statusSaved}
+                  </div>
+                  <Btn kind={saveBtnKind} onClick={handleSave} disabled={!canSave}>
+                    {saveBtnLabel}
+                  </Btn>
+                </>
+              )}
             </Card>
           </>
         )}

@@ -41,3 +41,63 @@ export function BillingBadge({ children, color, bg }) {
     </StatusBadge>
   );
 }
+
+/*
+ * 결제 진행 단계 표시 (PW-2110) — 「플랜 선택 · 청구 정보 · 카드 등록·결제」 한 줄.
+ * 청구 정보 화면의 결제 진행 모드와 결제하기 화면이 함께 쓴다.
+ *
+ * 생김새는 평가 사이클 만들기 창의 단계 표시(`EvalCycleWizard` StepBar · eval-cycle.css
+ * `.evc-wiz-step*`) 값 그대로다 — 원형 22 · 지금 = 브랜드 채움 + 이름 굵게 · 지난 단계 = 초록 ✓ ·
+ * 예정 = 회색. 그쪽은 눌러서 단계를 옮기는 버튼이라 그대로 못 쓰고, 여기는 보여 주기만 한다.
+ * `current` 는 steps 안의 위치, steps.length 이상이면 모두 완료(결제 성공 화면).
+ */
+const STEP_NUM_STYLE = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: 22,
+  height: 22,
+  borderRadius: '50%',
+  fontSize: 'var(--font-size-text-xs)',
+  fontWeight: 700,
+  flexShrink: 0,
+};
+
+export function BillingCheckoutSteps({ steps = [], current = 0 }) {
+  return (
+    <ol
+      data-testid="billing-checkout-steps"
+      style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)', listStyle: 'none', margin: '0 0 16px', padding: 0 }}
+    >
+      {steps.map((label, i) => {
+        const state = i < current ? 'done' : i === current ? 'current' : 'future';
+        const num =
+          state === 'current'
+            ? { background: 'var(--bg-brand-solid)', color: 'var(--text-white)' }
+            : state === 'done'
+              ? { background: 'var(--utility-green-50)', color: 'var(--utility-green-600)' }
+              : { background: 'var(--utility-gray-50)', color: 'var(--text-secondary)' };
+        return (
+          <li
+            key={label}
+            data-state={state}
+            aria-current={state === 'current' ? 'step' : undefined}
+            style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)' }}
+          >
+            <span style={{ ...STEP_NUM_STYLE, ...num }}>{state === 'done' ? '✓' : i + 1}</span>
+            <span
+              style={{
+                fontSize: 'var(--font-size-text-sm)',
+                whiteSpace: 'nowrap',
+                color: state === 'current' ? 'var(--text-primary)' : 'var(--text-secondary)',
+                fontWeight: state === 'current' ? 700 : 400,
+              }}
+            >
+              {label}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
