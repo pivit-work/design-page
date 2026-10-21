@@ -441,6 +441,11 @@
   letter-spacing: normal;
 }
 
+/* 정렬 조작 앞은 텍스트 메타데이터 간격(6px)보다 넓게 12px 확보한다 (PW-1491). */
+.ono-meta-sort {
+  margin-left: var(--spacing-sm);
+}
+
 .ono-meta-scope .tl-select {
   width: auto;
 }
