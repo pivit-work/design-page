@@ -342,6 +342,7 @@ const VIEW_KNOB = {
     { value: 'member-ready', label: '내 원온원 · 준비 완료 (매니저 녹음 중)' },
     { value: 'member-recorded', label: '내 원온원 · 녹음 완료' },
     { value: 'member-saved', label: '내 원온원 · 녹음 저장 · AI 분석 중' },
+    { value: 'member-empty', label: '내 원온원 · 지난 회차 없음' },
   ],
 };
 /* 「내 원온원」 knob — 내가 대상자(guest)인 회차. phase 는 본문 카드, widget 은 오른쪽 녹음 상태
@@ -353,6 +354,9 @@ const MEMBER_VIEWS = {
   'member-recorded': { phase: 'ready', widget: 'recorded' },
   'member-saved': { phase: 'ready', widget: 'saved' },
 };
+/* 「내 원온원」 지난 회차가 하나도 없을 때 (Figma 17733:20292) — ?knobs=view:member-empty */
+const MEMBER_EMPTY_VIEW = 'member-empty';
+const MY_PAST_EMPTY = { title: '아직 완료된 1on1이 없습니다', text: '1on1 세션이 DONE 처리되면 회의록이\n회차별로 정리되어 이곳에 쌓입니다.' };
 const MEMBER_RECORDING_NOTICE = '녹음 시작과 종료는 매니저 화면에서 진행됩니다';
 const MEMBER_REC_START_SEC = 12 * 60 + 45;
 const MEMBER_ANALYZING_DELAY_MS = 1500;
@@ -380,7 +384,7 @@ export default function OneOnOnePage({ icons, baseUrl, active = true, onActivate
   const { volume, labels: labelMode } = knobs;
   // 제목 탭 — 「대시보드」(팀원들을 보는 매니저) · 「내 원온원」(자기가 팀원으로 받는 1on1)
   // 「내 원온원」 knob(?knobs=view:member-…)으로 들어오면 그 화면이 사는 탭에서 시작한다.
-  const [tab, setTab] = useState(() => (MEMBER_VIEWS[knobs.view] ? 'mine' : 'dashboard'));
+  const [tab, setTab] = useState(() => (MEMBER_VIEWS[knobs.view] || knobs.view === MEMBER_EMPTY_VIEW ? 'mine' : 'dashboard'));
 
   // 데모: 진행 화면 녹음 상태를 페이지가 쥔다 — 「시작하기」 뒤(LIVE)에만 오른쪽 기둥에
   // AI 대화 네비게이터를 보이기 위해서다(판정은 소비처 몫 · policy §5.2.1).
@@ -406,6 +410,8 @@ export default function OneOnOnePage({ icons, baseUrl, active = true, onActivate
 
   /* ── 「내 원온원」(내가 대상자인 회차) ── */
   const memberView = MEMBER_VIEWS[knobs.view] ?? null;
+  const memberEmpty = knobs.view === MEMBER_EMPTY_VIEW;
+  const myPastSessions = memberEmpty ? [] : MY_PAST_SESSIONS;
   // knob 이 바뀐 렌더에서 바로 맞춘다(effect 가 아니라 렌더 중 상태 조정) — 「내 원온원」 knob 으로
   // 들어오면 그 화면이 사는 탭으로 가고, 매니저가 녹음 중인 위젯의 시계는 시안 값(12:45)부터 다시 센다.
   const [seenView, setSeenView] = useState(knobs.view);
@@ -413,7 +419,7 @@ export default function OneOnOnePage({ icons, baseUrl, active = true, onActivate
   const [memberAnalyzingList, setMemberAnalyzingList] = useState(false);
   if (knobs.view !== seenView) {
     setSeenView(knobs.view);
-    if (memberView) setTab('mine');
+    if (memberView || memberEmpty) setTab('mine');
     setMemberElapsedSec(MEMBER_REC_START_SEC);
     setMemberAnalyzingList(false);
   }
@@ -586,8 +592,10 @@ export default function OneOnOnePage({ icons, baseUrl, active = true, onActivate
           ) : tab === 'mine' ? (
             <OneOnOnePastSessionList
               title={`${MY_MANAGER_NAME} 매니저와의 지난 원온원`}
-              subtitle={`총 ${MY_PAST_SESSIONS.length}회 · 회차를 선택해 기록을 확인하세요`}
-              sessions={MY_PAST_SESSIONS}
+              subtitle={`총 ${myPastSessions.length}회 · 회차를 선택해 기록을 확인하세요`}
+              sessions={myPastSessions}
+              emptyTitle={MY_PAST_EMPTY.title}
+              emptyText={MY_PAST_EMPTY.text}
               baseUrl={baseUrl}
             />
           ) : knobs.view === 'done' ? (

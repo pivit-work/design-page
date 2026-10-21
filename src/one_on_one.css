@@ -1420,10 +1420,8 @@ button.ono-add-modal-input { cursor: pointer; }
   border-radius: 20px;
   background: var(--colors-background-bgSecondary);
   border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
-  box-shadow:
-    0 3px 3px -1.5px var(--colors-effects-shadows-shadowXl03, rgba(10, 13, 18, 0.04)),
-    0 8px 8px -4px var(--colors-effects-shadows-shadowXl02, rgba(10, 13, 18, 0.03)),
-    0 20px 24px -4px var(--colors-effects-shadows-shadowXl01, rgba(10, 13, 18, 0.08));
+  /* Shadows/shadow-3xl — 디자이너가 xl 에서 올렸다 (2026-10-21). 모달과 같은 토큰 */
+  box-shadow: var(--shadows-shadow3xl);
 }
 .ono-start-rec-head {
   display: flex;
@@ -2983,6 +2981,33 @@ button.ono-add-modal-input { cursor: pointer; }
 .ono-mem-hist-meta strong { font-size: 12px; }
 
 /* 빈 상태는 공용 EmptyState(PW-1014) */
+
+/* 「내 원온원」 지난 회차 0건 (Figma 17733:20292) — 공용 EmptyState 를 쓰되 점선 테두리·바탕 없이
+   종이 일러스트 + 제목(lg Bold · secondary) + 설명(sm Medium · tertiary) 을 본문 한가운데 세운다.
+   스니핏 빈 화면(.snippet-empty-inner)과 같은 규격 — 16 간격 · 위아래 80 · 폭 660. */
+/* 머리 아래 남은 화면(상단바 48 + 머리 ~120 + 바닥 60)을 채워 한가운데 세운다 — 시안은 화면 바닥까지 가운데 */
+.ono-past.is-empty { min-height: max(480px, calc(100vh - 230px)); }
+.ono-past-empty {
+  flex: 1;
+  justify-content: center;
+  gap: 16px;
+  padding: 80px 10px;
+  background: none;
+  border: none;
+}
+.ono-past-empty .dp-empty__icon { margin: 0; }
+/* Paper 일러스트 — viewBox 84.3×100.8 (그림자 여백 포함). 보이는 종이는 약 44px 폭 */
+.ono-past-empty-paper { width: 84px; height: auto; display: block; }
+.ono-past-empty .dp-empty__title {
+  font-size: var(--font-size-text-lg);
+  line-height: var(--line-height-text-lg);
+  color: var(--text-secondary);
+}
+.ono-past-empty .dp-empty__desc {
+  font-weight: 500;
+  line-height: var(--line-height-text-md);
+  color: var(--text-tertiary);
+}
 
 /* 멤버 뷰 — 위 블록에서 빠진 조각 보강 */
 .ono-mem-card-head.is-static { cursor: default; }
