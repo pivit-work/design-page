@@ -3568,7 +3568,8 @@ button.ono-add-modal-input { cursor: pointer; }
   gap: 8px;
 }
 
-/* 바닥 버튼 줄 (Figma 17556:26795) — 위 22px 는 바탕색으로 흐려지고, 그 아래 보라 50 띠에 둘 */
+/* 바닥 버튼 줄 (Figma 17556:26795) — 위 22px 는 투명에서 카드 바탕(bg-secondary)으로 차오르고,
+   그 아래 띠도 같은 bg-secondary 다. 예전엔 보라 50 띠였는데 시안이 카드와 같은 색으로 바뀌었다. */
 .ono-guide-nav {
   position: absolute;
   left: 0;
@@ -3577,7 +3578,7 @@ button.ono-add-modal-input { cursor: pointer; }
   display: flex;
   gap: 8px;
   padding: 22px 20px 20px;
-  background: linear-gradient(to bottom, transparent 0, var(--utility-purple-50) 22px);
+  background: linear-gradient(to bottom, transparent 0, var(--bg-secondary) 22px);
   border-radius: 0 0 var(--radius-3xl, 20px) var(--radius-3xl, 20px);
 }
 .ono-guide-nav-prev,
