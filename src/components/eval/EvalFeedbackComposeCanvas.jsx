@@ -115,7 +115,8 @@ const DEFAULT_LABELS = {
   okrPanelTitle: 'OKR 컨텍스트',
   okrPanelCounts: 'OBJECTIVE {objectives}개 · KR {krs}개',
   okrPanelCoverage: '{covered}/{total} KR 커버',
-  okrObjectiveSuffix: ' OBJECTIVE',
+  okrObjectiveSuffix: ' Objective',
+  okrPanelInitiatives: 'Initiatives',
   okrPanelSnippets: '최근 스니핏',
   // 받은 요청 칸 (§3.4) — {count} 에 건수
   incomingSection: '받은 피드백 요청 {count}건',

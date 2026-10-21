@@ -12327,6 +12327,8 @@ button.evmh-phase:focus-visible {
 }
 .evf-period .dp-select {
   width: auto;
+  /* PW-2126 — 머리줄 오른쪽 끝에 홀로 서므로 진행 현황 부서 고르기(.evmon-dept-filter)와 같은 최소 폭 */
+  min-width: 200px;
 }
 /* 이름표 = 1on1 「일정 추가」 창 칸 이름표 `.ono-add-modal-field-label` 값 그대로 */
 .evf-period-label {
@@ -12340,6 +12342,110 @@ button.evmh-phase:focus-visible {
 /* PW-1930 — 지난 기간 표시는 경고가 아니라 안내라 연회색 띠와 같은 글자색. */
 .evf-period-label.is-past {
   color: var(--text-secondary);
+}
+
+/* PW-2126 — 펼친 「내 OKR」 패널(FeedbackOkrPanel). 매니저 대시보드 KR 고르기(manager.css `.mgr-kr-okr*`·
+   `.mgr-kr-cards`·`.mgr-kr-card*`) 값을 그대로 옮겼다. 다른 점 둘: 보여 주기만 하는 자리라 «골라진 칸» 흰 바탕이
+   없고, 한 줄 고정 대신 칸 최소 180px 로 줄을 바꾼다(KR 이 많아도 이름이 안 잘린다). */
+.fbokr-body {
+  padding: 4px 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.fbokr-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.fbokr-label {
+  margin: 0;
+  font-family: var(--font-family-body);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+.fbokr-obj {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.fbokr-obj-title {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-family-body);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 26px;
+  color: var(--text-primary);
+}
+.fbokr-percent {
+  font-family: var(--font-family-body);
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.fbokr-bar {
+  display: block;
+  width: 100%;
+  height: 4px;
+  background: var(--border-tertiary);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.fbokr-bar > span {
+  display: block;
+  height: 100%;
+}
+.fbokr-bar--obj {
+  flex-shrink: 0;
+  width: 96px;
+  height: 6px;
+  border-radius: 3px;
+}
+.fbokr-krs {
+  display: grid;
+  /* auto-fit — 칸이 적으면 대시보드(flex: 1)처럼 폭을 나눠 채우고, 180px 아래로는 줄을 바꾼다 */
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  padding: 4px;
+  background: var(--alpha-black-3);
+  border-radius: 12px;
+}
+.fbokr-kr {
+  min-width: 0;
+  padding: 4px 8px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.fbokr-kr-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 0;
+}
+.fbokr-kr-id {
+  font-family: var(--font-family-body);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+.fbokr-kr-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.fbokr-kr-title {
+  margin: 0;
+  font-family: var(--font-family-body);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* [PW-1860] 리포트 검수 «다음 분기 목표 제안» 읽기 전용 줄 — 「리포트 구성」 항목 줄(.evrr-section)을 세로로 쌓는다. */

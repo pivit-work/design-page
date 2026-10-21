@@ -146,7 +146,8 @@ const DEFAULT_LABELS = {
   okrPanelTitle: '내 OKR',
   okrPanelCounts: 'OBJECTIVE {objectives}개 · KR {krs}개',
   okrPanelCoverage: '{covered}/{total} KR 커버',
-  okrObjectiveSuffix: ' OBJECTIVE',
+  okrObjectiveSuffix: ' Objective',
+  okrPanelInitiatives: 'Initiatives',
 };
 
 function isObj(v) {
@@ -1245,7 +1246,8 @@ export default function EvalFeedbackCanvas({
       {/* 폭은 .evc-root 의 기본값(폭 제한 없음, PW-1951)을 그대로 쓴다 — 수시 피드백 3화면과 정기 평가가
           같은 본문 폭이라야 탭을 옮길 때 내용의 좌우 끝이 움직이지 않는다 (PW-218). */}
       <div className="evc-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        {/* PW-2126 — 폭을 다 차지해야 기간 칸이 오른쪽 끝(위 탭 줄 안내문·아래 「내 OKR」 패널 끝과 한 세로줄)으로 간다 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%' }}>
           <Avatar name={meName || L.title} photo={meAvatar} size={40} />
           <div>
             <h1 className="evc-title" style={{ fontSize: 'var(--font-size-text-md)' }}>{L.title}</h1>

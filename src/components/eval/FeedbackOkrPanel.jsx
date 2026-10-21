@@ -8,7 +8,7 @@ import Chip from '../shared/Chip.jsx';
  *
  * 처음엔 접혀 있다. 접힌 줄에 Objective·KR 수와 커버리지(피드백이나 요청이 있는 KR / 전체 KR)를,
  * 펼치면 소유 단위(회사·팀·개인)별 Objective 그룹마다 진행률과 그 아래 KR(진행률·건수),
- * 이니셔티브와 건수, (넘겨 주면) 최근 스니핏을 보인다. 건수는 블록 카드와 같은 묶음(block.items)에서
+ * 이니셔티브와 건수, (넘겨 주면) 최근 스니핏을 보인다. KR 은 회색 바탕 안 나란한 칸이다(PW-2126). 건수는 블록 카드와 같은 묶음(block.items)에서
  * 세어 두 숫자가 어긋나지 않는다.
  *
  * `testIdPrefix` — 두 화면의 기존 testid(`fbm-…`·`fbmgr-…`)를 그대로 쓰려고 받는다.
@@ -17,8 +17,6 @@ import Chip from '../shared/Chip.jsx';
 const C = {
   surface: 'var(--bg-quaternary)',
   border: 'var(--border-secondary)',
-  borderL: 'var(--border-tertiary)',
-  text: 'var(--text-primary)',
   sub: 'var(--text-secondary)',
   muted: 'var(--text-tertiary)',
   accent: 'var(--utility-brand-600)',
@@ -27,7 +25,6 @@ const C = {
   red: 'var(--utility-error-600)',
 };
 const FONT = 'var(--font-family-body)';
-const PROGRESS_BAR_W = 96;
 
 function fill(template, vars) {
   return String(template).replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m));
@@ -70,39 +67,45 @@ export default function FeedbackOkrPanel({ groups, krBlocks, initBlocks, snippet
       </button>
 
       {open && (
-        <div data-testid={tid('okr-panel-body')} style={{ padding: '0 14px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+        // PW-2126 — 펼친 모양은 매니저 대시보드 KR 고르기(manager.css `.mgr-kr-*`) 값을 옮겼다. 12px 한 줄에
+        // 번호·이름·건수·막대·% 를 붙여 두니 빽빽했다. 여기선 고르는 칸이 아니라 «골라진 칸» 흰 바탕은 없고,
+        // KR 이 많으면 줄을 바꾼다(eval-cycle.css `.fbokr-*`).
+        <div data-testid={tid('okr-panel-body')} className="fbokr-body">
           {groups.map((g) => (
-            <div key={g.id} data-testid={tid(`okr-group-${g.id}`)}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: 0.5, marginBottom: 4 }}>
-                {g.unitLabel}{L.okrObjectiveSuffix}
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                <span style={{ fontSize: 'var(--font-size-text-xs)', color: C.text, flex: 1, lineHeight: 1.5 }}>{g.title}</span>
-                <span style={{ width: PROGRESS_BAR_W, height: 6, background: C.borderL, borderRadius: 3, overflow: 'hidden' }}>
-                  <span style={{ display: 'block', width: `${g.progress ?? 0}%`, height: '100%', background: krColor(g.progress ?? 0) }} />
+            <div key={g.id} data-testid={tid(`okr-group-${g.id}`)} className="fbokr-section">
+              <p className="fbokr-label">{g.unitLabel}{L.okrObjectiveSuffix}</p>
+              <div className="fbokr-obj">
+                <span className="fbokr-obj-title">{g.title}</span>
+                <span className="fbokr-bar fbokr-bar--obj">
+                  <span style={{ width: `${g.progress ?? 0}%`, background: krColor(g.progress ?? 0) }} />
                 </span>
                 {/* Objective 도 KR 과 같은 세 단계 — 늘 초록이면 30% 도 잘 가는 것처럼 보인다 (PW-2035) */}
-                <span data-testid={tid(`okr-group-progress-${g.id}`)} style={{ fontSize: 12, fontWeight: 700, color: krColor(g.progress ?? 0) }}>{g.progress ?? 0}%</span>
+                <span data-testid={tid(`okr-group-progress-${g.id}`)} className="fbokr-percent" style={{ color: krColor(g.progress ?? 0) }}>{g.progress ?? 0}%</span>
               </div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: 0.5, marginBottom: 6 }}>{L.sectionKr}</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {g.krIds.map((id) => krById.get(id)).filter(Boolean).map((b) => (
-                  <div key={b.id} data-testid={tid(`okr-kr-${b.id}`)} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Chip tone="neutral">{b.badge}</Chip>
-                    <span style={{ fontSize: 12, color: C.sub, flex: 1, lineHeight: 1.4 }}>{b.title}</span>
-                    {countBadge(b.items.length)}
-                    <span style={{ width: 50, height: 4, background: C.borderL, borderRadius: 2, overflow: 'hidden' }}>
-                      <span style={{ display: 'block', width: `${b.progress ?? 0}%`, height: '100%', background: krColor(b.progress ?? 0) }} />
-                    </span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: krColor(b.progress ?? 0), minWidth: 30, textAlign: 'right' }}>{b.progress ?? 0}%</span>
-                  </div>
-                ))}
-              </div>
+              {g.krIds.length > 0 && (
+                <div className="fbokr-krs">
+                  {g.krIds.map((id) => krById.get(id)).filter(Boolean).map((b) => (
+                    <div key={b.id} data-testid={tid(`okr-kr-${b.id}`)} className="fbokr-kr">
+                      <div className="fbokr-kr-head">
+                        <span className="fbokr-kr-id">{b.badge}</span>
+                        <span className="fbokr-kr-meta">
+                          {countBadge(b.items.length)}
+                          <span className="fbokr-percent" style={{ color: krColor(b.progress ?? 0) }}>{b.progress ?? 0}%</span>
+                        </span>
+                      </div>
+                      <p className="fbokr-kr-title" title={b.title}>{b.title}</p>
+                      <span className="fbokr-bar">
+                        <span style={{ width: `${b.progress ?? 0}%`, background: krColor(b.progress ?? 0) }} />
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
           {initBlocks.length > 0 && (
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: 0.5, marginBottom: 6 }}>{L.sectionInit}</div>
+            <div className="fbokr-section">
+              <p className="fbokr-label">{L.okrPanelInitiatives ?? L.sectionInit}</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {initBlocks.map((b) => (
                   <span key={b.id} data-testid={tid(`okr-init-${b.id}`)} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
@@ -114,8 +117,8 @@ export default function FeedbackOkrPanel({ groups, krBlocks, initBlocks, snippet
             </div>
           )}
           {snippets.length > 0 && (
-            <div data-testid={tid('okr-snippets')}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: C.muted, letterSpacing: 0.5, marginBottom: 6 }}>{L.okrPanelSnippets}</div>
+            <div data-testid={tid('okr-snippets')} className="fbokr-section">
+              <p className="fbokr-label">{L.okrPanelSnippets}</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {snippets.map((s) => (
                   <div key={s.id} style={{ display: 'flex', gap: 8, fontSize: 12, lineHeight: 1.5 }}>
