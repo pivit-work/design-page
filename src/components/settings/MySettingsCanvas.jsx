@@ -269,6 +269,7 @@ const DEFAULT_LABELS = {
     bio: '소개 (Bio)',
     bioHint: '타임라인·공개 카드에 표시됩니다.',
     // W62 — 기획서 my-settings §4.2 「티셔츠 사이즈」 · 「주민등록번호 🔒」
+    nameEn: '영문명',
     nicknameEn: '영어 닉네임',
     nicknameEnHint: '닉네임의 영문 대응입니다. 비우면 닉네임을 그대로 사용합니다.',
     nicknameEnPlaceholder: '예: David',
@@ -2002,6 +2003,14 @@ export default function MySettingsCanvas({
                       aria-label={labels.profile.name}
                     />
                   </Field>
+                  <Field label={labels.profile.nameEn}>
+                    <TextInput
+                      className="admin-emp-input is-readonly"
+                      value={profile.nameEn || ''}
+                      readOnly
+                      aria-label={labels.profile.nameEn}
+                    />
+                  </Field>
                   <Field label={labels.profile.nickname} hint={labels.profile.nicknameHint}>
                     <TextInput
                       className={inputClass('nickname')}
@@ -2334,45 +2343,12 @@ export default function MySettingsCanvas({
           {/* ═══ 공개 범위 ═══ */}
           {activeTab === 'visibility' && (
             <>
-              <Banner testId="visibility-banner">{labels.visibility.banner}</Banner>
-              {visibilityError && (
-                <div className="msc-input-error" data-testid="visibility-error">
-                  {visibilityError}
-                </div>
-              )}
-              {visibilityGroups.map((group) => (
-                <Card key={group.key} className={`is-${group.tone || 'brand'}`} testId={`visibility-group-${group.key}`}>
-                  <div className="msc-vis-header">
-                    {group.icon && <span style={{ fontSize: 16 }}>{group.icon}</span>}
-                    <div style={{ flex: 1 }}>
-                      <div className="msc-vis-group-title">{group.title}</div>
-                      <div className="msc-vis-group-desc">{group.desc}</div>
-                    </div>
-                  </div>
-                  <div className="msc-vis-items">
-                    {group.items.map((item) => (
-                      <div key={item.key} className="msc-row" data-testid={`visibility-item-${item.key}`}>
-                        {/* item.sub 가 있으면 라벨 아래 보조 문구를 둔다. 값이 없어 켤 수 없는
-                            항목(item.disabled)을 목록에서 지우지 않고 이유를 남기기 위한 슬롯. */}
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <span className="msc-row-label">{item.label}</span>
-                          {item.sub && <div className="msc-notif-sub">{item.sub}</div>}
-                        </div>
-                        {group.locked ? (
-                          <StatusBadge className={`msc-vis-badge is-${group.tone || 'brand'}`}>{group.badgeLabel}</StatusBadge>
-                        ) : (
-                          <Switch
-                            checked={Boolean(item.on)}
-                            onChange={(next) => onToggleVisibility && onToggleVisibility(item.key, next)}
-                            label={item.label}
-                            disabled={Boolean(item.disabled)}
-                          />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              ))}
+              <VisibilitySettingsContent
+                labels={labels}
+                visibilityGroups={visibilityGroups}
+                visibilityError={visibilityError}
+                onToggleVisibility={onToggleVisibility}
+              />
             </>
           )}
 
@@ -2986,4 +2962,49 @@ export default function MySettingsCanvas({
       )}
     </div>
   );
+}
+
+/** 공개 범위 탭과 본인 공개 카드 창이 같은 부품을 쓴다(PW-1474). */
+export function VisibilitySettingsContent({ labels, visibilityGroups = [], visibilityError, onToggleVisibility }) {
+  return <>
+              <Banner testId="visibility-banner">{labels.visibility.banner}</Banner>
+              {visibilityError && (
+                <div className="msc-input-error" data-testid="visibility-error">
+                  {visibilityError}
+                </div>
+              )}
+              {visibilityGroups.map((group) => (
+                <Card key={group.key} className={`is-${group.tone || 'brand'}`} testId={`visibility-group-${group.key}`}>
+                  <div className="msc-vis-header">
+                    {group.icon && <span style={{ fontSize: 16 }}>{group.icon}</span>}
+                    <div style={{ flex: 1 }}>
+                      <div className="msc-vis-group-title">{group.title}</div>
+                      <div className="msc-vis-group-desc">{group.desc}</div>
+                    </div>
+                  </div>
+                  <div className="msc-vis-items">
+                    {group.items.map((item) => (
+                      <div key={item.key} className="msc-row" data-testid={`visibility-item-${item.key}`}>
+                        {/* item.sub 가 있으면 라벨 아래 보조 문구를 둔다. 값이 없어 켤 수 없는
+                            항목(item.disabled)을 목록에서 지우지 않고 이유를 남기기 위한 슬롯. */}
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <span className="msc-row-label">{item.label}</span>
+                          {item.sub && <div className="msc-notif-sub">{item.sub}</div>}
+                        </div>
+                        {group.locked ? (
+                          <StatusBadge className={`msc-vis-badge is-${group.tone || 'brand'}`}>{group.badgeLabel}</StatusBadge>
+                        ) : (
+                          <Switch
+                            checked={Boolean(item.on)}
+                            onChange={(next) => onToggleVisibility && onToggleVisibility(item.key, next)}
+                            label={item.label}
+                            disabled={Boolean(item.disabled)}
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              ))}
+  </>;
 }

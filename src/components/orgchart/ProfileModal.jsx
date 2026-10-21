@@ -4,7 +4,7 @@ import Spline from '@splinetool/react-spline';
 import Icon from '../shared/Icon.jsx';
 import Avatar from '../shared/Avatar.jsx';
 import PhotoOr from './PhotoOr.jsx';
-import { CloseGlyph, ClockGlyph, MapPinGlyph } from '../shared/lineIcons.jsx';
+import { CloseGlyph, ClockGlyph, MapPinGlyph, SettingsGlyph } from '../shared/lineIcons.jsx';
 import { MEMBER_STATUSES } from './constants.js';
 import assetUrl from '../shared/assetUrl.js';
 import { useOrgLabels, makeOrgLabels } from './orgchart-labels.jsx';
@@ -109,7 +109,7 @@ function applyTexture(app, objectName, imageSrc) {
 // 본인·퇴사·휴직이어도 막지 않는다(퇴사한 조직장도 해제할 수 있어야 한다).
 // 미지정이면 지금까지처럼 피드백주기·미팅잡기다(시각·레이아웃 변화 없음).
 // slackDmUrl — 연락처의 슬랙 핸들을 누르면 열 DM 주소(PW-1636). member.profile.slack·email 을 주면 연락처가 눌리는 줄이 된다.
-export default function ProfileModal({ member, onClose, statIcons, baseUrl = '', renderAvatar, resolvePhoto, adminMode = false, findSubordinates, showSubordinates = true, subordinatesTitle, directReportChipLabel, onFeedbackClick, onMeetingClick, isSelf = false, labels, actions, hideFeedback = false, slackDmUrl, managerHistory, asOf }) {
+export default function ProfileModal({ member, onClose, statIcons, baseUrl = '', renderAvatar, resolvePhoto, adminMode = false, findSubordinates, showSubordinates = true, subordinatesTitle, directReportChipLabel, onFeedbackClick, onMeetingClick, isSelf = false, labels, actions, hideFeedback = false, slackDmUrl, managerHistory, asOf, onEditVisibility, editVisibilityLabel }) {
   // 화면 문구 — 조직도 캔버스 안에서 열리면 캔버스가 받은 번역을 쓰고, 캔버스 밖(소비자가
   // 따로 띄우는 카드)에서는 `labels` 로 받는다(PW-705). 둘 다 없으면 한국어 기본값.
   // `subordinatesTitle`·`directReportChipLabel`(PW-546)은 주면 그것이 이긴다.
@@ -193,6 +193,11 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
                 </div>
               )}
             </div>
+          )}
+          {isSelf && onEditVisibility && (
+            <button type="button" className="modal-close modal-visibility" aria-label={editVisibilityLabel} title={editVisibilityLabel} onClick={onEditVisibility} data-testid="profile-edit-visibility">
+              <SettingsGlyph size={20} />
+            </button>
           )}
           <div className="modal-name">{displayMember?.name}</div>
           {/* 둘 중 하나가 비어도 ' · ' 만 남지 않게 조립한다 — 직급·직책이 없거나

@@ -337,6 +337,7 @@
   transition: background 0.15s;
   z-index: 10;
 }
+.modal-visibility { left: 12px; right: auto; }
 .modal-close:hover { background: rgba(255, 255, 255, 0.2); }
 
 .modal-spline-wrap {
