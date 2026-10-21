@@ -1462,6 +1462,13 @@
   z-index: 1;
 }
 
+/* 디자이너가 정한 왼쪽 위 정렬이 뒤에 오는 .tl-cal-event(align-items: center)에 덮이지 않게
+   두 클래스로 잡는다. 가운데 정렬이면 들여 얹힌 넓은 블록의 시각이 오른쪽에 얹힌 짧은 일정 밑으로
+   들어간다 (PW-2128). */
+.tl-cal-event.tl-week-cal-event {
+  align-items: flex-start;
+}
+
 /* 다른 일정과 겹친 블록 — 흰 테두리로 얹힌 경계를 뗀다 (PW-2128). */
 .tl-week-cal-event--overlap {
   box-shadow: 0 0 0 1.5px var(--colors-base-white);
