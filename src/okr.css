@@ -153,8 +153,8 @@ body:has(.okr-ctx-banner) .tl-group-modal.okr-shell { max-height: calc(100vh - 6
 .okr-readonly-badge { display: flex; align-items: center; padding: 8px 14px; background: var(--bg-secondary); border: 1px solid var(--border-secondary); border-radius: 8px; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-tertiary); }
 
 /* (반응형 탭 축소 미디어쿼리 제거 — PW: 아직 responsive 미대응 방침.
-   좁은 뷰포트는 앱 셸의 min-width: 1400px + 문서 가로 스크롤이 담당하므로,
-   viewport 기준 축소가 있으면 1400 레이아웃 안에서 탭만 작아지는 오동작이 된다.) */
+   좁은 뷰포트는 앱 셸의 min-width: 1280px + 문서 가로 스크롤이 담당하므로,
+   viewport 기준 축소가 있으면 1280 레이아웃 안에서 탭만 작아지는 오동작이 된다.) */
 
 /* 좌우 여백까지 스크롤 영역에 포함 — 여백 위에서 휠을 굴려도 스크롤된다 */
 .okr-personal-area { position: fixed; top: 150px; left: 240px; right: 0; bottom: 0; overflow-y: auto; padding: 12px 40px 60px 12px; display: flex; flex-direction: column; gap: 16px; }
