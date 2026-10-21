@@ -214,6 +214,8 @@ export {
   OneOnOnePastSessionList,
   OneOnOneMemberCanvas,
   OneOnOneMemberMeetingsCanvas,
+  MemberOneOnOneView as OneOnOneMemberView,
+  MemberRecordingWidget as OneOnOneMemberRecordingWidget,
   ManagerNoteModal,
   PROGRESS_COLORS as ONEONONE_PROGRESS_COLORS,
   STATUS_BADGE as ONEONONE_STATUS_BADGE,

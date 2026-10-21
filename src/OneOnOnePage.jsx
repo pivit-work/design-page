@@ -5,6 +5,18 @@ import DoneOneOnOneView from './components/oneonone/DoneOneOnOneView.jsx';
 import { DONE_DEMO_PROPS } from './oneonone-done-demo.jsx';
 import { DEMO_GUIDE, GUIDE_SOURCE_LABELS } from './oneonone-guide-demo-data.js';
 import OneOnOnePastSessionList from './components/oneonone/OneOnOnePastSessionList.jsx';
+import MemberOneOnOneView from './components/oneonone/MemberOneOnOneView.jsx';
+import MemberRecordingWidget from './components/oneonone/MemberRecordingWidget.jsx';
+import {
+  ACTION_STATUS_OPTIONS,
+  AGENDA_TOPIC_SUGGESTION,
+  MEMBER_MEETING,
+  MEMBER_PREP_PROPS,
+  MEMBER_READY_PROPS,
+  MY_MANAGER,
+  PREV_ACTION_AI_COMMENTS,
+  REPORT_AFTER,
+} from './oneonone-member-demo-data.js';
 import OneOnOneRecordingWidget from './components/oneonone/OneOnOneRecordingWidget.jsx';
 import StartOneOnOneView from './components/oneonone/StartOneOnOneView.jsx';
 import StateSwitcher from './devtools/StateSwitcher.jsx';
@@ -326,8 +338,23 @@ const VIEW_KNOB = {
     { value: 'default', label: '대시보드' },
     { value: 'live', label: '진행 중 (LIVE)' },
     { value: 'done', label: 'DONE (종료 후)' },
+    { value: 'member-prep', label: '내 원온원 · 준비 작성 중' },
+    { value: 'member-ready', label: '내 원온원 · 준비 완료 (매니저 녹음 중)' },
+    { value: 'member-recorded', label: '내 원온원 · 녹음 완료' },
+    { value: 'member-saved', label: '내 원온원 · 녹음 저장 · AI 분석 중' },
   ],
 };
+/* 「내 원온원」 knob — 내가 대상자(guest)인 회차. phase 는 본문 카드, widget 은 오른쪽 녹음 상태
+   (Figma 17416:27949 · 17556:23830 · 17556:25936). 녹음 시작·종료는 매니저만 하므로(policy §11.1)
+   이 화면의 위젯은 상태만 보여 준다. */
+const MEMBER_VIEWS = {
+  'member-prep': { phase: 'prep', widget: 'waiting' },
+  'member-ready': { phase: 'ready', widget: 'recording' },
+  'member-recorded': { phase: 'ready', widget: 'recorded' },
+  'member-saved': { phase: 'ready', widget: 'saved' },
+};
+const MEMBER_RECORDING_NOTICE = '녹음 시작과 종료는 매니저 화면에서 진행됩니다';
+const MEMBER_REC_START_SEC = 12 * 60 + 45;
 const KNOBS = [VOLUME_KNOB, LABEL_KNOB, ONEONONE_ASYNC_KNOB, VIEW_KNOB];
 const SWITCHER_NOTE = '항목 수: 오늘 예정·주의 필요·양호 팀원 (아주 많음이면 카드 액션도 5개) / 라벨: 이름·직무 / 비동기: AI 초안 생성 중 (실패는 캔버스 prop 에 없음)';
 
@@ -351,7 +378,8 @@ export default function OneOnOnePage({ icons, baseUrl, active = true, onActivate
   const { values: knobs, set: setKnob, reset: resetKnobs } = useKnobs(KNOBS);
   const { volume, labels: labelMode } = knobs;
   // 제목 탭 — 「대시보드」(팀원들을 보는 매니저) · 「내 원온원」(자기가 팀원으로 받는 1on1)
-  const [tab, setTab] = useState('dashboard');
+  // 「내 원온원」 knob(?knobs=view:member-…)으로 들어오면 그 화면이 사는 탭에서 시작한다.
+  const [tab, setTab] = useState(() => (MEMBER_VIEWS[knobs.view] ? 'mine' : 'dashboard'));
 
   // 데모: 진행 화면 녹음 상태를 페이지가 쥔다 — 「시작하기」 뒤(LIVE)에만 오른쪽 기둥에
   // AI 대화 네비게이터를 보이기 위해서다(판정은 소비처 몫 · policy §5.2.1).
@@ -374,6 +402,53 @@ export default function OneOnOnePage({ icons, baseUrl, active = true, onActivate
   }, [recording]);
   // 진행 중인데 진행 화면이 안 보이는 때(다른 탭·다른 페이지) → 우하단 미니 위젯
   const showMiniWidget = recording && (tab !== 'dashboard' || !active);
+
+  /* ── 「내 원온원」(내가 대상자인 회차) ── */
+  const memberView = MEMBER_VIEWS[knobs.view] ?? null;
+  // knob 이 바뀐 렌더에서 바로 맞춘다(effect 가 아니라 렌더 중 상태 조정) — 「내 원온원」 knob 으로
+  // 들어오면 그 화면이 사는 탭으로 가고, 매니저가 녹음 중인 위젯의 시계는 시안 값(12:45)부터 다시 센다.
+  const [seenView, setSeenView] = useState(knobs.view);
+  const [memberElapsedSec, setMemberElapsedSec] = useState(MEMBER_REC_START_SEC);
+  if (knobs.view !== seenView) {
+    setSeenView(knobs.view);
+    if (memberView) setTab('mine');
+    setMemberElapsedSec(MEMBER_REC_START_SEC);
+  }
+  // 데모: AI 보고서 생성 stub — 0.6초 뒤 생성본으로 바꾸고 준비도 한 칸을 올린다.
+  const [memberReport, setMemberReport] = useState(null);
+  const [memberReportBusy, setMemberReportBusy] = useState(false);
+  const handleGenerateMemberReport = () => {
+    setMemberReportBusy(true);
+    setTimeout(() => {
+      setMemberReport(REPORT_AFTER);
+      setMemberReportBusy(false);
+    }, 600);
+  };
+  // 매니저가 녹음 중인 동안 멤버 위젯의 시계도 돈다 (시안 12:45 부터).
+  const memberRecording = memberView?.widget === 'recording';
+  useEffect(() => {
+    if (!memberRecording) return undefined;
+    const id = setInterval(() => setMemberElapsedSec((v) => v + 1), 1000);
+    return () => clearInterval(id);
+  }, [memberRecording]);
+  const memberWidgetTime = memberView && (memberView.widget === 'waiting' || memberView.widget === 'recording')
+    ? MEMBER_MEETING.widgetTime
+    : MEMBER_MEETING.widgetTimeEnded;
+  const memberWidget = memberView
+    ? (variant, onExpand) => (
+        <MemberRecordingWidget
+          variant={variant}
+          status={memberView.widget}
+          manager={MY_MANAGER}
+          meetingTime={memberWidgetTime}
+          elapsed={fmtElapsed(memberElapsedSec)}
+          recordedAt={MEMBER_MEETING.recordedAt}
+          onExpand={onExpand}
+        />
+      )
+    : null;
+  // 「내 원온원」 화면이 안 보이는 때(다른 탭·다른 페이지) → 우하단 미니 위젯. 매니저 쪽과 같은 자리다.
+  const showMemberMini = !!memberView && (tab !== 'mine' || !active);
   // 데모: 진행 스크립트 생성 stub — 0.6초 뒤 DEMO_GUIDE 를 내려준다. 재생성은 generatedAt 만 바꾼다.
   const [guide, setGuide] = useState(() => (liveKnob ? DEMO_GUIDE : null));
   const [guideLoading, setGuideLoading] = useState(false);
@@ -478,7 +553,24 @@ export default function OneOnOnePage({ icons, baseUrl, active = true, onActivate
           liveGuide,
         }}
         bodyOverride={
-          tab === 'mine' ? (
+          tab === 'mine' && memberView ? (
+            <MemberOneOnOneView
+              key={memberView.phase}
+              {...(memberView.phase === 'prep' ? MEMBER_PREP_PROPS : MEMBER_READY_PROPS)}
+              {...(memberView.phase === 'prep' && memberReport
+                ? { report: memberReport, readiness: { done: 2, total: 4 } }
+                : null)}
+              notice={memberView.phase === 'ready' ? MEMBER_RECORDING_NOTICE : null}
+              statusOptions={ACTION_STATUS_OPTIONS}
+              reportBusy={knobs.async === 'loading' || memberReportBusy}
+              onGenerateReport={handleGenerateMemberReport}
+              onGenerateComment={(id, apply) => setTimeout(() => apply(PREV_ACTION_AI_COMMENTS[id] ?? ''), 400)}
+              onSuggestTopics={(apply) => setTimeout(() => apply([AGENDA_TOPIC_SUGGESTION]), 400)}
+              onReady={() => setKnob('view', 'member-ready')}
+              widget={memberWidget('overlay')}
+              baseUrl={baseUrl}
+            />
+          ) : tab === 'mine' ? (
             <OneOnOnePastSessionList
               title={`${MY_MANAGER_NAME} 매니저와의 지난 원온원`}
               subtitle={`총 ${MY_PAST_SESSIONS.length}회 · 회차를 선택해 기록을 확인하세요`}
@@ -514,6 +606,7 @@ export default function OneOnOnePage({ icons, baseUrl, active = true, onActivate
           onExpand={() => { setTab('dashboard'); onActivate?.(); }}
         />
       )}
+      {showMemberMini && memberWidget('mini', () => { setTab('mine'); onActivate?.(); })}
       {active && (
         <StateSwitcher
           spec={KNOBS}

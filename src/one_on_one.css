@@ -4967,3 +4967,419 @@ button.ono-add-modal-input { cursor: pointer; }
   color: var(--fg-tertiary);
   cursor: pointer;
 }
+
+/* ══ 「내 원온원」 — 내가 1on1 대상자(팀원)일 때의 준비 화면 ══════════════════════════════
+   Figma 17416:27949(작성 중) · 17556:23830(준비 완료 · 매니저 녹음 중) · 17556:25936(위젯 4단계).
+   카드·본문·바닥·OKR·역량 막대·아젠다는 매니저 진행 준비 화면(.ono-start-*)을 그대로 쓰고,
+   멤버에게만 있는 조각을 .ono-my-* 로 더한다. 딱지(.ono-done-badge 등)는 status-badge.css 에 있다. */
+.ono-my-view {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+/* 카드는 전체 폭, 본문은 720 가운데 (Figma content_modal x 214 / 1148). 매니저 진행 화면의
+   2단 규칙(.ono-start-view-body max-width:none)을 이 화면에서만 되돌린다. */
+.ono-my-view .ono-start-view-body,
+.ono-my-view .ono-start-view-footer {
+  max-width: 720px;
+  margin: 0 auto;
+}
+/* 녹음 고지 (Figma 17556:24394) — 「녹음 시작과 종료는 매니저 화면에서 진행됩니다」 */
+.ono-my-notice {
+  margin: 0;
+  padding: 8px 16px;
+  border-radius: 8px;
+  background: var(--colors-background-bgWarningSecondary);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 24px;
+  color: var(--fg-warning-primary);
+  text-align: center;
+}
+/* 준비 완료 띠 (Figma 17556:23843) */
+.ono-my-ready-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 16px;
+  border: 1px solid var(--utility-brand-500);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 24px;
+  color: var(--text-brand-secondary);
+}
+.ono-my-ready-banner-title {
+  font-weight: 700;
+  line-height: 20px;
+}
+.ono-my-h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 28px;
+  color: var(--text-primary);
+}
+.ono-my-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+/* 내 준비도 — 작성 중 파랑, 다 채우면 초록 (Figma 17416:27962 · 17556:24396) */
+.ono-my-readiness-count {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  letter-spacing: -0.12px;
+  color: var(--text-primary);
+}
+.ono-my-readiness-count.is-done { color: var(--text-brand-secondary); }
+.ono-my-readiness-note {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--text-brand-tertiary);
+}
+.ono-my-track {
+  width: 100%;
+  min-width: 0;
+  height: 12px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  background: var(--bg-secondary);
+  overflow: hidden;
+}
+.ono-my-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: var(--utility-blue-100);
+}
+.ono-my-fill.is-done { background: var(--utility-green-400); }
+.ono-my-fill.is-self { background: var(--utility-blue-400); }
+/* 가로 줄(막대 + 숫자) 안에서는 막대가 남는 폭을 채운다 */
+.ono-start-okr-bar-line .ono-my-track { flex: 1 1 0; width: auto; }
+.ono-my-section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.ono-my-section-aux {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--text-quaternary);
+}
+/* 이전 액션아이템 한 줄 (Figma 17416:28653) */
+.ono-my-action-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 8px 8px 16px;
+  border: 1px solid var(--border-secondary);
+  border-radius: 8px;
+}
+.ono-my-action-title {
+  margin: 0;
+  min-width: 0;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 24px;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+.ono-my-action-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.ono-my-action-due {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+/* 상태 고르기 (Figma 17416:28657 · 106px) — 공용 Select 의 칸 모양을 이걸로 바꾼다 */
+.ono-my-state-select {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  width: 106px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  background: var(--alpha-black-3);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--text-secondary);
+  box-sizing: border-box;
+  cursor: pointer;
+}
+.ono-my-state-select.is-static {
+  justify-content: center;
+  cursor: default;
+}
+.ono-my-comment {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: 12px;
+}
+.ono-my-field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.ono-my-field-label-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.ono-my-label-sm {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--text-primary);
+}
+.ono-my-field-aux {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+.ono-my-field-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--text-brand-tertiary);
+  white-space: nowrap;
+}
+/* 「✦ AI 생성」·「✦ AI 제안」 (Figma 17416:28505) — 누르는 것이라 딱지가 아니다 */
+.ono-my-ai-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid var(--alpha-black-3);
+  border-radius: 6px;
+  background: var(--utility-purple-50);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--utility-purple-500);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.ono-my-ai-btn:hover:not(:disabled) { filter: brightness(0.97); }
+.ono-my-ai-btn:disabled { opacity: 0.6; cursor: default; }
+/* 「AI」 두 글자 — 보고서 생성 버튼(.ono-start-cta.is-cta)과 같은 보라→핑크. TODO: token 없음 */
+.ono-my-ai-word {
+  background: linear-gradient(90deg, #7873f5 0%, #ec77ab 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+/* 입력칸 (Figma Textarea input field · 144 · radius 10 · 16px) */
+.ono-my-textarea {
+  width: 100%;
+  min-height: 144px;
+  padding: 12px 14px;
+  border: 1px solid var(--alpha-black-5);
+  border-radius: 10px;
+  background: var(--alpha-black-3);
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--text-primary);
+  outline: none;
+  resize: vertical;
+  box-sizing: border-box;
+}
+.ono-my-textarea::placeholder { color: var(--text-placeholder); }
+.ono-my-textarea:focus { border-color: var(--fg-brand-primary); }
+.ono-my-textarea.is-ai { background: var(--utility-purple-50); }
+/* 읽기 상자 — 제출 뒤 · AI 초안은 보라 바탕 (Figma 17556:23881) */
+.ono-my-readbox {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--alpha-black-5);
+  border-radius: 10px;
+  background: var(--alpha-black-3);
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+.ono-my-readbox.is-ai { background: var(--utility-purple-50); }
+.ono-my-readbox.is-empty { color: var(--text-placeholder); }
+/* AI 보고서 카드 — 매니저 브리핑 카드와 같은 바탕, 모서리만 시안(8) */
+.ono-my-report { border-radius: 8px; }
+.ono-my-report-source {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 24px;
+  color: var(--utility-purple-500);
+}
+/* OKR 자가 평가 — 제출 뒤에는 카드 밖에 맨몸으로 (Figma 17556:24488) */
+.ono-my-okr-plain {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px 0;
+}
+.ono-my-okr-block {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.ono-my-okr-label-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ono-my-okr-self-label {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  letter-spacing: -0.12px;
+  color: var(--utility-blue-500);
+}
+/* 자가 평가 슬라이더 — 막대 위에 투명한 range 를 포개고 손잡이만 그린다 (policy §4.2.6) */
+.ono-my-okr-slider {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 24px;
+  display: flex;
+  align-items: center;
+}
+.ono-my-okr-range {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 24px;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+.ono-my-okr-range:focus-visible { outline: 2px solid var(--fg-brand-primary); outline-offset: 2px; border-radius: 12px; }
+.ono-my-okr-range::-webkit-slider-runnable-track { height: 24px; background: transparent; }
+.ono-my-okr-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--fg-light);
+  border: 1px solid var(--border-tertiary);
+  box-shadow: 0 2px 4px var(--alpha-black-5), 0 1px 2px var(--alpha-black-5);
+}
+.ono-my-okr-range::-moz-range-track { height: 24px; background: transparent; }
+.ono-my-okr-range::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--fg-light);
+  border: 1px solid var(--border-tertiary);
+  box-shadow: 0 2px 4px var(--alpha-black-5), 0 1px 2px var(--alpha-black-5);
+}
+/* KR 코멘트 (Figma 17556:24522) */
+.ono-my-okr-comment {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 16px;
+  border-radius: 16px;
+  background: var(--utility-purple-50);
+}
+.ono-my-okr-comment-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ono-my-okr-comment-title {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 20px;
+  color: var(--text-primary);
+}
+.ono-my-okr-comment-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-secondary);
+}
+/* 역량 자기진단 — 매니저 막대와 같은 부품, 시안 값(라벨 158 · 칸 사이 8 · 모서리 4 · 빈 칸 bg-primary) */
+.ono-my-caps .ono-start-cap-label {
+  width: 158px;
+  font-weight: 600;
+}
+.ono-my-caps .ono-start-rating-segs { gap: 8px; }
+.ono-my-caps .ono-start-rating-seg {
+  border-radius: 4px;
+  background: var(--bg-primary);
+}
+.ono-my-caps .ono-start-rating-seg.is-on { background: var(--utility-green-200); }
+.ono-my-caps .ono-start-rating-num:not(.is-warn):not(.is-bad) { color: var(--text-secondary); }
+/* 논의 주제 줄 — 보라 50 바탕 (Figma 17416:28181) */
+.ono-my-topic { background: var(--utility-purple-50); }
+
+/* ── 멤버 녹음 상태 위젯 (Figma 17556:25936) ──
+   매니저 미니 위젯과 같은 카드(.ono-start-rec-mini · 241). 본문 카드 오른쪽 위에 12px 띄워 겹쳐 뜬다
+   (Figma 17556:25155 · x 895 / y 12 of 1148). 고지 띠가 있으면 띠 오른쪽 끝도 덮는다 — 시안 그대로. */
+/* 기본 틀(.ono-start-rec-wrap)이 이미 sticky · 높이 0 · 위/오른쪽 12px 여백이라 그대로 쓴다. 틀은 카드 앞에
+   흐름으로 놓이므로, 자기 높이(padding 12)와 열 간격(10)만큼 되감아 뒤 요소를 밀지 않는다.
+   이 화면은 제목 줄이 고정되지 않아(.ono-page.is-focus) 붙는 자리가 120 이 아니라 12 다. */
+.ono-my-widget.is-overlay {
+  top: 12px;
+  width: 100%;
+  margin-bottom: -22px;
+  box-sizing: border-box;
+}
+.ono-my-widget .ono-start-rec-mini {
+  width: 241px;
+  box-sizing: border-box;
+}
+.ono-my-widget .ono-start-rec-bar { justify-content: center; }
+.ono-my-widget .ono-start-rec-timer { gap: 4px; }
+.ono-my-widget-sub {
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-primary);
+}
+.ono-my-widget-note {
+  margin: 0;
+  padding: 8px 8px 8px 16px;
+  border-radius: 8px;
+  background: var(--bg-quaternary);
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--utility-blue-600);
+}
+.ono-my-widget-note.is-saved {
+  background: var(--colors-background-bgBrandPrimary);
+  color: var(--utility-success-700);
+}

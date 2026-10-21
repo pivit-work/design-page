@@ -10,6 +10,8 @@ export { formatLiveElapsed } from './sessionHelpers.js';
 export { default as OneOnOneMemberCanvas } from './OneOnOneMemberCanvas.jsx';
 export { default as OneOnOneMemberMeetingsCanvas } from './OneOnOneMemberMeetingsCanvas.jsx';
 export { default as DoneOneOnOneView } from './DoneOneOnOneView.jsx';
+export { default as MemberOneOnOneView } from './MemberOneOnOneView.jsx';
+export { default as MemberRecordingWidget } from './MemberRecordingWidget.jsx';
 export { PROGRESS_COLORS, STATUS_BADGE, TAG_TYPES } from './constants.js';
 
 export { default as OneOnOneDetailModal } from './OneOnOneDetailModal.jsx';

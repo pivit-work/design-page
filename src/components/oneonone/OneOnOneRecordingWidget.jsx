@@ -109,7 +109,7 @@ function MinimizeIcon() {
 }
 
 /* 펼치기 — 네 귀를 밖으로 내는 화살표 둘 (icons-solid/maximize-01.svg 와 같은 뜻). */
-function MaximizeIcon() {
+export function MaximizeIcon() {
   return (
     <svg
       width="20"
