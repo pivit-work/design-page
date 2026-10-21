@@ -11,6 +11,7 @@
 
 import { useState } from 'react';
 import Chip from '../shared/Chip.jsx';
+import Select from '../shared/Select.jsx';
 import DateInput from '../shared/DateInput.jsx';
 import { LeadStarIcon, PlusIcon } from './squadIcons.jsx';
 import { useOrgLabels, rich } from './orgchart-labels.jsx';
@@ -42,6 +43,13 @@ export default function SquadFormCard({
       {/* 칸마다 이름표를 위에 단다 — 안내 글자는 입력하면 사라져 무슨 칸인지 잊는다.
           이름표·간격·입력칸은 1on1 「일정 추가」 창 값 그대로 (PW-1900, org_squad.css) */}
       <div className="sq-form-fields">
+        <div className="sq-form-field">
+          <label className="sq-field-label" htmlFor={`squad-kind-${form.id || 'new'}`}>{L('squad.form.kind')}</label>
+          <Select aria-label={L('squad.form.kind')} id={`squad-kind-${form.id || 'new'}`} className="sq-field" value={form.kind || 'squad'} onChange={(e) => setForm((f) => ({ ...f, kind: e.target.value }))}>
+            <option value="squad">{L('squad.form.squad')}</option>
+            <option value="tf">{L('squad.form.tf')}</option>
+          </Select>
+        </div>
         <div className="sq-form-field">
           <div className="sq-field-label">{L('squad.form.name')}</div>
           <input

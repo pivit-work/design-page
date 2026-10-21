@@ -567,7 +567,7 @@ export default function SquadCanvas({
   const openSquadForm = () => {
     const used = new Set(squads.map((s) => s.color));
     setSquadForm({
-      mode: 'create',
+      mode: 'create', kind: 'squad',
       name: '', mission: '', startDate: todayIsoInZone(timeZone), endDate: '',
       color: SQUAD_PALETTE.find((c) => !used.has(c)) || SQUAD_PALETTE[0],
       leadUserId: null,
@@ -577,7 +577,7 @@ export default function SquadCanvas({
 
   const openSquadEdit = (sq) => {
     setSquadForm({
-      mode: 'edit', id: sq.id,
+      mode: 'edit', id: sq.id, kind: sq.kind || 'squad',
       name: sq.name, mission: sq.mission || '',
       startDate: sq.startDate, endDate: sq.endDate || '', color: sq.color,
     });
@@ -601,6 +601,7 @@ export default function SquadCanvas({
 
     const payload = {
       name,
+      kind: f.kind,
       mission: f.mission.trim() || null,
       color: f.color,
       startDate: f.startDate,
@@ -1044,7 +1045,7 @@ export default function SquadCanvas({
                       </div>
 
                       <div className="pj-card-info">
-                        <p className="pj-card-name">{sq.name}</p>
+                        <p className="pj-card-name">{sq.name} <StatusBadge tone="neutral" className="modal-team-chip" data-testid="squad-kind">{L(sq.kind === 'tf' ? 'squad.form.tf' : 'squad.form.squad')}</StatusBadge></p>
                         <p className="pj-card-desc">{sq.mission}</p>
                       </div>
 

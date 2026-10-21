@@ -202,7 +202,21 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
           <div className="modal-name">{displayMember?.name}</div>
           {/* 둘 중 하나가 비어도 ' · ' 만 남지 않게 조립한다 — 직급·직책이 없거나
               비공개인 사람의 카드에서 구분자가 매달려 보였다. */}
-          <div className="modal-title">{[profile.title, profile.dept].filter(Boolean).join(' · ')}</div>
+          <div className="modal-title">{[profile.title, profile.affiliations ? '' : profile.dept].filter(Boolean).join(' · ')}</div>
+          {profile.affiliations?.length > 0 && (
+            <div className="modal-info-section" data-testid="profile-affiliations">
+              <div className="modal-info-label">{L('profile.affiliations')}</div>
+              <ul className="modal-project-list">
+                {profile.affiliations.map((a) => (
+                  <li key={a.id} className="modal-project-item">
+                    {a.name}
+                    {a.isPrimary && <StatusBadge tone="neutral" className="modal-team-chip">{L('profile.primary')}</StatusBadge>}
+                    {a.isLeader && <StatusBadge tone="neutral" className="modal-team-chip">{L('profile.leader')}</StatusBadge>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <div className="modal-bio">{profile.bio}</div>
           <StatusBadge className="modal-status-badge">{L(`member.status.${MEMBER_STATUSES[displayMember?.status] ? displayMember.status : 'working'}`)}</StatusBadge>
           {/* 현지 시간 — 카드 주인이 공개했고 시간대가 있을 때만 소비자가 `profile.localTime` 을 준다.
