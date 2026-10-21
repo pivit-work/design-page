@@ -230,7 +230,7 @@ const SCHEDULED_TODAY = [
     healthSeverity: 'critical',
     comment:
       '헬스가 4.2로 급락했습니다. 번아웃 징후가 보이므로 이번 주 원온원을 잡아보세요. 최근 3일간 스니핏 미작성 상태입니다.',
-    schedule: { date: '2026.04.20', time: '11:00', duration: '55분', changeable: true },
+    schedule: { date: '2026.04.20', time: '11:00', duration: '55분', changeable: true, onChange: () => {} },
     actions: [
       { label: '1on1 진행' },
       { label: '스니핏 요청' },
@@ -251,7 +251,7 @@ const NEEDS_ATTENTION = [
     healthScore: '5.1',
     healthSeverity: 'warning',
     comment: '헬스가 5.1로 주의 구간에 있습니다. 마지막 1on1이 24일 전이므로 빠른 시일 내 일정을 잡아보세요.',
-    schedule: { date: '2026.04.20', time: '11:00', duration: '55분', changeable: true },
+    schedule: { date: '2026.04.20', time: '11:00', duration: '55분', changeable: true, onChange: () => {} },
     actions: [
       { label: '1on1 진행' },
       { label: '스니핏 요청' },
@@ -272,7 +272,7 @@ const NEEDS_ATTENTION = [
     comment: '스코프 초과 우려가 감지되었습니다. 현재 업무량이 목표 대비 130% 수준입니다. 이번 주 업무 조정이 필요합니다.',
     actions: [
       { label: '1on1 잡기' },
-      { label: '스니핏 요청' },
+      { label: '스니핏 요청 완료' },
       { label: '노트' },
     ],
     detail: makeDetail('최수현', PROFILES.choi),
@@ -355,6 +355,7 @@ const MEMBER_VIEWS = {
 };
 const MEMBER_RECORDING_NOTICE = '녹음 시작과 종료는 매니저 화면에서 진행됩니다';
 const MEMBER_REC_START_SEC = 12 * 60 + 45;
+const MEMBER_ANALYZING_DELAY_MS = 1500;
 const KNOBS = [VOLUME_KNOB, LABEL_KNOB, ONEONONE_ASYNC_KNOB, VIEW_KNOB];
 const SWITCHER_NOTE = '항목 수: 오늘 예정·주의 필요·양호 팀원 (아주 많음이면 카드 액션도 5개) / 라벨: 이름·직무 / 비동기: AI 초안 생성 중 (실패는 캔버스 prop 에 없음)';
 
@@ -409,11 +410,22 @@ export default function OneOnOnePage({ icons, baseUrl, active = true, onActivate
   // 들어오면 그 화면이 사는 탭으로 가고, 매니저가 녹음 중인 위젯의 시계는 시안 값(12:45)부터 다시 센다.
   const [seenView, setSeenView] = useState(knobs.view);
   const [memberElapsedSec, setMemberElapsedSec] = useState(MEMBER_REC_START_SEC);
+  const [memberAnalyzingList, setMemberAnalyzingList] = useState(false);
   if (knobs.view !== seenView) {
     setSeenView(knobs.view);
     if (memberView) setTab('mine');
     setMemberElapsedSec(MEMBER_REC_START_SEC);
+    setMemberAnalyzingList(false);
   }
+  // 녹음이 저장되고 AI 분석에 들어가면(위젯 saved) 잠시 뒤 「내 원온원」 지난 회차 목록으로 저절로 넘어간다
+  // (Figma 17556:23218 — 맨 위 회차가 「AI 분석 중」). 위젯은 오른쪽 아래 미니로 남아 분석 중임을 계속 말한다.
+  const memberSaved = memberView?.widget === 'saved';
+  useEffect(() => {
+    if (!memberSaved) return undefined;
+    const id = setTimeout(() => setMemberAnalyzingList(true), MEMBER_ANALYZING_DELAY_MS);
+    return () => clearTimeout(id);
+  }, [memberSaved]);
+  const memberOnList = memberSaved && memberAnalyzingList;
   // 데모: AI 보고서 생성 stub — 0.6초 뒤 생성본으로 바꾸고 준비도 한 칸을 올린다.
   const [memberReport, setMemberReport] = useState(null);
   const [memberReportBusy, setMemberReportBusy] = useState(false);
@@ -448,7 +460,7 @@ export default function OneOnOnePage({ icons, baseUrl, active = true, onActivate
       )
     : null;
   // 「내 원온원」 화면이 안 보이는 때(다른 탭·다른 페이지) → 우하단 미니 위젯. 매니저 쪽과 같은 자리다.
-  const showMemberMini = !!memberView && (tab !== 'mine' || !active);
+  const showMemberMini = !!memberView && (tab !== 'mine' || !active || memberOnList);
   // 데모: 진행 스크립트 생성 stub — 0.6초 뒤 DEMO_GUIDE 를 내려준다. 재생성은 generatedAt 만 바꾼다.
   const [guide, setGuide] = useState(() => (liveKnob ? DEMO_GUIDE : null));
   const [guideLoading, setGuideLoading] = useState(false);
@@ -510,7 +522,7 @@ export default function OneOnOnePage({ icons, baseUrl, active = true, onActivate
         metaText={tab === 'mine' ? `${ME.name} ${ME.role}` : undefined}
         managerName="김지수"
         teamCount={today.length + attention.length + good.length}
-        teamCountLabel={`개발팀 ${today.length + attention.length + good.length}명`}
+        teamCountLabel={`팀원 ${today.length + attention.length + good.length}명`}
         briefing={BRIEFING}
         message="김서윤의 헬스가 급락 중입니다. 2명의 팀원과 원온원이 3주 이상 밀려 있습니다."
         kpis={KPIS}
@@ -518,6 +530,7 @@ export default function OneOnOnePage({ icons, baseUrl, active = true, onActivate
           {
             key: 'today',
             title: '오늘 예정',
+            cardTone: 'brand',
             count: today.length,
             countColor: 'var(--text-brand-secondary)',
             members: today,
@@ -553,7 +566,7 @@ export default function OneOnOnePage({ icons, baseUrl, active = true, onActivate
           liveGuide,
         }}
         bodyOverride={
-          tab === 'mine' && memberView ? (
+          tab === 'mine' && memberView && !memberOnList ? (
             <MemberOneOnOneView
               key={memberView.phase}
               {...(memberView.phase === 'prep' ? MEMBER_PREP_PROPS : MEMBER_READY_PROPS)}

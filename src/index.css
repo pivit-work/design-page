@@ -22,6 +22,7 @@
   --bg-active: var(--colors-background-bgActive);
   --bg-field: var(--colors-background-bgField);
   --bg-brand-solid: var(--colors-background-bgBrandSolid);
+  --bg-brand-primary: var(--colors-background-bgBrandPrimary);
   --bg-brand-secondary: var(--colors-background-bgBrandSecondary);
   --bg-error-primary: var(--colors-background-bgErrorPrimary);
 

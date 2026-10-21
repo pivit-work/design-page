@@ -43,6 +43,7 @@ function resolveActionKind(action) {
  * 사람 수·팀원 수처럼 «숫자가 낀» 문구는 여기 두지 않는다 — 언어마다 숫자 자리가
  * 달라서, 조립은 문장을 아는 호스트가 해야 한다. 그쪽은 `teamCountLabel`
  * (헤더)·`section.countLabel`(섹션) 로 완성된 글자를 받는다.
+ * `section.cardTone: 'brand'` 를 주면 그 섹션의 카드가 브랜드 50 바탕(시안의 「오늘 예정」)이 된다.
  */
 export const DEFAULT_LABELS = {
   addSchedule: '1on1 일정 추가',
@@ -351,6 +352,7 @@ export default function OneOnOneCanvasV2({
                     <MemberCard
                       key={m.id}
                       member={m}
+                      tone={sec.cardTone}
                       icons={icons}
                       baseUrl={baseUrl}
                       onAction={handleMemberAction}
@@ -455,9 +457,10 @@ function ActionRateKpi({ value, labels = DEFAULT_LABELS }) {
   return (
     <div className="ono-kpi-card">
       <p className="ono-kpi-label">{labels.kpiActionRate}</p>
-      <p className="ono-kpi-value-blue">{value}%</p>
+      {/* 시안(16816:33879): 완료율은 초록 */}
+      <p className="ono-kpi-value-blue ono-kpi-value-green">{value}%</p>
       <div className="ono-kpi-bar">
-        <div className="ono-kpi-bar-fill ono-kpi-bar-blue" style={{ width: `${value}%` }} />
+        <div className="ono-kpi-bar-fill ono-kpi-bar-green" style={{ width: `${value}%` }} />
       </div>
     </div>
   );
@@ -467,19 +470,20 @@ function SpeakRatioKpi({ data, labels = DEFAULT_LABELS }) {
   return (
     <div className="ono-kpi-card">
       <p className="ono-kpi-label">{labels.kpiSpeakRatio}</p>
-      <SpeakRow label={labels.speakManager} value={data.manager} />
-      <SpeakRow label={labels.speakMember} value={data.member} />
+      {/* 시안(16816:33879): 매니저 줄은 빨강, 멤버 줄은 파랑 — 매니저가 많이 말할수록 경고라는 뜻 */}
+      <SpeakRow label={labels.speakManager} value={data.manager} tone="red" />
+      <SpeakRow label={labels.speakMember} value={data.member} tone="blue" />
     </div>
   );
 }
 
-function SpeakRow({ label, value }) {
+function SpeakRow({ label, value, tone = 'blue' }) {
   return (
     <div className="ono-kpi-speak-row">
       <span className="ono-kpi-speak-label">{label}</span>
-      <span className="ono-kpi-value-blue">{value}%</span>
+      <span className={`ono-kpi-value-blue${tone === 'red' ? ' ono-kpi-value-red' : ''}`}>{value}%</span>
       <div className="ono-kpi-bar">
-        <div className="ono-kpi-bar-fill ono-kpi-bar-blue" style={{ width: `${value}%` }} />
+        <div className={`ono-kpi-bar-fill ${tone === 'red' ? 'ono-kpi-bar-red' : 'ono-kpi-bar-blue'}`} style={{ width: `${value}%` }} />
       </div>
     </div>
   );
@@ -498,14 +502,17 @@ const HEALTH_COLORS = {
   good: { text: 'var(--utility-green-600)', bar: 'var(--utility-green-100)' },
 };
 
-function MemberCard({ member, icons, baseUrl, onAction, onCardClick, renderAvatar, labels = DEFAULT_LABELS }) {
+/* `tone` — 섹션이 정하는 카드 바탕. 시안(16816:34237)에서 「오늘 예정」 카드만 브랜드 50(bg-brand-primary) 위에
+   선다 — 오늘 할 1on1 이 먼저 눈에 들어오게. 나머지 섹션은 흰 카드. 어느 섹션이 오늘인지는 소비처가
+   `section.cardTone: 'brand'` 로 말한다. */
+function MemberCard({ member, tone, icons, baseUrl, onAction, onCardClick, renderAvatar, labels = DEFAULT_LABELS }) {
   const badge = SEVERITY_BADGE[member.severity] ?? SEVERITY_BADGE.good;
   const healthConf = HEALTH_COLORS[member.healthSeverity] ?? HEALTH_COLORS.good;
   const healthPct = Math.max(0, Math.min(100, (parseFloat(member.healthScore) / 10) * 100));
 
   return (
     <div
-      className={`ono-member-card${onCardClick ? ' is-clickable' : ''}`}
+      className={`ono-member-card${tone === 'brand' ? ' is-brand' : ''}${onCardClick ? ' is-clickable' : ''}`}
       onClick={onCardClick}
     >
       <div className="ono-member-top">

@@ -8,7 +8,9 @@
   left: 240px;
   right: 0;
   bottom: 0;
-  padding: 72px 40px 20px 12px;
+  /* 왼쪽 거터는 안쪽 줄(.tl-page-header margin-left 12 · .mtg-content padding-left 12)이 이미 갖고
+     있다 — 여기서 또 12 를 주면 24 가 되어 상단 내비 「홈」(x 252)보다 12px 오른쪽으로 틀어진다. */
+  padding: 72px 40px 20px 0;
   background: var(--bg-primary);
   box-sizing: border-box;
   overflow: auto;

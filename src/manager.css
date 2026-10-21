@@ -15,7 +15,9 @@
   bottom: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 0 50px 60px 12px;
+  /* 왼쪽 거터는 헤더·KPI·섹션이 각자 padding-left 12 로 갖고 있다 — 여기서 또 주면 24 가 되어
+     상단 내비 「홈」(x 252)보다 12px 오른쪽으로 틀어진다. */
+  padding: 0 50px 60px 0;
   background: var(--bg-primary);
 }
 
@@ -27,8 +29,10 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 13px;
-  padding: 32px 12px 0;
-  margin-bottom: var(--spacing-2xl);
+  /* 아래 여백은 margin 이 아니라 padding 으로 — sticky 로 고정됐을 때 margin 자리는 바탕이 없어
+     지나가는 콘텐츠가 서브 텍스트에 바로 붙었다. 원온원 헤더와 같은 20px. */
+  padding: 32px 12px var(--spacing-2xl);
+  margin-bottom: 0;
   background: var(--bg-primary);
   position: sticky;
   top: 0;
