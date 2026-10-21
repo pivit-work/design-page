@@ -100,7 +100,7 @@ export default function OneOnOnePageHeader({
               </span>
             )}
             {sortControl && (
-              <span className="ono-meta-scope">
+              <span className="ono-meta-scope ono-meta-sort">
                 <CustomSelect
                   value={sortControl.value}
                   onChange={sortControl.onChange}
