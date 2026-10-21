@@ -116,6 +116,7 @@ export default function OneOnOneCanvasV2({
   teamCountLabel,
   /** 팀 필터·넓힌 상태 표시 (PW-720). 모양은 `OneOnOnePageHeader` 주석 참조. */
   scopeFilter,
+  sortControl,
   scopeNotice,
   /**
    * 팀원 0명일 때의 안내 한 장 (PW-720 · policy P-Q2). { title, description, actionLabel?, onAction? }
@@ -237,6 +238,7 @@ export default function OneOnOneCanvasV2({
         teamCount={teamCount}
         managerLabel={managerLabel}
         teamCountLabel={teamCountLabel}
+        sortControl={sortControl}
         scopeFilter={scopeFilter}
         scopeNotice={scopeNotice}
       >

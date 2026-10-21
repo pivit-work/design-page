@@ -51,6 +51,7 @@ export default function OneOnOnePageHeader({
   managerLabel = '매니저',
   teamCountLabel,
   scopeFilter,
+  sortControl,
   scopeNotice,
   children,
 }) {
@@ -94,6 +95,17 @@ export default function OneOnOnePageHeader({
                   onChange={scopeFilter.onChange}
                   options={scopeFilter.options}
                   ariaLabel={scopeFilter.ariaLabel}
+                  size="sm"
+                />
+              </span>
+            )}
+            {sortControl && (
+              <span className="ono-meta-scope">
+                <CustomSelect
+                  value={sortControl.value}
+                  onChange={sortControl.onChange}
+                  options={sortControl.options}
+                  ariaLabel={sortControl.ariaLabel}
                   size="sm"
                 />
               </span>
