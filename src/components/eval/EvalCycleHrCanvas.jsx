@@ -431,6 +431,7 @@ const DEFAULT_LABELS = {
   leaderAsgRevert: '추천으로 되돌리기',
   leaderAsgResignedTag: '퇴사',
   leaderAsgNoChainRow: '상위 조직장이 없습니다 — 평가자를 지정하거나 이 사람의 하향 평가를 건너뜁니다',
+  leaderAsgNoChainBadge: '상위 조직장 없음',
   leaderAsgEmptyTargets: '대상자가 없습니다. 위 리뷰 & 조정에서 대상을 고르면 하향 평가자를 추천합니다.',
   leaderAsgEmptyWarn: '경고가 없습니다.',
   leaderAsgShowAll: '전체 보기',

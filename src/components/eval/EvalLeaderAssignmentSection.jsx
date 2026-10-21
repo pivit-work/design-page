@@ -298,7 +298,9 @@ export default function EvalLeaderAssignmentSection({
         ? fill(L.leaderAsgRuleTip, { rule: ruleTextPlain(rule) })
         : c.ruleSelf
           ? L.leaderAsgRuleSelfTip
-          : undefined;
+          : !c.skipped && !c.evaluatorId
+            ? L.leaderAsgNoEvaluatorHint
+            : undefined;
     const ruleBadge = c.origin === 'rule' && (
       <StatusBadge tone="accent" className="evc-status-badge" data-testid={`evc-la-rule-${key}`}>
         {L.leaderAsgBadgeRule}
@@ -329,12 +331,10 @@ export default function EvalLeaderAssignmentSection({
               {ruleBadge}
             </span>
           ) : !c.evaluatorId ? (
-            <>
-              <span className="evc-la-empty">
-                <AlertIcon size={12} /> {L.leaderAsgNoEvaluator}
-              </span>
-              <span className="evc-la-hint">{L.leaderAsgNoEvaluatorHint}</span>
-            </>
+            /* 칸마다 같은 안내 두 줄이 반복돼 표가 주황 글씨로 덮였다 — 칸은 딱지 하나, 안내는 말풍선(위 tip)으로. */
+            <StatusBadge className="evc-status-badge tone-warn evc-la-empty">
+              <AlertIcon size={12} /> {L.leaderAsgNoEvaluator}
+            </StatusBadge>
           ) : (
             <span className="evc-la-name-row">
               <span className={`evc-la-name${ev?.resigned ? ' is-resigned' : ''}`}>
@@ -352,9 +352,9 @@ export default function EvalLeaderAssignmentSection({
           {warns
             .filter((w) => w !== 'no_evaluator')
             .map((w) => (
-              <span
+              <StatusBadge
                 key={w}
-                className={`evc-la-warn${w === 'duplicate' || w === 'overload' ? '' : ' is-block'}`}
+                className={`evc-status-badge ${w === 'duplicate' || w === 'overload' ? 'tone-warn' : 'tone-error is-block'}`}
                 data-testid={`evc-la-warn-${key}-${w}`}
               >
                 {w === 'self'
@@ -369,7 +369,7 @@ export default function EvalLeaderAssignmentSection({
                             limit: loadLimit,
                           })
                         : L.leaderAsgWarnDuplicate}
-              </span>
+              </StatusBadge>
             ))}
         </button>
       </Tooltip>
@@ -944,10 +944,17 @@ export default function EvalLeaderAssignmentSection({
                       <span className="evc-la-person">
                         <span className="evc-la-person-name">{r.name}</span>
                         {r.sub && <span className="evc-la-hint">{r.sub}</span>}
+                        {/* 이름 칸에 주황 세 줄이 붙어 행이 길어졌다 — 딱지 하나에 문장은 말풍선으로. */}
                         {noChain && (
-                          <span className="evc-la-hint is-warn" data-testid={`evc-la-nochain-${r.id}`}>
-                            {L.leaderAsgNoChainRow}
-                          </span>
+                          <Tooltip content={L.leaderAsgNoChainRow}>
+                            <StatusBadge
+                              className="evc-status-badge tone-warn evc-la-nochain"
+                              aria-label={L.leaderAsgNoChainRow}
+                              data-testid={`evc-la-nochain-${r.id}`}
+                            >
+                              {L.leaderAsgNoChainBadge}
+                            </StatusBadge>
+                          </Tooltip>
                         )}
                       </span>
                     </RosterTable.Cell>

@@ -11423,12 +11423,26 @@ button.evm-ai-source {
 }
 /* 정렬 칸 — 「정렬: 경고 먼저 · 조직 순」이 잘리지 않는 폭. */
 .evc-la-sort-pick { width: 220px; }
-/* PW-2066 · §5.13.10 도구 줄 — 줄마다 PW-2065 규칙 칸의 칩 줄(.evc-la-rule-axis)을 쌓는다. */
+/* PW-2066 · §5.13.10 도구 줄 — 보기 전환 · 거르기 칸 셋 · (검색) · 정렬을 한 줄에. 예전엔 축마다 칩 줄을 쌓아
+   조직이 많으면 칩이 몇 줄씩 붙어 보였다(2026-10-21 커트). 칸 높이는 옆 검색칸·정렬 칸(.evc-input)과 같다. */
 .evc-la-tools {
   display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
 }
+.evc-la-filter {
+  width: auto;
+  min-width: 96px;
+  max-width: 200px;
+}
+/* 고른 값이 있는 칸 — 공용 칩의 «고름» 색(.dp-chip.is-selected) 그대로. */
+.evc-la-filter.is-active {
+  background: var(--bg-brand-secondary);
+  border-color: var(--border-brand);
+  color: var(--text-brand-secondary);
+}
+.evc-la-filter.is-active .dp-search-select-chevron { color: inherit; }
 /* 평가자 기준 보기에서 펼친 담당 칸 — 체크 줄을 가로로 흘린다. */
 .evc-la-ev-cells {
   display: flex;
@@ -11590,19 +11604,15 @@ button.evm-ai-source {
   font-size: var(--font-size-text-sm);
   color: var(--text-tertiary);
 }
-.evc-la-empty {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: var(--font-size-text-sm);
-  font-weight: 700;
-  color: var(--utility-warning-700);
-}
+/* 평가자 없음 · 칸 경고 · 상위 조직장 없음 — 공용 상태 딱지(.evc-status-badge tone-warn/-error)에 아이콘 간격만. */
+.evc-la-empty { gap: 4px; }
+.evc-la-nochain { align-self: flex-start; margin-top: 2px; }
 .evc-la-hint {
   font-size: var(--font-size-text-xs);
   color: var(--text-tertiary);
 }
 .evc-la-hint.is-warn { color: var(--utility-warning-700); }
+/* 글로 쓰는 경고(규칙의 퇴사 평가자 · 평가자 기준 보기의 부담) — 표 칸 경고는 상태 딱지다. */
 .evc-la-warn {
   font-size: var(--font-size-text-xs);
   font-weight: 700;
