@@ -2674,6 +2674,7 @@
 }
 .evc-preview-scale {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--spacing-sm);
 }
@@ -2706,20 +2707,23 @@
   line-height: 1.6;
   margin-bottom: var(--spacing-xs);
 }
-/* [PW-2105] 점수 칸은 줄 폭을 고르게 나눠 채운다(디자이너 .manager-modal-seg 의 flex: 1 0 0 나눔).
-   높이·모양은 작성 화면 점수 버튼(.evm-score-btn)과 같다 — 미리보기가 구성원이 볼 화면과 같아야 한다. */
+/* [PW-2129] 점수 칸은 디자이너 팀 스니핏 점수 딱지(.mgr-ts-score)와 같은 크기다 — 34px, 숫자에 맞춘 폭.
+   줄을 채우지 않고 왼쪽부터 놓는다(PW-2105 의 줄 폭 나눔은 버튼이 44px 로 커져 무거웠다).
+   모양은 작성 화면 점수 버튼(.evm-score-btn)과 같다 — 미리보기가 구성원이 볼 화면과 같아야 한다. */
 .evc-preview-scale-dot {
-  flex: 1 1 0;
-  min-width: 32px;
-  height: 44px;
-  border-radius: var(--radius-sm);
+  flex: 0 0 auto;
+  min-width: 34px;
+  box-sizing: border-box;
+  padding: 4px 10px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--bg-active);
   background: var(--bg-secondary);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--font-size-text-md);
-  font-weight: 600;
+  font-size: var(--font-size-text-sm);
+  font-weight: 500;
+  line-height: 24px;
   color: var(--text-secondary);
 }
 .evc-preview-gradechips { display: flex; gap: var(--spacing-xs); flex-wrap: wrap; }
@@ -4079,10 +4083,11 @@
   opacity: 0.5;
   cursor: default;
 }
+/* [PW-2129] 점수 버튼은 이름표 바로 옆, 왼쪽부터 놓는다. */
 .evm-score-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: var(--spacing-md);
   margin-top: var(--spacing-sm);
 }
@@ -4090,12 +4095,13 @@
   flex: 0 0 auto;
   font-size: var(--font-size-text-sm);
 }
-/* PW-433 ① 척도가 최대 10칸 + 양끝 문구까지 늘어난다. 고정 폭을 가정하면 넘친다.
-   [PW-2105] 점수 묶음이 줄의 남은 폭을 다 먹고, 버튼이 그 폭을 고르게 나눈다(넓은 창에서 오른쪽이 비었다). */
+/* PW-433 ① 척도가 최대 10칸 + 양끝 문구까지 늘어난다. 고정 폭을 가정하면 넘친다 — 모자라면 다음 줄로.
+   [PW-2129] 묶음은 버튼만큼만 차지한다. 줄을 다 먹으면 미선택 빨간 테두리가 빈 오른쪽까지 감쌌다. */
 .evm-score-btns {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--spacing-xs);
 }
@@ -4126,16 +4132,19 @@
   box-shadow: 0 0 0 1px var(--utility-error-500);
   background: var(--utility-error-50);
 }
+/* [PW-2129] 크기는 디자이너 팀 스니핏 점수 딱지(.mgr-ts-score) 값 그대로 — 34px · 10px 모서리 · 14px/500. */
 .evm-score-btn {
-  flex: 1 1 0;
-  min-width: 32px;
-  height: 44px;
-  font-size: var(--font-size-text-md);
-  border-radius: var(--radius-sm);
+  flex: 0 0 auto;
+  min-width: 34px;
+  box-sizing: border-box;
+  padding: 4px 10px;
+  font-size: var(--font-size-text-sm);
+  line-height: 24px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--bg-active);
   background: var(--bg-secondary);
   color: var(--text-secondary);
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
 }
 .evm-score-btn.is-on {
