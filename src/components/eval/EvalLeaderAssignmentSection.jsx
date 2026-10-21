@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
+import Button from '../shared/Button.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
 import TextInput from '../shared/TextInput.jsx';
@@ -120,6 +121,7 @@ export default function EvalLeaderAssignmentSection({
   const [openCell, setOpenCell] = useState(null); // { key, evaluateeId, round }
   const [pickQuery, setPickQuery] = useState('');
   const [rulesOpen, setRulesOpen] = useState(false);
+  const [vacantOpen, setVacantOpen] = useState(false);
   const [ruleDraft, setRuleDraft] = useState(() => emptyLeaderRule(Math.min(2, rounds)));
   const panelRef = useRef(null);
   useDismissLayer(
@@ -444,12 +446,29 @@ export default function EvalLeaderAssignmentSection({
       {editable && vacantUnits.length > 0 && (
         <div className="evx-notice evc-la-vacant" data-testid="evc-la-vacant">
           <span>
-            {fill(L.leaderAsgVacantHead, { count: vacantUnits.length })}
-            {vacantUnits.map((v) => (
-              <span key={v.id} className="evc-la-vacant-line" data-testid={`evc-la-vacant-${v.id}`}>
-                {fill(L.leaderAsgVacantLine, { path: v.path, count: v.count, name: v.climbedName })}
+            {/* PW-2130 — 빈 조직이 많으면 줄이 끝없이 늘어 아래 확정 목록을 밀어냈다. 처음엔 머리 한 줄만,
+                펼쳐도 상자 안에서만 스크롤한다. 고치는 길(맨 아래 안내)은 접어도 보인다. */}
+            <span className="evc-la-vacant-head">
+              {fill(L.leaderAsgVacantHead, { count: vacantUnits.length })}
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-expanded={vacantOpen}
+                onClick={() => setVacantOpen((o) => !o)}
+                data-testid="evc-la-vacant-toggle"
+              >
+                {vacantOpen ? L.leaderAsgVacantHide : L.leaderAsgVacantShow}
+              </Button>
+            </span>
+            {vacantOpen && (
+              <span className="evc-la-vacant-list" data-testid="evc-la-vacant-list">
+                {vacantUnits.map((v) => (
+                  <span key={v.id} className="evc-la-vacant-line" data-testid={`evc-la-vacant-${v.id}`}>
+                    {fill(L.leaderAsgVacantLine, { path: v.path, count: v.count, name: v.climbedName })}
+                  </span>
+                ))}
               </span>
-            ))}
+            )}
             <span className="evc-la-hint">{L.leaderAsgVacantFoot}</span>
           </span>
         </div>

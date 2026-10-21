@@ -11537,11 +11537,28 @@ button.evm-ai-source {
 .evc-la-rule-pick { width: 160px; }
 .evc-la-load-input { width: 64px; }
 .evc-la-vacant > span {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 .evc-la-vacant-line { font-weight: 500; }
+/* PW-2130 — 머리 줄 오른쪽에 「목록 보기/접기」. 펼친 목록은 약 7줄 높이에서 상자 안 스크롤. */
+.evc-la-vacant-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+}
+.evc-la-vacant-head > button { flex-shrink: 0; }
+.evc-la-vacant-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 10.5em;
+  overflow-y: auto;
+}
 .evc-la-group {
   display: flex;
   align-items: center;

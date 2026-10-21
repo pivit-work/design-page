@@ -447,6 +447,8 @@ const DEFAULT_LABELS = {
   leaderAsgVacantHead: "조직장이 비어 있는 조직 {{count}}곳 — 이 조직 사람의 추천 평가자는 한 단계 위 조직장으로 올라가 있습니다.",
   leaderAsgVacantLine: "· {{path}} ({{count}}명) → 추천 1차: {{name}}",
   leaderAsgVacantFoot: "조직장을 지정하려면 어드민 › 조직단위 설정에서 바꾼 뒤 이 섹션을 다시 여세요. 바뀐 추천은 조정하지 않은 칸에만 들어갑니다.",
+  leaderAsgVacantShow: "목록 보기",
+  leaderAsgVacantHide: "접기",
   leaderRulesHead: "배정 규칙 {{count}}개",
   leaderRulesLoadOn: "· 부담 경고 기준 {{limit}}칸",
   leaderRulesLoadOff: "· 부담 경고 끔",
