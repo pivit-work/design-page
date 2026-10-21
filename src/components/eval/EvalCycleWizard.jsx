@@ -8043,7 +8043,17 @@ export default function EvalCycleWizard({
   const [aiUnconfirmedSteps, setAiUnconfirmedSteps] = useState([]);
   const [setupGeneration, setSetupGeneration] = useState(null);
   useAiDraftLifecycle('eval_cycle_setup', setupGeneration ? [0, 1].map((key) => ({
-    key: String(key), original: null, text: JSON.stringify({ reviewTypes, leaderRounds, tplQuestions, tplGrades }),
+    key: String(key), original: null,
+    // Moving the editor swaps the shared buffer; compare every logical slot instead.
+    text: JSON.stringify(key === 0 ? { reviewTypes, leaderRounds } : reviewTypes.flatMap((type) =>
+      Array.from({ length: type === 'leader' ? roundsInUse : 1 }, (_, index) => {
+        const round = index + 1;
+        const slotKey = type === 'leader' ? leaderPhaseId(round) : type;
+        const buffer = type === tplType && (type !== 'leader' || round === tplRound)
+          ? captureTplBuffer()
+          : parkedBufferOf(slotKey) ?? (type === 'leader' ? confirmedRoundBuffer(round) : null) ?? presetBufferFor(type);
+        return { type, round, questions: normalizeQuestions(buffer.questions), grades: buffer.grades ?? DEFAULT_GRADES };
+      }))),
     revision: setupGeneration, confirmed: !aiUnconfirmedSteps.includes(key),
   })) : []);
   const aiSetupCtxSeq = useRef(0);

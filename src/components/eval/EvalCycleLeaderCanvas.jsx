@@ -861,7 +861,7 @@ export default function EvalCycleLeaderCanvas({
   useAiDraftLifecycle('eval_leader_draft', fields.map((f) => ({
     key: f.key, revision: draftRevisions[f.key], original: state[f.key]?.aiDraft,
     text: state[f.key]?.[aiTextKey(f)], confirmed: !!state[f.key]?.isConfirmed,
-  })));
+  })), { active: editable });
 
   if (!active) {
     return (

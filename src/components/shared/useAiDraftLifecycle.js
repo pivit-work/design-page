@@ -4,12 +4,23 @@ export const AiDraftLifecycleContext = createContext(null);
 
 /** Draft text stays inside this hook and is never supplied to the observer. */
 export function useAiDraftLifecycle(feature, drafts, { active = true } = {}) {
-  const observe = useContext(AiDraftLifecycleContext);
+  const boundary = useContext(AiDraftLifecycleContext);
+  const observe = boundary?.onEvent;
+  const scope = boundary?.scope;
+  const previousScope = useRef(scope);
   const observed = useRef(new Map());
   const completed = useRef(new Map());
   const sink = useRef(observe);
   const generation = useRef({ version: 0 });
-  useEffect(() => { sink.current = observe; }, [observe]);
+  useEffect(() => {
+    if (previousScope.current !== scope) {
+      // Authentication changes invalidate old observations without remounting editors.
+      observed.current.forEach((draft, key) => completed.current.set(key, draft.identity));
+      observed.current.clear();
+      previousScope.current = scope;
+    }
+    sink.current = observe;
+  }, [observe, scope]);
   const emit = useCallback((event) => { try { sink.current?.({ ai_feature: feature, ...event }); } catch { /* Observation must not interrupt editing. */ } }, [feature]);
   const adopt = (key, text) => {
     const old = observed.current.get(key);
@@ -35,6 +46,7 @@ export function useAiDraftLifecycle(feature, drafts, { active = true } = {}) {
       const baseline = original ?? (old?.identity === revision ? old.original : text);
       if (confirmed) {
         if (old) adopt(key, text);
+        else completed.current.set(key, revision);
         continue;
       }
       if (old && old.identity !== revision) {

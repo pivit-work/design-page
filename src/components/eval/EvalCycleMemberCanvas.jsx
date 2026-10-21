@@ -670,7 +670,7 @@ export default function EvalCycleMemberCanvas({
     original: pendingDraft[f.key] ?? state[f.key]?.aiDraft,
     text: pendingDraft[f.key] ?? state[f.key]?.textAnswer,
     confirmed: !pendingDraft[f.key] && !!state[f.key]?.isConfirmed,
-  })));
+  })), { active: active && !readOnly });
 
   if (!active) {
     return (
