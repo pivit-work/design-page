@@ -11928,22 +11928,23 @@ button.evm-ai-source {
   width: 24px;
   color: var(--text-tertiary);
 }
-/* 상자 폭은 136px 이 기본이고, 단계 이름은 줄을 바꿔 높이로 늘어난다.
-   단 「평가자 · 팀 평가 관리 ›」 같은 안내 글(.evmh-phase-hint)은 버튼 글자라 꺾지 않는다 —
+/* 단계 상자는 카드 폭을 나눠 채운다 — 136px 고정 폭이던 때는 넓은 카드 왼쪽에 상자 셋만 몰려
+   오른쪽이 텅 비어 보였다(2026-10-21 커트). 높이·안쪽 여백·모서리는 디자이너가 그린 매니저 KPI 타일
+   (manager.css .manager-kpi-card — 100px · 16px 24px · radius-2xl) 값을 따른다.
+   「평가자 · 팀 평가 관리 ›」 같은 안내 글(.evmh-phase-hint)은 버튼 글자라 꺾지 않는다 —
    안내 글이 길면 상자가 그 폭만큼 넓어진다 (PW-1880). 가로가 모자라면 .evmh-flow 가 스크롤한다. */
 .evmh-phase {
   position: relative;
-  flex: 0 0 auto;
-  width: min-content;
-  min-width: 136px;
-  min-height: 128px;
+  flex: 1 1 0;
+  min-width: max-content;
+  min-height: 100px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   gap: var(--spacing-sm);
-  padding: var(--spacing-lg);
-  border-radius: var(--radius-xl);
+  padding: 16px 24px;
+  border-radius: var(--radius-2xl);
   border: 1.5px solid var(--border-secondary);
   background: var(--bg-secondary);
   font-family: var(--font-family-body);
