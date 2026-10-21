@@ -138,6 +138,7 @@ export default function OneOnOneCanvasV2({
   onOpenMicSettings,
   startOneOnOneData,
   aiDrafts,
+  aiDraftRevisions,
   onGenerateDrafts,
   generatingSection,
   /**
@@ -259,6 +260,7 @@ export default function OneOnOneCanvasV2({
           baseUrl={baseUrl}
           data={startOneOnOneData}
           aiDrafts={aiDrafts}
+          aiDraftRevisions={aiDraftRevisions}
           onGenerateDrafts={onGenerateDrafts}
           generatingSection={generatingSection}
           {...(startViewProps ?? {})}

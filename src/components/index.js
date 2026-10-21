@@ -445,3 +445,6 @@ export {
   questionItems,
   scaleMaxOf,
 } from './eval/evalTemplateItemModel.js';
+
+export { AiDraftLifecycleProvider } from './shared/AiDraftLifecycle.jsx';
+export { useAiDraftLifecycle } from './shared/useAiDraftLifecycle.js';

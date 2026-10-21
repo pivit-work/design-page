@@ -1,3 +1,4 @@
+import { useAiDraftLifecycle } from '../shared/useAiDraftLifecycle.js';
 import { useState, useMemo, useRef, useEffect } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Button from '../shared/Button.jsx';
@@ -488,6 +489,7 @@ export default function EvalCycleMemberCanvas({
   onSubmit,
   onAiPolish,
   onAiDraft,
+  aiDraftFeature = 'eval_self_draft',
   onKrProgressSave,
   // TC-053 동료 리뷰 등 타인 평가 시 항목별 공개 대상 안내 노출(셀프는 미노출)
   showVisibility = false,
@@ -558,6 +560,7 @@ export default function EvalCycleMemberCanvas({
   const [draftShort, setDraftShort] = useState(false);
   // [PW-1465] draftNeedsApply 일 때 아직 [사용] 하지 않은 초안. { [fieldKey]: text }
   const [pendingDraft, setPendingDraft] = useState({});
+  const [draftRevisions, setDraftRevisions] = useState({});
   // [PW-1844] 초안이 쓴 근거 — { [fieldKey]: [{ key, label, href }] }. 앱이 초안과 함께 넘긴 것만 담고
   // 저장하지 않는다(다시 열면 칸에는 사용자 글만 남는다).
   const [draftSources, setDraftSources] = useState({});
@@ -661,6 +664,13 @@ export default function EvalCycleMemberCanvas({
         reseedKeepingEdits(cur, seedState(seededFor.answers, fields), seedState(answers, fields)),
       );
   }
+
+  const aiLifecycle = useAiDraftLifecycle(aiDraftFeature, fields.map((f) => ({
+    key: f.key, revision: draftRevisions[f.key],
+    original: pendingDraft[f.key] ?? state[f.key]?.aiDraft,
+    text: pendingDraft[f.key] ?? state[f.key]?.textAnswer,
+    confirmed: !pendingDraft[f.key] && !!state[f.key]?.isConfirmed,
+  })));
 
   if (!active) {
     return (
@@ -789,6 +799,11 @@ export default function EvalCycleMemberCanvas({
     setDraftBusy(where);
     try {
       const drafted = await onAiDraft(items, templateContext);
+      setDraftRevisions((prev) => {
+        const next = { ...prev };
+        for (const d of drafted) if (fields[d.index] && d.textAnswer?.trim()) next[fields[d.index].key] = (next[fields[d.index].key] ?? 0) + 1;
+        return next;
+      });
       // 근거가 없어 빈 초안으로 돌아온 항목이 있으면 직접 쓰라고 알린다(spec §10).
       setDraftShort(
         items.some(
@@ -1350,6 +1365,7 @@ export default function EvalCycleMemberCanvas({
                               type="button"
                               className="evm-ai-draft-confirm"
                               onClick={() => {
+                                aiLifecycle.adopt(f.key, pendingDraft[f.key]);
                                 setField(f.key, { textAnswer: pendingDraft[f.key] });
                                 dropPendingDraft(f.key);
                               }}

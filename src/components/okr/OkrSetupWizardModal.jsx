@@ -1,3 +1,4 @@
+import { useAiDraftLifecycle } from '../shared/useAiDraftLifecycle.js';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
@@ -126,6 +127,12 @@ export default function OkrSetupWizardModal({
   const [krsLoading, setKrsLoading] = useState(false);
   const [objective, setObjective] = useState(init.objective ?? '');
   const [objConfirmed, setObjConfirmed] = useState(init.objConfirmed ?? false);
+  const [aiObjective, setAiObjective] = useState(init.aiObjective ?? null);
+  const [aiKrs, setAiKrs] = useState(init.aiKrs ?? null);
+  const [aiObjectiveRevision, setAiObjectiveRevision] = useState(init.aiObjectiveRevision ?? 0);
+  const [aiKrsRevision, setAiKrsRevision] = useState(init.aiKrsRevision ?? 0);
+  useAiDraftLifecycle('okr_wizard_objective', aiObjective ? [{ key: 'objective', revision: aiObjectiveRevision, original: aiObjective, text: objective, confirmed: objConfirmed }] : []);
+  useAiDraftLifecycle('okr_wizard_krs', aiKrs ? [{ key: 'krs', revision: aiKrsRevision, original: aiKrs, text: krs.length ? JSON.stringify(krs.map(({ title, type, target, unit }) => ({ title, type, target, unit }))) : '', confirmed: krsConfirmed }] : []);
   const [objLoading, setObjLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -148,8 +155,8 @@ export default function OkrSetupWizardModal({
   const onStateChangeRef = useRef(onStateChange);
   useEffect(() => { onStateChangeRef.current = onStateChange; }, [onStateChange]);
   useEffect(() => {
-    onStateChangeRef.current?.({ step, narrative, objective, objConfirmed, krs, krsConfirmed, krsContextApplied, visionImage });
-  }, [step, narrative, objective, objConfirmed, krs, krsConfirmed, krsContextApplied, visionImage]);
+    onStateChangeRef.current?.({ step, narrative, objective, objConfirmed, krs, krsConfirmed, krsContextApplied, visionImage, aiObjective, aiKrs, aiObjectiveRevision, aiKrsRevision });
+  }, [step, narrative, objective, objConfirmed, krs, krsConfirmed, krsContextApplied, visionImage, aiObjective, aiKrs, aiObjectiveRevision, aiKrsRevision]);
 
   // 정합성 단계 진입 시 팀 정렬도 조회 (동기 setState 회피 — 콜백에서만 갱신).
   useEffect(() => {
@@ -187,6 +194,8 @@ export default function OkrSetupWizardModal({
         id: nextId(), title: k.title, type: k.type ?? 'number',
         target: k.targetValue ?? 0, current: 0, unit: k.unit ?? '',
       }));
+      setAiKrsRevision((n) => n + 1);
+      setAiKrs(list.length ? JSON.stringify(list.map(({ title, type, target, unit }) => ({ title, type, target, unit }))) : null);
       setKrs(list); setKrsConfirmed(false);
       setKrsContextApplied(res?.contextApplied === true);
     } catch (err) {
@@ -207,6 +216,8 @@ export default function OkrSetupWizardModal({
     try {
       // 이 시점엔 KR 이 없다 — 재료는 구술뿐이다(§6 · PW-734).
       const res = await onDeriveObjective?.(scope, narrative, targetId);
+      setAiObjectiveRevision((n) => n + 1);
+      setAiObjective(res?.objective?.title || null);
       changeObjective(res?.objective?.title ?? '');
     } catch (err) {
       if (!onAiError?.('objective', err)) setError('Objective 작성에 실패했습니다. 잠시 후 다시 시도해주세요.');

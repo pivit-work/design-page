@@ -1,3 +1,4 @@
+import { useAiDraftLifecycle } from '../shared/useAiDraftLifecycle.js';
 import { useState, useMemo, useRef, useEffect } from 'react';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
@@ -732,6 +733,7 @@ export default function EvalCycleLeaderCanvas({
     if (aiGradeSuggestion) setAiHint(aiGradeSuggestion);
   }
   const [aiBusy, setAiBusy] = useState(false);
+  const [draftRevisions, setDraftRevisions] = useState({});
   const [aiFailed, setAiFailed] = useState(false);
   const [aiDrafted, setAiDrafted] = useState(false);
   // §5.2.1 — 확인 안 한 초안이 남은 채 제출하려 할 때의 경고(막지 않는다)
@@ -856,6 +858,11 @@ export default function EvalCycleLeaderCanvas({
 
   // 진행 중인 하향 리뷰 단계가 아니면(사이클 미해결) 빈 상태만 — 작동하지 않는 입력폼을
   // 노출하지 않는다(셀프 리뷰 캔버스와 동일한 가드).
+  useAiDraftLifecycle('eval_leader_draft', fields.map((f) => ({
+    key: f.key, revision: draftRevisions[f.key], original: state[f.key]?.aiDraft,
+    text: state[f.key]?.[aiTextKey(f)], confirmed: !!state[f.key]?.isConfirmed,
+  })));
+
   if (!active) {
     return (
       <div className="evc-root">
@@ -904,6 +911,11 @@ export default function EvalCycleLeaderCanvas({
     setAiBusy(true);
     try {
       const out = await onAiDraft(items, templateContext);
+      setDraftRevisions((prev) => {
+        const next = { ...prev };
+        for (const d of out?.items ?? []) if (fields[d.index] && d.textAnswer?.trim() && aiFillable(fields[d.index])) next[fields[d.index].key] = (next[fields[d.index].key] ?? 0) + 1;
+        return next;
+      });
       setState((prev) => {
         const next = { ...prev };
         for (const d of out?.items ?? []) {

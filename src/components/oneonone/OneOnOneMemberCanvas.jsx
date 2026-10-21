@@ -1,3 +1,4 @@
+import { useAiDraftLifecycle } from '../shared/useAiDraftLifecycle.js';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import DpStatusBadge from '../shared/StatusBadge.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
@@ -1066,6 +1067,9 @@ const AI_REPORT_FAIL_LABEL = {
 function AiReportSection({ value, L, icons, baseUrl }) {
   const { text, sourceLabel, edited = false, maxLength, busy = false, failure = null, onGenerate, onSave } = value;
   const [draft, setDraft] = useState(text ?? '');
+  useAiDraftLifecycle('oneonone_member_report', value.generatedAt ? [{
+    key: 'report', original: null, text: draft, revision: value.generatedAt, confirmed: edited,
+  }] : []);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saveFailed, setSaveFailed] = useState(false);

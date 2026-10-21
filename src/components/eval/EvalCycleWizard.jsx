@@ -1,3 +1,4 @@
+import { useAiDraftLifecycle } from '../shared/useAiDraftLifecycle.js';
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Chip from '../shared/Chip.jsx';
@@ -4087,6 +4088,10 @@ export default function EvalCycleWizard({
    * 것이다. 키를 «리마인더 id + 칸» 으로 넓혀 둘이 공존하게 한다.
    */
   const [aiDraft, setAiDraft] = useState({});
+  const reminderLifecycle = useAiDraftLifecycle('eval_reminder_polish', Object.entries(aiDraft).map(([key, draft]) => ({
+    key, original: JSON.stringify({ subject: draft.subject, body: draft.body }),
+    text: JSON.stringify({ subject: draft.subject, body: draft.body }), confirmed: false, revision: draft,
+  })));
   const [aiBusy, setAiBusy] = useState(() => new Set());
   const [aiError, setAiError] = useState(() => new Set());
   const [aiNotice, setAiNotice] = useState({});
@@ -4165,6 +4170,7 @@ export default function EvalCycleWizard({
     if (!d) return;
     const patch = { [conf.field]: d.body ?? '' };
     if (conf.hasSubject) patch.subject = d.subject ?? '';
+    reminderLifecycle.adopt(key, JSON.stringify({ subject: d.subject, body: d.body }));
     patchMessage(pid, rid, patch);
     clearAiDraft(key);
   };
@@ -8035,6 +8041,11 @@ export default function EvalCycleWizard({
   /** 이 마법사에 초안을 한 번이라도 넣었나 — 넣은 뒤에는 이름이 비어 있어도 다시 만들 때 묻는다. */
   const [aiSetupApplied, setAiSetupApplied] = useState(false);
   const [aiUnconfirmedSteps, setAiUnconfirmedSteps] = useState([]);
+  const [setupGeneration, setSetupGeneration] = useState(null);
+  useAiDraftLifecycle('eval_cycle_setup', setupGeneration ? [0, 1].map((key) => ({
+    key: String(key), original: null, text: JSON.stringify({ reviewTypes, leaderRounds, tplQuestions, tplGrades }),
+    revision: setupGeneration, confirmed: !aiUnconfirmedSteps.includes(key),
+  })) : []);
   const aiSetupCtxSeq = useRef(0);
 
   const openAiSetup = () => {
@@ -8116,6 +8127,7 @@ export default function EvalCycleWizard({
       if (res?.notice) {
         setAiSetupNotice(res.notice);
       } else if (res && applyAiSetupDraft(res)) {
+        setSetupGeneration({});
         setAiSetupApplied(true);
         setAiUnconfirmedSteps([0, 1]);
         setAiSetupOpen(false);

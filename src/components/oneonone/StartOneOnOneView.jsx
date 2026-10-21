@@ -1,3 +1,4 @@
+import { useAiDraftLifecycle } from '../shared/useAiDraftLifecycle.js';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
@@ -221,6 +222,7 @@ export default function StartOneOnOneView({
   member,
   data,
   aiDrafts,
+  aiDraftRevisions = {},
   onGenerateDrafts,
   generatingSection = null,
   aiFailures = null,
@@ -426,6 +428,10 @@ export default function StartOneOnOneView({
       caps: false,
     },
   );
+  useAiDraftLifecycle('oneonone_drafts', ['strengths', 'sbi', 'support', 'caps'].map((key) => ({
+    key, revision: aiDraftRevisions[key], original: key === 'caps' ? (aiDrafts?.capabilities ? JSON.stringify(aiDrafts.capabilities) : null) : aiDrafts?.[key],
+    text: key === 'caps' ? JSON.stringify(caps) : ({ strengths, sbi, support })[key], confirmed: !!confirmed[key],
+  })));
   // 아젠다: 매니저만 추가/삭제할 수 있다.
   const [mgrAgendas, setMgrAgendas] = useState(
     initialPerspective?.mgrAgendas ?? [],
