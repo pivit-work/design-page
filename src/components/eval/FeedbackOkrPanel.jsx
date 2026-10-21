@@ -93,7 +93,7 @@ export default function FeedbackOkrPanel({ groups, krBlocks, initBlocks, snippet
                           <span className="fbokr-percent" style={{ color: krColor(b.progress ?? 0) }}>{b.progress ?? 0}%</span>
                         </span>
                       </div>
-                      <p className="fbokr-kr-title" title={b.title}>{b.title}</p>
+                      <p className="fbokr-kr-title">{b.title}</p>
                       <span className="fbokr-bar">
                         <span style={{ width: `${b.progress ?? 0}%`, background: krColor(b.progress ?? 0) }} />
                       </span>

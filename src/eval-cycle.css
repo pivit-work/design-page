@@ -12397,6 +12397,9 @@ button.evmh-phase:focus-visible {
   display: block;
   height: 100%;
 }
+.fbokr-kr > .fbokr-bar {
+  margin-top: auto;
+}
 .fbokr-bar--obj {
   flex-shrink: 0;
   width: 96px;
@@ -12443,9 +12446,9 @@ button.evmh-phase:focus-visible {
   font-weight: 700;
   line-height: 20px;
   color: var(--text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  /* 대시보드는 한 줄 줄임표지만 여기선 이름이 잘리면 안 된다(PW-2126 끝 기준) — 칸이 좁으면 줄을 바꾼다 */
+  overflow-wrap: anywhere;
+  word-break: keep-all;
 }
 
 /* [PW-1860] 리포트 검수 «다음 분기 목표 제안» 읽기 전용 줄 — 「리포트 구성」 항목 줄(.evrr-section)을 세로로 쌓는다. */
