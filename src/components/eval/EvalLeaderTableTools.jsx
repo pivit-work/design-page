@@ -89,7 +89,7 @@ export function LeaderFilterSelect({ axis, label, options, selected, onToggle, t
           panelRef={panelRef}
           minWidth={200}
           maxHeight={320}
-          className="dp-search-select-menu evc-la-filter-menu"
+          className="dp-search-select-menu"
           data-testid={`${testPrefix}-filter-${axis}-menu`}
         >
           <div role="listbox" aria-multiselectable="true" aria-label={label} className="dp-search-select-list">
