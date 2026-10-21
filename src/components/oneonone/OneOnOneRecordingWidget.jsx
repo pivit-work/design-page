@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { MeetingRecordingGuide } from '../meetings/MeetingRecordingWidget.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import useMicWave from '../shared/useMicWave.js';
@@ -177,6 +178,9 @@ export default function OneOnOneRecordingWidget({
   title,
   onExpand,
   expandLabel = '진행 화면으로 돌아가기',
+  recording = true,
+  guide = null,
+  labels = {},
 }) {
   const bars = wave && wave.length > 0 ? wave : DEFAULT_WAVE;
   // 실시간 마이크 이퀄라이저 — 호스트가 wave 를 직접 주면 그 값을 존중한다.
@@ -184,7 +188,7 @@ export default function OneOnOneRecordingWidget({
   // 권한 프롬프트를 예고 없이 띄우고, 파형은 어차피 그리지 않는다.
   const waveRef = useRef(null);
   useMicWave(waveRef, {
-    enabled: !idle && (!wave || wave.length === 0),
+    enabled: recording && !idle && (!wave || wave.length === 0),
     paused,
   });
   // 일시정지 토글은 소비처가 콜백을 준 경우에만 노출한다 — 콜백 없이 버튼만 뜨면
@@ -300,7 +304,7 @@ export default function OneOnOneRecordingWidget({
             </div>
           </div>
         </div>
-        <div className="ono-start-rec-bar">
+        {recording && <div className="ono-start-rec-bar">
           <div className="ono-start-rec-timer">
             <span className="ono-start-rec-elapsed">{elapsed ?? '00:00'}</span>
             <div className="ono-start-rec-wave" ref={waveRef}>
@@ -313,7 +317,7 @@ export default function OneOnOneRecordingWidget({
             <button
               type="button"
               className="ono-start-rec-pause"
-              aria-label={paused ? '녹음 재개' : '녹음 일시정지'}
+              aria-label={paused ? (labels.resume ?? '녹음 재개') : (labels.pause ?? '녹음 일시정지')}
               aria-pressed={paused}
               onClick={paused ? onResume : onPause}
             >
@@ -321,13 +325,14 @@ export default function OneOnOneRecordingWidget({
             </button>
           )}
           <button type="button" className="ono-start-rec-stop" onClick={onStop}>
-            종료
+            {labels.stop ?? '종료'}
           </button>
         </div>
+        }
         {/* 아이콘만 바뀌면 녹음이 계속되는 줄 알고 자리를 뜬다 — 글로도 알린다. */}
-        {paused && (
+        {recording && paused && (
           <p className="ono-start-rec-paused-note" role="status">
-            녹취가 일시정지되었습니다.
+            {labels.pausedNote ?? '녹취가 일시정지되었습니다.'}
           </p>
         )}
         {/* 녹음이 아직 이 브라우저에만 있다는 사전 고지. 브라우저의 이탈 확인창은
@@ -339,6 +344,7 @@ export default function OneOnOneRecordingWidget({
           </p>
         )}
       </div>
+      <MeetingRecordingGuide guide={guide} />
     </div>
   );
   // mini 는 페이지 레이아웃 밖(body)에 띄운다 — 어느 페이지로 가도 같은 자리에 남아야 해서다.

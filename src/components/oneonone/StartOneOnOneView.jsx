@@ -244,6 +244,8 @@ export default function StartOneOnOneView({
   // 녹음 위젯 바로 아래 한 줄로 붙는 안내 (선택). 문구·노출 조건은 소비처가 쥔다 —
   // 「이 녹음은 업로드 전까지 이 브라우저에만 있다」처럼 소비처만 아는 사실이다.
   recordingNotice = null,
+  recordingWidgetLabels,
+  recordingWidgetTitle,
   // ── 마이크 없이 되살아난 진행 중 화면 (PW-556 · policy §5.4.5) ──
   // 🔴 `recording` 과 갈라 둔다. `recording` 은 **회차가 진행 중인가**라서 화면 아래
   // 「1on1 종료」를 결정하고, 이쪽은 **이 브라우저가 마이크를 잡고 있는가**라서 위젯이
@@ -1043,6 +1045,8 @@ export default function StartOneOnOneView({
           {recording && !recordingCollapsed && (
             <OneOnOneRecordingWidget
               variant="panel"
+              labels={recordingWidgetLabels}
+              title={recordingWidgetTitle}
               member={member}
               meetingTime={meetingTime}
               elapsed={

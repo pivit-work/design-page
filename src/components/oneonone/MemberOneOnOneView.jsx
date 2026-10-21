@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 import Select from '../shared/Select.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
@@ -35,6 +35,13 @@ import MemberReportCard from './MemberReportCard.jsx';
  *  phase 가 바뀌면 소비처가 `key` 로 다시 세운다 — 제출 뒤 화면은 props 가 곧 값이다.
  */
 export const DEFAULT_LABELS = {
+  aiFailTimeout: "생성이 30초를 넘겨 중단됐습니다. 잠시 후 다시 시도해 주세요.",
+  aiFailModel: "AI 응답을 받지 못했습니다. 잠시 후 다시 시도해 주세요.",
+  aiFailQuota: "AI 사용 한도를 모두 썼습니다. 워크스페이스 관리자에게 문의해 주세요.",
+  aiFailExhausted: "여러 번 시도했지만 생성하지 못했습니다. 직접 입력해 주세요.",
+  aiFailManual: "직접 입력해도 됩니다 — AI 없이 저장·제출할 수 있습니다.",
+  aiRetry: "다시 시도",
+  actionIncomplete: "미완료",
   readyTitle: '준비완료',
   readyText: '작성한 내용이 매니저에게 공유되었습니다. 미팅 중 내용을 참고하세요.',
   readiness: '내 준비도',
@@ -87,9 +94,15 @@ export const DEFAULT_LABELS = {
   remove: '삭제',
   save: '저장',
   ready: '준비 완료 → 매니저에게 알림',
+  saving: '저장 중…',
+  saved: '저장됨',
+  saveFailed: '저장하지 못했습니다. 입력한 내용은 그대로 남아 있습니다.',
+  readyFailed: '준비 완료를 보내지 못했습니다. 입력한 내용은 그대로 남아 있습니다.',
+  status: '상태',
+  myActionOwner: '나',
+  capabilityPoint: '{n}점',
 };
 
-const CAP_LABEL_OF = (n) => `${n}점`;
 
 export default function MemberOneOnOneView({
   phase = 'prep',
@@ -110,17 +123,41 @@ export default function MemberOneOnOneView({
   recognition = {},
   agenda = { topics: [], actions: [] },
   onGenerateComment,
+  suggestionStates = {},
   onSuggestTopics,
   onChange,
   onSave,
   onReady,
   readyDisabled = false,
+  showReadyNotice = true,
+  footerNotice = null,
+  reportEditor = null,
   widget = null,
   labels: providedLabels,
   baseUrl = '',
 }) {
   const L = { ...DEFAULT_LABELS, ...(providedLabels ?? {}) };
   const editable = phase === 'prep';
+  const saveLock = useRef(false);
+  const editRevision = useRef(0);
+  const [saving, setSaving] = useState(false);
+  const [saveState, setSaveState] = useState(null);
+  const submit = async (ready) => {
+    if (saveLock.current) return;
+    saveLock.current = true;
+    setSaving(true);
+    setSaveState(null);
+    const submittedRevision = editRevision.current;
+    try {
+      await (ready ? onReady?.(draft()) : onSave?.(draft()));
+      setSaveState(editRevision.current === submittedRevision ? 'saved' : null);
+    } catch {
+      setSaveState(ready ? 'readyFailed' : 'saveFailed');
+    } finally {
+      setSaving(false);
+      saveLock.current = false;
+    }
+  };
 
   /* ── 작성 중 입력 상태 — 초기값은 props, 제출 뒤에는 props 가 곧 값 ── */
   const [actions, setActions] = useState(() => prevSession?.actions ?? []);
@@ -142,7 +179,11 @@ export default function MemberOneOnOneView({
     topics,
     actions: actionItems,
   });
-  const notify = (section, next) => onChange?.(section, next, draft());
+  const notify = (section, next) => {
+    editRevision.current += 1;
+    setSaveState(null);
+    onChange?.(section, next, { ...draft(), [section]: next });
+  };
 
   const okrRows = okr.map((k, i) => ({ ...k, self: editable ? selfEval[i] : k.self }));
   const actionRows = editable ? actions : prevSession?.actions ?? [];
@@ -178,7 +219,7 @@ export default function MemberOneOnOneView({
     const text = actionInput.trim();
     if (!text) return;
     setActionItems((prev) => {
-      const next = [...prev, { id: `action-${Date.now()}`, text, owner: '나' }];
+      const next = [...prev, { id: `action-${Date.now()}`, text, owner: L.myActionOwner }];
       notify('actions', next);
       return next;
     });
@@ -193,6 +234,18 @@ export default function MemberOneOnOneView({
 
   const pct = readiness.total ? Math.round(((readiness.done ?? 0) / readiness.total) * 100) : 0;
   const allDone = readiness.total > 0 && readiness.done >= readiness.total;
+  const suggestionBlocked = (key) => suggestionStates[key]?.busy || suggestionStates[key]?.failure?.reason === 'quota_exceeded' || suggestionStates[key]?.failure?.retryLeft === 0;
+  const suggestionFailure = (key, retry) => {
+    const failure = suggestionStates[key]?.failure;
+    if (!failure || suggestionStates[key]?.busy) return null;
+    const exhausted = failure.reason !== 'quota_exceeded' && failure.retryLeft === 0;
+    const message = exhausted ? L.aiFailExhausted : failure.reason === 'quota_exceeded' ? L.aiFailQuota : failure.reason === 'timeout' ? L.aiFailTimeout : L.aiFailModel;
+    return <div className="ono-start-failbox" role="alert" data-testid={`ono-my-suggestion-error-${key}`}>
+      <span className="ono-start-failbox-title">{message}</span>
+      <p className="ono-start-failbox-msg">{L.aiFailManual}</p>
+      <div className="ono-start-failbox-actions"><button type="button" className="ono-start-failbox-retry" onClick={retry} disabled={suggestionBlocked(key)}>{L.aiRetry}</button></div>
+    </div>;
+  };
 
   const growthSrc = editable ? { ...growth } : growth;
   const recogSrc = recognition;
@@ -226,7 +279,7 @@ export default function MemberOneOnOneView({
             </div>
 
             {/* 준비 완료 띠 (Figma 17556:23843) — 제출 뒤에만 */}
-            {!editable && (
+            {!editable && showReadyNotice && (
               <div className="ono-my-ready-banner" role="status" data-testid="ono-my-ready-banner">
                 <Icon src="/icons-solid/check.svg" size={18} color="var(--text-brand-secondary)" baseUrl={baseUrl} />
                 <span className="ono-my-ready-banner-title">{L.readyTitle}</span>
@@ -249,7 +302,7 @@ export default function MemberOneOnOneView({
             </div>
 
             {/* AI 보고서 생성 — 작성 중 · 아직 없을 때 (Figma 17416:27976) */}
-            {editable && !report?.generated && (
+            {editable && !reportEditor && !report?.generated && (
               <button type="button" className="ono-start-cta is-cta" onClick={onGenerateReport} disabled={reportBusy} data-testid="ono-my-cta-report">
                 <Icon src="/icons-solid/ai-chat-01.svg" size={20} color="var(--text-white)" baseUrl={baseUrl} />
                 {reportBusy ? L.ctaReportBusy : L.ctaReport}
@@ -275,13 +328,13 @@ export default function MemberOneOnOneView({
                           <span className="ono-my-action-due">
                             {a.owner} · {a.due}
                           </span>
-                          {editable && statusOptions.length > 0 ? (
+                          {editable && a.editable !== false && statusOptions.length > 0 ? (
                             <Select
                               className="ono-my-state-select"
                               value={a.status}
                               options={statusOptions}
                               onChange={(e) => updateAction(a.id, { status: e.target.value })}
-                              aria-label={`${a.title} 상태`}
+                              aria-label={`${a.title} ${L.status}`}
                             />
                           ) : (
                             <span className="ono-my-state-select is-static">{statusLabel}</span>
@@ -299,16 +352,17 @@ export default function MemberOneOnOneView({
                                   ))
                                 : a.commentAi && <StatusBadge tone="ai" className="ono-done-badge">{L.aiGenerated}</StatusBadge>}
                             </div>
-                            {editable && (
+                            {editable && a.editable !== false && onGenerateComment && (
                               <MemberAiButton
                                 label={L.aiGenerate}
+                                disabled={suggestionBlocked(`comment:${a.id}`)}
                                 baseUrl={baseUrl}
                                 ariaLabel={`${a.title} ${L.reasonComment} AI ${L.aiGenerate}`}
                                 onClick={() => onGenerateComment?.(a.id, (text) => updateAction(a.id, { comment: text, commentAi: true }))}
                               />
                             )}
                           </div>
-                          {editable ? (
+                          {editable && a.editable !== false ? (
                             <textarea
                               className={`ono-my-textarea${a.commentAi ? ' is-ai' : ''}`}
                               value={a.comment ?? ''}
@@ -321,6 +375,7 @@ export default function MemberOneOnOneView({
                               {a.comment || L.commentPlaceholder}
                             </p>
                           )}
+                          {suggestionFailure(`comment:${a.id}`, () => onGenerateComment?.(a.id, (text) => updateAction(a.id, { comment: text, commentAi: true })))}
                         </div>
                       )}
                     </div>
@@ -332,6 +387,7 @@ export default function MemberOneOnOneView({
             {/* AI 보고서 · OKR 자가 평가 */}
             <MemberReportCard
               phase={phase}
+              reportContent={reportEditor}
               report={report}
               okr={okrRows}
               onSelfChange={(i, v) => {
@@ -393,7 +449,7 @@ export default function MemberOneOnOneView({
                         <span className="ono-start-cap-label">{c.label}</span>
                         <RatingBar
                           value={editable ? caps[i] : c.value ?? 0}
-                          labelOf={CAP_LABEL_OF}
+                          labelOf={(n) => L.capabilityPoint.replace('{n}', String(n))}
                           onChange={
                             editable
                               ? (n) => {
@@ -471,8 +527,8 @@ export default function MemberOneOnOneView({
                   badge="context"
                   badgeLabels={L}
                   aux={
-                    editable ? (
-                      <MemberAiButton label={L.aiSuggest} baseUrl={baseUrl} onClick={() => onSuggestTopics?.((items) => {
+                    editable && onSuggestTopics ? (
+                      <MemberAiButton disabled={suggestionBlocked('agenda')} label={L.aiSuggest} baseUrl={baseUrl} onClick={() => onSuggestTopics?.((items) => {
                         setTopics((prev) => {
                           const next = [...prev, ...items.filter((t) => !prev.some((p) => p.id === t.id))];
                           notify('topics', next);
@@ -508,6 +564,13 @@ export default function MemberOneOnOneView({
                       </div>
                     )}
                   </div>
+                  {suggestionFailure('agenda', () => onSuggestTopics?.((items) => {
+                    setTopics((prev) => {
+                      const next = [...prev, ...items.filter((t) => !prev.some((p) => p.id === t.id))];
+                      notify('topics', next);
+                      return next;
+                    });
+                  }))}
                 </MemberField>
                 <MemberField title={L.actionsTitle} badge="manual" badgeLabels={L}>
                   <div className="ono-start-agenda-list">
@@ -538,17 +601,22 @@ export default function MemberOneOnOneView({
             </div>
           </div>
 
+          {saveState && (
+            <p className={saveState === 'saved' ? 'ono-my-readiness-note' : 'ono-done-inline-error'} role={saveState === 'saved' ? 'status' : 'alert'} data-testid="ono-my-save-state">{L[saveState]}</p>
+          )}
+          {footerNotice}
+
           {/* 바닥 (Figma 17416:28224) — 작성 중에만. 제출 뒤에는 돌이킬 것이 없다 */}
           {editable && (
             <div className="ono-start-view-footer">
-              <button type="button" className="ono-add-modal-btn ono-add-modal-btn-secondary" onClick={() => onSave?.(draft())}>
-                {L.save}
+              <button type="button" className="ono-add-modal-btn ono-add-modal-btn-secondary" onClick={() => void submit(false)} disabled={saving || !onSave} data-testid="ono-my-save-btn">
+                {saving ? L.saving : L.save}
               </button>
               <button
                 type="button"
                 className={`ono-add-modal-btn ${readyDisabled ? 'ono-start-footer-disabled' : 'ono-add-modal-btn-primary'}`}
-                disabled={readyDisabled}
-                onClick={() => onReady?.(draft())}
+                disabled={readyDisabled || saving || !onReady}
+                onClick={() => void submit(true)}
                 data-testid="ono-my-ready-btn"
               >
                 {L.ready}

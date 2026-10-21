@@ -17,6 +17,7 @@ import MemberField from './MemberField.jsx';
 export default function MemberReportCard({
   phase,
   report,
+  reportContent = null,
   okr = [],
   onSelfChange,
   upwardFeedbackPrev,
@@ -108,6 +109,12 @@ export default function MemberReportCard({
     </div>
   );
 
+  // 기존 한 편 보고서의 편집·저장 계약을 유지하는 소비처 자리 (PW-575).
+  // text를 구조별 칸에 임의로 나누지 않고 보고서 전체를 그대로 보여 준다.
+  if (reportContent && !report?.generated) {
+    return <>{reportContent}<div className="ono-start-briefing-block"><h3 className="ono-my-h3">{L.okrTitle}</h3>{okrRows(false)}</div></>;
+  }
+
   if (!report?.generated) {
     return (
       <div className="ono-start-briefing-card ono-my-report" data-testid="ono-my-report">
@@ -147,6 +154,7 @@ export default function MemberReportCard({
         {aiField(L.support, n.support, 'support')}
         {aiField(L.resources, n.resources, 'resources')}
       </div>
+      {reportContent}
     </>
   );
 }

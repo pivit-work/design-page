@@ -151,6 +151,7 @@ const DEFAULT_LABELS = {
   // 지난 회차 목록 머리·행 (Figma 17556:23218)
   historyWith: '{name} 매니저와의 지난 원온원',
   historySubtitle: '총 {count}회 · 회차를 선택해 기록을 확인하세요',
+  historyEmptyTitle: '아직 지난 원온원이 없습니다',
   historyOpen: '기록보기', historyAnalyzing: 'AI 분석 중', historyAction: '액션',
   pastSessionsEmpty: '지난 1on1 기록이 없습니다',
   backToHistory: '목록으로',
@@ -1064,7 +1065,7 @@ const AI_REPORT_FAIL_LABEL = {
   quota_exceeded: 'aiReportFailQuota',
 };
 
-function AiReportSection({ value, L, icons, baseUrl }) {
+export function AiReportSection({ value, L, icons, baseUrl, readOnly = false }) {
   const { text, sourceLabel, edited = false, maxLength, busy = false, failure = null, onGenerate, onSave } = value;
   const [draft, setDraft] = useState(text ?? '');
   useAiDraftLifecycle('oneonone_member_report', value.generatedAt ? [{
@@ -1110,6 +1111,12 @@ function AiReportSection({ value, L, icons, baseUrl }) {
     setSaved(true);
     setTimeout(() => setSaved(false), 1500);
   };
+
+  if (readOnly) {
+    return <Section title={L.aiReportTitle} icon={icons.aiSummary} icons={icons} baseUrl={baseUrl} collapsible={false}>
+      <p className="ono-my-readbox">{text || L.aiReportEmpty}</p>
+    </Section>;
+  }
 
   const regenerate = text && (
     <button
@@ -1419,28 +1426,10 @@ function MemberReadyFooter({ sent, state, onClick, L }) {
 
 /* ── ② 미팅 (LIVE) ────────────────────────────────────── */
 function MeetingScreen({ session, manager, avatar, L, icons, baseUrl, onSaveNotes }) {
-  const [memo, setMemo] = useState(session.memberNotes ?? '');
-  const [saved, setSaved] = useState(false);
   const [startAt] = useState(() => (session.startedAt ? new Date(session.startedAt).getTime() : Date.now()));
   const prevActions = (session.aiBriefing?.prevActions ?? []).filter((a) => !a.done);
   const okrStatus = session.aiBriefing?.okrStatus ?? [];
 
-  // PW-966 — 저장이 끝난 «뒤에» 「저장됨」을 띄운다. 예전에는 결과를 받기 전에 띄워서
-  // 서버가 거절해도 「저장됨」이 보였다. 실패 안내는 소비처 몫이다(앱은 토스트).
-  const [saving, setSaving] = useState(false);
-  const save = async () => {
-    if (saving) return;
-    setSaving(true);
-    try {
-      await onSaveNotes(memo);
-    } catch {
-      setSaving(false);
-      return;
-    }
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 1500);
-  };
 
   return (
     <>
@@ -1503,6 +1492,35 @@ function MeetingScreen({ session, manager, avatar, L, icons, baseUrl, onSaveNote
         <span>{L.recordingNotice}</span>
       </div>
 
+      <MemberPrivateMemo session={session} L={L} icons={icons} baseUrl={baseUrl} onSaveNotes={onSaveNotes} />
+
+      <p className="ono-mem-hint ono-mem-center">{L.meetingEndByManager}</p>
+    </>
+  );
+}
+
+// 기존 팀원 개인 메모의 모양·저장 흐름을 그대로 꺼낸 부품 (PW-575).
+export function MemberPrivateMemo({ session, L, icons, baseUrl, onSaveNotes, showEndNotice = false }) {
+  const [memo, setMemo] = useState(session.memberNotes ?? '');
+  const [saved, setSaved] = useState(false);
+  // PW-966 — 저장이 끝난 «뒤에» 「저장됨」을 띄운다. 예전에는 결과를 받기 전에 띄워서
+  // 서버가 거절해도 「저장됨」이 보였다. 실패 안내는 소비처 몫이다(앱은 토스트).
+  const [saving, setSaving] = useState(false);
+  const save = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      await onSaveNotes(memo);
+    } catch {
+      setSaving(false);
+      return;
+    }
+    setSaving(false);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 1500);
+  };
+
+  return (<>
       <Section title={L.privateMemo} icon={icons.memo} icons={icons} baseUrl={baseUrl}>
         <p className="ono-mem-hint">{L.privateMemoDesc}</p>
         <textarea
@@ -1518,8 +1536,7 @@ function MeetingScreen({ session, manager, avatar, L, icons, baseUrl, onSaveNote
           </button>
         </div>
       </Section>
-
-      <p className="ono-mem-hint ono-mem-center">{L.meetingEndByManager}</p>
+      {showEndNotice && <p className="ono-mem-hint ono-mem-center">{L.meetingEndByManager}</p>}
     </>
   );
 }
@@ -1869,6 +1886,7 @@ function HistoryScreen({ sessions, manager, avatar, renderAvatar, L, icons, base
       sessions={rows}
       onOpen={(r) => select(r.id)}
       labels={{ open: L.historyOpen, analyzing: L.historyAnalyzing, action: L.historyAction }}
+      emptyTitle={L.historyEmptyTitle}
       emptyText={L.pastSessionsEmpty}
       baseUrl={baseUrl}
     />
@@ -1983,6 +2001,7 @@ export default function OneOnOneMemberCanvas({
    * 안 넘기면 자리 자체가 없다(종전 화면 그대로).
    */
   notice = null,
+  preparation = null,
 }) {
   const L = mergeLabels(DEFAULT_LABELS, providedLabels);
   const icons = { ...DEFAULT_ICONS, ...(providedIcons || {}) };
@@ -2002,7 +2021,7 @@ export default function OneOnOneMemberCanvas({
       {notice}
       <TabNav tab={tab} onChange={onTabChange} enabled={enabled} L={L} />
 
-      {tab === 'prep' && (session && session.status === 'ready' ? (
+      {tab === 'prep' && (preparation ?? (session && session.status === 'ready' ? (
         <PrepScreen
           {...shared}
           session={session} manager={manager} avatar={avatar} okrStatus={okrStatus}
@@ -2012,11 +2031,11 @@ export default function OneOnOneMemberCanvas({
           selfAssessment={selfAssessment}
           aiReport={aiReport}
         />
-      ) : <EmptyState description={L.noPrepSession} />)}
+      ) : <EmptyState description={L.noPrepSession} />))}
 
-      {tab === 'meeting' && (session && session.status === 'live' ? (
+      {tab === 'meeting' && (preparation ?? (session && session.status === 'live' ? (
         <MeetingScreen {...shared} session={session} manager={manager} avatar={avatar} onSaveNotes={onSaveNotes} />
-      ) : <EmptyState description={L.noLiveSession} />)}
+      ) : <EmptyState description={L.noLiveSession} />))}
 
       {tab === 'result' && (resultSession ? (
         <ResultScreen

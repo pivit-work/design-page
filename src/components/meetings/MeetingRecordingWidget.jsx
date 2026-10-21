@@ -81,7 +81,15 @@ export default function MeetingRecordingWidget({
           <button type="button" className="mtg-rec-widget-stop" onClick={onStop}>{labels.stop}</button>
         </div>
       )}
-      {guide && (
+      <MeetingRecordingGuide guide={guide} baseUrl={baseUrl} />
+    </div>,
+    document.body
+  );
+}
+
+// 기존 원온원 단계 한 줄을 값 그대로 재사용한다 (PW-575).
+export function MeetingRecordingGuide({ guide, baseUrl = '' }) {
+  return guide ? (
         <div className="mtg-rec-widget-guide" data-testid="mtg-rec-widget-guide">
           <div className="mtg-rec-widget-guide-head">
             <span className="mtg-rec-widget-guide-stage">{guide.stageLabel}</span>
@@ -115,8 +123,5 @@ export default function MeetingRecordingWidget({
             </button>
           )}
         </div>
-      )}
-    </div>,
-    document.body
-  );
+  ) : null;
 }
