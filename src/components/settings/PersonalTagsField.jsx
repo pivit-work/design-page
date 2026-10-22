@@ -89,6 +89,10 @@ export default function PersonalTagsField({
           else setText(v);
         }}
         onKeyDown={(e) => {
+          // 한글 조합을 확정하는 Enter 는 건너뛴다. 여기서 칸을 비우면 조합 중이던 마지막 글자가
+          // 확정되며 빈 칸에 다시 들어가 남는다(PW-2150). Safari 는 조합 직후 Enter 를 isComposing
+          // 없이 keyCode 229 로 보내 둘 다 본다.
+          if (e.nativeEvent.isComposing || e.keyCode === 229) return;
           if (e.key === 'Enter') {
             e.preventDefault();
             commit(text);
