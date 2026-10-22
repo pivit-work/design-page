@@ -140,11 +140,16 @@ export default function MemberOneOnOneView({
   const editable = phase === 'prep';
   const saveLock = useRef(false);
   const editRevision = useRef(0);
+  const commentRevisions = useRef(new Map());
+  const readyLock = useRef(false);
+  const [readySubmitting, setReadySubmitting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveState, setSaveState] = useState(null);
   const submit = async (ready) => {
     if (saveLock.current) return;
     saveLock.current = true;
+    readyLock.current = ready;
+    setReadySubmitting(ready);
     setSaving(true);
     setSaveState(null);
     const submittedRevision = editRevision.current;
@@ -156,6 +161,8 @@ export default function MemberOneOnOneView({
     } finally {
       setSaving(false);
       saveLock.current = false;
+      readyLock.current = false;
+      setReadySubmitting(false);
     }
   };
 
@@ -198,6 +205,14 @@ export default function MemberOneOnOneView({
       return next;
     });
   };
+  const generateComment = (id) => {
+    const revision = commentRevisions.current.get(id) ?? 0;
+    onGenerateComment?.(id, (text) => {
+      // A manual edit after the request owns this field, including typing then undoing.
+      if (readyLock.current || (commentRevisions.current.get(id) ?? 0) !== revision) return;
+      updateAction(id, { comment: text, commentAi: true });
+    });
+  };
   const addTopic = () => {
     const text = topicInput.trim();
     if (!text) return;
@@ -235,7 +250,7 @@ export default function MemberOneOnOneView({
   const pct = readiness.total ? Math.round(((readiness.done ?? 0) / readiness.total) * 100) : 0;
   const allDone = readiness.total > 0 && readiness.done >= readiness.total;
   const suggestionBlocked = (key) => suggestionStates[key]?.busy || suggestionStates[key]?.failure?.reason === 'quota_exceeded' || suggestionStates[key]?.failure?.retryLeft === 0;
-  const suggestionFailure = (key, retry) => {
+  const suggestionFailure = (key, retry, commentId) => {
     const failure = suggestionStates[key]?.failure;
     if (!failure || suggestionStates[key]?.busy) return null;
     const exhausted = failure.reason !== 'quota_exceeded' && failure.retryLeft === 0;
@@ -243,7 +258,7 @@ export default function MemberOneOnOneView({
     return <div className="ono-start-failbox" role="alert" data-testid={`ono-my-suggestion-error-${key}`}>
       <span className="ono-start-failbox-title">{message}</span>
       <p className="ono-start-failbox-msg">{L.aiFailManual}</p>
-      <div className="ono-start-failbox-actions"><button type="button" className="ono-start-failbox-retry" onClick={retry} disabled={suggestionBlocked(key)}>{L.aiRetry}</button></div>
+      <div className="ono-start-failbox-actions"><button type="button" className="ono-start-failbox-retry" onClick={commentId ? () => generateComment(commentId) : retry} disabled={suggestionBlocked(key)}>{L.aiRetry}</button></div>
     </div>;
   };
 
@@ -260,7 +275,7 @@ export default function MemberOneOnOneView({
           {notice}
         </p>
       )}
-      <div className="ono-start-view">
+      <fieldset className="ono-start-view" disabled={readySubmitting} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
         <div className="ono-start-view-card">
           <div className="ono-start-view-body">
             {/* 머리 — 회차 제목 · 매니저 */}
@@ -358,7 +373,7 @@ export default function MemberOneOnOneView({
                                 disabled={suggestionBlocked(`comment:${a.id}`)}
                                 baseUrl={baseUrl}
                                 ariaLabel={`${a.title} ${L.reasonComment} AI ${L.aiGenerate}`}
-                                onClick={() => onGenerateComment?.(a.id, (text) => updateAction(a.id, { comment: text, commentAi: true }))}
+                                onClick={() => generateComment(a.id)}
                               />
                             )}
                           </div>
@@ -367,7 +382,10 @@ export default function MemberOneOnOneView({
                               className={`ono-my-textarea${a.commentAi ? ' is-ai' : ''}`}
                               value={a.comment ?? ''}
                               placeholder={L.commentPlaceholder}
-                              onChange={(e) => updateAction(a.id, { comment: e.target.value, commentAi: false })}
+                              onChange={(e) => {
+                                commentRevisions.current.set(a.id, (commentRevisions.current.get(a.id) ?? 0) + 1);
+                                updateAction(a.id, { comment: e.target.value, commentAi: false });
+                              }}
                               aria-label={`${a.title} ${L.reasonComment}`}
                             />
                           ) : (
@@ -375,7 +393,7 @@ export default function MemberOneOnOneView({
                               {a.comment || L.commentPlaceholder}
                             </p>
                           )}
-                          {suggestionFailure(`comment:${a.id}`, () => onGenerateComment?.(a.id, (text) => updateAction(a.id, { comment: text, commentAi: true })))}
+                          {suggestionFailure(`comment:${a.id}`, undefined, a.id)}
                         </div>
                       )}
                     </div>
@@ -624,7 +642,7 @@ export default function MemberOneOnOneView({
             </div>
           )}
         </div>
-      </div>
+      </fieldset>
     </div>
   );
 }
