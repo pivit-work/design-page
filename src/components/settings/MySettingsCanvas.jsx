@@ -2374,10 +2374,10 @@ export default function MySettingsCanvas({
               {notifGroups.map((group) => (
                 <Card key={group.key} testId={`notif-group-${group.key}`}>
                   <div className="admin-section-label">{group.title}</div>
-                  <div className="msc-notif-items">
+                  <div className="msc-notif-items msc-notification-list">
                     {group.items.map((item) => (
-                      <div key={item.key} className="msc-row">
-                        <div>
+                      <div key={item.key} className="msc-row msc-notification-row" data-testid={`notification-item-${item.key}`}>
+                        <div className="msc-notification-copy">
                           <div className="msc-notif-label">{item.label}</div>
                           <div className="msc-notif-sub">{item.sub}</div>
                         </div>

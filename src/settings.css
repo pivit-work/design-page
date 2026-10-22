@@ -1326,3 +1326,9 @@
 .msc-vis-selection { gap: 8px; }
 .msc-vis-selection-row { padding-block: 4px; }
 .msc-vis-selection-row .msc-row-label { font-size: 14px; line-height: 20px; font-weight: 500; }
+/* PW-2119 승인값: 내 설정의 개발 추가 알림 행만. 프로필/이력/공개 범위의 공용 글씨는 보존한다. */
+.msc-notification-list { gap: 12px; }
+.msc-notification-row { padding-block: 10px; }
+.msc-notification-copy { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.msc-notification-row .msc-notif-label { font-size: 16px; line-height: 24px; }
+.msc-notification-row .msc-notif-sub { font-size: 13px; line-height: 20px; margin-top: 4px; }
