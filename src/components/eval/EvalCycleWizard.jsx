@@ -3290,6 +3290,8 @@ export default function EvalCycleWizard({
   const [pendingRebase, setPendingRebase] = useState(null); // 재배치 확인 대기
   /* [PW-1591 J-6 · 정책 §5.2.1-E] 일정 일괄 배치 — 일수(1~60, 기본 7) · 이어서/같은 기간. */
   const [bulkDays, setBulkDays] = useState('7');
+  /** [PW-2137] [모든 단계에 적용]을 눌렀는데 켜진 단계가 전부 이미 시작해 바꿀 날짜가 없었다. */
+  const [bulkNothingToMove, setBulkNothingToMove] = useState(false);
   const [bulkMode, setBulkMode] = useState('chain'); // 'chain' 순서대로 이어서 | 'same' 모두 같은 기간
   const [pendingBulk, setPendingBulk] = useState(null); // 직접 고친 단계 이름들 — 확인 대기
   /* 직접 고친 단계 — 어떤 재배치에서도 덮어쓰지 않는다(§5.2.1-A 「수동 수정 우선」).
@@ -3850,8 +3852,15 @@ export default function EvalCycleWizard({
     );
     setPendingBulk(null);
   };
-  /** 손으로 고친 단계가 있으면 그 이름을 확인 창에 보이고, 없으면 바로 배치한다. */
+  /**
+   * 손으로 고친 단계가 있으면 그 이름을 확인 창에 보이고, 없으면 바로 배치한다.
+   * [PW-2137] 켜진 단계가 전부 이미 시작했거나 끝났으면 바꿀 날짜가 없다 — 눌러도 화면이 그대로라
+   * 버튼이 고장 난 것처럼 보였다. 배치하지 않고 그 이유를 버튼 아래 한 줄로 알린다.
+   */
   const requestBulkLayout = () => {
+    const movable = displayPhases.filter((p) => !disabledPhases.has(p.id) && !isFixedPhase(p.id));
+    setBulkNothingToMove(movable.length === 0);
+    if (movable.length === 0) return;
     if (handEditedShown.length > 0) {
       setPendingBulk(
         handEditedShown.map((id) => phaseName(displayPhases.find((p) => p.id === id))),
@@ -9514,6 +9523,11 @@ export default function EvalCycleWizard({
                 <div className="evc-sched-overlap-note" data-testid="evc-sched-overlap">
                   {L.scheduleOverlapNote}
                 </div>
+              )}
+              {bulkNothingToMove && (
+                <p className="evx-notice" role="status" data-testid="evc-sched-bulk-nothing">
+                  {L.scheduleBulkNothingToMove}
+                </p>
               )}
               {/* [PW-1461 · 정책 §5.2.2] 순서를 옮기려 했는데 잠겼거나, 옮긴 순서를 저장하지 못했다. */}
               {orderNotice && (
