@@ -298,6 +298,7 @@ export default function EvalUpwardReviewCanvas({
       // §5U.4 「적용 전에는 본문을 바꾸지 않는다」 — 초안은 [사용]을 눌러야 칸에 들어간다.
       draftNeedsApply
       trackAiDraft
+      aiDraftReviewCheckbox
       onSaveError={onSaveError}
       onSaveSuccess={onSaveSuccess}
       aiDraftDisabledReason={aiDraftDisabledReason}

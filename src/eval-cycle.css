@@ -4040,6 +4040,21 @@
 .evm-ai-draft-badge {
   font-weight: 600;
 }
+/* PW-2131 승인된 항목별 검토 체크. 기존 답변칸·출처 표시·자기평가 버튼은 보존한다. */
+.evm-ai-review-bar {
+  gap: var(--spacing-3xl, 24px);
+}
+.evm-ai-review-check {
+  min-height: 32px;
+  color: var(--text-secondary);
+}
+.evm-ai-review-check .dp-check-input {
+  width: 18px;
+  height: 18px;
+}
+.evm-ai-review-check:has(input:checked) {
+  color: var(--utility-success-700);
+}
 .evm-ai-draft-confirm {
   padding: 2px var(--spacing-md);
   border-radius: var(--radius-sm);

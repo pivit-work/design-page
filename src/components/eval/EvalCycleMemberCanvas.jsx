@@ -148,6 +148,8 @@ const DEFAULT_LABELS = {
   aiDraftSourceGroupOneOnOne: '1on1',
   aiDraftSourceGroupOkr: 'OKR 달성 기록',
   aiDraftConfirm: '확인',
+  aiDraftReviewCheck: 'AI가 작성한 내용을 검토했습니다.',
+  aiDraftSource: 'AI 초안',
   // §4.3.1 — 적용 단계를 켠 화면(상향 리뷰 §5U.4)에서 초안 블록의 두 버튼.
   aiDraftUse: '사용',
   aiDraftFold: '접기',
@@ -507,6 +509,8 @@ export default function EvalCycleMemberCanvas({
   // feedback-ai-spec §8.3 — AI 초안 칸을 노랑(미확인)/초록(확인)으로 그리고 [확인]을 둔다.
   // 확인 상태를 저장하는 화면(셀프 리뷰)만 켠다 — 저장하지 않는 화면에서 켜면 다시 열 때 사라진다.
   trackAiDraft = false,
+  // PW-2131 동료·상향은 항목별 검토 체크를 해제할 수도 있다. 셀프는 기존 확인 버튼 유지.
+  aiDraftReviewCheckbox = false,
   // [PW-1460] 이 기간 스니핏이나 OKR 이 비었는가 — 셀프 리뷰 화면이 판정해 넘긴다(spec §10).
   dataShortage = false,
   // [PW-1464] 셀프 리뷰 화면만 켠다 — 대상자 화면 정책 §4 의 셀프 전용 표시(요약 빈 문구·구분선·
@@ -691,6 +695,10 @@ export default function EvalCycleMemberCanvas({
     if (!trackAiDraft) return null;
     const st = state[f.key];
     if (!st || st.aiDraft == null || !st.textAnswer.trim()) return null;
+    if (aiDraftReviewCheckbox) return {
+      tone: st.isConfirmed ? 'confirmed' : 'unconfirmed',
+      label: st.textAnswer === st.aiDraft ? L.aiDraftSource : L.aiDraftEdited,
+    };
     if (st.isConfirmed) return { tone: 'confirmed', label: L.aiDraftConfirmed };
     return {
       tone: 'unconfirmed',
@@ -1386,12 +1394,22 @@ export default function EvalCycleMemberCanvas({
                       )}
                       {aiStateOf(f) && (
                         <div
-                          className={`evm-ai-draft-bar is-${aiStateOf(f).tone}`}
+                          className={`evm-ai-draft-bar is-${aiStateOf(f).tone}${aiDraftReviewCheckbox ? ' evm-ai-review-bar' : ''}`}
                           data-testid={`evm-ai-state-${f.key}`}
                           data-state={aiStateOf(f).tone}
                         >
                           <span className="evm-ai-draft-badge">{aiStateOf(f).label}</span>
-                          {aiStateOf(f).tone === 'unconfirmed' && !readOnly && (
+                          {aiDraftReviewCheckbox ? (
+                            <Checkbox
+                              className="dp-check evm-ai-review-check"
+                              inputClassName="dp-check-input"
+                              label={L.aiDraftReviewCheck}
+                              checked={!!state[f.key]?.isConfirmed}
+                              disabled={readOnly}
+                              onChange={(event) => setField(f.key, { isConfirmed: event.target.checked })}
+                              data-testid={`evm-ai-confirm-${f.key}`}
+                            />
+                          ) : aiStateOf(f).tone === 'unconfirmed' && !readOnly && (
                             <button
                               type="button"
                               className="evm-ai-draft-confirm"
