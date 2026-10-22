@@ -448,3 +448,4 @@ export {
 
 export { AiDraftLifecycleProvider } from './shared/AiDraftLifecycle.jsx';
 export { useAiDraftLifecycle } from './shared/useAiDraftLifecycle.js';
+export { default as OnbHelpVideos } from './onboarding/OnbHelpVideos.jsx';

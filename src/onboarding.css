@@ -470,3 +470,8 @@
 .onb-mt-28 { margin-top: 28px; }
 .onb-mb-8 { margin-bottom: 8px; } .onb-mb-12 { margin-bottom: 12px; } .onb-mb-16 { margin-bottom: 16px; }
 .onb-mb-20 { margin-bottom: 20px; } .onb-mb-24 { margin-bottom: 24px; }
+
+/* PW-1483 승인값: 개발 추가 완료 영상 영역만. 원래 온보딩 요약/링크에는 적용하지 않는다. */
+.onb-help-videos > .onb-summary-list { padding: 24px; }
+.onb-help-videos-title { margin: 0; font-size: 16px; line-height: 24px; font-weight: 600; color: var(--onb-text); }
+.onb-help-videos .onb-link { font-size: 16px; line-height: 24px; overflow-wrap: anywhere; }

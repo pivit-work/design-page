@@ -51,3 +51,5 @@ export {
   OnbConfetti,
 } from './OnboardingBlocks.jsx';
 export { OnbSpinner } from './onboardingIcons.jsx';
+
+export { default as OnbHelpVideos } from './OnbHelpVideos.jsx';
