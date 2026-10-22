@@ -5281,8 +5281,15 @@ export default function EvalCycleWizard({
     }
     applyTplPreset(id);
   };
+  // [PW-2136] jsonb로 저장한 초안은 객체 키 순서가 달라질 수 있다.
+  // 항목/선택지 배열의 순서는 유지하고, 객체 속성의 순서만 제외해 값으로 비교한다.
+  const questionValues = (questions) => JSON.stringify(questions, (_key, value) =>
+    value && typeof value === 'object' && !Array.isArray(value)
+      ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b)))
+      : value,
+  );
   const tplIsCustomized =
-    JSON.stringify(tplQuestions) !== JSON.stringify(presetFor(tplVersion, tplType));
+    questionValues(tplQuestions) !== questionValues(presetFor(tplVersion, tplType));
   /**
    * PW-434 ⑤ 상단 「저장된 템플릿에서 시작」 블록의 후보 — **지금 편집 중인 유형**만.
    * `기본 지정` 을 앞세우고 그다음 사용 횟수 내림차순이며, 최대 4장만 편다.
