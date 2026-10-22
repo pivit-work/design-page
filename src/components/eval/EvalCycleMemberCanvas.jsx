@@ -1374,7 +1374,12 @@ export default function EvalCycleMemberCanvas({
                               className="evm-ai-draft-confirm"
                               onClick={() => {
                                 aiLifecycle.adopt(f.key, pendingDraft[f.key]);
-                                setField(f.key, { textAnswer: pendingDraft[f.key] });
+                                // [PW-2131] 쓴 초안도 AI 원문을 남겨야 «검토 체크» 전 제출이 막힌다.
+                                setField(f.key, {
+                                  textAnswer: pendingDraft[f.key],
+                                  aiDraft: pendingDraft[f.key],
+                                  isConfirmed: false,
+                                });
                                 dropPendingDraft(f.key);
                               }}
                               data-testid={`evm-ai-use-${f.key}`}
