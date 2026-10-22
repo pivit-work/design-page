@@ -54,9 +54,11 @@ export default function OneOnOnePageHeader({
   sortControl,
   scopeNotice,
   children,
+  actions,
+  contained = false,
 }) {
   return (
-    <header className="ono-page-header">
+    <header className={`ono-page-header${contained ? ' is-contained' : ''}`}>
       <div className="ono-title-block">
         {titleTabs?.length ? (
           <div className="ono-title-switch">
@@ -118,6 +120,7 @@ export default function OneOnOnePageHeader({
           </div>
         )}
       </div>
+      {actions && <div className="ono-member-actions">{actions}</div>}
       {children}
     </header>
   );

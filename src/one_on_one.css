@@ -394,6 +394,9 @@
   z-index: 10;
 }
 
+/* 본문 칸에 직접 놓인 개발 추가 헤더는 오른쪽 거터가 없다. */
+.ono-page-header.is-contained { margin-right: 0; }
+
 .ono-title-block {
   display: flex;
   flex-direction: column;
