@@ -6905,6 +6905,11 @@ export default function EvalCycleWizard({
   const visibleExcluded = excludedMembers.filter(
     (c) => axisHit(c) && nameHit(c) && focusHit(c),
   );
+  // PW-2134 — 일괄 되돌리기로 퇴사자를 조용히 포함하지 않는다. 개별 ← 는 기존 정책을 유지한다.
+  // 서버 사유와 현재 인사 상태를 함께 본다(옛 초안·판정 응답 전 수동 제외도 포함).
+  const bulkRestorableExcluded = visibleExcluded.filter(
+    (c) => !isResignedStatus(c.employmentStatus) && exclusionReasonOf(c.id) !== 'resigned',
+  );
   const hiddenExcludedCount = excludedMembers.length - visibleExcluded.length;
   const activeFilterCount = REVIEW_AXIS_KEYS.reduce(
     (n, k) => n + (reviewFilters[k] ?? []).length,
@@ -7097,7 +7102,7 @@ export default function EvalCycleWizard({
         ...prev,
         ...toKept.filter((id) => !prev.includes(id)),
       ]);
-      return toKept.length;
+      return ids.length;
     }
     return ids.length;
   };
@@ -7109,8 +7114,8 @@ export default function EvalCycleWizard({
     setWizToast(null);
   };
 
-  /* PW-1459 E19 — 일괄 되돌리기로 규칙 제외자가 「수동 포함」이 되면 몇 명인지와
-     그것이 기록으로 남는다는 것을 알린다. 되돌리기는 1회(위 스냅샷). */
+  /* 일괄 되돌리기 안내는 규칙 제외자뿐 아니라 실제로 복원한 전원을 센다(PW-2134).
+     되돌리기는 1회(위 스냅샷). */
   const [wizToast, setWizToast] = useState(null);
   const wizToastTimer = useRef(null);
   useEffect(() => () => clearTimeout(wizToastTimer.current), []);
@@ -7120,8 +7125,8 @@ export default function EvalCycleWizard({
     wizToastTimer.current = setTimeout(() => setWizToast(null), 6000);
   };
   const includeVisibleExcluded = () => {
-    const kept = moveMany(visibleExcluded, false);
-    if (kept > 0) showWizToast({ kind: 'included', count: kept });
+    const restored = moveMany(bulkRestorableExcluded, false);
+    if (restored > 0) showWizToast({ kind: 'included', count: restored });
   };
 
 
@@ -10848,11 +10853,12 @@ export default function EvalCycleWizard({
                           type="button"
                           className="evc-review-pane-action"
                           onClick={includeVisibleExcluded}
+                          disabled={bulkRestorableExcluded.length === 0}
                           data-testid="evc-wiz-include-all"
                         >
                           {anyReviewFilter
                             ? fill(L.targetIncludeVisible, {
-                                count: visibleExcluded.length,
+                                count: bulkRestorableExcluded.length,
                               })
                             : L.targetIncludeAll}
                         </button>
