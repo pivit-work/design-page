@@ -693,3 +693,8 @@ body:has(.okr-ctx-banner-flag) .tl-group-modal.okr-wz-modal { height: min(1118px
 .okr-kr-value.is-done { color: var(--text-brand-tertiary); }
 .okr-qcell-weight { width: 105px; display: flex; align-items: center; justify-content: center; padding: 16px 32px; box-sizing: border-box; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-tertiary); }
 .okr-qrow.is-head .okr-qcell-weight { font-weight: 700; color: var(--text-secondary); }
+
+/* PW-2133 사용자 승인: 개발 추가 기준 정보/초안의 조합만. 디자이너 카드·모달·스텝 값은 그대로. */
+.okr-wz-reference-objective { background: var(--bg-quaternary); margin-bottom: 12px; }
+.okr-wz-reference-title { white-space: normal; overflow-wrap: anywhere; }
+.okr-wz-review-head { justify-content: space-between; }

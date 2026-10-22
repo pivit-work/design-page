@@ -6,6 +6,8 @@ import AiMark from '../shared/AiMark.jsx';
 import { AlertTriangleGlyph } from '../shared/lineIcons.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import SearchSelect from '../shared/SearchSelect.jsx';
+import Button from '../shared/Button.jsx';
+import TextInput from '../shared/TextInput.jsx';
 
 /**
  * OkrSetupWizardModal — OKR 설정 마법사 (Backward Looking).
@@ -442,13 +444,13 @@ export default function OkrSetupWizardModal({
             {aiBtn(objective ? '다시 작성' : 'AI로 Objective 작성', genObjective, objLoading)}
           </div>
           {aiNoticeAt('objective')}
-          <div className={`okr-wz-draft${objConfirmed ? ' is-confirmed' : ''}`}>
-            <div className="okr-wz-draft-head">
+          <div className={`okr-cf-kr-card${objConfirmed ? ' is-confirmed' : ''}`} data-testid="okr-wz-objective-draft">
+            <div className="okr-cf-kr-card-head okr-wz-review-head">
               <StatusBadge className="okr-wz-badge">
                 {objConfirmed ? '✓ 확인됨' : objective ? 'AI 초안 (미확인)' : '직접 입력'}
               </StatusBadge>
               {!objConfirmed && objective.trim() && (
-                <button type="button" className="okr-btn is-brand is-sm" onClick={() => setObjConfirmed(true)}>확인</button>
+                <Button type="button" className="okr-btn is-brand is-sm" onClick={() => setObjConfirmed(true)}>확인</Button>
               )}
             </div>
             <textarea
@@ -479,19 +481,19 @@ export default function OkrSetupWizardModal({
           </div>
           {aiNoticeAt('krs')}
           {/* 확정 Objective — KR 이 무엇을 재는지 늘 보이게 둔다(§3-3 · PW-734). */}
-          <div className="okr-wz-objective-banner" data-testid="okr-wz-objective-banner">
-            <span className="okr-wz-objective-banner-tag">OBJECTIVE</span>
-            <span className="okr-wz-objective-banner-text">{objective.trim() || '(Objective 미확정)'}</span>
+          <div className="okr-cf-objective okr-wz-reference-objective" data-testid="okr-wz-objective-banner">
+            <span className="okr-wz-desc">Objective</span>
+            <span className="okr-cf-obj-label okr-wz-reference-title">{objective.trim() || '(Objective 미확정)'}</span>
           </div>
           {krs.length === 0 && !krsLoading && (
             <div className="okr-wz-empty">
               <p>위 버튼을 눌러 AI 추천 KR 을 받아보세요. Objective 가 구체적일수록 더 정확한 KR 이 추출됩니다.</p>
-              <button type="button" className="okr-wz-addkr" onClick={addKr}>+ KR 직접 추가</button>
+              <Button type="button" className="okr-wz-addkr" onClick={addKr}>+ KR 직접 추가</Button>
             </div>
           )}
           {krs.length > 0 && (
-            <div className={`okr-wz-draft${krsConfirmed ? ' is-confirmed' : ''}`}>
-              <div className="okr-wz-draft-head">
+            <div className={`okr-cf-kr-card${krsConfirmed ? ' is-confirmed' : ''}`} data-testid="okr-wz-krs-draft">
+              <div className="okr-cf-kr-card-head okr-wz-review-head">
                 <span className="okr-wz-draft-badges">
                   <StatusBadge className="okr-wz-badge">{krsConfirmed ? '✓ 확인됨' : `AI 초안 (미확인) · ${krs.length}개`}</StatusBadge>
                   {krsContextApplied && contextAppliedLabel && (
@@ -499,29 +501,29 @@ export default function OkrSetupWizardModal({
                   )}
                 </span>
                 {!krsConfirmed && (
-                  <button type="button" className="okr-btn is-brand is-sm" onClick={() => setKrsConfirmed(true)}>전체 확인</button>
+                  <Button type="button" className="okr-btn is-brand is-sm" onClick={() => setKrsConfirmed(true)}>전체 확인</Button>
                 )}
               </div>
               {krs.map((k, i) => (
                 <div className="okr-wz-krrow" key={k.id}>
                   <span className="okr-wz-krno">{i + 1}</span>
-                  <input className="okr-wz-krcell" value={k.title} placeholder="지표명" aria-label="KR 지표명"
+                  <TextInput className="okr-wz-krcell" value={k.title} placeholder="지표명" aria-label="KR 지표명"
                     onChange={(e) => patchKr(k.id, { title: e.target.value })} />
-                  <input className="okr-wz-krcell is-num" type="number" value={k.current} placeholder="현재" aria-label="현재값"
+                  <TextInput className="okr-wz-krcell is-num" type="number" value={k.current} placeholder="현재" aria-label="현재값"
                     onChange={(e) => patchKr(k.id, { current: e.target.value })} />
                   {/* «완료 여부»는 목표 1 고정이라 칸을 감춘다(okr-spec §3.1B). 빈 칸은 열 자리를 지킨다. */}
                   {k.type === 'boolean' ? <span aria-hidden="true" /> : (
-                    <input className="okr-wz-krcell is-num" type="number" value={k.target} placeholder="목표" aria-label="목표값"
+                    <TextInput className="okr-wz-krcell is-num" type="number" value={k.target} placeholder="목표" aria-label="목표값"
                       onChange={(e) => patchKr(k.id, { target: e.target.value })} />
                   )}
-                  <input className="okr-wz-krcell is-unit" value={k.unit} placeholder="단위" aria-label="단위"
+                  <TextInput className="okr-wz-krcell is-unit" value={k.unit} placeholder="단위" aria-label="단위"
                     onChange={(e) => patchKr(k.id, { unit: e.target.value })} />
-                  <button type="button" className="okr-cf-x" onClick={() => removeKr(k.id)} aria-label="KR 삭제">
+                  <Button type="button" className="okr-cf-x" onClick={() => removeKr(k.id)} aria-label="KR 삭제">
                     <Icon src={icons.xClose} size={14} color="var(--text-tertiary)" baseUrl={baseUrl} />
-                  </button>
+                  </Button>
                 </div>
               ))}
-              <button type="button" className="okr-wz-addkr" onClick={addKr}>+ KR 직접 추가</button>
+              <Button type="button" className="okr-wz-addkr" onClick={addKr}>+ KR 직접 추가</Button>
             </div>
           )}
         </div>
