@@ -204,18 +204,15 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
               비공개인 사람의 카드에서 구분자가 매달려 보였다. */}
           <div className="modal-title">{[profile.title, profile.affiliations ? '' : profile.dept].filter(Boolean).join(' · ')}</div>
           {profile.affiliations?.length > 0 && (
-            <div className="modal-info-section" data-testid="profile-affiliations">
-              <div className="modal-info-label">{L('profile.affiliations')}</div>
-              <ul className="modal-project-list">
+            <ul className="modal-affiliations" data-testid="profile-affiliations" aria-label={L('profile.affiliations')}>
                 {profile.affiliations.map((a) => (
-                  <li key={a.id} className="modal-project-item">
+                  <li key={a.id} className="modal-affiliation-row">
                     {a.name}
                     {a.isPrimary && <StatusBadge tone="neutral" className="modal-team-chip">{L('profile.primary')}</StatusBadge>}
                     {a.isLeader && <StatusBadge tone="neutral" className="modal-team-chip">{L('profile.leader')}</StatusBadge>}
                   </li>
                 ))}
-              </ul>
-            </div>
+            </ul>
           )}
           <div className="modal-bio">{profile.bio}</div>
           <StatusBadge className="modal-status-badge">{L(`member.status.${MEMBER_STATUSES[displayMember?.status] ? displayMember.status : 'working'}`)}</StatusBadge>

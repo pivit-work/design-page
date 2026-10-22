@@ -765,3 +765,29 @@
   outline-offset: 4px;
   border-radius: 8px;
 }
+
+/* PW-1480: 개발 추가 소속 목록만. 기존 이름·직급·소개·3D·공용 배지 값은 유지한다. */
+.modal-affiliations {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  max-width: 100%;
+  font-size: 12px;
+  line-height: 18px;
+  text-align: center;
+}
+.modal-affiliation-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+/* 가운데 목록의 상속이 기존 배지의 text-align까지 바꾸지 않게 원래 값을 유지한다. */
+.modal-affiliation-row .modal-team-chip { text-align: start; }
