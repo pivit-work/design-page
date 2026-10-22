@@ -5512,22 +5512,16 @@ export default function EvalCycleWizard({
     return b && (b.confirmedId || '') === (phaseTemplateMap[type] || '') ? b : null;
   };
   /**
-   * [PW-1831 J-10 · HR §5.10-E] 다른 유형(`type`)의 공유 칸에 올릴 내용. 차례대로 —
-   * ① 내려 둔 그 유형의 버퍼(미저장 편집을 잃지 않는다) ② 그 유형의 확정 템플릿 ③ 종전 동작(손대지 않은 프리셋이면
-   * 그 유형 프리셋으로 다시 깔고, 고쳤으면 지금 내용을 이어 쓴다). `fromConfirmed` 면 「수정 중」 지문을 새로 찍는다 —
-   * 서버가 돌려준 확정본은 보낸 버퍼와 글자가 달라(id·기본값) 옛 지문과 견주면 열자마자 「수정 중」이 된다.
+   * [PW-2136 · HR §5.10-E J-10] 편집본 → 확정본 → 해당 유형 기본 구성 순으로 연다.
+   * 처음 여는 유형에 다른 유형의 항목·등급·저장본 출처를 복사하지 않는다.
+   * fromConfirmed 면 서버 확정본 기준으로 「수정 중」 지문을 새로 찍는다.
    */
-  const typeFirstSlot = (bufs, type, base, baseType) => {
+  const typeFirstSlot = (bufs, type) => {
     const parked = parkedTypeBuffer(bufs, type);
     if (parked) return { buffer: parked, fromConfirmed: false };
     const confirmed = confirmedBufferOf(type);
     if (confirmed) return { buffer: confirmed, fromConfirmed: true };
-    return {
-      buffer: !bufferCustomized(base, baseType)
-        ? { ...base, questions: presetFor(base.version, type) }
-        : base,
-      fromConfirmed: false,
-    };
+    return { buffer: presetBufferFor(type), fromConfirmed: false };
   };
   const stampConfirmed = (stamps) => {
     if (Object.keys(stamps).length > 0) setConfirmSnapshot((m) => ({ ...m, ...stamps }));
@@ -5547,8 +5541,6 @@ export default function EvalCycleWizard({
     version,
     questions: presetFor(version, type),
   });
-  const bufferCustomized = (b, type) =>
-    JSON.stringify(b.questions) !== JSON.stringify(presetFor(b.version, type));
   /** k차를 시작했나 — 1차 · 시작 방식을 고른 차수 · 확정이 있는 차수. */
   const roundStarted = (k) =>
     k <= 1 || tplRoundStarted.includes(k) || !!phaseTemplateMap[leaderPhaseId(k)];
@@ -5560,7 +5552,7 @@ export default function EvalCycleWizard({
   /**
    * 편집 칸(유형 · 하향 차수)을 옮긴다. `setTplType` 을 부르는 길은 이 함수와 `loadTemplate` 둘이다.
    *
-   * 공유 버퍼 = 1차·다른 유형 칸(종전 동작 — 손대지 않은 프리셋이면 새 유형에 맞게 다시 깐다).
+   * 공유 편집 칸 = 현재 유형의 1차 칸. 다른 유형으로 옮기면 그 유형의 내용을 올린다.
    * 2차 이후로 들어가면 공유 버퍼 내용을 `tplRoundBuffers[1]` 로 내려 두고 그 차수 버퍼를 올린다.
    * 2차 이후에서 나오면 그 차수를 내려 두고 1차 내용을 되올린다. 한 번의 계산으로 끝낸다 — 상태를
    * 두 번 나눠 바꾸면 두 번째 계산이 첫 번째 결과를 못 본다.
@@ -5588,7 +5580,7 @@ export default function EvalCycleWizard({
     let first = base;
     if (type !== tplType) {
       typeBufs[tplType] = { ...base, confirmedId: phaseTemplateMap[tplType] || null };
-      const slot = typeFirstSlot(typeBufs, type, base, tplType);
+      const slot = typeFirstSlot(typeBufs, type);
       first = slot.buffer;
       if (slot.fromConfirmed) stamps[type] = bufferFingerprint(first.questions, first.grades);
       delete typeBufs[type];
@@ -5695,13 +5687,8 @@ export default function EvalCycleWizard({
     const typeBufs = { ...tplTypeBuffers };
     const buffers = { ...tplRoundBuffers };
     const stamps = {};
-    // 지금 유형의 공유 칸 내용 — 버퍼가 없는 유형이 종전 동작으로 이어 쓸 내용이다.
-    const base =
-      tplType === 'leader' && tplRound > 1
-        ? buffers[1] ?? confirmedRoundBuffer(1) ?? presetBufferFor('leader')
-        : captureTplBuffer();
     for (const type of [...new Set(gradeShareRows.map((r) => r.baseType))]) {
-      const slot = typeFirstSlot(typeBufs, type, base, tplType);
+      const slot = typeFirstSlot(typeBufs, type);
       if (slot.fromConfirmed) {
         stamps[type] = bufferFingerprint(slot.buffer.questions, slot.buffer.grades);
       }
