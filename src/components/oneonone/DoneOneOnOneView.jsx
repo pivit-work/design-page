@@ -696,7 +696,9 @@ function CapabilityCard({ rows, onChange, L, icons, baseUrl }) {
         ))}
         <span className="ono-done-cap-delta-head">{L.capDelta}</span>
         {rows.map((r, i) => {
-          const delta = (Number(r.doneFinal) || 0) - (Number(r.memberSelf) || 0);
+          const delta = r.doneFinal == null || r.memberSelf == null
+            ? 0
+            : Number(r.doneFinal) - Number(r.memberSelf);
           return (
             <div className="ono-done-cap-row" key={r.key ?? i} data-testid="ono-done-cap-row">
               <span className="ono-done-cap-label">{r.label}</span>
