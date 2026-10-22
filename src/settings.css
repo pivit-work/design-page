@@ -1320,3 +1320,9 @@
 .msc-pref-banner-text {
   white-space: pre-line;
 }
+
+/* PW-1474: 공개 범위의 개발 추가 선택 목록에만 적용한다.
+   회의 공유 대상 선택 목록(stesslee 7cdaa0db)의 읽기 밀도. */
+.msc-vis-selection { gap: 8px; }
+.msc-vis-selection-row { padding-block: 4px; }
+.msc-vis-selection-row .msc-row-label { font-size: 14px; line-height: 20px; font-weight: 500; }

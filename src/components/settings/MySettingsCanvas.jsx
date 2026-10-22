@@ -322,7 +322,7 @@ const DEFAULT_LABELS = {
   },
   visibility: {
     banner:
-      'Pivit의 공개 범위는 2단계로 구성됩니다. 항목별로 공개 여부를 직접 결정할 수 있으며, 비활성화된 항목은 나 외에 누구에게도 표시되지 않습니다.',
+      '공개할 항목을 선택하세요. 끈 항목은 나만 볼 수 있습니다.',
     saveError: '공개 범위 저장에 실패했습니다. 잠시 후 다시 시도해 주세요.',
   },
   // 선호 설정 (pivit-work PW-1366) — 동의 문안은 문안집 §1-9 원문. 호스트가 회사 이름을 넣은 문장으로 덮는다.
@@ -2982,9 +2982,9 @@ export function VisibilitySettingsContent({ labels, visibilityGroups = [], visib
                       <div className="msc-vis-group-desc">{group.desc}</div>
                     </div>
                   </div>
-                  <div className="msc-vis-items">
+                  <div className="msc-vis-items msc-vis-selection">
                     {group.items.map((item) => (
-                      <div key={item.key} className="msc-row" data-testid={`visibility-item-${item.key}`}>
+                      <div key={item.key} className="msc-row msc-vis-selection-row" data-testid={`visibility-item-${item.key}`}>
                         {/* item.sub 가 있으면 라벨 아래 보조 문구를 둔다. 값이 없어 켤 수 없는
                             항목(item.disabled)을 목록에서 지우지 않고 이유를 남기기 위한 슬롯. */}
                         <div style={{ flex: 1, minWidth: 0 }}>
