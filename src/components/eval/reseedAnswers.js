@@ -43,6 +43,8 @@ function sameAnswer(a, b) {
     (a.textAnswer ?? '') === (b.textAnswer ?? '') &&
     (a.score ?? null) === (b.score ?? null) &&
     (a.rationale ?? '') === (b.rationale ?? '') &&
+    (a.aiDraft ?? null) === (b.aiDraft ?? null) &&
+    !!a.isConfirmed === !!b.isConfirmed &&
     JSON.stringify(a.checkedOptions ?? null) === JSON.stringify(b.checkedOptions ?? null)
   );
 }
