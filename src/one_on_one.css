@@ -5091,6 +5091,20 @@ button.ono-add-modal-input { cursor: pointer; }
   line-height: 18px;
   color: var(--text-brand-tertiary);
 }
+/* PW-575: 개발 추가 저장 안내만 본문·버튼의 왼쪽 선에 맞춘다. */
+.ono-my-save-state {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 48px 16px;
+  overflow-wrap: anywhere;
+}
+.ono-my-save-state.ono-done-inline-error {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+}
 .ono-my-track {
   width: 100%;
   min-width: 0;

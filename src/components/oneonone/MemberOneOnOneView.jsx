@@ -115,6 +115,7 @@ export default function MemberOneOnOneView({
   statusOptions = [],
   report,
   reportBusy = false,
+  reportDisabled = false,
   onGenerateReport,
   okr = [],
   upwardFeedbackPrev,
@@ -132,6 +133,8 @@ export default function MemberOneOnOneView({
   showReadyNotice = true,
   footerNotice = null,
   reportEditor = null,
+  reportActions = null,
+  reportFeedback = null,
   widget = null,
   labels: providedLabels,
   baseUrl = '',
@@ -317,12 +320,14 @@ export default function MemberOneOnOneView({
             </div>
 
             {/* AI 보고서 생성 — 작성 중 · 아직 없을 때 (Figma 17416:27976) */}
-            {editable && !reportEditor && !report?.generated && (
-              <button type="button" className="ono-start-cta is-cta" onClick={onGenerateReport} disabled={reportBusy} data-testid="ono-my-cta-report">
+            {editable && !reportEditor && !report?.generated && !report?.text && (
+              <button type="button" className="ono-start-cta is-cta" onClick={onGenerateReport} disabled={reportBusy || reportDisabled} data-testid="ono-my-cta-report">
                 <Icon src="/icons-solid/ai-chat-01.svg" size={20} color="var(--text-white)" baseUrl={baseUrl} />
                 {reportBusy ? L.ctaReportBusy : L.ctaReport}
               </button>
             )}
+
+            {reportFeedback}
 
             {/* 이전 액션아이템 점검 (Figma 17416:28473) */}
             <div className="ono-start-section" data-testid="ono-my-prev-actions">
@@ -406,6 +411,7 @@ export default function MemberOneOnOneView({
             <MemberReportCard
               phase={phase}
               reportContent={reportEditor}
+              actions={reportActions}
               report={report}
               okr={okrRows}
               onSelfChange={(i, v) => {
@@ -620,7 +626,7 @@ export default function MemberOneOnOneView({
           </div>
 
           {saveState && (
-            <p className={saveState === 'saved' ? 'ono-my-readiness-note' : 'ono-done-inline-error'} role={saveState === 'saved' ? 'status' : 'alert'} data-testid="ono-my-save-state">{L[saveState]}</p>
+            <p className={`ono-my-save-state ${saveState === 'saved' ? 'ono-my-readiness-note' : 'ono-done-inline-error'}`} role={saveState === 'saved' ? 'status' : 'alert'} data-testid="ono-my-save-state">{L[saveState]}</p>
           )}
           {footerNotice}
 

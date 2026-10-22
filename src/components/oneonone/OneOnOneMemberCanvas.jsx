@@ -1919,6 +1919,7 @@ function TabNav({ tab, onChange, enabled, L }) {
 export default function OneOnOneMemberCanvas({
   tab = 'prep',
   onTabChange,
+  showPhaseTabs = true,
   /**
    * **현재** 매니저 — 화면 단위 폴백이다. 회차별 사람 이름은 회차 페이로드의
    * `managerName`·`managerAvatar` 가 먼저다 (PW-211, `hostOf` 참고).
@@ -2019,7 +2020,7 @@ export default function OneOnOneMemberCanvas({
   return (
     <div className="ono-mem" data-testid="ono-member-canvas">
       {notice}
-      <TabNav tab={tab} onChange={onTabChange} enabled={enabled} L={L} />
+      {showPhaseTabs && <TabNav tab={tab} onChange={onTabChange} enabled={enabled} L={L} />}
 
       {tab === 'prep' && (preparation ?? (session && session.status === 'ready' ? (
         <PrepScreen
