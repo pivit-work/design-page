@@ -4042,7 +4042,7 @@
 }
 /* PW-2131 승인된 항목별 검토 체크. 기존 답변칸·출처 표시·자기평가 버튼은 보존한다. */
 .evm-ai-review-bar {
-  gap: var(--spacing-3xl, 24px);
+  gap: var(--spacing-3xl);
 }
 .evm-ai-review-check {
   min-height: 32px;
