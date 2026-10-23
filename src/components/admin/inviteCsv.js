@@ -69,7 +69,7 @@ export const INVITE_CSV_COLUMNS = [
   { key: 'nameEn', labelKey: 'csvColNameEn', width: 140 },
   { key: 'displayName', labelKey: 'csvColDisplayName', width: 120 },
   { key: 'nicknameEn', labelKey: 'csvColNicknameEn', width: 110 },
-  { key: 'militaryService', labelKey: 'csvColMilitaryService', width: 90 },
+  { key: 'militaryService', labelKey: 'csvColMilitaryService', kind: 'military', width: 90 },
   { key: 'hasDisability', labelKey: 'csvColHasDisability', kind: 'bool', width: 90 },
   { key: 'disabilityInfo', labelKey: 'csvColDisabilityInfo', width: 120 },
   { key: 'isVeteranFamily', labelKey: 'csvColIsVeteranFamily', kind: 'bool', width: 110 },
@@ -373,6 +373,7 @@ export const INVITE_CSV_DEFAULT_LABELS = {
   csvColCurrentWorks: '수행 중인 주요 업무',
   csvColEducation: '학력',
   csvErrHrbpUnknown: '담당 HRBP «{value}» 은(는) 이 회사의 재직 구성원이 아닙니다',
+  csvErrMilitary: '병역은 군필·미필·면제·복무중·해당없음 중 하나로 적어 주세요',
   csvColContractStartDate: '계약 시작일',
   csvColContractEndDate: '계약 종료일',
   csvColOvertimeAllowance: '초과근무 수당',
@@ -692,6 +693,16 @@ export const optionKnown = (value, list) =>
 /** 등록된 표기로 바꾼다 — 대소문자·공백만 다르게 적힌 값을 회사의 표기로 보낸다. */
 const canonicalOption = (value, list) =>
   (Array.isArray(list) && list.find((o) => fold(o) === fold(value))) || normalize(value);
+
+/** 병역 칸이 받는 글자 — 서버 `military-service.ts` 의 표 + 코드 (PW-2163). */
+const MILITARY_BY_TEXT = Object.fromEntries(
+  [
+    ['군필', 'completed'], ['필', 'completed'], ['만기전역', 'completed'], ['미필', 'unfulfilled'], ['면제', 'exempted'],
+    ['복무중', 'serving'], ['복무', 'serving'], ['해당없음', 'not_applicable'], ['비대상', 'not_applicable'],
+    ['completed', 'completed'], ['unfulfilled', 'unfulfilled'], ['exempted', 'exempted'], ['serving', 'serving'],
+    ['not_applicable', 'not_applicable'],
+  ],
+);
 
 /**
  * 예/아니오 칸을 읽는다 (PW-920). 모르는 값은 `null` — **거짓으로 읽지 않는다.**
@@ -1074,6 +1085,10 @@ export function inviteCsvIssues(row, ctx) {
     }
     if (col.kind === 'marital' && normalize(v[col.key]) && parseMaritalCell(v[col.key]) === null) {
       add(col.key, l.csvErrMarital);
+    }
+    // 병역 — 고정 값(PW-2163). 받는 글자는 서버 `parseMilitaryServiceCell` 과 같다.
+    if (col.kind === 'military' && normalize(v[col.key]) && !MILITARY_BY_TEXT[normalize(v[col.key]).replace(/\s+/g, '').toLowerCase()]) {
+      add(col.key, l.csvErrMilitary);
     }
     if (col.kind === 'bool' && normalize(v[col.key]) && parseBoolCell(v[col.key]) === null) {
       add(col.key, fmtCsv(l.csvErrBool, { column: labelOf(col.key), value: v[col.key] }));
