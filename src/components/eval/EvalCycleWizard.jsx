@@ -5934,6 +5934,18 @@ export default function EvalCycleWizard({
       q.descriptionDisplay || 'tooltip',
     ]);
   const templateItemsSignature = (qs) => JSON.stringify((qs ?? []).map(itemSignatureOf));
+  /** 키 순서와 무관한 JSON — 값이 없는 칸(`undefined`·`null`)은 빠진 칸과 같게 본다. */
+  const stableJson = (v) =>
+    JSON.stringify(v, (_k, x) =>
+      x && typeof x === 'object' && !Array.isArray(x)
+        ? Object.fromEntries(
+            Object.keys(x)
+              .filter((k) => x[k] != null)
+              .sort()
+              .map((k) => [k, x[k]]),
+          )
+        : x,
+    );
   /**
    * 칸 `key` 를 `questions` 로 다시 확정할 때 함께 바꿀 수 있는 칸 — 그 칸이 «바꾸기 전» 확정해 둔 템플릿과
    * 항목이 같은 템플릿으로 확정된 다른 칸. 항목이 그대로면(등급만 고쳤으면) 없다.
@@ -5948,10 +5960,12 @@ export default function EvalCycleWizard({
     if (templateItemsSignature(questions) === baseSig) return [];
     const parkedEdited = (r, tpl) => {
       const parked = parkedBufferOf(r.type);
+      if (!parked) return false;
+      // 공개 범위만 고친 편집도 지키려고 항목 전체로 견준다. 초안은 jsonb 로 저장돼 다시 열면 객체 키 순서가
+      // 바뀌므로 키 순서와 무관하게 견준다(`JSON.stringify` 로 견주면 손대지 않은 칸도 «고쳤다»가 된다).
       return (
-        !!parked &&
-        // 공개 범위만 고친 편집도 지키려고 항목 전체로 견준다. 어긋나 보이면 빼는 쪽이 안전하다.
-        bufferFingerprint(parked.questions, parked.grades) !== bufferFingerprint(tpl.questions, tpl.grades)
+        stableJson(parked.questions ?? []) !== stableJson(tpl.questions ?? []) ||
+        stableJson(parked.grades ?? DEFAULT_GRADES) !== stableJson(tpl.grades ?? DEFAULT_GRADES)
       );
     };
     return confirmRows.filter((r) => {
