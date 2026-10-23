@@ -231,7 +231,7 @@
 .admin-kit-chip.is-more { border-color: transparent; padding-left: 4px; padding-right: 4px; color: var(--text-tertiary); }
 
 /* [PW-2043] 구성원 목록 창의 재직 상태 — 매니저 팀 요약 점수 딱지(.mgr-ts-score) 색: 재직=좋음 초록,
-   수습·휴직=주의 노랑, 퇴사=회색. 크기는 옆 겸직 딱지(12px)에 맞췄다(점수 딱지 원래 14px 이면 혼자 커진다).
+   휴직=주의 노랑, 수습=보라(PW-743 디자이너 지정), 퇴사=회색. 크기는 옆 겸직 딱지(12px)에 맞췄다(점수 딱지 원래 14px 이면 혼자 커진다).
    대기(초대만 됨)는 예전처럼 브랜드 초록 — 재직과 같은 색이면 아직 안 들어온 사람이 재직자로 읽힌다. */
 .admin-kit-members-status {
   flex-shrink: 0;
@@ -249,7 +249,10 @@
   background: var(--utility-success-50);
 }
 
-.admin-kit-members-status.is-probation,
+/* [PW-743] 수습 — 디자이너(seongju lee, 2026-10-23 카드 댓글)가 준 색: 배경 utility-purple-50 · 글자 utility-purple-700.
+   시안에 테두리가 없어 테두리 색을 배경과 같게 둔다(두께는 옆 딱지와 같아 크기는 그대로다). */
+.admin-kit-members-status.is-probation { color: var(--utility-purple-700); background: var(--utility-purple-50); border-color: var(--utility-purple-50); }
+
 .admin-kit-members-status.is-on_leave { color: var(--utility-warning-700); background: var(--utility-warning-50); border-color: var(--utility-warning-200); }
 
 .admin-kit-members-status.is-terminated { color: var(--utility-gray-500); background: var(--utility-gray-50); border-color: var(--utility-gray-200); }
