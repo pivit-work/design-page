@@ -12199,6 +12199,10 @@ button.evmh-phase:focus-visible {
 .evc-check-row .dp-check {
   white-space: nowrap;
 }
+/* PW-1540 — 같은 양식 반영 창의 종류 목록. 본문 문장과 떨어지게만 한다(줄 모양은 .evc-check-row 그대로). */
+.evc-tpl-share-items-list {
+  margin-top: var(--spacing-md);
+}
 /* 리마인드 받는 사람 — 당사자와 같은 참조는 꺼진 채 취소선(정책 §5.2.1 · PW-529). */
 .evc-rm-check.is-dup {
   opacity: 0.45;

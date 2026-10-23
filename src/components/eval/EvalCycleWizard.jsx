@@ -2850,6 +2850,11 @@ export default function EvalCycleWizard({
   /** 저장 요청. 저장된 템플릿을 돌려주면 성공, falsy 면 실패로 보고 입력을 유지한다. */
   onSaveTemplate,
   /**
+   * [PW-1540] 라이브러리 템플릿 `(id, 템플릿)` 의 항목을 바꿔 저장한다 — 같은 양식을 쓰는 다른 리뷰 종류에 함께 반영할 때.
+   * 저장된 템플릿을 돌려주면 성공, falsy 면 그 종류는 그대로 둔다. 라이브러리 모드에서 안 넘기면 묻지 않는다.
+   */
+  onUpdateTemplateItems,
+  /**
    * PW-434 — 라이브러리 «조회 상태». `libraryTemplates` 만으로는 「저장된 게 없다」와
    * 「못 불러왔다」가 화면에서 똑같아진다. 둘은 다른 사실이고, 전자로 보이면 설계자가
    * **이미 있는 템플릿을 처음부터 다시 만든다** (policy §5.10.1 「상단 시작 블록 로딩·조회 실패」).
@@ -3538,6 +3543,10 @@ export default function EvalCycleWizard({
   const [gradesSharedTo, setGradesSharedTo] = useState(null);
   /** [PW-1831 J-8] 등급 체계 퍼뜨리기 확인 대기. */
   const [pendingGradeShare, setPendingGradeShare] = useState(false);
+  /** [PW-1540] 같은 양식을 쓰는 다른 칸에 항목 반영 확인 대기 — `{ source, questions, rows, selected, busy }`. */
+  const [pendingItemShare, setPendingItemShare] = useState(null);
+  /** [PW-1540] 항목 반영 결과 — `{ ok: [칸 이름], failed: [칸 이름] }`. 다른 유형으로 옮기거나 다시 저장하면 지운다. */
+  const [itemShareResult, setItemShareResult] = useState(null);
   /** [PW-1831 J-9] 공개 범위 퍼뜨리기 확인 대기 — `{ q, count }`. */
   const [pendingDisclosureShare, setPendingDisclosureShare] = useState(null);
   /** 시작 방식(불러오기·복사·새로 만들기)을 고른 차수. 1차는 처음부터 시작돼 있다. */
@@ -5684,6 +5693,7 @@ export default function EvalCycleWizard({
     setTplType(type);
     setTplRound(k);
     setGradesSharedTo(null);
+    setItemShareResult(null);
   };
   /** 확정 칸 키(`self` · `leader_2` …)로 그 칸을 연다 — 3·6단계에서 2단계로 보낼 때. */
   const openTplKey = (key) => {
@@ -5904,9 +5914,109 @@ export default function EvalCycleWizard({
     setTplGrades((gs) => (gs.length >= MAX_GRADES ? gs : [...gs, { label: '', desc: '', ratio: 0 }]));
   const removeGrade = (i) =>
     setTplGrades((gs) => (gs.length <= MIN_GRADES ? gs : gs.filter((_, idx) => idx !== i)));
+  /* ── [PW-1540 · spec-eval-cycle E2] 같은 양식을 쓰는 다른 리뷰 종류에 항목 수정 반영 ──────────────
+     템플릿은 리뷰 종류마다 따로 저장돼 id 로는 종류끼리 겹치지 않는다. 그래서 «같은 양식» 은 항목 구성으로 본다.
+     항목 id(템플릿마다 다르다)와 결과 공개 범위·동료 공개(종류마다 따로 정한다)는 견주지 않는다. */
+  const itemSignatureOf = (q) =>
+    JSON.stringify([
+      q.itemKind === NOTE_KIND ? NOTE_KIND : 'question',
+      q.section ?? null,
+      String(q.text ?? '').trim(),
+      q.type ?? null,
+      q.description || null,
+      !!q.requiresRationale,
+      q.scaleMax ?? null,
+      q.scaleAnchorMin || null,
+      q.scaleAnchorMax || null,
+      (q.options ?? []).map((o) => String(o.label ?? '').trim()),
+      !!q.allowMultiple,
+      q.descriptionDisplay || 'tooltip',
+      q.growthType ?? null,
+    ]);
+  const templateItemsSignature = (qs) => JSON.stringify((qs ?? []).map(itemSignatureOf));
+  /**
+   * 칸 `key` 를 `questions` 로 다시 확정할 때 함께 바꿀 수 있는 칸 — 그 칸이 «바꾸기 전» 확정해 둔 템플릿과
+   * 항목이 같은 템플릿으로 확정된 다른 칸. 항목이 그대로면(등급만 고쳤으면) 없다.
+   * 저장하지 않은 편집이 있는 칸(`확정 · 수정 중`)은 그 편집을 덮지 않게 뺀다.
+   */
+  const itemShareCandidatesFor = (key, questions) => {
+    if (libraryMode && (!onUpdateTemplateItems || !libraryResolved)) return [];
+    const base = templateById.get(phaseTemplateMap[key]);
+    if (!base) return [];
+    const baseSig = templateItemsSignature(base.questions);
+    if (templateItemsSignature(questions) === baseSig) return [];
+    return confirmRows.filter((r) => {
+      const tpl = r.type !== key && r.confirmed && !r.dirty ? templateById.get(r.id) : null;
+      return !!tpl && templateItemsSignature(tpl.questions) === baseSig;
+    });
+  };
+  /** 새 항목에 그 칸의 옛 항목 중 같은 항목이 있으면 그 칸이 정해 둔 공개 범위·동료 공개를 남긴다. */
+  const keepItemSettings = (questions, prevQuestions) =>
+    questions.map((q) => {
+      const prev = (prevQuestions ?? []).find((p) => itemSignatureOf(p) === itemSignatureOf(q));
+      return prev ? { ...q, disclosure: prev.disclosure ?? null, peerVisible: !!prev.peerVisible } : q;
+    });
+  /** 반영한 칸의 내려 둔 버퍼를 비운다 — 다시 열면 새 확정본이 열린다(`parkedBufferOf` 와 같은 자리). */
+  const dropParkedBuffers = (keys) => {
+    const typeBufs = { ...tplTypeBuffers };
+    const buffers = { ...tplRoundBuffers };
+    for (const key of keys) {
+      const base = phaseBaseId(key);
+      const k = base === 'leader' ? leaderRoundOf(key) : 1;
+      if (base === 'leader' && (k > 1 || tplType === 'leader')) delete buffers[k];
+      else delete typeBufs[base];
+    }
+    setTplTypeBuffers(typeBufs);
+    setTplRoundBuffers(buffers);
+  };
+  const applyItemShare = async () => {
+    const p = pendingItemShare;
+    if (!p || p.busy) return;
+    const targets = p.rows.filter((r) => p.selected.includes(r.type));
+    if (targets.length === 0) return;
+    setPendingItemShare({ ...p, busy: true });
+    const ok = [];
+    const failed = [];
+    for (const r of targets) {
+      const cur = templateById.get(r.id);
+      const next = cur && { ...cur, questions: keepItemSettings(p.questions, cur.questions) };
+      let saved = null;
+      if (next && libraryMode) {
+        saved = await Promise.resolve(onUpdateTemplateItems(cur.id, next)).catch(() => null);
+      } else if (next) {
+        setLocalTemplates((prev) => prev.map((x) => (x.id === cur.id ? next : x)));
+        saved = next;
+      }
+      if (saved) {
+        confirmTemplateFor(r.type, saved, undefined, next.questions, next.grades);
+        ok.push(r);
+      } else {
+        failed.push(r);
+      }
+    }
+    dropParkedBuffers(ok.map((r) => r.type));
+    setPendingItemShare(null);
+    setItemShareResult({ ok: ok.map((r) => r.label), failed: failed.map((r) => r.label) });
+  };
   const saveTemplate = () => {
     const name = tplName.trim();
     if (!name || !tplGradesValid) return;
+    setItemShareResult(null);
+    // [PW-1540] 저장 «전» 확정을 기준으로 고른다 — 저장하면 그 칸의 확정이 새 템플릿으로 바뀐다.
+    const shareRows = itemShareCandidatesFor(tplKey, tplQuestions);
+    const sourceLabel = confirmRowOf(tplKey)?.label ?? '';
+    const offerItemShare = (saved) => () => {
+      const rows = shareRows.filter((r) => r.id !== saved.id);
+      if (rows.length > 0) {
+        setPendingItemShare({
+          source: sourceLabel,
+          questions: tplQuestions,
+          rows,
+          selected: rows.map((r) => r.type),
+          busy: false,
+        });
+      }
+    };
     const tpl = {
       id: `tpl${savedTemplates.length}_${name.length}`,
       name,
@@ -5930,7 +6040,8 @@ export default function EvalCycleWizard({
         // PW-441 §5.10-D — 저장 «성공» 이 곧 이 사이클의 그 유형 확정이다.
         // 서버가 돌려준 id 로 확정해야 한다(로컬 임시 id 로 적으면 가리킬 대상이 없다).
         // [PW-1594] 하향이면 지금 편집 중인 «차수» 칸을 확정한다.
-        confirmTemplateFor(tplKey, saved, undefined, tpl.questions, tpl.grades);
+        // [PW-1540] 확정을 바꾸는 확인 창(A → B)에서 취소하면 함께 반영도 묻지 않는다.
+        confirmTemplateFor(tplKey, saved, offerItemShare(saved), tpl.questions, tpl.grades);
         if (tplType === 'leader') markRoundStarted(tplRound);
       });
       return;
@@ -5938,7 +6049,7 @@ export default function EvalCycleWizard({
     setLocalTemplates((prev) => [tpl, ...prev]);
     setTplName('');
     setTplSaved(true);
-    confirmTemplateFor(tplKey, tpl);
+    confirmTemplateFor(tplKey, tpl, offerItemShare(tpl));
     if (tplType === 'leader') markRoundStarted(tplRound);
   };
   /**
@@ -9474,6 +9585,22 @@ export default function EvalCycleWizard({
                     </button>
                   )
                 )}
+                {/* [PW-1540] 같은 양식을 쓰는 다른 리뷰 종류에 반영한 결과 — 저장 줄과 같은 모양. */}
+                {itemShareResult?.ok.length > 0 && (
+                  <span
+                    className="evc-tpl-save-hint is-ok"
+                    role="status"
+                    data-testid="evc-tpl-share-items-done"
+                  >
+                    <CheckCircleIcon size={13} />{' '}
+                    {fill(L.tplShareItemsDone ?? '', { types: itemShareResult.ok.join(' · ') })}
+                  </span>
+                )}
+                {itemShareResult?.failed.length > 0 && (
+                  <span className="evc-tpl-save-hint" role="alert" data-testid="evc-tpl-share-items-failed">
+                    {fill(L.tplShareItemsFailed ?? '', { types: itemShareResult.failed.join(' · ') })}
+                  </span>
+                )}
               </div>
               {/* PW-434 ⑤ 하단 액션바에는 «미리보기 · 템플릿 저장» 만 남는다. 불러오기 목록은
                   2단계 최상단 「저장된 템플릿에서 시작」 블록으로 올라갔다 — 불러오기는 «시작»
@@ -12159,6 +12286,49 @@ export default function EvalCycleWizard({
           onConfirm={shareGradesToOtherTypes}
           cancelTestId="evc-tpl-share-grades-cancel"
           confirmTestId="evc-tpl-share-grades-ok"
+        />
+      )}
+
+      {/* [PW-1540] 같은 양식을 쓰는 다른 리뷰 종류에도 항목 수정을 반영할지 — 고른 칸만 바꾼다. 취소하면 편집한 칸만 확정된 채다. */}
+      {pendingItemShare && (
+        <AppConfirmModal
+          title={L.tplShareItemsTitle}
+          body={
+            <div data-testid="evc-tpl-share-items-body">
+              {fill(L.tplShareItemsBody ?? '', { type: pendingItemShare.source })}
+              <div className="evc-check-row evc-tpl-share-items-list">
+                {pendingItemShare.rows.map((r) => (
+                  <Checkbox
+                    key={r.type}
+                    checked={pendingItemShare.selected.includes(r.type)}
+                    disabled={pendingItemShare.busy}
+                    onChange={(e) =>
+                      setPendingItemShare((p) => ({
+                        ...p,
+                        selected: e.target.checked
+                          ? [...p.selected, r.type]
+                          : p.selected.filter((x) => x !== r.type),
+                      }))
+                    }
+                    data-testid={`evc-tpl-share-items-row-${r.type}`}
+                  >
+                    {`${r.label} · ${templateNameOf(r)}`}
+                  </Checkbox>
+                ))}
+              </div>
+            </div>
+          }
+          cancelLabel={L.tplShareItemsSkip}
+          confirmLabel={pendingItemShare.busy ? L.tplShareItemsBusy : L.tplShareItemsApply}
+          busy={pendingItemShare.busy}
+          confirmDisabled={pendingItemShare.selected.length === 0}
+          onCancel={() => {
+            if (!pendingItemShare.busy) setPendingItemShare(null);
+          }}
+          onConfirm={applyItemShare}
+          testId="evc-tpl-share-items"
+          cancelTestId="evc-tpl-share-items-cancel"
+          confirmTestId="evc-tpl-share-items-ok"
         />
       )}
 
