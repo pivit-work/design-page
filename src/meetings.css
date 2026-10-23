@@ -583,7 +583,8 @@
 }
 .mtg-record-readonly:focus { outline: none; }
 /* 섹션이 비었을 때 회색 칸 안 안내 (PW-1511) — 빈 입력칸 안내 글씨와 같은 색 */
-.mtg-record-empty { color: var(--text-tertiary); }
+/* 두 클래스로 건다 — 뒤에 읽히는 timeline.css 의 .tl-snippet-textarea 글자색을 이겨야 한다 */
+.mtg-record-readonly.mtg-record-empty { color: var(--text-tertiary); }
 /* 요약 아래 「참고한 자료」 한 줄 (PW-1705) */
 .mtg-record-summary-note {
   margin: 6px 0 0;
