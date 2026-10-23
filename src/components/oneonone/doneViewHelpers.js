@@ -53,3 +53,31 @@ export function doneBannerState(session) {
  * 몫이 아니다.
  */
 export const isDonePending = (state) => state !== 'ready' && state !== 'skipped';
+
+/**
+ * 대표 감정 — 긍정·중립·부정 비율 중 가장 큰 쪽 (기획 arch-1on1-ai-spec NEW-06
+ * `dominant_sentiment` · PW-1486).
+ *
+ * 저장하지 않고 비율에서 바로 낸다 — 그래야 이 판정이 생기기 전 회차에도 같은 값이 선다.
+ * 값이 같으면 **부정 → 중립 → 긍정** 순으로 앞선 쪽이다: 긍정과 부정이 같은 회차를
+ * 「긍정」으로 부르면 매니저가 볼 신호를 딱지가 가린다. 값이 없거나 합이 0 이면 `null`.
+ *
+ * @returns {'positive'|'neutral'|'negative'|null}
+ */
+export function dominantSentiment(tone) {
+  if (!tone) return null;
+  const num = (v) => (Number.isFinite(v) && v > 0 ? v : 0);
+  const order = ['negative', 'neutral', 'positive'];
+  let best = null;
+  for (const key of order) {
+    if (num(tone[key]) > 0 && (best === null || num(tone[key]) > num(tone[best]))) best = key;
+  }
+  return best;
+}
+
+/** 대표 감정 딱지의 뜻(`StatusBadge` tone). 비율 막대와 같은 색 갈래다. */
+export const SENTIMENT_BADGE_TONE = {
+  positive: 'success',
+  neutral: 'neutral',
+  negative: 'danger',
+};

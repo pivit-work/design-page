@@ -6,7 +6,12 @@ import EmptyState from '../shared/EmptyState.jsx';
 import Icon from '../shared/Icon.jsx';
 import Tabs from '../shared/Tabs.jsx';
 import { fill, hostOf, healthOf, heldAtOf } from './sessionHelpers.js';
-import { doneBannerState, isDonePending } from './doneViewHelpers.js';
+import {
+  doneBannerState,
+  dominantSentiment,
+  isDonePending,
+  SENTIMENT_BADGE_TONE,
+} from './doneViewHelpers.js';
 import OneOnOnePastSessionList from './OneOnOnePastSessionList.jsx';
 import { RatingBar } from './StartOneOnOneView.jsx';
 import { isEnterKey } from '../shared/enterKey.js';
@@ -1573,6 +1578,9 @@ function ActionRow({ item, L, deadlineOf, onToggle, muted, icons, baseUrl }) {
 /**
  * 대화 분위기 — 결과 탭과 회의록 풀버전(PW-81)이 같은 규격으로 그린다.
  * 두 화면이 각자 그리면 한쪽만 고쳐지는 일이 생긴다.
+ *
+ * 머리의 딱지는 대표 감정(가장 큰 비율 · PW-1486) — 매니저 결과 화면 「대화 분위기」와 같은
+ * 판정(`dominantSentiment`)이다. 뉘앙스 태그·인사이트는 매니저 전용이라 여기엔 없다.
  */
 export function EmotionTone({ session, L, icons, baseUrl }) {
   const tone = session.emotionTone;
@@ -1582,8 +1590,27 @@ export function EmotionTone({ session, L, icons, baseUrl }) {
     { key: 'neutral', label: L.emotionNeutral, value: tone.neutral, color: 'var(--text-tertiary)' },
     { key: 'negative', label: L.emotionNegative, value: tone.negative, color: 'var(--colors-error-600)' },
   ];
+  const dominant = dominantSentiment(tone);
+  const dominantRow = rows.find((r) => r.key === dominant);
   return (
-    <Section title={L.emotionTone} icon={icons.health} icons={icons} baseUrl={baseUrl}>
+    <Section
+      title={L.emotionTone}
+      icon={icons.health}
+      icons={icons}
+      baseUrl={baseUrl}
+      badge={
+        dominantRow && (
+          <DpStatusBadge
+            tone={SENTIMENT_BADGE_TONE[dominant]}
+            className="ono-done-badge is-pill"
+            data-testid="ono-emotion-dominant"
+            data-dominant={dominant}
+          >
+            {dominantRow.label}
+          </DpStatusBadge>
+        )
+      }
+    >
       {rows.map((row) => {
         const pct = total > 0 ? Math.round((row.value / total) * 100) : 0;
         return (

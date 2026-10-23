@@ -2,7 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
 import { fill, hostOf, heldAtOf } from './sessionHelpers.js';
-import { doneBannerState, isDonePending } from './doneViewHelpers.js';
+import {
+  doneBannerState,
+  dominantSentiment,
+  isDonePending,
+  SENTIMENT_BADGE_TONE,
+} from './doneViewHelpers.js';
 import {
   Section,
   EvidenceToggle,
@@ -168,6 +173,17 @@ const DEFAULT_LABELS = {
   sentimentPositive: '긍정',
   sentimentNeutral: '중립',
   sentimentNegative: '부정',
+  sentimentTags: '뉘앙스 태그',
+
+  /* ── 대화 원문 화자 고치기 · 요약 다시 만들기 (PW-1486 · 1on1-stt-spec §3) ── */
+  speakerToggleHint: '눌러서 매니저/멤버를 바꿉니다',
+  speakerToggleAria: '화자 {speaker} — 눌러서 바꾸기',
+  speakerToggleConflict: '대화 원문이 그 사이 바뀌었습니다. 새로고침 후 다시 시도해 주세요.',
+  speakerToggleFailed: '화자를 바꾸지 못했습니다. 다시 시도해 주세요.',
+  staleSummaryNotice: '대화 원문의 화자를 고쳤습니다. AI 요약에는 아직 반영되지 않았습니다.',
+  staleSummaryRegenerating: '고친 대화 원문으로 AI 요약을 다시 만들고 있습니다.',
+  staleSummaryRegenerate: 'AI 요약 재생성',
+  staleSummaryError: '요약을 다시 만들지 못했습니다.',
 
   /* ── 끝난 뒤 30일 편집 (PW-1046 · 기획 §12 · 커트 2026-09-25) ── */
   agendaTitle: '논의 아젠다',
@@ -471,6 +487,44 @@ function AnalysisBanner({ state, L, icons, baseUrl, retry, summaryRetry, replay,
 }
 
 /**
+ * 「화자를 고친 내용이 요약에 아직 없다」 띠 + [AI 요약 재생성] (기획 1on1-stt-spec §3.2
+ * 「수동 수정 후 "AI 요약 재생성" 버튼 노출」 · PW-1486).
+ *
+ * 분석 배너와 같은 띠 모양(기본 회색)이다 — 요약의 상태를 알리고 그 자리에서 다시 만드는,
+ * 같은 뜻의 자리라서다. `stale` 이 아니면 그리지 않는다. 실패해도 띠와 버튼은 남는다 —
+ * 다시 눌러야 한다는 사실이 남아야 한다.
+ *
+ * `staleSummary`: `{ stale, regenerating, error, onRegenerate() }`
+ */
+function StaleSummaryBanner({ staleSummary, L, icons, baseUrl }) {
+  if (!staleSummary?.stale) return null;
+  return (
+    <div className="ono-done-banner" data-testid="ono-done-stale-summary">
+      {staleSummary.regenerating ? (
+        <Spinner size={20} />
+      ) : (
+        <Icon src={icons.info} size={16} color="currentColor" baseUrl={baseUrl} />
+      )}
+      <span>{staleSummary.regenerating ? L.staleSummaryRegenerating : L.staleSummaryNotice}</span>
+      {staleSummary.onRegenerate && (
+        <button
+          type="button"
+          className="ono-done-banner-btn"
+          onClick={staleSummary.onRegenerate}
+          disabled={staleSummary.regenerating}
+          data-testid="ono-done-stale-summary-regenerate"
+        >
+          {L.staleSummaryRegenerate}
+        </button>
+      )}
+      {staleSummary.error && (
+        <span className="ono-done-banner-error ono-done-stale-error" role="alert">{L.staleSummaryError}</span>
+      )}
+    </div>
+  );
+}
+
+/**
  * 요약 · 결정사항 · 재점검 · 반복 패턴. 아직 요약이 없으면 자리표시만 남긴다.
  *
  * `recordingPlayer` 를 받으면 **카드 안 첫 행**에 그린다 (PW-584) — 원음은 요약의
@@ -737,6 +791,10 @@ function CapabilityCard({ rows, onChange, L, icons, baseUrl }) {
  *
  * 점수는 **긍정 비율**이다. 시안의 「label · detail」 문장은 서버가 만들지 않으므로
  * 그리지 않는다 — 없는 값을 문구로 지어내면 매니저가 그 화면을 못 믿게 된다.
+ *
+ * 머리의 딱지는 대표 감정(가장 큰 비율 · PW-1486)이다. 그 아래 뉘앙스 태그와 AI 인사이트는
+ * `session.sentimentNuance` 가 있을 때만 그린다 — 매니저 전용 값이라 서버가 팀원 응답에서
+ * 지우고, 이 칸이 생기기 전 회차에는 없다.
  */
 function SentimentCard({ session, L, icons, baseUrl }) {
   const tone = session.sentiment ?? session.emotionTone ?? null;
@@ -751,8 +809,29 @@ function SentimentCard({ session, L, icons, baseUrl }) {
     { key: 'neutral', label: L.sentimentNeutral, value: pct(tone.neutral), cls: 'is-mute' },
     { key: 'negative', label: L.sentimentNegative, value: pct(tone.negative), cls: 'is-bad' },
   ];
+  const dominant = dominantSentiment(tone);
+  const dominantRow = rows.find((r) => r.key === dominant);
+  const tags = session.sentimentNuance?.tags ?? [];
+  const insight = session.sentimentNuance?.comment ?? '';
   return (
-    <Section title={L.sentimentTitle} icon={icons.health} icons={icons} baseUrl={baseUrl}>
+    <Section
+      title={L.sentimentTitle}
+      icon={icons.health}
+      icons={icons}
+      baseUrl={baseUrl}
+      badge={
+        dominantRow && (
+          <StatusBadge
+            tone={SENTIMENT_BADGE_TONE[dominant]}
+            className="ono-done-badge is-pill"
+            data-testid="ono-done-sentiment-dominant"
+            data-dominant={dominant}
+          >
+            {dominantRow.label}
+          </StatusBadge>
+        )
+      }
+    >
       <div className="ono-done-sentiment" data-testid="ono-done-sentiment">
         <span className={`ono-done-score ${tint}`}>{score}</span>
         <div className="ono-done-sentiment-bars">
@@ -770,6 +849,20 @@ function SentimentCard({ session, L, icons, baseUrl }) {
           </div>
         </div>
       </div>
+      {tags.length > 0 && (
+        <div className="ono-done-item-head" data-testid="ono-done-sentiment-tags" role="group" aria-label={L.sentimentTags}>
+          {tags.map((tag) => (
+            <StatusBadge key={tag} tone="neutral" className="ono-done-badge">
+              {tag}
+            </StatusBadge>
+          ))}
+        </div>
+      )}
+      {insight && (
+        <div className="ono-done-item ono-done-summary" data-testid="ono-done-sentiment-insight">
+          {insight}
+        </div>
+      )}
     </Section>
   );
 }
@@ -894,8 +987,16 @@ function TranscriptOffsetNotice({ session, L }) {
   );
 }
 
-/** 스크립트 미리보기 — 접기/펼치기. 대화 원문이 없으면 섹션 자체를 그리지 않는다. */
-function TranscriptPreview({ session, L, icons, baseUrl, jumpBinding }) {
+/**
+ * 스크립트 미리보기 — 접기/펼치기. 대화 원문이 없으면 섹션 자체를 그리지 않는다.
+ *
+ * `speakerEdit` 를 받으면 화자 이름이 버튼이 된다 — 누르면 매니저 ↔ 멤버로 바꾼다
+ * (기획 1on1-stt-spec §3.1 · PW-1486). **안 넘기면 지금처럼 글자만 그린다** — 고칠 수 없는
+ * 사람에게 «눌러도 아무 일이 없는» 이름이 생기지 않게. 저장·권한 판정은 소비처와 서버 몫이다.
+ *
+ * `speakerEdit`: `{ pendingIndex, error: 'conflict'|'failed'|null, onToggle(index) }`
+ */
+function TranscriptPreview({ session, L, icons, baseUrl, jumpBinding, speakerEdit }) {
   const lines = session.sttTranscript ?? [];
   if (lines.length === 0) return null;
   return (
@@ -924,9 +1025,25 @@ function TranscriptPreview({ session, L, icons, baseUrl, jumpBinding }) {
               className={`ono-mem-transcript-line${jumpBinding?.hit === anchor ? ' is-hit' : ''}`}
             >
               <span className="ono-mem-transcript-meta">
-                <span className="ono-mem-evidence-speaker">
-                  {line.speaker === 'host' ? L.roleManager : L.roleMember}
-                </span>
+                {speakerEdit?.onToggle ? (
+                  <button
+                    type="button"
+                    className="ono-mem-evidence-speaker ono-done-speaker-toggle"
+                    onClick={() => speakerEdit.onToggle(i)}
+                    disabled={speakerEdit.pendingIndex != null}
+                    title={L.speakerToggleHint}
+                    aria-label={fill(L.speakerToggleAria, {
+                      speaker: line.speaker === 'host' ? L.roleManager : L.roleMember,
+                    })}
+                    data-testid="ono-transcript-speaker-toggle"
+                  >
+                    {line.speaker === 'host' ? L.roleManager : L.roleMember}
+                  </button>
+                ) : (
+                  <span className="ono-mem-evidence-speaker">
+                    {line.speaker === 'host' ? L.roleManager : L.roleMember}
+                  </span>
+                )}
                 {line.timestamp && <span>· {line.timestamp}</span>}
               </span>
               <p className="ono-mem-transcript-text">{line.text}</p>
@@ -934,6 +1051,11 @@ function TranscriptPreview({ session, L, icons, baseUrl, jumpBinding }) {
           );
         })}
       </div>
+      {speakerEdit?.error && (
+        <p className="ono-done-inline-error" role="alert" data-testid="ono-transcript-speaker-error">
+          {speakerEdit.error === 'conflict' ? L.speakerToggleConflict : L.speakerToggleFailed}
+        </p>
+      )}
     </Section>
   );
 }
@@ -1442,6 +1564,16 @@ export default function DoneOneOnOneView({
    * 받는다. `stalled` 면 배너가 「만들지 못했습니다 + 다시 시도」로 바뀐다.
    */
   summary,
+  /**
+   * `{ pendingIndex, error, onToggle(index) }` — 대화 원문 화자 고치기 (PW-1486). 안 넘기면
+   * 화자 이름이 글자로만 남는다.
+   */
+  speakerEdit,
+  /**
+   * `{ stale, regenerating, error, onRegenerate() }` — 화자를 고친 뒤 요약 다시 만들기
+   * (PW-1486 · 기획 1on1-stt-spec §3.2). `stale` 이면 요약 카드 위에 띠가 선다.
+   */
+  staleSummary,
   /** `{ adding, addError, toggleError, onAdd(text), onToggle(id) }` */
   actions,
   /** `{ saving, saved, error, onChange(text) }` */
@@ -1638,6 +1770,8 @@ export default function DoneOneOnOneView({
         manualEntry={manualEntry}
       />
 
+      <StaleSummaryBanner staleSummary={staleSummary} L={L} icons={I} baseUrl={baseUrl} />
+
       <SummaryCard
         session={session}
         L={L}
@@ -1788,6 +1922,7 @@ export default function DoneOneOnOneView({
           containerRef: transcript.containerRef,
           hit: transcript.hit,
         }}
+        speakerEdit={speakerEdit}
       />
       </div>
 
