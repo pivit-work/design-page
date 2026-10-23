@@ -701,6 +701,8 @@ const MILITARY_BY_TEXT = Object.fromEntries(
     ['복무중', 'serving'], ['복무', 'serving'], ['해당없음', 'not_applicable'], ['비대상', 'not_applicable'],
     ['completed', 'completed'], ['unfulfilled', 'unfulfilled'], ['exempted', 'exempted'], ['serving', 'serving'],
     ['not_applicable', 'not_applicable'],
+    // 영어 화면의 선택지 말(Not completed·Not applicable) — 띄어쓰기를 지운 소문자로 찾는다
+    ['notcompleted', 'unfulfilled'], ['notapplicable', 'not_applicable'],
   ],
 );
 
