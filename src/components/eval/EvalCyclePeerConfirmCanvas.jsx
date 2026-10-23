@@ -414,7 +414,7 @@ function PeerGroupCard({
                 {group.confirmed && onRemind && n.status !== 'completed' && (n.reminded || n.remindable) && (
                   <button
                     type="button"
-                    className="evc-btn is-ghost"
+                    className="evc-btn is-ghost is-sm"
                     disabled={!!n.reminded}
                     title={n.reminded ? L.remindSentHint : undefined}
                     onClick={() => onRemind(n.id)}
