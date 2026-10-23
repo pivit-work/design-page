@@ -20,6 +20,7 @@
     "./styles/ai-fail-box.css": "./src/ai-fail-box.css",
     "./styles/recording-limit-notice.css": "./src/recording-limit-notice.css",
     "./styles/shared-text.css": "./src/shared-text.css",
+    "./styles/stack.css": "./src/stack.css",
     "./styles/modal-shell.css": "./src/modal-shell.css",
     "./styles/side-panel-shell.css": "./src/side-panel-shell.css",
     "./styles/timeline.css": "./src/timeline.css",
@@ -75,6 +76,7 @@
     "check:undefined-classes": "node scripts/check-undefined-classes.mjs",
     "check:side-stripes": "node scripts/check-side-stripes.mjs",
     "check:shared-text": "node scripts/check-shared-text.mjs",
+    "check:stacks": "node scripts/check-stacks.mjs",
     "preview": "vite preview",
     "prepare": "lefthook install || true"
   },

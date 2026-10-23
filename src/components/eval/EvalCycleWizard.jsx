@@ -15,6 +15,7 @@ import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import Toast from '../shared/Toast.jsx';
+import Stack from '../shared/Stack.jsx';
 import {
   ArrowLeftGlyph,
   ArrowRightGlyph,
@@ -4681,8 +4682,9 @@ export default function EvalCycleWizard({
           </button>
         </div>
         <div className="evc-rm-panel-body">
-          {/* 0. 언제 · 어느 채널로 — 종전 목록 줄에 있던 입력칸 */}
-          <div className="evc-rm-dsec">
+          {/* 0. 언제 · 어느 채널로 — 종전 목록 줄에 있던 입력칸. 안내·경고 줄이 조건부로 끼어서
+              줄 사이는 Stack 이 띄운다(주황 안내 줄이 입력줄에 붙었다 · 2026-10-23). */}
+          <Stack gap="sm" className="evc-rm-dsec" testId={`evc-rm-dsec-when-${ph.id}-${i}`}>
             <div className="evc-rm-dsec-title">{L.reminderPanelWhen}</div>
             <div className="evc-rm-when-fields">
             <Select
@@ -4763,7 +4765,7 @@ export default function EvalCycleWizard({
                 {L.reminderBeforeStartWarn}
               </div>
             )}
-          </div>
+          </Stack>
         {/* 1. 수신 대상 */}
         <div className="evc-rm-dsec">
           <div className="evc-rm-dsec-title"><UsersIcon size={13} /> {L.reminderTargetsTitle}</div>

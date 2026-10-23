@@ -9,6 +9,7 @@
 @import './tooltip.css';
 @import './loading.css';
 @import './shared-text.css';
+@import './stack.css';
 
 :root {
   --font-family-body: 'Pretendard', sans-serif;

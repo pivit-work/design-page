@@ -26,6 +26,9 @@ export { default as LoadMoreButton } from './shared/LoadMoreButton.jsx';
 // 한 칸씩 오가는 ‹ … › 줄 — 팀 타임라인 「‹ 오늘 ›」·내 리소스 「‹ 달 ›」 (PW-1185)
 export { default as StepNavButton, StepNav } from './shared/StepNav.jsx';
 export { default as Switch } from './shared/Switch.jsx';
+// 줄을 쌓고 줄 사이를 틀이 띄운다 — 줄마다 여백을 적지 않는다. 스타일은 stack.css(index.css 가 끌어온다)
+export { default as Stack } from './shared/Stack.jsx';
+export { STACK_GAPS } from './shared/stackGaps.js';
 export { default as Spinner } from './shared/Spinner.jsx';
 export { default as Skeleton, SkeletonList } from './shared/Skeleton.jsx';
 export { default as LoadingState } from './shared/LoadingState.jsx';
