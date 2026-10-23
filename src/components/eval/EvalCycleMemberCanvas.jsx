@@ -85,6 +85,9 @@ const DEFAULT_LABELS = {
   doneStepsTitle: '다음 단계',
   donePeerReview: '동료 리뷰 작성하기',
   doneMyEval: '내 평가 현황으로',
+  // [PW-1520] §6.2 동료 리뷰 완료 — 남은 동료 리뷰.
+  doneRemainingTitle: '남은 동료 리뷰 {{count}}건',
+  doneAllPeerDone: '모든 동료 리뷰 완료',
   // §4.3 AI 초안 카드.
   aiCardTitle: 'AI 초안 생성 ({{period}})',
   aiCardNoPeriod: '기간 미설정',
@@ -531,6 +534,11 @@ export default function EvalCycleMemberCanvas({
   onGoPeerReview = null,
   // [PW-1464] 완료 화면의 「내 평가 현황으로」(§6.1) — 갈 곳이 있을 때만 넘긴다.
   onGoMyEval = null,
+  // [PW-1520] §6.2 동료 리뷰 완료 화면의 남은 동료 리뷰 — [{ id, name }]. null 이면 칸이 없다(셀프·상향).
+  // 빈 배열이면 「모든 동료 리뷰 완료」.
+  doneRemaining = null,
+  // [PW-1520] 남은 동료를 누르면 `(id)` 로 부른다 — 그 사람 리뷰 작성 화면으로.
+  onOpenRemaining = null,
   // [PW-1465] 상향 리뷰 §5U.4 — 초안을 칸에 바로 넣지 않고 칸 아래 노란 블록에 둔다.
   // [사용]을 눌러야 칸에 들어가고, [접기]는 버린다. 적용 전에는 본문을 바꾸지 않는다.
   draftNeedsApply = false,
@@ -1643,7 +1651,7 @@ export default function EvalCycleMemberCanvas({
         </div>
       )}
 
-      {submitted && !(selfReview && doneSteps) && (
+      {submitted && !doneSteps && (
         <div className="evc-list">
           <p className="evx-notice is-success" data-testid="evm-submitted">
             <CheckCircleIcon size={16} />
@@ -1652,8 +1660,9 @@ export default function EvalCycleMemberCanvas({
         </div>
       )}
 
-      {/* [PW-1464] §4.9 · §6.1 셀프 리뷰 제출 완료 화면 — 제출한 답은 아래에 읽기 전용으로 남는다. */}
-      {submitted && selfReview && doneSteps && (() => {
+      {/* [PW-1464] §4.9 · §6.1 셀프 리뷰 제출 완료 화면 — 제출한 답은 아래에 읽기 전용으로 남는다.
+          [PW-1520] §6 — 동료·상향 리뷰도 같은 완료 화면(제목·본문은 화면마다 labels 로). */}
+      {submitted && doneSteps && (() => {
         const next = doneSteps.find((st) => !st.done);
         return (
           <div className="evc-list">
@@ -1679,6 +1688,34 @@ export default function EvalCycleMemberCanvas({
                       <span>{st.label}</span>
                     </div>
                   ))}
+                </div>
+              )}
+              {doneRemaining && (
+                <div className="evm-done-steps" data-testid="evm-done-remaining">
+                  {doneRemaining.length > 0 ? (
+                    <>
+                      <div className="evm-done-steps-title">
+                        {fill(L.doneRemainingTitle, { count: doneRemaining.length })}
+                      </div>
+                      {doneRemaining.map((r) => (
+                        <div className="evm-done-step" key={r.id}>
+                          <Button
+                            className="evc-link-btn"
+                            onClick={() => onOpenRemaining?.(r.id)}
+                            data-testid={`evm-done-remaining-${r.id}`}
+                          >
+                            {r.name}
+                            <ArrowRightIcon size={12} />
+                          </Button>
+                        </div>
+                      ))}
+                    </>
+                  ) : (
+                    <div className="evm-done-step is-done" data-testid="evm-done-all-peer">
+                      <span className="evm-done-step-mark"><CheckCircleIcon size={14} /></span>
+                      <span>{L.doneAllPeerDone}</span>
+                    </div>
+                  )}
                 </div>
               )}
               {(onGoPeerReview || onGoMyEval) && (

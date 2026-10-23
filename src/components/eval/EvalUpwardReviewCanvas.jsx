@@ -26,6 +26,7 @@ import LoadingState from '../shared/LoadingState.jsx';
  * - labels: 사람이 읽는 문구 전부(i18n 은 소비자가 채운다)
  * - onRetry, onSave(items), onSubmit(items), onAiDraft(items), onConfirmLeaderChange()
  * - onSaveError(): [임시저장] 단추가 실패했을 때(§5U.5 토스트는 소비자가 띄운다)
+ * - doneSteps: [PW-1520] 제출 완료 화면의 「다음 단계」(제목·본문은 labels.form 의 doneTitle·doneBody)
  * - onSaveSuccess(): [임시저장] 단추로 저장이 끝났을 때(PW-1966 · 토스트는 소비자가 띄운다)
  * - aiDraftDisabledReason: AI 초안 근거가 없을 때의 이유(있으면 버튼이 꺼진다)
  */
@@ -166,6 +167,8 @@ export default function EvalUpwardReviewCanvas({
   onSaveError,
   onSaveSuccess,
   aiDraftDisabledReason = null,
+  // [PW-1520] §6 제출 완료 화면의 「다음 단계」 — [{ key, label, done }]. 없으면 «제출 완료» 띠만.
+  doneSteps = null,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
 
@@ -302,6 +305,7 @@ export default function EvalUpwardReviewCanvas({
       onSaveError={onSaveError}
       onSaveSuccess={onSaveSuccess}
       aiDraftDisabledReason={aiDraftDisabledReason}
+      doneSteps={data.submitted ? doneSteps : null}
       // 항목별 공개 안내는 끈다 — 그 줄은 옛 항목 필드(visibleToRoles)를 읽어, 값이 비면
       // 「피평가자 본인에게도 공개됩니다」라고 적는다. 상향의 공개는 위 익명 안내가 정본이다
       // (평가지 공개 설정 = 인사담당자만 · 최소 인원). 두 문장이 서로 반대로 말하면 안 된다.
