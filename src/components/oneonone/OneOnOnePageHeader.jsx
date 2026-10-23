@@ -32,7 +32,8 @@ import Icon from '../shared/Icon.jsx';
  *
  * `search` = { value, onChange(text), placeholder, ariaLabel } — 필터 줄 맨 앞의 검색칸
  *   (Figma 17749:20407 · 270×40 · alpha-black-3 바탕, 글자가 들어오면 흰 바탕). 거르는 건 호스트가
- *   한다 — 이 칸은 글자만 넘긴다. 안 넘기면 검색칸이 없다.
+ *   한다 — 이 칸은 글자만 넘긴다. 안 넘기면 검색칸이 없다. 글자가 들어 있는 동안은 「담당 팀원」 범위
+ *   드롭다운을 감춘다(검색은 범위와 무관하게 찾는다는 뜻) — 다 지우면 다시 보인다.
  *
  * `scopeFilter` = { value, options: [{value,label}], onChange, ariaLabel }
  * `scopeNotice` = 넓혀 본 상태를 알리는 글자(예: 「담당 밖까지 보는 중」). 넘기면 필터 옆에
@@ -123,7 +124,7 @@ export default function OneOnOnePageHeader({
             />
           </label>
         )}
-        {scopeFilter && (
+        {scopeFilter && !search?.value && (
           <span className={`ono-filter${scopeNotice ? ' is-widened' : ''}`}>
             <CustomSelect
               value={scopeFilter.value}

@@ -626,14 +626,15 @@
 .ono-add-btn:hover { filter: brightness(0.96); }
 
 /* ── Briefing bar ── */
+/* 시안(17749:20368 · 2026-10-23 갱신) — 밑줄·아래 여백이 없어지고 제목 줄 24 한 줄이 됐다. 블록은
+   아래 정렬이라 필터 줄 끝(212)에서 제목 줄(240)까지 28 을 비우고(필터 줄의 아래 여백과 겹쳐 하나만
+   남는다), 제목 ↔ 한 줄 메시지 2, 메시지 ↔ 다음 섹션 4. */
 .ono-briefing-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 0 12px 0;
-  border-bottom: 1px solid var(--colors-border-borderSecondary);
-  /* 시안(17749:20368) 바 → 한 줄 메시지 6 — 종전 13 (2026-10-23) */
-  margin-bottom: var(--spacing-sm);
+  padding: 0;
+  margin: 28px 0 var(--spacing-xxs);
 }
 
 .ono-briefing-title {
@@ -675,8 +676,8 @@
   font-size: var(--font-size-text-sm);
   line-height: var(--line-height-text-sm);
   color: var(--utility-purple-500);
-  /* 시안 실측: 메시지 끝(279) → 다음 섹션(290) */
-  margin: 0 0 11px;
+  /* 시안 실측: 메시지 끝(286) → 다음 섹션(290) */
+  margin: 0 0 var(--spacing-xs);
   padding: 0;
 }
 
