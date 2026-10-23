@@ -4743,9 +4743,9 @@ export default function EvalCycleWizard({
               const from = rmEdit.from ?? rm.channels;
               if (!sameChannelSet(from, rm.channels) && L.reminderChannelInheritChanged) {
                 return (
-                  <div className="evc-rm-tgt-note" data-testid={`evc-rm-ch-inherit-changed-${ph.id}-${i}`}>
+                  <p className="evx-notice is-warn" role="status" data-testid={`evc-rm-ch-inherit-changed-${ph.id}-${i}`}>
                     {fill(L.reminderChannelInheritChanged, { from: names(from), to: names(rm.channels) })}
-                  </div>
+                  </p>
                 );
               }
               return L.reminderChannelInheritNote && !reminderCompanyDefaultsFailed ? (
@@ -8412,9 +8412,9 @@ export default function EvalCycleWizard({
               </div>
               {/* [PW-2135 J-2b · 정책 §5.1-B] 미래 기간은 막지 않고 알린다 — 값에 따라 한 줄만. */}
               {periodFutureNote && (
-                <div className="evc-wiz-soft-warn" data-testid="evc-wiz-period-future">
+                <p className="evx-notice is-warn" role="status" data-testid="evc-wiz-period-future">
                   {periodFutureNote}
-                </div>
+                </p>
               )}
               {/* [PW-1591 J-1 · 정책 §5.1-B] 이 기간이 무엇을 자르는지 — 값 유무와 무관하게 늘 보인다. */}
               {L.periodUsageNote && (
@@ -9584,9 +9584,9 @@ export default function EvalCycleWizard({
               {/* [PW-2135 J-2c · 정책 §5.1-B] 첫 단계가 대상 기간이 끝나기 전에 시작한다. 막지 않는다.
                   위자드에만 — 오픈한 사이클은 대상 기간을 바꿀 수 없다. */}
               {firstPhaseEarlyNote && (
-                <div className="evc-wiz-soft-warn" data-testid="evc-sched-before-period-end">
+                <p className="evx-notice is-warn" role="status" data-testid="evc-sched-before-period-end">
                   {firstPhaseEarlyNote}
-                </div>
+                </p>
               )}
               {d0Picker && (
                 <DatePicker
