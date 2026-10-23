@@ -25,6 +25,7 @@ import { CloseIcon, LockIcon, PlusIcon } from './squadIcons.jsx';
 import { useOrgLabels, rich } from './orgchart-labels.jsx';
 import { SQUAD_MODAL_Z } from './squad-constants.js';
 import { projectStatusText, projectStatusTone } from './project-constants.js';
+import { isEnterKey } from '../shared/enterKey.js';
 
 const NAME_MAX = 50;
 
@@ -135,7 +136,7 @@ function ProjectPicker({
             className={`sq-proj-create-input${form.error ? ' is-invalid' : ''}`}
             data-testid={`squad-project-create-name-${squad.id}`}
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value, error: '' }))}
-            onKeyDown={(e) => { if (e.key === 'Enter') submitCreate(); }}
+            onKeyDown={(e) => { if (isEnterKey(e)) submitCreate(); }}
             placeholder={L('squad.project.createName')}
           />
           <input
@@ -144,7 +145,7 @@ function ProjectPicker({
             className="sq-proj-create-input"
             data-testid={`squad-project-create-desc-${squad.id}`}
             onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-            onKeyDown={(e) => { if (e.key === 'Enter') submitCreate(); }}
+            onKeyDown={(e) => { if (isEnterKey(e)) submitCreate(); }}
             placeholder={L('squad.project.createDesc')}
           />
           {form.error && (

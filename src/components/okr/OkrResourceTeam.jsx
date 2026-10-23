@@ -3,6 +3,7 @@ import Icon from '../shared/Icon.jsx';
 import { RsStatCard, RsStatusBadge, RsStackBar, RsBullets, RsCommentThread } from './OkrResourcePieces.jsx';
 import rowKey from './rowKey.js';
 import { OKR_RESOURCE_DEFAULT_LABELS } from './okrResourceLabels.js';
+import { isEnterKey } from '../shared/enterKey.js';
 
 /**
  * OkrResourceTeam — 내 리소스 '팀 현황' 뷰 (직속 팀원).
@@ -105,7 +106,7 @@ export default function OkrResourceTeam({ data, icons, baseUrl = '', onComment, 
                   aria-label={T.commentAria(member.name)}
                   value={drafts[rk] ?? ''}
                   onChange={(e) => setDrafts((p) => ({ ...p, [rk]: e.target.value }))}
-                  onKeyDown={(e) => { if (e.key === 'Enter') submit(member, i); }}
+                  onKeyDown={(e) => { if (isEnterKey(e)) submit(member, i); }}
                 />
                 <button type="button" className="rsx-gray-btn is-md" onClick={() => submit(member, i)}>{T.commentSubmit}</button>
               </div>

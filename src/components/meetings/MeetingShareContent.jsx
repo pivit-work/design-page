@@ -1,6 +1,7 @@
 import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
+import { isEnterKey } from '../shared/enterKey.js';
 
 /**
  * MeetingShareContent — 회의록 공유 화면 (회의록 → 공유하기 클릭 시).
@@ -183,7 +184,7 @@ const MeetingShareContent = forwardRef(function MeetingShareContent(
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter') {
+    if (isEnterKey(e)) {
       e.preventDefault();
       if (query.trim()) resolveEnter(query.trim());
       return;

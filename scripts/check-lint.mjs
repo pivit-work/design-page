@@ -13,6 +13,7 @@
  *   2. 표본 검사 — eslint-rules/fixtures/jsx-no-undef.pw906.jsx (9/22 에 깨졌던 모양) 를
  *      넣어 react/jsx-no-undef 가 DpStatusBadge 를 잡는지 본다. 규칙이 빠지거나 꺼지면 실패
  *   3. 표본 검사 — eslint-rules/fixtures/no-native-select.pw1954.jsx 의 <select> 를 잡는지 본다 (PW-1954)
+ *   4. 표본 검사 — eslint-rules/fixtures/no-raw-enter-key.pw2157.jsx 의 맨 Enter 비교를 잡는지 본다 (PW-2157)
  *
  * 실행: npm run check:lint  (lefthook pre-push · publish CI 에서 자동 실행)
  */
@@ -65,6 +66,21 @@ if (selectHits.length === 1 && /select/.test(selectHits[0].message)) {
   console.error(`✗ 표본 검사: ${SELECT_FIXTURE} 에서 no-restricted-syntax 오류 1건(<select>)을 기대했는데 받은 것:`);
   for (const m of selectProbe.messages) console.error(`  ${m.line}:${m.column} ${m.ruleId ?? '(parse)'} ${m.message}`);
   console.error('  → eslint.config.js 에서 <select> 금지 규칙이 빠졌거나 error 가 아니다.');
+  failed = true;
+}
+
+// 표본 3 — 맨 Enter 비교 금지(PW-2157). 한글 조합을 확정하는 Enter 를 받지 않게 isEnterKey 로만 묻는다.
+const ENTER_FIXTURE = 'eslint-rules/fixtures/no-raw-enter-key.pw2157.jsx';
+const [enterProbe] = await eslint.lintText(readFileSync(resolve(root, ENTER_FIXTURE), 'utf8'), {
+  filePath: resolve(root, 'src/components/__probe__/NoRawEnterKey.jsx'),
+});
+const enterHits = enterProbe.messages.filter((m) => m.ruleId === 'pivit-key/no-raw-enter-key' && m.severity === 2);
+if (enterHits.length === 1) {
+  console.log('✓ 표본 검사: 맨 Enter 비교(e.key === \'Enter\')를 오류로 잡는다');
+} else {
+  console.error(`✗ 표본 검사: ${ENTER_FIXTURE} 에서 pivit-key/no-raw-enter-key 오류 1건을 기대했는데 받은 것:`);
+  for (const m of enterProbe.messages) console.error(`  ${m.line}:${m.column} ${m.ruleId ?? '(parse)'} ${m.message}`);
+  console.error('  → eslint.config.js 에서 no-raw-enter-key 가 빠졌거나 error 가 아니다.');
   failed = true;
 }
 

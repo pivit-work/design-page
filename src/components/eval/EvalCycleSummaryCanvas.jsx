@@ -20,6 +20,7 @@ import { scaleMaxOf, answerScoreText, checkedAnswerText, answerLineText } from '
 import { leaderGradeMarks } from './evalLeaderLive.js';
 import { pickParticle } from '../shared/koreanParticle.js';
 import Select from '../shared/Select.jsx';
+import { isEnterKey } from '../shared/enterKey.js';
 
 /**
  * 탭이 열리는 사이클 단계 (요약 정책 §3). 통합 요약·캘리브레이션 워크스페이스는 캘리브레이션부터,
@@ -2995,7 +2996,7 @@ export default function EvalCycleSummaryCanvas({
                 role={canRemind ? 'button' : undefined}
                 tabIndex={canRemind ? 0 : undefined}
                 onClick={canRemind ? openRemind : undefined}
-                onKeyDown={canRemind ? (e) => { if (e.key === 'Enter' || e.key === ' ') openRemind(); } : undefined}
+                onKeyDown={canRemind ? (e) => { if (isEnterKey(e) || e.key === ' ') openRemind(); } : undefined}
               >
                 <span className="evs-kpi-value">
                   {submitPct}%{canRemind && <span className="evs-kpi-chevron"> ›</span>}

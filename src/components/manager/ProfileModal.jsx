@@ -7,6 +7,7 @@ import SegmentedControl from '../shared/SegmentedControl.jsx';
 import assetUrl from '../shared/assetUrl.js';
 import { CloseGlyph } from '../shared/lineIcons.jsx';
 import Button from '../shared/Button.jsx';
+import { isEnterKey } from '../shared/enterKey.js';
 
 // member 가 자기 splineImage / avatar 를 갖고 있지 않을 때만 사용되는 데모 폴백.
 const FALLBACK_IMAGE = 'https://pivit-work.github.io/design-page/man.png';
@@ -468,7 +469,7 @@ function ActionItemsTab({ data, onMore }) {
                     tabIndex: 0,
                     style: { cursor: 'pointer' },
                     onClick: item.onOpen,
-                    onKeyDown: (e) => { if (e.key === 'Enter') item.onOpen(); },
+                    onKeyDown: (e) => { if (isEnterKey(e)) item.onOpen(); },
                   }
                 : {})}
             >

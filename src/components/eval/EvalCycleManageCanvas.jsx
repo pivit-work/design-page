@@ -4,6 +4,7 @@ import StatusBadge from '../shared/StatusBadge.jsx';
 import LoadingState from '../shared/LoadingState.jsx';
 import TextInput from '../shared/TextInput.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
+import { isEnterKey } from '../shared/enterKey.js';
 
 /**
  * EvalCycleManageCanvas — 오픈된 사이클의 «무엇을·어떻게» 를 고치는 화면의 셸
@@ -125,7 +126,7 @@ function CycleTitle({ name, onRename, L }) {
         }}
         onBlur={() => void commit()}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') {
+          if (isEnterKey(e)) {
             e.preventDefault();
             void commit();
           } else if (e.key === 'Escape') {

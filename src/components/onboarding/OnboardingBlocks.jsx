@@ -1,6 +1,7 @@
 import { useId } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
+import { isEnterKey } from '../shared/enterKey.js';
 /**
  * 온보딩 단계 화면을 이루는 덩어리 — 시안 `8. onboarding/onboarding-app.jsx` 의 단계 제목,
  * 안내 상자, 승인 대기 배지, RequestSummary, 워크스페이스 주소 줄, CSV 올리는 곳,
@@ -358,7 +359,7 @@ export function OnbIntegrationCard({ logo, name, description, status = 'availabl
       data-testid={testId}
       onClick={activate}
       onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
+        if (isEnterKey(e) || e.key === ' ') {
           e.preventDefault();
           activate();
         }

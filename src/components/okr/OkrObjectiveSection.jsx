@@ -6,6 +6,7 @@ import OkrProgressBar from './OkrProgressBar.jsx';
 import OkrUnalignedBadge from './OkrUnalignedBadge.jsx';
 import rowKey from './rowKey.js';
 import scrollToFocus from '../shared/scrollToFocus.js';
+import { isEnterKey } from '../shared/enterKey.js';
 
 /**
  * OkrObjectiveSection — 개인 OKR Objective 행 + 펼침 콘텐츠.
@@ -60,7 +61,7 @@ function InitiativePill({ initiative, canEdit, onToggle }) {
         tabIndex={0}
         onClick={(e) => { e.stopPropagation(); onToggle(); }}
         onKeyDown={(e) => {
-          if (e.key !== 'Enter' && e.key !== ' ') return;
+          if (!isEnterKey(e) && e.key !== ' ') return;
           e.preventDefault();
           e.stopPropagation();
           onToggle();

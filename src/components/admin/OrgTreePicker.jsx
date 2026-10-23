@@ -4,6 +4,7 @@ import ModalShell from '../shared/ModalShell.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
 import { ChevronDownGlyph } from '../shared/lineIcons.jsx';
+import { isEnterKey } from '../shared/enterKey.js';
 
 /**
  * OrgTreePicker — 소속(조직)을 계층 트리에서 고르는 팝업.
@@ -334,7 +335,7 @@ export default function OrgTreePicker({
       if (cur && collapsed[cur]) { e.preventDefault(); toggleCollapse(cur); }
     } else if (e.key === 'ArrowLeft') {
       if (cur && !collapsed[cur]) { e.preventDefault(); toggleCollapse(cur); }
-    } else if (e.key === 'Enter') {
+    } else if (isEnterKey(e)) {
       e.preventDefault();
       // multi 에서 Enter 는 체크 토글이다 — 단일 모드의 "이 하나로 정한다" 와 다르다.
       if (multi) {

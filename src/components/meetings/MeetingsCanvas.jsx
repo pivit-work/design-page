@@ -4,6 +4,7 @@ import Tooltip from '../shared/Tooltip.jsx';
 import Icon from '../shared/Icon.jsx';
 import LoadMoreButton from '../shared/LoadMoreButton.jsx';
 import MeetingInProgressModal from './MeetingInProgressModal.jsx';
+import { isEnterKey } from '../shared/enterKey.js';
 
 /**
  * MeetingsCanvas — 회의록 메뉴 페이지.
@@ -25,7 +26,7 @@ function MeetingRow({ meeting, onStart, onRowClick, statusLabels, isStarting, st
   const handleRowClick = clickable ? () => onRowClick(meeting) : undefined;
   const handleRowKeyDown = clickable
     ? (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
+        if (isEnterKey(e) || e.key === ' ') {
           e.preventDefault();
           onRowClick(meeting);
         }

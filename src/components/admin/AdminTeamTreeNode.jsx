@@ -4,6 +4,7 @@ import {
   TeamIcon, ChevronRightIcon, ChevronDownIcon, MoreVerticalIcon,
   PencilIcon, PlusIcon, FolderInputIcon, Trash2Icon, UserIcon,
 } from './teamIcons.jsx';
+import { isEnterKey } from '../shared/enterKey.js';
 
 /**
  * TeamInsertZone — 형제 노드 사이의 얇은 드롭 존. 같은 부모(같은 depth)의 형제를
@@ -164,7 +165,7 @@ export default function AdminTeamTreeNode({
         onMouseLeave={() => { setHov(false); setShowMenu(false); }}
         role="button"
         tabIndex={0}
-        onKeyDown={(e) => { if (e.key === 'Enter') onSelect(node.id); }}
+        onKeyDown={(e) => { if (isEnterKey(e)) onSelect(node.id); }}
         className={rowClass}
         style={{ paddingLeft: 10 + depth * 20 }}
       >
@@ -241,7 +242,7 @@ export default function AdminTeamTreeNode({
             value={inlineCreateValue}
             onChange={(e) => onInlineCreateChange?.(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') onInlineCreateConfirm?.();
+              if (isEnterKey(e)) onInlineCreateConfirm?.();
               if (e.key === 'Escape') onInlineCreateCancel?.();
             }}
             onBlur={onInlineCreateCancel}

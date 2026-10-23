@@ -12,6 +12,7 @@ import AiMark from '../shared/AiMark.jsx';
 import Chip from '../shared/Chip.jsx';
 import Switch from '../shared/Switch.jsx';
 import OkrContextAnalysisResult from './OkrContextAnalysisResult.jsx';
+import { isEnterKey } from '../shared/enterKey.js';
 
 /**
  * OkrContextSetupCanvas — OKR 컨텍스트 설정(관리자 전용) 지식 소스 단일 페이지.
@@ -381,7 +382,7 @@ function FileDropzone({ labels, file, onPick }) {
         aria-label={L.typeFile}
         onClick={openPicker}
         onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
+          if (isEnterKey(e) || e.key === ' ') {
             e.preventDefault();
             openPicker();
           }

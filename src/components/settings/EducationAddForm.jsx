@@ -15,6 +15,7 @@ import {
   toRange,
   ymNum,
 } from './educationForm.js';
+import { isEnterKey } from '../shared/enterKey.js';
 
 /**
  * 「내 설정 › 조직 정보」 학력 추가 폼 (PW-1302 · pivit-specs my-settings-spec §4-C-1 · 시안
@@ -86,7 +87,7 @@ function RefSearchInput({ value, onChange, onSearch, placeholder, renderSub, cus
     if (e.key === 'ArrowDown') { e.preventDefault(); setActive((a) => Math.min(a + 1, rows.length - 1)); }
     else if (e.key === 'ArrowUp') { e.preventDefault(); setActive((a) => Math.max(a - 1, 0)); }
     // 고른 행이 없으면 입력값 그대로(직접 입력)로 닫는다
-    else if (e.key === 'Enter') { e.preventDefault(); choose(rows[active] ?? { kind: 'custom' }); }
+    else if (isEnterKey(e)) { e.preventDefault(); choose(rows[active] ?? { kind: 'custom' }); }
     else if (e.key === 'Escape') { e.stopPropagation(); setOpen(false); }
   }
 
@@ -281,7 +282,7 @@ function MonthWheelField({ value, onChange, placeholder, disabled, disabledText,
           aria-label={fill(F.wheelDialog, { field: placeholder })}
           data-testid={`${testId}-wheel`}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') { e.preventDefault(); confirm(); }
+            if (isEnterKey(e)) { e.preventDefault(); confirm(); }
           }}
         >
           <div className="msc-edu-wheel-cols">

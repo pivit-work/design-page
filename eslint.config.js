@@ -5,6 +5,7 @@ import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 import eslintComments from '@eslint-community/eslint-plugin-eslint-comments'
 import noLiteralFontFamily from './eslint-rules/no-literal-font-family.js'
+import noRawEnterKey from './eslint-rules/no-raw-enter-key.js'
 
 export default [
   // eslint-rules/fixtures/ 는 규칙이 무는지 재는 일부러 틀린 표본이다 (scripts/check-lint.mjs).
@@ -47,6 +48,16 @@ export default [
     plugins: { pivit: { rules: { 'no-literal-font-family': noLiteralFontFamily } } },
     rules: {
       'pivit/no-literal-font-family': 'error',
+    },
+  },
+  {
+    // Enter 는 공용 isEnterKey(e) 로만 묻는다 — 맨 `e.key === 'Enter'` 는 한글 조합을 확정하는 Enter 까지
+    // 받아 마지막 글자가 남거나 두 번 들어간다 (PW-2157). 표본: eslint-rules/fixtures/no-raw-enter-key.pw2157.jsx
+    files: ['src/**/*.{js,jsx}'],
+    ignores: ['src/components/shared/enterKey.js', 'src/**/*.test.{js,jsx}'],
+    plugins: { 'pivit-key': { rules: { 'no-raw-enter-key': noRawEnterKey } } },
+    rules: {
+      'pivit-key/no-raw-enter-key': 'error',
     },
   },
   {

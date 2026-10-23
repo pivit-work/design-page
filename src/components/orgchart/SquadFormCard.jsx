@@ -15,6 +15,7 @@ import Select from '../shared/Select.jsx';
 import DateInput from '../shared/DateInput.jsx';
 import { LeadStarIcon, PlusIcon } from './squadIcons.jsx';
 import { useOrgLabels, rich } from './orgchart-labels.jsx';
+import { isEnterKey } from '../shared/enterKey.js';
 
 export default function SquadFormCard({
   form, setForm, errors, palette, onSubmit, onCancel, leadCandidates, submitting,
@@ -57,7 +58,7 @@ export default function SquadFormCard({
             aria-label={L('squad.form.name')}
             className={`sq-field${errors.name ? ' is-invalid' : ''}`}
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-            onKeyDown={(e) => { if (e.key === 'Enter') onSubmit(); if (e.key === 'Escape') onCancel(); }}
+            onKeyDown={(e) => { if (isEnterKey(e)) onSubmit(); if (e.key === 'Escape') onCancel(); }}
             placeholder={L('squad.form.namePlaceholder')}
           />
           {errors.name && <div className="sq-field-error">{errors.name}</div>}

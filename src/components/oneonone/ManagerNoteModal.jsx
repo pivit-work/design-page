@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import ModalShell from '../shared/ModalShell.jsx';
 import Icon from '../shared/Icon.jsx';
+import { isEnterKey } from '../shared/enterKey.js';
 
 const DEFAULT_LABELS = {
   title: '매니저 노트',
@@ -249,7 +250,7 @@ export default function ManagerNoteModal({
                   disabled={addDisabled}
                   onChange={(e) => setDraft(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
+                    if (isEnterKey(e)) {
                       e.preventDefault();
                       addMessage();
                     }

@@ -7,6 +7,7 @@ import { RatingBar } from './StartOneOnOneView.jsx';
 import MemberAiButton from './MemberAiButton.jsx';
 import MemberField from './MemberField.jsx';
 import MemberReportCard from './MemberReportCard.jsx';
+import { isEnterKey } from '../shared/enterKey.js';
 
 /**
  * 「내 원온원」 — 내가 1on1 **대상자(guest · 팀원)** 일 때 보는 준비 화면.
@@ -244,7 +245,7 @@ export default function MemberOneOnOneView({
     setActionInput('');
   };
   const onEnter = (fn) => (e) => {
-    if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+    if (isEnterKey(e)) {
       e.preventDefault();
       fn();
     }

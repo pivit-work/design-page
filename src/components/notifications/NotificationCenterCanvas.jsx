@@ -1,6 +1,7 @@
 import Icon from '../shared/Icon.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import LoadMoreButton from '../shared/LoadMoreButton.jsx';
+import { isEnterKey } from '../shared/enterKey.js';
 
 // 분류 아이콘 — design-page 아이콘 모음(public/icons-solid). 색은 감싸는 요소의 color 로 준다.
 const CATEGORY_ICONS = {
@@ -140,7 +141,7 @@ export default function NotificationCenterCanvas({
                   onClick={() => onItemClick?.(n.id)}
                   onKeyDown={(e) => {
                     if (e.target !== e.currentTarget) return;
-                    if (e.key === 'Enter' || e.key === ' ') {
+                    if (isEnterKey(e) || e.key === ' ') {
                       e.preventDefault();
                       onItemClick?.(n.id);
                     }

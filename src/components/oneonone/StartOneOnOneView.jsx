@@ -6,6 +6,7 @@ import Icon from '../shared/Icon.jsx';
 import { CloseGlyph } from '../shared/lineIcons.jsx';
 import OneOnOneRecordingWidget from './OneOnOneRecordingWidget.jsx';
 import LiveGuideCard from './LiveGuideCard.jsx';
+import { isEnterKey } from '../shared/enterKey.js';
 
 /**
  * "1on1 진행" 준비 뷰 — Figma 16817:39186(준비1) / 16972:15514(준비2).
@@ -202,7 +203,7 @@ export function RatingBar({ value, ai = false, self = false, onChange, labelOf =
             onKeyDown={
               onChange
                 ? (e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
+                    if (isEnterKey(e) || e.key === ' ') {
                       e.preventDefault();
                       onChange(n);
                     }
@@ -953,7 +954,7 @@ export default function StartOneOnOneView({
                     placeholder="논의 주제 추가 (Enter)"
                     value={agendaInput}
                     onChange={(e) => setAgendaInput(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addMgrAgenda(); } }}
+                    onKeyDown={(e) => { if (isEnterKey(e)) { e.preventDefault(); addMgrAgenda(); } }}
                   />
                   <button type="button" className="ono-start-agenda-add-btn" onClick={addMgrAgenda}>추가</button>
                 </div>

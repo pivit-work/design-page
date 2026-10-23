@@ -2,6 +2,7 @@ import { useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
 import Tabs from '../shared/Tabs.jsx';
+import { isEnterKey } from '../shared/enterKey.js';
 
 /**
  * TeamSnippetFeed — 팀 스니핏 우측 피드 패널 (날짜별/KR별 서브탭).
@@ -51,7 +52,7 @@ const openProps = (onOpen, item) =>
         onClick: () => onOpen(item),
         onKeyDown: (e) => {
           if (e.target !== e.currentTarget) return;
-          if (e.key === 'Enter' || e.key === ' ') {
+          if (isEnterKey(e) || e.key === ' ') {
             e.preventDefault();
             onOpen(item);
           }

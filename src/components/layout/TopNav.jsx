@@ -1,4 +1,5 @@
 import Icon from '../shared/Icon.jsx';
+import { isEnterKey } from '../shared/enterKey.js';
 
 /**
  * TopNav — 상단 공통 내비게이션.
@@ -39,7 +40,7 @@ export default function TopNav({
         tabIndex: 0,
         onClick: onSearchClick,
         onKeyDown: (e) => {
-          if (e.key === 'Enter' || e.key === ' ') onSearchClick();
+          if (isEnterKey(e) || e.key === ' ') onSearchClick();
         },
       }
     : {};

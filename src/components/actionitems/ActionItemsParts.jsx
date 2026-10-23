@@ -9,6 +9,7 @@
 import { useRef } from 'react';
 import DateInput from '../shared/DateInput.jsx';
 import useDismissLayer from '../shared/useDismissLayer.js';
+import { isEnterKey } from '../shared/enterKey.js';
 
 /**
  * 빈 목록 — 왜 비었는지 한 줄 + 도움말 한 줄 + 다음 행동 버튼 하나
@@ -56,7 +57,7 @@ export function ActionItemDeadlineEditor({
       className="ai-row-meta"
       ref={ref}
       onKeyDown={(e) => {
-        if (e.key !== 'Enter' || e.nativeEvent.isComposing) return;
+        if (!isEnterKey(e)) return;
         e.preventDefault();
         onSave?.();
       }}

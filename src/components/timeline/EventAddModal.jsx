@@ -5,6 +5,7 @@ import Icon from '../shared/Icon.jsx';
 import { CheckCircleSolidGlyph, CloseGlyph } from '../shared/lineIcons.jsx';
 import CustomSelect from './CustomSelect.jsx';
 import useTimelineData from './useTimelineData.js';
+import { isEnterKey } from '../shared/enterKey.js';
 
 const SUMMARY_TYPES = ['회의', '집중작업', '리뷰', '외부미팅', '기타'];
 
@@ -62,7 +63,7 @@ export default function EventAddModal({ date, time = '17:00', baseUrl, onClose, 
     setExternalInput('');
   };
   const handleExternalKey = (e) => {
-    if (e.key === 'Enter') {
+    if (isEnterKey(e)) {
       e.preventDefault();
       handleAddExternal();
     }

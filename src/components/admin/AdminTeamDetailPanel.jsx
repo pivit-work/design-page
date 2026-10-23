@@ -8,6 +8,7 @@ import {
   UserMinusIcon, Building2Icon, UserIcon,
 } from './teamIcons.jsx';
 import Select from '../shared/Select.jsx';
+import { isEnterKey } from '../shared/enterKey.js';
 
 const PRESET_COLORS = ['#3B5BDB', '#2F9E44', '#E03131', '#F08C00', '#7950F2', '#1098AD', '#D6336C', '#495057'];
 
@@ -30,7 +31,7 @@ function memberOpenProps(member, onSelectMember, labels) {
     'aria-label': `${member.name} ${labels.openProfile}`,
     onClick: () => onSelectMember(member.id),
     onKeyDown: (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
+      if (isEnterKey(e) || e.key === ' ') {
         e.preventDefault();
         onSelectMember(member.id);
       }
@@ -189,7 +190,7 @@ export default function AdminTeamDetailPanel({
                 value={nameInput}
                 onChange={(e) => setNameInput(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') e.target.blur();
+                  if (isEnterKey(e)) e.target.blur();
                   if (e.key === 'Escape') setEditingName(false);
                 }}
                 onBlur={() => {

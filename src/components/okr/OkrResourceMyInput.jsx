@@ -5,6 +5,7 @@ import { RsStatCard, RsAiLabel, RsCommentThread } from './OkrResourcePieces.jsx'
 import rowKey from './rowKey.js';
 import { OKR_RESOURCE_DEFAULT_LABELS, statusLabel } from './okrResourceLabels.js';
 import { entryProjectId } from './okrResourceEntries.js';
+import { isEnterKey } from '../shared/enterKey.js';
 
 /**
  * OkrResourceMyInput — 내 리소스 '내 입력' 뷰.
@@ -408,7 +409,7 @@ export default function OkrResourceMyInput({
               value={replyText}
               onChange={(e) => setReplyText(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') submitReply();
+                if (isEnterKey(e)) submitReply();
                 if (e.key === 'Escape') { setReplyOpen(false); setReplyText(''); }
               }}
             />

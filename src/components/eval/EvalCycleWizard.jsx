@@ -122,6 +122,7 @@ import { applyLeaderBulk } from './evalLeaderTable.js';
 import EvalLeaderAssignmentSection from './EvalLeaderAssignmentSection.jsx';
 import { leavesBeforeDate, withoutLeavingBefore } from './evalRetiring.js';
 import RetiringTag from './RetiringTag.jsx';
+import { isEnterKey } from '../shared/enterKey.js';
 
 // 고정 단계 자물쇠 아이콘 — design-page 정본 lock-keyhole-square.
 // 두 곳 이상 쓰는 그림은 design-page `shared/lineIcons.jsx` 한 벌을 부른다(PW-1011).
@@ -1144,7 +1145,7 @@ function TriCheck({ state, label, onToggle }) {
         onToggle();
       }}
       onKeyDown={(e) => {
-        if (e.key === ' ' || e.key === 'Enter') {
+        if (e.key === ' ' || isEnterKey(e)) {
           e.preventDefault();
           e.stopPropagation();
           onToggle();

@@ -5,6 +5,7 @@ import StatusBadge from '../shared/StatusBadge.jsx';
 import { ChevronDownGlyph, ChevronRightGlyph, CloseGlyph, DragHandleGlyph } from '../shared/lineIcons.jsx';
 import { SUBHEADER_H, ROW_H, memberPalette } from './constants.js';
 import useTimelineData from './useTimelineData.js';
+import { isEnterKey } from '../shared/enterKey.js';
 
 function GroupHeader({ group, collapsed, onToggleCollapse, onAddMember, onRemoveGroup, onRenameGroup }) {
   const [editing, setEditing] = useState(false);
@@ -41,7 +42,7 @@ function GroupHeader({ group, collapsed, onToggleCollapse, onAddMember, onRemove
             aria-label="그룹 이름"
             onBlur={(e) => commitRename(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') commitRename(e.currentTarget.value);
+              if (isEnterKey(e)) commitRename(e.currentTarget.value);
               else if (e.key === 'Escape') setEditing(false);
             }}
           />

@@ -2,6 +2,7 @@ import ProgressBar from './ProgressBar.jsx';
 import StatusBadge from './StatusBadge.jsx';
 import Tag from './Tag.jsx';
 import { PROGRESS_COLORS } from './constants.js';
+import { isEnterKey } from '../shared/enterKey.js';
 
 /**
  * Full 1on1 dashboard member card.
@@ -53,7 +54,7 @@ export default function MemberCard({
 
   const handleKeyDown = clickable
     ? (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
+        if (isEnterKey(e) || e.key === ' ') {
           e.preventDefault();
           onClick();
         }

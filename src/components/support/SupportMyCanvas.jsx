@@ -6,6 +6,7 @@ import { SkeletonList } from '../shared/Skeleton.jsx';
 import TextArea from '../shared/TextArea.jsx';
 import { AlertTriangleGlyph, InfoGlyph } from '../shared/lineIcons.jsx';
 import { toneForStatus } from '../shared/statusBadgeTones.js';
+import { isEnterKey } from '../shared/enterKey.js';
 
 const STAR_ICON = '/icons-solid/star-01.svg';
 
@@ -293,7 +294,7 @@ export default function SupportMyCanvas({
                           value={reply}
                           onChange={(e) => onReplyChange?.(e.target.value)}
                           onKeyDown={(e) => {
-                            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                            if ((e.ctrlKey || e.metaKey) && isEnterKey(e)) {
                               e.preventDefault();
                               sendReply();
                             }

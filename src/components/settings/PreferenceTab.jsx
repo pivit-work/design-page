@@ -8,6 +8,7 @@ import TimeInput from '../shared/TimeInput.jsx';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
 import { SkeletonList } from '../shared/Skeleton.jsx';
 import { InfoIcon } from './settingsIcons.jsx';
+import { isEnterKey } from '../shared/enterKey.js';
 
 /**
  * 내 설정 › 선호 설정 탭 (pivit-work PW-1366 · 기획 my-settings-spec §5-A, 시안 settings-app.jsx `PreferenceTab`).
@@ -217,7 +218,7 @@ export default function PreferenceTab({
           aria-label={key === 'strengths' ? L.strengths : L.improveAreas}
           onChange={(e) => setCustom(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+            if (isEnterKey(e)) {
               e.preventDefault();
               addCustom(key, custom, setCustom);
             }

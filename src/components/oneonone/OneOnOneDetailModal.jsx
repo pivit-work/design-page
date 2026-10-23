@@ -4,6 +4,7 @@ import Icon from '../shared/Icon.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import Tabs from '../shared/Tabs.jsx';
 import { DatePickerPopover, TIME_SLOTS, formatTime } from './AddOneOnOneModal.jsx';
+import { isEnterKey } from '../shared/enterKey.js';
 
 /**
  * OneOnOneDetailModal — 완료된 1on1 상세(열람모드) 모달.
@@ -360,7 +361,7 @@ export default function OneOnOneDetailModal({
                 aria-checked={remind}
                 tabIndex={0}
                 onClick={() => setRemind((v) => !v)}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setRemind((v) => !v); }}
+                onKeyDown={(e) => { if (isEnterKey(e) || e.key === ' ') setRemind((v) => !v); }}
               >
                 {remind && <Icon src={icons.check} size={12} color="var(--text-white)" baseUrl={baseUrl} />}
               </span>

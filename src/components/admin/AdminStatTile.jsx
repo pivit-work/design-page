@@ -1,3 +1,4 @@
+import { isEnterKey } from '../shared/enterKey.js'
 /**
  * 어드민 요약 카드 한 칸 — manager StatTile 톤 (라벨 + display 폰트 큰 다크 숫자 + sub).
  * onClick 이 있으면 클릭 가능한 필터 타일(active 시 강조).
@@ -17,7 +18,7 @@ export default function AdminStatTile({ label, value, sub, sub2, sub2Hint, onCli
       onKeyDown={
         clickable
           ? (e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
+              if (isEnterKey(e) || e.key === ' ') {
                 e.preventDefault();
                 onClick();
               }

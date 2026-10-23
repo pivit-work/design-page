@@ -9,6 +9,7 @@ import { fill, hostOf, healthOf, heldAtOf } from './sessionHelpers.js';
 import { doneBannerState, isDonePending } from './doneViewHelpers.js';
 import OneOnOnePastSessionList from './OneOnOnePastSessionList.jsx';
 import { RatingBar } from './StartOneOnOneView.jsx';
+import { isEnterKey } from '../shared/enterKey.js';
 
 /**
  * 1on1 멤버(구성원) 뷰 — READY / LIVE / DONE / HISTORY 통합 캔버스.
@@ -1346,7 +1347,7 @@ function PrepScreen({ session, manager, avatar, okrStatus, healthHistory, isHost
             className="ono-mem-input"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTopic(); } }}
+            onKeyDown={(e) => { if (isEnterKey(e)) { e.preventDefault(); addTopic(); } }}
             placeholder={L.topicPlaceholder}
           />
           <button type="button" className="ono-mem-btn" onClick={addTopic} disabled={!draft.trim()}>

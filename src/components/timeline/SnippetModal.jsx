@@ -7,6 +7,7 @@ import { CloseGlyph } from '../shared/lineIcons.jsx';
 import StepNavButton from '../shared/StepNav.jsx';
 import assetUrl from '../shared/assetUrl.js';
 import { healthTier, healthLabel } from './snippetHealth.js';
+import { isEnterKey } from '../shared/enterKey.js';
 
 /**
  * SnippetModal — "스니펫 작성" 모달.
@@ -456,7 +457,7 @@ export default function SnippetModal({
     setTags((prev) => [...prev, v]);
   };
   const onTagKey = (e) => {
-    if (e.key === 'Enter') {
+    if (isEnterKey(e)) {
       e.preventDefault();
       addTag(tagInput);
       setTagInput('');

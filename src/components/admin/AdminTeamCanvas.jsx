@@ -7,6 +7,7 @@ import AppConfirmModal from '../shared/ConfirmModal.jsx';
 import Toast from '../shared/Toast.jsx';
 import LoadingState from '../shared/LoadingState.jsx';
 import { resolveKoreanParticles } from '../shared/koreanParticle.js';
+import { isEnterKey } from '../shared/enterKey.js';
 
 /**
  * AdminTeamCanvas — 팀 관리 화면(좌: 트리 / 우: 상세) 정본 컴포넌트.
@@ -561,7 +562,7 @@ export default function AdminTeamCanvas({
               value={inlineCreateValue}
               onChange={(e) => setInlineCreateValue(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') void handleInlineCreateConfirm();
+                if (isEnterKey(e)) void handleInlineCreateConfirm();
                 if (e.key === 'Escape') handleInlineCreateCancel();
               }}
               onBlur={handleInlineCreateCancel}

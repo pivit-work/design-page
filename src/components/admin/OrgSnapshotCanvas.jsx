@@ -18,6 +18,7 @@ import Pagination from '../shared/Pagination.jsx';
 import LoadingState from '../shared/LoadingState.jsx';
 import Skeleton, { SkeletonList } from '../shared/Skeleton.jsx';
 import Select from '../shared/Select.jsx';
+import { isEnterKey } from '../shared/enterKey.js';
 
 /**
  * OrgSnapshotCanvas — 어드민 "조직 스냅샷" 화면 Pure 컴포넌트.
@@ -607,7 +608,7 @@ function OrgSnapshotStatusView({
               max={today || undefined}
               value={draftDate}
               onChange={(v) => setDraftDate(v)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && canApply) onQueryDateChange?.(draftDate); }}
+              onKeyDown={(e) => { if (isEnterKey(e) && canApply) onQueryDateChange?.(draftDate); }}
             />
           </div>
           <button

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import Chip from '../shared/Chip.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import TextInput from '../shared/TextInput.jsx';
+import { isComposingKey, isEnterKey } from '../shared/enterKey.js';
 
 /**
  * 쉼표로 적은 말을 태그로 바꾼다 — 앞뒤 공백을 떼고, 빈 말·이미 있는 말은 버리고, 상한에서 자른다.
@@ -92,8 +93,8 @@ export default function PersonalTagsField({
           // 한글 조합을 확정하는 Enter 는 건너뛴다. 여기서 칸을 비우면 조합 중이던 마지막 글자가
           // 확정되며 빈 칸에 다시 들어가 남는다(PW-2150). Safari 는 조합 직후 Enter 를 isComposing
           // 없이 keyCode 229 로 보내 둘 다 본다.
-          if (e.nativeEvent.isComposing || e.keyCode === 229) return;
-          if (e.key === 'Enter') {
+          if (isComposingKey(e)) return;
+          if (isEnterKey(e)) {
             e.preventDefault();
             commit(text);
           }

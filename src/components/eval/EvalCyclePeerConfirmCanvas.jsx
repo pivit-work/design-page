@@ -4,6 +4,7 @@ import { SkeletonList } from '../shared/Skeleton.jsx';
 import { ChevronRightIcon } from './evalIcons.jsx';
 import SearchSelect from '../shared/SearchSelect.jsx';
 import RetiringTag from './RetiringTag.jsx';
+import { isEnterKey } from '../shared/enterKey.js';
 
 /**
  * EvalCyclePeerConfirmCanvas — 동료 리뷰어 확정 (리더 게이트, 신규).
@@ -174,7 +175,7 @@ function PeerSearch({ addable, L, onPick }) {
           placeholder={L.searchPlaceholder}
           onChange={(e) => setQ(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && results.length > 0) {
+            if (isEnterKey(e) && results.length > 0) {
               e.preventDefault();
               pick(results[0]);
             }

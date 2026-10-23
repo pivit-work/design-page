@@ -5,6 +5,7 @@ import { controlClass, useFieldControl } from './formField.js';
 import { isKoreanLocale } from './uiLocale.js';
 import { CheckGlyph, ChevronDownGlyph } from './lineIcons.jsx';
 import { filterSearchOptions, hasNoSearchResult } from './searchOptions.js';
+import { isEnterKey } from './enterKey.js';
 
 const WORDS = {
   ko: { search: '검색', noResult: '일치하는 항목이 없습니다', empty: '고를 항목이 없습니다' },
@@ -144,7 +145,7 @@ export default function SearchSelect({
       // 검색칸에서는 Home·End 가 글자 사이를 옮기는 키라 목록만 받는다.
       e.preventDefault();
       if (pickable.length > 0) setActive(e.key === 'Home' ? 0 : pickable.length - 1);
-    } else if (e.key === 'Enter') {
+    } else if (isEnterKey(e)) {
       e.preventDefault();
       // 검색 중 Enter 는 «찾은» 첫 값을 고른다 — 늘 남는 「전체」 줄(keep)은 찾은 것이 아니라 건너뛴다.
       const o = pickable[active] ?? (searching ? pickable.find((x) => !x.keep) : null);

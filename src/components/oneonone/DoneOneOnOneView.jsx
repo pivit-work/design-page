@@ -16,6 +16,7 @@ import { CloseGlyph } from '../shared/lineIcons.jsx';
 import Spinner from '../shared/Spinner.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
 import TextInput from '../shared/TextInput.jsx';
+import { isEnterKey } from '../shared/enterKey.js';
 
 /**
  * 매니저 **DONE 단계** 뷰 (PW-430).
@@ -834,7 +835,7 @@ function ActionItemsCard({ session, L, icons, baseUrl, actions }) {
           placeholder={L.actionAddPlaceholder}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter') {
+            if (isEnterKey(e)) {
               e.preventDefault();
               submit();
             }
@@ -1083,7 +1084,7 @@ function DoneAgendaCard({ items, L, icons, baseUrl, edit }) {
                 data-testid="ono-done-agenda-new"
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+                  if (isEnterKey(e)) {
                     e.preventDefault();
                     add();
                   }
