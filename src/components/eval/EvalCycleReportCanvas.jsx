@@ -16,6 +16,7 @@ import { scaleMaxOf, categoryKind, storedCategoryName, answerScoreText, checkedA
  * `leaderComment`(선택) — 매니저가 리포트 검수에서 남긴 최종 코멘트. «리더 코멘트» 카드
  * 맨 위에 그린다. 하향 답이 없어도 이 글이 있으면 카드를 그린다.
  *
+ * `onOpenHighlight`(선택) — [PW-1520] 하이라이트 출처 배지를 누르면 `(highlight)` 로 부른다. 없으면 배지만 그린다.
  * `highlights`(선택) — [PW-1846] 「성과 하이라이트」: `{ text, date }[]`(평가 기간 스니핏 「하이라이트」 칸).
  * 끌 수 없는 필수 칸이라 `sections` 를 보지 않고, 0건이면 칸을 그리지 않는다.
  *
@@ -286,7 +287,8 @@ function shortDate(iso) {
   const [, m, d] = String(iso || '').split('-');
   return m && d ? `${Number(m)}/${Number(d)}` : '';
 }
-function Highlights({ highlights, L }) {
+// [PW-1520] 기획 §7.4 — 근거 배지를 누르면 그날 스니핏(원본)으로 간다. `onOpenHighlight` 가 없으면 배지만.
+function Highlights({ highlights, onOpenHighlight, L }) {
   if (!highlights || highlights.length === 0) return null;
   return (
     <section className="evc-card" data-testid="evr-highlights">
@@ -299,11 +301,26 @@ function Highlights({ highlights, L }) {
             </span>
             <div className="evr-answer">
               <p className="evr-answer-text">{h.text}</p>
-              <span>
-                <StatusBadge className="evr-insight-badge">
-                  {String(L.highlightSource || '').replace('{date}', shortDate(h.date))}
-                </StatusBadge>
-              </span>
+              {onOpenHighlight ? (
+                <span>
+                  <button
+                    type="button"
+                    className="evc-link-btn"
+                    onClick={() => onOpenHighlight(h)}
+                    data-testid="evr-highlight-source"
+                  >
+                    <StatusBadge className="evr-insight-badge">
+                      {String(L.highlightSource || '').replace('{date}', shortDate(h.date))}
+                    </StatusBadge>
+                  </button>
+                </span>
+              ) : (
+                <span>
+                  <StatusBadge className="evr-insight-badge">
+                    {String(L.highlightSource || '').replace('{date}', shortDate(h.date))}
+                  </StatusBadge>
+                </span>
+              )}
             </div>
           </li>
         ))}
@@ -390,6 +407,7 @@ export default function EvalCycleReportCanvas({
   selfGap = [],
   insight = null,
   highlights = [],
+  onOpenHighlight,
   nextGoals = [],
   onPrint,
   sections,
@@ -471,6 +489,25 @@ export default function EvalCycleReportCanvas({
 
         <SelfGap rows={selfGap} L={L} />
 
+        {on('peer') && (peerAnswers.length > 0 || peerBelowDisclosureMin) && (
+          <section className="evc-card">
+            <h3 className="evc-card-name">{L.peerTitle}</h3>
+            {peerBelowDisclosureMin && (
+              <p className="evc-empty-sub" data-testid="evr-peer-below-min">
+                {L.peerBelowMin}
+              </p>
+            )}
+            {peerAnswers.length > 0 && <AnswerList answers={peerAnswers} L={L} />}
+          </section>
+        )}
+
+        <Highlights highlights={highlights} onOpenHighlight={onOpenHighlight} L={L} />
+
+        {on('growth') && <GrowthAreas selfAnswers={selfAnswers} L={L} />}
+
+        {on('nextGoals') && <NextGoals goals={nextGoals} L={L} />}
+
+        {/* [PW-1520] 기획 §7.3 — 리더 코멘트는 기획서 일곱 칸의 맨 끝(7)이다. */}
         {on('leader') && (leaderComment || leaderAnswers.length > 0) && (
           <section className="evc-card">
             <h3 className="evc-card-name">{L.leaderTitle}</h3>
@@ -498,24 +535,6 @@ export default function EvalCycleReportCanvas({
               ))}
           </section>
         )}
-
-        {on('peer') && (peerAnswers.length > 0 || peerBelowDisclosureMin) && (
-          <section className="evc-card">
-            <h3 className="evc-card-name">{L.peerTitle}</h3>
-            {peerBelowDisclosureMin && (
-              <p className="evc-empty-sub" data-testid="evr-peer-below-min">
-                {L.peerBelowMin}
-              </p>
-            )}
-            {peerAnswers.length > 0 && <AnswerList answers={peerAnswers} L={L} />}
-          </section>
-        )}
-
-        <Highlights highlights={highlights} L={L} />
-
-        {on('growth') && <GrowthAreas selfAnswers={selfAnswers} L={L} />}
-
-        {on('nextGoals') && <NextGoals goals={nextGoals} L={L} />}
 
         {selfAnswers.length > 0 && (
           <section className="evc-card">
