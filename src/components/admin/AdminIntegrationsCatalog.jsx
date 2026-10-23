@@ -151,7 +151,8 @@ export function AdminCatalogPanel({
                           </DpStatusBadge>
                         </RosterTable.Cell>
                         <RosterTable.Cell>
-                          {/* 개인 연동은 수집 묶음만. 회사 단위(Jira·GitHub)·회사 채널은 토글 대신 라벨 — 꺼진 토글은 «켤 수 있다»로 읽힌다 */}
+                          {/* 개인 연동은 수집 묶음만. 회사 단위(Jira·GitHub·Slack)·회사 채널은 토글 대신 라벨 — 꺼진 토글은 «켤 수 있다»로 읽힌다.
+                              회사 단위 중 구성원이 받지 않기만 고르는 툴(Slack · memberOptOutOnly)은 라벨 끝말이 다르다 (PW-1976) */}
                           {t.group === 'tool' && !t.companyOnly ? (
                             <Switch
                               checked={active && !!t.allowPersonal}
@@ -161,7 +162,7 @@ export function AdminCatalogPanel({
                               onChange={(next) => askPersonal(t, next)}
                             />
                           ) : (
-                            <span className="intg-catalog-muted">{t.companyOnly ? L.companyOnly : L.companyChannel}</span>
+                            <span className="intg-catalog-muted">{t.companyOnly ? (t.memberOptOutOnly ? L.companyOnlyOptOut : L.companyOnly) : L.companyChannel}</span>
                           )}
                         </RosterTable.Cell>
                         <RosterTable.Cell>

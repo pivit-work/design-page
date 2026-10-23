@@ -260,3 +260,5 @@
 .intg-personal-chips { display: flex; margin-top: 6px; flex-wrap: wrap; gap: 6px; }
 /* PW-1439 — «… · 어드민 활성화 필요» 는 읽어야 하는 글자라 중립 칩 글자만 secondary 로 (이 칩 줄 안에서만) */
 .intg-personal-chips { --dp-badge-neutral-fg: var(--text-secondary); }
+/* Slack 카드 「설치」 덩어리 제목 — 패널 맨 위라 토큰 이력 소제목의 위 여백을 뺀다 (PW-2164) */
+.intg-owner-section-first { margin-top: 0; }

@@ -144,8 +144,14 @@ const BASE_LABELS = {
     close: '닫기',
   },
   transfer: {
-    ownerLabel: '소유자',
-    // 토큰 소유자가 Slack 워크스페이스 관리자일 때 이름 옆 배지 (screen-slack-transfer.policy §2.1)
+    // Slack 연결은 회사 설치의 것이라 «소유자»가 없다 — 「설치」(기록)와 「수집 자격」(수집에 쓰는 개인 자격)으로 가른다
+    // (screen-integrations.policy §4-B ① ② · PW-1976). [토큰 만료]·[재인증]은 수집 자격에만 작동한다.
+    installSection: '설치',
+    credentialSection: '수집 자격',
+    installerBadge: '설치한 관리자',
+    credentialAccount: '{{name}}의 Slack 계정',
+    expiredBadge: '만료됨',
+    // 수집 자격자가 Slack 워크스페이스 관리자일 때 이름 옆 배지 (screen-slack-transfer.policy §2.1)
     slackAdminLabel: 'Slack Admin',
     expireToken: '토큰 만료',
     reauth: '재인증',
@@ -1064,13 +1070,37 @@ function SlackTransferPanel({ transfer, labels, baseUrl, onExpireToken, onReauth
         </div>
       )}
 
-      <div className="intg-owner-head">
+      {/* 설치 — 회사의 앱 설치를 누가 언제 했나. 기록일 뿐이라 버튼이 없다 */}
+      <div className="intg-loglist-title intg-owner-section-first">{labels.transfer.installSection}</div>
+      <div className="intg-owner-head" data-testid="intg-install-section">
         <div className="intg-owner-id">
           <OwnerAvatar name={owner.name} avatar={owner.avatar} />
           <div>
             <div className="intg-owner-name">
               {owner.name}
-              <DpStatusBadge className="intg-pill is-brand">{labels.transfer.ownerLabel}</DpStatusBadge>
+              <DpStatusBadge className="intg-pill is-brand">{labels.transfer.installerBadge}</DpStatusBadge>
+            </div>
+            <div className="intg-owner-sub">
+              {owner.title ? `${owner.title} \u00b7 ` : ''}
+              {transfer.installedLabel}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 수집 자격 — 수집에 쓰는 개인 자격. [토큰 만료]·[재인증]은 이것만 바꾸고 Slack 알림은 계속 나간다 */}
+      <div className="intg-loglist-title">{labels.transfer.credentialSection}</div>
+      <div className="intg-owner-head" data-testid="intg-credential-section">
+        <div className="intg-owner-id">
+          <OwnerAvatar name={owner.name} avatar={owner.avatar} />
+          <div>
+            <div className="intg-owner-name">
+              {fmt(labels.transfer.credentialAccount, { name: owner.name })}
+              {transfer.isExpired && (
+                <DpStatusBadge className="intg-pill is-bad" data-testid="intg-credential-expired">
+                  {labels.transfer.expiredBadge}
+                </DpStatusBadge>
+              )}
               {owner.isSlackAdmin && (
                 <DpStatusBadge className="intg-pill is-good" data-testid="intg-owner-slack-admin">
                   {labels.transfer.slackAdminLabel}
@@ -1078,7 +1108,8 @@ function SlackTransferPanel({ transfer, labels, baseUrl, onExpireToken, onReauth
               )}
             </div>
             <div className="intg-owner-sub">
-              {owner.title} &middot; {transfer.connectedLabel}
+              {owner.title ? `${owner.title} \u00b7 ` : ''}
+              {transfer.connectedLabel}
             </div>
           </div>
         </div>

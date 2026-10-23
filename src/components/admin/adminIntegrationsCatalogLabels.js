@@ -16,6 +16,7 @@ export const CATALOG_DEFAULT_LABELS = {
     activate: '활성화',
     deactivate: '비활성화',
     companyOnly: '— 회사 단위 연결 (직원은 계정 잇기만)',
+    companyOnlyOptOut: '— 회사 단위 연결 (직원은 받지 않기만)',
     companyChannel: '— 회사 채널 (해당 없음)',
     personalToggle: '{{name}} 개인 연동 허용',
     loading: '불러오는 중...',
