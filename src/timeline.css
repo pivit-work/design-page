@@ -2020,6 +2020,37 @@
   cursor: default;
 }
 
+/* 연결된 KR·프로젝트 칩 줄 (PW-1514) — 칩은 태그 칩 그대로, 목록 기본 여백만 걷는다. */
+.tl-snippet-detail-links {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tl-snippet-detail-links .tl-snippet-detail-tags {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tl-snippet-detail-links .tl-snippet-tag {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+/* 프로젝트 색 점 — 같은 창 아바타 색 점과 같은 원형. */
+.tl-snippet-detail-project-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+/* 이름을 못 찾은 연결을 묶은 안내 칩 — 빈 본문 안내와 같은 흐린 글자. */
+.tl-snippet-detail-links .tl-snippet-detail-unresolved {
+  color: var(--text-tertiary);
+}
+
 .tl-snippet-detail-open {
   display: inline-flex;
   align-items: center;

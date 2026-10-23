@@ -16,7 +16,12 @@ import { healthTier, healthLabel } from './snippetHealth.js';
  * text/health/tags 를 채워 보내고, 여기서는 없는 필드를 렌더하지 않는다.
  *
  * Props:
- *   snippet     { id, memberId, text, emptyText, timeLabel, dateLabel, health, healthNote, tags, canOpen }
+ *   snippet     { id, memberId, text, emptyText, timeLabel, dateLabel, health, healthNote, tags, canOpen,
+ *                 filledCount, krs, projects }
+ *               filledCount  작성 진행도 n/5 의 n (머리줄 끝에 붙는다)
+ *               krs/projects [{ id, label, color?, unresolved? }] — 연결된 KR·프로젝트 칩.
+ *                            unresolved 는 이름을 못 찾은 연결을 묶은 안내 칩(흐린 글자).
+ *                            비었으면 그 줄을 그리지 않는다 (PW-1514).
  *   anchorRect  클릭한 블록의 DOMRect
  *   onClose     닫기
  *   onOpen      "스니핏 전체 보기" — 미주입이거나 canOpen=false 면 버튼을 숨긴다
@@ -54,6 +59,9 @@ export default function SnippetDetailModal({ snippet, anchorRect, onClose, onOpe
   const palette = memberPalette(member);
   const hasHealth = typeof snippet.health === 'number' && !Number.isNaN(snippet.health);
   const tags = snippet.tags || [];
+  const krs = snippet.krs || [];
+  const projects = snippet.projects || [];
+  const hasProgress = typeof snippet.filledCount === 'number';
 
   // 막·Esc·바깥 누르기는 공용 창 바탕(`ModalLayer`)이 갖는다(PW-1013). 누른 블록 옆에 붙어 뜨는
   // 창이라 막은 투명하게 둔다(`is-clear`) — 생김새는 그대로, 닫히는 동작만 다른 창과 같다.
@@ -94,7 +102,11 @@ export default function SnippetDetailModal({ snippet, anchorRect, onClose, onOpe
                 {member?.name ?? '스니핏'}
               </h2>
               <p className="tl-snippet-detail-when">
-                {[snippet.dateLabel, snippet.timeLabel && `${snippet.timeLabel} 작성`]
+                {[
+                  snippet.dateLabel,
+                  snippet.timeLabel && `${snippet.timeLabel} 작성`,
+                  hasProgress && `${snippet.filledCount}/5`,
+                ]
                   .filter(Boolean)
                   .join(' · ')}
               </p>
@@ -119,6 +131,42 @@ export default function SnippetDetailModal({ snippet, anchorRect, onClose, onOpe
 
           {snippet.healthNote && (
             <p className="tl-snippet-detail-note">— {snippet.healthNote}</p>
+          )}
+
+          {(krs.length > 0 || projects.length > 0) && (
+            <div className="tl-snippet-detail-links">
+              {krs.length > 0 && (
+                <ul className="tl-snippet-detail-tags" aria-label="KR">
+                  {krs.map((kr) => (
+                    <li
+                      key={kr.id}
+                      className={`tl-snippet-tag${kr.unresolved ? ' tl-snippet-detail-unresolved' : ''}`}
+                    >
+                      {kr.label}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {projects.length > 0 && (
+                <ul className="tl-snippet-detail-tags" aria-label="프로젝트">
+                  {projects.map((p) => (
+                    <li
+                      key={p.id}
+                      className={`tl-snippet-tag${p.unresolved ? ' tl-snippet-detail-unresolved' : ''}`}
+                    >
+                      {p.color && (
+                        <span
+                          className="tl-snippet-detail-project-dot"
+                          style={{ background: p.color }}
+                          aria-hidden
+                        />
+                      )}
+                      {p.label}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           )}
 
           {tags.length > 0 && (
