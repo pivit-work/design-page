@@ -411,7 +411,7 @@ function PeerGroupCard({
                   </button>
                 )}
                 {/* PW-1769 §6.4.1 — 안 낸 동료에게 리마인더. 보낸 뒤 24시간은 같은 자리에 누를 수 없는 「발송됨」. */}
-                {group.confirmed && onRemind && (n.reminded || n.remindable) && (
+                {group.confirmed && onRemind && n.status !== 'completed' && (n.reminded || n.remindable) && (
                   <button
                     type="button"
                     className="evc-btn is-ghost"
