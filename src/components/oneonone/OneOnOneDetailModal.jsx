@@ -3,8 +3,12 @@ import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import Tabs from '../shared/Tabs.jsx';
-import { DatePickerPopover, TIME_SLOTS, formatTime } from './AddOneOnOneModal.jsx';
+import popoverPlacement from '../shared/popoverPlacement.js';
+import { DatePickerPopover, DATEPICKER_HEIGHT, TIME_SLOTS, formatTime } from './AddOneOnOneModal.jsx';
 import { isEnterKey } from '../shared/enterKey.js';
+
+/* 시간 메뉴 높이 — .ono-add-modal-menu 의 max-height(256) + 테두리 */
+const TIME_MENU_HEIGHT = 258;
 
 /**
  * OneOnOneDetailModal — 완료된 1on1 상세(열람모드) 모달.
@@ -113,6 +117,9 @@ export default function OneOnOneDetailModal({
   const [dateOpen, setDateOpen] = useState(false);
   const [time, setTime] = useState('10:00');
   const [timeOpen, setTimeOpen] = useState(false);
+  // 일정 폼은 모달 바닥에 있어 아래로 펴면 본문 스크롤 영역 밖으로 잘린다 — 여는 순간 자리를 재서 위/아래를 정한다.
+  const [datePlacement, setDatePlacement] = useState('down');
+  const [timePlacement, setTimePlacement] = useState('down');
   const [remind, setRemind] = useState(true);
   const closePopovers = () => { setDateOpen(false); setTimeOpen(false); };
   const dateLabel = date
@@ -310,7 +317,11 @@ export default function OneOnOneDetailModal({
                 <button
                   type="button"
                   className="ono-add-modal-input ono-add-modal-input-with-icon"
-                  onClick={() => { setDateOpen((v) => !v); setTimeOpen(false); }}
+                  onClick={(e) => {
+                    setDatePlacement(popoverPlacement(e.currentTarget, DATEPICKER_HEIGHT));
+                    setDateOpen((v) => !v);
+                    setTimeOpen(false);
+                  }}
                 >
                   <Icon src={icons.calendar} size={20} color="var(--text-secondary)" baseUrl={baseUrl} />
                   <span className="ono-add-modal-input-text">{dateLabel}</span>
@@ -320,6 +331,7 @@ export default function OneOnOneDetailModal({
                     value={date}
                     locale={locale}
                     labels={L}
+                    placement={datePlacement}
                     onChange={(d) => { setDate(d); setDateOpen(false); }}
                   />
                 )}
@@ -331,13 +343,17 @@ export default function OneOnOneDetailModal({
                 <button
                   type="button"
                   className="ono-add-modal-input"
-                  onClick={() => { setTimeOpen((v) => !v); setDateOpen(false); }}
+                  onClick={(e) => {
+                    setTimePlacement(popoverPlacement(e.currentTarget, TIME_MENU_HEIGHT));
+                    setTimeOpen((v) => !v);
+                    setDateOpen(false);
+                  }}
                 >
                   <span className="ono-add-modal-input-text">{formatTime(time)}</span>
                   <Icon src={icons.chevronDown} size={20} color="var(--text-secondary)" baseUrl={baseUrl} />
                 </button>
                 {timeOpen && (
-                  <div className="ono-add-modal-menu ono-add-modal-menu-time">
+                  <div className={`ono-add-modal-menu ono-add-modal-menu-time${timePlacement === 'up' ? ' is-up' : ''}`}>
                     {TIME_SLOTS.map((t) => (
                       <button
                         key={t}

@@ -451,7 +451,11 @@ function Field({ label, group = false, children }) {
 /* ────────────────────────────────────────────────
    Date picker popover — month grid + 좌/우 month nav.
    ──────────────────────────────────────────────── */
-export function DatePickerPopover({ value, onChange, locale = 'ko', labels = DEFAULT_LABELS }) {
+/** 날짜 피커의 바깥 높이(px · 브라우저 실측 364) — 16 패딩 ×2 · 머리 · 요일 줄 · 6주 격자. 여는 쪽이 자리 계산에 쓴다. */
+export const DATEPICKER_HEIGHT = 364;
+
+/** @param {'down'|'up'} [placement='down'] 버튼 아래/위 어느 쪽에 펼지 (popoverPlacement 결과) */
+export function DatePickerPopover({ value, onChange, locale = 'ko', labels = DEFAULT_LABELS, placement = 'down' }) {
   const weekdays = weekdayLabels(locale);
   // value 는 null 허용(미선택) — 뷰는 오늘 기준 달, 선택 하이라이트는 없음.
   const [view, setView] = useState(() => {
@@ -474,7 +478,7 @@ export function DatePickerPopover({ value, onChange, locale = 'ko', labels = DEF
   };
 
   return (
-    <div ref={popoverRef} className="ono-add-modal-datepicker">
+    <div ref={popoverRef} className={`ono-add-modal-datepicker${placement === 'up' ? ' is-up' : ''}`}>
       <div className="ono-add-modal-datepicker-head">
         <button type="button" className="ono-add-modal-datepicker-nav" onClick={() => navMonth(-1)} aria-label={labels.prevMonth}>‹</button>
         <span className="ono-add-modal-datepicker-title">

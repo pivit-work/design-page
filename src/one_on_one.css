@@ -439,102 +439,171 @@
   color: var(--text-brand-secondary);
 }
 
-/* 팀 필터 (PW-720) — 「팀원 N명」 오른쪽, 같은 줄. 공용 드롭다운(.tl-select)을 이 줄의
-   글자 크기에 맞춰 콘텐츠 폭으로 줄인다(`.tl-toolbar .tl-select` 와 같은 방식). */
-.ono-meta-scope {
+/* 필터 줄 (Figma 17749:20369 · 2026-10-23) — 제목 줄 아래 한 줄. 「담당 팀원」 범위 필터(PW-720) 와
+   정렬(PW-1491) 이 종전엔 「팀원 N명」 오른쪽에 붙어 있었는데, 시안이 제목 밑 자기 줄로 옮겼다.
+   부품은 그대로 공용 드롭다운(.tl-select, timeline.css) — 닫힌 칸만 시안 「Buttons」 모양
+   (alpha-black-3 바탕 · r 8 · 36 높이 · 8/14 패딩 · sm/Semibold · 꺾쇠 20) 으로 맞춘다. */
+.ono-filter-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-xl);
+  /* 시안 실측: 필터 줄(검색칸 40 높이) 끝(212) → 브리핑 바(217) */
+  margin-bottom: 5px;
+}
+
+/* 검색칸 (Figma 17749:20407) — 270×40 · 8/12 패딩 · r 10 · 돋보기 20 + md/Regular. 비어 있으면
+   alpha-black-3 바탕, 글자가 들어오면(17749:20661) 흰 바탕. 거르기는 호스트가 한다. */
+.ono-filter-search {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  width: 270px;
+  height: 40px;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--alpha-black-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+
+.ono-filter-search.has-value {
+  background: var(--bg-quaternary);
+}
+
+.ono-filter-search:focus-within {
+  border-color: var(--colors-foreground-fgBrandPrimary);
+  box-shadow: inset 0 0 0 1px var(--colors-foreground-fgBrandPrimary);
+}
+
+.ono-filter-search input {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  outline: none;
+  font-family: var(--font-family-body);
+  font-weight: 400;
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
+  color: var(--text-primary);
+}
+
+.ono-filter-search input::placeholder {
+  color: var(--text-placeholder);
+}
+
+/* 브라우저 기본 x 지우기 버튼은 시안에 없다 */
+.ono-filter-search input::-webkit-search-cancel-button,
+.ono-filter-search input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.ono-filter {
   display: inline-flex;
   flex: 0 0 auto;
-  letter-spacing: normal;
 }
 
-/* 정렬 조작 앞은 텍스트 메타데이터 간격(6px)보다 넓게 12px 확보한다 (PW-1491). */
-.ono-meta-sort {
-  margin-left: var(--spacing-sm);
-}
-
-.ono-meta-scope .tl-select {
+.ono-filter .tl-select {
   width: auto;
 }
 
-.ono-meta-scope .tl-select-trigger {
+.ono-filter .tl-select-trigger {
   width: auto;
-  height: 32px;
-  padding: 4px 10px;
+  height: 36px;
+  padding: 8px 14px;
+  gap: var(--spacing-xs);
+  background: var(--alpha-black-3);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-family-body);
   font-size: var(--font-size-text-sm);
   font-weight: 600;
-  line-height: 20px;
+  line-height: var(--line-height-text-sm);
+  color: var(--text-secondary);
 }
 
-.ono-meta-scope .tl-select-value {
+.ono-filter .tl-select-value {
   max-width: 240px;
+  /* 시안 「Text padding」 — 글자 양옆 2px */
+  padding: 0 var(--spacing-xxs);
+}
+
+.ono-filter .tl-select-chevron svg {
+  width: 20px;
+  height: 20px;
 }
 
 /* 넓혀 본 상태 — 평소와 구별돼야 한다(policy P-Q3). 테두리와 옆 글자를 경고색으로. */
-.ono-meta-scope.is-widened .tl-select-trigger {
+.ono-filter.is-widened .tl-select-trigger {
   border-color: var(--colors-warning-500);
   background: var(--colors-warning-50);
   color: var(--colors-warning-700);
 }
 
-.ono-meta-scope-notice {
+.ono-filter-notice {
   font-family: var(--font-family-body);
   font-weight: 700;
+  font-size: var(--font-size-text-sm);
   color: var(--colors-warning-700);
   overflow-wrap: anywhere;
 }
 
-/* 팀원 0명 안내 (PW-720) — 매니저 뷰 `.manager-team-empty` 와 같은 규격. 새 시각 언어를
-   만들지 않는다. */
-.ono-team-empty {
-  box-sizing: border-box;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-secondary);
-  border-radius: var(--radius-2xl);
-  padding: 36px 20px;
+/* 팀원 0명 안내 (PW-720 · Figma 17749:20420) — 공용 EmptyState(PW-1014) 를 쓰되 점선 테두리·바탕 없이
+   종이 일러스트 + 제목(lg Bold · secondary) + 설명(sm Medium · tertiary) + 글자 버튼을 본문 한가운데
+   세운다. 「내 원온원」 지난 회차 0건(.ono-past-empty)과 같은 규격 — 16 간격 · 위아래 80 · 폭 660.
+   시안의 안내 상자는 필터 줄 밑부터 화면 바닥 가까이(685)까지라 남은 높이를 채워 가운데 세운다. */
+.ono-team-empty-section {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  text-align: center;
+  min-height: max(480px, calc(100vh - 300px));
 }
 
-.ono-team-empty-title {
-  margin: 0;
-  font-family: var(--font-family-body);
-  font-size: 14px;
-  line-height: 24px;
-  font-weight: 600;
-  color: var(--text-primary);
-  overflow-wrap: anywhere;
-}
-
-.ono-team-empty-desc {
-  margin: 0;
-  font-family: var(--font-family-body);
-  font-size: 14px;
-  line-height: 24px;
-  font-weight: 500;
-  color: var(--text-tertiary);
-  overflow-wrap: anywhere;
-}
-
-.ono-team-empty-action {
-  margin-top: 8px;
-  height: 36px;
-  padding: 8px 14px;
+.ono-team-empty {
+  flex: 1;
+  justify-content: center;
+  gap: var(--spacing-xl);
+  padding: 80px 10px;
+  background: none;
   border: none;
-  border-radius: 10px;
-  background: rgba(0, 0, 0, 0.03);
-  font-family: var(--font-family-body);
-  font-size: 14px;
-  line-height: 20px;
-  font-weight: 600;
+}
+
+.ono-team-empty .dp-empty__icon { margin: 0; }
+/* Paper 일러스트 — viewBox 84.3×100.8 (그림자 여백 포함). 보이는 종이는 약 44px 폭 */
+.ono-team-empty-paper { width: 84px; height: auto; display: block; }
+
+.ono-team-empty .dp-empty__title {
+  font-size: var(--font-size-text-lg);
+  line-height: var(--line-height-text-lg);
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.ono-team-empty .dp-empty__desc {
+  font-weight: 500;
+  line-height: var(--line-height-text-md);
   color: var(--text-tertiary);
+  overflow-wrap: anywhere;
+}
+
+.ono-team-empty .dp-empty__actions { margin: 0; }
+
+/* 「전체 팀 보기」 — 시안(17749:20825)은 바탕·테두리 없는 sm/Medium 글자 한 줄 */
+.ono-team-empty-action {
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-md);
+  font-weight: 500;
+  color: var(--text-secondary);
   cursor: pointer;
 }
 
 .ono-team-empty-action:hover {
-  background: rgba(0, 0, 0, 0.06);
+  text-decoration: underline;
 }
 
 .ono-add-btn {
@@ -563,7 +632,8 @@
   justify-content: space-between;
   padding: 0 0 12px 0;
   border-bottom: 1px solid var(--colors-border-borderSecondary);
-  margin-bottom: 13px;
+  /* 시안(17749:20368) 바 → 한 줄 메시지 6 — 종전 13 (2026-10-23) */
+  margin-bottom: var(--spacing-sm);
 }
 
 .ono-briefing-title {
@@ -598,13 +668,15 @@
 
 /* ── Top message ── */
 .ono-message {
-  /* 시안(16817:41832) Text sm/Regular · text-secondary — 종전 md/Semibold 에서 바뀜 (2026-10-21) */
+  /* 시안(16817:41832) Text sm/Regular · utility-purple-500 — 2026-10-21 엔 text-secondary 였고
+     2026-10-23 시안이 브리핑 제목과 같은 보라로 바꿨다(AI 가 쓴 한 줄이라는 뜻). */
   font-family: var(--font-family-body);
   font-weight: 400;
   font-size: var(--font-size-text-sm);
   line-height: var(--line-height-text-sm);
-  color: var(--text-secondary);
-  margin: 0;
+  color: var(--utility-purple-500);
+  /* 시안 실측: 메시지 끝(279) → 다음 섹션(290) */
+  margin: 0 0 11px;
   padding: 0;
 }
 
@@ -707,7 +779,8 @@
 .ono-kpi-bar {
   width: 100%;
   height: 12px;
-  background: var(--bg-secondary);
+  /* 시안(16817:41918) 막대 바탕 alpha-black-3 — 종전 bg-secondary (2026-10-23) */
+  background: var(--alpha-black-3);
   border-radius: 4px;
   overflow: hidden;
 }
@@ -865,7 +938,8 @@
 
 .ono-member-health-bar {
   height: 12px;
-  background: var(--bg-secondary);
+  /* 시안(16816:33933) 막대 바탕 alpha-black-3 — 브랜드 50 카드 위에서도 카드 색이 비친다 (2026-10-23) */
+  background: var(--alpha-black-3);
   border-radius: 4px;
   overflow: hidden;
 }
@@ -1231,6 +1305,13 @@ button.ono-add-modal-input { cursor: pointer; }
   width: 100%;
 }
 
+/* 아래 자리가 모자라면 버튼 위로 편다 (shared/popoverPlacement.js 가 정한다) */
+.ono-add-modal-menu.is-up,
+.ono-add-modal-datepicker.is-up {
+  top: auto;
+  bottom: calc(100% + 4px);
+}
+
 .ono-add-modal-menu-time {
   width: 269px;
   right: 0;
@@ -1480,13 +1561,16 @@ button.ono-add-modal-input { cursor: pointer; }
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  width: 68px;
+  min-width: 68px;
 }
 .ono-start-rec-elapsed {
   font-family: var(--font-family-display);
   font-size: 24px;
   font-weight: 600;
   line-height: 32px;
+  /* 전역 overflow-wrap: anywhere 때문에 글자가 칸보다 넓어지면 「01:2 / 9」 로 끊겼다 — 시계는 한 줄 */
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
   color: var(--componentColors-utility-blue-utilityBlue600);
 }
 .ono-start-rec-wave {
@@ -3427,6 +3511,7 @@ button.ono-add-modal-input { cursor: pointer; }
   display: flex;
   gap: 2px;
   height: 36px;
+  flex-shrink: 0; /* 카드가 세로로 꽉 차도 36(시안 Segmented_control) 을 지킨다 — 줄어들면 28 로 눌린다 */
   padding: 4px;
   box-sizing: border-box;
   border-radius: 8px;

@@ -9,6 +9,8 @@ import OneOnOneDetailModal from './OneOnOneDetailModal.jsx';
 import ManagerNoteModal from './ManagerNoteModal.jsx';
 import MicPermissionModal from './MicPermissionModal.jsx';
 import ManagerAssignModal from './ManagerAssignModal.jsx';
+import EmptyState from '../shared/EmptyState.jsx';
+import assetUrl from '../shared/assetUrl.js';
 
 /**
  * 액션의 «정체» 를 로케일과 무관한 키로 정한다.
@@ -119,10 +121,13 @@ export default function OneOnOneCanvasV2({
   scopeFilter,
   sortControl,
   scopeNotice,
+  /** 필터 줄 맨 앞 검색칸 { value, onChange, placeholder, ariaLabel } — 모양은 `OneOnOnePageHeader` 주석. 거르기는 호스트 몫. */
+  search,
   /**
    * 팀원 0명일 때의 안내 한 장 (PW-720 · policy P-Q2). { title, description, actionLabel?, onAction? }
-   * 매니저 뷰 `teamEmpty` 와 같은 모양이다. 넘기면 섹션 자리에 그린다 — 0명을 「팀 컨디션이
-   * 안정적입니다」로 그리지 않기 위해서다(호스트는 그때 `message` 를 넘기지 않는다).
+   * Figma 17749:20420 — 종이 일러스트 + 제목 + 설명 + 글자 버튼(「전체 팀 보기」) 을 본문 한가운데 세운다.
+   * 넘기면 섹션 자리에 그린다 — 0명을 「팀 컨디션이 안정적입니다」로 그리지 않기 위해서다
+   * (호스트는 그때 `message` 를 넘기지 않는다). 검색 결과 0건도 같은 자리에 같은 모양으로, 글만 바꿔 넘긴다.
    */
   teamEmpty,
   scheduleDefaultDate,
@@ -243,6 +248,8 @@ export default function OneOnOneCanvasV2({
         sortControl={sortControl}
         scopeFilter={scopeFilter}
         scopeNotice={scopeNotice}
+        search={search}
+        baseUrl={baseUrl}
       >
         {!startMember && !bodyOverride && (
           <button type="button" className="ono-add-btn" onClick={handleAdd}>
@@ -321,20 +328,21 @@ export default function OneOnOneCanvasV2({
           )}
 
           {teamEmpty && (
-            <section className="ono-section">
-              <div className="ono-team-empty" data-testid="ono-team-empty">
-                <p className="ono-team-empty-title">{teamEmpty.title}</p>
-                <p className="ono-team-empty-desc">{teamEmpty.description}</p>
-                {teamEmpty.actionLabel && teamEmpty.onAction && (
-                  <button
-                    type="button"
-                    className="ono-team-empty-action"
-                    onClick={teamEmpty.onAction}
-                  >
-                    {teamEmpty.actionLabel}
-                  </button>
-                )}
-              </div>
+            <section className="ono-section ono-team-empty-section">
+              <EmptyState
+                className="ono-team-empty"
+                data-testid="ono-team-empty"
+                icon={<img className="ono-team-empty-paper" src={assetUrl(baseUrl, 'paper-empty.svg')} alt="" />}
+                title={teamEmpty.title}
+                description={teamEmpty.description}
+                actions={
+                  teamEmpty.actionLabel && teamEmpty.onAction ? (
+                    <button type="button" className="ono-team-empty-action" onClick={teamEmpty.onAction}>
+                      {teamEmpty.actionLabel}
+                    </button>
+                  ) : null
+                }
+              />
             </section>
           )}
 

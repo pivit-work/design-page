@@ -133,6 +133,17 @@ const BRIEFING = {
   metrics: { teamHealth: '7.0', redFlags: '1건', oneOnOneAvg: '18일 전' },
 };
 
+/* 제목 아래 필터 줄의 선택지 — 시안(17749:20372·20373)의 「담당 팀원」·「우선순위순」이 첫 값이다. */
+const SCOPE_OPTIONS = [
+  { value: 'mine', label: '담당 팀원' },
+  { value: 'all', label: '전체 팀원' },
+];
+const SORT_OPTIONS = [
+  { value: 'priority', label: '우선순위순' },
+  { value: 'name', label: '이름순' },
+  { value: 'recent', label: '최근 1on1순' },
+];
+
 const KPIS = {
   completion: { current: 3, total: 5, label: '이번 달 예정 5회' },
   actionRate: 72,
@@ -343,8 +354,20 @@ const VIEW_KNOB = {
     { value: 'member-recorded', label: '내 원온원 · 녹음 완료' },
     { value: 'member-saved', label: '내 원온원 · 녹음 저장 · AI 분석 중' },
     { value: 'member-empty', label: '내 원온원 · 지난 회차 없음' },
+    { value: 'team-empty', label: '대시보드 · 담당 팀원 없음' },
   ],
 };
+/* 대시보드 담당 팀원 0명 (Figma 17749:20420 · policy P-Q2) — ?knobs=view:team-empty.
+   호스트는 이때 브리핑·지표·섹션을 넘기지 않고 안내 한 장만 넘긴다. */
+const TEAM_EMPTY_VIEW = 'team-empty';
+const TEAM_EMPTY = {
+  title: '담당하는 팀원이 없습니다.',
+  description: '조직장으로 지정된 조직이 없으면 담당 팀원도 없습니다.\n전체 팀을 선택하면 조직 전원을 볼 수 있습니다.',
+  actionLabel: '전체 팀 보기',
+};
+/* 검색 결과 0건도 같은 화면이다 — 시안 17749:20420 은 검색칸에 「특별한팀」이 든 상태에서 브리핑·지표 없이
+   이 안내만 세운다. */
+const SEARCH_PLACEHOLDER = '팀명으로 검색 해보세요.';
 /* 「내 원온원」 knob — 내가 대상자(guest)인 회차. phase 는 본문 카드, widget 은 오른쪽 녹음 상태
    (Figma 17416:27949 · 17556:23830 · 17556:25936). 녹음 시작·종료는 매니저만 하므로(policy §11.1)
    이 화면의 위젯은 상태만 보여 준다. */
@@ -385,6 +408,13 @@ export default function OneOnOnePage({ icons, baseUrl, active = true, onActivate
   // 제목 탭 — 「대시보드」(팀원들을 보는 매니저) · 「내 원온원」(자기가 팀원으로 받는 1on1)
   // 「내 원온원」 knob(?knobs=view:member-…)으로 들어오면 그 화면이 사는 탭에서 시작한다.
   const [tab, setTab] = useState(() => (MEMBER_VIEWS[knobs.view] || knobs.view === MEMBER_EMPTY_VIEW ? 'mine' : 'dashboard'));
+  // 제목 아래 필터 줄(Figma 17749:20369) — 범위(PW-720)·정렬(PW-1491). 데모는 고른 값만 쥐고
+  // 목록은 바꾸지 않는다(실제 거르기·정렬은 pivit-work 몫). 「전체」를 고르면 넓혀 본 상태 경고가 붙는다.
+  const [scope, setScope] = useState('mine');
+  const [sort, setSort] = useState('priority');
+  // 검색칸(Figma 17749:20407) — 데모는 이름·직무로 거른다(실제 거르기는 pivit-work 몫).
+  const [search, setSearch] = useState('');
+  const teamEmptyView = knobs.view === TEAM_EMPTY_VIEW;
 
   // 데모: 진행 화면 녹음 상태를 페이지가 쥔다 — 「시작하기」 뒤(LIVE)에만 오른쪽 기둥에
   // AI 대화 네비게이터를 보이기 위해서다(판정은 소비처 몫 · policy §5.2.1).
@@ -513,6 +543,37 @@ export default function OneOnOnePage({ icons, baseUrl, active = true, onActivate
   const today = stressMembers(SCHEDULED_TODAY);
   const attention = stressMembers(NEEDS_ATTENTION);
   const good = stressMembers(GOOD);
+  const q = search.trim().toLowerCase();
+  const hit = (m) => !q || `${m.name} ${m.role ?? ''}`.toLowerCase().includes(q);
+  const shown = { today: today.filter(hit), attention: attention.filter(hit), good: good.filter(hit) };
+  const searchEmpty = !!q && !shown.today.length && !shown.attention.length && !shown.good.length;
+  // 담당 팀원 0명 · 검색 결과 0건 — 둘 다 브리핑·지표를 감추고 안내 한 장만 (Figma 17749:20420)
+  const dashEmpty = teamEmptyView || searchEmpty;
+  const dashSections = dashEmpty ? [] : [
+    {
+      key: 'today',
+      title: '오늘 예정',
+      cardTone: 'brand',
+      count: shown.today.length,
+      countColor: 'var(--text-brand-secondary)',
+      members: shown.today,
+    },
+    {
+      key: 'attention',
+      title: '주의 필요',
+      // 시안(16816:33877): 긴급(오늘 예정)까지 포함한 '주의가 필요한 팀원 수'
+      count: shown.today.length + shown.attention.length,
+      countColor: 'var(--text-error-primary)',
+      members: shown.attention,
+    },
+    {
+      key: 'good',
+      title: '양호',
+      count: shown.good.length,
+      countColor: 'var(--colors-foreground-fgSuccessPrimary)',
+      members: shown.good,
+    },
+  ].filter((sec) => sec.members.length > 0);
   // 'loading' 은 0.6초 만에 지나가 버리는 생성 중 상태를 붙잡아 둔다.
   const effGenerating = knobs.async === 'loading' ? 'all' : generatingSection;
 
@@ -529,34 +590,19 @@ export default function OneOnOnePage({ icons, baseUrl, active = true, onActivate
         managerName="김지수"
         teamCount={today.length + attention.length + good.length}
         teamCountLabel={`팀원 ${today.length + attention.length + good.length}명`}
-        briefing={BRIEFING}
-        message="김서윤의 헬스가 급락 중입니다. 2명의 팀원과 원온원이 3주 이상 밀려 있습니다."
-        kpis={KPIS}
-        sections={[
-          {
-            key: 'today',
-            title: '오늘 예정',
-            cardTone: 'brand',
-            count: today.length,
-            countColor: 'var(--text-brand-secondary)',
-            members: today,
-          },
-          {
-            key: 'attention',
-            title: '주의 필요',
-            // 시안(16816:33877): 긴급(오늘 예정)까지 포함한 '주의가 필요한 팀원 수'
-            count: today.length + attention.length,
-            countColor: 'var(--text-error-primary)',
-            members: attention,
-          },
-          {
-            key: 'good',
-            title: '양호',
-            count: good.length,
-            countColor: 'var(--colors-foreground-fgSuccessPrimary)',
-            members: good,
-          },
-        ]}
+        scopeFilter={{ value: scope, options: SCOPE_OPTIONS, onChange: setScope, ariaLabel: '보는 범위' }}
+        sortControl={{ value: sort, options: SORT_OPTIONS, onChange: setSort, ariaLabel: '정렬' }}
+        scopeNotice={scope === 'all' ? '담당 밖까지 보는 중' : undefined}
+        search={{ value: search, onChange: setSearch, placeholder: SEARCH_PLACEHOLDER, ariaLabel: '팀원 검색' }}
+        briefing={dashEmpty ? undefined : BRIEFING}
+        message={dashEmpty ? undefined : '김서윤의 헬스가 급락 중입니다. 2명의 팀원과 원온원이 3주 이상 밀려 있습니다.'}
+        kpis={dashEmpty ? undefined : KPIS}
+        teamEmpty={
+          dashEmpty
+            ? { ...TEAM_EMPTY, onAction: () => { setScope('all'); setSearch(''); setKnob('view', 'default'); } }
+            : undefined
+        }
+        sections={dashSections}
         icons={icons}
         baseUrl={baseUrl}
         managerCandidates={MANAGER_CANDIDATES}

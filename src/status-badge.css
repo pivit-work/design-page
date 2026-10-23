@@ -1121,6 +1121,7 @@
   line-height: var(--line-height-text-sm);
 }
 
+/* 시안(16816:33925) Text xs/Medium · 높이 22 — 종전 md/Semibold 에서 줄었다 (2026-10-23) */
 .ono-member-badge {
   display: inline-flex;
   align-items: center;
@@ -1128,9 +1129,9 @@
   padding: 2px 8px;
   border-radius: var(--radius-xs);
   font-family: var(--font-family-body);
-  font-weight: 600;
-  font-size: var(--font-size-text-md);
-  line-height: var(--line-height-text-md);
+  font-weight: 500;
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
   white-space: nowrap;
 }
 

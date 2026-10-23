@@ -27,7 +27,8 @@
 .logo-btn { border: none; background: none; margin: 0; cursor: pointer; display: block; border-radius: 6px; }
 .logo-btn:hover { opacity: 0.75; }
 .logo-btn:focus-visible { outline: 2px solid var(--colors-border-borderBrand, #4F6AF5); outline-offset: 2px; }
-.menu-list { display: flex; flex-direction: column; padding: 0 0 18px; border-radius: 17px; min-height: 0; overflow-y: auto; }
+/* 스크롤 컨테이너(overflow)에 border-radius 를 주면 첫·끝 항목의 hover 블록 모서리가 그 반지름으로 잘린다 — 시안(8px 블록)과 달라지므로 radius 를 두지 않는다 */
+.menu-list { display: flex; flex-direction: column; padding: 0 0 18px; min-height: 0; overflow-y: auto; }
 .menu-item { display: flex; align-items: center; gap: 12px; padding: 9px 8px; border-radius: 8px; font-size: 14px; font-weight: 700; color: var(--text-secondary); cursor: pointer; letter-spacing: -0.04em; transition: background 0.15s; }
 .menu-item:hover { background: var(--bg-active); }
 .menu-item.active { background: var(--bg-active); color: var(--text-primary); }

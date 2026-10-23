@@ -1,4 +1,5 @@
 import CustomSelect from '../timeline/CustomSelect.jsx';
+import Icon from '../shared/Icon.jsx';
 
 /**
  * 1on1 페이지 상단 제목 줄 — 타이틀 + 「매니저 · 팀원 N명」 메타 + 우측 슬롯.
@@ -19,12 +20,19 @@ import CustomSelect from '../timeline/CustomSelect.jsx';
  * 캔버스가 쓰던 한국어 그대로라 기존 화면은 변화가 없다.
  */
 /*
- * 팀 필터 (PW-720 · 기획 policy §20.3 · arch-design-tokens §9-O-2).
+ * 팀 필터 (PW-720 · 기획 policy §20.3 · arch-design-tokens §9-O-2) · 정렬 (PW-1491).
  *
- * 놓을 자리는 기획이 정했다 — 「팀원 N명」 오른쪽, 같은 줄. 그 줄이 이미 «범위»를 말하는
- * 줄이고, 오른쪽 위는 [1on1 일정 추가] 가, 제목 줄은 제목 글자가 차지한다.
+ * 자리는 제목 줄 **아래 한 줄**(`.ono-filter-row` · Figma 17749:20369, 2026-10-23). 종전엔
+ * 「팀원 N명」 오른쪽 같은 줄에 붙어 있었는데, 시안이 제목 밑 자기 줄로 옮기고 모양도
+ * 시안 「Buttons」(alpha-black-3 바탕 · r 8 · 36 높이) 로 바꿨다. 제목 줄이 sticky 라
+ * 이 줄은 header 바깥 형제로 그린다 — 브리핑 바처럼 스크롤과 함께 올라간다.
  * 부품은 새로 만들지 않고 공용 드롭다운(`CustomSelect`)을 쓴다 — 그 기본 모양은
  * `styles/timeline.css` 에 있으니 이 헤더에 필터를 넘기는 화면은 그 스타일도 불러야 한다.
+ * 「내 원온원」(`metaText`) 에서는 그리지 않는다 — 팀을 보는 화면이 아니다 (17556:23218).
+ *
+ * `search` = { value, onChange(text), placeholder, ariaLabel } — 필터 줄 맨 앞의 검색칸
+ *   (Figma 17749:20407 · 270×40 · alpha-black-3 바탕, 글자가 들어오면 흰 바탕). 거르는 건 호스트가
+ *   한다 — 이 칸은 글자만 넘긴다. 안 넘기면 검색칸이 없다.
  *
  * `scopeFilter` = { value, options: [{value,label}], onChange, ariaLabel }
  * `scopeNotice` = 넓혀 본 상태를 알리는 글자(예: 「담당 밖까지 보는 중」). 넘기면 필터 옆에
@@ -53,11 +61,15 @@ export default function OneOnOnePageHeader({
   scopeFilter,
   sortControl,
   scopeNotice,
+  search,
+  baseUrl = '',
   children,
   actions,
   contained = false,
 }) {
+  const hasFilters = !metaText && (search || scopeFilter || sortControl);
   return (
+    <>
     <header className={`ono-page-header${contained ? ' is-contained' : ''}`}>
       <div className="ono-title-block">
         {titleTabs?.length ? (
@@ -90,38 +102,56 @@ export default function OneOnOnePageHeader({
             <span className="ono-meta-count">
               {teamCountLabel ?? `팀원 ${teamCount}명`}
             </span>
-            {scopeFilter && (
-              <span className={`ono-meta-scope ${scopeNotice ? 'is-widened' : ''}`}>
-                <CustomSelect
-                  value={scopeFilter.value}
-                  onChange={scopeFilter.onChange}
-                  options={scopeFilter.options}
-                  ariaLabel={scopeFilter.ariaLabel}
-                  size="sm"
-                />
-              </span>
-            )}
-            {sortControl && (
-              <span className="ono-meta-scope ono-meta-sort">
-                <CustomSelect
-                  value={sortControl.value}
-                  onChange={sortControl.onChange}
-                  options={sortControl.options}
-                  ariaLabel={sortControl.ariaLabel}
-                  size="sm"
-                />
-              </span>
-            )}
-            {scopeNotice && (
-              <span className="ono-meta-scope-notice" role="status">
-                {scopeNotice}
-              </span>
-            )}
           </div>
         )}
       </div>
       {actions && <div className="ono-member-actions">{actions}</div>}
       {children}
     </header>
+    {hasFilters && (
+      <div className="ono-filter-row" data-testid="ono-filter-row">
+        {search && (
+          <label className={`ono-filter-search${search.value ? ' has-value' : ''}`}>
+            <Icon src="/icons/search-sm.svg" size={20} color="var(--text-tertiary)" baseUrl={baseUrl} />
+            <input
+              type="search"
+              value={search.value ?? ''}
+              placeholder={search.placeholder}
+              aria-label={search.ariaLabel ?? search.placeholder}
+              onChange={(e) => search.onChange?.(e.target.value)}
+              data-testid="ono-filter-search"
+            />
+          </label>
+        )}
+        {scopeFilter && (
+          <span className={`ono-filter${scopeNotice ? ' is-widened' : ''}`}>
+            <CustomSelect
+              value={scopeFilter.value}
+              onChange={scopeFilter.onChange}
+              options={scopeFilter.options}
+              ariaLabel={scopeFilter.ariaLabel}
+              size="sm"
+            />
+          </span>
+        )}
+        {sortControl && (
+          <span className="ono-filter">
+            <CustomSelect
+              value={sortControl.value}
+              onChange={sortControl.onChange}
+              options={sortControl.options}
+              ariaLabel={sortControl.ariaLabel}
+              size="sm"
+            />
+          </span>
+        )}
+        {scopeNotice && (
+          <span className="ono-filter-notice" role="status">
+            {scopeNotice}
+          </span>
+        )}
+      </div>
+    )}
+    </>
   );
 }
