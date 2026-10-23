@@ -169,6 +169,8 @@ export default function EvalUpwardReviewCanvas({
   aiDraftDisabledReason = null,
   // [PW-1520] §6 제출 완료 화면의 「다음 단계」 — [{ key, label, done }]. 없으면 «제출 완료» 띠만.
   doneSteps = null,
+  // [PW-1520] §9 사이클 중도 취소 안내 — 있으면 폼을 잠그고 위에 띠.
+  cancelledNotice = null,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
 
@@ -306,6 +308,7 @@ export default function EvalUpwardReviewCanvas({
       onSaveSuccess={onSaveSuccess}
       aiDraftDisabledReason={aiDraftDisabledReason}
       doneSteps={data.submitted ? doneSteps : null}
+      cancelledNotice={cancelledNotice}
       // 항목별 공개 안내는 끈다 — 그 줄은 옛 항목 필드(visibleToRoles)를 읽어, 값이 비면
       // 「피평가자 본인에게도 공개됩니다」라고 적는다. 상향의 공개는 위 익명 안내가 정본이다
       // (평가지 공개 설정 = 인사담당자만 · 최소 인원). 두 문장이 서로 반대로 말하면 안 된다.

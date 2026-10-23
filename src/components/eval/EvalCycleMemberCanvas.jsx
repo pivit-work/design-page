@@ -76,6 +76,8 @@ const DEFAULT_LABELS = {
   competencyRefBadge: '어드민 설정 역량 항목 참조 가능 (공통·직무·리더십)',
   // §4.1 — 마감이 지났으면 읽기 전용.
   closedNotice: '마감이 지났습니다. 관리자에게 문의하세요.',
+  // [PW-1520] §9 사이클 중도 취소 — 쓰던 글은 화면에 남기고 저장은 안 된다는 것을 함께 말한다.
+  cancelledSub: '작성하던 내용은 이 화면에 그대로 남아 있지만 저장되지는 않습니다. 필요하면 복사해 두세요.',
   // §4.2.1 — 달성률을 안 넣은 KR 이 있는 채 제출하면 묻고, 확인하면 제출한다.
   krUnfilledConfirm: '달성률이 입력되지 않은 KR이 있습니다. 그대로 제출할까요?',
   // §4.9 · §6.1 제출 완료 화면.
@@ -522,6 +524,9 @@ export default function EvalCycleMemberCanvas({
   selfReview = false,
   // [PW-1464] 셀프 마감이 지났다(서버가 저장을 거절하는 판정과 같다) — 읽기 전용 + 안내.
   closed = false,
+  // [PW-1520] §9 «평가 사이클 중도 취소» — 화면이 저장·제출 거절로 알아낸 안내 문장. 있으면 읽기 전용 +
+  // 위에 띠(쓴 글은 지우지 않는다 — 복사할 수 있게 남긴다).
+  cancelledNotice = null,
   // [PW-1464] 셀프 리뷰 요약에서 불러오지 못한 칸 — { oneOnOne, feedback, snippets, okr } 참/거짓.
   activityFailed = null,
   // [PW-1464] 활동 데이터가 하나도 없다(전부 불러왔고 전부 비었다) — 박스 안내 + AI 초안 단추 끔.
@@ -584,7 +589,7 @@ export default function EvalCycleMemberCanvas({
     });
   const submitted = status === 'submitted';
   // [PW-1464] 제출했거나 마감이 지났으면 고칠 수 없다(§4.1). 둘 다 입력을 잠그고 제출 바를 감춘다.
-  const readOnly = submitted || closed;
+  const readOnly = submitted || closed || Boolean(cancelledNotice);
   /** 전체 AI 초안을 한 번 만들었다 — 카드 단추가 「초안 생성 완료」가 된다(§4.3). */
   const [draftDoneAll, setDraftDoneAll] = useState(false);
 
@@ -1738,7 +1743,17 @@ export default function EvalCycleMemberCanvas({
         );
       })()}
 
-      {closed && !submitted && (
+      {cancelledNotice && (
+        <div className="evc-list">
+          <p className="evx-notice is-warn" data-testid="evm-cancelled" role="alert">
+            <span>
+              {cancelledNotice} {L.cancelledSub}
+            </span>
+          </p>
+        </div>
+      )}
+
+      {closed && !submitted && !cancelledNotice && (
         <div className="evc-list">
           <p className="evx-notice is-warn" data-testid="evm-closed">
             {L.closedNotice}
