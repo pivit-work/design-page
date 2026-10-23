@@ -36,8 +36,9 @@ import Icon from '../shared/Icon.jsx';
  *   드롭다운을 감춘다(검색은 범위와 무관하게 찾는다는 뜻) — 다 지우면 다시 보인다.
  *
  * `scopeFilter` = { value, options: [{value,label}], onChange, ariaLabel }
- * `scopeNotice` = 넓혀 본 상태를 알리는 글자(예: 「담당 밖까지 보는 중」). 넘기면 필터 옆에
- *   경고색으로 붙는다 — 넓힌 상태가 평소 화면과 구별돼야 한다(policy P-Q3).
+ * `scopeNotice` = 넓혀 본 상태를 알리는 글자(예: 「담당 밖까지 보는 중」). 눈 아이콘과 함께 넘기면 필터 옆에
+ *   브랜드 3차색으로 붙고, 드롭다운에는 브랜드 포커스 링이 둘린다(Figma 17753:20940) — 넓힌 상태가
+ *   평소 화면과 구별돼야 한다(policy P-Q3).
  * 둘 다 안 넘기면 종전과 같은 화면이다.
  */
 /*
@@ -148,7 +149,8 @@ export default function OneOnOnePageHeader({
         )}
         {scopeNotice && (
           <span className="ono-filter-notice" role="status">
-            {scopeNotice}
+            <Icon src="/icons-solid/eye.svg" size={16} color="var(--text-brand-tertiary)" baseUrl={baseUrl} />
+            <span>{scopeNotice}</span>
           </span>
         )}
       </div>

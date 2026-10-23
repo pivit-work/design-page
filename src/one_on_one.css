@@ -393,6 +393,9 @@
   top: 0;
   z-index: 10;
 }
+/* 바로 밑에 필터 줄이 오면 아래 여백 4px 를 필터 줄 위 여백으로 넘긴다 — 드롭다운의 포커스 링(밖으로 4px)이
+   불투명한 sticky 헤더 밑에 깔려 윗변이 잘려 보였다. 트리거 자리는 그대로다. */
+.ono-page-header:has(+ .ono-filter-row) { padding-bottom: 16px; }
 
 /* 본문 칸에 직접 놓인 개발 추가 헤더는 오른쪽 거터가 없다. */
 .ono-page-header.is-contained { margin-right: 0; }
@@ -448,7 +451,8 @@
   align-items: center;
   flex-wrap: wrap;
   gap: var(--spacing-xl);
-  /* 시안 실측: 필터 줄(검색칸 40 높이) 끝(212) → 브리핑 바(217) */
+  /* 위 4 — 헤더에서 넘겨받은 여백(포커스 링 자리). 시안 실측: 필터 줄(검색칸 40 높이) 끝(212) → 브리핑 바(217) */
+  padding-top: 4px;
   margin-bottom: 5px;
 }
 
@@ -536,18 +540,28 @@
   height: 20px;
 }
 
-/* 넓혀 본 상태 — 평소와 구별돼야 한다(policy P-Q3). 테두리와 옆 글자를 경고색으로. */
-.ono-filter.is-widened .tl-select-trigger {
-  border-color: var(--colors-warning-500);
-  background: var(--colors-warning-50);
-  color: var(--colors-warning-700);
+/* 넓혀 본 상태 — 평소와 구별돼야 한다(policy P-Q3). 시안(Figma 17753:21186, 2026-10-24)은 경고색 대신
+   bg-primary-hover 바탕 + 브랜드 포커스 링(2px 바탕색 + 4px focus-ring)으로 「골라져 있음」을 알린다.
+   열려 있거나 포커스가 와도 같은 링이 보인다(공용 .tl-select 의 안쪽 1px 링은 여기서 덮는다). */
+.ono-filter.is-widened .tl-select-trigger,
+.ono-filter.is-widened .tl-select.is-open .tl-select-trigger,
+.ono-filter.is-widened .tl-select-trigger:focus-visible {
+  border-color: transparent;
+  background: var(--bg-primary-hover);
+  color: var(--text-secondary);
+  box-shadow: 0 0 0 2px var(--bg-primary), 0 0 0 4px var(--focus-ring);
 }
 
+/* 옆 안내(Figma 17753:21349) — 눈 아이콘 16 + xs/Medium 브랜드 3차색, 간격 8 */
 .ono-filter-notice {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-md);
   font-family: var(--font-family-body);
-  font-weight: 700;
-  font-size: var(--font-size-text-sm);
-  color: var(--colors-warning-700);
+  font-weight: 500;
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  color: var(--text-brand-tertiary);
   overflow-wrap: anywhere;
 }
 

@@ -179,6 +179,8 @@
   --border-secondary: var(--colors-border-borderSecondary);
   --border-tertiary: var(--colors-border-borderTertiary);
   --alpha-black-3: var(--componentColors-alpha-alphaBlack3);
+  --bg-primary-hover: var(--colors-background-bgPrimaryHover);
+  --focus-ring: var(--colors-effects-focusRings-focusRing);
   --alpha-black-5: var(--componentColors-alpha-alphaBlack5);
   --alpha-white-80: var(--componentColors-alpha-alphaWhite80);
   --alpha-white-90: var(--componentColors-alpha-alphaWhite90);
