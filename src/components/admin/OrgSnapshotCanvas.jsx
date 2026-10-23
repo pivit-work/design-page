@@ -220,6 +220,9 @@ const DEFAULT_LABELS = {
   historyModeBulk: '대량',
   historyField: '항목',
   historyReason: '사유',
+  // «퇴직» 상세의 퇴사 유형 — 직원 정보 수정 권한 어드민에게만 앱이 실어 준다 (pivit-work PW-1693 · org-snapshot-spec §4)
+  historyOffboardType: '퇴사 유형',
+  historyOffboardNoteWhere: '세부 사유는 구성원 상세에서 봅니다',
   searchEmployee: '이름 또는 사번 검색',
   /* 구성원 설정 › 발령 이력 탭 (PW-2034 · screen-admin-employees-appointments.policy §발령 이력 탭) */
   historyTitle: '발령 이력',
@@ -1968,6 +1971,15 @@ function AppointmentHistoryView({
                   <div className="admin-snap-hist-reason-label">{labels.historyReason}</div>
                   <div className="admin-snap-hist-reason">{selected.reason}</div>
                 </>
+              )}
+              {/* «퇴직» 상세: 퇴사 유형 한 줄 + 세부 사유는 구성원 상세에서 — 앱이 `offboardTypeLabel` 을 실어 줄 때만
+                  (p003 어드민). 위 «사유»에는 퇴사 사유를 싣지 않는다 (pivit-work PW-1693 · org-snapshot-spec §4) */}
+              {selected.typeKey === 'retire' && selected.offboardTypeLabel && (
+                <div data-testid="snap-hist-offboard-type">
+                  <div className="admin-snap-hist-reason-label">{labels.historyOffboardType}</div>
+                  <div className="admin-snap-hist-reason">{selected.offboardTypeLabel}</div>
+                  <div className="admin-snap-hist-processed">{labels.historyOffboardNoteWhere}</div>
+                </div>
               )}
               <div className="admin-snap-hist-processed" data-testid="snap-hist-processed">
                 {String(labels.historyProcessed ?? '')

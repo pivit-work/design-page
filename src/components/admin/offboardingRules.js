@@ -49,6 +49,11 @@ export const ADMIN_OFFBOARDING_DEFAULT_LABELS = {
     contract_end: '계약 만료',
     etc: '기타',
   },
+  // 세부 사유(선택 · 500자) — pivit-work PW-1693 · 퇴사 처리 정책 v1.26 §5-I «어디서 입력하나»
+  noteLabel: '세부 사유 (선택)',
+  notePlaceholder: '예: 다른 회사로 이직 · 계약 기간 종료 · 처우',
+  noteHint: '어드민(직원 정보 수정 권한)만 봅니다. 건강·가족 사정처럼 민감한 내용은 적지 마세요.',
+  noteCount: '{count}/{max}',
   resignationDate: '퇴사일',
   resignationDateRequired: '퇴사일을 넣어야 실행할 수 있습니다',
   lastDay: '마지막 출근일',

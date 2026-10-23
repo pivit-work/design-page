@@ -7,6 +7,7 @@ import FormField from '../shared/FormField.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import TextArea from '../shared/TextArea.jsx';
 import TextInput from '../shared/TextInput.jsx';
+import { NoteText } from '../shared/SharedText.jsx';
 import { ArrowLeftGlyph, CalendarGlyph } from '../shared/lineIcons.jsx';
 import Card from './Card.jsx';
 import { IconAlert } from './employeesIcons.jsx';
@@ -17,6 +18,9 @@ import {
   OFFBOARDING_TYPE_IDS,
   offboardingCanRun,
 } from './offboardingRules.js';
+
+/** 세부 사유 최대 길이 — 서버(pivit-work `OFFBOARDING_NOTE_MAX`)와 같은 수다 (PW-1693 · 정책 v1.26 §5-I). */
+export const OFFBOARDING_NOTE_MAX = 500;
 
 /**
  * AdminOffboardingCanvas — 퇴사 처리(오프보딩) 전체 화면 Pure 컴포넌트 (PW-1081).
@@ -204,6 +208,8 @@ function AreaCard({
  * @param {(iso: string) => string} [props.formatDate] 섹션 3 제목의 날짜 표기
  * @param {(resignationDate: string) => string} [props.confirmDateOf] 고른 퇴사일로 실행하면 퇴사가 확정되는 날
  *   ('YYYY-MM-DD'). 라벨의 `{confirmDate}` 자리를 채운다 — 규칙(기준일 · 14일)은 소비자가 갖는다 (pivit-work PW-2083)
+ * @param {(resignationDate: string) => string} [props.revertDeadlineOf] 고른 퇴사일로 실행하면 퇴사를 취소할 수 있는
+ *   마지막 날('YYYY-MM-DD'). 라벨의 `{deadline}` 자리를 채운다 (pivit-work PW-2142 · 정책 v1.26 §5-F «화면 문구 기준»)
  */
 export default function AdminOffboardingCanvas({
   member,
@@ -218,6 +224,7 @@ export default function AdminOffboardingCanvas({
   labels: providedLabels,
   formatDate,
   confirmDateOf,
+  revertDeadlineOf,
 }) {
   const labels = merge(ADMIN_OFFBOARDING_DEFAULT_LABELS, providedLabels);
   const sep = labels.listSeparator;
@@ -236,6 +243,7 @@ export default function AdminOffboardingCanvas({
   });
   const [reasons, setReasons] = useState({});
   const [typedName, setTypedName] = useState('');
+  const [note, setNote] = useState('');
 
   const isOverridden = (key) => picks[key] !== defaults?.[key];
   const overriddenAreas = CHOICE_AREAS.filter((a) => isOverridden(a.choice.key));
@@ -257,6 +265,9 @@ export default function AdminOffboardingCanvas({
   const dateText = formatDate && resignationDate ? formatDate(resignationDate) : resignationDate;
   const confirmDate = confirmDateOf && resignationDate ? confirmDateOf(resignationDate) : '';
   const confirmDateText = formatDate && confirmDate ? formatDate(confirmDate) : confirmDate;
+  const deadline = revertDeadlineOf && resignationDate ? revertDeadlineOf(resignationDate) : '';
+  const deadlineText = formatDate && deadline ? formatDate(deadline) : deadline;
+  const dateVars = { confirmDate: confirmDateText, deadline: deadlineText };
 
   const areaLabel = (a) => labels.areas[a.id]?.label ?? a.id;
 
@@ -270,6 +281,7 @@ export default function AdminOffboardingCanvas({
       lastDay,
       picks: { ...picks },
       reasons: outReasons,
+      note: note.trim(),
     });
   };
 
@@ -322,6 +334,27 @@ export default function AdminOffboardingCanvas({
                 disabled: running,
                 testId: `offboarding-type-${id}`,
               }))}
+            />
+          </FormField>
+          {/* 세부 사유(선택) — 실행 조건에 들지 않는다. 모양은 같은 화면 «기본값을 덮어쓴 사유» 칸과 같다 (PW-1693 · §5-I) */}
+          <FormField
+            className="dp-field admin-offb-field is-type"
+            label={labels.noteLabel}
+            hint={labels.noteHint}
+            labelExtra={(
+              <NoteText as="span" data-testid="offboarding-note-count">
+                {fill(labels.noteCount, { count: note.length, max: OFFBOARDING_NOTE_MAX })}
+              </NoteText>
+            )}
+          >
+            <TextArea
+              rows={3}
+              value={note}
+              maxLength={OFFBOARDING_NOTE_MAX}
+              placeholder={labels.notePlaceholder}
+              disabled={running}
+              data-testid="offboarding-note"
+              onChange={(e) => setNote(e.target.value.slice(0, OFFBOARDING_NOTE_MAX))}
             />
           </FormField>
           <FormField
@@ -436,11 +469,11 @@ export default function AdminOffboardingCanvas({
             {/* 지우는 처리가 실행되는 때 — 퇴사 확정 밤(퇴사 정책 v1.25 §2 · pivit-work PW-2083). 날짜는 confirmDateOf 로 */}
             {labels.effects.purgeTiming && (
               <li data-testid="offboarding-purge-timing">
-                {fill(labels.effects.purgeTiming, { confirmDate: confirmDateText })}
+                {fill(labels.effects.purgeTiming, dateVars)}
               </li>
             )}
           </ul>
-          <Notice tone="neutral">{labels.effects.retention}</Notice>
+          <Notice tone="neutral">{fill(labels.effects.retention, dateVars)}</Notice>
         </div>
       </Section>
 
@@ -449,8 +482,8 @@ export default function AdminOffboardingCanvas({
         n="4"
         title={labels.sections.confirm}
         desc={!due && labels.sections.confirmDescScheduled
-          ? fill(labels.sections.confirmDescScheduled, { date: dateText, confirmDate: confirmDateText })
-          : fill(labels.sections.confirmDesc, { confirmDate: confirmDateText })}
+          ? fill(labels.sections.confirmDescScheduled, { date: dateText, ...dateVars })
+          : fill(labels.sections.confirmDesc, dateVars)}
       >
         <div className="admin-offb-stack">
           {missingReason.length > 0 && (

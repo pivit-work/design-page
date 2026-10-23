@@ -30,6 +30,7 @@ import ToneBadge from '../shared/StatusBadge.jsx';
 import Chip from '../shared/Chip.jsx';
 import TextInput from '../shared/TextInput.jsx';
 import ArchivedRecordsSection, { ArchivedNote } from './ArchivedRecordsSection.jsx';
+import OffboardingReasonSection from './OffboardingReasonSection.jsx';
 import { ARCHIVED_RECORDS_DEFAULT_LABELS } from './archivedRecordsLabels.js';
 import Select from '../shared/Select.jsx';
 import Radio from '../shared/Radio.jsx';
@@ -443,7 +444,7 @@ const DEFAULT_LABELS = {
     /* 퇴사자 행(PW-1355 · admin-spec §3.1 `⋯` 행 · 초대 §9 E8). 초대 창을 재입사 모드로 연다.
        정정 기간(퇴사일 + 14일) 안에도 뜨고, 그때는 «퇴사 취소»를 먼저 떠올리게 풍선을 단다. */
     rehire: '재입사 초대',
-    rehireRevertHint: '퇴사일부터 14일 안이에요 — 잘못 처리한 퇴사라면 상세 패널에서 «퇴사 취소»를 쓰세요',
+    rehireRevertHint: '퇴사 취소 기간({date}까지)이에요 — 잘못 처리한 퇴사라면 상세 패널에서 «퇴사 취소»를 쓰세요',
     /* 재입사자 보조 배지(PW-1355 · offboarding §5-G 「화면 표시」). 풍선은 부르는 쪽이 만든다(`member.rehireNote`). */
     rehireBadge: '재입사',
     cancelOffboardingTip: '퇴사일 {date} 로 예약되어 있습니다',
@@ -878,7 +879,7 @@ function RowActionMenu({
       {/* 퇴사자 한 명에게 재입사 초대 (PW-1355). 이메일이 지워진 퇴사자(`emailPurged`)는 이을 기록이 없어 새 구성원 초대다. */}
       {onRehire && member.employmentStatus === 'terminated' && !member.emailPurged && (
         member.revertWindow?.state === 'open' ? (
-          <Tooltip content={labels.menu.rehireRevertHint}>
+          <Tooltip content={String(labels.menu.rehireRevertHint ?? '').replace('{date}', member.revertWindow.until ?? '')}>
             <button
               type="button"
               className="admin-emp-row-menu-item"
@@ -3965,6 +3966,9 @@ function EmployeesEditPanel({
      `onDownloadArchivedRecords(memberId, retireDate, reason) => Promise<void>`(실패면 reject).
      미주입이면(어드민 아님) 칸도 «따로 보관 중» 표기도 없다. */
   onLoadArchivedRecords, onDownloadArchivedRecords,
+  /* 퇴사 사유 칸 (pivit-work PW-1693 · 퇴사 처리 정책 v1.26 §5-I) — 퇴사자에게만. `{ stateOf(memberId), typeOnly,
+     onReveal(memberId), onSave(memberId, { type, note }), formatAt }`. 미주입이면(p003 어드민 아님) 칸이 없다(E53). */
+  offboardingReason,
   /* 「발령으로 남습니다」 묶음 (PW-2034). `appointmentTypeOptions` `[{ value, label }]` 를 넘기면 묶음이 켜지고
      소속도 팝업 [적용]이 아니라 [저장]에 함께 나간다. `inferAppointmentType(changes)` 는 바뀐 칸
      `[{ field, before, after }]` 로 미리 고를 유형을 돌려준다(못 가르면 null). 저장은
@@ -4782,7 +4786,10 @@ function EmployeesEditPanel({
           )}
           {revertWindow?.state === 'open' && canEdit && (
             <span className="admin-emp-status-date-note" data-testid="employees-panel-revert-until">
-              {(labels.panel.revertOpenUntil || '퇴사 취소는 {date}까지 할 수 있어요').replace('{date}', revertWindow.until)}
+              {/* 마감일과 다음 날의 확정일을 한 문장에 (pivit-work PW-2142 · 정책 v1.26 §5-F «화면 문구 기준») */}
+              {(labels.panel.revertOpenUntil || '퇴사 취소는 {date}까지 할 수 있어요. 다음 날({confirmDate}) 퇴사가 확정돼요.')
+                .replace('{date}', revertWindow.until)
+                .replace('{confirmDate}', revertWindow.confirmDate ?? '')}
             </span>
           )}
           {revertClosed && (
@@ -4849,6 +4856,18 @@ function EmployeesEditPanel({
                 <span className="admin-emp-status-date-note is-error" role="alert">{dateError}</span>
               )}
           </div>
+
+          {offboardingReason && member.employmentStatus === 'terminated' && (
+            <OffboardingReasonSection
+              key={member.id}
+              state={offboardingReason.stateOf?.(member.id)}
+              typeOnly={Boolean(offboardingReason.typeOnly)}
+              onReveal={() => offboardingReason.onReveal(member.id)}
+              onSave={(input) => offboardingReason.onSave(member.id, input)}
+              formatAt={offboardingReason.formatAt}
+              labels={labels.panel?.offboardingReason}
+            />
+          )}
 
           {onLoadArchivedRecords && (
             <ArchivedRecordsSection
@@ -5392,6 +5411,8 @@ export default function AdminEmployeesCanvas({
   nationalIdEnabled = true,
   onLoadArchivedRecords,
   onDownloadArchivedRecords,
+  /** 퇴사자 상세 «퇴사 사유» 칸 (pivit-work PW-1693) — `EmployeesEditPanel` 의 같은 이름 주석 참조. */
+  offboardingReason,
   onLoadHrProfile,
   /** 「오늘」 `YYYY-MM-DD` — 보는 사람의 내 설정 타임존(PW-781). 인사 기록 생년월일 달력의 상한 (PW-1301) */
   today,
@@ -5505,6 +5526,8 @@ export default function AdminEmployeesCanvas({
         workLocation: m.workLocation || '',
         employmentType: m.employmentType || '',
         revertOpen: m.revertWindow?.state === 'open',
+        // 재입사 모드 안내의 «퇴사 취소 기간({date}까지)» (pivit-work PW-2142)
+        revertUntil: m.revertWindow?.state === 'open' ? m.revertWindow.until : null,
       })),
     [members],
   );
@@ -5767,6 +5790,7 @@ export default function AdminEmployeesCanvas({
             nationalIdEnabled={nationalIdEnabled}
             onLoadArchivedRecords={onLoadArchivedRecords}
             onDownloadArchivedRecords={onDownloadArchivedRecords}
+            offboardingReason={offboardingReason}
           />
         );
       })()}

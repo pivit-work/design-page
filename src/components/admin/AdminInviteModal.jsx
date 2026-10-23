@@ -163,7 +163,7 @@ const DEFAULT_LABELS = {
   /* 재입사 모드(PW-1355 · 초대 §9 E8 · 퇴사 처리 §5-G) — 명부의 퇴사자 이메일을 넣은 행 */
   rehireBadge: '재입사',
   rehireNotice: '이전에 퇴사한 구성원이에요. 수락하면 이전 기록에 이어서 재입사로 등록됩니다.',
-  rehireRevertNotice: '퇴사일부터 14일 안이에요 — 잘못 처리한 퇴사라면 상세 패널에서 «퇴사 취소»를 쓰세요',
+  rehireRevertNotice: '퇴사 취소 기간({date}까지)이에요 — 잘못 처리한 퇴사라면 상세 패널에서 «퇴사 취소»를 쓰세요',
   rehireConfirmedNotice: '퇴사가 확정된 구성원이라 이메일·이름·사번만 미리 채웠어요. 소속·직급·직무 등은 새로 정해 주세요.',
   rehireRoleLocked: '재입사자는 멤버로 시작합니다 — 가입 뒤 권한을 바꾸세요',
   errRehireHireDate: '재입사는 새 입사일이 필요해요',
@@ -1684,7 +1684,7 @@ export default function AdminInviteModal({
                     <StatusBadge tone="neutral" className="admin-emp-role-pill">{labels.rehireBadge}</StatusBadge>{' '}
                     {labels.rehireNotice}
                     {rehire.revertOpen
-                      ? <div>{labels.rehireRevertNotice}</div>
+                      ? <div>{String(labels.rehireRevertNotice ?? '').replace('{date}', rehire.revertUntil ?? '')}</div>
                       : <div data-testid="admin-invite-rehire-confirmed">{labels.rehireConfirmedNotice}</div>}
                   </div>
                 )}
