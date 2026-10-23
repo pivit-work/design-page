@@ -16,7 +16,7 @@ import {
 } from './inviteRules.js';
 import {
   INVITE_CSV_DEFAULT_LABELS, INVITE_CSV_MAX_ROWS,
-  buildInviteCsvContext, buildInviteTemplateCsv, employeeCodeKey, employeeCodeOwnerMap, inviteCsvColumns, inviteCsvIssues,
+  buildInviteCsvContext, buildInviteTemplateCsv, employeeCodeKey, employeeCodeOwnerMap, inviteCsvColumns, inviteCsvIssues, inviteStagingColumns,
   inviteCsvNotes, inviteCsvPayload, parseInviteCsv, resolveInviteCsvRow,
 } from './inviteCsv.js';
 import InviteCsvStagingTable from './InviteCsvStagingTable.jsx';
@@ -920,7 +920,8 @@ export default function AdminInviteModal({
 
   /* CSV 탭 — 칸마다 사유를 만든다. 두 초대 화면이 같은 판정(`inviteCsvIssues`)을 쓴다(PW-902).
      파싱 때 굳혀 두지 않고 매 렌더 다시 만든다 — 표에서 고친 칸의 사유가 바로 사라져야 한다. */
-  const csvColumns = inviteCsvColumns({ jobCategoryEnabled });
+  // 미리보기 열 — 양식 열 + 양식에서 뺀 열(상급자·조직장 …)은 파일에 값이 있을 때만 (PW-2163).
+  const csvColumns = inviteStagingColumns(csvRows, { jobCategoryEnabled });
   const csvPrepared = prepareCsvOptions ? prepareCsvOptions(csvRows, fieldOptions) : null;
   const csvFieldOptions = csvPrepared?.fieldOptions ?? fieldOptions;
   const csvPreparedNotices = csvPrepared?.notices ?? [];

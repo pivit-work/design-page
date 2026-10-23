@@ -27,7 +27,16 @@ import { emailOk, jobPairIssue, nameHasEmail, normEmail } from './inviteRules.js
 export const INVITE_CSV_MAX_ROWS = 500;
 
 /**
- * 초대 CSV 의 열 — **제품에 담을 곳이 있는 인사 정보 전량** (PW-902).
+ * 초대 CSV 의 열 — **구성원 서랍·HR 기록 창에 나오는 필드 81열** (PW-2163 · 초대 정책서 탭 4 «2026-10-19 현행»).
+ * 이름·순서는 기획서 표(`onboarding-app.jsx` `CSV_COLUMNS`)와 같다. 구성원 설정 › CSV 업로드의 템플릿도 이 목록이다.
+ *
+ *  · `templateHidden` 양식(템플릿)에서만 뺀 열 — 상급자(이메일)·조직장(예약)·계약 시작일·계약 종료일·초과근무
+ *    수당. 화면에 없는 칸이라 양식에서 뺐지만 파일에 오면 종전대로 읽는다(David 2026-10-19 «계속 받아»).
+ *  · `legacyHeaders` 옛 66열 양식의 열 이름(«이메일»·«조직경로»·«역할» … · 한국어·영어) — 옛 파일을 그대로 올려도
+ *    같은 칸이다. `aliases` 와 달리 «양식 헤더»로 친다: 구성원 설정 › CSV 업로드의 양식 열 맞추기
+ *    (`matchInviteTemplateColumns`)는 별칭은 안 보고 이것은 본다.
+ *
+ * (PW-902 때의 기준 — 아래 문단은 그때의 기록이다.)
  *
  * 기획서는 「구성원 관리에서 관리자가 입력·수정하는 인사 정보 칸 전부 + 직종 + 조직장」을
  * 받으라고 한다(64칸). 그중 **제품에 담을 칸이 아직 없는 25칸**(급여 유형·계좌·보험·교육 …)은
@@ -46,20 +55,30 @@ export const INVITE_CSV_MAX_ROWS = 500;
  */
 export const INVITE_CSV_COLUMNS = [
   // 신원
-  { key: 'email', labelKey: 'csvColEmail', required: true, kind: 'email', sticky: true, width: 200, aliases: ['이메일*'] },
+  { key: 'email', labelKey: 'csvColEmail', required: true, kind: 'email', sticky: true, width: 200, aliases: ['이메일*'], legacyHeaders: ['이메일', 'Email'] },
   { key: 'name', labelKey: 'csvColName', required: true, sticky: true, width: 110, aliases: ['이름*'] },
   { key: 'lastName', labelKey: 'csvColLastName', width: 80 },
   { key: 'nickname', labelKey: 'csvColNickname', width: 100 },
   { key: 'employeeCode', labelKey: 'csvColEmployeeCode', width: 100 },
   { key: 'birthDate', labelKey: 'csvColBirthDate', kind: 'date', width: 120 },
   { key: 'gender', labelKey: 'csvColGender', kind: 'gender', width: 80 },
-  { key: 'maritalStatus', labelKey: 'csvColMaritalStatus', kind: 'marital', width: 90 },
+  { key: 'maritalStatus', labelKey: 'csvColMaritalStatus', kind: 'marital', width: 90, legacyHeaders: ['결혼 여부'] },
   { key: 'nationality', labelKey: 'csvColNationality', width: 90 },
+  // 81열 양식에서 더한 신원 칸 (PW-2163)
+  { key: 'middleName', labelKey: 'csvColMiddleName', width: 90 },
+  { key: 'nameEn', labelKey: 'csvColNameEn', width: 140 },
+  { key: 'displayName', labelKey: 'csvColDisplayName', width: 120 },
+  { key: 'nicknameEn', labelKey: 'csvColNicknameEn', width: 110 },
+  { key: 'militaryService', labelKey: 'csvColMilitaryService', width: 90 },
+  { key: 'hasDisability', labelKey: 'csvColHasDisability', kind: 'bool', width: 90 },
+  { key: 'disabilityInfo', labelKey: 'csvColDisabilityInfo', width: 120 },
+  { key: 'isVeteranFamily', labelKey: 'csvColIsVeteranFamily', kind: 'bool', width: 110 },
+  { key: 'tshirtSize', labelKey: 'csvColTshirtSize', width: 100 },
   // 연락
   { key: 'phone', labelKey: 'csvColPhone', width: 130 },
   { key: 'personalEmail', labelKey: 'csvColPersonalEmail', kind: 'email', width: 180 },
   { key: 'addressDetail', labelKey: 'csvColAddressDetail', width: 150 },
-  { key: 'addressDistrict', labelKey: 'csvColAddressDistrict', width: 120 },
+  { key: 'addressDistrict', labelKey: 'csvColAddressDistrict', width: 120, legacyHeaders: ['집 주소(동·구)', 'Home address (district)'] },
   { key: 'addressRegion', labelKey: 'csvColAddressRegion', width: 120 },
   { key: 'addressCountry', labelKey: 'csvColAddressCountry', width: 110 },
   { key: 'addressPostalCode', labelKey: 'csvColAddressPostalCode', width: 90 },
@@ -76,14 +95,15 @@ export const INVITE_CSV_COLUMNS = [
   { key: 'jobRank', labelKey: 'csvColJobRank', option: 'jobRank', width: 100 },
   { key: 'jobPosition', labelKey: 'csvColJobPosition', option: 'jobPosition', width: 100 },
   // 조직
-  { key: 'orgPath', labelKey: 'csvColOrgPath', width: 220, aliases: ['team', '팀', '소속팀'] },
+  { key: 'orgPath', labelKey: 'csvColOrgPath', width: 220, aliases: ['team', '팀', '소속팀'], legacyHeaders: ['조직경로', 'Team path'] },
   { key: 'primaryPath', labelKey: 'csvColPrimaryPath', width: 160 },
   { key: 'squad', labelKey: 'csvColSquad', kind: 'list', width: 140 },
-  { key: 'managerEmail', labelKey: 'csvColManager', kind: 'email', width: 190, aliases: ['상급자'] },
-  { key: 'leader', labelKey: 'csvColLeader', kind: 'leader', width: 110, aliases: ['조직장'] },
+  { key: 'hrbpEmail', labelKey: 'csvColHrbp', kind: 'email', width: 190 },
+  { key: 'managerEmail', labelKey: 'csvColManager', kind: 'email', width: 190, aliases: ['상급자'], templateHidden: true },
+  { key: 'leader', labelKey: 'csvColLeader', kind: 'leader', width: 110, aliases: ['조직장'], templateHidden: true },
   // 고용
   { key: 'employmentType', labelKey: 'csvColEmploymentType', option: 'employmentType', width: 100 },
-  { key: 'employmentStatus', labelKey: 'csvColEmploymentStatus', kind: 'status', width: 100 },
+  { key: 'employmentStatus', labelKey: 'csvColEmploymentStatus', kind: 'status', width: 100, legacyHeaders: ['고용상태'] },
   { key: 'ftePercent', labelKey: 'csvColFte', kind: 'fte', width: 70 },
   { key: 'hireDate', labelKey: 'csvColHireDate', kind: 'date', width: 120 },
   { key: 'terminationDate', labelKey: 'csvColTerminationDate', kind: 'date', width: 120 },
@@ -93,15 +113,21 @@ export const INVITE_CSV_COLUMNS = [
   { key: 'employmentTypeStartDate', labelKey: 'csvColEmploymentTypeStartDate', kind: 'date', width: 140 },
   { key: 'lastWorkingDate', labelKey: 'csvColLastWorkingDate', kind: 'date', width: 120 },
   { key: 'isRehire', labelKey: 'csvColIsRehire', kind: 'bool', width: 90 },
+  { key: 'probationEndDate', labelKey: 'csvColProbationEndDate', kind: 'date', width: 120 },
+  { key: 'leaveStartDate', labelKey: 'csvColLeaveStartDate', kind: 'date', width: 120 },
+  { key: 'leaveEndDate', labelKey: 'csvColLeaveEndDate', kind: 'date', width: 120 },
   // 근무지
   { key: 'workCountry', labelKey: 'csvColWorkCountry', option: 'workCountry', width: 110 },
   { key: 'workLocation', labelKey: 'csvColWorkLocation', option: 'workLocation', width: 110, aliases: ['근무지'] },
+  { key: 'workBuilding', labelKey: 'csvColWorkBuilding', option: 'workBuilding', width: 130 },
+  { key: 'workDesk', labelKey: 'csvColWorkDesk', width: 110 },
+  { key: 'officePhone', labelKey: 'csvColOfficePhone', width: 120 },
   // 권한
-  { key: 'role', labelKey: 'csvColRole', kind: 'role', width: 90 },
+  { key: 'role', labelKey: 'csvColRole', kind: 'role', width: 90, legacyHeaders: ['역할', 'Role'] },
   // 근태
   { key: 'workSchedule', labelKey: 'csvColWorkSchedule', option: 'workSchedule', codes: 'workSchedule', width: 110 },
   // 급여·보상 — 🔒
-  { key: 'salary', labelKey: 'csvColSalary', kind: 'salary', masked: true, width: 110, aliases: ['연봉'] },
+  { key: 'salary', labelKey: 'csvColSalary', kind: 'salary', masked: true, width: 110, aliases: ['연봉'], legacyHeaders: ['연봉 총액', 'Annual salary'] },
   /*
     급여 칸 여덟 (PW-920 · 코어 §1-3-g 분류 3). 전부 가장 민감한 등급이라 계좌·보너스는
     미리보기에서 가린다(`masked`). 급여 유형·지급 주기는 회사가 켠 값만 받는다.
@@ -111,26 +137,32 @@ export const INVITE_CSV_COLUMNS = [
   /*
     계약 기간·초과근무 수당 (PW-920 재작업 · 코어 §1-3-g 53·65번). 구성원의 칸이 아니라
     보상 이력의 행이 된다 — 가입 확정 때 서버가 옮긴다. 수당은 가장 민감한 등급이라 가린다.
+    화면(서랍·HR 기록)에 없는 칸이라 81열 양식에서 뺐다 — 파일에 오면 계속 받는다(PW-2163).
   */
-  { key: 'contractStartDate', labelKey: 'csvColContractStartDate', kind: 'date', width: 120 },
-  { key: 'contractEndDate', labelKey: 'csvColContractEndDate', kind: 'date', width: 120 },
-  { key: 'overtimeAllowance', labelKey: 'csvColOvertimeAllowance', kind: 'salary', masked: true, width: 120 },
+  { key: 'contractStartDate', labelKey: 'csvColContractStartDate', kind: 'date', width: 120, templateHidden: true },
+  { key: 'contractEndDate', labelKey: 'csvColContractEndDate', kind: 'date', width: 120, templateHidden: true },
+  { key: 'overtimeAllowance', labelKey: 'csvColOvertimeAllowance', kind: 'salary', masked: true, width: 120, templateHidden: true },
   { key: 'contractOvertime', labelKey: 'csvColContractOvertime', kind: 'hours', width: 110 },
   { key: 'contractHoliday', labelKey: 'csvColContractHoliday', kind: 'hours', width: 110 },
   { key: 'contractNight', labelKey: 'csvColContractNight', kind: 'hours', width: 110 },
   { key: 'targetBonus', labelKey: 'csvColTargetBonus', kind: 'salary', masked: true, width: 110 },
-  { key: 'targetBonusStart', labelKey: 'csvColTargetBonusStart', kind: 'date', width: 120 },
-  { key: 'targetBonusEnd', labelKey: 'csvColTargetBonusEnd', kind: 'date', width: 120 },
+  { key: 'targetBonusStart', labelKey: 'csvColTargetBonusStart', kind: 'date', width: 120, legacyHeaders: ['타겟 보너스 적용 시작', 'Target bonus start date'] },
+  { key: 'targetBonusEnd', labelKey: 'csvColTargetBonusEnd', kind: 'date', width: 120, legacyHeaders: ['타겟 보너스 적용 종료', 'Target bonus end date'] },
   { key: 'bankName', labelKey: 'csvColBankName', width: 100 },
-  { key: 'bankAccount', labelKey: 'csvColBankAccount', masked: true, width: 140 },
+  { key: 'bankAccount', labelKey: 'csvColBankAccount', masked: true, width: 140, legacyHeaders: ['은행 계좌번호', 'Bank account number'] },
   // 복리후생 (분류 6) — 전부 가장 민감한 등급이다.
   { key: 'healthInsuranceProvider', labelKey: 'csvColHealthInsuranceProvider', width: 130 },
   { key: 'insurancePlanType', labelKey: 'csvColInsurancePlanType', width: 120 },
   { key: 'pensionContribution', labelKey: 'csvColPensionContribution', kind: 'salary', masked: true, width: 120 },
   { key: 'stockOptions', labelKey: 'csvColStockOptions', masked: true, width: 120 },
   { key: 'otherBenefits', labelKey: 'csvColOtherBenefits', kind: 'list', width: 160 },
-  // 평가
-  { key: 'certifications', labelKey: 'csvColCertifications', kind: 'list', width: 160, aliases: ['자격증'] },
+  // 전문 분야·스킬 (PW-2163)
+  { key: 'expertise', labelKey: 'csvColExpertise', kind: 'list', width: 160 },
+  { key: 'skills', labelKey: 'csvColSkills', kind: 'list', width: 160 },
+  { key: 'currentWorks', labelKey: 'csvColCurrentWorks', kind: 'list', width: 180 },
+  // 기록
+  { key: 'education', labelKey: 'csvColEducation', width: 160 },
+  { key: 'certifications', labelKey: 'csvColCertifications', kind: 'list', width: 160, aliases: ['자격증'], legacyHeaders: ['자격증 및 면허', 'Certifications & licenses'] },
   { key: 'trainings', labelKey: 'csvColTrainings', kind: 'list', width: 160 },
 ];
 
@@ -141,8 +173,23 @@ export function inviteCsvColumns({ jobCategoryEnabled = false } = {}) {
   );
 }
 
-/** 옛 이름 — 템플릿 열과 받는 열은 같은 목록이다. */
-export const inviteTemplateColumns = inviteCsvColumns;
+/**
+ * 양식(템플릿)의 열 — 받는 열에서 `templateHidden` 다섯을 뺀 81열(직종을 끈 회사 80열 · PW-2163).
+ * 템플릿 파일과 «업로드 양식 그대로»의 열이 이것이다.
+ */
+export function inviteTemplateColumns(opts = {}) {
+  return inviteCsvColumns(opts).filter((c) => !c.templateHidden);
+}
+
+/**
+ * 미리보기 표의 열 — 양식 열에, 양식에서 뺀 열은 파일에 값이 있을 때만 더한다(순서는 받는 열 순서).
+ * 옛 66열 파일의 상급자·조직장 값이 표에서 사라지지 않게 하면서, 양식대로 만든 파일에는 빈 열을 늘어놓지 않는다.
+ */
+export function inviteStagingColumns(rows = [], opts = {}) {
+  return inviteCsvColumns(opts).filter(
+    (c) => !c.templateHidden || rows.some((r) => normalize(r.values?.[c.key])),
+  );
+}
 
 /** 조직경로 구분자 — 계층은 `>`, 겸직 배열은 `|` (`org-snapshot-spec.md §3-A`). */
 export const ORG_PATH_DEPTH_SEP = '>';
@@ -243,18 +290,18 @@ const PAY_CYCLE_EN_LABELS = {
 const CODE_EN_LABELS = { workSchedule: WORK_SCHEDULE_EN_LABELS, payCycle: PAY_CYCLE_EN_LABELS };
 
 export const INVITE_CSV_DEFAULT_LABELS = {
-  csvColEmail: '이메일',
+  csvColEmail: '업무 이메일',
   csvColName: '이름',
   csvColNickname: '닉네임',
   csvColEmployeeCode: '사번',
   csvColBirthDate: '생년월일',
   csvColGender: '성별',
-  csvColMaritalStatus: '결혼 여부',
+  csvColMaritalStatus: '혼인 여부',
   csvColNationality: '국적',
   csvColPhone: '전화번호',
   csvColPersonalEmail: '개인 이메일',
   csvColAddressDetail: '집 주소(상세)',
-  csvColAddressDistrict: '집 주소(동·구)',
+  csvColAddressDistrict: '집 주소(시군구·동)',
   csvColAddressRegion: '집 주소(시·도)',
   csvColAddressCountry: '집 주소(국가)',
   csvColEmergencyName: '비상연락처 이름',
@@ -267,19 +314,19 @@ export const INVITE_CSV_DEFAULT_LABELS = {
   csvColJobLevel: '직급',
   csvColJobRank: '직위',
   csvColJobPosition: '직책',
-  csvColOrgPath: '조직경로',
+  csvColOrgPath: '소속',
   csvColPrimaryPath: '주소속',
   csvColSquad: '스쿼드',
   csvColManager: '상급자(이메일)',
   csvColLeader: '조직장(예약)',
   csvColEmploymentType: '고용형태',
-  csvColEmploymentStatus: '고용상태',
+  csvColEmploymentStatus: '재직 상태',
   csvColFte: 'FTE',
   csvColHireDate: '입사일',
   csvColTerminationDate: '퇴사일',
   csvColWorkCountry: '근무지(국가)',
   csvColWorkLocation: '근무지(도시)',
-  csvColRole: '역할',
+  csvColRole: '권한',
   csvColLastName: '성',
   csvColAddressPostalCode: '집 주소(우편번호)',
   csvColServiceStartDate: '기산일',
@@ -294,16 +341,38 @@ export const INVITE_CSV_DEFAULT_LABELS = {
   csvColContractHoliday: '포괄 계약 시간(휴일)',
   csvColContractNight: '포괄 계약 시간(야간)',
   csvColTargetBonus: '타겟 보너스',
-  csvColTargetBonusStart: '타겟 보너스 적용 시작',
-  csvColTargetBonusEnd: '타겟 보너스 적용 종료',
+  csvColTargetBonusStart: '타겟 보너스 시작',
+  csvColTargetBonusEnd: '타겟 보너스 종료',
   csvColBankName: '은행명',
-  csvColBankAccount: '은행 계좌번호',
+  csvColBankAccount: '계좌번호',
   csvColHealthInsuranceProvider: '건강 보험 제공사',
   csvColInsurancePlanType: '보험 플랜 유형',
   csvColPensionContribution: '퇴직연금 기여금',
   csvColStockOptions: '주식 옵션',
   csvColOtherBenefits: '기타 복리후생',
   csvColTrainings: '수료한 교육 과정',
+  // 81열 양식에서 더한 칸 (PW-2163)
+  csvColMiddleName: '중간 이름',
+  csvColNameEn: '영문명',
+  csvColDisplayName: '표시 이름',
+  csvColNicknameEn: '영어 닉네임',
+  csvColMilitaryService: '병역',
+  csvColHasDisability: '장애 여부',
+  csvColDisabilityInfo: '장애 정보',
+  csvColIsVeteranFamily: '보훈 대상 여부',
+  csvColTshirtSize: '티셔츠 사이즈',
+  csvColHrbp: '담당 HRBP(이메일)',
+  csvColProbationEndDate: '수습 종료일',
+  csvColLeaveStartDate: '휴직 시작일',
+  csvColLeaveEndDate: '휴직 종료일',
+  csvColWorkBuilding: '근무 위치(빌딩)',
+  csvColWorkDesk: '근무 위치(책상)',
+  csvColOfficePhone: '사무실 전화',
+  csvColExpertise: '업무 전문 분야',
+  csvColSkills: '스킬셋',
+  csvColCurrentWorks: '수행 중인 주요 업무',
+  csvColEducation: '학력',
+  csvErrHrbpUnknown: '담당 HRBP «{value}» 은(는) 이 회사의 재직 구성원이 아닙니다',
   csvColContractStartDate: '계약 시작일',
   csvColContractEndDate: '계약 종료일',
   csvColOvertimeAllowance: '초과근무 수당',
@@ -318,8 +387,8 @@ export const INVITE_CSV_DEFAULT_LABELS = {
   csvWorkSelective: '선택적 근무',
   csvWorkShift: '교대 근무',
   csvWorkFlexible: '유연 근무',
-  csvColSalary: '연봉 총액',
-  csvColCertifications: '자격증 및 면허',
+  csvColSalary: '연봉',
+  csvColCertifications: '자격증',
   csvColStatus: '상태',
   roleMember: '멤버',
   roleAdmin: '어드민',
@@ -514,7 +583,7 @@ const TEMPLATE_SAMPLE_CODE = { payType: 'annual', payCycle: 'monthly', workSched
 /** 템플릿 CSV 텍스트 — BOM + 헤더 + 예시 1행. 직종을 켠 회사면 직종 열이 든다. */
 export function buildInviteTemplateCsv(labels = {}, opts = {}) {
   const l = withDefaults(labels);
-  const columns = inviteCsvColumns(opts);
+  const columns = inviteTemplateColumns(opts);
   const header = columns.map((c) => l[c.labelKey] || c.key);
   const sample = columns.map((c) => {
     if (c.masked) return '';
@@ -748,7 +817,7 @@ export function parseInviteCsv(
   const columns = inviteCsvColumns({ jobCategoryEnabled });
   const dateKeys = new Set(columns.filter((c) => c.kind === 'date').map((c) => c.key));
   const namesOf = (c) => [
-    l[c.labelKey], INVITE_CSV_DEFAULT_LABELS[c.labelKey], c.key, ...(c.aliases || []),
+    l[c.labelKey], INVITE_CSV_DEFAULT_LABELS[c.labelKey], c.key, ...(c.aliases || []), ...(c.legacyHeaders || []),
   ].map(foldHeader).filter(Boolean);
   const categoryColumn = INVITE_CSV_COLUMNS.find((c) => c.key === 'jobCategory');
 
@@ -1051,6 +1120,17 @@ export function inviteCsvIssues(row, ctx) {
     }
   }
 
+  // 담당 HRBP — 이 회사의 재직 구성원만(편집 패널·CSV 업로드와 같다 · PW-2163). 같은 파일로 초대하는 사람은
+  // 아직 계정이 없어 가입 때 붙일 수 없다.
+  const hrbp = normEmail(v.hrbpEmail);
+  if (hrbp) {
+    if (!emailOk(hrbp)) {
+      add('hrbpEmail', fmtCsv(l.csvErrEmailFormat, { column: labelOf('hrbpEmail'), value: v.hrbpEmail }));
+    } else if (!ctx.supervisorEmails.has(hrbp)) {
+      add('hrbpEmail', fmtCsv(l.csvErrHrbpUnknown, { value: v.hrbpEmail }));
+    }
+  }
+
   if (r.employmentStatus === null) add('employmentStatus', fmtCsv(l.csvErrStatus, { value: v.employmentStatus }));
   else if (r.employmentStatus && ctx.blockedEmploymentStatuses?.has(r.employmentStatus)) {
     add('employmentStatus', fmtCsv(l.csvErrStatusNotInvitable, { value: normalize(v.employmentStatus) }));
@@ -1145,6 +1225,7 @@ export function inviteCsvPayload(row, ctx) {
       case 'email': case 'name': case 'role': case 'orgPath': case 'primaryPath': case 'leader':
         break;
       case 'managerEmail': put('managerEmail', normEmail(raw)); break;
+      case 'hrbpEmail': put('hrbpEmail', normEmail(raw)); break;
       case 'employmentStatus': put('employmentStatus', r.employmentStatus); break;
       default: put(col.key, raw);
     }
