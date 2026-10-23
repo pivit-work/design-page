@@ -128,6 +128,10 @@ const DEFAULT_LABELS = {
     saved: '✓ 저장됐습니다',
     saveFailed: '저장 실패 — 다시 시도',
     addFailed: '부양가족을 추가하지 못했습니다. 입력을 확인하고 다시 시도해 주세요.',
+    dependentIsDependent: '부양 여부',
+    edit: '고치기',
+    saveEdit: '저장',
+    editFailed: '부양가족을 고치지 못했습니다. 입력을 확인하고 다시 시도해 주세요.',
   },
   org: {
     current: '현재 조직',
@@ -222,6 +226,7 @@ const DEFAULT_LABELS = {
     history: '보상 이력',
     salaryTotal: '연봉 (총액)',
     effectiveDate: '적용 시작일',
+    currency: '통화',
     reveal: '보기',
     hide: '가리기',
     empty: '등록된 보상 정보가 없습니다.',
@@ -306,6 +311,15 @@ const DEFAULT_LABELS = {
     language: '언어',
     joinDate: '입사일',
     joinDateHint: '입사일은 어드민에서만 변경 가능합니다.',
+    employmentSection: '고용·근무 위치',
+    adminManagedBadge: '어드민 관리',
+    employmentNote: '값이 실제와 다르면 인사 담당자에게 알려 주세요. 이 화면에서는 수정할 수 없습니다.',
+    benefitsSection: '복리후생·교육',
+    trainingsTitle: '수료한 교육 과정',
+    trainingsEmpty: '수료한 교육 과정이 없습니다.',
+    benefitsLoadError: '복리후생·교육 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
+    benefitsReveal: '보기',
+    benefitsHide: '가리기',
     save: '변경사항 저장',
     saving: '저장 중…',
     saved: '✓ 저장됐습니다',
@@ -589,20 +603,22 @@ function AvatarBox({ photoUrl, initial, color, className, testId }) {
 }
 
 /* ── 보상 마스킹 ─────────────────────────────────────── */
-const SALARY_MASK = '●●●,●●●,●●● 원';
-function formatKRW(amount) {
+/* 원화는 «원», 그 밖의 통화는 통화 코드를 붙인다 — 금액을 넣을 때 어드민이 고른 통화다(PW-1477). */
+const unitOf = (currency) => (!currency || currency === 'KRW' ? '원' : currency);
+const SALARY_MASK = '●●●,●●●,●●●';
+function formatAmount(amount, currency) {
   if (amount == null || amount === '') return '-';
   const n = typeof amount === 'string' ? Number(amount) : amount;
   if (Number.isNaN(n)) return '-';
-  return `${n.toLocaleString('ko-KR')} 원`;
+  return `${n.toLocaleString('ko-KR')} ${unitOf(currency)}`;
 }
-function MaskedAmount({ amount, revealed, testId }) {
+function MaskedAmount({ amount, currency, revealed, testId }) {
   return (
     <span
       className={`msc-amount${revealed ? '' : ' is-masked'}`}
       data-testid={testId}
     >
-      {revealed ? formatKRW(amount) : SALARY_MASK}
+      {revealed ? formatAmount(amount, currency) : `${SALARY_MASK} ${unitOf(currency)}`}
     </span>
   );
 }
@@ -677,6 +693,71 @@ function ReadonlyPairs({ pairs }) {
         </div>
       ))}
     </div>
+  );
+}
+
+/* ═══ 기본 정보 › 고용·근무 위치 (읽기 전용 · PW-1477 · my-settings §4.3) ═══
+   어드민이 넣은 값을 본인이 보고 틀렸으면 알아채는 자리다 — 비어도 감추지 않는다. */
+function EmploymentCard({ employment, labels }) {
+  const L = labels.profile;
+  return (
+    <Card testId="profile-employment-card">
+      <div className="msc-vis-header" style={{ marginBottom: 10 }}>
+        <div className="admin-section-label" style={{ flex: 1, marginBottom: 0 }}>{L.employmentSection}</div>
+        <StatusBadge className="msc-hist-badge" data-testid="profile-employment-admin-badge">{L.adminManagedBadge}</StatusBadge>
+      </div>
+      <ReadonlyPairs pairs={employment.pairs || []} />
+      <p className="msc-field-note">{L.employmentNote}</p>
+    </Card>
+  );
+}
+
+/* ═══ 기본 정보 › 복리후생·교육 (읽기 전용 · PW-1477 · my-settings §4.3) ═══
+   `masked` 줄(주식 옵션)은 보상 탭처럼 «보기»를 눌러야 보인다. */
+const BENEFIT_MASK = '●●●●●●';
+function BenefitsCard({ benefits, labels }) {
+  const L = labels.profile;
+  const [revealed, setRevealed] = useState(false);
+  const pairs = benefits.pairs || [];
+  const trainings = benefits.trainings || [];
+  const hasMasked = pairs.some((p) => p.masked);
+  const shown = pairs.map((p) => (p.masked && !revealed ? { ...p, value: BENEFIT_MASK } : p));
+  return (
+    <Card testId="profile-benefits-card">
+      <div className="msc-vis-header" style={{ marginBottom: 10 }}>
+        <div className="admin-section-label" style={{ flex: 1, marginBottom: 0 }}>{L.benefitsSection}</div>
+        {hasMasked && !benefits.loading && !benefits.error && (
+          <button type="button" className={`admin-notif-btn is-sm ${revealed ? 'is-primary' : 'is-soft'}`}
+            onClick={() => setRevealed((v) => !v)} data-testid="profile-benefits-reveal">
+            {revealed ? L.benefitsHide : L.benefitsReveal}
+          </button>
+        )}
+      </div>
+      {benefits.loading ? (
+        <SkeletonList data-testid="profile-benefits-loading" />
+      ) : benefits.error ? (
+        <div className="msc-empty-state" data-testid="profile-benefits-error">{L.benefitsLoadError}</div>
+      ) : (
+        <>
+          <ReadonlyPairs pairs={shown} />
+          <div className="msc-pair-label" style={{ marginTop: 14 }}>{L.trainingsTitle}</div>
+          {trainings.length === 0 ? (
+            <div className="msc-empty-state" data-testid="profile-trainings-empty">{L.trainingsEmpty}</div>
+          ) : (
+            <div className="msc-list">
+              {trainings.map((tr) => (
+                <div key={tr.id} className="msc-list-row" data-testid={`profile-training-${tr.id}`}>
+                  <div style={{ flex: 1 }}>
+                    <div className="msc-notif-label">{tr.name}</div>
+                    {tr.sub && <div className="msc-notif-sub">{tr.sub}</div>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </Card>
   );
 }
 
@@ -765,7 +846,7 @@ function MyProfileTab({ me, activePhoto, myProfile, labels, onEdit }) {
           <div className="msc-comp-grid">
             <div>
               <div className="msc-pair-label">{L.salaryTotal}</div>
-              <MaskedAmount amount={mp.compCurrent.amount} revealed={revealComp} testId="myprofile-comp-amount" />
+              <MaskedAmount amount={mp.compCurrent.amount} currency={mp.compCurrent.currency} revealed={revealComp} testId="myprofile-comp-amount" />
             </div>
             <div>
               <div className="msc-pair-label">{L.effectiveDate}</div>
@@ -781,7 +862,7 @@ function MyProfileTab({ me, activePhoto, myProfile, labels, onEdit }) {
 }
 
 /* ═══ 가족 정보 ═══ */
-function FamilyTab({ family, today, labels, saveState, onSave, onAddDependent, onDeleteDependent, loadError = false, onRetry, fillRequestFields = [] }) {
+function FamilyTab({ family, today, labels, saveState, onSave, onAddDependent, onUpdateDependent, onDeleteDependent, loadError = false, onRetry, fillRequestFields = [] }) {
   const L = labels.family;
   // 딱지는 **저장된** 값을 본다 — 입력 중인 값이 아니다. 저장해야 사라진다.
   // 못 불러온 동안(family 가 없음)은 비었는지 알 수 없으니 붙이지 않는다.
@@ -799,7 +880,10 @@ function FamilyTab({ family, today, labels, saveState, onSave, onAddDependent, o
     setEc(fam.emergencyContact || {});
   }
   const [adding, setAdding] = useState(false);
-  const [dep, setDep] = useState({ name: '', relation: 'spouse', dateOfBirth: '', isDependent: true });
+  // 고치는 중인 부양가족 id (PW-1477). 추가와 같은 폼을 그 사람 값으로 채워 연다.
+  const [editingId, setEditingId] = useState(null);
+  const emptyDep = { name: '', relation: 'spouse', dateOfBirth: '', isDependent: true };
+  const [dep, setDep] = useState(emptyDep);
 
   const dependents = fam.dependents || [];
   const childrenCount = dependents.filter((d) => d.relation === 'child').length;
@@ -808,21 +892,33 @@ function FamilyTab({ family, today, labels, saveState, onSave, onAddDependent, o
   // 거절하면 아무것도 안 들어갔는데 안내도 없이 입력만 사라졌다.
   const [depSaving, setDepSaving] = useState(false);
   const [depError, setDepError] = useState('');
+  const closeForm = () => {
+    setAdding(false);
+    setEditingId(null);
+    setDep(emptyDep);
+    setDepError('');
+  };
+  const startEdit = (d) => {
+    setAdding(false);
+    setEditingId(d.id);
+    setDep({ name: d.name || '', relation: d.relation || 'spouse', dateOfBirth: d.dateOfBirth || '', isDependent: d.isDependent !== false });
+    setDepError('');
+  };
   const submitDependent = async () => {
-    if (!dep.name || !onAddDependent || depSaving) return;
+    const save = editingId ? onUpdateDependent && ((v) => onUpdateDependent(editingId, v)) : onAddDependent;
+    if (!dep.name.trim() || !save || depSaving) return;
     setDepSaving(true);
     setDepError('');
     try {
-      await onAddDependent(dep);
+      await save(dep);
     } catch {
       // 서버 문구는 영문 검증 문구일 수 있어 그대로 옮기지 않는다 — 화면 문구로 알린다.
       setDepSaving(false);
-      setDepError(L.addFailed);
+      setDepError(editingId ? L.editFailed : L.addFailed);
       return;
     }
     setDepSaving(false);
-    setDep({ name: '', relation: 'spouse', dateOfBirth: '', isDependent: true });
-    setAdding(false);
+    closeForm();
   };
 
   // 못 불러온 채로 빈 칸을 그리면 한 칸만 고쳐 저장해도 나머지가 빈 값으로 덮인다 —
@@ -883,7 +979,7 @@ function FamilyTab({ family, today, labels, saveState, onSave, onAddDependent, o
           <span className="msc-nav-title">{L.childrenCount(childrenCount)}</span>
         </div>
         <p className="msc-tab-intro">{L.dependentsNote}</p>
-        {dependents.length === 0 && !adding ? (
+        {dependents.length === 0 && !adding && !editingId ? (
           <div className="msc-empty-state" data-testid="dependents-empty">{L.dependentsEmpty}</div>
         ) : (
           <div className="msc-list">
@@ -898,6 +994,12 @@ function FamilyTab({ family, today, labels, saveState, onSave, onAddDependent, o
                 <StatusBadge className={`msc-vis-badge is-${d.isDependent ? 'green' : 'muted'}`}>
                   {d.isDependent ? L.isDependent : L.notDependent}
                 </StatusBadge>
+                {onUpdateDependent && (
+                  <button type="button" className="admin-notif-btn is-soft is-sm" aria-label={`${L.edit} ${d.name}`}
+                    data-testid={`dependent-edit-${d.id}`} disabled={depSaving} onClick={() => startEdit(d)}>
+                    {L.edit}
+                  </button>
+                )}
                 {onDeleteDependent && (
                   <button type="button" className="msc-list-del" aria-label={L.delete}
                     data-testid={`dependent-del-${d.id}`} onClick={() => onDeleteDependent(d.id)}>×</button>
@@ -906,8 +1008,8 @@ function FamilyTab({ family, today, labels, saveState, onSave, onAddDependent, o
             ))}
           </div>
         )}
-        {adding ? (
-          <div className="msc-add-form" data-testid="dependent-add-form">
+        {adding || editingId ? (
+          <div className="msc-add-form" data-testid={editingId ? 'dependent-edit-form' : 'dependent-add-form'}>
             <div className="msc-grid-3col">
               <TextInput className="admin-emp-input" placeholder={L.dependentName} value={dep.name}
                 onChange={(e) => setDep((p) => ({ ...p, name: e.target.value }))} aria-label={L.dependentName} />
@@ -918,13 +1020,21 @@ function FamilyTab({ family, today, labels, saveState, onSave, onAddDependent, o
               <DateInput className="admin-emp-input" value={dep.dateOfBirth}
                 onChange={(v) => setDep((p) => ({ ...p, dateOfBirth: v }))} aria-label={L.dependentDob}
                 startView="year" max={today} today={today} />
+              <Select className="admin-emp-input" value={dep.isDependent ? 'true' : 'false'}
+                onChange={(e) => setDep((p) => ({ ...p, isDependent: e.target.value === 'true' }))} aria-label={L.dependentIsDependent}>
+                <option value="true">{L.isDependent}</option>
+                <option value="false">{L.notDependent}</option>
+              </Select>
             </div>
             {depError && (
-              <div className="msc-input-error" role="alert" data-testid="dependent-add-error">{depError}</div>
+              <div className="msc-input-error" role="alert" data-testid={editingId ? 'dependent-edit-error' : 'dependent-add-error'}>{depError}</div>
             )}
             <div className="msc-add-actions">
-              <button type="button" className="admin-notif-btn is-soft is-sm" onClick={() => { setAdding(false); setDepError(''); }}>{L.cancel}</button>
-              <button type="button" className="admin-notif-btn is-primary is-sm" onClick={submitDependent} disabled={depSaving} data-testid="dependent-add-submit">{L.add}</button>
+              <button type="button" className="admin-notif-btn is-soft is-sm" onClick={closeForm}>{L.cancel}</button>
+              <button type="button" className="admin-notif-btn is-primary is-sm" onClick={submitDependent} disabled={depSaving}
+                data-testid={editingId ? 'dependent-edit-submit' : 'dependent-add-submit'}>
+                {editingId ? L.saveEdit : L.add}
+              </button>
             </div>
           </div>
         ) : (
@@ -1244,11 +1354,16 @@ function CompensationTab({ compensation, isAdmin, labels }) {
               <div className="msc-comp-grid">
                 <div>
                   <div className="msc-pair-label">{L.salaryTotal}</div>
-                  <MaskedAmount amount={comp.current.amount} revealed={showCurrent} testId="compensation-current-amount" />
+                  <MaskedAmount amount={comp.current.amount} currency={comp.current.currency} revealed={showCurrent} testId="compensation-current-amount" />
                 </div>
                 <div>
                   <div className="msc-pair-label">{L.effectiveDate}</div>
                   <div className="msc-pair-value">{comp.current.effectiveDate || '-'}</div>
+                </div>
+                {/* 통화는 가리지 않는다 — 기획서 §4-E.1 「통화 항상 표시」 (PW-1477) */}
+                <div>
+                  <div className="msc-pair-label">{L.currency}</div>
+                  <div className="msc-pair-value" data-testid="compensation-current-currency">{comp.current.currency || 'KRW'}</div>
                 </div>
               </div>
             </Card>
@@ -1268,7 +1383,7 @@ function CompensationTab({ compensation, isAdmin, labels }) {
                 {comp.history.map((h, i) => (
                   <div key={i} className="msc-list-row" data-testid={`comp-history-${i}`}>
                     <span className="msc-mono" style={{ minWidth: 88 }}>{h.effectiveDate}</span>
-                    <MaskedAmount amount={h.amount} revealed={showHistory} />
+                    <MaskedAmount amount={h.amount} currency={h.currency} revealed={showHistory} />
                     {h.reason && <StatusBadge className="msc-reason-chip">{h.reason}</StatusBadge>}
                   </div>
                 ))}
@@ -1454,6 +1569,8 @@ export default function MySettingsCanvas({
   onFamilyRetry,
   onSaveFamily,
   onAddDependent,
+  /** (id, { name, relation, dateOfBirth, isDependent }) => Promise — 실패하면 폼을 열어 둔다 (PW-1477) */
+  onUpdateDependent,
   onDeleteDependent,
   /* 조직 정보 */
   org = null,
@@ -1470,6 +1587,9 @@ export default function MySettingsCanvas({
   performance = null,
   performanceLoading = false,
   performanceError = false,
+  /* 기본 정보 탭 읽기 전용 블록 (PW-1477) — { pairs } / { pairs, trainings, loading, error } */
+  employment = null,
+  benefits = null,
   /* 변경 이력 (PW-460) */
   history = null,
   historyLoading = false,
@@ -1853,6 +1973,7 @@ export default function MySettingsCanvas({
               onRetry={onFamilyRetry}
               onSave={onSaveFamily}
               onAddDependent={onAddDependent}
+              onUpdateDependent={onUpdateDependent}
               onDeleteDependent={onDeleteDependent}
               fillRequestFields={fillRequestFields}
             />
@@ -2324,6 +2445,9 @@ export default function MySettingsCanvas({
                   <p className="msc-field-note">{labels.profile.joinDateHint}</p>
                 </Field>
               </Card>
+
+              {employment && <EmploymentCard employment={employment} labels={labels} />}
+              {benefits && <BenefitsCard benefits={benefits} labels={labels} />}
 
               <button
                 type="button"
