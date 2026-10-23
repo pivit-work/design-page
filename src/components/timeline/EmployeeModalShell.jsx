@@ -19,6 +19,8 @@ export default function EmployeeModalShell({
   submitLabel = '추가',
   cancelLabel = '취소',
   closeLabel = '닫기',
+  // 푸터 «안»을 바꿔 끼운다 — ModalShell 과 같다(undefined 면 기본 취소/추가). 내부 직원 «바로 넣기»가 [닫기] 하나만 둔다.
+  footer,
   children,
 }) {
   return (
@@ -35,6 +37,7 @@ export default function EmployeeModalShell({
       className="tl-emp-modal"
       contentClassName="tl-emp-modal-content"
       bodyClassName="tl-emp-modal-body"
+      footer={footer}
     >
       {children}
     </ModalShell>

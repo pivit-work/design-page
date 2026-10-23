@@ -16,6 +16,9 @@ import useTimelineData from './useTimelineData.js';
  *                   groupId 는 지금 골라진 그룹 — 그 그룹에 이미 든 사람을 빼는 데 쓴다 (PW-1513)
  *   initialGroupId  처음 골라져 있을 그룹 (groups 에 있을 때만)
  *   initialColor    처음 골라져 있을 색
+ *   quickAdd        «바로 넣기» (pivit-work PW-1513 · 피드 정책서 §2.3) — 그룹 머리 [+] 로 열어 그룹이 정해졌을 때.
+ *                   그룹·색 칸을 빼고 후보 목록을 늘 펼쳐 두며, 후보를 누르면 곧바로 onSubmit 하고 창은 열어 둔다
+ *                   (이어서 넣기). 넣은 사람은 호출부의 filterMembers 가 빼서 목록에서 사라진다. 아래는 [닫기] 하나
  *   labels          { title, searchLabel, searchPlaceholder, clearSelection, groupLabel,
  *                     groupPlaceholder, noGroups, colorLabel, submit, cancel, close } — 화면 언어
  */
@@ -45,6 +48,7 @@ export default function InternalEmployeeModal({
   filterMembers = defaultFilter,
   initialGroupId,
   initialColor = '',
+  quickAdd = false,
   labels,
 }) {
   const data = useTimelineData();
@@ -66,6 +70,15 @@ export default function InternalEmployeeModal({
   const handleSubmit = () => {
     onSubmit({ memberId: selectedMember.id, groupId, color });
   };
+  const listOpen = quickAdd ? true : searchOpen && !selectedMember;
+  const pick = (m) => {
+    if (quickAdd) {
+      onSubmit({ memberId: m.id, groupId, color });
+      return;
+    }
+    setSelectedMember(m);
+    setSearchOpen(false);
+  };
 
   return (
     <EmployeeModalShell
@@ -76,12 +89,23 @@ export default function InternalEmployeeModal({
       submitLabel={l.submit}
       cancelLabel={l.cancel}
       closeLabel={l.close}
+      footer={
+        quickAdd ? (
+          <button
+            type="button"
+            className="tl-group-modal-btn tl-group-modal-btn-secondary"
+            onClick={onClose}
+          >
+            {l.close}
+          </button>
+        ) : undefined
+      }
     >
       {/* 직원 검색 */}
       <div className="tl-emp-field">
         <label className="tl-emp-label">{l.searchLabel}</label>
         <div className="tl-emp-search-wrap" ref={searchWrapRef}>
-          {selectedMember ? (
+          {selectedMember && !quickAdd ? (
             <div className="tl-emp-search-selected">
               <StatusBadge className="tl-emp-tag">
                 <span className="tl-emp-tag-avatar" aria-hidden="true">
@@ -112,7 +136,7 @@ export default function InternalEmployeeModal({
               onBlur={() => setTimeout(() => setSearchOpen(false), 120)}
             />
           )}
-          {searchOpen && !selectedMember && filtered.length > 0 && (
+          {listOpen && filtered.length > 0 && (
             <div className="tl-emp-search-menu" role="listbox">
               {filtered.map((m) => (
                 <button
@@ -121,8 +145,7 @@ export default function InternalEmployeeModal({
                   className="tl-emp-search-item"
                   onMouseDown={(e) => {
                     e.preventDefault();
-                    setSelectedMember(m);
-                    setSearchOpen(false);
+                    pick(m);
                   }}
                 >
                   <span className="tl-emp-search-avatar" aria-hidden="true">
@@ -137,24 +160,29 @@ export default function InternalEmployeeModal({
         </div>
       </div>
 
-      {/* 그룹 */}
-      <div className="tl-emp-field">
-        <label htmlFor="tl-emp-group" className="tl-emp-label">{l.groupLabel}</label>
-        <CustomSelect
-          id="tl-emp-group"
-          value={groupId}
-          onChange={setGroupId}
-          placeholder={l.groupPlaceholder}
-          emptyLabel={l.noGroups}
-          options={groups.map((g) => ({ value: g.id, label: g.label }))}
-        />
-      </div>
+      {/* 그룹·색상 — «바로 넣기»는 그룹이 정해져 있고 색은 호출부가 정한 기본값이라 칸을 그리지 않는다 */}
+      {!quickAdd && (
+        <>
+          {/* 그룹 */}
+          <div className="tl-emp-field">
+            <label htmlFor="tl-emp-group" className="tl-emp-label">{l.groupLabel}</label>
+            <CustomSelect
+              id="tl-emp-group"
+              value={groupId}
+              onChange={setGroupId}
+              placeholder={l.groupPlaceholder}
+              emptyLabel={l.noGroups}
+              options={groups.map((g) => ({ value: g.id, label: g.label }))}
+            />
+          </div>
 
-      {/* 색상 */}
-      <div className="tl-emp-field">
-        <label className="tl-emp-label">{l.colorLabel}</label>
-        <ColorPicker value={color} onChange={setColor} ariaLabel={l.colorAriaLabel} />
-      </div>
+          {/* 색상 */}
+          <div className="tl-emp-field">
+            <label className="tl-emp-label">{l.colorLabel}</label>
+            <ColorPicker value={color} onChange={setColor} ariaLabel={l.colorAriaLabel} />
+          </div>
+        </>
+      )}
     </EmployeeModalShell>
   );
 }
