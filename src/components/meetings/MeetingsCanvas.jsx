@@ -169,6 +169,14 @@ export default function MeetingsCanvas({
    * (screen-tier-gating.policy.md §6.6 「숨기지 않는다 · 누르면 안내」).
    */
   startNotice = null,
+  /**
+   * Google Calendar 연동 안내 띠 (pivit-work PW-1511 · 회의록 목록 정책서 §3.1·§4.3).
+   *
+   * `{ tone: 'warning' | 'error', message, actionLabel, onAction }`. 미연동이면 노란 띠 + [연동하기],
+   * 연결은 됐는데 다시 로그인해야 하면 빨간 띠 + [재연동]. 회의 카드 위 전체 너비 한 자리.
+   * 문구·이동은 소비처가 쥔다. 없으면 띠가 없다(종전 화면 그대로).
+   */
+  calendarNotice = null,
   progressData,
   recordData,
   shareData,
@@ -242,6 +250,35 @@ export default function MeetingsCanvas({
               onClick={startLock.onAction}
             >
               {startLock.actionLabel}
+            </button>
+          )}
+        </div>
+      )}
+      {/* 캘린더 연동 안내 (PW-1511) — 바로 위 잠금 띠와 같은 자리·같은 모양이다. 빨간 띠의 경고 아이콘은
+          회의 동기화 실패 알림(MeetingSyncToast)의 것을 그대로 쓴다. */}
+      {calendarNotice?.message && (
+        <div
+          className={`mtg-calendar-banner ${calendarNotice.tone === 'error' ? 'is-error' : 'is-warning'}`}
+          role={calendarNotice.tone === 'error' ? 'alert' : 'status'}
+          data-testid="mtg-calendar-banner"
+        >
+          {calendarNotice.tone === 'error' && (
+            <Icon
+              src="/icons-solid/alert-circle.svg"
+              size={16}
+              color="var(--utility-error-500)"
+              baseUrl={baseUrl}
+              className="mtg-calendar-banner-icon"
+            />
+          )}
+          <span className="mtg-calendar-banner-text">{calendarNotice.message}</span>
+          {calendarNotice.actionLabel && calendarNotice.onAction && (
+            <button
+              type="button"
+              className="mtg-calendar-banner-action"
+              onClick={calendarNotice.onAction}
+            >
+              {calendarNotice.actionLabel}
             </button>
           )}
         </div>

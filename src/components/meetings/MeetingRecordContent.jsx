@@ -40,6 +40,19 @@ function dueDateOf(item) {
   return parseISODate(item?.dueDate) ?? (item?.date ? parseMMDD(item.date) : new Date());
 }
 
+/**
+ * 섹션이 비었을 때 제목 아래 한 줄 (pivit-work PW-1511 · 회의록 검토 정책서 §4.3·§8).
+ * 이 창의 읽기 전용 회색 칸(`.mtg-record-readonly`)에 빈 입력칸 안내 글씨 색(`.tl-snippet-textarea::placeholder`)을 쓴다.
+ * 문구를 안 주면 종전처럼 아무것도 그리지 않는다.
+ */
+function EmptyBox({ children }) {
+  return (
+    <div className="tl-snippet-textarea mtg-record-readonly mtg-record-empty" data-testid="mtg-record-empty">
+      {children}
+    </div>
+  );
+}
+
 export default function MeetingRecordContent({
   meeting,
   baseUrl = '',
@@ -183,6 +196,9 @@ export default function MeetingRecordContent({
       {/* 주요논의 — accordion */}
       <section className="mtg-progress-section mtg-record-section">
         <span className="mtg-progress-section-label">{labels.discussions}</span>
+        {discussions.length === 0 && labels.discussionsEmpty ? (
+          <EmptyBox>{labels.discussionsEmpty}</EmptyBox>
+        ) : (
         <ul className="mtg-record-discussion-list">
           {discussions.map((d, i) => {
             const open = expanded.has(i);
@@ -212,21 +228,29 @@ export default function MeetingRecordContent({
             );
           })}
         </ul>
+        )}
       </section>
 
       {/* 결정 사항 */}
       <section className="mtg-progress-section mtg-record-section">
         <span className="mtg-progress-section-label">{labels.decisions}</span>
+        {decisions.length === 0 && labels.decisionsEmpty ? (
+          <EmptyBox>{labels.decisionsEmpty}</EmptyBox>
+        ) : (
         <div className="tl-snippet-textarea mtg-record-readonly">
           <ul className="mtg-record-bullet-list">
             {decisions.map((d, i) => (<li key={`${d}-${i}`}>{d}</li>))}
           </ul>
         </div>
+        )}
       </section>
 
       {/* 액션 아이템 */}
       <section className="mtg-progress-section mtg-record-section">
         <span className="mtg-progress-section-label">{labels.actionItems}</span>
+        {actions.length === 0 && labels.actionItemsEmpty && (
+          <EmptyBox>{labels.actionItemsEmpty}</EmptyBox>
+        )}
         <ul className="mtg-record-action-list">
           {actions.map((a, idx) => (
             <li key={idx} className="mtg-record-action-item">

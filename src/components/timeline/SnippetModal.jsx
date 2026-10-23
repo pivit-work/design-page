@@ -83,6 +83,8 @@ const SECTIONS = [
 const DRAFT_FIELD_KEYS = ['what', 'why', 'value', 'highlights', 'lowlights', 'summary', 'tags'];
 const DRAFT_KEY_OF_FIELD = { value: 'values' };
 const TAG_LIMIT = 8;
+// [AI 요약] 이 켜지는 글자 수 — 이 수를 «넘어야» 켜진다 (기획서 `allText.trim().length > 20`).
+const AI_SUMMARY_MIN_CHARS = 20;
 const DEFAULT_DRAFT_LABELS = {
   fill: '오늘 활동으로 초안 채우기',
   filling: '초안 만드는 중…',
@@ -140,7 +142,10 @@ const DEFAULT_SUGGESTED_TAGS = [
 //     상한. 준 객체에 없는 칸은 상한도 카운터도 없다. 누락 시 다섯 칸 모두 500.
 //     한도는 호스트(서버와 같은 값)가 정하고 이 화면은 받은 값으로 막기만 한다.
 //
-//   각 콜백이 누락되면 해당 버튼은 disabled. 두 콜백을 분리한 이유는 사용자가
+//   onAiExtractTags 의 input 에는 summary 도 실린다(요약 칸 글).
+//
+//   각 콜백이 누락되면 해당 버튼은 disabled. 글이 모자라도 disabled — 요약은 다섯 칸 합쳐
+//   공백 빼고 20자 초과, 태그는 요약이나 What 이 있어야 켜진다. 두 콜백을 분리한 이유는 사용자가
 //   UI 상 각각의 버튼을 누르므로 LLM 호출/대기/에러도 분리되어야 자연스럽기
 //   때문이다.
 //
@@ -482,8 +487,17 @@ export default function SnippetModal({
     [sectionTexts, healthScore, healthNote],
   );
 
+  // AI 버튼을 켜는 조건 (기획서 작성 화면 정책서 §3 · ai-data-spec 활성 조건).
+  // 요약: 다섯 칸을 합친 글자가 공백 빼고 20자를 넘을 때. 태그: 요약이나 What 중 하나라도 있을 때
+  // (2026-09-25 정정 — 태그에는 20자 기준이 없다).
+  const summaryReady =
+    [sectionTexts.what, sectionTexts.why, sectionTexts.value, sectionTexts.highlights, sectionTexts.lowlights]
+      .join('')
+      .trim().length > AI_SUMMARY_MIN_CHARS;
+  const tagsReady = !!(summary.trim() || sectionTexts.what.trim());
+
   const handleSummarize = useCallback(async () => {
-    if (!onAiSummarize || summaryLoading) return;
+    if (!onAiSummarize || summaryLoading || !summaryReady) return;
     setSummaryError(null);
     setSummaryLoading(true);
     try {
@@ -498,15 +512,16 @@ export default function SnippetModal({
     } finally {
       setSummaryLoading(false);
     }
-  }, [onAiSummarize, summaryLoading, buildAiInput]);
+  }, [onAiSummarize, summaryLoading, summaryReady, buildAiInput]);
 
   // AI 결과는 추천으로만 둔다 — 고르는 것은 사람이다(PW-1250).
   const handleExtractTags = useCallback(async () => {
-    if (!onAiExtractTags || tagsLoading) return;
+    if (!onAiExtractTags || tagsLoading || !tagsReady) return;
     setTagsError(null);
     setTagsLoading(true);
     try {
-      const result = await onAiExtractTags(buildAiInput());
+      // 태그는 요약도 읽는다 — 요약만 쓴 사람도 버튼이 켜지기 때문이다(ai-data-spec 태그 데이터 범위).
+      const result = await onAiExtractTags({ ...buildAiInput(), summary });
       if (Array.isArray(result?.tags)) {
         setAiSuggestedTags([
           ...new Set(result.tags.map((t) => String(t ?? '').trim()).filter(Boolean)),
@@ -517,7 +532,7 @@ export default function SnippetModal({
     } finally {
       setTagsLoading(false);
     }
-  }, [onAiExtractTags, tagsLoading, buildAiInput]);
+  }, [onAiExtractTags, tagsLoading, tagsReady, summary, buildAiInput]);
 
   const handleSuggestedTagClick = (t) => {
     addTag(t);
@@ -876,7 +891,7 @@ export default function SnippetModal({
                   type="button"
                   className="tl-snippet-ai-btn"
                   onClick={handleSummarize}
-                  disabled={!onAiSummarize || summaryLoading}
+                  disabled={!onAiSummarize || summaryLoading || !summaryReady}
                   aria-busy={summaryLoading || undefined}
                 >
                   <img
@@ -941,7 +956,7 @@ export default function SnippetModal({
                   type="button"
                   className="tl-snippet-ai-btn"
                   onClick={handleExtractTags}
-                  disabled={!onAiExtractTags || tagsLoading}
+                  disabled={!onAiExtractTags || tagsLoading || !tagsReady}
                   aria-busy={tagsLoading || undefined}
                 >
                   <img

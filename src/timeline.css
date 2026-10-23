@@ -2958,8 +2958,15 @@
   transition: background-color 0.15s;
 }
 
-.tl-snippet-ai-btn:hover {
+.tl-snippet-ai-btn:hover:not(:disabled) {
   background: var(--colors-purple-100);
+}
+
+/* 글이 모자라 못 누를 때 — 같은 창 추천 태그 칩의 꺼진 모양(.tl-snippet-tag:disabled)과 같다.
+   불러오는 중(aria-busy)은 흐리게 하지 않는다 (PW-1511). */
+.tl-snippet-ai-btn:disabled:not([aria-busy]) {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 /* "AI" 텍스트만 magenta→blue 그라디언트 */

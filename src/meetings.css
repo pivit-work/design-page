@@ -582,6 +582,8 @@
   min-height: 0;
 }
 .mtg-record-readonly:focus { outline: none; }
+/* 섹션이 비었을 때 회색 칸 안 안내 (PW-1511) — 빈 입력칸 안내 글씨와 같은 색 */
+.mtg-record-empty { color: var(--text-tertiary); }
 /* 요약 아래 「참고한 자료」 한 줄 (PW-1705) */
 .mtg-record-summary-note {
   margin: 6px 0 0;
@@ -1650,6 +1652,57 @@ input.mtg-record-action-title::placeholder {
 }
 .mtg-lock-banner-action:hover {
   background: var(--componentColors-utility-warning-utilityWarning100);
+}
+
+/* 캘린더 연동 안내 띠 (PW-1511) — .mtg-lock-banner 와 같은 값. 빨간 띠는 같은 단계의 error 색으로만 바꾼다. */
+.mtg-calendar-banner {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 20px 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  box-sizing: border-box;
+  overflow-wrap: anywhere;
+}
+.mtg-calendar-banner.is-warning {
+  background: var(--componentColors-utility-warning-utilityWarning50);
+  border: 0.5px solid var(--componentColors-utility-warning-utilityWarning200);
+  color: var(--componentColors-utility-warning-utilityWarning700);
+}
+.mtg-calendar-banner.is-error {
+  background: var(--componentColors-utility-error-utilityError50);
+  border: 0.5px solid var(--componentColors-utility-error-utilityError200);
+  color: var(--componentColors-utility-error-utilityError700);
+}
+.mtg-calendar-banner-icon { flex: none; }
+.mtg-calendar-banner-text { flex: 1; min-width: 0; }
+.mtg-calendar-banner-action {
+  flex: none;
+  padding: 5px 12px;
+  background: transparent;
+  border: 0.5px solid currentColor;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: inherit;
+  cursor: pointer;
+}
+.mtg-calendar-banner.is-warning .mtg-calendar-banner-action {
+  border-color: var(--componentColors-utility-warning-utilityWarning200);
+}
+.mtg-calendar-banner.is-warning .mtg-calendar-banner-action:hover {
+  background: var(--componentColors-utility-warning-utilityWarning100);
+}
+.mtg-calendar-banner.is-error .mtg-calendar-banner-action {
+  border-color: var(--componentColors-utility-error-utilityError200);
+}
+.mtg-calendar-banner.is-error .mtg-calendar-banner-action:hover {
+  background: var(--componentColors-utility-error-utilityError100);
 }
 
 /* 녹음 진행 중(위젯 축소 상태) 행의 비활성 [진행 중] 버튼 — Figma 16817:40731 */
