@@ -1673,6 +1673,8 @@ export default function EvalCycleHrCanvas({
    */
   onOpenCycleStage,
   onSaveTemplate,
+  /** [PW-1540] 같은 양식을 쓰는 다른 리뷰 종류에 항목 반영 — 위자드로 그대로 넘긴다. */
+  onUpdateTemplateItems,
   onDeleteTemplate,
   templateSaveError = null,
   /**
@@ -2415,6 +2417,7 @@ export default function EvalCycleHrCanvas({
           libraryStatus={libraryStatus}
           onReloadLibraryTemplates={onReloadLibraryTemplates}
           onSaveTemplate={onSaveTemplate}
+          onUpdateTemplateItems={onUpdateTemplateItems}
           onDeleteTemplate={onDeleteTemplate}
           templateSaveError={templateSaveError}
           savedMessages={savedMessages}
@@ -2501,6 +2504,7 @@ export default function EvalCycleHrCanvas({
           libraryStatus={libraryStatus}
           onReloadLibraryTemplates={onReloadLibraryTemplates}
           onSaveTemplate={onSaveTemplate}
+          onUpdateTemplateItems={onUpdateTemplateItems}
           onDeleteTemplate={onDeleteTemplate}
           templateSaveError={templateSaveError}
           savedMessages={savedMessages}

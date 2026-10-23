@@ -5916,7 +5916,8 @@ export default function EvalCycleWizard({
     setTplGrades((gs) => (gs.length <= MIN_GRADES ? gs : gs.filter((_, idx) => idx !== i)));
   /* ── [PW-1540 · spec-eval-cycle E2] 같은 양식을 쓰는 다른 리뷰 종류에 항목 수정 반영 ──────────────
      템플릿은 리뷰 종류마다 따로 저장돼 id 로는 종류끼리 겹치지 않는다. 그래서 «같은 양식» 은 항목 구성으로 본다.
-     항목 id(템플릿마다 다르다)와 결과 공개 범위·동료 공개(종류마다 따로 정한다)는 견주지 않는다. */
+     항목 id(템플릿마다 다르다)와 결과 공개 범위·동료 공개·성장 영역(종류마다 따로 정한다 — 서버는 셀프가 아닌
+     템플릿의 성장 영역을 비워 저장한다)은 견주지 않는다. */
   const itemSignatureOf = (q) =>
     JSON.stringify([
       q.itemKind === NOTE_KIND ? NOTE_KIND : 'question',
@@ -5931,13 +5932,13 @@ export default function EvalCycleWizard({
       (q.options ?? []).map((o) => String(o.label ?? '').trim()),
       !!q.allowMultiple,
       q.descriptionDisplay || 'tooltip',
-      q.growthType ?? null,
     ]);
   const templateItemsSignature = (qs) => JSON.stringify((qs ?? []).map(itemSignatureOf));
   /**
    * 칸 `key` 를 `questions` 로 다시 확정할 때 함께 바꿀 수 있는 칸 — 그 칸이 «바꾸기 전» 확정해 둔 템플릿과
    * 항목이 같은 템플릿으로 확정된 다른 칸. 항목이 그대로면(등급만 고쳤으면) 없다.
-   * 저장하지 않은 편집이 있는 칸(`확정 · 수정 중`)은 그 편집을 덮지 않게 뺀다.
+   * 저장하지 않은 편집이 있는 칸(`확정 · 수정 중`)은 그 편집을 덮지 않게 뺀다. 임시저장을 다시 열면 「수정 중」
+   * 지문이 없어 `dirty` 로는 못 가르므로, 내려 둔 버퍼가 확정본과 다른지도 직접 본다.
    */
   const itemShareCandidatesFor = (key, questions) => {
     if (libraryMode && (!onUpdateTemplateItems || !libraryResolved)) return [];
@@ -5945,16 +5946,36 @@ export default function EvalCycleWizard({
     if (!base) return [];
     const baseSig = templateItemsSignature(base.questions);
     if (templateItemsSignature(questions) === baseSig) return [];
+    const parkedEdited = (r, tpl) => {
+      const parked = parkedBufferOf(r.type);
+      return (
+        !!parked &&
+        // 공개 범위만 고친 편집도 지키려고 항목 전체로 견준다. 어긋나 보이면 빼는 쪽이 안전하다.
+        bufferFingerprint(parked.questions, parked.grades) !== bufferFingerprint(tpl.questions, tpl.grades)
+      );
+    };
     return confirmRows.filter((r) => {
       const tpl = r.type !== key && r.confirmed && !r.dirty ? templateById.get(r.id) : null;
-      return !!tpl && templateItemsSignature(tpl.questions) === baseSig;
+      return !!tpl && templateItemsSignature(tpl.questions) === baseSig && !parkedEdited(r, tpl);
     });
   };
-  /** 새 항목에 그 칸의 옛 항목 중 같은 항목이 있으면 그 칸이 정해 둔 공개 범위·동료 공개를 남긴다. */
-  const keepItemSettings = (questions, prevQuestions) =>
+  /**
+   * 새 항목에 그 칸의 옛 항목 중 같은 항목이 있으면 그 칸이 정해 둔 공개 범위·동료 공개·성장 영역을 남긴다.
+   * 짝이 없는 항목(새로 넣었거나 이름을 고친 항목)은, 리뷰 종류가 다르면 보낸 쪽 값을 옮기지 않고 비워
+   * 받는 종류의 기본값을 따르게 한다 — 하향의 공개 설정이 상향의 익명 설정을 덮지 않게.
+   */
+  const keepItemSettings = (questions, prevQuestions, sameType) =>
     questions.map((q) => {
       const prev = (prevQuestions ?? []).find((p) => itemSignatureOf(p) === itemSignatureOf(q));
-      return prev ? { ...q, disclosure: prev.disclosure ?? null, peerVisible: !!prev.peerVisible } : q;
+      if (prev) {
+        return {
+          ...q,
+          disclosure: prev.disclosure ?? null,
+          peerVisible: !!prev.peerVisible,
+          growthType: prev.growthType ?? null,
+        };
+      }
+      return sameType ? q : { ...q, disclosure: null, peerVisible: false, growthType: null };
     });
   /** 반영한 칸의 내려 둔 버퍼를 비운다 — 다시 열면 새 확정본이 열린다(`parkedBufferOf` 와 같은 자리). */
   const dropParkedBuffers = (keys) => {
@@ -5979,7 +6000,10 @@ export default function EvalCycleWizard({
     const failed = [];
     for (const r of targets) {
       const cur = templateById.get(r.id);
-      const next = cur && { ...cur, questions: keepItemSettings(p.questions, cur.questions) };
+      const next = cur && {
+        ...cur,
+        questions: keepItemSettings(p.questions, cur.questions, r.baseType === p.sourceType),
+      };
       let saved = null;
       if (next && libraryMode) {
         saved = await Promise.resolve(onUpdateTemplateItems(cur.id, next)).catch(() => null);
@@ -6010,6 +6034,7 @@ export default function EvalCycleWizard({
       if (rows.length > 0) {
         setPendingItemShare({
           source: sourceLabel,
+          sourceType: tplType,
           questions: tplQuestions,
           rows,
           selected: rows.map((r) => r.type),
