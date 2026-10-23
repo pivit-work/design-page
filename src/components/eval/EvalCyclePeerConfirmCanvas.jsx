@@ -18,6 +18,10 @@ import { isEnterKey } from '../shared/enterKey.js';
  * [PW-1945] `group.peerOff === 'small_team'` 이면 그 팀원은 이 사이클에서 동료 리뷰를 받지 않는다 — 카드에 안내만
  *   (`peerOffTitle`·`peerOffSub`)과 `peerOffNotTarget` 을 두고 추가·채택·확정 버튼을 그리지 않는다.
  *
+ * [PW-1769] 확정 뒤 동료 줄(§6.4.1) — 딱지는 제출 완료 / 작성 중(`n.drafting`) / 미제출 셋이다. `n.remindable` 인
+ *   줄에 「리마인더」(`onRemind(assignmentId)`), `n.reminded` 인 줄은 같은 자리에 누를 수 없는 「리마인더 발송됨」.
+ *   판정(24시간·단계)은 서버 몫이다 — 캔버스는 값대로 그리기만 한다.
+ *
  * [PW-561] `group.nominationChanged` 이면 머리에 「지정이 변경되었습니다」(§6.3.3). 판정은 서버 몫이다.
  *   - 그 카드를 펼치면 `onSeen(evaluateeId)` 를 부른다 — 상위가 서버에 «봤다»를 알리고 다시 읽는다.
  *   - 표시가 붙은 채 **접힌** 카드의 확정 버튼은 확정하지 않고 카드를 펼치며 안내를 띄운다.
@@ -60,6 +64,11 @@ const DEFAULT_LABELS = {
   submittedProgress: '제출 {{done}}/{{total}}',
   allSubmitted: '제출 완료',
   statusNotSubmitted: '미제출',
+  // PW-1769 §6.4.1 — 임시저장은 했고 아직 안 냈다.
+  statusDrafting: '작성 중',
+  remind: '리마인더',
+  remindSent: '리마인더 발송됨',
+  remindSentHint: '24시간이 지나면 다시 보낼 수 있습니다',
   // §6.3.1 자발적 신청 — 출처 배지 · 카드 머리 대기 배지
   modeUnsolicited: '자발적',
   unsolicitedPending: '자발적 리뷰 {{count}}건 검토 대기',
@@ -224,6 +233,7 @@ function PeerGroupCard({
   onRemoveNominee,
   onRestoreNominee,
   onConfirm,
+  onRemind,
   adoptableIds,
   onAdopt,
   onReject,
@@ -351,14 +361,14 @@ function PeerGroupCard({
             )}
             {shown.map((n) => {
               const pending = n.status === 'pending_leader_review';
-              // §6.4.1 확정 뒤에는 동료별 제출 여부를 보인다(작성 중 여부는 받지 않는다).
+              // §6.4.1 확정 뒤에는 동료별 진행을 보인다 — 제출 완료(초록) / 작성 중(주황) / 미제출(회색).
               const statusText = group.confirmed
                 ? n.status === 'completed'
                   ? L.statusCompleted
-                  : L.statusNotSubmitted
+                  : n.drafting ? L.statusDrafting : L.statusNotSubmitted
                 : (L[STATUS_KEY[n.status]] ?? n.status);
               const statusTone = group.confirmed
-                ? n.status === 'completed' ? 'success' : 'neutral'
+                ? n.status === 'completed' ? 'success' : n.drafting ? 'warn' : 'neutral'
                 : n.status === 'leader_approved' ? 'success' : 'neutral';
               return (
               <div
@@ -398,6 +408,19 @@ function PeerGroupCard({
                     data-testid="evp-remove"
                   >
                     ✕
+                  </button>
+                )}
+                {/* PW-1769 §6.4.1 — 안 낸 동료에게 리마인더. 보낸 뒤 24시간은 같은 자리에 누를 수 없는 「발송됨」. */}
+                {group.confirmed && onRemind && (n.reminded || n.remindable) && (
+                  <button
+                    type="button"
+                    className="evc-btn is-ghost"
+                    disabled={!!n.reminded}
+                    title={n.reminded ? L.remindSentHint : undefined}
+                    onClick={() => onRemind(n.id)}
+                    data-testid="evp-remind"
+                  >
+                    {n.reminded ? L.remindSent : L.remind}
                   </button>
                 )}
                 {!group.confirmed && n.status === 'leader_rejected' && onRestoreNominee && (
@@ -476,6 +499,7 @@ export default function EvalCyclePeerConfirmCanvas({
   onRemoveNominee,
   onRestoreNominee,
   onConfirm,
+  onRemind,
   onAdopt,
   onReject,
   onSeen,
@@ -569,6 +593,7 @@ export default function EvalCyclePeerConfirmCanvas({
               onAddNominee={onAddNominee}
               onRemoveNominee={onRemoveNominee}
               onRestoreNominee={onRestoreNominee}
+              onRemind={onRemind}
               onConfirm={onConfirm}
               adoptableIds={adoptableIds}
               onAdopt={onAdopt}
