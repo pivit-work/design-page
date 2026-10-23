@@ -16,6 +16,7 @@ import { fieldsShape, reseedKeepingEdits } from './reseedAnswers.js';
 import EvalLeaderEvidenceSignals from './EvalLeaderEvidenceSignals.jsx';
 import EvalLeaderPriorRounds from './EvalLeaderPriorRounds.jsx';
 import EvalLeaderPeerSummary from './EvalLeaderPeerSummary.jsx';
+import Stack from '../shared/Stack.jsx';
 
 /**
  * EvalCycleLeaderCanvas — 매니저 하향 리뷰 (근거↔작성 2단 패널).
@@ -1383,28 +1384,32 @@ export default function EvalCycleLeaderCanvas({
     <div className="evc-root">
       {header}
 
+      {/* 안내 줄 사이·아래는 Stack 이 띄운다(12px). 줄마다 손으로 적던 여백을 걷었다. 자동저장 표시와 본문
+          사이만 8px 이라 안쪽 Stack 으로 묶는다 — 저장됨·실패는 함께 뜨지 않는다. */}
+      <Stack gap="lg" testId="evl-notices">
       {formLocked && locked && L.lockedNotice && (
-        <p className="evx-notice" data-testid="evl-locked" style={{ margin: '0 0 12px' }}>
+        <p className="evx-notice" data-testid="evl-locked">
           {L.lockedNotice}
         </p>
       )}
       {submitted && (
-        <p className="evx-notice is-success" data-testid="evl-submitted" style={{ margin: '0 0 12px' }}>
+        <p className="evx-notice is-success" data-testid="evl-submitted">
           {L.submittedBanner}
           {!calibrationEnabled && (
             <span data-testid="evl-submitted-calib-off"> {L.calibOffSubmittedNote}</span>
           )}
         </p>
       )}
+      {saveStatus?.kind === 'failed' && (
+        <p className="evx-notice is-error" role="alert" data-testid="evl-autosave-failed">
+          {L.autoSaveFailed}
+        </p>
+      )}
 
+      <Stack gap="md">
       {saveStatus?.kind === 'saved' && (
         <p className="evl-autosaved" role="status" data-testid="evl-autosaved">
           {fillLabel(L.autoSaved, { time: hhmm(saveStatus.at) })}
-        </p>
-      )}
-      {saveStatus?.kind === 'failed' && (
-        <p className="evx-notice is-error" role="alert" data-testid="evl-autosave-failed" style={{ margin: '0 0 12px' }}>
-          {L.autoSaveFailed}
         </p>
       )}
 
@@ -1905,6 +1910,8 @@ export default function EvalCycleLeaderCanvas({
           )}
         </div>
       </div>
+      </Stack>
+      </Stack>
 
       {rationaleAsk && (
         <ConfirmModal
