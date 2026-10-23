@@ -1039,6 +1039,8 @@ function SlackTransferPanel({ transfer, labels, baseUrl, onExpireToken, onReauth
   const [showReauthModal, setShowReauthModal] = useState(false);
   const [expireError, setExpireError] = useState(false);
   const owner = transfer.owner;
+  // 설치(기록)는 처음 설치한 관리자 — 재인증해도 안 바뀐다. 넘기지 않으면 수집 자격자와 같은 사람으로 본다.
+  const installer = transfer.installer ?? owner;
   const app = transfer.app ?? 'slack';
 
   const handleExpireConfirm = async () => {
@@ -1074,14 +1076,14 @@ function SlackTransferPanel({ transfer, labels, baseUrl, onExpireToken, onReauth
       <div className="intg-loglist-title intg-owner-section-first">{labels.transfer.installSection}</div>
       <div className="intg-owner-head" data-testid="intg-install-section">
         <div className="intg-owner-id">
-          <OwnerAvatar name={owner.name} avatar={owner.avatar} />
+          <OwnerAvatar name={installer.name} avatar={installer.avatar} />
           <div>
             <div className="intg-owner-name">
-              {owner.name}
+              {installer.name}
               <DpStatusBadge className="intg-pill is-brand">{labels.transfer.installerBadge}</DpStatusBadge>
             </div>
             <div className="intg-owner-sub">
-              {owner.title ? `${owner.title} \u00b7 ` : ''}
+              {installer.title ? `${installer.title} \u00b7 ` : ''}
               {transfer.installedLabel}
             </div>
           </div>
