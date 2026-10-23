@@ -97,12 +97,14 @@ function orDash(value, dash) {
 }
 
 /* ── 보상 마스킹 ── */
-const SALARY_MASK = '●●●,●●●,●●● 원';
-function formatKRW(amount) {
+/* 원화는 «원», 그 밖의 통화는 통화 코드 — 내 설정 보상 탭과 같다(PW-1477). */
+const unitOf = (currency) => (!currency || currency === 'KRW' ? '원' : currency);
+const SALARY_MASK = '●●●,●●●,●●●';
+function formatAmount(amount, currency) {
   if (amount == null || amount === '') return '-';
   const n = typeof amount === 'string' ? Number(amount) : amount;
   if (Number.isNaN(n)) return '-';
-  return `${n.toLocaleString('ko-KR')} 원`;
+  return `${n.toLocaleString('ko-KR')} ${unitOf(currency)}`;
 }
 
 function Card({ children, className = '', testId }) {
@@ -333,7 +335,7 @@ export default function MyProfileCanvas({
                   className={`msc-amount${compRevealed ? '' : ' is-masked'}`}
                   data-testid="myprofile-comp-amount"
                 >
-                  {compRevealed ? formatKRW(comp.amount) : SALARY_MASK}
+                  {compRevealed ? formatAmount(comp.amount, comp.currency) : `${SALARY_MASK} ${unitOf(comp && comp.currency)}`}
                 </span>
               </div>
               <div>
