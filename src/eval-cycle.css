@@ -1828,9 +1828,6 @@
   flex-wrap: wrap;
   gap: var(--spacing-md);
 }
-.evc-rm-when-fields + .evc-rm-tgt-error {
-  margin-top: var(--spacing-md);
-}
 .evc-rm-panel-foot {
   display: flex;
   justify-content: flex-end;

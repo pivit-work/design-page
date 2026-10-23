@@ -1,0 +1,26 @@
+/*
+ * 쌓기 틀 `Stack` — `components/shared/Stack.jsx`.
+ *
+ * 줄 사이 간격은 이 틀의 `gap` 하나로만 정한다. 줄이 따로 가진 위·아래 여백은 지운다 —
+ * 바깥 여백 0 인 부품(공용 안내 상자 등)을 넣어도, 여백을 가진 부품을 넣어도 간격이 같게.
+ * `!important` 는 줄 쪽 클래스(`.evc-rm-block > .evx-notice` 처럼 더 구체적인 것 포함)를 이기기 위해서다.
+ * 검사: scripts/check-stacks.mjs
+ */
+.dp-stack {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.dp-stack > * {
+  margin-block: 0 !important;
+}
+.dp-stack--gap-xxs { gap: var(--spacing-xxs); }
+.dp-stack--gap-xs { gap: var(--spacing-xs); }
+.dp-stack--gap-sm { gap: var(--spacing-sm); }
+.dp-stack--gap-md { gap: var(--spacing-md); }
+.dp-stack--gap-lg { gap: var(--spacing-lg); }
+.dp-stack--gap-xl { gap: var(--spacing-xl); }
+.dp-stack--gap-2xl { gap: var(--spacing-2xl); }
+.dp-stack--gap-3xl { gap: var(--spacing-3xl); }
+.dp-stack--gap-4xl { gap: var(--spacing-4xl); }
+.dp-stack--gap-5xl { gap: var(--spacing-5xl); }
