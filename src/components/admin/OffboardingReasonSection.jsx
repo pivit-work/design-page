@@ -114,7 +114,8 @@ export default function OffboardingReasonSection({ state, typeOnly = false, onRe
   const startEdit = async () => {
     const current = summary.hasNote ? await reveal() : '';
     if (current === null) return;
-    setEType(OFFBOARDING_TYPE_IDS.includes(summary.type) ? summary.type : OFFBOARDING_TYPE_IDS[0]);
+    // 미지정이면 아무것도 고르지 않은 채 연다 — 미리 골라 두면 세부 사유만 채워도 유형이 조용히 바뀐다
+    setEType(summary.type);
     setENote(current);
     setSaveFailed(false);
     setEditing(true);
