@@ -1594,22 +1594,25 @@ export function EmotionTone({ session, L, icons, baseUrl }) {
   const dominantRow = rows.find((r) => r.key === dominant);
   return (
     <Section
-      title={L.emotionTone}
+      // 딱지는 제목 «옆»에 둔다 — `badge` 자리는 접기 화살표와 양끝 정렬이라 머리 한가운데 뜬다.
+      title={
+        <>
+          {L.emotionTone}
+          {dominantRow && (
+            <DpStatusBadge
+              tone={SENTIMENT_BADGE_TONE[dominant]}
+              className="ono-done-badge is-pill"
+              data-testid="ono-emotion-dominant"
+              data-dominant={dominant}
+            >
+              {dominantRow.label}
+            </DpStatusBadge>
+          )}
+        </>
+      }
       icon={icons.health}
       icons={icons}
       baseUrl={baseUrl}
-      badge={
-        dominantRow && (
-          <DpStatusBadge
-            tone={SENTIMENT_BADGE_TONE[dominant]}
-            className="ono-done-badge is-pill"
-            data-testid="ono-emotion-dominant"
-            data-dominant={dominant}
-          >
-            {dominantRow.label}
-          </DpStatusBadge>
-        )
-      }
     >
       {rows.map((row) => {
         const pct = total > 0 ? Math.round((row.value / total) * 100) : 0;

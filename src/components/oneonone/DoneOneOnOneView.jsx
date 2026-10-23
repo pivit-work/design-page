@@ -815,22 +815,25 @@ function SentimentCard({ session, L, icons, baseUrl }) {
   const insight = session.sentimentNuance?.comment ?? '';
   return (
     <Section
-      title={L.sentimentTitle}
+      // 딱지는 제목 «옆»에 둔다 — `badge` 자리는 접기 화살표와 양끝 정렬이라 머리 한가운데 뜬다.
+      title={
+        <>
+          {L.sentimentTitle}
+          {dominantRow && (
+            <StatusBadge
+              tone={SENTIMENT_BADGE_TONE[dominant]}
+              className="ono-done-badge is-pill"
+              data-testid="ono-done-sentiment-dominant"
+              data-dominant={dominant}
+            >
+              {dominantRow.label}
+            </StatusBadge>
+          )}
+        </>
+      }
       icon={icons.health}
       icons={icons}
       baseUrl={baseUrl}
-      badge={
-        dominantRow && (
-          <StatusBadge
-            tone={SENTIMENT_BADGE_TONE[dominant]}
-            className="ono-done-badge is-pill"
-            data-testid="ono-done-sentiment-dominant"
-            data-dominant={dominant}
-          >
-            {dominantRow.label}
-          </StatusBadge>
-        )
-      }
     >
       <div className="ono-done-sentiment" data-testid="ono-done-sentiment">
         <span className={`ono-done-score ${tint}`}>{score}</span>
