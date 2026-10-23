@@ -42,7 +42,10 @@ const CATEGORY_ICONS = {
  *                호스트가 문구까지 만들어 넘기고, 더 남은 알림이 없으면 빼서 버튼이 사라진다. 누르면 `onMore`.
  *                분류 탭은 받아 둔 알림 안에서 거르므로, 그 탭에 받아 둔 것이 없어도 버튼은 남는다.
  *                그때 빈 상태(「알림이 없습니다」)는 그리지 않는다 — 아직 안 받은 것이지 없는 게 아니다
- *   onFilterChange(value) · onItemClick(id) · onActionClick(id) · onMarkAllRead() · onOpenSettings() · onMore()
+ *   readFilters  [{ value, label }] — 분류 탭 줄 오른쪽 「전체 / 안 읽음」 고르개 (pivit-work PW-1530).
+ *                거르는 일은 호스트가 한다(서버에서 다시 받는다). 비우면 고르개를 그리지 않는다
+ *   activeReadFilter 고른 value · labels.readFilterAria 고르개 이름
+ *   onFilterChange(value) · onReadFilterChange(value) · onItemClick(id) · onActionClick(id) · onMarkAllRead() · onOpenSettings() · onMore()
  */
 export default function NotificationCenterCanvas({
   baseUrl,
@@ -50,8 +53,11 @@ export default function NotificationCenterCanvas({
   loading = false,
   filters = [],
   activeFilter = 'all',
+  readFilters = [],
+  activeReadFilter,
   labels = {},
   onFilterChange,
+  onReadFilterChange,
   onItemClick,
   onActionClick,
   onMarkAllRead,
@@ -112,6 +118,23 @@ export default function NotificationCenterCanvas({
               onChange={(v) => onFilterChange?.(v)}
               ariaLabel={labels.filterAria}
             />
+            {readFilters.length > 0 && (
+              <div className="ncc-read-filter" data-testid="notif-read-filter">
+                <SegmentedControl
+                  items={readFilters.map((f) => ({
+                    value: f.value,
+                    label: (
+                      <span className="ncc-tab" data-testid={`notif-read-filter-${f.value}`}>
+                        {f.label}
+                      </span>
+                    ),
+                  }))}
+                  value={activeReadFilter ?? readFilters[0].value}
+                  onChange={(v) => onReadFilterChange?.(v)}
+                  ariaLabel={labels.readFilterAria}
+                />
+              </div>
+            )}
           </div>
         )}
 

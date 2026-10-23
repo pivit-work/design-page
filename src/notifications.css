@@ -109,6 +109,12 @@
   overflow-x: auto;
   flex-shrink: 0;
 }
+/* 「전체 / 안 읽음」 고르개 — 분류 탭 줄 오른쪽 끝 (pivit-work PW-1530) */
+.ncc-read-filter {
+  margin-left: auto;
+  padding-left: 12px;
+  flex-shrink: 0;
+}
 
 /* 탭 라벨 안의 안 읽은 수 */
 .ncc-tab {
