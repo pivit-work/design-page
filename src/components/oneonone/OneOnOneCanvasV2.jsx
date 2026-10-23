@@ -232,6 +232,7 @@ export default function OneOnOneCanvasV2({
   };
   // 모달 X/오버레이 닫기 — 진행하지 않고 대시보드에 남는다.
   const cancelSetup = () => { setSetupStep(null); setPendingStart(null); };
+  const dashboardShown = !startMember && !bodyOverride;
   return (
     <main className={`ono-page${startMember || bodyOverride ? ' is-focus' : ''}`}>
       {subNav && <div className="ono-subnav">{subNav}</div>}
@@ -245,10 +246,11 @@ export default function OneOnOneCanvasV2({
         teamCount={teamCount}
         managerLabel={managerLabel}
         teamCountLabel={teamCountLabel}
-        sortControl={sortControl}
-        scopeFilter={scopeFilter}
-        scopeNotice={scopeNotice}
-        search={search}
+        /* 검색·범위·정렬 줄은 목록(대시보드)에만 — 진행 화면·DONE 화면(bodyOverride)에서는 [1on1 일정 추가] 처럼 내린다 */
+        sortControl={dashboardShown ? sortControl : undefined}
+        scopeFilter={dashboardShown ? scopeFilter : undefined}
+        scopeNotice={dashboardShown ? scopeNotice : undefined}
+        search={dashboardShown ? search : undefined}
         baseUrl={baseUrl}
       >
         {!startMember && !bodyOverride && (
@@ -570,27 +572,29 @@ function MemberCard({ member, tone, icons, baseUrl, onAction, onCardClick, rende
             <span>{member.schedule.time}</span>
             <span>•</span>
             <span>{member.schedule.duration}</span>
-            {/* 「일정변경」 — 눌러서 그 회차의 시각을 다시 정하는 자리 (PW-825).
-                오랫동안 `<span>` 이라 **누를 자리 자체가 없었다**(CSS 는 이미
-                `cursor: pointer` 를 주고 있었다 — 누르라고 그려 놓고 배선만 없었다).
-                옮길 수 없는 회차(이미 시작했거나 끝난)에서는 눌리지 않는 모양으로
-                남긴다 — 감추면 「원래 없는 기능」으로 읽힌다. */}
-            {member.schedule.changeable !== undefined && (
-              <button
-                type="button"
-                className="ono-member-schedule-change"
-                /* 못 옮기는 회차에서도 «보이되 눌리지 않게» 남긴다. 감추면 「원래
-                   없는 기능」으로 읽혀서, 옮길 수 있는 다른 카드와 설명이 갈린다. */
-                disabled={!member.schedule.changeable || !member.schedule.onChange}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  member.schedule.onChange?.();
-                }}
-              >
-                {labels.scheduleChange}
-              </button>
-            )}
           </div>
+        )}
+        {/* 「일정변경」 — 눌러서 그 회차의 시각을 다시 정하는 자리 (PW-825).
+            오랫동안 `<span>` 이라 **누를 자리 자체가 없었다**(CSS 는 이미
+            `cursor: pointer` 를 주고 있었다 — 누르라고 그려 놓고 배선만 없었다).
+            시안(17749:20881 · 2026-10-23)은 일정 줄 «아래» 카드 폭을 꽉 채우는 버튼이다 —
+            줄 끝에 글자로 붙어 있던 때는 1280px 창에서 카드 밖으로 삐져나갔다.
+            옮길 수 없는 회차(이미 시작했거나 끝난)에서는 눌리지 않는 모양으로
+            남긴다 — 감추면 「원래 없는 기능」으로 읽힌다. */}
+        {member.schedule && member.schedule.changeable !== undefined && (
+          <button
+            type="button"
+            className="ono-member-schedule-change"
+            /* 못 옮기는 회차에서도 «보이되 눌리지 않게» 남긴다. 감추면 「원래
+               없는 기능」으로 읽혀서, 옮길 수 있는 다른 카드와 설명이 갈린다. */
+            disabled={!member.schedule.changeable || !member.schedule.onChange}
+            onClick={(e) => {
+              e.stopPropagation();
+              member.schedule.onChange?.();
+            }}
+          >
+            {labels.scheduleChange}
+          </button>
         )}
         <div className="ono-member-actions">
           {member.actions?.map((a, i) => (

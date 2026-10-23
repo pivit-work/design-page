@@ -199,18 +199,23 @@ export default function OneOnOneDetailModal({
                     <p className="ood-ai-text">{summaryText}</p>
                   </div>
                 )}
-                {decisions.length > 0 && (
-                  <div className="ood-ai-block">
-                    <p className="ood-ai-block-title">{L.decisions}</p>
-                    <ul className="ood-ai-list">
-                      {decisions.map((d, i) => <li key={i}>{d}</li>)}
-                    </ul>
-                  </div>
-                )}
-                {recheck.length > 0 && (
-                  <div className="ood-ai-block">
-                    <p className="ood-ai-block-title">{L.recheck}</p>
-                    {recheck.map((r, i) => <p className="ood-ai-text" key={i}>{r}</p>)}
+                {/* 결정사항·재점검은 한 묶음(간격 8) — 요약 글과는 20 떨어진다 (Figma 17413:26499) */}
+                {(decisions.length > 0 || recheck.length > 0) && (
+                  <div className="ood-ai-group">
+                    {decisions.length > 0 && (
+                      <div className="ood-ai-block">
+                        <p className="ood-ai-block-title">{L.decisions}</p>
+                        <ul className="ood-ai-list">
+                          {decisions.map((d, i) => <li key={i}>{d}</li>)}
+                        </ul>
+                      </div>
+                    )}
+                    {recheck.length > 0 && (
+                      <div className="ood-ai-block">
+                        <p className="ood-ai-block-title">{L.recheck}</p>
+                        {recheck.map((r, i) => <p className="ood-ai-text" key={i}>{r}</p>)}
+                      </div>
+                    )}
                   </div>
                 )}
               </>
@@ -311,7 +316,7 @@ export default function OneOnOneDetailModal({
         <div className="ood-schedule">
           <p className="ood-section-title">{L.scheduleTitle}</p>
           <div className="ood-schedule-fields">
-            <div className="ood-field">
+            <div className="ood-field ood-field-date">
               <p className="ood-field-label">{L.date}</p>
               <div className="ono-add-modal-popover-wrap" onClick={(e) => e.stopPropagation()}>
                 <button
@@ -388,7 +393,7 @@ export default function OneOnOneDetailModal({
             <div className="ood-calendar-row">
               <Icon src={icons.calendar} size={14} color="var(--text-secondary)" baseUrl={baseUrl} />
               <span>{L.calendarConnected}</span>
-              <svg viewBox="0 0 14 14" width="14" height="14" aria-hidden>
+              <svg className="ood-calendar-ok" viewBox="0 0 14 14" width="14" height="14" aria-hidden>
                 <circle cx="7" cy="7" r="7" fill="var(--fg-success-secondary)" />
                 <path d="M4 7.2 6.2 9.4 10 5.2" fill="none" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>

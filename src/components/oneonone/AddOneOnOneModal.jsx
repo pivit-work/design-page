@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import Icon from '../shared/Icon.jsx';
@@ -176,6 +176,10 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
     [members],
   );
   const [search, setSearch] = useState('');
+  /* 팀원 목록은 검색칸 «밖» 어디를 눌러도 닫힌다 — 창 제목·푸터·막은 폼(`closePopovers`) 바깥이라
+     폼 클릭만 보던 때는 목록이 남아 있었다. 문서의 pointerdown 을 잡는 단계(capture)에서 보므로
+     막 클릭처럼 전파를 멈추는 자리에서도 닫힌다. */
+  const memberWrapRef = useRef(null);
   /* 목록에서 **고른** 팀원의 id. 검색칸에 글자를 치면 풀린다 — 친 글자가 우연히 이름과
      같아도 고른 것이 아니다. 예전엔 글자만 있으면 [예약완료]가 켜져, 이름 일부만 친 채
      눌러도 창이 닫히고 예약은 안 생겼다 (PW-1061). */
@@ -216,6 +220,15 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
       setSaving(false);
     }
   };
+
+  useEffect(() => {
+    if (!memberOpen) return undefined;
+    const onDown = (e) => {
+      if (!memberWrapRef.current?.contains(e.target)) setMemberOpen(false);
+    };
+    document.addEventListener('pointerdown', onDown, true);
+    return () => document.removeEventListener('pointerdown', onDown, true);
+  }, [memberOpen]);
 
   // 모든 popover/dropdown 닫기
   const closePopovers = () => {
@@ -296,7 +309,7 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
         ) : (
           /* "1on1 일정 추가" 모드 — 팀원 검색 */
           <Field label={L.memberSearch}>
-            <div className="ono-add-modal-popover-wrap" onClick={(e) => e.stopPropagation()}>
+            <div ref={memberWrapRef} className="ono-add-modal-popover-wrap" onClick={(e) => e.stopPropagation()}>
               <div className="ono-add-modal-input">
                 <Icon src={icons?.search} size={20} color="var(--text-placeholder)" baseUrl={baseUrl} />
                 <TextInput

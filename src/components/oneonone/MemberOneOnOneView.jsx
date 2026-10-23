@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 import Select from '../shared/Select.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
-import { CloseGlyph } from '../shared/lineIcons.jsx';
+import { ChevronLeftGlyph, CloseGlyph } from '../shared/lineIcons.jsx';
 import { RatingBar } from './StartOneOnOneView.jsx';
 import MemberAiButton from './MemberAiButton.jsx';
 import MemberField from './MemberField.jsx';
@@ -137,6 +137,10 @@ export default function MemberOneOnOneView({
   reportActions = null,
   reportFeedback = null,
   widget = null,
+  /** 「‹ 목록으로」(Figma 17733:20287) — 넘기면 카드 위에 그린다. 진행 중에도 지난 회차 목록으로 갈 수 있게
+   *  하고, 목록은 진행 중인 회차를 맨 위에 「현재 진행 중」으로 둔다(`OneOnOnePastSessionList.current`). */
+  onBack,
+  backLabel = '목록으로',
   labels: providedLabels,
   baseUrl = '',
 }) {
@@ -274,6 +278,12 @@ export default function MemberOneOnOneView({
       {/* 녹음 상태 위젯 — 카드 오른쪽 위에 겹쳐 뜨고(Figma 17556:25155 · x 895 / y 12) 스크롤해도 위에 붙어
           있다. 매니저 화면의 오른쪽 기둥과 달리 본문 폭을 나누지 않는다 — 기둥에 세울 네비게이터가 없다. */}
       {widget}
+      {onBack && (
+        <button type="button" className="ono-my-back" onClick={onBack} data-testid="ono-my-back">
+          <ChevronLeftGlyph size={24} />
+          <span>{backLabel}</span>
+        </button>
+      )}
       {notice && (
         <p className="ono-my-notice" role="status">
           {notice}

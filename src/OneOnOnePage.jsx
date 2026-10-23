@@ -243,7 +243,8 @@ const SCHEDULED_TODAY = [
       '헬스가 4.2로 급락했습니다. 번아웃 징후가 보이므로 이번 주 원온원을 잡아보세요. 최근 3일간 스니핏 미작성 상태입니다.',
     schedule: { date: '2026.04.20', time: '11:00', duration: '55분', changeable: true, onChange: () => {} },
     actions: [
-      { label: '1on1 진행' },
+      // 오늘 할 1on1 이라 [1on1 진행] 이 브랜드색 기본 버튼 (Figma 16816:34326)
+      { label: '1on1 진행', variant: 'primary' },
       { label: '스니핏 요청' },
       { label: '노트' },
     ],
@@ -263,8 +264,8 @@ const NEEDS_ATTENTION = [
     healthSeverity: 'warning',
     comment: '헬스가 5.1로 주의 구간에 있습니다. 마지막 1on1이 24일 전이므로 빠른 시일 내 일정을 잡아보세요.',
     schedule: { date: '2026.04.20', time: '11:00', duration: '55분', changeable: true, onChange: () => {} },
+    // [1on1 진행] 은 「오늘 예정」 카드에만 — 잡혀 있어도 오늘이 아니면 시작하지 않는다 (Figma 16816:33945 · 2026-10-23)
     actions: [
-      { label: '1on1 진행' },
       { label: '스니핏 요청' },
       { label: '노트' },
     ],
@@ -333,7 +334,7 @@ const ONEONONE_ASYNC_KNOB = {
    액션이 4개 이상일 때 버튼이 글자 단위로 쪼개지던 사고(345fbc2)가 이 자리다.
    OneOnOneCanvasV2 는 `member.actions` 를 그대로 렌더하므로 재현이 가능하다. */
 const MANY_ACTIONS = [
-  { label: '1on1 진행' },
+  { label: '1on1 잡기' },
   { label: '스니핏 요청' },
   { label: '노트' },
   { label: '피드백 요청' },
@@ -447,11 +448,14 @@ export default function OneOnOnePage({ icons, baseUrl, active = true, onActivate
   const [seenView, setSeenView] = useState(knobs.view);
   const [memberElapsedSec, setMemberElapsedSec] = useState(MEMBER_REC_START_SEC);
   const [memberAnalyzingList, setMemberAnalyzingList] = useState(false);
+  // 대상자가 진행 중에 「‹ 목록으로」로 나가면 false — 목록 맨 위 「현재 진행 중」·미니 위젯 펼치기로 돌아온다 (Figma 17556:23218 · 17733:20287).
+  const [memberSessionOpen, setMemberSessionOpen] = useState(true);
   if (knobs.view !== seenView) {
     setSeenView(knobs.view);
     if (memberView || memberEmpty) setTab('mine');
     setMemberElapsedSec(MEMBER_REC_START_SEC);
     setMemberAnalyzingList(false);
+    setMemberSessionOpen(true);
   }
   // 녹음이 저장되고 AI 분석에 들어가면(위젯 saved) 잠시 뒤 「내 원온원」 지난 회차 목록으로 저절로 넘어간다
   // (Figma 17556:23218 — 맨 위 회차가 「AI 분석 중」). 위젯은 오른쪽 아래 미니로 남아 분석 중임을 계속 말한다.
@@ -461,7 +465,19 @@ export default function OneOnOnePage({ icons, baseUrl, active = true, onActivate
     const id = setTimeout(() => setMemberAnalyzingList(true), MEMBER_ANALYZING_DELAY_MS);
     return () => clearTimeout(id);
   }, [memberSaved]);
-  const memberOnList = memberSaved && memberAnalyzingList;
+  const memberOnList = (memberSaved && memberAnalyzingList) || (!!memberView && !memberSessionOpen);
+  // 목록 맨 위에 세울 진행 중 회차 — 녹음이 저장돼 「AI 분석 중」 행이 된 뒤에는 없다
+  const memberCurrent = memberView && !memberSaved
+    ? {
+        id: 'my-now',
+        dateLabel: '2026.04.08',
+        durationLabel: memberView.widget === 'recording' ? fmtElapsed(memberElapsedSec) : undefined,
+        actionDone: 0,
+        actionTotal: MEMBER_PREP_PROPS.agenda.actions.length,
+        summary: MEMBER_PREP_PROPS.agenda.topics.map((t) => t.text).join(' · '),
+        onOpen: () => setMemberSessionOpen(true),
+      }
+    : null;
   // 데모: AI 보고서 생성 stub — 0.6초 뒤 생성본으로 바꾸고 준비도 한 칸을 올린다.
   const [memberReport, setMemberReport] = useState(null);
   const [memberReportBusy, setMemberReportBusy] = useState(false);
@@ -584,7 +600,8 @@ export default function OneOnOnePage({ icons, baseUrl, active = true, onActivate
         title="1on1"
         titleTabs={[
           { key: 'dashboard', label: '대시보드', active: tab === 'dashboard', onClick: () => setTab('dashboard') },
-          { key: 'mine', label: '내 원온원', active: tab === 'mine', onClick: () => setTab('mine') },
+          // 제목 탭으로 들어오면 목록부터 — 진행 중이면 맨 위 「현재 진행 중」 행이 그 회차다
+          { key: 'mine', label: '내 원온원', active: tab === 'mine', onClick: () => { setTab('mine'); setMemberSessionOpen(false); } },
         ]}
         metaText={tab === 'mine' ? `${ME.name} ${ME.role}` : undefined}
         managerName="김지수"
@@ -632,7 +649,10 @@ export default function OneOnOnePage({ icons, baseUrl, active = true, onActivate
               onGenerateComment={(id, apply) => setTimeout(() => apply(PREV_ACTION_AI_COMMENTS[id] ?? ''), 400)}
               onSuggestTopics={(apply) => setTimeout(() => apply([AGENDA_TOPIC_SUGGESTION]), 400)}
               onReady={() => setKnob('view', 'member-ready')}
-              widget={memberWidget('overlay')}
+              /* 다른 탭·페이지에서 미니 위젯이 뜨는 동안은 겹침 위젯을 내린다 — 끌어서 body 에 띄운(is-floating)
+                 겹침 위젯이 숨긴 페이지 밖에서 미니 위젯과 겹쳐 보이지 않게. 돌아오면 카드 오른쪽 위로 되돌아온다. */
+              widget={showMemberMini ? null : memberWidget('overlay')}
+              onBack={() => setMemberSessionOpen(false)}
               baseUrl={baseUrl}
             />
           ) : tab === 'mine' ? (
@@ -640,6 +660,7 @@ export default function OneOnOnePage({ icons, baseUrl, active = true, onActivate
               title={`${MY_MANAGER_NAME} 매니저와의 지난 원온원`}
               subtitle={`총 ${myPastSessions.length}회 · 회차를 선택해 기록을 확인하세요`}
               sessions={myPastSessions}
+              current={memberCurrent}
               emptyTitle={MY_PAST_EMPTY.title}
               emptyText={MY_PAST_EMPTY.text}
               baseUrl={baseUrl}
@@ -673,7 +694,7 @@ export default function OneOnOnePage({ icons, baseUrl, active = true, onActivate
           onExpand={() => { setTab('dashboard'); onActivate?.(); }}
         />
       )}
-      {showMemberMini && memberWidget('mini', () => { setTab('mine'); onActivate?.(); })}
+      {showMemberMini && memberWidget('mini', () => { setTab('mine'); setMemberSessionOpen(true); onActivate?.(); })}
       {active && (
         <StateSwitcher
           spec={KNOBS}

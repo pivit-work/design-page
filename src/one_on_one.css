@@ -977,25 +977,37 @@
   white-space: nowrap;
 }
 
-/* 「일정변경」. <span> 이던 것이 <button> 이 됐다(PW-825) — 브라우저 기본 스타일을
-   지워 **글자 모양은 종전 그대로** 둔다. 부모 `.ono-member-schedule` 의 글꼴·크기·
-   굵기·색을 그대로 물려받는다. */
+/* 시계 아이콘 ↔ 글자 11 (16816:34316) — 글자끼리는 6 */
+.ono-member-schedule > :first-child { margin-right: 5px; }
+
+/* 「일정변경」 (Figma 17749:20881 · 2026-10-23) — 일정 줄 아래, 카드 폭을 꽉 채우는 36 높이 버튼.
+   alpha-black-3 바탕 · r 8 · sm/Semibold text-secondary. 종전엔 일정 줄 끝에 글자로 붙어 있어
+   1280px 창에서 카드 오른쪽을 넘었다. */
 .ono-member-schedule-change {
-  margin-left: auto;
-  cursor: pointer;
+  box-sizing: border-box;
+  width: 100%;
+  height: 36px;
+  padding: 8px 14px;
   appearance: none;
-  background: none;
+  background: var(--alpha-black-3);
   border: 0;
-  padding: 0;
-  font: inherit;
-  color: inherit;
-  line-height: inherit;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.15s;
 }
+
+.ono-member-schedule-change:hover { background: var(--bg-active); }
 
 /* 옮길 수 없는 회차 — 보이되 눌리지 않는다. */
 .ono-member-schedule-change:disabled {
   cursor: not-allowed;
   color: var(--text-disabled);
+  background: var(--alpha-black-3);
 }
 
 .ono-member-actions {
@@ -1033,7 +1045,9 @@
 
 .ono-member-btn:hover { background: var(--bg-secondary); }
 
+/* 「오늘 예정」의 [1on1 진행] (16816:34326) — 브랜드 바탕 · 좌우 12 */
 .ono-member-btn-primary {
+  padding: 7px 11px;
   background: var(--bg-brand-solid);
   border-color: transparent;
   color: var(--text-white);
@@ -4615,14 +4629,26 @@ button.ono-add-modal-input { cursor: pointer; }
 }
 .tl-group-modal.ood-shell .tl-group-modal-content {
   overflow-y: auto;
-  padding-bottom: 60px;
+  /* 시안(17413:26474) 본문 아래 140 — 바닥의 날짜·시간 고르기가 펴질 자리 */
+  padding-bottom: 140px;
 }
+/* 시안(17413:26471)은 닫기 X 를 숨긴다 — Esc·막 클릭으로 닫는다. 위 60px 띠는 그대로 둔다
+   (X 가 없으면 띠가 패딩 20 만 남아 머리가 40 위로 올라오므로 높이를 못 박는다). */
+.tl-group-modal.ood-shell .tl-group-modal-close { display: none; }
+.tl-group-modal.ood-shell .tl-group-modal-top { box-sizing: border-box; height: 60px; }
 .ood-shell-inner { display: flex; flex-direction: column; gap: 48px; }
 .ood-shell-inner > * { flex-shrink: 0; }
 /* 탭 줄은 페이지 머리 밑 자리(margin 20/12)를 전제한 값이라 창 안에서는 걷는다. */
 .tl-group-modal.ood-shell .tl-tabs-row { margin: 0; }
 
-/* 헤더 — 멤버 × 매니저 + DONE 배지 + 열람모드 */
+/* 헤더 — 멤버 × 매니저 + DONE 배지 + 열람모드. 시안(17414:27455)은 한 줄 — 왼쪽에 사람, 오른쪽 끝에
+   배지·열람모드. 공용 틀은 제목 밑에 설명을 쌓으므로 이 창에서만 가로로 편다. */
+.tl-group-modal.ood-shell .tl-group-modal-header {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
 .ood-head-who { display: flex; align-items: center; gap: 8px; }
 .ood-person { display: inline-flex; align-items: center; gap: 6px; }
 .ood-person img { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 0.5px solid var(--border-secondary-alt); }
@@ -4630,15 +4656,32 @@ button.ono-add-modal-input { cursor: pointer; }
 .ood-head-meta { display: flex; align-items: center; gap: 8px; }
 .ood-mode { font-size: 12px; font-weight: 400; line-height: 18px; color: var(--text-secondary); }
 
-/* 탭 — 30px 디스플레이 볼드 */
+/* 탭 — 시안(17413:26482) Display sm/Bold 30/38 · 간격 16 · 밑줄 없음. 활성 fg-primary · 나머지 fg-tertiary.
+   공용 Tabs 의 16px 밑줄 탭을 이 창에서만 디스플레이 크기로 바꾼다. */
+.tl-group-modal.ood-shell .tl-tabs-row { height: 38px; border-bottom: none; }
+.tl-group-modal.ood-shell .tl-tabs { gap: 16px; }
+.tl-group-modal.ood-shell .tl-tab {
+  height: 38px;
+  padding: 0;
+  font-family: var(--font-family-display);
+  font-size: var(--font-size-display-sm);
+  font-weight: 700;
+  line-height: var(--line-height-display-sm);
+  color: var(--fg-tertiary);
+}
+.tl-group-modal.ood-shell .tl-tab.is-active { color: var(--fg-primary); }
+.tl-group-modal.ood-shell .tl-tabs-indicator { display: none; }
 
 /* AI 미팅 요약 — 보라 틴트 카드 + 흰 내부 블록 */
 /* 카드 배경 — Figma Gradient/Linear/61 실측(17413:26487 렌더 픽셀 샘플):
    우상단 옅은 블루 → 좌하단 옅은 핑크. 그라데이션 스톱은 토큰이 없어 hex 유지. */
-.ood-ai-card { background: linear-gradient(225deg, #f7fbfe 0%, #fef5fe 100%); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
-.ood-ai-head { display: flex; align-items: center; justify-content: space-between; padding: 0 8px; }
-.ood-ai-label { display: inline-flex; align-items: center; gap: 4px; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--utility-purple-500); }
-.ood-ai-fold { padding: 6px; background: var(--utility-purple-50); border: 1px solid var(--alpha-black-3); border-radius: 6px; font-family: inherit; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--utility-purple-500); cursor: pointer; }
+/* 카드 안 간격 20 (17413:26487) — 머리 · 재생기 · 요약 글 · 결정사항 묶음 */
+.ood-ai-card { background: linear-gradient(225deg, #f7fbfe 0%, #fef5fe 100%); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 20px; }
+.ood-ai-group { display: flex; flex-direction: column; gap: 8px; }
+.ood-ai-head { display: flex; align-items: center; justify-content: space-between; height: 32px; padding: 0 8px; }
+/* 「AI 미팅 요약」 — 브리핑 제목과 같은 보라 그라데이션 글자 (Gradient/Linear/61) */
+.ood-ai-label { display: inline-flex; align-items: center; gap: 4px; font-size: 14px; font-weight: 600; line-height: 20px; color: transparent; background: linear-gradient(95deg, var(--colors-purple-500) 0%, #a07cf8 60%, #c4b3fd 100%); -webkit-background-clip: text; background-clip: text; }
+.ood-ai-fold { box-sizing: border-box; height: 32px; padding: 0 6px; background: var(--utility-purple-50); border: 1px solid var(--alpha-black-3); border-radius: 6px; font-family: inherit; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--utility-purple-500); cursor: pointer; }
 .ood-ai-block { background: var(--bg-quaternary); border-radius: 8px; padding: 16px; display: flex; flex-direction: column; gap: 6px; }
 .ood-ai-block-title { font-size: 16px; font-weight: 700; line-height: 24px; color: var(--text-primary); }
 .ood-ai-text { font-size: 14px; font-weight: 500; line-height: 24px; color: var(--text-secondary); }
@@ -4697,9 +4740,14 @@ button.ono-add-modal-input { cursor: pointer; }
 
 /* 다음 회의 일정 등록 */
 .ood-schedule { display: flex; flex-direction: column; gap: 12px; align-items: flex-start; }
-.ood-schedule-fields { display: flex; gap: 17px; width: 100%; }
+/* 날짜 칸(40)과 시간 칸(44) 높이가 달라 두 열을 가운데 맞춘다 (17413:26511 items-center) */
+.ood-schedule-fields { display: flex; align-items: center; gap: 17px; width: 100%; }
 .ood-field { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
-.ood-field-label { font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-primary); }
+/* 「날짜」·「시간」 — 시안(17413:26515) Text lg/Bold 18/28 text-primary. 종전 sm/Semibold 에서 커졌다 (2026-10-23) */
+.ood-field-label { font-size: var(--font-size-text-lg); font-weight: 700; line-height: var(--line-height-text-lg); color: var(--text-primary); }
+/* 날짜 칸(17413:26517)은 sm 글자 40 높이, 시간 칸(17413:26525)은 md 글자 44 높이 */
+.ood-field-date .ono-add-modal-input { gap: 6px; }
+.ood-field-date .ono-add-modal-input-text { font-size: var(--font-size-text-sm); line-height: var(--line-height-text-sm); }
 .ood-field-input { display: flex; align-items: center; gap: 6px; padding: 10px 16px; background: var(--alpha-black-3); border-radius: 10px; cursor: pointer; }
 .ood-field-input input[type='date'] { flex: 1; min-width: 0; border: none; background: transparent; font-family: inherit; font-size: 14px; font-weight: 600; color: var(--text-secondary); outline: none; }
 .ood-field-input select { flex: 1; min-width: 0; border: none; background: transparent; font-family: inherit; font-size: 16px; font-weight: 600; line-height: 24px; color: var(--text-secondary); outline: none; appearance: none; cursor: pointer; }
@@ -4708,6 +4756,8 @@ button.ono-add-modal-input { cursor: pointer; }
 .ood-remind-check.is-on { background: var(--bg-brand-solid); border: none; }
 .ood-remind-label { font-size: 14px; font-weight: 500; line-height: 24px; color: var(--text-primary); }
 .ood-calendar-row { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 400; line-height: 18px; color: var(--text-secondary); }
+/* 연동 확인 동그라미는 글자 묶음에서 12 (17413:26531) */
+.ood-calendar-ok { margin-left: 4px; }
 .ood-schedule-hint { font-size: 14px; font-weight: 400; line-height: 20px; color: var(--text-tertiary); }
 .ood-schedule-btn { padding: 10px 14px; background: var(--bg-brand-solid); border: none; border-radius: 10px; font-family: inherit; font-size: 16px; font-weight: 600; line-height: 24px; color: var(--text-white); cursor: pointer; }
 .ono-member-card.is-clickable { cursor: pointer; }
@@ -5086,6 +5136,28 @@ button.ono-add-modal-input { cursor: pointer; }
   line-height: 24px;
   color: var(--text-brand-tertiary);
 }
+/* 지금 진행 중인 회차 (Figma 17556:23596) — 파란 50 바탕, 버튼 자리에 파란 글자 「현재 진행 중」.
+   행 전체가 버튼이다 — 어디를 눌러도 진행 화면으로 간다. 호버/포커스는 행 바탕으로 알린다. */
+.ono-past-row.is-current {
+  background: var(--utility-blue-50);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease;
+}
+.ono-past-row.is-current:hover { background: var(--utility-blue-100); }
+.ono-past-row.is-current:focus-visible {
+  outline: 2px solid var(--utility-blue-500);
+  outline-offset: 2px;
+}
+.ono-past-current {
+  flex: none;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+  color: var(--utility-blue-500);
+}
 
 /* ══ 진행 중 다른 곳으로 갔을 때의 미니 녹음 위젯 (Figma 17698:25548) ═══════════
    회의록 미니 위젯(`.mtg-rec-widget`)과 같은 자리·크기(우하단 40 · 241px). body 포털. */
@@ -5143,6 +5215,28 @@ button.ono-add-modal-input { cursor: pointer; }
   margin: 0 auto;
 }
 /* 녹음 고지 (Figma 17556:24394) — 「녹음 시작과 종료는 매니저 화면에서 진행됩니다」 */
+/* 「‹ 목록으로」 (Figma 17733:20287) — 카드 위 왼쪽, xs/Semibold text-primary · 꺾쇠 24 · 간격 6 · 위아래 6 */
+.ono-my-back {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) 0;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: none;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+  line-height: var(--line-height-text-xs);
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+/* 꺾쇠만 옅다 — 시안 에셋 #b1b6be = fg-tertiary */
+.ono-my-back svg { color: var(--fg-tertiary); }
+.ono-my-back:hover { color: var(--text-secondary); }
+
 .ono-my-notice {
   margin: 0;
   padding: 8px 16px;
@@ -5532,6 +5626,25 @@ button.ono-add-modal-input { cursor: pointer; }
   width: 241px;
   box-sizing: border-box;
 }
+/* 겹쳐 뜨는 위젯은 끌어서 옮긴다 — 안내 줄을 덮으면 사용자가 치운다 (2026-10-23).
+   끌기 시작하면 body 로 띄워(`is-floating`) 상단 바·사이드바 위로도 자유롭게 옮긴다 — 미니 위젯과 같은 겹침 순서(1100). */
+.ono-my-widget.is-overlay.is-floating {
+  position: fixed;
+  right: auto;
+  bottom: auto;
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  z-index: 1100;
+  display: block;
+}
+.ono-my-widget .ono-start-rec-mini.is-draggable {
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.ono-my-widget .ono-start-rec-mini.is-dragging { cursor: grabbing; }
 .ono-my-widget .ono-start-rec-bar { justify-content: center; }
 .ono-my-widget .ono-start-rec-timer { gap: 4px; }
 .ono-my-widget-sub {
