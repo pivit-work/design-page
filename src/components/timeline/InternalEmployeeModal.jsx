@@ -18,7 +18,10 @@ import useTimelineData from './useTimelineData.js';
  *   initialColor    처음 골라져 있을 색
  *   quickAdd        «바로 넣기» (pivit-work PW-1513 · 피드 정책서 §2.3) — 그룹 머리 [+] 로 열어 그룹이 정해졌을 때.
  *                   그룹·색 칸을 빼고 후보 목록을 늘 펼쳐 두며, 후보를 누르면 곧바로 onSubmit 하고 창은 열어 둔다
- *                   (이어서 넣기). 넣은 사람은 호출부의 filterMembers 가 빼서 목록에서 사라진다. 아래는 [닫기] 하나
+ *                   (이어서 넣기). 넣은 사람은 호출부의 filterMembers 가 빼서 목록에서 사라진다. 아래는 [닫기] 하나.
+ *                   후보 줄은 키보드(Enter·Space)로도 고른다. 남은 후보가 없으면 labels.noCandidates 한 줄
+ *   busy            넣는 저장이 도는 중 — 후보 줄을 잠근다. 한 사람이 빠지며 아래 사람이 그 자리로 올라와
+ *                   두 번 누른 것이 엉뚱한 사람에게 가지 않게 (quickAdd 일 때)
  *   labels          { title, searchLabel, searchPlaceholder, clearSelection, groupLabel,
  *                     groupPlaceholder, noGroups, colorLabel, submit, cancel, close } — 화면 언어
  */
@@ -35,6 +38,7 @@ const DEFAULT_LABELS = {
   submit: '추가',
   cancel: '취소',
   close: '닫기',
+  noCandidates: '더할 수 있는 사람이 없습니다.',
 };
 
 const defaultFilter = (members, query) =>
@@ -49,6 +53,7 @@ export default function InternalEmployeeModal({
   initialGroupId,
   initialColor = '',
   quickAdd = false,
+  busy = false,
   labels,
 }) {
   const data = useTimelineData();
@@ -136,6 +141,13 @@ export default function InternalEmployeeModal({
               onBlur={() => setTimeout(() => setSearchOpen(false), 120)}
             />
           )}
+          {quickAdd && filtered.length === 0 && (
+            <div className="tl-emp-search-menu">
+              <div className="tl-emp-search-item">
+                <span className="tl-emp-search-title">{l.noCandidates}</span>
+              </div>
+            </div>
+          )}
           {listOpen && filtered.length > 0 && (
             <div className="tl-emp-search-menu" role="listbox">
               {filtered.map((m) => (
@@ -143,10 +155,16 @@ export default function InternalEmployeeModal({
                   key={m.id}
                   type="button"
                   className="tl-emp-search-item"
+                  role="option"
+                  aria-selected={false}
+                  disabled={quickAdd && busy}
                   onMouseDown={(e) => {
                     e.preventDefault();
-                    pick(m);
+                    if (!quickAdd) pick(m);
                   }}
+                  // «바로 넣기»는 목록이 늘 펼쳐져 있어 Tab 으로 줄까지 온다 — Enter·Space(=click)로도 넣는다.
+                  // 펼쳤다 닫히는 종전 목록은 마우스를 누르는 순간 고른다(검색칸이 흐려지며 닫히기 전에).
+                  onClick={quickAdd ? () => pick(m) : undefined}
                 >
                   <span className="tl-emp-search-avatar" aria-hidden="true">
                     {m.name.charAt(0)}
