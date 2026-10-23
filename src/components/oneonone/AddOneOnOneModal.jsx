@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
+import useDismissLayer from '../shared/useDismissLayer.js';
 import Icon from '../shared/Icon.jsx';
 import FormField from '../shared/FormField.jsx';
 import TextInput from '../shared/TextInput.jsx';
@@ -221,14 +222,9 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
     }
   };
 
-  useEffect(() => {
-    if (!memberOpen) return undefined;
-    const onDown = (e) => {
-      if (!memberWrapRef.current?.contains(e.target)) setMemberOpen(false);
-    };
-    document.addEventListener('pointerdown', onDown, true);
-    return () => document.removeEventListener('pointerdown', onDown, true);
-  }, [memberOpen]);
+  // 바깥 누르기는 공용 훅으로 듣는다 — 훅도 누르기를 잡는 단계(capture)에서 받아 막 클릭에서도 닫히고,
+  // Esc 는 목록만 닫고 창은 남긴다.
+  useDismissLayer(() => setMemberOpen(false), memberWrapRef, undefined, memberOpen);
 
   // 모든 popover/dropdown 닫기
   const closePopovers = () => {
