@@ -64,6 +64,12 @@ export default function useTimelineDnD({ groups, setGroups, resolveDrop }) {
       return { groupId: groupHeader.getAttribute('data-tl-group'), index: 0 };
     }
 
+    // 빈 그룹 안내 줄 위 — 그 그룹 맨 앞 (PW-1513). 겨누는 순간 안내 줄은 자리 표시로 바뀐다.
+    const emptyRow = el.closest('.tl-group-empty[data-tl-group]');
+    if (emptyRow) {
+      return { groupId: emptyRow.getAttribute('data-tl-group'), index: 0 };
+    }
+
     const placeholder = el.closest('.tl-member-placeholder-wrap[data-tl-group]');
     if (placeholder) {
       const groupId = placeholder.getAttribute('data-tl-group');

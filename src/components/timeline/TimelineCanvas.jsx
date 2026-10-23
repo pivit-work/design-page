@@ -100,6 +100,9 @@ export default function TimelineCanvas({
   onMemberDetail,
   // 현재 로그인 사용자(ME) id. 디폴트 그룹에서 본인 제거 버튼을 숨기는 데 사용.
   currentUserId,
+  // 직접 만든 그룹에 멤버가 0명일 때 그 그룹 자리에 한 줄 띄울 안내 (pivit-work PW-1513 · 피드 view-spec 엣지케이스).
+  // 생략하면 예전처럼 머리 행만 그린다.
+  emptyGroupText,
   // 필터 타입 controlled — 주입 시 외부 state 로 동기화되고 onFilterChange 로
   // 통지. 생략하면 내부 state (전체 선택) 로 자체 관리. 선택된 type 에 해당하는
   // meeting/event 만 간트·캘린더에 렌더된다.
@@ -691,6 +694,7 @@ export default function TimelineCanvas({
             currentUserId={currentUserId}
             collapsedGroups={collapsedGroups}
             onToggleCollapse={handleToggleCollapse}
+            emptyGroupText={emptyGroupText}
           />
           <TimelineGrid
             ref={rightScrollRef}
@@ -705,6 +709,7 @@ export default function TimelineCanvas({
             onCellClick={handleCellClick}
             currentUserId={currentUserId}
             collapsedGroups={collapsedGroups}
+            emptyGroupText={emptyGroupText}
           />
         </div>
       )}

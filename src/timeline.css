@@ -648,6 +648,10 @@
   cursor: grabbing;
 }
 
+/* 직접 만든 그룹이 비었을 때 안내 줄 (PW-1513) — 멤버 행 칸에 직함 글씨(.tl-member-title)로 쓴다. 끌어 올 수 없다. */
+.tl-group-empty { cursor: default; }
+.tl-group-empty:active { cursor: default; }
+
 /* Placeholder slot inserted at the drop target while dragging.
    Wrapper keeps full row height (no layout shift), inner box has the inset
    green dashed border + light tint per Figma. */

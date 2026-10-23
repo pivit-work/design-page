@@ -12,7 +12,8 @@ import useTimelineData from './useTimelineData.js';
  *
  * 앱이 이 창을 그대로 쓰도록 넘길 자리를 둔다 (PW-762). **안 주면 지금 모양·동작 그대로다.**
  *   members         후보 목록. 안 주면 TimelineDataProvider 의 members
- *   filterMembers   (members, query) => 보여 줄 후보. 찾는 기준·개수 제한을 호출부가 정한다
+ *   filterMembers   (members, query, groupId) => 보여 줄 후보. 찾는 기준·개수 제한·순서를 호출부가 정한다.
+ *                   groupId 는 지금 골라진 그룹 — 그 그룹에 이미 든 사람을 빼는 데 쓴다 (PW-1513)
  *   initialGroupId  처음 골라져 있을 그룹 (groups 에 있을 때만)
  *   initialColor    처음 골라져 있을 색
  *   labels          { title, searchLabel, searchPlaceholder, clearSelection, groupLabel,
@@ -60,7 +61,7 @@ export default function InternalEmployeeModal({
 
   const canSubmit = !!selectedMember && !!groupId && !!color;
 
-  const filtered = filterMembers(members, query);
+  const filtered = filterMembers(members, query, groupId);
 
   const handleSubmit = () => {
     onSubmit({ memberId: selectedMember.id, groupId, color });

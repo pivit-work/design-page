@@ -256,6 +256,49 @@
   background: var(--bg-primary);
   overflow: hidden;
 }
+/* 「평균 헬스」 칸 최근 5영업일 막대 (PW-1513 · 기획 스니핏 작성 §10-A) — 카드 높이 100 은 그대로,
+   라벨 행 오른쪽에 캡션, 값 행 오른쪽에 막대. 색·빈 칸은 매니저 「이번 주 헬스」 점(.mgr-ts-dot),
+   캡션·요일 글씨는 그 범례(.mgr-ts-health-legend)를 따른다. */
+.snippet-stat-head,
+.snippet-stat-value-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+.snippet-stat-head { align-items: center; }
+.snippet-stat-caption {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.snippet-trend { display: flex; gap: 10px; height: 38px; flex-shrink: 0; }
+.snippet-trend-day { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.snippet-trend-track {
+  position: relative;
+  width: 12px;
+  height: 26px;
+  border-radius: 3px;
+  border: 1px solid var(--border-secondary);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.snippet-trend-bar { position: absolute; left: -1px; right: -1px; bottom: -1px; border-radius: 3px; }
+.snippet-trend-bar.is-good { background: var(--fg-success-secondary); }
+.snippet-trend-bar.is-warn { background: var(--fg-warning-secondary); }
+.snippet-trend-bar.is-bad { background: var(--fg-error-primary); }
+.snippet-trend-weekday {
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 10px;
+  color: var(--text-tertiary);
+}
+.snippet-trend-weekday.is-today { font-weight: 700; color: var(--text-secondary); }
 .snippet-stat-label {
   font-size: 12px;
   font-weight: 600;

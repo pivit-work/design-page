@@ -213,6 +213,7 @@ const NameColumn = forwardRef(function NameColumn(
     currentUserId,
     collapsedGroups,
     onToggleCollapse,
+    emptyGroupText,
   },
   ref
 ) {
@@ -270,6 +271,17 @@ const NameColumn = forwardRef(function NameColumn(
       }
     });
 
+    // 직접 만든 그룹이 비었으면 안내 한 줄 (PW-1513) — 끌어 놓는 중에 이 그룹을 겨누면 자리 표시가 대신한다.
+    // TimelineGrid 도 같은 조건으로 빈 줄을 하나 넣어 좌우 Y 좌표를 맞춘다.
+    if (
+      emptyGroupText &&
+      !g.isDefault &&
+      g.memberIds.length === 0 &&
+      !(dragOver && dragOver.groupId === g.id)
+    ) {
+      flatRows.push({ type: 'empty', groupId: g.id, key: `empty-${g.id}` });
+    }
+
     // Placeholder at the END of this group?
     if (
       dragOver &&
@@ -307,6 +319,19 @@ const NameColumn = forwardRef(function NameColumn(
                   onRemoveGroup={onRemoveGroup}
                   onRenameGroup={onRenameGroup}
                 />
+              );
+            }
+            if (r.type === 'empty') {
+              return (
+                <div
+                  key={r.key}
+                  className="tl-member-row tl-group-empty"
+                  style={{ height: ROW_H }}
+                  data-tl-group={r.groupId}
+                  data-tl-index={0}
+                >
+                  <span className="tl-member-title">{emptyGroupText}</span>
+                </div>
               );
             }
             if (r.type === 'placeholder') {

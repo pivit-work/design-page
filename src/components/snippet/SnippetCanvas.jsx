@@ -54,6 +54,36 @@ function matchesQuery(s, query) {
   return tokens.every((t) => haystack.includes(t));
 }
 
+// 막대 높이 — 칸(26) 안에서 점수/10 비율, 아주 낮은 점수도 보이게 3 이상 (기획 스니핏 작성 §10-A.1).
+const TREND_TRACK_HEIGHT = 26;
+const trendBarHeight = (score) =>
+  Math.max(3, Math.round((Math.min(10, Math.max(0, score)) / 10) * TREND_TRACK_HEIGHT));
+// 색 구간은 매니저 「이번 주 헬스」 점(.mgr-ts-dot)과 같다 — 8↑ 좋음 · 6~7 주의 · 5↓ 나쁨.
+const trendTier = (score) => {
+  const n = Math.round(score);
+  return n >= 8 ? 'good' : n >= 6 ? 'warn' : 'bad';
+};
+
+function HealthTrendBars({ days = [] }) {
+  return (
+    <div className="snippet-trend" data-testid="snippet-health-trend">
+      {days.map((d) => (
+        <div className="snippet-trend-day" key={d.key} title={d.title}>
+          <span className="snippet-trend-track">
+            {d.score != null && (
+              <span
+                className={`snippet-trend-bar is-${trendTier(d.score)}`}
+                style={{ height: trendBarHeight(d.score) }}
+              />
+            )}
+          </span>
+          <span className={`snippet-trend-weekday${d.isToday ? ' is-today' : ''}`}>{d.weekday}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function SnippetCanvas({
   baseUrl,
   // 필터 — 기간 segmented
@@ -74,6 +104,10 @@ export default function SnippetCanvas({
   recordCount = 0,
   avgHealth = '-',
   avgWrite = '-',
+  // 「평균 헬스」 칸 안 최근 5영업일 막대 (기획 스니핏 작성 §10-A · PW-1513). 생략하면 칸은 예전 그대로다.
+  //   { status: 'loading' | 'ready' | 'empty' | 'error', caption, days: [{ key, weekday, title, score, isToday }] }
+  //   loading 은 빈 칸 5개, ready 는 막대, empty·error 는 막대 없이 caption 만. 문구는 호스트가 정한다.
+  healthTrend,
   // 매니저 뷰 토글 + 멤버 목록
   // showManagerToggle: 호스트가 역할 게이트를 걸 때 false (기본은 노출 — 데모 유지).
   showManagerToggle = true,
@@ -211,10 +245,25 @@ export default function SnippetCanvas({
             <span className="snippet-stat-label">기록 수</span>
             <span className="snippet-stat-value">{recordCount}개</span>
           </div>
-          <div className="snippet-stat-card">
-            <span className="snippet-stat-label">평균 헬스</span>
-            <span className="snippet-stat-value">{avgHealth}</span>
-          </div>
+          {healthTrend ? (
+            <div className="snippet-stat-card">
+              <div className="snippet-stat-head">
+                <span className="snippet-stat-label">평균 헬스</span>
+                <span className="snippet-stat-caption">{healthTrend.caption}</span>
+              </div>
+              <div className="snippet-stat-value-row">
+                <span className="snippet-stat-value">{avgHealth}</span>
+                {(healthTrend.status === 'loading' || healthTrend.status === 'ready') && (
+                  <HealthTrendBars days={healthTrend.days} />
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="snippet-stat-card">
+              <span className="snippet-stat-label">평균 헬스</span>
+              <span className="snippet-stat-value">{avgHealth}</span>
+            </div>
+          )}
           <div className="snippet-stat-card">
             <span className="snippet-stat-label">평균 작성</span>
             <span className="snippet-stat-value">{avgWrite}</span>

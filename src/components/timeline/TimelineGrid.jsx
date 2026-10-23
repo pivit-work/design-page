@@ -32,6 +32,8 @@ const TimelineGrid = forwardRef(function TimelineGrid(
     onSnippetClick,
     currentUserId,
     collapsedGroups,
+    // NameColumn 과 같은 조건으로 빈 그룹 안내 줄 자리를 비운다 (PW-1513).
+    emptyGroupText,
   // 「지금」 — 로컬 Date 그릇으로 돌려주는 함수(getHours()/getDate() 가 보여 줄 벽시계).
   // 없으면 브라우저 시계. 앱이 사용자 설정 시간대로 오늘·NOW 선을 그릴 때 넘긴다 (PW-781).
     now,
@@ -49,6 +51,9 @@ const TimelineGrid = forwardRef(function TimelineGrid(
       const m = members.find((x) => x.id === mid);
       if (m) flatRows.push({ type: 'member', member: m });
     });
+    if (emptyGroupText && !g.isDefault && g.memberIds.length === 0) {
+      flatRows.push({ type: 'empty' });
+    }
   });
 
   // Compute Y positions per row
@@ -115,6 +120,19 @@ const TimelineGrid = forwardRef(function TimelineGrid(
                     className="tl-grid-group-header"
                     style={{ top: rowY, height: SUBHEADER_H, width: totalInnerW }}
                   />
+                );
+              }
+              if (r.type === 'empty') {
+                return (
+                  <div
+                    key={`gre-${i}`}
+                    className="tl-grid-row"
+                    style={{ top: rowY, height: ROW_H, width: totalInnerW }}
+                  >
+                    {HOURS.map((h) => (
+                      <div key={h} className="tl-grid-cell" style={{ width: HOUR_W }} />
+                    ))}
+                  </div>
                 );
               }
               // 빈 셀 클릭은 본인 행에서만 — 시안 정책(m.id==="me" 에서만 crosshair).
