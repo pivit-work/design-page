@@ -994,7 +994,8 @@ function TranscriptOffsetNotice({ session, L }) {
  * (기획 1on1-stt-spec §3.1 · PW-1486). **안 넘기면 지금처럼 글자만 그린다** — 고칠 수 없는
  * 사람에게 «눌러도 아무 일이 없는» 이름이 생기지 않게. 저장·권한 판정은 소비처와 서버 몫이다.
  *
- * `speakerEdit`: `{ pendingIndex, error: 'conflict'|'failed'|null, onToggle(index) }`
+ * `speakerEdit`: `{ pendingIndex, busy, error: 'conflict'|'failed'|null, onToggle(index) }` —
+ * `busy` 는 요약을 다시 만드는 중이다. 그동안 고치면 그 고침이 요약에 안 들어간 채 띠가 사라진다.
  */
 function TranscriptPreview({ session, L, icons, baseUrl, jumpBinding, speakerEdit }) {
   const lines = session.sttTranscript ?? [];
@@ -1030,7 +1031,7 @@ function TranscriptPreview({ session, L, icons, baseUrl, jumpBinding, speakerEdi
                     type="button"
                     className="ono-mem-evidence-speaker ono-done-speaker-toggle"
                     onClick={() => speakerEdit.onToggle(i)}
-                    disabled={speakerEdit.pendingIndex != null}
+                    disabled={speakerEdit.pendingIndex != null || !!speakerEdit.busy}
                     title={L.speakerToggleHint}
                     aria-label={fill(L.speakerToggleAria, {
                       speaker: line.speaker === 'host' ? L.roleManager : L.roleMember,
