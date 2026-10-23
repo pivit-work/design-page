@@ -2189,7 +2189,7 @@ export default function EvalCycleHrCanvas({
           String(b.openedAt ?? '').localeCompare(String(a.openedAt ?? '')) ||
           String(b.endDate).localeCompare(String(a.endDate)),
       )
-      .map((c) => ({ startDate: c.startDate ?? null, endDate: c.endDate }))[0] ?? null;
+      .map((c) => ({ name: c.name ?? '', startDate: c.startDate ?? null, endDate: c.endDate }))[0] ?? null;
 
   /* PW-1459 §5.9 — 설정을 불러올 수 있는 이전 사이클: 완료·회수. */
   const pastCycles = cycles

@@ -1304,6 +1304,11 @@ function defaultPeriodAfter(prev) {
   return { start, end: addDaysIso(start, len) };
 }
 
+/** [PW-2135] 'YYYY-MM-DD' → 'MM/DD'. 못 읽으면 빈 문자열. */
+function monthDaySlash(iso) {
+  return isIsoDate(datePart(iso)) ? datePart(iso).slice(5).replace('-', '/') : '';
+}
+
 function addDaysIso(iso, n) {
   const base = isoToDate(iso);
   return dateToIso(new Date(base.getTime() + n * DAY_MS));
@@ -2740,7 +2745,7 @@ export default function EvalCycleWizard({
    * 같으면 이름 칸 아래에 「동일한 이름…」을 적고 「다음」을 막는다. 서버도 만들기·오픈에서 막는다.
    */
   existingCycles = [],
-  /** [PW-1591 J-2] 이 워크스페이스에서 가장 최근에 오픈한 사이클 `{ startDate, endDate }` — 기간 기본값의 근거. */
+  /** [PW-1591 J-2] 이 워크스페이스에서 가장 최근에 오픈한 사이클 `{ name, startDate, endDate }` — 기간 기본값의 근거. `name` 은 기본값을 비운 이유 줄(PW-2135)에 쓴다. */
   previousCycle = null,
   onLoadPastCycle,
   /** PW-1459 §5.10.2 — 직급이 하나도 없을 때 「어드민 직급 설정」으로 가는 길. */
@@ -3163,15 +3168,35 @@ export default function EvalCycleWizard({
   const dateErrorId = `evc-wiz-date-error-${useId().replace(/:/g, '')}`;
   const tplSaveHintId = `${dateErrorId}-tpl`;
   // [PW-1591 J-2] 초안·관리 진입이 아닌 «새» 사이클일 때만 직전 사이클에 이어 붙인다.
-  const [periodDefault] = useState(() =>
-    D || cycle ? { start: '', end: '' } : defaultPeriodAfter(previousCycle),
-  );
+  // [PW-2135 J-2a · 정책 §5.1-B] 그렇게 계산한 시작일이 오늘보다 뒤면(직전 사이클의 대상 기간이
+  //   아직 안 끝났다) 채우지 않는다 — 빈칸 + 이유 한 줄(`heldBack`).
+  const [periodDefault] = useState(() => {
+    if (D || cycle) return { start: '', end: '' };
+    const p = defaultPeriodAfter(previousCycle);
+    if (!p.start || p.start <= dateToIso(new Date())) return p;
+    return {
+      start: '',
+      end: '',
+      heldBack: { name: previousCycle?.name ?? '', end: datePart(previousCycle?.endDate ?? '') },
+    };
+  });
   const [startDate, setStartDate] = useState(() =>
     datePart(D?.startDate ?? cycle?.startDate ?? periodDefault.start),
   );
   const [endDate, setEndDate] = useState(() =>
     datePart(D?.endDate ?? cycle?.endDate ?? periodDefault.end),
   );
+  /**
+   * [PW-2135 J-2b · 정책 §5.1-B] 미래 기간 안내 — ① 시작일 > 오늘 ② (시작일이 비었거나 오늘 이전) 종료일 > 오늘.
+   * 오늘은 브라우저 날짜다. 이미 연 사이클은 기간을 못 바꾸니 띄우지 않는다.
+   */
+  const periodFutureNote = (() => {
+    if (openedManage) return null;
+    const today = dateToIso(new Date());
+    if (isIsoDate(startDate) && startDate > today) return L.periodFutureStart ?? null;
+    if (isIsoDate(endDate) && endDate > today) return L.periodFutureEnd ?? null;
+    return null;
+  })();
   // 날짜 picker 팝오버 상태: { field:'start'|'end', rect, el }
   const [picker, setPicker] = useState(null);
   const openPicker = (field) => (e) =>
@@ -3337,7 +3362,8 @@ export default function EvalCycleWizard({
    * 번째 리마인더까지 함께 열렸다. 테스트 발송(`testKey`)은 처음부터 이 모양이었다.
    */
   const rmKey = (pid, rid) => `${pid}::${rid}`;
-  const [rmEdit, setRmEdit] = useState(null); // [PW-1066] 오른쪽 패널로 연 리마인더 — { pid, rid }
+  // [PW-1066] 오른쪽 패널로 연 리마인더 — { pid, rid, from }. `from` 은 연 때의 채널(PW-2141 «채널 안내 줄»).
+  const [rmEdit, setRmEdit] = useState(null);
   const [disabledPhases, setDisabledPhases] = useState(() => {
     if (D?.disabledPhases) return new Set(D.disabledPhases);
     const off = new Set(
@@ -3680,6 +3706,18 @@ export default function EvalCycleWizard({
     ...orderedMiddle.map((id) => activePhases.find((p) => p.id === id)),
     activePhases.find((p) => p.id === 'share'),
   ].filter(Boolean);
+  /** [PW-2135 J-2c] 켜진 단계 중 가장 이른 시작일로 대상 기간과 견준다. 오픈한 사이클에는 띄우지 않는다. */
+  const firstPhaseEarlyNote = (() => {
+    if (openedManage || !isIsoDate(endDate)) return null;
+    const first = displayPhases
+      .filter((p) => !disabledPhases.has(p.id))
+      .map((p) => datePart(scheduleOf(p.id).start ?? ''))
+      .filter(isIsoDate)
+      .sort()[0];
+    if (!first || first > endDate) return null;
+    if (isIsoDate(startDate) && first < startDate) return L.scheduleBeforePeriodStart ?? null;
+    return L.scheduleBeforePeriodEnd ? fill(L.scheduleBeforePeriodEnd, { date: monthDaySlash(endDate) }) : null;
+  })();
   const enabledRows = displayPhases
     .filter((p) => !disabledPhases.has(p.id))
     .map((p) => ({ id: p.id, name: phaseName(p), ...scheduleOf(p.id) }));
@@ -3914,7 +3952,7 @@ export default function EvalCycleWizard({
     // [PW-2089] 새 줄도 회사 기본값 — 종전 «이메일만 켜진 새 줄»을 바꾼다(D-1 이면 이메일+Slack).
     const rm = withCompanyDefaults(makeReminder(1, ['email']), companyRemind);
     setReminders((r) => ({ ...r, [pid]: [...remindersOf(pid), rm] }));
-    setRmEdit({ pid, rid: rm.id });
+    setRmEdit({ pid, rid: rm.id, from: rm.channels });
   };
   const removeReminder = (pid, rid) =>
     setReminders((r) => ({ ...r, [pid]: remindersOf(pid).filter((x) => x.id !== rid) }));
@@ -4696,6 +4734,29 @@ export default function EvalCycleWizard({
               })}
             </span>
             </div>
+            {/* [PW-2141 · 정책 §5.2.1-F «채널 안내 줄»] 채널이 회사 기본값을 따를 때만. 일수 때문에 채널이
+                바뀌었으면 무엇이 바뀌었는지(주황), 아니면 따르는 규칙(회색). 회사 기본값을 못 불러왔으면 회색 줄은
+                그리지 않는다 — 규칙의 채널 이름을 모른다. */}
+            {rm.inherit?.channels && (() => {
+              const names = (ids) =>
+                REMINDER_CHANNELS.filter((ch) => ids.includes(ch.id)).map((ch) => L[ch.labelKey]).join(' + ');
+              const from = rmEdit.from ?? rm.channels;
+              if (!sameChannelSet(from, rm.channels) && L.reminderChannelInheritChanged) {
+                return (
+                  <div className="evc-rm-tgt-note" data-testid={`evc-rm-ch-inherit-changed-${ph.id}-${i}`}>
+                    {fill(L.reminderChannelInheritChanged, { from: names(from), to: names(rm.channels) })}
+                  </div>
+                );
+              }
+              return L.reminderChannelInheritNote && !reminderCompanyDefaultsFailed ? (
+                <p className="evc-field-note" data-testid={`evc-rm-ch-inherit-note-${ph.id}-${i}`}>
+                  {fill(L.reminderChannelInheritNote, {
+                    far: names(companyRemind.channelsFar),
+                    near: names(companyRemind.channelsNear),
+                  })}
+                </p>
+              ) : null;
+            })()}
             {beforeStart && L.reminderBeforeStartWarn && (
               <div className="evc-rm-tgt-error" data-testid={`evc-rm-panel-before-start-${ph.id}-${i}`}>
                 {L.reminderBeforeStartWarn}
@@ -8297,6 +8358,15 @@ export default function EvalCycleWizard({
                   {L.cycleNameTaken}
                 </p>
               )}
+              {/* [PW-2135 J-2a] 기본값을 비워 둔 이유. 두 칸 중 하나라도 채우면(직접·불러오기) 할 말이 없어진다. */}
+              {periodDefault.heldBack && !startDate && !endDate && L.periodDefaultHeldBack && (
+                <p className="evc-field-note" data-testid="evc-wiz-period-held-back">
+                  {fill(L.periodDefaultHeldBack, {
+                    name: periodDefault.heldBack.name,
+                    date: monthDaySlash(periodDefault.heldBack.end),
+                  })}
+                </p>
+              )}
               {/* [PW-536] 1단계의 두 칸은 «무엇을 평가하는가» 다. 단계 일정 칸과 라벨을
                   나눠 둔다 — 같은 `startDate` 를 쓰면 3단계 일정 칸의 이름표까지
                   「평가 대상 기간」이 된다. */}
@@ -8340,6 +8410,12 @@ export default function EvalCycleWizard({
                   )}
                 </div>
               </div>
+              {/* [PW-2135 J-2b · 정책 §5.1-B] 미래 기간은 막지 않고 알린다 — 값에 따라 한 줄만. */}
+              {periodFutureNote && (
+                <div className="evc-wiz-soft-warn" data-testid="evc-wiz-period-future">
+                  {periodFutureNote}
+                </div>
+              )}
               {/* [PW-1591 J-1 · 정책 §5.1-B] 이 기간이 무엇을 자르는지 — 값 유무와 무관하게 늘 보인다. */}
               {L.periodUsageNote && (
                 <div className="evc-period-usage" data-testid="evc-wiz-period-usage">
@@ -9505,6 +9581,13 @@ export default function EvalCycleWizard({
                   </button>
                 </div>
               </div>
+              {/* [PW-2135 J-2c · 정책 §5.1-B] 첫 단계가 대상 기간이 끝나기 전에 시작한다. 막지 않는다.
+                  위자드에만 — 오픈한 사이클은 대상 기간을 바꿀 수 없다. */}
+              {firstPhaseEarlyNote && (
+                <div className="evc-wiz-soft-warn" data-testid="evc-sched-before-period-end">
+                  {firstPhaseEarlyNote}
+                </div>
+              )}
               {d0Picker && (
                 <DatePicker
                   todaySelects
@@ -9866,7 +9949,7 @@ export default function EvalCycleWizard({
                                         type="button"
                                         className="evc-rm-edit-btn"
                                         aria-haspopup="dialog"
-                                        onClick={() => setRmEdit({ pid: ph.id, rid: rm.id })}
+                                        onClick={() => setRmEdit({ pid: ph.id, rid: rm.id, from: rm.channels })}
                                         data-testid={`evc-rm-edit-${ph.id}-${i}`}
                                       >
                                         {L.reminderEdit}
