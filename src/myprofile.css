@@ -60,3 +60,14 @@
     width: 100%;
   }
 }
+
+/* 직급 옆 공개 상태 딱지 — 생김새는 공용 딱지(msc-vis-badge). 값 글자와 띄우는 자리만 여기서 (PW-1473) */
+.mp-vis-badge {
+  margin-left: 6px;
+  vertical-align: middle;
+}
+/* 누르면 공개 범위 탭으로 — 버튼 기본 글꼴 대신 화면 글꼴 */
+.mp-vis-badge.is-link {
+  cursor: pointer;
+  font-family: inherit;
+}

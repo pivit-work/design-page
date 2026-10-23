@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import StatusBadge from '../shared/StatusBadge.jsx';
+import Skeleton from '../shared/Skeleton.jsx';
 
 /**
  * MyProfileCanvas — 내 프로필 페이지 정본 (읽기 전용 표출).
@@ -18,6 +20,13 @@ import { useState } from 'react';
  * 마스킹을 유지하고 안내를 띄우며, `보기` 를 다시 누르면 재조회한다.
  *
  * 경로 `/me` — 항상 요청자 본인. 직속 팀원 목록·타인 카드는 설계상 제외.
+ *
+ * 조직·인사 카드 (정책 v1.4 §3·§4 · pivit-work PW-1473):
+ * - 맨 앞 «사번»(`org.employeeCode`). «직급 / 직책» 은 `{직급} / {직책}`, 없는 쪽은 `—`.
+ * - 직급 옆 공개 상태 딱지 — `jobLevelPublic` 이 true 면 «공개 중», false 면 «비공개», 직급이 비면
+ *   «직급 미등록»(누를 수 없음). `jobLevelPublic` 이 null 이면(공개 범위를 못 읽음) 그리지 않는다.
+ *   누르면 `onJobLevelVisibility` — 토글은 이 화면이 아니라 내 설정 공개 범위 탭에서 한다.
+ * - `orgStatus` 'loading' 이면 값 자리에 자리 표시 막대, 'error' 면 칸 대신 `orgError`(화면이 넘긴 안내)를 그린다.
  */
 
 const DEFAULT_LABELS = {
@@ -42,11 +51,15 @@ const DEFAULT_LABELS = {
   org: {
     section: '조직 · 인사 정보',
     managed: '어드민 관리 · 읽기 전용',
+    employeeCode: '사번',
     employmentType: '고용 형태',
     joinDate: '입사일',
     position: '직급 / 직책',
     dept: '소속',
     manager: '현재 매니저',
+    levelPublic: '공개 중',
+    levelPrivate: '비공개',
+    levelUnset: '직급 미등록',
   },
   comp: {
     section: '보상 정보',
@@ -100,12 +113,38 @@ function Card({ children, className = '', testId }) {
   );
 }
 
-function Pair({ label, value, dash, testId }) {
+function Pair({ label, value, dash, testId, loading = false, children }) {
   return (
     <div>
       <div className="msc-pair-label">{label}</div>
-      <div className="msc-pair-value" data-testid={testId}>{orDash(value, dash)}</div>
+      <div className="msc-pair-value" data-testid={testId}>
+        {loading ? <Skeleton inline width={96} height={13} /> : orDash(value, dash)}
+        {!loading && children}
+      </div>
     </div>
+  );
+}
+
+/* ── 직급 공개 상태 딱지 — 내 설정 공개 범위와 같은 딱지(msc-vis-badge: 초록 = 켜짐, 회색 = 꺼짐) ── */
+function JobLevelVisibilityBadge({ hasLevel, isPublic, onClick, L }) {
+  if (!hasLevel) {
+    return (
+      <StatusBadge className="msc-vis-badge is-muted mp-vis-badge" data-testid="myprofile-joblevel-badge" data-state="unset">
+        {L.org.levelUnset}
+      </StatusBadge>
+    );
+  }
+  return (
+    <StatusBadge
+      as={onClick ? 'button' : 'span'}
+      type={onClick ? 'button' : undefined}
+      onClick={onClick}
+      className={`msc-vis-badge ${isPublic ? 'is-green' : 'is-muted'} mp-vis-badge${onClick ? ' is-link' : ''}`}
+      data-testid="myprofile-joblevel-badge"
+      data-state={isPublic ? 'public' : 'private'}
+    >
+      {isPublic ? L.org.levelPublic : L.org.levelPrivate}
+    </StatusBadge>
   );
 }
 
@@ -137,6 +176,10 @@ export default function MyProfileCanvas({
   isAdmin = false,
   compensationStatus = 'loaded',
   onRevealComp,
+  orgStatus = 'loaded',
+  orgError = null,
+  jobLevelPublic = null,
+  onJobLevelVisibility,
   onEdit,
   onEditPhoto,
   labels: providedLabels,
@@ -151,8 +194,11 @@ export default function MyProfileCanvas({
   const manager = cur.manager
     ? `${cur.manager.name}${cur.manager.title ? ` (${cur.manager.title})` : ''}`
     : dash;
+  // 정책 §3 «직급 / 직책» · §8 직급이 비면 `— / {직책}` — 둘 다 비면 `—` 하나.
+  const hasLevel = Boolean(cur.level && String(cur.level).trim());
   const position =
-    orDash([cur.level, cur.title || cur.position].filter(Boolean).join(' / ') || null, dash);
+    hasLevel || cur.position ? `${hasLevel ? cur.level : dash} / ${cur.position || dash}` : dash;
+  const orgLoading = orgStatus === 'loading';
 
   const comp = compensation && compensation.current ? compensation.current : null;
   const compRevealed = (isAdmin || revealComp) && Boolean(comp);
@@ -237,13 +283,27 @@ export default function MyProfileCanvas({
         <div className="admin-section-label">
           {L.org.section} <span className="mp-section-sub">({L.org.managed})</span>
         </div>
-        <div className="msc-pairs">
-          <Pair label={L.org.employmentType} value={cur.employmentType} dash={dash} testId="myprofile-org-employment" />
-          <Pair label={L.org.joinDate} value={cur.joinDate} dash={dash} testId="myprofile-org-joindate" />
-          <Pair label={L.org.position} value={position} dash={dash} testId="myprofile-org-position" />
-          <Pair label={L.org.dept} value={cur.dept ?? me.dept} dash={dash} testId="myprofile-org-dept" />
-          <Pair label={L.org.manager} value={manager} dash={dash} testId="myprofile-org-manager" />
-        </div>
+        {orgStatus === 'error' ? (
+          <div data-testid="myprofile-org-error">{orgError}</div>
+        ) : (
+          <div className="msc-pairs" aria-busy={orgLoading || undefined}>
+            <Pair label={L.org.employeeCode} value={cur.employeeCode} dash={dash} loading={orgLoading} testId="myprofile-org-employee-code" />
+            <Pair label={L.org.employmentType} value={cur.employmentType} dash={dash} loading={orgLoading} testId="myprofile-org-employment" />
+            <Pair label={L.org.joinDate} value={cur.joinDate} dash={dash} loading={orgLoading} testId="myprofile-org-joindate" />
+            <Pair label={L.org.position} value={position} dash={dash} loading={orgLoading} testId="myprofile-org-position">
+              {jobLevelPublic !== null && (
+                <JobLevelVisibilityBadge
+                  hasLevel={hasLevel}
+                  isPublic={jobLevelPublic === true}
+                  onClick={onJobLevelVisibility}
+                  L={L}
+                />
+              )}
+            </Pair>
+            <Pair label={L.org.dept} value={cur.dept ?? me.dept} dash={dash} loading={orgLoading} testId="myprofile-org-dept" />
+            <Pair label={L.org.manager} value={manager} dash={dash} loading={orgLoading} testId="myprofile-org-manager" />
+          </div>
+        )}
       </Card>
 
       {/* ── 보상 정보 (본인만 · 마스킹) ── */}
