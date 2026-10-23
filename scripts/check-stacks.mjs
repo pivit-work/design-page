@@ -16,6 +16,9 @@
  * 2. 배럴이 Stack 을 export 하고 index.css 가 stack.css 를 끌어온다 — 빠지면 소비자는 쓸 수 없거나 간격 없이 그려진다.
  * 3. JSX 의 `<Stack gap="…">` 이 STACK_GAPS 밖의 값을 쓰지 않는다 — 모르는 값은 조용히 기본값(md)이 된다.
  * 4. MIGRATED 의 칸이 지금도 `<Stack … testId=…>` 로 그려진다 — 누가 `<div>` 로 되돌리면 실패한다.
+ * 5. 공용 안내 상자(`evx-notice`)에 `style` 로 여백을 붙이지 않는다. 바깥 여백 0 인 상자에 손 여백을 붙여 맞추던
+ *    곳이 여섯이었고, 그중 평가 진행 현황의 「진행 멈춤」은 카드 목록의 간격(16px)에 손 여백 12px 가 더해져
+ *    아래가 28px 로 벌어져 있었다. 간격은 놓인 칸(Stack · 카드 목록)이 준다.
  *
  * MIGRATED 에 줄을 더하는 것은 칸을 Stack 으로 옮겼을 때다. 한꺼번에 옮기지 않고 손대는 칸부터 옮긴다
  * (여백 설정이 이 저장소에 1,161곳이다 · 2026-10-23).
@@ -33,6 +36,8 @@ const read = (rel) => readFileSync(join(root, rel), 'utf8');
 export const MIGRATED = [
   // 리마인더 편집 창 「언제 · 어느 채널로」 — 주황 안내 줄이 입력줄에 붙었다 (2026-10-23)
   { file: 'src/components/eval/EvalCycleWizard.jsx', testId: 'evc-rm-dsec-when-' },
+  // 조직장 평가 작성 — 잠김·제출됨·자동저장 실패 안내가 줄마다 손 여백(12px)을 달고 있었다 (2026-10-23)
+  { file: 'src/components/eval/EvalCycleLeaderCanvas.jsx', testId: 'evl-notices' },
 ];
 
 const stripComments = (css) => css.replace(/\/\*[\s\S]*?\*\//g, '');
@@ -101,6 +106,20 @@ export function checkMigrated(entry, jsx) {
   return [];
 }
 
+/** 5. JSX 한 파일에서 `evx-notice` 상자에 `style` 로 margin 을 붙인 곳. */
+export function checkNoticeInlineMargin(rel, jsx) {
+  const errors = [];
+  for (const m of jsx.matchAll(/<[A-Za-z]+\b[^>]*?className=(?:"[^"]*"|\{[^}]*\})[^>]*>/g)) {
+    const tag = m[0];
+    if (!/\bevx-notice\b/.test(tag)) continue;
+    if (/style=\{\{[^}]*\bmargin/.test(tag)) {
+      const line = jsx.slice(0, m.index).split('\n').length;
+      errors.push(`${rel}:${line}: 안내 상자(evx-notice)에 style 로 여백을 붙였다 — 놓인 칸을 Stack 으로 바꿔 간격을 준다`);
+    }
+  }
+  return errors;
+}
+
 function walk(dir, out = []) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const full = join(dir, entry.name);
@@ -123,7 +142,9 @@ export function runAll() {
   if (!/@import\s+['"]\.\/stack\.css['"]/.test(read('src/index.css'))) {
     errors.push('index.css: stack.css 를 끌어오지 않는다');
   }
-  for (const rel of walk(join(root, 'src'))) errors.push(...checkGapUsage(rel, read(rel), gaps));
+  for (const rel of walk(join(root, 'src'))) {
+    errors.push(...checkGapUsage(rel, read(rel), gaps), ...checkNoticeInlineMargin(rel, read(rel)));
+  }
   for (const entry of MIGRATED) errors.push(...checkMigrated(entry, read(entry.file)));
   return errors;
 }

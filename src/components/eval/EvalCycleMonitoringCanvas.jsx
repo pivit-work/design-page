@@ -788,7 +788,7 @@ export default function EvalCycleMonitoringCanvas({
       )}
 
       {stopped && (
-        <p className="evx-notice is-error" data-testid="evmon-stopped" style={{ margin: '0 0 12px' }}>
+        <p className="evx-notice is-error" data-testid="evmon-stopped">
           {L.stoppedBanner}
         </p>
       )}

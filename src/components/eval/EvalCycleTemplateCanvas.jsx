@@ -216,13 +216,13 @@ export default function EvalCycleTemplateCanvas({
       {!embedded && toolbar && <div className="evc-toolbar evtpl-toolbar">{toolbar}</div>}
 
       {!editable && (
-        <p className="evx-notice" data-testid="evtpl-readonly" style={{ margin: '0 0 12px' }}>
+        <p className="evx-notice" data-testid="evtpl-readonly">
           {L.readOnly}
         </p>
       )}
 
       {editable && L.editableNotice && (
-        <p className="evx-notice" data-testid="evtpl-editable-notice" style={{ margin: '0 0 12px' }}>
+        <p className="evx-notice" data-testid="evtpl-editable-notice">
           {L.editableNotice}
         </p>
       )}
