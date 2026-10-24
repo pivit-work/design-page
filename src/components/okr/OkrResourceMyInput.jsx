@@ -78,7 +78,12 @@ export default function OkrResourceMyInput({
   const [extraComments, setExtraComments] = useState([]);
   const [replying, setReplying] = useState(false);
 
-  const comments = [...data.comments, ...extraComments];
+  // 코멘트는 새 원 코멘트가 위다(정책서 §6 「리스트 prepend」). 방금 단 답글은 맨 위 스레드 끝에
+  // 넣는다 — 화면이 답글을 다는 대상이 가장 최근 원 코멘트이고, 답글은 스레드 안에서 시간순이다(PW-1499).
+  const firstRoot = data.comments.findIndex((c) => !c.reply);
+  const nextRoot = firstRoot < 0 ? -1 : data.comments.findIndex((c, i) => i > firstRoot && !c.reply);
+  const threadEnd = nextRoot < 0 ? data.comments.length : nextRoot;
+  const comments = [...data.comments.slice(0, threadEnd), ...extraComments, ...data.comments.slice(threadEnd)];
   const submitReply = async () => {
     const text = replyText.trim();
     if (!text || replying) return;

@@ -28,7 +28,8 @@ export default function OkrResourceTeam({ data, icons, baseUrl = '', onComment, 
 
   // 펼침·초안·추가 코멘트는 모두 rowKey 로 담는다. 이름으로 담으면 동명이인 둘이
   // 한 칸을 나눠 써서, 한 명을 펼치면 둘 다 펼쳐지고 초안·코멘트가 섞인다 (PW-308).
-  const commentsOf = (member, i) => [...member.comments, ...(added[rowKey(member, i)] ?? [])];
+  // 새 코멘트는 맨 위에 단다 — member.comments 도 새것이 위다(정책서 §6 「리스트 prepend」 · PW-1499).
+  const commentsOf = (member, i) => [...(added[rowKey(member, i)] ?? []), ...member.comments];
   const submit = async (member, i) => {
     const rk = rowKey(member, i);
     const text = (drafts[rk] ?? '').trim();
@@ -49,7 +50,7 @@ export default function OkrResourceTeam({ data, icons, baseUrl = '', onComment, 
       date: data.commentDate ?? '',
       text,
     };
-    setAdded((p) => ({ ...p, [rk]: [...(p[rk] ?? []), comment] }));
+    setAdded((p) => ({ ...p, [rk]: [comment, ...(p[rk] ?? [])] }));
     setDrafts((p) => ({ ...p, [rk]: '' }));
   };
 

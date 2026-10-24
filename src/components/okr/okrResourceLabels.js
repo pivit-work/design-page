@@ -79,6 +79,7 @@ export const OKR_RESOURCE_DEFAULT_LABELS = {
     avgMeta: (pct) => `평균 투입 ${pct}%`,
     openTeamAria: (name) => `${name} 상세 보기`,
     directs: '직속 구성원',
+    empty: '하위 조직과 직속 구성원이 없습니다.',
     modalHeadcount: (n) => `조직 인원 ${n}명`,
   },
 };

@@ -11,6 +11,8 @@ import { OKR_RESOURCE_DEFAULT_LABELS } from './okrResourceLabels.js';
  * 스탯 4(조직 인원/평균 투입/과부하 인원/미입력) → 하위 팀 카드(팀명+[팀]태그+
  * 리드, 평균%, 스택 바 + 우측 '인원/입력/평균 투입' 메타, 색상 불릿, > 화살표
  * → onOpenTeam) → '직속 구성원' 섹션(간단 멤버 행: 이름·직함·배지·%·바).
+ * 하위 조직도 직속 구성원도 없으면 빈 '직속 구성원' 제목 대신 안내 한 줄(정책서 §9 「하위 유닛·
+ * 직속 구성원 모두 없는 유닛 → 빈 상태 안내」 · PW-1499). 모양은 같은 캔버스의 안내 줄(rsx-add-note).
  */
 export default function OkrResourceOrg({ data, icons, baseUrl = '', onOpenTeam, labels: L = OKR_RESOURCE_DEFAULT_LABELS }) {
   const O = L.org;
@@ -56,27 +58,31 @@ export default function OkrResourceOrg({ data, icons, baseUrl = '', onOpenTeam, 
         </div>
       ))}
 
-      <div className="rsx-directs">
-        <p className="rsx-add-eyebrow">{O.directs}</p>
-        {data.directs.map((member, i) => (
-          <div className="rsx-member is-slim" key={rowKey(member, i)}>
-            <div className="rsx-member-main">
-              <div className="rsx-member-head">
-                <div className="rsx-member-who">
-                  <img className="rsx-avatar" src={member.avatar} alt={member.name} draggable={false} />
-                  <span className="rsx-member-name">{member.name}</span>
-                  <span className="rsx-member-role">{member.role}</span>
-                  <RsStatusBadge status={member.status} labels={L} />
+      {data.teams.length === 0 && data.directs.length === 0 ? (
+        <p className="rsx-add-note">{O.empty}</p>
+      ) : (
+        <div className="rsx-directs">
+          <p className="rsx-add-eyebrow">{O.directs}</p>
+          {data.directs.map((member, i) => (
+            <div className="rsx-member is-slim" key={rowKey(member, i)}>
+              <div className="rsx-member-main">
+                <div className="rsx-member-head">
+                  <div className="rsx-member-who">
+                    <img className="rsx-avatar" src={member.avatar} alt={member.name} draggable={false} />
+                    <span className="rsx-member-name">{member.name}</span>
+                    <span className="rsx-member-role">{member.role}</span>
+                    <RsStatusBadge status={member.status} labels={L} />
+                  </div>
+                  <span className="rsx-member-pct">{member.pct}%</span>
                 </div>
-                <span className="rsx-member-pct">{member.pct}%</span>
-              </div>
-              <div className="rsx-member-bar-row">
-                <RsStackBar segments={member.segments} />
+                <div className="rsx-member-bar-row">
+                  <RsStackBar segments={member.segments} />
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
