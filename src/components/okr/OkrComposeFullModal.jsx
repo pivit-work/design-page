@@ -7,7 +7,7 @@ import Tooltip from '../shared/Tooltip.jsx';
 import OkrMemberPicker from './OkrMemberPicker.jsx';
 import OkrProgressBar from './OkrProgressBar.jsx';
 import rowKey from './rowKey.js';
-import stripListMarker from './stripListMarker.js';
+import stripListMarker from '../shared/stripListMarker.js';
 
 /**
  * OkrComposeFullModal — 개인 OKR 작성 풀스크린 모달.
@@ -181,7 +181,11 @@ export default function OkrComposeFullModal({
   // 회사 카드도 상위 그룹도 없으면 미니맵 열 자체를 접는다 — 안 접으면 좌측에
   // 300px 짜리 빈 자리가 남아, 편집 영역이 이유 없이 안쪽으로 밀린 것처럼 보인다.
   // 전략 캔버스 요약(전사 작성 · okr-spec §4.5)도 같은 열에 선다 — 전사에는 위 그룹이 없다.
-  const summaryRows = (strategySummary?.rows ?? []).filter((r) => String(r.value ?? '').trim());
+  // 목록 행은 번호·글머리를 뗀 뒤에도 남는 줄이 있을 때만 그린다 — 「①」만 친 행은 이름표만 남는다.
+  const listLines = (value) => String(value ?? '').split('\n').map(stripListMarker).filter((line) => line.trim());
+  const summaryRows = (strategySummary?.rows ?? []).filter((r) =>
+    r.list ? listLines(r.value).length > 0 : String(r.value ?? '').trim(),
+  );
   const hasMinimap = showCompanyCard || (minimap.groups ?? []).length > 0 || summaryRows.length > 0;
   // seed 는 마운트 시 1회만 — 저장 후 소비 측이 재조회해 prop 이 바뀌어도 폼을
   // 다시 덮어쓰지 않는다(입력 중 갱신이 사용자 타이핑을 날린다). 모달은 열 때마다
@@ -525,7 +529,7 @@ export default function OkrComposeFullModal({
                     <p className="okr-cf-strategy-label">{row.label}</p>
                     {row.list ? (
                       <ol className="okr-cf-strategy-list">
-                        {String(row.value).split('\n').map(stripListMarker).filter((line) => line.trim()).map((line, j) => (
+                        {listLines(row.value).map((line, j) => (
                           <li key={rowKey(line, j)}>{line}</li>
                         ))}
                       </ol>

@@ -358,7 +358,8 @@ function GrowthAreas({ selfAnswers, L }) {
     for (const a of selfAnswers) {
       // [PW-882] 칸은 답의 `growthType` 하나로 가른다. 평가지 질문은 HR 이 「항목 추가」에서
       // 고른 칸이 답에 찍혀 오고, 그 질문이 「성장」 구분에 있지 않을 수도 있다.
-      if (a.growthType && g[a.growthType]) {
+      // 건너뛴 선택 질문(빈 답)은 번호 붙은 빈 줄이 되므로 뺀다 (PW-2190)
+      if (a.growthType && g[a.growthType] && String(a.textAnswer ?? '').trim()) {
         g[a.growthType].push(a);
       }
     }

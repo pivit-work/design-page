@@ -2,6 +2,7 @@ import { useId } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
 import { isEnterKey } from '../shared/enterKey.js';
+import stripListMarker from '../shared/stripListMarker.js';
 /**
  * 온보딩 단계 화면을 이루는 덩어리 — 시안 `8. onboarding/onboarding-app.jsx` 의 단계 제목,
  * 안내 상자, 승인 대기 배지, RequestSummary, 워크스페이스 주소 줄, CSV 올리는 곳,
@@ -223,12 +224,14 @@ export function OnbDetailRows({ rows = [], testId }) {
 
 /**
  * 글머리 점 목록 (PW-2190) — 운영자가 줄마다 쓴 변경 사항처럼 «여러 줄 = 여러 항목» 인 글.
- * 글씨는 `OnbText` 와 같은 크기·색 단계를 받는다. items: string[] (빈 줄은 호출부가 거른다).
+ * 글씨는 `OnbText` 와 같은 크기·색 단계를 받는다. items: string[] — 빈 줄·줄 앞 번호는 여기서 거른다.
  */
 export function OnbBulletList({ items = [], size = 13, tone = 'sub', testId }) {
+  // 줄 앞에 친 「-」「1.」은 점과 겹쳐 두 번 찍히므로 그릴 때 뗀다 (PW-2190)
+  const lines = items.map(stripListMarker).filter((line) => line.trim());
   return (
     <ul className="onb-bullets" data-testid={testId}>
-      {items.map((item, i) => (
+      {lines.map((item, i) => (
         <OnbText as="li" key={`${i}-${item}`} size={size} tone={tone}>
           {item}
         </OnbText>
