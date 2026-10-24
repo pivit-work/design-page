@@ -1902,26 +1902,6 @@
   white-space: nowrap;
 }
 
-/* Health Check 점수 티어 점 — 숫자 대신 색 점 하나. 상세 팝오버에서 숫자를 준다. */
-.tl-snippet-block-health {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.tl-snippet-block-health--good {
-  background: var(--utility-success-600);
-}
-
-.tl-snippet-block-health--mid {
-  background: var(--utility-warning-600);
-}
-
-.tl-snippet-block-health--low {
-  background: var(--utility-error-600);
-}
-
 /* 블록 안에서는 2줄까지. (`.tl-snippet-text` 기본 3줄은 주별 셀 기준) */
 .tl-snippet-block .tl-snippet-text {
   -webkit-line-clamp: 2;
