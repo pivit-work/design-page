@@ -833,6 +833,8 @@ export function ManagerFeedback({ session, evidence, loading, error, onRetry, ma
  * 자동저장이 아니다. 끝난 회차의 글은 팀원·매니저가 이미 읽었을 수 있어 [저장]을
  * 눌러야 나간다. `onSave` 가 거절(reject)하면 편집을 연 채로 두고 쓰던 글을 지우지
  * 않는다. 실패 문구는 `edit.error` 로 받는다.
+ *
+ * `edit.maxLength` 를 주면 그 글자 수까지만 쓸 수 있다 (pivit-work PW-1487 — 기획 메모 정책 «최대 10,000자»).
  */
 export function EditableNotesCard({
   title, value, placeholder, emptyText, icon, L, icons, baseUrl, edit, testid = 'ono-notes',
@@ -877,6 +879,7 @@ export function EditableNotesCard({
             value={draft}
             placeholder={placeholder}
             disabled={saving}
+            maxLength={edit?.maxLength}
             aria-label={title}
             data-testid={`${testid}-input`}
             onChange={(e) => setDraft(e.target.value)}
