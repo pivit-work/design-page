@@ -246,6 +246,12 @@
   flex-shrink: 0;
 }
 
+/* 본문이 창 높이보다 길 때 본문만 스크롤하고 아래 버튼 줄은 제자리에 둔다 (pivit-work PW-2196 녹음 파일 올리기 창).
+   창이 화면 높이에 맞춰 줄어들면(max-height) 본문이 버튼 줄 밑으로 넘쳐 체크 칸이 가려졌다. */
+.tl-emp-modal-content.is-scroll {
+  overflow-y: auto;
+}
+
 /* 누른 자리 옆에 붙어 뜨는 창(타임라인 회의·스니핏 보기)의 막 — 뒤를 어둡게 하지 않는다.
    닫히는 동작(Esc·바깥 누르기)만 다른 창과 같게 공용 바탕을 쓴다 (PW-1013). */
 .tl-modal-overlay.is-clear {
