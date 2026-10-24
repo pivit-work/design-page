@@ -192,6 +192,34 @@ function Btn({ children, onClick, kind = 'primary', disabled }) {
   );
 }
 
+/**
+ * 이번 달 사용량 배너 한 장 — 녹음 풀(PW-1023)과 유료 AI 실행(PW-2191)이 같은 모양을 쓴다.
+ * `banner` 가 없으면 그리지 않는다.
+ */
+function UsageBanner({ banner, canEdit, testId }) {
+  if (!banner) return null;
+  return (
+    <Card style={{ marginBottom: 16, background: T.amberBg, border: '1px solid #FDE68A',
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
+      <div data-testid={testId} role="status">
+        <div style={{ fontWeight: 800, color: '#B45309', marginBottom: 4 }}>{banner.title}</div>
+        <div style={{ fontSize: 13, color: T.text }}>{banner.body}</div>
+        {!canEdit && banner.noPermText && (
+          <div style={{ fontSize: 12, color: T.sub, marginTop: 6 }}>
+            {banner.noPermText}
+          </div>
+        )}
+      </div>
+      {banner.actionLabel && (
+        <Btn kind={banner.actionKind === 'secondary' ? 'secondary' : 'primary'}
+          onClick={banner.onAction} disabled={!canEdit}>
+          {banner.actionLabel}
+        </Btn>
+      )}
+    </Card>
+  );
+}
+
 export default function BillingOverviewCanvas({
   subscription = {
     planCode: 'free', status: 'free', seats: 0, cancelAtPeriodEnd: false,
@@ -225,6 +253,12 @@ export default function BillingOverviewCanvas({
    * - `noPermText` — 결제 권한이 없는 사람에게 버튼 대신 덧붙이는 한 줄(버튼은 잠긴다)
    */
   recordingBanner = null,
+  /**
+   * 유료 AI 실행 배너 (PW-2191 · screen-billing-overview.policy.md 「유료 AI 실행 배너」 행).
+   * Starter·Growth 회사가 이번 달 AI 실행 횟수를 80% 이상 썼거나 다 썼을 때만 채운다.
+   * 모양·필드는 `recordingBanner` 와 같고, 둘 다 있으면 녹음 → AI 순으로 쌓는다.
+   */
+  aiRunsBanner = null,
   /**
    * 체험 (PW-1025 · spec-billing.md §2.7.5). 유효한 체험일 때만 채운다 — `null` 이면 배너를
    * 그리지 않는다. 체험이 끝났는데 정리 배치 전이면 앱이 `null` 로 넘겨 Free 처럼 보이게 한다.
@@ -372,26 +406,9 @@ export default function BillingOverviewCanvas({
         )}
 
         {/* 녹음 풀 배너 (PW-1023) — 80%·소진. 다음 달 풀이 다시 차면 사라진다 */}
-        {recordingBanner && (
-          <Card style={{ marginBottom: 16, background: T.amberBg, border: '1px solid #FDE68A',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
-            <div data-testid="billing-recording-banner" role="status">
-              <div style={{ fontWeight: 800, color: '#B45309', marginBottom: 4 }}>{recordingBanner.title}</div>
-              <div style={{ fontSize: 13, color: T.text }}>{recordingBanner.body}</div>
-              {!canEdit && recordingBanner.noPermText && (
-                <div style={{ fontSize: 12, color: T.sub, marginTop: 6 }}>
-                  {recordingBanner.noPermText}
-                </div>
-              )}
-            </div>
-            {recordingBanner.actionLabel && (
-              <Btn kind={recordingBanner.actionKind === 'secondary' ? 'secondary' : 'primary'}
-                onClick={recordingBanner.onAction} disabled={!canEdit}>
-                {recordingBanner.actionLabel}
-              </Btn>
-            )}
-          </Card>
-        )}
+        <UsageBanner banner={recordingBanner} canEdit={canEdit} testId="billing-recording-banner" />
+        {/* 유료 AI 실행 배너 (PW-2191) — 녹음 배너 바로 아래, 같은 모양 */}
+        <UsageBanner banner={aiRunsBanner} canEdit={canEdit} testId="billing-ai-runs-banner" />
 
         {/* 현재 플랜 카드 */}
         <Card style={{ marginBottom: 16 }}>
