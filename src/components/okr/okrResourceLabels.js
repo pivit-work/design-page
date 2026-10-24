@@ -54,6 +54,8 @@ export const OKR_RESOURCE_DEFAULT_LABELS = {
     openProject: '프로젝트 상세 보기',
     readOnlyNotice: (month) => `${month}은 끝난 달입니다. 입력한 값은 볼 수만 있고 고칠 수 없습니다. 매니저 코멘트와 답글은 남길 수 있습니다.`,
     readOnlyEmpty: '이 달에 입력한 기록이 없습니다.',
+    // 이번 달 0건 — 추가 카드는 그대로 두고 안내만 더한다(okr-policy E 표 · 시안 okr-app.jsx · PW-1502).
+    emptyNotice: '아직 투입 항목이 없습니다. 아래에서 스쿼드 프로젝트를 추가하거나 내 KR을 불러오세요.',
     replyPlaceholder: '답글을 입력하세요',
     replyAria: '답글 입력',
     replySubmit: '답글 남기기',

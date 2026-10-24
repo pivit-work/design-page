@@ -309,7 +309,7 @@ export default function OkrResourceMyInput({
         </div>
       ))}
 
-      {readOnly && entries.length === 0 && <p className="rsx-add-note">{M.readOnlyEmpty}</p>}
+      {entries.length === 0 && <p className="rsx-add-note">{readOnly ? M.readOnlyEmpty : M.emptyNotice}</p>}
 
       <div className="rsx-total">
         <p className="rsx-total-label">Total</p>

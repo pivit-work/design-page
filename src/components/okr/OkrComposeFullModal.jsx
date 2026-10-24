@@ -369,6 +369,12 @@ export default function OkrComposeFullModal({
   const removeParentKr = (objKey, kr, id) =>
     patchKr(objKey, kr.key, { parentKrIds: parentIdsOf(kr).filter((x) => x !== id) });
 
+  // 미니맵 연결 표시(okr-policy §6.4 · PW-1502) — 이 창에서 + 를 누른 줄만이 아니라, 이미 저장된
+  // 연결(소비 측이 kr.linked 로 넘긴다)과 창 안 KR 이 상위 KR 칸으로 건 연결도 칠한다.
+  const formLinkedKrIds = new Set(objectives.flatMap((o) => o.krs.flatMap(parentIdsOf)));
+  const isLinkedKr = (gi, ki, kr) =>
+    Boolean(linkedIds[`${gi}-${ki}`] || kr.linked || (kr.krId && formLinkedKrIds.has(kr.krId)));
+
   const totalW = objectives.reduce((a, o) => a + (Number(o.weight) || 0), 0);
   const krWeightOk = (o) => o.krs.length === 0 || o.krs.reduce((a, k) => a + (Number(k.weight) || 0), 0) === 100;
   // 편집으로 들어와 **전부 지운** 상태. 작성이면 저장할 게 없지만, 편집이면
@@ -537,7 +543,7 @@ export default function OkrComposeFullModal({
                   <span>{group.title}</span>
                 </div>
                 {group.krs.map((kr, ki) => (
-                  <div className={`okr-cf-kr${linkedIds[`${gi}-${ki}`] ? ' is-linked' : ''}`} key={rowKey(kr, ki, 'title')}>
+                  <div className={`okr-cf-kr${isLinkedKr(gi, ki, kr) ? ' is-linked' : ''}`} key={rowKey(kr, ki, 'title')}>
                     <button type="button" className="okr-cf-kr-add" onClick={() => linkTeamKr(gi, ki, kr)}>
                       <Icon src={icons.plus} size={14} color="var(--text-secondary)" baseUrl={baseUrl} />
                     </button>
