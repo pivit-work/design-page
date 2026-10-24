@@ -76,6 +76,14 @@ export default function OkrResourceMyInput({
   const [replyOpen, setReplyOpen] = useState(false);
   const [replyText, setReplyText] = useState('');
   const [extraComments, setExtraComments] = useState([]);
+  // 서버 목록이 늘면(저장 뒤 재조회) 방금 단 답글이 그 안에 들어 있다 — 화면에만 들던 것을 비운다.
+  // 안 비우면 같은 답글이 두 번 보인다. 개수로 보는 것은 앱이 같은 목록을 새 배열로 다시 만들 때
+  // 방금 단 답글을 지우지 않으려고다(PW-1499).
+  const [extraBase, setExtraBase] = useState(data.comments.length);
+  if (extraBase !== data.comments.length) {
+    setExtraBase(data.comments.length);
+    setExtraComments([]);
+  }
   const [replying, setReplying] = useState(false);
 
   // 코멘트는 새 원 코멘트가 위다(정책서 §6 「리스트 prepend」). 방금 단 답글은 맨 위 스레드 끝에
