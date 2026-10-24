@@ -45,6 +45,8 @@ import { isEnterKey } from '../shared/enterKey.js';
  *   analysisNotice — 분석 섹션 헤더 아래에 그릴 호스트 노드(체험 AI 소진 안내 등, §3-3).
  *   processingDelayed / onRefresh — 다시 묻기를 60초 넘게 해도 `processing` 이 남았을 때
  *     처리 중 행 캡션을 「처리가 지연되고 있습니다」 + [새로고침] 으로 바꾼다(§3-2).
+ *   loadFailed — 목록을 불러오지 못했다. 그때는 0건이어도 빈 상태 안내를 그리지 않는다 — 「없습니다」로
+ *     보이면 실제로 없는 줄 안다(PW-1507). 실패 문구는 `error` 로 준다.
  *   maxTextLength — 텍스트 소스 본문 상한(글자). 서버 상한과 같은 값을 넘긴다. 주면 입력 칸 아래에
  *     「N / 상한」을 보이고, 넘으면 빨갛게 바꾸며 `onAddText` 를 부르지 않는다(§4·§9 · PW-1507).
  *   maxFileSize — 파일 소스 업로드 상한(bytes). 서버 상한과 같은 값을 넘긴다.
@@ -1284,6 +1286,7 @@ export default function OkrContextSetupCanvas({
   onRefresh,
   maxFileSize,
   maxTextLength,
+  loadFailed = false,
   unitPolicy,
   unitPolicyLoading = false,
   unitPolicyError = null,
@@ -1413,7 +1416,7 @@ export default function OkrContextSetupCanvas({
         {loading ? (
           // 목록 줄 자리에 막대를 깐다(§4 「초기 로딩」) — 다 불러온 뒤 자리가 튀지 않게 줄 높이와 맞춘다.
           <SkeletonList count={3} height={58} aria-label={L.loading} data-testid="okr-context-loading" />
-        ) : sources.length === 0 ? (
+        ) : sources.length === 0 && loadFailed ? null : sources.length === 0 ? (
           <div
             style={{
               padding: '28px 0',
