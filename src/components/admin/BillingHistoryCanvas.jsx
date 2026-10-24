@@ -160,6 +160,8 @@ function Btn({ children, onClick, kind = 'primary', disabled, size = 'md', href 
     return (
       <a href={href} target="_blank" rel="noopener noreferrer"
         style={{ fontFamily: T.font, fontSize: fz, fontWeight: 700, display: 'inline-block',
+          // 옆 <button> 과 같은 높이가 되게 줄 높이를 버튼 기본값(normal)으로, 영어 문구가 꺾이지 않게 한 줄로
+          lineHeight: 'normal', whiteSpace: 'nowrap',
           padding: pad, borderRadius: 10, textDecoration: 'none',
           background: styles.bg, color: styles.color, border: `1px solid ${styles.border}` }}>
         {children}
