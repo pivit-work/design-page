@@ -4792,6 +4792,11 @@ button.ono-add-modal-input { cursor: pointer; }
 .ood-schedule-hint { font-size: 14px; font-weight: 400; line-height: 20px; color: var(--text-tertiary); }
 .ood-schedule-btn { padding: 10px 14px; background: var(--bg-brand-solid); border: none; border-radius: 10px; font-family: inherit; font-size: 16px; font-weight: 600; line-height: 24px; color: var(--text-white); cursor: pointer; }
 .ono-member-card.is-clickable { cursor: pointer; }
+/* 코칭 지표 칸도 누르면 지난 1on1 목록으로 간다 (PW-1493) — 같은 화면 팀원 카드의 «눌리는 카드» 모양을 값 그대로 쓴다. */
+.ono-kpi-card.is-clickable { cursor: pointer; }
+.ono-kpi-card.is-clickable:hover {
+  box-shadow: 0 32px 64px -12px rgba(10, 13, 18, 0.14), 0 5px 5px -2.5px rgba(10, 13, 18, 0.04);
+}
 
 /* ═══ 매니저 노트 모달 (ManagerNoteModal) — Figma 17414:27470 ═══
    공용 창 틀(ModalShell) 위의 변형 (PW-836). 높이 고정(시안 1084) — 검색 결과가 없거나 적어도

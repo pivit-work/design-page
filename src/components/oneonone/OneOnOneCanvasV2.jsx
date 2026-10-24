@@ -12,6 +12,7 @@ import MicPermissionModal from './MicPermissionModal.jsx';
 import ManagerAssignModal from './ManagerAssignModal.jsx';
 import EmptyState from '../shared/EmptyState.jsx';
 import assetUrl from '../shared/assetUrl.js';
+import { isEnterKey } from '../shared/enterKey.js';
 
 /**
  * 액션의 «정체» 를 로케일과 무관한 키로 정한다.
@@ -105,6 +106,11 @@ export default function OneOnOneCanvasV2({
   briefing,
   message,
   kpis,
+  /**
+   * 코칭 지표 칸 클릭 (PW-1493 · spec §3-2-A 「위젯 클릭 → 멤버별 지난 1on1 리스트」). 넘기면 칸 셋이 버튼이 되고
+   * 팀원 카드와 같은 「눌리는 카드」 모양(`is-clickable`)을 입는다. 어느 팀원으로 갈지는 호스트가 정한다.
+   */
+  onKpiClick,
   sections = [],
   icons,
   baseUrl = '',
@@ -323,9 +329,9 @@ export default function OneOnOneCanvasV2({
             <section className="ono-section">
               <h2 className="ono-section-heading">{L.coachingHeading}</h2>
               <div className="ono-kpi-grid">
-                <CompletionKpi data={kpis.completion} labels={L} />
-                <ActionRateKpi value={kpis.actionRate} labels={L} />
-                <SpeakRatioKpi data={kpis.speakRatio} labels={L} />
+                <CompletionKpi data={kpis.completion} labels={L} onClick={onKpiClick} />
+                <ActionRateKpi value={kpis.actionRate} labels={L} onClick={onKpiClick} />
+                <SpeakRatioKpi data={kpis.speakRatio} labels={L} onClick={onKpiClick} />
               </div>
             </section>
           )}
@@ -454,39 +460,60 @@ function BriefingBar({ briefing, icons, baseUrl, labels = DEFAULT_LABELS }) {
   );
 }
 
-function CompletionKpi({ data, labels = DEFAULT_LABELS }) {
+/** 지표 칸 틀 — `onClick` 이 있으면 키보드로도 누를 수 있는 버튼이 된다. */
+function KpiCard({ onClick, children }) {
+  if (!onClick) return <div className="ono-kpi-card">{children}</div>;
   return (
-    <div className="ono-kpi-card">
+    <div
+      className="ono-kpi-card is-clickable"
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (isEnterKey(e) || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function CompletionKpi({ data, labels = DEFAULT_LABELS, onClick }) {
+  return (
+    <KpiCard onClick={onClick}>
       <p className="ono-kpi-label">{labels.kpiCompletion}</p>
       <div className="ono-kpi-completion-row">
         <p className="ono-kpi-value-large">{data.current}/{data.total}</p>
         <p className="ono-kpi-side">{data.label}</p>
       </div>
-    </div>
+    </KpiCard>
   );
 }
 
-function ActionRateKpi({ value, labels = DEFAULT_LABELS }) {
+function ActionRateKpi({ value, labels = DEFAULT_LABELS, onClick }) {
   return (
-    <div className="ono-kpi-card">
+    <KpiCard onClick={onClick}>
       <p className="ono-kpi-label">{labels.kpiActionRate}</p>
       {/* 시안(16816:33879): 완료율은 초록 */}
       <p className="ono-kpi-value-blue ono-kpi-value-green">{value}%</p>
       <div className="ono-kpi-bar">
         <div className="ono-kpi-bar-fill ono-kpi-bar-green" style={{ width: `${value}%` }} />
       </div>
-    </div>
+    </KpiCard>
   );
 }
 
-function SpeakRatioKpi({ data, labels = DEFAULT_LABELS }) {
+function SpeakRatioKpi({ data, labels = DEFAULT_LABELS, onClick }) {
   return (
-    <div className="ono-kpi-card">
+    <KpiCard onClick={onClick}>
       <p className="ono-kpi-label">{labels.kpiSpeakRatio}</p>
       {/* 시안(16816:33879): 매니저 줄은 빨강, 멤버 줄은 파랑 — 매니저가 많이 말할수록 경고라는 뜻 */}
       <SpeakRow label={labels.speakManager} value={data.manager} tone="red" />
       <SpeakRow label={labels.speakMember} value={data.member} tone="blue" />
-    </div>
+    </KpiCard>
   );
 }
 
