@@ -61,7 +61,7 @@
 .okr-objective-empty { align-items: center; justify-content: center; padding: 10px 12px; background: var(--bg-secondary); border: 1px dashed var(--border-secondary-alt); border-radius: 8px; font-size: 12px; font-weight: 600; line-height: 18px; color: var(--text-tertiary); text-align: center; }
 /* 「외 N개 …」 — 노드당 요약 3개(개인 2개)를 넘친 수 (okr-spec §9A.5 · PW-1503). 글씨는 위 빈 자리
    안내와 같고 상자는 없다 — 빈 자리가 아니라 «더 있다»라서 점선 상자를 빌리지 않는다. */
-.okr-objective-more { align-self: flex-start; padding: 0 4px; background: none; border: none; font-size: 12px; font-weight: 600; line-height: 18px; color: var(--text-tertiary); cursor: pointer; }
+.okr-objective-more { align-self: center; padding: 0 4px; background: none; border: none; font-size: 12px; font-weight: 600; line-height: 18px; color: var(--text-tertiary); cursor: pointer; }
 .okr-objective-more:hover { color: var(--text-secondary); }
 .okr-persons-empty { width: 150px; padding: 18px 10px; border: 1px dashed var(--border-secondary-alt); border-radius: 12px; font-size: 12px; font-weight: 600; line-height: 18px; color: var(--text-tertiary); text-align: center; }
 
@@ -495,6 +495,8 @@ body:has(.okr-ctx-banner) .tl-group-modal.okr-shell { max-height: calc(100vh - 6
 .okr-cf-input.is-init.is-done { text-decoration: line-through; color: var(--text-tertiary); }
 .okr-cf-init-empty { font-size: 12px; font-weight: 500; line-height: 18px; color: var(--text-tertiary); }
 .okr-cf-init-add { align-self: flex-start; padding: 5px 11px; background: var(--bg-quaternary); border: 1px dashed var(--border-brand); border-radius: 8px; font-family: inherit; font-size: 12px; font-weight: 600; color: var(--text-brand-secondary); cursor: pointer; }
+/* 직접추가 + ✦ AI로 KR 생성 한 줄, 오른쪽 정렬(PW-1503). 버튼 모양은 각자 그대로. */
+.okr-cf-kr-actions { align-self: flex-end; display: flex; align-items: center; gap: 8px; }
 .okr-cf-kr-add-btn { align-self: flex-end; display: flex; align-items: center; gap: 4px; padding: 8px 14px; background: var(--bg-quaternary); border: 1px solid var(--border-secondary); border-radius: 10px; font-family: inherit; font-size: 13px; font-weight: 600; color: var(--text-secondary); cursor: pointer; }
 /* 작성 폼 가중치 검증 배지(엔지니어링 배선) */
 .okr-cf-krsum { align-self: flex-end; font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 99px; background: var(--utility-error-50); border: 1px solid var(--utility-error-200); color: var(--utility-error-500); }

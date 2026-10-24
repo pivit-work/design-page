@@ -507,7 +507,7 @@ export default function OkrComposeFullModal({
                 모양은 같은 열의 회사 카드(okr-cf-company)를 그대로 쓴다 — 시안 원본이 없다(PW-1504). */}
             {summaryRows.length > 0 && (
               <div className="okr-cf-company" data-testid="okr-cf-strategy-summary">
-                {strategySummary.title && <p className="okr-cf-company-label">{strategySummary.title}</p>}
+                {strategySummary.title && <p className="okr-cf-eyebrow">{strategySummary.title}</p>}
                 {summaryRows.map((row, i) => (
                   <div key={rowKey(row, i, 'label')}>
                     <p className="okr-cf-company-label">{row.label}</p>
@@ -819,6 +819,8 @@ export default function OkrComposeFullModal({
                       {krSum === 100 ? '✓ 100%' : `현재 합계: ${krSum}% (100%가 되어야 합니다)`}
                     </div>
                   )}
+                  {/* KR 을 더하는 두 길 — 직접추가 옆에 AI 생성(기획 JSX 의 「+ KR 직접 추가」·「✦ AI로 KR 생성」 한 줄). */}
+                  <div className="okr-cf-kr-actions">
                   <button type="button" className="okr-cf-kr-add-btn" onClick={() => addKr(objective.key)}>
                     <Icon src={icons.plus} size={16} color="var(--text-secondary)" baseUrl={baseUrl} />
                     <span>KR 직접추가</span>
@@ -833,6 +835,7 @@ export default function OkrComposeFullModal({
                       {genKrKey === objective.key ? '생성 중…' : '✦ AI로 KR 생성'}
                     </button>
                   )}
+                  </div>
                   {genKrError?.key === objective.key && (
                     <p className="okr-wz-error" role="alert">{genKrError.message}</p>
                   )}

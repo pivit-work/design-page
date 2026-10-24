@@ -127,11 +127,12 @@ export default function OkrDashboardCanvas({
               <div className="okr-node okr-group-root">
                 <Skeleton width={240} height={132} radius={12} />
                 <Skeleton width={406} height={54} radius={12} />
+                {/* 팀 칸은 카드 자리만 — 요약 줄(406px)까지 셋을 깔면 트리 폭이 화면을 넘어
+                    가운데 정렬이 회사 자리를 밀어낸다(골격에는 화면 맞춤이 돌지 않는다). */}
                 <div className="okr-teams-row">
                   {[0, 1, 2].map((i) => (
                     <div className="okr-node okr-team-col" key={i}>
                       <Skeleton width={200} height={112} radius={12} />
-                      <Skeleton width={406} height={54} radius={12} />
                     </div>
                   ))}
                 </div>
