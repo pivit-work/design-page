@@ -10,7 +10,7 @@ import useTimelineData from './useTimelineData.js';
  *
  * 디자이너 원본은 없다. 같은 정보를 보이는 일정 창(`MeetingModal`, 캘린더 보기 폭)의 칸을 그대로
  * 쓴다 — 색 태그+제목 줄, 시각 줄, 참석자 목록. 닫기 버튼 대신 빈 머리 띠를 두어 위 여백을 같게 한다.
- * 유형·«회의록 있음»은 공용 상태 딱지다. 마우스가 걸리지 않게 두어(카드 위로 마우스가 가도
+ * 유형·«회의록 있음»은 같은 타임라인의 Weekly 화면에 디자이너가 그린 태그(Figma Tag · `.tl-weekly-entry-tag`) 모양이다. 마우스가 걸리지 않게 두어(카드 위로 마우스가 가도
  * 칸을 벗어난 것으로 본다) 기획서의 «마우스아웃 시 즉시 닫기»를 지킨다.
  *
  * 0.3초 대기·닫기는 호스트(`TimelineCanvas`)가 한다. 이 부품은 그리고 자리만 잡는다 —
@@ -62,9 +62,11 @@ export default function EventHoverCard({ event, anchorRect, attendeesLabel }) {
         <div className="tl-meeting-modal-title-wrap">
           {(event.typeLabel || event.minutesLabel) && (
             <div className="tl-meeting-modal-title-row">
-              {event.typeLabel && <StatusBadge tone="neutral">{event.typeLabel}</StatusBadge>}
+              {event.typeLabel && (
+                <StatusBadge className="tl-weekly-entry-tag">{event.typeLabel}</StatusBadge>
+              )}
               {event.minutesLabel && (
-                <StatusBadge tone="success" data-testid="calendar-event-hover-minutes">
+                <StatusBadge className="tl-weekly-entry-tag" data-testid="calendar-event-hover-minutes">
                   {event.minutesLabel}
                 </StatusBadge>
               )}

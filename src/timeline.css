@@ -3362,7 +3362,13 @@
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+  flex: 1;
   min-width: 0;
+  margin-left: 16px;
+}
+/* 안내가 길어도 «초기화» 버튼은 줄지 않는다 — 안내 쪽이 줄을 바꾼다. */
+.tl-snippet-modal-actions > .tl-snippet-reset-btn {
+  flex-shrink: 0;
 }
 .tl-snippet-autosave.is-note {
   white-space: normal;
