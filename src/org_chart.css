@@ -795,8 +795,9 @@
 /* 공개 카드 «근무시간 조정» (pivit-work PW-1479 · 근무시간 조정 정책서 §2).
    새 색·크기를 만들지 않는다 — 값은 같은 창의 통계 값(.modal-stat-value), 창 머리는 .modal-info-label,
    칸 여백은 .modal-info-sections(좌우 65px), 내역 줄은 «담당 프로젝트» 줄(.modal-project-item),
-   단건/기간 딱지는 소속 칩(.modal-team-chip)을 그대로 쓴다. «오늘 변경됨»은 소속 칩의 크기만 따르고
-   색은 주의 딱지(StatusBadge tone="warning")에 맡긴다 — 소속 칩은 무채색이라 색을 덮는다. */
+   단건/기간 딱지는 소속 칩(.modal-team-chip)을 그대로 쓴다. «오늘 변경됨»은 공용 주의 딱지
+   (StatusBadge tone="warning") 기본 모양 그대로다 — 소속 칩은 무채색이라 색을 덮고, 딱지 모양을 여기서
+   따로 칠하면 딱지 한 곳 규칙(PW-840)에 어긋난다. */
 .modal-wh-edit {
   display: inline-flex;
   align-items: center;
@@ -819,14 +820,6 @@
 .modal-wh-edit:focus-visible .modal-wh-pencil,
 .modal-wh-edit.is-editing .modal-wh-pencil { opacity: 1; }
 .modal-wh-edit:disabled .modal-wh-pencil { opacity: 0; }
-.modal-wh-badge {
-  margin-top: 2px;
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 16px;
-  padding: 0 6px;
-  border-radius: 4px;
-}
 
 .modal-wh-panel {
   display: flex;

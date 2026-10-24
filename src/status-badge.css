@@ -1324,6 +1324,17 @@
   border: 1px solid var(--border-secondary);
 }
 
+/* 공개 카드 근무시간 «오늘 변경됨» (pivit-work PW-1479) — 같은 창 소속 칩(.modal-team-chip)과 같은 크기.
+   색은 뜻(tone="warning")이 정한다 — 소속 칩처럼 색을 박으면 주의 딱지가 무채색이 된다. */
+.modal-wh-badge {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+  padding: 0 6px;
+  border-radius: 4px;
+  margin-top: 2px;
+}
+
 /* ══ org_project.css 에서 옮겨 온 딱지 ══════════════════════════════════════════════ */
 
 .pj-card-status {
