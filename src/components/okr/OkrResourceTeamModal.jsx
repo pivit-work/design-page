@@ -38,8 +38,9 @@ export default function OkrResourceTeamModal({ team, onClose, labels: L = OKR_RE
         <RsStatCard label={O.overloaded} value={team.overloaded} tone={team.overloaded > 0 ? 'bad' : ''} />
         <RsStatCard label={O.missing} value={team.missing} />
       </div>
-      {/* 아무도 없는 조직(§9 빈 상태) — 조직 현황 첫 화면과 같은 안내 줄(rsx-add-note). */}
-      {team.members.length === 0 ? (
+      {/* 하위 조직도 사람도 없는 조직(§9 빈 상태) — 조직 현황 첫 화면과 같은 안내 줄(rsx-add-note).
+          하위 조직만 있고 사람이 없으면 문구가 사실과 달라 띄우지 않는다. */}
+      {team.members.length === 0 && !team.subUnits ? (
         <p className="rsx-add-note">{O.empty}</p>
       ) : (
         <div className="rsx-modal-members">
