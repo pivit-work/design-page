@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import Icon from '../shared/Icon.jsx';
+import { CloseGlyph } from '../shared/lineIcons.jsx';
+import { resolveKoreanParticles } from '../shared/koreanParticle.js';
 import Tabs from '../shared/Tabs.jsx';
 import OkrBoard from './OkrBoard.jsx';
-import OkrHistoryQuarter from './OkrHistoryQuarter.jsx';
+import OkrHistoryList from './OkrHistoryList.jsx';
 import rowKey from './rowKey.js';
+import { AI_PREREQUISITES } from './okrStrategyAiPrerequisites.js';
 
 /**
  * OkrStrategyCanvas — 전사 OKR 탭 (전략 캔버스/Company OKR/히스토리).
@@ -18,6 +21,9 @@ import rowKey from './rowKey.js';
  *   작성 중 내용을 삼키지 않는다.
  * onAiAutocomplete(): '전략 전체 AI 자동완성'. 행 id → 텍스트 맵을 반환하면
  *   편집 모드로 들어가며 초안을 채운다(사용자가 확인·수정 후 [저장]).
+ *   행별 [AI] 는 AI_PREREQUISITES 의 선행 칸이 비어 있으면 부르지 않고 그 행 안에
+ *   「Mission을 먼저 입력해주세요.」를 띄운다(편집 중이면 입력 중인 글로 판정 · PW-1505).
+ * historyEmptyLabel: 히스토리 0건 문구. 앱이 ko/en 을 넘긴다.
  * canEdit: 전략 캔버스를 편집할 수 있는 사용자인가. false 면 [편집] 버튼을
  *   **그리지 않는다**(시안 okr-company.jsx `canEdit && !editing`). 기본 true 라
  *   데모는 지금처럼 편집을 시연한다.
@@ -28,11 +34,12 @@ import rowKey from './rowKey.js';
  *   화면이 바뀌는** 가짜 성공을 본다(PW-106 에서 실제로 그랬다). 새로고침하면
  *   되돌아간다. 데모 모드와 권한은 별개 축이라 prop 을 나눈다.
  */
-export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, history, icons, baseUrl = '', onKrUpdate, onSubmitFeedback, onViewAllFeedback, onWriteFeedback, onSave, onAiAutocomplete, canEdit = true, onRefreshInsights, onInsightAction, onToggleInitiative, canEditInitiative = false , focusKrId = null, focusObjectiveId = null }) {
+export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, history, icons, baseUrl = '', onKrUpdate, onSubmitFeedback, onViewAllFeedback, onWriteFeedback, onSave, onAiAutocomplete, canEdit = true, onRefreshInsights, onInsightAction, onToggleInitiative, canEditInitiative = false , focusKrId = null, focusObjectiveId = null, historyEmptyLabel }) {
   const [subTab, setSubTab] = useState('canvas');
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(null);
   const [saving, setSaving] = useState(false);
+  // { rowId: string | null, message } — rowId 가 있으면 그 행 안에, 없으면 도구 줄 아래에 뜬다. ×로 닫는다(okr-policy §5).
   const [error, setError] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
 
@@ -73,7 +80,7 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
       setEditing(false);
     } catch {
       // 편집 모드를 유지해 입력한 내용을 보존한다.
-      setError('전략 캔버스 저장에 실패했습니다. 잠시 후 다시 시도해주세요.');
+      setError({ rowId: null, message: '전략 캔버스 저장에 실패했습니다. 잠시 후 다시 시도해주세요.' });
     } finally {
       setSaving(false);
     }
@@ -84,8 +91,23 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
    * 행 옆 'AI' 칩은 `cursor: pointer` 로 클릭 가능하게 그려져 있었는데 핸들러가
    * 없어 아무 반응도 없었다(PW-14) — 같은 자동완성을 행 단위로 잇는다.
    */
+  const missingPrerequisites = (rowId) => {
+    const current = editing ? draft : toDraft(rows);
+    const filled = new Set(rows.filter((row, i) => (current[i] ?? '').trim()).map((row) => row.id));
+    return (AI_PREREQUISITES[rowId] ?? [])
+      .filter((id) => !filled.has(id))
+      .map((id) => rows.find((row) => row.id === id)?.label ?? id);
+  };
+
   const runAi = async (rowId) => {
     if (!onAiAutocomplete) return;
+    if (rowId) {
+      const missing = missingPrerequisites(rowId);
+      if (missing.length > 0) {
+        setError({ rowId, message: resolveKoreanParticles(`${missing.join(', ')}을(를) 먼저 입력해주세요.`) });
+        return;
+      }
+    }
     setAiLoading(rowId ?? true);
     setError(null);
     try {
@@ -99,11 +121,20 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
       );
       setEditing(true);
     } catch {
-      setError('AI 자동완성에 실패했습니다. 잠시 후 다시 시도해주세요.');
+      setError({ rowId: null, message: 'AI 자동완성에 실패했습니다. 잠시 후 다시 시도해주세요.' });
     } finally {
       setAiLoading(false);
     }
   };
+
+  const errorBanner = (
+    <div className="okr-s-error" role="alert">
+      <span>{error?.message}</span>
+      <button type="button" className="okr-s-error-close" aria-label="닫기" onClick={() => setError(null)}>
+        <CloseGlyph size={13} aria-hidden="true" />
+      </button>
+    </div>
+  );
 
   const SUB_TABS = [
     { id: 'canvas', label: '전략 캔버스' },
@@ -147,7 +178,7 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
               ) : null}
             </div>
           </div>
-          {error && <p className="okr-s-error">{error}</p>}
+          {error && !error.rowId && errorBanner}
 
           <div className="okr-s-card">
             {rows.map((row, i) => (
@@ -171,6 +202,7 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
                   ) : (
                     <p className="okr-s-text">{row.content}</p>
                   )}
+                  {error?.rowId === row.id && errorBanner}
                 </div>
                 {canEdit && (
                   <button
@@ -192,12 +224,8 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
         </>
       ) : subTab === 'company' && companyBoard ? (
         <OkrBoard board={companyBoard} icons={icons} baseUrl={baseUrl} onKrUpdate={onKrUpdate} onSubmitFeedback={onSubmitFeedback} onViewAllFeedback={onViewAllFeedback} onWriteFeedback={onWriteFeedback} onRefreshInsights={onRefreshInsights} onInsightAction={onInsightAction} onToggleInitiative={onToggleInitiative} canEditInitiative={canEditInitiative} focusKrId={focusKrId} focusObjectiveId={focusObjectiveId} />
-      ) : subTab === 'history' && history ? (
-        <div className="okr-h-list">
-          {history.map((quarter, i) => (
-            <OkrHistoryQuarter key={rowKey(quarter, i, 'label')} quarter={quarter} icons={icons} baseUrl={baseUrl} />
-          ))}
-        </div>
+      ) : subTab === 'history' ? (
+        <OkrHistoryList history={history} icons={icons} baseUrl={baseUrl} emptyLabel={historyEmptyLabel} />
       ) : (
         <div className="okr-s-placeholder">준비 중인 화면입니다</div>
       )}

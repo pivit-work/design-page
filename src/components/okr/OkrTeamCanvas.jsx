@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import OkrLinkedParents from './OkrLinkedParents.jsx';
 import OkrBoard from './OkrBoard.jsx';
-import OkrHistoryQuarter from './OkrHistoryQuarter.jsx';
+import OkrHistoryList from './OkrHistoryList.jsx';
 import Tabs from '../shared/Tabs.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
-import rowKey from './rowKey.js';
 import OkrTeamPicker, { TEAM_PICKER_MIN } from './OkrTeamPicker.jsx';
 
 /**
@@ -24,7 +23,7 @@ import OkrTeamPicker, { TEAM_PICKER_MIN } from './OkrTeamPicker.jsx';
  * notice: 팀 탭 줄 바로 아래 놓는 안내 한 줄(소비자가 NoteText 등으로 그려 넘긴다). 예: 조직장이 없어
  *   어드민만 쓸 수 있다는 안내(pivit-work PW-2039). 이 캔버스는 고정 자리라 바깥에 그리면 화면 맨 위 구석에 붙는다.
  */
-export default function OkrTeamCanvas({ data, icons, baseUrl = '', activeTeam, onTeamChange, onKrUpdate, onSubmitFeedback, onViewAllFeedback, onWriteFeedback, onRefreshInsights, onInsightAction, onToggleInitiative, canEditInitiative = false, teamPickerLabels, notice = null, focusKrId = null, focusObjectiveId = null }) {
+export default function OkrTeamCanvas({ data, icons, baseUrl = '', activeTeam, onTeamChange, onKrUpdate, onSubmitFeedback, onViewAllFeedback, onWriteFeedback, onRefreshInsights, onInsightAction, onToggleInitiative, canEditInitiative = false, teamPickerLabels, notice = null, focusKrId = null, focusObjectiveId = null, historyEmptyLabel }) {
   const { teams, periodLabel, links, parents, board, history } = data;
   const [internalTeam, setInternalTeam] = useState(teams[1] ?? teams[0]);
   const team = activeTeam ?? internalTeam;
@@ -84,11 +83,7 @@ export default function OkrTeamCanvas({ data, icons, baseUrl = '', activeTeam, o
       />
 
       {periodTab === 'history' ? (
-        <div className="okr-h-list">
-          {history?.map((quarter, i) => (
-            <OkrHistoryQuarter key={rowKey(quarter, i, 'label')} quarter={quarter} icons={icons} baseUrl={baseUrl} />
-          ))}
-        </div>
+        <OkrHistoryList history={history} icons={icons} baseUrl={baseUrl} emptyLabel={historyEmptyLabel} />
       ) : (
         <>
           <OkrLinkedParents links={links} parents={parents} />

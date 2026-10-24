@@ -167,6 +167,10 @@ export default function OkrComposeFullModal({
   initialObjectives,
   labels,
   showCompanyCard = true,
+  // 제목 칸 길이 한도 — 서버 INPUT_LIMITS 와 같은 값을 앱이 넘긴다(저장 컬럼 255 · PW-1505). 안 주면 안 막는다(데모).
+  objectiveTitleMaxLength,
+  krTitleMaxLength,
+  initiativeTitleMaxLength,
 }) {
   const L = { ...DEFAULT_LABELS, ...(labels ?? {}) };
   // 미니맵은 **나보다 위** 를 보여주는 자리다. 전사 OKR 처럼 위가 없는 작성 경로에서는
@@ -592,6 +596,7 @@ export default function OkrComposeFullModal({
                       className="okr-cf-input"
                       placeholder="Objective 내용"
                       aria-label="Objective 내용"
+                      maxLength={objectiveTitleMaxLength}
                       value={objective.title}
                       onChange={(e) => patchObjective(objective.key, { title: e.target.value })}
                     />
@@ -633,6 +638,7 @@ export default function OkrComposeFullModal({
                           className="okr-cf-input"
                           placeholder="KR 내용"
                           aria-label="KR 내용"
+                          maxLength={krTitleMaxLength}
                           value={kr.title}
                           onChange={(e) => patchKr(objective.key, kr.key, { title: e.target.value })}
                         />
@@ -776,6 +782,7 @@ export default function OkrComposeFullModal({
                               className={`okr-cf-input is-init${init.status === 'done' ? ' is-done' : ''}`}
                               placeholder="실행 항목 내용"
                               aria-label="실행 항목 내용"
+                              maxLength={initiativeTitleMaxLength}
                               value={init.title}
                               onChange={(e) => patchInitiative(objective.key, kr, init.key, { title: e.target.value })}
                             />

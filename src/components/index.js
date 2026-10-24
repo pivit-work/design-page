@@ -258,6 +258,7 @@ export {
   OKR_RESOURCE_DEFAULT_LABELS,
   OkrContextSetupCanvas,
   OkrHistoryQuarter,
+  OkrHistoryList,
   OkrBoard,
   OkrTeamCanvas,
   OkrComposeFullModal,

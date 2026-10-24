@@ -28,6 +28,7 @@ export { default as OkrResourceTeamModal } from './OkrResourceTeamModal.jsx';
 export { OKR_RESOURCE_DEFAULT_LABELS } from './okrResourceLabels.js';
 export { default as OkrContextSetupCanvas } from './OkrContextSetupCanvas.jsx';
 export { default as OkrHistoryQuarter } from './OkrHistoryQuarter.jsx';
+export { default as OkrHistoryList } from './OkrHistoryList.jsx';
 export { default as OkrBoard } from './OkrBoard.jsx';
 export { default as OkrTeamCanvas } from './OkrTeamCanvas.jsx';
 export { default as OkrComposeFullModal } from './OkrComposeFullModal.jsx';

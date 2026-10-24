@@ -3,9 +3,8 @@ import Icon from '../shared/Icon.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import OkrLinkedParents from './OkrLinkedParents.jsx';
 import OkrBoard from './OkrBoard.jsx';
-import OkrHistoryQuarter from './OkrHistoryQuarter.jsx';
+import OkrHistoryList from './OkrHistoryList.jsx';
 import OkrSelectMenu from './OkrSelectMenu.jsx';
-import rowKey from './rowKey.js';
 import useDismissLayer from '../shared/useDismissLayer.js';
 
 /**
@@ -60,6 +59,7 @@ export default function OkrPersonalCanvas({
   visibilityDisabled = false,
   visibilityAriaLabel = '개인 OKR 공개 범위',
   emptyMessage,
+  historyEmptyLabel,
 }) {
   const { person, periodLabel, links, parents, banner, insights, overall, theme, objectives, history } = data;
   const [periodTab, setPeriodTab] = useState('current'); // 'current' | 'history'
@@ -132,11 +132,7 @@ export default function OkrPersonalCanvas({
       {emptyMessage ? (
         <div className="okr-tab-placeholder okr-p-empty">{emptyMessage}</div>
       ) : periodTab === 'history' ? (
-        <div className="okr-h-list">
-          {history?.map((quarter, i) => (
-            <OkrHistoryQuarter key={rowKey(quarter, i, 'label')} quarter={quarter} icons={icons} baseUrl={baseUrl} />
-          ))}
-        </div>
+        <OkrHistoryList history={history} icons={icons} baseUrl={baseUrl} emptyLabel={historyEmptyLabel} />
       ) : (
         <>
           <OkrLinkedParents links={links} parents={parents} />
