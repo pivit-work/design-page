@@ -5,6 +5,7 @@ import Tooltip from '../shared/Tooltip.jsx';
 import EmptyState from '../shared/EmptyState.jsx';
 import Icon from '../shared/Icon.jsx';
 import Tabs from '../shared/Tabs.jsx';
+import Spinner from '../shared/Spinner.jsx';
 import { fill, hostOf, healthOf, heldAtOf, ownerLabelOf } from './sessionHelpers.js';
 import {
   doneBannerState,
@@ -64,6 +65,7 @@ const DEFAULT_ICONS = {
   arrow: '/icons-solid/arrow-right.svg',
   back: '/icons-solid/arrow-left.svg',
   check: '/icons-solid/check.svg',
+  info: '/icons-solid/info-circle.svg',
   decisions: '/icons-solid/check-circle.svg',
   next: '/icons-solid/calendar.svg',
   feedback: '/icons-solid/message-heart-circle.svg',
@@ -206,6 +208,13 @@ const DEFAULT_LABELS = {
   transcriptOffsetNotice: (sec) =>
     `이 전문은 미팅 시작 후 ${Math.ceil(sec / 60)}분부터 기록됐습니다.`,
   managerPreparing: '매니저가 정리 중입니다',
+  /* ── AI 분석 상태 띠 (policy §6.1 멤버 열) ── */
+  analysisBusy: 'AI가 녹음을 분석 중입니다',
+  analysisBusyDesc: 'STT 변환 → 요약 생성 → 액션아이템 추출 순으로 처리됩니다.',
+  analysisDone: 'AI 분석 완료',
+  analysisDoneDesc: '요약 및 액션아이템이 자동 생성되었습니다.',
+  analysisSkipped: '이 녹음에서 대화 내용이 확인되지 않았습니다.',
+  analysisSkippedDesc: '요약은 메모와 준비 항목으로 만들어졌습니다.',
   noSummary: '요약이 공유되면 여기에 표시됩니다',
   noPrepSession: '준비 중인 1on1이 없습니다',
   noLiveSession: '진행 중인 1on1이 없습니다',
@@ -1694,6 +1703,44 @@ export function EmotionTone({ session, L, icons, baseUrl }) {
   );
 }
 
+/**
+ * 팀원 결과 화면의 AI 분석 상태 띠 (policy §6.1 멤버 열 · PW-1489).
+ *
+ * 매니저 끝난 화면의 분석 띠(`DoneOneOnOneView` `AnalysisBanner`)와 같은 판정·같은 모양이다.
+ * 🔴 `sttStatus` 가 없으면 그리지 않는다 — 서버는 매니저가 공개하고 대화 원문까지 공개한 회차에만
+ * 그 값을 싣는다(녹음 여부가 새지 않게 · INV-P5). 녹음이 없던 회차도 값이 없으니 띠가 없다.
+ * 실패(`failed`)는 정책서 멤버 열에 없고 팀원이 할 수 있는 것도 없어 그리지 않는다.
+ */
+function MemberAnalysisBanner({ session, L, icons, baseUrl }) {
+  if (!session.sttStatus) return null;
+  const state = doneBannerState(session);
+  if (state === 'ready' && session.sttStatus === 'completed') {
+    return (
+      <div className="ono-done-banner is-ok" data-testid="ono-member-analysis-banner" data-state="done">
+        <Icon src={icons.check} size={16} color="currentColor" baseUrl={baseUrl} />
+        <span>{`${L.analysisDone} — ${L.analysisDoneDesc}`}</span>
+      </div>
+    );
+  }
+  if (state === 'skipped' || state === 'skipped-summarizing') {
+    return (
+      <div className="ono-done-banner" data-testid="ono-member-analysis-banner" data-state="skipped">
+        <Icon src={icons.info} size={16} color="currentColor" baseUrl={baseUrl} />
+        <span>{`${L.analysisSkipped} ${L.analysisSkippedDesc}`}</span>
+      </div>
+    );
+  }
+  if (state === 'transcribing' || state === 'summarizing') {
+    return (
+      <div className="ono-done-banner is-busy" data-testid="ono-member-analysis-banner" data-state="processing">
+        <Spinner size={20} />
+        <span>{`${L.analysisBusy} — ${L.analysisBusyDesc}`}</span>
+      </div>
+    );
+  }
+  return null;
+}
+
 function ResultScreen({ session, manager, avatar, renderAvatar, L, icons, baseUrl, formatDate, formatDuration, deadlineOf, onToggleAction, feedbackEvidence, renderRecordingPlayer, resultNotes }) {
   const myActions = session.actionItems.filter((a) => a.owner === 'member');
   const managerActions = session.actionItems.filter((a) => a.owner === 'manager');
@@ -1718,6 +1765,8 @@ function ResultScreen({ session, manager, avatar, renderAvatar, L, icons, baseUr
         avatar={hostAvatar}
         L={L} icons={icons} baseUrl={baseUrl}
       />
+
+      <MemberAnalysisBanner session={session} L={L} icons={icons} baseUrl={baseUrl} />
 
       {session.isShared === false && (
         <EmptyState title={L.managerPreparing} description={L.noSummary} />

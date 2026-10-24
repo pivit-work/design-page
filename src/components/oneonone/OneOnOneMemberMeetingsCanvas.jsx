@@ -76,7 +76,7 @@ const DEFAULT_LABELS = {
   retry: '다시 시도',
   openRecord: '회의록',
   openAnalysis: '대화 분석',
-  backToList: '목록으로',
+  backToList: '지난 회의 리스트',
   memberTalk: '멤버 발화',
   actionsDone: '액션 {done}/{total}',
   noRatio: '대화 기록 없음',
@@ -128,6 +128,8 @@ const DEFAULT_LABELS = {
   guideBody:
     '매니저 30~40% / 멤버 60~70%가 코칭 효과가 높은 비율입니다. 멤버가 충분히 이야기하고 스스로 해결책을 찾도록 질문 중심으로 대화를 이끌어주세요.',
   overWarn: '매니저 발화 비율이 높습니다. 다음 1on1에서 열린 질문을 더 활용해보세요.',
+  silence: '침묵',
+  analysisPending: 'STT 분석 완료 후 생성됩니다',
   ratioUnavailable: '이 회차에는 대화 기록이 없어 발화 비율을 낼 수 없습니다',
   trendTitle: '회차별 발화 비율 추이 (최근 {count}회)',
   trendEmpty: '대화 기록이 있는 회차가 아직 없습니다',
@@ -347,15 +349,20 @@ function ListScreen({
                       <Icon src={icons.record} size={13} color="currentColor" baseUrl={baseUrl} />
                       {L.openRecord}
                     </button>
-                    <button
-                      type="button"
-                      className="ono-past-link"
-                      data-testid="ono-past-open-analysis"
-                      onClick={() => onOpenAnalysis(s.id)}
-                    >
-                      <Icon src={icons.analysis} size={13} color="currentColor" baseUrl={baseUrl} />
-                      {L.openAnalysis}
-                    </button>
+                    {/* 전사가 끝나기 전에는 분석이 없다 — 숨기지 않고 비활성으로 두어 기능이
+                        있다는 것은 알린다 (policy §10.8.2 「대화 분석 미생성」). */}
+                    <Tooltip content={s.sttStatus === 'processing' ? L.analysisPending : null}>
+                      <button
+                        type="button"
+                        className="ono-past-link"
+                        data-testid="ono-past-open-analysis"
+                        disabled={s.sttStatus === 'processing'}
+                        onClick={() => onOpenAnalysis(s.id)}
+                      >
+                        <Icon src={icons.analysis} size={13} color="currentColor" baseUrl={baseUrl} />
+                        {L.openAnalysis}
+                      </button>
+                    </Tooltip>
                   </span>
                 </span>
               </div>
@@ -579,10 +586,6 @@ function RecordScreen({
         baseUrl={baseUrl}
         extra={<span className="ono-start-flag ono-start-flag-blue">{L.readOnly}</span>}
       >
-        <button type="button" className="ono-mem-back" onClick={onBackToList}>
-          <Icon src={icons.back} size={14} color="currentColor" baseUrl={baseUrl} />
-          {L.backToList}
-        </button>
         {recordEdit?.onEdit && (
           <span className="ono-done-banner-actions ono-done-edit-badge">
             {recordEdit.until && (
@@ -682,10 +685,6 @@ function AnalysisScreen({
         <p className="ono-mem-head-date">
           {formatDate(heldAtOf(session))} · {L.analysisDesc}
         </p>
-        <button type="button" className="ono-mem-back" onClick={onBackToList}>
-          <Icon src={icons.back} size={14} color="currentColor" baseUrl={baseUrl} />
-          {L.backToList}
-        </button>
       </header>
 
       <Section title={L.ratioTitle} icon={icons.analysis} icons={icons} baseUrl={baseUrl} collapsible={false}>
@@ -714,6 +713,16 @@ function AnalysisScreen({
                   color="var(--utility-green-600)"
                   L={L}
                 />
+                {/* 침묵은 발화 비율의 분모에 들지 않아 막대로 그리지 않는다 — 분만 적는다
+                    (policy §10.8.5 · EC-M5: 대화 분석 화면에서만). */}
+                {ratio.silenceMinutes != null && (
+                  <div className="ono-start-okr-bar-line" data-testid="ono-past-silence">
+                    <span className="ono-mem-cell is-sub ono-past-ratio-label">{L.silence}</span>
+                    <span className="ono-mem-hint ono-past-ratio-min">
+                      {fill(L.minutes, { count: ratio.silenceMinutes })}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -805,7 +814,14 @@ export default function OneOnOneMemberMeetingsCanvas({
 
   return (
     <main className="ono-mem">
-      {onBack && (
+      {/* 복귀 버튼은 하나다 — 회의록·대화 분석에서는 같은 자리가 「지난 회의 리스트」로 바뀐다
+          (policy §10.8.2 컨텍스트 바). 불러오는 중·실패에는 하위 화면이 없으므로 대시보드다. */}
+      {screen !== 'list' && !loading && !error ? (
+        <button type="button" className="ono-mem-back ono-past-top-back" onClick={onBackToList}>
+          <Icon src={I.back} size={14} color="currentColor" baseUrl={baseUrl} />
+          {L.backToList}
+        </button>
+      ) : onBack && (
         <button type="button" className="ono-mem-back ono-past-top-back" onClick={onBack}>
           <Icon src={I.back} size={14} color="currentColor" baseUrl={baseUrl} />
           {L.backToDashboard}

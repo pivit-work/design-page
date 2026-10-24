@@ -3258,7 +3258,9 @@ button.ono-add-modal-input { cursor: pointer; }
   font-weight: 600;
   cursor: pointer;
 }
-.ono-past-link:hover { background: var(--bg-secondary); color: var(--text-primary); }
+.ono-past-link:hover:not(:disabled) { background: var(--bg-secondary); color: var(--text-primary); }
+/* 전사가 끝나기 전의 [대화 분석] (PW-1489 · policy §10.8.2) — 같은 화면의 꺼진 띠 버튼(.ono-done-banner-btn:disabled)과 같은 흐림 */
+.ono-past-link:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* ── 발화 비율 ── */
 .ono-past-ratio { display: flex; align-items: center; gap: 24px; }
