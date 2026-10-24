@@ -46,6 +46,9 @@ const DEFAULT_LABELS = {
  * 막의 data-testid 는 `manager-note-overlay`, 창은 `manager-note-modal`.
  *
  * `memoCount` — 메모 칸 바로 아래 놓을 글자 수 줄(«(n / 10,000자)»). 없으면 아무것도 그리지 않는다.
+ *
+ * `status` 는 `{ tone, text, retryLabel?, onRetry? }`. 저장에 실패했을 때 `retryLabel` 을 주면
+ * 상태 줄 옆에 불러오기 실패와 같은 [다시 시도] 버튼을 그린다(pivit-work PW-1490).
  */
 export default function ManagerNoteModal({
   members = [],
@@ -136,10 +139,20 @@ export default function ManagerNoteModal({
     >
       {status && (
         <p
-          className={`omn-status is-${status.tone ?? 'muted'}`}
+          className={`omn-status is-${status.tone ?? 'muted'}${status.retryLabel ? ' has-retry' : ''}`}
           data-testid="manager-note-status"
         >
           {status.text}
+          {status.retryLabel && (
+            <button
+              type="button"
+              className="omn-error-retry"
+              onClick={status.onRetry}
+              data-testid="manager-note-save-retry"
+            >
+              {status.retryLabel}
+            </button>
+          )}
         </p>
       )}
 

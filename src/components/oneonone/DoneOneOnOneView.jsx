@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
-import { fill, hostOf, heldAtOf } from './sessionHelpers.js';
+import { fill, hostOf, heldAtOf, ownerLabelOf } from './sessionHelpers.js';
 import {
   doneBannerState,
   dominantSentiment,
@@ -916,7 +916,7 @@ function ActionItemsCard({ session, L, icons, baseUrl, actions }) {
               >
                 <span className="ono-done-action-text">{item.text}</span>
                 <StatusBadge tone={item.owner === 'member' ? 'info' : 'success'} className="ono-done-badge">
-                  {item.owner === 'member' ? L.roleMember : L.roleManager}
+                  {ownerLabelOf(item, L)}
                 </StatusBadge>
                 {item.dueDate && <StatusBadge tone="neutral" className="ono-done-badge">{item.dueDate}</StatusBadge>}
                 {(item.ai || item.source === 'ai') && (

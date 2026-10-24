@@ -76,3 +76,14 @@ export function formatLiveElapsed(sec) {
   const ss = String(s).padStart(2, '0');
   return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
 }
+
+/**
+ * 액션아이템 담당자 표기 — 역할 라벨(「나」·「매니저」 등)에, 담당자가 퇴사했으면 «퇴사»를 붙인다.
+ *
+ * 호스트가 `item.ownerResigned` 와 `L.ownerResigned`(예: `{name} (퇴사)`)를 줄 때만 붙는다 —
+ * 둘 중 하나라도 없으면 역할 라벨 그대로다(데모·옛 호스트). pivit-work PW-1490 (oneonone-spec EC-R4).
+ */
+export function ownerLabelOf(item, L) {
+  const role = item?.owner === 'member' ? L.roleMember : L.roleManager;
+  return item?.ownerResigned && L.ownerResigned ? fill(L.ownerResigned, { name: role }) : role;
+}

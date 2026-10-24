@@ -4831,6 +4831,7 @@ button.ono-add-modal-input { cursor: pointer; }
 .omn-status { font-size: 12px; font-weight: 600; line-height: 18px; color: var(--text-tertiary); }
 .omn-status.is-ok { color: var(--text-brand-tertiary); }
 .omn-status.is-error { color: var(--utility-error-700); }
+.omn-status.has-retry { display: flex; align-items: center; gap: 12px; }
 .omn-placeholder { font-size: 14px; font-weight: 500; line-height: 20px; color: var(--text-tertiary); }
 .omn-error { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--utility-error-200); border-radius: var(--radius-lg); background: var(--utility-error-50); font-size: 14px; font-weight: 500; line-height: 20px; color: var(--utility-error-700); }
 .omn-error-retry { flex: none; padding: 6px 12px; border: none; border-radius: var(--radius-sm); background: var(--colors-background-bgErrorSolid); color: var(--text-white); font-family: inherit; font-size: 12px; font-weight: 600; line-height: 18px; cursor: pointer; }

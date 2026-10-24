@@ -5,7 +5,7 @@ import Tooltip from '../shared/Tooltip.jsx';
 import EmptyState from '../shared/EmptyState.jsx';
 import Icon from '../shared/Icon.jsx';
 import Tabs from '../shared/Tabs.jsx';
-import { fill, hostOf, healthOf, heldAtOf } from './sessionHelpers.js';
+import { fill, hostOf, healthOf, heldAtOf, ownerLabelOf } from './sessionHelpers.js';
 import {
   doneBannerState,
   dominantSentiment,
@@ -1294,7 +1294,7 @@ function PrepScreen({ session, manager, avatar, okrStatus, healthHistory, isHost
             {prevActions.map((item, i) => (
               <div className="ono-mem-row" key={i}>
                 <span className="ono-mem-cell">{item.text}</span>
-                <span className="ono-mem-cell is-sub">{item.owner === 'member' ? L.roleMember : L.roleManager}</span>
+                <span className="ono-mem-cell is-sub">{ownerLabelOf(item, L)}</span>
                 <span className={`ono-start-flag ono-start-flag-${item.done ? 'blue' : 'warning'}`}>
                   {item.done ? L.statusDone : L.statusPending}
                 </span>
@@ -1626,7 +1626,7 @@ function ActionRow({ item, L, deadlineOf, onToggle, muted, icons, baseUrl }) {
         )}
         <span className={item.done && onToggle ? 'is-done' : ''}>{item.text}</span>
       </span>
-      <span className="ono-mem-cell is-sub">{item.owner === 'member' ? L.roleMember : L.roleManager}</span>
+      <span className="ono-mem-cell is-sub">{ownerLabelOf(item, L)}</span>
       {dm ? (
         <span className="ono-start-flag" style={{ background: dm.bg, borderColor: dm.bd, color: dm.color }}>
           {dm.label}
@@ -1913,7 +1913,7 @@ function HistoryDetail({ session, manager, avatar, renderAvatar, L, icons, baseU
             {session.actionItems.map((item) => (
               <div className="ono-mem-row" key={item.id}>
                 <span className="ono-mem-cell">{item.text}</span>
-                <span className="ono-mem-cell is-sub">{item.owner === 'member' ? L.roleMember : L.roleManager}</span>
+                <span className="ono-mem-cell is-sub">{ownerLabelOf(item, L)}</span>
                 <span className={`ono-start-flag ono-start-flag-${item.done ? 'blue' : 'warning'}`}>
                   {item.done ? L.statusDone : L.statusPending}
                 </span>
