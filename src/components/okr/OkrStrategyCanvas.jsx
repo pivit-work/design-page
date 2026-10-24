@@ -19,7 +19,7 @@ import { AI_PREREQUISITES } from './okrStrategyAiPrerequisites.js';
  * onSave(rows): [저장] 시 서버 반영. 주지 않으면 로컬 표시만 바뀐다(데모).
  *   반환 Promise 가 reject 하면 편집 모드를 유지하고 인라인 에러를 띄운다 —
  *   작성 중 내용을 삼키지 않는다.
- * onAiAutocomplete(): '전략 전체 AI 자동완성'. 행 id → 텍스트 맵을 반환하면
+ * onAiAutocomplete(rowId?, draftRows?): '전략 전체 AI 자동완성'. 행 id → 텍스트 맵을 반환하면
  *   편집 모드로 들어가며 초안을 채운다(사용자가 확인·수정 후 [저장]).
  *   행별 [AI] 는 AI_PREREQUISITES 의 선행 칸이 비어 있으면 부르지 않고 그 행 안에
  *   「Mission을 먼저 입력해주세요.」를 띄운다(편집 중이면 입력 중인 글로 판정 · PW-1505).
@@ -111,7 +111,8 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
     setAiLoading(rowId ?? true);
     setError(null);
     try {
-      const byId = await onAiAutocomplete(rowId);
+      // 편집 중이면 입력 중인 글(저장 전)을 같이 넘긴다 — 선행 칸 판정과 생성이 같은 글을 본다.
+      const byId = await onAiAutocomplete(rowId, editing ? fromDraft(rows, draft) : undefined);
       const base = editing ? draft : toDraft(rows);
       setDraft(
         rows.map((row, i) => {

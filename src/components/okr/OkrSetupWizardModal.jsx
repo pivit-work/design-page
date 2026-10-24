@@ -109,6 +109,9 @@ export default function OkrSetupWizardModal({
   contextAppliedLabel = '',
   onAiError,
   aiNotice = null,
+  // 제목 칸 길이 한도 — 서버 INPUT_LIMITS 와 같은 값을 앱이 넘긴다(저장 컬럼 255 · PW-1505). 안 주면 안 막는다(데모).
+  objectiveTitleMaxLength,
+  krTitleMaxLength,
 }) {
   const init = initialState ?? {};
   const [step, setStep] = useState(init.step ?? 1);
@@ -457,6 +460,7 @@ export default function OkrSetupWizardModal({
               className="okr-textarea"
               value={objective}
               rows={2}
+              maxLength={objectiveTitleMaxLength}
               aria-label="Objective"
               placeholder="Objective 를 직접 입력하거나 위 버튼으로 AI 생성하세요."
               onChange={(e) => changeObjective(e.target.value)}
@@ -507,7 +511,7 @@ export default function OkrSetupWizardModal({
               {krs.map((k, i) => (
                 <div className="okr-wz-krrow" key={k.id}>
                   <span className="okr-wz-krno">{i + 1}</span>
-                  <TextInput className="okr-wz-krcell" value={k.title} placeholder="지표명" aria-label="KR 지표명"
+                  <TextInput className="okr-wz-krcell" value={k.title} placeholder="지표명" aria-label="KR 지표명" maxLength={krTitleMaxLength}
                     onChange={(e) => patchKr(k.id, { title: e.target.value })} />
                   <TextInput className="okr-wz-krcell is-num" type="number" value={k.current} placeholder="현재" aria-label="현재값"
                     onChange={(e) => patchKr(k.id, { current: e.target.value })} />
