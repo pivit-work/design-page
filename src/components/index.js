@@ -108,6 +108,12 @@ export {
   ThumbsUpGlyph,
   BookOpenGlyph,
   PopOutGlyph,
+  CornerAngleGlyph,
+  CornerSmoothGlyph,
+  ContractVerticalGlyph,
+  ExpandVerticalGlyph,
+  ExpandScreenGlyph,
+  DownloadSolidGlyph,
 } from './shared/lineIcons.jsx';
 
 // Layout
@@ -118,6 +124,7 @@ export { default as ContentArea } from './layout/ContentArea.jsx';
 export { default as ImpersonationBanner } from './layout/ImpersonationBanner.jsx';
 
 // Org Chart
+export { default as OrgChartViewport } from './orgchart/OrgChartViewport.jsx';
 export {
   DeptCard,
   MemberCard,

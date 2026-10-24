@@ -38,6 +38,20 @@ export const ORGCHART_LABELS = {
   'org.collapseChildren': '{{name}} 하위 조직 접기',
   'org.expandAll': '전체 펼치기 — 모든 조직을 펼친 첫 화면으로',
   'org.collapseAll': '전체 접기 — 회사와 최상위 조직 카드만 남기고 접기',
+  // 캔버스 툴바 (Figma 16596:48857 개정 · 2026-10-25) — 보이는 정보의 양 · 기준일 · 확대/축소 · 전체 화면
+  'org.density': '보이는 정보 양',
+  'org.density.all': '전체',
+  'org.density.leaders': '리더만',
+  'org.density.count': '인원수만',
+  'org.gradeCount': '{{grade}} {{count}}명',
+  'org.gradeUnknown': '직급 미정',
+  'org.headcount': '{{count}}명',
+  'org.zoomIn': '확대',
+  'org.zoomOut': '축소',
+  'org.downloadImage': '이미지로 다운',
+  'org.expandView': '전체 화면으로 보기',
+  'org.closeExpandView': '전체 화면 닫기',
+  'org.asOfPick': '기준일 고르기',
 
   // ── 프로필 카드 (프로젝트 탭 · design-page 자체 화면) ──
   'profile.employmentType': '고용형태',

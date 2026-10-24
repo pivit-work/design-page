@@ -62,63 +62,63 @@ const INITIAL_ORG = {
   id: 'company', name: 'SAMSUNG 물산', type: '회사', count: '34명', level: 'company',
   // 조직 없이 대표에게 바로 보고하는 사람(COS·비서) — 회사 카드 아래 «직속» 칸(점선)에 선다.
   directReports: [
-    { id: 'cos', name: '한지우', avatar: AVATARS.신예린, status: 'working', workHours: '9 → 6', attendance: 55, hcScore: 8.2, isDirectReport: true, profile: DEFAULT_PROFILE },
+    { id: 'cos', name: '한지우', avatar: AVATARS.신예린, status: 'working', workHours: '9 → 6', attendance: 55, hcScore: 8.2, isDirectReport: true, grade: '사원', profile: DEFAULT_PROFILE },
   ],
   children: [
     // 대표 직속 조직(isStaff) — 최상위 조직 줄이 아니라 회사 카드 아래 세로선의 곁가지에 선다.
     {
       id: 'ceo-staff', name: 'CEO 스태프', type: '실', count: '직속 1명', level: 'division', isStaff: true,
       members: [
-        { name: '이서진', avatar: AVATARS.이서진, status: 'working', role: 'DL', workHours: '9 → 6', attendance: 60, hcScore: 6.1, profile: DEFAULT_PROFILE },
+        { name: '이서진', avatar: AVATARS.이서진, status: 'working', role: 'DL', workHours: '9 → 6', attendance: 60, hcScore: 6.1, grade: '매니저', profile: DEFAULT_PROFILE },
       ],
     },
     {
       id: 'mgmt', name: '경영지원본부', type: '본부', count: '직속 2명', level: 'division',
       members: [
-        { name: '정은우', avatar: AVATARS.정은우, status: 'working', workHours: '9 → 6', attendance: 51, hcScore: 2.7, profile: DEFAULT_PROFILE },
-        { name: '박우진', avatar: AVATARS.박우진, status: 'leave', role: 'DL', workHours: '9 → 6', attendance: 48, hcScore: 9.6, onVacation: true, profile: DEFAULT_PROFILE },
+        { name: '정은우', avatar: AVATARS.정은우, status: 'working', workHours: '9 → 6', attendance: 51, hcScore: 2.7, grade: '과장', profile: DEFAULT_PROFILE },
+        { name: '박우진', avatar: AVATARS.박우진, status: 'leave', role: 'DL', workHours: '9 → 6', attendance: 48, hcScore: 9.6, onVacation: true, grade: '매니저', profile: DEFAULT_PROFILE },
       ],
       children: [
         { id: 'people', name: 'People팀', type: '팀', level: 'team', members: [
-          { name: '신예은', avatar: AVATARS.신예은, status: 'working', workHours: '9 → 6', attendance: 25, hcScore: 3.2, profile: DEFAULT_PROFILE },
-          { name: '이서현', avatar: AVATARS.이서현, status: 'working', workHours: '9 → 6', attendance: 76, hcScore: 7.9, profile: DEFAULT_PROFILE },
-          { name: '김서윤', avatar: AVATARS.김서윤, status: 'resigned', workHours: '9 → 6', attendance: 22, hcScore: 8.7, profile: DEFAULT_PROFILE },
+          { name: '신예은', avatar: AVATARS.신예은, status: 'working', workHours: '9 → 6', attendance: 25, hcScore: 3.2, grade: '사원', profile: DEFAULT_PROFILE },
+          { name: '이서현', avatar: AVATARS.이서현, status: 'working', workHours: '9 → 6', attendance: 76, hcScore: 7.9, grade: '대리', profile: DEFAULT_PROFILE },
+          { name: '김서윤', avatar: AVATARS.김서윤, status: 'resigned', workHours: '9 → 6', attendance: 22, hcScore: 8.7, grade: '사원', profile: DEFAULT_PROFILE },
         ]},
         { id: 'finance', name: '재무회계팀', type: '팀', level: 'team', members: [
-          { name: '신예린', avatar: AVATARS.신예린, status: 'working', workHours: '9 → 6', attendance: 29, hcScore: 8.0, profile: DEFAULT_PROFILE },
-          { name: '오예린', avatar: AVATARS.오예린, status: 'standby', workHours: '9 → 6', attendance: 31, hcScore: 4.4, profile: DEFAULT_PROFILE },
-          { name: '박은서', avatar: AVATARS.박은서, status: 'working', workHours: '9 → 6', attendance: 17, hcScore: 4.8, profile: DEFAULT_PROFILE },
+          { name: '신예린', avatar: AVATARS.신예린, status: 'working', workHours: '9 → 6', attendance: 29, hcScore: 8.0, grade: '과장', profile: DEFAULT_PROFILE },
+          { name: '오예린', avatar: AVATARS.오예린, status: 'standby', workHours: '9 → 6', attendance: 31, hcScore: 4.4, grade: '사원', profile: DEFAULT_PROFILE },
+          { name: '박은서', avatar: AVATARS.박은서, status: 'working', workHours: '9 → 6', attendance: 17, hcScore: 4.8, grade: '사원', profile: DEFAULT_PROFILE },
         ]},
         { id: 'bizdev', name: '비즈니스개발팀', type: '팀', level: 'team', members: [
-          { name: '오민준', avatar: AVATARS.오민준, status: 'working', workHours: '9 → 6', attendance: 97, hcScore: 7.8, profile: DEFAULT_PROFILE },
-          { name: '이정민', avatar: AVATARS.이정민, status: 'leave', workHours: '9 → 6', attendance: 11, hcScore: 9.7, onVacation: true, profile: DEFAULT_PROFILE },
-          { name: '이서진', avatar: AVATARS.이서진, status: 'working', workHours: '9 → 6', attendance: 32, hcScore: 7.3, profile: DEFAULT_PROFILE },
+          { name: '오민준', avatar: AVATARS.오민준, status: 'working', workHours: '9 → 6', attendance: 97, hcScore: 7.8, grade: '대리', profile: DEFAULT_PROFILE },
+          { name: '이정민', avatar: AVATARS.이정민, status: 'leave', workHours: '9 → 6', attendance: 11, hcScore: 9.7, onVacation: true, grade: '사원', profile: DEFAULT_PROFILE },
+          { name: '이서진', avatar: AVATARS.이서진, status: 'working', workHours: '9 → 6', attendance: 32, hcScore: 7.3, grade: '사원', profile: DEFAULT_PROFILE },
         ]},
       ],
     },
     {
       id: 'product', name: '프로덕트 본부', type: '본부', count: '직속 1명', level: 'division',
       members: [
-        { name: 'Chris', avatar: AVATARS.Chris, status: 'working', selected: true, role: 'DL', workHours: '9 → 6', attendance: 93, hcScore: 6.3, profile: CHRIS_PROFILE },
+        { name: 'Chris', avatar: AVATARS.Chris, status: 'working', selected: true, role: 'DL', workHours: '9 → 6', attendance: 93, hcScore: 6.3, grade: '매니저', profile: CHRIS_PROFILE },
       ],
       children: [
         { id: 'proddev', name: '프로덕트개발팀', type: '팀', level: 'team', members: [
-          { name: '김우진', avatar: AVATARS.김우진, status: 'working', role: 'TL', workHours: '10 → 7', attendance: 49, hcScore: 5.1, profile: DEFAULT_PROFILE },
+          { name: '김우진', avatar: AVATARS.김우진, status: 'working', role: 'TL', workHours: '10 → 7', attendance: 49, hcScore: 5.1, grade: '매니저', profile: DEFAULT_PROFILE },
         ], children: [
           { id: 'uiux', name: 'UIUX 디자인', type: '파트', level: 'part', members: [
-            { name: '박은지', avatar: AVATARS.박은지, status: 'working', workHours: '9 → 6', attendance: 67, hcScore: 5.2, profile: DEFAULT_PROFILE },
-            { name: '윤지안', avatar: AVATARS.윤지안, status: 'standby', workHours: '9 → 6', attendance: 87, hcScore: 7.8, profile: DEFAULT_PROFILE },
-            { name: '이서현', avatar: AVATARS.이서현2, status: 'working', workHours: '9 → 6', attendance: 89, hcScore: 5.4, profile: DEFAULT_PROFILE },
+            { name: '박은지', avatar: AVATARS.박은지, status: 'working', workHours: '9 → 6', attendance: 67, hcScore: 5.2, grade: '대리', profile: DEFAULT_PROFILE },
+            { name: '윤지안', avatar: AVATARS.윤지안, status: 'standby', workHours: '9 → 6', attendance: 87, hcScore: 7.8, grade: '사원', profile: DEFAULT_PROFILE },
+            { name: '이서현', avatar: AVATARS.이서현2, status: 'working', workHours: '9 → 6', attendance: 89, hcScore: 5.4, grade: '대리', profile: DEFAULT_PROFILE },
           ]},
           { id: 'frontend', name: '프론트엔드', type: '파트', level: 'part', members: [
-            { name: '박서아', avatar: AVATARS.박서아, status: 'working', workHours: '9 → 6', attendance: 68, hcScore: 6.3, profile: DEFAULT_PROFILE },
-            { name: '윤다희', avatar: AVATARS.윤다희, status: 'resigned', workHours: '9 → 6', attendance: 11, hcScore: 7.0, profile: DEFAULT_PROFILE },
-            { name: '신서윤', avatar: AVATARS.신서윤, status: 'working', workHours: '9 → 6', attendance: 79, hcScore: 7.1, profile: DEFAULT_PROFILE },
+            { name: '박서아', avatar: AVATARS.박서아, status: 'working', workHours: '9 → 6', attendance: 68, hcScore: 6.3, grade: '과장', profile: DEFAULT_PROFILE },
+            { name: '윤다희', avatar: AVATARS.윤다희, status: 'resigned', workHours: '9 → 6', attendance: 11, hcScore: 7.0, grade: '사원', profile: DEFAULT_PROFILE },
+            { name: '신서윤', avatar: AVATARS.신서윤, status: 'working', workHours: '9 → 6', attendance: 79, hcScore: 7.1, grade: '사원', profile: DEFAULT_PROFILE },
           ]},
           { id: 'backend', name: '백엔드개발', type: '파트', level: 'part', members: [
-            { name: '최하은', avatar: AVATARS.최하은, status: 'working', workHours: '9 → 6', attendance: 62, hcScore: 2.3, profile: DEFAULT_PROFILE },
-            { name: '박서현', avatar: AVATARS.박서현, status: 'leave', workHours: '9 → 6', attendance: 25, hcScore: 3.8, onVacation: true, profile: DEFAULT_PROFILE },
-            { name: '신혜린', avatar: AVATARS.신혜린, status: 'working', workHours: '9 → 6', attendance: 53, hcScore: 7.6, profile: DEFAULT_PROFILE },
+            { name: '최하은', avatar: AVATARS.최하은, status: 'working', workHours: '9 → 6', attendance: 62, hcScore: 2.3, grade: '대리', profile: DEFAULT_PROFILE },
+            { name: '박서현', avatar: AVATARS.박서현, status: 'leave', workHours: '9 → 6', attendance: 25, hcScore: 3.8, onVacation: true, grade: '사원', profile: DEFAULT_PROFILE },
+            { name: '신혜린', avatar: AVATARS.신혜린, status: 'working', workHours: '9 → 6', attendance: 53, hcScore: 7.6, grade: '사원', profile: DEFAULT_PROFILE },
           ]},
         ]},
       ],
@@ -239,9 +239,14 @@ function shapeOrg(node, volume, labelMode) {
  * 관심사이므로 App 이 아닌 이 wrapper 가 소유한다. App 은 currentPage === 'orgchart'
  * 일 때 이 컴포넌트만 마운트한다.
  */
+/* 기준일(Figma 17755:26872) — 데모는 2026-04-10 을 보고 있고, 기록은 2025-01-01 부터 오늘까지다. */
+const ASOF_MIN = '2025-01-01';
+const ASOF_MAX = '2026-10-25';
+
 export default function OrgChartPage({ icons, statIcons, baseUrl, subTab, onSubTabChange }) {
   const { values: knobs, set: setKnob, reset: resetKnobs } = useKnobs(KNOBS);
   const [adminMode, setAdminMode] = useState(false);
+  const [asOfValue, setAsOfValue] = useState('2026-04-10');
 
   const orgData = useMemo(() => shapeOrg(INITIAL_ORG, knobs.volume, knobs.labels), [knobs.volume, knobs.labels]);
   const subordinates = (member) => findSubordinates(orgData, member);
@@ -285,6 +290,9 @@ export default function OrgChartPage({ icons, statIcons, baseUrl, subTab, onSubT
         findSubordinates={subordinates}
         adminMode={adminMode}
         onAdminModeChange={setAdminMode}
+        asOf={{ value: asOfValue, min: ASOF_MIN, max: ASOF_MAX, label: '기준일', onChange: setAsOfValue }}
+        // 「이미지로 다운」 — 실제 그림 만들기는 pivit-work 몫이다(캔버스 DOM 을 받는다). 데모는 받았다는 것만 적는다.
+        onDownloadImage={({ element }) => console.info('[orgchart] download image', element?.getBoundingClientRect())}
       />
       {switcher}
     </>

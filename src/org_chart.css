@@ -12,26 +12,6 @@
 .brand-count { font-weight: 600; color: var(--text-brand-secondary); }
 
 /* ── 기준일 칸 (pivit-work PW-1836) — 값은 As Of 탭 `.admin-snap-datepicker`·`.admin-snap-coverage-caption` 그대로 ── */
-.org-asof { position: fixed; top: 118px; right: 40px; z-index: 80; display: flex; align-items: center; gap: 10px; }
-.org-asof-caption { font-size: 12px; color: var(--text-secondary); }
-.org-asof-picker {
-  display: flex; align-items: center; gap: 8px; padding: 8px 14px;
-  border-radius: var(--radius-md, 10px); border: 1px solid var(--border-primary); background: var(--bg-quaternary);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-.org-asof-picker:hover { border-color: var(--text-tertiary); }
-.org-asof-picker:focus-within {
-  border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
-  box-shadow: inset 0 0 0 1px var(--colors-foreground-fgBrandPrimary, #2dbd82);
-}
-.org-asof-label { font-family: var(--font-family-body); font-size: 13px; letter-spacing: -0.01em; color: var(--text-secondary); }
-.org-asof-picker input {
-  border: none; background: transparent; font-family: var(--font-family-body); font-size: 14px; font-weight: 600;
-  font-variant-numeric: tabular-nums; letter-spacing: -0.01em; color: var(--text-primary); outline: none; cursor: pointer;
-}
-.org-asof-picker:focus-within input { color: var(--text-brand-tertiary); }
-
-/* ── Canvas Area ── */
 .canvas-area { position: fixed; top: 177px; left: 250px; right: 40px; bottom: 40px; background-color: var(--bg-quaternary); border-radius: 14px; overflow: hidden; user-select: none; }
 .canvas-inner { padding: 80px 40px 100px; display: inline-flex; justify-content: center; min-width: 100%; transition: transform 0.05s linear; position: relative; }
 .canvas-inner::before {
@@ -46,11 +26,76 @@
 
 /* ── Drag Hint ── */
 .drag-hint { position: absolute; top: 16px; left: 18px; display: flex; align-items: center; gap: 12px; padding: 2px 4px; border-radius: 4px; background: var(--utility-brand-50); font-size: 12px; font-weight: 500; color: var(--text-brand-tertiary); line-height: 18px; z-index: 5; }
+/* 조직도의 끌기 안내는 캔버스 밖, 머리글 줄 오른쪽 끝에 선다(Figma 16596:49052 · y 141) — 캔버스 오른쪽 끝에 맞춘다. */
+.drag-hint.org-drag-hint { position: fixed; top: 141px; left: auto; right: 40px; z-index: 80; }
 
-/* ── Zoom Controls ── */
+/* ── Zoom Controls — 조직도는 2026-10-25 시안부터 아래 툴바(.org-toolbar)를 쓴다. OKR 캔버스가 아직 이 모양을 쓴다. ── */
 .zoom-controls { position: absolute; top: 20px; right: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 5; }
 .zoom-btn { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: var(--bg-primary); border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 6px -1px rgba(10,13,18,0.08); transition: background 0.15s; }
 .zoom-btn:hover { background: var(--bg-active); }
+
+/* ── 캔버스 툴바 (Figma 17755:26880 왼쪽 · 17755:26881 오른쪽 · 17755:26946 전체 화면) ──
+   캔버스 안쪽 위 16px. 버튼은 36×36 · alpha-black-3 바탕 · r8 · 아이콘 20(fg-primary), 글자 버튼은 가로 14.
+   오른쪽은 버튼 다섯 묶음(간격 11) + 30 띄워 전체 화면 버튼. */
+.org-toolbar { position: absolute; top: 16px; z-index: 5; display: flex; align-items: center; }
+.org-toolbar-left { left: 16px; gap: var(--spacing-md); }
+.org-toolbar-right { right: 16px; gap: 30px; }
+.org-toolbar-group { display: flex; align-items: center; gap: 11px; }
+/* 보이는 정보 양 세그먼트(17755:26846) — 공용 SegmentedControl 에 시안의 뒷배경 흐림만 더한다. */
+.org-density { backdrop-filter: blur(20px); }
+.org-tool-btn {
+  box-sizing: border-box;
+  height: 36px;
+  min-width: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  padding: 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--alpha-black-3);
+  backdrop-filter: blur(20px);
+  color: var(--fg-primary);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-sm);
+  font-weight: 600;
+  line-height: var(--line-height-text-sm);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.org-tool-btn:hover { background: var(--bg-active); }
+.org-tool-btn svg { flex: none; }
+.org-tool-btn.has-label { padding: 8px 14px; color: var(--text-primary); }
+.org-tool-btn.has-label > span { padding: 0 var(--spacing-xxs); white-space: nowrap; }
+/* 기준일 버튼(17755:26872) — 글자는 text-secondary */
+.org-asof-btn.has-label { color: var(--text-secondary); }
+
+/* 「리더만」·「인원수만」에서 카드 대신 서는 인원수 한 줄 — 구성원 카드와 같은 흰 상자, 글자만. */
+.members-summary {
+  box-sizing: border-box;
+  min-width: 138px;
+  padding: 10px 22px;
+  border-radius: 12px;
+  background: var(--bg-quaternary);
+  box-shadow: 0 1px 3px rgba(10,13,18,0.1), 0 1px 2px rgba(10,13,18,0.1);
+  font-size: var(--font-size-text-sm);
+  font-weight: 600;
+  line-height: var(--line-height-text-sm);
+  color: var(--text-secondary);
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* ── 전체 화면 창 (17755:26946) — 리포트 보기 창과 같은 틀(ModalShell), 화면 가득. 캔버스가 본문을 채운다. */
+.tl-group-modal.org-expand-shell {
+  width: calc(100vw - 56px);
+  height: calc(100vh - 56px);
+  overflow: hidden;
+}
+.tl-group-modal.org-expand-shell .tl-group-modal-content { padding: 0 20px 20px; gap: 0; }
+.org-expand-body { flex: 1; min-height: 0; position: relative; }
+.canvas-area.is-expanded { position: absolute; inset: 0; }
 
 /* ── Org Tree ── */
 .org-node { display: flex; flex-direction: column; align-items: center; position: relative; }

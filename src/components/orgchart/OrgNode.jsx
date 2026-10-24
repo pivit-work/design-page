@@ -5,7 +5,42 @@ import { DragContext, CollapseContext } from './contexts.js';
 import { useDrag } from './hooks.js';
 import { useOrgLabels } from './orgchart-labels.jsx';
 
-export default function OrgNode({ node, depth = 0, showWorkHours, showVacation, showGrade, editMode, adminMode, baseUrl = '', onMemberClick }) {
+/** 리더인가 — 호스트가 `isLeader` 를 주면 그것, 아니면 직책 배지(DL·TL 같은 `role`)가 있는 사람. */
+const isLeader = (m) => (m.isLeader !== undefined ? !!m.isLeader : Boolean(m.role));
+
+/**
+ * 「리더만」일 때 카드로 안 보이는 사람들을 직급별로 센 한 줄 — 「매니저 2명 · 사원 5명」.
+ * 직급은 `grade`(없으면 `position`)이고, 둘 다 없으면 「직급 미정」 한 묶음이다. 처음 나온 순서대로 적는다.
+ */
+function gradeSummary(members, L) {
+  const counts = new Map();
+  for (const m of members) {
+    const grade = m.grade || m.position || L('org.gradeUnknown');
+    counts.set(grade, (counts.get(grade) || 0) + 1);
+  }
+  return [...counts].map(([grade, count]) => L('org.gradeCount', { grade, count })).join(' · ');
+}
+
+/**
+ * 보이는 정보의 양(density · Figma 17755:26846)에 맞춰 한 칸의 사람 목록을 가른다.
+ *  - all     모두 카드.
+ *  - leaders 리더만 카드, 나머지는 직급별 인원수 한 줄.
+ *  - count   카드 없이 인원수 한 줄(「12명」).
+ * 카드로 남는 사람은 원래 자리(index)를 지닌다 — 끌어 옮기기가 그 자리를 쓴다.
+ */
+function splitByDensity(members, density, L) {
+  const indexed = members.map((m, i) => ({ m, i }));
+  if (density === 'count') {
+    return { shown: [], summary: members.length ? L('org.headcount', { count: members.length }) : null };
+  }
+  if (density === 'leaders') {
+    const rest = members.filter((m) => !isLeader(m));
+    return { shown: indexed.filter(({ m }) => isLeader(m)), summary: rest.length ? gradeSummary(rest, L) : null };
+  }
+  return { shown: indexed, summary: null };
+}
+
+export default function OrgNode({ node, depth = 0, showWorkHours, showVacation, showGrade, editMode, adminMode, density = 'all', baseUrl = '', onMemberClick }) {
   const L = useOrgLabels();
   const hasChildren = node.children && node.children.length > 0;
   // 조직 없이 이 카드의 주인(대표·조직장)에게 바로 보고하는 사람 — «직속» 칸(pivit-specs
@@ -36,8 +71,11 @@ export default function OrgNode({ node, depth = 0, showWorkHours, showVacation, 
   };
 
   const renderChild = (child) => (
-    <OrgNode node={child} depth={depth + 1} showWorkHours={showWorkHours} showVacation={showVacation} showGrade={showGrade} editMode={editMode} adminMode={adminMode} baseUrl={baseUrl} onMemberClick={onMemberClick} />
+    <OrgNode node={child} depth={depth + 1} showWorkHours={showWorkHours} showVacation={showVacation} showGrade={showGrade} editMode={editMode} adminMode={adminMode} density={density} baseUrl={baseUrl} onMemberClick={onMemberClick} />
   );
+
+  const members = node.members ? splitByDensity(node.members, density, L) : null;
+  const directs = splitByDensity(directReports, density, L);
 
   return (
     <div
@@ -54,9 +92,9 @@ export default function OrgNode({ node, depth = 0, showWorkHours, showVacation, 
         isCollapsed={isCollapsed}
         onToggle={() => collapse?.toggleCollapse(node.id)}
       />
-      {node.members && !isCollapsed && (
+      {members && !isCollapsed && (members.shown.length > 0 || members.summary || isDropTarget) && (
         <div className={`members-list ${isDropTarget ? 'drop-target' : ''}`}>
-          {node.members.map((m, i) => (
+          {members.shown.map(({ m, i }) => (
             <React.Fragment key={`${node.id}_${m.name}_${i}`}>
               {isDropTarget && dropTarget.insertIndex === i && (
                 <div className="drop-indicator" />
@@ -67,14 +105,21 @@ export default function OrgNode({ node, depth = 0, showWorkHours, showVacation, 
           {isDropTarget && dropTarget.insertIndex >= node.members.length && (
             <div className="drop-indicator" />
           )}
+          {members.summary && (
+            <div className="members-summary" data-testid="org-members-summary">{members.summary}</div>
+          )}
         </div>
       )}
       {directReports.length > 0 && !isCollapsed && (
         <div className="direct-slot" data-testid="org-direct-slot">
           <div className="direct-slot-label">{node.directReportsLabel || L('org.directSlot', { count: directReports.length })}</div>
-          {directReports.map((m, i) => (
+          {directs.shown.map(({ m, i }) => (
             <MemberCard key={`${node.id}_direct_${m.id ?? i}`} member={m} parentId={`${node.id}__direct`} index={i} showWorkHours={showWorkHours} showVacation={showVacation} showGrade={showGrade} editMode={false} adminMode={adminMode} baseUrl={baseUrl} onMemberClick={onMemberClick} />
           ))}
+          {/* 「인원수만」에서는 머리 문구가 이미 수를 말한다 — 같은 수를 두 번 적지 않는다. */}
+          {directs.summary && density !== 'count' && (
+            <div className="members-summary" data-testid="org-members-summary">{directs.summary}</div>
+          )}
         </div>
       )}
       {!node.members && isDropTarget && (
