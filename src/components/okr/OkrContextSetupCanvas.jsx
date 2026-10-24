@@ -11,6 +11,7 @@ import StatusBadge from '../shared/StatusBadge.jsx';
 import AiMark from '../shared/AiMark.jsx';
 import Chip from '../shared/Chip.jsx';
 import Switch from '../shared/Switch.jsx';
+import { SkeletonList } from '../shared/Skeleton.jsx';
 import OkrContextAnalysisResult from './OkrContextAnalysisResult.jsx';
 import { isEnterKey } from '../shared/enterKey.js';
 
@@ -25,7 +26,7 @@ import { isEnterKey } from '../shared/enterKey.js';
  * 같은 의미의 라인 아이콘으로 대체했다. 색·여백·레이아웃은 시안을 따른다.
  *
  * 순수 표현 컴포넌트: 데이터·IO 는 전부 props 로 주입받는다.
- *   sources: [{ id, type, title, url, body, fileName, fileSize, createdAt, status, statusMessage }]
+ *   sources: [{ id, type, title, url, body, fileName, fileSize, pageCount, createdAt, status, statusMessage }]
  *   labels: 모든 사용자 노출 문자열(호스트가 i18n 으로 해소해 주입)
  *   canEdit: 편집 권한(어드민). 미지정이면 편집 핸들러 유무로 추정한다(구버전 호환).
  *   onAddUrl / onAddText / onAddFile / onRemove — 미주입이면 열람 전용.
@@ -44,6 +45,8 @@ import { isEnterKey } from '../shared/enterKey.js';
  *   analysisNotice — 분석 섹션 헤더 아래에 그릴 호스트 노드(체험 AI 소진 안내 등, §3-3).
  *   processingDelayed / onRefresh — 다시 묻기를 60초 넘게 해도 `processing` 이 남았을 때
  *     처리 중 행 캡션을 「처리가 지연되고 있습니다」 + [새로고침] 으로 바꾼다(§3-2).
+ *   maxTextLength — 텍스트 소스 본문 상한(글자). 서버 상한과 같은 값을 넘긴다. 주면 입력 칸 아래에
+ *     「N / 상한」을 보이고, 넘으면 빨갛게 바꾸며 `onAddText` 를 부르지 않는다(§4·§9 · PW-1507).
  *   maxFileSize — 파일 소스 업로드 상한(bytes). 서버 상한과 같은 값을 넘긴다.
  *     넘으면 `onAddFile` 을 부르지 않고 인라인 에러로 막는다(PW-163).
  *   unitPolicy — 카드 맨 위 «OKR 운영 단위» 칸(정책 §3-1A · okr-policy §2B.5 · PW-1364).
@@ -167,6 +170,12 @@ function LibraryIcon({ size = 12 }) {
 }
 
 const TYPE_ICON = { file: FileIcon, url: LinkIcon, text: TextIcon };
+/** 종류 이름 — 고르기 카드·소스 줄 딱지·추가 칸 머리가 같은 라벨을 쓴다(§3-2 · PW-1507). */
+const TYPE_LABEL_KEY = { file: 'typeFile', url: 'typeUrl', text: 'typeText' };
+/** 추가 버튼 이름 — 종류마다 다르다(시안 [링크 등록]·[텍스트 추가]). 없으면 공통 `add`. */
+const SUBMIT_LABEL_KEY = { file: 'submitFile', url: 'submitUrl', text: 'submitText' };
+/** 기획 §3-2 입력 검증 — 서버 `okr-context.service.ts` 와 같은 식. */
+const URL_PATTERN = /^https?:\/\/.+/i;
 
 /**
  * 소스 추출 상태(§3-2 · 데이터 모델 `ContextSource.status`).
@@ -219,7 +228,11 @@ function formatSize(bytes) {
 }
 
 function sourceSubtitle(s, labels) {
-  if (s.type === 'file') return [s.fileName, formatSize(s.fileSize)].filter(Boolean).join(' · ');
+  if (s.type === 'file') {
+    // PDF 는 쪽 수를 크기 앞에 적는다(§3-2 「파일=페이지 수」). 모르면(Word·옛 파일) 크기만.
+    const pages = s.pageCount ? (labels.pageCount || '{{count}}p').replace('{{count}}', String(s.pageCount)) : null;
+    return [s.fileName, pages, formatSize(s.fileSize)].filter(Boolean).join(' · ');
+  }
   if (s.type === 'url') return s.url || '';
   const len = (s.body || '').length;
   return labels.charCount ? labels.charCount.replace('{{count}}', String(len)) : `${len}`;
@@ -259,6 +272,12 @@ function SourceRow({ source, labels, onRemove, delayed, onRefresh }) {
           <span style={{ fontSize: 13, fontWeight: 800, color: T.text, wordBreak: 'break-word' }}>
             {source.title}
           </span>
+          {/* 종류 딱지 — 헤더 «선택 사항»과 같은 옅은 회색 알약(§3-2 · PW-1507) */}
+          {labels[TYPE_LABEL_KEY[source.type]] && (
+            <span data-testid={`okr-context-type-badge-${source.id}`}>
+              <Badge tone="muted">{labels[TYPE_LABEL_KEY[source.type]]}</Badge>
+            </span>
+          )}
           {/* 매니저 KR 드릴다운의 상태 알약 모양 — 처리 중 파랑 · 준비됨 초록 · 실패 빨강 (PW-2035) */}
           <StatusBadge className={`okr-src-pill is-${status}`} data-testid={`okr-context-status-${source.id}`}>
             {labels[meta.labelKey]}
@@ -303,6 +322,11 @@ function SourceRow({ source, labels, onRemove, delayed, onRefresh }) {
               color: T.sub,
               lineHeight: 1.6,
               whiteSpace: 'pre-wrap',
+              // 미리보기는 두 줄까지(§3-2) — 긴 메모가 목록을 밀어내지 않게.
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
             }}
           >
             {source.body}
@@ -477,13 +501,16 @@ function FileDropzone({ labels, file, onPick }) {
   );
 }
 
-function AddSourceComposer({ labels, onAddUrl, onAddText, onAddFile, onCancel, busy, maxFileSize }) {
+function AddSourceComposer({ labels, onAddUrl, onAddText, onAddFile, onCancel, busy, maxFileSize, maxTextLength }) {
   const [type, setType] = useState(null);
   const [urlVal, setUrlVal] = useState('');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [file, setFile] = useState(null);
   const [error, setError] = useState('');
+  // 서버는 앞뒤 공백을 뗀 본문을 센다 — 같은 기준으로 센다.
+  const textLength = body.trim().length;
+  const textTooLong = !!maxTextLength && textLength > maxTextLength;
 
   const inputStyle = {
     width: '100%',
@@ -502,9 +529,12 @@ function AddSourceComposer({ labels, onAddUrl, onAddText, onAddFile, onCancel, b
     try {
       if (type === 'url') {
         if (!urlVal.trim()) return setError(labels.errorUrlRequired);
+        // 서버도 같은 식으로 거절하지만, 보내기 전에 칸 안에서 막는다(§3-2·§9).
+        if (labels.errorUrlInvalid && !URL_PATTERN.test(urlVal.trim())) return setError(labels.errorUrlInvalid);
         await onAddUrl({ url: urlVal.trim(), title: title.trim() });
       } else if (type === 'text') {
         if (!body.trim()) return setError(labels.errorTextRequired);
+        if (textTooLong) return setError(labels.errorTextTooLong || labels.errorGeneric);
         await onAddText({ body: body.trim(), title: title.trim() });
       } else {
         if (!file) return setError(labels.errorFileRequired);
@@ -593,6 +623,36 @@ function AddSourceComposer({ labels, onAddUrl, onAddText, onAddFile, onCancel, b
         gap: 10,
       }}
     >
+      {/* 고른 종류와 [← 타입 변경] — 취소하고 다시 열지 않아도 종류를 바꾼다(§3-2 · PW-1507). */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ color: T.accentText, display: 'flex' }}>
+          {(() => {
+            const Icon = TYPE_ICON[type] || TextIcon;
+            return <Icon size={18} />;
+          })()}
+        </span>
+        <span style={{ fontSize: 12, fontWeight: 800, color: T.text }} data-testid="okr-context-composer-type">
+          {(labels.composerTitle || '{{type}}').replace('{{type}}', labels[TYPE_LABEL_KEY[type]] || '')}
+        </span>
+        {labels.changeType && (
+          <button
+            type="button"
+            data-testid="okr-context-change-type"
+            onClick={() => {
+              // 고르기로 돌아가면 쓰던 입력은 버린다 — 다른 종류 칸에 남은 값이 섞이지 않게.
+              setType(null);
+              setUrlVal('');
+              setTitle('');
+              setBody('');
+              setFile(null);
+              setError('');
+            }}
+            style={{ ...ghostBtn, marginLeft: 'auto', padding: '4px 10px', fontSize: 11 }}
+          >
+            {labels.changeType}
+          </button>
+        )}
+      </div>
       {type === 'url' && (
         <input
           style={inputStyle}
@@ -628,6 +688,17 @@ function AddSourceComposer({ labels, onAddUrl, onAddText, onAddFile, onCancel, b
           onChange={(e) => setBody(e.target.value)}
         />
       )}
+      {type === 'text' && maxTextLength && labels.textCounter && (
+        <div
+          data-testid="okr-context-text-counter"
+          data-over={textTooLong ? 'true' : 'false'}
+          style={{ fontSize: 11, color: textTooLong ? T.errText : T.muted, marginTop: -4 }}
+        >
+          {labels.textCounter
+            .replace('{{count}}', textLength.toLocaleString('en-US'))
+            .replace('{{max}}', maxTextLength.toLocaleString('en-US'))}
+        </div>
+      )}
       {error && (
         <div
           role="alert"
@@ -655,7 +726,7 @@ function AddSourceComposer({ labels, onAddUrl, onAddText, onAddFile, onCancel, b
           disabled={busy}
           style={{ ...primaryBtn, opacity: busy ? 0.6 : 1 }}
         >
-          {busy ? labels.saving : labels.add}
+          {busy ? labels.saving : labels[SUBMIT_LABEL_KEY[type]] || labels.add}
         </button>
       </div>
     </div>
@@ -1209,6 +1280,7 @@ export default function OkrContextSetupCanvas({
   processingDelayed = false,
   onRefresh,
   maxFileSize,
+  maxTextLength,
   unitPolicy,
   unitPolicyLoading = false,
   unitPolicyError = null,
@@ -1336,9 +1408,8 @@ export default function OkrContextSetupCanvas({
         )}
 
         {loading ? (
-          <div style={{ padding: '28px 0', textAlign: 'center', fontSize: 13, color: T.muted }}>
-            {L.loading}
-          </div>
+          // 목록 줄 자리에 막대를 깐다(§4 「초기 로딩」) — 다 불러온 뒤 자리가 튀지 않게 줄 높이와 맞춘다.
+          <SkeletonList count={3} height={58} aria-label={L.loading} data-testid="okr-context-loading" />
         ) : sources.length === 0 ? (
           <div
             style={{
@@ -1350,6 +1421,12 @@ export default function OkrContextSetupCanvas({
             }}
           >
             {L.empty}
+            {L.emptyHint && (
+              <>
+                <br />
+                {L.emptyHint}
+              </>
+            )}
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -1375,6 +1452,7 @@ export default function OkrContextSetupCanvas({
               onAddText={onAddText}
               onAddFile={onAddFile}
               maxFileSize={maxFileSize}
+              maxTextLength={maxTextLength}
               onCancel={() => setAdding(false)}
             />
           ) : (
