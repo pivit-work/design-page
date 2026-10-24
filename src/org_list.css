@@ -14,6 +14,8 @@
 
 /* 「전체 인원 · N명」 줄 — 오른쪽에 팀 고르기·검색칸 (기획 §3-D-2 「서브라인 오른쪽」) */
 .ol-subline {
+  /* 오른쪽 끝을 아래 표(.pj-body 오른쪽 40)와 맞춘다 — 머리(.pj-header)는 오른쪽 12 라 28 을 더 띄운다 */
+  padding-right: 28px;
   display: flex;
   align-items: center;
   justify-content: space-between;
