@@ -718,7 +718,7 @@ function AnalysisScreen({
                 {ratio.silenceMinutes != null && (
                   <div className="ono-start-okr-bar-line" data-testid="ono-past-silence">
                     <span className="ono-mem-cell is-sub ono-past-ratio-label">{L.silence}</span>
-                    <span className="ono-mem-hint ono-past-ratio-min">
+                    <span className="ono-mem-hint ono-past-ratio-min ono-past-silence-min">
                       {fill(L.minutes, { count: ratio.silenceMinutes })}
                     </span>
                   </div>
