@@ -511,6 +511,7 @@ function AddSourceComposer({ labels, onAddUrl, onAddText, onAddFile, onCancel, b
   // 서버는 앞뒤 공백을 뗀 본문을 센다 — 같은 기준으로 센다.
   const textLength = body.trim().length;
   const textTooLong = !!maxTextLength && textLength > maxTextLength;
+  const urlInvalid = type === 'url' && !!error && error === labels.errorUrlInvalid;
 
   const inputStyle = {
     width: '100%',
@@ -655,7 +656,9 @@ function AddSourceComposer({ labels, onAddUrl, onAddText, onAddFile, onCancel, b
       </div>
       {type === 'url' && (
         <input
-          style={inputStyle}
+          // 형식 오류면 칸 테두리도 빨갛게(§4·§9 「인라인 빨강 보더」)
+          style={urlInvalid ? { ...inputStyle, border: `1px solid ${T.errBd}` } : inputStyle}
+          aria-invalid={urlInvalid || undefined}
           placeholder={labels.urlPlaceholder}
           aria-label={labels.typeUrl}
           value={urlVal}
