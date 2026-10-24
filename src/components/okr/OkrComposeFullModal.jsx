@@ -64,6 +64,24 @@ const METHODS = [
   { key: 'count', label: '개수 달성', desc: 'n / 목표 개수', unit: '개' },
 ];
 
+/** 가중치 문구 — okr-spec §8 · okr-policy §10 (PW-1503). */
+const WEIGHT_TOOLTIP = 'Objective 가중치 합과 각 Objective의 KR 가중치 합이 모두 100%가 되어야 저장할 수 있습니다.';
+const KR_WEIGHT_REASON = 'KR 가중치 합이 100% 여야 저장할 수 있습니다.';
+
+/**
+ * AI 가 준 가중치를 그대로 쓰되, 정수가 아니거나 합이 100 이 아니면 균등 배분(합 100)으로
+ * 바꾼다 — 합이 어긋난 초안은 저장이 막혀, 받자마자 숫자를 다시 맞춰야 한다.
+ */
+function weightsOf(list) {
+  const given = list.map((x) => Number(x?.weight));
+  if (given.every((w) => Number.isInteger(w) && w >= 0) && given.reduce((a, w) => a + w, 0) === 100) {
+    return given;
+  }
+  const n = list.length || 1;
+  const base = Math.floor(100 / n);
+  return list.map((_, i) => (i === n - 1 ? 100 - base * (n - 1) : base));
+}
+
 let seq = 0;
 const nextId = () => { seq += 1; return `cf-${seq}`; };
 
@@ -140,7 +158,9 @@ export default function OkrComposeFullModal({
   onClose,
   onSubmit,
   onGenerate,
+  onGenerateKrs,
   onRefineKr,
+  strategySummary,
   members = [],
   parentOptions = [],
   selfId = '',
@@ -155,7 +175,9 @@ export default function OkrComposeFullModal({
   //
   // 회사 카드도 상위 그룹도 없으면 미니맵 열 자체를 접는다 — 안 접으면 좌측에
   // 300px 짜리 빈 자리가 남아, 편집 영역이 이유 없이 안쪽으로 밀린 것처럼 보인다.
-  const hasMinimap = showCompanyCard || (minimap.groups ?? []).length > 0;
+  // 전략 캔버스 요약(전사 작성 · okr-spec §4.5)도 같은 열에 선다 — 전사에는 위 그룹이 없다.
+  const summaryRows = (strategySummary?.rows ?? []).filter((r) => String(r.value ?? '').trim());
+  const hasMinimap = showCompanyCard || (minimap.groups ?? []).length > 0 || summaryRows.length > 0;
   // seed 는 마운트 시 1회만 — 저장 후 소비 측이 재조회해 prop 이 바뀌어도 폼을
   // 다시 덮어쓰지 않는다(입력 중 갱신이 사용자 타이핑을 날린다). 모달은 열 때마다
   // 마운트되므로 다음 진입에는 최신 값으로 채워진다.
@@ -172,45 +194,75 @@ export default function OkrComposeFullModal({
   // 안에 그려야 해서(INV-R2) 어느 행 것인지 함께 들고 있어야 한다.
   const [refiningKey, setRefiningKey] = useState(null);
   const [refineError, setRefineError] = useState(null); // { key, message }
+  // Objective 카드의 ✦ AI로 KR 생성 — 리파인과 같이 한 번에 한 카드만, 오류는 그 카드 안에.
+  const [genKrKey, setGenKrKey] = useState(null);
+  const [genKrError, setGenKrError] = useState(null); // { key, message }
 
   const TYPE_UNIT = { number: '개', percentage: '%', boolean: '완료' };
   const TYPE_INPUT = { number: 'count', percentage: 'percent', boolean: 'binary' };
+  /**
+   * ✦ AI로 Objective 생성 (okr-spec §4.5 · okr-policy §5.2 · PW-1503).
+   *
+   * 받은 Objective 들로 폼을 **통째로 바꾼다** — 기획 JSX `generateObjectives` 의
+   * `setObjectives(parsed.map(o => ({ ...o, krs: [] })))` 와 같다. KR 은 비워 두고 각
+   * Objective 카드의 ✦ AI로 KR 생성(또는 직접 추가)으로 채운다. 쓰인 Objective 가 없는
+   * 응답은 폼을 건드리지 않고 실패로 본다.
+   */
   const generate = async () => {
     if (!onGenerate) return;
     setGenLoading(true); setGenError(null);
     try {
       const res = await onGenerate();
       const draft = res?.draft ?? res;
-      // AI 는 가중치를 주지 않는다. 빈 값으로 두면 "합계 0% (100% 필요)" 가 떠
-      // 초안을 그대로 저장할 수 없으므로 균등 배분(합 100)으로 채워 둔다.
-      const raw = draft?.keyResults ?? [];
-      const n = raw.length || 1;
-      const base = Math.floor(100 / n);
-      const krList = raw.map((k, i) => ({
-        key: nextId(),
-        title: k.title ?? '',
-        target: k.targetValue ?? 100,
-        unit: k.unit ?? TYPE_UNIT[k.type] ?? '',
-        inputType: TYPE_INPUT[k.type] ?? 'count',
-        weight: String(i === n - 1 ? 100 - base * (n - 1) : base),
-        ownerId: selfId,
-        parentKrIds: [],
-        initiatives: [],
-      }));
-      // Objective 가중치도 마찬가지 — 기존 Objective 가 없으면 100%.
-      setObjectives((p) => [
-        ...p,
-        {
-          key: nextId(),
-          title: draft?.objective?.title ?? '',
-          weight: p.length === 0 ? '100' : '',
-          parentId: '',
-          krs: krList,
-        },
-      ]);
+      const raw = (draft?.objectives ?? []).filter((o) => typeof o?.title === 'string' && o.title.trim());
+      if (raw.length === 0) throw new Error('empty-objectives');
+      const weights = weightsOf(raw);
+      setLinkedIds({});
+      setGenKrError(null);
+      setObjectives(raw.map((o, i) => ({
+        ...emptyObjective(null, selfId),
+        title: o.title.trim(),
+        weight: String(weights[i]),
+      })));
     } catch {
-      setGenError('AI 초안 생성에 실패했습니다. 잠시 후 다시 시도해주세요.');
+      setGenError('AI Objective 생성에 실패했습니다. 잠시 후 다시 시도해주세요.');
     } finally { setGenLoading(false); }
+  };
+
+  /**
+   * ✦ AI로 KR 생성 — 그 Objective 의 KR 을 받은 KR 로 **통째로 바꾼다** (okr-policy §5.2 ·
+   * 기획 JSX `generateKrs` 의 `krs: parsed`). 손으로 쓴 KR·상위 KR 연결도 함께 바뀐다는
+   * 것이 정책서 §5.3 「세트 생성」의 성격이다 — 한 줄만 고치려면 ✦ 개선을 쓴다.
+   * 기다리는 사이 그 Objective 를 지웠으면 patchObjective 가 아무것도 바꾸지 않는다.
+   */
+  const generateKrs = async (objective) => {
+    if (!onGenerateKrs || genKrKey || !objective.title.trim()) return;
+    setGenKrKey(objective.key);
+    setGenKrError(null);
+    try {
+      const res = await onGenerateKrs({ objectiveTitle: objective.title.trim() });
+      const raw = (res?.keyResults ?? []).filter((k) => typeof k?.title === 'string' && k.title.trim());
+      if (raw.length === 0) throw new Error('empty-krs');
+      const weights = weightsOf(raw);
+      patchObjective(objective.key, {
+        krs: raw.map((k, i) => {
+          const inputType = TYPE_INPUT[k.type] ?? 'count';
+          return {
+            ...emptyKr(null, selfId),
+            title: k.title.trim(),
+            // «완료 여부»는 목표 1 고정이다(okr-spec §3.1B) — 칸이 감춰져 고칠 수 없다.
+            target: inputType === 'binary' ? 1 : (k.targetValue ?? 100),
+            unit: k.unit || TYPE_UNIT[k.type] || '',
+            inputType,
+            weight: String(weights[i]),
+          };
+        }),
+      });
+    } catch {
+      setGenKrError({ key: objective.key, message: 'AI KR 생성에 실패했습니다. 잠시 후 다시 시도해주세요.' });
+    } finally {
+      setGenKrKey(null);
+    }
   };
 
   const addObjective = () => setObjectives((p) => [...p, emptyObjective(null, selfId)]);
@@ -239,8 +291,8 @@ export default function OkrComposeFullModal({
   /**
    * KR 한 줄을 AI 로 다듬는다 (okr-policy §5.3 · PW-523).
    *
-   * 세트 생성(onGenerate)과 갈리는 지점은 **무엇을 남기는가** 다. 세트 생성은
-   * Objective 를 통째로 새로 쌓아 그 안의 KR 이 새 key 를 받으므로, 손으로 매어 둔
+   * 세트 생성(onGenerate·onGenerateKrs)과 갈리는 지점은 **무엇을 남기는가** 다. 세트 생성은
+   * Objective·KR 을 통째로 바꿔 KR 이 새 key 를 받으므로, 손으로 매어 둔
    * 상위 KR 연결(parentKrIds)과 고른 달성 방식(inputType)이 그 줄에 남지 않는다.
    * 리파인은 title·target·unit 만 갈아끼우고 나머지는 건드리지 않는다.
    *
@@ -340,7 +392,7 @@ export default function OkrComposeFullModal({
       return 'Objective 마다 KR 을 1개 이상 추가해야 저장할 수 있습니다.';
     }
     if (objectives.some((o) => o.krs.some((k) => !k.title.trim()))) return 'KR 내용을 입력해주세요.';
-    if (objectives.some((o) => !krWeightOk(o))) return 'KR 가중치 합이 100% 여야 저장할 수 있습니다.';
+    if (objectives.some((o) => !krWeightOk(o))) return KR_WEIGHT_REASON;
     return null; // 남은 건 Objective 가중치 — 아래 합계 배지가 이미 말한다.
   })();
 
@@ -403,13 +455,16 @@ export default function OkrComposeFullModal({
             ? blockReason
             : emptiedFromEdit
               ? ''
-              : `Objective 가중치 합계 ${totalW}% ${totalW === 100 ? '✓' : '(100% 필요)'}`}
+              : totalW === 100
+                ? '✓ Objective 100%'
+                : `Objective 현재 합계: ${totalW}% (100%가 되어야 합니다)`}
       </span>
       <button type="button" className="okr-btn is-outline" onClick={onClose}>취소</button>
       <Tooltip
         content={
           !canSave
-            ? (blockReason ?? 'Objective 가중치 합이 100%여야 저장할 수 있습니다.')
+            // 가중치로 막혔으면 기획 문구 하나로(okr-spec §8), 다른 이유면 그 이유를 말한다(PW-268 ③).
+            ? (!blockReason || blockReason === KR_WEIGHT_REASON ? WEIGHT_TOOLTIP : blockReason)
             : ''
         }
       >
@@ -448,6 +503,23 @@ export default function OkrComposeFullModal({
       <div className="okr-cf-body">
         {hasMinimap && (
           <div className="okr-cf-minimap">
+            {/* 전략 캔버스 요약 — 전사 작성에서 AI 생성의 근거를 보여 주는 읽기 전용 카드(okr-spec §4.5).
+                모양은 같은 열의 회사 카드(okr-cf-company)를 그대로 쓴다 — 시안 원본이 없다(PW-1504). */}
+            {summaryRows.length > 0 && (
+              <div className="okr-cf-company" data-testid="okr-cf-strategy-summary">
+                {strategySummary.title && <p className="okr-cf-company-label">{strategySummary.title}</p>}
+                {summaryRows.map((row, i) => (
+                  <div key={rowKey(row, i, 'label')}>
+                    <p className="okr-cf-company-label">{row.label}</p>
+                    <p className="okr-cf-company-title">
+                      {String(row.value).split('\n').map((line, j) => (
+                        <span key={rowKey(line, j)}>{j > 0 && <br />}{line}</span>
+                      ))}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
             {showCompanyCard && (
               <div className="okr-cf-company">
                 <p className="okr-cf-company-label">{minimap.company.label}</p>
@@ -485,7 +557,7 @@ export default function OkrComposeFullModal({
             <div className="okr-cf-head-actions">
               {onGenerate && (
                 <button type="button" className="okr-wz-ai-btn" onClick={generate} disabled={genLoading}>
-                  {genLoading ? '생성 중…' : '✦ AI로 초안 생성'}
+                  {genLoading ? '생성 중…' : '✦ AI로 Objective 생성'}
                 </button>
               )}
               <button type="button" className="okr-cf-add-btn" onClick={addObjective}>
@@ -744,13 +816,26 @@ export default function OkrComposeFullModal({
 
                   {objective.krs.length > 0 && (
                     <div className={`okr-cf-krsum${krSum === 100 ? ' is-ok' : ''}`}>
-                      {krSum === 100 ? '✓ KR 가중치 100%' : `KR 가중치 합계 ${krSum}% (100% 필요)`}
+                      {krSum === 100 ? '✓ 100%' : `현재 합계: ${krSum}% (100%가 되어야 합니다)`}
                     </div>
                   )}
                   <button type="button" className="okr-cf-kr-add-btn" onClick={() => addKr(objective.key)}>
                     <Icon src={icons.plus} size={16} color="var(--text-secondary)" baseUrl={baseUrl} />
                     <span>KR 직접추가</span>
                   </button>
+                  {onGenerateKrs && (
+                    <button
+                      type="button"
+                      className="okr-wz-ai-btn"
+                      disabled={!objective.title.trim() || genKrKey !== null}
+                      onClick={() => generateKrs(objective)}
+                    >
+                      {genKrKey === objective.key ? '생성 중…' : '✦ AI로 KR 생성'}
+                    </button>
+                  )}
+                  {genKrError?.key === objective.key && (
+                    <p className="okr-wz-error" role="alert">{genKrError.message}</p>
+                  )}
                 </div>
               );
             })

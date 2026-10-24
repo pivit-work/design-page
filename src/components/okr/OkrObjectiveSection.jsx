@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
+import { CheckGlyph } from '../shared/lineIcons.jsx';
 import OkrProgressBar from './OkrProgressBar.jsx';
 import OkrUnalignedBadge from './OkrUnalignedBadge.jsx';
 import rowKey from './rowKey.js';
@@ -52,7 +53,15 @@ function ProgressCell({ percent, barVariant, percentLabel, status }) {
  */
 function InitiativePill({ initiative, canEdit, onToggle }) {
   const cls = `okr-pill is-${initiative.status.tone}${canEdit ? ' is-toggleable' : ''}`;
-  if (!canEdit) return <span className={cls}>{initiative.status.label}</span>;
+  // 완료는 「✓ 완료」다(okr-spec §3.7 · PW-1504). 체크는 글자가 아니라 선 아이콘 — 라벨은 번역 문구라
+  // 기호를 담지 않는다(pivit-work 번역 글리프 가드).
+  const label = (
+    <>
+      {initiative.status.tone === 'done' && <CheckGlyph size={11} className="okr-pill-check" aria-hidden="true" />}
+      {initiative.status.label}
+    </>
+  );
+  if (!canEdit) return <span className={cls}>{label}</span>;
   return (
     <Tooltip content="클릭해 상태 전환">
       <span
@@ -67,7 +76,7 @@ function InitiativePill({ initiative, canEdit, onToggle }) {
           onToggle();
         }}
       >
-        {initiative.status.label}
+        {label}
       </span>
     </Tooltip>
   );

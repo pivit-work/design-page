@@ -23,6 +23,8 @@ export default function OkrGroupNode({
   isRoot = false,
   onOpen,
   emptyObjectivesLabel = '등록된 Objective 없음',
+  // 노드마다 Objective 는 3개(개인 2개)까지만 — 넘치면 이 문구 한 줄(okr-spec §9A.5 · PW-1503).
+  moreObjectivesLabel = (n) => `외 ${n}개 …`,
   // false 면 Objective 요약(빈 자리 표시 포함)을 접는다 — 툴바 전체 접기(okr-policy.md §3.4, PW-1641).
   objectivesExpanded = true,
   children,
@@ -30,6 +32,8 @@ export default function OkrGroupNode({
   const { isDragging, onDown, style } = useOkrDrag(group.id, () => onOpen(group.id));
   const objectives = group.objectives ?? [];
   const isPerson = group.type === 'person';
+  const shown = objectives.slice(0, isPerson ? 2 : 3);
+  const hiddenCount = objectives.length - shown.length;
 
   return (
     <div
@@ -39,7 +43,7 @@ export default function OkrGroupNode({
       <OkrGroupCard group={group} onMouseDown={onDown} isDragging={isDragging} />
       {!objectivesExpanded ? null : objectives.length > 0 ? (
         <div className="okr-objective-list">
-          {objectives.map((objective, i) => (
+          {shown.map((objective, i) => (
             <ObjectiveRow
               key={rowKey(objective, i, 'title')}
               objective={objective}
@@ -48,6 +52,12 @@ export default function OkrGroupNode({
               stacked={isPerson}
             />
           ))}
+          {/* 나머지는 상세 창에서 본다 — 요약 줄을 누른 것과 같은 창이다. */}
+          {hiddenCount > 0 && (
+            <button type="button" className="okr-objective-more" onClick={() => onOpen(group.id)}>
+              {moreObjectivesLabel(hiddenCount)}
+            </button>
+          )}
         </div>
       ) : group.progress == null ? null : (
         <div className="okr-objective-list okr-objective-empty">{emptyObjectivesLabel}</div>

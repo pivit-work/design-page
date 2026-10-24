@@ -1006,6 +1006,7 @@
 .okr-pill { padding: 2px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; background: var(--bg-quaternary); }
 
 .okr-pill.is-done { color: var(--utility-green-600); border: 1px solid var(--utility-green-500); }
+.okr-pill-check { display: inline-block; vertical-align: -1px; margin-right: 3px; }
 
 .okr-pill.is-progress { color: var(--utility-blue-500); border: 1px solid var(--utility-blue-400); }
 

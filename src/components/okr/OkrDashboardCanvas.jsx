@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Icon from '../shared/Icon.jsx';
+import Skeleton from '../shared/Skeleton.jsx';
 import usePanZoom from '../shared/usePanZoom.js';
 import OkrConnectors from './OkrConnectors.jsx';
 import OkrGroupNode from './OkrGroupNode.jsx';
@@ -26,6 +27,9 @@ export default function OkrDashboardCanvas({
   emptyPersonsLabel = '개인 OKR 없음',
   // false 면 모든 노드의 Objective 요약을 숨긴다 — 툴바의 전체 펼치기/접기(PW-1641).
   objectivesExpanded = true,
+  moreObjectivesLabel,
+  // 처음 불러오는 동안 노드 골격을 깐다(okr-policy §3.4 「노드 골격 스켈레톤」 · PW-1503). 이때 data 는 없어도 된다.
+  loading = false,
 }) {
   const { canvasRef, scale, translate, isDragging, canvasProps, zoomIn, zoomOut, resetView, setView } = usePanZoom({
     ignoreSelector: '.zoom-controls, .okr-group-card, .okr-objective-row, .okr-member-chip',
@@ -117,8 +121,25 @@ export default function OkrDashboardCanvas({
           position: 'relative',
         }}>
           <OkrConnectors containerRef={canvasInnerRef} scale={scale} />
+          {loading ? (
+            // 크기는 다 불러온 뒤의 카드·요약 줄과 같게 — 자리가 튀지 않게(Skeleton 규약).
+            <div className="okr-tree" aria-busy="true" data-testid="okr-tree-skeleton">
+              <div className="okr-node okr-group-root">
+                <Skeleton width={240} height={132} radius={12} />
+                <Skeleton width={406} height={54} radius={12} />
+                <div className="okr-teams-row">
+                  {[0, 1, 2].map((i) => (
+                    <div className="okr-node okr-team-col" key={i}>
+                      <Skeleton width={200} height={112} radius={12} />
+                      <Skeleton width={406} height={54} radius={12} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : (
           <div className="okr-tree">
-            <OkrGroupNode group={data} isRoot onOpen={openGroup} emptyObjectivesLabel={emptyObjectivesLabel} objectivesExpanded={objectivesExpanded}>
+            <OkrGroupNode group={data} isRoot onOpen={openGroup} emptyObjectivesLabel={emptyObjectivesLabel} moreObjectivesLabel={moreObjectivesLabel} objectivesExpanded={objectivesExpanded}>
               <div className="okr-teams-row">
                 {data.teams.map((team) => (
                   <OkrGroupNode
@@ -126,6 +147,7 @@ export default function OkrDashboardCanvas({
                     group={team}
                     onOpen={openGroup}
                     emptyObjectivesLabel={emptyObjectivesLabel}
+                    moreObjectivesLabel={moreObjectivesLabel}
                     objectivesExpanded={objectivesExpanded}
                   >
                     {/* 개인 계층 — `persons` 가 배열이면(빈 배열 포함) 운영 중이라는 뜻이다.
@@ -140,6 +162,7 @@ export default function OkrDashboardCanvas({
                               group={{ ...person, type: 'person' }}
                               onOpen={openGroup}
                               emptyObjectivesLabel={emptyObjectivesLabel}
+                              moreObjectivesLabel={moreObjectivesLabel}
                               objectivesExpanded={objectivesExpanded}
                             />
                           ))
@@ -153,6 +176,7 @@ export default function OkrDashboardCanvas({
               </div>
             </OkrGroupNode>
           </div>
+          )}
         </div>
 
         <div className="zoom-controls">
