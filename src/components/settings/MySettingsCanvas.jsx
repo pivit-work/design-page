@@ -12,12 +12,16 @@ import Select from '../shared/Select.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import { InfoIcon, LockIcon, AlertTriangleIcon, HistoryIcon, FolderIcon } from './settingsIcons.jsx';
 import Switch from '../shared/Switch.jsx';
-import { LockGlyph, PaperclipGlyph } from '../shared/lineIcons.jsx';
+import { AwardGlyph, BookOpenGlyph, BriefcaseGlyph, DownloadGlyph, LockGlyph, PaperclipGlyph, PencilGlyph, TrashGlyph } from '../shared/lineIcons.jsx';
 import { SkeletonList } from '../shared/Skeleton.jsx';
-import EducationAddForm from './EducationAddForm.jsx';
+import EducationAddForm, { MonthWheelField } from './EducationAddForm.jsx';
+import {
+  RecordAddRow, RecordAvatar, RecordChip, RecordField, RecordForm, RecordFormFoot, RecordGlyph, RecordGrid,
+  RecordIconButton, RecordList, RecordRow,
+} from './recordParts.jsx';
 import PreferenceTab from './PreferenceTab.jsx';
 import PersonalTagsField from './PersonalTagsField.jsx';
-import { formatEduPeriod } from './educationForm.js';
+import { formatEduPeriod, formatYm, fromRange, nowYm, ymNum, isYm } from './educationForm.js';
 
 /**
  * MySettingsCanvas — 내 설정 화면 정본.
@@ -116,7 +120,10 @@ const DEFAULT_LABELS = {
     dobEmpty: '생년월일 미입력',
     isDependent: '부양중',
     notDependent: '비부양',
-    addDependent: '+ 부양가족 추가',
+    addDependent: '부양가족 추가',
+    editing: '고치는 중',
+    delete: '삭제',
+    dependentSwitchNote: '연말정산·4대보험에 쓰입니다. 끄면 「비부양」으로 저장됩니다.',
     dependentName: '이름',
     dependentRelation: '관계',
     dependentDob: '생년월일',
@@ -150,17 +157,18 @@ const DEFAULT_LABELS = {
     education: '학력',
     educationEmpty: '등록된 학력이 없습니다.',
     isFinal: '최종학력',
-    addEducation: '+ 학력 추가',
+    addEducation: '학력 추가',
     career: '경력',
     careerEmpty: '등록된 경력이 없습니다.',
-    addCareer: '+ 경력 추가',
+    addCareer: '경력 추가',
     certifications: '자격증',
     certEmpty: '등록된 자격증이 없습니다.',
     certNo: '자격번호',
     issued: '발급',
     expiry: '만료',
-    addCert: '+ 자격증 추가',
+    addCert: '자격증 추가',
     documents: '증명서 첨부',
+    docType: '서류 종류',
     documentsNote: '학력·경력·자격증 등 증빙 서류를 첨부합니다. PDF·이미지 형식, 파일당 최대 10MB. 본인과 HR(어드민)만 열람할 수 있습니다.',
     attach: '파일 첨부 (PDF · 이미지, 최대 10MB)',
     download: '다운로드',
@@ -171,9 +179,15 @@ const DEFAULT_LABELS = {
     eduStatusOptions: { graduated: '졸업', enrolled: '재학', completed: '수료', dropped: '중퇴', expected: '졸업예정' },
     docTypeOptions: { resume: '이력서', education_cert: '학위증명서', career_cert: '경력증명서', certification: '자격증 사본', contract: '근로계약서', id_copy: '신분증 사본', bankbook: '통장 사본', other: '기타' },
     fields: {
-      school: '학교', major: '전공', degree: '학위', from: '시작', to: '종료', status: '상태',
+      school: '학교', major: '전공', degree: '학위', from: '시작', to: '종료', status: '재학 상태',
       company: '회사', department: '부서', role: '직무',
       certName: '자격증명', issuer: '발급기관', credentialNo: '자격번호', issuedDate: '발급일', expiryDate: '만료일',
+      // 칸 이름표·안내 (PW-2188)
+      eduFrom: '입학', eduTo: '졸업', careerFrom: '입사', careerTo: '퇴사',
+      careerToNote: '다니는 중이면 비워 두세요', expiryNote: '없으면 비워 두세요',
+      ymPlaceholder: 'YYYY.MM', clear: '비우기', optional: '선택 입력',
+      companyPlaceholder: '회사 이름', departmentPlaceholder: '예: 개발팀', rolePlaceholder: '예: 백엔드 개발',
+      certNamePlaceholder: '예: 정보처리기사', issuerPlaceholder: '예: 한국산업인력공단',
     },
     // 학력 추가 폼 — 학교·전공 검색 · 연·월 휠 (PW-1302)
     eduForm: {
@@ -921,6 +935,53 @@ function FamilyTab({ family, today, labels, saveState, onSave, onAddDependent, o
     closeForm();
   };
 
+  // 추가와 고치기가 같은 칸을 쓴다 — 이름·관계·생년월일 한 줄 + 부양 여부 스위치 + 실패 안내·취소·저장 (PW-2188).
+  const dependentForm = (testId) => (
+    <RecordForm testId={testId}>
+      <RecordGrid cols={3}>
+        <RecordField label={L.dependentName}>
+          <TextInput className="admin-emp-input" placeholder={L.dependentName} value={dep.name}
+            onChange={(e) => setDep((p) => ({ ...p, name: e.target.value }))} aria-label={L.dependentName} />
+        </RecordField>
+        <RecordField label={L.dependentRelation}>
+          <Select className="admin-emp-input" value={dep.relation}
+            onChange={(e) => setDep((p) => ({ ...p, relation: e.target.value }))} aria-label={L.dependentRelation}>
+            {Object.entries(L.relationOptions).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </Select>
+        </RecordField>
+        <RecordField label={L.dependentDob}>
+          <DateInput className="admin-emp-input" value={dep.dateOfBirth}
+            onChange={(v) => setDep((p) => ({ ...p, dateOfBirth: v }))} aria-label={L.dependentDob}
+            startView="year" max={today} today={today} />
+        </RecordField>
+      </RecordGrid>
+      <div className="msc-rec-switch-row">
+        <div className="msc-rec-switch-copy">
+          <div className="msc-rec-switch-label">
+            {L.dependentIsDependent} · <b className={dep.isDependent ? 'is-on' : undefined}>{dep.isDependent ? L.isDependent : L.notDependent}</b>
+          </div>
+          <div className="msc-rec-switch-sub">{L.dependentSwitchNote}</div>
+        </div>
+        <Switch
+          checked={dep.isDependent}
+          onChange={(next) => setDep((p) => ({ ...p, isDependent: next }))}
+          label={L.dependentIsDependent}
+          data-testid="dependent-is-dependent"
+        />
+      </div>
+      <RecordFormFoot
+        error={depError}
+        errorTestId={editingId ? 'dependent-edit-error' : 'dependent-add-error'}
+        cancelLabel={L.cancel}
+        onCancel={closeForm}
+        submitLabel={editingId ? L.saveEdit : L.add}
+        onSubmit={submitDependent}
+        submitDisabled={depSaving}
+        submitTestId={editingId ? 'dependent-edit-submit' : 'dependent-add-submit'}
+      />
+    </RecordForm>
+  );
+
   // 못 불러온 채로 빈 칸을 그리면 한 칸만 고쳐 저장해도 나머지가 빈 값으로 덮인다 —
   // 불러오기에 실패했으면 입력 칸 대신 실패를 말하고 다시 불러올 길만 둔다.
   if (loadError && !family) {
@@ -979,69 +1040,55 @@ function FamilyTab({ family, today, labels, saveState, onSave, onAddDependent, o
           <span className="msc-nav-title">{L.childrenCount(childrenCount)}</span>
         </div>
         <p className="msc-tab-intro">{L.dependentsNote}</p>
-        {dependents.length === 0 && !adding && !editingId ? (
-          <div className="msc-empty-state" data-testid="dependents-empty">{L.dependentsEmpty}</div>
-        ) : (
-          <div className="msc-list">
-            {dependents.map((d) => (
-              <div key={d.id} className="msc-list-row" data-testid={`dependent-${d.id}`}>
-                <div style={{ flex: 1 }}>
-                  <div className="msc-notif-label">
-                    {d.name} <span className="msc-notif-sub" style={{ display: 'inline' }}>· {L.relationOptions[d.relation] || d.relation}</span>
-                  </div>
-                  <div className="msc-notif-sub">{d.dateOfBirth || L.dobEmpty}</div>
-                </div>
-                <StatusBadge className={`msc-vis-badge is-${d.isDependent ? 'green' : 'muted'}`}>
-                  {d.isDependent ? L.isDependent : L.notDependent}
-                </StatusBadge>
-                {onUpdateDependent && (
-                  <button type="button" className="admin-notif-btn is-soft is-sm" aria-label={`${L.edit} ${d.name}`}
-                    data-testid={`dependent-edit-${d.id}`} disabled={depSaving} onClick={() => startEdit(d)}>
-                    {L.edit}
-                  </button>
-                )}
-                {onDeleteDependent && (
-                  <button type="button" className="msc-list-del" aria-label={L.delete}
-                    data-testid={`dependent-del-${d.id}`} onClick={() => onDeleteDependent(d.id)}>×</button>
-                )}
-              </div>
-            ))}
-          </div>
+        {dependents.length === 0 && !adding ? (
+          <div className="msc-rec-empty" data-testid="dependents-empty">{L.dependentsEmpty}</div>
+        ) : dependents.length > 0 && (
+          <RecordList>
+            {dependents.map((d) => {
+              // PW-2188 — 고치는 줄은 그 자리에서 칸으로 펼친다. 예전에는 줄을 그대로 두고 목록 아래에
+              // 폼을 또 열어 같은 이름이 두 번 보였다.
+              const editing = editingId === d.id;
+              return (
+                <RecordRow
+                  key={d.id}
+                  testId={`dependent-${d.id}`}
+                  editing={editing}
+                  lead={<RecordAvatar name={d.name} />}
+                  name={d.name}
+                  chips={[L.relationOptions[d.relation] || d.relation]}
+                  tag={editing ? <RecordChip brand>{L.editing}</RecordChip> : null}
+                  sub={editing ? null : (d.dateOfBirth || L.dobEmpty)}
+                  badge={editing ? null : (
+                    <StatusBadge className={`msc-vis-badge is-${d.isDependent ? 'green' : 'muted'}`}>
+                      {d.isDependent ? L.isDependent : L.notDependent}
+                    </StatusBadge>
+                  )}
+                  actions={editing ? null : (
+                    <>
+                      {onUpdateDependent && (
+                        <RecordIconButton label={`${L.edit} ${d.name}`} testId={`dependent-edit-${d.id}`}
+                          disabled={depSaving} onClick={() => startEdit(d)}>
+                          <PencilGlyph size={16} />
+                        </RecordIconButton>
+                      )}
+                      {onDeleteDependent && (
+                        <RecordIconButton danger label={`${L.delete} ${d.name}`} testId={`dependent-del-${d.id}`}
+                          onClick={() => onDeleteDependent(d.id)}>
+                          <TrashGlyph size={16} />
+                        </RecordIconButton>
+                      )}
+                    </>
+                  )}
+                >
+                  {editing && dependentForm('dependent-edit-form')}
+                </RecordRow>
+              );
+            })}
+          </RecordList>
         )}
-        {adding || editingId ? (
-          <div className="msc-add-form" data-testid={editingId ? 'dependent-edit-form' : 'dependent-add-form'}>
-            <div className="msc-grid-3col">
-              <TextInput className="admin-emp-input" placeholder={L.dependentName} value={dep.name}
-                onChange={(e) => setDep((p) => ({ ...p, name: e.target.value }))} aria-label={L.dependentName} />
-              <Select className="admin-emp-input" value={dep.relation}
-                onChange={(e) => setDep((p) => ({ ...p, relation: e.target.value }))} aria-label={L.dependentRelation}>
-                {Object.entries(L.relationOptions).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-              </Select>
-              <DateInput className="admin-emp-input" value={dep.dateOfBirth}
-                onChange={(v) => setDep((p) => ({ ...p, dateOfBirth: v }))} aria-label={L.dependentDob}
-                startView="year" max={today} today={today} />
-              <Select className="admin-emp-input" value={dep.isDependent ? 'true' : 'false'}
-                onChange={(e) => setDep((p) => ({ ...p, isDependent: e.target.value === 'true' }))} aria-label={L.dependentIsDependent}>
-                <option value="true">{L.isDependent}</option>
-                <option value="false">{L.notDependent}</option>
-              </Select>
-            </div>
-            {depError && (
-              <div className="msc-input-error" role="alert" data-testid={editingId ? 'dependent-edit-error' : 'dependent-add-error'}>{depError}</div>
-            )}
-            <div className="msc-add-actions">
-              <button type="button" className="admin-notif-btn is-soft is-sm" onClick={closeForm}>{L.cancel}</button>
-              <button type="button" className="admin-notif-btn is-primary is-sm" onClick={submitDependent} disabled={depSaving}
-                data-testid={editingId ? 'dependent-edit-submit' : 'dependent-add-submit'}>
-                {editingId ? L.saveEdit : L.add}
-              </button>
-            </div>
-          </div>
-        ) : (
-          onAddDependent && (
-            <button type="button" className="msc-add-btn" onClick={() => setAdding(true)} data-testid="dependent-add-btn">
-              {L.addDependent}
-            </button>
+        {adding ? dependentForm('dependent-add-form') : (
+          onAddDependent && !editingId && (
+            <RecordAddRow onClick={() => setAdding(true)} testId="dependent-add-btn">{L.addDependent}</RecordAddRow>
           )
         )}
       </Card>
@@ -1060,6 +1107,23 @@ function FamilyTab({ family, today, labels, saveState, onSave, onAddDependent, o
 }
 
 /* ═══ 조직 정보 ═══ */
+/** 경력 기간 표시 — `2014.03~2019.12`, 퇴사가 비면 `~현재`. 글자로 넣던 시절 값은 그대로 */
+function careerPeriod(c, nowLabel) {
+  if (!c.from && !c.to) return '';
+  return `${formatYm(c.from || '')}~${c.to ? formatYm(c.to) : nowLabel}`;
+}
+
+/** 퇴사 칸 범위 — 입사가 있으면 입사부터 이번 달까지 */
+function careerToRange(from, now) {
+  const min = isYm(from) ? from : '1950-01';
+  return { min, max: now, initial: now };
+}
+
+/** 퇴사가 입사보다 빠른가 — 학력의 «종료가 시작보다 빠름»(eduEndError)과 같은 연·월 비교 */
+function careerEndBeforeStart({ from, to }) {
+  return isYm(from) && isYm(to) && ymNum(to) < ymNum(from);
+}
+
 function OrgTab({ org, labels, onAdd, onDelete, onUpload, onDownload, onDeleteDocument, onSearchSchools, onSearchMajors }) {
   const L = labels.org;
   const o = org || {};
@@ -1077,6 +1141,8 @@ function OrgTab({ org, labels, onAdd, onDelete, onUpload, onDownload, onDeleteDo
       () => {},
     );
   const submitAdd = () => submitRecord(adding, d);
+  // 경력 입사·퇴사는 학력과 같은 연·월 고르기다(PW-2188). 범위는 1950.01 ~ 이번 달.
+  const careerNow = nowYm();
 
   const currentPairs = [
     { label: L.currentManager, value: cur.manager ? `${cur.manager.name}${cur.manager.title ? ` (${cur.manager.title})` : ''}` : '-' },
@@ -1146,24 +1212,25 @@ function OrgTab({ org, labels, onAdd, onDelete, onUpload, onDownload, onDeleteDo
       <Card testId="org-education-card">
         <div className="admin-section-label">{L.education}</div>
         {(o.education || []).length === 0 && adding !== 'education' ? (
-          <div className="msc-empty-state">{L.educationEmpty}</div>
-        ) : (
-          <div className="msc-list">
+          <div className="msc-rec-empty">{L.educationEmpty}</div>
+        ) : (o.education || []).length > 0 && (
+          <RecordList>
             {(o.education || []).map((e) => (
-              <div key={e.id} className="msc-list-row" data-testid={`education-${e.id}`}>
-                <div style={{ flex: 1 }}>
-                  <div className="msc-notif-label">
-                    {e.school}
-                    {e.isFinal && <StatusBadge className="msc-vis-badge is-brand" style={{ marginLeft: 6 }}>{L.isFinal}</StatusBadge>}
-                  </div>
-                  <div className="msc-notif-sub">
-                    {[e.major, L.degreeOptions[e.degree] || e.degree, formatEduPeriod(e.from, e.to), L.eduStatusOptions[e.status] || e.status].filter(Boolean).join(' · ')}
-                  </div>
-                </div>
-                {onDelete && <button type="button" className="msc-list-del" data-testid={`education-del-${e.id}`} aria-label={L.delete} onClick={() => onDelete('education', e.id)}>×</button>}
-              </div>
+              <RecordRow
+                key={e.id}
+                testId={`education-${e.id}`}
+                lead={<RecordGlyph><BookOpenGlyph size={18} /></RecordGlyph>}
+                name={e.school}
+                tag={e.isFinal ? <RecordChip brand>{L.isFinal}</RecordChip> : null}
+                sub={[e.major, L.degreeOptions[e.degree] || e.degree, formatEduPeriod(e.from, e.to), L.eduStatusOptions[e.status] || e.status].filter(Boolean).join(' · ')}
+                actions={onDelete && (
+                  <RecordIconButton danger label={`${L.delete} ${e.school}`} testId={`education-del-${e.id}`} onClick={() => onDelete('education', e.id)}>
+                    <TrashGlyph size={16} />
+                  </RecordIconButton>
+                )}
+              />
             ))}
-          </div>
+          </RecordList>
         )}
         {adding === 'education' ? (
           <EducationAddForm
@@ -1174,82 +1241,138 @@ function OrgTab({ org, labels, onAdd, onDelete, onUpload, onDownload, onDeleteDo
             onSearchMajors={onSearchMajors}
           />
         ) : (
-          onAdd && <button type="button" className="msc-add-btn" onClick={() => startAdd('education', { degree: 'bachelor', status: 'graduated' })} data-testid="education-add-btn">{L.addEducation}</button>
+          onAdd && <RecordAddRow onClick={() => startAdd('education', { degree: 'bachelor', status: 'graduated' })} testId="education-add-btn">{L.addEducation}</RecordAddRow>
         )}
       </Card>
 
       <Card testId="org-career-card">
         <div className="admin-section-label">{L.career}</div>
         {(o.career || []).length === 0 && adding !== 'career' ? (
-          <div className="msc-empty-state">{L.careerEmpty}</div>
-        ) : (
-          <div className="msc-list">
+          <div className="msc-rec-empty">{L.careerEmpty}</div>
+        ) : (o.career || []).length > 0 && (
+          <RecordList>
             {(o.career || []).map((c) => (
-              <div key={c.id} className="msc-list-row" data-testid={`career-${c.id}`}>
-                <div style={{ flex: 1 }}>
-                  <div className="msc-notif-label">{c.company}</div>
-                  <div className="msc-notif-sub">{[c.department, c.role, `${c.from || ''}~${c.to || L.now}`].filter(Boolean).join(' · ')}</div>
-                </div>
-                {onDelete && <button type="button" className="msc-list-del" data-testid={`career-del-${c.id}`} aria-label={L.delete} onClick={() => onDelete('career', c.id)}>×</button>}
-              </div>
+              <RecordRow
+                key={c.id}
+                testId={`career-${c.id}`}
+                lead={<RecordGlyph><BriefcaseGlyph size={18} /></RecordGlyph>}
+                name={c.company}
+                sub={[c.department, c.role, careerPeriod(c, L.now)].filter(Boolean).join(' · ')}
+                actions={onDelete && (
+                  <RecordIconButton danger label={`${L.delete} ${c.company}`} testId={`career-del-${c.id}`} onClick={() => onDelete('career', c.id)}>
+                    <TrashGlyph size={16} />
+                  </RecordIconButton>
+                )}
+              />
             ))}
-          </div>
+          </RecordList>
         )}
         {adding === 'career' ? (
-          <div className="msc-add-form" data-testid="career-add-form">
-            <div className="msc-grid-2col">
-              <TextInput className="admin-emp-input" placeholder={L.fields.company} value={d.company || ''} onChange={(e) => setD((p) => ({ ...p, company: e.target.value }))} aria-label={L.fields.company} />
-              <TextInput className="admin-emp-input" placeholder={L.fields.department} value={d.department || ''} onChange={(e) => setD((p) => ({ ...p, department: e.target.value }))} aria-label={L.fields.department} />
-              <TextInput className="admin-emp-input" placeholder={L.fields.role} value={d.role || ''} onChange={(e) => setD((p) => ({ ...p, role: e.target.value }))} aria-label={L.fields.role} />
-              <div />
-              <TextInput className="admin-emp-input" placeholder={L.fields.from} value={d.from || ''} onChange={(e) => setD((p) => ({ ...p, from: e.target.value }))} aria-label={L.fields.from} />
-              <TextInput className="admin-emp-input" placeholder={L.fields.to} value={d.to || ''} onChange={(e) => setD((p) => ({ ...p, to: e.target.value }))} aria-label={L.fields.to} />
-            </div>
-            <div className="msc-add-actions">
-              <button type="button" className="admin-notif-btn is-soft is-sm" onClick={() => setAdding(null)}>{L.cancel}</button>
-              <button type="button" className="admin-notif-btn is-primary is-sm" onClick={submitAdd} data-testid="career-add-submit">{L.add}</button>
-            </div>
-          </div>
+          <RecordForm testId="career-add-form">
+            <RecordGrid cols={3}>
+              <RecordField label={L.fields.company}>
+                <TextInput className="admin-emp-input" placeholder={L.fields.companyPlaceholder ?? L.fields.company} value={d.company || ''} onChange={(e) => setD((p) => ({ ...p, company: e.target.value }))} aria-label={L.fields.company} />
+              </RecordField>
+              <RecordField label={L.fields.department}>
+                <TextInput className="admin-emp-input" placeholder={L.fields.departmentPlaceholder ?? L.fields.department} value={d.department || ''} onChange={(e) => setD((p) => ({ ...p, department: e.target.value }))} aria-label={L.fields.department} />
+              </RecordField>
+              <RecordField label={L.fields.role}>
+                <TextInput className="admin-emp-input" placeholder={L.fields.rolePlaceholder ?? L.fields.role} value={d.role || ''} onChange={(e) => setD((p) => ({ ...p, role: e.target.value }))} aria-label={L.fields.role} />
+              </RecordField>
+            </RecordGrid>
+            <RecordGrid cols={2}>
+              <RecordField label={L.fields.careerFrom}>
+                <MonthWheelField
+                  value={d.from || ''}
+                  onChange={(v) => setD((p) => ({ ...p, from: v }))}
+                  placeholder={L.fields.ymPlaceholder}
+                  ariaLabel={L.fields.careerFrom}
+                  range={fromRange(careerNow)}
+                  F={L.eduForm}
+                  testId="career-from"
+                />
+              </RecordField>
+              <RecordField label={L.fields.careerTo} note={L.fields.careerToNote}>
+                <MonthWheelField
+                  value={d.to || ''}
+                  onChange={(v) => setD((p) => ({ ...p, to: v }))}
+                  placeholder={L.fields.ymPlaceholder}
+                  ariaLabel={L.fields.careerTo}
+                  clearLabel={L.fields.clear}
+                  range={careerToRange(d.from, careerNow)}
+                  error={careerEndBeforeStart(d) ? L.eduForm.errors.endBeforeStart : null}
+                  F={L.eduForm}
+                  testId="career-to"
+                />
+              </RecordField>
+            </RecordGrid>
+            <RecordFormFoot
+              cancelLabel={L.cancel}
+              onCancel={() => setAdding(null)}
+              submitLabel={L.add}
+              onSubmit={submitAdd}
+              submitDisabled={careerEndBeforeStart(d)}
+              submitTestId="career-add-submit"
+            />
+          </RecordForm>
         ) : (
-          onAdd && <button type="button" className="msc-add-btn" onClick={() => startAdd('career', {})} data-testid="career-add-btn">{L.addCareer}</button>
+          onAdd && <RecordAddRow onClick={() => startAdd('career', {})} testId="career-add-btn">{L.addCareer}</RecordAddRow>
         )}
       </Card>
 
       <Card testId="org-cert-card">
         <div className="admin-section-label">{L.certifications}</div>
         {(o.certifications || []).length === 0 && adding !== 'certifications' ? (
-          <div className="msc-empty-state" data-testid="cert-empty">{L.certEmpty}</div>
-        ) : (
-          <div className="msc-list">
+          <div className="msc-rec-empty" data-testid="cert-empty">{L.certEmpty}</div>
+        ) : (o.certifications || []).length > 0 && (
+          <RecordList>
             {(o.certifications || []).map((c) => (
-              <div key={c.id} className="msc-list-row" data-testid={`cert-${c.id}`}>
-                <div style={{ flex: 1 }}>
-                  <div className="msc-notif-label">{c.name}</div>
-                  <div className="msc-notif-sub">
-                    {[c.issuer, c.credentialNo && `${L.certNo} ${c.credentialNo}`, c.issuedDate && `${L.issued} ${c.issuedDate}`, c.expiryDate && `${L.expiry} ${c.expiryDate}`].filter(Boolean).join(' · ')}
-                  </div>
-                </div>
-                {onDelete && <button type="button" className="msc-list-del" data-testid={`cert-del-${c.id}`} aria-label={L.delete} onClick={() => onDelete('certifications', c.id)}>×</button>}
-              </div>
+              <RecordRow
+                key={c.id}
+                testId={`cert-${c.id}`}
+                lead={<RecordGlyph><AwardGlyph size={18} /></RecordGlyph>}
+                name={c.name}
+                sub={[c.issuer, c.credentialNo && `${L.certNo} ${c.credentialNo}`, c.issuedDate && `${L.issued} ${c.issuedDate}`, c.expiryDate && `${L.expiry} ${c.expiryDate}`].filter(Boolean).join(' · ')}
+                actions={onDelete && (
+                  <RecordIconButton danger label={`${L.delete} ${c.name}`} testId={`cert-del-${c.id}`} onClick={() => onDelete('certifications', c.id)}>
+                    <TrashGlyph size={16} />
+                  </RecordIconButton>
+                )}
+              />
             ))}
-          </div>
+          </RecordList>
         )}
         {adding === 'certifications' ? (
-          <div className="msc-add-form" data-testid="cert-add-form">
-            <div className="msc-grid-2col">
-              <TextInput className="admin-emp-input" placeholder={L.fields.certName} value={d.name || ''} onChange={(e) => setD((p) => ({ ...p, name: e.target.value }))} aria-label={L.fields.certName} />
-              <TextInput className="admin-emp-input" placeholder={L.fields.issuer} value={d.issuer || ''} onChange={(e) => setD((p) => ({ ...p, issuer: e.target.value }))} aria-label={L.fields.issuer} />
-              <TextInput className="admin-emp-input" placeholder={L.fields.credentialNo} value={d.credentialNo || ''} onChange={(e) => setD((p) => ({ ...p, credentialNo: e.target.value }))} aria-label={L.fields.credentialNo} />
-              <DateInput className="admin-emp-input" value={d.issuedDate || ''} onChange={(v) => setD((p) => ({ ...p, issuedDate: v }))} aria-label={L.fields.issuedDate} />
-              <DateInput className="admin-emp-input" value={d.expiryDate || ''} onChange={(v) => setD((p) => ({ ...p, expiryDate: v }))} aria-label={L.fields.expiryDate} />
-            </div>
-            <div className="msc-add-actions">
-              <button type="button" className="admin-notif-btn is-soft is-sm" onClick={() => setAdding(null)}>{L.cancel}</button>
-              <button type="button" className="admin-notif-btn is-primary is-sm" onClick={submitAdd} data-testid="cert-add-submit">{L.add}</button>
-            </div>
-          </div>
+          <RecordForm testId="cert-add-form">
+            <RecordGrid cols={3}>
+              <RecordField label={L.fields.certName}>
+                <TextInput className="admin-emp-input" placeholder={L.fields.certNamePlaceholder ?? L.fields.certName} value={d.name || ''} onChange={(e) => setD((p) => ({ ...p, name: e.target.value }))} aria-label={L.fields.certName} />
+              </RecordField>
+              <RecordField label={L.fields.issuer}>
+                <TextInput className="admin-emp-input" placeholder={L.fields.issuerPlaceholder ?? L.fields.issuer} value={d.issuer || ''} onChange={(e) => setD((p) => ({ ...p, issuer: e.target.value }))} aria-label={L.fields.issuer} />
+              </RecordField>
+              <RecordField label={L.fields.credentialNo}>
+                <TextInput className="admin-emp-input" placeholder={L.fields.optional ?? L.fields.credentialNo} value={d.credentialNo || ''} onChange={(e) => setD((p) => ({ ...p, credentialNo: e.target.value }))} aria-label={L.fields.credentialNo} />
+              </RecordField>
+            </RecordGrid>
+            <RecordGrid cols={2}>
+              <RecordField label={L.fields.issuedDate}>
+                <DateInput className="admin-emp-input" value={d.issuedDate || ''} onChange={(v) => setD((p) => ({ ...p, issuedDate: v }))} aria-label={L.fields.issuedDate} />
+              </RecordField>
+              <RecordField label={L.fields.expiryDate} note={L.fields.expiryNote}>
+                <DateInput className="admin-emp-input" value={d.expiryDate || ''} onChange={(v) => setD((p) => ({ ...p, expiryDate: v }))} aria-label={L.fields.expiryDate} />
+              </RecordField>
+            </RecordGrid>
+            <RecordFormFoot
+              cancelLabel={L.cancel}
+              onCancel={() => setAdding(null)}
+              submitLabel={L.add}
+              onSubmit={submitAdd}
+              submitTestId="cert-add-submit"
+            />
+          </RecordForm>
         ) : (
-          onAdd && <button type="button" className="msc-add-btn" onClick={() => startAdd('certifications', {})} data-testid="cert-add-btn">{L.addCert}</button>
+          onAdd && <RecordAddRow onClick={() => startAdd('certifications', {})} testId="cert-add-btn">{L.addCert}</RecordAddRow>
         )}
       </Card>
 
@@ -1257,25 +1380,42 @@ function OrgTab({ org, labels, onAdd, onDelete, onUpload, onDownload, onDeleteDo
         <div className="admin-section-label">{L.documents}</div>
         <p className="msc-tab-intro">{L.documentsNote}</p>
         {(o.documents || []).length > 0 && (
-          <div className="msc-list">
+          <RecordList>
             {(o.documents || []).map((doc) => (
-              <div key={doc.id} className="msc-list-row" data-testid={`document-${doc.id}`}>
-                <PaperclipGlyph size={16} style={{ flexShrink: 0 }} />
-                <div style={{ flex: 1 }}>
-                  <div className="msc-notif-label">{doc.fileName}</div>
-                  <div className="msc-notif-sub">{[L.docTypeOptions[doc.docType] || doc.docType, doc.uploadedAt].filter(Boolean).join(' · ')}</div>
-                </div>
-                {onDownload && <button type="button" className="admin-notif-btn is-soft is-sm" onClick={() => onDownload(doc.id)} data-testid={`document-download-${doc.id}`}>{L.download}</button>}
-                {onDeleteDocument && <button type="button" className="msc-list-del" data-testid={`document-del-${doc.id}`} aria-label={L.delete} onClick={() => onDeleteDocument(doc.id)}>×</button>}
-              </div>
+              <RecordRow
+                key={doc.id}
+                testId={`document-${doc.id}`}
+                lead={<RecordGlyph><PaperclipGlyph size={18} /></RecordGlyph>}
+                name={doc.fileName}
+                chips={[L.docTypeOptions[doc.docType] || doc.docType]}
+                sub={doc.uploadedAt}
+                actions={(onDownload || onDeleteDocument) && (
+                  <>
+                    {onDownload && (
+                      <RecordIconButton label={`${L.download} ${doc.fileName}`} testId={`document-download-${doc.id}`} onClick={() => onDownload(doc.id)}>
+                        <DownloadGlyph size={16} />
+                      </RecordIconButton>
+                    )}
+                    {onDeleteDocument && (
+                      <RecordIconButton danger label={`${L.delete} ${doc.fileName}`} testId={`document-del-${doc.id}`} onClick={() => onDeleteDocument(doc.id)}>
+                        <TrashGlyph size={16} />
+                      </RecordIconButton>
+                    )}
+                  </>
+                )}
+              />
             ))}
-          </div>
+          </RecordList>
         )}
-        <div className="msc-doc-upload">
-          <Select className="admin-emp-input" value={docType} onChange={(e) => setDocType(e.target.value)} aria-label={L.documents} data-testid="document-type-select" style={{ maxWidth: 160 }}>
-            {Object.entries(L.docTypeOptions).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-          </Select>
-          <label className="msc-add-btn" style={{ margin: 0, flex: 1 }}>
+        <div className="msc-rec-upload">
+          <RecordField label={L.docType}>
+            <Select className="admin-emp-input" value={docType} onChange={(e) => setDocType(e.target.value)} aria-label={L.docType} data-testid="document-type-select">
+              {Object.entries(L.docTypeOptions).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </Select>
+          </RecordField>
+          {/* 파일 고르기 창을 여는 것은 숨긴 input — 점선 줄은 그 이름표다 */}
+          <label className="msc-rec-add">
+            <PaperclipGlyph size={16} />
             {L.attach}
             <input type="file" accept=".pdf,image/*" style={{ display: 'none' }} data-testid="document-file-input"
               onChange={(e) => { if (e.target.files[0] && onUpload) onUpload(docType, e.target.files[0]); e.target.value = ''; }} />

@@ -430,6 +430,26 @@ export function TrashGlyph(props) {
   );
 }
 
+/** 서류 가방 — 경력 (내 설정 › 조직 정보 · PW-2188). */
+export function BriefcaseGlyph(props) {
+  return (
+    <LineSvg {...props}>
+      <rect x="2" y="7" width="20" height="14" rx="2" />
+      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+    </LineSvg>
+  );
+}
+
+/** 상장 — 자격증 (내 설정 › 조직 정보 · PW-2188). */
+export function AwardGlyph(props) {
+  return (
+    <LineSvg {...props}>
+      <circle cx="12" cy="8" r="6" />
+      <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
+    </LineSvg>
+  );
+}
+
 /** 톱니바퀴 — 설정. */
 export function SettingsGlyph(props) {
   return (

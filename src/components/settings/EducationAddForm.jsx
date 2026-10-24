@@ -16,6 +16,7 @@ import {
   ymNum,
 } from './educationForm.js';
 import { isEnterKey } from '../shared/enterKey.js';
+import { RecordField, RecordForm, RecordFormFoot, RecordGrid } from './recordParts.jsx';
 
 /**
  * 「내 설정 › 조직 정보」 학력 추가 폼 (PW-1302 · pivit-specs my-settings-spec §4-C-1 · 시안
@@ -225,8 +226,12 @@ function WheelColumn({ items, value, onChange, label, testId }) {
   );
 }
 
-/** 연·월 휠 칸 — 눌러서 연다(타이핑 없음). 값은 [확인] 때만 칸에 들어간다 */
-function MonthWheelField({ value, onChange, placeholder, disabled, disabledText, range, error, F, testId }) {
+/**
+ * 연·월 휠 칸 — 눌러서 연다(타이핑 없음). 값은 [확인] 때만 칸에 들어간다.
+ * 경력 입사·퇴사도 같은 칸을 쓴다(PW-2188). `ariaLabel` 은 칸 이름(없으면 placeholder),
+ * `clearLabel` 을 주면 값이 있을 때 휠에 «비우기»가 생긴다 — 비워 둘 수 있는 칸(퇴사)용.
+ */
+export function MonthWheelField({ value, onChange, placeholder, ariaLabel, clearLabel, disabled, disabledText, range, error, F, testId }) {
   const [open, setOpen] = useState(false);
   const [tmp, setTmp] = useState(range.initial);
   const triggerRef = useRef(null);
@@ -264,7 +269,7 @@ function MonthWheelField({ value, onChange, placeholder, disabled, disabledText,
         disabled={disabled}
         aria-haspopup="true"
         aria-expanded={open}
-        aria-label={placeholder}
+        aria-label={ariaLabel ?? placeholder}
         className={`admin-emp-input msc-edu-input msc-edu-wheel-trigger${value ? '' : ' is-empty'}${error ? ' is-invalid' : ''}`}
         data-testid={testId}
         onClick={() => (open ? setOpen(false) : openWheel())}
@@ -279,7 +284,7 @@ function MonthWheelField({ value, onChange, placeholder, disabled, disabledText,
           panelRef={panelRef}
           className="msc-edu-wheel"
           role="group"
-          aria-label={fill(F.wheelDialog, { field: placeholder })}
+          aria-label={fill(F.wheelDialog, { field: ariaLabel ?? placeholder })}
           data-testid={`${testId}-wheel`}
           onKeyDown={(e) => {
             if (isEnterKey(e)) { e.preventDefault(); confirm(); }
@@ -293,6 +298,10 @@ function MonthWheelField({ value, onChange, placeholder, disabled, disabledText,
               onChange={(m) => setTmp(`${ty}-${pad(m)}`)} />
           </div>
           <div className="msc-add-actions">
+            {clearLabel && value && (
+              <button type="button" className="admin-notif-btn is-soft is-sm" style={{ marginRight: 'auto' }} data-testid={`${testId}-clear`}
+                onClick={() => { onChange(''); setOpen(false); }}>{clearLabel}</button>
+            )}
             <button type="button" className="admin-notif-btn is-soft is-sm" onClick={() => setOpen(false)}>{F.wheelCancel}</button>
             <button type="button" className="admin-notif-btn is-primary is-sm" onClick={confirm} data-testid={`${testId}-confirm`}>{F.wheelConfirm}</button>
           </div>
@@ -331,73 +340,87 @@ export default function EducationAddForm({ L, onCancel, onSubmit, onSearchSchool
     })).finally(() => setBusy(false));
   }
 
+  const Fl = L.fields;
+  const ym = Fl.ymPlaceholder ?? 'YYYY.MM';
   return (
-    <div className="msc-add-form" data-testid="education-add-form">
-      <div className="msc-grid-2col">
-        <RefSearchInput
-          value={school}
-          onChange={setSchool}
-          onSearch={onSearchSchools}
-          placeholder={F.schoolSearch}
-          renderSub={(s) => [F.schoolKinds?.[s.kind], F.regions?.[s.region] ?? s.region].filter(Boolean).join(' · ')}
-          customHint={F.customSchoolHint}
-          F={F}
-          testId="education-school"
-        />
-        <RefSearchInput
-          value={major}
-          onChange={setMajor}
-          onSearch={onSearchMajors}
-          placeholder={degree === 'high_school' ? F.majorOptional : F.majorSearch}
-          renderSub={(m) => F.majorFields?.[m.field] ?? ''}
-          customHint={F.customMajorHint}
-          F={F}
-          testId="education-major"
-        />
-        <Select className="admin-emp-input" value={degree} onChange={(e) => setDegree(e.target.value)} aria-label={L.fields.degree} data-testid="education-degree">
-          {Object.entries(L.degreeOptions).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-        </Select>
-        <Select
-          className="admin-emp-input"
-          value={status}
-          aria-label={L.fields.status}
-          data-testid="education-status"
-          onChange={(e) => { setStatus(e.target.value); if (e.target.value === 'enrolled') setTo(''); }}
-        >
-          {Object.entries(L.eduStatusOptions).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-        </Select>
-        <MonthWheelField
-          value={from}
-          onChange={setFrom}
-          placeholder={L.fields.from}
-          range={fromRange(now)}
-          F={F}
-          testId="education-from"
-        />
-        <MonthWheelField
-          value={enrolled ? '' : to}
-          onChange={setTo}
-          placeholder={L.fields.to}
-          disabled={enrolled}
-          disabledText={F.enrolledNoEnd}
-          range={toRange({ status, from, degree }, now)}
-          error={errKind ? F.errors?.[errKind] : null}
-          F={F}
-          testId="education-to"
-        />
-      </div>
-      <div className="msc-add-actions">
-        <button type="button" className="admin-notif-btn is-soft is-sm" onClick={onCancel}>{L.cancel}</button>
-        <button
-          type="button"
-          className="admin-notif-btn is-primary is-sm"
-          disabled={!canAdd}
-          onClick={submit}
-          data-testid="education-add-submit"
-        >
-          {L.add}
-        </button>
-      </div>
-    </div>
+    <RecordForm testId="education-add-form">
+      <RecordGrid cols={2}>
+        <RecordField label={Fl.school}>
+          <RefSearchInput
+            value={school}
+            onChange={setSchool}
+            onSearch={onSearchSchools}
+            placeholder={F.schoolSearch}
+            renderSub={(s) => [F.schoolKinds?.[s.kind], F.regions?.[s.region] ?? s.region].filter(Boolean).join(' · ')}
+            customHint={F.customSchoolHint}
+            F={F}
+            testId="education-school"
+          />
+        </RecordField>
+        <RecordField label={Fl.major}>
+          <RefSearchInput
+            value={major}
+            onChange={setMajor}
+            onSearch={onSearchMajors}
+            placeholder={degree === 'high_school' ? F.majorOptional : F.majorSearch}
+            renderSub={(m) => F.majorFields?.[m.field] ?? ''}
+            customHint={F.customMajorHint}
+            F={F}
+            testId="education-major"
+          />
+        </RecordField>
+      </RecordGrid>
+      <RecordGrid cols={4}>
+        <RecordField label={Fl.degree}>
+          <Select className="admin-emp-input" value={degree} onChange={(e) => setDegree(e.target.value)} aria-label={Fl.degree} data-testid="education-degree">
+            {Object.entries(L.degreeOptions).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </Select>
+        </RecordField>
+        <RecordField label={Fl.status}>
+          <Select
+            className="admin-emp-input"
+            value={status}
+            aria-label={Fl.status}
+            data-testid="education-status"
+            onChange={(e) => { setStatus(e.target.value); if (e.target.value === 'enrolled') setTo(''); }}
+          >
+            {Object.entries(L.eduStatusOptions).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          </Select>
+        </RecordField>
+        <RecordField label={Fl.eduFrom ?? Fl.from}>
+          <MonthWheelField
+            value={from}
+            onChange={setFrom}
+            placeholder={ym}
+            ariaLabel={Fl.eduFrom ?? Fl.from}
+            range={fromRange(now)}
+            F={F}
+            testId="education-from"
+          />
+        </RecordField>
+        <RecordField label={Fl.eduTo ?? Fl.to}>
+          <MonthWheelField
+            value={enrolled ? '' : to}
+            onChange={setTo}
+            placeholder={ym}
+            ariaLabel={Fl.eduTo ?? Fl.to}
+            disabled={enrolled}
+            disabledText={F.enrolledNoEnd}
+            range={toRange({ status, from, degree }, now)}
+            error={errKind ? F.errors?.[errKind] : null}
+            F={F}
+            testId="education-to"
+          />
+        </RecordField>
+      </RecordGrid>
+      <RecordFormFoot
+        cancelLabel={L.cancel}
+        onCancel={onCancel}
+        submitLabel={L.add}
+        onSubmit={submit}
+        submitDisabled={!canAdd}
+        submitTestId="education-add-submit"
+      />
+    </RecordForm>
   );
 }

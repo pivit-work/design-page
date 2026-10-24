@@ -1022,7 +1022,8 @@
 }
 .msc-edu-wheel-row.is-selected { font-weight: 500; color: var(--text-white); }
 .msc-edu-wheel-row.is-disabled { color: var(--text-disabled); cursor: default; }
-.msc-add-actions .admin-notif-btn:disabled {
+.msc-add-actions .admin-notif-btn:disabled,
+.msc-rec-foot .admin-notif-btn:disabled {
   background: var(--bg-secondary);
   color: var(--text-disabled);
   cursor: default;
@@ -1332,3 +1333,199 @@
 .msc-notification-copy { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .msc-notification-row .msc-notif-label { font-size: 16px; line-height: 24px; }
 .msc-notification-row .msc-notif-sub { font-size: 13px; line-height: 20px; margin-top: 4px; }
+
+/* ══ 목록 칸 다섯 곳 — 부양가족·학력·경력·자격증·증명서 첨부 (pivit-work PW-2188) ══
+   줄은 디자이너가 그린 1:1 일정 추가 창 «구성원 줄»(.ono-add-modal-member-*: 테두리 alphaBlack8 · 이름 Bold ·
+   칸 사이 lg), 칩은 1:1 기록 «작은 칩»(.ono-mem-chip), 칸 이름표·입력은 같은 창의 «칸 제목 + 입력»
+   (.ono-add-modal-input: 둥글기 md · 높이 40) 값. 창 안이라 동그라미 48→40, 이름 18→16, 이름표 14→13.
+   점선 추가 줄 · 입력 묶음의 연초록 바탕 · 실패 안내 상자는 개발이 정했다(디자이너 검수 대상).
+   시안의 «왼쪽 초록 선»은 상자 한쪽 굵은 선 금지(PW-1101) 규칙에 걸려 넣지 않았다.
+   칩은 디자이너의 .ono-mem-chip 을 그대로 쓴다(StatusBadge · 딱지 생김새는 한 곳 PW-840). */
+.msc-rec-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--alpha-black-5);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.msc-rec-list > * + * { border-top: 1px solid var(--alpha-black-5); }
+.msc-rec-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  padding: 14px var(--spacing-xl);
+  background: var(--bg-quaternary);
+}
+.msc-rec-avatar,
+.msc-rec-glyph {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
+}
+.msc-rec-avatar {
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  font-size: var(--font-size-text-sm);
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+.msc-rec-glyph { border-radius: var(--radius-md); }
+.msc-rec-info { flex: 1; min-width: 0; }
+.msc-rec-name-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  min-width: 0;
+}
+.msc-rec-name {
+  font-size: var(--font-size-text-md);
+  line-height: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.msc-rec-sub {
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--text-tertiary);
+  overflow-wrap: anywhere;
+}
+.msc-rec-actions { display: flex; gap: 2px; flex-shrink: 0; }
+.msc-rec-icon-btn {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  background: transparent;
+  border-radius: var(--radius-sm);
+  display: grid;
+  place-items: center;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+.msc-rec-icon-btn:hover:not(:disabled) { background: var(--alpha-black-5); color: var(--text-secondary); }
+.msc-rec-icon-btn.is-danger:hover:not(:disabled) { background: var(--bg-error-primary); color: var(--text-error-primary); }
+.msc-rec-icon-btn:disabled { opacity: 0.4; cursor: default; }
+.msc-rec-icon-btn:focus-visible { outline: 2px solid var(--bg-brand-solid); outline-offset: 1px; }
+
+.msc-rec-add {
+  width: 100%;
+  margin-top: var(--spacing-lg);
+  padding: 12px;
+  border: 1px dashed var(--border-primary);
+  border-radius: var(--radius-lg);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: inherit;
+  font-size: var(--font-size-text-sm);
+  line-height: 20px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.msc-rec-add:hover,
+.msc-rec-add:focus-within {
+  border-color: var(--bg-brand-solid);
+  color: var(--text-brand-secondary);
+  background: var(--bg-brand-primary);
+}
+
+.msc-rec-form {
+  background: var(--bg-brand-primary);
+  padding: var(--spacing-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+}
+/* 목록 아래(추가)에 놓일 때만 따로 떨어진 상자 — 줄 안(고치기)에서는 줄 상자의 일부 */
+.msc-card > .msc-rec-form {
+  margin-top: var(--spacing-lg);
+  border: 1px solid var(--alpha-black-5);
+  border-radius: var(--radius-lg);
+}
+.msc-rec-item.is-editing .msc-rec-row { background: var(--bg-brand-primary); }
+.msc-rec-grid { display: grid; gap: var(--spacing-lg); }
+.msc-rec-grid.is-2 { grid-template-columns: 1fr 1fr; }
+.msc-rec-grid.is-3 { grid-template-columns: 1.3fr 1fr 1.2fr; }
+.msc-rec-grid.is-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.msc-rec-field { display: flex; flex-direction: column; gap: var(--spacing-sm); min-width: 0; }
+.msc-rec-field .dp-field-label-row { display: flex; align-items: baseline; gap: 4px; min-width: 0; }
+.msc-rec-label {
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+.msc-rec-label-note {
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+.msc-rec-form .admin-emp-input {
+  background: var(--bg-quaternary);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: var(--radius-md);
+}
+.msc-rec-form .msc-edu-error { margin-top: 0; }
+.msc-rec-foot { display: flex; align-items: center; gap: var(--spacing-md); }
+.msc-rec-spacer { flex: 1; }
+.msc-rec-alert {
+  flex: 1;
+  min-width: 0;
+  padding: var(--spacing-md) var(--spacing-lg);
+  background: var(--bg-error-primary);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--text-error-primary);
+}
+/* 부양 여부 — 내 설정 › 알림 탭의 «이름 + 설명 + 스위치» 줄 */
+.msc-rec-switch-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-lg) var(--spacing-xl);
+  background: var(--bg-quaternary);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: var(--radius-md);
+}
+.msc-rec-switch-copy { flex: 1; min-width: 0; }
+.msc-rec-switch-label { font-size: var(--font-size-text-sm); line-height: 20px; font-weight: 600; color: var(--text-primary); }
+.msc-rec-switch-label b.is-on { color: var(--text-brand-secondary); }
+.msc-rec-switch-sub { font-size: 12px; line-height: 18px; color: var(--text-tertiary); }
+.msc-rec-empty {
+  border: 1px dashed var(--border-secondary);
+  border-radius: var(--radius-lg);
+  padding: 28px 16px;
+  text-align: center;
+  font-size: var(--font-size-text-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.msc-rec-upload {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: var(--spacing-lg);
+  margin-top: var(--spacing-lg);
+  align-items: end;
+}
+.msc-rec-upload .msc-rec-add { margin-top: 0; min-height: 40px; }
+.msc-rec-upload .admin-emp-input { background: var(--bg-quaternary); border: 1px solid rgba(0, 0, 0, 0.08); }
+
+@media (max-width: 720px) {
+  .msc-rec-grid.is-2,
+  .msc-rec-grid.is-3,
+  .msc-rec-grid.is-4,
+  .msc-rec-upload { grid-template-columns: 1fr; }
+}
