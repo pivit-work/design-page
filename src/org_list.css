@@ -91,6 +91,9 @@
 
 /* 정렬되는 머리 칸 — 머리 글씨(명단 표 th)를 그대로 물려받는다 */
 .ol-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
   padding: 0;
   border: 0;
   background: none;

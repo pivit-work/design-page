@@ -5,9 +5,10 @@ import Icon from '../shared/Icon.jsx';
 import Button from '../shared/Button.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Avatar from '../shared/Avatar.jsx';
-import { CloseGlyph } from '../shared/lineIcons.jsx';
+import { CloseGlyph, ChevronDownGlyph, ChevronUpGlyph } from '../shared/lineIcons.jsx';
 import CustomSelect from '../timeline/CustomSelect.jsx';
 import PhotoOr from './PhotoOr.jsx';
+import { isEnterKey } from '../shared/enterKey.js';
 import OrgTabNav from './OrgTabNav.jsx';
 import { MEMBER_STATUSES } from './constants.js';
 import { OrgLabelsContext, makeOrgLabels } from './orgchart-labels.jsx';
@@ -31,6 +32,7 @@ import { OrgLabelsContext, makeOrgLabels } from './orgchart-labels.jsx';
  * @param {{ unitName: string, count: number, concurrent: number }|null} [scope]  고른 조직의 결과 줄
  * @param {number|null} [searchCount]  찾는 말이 있을 때 결과 수
  * @param {boolean} showGrade  회사가 직급 표시를 켰나 — 끄면 「직급·직책」 열이 없다(§3-D-1 4열)
+ * @param {boolean} [showStatus]  「근무 상태」 열을 그릴지 — 호스트가 그 값의 출처를 정할 때까지 끌 수 있다
  * @param {{ value: string, options: Array<{value,label}>, onChange: (v) => void }} unitFilter
  * @param {{ value: string, onChange: (v: string) => void }} search
  * @param {{ key: 'org'|'name', dir: 'asc'|'desc' }} sort
@@ -45,6 +47,7 @@ export default function OrgMemberListCanvas({
   scope = null,
   searchCount = null,
   showGrade = true,
+  showStatus = true,
   unitFilter,
   search,
   sort = { key: 'org', dir: 'asc' },
@@ -95,19 +98,21 @@ export default function OrgMemberListCanvas({
     );
   };
 
+  // 정렬 상태는 머리 칸(th)의 aria-sort 로 알린다 — 화면 읽기 프로그램은 버튼이 아니라 칸에서 읽는다
+  const ariaSort = (key) =>
+    key === 'name' && sort.key === 'name' ? (sort.dir === 'asc' ? 'ascending' : 'descending') : undefined;
   const sortHead = (key, label) => {
     const active = sort.key === key;
-    const ariaSort = key === 'name' && active ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none';
+    const Arrow = sort.dir === 'asc' ? ChevronUpGlyph : ChevronDownGlyph;
     return (
       <button
         type="button"
         className={`ol-sort${active ? ' is-active' : ''}`}
-        aria-sort={ariaSort}
         onClick={() => onSortChange?.(key)}
         data-testid={`org-list-sort-${key}`}
       >
         {label}
-        {key === 'name' && active && <span aria-hidden>{sort.dir === 'asc' ? ' ▲' : ' ▼'}</span>}
+        {key === 'name' && active && <Arrow size={12} aria-hidden />}
       </button>
     );
   };
@@ -116,6 +121,7 @@ export default function OrgMemberListCanvas({
     {
       key: 'name',
       header: sortHead('name', L('list.col.name')),
+      headerProps: { 'aria-sort': ariaSort('name') },
       render: (row) => (
         <div className="member-row">
           <PhotoOr src={row.avatar} className="avatar-sm" fallback={<Avatar name={row.name} size={32} className="avatar-sm" />} />
@@ -135,7 +141,7 @@ export default function OrgMemberListCanvas({
           render: (row) => [row.grade || L('list.empty'), row.position].filter(Boolean).join(' · '),
         }]
       : []),
-    { key: 'status', header: L('list.col.status'), render: statusCell },
+    ...(showStatus ? [{ key: 'status', header: L('list.col.status'), render: statusCell }] : []),
     { key: 'email', header: L('list.col.email'), render: (row) => row.email || L('list.empty') },
   ];
 
@@ -211,6 +217,18 @@ export default function OrgMemberListCanvas({
               rows={rows}
               rowProps={(row) => ({
                 onClick: onRowClick ? () => onRowClick(row) : undefined,
+                // 키보드로도 줄을 고른다 — Tab 으로 옮겨 Enter·Space
+                ...(onRowClick
+                  ? {
+                      tabIndex: 0,
+                      onKeyDown: (e) => {
+                        if (isEnterKey(e) || e.key === ' ') {
+                          e.preventDefault();
+                          onRowClick(row);
+                        }
+                      },
+                    }
+                  : {}),
                 'data-testid': `org-list-row-${row.id}`,
               })}
               empty={
