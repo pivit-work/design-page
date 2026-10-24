@@ -1976,14 +1976,15 @@ function HistoryScreen({ sessions, session, onCurrentOpen, manager, avatar, rend
     };
   });
   // 진행 중인 회차(ready|live)는 목록 맨 위 「현재 진행 중」 행이다(Figma 17556:23596 · 데모 OneOnOnePage.jsx `memberCurrent`).
-  // 요약 자리에는 팀원이 적은 주제를, 액션 수는 지난 회차 행과 같은 셈(팀원 몫)으로 둔다.
+  // 요약 자리에는 팀원이 적은 주제를, 액션 수는 데모처럼 **팀원이 준비하며 제안한 액션**(`memberSelfAssessment.proposedActions`)을
+  // 「0/N」으로 둔다 — 끝나기 전 회차에는 확정된 액션(`actionItems`)이 없어 그걸 세면 칸이 영영 비기 때문이다.
   // 호스트가 `onCurrentOpen` 을 안 넘기면 행이 없다 — 행을 눌러 갈 화면이 없어서다.
-  const mineNow = session ? (session.actionItems ?? []).filter((a) => a.owner === 'member') : [];
+  const proposedNow = session?.memberSelfAssessment?.proposedActions ?? [];
   const current = session && onCurrentOpen ? {
     id: session.id,
     dateLabel: formatDate(heldAtOf(session), 'short'),
-    actionDone: mineNow.filter((a) => a.done).length,
-    actionTotal: mineNow.length,
+    actionDone: 0,
+    actionTotal: proposedNow.length,
     summary: (session.memberTopics ?? []).join(' · '),
     onOpen: () => onCurrentOpen(session),
   } : null;
