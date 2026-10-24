@@ -15,10 +15,32 @@ const isLeader = (m) => (m.isLeader !== undefined ? !!m.isLeader : Boolean(m.rol
 function gradeSummary(members, L) {
   const counts = new Map();
   for (const m of members) {
-    const grade = m.grade || m.position || L('org.gradeUnknown');
+    const grade = m.grade || m.position || null;
     counts.set(grade, (counts.get(grade) || 0) + 1);
   }
-  return [...counts].map(([grade, count]) => L('org.gradeCount', { grade, count })).join(' · ');
+  return formatGradeCounts([...counts].map(([grade, count]) => ({ grade, count })), L);
+}
+
+function formatGradeCounts(counts, L) {
+  if (!counts.length) return null;
+  return counts
+    .map(({ grade, count }) => L('org.gradeCount', { grade: grade || L('org.gradeUnknown'), count }))
+    .join(' · ');
+}
+
+/**
+ * 「리더만」 한 줄을 호스트가 정해 줄 때(`node.membersSummary` · `node.directReportsSummary`).
+ *  - `{ headcount: true }` 직급 구분 없이 그 칸 인원 전부(리더 포함) — 회사가 직급 표시를 끈 경우.
+ *    「인원수만」과 같은 수다(pivit-specs org-chart-public-card-spec.md §3-B 2026-10-19).
+ *  - `{ grades }` 직급별 인원수 `[{ grade, count }]` — 사람마다 직급 값이 없어도(본인이 숨김) 셀 수 있게
+ *    서버가 센 수. `grade` 가 비면 「직급 미정」.
+ * 없으면 사람 값으로 센다.
+ */
+function hostSummary(summary, members, L) {
+  if (!summary) return undefined;
+  if (summary.headcount) return members.length ? L('org.headcount', { count: members.length }) : null;
+  if (Array.isArray(summary.grades)) return formatGradeCounts(summary.grades, L);
+  return undefined;
 }
 
 /**
@@ -28,14 +50,18 @@ function gradeSummary(members, L) {
  *  - count   카드 없이 인원수 한 줄(「12명」).
  * 카드로 남는 사람은 원래 자리(index)를 지닌다 — 끌어 옮기기가 그 자리를 쓴다.
  */
-function splitByDensity(members, density, L) {
+function splitByDensity(members, density, L, leadersSummary) {
   const indexed = members.map((m, i) => ({ m, i }));
   if (density === 'count') {
     return { shown: [], summary: members.length ? L('org.headcount', { count: members.length }) : null };
   }
   if (density === 'leaders') {
     const rest = members.filter((m) => !isLeader(m));
-    return { shown: indexed.filter(({ m }) => isLeader(m)), summary: rest.length ? gradeSummary(rest, L) : null };
+    const fromHost = hostSummary(leadersSummary, members, L);
+    return {
+      shown: indexed.filter(({ m }) => isLeader(m)),
+      summary: fromHost !== undefined ? fromHost : rest.length ? gradeSummary(rest, L) : null,
+    };
   }
   return { shown: indexed, summary: null };
 }
@@ -74,8 +100,8 @@ export default function OrgNode({ node, depth = 0, showWorkHours, showVacation, 
     <OrgNode node={child} depth={depth + 1} showWorkHours={showWorkHours} showVacation={showVacation} showGrade={showGrade} editMode={editMode} adminMode={adminMode} density={density} baseUrl={baseUrl} onMemberClick={onMemberClick} />
   );
 
-  const members = node.members ? splitByDensity(node.members, density, L) : null;
-  const directs = splitByDensity(directReports, density, L);
+  const members = node.members ? splitByDensity(node.members, density, L, node.membersSummary) : null;
+  const directs = splitByDensity(directReports, density, L, node.directReportsSummary);
 
   return (
     <div
