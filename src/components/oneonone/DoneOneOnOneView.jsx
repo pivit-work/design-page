@@ -142,6 +142,7 @@ const DEFAULT_LABELS = {
 
   /* ── AI 미팅 요약 (§4-4) ── */
   summaryTitle: 'AI 미팅 요약',
+  summaryAiTag: 'AI 생성',
   summaryPending: '요약이 만들어지면 여기에 표시됩니다',
   summaryCollapse: '접기',
   summaryExpand: '펼치기',
@@ -245,6 +246,7 @@ const DEFAULT_LABELS = {
   unshareFailed: '공개를 되돌리지 못했습니다. 잠시 후 다시 시도해 주세요.',
   evidenceToggle: '근거 발췌 {count}',
   evidenceCaption: '이 피드백의 근거가 된 대화 발췌입니다',
+  evidenceMemberHidden: '멤버 비공개',
   evidenceEdited: '본문을 수정했습니다 — 발췌는 원본 대화 기준입니다',
   evidenceLoading: '근거 발췌 불러오는 중…',
   evidenceError: '근거를 불러올 수 없습니다.',
@@ -575,6 +577,8 @@ function SummaryCard({ session, L, icons, baseUrl, pending, recordingPlayer }) {
         <span className="ono-done-ai-label">
           <Icon src={icons.ai} size={14} color="currentColor" baseUrl={baseUrl} />
           {L.summaryTitle}
+          {/* AI 가 만든 요약임을 밝힌다 (spec §4-4) — 같은 화면 할 일의 「AI」 딱지와 같은 모양. */}
+          <StatusBadge tone="ai" className="ono-done-badge" data-testid="ono-done-summary-ai-tag">{L.summaryAiTag}</StatusBadge>
         </span>
         <button
           type="button"

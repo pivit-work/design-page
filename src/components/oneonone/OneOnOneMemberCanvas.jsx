@@ -140,6 +140,9 @@ const DEFAULT_LABELS = {
   recordingNotice: '녹음 시작과 종료는 매니저 화면에서 진행됩니다',
   privateMemo: '개인 메모',
   privateMemoDesc: '매니저에게 공유되지 않습니다.',
+  privateMemoOnlyMe: '나에게만 보임',
+  memoSaving: '저장 중…',
+  memoSaveError: '메모를 저장하지 못했습니다. 이어서 쓰면 다시 저장합니다.',
   memoPlaceholder: '기억하고 싶은 내용을 적어두세요',
   save: '저장', saved: '저장됨',
   meetingEndByManager: '미팅 종료는 매니저가 진행합니다.',
@@ -170,6 +173,7 @@ const DEFAULT_LABELS = {
      「본문을 다듬었습니다」(evidenceEdited)와 다른 사실이다 — 그쪽은 «발췌를 뽑은 뒤»,
      이쪽은 «팀원에게 공개한 뒤»다. */
   feedbackEditedAfterShare: '공개 후 수정됨',
+  feedbackDoneShared: 'DONE 공개',
   /* 끝난 1on1 을 30일 동안 고치는 자리 (PW-1046) — 결과 탭의 개인 메모. */
   edit: '편집',
   editCancel: '취소',
@@ -179,6 +183,7 @@ const DEFAULT_LABELS = {
   notesEmpty: '적어 둔 메모가 없습니다',
   evidenceToggle: '근거 발췌 {count}',
   evidenceCaption: '이 피드백의 근거가 된 대화 발췌입니다',
+  evidenceMemberHidden: '멤버 비공개',
   evidenceEdited: '매니저가 본문을 다듬었습니다 — 발췌는 원본 대화 기준입니다',
   evidenceLoading: '근거 발췌 불러오는 중…',
   evidenceError: '근거를 불러올 수 없습니다.',
@@ -636,6 +641,13 @@ export function EvidenceToggle({ items, managerName, edited, L, icons, baseUrl, 
               <div className="ono-mem-evidence-meta">
                 <span className="ono-mem-evidence-speaker">{speakerLabel(ev)}</span>
                 {ev.timestamp && <span>· {ev.timestamp}</span>}
+                {/* 대화 원문이 아닌 발췌(매니저 메모·요약·할 일)는 서버가 팀원에게 보내지 않는다 —
+                    매니저가 «공개하면 이것도 간다»로 오해하지 않게 표시한다 (policy §6.5.1). */}
+                {ev.source && ev.source !== 'stt' && (
+                  <DpStatusBadge tone="neutral" className="ono-start-topic-badge" data-testid="ono-evidence-member-hidden">
+                    {L.evidenceMemberHidden}
+                  </DpStatusBadge>
+                )}
               </div>
               <p className="ono-mem-evidence-text">{ev.text}</p>
               {/* 전문 공개(PW-81)된 회차에서만 원문의 그 자리로 보낸다. 앵커에 해당하는
@@ -675,11 +687,13 @@ export function EvidenceToggle({ items, managerName, edited, L, icons, baseUrl, 
  * 미확정(노랑 + «AI 미확정» + [확정]) / 확정(초록) 상태를 그린다. 공개하면 확정한 항목만 팀원에게 간다.
  * `{ confirmed: { strengths, sbi, support }, onConfirm(key), busyKey, error }`. 팀원 화면은 넘기지 않는다.
  */
-export function ManagerFeedback({ session, evidence, loading, error, onRetry, managerName, L, icons, baseUrl, jump, headerExtra, confirm }) {
+export function ManagerFeedback({ session, evidence, loading, error, onRetry, managerName, L, icons, baseUrl, jump, headerExtra, confirm, sharedTag = false }) {
   const items = session.managerFeedback ?? [];
   if (items.length === 0) return null;
   // 공개 뒤 고쳤는가 (PW-1046) — 서버가 공개된 회차에만 싣는다. 매니저·팀원 화면 공통.
   const editedAfterShare = !!session.feedbackEditedAfterShareAt;
+  // 「DONE 공개」 — 팀원 화면만 켠다 (`sharedTag`). 매니저가 공개해 팀원에게 온 피드백임을 밝힌다 (spec §5-3).
+  const doneShared = sharedTag && !!session.isShared;
 
   const titleOf = (key) =>
     ({
@@ -698,8 +712,13 @@ export function ManagerFeedback({ session, evidence, loading, error, onRetry, ma
       baseUrl={baseUrl}
       collapsible={false}
       badge={
-        editedAfterShare || headerExtra ? (
+        doneShared || editedAfterShare || headerExtra ? (
           <>
+            {doneShared && (
+              <DpStatusBadge className="ono-start-topic-badge" data-testid="ono-feedback-done-shared">
+                {L.feedbackDoneShared}
+              </DpStatusBadge>
+            )}
             {editedAfterShare && (
               <DpStatusBadge className="ono-start-topic-badge" data-testid="ono-feedback-edited-after-share">
                 {L.feedbackEditedAfterShare}
@@ -1506,12 +1525,23 @@ function MeetingScreen({ session, manager, avatar, L, icons, baseUrl, onSaveNote
 }
 
 // 기존 팀원 개인 메모의 모양·저장 흐름을 그대로 꺼낸 부품 (PW-575).
-export function MemberPrivateMemo({ session, L, icons, baseUrl, onSaveNotes, showEndNotice = false }) {
-  const [memo, setMemo] = useState(session.memberNotes ?? '');
+//
+// `autoSave` 를 넘기면 [저장] 버튼 없이 쓰는 대로 저장한다 (spec §4-3 메모 정책 · PW-1488).
+// 디바운스·실패 처리는 호스트(자동 저장 훅) 몫이다 — `DoneOneOnOneView` 의 다음 1on1 사전 메모와 같은 나눔.
+//   `{ onChange(text), saving, saved, error, restoredValue, maxLength }`
+// 넘기지 않으면 예전처럼 [저장]을 눌러 `onSaveNotes` 로 보낸다.
+export function MemberPrivateMemo({ session, L, icons, baseUrl, onSaveNotes, showEndNotice = false, autoSave }) {
+  const [memo, setMemo] = useState(autoSave?.restoredValue ?? session.memberNotes ?? '');
   const [saved, setSaved] = useState(false);
   // PW-966 — 저장이 끝난 «뒤에» 「저장됨」을 띄운다. 예전에는 결과를 받기 전에 띄워서
   // 서버가 거절해도 「저장됨」이 보였다. 실패 안내는 소비처 몫이다(앱은 토스트).
   const [saving, setSaving] = useState(false);
+  // 서버 값이 늦게 도착할 때만 따라간다 — 쓰는 중인 글을 서버 응답으로 덮으면 글자가 사라진다.
+  const touched = useRef(false);
+  const follow = autoSave ? (autoSave.restoredValue ?? session.memberNotes ?? '') : null;
+  useEffect(() => {
+    if (follow !== null && !touched.current) setMemo(follow);
+  }, [follow]);
   const save = async () => {
     if (saving) return;
     setSaving(true);
@@ -1526,21 +1556,52 @@ export function MemberPrivateMemo({ session, L, icons, baseUrl, onSaveNotes, sho
     setTimeout(() => setSaved(false), 1500);
   };
 
+  const onlyMe = (
+    <DpStatusBadge tone="neutral" className="ono-start-topic-badge" data-testid="ono-private-memo-only-me">
+      {L.privateMemoOnlyMe}
+    </DpStatusBadge>
+  );
+
   return (<>
-      <Section title={L.privateMemo} icon={icons.memo} icons={icons} baseUrl={baseUrl}>
+      <Section title={L.privateMemo} icon={icons.memo} icons={icons} baseUrl={baseUrl} badge={onlyMe}>
         <p className="ono-mem-hint">{L.privateMemoDesc}</p>
         <textarea
           className="ono-start-textarea"
           value={memo}
-          onChange={(e) => setMemo(e.target.value)}
+          onChange={(e) => {
+            setMemo(e.target.value);
+            if (autoSave) {
+              touched.current = true;
+              autoSave.onChange?.(e.target.value);
+            }
+          }}
           placeholder={L.memoPlaceholder}
+          maxLength={autoSave?.maxLength}
           rows={8}
+          data-testid="ono-private-memo"
         />
-        <div className="ono-mem-actions-end">
-          <button type="button" className={`ono-mem-btn${saved ? ' is-ok' : ''}`} onClick={save}>
-            {saved ? L.saved : L.save}
-          </button>
-        </div>
+        {autoSave ? (
+          <>
+            {(autoSave.saving || autoSave.saved) && (
+              <div className="ono-mem-actions-end">
+                <span className="ono-mem-hint" data-testid="ono-private-memo-status">
+                  {autoSave.saving ? L.memoSaving : L.saved}
+                </span>
+              </div>
+            )}
+            {autoSave.error && (
+              <p className="ono-done-inline-error" role="alert" data-testid="ono-private-memo-error">
+                {L.memoSaveError}
+              </p>
+            )}
+          </>
+        ) : (
+          <div className="ono-mem-actions-end">
+            <button type="button" className={`ono-mem-btn${saved ? ' is-ok' : ''}`} onClick={save}>
+              {saved ? L.saved : L.save}
+            </button>
+          </div>
+        )}
       </Section>
       {showEndNotice && <p className="ono-mem-hint ono-mem-center">{L.meetingEndByManager}</p>}
     </>
@@ -1690,6 +1751,7 @@ function ResultScreen({ session, manager, avatar, renderAvatar, L, icons, baseUr
             managerName={host.name}
             L={L} icons={icons} baseUrl={baseUrl}
             jump={transcript.jump}
+            sharedTag
             {...(feedbackEvidence || {})}
           />
 
@@ -1828,6 +1890,7 @@ function HistoryDetail({ session, manager, avatar, renderAvatar, L, icons, baseU
         managerName={host.name}
         L={L} icons={icons} baseUrl={baseUrl}
         jump={transcript.jump}
+        sharedTag
         {...(feedbackEvidence || {})}
       />
 
