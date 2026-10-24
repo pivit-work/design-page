@@ -808,6 +808,24 @@
   width: 410px;
 }
 
+/* 캘린더 보기 일정 호버 카드 (PW-1515) — 일정 창과 같은 모양. 셀 피커와 같은 층에 뜨고 마우스는 안 걸린다
+   (카드 위로 마우스가 가도 칸을 벗어난 것으로 보아 바로 닫힌다). */
+.tl-event-hover-card {
+  z-index: 70;
+  pointer-events: none;
+}
+
+/* 일정 창 「···」 (PW-1515) — 닫기 버튼과 같은 모양으로 그 왼쪽(44 + 8 간격)에 선다. */
+.tl-meeting-modal-close.tl-meeting-modal-more {
+  right: 72px;
+}
+/* 「···」 아래 수정·삭제 메뉴 — 면·항목은 셀 피커 메뉴(.tl-cell-picker*)를 그대로 쓴다. */
+.tl-cell-picker.tl-meeting-modal-menu {
+  position: absolute;
+  top: 68px;
+  right: 72px;
+}
+
 /* Header band that holds the close button (Figma frameGroup top 60 px) */
 .tl-meeting-modal-header {
   position: relative;
@@ -3337,6 +3355,18 @@
 }
 .tl-snippet-autosave.is-error {
   color: var(--colors-error-700);
+}
+/* 저장 상태 문구와 그 아래 AI 사용 안내 한 줄을 오른쪽에 쌓는다 (PW-1515 · 기획 write §6 「상태 문구 아래 한 줄」).
+   안내는 상태 문구와 같은 글씨다 — 줄바꿈만 허용한다. */
+.tl-snippet-modal-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  min-width: 0;
+}
+.tl-snippet-autosave.is-note {
+  white-space: normal;
+  text-align: right;
 }
 
 /* ===========================

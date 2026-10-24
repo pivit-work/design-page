@@ -168,6 +168,9 @@ const DEFAULT_SUGGESTED_TAGS = [
 //     (「Jira·GitHub 23:01에 가져옴」)로 접는다. 계정 연결 안내가 떠 있을 때는 그리지 않는다.
 //     딱지 문구는 draftLabels 의 progressLoading·progressDone·progressFail.
 //   draftLabels?: 위 문구들 — 호스트가 번역해 넘긴다. 없는 키는 한국어 기본값.
+//   aiUsageNotice?: string | null — 아래 바 저장 상태 문구 밑에 같은 글씨로 한 줄 (PW-1515 · 기획서
+//     screen-daily-snippet-write §6 「AI 사용 안내」 · D21). 제출하면 AI 표시가 사라진다는 안내라
+//     호스트가 «AI 초안 칸이나 AI 추천 태그가 남아 있는 동안»만 넘긴다. 닫기 없음 · 제출을 막지 않는다.
 //
 // 자동 저장 표시 (기획 daily-snippet 작성 §11.2) — 모두 optional:
 //   savedAt?: number — 마지막 서버 저장 성공 시각(ms). 「자동저장됨 HH:MM」의 시각.
@@ -234,6 +237,7 @@ export default function SnippetModal({
   nextDateDisabled = false,
   dateNavLabels,
   closedNotice,
+  aiUsageNotice,
 }) {
   const L = { ...DEFAULT_DRAFT_LABELS, ...(draftLabels || {}) };
   const [summary, setSummary] = useState(initial?.summary ?? '');
@@ -1060,6 +1064,8 @@ export default function SnippetModal({
               {L.blocked(unconfirmedKeys.length, unconfirmedKeys.map(fieldLabel).join(' · '))}
             </span>
           )}
+          {(autosaveText || aiUsageNotice) && (
+          <div className="tl-snippet-modal-status">
           {autosaveText && (
             <span
               className={`tl-snippet-autosave${effectiveSaveStatus === 'error' ? ' is-error' : ''}`}
@@ -1068,6 +1074,13 @@ export default function SnippetModal({
             >
               {autosaveText}
             </span>
+          )}
+          {aiUsageNotice && (
+            <span className="tl-snippet-autosave is-note" data-testid="snippet-ai-usage-notice">
+              {aiUsageNotice}
+            </span>
+          )}
+          </div>
           )}
         </div>
         )}

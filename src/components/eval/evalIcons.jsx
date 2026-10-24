@@ -25,6 +25,7 @@ import {
   InfoGlyph,
   LockGlyph,
   MailGlyph,
+  MoreGlyph,
   PaperclipGlyph,
   UsersGlyph,
 } from '../shared/lineIcons.jsx';
@@ -114,13 +115,7 @@ export function ArrowRightIcon({ size = 16 }) {
 
 // ⋯ 더 보기 — 점 셋 (PW-1922 리포트 검수 줄 메뉴).
 export function MoreIcon({ size = 16 }) {
-  return (
-    <svg {...svgProps(size)}>
-      <circle cx="5" cy="12" r="1" />
-      <circle cx="12" cy="12" r="1" />
-      <circle cx="19" cy="12" r="1" />
-    </svg>
-  );
+  return <MoreGlyph size={size} style={GLYPH_STYLE} />;
 }
 
 // ⚠️/🚨 경고 — 삼각형.

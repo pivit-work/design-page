@@ -28,6 +28,8 @@ export default function CellPicker({
   onClose,
   snippetDisabled = false,
   snippetDisabledLabel = '오늘 이후 날짜에는 쓸 수 없습니다',
+  // 미연동일 때 「Google Calendar」 줄 설명 (PW-1515 · 기획서 screen-timeline-feed §8.4)
+  gcalDisconnectedLabel = '내 설정에서 연동하세요',
 }) {
   const dateLabel = typeof date === 'string' ? date.slice(5) : '';
 
@@ -130,7 +132,7 @@ export default function CellPicker({
               </span>
             </span>
             <span className="tl-cell-picker-gcal-sub">
-              캘린더 일정이 타임라인에 자동 반영됩니다
+              {gcalConnected ? '캘린더 일정이 타임라인에 자동 반영됩니다' : gcalDisconnectedLabel}
             </span>
           </span>
         </div>

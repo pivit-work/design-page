@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import ModalLayer from '../shared/ModalLayer.jsx';
-import { CloseGlyph } from '../shared/lineIcons.jsx';
+import useDismissLayer from '../shared/useDismissLayer.js';
+import { CloseGlyph, MoreGlyph, PencilGlyph, TrashGlyph } from '../shared/lineIcons.jsx';
 import useTimelineData from './useTimelineData.js';
 
 /**
@@ -9,11 +10,31 @@ import useTimelineData from './useTimelineData.js';
  * rect: if the block sits in the right half of the viewport, the modal is
  * placed to its LEFT; otherwise it's placed to its RIGHT. Vertical center
  * is anchored to the block, then clamped to keep the modal in view.
+ *
+ * 「···」 더보기 (PW-1515, 기획서 screen-timeline-feed §13.4 · timeline-feed-view-spec §14-A):
+ * `onEdit`·`onDelete` 를 주면 닫기 버튼 왼쪽에 같은 모양의 「···」 버튼이 생기고, 누르면
+ * 「수정」·「삭제」 메뉴가 뜬다. 누가 고칠 수 있는지는 호스트가 정한다 — 못 고치는 일정이면
+ * 두 콜백을 넘기지 않는다. 메뉴의 면·항목은 같은 타임라인의 셀 피커 메뉴(`.tl-cell-picker*`)다.
+ * `actionLabels` = { more, edit, delete } (없으면 한국어 기본값).
  */
-export default function MeetingModal({ meeting, anchorRect, onClose, variant }) {
+export default function MeetingModal({
+  meeting,
+  anchorRect,
+  onClose,
+  variant,
+  onEdit,
+  onDelete,
+  actionLabels,
+}) {
   const { members } = useTimelineData();
   const modalRef = useRef(null);
+  const menuRef = useRef(null);
   const [pos, setPos] = useState({ left: 0, top: 0, opacity: 0 });
+  const [menuOpen, setMenuOpen] = useState(false);
+  const hasActions = !!(onEdit || onDelete);
+  const L = { more: '더보기', edit: '수정', delete: '삭제', ...actionLabels };
+  // 메뉴 바깥(창 안의 다른 곳)을 누르거나 Esc 면 메뉴만 닫는다 — 창은 남는다.
+  useDismissLayer(() => setMenuOpen(false), menuRef, '.tl-meeting-modal-more', menuOpen);
 
   // Compute position after the modal is mounted so we know its real size.
   useLayoutEffect(() => {
@@ -73,6 +94,61 @@ export default function MeetingModal({ meeting, anchorRect, onClose, variant }) 
       >
         {/* Header (close button) */}
         <div className="tl-meeting-modal-header">
+          {hasActions && (
+            <button
+              type="button"
+              className="tl-meeting-modal-close tl-meeting-modal-more"
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-label={L.more}
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              data-testid="meeting-modal-more"
+            >
+              <MoreGlyph size={24} color="var(--colors-foreground-fgPrimary)" />
+            </button>
+          )}
+          {hasActions && menuOpen && (
+            <div ref={menuRef} className="tl-cell-picker tl-meeting-modal-menu" role="menu">
+              {onEdit && (
+                <button
+                  type="button"
+                  className="tl-cell-picker-item"
+                  role="menuitem"
+                  data-testid="meeting-modal-edit"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onEdit(meeting);
+                  }}
+                >
+                  <span className="tl-cell-picker-ico">
+                    <PencilGlyph size={18} color="var(--colors-foreground-fgSecondary)" />
+                  </span>
+                  <span className="tl-cell-picker-body">
+                    <span className="tl-cell-picker-title">{L.edit}</span>
+                  </span>
+                </button>
+              )}
+              {onDelete && (
+                <button
+                  type="button"
+                  className="tl-cell-picker-item"
+                  role="menuitem"
+                  data-testid="meeting-modal-delete"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    onDelete(meeting);
+                  }}
+                >
+                  <span className="tl-cell-picker-ico">
+                    <TrashGlyph size={18} color="var(--colors-foreground-fgErrorPrimary)" />
+                  </span>
+                  <span className="tl-cell-picker-body">
+                    <span className="tl-cell-picker-title">{L.delete}</span>
+                  </span>
+                </button>
+              )}
+            </div>
+          )}
           <button
             type="button"
             className="tl-meeting-modal-close"

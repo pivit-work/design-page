@@ -5,6 +5,7 @@ import TimelineGrid from './TimelineGrid.jsx';
 import CalendarMonthView from './CalendarMonthView.jsx';
 import CalendarWeekView from './CalendarWeekView.jsx';
 import MeetingModal from './MeetingModal.jsx';
+import EventHoverCard from './EventHoverCard.jsx';
 import CellPicker from './CellPicker.jsx';
 import DayEventsPopover from './DayEventsPopover.jsx';
 import DatePickerPopover from './DatePickerPopover.jsx';
@@ -140,6 +141,18 @@ export default function TimelineCanvas({
   // 탭 또는 캘린더 보기 단위가 바뀔 때 호출 — { tab, calViewUnit }. 상위에서
   // URL 동기화 등에 사용. 생략 시 내부 state 만 갱신.
   onViewChange,
+  // ── 캘린더 보기 일정 (PW-1515 · 기획서 screen-timeline-feed §13.3~13.5 · §8.2) ──
+  // getEventsForDate 가 주는 일정에 아래 칸이 있으면 쓴다:
+  //   canManage      true 면 일정 창에 「···」 → 수정·삭제 (호스트가 «내가 만든 Pivit 일정»으로 판정)
+  //   externalUrl    있으면 누를 때 일정 창 대신 그 주소를 새 탭으로 연다 (구글에서 불러온 내 일정)
+  //   timeRangeLabel 호버 카드의 「09:00 – 10:00」 · typeLabel 유형 딱지 · minutesLabel 「회의록 있음」(있을 때만)
+  // 「수정」·「삭제」를 누르면 일정 창을 닫고 그 일정(getEventsForDate 가 준 그대로)을 넘긴다.
+  onCalendarEventEdit,
+  onCalendarEventDelete,
+  // { more, edit, delete, attendees(count) } — 「···」 버튼 이름·메뉴 문구·호버 카드 참석자 머리
+  calendarEventLabels,
+  // 셀 피커 「Google Calendar」 줄 — 미연동일 때 설명 (기획서 §8.4 「내 설정에서 연동하세요」)
+  gcalDisconnectedLabel,
 }) {
   // 간트 / 캘린더 탭 — 캘린더 탭은 별도의 월/주 뷰.
   const [currentTab, setCurrentTab] = useState(initialTab ?? 'gantt'); // 'gantt' | 'calendar'
@@ -264,7 +277,28 @@ export default function TimelineCanvas({
   // 캘린더 이벤트 데이터를 미팅 shape 로 어댑트. width 410.
   // 참석자/주최자/알림은 caller 가 ev 에 실어 보내면 그 값을, 없으면(디자인
   // 프리뷰의 mock 이벤트) mock 멤버로 폴백한다.
+  // ── 캘린더 일정 호버 카드 (PW-1515 · 기획서 §13.3) ─────────────────────────
+  // 칸에 0.3초 머물면 뜨고, 칸을 벗어나면 바로 닫힌다. 누르면 카드는 닫고 누른 동작을 한다.
+  const [hoverEvent, setHoverEvent] = useState(null); // { ev, rect } | null
+  const hoverTimerRef = useRef(null);
+  const endCalendarEventHover = () => {
+    clearTimeout(hoverTimerRef.current);
+    hoverTimerRef.current = null;
+    setHoverEvent(null);
+  };
+  const handleCalendarEventHover = (ev, rect) => {
+    clearTimeout(hoverTimerRef.current);
+    hoverTimerRef.current = setTimeout(() => setHoverEvent({ ev, rect }), 300);
+  };
+  useEffect(() => () => clearTimeout(hoverTimerRef.current), []);
+
   const handleCalendarEventClick = (ev, rect) => {
+    endCalendarEventHover();
+    // 구글에서 불러온 내 일정 — 구글 캘린더의 그 일정을 연다 (기획서 §8.2 「클릭 동작」).
+    if (ev.externalUrl) {
+      window.open(ev.externalUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
     const WEEKDAYS = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
     const d = parseIsoDate(ev.date);
     const hasRealPeople = Array.isArray(ev.participants);
@@ -280,6 +314,9 @@ export default function TimelineCanvas({
       participants: hasRealPeople ? ev.participants : ['m1', 'm2', 'm3', 'm4', 'm5'],
       organizer: ev.organizer ?? 'm1',
       notification: ev.notification ?? '30분 전',
+      // 「수정」·「삭제」 콜백에 그대로 돌려줄 원래 일정과, 「···」 를 보일지 (PW-1515)
+      calendarEvent: ev,
+      canManage: ev.canManage === true,
     };
     setOpenMeeting(meetingShape);
     setOpenMeetingAnchor(rect);
@@ -663,12 +700,16 @@ export default function TimelineCanvas({
               now={now}
               onEventClick={handleCalendarEventClick}
               onMoreClick={handleMoreClick}
+              onEventHover={handleCalendarEventHover}
+              onEventHoverEnd={endCalendarEventHover}
             />
           ) : (
             <CalendarWeekView
               selectedDate={selectedDate}
               now={now}
               onEventClick={handleCalendarEventClick}
+              onEventHover={handleCalendarEventHover}
+              onEventHoverEnd={endCalendarEventHover}
             />
           )}
         </div>
@@ -732,6 +773,43 @@ export default function TimelineCanvas({
           anchorRect={openMeetingAnchor}
           onClose={handleCloseMeeting}
           variant={meetingVariant}
+          onEdit={
+            openMeeting.canManage && onCalendarEventEdit
+              ? (m) => {
+                  handleCloseMeeting();
+                  onCalendarEventEdit(m.calendarEvent);
+                }
+              : undefined
+          }
+          onDelete={
+            openMeeting.canManage && onCalendarEventDelete
+              ? (m) => {
+                  handleCloseMeeting();
+                  onCalendarEventDelete(m.calendarEvent);
+                }
+              : undefined
+          }
+          actionLabels={calendarEventLabels}
+        />
+      )}
+
+      {/* 캘린더 일정 호버 카드 (PW-1515) */}
+      {hoverEvent && (
+        <EventHoverCard
+          event={{
+            title: hoverEvent.ev.title,
+            color: (SNIPPET_COLORS[hoverEvent.ev.color] || SNIPPET_COLORS.gray).solid,
+            timeRangeLabel: hoverEvent.ev.timeRangeLabel ?? hoverEvent.ev.time,
+            participants: hoverEvent.ev.participants,
+            typeLabel: hoverEvent.ev.typeLabel,
+            minutesLabel: hoverEvent.ev.minutesLabel,
+          }}
+          anchorRect={hoverEvent.rect}
+          attendeesLabel={
+            calendarEventLabels?.attendees
+              ? calendarEventLabels.attendees((hoverEvent.ev.participants || []).length)
+              : `참석자 ${(hoverEvent.ev.participants || []).length}명`
+          }
         />
       )}
 
@@ -752,6 +830,7 @@ export default function TimelineCanvas({
           hour={cellPicker.hour}
           date={cellPicker.date}
           gcalConnected={gcalConnected}
+          gcalDisconnectedLabel={gcalDisconnectedLabel}
           baseUrl={baseUrl}
           onSnippet={handleSnippetCreate}
           snippetDisabled={isAfterToday(cellPicker.date)}

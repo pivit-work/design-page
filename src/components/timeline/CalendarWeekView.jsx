@@ -56,7 +56,13 @@ function normalizeEvent(ev) {
  * - 헤더(요일+날짜)·이벤트 pill 스타일은 기존 design-page 토큰을 그대로 재사용.
  */
 // now — 「지금」을 로컬 Date 그릇으로 돌려주는 함수. 없으면 브라우저 시계 (PW-781).
-export default function CalendarWeekView({ selectedDate, onEventClick, now: nowProp }) {
+export default function CalendarWeekView({
+  selectedDate,
+  onEventClick,
+  now: nowProp,
+  onEventHover,
+  onEventHoverEnd,
+}) {
   const { getEventsForDate } = useTimelineData();
   const days = useMemo(() => getWeekDates(selectedDate), [selectedDate]);
   const scrollRef = useRef(null);
@@ -156,6 +162,11 @@ export default function CalendarWeekView({ selectedDate, onEventClick, now: nowP
                         borderColor: palette.border,
                         cursor: 'pointer',
                       }}
+                      // 호버 카드(PW-1515) — 0.3초 대기·닫기는 호스트가 정한다. 칸 위치만 올린다.
+                      onMouseEnter={(e) =>
+                        onEventHover?.(ev, e.currentTarget.getBoundingClientRect())
+                      }
+                      onMouseLeave={() => onEventHoverEnd?.()}
                       onClick={(e) => {
                         e.stopPropagation();
                         onEventClick?.(

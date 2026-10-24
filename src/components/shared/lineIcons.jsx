@@ -327,6 +327,17 @@ export function UsersGlyph(props) {
   );
 }
 
+/** 가로 점 셋(···) — 더보기 메뉴를 여는 버튼. 평가 보고서 검토와 타임라인 일정 창이 쓴다 (PW-1515). */
+export function MoreGlyph(props) {
+  return (
+    <LineSvg {...props}>
+      <circle cx="5" cy="12" r="1" />
+      <circle cx="12" cy="12" r="1" />
+      <circle cx="19" cy="12" r="1" />
+    </LineSvg>
+  );
+}
+
 /** 연필 — 고치기. */
 export function PencilGlyph(props) {
   return (

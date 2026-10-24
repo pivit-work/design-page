@@ -59,7 +59,14 @@ function buildMonthGrid(date) {
  */
 // now — 「지금」을 로컬 Date 그릇으로 돌려주는 함수. 주면 그날을 오늘로 강조한다.
 // 없으면 종전대로 데모 고정일(TODAY_STR) (PW-781).
-export default function CalendarMonthView({ selectedDate, onEventClick, onMoreClick, now }) {
+export default function CalendarMonthView({
+  selectedDate,
+  onEventClick,
+  onMoreClick,
+  now,
+  onEventHover,
+  onEventHoverEnd,
+}) {
   const { getEventsForDate } = useTimelineData();
   const cells = buildMonthGrid(selectedDate);
   const currentMonth = selectedDate.getMonth();
@@ -136,8 +143,13 @@ export default function CalendarMonthView({ selectedDate, onEventClick, onMoreCl
                           '--event-bg': palette.bg,
                           '--event-bg-hover': palette.bgHover,
                           borderColor: palette.border,
-                          cursor: 'pointer',
+                            cursor: 'pointer',
                         }}
+                        // 호버 카드(PW-1515) — 0.3초 대기·닫기는 호스트가 정한다. 칸 위치만 올린다.
+                        onMouseEnter={(e) =>
+                          onEventHover?.(ev, e.currentTarget.getBoundingClientRect())
+                        }
+                        onMouseLeave={() => onEventHoverEnd?.()}
                         onClick={(e) => {
                           e.stopPropagation();
                           onEventClick?.(ev, e.currentTarget.getBoundingClientRect());
