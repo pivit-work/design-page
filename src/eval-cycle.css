@@ -2110,6 +2110,9 @@
   margin-bottom: var(--spacing-md);
 }
 .evc-tpl-additem .evc-input { min-width: 0; }
+/* 「만든 뒤에는 유형을 바꿀 수 없습니다」 안내가 이 격자의 다섯째 칸으로 들어가면 다음 줄 첫 칸(100px)에
+   갇혀 네 줄로 꺾인다 — 안내 줄은 네 칸을 가로질러 한 줄로 둔다. */
+.evc-tpl-additem > .evc-tpl-set-note { grid-column: 1 / -1; }
 /* [PW-602] 항목 목록 아래 «추가» 줄 (EvalTemplateAddRow).
    🔴 버튼에 `.evc-tpl-additem` 을 붙이면 안 된다 — 그건 위의 «격자 줄» 이지 버튼 모양이
    아니다. 버튼은 `.evc-btn`, 줄은 이 클래스가 맡는다. 아래 여백은 `.evc-tpl-additem` 이
