@@ -186,10 +186,6 @@ body:has(.okr-ctx-banner) .tl-group-modal.okr-shell { max-height: calc(100vh - 6
 /* 우측 셀렉터라 메뉴도 오른쪽 끝에 맞춘다 — 왼쪽 정렬이면 화면 밖으로 밀린다. */
 .okr-p-visibility .okr-select-menu { left: auto; right: 0; }
 .okr-p-visibility .okr-select-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-/* 목표가 0건일 때 본문 자리에 서는 안내 (PW-560). 문구 스타일은 공용
-   `.okr-tab-placeholder` 를 그대로 쓰고, 여기서는 본문 자리로서의 여백만 준다 —
-   그 공용 선언은 화면 전체를 채우는 자리에서도 쓰여 고치면 다른 탭이 함께 움직인다. */
-.okr-p-empty { padding: 48px 0; }
 
 /* 연결된 상위 OKR */
 .okr-p-linked { border: 2px solid var(--utility-purple-100); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
@@ -210,6 +206,8 @@ body:has(.okr-ctx-banner) .tl-group-modal.okr-shell { max-height: calc(100vh - 6
 .okr-p-ai-banner { display: flex; align-items: center; justify-content: space-between; padding: 6px 16px; background: var(--utility-purple-100); border-radius: 6px; }
 .okr-p-ai-label { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; line-height: 18px; color: var(--utility-purple-500); }
 .okr-p-ai-refresh { display: inline-flex; align-items: center; justify-content: center; padding: 0; border: 0; background: transparent; color: inherit; cursor: pointer; }
+/* 새로고침·닫기 묶음 — 띠의 오른쪽 끝 한 자리를 둘이 나눠 쓴다 (pivit-work PW-1510). */
+.okr-p-ai-tools { display: inline-flex; align-items: center; gap: 8px; }
 .okr-p-ai-chips { display: flex; gap: 8px; }
 .okr-p-ai-chip { flex: 1; padding: 12px; background: var(--utility-purple-100); border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .okr-p-ai-chip-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }

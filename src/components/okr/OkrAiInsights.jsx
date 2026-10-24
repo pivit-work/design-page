@@ -17,6 +17,10 @@ import rowKey from './rowKey.js';
  *
  * onRefresh() — 주면 새로고침 아이콘이 눌리는 버튼이 된다. 안 주면 예전처럼
  * 아이콘만 그린다(시각 동일). onAction(insight, index) — 액션 버튼 클릭.
+ *
+ * onClose() — 주면 새로고침 오른쪽에 × 버튼을 단다(기획서 okr-spec §7.8 「닫기」 · pivit-work PW-1510).
+ * 숨길지는 소비 측이 정한다 — 「세션 동안 숨김」이라 탭을 옮겨 다녀와도 숨은 채여야 해서
+ * 이 부품 안 상태로 두지 않는다. banner.closeLabel 이 읽어 주는 이름(기본 「닫기」).
  */
 export default function OkrAiInsights({
   banner = {},
@@ -25,6 +29,7 @@ export default function OkrAiInsights({
   baseUrl = '',
   onRefresh,
   onAction,
+  onClose,
 }) {
   const {
     label = 'AI 인사이트',
@@ -32,6 +37,7 @@ export default function OkrAiInsights({
     autoChipLabel = '자동 분석',
     showRefresh = true,
     refreshLabel = '새로고침',
+    closeLabel = '닫기',
   } = banner;
   const refreshIcon = (
     <Icon src={icons.refreshCw} size={16} color="var(--utility-purple-500)" baseUrl={baseUrl} />
@@ -44,21 +50,36 @@ export default function OkrAiInsights({
           <span>{label}</span>
           {autoChip && <StatusBadge className="okr-p-ai-chip-auto">{autoChipLabel}</StatusBadge>}
         </div>
-        {showRefresh && (
-          onRefresh ? (
+        <div className="okr-p-ai-tools">
+          {showRefresh && (
+            onRefresh ? (
+              <button
+                type="button"
+                className="okr-p-ai-refresh"
+                onClick={onRefresh}
+                aria-label={refreshLabel}
+                title={refreshLabel}
+              >
+                {refreshIcon}
+              </button>
+            ) : (
+              refreshIcon
+            )
+          )}
+          {onClose && (
+            // 새로고침 버튼과 같은 모양(16px · 보라 500 · 바탕 없음)을 쓴다.
             <button
               type="button"
               className="okr-p-ai-refresh"
-              onClick={onRefresh}
-              aria-label={refreshLabel}
-              title={refreshLabel}
+              onClick={onClose}
+              aria-label={closeLabel}
+              title={closeLabel}
+              data-testid="okr-ai-insights-close"
             >
-              {refreshIcon}
+              <Icon src={icons.xClose} size={16} color="var(--utility-purple-500)" baseUrl={baseUrl} />
             </button>
-          ) : (
-            refreshIcon
-          )
-        )}
+          )}
+        </div>
       </div>
       <div className="okr-p-ai-chips">
         {insights.map((insight, i) => (

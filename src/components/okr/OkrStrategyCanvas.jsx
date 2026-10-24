@@ -35,7 +35,7 @@ import stripListMarker from '../shared/stripListMarker.js';
  *   화면이 바뀌는** 가짜 성공을 본다(PW-106 에서 실제로 그랬다). 새로고침하면
  *   되돌아간다. 데모 모드와 권한은 별개 축이라 prop 을 나눈다.
  */
-export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, history, icons, baseUrl = '', onKrUpdate, onSubmitFeedback, onViewAllFeedback, onWriteFeedback, onSave, onAiAutocomplete, canEdit = true, onRefreshInsights, onInsightAction, onToggleInitiative, canEditInitiative = false , focusKrId = null, focusObjectiveId = null, historyEmptyLabel }) {
+export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, history, icons, baseUrl = '', onKrUpdate, onSubmitFeedback, onViewAllFeedback, onWriteFeedback, onSave, onAiAutocomplete, canEdit = true, onRefreshInsights, onInsightAction, onCloseInsights, showInsights = true, onToggleInitiative, canEditInitiative = false , focusKrId = null, focusObjectiveId = null, historyEmptyLabel }) {
   const [subTab, setSubTab] = useState('canvas');
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(null);
@@ -225,7 +225,7 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
           </div>
         </>
       ) : subTab === 'company' && companyBoard ? (
-        <OkrBoard board={companyBoard} icons={icons} baseUrl={baseUrl} onKrUpdate={onKrUpdate} onSubmitFeedback={onSubmitFeedback} onViewAllFeedback={onViewAllFeedback} onWriteFeedback={onWriteFeedback} onRefreshInsights={onRefreshInsights} onInsightAction={onInsightAction} onToggleInitiative={onToggleInitiative} canEditInitiative={canEditInitiative} focusKrId={focusKrId} focusObjectiveId={focusObjectiveId} />
+        <OkrBoard board={companyBoard} icons={icons} baseUrl={baseUrl} onKrUpdate={onKrUpdate} onSubmitFeedback={onSubmitFeedback} onViewAllFeedback={onViewAllFeedback} onWriteFeedback={onWriteFeedback} onRefreshInsights={onRefreshInsights} onInsightAction={onInsightAction} onCloseInsights={onCloseInsights} showInsights={showInsights} onToggleInitiative={onToggleInitiative} canEditInitiative={canEditInitiative} focusKrId={focusKrId} focusObjectiveId={focusObjectiveId} />
       ) : subTab === 'history' ? (
         <OkrHistoryList history={history} icons={icons} baseUrl={baseUrl} emptyLabel={historyEmptyLabel} />
       ) : (

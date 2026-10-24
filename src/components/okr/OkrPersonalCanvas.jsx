@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react';
 import Icon from '../shared/Icon.jsx';
+import Button from '../shared/Button.jsx';
+import EmptyState from '../shared/EmptyState.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import OkrLinkedParents from './OkrLinkedParents.jsx';
 import OkrBoard from './OkrBoard.jsx';
@@ -38,6 +40,8 @@ import useDismissLayer from '../shared/useDismissLayer.js';
  * (`okr-policy.md §3.3-A E-0` 「개인 목표 0건」 · David 2026-09-06 확정).
  *
  * 문구는 호출부가 소유한다(i18n). 주지 않으면 종전대로 상위 OKR + 보드를 그린다.
+ * 칸은 같은 캔버스 히스토리 탭의 빈 칸과 같은 공용 `EmptyState`(점선 칸)다. `onEmptyWrite` 를 주면
+ * 그 안에 [`emptyWriteLabel`] 버튼을 단다 — 기획서 okr-spec §6.8 「✦ 지금 작성하기」(pivit-work PW-1509).
  */
 export default function OkrPersonalCanvas({
   data,
@@ -49,6 +53,8 @@ export default function OkrPersonalCanvas({
   onWriteFeedback,
   onRefreshInsights,
   onInsightAction,
+  onCloseInsights,
+  showInsights = true,
   onToggleInitiative,
   canEditInitiative = false,
   focusKrId = null,
@@ -59,6 +65,8 @@ export default function OkrPersonalCanvas({
   visibilityDisabled = false,
   visibilityAriaLabel = '개인 OKR 공개 범위',
   emptyMessage,
+  onEmptyWrite,
+  emptyWriteLabel = '지금 작성하기',
   historyEmptyLabel,
 }) {
   const { person, periodLabel, links, parents, banner, insights, overall, theme, objectives, history } = data;
@@ -130,13 +138,21 @@ export default function OkrPersonalCanvas({
       </div>
 
       {emptyMessage ? (
-        <div className="okr-tab-placeholder okr-p-empty">{emptyMessage}</div>
+        <EmptyState
+          title={emptyMessage}
+          data-testid="okr-personal-empty"
+          actions={onEmptyWrite && (
+            <Button variant="primary" onClick={onEmptyWrite} data-testid="okr-personal-empty-write">
+              {emptyWriteLabel}
+            </Button>
+          )}
+        />
       ) : periodTab === 'history' ? (
         <OkrHistoryList history={history} icons={icons} baseUrl={baseUrl} emptyLabel={historyEmptyLabel} />
       ) : (
         <>
           <OkrLinkedParents links={links} parents={parents} />
-          <OkrBoard board={{ banner, insights, overall, theme, objectives }} icons={icons} baseUrl={baseUrl} onKrUpdate={onKrUpdate} onSubmitFeedback={onSubmitFeedback} onViewAllFeedback={onViewAllFeedback} onWriteFeedback={onWriteFeedback} onRefreshInsights={onRefreshInsights} onInsightAction={onInsightAction} onToggleInitiative={onToggleInitiative} canEditInitiative={canEditInitiative} focusKrId={focusKrId} focusObjectiveId={focusObjectiveId} />
+          <OkrBoard board={{ banner, insights, overall, theme, objectives }} icons={icons} baseUrl={baseUrl} onKrUpdate={onKrUpdate} onSubmitFeedback={onSubmitFeedback} onViewAllFeedback={onViewAllFeedback} onWriteFeedback={onWriteFeedback} onRefreshInsights={onRefreshInsights} onInsightAction={onInsightAction} onCloseInsights={onCloseInsights} showInsights={showInsights} onToggleInitiative={onToggleInitiative} canEditInitiative={canEditInitiative} focusKrId={focusKrId} focusObjectiveId={focusObjectiveId} />
         </>
       )}
     </div>

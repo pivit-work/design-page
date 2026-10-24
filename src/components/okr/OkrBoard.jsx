@@ -24,6 +24,9 @@ import rowKey from './rowKey.js';
  * 「이미 스레드가 있는 KR 에 중복 요청 금지」 규칙 바깥에 있어 중복 요청을 실제로
  * 통과시켰다. 옛 패널은 `OkrKrFeedbackModal.jsx` 에 레거시로만 남아 있다.
  *
+ * onCloseInsights · showInsights — 위험 신호 카드의 × 닫기(pivit-work PW-1510). onCloseInsights 를 주면 ×
+ * 가 생기고, 숨길지는 소비 측이 showInsights=false 로 정한다(탭을 옮겨 다녀와도 숨은 채로 두려고).
+ *
  * focusKrId · focusObjectiveId — 알림을 눌러 들어온 소비처가 «그 KR(목표)» 를 가리킬 때 준다.
  * 그 KR 이 든 목표를 펼치고 그 줄까지 화면을 내린다. 모양은 바꾸지 않는다 (pivit-work PW-2016).
  */
@@ -37,6 +40,8 @@ export default function OkrBoard({
   onWriteFeedback,
   onRefreshInsights,
   onInsightAction,
+  onCloseInsights,
+  showInsights = true,
   onToggleInitiative,
   canEditInitiative = false,
   focusKrId = null,
@@ -49,14 +54,17 @@ export default function OkrBoard({
 
   return (
     <>
-      <OkrAiInsights
-        banner={banner}
-        insights={insights}
-        icons={icons}
-        baseUrl={baseUrl}
-        onRefresh={onRefreshInsights}
-        onAction={onInsightAction}
-      />
+      {showInsights && (
+        <OkrAiInsights
+          banner={banner}
+          insights={insights}
+          icons={icons}
+          baseUrl={baseUrl}
+          onRefresh={onRefreshInsights}
+          onAction={onInsightAction}
+          onClose={onCloseInsights}
+        />
+      )}
       <OkrOverallCard percent={overall.percent} status={overall.status} />
 
       <div className="okr-p-table-head">

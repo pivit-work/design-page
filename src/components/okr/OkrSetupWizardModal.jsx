@@ -122,6 +122,8 @@ export default function OkrSetupWizardModal({
   krTitleMaxLength,
   members = [],
   selfId = '',
+  // 3단계 KR 0건 안내 — 앱이 화면 언어로 넘긴다(pivit-work PW-1510).
+  krsEmptyHint = '위 버튼을 눌러 AI 추천 KR을 받아보세요. Objective가 구체적일수록 더 정확한 KR이 추출됩니다.',
 }) {
   const init = initialState ?? {};
   const [step, setStep] = useState(init.step ?? 1);
@@ -502,7 +504,9 @@ export default function OkrSetupWizardModal({
           </div>
           {krs.length === 0 && !krsLoading && (
             <div className="okr-wz-empty">
-              <p>위 버튼을 눌러 AI 추천 KR 을 받아보세요. Objective 가 구체적일수록 더 정확한 KR 이 추출됩니다.</p>
+              {/* 정책서 §3-3 「KR 0건 & 미생성」 — 추천을 받았는데 0건이면 안내를 내린다(pivit-work PW-1510).
+                  aiKrsRevision 은 추출이 성공할 때만 오르고 되살리기에도 실린다. */}
+              {aiKrsRevision === 0 && <p>{krsEmptyHint}</p>}
               <Button type="button" className="okr-wz-addkr" onClick={addKr}>+ KR 직접 추가</Button>
             </div>
           )}
