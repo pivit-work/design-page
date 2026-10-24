@@ -590,6 +590,17 @@ export default function EvalCycleMemberCanvas({
   const submitted = status === 'submitted';
   // [PW-1464] 제출했거나 마감이 지났으면 고칠 수 없다(§4.1). 둘 다 입력을 잠그고 제출 바를 감춘다.
   const readOnly = submitted || closed || Boolean(cancelledNotice);
+  // [PW-1520] 제출하면 스크롤이 폼 맨 아래에 남아 위에 그린 완료 화면이 안 보였다 — 완료 화면이 «새로»
+  // 뜰 때만 그 자리로 올린다(처음부터 제출된 리뷰를 열 때는 이미 맨 위다).
+  const doneRef = useRef(null);
+  const showsDone = submitted && Boolean(doneSteps);
+  const prevShowsDone = useRef(showsDone);
+  useEffect(() => {
+    if (showsDone && !prevShowsDone.current) {
+      doneRef.current?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
+    }
+    prevShowsDone.current = showsDone;
+  }, [showsDone]);
   /** 전체 AI 초안을 한 번 만들었다 — 카드 단추가 「초안 생성 완료」가 된다(§4.3). */
   const [draftDoneAll, setDraftDoneAll] = useState(false);
 
@@ -1671,7 +1682,7 @@ export default function EvalCycleMemberCanvas({
         const next = doneSteps.find((st) => !st.done);
         return (
           <div className="evc-list">
-            <section className="evc-card evm-done" data-testid="evm-done">
+            <section className="evc-card evm-done" data-testid="evm-done" ref={doneRef}>
               <div className="evm-done-icon"><CheckCircleIcon size={32} /></div>
               <h2 className="evm-done-title">{L.doneTitle}</h2>
               <p className="evm-done-body">
