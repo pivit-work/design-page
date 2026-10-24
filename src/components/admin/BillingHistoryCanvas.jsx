@@ -92,6 +92,7 @@ const DEFAULT_LABELS = {
   seatsUnit: (n) => `${n}명`,
   receiptButton: '영수증',
   receiptDownloading: '다운로드 중…',
+  pgReceiptLink: '카드사 전표',
 
   emptyTitle: '아직 청구 내역이 없습니다',
   emptyDesc: '유료 플랜(Starter 이상)으로 전환하면 첫 청구서가 발행됩니다.',
@@ -145,7 +146,7 @@ const FILTER_TABS = [
   { key: 'failed', statuses: ['void', 'uncollectible'], labelKey: 'failed' },
 ];
 
-function Btn({ children, onClick, kind = 'primary', disabled, size = 'md' }) {
+function Btn({ children, onClick, kind = 'primary', disabled, size = 'md', href }) {
   const styles = {
     primary: { bg: T.accent, color: '#fff', border: 'transparent' },
     secondary: { bg: '#fff', color: T.text, border: T.border },
@@ -154,6 +155,17 @@ function Btn({ children, onClick, kind = 'primary', disabled, size = 'md' }) {
   }[kind];
   const pad = size === 'sm' ? '6px 12px' : '10px 18px';
   const fz = size === 'sm' ? 13 : 14;
+  // 결제사가 준 바깥 문서는 같은 모양의 링크로 새 탭에서 연다 (pivit-work PW-2182)
+  if (href) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer"
+        style={{ fontFamily: T.font, fontSize: fz, fontWeight: 700, display: 'inline-block',
+          padding: pad, borderRadius: 10, textDecoration: 'none',
+          background: styles.bg, color: styles.color, border: `1px solid ${styles.border}` }}>
+        {children}
+      </a>
+    );
+  }
   return (
     <button type="button" onClick={disabled ? undefined : onClick} disabled={disabled}
       style={{ fontFamily: T.font, fontSize: fz, fontWeight: 700,
@@ -369,11 +381,19 @@ export default function BillingHistoryCanvas({
                   render: (inv) => {
                     const isReceiptDownloading = !!downloading[`${inv.id}_receipt`];
                     return inv.status === 'paid' ? (
-                      <Btn size="sm" kind="secondary"
-                        disabled={isReceiptDownloading}
-                        onClick={() => handleReceipt(inv)}>
-                        {isReceiptDownloading ? labels.receiptDownloading : labels.receiptButton}
-                      </Btn>
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <Btn size="sm" kind="secondary"
+                          disabled={isReceiptDownloading}
+                          onClick={() => handleReceipt(inv)}>
+                          {isReceiptDownloading ? labels.receiptDownloading : labels.receiptButton}
+                        </Btn>
+                        {/* 결제사(토스)가 발급한 공식 카드매출전표 — 주소가 없는 결제(개발용 가짜 결제)는 그리지 않는다 */}
+                        {inv.pg_receipt_url && (
+                          <Btn size="sm" kind="secondary" href={inv.pg_receipt_url}>
+                            {labels.pgReceiptLink}
+                          </Btn>
+                        )}
+                      </div>
                     ) : (
                       <span style={{ color: T.muted }}>—</span>
                     );
