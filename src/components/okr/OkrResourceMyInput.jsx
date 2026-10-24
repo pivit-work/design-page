@@ -45,9 +45,24 @@ import { isEnterKey } from '../shared/enterKey.js';
  * 「합계 200% 초과 → 저장 불가」 · PW-1587). 합계가 슬라이더와 함께 움직이므로 판정도 여기서 한다.
  * 생략하면 늘 눌린다. 막힌 동안에는 [저장] 왼쪽에 `M.overLimit(maxTotal)` 이유를 띄운다(PW-1657) —
  * 모양은 디자이너가 그린 Total 아래 경고 줄(`.rsx-total-warn`) 그대로다.
+ *
+ * 「목록에 없는 프로젝트」 직접 추가는 리소스 정책서 §5-4.2 대로 검사한다(PW-1498) — 빈 이름·20자 초과·
+ * 이름 중복이면 입력칸 아래에 이유를 띄우고 쓴 글을 남긴다. Enter 로도 추가된다. 중복은 프로젝트·직접 항목
+ * 사이에서만 본다(KR 제목과 같은 이름은 §9 허용). 칩에 안 보이는 프로젝트(스쿼드에 안 붙은 것)까지 세려면
+ * 호스트가 `data.projectNames` 로 활성 프로젝트 이름 전부를 넘긴다. 「내 KR 불러오기」를 펼쳤는데 KR 이
+ * 없으면 `M.krEmpty(연도, 분기)` 를 보인다(§5-5.3) — 분기는 `data.period`(YYYY-MM)에서 센다.
  */
 /** 수동 % 와 추정 % 의 차이가 이만큼(%p) 이상이면 «차이 큼» — 리소스 정책서 §5-3.4. */
 export const ESTIMATE_GAP_PP = 15;
+/** 직접 추가하는 프로젝트 이름 길이 상한 — 리소스 정책서 §5-4.2. 입력칸의 maxLength 와 같은 값이다. */
+export const CUSTOM_NAME_MAX = 20;
+
+/** 'YYYY-MM' → 그 달이 속한 달력 분기. 못 읽으면 null. */
+const quarterOf = (period) => {
+  const [year, month] = String(period ?? '').split('-').map(Number);
+  if (!year || !month) return null;
+  return { year, quarter: Math.ceil(month / 3) };
+};
 
 
 // 저장한 뒤 서버가 돌려준 행은 id 가 다르고(추정 제안으로 담은 행은 출처도 'project' 로 바뀐다) —
@@ -72,6 +87,7 @@ export default function OkrResourceMyInput({
   const [entries, setEntries] = useState(data.entries);
   const [krOpen, setKrOpen] = useState(false);
   const [customName, setCustomName] = useState('');
+  const [customError, setCustomError] = useState(null);
   // [답글 달기] — 누르면 입력바가 열리고, 등록하면 답글(들여쓰기)로 스레드에 달린다.
   const [replyOpen, setReplyOpen] = useState(false);
   const [replyText, setReplyText] = useState('');
@@ -156,6 +172,28 @@ export default function OkrResourceMyInput({
   // 후보(프로젝트·KR)가 이미 담겼나는 **어느 후보인가**(`ref`)로 본다 — 이름으로 보면 같은 이름의
   // 직접 항목이 그 프로젝트 칩을 가려, 정책서 §9 «둘 다 존재»가 깨진다. `ref` 가 없는 옛 데이터만 이름으로.
   const taken = (name, ref) => (ref ? entries.some((e) => e.ref === ref) : has(name));
+  // 직접 추가 검사(정책서 §5-4.2). 활성 프로젝트는 호스트가 넘긴 이름 전부 + 아직 안 담은 후보(칩·추정 제안)로,
+  // 담긴 항목은 KR 행을 뺀 나머지로 센다 — KR 제목과 같은 이름은 허용(§9).
+  const customNameError = (name) => {
+    if (!name) return M.customEmpty;
+    if (name.length > CUSTOM_NAME_MAX) return M.customTooLong;
+    const known = [
+      ...(data.projectNames ?? []),
+      ...data.suggestions.map((s) => s.name),
+      ...data.squads.flatMap((squad) => squad.items.map((item) => item.name)),
+      ...entries.filter((e) => e.source !== 'kr').map((e) => e.name),
+    ];
+    return known.some((n) => norm(n) === norm(name)) ? M.customDuplicate : null;
+  };
+  const addCustom = () => {
+    const name = customName.trim();
+    const error = customNameError(name);
+    setCustomError(error);
+    if (error) return;
+    addEntry(name, { source: 'custom' });
+    setCustomName('');
+  };
+  const krQuarter = quarterOf(data.period);
 
   return (
     <div className="rsx-my">
@@ -343,6 +381,9 @@ export default function OkrResourceMyInput({
             </button>
             {krOpen && (
               <div className="rsx-kr-list">
+                {data.krs.length === 0 && (
+                  <p className="rsx-add-note">{M.krEmpty(krQuarter?.year ?? '', krQuarter?.quarter ?? '')}</p>
+                )}
                 {data.krs.map((kr) => (
                   <div className="rsx-kr-row" key={kr.id}>
                     <span className="rsx-kr-id">{kr.id}</span>
@@ -373,19 +414,23 @@ export default function OkrResourceMyInput({
             <div className="rsx-add-custom">
               <input
                 value={customName}
-                maxLength={20}
+                maxLength={CUSTOM_NAME_MAX}
                 placeholder={M.customPlaceholder}
                 aria-label={M.customAria}
-                onChange={(e) => setCustomName(e.target.value)}
+                aria-invalid={customError ? true : undefined}
+                onChange={(e) => { setCustomName(e.target.value); setCustomError(null); }}
+                onKeyDown={(e) => { if (isEnterKey(e)) { e.preventDefault(); addCustom(); } }}
               />
-              <button
-                type="button"
-                className="rsx-gray-btn is-md"
-                onClick={() => { addEntry(customName.trim(), { source: 'custom' }); setCustomName(''); }}
-              >
+              <button type="button" className="rsx-gray-btn is-md" onClick={addCustom}>
                 {M.customAdd}
               </button>
             </div>
+            {customError && (
+              <div className="rsx-total-warn" role="alert">
+                <Icon src={icons.alertTriangle} size={12} color="var(--text-error-primary)" baseUrl={baseUrl} />
+                <span>{customError}</span>
+              </div>
+            )}
             <p className="rsx-add-note">{M.customNote}</p>
           </div>
         </div>

@@ -43,6 +43,12 @@ export const OKR_RESOURCE_DEFAULT_LABELS = {
     customAria: '프로젝트 직접 입력',
     customAdd: '직접 추가',
     customNote: '직접 추가한 프로젝트는 내 입력에만 표시되는 개인 항목이며, 스니핏 기반 추정에는 포함되지 않습니다.',
+    // 직접 추가 검사 문구 — 리소스 정책서 §5-4.2 그대로 (PW-1498)
+    customEmpty: '프로젝트명을 입력해 주세요.',
+    customTooLong: '프로젝트명은 20자 이하로 입력해 주세요.',
+    customDuplicate: '이미 같은 이름의 프로젝트가 있습니다.',
+    // 「내 KR 불러오기」를 펼쳤는데 그 분기 KR 이 없을 때 — 정책서 §5-5.3 (PW-1498)
+    krEmpty: (year, quarter) => `${year}년 Q${quarter}에 내 개인 OKR KR이 없습니다. 개인 OKR을 먼저 작성해 주세요.`,
     save: '저장',
     overLimit: (max) => `허용 한도 초과 — 한 달 합계는 ${max}%까지 저장할 수 있습니다.`,
     openProject: '프로젝트 상세 보기',

@@ -97,7 +97,11 @@ export default function OkrResourceCanvas({
         </div>
       </div>
       <div className="rsx-views">
-        <SegmentedControl items={items} value={view} onChange={setView} ariaLabel={L.viewsAria} />
+        {/* 볼 수 있는 탭이 하나(구성원의 「내 입력」)면 고르는 줄을 그리지 않는다 — okr-policy §2E E2 (PW-1498).
+            안내 글(입력 가능/조회 전용)은 남긴다. */}
+        {items.length > 1 && (
+          <SegmentedControl items={items} value={view} onChange={setView} ariaLabel={L.viewsAria} />
+        )}
         <span className="rsx-views-hint">{readOnly || view === 'org' ? L.readOnlyHint : L.inputHint}</span>
       </div>
 
