@@ -22,6 +22,13 @@ import { isEnterKey } from '../shared/enterKey.js';
  *   줄에 「리마인더」(`onRemind(assignmentId)`), `n.reminded` 인 줄은 같은 자리에 누를 수 없는 「리마인더 발송됨」.
  *   판정(24시간·단계)은 서버 몫이다 — 캔버스는 값대로 그리기만 한다.
  *
+ * [PW-2179] 확정 카드의 요청 상태(리더 정책 §6.4-A · §6.4.1) — `group.requestState` 가
+ *   `pending`(지정 단계 확정 — 요청은 동료 리뷰 단계가 시작될 때) 이면 머리 `confirmedPending` · `requestPendingHint`,
+ *   `not_sent`(동료 리뷰 마감 뒤 확정) 이면 `confirmedPending` · `requestNotSentHint`, `sent` 이면 종전대로
+ *   `confirmedBadge` · 제출 M/N 에 `group.requestSentAtText` 가 있으면 `requestSentAt`(발송 {시각})을 잇는다.
+ *   값이 없으면(옛 응답) `sent` 로 본다. 동료 줄은 `n.requestState` 가 `pending` 이면 «요청 전», `not_sent` 이면
+ *   «요청 안 함» 딱지이고 리마인더를 두지 않는다 — 요청보다 리마인더가 먼저 가지 않는다. 판정은 서버 몫이다.
+ *
  * [PW-561] `group.nominationChanged` 이면 머리에 「지정이 변경되었습니다」(§6.3.3). 판정은 서버 몫이다.
  *   - 그 카드를 펼치면 `onSeen(evaluateeId)` 를 부른다 — 상위가 서버에 «봤다»를 알리고 다시 읽는다.
  *   - 표시가 붙은 채 **접힌** 카드의 확정 버튼은 확정하지 않고 카드를 펼치며 안내를 띄운다.
@@ -62,6 +69,13 @@ const DEFAULT_LABELS = {
   searchAdd: '추가',
   // §6.3.0·§6.4.1 확정 뒤 진행 추적
   submittedProgress: '제출 {{done}}/{{total}}',
+  // PW-2179 §6.4.1 — 요청이 아직 안 간 확정 카드 머리와 동료 줄
+  confirmedPending: '✓ 확정 · {{count}}명',
+  requestPendingHint: '동료 리뷰가 시작되면 요청이 갑니다',
+  requestNotSentHint: '동료 리뷰 기간이 끝나 요청이 가지 않습니다',
+  requestSentAt: '발송 {{time}}',
+  statusNotRequested: '요청 전',
+  statusNotSent: '요청 안 함',
   allSubmitted: '제출 완료',
   statusNotSubmitted: '미제출',
   // PW-1769 §6.4.1 — 임시저장은 했고 아직 안 냈다.
@@ -243,7 +257,9 @@ function PeerGroupCard({
   const keptCount = group.nominees.filter(isKept).length;
   // §6.3.0 제출 진척 = 확정 명단 중 낸 사람. §6.4.1 전원 제출이면 「제출 완료」.
   const submittedCount = group.nominees.filter((n) => n.status === 'completed').length;
-  const allSubmitted = group.confirmed && keptCount > 0 && submittedCount === keptCount;
+  const requestState = group.requestState ?? 'sent';
+  const allSubmitted =
+    group.confirmed && requestState === 'sent' && keptCount > 0 && submittedCount === keptCount;
   // §6.3.1 아직 채택하지 않은 자발적 신청 — 접혀 있어도 머리에서 보이게 센다.
   const pendingCount = group.confirmed ? 0 : group.nominees.filter((n) => n.status === 'pending_leader_review').length;
   // §6.4.1 — 확정 뒤에는 확정 명단만 보인다(뺀 후보는 숨긴다).
@@ -320,8 +336,18 @@ function PeerGroupCard({
         {group.confirmed ? (
           <>
             <StatusBadge className="evc-status-badge tone-success" data-testid="evp-confirmed">
-              {fill(L.confirmedBadge, { count: keptCount })} ·{' '}
-              {fill(L.submittedProgress, { done: submittedCount, total: keptCount })}
+              {requestState === 'sent' ? (
+                <>
+                  {fill(L.confirmedBadge, { count: keptCount })} ·{' '}
+                  {fill(L.submittedProgress, { done: submittedCount, total: keptCount })}
+                  {group.requestSentAtText && <> · {fill(L.requestSentAt, { time: group.requestSentAtText })}</>}
+                </>
+              ) : (
+                <>
+                  {fill(L.confirmedPending, { count: keptCount })} ·{' '}
+                  {requestState === 'not_sent' ? L.requestNotSentHint : L.requestPendingHint}
+                </>
+              )}
             </StatusBadge>
             {allSubmitted && (
               <StatusBadge className="evc-status-badge tone-success" data-testid="evp-all-submitted">
@@ -362,13 +388,17 @@ function PeerGroupCard({
             {shown.map((n) => {
               const pending = n.status === 'pending_leader_review';
               // §6.4.1 확정 뒤에는 동료별 진행을 보인다 — 제출 완료(초록) / 작성 중(주황) / 미제출(회색).
+              // PW-2179 — 요청이 아직 안 갔으면 «미제출»이 아니라 «요청 전»·«요청 안 함»(§6.4.1).
+              const notRequested = n.requestState === 'pending' || n.requestState === 'not_sent';
               const statusText = group.confirmed
-                ? n.status === 'completed'
-                  ? L.statusCompleted
-                  : n.drafting ? L.statusDrafting : L.statusNotSubmitted
+                ? notRequested
+                  ? n.requestState === 'pending' ? L.statusNotRequested : L.statusNotSent
+                  : n.status === 'completed'
+                    ? L.statusCompleted
+                    : n.drafting ? L.statusDrafting : L.statusNotSubmitted
                 : (L[STATUS_KEY[n.status]] ?? n.status);
               const statusTone = group.confirmed
-                ? n.status === 'completed' ? 'success' : n.drafting ? 'warn' : 'neutral'
+                ? notRequested ? 'neutral' : n.status === 'completed' ? 'success' : n.drafting ? 'warn' : 'neutral'
                 : n.status === 'leader_approved' ? 'success' : 'neutral';
               return (
               <div
@@ -411,7 +441,7 @@ function PeerGroupCard({
                   </button>
                 )}
                 {/* PW-1769 §6.4.1 — 안 낸 동료에게 리마인더. 보낸 뒤 24시간은 같은 자리에 누를 수 없는 「발송됨」. */}
-                {group.confirmed && onRemind && n.status !== 'completed' && (n.reminded || n.remindable) && (
+                {group.confirmed && onRemind && !notRequested && n.status !== 'completed' && (n.reminded || n.remindable) && (
                   <button
                     type="button"
                     className="evc-btn is-ghost is-sm"
