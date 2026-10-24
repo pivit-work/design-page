@@ -8,6 +8,7 @@ import ModalShell from '../shared/ModalShell.jsx';
 import SearchSelect from '../shared/SearchSelect.jsx';
 import Button from '../shared/Button.jsx';
 import TextInput from '../shared/TextInput.jsx';
+import OkrMemberPicker from './OkrMemberPicker.jsx';
 
 /**
  * OkrSetupWizardModal — OKR 설정 마법사 (Backward Looking).
@@ -31,8 +32,15 @@ import TextInput from '../shared/TextInput.jsx';
  *      members[].note — 미정렬 사유 문구(소비자가 번역·조합해 넘긴다. 예: 「상위 OKR 미연결 · 플랫폼팀」)
  *      members[].canBookOneOnOne — false 면 그 사람에게 [1:1 예약] 을 두지 않는다. 조치할 사람이
  *        본인이 아닌 사유(「상위 OKR 미연결」)가 그렇다 (pivit-specs 마법사 정책서 §3-4 · PW-729).
+ *      members[].alignedLabel — 「정렬 n / N KR」 보조 표시(소비자가 번역해 넘긴다). 없으면 그 줄을 그리지 않는다
+ *        (정책서 §3-4 구성원 정렬도 카드 · 시안 okr-app.jsx `StepAlignment` · PW-1506).
  *      emptyMessage — 판정할 수 없을 때(그 단위에 저장된 KR 이 없음) 사람 목록 대신 보일 문구.
- *  - onSubmit({ level, objective, krs, targetId }) → OKR 생성
+ *  - onSubmit({ level, objective, krs, targetId }) → OKR 생성. krs[].ownerId — 고른 KR 담당자(없으면 '').
+ *
+ * KR 담당자 (선택 · 정책서 §3-3 KR 행 「지표명/현재/목표/단위/담당자/삭제」 · PW-1506):
+ *  - members — [{ id, name, role?, avatar?, color? }]. 일반 작성 창(OkrComposeFullModal)과 같은 목록·같은 고르기 부품.
+ *      비어 있으면 담당자 칸을 그리지 않는다 — 고를 사람이 없는 빈 칸을 남기지 않는다.
+ *  - selfId — 새 KR(직접 추가·AI 추출)의 담당자 기본값. 일반 작성 창과 같다.
  *
  * 제목·되돌리기 (선택):
  *  - title — 창 제목. 기본 「OKR 설정」. 소비자가 단위를 넣어 준다(`OKR 설정 마법사 · 팀 OKR` · okr-policy §1.4.1).
@@ -112,6 +120,8 @@ export default function OkrSetupWizardModal({
   // 제목 칸 길이 한도 — 서버 INPUT_LIMITS 와 같은 값을 앱이 넘긴다(저장 컬럼 255 · PW-1505). 안 주면 안 막는다(데모).
   objectiveTitleMaxLength,
   krTitleMaxLength,
+  members = [],
+  selfId = '',
 }) {
   const init = initialState ?? {};
   const [step, setStep] = useState(init.step ?? 1);
@@ -197,7 +207,7 @@ export default function OkrSetupWizardModal({
       const res = await onExtractKrs?.(scope, narrative, objective.trim(), targetId);
       const list = (res?.keyResults ?? []).map((k) => ({
         id: nextId(), title: k.title, type: k.type ?? 'number',
-        target: k.targetValue ?? 0, current: 0, unit: k.unit ?? '',
+        target: k.targetValue ?? 0, current: 0, unit: k.unit ?? '', ownerId: selfId,
       }));
       setAiKrsRevision((n) => n + 1);
       setAiKrs(list.length ? JSON.stringify(list.map(({ title, type, target, unit }) => ({ title, type, target, unit }))) : null);
@@ -231,7 +241,7 @@ export default function OkrSetupWizardModal({
 
   const patchKr = (id, patch) => { setKrs((p) => p.map((k) => (k.id === id ? { ...k, ...patch } : k))); setKrsConfirmed(false); };
   const removeKr = (id) => { setKrs((p) => p.filter((k) => k.id !== id)); setKrsConfirmed(false); };
-  const addKr = () => { setKrs((p) => [...p, { id: nextId(), title: '', type: 'number', target: 0, current: 0, unit: '' }]); setKrsConfirmed(false); };
+  const addKr = () => { setKrs((p) => [...p, { id: nextId(), title: '', type: 'number', target: 0, current: 0, unit: '', ownerId: selfId }]); setKrsConfirmed(false); };
 
   const stepDone = (key) =>
     key === 'narrative' ? narrative.trim().length >= 30
@@ -263,6 +273,7 @@ export default function OkrSetupWizardModal({
         krs: krs.map((k) => ({
           title: k.title.trim(), type: k.type,
           target: Number(k.target) || 0, current: Number(k.current) || 0, unit: k.unit,
+          ownerId: k.ownerId ?? '',
         })),
       });
       onClose();
@@ -509,7 +520,7 @@ export default function OkrSetupWizardModal({
                 )}
               </div>
               {krs.map((k, i) => (
-                <div className="okr-wz-krrow" key={k.id}>
+                <div className={`okr-wz-krrow${members.length > 0 ? ' has-owner' : ''}`} key={k.id}>
                   <span className="okr-wz-krno">{i + 1}</span>
                   <TextInput className="okr-wz-krcell" value={k.title} placeholder="지표명" aria-label="KR 지표명" maxLength={krTitleMaxLength}
                     onChange={(e) => patchKr(k.id, { title: e.target.value })} />
@@ -522,6 +533,10 @@ export default function OkrSetupWizardModal({
                   )}
                   <TextInput className="okr-wz-krcell is-unit" value={k.unit} placeholder="단위" aria-label="단위"
                     onChange={(e) => patchKr(k.id, { unit: e.target.value })} />
+                  {members.length > 0 && (
+                    <OkrMemberPicker ariaLabel="KR 담당자" members={members} value={k.ownerId ?? ''}
+                      onChange={(id) => patchKr(k.id, { ownerId: id })} />
+                  )}
                   <Button type="button" className="okr-cf-x" onClick={() => removeKr(k.id)} aria-label="KR 삭제">
                     <Icon src={icons.xClose} size={14} color="var(--text-tertiary)" baseUrl={baseUrl} />
                   </Button>
@@ -556,7 +571,7 @@ export default function OkrSetupWizardModal({
                 <div className={`okr-wz-align-row${m.aligned ? '' : ' is-warn'}`} key={m.userId}>
                   <div className="okr-wz-align-info">
                     <span className="okr-wz-align-name">{m.name}<span className="okr-wz-align-role"> · {m.role}</span></span>
-                    <span className="okr-wz-align-note">{m.aligned ? '정합성 정상' : m.note}</span>
+                    <span className="okr-wz-align-note">{m.alignedLabel && `${m.alignedLabel} · `}{m.aligned ? '정합성 정상' : m.note}</span>
                   </div>
                   <span className={`okr-wz-align-status${m.aligned ? ' is-ok' : ''}`}>{!m.aligned && <AlertTriangleGlyph size={14} />}{m.aligned ? '정렬됨' : '미정렬'}</span>
                   {!m.aligned && m.canBookOneOnOne !== false && onBookOneOnOne && (

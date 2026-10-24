@@ -653,6 +653,9 @@ body:has(.okr-ctx-banner-flag) .tl-group-modal.okr-wz-modal { height: min(1118px
 .okr-wz-draft.is-confirmed { background: var(--utility-success-50); border-color: var(--utility-success-200); }
 .okr-wz-draft-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 .okr-wz-krrow { display: grid; grid-template-columns: 18px 1.6fr 72px 72px 64px 24px; gap: 12px; align-items: center; padding: 8px; background: var(--bg-secondary); border: 1px solid var(--border-secondary); border-radius: 8px; margin-bottom: 12px; }
+/* PW-1506 — KR 담당자 칸(정책서 §3-3). 고르기 부품은 일반 작성 창 KR 담당자와 같은 것을 칸 폭에 맞춰 쓴다. */
+.okr-wz-krrow.has-owner { grid-template-columns: 18px 1.6fr 72px 72px 64px 120px 24px; }
+.okr-wz-krrow .okr-cf-pick, .okr-wz-krrow .okr-cf-pick-trigger { min-width: 0; max-width: 100%; width: 100%; }
 .okr-wz-krno { font-size: 14px; font-weight: 400; line-height: 20px; color: var(--text-tertiary); text-align: center; }
 .okr-wz-krcell { padding: 8px 12px; border: none; border-radius: 6px; background: var(--alpha-black-3); color: var(--text-primary); font-size: 14px; line-height: 20px; font-family: inherit; outline: none; min-width: 0; }
 .okr-wz-krcell.is-num, .okr-wz-krcell.is-unit { text-align: center; }
