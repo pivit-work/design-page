@@ -758,6 +758,31 @@
   color: var(--utility-purple-500);
 }
 
+/* AI 브리핑을 버튼으로 만드는 자리 (pivit-work PW-1531). 새 칸은 같은 카드의 글씨·공용 버튼·딱지만 쓴다.
+   「마지막 업데이트」 는 라벨과 같은 크기, 색만 회색 — 카드 본문보다 앞서 읽히지 않게. */
+.manager-modal-brief-updated {
+  font-family: var(--font-family-body);
+  font-weight: 500;
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  color: var(--text-tertiary);
+}
+
+/* 오른쪽 위 새로고침 — 라벨 줄 끝으로 민다. 라벨 줄 높이를 늘리지 않게 위아래를 당긴다. */
+.manager-modal-brief-refresh {
+  margin-left: auto;
+  margin-block: -6px;
+  color: var(--utility-purple-500);
+}
+
+.manager-modal-brief-generate {
+  align-self: flex-start;
+}
+
+.manager-modal-brief-sources {
+  flex-wrap: wrap;
+}
+
 /* ── Agenda list ──
    각 agenda item: padding-y 24, border-bottom. 첫 item 안에 list title 포함. */
 .manager-modal-agenda-item {

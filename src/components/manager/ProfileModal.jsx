@@ -5,7 +5,8 @@ import Spline from '@splinetool/react-spline';
 import Icon from '../shared/Icon.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import assetUrl from '../shared/assetUrl.js';
-import { CloseGlyph } from '../shared/lineIcons.jsx';
+import { CloseGlyph, SparkleGlyph } from '../shared/lineIcons.jsx';
+import AiFailBox from '../shared/AiFailBox.jsx';
 import Button from '../shared/Button.jsx';
 import { isEnterKey } from '../shared/enterKey.js';
 
@@ -99,6 +100,11 @@ export default function ProfileModal({
   onSnippetsMore,
   // 「액션 아이템」 탭 맨 아래 [더 보기] (pivit-work PW-1941) — `profile.actionItems.more` 가 있을 때만 그린다
   onActionItemsMore,
+  // 「AI 브리핑」 탭 생성·새로고침·재생성 / 불러오기 다시 시도 (pivit-work PW-1531) — `profile.aiBriefing` 이 있을 때만 쓴다
+  onAiBriefingGenerate,
+  onAiBriefingReload,
+  // 「AI 브리핑」 탭 브리핑 카드 바로 아래 칸 — 호스트의 체험 AI 소진 안내 등 (PW-1531)
+  aiBriefingNotice,
 }) {
   // splineReady/Failed 를 boolean 으로 두면 새 멤버 모달 진입 시 useEffect 로 reset 해야
   // 하는데, react-hooks/set-state-in-effect 룰을 깬다. 대신 "현재 로드 완료된 멤버 id" 와
@@ -224,7 +230,15 @@ export default function ProfileModal({
 
 
             {activeTab === 'ai' && profile && (
-              <AiBriefingTab profile={profile} agendas={agendas} icons={icons} baseUrl={baseUrl} />
+              <AiBriefingTab
+                profile={profile}
+                agendas={agendas}
+                icons={icons}
+                baseUrl={baseUrl}
+                onGenerate={onAiBriefingGenerate}
+                onReload={onAiBriefingReload}
+                notice={aiBriefingNotice}
+              />
             )}
             {activeTab === 'snippet' && profile?.snippets && (
               <SnippetTab profile={profile} icons={icons} baseUrl={baseUrl} onMore={onSnippetsMore} />
@@ -271,18 +285,88 @@ function MetricTile({ label, value }) {
    탭 별 컨텐츠
    ──────────────────────────────────────────────── */
 
-function AiBriefingTab({ profile, agendas, icons, baseUrl }) {
+/**
+ * 「AI 브리핑」 탭 — 종합 브리핑 카드 · 1on1 추천 아젠다 · 지표 칸.
+ *
+ * `profile.aiBriefing` 이 없으면 예전처럼 `profile.aiBrief` 문장을 그대로 그린다(옛 호출 그대로).
+ * 있으면 AI 브리핑을 버튼으로만 만드는 화면이 된다 (pivit-work PW-1531 · 기획 policy §6-3). 문구는
+ * 호스트가 전부 만들어 넘긴다 — 캔버스는 i18n 도, 보관 기간도 모른다.
+ *  - `{ status: 'loading', loadingLabel }` — 보관본을 불러오는 중
+ *  - `{ status: 'loadError', loadError: { message, retryLabel } }` — 불러오지 못했다. 다시 시도는 `onReload`
+ *  - `{ status: 'empty', emptyText, generateLabel }` — 보관본이 없다. 버튼이 `onGenerate`
+ *  - `{ status: 'ready', content, updatedLabel?, sources?, refreshLabel, agendaEmptyText }` — 오른쪽 위
+ *    새로고침이 `onGenerate`. `updatedLabel` 은 「마지막 업데이트: N시간 전」처럼 이전 브리핑을 보일 때만
+ *  - 공통 `generating` — 생성 중(버튼 잠금 + 도는 표시), `error: { title, message, retryLabel }` — AI 실패.
+ *    재생성도 `onGenerate`
+ * `notice` 는 카드 바로 아래에 그대로 놓는다(체험 AI 소진 안내).
+ */
+function AiBriefingTab({ profile, agendas, icons, baseUrl, onGenerate, onReload, notice }) {
+  const ai = profile.aiBriefing;
+  const ready = !ai || ai.status === 'ready';
   return (
     <div className="manager-modal-content-section">
-      <div className="manager-modal-brief-card">
+      <div className="manager-modal-brief-card" data-testid="manager-ai-briefing">
         <div className="manager-modal-brief-label-row">
           <Icon src={icons?.summarySparkle} size={12} color="var(--utility-purple-500)" baseUrl={baseUrl} />
           <span className="manager-modal-brief-label">종합 브리핑</span>
+          {ai?.status === 'ready' && ai.updatedLabel && (
+            <span className="manager-modal-brief-updated">{ai.updatedLabel}</span>
+          )}
+          {ai?.status === 'ready' && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="manager-modal-brief-refresh"
+              aria-label={ai.refreshLabel}
+              title={ai.refreshLabel}
+              pending={!!ai.generating}
+              onClick={() => onGenerate?.()}
+            >
+              <Icon src="/icons/refresh-ccw-05.svg" size={14} baseUrl={baseUrl} />
+            </Button>
+          )}
         </div>
-        <p className="manager-modal-brief-text">{profile.aiBrief}</p>
+
+        {ai?.status === 'loading' && <p className="manager-modal-brief-text">{ai.loadingLabel}</p>}
+        {ai?.status === 'loadError' && <HrProfileFailure notice={ai.loadError} onRetry={onReload} />}
+        {ai?.status === 'empty' && (
+          <>
+            <p className="manager-modal-brief-text">{ai.emptyText}</p>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="manager-modal-brief-generate"
+              pending={!!ai.generating}
+              onClick={() => onGenerate?.()}
+            >
+              <SparkleGlyph size={14} />
+              {ai.generateLabel}
+            </Button>
+          </>
+        )}
+        {ready && <p className="manager-modal-brief-text">{ai ? ai.content : profile.aiBrief}</p>}
+        {ready && ai?.sources?.length > 0 && (
+          <div className="manager-modal-snippet-tags manager-modal-brief-sources">
+            {ai.sources.map((label) => (
+              <StatusBadge key={label} className="manager-modal-snippet-tag">{label}</StatusBadge>
+            ))}
+          </div>
+        )}
+        {ai?.error && (
+          <AiFailBox
+            title={ai.error.title}
+            message={ai.error.message}
+            retryLabel={ai.error.retryLabel}
+            retryDisabled={!!ai.generating}
+            onRetry={() => onGenerate?.()}
+            testId="manager-ai-briefing-failed"
+          />
+        )}
       </div>
 
-      {agendas.map((a, i) => (
+      {notice}
+
+      {ready && agendas.map((a, i) => (
         <div key={i} className="manager-modal-agenda-item">
           {i === 0 && <p className="manager-modal-agenda-list-title">1on1 추천 아젠다</p>}
           <div className="manager-modal-agenda-content">
@@ -291,6 +375,9 @@ function AiBriefingTab({ profile, agendas, icons, baseUrl }) {
           </div>
         </div>
       ))}
+      {ai?.status === 'ready' && agendas.length === 0 && ai.agendaEmptyText && (
+        <p className="manager-modal-empty">{ai.agendaEmptyText}</p>
+      )}
 
       {profile.metrics && (
         <div className="manager-modal-metrics-section">

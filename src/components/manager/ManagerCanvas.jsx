@@ -89,6 +89,10 @@ export default function ManagerCanvas({
   onHrProfileRetry,
   onSnippetsMore,
   onActionItemsMore,
+  // 팀원 상세 「AI 브리핑」 탭 — 생성·새로고침, 불러오기 다시 시도, 카드 아래 안내 칸 (pivit-work PW-1531)
+  onAiBriefingGenerate,
+  onAiBriefingReload,
+  aiBriefingNotice,
   /**
    * KR 드릴다운 멤버 카드 id → 팀원 카드 id. 둘이 다른 id 를 쓰는 소비자(사용자 id ↔ 명부 id)가
    * 넘긴다. 없으면 같은 id 로 본다. 찾는 팀원이 없으면(조회 범위 밖) 상세 창을 열지 않는다(기획 §7-4).
@@ -292,6 +296,9 @@ export default function ManagerCanvas({
         onHrProfileRetry={onHrProfileRetry}
         onSnippetsMore={onSnippetsMore}
         onActionItemsMore={onActionItemsMore}
+        onAiBriefingGenerate={onAiBriefingGenerate}
+        onAiBriefingReload={onAiBriefingReload}
+        aiBriefingNotice={aiBriefingNotice}
         member={openMember}
         onClose={closeProfile}
         baseUrl={baseUrl}
