@@ -1135,14 +1135,22 @@ function OrgTab({ org, labels, onAdd, onDelete, onUpload, onDownload, onDeleteDo
   const startAdd = (kind, init) => { setAdding(kind); setD(init); };
   // 저장이 끝나야 폼을 닫는다(PW-1302). 실패하면 폼을 그대로 두어 입력을 잃지 않는다 —
   // 알림은 호출부가 띄운다. onAdd 가 Promise 를 안 돌려주면 바로 닫는다.
-  const submitRecord = (kind, payload) =>
-    Promise.resolve(onAdd ? onAdd(kind, payload) : undefined).then(
+  // 저장 중에는 다시 보내지 않는다 — 빨리 두 번 누르면 같은 줄이 둘 생겼다(PW-2188 리뷰).
+  const [recordSaving, setRecordSaving] = useState(false);
+  const submitRecord = (kind, payload) => {
+    if (recordSaving) return Promise.resolve();
+    setRecordSaving(true);
+    return Promise.resolve(onAdd ? onAdd(kind, payload) : undefined).then(
       () => { setAdding(null); setD({}); },
       () => {},
-    );
+    ).finally(() => setRecordSaving(false));
+  };
   const submitAdd = () => submitRecord(adding, d);
   // 경력 입사·퇴사는 학력과 같은 연·월 고르기다(PW-2188). 범위는 1950.01 ~ 이번 달.
   const careerNow = nowYm();
+  // 서버가 꼭 받는 칸(경력: 회사·입사 / 자격증: 이름)이 비면 「추가」를 막는다 — 보내고 나서 «추가하지 못했습니다»만 뜨지 않게.
+  const careerReady = Boolean((d.company || '').trim()) && isYm(d.from) && !careerEndBeforeStart(d);
+  const certReady = Boolean((d.name || '').trim());
 
   const currentPairs = [
     { label: L.currentManager, value: cur.manager ? `${cur.manager.name}${cur.manager.title ? ` (${cur.manager.title})` : ''}` : '-' },
@@ -1295,7 +1303,11 @@ function OrgTab({ org, labels, onAdd, onDelete, onUpload, onDownload, onDeleteDo
               <RecordField label={L.fields.careerTo} note={L.fields.careerToNote}>
                 <MonthWheelField
                   value={d.to || ''}
-                  onChange={(v) => setD((p) => ({ ...p, to: v }))}
+                  onChange={(v) => setD((p) => {
+                    // 「비우기」는 퇴사를 빈 글자가 아니라 «없음»으로 둔다 — 빈 글자로 저장되면 매니저·어드민 화면에서 「현재」가 빠진다
+                    const { to: _drop, ...rest } = p;
+                    return v ? { ...p, to: v } : rest;
+                  })}
                   placeholder={L.fields.ymPlaceholder}
                   ariaLabel={L.fields.careerTo}
                   clearLabel={L.fields.clear}
@@ -1311,7 +1323,7 @@ function OrgTab({ org, labels, onAdd, onDelete, onUpload, onDownload, onDeleteDo
               onCancel={() => setAdding(null)}
               submitLabel={L.add}
               onSubmit={submitAdd}
-              submitDisabled={careerEndBeforeStart(d)}
+              submitDisabled={!careerReady || recordSaving}
               submitTestId="career-add-submit"
             />
           </RecordForm>
@@ -1368,6 +1380,7 @@ function OrgTab({ org, labels, onAdd, onDelete, onUpload, onDownload, onDeleteDo
               onCancel={() => setAdding(null)}
               submitLabel={L.add}
               onSubmit={submitAdd}
+              submitDisabled={!certReady || recordSaving}
               submitTestId="cert-add-submit"
             />
           </RecordForm>
