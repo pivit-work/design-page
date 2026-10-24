@@ -145,6 +145,8 @@ const DEFAULT_LABELS = {
   alignFailed: '검토하지 못했습니다. 다시 눌러 주세요',
   priorTitle: '앞 차수 리뷰',
   priorHead: '{round}차 · {name} · 제출 {at}',
+  priorHeadName: '{round}차 · {name}',
+  priorHeadAt: '제출 {at}',
   priorUnknownEvaluator: '—',
   priorSkipped: '{round}차 — 평가자 없이 건너뛰었습니다',
   priorOpenedByHr: 'HR 이 {round}차 제출 없이 이 차수를 열었습니다 ({date})',

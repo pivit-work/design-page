@@ -33,6 +33,8 @@ export {
   OnbNotice,
   OnbBadge,
   OnbSummary,
+  OnbDetailRows,
+  OnbBulletList,
   OnbCopyLine,
   OnbBox,
   OnbTwoColumns,

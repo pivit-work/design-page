@@ -407,12 +407,16 @@ export function ColHeads({ cols }) {
   );
 }
 
-function noteSectionsOf(session, L, icons) {
+// 결정 사항은 예전엔 문자열, 매니저 끝난 화면 시안은 `{ title, badge, text }` 도 받는다 — 여기선 글만 쓴다.
+const decisionText = (d) => (typeof d === 'string' ? d : d?.text ?? d?.title ?? '');
+
+function noteSectionsOf(session, L) {
+  const lines = (list) => (list ?? []).map((v) => String(v ?? '')).filter((v) => v.trim());
   return [
-    { key: 'summary', label: L.mainDiscussion, icon: icons.topics, content: session.aiSummary },
-    { key: 'decisions', label: L.keyDecisions, icon: icons.decisions, content: session.keyDecisions?.join('\n') },
-    { key: 'topics', label: L.topicsCovered, icon: icons.agenda, content: session.topicsCovered?.join(', ') },
-    { key: 'next', label: L.nextAgenda, icon: icons.next, content: session.nextTopics?.join(', ') },
+    { key: 'summary', label: L.mainDiscussion, items: lines([session.aiSummary]), summary: true },
+    { key: 'decisions', label: L.keyDecisions, items: lines((session.keyDecisions ?? []).map(decisionText)) },
+    { key: 'topics', label: L.topicsCovered, items: lines(session.topicsCovered) },
+    { key: 'next', label: L.nextAgenda, items: lines(session.nextTopics) },
   ];
 }
 
@@ -430,18 +434,26 @@ function noteSectionsOf(session, L, icons) {
 export function NoteGrid({ session, L, icons, baseUrl, recordingPlayer }) {
   return (
     <Section title={L.meetingNotes} icon={icons.notes} icons={icons} baseUrl={baseUrl} collapsible={false}>
-      {recordingPlayer}
-      <div className="ono-mem-notes">
-        {noteSectionsOf(session, L, icons).map(({ key, label, icon, content }) => (
-          <div key={key}>
-            <span className="ono-mem-note-label">
-              <Icon src={icon} size={14} color="var(--text-tertiary)" baseUrl={baseUrl} />
-              {label}
-            </span>
-            <div className="ono-mem-note-box">{content || '—'}</div>
+      {/* 같은 회의록을 매니저는 끝난 1on1 화면의 AI 요약 칸(`ono-done-ai` · 디자이너 시안)으로 본다 —
+          팀원 결과 탭·매니저의 지난 회의록도 그 모양을 쓴다: 소제목 + 한 건마다 흰 블록 (PW-2190).
+          예전엔 결정 사항을 한 덩어리 글로, 다룬 주제·다음 아젠다를 쉼표로 이어 붙였다. */}
+      <section className="ono-done-ai" data-testid="ono-mem-notes">
+        {recordingPlayer}
+        {noteSectionsOf(session, L).map(({ key, label, items, summary }) => (
+          <div className="ono-done-block" key={key} data-testid={`ono-mem-notes-${key}`}>
+            <span className="ono-done-block-label">{label}</span>
+            {items.length === 0 ? (
+              <div className="ono-done-item">—</div>
+            ) : (
+              items.map((text, i) => (
+                <div className={summary ? 'ono-done-item ono-done-summary' : 'ono-done-item'} key={`${key}-${i}`}>
+                  <span className="ono-done-item-text">{text}</span>
+                </div>
+              ))
+            )}
           </div>
         ))}
-      </div>
+      </section>
     </Section>
   );
 }
@@ -740,26 +752,28 @@ export function ManagerFeedback({ session, evidence, loading, error, onRetry, ma
         ) : undefined
       }
     >
-      <div className="ono-mem-feedback">
+      {/* 매니저 끝난 1on1 화면의 피드백 목록(`DoneFeedbackList` · 디자이너)과 같은 모양 — 굵은 소제목 + 본문.
+          예전엔 소제목과 본문이 같은 회색 글씨로 똑같은 회색 상자에 들어 있었다 (PW-2190). */}
+      <div className="ono-done-fb-list">
         {items.map((item) => {
           const confirmed = !!confirm?.confirmed?.[item.key];
           const aiState = confirm ? (confirmed ? ' is-ai-confirmed' : ' is-ai-unconfirmed') : '';
           return (
           <div
-            className={`ono-mem-feedback-box${aiState}`}
+            className={`ono-done-fb${aiState}`}
             key={item.key}
             data-testid={confirm ? `ono-feedback-item-${item.key}` : undefined}
             data-confirmed={confirm ? String(confirmed) : undefined}
           >
-            <div className="ono-mem-note-label">
-              {titleOf(item.key)}
+            <div className="ono-done-fb-head">
+              <span className="ono-done-fb-title">{titleOf(item.key)}</span>
               {confirm && !confirmed && (
                 <DpStatusBadge className="ono-feedback-ai-badge" data-testid={`ono-feedback-unconfirmed-${item.key}`}>
                   {L.feedbackUnconfirmed}
                 </DpStatusBadge>
               )}
             </div>
-            <p className="ono-mem-feedback-text">{item.text}</p>
+            <p className="ono-done-fb-text">{item.text}</p>
 
             {loading && <p className="ono-mem-evidence-status">{L.evidenceLoading}</p>}
             {!loading && error && (

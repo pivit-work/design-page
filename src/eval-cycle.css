@@ -3731,13 +3731,14 @@
   gap: var(--spacing-md);
   margin-bottom: var(--spacing-md);
 }
+/* PW-2190 간격 — 이름표–글 6 · 상자 사이 12 · 상자 안쪽 12 16 */
 .evm-selfref-rows {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
+  gap: var(--spacing-lg);
 }
 .evm-selfref-row {
-  padding: var(--spacing-md) var(--spacing-lg);
+  padding: var(--spacing-lg) var(--spacing-xl);
   background: var(--bg-primary);
   border: 1px solid var(--border-secondary);
   border-radius: var(--radius-md);
@@ -3751,7 +3752,7 @@
   font-size: var(--font-size-text-xs);
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: var(--spacing-xs);
+  margin-bottom: var(--spacing-sm);
 }
 .evm-selfref-text {
   font-size: var(--font-size-text-sm);
@@ -4912,13 +4913,16 @@ button.evm-ai-source {
   font-size: var(--font-size-text-xs);
   line-height: 1.5;
 }
+/* PW-2190 — 이름표–글 2px · 선 위 6px 라 글이 몰려 보였다. 이름표–글 6px, 선으로 나눈 묶음 위아래 16px.
+   이름표(.evc-field-label)의 위 여백은 묶음 안쪽 여백과 겹쳐 위만 넓어지므로 여기선 뺀다. */
 .evl-evi-item {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding-bottom: var(--spacing-sm);
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xl) 0;
   border-bottom: 1px solid var(--bg-active);
 }
+.evl-evi-item > .evc-field-label { margin-top: 0; }
 .evl-evi-text {
   margin: 0;
   font-size: var(--font-size-text-sm);
@@ -5129,6 +5133,17 @@ button.evm-ai-source {
 .evl-prior-head .evl-sec-toggle {
   margin-left: auto;
 }
+/* 앞 차수 리뷰 카드 (PW-2190) — 같은 근거 칸의 동료 리뷰 원문 창(.evl-peer-original-answer)처럼 답마다 선.
+   글씨는 이 칸 크기(14px) 그대로. 머리줄은 누가(굵게)·언제(회색). */
+.evl-evi-item.evl-prior-card { gap: 0; }
+.evl-prior-card .evl-prior-head { padding-bottom: var(--spacing-xs); }
+.evl-prior-head-name { font-size: var(--font-size-text-sm); font-weight: 700; color: var(--text-primary); }
+.evl-prior-head-at { font-size: var(--font-size-text-xs); color: var(--text-secondary); }
+.evl-prior-answer { display: flex; flex-direction: column; gap: var(--spacing-sm); padding: var(--spacing-xl) 0; }
+.evl-prior-answer + .evl-prior-answer { border-top: 1px solid var(--border-secondary); }
+.evl-prior-answer > .evc-field-label { margin-top: 0; }
+.evl-prior-rationale { margin: 0; font-size: var(--font-size-text-xs); color: var(--text-secondary); white-space: pre-wrap; }
+.evl-prior-card .evl-prior-private { margin-top: var(--spacing-md); }
 .evl-prior-private {
   margin: var(--spacing-xs) 0 0;
   font-size: var(--font-size-text-xs);
@@ -5791,8 +5806,9 @@ button.evm-ai-source {
 .evs-re-sec-self { color: var(--utility-brand-600); }
 .evs-re-sec-peer { color: var(--text-primary); }
 .evs-re-sec-manager { color: var(--utility-green-600); }
-.evs-re-answers { display: flex; flex-direction: column; gap: var(--spacing-sm); }
-.evs-re-answer { display: flex; flex-direction: column; gap: 3px; padding: var(--spacing-sm) var(--spacing-md); background: var(--bg-secondary); border-radius: var(--radius-md); }
+/* PW-2190 간격 — 이름표–글 6 · 상자 사이 12 · 상자 안쪽 12 16 */
+.evs-re-answers { display: flex; flex-direction: column; gap: var(--spacing-lg); }
+.evs-re-answer { display: flex; flex-direction: column; gap: var(--spacing-sm); padding: var(--spacing-lg) var(--spacing-xl); background: var(--bg-secondary); border-radius: var(--radius-md); }
 /* [PW-1466] 정책 §8.2~§8.6 — 통합 요약 상태·직함·AI 요약·미확인 */
 .evs-re-item-who { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .evs-re-item-who .evs-re-item-name { flex: none; }
@@ -5816,9 +5832,10 @@ button.evm-ai-source {
   color: var(--utility-warning-700); font-size: var(--font-size-text-xs);
 }
 .evs-re-alert.is-error { background: var(--utility-error-50); border-color: var(--utility-error-200); color: var(--utility-error-700); }
-.evs-re-ai { margin-bottom: var(--spacing-sm); padding: var(--spacing-sm) var(--spacing-md); border-radius: var(--radius-md); background: var(--bg-secondary); border: 1px solid var(--border-secondary); }
+/* PW-2190 간격 — 이름표–글 6 · 상자 사이 12 · 상자 안쪽 12 16 */
+.evs-re-ai { margin-bottom: var(--spacing-lg); padding: var(--spacing-lg) var(--spacing-xl); border-radius: var(--radius-md); background: var(--bg-secondary); border: 1px solid var(--border-secondary); }
 .evs-re-ai.is-unreviewed { background: var(--utility-warning-50); border-color: var(--utility-warning-200); }
-.evs-re-ai-k { font-size: var(--font-size-text-xs); font-weight: 700; color: var(--text-secondary); margin-bottom: 2px; }
+.evs-re-ai-k { font-size: var(--font-size-text-xs); font-weight: 700; color: var(--text-secondary); margin-bottom: var(--spacing-sm); }
 .evs-re-ai-text { margin: 0; font-size: var(--font-size-text-sm); color: var(--text-primary); line-height: 1.6; white-space: pre-wrap; }
 .evs-re-answer.is-unconfirmed { background: var(--utility-warning-50); border: 1px solid var(--utility-warning-200); }
 .evs-re-unconfirmed { align-self: flex-start; }
@@ -5906,13 +5923,18 @@ button.evm-ai-source {
 .evs-pr-head { display: flex; align-items: center; justify-content: space-between; }
 .evs-pr-showall { background: none; border: none; cursor: pointer; font-size: var(--font-size-text-xs); color: var(--utility-brand-600); font-weight: 600; }
 .evs-pr-list { display: flex; flex-direction: column; gap: var(--spacing-md); }
-.evs-pr-card { border: 1px solid var(--bg-active); border-radius: var(--radius-lg); padding: var(--spacing-md); }
-.evs-pr-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--spacing-sm); margin-bottom: var(--spacing-sm); }
+/* PW-2190 — 매니저가 쓴 긴 글이라 본문은 같은 화면 조정 결과 설명(.evs-re-ai-text: 14px · 친 줄바꿈 유지),
+   항목 사이 선은 평가 근거 칸(.evl-evi-item)을 따른다. 간격은 동료 리뷰 원문 창(이름표–글 10 · 사이 24)보다
+   글씨가 작아 그 사이 값(이름표–글 6 · 항목 위아래 16)으로 잡았다. */
+.evs-pr-card { border: 1px solid var(--bg-active); border-radius: var(--radius-lg); padding: var(--spacing-xl) var(--spacing-2xl); }
+.evs-pr-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--spacing-sm); margin-bottom: var(--spacing-xs); }
 .evs-pr-name { font-size: var(--font-size-text-sm); font-weight: 700; color: var(--text-primary); }
 .evs-pr-sub { font-size: var(--font-size-text-xs); color: var(--text-secondary); }
-.evs-pr-field { margin-top: var(--spacing-sm); }
+.evs-pr-field { display: flex; flex-direction: column; gap: var(--spacing-sm); padding: var(--spacing-xl) 0; }
+.evs-pr-field:last-child { padding-bottom: 0; }
+.evs-pr-field + .evs-pr-field { border-top: 1px solid var(--bg-active); }
 .evs-pr-field-label { font-size: var(--font-size-text-xs); font-weight: 700; color: var(--text-secondary); }
-.evs-pr-field-val { font-size: var(--font-size-text-xs); color: var(--text-primary); line-height: 1.6; }
+.evs-pr-field-val { margin: 0; font-size: var(--font-size-text-sm); color: var(--text-primary); line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
 /* J4 필터/CSV */
 .evs-j4-presets { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-sm); margin-bottom: var(--spacing-md); }
 .evs-j4-save { background: none; border: 1px dashed var(--bg-active); border-radius: var(--radius-full); padding: 4px 12px; cursor: pointer; font-size: var(--font-size-text-xs); color: var(--text-secondary); }
@@ -5986,6 +6008,20 @@ button.evm-ai-source {
 }
 /* 리더 차수 제목 바로 아래 답변 목록 — 제목에 아래 여백이 없어 붙었다(PW-1706). */
 .evc-field-label + .evr-answers { margin-top: var(--spacing-md); }
+/* 리더 코멘트 차수 묶음 (PW-2190) — 제목은 카드 제목(.evc-card-name) 굵기·색으로 한 단계 작게,
+   차수 사이는 카드 칸막이 색 선 */
+.evr-leader-round + .evr-leader-round {
+  border-top: 1px solid var(--border-secondary);
+  padding-top: var(--spacing-xl);
+  margin-top: var(--spacing-xl);
+}
+.evr-leader-round-title {
+  margin: 0;
+  font-size: var(--font-size-text-sm);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.evr-leader-round-title + .evr-answers { margin-top: var(--spacing-md); }
 .evr-answer {
   display: flex;
   flex-direction: column;
@@ -6192,6 +6228,8 @@ button.evm-ai-source {
   flex-direction: column;
   gap: var(--spacing-xs);
 }
+/* 성장 영역 답 목록 (PW-2190) — 이름표 바로 아래라 성과 하이라이트 목록보다 위 여백을 줄인다 */
+.evr-growth-block .evr-highlights { margin-top: var(--spacing-xs); }
 
 /* ── G6: 리포트 검수/발송 (EvalReportReviewCanvas) ── */
 .evrr-counts {
@@ -8047,10 +8085,11 @@ button.evm-ai-source {
   border-left: 1px solid var(--border-primary);
   padding-left: 14px;
 }
+/* PW-2190 간격 — 좁은 오른쪽 칸이고 160px 에서 스크롤되므로 기준(사이 12 · 안쪽 12 16)보다 한 단계 덜 넓힌다 */
 .evs-cw-comment-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--spacing-md);
   max-height: 160px;
   overflow-y: auto;
 }
@@ -8061,10 +8100,10 @@ button.evm-ai-source {
 .evs-cw-comment {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--spacing-sm);
   background: var(--bg-secondary);
   border-radius: 7px;
-  padding: 7px 10px;
+  padding: 10px 12px;
 }
 .evs-cw-comment-author {
   font-size: 12px;
@@ -11129,15 +11168,16 @@ button.evm-ai-source {
   font-size: var(--font-size-text-xs);
   color: var(--text-secondary);
 }
+/* PW-2190 간격 — 이름표–글 6 · 상자 사이 12 · 상자 안쪽 12 16 */
 .evrr-refine-compare {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--spacing-md);
+  gap: var(--spacing-lg);
 }
 .evrr-refine-col {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xs);
+  gap: var(--spacing-sm);
   min-width: 0;
 }
 .evrr-refine-col-label {
@@ -11147,7 +11187,7 @@ button.evm-ai-source {
 }
 .evrr-refine-text {
   margin: 0;
-  padding: var(--spacing-md);
+  padding: var(--spacing-lg) var(--spacing-xl);
   border-radius: var(--radius-md);
   background: var(--bg-secondary);
   font-size: var(--font-size-text-sm);

@@ -375,11 +375,20 @@ function GrowthAreas({ selfAnswers, L }) {
           byType[k].length === 0 ? null : (
             <div className="evr-growth-block" key={k}>
               <span className="evc-field-label">{L[GROWTH_KEY[k]]}</span>
-              {byType[k].map((a) => (
-                <p className="evr-answer-text" key={a.id}>
-                  {a.textAnswer}
-                </p>
-              ))}
+              {/* PW-2190 — 답 여러 개가 문단으로만 이어져 한 글처럼 보였다. 같은 리포트의
+                  「성과 하이라이트」 번호 목록 모양으로 한 답마다 한 줄을 세운다. */}
+              <ol className="evr-highlights">
+                {byType[k].map((a, i) => (
+                  <li className="evr-highlight" key={a.id}>
+                    <span className="evr-highlight-num" aria-hidden>
+                      {i + 1}
+                    </span>
+                    <div className="evr-answer">
+                      <p className="evr-answer-text">{a.textAnswer}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
             </div>
           ),
         )}
@@ -522,9 +531,11 @@ export default function EvalCycleReportCanvas({
             {leaderAnswers.length > 0 &&
               (leaderRoundGroups ? (
                 // PW-1594 — 하향 리뷰가 여러 차수면 차수마다 묶는다. 하나면 종전 그대로.
+                // PW-2190 — 차수 제목이 그 아래 질문 이름과 같은 12px 회색이라 묶음이 안 보였다.
+                // 제목을 카드 제목(evc-card-name) 굵기로 한 단계 올리고 차수 사이에 선을 긋는다.
                 leaderRoundGroups.map(({ round, answers }) => (
-                  <div key={round} data-testid={`evr-leader-round-${round}`}>
-                    <h4 className="evc-field-label">
+                  <div className="evr-leader-round" key={round} data-testid={`evr-leader-round-${round}`}>
+                    <h4 className="evr-leader-round-title">
                       {String(L.leaderRoundTitle || '').replace('{round}', String(round))}
                     </h4>
                     <AnswerList answers={answers} L={L} />

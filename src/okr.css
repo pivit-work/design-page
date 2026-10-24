@@ -437,6 +437,15 @@ body:has(.okr-ctx-banner) .tl-group-modal.okr-shell { max-height: calc(100vh - 6
 .okr-cf-company { background: var(--bg-secondary); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
 .okr-cf-company-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
 .okr-cf-company-title { font-size: 13px; font-weight: 600; color: var(--text-primary); line-height: 20px; }
+/* 전략 캔버스 요약 (PW-2190) — 전략 캔버스 탭 행(.okr-s-row 사이 선 · .okr-s-list 번호 목록)을 300px 칸에 맞춰
+   이름표 위·내용 아래로 쌓는다. 글씨 크기는 같은 창 값(이름표 = .okr-cf-group-q, 내용 = .okr-cf-company-title 크기) */
+.okr-cf-strategy { background: var(--bg-secondary); border-radius: 10px; padding: 4px 14px; display: flex; flex-direction: column; }
+.okr-cf-strategy-eyebrow { font-size: 12px; font-weight: 500; line-height: 18px; color: var(--text-tertiary); padding: 10px 0 2px; margin: 0; }
+.okr-cf-strategy-row { display: flex; flex-direction: column; gap: 4px; padding: 12px 0; }
+.okr-cf-strategy-row + .okr-cf-strategy-row { border-top: 1px solid var(--border-secondary); }
+.okr-cf-strategy-label { font-size: 12px; font-weight: 700; line-height: 18px; color: var(--text-secondary); margin: 0; }
+.okr-cf-strategy-text { font-size: 13px; font-weight: 500; line-height: 20px; color: var(--text-primary); margin: 0; overflow-wrap: anywhere; }
+.okr-cf-strategy-list { margin: 0; padding-left: 18px; font-size: 13px; font-weight: 500; line-height: 20px; color: var(--text-primary); display: flex; flex-direction: column; gap: 2px; overflow-wrap: anywhere; }
 .okr-cf-group { border: 1px solid var(--border-secondary); border-radius: 10px; padding: 8px; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 1px 3px rgba(10, 13, 18, 0.06); }
 .okr-cf-group-head { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: var(--bg-secondary); border-radius: 6px; font-size: 13px; font-weight: 700; color: var(--text-primary); }
 .okr-cf-group-q { font-size: 12px; font-weight: 700; color: var(--text-secondary); }

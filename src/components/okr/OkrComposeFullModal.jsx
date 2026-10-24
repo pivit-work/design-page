@@ -7,6 +7,7 @@ import Tooltip from '../shared/Tooltip.jsx';
 import OkrMemberPicker from './OkrMemberPicker.jsx';
 import OkrProgressBar from './OkrProgressBar.jsx';
 import rowKey from './rowKey.js';
+import stripListMarker from './stripListMarker.js';
 
 /**
  * OkrComposeFullModal — 개인 OKR 작성 풀스크린 모달.
@@ -514,18 +515,27 @@ export default function OkrComposeFullModal({
         {hasMinimap && (
           <div className="okr-cf-minimap">
             {/* 전략 캔버스 요약 — 전사 작성에서 AI 생성의 근거를 보여 주는 읽기 전용 카드(okr-spec §4.5).
-                모양은 같은 열의 회사 카드(okr-cf-company)를 그대로 쓴다 — 시안 원본이 없다(PW-1504). */}
+                시안 원본이 없어(PW-1504) 전략 캔버스 탭의 행(okr-s-row · okr-s-list) 리듬을 좁은 칸에
+                맞춰 쌓는다 — 이름표 위·내용 아래, 행 사이 선, `list` 행은 번호 목록 (PW-2190). */}
             {summaryRows.length > 0 && (
-              <div className="okr-cf-company" data-testid="okr-cf-strategy-summary">
-                {strategySummary.title && <p className="okr-cf-eyebrow">{strategySummary.title}</p>}
+              <div className="okr-cf-strategy" data-testid="okr-cf-strategy-summary">
+                {strategySummary.title && <p className="okr-cf-strategy-eyebrow">{strategySummary.title}</p>}
                 {summaryRows.map((row, i) => (
-                  <div key={rowKey(row, i, 'label')}>
-                    <p className="okr-cf-company-label">{row.label}</p>
-                    <p className="okr-cf-company-title">
-                      {String(row.value).split('\n').map((line, j) => (
-                        <span key={rowKey(line, j)}>{j > 0 && <br />}{line}</span>
-                      ))}
-                    </p>
+                  <div className="okr-cf-strategy-row" key={rowKey(row, i, 'label')}>
+                    <p className="okr-cf-strategy-label">{row.label}</p>
+                    {row.list ? (
+                      <ol className="okr-cf-strategy-list">
+                        {String(row.value).split('\n').map(stripListMarker).filter((line) => line.trim()).map((line, j) => (
+                          <li key={rowKey(line, j)}>{line}</li>
+                        ))}
+                      </ol>
+                    ) : (
+                      <p className="okr-cf-strategy-text">
+                        {String(row.value).split('\n').map((line, j) => (
+                          <span key={rowKey(line, j)}>{j > 0 && <br />}{line}</span>
+                        ))}
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>

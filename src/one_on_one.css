@@ -2799,11 +2799,6 @@ button.ono-add-modal-input { cursor: pointer; }
 }
 
 /* ── 노트 2×2 ── */
-.ono-mem-notes {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-}
 /* 「일정 추가」 창 이름표(`.ono-add-modal-field-label`)와 같은 값, 칸과의 사이는 그 창의
    이름표–칸 간격(`.ono-add-modal-field` gap) (PW-1901) */
 .ono-mem-note-label {
@@ -2816,15 +2811,6 @@ button.ono-add-modal-input { cursor: pointer; }
   font-size: var(--font-size-text-sm);
   line-height: var(--line-height-text-sm);
   color: var(--text-secondary);
-}
-.ono-mem-note-box {
-  padding: 12px 14px;
-  border-radius: 12px;
-  background: var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
-  font-size: var(--font-size-text-sm);
-  line-height: var(--line-height-text-sm);
-  color: var(--text-secondary);
-  min-height: 60px;
 }
 
 /* ── 매니저 피드백 + 근거 발췌 (PW-103) ── */

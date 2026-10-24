@@ -182,17 +182,58 @@ export function OnbBadge({ tone = 'brand', icon, children, testId }) {
   );
 }
 
-/** 요청 요약 표 (시안 RequestSummary). rows: [{ label, value }] — 빈 값은 호출부가 거른다. */
-export function OnbSummary({ rows = [], testId }) {
+/**
+ * 요청 요약 표 (시안 RequestSummary). rows: [{ label, value }] — 빈 값은 호출부가 거른다.
+ *
+ * `stacked` — 값이 긴 문장일 때(동의 [보기]) 같은 표 틀에서 이름표 위·내용 아래로 쌓고, 내용은
+ * 보통 굵기·왼쪽 정렬로 둔다. 짧은 값용 오른쪽 정렬 굵은 글씨에 긴 문장이 붙던 자리 (PW-2190).
+ */
+export function OnbSummary({ rows = [], stacked = false, testId }) {
   return (
-    <div className="onb-summary" data-testid={testId}>
+    <div className={cx('onb-summary', stacked && 'is-stacked')} data-testid={testId}>
       {rows.map((r) => (
         <div key={r.label} className="onb-summary-row">
           <span>{r.label}</span>
-          <b>{r.value}</b>
+          {stacked ? <p>{r.value}</p> : <b>{r.value}</b>}
         </div>
       ))}
     </div>
+  );
+}
+
+/**
+ * 이름표 + 긴 내용 묶음 (PW-2190) — 선호·성향 정보 동의 [보기]. 묶음 사이에 선을 그어
+ * 베타 신청 동의 [보기](`OnbSummary stacked`)와 같은 쌓기 모양으로 둔다.
+ * rows: [{ key?, label, value, strong }] — `strong` 은 문안 규정상 굵게 쓰는 칸(보유 기간).
+ */
+export function OnbDetailRows({ rows = [], testId }) {
+  return (
+    <div className="onb-box is-subtle onb-detail" data-testid={testId}>
+      {rows.map((r) => (
+        <div key={r.key ?? r.label} className="onb-detail-row">
+          <OnbText size={12} tone="strong" weight={600}>{r.label}</OnbText>
+          <OnbText size={12} tone={r.strong ? 'strong' : 'sub'} weight={r.strong ? 700 : undefined}>
+            {r.value}
+          </OnbText>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * 글머리 점 목록 (PW-2190) — 운영자가 줄마다 쓴 변경 사항처럼 «여러 줄 = 여러 항목» 인 글.
+ * 글씨는 `OnbText` 와 같은 크기·색 단계를 받는다. items: string[] (빈 줄은 호출부가 거른다).
+ */
+export function OnbBulletList({ items = [], size = 13, tone = 'sub', testId }) {
+  return (
+    <ul className="onb-bullets" data-testid={testId}>
+      {items.map((item, i) => (
+        <OnbText as="li" key={`${i}-${item}`} size={size} tone={tone}>
+          {item}
+        </OnbText>
+      ))}
+    </ul>
   );
 }
 

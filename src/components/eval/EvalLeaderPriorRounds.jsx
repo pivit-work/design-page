@@ -45,15 +45,20 @@ const mmddhhmm = (iso) => {
 function PriorCard({ r, open, onToggle, labelOf, scaleMaxOf, gradeLabelOf, L }) {
   const late = !!r.openedByHrAt;
   return (
-    <div className="evl-evi-item" data-testid={`evl-prior-card-${r.round}`}>
+    <div className="evl-evi-item evl-prior-card" data-testid={`evl-prior-card-${r.round}`}>
+      {/* PW-2190 — 머리줄과 질문 이름이 같은 12px 회색이라 갈리지 않았다. 누가(굵게)·언제(회색)를 나눈다.
+          `priorHeadName`·`priorHeadAt` 을 안 넘기는 소비처는 예전 한 줄(`priorHead`)을 굵게 쓴다. */}
       <div className="evl-prior-head">
-        <span className="evc-field-label">
-          {fill(L.priorHead, {
+        <span className="evl-prior-head-name">
+          {fill(L.priorHeadName || L.priorHead, {
             round: r.round,
             name: r.evaluatorName || L.priorUnknownEvaluator || '—',
             at: mmddhhmm(r.submittedAt),
           })}
         </span>
+        {L.priorHeadName && L.priorHeadAt && r.submittedAt && (
+          <span className="evl-prior-head-at">{fill(L.priorHeadAt, { at: mmddhhmm(r.submittedAt) })}</span>
+        )}
         {r.gradeKey && (
           <StatusBadge tone="info" data-testid={`evl-prior-grade-${r.round}`}>
             {gradeLabelOf(r.gradeKey)}
@@ -85,7 +90,7 @@ function PriorCard({ r, open, onToggle, labelOf, scaleMaxOf, gradeLabelOf, L }) 
             <p className="evc-empty-sub">{L.priorNoAnswers}</p>
           ) : (
             r.answers.map((a, i) => (
-              <div key={`${a.templateItemId ?? a.itemCategory ?? ''}-${i}`} data-testid="evl-prior-answer">
+              <div className="evl-prior-answer" key={`${a.templateItemId ?? a.itemCategory ?? ''}-${i}`} data-testid="evl-prior-answer">
                 <span className="evc-field-label">
                   {labelOf(a)}
                   {/* 체크 항목은 점수 칸이 아니라 고른 선택지로 보인다 — 옛 체크의 1/0 을 «1/5» 로 적지 않는다. */}
@@ -98,7 +103,7 @@ function PriorCard({ r, open, onToggle, labelOf, scaleMaxOf, gradeLabelOf, L }) 
                 ) : null}
                 {a.textAnswer ? <p className="evl-evi-text">{a.textAnswer}</p> : null}
                 {a.rationale ? (
-                  <p className="evl-evi-text">
+                  <p className="evl-prior-rationale">
                     {L.evidenceRationaleLabel} · {a.rationale}
                   </p>
                 ) : null}

@@ -7,6 +7,7 @@ import OkrBoard from './OkrBoard.jsx';
 import OkrHistoryList from './OkrHistoryList.jsx';
 import rowKey from './rowKey.js';
 import { AI_PREREQUISITES } from './okrStrategyAiPrerequisites.js';
+import stripListMarker from './stripListMarker.js';
 
 /**
  * OkrStrategyCanvas — 전사 OKR 탭 (전략 캔버스/Company OKR/히스토리).
@@ -198,7 +199,7 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
                     />
                   ) : Array.isArray(row.content) ? (
                     <ol className="okr-s-list">
-                      {row.content.map((line, li) => <li key={rowKey(line, li)}>{line}</li>)}
+                      {row.content.map((line, li) => <li key={rowKey(line, li)}>{stripListMarker(line)}</li>)}
                     </ol>
                   ) : (
                     <p className="okr-s-text">{row.content}</p>
