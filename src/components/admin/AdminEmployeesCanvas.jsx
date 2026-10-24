@@ -5139,8 +5139,9 @@ export default function AdminEmployeesCanvas({
   invites = [],
   initialTab,
   /**
-   * 넷째 탭 「발령 이력」 (PW-2034 · admin-spec §3.0) — `{ count, render, takeover }`.
-   * `count` 는 아직 반영 전인 예정 발령 수, `render()` 가 탭 본문(`AppointmentHistoryPanel`)을 그린다.
+   * 넷째 탭 「발령 이력」 (PW-2034 · admin-spec §3.0) — `{ render, takeover }`.
+   * `render()` 가 탭 본문(`AppointmentHistoryPanel`)을 그린다. 이 탭에는 숫자를 달지 않는다 — 누적 이력이라
+   * 건수가 뜻이 없고, 예정 건은 목록의 «예정» 배지로 본다(PW-2174).
    * `takeover: true` 면 탭 줄과 안내 띠 없이 `render()` 만 그린다 — [대량 발령]이 화면 전체를
    * 대량 발령으로 바꾸는 자리다. 미주입이면 탭이 없다.
    */
@@ -5561,7 +5562,7 @@ export default function AdminEmployeesCanvas({
     { id: 'unassigned', label: labels.tabs.unassigned, count: unassignedCount, warn: unassignedCount > 0 },
     { id: 'invites', label: labels.tabs.invites, count: pendingInviteCount },
     ...(appointmentsTab
-      ? [{ id: 'appointments', label: labels.tabs.appointments, count: appointmentsTab.count ?? 0 }]
+      ? [{ id: 'appointments', label: labels.tabs.appointments, count: null }]
       : []),
   ];
 
@@ -5618,9 +5619,11 @@ export default function AdminEmployeesCanvas({
             label: (
               <span className="adm-tab-label">
                 {t.label}
-                <span className={`admin-emp-tab-count${t.warn ? ' is-warn' : ''}${tab === t.id ? ' is-active' : ''}`}>
-                  {t.count}
-                </span>
+                {t.count != null && (
+                  <span className={`admin-emp-tab-count${t.warn ? ' is-warn' : ''}${tab === t.id ? ' is-active' : ''}`}>
+                    {t.count}
+                  </span>
+                )}
               </span>
             ),
           }))}
