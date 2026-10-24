@@ -137,7 +137,10 @@ export default function OkrPersonalCanvas({
         )}
       </div>
 
-      {emptyMessage ? (
+      {periodTab === 'history' ? (
+        // 히스토리 탭은 이번 분기 목표가 0건이어도 지난 분기 목록을 그린다 — 0건 안내는 «지금» 탭 몫이다(pivit-work PW-1509).
+        <OkrHistoryList history={history} icons={icons} baseUrl={baseUrl} emptyLabel={historyEmptyLabel} />
+      ) : emptyMessage ? (
         <EmptyState
           title={emptyMessage}
           data-testid="okr-personal-empty"
@@ -147,8 +150,6 @@ export default function OkrPersonalCanvas({
             </Button>
           )}
         />
-      ) : periodTab === 'history' ? (
-        <OkrHistoryList history={history} icons={icons} baseUrl={baseUrl} emptyLabel={historyEmptyLabel} />
       ) : (
         <>
           <OkrLinkedParents links={links} parents={parents} />
