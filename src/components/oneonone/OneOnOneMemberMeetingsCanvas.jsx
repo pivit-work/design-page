@@ -4,7 +4,7 @@ import EmptyState from '../shared/EmptyState.jsx';
 import Button from '../shared/Button.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
-import { fill, hostOf, healthOf, heldAtOf } from './sessionHelpers.js';
+import { fill, hostOf, healthOf, heldAtOf, ownerLabelOf } from './sessionHelpers.js';
 import {
   Section,
   ColHeads,
@@ -636,9 +636,7 @@ function RecordScreen({
               /* 열람 전용 — 행에 onClick 을 달지 않는다. 체크는 상태 표시일 뿐이다. */
               <div className="ono-mem-row" data-testid="ono-past-action-row" key={item.id}>
                 <span className="ono-mem-cell">{item.text}</span>
-                <span className="ono-mem-cell is-sub">
-                  {item.owner === 'member' ? L.roleMember : L.roleManager}
-                </span>
+                <span className="ono-mem-cell is-sub">{ownerLabelOf(item, L)}</span>
                 <span className={`ono-start-flag ono-start-flag-${item.done ? 'blue' : 'warning'}`}>
                   {item.done ? L.statusDone : L.statusPending}
                 </span>

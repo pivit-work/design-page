@@ -14,8 +14,11 @@ export function isCjkName(name) {
   return CJK_RE.test(name || '');
 }
 
+/** 이름 끝의 «(…)» 상태 표시(«민현식 (퇴사)» — pivit-work PW-1490). 사람 이름이 아니라 원에 넣지 않는다. */
+const TRAILING_STATUS_RE = /(?<=\S)\s*\([^()]*\)$/;
+
 export function nameInitials(name) {
-  const trimmed = (name || '').trim();
+  const trimmed = (name || '').trim().replace(TRAILING_STATUS_RE, '').trim();
   if (!trimmed) return '';
   if (isCjkName(trimmed)) return trimmed.replace(/\s+/g, '').slice(0, MAX_NAME_CHARS);
   const words = trimmed.split(/[\s/-]+/).filter(Boolean);
