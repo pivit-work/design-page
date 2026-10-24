@@ -138,9 +138,12 @@ export default function ProfileModal({
     setSplineFailedId(displayMember?.id ?? null);
   }, [displayMember?.id]);
 
+  // 다른 팀원으로 열릴 때만 맨 위로 — 호스트는 탭 상태(「AI 브리핑」 생성 중 등)가 바뀔 때마다 팀원 값을 새로
+  // 만들어 넘긴다. 값 자체를 보면 버튼을 누를 때마다 창이 맨 위로 튄다 (pivit-work PW-1531).
+  const openMemberId = member?.id ?? null;
   useEffect(() => {
-    if (member && scrollWrapRef.current) scrollWrapRef.current.scrollTop = 0;
-  }, [member]);
+    if (openMemberId != null && scrollWrapRef.current) scrollWrapRef.current.scrollTop = 0;
+  }, [openMemberId]);
 
   const isOpen = !!member;
   const profile = displayMember?.profile;
