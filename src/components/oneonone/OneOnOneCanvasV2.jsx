@@ -597,7 +597,12 @@ function MemberCard({ member, tone, icons, baseUrl, onAction, onCardClick, rende
             {labels.scheduleChange}
           </button>
         )}
-        <div className="ono-member-actions">
+        {/* 꺼진 버튼은 말풍선 두름(`dp-tip-wrap`)이 클릭을 대신 받는다 — 그 클릭이 카드로 번지면
+            「눌러도 아무 일 없어야 할」 버튼이 지난 회의 창을 연다 (PW-1492). 버튼 사이 빈 곳은 종전대로 카드 클릭이다. */}
+        <div
+          className="ono-member-actions"
+          onClick={(e) => { if (e.target !== e.currentTarget) e.stopPropagation(); }}
+        >
           {member.actions?.map((a, i) => {
             const button = (
               <button
