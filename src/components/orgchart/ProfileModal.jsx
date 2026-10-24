@@ -344,7 +344,8 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
             <div className="modal-info-label">{L('profile.skills')}</div>
             <div className="modal-info-content">{profile.skills}</div>
           </div>
-          {/* 담당 프로젝트 — 공개했고 한 건 이상일 때만. 이름 문자열 또는 `{ name, color }` (PW-1217). */}
+          {/* 담당 프로젝트 — 공개했고 한 건 이상일 때만. 이름 문자열 또는 `{ name }` (PW-1217).
+              색 점 없이 이름만 — 같은 창 «연락처»«링크» 줄과 같은 글자 (PW-1514). */}
           {profile.projects?.length > 0 && (
             <div className="modal-info-section" data-testid="profile-projects">
               <div className="modal-info-label">{L('profile.projects')}</div>
@@ -353,8 +354,7 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
                   const name = typeof p === 'string' ? p : p?.name;
                   if (!name) return null;
                   return (
-                    <li key={i} className="modal-project-item">
-                      <span className="modal-project-dot" style={p?.color ? { background: p.color } : undefined} />
+                    <li key={i} className="modal-project-item modal-project-name">
                       {name}
                     </li>
                   );

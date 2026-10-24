@@ -584,6 +584,10 @@
   color: var(--text-secondary);
   overflow-wrap: anywhere;
 }
+/* 담당 프로젝트 이름 줄 — 같은 창 .modal-info-link(stesslee) 와 같은 14/600/20 secondary (PW-1514). */
+.modal-project-name {
+  font-weight: 600;
+}
 .modal-project-dot {
   width: 6px;
   height: 6px;

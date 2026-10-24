@@ -2042,29 +2042,44 @@
 .tl-snippet-detail-links {
   display: flex;
   flex-direction: column;
+  gap: 12px;
+}
+
+/* 연결 묶음 — 작은 제목 + 이름 줄. 값은 매니저 팀 스니핏 카드 「기여 KR」
+   (stesslee manager.css .mgr-ts-kr gap 6 · .mgr-ts-kr-label 12/400/18 secondary ·
+   .mgr-ts-kr-name 14/600/20 secondary) 그대로. */
+.tl-snippet-detail-link-group {
+  display: flex;
+  flex-direction: column;
   gap: 6px;
 }
 
-.tl-snippet-detail-links .tl-snippet-detail-tags {
+.tl-snippet-detail-link-label {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+  color: var(--text-secondary);
+}
+
+.tl-snippet-detail-link-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.tl-snippet-detail-links .tl-snippet-tag {
-  max-width: 100%;
+.tl-snippet-detail-link-name {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--text-secondary);
   overflow-wrap: anywhere;
 }
 
-/* 프로젝트 색 점 — 같은 창 아바타 색 점과 같은 원형. */
-.tl-snippet-detail-project-dot {
-  flex-shrink: 0;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-
-/* 이름을 못 찾은 연결을 묶은 안내 칩 — 빈 본문 안내와 같은 흐린 글자. */
+/* 이름을 못 찾은 연결을 묶은 안내 줄 — 빈 본문 안내와 같은 흐린 글자. */
 .tl-snippet-detail-links .tl-snippet-detail-unresolved {
   color: var(--text-tertiary);
 }
