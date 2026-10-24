@@ -1,5 +1,4 @@
 import { memberPalette } from './constants.js';
-import { healthTier } from './snippetHealth.js';
 
 /**
  * SnippetBlock — 간트 일 뷰에서 "이 사람이 이 시각에 스니핏을 썼다" 를 나타내는 블록.
@@ -14,15 +13,17 @@ import { healthTier } from './snippetHealth.js';
  * 기록이므로, 블록 왼쪽 모서리가 작성 시각에 정확히 걸리고 폭은 한 시간 칸으로
  * 고정한다(칸 안에 본문이 읽힐 만큼은 필요).
  *
+ * 컨디션 점수(health)는 블록에 그리지 않는다 — 점만으로는 무슨 뜻인지 읽히지 않아서,
+ * 숫자와 라벨이 함께 나오는 상세 창에서만 보여 준다.
+ *
  * Props:
- *   snippet  { id, text, timeLabel, health, ... }
+ *   snippet  { id, text, timeLabel, ... }
  *   member   멤버 객체 (color 키 보유)
  *   left/top/width/height  그리드 본문 좌표(px)
  *   onClick  (snippet, rect) — 상세 모달을 여는 콜백
  */
 export default function SnippetBlock({ snippet, member, left, top, width, height, onClick }) {
   const palette = memberPalette(member);
-  const hasHealth = typeof snippet.health === 'number' && !Number.isNaN(snippet.health);
 
   return (
     <button
@@ -66,12 +67,6 @@ export default function SnippetBlock({ snippet, member, left, top, width, height
             <span className="tl-snippet-block-time" style={{ color: palette.timeText }}>
               {snippet.timeLabel}
             </span>
-          )}
-          {hasHealth && (
-            <span
-              className={`tl-snippet-block-health tl-snippet-block-health--${healthTier(snippet.health)}`}
-              aria-hidden
-            />
           )}
         </span>
         <span className="tl-snippet-text">{snippet.text}</span>
