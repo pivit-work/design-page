@@ -163,6 +163,7 @@ const DEFAULT_LABELS = {
   historyEmptyTitle: '아직 지난 원온원이 없습니다',
   historyOpen: '기록보기', historyAnalyzing: 'AI 분석 중', historyAction: '액션',
   pastSessionsEmpty: '지난 1on1 기록이 없습니다',
+  historyCurrent: '현재 진행 중',
   backToHistory: '목록으로',
   highlights: '하이라이트', count: '건', countUnit: '건',
   managerFeedback: '매니저 피드백',
@@ -1935,7 +1936,7 @@ function HistoryDetail({ session, manager, avatar, renderAvatar, L, icons, baseU
   );
 }
 
-function HistoryScreen({ sessions, manager, avatar, renderAvatar, L, icons, baseUrl, formatDate, formatDuration, healthColor, healthBg, healthBorder, feedbackEvidence, onHistorySelect, renderRecordingPlayer }) {
+function HistoryScreen({ sessions, session, onCurrentOpen, manager, avatar, renderAvatar, L, icons, baseUrl, formatDate, formatDuration, healthColor, healthBg, healthBorder, feedbackEvidence, onHistorySelect, renderRecordingPlayer }) {
   const [selectedId, setSelectedId] = useState(null);
   const done = sessions.filter((s) => s.status === 'done');
   const selected = done.find((s) => s.id === selectedId);
@@ -1974,14 +1975,27 @@ function HistoryScreen({ sessions, manager, avatar, renderAvatar, L, icons, base
       analyzing: isDonePending(doneBannerState(s)),
     };
   });
+  // 진행 중인 회차(ready|live)는 목록 맨 위 「현재 진행 중」 행이다(Figma 17556:23596 · 데모 OneOnOnePage.jsx `memberCurrent`).
+  // 요약 자리에는 팀원이 적은 주제를, 액션 수는 지난 회차 행과 같은 셈(팀원 몫)으로 둔다.
+  // 호스트가 `onCurrentOpen` 을 안 넘기면 행이 없다 — 행을 눌러 갈 화면이 없어서다.
+  const mineNow = session ? (session.actionItems ?? []).filter((a) => a.owner === 'member') : [];
+  const current = session && onCurrentOpen ? {
+    id: session.id,
+    dateLabel: formatDate(heldAtOf(session), 'short'),
+    actionDone: mineNow.filter((a) => a.done).length,
+    actionTotal: mineNow.length,
+    summary: (session.memberTopics ?? []).join(' · '),
+    onOpen: () => onCurrentOpen(session),
+  } : null;
 
   return (
     <OneOnOnePastSessionList
       title={fill(L.historyWith, { name: manager.name })}
       subtitle={fill(L.historySubtitle, { count: done.length })}
       sessions={rows}
+      current={current}
       onOpen={(r) => select(r.id)}
-      labels={{ open: L.historyOpen, analyzing: L.historyAnalyzing, action: L.historyAction }}
+      labels={{ open: L.historyOpen, analyzing: L.historyAnalyzing, action: L.historyAction, current: L.historyCurrent }}
       emptyTitle={L.historyEmptyTitle}
       emptyText={L.pastSessionsEmpty}
       baseUrl={baseUrl}
@@ -2099,6 +2113,12 @@ export default function OneOnOneMemberCanvas({
    */
   notice = null,
   preparation = null,
+  /**
+   * 히스토리 목록 맨 위 「현재 진행 중」 행을 눌렀을 때 — `(session) => void` (2026-10-24, Figma 17556:23596).
+   * 진행 중인 회차(`session`)가 있고 이 값을 넘기면 지난 회차 목록 위에 그 회차를 파란 행으로 세운다.
+   * 호스트가 진행 화면으로 보낸다. 안 넘기면 행이 없다(종전 목록 그대로).
+   */
+  onCurrentOpen,
 }) {
   const L = mergeLabels(DEFAULT_LABELS, providedLabels);
   const icons = { ...DEFAULT_ICONS, ...(providedIcons || {}) };
@@ -2151,7 +2171,8 @@ export default function OneOnOneMemberCanvas({
       {tab === 'history' && (
         <HistoryScreen
           {...shared}
-          sessions={sessions} manager={manager} avatar={smallAvatar} renderAvatar={renderAvatar}
+          sessions={sessions} session={session} onCurrentOpen={onCurrentOpen}
+          manager={manager} avatar={smallAvatar} renderAvatar={renderAvatar}
           healthColor={healthColor} healthBg={healthBg} healthBorder={healthBorder}
           feedbackEvidence={feedbackEvidence}
           onHistorySelect={onHistorySelect}
