@@ -19,9 +19,10 @@ import { healthTier, healthLabel } from './snippetHealth.js';
  *   snippet     { id, memberId, text, emptyText, timeLabel, dateLabel, health, healthNote, tags, canOpen,
  *                 filledCount, krs, projects }
  *               filledCount  작성 진행도 n/5 의 n (머리줄 끝에 붙는다)
- *               krs/projects [{ id, label, color?, unresolved? }] — 연결된 KR·프로젝트 칩.
- *                            unresolved 는 이름을 못 찾은 연결을 묶은 안내 칩(흐린 글자).
+ *               krs/projects [{ id, label, unresolved? }] — 연결된 KR·프로젝트 이름 줄.
+ *                            unresolved 는 이름을 못 찾은 연결을 묶은 안내 줄(흐린 글자).
  *                            비었으면 그 줄을 그리지 않는다 (PW-1514).
+ *               linkLabels   { krs, projects } — 칩 줄 위 작은 제목. 앱이 번역해 넘긴다.
  *   anchorRect  클릭한 블록의 DOMRect
  *   onClose     닫기
  *   onOpen      "스니핏 전체 보기" — 미주입이거나 canOpen=false 면 버튼을 숨긴다
@@ -61,6 +62,7 @@ export default function SnippetDetailModal({ snippet, anchorRect, onClose, onOpe
   const tags = snippet.tags || [];
   const krs = snippet.krs || [];
   const projects = snippet.projects || [];
+  const linkLabels = snippet.linkLabels || {};
   const hasProgress = typeof snippet.filledCount === 'number';
 
   // 막·Esc·바깥 누르기는 공용 창 바탕(`ModalLayer`)이 갖는다(PW-1013). 누른 블록 옆에 붙어 뜨는
@@ -136,35 +138,18 @@ export default function SnippetDetailModal({ snippet, anchorRect, onClose, onOpe
           {(krs.length > 0 || projects.length > 0) && (
             <div className="tl-snippet-detail-links">
               {krs.length > 0 && (
-                <ul className="tl-snippet-detail-tags" aria-label="KR">
-                  {krs.map((kr) => (
-                    <li
-                      key={kr.id}
-                      className={`tl-snippet-tag${kr.unresolved ? ' tl-snippet-detail-unresolved' : ''}`}
-                    >
-                      {kr.label}
-                    </li>
-                  ))}
-                </ul>
+                <LinkGroup
+                  id="tl-snippet-detail-krs"
+                  label={linkLabels.krs || '기여 KR'}
+                  items={krs}
+                />
               )}
               {projects.length > 0 && (
-                <ul className="tl-snippet-detail-tags" aria-label="프로젝트">
-                  {projects.map((p) => (
-                    <li
-                      key={p.id}
-                      className={`tl-snippet-tag${p.unresolved ? ' tl-snippet-detail-unresolved' : ''}`}
-                    >
-                      {p.color && (
-                        <span
-                          className="tl-snippet-detail-project-dot"
-                          style={{ background: p.color }}
-                          aria-hidden
-                        />
-                      )}
-                      {p.label}
-                    </li>
-                  ))}
-                </ul>
+                <LinkGroup
+                  id="tl-snippet-detail-projects"
+                  label={linkLabels.projects || '프로젝트'}
+                  items={projects}
+                />
               )}
             </div>
           )}
@@ -195,5 +180,28 @@ export default function SnippetDetailModal({ snippet, anchorRect, onClose, onOpe
         </div>
       </div>
     </ModalLayer>
+  );
+}
+
+/**
+ * 연결 묶음 — 작은 제목 아래 이름을 한 줄씩. 매니저 팀 스니핏 카드의 「기여 KR」
+ * (stesslee manager.css `.mgr-ts-kr`·`.mgr-ts-kr-label`·`.mgr-ts-kr-name`)와 같은 짜임:
+ * 칩·색 표시 없이 제목으로 무엇인지 말한다. 태그 칩과 모양이 겹치지 않게 칩을 쓰지 않는다.
+ */
+function LinkGroup({ id, label, items }) {
+  return (
+    <div className="tl-snippet-detail-link-group">
+      <p id={id} className="tl-snippet-detail-link-label">{label}</p>
+      <ul className="tl-snippet-detail-link-list" aria-labelledby={id}>
+        {items.map((item) => (
+          <li
+            key={item.id}
+            className={`tl-snippet-detail-link-name${item.unresolved ? ' tl-snippet-detail-unresolved' : ''}`}
+          >
+            {item.label}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
