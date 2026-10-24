@@ -1563,7 +1563,9 @@ export function MemberPrivateMemo({ session, L, icons, baseUrl, onSaveNotes, sho
   );
 
   return (<>
-      <Section title={L.privateMemo} icon={icons.memo} icons={icons} baseUrl={baseUrl} badge={onlyMe}>
+      {/* 딱지는 `badge` 자리가 아니라 제목 안에 둔다 — 접히는 머리줄은 양 끝으로 벌어져 `badge` 가 가운데에 뜬다.
+          같은 창의 디자이너 제목(「논의하고 싶은 주제」+딱지)처럼 제목 바로 옆에 붙인다 (spec §5-2). */}
+      <Section title={<>{L.privateMemo}{onlyMe}</>} icon={icons.memo} icons={icons} baseUrl={baseUrl}>
         <p className="ono-mem-hint">{L.privateMemoDesc}</p>
         <textarea
           className="ono-start-textarea"
