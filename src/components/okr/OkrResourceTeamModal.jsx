@@ -38,26 +38,31 @@ export default function OkrResourceTeamModal({ team, onClose, labels: L = OKR_RE
         <RsStatCard label={O.overloaded} value={team.overloaded} tone={team.overloaded > 0 ? 'bad' : ''} />
         <RsStatCard label={O.missing} value={team.missing} />
       </div>
-      <div className="rsx-modal-members">
-        {team.members.map((member, i) => (
-          <div className="rsx-member is-slim" key={rowKey(member, i)}>
-            <div className="rsx-member-main">
-              <div className="rsx-member-head">
-                <div className="rsx-member-who">
-                  <img className="rsx-avatar" src={member.avatar} alt={member.name} draggable={false} />
-                  <span className="rsx-member-name">{member.name}</span>
-                  <span className="rsx-member-role">{member.role}</span>
-                  <RsStatusBadge status={member.status} labels={L} />
+      {/* 아무도 없는 조직(§9 빈 상태) — 조직 현황 첫 화면과 같은 안내 줄(rsx-add-note). */}
+      {team.members.length === 0 ? (
+        <p className="rsx-add-note">{O.empty}</p>
+      ) : (
+        <div className="rsx-modal-members">
+          {team.members.map((member, i) => (
+            <div className="rsx-member is-slim" key={rowKey(member, i)}>
+              <div className="rsx-member-main">
+                <div className="rsx-member-head">
+                  <div className="rsx-member-who">
+                    <img className="rsx-avatar" src={member.avatar} alt={member.name} draggable={false} />
+                    <span className="rsx-member-name">{member.name}</span>
+                    <span className="rsx-member-role">{member.role}</span>
+                    <RsStatusBadge status={member.status} labels={L} />
+                  </div>
+                  <span className="rsx-member-pct">{member.pct}%</span>
                 </div>
-                <span className="rsx-member-pct">{member.pct}%</span>
-              </div>
-              <div className="rsx-member-bar-row">
-                <RsStackBar segments={member.segments} />
+                <div className="rsx-member-bar-row">
+                  <RsStackBar segments={member.segments} />
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </ModalShell>
   );
 }
