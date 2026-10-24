@@ -2631,6 +2631,15 @@ button.ono-add-modal-input { cursor: pointer; }
   flex-direction: column;
   gap: 16px;
 }
+/* 「내 원온원」 지난 회차 목록(.ono-past)은 가운데 720 칸이 아니라 본문 폭 그대로, 머리(대시보드·내 원온원)와
+   같은 왼쪽 선에 선다 — 시안 OneOnOnePage.jsx 「내 원온원」 탭이 목록을 칸 없이 바로 둔다 (PW-2197).
+   회차를 펼친 상세(HistoryDetail)는 종전대로 720 가운데다. 오른쪽은 시안 캔버스(.ono-page)의 우측 거터 40 —
+   머리(.ono-page-header.is-contained)의 오른쪽 안쪽 여백과 같은 선이다. */
+.ono-mem:has(> .ono-past) {
+  max-width: none;
+  margin: 0;
+  padding-right: 40px;
+}
 
 /* ── 단계 탭 ── 공용 Tabs 를 쓰고 탭 줄의 기본 바깥 여백(타임라인 머리 몫)만 바꾼다 (PW-836) */
 .tl-tabs-row.ono-mem-tabs-row { margin: 0 0 12px; }
