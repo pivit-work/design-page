@@ -2,11 +2,12 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import Tabs from '../shared/Tabs.jsx';
 import ProfileModal from './ProfileModal.jsx';
 import ProjectCardGrid from './ProjectCardGrid.jsx';
+import OrgTabNav from './OrgTabNav.jsx';
 import MemberTable from './MemberTable.jsx';
 import { PROJECTS, FILTER_TABS } from './project-constants.js';
 import { OrgLabelsContext, makeOrgLabels } from './orgchart-labels.jsx';
 
-export default function ProjectCanvas({ onSubTabChange, statIcons, baseUrl = '', findSubordinates, adminMode = false, orgData, labels }) {
+export default function ProjectCanvas({ onSubTabChange, statIcons, baseUrl = '', findSubordinates, adminMode = false, orgData, labels, showListTab = false }) {
   // 화면 문구 — OrgChartCanvas 와 같은 계약(PW-705). 안 넘기면 한국어 기본값.
   const L = useMemo(() => makeOrgLabels(labels), [labels]);
   const [activeTab, setActiveTab] = useState('all');
@@ -28,11 +29,7 @@ export default function ProjectCanvas({ onSubTabChange, statIcons, baseUrl = '',
     <div className="content-area pj-content-area">
       <div className="content-canvas">
         <div className="pj-header" ref={pageHeaderRef}>
-          <div className="tab-nav">
-            <span className="tab-inactive" onClick={() => onSubTabChange && onSubTabChange('orgchart')}>{L('tab.orgchart')}</span>
-            <span className="tab-active">{L('tab.project')}</span>
-            <span className="tab-inactive" onClick={() => onSubTabChange && onSubTabChange('squad')}>{L('tab.squad')}</span>
-          </div>
+          <OrgTabNav active="project" onSubTabChange={onSubTabChange} showProjectTab showListTab={showListTab} L={L} />
           <div className="header-subtitle">
             <b>{L('tab.project')}</b>
             <span className="dot">&#8729;</span>

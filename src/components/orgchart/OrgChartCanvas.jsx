@@ -2,6 +2,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import Icon from '../shared/Icon.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import OrgChartViewport from './OrgChartViewport.jsx';
+import OrgTabNav from './OrgTabNav.jsx';
 import ProfileModal from './ProfileModal.jsx';
 import { PositionsContext, ModalContext, MoveContext, DragContext } from './contexts.js';
 import { loadPositions, savePositions, collapsedStorageKey, loadCollapsed } from './hooks.js';
@@ -20,7 +21,7 @@ import { OrgLabelsContext, makeOrgLabels } from './orgchart-labels.jsx';
 //   그림으로 뜬다. 안 주면 버튼이 없다.
 // expandable — «전체 화면»(17755:26946) 버튼. 기본 true. 누르면 같은 조직도를 화면 가득한 창에 띄운다 —
 //   리포트 보기 창과 같은 틀(ModalShell)이다.
-export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIcons, baseUrl = '', onMemberClick, renderAvatar, editMode = false, onSubTabChange, findSubordinates, adminMode: adminModeProp = false, onAdminModeChange, showGrade = false, showProjectTab = true, lineStyleLabel: lineStyleLabelProp, labels, asOf, highlight, workspaceId, density: densityProp, onDensityChange, onDownloadImage, expandable = true }) {
+export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIcons, baseUrl = '', onMemberClick, renderAvatar, editMode = false, onSubTabChange, findSubordinates, adminMode: adminModeProp = false, onAdminModeChange, showGrade = false, showProjectTab = true, showListTab = false, lineStyleLabel: lineStyleLabelProp, labels, asOf, highlight, workspaceId, density: densityProp, onDensityChange, onDownloadImage, expandable = true }) {
   // 화면 문구 — 소비자가 번역을 넘긴다(PW-705). 안 넘기면 한국어 기본값.
   const L = useMemo(() => makeOrgLabels(labels), [labels]);
   // `lineStyleLabel` 은 `labels` 보다 먼저 생긴 자리라 그대로 받는다 — 주면 그것이 이긴다.
@@ -137,13 +138,7 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
       {!onMemberClick && <ProfileModal member={selectedMember} onClose={closeModal} statIcons={statIcons} baseUrl={baseUrl} renderAvatar={renderAvatar} adminMode={adminMode} findSubordinates={findSubordinates} />}
 
       <div className="content-header">
-        <div className="tab-nav">
-          <span className="tab-active">{L('tab.orgchart')}</span>
-          {showProjectTab && (
-            <span className="tab-inactive" onClick={() => onSubTabChange && onSubTabChange('project')}>{L('tab.project')}</span>
-          )}
-          <span className="tab-inactive" onClick={() => onSubTabChange && onSubTabChange('squad')}>{L('tab.squad')}</span>
-        </div>
+        <OrgTabNav active="orgchart" onSubTabChange={onSubTabChange} showProjectTab={showProjectTab} showListTab={showListTab} L={L} />
         <div className="header-subtitle">
           <b>{L('org.totalHeadcount')}</b>
           <span className="dot">&#8729;</span>

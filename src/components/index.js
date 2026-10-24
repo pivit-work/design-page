@@ -135,6 +135,7 @@ export {
   OrgChartCanvas,
   ProjectCanvas,
   SquadCanvas,
+  OrgMemberListCanvas,
   SquadFormCard,
   SquadProjectSection,
   ProjectDetailCanvas,

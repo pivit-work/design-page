@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { OrgChartCanvas, ProjectCanvas } from './components';
+import { OrgChartCanvas, OrgMemberListCanvas, ProjectCanvas } from './components';
 import StateSwitcher from './devtools/StateSwitcher.jsx';
 import { LABEL_KNOB, VOLUME_KNOB, knobKey, useKnobs } from './devtools/knobs.js';
 import { stress, stressText } from './devtools/stress.js';
@@ -261,6 +261,15 @@ export default function OrgChartPage({ icons, statIcons, baseUrl, subTab, onSubT
     />
   );
 
+  if (subTab === 'list') {
+    return (
+      <>
+        <OrgListPreview orgData={orgData} baseUrl={baseUrl} onSubTabChange={onSubTabChange} />
+        {switcher}
+      </>
+    );
+  }
+
   if (subTab === 'project') {
     return (
       <>
@@ -287,6 +296,7 @@ export default function OrgChartPage({ icons, statIcons, baseUrl, subTab, onSubT
         statIcons={statIcons}
         baseUrl={baseUrl}
         onSubTabChange={onSubTabChange}
+        showListTab
         findSubordinates={subordinates}
         adminMode={adminMode}
         onAdminModeChange={setAdminMode}
@@ -296,5 +306,48 @@ export default function OrgChartPage({ icons, statIcons, baseUrl, subTab, onSubT
       />
       {switcher}
     </>
+  );
+}
+
+/**
+ * 「리스트」 탭 미리보기 (pivit-work PW-678) — 데모 조직을 한 줄에 한 명으로 편다. 실제 거르기·정렬·쪽 나누기는
+ * pivit-work 몫이라, 여기서는 팀 고르기(하위 포함)와 이름 찾기만 흉내 낸다.
+ */
+function OrgListPreview({ orgData, baseUrl, onSubTabChange }) {
+  const [unitId, setUnitId] = useState('__all__');
+  const [query, setQuery] = useState('');
+  const units = [];
+  const rows = [];
+  const walk = (node, depth, path, scopes) => {
+    const here = [...scopes, node.id];
+    units.push({ id: node.id, name: node.name, depth });
+    (node.members || []).forEach((m) => rows.push({
+      ...m, id: `${node.id}-${m.name}`, unit: { kind: 'unit', id: node.id, name: node.name, path: path.join(' > ') || undefined },
+      title: m.position, email: `${m.name}@pivit.work`, scopes: here,
+    }));
+    (node.children || []).forEach((c) => walk(c, depth + 1, [...path, node.name], here));
+  };
+  (orgData.members || []).forEach((m) => rows.push({ ...m, id: `root-${m.name}`, unit: { kind: 'ceo' }, email: `${m.name}@pivit.work`, scopes: [] }));
+  (orgData.children || []).forEach((c) => walk(c, 0, [], []));
+  const picked = unitId === '__all__' ? rows : rows.filter((r) => r.scopes.includes(unitId));
+  const found = query ? picked.filter((r) => r.name.includes(query.trim())) : picked;
+  const unit = units.find((u) => u.id === unitId);
+  return (
+    <OrgMemberListCanvas
+      rows={found.slice(0, 50)}
+      headcount={orgData.summaryCount ?? orgData.count ?? ''}
+      scope={unit ? { unitName: unit.name, count: picked.length, concurrent: 0 } : null}
+      searchCount={query ? found.length : null}
+      showGrade
+      unitFilter={{
+        value: unitId,
+        options: [{ value: '__all__', label: '전체 조직' }, ...units.map((u) => ({ value: u.id, label: `${'\u3000'.repeat(u.depth)}${u.name}` }))],
+        onChange: setUnitId,
+      }}
+      search={{ value: query, onChange: setQuery }}
+      pager={{ page: 1, pageSize: 50, total: found.length, onPageChange: () => {} }}
+      onSubTabChange={onSubTabChange}
+      baseUrl={baseUrl}
+    />
   );
 }

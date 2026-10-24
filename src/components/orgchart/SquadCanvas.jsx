@@ -26,6 +26,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import Icon from '../shared/Icon.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import OrgTabNav from './OrgTabNav.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
 import SquadFormCard from './SquadFormCard.jsx';
@@ -234,6 +235,7 @@ export default function SquadCanvas({
   onUnlinkProject,
   // 조직 축 탭 노출 여부. OrgChartCanvas 와 같은 계약 (pivit-work PW-249).
   showProjectTab = true,
+  showListTab = false,
   /**
    * 화면 문구 — 객체(`{ key: 문구 }`)나 함수(`(key, vars) => 문구`)로 번역을 넘긴다(PW-705).
    * 안 넘기면 한국어 기본값이다. 키 목록은 `orgchart-labels.jsx`.
@@ -748,13 +750,7 @@ export default function SquadCanvas({
   const leadCandidates = people.filter(isAssignable);
 
   const tabStrip = (
-    <div className="tab-nav">
-      <span className="tab-inactive" onClick={() => onSubTabChange && onSubTabChange('orgchart')}>{L('tab.orgchart')}</span>
-      {showProjectTab && (
-        <span className="tab-inactive" onClick={() => onSubTabChange && onSubTabChange('project')}>{L('tab.project')}</span>
-      )}
-      <span className="tab-active">{L('tab.squad')}</span>
-    </div>
+    <OrgTabNav active="squad" onSubTabChange={onSubTabChange} showProjectTab={showProjectTab} showListTab={showListTab} L={L} />
   );
 
   /**

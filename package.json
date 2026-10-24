@@ -15,6 +15,7 @@
     "./styles/load-more.css": "./src/load-more.css",
     "./styles/org-project.css": "./src/org_project.css",
     "./styles/org-squad.css": "./src/org_squad.css",
+    "./styles/org-list.css": "./src/org_list.css",
     "./styles/one-on-one.css": "./src/one_on_one.css",
     "./styles/recording-player.css": "./src/recording-player.css",
     "./styles/ai-fail-box.css": "./src/ai-fail-box.css",

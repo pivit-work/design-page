@@ -8,6 +8,7 @@ export { default as OrgChartCanvas } from './OrgChartCanvas.jsx';
 export { default as ProjectCanvas } from './ProjectCanvas.jsx';
 export { default as AssignmentGrid } from './AssignmentGrid.jsx';
 export { default as SquadCanvas } from './SquadCanvas.jsx';
+export { default as OrgMemberListCanvas } from './OrgMemberListCanvas.jsx';
 export { default as SquadFormCard } from './SquadFormCard.jsx';
 export { default as SquadProjectSection } from './SquadProjectSection.jsx';
 export { default as ProjectDetailCanvas } from './ProjectDetailCanvas.jsx';
