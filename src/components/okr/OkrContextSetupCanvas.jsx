@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   AlertTriangleGlyph,
+  ArrowLeftGlyph,
   ArrowRightGlyph,
   CheckGlyph,
   LockGlyph,
@@ -650,8 +651,17 @@ function AddSourceComposer({ labels, onAddUrl, onAddText, onAddFile, onCancel, b
               setFile(null);
               setError('');
             }}
-            style={{ ...ghostBtn, marginLeft: 'auto', padding: '4px 10px', fontSize: 11 }}
+            style={{
+              ...ghostBtn,
+              marginLeft: 'auto',
+              padding: '4px 10px',
+              fontSize: 11,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+            }}
           >
+            <ArrowLeftGlyph size={12} />
             {labels.changeType}
           </button>
         )}
