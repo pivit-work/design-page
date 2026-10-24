@@ -1,20 +1,13 @@
-import { clickableProps } from './kpiClickable.js';
-
 /**
  * 매니저 페이지 KPI 단일 통계 타일.
  * label + value 2단.
  *
- * onClick 이 있으면 누를 수 있는 필터 타일이 된다(active 면 눌린 모양). 눌린 모양과
- * 키보드 동작은 어드민 개요 요약 카드(`AdminStatTile`)와 같다 — 같은 모양의 카드가
- * 화면마다 다르게 눌리면 안 된다(PW-912).
+ * 누를 수 없는 카드다 — PW-912 에서 더했던 누르기·눌린 모양은 디자이너 요청으로
+ * 걷어 냈다(PW-2177). 원래 모양은 2026-05-09 디자이너 판 그대로다.
  */
-export default function StatTile({ label, value, onClick, active = false }) {
-  const clickable = typeof onClick === 'function';
+export default function StatTile({ label, value }) {
   return (
-    <div
-      className={`manager-kpi-card manager-stat-tile${clickable ? ' is-clickable' : ''}${active ? ' is-active' : ''}`}
-      {...clickableProps(clickable, onClick, active)}
-    >
+    <div className="manager-kpi-card manager-stat-tile">
       <p className="manager-stat-label">{label}</p>
       <p className="manager-stat-value">{value}</p>
     </div>
