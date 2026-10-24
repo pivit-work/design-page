@@ -4,7 +4,7 @@ import Spline from '@splinetool/react-spline';
 import Icon from '../shared/Icon.jsx';
 import Avatar from '../shared/Avatar.jsx';
 import PhotoOr from './PhotoOr.jsx';
-import { CloseGlyph, ClockGlyph, MapPinGlyph, SettingsGlyph } from '../shared/lineIcons.jsx';
+import { CloseGlyph, ClockGlyph, MapPinGlyph, PencilGlyph, SettingsGlyph } from '../shared/lineIcons.jsx';
 import { MEMBER_STATUSES } from './constants.js';
 import assetUrl from '../shared/assetUrl.js';
 import { useOrgLabels, makeOrgLabels } from './orgchart-labels.jsx';
@@ -109,7 +109,12 @@ function applyTexture(app, objectName, imageSrc) {
 // 본인·퇴사·휴직이어도 막지 않는다(퇴사한 조직장도 해제할 수 있어야 한다).
 // 미지정이면 지금까지처럼 피드백주기·미팅잡기다(시각·레이아웃 변화 없음).
 // slackDmUrl — 연락처의 슬랙 핸들을 누르면 열 DM 주소(PW-1636). member.profile.slack·email 을 주면 연락처가 눌리는 줄이 된다.
-export default function ProfileModal({ member, onClose, statIcons, baseUrl = '', renderAvatar, resolvePhoto, adminMode = false, findSubordinates, showSubordinates = true, subordinatesTitle, directReportChipLabel, onFeedbackClick, onMeetingClick, isSelf = false, labels, actions, hideFeedback = false, slackDmUrl, managerHistory, asOf, onEditVisibility, editVisibilityLabel }) {
+// workHours — 오늘 근무시간 칸(pivit-work PW-1479 · 근무시간 조정 정책서 §2-1). 모두 선택이고, 안 주면 지금까지 그대로다.
+//   { value, badge, note, onEdit, editLabel, editDisabled, editing, panel }
+//   value — `profile.workHours` 대신 보일 값(오늘 조정된 근무시간) · badge — 값 아래 «오늘 변경됨» 노란 딱지 문구
+//   note — 조정 메모. 값에 마우스를 올리면 뜬다 · onEdit — 본인 카드(isSelf)에서만 값이 눌리고 연필이 붙는다
+//   editDisabled — 오늘 휴가처럼 고칠 수 없을 때 · editing — 창이 열려 칸을 강조 · panel — 칸 아래 펼칠 창(WorkHoursAdjustPanel)
+export default function ProfileModal({ member, onClose, statIcons, baseUrl = '', renderAvatar, resolvePhoto, adminMode = false, findSubordinates, showSubordinates = true, subordinatesTitle, directReportChipLabel, onFeedbackClick, onMeetingClick, isSelf = false, labels, actions, hideFeedback = false, slackDmUrl, managerHistory, asOf, onEditVisibility, editVisibilityLabel, workHours }) {
   // 화면 문구 — 조직도 캔버스 안에서 열리면 캔버스가 받은 번역을 쓰고, 캔버스 밖(소비자가
   // 따로 띄우는 카드)에서는 `labels` 로 받는다(PW-705). 둘 다 없으면 한국어 기본값.
   // `subordinatesTitle`·`directReportChipLabel`(PW-546)은 주면 그것이 이긴다.
@@ -255,7 +260,7 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
                 <img src={statIcons.workHoursAdmin} alt={L('profile.workHours')} />
               </div>
               <div className="modal-stat-label">{L('profile.workHours')}</div>
-              <div className="modal-stat-value">{shown(profile.workHours)}</div>
+              <WorkHoursValue value={shown(workHours?.value ?? profile.workHours)} workHours={workHours} isSelf={isSelf} />
             </div>
           </div>
         ) : statIcons ? (
@@ -265,10 +270,11 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
                 <img src={statIcons.workHours} alt={L('profile.workHours')} />
               </div>
               <div className="modal-stat-label">{L('profile.workHours')}</div>
-              <div className="modal-stat-value">{shown(profile.workHours)}</div>
+              <WorkHoursValue value={shown(workHours?.value ?? profile.workHours)} workHours={workHours} isSelf={isSelf} />
             </div>
           </div>
         ) : null}
+        {workHours?.panel}
 
         {/* Action Buttons */}
         {actions && actions.length > 0 ? (
@@ -548,3 +554,42 @@ function AsOfSection({ asOf, L }) {
 }
 
 export { DEFAULT_PROFILE };
+
+/**
+ * 통계 줄의 근무시간 값 — 본인 카드면 눌러서 «근무시간 조정» 창을 연다(정책서 §4: 값을 누르거나 연필을 누르면 같은 동작).
+ * 연필은 값 옆에 붙고, 마우스를 올리거나 칸에 초점이 오면 보인다(§2-1 «hover 시»). 고칠 수 없는 날(휴가)은 잠긴다.
+ */
+function WorkHoursValue({ value, workHours, isSelf }) {
+  const badge = workHours?.badge ? (
+    <StatusBadge tone="warning" className="modal-wh-badge" data-testid="profile-work-hours-badge">
+      {workHours.badge}
+    </StatusBadge>
+  ) : null;
+  const note = workHours?.note || undefined;
+  if (isSelf && workHours?.onEdit) {
+    return (
+      <>
+        <button
+          type="button"
+          className={`modal-stat-value modal-wh-edit ${workHours.editing ? 'is-editing' : ''}`.trim()}
+          onClick={workHours.onEdit}
+          disabled={!!workHours.editDisabled}
+          aria-expanded={!!workHours.editing}
+          aria-label={workHours.editLabel ? `${workHours.editLabel} · ${value}` : undefined}
+          title={note}
+          data-testid="profile-work-hours-edit"
+        >
+          <span>{value}</span>
+          <PencilGlyph size={12} className="modal-wh-pencil" />
+        </button>
+        {badge}
+      </>
+    );
+  }
+  return (
+    <>
+      <div className="modal-stat-value" title={note} data-testid="profile-work-hours-value">{value}</div>
+      {badge}
+    </>
+  );
+}

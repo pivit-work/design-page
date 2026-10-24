@@ -124,6 +124,7 @@ export {
   OrgNode,
   BezierConnectors,
   ProfileModal,
+  WorkHoursAdjustPanel,
   OrgChartCanvas,
   ProjectCanvas,
   SquadCanvas,

@@ -3,6 +3,7 @@ export { default as MemberCard } from './MemberCard.jsx';
 export { default as OrgNode } from './OrgNode.jsx';
 export { default as BezierConnectors } from './BezierConnectors.jsx';
 export { default as ProfileModal, DEFAULT_PROFILE } from './ProfileModal.jsx';
+export { default as WorkHoursAdjustPanel } from './WorkHoursAdjustPanel.jsx';
 export { default as OrgChartCanvas } from './OrgChartCanvas.jsx';
 export { default as ProjectCanvas } from './ProjectCanvas.jsx';
 export { default as AssignmentGrid } from './AssignmentGrid.jsx';

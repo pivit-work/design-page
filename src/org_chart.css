@@ -791,3 +791,120 @@
 }
 /* 가운데 목록의 상속이 기존 배지의 text-align까지 바꾸지 않게 원래 값을 유지한다. */
 .modal-affiliation-row .modal-team-chip { text-align: start; }
+
+/* 공개 카드 «근무시간 조정» (pivit-work PW-1479 · 근무시간 조정 정책서 §2).
+   새 색·크기를 만들지 않는다 — 값은 같은 창의 통계 값(.modal-stat-value), 창 머리는 .modal-info-label,
+   칸 여백은 .modal-info-sections(좌우 65px), 내역 줄은 «담당 프로젝트» 줄(.modal-project-item),
+   단건/기간 딱지는 소속 칩(.modal-team-chip)을 그대로 쓴다. «오늘 변경됨»은 소속 칩의 크기만 따르고
+   색은 주의 딱지(StatusBadge tone="warning")에 맡긴다 — 소속 칩은 무채색이라 색을 덮는다. */
+.modal-wh-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 4px;
+  margin: 0 -4px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.modal-wh-edit:hover,
+.modal-wh-edit:focus-visible,
+.modal-wh-edit.is-editing { background: var(--colors-background-bgBrandSecondary); }
+.modal-wh-edit:disabled { cursor: not-allowed; background: none; }
+.modal-wh-pencil { opacity: 0; color: var(--text-tertiary); transition: opacity 0.15s; }
+.modal-wh-edit:hover .modal-wh-pencil,
+.modal-wh-edit:focus-visible .modal-wh-pencil,
+.modal-wh-edit.is-editing .modal-wh-pencil { opacity: 1; }
+.modal-wh-edit:disabled .modal-wh-pencil { opacity: 0; }
+.modal-wh-badge {
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 16px;
+  padding: 0 6px;
+  border-radius: 4px;
+}
+
+.modal-wh-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin: 20px 65px 0;
+  padding-top: 20px;
+  border-top: 1px solid var(--colors-border-borderSecondary);
+  animation: modalWhPanelIn 0.2s ease-out;
+}
+.modal-wh-panel > .modal-info-label { margin-bottom: 0; }
+@keyframes modalWhPanelIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.modal-wh-pair {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.modal-wh-pair > * { flex: 1; min-width: 0; }
+.modal-wh-pair > .modal-wh-sep { flex: 0 0 auto; color: var(--text-tertiary); font-size: 14px; }
+.modal-wh-date { width: 100%; box-sizing: border-box; }
+.modal-wh-optional { font-weight: 400; color: var(--text-tertiary); }
+.modal-wh-actions {
+  display: flex;
+  gap: 8px;
+}
+.modal-wh-actions > * { flex: 1; }
+.modal-wh-history {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--colors-border-borderSecondary);
+}
+.modal-wh-history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.modal-wh-history-head .modal-info-label { margin-bottom: 0; }
+.modal-wh-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--colors-text-textBrandPrimary);
+  cursor: pointer;
+}
+.modal-wh-item { justify-content: space-between; transition: opacity 0.2s; }
+.modal-wh-item.is-deleting { opacity: 0.4; }
+.modal-wh-item-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.modal-wh-item-date { font-weight: 600; }
+.modal-wh-item-time { font-variant-numeric: tabular-nums; }
+.modal-wh-item-memo { color: var(--text-tertiary); overflow-wrap: anywhere; }
+.modal-wh-delete {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+.modal-wh-delete:hover { background: var(--colors-background-bgBrandSecondary); }
+.modal-wh-delete:disabled { cursor: not-allowed; opacity: 0.5; }
