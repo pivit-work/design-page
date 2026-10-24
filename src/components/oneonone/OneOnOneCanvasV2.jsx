@@ -2,6 +2,7 @@ import { useState } from 'react';
 import ProgressiveItems from '../shared/ProgressiveItems.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 import AddOneOnOneModal from './AddOneOnOneModal.jsx';
 import StartOneOnOneView from './StartOneOnOneView.jsx';
 import OneOnOnePageHeader from './OneOnOnePageHeader.jsx';
@@ -597,16 +598,27 @@ function MemberCard({ member, tone, icons, baseUrl, onAction, onCardClick, rende
           </button>
         )}
         <div className="ono-member-actions">
-          {member.actions?.map((a, i) => (
-            <button
-              key={i}
-              type="button"
-              className={`ono-member-btn ${a.variant === 'primary' ? 'ono-member-btn-primary' : ''}`}
-              onClick={(e) => { e.stopPropagation(); onAction?.(member, a); }}
-            >
-              {a.label}
-            </button>
-          ))}
+          {member.actions?.map((a, i) => {
+            const button = (
+              <button
+                key={i}
+                type="button"
+                className={`ono-member-btn ${a.variant === 'primary' ? 'ono-member-btn-primary' : ''}`}
+                disabled={a.disabled}
+                onClick={(e) => { e.stopPropagation(); if (!a.disabled) onAction?.(member, a); }}
+              >
+                {a.label}
+              </button>
+            );
+            /* 시각이 안 된 [1on1 진행]처럼 «보이되 눌리지 않는» 액션 — 왜 잠겼는지를 말풍선이 말한다
+               (기획 §3-4 「시작」 행). 잠길 수 있는 액션만 감싼다 — 다른 버튼의 줄 배치는 그대로다. */
+            if (a.disabled === undefined) return button;
+            return (
+              <Tooltip key={i} content={a.disabled ? a.disabledReason : undefined} className="is-block ono-member-btn-tip">
+                {button}
+              </Tooltip>
+            );
+          })}
         </div>
       </div>
     </div>
