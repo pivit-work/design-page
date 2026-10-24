@@ -341,7 +341,7 @@ function OrgListPreview({ orgData, baseUrl, onSubTabChange }) {
       showGrade
       unitFilter={{
         value: unitId,
-        options: [{ value: '__all__', label: '전체 조직' }, ...units.map((u) => ({ value: u.id, label: `${'\u3000'.repeat(u.depth)}${u.name}` }))],
+        options: [{ value: '__all__', label: '전체 조직' }, ...units.map((u) => ({ value: u.id, label: u.name, depth: u.depth }))],
         onChange: setUnitId,
       }}
       search={{ value: query, onChange: setQuery }}
