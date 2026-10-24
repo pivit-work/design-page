@@ -144,6 +144,13 @@ export default function MeetingsCanvas({
   // 들어갈 문이 아예 없다 — 헤더에 항상 열려 있는 문을 하나 둔다.
   // 미지정 시 버튼을 숨긴다 (핸들러 없는 버튼은 눌러도 무동작이라 없느니만 못하다).
   onStartAdhoc,
+  /**
+   * 회의 밖에서 녹음한 파일을 새 회의로 올리는 진입 훅 (pivit-work PW-2196 · list.policy §3.1-B).
+   * [액션 아이템]과 같은 보조 버튼으로 [회의 시작] 앞에 둔다. 미지정 시 숨긴다.
+   * `uploadRecordingPending` 이면 녹음 시간을 확인하는 동안 「확인 중…」으로 잠근다(upload.policy §4 「로딩」).
+   */
+  onUploadRecording,
+  uploadRecordingPending = false,
   /** 시작 flow 가 이미 열려 있는(녹음 진행 중) 회의 id — 해당 행의 [시작] 을
    *  비활성 [진행 중] 버튼으로 바꾼다 (Figma 16817:40731). */
   startingMeetingId,
@@ -182,7 +189,12 @@ export default function MeetingsCanvas({
   shareData,
   modalLabels,
 }) {
-  const L = { viewActions: '액션 아이템', ...labels };
+  const L = {
+    viewActions: '액션 아이템',
+    uploadRecording: '녹음 파일 올리기',
+    uploadRecordingPending: '확인 중…',
+    ...labels,
+  };
   const statusLabels = {
     ongoing: { label: labels.ongoing, className: 'mtg-tag-ongoing' },
     scheduled: { label: labels.scheduled, className: 'mtg-tag-scheduled' },
@@ -214,6 +226,20 @@ export default function MeetingsCanvas({
             <button type="button" className="mtg-actions-link" onClick={onViewActions}>
               <Icon src="/icons-solid/file-02.svg" size={16} color="var(--text-secondary)" baseUrl={baseUrl} />
               <span>{L.viewActions}</span>
+            </button>
+          )}
+          {/* 회의 밖에서 녹음한 파일로 새 회의록 — [액션 아이템]과 같은 보조 버튼 모양. */}
+          {onUploadRecording && (
+            <button
+              type="button"
+              className="mtg-actions-link"
+              onClick={uploadRecordingPending ? undefined : onUploadRecording}
+              disabled={uploadRecordingPending}
+              aria-busy={uploadRecordingPending || undefined}
+              data-testid="mtg-upload-recording"
+            >
+              <Icon src="/icons-solid/upload-01.svg" size={16} color="var(--text-secondary)" baseUrl={baseUrl} />
+              <span>{uploadRecordingPending ? L.uploadRecordingPending : L.uploadRecording}</span>
             </button>
           )}
           {/* 캘린더 없이 지금 바로 녹음 — 목록 전체에서 유일하게 항상 열려 있는 진입점. */}
