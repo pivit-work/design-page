@@ -352,9 +352,12 @@ export default function BillingHistoryCanvas({
                   render: (inv) => {
                     const sm = STATUS_META[inv.status] || STATUS_META.void;
                     const statusLabel = labels.statusLabels[inv.status] || inv.status;
+                    // 전액 환불이 끝난 청구서는 «결제완료»를 그리지 않는다(PW-2213) — 돌려받은 돈이 결제된 것으로
+                    // 읽혔다. 부분환불·처리 중·실패는 결제완료 밑에 환불 배지(policy §2: 부분환불 상태는 결제완료 그대로).
+                    const fullyRefunded = refundMetaKey(inv.refund || {}) === 'completed_full';
                     return (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
-                        <Badge color={sm.color} bg={sm.bg}>{statusLabel}</Badge>
+                        {!fullyRefunded && <Badge color={sm.color} bg={sm.bg}>{statusLabel}</Badge>}
                         {inv.refund && (() => {
                           const rm = REFUND_META[refundMetaKey(inv.refund)] || REFUND_META.processing;
                           const rl = labels.refundLabels[refundMetaKey(inv.refund)] || '';
