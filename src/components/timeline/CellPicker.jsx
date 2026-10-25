@@ -5,8 +5,9 @@ import { pointAnchor } from '../shared/anchoredPlacement.js';
 
 /**
  * CellPicker — 타임라인 빈 셀(본인 행) 클릭 시 뜨는 액션 피커.
- * 스타일은 design-page 타임라인 팝오버(FilterMenuPopover) 톤에 맞춘다:
- *   radius 10 · 레이어드 소프트 섀도우 · 14px 타이포 · Icon 컴포넌트(SVG) + 브랜드 그린.
+ * 모양은 디자이너 필터 메뉴(FilterMenuPopover · .tl-filter-menu*)를 그대로 따른다:
+ *   면 r10 · 그림자 둘, 항목 14/500 + 16 아이콘(브랜드 그린), 아래 줄은 멤버 줄 직함 글씨,
+ *   연동 줄은 머리의 연동 상태(.tl-gcal-status — 연동 중이면 초록 체크).
  *   시간 라벨 + "데일리 스니핏 작성" + "이벤트 추가" + Google Calendar 연동 상태.
  */
 const fmtHour = (h) => {
@@ -95,7 +96,7 @@ export default function CellPicker({
           <span className="tl-cell-picker-ico">
             <Icon
               src="/icons-solid/file-06.svg"
-              size={18}
+              size={16}
               color="var(--colors-foreground-fgBrandPrimary, #2dbd82)"
               baseUrl={baseUrl}
             />
@@ -123,7 +124,7 @@ export default function CellPicker({
           <span className="tl-cell-picker-ico">
             <Icon
               src="/icons-solid/calendar.svg"
-              size={18}
+              size={16}
               color="var(--colors-foreground-fgBrandPrimary, #2dbd82)"
               baseUrl={baseUrl}
             />
@@ -140,15 +141,20 @@ export default function CellPicker({
           <Icon
             src="/icons-solid/calendar-check-02.svg"
             size={16}
-            color="var(--colors-foreground-fgQuaternary, #98a2b3)"
+            color="var(--colors-foreground-fgTertiary)"
             baseUrl={baseUrl}
           />
           <span className="tl-cell-picker-gcal-body">
             <span className="tl-cell-picker-gcal-title">
               Google Calendar
-              <span className={`tl-cell-picker-gcal-dot ${gcalConnected ? 'is-on' : 'is-off'}`} />
               <span className="tl-cell-picker-gcal-state">
                 {gcalConnected ? L.gcalConnected : L.gcalDisconnected}
+              </span>
+              {/* 연동 중 표시 — 머리 연동 상태(.tl-gcal-status)와 같은 초록 체크. 미연동이면 비운다. */}
+              <span className={`tl-cell-picker-gcal-dot ${gcalConnected ? 'is-on' : 'is-off'}`}>
+                {gcalConnected && (
+                  <Icon src="/icons-solid/check-circle.svg" size={14} color="#2dbd82" baseUrl={baseUrl} />
+                )}
               </span>
             </span>
             <span className="tl-cell-picker-gcal-sub">

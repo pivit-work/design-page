@@ -14,7 +14,8 @@ import useTimelineData from './useTimelineData.js';
  * 「···」 더보기 (PW-1515, 기획서 screen-timeline-feed §13.4 · timeline-feed-view-spec §14-A):
  * `onEdit`·`onDelete` 를 주면 닫기 버튼 왼쪽에 같은 모양의 「···」 버튼이 생기고, 누르면
  * 「수정」·「삭제」 메뉴가 뜬다. 누가 고칠 수 있는지는 호스트가 정한다 — 못 고치는 일정이면
- * 두 콜백을 넘기지 않는다. 메뉴의 면·항목은 같은 타임라인의 셀 피커 메뉴(`.tl-cell-picker*`)다.
+ * 두 콜백을 넘기지 않는다. 메뉴의 면·항목은 같은 타임라인의 셀 피커 메뉴(`.tl-cell-picker*`)이고,
+ * 그 모양은 디자이너 필터 메뉴(`.tl-filter-menu`)다.
  * `actionLabels` = { more, edit, delete } (없으면 한국어 기본값).
  */
 export default function MeetingModal({
@@ -121,7 +122,7 @@ export default function MeetingModal({
                   }}
                 >
                   <span className="tl-cell-picker-ico">
-                    <PencilGlyph size={18} color="var(--colors-foreground-fgSecondary)" />
+                    <PencilGlyph size={16} color="var(--colors-foreground-fgSecondary)" />
                   </span>
                   <span className="tl-cell-picker-body">
                     <span className="tl-cell-picker-title">{L.edit}</span>
@@ -140,7 +141,7 @@ export default function MeetingModal({
                   }}
                 >
                   <span className="tl-cell-picker-ico">
-                    <TrashGlyph size={18} color="var(--colors-foreground-fgErrorPrimary)" />
+                    <TrashGlyph size={16} color="var(--colors-foreground-fgSecondary)" />
                   </span>
                   <span className="tl-cell-picker-body">
                     <span className="tl-cell-picker-title">{L.delete}</span>

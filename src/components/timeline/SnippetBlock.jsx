@@ -7,6 +7,7 @@ import { memberPalette } from './constants.js';
  * Figma "_Calendar event / Day and week view")을 그대로 쓴다:
  *   배경 = 멤버 팔레트 bg(50) / hover bgHover(100) / 테두리 border(200)
  *   본문 = titleText(700), 시각 라벨 = timeText(600)
+ *   글자는 디자이너 캘린더 일정 줄(.tl-cal-event-time 12/18/400 · .tl-cal-event-title 12/18/500).
  * 색은 멤버 색을 그대로 물려받아, 같은 행의 미팅 블록·이름 컬럼과 한 색으로 읽힌다.
  *
  * 위치는 "작성 시각" 이다. 스니핏은 미팅처럼 시작~종료 구간이 아니라 한 시점의
