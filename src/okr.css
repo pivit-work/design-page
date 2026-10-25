@@ -421,6 +421,10 @@ body:has(> .okr-ctx-banner) .tl-group-modal.okr-shell { max-height: calc(100vh -
 .tl-group-modal.okr-cf-shell { width: calc(100vw - 72px); height: calc(100vh - 72px); max-width: none; background: var(--bg-quaternary); box-shadow: var(--shadows-shadow3xl); overflow: hidden; }
 .tl-group-modal.okr-cf-shell .okr-cf-shell-content { padding: 0; gap: 0; }
 .okr-cf-shell-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+/* 발 줄 [취소]·[저장] — 디자이너 원본(3cb1eed0)에는 이 창 발 줄이 없고 개발이 더했다. 왼쪽 안내 + 오른쪽 버튼 모양은
+   디자이너 마법사 발 줄(.okr-wz-footer .okr-btn { flex: none })을 따른다. .okr-btn 기본 flex: 1 이 [취소]만 늘려 놓았었다. */
+.tl-group-modal.okr-cf-shell .tl-group-modal-actions { align-items: center; }
+.tl-group-modal.okr-cf-shell .tl-group-modal-actions .okr-btn { flex: none; }
 .okr-cf-header { border-left: 3px solid var(--bg-brand-solid); margin: 0 0 0 48px; border-radius: 2px; padding: 0 0 0 12px; }
 .okr-cf-eyebrow { font-size: 12px; font-weight: 500; line-height: 18px; color: var(--text-tertiary); }
 .okr-cf-title { font-size: 14px; font-weight: 700; line-height: 20px; color: var(--text-primary); }
