@@ -1402,7 +1402,9 @@ export default function EvalCycleLeaderCanvas({
           )}
         </p>
       )}
-      {saveStatus?.kind === 'failed' && (
+      {/* [PW-2209] 잠긴 뒤(마감·단계 넘김으로 거절돼 호출부가 locked 를 켰다)에는 «임시저장 실패»를 남기지 않는다 —
+          호출부가 안내 창과 잠금 안내로 이미 알렸고, 더 저장할 수도 없다. */}
+      {saveStatus?.kind === 'failed' && !locked && (
         <p className="evx-notice is-error" role="alert" data-testid="evl-autosave-failed">
           {L.autoSaveFailed}
         </p>
