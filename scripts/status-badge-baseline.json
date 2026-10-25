@@ -2228,6 +2228,10 @@
    "background": "#f9fafb / 어두운 화면 #22262f",
    "color": "#b1b6be / 어두운 화면 #85888e"
   },
+  "status-badge.css|.msc-intg-badge.is-danger": {
+   "background": "#fef3f2 / 어두운 화면 #220905",
+   "color": "#b42318 / 어두운 화면 #fda29b"
+  },
   "settings.css|.msc-pair-badge.is-on": {
    "background": "#ecfdf3 / 어두운 화면 #053321",
    "color": "#079455 / 어두운 화면 #17b26a"

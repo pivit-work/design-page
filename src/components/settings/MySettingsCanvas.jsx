@@ -471,6 +471,9 @@ const DEFAULT_LABELS = {
     managedByOrg: '어드민에서 관리',
     connect: '연결하기',
     disconnect: '연결 해제',
+    // 연결은 됐는데 Google 이 인증을 거절한 카드 (pivit-work PW-2211) — 빨간 「오류」 딱지 + [재연결]
+    reconnect: '재연결',
+    statusError: '오류',
     sync: '지금 동기화',
     syncing: '동기화 중…',
     loading: '불러오는 중…',
@@ -2750,7 +2753,11 @@ export default function MySettingsCanvas({
                             ? (intg.linkedAccounts || []).length > 0 && (
                                 <StatusBadge className="msc-intg-badge">{labels.integrations.linked}</StatusBadge>
                               )
-                            : intg.connected && (
+                            : intg.connected && intg.reconnectRequired ? (
+                                <StatusBadge tone="danger" className="msc-intg-badge is-danger" data-testid={`integration-status-error-${intg.id}`}>
+                                  {labels.integrations.statusError}
+                                </StatusBadge>
+                              ) : intg.connected && (
                                 <StatusBadge className="msc-intg-badge">{labels.integrations.connected}</StatusBadge>
                               )}
                           {intg.comingSoon && (
@@ -2780,7 +2787,20 @@ export default function MySettingsCanvas({
                         )}
                       </div>
                       <div className="msc-intg-actions">
-                        {intg.connected && intg.syncable && onSyncIntegration && (
+                        {/* 재인증이 필요하면 [지금 동기화]는 실패할 호출이라 숨기고 [재연결]을 둔다 — 연결하기와 같은 흐름(OAuth 다시) */}
+                        {intg.connected && intg.reconnectRequired && !intg.accountLink && !intg.comingSoon && !intg.managedByOrg && (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            className="admin-notif-btn"
+                            disabled={Boolean(intg.busy)}
+                            onClick={() => onConnectIntegration && onConnectIntegration(intg.id)}
+                            data-testid={`integration-reconnect-${intg.id}`}
+                          >
+                            {labels.integrations.reconnect}
+                          </Button>
+                        )}
+                        {intg.connected && !intg.reconnectRequired && intg.syncable && onSyncIntegration && (
                           <Button
                             variant="secondary"
                             size="sm"

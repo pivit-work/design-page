@@ -169,6 +169,10 @@
 .tl-gcal-status.is-disconnected {
   color: var(--text-tertiary);
 }
+/* 연결은 됐는데 Google 이 인증을 거절함 — 회의록 배지 미연동과 같은 경고 톤 (pivit-work PW-2211). */
+.tl-gcal-status.is-reauth {
+  color: var(--colors-warning-600);
+}
 
 /* Toolbar — Figma frameParent5: gap 16, no internal vertical padding
    margin-top 8: gap from tabs (Figma y=213→y=221) */

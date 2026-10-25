@@ -1428,6 +1428,12 @@
   border-color: var(--border-primary);
   color: var(--dp-badge-neutral-fg);
 }
+/* 연결은 됐는데 Google 이 인증을 거절한 카드의 「오류」 — 평가 화면 빨간 딱지(.evs-lp-tag.tone-red)와 같은 세 값 (pivit-work PW-2211) */
+.msc-intg-badge.is-danger {
+  background: var(--dp-badge-danger-bg);
+  border-color: var(--utility-error-200);
+  color: var(--dp-badge-danger-fg);
+}
 
 .msc-vis-badge.is-muted {
   background: var(--dp-badge-neutral-bg);

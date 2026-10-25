@@ -118,6 +118,10 @@ export default function TimelineCanvas({
   // 구글 캘린더 연동 상태. 기본 true — 연동됨 라벨 + 초록 체크 아이콘.
   // false 면 "Google Calendar 미연동" 라벨 + 회색 아이콘으로 대체.
   gcalConnected = true,
+  // 연결은 됐는데 Google 이 인증을 거절함 — 초록 체크 대신 경고 아이콘·경고 톤 (pivit-work PW-2211 · 타임라인 정책서 §12).
+  gcalReauthRequired = false,
+  // 배지 문구 — 앱이 번역해 넘긴다. 없으면 아래 기본 한국어.
+  gcalStatusLabel,
   // 초기 selectedDate. 생략 시 TODAY_STR(데모용 고정 2026-04-15). 실 운영
   // 환경에서는 new Date() 를 넘겨 앱 진입 시 실제 오늘이 보이도록.
   initialDate,
@@ -580,11 +584,24 @@ export default function TimelineCanvas({
           value={currentTab}
           onChange={changeTab}
         />
-        <div className={`tl-gcal-status ${gcalConnected ? '' : 'is-disconnected'}`}>
+        <div
+          className={`tl-gcal-status ${gcalConnected ? '' : 'is-disconnected'}${gcalConnected && gcalReauthRequired ? ' is-reauth' : ''}`}
+          data-testid="tl-gcal-status"
+        >
           <Icon src="/icons-solid/calendar-check-02.svg" size={14} color="var(--colors-foreground-fgTertiary)" baseUrl={baseUrl} />
-          <span>{gcalConnected ? 'Google Calendar 연동 중' : 'Google Calendar 미연동'}</span>
-          {gcalConnected && (
+          <span>
+            {gcalStatusLabel ??
+              (gcalConnected
+                ? gcalReauthRequired
+                  ? 'Google Calendar 재인증 필요'
+                  : 'Google Calendar 연동 중'
+                : 'Google Calendar 미연동')}
+          </span>
+          {gcalConnected && !gcalReauthRequired && (
             <Icon src="/icons-solid/check-circle.svg" size={14} color="#2dbd82" baseUrl={baseUrl} />
+          )}
+          {gcalConnected && gcalReauthRequired && (
+            <Icon src="/icons-solid/alert-triangle.svg" size={14} color="var(--colors-warning-600)" baseUrl={baseUrl} />
           )}
         </div>
       </div>
@@ -829,7 +846,8 @@ export default function TimelineCanvas({
           pos={cellPicker.pos}
           hour={cellPicker.hour}
           date={cellPicker.date}
-          gcalConnected={gcalConnected}
+          // 재인증이 필요하면 셀 안내도 «연동»이라고 하지 않는다 — 내 설정으로 가라는 안내가 맞다 (PW-2211)
+          gcalConnected={gcalConnected && !gcalReauthRequired}
           gcalDisconnectedLabel={gcalDisconnectedLabel}
           baseUrl={baseUrl}
           onSnippet={handleSnippetCreate}
