@@ -104,7 +104,11 @@ export default function TimelinePage({ icons, baseUrl }) {
         icons={icons}
         baseUrl={baseUrl}
         members={members}
-        meetings={volume === 'empty' ? [] : MEETINGS}
+        meetings={volume === 'empty' ? [] : MEETINGS.map((m) => ({ ...m, canManage: true }))}
+        // 미리보기에서 내 줄 빈 칸 메뉴·일정 창 «···» 메뉴가 뜨도록 — 실서비스는 앱이 넘긴다.
+        currentUserId="m1"
+        onCalendarEventEdit={() => {}}
+        onCalendarEventDelete={() => {}}
         snippets={volume === 'empty' ? [] : SNIPPETS}
         getEventsForDate={eventsForDate}
         initialGroups={groups}
