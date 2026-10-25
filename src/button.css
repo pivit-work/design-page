@@ -39,7 +39,8 @@
 .dp-btn--primary,
 .dp-btn--secondary,
 .dp-btn--ghost,
-.dp-btn--danger {
+.dp-btn--danger,
+.dp-btn--danger-ghost {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -91,16 +92,28 @@
 .dp-btn--danger:not(:disabled):hover {
   background: var(--colors-error-700, #b42318);
 }
+/* 되돌릴 수 있는 위험 동작([연결 해제]·[삭제] 옆 보조 자리) — 디자이너 직원 관리 버튼의
+   `.admin-emp-btn.is-danger-ghost`(admin.css) 값 그대로다. 꽉 찬 빨강(danger)은 확인 창의 마지막 단추 몫이다. */
+.dp-btn--danger-ghost {
+  background: transparent;
+  border-color: var(--utility-error-100);
+  color: var(--utility-error-500);
+}
+.dp-btn--danger-ghost:not(:disabled):hover {
+  background: var(--utility-error-50);
+}
 .dp-btn--primary:not(:disabled):active,
 .dp-btn--secondary:not(:disabled):active,
 .dp-btn--ghost:not(:disabled):active,
-.dp-btn--danger:not(:disabled):active {
+.dp-btn--danger:not(:disabled):active,
+.dp-btn--danger-ghost:not(:disabled):active {
   transform: translateY(0.5px);
 }
 .dp-btn--primary:disabled,
 .dp-btn--secondary:disabled,
 .dp-btn--ghost:disabled,
-.dp-btn--danger:disabled {
+.dp-btn--danger:disabled,
+.dp-btn--danger-ghost:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   box-shadow: none;

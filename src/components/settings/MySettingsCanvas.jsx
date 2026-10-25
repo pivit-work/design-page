@@ -22,6 +22,7 @@ import {
 import PreferenceTab from './PreferenceTab.jsx';
 import PersonalTagsField from './PersonalTagsField.jsx';
 import { formatEduPeriod, formatYm, fromRange, nowYm, ymNum, isYm } from './educationForm.js';
+import Button from '../shared/Button.jsx';
 
 /**
  * MySettingsCanvas — 내 설정 화면 정본.
@@ -741,10 +742,10 @@ function BenefitsCard({ benefits, labels }) {
       <div className="msc-vis-header" style={{ marginBottom: 10 }}>
         <div className="admin-section-label" style={{ flex: 1, marginBottom: 0 }}>{L.benefitsSection}</div>
         {hasMasked && !benefits.loading && !benefits.error && (
-          <button type="button" className={`admin-notif-btn is-sm ${revealed ? 'is-primary' : 'is-soft'}`}
+          <Button variant={revealed ? 'primary' : 'secondary'} size="sm" className="admin-notif-btn"
             onClick={() => setRevealed((v) => !v)} data-testid="profile-benefits-reveal">
             {revealed ? L.benefitsHide : L.benefitsReveal}
-          </button>
+          </Button>
         )}
       </div>
       {benefits.loading ? (
@@ -803,9 +804,9 @@ function MyProfileTab({ me, activePhoto, myProfile, labels, onEdit }) {
             </div>
           </div>
           {onEdit && (
-            <button type="button" className="admin-notif-btn is-soft is-sm" onClick={onEdit} data-testid="myprofile-edit-btn">
+            <Button variant="secondary" size="sm" className="admin-notif-btn" onClick={onEdit} data-testid="myprofile-edit-btn">
               {L.edit}
-            </button>
+            </Button>
           )}
         </div>
         {mp.bio && <p className="msc-hero-bio">{mp.bio}</p>}
@@ -846,14 +847,15 @@ function MyProfileTab({ me, activePhoto, myProfile, labels, onEdit }) {
         <div className="msc-vis-header" style={{ marginBottom: 10 }}>
           <div className="admin-section-label" style={{ flex: 1, marginBottom: 0 }}>{L.compInfo}</div>
           {mp.compCurrent && (
-            <button
-              type="button"
-              className={`admin-notif-btn is-sm ${revealComp ? 'is-primary' : 'is-soft'}`}
+            <Button
+              variant={revealComp ? 'primary' : 'secondary'}
+              size="sm"
+              className="admin-notif-btn"
               onClick={() => setRevealComp((v) => !v)}
               data-testid="myprofile-comp-reveal"
             >
               {revealComp ? L.hide : L.reveal}
-            </button>
+            </Button>
           )}
         </div>
         {mp.compCurrent ? (
@@ -991,8 +993,8 @@ function FamilyTab({ family, today, labels, saveState, onSave, onAddDependent, o
         <div className="msc-empty-state" data-testid="family-load-error">
           <div>{L.loadError}</div>
           {onRetry && (
-            <button type="button" className="admin-notif-btn is-sm is-soft" style={{ marginTop: 10 }}
-              onClick={onRetry} data-testid="family-retry">{L.retry}</button>
+            <Button variant="secondary" size="sm" className="admin-notif-btn" style={{ marginTop: 10 }}
+              onClick={onRetry} data-testid="family-retry">{L.retry}</Button>
           )}
         </div>
       </Card>
@@ -1498,10 +1500,10 @@ function CompensationTab({ compensation, isAdmin, labels }) {
               <div className="msc-vis-header" style={{ marginBottom: 10 }}>
                 <div className="admin-section-label" style={{ flex: 1, marginBottom: 0 }}>{L.current}</div>
                 {!isAdmin && (
-                  <button type="button" className={`admin-notif-btn is-sm ${revealCurrent ? 'is-primary' : 'is-soft'}`}
+                  <Button variant={revealCurrent ? 'primary' : 'secondary'} size="sm" className="admin-notif-btn"
                     onClick={() => setRevealCurrent((v) => !v)} data-testid="compensation-current-reveal">
                     {revealCurrent ? L.hide : L.reveal}
-                  </button>
+                  </Button>
                 )}
               </div>
               <div className="msc-comp-grid">
@@ -1526,10 +1528,10 @@ function CompensationTab({ compensation, isAdmin, labels }) {
               <div className="msc-vis-header" style={{ marginBottom: 10 }}>
                 <div className="admin-section-label" style={{ flex: 1, marginBottom: 0 }}>{L.history}</div>
                 {!isAdmin && (
-                  <button type="button" className={`admin-notif-btn is-sm ${revealHistory ? 'is-primary' : 'is-soft'}`}
+                  <Button variant={revealHistory ? 'primary' : 'secondary'} size="sm" className="admin-notif-btn"
                     onClick={() => setRevealHistory((v) => !v)} data-testid="compensation-history-reveal">
                     {revealHistory ? L.hide : L.reveal}
-                  </button>
+                  </Button>
                 )}
               </div>
               <div className="msc-list">
@@ -1627,17 +1629,17 @@ function HistoryTab({
         ) : error ? (
           <div className="msc-empty-state" data-testid="history-error">
             <div>{L.loadError}</div>
-            <button type="button" className="admin-notif-btn is-sm is-soft" style={{ marginTop: 10 }}
-              onClick={onRetry} data-testid="history-retry">{L.retry}</button>
+            <Button variant="secondary" size="sm" className="admin-notif-btn" style={{ marginTop: 10 }}
+              onClick={onRetry} data-testid="history-retry">{L.retry}</Button>
           </div>
         ) : items.length === 0 ? (
           <div className="msc-empty-state" data-testid="history-empty">
             {/* 0건과 «필터 결과» 0건은 문구를 가른다 — 같으면 이력이 아예 없는 것으로 읽힌다. */}
             <div>{isFiltered ? L.emptyFiltered : L.empty}</div>
             {isFiltered && (
-              <button type="button" className="admin-notif-btn is-sm is-soft" style={{ marginTop: 10 }}
+              <Button variant="secondary" size="sm" className="admin-notif-btn" style={{ marginTop: 10 }}
                 onClick={() => { onFieldChange && onFieldChange('all'); onPeriodChange && onPeriodChange('all'); }}
-                data-testid="history-clear-filter">{L.clearFilter}</button>
+                data-testid="history-clear-filter">{L.clearFilter}</Button>
             )}
           </div>
         ) : (
@@ -1682,8 +1684,8 @@ function HistoryTab({
         )}
 
         {hasMore && !loading && !error && (
-          <button type="button" className="admin-notif-btn is-sm is-soft msc-hist-more"
-            onClick={onLoadMore} data-testid="history-more">{L.more}</button>
+          <Button variant="secondary" size="sm" className="admin-notif-btn msc-hist-more"
+            onClick={onLoadMore} data-testid="history-more">{L.more}</Button>
         )}
 
         <div className="msc-hist-note">{L.readOnly}</div>
@@ -2202,10 +2204,10 @@ export default function MySettingsCanvas({
                             '올려 둔 사진을 불러오지 못했습니다. 사진이 지워진 것이 아닙니다.'}
                         </div>
                         {onReloadPhotos && (
-                          <button type="button" className="admin-notif-btn is-sm is-soft" style={{ marginTop: 10 }}
+                          <Button variant="secondary" size="sm" className="admin-notif-btn" style={{ marginTop: 10 }}
                             onClick={onReloadPhotos} data-testid="photo-retry">
                             {labels.profile.photoRetry ?? '다시 시도'}
-                          </button>
+                          </Button>
                         )}
                       </div>
                     ) : (
@@ -2474,15 +2476,16 @@ export default function MySettingsCanvas({
                         {nationalIdPresent ? (nationalIdShown ?? '******-*******') : labels.profile.nationalIdEmpty}
                       </span>
                       {nationalIdPresent && nationalIdShown == null && onRevealNationalId && (
-                        <button
-                          type="button"
-                          className="admin-notif-btn is-soft is-sm"
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="admin-notif-btn"
                           onClick={revealNationalId}
                           disabled={nationalIdRevealState === 'loading'}
                           data-testid="national-id-reveal"
                         >
                           {labels.profile.nationalIdReveal}
-                        </button>
+                        </Button>
                       )}
                     </div>
                     {nationalIdRevealState === 'error' && (
@@ -2778,31 +2781,34 @@ export default function MySettingsCanvas({
                       </div>
                       <div className="msc-intg-actions">
                         {intg.connected && intg.syncable && onSyncIntegration && (
-                          <button
-                            type="button"
-                            className="admin-notif-btn is-soft is-sm"
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            className="admin-notif-btn"
                             disabled={intg.busy || intg.syncing}
                             onClick={() => onSyncIntegration(intg.id)}
                             data-testid={`integration-sync-${intg.id}`}
                           >
                             {intg.syncing ? labels.integrations.syncing : labels.integrations.sync}
-                          </button>
+                          </Button>
                         )}
                         {intg.accountLink && !intg.comingSoon && (
-                          <button
-                            type="button"
-                            className="admin-notif-btn is-sm is-soft"
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            className="admin-notif-btn"
                             disabled={Boolean(intg.busy || intg.unavailableReason)}
                             onClick={() => onLinkAccount && onLinkAccount(intg.id)}
                             data-testid={`integration-link-${intg.id}`}
                           >
                             {labels.integrations.linkAccount}
-                          </button>
+                          </Button>
                         )}
                         {!intg.accountLink && !intg.comingSoon && !intg.managedByOrg && (
-                          <button
-                            type="button"
-                            className={`admin-notif-btn is-sm ${intg.connected ? 'is-danger' : 'is-soft'}`}
+                          <Button
+                            variant={intg.connected ? 'danger-ghost' : 'secondary'}
+                            size="sm"
+                            className="admin-notif-btn"
                             // 허용 안 됨이면 새 연결만 잠근다 — 이미 연결된 카드의 «연결 해제»는 그대로
                             disabled={Boolean(intg.busy || intg.syncing || (!intg.connected && intg.connectLocked))}
                             onClick={() =>
@@ -2813,7 +2819,7 @@ export default function MySettingsCanvas({
                             data-testid={`integration-${intg.connected ? 'disconnect' : 'connect'}-${intg.id}`}
                           >
                             {intg.connected ? labels.integrations.disconnect : labels.integrations.connect}
-                          </button>
+                          </Button>
                         )}
                       </div>
                     </div>
@@ -2843,15 +2849,16 @@ export default function MySettingsCanvas({
                             {acc.auto && (
                               <StatusBadge className="msc-intg-badge is-muted">{labels.integrations.autoLinked}</StatusBadge>
                             )}
-                            <button
-                              type="button"
-                              className="admin-notif-btn is-sm is-danger"
+                            <Button
+                              variant="danger-ghost"
+                              size="sm"
+                              className="admin-notif-btn"
                               disabled={Boolean(acc.busy)}
                               onClick={() => onUnlinkAccount && onUnlinkAccount(intg.id, acc.id)}
                               data-testid={`linked-account-unlink-${acc.id}`}
                             >
                               {labels.integrations.unlinkAccount}
-                            </button>
+                            </Button>
                           </div>
                         ))}
                       </div>
@@ -2925,9 +2932,10 @@ export default function MySettingsCanvas({
                             : labels.security.loginMethodDisconnect}
                         </button>
                       ) : (
-                        <button
-                          type="button"
-                          className="admin-notif-btn is-soft is-sm"
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="admin-notif-btn"
                           disabled={loginMethodsState.busy}
                           onClick={() => onConnectGoogleLogin && onConnectGoogleLogin()}
                           data-testid="login-method-google-connect"
@@ -2935,7 +2943,7 @@ export default function MySettingsCanvas({
                           {loginMethodsState.busy
                             ? labels.security.loginMethodBusy
                             : labels.security.loginMethodConnect}
-                        </button>
+                        </Button>
                       )}
                     </div>
                   </div>
@@ -3112,13 +3120,14 @@ export default function MySettingsCanvas({
                           <div className="msc-notif-sub">{s.meta}</div>
                         </div>
                         {!s.current && onEndSession && (
-                          <button
-                            type="button"
-                            className="admin-notif-btn is-soft is-sm"
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            className="admin-notif-btn"
                             onClick={() => onEndSession(s.id)}
                           >
                             {labels.security.endSession}
-                          </button>
+                          </Button>
                         )}
                       </div>
                     ))}

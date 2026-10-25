@@ -1,6 +1,7 @@
 import Card from './Card.jsx';
 import SectionLabel from './SectionLabel.jsx';
 import LinkButton from './LinkButton.jsx';
+import Button from '../shared/Button.jsx';
 
 function pct(done, total) {
   return total ? Math.round((done / total) * 100) : 0;
@@ -46,9 +47,9 @@ export default function AdminEvalCard({ evalCard, labels, onManageEval, onSendRe
               </div>
             );
           })}
-          <button type="button" className="admin-eval-reminder-button" onClick={onSendReminder}>
+          <Button className="admin-eval-reminder-button" onClick={onSendReminder}>
             {labels.sendReminder}
-          </button>
+          </Button>
         </>
       ) : (
         <div className="admin-eval-empty">{labels.emptyEval}</div>

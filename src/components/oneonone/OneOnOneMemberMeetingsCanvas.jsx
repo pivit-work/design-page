@@ -340,28 +340,30 @@ function ListScreen({
                     <span>{fill(L.actionsDone, { done: doneCount, total: actions.length })}</span>
                   </span>
                   <span className="ono-past-row-actions">
-                    <button
+                    <Button
                       type="button"
-                      className="ono-past-link"
+                      variant="secondary"
+                      size="sm"
                       data-testid="ono-past-open-record"
                       onClick={() => onOpenRecord(s.id)}
                     >
                       <Icon src={icons.record} size={13} color="currentColor" baseUrl={baseUrl} />
                       {L.openRecord}
-                    </button>
+                    </Button>
                     {/* 전사가 끝나기 전에는 분석이 없다 — 숨기지 않고 비활성으로 두어 기능이
                         있다는 것은 알린다 (policy §10.8.2 「대화 분석 미생성」). */}
                     <Tooltip content={s.sttStatus === 'processing' ? L.analysisPending : null}>
-                      <button
+                      <Button
                         type="button"
-                        className="ono-past-link"
+                        variant="secondary"
+                        size="sm"
                         data-testid="ono-past-open-analysis"
                         disabled={s.sttStatus === 'processing'}
                         onClick={() => onOpenAnalysis(s.id)}
                       >
                         <Icon src={icons.analysis} size={13} color="currentColor" baseUrl={baseUrl} />
                         {L.openAnalysis}
-                      </button>
+                      </Button>
                     </Tooltip>
                   </span>
                 </span>
@@ -591,14 +593,16 @@ function RecordScreen({
             {recordEdit.until && (
               <span className="ono-done-count">{fill(L.editRecordUntil, { date: recordEdit.until })}</span>
             )}
-            <button
+            <Button
               type="button"
+              variant="secondary"
+              size="sm"
               className="ono-done-banner-btn"
               onClick={() => recordEdit.onEdit(session.id)}
               data-testid="ono-past-record-edit"
             >
               {L.editRecord}
-            </button>
+            </Button>
           </span>
         )}
       </SessionHeader>

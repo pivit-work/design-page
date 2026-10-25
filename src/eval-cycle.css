@@ -1713,20 +1713,6 @@
   align-items: center;
   gap: var(--spacing-sm);
 }
-.evc-rm-edit-btn {
-  padding: 5px 12px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-primary);
-  background: var(--bg-primary);
-  color: var(--text-secondary);
-  font-size: var(--font-size-text-xs);
-  font-weight: 700;
-  font-family: inherit;
-  cursor: pointer;
-}
-.evc-rm-edit-btn:hover {
-  background: var(--bg-secondary);
-}
 .evc-rm-row.is-editing {
   border-color: var(--border-brand);
 }

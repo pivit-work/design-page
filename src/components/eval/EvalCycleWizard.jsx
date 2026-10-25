@@ -1,4 +1,5 @@
 import { useAiDraftLifecycle } from '../shared/useAiDraftLifecycle.js';
+import Button from '../shared/Button.jsx';
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Chip from '../shared/Chip.jsx';
@@ -10074,14 +10075,16 @@ export default function EvalCycleWizard({
                                             {axisLabel} · {follows ? L.reminderInheritDefault : L.reminderInheritCustom}
                                           </StatusBadge>
                                           {!follows && (
-                                            <button
+                                            <Button
                                               type="button"
+                                              variant="secondary"
+                                              size="sm"
                                               className="evc-rm-edit-btn"
                                               onClick={() => resetReminderAxis(ph.id, rm.id, axis)}
                                               data-testid={`evc-rm-inherit-reset-${axis}-${ph.id}-${i}`}
                                             >
                                               {L.reminderInheritReset}
-                                            </button>
+                                            </Button>
                                           )}
                                         </span>
                                       );
@@ -10105,24 +10108,28 @@ export default function EvalCycleWizard({
                                     })()}
                                     <span className="evc-rm-actions">
                                       {onOpenReminderDispatches && L.reminderDispatchLink && (
-                                        <button
+                                        <Button
                                           type="button"
+                                          variant="secondary"
+                                          size="sm"
                                           className="evc-rm-edit-btn"
                                           onClick={() => onOpenReminderDispatches(ph.id)}
                                           data-testid={`evc-rm-dispatch-link-${ph.id}-${i}`}
                                         >
                                           {L.reminderDispatchLink}
-                                        </button>
+                                        </Button>
                                       )}
-                                      <button
+                                      <Button
                                         type="button"
+                                        variant="secondary"
+                                        size="sm"
                                         className="evc-rm-edit-btn"
                                         aria-haspopup="dialog"
                                         onClick={() => setRmEdit({ pid: ph.id, rid: rm.id, from: rm.channels })}
                                         data-testid={`evc-rm-edit-${ph.id}-${i}`}
                                       >
                                         {L.reminderEdit}
-                                      </button>
+                                      </Button>
                                       <button
                                         type="button"
                                         className="evc-rm-del"

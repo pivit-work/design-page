@@ -17,6 +17,7 @@ import {
 } from './educationForm.js';
 import { isEnterKey } from '../shared/enterKey.js';
 import { RecordField, RecordForm, RecordFormFoot, RecordGrid } from './recordParts.jsx';
+import Button from '../shared/Button.jsx';
 
 /**
  * 「내 설정 › 조직 정보」 학력 추가 폼 (PW-1302 · pivit-specs my-settings-spec §4-C-1 · 시안
@@ -299,11 +300,11 @@ export function MonthWheelField({ value, onChange, placeholder, ariaLabel, clear
           </div>
           <div className="msc-add-actions">
             {clearLabel && value && (
-              <button type="button" className="admin-notif-btn is-soft is-sm" style={{ marginRight: 'auto' }} data-testid={`${testId}-clear`}
-                onClick={() => { onChange(''); setOpen(false); }}>{clearLabel}</button>
+              <Button variant="secondary" size="sm" className="admin-notif-btn" style={{ marginRight: 'auto' }} data-testid={`${testId}-clear`}
+                onClick={() => { onChange(''); setOpen(false); }}>{clearLabel}</Button>
             )}
-            <button type="button" className="admin-notif-btn is-soft is-sm" onClick={() => setOpen(false)}>{F.wheelCancel}</button>
-            <button type="button" className="admin-notif-btn is-primary is-sm" onClick={confirm} data-testid={`${testId}-confirm`}>{F.wheelConfirm}</button>
+            <Button variant="secondary" size="sm" className="admin-notif-btn" onClick={() => setOpen(false)}>{F.wheelCancel}</Button>
+            <Button variant="primary" size="sm" className="admin-notif-btn" onClick={confirm} data-testid={`${testId}-confirm`}>{F.wheelConfirm}</Button>
           </div>
         </AnchoredLayer>
       )}

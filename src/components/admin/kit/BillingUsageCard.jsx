@@ -1,3 +1,5 @@
+import Button from '../../shared/Button.jsx';
+
 /**
  * 녹음 사용량 칸 — 어드민 › 결제·구독 개요 아래 (PW-760).
  *
@@ -52,14 +54,14 @@ export default function BillingUsageCard({
 
       {simulate && (
         <div className="admin-kit-usage-actions">
-          <button
-            type="button"
+          <Button
             data-testid="simulate-usage"
-            className="admin-kit-usage-simulate"
+            variant="secondary"
+            size="sm"
             onClick={simulate.onClick}
           >
             {simulate.label}
-          </button>
+          </Button>
         </div>
       )}
     </div>

@@ -11,6 +11,7 @@ import TextArea from '../shared/TextArea.jsx';
 import assetUrl from '../shared/assetUrl.js';
 import { AlertTriangleGlyph, ArrowRightGlyph, LockGlyph, SettingsGlyph } from '../shared/lineIcons.jsx';
 import { resolveKoreanParticles } from '../shared/koreanParticle.js';
+import Button from '../shared/Button.jsx';
 
 
 /**
@@ -108,9 +109,9 @@ export function AdminCatalogPanel({
           <div className="intg-table-empty" data-testid="intg-catalog-error">
             {L.loadFailed}
             {onRetryCatalog && (
-              <button type="button" className="intg-btn intg-btn-neutral intg-btn-sm" onClick={onRetryCatalog}>
+              <Button variant="secondary" size="sm" className="intg-btn" onClick={onRetryCatalog}>
                 {L.retry}
-              </button>
+              </Button>
             )}
           </div>
         )}
@@ -166,15 +167,16 @@ export function AdminCatalogPanel({
                           )}
                         </RosterTable.Cell>
                         <RosterTable.Cell>
-                          <button
-                            type="button"
-                            className={`intg-btn intg-btn-sm ${active ? 'intg-btn-neutral' : 'intg-btn-primary'}`}
+                          <Button
+                            variant={active ? 'secondary' : 'primary'}
+                            size="sm"
+                            className="intg-btn"
                             disabled={busy}
                             data-testid={`intg-catalog-status-${t.id}`}
                             onClick={() => askStatus(t)}
                           >
                             {active ? L.deactivate : L.activate}
-                          </button>
+                          </Button>
                         </RosterTable.Cell>
                       </RosterTable.Row>
                     );
@@ -197,9 +199,9 @@ export function AdminCatalogPanel({
           <div className="intg-table-empty" data-testid="intg-requests-error">
             {R.loadFailed}
             {onRetryRequests && (
-              <button type="button" className="intg-btn intg-btn-neutral intg-btn-sm" onClick={onRetryRequests}>
+              <Button variant="secondary" size="sm" className="intg-btn" onClick={onRetryRequests}>
                 {L.retry}
-              </button>
+              </Button>
             )}
           </div>
         )}
@@ -224,14 +226,14 @@ export function AdminCatalogPanel({
                     </DpStatusBadge>
                     {open && (
                       <>
-                        <button type="button" className="intg-btn intg-btn-primary intg-btn-sm" disabled={busy}
+                        <Button variant="primary" size="sm" className="intg-btn" disabled={busy}
                           data-testid={`intg-request-approve-${r.id}`} onClick={() => onRequestAction(r.id, 'approved')}>
                           {R.approve}
-                        </button>
-                        <button type="button" className="intg-btn intg-btn-neutral intg-btn-sm" disabled={busy}
+                        </Button>
+                        <Button variant="secondary" size="sm" className="intg-btn" disabled={busy}
                           data-testid={`intg-request-reject-${r.id}`} onClick={() => onRequestAction(r.id, 'rejected')}>
                           {R.reject}
-                        </button>
+                        </Button>
                       </>
                     )}
                   </span>
@@ -328,10 +330,10 @@ export function RequestBanner({ labels, onOpen }) {
           {L.message}
         </span>
       </div>
-      <button type="button" className="intg-btn intg-btn-primary" data-testid="intg-request-open" onClick={onOpen}>
+      <Button variant="primary" size="sm" className="intg-btn" data-testid="intg-request-open" onClick={onOpen}>
         {L.button}
         <ArrowRightGlyph size={14} />
-      </button>
+      </Button>
     </div>
   );
 }

@@ -523,16 +523,6 @@
 .admin-kit-usage-bar { height: 8px; border-radius: 99px; overflow: hidden; background: #f1f5f9; }
 .admin-kit-usage-bar-fill { height: 100%; background: var(--kit-usage-fill); }
 .admin-kit-usage-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
-.admin-kit-usage-simulate {
-  padding: 6px 12px;
-  border-radius: 8px;
-  font-family: inherit;
-  font-size: 12px;
-  cursor: pointer;
-  border: 1px solid #e2e8f0;
-  background: none;
-  color: #94a3b8;
-}
 
 /* ── 퇴사 처리 캔버스 (AdminOffboardingCanvas · PW-1081) ── */
 .admin-offb { gap: 16px; max-width: 880px; }

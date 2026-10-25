@@ -8,6 +8,7 @@ import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Switch from '../shared/Switch.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
 import Select from '../shared/Select.jsx';
+import Button from '../shared/Button.jsx';
 
 /**
  * AdminNotificationsCanvas — 어드민 "알림 설정" 화면 Pure 컴포넌트.
@@ -614,9 +615,9 @@ function RuleRow({ rule, labels, formatCondition, formatCooldown, onEdit, onTogg
         </div>
       </div>
       <span className="admin-notif-rule-cooldown">{formatCooldown(rule.cooldown)}</span>
-      <button type="button" className="admin-notif-btn is-soft is-sm" onClick={() => onEdit(rule)} data-testid="edit-rule-btn">
+      <Button variant="secondary" size="sm" className="admin-notif-btn" onClick={() => onEdit(rule)} data-testid="edit-rule-btn">
         {labels.editBtn}
-      </button>
+      </Button>
     </div>
   );
 }
@@ -721,12 +722,12 @@ export default function AdminNotificationsCanvas({
 
       {/* 전체 on/off */}
       <div className="admin-notif-bulk">
-        <button type="button" className="admin-notif-btn is-soft is-block" disabled={busy} onClick={() => onBulkSet && onBulkSet(true)} data-testid="enable-all-btn">
+        <Button variant="secondary" className="admin-notif-btn is-block" disabled={busy} onClick={() => onBulkSet && onBulkSet(true)} data-testid="enable-all-btn">
           {labels.enableAll}
-        </button>
-        <button type="button" className="admin-notif-btn is-soft is-block" disabled={busy} onClick={() => onBulkSet && onBulkSet(false)} data-testid="disable-all-btn">
+        </Button>
+        <Button variant="secondary" className="admin-notif-btn is-block" disabled={busy} onClick={() => onBulkSet && onBulkSet(false)} data-testid="disable-all-btn">
           {labels.disableAll}
-        </button>
+        </Button>
       </div>
 
       {editTarget && (

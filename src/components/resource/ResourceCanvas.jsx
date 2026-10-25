@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Button from '../shared/Button.jsx';
 import Avatar from '../shared/Avatar.jsx';
 import ProgressiveItems from '../shared/ProgressiveItems.jsx';
 import SidePanelShell from '../shared/SidePanelShell.jsx';
@@ -333,29 +334,31 @@ function MemberPanel({ member, projectById, labels, onClose, onSaveTarget }) {
                           aria-label={labels.targetEdit}
                           onChange={(e) => setValue(e.target.value)}
                         />
-                        <button
+                        <Button
                           type="button"
-                          className="rs-btn is-primary"
+                          variant="primary"
+                          size="sm"
                           disabled={saving}
                           onClick={() => save(a)}
                         >
                           {labels.save}
-                        </button>
-                        <button type="button" className="rs-btn" onClick={() => setEditing(null)}>
+                        </Button>
+                        <Button type="button" variant="secondary" size="sm" onClick={() => setEditing(null)}>
                           {labels.cancel}
-                        </button>
+                        </Button>
                       </>
                     ) : (
-                      <button
+                      <Button
                         type="button"
-                        className="rs-btn"
+                        variant="secondary"
+                        size="sm"
                         onClick={() => {
                           setEditing(a.projectId);
                           setValue(String(a.target));
                         }}
                       >
                         {labels.targetEdit}
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>

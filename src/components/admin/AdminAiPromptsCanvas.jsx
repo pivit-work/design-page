@@ -4,6 +4,7 @@ import { InfoGlyph, SearchGlyph } from '../shared/lineIcons.jsx';
 import Switch from '../shared/Switch.jsx';
 import Toast from '../shared/Toast.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
+import Button from '../shared/Button.jsx';
 
 /**
  * AdminAiPromptsCanvas — 어드민 "AI 프롬프트 설정" 화면 Pure 컴포넌트.
@@ -384,28 +385,32 @@ export default function AdminAiPromptsCanvas({
 
                   {/* Action buttons */}
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <button onClick={() => onSave && onSave()} data-testid="save-btn" className="admin-invite-button">
+                    <Button onClick={() => onSave && onSave()} data-testid="save-btn" variant="primary" className="admin-invite-button">
                       {labels.save}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={() => onTest && onTest()}
                       disabled={testLoading}
                       data-testid="test-btn"
+                      variant="secondary"
+                      size="sm"
                       className="admin-link-button"
                       style={{ cursor: testLoading ? 'wait' : 'pointer' }}
                     >
                       {testLoading ? labels.testRunning : labels.test}
-                    </button>
+                    </Button>
                     {/* 기본값 복원(커스텀 삭제)은 커스텀 프롬프트가 있을 때만 의미가 있다 */}
                     {selected.hasCustom && (
-                      <button
+                      <Button
                         onClick={() => onDelete && onDelete()}
                         data-testid="delete-btn"
+                        variant="secondary"
+                        size="sm"
                         className="admin-link-button"
                         style={{ marginLeft: 'auto', color: 'var(--text-error-primary)' }}
                       >
                         {labels.delete}
-                      </button>
+                      </Button>
                     )}
                   </div>
 
@@ -464,14 +469,16 @@ export default function AdminAiPromptsCanvas({
                                   {v.customPrompt}
                                 </div>
                               </div>
-                              <button
+                              <Button
                                 onClick={() => onRestoreVersion && onRestoreVersion(v.id)}
                                 data-testid={`restore-${v.id}`}
+                                variant="secondary"
+                                size="sm"
                                 className="admin-link-button"
                                 style={{ flexShrink: 0 }}
                               >
                                 {labels.restore}
-                              </button>
+                              </Button>
                             </div>
                           ))
                         )}
