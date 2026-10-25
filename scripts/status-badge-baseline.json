@@ -1674,7 +1674,7 @@
    "font-size": "11px",
    "background": "#f3f4f6 / 어두운 화면 #0c0e12",
    "color": "#596069 / 어두운 화면 #ececed",
-   "font-family": "var(--font-family-mono)",
+   "font-family": "var(--font-family-body)",
    "border": "1px solid var(--border-secondary)"
   }
  },

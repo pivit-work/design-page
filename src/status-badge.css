@@ -1062,9 +1062,9 @@
    유지하고, 색은 뜻 표(StatusBadge tone: 있음 = success · 없음 = neutral)가 정한다. (올린 자료 상태 알약 .okr-src-pill 은
    디자이너 상태 글자 .okr-status-text 로 바뀌어 지웠다.) */
 .okr-ctx-sticky-pill { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 99px; font-size: 11px; font-weight: 700; white-space: nowrap; }
-/* PW-2219 — OKR 컨텍스트 AI 분석 결과의 키워드 칩과 「+ N개」. 디자이너에 작은 칩 부품이 없어 지금 모양(흰 네모·고정폭 글꼴 ·
+/* PW-2219 — OKR 컨텍스트 AI 분석 결과의 키워드 칩과 「+ N개」. 디자이너에 작은 칩 부품이 없어 지금 모양(흰 네모 ·
    「+ N개」는 점선)을 인라인 style 에서 그대로 옮겼다. */
-.okr-ctx-kw-chip { padding: 4px 9px; border-radius: 6px; background: var(--bg-primary); border: 1px solid var(--border-secondary); font-size: 11px; color: var(--text-primary); font-family: var(--font-family-mono); }
+.okr-ctx-kw-chip { padding: 4px 9px; border-radius: 6px; background: var(--bg-primary); border: 1px solid var(--border-secondary); font-size: 11px; color: var(--text-primary); font-family: var(--font-family-body); }
 .okr-ctx-kw-chip.is-more { background: transparent; border-style: dashed; color: var(--text-tertiary); font-family: inherit; }
 
 /* ══ okr_resource.css 에서 옮겨 온 딱지 ══════════════════════════════════════════════ */

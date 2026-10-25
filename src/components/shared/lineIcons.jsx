@@ -421,6 +421,15 @@ export function UploadGlyph(props) {
   );
 }
 
+/** 구름 올리기 — OKR 컨텍스트 창 드롭존(stesslee 08-16 b7eb7caa)의 그림을 값 그대로 옮겼다(PW-2219). */
+export function UploadCloudGlyph(props) {
+  return (
+    <LineSvg {...props}>
+      <path d="M8 16.24A4.5 4.5 0 0 1 6.5 7.5a6 6 0 0 1 11.7 1.6A3.75 3.75 0 0 1 17 16.24M12 12v9m0-9-3.5 3.5M12 12l3.5 3.5" />
+    </LineSvg>
+  );
+}
+
 /** 내려받기 — 트레이 + 아래 화살. */
 export function DownloadGlyph(props) {
   return (
