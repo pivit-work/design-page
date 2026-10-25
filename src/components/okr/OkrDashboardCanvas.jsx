@@ -32,7 +32,7 @@ export default function OkrDashboardCanvas({
   loading = false,
 }) {
   const { canvasRef, scale, translate, isDragging, canvasProps, zoomIn, zoomOut, resetView, setView } = usePanZoom({
-    ignoreSelector: '.zoom-controls, .okr-group-card, .okr-objective-row, .okr-member-chip',
+    ignoreSelector: '.zoom-controls, .okr-group-card, .okr-objective-row, .okr-objective-more, .okr-member-chip',
   });
   const canvasInnerRef = useRef(null);
 

@@ -163,6 +163,9 @@ export default function OkrResourceMyInput({
   };
   const total = entries.reduce((a, e) => a + e.value, 0);
   const overLimit = maxTotal != null && total > maxTotal;
+  // 100% 초과 경고는 입력 중인 합계로 정한다 — 저장한 값으로 정하면 160% 로 바꿔도 저장 전엔 안 뜬다(PW-2214).
+  // 문구를 안 준 앱은 예전처럼 data.redFlag 를 쓴다.
+  const overTotal = M.overTotal ? (total > 100 ? M.overTotal(total) : null) : data.redFlag;
   // 이미 투입 목록에 있는 항목의 추가 버튼은 숨긴다 — 눌러도 무시되는 버튼을
   // 남겨두면 고장으로 읽힌다. 항목을 삭제(X)하면 버튼이 다시 나타난다.
   // 'PIVIT v2.0'(KR 연결명) vs 'PIVIT V2.0'(항목명)처럼 표기만 다른 같은
@@ -313,11 +316,11 @@ export default function OkrResourceMyInput({
 
       <div className="rsx-total">
         <p className="rsx-total-label">Total</p>
-        <p className={`rsx-total-value${total > 100 || data.redFlag ? ' is-bad' : ''}`}>{total}%</p>
-        {!readOnly && data.redFlag && (
+        <p className={`rsx-total-value${total > 100 || overTotal ? ' is-bad' : ''}`}>{total}%</p>
+        {!readOnly && overTotal && (
           <div className="rsx-total-warn">
             <Icon src={icons.alertTriangle} size={12} color="var(--text-error-primary)" baseUrl={baseUrl} />
-            <span>{data.redFlag}</span>
+            <span>{overTotal}</span>
           </div>
         )}
       </div>

@@ -51,6 +51,8 @@ export const OKR_RESOURCE_DEFAULT_LABELS = {
     krEmpty: (year, quarter) => `${year}년 Q${quarter}에 내 개인 OKR KR이 없습니다. 개인 OKR을 먼저 작성해 주세요.`,
     save: '저장',
     overLimit: (max) => `허용 한도 초과 — 한 달 합계는 ${max}%까지 저장할 수 있습니다.`,
+    // 합계 100% 초과 경고 — 저장된 값이 아니라 입력 중인 합계로 그린다(리소스 정책서 §3 「100% 초과 경고 배너」 · PW-2214)
+    overTotal: (total) => `합계 ${total}% — 100%를 넘었습니다`,
     openProject: '프로젝트 상세 보기',
     readOnlyNotice: (month) => `${month}은 끝난 달입니다. 입력한 값은 볼 수만 있고 고칠 수 없습니다. 매니저 코멘트와 답글은 남길 수 있습니다.`,
     readOnlyEmpty: '이 달에 입력한 기록이 없습니다.',

@@ -27,7 +27,8 @@ import { mergeOkrResourceLabels } from './okrResourceLabels.js';
  * `views` 가 나중에 늘면 그때 그 탭으로 넘어간다.
  *
  * `placeholder` 를 주면 헤더·본문 대신 같은 자리(`.rsx-area`)에 그것만 그린다 — 불러오는 중·
- * 불러오기 실패처럼 `data` 가 아직 없을 때. `actionError` 는 저장·코멘트 실패 문구로,
+ * 불러오기 실패처럼 `data` 가 아직 없을 때. `viewPlaceholders` 는 같은 일을 서브탭 하나에만 한다 —
+ * 조직 현황만 못 불러왔을 때 탭은 두고 그 탭 본문 자리에 실패 안내를 그린다(PW-2214). `actionError` 는 저장·코멘트 실패 문구로,
  * 헤더 위에 인라인으로 띄운다(전역 오류 화면으로 보내면 방금 맞춘 슬라이더 값이 날아간다).
  *
  * `labels` 로 화면 문구를 바꿀 수 있다(영어 화면 · PW-1171). 생략한 문구는 한국어 기본값 —
@@ -59,6 +60,8 @@ export default function OkrResourceCanvas({
   /** 내 입력의 투입 행 프로젝트 이름 · 팀 현황 팀원 칩(PW-1865, 늘 `unsaved: false`)을 눌렀을 때 — `(projectId, { unsaved })`. `OkrResourceMyInput` 참고. */
   onOpenProject,
   placeholder,
+  /** `{ team?, org? }` — 그 서브탭 본문 대신 그릴 것(불러오기 실패 안내 등). 탭은 그대로 남는다. */
+  viewPlaceholders,
   actionError,
   labels: providedLabels,
   readOnly = false,
@@ -121,11 +124,15 @@ export default function OkrResourceCanvas({
           labels={L}
         />
       )}
-      {view === 'team' && (
-        <OkrResourceTeam key={data.periodKey} data={data.team} icons={icons} baseUrl={baseUrl} onComment={onComment} onOpenProject={onOpenProject ? (id) => onOpenProject(id, { unsaved: false }) : undefined} labels={L} />
-      )}
-      {view === 'org' && (
-        <OkrResourceOrg key={data.periodKey} data={data.orgView} icons={icons} baseUrl={baseUrl} onOpenTeam={setOpenTeam} labels={L} />
+      {view !== 'my' && viewPlaceholders?.[view] != null ? viewPlaceholders[view] : (
+        <>
+          {view === 'team' && (
+            <OkrResourceTeam key={data.periodKey} data={data.team} icons={icons} baseUrl={baseUrl} onComment={onComment} onOpenProject={onOpenProject ? (id) => onOpenProject(id, { unsaved: false }) : undefined} labels={L} />
+          )}
+          {view === 'org' && (
+            <OkrResourceOrg key={data.periodKey} data={data.orgView} icons={icons} baseUrl={baseUrl} onOpenTeam={setOpenTeam} labels={L} />
+          )}
+        </>
       )}
 
       <OkrResourceTeamModal team={openTeam} icons={icons} baseUrl={baseUrl} onClose={() => setOpenTeam(null)} labels={L} />
