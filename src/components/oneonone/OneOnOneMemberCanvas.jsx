@@ -1904,7 +1904,7 @@ function ResultScreen({ session, manager, avatar, renderAvatar, L, icons, baseUr
  *
  * 코칭 지표(발화 비율·반복 패턴·대화 분석)는 여기 넣지 않는다 — 멤버 공개 범위 밖이다.
  */
-function HistoryDetail({ session, manager, avatar, renderAvatar, L, icons, baseUrl, formatDate, formatDuration, onBack, feedbackEvidence, renderRecordingPlayer }) {
+function HistoryDetail({ session, manager, avatar, renderAvatar, L, icons, baseUrl, formatDate, formatDuration, onBack, feedbackEvidence, renderRecordingPlayer, historyNotes }) {
   // 지난 회차는 지금 매니저가 아니라 **그때 그 매니저**의 것이다 (PW-211).
   const host = hostOf(session, manager);
   const hostAvatar = renderAvatar
@@ -1937,6 +1937,25 @@ function HistoryDetail({ session, manager, avatar, renderAvatar, L, icons, baseU
           {L.backToHistory}
         </button>
       </SessionHeader>
+
+      {/* 내 개인 메모 (PW-575 · 2026-10-25) — 결과 탭의 같은 카드를 그대로 옮겼다. 호스트가
+          `historyNotes` 를 넘길 때만 선다(매니저가 팀원 화면을 보면 안 넘긴다 — 팀원만의 글이다).
+          돌려준 값이 `null` 이면 읽기만, 편집 값이면 [편집](끝난 뒤 30일 · 기획 §12). */}
+      {historyNotes && (
+        <EditableNotesCard
+          key={session.id}
+          title={L.privateMemo}
+          value={session.memberNotes ?? ''}
+          placeholder={L.memoPlaceholder}
+          emptyText={L.notesEmpty}
+          icon={icons.memo}
+          L={L}
+          icons={icons}
+          baseUrl={baseUrl}
+          edit={historyNotes(session)}
+          testid="ono-history-notes"
+        />
+      )}
 
       {/* 요약이 없어도 재생기가 있으면 카드를 그린다 (PW-584) — 그러지 않으면
           「요약은 못 만들었는데 녹음은 있는」 회차에서 원음을 들을 자리가 사라진다. */}
@@ -1994,7 +2013,7 @@ function HistoryDetail({ session, manager, avatar, renderAvatar, L, icons, baseU
           <div className="ono-mem-table">
             <ColHeads cols={[L.colContent, L.colAssignee, L.colStatus]} />
             {/* 지난 회의록은 읽기 전용이다 — 눌러도 완료가 바뀌지 않는다 (PW-1638, 기획 §10.3).
-                완료 체크는 결과 탭의 «내 액션 아이템»에서만 한다. */}
+                메모와 달리 30일 안이어도 열지 않는다(PW-575 · 2026-10-25). */}
             {session.actionItems.map((item) => (
               <div className="ono-mem-row" key={item.id}>
                 <span className="ono-mem-cell">{item.text}</span>
@@ -2020,7 +2039,7 @@ function HistoryDetail({ session, manager, avatar, renderAvatar, L, icons, baseU
   );
 }
 
-function HistoryScreen({ sessions, session, onCurrentOpen, manager, avatar, renderAvatar, L, icons, baseUrl, formatDate, formatDuration, healthColor, healthBg, healthBorder, feedbackEvidence, onHistorySelect, renderRecordingPlayer }) {
+function HistoryScreen({ sessions, session, onCurrentOpen, manager, avatar, renderAvatar, L, icons, baseUrl, formatDate, formatDuration, healthColor, healthBg, healthBorder, feedbackEvidence, onHistorySelect, renderRecordingPlayer, historyNotes }) {
   const [selectedId, setSelectedId] = useState(null);
   const done = sessions.filter((s) => s.status === 'done');
   const selected = done.find((s) => s.id === selectedId);
@@ -2041,6 +2060,7 @@ function HistoryScreen({ sessions, session, onCurrentOpen, manager, avatar, rend
         onBack={() => select(null)}
         feedbackEvidence={feedbackEvidence}
         renderRecordingPlayer={renderRecordingPlayer}
+        historyNotes={historyNotes}
       />
     );
   }
@@ -2191,6 +2211,13 @@ export default function OneOnOneMemberCanvas({
    */
   resultNotes = null,
   /**
+   * 히스토리 상세 「개인 메모」 (PW-575 · 2026-10-25) — `(session) => { until, saving, error, onSave(text) } | null`.
+   *
+   * 넘기면 상세에 결과 탭과 같은 메모 카드가 선다. 회차마다 고칠 수 있는지가 달라서(끝난 뒤 30일)
+   * 함수로 받고, `null` 을 돌려주면 그 회차는 읽기만 된다. **안 넘기면 카드가 없다**(매니저가 보는 경우).
+   */
+  historyNotes,
+  /**
    * 탭 줄 **위**에 서는 안내 띠 자리 (PW-1718) — 팀원 녹음 안내·동의 띠를 소비처가 넣는다.
    *
    * 캔버스 밖에 두면 본문(가운데 좁은 칸)과 달리 화면 끝까지 펼쳐져서, 같은 칸 안에 세운다.
@@ -2262,6 +2289,7 @@ export default function OneOnOneMemberCanvas({
           feedbackEvidence={feedbackEvidence}
           onHistorySelect={onHistorySelect}
           renderRecordingPlayer={renderRecordingPlayer}
+          historyNotes={historyNotes}
         />
       )}
     </div>
