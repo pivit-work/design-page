@@ -10,6 +10,7 @@ import AdminEvalCard from './AdminEvalCard.jsx';
 import AdminIntegrationRow from './AdminIntegrationRow.jsx';
 import AdminActivityLogRow from './AdminActivityLogRow.jsx';
 import Pagination from '../shared/Pagination.jsx';
+import Button from '../shared/Button.jsx';
 
 /**
  * AdminDashboardCanvas — 어드민 개요 대시보드 Pure 컴포넌트.
@@ -135,9 +136,9 @@ export default function AdminDashboardCanvas({
         </div>
         <div className="admin-header-actions">
           {dateLabel && <span className="admin-header-date">{dateLabel}</span>}
-          <button type="button" className="admin-invite-button" onClick={onInvite}>
+          <Button variant="primary" className="admin-invite-button" onClick={onInvite}>
             {labels.inviteButton}
-          </button>
+          </Button>
         </div>
       </header>
 

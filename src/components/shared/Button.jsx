@@ -27,7 +27,7 @@ import Spinner from './Spinner.jsx';
  * 두고 잠금만 얹을 때는 `variant` 없이 `className` 으로 그 모양을 넘긴다 — 상태 딱지
  * (`StatusBadge`, PW-840)처럼 모양을 하나로 맞추는 일은 따로 한다.
  *
- * @param {'primary'|'secondary'|'ghost'|'danger'} [variant] 이 부품의 모양. 없으면 `className` 이 모양을 맡는다
+ * @param {'primary'|'secondary'|'ghost'|'danger'|'danger-ghost'} [variant] 이 부품의 모양. 없으면 `className` 이 모양을 맡는다
  * @param {'sm'|'md'} [size='md'] `variant` 를 줬을 때의 크기
  * @param {boolean} [pending] 화면이 알려 주는 «요청 중»
  * @param {boolean} [disabled] 눌 수 없는 상태(요청 중과 별개)

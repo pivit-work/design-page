@@ -238,26 +238,9 @@
   overflow-wrap: anywhere;
 }
 
-.manager-team-empty-action {
-  margin-top: 8px;
-  height: 36px;
-  padding: 8px 14px;
-  border: none;
-  border-radius: 10px;
-  /* 같은 화면 디자이너 보조 버튼(`.manager-modal-btn-secondary`)의 바탕·글자색 — 전에는 원시
-     rgba 와 더 흐린 글자(text-tertiary)라 눌리지 않는 버튼처럼 보였다. */
-  background: var(--componentColors-alpha-alphaBlack3);
-  font-family: var(--font-family-body);
-  font-size: 14px;
-  line-height: 20px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-
-.manager-team-empty-action:hover {
-  background: var(--componentColors-alpha-alphaBlack6, rgba(0, 0, 0, 0.06));
-}
+/* 팀원 0명 안내의 버튼 — 모양은 공용 버튼(`Button variant="ghost" size="md"`). 전에는 원시 rgba 바탕에
+   더 흐린 글자(text-tertiary)라 눌리지 않는 버튼처럼 보였다. */
+.manager-team-empty-action { margin-top: 8px; }
 
 .manager-section-empty {
   margin: 0;

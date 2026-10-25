@@ -1,6 +1,7 @@
 import FormField from '../shared/FormField.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import { PlusGlyph } from '../shared/lineIcons.jsx';
+import Button from '../shared/Button.jsx';
 
 /**
  * 내 설정의 «여러 건을 추가·지우는» 목록 칸 부품 (pivit-work PW-2188).
@@ -117,10 +118,10 @@ export function RecordFormFoot({ error, errorTestId, cancelLabel, onCancel, subm
       {error ? (
         <div className="msc-rec-alert" role="alert" data-testid={errorTestId}>{error}</div>
       ) : <span className="msc-rec-spacer" />}
-      <button type="button" className="admin-notif-btn is-soft is-sm" onClick={onCancel}>{cancelLabel}</button>
-      <button type="button" className="admin-notif-btn is-primary is-sm" onClick={onSubmit} disabled={submitDisabled} data-testid={submitTestId}>
+      <Button variant="secondary" size="sm" className="admin-notif-btn" onClick={onCancel}>{cancelLabel}</Button>
+      <Button variant="primary" size="sm" className="admin-notif-btn" onClick={onSubmit} disabled={submitDisabled} data-testid={submitTestId}>
         {submitLabel}
-      </button>
+      </Button>
     </div>
   );
 }

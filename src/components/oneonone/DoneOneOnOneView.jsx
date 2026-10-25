@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import Button from '../shared/Button.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
 import { fill, hostOf, heldAtOf, ownerLabelOf } from './sessionHelpers.js';
@@ -355,24 +356,28 @@ function ManualEntryPanel({ L, entry }) {
         </span>
       )}
       <div className="ono-done-manual-actions">
-        <button
+        <Button
           type="button"
+          variant="secondary"
+          size="sm"
           className="ono-done-banner-btn"
           onClick={entry.onClose}
           disabled={saving}
           data-testid="ono-done-manual-cancel"
         >
           {L.manualEntryCancel}
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="primary"
+          size="sm"
           className="ono-done-action-add-btn"
           onClick={entry.onSave}
           disabled={empty || saving}
           data-testid="ono-done-manual-save"
         >
           {saving ? L.manualEntrySaving : L.manualEntrySave}
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -395,15 +400,17 @@ function AnalysisBanner({ state, L, icons, baseUrl, retry, summaryRetry, replay,
         <Icon src={icons.alert} size={16} color="currentColor" baseUrl={baseUrl} />
         <span>{summaryStalled ? L.bannerSummaryFailed : L.bannerFailed}</span>
         {binding?.onRetry && (
-          <button
+          <Button
             type="button"
+            variant="secondary"
+            size="sm"
             className="ono-done-banner-btn"
             onClick={binding.onRetry}
             disabled={binding.retrying}
             data-testid="ono-done-banner-retry"
           >
             {binding.retrying ? L.bannerRetrying : L.bannerRetry}
-          </button>
+          </Button>
         )}
         {binding?.error && <span className="ono-done-banner-error">{L.bannerRetryError}</span>}
       </div>
@@ -450,24 +457,28 @@ function AnalysisBanner({ state, L, icons, baseUrl, retry, summaryRetry, replay,
         {(replay?.onReplay || manualEntry?.onOpen) && (
           <span className="ono-done-banner-actions">
             {replay?.onReplay && (
-              <button
+              <Button
                 type="button"
+                variant="secondary"
+                size="sm"
                 className="ono-done-banner-btn"
                 onClick={replay.onReplay}
                 data-testid="ono-done-banner-replay"
               >
                 {L.bannerReplay}
-              </button>
+              </Button>
             )}
             {manualEntry?.onOpen && (
-              <button
+              <Button
                 type="button"
+                variant="secondary"
+                size="sm"
                 className="ono-done-banner-btn"
                 onClick={manualEntry.onOpen}
                 data-testid="ono-done-banner-manual"
               >
                 {L.bannerManualEntry}
-              </button>
+              </Button>
             )}
           </span>
         )}
@@ -509,15 +520,17 @@ function StaleSummaryBanner({ staleSummary, L, icons, baseUrl }) {
       )}
       <span>{staleSummary.regenerating ? L.staleSummaryRegenerating : L.staleSummaryNotice}</span>
       {staleSummary.onRegenerate && (
-        <button
+        <Button
           type="button"
+          variant="secondary"
+          size="sm"
           className="ono-done-banner-btn"
           onClick={staleSummary.onRegenerate}
           disabled={staleSummary.regenerating}
           data-testid="ono-done-stale-summary-regenerate"
         >
           {L.staleSummaryRegenerate}
-        </button>
+        </Button>
       )}
       {staleSummary.error && (
         <span className="ono-done-banner-error ono-done-stale-error" role="alert">{L.staleSummaryError}</span>

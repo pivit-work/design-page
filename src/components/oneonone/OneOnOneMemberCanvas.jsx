@@ -1,4 +1,5 @@
 import { useAiDraftLifecycle } from '../shared/useAiDraftLifecycle.js';
+import Button from '../shared/Button.jsx';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import DpStatusBadge from '../shared/StatusBadge.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
@@ -901,9 +902,9 @@ export function EditBadge({ L, until, onEdit, testid }) {
   return (
     <span className="ono-done-banner-actions ono-done-edit-badge">
       {until && <span className="ono-done-count">{fill(L.editUntil, { date: until })}</span>}
-      <button type="button" className="ono-done-banner-btn" onClick={onEdit} data-testid={testid}>
+      <Button type="button" variant="secondary" size="sm" className="ono-done-banner-btn" onClick={onEdit} data-testid={testid}>
         {L.edit}
-      </button>
+      </Button>
     </span>
   );
 }
@@ -912,24 +913,28 @@ export function EditBadge({ L, until, onEdit, testid }) {
 export function EditActions({ L, saving, onCancel, onSave, testid, disabled = false }) {
   return (
     <div className="ono-done-manual-actions">
-      <button
+      <Button
         type="button"
+        variant="secondary"
+        size="sm"
         className="ono-done-banner-btn"
         onClick={onCancel}
         disabled={saving}
         data-testid={`${testid}-cancel`}
       >
         {L.editCancel}
-      </button>
-      <button
+      </Button>
+      <Button
         type="button"
+        variant="primary"
+        size="sm"
         className="ono-done-action-add-btn"
         onClick={onSave}
         disabled={saving || disabled}
         data-testid={`${testid}-save`}
       >
         {saving ? L.editSaving : L.save}
-      </button>
+      </Button>
     </div>
   );
 }

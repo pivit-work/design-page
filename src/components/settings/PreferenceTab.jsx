@@ -9,6 +9,7 @@ import ConfirmModal from '../shared/ConfirmModal.jsx';
 import { SkeletonList } from '../shared/Skeleton.jsx';
 import { InfoIcon } from './settingsIcons.jsx';
 import { isEnterKey } from '../shared/enterKey.js';
+import Button from '../shared/Button.jsx';
 
 /**
  * 내 설정 › 선호 설정 탭 (pivit-work PW-1366 · 기획 my-settings-spec §5-A, 시안 settings-app.jsx `PreferenceTab`).
@@ -165,8 +166,8 @@ export default function PreferenceTab({
           <div className="msc-empty-state">
             <div>{L.loadError}</div>
             {onRetry && (
-              <button type="button" className="admin-notif-btn is-sm is-soft" style={{ marginTop: 10 }}
-                onClick={onRetry} data-testid="preference-retry">{L.retry}</button>
+              <Button variant="secondary" size="sm" className="admin-notif-btn" style={{ marginTop: 10 }}
+                onClick={onRetry} data-testid="preference-retry">{L.retry}</Button>
             )}
           </div>
         </div>
@@ -285,8 +286,8 @@ export default function PreferenceTab({
             <span className="msc-pref-consent-date" data-testid="preference-consent-date">
               {L.agreedOn(preference.agreedDate || '')}
             </span>
-            <button type="button" className="admin-notif-btn is-sm is-danger" onClick={() => setConfirmOpen(true)}
-              data-testid="preference-withdraw-btn">{L.withdraw}</button>
+            <Button variant="danger-ghost" size="sm" className="admin-notif-btn" onClick={() => setConfirmOpen(true)}
+              data-testid="preference-withdraw-btn">{L.withdraw}</Button>
           </div>
         )}
       </div>

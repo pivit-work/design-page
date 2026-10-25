@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Skeleton from '../shared/Skeleton.jsx';
+import Button from '../shared/Button.jsx';
 
 /**
  * MyProfileCanvas — 내 프로필 페이지 정본 (읽기 전용 표출).
@@ -235,25 +236,27 @@ export default function MyProfileCanvas({
           </div>
           <div className="mp-hero-actions">
             {onEditPhoto && (
-              <button
-                type="button"
-                className="admin-notif-btn is-soft is-sm"
+              <Button
+                variant="secondary"
+                size="sm"
+                className="admin-notif-btn"
                 onClick={onEditPhoto}
                 data-testid="myprofile-photo-btn"
               >
                 {hasPhoto ? L.hero.changePhoto : L.hero.uploadPhoto}
-              </button>
+              </Button>
             )}
             {onEdit && (
-              <button
-                type="button"
-                className="admin-notif-btn is-soft is-sm"
+              <Button
+                variant="secondary"
+                size="sm"
+                className="admin-notif-btn"
                 onClick={onEdit}
                 title={L.hero.edit}
                 data-testid="myprofile-edit-btn"
               >
                 {L.hero.edit}
-              </button>
+              </Button>
             )}
           </div>
         </div>
@@ -315,15 +318,16 @@ export default function MyProfileCanvas({
             {L.comp.section} <span className="mp-section-sub">({L.comp.sensitive})</span>
           </div>
           {(comp || compPending) && !isAdmin && (
-            <button
-              type="button"
-              className={`admin-notif-btn is-sm ${revealComp && !compFailed ? 'is-primary' : 'is-soft'}`}
+            <Button
+              variant={revealComp && !compFailed ? 'primary' : 'secondary'}
+              size="sm"
+              className="admin-notif-btn"
               onClick={onCompToggle}
               disabled={compensationStatus === 'loading'}
               data-testid="myprofile-comp-reveal"
             >
               {revealComp && !compFailed ? L.comp.hide : L.comp.reveal}
-            </button>
+            </Button>
           )}
         </div>
         {comp || compPending ? (

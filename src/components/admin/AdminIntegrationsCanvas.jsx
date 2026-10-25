@@ -20,6 +20,7 @@ import {
   RequestToolModal,
 } from './AdminIntegrationsCatalog.jsx';
 import Select from '../shared/Select.jsx';
+import Button from '../shared/Button.jsx';
 
 /**
  * AdminIntegrationsCanvas — 어드민 "연동(Integrations)" 탭 Pure 컴포넌트.
@@ -287,9 +288,9 @@ function AppCard({ card, labels, baseUrl, onConnect, onDisconnect, onReconnect, 
         </div>
         {usageText && <div className="intg-usage">{usageText}</div>}
         <div className="intg-actions">
-          <button type="button" className="intg-btn intg-btn-neutral" disabled>
+          <Button variant="secondary" size="sm" className="intg-btn" disabled>
             {labels.actions.comingSoon}
-          </button>
+          </Button>
         </div>
       </section>
     );
@@ -345,13 +346,14 @@ function AppCard({ card, labels, baseUrl, onConnect, onDisconnect, onReconnect, 
       {isConnected && app === 'slack' && card.adminTokenStatus === 'expired' && (
         <div className="intg-note is-warning">
           <span>{labels.adminToken.expiredWarning}</span>
-          <button
-            type="button"
-            className="intg-btn intg-btn-neutral intg-btn-sm"
+          <Button
+            variant="secondary"
+            size="sm"
+            className="intg-btn"
             onClick={() => onReconnect(app)}
           >
             {labels.adminToken.reconnectAdmin}
-          </button>
+          </Button>
         </div>
       )}
 
@@ -359,13 +361,14 @@ function AppCard({ card, labels, baseUrl, onConnect, onDisconnect, onReconnect, 
       {isConnected && card.notice && (
         <div className="intg-note is-info" data-testid={`intg-notice-${app}`}>
           <span>{card.notice.text}</span>
-          <button
-            type="button"
-            className="intg-btn intg-btn-neutral intg-btn-sm"
+          <Button
+            variant="secondary"
+            size="sm"
+            className="intg-btn"
             onClick={() => onReconnect(app)}
           >
             {card.notice.actionLabel}
-          </button>
+          </Button>
         </div>
       )}
 
@@ -389,14 +392,15 @@ function AppCard({ card, labels, baseUrl, onConnect, onDisconnect, onReconnect, 
           {card.slackDelivery.unmatchedCount > 0 && (
             <div className="intg-note is-info" data-testid="intg-slack-unmatched">
               <span>{fmt(labels.slackDelivery.unmatched, { count: card.slackDelivery.unmatchedCount })}</span>
-              <button
-                type="button"
-                className="intg-btn intg-btn-neutral intg-btn-sm"
+              <Button
+                variant="secondary"
+                size="sm"
+                className="intg-btn"
                 data-testid="intg-slack-unmatched-view"
                 onClick={() => onOpenSlackUnmatched(app)}
               >
                 {labels.slackDelivery.unmatchedView}
-              </button>
+              </Button>
             </div>
           )}
         </>
@@ -430,41 +434,42 @@ function AppCard({ card, labels, baseUrl, onConnect, onDisconnect, onReconnect, 
 
       <div className="intg-actions">
         {status === 'disconnected' && (
-          <button type="button" className="intg-btn intg-btn-primary" onClick={() => onConnect(app)}>
+          <Button variant="primary" size="sm" className="intg-btn" onClick={() => onConnect(app)}>
             {labels.actions.connect}
-          </button>
+          </Button>
         )}
         {isConnected && (
           <>
-            <button type="button" className="intg-btn intg-btn-neutral" onClick={() => onOpenSettings(app)}>
+            <Button variant="secondary" size="sm" className="intg-btn" onClick={() => onOpenSettings(app)}>
               {labels.actions.settings}
-            </button>
-            <button
-              type="button"
-              className="intg-btn intg-btn-neutral"
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="intg-btn"
               onClick={() => onTriggerSync(app)}
               disabled={card.syncInProgress}
             >
               {card.syncInProgress ? labels.sync.collectingShort : labels.sync.collect}
-            </button>
-            <button type="button" className="intg-btn intg-btn-danger" onClick={() => onDisconnect(app)}>
+            </Button>
+            <Button variant="danger-ghost" size="sm" className="intg-btn" onClick={() => onDisconnect(app)}>
               {labels.actions.disconnect}
-            </button>
+            </Button>
           </>
         )}
         {isError && (
-          <button type="button" className="intg-btn intg-btn-primary" onClick={() => onReconnect(app)}>
+          <Button variant="primary" size="sm" className="intg-btn" onClick={() => onReconnect(app)}>
             {labels.actions.reconnect}
-          </button>
+          </Button>
         )}
         {isConnecting && (
           <>
-            <button type="button" className="intg-btn intg-btn-neutral" onClick={() => onReconnect(app)}>
+            <Button variant="secondary" size="sm" className="intg-btn" onClick={() => onReconnect(app)}>
               {labels.actions.retry}
-            </button>
-            <button type="button" className="intg-btn intg-btn-danger" onClick={() => onCancelConnecting(app)}>
+            </Button>
+            <Button variant="danger-ghost" size="sm" className="intg-btn" onClick={() => onCancelConnecting(app)}>
               {labels.actions.cancel}
-            </button>
+            </Button>
           </>
         )}
       </div>
@@ -807,13 +812,14 @@ function SyncLogTable({ logs, labels, onRetrySyncLog }) {
           align: 'center',
           headerProps: { 'aria-hidden': true },
           render: (log) => log.status === 'failed' && onRetrySyncLog && (
-            <button
-              type="button"
-              className="intg-btn intg-btn-neutral intg-btn-sm"
+            <Button
+              variant="secondary"
+              size="sm"
+              className="intg-btn"
               onClick={() => onRetrySyncLog(log.service)}
             >
               {labels.syncLog.retry}
-            </button>
+            </Button>
           ),
         },
       ]}
@@ -865,14 +871,15 @@ function CollectionStatus({ rows, labels, onRetrySyncLog }) {
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                   <DpStatusBadge className="intg-status is-error">{fmt(l.failedCount, { count: r.failedCount })}</DpStatusBadge>
                   {onRetrySyncLog && (
-                    <button
-                      type="button"
-                      className="intg-btn intg-btn-neutral intg-btn-sm"
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="intg-btn"
                       data-testid={`intg-collection-retry-${r.app}`}
                       onClick={() => onRetrySyncLog(r.service)}
                     >
                       {labels.syncLog.retry}
-                    </button>
+                    </Button>
                   )}
                 </span>
               ) : l.noFailures),
@@ -931,9 +938,9 @@ function SlackUnmatchedModal({ modal, labels, onClose, onRetry }) {
       {modal.state === 'error' && (
         <div className="intg-note is-error has-action" data-testid="intg-slack-unmatched-error">
           <span>{L.loadFailed}</span>
-          <button type="button" className="intg-btn intg-btn-neutral intg-btn-sm" onClick={onRetry}>
+          <Button variant="secondary" size="sm" className="intg-btn" onClick={onRetry}>
             {L.retry}
-          </button>
+          </Button>
         </div>
       )}
       {modal.state === 'ready' && (
@@ -1066,9 +1073,9 @@ function SlackTransferPanel({ transfer, labels, baseUrl, onExpireToken, onReauth
             <Icon src={ICON_ALERT} size={16} color="var(--colors-warning-600)" baseUrl={baseUrl} />
             {labels.transfer.expiredBanner.message}
           </span>
-          <button type="button" className="intg-btn intg-btn-neutral intg-btn-sm" onClick={() => setShowReauthModal(true)}>
+          <Button variant="secondary" size="sm" className="intg-btn" onClick={() => setShowReauthModal(true)}>
             {labels.transfer.expiredBanner.reauthLink} &rarr;
-          </button>
+          </Button>
         </div>
       )}
 
@@ -1118,18 +1125,19 @@ function SlackTransferPanel({ transfer, labels, baseUrl, onExpireToken, onReauth
         <div className="intg-actions">
           {/* 누를 수 있는지는 앱이 정해 넘긴다(PW-1058) — 서버는 연결됨일 때만 만료를 받는다.
               넘기지 않으면 예전처럼 늘 눌린다. */}
-          <button
-            type="button"
-            className="intg-btn intg-btn-danger intg-btn-sm"
+          <Button
+            variant="danger-ghost"
+            size="sm"
+            className="intg-btn"
             onClick={() => setShowExpireModal(true)}
             disabled={transfer.canExpireToken === false}
             data-testid="intg-expire-token"
           >
             {labels.transfer.expireToken}
-          </button>
-          <button type="button" className="intg-btn intg-btn-primary intg-btn-sm" onClick={() => setShowReauthModal(true)}>
+          </Button>
+          <Button variant="primary" size="sm" className="intg-btn" onClick={() => setShowReauthModal(true)}>
             {labels.transfer.reauth}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -1290,9 +1298,9 @@ export default function AdminIntegrationsCanvas({
           </p>
           {!forbidden && (
             <div style={{ marginTop: 16 }}>
-              <button type="button" className="intg-btn intg-btn-neutral" onClick={() => onRetryLoad()}>
+              <Button variant="secondary" size="sm" className="intg-btn" onClick={() => onRetryLoad()}>
                 {labels.error.retry}
-              </button>
+              </Button>
             </div>
           )}
         </section>
@@ -1391,9 +1399,9 @@ export default function AdminIntegrationsCanvas({
                 <PersonalChips tools={personalChips} labels={labels} />
               </span>
             </div>
-            <button type="button" className="intg-btn intg-btn-primary" onClick={onPersonalIntegrationClick}>
+            <Button variant="primary" size="sm" className="intg-btn" onClick={onPersonalIntegrationClick}>
               {labels.personalBanner.button}
-            </button>
+            </Button>
           </div>
         </>
       )}

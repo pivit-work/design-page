@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Button from '../shared/Button.jsx';
 import SummaryCard from './SummaryCard.jsx';
 import StatTile from './StatTile.jsx';
 import SectionHeading from './SectionHeading.jsx';
@@ -188,13 +189,15 @@ export default function ManagerCanvas({
             <p className="manager-team-empty-title">{teamEmpty.title}</p>
             <p className="manager-team-empty-desc">{teamEmpty.description}</p>
             {teamEmpty.actionLabel && (
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="md"
                 className="manager-team-empty-action"
                 onClick={teamEmpty.onAction}
               >
                 {teamEmpty.actionLabel}
-              </button>
+              </Button>
             )}
           </div>
         </section>

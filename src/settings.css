@@ -1022,13 +1022,6 @@
 }
 .msc-edu-wheel-row.is-selected { font-weight: 500; color: var(--text-white); }
 .msc-edu-wheel-row.is-disabled { color: var(--text-disabled); cursor: default; }
-.msc-add-actions .admin-notif-btn:disabled,
-.msc-rec-foot .admin-notif-btn:disabled {
-  background: var(--bg-secondary);
-  color: var(--text-disabled);
-  cursor: default;
-}
-
 /* ── 증명서 업로드 행 ── */
 .msc-doc-upload {
   display: flex;
