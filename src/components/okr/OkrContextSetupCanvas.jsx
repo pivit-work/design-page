@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowRightGlyph, CheckGlyph, LockGlyph, TrashGlyph, UploadCloudGlyph } from '../shared/lineIcons.jsx';
+import { ArrowLeftGlyph, ArrowRightGlyph, CheckGlyph, LockGlyph, TrashGlyph, UploadCloudGlyph } from '../shared/lineIcons.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import AiMark from '../shared/AiMark.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
@@ -383,6 +383,7 @@ function SourceAdder({ labels, onAddUrl, onAddText, onAddFile, busy, maxFileSize
               {/* [타입 변경] — 입력을 버리고 드롭존·[링크 등록]·[텍스트 추가] 로 돌아간다(§3-2 · PW-1507). */}
               {labels.changeType && (
                 <button type="button" className="okr-ghost-btn" data-testid="okr-context-change-type" onClick={reset}>
+                  <ArrowLeftGlyph size={12} />
                   {labels.changeType}
                 </button>
               )}

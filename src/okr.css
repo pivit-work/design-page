@@ -578,8 +578,8 @@ body:has(.okr-ctx-banner-flag) .tl-group-modal.okr-wz-modal { height: min(1118px
 /* PW-2219: 페이지 푸터 — 디자이너 창 발 줄(.tl-group-modal-actions: 왼쪽 .okr-wz-footer-hint + 오른쪽 .okr-btn) */
 .okr-ctx-page-foot { display: flex; align-items: center; gap: 12px; padding: 24px 48px 32px; border-top: 1px solid var(--border-secondary); }
 .okr-ctx-page-foot .okr-btn, .okr-ctx-sticky .okr-btn { flex: none; }
-/* PW-2219: AI 를 돌리는 버튼엔 AI 표시를 단다(PW-2035) — 디자이너 .okr-wz-ai-btn 은 그대로, 아이콘과 글 사이만 4px */
-.okr-ctx-page .okr-wz-ai-btn { display: inline-flex; align-items: center; gap: 4px; }
+/* PW-2219: 아이콘을 단 버튼(AI 표시 PW-2035 · [← 타입 변경] PW-1507) — 디자이너 버튼 값은 그대로, 아이콘과 글 사이만 4px */
+.okr-ctx-page .okr-wz-ai-btn, .okr-ctx-page .okr-ghost-btn { display: inline-flex; align-items: center; gap: 4px; }
 /* PW-2219: 운영 단위 — 디자이너 범위 카드(.okr-wz-scopes) 사이 화살표와 개인 OKR 스위치 줄(.okr-p-linked-head 간격 12) */
 .okr-ctx-levels-chev { flex: none; align-self: center; display: flex; color: var(--text-tertiary); }
 .okr-ctx-switch-row { display: flex; align-items: center; gap: 12px; }
