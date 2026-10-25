@@ -10,6 +10,7 @@ import { OrgLabelsContext, makeOrgLabels } from './orgchart-labels.jsx';
 
 // 조직 축 탭 노출 여부. 소비처가 아직 구현이 끝나지 않은 축을 닫을 수 있게 한다
 // (pivit-work PW-249 — 프로젝트 축 phase 게이트). 기본값은 노출이라 기존 화면은 그대로다.
+// 가운데 탭은 「리스트」(Figma 16610:35972 · 2026-10-25) — 누르면 onSubTabChange('list'). prop 이름은 그대로 둔다.
 // highlight `{ unitIds }` — 회사 루트부터 내 소속까지의 단위 id. 주면 그 길의 연결선을 강조한다
 // (pivit-specs org-chart-public-card-spec.md §5.4-B). 안 주면 강조가 없다 — 다른 화면은 넘기지 않는다.
 // workspaceId — 접힘 상태를 조직마다 브라우저에 기억할 때 쓴다(§5.4 「상태 유지」). 안 주면 이번 화면에서만 기억한다.
@@ -17,13 +18,13 @@ import { OrgLabelsContext, makeOrgLabels } from './orgchart-labels.jsx';
 //   캔버스 왼쪽 툴바의 달력 버튼이 된다(Figma 17755:26872). 안 주면 버튼이 없다.
 // density / onDensityChange — 보이는 정보의 양 'all' | 'leaders' | 'count' (Figma 17755:26846).
 //   안 주면 캔버스가 세션 안에서 스스로 기억한다(기본 'all').
-// onDownloadImage({ element, orgData }) — 「이미지로 다운」(17755:26909). 그리는 쪽이 캔버스 DOM 을 받아
-//   그림으로 뜬다. 안 주면 버튼이 없다.
+// onDownloadImage({ element, orgData }) — 「이미지로 다운」(17755:26909)을 호스트가 직접 처리할 때.
+//   안 주면 캔버스가 지금 펼쳐진 조직도를 JPG 로 바로 내려받는다(exportOrgChartImage.js).
 // memberPatches — { [member.id]: { workHours, attendance, … } }. 사람 카드 몇 칸만 바꿀 때 orgData 를 새로 넘기지
 //   않고 이것으로 덧씌운다 — orgData 가 새 객체면 끌어 둔 위치·화면 자리가 처음으로 돌아간다(pivit-work PW-2210).
 // expandable — «전체 화면»(17755:26946) 버튼. 기본 true. 누르면 같은 조직도를 화면 가득한 창에 띄운다 —
 //   리포트 보기 창과 같은 틀(ModalShell)이다.
-export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIcons, baseUrl = '', onMemberClick, renderAvatar, editMode = false, onSubTabChange, findSubordinates, adminMode: adminModeProp = false, onAdminModeChange, showGrade = false, showProjectTab = true, showListTab = false, lineStyleLabel: lineStyleLabelProp, labels, asOf, highlight, workspaceId, density: densityProp, onDensityChange, onDownloadImage, expandable = true, memberPatches }) {
+export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIcons, baseUrl = '', onMemberClick, renderAvatar, editMode = false, onSubTabChange, findSubordinates, adminMode: adminModeProp = false, onAdminModeChange, showGrade = false, showProjectTab = false, showListTab = true, lineStyleLabel: lineStyleLabelProp, labels, asOf, highlight, workspaceId, density: densityProp, onDensityChange, onDownloadImage, expandable = true, memberPatches }) {
   // 화면 문구 — 소비자가 번역을 넘긴다(PW-705). 안 넘기면 한국어 기본값.
   const L = useMemo(() => makeOrgLabels(labels), [labels]);
   // `lineStyleLabel` 은 `labels` 보다 먼저 생긴 자리라 그대로 받는다 — 주면 그것이 이긴다.

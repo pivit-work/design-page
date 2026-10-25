@@ -1,10 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect, useLayoutEffect, useMemo } from 'react';
 import Icon from '../shared/Icon.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
-import DatePicker from '../shared/DatePicker.jsx';
-import { resolveUiLocale } from '../shared/uiLocale.js';
 import {
-  CalendarGlyph,
   CornerAngleGlyph,
   CornerSmoothGlyph,
   ContractVerticalGlyph,
@@ -17,6 +14,9 @@ import OrgNode from './OrgNode.jsx';
 import BezierConnectors from './BezierConnectors.jsx';
 import { CollapseContext, PositionsContext } from './contexts.js';
 import { saveCollapsed, clearCollapsed } from './hooks.js';
+import exportOrgChartImage from './exportOrgChartImage.js';
+import AsOfButton from './AsOfButton.jsx';
+import { ISO, toIso, pad2 } from './asOfDate.js';
 
 /**
  * [전체 접기]가 접는 노드 = **루트를 뺀 모든 하위 조직**. 회사 카드와 최상위 조직 카드만 남는다.
@@ -39,25 +39,6 @@ export function collapsedBelowRoot(root) {
   };
   walk(root);
   return ids;
-}
-
-const ISO = /^\d{4}-\d{2}-\d{2}$/;
-const toDate = (iso) => {
-  const [y, m, d] = iso.split('-').map(Number);
-  return new Date(y, m - 1, d);
-};
-const pad2 = (n) => String(n).padStart(2, '0');
-const toIso = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
-
-/** 기준일 버튼 글자 — 「2026년 4월 10일」. 호스트가 `asOf.display` 를 주면 그것이 이긴다. */
-function formatAsOf(asOf, locale) {
-  if (asOf.display) return asOf.display;
-  if (!asOf.value || !ISO.test(asOf.value)) return asOf.value ?? '';
-  try {
-    return new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'long', day: 'numeric' }).format(toDate(asOf.value));
-  } catch {
-    return asOf.value;
-  }
 }
 
 /**
@@ -210,16 +191,27 @@ export default function OrgChartViewport({
     refitView();
   };
 
-  // 기준일 버튼 → 달력 팝오버(공용 DatePicker). 값 규약은 DateInput 과 같다('YYYY-MM-DD').
-  const asOfBtnRef = useRef(null);
-  const [picker, setPicker] = useState(null);
-  const locale = resolveUiLocale(asOf?.locale);
-  const openPicker = () => {
-    if (!asOfBtnRef.current) return;
-    setPicker({ rect: asOfBtnRef.current.getBoundingClientRect(), el: asOfBtnRef.current });
-  };
+  // 기준일 — 버튼·달력은 리스트 탭과 같은 AsOfButton 이다. 여기서는 내려받는 파일 이름에만 값을 쓴다.
   const asOfValid = !!asOf?.value && ISO.test(asOf.value);
-  const asOfMax = asOf?.max && ISO.test(asOf.max) ? toDate(asOf.max) : undefined;
+
+  // 「이미지로 다운」 — 호스트가 `onDownloadImage` 를 주면 그것을, 아니면 여기서 바로 JPG 로 뜬다.
+  // 뜨는 동안(글꼴·아바타 받기) 버튼을 잠근다 — 두 번 눌러 두 장 받지 않게.
+  const [exporting, setExporting] = useState(false);
+  const downloadImage = async () => {
+    const element = canvasInnerRef.current;
+    if (onDownloadImage) { onDownloadImage({ element, orgData }); return; }
+    if (exporting || !element) return;
+    setExporting(true);
+    try {
+      // 이름: 「조직도_2026-04-10_14-32-05」 — 날짜는 보고 있는 기준일(없으면 오늘), 시각은 내려받은 지금.
+      const now = new Date();
+      const date = asOfValid ? asOf.value : toIso(now);
+      const time = `${pad2(now.getHours())}-${pad2(now.getMinutes())}-${pad2(now.getSeconds())}`;
+      await exportOrgChartImage({ element, fileName: L('org.imageFileName', { date, time }) });
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const densityItems = [
     { value: 'all', label: L('org.density.all'), testId: 'org-density-all' },
@@ -260,39 +252,7 @@ export default function OrgChartViewport({
             onChange={onDensityChange}
             ariaLabel={L('org.density')}
           />
-          {asOf && (
-            <>
-              <button
-                ref={asOfBtnRef}
-                type="button"
-                className="org-tool-btn has-label org-asof-btn"
-                title={asOf.caption || L('org.asOfPick')}
-                aria-label={asOf.label ? `${asOf.label} ${formatAsOf(asOf, locale)}` : L('org.asOfPick')}
-                aria-haspopup="dialog"
-                aria-expanded={!!picker}
-                onClick={openPicker}
-                data-testid="org-asof"
-              >
-                <CalendarGlyph size={20} />
-                <span>{formatAsOf(asOf, locale)}</span>
-              </button>
-              {picker && (
-                <DatePicker
-                  anchorRect={picker.rect}
-                  anchorEl={picker.el}
-                  selectedDate={asOfValid ? toDate(asOf.value) : (asOfMax ?? new Date())}
-                  minDate={asOf.min && ISO.test(asOf.min) ? toDate(asOf.min) : undefined}
-                  maxDate={asOfMax}
-                  locale={locale}
-                  labels={asOf.pickerLabels}
-                  today={asOfMax}
-                  onSelect={(d) => { asOf.onChange?.(toIso(d)); setPicker(null); }}
-                  onClose={() => setPicker(null)}
-                  data-testid="org-asof-picker"
-                />
-              )}
-            </>
-          )}
+          {asOf && <AsOfButton asOf={asOf} L={L} />}
         </div>
 
         {/* 오른쪽 툴바 — 확대·축소·연결선·펼침·이미지 + 전체 화면 (Figma 17755:26881 · 17755:26946) */}
@@ -328,17 +288,17 @@ export default function OrgChartViewport({
             >
               {allCollapsed ? <ExpandVerticalGlyph size={20} /> : <ContractVerticalGlyph size={20} />}
             </button>
-            {onDownloadImage && (
-              <button
-                type="button"
-                className="org-tool-btn has-label"
-                onClick={() => onDownloadImage({ element: canvasInnerRef.current, orgData })}
-                data-action="download-image"
-              >
-                <DownloadSolidGlyph size={20} />
-                <span>{L('org.downloadImage')}</span>
-              </button>
-            )}
+            <button
+              type="button"
+              className="org-tool-btn has-label"
+              onClick={downloadImage}
+              disabled={exporting || undefined}
+              aria-busy={exporting || undefined}
+              data-action="download-image"
+            >
+              <DownloadSolidGlyph size={20} />
+              <span>{L('org.downloadImage')}</span>
+            </button>
           </div>
           {onExpandView && (
             <button

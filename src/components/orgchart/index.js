@@ -6,6 +6,8 @@ export { default as ProfileModal, DEFAULT_PROFILE } from './ProfileModal.jsx';
 export { default as WorkHoursAdjustPanel } from './WorkHoursAdjustPanel.jsx';
 export { default as OrgChartCanvas } from './OrgChartCanvas.jsx';
 export { default as ProjectCanvas } from './ProjectCanvas.jsx';
+export { default as OrgListCanvas } from './OrgListCanvas.jsx';
+export { default as AsOfButton } from './AsOfButton.jsx';
 export { default as AssignmentGrid } from './AssignmentGrid.jsx';
 export { default as SquadCanvas } from './SquadCanvas.jsx';
 export { default as OrgMemberListCanvas } from './OrgMemberListCanvas.jsx';

@@ -27,10 +27,23 @@
 .sq-toolbar {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-end;
   gap: 12px;
   flex-wrap: wrap;
-  margin-bottom: 20px;
+  /* 시안(Figma 17590:23983) — 위아래 24, 바로 아래 카드 격자가 선다 */
+  padding: 24px 0;
+}
+/* 머리 줄(17590:23957) — 탭·인원수는 왼쪽, 「스쿼드 만들기」는 오른쪽 아래 맞춤. 오른쪽 여백은 본문과 같은 40 */
+.pj-header.sq-header {
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding-right: 32px;
+}
+.sq-header-main {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
 }
 .sq-toolbar-actions {
   display: flex;
@@ -94,11 +107,23 @@
   font-size: 12px;
   line-height: 18px;
 }
+/* 머리 줄의 「스쿼드 만들기」(17590:23966) — 10/12 여백 · r10 · md/600 흰 글자 · 20 아이콘 */
+.sq-btn-lg {
+  border: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  font-size: 16px;
+  line-height: 24px;
+}
 
-/* 편집 모드 토글 — 켜짐이 색만이 아니라 채움으로도 읽히게 한다 */
+/* 편집 모드 토글(17757:35632) — 연한 브랜드 바탕 · 8/14 · r8 · 연필 20. 켜짐은 채움으로 읽힌다 */
 .sq-btn-toggle {
+  gap: 4px;
+  border: 0;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
   background: var(--bg-brand-secondary);
-  color: var(--text-brand-secondary);
+  color: var(--text-brand-tertiary);
 }
 .sq-btn-toggle:hover { background: var(--colors-background-bgBrandSecondaryHover); }
 .sq-btn-toggle.is-on {
@@ -119,9 +144,16 @@
   border-color: var(--utility-error-200);
   background: var(--utility-error-50);
 }
+/* 「종료일 지남」 띠 (Figma 17757:35809) — 테두리 없는 연한 경고 바탕 · r16 · 안 16 · 줄 사이 2 · 아래 24(카드 격자까지) */
 .sq-banner-warn {
-  border-color: var(--utility-warning-200);
-  background: var(--utility-warning-50);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: 0;
+  border-radius: var(--radius-2xl);
+  padding: 16px;
+  margin-bottom: 24px;
+  background: var(--bg-warning-primary);
 }
 .sq-banner-title {
   display: flex;
@@ -133,7 +165,23 @@
   color: var(--text-secondary);
 }
 .sq-banner-error .sq-banner-title { color: var(--text-error-primary); }
-.sq-banner-warn .sq-banner-title { color: var(--utility-warning-700); }
+.sq-banner-warn .sq-banner-title {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--utility-warning-700);
+}
+.sq-banner-warn .sq-banner-body {
+  margin-top: 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 24px;
+  color: var(--utility-warning-600);
+}
+.sq-banner-warn .sq-banner-note {
+  margin-top: 0;
+  color: var(--alpha-black-40);
+}
 .sq-banner-body {
   font-size: 14px;
   line-height: 20px;
@@ -190,24 +238,24 @@
    `pj-card` 를 그대로 쓰고(배경·모서리·패딩·hover 그림자), 우상단 액션만 얹는다.
    🔴 스쿼드 색 띠·스쿼드 색 그림자·떠오르는 움직임은 두지 않는다(PW-905) — 프로젝트
    카드에 없는 모양이라 두 탭이 따로 놀았다. 스쿼드 색은 배정 표 머리 칸에서 읽힌다. */
-.pj-card.sq-card { gap: 20px; }
+.pj-card.sq-card { gap: 32px; }
+/* 카드 격자(Figma 16605:49754) — 두 열 · 사이 10. 프로젝트 탭의 자동 채움(376 하한)과 달리 열 수가 정해져 있다 */
+.pj-cards-grid.sq-cards-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.sq-cards-grid .pj-card { min-width: 0; max-width: none; }
 .pj-card.sq-card.is-open { overflow: visible; }
 /* 보관 = 이력 보존용. 흐리게 구분하되 조회·할당 편집은 정상 동작한다 */
 .sq-card.is-archived { opacity: 0.6; }
 
 .sq-card-actions {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  top: 8px;
+  right: 9px;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
 }
-/* `pj-card-status` 의 타이포는 그대로 쓰고 위치만 액션 줄에 맡긴다 */
-.pj-card-status.sq-status {
-  position: static;
-  padding: 2px 6px;
-}
+/* 상태 딱지(16606:587 · 17757:35525) — 위치만 여기서. 바탕색·여백은 status-badge.css 가 쥔다 */
+.pj-card-status.sq-status { position: static; }
 .pj-card-status.sq-status.is-clickable { cursor: pointer; }
 .pj-card-status.sq-status.is-clickable:hover { background: var(--bg-secondary); }
 
@@ -217,21 +265,50 @@
   justify-content: center;
   width: 24px;
   height: 24px;
-  border-radius: 6px;
-  color: var(--text-tertiary);
+  border-radius: 8px;
+  color: var(--fg-tertiary);
   cursor: pointer;
 }
 .sq-more:hover { background: var(--bg-secondary); color: var(--text-secondary); }
 
-/* 기간 (한시 조직) */
-.sq-period {
+/* 기간 · 리드 줄 (17757:32471) — 사이 48 */
+.sq-meta {
   display: flex;
+  align-items: flex-start;
+  gap: 48px;
+}
+.sq-period {
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 18px;
-  color: var(--text-tertiary);
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: var(--text-secondary);
+}
+.sq-lead {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.sq-lead-person {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: var(--text-secondary);
+}
+/* LEAD 태그(`.sq-lead-tag`)의 생김새는 status-badge.css 에 있다 — 딱지는 한 곳에서 칠한다(PW-840) */
+/* 사람 동그라미 — 사진이든 이름 글자든 같은 지름·같은 테두리 */
+.sq-photo {
+  display: block;
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 0.5px solid var(--alpha-black-10);
+  box-sizing: border-box;
 }
 
 /* ── Card menus (⋯ · 상태 전환) ──
@@ -274,15 +351,22 @@
 }
 .sq-menu-item.is-disabled:hover { background: transparent; }
 
-/* ── Card members (읽기 모드) ──
-   줄 모양은 프로젝트 카드의 `pj-card-members` 다. 스쿼드는 이름 글자 동그라미가 섞여
-   겹쳐 쌓지 않으므로 넘치면 줄바꿈하는 것만 더한다. */
+/* ── Card members (읽기 모드 · 16606:25737) ──
+   사진 32 를 4 간격으로 나란히(이름 글자 동그라미가 섞여 겹치지 않는다) · 오른쪽은 인원수. */
 .pj-card-members.sq-members {
   gap: 12px;
-  flex-wrap: wrap;
+}
+.sq-members .pj-member-count {
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 24px;
+  color: var(--text-secondary);
 }
 .sq-avatar-group {
   display: flex;
+  flex: 1 1 0;
+  min-width: 0;
   flex-wrap: wrap;
   gap: 4px;
 }
@@ -318,6 +402,10 @@
   line-height: 1.05;
 }
 .sq-avatar-line { display: block; }
+/* 지름은 쓰는 자리가 정한다 — 이름 글자 동그라미(`.sq-avatar`)도 같은 클래스로 같은 크기가 된다 */
+.sq-avatar.sq-photo { box-shadow: none; }
+.sq-photo-24 { width: 24px; height: 24px; }
+.sq-photo-32 { width: 32px; height: 32px; border-width: 0.75px; }
 /* 매트릭스의 40px 이니셜 원 — `pj-member-initials` 위에 같은 방어만 얹는다 */
 .sq-avatar-lg {
   white-space: nowrap;
@@ -465,104 +553,100 @@
   gap: 8px;
 }
 
-/* ── Composition (팀원 리소스 구성 — 스쿼드 100 기준) ── */
+/* ── Composition (카드 배분 줄 · 17757:32450) ── */
+.sq-comp {
+  display: flex;
+  flex-direction: column;
+}
 .sq-comp-head {
   display: flex;
-  align-items: baseline;
-  gap: 8px;
+  align-items: flex-end;
+  gap: 4px;
   margin-bottom: 8px;
 }
 .sq-comp-title {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 500;
+  line-height: 24px;
   color: var(--text-secondary);
+}
+/* 비중의 합 — 100 안이면 파랑, 넘치면 빨강(「초과 n%p」) */
+.sq-comp-value {
+  margin-bottom: 2px;
+  font-size: 14px;
+  font-weight: 600;
   line-height: 20px;
+  color: var(--utility-blue-500);
 }
-.sq-comp-basis {
-  font-size: 12px;
-  color: var(--text-quaternary);
-}
-.sq-comp-total {
-  margin-left: auto;
-  font-size: 12px;
-  color: var(--text-tertiary);
-}
-.sq-comp-total b { color: var(--text-secondary); font-weight: 600; }
-.sq-comp-total b.is-over { color: var(--text-error-primary); }
-/* 미배분·초과 표기 — 초과일 때만 빨강. 미배분은 정상적인 중간 상태라 경고색을 쓰지 않는다 */
-.sq-comp-note { margin-left: 4px; color: var(--text-quaternary); }
-.sq-comp-note.is-over { color: var(--text-error-primary); }
-
-/* 배분 바 (스쿼드 100 기준) — 캐파 게이지와 **같은 표시 규칙**을 쓰되 분모가 다르다.
-   미배분 잔여는 회색으로 남기고, 초과분은 빗금 + 100 지점 눈금으로 분리한다(§5-3.4). */
-.sq-share { position: relative; }
-.sq-share-track { display: flex; overflow: hidden; }
-.sq-share-seg { display: flex; }
-.sq-share-seg + .sq-share-seg { border-left: 1px solid var(--bg-quaternary); }
-/* 채움색은 인라인(사람별 신원색)이지만 불투명도를 낮춰 프로젝트 카드 진행 바와 같은
-   무게로 읽히게 한다 — 500 원색 그대로면 카드 한복판에 경고등이 켜진 것처럼 보인다. */
-.sq-share-fill { height: 100%; opacity: 0.55; }
-.sq-share-over { height: 100%; opacity: 0.55; }
-.sq-share-rest { height: 100%; background: var(--bg-secondary); }
-.sq-share-mark {
-  position: absolute;
-  top: -2px;
-  bottom: -2px;
-  width: 2px;
-  border-radius: 1px;
-  background: var(--utility-error-500);
-}
-
-/* 캐파 축 줄 — 비중과 **분모가 다르므로** 점선으로 갈라 별도 줄에 둔다.
-   인분(FTE) 환산이 가능한 쪽은 여기뿐이다(§5-3.4). */
+.sq-comp-value.is-over { color: var(--utility-error-500); }
+/* 캐파 축 — 분모가 달라 오른쪽에 따로 선다(17757:32445) */
 .sq-comp-capline {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  margin-top: 10px;
-  padding-top: 8px;
-  border-top: 1px dashed var(--border-secondary);
-}
-.sq-comp-capline-label { font-size: 12px; line-height: 18px; color: var(--text-quaternary); }
-.sq-comp-capline-value {
   margin-left: auto;
+  margin-bottom: 3px;
   font-size: 12px;
+  font-weight: 500;
   line-height: 18px;
   color: var(--text-tertiary);
 }
-/* 세그먼트 — 트랙은 `pj-progress-bar` 를 그대로 쓴다.
-   채움색은 인라인(사람별 신원색)이지만 **불투명도를 낮춰** 프로젝트 카드의 진행 바
-   (utility 100 단계의 연한 톤)와 같은 무게로 읽히게 한다. 500 원색 그대로 깔면
-   카드 한복판에 경고등이 켜진 것처럼 보인다. 범례 점은 원색이라 식별은 유지된다. */
-.sq-seg { height: 100%; opacity: 0.55; }
-.sq-seg + .sq-seg { border-left: 1px solid var(--bg-quaternary); }
 
+/* 배분 바 (스쿼드 100 기준 · 17757:30021) — 24 높이 흐린 검정 트랙 · 토막 사이 2 · r4.
+   미배분 잔여는 트랙 바탕이 그대로 보이고, 초과분은 빗금 + 100 지점 빨간 눈금으로 분리한다(§5-3.4). */
+.sq-share { position: relative; }
+.sq-share-track {
+  display: flex;
+  gap: 2px;
+  overflow: visible;
+  background: var(--alpha-black-3);
+  border-radius: var(--radius-xxs);
+}
+.sq-share-seg {
+  display: flex;
+  overflow: hidden;
+  border-radius: var(--radius-xxs);
+}
+/* 채움색은 인라인(사람별 신원색)이지만 불투명도를 낮춰 시안의 200 단계 톤으로 읽히게 한다 —
+   500 원색 그대로면 카드 한복판에 경고등이 켜진 것처럼 보인다. 범례 네모는 원색이라 식별은 유지된다. */
+.sq-share-fill { height: 100%; opacity: 0.45; }
+.sq-share-over { height: 100%; }
+.sq-share-rest { height: 100%; background: transparent; }
+.sq-share-mark {
+  position: absolute;
+  top: -5px;
+  bottom: -5px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--fg-error-secondary);
+}
+
+
+/* 범례(17757:32426) — 색 네모 8 · 이름 · 비중(굵게) · 「캐파 n」(흐리게) */
 .sq-comp-legend {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 14px;
-  margin-top: 10px;
+  gap: 8px 16px;
+  margin-top: 8px;
 }
 .sq-comp-item {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  line-height: 18px;
+  gap: 6px;
+  font-size: 14px;
+  line-height: 20px;
 }
 .sq-comp-swatch {
   width: 8px;
   height: 8px;
-  border-radius: 3px;
+  border-radius: 2px;
   flex-shrink: 0;
 }
-.sq-comp-name { color: var(--text-secondary); font-weight: 500; }
+.sq-comp-name { color: var(--text-primary); font-weight: 600; }
 .sq-comp-share {
   color: var(--text-primary);
   font-weight: 600;
 }
 .sq-comp-raw {
-  color: var(--text-quaternary);
+  color: var(--text-tertiary);
+  font-weight: 400;
 }
 .sq-comp-none {
   font-size: 12px;
@@ -581,27 +665,89 @@
 }
 .sq-gauge-track {
   display: flex;
-  border-radius: 4px;
+  gap: 2px;
+  border-radius: 2px;
   overflow: hidden;
-  background: var(--bg-secondary);
+  background: var(--alpha-black-3);
 }
-.sq-gauge-seg { display: flex; }
-.sq-gauge-fill { height: 100%; }
+.sq-gauge-seg { display: flex; overflow: hidden; border-radius: 2px; }
+/* 토막은 시안의 200 단계 톤 — 스쿼드 색을 흐리게 */
+.sq-gauge-fill { height: 100%; opacity: 0.45; }
 .sq-gauge-over { height: 100%; }
 .sq-gauge-mark {
   position: absolute;
-  top: -2px;
-  bottom: -2px;
+  top: -3px;
+  bottom: -3px;
   width: 2px;
-  border-radius: 1px;
-  background: var(--utility-error-500);
+  border-radius: 2px;
+  background: var(--fg-error-secondary);
 }
 
-/* ── Matrix panel ── */
+/* ── Matrix (멤버 × 스쿼드 배치 · 16606:27556) ── */
+/* 제목 묶음 — 카드 격자 아래 40 + 10 = 50 에서 시작, 위아래 24 */
+.pj-table-section.sq-matrix-section { margin-top: 50px; } /* 격자의 아래 여백 40 과 겹쳐 50 */
+/* 프로젝트 탭의 제목 묶음은 위에 붙지만(sticky), 스쿼드 탭은 본문과 같이 흘러간다 — 그래서 바깥 여백·바탕도 뺀다 */
+.pj-table-header-text.sq-matrix-head {
+  position: static;
+  margin: 0;
+  padding: 24px 0;
+  background: transparent;
+}
+/* 과부하 띠(17757:34931) — 제목 묶음과 표 사이. 「과부하」 · 사람 · 문장이 26 간격으로 선다 */
+.sq-overload {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 26px;
+  margin-bottom: 20px; /* 띠 → 표 (시안 1118 → 1138) */
+  padding: 8px 16px;
+  border: 1px solid var(--alpha-black-5);
+  border-radius: var(--radius-lg);
+  background: var(--bg-error-primary);
+  color: var(--text-error-primary);
+}
+.sq-overload-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+}
+.sq-overload-person {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  letter-spacing: -0.01em;
+}
+.sq-overload-body {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+}
 .sq-panel {
   background: var(--bg-quaternary);
   border-radius: 16px;
   overflow: hidden;
+}
+/* 칸 높이·여백은 시안 값에 못 박는다 — 머리 64 · 줄 72 · 좌우 24. 배정 칸만 6 (안의 색 블록이 채운다) */
+.sq-grid .pj-th {
+  height: 64px;
+  padding: 0 24px;
+  box-sizing: border-box;
+}
+.sq-grid .pj-td {
+  height: 72px;
+  padding: 0 24px;
+  box-sizing: border-box;
+}
+.sq-grid .pj-td.sq-td-cell { padding: 6px 6px 5px; } /* 60 블록 + 11 + 구분선 1 = 72 */
+.sq-grid .ag-total {
+  width: 179px;
+  min-width: 179px;
 }
 /* 가로 스크롤·이름 칸/캐파 칸 붙이기는 `.ag`(AssignmentGrid · org_project.css)가 맡는다 (PW-838) */
 .pj-table.sq-table { min-width: 640px; }
@@ -615,19 +761,20 @@
    기준은 같은 디자인 언어를 쓰는 프로젝트 탭의 이름 칸 `.pj-grid .ag-name` 으로,
    `width` 와 `min-width` 를 함께 건다. */
 .pj-th.sq-th-name {
-  width: 240px;
-  min-width: 240px;
-  max-width: 240px;
+  width: 280px;
+  min-width: 280px;
+  max-width: 280px;
 }
+/* 스쿼드 열(16606:27558) — 230 폭 · 색 네모 20 + 이름, 왼쪽 맞춤 */
 .pj-th.sq-th-col {
-  min-width: 140px;
-  text-align: center;
+  min-width: 230px;
+  text-align: left;
 }
 .sq-th-col-inner {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  max-width: 160px;
+  gap: 20px;
+  max-width: 182px;
 }
 .sq-th-col-inner .pj-th-label {
   overflow: hidden;
@@ -635,84 +782,72 @@
   white-space: nowrap;
 }
 .pj-th.sq-th-cap {
-  width: 168px;
-  text-align: center;
+  width: 179px;
+  text-align: right;
   white-space: nowrap;
 }
 .sq-th-cap-basis {
   display: block;
   font-size: 12px;
-  font-weight: 400;
+  font-weight: 600;
   color: var(--text-tertiary);
   margin-top: 2px;
 }
 
-.pj-td.sq-td-cell { text-align: center; }
-.pj-td.sq-td-cap { text-align: center; }
+.pj-td.sq-td-cell { text-align: left; }
+.pj-td.sq-td-cap { text-align: right; }
 
-/* 배정 셀 — `pj-cell-dot` 의 모서리 언어를 따르되 투입%를 싣는다 */
+/* 배정 칸(17757:34954) — 칸을 채우는 색 블록(스쿼드 색 8% · r8). 가운데에 캐파 사용 숫자가 크게,
+   오른쪽 작은 줄에 LEAD 태그와 스쿼드 내 비중이 선다. */
 .sq-cell {
-  /* 두 값을 위아래로 병기한다 — 윗줄 = 캐파 사용(합계의 재료), 아랫줄 = 스쿼드 내
-     비중(합계 밖). 한 값만 보이면 나머지를 보는 사람이 추측으로 채운다(§5-3.2). */
-  display: inline-flex;
-  flex-direction: column;
+  position: relative;
+  display: flex;
   align-items: center;
   justify-content: center;
-  /* 🔴 폭을 고정한다 — 내용에 맡기면 한 열 안에서 칸마다 폭이 갈린다(실측: 「30% /
-     스쿼드 60%」 73px vs 「20% / 스쿼드 100%」 79.7px). 값의 자릿수가 다르다는
-     이유로 표가 들쭉날쭉해 보일 이유가 없다.
-     92 = 가장 긴 내용 「100% / 스쿼드 100%」의 글 폭 63.7px + 좌우 14px 씩. 그 여백이
-     아래 ★·안내 점이 서는 자리다 — 숫자를 밀어내지 않고 앉을 곳을 먼저 확보한다. */
-  position: relative;
-  width: 92px;
-  padding: 3px 8px;
-  border-radius: 6px;
-  border: 1px solid transparent;
-  /* 라벨 길이가 흔들려도(로케일·긴 배지) 칸 밖으로 나가지 않게 최종 방어 */
+  gap: 12px;
+  width: 100%;
+  height: 60px;
+  padding: 0 20px;
+  border-radius: var(--radius-sm);
   box-sizing: border-box;
-  max-width: 100%;
   overflow: hidden;
 }
-/* 🔴 ★(리드)·안내 점은 **글의 흐름에서 뺀다.**
-   종전엔 둘 다 인라인이라 앞에 붙는 순간 그 줄의 숫자를 오른쪽으로 밀었다 — 실측에서
-   ★가 있는 칸의 윗줄 숫자가 아랫줄보다 7px 오른쪽에 서서, 같은 열의 칸들끼리도 숫자
-   중심이 어긋났다. 두 숫자가 한 세로축을 갖는 것이 이 칸이 말하려는 것(두 축의 병기)
-   이므로, 축을 흔드는 쪽을 옮긴다. 표식은 왼쪽 여백에 세로로 나란히 선다.
-   자리만 옮길 뿐 크기·색·글자 크기는 종전 그대로다(PW-476 — 개발 임시 결정). */
-.sq-cell .sq-lead-mark {
-  position: absolute;
-  left: 4px;
-  top: 4px;
-}
-.sq-cell .sq-idle-dot {
-  position: absolute;
-  left: 4px;
-  bottom: 6px;
-  margin-right: 0;
-}
 .sq-cell.is-clickable { cursor: pointer; }
-/* 캐파 미설정 — "아직 아무도 정하지 않음" 을 색이 아니라 **형태**(점선)로 말한다.
-   색각 이상·흑백에서도 남고, 배경색이 없어 값이 있는 셀과 한눈에 갈린다(§5-3.7). */
+/* 캐파 미설정 — "아직 아무도 정하지 않음". 회색 바탕에 흐린 글자(17757:35150) */
 .sq-cell.is-cap-unset {
-  background: var(--bg-primary);
-  border: 1px dashed var(--text-quaternary);
-}
-.sq-cell-top {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
+  background: var(--utility-gray-100);
 }
 .sq-cell-pct {
-  font-size: 12px;
-  font-weight: 600;
-}
-.sq-cell-pct.is-unset { color: var(--text-tertiary); }
-/* 아랫줄 = 스쿼드 내 비중. 합계에 안 들어가는 값이라 윗줄보다 약하게 둔다 */
-.sq-cell-share {
-  font-size: 11px;
+  font-size: var(--font-size-display-xs);
   font-weight: 500;
-  color: var(--text-tertiary);
+  line-height: var(--line-height-display-xs);
+  color: var(--alpha-black-60);
   white-space: nowrap;
+}
+.sq-cell-pct.is-unset { color: var(--alpha-black-40); }
+.sq-cell-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+/* 아랫줄 = 스쿼드 내 비중. 합계에 안 들어가는 값이라 숫자보다 약하게 둔다 */
+.sq-cell-share {
+  display: inline-flex;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: var(--alpha-black-50);
+  white-space: nowrap;
+}
+.sq-cell.is-cap-unset .sq-cell-share { color: var(--alpha-black-40); }
+/* 읽기 모드의 빈 칸 — 왼쪽 24 자리에 회색 네모 하나(16607:32129) */
+.sq-cell-empty {
+  display: flex;
+  align-items: center;
+  height: 60px;
+  padding-left: 18px;
 }
 /* 「비중 > 0 · 캐파 = 0」 회색 점 (§5-3.6 · §10-A15).
    경고가 아니라 **안내**라서 빨강·노랑을 쓰지 않는다 — 이 조합은 오류가 아니고,
@@ -730,6 +865,7 @@
 }
 /* 범례에서는 값 **뒤에** 붙으므로 여백을 반대로 준다 */
 .sq-comp-item .sq-idle-dot { margin-right: 0; margin-left: 2px; }
+.sq-cell .sq-idle-dot { margin-right: 4px; }
 /* 관리자 조정 배지 — 「누가 정했는가」를 값 옆에서 바로 읽히게 한다 */
 .sq-cell-adjusted {
   font-size: 9px;
@@ -766,7 +902,7 @@
 .sq-name-cell {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   /* 아바타는 안 줄고(`flex-shrink: 0`) 이름만 줄어든다 — 줄어든 이름이 접히지 않고
      말줄임으로 끊기려면 flex 자식의 기본 하한(min-content)을 풀어야 한다. */
   min-width: 0;
@@ -774,7 +910,21 @@
      열이 240 → 375px 로 늘어 스쿼드 열을 옆으로 밀어낸다(실측). 표는 열 폭을 칸의
      max-content 로도 계산하므로, 칸 안쪽에 상한을 둬야 열이 선언한 폭에 머문다.
      값은 열 폭 240 에서 `.pj-td` 좌우 패딩 24×2 를 뺀 것이다. */
-  max-width: 192px;
+  max-width: 232px;
+}
+/* 사진 틀은 40×40 그대로 — 인라인이면 글줄 높이만큼 늘어나 점이 아래로 처진다 */
+.sq-name-cell .sq-avatar-wrap { display: flex; flex-shrink: 0; width: 40px; height: 40px; }
+/* 재직 상태 점(17757:34940) — 10px 원 **바깥**에 판 색 1.5 테두리(겉 13px). 사진 안쪽 (30,30) 자리에 앉아
+   중심이 (35,35) 에 온다 — 테두리가 안으로 들어가면 점이 7px 로 줄어 시안보다 작아 보인다. */
+.sq-online-dot {
+  position: absolute;
+  right: -1.5px;
+  bottom: -1.5px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1.5px solid var(--bg-primary);
+  box-sizing: content-box;
 }
 /* 위 `min-width` 로도 자리가 모자라면, 세로로 쌓지 말고 한 줄을 유지한 채 끊는다.
    고정 폭 칸에 가변 길이 이름이 들어온다(CLAUDE.md) — 마지막 방어선이다. */
@@ -792,29 +942,35 @@
   color: var(--text-quaternary);
 }
 
-/* 캐파 사용 열 */
+/* 캐파 사용 열(17757:35047) — 오른쪽 맞춤: 「⚠ 110 / 100」 · 막대 · 「초과 10%p · 2개」 */
 .sq-cap {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-end;
   gap: 4px;
 }
 .sq-cap-nums {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
   white-space: nowrap;
 }
-.sq-cap-total { font-size: 14px; font-weight: 600; }
-.sq-cap-max { font-size: 12px; color: var(--text-quaternary); }
+.sq-cap-total { font-size: 12px; font-weight: 500; }
+.sq-cap-max { font-size: 12px; color: var(--text-tertiary); }
 /* 초과 표식 — 색만으로 말하지 않는다(§5-3.2). 색은 부모의 `color` 를 상속한다 */
 .sq-cap-warn {
   display: inline-flex;
   align-self: center;
+  margin-right: 3px;
   color: var(--text-error-primary);
 }
 .sq-cap-note {
   font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
   color: var(--text-tertiary);
   white-space: nowrap;
 }
@@ -827,25 +983,6 @@
   color: var(--text-tertiary);
 }
 
-/* ── Legend ── */
-.sq-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 16px;
-  padding: 14px 24px;
-  border-top: 1px solid var(--colors-border-borderSecondary);
-}
-.sq-legend-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  line-height: 18px;
-  color: var(--text-tertiary);
-}
-.sq-legend-item b { color: var(--text-secondary); font-weight: 600; }
-.sq-legend-over { color: var(--text-error-primary); font-weight: 600; }
-.sq-legend-faint { color: var(--text-quaternary); }
 
 /* ── Assign popover ── */
 /* 3단 구조 — 헤더 고정 / 본문만 스크롤 / 액션 하단 고정 (§5-3.8 · PW-109).
@@ -1253,49 +1390,54 @@
 /* ── 담당 프로젝트 칸 (PW-1428) ──
    시안 org-chart-app.jsx :3084-3220. 카드 안에 펼쳐지는 칸이라 목록을 띄우지 않고 흐름 안에 둔다
    (정책: 접기·내부 스크롤 없음 — 카드 높이가 늘어나는 것을 허용). 딱지 모양은 status-badge.css. */
-.sq-proj {
-  padding-top: 12px;
-  border-top: 1px solid var(--border-secondary);
-}
+/* 담당 프로젝트(17757:34887) — 머리 40 · 줄 40 · 줄 사이 구분선. 카드 안 작은 표다 */
+.sq-proj { padding-top: 0; }
 .sq-proj-head {
   display: flex;
   align-items: center;
   gap: 4px;
-  margin-bottom: 8px;
+  height: 40px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 18px;
+  letter-spacing: -0.01em;
   color: var(--text-tertiary);
 }
 .sq-proj-lock { display: inline-flex; color: var(--text-quaternary); cursor: help; }
 .sq-proj-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
 }
 .sq-proj-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 20px;
   min-width: 0;
+  height: 40px;
 }
+.sq-proj-row + .sq-proj-row { border-top: 1px solid var(--border-secondary); }
+/* 왼쪽 반(파일 아이콘 · 이름 · 主) · 오른쪽 반(상태 · 진행 바 · %) — 반반 */
+.sq-proj-main,
+.sq-proj-side {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+.sq-proj-main { color: var(--text-tertiary); }
 .sq-proj-row.is-clickable { cursor: pointer; }
 .sq-proj-row.is-clickable:hover .sq-proj-name { text-decoration-color: var(--text-tertiary); }
-.sq-proj-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
 .sq-proj-name {
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 18px;
-  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 24px;
+  color: var(--text-secondary);
 }
 .sq-proj-row.is-clickable .sq-proj-name {
   text-decoration-line: underline;
@@ -1303,29 +1445,22 @@
   text-underline-offset: 2px;
   text-decoration-color: var(--border-primary);
 }
-.sq-proj-primary-of {
-  flex-shrink: 0;
-  font-size: 11px;
-  line-height: 16px;
-  color: var(--text-tertiary);
-}
-.sq-proj-spacer { flex: 1; }
 .sq-proj-bar {
-  flex-shrink: 0;
-  width: 44px;
-  height: 4px;
-  border-radius: var(--radius-full);
-  background: var(--bg-secondary);
+  flex: 1 1 auto;
+  min-width: 40px;
+  height: 8px;
+  border-radius: var(--radius-xxs);
+  background: var(--alpha-black-3);
   overflow: hidden;
 }
-.sq-proj-bar-fill { display: block; height: 100%; border-radius: var(--radius-full); }
+/* 채움은 스쿼드 색을 흐리게 — 시안의 100 단계 톤 */
+.sq-proj-bar-fill { display: block; height: 100%; border-radius: var(--radius-xxs); opacity: 0.3; }
 .sq-proj-pct {
   flex-shrink: 0;
-  width: 34px;
-  text-align: right;
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
 }
 /* 主 지정 — 이미 主 인 행은 꺼진다(주 스쿼드는 늘 하나) */

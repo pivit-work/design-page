@@ -21,20 +21,22 @@
      않는 문제를 우회) */
   display: grid;
   grid-template-rows: auto auto auto minmax(0, 1fr);
-  padding: 72px 40px 20px 0;
+  /* 시안(16621:1627 · 전 화면 공통 간격): 머리 줄 72 아래에서 시작 · 왼쪽 메뉴 판 바로 옆(왼쪽 0) · 오른쪽 32 */
+  padding: 72px 32px 20px 0;
   font-family: var(--font-family-body);
   background: var(--bg-primary);
   box-sizing: border-box;
   overflow: hidden;
 }
 
-/* Page header — Figma frameGroup: padding 8 12 (=spacing-md vertical, 12 horizontal) */
+/* Page header — Figma 16621:1843: 위 8 · 왼쪽 0 · 블록 높이 77(80 → 157). 아래 여백 5 는 안내 줄의 글줄
+   높이(16)가 시안의 글자 높이(10)보다 커서 블록 높이를 맞추려 뺀 것이다. */
 .tl-page-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  margin-left: 12px;
-  padding: 8px 0;
+  margin-left: 0;
+  padding: 8px 0 5px;
   flex-shrink: 0;
   gap: 20px;
   box-sizing: border-box;
@@ -43,7 +45,7 @@
 .tl-page-title-wrap {
   display: flex;
   flex-direction: column;
-  gap: 13px;
+  gap: 10px; /* 시안 13 — 글줄 높이 차(위 참고)만큼 뺐다 */
 }
 
 .tl-page-title {
@@ -99,7 +101,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin: 20px 0 0 12px;
+  margin: 20px 0 0 0;
   padding: 0;
   height: 36px;
   gap: 20px;
@@ -180,7 +182,7 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  margin: 8px 0 0 12px;
+  margin: 8px 0 0 0;
   padding: 0;
   flex-shrink: 0;
 }
@@ -401,7 +403,7 @@
   border: 1px solid var(--border-secondary-alt);
   border-radius: 16px;
   overflow: hidden;
-  margin: 8px 0 0 12px;
+  margin: 8px 0 0 0;
 }
 
 /* ---------- Left column (fixed) ---------- */
@@ -3642,7 +3644,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin: 12px 0 12px 12px;
+  margin: 12px 0 12px 0; /* 왼쪽 거터 0 — 전 화면 공통 */
   padding-right: 40px;
   min-height: 0;
   flex: 1;

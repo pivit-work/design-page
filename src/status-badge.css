@@ -1353,6 +1353,39 @@
 
 /* ══ org_squad.css 에서 옮겨 온 딱지 ══════════════════════════════════════════════ */
 
+/* 스쿼드 카드 상태 딱지 (Figma 16606:587 · 17757:35525 — 2026-10-25 스쿼드 탭 시안) —
+   진행 중은 연한 브랜드 바탕, 완료는 연한 성공 바탕, 준비중·보관은 회색. 글자색은 상태표(squad-constants)가 준다.
+   위치(`position: static`)는 org_squad.css 의 카드 액션 줄이 정한다. */
+.pj-card-status.sq-status {
+  padding: 2px 8px;
+  line-height: 20px;
+  background: var(--bg-brand-primary);
+}
+.pj-card-status.sq-status[data-status="done"] { background: var(--bg-success-primary); }
+.pj-card-status.sq-status[data-status="planned"],
+.pj-card-status.sq-status[data-status="archived"] { background: var(--bg-secondary); }
+
+/* LEAD 태그 (Figma 17757:32453 · 17757:34947) — 스쿼드당 1명인 리드를 글자로 말한다.
+   카드 기간 줄은 테두리만, 배정 칸 안(`.is-filled`)은 검정 40% 채움에 흰 글자. */
+.sq-lead-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 4px;
+  border: 1px solid var(--fg-tertiary);
+  border-radius: var(--radius-xxs);
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  color: var(--fg-tertiary);
+}
+.sq-lead-tag.is-filled {
+  border-color: transparent;
+  background: var(--alpha-black-40);
+  color: var(--text-white);
+}
+
 .sq-chip {
   display: inline-flex;
   align-items: center;

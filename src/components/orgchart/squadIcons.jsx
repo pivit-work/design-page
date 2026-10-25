@@ -13,8 +13,9 @@
  * 두 곳 이상 쓰는 그림은 design-page `shared/lineIcons.jsx` 한 벌을 부른다(PW-1011).
  */
 
+import StatusBadge from '../shared/StatusBadge.jsx';
 import {
-  AlertTriangleGlyph,
+  AlertTriangleSolidGlyph,
   CalendarGlyph,
   CheckGlyph,
   ChevronDownGlyph,
@@ -23,6 +24,7 @@ import {
   LockGlyph,
   PencilGlyph,
   PlusGlyph,
+  FileTextGlyph,
 } from '../shared/lineIcons.jsx';
 
 const ICON_STYLE = { verticalAlign: 'middle', flexShrink: 0 };
@@ -72,9 +74,9 @@ export function CalendarIcon({ size = 12 }) {
   return <CalendarGlyph size={size} style={ICON_STYLE} />;
 }
 
-/** ⚠ 경고 — 과부하 배너·완료 전환 넛지. */
+/** ⚠ 경고 — 종료일 지남·과부하 띠·캐파 초과 표식. 시안(solid_alert-triangle)대로 칠한 삼각형이다. */
 export function WarningIcon({ size = 12 }) {
-  return <AlertTriangleGlyph size={size} style={ICON_STYLE} />;
+  return <AlertTriangleSolidGlyph size={size} style={ICON_STYLE} />;
 }
 
 /** 🔒 편집 범위 밖 — manager 스코프 표시. */
@@ -121,4 +123,17 @@ export function EditIcon({ size = 12 }) {
 /** 👁 조회 전용 — 프로젝트 상세 머리 딱지(PW-1428). */
 export function EyeIcon({ size = 12 }) {
   return <EyeGlyph size={size} style={ICON_STYLE} />;
+}
+
+/** 📄 프로젝트 — 카드 「담당 프로젝트」 줄의 파일 아이콘 (Figma 17757:34897 file-02). */
+export function FileIcon({ size = 14 }) {
+  return <FileTextGlyph size={size} style={ICON_STYLE} />;
+}
+
+/**
+ * LEAD 태그 — 스쿼드당 1명인 리드를 글자로 말한다 (Figma 17757:32453 · 17757:34947).
+ * 카드 기간 줄에서는 테두리만(outline), 배정 칸 안에서는 채운(filled) 모양이다.
+ */
+export function LeadTag({ filled = false }) {
+  return <StatusBadge className={`sq-lead-tag${filled ? ' is-filled' : ''}`} aria-label="lead">LEAD</StatusBadge>;
 }

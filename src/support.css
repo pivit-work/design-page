@@ -5,16 +5,16 @@
    공용 칩(상태 딱지)·빈 칸·자리 표시·입력칸·버튼. 색은 index.css 의 짧은 이름만 쓴다.
    ══════════════════════════════════════════════════════════ */
 
-/* ── 위쪽 띠 — 앱 상단바(.top-nav, 68px) 바로 아래. 평가 화면 .evnav-nav 와 같은 자리 ── */
+/* ── 위쪽 띠 — 앱 상단바(.top-nav, 72px) 바로 아래. 평가 화면 .evnav-nav 와 같은 자리 ── */
 .sup-topnav {
   position: fixed;
-  top: 68px;
+  top: 72px;
   left: 240px;
   right: 0;
   z-index: 80;
   box-sizing: border-box;
   height: 52px;
-  padding: 4px 40px 4px 12px;
+  padding: 4px 32px 4px 0;
   display: flex;
   align-items: center;
   gap: 16px;

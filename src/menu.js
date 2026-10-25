@@ -26,9 +26,19 @@ export const SIDEBAR_MENU = [
   // 관리' 허브로, 구성원은 셀프 리뷰로, HR 은 사이클 목록으로. 과거 별도 최상위였던
   // '팀 평가'(캘리 결과 딥링크)는 중복·의미축소라 제거하고 '평가' 안으로 일원화했다.
   { id: 'eval',     icon: '/icons-solid/edit-02.svg',             label: '평가',     section: 'top' },
-  { id: 'manager',  icon: '/icons-solid/user-edit.svg',           label: '매니저',   section: 'top' },
+  // 「매니저」 그룹 — 2026-10-25 시안(Figma 16605:49720 · Left side bar 17757:35714). 종전 «매니저» 한
+  // 항목이 소제목(SIDEBAR_GROUPS.manager) 아래 세 항목으로 펴졌다. 같은 `group` 을 가진 항목이
+  // 이어서 서고, 데모(App.jsx)는 그 묶음을 사이드바의 그룹(`{ heading, items }`)으로 조립한다.
+  { id: 'manager',        icon: '/icons-solid/layout-alt-01.svg',                 label: '매니저 대시보드', section: 'top', group: 'manager' },
+  { id: 'resource-view',  icon: '/icons-solid/horizontal-bar-chart-02.svg',       label: '리소스 뷰',       section: 'top', group: 'manager' },
+  { id: 'resource-usage', icon: '/icons-solid/distribute-spacing-horizontal.svg', label: '리소스 투입현황', section: 'top', group: 'manager' },
   { id: 'admin',    icon: '/icons-solid/lock-keyhole-square.svg', label: '어드민',   section: 'bottom' },
 ];
+
+// SIDEBAR_GROUPS — 상단 메뉴의 소제목 글자. SIDEBAR_MENU 항목의 `group` 키 → 소제목.
+export const SIDEBAR_GROUPS = {
+  manager: '매니저',
+};
 
 // ADMIN_MENU — 어드민 콘솔 사이드바 탭의 디자인 정본(순서·그룹·아이콘·라벨).
 // SIDEBAR_MENU 와 같은 역할을 어드민 사이드바에 대해 한다: 여기 있는 탭만, 이

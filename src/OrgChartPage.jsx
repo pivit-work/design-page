@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { OrgChartCanvas, OrgMemberListCanvas, ProjectCanvas } from './components';
+import { OrgChartCanvas, OrgListCanvas, OrgMemberListCanvas, ProfileModal, ProjectCanvas, SquadCanvas } from './components';
+import { PROJECT_OPTIONS, SQUADS, SQUAD_PEOPLE } from './squad-demo-data.js';
 import StateSwitcher from './devtools/StateSwitcher.jsx';
 import { LABEL_KNOB, VOLUME_KNOB, knobKey, useKnobs } from './devtools/knobs.js';
 import { stress, stressText } from './devtools/stress.js';
@@ -111,6 +112,8 @@ const INITIAL_ORG = {
             { name: '이서현', avatar: AVATARS.이서현2, status: 'working', workHours: '9 → 6', attendance: 89, hcScore: 5.4, grade: '대리', profile: DEFAULT_PROFILE },
           ]},
           { id: 'frontend', name: '프론트엔드', type: '파트', level: 'part', members: [
+            // 긴 영문 이름 — 카드 폭이 이름을 따라 늘고 출퇴근 줄이 안 끊기는지 기본 화면에서 바로 본다.
+            { name: 'Christopher Williamson', avatar: AVATARS.Chris, status: 'working', workHours: '9 → 6', attendance: 72, hcScore: 6.8, grade: '과장', profile: DEFAULT_PROFILE },
             { name: '박서아', avatar: AVATARS.박서아, status: 'working', workHours: '9 → 6', attendance: 68, hcScore: 6.3, grade: '과장', profile: DEFAULT_PROFILE },
             { name: '윤다희', avatar: AVATARS.윤다희, status: 'resigned', workHours: '9 → 6', attendance: 11, hcScore: 7.0, grade: '사원', profile: DEFAULT_PROFILE },
             { name: '신서윤', avatar: AVATARS.신서윤, status: 'working', workHours: '9 → 6', attendance: 79, hcScore: 7.1, grade: '사원', profile: DEFAULT_PROFILE },
@@ -235,7 +238,7 @@ function shapeOrg(node, volume, labelMode) {
 /**
  * OrgChartPage — 조직도 demo wrapper.
  *
- * orgSubTab ('orgchart' | 'project') 과 admin mode 는 조직도 페이지 내부
+ * orgSubTab ('orgchart' | 'list' | 'squad' | 'project') 과 admin mode 는 조직도 페이지 내부
  * 관심사이므로 App 이 아닌 이 wrapper 가 소유한다. App 은 currentPage === 'orgchart'
  * 일 때 이 컴포넌트만 마운트한다.
  */
@@ -243,10 +246,88 @@ function shapeOrg(node, volume, labelMode) {
 const ASOF_MIN = '2025-01-01';
 const ASOF_MAX = '2026-10-25';
 
+/**
+ * 스쿼드 탭의 데모 원장 — 저장소 없이 메모리에서 바꾼다 (Figma 16605:49720).
+ *
+ * `SquadCanvas` 는 콜백이 없는 버튼을 **그리지 않는다**(가짜 저장 금지). 그래서 시안의
+ * 「스쿼드 만들기」·「편집」·셀 편집이 보이려면 호스트가 콜백을 넘겨야 하고, 데모는 그 콜백을
+ * 상태 갱신으로 받는다. pivit-work 는 같은 자리에서 서버를 부른다.
+ */
+function useSquadLedger() {
+  const [squads, setSquads] = useState(SQUADS);
+  const patchSquad = (id, fn) => setSquads((all) => all.map((sq) => (sq.id === id ? fn(sq) : sq)));
+  const patchMember = (squadId, userId, fn) => patchSquad(squadId, (sq) => ({
+    ...sq,
+    members: (sq.members || []).some((x) => x.userId === userId)
+      ? sq.members.map((x) => (x.userId === userId ? fn(x) : x))
+      : [...(sq.members || []), fn({ userId, role: 'member', sharePct: 0, allocationPct: 0 })],
+  }));
+  const ok = () => Promise.resolve(true);
+  return {
+    squads,
+    onCreateSquad: ({ leadUserId, ...payload }) => {
+      setSquads((all) => [...all, {
+        id: `sq-${Date.now()}`, status: 'planned', projects: [], ...payload,
+        members: leadUserId ? [{ userId: leadUserId, role: 'lead', sharePct: 0, allocationPct: 0 }] : [],
+      }]);
+      return ok();
+    },
+    onUpdateSquad: (id, payload) => { patchSquad(id, (sq) => ({ ...sq, ...payload })); return ok(); },
+    onDeleteSquad: (id) => { setSquads((all) => all.filter((sq) => sq.id !== id)); return ok(); },
+    onChangeStatus: (id, status) => { patchSquad(id, (sq) => ({ ...sq, status })); return ok(); },
+    // 캐파(`allocationPct`)를 바꾼 저장은 본인이 정한 것으로 친다 — 미설정(합계 제외)에서 벗어난다.
+    onUpsertMember: (squadId, userId, patch) => {
+      patchMember(squadId, userId, (x) => ({ ...x, ...patch, ...(patch.allocationPct != null ? { capacitySetBy: 'self' } : {}) }));
+      return ok();
+    },
+    onRemoveMember: (squadId, userId) => {
+      patchSquad(squadId, (sq) => ({ ...sq, members: (sq.members || []).filter((x) => x.userId !== userId) }));
+      return ok();
+    },
+    onSetLead: (squadId, userId) => {
+      patchSquad(squadId, (sq) => ({ ...sq, members: (sq.members || []).map((x) => ({ ...x, role: x.userId === userId ? 'lead' : 'member' })) }));
+      return ok();
+    },
+    onRequestCapacity: () => ok(),
+    onLinkProjects: (squadId, ids) => {
+      patchSquad(squadId, (sq) => ({
+        ...sq,
+        projects: [
+          ...(sq.projects || []),
+          ...PROJECT_OPTIONS.filter((p) => ids.includes(p.id)).map((p) => ({ ...p, progress: 0, isPrimary: false })),
+        ],
+      }));
+      return ok();
+    },
+    onUnlinkProject: (squadId, projectId) => {
+      patchSquad(squadId, (sq) => ({ ...sq, projects: (sq.projects || []).filter((p) => p.id !== projectId) }));
+      return ok();
+    },
+    onSetPrimarySquad: (projectId, squadId) => {
+      setSquads((all) => all.map((sq) => ({
+        ...sq,
+        projects: (sq.projects || []).map((p) => (p.id === projectId ? { ...p, isPrimary: sq.id === squadId } : p)),
+      })));
+      return ok();
+    },
+    onCreateProject: (squadId, { name, description }) => {
+      const id = `pj-${Date.now()}`;
+      patchSquad(squadId, (sq) => ({
+        ...sq,
+        projects: [...(sq.projects || []), { id, name, description, status: 'planned', progress: 0, isPrimary: true }],
+      }));
+      return ok();
+    },
+  };
+}
+
 export default function OrgChartPage({ icons, statIcons, baseUrl, subTab, onSubTabChange }) {
   const { values: knobs, set: setKnob, reset: resetKnobs } = useKnobs(KNOBS);
   const [adminMode, setAdminMode] = useState(false);
   const [asOfValue, setAsOfValue] = useState('2026-04-10');
+  const ledger = useSquadLedger();
+  // 스쿼드 표에서 이름을 누르면 조직도 카드와 같은 프로필 창 — 명부 한 줄을 카드 모양으로 옮긴다.
+  const [squadMember, setSquadMember] = useState(null);
 
   const orgData = useMemo(() => shapeOrg(INITIAL_ORG, knobs.volume, knobs.labels), [knobs.volume, knobs.labels]);
   const subordinates = (member) => findSubordinates(orgData, member);
@@ -264,12 +345,62 @@ export default function OrgChartPage({ icons, statIcons, baseUrl, subTab, onSubT
   if (subTab === 'list') {
     return (
       <>
+        <OrgListCanvas
+          key={knobKey(knobs)}
+          orgData={orgData}
+          onSubTabChange={onSubTabChange}
+          statIcons={statIcons}
+          baseUrl={baseUrl}
+          findSubordinates={subordinates}
+          adminMode={adminMode}
+          asOf={{ value: asOfValue, min: ASOF_MIN, max: ASOF_MAX, label: '기준일', onChange: setAsOfValue }}
+        />
+        {switcher}
+      </>
+    );
+  }
+
+  if (subTab === 'squad') {
+    return (
+      <>
+        <SquadCanvas
+          key={knobKey(knobs)}
+          people={SQUAD_PEOPLE}
+          projectOptions={PROJECT_OPTIONS}
+          canManageLedger
+          canEditAssignments
+          canLinkProjects
+          canCreateProject
+          onSubTabChange={onSubTabChange}
+          onMemberClick={(p) => setSquadMember({
+            name: p.name, avatar: p.photoUrl, status: p.status, grade: p.title, profile: { ...DEFAULT_PROFILE, title: p.title, dept: p.team },
+          })}
+          {...ledger}
+        />
+        <ProfileModal
+          member={squadMember}
+          onClose={() => setSquadMember(null)}
+          statIcons={statIcons}
+          baseUrl={baseUrl}
+          findSubordinates={subordinates}
+          adminMode={adminMode}
+        />
+        {switcher}
+      </>
+    );
+  }
+
+  // PW-678 엔지니어 임시 명단 표(OrgMemberListCanvas) — 시안 전 화면. 탭 줄에는 없고 'members' 로만 연다.
+  if (subTab === 'members') {
+    return (
+      <>
         <OrgListPreview orgData={orgData} baseUrl={baseUrl} onSubTabChange={onSubTabChange} />
         {switcher}
       </>
     );
   }
 
+  // 옛 프로젝트 축 화면 — 탭 줄에서는 빠졌지만(2026-10-25 시안) 주소로는 아직 열린다.
   if (subTab === 'project') {
     return (
       <>
@@ -301,8 +432,6 @@ export default function OrgChartPage({ icons, statIcons, baseUrl, subTab, onSubT
         adminMode={adminMode}
         onAdminModeChange={setAdminMode}
         asOf={{ value: asOfValue, min: ASOF_MIN, max: ASOF_MAX, label: '기준일', onChange: setAsOfValue }}
-        // 「이미지로 다운」 — 실제 그림 만들기는 pivit-work 몫이다(캔버스 DOM 을 받는다). 데모는 받았다는 것만 적는다.
-        onDownloadImage={({ element }) => console.info('[orgchart] download image', element?.getBoundingClientRect())}
       />
       {switcher}
     </>

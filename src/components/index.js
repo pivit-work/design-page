@@ -134,6 +134,8 @@ export {
   WorkHoursAdjustPanel,
   OrgChartCanvas,
   ProjectCanvas,
+  OrgListCanvas,
+  AsOfButton,
   SquadCanvas,
   OrgMemberListCanvas,
   SquadFormCard,

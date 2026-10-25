@@ -21,7 +21,7 @@ import ConfirmModal from '../shared/ConfirmModal.jsx';
 import Radio from '../shared/Radio.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
-import { CloseIcon, LockIcon, PlusIcon } from './squadIcons.jsx';
+import { CloseIcon, FileIcon, LockIcon, PlusIcon } from './squadIcons.jsx';
 import { useOrgLabels, rich } from './orgchart-labels.jsx';
 import { SQUAD_MODAL_Z } from './squad-constants.js';
 import { projectStatusText, projectStatusTone } from './project-constants.js';
@@ -292,30 +292,35 @@ export default function SquadProjectSection({
             key={p.id}
             className={`sq-proj-row${onOpenProject ? ' is-clickable' : ''}`}
             data-testid={`squad-project-row-${squad.id}-${p.id}`}
-            title={p.description || undefined}
+            title={[
+              p.description,
+              // 다른 스쿼드가 主 인 프로젝트 — 줄 안에 적으면 이름 자리를 먹어 말풍선으로 옮겼다(시안 17757:34900 은 이름만)
+              !p.isPrimary && p.primarySquadName ? L('squad.project.primaryOf', { name: p.primarySquadName }) : '',
+            ].filter(Boolean).join('\n') || undefined}
             onClick={() => onOpenProject?.(p.id)}
           >
-            {p.isPrimary ? (
-              <Tooltip content={L('squad.project.primaryTip')}>
-                <StatusBadge tone="accent" className="sq-proj-primary" data-testid={`squad-project-primary-${squad.id}-${p.id}`}>
-                  {L('squad.project.primaryMark')}
-                </StatusBadge>
-              </Tooltip>
-            ) : (
-              <span className="sq-proj-dot" style={{ background: squad.color }} />
-            )}
-            <span className="sq-proj-name">{p.name}</span>
-            {!p.isPrimary && p.primarySquadName && (
-              <span className="sq-proj-primary-of">{L('squad.project.primaryOf', { name: p.primarySquadName })}</span>
-            )}
-            <span className="sq-proj-spacer" />
-            <StatusBadge tone={projectStatusTone(p.status)} className="sq-proj-status">
-              {projectStatusText(L, p.status)}
-            </StatusBadge>
-            <span className="sq-proj-bar">
-              <span className="sq-proj-bar-fill" style={{ width: `${Math.max(0, Math.min(100, p.progress || 0))}%`, background: squad.color }} />
+            {/* 왼쪽 반 — 파일 아이콘 · 이름 · 主 표식 (Figma 17757:34900) */}
+            <span className="sq-proj-main">
+              <FileIcon size={14} />
+              <span className="sq-proj-name">{p.name}</span>
+              {p.isPrimary && (
+                <Tooltip content={L('squad.project.primaryTip')}>
+                  <StatusBadge tone="accent" className="sq-proj-primary" data-testid={`squad-project-primary-${squad.id}-${p.id}`}>
+                    {L('squad.project.primaryMark')}
+                  </StatusBadge>
+                </Tooltip>
+              )}
             </span>
-            <span className="sq-proj-pct" style={{ color: squad.color }}>{p.progress || 0}%</span>
+            {/* 오른쪽 반 — 상태 딱지 · 진행 바 · 퍼센트 (17757:34884) */}
+            <span className="sq-proj-side">
+              <StatusBadge tone={projectStatusTone(p.status)} className="sq-proj-status">
+                {projectStatusText(L, p.status)}
+              </StatusBadge>
+              <span className="sq-proj-bar">
+                <span className="sq-proj-bar-fill" style={{ width: `${Math.max(0, Math.min(100, p.progress || 0))}%`, background: squad.color }} />
+              </span>
+              <span className="sq-proj-pct">{p.progress || 0}%</span>
+            </span>
             {editable && onSetPrimarySquad && (
               <button
                 type="button"

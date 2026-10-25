@@ -56,7 +56,7 @@ export function CapacityBar({ segments, total, width = 132, height = 8 }) {
                 className="sq-gauge-over"
                 style={{
                   width: `${s.pct ? (overStart / s.pct) * 100 : 0}%`,
-                  background: `repeating-linear-gradient(45deg, ${s.color}, ${s.color} 2px, var(--utility-error-200) 2px, var(--utility-error-200) 4px)`,
+                  background: 'repeating-linear-gradient(135deg, var(--utility-error-300) 0 2px, var(--utility-error-50) 2px 6px)',
                 }}
               />
             </div>
@@ -108,7 +108,7 @@ export function ShareBar({ rows, allotted, colorOf, height = 12 }) {
                 className="sq-share-over"
                 style={{
                   width: `${(over / r.share) * 100}%`,
-                  background: `repeating-linear-gradient(45deg, ${c}, ${c} 2px, var(--utility-error-200) 2px, var(--utility-error-200) 4px)`,
+                  background: 'repeating-linear-gradient(135deg, var(--utility-error-300) 0 2px, var(--utility-error-50) 2px 6px)',
                 }}
               />
             </div>
@@ -158,18 +158,24 @@ export function SquadComposition({ squad, members, personOf }) {
   const over = allotted > SQUAD_BASE;
 
   return (
-    <div data-testid="squad-composition">
+    <div className="sq-comp" data-testid="squad-composition">
+      {/* 머리 줄(Figma 17757:32450) — 왼쪽 「진행률 92%」(스쿼드 100 기준 비중의 합 · 100 을 넘으면
+          「초과 n%」 빨강) · 오른쪽 캐파 축(「캐파 합 300% • 약 3.0인분」). 분모가 다른 두 값이라
+          한 숫자로 합치지 않는다(§5-3.4). */}
       <div className="sq-comp-head">
         <span className="sq-comp-title">{L('squad.comp.title')}</span>
-        <span className="sq-comp-basis">{L('squad.comp.basis')}</span>
-        <span className="sq-comp-total" data-testid="squad-allotment">
-          {L('squad.comp.allotLabel')} <b className={over ? 'is-over' : undefined}>{allotted}</b> / 100
-          <span className={`sq-comp-note${over ? ' is-over' : ''}`}>{allotmentNote(L, allotted)}</span>
-        </span>
+        <b className={`sq-comp-value${over ? ' is-over' : ''}`} data-testid="squad-allotment">
+          {over ? L('squad.allot.over', { diff: allotted - SQUAD_BASE }) : `${allotted}%`}
+        </b>
+        <Tooltip content={L('squad.comp.caplineTip')}>
+          <span className="sq-comp-capline" data-testid="squad-capsum">
+            {L('squad.comp.caplineValue', { sum: capSum, fte: fte.toFixed(1) })}
+          </span>
+        </Tooltip>
       </div>
 
       {allotted === 0 ? (
-        // 캐파는 잡혀 있는데 배분만 안 된 상태가 실제로 존재한다 — 아래 캐파 줄은 그대로 둔다(§10-A9).
+        // 캐파는 잡혀 있는데 배분만 안 된 상태가 실제로 존재한다(§10-A9).
         <div className="sq-comp-none">{L('squad.comp.none')}</div>
       ) : (
         <>
@@ -177,9 +183,10 @@ export function SquadComposition({ squad, members, personOf }) {
             rows={rows.map((r) => ({ ...r, label: nameOf(r.userId) }))}
             allotted={allotted}
             colorOf={colorOf}
+            height={24}
           />
 
-          {/* 범례 — 비중을 크게, 캐파 사용은 괄호로 병기해 두 축을 혼동하지 않게 한다 */}
+          {/* 범례(17757:32426) — 색 네모 · 이름 · 비중 · 「캐파 n」. 리드는 카드 기간 줄이 말한다. */}
           <div className="sq-comp-legend">
             {rows.map((r) => (
               <Tooltip
@@ -198,15 +205,11 @@ export function SquadComposition({ squad, members, personOf }) {
                 data-testid={`squad-comp-item-${r.userId}`}
               >
                 <span className="sq-comp-swatch" style={{ background: colorOf(r.userId) }} />
-                {r.role === 'lead' && (
-                  <span className="sq-lead-mark"><LeadStarIcon size={11} /></span>
-                )}
                 <span className="sq-comp-name">{nameOf(r.userId)}</span>
                 <span className="sq-comp-share">{r.share}%</span>
                 <span className="sq-comp-raw">{L('squad.comp.capacityRaw', { value: r.capacityUnset ? '—' : r.pct })}</span>
-                {/* 배분은 받았는데 그 시간이 아무의 캐파에도 안 잡힌 자리(§10-A15).
-                    차단이 아니라 «여기 아직 안 정해졌다» 를 표에서 짚어 주는 표식이다.
-                    이유 문구는 감싼 범례 항목의 말풍선에 들어 있다 — 점에 따로 달면 말풍선이 둘 뜬다 */}
+                {/* 배분은 받았는데 그 시간이 아무의 캐파에도 안 잡힌 자리(§10-A15) — 안내 표식.
+                    이유 문구는 감싼 범례 항목의 말풍선에 들어 있다 */}
                 {r.capacityIdle && (
                   <span
                     className="sq-idle-dot"
@@ -220,17 +223,6 @@ export function SquadComposition({ squad, members, personOf }) {
           </div>
         </>
       )}
-
-      {/* 캐파 축 — 분모가 달라 같은 줄에 두지 않는다. 인분 환산이 가능한 쪽은 여기뿐이다 */}
-      <Tooltip content={L('squad.comp.caplineTip')}>
-      <div
-        className="sq-comp-capline"
-        data-testid="squad-capsum"
-      >
-        <span className="sq-comp-capline-label">{L('squad.comp.caplineLabel')}</span>
-        <span className="sq-comp-capline-value">{L('squad.comp.caplineValue', { sum: capSum, fte: fte.toFixed(1) })}</span>
-      </div>
-      </Tooltip>
     </div>
   );
 }

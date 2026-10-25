@@ -9,7 +9,7 @@
    상단 padding 은 header 안으로 옮긴다 (sticky 헤더 자체가 상단 여백 포함). */
 .manager-page {
   position: fixed;
-  top: 48px;
+  top: 72px;
   left: 240px;
   right: 0;
   bottom: 0;
@@ -17,7 +17,7 @@
   overflow-x: hidden;
   /* 왼쪽 거터는 헤더·KPI·섹션이 각자 padding-left 12 로 갖고 있다 — 여기서 또 주면 24 가 되어
      상단 내비 「홈」(x 252)보다 12px 오른쪽으로 틀어진다. */
-  padding: 0 50px 60px 0;
+  padding: 0 32px 60px 0;
   background: var(--bg-primary);
 }
 
@@ -31,7 +31,7 @@
   gap: 13px;
   /* 아래 여백은 margin 이 아니라 padding 으로 — sticky 로 고정됐을 때 margin 자리는 바탕이 없어
      지나가는 콘텐츠가 서브 텍스트에 바로 붙었다. 원온원 헤더와 같은 20px. */
-  padding: 32px 12px var(--spacing-2xl);
+  padding: 8px 0 var(--spacing-2xl);
   margin-bottom: 0;
   background: var(--bg-primary);
   position: sticky;
@@ -93,7 +93,7 @@
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 10px;
-  padding: 0 12px;
+  padding: 0;
   margin-bottom: 44px;
 }
 
@@ -163,7 +163,7 @@
 
 /* ── Section heading ── */
 .manager-section {
-  padding: 0 12px;
+  padding: 0;
   margin-bottom: 56px;
 }
 
@@ -1222,7 +1222,7 @@
 .manager-tab-placeholder { padding: 120px 0; text-align: center; font-size: 14px; font-weight: 600; color: var(--text-tertiary); }
 
 /* 헤더(.manager-page-header)·다른 섹션과 좌우 정렬을 맞추는 12px 패딩 */
-.mgr-kr { display: flex; flex-direction: column; gap: 24px; padding: 0 12px; }
+.mgr-kr { display: flex; flex-direction: column; gap: 24px; padding: 0; }
 
 /* 팀 OKR — KR 선택 카드 */
 .mgr-kr-okr { display: flex; flex-direction: column; gap: 10px; }
@@ -1335,7 +1335,7 @@
 .mgr-krd-due { font-size: 12px; font-weight: 500; color: var(--text-tertiary); white-space: nowrap; }
 
 /* ══ 팀 스니핏 탭 (Figma 17026:25297 / 17421:18420·19479·20057) ══ */
-.mgr-ts { display: flex; flex-direction: column; gap: 16px; padding: 0 12px; }
+.mgr-ts { display: flex; flex-direction: column; gap: 16px; padding: 0; }
 
 /* 필터 칩 행 — 기간은 세그먼트 컨트롤, 레드 플래그는 흰 원형 카운트 배지 */
 /* 컨트롤 바 — Figma 17421:18448 (세그먼트 p4 g2, 레드 플래그 p8x14 + 에러 필 카운트) */

@@ -7,7 +7,7 @@ import MemberTable from './MemberTable.jsx';
 import { PROJECTS, FILTER_TABS } from './project-constants.js';
 import { OrgLabelsContext, makeOrgLabels } from './orgchart-labels.jsx';
 
-export default function ProjectCanvas({ onSubTabChange, statIcons, baseUrl = '', findSubordinates, adminMode = false, orgData, labels, showListTab = false }) {
+export default function ProjectCanvas({ onSubTabChange, statIcons, baseUrl = '', findSubordinates, adminMode = false, orgData, labels, showListTab = true }) {
   // 화면 문구 — OrgChartCanvas 와 같은 계약(PW-705). 안 넘기면 한국어 기본값.
   const L = useMemo(() => makeOrgLabels(labels), [labels]);
   const [activeTab, setActiveTab] = useState('all');

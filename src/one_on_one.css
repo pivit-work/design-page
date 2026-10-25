@@ -349,7 +349,7 @@
 
 .ono-page {
   position: fixed;
-  top: 48px;
+  top: 72px;
   /* 카드 hover 그림자(blur 64)가 컨테이너 왼쪽 경계(overflow clip)에서 잘리지
      않도록, 컨테이너를 left 0 까지 넓히고 사이드바 폭만큼 패딩으로 민다. 잘림 경계가
      사이드바 카드(z-index 100, 불투명) 뒤로 숨어 그림자가 자연스럽게 이어진다.
@@ -360,7 +360,8 @@
   bottom: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 0 40px 60px 252px;
+  /* 왼쪽 끝 240 · 오른쪽 32 — 2026-10-25 전 화면 공통 간격(머리 줄 「홈」과 같은 x). */
+  padding: 0 32px 60px 240px;
   background: var(--bg-primary);
 }
 
@@ -384,10 +385,10 @@
   justify-content: space-between;
   /* 좌우 거터(사이드바 옆 12px·우측 40px)까지 배경을 넓힌다 — 스크롤 시
      카드 hover 그림자가 sticky 헤더 옆 거터 틈으로 비쳐 보이던 문제. */
-  margin: 0 -40px 0 -12px;
-  /* 아래 20 — 시안 헤더(16816:34046 · pb 20). 스크롤로 고정됐을 때 서브 텍스트 밑에 이만큼 바탕이
-     남아 지나가는 카드가 글자에 붙지 않는다. */
-  padding: 32px 40px 20px 12px;
+  margin: 0 -32px 0 0;
+  /* 위 8 — 머리 줄(72) 아래 제목이 80 에서 시작(전 화면 공통). 아래 20 — 시안 헤더(16816:34046 · pb 20).
+     스크롤로 고정됐을 때 서브 텍스트 밑에 이만큼 바탕이 남아 지나가는 카드가 글자에 붙지 않는다. */
+  padding: 8px 32px 20px 0;
   background: var(--bg-primary);
   position: sticky;
   top: 0;

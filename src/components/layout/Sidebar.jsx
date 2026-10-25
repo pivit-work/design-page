@@ -7,6 +7,8 @@ import assetUrl from '../shared/assetUrl.js';
  * 기본(앱) 사용은 menu / onFeedbackClick / onSettingsClick 만으로 동작한다.
  * 어드민 등 "그룹형" 사이드바를 위한 선택 prop:
  *  - menu 항목에 `{ heading }` 를 넣으면 그룹 헤더로 렌더된다.
+ *  - `{ heading, items: [...] }` 는 소제목 아래 항목을 한 묶음으로 세운다 — 상단 메뉴의
+ *    「매니저」 그룹(Figma 17757:35714 · 위 12 · 사이 4 · 아래 20).
  *  - menu 항목의 `disabled` 는 비활성(클릭 불가), `tag` 는 우측 보조 라벨.
  *  - title: 로고 아래 섹션 타이틀 (예: '어드민').
  *  - bottomItem: 하단 영역(의견보내기·설정 사이)의 추가 항목 { icon, label, onClick }.
@@ -39,6 +41,22 @@ export default function Sidebar({
   showFeedback = true,
 }) {
   const logoImg = <img src={assetUrl(baseUrl, 'logo.svg')} alt="Pivit" />;
+  const renderItem = (m) => {
+    const isActive = m.page === currentPage;
+    const className = ['menu-item', isActive && 'active', m.disabled && 'disabled']
+      .filter(Boolean).join(' ');
+    return (
+      <div
+        key={m.label}
+        className={className}
+        onClick={() => { if (!m.disabled && m.page) onNavigate(m.page); }}
+      >
+        <Icon src={m.icon} size={16} color={isActive ? 'var(--colors-foreground-fgTertiaryHover)' : 'var(--colors-foreground-fgTertiary)'} baseUrl={baseUrl} />
+        <span>{m.label}</span>
+        {m.tag && <span className="menu-item-tag">{m.tag}</span>}
+      </div>
+    );
+  };
   return (
     <aside className="sidebar">
       <div className="sidebar-inner">
@@ -58,23 +76,20 @@ export default function Sidebar({
           {title && <div className="sidebar-title">{title}</div>}
           <nav className="menu-list">
             {menu.map((m, i) => {
+              // 소제목 아래 묶인 항목들(`{ heading, items }`) — 「매니저」 그룹 (Figma 17757:35714).
+              // 소제목만 있는 `{ heading }` 은 어드민처럼 평평한 목록의 구분 줄이다.
+              if (m.heading && Array.isArray(m.items)) {
+                return (
+                  <div key={`group-${i}`} className="menu-group">
+                    <div className="menu-heading">{m.heading}</div>
+                    {m.items.map(renderItem)}
+                  </div>
+                );
+              }
               if (m.heading) {
                 return <div key={`heading-${i}`} className="menu-heading">{m.heading}</div>;
               }
-              const isActive = m.page === currentPage;
-              const className = ['menu-item', isActive && 'active', m.disabled && 'disabled']
-                .filter(Boolean).join(' ');
-              return (
-                <div
-                  key={m.label}
-                  className={className}
-                  onClick={() => { if (!m.disabled && m.page) onNavigate(m.page); }}
-                >
-                  <Icon src={m.icon} size={16} color={isActive ? 'var(--colors-foreground-fgTertiaryHover)' : 'var(--colors-foreground-fgTertiary)'} baseUrl={baseUrl} />
-                  <span>{m.label}</span>
-                  {m.tag && <span className="menu-item-tag">{m.tag}</span>}
-                </div>
-              );
+              return renderItem(m);
             })}
           </nav>
         </div>

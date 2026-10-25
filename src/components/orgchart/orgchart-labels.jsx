@@ -21,6 +21,7 @@ import { resolveKoreanParticles } from '../shared/koreanParticle.js';
 export const ORGCHART_LABELS = {
   // ── 탭 줄 · 머리 (세 캔버스 공통) ──
   'tab.orgchart': '조직도',
+  // 가운데 탭은 「리스트」(Figma 16610:35972 · 2026-10-25). 'tab.project' 는 옛 프로젝트 축 화면이 아직 쓴다.
   'tab.project': '프로젝트',
   'tab.squad': '스쿼드',
   'tab.list': '리스트',
@@ -78,9 +79,27 @@ export const ORGCHART_LABELS = {
   'org.zoomIn': '확대',
   'org.zoomOut': '축소',
   'org.downloadImage': '이미지로 다운',
+  'org.imageFileName': '조직도_{{date}}_{{time}}',
   'org.expandView': '전체 화면으로 보기',
   'org.closeExpandView': '전체 화면 닫기',
   'org.asOfPick': '기준일 고르기',
+
+  // ── 리스트 탭 (Figma 16610:35863) — 조직 트리를 한 줄에 한 사람인 표로 ──
+  'list.teamAll': '팀별 보기',
+  'list.teamFilter': '조직 골라 보기',
+  'list.sortBy': '정렬',
+  'list.sort.name': '이름 순',
+  'list.sort.dept': '부서 순',
+  'list.sort.grade': '직급 순',
+  'list.colName': '이름',
+  'list.colDept': '부서',
+  'list.colGrade': '직급',
+  'list.colAttendance': '근무 상황',
+  'list.colWorkHours': '출퇴근시각',
+  'list.colVacation': '휴가',
+  'list.onVacation': '휴가 중',
+  'list.none': '-',
+  'list.empty': '보여 줄 구성원이 없습니다',
 
   // ── 프로필 카드 (프로젝트 탭 · design-page 자체 화면) ──
   'profile.employmentType': '고용형태',
@@ -147,12 +166,14 @@ export const ORGCHART_LABELS = {
   // ── 스쿼드: 머리 · 도구줄 ──
   'squad.count': '{{count}}개',
   'squad.title': '스쿼드',
-  'squad.desc.view': '기능 조직과 평행한 한시 조직 — 스쿼드 카드와 배치 매트릭스로 구성을 확인합니다',
+  // 툴바 제목·안내 (Figma 17590:23983) — 제목은 자격과 무관하고, 안내만 편집 모드에서 갈린다.
+  'squad.desc.title': '기능 조직과 평행한 한시 조직',
+  'squad.desc.view': '스쿼드 카드와 배치 매트릭스로 구성을 확인합니다',
   'squad.desc.editAll': '전체 스쿼드의 비중·구성을 편집할 수 있습니다 — 캐파 사용은 본인만 정합니다 (관리자도 요청만 보냅니다)',
   'squad.desc.editOrg': '내 조직 구성원의 비중·구성을 편집할 수 있습니다 — 캐파 사용은 본인만 정합니다',
   'squad.desc.editLead': '내가 리드인 스쿼드의 비중·구성만 편집할 수 있습니다 — 팀원의 캐파 사용은 본인만 정합니다',
   'squad.create': '스쿼드 만들기',
-  'squad.editAssign': '할당 편집',
+  'squad.editAssign': '편집',
   'squad.editDone': '편집 완료',
   'squad.dismiss': '닫기',
   'squad.loading': '스쿼드 정보를 불러오는 중…',
@@ -227,8 +248,8 @@ export const ORGCHART_LABELS = {
   // ── 스쿼드: 매트릭스 ──
   'squad.matrix.title': '멤버 × 스쿼드 배치',
   'squad.matrix.subtitleEdit': '빈 셀 클릭 = 배정 (비중 미배분 · 캐파 미설정) · 배정 셀 클릭 = 비중·캐파·리드 편집',
-  'squad.matrix.subtitleView': '셀 윗줄 = 개인 캐파 사용(합계의 재료) · 아랫줄 = 스쿼드 내 비중(합계 밖)',
-  'squad.matrix.colMember': '멤버',
+  'squad.matrix.subtitleView': '이름 클릭 시 프로필 확인 · 셀 윗줄 = 내 캐파 100 중 이 스쿼드 비율(본인이 설정) · 아랫줄 = 이 스쿼드 100 중 내 비중(스쿼드 리드가 설정)',
+  'squad.matrix.colMember': '이름',
   'squad.matrix.colCapacity': '캐파 사용',
   'squad.matrix.colCapacityBasis': '내 캐파 100 기준',
   'squad.matrix.cellShare': '스쿼드 {{share}}%',
@@ -247,7 +268,8 @@ export const ORGCHART_LABELS = {
   'squad.mycap.setCta': '내 캐파 설정',
   'squad.mycap.adjustCta': '조정',
   'squad.overload.title': '과부하',
-  'squad.overload.body': ' — 개인 캐파 100을 넘겨 배정됐습니다 (저장은 허용 · 조정은 사람이 결정)',
+  // 과부하 띠(Figma 17757:34931) — 「과부하」 · 사람(사진+이름) · 이 문장 순으로 선다.
+  'squad.overload.body': '개인 캐파 100을 넘겨 배정됐습니다',
   'squad.legend.lead': '리드 (스쿼드당 1명)',
   'squad.legend.rows': '셀 <b>윗줄</b> = 내 캐파 100 중 이 스쿼드에 쓰는 몫(합계에 더함) · <b>아랫줄</b> = 이 스쿼드 100 중 내 비중 — <b>두 값은 따로 정합니다</b>',
   'squad.legend.capacityPrefix': '캐파 사용(완료·보관 스쿼드 제외): ',
@@ -257,14 +279,15 @@ export const ORGCHART_LABELS = {
   'squad.legend.faint': '스쿼드 내 비중은 「캐파 사용」 합계에 더하지 않습니다',
 
   // ── 스쿼드: 팀원 리소스 구성 (카드) ──
-  'squad.comp.title': '팀원 리소스 구성',
+  // 카드 배분 줄(Figma 17757:32450) — 시안 문구는 「진행률」이지만 값은 스쿼드 100 기준 비중의 합이다.
+  'squad.comp.title': '진행률',
   'squad.comp.basis': '스쿼드 100 기준',
   'squad.comp.allotLabel': '배분',
   'squad.comp.none': '배분된 비중이 없습니다 (전원 0%)',
-  'squad.comp.capacityRaw': '(캐파 {{value}})',
+  'squad.comp.capacityRaw': '캐파 {{value}}',
   'squad.comp.caplineTip': '스쿼드 내 비중과 분모가 다른 값입니다 (사람마다의 캐파 100 기준 합)',
   'squad.comp.caplineLabel': '이 스쿼드가 쓰는 인력',
-  'squad.comp.caplineValue': '캐파 합 {{sum}}% · 약 {{fte}}인분',
+  'squad.comp.caplineValue': '캐파 합 {{sum}}% • 약 {{fte}}인분',
   'squad.allot.done': '배분 완료',
   'squad.allot.over': '초과 {{diff}}%p',
   'squad.allot.under': '미배분 {{diff}}%p',
@@ -364,7 +387,7 @@ export const ORGCHART_LABELS = {
   'squad.status.cancel': '취소',
 
   // ── 스쿼드 카드: 담당 프로젝트 (PW-1428) ──
-  'squad.project.title': '담당 프로젝트 ({{count}})',
+  'squad.project.title': '담당 프로젝트 {{count}}',
   'squad.project.empty': '담당 프로젝트가 없습니다',
   'squad.project.locked': '이 스쿼드의 담당 프로젝트는 리드·관리자가 정합니다',
   'squad.project.primaryMark': '主',

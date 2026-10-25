@@ -15,7 +15,7 @@
 .app { width: 100vw; min-width: 1280px; height: 100%; position: relative; overflow: hidden; background: var(--bg-primary); transform: translateZ(0); }
 
 /* ── Sidebar ── */
-.sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 240px; padding: 8px 20px 20px; z-index: 100; }
+.sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 240px; padding: 12px 20px 20px; z-index: 100; } /* 메뉴 판 위 12 (시안 16621:1724) */
 .sidebar-inner { width: 200px; height: 100%; backdrop-filter: blur(40px); border-radius: 24px; background: var(--bg-primary-alt); padding: 12px; display: flex; flex-direction: column; justify-content: space-between; gap: 20px; box-sizing: border-box; }
 /* 창 높이가 메뉴 전체보다 낮으면 메뉴 목록만 스크롤하고 로고·제목·아래 항목은 늘 보인다
    (PW-1414 · admin-spec §1.2). min-height:0 이 없으면 flex 자식이 내용 높이 밑으로 안 줄어
@@ -39,12 +39,16 @@
 .sidebar-title { padding: 2px 4px; font-size: 15px; font-weight: 800; color: var(--text-primary); letter-spacing: -0.04em; }
 .menu-heading { padding: 12px 8px 4px; font-size: 11px; font-weight: 700; color: var(--text-tertiary); letter-spacing: -0.04em; }
 .menu-heading:first-child { padding-top: 2px; }
+/* 상단 메뉴의 소제목 묶음 — 「매니저」 그룹 (Figma 17757:35714): 위 12 · 소제목 4/8 · 항목 사이 4 · 아래 20 */
+.menu-group { display: flex; flex-direction: column; gap: 4px; padding: 12px 0 20px; }
+.menu-group .menu-heading { padding: 4px 8px; font-size: 12px; font-weight: 600; line-height: 18px; letter-spacing: -0.01em; color: var(--text-tertiary); }
 .menu-item.disabled { opacity: 0.4; cursor: default; }
 .menu-item.disabled:hover { background: transparent; }
 .menu-item-tag { margin-left: auto; font-size: 11px; font-weight: 600; color: var(--text-quaternary); letter-spacing: -0.02em; }
 
 /* ── Top Nav ── */
-.top-nav { position: fixed; top: 0; left: 240px; right: 0; padding: 16px 40px 12px 12px; display: flex; align-items: center; justify-content: space-between; background: var(--bg-primary); z-index: 90; gap: 20px; }
+/* 머리 줄 — 2026-10-25 시안(타임라인 16621:1627 기준, 전 화면 공통): 왼쪽 여백 0 · 위 20 · 오른쪽 32 → 높이 72 */
+.top-nav { position: fixed; top: 0; left: 240px; right: 0; padding: 20px 32px 12px 0; display: flex; align-items: center; justify-content: space-between; background: var(--bg-primary); z-index: 90; gap: 20px; }
 .nav-links { display: flex; align-items: center; gap: 28px; }
 .nav-link { font-size: 14px; font-weight: 600; color: var(--text-tertiary); cursor: pointer; letter-spacing: -0.04em; position: relative; }
 .nav-link:hover { color: var(--text-secondary); }
@@ -56,13 +60,14 @@
 /* ── Content Area (shared across pages) ── */
 .content-area {
   position: fixed;
-  top: 48px;
+  /* 머리 줄(72) 바로 아래 — 화면 머리글이 y 72 에서 시작한다(전 화면 공통 간격). */
+  top: 72px;
   left: 240px;
   right: 0;
   bottom: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding-top: 20px;
+  padding-top: 0;
 }
 
 .content-area::-webkit-scrollbar { width: 12px; }

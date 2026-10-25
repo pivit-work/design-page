@@ -7,21 +7,21 @@
    ══════════════════════════════════════════════════ */
 
 .pj-content-area {
-  top: 68px;
+  top: 72px;
   padding-top: 0;
 }
 .pj-header {
   display: flex;
   flex-direction: column;
   gap: 13px;
-  padding: 8px 12px 13px;
+  padding: 8px 0 13px;
   background: var(--bg-primary);
   position: sticky;
   top: 0;
   z-index: 10;
 }
 .pj-body {
-  padding: 0 40px 60px 10px;
+  padding: 0 32px 60px 0; /* 전 화면 공통 — 왼쪽 0 · 오른쪽 32 */
 }
 /* 상태 필터 탭 — 공용 Tabs(PW-836). 공용 줄의 위·왼쪽 여백 대신 카드 격자와 사이만 둔다. */
 .tl-tabs-row.pj-tabs-row {
@@ -138,9 +138,9 @@
   z-index: 12;
   background: var(--bg-primary);
   padding: 12px 0 20px;
-  margin: 0 -40px 0 -10px;
-  padding-left: 10px;
-  padding-right: 40px;
+  margin: 0 -32px 0 0;
+  padding-left: 0;
+  padding-right: 32px;
 }
 .pj-table-title {
   font-size: 20px;
@@ -176,17 +176,35 @@
   z-index: 2;
   /* 뒤로 넘어가는 칸이 비쳐 보이지 않게 — 표가 놓인 판의 색과 같다 */
   background: var(--bg-quaternary);
-  transition: box-shadow 0.3s;
 }
 .ag .ag-name { left: 0; }
 .ag .ag-total { right: 0; }
-/* 그림자는 그 칸 뒤로 넘어간 열이 있을 때만 선다 */
-.ag.is-scrolled .ag-name {
-  box-shadow: 20px 0 24px -4px rgba(10, 13, 18, 0.08), 8px 0 8px -4px rgba(10, 13, 18, 0.03), 3px 0 3px -1.5px rgba(10, 13, 18, 0.04);
+/* 그림자는 그 칸 뒤로 넘어간 열이 있을 때만 선다.
+   🔴 칸마다 `box-shadow` 를 주면 그림자가 칸 높이만큼 위아래로도 번져 줄 경계마다 겹치고, 열이
+   올록볼록해 보인다(스쿼드 탭 시안 대조 · 2026-10-25). 그래서 칸마다 **옆으로만** 흐려지는 띠를
+   세워 이어 붙인다 — 위아래 번짐이 없으니 줄과 줄이 한 그림자로 이어진다. 띠는 칸의 아래 구분선
+   1px 까지 덮는다(`bottom: -1px`) — 안 덮으면 줄마다 1px 틈이 난다. */
+.ag .ag-name::after,
+.ag .ag-total::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: -1px;
+  width: 28px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
 }
-.ag.has-more .ag-total {
-  box-shadow: -20px 0 24px -4px rgba(10, 13, 18, 0.08), -8px 0 8px -4px rgba(10, 13, 18, 0.03), -3px 0 3px -1.5px rgba(10, 13, 18, 0.04);
+.ag .ag-name::after {
+  left: 100%;
+  background: linear-gradient(to right, rgba(10, 13, 18, 0.08), rgba(10, 13, 18, 0.03) 40%, rgba(10, 13, 18, 0)); /* TODO: token 없음 — 그림자 */
 }
+.ag .ag-total::before {
+  right: 100%;
+  background: linear-gradient(to left, rgba(10, 13, 18, 0.08), rgba(10, 13, 18, 0.03) 40%, rgba(10, 13, 18, 0)); /* TODO: token 없음 — 그림자 */
+}
+.ag.is-scrolled .ag-name::after { opacity: 1; }
+.ag.has-more .ag-total::before { opacity: 1; }
 /* 끌어서 미는 표 — 끌기가 스크롤바를 대신한다 */
 .ag.ag-drag { cursor: grab; -ms-overflow-style: none; scrollbar-width: none; }
 .ag.ag-drag::-webkit-scrollbar { display: none; }

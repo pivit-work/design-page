@@ -62,11 +62,12 @@ import {
 } from './squad-constants.js';
 import {
   LeadStarIcon, CalendarIcon, WarningIcon, LockIcon,
-  CloseIcon, MoreIcon, ChevronDownIcon, PlusIcon, CheckIcon, EditIcon,
+  CloseIcon, MoreIcon, ChevronDownIcon, PlusIcon, CheckIcon, EditIcon, LeadTag,
 } from './squadIcons.jsx';
 import { useDismissLayer } from './hooks.js';
 import AnchoredLayer from '../shared/AnchoredLayer.jsx';
 import PhotoOr from './PhotoOr.jsx';
+import { MEMBER_STATUSES } from './constants.js';
 import { OrgLabelsContext, makeOrgLabels, rich, squadStatusText } from './orgchart-labels.jsx';
 
 import { todayIsoInZone } from '../shared/calendarDate.js';
@@ -234,8 +235,9 @@ export default function SquadCanvas({
    */
   onUnlinkProject,
   // 조직 축 탭 노출 여부. OrgChartCanvas 와 같은 계약 (pivit-work PW-249).
-  showProjectTab = true,
-  showListTab = false,
+  // 조직 축 탭 — 시안(16610:35972)은 조직도 · 리스트 · 스쿼드. 옛 프로젝트 탭은 호스트가 켤 때만.
+  showProjectTab = false,
+  showListTab = true,
   /**
    * 화면 문구 — 객체(`{ key: 문구 }`)나 함수(`(key, vars) => 문구`)로 번역을 넘긴다(PW-705).
    * 안 넘기면 한국어 기본값이다. 키 목록은 `orgchart-labels.jsx`.
@@ -286,12 +288,6 @@ export default function SquadCanvas({
   }, []);
 
   const moreMenuRef = useRef(null);
-  // 붙어 서는 표 제목이 위쪽 탭 머리 밑에 걸리도록 머리 높이를 잰다 — ProjectCanvas 와 같다.
-  const pageHeaderRef = useRef(null);
-  const [headerHeight, setHeaderHeight] = useState(0);
-  useEffect(() => {
-    if (pageHeaderRef.current) setHeaderHeight(pageHeaderRef.current.offsetHeight);
-  }, []);
   const statusMenuRef = useRef(null);
   const closeMoreMenu = useCallback(() => setMoreMenu(null), []);
   const closeStatusMenu = useCallback(() => setStatusMenu(null), []);
@@ -334,6 +330,32 @@ export default function SquadCanvas({
             : { background: 'var(--bg-active)', color: 'var(--text-secondary)' }),
         }}
       >{fit.lines.map((line, i) => <span key={i} className="sq-avatar-line">{line}</span>)}</div>
+    );
+  };
+
+  /**
+   * 사람 동그라미 — 사진(`photoUrl`)이 있으면 사진, 없으면 이름 글자. 카드 기간 줄의 리드(24)·
+   * 카드 구성원 줄(32)·과부하 띠(24)가 같은 모양을 쓴다 (Figma 17757:32468 · 17757:34907).
+   */
+  const personAvatar = (p, size = 24) => {
+    const label = p?.avatar || String(p?.name || '').slice(0, 2);
+    const fit = avatarLabelLayout(label, size);
+    return (
+      <PhotoOr
+        src={p?.photoUrl || null}
+        className={`sq-photo sq-photo-${size}`}
+        fallback={(
+          <span
+            className={`sq-avatar sq-photo sq-photo-${size}${fit.lines.length > 1 ? ' is-two-line' : ''}`}
+            style={{
+              fontSize: fit.fontPx,
+              ...(p?.color
+                ? { background: `${p.color}24`, color: p.color }
+                : { background: 'var(--bg-active)', color: 'var(--text-secondary)' }),
+            }}
+          >{fit.lines.map((line, i) => <span key={i} className="sq-avatar-line">{line}</span>)}</span>
+        )}
+      />
     );
   };
 
@@ -775,20 +797,31 @@ export default function SquadCanvas({
     <OrgLabelsContext.Provider value={L}>
     <div className="content-area pj-content-area" data-testid="squad-canvas">
       <div className="content-canvas">
-        <div className="pj-header" ref={pageHeaderRef}>
-          {tabStrip}
-          <div className="header-subtitle">
-            <b>{L('squad.title')}</b>
-            <span className="dot">&#8729;</span>
-            <span className="brand-count">{L('squad.count', { count: squads.length })}</span>
+        {/* 머리 줄(Figma 17590:23957) — 탭·인원수는 왼쪽, 「스쿼드 만들기」는 오른쪽 아래 맞춤 */}
+        <div className="pj-header sq-header">
+          <div className="sq-header-main">
+            {tabStrip}
+            <div className="header-subtitle">
+              <b>{L('squad.title')}</b>
+              <span className="dot">&#8729;</span>
+              <span className="brand-count">{L('squad.count', { count: squads.length })}</span>
+            </div>
           </div>
+          {ledgerReady && !squadForm && (
+            <button
+              type="button" onClick={openSquadForm} data-testid="squad-create-open"
+              className="sq-btn sq-btn-primary sq-btn-lg"
+            >
+              <PlusIcon size={20} /> {L('squad.create')}
+            </button>
+          )}
         </div>
 
         <div className="pj-body">
           {/* 헤더 + 편집 모드 토글 */}
           <div className="sq-toolbar">
             <div>
-              <p className="pj-table-title">{L('squad.title')}</p>
+              <p className="pj-table-title">{L('squad.desc.title')}</p>
               {/*
                 편집 범위 안내는 **자격별로 갈린다**(정본 :155). 종전에는 「전체 / 내 조직」
                 두 갈래뿐이라, 조직 축이 없는 ⭐리드에게 「내 조직 구성원의 할당만 편집할 수
@@ -810,21 +843,13 @@ export default function SquadCanvas({
               </p>
             </div>
             <div className="sq-toolbar-actions">
-              {ledgerReady && !squadForm && (
-                <button
-                  type="button" onClick={openSquadForm} data-testid="squad-create-open"
-                  className="sq-btn sq-btn-dashed"
-                >
-                  <PlusIcon size={14} /> {L('squad.create')}
-                </button>
-              )}
               {canEditAssignments && (
                 <button
                   type="button" data-testid="squad-edit-toggle"
                   className={`sq-btn sq-btn-toggle${editMode ? ' is-on' : ''}`}
                   onClick={() => { setEditMode((v) => !v); setPopover(null); setAddTarget(null); setProjTarget(null); }}
                 >
-                  {editMode ? <CheckIcon size={14} /> : <EditIcon size={14} />}
+                  {editMode ? <CheckIcon size={20} /> : <EditIcon size={20} />}
                   {L(editMode ? 'squad.editDone' : 'squad.editAssign')}
                 </button>
               )}
@@ -900,7 +925,7 @@ export default function SquadCanvas({
               )}
 
               {/* 카드 그리드 — 프로젝트 탭과 같은 격자 */}
-              <div className="pj-cards-grid">
+              <div className="pj-cards-grid sq-cards-grid">
                 {squadForm && squadForm.mode === 'create' && (
                   <SquadFormCard
                     form={squadForm} setForm={editForm} errors={errors}
@@ -946,12 +971,13 @@ export default function SquadCanvas({
                           data-testid={`squad-status-${sq.id}`}
                           className={`pj-card-status sq-status${canTransition ? ' is-clickable' : ''}`}
                           data-squad-popover-anchor="status"
+                          data-status={sq.status}
                           onClick={() => canTransition && setStatusMenu((m) => (m === sq.id ? null : sq.id))}
                           title={canTransition ? L('squad.card.changeStatus') : undefined}
                           style={{ color: stBadge.textColor }}
                         >
                           {stBadge.icon ? (
-                            <Icon src={stBadge.icon} size={12} color="currentColor" />
+                            <Icon src={stBadge.icon} size={16} color="currentColor" />
                           ) : (
                             <span className="pj-status-dot" style={{ background: stBadge.dotColor }} />
                           )}
@@ -967,7 +993,7 @@ export default function SquadCanvas({
                             onClick={() => setMoreMenu((m) => (m === sq.id ? null : sq.id))}
                             title={L('squad.card.manage')}
                           >
-                            <MoreIcon size={16} />
+                            <MoreIcon size={20} />
                           </span>
                         )}
 
@@ -1041,13 +1067,28 @@ export default function SquadCanvas({
                       </div>
 
                       <div className="pj-card-info">
-                        <p className="pj-card-name">{sq.name} <StatusBadge tone="neutral" className="modal-team-chip" data-testid="squad-kind">{L(sq.kind === 'tf' ? 'squad.form.tf' : 'squad.form.squad')}</StatusBadge></p>
+                        {/* 종류 딱지는 TF 에만 — 스쿼드가 기본이라 시안(16605:49760)은 이름만 쓴다 */}
+                        <p className="pj-card-name">
+                          {sq.name}
+                          {sq.kind === 'tf' && <StatusBadge tone="neutral" className="modal-team-chip" data-testid="squad-kind">{L('squad.form.tf')}</StatusBadge>}
+                        </p>
                         <p className="pj-card-desc">{sq.mission}</p>
                       </div>
 
-                      {/* 기간 (한시 조직) */}
-                      <div className="sq-period">
-                        <CalendarIcon size={14} /> {fmtYmd(sq.startDate, L('squad.dateUndecided'))} – {fmtYmd(sq.endDate, L('squad.dateUndecided'))}
+                      {/* 기간(한시 조직) · 리드 (Figma 17757:32471) — 리드는 LEAD 태그 + 사진 + 이름 */}
+                      <div className="sq-meta">
+                        <span className="sq-period">
+                          <CalendarIcon size={16} /> {fmtYmd(sq.startDate, L('squad.dateUndecided'))} - {fmtYmd(sq.endDate, L('squad.dateUndecided'))}
+                        </span>
+                        <span className="sq-lead" data-testid={`squad-lead-${sq.id}`}>
+                          <LeadTag />
+                          {lead ? (
+                            <span className="sq-lead-person">
+                              {personAvatar(personOf(lead.userId) || { name: nameOf(lead.userId) }, 24)}
+                              <span>{nameOf(lead.userId)}</span>
+                            </span>
+                          ) : <em className="sq-unset">{L('squad.card.leadUnset')}</em>}
+                        </span>
                       </div>
 
                       {/* 팀원 리소스 구성 — 스쿼드 100 기준 (매트릭스의 캐파 기준값과 분모가 다름) */}
@@ -1055,53 +1096,27 @@ export default function SquadCanvas({
 
                       {!isEditing ? (
                         <div className="pj-card-members sq-members">
-                          {/* 시안은 아바타를 -6px 로 겹쳐 쌓았지만, 그건 라벨이 'KR' 같은
-                              2글자 코드일 때의 간격이다. 실제 명부는 '박소율' 처럼 3~4글자
-                              한글 이름이라 겹치면 뒷글자가 가려 읽히지 않는다 — 겹치는 대신
-                              띄우고 넘치면 줄바꿈한다(카드당 인원은 많아야 한 자릿수).
-                              사진이 있는 사람은 프로젝트 카드와 같은 사진 동그라미(`pj-avatar-sm`)로
-                              그린다(PW-905) — 이름 글자 동그라미는 사진이 없을 때만이다. */}
+                          {/* 사진 32px 을 겹치지 않고 나란히(이름 글자 동그라미가 섞인다) · 오른쪽은 인원수.
+                              리드는 위 기간 줄에 이름으로 서므로 여기서 다시 표시하지 않는다(Figma 16606:25737). */}
                           <div className="sq-avatar-group">
                             {members.map((mm) => {
                               const p = personOf(mm.userId);
-                              const tint = p?.color || null;
-                              const label = p?.avatar || nameOf(mm.userId).slice(0, 2);
-                              const photo = p?.photoUrl || null;
-                              const fit = avatarLabelLayout(label, 24);
                               return (
                                 <Tooltip
                                   key={mm.userId}
                                   content={`${L('squad.tip.memberSummary', { name: nameOf(mm.userId), share: mm.sharePct || 0, capacity: capText(mm) })}${mm.role === 'lead' ? L('squad.tip.leadSuffix') : ''}`}
                                 >
-                                <div
-                                  className={`sq-avatar-wrap${p && onMemberClick ? ' is-clickable' : ''}`}
-                                  onClick={() => p && onMemberClick?.(p)}
-                                >
-                                  <PhotoOr src={photo} className="pj-avatar-sm" fallback={(
-                                    <div
-                                      className={`sq-avatar${fit.lines.length > 1 ? ' is-two-line' : ''}`}
-                                      style={{
-                                        fontSize: fit.fontPx,
-                                        ...(tint
-                                          ? { background: `${tint}24`, color: tint }
-                                          : { background: 'var(--bg-active)', color: 'var(--text-secondary)' }),
-                                      }}
-                                    >{fit.lines.map((line, i) => <span key={i} className="sq-avatar-line">{line}</span>)}</div>
-                                  )} />
-                                  {mm.role === 'lead' && (
-                                    <span className="sq-lead-mark sq-lead-badge"><LeadStarIcon size={11} /></span>
-                                  )}
-                                </div>
+                                  <div
+                                    className={`sq-avatar-wrap${p && onMemberClick ? ' is-clickable' : ''}`}
+                                    onClick={() => p && onMemberClick?.(p)}
+                                  >
+                                    {personAvatar(p || { name: nameOf(mm.userId) }, 32)}
+                                  </div>
                                 </Tooltip>
                               );
                             })}
                           </div>
-                          <span className="pj-member-count">
-                            {L('squad.card.memberCount', { count: members.length })} · {L('squad.card.lead')}{' '}
-                            {lead
-                              ? nameOf(lead.userId)
-                              : <em className="sq-unset">{L('squad.card.leadUnset')}</em>}
-                          </span>
+                          <span className="pj-member-count">{L('squad.card.memberCount', { count: members.length })}</span>
                         </div>
                       ) : (
                         <div>
@@ -1240,10 +1255,10 @@ export default function SquadCanvas({
 
               {/* ── 멤버 × 스쿼드 배치 매트릭스 ── */}
               {squads.length > 0 && (
-                <div className="pj-table-section">
-                {/* 제목·안내는 흰 표 상자 **바깥 위**에 선다 — 프로젝트 탭의 「프로젝트에 배치된
-                    멤버 리스트」와 같은 자리·같은 붙음(PW-905). 종전에는 상자 안 머리 줄이었다. */}
-                <div className="pj-table-header-text" style={{ top: headerHeight }}>
+                <div className="pj-table-section sq-matrix-section">
+                {/* 제목·안내는 흰 표 상자 **바깥 위**에 선다(PW-905). 프로젝트 탭과 달리 위에 붙지 않고
+                    본문과 같이 흘러간다 — 2026-10-25 스쿼드 탭 시안(Figma 16606:26015) 반영. */}
+                <div className="pj-table-header-text sq-matrix-head">
                   <p className="pj-table-title">{L('squad.matrix.title')}</p>
                   <p className="pj-table-subtitle">
                     {isEditing
@@ -1251,6 +1266,21 @@ export default function SquadCanvas({
                       : L('squad.matrix.subtitleView')}
                   </p>
                 </div>
+                {/* 과부하 띠(Figma 17757:34931) — 표 바깥 위. 차단하지 않고 현실을 먼저 드러낸다 */}
+                {overloaded.length > 0 && (
+                  <div className="sq-overload" data-testid="squad-overload-banner" role="status">
+                    <span className="sq-overload-title"><WarningIcon size={14} /> {L('squad.overload.title')}</span>
+                    {overloaded.map((id) => (
+                      <Tooltip key={id} content={`${nameOf(id)} ${plannedTotalPct(squads, id)}%`}>
+                        <span className="sq-overload-person">
+                          {personAvatar(personOf(id) || { name: nameOf(id) }, 24)}
+                          <span>{nameOf(id)}</span>
+                        </span>
+                      </Tooltip>
+                    ))}
+                    <span className="sq-overload-body">{L('squad.overload.body')}</span>
+                  </div>
+                )}
                 <div className="sq-panel">
 
                   {/* ── 「내 캐파」 요약 배너 (§5-3.7) ──
@@ -1292,26 +1322,14 @@ export default function SquadCanvas({
                     </div>
                   )}
 
-                  {/* 과부하 경고 배너 — 차단하지 않고 현실을 먼저 드러낸다 */}
-                  {overloaded.length > 0 && (
-                    <div
-                      className="sq-banner sq-banner-error sq-banner-flush"
-                      data-testid="squad-overload-banner"
-                    >
-                      <span className="sq-banner-title">
-                        <WarningIcon size={14} /> {L('squad.overload.title')}
-                      </span>
-                      <span className="sq-banner-body">
-                        {overloaded.map((id) => `${nameOf(id)} ${plannedTotalPct(squads, id)}%`).join(' · ')}
-                        {L('squad.overload.body')}
-                      </span>
-                    </div>
-                  )}
 
                   {/* 바둑판 뼈대는 프로젝트 탭과 같은 AssignmentGrid 다(PW-838) — 이름 칸과
                       「캐파 사용」 칸이 가로로 밀어도 좌우에 붙어 있다. 칸 안의 모양만 여기서 정한다. */}
+                  {/* 본문을 마우스로 끌어 좌우로 민다(dragScroll) — 스쿼드 열이 많으면 표가 판보다 넓어진다 */}
                   <AssignmentGrid
+                    className="sq-grid"
                     tableClassName="sq-table"
+                    dragScroll
                     columns={squads}
                     rows={rowIds.map((userId) => {
                       const p = personOf(userId);
@@ -1349,7 +1367,8 @@ export default function SquadCanvas({
                     )}
                     renderColumnHeader={(sq) => (
                       <span className="sq-th-col-inner">
-                        <span className="pj-th-dot" style={{ background: sq.color }} />
+                        {/* 머리 네모는 스쿼드 색의 반 농도(시안 300 단계) — 칸 바탕(8%)보다 짙어 열을 가리킨다 */}
+                        <span className="pj-th-dot" style={{ background: `${sq.color}80` }} />
                         <span className="pj-th-label">{sq.name}</span>
                       </span>
                     )}
@@ -1358,6 +1377,7 @@ export default function SquadCanvas({
                         className={`sq-name-cell${clickable ? ' is-clickable' : ''}`}
                         onClick={() => p && onMemberClick?.(p)}
                       >
+                        <span className="sq-avatar-wrap">
                         <PhotoOr
                           src={photo}
                           className="pj-member-avatar sq-avatar-lg sq-avatar-photo"
@@ -1373,6 +1393,11 @@ export default function SquadCanvas({
                         >{rowLabel}</span>
                           )}
                         />
+                        {/* 재직 상태 점 — 명부에 `status` 가 있을 때만(조직도 카드와 같은 색표) */}
+                        {p?.status && MEMBER_STATUSES[p.status] && (
+                          <span className="sq-online-dot" style={{ background: MEMBER_STATUSES[p.status].dotColor }} />
+                        )}
+                        </span>
                         {/* 자리가 모자라 말줄임으로 끊긴 이름도 읽을 수 있어야 한다 —
                             끊긴 채 확인할 방법이 없으면 그건 그것대로 결함이다. */}
                         <span className="pj-member-name" title={nameOf(userId)}>{nameOf(userId)}</span>
@@ -1425,41 +1450,36 @@ export default function SquadCanvas({
                             ].filter(Boolean).join(' ')}
                             data-squad-popover-anchor="assign"
                             onClick={(e) => editable && openAssignPopover(sq.id, userId, e, 8, 8)}
-                            style={capUnset
-                              ? undefined
-                              : { background: `${sq.color}1F`, borderColor: `${sq.color}47` }}
+                            style={capUnset ? undefined : { background: `${sq.color}14` }}
                           >
                             {/* 윗줄 = 캐파 사용(합계의 재료) · 아랫줄 = 스쿼드 내 비중(합계 밖).
                                 한 값만 보이면 나머지를 보는 사람이 추측으로 채우고,
                                 그 추측이 두 축을 하나로 뭉갠다(§5-3.2) */}
-                            <span className="sq-cell-top">
-                              {isLead && (
-                                <span className="sq-lead-mark"><LeadStarIcon size={11} /></span>
-                              )}
-                              {capUnset ? (
-                                // 「미설정」은 칸 말풍선의 캐파 줄이 말한다 — 여기 따로 달면 말풍선이 둘 뜬다
-                                <span
-                                  className="sq-cell-pct is-unset"
-                                  data-testid={`squad-cell-cap-unset-${sq.id}-${userId}`}
-                                >—</span>
-                              ) : (
-                                <span className="sq-cell-pct" style={{ color: sq.color }}>
-                                  {mm.allocationPct}%
-                                </span>
-                              )}
-                            </span>
-                            <span
-                              className="sq-cell-share"
-                              data-testid={`squad-cell-share-${sq.id}-${userId}`}
-                            >
-                              {capIdle && (
-                                <span
-                                  className="sq-idle-dot"
-                                  data-testid={`squad-cell-cap-idle-${sq.id}-${userId}`}
-                                  aria-hidden
-                                />
-                              )}
-                              {mm.sharePct ? L('squad.matrix.cellShare', { share: mm.sharePct }) : L('squad.matrix.cellShareNone')}
+                            {capUnset ? (
+                              // 「미설정」은 칸 말풍선의 캐파 줄이 말한다 — 여기 따로 달면 말풍선이 둘 뜬다
+                              <span
+                                className="sq-cell-pct is-unset"
+                                data-testid={`squad-cell-cap-unset-${sq.id}-${userId}`}
+                              >—</span>
+                            ) : (
+                              <span className="sq-cell-pct">{mm.allocationPct}%</span>
+                            )}
+                            {/* 오른쪽 작은 줄 — LEAD 태그(리드만) + 스쿼드 내 비중(합계 밖) (Figma 17757:34956) */}
+                            <span className="sq-cell-side">
+                              {isLead && <LeadTag filled />}
+                              <span
+                                className="sq-cell-share"
+                                data-testid={`squad-cell-share-${sq.id}-${userId}`}
+                              >
+                                {capIdle && (
+                                  <span
+                                    className="sq-idle-dot"
+                                    data-testid={`squad-cell-cap-idle-${sq.id}-${userId}`}
+                                    aria-hidden
+                                  />
+                                )}
+                                {mm.sharePct ? L('squad.matrix.cellShare', { share: mm.sharePct }) : L('squad.matrix.cellShareNone')}
+                              </span>
                             </span>
                           </div>
                           </Tooltip>
@@ -1478,7 +1498,7 @@ export default function SquadCanvas({
                             </div>
                           </Tooltip>
                         ) : (
-                          <span className="pj-cell-dot pj-cell-dot-empty" />
+                          <span className="sq-cell-empty"><span className="pj-cell-dot pj-cell-dot-empty" /></span>
                         )
                       );
                     }}
@@ -1493,7 +1513,7 @@ export default function SquadCanvas({
                                 data-testid={`squad-capacity-over-${userId}`}
                                 className="sq-cap-warn"
                               >
-                                <WarningIcon size={12} />
+                                <WarningIcon size={14} />
                               </span>
                             </Tooltip>
                           )}
@@ -1506,7 +1526,7 @@ export default function SquadCanvas({
                           </span>
                           <span className="sq-cap-max">/ 100</span>
                         </div>
-                        <CapacityBar segments={segments} total={total} />
+                        <CapacityBar segments={segments} total={total} width="100%" />
                         <span className={`sq-cap-note${cst.key === 'over' ? ' is-over' : ''}`}>
                           {unsetCount > 0 && (
                             <span data-testid={`squad-capacity-unset-${userId}`}>
@@ -1520,26 +1540,6 @@ export default function SquadCanvas({
                     empty={L('squad.matrix.emptyRow')}
                   />
 
-                  {/* 범례 — 두 분모를 혼동하지 않게 상시 안내한다 */}
-                  <div className="sq-legend">
-                    <span className="sq-legend-item">
-                      <span className="sq-lead-mark"><LeadStarIcon size={12} /></span>
-                      {L('squad.legend.lead')}
-                    </span>
-                    <span className="sq-legend-item">
-                      {rich(L('squad.legend.rows'))}
-                    </span>
-                    <span className="sq-legend-item">
-                      {L('squad.legend.capacityPrefix')}<span className="sq-legend-over">{L('squad.legend.capacityOver')}</span>
-                      {L('squad.legend.capacityRest')}
-                    </span>
-                    <span className="sq-legend-item">
-                      {rich(L('squad.legend.owner'))}
-                    </span>
-                    <span className="sq-legend-item sq-legend-faint">
-                      {L('squad.legend.faint')}
-                    </span>
-                  </div>
                 </div>
                 </div>
               )}

@@ -14,6 +14,7 @@
     "./styles/org-chart.css": "./src/org_chart.css",
     "./styles/load-more.css": "./src/load-more.css",
     "./styles/org-project.css": "./src/org_project.css",
+    "./styles/org-list.css": "./src/org_list.css",
     "./styles/org-squad.css": "./src/org_squad.css",
     "./styles/org-list.css": "./src/org_list.css",
     "./styles/one-on-one.css": "./src/one_on_one.css",
@@ -85,6 +86,7 @@
     "@splinetool/react-spline": "^4.1.0",
     "@splinetool/runtime": "^1.12.92",
     "gsap": "^3.15.0",
+    "html-to-image": "^1.11.13",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "three": "^0.183.2"

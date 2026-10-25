@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { Sidebar, TopNav, Icon } from './components';
-import { SIDEBAR_MENU } from './menu';
+import { SIDEBAR_MENU, SIDEBAR_GROUPS } from './menu';
 import { pageFromPath, pathFromPage, DEFAULT_PAGE } from './routing.js';
 import OneOnOnePage from './OneOnOnePage';
 import OrgChartPage from './OrgChartPage';
@@ -15,6 +15,7 @@ import SettingsPage from './SettingsPage';
 import './App.css';
 import './org_chart.css';
 import './org_project.css';
+import './org_list.css';
 import './org_squad.css';
 import './org_list.css';
 import './one_on_one.css';
@@ -87,11 +88,19 @@ const DEMO_PAGES = {
   manager: 'manager',
 };
 
+// `group` 이 같은 항목은 소제목 아래 한 묶음(`{ heading, items }`)으로 선다 — 「매니저」 그룹.
 const MENU = SIDEBAR_MENU
   .filter((m) => m.section === 'top')
-  .map((m) => (DEMO_PAGES[m.id]
-    ? { icon: m.icon, label: m.label, page: DEMO_PAGES[m.id] }
-    : { icon: m.icon, label: m.label }));
+  .reduce((out, m) => {
+    const item = DEMO_PAGES[m.id]
+      ? { icon: m.icon, label: m.label, page: DEMO_PAGES[m.id] }
+      : { icon: m.icon, label: m.label };
+    if (!m.group) { out.push(item); return out; }
+    let grp = out.find((x) => x.items && x.heading === SIDEBAR_GROUPS[m.group]);
+    if (!grp) { grp = { heading: SIDEBAR_GROUPS[m.group], items: [] }; out.push(grp); }
+    grp.items.push(item);
+    return out;
+  }, []);
 
 // '어드민' 은 일상 메뉴가 아니라 컨텍스트 전환 진입점이라 하단(의견보내기·설정
 // 사이) bottomItem 슬롯에 둔다 — SIDEBAR_MENU 에서 section: 'bottom' 으로 정의됨.
@@ -185,7 +194,7 @@ export default function App() {
   };
 
   return (
-    <div className="app">
+    <div className="app" data-page={currentPage}>
       <Sidebar
         menu={MENU}
         currentPage={currentPage}
