@@ -4,12 +4,15 @@ import Icon from '../shared/Icon.jsx';
 import Avatar from '../shared/Avatar.jsx';
 import PhotoOr from './PhotoOr.jsx';
 import { MEMBER_STATUSES } from './constants.js';
-import { ModalContext, DragContext, MoveContext } from './contexts.js';
+import { ModalContext, DragContext, MoveContext, MemberPatchContext } from './contexts.js';
 import { usePositions, useDrag } from './hooks.js';
 import assetUrl from '../shared/assetUrl.js';
 import { useOrgLabels } from './orgchart-labels.jsx';
 
-export default function MemberCard({ member, parentId, index, showWorkHours, showVacation, showGrade, editMode, adminMode, baseUrl = '', onMemberClick }) {
+export default function MemberCard({ member: rawMember, parentId, index, showWorkHours, showVacation, showGrade, editMode, adminMode, baseUrl = '', onMemberClick }) {
+  // 캔버스가 받은 memberPatches 가 이 사람 몫을 갖고 있으면 그 칸만 덧씌운다 (OrgChartCanvas memberPatches)
+  const patch = React.useContext(MemberPatchContext)?.[rawMember?.id];
+  const member = patch ? { ...rawMember, ...patch } : rawMember;
   const memberId = `${parentId}_member_${index}`;
   const L = useOrgLabels();
   const modalCtx = React.useContext(ModalContext);

@@ -4,7 +4,7 @@ import ModalShell from '../shared/ModalShell.jsx';
 import OrgChartViewport from './OrgChartViewport.jsx';
 import OrgTabNav from './OrgTabNav.jsx';
 import ProfileModal from './ProfileModal.jsx';
-import { PositionsContext, ModalContext, MoveContext, DragContext } from './contexts.js';
+import { PositionsContext, ModalContext, MoveContext, DragContext, MemberPatchContext } from './contexts.js';
 import { loadPositions, savePositions, collapsedStorageKey, loadCollapsed } from './hooks.js';
 import { OrgLabelsContext, makeOrgLabels } from './orgchart-labels.jsx';
 
@@ -19,9 +19,11 @@ import { OrgLabelsContext, makeOrgLabels } from './orgchart-labels.jsx';
 //   안 주면 캔버스가 세션 안에서 스스로 기억한다(기본 'all').
 // onDownloadImage({ element, orgData }) — 「이미지로 다운」(17755:26909). 그리는 쪽이 캔버스 DOM 을 받아
 //   그림으로 뜬다. 안 주면 버튼이 없다.
+// memberPatches — { [member.id]: { workHours, attendance, … } }. 사람 카드 몇 칸만 바꿀 때 orgData 를 새로 넘기지
+//   않고 이것으로 덧씌운다 — orgData 가 새 객체면 끌어 둔 위치·화면 자리가 처음으로 돌아간다(pivit-work PW-2210).
 // expandable — «전체 화면»(17755:26946) 버튼. 기본 true. 누르면 같은 조직도를 화면 가득한 창에 띄운다 —
 //   리포트 보기 창과 같은 틀(ModalShell)이다.
-export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIcons, baseUrl = '', onMemberClick, renderAvatar, editMode = false, onSubTabChange, findSubordinates, adminMode: adminModeProp = false, onAdminModeChange, showGrade = false, showProjectTab = true, showListTab = false, lineStyleLabel: lineStyleLabelProp, labels, asOf, highlight, workspaceId, density: densityProp, onDensityChange, onDownloadImage, expandable = true }) {
+export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIcons, baseUrl = '', onMemberClick, renderAvatar, editMode = false, onSubTabChange, findSubordinates, adminMode: adminModeProp = false, onAdminModeChange, showGrade = false, showProjectTab = true, showListTab = false, lineStyleLabel: lineStyleLabelProp, labels, asOf, highlight, workspaceId, density: densityProp, onDensityChange, onDownloadImage, expandable = true, memberPatches }) {
   // 화면 문구 — 소비자가 번역을 넘긴다(PW-705). 안 넘기면 한국어 기본값.
   const L = useMemo(() => makeOrgLabels(labels), [labels]);
   // `lineStyleLabel` 은 `labels` 보다 먼저 생긴 자리라 그대로 받는다 — 주면 그것이 이긴다.
@@ -131,6 +133,7 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
   return (
     // scale 은 카드 드래그가 화면 좌표를 캔버스 로컬 좌표로 되돌릴 때 쓴다(PW-248) — 뷰포트가 넣는다.
     <OrgLabelsContext.Provider value={L}>
+    <MemberPatchContext.Provider value={memberPatches ?? null}>
     <PositionsContext.Provider value={{ positions, updatePosition }}>
     <ModalContext.Provider value={{ openModal }}>
     <MoveContext.Provider value={{ moveMember }}>
@@ -181,6 +184,7 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
     </MoveContext.Provider>
     </ModalContext.Provider>
     </PositionsContext.Provider>
+    </MemberPatchContext.Provider>
     </OrgLabelsContext.Provider>
   );
 }

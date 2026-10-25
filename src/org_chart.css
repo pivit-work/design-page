@@ -869,6 +869,8 @@
 .modal-wh-edit:focus-visible .modal-wh-pencil,
 .modal-wh-edit.is-editing .modal-wh-pencil { opacity: 1; }
 .modal-wh-edit:disabled .modal-wh-pencil { opacity: 0; }
+/* 오늘 휴가 — 근무시간 대신 «부재중»(정책서 §3 「당일 휴가 — 회색 텍스트」 · PW-2210). 크기·굵기는 통계 값 그대로, 색만 같은 창 보조 글자(.modal-stat-note)의 회색. */
+.modal-stat-value.is-absent { color: var(--text-tertiary); }
 
 .modal-wh-panel {
   display: flex;

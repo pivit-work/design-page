@@ -114,6 +114,7 @@ function applyTexture(app, objectName, imageSrc) {
 //   value — `profile.workHours` 대신 보일 값(오늘 조정된 근무시간) · badge — 값 아래 «오늘 변경됨» 노란 딱지 문구
 //   note — 조정 메모. 값에 마우스를 올리면 뜬다 · onEdit — 본인 카드(isSelf)에서만 값이 눌리고 연필이 붙는다
 //   editDisabled — 오늘 휴가처럼 고칠 수 없을 때 · editing — 창이 열려 칸을 강조 · panel — 칸 아래 펼칠 창(WorkHoursAdjustPanel)
+//   absent — 오늘 휴가라 value 자리에 근무시간 대신 «부재중»을 회색으로 보인다(pivit-work PW-2210 · 정책서 §3 「당일 휴가」)
 export default function ProfileModal({ member, onClose, statIcons, baseUrl = '', renderAvatar, resolvePhoto, adminMode = false, findSubordinates, showSubordinates = true, subordinatesTitle, directReportChipLabel, onFeedbackClick, onMeetingClick, isSelf = false, labels, actions, hideFeedback = false, slackDmUrl, managerHistory, asOf, onEditVisibility, editVisibilityLabel, workHours }) {
   // 화면 문구 — 조직도 캔버스 안에서 열리면 캔버스가 받은 번역을 쓰고, 캔버스 밖(소비자가
   // 따로 띄우는 카드)에서는 `labels` 로 받는다(PW-705). 둘 다 없으면 한국어 기본값.
@@ -571,7 +572,7 @@ function WorkHoursValue({ value, workHours, isSelf }) {
       <>
         <button
           type="button"
-          className={`modal-stat-value modal-wh-edit ${workHours.editing ? 'is-editing' : ''}`.trim()}
+          className={`modal-stat-value modal-wh-edit ${workHours.editing ? 'is-editing' : ''} ${workHours.absent ? 'is-absent' : ''}`.replace(/\s+/g, ' ').trim()}
           onClick={workHours.onEdit}
           disabled={!!workHours.editDisabled}
           aria-expanded={!!workHours.editing}
@@ -588,7 +589,7 @@ function WorkHoursValue({ value, workHours, isSelf }) {
   }
   return (
     <>
-      <div className="modal-stat-value" title={note} data-testid="profile-work-hours-value">{value}</div>
+      <div className={`modal-stat-value${workHours?.absent ? ' is-absent' : ''}`} title={note} data-testid="profile-work-hours-value">{value}</div>
       {badge}
     </>
   );
