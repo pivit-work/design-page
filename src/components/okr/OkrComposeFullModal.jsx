@@ -50,6 +50,8 @@ const DEFAULT_LABELS = {
   parentKrUnknown: '연결된 상위 KR',
   // AI 가 KR 을 만드는 사이 Objective 제목을 고쳤다 — 옛 제목에 맞춘 KR 을 넣지 않고 다시 누르게 한다(PW-2215).
   krGenStale: '제목이 바뀌어 AI KR 을 넣지 않았습니다. 다시 눌러 주세요.',
+  // ✦ 개선을 기다리는 사이 그 KR 내용을 고쳤다 — 고친 글을 옛 글 기준 결과로 덮지 않는다(PW-2215).
+  krRefineStale: 'KR 내용이 바뀌어 AI 개선을 넣지 않았습니다. 다시 눌러 주세요.',
 };
 /**
  * 실행 항목 상태 3단 — 서버 `kr_initiatives.status` 와 같은 값이다
@@ -345,6 +347,14 @@ export default function OkrComposeFullModal({
         patch.target = next.target;
       }
       if (typeof next.unit === 'string' && next.unit.trim()) patch.unit = next.unit.trim();
+      // 기다리는 사이 그 KR 내용을 고쳤으면 고친 글을 덮지 않는다 — AI KR 생성과 같은 규칙(PW-2215).
+      const currentKr = objectivesRef.current
+        .find((o) => o.key === objKey)
+        ?.krs.find((k) => k.key === kr.key);
+      if (currentKr && currentKr.title.trim() !== kr.title.trim()) {
+        setRefineError({ key: kr.key, message: L.krRefineStale });
+        return;
+      }
       // 기다리는 사이 그 행을 지웠으면 key 가 없어 아무 행도 안 바뀐다(§5.3 R-E4).
       patchKr(objKey, kr.key, patch);
     } catch {
