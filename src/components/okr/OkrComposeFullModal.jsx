@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Chip from '../shared/Chip.jsx';
 import Icon from '../shared/Icon.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
@@ -48,6 +48,8 @@ const DEFAULT_LABELS = {
   parentKrRemove: '연결 해제',
   // 걸려 있지만 미니맵에 없는 상위 KR(미니맵 밖 그룹·지워진 KR)의 배지 문구.
   parentKrUnknown: '연결된 상위 KR',
+  // AI 가 KR 을 만드는 사이 Objective 제목을 고쳤다 — 옛 제목에 맞춘 KR 을 넣지 않고 다시 누르게 한다(PW-2215).
+  krGenStale: '제목이 바뀌어 AI KR 을 넣지 않았습니다. 다시 눌러 주세요.',
 };
 /**
  * 실행 항목 상태 3단 — 서버 `kr_initiatives.status` 와 같은 값이다
@@ -193,6 +195,11 @@ export default function OkrComposeFullModal({
   const [objectives, setObjectives] = useState(() =>
     (initialObjectives ?? []).map(seedObjective),
   );
+  // AI KR 결과가 늦게 올 때 그 순간의 제목과 견주려고 둔다(generateKrs · PW-2215).
+  const objectivesRef = useRef(objectives);
+  useEffect(() => {
+    objectivesRef.current = objectives;
+  }, [objectives]);
   const [linkedIds, setLinkedIds] = useState({});
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState(null);
@@ -248,8 +255,16 @@ export default function OkrComposeFullModal({
     if (!onGenerateKrs || genKrKey || !objective.title.trim()) return;
     setGenKrKey(objective.key);
     setGenKrError(null);
+    const askedTitle = objective.title.trim();
     try {
-      const res = await onGenerateKrs({ objectiveTitle: objective.title.trim() });
+      const res = await onGenerateKrs({ objectiveTitle: askedTitle });
+      // 기다리는 사이 제목을 고쳤으면 옛 제목에 맞춘 KR 이다 — 넣지 않고 알린다(PW-2215).
+      // 지금 제목은 렌더마다 갱신하는 ref 로 읽는다 — 이 함수가 잡은 objective 는 누른 순간의 것이다.
+      const current = objectivesRef.current.find((o) => o.key === objective.key);
+      if (current && current.title.trim() !== askedTitle) {
+        setGenKrError({ key: objective.key, message: L.krGenStale });
+        return;
+      }
       const raw = (res?.keyResults ?? []).filter((k) => typeof k?.title === 'string' && k.title.trim());
       if (raw.length === 0) throw new Error('empty-krs');
       const weights = weightsOf(raw);
