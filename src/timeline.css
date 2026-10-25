@@ -1395,6 +1395,11 @@
 /* ===========================
    Calendar week view — 캘린더 탭 주간 시간 그리드 (CalendarWeekView).
    세로 시간축(0~23시) × 7일 컬럼. 이벤트는 .tl-cal-event pill 재사용.
+   디자이너 원본은 없다. 값은 stesslee 가 그린 가까운 모양에서 그대로 가져온다:
+   - 요일 머리 칸   → 월 보기 머리 줄(.tl-cal-header 40px · .tl-cal-header-cell)·주별 머리 칸(.tl-week-header-cell 8/20)
+   - 시각 글씨      → 간트 시간 눈금(.tl-hour-cell 12/18 600 secondary)
+   - 일정 블록      → Figma _Calendar event/Day and week view(.tl-snippet 6/8 · 본문 14/20 500)
+   - 지금 선·NOW    → 간트 .tl-now-line·.tl-now-label 그대로
    =========================== */
 .tl-week-cal {
   flex: 1 1 0;
@@ -1436,7 +1441,9 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 8px 12px;
+  /* 높이 = 월 보기 머리 줄 40px(.tl-cal grid-template-rows), 여백 = .tl-week-header-cell 8/20 */
+  height: 40px;
+  padding: 8px 20px;
   box-sizing: border-box;
   border-right: 1px solid var(--colors-grayNeutral-100);
   font-size: 12px;
@@ -1462,14 +1469,16 @@
 .tl-week-cal-hour-label {
   display: flex;
   justify-content: flex-end;
-  padding: 2px 8px 0 0;
+  padding: 0 8px 0 0;
   box-sizing: border-box;
-  font-size: 11px;
-  font-weight: 500;
-  line-height: 16px;
-  color: var(--colors-text-textTertiary);
-  /* 시간 라벨이 해당 시각 구분선에 살짝 걸치도록 위로 당김. */
-  transform: translateY(-8px);
+  /* 글씨 = 간트 시간 눈금 .tl-hour-cell (12/18 600 · -0.12 · text-secondary) */
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  letter-spacing: -0.12px;
+  color: var(--text-secondary);
+  /* 시간 라벨이 해당 시각 구분선에 걸치도록 글줄 절반만큼 위로 당김. */
+  transform: translateY(-9px);
 }
 
 .tl-week-cal-day-col {
@@ -1490,15 +1499,22 @@
   box-sizing: border-box;
 }
 
-/* 이벤트 블록 — .tl-cal-event pill 스타일을 그대로 쓰되 절대배치 + 세로 정렬. */
+/* 이벤트 블록 — .tl-cal-event pill(테두리·모서리 8·색)을 쓰되 절대배치 + 세로 정렬.
+   여백은 디자이너 주·일 보기 일정(.tl-snippet, Figma _Calendar event/Day and week view) 6/8. */
 .tl-week-cal-event {
   position: absolute;
   flex-direction: column;
   align-items: flex-start;
   gap: 0;
-  padding: 3px 6px;
+  padding: 6px 8px;
   white-space: normal;
   z-index: 1;
+}
+
+/* 제목 글씨 — .tl-snippet-text 14/20 500 (주·일 보기 일정 본문) */
+.tl-week-cal-event .tl-cal-event-title {
+  font-size: 14px;
+  line-height: 20px;
 }
 
 /* 디자이너가 정한 왼쪽 위 정렬이 뒤에 오는 .tl-cal-event(align-items: center)에 덮이지 않게
@@ -1708,9 +1724,11 @@
 }
 
 /* ===========================
-   Day events popover — 캘린더 월 그리드 "+N more" 클릭 시 뜨는
-   해당 날짜의 전체 이벤트 목록. 팝오버 카드는 .tl-meeting-modal 과 동일한
-   그림자/라운드를, 이벤트 행은 .tl-cal-event pill 을 그대로 재사용.
+   Day events popover — 캘린더 월 그리드 "+N more" 클릭 시 뜨는 해당 날짜의 전체 이벤트 목록.
+   디자이너 원본은 없다. 창은 stesslee 회의 창 캘린더판(.tl-meeting-modal.is-calendar)을 값 그대로 따른다:
+   폭 410 · 모서리 16 · 그림자 · 머리 띠 60 · 닫기 44(bg-tertiary, 모서리 14, 위·오른쪽 20) · 좌우 48 · 아래 64.
+   날짜 = 회의 창 제목(.tl-meeting-modal-title 24/32 700), 요일 = 시각 줄(.tl-meeting-modal-time p 14/20 500),
+   제목 묶음과 목록 사이 = .tl-meeting-modal-body gap 48. 일정 행은 월 보기 .tl-cal-event 그대로, 간격은 .tl-cal-events 4.
    =========================== */
 .tl-day-popover-overlay {
   position: fixed;
@@ -1721,7 +1739,7 @@
 
 .tl-day-popover {
   position: fixed;
-  width: 280px;
+  width: 410px;
   max-height: 60vh;
   display: flex;
   flex-direction: column;
@@ -1735,52 +1753,51 @@
   transition: opacity 0.12s ease;
 }
 
+/* 머리 띠 60(.tl-meeting-modal-header) 아래에 제목 묶음(.tl-meeting-modal-title-wrap) */
 .tl-day-popover-header {
   position: relative;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  padding: 16px 16px 8px;
+  align-items: flex-start;
+  padding: 60px 48px 0;
   flex-shrink: 0;
 }
 
 .tl-day-popover-date {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 2px;
+  align-items: flex-start;
+  gap: 12px;
 }
 
 .tl-day-popover-weekday {
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 16px;
-  letter-spacing: 0.2px;
-  color: var(--colors-text-textSecondary);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--text-primary);
 }
 
 .tl-day-popover-daynum {
   font-size: 24px;
-  font-weight: 600;
-  line-height: 30px;
+  font-weight: 700;
+  line-height: 32px;
   color: var(--colors-foreground-fgPrimary);
 }
 
 .tl-day-popover-close {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 32px;
-  height: 32px;
+  top: 20px;
+  right: 20px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: transparent;
+  background: var(--colors-background-bgTertiary);
   border: none;
-  border-radius: 9999px;
+  border-radius: 14px;
   padding: 0;
   cursor: pointer;
-  transition: background 0.12s ease;
 }
 
 .tl-day-popover-close:hover {
@@ -1791,7 +1808,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 4px 12px 16px;
+  padding: 48px 48px 64px;
   overflow-y: auto;
   min-height: 0;
 }
@@ -2885,19 +2902,21 @@
   min-height: 0;
 }
 
-/* 날짜 타이틀 줄 — ‹ 날짜 › (PW-1421). ‹ › 가 없으면 날짜만 남는다. */
+/* 날짜 타이틀 줄 — ‹ 날짜 › (PW-1421). ‹ › 가 없으면 날짜만 남는다.
+   ‹ › 는 공용 StepNavButton(stesslee 팀 타임라인 ‹ 오늘 › .tl-date-nav 값), 사이 간격도 그 줄의 4. */
 .tl-snippet-date-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
 }
 
-/* 새로 쓸 수 없는 날짜의 안내 한 줄 (PW-1421) — 이 창의 유일한 본문이라 13/20 secondary */
+/* 새로 쓸 수 없는 날짜의 안내 한 줄 (PW-1421) — 같은 창 안내 글씨 .tl-snippet-label-hint (13/20 500 tertiary) */
 .tl-snippet-closed-notice {
   margin: 0;
   font-size: 13px;
+  font-weight: 500;
   line-height: 20px;
-  color: var(--text-secondary);
+  color: var(--text-tertiary);
 }
 
 /* 날짜 타이틀 — 30/38 Bold */
@@ -3179,35 +3198,19 @@
   background: var(--colors-background-bgSecondarySolid);
 }
 
-/* 점수별 색상 티어 (pivit-specs 시안 hColor). 선택된 버튼만 티어색으로 채운다.
-   generic .is-selected 규칙 뒤에 와야 동일 특이도에서 우선한다. */
-.tl-snippet-health-score--good.is-selected,
-.tl-snippet-health-score--good.is-selected:hover {
-  background: var(--utility-success-600);
-  color: var(--text-white);
-}
+/* 고른 칸은 점수와 상관없이 디자이너가 정한 위 .is-selected(bg-secondary-solid · 흰 글씨) 그대로다.
+   점수 구간(--good/--mid/--low) 클래스는 앱 테스트가 기대므로 남기되 색을 덮지 않는다 — 구간은 옆 이름표가 보인다. */
 
-.tl-snippet-health-score--mid.is-selected,
-.tl-snippet-health-score--mid.is-selected:hover {
-  background: var(--utility-warning-600);
-  color: var(--text-white);
-}
-
-.tl-snippet-health-score--low.is-selected,
-.tl-snippet-health-score--low.is-selected:hover {
-  background: var(--utility-error-600);
-  color: var(--text-white);
-}
-
-/* 현재 점수 라벨 뱃지 (pivit-specs 시안 hLabel). Health Check 타이틀 옆. */
+/* 현재 점수 이름표 (Health Check 타이틀 옆). 디자이너 원본은 없다 — 스니핏 상세 창(.tl-snippet-detail-score)처럼
+   stesslee 매니저 팀 스니핏 점수 딱지 .mgr-ts-score 를, 줄 안 글씨 옆 크기(.mgr-ts-krsnippet .mgr-ts-score
+   2/8 · 둥근 끝 · 12/18 500)로 따른다. 색은 .is-good/.is-warn/.is-bad (50 바탕 · 200 테두리 · 700 글씨). */
 .tl-snippet-health-label {
   margin-left: 8px;
   padding: 2px 8px;
   font-size: 12px;
-  font-weight: 600;
-  line-height: 16px;
-  border-radius: 6px;
-  color: var(--text-white);
+  font-weight: 500;
+  line-height: 18px;
+  border-radius: 999px;
   vertical-align: middle;
   /* "매우 힘듦" 등 라벨이 좁은 좌측 컬럼에서 단어 중간(매우 힘 / 듦)으로 깨지지 않도록
      한 줄 유지. 뱃지 폭은 최대 "매우 힘듦" 수준이라 오버플로 위험 없음. */
@@ -3215,15 +3218,21 @@
 }
 
 .tl-snippet-health-label--good {
-  background: var(--utility-success-600);
+  background: var(--utility-success-50);
+  border: 1px solid var(--utility-success-200);
+  color: var(--utility-success-700);
 }
 
 .tl-snippet-health-label--mid {
-  background: var(--utility-warning-600);
+  background: var(--utility-warning-50);
+  border: 1px solid var(--utility-warning-200);
+  color: var(--utility-warning-700);
 }
 
 .tl-snippet-health-label--low {
-  background: var(--utility-error-600);
+  background: var(--utility-error-50);
+  border: 1px solid var(--utility-error-200);
+  color: var(--utility-error-700);
 }
 
 /* Tag 입력 필드 — 선택된 태그 chip + 신규 입력을 한 필드 안에 배치.
@@ -3390,8 +3399,14 @@
 }
 
 /* ===========================
-   활동 초안 (PW-1154 · pivit-specs A. daily-snippet/snippet-app.jsx DraftMark 시안)
-   노랑 = 경고 토큰(미확인) · 초록 = 성공 토큰(확인함) · 버튼은 AI 버튼과 같은 규격.
+   활동 초안 (PW-1154). 디자이너 원본은 없다 — 같은 창(stesslee 스니핏 작성 창)의 모양을 값 그대로 따른다:
+   - 계정 연결 안내·가져오는 중 줄 → AI 안내 띠 .tl-snippet-info (그라데이션 바탕 · 모서리 6 · 6 · 12/18 500)
+   - 「연결하기 →」·「확인」 버튼   → AI 버튼 .tl-snippet-ai-btn (보라 50 바탕 · 보라 500 글씨 · 14/20 600 · 6 · 모서리 6)
+   - 안내·빈 결과 글             → 칸 이름 옆 안내 .tl-snippet-label-hint (13/20 500 tertiary)
+   - 남은 칸 줄                   → 추천 태그 줄 .tl-snippet-suggest-tags (칩 .tl-snippet-tag, 사이 8)
+   - 확인 전 칸                   → AI 가 채운 칸 .tl-snippet-textarea.is-ai-filled (보라 50 · alpha-black-5 테두리)
+   - 확인한 칸                    → 보통 칸 그대로 (머리의 「확인함」 표시만 남는다)
+   - 닫기 막힘 문구               → 아래 줄 상태 글씨 .tl-snippet-autosave (14/20) · 오류 색
    =========================== */
 .tl-snippet-draft {
   display: flex;
@@ -3404,33 +3419,44 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 8px 12px;
-  border-radius: 8px;
-  background: var(--bg-quaternary);
+  gap: 6px;
+  padding: 6px;
+  border-radius: 6px;
+  background:
+    linear-gradient(45deg, rgba(255, 164, 246, 0.11), rgba(183, 220, 255, 0.11)),
+    var(--bg-quaternary);
   font-size: 12px;
   line-height: 18px;
+  font-weight: 500;
   color: var(--text-secondary);
 }
 
 .tl-snippet-draft-link-btn {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   flex-shrink: 0;
-  border: none;
-  background: transparent;
-  padding: 0;
+  padding: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  border-radius: 6px;
+  background: var(--colors-purple-50);
   font-family: inherit;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
-  color: var(--colors-foreground-fgBrandPrimary);
+  line-height: 20px;
+  color: var(--colors-purple-500);
   cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.tl-snippet-draft-link-btn:hover {
+  background: var(--colors-purple-100);
 }
 
 .tl-snippet-draft-note {
-  font-size: 12px;
-  line-height: 18px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
   color: var(--text-tertiary);
 }
 
@@ -3442,81 +3468,86 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px;
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
+  gap: 8px;
 }
 
 .tl-snippet-draft-left-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--text-tertiary);
 }
 
+/* 칸 머리 표시 — .tl-snippet-label-hint 글씨. 「확인」 버튼만 AI 버튼 모양. */
 .tl-snippet-draft-mark {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   flex-shrink: 0;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.tl-snippet-draft-mark.is-unconfirmed {
-  color: var(--colors-warning-700);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--text-tertiary);
 }
 
 .tl-snippet-draft-mark.is-confirmed {
   gap: 4px;
-  color: var(--colors-success-700);
 }
 
 .tl-snippet-draft-confirm {
-  padding: 3px 10px;
-  border-radius: 8px;
-  border: 1px solid var(--colors-warning-300);
-  background: var(--bg-primary);
+  display: inline-flex;
+  align-items: center;
+  padding: 6px;
+  border: 1px solid rgba(0, 0, 0, 0.03);
+  border-radius: 6px;
+  background: var(--colors-purple-50);
   font-family: inherit;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
-  color: var(--colors-warning-700);
+  line-height: 20px;
+  color: var(--colors-purple-500);
   cursor: pointer;
+  transition: background-color 0.15s;
 }
 
-.tl-snippet-textarea.is-draft-unconfirmed {
-  background: var(--colors-warning-50);
-  border-color: var(--colors-warning-300);
+.tl-snippet-draft-confirm:hover {
+  background: var(--colors-purple-100);
 }
 
-.tl-snippet-textarea.is-draft-confirmed {
-  background: var(--colors-success-50);
-  border-color: var(--colors-success-300);
-}
-
-/* 태그 칸은 테두리로만 표시한다 — 바탕색은 태그 딱지 규칙(status-badge 검사)이 한 곳에서 정한다. */
+.tl-snippet-textarea.is-draft-unconfirmed,
 .tl-snippet-tag-field.is-draft-unconfirmed {
-  border-color: var(--colors-warning-300);
-  box-shadow: 0 0 0 1px var(--colors-warning-300);
+  background: var(--utility-purple-50);
+  border-color: var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
 }
 
-.tl-snippet-tag-field.is-draft-confirmed {
-  border-color: var(--colors-success-300);
-  box-shadow: 0 0 0 1px var(--colors-success-300);
+/* 포커스 시에는 brand 강조가 우선 — .is-ai-filled 와 같다 */
+.tl-snippet-textarea.is-draft-unconfirmed:focus,
+.tl-snippet-tag-field.is-draft-unconfirmed:focus-within {
+  border-color: var(--colors-foreground-fgBrandPrimary);
 }
 
 .tl-snippet-draft-blocked {
   flex: 1;
   min-width: 0;
   margin: 0 16px;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 18px;
-  color: var(--colors-warning-700);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: var(--colors-error-700);
 }
 
+/* AI 버튼 자리 안내(체험 AI 소진 등) — 같은 창 AI 안내 띠 .tl-snippet-info 값 */
 .tl-snippet-ai-notice {
   margin: -4px 0 0;
+  padding: 6px;
+  border-radius: 6px;
+  background:
+    linear-gradient(45deg, rgba(255, 164, 246, 0.11), rgba(183, 220, 255, 0.11)),
+    var(--bg-quaternary);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 500;
+  color: var(--text-secondary);
 }
 
 /* ===========================

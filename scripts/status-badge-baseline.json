@@ -2297,6 +2297,9 @@
   "timeline.css|.tl-snippet-tag-field.is-ai-filled": {
    "background": "#f4f3ff / 어두운 화면 #27115f"
   },
+  "timeline.css|.tl-snippet-tag-field.is-draft-unconfirmed": {
+   "background": "#f4f3ff / 어두운 화면 #27115f"
+  },
   "timeline.css|.tl-snippet-tag:hover:not(:disabled):not(.tl-snippet-tag-selected)": {
    "background": "#f9fafb / 어두운 화면 #22262f"
   },

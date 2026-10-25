@@ -77,8 +77,9 @@ export default function DayEventsPopover({
       >
         <div className="tl-day-popover-header">
           <div className="tl-day-popover-date">
-            <span className="tl-day-popover-weekday">{weekday}</span>
+            {/* 회의 창처럼 제목(날짜) 아래에 시각 줄 자리(요일) */}
             <span className="tl-day-popover-daynum">{d.getDate()}</span>
+            <span className="tl-day-popover-weekday">{weekday}</span>
           </div>
           <button
             type="button"
@@ -86,7 +87,7 @@ export default function DayEventsPopover({
             onClick={onClose}
             aria-label="닫기"
           >
-            <CloseGlyph size={20} color="var(--colors-foreground-fgPrimary)" />
+            <CloseGlyph size={24} color="var(--colors-foreground-fgPrimary)" />
           </button>
         </div>
 
