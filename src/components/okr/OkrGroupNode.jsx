@@ -5,6 +5,13 @@ import { useOkrDrag } from './hooks.js';
 import rowKey from './rowKey.js';
 
 /**
+ * «외 N개» 를 누른 채 이만큼 안에서 놓으면 누름으로 본다(PW-2214). 버튼 글자가 작아(기본 배율 26×9px)
+ * 손이 조금만 떨려도 놓는 자리가 글자 밖이 되고, 그러면 브라우저가 click 을 안 낸다. 이 버튼은 아무것도
+ * 끌지 않으므로(캔버스 끌기 제외) 카드 끌기 문턱(5px)보다 넉넉히 둔다.
+ */
+const MORE_CLICK_SLOP = 10;
+
+/**
  * OkrGroupNode — 그룹(회사/조직 단위/개인) 서브트리 노드.
  *
  * 조직도 OrgNode 처럼 드래그 transform 을 노드 래퍼에 적용해, 헤드 카드를
@@ -34,6 +41,17 @@ export default function OkrGroupNode({
   const isPerson = group.type === 'person';
   const shown = objectives.slice(0, isPerson ? 2 : 3);
   const hiddenCount = objectives.length - shown.length;
+  // 마우스는 누른 자리와 놓은 자리의 거리로 가르고, 키보드(Enter·Space — click.detail 0)는 onClick 으로 연다.
+  const onMoreDown = (e) => {
+    if (e.button !== 0) return;
+    const sx = e.clientX;
+    const sy = e.clientY;
+    const up = (ev) => {
+      window.removeEventListener('mouseup', up);
+      if (Math.hypot(ev.clientX - sx, ev.clientY - sy) < MORE_CLICK_SLOP) onOpen(group.id);
+    };
+    window.addEventListener('mouseup', up);
+  };
 
   return (
     <div
@@ -54,7 +72,12 @@ export default function OkrGroupNode({
           ))}
           {/* 나머지는 상세 창에서 본다 — 요약 줄을 누른 것과 같은 창이다. */}
           {hiddenCount > 0 && (
-            <button type="button" className="okr-objective-more" onClick={() => onOpen(group.id)}>
+            <button
+              type="button"
+              className="okr-objective-more"
+              onMouseDown={onMoreDown}
+              onClick={(e) => { if (e.detail === 0) onOpen(group.id); }}
+            >
               {moreObjectivesLabel(hiddenCount)}
             </button>
           )}
