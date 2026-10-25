@@ -1362,6 +1362,8 @@ function HrRecordListSection({
   const L = labels || {};
   const [form, setForm] = useState(() => emptyForm(fields));
   const [editingId, setEditingId] = useState(null);
+  // 고치기 시작할 때의 기간 — 규칙 전에 거꾸로 저장된 줄은 기간을 안 건드린 저장(회사명만 고침)까지 막지 않는다
+  const [editingPeriod, setEditingPeriod] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
 
@@ -1381,13 +1383,21 @@ function HrRecordListSection({
 
   const missing = fields.some((f) => f.required && !String(form[f.key] ?? '').trim());
   // periodError — 기간 칸이 거꾸로일 때 «종료» 칸 아래 띄울 문구. 주면 그때 저장을 막는다(PW-2218).
-  const reversed = Boolean(periodError) && periodReversed(form);
+  const periodUntouched = editingPeriod
+    && String(form.from ?? '') === editingPeriod.from && String(form.to ?? '') === editingPeriod.to;
+  const reversed = Boolean(periodError) && !periodUntouched && periodReversed(form);
   const submit = async () => {
     const ok = await run(() => onSave(editingId, bodyOf(fields, form, Boolean(editingId))));
-    if (ok) { setForm(emptyForm(fields)); setEditingId(null); }
+    if (ok) { setForm(emptyForm(fields)); setEditingId(null); setEditingPeriod(null); }
   };
-  const startEdit = (r) => { setEditingId(r.id); setForm(formOf(fields, r)); setError(false); };
-  const cancelEdit = () => { setEditingId(null); setForm(emptyForm(fields)); };
+  const startEdit = (r) => {
+    const next = formOf(fields, r);
+    setEditingId(r.id);
+    setEditingPeriod({ from: String(next.from ?? ''), to: String(next.to ?? '') });
+    setForm(next);
+    setError(false);
+  };
+  const cancelEdit = () => { setEditingId(null); setEditingPeriod(null); setForm(emptyForm(fields)); };
   const set = (key) => (v) => setForm((f) => ({ ...f, [key]: v }));
 
   const list = items ?? [];
