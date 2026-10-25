@@ -1491,7 +1491,8 @@ export default function EvalCycleMemberCanvas({
           </div>
         )}
 
-        {!submitted && !selfReview && saveError && (
+        {/* [PW-2209] 잠긴 뒤(마감·단계 넘김 안내 창, 취소 띠)에는 «잠시 후 다시 시도됩니다» 줄을 남기지 않는다 — 셀프 리뷰 줄과 같은 조건. */}
+        {!readOnly && !selfReview && saveError && (
           <div className="evm-save-error" role="alert" data-testid="evm-save-error">
             {L.saveError}
           </div>
