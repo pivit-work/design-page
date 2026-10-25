@@ -818,6 +818,17 @@
   z-index: 70;
   pointer-events: none;
 }
+/* 호버 카드의 긴 제목은 카드 폭에서 «…»로 줄인다 (PW-2212). 예전엔 줄이 카드 밖으로 넘쳐 카드의 overflow 에
+   글자째 잘렸다. 전체 제목은 일정을 눌러 여는 창이 보여 준다 — 그 창 제목은 그대로 둔다. */
+.tl-event-hover-card .tl-meeting-modal-title-row {
+  max-width: 100%;
+  min-width: 0;
+}
+.tl-event-hover-card .tl-meeting-modal-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 /* 일정 창 「···」 (PW-1515) — 닫기 버튼과 같은 모양으로 그 왼쪽(44 + 8 간격)에 선다. */
 .tl-meeting-modal-close.tl-meeting-modal-more {
