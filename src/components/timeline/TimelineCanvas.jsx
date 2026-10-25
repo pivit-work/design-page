@@ -157,6 +157,9 @@ export default function TimelineCanvas({
   calendarEventLabels,
   // 셀 피커 「Google Calendar」 줄 — 미연동일 때 설명 (기획서 §8.4 「내 설정에서 연동하세요」)
   gcalDisconnectedLabel,
+  // 셀 피커 메뉴 문구 묶음과 시각 표기 — `CellPicker` 의 `labels`·`formatHour` 로 그대로 넘긴다 (PW-2216)
+  cellPickerLabels,
+  cellPickerFormatHour,
 }) {
   // 간트 / 캘린더 탭 — 캘린더 탭은 별도의 월/주 뷰.
   const [currentTab, setCurrentTab] = useState(initialTab ?? 'gantt'); // 'gantt' | 'calendar'
@@ -849,6 +852,8 @@ export default function TimelineCanvas({
           // 재인증이 필요하면 셀 안내도 «연동»이라고 하지 않는다 — 내 설정으로 가라는 안내가 맞다 (PW-2211)
           gcalConnected={gcalConnected && !gcalReauthRequired}
           gcalDisconnectedLabel={gcalDisconnectedLabel}
+          labels={cellPickerLabels}
+          formatHour={cellPickerFormatHour}
           baseUrl={baseUrl}
           onSnippet={handleSnippetCreate}
           snippetDisabled={isAfterToday(cellPicker.date)}

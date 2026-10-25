@@ -26,6 +26,8 @@ export default function OkrToolbar({
   objectivesExpanded = true, onToggleObjectivesExpanded,
   expandLabel = '모든 노드의 Objective 요약을 펼칩니다',
   collapseLabel = '모든 노드의 Objective 요약을 접습니다',
+  // 연도 버튼 글자 — 소비자가 언어에 맞춰 만든다. 없으면 「N년」 (pivit-work PW-2216).
+  yearLabel,
   icons, baseUrl = '',
 }) {
   const [openMenu, setOpenMenu] = useState(null); // 'year' | 'quarter' | null
@@ -41,7 +43,7 @@ export default function OkrToolbar({
       <div className="okr-toolbar-left">
         <div className="okr-select-wrap">
           <button className={`okr-select-btn${openMenu === 'year' ? ' is-open' : ''}`} onClick={() => toggle('year')}>
-            <span>{year}년</span>
+            <span>{yearLabel ?? `${year}년`}</span>
             <Icon src={icons.chevronDown} size={20} color="var(--text-secondary)" baseUrl={baseUrl} />
           </button>
           {openMenu === 'year' && (

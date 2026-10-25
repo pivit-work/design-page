@@ -24,7 +24,10 @@ export default function MemberCard({
   onCardClick,
   onOneOnOneClick,
   onMessageClick,
+  // 아래 두 버튼 글자 — 넘기면 그대로 쓰고, 없으면 기본 한국어 (pivit-work PW-2216).
+  labels,
 }) {
+  const L = { oneOnOne: '원온원', message: '메시지', ...(labels ?? {}) };
   const conf = STATUS_COLORS[status] ?? STATUS_COLORS.good;
 
   // 버튼 클릭 시 카드 onClick 으로 버블링되어 모달이 동시에 열리는 걸 막는다.
@@ -48,11 +51,11 @@ export default function MemberCard({
         <div className="manager-member-actions">
           <button type="button" className="manager-member-action-btn" onClick={stop(onOneOnOneClick)}>
             <Icon src={icons?.userOutline} size={16} color="var(--text-secondary)" baseUrl={baseUrl} />
-            <span>원온원</span>
+            <span>{L.oneOnOne}</span>
           </button>
           <button type="button" className="manager-member-action-btn" onClick={stop(onMessageClick)}>
             <Icon src={icons?.messageText} size={16} color="var(--text-secondary)" baseUrl={baseUrl} />
-            <span>메시지</span>
+            <span>{L.message}</span>
           </button>
         </div>
       </div>

@@ -17,6 +17,21 @@ const fmtHour = (h) => {
   return `오후 ${h - 12}시`;
 };
 
+/**
+ * 화면 문구 기본값(한국어). 소비자가 `labels` 로 덮는다 — 이 패키지는 i18n 을 모른다
+ * (pivit-work PW-2216 · 영어 화면에서도 이 메뉴가 한국어로 남았다). 미주입 시 시안 그대로.
+ */
+const DEFAULT_LABELS = {
+  menu: '셀 액션 선택',
+  snippetTitle: '데일리 스니핏 작성',
+  snippetSub: '오늘 한 일 · 헬스체크 · 태그',
+  eventTitle: '이벤트 추가',
+  eventSub: '회의 · 집중 작업 · 리뷰 · 외부 미팅',
+  gcalConnected: '연동',
+  gcalDisconnected: '미연동',
+  gcalConnectedSub: '캘린더 일정이 타임라인에 자동 반영됩니다',
+};
+
 export default function CellPicker({
   pos,
   hour,
@@ -30,7 +45,12 @@ export default function CellPicker({
   snippetDisabledLabel = '오늘 이후 날짜에는 쓸 수 없습니다',
   // 미연동일 때 「Google Calendar」 줄 설명 (PW-1515 · 기획서 screen-timeline-feed §8.4)
   gcalDisconnectedLabel = '내 설정에서 연동하세요',
+  // 메뉴 문구 묶음 — 키는 `DEFAULT_LABELS`. 빠진 키는 기본 한국어 (PW-2216).
+  labels,
+  // 맨 위 시각 표기(자정·오전 N시·정오·오후 N시) — 소비자가 언어에 맞춰 넘긴다.
+  formatHour = fmtHour,
 }) {
+  const L = { ...DEFAULT_LABELS, ...(labels ?? {}) };
   const dateLabel = typeof date === 'string' ? date.slice(5) : '';
 
   // 배치는 `AnchoredLayer` 가 클릭 지점을 앵커로 삼아 실측한다 (PW-313).
@@ -51,10 +71,10 @@ export default function CellPicker({
         className="tl-cell-picker"
         data-testid="timeline-cell-picker"
         role="menu"
-        aria-label="셀 액션 선택"
+        aria-label={L.menu}
       >
         <div className="tl-cell-picker-time">
-          {dateLabel} {fmtHour(hour)}
+          {dateLabel} {formatHour(hour)}
         </div>
 
         {/* 오늘보다 뒤 날짜 칸이면 스니핏 작성만 끈다 — 누르면 아무 일도 없고 팝업도 닫지 않는다.
@@ -81,9 +101,9 @@ export default function CellPicker({
             />
           </span>
           <span className="tl-cell-picker-body">
-            <span className="tl-cell-picker-title">데일리 스니핏 작성</span>
+            <span className="tl-cell-picker-title">{L.snippetTitle}</span>
             <span className="tl-cell-picker-sub">
-              {snippetDisabled ? snippetDisabledLabel : '오늘 한 일 · 헬스체크 · 태그'}
+              {snippetDisabled ? snippetDisabledLabel : L.snippetSub}
             </span>
           </span>
         </button>
@@ -109,8 +129,8 @@ export default function CellPicker({
             />
           </span>
           <span className="tl-cell-picker-body">
-            <span className="tl-cell-picker-title">이벤트 추가</span>
-            <span className="tl-cell-picker-sub">회의 · 집중 작업 · 리뷰 · 외부 미팅</span>
+            <span className="tl-cell-picker-title">{L.eventTitle}</span>
+            <span className="tl-cell-picker-sub">{L.eventSub}</span>
           </span>
         </button>
 
@@ -128,11 +148,11 @@ export default function CellPicker({
               Google Calendar
               <span className={`tl-cell-picker-gcal-dot ${gcalConnected ? 'is-on' : 'is-off'}`} />
               <span className="tl-cell-picker-gcal-state">
-                {gcalConnected ? '연동' : '미연동'}
+                {gcalConnected ? L.gcalConnected : L.gcalDisconnected}
               </span>
             </span>
             <span className="tl-cell-picker-gcal-sub">
-              {gcalConnected ? '캘린더 일정이 타임라인에 자동 반영됩니다' : gcalDisconnectedLabel}
+              {gcalConnected ? L.gcalConnectedSub : gcalDisconnectedLabel}
             </span>
           </span>
         </div>

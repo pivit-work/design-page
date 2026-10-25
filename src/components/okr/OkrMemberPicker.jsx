@@ -44,6 +44,8 @@ export default function OkrMemberPicker({
   searchPlaceholder = '이름 검색...',
   noResultLabel = '검색 결과 없음',
   ariaLabel = '담당자',
+  // 검색칸의 접근성 이름 — 소비자가 언어에 맞춰 넘긴다. 없으면 「{ariaLabel} 검색」 (pivit-work PW-2216).
+  searchAriaLabel,
 }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
@@ -123,7 +125,7 @@ export default function OkrMemberPicker({
             <input
               ref={searchRef}
               className="okr-cf-pick-search-input"
-              aria-label={`${ariaLabel} 검색`}
+              aria-label={searchAriaLabel ?? `${ariaLabel} 검색`}
               placeholder={searchPlaceholder}
               value={q}
               onChange={(e) => setQ(e.target.value)}

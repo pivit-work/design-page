@@ -52,26 +52,90 @@ const DEFAULT_LABELS = {
   krGenStale: '제목이 바뀌어 AI KR 을 넣지 않았습니다. 다시 눌러 주세요.',
   // ✦ 개선을 기다리는 사이 그 KR 내용을 고쳤다 — 고친 글을 옛 글 기준 결과로 덮지 않는다(PW-2215).
   krRefineStale: 'KR 내용이 바뀌어 AI 개선을 넣지 않았습니다. 다시 눌러 주세요.',
+  // ── 아래는 창 안 나머지 문구 전부 (pivit-work PW-2216) — 영어 화면에서도 이 창이 한국어로 남아
+  // 소비자가 전부 덮을 수 있게 열었다. 미주입 시 시안 그대로.
+  initStatusTodo: '예정',
+  initStatusInProgress: '진행 중',
+  initStatusDone: '완료',
+  methodPercent: '% 달성률',
+  methodPercentDesc: '0~100% 직접 입력',
+  methodBinary: '완료 여부',
+  methodBinaryDesc: '달성/미달성',
+  methodCount: '개수 달성',
+  methodCountDesc: 'n / 목표 개수',
+  // 측정 방식을 고르면 단위 칸에 미리 넣는 값 — 소비자 언어를 따른다(칸은 고칠 수 있다).
+  unitCount: '개',
+  unitDone: '완료',
+  weightTooltip: 'Objective 가중치 합과 각 Objective의 KR 가중치 합이 모두 100%가 되어야 저장할 수 있습니다.',
+  krWeightReason: 'KR 가중치 합이 100% 여야 저장할 수 있습니다.',
+  genObjectivesFailed: 'AI Objective 생성에 실패했습니다. 잠시 후 다시 시도해주세요.',
+  genKrsFailed: 'AI KR 생성에 실패했습니다. 잠시 후 다시 시도해주세요.',
+  refineKrFailed: 'KR 개선에 실패했습니다. 잠시 후 다시 시도해주세요.',
+  saveFailed: '저장에 실패했습니다. 잠시 후 다시 시도해주세요.',
+  objectiveTitleRequired: 'Objective 내용을 입력해주세요.',
+  krRequired: 'Objective 마다 KR 을 1개 이상 추가해야 저장할 수 있습니다.',
+  krTitleRequired: 'KR 내용을 입력해주세요.',
+  // ✓·✦ 글리프는 부품이 붙인다 — 번역 값에는 글자만 들어온다.
+  objectiveSumOk: 'Objective 100%',
+  // `{{total}}` 자리에 지금 합계(숫자)가 들어간다.
+  objectiveSum: 'Objective 현재 합계: {{total}}% (100%가 되어야 합니다)',
+  krSumOk: '100%',
+  krSum: '현재 합계: {{total}}% (100%가 되어야 합니다)',
+  cancel: '취소',
+  save: '저장',
+  saving: '저장 중…',
+  generating: '생성 중…',
+  generateObjectives: 'AI로 Objective 생성',
+  addObjective: 'Objective 추가',
+  addFirst: '직접추가',
+  objectiveTitlePlaceholder: 'Objective 내용',
+  weightPlaceholder: '가중치',
+  objectiveWeight: 'Objective 가중치',
+  parentOkr: '상위 OKR 연결',
+  parentOkrPlaceholder: '상위 OKR 연결 (선택)',
+  krTitlePlaceholder: 'KR 내용',
+  refineKr: 'AI로 KR 개선',
+  refining: '개선 중…',
+  refine: '개선',
+  targetPlaceholder: '목표',
+  krTarget: 'KR 목표값',
+  unitPlaceholder: '단위',
+  krUnit: 'KR 단위',
+  krWeight: 'KR 가중치',
+  krOwner: 'KR 담당자',
+  // 담당자 고르기(OkrMemberPicker) 칸 — 비었을 때 글자·검색칸·결과 없음
+  ownerPlaceholder: '담당자',
+  ownerSearchPlaceholder: '이름 검색...',
+  ownerSearchAriaLabel: '담당자 검색',
+  ownerNoResult: '검색 결과 없음',
+  initStatus: '실행 항목 상태',
+  initTitlePlaceholder: '실행 항목 내용',
+  initOwner: '실행 항목 담당자',
+  initRemove: '실행 항목 삭제',
+  initEmpty: '아직 실행 항목이 없습니다. 아래에서 추가하세요.',
+  initAdd: '+ Initiative 추가',
+  addKr: 'KR 직접추가',
+  generateKrs: 'AI로 KR 생성',
 };
+/** `{{total}}` 자리표시자를 숫자로 바꾼다 — 소비자가 i18n 문구를 그대로 넘길 수 있게 같은 모양을 쓴다. */
+const fill = (text, total) => String(text).replace('{{total}}', String(total));
 /**
  * 실행 항목 상태 3단 — 서버 `kr_initiatives.status` 와 같은 값이다
  * (okr-policy §9.2A v8.2). 2상태(체크박스)로는 `in_progress` 를 만들 수 없어
  * 종전 완료 체크박스를 select 로 바꿨다.
  */
+// 글자는 `DEFAULT_LABELS` 의 키로 가리킨다 — 소비자가 언어에 맞춰 덮는다 (PW-2216).
 const INIT_STATUS = [
-  { key: 'todo', label: '예정' },
-  { key: 'in_progress', label: '진행 중' },
-  { key: 'done', label: '완료' },
+  { key: 'todo', labelKey: 'initStatusTodo' },
+  { key: 'in_progress', labelKey: 'initStatusInProgress' },
+  { key: 'done', labelKey: 'initStatusDone' },
 ];
 const METHODS = [
-  { key: 'percent', label: '% 달성률', desc: '0~100% 직접 입력', unit: '%' },
-  { key: 'binary', label: '완료 여부', desc: '달성/미달성', unit: '완료' },
-  { key: 'count', label: '개수 달성', desc: 'n / 목표 개수', unit: '개' },
+  { key: 'percent', labelKey: 'methodPercent', descKey: 'methodPercentDesc', unitKey: null },
+  { key: 'binary', labelKey: 'methodBinary', descKey: 'methodBinaryDesc', unitKey: 'unitDone' },
+  { key: 'count', labelKey: 'methodCount', descKey: 'methodCountDesc', unitKey: 'unitCount' },
 ];
-
-/** 가중치 문구 — okr-spec §8 · okr-policy §10 (PW-1503). */
-const WEIGHT_TOOLTIP = 'Objective 가중치 합과 각 Objective의 KR 가중치 합이 모두 100%가 되어야 저장할 수 있습니다.';
-const KR_WEIGHT_REASON = 'KR 가중치 합이 100% 여야 저장할 수 있습니다.';
+// 가중치 문구 — okr-spec §8 · okr-policy §10 (PW-1503). 글자는 `L.weightTooltip`·`L.krWeightReason`.
 
 /**
  * AI 가 준 가중치를 그대로 쓰되, 정수가 아니거나 합이 100 이 아니면 균등 배분(합 100)으로
@@ -216,7 +280,7 @@ export default function OkrComposeFullModal({
   const [genKrKey, setGenKrKey] = useState(null);
   const [genKrError, setGenKrError] = useState(null); // { key, message }
 
-  const TYPE_UNIT = { number: '개', percentage: '%', boolean: '완료' };
+  const TYPE_UNIT = { number: L.unitCount, percentage: '%', boolean: L.unitDone };
   const TYPE_INPUT = { number: 'count', percentage: 'percent', boolean: 'binary' };
   /**
    * ✦ AI로 Objective 생성 (okr-spec §4.5 · okr-policy §5.2 · PW-1503).
@@ -243,7 +307,7 @@ export default function OkrComposeFullModal({
         weight: String(weights[i]),
       })));
     } catch {
-      setGenError('AI Objective 생성에 실패했습니다. 잠시 후 다시 시도해주세요.');
+      setGenError(L.genObjectivesFailed);
     } finally { setGenLoading(false); }
   };
 
@@ -285,7 +349,7 @@ export default function OkrComposeFullModal({
         }),
       });
     } catch {
-      setGenKrError({ key: objective.key, message: 'AI KR 생성에 실패했습니다. 잠시 후 다시 시도해주세요.' });
+      setGenKrError({ key: objective.key, message: L.genKrsFailed });
     } finally {
       setGenKrKey(null);
     }
@@ -360,7 +424,7 @@ export default function OkrComposeFullModal({
     } catch {
       // 실패는 상태를 만들지 않는다(INV-R1) — 위 patchKr 에 닿지 못하므로 어떤
       // 필드도 바뀌지 않는다. 알림은 그 KR 블록 안에서만 한다(INV-R2).
-      setRefineError({ key: kr.key, message: 'KR 개선에 실패했습니다. 잠시 후 다시 시도해주세요.' });
+      setRefineError({ key: kr.key, message: L.refineKrFailed });
     } finally {
       setRefiningKey(null);
     }
@@ -427,12 +491,12 @@ export default function OkrComposeFullModal({
    */
   const blockReason = (() => {
     if (canSave || objectives.length === 0) return null;
-    if (objectives.some((o) => !o.title.trim())) return 'Objective 내용을 입력해주세요.';
+    if (objectives.some((o) => !o.title.trim())) return L.objectiveTitleRequired;
     if (objectives.some((o) => o.krs.length === 0)) {
-      return 'Objective 마다 KR 을 1개 이상 추가해야 저장할 수 있습니다.';
+      return L.krRequired;
     }
-    if (objectives.some((o) => o.krs.some((k) => !k.title.trim()))) return 'KR 내용을 입력해주세요.';
-    if (objectives.some((o) => !krWeightOk(o))) return KR_WEIGHT_REASON;
+    if (objectives.some((o) => o.krs.some((k) => !k.title.trim()))) return L.krTitleRequired;
+    if (objectives.some((o) => !krWeightOk(o))) return L.krWeightReason;
     return null; // 남은 건 Objective 가중치 — 아래 합계 배지가 이미 말한다.
   })();
 
@@ -475,7 +539,7 @@ export default function OkrComposeFullModal({
     // 확인창에서 취소). 실패가 아니므로 에러를 띄우지 않고 폼만 그대로 둔다.
     Promise.resolve(onSubmit?.(payload))
       .then((result) => { if (result === false) setSaving(false); else onClose(); })
-      .catch(() => { setSaveError('저장에 실패했습니다. 잠시 후 다시 시도해주세요.'); setSaving(false); });
+      .catch(() => { setSaveError(L.saveFailed); setSaving(false); });
   };
 
   // 아래 버튼 줄 — 목표를 하나라도 쓰기 시작했을 때(또는 편집 중 전부 지웠을 때)만 그린다.
@@ -496,15 +560,15 @@ export default function OkrComposeFullModal({
             : emptiedFromEdit
               ? ''
               : totalW === 100
-                ? '✓ Objective 100%'
-                : `Objective 현재 합계: ${totalW}% (100%가 되어야 합니다)`}
+                ? `✓ ${L.objectiveSumOk}`
+                : fill(L.objectiveSum, totalW)}
       </span>
-      <button type="button" className="okr-btn is-outline" onClick={onClose}>취소</button>
+      <button type="button" className="okr-btn is-outline" onClick={onClose}>{L.cancel}</button>
       <Tooltip
         content={
           !canSave
             // 가중치로 막혔으면 기획 문구 하나로(okr-spec §8), 다른 이유면 그 이유를 말한다(PW-268 ③).
-            ? (!blockReason || blockReason === KR_WEIGHT_REASON ? WEIGHT_TOOLTIP : blockReason)
+            ? (!blockReason || blockReason === L.krWeightReason ? L.weightTooltip : blockReason)
             : ''
         }
       >
@@ -514,7 +578,7 @@ export default function OkrComposeFullModal({
           disabled={!canSave || saving}
           onClick={handleSave}
         >
-          {saving ? '저장 중…' : '저장'}
+          {saving ? L.saving : L.save}
         </button>
       </Tooltip>
     </>
@@ -606,12 +670,12 @@ export default function OkrComposeFullModal({
             <div className="okr-cf-head-actions">
               {onGenerate && (
                 <button type="button" className="okr-wz-ai-btn" onClick={generate} disabled={genLoading}>
-                  {genLoading ? '생성 중…' : '✦ AI로 Objective 생성'}
+                  {genLoading ? L.generating : `✦ ${L.generateObjectives}`}
                 </button>
               )}
               <button type="button" className="okr-cf-add-btn" onClick={addObjective}>
                 <Icon src={icons.plus} size={18} color="var(--text-white)" baseUrl={baseUrl} />
-                <span>{objectives.length ? 'Objective 추가' : '직접추가'}</span>
+                <span>{objectives.length ? L.addObjective : L.addFirst}</span>
               </button>
             </div>
           </div>
@@ -639,8 +703,8 @@ export default function OkrComposeFullModal({
                     <span className="okr-cf-obj-label">Objective</span>
                     <input
                       className="okr-cf-input"
-                      placeholder="Objective 내용"
-                      aria-label="Objective 내용"
+                      placeholder={L.objectiveTitlePlaceholder}
+                      aria-label={L.objectiveTitlePlaceholder}
                       maxLength={objectiveTitleMaxLength}
                       value={objective.title}
                       onChange={(e) => patchObjective(objective.key, { title: e.target.value })}
@@ -652,8 +716,8 @@ export default function OkrComposeFullModal({
                   <div className="okr-cf-obj-meta">
                     <input
                       className="okr-cf-input is-sm"
-                      placeholder="가중치"
-                      aria-label="Objective 가중치"
+                      placeholder={L.weightPlaceholder}
+                      aria-label={L.objectiveWeight}
                       type="number"
                       value={objective.weight}
                       onChange={(e) => patchObjective(objective.key, { weight: e.target.value })}
@@ -664,10 +728,10 @@ export default function OkrComposeFullModal({
                       // 맥 회색 목록으로 뜨고 화면 녹화에 안 잡힌다(PW-1955). 닫힌 칸은 종전 클래스 그대로.
                       <SearchSelect
                         className="okr-cf-select-real"
-                        aria-label="상위 OKR 연결"
+                        aria-label={L.parentOkr}
                         value={objective.parentId}
                         options={[
-                          { value: '', label: '상위 OKR 연결 (선택)', keep: true },
+                          { value: '', label: L.parentOkrPlaceholder, keep: true },
                           ...parentOptions.map((p) => ({ value: String(p.id), label: p.label })),
                         ]}
                         onChange={(v) => patchObjective(objective.key, { parentId: v })}
@@ -681,21 +745,21 @@ export default function OkrComposeFullModal({
                         <span className="okr-cf-bullet" />
                         <input
                           className="okr-cf-input"
-                          placeholder="KR 내용"
-                          aria-label="KR 내용"
+                          placeholder={L.krTitlePlaceholder}
+                          aria-label={L.krTitlePlaceholder}
                           maxLength={krTitleMaxLength}
                           value={kr.title}
                           onChange={(e) => patchKr(objective.key, kr.key, { title: e.target.value })}
                         />
                         {onRefineKr && (
-                          <Tooltip content="AI로 KR 개선">
+                          <Tooltip content={L.refineKr}>
                             <button
                               type="button"
                               className="okr-wz-ai-btn"
                               disabled={!kr.title.trim() || refiningKey !== null}
                               onClick={() => refineKr(objective.key, kr)}
                             >
-                              {refiningKey === kr.key ? '개선 중…' : '✦ 개선'}
+                              {refiningKey === kr.key ? L.refining : `✦ ${L.refine}`}
                             </button>
                           </Tooltip>
                         )}
@@ -715,12 +779,12 @@ export default function OkrComposeFullModal({
                             // «완료 여부»는 목표 1 고정이라 목표값 칸을 감춘다(okr-spec §3.1B).
                             onClick={() => patchKr(objective.key, kr.key, {
                               inputType: method.key,
-                              unit: method.unit,
+                              unit: method.unitKey ? L[method.unitKey] : '%',
                               ...(method.key === 'binary' ? { target: 1 } : {}),
                             })}
                           >
-                            <p className="okr-cf-method-label">{method.label}</p>
-                            <p className="okr-cf-method-desc">{method.desc}</p>
+                            <p className="okr-cf-method-label">{L[method.labelKey]}</p>
+                            <p className="okr-cf-method-desc">{L[method.descKey]}</p>
                           </button>
                         ))}
                       </div>
@@ -728,8 +792,8 @@ export default function OkrComposeFullModal({
                         {kr.inputType !== 'binary' && (
                           <input
                             className="okr-cf-input is-sm"
-                            placeholder="목표"
-                            aria-label="KR 목표값"
+                            placeholder={L.targetPlaceholder}
+                            aria-label={L.krTarget}
                             type="number"
                             value={kr.target}
                             onChange={(e) => patchKr(objective.key, kr.key, { target: e.target.value })}
@@ -737,15 +801,15 @@ export default function OkrComposeFullModal({
                         )}
                         <input
                           className="okr-cf-input is-sm"
-                          placeholder="단위"
-                          aria-label="KR 단위"
+                          placeholder={L.unitPlaceholder}
+                          aria-label={L.krUnit}
                           value={kr.unit}
                           onChange={(e) => patchKr(objective.key, kr.key, { unit: e.target.value })}
                         />
                         <input
                           className="okr-cf-input is-sm"
-                          placeholder="가중치"
-                          aria-label="KR 가중치"
+                          placeholder={L.weightPlaceholder}
+                          aria-label={L.krWeight}
                           type="number"
                           value={kr.weight}
                           onChange={(e) => patchKr(objective.key, kr.key, { weight: e.target.value })}
@@ -753,7 +817,11 @@ export default function OkrComposeFullModal({
                         <span className="okr-cf-unit">%</span>
                         {members.length > 0 && (
                           <OkrMemberPicker
-                            ariaLabel="KR 담당자"
+                            ariaLabel={L.krOwner}
+                            placeholder={L.ownerPlaceholder}
+                            searchPlaceholder={L.ownerSearchPlaceholder}
+                            searchAriaLabel={L.ownerSearchAriaLabel}
+                            noResultLabel={L.ownerNoResult}
                             members={members}
                             value={kr.ownerId}
                             onChange={(id) => patchKr(objective.key, kr.key, { ownerId: id })}
@@ -817,23 +885,27 @@ export default function OkrComposeFullModal({
                             {/* 셋 중 하나라 검색칸은 끈다. */}
                             <SearchSelect
                               className="okr-cf-init-status"
-                              aria-label="실행 항목 상태"
+                              aria-label={L.initStatus}
                               searchable={false}
                               value={init.status}
-                              options={INIT_STATUS.map((st) => ({ value: st.key, label: st.label }))}
+                              options={INIT_STATUS.map((st) => ({ value: st.key, label: L[st.labelKey] }))}
                               onChange={(v) => patchInitiative(objective.key, kr, init.key, { status: v })}
                             />
                             <input
                               className={`okr-cf-input is-init${init.status === 'done' ? ' is-done' : ''}`}
-                              placeholder="실행 항목 내용"
-                              aria-label="실행 항목 내용"
+                              placeholder={L.initTitlePlaceholder}
+                              aria-label={L.initTitlePlaceholder}
                               maxLength={initiativeTitleMaxLength}
                               value={init.title}
                               onChange={(e) => patchInitiative(objective.key, kr, init.key, { title: e.target.value })}
                             />
                             {members.length > 0 && (
                               <OkrMemberPicker
-                                ariaLabel="실행 항목 담당자"
+                                ariaLabel={L.initOwner}
+                                placeholder={L.ownerPlaceholder}
+                                searchPlaceholder={L.ownerSearchPlaceholder}
+                                searchAriaLabel={L.ownerSearchAriaLabel}
+                                noResultLabel={L.ownerNoResult}
                                 members={members}
                                 value={init.ownerId}
                                 onChange={(id) => patchInitiative(objective.key, kr, init.key, { ownerId: id })}
@@ -844,7 +916,7 @@ export default function OkrComposeFullModal({
                             <button
                               type="button"
                               className="okr-cf-x"
-                              aria-label="실행 항목 삭제"
+                              aria-label={L.initRemove}
                               onClick={() => removeInitiative(objective.key, kr, init.key)}
                             >
                               <Icon src={icons.xClose} size={14} color="var(--text-tertiary)" baseUrl={baseUrl} />
@@ -853,14 +925,14 @@ export default function OkrComposeFullModal({
                         ))}
                         {initsOf(kr).length === 0 && (
                           /* 버튼만 있으면 「실행 항목이라는 것이 있는지」가 안 읽힌다(§4A.2). */
-                          <p className="okr-cf-init-empty">아직 실행 항목이 없습니다. 아래에서 추가하세요.</p>
+                          <p className="okr-cf-init-empty">{L.initEmpty}</p>
                         )}
                         <button
                           type="button"
                           className="okr-cf-init-add"
                           onClick={() => addInitiative(objective.key, kr)}
                         >
-                          + Initiative 추가
+                          {L.initAdd}
                         </button>
                       </div>
                     </div>
@@ -868,14 +940,14 @@ export default function OkrComposeFullModal({
 
                   {objective.krs.length > 0 && (
                     <div className={`okr-cf-krsum${krSum === 100 ? ' is-ok' : ''}`}>
-                      {krSum === 100 ? '✓ 100%' : `현재 합계: ${krSum}% (100%가 되어야 합니다)`}
+                      {krSum === 100 ? `✓ ${L.krSumOk}` : fill(L.krSum, krSum)}
                     </div>
                   )}
                   {/* KR 을 더하는 두 길 — 직접추가 옆에 AI 생성(기획 JSX 의 「+ KR 직접 추가」·「✦ AI로 KR 생성」 한 줄). */}
                   <div className="okr-cf-kr-actions">
                   <button type="button" className="okr-cf-kr-add-btn" onClick={() => addKr(objective.key)}>
                     <Icon src={icons.plus} size={16} color="var(--text-secondary)" baseUrl={baseUrl} />
-                    <span>KR 직접추가</span>
+                    <span>{L.addKr}</span>
                   </button>
                   {onGenerateKrs && (
                     <button
@@ -884,7 +956,7 @@ export default function OkrComposeFullModal({
                       disabled={!objective.title.trim() || genKrKey !== null}
                       onClick={() => generateKrs(objective)}
                     >
-                      {genKrKey === objective.key ? '생성 중…' : '✦ AI로 KR 생성'}
+                      {genKrKey === objective.key ? L.generating : `✦ ${L.generateKrs}`}
                     </button>
                   )}
                   </div>

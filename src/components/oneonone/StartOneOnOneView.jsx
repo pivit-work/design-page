@@ -74,36 +74,114 @@ import { isEnterKey } from '../shared/enterKey.js';
 /** t0(녹음 시작) 이전의 경과 표시 (PW-478 · policy §5.0 T2). */
 const NO_CLOCK = '--:--';
 
-const SOURCE_BADGES = ['Daily Snippet', '회의록', '피드백', '기존1on1'];
+/**
+ * 화면 문구 기본값(한국어). 소비자가 `labels` 로 덮는다 — 이 패키지는 i18n 을 모른다
+ * (pivit-work PW-2216 · 영어 화면에서도 이 화면이 통째로 한국어로 남았다). 미주입 시 시안 그대로.
+ * `{{...}}` 자리표시자는 그 자리에 값이 들어간다(소비자가 i18n 문구를 그대로 넘길 수 있게 같은 모양).
+ */
+const DEFAULT_START_LABELS = {
+  // 매니저 관점 4칸 머리 — 출처 딱지(sourceBadges)는 네 칸이 같이 쓴다
+  sourceBadges: ['Daily Snippet', '회의록', '피드백', '기존1on1'],
+  sectionStrengths: '관찰한 강점',
+  sectionSbi: '개선 피드백 (SBI 형식)',
+  sectionSupport: '지원 계획',
+  sectionCaps: '역량 매니저 평가',
+  textareaPlaceholder: 'AI 초안 생성 또는 직접 입력',
+  // AI 초안 실패 박스 — 대상 이름·사유·버튼
+  failTargetAll: 'AI 브리핑 및 매니저 관점 초안',
+  failTargetStrengths: '관찰한 강점',
+  failTargetSbi: '개선 피드백',
+  failTargetSupport: '지원 계획',
+  failTargetCaps: '역량 매니저 평가',
+  // ⚠·✓ 글리프는 부품이 붙인다 — 번역 값에는 글자만 들어온다.
+  failTitle: '{{target}} 생성에 실패했습니다',
+  failTimeout: '생성이 30초를 넘겨 중단됐습니다. 잠시 후 다시 시도해 주세요.',
+  failModelError: 'AI 응답을 받지 못했습니다. 잠시 후 다시 시도해 주세요.',
+  failQuotaExceeded: '이번 달 조직 AI 사용 한도를 모두 썼습니다. 워크스페이스 관리자에게 문의해 주세요.',
+  failExhausted: '여러 번 시도했지만 생성하지 못했습니다. 직접 입력해 주세요.',
+  failHint: '직접 입력해도 됩니다 — AI 없이 저장·제출할 수 있습니다.',
+  failQuotaTooltip: 'AI 사용 한도가 복구되면 다시 시도할 수 있습니다',
+  retry: '다시 시도',
+  aiWarn: 'AI 초안 — 반드시 검토 후 확정해주세요. 미확정 내용은 DONE 피드백에 반영되지 않습니다.',
+  emptyHint: '아직 수집된 데이터가 없습니다.',
+  capExpertise: '업무 전문성',
+  capCommunication: '커뮤니케이션',
+  capProblemSolving: '문제 해결력',
+  capTeamwork: '협업 / 팀워크',
+  capSelfDriven: '자가주도성',
+  ratingPoint: '{{n}}점',
+  // 준비도
+  memberFallback: '팀원',
+  meManager: '나 (매니저)',
+  readiness: '준비도',
+  // 전체 생성 CTA
+  ctaDone: 'AI 초안 생성 완료 — {{confirmed}}/{{total}} 항목 확정됨',
+  ctaDoneHint: '검토 후 확정하세요',
+  ctaGenerating: 'AI 초안 생성 중...',
+  ctaGenerate: 'AI 브리핑 및 매니저 관점 초안 전체 생성',
+  // AI 브리핑 카드
+  briefingTitle: 'AI 브리핑',
+  collapse: '접기',
+  expand: '펼치기',
+  noBriefing: '브리핑 없음',
+  coachingGuide: '코칭 가이드',
+  memberReport: '멤버 AI 보고서 · 읽기 전용',
+  okrSelf: 'OKR 자가 평가',
+  okrActual: '실제',
+  okrSelfBar: '자가 평가',
+  // 매니저 관점
+  perspective: '매니저 관점',
+  perspectivePrivate: ' (DONE 전까지 멤버 비공개)',
+  edit: '수정',
+  generatingShort: '생성 중',
+  aiDraft: 'AI 초안',
+  confirm: '확정',
+  regenerate: '재생성',
+  confirmed: '확정됨',
+  capHint: '멤버 자가진단 대비 차이가 표시됩니다. 클릭해서 수정 가능합니다.',
+  // 아젠다 & 액션아이템
+  agendaSection: '아젠다 & 액션아이템',
+  memberAgendas: '멤버 제안 아젠다',
+  roleMember: '멤버',
+  managerAgendas: '매니저 추가 아젠다',
+  roleManager: '매니저',
+  remove: '삭제',
+  agendaPlaceholder: '논의 주제 추가 (Enter)',
+  add: '추가',
+  expectedActions: '이번 미팅에서 확정할 액션아이템 (예상)',
+  // 푸터
+  save: '저장',
+  endMeeting: '1on1 종료',
+  startMeeting: '시작하기',
+  startAfterConfirm: '매니저 관점 확정 후 시작 가능({{confirmed}}/{{total}})',
+};
+const fill = (text, vars) =>
+  Object.entries(vars).reduce((acc, [k, v]) => acc.replace(`{{${k}}}`, String(v)), String(text));
+
+// 글자는 `DEFAULT_START_LABELS` 의 키로 가리킨다 — 소비자가 언어에 맞춰 덮는다 (PW-2216).
 const MGR_SECTIONS = [
-  { key: 'strengths', title: '관찰한 강점', badges: SOURCE_BADGES, kind: 'textarea' },
-  { key: 'sbi', title: '개선 피드백 (SBI 형식)', badges: SOURCE_BADGES, hint: ['Situation', 'Behavior', 'Impact'], kind: 'textarea' },
-  { key: 'support', title: '지원 계획', badges: SOURCE_BADGES, kind: 'textarea' },
-  { key: 'caps', title: '역량 매니저 평가', badges: SOURCE_BADGES, kind: 'caps' },
+  { key: 'strengths', titleKey: 'sectionStrengths', kind: 'textarea' },
+  { key: 'sbi', titleKey: 'sectionSbi', hint: ['Situation', 'Behavior', 'Impact'], kind: 'textarea' },
+  { key: 'support', titleKey: 'sectionSupport', kind: 'textarea' },
+  { key: 'caps', titleKey: 'sectionCaps', kind: 'caps' },
 ];
-const TEXTAREA_PLACEHOLDER = 'AI 초안 생성 또는 직접 입력';
 // ── AI 초안 실패 (policy §7.5 · PW-321) ─────────────────────────────────────
 // AI 호출은 반드시 실패한다 — 타임아웃·모델 오류·한도 초과는 장애가 아니라 정상
 // 범위 안의 결과다. 실패를 그릴 자리가 없어서 지금까지 침묵으로 끝났다.
-const AI_FAIL_TARGETS = {
-  all: 'AI 브리핑 및 매니저 관점 초안',
-  strengths: '관찰한 강점',
-  sbi: '개선 피드백',
-  support: '지원 계획',
-  caps: '역량 매니저 평가',
+const AI_FAIL_TARGET_KEYS = {
+  all: 'failTargetAll',
+  strengths: 'failTargetStrengths',
+  sbi: 'failTargetSbi',
+  support: 'failTargetSupport',
+  caps: 'failTargetCaps',
 };
 // 사유는 3분류, 행동은 2가지 — 한도 초과만 `다시 시도` 가 잠긴다 (§7.5.5).
-const AI_FAIL_MESSAGES = {
-  timeout: '생성이 30초를 넘겨 중단됐습니다. 잠시 후 다시 시도해 주세요.',
-  model_error: 'AI 응답을 받지 못했습니다. 잠시 후 다시 시도해 주세요.',
-  quota_exceeded:
-    '이번 달 조직 AI 사용 한도를 모두 썼습니다. 워크스페이스 관리자에게 문의해 주세요.',
+const AI_FAIL_MESSAGE_KEYS = {
+  timeout: 'failTimeout',
+  model_error: 'failModelError',
+  quota_exceeded: 'failQuotaExceeded',
 };
 const AI_FAIL_DEFAULT_REASON = 'model_error';
-const AI_FAIL_EXHAUSTED =
-  '여러 번 시도했지만 생성하지 못했습니다. 직접 입력해 주세요.';
-const AI_FAIL_HINT = '직접 입력해도 됩니다 — AI 없이 저장·제출할 수 있습니다.';
-const AI_FAIL_QUOTA_TOOLTIP = 'AI 사용 한도가 복구되면 다시 시도할 수 있습니다';
 
 /**
  * 인라인 실패 박스 — 실패한 대상 **안**, 입력 바로 위 (policy §7.5.3).
@@ -114,15 +192,15 @@ const AI_FAIL_QUOTA_TOOLTIP = 'AI 사용 한도가 복구되면 다시 시도할
  *
  * 박스의 구조·색은 사유와 무관하게 같다. 달라지는 것은 본문 문구와 버튼 활성뿐.
  */
-function AiFailBox({ targetKey, failure, onRetry, busy }) {
-  const reason = AI_FAIL_MESSAGES[failure?.reason]
+function AiFailBox({ targetKey, failure, onRetry, busy, labels: L = DEFAULT_START_LABELS }) {
+  const reason = AI_FAIL_MESSAGE_KEYS[failure?.reason]
     ? failure.reason
     : AI_FAIL_DEFAULT_REASON;
   const quota = reason === 'quota_exceeded';
   // 한도 초과는 재시도 카운트를 쓰지 않으므로 소진 문구로 넘어가지 않는다.
   const exhausted = !quota && (failure?.retryLeft ?? 0) <= 0;
   const disabled = quota || exhausted || busy;
-  const message = exhausted ? AI_FAIL_EXHAUSTED : AI_FAIL_MESSAGES[reason];
+  const message = exhausted ? L.failExhausted : L[AI_FAIL_MESSAGE_KEYS[reason]];
   return (
     <div
       className="ono-start-failbox"
@@ -131,37 +209,34 @@ function AiFailBox({ targetKey, failure, onRetry, busy }) {
       data-reason={reason}
     >
       <span className="ono-start-failbox-title">
-        ⚠ {AI_FAIL_TARGETS[targetKey] ?? targetKey} 생성에 실패했습니다
+        ⚠ {fill(L.failTitle, { target: L[AI_FAIL_TARGET_KEYS[targetKey]] ?? targetKey })}
       </span>
       <p className="ono-start-failbox-msg">{message}</p>
       <div className="ono-start-failbox-actions">
-        <Tooltip content={quota ? AI_FAIL_QUOTA_TOOLTIP : undefined}>
+        <Tooltip content={quota ? L.failQuotaTooltip : undefined}>
           <button
             type="button"
             className="ono-start-failbox-retry"
             onClick={() => onRetry?.(targetKey)}
             disabled={disabled}
           >
-            다시 시도
+            {L.retry}
           </button>
         </Tooltip>
-        <span className="ono-start-failbox-hint">{AI_FAIL_HINT}</span>
+        <span className="ono-start-failbox-hint">{L.failHint}</span>
       </div>
     </div>
   );
 }
-const AI_WARN =
-  'AI 초안 — 반드시 검토 후 확정해주세요. 미확정 내용은 DONE 피드백에 반영되지 않습니다.';
-const EMPTY_HINT = '아직 수집된 데이터가 없습니다.';
-
 // 역량 매니저 평가 5개 항목 — 매니저가 직접 1-5 클릭으로 입력하는 고정 항목.
 // 멤버 자가진단 값은 data.capabilities 로 override (없으면 0 = 미입력).
+// 글자는 `DEFAULT_START_LABELS` 의 키로 가리킨다 (PW-2216).
 const DEFAULT_CAPABILITIES = [
-  { key: 'expertise', label: '업무 전문성' },
-  { key: 'communication', label: '커뮤니케이션' },
-  { key: 'problemSolving', label: '문제 해결력' },
-  { key: 'teamwork', label: '협업 / 팀워크' },
-  { key: 'selfDriven', label: '자가주도성' },
+  { key: 'expertise', labelKey: 'capExpertise' },
+  { key: 'communication', labelKey: 'capCommunication' },
+  { key: 'problemSolving', labelKey: 'capProblemSolving' },
+  { key: 'teamwork', labelKey: 'capTeamwork' },
+  { key: 'selfDriven', labelKey: 'capSelfDriven' },
 ];
 
 function formatElapsed(sec) {
@@ -317,7 +392,10 @@ export default function StartOneOnOneView({
   onStartBlocked,
   busy = false,
   busyLabel = null,
+  // 화면 문구 묶음 — 키는 `DEFAULT_START_LABELS`. 빠진 키는 기본 한국어 (PW-2216).
+  labels,
 }) {
+  const L = useMemo(() => ({ ...DEFAULT_START_LABELS, ...(labels ?? {}) }), [labels]);
   const briefing = data?.briefing ?? null;
   const memberReport = data?.memberReport ?? null;
   const okrSelf = data?.okrSelf ?? [];
@@ -329,9 +407,10 @@ export default function StartOneOnOneView({
     );
     return DEFAULT_CAPABILITIES.map((c) => ({
       ...c,
+      label: L[c.labelKey],
       value: overrides.get(c.key) ?? 0,
     }));
-  }, [data?.capabilities]);
+  }, [data?.capabilities, L]);
   const memberAgendas = data?.memberAgendas ?? [];
   const initialMgrAgendas = useMemo(() => data?.initialMgrAgendas ?? [], [data?.initialMgrAgendas]);
   // 멤버 준비도: 멤버 READY 화면(별도) 의 7 섹션 진행도. 백엔드에서 계산해 props 로
@@ -612,19 +691,19 @@ export default function StartOneOnOneView({
             const memberColor = 'var(--text-brand-primary, #2563EB)';
             const rows = [
               {
-                who: member?.name ?? '팀원',
+                who: member?.name ?? L.memberFallback,
                 pct: memberReadyPct,
                 color: memberColor,
               },
               {
-                who: '나 (매니저)',
+                who: L.meManager,
                 pct: managerReadyPct,
                 color: managerColor,
               },
             ];
             return (
               <div className="ono-start-section">
-                <span className="ono-start-section-title">준비도</span>
+                <span className="ono-start-section-title">{L.readiness}</span>
                 <div className="ono-start-prep">
                   {rows.map((b) => (
                     <div key={b.who} className="ono-start-prep-row">
@@ -650,9 +729,9 @@ export default function StartOneOnOneView({
             <div className="ono-start-cta is-done">
               <span className="ono-start-cta-left">
                 <Icon src="/icons-solid/check-circle.svg" size={20} color="var(--utility-purple-500, #7a5af8)" baseUrl={baseUrl} />
-                AI 초안 생성 완료 — {confirmedCount}/{activeTotal} 항목 확정됨
+                {fill(L.ctaDone, { confirmed: confirmedCount, total: activeTotal })}
               </span>
-              <span className="ono-start-cta-hint">검토 후 확정하세요</span>
+              <span className="ono-start-cta-hint">{L.ctaDoneHint}</span>
             </div>
           ) : (
             <button
@@ -663,8 +742,8 @@ export default function StartOneOnOneView({
             >
               <Icon src="/icons-solid/ai-chat-01.svg" size={20} color="var(--text-white)" baseUrl={baseUrl} />
               {generatingSection === 'all'
-                ? 'AI 초안 생성 중...'
-                : 'AI 브리핑 및 매니저 관점 초안 전체 생성'}
+                ? L.ctaGenerating
+                : L.ctaGenerate}
             </button>
           )}
 
@@ -675,6 +754,7 @@ export default function StartOneOnOneView({
               failure={failureOf('all')}
               onRetry={retryGenerate}
               busy={isGenerating}
+              labels={L}
             />
           )}
 
@@ -683,15 +763,15 @@ export default function StartOneOnOneView({
             <div className="ono-start-briefing-head">
               <span className="ono-start-briefing-title">
                 <Icon src="/icons-solid/ai-chat-01.svg" size={14} color="#ad00fe" baseUrl={baseUrl} />
-                AI 브리핑
+                {L.briefingTitle}
               </span>
               {briefingOpen ? (
-                <button type="button" className="ono-start-briefing-toggle" onClick={() => setBriefingOpen(false)}>접기</button>
+                <button type="button" className="ono-start-briefing-toggle" onClick={() => setBriefingOpen(false)}>{L.collapse}</button>
               ) : briefing ? (
-                <button type="button" className="ono-start-briefing-toggle" onClick={() => setBriefingOpen(true)}>펼치기</button>
+                <button type="button" className="ono-start-briefing-toggle" onClick={() => setBriefingOpen(true)}>{L.expand}</button>
               ) : (
                 <span className="ono-start-briefing-toggle is-disabled" aria-disabled="true">
-                  브리핑 없음
+                  {L.noBriefing}
                 </span>
               )}
             </div>
@@ -717,7 +797,7 @@ export default function StartOneOnOneView({
                 </div>
                 {(briefing.coachingGuide ?? []).length > 0 && (
                   <div className="ono-start-briefing-block">
-                    <span className="ono-start-briefing-subtitle">코칭 가이드</span>
+                    <span className="ono-start-briefing-subtitle">{L.coachingGuide}</span>
                     {briefing.coachingGuide.map((g) => (
                       <div key={g.title} className="ono-start-coaching-card">
                         <p className="ono-start-coaching-title">{g.title}</p>
@@ -743,7 +823,7 @@ export default function StartOneOnOneView({
             )}
 
             <div className="ono-start-briefing-block">
-              <span className="ono-start-briefing-subtitle">멤버 AI 보고서 · 읽기 전용</span>
+              <span className="ono-start-briefing-subtitle">{L.memberReport}</span>
               {memberReport ? (
                 <div className="ono-start-report">
                   <p className="ono-start-report-text">{memberReport.text}</p>
@@ -752,12 +832,12 @@ export default function StartOneOnOneView({
                   )}
                 </div>
               ) : (
-                <p className="ono-start-empty-hint">{EMPTY_HINT}</p>
+                <p className="ono-start-empty-hint">{L.emptyHint}</p>
               )}
             </div>
 
             <div className="ono-start-briefing-block">
-              <span className="ono-start-briefing-subtitle">OKR 자가 평가</span>
+              <span className="ono-start-briefing-subtitle">{L.okrSelf}</span>
               {okrSelf.length > 0 ? (
                 <div className="ono-start-okr">
                   {okrSelf.map((k) => (
@@ -765,7 +845,7 @@ export default function StartOneOnOneView({
                       <p className="ono-start-okr-kr">{k.kr}</p>
                       <div className="ono-start-okr-bars">
                         <div className="ono-start-okr-bar">
-                          <span className="ono-start-okr-bar-label">실제</span>
+                          <span className="ono-start-okr-bar-label">{L.okrActual}</span>
                           <div className="ono-start-okr-bar-line">
                             <ProgressBar pct={k.actual ?? 0} />
                             <span className="ono-start-okr-bar-pct">{k.actual ?? 0}%</span>
@@ -773,7 +853,7 @@ export default function StartOneOnOneView({
                         </div>
                         {k.self != null && (
                           <div className="ono-start-okr-bar">
-                            <span className="ono-start-okr-bar-label">자가 평가</span>
+                            <span className="ono-start-okr-bar-label">{L.okrSelfBar}</span>
                             <div className="ono-start-okr-bar-line">
                               <ProgressBar pct={k.self} />
                               <span className="ono-start-okr-bar-pct">{k.self}%</span>
@@ -797,7 +877,7 @@ export default function StartOneOnOneView({
                   )}
                 </div>
               ) : (
-                <p className="ono-start-empty-hint">{EMPTY_HINT}</p>
+                <p className="ono-start-empty-hint">{L.emptyHint}</p>
               )}
             </div>
           </div>
@@ -805,7 +885,7 @@ export default function StartOneOnOneView({
           {/* 매니저 관점 */}
           <div className="ono-start-section">
             <span className="ono-start-section-title">
-              매니저 관점{anyAiGenerated ? ' (DONE 전까지 멤버 비공개)' : ''}
+              {L.perspective}{anyAiGenerated ? L.perspectivePrivate : ''}
             </span>
             <div className="ono-start-mgr">
               {MGR_SECTIONS.map((sec) => {
@@ -813,8 +893,8 @@ export default function StartOneOnOneView({
                   <div key={sec.key} className="ono-start-field">
                     <div className="ono-start-field-head">
                       <div className="ono-start-field-label-row">
-                        <span className="ono-start-field-label">{sec.title}</span>
-                        {sec.badges.map((b) => (
+                        <span className="ono-start-field-label">{L[sec.titleKey]}</span>
+                        {L.sourceBadges.map((b) => (
                           <StatusBadge key={b} className="ono-start-source-badge">{b}</StatusBadge>
                         ))}
                       </div>
@@ -822,7 +902,7 @@ export default function StartOneOnOneView({
                         {/* 확정된 칸은 AI 초안이었든 직접 썼든 [수정] 하나다. 예전엔 AI 초안 여부를
                             먼저 갈라서, 새로고침으로 초안 표시가 사라진 확정 칸에 [AI 초안]이 떴다. */}
                         {confirmed[sec.key] ? (
-                          <button type="button" className="ono-start-edit-btn" onClick={() => toggleConfirm(sec.key)}>수정</button>
+                          <button type="button" className="ono-start-edit-btn" onClick={() => toggleConfirm(sec.key)}>{L.edit}</button>
                         ) : !aiGenerated[sec.key] ? (
                           <>
                             <button
@@ -833,11 +913,11 @@ export default function StartOneOnOneView({
                             >
                               <Icon src="/icons-solid/ai-chat-01.svg" size={14} color="currentColor" baseUrl={baseUrl} />
                               <span>
-                                {generatingSection === sec.key ? '생성 중' : 'AI 초안'}
+                                {generatingSection === sec.key ? L.generatingShort : L.aiDraft}
                               </span>
                             </button>
                             {confirmableByHost(sec.key) && (
-                              <button type="button" className="ono-start-confirm-btn" onClick={() => toggleConfirm(sec.key)}>확정</button>
+                              <button type="button" className="ono-start-confirm-btn" onClick={() => toggleConfirm(sec.key)}>{L.confirm}</button>
                             )}
                           </>
                         ) : (
@@ -848,9 +928,9 @@ export default function StartOneOnOneView({
                               onClick={() => handleGenerate(sec.key)}
                               disabled={isGenerating}
                             >
-                              {generatingSection === sec.key ? '생성 중' : '재생성'}
+                              {generatingSection === sec.key ? L.generatingShort : L.regenerate}
                             </button>
-                            <button type="button" className="ono-start-confirm-btn" onClick={() => toggleConfirm(sec.key)}>확정</button>
+                            <button type="button" className="ono-start-confirm-btn" onClick={() => toggleConfirm(sec.key)}>{L.confirm}</button>
                           </>
                         )}
                       </div>
@@ -863,7 +943,7 @@ export default function StartOneOnOneView({
                       </div>
                     )}
                     {confirmed[sec.key] && (
-                      <span className="ono-start-confirmed-label">✓ 확정됨</span>
+                      <span className="ono-start-confirmed-label">✓ {L.confirmed}</span>
                     )}
                     {/* 실패는 해당 필드 안, 입력 바로 위에 붙는다. 이미 받은 초안이
                         있으면 지우지 않고 그 위에 얹는다 (재생성 실패 · §7.5.2). */}
@@ -873,12 +953,13 @@ export default function StartOneOnOneView({
                         failure={failureOf(sec.key)}
                         onRetry={retryGenerate}
                         busy={isGenerating}
+                        labels={L}
                       />
                     )}
                     {sec.kind === 'textarea' ? (
                       <textarea
                         className={`ono-start-textarea ${aiGenerated[sec.key] && !confirmed[sec.key] ? 'is-ai' : ''}`}
-                        placeholder={TEXTAREA_PLACEHOLDER}
+                        placeholder={L.textareaPlaceholder}
                         value={sectionValue(sec.key)}
                         onChange={(e) => setSectionValue(sec.key, e.target.value)}
                       />
@@ -890,6 +971,7 @@ export default function StartOneOnOneView({
                               <span className="ono-start-cap-label">{c.label}</span>
                               <RatingBar
                                 value={caps[c.key] ?? 0}
+                                labelOf={(n) => fill(L.ratingPoint, { n })}
                                 ai={aiGenerated.caps}
                                 onChange={(v) =>
                                   setCaps((prev) => ({ ...prev, [c.key]: v }))
@@ -898,13 +980,13 @@ export default function StartOneOnOneView({
                             </div>
                           ))}
                         </div>
-                        <p className="ono-start-cap-hint">멤버 자가진단 대비 차이가 표시됩니다. 클릭해서 수정 가능합니다.</p>
+                        <p className="ono-start-cap-hint">{L.capHint}</p>
                       </>
                     )}
                     {aiGenerated[sec.key] && (
                       <p className="ono-start-ai-warn">
                         <Icon src="/icons-solid/alert-triangle.svg" size={12} color="var(--colors-text-textWarningPrimary, #dc6803)" baseUrl={baseUrl} />
-                        {AI_WARN}
+                        {L.aiWarn}
                       </p>
                     )}
                   </div>
@@ -916,33 +998,33 @@ export default function StartOneOnOneView({
           {/* 아젠다 & 액션아이템 — 매니저 모드 전용 뷰. 멤버 제안·예상 액션은
               읽기 전용이며, 매니저는 "매니저 추가 아젠다"만 추가/삭제할 수 있다. */}
           <div className="ono-start-section">
-            <span className="ono-start-section-title">아젠다 &amp; 액션아이템</span>
+            <span className="ono-start-section-title">{L.agendaSection}</span>
             <div className="ono-start-mgr">
               {/* 멤버 제안 아젠다 — 읽기 전용 */}
               <div className="ono-start-field">
-                <span className="ono-start-field-label">멤버 제안 아젠다</span>
+                <span className="ono-start-field-label">{L.memberAgendas}</span>
                 {memberAgendas.length > 0 ? (
                   <div className="ono-start-agenda-list">
                     {memberAgendas.map((a) => (
                       <div key={a} className="ono-start-agenda-item">
-                        <span className="ono-start-agenda-role is-member">멤버</span>
+                        <span className="ono-start-agenda-role is-member">{L.roleMember}</span>
                         <span className="ono-start-agenda-text">{a}</span>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="ono-start-empty-hint">{EMPTY_HINT}</p>
+                  <p className="ono-start-empty-hint">{L.emptyHint}</p>
                 )}
               </div>
               {/* 매니저 추가 아젠다 — 매니저만 추가/삭제 */}
               <div className="ono-start-field">
-                <span className="ono-start-field-label">매니저 추가 아젠다</span>
+                <span className="ono-start-field-label">{L.managerAgendas}</span>
                 <div className="ono-start-agenda-list">
                   {mgrAgendas.map((a) => (
                     <div key={a} className="ono-start-agenda-item">
-                      <span className="ono-start-agenda-role is-manager">매니저</span>
+                      <span className="ono-start-agenda-role is-manager">{L.roleManager}</span>
                       <span className="ono-start-agenda-text">{a}</span>
-                      <button type="button" className="ono-start-agenda-x" aria-label="삭제" onClick={() => removeMgrAgenda(a)}>
+                      <button type="button" className="ono-start-agenda-x" aria-label={L.remove} onClick={() => removeMgrAgenda(a)}>
                         <CloseGlyph size={16} strokeWidth={2.25} />
                       </button>
                     </div>
@@ -951,17 +1033,17 @@ export default function StartOneOnOneView({
                 <div className="ono-start-agenda-add">
                   <input
                     type="text"
-                    placeholder="논의 주제 추가 (Enter)"
+                    placeholder={L.agendaPlaceholder}
                     value={agendaInput}
                     onChange={(e) => setAgendaInput(e.target.value)}
                     onKeyDown={(e) => { if (isEnterKey(e)) { e.preventDefault(); addMgrAgenda(); } }}
                   />
-                  <button type="button" className="ono-start-agenda-add-btn" onClick={addMgrAgenda}>추가</button>
+                  <button type="button" className="ono-start-agenda-add-btn" onClick={addMgrAgenda}>{L.add}</button>
                 </div>
               </div>
               {/* 확정 예상 액션아이템 */}
               <div className="ono-start-field">
-                <span className="ono-start-field-label">이번 미팅에서 확정할 액션아이템 (예상)</span>
+                <span className="ono-start-field-label">{L.expectedActions}</span>
                 {expectedActions.length > 0 ? (
                   <div className="ono-start-agenda-list">
                     {expectedActions.map((a) => (
@@ -979,7 +1061,7 @@ export default function StartOneOnOneView({
                     ))}
                   </div>
                 ) : (
-                  <p className="ono-start-empty-hint">{EMPTY_HINT}</p>
+                  <p className="ono-start-empty-hint">{L.emptyHint}</p>
                 )}
               </div>
             </div>
@@ -1006,13 +1088,13 @@ export default function StartOneOnOneView({
           </div>
         )}
         <div className="ono-start-view-footer">
-          <button type="button" className="ono-add-modal-btn ono-add-modal-btn-secondary" onClick={onBack}>저장</button>
+          <button type="button" className="ono-add-modal-btn ono-add-modal-btn-secondary" onClick={onBack}>{L.save}</button>
           {busy ? (
             <button type="button" className="ono-add-modal-btn ono-start-footer-disabled" disabled>
-              {busyLabel ?? (recording ? '1on1 종료' : '시작하기')}
+              {busyLabel ?? (recording ? L.endMeeting : L.startMeeting)}
             </button>
           ) : recording ? (
-            <button type="button" className="ono-add-modal-btn ono-start-footer-end" onClick={endMeeting}>1on1 종료</button>
+            <button type="button" className="ono-add-modal-btn ono-start-footer-end" onClick={endMeeting}>{L.endMeeting}</button>
           ) : startLocked ? (
             /* 🔴 준비도(0/4) 분기보다 **위**에 있어야 한다 (policy §5.8.3). 준비도는 이
                화면에서 채울 수 있지만 이 잠금은 다른 화면에서 끝내고 와야 풀리므로,
@@ -1023,14 +1105,14 @@ export default function StartOneOnOneView({
                 className="ono-add-modal-btn ono-start-footer-disabled"
                 disabled
               >
-                {startLockedLabel ?? '시작하기'}
+                {startLockedLabel ?? L.startMeeting}
               </button>
             </Tooltip>
           ) : allConfirmed ? (
-            <button type="button" className="ono-add-modal-btn ono-add-modal-btn-primary" onClick={startMeeting}>시작하기</button>
+            <button type="button" className="ono-add-modal-btn ono-add-modal-btn-primary" onClick={startMeeting}>{L.startMeeting}</button>
           ) : (
             <button type="button" className="ono-add-modal-btn ono-start-footer-disabled" disabled>
-              매니저 관점 확정 후 시작 가능({confirmedCount}/{activeTotal})
+              {fill(L.startAfterConfirm, { confirmed: confirmedCount, total: activeTotal })}
             </button>
           )}
         </div>

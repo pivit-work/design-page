@@ -97,7 +97,16 @@ export default function ManagerCanvas({
    * 열 때 `onMemberOpen` 은 부르지 않는다 — 가리킨 쪽이 소비자라 이미 알고 있다.
    */
   requestedMemberId = null,
+  /**
+   * 화면 문구 묶음 (pivit-work PW-2216) — 이 패키지는 i18n 을 모르므로 소비자가 넘긴다. 빠진 키는 기본 한국어.
+   * - `teamMember` 머리글 「팀원」 · `teamMemberCount` 「N명」을 소비자가 만든 글자(없으면 `${teamMemberCount}명`)
+   * - `memberCard` 팀원 카드 [원온원]·[메시지] (`MemberCard` 의 `labels`)
+   * - `profile` 팀원 상세 창 문구 (`ProfileModal` 의 `labels`)
+   */
+  labels,
 }) {
+  const teamMemberLabel = labels?.teamMember ?? '팀원';
+  const teamMemberCountLabel = labels?.teamMemberCount ?? `${teamMemberCount}명`;
   // 🔴 열린 멤버는 **id 로** 기억하고 객체는 지금 props 에서 다시 찾는다.
   // 객체를 통째로 state 에 담아 두면, 모달이 열린 뒤 소비자가 그 멤버의 데이터를
   // 채워 넣어도(예: 「액션 아이템」 탭을 연 뒤에 읽어 오는 PW-182) 모달은 클릭 순간의
@@ -143,9 +152,9 @@ export default function ManagerCanvas({
         </div>
         {teamMemberCount != null && (
           <div className="manager-team-meta">
-            <span className="manager-team-meta-label">팀원</span>
+            <span className="manager-team-meta-label">{teamMemberLabel}</span>
             <span className="manager-team-meta-divider">∙</span>
-            <span className="manager-team-meta-count">{teamMemberCount}명</span>
+            <span className="manager-team-meta-count">{teamMemberCountLabel}</span>
           </div>
         )}
       </header>
@@ -226,6 +235,7 @@ export default function ManagerCanvas({
                 {...m}
                 icons={icons}
                 baseUrl={baseUrl}
+                labels={labels?.memberCard}
                 onCardClick={() => openProfile(m)}
                 onOneOnOneClick={() => onMemberOneOnOne?.(m)}
                 onMessageClick={() => onMemberMessage?.(m)}
@@ -256,6 +266,7 @@ export default function ManagerCanvas({
                 {...m}
                 icons={icons}
                 baseUrl={baseUrl}
+                labels={labels?.memberCard}
                 onCardClick={() => openProfile(m)}
                 onOneOnOneClick={() => onMemberOneOnOne?.(m)}
                 onMessageClick={() => onMemberMessage?.(m)}
@@ -281,6 +292,7 @@ export default function ManagerCanvas({
         onAiBriefingGenerate={onAiBriefingGenerate}
         onAiBriefingReload={onAiBriefingReload}
         aiBriefingNotice={aiBriefingNotice}
+        labels={labels?.profile}
         member={openMember}
         onClose={closeProfile}
         baseUrl={baseUrl}

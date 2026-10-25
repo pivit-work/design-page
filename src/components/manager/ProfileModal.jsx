@@ -88,6 +88,36 @@ function applyTexture(app, objectName, imageSrc) {
  * 달리 **이 모달을 닫지 않는다** — 소비자가 띄우는 창은 이 패널 위에 뜨고 패널은 그대로 둔다.
  * (PW-924 때는 헤더 버튼 줄에 있었는데, 주요 버튼 둘과 같은 크기로 서서 튀어 옮겼다.)
  */
+/**
+ * 화면 문구 기본값(한국어) — 소비자가 `labels` 로 덮는다. 이 패키지는 i18n 을 모른다
+ * (pivit-work PW-2216 · 영어 화면에서도 「종합 브리핑」「1on1 추천 아젠다」 등이 한국어로 남았다).
+ * 미주입 시 시안 그대로다.
+ */
+const DEFAULT_PROFILE_LABELS = {
+  close: '닫기',
+  message: '메시지',
+  tabAi: 'AI 브리핑',
+  tabSnippet: '스니핏',
+  tabHealth: '헬스 트렌드',
+  tabOneOnOne: '1on1',
+  tabAction: '액션 아이템',
+  tabHr: '인사 정보',
+  briefingTitle: '종합 브리핑',
+  agendaTitle: '1on1 추천 아젠다',
+  metricHealthAvg: '헬스 평균',
+  metricSnippetStreak: '스니핏 연속',
+  metricLastOneOnOne: '마지막 1on1',
+  metricKrProgress: 'KR 달성률',
+  aiSummaryWeek: 'AI 요약 · 이번 주',
+  actionTotal: '전체',
+  actionOpen: '미완료',
+  actionDone: '완료',
+  healthCurrent: '현재',
+  healthChange: '변화',
+  teamAverage: '팀 평균',
+  detectedFlags: '감지된 플래그',
+};
+
 export default function ProfileModal({
   member,
   onClose,
@@ -105,7 +135,10 @@ export default function ProfileModal({
   onAiBriefingReload,
   // 「AI 브리핑」 탭 브리핑 카드 바로 아래 칸 — 호스트의 체험 AI 소진 안내 등 (PW-1531)
   aiBriefingNotice,
+  // 화면 문구 묶음 — 키는 `DEFAULT_PROFILE_LABELS`. 빠진 키는 기본 한국어 (PW-2216).
+  labels,
 }) {
+  const L = { ...DEFAULT_PROFILE_LABELS, ...(labels ?? {}) };
   // splineReady/Failed 를 boolean 으로 두면 새 멤버 모달 진입 시 useEffect 로 reset 해야
   // 하는데, react-hooks/set-state-in-effect 룰을 깬다. 대신 "현재 로드 완료된 멤버 id" 와
   // "실패한 멤버 id" 를 저장하고, displayMember?.id 와 비교해 derived 로 쓴다.
@@ -154,15 +187,15 @@ export default function ProfileModal({
   // (PW-182). 데이터가 없으면 탭 자체를 내지 않는다 — 호스트가 아직 안 실어
   // 보내는 화면에서 빈 탭이 늘어나지 않게.
   const TABS = [
-    { key: 'ai', label: 'AI 브리핑' },
-    { key: 'snippet', label: '스니핏' },
-    { key: 'health', label: '헬스 트렌드' },
-    { key: 'oneonone', label: '1on1' },
-    ...(profile?.actionItems ? [{ key: 'action', label: '액션 아이템' }] : []),
+    { key: 'ai', label: L.tabAi },
+    { key: 'snippet', label: L.tabSnippet },
+    { key: 'health', label: L.tabHealth },
+    { key: 'oneonone', label: L.tabOneOnOne },
+    ...(profile?.actionItems ? [{ key: 'action', label: L.tabAction }] : []),
     // 「인사 정보」 탭 (PW-452) — 조직장이 팀원의 인사 항목을 여기서 본다.
     // 액션 아이템 탭과 같은 규칙으로 **데이터가 없으면 탭 자체를 내지 않는다**:
     // 아직 안 실어 보내는 화면에서 빈 탭이 늘어나지 않게.
-    ...(profile?.hrProfile ? [{ key: 'hr', label: '인사 정보' }] : []),
+    ...(profile?.hrProfile ? [{ key: 'hr', label: L.tabHr }] : []),
   ];
 
   // 막·Esc·바깥 누르기·body 포털은 공용 창 바탕이 갖는다(PW-1013). 닫혀 있어도 3D 씬을 미리
@@ -177,7 +210,7 @@ export default function ProfileModal({
         <div className="manager-modal-card" onClick={(e) => e.stopPropagation()}>
           {/* Header (yellow→white gradient + spline + name + ai-rec + buttons) */}
           <div className="manager-modal-header">
-            <button type="button" className="manager-modal-close" onClick={onClose} aria-label="닫기">
+            <button type="button" className="manager-modal-close" onClick={onClose} aria-label={L.close}>
               <CloseGlyph size={20} strokeWidth={2.4} />
             </button>
 
@@ -215,7 +248,7 @@ export default function ProfileModal({
               </button>
               <button type="button" className="manager-modal-btn-secondary" onClick={onMessageClick}>
                 <Icon src={icons?.messageText} size={20} color="var(--text-brand-tertiary)" baseUrl={baseUrl} />
-                <span>메시지</span>
+                <span>{L.message}</span>
               </button>
             </div>
           </div>
@@ -241,19 +274,20 @@ export default function ProfileModal({
                 onGenerate={onAiBriefingGenerate}
                 onReload={onAiBriefingReload}
                 notice={aiBriefingNotice}
+                labels={L}
               />
             )}
             {activeTab === 'snippet' && profile?.snippets && (
-              <SnippetTab profile={profile} icons={icons} baseUrl={baseUrl} onMore={onSnippetsMore} />
+              <SnippetTab profile={profile} icons={icons} baseUrl={baseUrl} onMore={onSnippetsMore} labels={L} />
             )}
             {activeTab === 'health' && profile?.healthTrend && (
-              <HealthTrendTab trend={profile.healthTrend} />
+              <HealthTrendTab trend={profile.healthTrend} labels={L} />
             )}
             {activeTab === 'oneonone' && profile?.oneOnOne && (
-              <OneOnOneTab data={profile.oneOnOne} />
+              <OneOnOneTab data={profile.oneOnOne} labels={L} />
             )}
             {activeTab === 'action' && profile?.actionItems && (
-              <ActionItemsTab data={profile.actionItems} onMore={onActionItemsMore} />
+              <ActionItemsTab data={profile.actionItems} onMore={onActionItemsMore} labels={L} />
             )}
             {activeTab === 'hr' && profile?.hrProfile && (
               <HrProfileTab
@@ -303,7 +337,7 @@ function MetricTile({ label, value }) {
  *    재생성도 `onGenerate`
  * `notice` 는 카드 바로 아래에 그대로 놓는다(체험 AI 소진 안내).
  */
-function AiBriefingTab({ profile, agendas, icons, baseUrl, onGenerate, onReload, notice }) {
+function AiBriefingTab({ profile, agendas, icons, baseUrl, onGenerate, onReload, notice, labels: L }) {
   const ai = profile.aiBriefing;
   const ready = !ai || ai.status === 'ready';
   return (
@@ -311,7 +345,7 @@ function AiBriefingTab({ profile, agendas, icons, baseUrl, onGenerate, onReload,
       <div className="manager-modal-brief-card" data-testid="manager-ai-briefing">
         <div className="manager-modal-brief-label-row">
           <Icon src={icons?.summarySparkle} size={12} color="var(--utility-purple-500)" baseUrl={baseUrl} />
-          <span className="manager-modal-brief-label">종합 브리핑</span>
+          <span className="manager-modal-brief-label">{L.briefingTitle}</span>
           {ai?.status === 'ready' && ai.updatedLabel && (
             <span className="manager-modal-brief-updated">{ai.updatedLabel}</span>
           )}
@@ -371,7 +405,7 @@ function AiBriefingTab({ profile, agendas, icons, baseUrl, onGenerate, onReload,
 
       {ready && agendas.map((a, i) => (
         <div key={i} className="manager-modal-agenda-item">
-          {i === 0 && <p className="manager-modal-agenda-list-title">1on1 추천 아젠다</p>}
+          {i === 0 && <p className="manager-modal-agenda-list-title">{L.agendaTitle}</p>}
           <div className="manager-modal-agenda-content">
             <p className="manager-modal-agenda-heading">{i + 1}. {a.title}</p>
             <p className="manager-modal-agenda-question">{a.question}</p>
@@ -385,10 +419,10 @@ function AiBriefingTab({ profile, agendas, icons, baseUrl, onGenerate, onReload,
       {profile.metrics && (
         <div className="manager-modal-metrics-section">
           <div className="manager-modal-metrics-grid">
-            <MetricTile label="헬스 평균" value={profile.metrics.healthAvg} />
-            <MetricTile label="스니핏 연속" value={profile.metrics.snippetStreak} />
-            <MetricTile label="마지막 1on1" value={profile.metrics.lastOneOnOne} />
-            <MetricTile label="KR 달성률" value={profile.metrics.krProgress} />
+            <MetricTile label={L.metricHealthAvg} value={profile.metrics.healthAvg} />
+            <MetricTile label={L.metricSnippetStreak} value={profile.metrics.snippetStreak} />
+            <MetricTile label={L.metricLastOneOnOne} value={profile.metrics.lastOneOnOne} />
+            <MetricTile label={L.metricKrProgress} value={profile.metrics.krProgress} />
           </div>
         </div>
       )}
@@ -406,14 +440,14 @@ function AiBriefingTab({ profile, agendas, icons, baseUrl, onGenerate, onReload,
  *    카드는 그대로 둔다. 다시 시도도 `onMore` 로 간다
  * 더 남은 것이 없으면 호스트가 `snippetsMore` 를 빼서 버튼이 사라진다.
  */
-function SnippetTab({ profile, icons, baseUrl, onMore }) {
+function SnippetTab({ profile, icons, baseUrl, onMore, labels: L }) {
   return (
     <div className="manager-modal-content-section">
       {/* AI 요약 카드 (이번 주) */}
       <div className="manager-modal-brief-card">
         <div className="manager-modal-brief-label-row">
           <Icon src={icons?.summarySparkle} size={12} color="var(--utility-purple-500)" baseUrl={baseUrl} />
-          <span className="manager-modal-brief-label">AI 요약 · 이번 주</span>
+          <span className="manager-modal-brief-label">{L.aiSummaryWeek}</span>
         </div>
         <p className="manager-modal-brief-text">{profile.snippetsSummary || profile.aiBrief}</p>
       </div>
@@ -532,16 +566,16 @@ function ArrowUpIcon({ size = 16, down = false }) {
  * `data.more` 가 `{ label, loadingLabel, loading }` 이면 버튼, `{ error: { message, retryLabel } }` 이면
  * 실패 문구와 [다시 시도]. 둘 다 `onMore` 로 간다. 더 남은 것이 없으면 호스트가 `more` 를 뺀다.
  */
-function ActionItemsTab({ data, onMore }) {
+function ActionItemsTab({ data, onMore, labels: L }) {
   const items = data.items ?? [];
   const summary = data.summary ?? {};
 
   return (
     <div className="manager-modal-content-section">
       <div className="manager-modal-trend-grid">
-        <MetricTile label="전체" value={summary.total ?? 0} />
-        <MetricTile label="미완료" value={summary.open ?? 0} />
-        <MetricTile label="완료" value={summary.done ?? 0} />
+        <MetricTile label={L.actionTotal} value={summary.total ?? 0} />
+        <MetricTile label={L.actionOpen} value={summary.open ?? 0} />
+        <MetricTile label={L.actionDone} value={summary.done ?? 0} />
       </div>
 
       {items.length === 0 ? (
@@ -567,7 +601,7 @@ function ActionItemsTab({ data, onMore }) {
               <span
                 className="manager-modal-action-check"
                 role="img"
-                aria-label={item.done ? '완료' : '미완료'}
+                aria-label={item.done ? L.actionDone : L.actionOpen}
               >
                 {item.done && (
                   <svg width="9" height="7" viewBox="0 0 9 7" aria-hidden>
@@ -705,12 +739,12 @@ function HrProfileFailure({ notice, onRetry }) {
   );
 }
 
-function OneOnOneTab({ data }) {
+function OneOnOneTab({ data, labels: L }) {
   return (
     <div className="manager-modal-content-section">
       {/* 마지막 1on1 1-grid */}
       <div className="manager-modal-trend-grid manager-modal-oneonone-grid">
-        <MetricTile label="마지막 1on1" value={data.lastDate} />
+        <MetricTile label={L.metricLastOneOnOne} value={data.lastDate} />
       </div>
 
       {/* 1on1 기록 항목들 */}
@@ -724,23 +758,23 @@ function OneOnOneTab({ data }) {
   );
 }
 
-function HealthTrendTab({ trend }) {
+function HealthTrendTab({ trend, labels: L }) {
   return (
     <div className="manager-modal-content-section">
       {/* 3-grid KPI */}
       <div className="manager-modal-trend-grid">
-        <MetricTile label="현재" value={trend.current} />
-        <MetricTile label="변화" value={trend.change} />
-        <MetricTile label="팀 평균" value={trend.teamAvg} />
+        <MetricTile label={L.healthCurrent} value={trend.current} />
+        <MetricTile label={L.healthChange} value={trend.change} />
+        <MetricTile label={L.teamAverage} value={trend.teamAvg} />
       </div>
 
       {/* Chart */}
-      <HealthChart points={trend.points || []} teamAverage={trend.teamAverage} dates={trend.dates || []} />
+      <HealthChart points={trend.points || []} teamAverage={trend.teamAverage} dates={trend.dates || []} teamAverageLabel={L.teamAverage} />
 
       {/* 감지된 플래그 */}
       {trend.flags?.length > 0 && (
         <div className="manager-modal-agenda-item">
-          <p className="manager-modal-agenda-list-title">감지된 플래그</p>
+          <p className="manager-modal-agenda-list-title">{L.detectedFlags}</p>
           <div className="manager-modal-flags">
             {trend.flags.map((f, i) => (
               <p key={i} className={`manager-modal-flag manager-modal-flag-${f.severity}`}>
@@ -758,7 +792,7 @@ function HealthTrendTab({ trend }) {
  * 헬스 트렌드 line chart (SVG).
  * y축 0~10, x축 dates 4개, line + dots + 팀 평균 dashed line.
  */
-function HealthChart({ points, teamAverage, dates }) {
+function HealthChart({ points, teamAverage, dates, teamAverageLabel = '팀 평균' }) {
   const W = 336;
   const H = 150;
   const PAD_LEFT = 24;
@@ -841,7 +875,7 @@ function HealthChart({ points, teamAverage, dates }) {
       {teamAverage != null && (
         <div className="manager-modal-chart-legend">
           <span className="manager-modal-chart-legend-line" />
-          <span>팀 평균 {teamAverage}</span>
+          <span>{teamAverageLabel} {teamAverage}</span>
         </div>
       )}
     </div>
