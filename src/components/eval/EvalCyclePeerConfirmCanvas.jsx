@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import Stack from '../shared/Stack.jsx';
 import { SkeletonList } from '../shared/Skeleton.jsx';
 import { ChevronRightIcon } from './evalIcons.jsx';
 import SearchSelect from '../shared/SearchSelect.jsx';
@@ -562,16 +563,22 @@ export default function EvalCyclePeerConfirmCanvas({
   return (
     <div className="evc-root">
       <header className="evc-header">
-        <div>
+        {/* 복귀 버튼과 제목 사이 12px — 캘리브레이션 표·지난 1on1 의 「목록」 버튼 아래 간격과 같다.
+            버튼은 칸 폭으로 늘어나지 않게 속성 없는 칸에 담는다. */}
+        <Stack gap="lg" testId="evp-page-head">
           {onBack && (
-            <button type="button" className="evc-btn is-ghost" onClick={onBack} data-testid="evp-back">
-              {/* 화살표는 캔버스가 붙인다 — 앱의 번역 문구에는 기호를 두지 않는다(PW-315). */}
-              <span aria-hidden="true">← </span>{L.back}
-            </button>
+            <div>
+              <button type="button" className="evc-btn is-ghost" onClick={onBack} data-testid="evp-back">
+                {/* 화살표는 캔버스가 붙인다 — 앱의 번역 문구에는 기호를 두지 않는다(PW-315). */}
+                <span aria-hidden="true">← </span>{L.back}
+              </button>
+            </div>
           )}
-          <h1 className="evc-title">{L.title}</h1>
-          <p className="evc-summary">{L.subtitle}</p>
-        </div>
+          <div>
+            <h1 className="evc-title">{L.title}</h1>
+            <p className="evc-summary">{L.subtitle}</p>
+          </div>
+        </Stack>
       </header>
 
       {L.feedbackOnlyNotice && (
