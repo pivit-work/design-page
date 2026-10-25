@@ -1100,6 +1100,7 @@ export function HrProfileModal({
               nameOf={(e) => e.school}
               emptyText={L.hrEducationEmpty || '등록된 학력이 없습니다.'}
               addLabel={L.hrEduAdd || '학력 추가'}
+              periodError={L.hrEduEndBeforeStart || '졸업이 입학보다 빠릅니다. 날짜를 고쳐야 저장할 수 있습니다.'}
               {...recordHandlers('education')}
             />
             )}
@@ -1119,6 +1120,7 @@ export function HrProfileModal({
               nameOf={(c) => c.company}
               emptyText={L.hrCareerEmpty || '등록된 경력이 없습니다.'}
               addLabel={L.hrCareerAdd || '경력 추가'}
+              periodError={L.hrCareerEndBeforeStart || '퇴사가 입사보다 빠릅니다. 날짜를 고쳐야 저장할 수 있습니다.'}
               {...recordHandlers('career')}
             />
             <HrRecordListSection
@@ -1337,9 +1339,25 @@ const bodyOf = (fields, form, editing) => {
  * @param {string} props.kind confirmDelete 에 넘기는 종류
  * @param {object} props.labels
  */
+/**
+ * 기간 칸(입사·퇴사, 입학·졸업)이 거꾸로인가 — 내 설정 경력·학력의 «종료가 시작보다 빠름»과 같은 연·월 비교
+ * (pivit-work PW-2218). 이 창의 기간 칸은 안내 글자만 `YYYY-MM` 인 자유 입력이라 `2010.3`·`2010-03-01` 도 읽는다.
+ * 못 읽는 값은 견주지 않는다.
+ */
+const periodMonthOf = (value) => {
+  const m = /^(\d{4})[-./\s]?(\d{1,2})(?:[-./\s]?\d{1,2})?\.?$/.exec(String(value ?? '').trim());
+  if (!m || Number(m[2]) < 1 || Number(m[2]) > 12) return null;
+  return Number(m[1]) * 12 + Number(m[2]) - 1;
+};
+const periodReversed = (form) => {
+  const from = periodMonthOf(form.from);
+  const to = periodMonthOf(form.to);
+  return from !== null && to !== null && to < from;
+};
+
 function HrRecordListSection({
   title, testId, items, fields, render, nameOf, emptyText, addLabel,
-  onSave, onDelete, confirmDelete, kind, labels,
+  onSave, onDelete, confirmDelete, kind, labels, periodError,
 }) {
   const L = labels || {};
   const [form, setForm] = useState(() => emptyForm(fields));
@@ -1362,6 +1380,8 @@ function HrRecordListSection({
   };
 
   const missing = fields.some((f) => f.required && !String(form[f.key] ?? '').trim());
+  // periodError — 기간 칸이 거꾸로일 때 «종료» 칸 아래 띄울 문구. 주면 그때 저장을 막는다(PW-2218).
+  const reversed = Boolean(periodError) && periodReversed(form);
   const submit = async () => {
     const ok = await run(() => onSave(editingId, bodyOf(fields, form, Boolean(editingId))));
     if (ok) { setForm(emptyForm(fields)); setEditingId(null); }
@@ -1417,6 +1437,15 @@ function HrRecordListSection({
                 options={f.options}
                 placeholder={f.placeholder}
               />
+            )).flatMap((pair, i) => (
+              // 마지막 출근일 안내(hr-last-working-date-error)와 같은 자리·모양 — 고칠 칸 바로 아래
+              reversed && fields[i].key === 'to'
+                ? [pair, (
+                  <span key="period-error" style={{ display: 'block', fontSize: 11, color: '#DC2626', paddingLeft: 96 }} role="alert" data-testid={`${testId}-period-error`}>
+                    {periodError}
+                  </span>
+                )]
+                : [pair]
             ))}
             <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 6 }}>
               {error && <span style={{ fontSize: 11, color: '#DC2626' }} role="alert">{L.hrRecordSaveError || '저장하지 못했습니다. 잠시 후 다시 시도해 주세요.'}</span>}
@@ -1430,7 +1459,7 @@ function HrRecordListSection({
                 className="admin-emp-btn is-primary"
                 data-testid={`${testId}-submit`}
                 onClick={submit}
-                disabled={busy || missing}
+                disabled={busy || missing || reversed}
               >
                 {editingId ? (L.hrRecordSave || '저장') : addLabel}
               </button>
