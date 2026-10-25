@@ -64,7 +64,7 @@ export const MEETINGS = [
 export const SNIPPETS = [
   { id: 'sn1', memberId: 'm1', date: '2026-04-13', color: 'brand', text: '평가 사이클 설정 화면 기획.' },
   { id: 'sn2', memberId: 'm1', date: '2026-04-14', color: 'brand', text: '매니저 뷰 상세 4종 화면 기획 완성.' },
-  { id: 'sn3', memberId: 'm1', date: '2026-04-15', color: 'brand', text: '어드민 알림 설정 화면 기획 완료.', hour: 18.5, timeLabel: '오후 6:30', health: 8, tags: ['기획'], canOpen: true, dateLabel: '4월 15일 (수요일)' },
+  { id: 'sn3', memberId: 'm1', date: '2026-04-15', color: 'brand', text: '어드민 알림 설정 화면 기획 완료.', hour: 18.5, timeLabel: '오후 6:30', health: 8, tags: ['기획'], canOpen: true, dateLabel: '4월 15일 (수요일)', filledCount: 3, krs: [{ id: 'k1', label: '평가 사이클 4월 출시' }], projects: [{ id: 'p1', label: '홈페이지 런칭' }, { id: 'p-unresolved', label: '이름을 볼 수 없는 프로젝트 1개', unresolved: true }] },
   { id: 'sn4', memberId: 'm1', date: '2026-04-16', color: 'brand', text: '4차 정기 미팅 참석.' },
   { id: 'sn5', memberId: 'm2', date: '2026-04-13', color: 'blue', text: 'BullMQ 작업큐 기초 구현 완료.' },
   { id: 'sn6', memberId: 'm2', date: '2026-04-15', color: 'blue', text: 'pgvector 인덱스 전략 작성 중.', hour: 20, timeLabel: '오후 8:00', health: 6, healthNote: '피로 누적', tags: ['개발', '블로커'], dateLabel: '4월 15일 (수요일)' },

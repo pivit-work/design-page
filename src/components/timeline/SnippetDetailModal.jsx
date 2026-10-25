@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import ModalLayer from '../shared/ModalLayer.jsx';
-import { ArrowRightGlyph, CloseGlyph } from '../shared/lineIcons.jsx';
+import { CloseGlyph } from '../shared/lineIcons.jsx';
 import useTimelineData from './useTimelineData.js';
 import { memberPalette } from './constants.js';
 import { healthTier, healthLabel } from './snippetHealth.js';
@@ -8,8 +8,9 @@ import { healthTier, healthLabel } from './snippetHealth.js';
 /**
  * SnippetDetailModal — 간트의 스니핏 블록을 클릭하면 뜨는 상세 팝오버.
  *
- * 배치 로직·셸(반경/그림자/닫기 버튼)은 MeetingModal 과 동일하다 — 같은 간트
- * 위에서 열리는 같은 종류의 팝오버라 다르게 생길 이유가 없다. 폭만 좁다(410).
+ * 배치 로직·셸(반경/그림자/닫기 버튼/여백)은 MeetingModal 의 캘린더판(`is-calendar`, 410)과
+ * 같다 — 같은 간트 위에서 열리는 같은 종류의 팝오버라 다르게 생길 이유가 없다.
+ * 본문(머리줄·글·점수·기여 KR·버튼)은 매니저 팀 스니핏 카드(stesslee `.mgr-ts-card`)를 따른다.
  *
  * 본문은 **넘겨받은 것만** 그린다. "누가 무엇까지 볼 수 있는가" 는 앱이 정해서
  * (member 는 팀원의 Summary·Tags·Health 만 — timeline-feed-view-spec §18)
@@ -71,7 +72,7 @@ export default function SnippetDetailModal({ snippet, anchorRect, onClose, onOpe
     <ModalLayer onClose={onClose} className="is-clear">
       <div
         ref={modalRef}
-        className="tl-meeting-modal tl-snippet-detail-modal"
+        className="tl-meeting-modal is-calendar tl-snippet-detail-modal"
         data-testid="tl-snippet-detail"
         style={{ left: pos.left, top: pos.top, opacity: pos.opacity }}
         onClick={(e) => e.stopPropagation()}
@@ -92,7 +93,7 @@ export default function SnippetDetailModal({ snippet, anchorRect, onClose, onOpe
         <div className="tl-meeting-modal-body">
           {/* 작성자 + 작성 시각 */}
           <div className="tl-snippet-detail-head">
-            <div className="tl-snippet-detail-avatar" style={{ borderColor: palette.border }}>
+            <div className="tl-snippet-detail-avatar">
               {member?.photo ? (
                 <img src={member.photo} alt="" />
               ) : (
@@ -115,7 +116,7 @@ export default function SnippetDetailModal({ snippet, anchorRect, onClose, onOpe
             </div>
             {hasHealth && (
               <span
-                className={`tl-snippet-health-label tl-snippet-health-label--${healthTier(snippet.health)}`}
+                className={`tl-snippet-detail-score is-${healthTier(snippet.health)}`}
               >
                 {healthLabel(snippet.health)} {snippet.health}
               </span>
@@ -174,7 +175,6 @@ export default function SnippetDetailModal({ snippet, anchorRect, onClose, onOpe
               }}
             >
               스니핏 전체 보기
-              <ArrowRightGlyph size={16} />
             </button>
           )}
         </div>

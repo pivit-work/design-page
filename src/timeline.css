@@ -1928,47 +1928,31 @@
 
 /* ===========================
    Snippet detail popover (간트 스니핏 블록 클릭)
-   셸은 .tl-meeting-modal 을 그대로 쓰고 폭/본문만 다르다.
+   셸은 회의 창 캘린더판(.tl-meeting-modal.is-calendar, 410 · 머리 띠 60 · 닫기 44 · 여백 48/64)을
+   그대로 쓴다. 본문은 매니저 팀 스니핏 카드(stesslee manager.css .mgr-ts-card*)의 짜임과 값을 따른다.
    =========================== */
-.tl-snippet-detail-modal {
-  width: 410px;
-}
-
-/* 미팅 모달(520px)의 여백은 이 폭에서 과하다 — 팝오버 스케일로 좁힌다. */
-.tl-snippet-detail-modal .tl-meeting-modal-header {
-  height: 44px;
-}
-
-.tl-snippet-detail-modal .tl-meeting-modal-close {
-  top: 10px;
-  right: 10px;
-  width: 32px;
-  height: 32px;
-}
-
 .tl-snippet-detail-modal .tl-meeting-modal-body {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 0 20px 20px 20px;
+  /* 카드 안 간격 — .mgr-ts-card gap 16 */
+  gap: 16px;
   /* 본문은 섹션당 500자까지 들어온다 — 긴 스니핏에서 팝오버가 뷰포트를 넘지
      않도록 본문만 스크롤시킨다(앵커 배치 로직은 화면 밖으로 밀린 높이를
      되돌리지 못한다). */
   max-height: min(60vh, 520px);
   overflow-y: auto;
+  flex-shrink: 1;
 }
 
+/* 머리줄 — .mgr-ts-card-head (gap 12 · 사진 48 원형) */
 .tl-snippet-detail-head {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .tl-snippet-detail-avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  border: 1px solid transparent;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
   overflow: hidden;
   flex-shrink: 0;
 }
@@ -1986,25 +1970,45 @@
   min-width: 0;
 }
 
+/* 이름 — .mgr-ts-card-name 18/700/28 primary */
 .tl-snippet-detail-name {
   margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 24px;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 28px;
   color: var(--text-primary);
 }
 
+/* 날짜·시각·진행도 — .mgr-ts-card-role 12/400/18 secondary */
 .tl-snippet-detail-when {
   margin: 0;
-  font-size: 13px;
+  font-size: 12px;
+  font-weight: 400;
   line-height: 18px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
+/* 헬스 점수 — .mgr-ts-score (good/warn/bad 를 healthTier 의 good/mid/low 에 맞춘다) */
+.tl-snippet-detail-score {
+  flex-shrink: 0;
+  box-sizing: border-box;
+  padding: 4px 10px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 24px;
+  white-space: nowrap;
+}
+.tl-snippet-detail-score.is-good { background: var(--utility-success-50); border: 1px solid var(--utility-success-200); color: var(--utility-success-700); }
+.tl-snippet-detail-score.is-mid { background: var(--utility-warning-50); border: 1px solid var(--utility-warning-200); color: var(--utility-warning-700); }
+.tl-snippet-detail-score.is-low { background: var(--utility-error-50); border: 1px solid var(--utility-error-200); color: var(--utility-error-700); }
+
+/* 본문 — .mgr-ts-card-text 14/600/20 secondary */
 .tl-snippet-detail-text {
   margin: 0;
   font-size: 14px;
-  line-height: 22px;
+  font-weight: 600;
+  line-height: 20px;
   color: var(--text-secondary);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -2013,21 +2017,23 @@
 .tl-snippet-detail-empty {
   margin: 0;
   font-size: 14px;
-  line-height: 22px;
+  font-weight: 600;
+  line-height: 20px;
   color: var(--text-tertiary);
 }
 
 .tl-snippet-detail-note {
   margin: 0;
-  font-size: 13px;
-  line-height: 20px;
-  color: var(--text-tertiary);
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-secondary);
 }
 
+/* 태그 줄 — .mgr-ts-tags gap 8. 칩은 작성 창의 스니핏 태그 칩 그대로 */
 .tl-snippet-detail-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
 }
 
 /* 상세에서 태그는 읽기 전용 — 작성 모달의 chip 과 달리 클릭 대상이 아니다. */
@@ -2035,7 +2041,6 @@
   cursor: default;
 }
 
-/* 연결된 KR·프로젝트 칩 줄 (PW-1514) — 칩은 태그 칩 그대로, 목록 기본 여백만 걷는다. */
 .tl-snippet-detail-links {
   display: flex;
   flex-direction: column;
@@ -2043,12 +2048,13 @@
 }
 
 /* 연결 묶음 — 작은 제목 + 이름 줄. 값은 매니저 팀 스니핏 카드 「기여 KR」
-   (stesslee manager.css .mgr-ts-kr gap 6 · .mgr-ts-kr-label 12/400/18 secondary ·
+   (stesslee manager.css .mgr-ts-kr gap 6 · padding-top 4 · .mgr-ts-kr-label 12/400/18 secondary ·
    .mgr-ts-kr-name 14/600/20 secondary) 그대로. */
 .tl-snippet-detail-link-group {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  padding-top: 4px;
 }
 
 .tl-snippet-detail-link-label {
@@ -2081,27 +2087,21 @@
   color: var(--text-tertiary);
 }
 
+/* 「스니핏 전체 보기」 — 카드 끝 버튼 .mgr-ts-oneonone 그대로 (오른쪽 정렬 · 글자만) */
 .tl-snippet-detail-open {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  align-self: flex-start;
+  align-self: flex-end;
+  box-sizing: border-box;
+  min-width: 127px;
   padding: 8px 14px;
-  border: 1px solid var(--colors-border-borderPrimary);
+  background: var(--bg-quaternary);
+  border: 1px solid var(--border-secondary);
   border-radius: 8px;
-  background: var(--colors-background-bgPrimary);
   font-family: inherit;
   font-size: 14px;
   font-weight: 600;
   line-height: 20px;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: background-color 0.15s, border-color 0.15s;
-}
-
-.tl-snippet-detail-open:hover {
-  background: var(--colors-background-bgSecondary);
 }
 
 /* ===========================
