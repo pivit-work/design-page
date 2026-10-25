@@ -75,7 +75,7 @@ export default function OkrContextAnalysisResult({
         </span>
       </div>
 
-      <p className="okr-ctx-intro-note">{analysis.summary}</p>
+      <p className="okr-ctx-intro-note okr-ctx-analysis-summary">{analysis.summary}</p>
 
       <p className="okr-wz-desc">{L.themes}</p>
       <div className="okr-ai-chips">

@@ -257,6 +257,14 @@ function ParentKrAdd({ label, groups, onPick }) {
     close();
     triggerRef.current?.focus();
   };
+  // ↓·↑ 로 후보 사이를 옮긴다(종전 SearchSelect 와 같은 손놀림). 검색칸에서 ↓ 는 첫 후보로, 첫 후보에서 ↑ 는 검색칸으로.
+  const moveFocus = (from, step) => {
+    const opts = Array.from(panelRef.current?.querySelectorAll('[role="option"]') ?? []);
+    const at = opts.indexOf(from);
+    const next = at + step;
+    if (next < 0) panelRef.current?.querySelector('input')?.focus();
+    else opts[Math.min(next, opts.length - 1)]?.focus();
+  };
 
   return (
     <>
@@ -268,6 +276,12 @@ function ParentKrAdd({ label, groups, onPick }) {
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={() => (open ? close() : setOpen(true))}
+        onKeyDown={(e) => {
+          if (!open && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+            e.preventDefault();
+            setOpen(true);
+          }
+        }}
       >
         {label}
         <ChevronDownGlyph className="okr-cf-select-caret" size={14} />
@@ -293,6 +307,11 @@ function ParentKrAdd({ label, groups, onPick }) {
               value={q}
               onChange={(e) => setQ(e.target.value)}
               onKeyDown={(e) => {
+                if (e.key === 'ArrowDown') {
+                  e.preventDefault();
+                  moveFocus(null, 1);
+                  return;
+                }
                 // 거른 결과의 맨 위를 Enter 로 바로 건다(종전 SearchSelect 와 같은 손놀림).
                 if (isEnterKey(e) && shown[0]) {
                   e.preventDefault();
@@ -327,6 +346,9 @@ function ParentKrAdd({ label, groups, onPick }) {
                         if (isEnterKey(e) || e.key === ' ') {
                           e.preventDefault();
                           pick(it.value);
+                        } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                          e.preventDefault();
+                          moveFocus(e.currentTarget, e.key === 'ArrowDown' ? 1 : -1);
                         }
                       }}
                     >

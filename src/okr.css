@@ -502,6 +502,8 @@ body:has(> .okr-ctx-banner) .tl-group-modal.okr-shell { max-height: calc(100vh -
 /* ── KR 줄 상위 KR 칸 — 연결 태그 + 추가 드롭다운 (okr-policy v4.0 §1.2.4 · PW-1383) ──
    태그는 .okr-p-linked-link.is-purple + 떼기 .okr-cf-x, 추가는 .okr-cf-select pill → .okr-select-menu (PW-2219). */
 .okr-cf-kr-parents { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+/* PW-2219: 긴 상위 KR 이름도 태그가 칸을 넘지 않게 말줄임 — 떼는 × 가 밀려나지 않는다. 전체 이름은 마우스를 올리면 보인다 */
+.okr-cf-kr-parents .okr-p-linked-link { max-width: calc(100% - 40px); overflow: hidden; text-overflow: ellipsis; }
 /* PW-2219: 상위 KR 펼침 — 묶음 머리띠(.okr-cf-group-head)를 줄 폭으로, 긴 KR 이름은 말줄임(전체는 title). 값은 배치뿐 */
 .okr-cf-parent-menu .okr-cf-group-head { flex: 1; }
 .okr-cf-parent-menu .okr-select-item-inner { min-width: 0; }
@@ -588,6 +590,9 @@ body:has(.okr-ctx-banner-flag) .tl-group-modal.okr-wz-modal { height: min(1118px
 .okr-ctx-source-main { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; flex: 1; min-width: 0; overflow-wrap: anywhere; }
 /* 텍스트 소스 본문 미리보기는 두 줄까지(§3-2) — 지금 값 그대로 */
 .okr-ctx-source-preview { white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+/* 공백 없는 긴 링크·파일 이름·사유도 카드 안에서 접는다(옛 break-all 자리), 분석 요약은 AI 가 준 줄바꿈을 지킨다 */
+.okr-ctx-source-body { min-width: 0; overflow-wrap: anywhere; }
+.okr-ctx-analysis-summary { white-space: pre-wrap; overflow-wrap: break-word; }
 /* PW-2219: 소스 추가 — [링크 등록]·[텍스트 추가] 회색 버튼(.okr-ghost-btn) 줄과 입력 칸(.okr-textarea) 묶음 */
 .okr-ctx-add-row { display: flex; align-items: center; gap: 8px; }
 .okr-ctx-composer { display: flex; flex-direction: column; gap: 8px; }
