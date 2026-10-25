@@ -138,6 +138,15 @@ body:has(.okr-ctx-banner) .tl-group-modal.okr-shell { max-height: calc(100vh - 6
 .okr-ai-chips { display: flex; gap: 8px; }
 .okr-ai-chip { flex: 1; padding: 12px; background: var(--utility-purple-100); border-radius: 8px; font-size: 16px; font-weight: 600; line-height: 24px; color: var(--utility-purple-500); }
 
+/* ══ 탭 줄 — 오른쪽 위 버튼 앞에서 멈춘다 (pivit-work PW-2216) ══
+   탭 줄(.content-header)과 버튼(.okr-header-actions)은 서로 모르는 두 고정 상자라 영어처럼 탭 글자가
+   길면 버튼이 탭을 덮었다. 버튼이 있으면 OkrTabNav 가 버튼 왼쪽 끝까지를 재서 머리 폭을 막고,
+   넘치는 탭은 평가 화면 탭 줄(.evnav-domains)처럼 줄바꿈 대신 가로로 민다. 자리가 넉넉하면 종전 그대로다. */
+.okr-tab-header.has-actions { box-sizing: border-box; max-width: var(--okr-tab-header-max); }
+.okr-tab-header .tab-nav { min-width: 0; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.okr-tab-header .tab-nav::-webkit-scrollbar { display: none; }
+.okr-tab-header .tab-nav > span { flex-shrink: 0; white-space: nowrap; }
+
 /* ══ 개인 OKR 탭 ══ */
 .okr-write-btn { position: fixed; top: 86px; right: 32px; z-index: 90; display: flex; align-items: center; gap: 4px; padding: 8px 14px; background: var(--bg-brand-solid); border: none; border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-white); cursor: pointer; }
 .okr-write-btn.is-inline { position: static; }
