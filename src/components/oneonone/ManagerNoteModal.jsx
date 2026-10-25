@@ -47,8 +47,10 @@ const DEFAULT_LABELS = {
  *
  * `memoCount` — 메모 칸 바로 아래 놓을 글자 수 줄(«(n / 10,000자)»). 없으면 아무것도 그리지 않는다.
  *
- * `status` 는 `{ tone, text, retryLabel?, onRetry? }`. 저장에 실패했을 때 `retryLabel` 을 주면
+ * `status` 는 `{ tone, text, target?, retryLabel?, onRetry? }`. 저장에 실패했을 때 `retryLabel` 을 주면
  * 상태 줄 옆에 불러오기 실패와 같은 [다시 시도] 버튼을 그린다(pivit-work PW-1490).
+ * `target` 은 방금 저장한 칸 — `'memo'`(기본)면 메모 글자 수 줄 오른쪽, `'messages'` 면 [추가] 줄
+ * 아래에 그린다. 창 맨 위에 두면 왼쪽 팀원 목록 위라 무엇이 저장됐는지 떨어져 보인다.
  */
 export default function ManagerNoteModal({
   members = [],
@@ -123,6 +125,26 @@ export default function ManagerNoteModal({
     setDraft('');
   };
 
+  const statusTarget = status?.target ?? 'memo';
+  const statusLine = status && (
+    <p
+      className={`omn-status is-${status.tone ?? 'muted'}${status.retryLabel ? ' has-retry' : ''}`}
+      data-testid="manager-note-status"
+    >
+      {status.text}
+      {status.retryLabel && (
+        <button
+          type="button"
+          className="omn-error-retry"
+          onClick={status.onRetry}
+          data-testid="manager-note-save-retry"
+        >
+          {status.retryLabel}
+        </button>
+      )}
+    </p>
+  );
+
   return (
     <ModalShell
       title={labels.title}
@@ -137,25 +159,6 @@ export default function ManagerNoteModal({
       testId="manager-note-modal"
       overlayTestId="manager-note-overlay"
     >
-      {status && (
-        <p
-          className={`omn-status is-${status.tone ?? 'muted'}${status.retryLabel ? ' has-retry' : ''}`}
-          data-testid="manager-note-status"
-        >
-          {status.text}
-          {status.retryLabel && (
-            <button
-              type="button"
-              className="omn-error-retry"
-              onClick={status.onRetry}
-              data-testid="manager-note-save-retry"
-            >
-              {status.retryLabel}
-            </button>
-          )}
-        </p>
-      )}
-
       <div className="omn-body">
         <div className="omn-side">
           <div className="omn-search">
@@ -222,8 +225,13 @@ export default function ManagerNoteModal({
               placeholder={labels.memoPlaceholder}
               onChange={(e) => changeMemo(e.target.value)}
             />
-            {/* 칸 아래 «(n / 최대자)» — 부르는 쪽이 문구를 만들어 넘긴다 (PW-1958). */}
-            {memoCount}
+            {/* 칸 아래 «(n / 최대자)» — 부르는 쪽이 문구를 만들어 넘긴다 (PW-1958). 저장 상태는 같은 줄 오른쪽. */}
+            {(memoCount || (statusLine && statusTarget === 'memo')) && (
+              <div className="omn-field-foot">
+                {memoCount}
+                {statusTarget === 'memo' && statusLine}
+              </div>
+            )}
           </section>
 
           <section className="omn-section">
@@ -278,6 +286,9 @@ export default function ManagerNoteModal({
                   {labels.addButton}
                 </button>
               </div>
+              {statusTarget === 'messages' && statusLine && (
+                <div className="omn-field-foot">{statusLine}</div>
+              )}
             </div>
           </section>
         </div>
