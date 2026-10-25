@@ -106,7 +106,8 @@ const DEFAULT_LABELS = {
   // 담당자 고르기(OkrMemberPicker) 칸 — 비었을 때 글자·검색칸·결과 없음
   ownerPlaceholder: '담당자',
   ownerSearchPlaceholder: '이름 검색...',
-  ownerSearchAriaLabel: '담당자 검색',
+  // 검색칸 접근성 이름은 「{칸 이름} {ownerSearchSuffix}」 — 종전 「KR 담당자 검색」 그대로
+  ownerSearchSuffix: '검색',
   ownerNoResult: '검색 결과 없음',
   initStatus: '실행 항목 상태',
   initTitlePlaceholder: '실행 항목 내용',
@@ -820,7 +821,7 @@ export default function OkrComposeFullModal({
                             ariaLabel={L.krOwner}
                             placeholder={L.ownerPlaceholder}
                             searchPlaceholder={L.ownerSearchPlaceholder}
-                            searchAriaLabel={L.ownerSearchAriaLabel}
+                            searchAriaLabel={`${L.krOwner} ${L.ownerSearchSuffix}`}
                             noResultLabel={L.ownerNoResult}
                             members={members}
                             value={kr.ownerId}
@@ -904,7 +905,7 @@ export default function OkrComposeFullModal({
                                 ariaLabel={L.initOwner}
                                 placeholder={L.ownerPlaceholder}
                                 searchPlaceholder={L.ownerSearchPlaceholder}
-                                searchAriaLabel={L.ownerSearchAriaLabel}
+                                searchAriaLabel={`${L.initOwner} ${L.ownerSearchSuffix}`}
                                 noResultLabel={L.ownerNoResult}
                                 members={members}
                                 value={init.ownerId}
