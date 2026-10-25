@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import Tooltip from '../shared/Tooltip.jsx';
 import useDismissLayer from '../shared/useDismissLayer.js';
+import { isEnterKey } from '../shared/enterKey.js';
 import { ChevronDownGlyph } from '../shared/lineIcons.jsx';
 
 /**
@@ -11,6 +12,9 @@ import { ChevronDownGlyph } from '../shared/lineIcons.jsx';
  *  - 단위 화면: `onClick` — 그 단위 마법사를 바로 연다.
  *  - 단위가 없는 화면(대시보드·내 리소스): `menuItems` 를 주면 쓸 수 있는 단위 메뉴를 연다.
  *  - 권한이 없으면 `disabled` + `title`(툴팁 사유).
+ *
+ * 모양은 디자이너 부품을 쓴다(PW-2219) — 버튼은 [작성] 과 같은 `.okr-write-btn.is-inline`,
+ * 펼친 메뉴는 연도·분기 드롭다운과 같은 `.okr-select-menu` / `.okr-select-item-inner`(OkrSelectMenu).
  *
  * 문구는 전부 소비자가 넘긴다(번역).
  */
@@ -34,13 +38,18 @@ export default function OkrWizardEntryButton({
   // 메뉴 밖을 누르거나 Esc 면 닫는다.
   useDismissLayer(() => setOpen(false), rootRef, null, open);
 
+  const choose = (key) => {
+    setOpen(false);
+    onSelect?.(key);
+  };
+
   return (
     // 꺼진 버튼은 마우스 이벤트를 삼키므로 말풍선이 바깥(dp-tip-wrap)에 걸린다.
-    <div className="okr-wz-entry" ref={rootRef}>
+    <div className="okr-select-wrap okr-wz-entry" ref={rootRef}>
       <Tooltip content={title}>
       <button
         type="button"
-        className="okr-wz-entry-btn"
+        className="okr-write-btn is-inline"
         data-testid={testId}
         disabled={disabled}
         aria-haspopup={hasMenu ? 'menu' : undefined}
@@ -56,17 +65,25 @@ export default function OkrWizardEntryButton({
       </button>
       </Tooltip>
       {hasMenu && open && (
-        <div className="okr-wz-entry-menu" role="menu">
+        <div className="okr-select-menu" role="menu">
           {menuItems.map((item) => (
-            <button
-              type="button"
-              role="menuitem"
-              key={item.key}
-              className="okr-wz-entry-item"
-              onClick={() => { setOpen(false); onSelect?.(item.key); }}
-            >
-              {item.label}
-            </button>
+            <div className="okr-select-item" key={item.key}>
+              {/* 디자이너 항목은 div 다 — 키보드로도 고를 수 있게 초점·Enter·Space 를 받는다. */}
+              <div
+                role="menuitem"
+                tabIndex={0}
+                className="okr-select-item-inner"
+                onClick={() => choose(item.key)}
+                onKeyDown={(e) => {
+                  if (isEnterKey(e) || e.key === ' ') {
+                    e.preventDefault();
+                    choose(item.key);
+                  }
+                }}
+              >
+                <span>{item.label}</span>
+              </div>
+            </div>
           ))}
         </div>
       )}

@@ -168,8 +168,8 @@
 .tl-group-modal.rsx-modal .tl-group-modal-content { overflow-y: auto; padding-bottom: 48px; }
 /* 이 모달은 body 포탈이라 .app 시프트(배너 62px)를 안 받는다 — 배너가 떠 있으면
    오버레이를 배너 아래에서 시작시키고 모달 높이도 배너 몫을 뺀다. */
-body:has(.okr-ctx-banner) > .tl-modal-overlay:has(> .tl-group-modal.rsx-modal) { top: 62px; }
-body:has(.okr-ctx-banner) .tl-group-modal.rsx-modal { height: min(1056px, calc(100vh - 62px - 48px)); }
+body:has(> .okr-ctx-banner) > .tl-modal-overlay:has(> .tl-group-modal.rsx-modal) { top: 62px; }
+body:has(> .okr-ctx-banner) .tl-group-modal.rsx-modal { height: min(1056px, calc(100vh - 62px - 48px)); }
 .rsx-modal-body { display: flex; flex-direction: column; gap: 48px; }
 .rsx-modal-org { display: block; margin-bottom: 8px; font-size: 18px; font-weight: 700; line-height: 28px; color: var(--text-primary); }
 .rsx-modal-members { display: flex; flex-direction: column; gap: 24px; }

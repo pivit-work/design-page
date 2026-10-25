@@ -11,6 +11,10 @@ import { CheckGlyph, ChevronDownGlyph, SearchGlyph } from '../shared/lineIcons.j
  * 상호작용은 어드민 직원시트 FilterMenu(OrgUnitPicker 패턴)를 따른다 —
  * 검색 input + 필터된 리스트 + 바깥 클릭/Escape 닫기.
  *
+ * 모양(PW-2219): 닫힌 칸은 디자이너 원본 작성 창(07-13)의 「담당자 ⌄」 회색 pill(`.okr-cf-select`),
+ * 펼친 패널의 틀은 연도/분기 드롭다운(`.okr-select-menu` — 테두리·둥근 10·그림자). 안쪽 검색칸·사람 줄
+ * (`.okr-cf-pick-search*` · `.okr-cf-pick-opt*`)은 디자이너 부품이 없어 지금 모양 그대로다(design-review).
+ *
  * 패널은 `position: fixed` 로 띄운다. 이 피커는 `.okr-cf-editor`(overflow-y: auto)
  * 안에서 열리는데, absolute 로 두면 스크롤 컨테이너에 잘린다.
  *
@@ -30,9 +34,11 @@ function panelStyle(rect) {
   const flip = below < 180 && above > below;
   const maxHeight = Math.max(120, Math.min(PANEL_MAX_H, flip ? above : below));
   const left = Math.max(EDGE, Math.min(rect.left, window.innerWidth - PANEL_W - EDGE));
+  // .okr-select-menu 는 absolute·top·min-width 100% 를 갖는다 — 화면 고정 자리에서는 top 을 풀고
+  // min-width 를 폭과 같게 묶는다(안 묶으면 min-width 100% 가 화면 폭이 된다).
   return flip
-    ? { position: 'fixed', left, bottom: window.innerHeight - rect.top + GAP, width: PANEL_W, maxHeight }
-    : { position: 'fixed', left, top: rect.bottom + GAP, width: PANEL_W, maxHeight };
+    ? { position: 'fixed', left, top: 'auto', bottom: window.innerHeight - rect.top + GAP, width: PANEL_W, minWidth: PANEL_W, maxHeight }
+    : { position: 'fixed', left, top: rect.bottom + GAP, width: PANEL_W, minWidth: PANEL_W, maxHeight };
 }
 
 
@@ -109,17 +115,17 @@ export default function OkrMemberPicker({
       <button
         type="button"
         ref={triggerRef}
-        className={`okr-cf-pick-trigger${selected ? ' is-filled' : ''}`}
+        className={`okr-cf-select okr-cf-select-btn okr-cf-pick-trigger${selected ? ' is-filled' : ''}`}
         aria-label={ariaLabel}
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={toggle}
       >
         <span className="okr-cf-pick-trigger-text">{selected ? selected.name : placeholder}</span>
-        <ChevronDownGlyph size={12} />
+        <ChevronDownGlyph className="okr-cf-select-caret" size={14} />
       </button>
       {open && (
-        <div className="okr-cf-pick-panel" ref={panelRef} style={panelStyle(rect)}>
+        <div className="okr-select-menu okr-cf-pick-panel" ref={panelRef} style={panelStyle(rect)}>
           <div className="okr-cf-pick-search">
             <SearchGlyph size={14} />
             <input

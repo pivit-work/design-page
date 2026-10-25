@@ -67,7 +67,6 @@ export default function OkrGroupNode({
               objective={objective}
               dragId={`${group.id}:obj:${i}`}
               onClick={() => onOpen(group.id)}
-              stacked={isPerson}
             />
           ))}
           {/* 나머지는 상세 창에서 본다 — 요약 줄을 누른 것과 같은 창이다. */}

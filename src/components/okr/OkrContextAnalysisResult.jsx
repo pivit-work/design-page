@@ -1,6 +1,6 @@
 import { CheckGlyph } from '../shared/lineIcons.jsx';
-import StatusBadge from '../shared/StatusBadge.jsx';
 import AiMark from '../shared/AiMark.jsx';
+import StatusBadge from '../shared/StatusBadge.jsx';
 
 /**
  * OkrContextAnalysisResult — OKR 컨텍스트 AI 분석 결과 카드 (정책 §3-3·§5).
@@ -14,18 +14,13 @@ import AiMark from '../shared/AiMark.jsx';
  *   onConfirm / confirming: [확인 — OKR 마법사에서 사용].
  *   labels: 사용자 노출 문구(호스트가 i18n 으로 해소해 주입). 빠진 키는 아래 기본값.
  *
- * 상자는 OKR 설정 마법사 KR 초안 상자(`.okr-wz-draft`)와 같은 모양 — 확인 전 연보라 + AI 딱지,
- * 확인 뒤 초록 상자 + 회색 「확인됨」 (PW-2035). 아직 확인하지 않은 AI 결과는 경고가 아니라 노랑을 쓰지 않는다.
+ * 생김새 (PW-2219) — 디자이너 부품만 쓴다. 바깥 연회색 카드(.okr-wz-vision-card)는 부르는 쪽이 두른다
+ * (디자이너 컨텍스트 창이 이미 그 카드 안에 결과를 놓는다). 안쪽은 보라 AI 띠(.okr-ai-banner +
+ * .okr-ai-banner-label · 수치 .okr-wz-desc), 요약 .okr-ctx-intro-note, 테마 보라 칩(.okr-ai-chips/.okr-ai-chip),
+ * 확인 버튼 .okr-btn.is-brand.is-sm. 확인 뒤는 초록 상자 대신 띠 안 초록 글자 「확인됨」(.okr-status-text.is-success).
+ * 키워드 칩과 「+ N개」는 디자이너에 작은 칩 부품이 없어 지금 모양을 공용 딱지(StatusBadge + .okr-ctx-kw-chip)로 옮겨 유지한다.
  * 키워드는 10개까지 보이고 나머지는 「+ N개」.
  */
-const C = {
-  font: 'var(--font-family-body)',
-  mono: 'var(--font-family-mono)',
-  card: 'var(--bg-primary)',
-  border: 'var(--border-secondary)',
-  text: 'var(--text-primary)',
-  sub: 'var(--text-tertiary)',
-};
 
 const KEYWORD_VISIBLE = 10;
 
@@ -54,45 +49,24 @@ export default function OkrContextAnalysisResult({
   const confirmed = analysis.status === 'confirmed';
   const themes = analysis.themes || [];
   const keywords = analysis.keywords || [];
-  const chip = {
-    background: C.card,
-    border: `1px solid ${C.border}`,
-    fontSize: 11,
-    color: C.text,
-  };
   return (
     <div
+      className="okr-p-ai"
       data-testid="okr-context-analysis-result"
       data-status={confirmed ? 'confirmed' : 'draft'}
-      className={`okr-wz-draft${confirmed ? ' is-confirmed' : ''}`}
-      style={{ fontFamily: C.font, textAlign: 'left' }}
     >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 8,
-          flexWrap: 'wrap',
-          marginBottom: 10,
-        }}
-      >
-        {confirmed ? (
-          <StatusBadge
-            className="okr-wz-badge"
-            data-testid="okr-context-analysis-badge"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
-          >
-            <CheckGlyph size={12} />
-            {L.badgeConfirmed}
-          </StatusBadge>
-        ) : (
-          <StatusBadge className="okr-ai-tag" data-testid="okr-context-analysis-badge">
-            <AiMark />
-            {L.badgeDraft}
-          </StatusBadge>
-        )}
-        <span style={{ fontSize: 11, color: C.sub, fontWeight: 600 }}>
+      <div className="okr-ai-banner">
+        <div className="okr-ai-banner-label" data-testid="okr-context-analysis-badge">
+          <AiMark />
+          {confirmed ? (
+            <span className="okr-status-text is-success" data-testid="okr-context-analysis-confirmed">
+              <CheckGlyph size={12} /> {L.badgeConfirmed}
+            </span>
+          ) : (
+            L.badgeDraft
+          )}
+        </div>
+        <span className="okr-wz-desc">
           {fill(L.counts, {
             sources: analysis.sourceCount ?? 0,
             keywords: keywords.length,
@@ -101,66 +75,47 @@ export default function OkrContextAnalysisResult({
         </span>
       </div>
 
-      <div
-        style={{
-          fontSize: 13,
-          color: C.text,
-          lineHeight: 1.7,
-          marginBottom: 14,
-          whiteSpace: 'pre-wrap',
-          wordBreak: 'break-word',
-        }}
-      >
-        {analysis.summary}
-      </div>
+      <p className="okr-ctx-intro-note">{analysis.summary}</p>
 
-      <div style={{ fontSize: 11, fontWeight: 700, color: C.sub, marginBottom: 6 }}>{L.themes}</div>
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+      <p className="okr-wz-desc">{L.themes}</p>
+      <div className="okr-ai-chips">
         {themes.map((th, i) => (
-          <span key={i} style={{ ...chip, padding: '5px 10px', borderRadius: 99, fontWeight: 700 }}>
+          <div key={i} className="okr-ai-chip">
             {th}
-          </span>
+          </div>
         ))}
       </div>
 
-      <div style={{ fontSize: 11, fontWeight: 700, color: C.sub, marginBottom: 6 }}>{L.keywords}</div>
-      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 12 }}>
+      <p className="okr-wz-desc">{L.keywords}</p>
+      <div className="okr-ctx-kw">
         {keywords.length === 0 ? (
-          <span style={{ fontSize: 11, color: C.sub }}>{L.noKeywords}</span>
+          <span className="okr-wz-desc">{L.noKeywords}</span>
         ) : (
           keywords.slice(0, KEYWORD_VISIBLE).map((kw, i) => (
-            <span key={i} style={{ ...chip, padding: '4px 9px', borderRadius: 6, fontFamily: C.mono }}>
+            <StatusBadge key={i} className="okr-ctx-kw-chip">
               #{kw}
-            </span>
+            </StatusBadge>
           ))
         )}
         {keywords.length > KEYWORD_VISIBLE && (
-          <span
-            style={{
-              ...chip,
-              padding: '4px 9px',
-              borderRadius: 6,
-              background: 'transparent',
-              border: `1px dashed ${C.border}`,
-              color: C.sub,
-            }}
-          >
+          <StatusBadge className="okr-ctx-kw-chip is-more">
             {fill(L.moreKeywords, { count: keywords.length - KEYWORD_VISIBLE })}
-          </span>
+          </StatusBadge>
         )}
       </div>
 
       {!confirmed && !readOnly && onConfirm && (
-        <button
-          type="button"
-          data-testid="okr-context-analysis-confirm"
-          onClick={onConfirm}
-          disabled={confirming}
-          className="okr-btn is-brand is-sm"
-          style={{ cursor: confirming ? 'wait' : 'pointer' }}
-        >
-          {L.confirm}
-        </button>
+        <div>
+          <button
+            type="button"
+            data-testid="okr-context-analysis-confirm"
+            onClick={onConfirm}
+            disabled={confirming}
+            className="okr-btn is-brand is-sm"
+          >
+            {L.confirm}
+          </button>
+        </div>
       )}
     </div>
   );

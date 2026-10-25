@@ -1,16 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import {
-  AlertTriangleGlyph,
-  ArrowLeftGlyph,
-  ArrowRightGlyph,
-  CheckGlyph,
-  LockGlyph,
-  PencilGlyph,
-} from '../shared/lineIcons.jsx';
+import { ArrowRightGlyph, CheckGlyph, LockGlyph, TrashGlyph } from '../shared/lineIcons.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
-import StatusBadge from '../shared/StatusBadge.jsx';
 import AiMark from '../shared/AiMark.jsx';
-import Chip from '../shared/Chip.jsx';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import Switch from '../shared/Switch.jsx';
 import { SkeletonList } from '../shared/Skeleton.jsx';
 import OkrContextAnalysisResult from './OkrContextAnalysisResult.jsx';
@@ -23,27 +15,33 @@ import { isEnterKey } from '../shared/enterKey.js';
  * 카테고리·탭 없이 하나의 평면 리스트에 소스(문서·링크·메모)를 등록한다.
  * 컨텍스트는 **선택 사항** 이라 0건이어도 OKR 수립은 그대로 진행된다.
  *
- * 아이콘은 이모지가 아니라 인라인 SVG 로 그린다(프로젝트 규약) — 시안의 📎🔗✏️ 를
- * 같은 의미의 라인 아이콘으로 대체했다. 색·여백·레이아웃은 시안을 따른다.
+ * 생김새 (PW-2219): 디자이너(stesslee)가 같은 내용으로 그린 «창» `OkrContextSetupModal`
+ * (.okr-ctx-* · .okr-wz-*, 2026-08-16)을 페이지에 펼친 모양이다. 창에 없는 부분은 같은 OKR 화면의
+ * 디자이너 부품을 원래 뜻대로 빌렸다 — 운영 단위 = 마법사 범위 카드(.okr-wz-scope),
+ * 소스 줄 = 개인 OKR 「연결된 상위 OKR」 카드(.okr-p-linked-card), 입력 칸 = .okr-textarea,
+ * 상태 = .okr-status-text 글자색, 막지 않는 안내 = 연회색(.okr-wz-vision-card).
+ * 소스 추가는 창처럼 드롭존이 늘 보이고 링크·텍스트는 회색 버튼(.okr-ghost-btn)으로 연다.
+ * 디자이너 부품이 없는 자리(하단 고정 바·빨간 실패 상자)는 지금 모양을 개발 클래스로 옮겨 유지한다.
  *
  * 순수 표현 컴포넌트: 데이터·IO 는 전부 props 로 주입받는다.
  *   sources: [{ id, type, title, url, body, fileName, fileSize, pageCount, createdAt, status, statusMessage }]
  *   labels: 모든 사용자 노출 문자열(호스트가 i18n 으로 해소해 주입)
+ *     description / descriptionNote — 머리 아래 안내 두 줄(회색 · 검정). note 가 없으면 한 줄.
  *   canEdit: 편집 권한(어드민). 미지정이면 편집 핸들러 유무로 추정한다(구버전 호환).
  *   onAddUrl / onAddText / onAddFile / onRemove — 미주입이면 열람 전용.
- *   onStartOkr — 다음 퍼널(OKR 설정 마법사)로 나가는 액션. 주면 인라인 「다음 단계」
- *     블록(§3-2A)과 하단 스티키 CTA(§6)가 함께 렌더된다 — 정책상 둘 중 하나만 두지 않는다.
- *     다만 **동시에 보이지는 않는다**: 인라인 블록이 화면 안에 있는 동안 하단 바를 접어
- *     같은 버튼이 두 번 보이지 않게 한다(PW-46 피드백). 스크롤로 인라인 블록이 화면을
+ *   onStartOkr — 다음 퍼널(OKR 설정 마법사)로 나가는 액션. 주면 카드 맨 아래 인라인 푸터
+ *     (§3-2A — 안내 + [OKR 설정 시작])와 하단 스티키 CTA(§6)가 함께 렌더된다 — 정책상 둘 중 하나만 두지 않는다.
+ *     다만 **동시에 보이지는 않는다**: 인라인 푸터의 시작 버튼이 화면 안에 있는 동안 하단 바를 접어
+ *     같은 버튼이 두 번 보이지 않게 한다(PW-46 피드백). 스크롤로 그 버튼이 화면을
  *     벗어나면 하단 바가 다시 나온다 — 전역 앵커 자체를 없애는 게 아니다.
  *   headerAction — 제목 줄 오른쪽 끝에 놓을 요소(예: [OKR 작성 ▾] 단위 메뉴 · okr-policy §2C.2). 없으면 자리도 없다.
- *   onAnalyze — AI 분석(§3-3) 트리거. 어드민 호스트만 주입한다.
+ *   onAnalyze — AI 분석(§3-3) 트리거. 어드민 호스트만 주입한다. 버튼은 분석 절에 하나뿐이다.
  *   analysis — 최신 AI 분석 { summary, themes, keywords, status, sourceCount } 또는 null(분석 전).
- *     `analysis` 나 `onAnalyze` 중 하나라도 주면 「AI 분석 (선택)」 섹션이 그려진다 — 열람자는
- *     결과만 보고 버튼은 꺼진다. 둘 다 없으면 섹션이 없다(구버전 호스트).
- *   analyzing / analyzeFailed — 분석 중 · 실패(빨간 배너 + [다시 시도]).
+ *     `analysis` 나 `onAnalyze` 중 하나라도 주면 「AI 분석 (선택)」 절이 그려진다 — 열람자는
+ *     결과만 보고 버튼은 꺼진다. 둘 다 없으면 절이 없다(구버전 호스트).
+ *   analyzing / analyzeFailed — 분석 중 · 실패(빨간 상자 + [다시 시도]).
  *   onConfirmAnalysis / confirmingAnalysis — [확인 — OKR 마법사에서 사용].
- *   analysisNotice — 분석 섹션 헤더 아래에 그릴 호스트 노드(체험 AI 소진 안내 등, §3-3).
+ *   analysisNotice — 분석 절 머리 아래에 그릴 호스트 노드(체험 AI 소진 안내 등, §3-3).
  *   processingDelayed / onRefresh — 다시 묻기를 60초 넘게 해도 `processing` 이 남았을 때
  *     처리 중 행 캡션을 「처리가 지연되고 있습니다」 + [새로고침] 으로 바꾼다(§3-2).
  *   loadFailed — 목록을 불러오지 못했다. 그때는 0건이어도 빈 상태 안내를 그리지 않는다 — 「없습니다」로
@@ -58,122 +56,11 @@ import { isEnterKey } from '../shared/enterKey.js';
  *     가장 깊은 라벨까지 운영으로 본다. 이 prop·`unitPolicyLoading`·`unitPolicyError` 셋 다
  *     안 주면 칸을 그리지 않는다(구버전 호출부 호환).
  *   unitPolicyLoading / unitPolicyError — 칸 안에 «불러오는 중» / 실패 문구.
- *   onUnitPolicyChange(next) — 칩·스위치를 누르면 바뀐 정책 전체로 부른다. 편집 권한이 없거나
+ *   onUnitPolicyChange(next) — 카드·스위치를 누르면 바뀐 정책 전체로 부른다. 편집 권한이 없거나
  *     미주입이면 칸은 보기만 한다. 저장·실패 되돌리기는 호스트 몫이다.
  */
 
-const T = {
-  font: 'var(--font-family-body)',
-  card: '#fff',
-  border: '#E2E8F0',
-  text: '#0F172A',
-  sub: '#64748B',
-  muted: '#94A3B8',
-  // 주 버튼은 브랜드 초록, 강조 글자·아이콘은 진한 초록, 파일 칸은 회색 점선 — 디자이너 색의 뜻대로 (PW-1936)
-  accent: 'var(--bg-brand-solid)',
-  accentText: 'var(--text-brand-secondary)',
-  // AI 를 돌리는 버튼은 보라 — 마법사 「AI로 다시 추출」과 같은 AI 색 (PW-2035).
-  // 이 화면의 버튼 바탕(card)이 흰색 고정이라, 어두운 화면에서 연보라로 뒤집히는 --utility-purple-500 대신
-  // 테마로 안 뒤집히는 팔레트 보라(밝은 화면 값과 같음)를 쓴다.
-  ai: 'var(--colors-purple-500)',
-  warnBg: '#FFFBEB',
-  warnBd: '#FDE68A',
-  warnText: '#92400E',
-  errBg: '#FEF2F2',
-  errBd: '#FECACA',
-  errText: '#B91C1C',
-  okBg: '#ECFDF5',
-  okBd: '#A7F3D0',
-  okText: '#047857',
-  accentFaint: 'var(--bg-secondary)',
-  accentSoft: 'var(--border-secondary)',
-  dropBorder: 'var(--border-primary)',
-};
-
-const svgProps = {
-  viewBox: '0 0 24 24',
-  fill: 'none',
-  stroke: 'currentColor',
-  strokeWidth: 2,
-  strokeLinecap: 'round',
-  strokeLinejoin: 'round',
-  'aria-hidden': true,
-};
-
-function BrainIcon({ size = 22 }) {
-  return (
-    <svg width={size} height={size} {...svgProps}>
-      <path d="M12 5a3 3 0 0 0-3 3 3 3 0 0 0-1 5.8V16a3 3 0 0 0 4 2.8" />
-      <path d="M12 5a3 3 0 0 1 3 3 3 3 0 0 1 1 5.8V16a3 3 0 0 1-4 2.8" />
-      <path d="M12 5v14" />
-    </svg>
-  );
-}
-function FileIcon({ size = 20 }) {
-  return (
-    <svg width={size} height={size} {...svgProps}>
-      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
-      <path d="M14 3v5h5" />
-    </svg>
-  );
-}
-function LinkIcon({ size = 20 }) {
-  return (
-    <svg width={size} height={size} {...svgProps}>
-      <path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1" />
-      <path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1" />
-    </svg>
-  );
-}
-function TextIcon({ size = 20 }) {
-  return <PencilGlyph size={size} />;
-}
-function UploadIcon({ size = 26 }) {
-  return (
-    <svg width={size} height={size} {...svgProps}>
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-      <path d="M7 9l5-5 5 5" />
-      <path d="M12 4v12" />
-    </svg>
-  );
-}
-function TrashIcon({ size = 16 }) {
-  return (
-    <svg width={size} height={size} {...svgProps}>
-      <path d="M3 6h18" />
-      <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
-      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-    </svg>
-  );
-}
-function LockIcon({ size = 14 }) {
-  return <LockGlyph size={size} />;
-}
-
-function CheckIcon({ size = 12 }) {
-  return <CheckGlyph size={size} />;
-}
-function AlertIcon({ size = 12 }) {
-  return <AlertTriangleGlyph size={size} />;
-}
-/* AI 를 돌리는 버튼의 아이콘 — 1on1 「AI 추천」 태그의 AI 아이콘 그대로 (PW-2035). 색은 버튼 글자색을 따른다. */
-function AiIcon({ size = 14 }) {
-  return <AiMark size={size} color="currentColor" />;
-}
-function ArrowRightIcon({ size = 14 }) {
-  return <ArrowRightGlyph size={size} />;
-}
-function LibraryIcon({ size = 12 }) {
-  return (
-    <svg width={size} height={size} {...svgProps}>
-      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-    </svg>
-  );
-}
-
-const TYPE_ICON = { file: FileIcon, url: LinkIcon, text: TextIcon };
-/** 종류 이름 — 고르기 카드·소스 줄 딱지·추가 칸 머리가 같은 라벨을 쓴다(§3-2 · PW-1507). */
+/** 표시할 종류 이름 — 소스 줄 부가 정보 앞·추가 칸 머리가 같은 라벨을 쓴다(§3-2 · PW-1507). */
 const TYPE_LABEL_KEY = { file: 'typeFile', url: 'typeUrl', text: 'typeText' };
 /** 추가 버튼 이름 — 종류마다 다르다(시안 [링크 등록]·[텍스트 추가]). 없으면 공통 `add`. */
 const SUBMIT_LABEL_KEY = { file: 'submitFile', url: 'submitUrl', text: 'submitText' };
@@ -184,44 +71,16 @@ const URL_PATTERN = /^https?:\/\/.+/i;
  * 소스 추출 상태(§3-2 · 데이터 모델 `ContextSource.status`).
  * 등록만으로는 "끝났다" 를 알 수 없으므로 행이 상태를 말해 준다.
  * 알 수 없는 값(구버전 응답 등)은 `ready` 로 본다 — 코드값이 화면에 새지 않게.
+ * 글자색은 디자이너 상태 글자(.okr-status-text) — 준비됨 초록 · 실패 빨강 · 처리 중 기본 글자색.
  */
 const STATUS_META = {
-  processing: { labelKey: 'statusProcessing' },
-  ready: { labelKey: 'statusReady' },
-  failed: { labelKey: 'statusFailed' },
+  processing: { labelKey: 'statusProcessing', tone: '' },
+  ready: { labelKey: 'statusReady', tone: 'is-success' },
+  failed: { labelKey: 'statusFailed', tone: 'is-error' },
 };
 const normalizeStatus = (status) => (STATUS_META[status] ? status : 'ready');
 const countBy = (sources, status) =>
   sources.filter((s) => normalizeStatus(s.status) === status).length;
-
-function Badge({ children, tone = 'default' }) {
-  const tones = {
-    default: { bg: 'var(--utility-brand-50)', bd: 'var(--utility-brand-200)', color: 'var(--text-brand-secondary)' },
-    muted: { bg: '#F1F5F9', bd: '#E2E8F0', color: '#64748B' },
-    ok: { bg: T.okBg, bd: T.okBd, color: T.okText },
-    err: { bg: T.errBg, bd: T.errBd, color: T.errText },
-  };
-  const t = tones[tone] || tones.default;
-  return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 4,
-        padding: '3px 8px',
-        borderRadius: 99,
-        background: t.bg,
-        border: `1px solid ${t.bd}`,
-        color: t.color,
-        fontSize: 11,
-        fontWeight: 700,
-        whiteSpace: 'nowrap',
-      }}
-    >
-      {children}
-    </span>
-  );
-}
 
 function formatSize(bytes) {
   if (!bytes && bytes !== 0) return '';
@@ -241,124 +100,82 @@ function sourceSubtitle(s, labels) {
   return labels.charCount ? labels.charCount.replace('{{count}}', String(len)) : `${len}`;
 }
 
+/** 소스 한 줄 — 디자이너 «연결된 상위 OKR» 카드(.okr-p-linked-card). */
 function SourceRow({ source, labels, onRemove, delayed, onRefresh }) {
-  const Icon = TYPE_ICON[source.type] || TextIcon;
   const status = normalizeStatus(source.status);
   const meta = STATUS_META[status];
   const failed = status === 'failed';
-  // 처리 중이면 "문서를 읽고 있어요…", 실패면 서버가 준 사유 — 둘 다 없으면 평소 부가정보.
   const stalled = status === 'processing' && delayed;
-  const caption =
-    (stalled && labels.statusDelayed) ||
-    (status === 'processing' && labels.statusProcessingHint) ||
-    (failed && source.statusMessage) ||
-    sourceSubtitle(source, labels);
+  // 처리 중이면 "문서를 읽고 있어요…"(지연이면 지연 안내), 실패면 서버가 준 사유를 따로 빨간 글자로.
+  const note = (stalled && labels.statusDelayed) || (status === 'processing' && labels.statusProcessingHint) || null;
+  const typeLabel = labels[TYPE_LABEL_KEY[source.type]];
   return (
     <div
+      className="okr-p-linked-card"
       data-testid={`okr-context-source-${source.id}`}
       data-status={status}
-      style={{
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: 12,
-        padding: '12px 14px',
-        borderRadius: 10,
-        border: `1px solid ${failed ? T.errBd : T.border}`,
-        background: failed ? T.errBg : T.card,
-      }}
     >
-      <span style={{ color: T.accentText, flexShrink: 0, marginTop: 2 }}>
-        <Icon size={20} />
-      </span>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 13, fontWeight: 800, color: T.text, wordBreak: 'break-word' }}>
-            {source.title}
+      <div className="okr-p-linked-head">
+        <div className="okr-ctx-source-main">
+          <span className="okr-p-linked-name">{source.title}</span>
+          <span
+            className={['okr-status-text', meta.tone].filter(Boolean).join(' ')}
+            data-testid={`okr-context-status-${source.id}`}
+          >
+            {labels[meta.labelKey]}
           </span>
-          {/* 종류 딱지 — 헤더 «선택 사항»과 같은 옅은 회색 알약(§3-2 · PW-1507) */}
-          {labels[TYPE_LABEL_KEY[source.type]] && (
+        </div>
+        {onRemove && (
+          <button
+            type="button"
+            className="okr-icon-btn"
+            aria-label={`${source.title} ${labels.remove}`}
+            data-testid={`okr-context-remove-${source.id}`}
+            onClick={() => onRemove(source.id)}
+          >
+            <TrashGlyph size={16} />
+          </button>
+        )}
+      </div>
+      <div>
+        <p className="okr-p-linked-sub">
+          {/* 종류 이름은 부가 정보 앞에 — 「텍스트 · 67자」(§3-2 · PW-1507) */}
+          {typeLabel && (
             <span data-testid={`okr-context-type-badge-${source.id}`}>
-              <Badge tone="muted">{labels[TYPE_LABEL_KEY[source.type]]}</Badge>
+              {typeLabel}
+              {' · '}
             </span>
           )}
-          {/* 매니저 KR 드릴다운의 상태 알약 모양 — 처리 중 파랑 · 준비됨 초록 · 실패 빨강 (PW-2035) */}
-          <StatusBadge className={`okr-src-pill is-${status}`} data-testid={`okr-context-status-${source.id}`}>
-            {labels[meta.labelKey]}
-          </StatusBadge>
-        </div>
-        <div
-          style={{
-            fontSize: 11,
-            color: failed ? T.errText : T.muted,
-            marginTop: 3,
-            wordBreak: 'break-all',
-          }}
-        >
-          {caption}
-          {stalled && onRefresh && (
-            <button
-              type="button"
-              data-testid={`okr-context-refresh-${source.id}`}
-              onClick={onRefresh}
-              style={{
-                marginLeft: 6,
-                padding: 0,
-                border: 'none',
-                background: 'none',
-                color: T.accentText,
-                fontFamily: T.font,
-                fontSize: 11,
-                fontWeight: 700,
-                textDecoration: 'underline',
-                cursor: 'pointer',
-              }}
-            >
-              {labels.refresh}
-            </button>
-          )}
-        </div>
-        {source.type === 'text' && source.body ? (
-          <p
-            style={{
-              margin: '8px 0 0',
-              fontSize: 12,
-              color: T.sub,
-              lineHeight: 1.6,
-              whiteSpace: 'pre-wrap',
-              // 미리보기는 두 줄까지(§3-2) — 긴 메모가 목록을 밀어내지 않게.
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
-              overflow: 'hidden',
-            }}
-          >
-            {source.body}
+          {sourceSubtitle(source, labels)}
+        </p>
+        {note && (
+          <p className="okr-p-linked-sub" data-testid={`okr-context-note-${source.id}`}>
+            {note}
+            {stalled && onRefresh && (
+              <>
+                {' '}
+                <button
+                  type="button"
+                  className="okr-ghost-btn"
+                  data-testid={`okr-context-refresh-${source.id}`}
+                  onClick={onRefresh}
+                >
+                  {labels.refresh}
+                </button>
+              </>
+            )}
           </p>
+        )}
+        {failed && source.statusMessage && (
+          <p className="okr-status-badge is-error" data-testid={`okr-context-reason-${source.id}`}>
+            {source.statusMessage}
+          </p>
+        )}
+        {source.type === 'text' && source.body ? (
+          // 미리보기는 두 줄까지(§3-2) — 긴 메모가 목록을 밀어내지 않게.
+          <p className="okr-p-linked-sub okr-ctx-source-preview">{source.body}</p>
         ) : null}
       </div>
-      {onRemove && (
-        <button
-          type="button"
-          aria-label={`${source.title} ${labels.remove}`}
-          data-testid={`okr-context-remove-${source.id}`}
-          onClick={() => onRemove(source.id)}
-          style={{
-            flexShrink: 0,
-            width: 28,
-            height: 28,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: 8,
-            border: `1px solid ${T.border}`,
-            background: T.card,
-            color: T.sub,
-            cursor: 'pointer',
-          }}
-        >
-          <TrashIcon />
-        </button>
-      )}
     </div>
   );
 }
@@ -376,15 +193,10 @@ const DROPZONE_FALLBACK = {
 };
 
 /**
- * 파일 소스용 드롭존(PW-163).
+ * 파일 소스용 드롭존(PW-163) — 디자이너 컨텍스트 창의 드롭존(.okr-ctx-dropzone) 그대로, 늘 보인다.
  *
- * 브라우저 기본 `<input type="file">` 은 내부 버튼을 스타일링할 수 없어, 같은 카드의
- * 다른 입력들과 폰트·높이·모서리가 전부 어긋났다. 그래서 input 은 숨기고 클릭 가능한
- * 점선 영역을 대신 그린다 — 이 저장소의 다른 업로드 화면(직원 CSV 임포트,
- * 조직 스냅샷)이 이미 쓰는 패턴이다.
- *
- * 고른 뒤에는 파일명·용량과 [제거] 를 함께 보여 준다. 등록된 소스 행에는 용량이 보이는데
- * 정작 고르는 시점엔 안 보여서, 잘못 골랐는지 확인할 방법이 없었다.
+ * 브라우저 기본 `<input type="file">` 은 숨기고 클릭·끌어 놓기 영역을 대신 그린다.
+ * 고른 뒤에는 파일명·용량을 같은 자리에 보여 준다 — 잘못 골랐는지 확인할 수 있게.
  */
 function FileDropzone({ labels, file, onPick }) {
   const inputRef = useRef(null);
@@ -399,112 +211,75 @@ function FileDropzone({ labels, file, onPick }) {
   const openPicker = () => inputRef.current?.click();
 
   return (
-    <div>
-      <div
-        data-testid="okr-context-dropzone"
-        data-dragging={dragging ? 'true' : 'false'}
-        data-loaded={file ? 'true' : 'false'}
-        role="button"
-        tabIndex={0}
+    <div
+      className={`okr-ctx-dropzone${dragging ? ' is-dragover' : ''}`}
+      data-testid="okr-context-dropzone"
+      data-dragging={dragging ? 'true' : 'false'}
+      data-loaded={file ? 'true' : 'false'}
+      role="button"
+      tabIndex={0}
+      aria-label={L.typeFile}
+      onClick={openPicker}
+      onKeyDown={(e) => {
+        if (isEnterKey(e) || e.key === ' ') {
+          e.preventDefault();
+          openPicker();
+        }
+      }}
+      // 기본 동작(파일을 새 탭으로 열기)을 막지 않으면 드롭이 화면을 통째로 갈아치운다.
+      onDragOver={(e) => {
+        e.preventDefault();
+        setDragging(true);
+      }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setDragging(false);
+        pickFirst(e.dataTransfer?.files);
+      }}
+    >
+      <input
+        ref={inputRef}
+        type="file"
+        hidden
         aria-label={L.typeFile}
-        onClick={openPicker}
-        onKeyDown={(e) => {
-          if (isEnterKey(e) || e.key === ' ') {
-            e.preventDefault();
-            openPicker();
-          }
+        data-testid="okr-context-file-input"
+        onChange={(e) => {
+          pickFirst(e.target.files);
+          e.target.value = '';
         }}
-        // 기본 동작(파일을 새 탭으로 열기)을 막지 않으면 드롭이 화면을 통째로 갈아치운다.
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragging(true);
-        }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setDragging(false);
-          pickFirst(e.dataTransfer?.files);
-        }}
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 8,
-          padding: file ? '18px 16px' : '26px 16px',
-          textAlign: 'center',
-          cursor: 'pointer',
-          boxSizing: 'border-box',
-          borderRadius: 10,
-          border: `1px dashed ${dragging || file ? T.accent : T.dropBorder}`,
-          background: T.accentFaint,
-          transition: 'border-color .15s, background .15s',
-        }}
-      >
-        <input
-          ref={inputRef}
-          type="file"
-          aria-label={L.typeFile}
-          data-testid="okr-context-file-input"
-          onChange={(e) => pickFirst(e.target.files)}
-          style={{ display: 'none' }}
-        />
-        <span style={{ color: dragging || file ? T.accentText : T.muted }}>
-          {file ? <FileIcon size={22} /> : <UploadIcon />}
-        </span>
+      />
+      <span className="okr-ctx-dropzone-icon" aria-hidden>
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.67" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M8 16.24A4.5 4.5 0 0 1 6.5 7.5a6 6 0 0 1 11.7 1.6A3.75 3.75 0 0 1 17 16.24M12 12v9m0-9-3.5 3.5M12 12l3.5 3.5" />
+        </svg>
+      </span>
+      <div className="okr-ctx-dropzone-texts">
         {file ? (
-          <div
-            data-testid="okr-context-file-picked"
-            style={{ fontSize: 13, fontWeight: 800, color: T.text, overflowWrap: 'anywhere' }}
-          >
-            {file.name}
-            <span style={{ fontWeight: 600, color: T.sub }}>
-              {' · '}
-              {formatSize(file.size)}
-            </span>
-          </div>
+          <p className="okr-ctx-dropzone-action" data-testid="okr-context-file-picked">
+            <b>{file.name}</b>
+            <span className="okr-ctx-dropzone-or">{formatSize(file.size)}</span>
+          </p>
         ) : (
-          <>
-            <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>
+          <p className="okr-ctx-dropzone-action">
+            <b>
               {dragging
                 ? L.dropzoneHere || DROPZONE_FALLBACK.dropzoneHere
                 : L.dropzoneHint || DROPZONE_FALLBACK.dropzoneHint}
-            </div>
-            <div style={{ fontSize: 11, color: T.muted }}>
-              {L.dropzoneFormats || DROPZONE_FALLBACK.dropzoneFormats}
-            </div>
-          </>
+            </b>
+          </p>
         )}
+        <p className="okr-ctx-dropzone-hint">{L.dropzoneFormats || DROPZONE_FALLBACK.dropzoneFormats}</p>
       </div>
-      {file && (
-        <div style={{ marginTop: 6, textAlign: 'right' }}>
-          <button
-            type="button"
-            data-testid="okr-context-file-remove"
-            onClick={() => onPick(null)}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 4,
-              padding: 0,
-              background: 'transparent',
-              border: 'none',
-              cursor: 'pointer',
-              fontFamily: T.font,
-              fontSize: 12,
-              fontWeight: 700,
-              color: T.sub,
-            }}
-          >
-            <TrashIcon size={13} />
-            {L.removeFile || DROPZONE_FALLBACK.removeFile}
-          </button>
-        </div>
-      )}
     </div>
   );
 }
 
-function AddSourceComposer({ labels, onAddUrl, onAddText, onAddFile, onCancel, busy, maxFileSize, maxTextLength }) {
+/**
+ * 소스 추가 — 드롭존이 늘 보이고, 그 아래 [링크 등록]·[텍스트 추가] 회색 버튼(.okr-ghost-btn).
+ * 파일을 고르거나 버튼을 누르면 그 종류의 입력 칸이 버튼 자리에 열린다(종류 고르기 단계 없음 · PW-2219).
+ */
+function SourceAdder({ labels, onAddUrl, onAddText, onAddFile, busy, maxFileSize, maxTextLength }) {
   const [type, setType] = useState(null);
   const [urlVal, setUrlVal] = useState('');
   const [title, setTitle] = useState('');
@@ -516,16 +291,18 @@ function AddSourceComposer({ labels, onAddUrl, onAddText, onAddFile, onCancel, b
   const textTooLong = !!maxTextLength && textLength > maxTextLength;
   const urlInvalid = type === 'url' && !!error && error === labels.errorUrlInvalid;
 
-  const inputStyle = {
-    width: '100%',
-    boxSizing: 'border-box',
-    padding: '9px 11px',
-    borderRadius: 8,
-    border: `1px solid ${T.border}`,
-    fontFamily: T.font,
-    fontSize: 13,
-    color: T.text,
-    outline: 'none',
+  // 닫으면 쓰던 입력은 버린다 — 다른 종류 칸에 남은 값이 섞이지 않게.
+  const reset = () => {
+    setType(null);
+    setUrlVal('');
+    setTitle('');
+    setBody('');
+    setFile(null);
+    setError('');
+  };
+  const open = (next) => {
+    reset();
+    setType(next);
   };
 
   const submit = async () => {
@@ -553,347 +330,193 @@ function AddSourceComposer({ labels, onAddUrl, onAddText, onAddFile, onCancel, b
         }
         await onAddFile({ file, title: title.trim() });
       }
-      onCancel();
+      reset();
     } catch (e) {
       setError(e?.message || labels.errorGeneric);
     }
   };
 
-  if (!type) {
-    const TYPES = [
-      { id: 'file', label: labels.typeFile, desc: labels.typeFileDesc, Icon: FileIcon },
-      { id: 'url', label: labels.typeUrl, desc: labels.typeUrlDesc, Icon: LinkIcon },
-      { id: 'text', label: labels.typeText, desc: labels.typeTextDesc, Icon: TextIcon },
-    ];
-    return (
-      <div
-        data-testid="okr-context-type-picker"
-        style={{
-          padding: 14,
-          borderRadius: 12,
-          border: `1px dashed ${T.dropBorder}`,
-          background: T.accentFaint,
-        }}
-      >
-        <div style={{ fontSize: 12, fontWeight: 800, color: T.text, marginBottom: 10 }}>
-          {labels.pickType}
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-          {TYPES.map((st) => (
-            <button
-              key={st.id}
-              type="button"
-              data-testid={`okr-context-type-${st.id}`}
-              onClick={() => setType(st.id)}
-              style={{
-                padding: '14px 12px',
-                borderRadius: 10,
-                textAlign: 'left',
-                border: `1px solid ${T.border}`,
-                background: T.card,
-                cursor: 'pointer',
-                fontFamily: T.font,
-              }}
-            >
-              <div style={{ color: T.accentText, marginBottom: 6 }}>
-                <st.Icon size={20} />
-              </div>
-              <div style={{ fontSize: 13, fontWeight: 800, color: T.text, marginBottom: 2 }}>
-                {st.label}
-              </div>
-              <div style={{ fontSize: 11, color: T.muted, lineHeight: 1.4 }}>{st.desc}</div>
-            </button>
-          ))}
-        </div>
-        <div style={{ marginTop: 12, textAlign: 'right' }}>
-          <button type="button" onClick={onCancel} style={ghostBtn}>
-            {labels.cancel}
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div
-      data-testid="okr-context-composer"
-      style={{
-        padding: 14,
-        borderRadius: 12,
-        border: `1px dashed ${T.dropBorder}`,
-        background: T.accentFaint,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 10,
-      }}
-    >
-      {/* 고른 종류와 [← 타입 변경] — 취소하고 다시 열지 않아도 종류를 바꾼다(§3-2 · PW-1507). */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ color: T.accentText, display: 'flex' }}>
-          {(() => {
-            const Icon = TYPE_ICON[type] || TextIcon;
-            return <Icon size={18} />;
-          })()}
-        </span>
-        <span style={{ fontSize: 12, fontWeight: 800, color: T.text }} data-testid="okr-context-composer-type">
-          {(labels.composerTitle || '{{type}}').replace('{{type}}', labels[TYPE_LABEL_KEY[type]] || '')}
-        </span>
-        {labels.changeType && (
-          <button
-            type="button"
-            data-testid="okr-context-change-type"
-            onClick={() => {
-              // 고르기로 돌아가면 쓰던 입력은 버린다 — 다른 종류 칸에 남은 값이 섞이지 않게.
-              setType(null);
-              setUrlVal('');
-              setTitle('');
-              setBody('');
-              setFile(null);
-              setError('');
-            }}
-            style={{
-              ...ghostBtn,
-              marginLeft: 'auto',
-              padding: '4px 10px',
-              fontSize: 11,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 4,
-            }}
-          >
-            <ArrowLeftGlyph size={12} />
-            {labels.changeType}
-          </button>
-        )}
-      </div>
-      {type === 'url' && (
-        <input
-          // 형식 오류면 칸 테두리도 빨갛게(§4·§9 「인라인 빨강 보더」)
-          style={urlInvalid ? { ...inputStyle, border: `1px solid ${T.errBd}` } : inputStyle}
-          aria-invalid={urlInvalid || undefined}
-          placeholder={labels.urlPlaceholder}
-          aria-label={labels.typeUrl}
-          value={urlVal}
-          onChange={(e) => setUrlVal(e.target.value)}
-        />
-      )}
-      {type === 'file' && (
+    <>
+      {onAddFile && (
         <FileDropzone
           labels={labels}
-          file={file}
+          file={type === 'file' ? file : null}
           onPick={(next) => {
-            setFile(next);
+            if (next) {
+              if (type !== 'file') open('file');
+              setFile(next);
+            } else {
+              // 제거해도 파일 칸은 열어 둔다 — 다른 파일을 바로 고를 수 있게.
+              setFile(null);
+            }
             setError('');
           }}
         />
       )}
-      <input
-        style={inputStyle}
-        placeholder={labels.titlePlaceholder}
-        aria-label={labels.titleLabel}
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-      />
-      {type === 'text' && (
-        <textarea
-          style={{ ...inputStyle, height: 132, resize: 'vertical', lineHeight: 1.6 }}
-          placeholder={labels.textPlaceholder}
-          aria-label={labels.typeText}
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-        />
-      )}
-      {type === 'text' && maxTextLength && labels.textCounter && (
-        <div
-          data-testid="okr-context-text-counter"
-          data-over={textTooLong ? 'true' : 'false'}
-          style={{ fontSize: 11, color: textTooLong ? T.errText : T.muted, marginTop: -4 }}
-        >
-          {labels.textCounter
-            .replace('{{count}}', textLength.toLocaleString('en-US'))
-            .replace('{{max}}', maxTextLength.toLocaleString('en-US'))}
+
+      {!type ? (
+        (onAddUrl || onAddText) && (
+          <div className="okr-ctx-add-row" data-testid="okr-context-add-row">
+            {onAddUrl && (
+              <button type="button" className="okr-ghost-btn" data-testid="okr-context-type-url" onClick={() => open('url')}>
+                {labels.submitUrl || labels.typeUrl}
+              </button>
+            )}
+            {onAddText && (
+              <button type="button" className="okr-ghost-btn" data-testid="okr-context-type-text" onClick={() => open('text')}>
+                {labels.submitText || labels.typeText}
+              </button>
+            )}
+          </div>
+        )
+      ) : (
+        <div className="okr-ctx-composer" data-testid="okr-context-composer">
+          <div className="okr-ctx-composer-head">
+            <p className="okr-wz-question" data-testid="okr-context-composer-type">
+              {(labels.composerTitle || '{{type}}').replace('{{type}}', labels[TYPE_LABEL_KEY[type]] || '')}
+            </p>
+            <div className="okr-ctx-add-row">
+              {type === 'file' && file && (
+                <button type="button" className="okr-ghost-btn" data-testid="okr-context-file-remove" onClick={() => setFile(null)}>
+                  {labels.removeFile || DROPZONE_FALLBACK.removeFile}
+                </button>
+              )}
+              {/* [타입 변경] — 입력을 버리고 드롭존·[링크 등록]·[텍스트 추가] 로 돌아간다(§3-2 · PW-1507). */}
+              {labels.changeType && (
+                <button type="button" className="okr-ghost-btn" data-testid="okr-context-change-type" onClick={reset}>
+                  {labels.changeType}
+                </button>
+              )}
+            </div>
+          </div>
+          {type === 'url' && (
+            <input
+              // 형식 오류면 칸 테두리도 빨갛게(§4·§9 「인라인 빨강 보더」)
+              className="okr-textarea is-compact"
+              aria-invalid={urlInvalid || undefined}
+              placeholder={labels.urlPlaceholder}
+              aria-label={labels.typeUrl}
+              value={urlVal}
+              onChange={(e) => setUrlVal(e.target.value)}
+            />
+          )}
+          <input
+            className="okr-textarea is-compact"
+            placeholder={labels.titlePlaceholder}
+            aria-label={labels.titleLabel}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+          {type === 'text' && (
+            <textarea
+              className="okr-textarea"
+              placeholder={labels.textPlaceholder}
+              aria-label={labels.typeText}
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+            />
+          )}
+          {type === 'text' && maxTextLength && labels.textCounter && (
+            <p
+              className={textTooLong ? 'okr-status-badge is-error' : 'okr-wz-tip'}
+              data-testid="okr-context-text-counter"
+              data-over={textTooLong ? 'true' : 'false'}
+            >
+              {labels.textCounter
+                .replace('{{count}}', textLength.toLocaleString('en-US'))
+                .replace('{{max}}', maxTextLength.toLocaleString('en-US'))}
+            </p>
+          )}
+          {error && (
+            <div role="alert" className="okr-ctx-alert">
+              {error}
+            </div>
+          )}
+          <div className="okr-ctx-composer-actions">
+            <button type="button" className="okr-btn is-outline is-sm" onClick={reset}>
+              {labels.cancel}
+            </button>
+            <button
+              type="button"
+              className="okr-btn is-brand is-sm"
+              data-testid="okr-context-submit"
+              onClick={submit}
+              disabled={busy}
+            >
+              {busy ? labels.saving : labels[SUBMIT_LABEL_KEY[type]] || labels.add}
+            </button>
+          </div>
         </div>
       )}
-      {error && (
-        <div
-          role="alert"
-          style={{
-            padding: '8px 10px',
-            borderRadius: 8,
-            background: T.errBg,
-            border: `1px solid ${T.errBd}`,
-            color: T.errText,
-            fontSize: 12,
-            fontWeight: 600,
-          }}
-        >
-          {error}
-        </div>
-      )}
-      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-        <button type="button" onClick={onCancel} style={ghostBtn}>
-          {labels.cancel}
-        </button>
-        <button
-          type="button"
-          data-testid="okr-context-submit"
-          onClick={submit}
-          disabled={busy}
-          style={{ ...primaryBtn, opacity: busy ? 0.6 : 1 }}
-        >
-          {busy ? labels.saving : labels[SUBMIT_LABEL_KEY[type]] || labels.add}
-        </button>
-      </div>
-    </div>
+    </>
   );
 }
 
-const ghostBtn = {
-  padding: '8px 14px',
-  borderRadius: 8,
-  border: `1px solid ${T.border}`,
-  background: T.card,
-  color: T.sub,
-  fontFamily: T.font,
-  fontSize: 13,
-  fontWeight: 700,
-  cursor: 'pointer',
-};
-
-const primaryBtn = {
-  padding: '8px 16px',
-  borderRadius: 8,
-  border: 'none',
-  background: T.accent,
-  color: '#fff',
-  fontFamily: T.font,
-  fontSize: 13,
-  fontWeight: 800,
-  cursor: 'pointer',
-};
-
-/** `OKR 설정 시작 →` — 인라인 블록과 스티키 푸터가 같은 모양·같은 목적지로 쓴다. */
-function StartOkrButton({ labels, onClick, disabled, testId, btnRef }) {
+/** `OKR 설정 시작` — 인라인 푸터와 스티키 바가 같은 목적지로 쓴다. */
+function StartOkrButton({ labels, onClick, disabled, testId, btnRef, small = false }) {
   return (
     <Tooltip content={disabled ? labels.startOkrAdminOnly : undefined}>
-    <button
-      ref={btnRef}
-      type="button"
-      data-testid={testId}
-      onClick={onClick}
-      disabled={disabled}
-      style={{
-        ...primaryBtn,
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 6,
-        opacity: disabled ? 0.5 : 1,
-        cursor: disabled ? 'not-allowed' : 'pointer',
-      }}
-    >
-      {labels.startOkr}
-      <ArrowRightIcon />
-    </button>
+      <button
+        ref={btnRef}
+        type="button"
+        className={`okr-btn is-brand${small ? ' is-sm' : ''}`}
+        data-testid={testId}
+        onClick={onClick}
+        disabled={disabled}
+      >
+        {labels.startOkr}
+        {small && <ArrowRightGlyph size={14} />}
+      </button>
     </Tooltip>
   );
 }
 
 /**
- * 다음 단계 블록 (§3-2A · PW-46) — 등록 직후 시선이 머무는 자리(리스트 바로 아래)에
- * 다음 행동을 붙인다. 소스를 넣고 나면 "이제 뭘 하지?" 가 남던 것이 이 이슈였다.
+ * 인라인 푸터 (§3-2A · PW-46) — 디자이너 창 푸터 모양(.okr-wz-footer-hint + .okr-btn.is-brand).
+ * 등록 상태 안내와 [OKR 설정 시작] 하나. AI 분석 버튼은 분석 절에 하나만 둔다(PW-2219).
  *
- * `OKR 설정 시작 →` 은 소스 추출 상태와 무관하게 **항상 활성** 이다 — 추출을 기다리느라
- * 퍼널이 막히면 안 된다. AI 분석 버튼은 `onAnalyze` 를 주는 호스트에서만 노출한다
- * (AI 분석 섹션이 없는 화면에 버튼만 두면 그 자체로 또 하나의 막다른 길이 된다).
+ * `OKR 설정 시작` 은 소스 추출 상태와 무관하게 **항상 활성** 이다 — 추출을 기다리느라
+ * 퍼널이 막히면 안 된다.
  *
- * `startBtnRef` 는 하단 스티키 CTA 가 **이 블록의 시작 버튼**이 화면에 보이는지 관측하는
- * 데 쓴다(같은 버튼이 동시에 둘 보이지 않게 — `useOnScreen`). 블록 전체가 아니라 버튼을
- * 관측한다 — 블록 위쪽 몇 px 만 걸쳐 있을 때는 정작 버튼이 화면 밖이라, 블록을 기준으로
- * 감추면 눌러야 할 버튼이 하나도 안 보이는 구간이 생긴다.
+ * `startBtnRef` 는 하단 스티키 CTA 가 **이 푸터의 시작 버튼**이 화면에 보이는지 관측하는
+ * 데 쓴다(같은 버튼이 동시에 둘 보이지 않게 — `useOnScreen`).
  */
-function NextStepBlock({ sources, labels, onStartOkr, onAnalyze, startBtnRef }) {
+function NextStepFooter({ sources, labels, onStartOkr, startBtnRef }) {
   const ready = countBy(sources, 'ready');
   const processing = countBy(sources, 'processing');
   const allFailed = ready === 0 && processing === 0;
   const fill = (key, count) => (labels[key] || '').replace('{{count}}', String(count));
+  const desc = allFailed
+    ? labels.nextStepFailedDesc
+    : ready === 0
+      ? labels.nextStepProcessingDesc
+      : processing > 0
+        ? fill('nextStepPartialDesc', processing)
+        : labels.nextStepDesc;
 
   return (
-    <div
-      data-testid="okr-context-next-step"
-      style={{
-        marginTop: 4,
-        padding: '14px 16px',
-        borderRadius: 12,
-        background: allFailed ? T.errBg : T.accentFaint,
-        border: `1px solid ${allFailed ? T.errBd : T.accentSoft}`,
-      }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          fontSize: 13,
-          fontWeight: 800,
-          marginBottom: 4,
-          color: allFailed ? T.errText : T.text,
-        }}
-      >
-        {allFailed ? <AlertIcon size={14} /> : <CheckIcon size={14} />}
-        {allFailed ? labels.nextStepFailedTitle : fill('nextStepTitle', sources.length)}
-      </div>
-      <div
-        style={{
-          fontSize: 11,
-          color: allFailed ? T.errText : T.sub,
-          marginBottom: 12,
-          lineHeight: 1.6,
-        }}
-      >
-        {allFailed
-          ? labels.nextStepFailedDesc
-          : ready === 0
-            ? labels.nextStepProcessingDesc
-            : processing > 0
-              ? fill('nextStepPartialDesc', processing)
-              : labels.nextStepDesc}
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        {onAnalyze && !allFailed && (
-          <Tooltip content={ready === 0 ? labels.analyzeProcessingHint : undefined}>
-          <button
-            type="button"
-            data-testid="okr-context-analyze"
-            onClick={onAnalyze}
-            disabled={ready === 0}
-            style={{
-              ...ghostBtn,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              color: ready === 0 ? T.muted : T.ai,
-              opacity: ready === 0 ? 0.6 : 1,
-              cursor: ready === 0 ? 'not-allowed' : 'pointer',
-            }}
-          >
-            <AiIcon />
-            {labels.analyze}
-          </button>
-          </Tooltip>
-        )}
-        <StartOkrButton
-          labels={labels}
-          onClick={onStartOkr}
-          testId="okr-context-next-step-start"
-          btnRef={startBtnRef}
-        />
-      </div>
+    <div className="okr-ctx-page-foot" data-testid="okr-context-next-step" data-failed={allFailed ? 'true' : 'false'}>
+      <span className="okr-wz-footer-hint">
+        {allFailed ? (
+          <span className="okr-status-badge is-error">{labels.nextStepFailedTitle}</span>
+        ) : (
+          fill('nextStepTitle', sources.length)
+        )}{' '}
+        {desc}
+      </span>
+      <StartOkrButton
+        labels={labels}
+        onClick={onStartOkr}
+        testId="okr-context-next-step-start"
+        btnRef={startBtnRef}
+      />
     </div>
   );
 }
 
 /**
- * 「AI 분석 (선택)」 섹션(§3-3). 정본 시안 okr-app.jsx `AnalysisSection`.
+ * 「AI 분석 (선택)」 절(§3-3) — 디자이너 컨텍스트 창의 AI 분석 절(.okr-wz-vision) 그대로.
  * 분석 대상은 다 읽은(ready) 소스뿐이다. 결과 카드는 설정 창과 같은 부품을 쓴다.
  */
 function AnalysisSection({
@@ -919,56 +542,26 @@ function AnalysisSection({
         ? labels.analyzeProcessingHint
         : labels.analysisNeedSource
       : undefined;
-  const dashed = {
-    padding: '16px 14px',
-    textAlign: 'center',
-    border: `1px dashed ${T.border}`,
-    borderRadius: 10,
-    color: T.muted,
-    fontSize: 11,
-    background: '#F8FAFC',
-  };
 
   return (
-    <div
-      id="okr-context-analysis"
-      data-testid="okr-context-analysis"
-      style={{ marginTop: 8, paddingTop: 16, borderTop: `1px solid ${T.border}` }}
-    >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-          marginBottom: 12,
-        }}
-      >
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{labels.analysisTitle}</div>
-          <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>
+    <div id="okr-context-analysis" className="okr-wz-vision" data-testid="okr-context-analysis">
+      <div className="okr-wz-vision-head">
+        <div className="okr-wz-section">
+          <p className="okr-wz-vision-title">{labels.analysisTitle}</p>
+          <p className="okr-wz-desc">
             {labels.analysisDesc}
             {processing > 0 && ready > 0 && ` ${fill('analysisExcluded', processing)}`}
-          </div>
+          </p>
         </div>
         <Tooltip content={canRun || analyzing ? undefined : hint}>
           <button
             type="button"
+            className="okr-wz-ai-btn"
             data-testid="okr-context-analysis-run"
             onClick={canRun ? onAnalyze : undefined}
             disabled={!canRun}
-            style={{
-              ...ghostBtn,
-              flexShrink: 0,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              color: canRun ? T.ai : T.muted,
-              opacity: canRun ? 1 : 0.6,
-              cursor: canRun ? 'pointer' : 'not-allowed',
-            }}
           >
-            <AiIcon />
+            <AiMark size={12} color="currentColor" />
             {analysis ? labels.analysisRerun : labels.analysisRun}
           </button>
         </Tooltip>
@@ -976,46 +569,20 @@ function AnalysisSection({
       {notice}
 
       {analyzing && (
-        <div data-testid="okr-context-analysis-running" style={{ ...dashed, color: T.sub, fontSize: 12 }}>
-          {fill('analysisRunning', ready)}
+        <div className="okr-wz-vision-card" data-testid="okr-context-analysis-running">
+          <p className="okr-wz-desc">{fill('analysisRunning', ready)}</p>
         </div>
       )}
 
       {analyzeFailed && !analyzing && (
-        <div
-          role="alert"
-          style={{
-            padding: '12px 14px',
-            borderRadius: 10,
-            background: T.errBg,
-            border: `1px solid ${T.errBd}`,
-            color: T.errText,
-            fontSize: 12,
-            fontWeight: 600,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 10,
-            marginBottom: analysis ? 10 : 0,
-          }}
-        >
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            <AlertIcon />
-            {labels.analysisFailed}
-          </span>
+        <div role="alert" className="okr-ctx-alert is-row">
+          {labels.analysisFailed}
           {canRun && (
             <button
               type="button"
+              className="okr-btn is-brand is-sm"
               data-testid="okr-context-analysis-retry"
               onClick={onAnalyze}
-              style={{
-                ...primaryBtn,
-                padding: '6px 12px',
-                borderRadius: 7,
-                fontSize: 11,
-                fontWeight: 700,
-                flexShrink: 0,
-              }}
             >
               {labels.analysisRetry}
             </button>
@@ -1024,22 +591,26 @@ function AnalysisSection({
       )}
 
       {analysis && !analyzing && (
-        <OkrContextAnalysisResult
-          analysis={analysis}
-          readOnly={readOnly}
-          onConfirm={onConfirm}
-          confirming={confirming}
-          labels={labels.analysisResult}
-        />
+        <div className="okr-wz-vision-card">
+          <OkrContextAnalysisResult
+            analysis={analysis}
+            readOnly={readOnly}
+            onConfirm={onConfirm}
+            confirming={confirming}
+            labels={labels.analysisResult}
+          />
+        </div>
       )}
 
       {!analysis && !analyzing && !analyzeFailed && (
-        <div style={dashed}>
-          {sources.length === 0
-            ? labels.analysisEmpty
-            : ready === 0 && processing > 0
-              ? labels.analysisIdleProcessing
-              : labels.analysisIdle}
+        <div className="okr-wz-vision-card" data-testid="okr-context-analysis-idle">
+          <p className="okr-wz-tip">
+            {sources.length === 0
+              ? labels.analysisEmpty
+              : ready === 0 && processing > 0
+                ? labels.analysisIdleProcessing
+                : labels.analysisIdle}
+          </p>
         </div>
       )}
     </div>
@@ -1075,46 +646,40 @@ function useOnScreen(ref, enabled) {
 
 /**
  * 하단 스티키 CTA (§6) — 화면 어디에 있든 다음 퍼널로 나갈 수 있는 전역 앵커.
- * 인라인 블록(문맥 앵커)과 **함께** 둔다. 소스 0건이어도 활성 — 컨텍스트는 선택 사항이다.
+ * 인라인 푸터(문맥 앵커)와 **함께** 둔다. 소스 0건이어도 활성 — 컨텍스트는 선택 사항이다.
+ * 디자이너 원본이 없어 지금 모양(흰 바·위 그림자·작은 상태 알약)을 개발 클래스로 옮겨 유지한다.
  *
- * 다만 **동시에 둘 다 보이지는 않는다**(PW-46 피드백). 두 앵커는 모두 콘텐츠 끝에 붙어
- * 있어서, 목록이 짧으면 같은 버튼이 100px 간격으로 두 번 나온다. 인라인 블록의 시작
- * 버튼이 화면에 들어와 있는 동안에는 이 바를 접고, 스크롤로 그 버튼이 화면 밖으로 나가면
- * 다시 편다 — 앵커를 하나 없애는 게 아니라 겹칠 때만 감춘다(§6 은 그대로 지킨다).
+ * 다만 **동시에 둘 다 보이지는 않는다**(PW-46 피드백). 인라인 푸터의 시작 버튼이 화면에
+ * 들어와 있는 동안에는 이 바를 접고, 스크롤로 그 버튼이 화면 밖으로 나가면 다시 편다.
  */
+/** 하단 바 「소스 N건」 알약 머리 아이콘 — 지금 모양 유지(PW-2219 전과 같은 선 그림). */
+function LibraryIcon({ size = 12 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+    </svg>
+  );
+}
+
 function StickyFooterCta({ sources, labels, canEdit, onStartOkr, analysisShown, analysisConfirmed }) {
   return (
-    <div
-      data-testid="okr-context-footer"
-      style={{
-        position: 'sticky',
-        bottom: 0,
-        zIndex: 10,
-        marginTop: 14,
-        background: T.card,
-        border: `1px solid ${T.border}`,
-        borderRadius: 12,
-        padding: '14px 18px',
-        boxShadow: '0 -4px 16px rgba(15,23,42,.06)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 16,
-        flexWrap: 'wrap',
-      }}
-    >
-      <Badge tone={sources.length > 0 ? 'ok' : 'muted'}>
+    <div className="okr-ctx-sticky" data-testid="okr-context-footer">
+      <StatusBadge tone={sources.length > 0 ? 'success' : 'neutral'} className="okr-ctx-sticky-pill">
         <LibraryIcon />
         {(labels.footerSourceCount || '').replace('{{count}}', String(sources.length))}
-      </Badge>
+      </StatusBadge>
       {analysisShown && (
-        <span data-testid="okr-context-footer-analysis">
-          <Badge tone={analysisConfirmed ? 'ok' : 'muted'}>
-            {analysisConfirmed ? <CheckIcon /> : null}
-            {analysisConfirmed ? labels.footerAnalysisConfirmed : labels.footerAnalysisNone}
-          </Badge>
-        </span>
+        <StatusBadge
+          tone={analysisConfirmed ? 'success' : 'neutral'}
+          className="okr-ctx-sticky-pill"
+          data-testid="okr-context-footer-analysis"
+        >
+          {analysisConfirmed ? <CheckGlyph size={12} /> : null}
+          {analysisConfirmed ? labels.footerAnalysisConfirmed : labels.footerAnalysisNone}
+        </StatusBadge>
       )}
-      <div style={{ flex: 1, minWidth: 200, fontSize: 12, color: T.sub, lineHeight: 1.6 }}>
+      <span className="okr-ctx-sticky-hint">
         {sources.length === 0
           ? labels.footerHintEmpty
           : !analysisShown
@@ -1122,31 +687,32 @@ function StickyFooterCta({ sources, labels, canEdit, onStartOkr, analysisShown, 
             : analysisConfirmed
               ? labels.footerHintConfirmed
               : labels.footerHintUnconfirmed}
-      </div>
+      </span>
       <StartOkrButton
         labels={labels}
         onClick={onStartOkr}
         disabled={!canEdit}
         testId="okr-context-footer-start"
+        small
       />
     </div>
   );
 }
 
-/** OKR 운영 단위 칸 머리 아이콘 — 위 하나에 아래 둘이 달린 조직 모양(시안의 🏛 자리). */
-function OrgUnitsIcon({ size = 16 }) {
+/** 운영 단위 카드 사이 화살표(›) — 디자이너 범위 카드를 «단계 사슬»로 잇는 표시만. */
+function ChainChevron() {
   return (
-    <svg width={size} height={size} {...svgProps}>
-      <rect x="9" y="3" width="6" height="5" rx="1" />
-      <rect x="3" y="16" width="6" height="5" rx="1" />
-      <rect x="15" y="16" width="6" height="5" rx="1" />
-      <path d="M12 8v4M6 16v-4h12v4" />
-    </svg>
+    <span className="okr-ctx-levels-chev" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="m9 6 6 6-6 6" />
+      </svg>
+    </span>
   );
 }
 
 /**
  * «OKR 운영 단위» 칸 (정책 §3-1A · PW-1364) — 정본 시안 `okr-app.jsx` 의 `UnitPolicySection`.
+ * 생김새는 디자이너 마법사 «범위 고르기» 카드(.okr-wz-scopes / .okr-wz-scope, 최소 단위만 .is-active).
  *
  * 전사는 늘 운영(고정)이고, 그 아래 라벨을 «최소 운영 단위»까지 **사전 순서로 이어서** 운영한다
  * (okr-policy §2B.2 규칙 2 — 중간 건너뛰기는 표현 자체가 없다: 값은 `minUnitLevelId` 하나다).
@@ -1164,93 +730,78 @@ function UnitPolicySection({ policy, loading, error, readOnly, onChange, labels:
   const individualOn = policy?.individualOkr ?? true;
 
   return (
-    <div data-testid="okr-unit-policy" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ color: T.accentText, display: 'inline-flex' }}>
-          <OrgUnitsIcon />
-        </span>
-        <div style={{ fontSize: 14, fontWeight: 800, color: T.text }}>{L.unitTitle}</div>
-        <Badge tone="muted">{L.unitDerived}</Badge>
+    <div className="okr-wz-stepblock" data-testid="okr-unit-policy">
+      <div className="okr-wz-section">
+        <div className="okr-ctx-head-left">
+          <p className="okr-wz-question">{L.unitTitle}</p>
+          {L.unitDerived && <span className="okr-ctx-optional">{L.unitDerived}</span>}
+        </div>
+        <p className="okr-wz-desc">{L.unitDescription}</p>
       </div>
-      <div style={{ fontSize: 12, color: T.sub, lineHeight: 1.6 }}>{L.unitDescription}</div>
 
       {error ? (
-        <div
-          role="alert"
-          data-testid="okr-unit-policy-error"
-          style={{
-            padding: '10px 12px',
-            borderRadius: 9,
-            background: T.errBg,
-            border: `1px solid ${T.errBd}`,
-            color: T.errText,
-            fontSize: 12,
-            fontWeight: 600,
-          }}
-        >
+        <div role="alert" className="okr-ctx-alert" data-testid="okr-unit-policy-error">
           {error}
         </div>
       ) : loading || !policy ? (
-        <div style={{ fontSize: 12, color: T.muted }}>{L.loading}</div>
+        <p className="okr-wz-desc">{L.loading}</p>
       ) : (
         <>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-            <Chip selected title={L.unitCompanyFixed} data-testid="okr-unit-chip-company">
-              {L.unitCompany}
-            </Chip>
+          <div className="okr-wz-scopes">
+            <div className="okr-wz-scope" data-testid="okr-unit-chip-company" data-operated="true">
+              <div className="okr-wz-scope-label">{L.unitCompany}</div>
+              <div className="okr-wz-scope-desc">{L.unitCompanyFixed}</div>
+            </div>
             {levels.map((lv, i) => {
               const operated = i <= minIndex;
               const isMin = lv.id === minId;
               const hint = (L.unitLevelHint || '{{name}}').replace('{{name}}', lv.name);
-              return (
-                <span key={lv.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  <span aria-hidden="true" style={{ fontSize: 11, color: T.muted }}>›</span>
-                  <Chip
-                    selected={operated}
-                    title={hint}
-                    data-testid={`okr-unit-chip-${lv.id}`}
-                    {...(editable && !isMin
-                      ? { onClick: () => onChange({ ...policy, minUnitLevelId: lv.id }) }
-                      : {})}
-                  >
-                    {lv.name}
-                    <span style={{ marginLeft: 4, fontVariantNumeric: 'tabular-nums', opacity: 0.75 }}>
-                      {lv.count ?? 0}
-                    </span>
+              const pick = editable && !isMin ? () => onChange({ ...policy, minUnitLevelId: lv.id }) : null;
+              return [
+                <ChainChevron key={`${lv.id}-chev`} />,
+                <Tooltip key={lv.id} content={hint} wrap={false}>
+                <div
+                  className={`okr-wz-scope${isMin ? ' is-active' : ''}`}
+                  data-testid={`okr-unit-chip-${lv.id}`}
+                  data-operated={operated ? 'true' : 'false'}
+                  {...(pick
+                    ? {
+                        role: 'button',
+                        tabIndex: 0,
+                        onClick: pick,
+                        onKeyDown: (e) => {
+                          if (isEnterKey(e) || e.key === ' ') {
+                            e.preventDefault();
+                            pick();
+                          }
+                        },
+                      }
+                    : {})}
+                >
+                  <div className="okr-wz-scope-label">{lv.name}</div>
+                  <div className="okr-wz-scope-desc">
+                    {lv.count ?? 0}
                     {isMin && (
-                      <span
-                        data-testid="okr-unit-min-badge"
-                        style={{
-                          marginLeft: 6,
-                          padding: '0 6px',
-                          borderRadius: 99,
-                          // 켜진 칩(공용 Chip 의 브랜드 색)과 같은 색 계열로 — 캔버스의 파랑을 쓰면 칩 안에서 따로 논다.
-                          background: 'var(--bg-brand-solid)',
-                          color: '#fff',
-                          fontSize: 10,
-                          fontWeight: 800,
-                        }}
-                      >
-                        {L.unitMinBadge}
-                      </span>
+                      <>
+                        {' · '}
+                        <span data-testid="okr-unit-min-badge">{L.unitMinBadge}</span>
+                      </>
                     )}
-                  </Chip>
-                </span>
-              );
+                    {/* 디자이너 범위 카드엔 «꺼짐» 모양이 없다 — 운영 밖 단위는 글로 알린다(PW-2219, 옛 회색 칩의 정보) */}
+                    {!operated && L.unitNotOperated && (
+                      <>
+                        {' · '}
+                        <span data-testid="okr-unit-not-operated">{L.unitNotOperated}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                </Tooltip>,
+              ];
             })}
           </div>
 
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              padding: '12px 14px',
-              borderRadius: 10,
-              background: individualOn ? T.okBg : '#F8FAFC',
-              border: `1px solid ${individualOn ? T.okBd : T.border}`,
-            }}
-          >
+          <div className="okr-ctx-switch-row">
             <Switch
               checked={individualOn}
               disabled={!editable}
@@ -1258,13 +809,9 @@ function UnitPolicySection({ policy, loading, error, readOnly, onChange, labels:
               data-testid="okr-unit-individual-switch"
               onChange={(next) => onChange?.({ ...policy, individualOkr: next })}
             />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 12.5, fontWeight: 700, color: T.text }}>
-                {individualOn ? L.individualOn : L.individualOff}
-              </div>
-              <div style={{ fontSize: 11, color: T.sub, marginTop: 1 }}>
-                {individualOn ? L.individualOnDesc : L.individualOffDesc}
-              </div>
+            <div className="okr-wz-section">
+              <p className="okr-wz-scope-desc">{individualOn ? L.individualOn : L.individualOff}</p>
+              <p className="okr-wz-tip">{individualOn ? L.individualOnDesc : L.individualOffDesc}</p>
             </div>
           </div>
         </>
@@ -1303,87 +850,50 @@ export default function OkrContextSetupCanvas({
   onUnitPolicyChange,
   headerAction = null,
 }) {
-  const [adding, setAdding] = useState(false);
   const hasEditHandlers = !!(onAddUrl || onAddText || onAddFile);
   // 권한은 호스트가 말해 주는 게 정본이다. `canEdit` 미지정은 구버전 호출부 호환.
   const editable = canEdit === undefined ? hasEditHandlers : canEdit;
   const readOnly = !editable;
   const L = labels;
 
-  // 문맥 앵커의 시작 버튼이 화면에 있는 동안에는 전역 앵커(하단 바)를 접는다 — 둘 다
-  // 콘텐츠 끝에 붙어 있어서, 감추지 않으면 같은 버튼이 나란히 두 번 보인다(PW-46 피드백).
+  // 문맥 앵커의 시작 버튼이 화면에 있는 동안에는 전역 앵커(하단 바)를 접는다 — 감추지 않으면
+  // 같은 버튼이 나란히 두 번 보인다(PW-46 피드백).
   const nextStepBtnRef = useRef(null);
   const showNextStep = !readOnly && !loading && sources.length > 0 && !!onStartOkr;
   const nextStepOnScreen = useOnScreen(nextStepBtnRef, showNextStep);
   const showUnitPolicy = unitPolicy !== undefined || unitPolicyLoading || !!unitPolicyError;
   const analysisShown = analysis !== undefined || !!onAnalyze;
 
-  // 「다음 단계」의 [AI 분석 실행] — 분석 섹션으로 내려가서 같은 트리거를 부른다(§3-2A·§9).
-  const goAnalyze = onAnalyze
-    ? () => {
-        const el = typeof document !== 'undefined' && document.getElementById('okr-context-analysis');
-        if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        if (!analyzing) onAnalyze();
-      }
-    : undefined;
-
   return (
-    <div style={{ fontFamily: T.font, maxWidth: 880 }} data-testid="okr-context-setup">
-      <div
-        style={{
-          background: T.accentFaint,
-          border: `1px solid ${T.accentSoft}`,
-          borderRadius: 14,
-          padding: '22px 26px',
-          marginBottom: 14,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-          <span style={{ color: T.accentText }}>
-            <BrainIcon />
-          </span>
-          <div style={{ fontSize: 18, fontWeight: 900, color: T.text }}>{L.title}</div>
-          <Badge>{L.adminOnly}</Badge>
-          <Badge tone="muted">{L.optional}</Badge>
-          {headerAction && <div style={{ marginLeft: 'auto' }}>{headerAction}</div>}
-        </div>
-        <div style={{ fontSize: 13, color: T.sub, lineHeight: 1.6 }}>{L.description}</div>
-        {readOnly && (
-          <div
-            style={{
-              marginTop: 12,
-              padding: '10px 12px',
-              borderRadius: 9,
-              background: T.warnBg,
-              border: `1px solid ${T.warnBd}`,
-              color: T.warnText,
-              fontSize: 12,
-              fontWeight: 600,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-            }}
-          >
-            <LockIcon />
-            {L.readOnlyNotice}
+    <div data-testid="okr-context-setup">
+      <div className="okr-ctx-page">
+        <div className="okr-ctx-page-body">
+          {/* 머리 — 디자이너 컨텍스트 창 머리(.okr-ctx-head): 큰 제목 + 「관리자 전용」 + 「선택 사항」 */}
+          <div className="okr-ctx-head">
+            <div className="okr-ctx-head-left">
+              <h2 className="tl-group-modal-title">{L.title}</h2>
+              {L.adminOnly && <StatusBadge className="okr-ctx-admin-badge">{L.adminOnly}</StatusBadge>}
+              {L.optional && <span className="okr-ctx-optional">{L.optional}</span>}
+            </div>
+            {headerAction}
           </div>
-        )}
-      </div>
 
-      <div
-        style={{
-          background: T.card,
-          border: `1px solid ${T.border}`,
-          borderRadius: 14,
-          padding: 20,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 12,
-        }}
-      >
-        {/* 카드 맨 위 — OKR 운영 단위(§3-1A). 지식 소스와는 구분선만으로 나눈다(한판 UX). */}
-        {showUnitPolicy && (
-          <>
+          <div className="okr-wz-stepblock">
+            <div className="okr-ctx-intro">
+              {L.description && <p className="okr-ctx-intro-desc">{L.description}</p>}
+              {L.descriptionNote && <p className="okr-ctx-intro-note">{L.descriptionNote}</p>}
+            </div>
+            {/* 열람 전용 안내 — 막지 않는 안내라 경고 노랑이 아니라 연회색(.okr-wz-vision-card) + 자물쇠 선 아이콘 */}
+            {readOnly && (
+              <div className="okr-wz-vision-card okr-ctx-readonly" data-testid="okr-context-readonly">
+                <LockGlyph size={16} />
+                <p className="okr-ctx-intro-desc">{L.readOnlyNotice}</p>
+              </div>
+            )}
+          </div>
+
+          {/* OKR 운영 단위(§3-1A) */}
+          {showUnitPolicy && (
             <UnitPolicySection
               policy={unitPolicy}
               loading={unitPolicyLoading}
@@ -1392,136 +902,92 @@ export default function OkrContextSetupCanvas({
               onChange={onUnitPolicyChange}
               labels={L}
             />
-            <div
-              aria-hidden="true"
-              style={{ height: 1, background: T.border, margin: '6px 0' }}
-            />
-          </>
-        )}
+          )}
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ fontSize: 14, fontWeight: 800, color: T.text }}>{L.sourcesTitle}</div>
-          <span style={{ fontSize: 12, color: T.muted }}>
-            {(L.sourceCount || '{{count}}').replace('{{count}}', String(sources.length))}
-          </span>
-        </div>
+          {/* 지식 소스 — 디자이너 창의 「지식 소스」 절 */}
+          <div className="okr-wz-stepblock" data-testid="okr-context-sources">
+            <div className="okr-wz-section">
+              <div className="okr-ctx-head-left">
+                <p className="okr-wz-question">{L.sourcesTitle}</p>
+                <span className="okr-wz-desc">
+                  {(L.sourceCount || '{{count}}').replace('{{count}}', String(sources.length))}
+                </span>
+              </div>
+              {L.sourcesDesc && <p className="okr-wz-desc">{L.sourcesDesc}</p>}
+            </div>
 
-        {error && (
-          <div
-            role="alert"
-            style={{
-              padding: '10px 12px',
-              borderRadius: 9,
-              background: T.errBg,
-              border: `1px solid ${T.errBd}`,
-              color: T.errText,
-              fontSize: 12,
-              fontWeight: 600,
-            }}
-          >
-            {error}
-          </div>
-        )}
+            {error && (
+              <div role="alert" className="okr-ctx-alert">
+                {error}
+              </div>
+            )}
 
-        {loading ? (
-          // 목록 줄 자리에 막대를 깐다(§4 「초기 로딩」) — 다 불러온 뒤 자리가 튀지 않게 줄 높이와 맞춘다.
-          <SkeletonList count={3} height={58} aria-label={L.loading} data-testid="okr-context-loading" />
-        ) : sources.length === 0 && loadFailed ? null : sources.length === 0 ? (
-          <div
-            style={{
-              padding: '28px 0',
-              textAlign: 'center',
-              fontSize: 13,
-              color: T.muted,
-              lineHeight: 1.6,
-            }}
-          >
-            {L.empty}
-            {L.emptyHint && (
-              <>
-                <br />
-                {L.emptyHint}
-              </>
+            {loading ? (
+              // 목록 줄 자리에 막대를 깐다(§4 「초기 로딩」) — 다 불러온 뒤 자리가 튀지 않게 줄 높이와 맞춘다.
+              <SkeletonList count={3} height={58} aria-label={L.loading} data-testid="okr-context-loading" />
+            ) : sources.length === 0 && loadFailed ? null : sources.length === 0 ? (
+              <div className="okr-wz-vision-card" data-testid="okr-context-empty">
+                <p className="okr-wz-tip">{L.empty}</p>
+                {L.emptyHint && <p className="okr-wz-tip">{L.emptyHint}</p>}
+              </div>
+            ) : (
+              <div className="okr-ctx-source-list">
+                {sources.map((s) => (
+                  <SourceRow
+                    key={s.id}
+                    source={s}
+                    labels={L}
+                    onRemove={onRemove}
+                    delayed={processingDelayed}
+                    onRefresh={onRefresh}
+                  />
+                ))}
+              </div>
+            )}
+
+            {!readOnly && (
+              <SourceAdder
+                labels={L}
+                busy={busy}
+                onAddUrl={onAddUrl}
+                onAddText={onAddText}
+                onAddFile={onAddFile}
+                maxFileSize={maxFileSize}
+                maxTextLength={maxTextLength}
+              />
             )}
           </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {sources.map((s) => (
-              <SourceRow
-                key={s.id}
-                source={s}
-                labels={L}
-                onRemove={onRemove}
-                delayed={processingDelayed}
-                onRefresh={onRefresh}
-              />
-            ))}
-          </div>
-        )}
 
-        {!readOnly &&
-          (adding ? (
-            <AddSourceComposer
+          {analysisShown && !loading && (
+            <AnalysisSection
+              sources={sources}
               labels={L}
-              busy={busy}
-              onAddUrl={onAddUrl}
-              onAddText={onAddText}
-              onAddFile={onAddFile}
-              maxFileSize={maxFileSize}
-              maxTextLength={maxTextLength}
-              onCancel={() => setAdding(false)}
+              readOnly={readOnly}
+              analysis={analysis || null}
+              analyzing={analyzing}
+              analyzeFailed={analyzeFailed}
+              onAnalyze={onAnalyze}
+              onConfirm={onConfirmAnalysis}
+              confirming={confirmingAnalysis}
+              notice={analysisNotice}
             />
-          ) : (
-            <button
-              type="button"
-              data-testid="okr-context-add"
-              onClick={() => setAdding(true)}
-              style={{
-                padding: '12px 14px',
-                borderRadius: 10,
-                border: `1.5px dashed ${T.border}`,
-                background: '#F8FAFC',
-                color: T.sub,
-                fontFamily: T.font,
-                fontSize: 13,
-                fontWeight: 700,
-                cursor: 'pointer',
-              }}
-            >
-              {L.addSource}
-            </button>
-          ))}
+          )}
+        </div>
 
         {/* 문맥 앵커 — 소스가 1건이라도 있고 편집 권한이 있을 때만(§3-2A) */}
         {showNextStep && (
-          <NextStepBlock
+          <NextStepFooter
             sources={sources}
             labels={L}
             onStartOkr={onStartOkr}
-            onAnalyze={goAnalyze}
             startBtnRef={nextStepBtnRef}
-          />
-        )}
-
-        {analysisShown && !loading && (
-          <AnalysisSection
-            sources={sources}
-            labels={L}
-            readOnly={readOnly}
-            analysis={analysis || null}
-            analyzing={analyzing}
-            analyzeFailed={analyzeFailed}
-            onAnalyze={onAnalyze}
-            onConfirm={onConfirmAnalysis}
-            confirming={confirmingAnalysis}
-            notice={analysisNotice}
           />
         )}
       </div>
 
       {/*
-        전역 앵커 — 소스 0건이어도, 인라인 블록이 없는 열람자에게도 남는다(§6).
-        인라인 블록이 화면에 보이는 동안만 접는다 — 같은 버튼이 나란히 두 번 보이지
+        전역 앵커 — 소스 0건이어도, 인라인 푸터가 없는 열람자에게도 남는다(§6).
+        인라인 푸터의 시작 버튼이 화면에 보이는 동안만 접는다 — 같은 버튼이 나란히 두 번 보이지
         않게(PW-46 피드백). 열람자는 비활성 + 툴팁.
       */}
       {onStartOkr && !nextStepOnScreen && (

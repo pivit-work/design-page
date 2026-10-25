@@ -1,9 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
-import Chip from '../shared/Chip.jsx';
+import { Fragment, useEffect, useRef, useState } from 'react';
+import AnchoredLayer from '../shared/AnchoredLayer.jsx';
 import Icon from '../shared/Icon.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import SearchSelect from '../shared/SearchSelect.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
+import useDismissLayer from '../shared/useDismissLayer.js';
+import { ChevronDownGlyph } from '../shared/lineIcons.jsx';
+import { isKoreanLocale } from '../shared/uiLocale.js';
+import { isEnterKey } from '../shared/enterKey.js';
 import OkrMemberPicker from './OkrMemberPicker.jsx';
 import OkrProgressBar from './OkrProgressBar.jsx';
 import rowKey from './rowKey.js';
@@ -114,7 +118,8 @@ const DEFAULT_LABELS = {
   initOwner: '실행 항목 담당자',
   initRemove: '실행 항목 삭제',
   initEmpty: '아직 실행 항목이 없습니다. 아래에서 추가하세요.',
-  initAdd: '+ Initiative 추가',
+  // 앞의 + 는 아이콘이 그린다 — 글에는 넣지 않는다 (PW-2219).
+  initAdd: 'Initiative 추가',
   addKr: 'KR 직접추가',
   generateKrs: 'AI로 KR 생성',
 };
@@ -219,6 +224,123 @@ function seedObjective(o) {
       })),
     })),
   };
+}
+
+/**
+ * 상위 KR 연결 칸 (PW-1383 · PW-2219).
+ * 닫힌 모양은 디자이너 원본 창(07-13)의 「팀 KR 연결 ⌄」 회색 pill(`.okr-cf-select`), 펼치면 연도/분기
+ * 드롭다운(`.okr-select-menu` · `-item` · `-inner`)이고, 묶음 머리는 미니맵 머리띠(`.okr-cf-group-head`),
+ * 검색칸은 같은 창 입력 칸(`.okr-cf-input`)이다. 작성 창 본문이 스크롤 칸이라 펼침은 AnchoredLayer 로 띄운다.
+ *
+ * groups: [{ title, items: [{ value, label }] }] — 이미 건 KR 은 호출부가 빼고 준다.
+ */
+/** 검색칸·「결과 없음」 글 — 종전 SearchSelect 기본 문구와 같다(화면 언어 ko/en). */
+const PARENT_MENU_WORDS = {
+  ko: { search: '검색', noResult: '일치하는 항목이 없습니다' },
+  en: { search: 'Search', noResult: 'No matches' },
+};
+function ParentKrAdd({ label, groups, onPick }) {
+  const words = PARENT_MENU_WORDS[isKoreanLocale() ? 'ko' : 'en'];
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState('');
+  const triggerRef = useRef(null);
+  const panelRef = useRef(null);
+  const close = () => { setOpen(false); setQ(''); };
+  useDismissLayer(close, panelRef, triggerRef, open);
+
+  const ql = q.trim().toLowerCase();
+  const shown = groups
+    .map((g) => ({ ...g, items: ql ? g.items.filter((it) => it.label.toLowerCase().includes(ql)) : g.items }))
+    .filter((g) => g.items.length > 0);
+  const pick = (value) => {
+    onPick(value);
+    close();
+    triggerRef.current?.focus();
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        ref={triggerRef}
+        className="okr-cf-select okr-cf-select-btn"
+        aria-label={label}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => (open ? close() : setOpen(true))}
+      >
+        {label}
+        <ChevronDownGlyph className="okr-cf-select-caret" size={14} />
+      </button>
+      {open && (
+        <AnchoredLayer
+          anchorRef={triggerRef}
+          panelRef={panelRef}
+          // .okr-select-menu 의 min-width: 100% 는 화면 고정(fixed) 자리에서 화면 폭이 된다 — 폭과 같게 묶는다.
+          width={320}
+          minWidth={320}
+          maxHeight={256}
+          className="okr-select-menu okr-cf-parent-menu"
+          // 작성 창(1000) 위에 — 담당자 드롭다운 패널(.okr-cf-pick-panel)과 같은 층.
+          style={{ zIndex: 1100 }}
+        >
+          <div className="okr-select-item">
+            <input
+              autoFocus
+              className="okr-cf-input"
+              placeholder={words.search}
+              aria-label={words.search}
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              onKeyDown={(e) => {
+                // 거른 결과의 맨 위를 Enter 로 바로 건다(종전 SearchSelect 와 같은 손놀림).
+                if (isEnterKey(e) && shown[0]) {
+                  e.preventDefault();
+                  pick(shown[0].items[0].value);
+                }
+              }}
+            />
+          </div>
+          <div role="listbox" aria-label={label}>
+            {shown.length === 0 ? (
+              <div className="okr-select-item">
+                <p className="okr-cf-hint" role="status">{words.noResult}</p>
+              </div>
+            ) : shown.map((g, gi) => (
+              <div role="presentation" key={rowKey(g, gi, 'title')}>
+                <div className="okr-select-item" role="presentation">
+                  <div className="okr-cf-group-head">
+                    <span>{g.title}</span>
+                  </div>
+                </div>
+                {g.items.map((it) => (
+                  <div className="okr-select-item" key={it.value}>
+                    {/* 디자이너 항목은 div 다 — 키보드로도 고를 수 있게 초점·Enter·Space 를 받는다. */}
+                    <div
+                      role="option"
+                      tabIndex={0}
+                      aria-selected={false}
+                      className="okr-select-item-inner"
+                      title={it.label}
+                      onClick={() => pick(it.value)}
+                      onKeyDown={(e) => {
+                        if (isEnterKey(e) || e.key === ' ') {
+                          e.preventDefault();
+                          pick(it.value);
+                        }
+                      }}
+                    >
+                      <span>{it.label}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </AnchoredLayer>
+      )}
+    </>
+  );
 }
 
 export default function OkrComposeFullModal({
@@ -550,8 +672,11 @@ export default function OkrComposeFullModal({
           "덜 채웠다" 로 읽혀 오히려 오해를 준다) — 저장 실패만 알린다. */}
       {/* 통과 표시(✓)는 **정말 저장 가능할 때만** 초록으로 켠다 — 막혀 있는데
           초록이면 사용자는 버튼 고장으로 읽는다(PW-268 ③). */}
+      {/* 자리는 디자이너 발 안내 자리(.okr-wz-footer-hint), 글은 디자이너 상태 글자색(.okr-status-text) —
+          알약·바탕 없이 빨강/초록 글자만 (PW-2219). */}
+      <span className="okr-wz-footer-hint">
       <span
-        className={`okr-cf-total${!saveError && !blockReason && totalW === 100 ? ' is-ok' : ''}`}
+        className={`okr-status-text ${!saveError && !blockReason && totalW === 100 ? 'is-success' : 'is-error'}`}
         data-testid="okr-cf-total"
       >
         {saveError
@@ -563,6 +688,7 @@ export default function OkrComposeFullModal({
               : totalW === 100
                 ? `✓ ${L.objectiveSumOk}`
                 : fill(L.objectiveSum, totalW)}
+      </span>
       </span>
       <button type="button" className="okr-btn is-outline" onClick={onClose}>{L.cancel}</button>
       <Tooltip
@@ -609,14 +735,14 @@ export default function OkrComposeFullModal({
         {hasMinimap && (
           <div className="okr-cf-minimap">
             {/* 전략 캔버스 요약 — 전사 작성에서 AI 생성의 근거를 보여 주는 읽기 전용 카드(okr-spec §4.5).
-                시안 원본이 없어(PW-1504) 전략 캔버스 탭의 행(okr-s-row · okr-s-list) 리듬을 좁은 칸에
-                맞춰 쌓는다 — 이름표 위·내용 아래, 행 사이 선, `list` 행은 번호 목록 (PW-2190). */}
+                제목은 창 머리의 작은 회색 글(.okr-cf-eyebrow), 줄마다 미니맵 회사 카드(.okr-cf-company ·
+                -label · -title) 한 장 (PW-2219). `list` 행 번호 목록 글자(.okr-cf-strategy-list)는 지금 크기 유지. */}
             {summaryRows.length > 0 && (
               <div className="okr-cf-strategy" data-testid="okr-cf-strategy-summary">
-                {strategySummary.title && <p className="okr-cf-strategy-eyebrow">{strategySummary.title}</p>}
+                {strategySummary.title && <p className="okr-cf-eyebrow">{strategySummary.title}</p>}
                 {summaryRows.map((row, i) => (
-                  <div className="okr-cf-strategy-row" key={rowKey(row, i, 'label')}>
-                    <p className="okr-cf-strategy-label">{row.label}</p>
+                  <div className="okr-cf-company" key={rowKey(row, i, 'label')}>
+                    <p className="okr-cf-company-label">{row.label}</p>
                     {row.list ? (
                       <ol className="okr-cf-strategy-list">
                         {listLines(row.value).map((line, j) => (
@@ -624,7 +750,7 @@ export default function OkrComposeFullModal({
                         ))}
                       </ol>
                     ) : (
-                      <p className="okr-cf-strategy-text">
+                      <p className="okr-cf-company-title">
                         {String(row.value).split('\n').map((line, j) => (
                           <span key={rowKey(line, j)}>{j > 0 && <br />}{line}</span>
                         ))}
@@ -680,7 +806,7 @@ export default function OkrComposeFullModal({
               </button>
             </div>
           </div>
-          {genError && <p className="okr-wz-error" role="alert">{genError}</p>}
+          {genError && <p className="okr-status-text is-error" role="alert">{genError}</p>}
 
           {objectives.length === 0 ? (
             <div className="okr-cf-empty">
@@ -769,7 +895,7 @@ export default function OkrComposeFullModal({
                         </button>
                       </div>
                       {refineError?.key === kr.key && (
-                        <p className="okr-wz-error" role="alert">{refineError.message}</p>
+                        <p className="okr-status-text is-error" role="alert">{refineError.message}</p>
                       )}
                       <div className="okr-cf-methods">
                         {METHODS.map((method) => (
@@ -834,39 +960,36 @@ export default function OkrComposeFullModal({
                         <div className="okr-cf-kr-parents" data-testid="okr-cf-kr-parents">
                           {parentIdsOf(kr).map((id) => {
                             const c = parentById.get(id);
-                            // 미니맵에 없는 연결도 배지로 남긴다 — 숨기면 걸린 줄 모른 채
-                            // 저장되고, 풀 방법도 없다. 배지는 공용 칩(× 달린 것)이다.
+                            // 미니맵에 없는 연결도 태그로 남긴다 — 숨기면 걸린 줄 모른 채 저장되고, 풀 방법도 없다.
+                            // 태그는 개인 탭 「상위 OKR 태그」(.okr-p-linked-link.is-purple), 떼기는 디자이너 ×(.okr-cf-x) (PW-2219).
                             const text = c ? `${c.no} · ${c.title}` : L.parentKrUnknown;
                             return (
-                              <Chip
-                                key={id}
-                                selected
-                                title={c ? `${c.group} · ${text}` : text}
-                                onRemove={() => removeParentKr(objective.key, kr, id)}
-                                removeLabel={`${L.parentKrRemove}: ${text}`}
-                              >
-                                {text}
-                              </Chip>
+                              <Fragment key={id}>
+                                <span className="okr-p-linked-link is-purple" title={c ? `${c.group} · ${text}` : text}>
+                                  {text}
+                                </span>
+                                <button
+                                  type="button"
+                                  className="okr-cf-x"
+                                  aria-label={`${L.parentKrRemove}: ${text}`}
+                                  onClick={() => removeParentKr(objective.key, kr, id)}
+                                >
+                                  <Icon src={icons.xClose} size={14} color="var(--text-tertiary)" baseUrl={baseUrl} />
+                                </button>
+                              </Fragment>
                             );
                           })}
                           {parentCandidates.some((c) => !parentIdsOf(kr).includes(c.krId)) && (
-                            <SearchSelect
-                              className="okr-cf-parent-add"
-                              aria-label={L.parentKrAdd}
-                              value=""
-                              placeholder={L.parentKrAdd}
+                            <ParentKrAdd
+                              label={L.parentKrAdd}
                               // 미니맵 묶음(상위 조직)마다 머리를 두고 그 아래 아직 안 건 KR 만 — 종전 optgroup 과 같다.
-                              options={(minimap.groups ?? []).flatMap((group, gi) => {
-                                const opts = parentCandidates.filter(
-                                  (c) => c.gi === gi && !parentIdsOf(kr).includes(c.krId),
-                                );
-                                if (opts.length === 0) return [];
-                                return [
-                                  { group: true, label: group.title },
-                                  ...opts.map((c) => ({ value: c.krId, label: `${c.no} · ${c.title}` })),
-                                ];
-                              })}
-                              onChange={(v) => addParentKr(objective.key, kr, v)}
+                              groups={(minimap.groups ?? []).map((group, gi) => ({
+                                title: group.title,
+                                items: parentCandidates
+                                  .filter((c) => c.gi === gi && !parentIdsOf(kr).includes(c.krId))
+                                  .map((c) => ({ value: c.krId, label: `${c.no} · ${c.title}` })),
+                              })).filter((g) => g.items.length > 0)}
+                              onPick={(v) => addParentKr(objective.key, kr, v)}
                             />
                           )}
                         </div>
@@ -878,14 +1001,17 @@ export default function OkrComposeFullModal({
                           만들 수 없으니 0건이고 0건이니 만들 칸이 안 뜨는 닫힌 고리였고,
                           그것이 dev 조직 핵심결과가 전부 0건이던 화면 쪽 원인이다.
                           자리는 KR 카드 «안»이다 — Objective 단위로 올리면 「어느 KR 의
-                          실행 항목인가」를 다시 물어야 한다(§4A.1 E1). */}
-                      <div className="okr-cf-init" data-testid="okr-cf-init">
-                        <p className="okr-cf-init-label">Initiatives</p>
+                          실행 항목인가」를 다시 물어야 한다(§4A.1 E1).
+                          모양은 미니맵 묶음 카드(.okr-cf-group) + 머리띠(.okr-cf-group-head), 줄은 KR 줄
+                          (.okr-cf-kr-card-head) 안에 상태 pill(.okr-cf-select) · 입력 칸 · 담당자 · × (PW-2219). */}
+                      <div className="okr-cf-group" data-testid="okr-cf-init">
+                        <div className="okr-cf-group-head"><span>Initiatives</span></div>
                         {initsOf(kr).map((init) => (
-                          <div className="okr-cf-init-row" key={init.key}>
-                            {/* 셋 중 하나라 검색칸은 끈다. */}
+                          <div className="okr-cf-kr-card-head" key={init.key}>
+                            {/* 셋 중 하나라 검색칸은 끈다. 닫힌 칸은 디자이너 회색 pill. */}
                             <SearchSelect
-                              className="okr-cf-init-status"
+                              className="okr-cf-select okr-cf-select-btn"
+                              chevronClassName="okr-cf-select-caret"
                               aria-label={L.initStatus}
                               searchable={false}
                               value={init.status}
@@ -926,23 +1052,29 @@ export default function OkrComposeFullModal({
                         ))}
                         {initsOf(kr).length === 0 && (
                           /* 버튼만 있으면 「실행 항목이라는 것이 있는지」가 안 읽힌다(§4A.2). */
-                          <p className="okr-cf-init-empty">{L.initEmpty}</p>
+                          <p className="okr-cf-hint">{L.initEmpty}</p>
                         )}
+                        {/* 「KR 직접추가」와 같은 버튼(.okr-cf-kr-add-btn · 오른쪽 정렬). */}
                         <button
                           type="button"
-                          className="okr-cf-init-add"
+                          className="okr-cf-kr-add-btn"
                           onClick={() => addInitiative(objective.key, kr)}
                         >
-                          {L.initAdd}
+                          <Icon src={icons.plus} size={16} color="var(--text-secondary)" baseUrl={baseUrl} />
+                          <span>{L.initAdd}</span>
                         </button>
                       </div>
                     </div>
                   ))}
 
                   {objective.krs.length > 0 && (
-                    <div className={`okr-cf-krsum${krSum === 100 ? ' is-ok' : ''}`}>
+                    // 디자이너 상태 글자(.okr-status-text) — 알약 없이 글자색만. 오른쪽 자리는 .okr-cf-krsum (PW-2219).
+                    <span
+                      className={`okr-status-text okr-cf-krsum ${krSum === 100 ? 'is-success' : 'is-error'}`}
+                      data-testid="okr-cf-krsum"
+                    >
                       {krSum === 100 ? `✓ ${L.krSumOk}` : fill(L.krSum, krSum)}
-                    </div>
+                    </span>
                   )}
                   {/* KR 을 더하는 두 길 — 직접추가 옆에 AI 생성(기획 JSX 의 「+ KR 직접 추가」·「✦ AI로 KR 생성」 한 줄). */}
                   <div className="okr-cf-kr-actions">
@@ -962,7 +1094,7 @@ export default function OkrComposeFullModal({
                   )}
                   </div>
                   {genKrError?.key === objective.key && (
-                    <p className="okr-wz-error" role="alert">{genKrError.message}</p>
+                    <p className="okr-status-text is-error" role="alert">{genKrError.message}</p>
                   )}
                 </div>
               );

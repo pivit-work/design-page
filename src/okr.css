@@ -48,13 +48,10 @@
 .okr-members { display: flex; flex-direction: column; gap: 8px; margin-top: 30px; }
 
 /* ── 개인 계층 (PW-413 · okr-policy.md §3.4-A T3-b) ──
-   개인 노드는 조직 노드 규격(is-team)을 그대로 축소해 재사용한다 —
-   새 시각 언어를 만들지 않는다. 시안: pivit-specs `F. OKR/okr-dashboard.jsx`. */
+   개인 노드는 디자이너 묶음 카드(.okr-group-card 170px·이름 18/700)와 한 줄 목표(.okr-objective-row,
+   목록 406px)를 원래 크기 그대로 쓴다 — 줄여 덧칠하던 규칙은 걷었다(PW-2219). 여기는 자리만. */
 .okr-persons-row { display: flex; align-items: flex-start; justify-content: center; gap: 32px; margin-top: 48px; }
 .okr-person-col { gap: 12px; }
-.okr-person-col .okr-objective-list { width: 170px; }
-.okr-person-col .okr-group-card { min-width: 150px; }
-.okr-person-col .okr-group-name { font-size: 16px; line-height: 24px; }
 
 /* 「비어 있다」를 화면이 말한다 — 지우면 「OKR 을 안 세웠다」와 「트리에서 빠졌다」가
    같아 보인다(§3.4-A T2). 개인 계층 전체가 비면 플레이스홀더 1개만 둔다(T3-b). */
@@ -100,13 +97,6 @@
 .okr-objective-row:hover { box-shadow: 0 4px 12px rgba(10, 13, 18, 0.12), 0 2px 4px rgba(10, 13, 18, 0.06); }
 .okr-objective-title { width: 160px; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .okr-objective-percent { font-size: 12px; font-weight: 600; line-height: 18px; letter-spacing: -0.01em; color: var(--text-secondary); white-space: nowrap; }
-/* 개인 칸(170px) 두 줄 배치 — 윗줄 뱃지+제목(두 줄까지), 아랫줄 진행바+% (PW-2086) */
-.okr-objective-row.is-stacked { flex-direction: column; align-items: stretch; gap: 10px; height: auto; padding: 14px 16px; }
-.okr-objective-row-top { display: flex; align-items: flex-start; gap: 6px; }
-.okr-objective-row-top .okr-q-badge { flex-shrink: 0; }
-.okr-objective-row.is-stacked .okr-objective-title { width: auto; min-width: 0; font-size: 13px; line-height: 18px; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; word-break: keep-all; overflow-wrap: anywhere; }
-.okr-objective-row-bottom { display: flex; align-items: center; gap: 8px; }
-.okr-objective-row-bottom .okr-progress-track { flex: 1; }
 
 /* ── 구성원 칩 ── */
 .okr-member-chip { display: flex; align-items: center; gap: 8px; min-width: 138px; padding: 16px 22px; box-sizing: border-box; background: var(--bg-quaternary); border-radius: 12px; box-shadow: 0 1px 3px rgba(10, 13, 18, 0.1), 0 1px 2px rgba(10, 13, 18, 0.1); cursor: pointer; transition: box-shadow 0.2s; }
@@ -126,10 +116,12 @@
 .tl-group-modal.okr-shell.is-detail { width: 1000px; }
 .tl-group-modal.okr-shell.is-krfb { width: 650px; }
 .okr-shell-body { display: flex; flex-direction: column; gap: 48px; }
-/* OKR 컨텍스트 배너(62px, 막보다 위)가 떠 있으면 막을 배너 아래에서 시작한다 — 창 위쪽이 배너에 가리지 않게. */
-body:has(.okr-ctx-banner) > .tl-modal-overlay:has(> .tl-group-modal.okr-shell),
-body:has(.okr-ctx-banner) > .tl-modal-overlay:has(> .tl-group-modal.okr-cf-shell) { top: 62px; }
-body:has(.okr-ctx-banner) .tl-group-modal.okr-shell { max-height: calc(100vh - 62px - 48px); }
+/* OKR 컨텍스트 배너(62px, 막보다 위)가 떠 있으면 막을 배너 아래에서 시작한다 — 창 위쪽이 배너에 가리지 않게.
+   화면 맨 위 배너는 body 바로 아래로 포탈된다(OkrContextBanner). `>` 로 그것만 본다 — 마법사 창 안에
+   같은 띠를 넣어도(PW-2219) 창이 내려가지 않게. */
+body:has(> .okr-ctx-banner) > .tl-modal-overlay:has(> .tl-group-modal.okr-shell),
+body:has(> .okr-ctx-banner) > .tl-modal-overlay:has(> .tl-group-modal.okr-cf-shell) { top: 62px; }
+body:has(> .okr-ctx-banner) .tl-group-modal.okr-shell { max-height: calc(100vh - 62px - 48px); }
 
 /* AI 위험 신호 */
 .okr-ai-signal { display: flex; flex-direction: column; gap: 8px; }
@@ -152,13 +144,12 @@ body:has(.okr-ctx-banner) .tl-group-modal.okr-shell { max-height: calc(100vh - 6
 .okr-write-btn.is-inline { position: static; }
 .okr-header-actions { position: fixed; top: 86px; right: 32px; z-index: 90; display: flex; gap: 8px; }
 /* [{단위} OKR 작성] / [OKR 작성 ▾] — 시안 okr-app.jsx OkrTabNav 액션 (정책서 §2A.2).
-   .okr-header-actions 안에 [작성]·[편집] 과 나란히 선다. */
-.okr-wz-entry { position: relative; display: flex; }
-.okr-wz-entry-btn { display: flex; align-items: center; gap: 4px; padding: 8px 14px; background: var(--bg-brand-solid); border: none; border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-white); cursor: pointer; white-space: nowrap; }
-.okr-wz-entry-btn:disabled { background: var(--bg-brand-secondary); color: var(--text-quaternary); cursor: not-allowed; }
-.okr-wz-entry-menu { position: absolute; top: calc(100% + 4px); right: 0; z-index: 20; display: flex; flex-direction: column; min-width: 190px; padding: 4px; background: var(--bg-primary); border: 1px solid var(--border-secondary); border-radius: 8px; box-shadow: var(--shadows-shadow-lg, 0 12px 16px -4px rgba(10, 13, 18, 0.08)); }
-.okr-wz-entry-item { height: 34px; padding: 0 10px; border: none; border-radius: 8px; background: transparent; font-family: inherit; font-size: 14px; font-weight: 600; text-align: left; color: var(--text-primary); cursor: pointer; white-space: nowrap; }
-.okr-wz-entry-item:hover { background: var(--bg-secondary); }
+   .okr-header-actions 안에 [작성]·[편집] 과 나란히 선다. 버튼은 디자이너 .okr-write-btn.is-inline,
+   펼친 메뉴는 연도·분기와 같은 .okr-select-menu (PW-2219). 여기는 자리·꺼진 상태만. */
+.okr-wz-entry { display: flex; }
+.okr-wz-entry .okr-write-btn:disabled { background: var(--bg-brand-secondary); color: var(--text-quaternary); cursor: not-allowed; }
+/* PW-2219: 헤더 오른쪽 끝 버튼이라 메뉴를 오른쪽에 맞춘다 — .okr-p-visibility .okr-select-menu 와 같은 자리 규칙 */
+.okr-wz-entry .okr-select-menu { left: auto; right: 0; }
 .okr-ghost-btn { padding: 8px 14px; background: var(--alpha-black-3); border: none; border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-secondary); cursor: pointer; }
 /* 작성 권한이 없는 사용자에게 '왜 버튼이 없는지' 를 알리는 배지 (시안 okr-company.jsx
    §2A.6 — 작성 권한 없음 = 회색 '읽기 전용'). 버튼만 조용히 사라지면 사용자는
@@ -341,20 +332,16 @@ body:has(.okr-ctx-banner) .tl-group-modal.okr-shell { max-height: calc(100vh - 6
 .okr-team-tabs-scroll .tl-tabs { height: 100%; width: max-content; }
 .okr-team-tabs-scroll .tl-tab { flex-shrink: 0; white-space: nowrap; }
 
-/* 「팀 고르기」 버튼 — 글씨는 옆 탭(.tl-tab)과 같은 16/24 Medium, 활성 탭 색. */
-.okr-team-picker-trigger { flex: 0 0 auto; max-width: 220px; height: 32px; display: inline-flex; align-items: center; gap: 4px; padding: 0 8px 0 10px; background: transparent; border: 1px solid var(--border-primary); border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 500; line-height: 20px; color: var(--text-primary); cursor: pointer; }
-.okr-team-picker-trigger:hover,
-.okr-team-picker-trigger.is-open { background: var(--bg-secondary); }
-.okr-team-picker-trigger svg { flex-shrink: 0; color: var(--text-tertiary); }
+/* 「팀 고르기」 — 모양은 디자이너 드롭다운 .okr-select-btn / .okr-select-menu / .okr-select-item-inner
+   (PW-2219). 여기는 긴 팀 이름 말줄임과 검색칸을 메뉴 맨 위에 두는 자리만. */
+.okr-team-picker-trigger { flex: 0 0 auto; max-width: 220px; }
+.okr-team-picker-trigger svg,
+.okr-team-picker-panel .okr-select-item-inner svg { flex-shrink: 0; }
 .okr-team-picker-value { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-/* 펼친 목록 — 면·항목은 구성원 목록 «⋯» 메뉴(.admin-emp-row-menu · -item)와 같은 값. */
-.okr-team-picker-panel { z-index: 60; display: flex; flex-direction: column; gap: 6px; background: var(--bg-quaternary); border-radius: var(--radius-md, 10px); border: 1px solid var(--border-primary); box-shadow: 0 6px 20px rgba(10, 13, 18, 0.1); padding: 6px; }
+/* PW-2219: 검색칸이 굴러가지 않게 목록만 굴린다 — 높이 상한은 .okr-select-menu 의 256px 값 */
+.okr-team-picker-panel { display: flex; flex-direction: column; gap: 6px; padding: 6px; }
 .okr-team-picker-search { flex-shrink: 0; }
-.okr-team-picker-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
-.okr-team-picker-item { display: block; width: 100%; text-align: left; padding: 7px 10px; border: none; background: transparent; border-radius: 7px; font-family: var(--font-family-body); font-size: var(--font-size-text-xs, 12px); font-weight: 600; color: var(--text-primary); cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.okr-team-picker-item:hover { background: var(--bg-secondary); }
-.okr-team-picker-item.is-active { background: var(--bg-secondary); }
+.okr-team-picker-list { flex: 1 1 auto; min-height: 0; max-height: 256px; overflow-y: auto; }
 .okr-team-picker-empty { padding: 7px 10px; font-size: var(--font-size-text-xs, 12px); font-weight: 500; color: var(--text-tertiary); }
 
 .okr-s-toolbar { display: flex; align-items: center; justify-content: space-between; }
@@ -444,14 +431,9 @@ body:has(.okr-ctx-banner) .tl-group-modal.okr-shell { max-height: calc(100vh - 6
 .okr-cf-company { background: var(--bg-secondary); border-radius: 10px; padding: 12px 14px; display: flex; flex-direction: column; gap: 4px; }
 .okr-cf-company-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
 .okr-cf-company-title { font-size: 13px; font-weight: 600; color: var(--text-primary); line-height: 20px; }
-/* 전략 캔버스 요약 (PW-2190) — 전략 캔버스 탭 행(.okr-s-row 사이 선 · .okr-s-list 번호 목록)을 300px 칸에 맞춰
-   이름표 위·내용 아래로 쌓는다. 글씨 크기는 같은 창 값(이름표 = .okr-cf-group-q, 내용 = .okr-cf-company-title 크기) */
-.okr-cf-strategy { background: var(--bg-secondary); border-radius: 10px; padding: 4px 14px; display: flex; flex-direction: column; }
-.okr-cf-strategy-eyebrow { font-size: 12px; font-weight: 500; line-height: 18px; color: var(--text-tertiary); padding: 10px 0 2px; margin: 0; }
-.okr-cf-strategy-row { display: flex; flex-direction: column; gap: 4px; padding: 12px 0; }
-.okr-cf-strategy-row + .okr-cf-strategy-row { border-top: 1px solid var(--border-secondary); }
-.okr-cf-strategy-label { font-size: 12px; font-weight: 700; line-height: 18px; color: var(--text-secondary); margin: 0; }
-.okr-cf-strategy-text { font-size: 13px; font-weight: 500; line-height: 20px; color: var(--text-primary); margin: 0; overflow-wrap: anywhere; }
+/* 전략 캔버스 요약 (PW-2190) — 제목은 .okr-cf-eyebrow, 줄마다 미니맵 회사 카드(.okr-cf-company) 한 장 (PW-2219).
+   PW-2219: 카드 사이 간격 — .okr-cf-minimap 의 gap 12px 값. 번호 목록 글자(-list)는 지금 크기 유지(design-review). */
+.okr-cf-strategy { display: flex; flex-direction: column; gap: 12px; }
 .okr-cf-strategy-list { margin: 0; padding-left: 18px; font-size: 13px; font-weight: 500; line-height: 20px; color: var(--text-primary); display: flex; flex-direction: column; gap: 2px; overflow-wrap: anywhere; }
 .okr-cf-group { border: 1px solid var(--border-secondary); border-radius: 10px; padding: 8px; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 1px 3px rgba(10, 13, 18, 0.06); }
 .okr-cf-group-head { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: var(--bg-secondary); border-radius: 6px; font-size: 13px; font-weight: 700; color: var(--text-primary); }
@@ -501,53 +483,44 @@ body:has(.okr-ctx-banner) .tl-group-modal.okr-shell { max-height: calc(100vh - 6
 .okr-cf-method-label { font-size: 14px; font-weight: 700; line-height: 20px; color: var(--text-primary); }
 .okr-cf-method-desc { font-size: 11px; font-weight: 500; line-height: 16px; color: var(--text-tertiary); }
 .okr-cf-method.is-active .okr-cf-method-label, .okr-cf-method.is-active .okr-cf-method-desc { color: var(--text-white); }
-/* 실행 항목(Initiative) 편집 블록 — okr-policy §4A.3.
-   새 시각 언어를 만들지 않는다: 블록은 KR 카드 안쪽 톤, 라벨은 같은 창
-   Objective 제목과 같은 글씨(PW-1899), 추가 버튼은 `okr-cf-kr-add-btn` 을 한 단계 축소한 점선판. */
-/* PW-1934 — 실행 항목 칸은 연회색 (파랑은 진행 중 몫) */
-.okr-cf-init { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; background: var(--bg-secondary); border: 1px solid var(--border-secondary-alt); border-radius: 10px; }
-.okr-cf-init-label { font-size: 15px; font-weight: 700; color: var(--text-primary); }
-.okr-cf-init-row { display: flex; align-items: center; gap: 6px; }
-.okr-cf-init-status { flex: none; padding: 6px 8px; background: var(--bg-quaternary); border: 1px solid var(--border-secondary); border-radius: 8px; font-family: inherit; font-size: 12px; font-weight: 600; color: var(--text-secondary); cursor: pointer; outline: none; }
-.okr-cf-init-status:focus-visible { box-shadow: 0 0 0 2px var(--utility-brand-200); }
-.okr-cf-input.is-init { padding: 6px 10px; font-size: 13px; background: var(--bg-quaternary); }
+/* 실행 항목(Initiative) 편집 블록 — okr-policy §4A.3. 모양은 미니맵 묶음 카드(.okr-cf-group + -head),
+   줄은 KR 줄(.okr-cf-kr-card-head) 안에 .okr-cf-select · .okr-cf-input · 담당자 · .okr-cf-x (PW-2219).
+   완료 줄 취소선은 디자이너 부품이 없어 지금 모양 유지(design-review). */
 .okr-cf-input.is-init.is-done { text-decoration: line-through; color: var(--text-tertiary); }
-.okr-cf-init-empty { font-size: 12px; font-weight: 500; line-height: 18px; color: var(--text-tertiary); }
-.okr-cf-init-add { align-self: flex-start; padding: 5px 11px; background: var(--bg-quaternary); border: 1px dashed var(--border-brand); border-radius: 8px; font-family: inherit; font-size: 12px; font-weight: 600; color: var(--text-brand-secondary); cursor: pointer; }
+/* PW-2219: 닫힌 pill(.okr-cf-select, 디자이너는 div)을 button 으로 쓸 때 브라우저 기본 테두리·글꼴만 지운다 — 초점 고리는 종전 칸과 같은 값 */
+.okr-cf-select-btn { border: none; font-family: inherit; outline: none; }
+.okr-cf-select-btn:focus-visible { box-shadow: 0 0 0 2px var(--utility-brand-200); }
 /* 직접추가 + ✦ AI로 KR 생성 한 줄, 오른쪽 정렬(PW-1503). 버튼 모양은 각자 그대로. */
 .okr-cf-kr-actions { align-self: flex-end; display: flex; align-items: center; gap: 8px; }
 .okr-cf-kr-add-btn { align-self: flex-end; display: flex; align-items: center; gap: 4px; padding: 8px 14px; background: var(--bg-quaternary); border: 1px solid var(--border-secondary); border-radius: 10px; font-family: inherit; font-size: 13px; font-weight: 600; color: var(--text-secondary); cursor: pointer; }
-/* 작성 폼 가중치 검증 배지(엔지니어링 배선) */
-.okr-cf-krsum { align-self: flex-end; font-size: 11px; font-weight: 700; padding: 2px 9px; border-radius: 99px; background: var(--utility-error-50); border: 1px solid var(--utility-error-200); color: var(--utility-error-500); }
-.okr-cf-krsum.is-ok { background: var(--utility-success-50); border-color: var(--utility-success-200); color: var(--utility-success-500); }
-.okr-cf-total { margin-right: auto; font-size: 12px; font-weight: 700; color: var(--utility-error-500); }
-.okr-cf-total.is-ok { color: var(--utility-success-500); }
+/* 작성 폼 KR 가중치 합계 — 글자는 디자이너 .okr-status-text, 여기는 오른쪽 자리만(PW-2219). */
+.okr-cf-krsum { align-self: flex-end; }
 /* 담당자·상위연결 실 select — 정본 .okr-cf-select pill 룩에 맞춘다. */
 .okr-cf-select-real { appearance: none; -webkit-appearance: none; padding: 8px 28px 8px 12px; border: none; border-radius: 8px; background-color: var(--alpha-black-3); background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>"); background-repeat: no-repeat; background-position: right 10px center; color: var(--text-secondary); font-size: 13px; font-weight: 500; font-family: inherit; cursor: pointer; outline: none; max-width: 180px; text-overflow: ellipsis; }
 .okr-cf-select-real:focus { box-shadow: 0 0 0 2px var(--utility-brand-200); }
 
-/* ── KR 줄 상위 KR 칸 — 연결 배지 + 추가 전용 드롭다운 (okr-policy v4.0 §1.2.4 · PW-1383) ──
-   배지는 공용 Chip(selected · ×), 드롭다운은 시안 okr-app.jsx 팀·개인 작성 모드의 브랜드 옅은 바탕 + 테두리. */
+/* ── KR 줄 상위 KR 칸 — 연결 태그 + 추가 드롭다운 (okr-policy v4.0 §1.2.4 · PW-1383) ──
+   태그는 .okr-p-linked-link.is-purple + 떼기 .okr-cf-x, 추가는 .okr-cf-select pill → .okr-select-menu (PW-2219). */
 .okr-cf-kr-parents { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
-.okr-cf-parent-add { appearance: none; -webkit-appearance: none; min-width: 120px; max-width: 260px; padding: 4px 26px 4px 8px; border: 1px solid var(--utility-brand-200); border-radius: 6px; background-color: var(--utility-brand-50); background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>"); background-repeat: no-repeat; background-position: right 8px center; color: var(--utility-brand-700); font-size: 12px; font-weight: 500; font-family: inherit; cursor: pointer; outline: none; text-overflow: ellipsis; }
-.okr-cf-parent-add:focus { box-shadow: 0 0 0 2px var(--utility-brand-200); }
-/* 위 두 칸은 이제 SearchSelect 버튼이다(PW-1955) — 꺾쇠는 종전 배경 그림을 그대로 쓰고 부품의 꺾쇠는 숨겨
-   닫힌 모양을 바꾸지 않는다. 「+ 상위 KR 연결」은 늘 비어 있는 칸이라 안내 글이 아니라 종전 글색(브랜드)으로 둔다. */
-.okr-cf-select-real .dp-search-select-chevron,
-.okr-cf-parent-add .dp-search-select-chevron { display: none; }
-.okr-cf-parent-add .dp-search-select-value.is-placeholder { color: inherit; }
+/* PW-2219: 상위 KR 펼침 — 묶음 머리띠(.okr-cf-group-head)를 줄 폭으로, 긴 KR 이름은 말줄임(전체는 title). 값은 배치뿐 */
+.okr-cf-parent-menu .okr-cf-group-head { flex: 1; }
+.okr-cf-parent-menu .okr-select-item-inner { min-width: 0; }
+.okr-cf-parent-menu .okr-select-item-inner > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* 위 칸은 이제 SearchSelect 버튼이다(PW-1955) — 꺾쇠는 종전 배경 그림을 그대로 쓰고 부품의 꺾쇠는 숨겨
+   닫힌 모양을 바꾸지 않는다. */
+.okr-cf-select-real .dp-search-select-chevron { display: none; }
 .okr-cf-head-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
 /* ── 담당자(PIC) 검색 드롭다운 — okr-spec §3.8A / okr-policy §5.2B ── */
-/* 트리거는 위 .okr-cf-select-real pill 룩을 그대로 따른다(캐럿만 인라인 SVG). */
+/* 닫힌 칸은 디자이너 「담당자 ⌄」 pill(.okr-cf-select), 패널 틀은 .okr-select-menu (PW-2219).
+   여기는 긴 이름 말줄임·자리만. 검색칸·사람 줄(-search* · -opt*)은 디자이너 부품이 없어 지금 모양 유지(design-review). */
 .okr-cf-pick { position: relative; }
-.okr-cf-pick-trigger { display: inline-flex; align-items: center; gap: 6px; max-width: 180px; padding: 8px 10px 8px 12px; border: none; border-radius: 8px; background: var(--alpha-black-3); font-family: inherit; font-size: 13px; font-weight: 500; color: var(--text-placeholder); cursor: pointer; outline: none; }
-.okr-cf-pick-trigger.is-filled { color: var(--text-secondary); }
-.okr-cf-pick-trigger:focus-visible { box-shadow: 0 0 0 2px var(--utility-brand-200); }
+.okr-cf-pick-trigger { max-width: 180px; }
 .okr-cf-pick-trigger-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.okr-cf-pick-trigger svg { flex-shrink: 0; color: var(--text-tertiary); }
-/* 패널은 fixed — .okr-cf-editor(overflow-y: auto) 안에서 열려도 잘리지 않는다. */
-.okr-cf-pick-panel { z-index: 1100; box-sizing: border-box; display: flex; flex-direction: column; gap: 4px; padding: 6px; background: var(--bg-quaternary); border: 1px solid var(--border-secondary); border-radius: 10px; box-shadow: 0 12px 32px -8px rgba(15, 23, 42, 0.24); }
+.okr-cf-pick-trigger svg { flex-shrink: 0; }
+/* 패널은 fixed — .okr-cf-editor(overflow-y: auto) 안에서 열려도 잘리지 않는다. 작성 창(1000) 위 층.
+   PW-2219: 검색칸 위·목록 아래로 쌓는 배치 — 값은 종전 그대로(after.html 담당자 메뉴) */
+.okr-cf-pick-panel { z-index: 1100; box-sizing: border-box; display: flex; flex-direction: column; gap: 4px; padding: 6px; }
 .okr-cf-pick-search { position: relative; display: flex; align-items: center; flex-shrink: 0; }
 .okr-cf-pick-search svg { position: absolute; left: 9px; color: var(--text-placeholder); pointer-events: none; }
 .okr-cf-pick-search-input { width: 100%; box-sizing: border-box; padding: 8px 12px 8px 29px; border: none; border-radius: 8px; background: var(--alpha-black-3); font-family: inherit; font-size: 14px; font-weight: 400; line-height: 20px; color: var(--text-primary); outline: none; }
@@ -597,27 +570,57 @@ body:has(.okr-ctx-banner-flag) .tl-group-modal.okr-wz-modal { height: min(1118px
 .okr-ctx-dropzone-or { font-weight: 400; color: var(--text-tertiary); }
 .okr-ctx-dropzone-hint { font-size: 12px; font-weight: 400; line-height: 18px; color: var(--text-tertiary); text-align: center; }
 
+/* ── PW-2219: 컨텍스트 설정 «페이지»(OkrContextSetupCanvas) — 위 디자이너 창(.okr-ctx-* · .okr-wz-*)을 페이지에 펼친 자리 잡기만.
+      색·글씨는 디자이너 클래스가 칠하고, 여기는 배치와 디자이너 부품이 없는 자리(빨간 실패 상자·키워드 칩·하단 고정 바)의 지금 값뿐이다. ── */
+/* PW-2219: 페이지 틀 — 디자이너 창(.okr-wz-modal) 바탕·둥근 16, 본문 안쪽 48 · 절 사이 40 */
+.okr-ctx-page { max-width: 880px; display: flex; flex-direction: column; background: var(--bg-quaternary); border: 1px solid var(--border-secondary); border-radius: 16px; font-family: var(--font-family-body); }
+.okr-ctx-page-body { display: flex; flex-direction: column; gap: 40px; padding: 40px 48px 32px; }
+/* PW-2219: 페이지 푸터 — 디자이너 창 발 줄(.tl-group-modal-actions: 왼쪽 .okr-wz-footer-hint + 오른쪽 .okr-btn) */
+.okr-ctx-page-foot { display: flex; align-items: center; gap: 12px; padding: 24px 48px 32px; border-top: 1px solid var(--border-secondary); }
+.okr-ctx-page-foot .okr-btn, .okr-ctx-sticky .okr-btn { flex: none; }
+/* PW-2219: AI 를 돌리는 버튼엔 AI 표시를 단다(PW-2035) — 디자이너 .okr-wz-ai-btn 은 그대로, 아이콘과 글 사이만 4px */
+.okr-ctx-page .okr-wz-ai-btn { display: inline-flex; align-items: center; gap: 4px; }
+/* PW-2219: 운영 단위 — 디자이너 범위 카드(.okr-wz-scopes) 사이 화살표와 개인 OKR 스위치 줄(.okr-p-linked-head 간격 12) */
+.okr-ctx-levels-chev { flex: none; align-self: center; display: flex; color: var(--text-tertiary); }
+.okr-ctx-switch-row { display: flex; align-items: center; gap: 12px; }
+/* PW-2219: 소스 줄 — 디자이너 «연결된 상위 OKR» 카드(.okr-p-linked-card) 머리 안 이름+상태 묶음(간격 12), 줄 사이 8 */
+.okr-ctx-source-list { display: flex; flex-direction: column; gap: 8px; }
+.okr-ctx-source-main { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; flex: 1; min-width: 0; overflow-wrap: anywhere; }
+/* 텍스트 소스 본문 미리보기는 두 줄까지(§3-2) — 지금 값 그대로 */
+.okr-ctx-source-preview { white-space: pre-wrap; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+/* PW-2219: 소스 추가 — [링크 등록]·[텍스트 추가] 회색 버튼(.okr-ghost-btn) 줄과 입력 칸(.okr-textarea) 묶음 */
+.okr-ctx-add-row { display: flex; align-items: center; gap: 8px; }
+.okr-ctx-composer { display: flex; flex-direction: column; gap: 8px; }
+.okr-ctx-composer-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.okr-ctx-composer-actions { display: flex; justify-content: flex-end; gap: 8px; }
+/* 링크 형식 오류면 칸 테두리도 빨갛게(§9 「인라인 빨강 보더») — 지금 값(에러 200) 그대로 */
+.okr-ctx-composer .okr-textarea[aria-invalid='true'] { border-color: var(--utility-error-200); }
+/* PW-2219: 열람 전용 안내 — 연회색 안내 상자(.okr-wz-vision-card) 안 자물쇠 + 글자 한 줄 */
+.okr-ctx-readonly { display: flex; align-items: center; gap: 10px; color: var(--text-tertiary); }
+.okr-ctx-readonly svg { flex: none; }
+/* 지금 모양 유지(디자이너 부품 없음) — 불러오기·저장·AI 분석 실패 빨간 상자 */
+.okr-ctx-alert { padding: 10px 12px; border-radius: 9px; background: var(--utility-error-50); border: 1px solid var(--utility-error-200); color: var(--utility-error-700); font-size: 12px; font-weight: 600; overflow-wrap: anywhere; }
+.okr-ctx-alert.is-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border-radius: 10px; }
+.okr-ctx-alert.is-row .okr-btn { flex: none; }
+/* 지금 모양 유지(디자이너에 작은 칩 부품 없음) — AI 분석 결과의 키워드 칩 줄. 칩 생김새(.okr-ctx-kw-chip)는 status-badge.css */
+.okr-ctx-kw { display: flex; gap: 5px; flex-wrap: wrap; }
+/* 지금 모양 유지(디자이너 부품 없음) — 화면 아래 고정 [OKR 설정 시작] 바(§6) */
+.okr-ctx-sticky { position: sticky; bottom: 0; z-index: 10; display: flex; align-items: center; flex-wrap: wrap; gap: 16px; max-width: 880px; box-sizing: border-box; margin-top: 14px; padding: 14px 18px; background: var(--bg-primary); border: 1px solid var(--border-secondary); border-radius: 12px; box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.06); font-family: var(--font-family-body); }
+.okr-ctx-sticky-hint { flex: 1; min-width: 200px; font-size: 12px; line-height: 1.6; color: var(--text-tertiary); }
+
 /* ══ OKR 설정 모달 — Figma 17260:20206 (800 모달·조인 스텝바·비전 이미지) ══ */
 /* 높이는 가장 긴 스텝(미래구슬, 시안 1118) 기준으로 고정 — 짧은 스텝으로 넘어가도
    모달이 줄어들지 않는다. 뷰포트가 낮으면 (100vh - 48) 로 잘리고 본문이 스크롤된다. */
 .tl-group-modal.okr-wz-modal { width: 800px; max-width: calc(100vw - 80px); height: min(1118px, calc(100vh - 48px)); }
 /* 스텝바 — bg-tertiary 한 몸 바에 1px alpha 경계 칸, 활성 칸은 brand→purple 그라데이션 */
 /* 회사 컨텍스트 — 진입 배너(어드민)·1단계 미설정 안내·KR 배지 (마법사 정책서 §3-0, 시안 okr-app.jsx WizardScreen) */
-/* PW-2035 — OKR 맨 위 컨텍스트 안내 바(.okr-ctx-banner, Figma 17260:22116)와 같은 색: 블루-400 바탕 · 흰 글씨 · 동작만 보라(컨텍스트 분석이 AI 기능).
-   창 안이라 높이·글씨는 예전 값 그대로 낮게 둔다. */
-.okr-wz-ctx-entry { display: flex; align-items: center; gap: 10px; width: 100%; margin-bottom: 16px; padding: 10px 14px; box-sizing: border-box; border: none; border-radius: 8px; background: var(--utility-blue-400); font-family: inherit; text-align: left; cursor: pointer; }
-.okr-wz-ctx-entry-text { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
-.okr-wz-ctx-entry-title { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--text-white); }
-/* 어두운 화면: --alpha-white-80 은 어두운 화면에서 검정 80% 로, --utility-purple-500 은 연보라로 뒤집혀 파랑 바 위 글씨가 안 읽힌다.
-   그래서 설명은 흰 글자에 투명도를, 동작 바탕은 테마로 안 뒤집히는 팔레트 보라(--colors-purple-500 · 밝은 화면 값과 같음)를 쓴다. */
-.okr-wz-ctx-entry-desc { font-size: 11px; color: var(--text-white); opacity: 0.8; overflow-wrap: anywhere; }
-/* 모양은 .okr-ctx-banner-btn 그대로 — 바 전체가 누르는 자리라 버튼처럼 보이는 표시만 둔다 */
-.okr-wz-ctx-entry-action { flex: none; padding: 4px 8px; border-radius: 8px; background: var(--colors-purple-500); font-size: 12px; font-weight: 600; line-height: 18px; letter-spacing: -0.01em; color: var(--text-white); }
-/* PW-1930 — 「선택 사항」 안내라 경고 노랑이 아니라 연회색. */
-.okr-wz-ctx-notice { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; padding: 12px 14px; border-radius: 10px; background: var(--bg-secondary); border: 1px solid var(--border-secondary); }
-.okr-wz-ctx-notice-text { flex: 1; min-width: 0; margin: 0; font-size: 12px; line-height: 1.6; color: var(--text-secondary); overflow-wrap: anywhere; }
-.okr-wz-ctx-notice-hint { color: var(--text-tertiary); }
-.okr-wz-ctx-notice .okr-btn { flex: none; }
+/* PW-2219: 마법사 창 안 컨텍스트 띠 — 디자이너 .okr-ctx-banner 는 화면 맨 위 고정 자리라 창 안에서만 고정을 풀고,
+   사이드바 몫 왼쪽 230px 을 오른쪽과 같은 20px 로, 모서리는 .okr-wz-scope 의 8px 값. 색·글씨는 디자이너 값 그대로. */
+.okr-wz-modal .okr-ctx-banner { position: static; z-index: auto; padding-left: 20px; border-radius: 8px; }
+/* 미설정 안내 — 디자이너 연회색 카드(.okr-wz-vision-card) 안에 글 + 회색 버튼을 한 줄로 놓는 자리만 (PW-1930 · PW-2219). */
+.okr-wz-ctx-notice { display: flex; align-items: center; gap: 12px; }
+.okr-wz-ctx-notice > p { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.okr-wz-ctx-notice > button { flex: none; }
 .okr-wz-draft-badges { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
 .okr-wz-steps { display: flex; background: var(--bg-tertiary); border-radius: 6px; }
 .okr-wz-step { flex: 1; padding: 8px; border: 1px solid var(--alpha-black-5); margin-right: -1px; cursor: pointer; text-align: center; }
@@ -637,16 +640,14 @@ body:has(.okr-ctx-banner-flag) .tl-group-modal.okr-wz-modal { height: min(1118px
 .okr-wz-scope.is-active { background: transparent; border-color: var(--border-brand); }
 .okr-wz-scope-label { font-size: 18px; font-weight: 700; line-height: 28px; color: var(--text-primary); margin-bottom: 6px; }
 .okr-wz-scope-desc { font-size: 14px; font-weight: 400; line-height: 20px; color: var(--text-primary); }
-/* 단위 고정 카드 — 구 3택 자리 (시안 okr-app.jsx ScopeContext · 정책서 §2A.3).
-   브랜드 보더 + 브랜드 틴트 = 구 3택의 선택 카드와 같은 시각. 클릭 대상이 아니다. */
-.okr-wz-scope-fixed { display: flex; align-items: center; gap: 12px; box-sizing: border-box; padding: 16px; border: 2px solid var(--border-brand); border-radius: 8px; background: var(--utility-brand-50); }
+/* 단위 고정 카드 — 구 3택 자리 (시안 okr-app.jsx ScopeContext · 정책서 §2A.3). 모양은 디자이너 고른 범위 카드
+   .okr-wz-scope.is-active 그대로(PW-2219). 여기는 글 + 오른쪽 대상 고르기를 한 줄로 놓는 자리와, 누르는 카드가 아니라는 표시만. */
+.okr-wz-scope-fixed { display: flex; align-items: center; gap: 12px; cursor: default; }
 .okr-wz-scope-fixed-text { flex: 1; min-width: 0; }
+/* 대상 고르기(SearchSelect)는 디자이너 검색 입력 부품이 없어 지금 모양 유지(design-review). */
 .okr-wz-target-select { flex: none; max-width: 220px; height: 36px; padding: 0 10px; border: 1px solid var(--border-primary); border-radius: 8px; background: var(--bg-primary); font-family: inherit; font-size: 14px; font-weight: 600; color: var(--text-primary); }
-.okr-wz-target-name { flex: none; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 600; color: var(--text-brand-secondary); }
-/* 진입 차단 — 본문 대신 사유 카드 (시안 BlockedBody · 정책서 §2A.4) */
-.okr-wz-blocked { display: flex; flex-direction: column; gap: 6px; padding: 40px 20px; text-align: center; border: 1px dashed var(--border-secondary); border-radius: 8px; background: var(--bg-secondary); }
-.okr-wz-blocked-title { font-size: 16px; font-weight: 700; line-height: 24px; color: var(--text-primary); }
-.okr-wz-blocked-desc { font-size: 14px; font-weight: 400; line-height: 20px; color: var(--text-tertiary); }
+/* 대상이 하나면 이름만 — 글씨는 디자이너 .okr-wz-step-eyebrow, 여기는 말줄임 자리만. */
+.okr-wz-target-name { flex: none; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .okr-wz-textarea { height: 250px; }
 .okr-wz-tip { font-size: 12px; font-weight: 500; line-height: 18px; color: var(--text-tertiary); }
 /* 비전 이미지 (선택) */
@@ -661,45 +662,22 @@ body:has(.okr-ctx-banner-flag) .tl-group-modal.okr-wz-modal { height: min(1118px
 .tl-group-modal.okr-wz-modal .tl-group-modal-actions { align-items: center; padding-bottom: 48px; }
 .tl-group-modal.okr-wz-modal .tl-group-modal-actions .okr-btn { flex: none; }
 .okr-wz-footer-hint { flex: 1; text-align: left; font-size: 14px; font-weight: 400; line-height: 20px; color: var(--text-tertiary); }
-/* 설정 마법사 Step2~3 (엔지니어링 포팅 — 시안 okr-setup-wizard.jsx) */
-.okr-wz-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
-.okr-wz-empty { padding: 28px 16px; text-align: center; border: 1px dashed var(--border-secondary); border-radius: 10px; color: var(--text-tertiary); font-size: 14px; font-weight: 400; line-height: 20px; }
-/* PW-1930 — 확인 전 AI 초안은 디자이너가 AI 가 채운 칸에 쓰는 연보라. 확인 뒤는 초록. */
-.okr-wz-draft { padding: 12px; border-radius: 12px; background: var(--utility-purple-50); border: 1.5px solid var(--utility-purple-200); }
-.okr-wz-draft.is-confirmed { background: var(--utility-success-50); border-color: var(--utility-success-200); }
-.okr-wz-draft-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-.okr-wz-krrow { display: grid; grid-template-columns: 18px 1.6fr 72px 72px 64px 24px; gap: 12px; align-items: center; padding: 8px; background: var(--bg-secondary); border: 1px solid var(--border-secondary); border-radius: 8px; margin-bottom: 12px; }
-/* PW-1506 — KR 담당자 칸(정책서 §3-3). 고르기 부품은 일반 작성 창 KR 담당자와 같은 것을 칸 폭에 맞춰 쓴다. */
-.okr-wz-krrow.has-owner { grid-template-columns: 18px 1.6fr 72px 72px 64px 120px 24px; }
-.okr-wz-krrow .okr-cf-pick, .okr-wz-krrow .okr-cf-pick-trigger { min-width: 0; max-width: 100%; width: 100%; }
-.okr-wz-krno { font-size: 14px; font-weight: 400; line-height: 20px; color: var(--text-tertiary); text-align: center; }
-.okr-wz-krcell { padding: 8px 12px; border: none; border-radius: 6px; background: var(--alpha-black-3); color: var(--text-primary); font-size: 14px; line-height: 20px; font-family: inherit; outline: none; min-width: 0; }
-.okr-wz-krcell.is-num, .okr-wz-krcell.is-unit { text-align: center; }
-.okr-wz-addkr { width: 100%; padding: 8px; border: 1px dashed var(--border-secondary); border-radius: 8px; background: transparent; color: var(--text-secondary); font-size: 14px; font-weight: 600; line-height: 20px; font-family: inherit; cursor: pointer; }
-.okr-wz-source { margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--border-secondary); }
-.okr-wz-source-title { font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-secondary); margin: 0 0 12px; }
-.okr-wz-source-body { margin: 0; padding: 10px 12px; background: var(--bg-secondary); border-radius: 6px; font-size: 14px; font-weight: 400; line-height: 20px; color: var(--text-primary); white-space: pre-wrap; overflow-wrap: anywhere; }
-.okr-wz-objective-banner { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; padding: 10px 12px; border-radius: 8px; background: var(--utility-success-50); border: 1px solid var(--utility-success-200); }
-.okr-wz-objective-banner-tag { flex-shrink: 0; font-size: 12px; font-weight: 500; line-height: 18px; color: var(--utility-success-700); }
-.okr-wz-objective-banner-text { font-size: 16px; font-weight: 700; line-height: 24px; color: var(--text-primary); overflow-wrap: anywhere; }
-.okr-wz-krpreview { margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--border-secondary); }
-.okr-wz-krpreview-title { font-size: 12px; font-weight: 700; color: var(--text-secondary); margin: 0 0 8px; }
-.okr-wz-krpreview-row { display: flex; align-items: center; gap: 10px; padding: 6px 10px; background: var(--bg-secondary); border-radius: 6px; margin-bottom: 4px; font-size: 12px; color: var(--text-primary); }
-.okr-wz-krpreview-name { flex: 1; }
-.okr-wz-krpreview-val { font-size: 11px; color: var(--text-secondary); }
+/* 설정 마법사 Step2~4 — 단계 머리·초안 상자·KR 카드·빈 상태·정합성 줄은 디자이너 부품(.okr-wz-vision*·.okr-cf-objective·
+   .okr-cf-kr-card*·.okr-s-placeholder·.okr-p-linked-card*·.okr-status-text)으로 그린다(PW-2219). 아래는 그 사이 자리만. */
+/* 근거 구술 본문(디자이너 .okr-wz-scope-desc 글씨) — 구술의 줄바꿈과 긴 낱말 줄넘김만 지킨다. */
+.okr-wz-source-body { white-space: pre-wrap; overflow-wrap: anywhere; }
 .okr-wz-error { margin: 10px 0 0; font-size: 12px; color: var(--utility-error-500); }
 /* 체험 AI 소진 등 AI 버튼 바로 아래 안내 자리 (마법사 정책서 §5) */
 .okr-wz-ai-notice { margin: 8px 0 12px; }
 .okr-wz-align { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
-.okr-wz-align-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border: 1px solid var(--border-secondary); border-radius: 10px; background: var(--bg-secondary); }
-/* PW-2035 — 미정렬이어도 다음 단계로 넘어갈 수 있어 막지 않는 경고(주황). 색을 못 가려도 알게 경고 아이콘을 함께 둔다. */
-.okr-wz-align-row.is-warn { border-color: var(--utility-warning-200); background: var(--utility-warning-50); }
-.okr-wz-align-info { flex: 1; display: flex; flex-direction: column; gap: 2px; }
-.okr-wz-align-name { font-size: 14px; font-weight: 700; line-height: 20px; color: var(--text-primary); }
-.okr-wz-align-role { font-size: 14px; font-weight: 400; line-height: 20px; color: var(--text-tertiary); }
-.okr-wz-align-note { font-size: 12px; font-weight: 500; line-height: 18px; color: var(--text-secondary); }
-.okr-wz-align-status { display: inline-flex; align-items: center; gap: 4px; font-size: 14px; font-weight: 700; line-height: 20px; color: var(--utility-warning-700); }
-.okr-wz-align-status.is-ok { color: var(--utility-success-500); }
+/* PW-2035 — 미정렬이어도 다음 단계로 넘어갈 수 있어 막지 않는 경고(주황). 색을 못 가려도 알게 경고 아이콘을 함께 둔다.
+   줄은 디자이너 .okr-p-linked-card(PW-2219). 노란 바탕·테두리는 디자이너 경고 바탕 부품이 없어 지금 값 유지(design-review). */
+.okr-wz-align-row.is-warn { border: 1px solid var(--utility-warning-200); background: var(--utility-warning-50); }
+/* 사람 칩 · 직책 · 설명 · 상태 · [1:1 예약] 한 줄에서 설명이 남는 폭을 맡는다 (자리만). */
+.okr-wz-align-head .okr-p-linked-sub { flex: 1; min-width: 0; }
+.okr-wz-align-head .okr-btn { flex: none; }
+/* 상태 글자색은 디자이너 .okr-status-text.is-warning/.is-success — 여기는 경고 그림을 글자 앞에 붙이는 자리만. */
+.okr-wz-align-status { display: inline-flex; align-items: center; gap: 4px; }
 .okr-btn:disabled { opacity: 0.5; cursor: default; }
 /* AI 버튼도 같은 비활성 표시를 쓴다 — KR 내용이 비었을 때 눌리지 않는다는
    것이 보여야 한다(정책 §5.3 R-E1). 값은 위 .okr-btn 규칙과 같다. */
@@ -722,7 +700,5 @@ body:has(.okr-ctx-banner-flag) .tl-group-modal.okr-wz-modal { height: min(1118px
 .okr-qcell-weight { width: 105px; display: flex; align-items: center; justify-content: center; padding: 16px 32px; box-sizing: border-box; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-tertiary); }
 .okr-qrow.is-head .okr-qcell-weight { font-weight: 700; color: var(--text-secondary); }
 
-/* PW-2133 사용자 승인: 개발 추가 기준 정보/초안의 조합만. 디자이너 카드·모달·스텝 값은 그대로. */
-.okr-wz-reference-objective { background: var(--bg-quaternary); margin-bottom: 12px; }
+/* 3단계 참고 Objective — 디자이너 .okr-cf-objective/.okr-cf-obj-label 그대로, 긴 문장이 잘리지 않게 줄넘김만. */
 .okr-wz-reference-title { white-space: normal; overflow-wrap: anywhere; }
-.okr-wz-review-head { justify-content: space-between; }

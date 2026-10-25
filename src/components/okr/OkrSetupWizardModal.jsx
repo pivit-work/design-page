@@ -124,6 +124,8 @@ export default function OkrSetupWizardModal({
   selfId = '',
   // 3단계 KR 0건 안내 — 앱이 화면 언어로 넘긴다(pivit-work PW-1510).
   krsEmptyHint = '위 버튼을 눌러 AI 추천 KR을 받아보세요. Objective가 구체적일수록 더 정확한 KR이 추출됩니다.',
+  // 2단계 「근거가 된 미래 구술」 제목 아래 설명 — 앱이 화면 언어로 넘긴다(PW-2219).
+  narrativeSourceDesc = '이 문장에서 Objective 를 뽑았습니다.',
 }) {
   const init = initialState ?? {};
   const [step, setStep] = useState(init.step ?? 1);
@@ -285,6 +287,20 @@ export default function OkrSetupWizardModal({
     }
   };
 
+  // 상태 글자 딱지 (PW-2219) — 직접 입력 = 회색 글자(.okr-ctx-optional), AI 초안 = 보라 AI 글자
+  // (.okr-ai-banner-label, OkrDetailModal 과 같은 그림), 확인됨 = 초록 상태 글자(.okr-status-text.is-success).
+  const draftLabel = (state, text) =>
+    state === 'confirmed' ? (
+      <span className="okr-status-text is-success">{text}</span>
+    ) : state === 'ai' ? (
+      <span className="okr-ai-banner-label">
+        {icons?.aiChat && <Icon src={icons.aiChat} size={14} color="var(--utility-purple-500)" baseUrl={baseUrl} />}
+        <span>{text}</span>
+      </span>
+    ) : (
+      <span className="okr-ctx-optional">{text}</span>
+    );
+
   const aiBtn = (label, onClick, loading) => (
     <button type="button" className="okr-wz-ai-btn" onClick={onClick} disabled={loading}>
       {loading ? '생성 중…' : `✦ ${label}`}
@@ -339,22 +355,36 @@ export default function OkrSetupWizardModal({
       footer={footer}
     >
       {blocked ? (
-        <div className="okr-wz-blocked" role="alert">
-          <p className="okr-wz-blocked-title">{blocked.title}</p>
-          {blocked.desc && <p className="okr-wz-blocked-desc">{blocked.desc}</p>}
+        // 디자이너 빈 상태(.okr-s-placeholder) + 마법사 질문·설명 글자 (PW-2219).
+        <div className="okr-s-placeholder" role="alert" data-testid="okr-wz-blocked">
+          <div className="okr-wz-section">
+            <p className="okr-wz-question">{blocked.title}</p>
+            {blocked.desc && <p className="okr-wz-desc">{blocked.desc}</p>}
+          </div>
         </div>
       ) : (<>
       {contextEntry && (
-        <button type="button" className="okr-wz-ctx-entry" data-testid="okr-wz-ctx-entry" onClick={() => onOpenContext?.()}>
-          <span className="okr-wz-ctx-entry-text">
-            <span className="okr-wz-ctx-entry-title">
-              {contextEntry.title}
-              {contextEntry.badge && <StatusBadge tone="neutral">{contextEntry.badge}</StatusBadge>}
-            </span>
-            {contextEntry.desc && <span className="okr-wz-ctx-entry-desc">{contextEntry.desc}</span>}
-          </span>
-          {contextEntry.action && <span className="okr-wz-ctx-entry-action">{contextEntry.action}</span>}
-        </button>
+        // 디자이너 컨텍스트 띠(.okr-ctx-banner, OkrContextBanner) 그대로 — 창 안에 두는 자리만 okr.css 가 푼다.
+        // 「관리자 전용」 배지는 설명 앞 글자로 싣는다(PW-2219).
+        <div className="okr-ctx-banner" data-testid="okr-wz-ctx-entry">
+          <div className="okr-ctx-banner-inner">
+            <div className="okr-ctx-banner-texts">
+              <p className="okr-ctx-banner-title">{contextEntry.title}</p>
+              {(contextEntry.badge || contextEntry.desc) && (
+                <p className="okr-ctx-banner-desc">
+                  {[contextEntry.badge, contextEntry.desc].filter(Boolean).join(' · ')}
+                </p>
+              )}
+            </div>
+            {contextEntry.action && (
+              <div className="okr-ctx-banner-actions">
+                <button type="button" className="okr-ctx-banner-btn" onClick={() => onOpenContext?.()}>
+                  {contextEntry.action}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       )}
       <div className="okr-wz-steps">
         {steps.map((s, i) => (
@@ -373,13 +403,15 @@ export default function OkrSetupWizardModal({
       {step === 1 && (
         <>
           {contextNotice && (
-            <div className="okr-wz-ctx-notice" role="note" data-testid="okr-wz-ctx-notice">
-              <p className="okr-wz-ctx-notice-text">
+            // 막지 않는 안내 = 디자이너 연회색 카드(.okr-wz-vision-card) + 안내 글자, 버튼은 회색(.okr-ghost-btn) —
+            // 초록 주 버튼은 이 단계의 [다음] 하나다 (PW-2219).
+            <div className="okr-wz-vision-card okr-wz-ctx-notice" role="note" data-testid="okr-wz-ctx-notice">
+              <p className="okr-ctx-intro-desc">
                 {contextNotice.text}
-                {contextNotice.hint && <span className="okr-wz-ctx-notice-hint"> {contextNotice.hint}</span>}
+                {contextNotice.hint && <> <span className="okr-ctx-optional">{contextNotice.hint}</span></>}
               </p>
               {contextNotice.action && (
-                <button type="button" className="okr-btn is-brand is-sm" onClick={() => onOpenContext?.()}>
+                <button type="button" className="okr-ghost-btn" onClick={() => onOpenContext?.()}>
                   {contextNotice.action}
                 </button>
               )}
@@ -392,11 +424,12 @@ export default function OkrSetupWizardModal({
               <p className="okr-wz-desc">숫자·고객·팀·매출 무엇이든 좋아요. 12월의 자신을 인터뷰한다고 생각하고 과거형으로 적어주세요. 이 문장이 KR 초안과 Objective 요약의 재료가 됩니다.</p>
             </div>
             {/* 단위 고정 카드 — 구 3택 자리. 클릭 대상이 아니다(§2A.3). */}
-            <div className="okr-wz-scope-fixed" data-testid="okr-wz-scope-fixed">
+            {/* 디자이너 범위 카드(.okr-wz-scope.is-active) — 「단위 고정」은 회색 글자(.okr-ctx-optional) (PW-2219). */}
+            <div className="okr-wz-scope is-active okr-wz-scope-fixed" data-testid="okr-wz-scope-fixed">
               <div className="okr-wz-scope-fixed-text">
                 <p className="okr-wz-scope-label">
                   {card.label}
-                  <StatusBadge className="okr-wz-scope-badge">{card.badge}</StatusBadge>
+                  {card.badge && <> <span className="okr-ctx-optional">{card.badge}</span></>}
                 </p>
                 <p className="okr-wz-scope-desc">{card.desc}</p>
               </div>
@@ -410,7 +443,7 @@ export default function OkrSetupWizardModal({
                   onChange={changeTarget}
                 />
               ) : targets.length === 1 ? (
-                <span className="okr-wz-target-name">{targets[0].name}</span>
+                <span className="okr-wz-step-eyebrow okr-wz-target-name">{targets[0].name}</span>
               ) : null}
             </div>
             <textarea
@@ -451,26 +484,29 @@ export default function OkrSetupWizardModal({
       )}
 
       {stepKey === 'objective' && (
-        <div className="okr-wz-section">
-          <div className="okr-wz-head">
-            <div>
+        <>
+        <div className="okr-wz-vision">
+          <div className="okr-wz-vision-head">
+            <div className="okr-wz-section">
               <p className="okr-wz-step-eyebrow">STEP2 - Objective</p>
               <p className="okr-wz-question">구술을 한 문장 Objective로 정리합니다</p>
             </div>
             {aiBtn(objective ? '다시 작성' : 'AI로 Objective 작성', genObjective, objLoading)}
           </div>
           {aiNoticeAt('objective')}
-          <div className={`okr-cf-kr-card${objConfirmed ? ' is-confirmed' : ''}`} data-testid="okr-wz-objective-draft">
-            <div className="okr-cf-kr-card-head okr-wz-review-head">
-              <StatusBadge className="okr-wz-badge">
-                {objConfirmed ? '✓ 확인됨' : objective ? 'AI 초안 (미확인)' : '직접 입력'}
-              </StatusBadge>
+          {/* 초안 상자 = 디자이너 작성 창 Objective 카드(.okr-cf-objective) + 머리(.okr-wz-vision-head) + 글자 딱지 (PW-2219). */}
+          <div className="okr-cf-objective" data-testid="okr-wz-objective-draft">
+            <div className="okr-wz-vision-head">
+              {draftLabel(
+                objConfirmed ? 'confirmed' : objective ? 'ai' : 'manual',
+                objConfirmed ? '✓ 확인됨' : objective ? 'AI 초안 (미확인)' : '직접 입력',
+              )}
               {!objConfirmed && objective.trim() && (
                 <Button type="button" className="okr-btn is-brand is-sm" onClick={() => setObjConfirmed(true)}>확인</Button>
               )}
             </div>
             <textarea
-              className="okr-textarea"
+              className="okr-textarea is-compact"
               value={objective}
               rows={2}
               maxLength={objectiveTitleMaxLength}
@@ -479,42 +515,60 @@ export default function OkrSetupWizardModal({
               onChange={(e) => changeObjective(e.target.value)}
             />
           </div>
-          {/* 근거가 된 미래 구술 — 이 문장에서 Objective 를 뽑았다는 근거(§3-2 · PW-734). */}
-          <div className="okr-wz-source" data-testid="okr-wz-narrative-source">
-            <p className="okr-wz-source-title">근거가 된 미래 구술</p>
-            <p className="okr-wz-source-body">{narrative.trim() || '(구술 미입력)'}</p>
+        </div>
+        {/* 근거가 된 미래 구술 — 이 문장에서 Objective 를 뽑았다는 근거(§3-2 · PW-734).
+            디자이너 «제목 + 연회색 카드» 블록(.okr-wz-vision) (PW-2219). */}
+        <div className="okr-wz-vision" data-testid="okr-wz-narrative-source">
+          <div className="okr-wz-vision-head">
+            <div className="okr-wz-section">
+              <p className="okr-wz-vision-title">근거가 된 미래 구술</p>
+              {narrativeSourceDesc && <p className="okr-wz-desc">{narrativeSourceDesc}</p>}
+            </div>
+          </div>
+          <div className="okr-wz-vision-card">
+            <p className="okr-wz-scope-desc okr-wz-source-body">{narrative.trim() || '(구술 미입력)'}</p>
           </div>
         </div>
+        </>
       )}
 
       {stepKey === 'krs' && (
-        <div className="okr-wz-section">
-          <div className="okr-wz-head">
-            <div>
+        <div className="okr-wz-vision">
+          <div className="okr-wz-vision-head">
+            <div className="okr-wz-section">
               <p className="okr-wz-step-eyebrow">STEP3 - Key Results</p>
               <p className="okr-wz-question">Objective를 무엇으로 측정할지 정합니다</p>
             </div>
             {aiBtn(krs.length ? 'AI로 다시 추출' : 'AI로 KR 추출', genKrs, krsLoading)}
           </div>
           {aiNoticeAt('krs')}
-          {/* 확정 Objective — KR 이 무엇을 재는지 늘 보이게 둔다(§3-3 · PW-734). */}
-          <div className="okr-cf-objective okr-wz-reference-objective" data-testid="okr-wz-objective-banner">
+          {/* 확정 Objective — KR 이 무엇을 재는지 늘 보이게 둔다(§3-3 · PW-734). 디자이너 Objective 카드 그대로. */}
+          <div className="okr-cf-objective" data-testid="okr-wz-objective-banner">
             <span className="okr-wz-desc">Objective</span>
             <span className="okr-cf-obj-label okr-wz-reference-title">{objective.trim() || '(Objective 미확정)'}</span>
           </div>
           {krs.length === 0 && !krsLoading && (
-            <div className="okr-wz-empty">
+            <div className="okr-cf-objective" data-testid="okr-wz-krs-empty">
               {/* 정책서 §3-3 「KR 0건 & 미생성」 — 추천을 받았는데 0건이면 안내를 내린다(pivit-work PW-1510).
-                  aiKrsRevision 은 추출이 성공할 때만 오르고 되살리기에도 실린다. */}
-              {aiKrsRevision === 0 && <p>{krsEmptyHint}</p>}
-              <Button type="button" className="okr-wz-addkr" onClick={addKr}>+ KR 직접 추가</Button>
+                  aiKrsRevision 은 추출이 성공할 때만 오르고 되살리기에도 실린다. 디자이너 빈 상태(.okr-s-placeholder). */}
+              {aiKrsRevision === 0 && (
+                <div className="okr-s-placeholder">
+                  <p className="okr-wz-desc">{krsEmptyHint}</p>
+                </div>
+              )}
+              <Button type="button" className="okr-cf-kr-add-btn" onClick={addKr}>+ KR 직접 추가</Button>
             </div>
           )}
           {krs.length > 0 && (
-            <div className={`okr-cf-kr-card${krsConfirmed ? ' is-confirmed' : ''}`} data-testid="okr-wz-krs-draft">
-              <div className="okr-cf-kr-card-head okr-wz-review-head">
+            // KR 초안 = 디자이너 작성 창 KR 묶음: 묶음 .okr-cf-objective, KR 하나 .okr-cf-kr-card(머리 「KR1」 + 지표명 + ×,
+            // 아래 줄 현재·목표·단위·담당자), 추가 .okr-cf-kr-add-btn (PW-2219).
+            <div className="okr-cf-objective" data-testid="okr-wz-krs-draft">
+              <div className="okr-wz-vision-head">
                 <span className="okr-wz-draft-badges">
-                  <StatusBadge className="okr-wz-badge">{krsConfirmed ? '✓ 확인됨' : `AI 초안 (미확인) · ${krs.length}개`}</StatusBadge>
+                  {draftLabel(
+                    krsConfirmed ? 'confirmed' : 'ai',
+                    krsConfirmed ? '✓ 확인됨' : `AI 초안 (미확인) · ${krs.length}개`,
+                  )}
                   {krsContextApplied && contextAppliedLabel && (
                     <StatusBadge className="okr-ai-tag" data-testid="okr-wz-ctx-applied"><AiMark />{contextAppliedLabel}</StatusBadge>
                   )}
@@ -524,63 +578,86 @@ export default function OkrSetupWizardModal({
                 )}
               </div>
               {krs.map((k, i) => (
-                <div className={`okr-wz-krrow${members.length > 0 ? ' has-owner' : ''}`} key={k.id}>
-                  <span className="okr-wz-krno">{i + 1}</span>
-                  <TextInput className="okr-wz-krcell" value={k.title} placeholder="지표명" aria-label="KR 지표명" maxLength={krTitleMaxLength}
-                    onChange={(e) => patchKr(k.id, { title: e.target.value })} />
-                  <TextInput className="okr-wz-krcell is-num" type="number" value={k.current} placeholder="현재" aria-label="현재값"
-                    onChange={(e) => patchKr(k.id, { current: e.target.value })} />
-                  {/* «완료 여부»는 목표 1 고정이라 칸을 감춘다(okr-spec §3.1B). 빈 칸은 열 자리를 지킨다. */}
-                  {k.type === 'boolean' ? <span aria-hidden="true" /> : (
-                    <TextInput className="okr-wz-krcell is-num" type="number" value={k.target} placeholder="목표" aria-label="목표값"
-                      onChange={(e) => patchKr(k.id, { target: e.target.value })} />
-                  )}
-                  <TextInput className="okr-wz-krcell is-unit" value={k.unit} placeholder="단위" aria-label="단위"
-                    onChange={(e) => patchKr(k.id, { unit: e.target.value })} />
-                  {members.length > 0 && (
-                    <OkrMemberPicker ariaLabel="KR 담당자" members={members} value={k.ownerId ?? ''}
-                      onChange={(id) => patchKr(k.id, { ownerId: id })} />
-                  )}
-                  <Button type="button" className="okr-cf-x" onClick={() => removeKr(k.id)} aria-label="KR 삭제">
-                    <Icon src={icons.xClose} size={14} color="var(--text-tertiary)" baseUrl={baseUrl} />
-                  </Button>
+                <div className="okr-cf-kr-card" key={k.id} data-testid="okr-wz-kr-card">
+                  <div className="okr-cf-kr-card-head">
+                    <span className="okr-kr-id">KR{i + 1}</span>
+                    <TextInput className="okr-cf-input" value={k.title} placeholder="지표명" aria-label="KR 지표명" maxLength={krTitleMaxLength}
+                      onChange={(e) => patchKr(k.id, { title: e.target.value })} />
+                    <Button type="button" className="okr-cf-x" onClick={() => removeKr(k.id)} aria-label="KR 삭제">
+                      <Icon src={icons.xClose} size={14} color="var(--text-tertiary)" baseUrl={baseUrl} />
+                    </Button>
+                  </div>
+                  <div className="okr-cf-kr-meta">
+                    <span className="okr-cf-unit">현재</span>
+                    <TextInput className="okr-cf-input is-sm" type="number" value={k.current} placeholder="현재" aria-label="현재값"
+                      onChange={(e) => patchKr(k.id, { current: e.target.value })} />
+                    {/* «완료 여부»는 목표 1 고정이라 칸을 감춘다(okr-spec §3.1B). */}
+                    {k.type !== 'boolean' && (
+                      <>
+                        <span className="okr-cf-unit">목표</span>
+                        <TextInput className="okr-cf-input is-sm" type="number" value={k.target} placeholder="목표" aria-label="목표값"
+                          onChange={(e) => patchKr(k.id, { target: e.target.value })} />
+                      </>
+                    )}
+                    <TextInput className="okr-cf-input is-sm" value={k.unit} placeholder="단위" aria-label="단위"
+                      onChange={(e) => patchKr(k.id, { unit: e.target.value })} />
+                    {members.length > 0 && (
+                      <OkrMemberPicker ariaLabel="KR 담당자" members={members} value={k.ownerId ?? ''}
+                        onChange={(id) => patchKr(k.id, { ownerId: id })} />
+                    )}
+                  </div>
                 </div>
               ))}
-              <Button type="button" className="okr-wz-addkr" onClick={addKr}>+ KR 직접 추가</Button>
+              <Button type="button" className="okr-cf-kr-add-btn" onClick={addKr}>+ KR 직접 추가</Button>
             </div>
           )}
         </div>
       )}
 
       {stepKey === 'alignment' && (
-        <div className="okr-wz-section">
-          <p className="okr-wz-step-eyebrow">STEP4 - Alignment</p>
-          <p className="okr-wz-question">팀원들의 OKR 정렬도를 확인합니다</p>
-          <p className="okr-wz-desc">미정렬 팀원에게는 1:1을 예약할 수 있습니다. (정렬 = 팀 OKR 을 상위로 연결한 개인 OKR)</p>
-          {!alignmentView && !error && !alignmentFailed && <p className="okr-wz-empty">정합성 조회 중…</p>}
+        <div className="okr-wz-vision">
+          <div className="okr-wz-section">
+            <p className="okr-wz-step-eyebrow">STEP4 - Alignment</p>
+            <p className="okr-wz-question">팀원들의 OKR 정렬도를 확인합니다</p>
+            <p className="okr-wz-desc">미정렬 팀원에게는 1:1을 예약할 수 있습니다. (정렬 = 팀 OKR 을 상위로 연결한 개인 OKR)</p>
+          </div>
+          {!alignmentView && !error && !alignmentFailed && (
+            <div className="okr-s-placeholder"><p className="okr-wz-desc">정합성 조회 중…</p></div>
+          )}
           {!alignmentView && alignmentFailed && (
             <div className="okr-wz-align">
               <p className="okr-wz-error" role="alert">정합성 조회에 실패했습니다.</p>
               <button type="button" className="okr-btn is-outline is-sm" onClick={retryAlignment}>다시 시도</button>
             </div>
           )}
-          {alignmentView && (
-            <div className="okr-wz-align">
-              {alignmentView.emptyMessage ? (
-                <p className="okr-wz-empty">{alignmentView.emptyMessage}</p>
-              ) : alignmentView.members.length === 0 && (
-                <p className="okr-wz-empty">팀원이 없습니다.</p>
-              )}
-              {!alignmentView.emptyMessage && alignmentView.members.map((m) => (
-                <div className={`okr-wz-align-row${m.aligned ? '' : ' is-warn'}`} key={m.userId}>
-                  <div className="okr-wz-align-info">
-                    <span className="okr-wz-align-name">{m.name}<span className="okr-wz-align-role"> · {m.role}</span></span>
-                    <span className="okr-wz-align-note">{m.alignedLabel && `${m.alignedLabel} · `}{m.aligned ? '정합성 정상' : m.note}</span>
+          {alignmentView && (alignmentView.emptyMessage || alignmentView.members.length === 0) && (
+            <div className="okr-s-placeholder" data-testid="okr-wz-align-empty">
+              <p className="okr-wz-desc">{alignmentView.emptyMessage || '팀원이 없습니다.'}</p>
+            </div>
+          )}
+          {alignmentView && !alignmentView.emptyMessage && alignmentView.members.length > 0 && (
+            // 사람 줄 = 디자이너 «연결된 OKR» 카드(.okr-p-linked-card) + 사람 칩(.okr-member-chip) + 직책(.okr-p-role)
+            // + 설명(.okr-p-linked-sub) + 상태 글자색(.okr-status-text). 미정렬 노란 바탕·경고 그림은 지금 모양 유지 (PW-2219).
+            <div className="okr-p-linked-cards">
+              {alignmentView.members.map((m) => (
+                <div className={`okr-p-linked-card okr-wz-align-row${m.aligned ? '' : ' is-warn'}`} key={m.userId}>
+                  <div className="okr-p-linked-head okr-wz-align-head">
+                    <span className="okr-member-chip">
+                      {/* 사진이 없으면 그림 칸을 빼고 이름만 — 깨진 그림을 두지 않는다. */}
+                      {m.avatar && (
+                        <span className="okr-member-avatar"><img src={m.avatar} alt="" /></span>
+                      )}
+                      <span className="okr-member-name">{m.name}</span>
+                    </span>
+                    {m.role && <span className="okr-p-role">{m.role}</span>}
+                    <span className="okr-p-linked-sub">{m.alignedLabel && `${m.alignedLabel} · `}{m.aligned ? '정합성 정상' : m.note}</span>
+                    <span className={`okr-status-text okr-wz-align-status ${m.aligned ? 'is-success' : 'is-warning'}`}>
+                      {!m.aligned && <AlertTriangleGlyph size={14} />}{m.aligned ? '정렬됨' : '미정렬'}
+                    </span>
+                    {!m.aligned && m.canBookOneOnOne !== false && onBookOneOnOne && (
+                      <button type="button" className="okr-btn is-brand is-sm" onClick={() => onBookOneOnOne(m.userId)}>1:1 예약</button>
+                    )}
                   </div>
-                  <span className={`okr-wz-align-status${m.aligned ? ' is-ok' : ''}`}>{!m.aligned && <AlertTriangleGlyph size={14} />}{m.aligned ? '정렬됨' : '미정렬'}</span>
-                  {!m.aligned && m.canBookOneOnOne !== false && onBookOneOnOne && (
-                    <button type="button" className="okr-btn is-brand is-sm" onClick={() => onBookOneOnOne(m.userId)}>1:1 예약</button>
-                  )}
                 </div>
               ))}
             </div>
