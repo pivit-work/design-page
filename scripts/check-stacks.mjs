@@ -38,6 +38,8 @@ export const MIGRATED = [
   { file: 'src/components/eval/EvalCycleWizard.jsx', testId: 'evc-rm-dsec-when-' },
   // 조직장 평가 작성 — 잠김·제출됨·자동저장 실패 안내가 줄마다 손 여백(12px)을 달고 있었다 (2026-10-23)
   { file: 'src/components/eval/EvalCycleLeaderCanvas.jsx', testId: 'evl-notices' },
+  // 동료 리뷰어 확정 전용 화면 머리 — 「← 팀 평가 관리」 버튼과 제목이 0px 로 붙어 있었다 (2026-10-24 커트 제보)
+  { file: 'src/components/eval/EvalCyclePeerConfirmCanvas.jsx', testId: 'evp-page-head' },
 ];
 
 const stripComments = (css) => css.replace(/\/\*[\s\S]*?\*\//g, '');
