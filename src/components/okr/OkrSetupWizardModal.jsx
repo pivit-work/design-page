@@ -193,6 +193,8 @@ export default function OkrSetupWizardModal({
   icons,
   baseUrl = '',
   onClose,
+  readOnly = false,
+  readOnlyLabel = '',
   scope = 'individual',
   scopeCard,
   targets = [],
@@ -371,7 +373,7 @@ export default function OkrSetupWizardModal({
   const isLast = step === steps.length;
 
   const handleNext = async () => {
-    if (!canNext) return;
+    if (readOnly || !canNext) return;
     if (!isLast) { setStep(step + 1); return; }
     setSaving(true); setError(null);
     try {
@@ -386,8 +388,8 @@ export default function OkrSetupWizardModal({
         })),
       });
       onClose();
-    } catch {
-      setError(L.saveFailed);
+    } catch (error) {
+      if (error?.response?.status !== 403) setError(L.saveFailed);
       setSaving(false);
     }
   };
@@ -407,7 +409,7 @@ export default function OkrSetupWizardModal({
     );
 
   const aiBtn = (label, onClick, loading) => (
-    <button type="button" className="okr-wz-ai-btn" onClick={onClick} disabled={loading}>
+    <button type="button" className="okr-wz-ai-btn" onClick={onClick} disabled={readOnly || loading}>
       {loading ? L.generating : `✦ ${label}`}
     </button>
   );
@@ -436,12 +438,15 @@ export default function OkrSetupWizardModal({
   ) : (
     <>
       <span className="okr-wz-footer-hint">
-        {nextHint || fill(L.stepCounter, { step, total: steps.length })}
+        {/* 권한이 거둬져 읽기 전용으로 내려왔으면 그 이유를 작성 창과 같은 자리·글자(.okr-status-text)로 (pivit-work PW-1508). */}
+        {readOnly
+          ? <span className="okr-status-text is-error" role="alert">{readOnlyLabel}</span>
+          : nextHint || fill(L.stepCounter, { step, total: steps.length })}
       </span>
       {step > 1 && (
-        <button type="button" className="okr-btn is-outline is-sm" onClick={() => setStep(step - 1)}>{L.prev}</button>
+        <button disabled={readOnly} type="button" className="okr-btn is-outline is-sm" onClick={() => setStep(step - 1)}>{L.prev}</button>
       )}
-      <button type="button" className="okr-btn is-brand" disabled={!canNext || saving} onClick={handleNext}>
+      <button type="button" className="okr-btn is-brand" disabled={readOnly || !canNext || saving} onClick={handleNext}>
         {saving ? L.saving : isLast ? L.submit : L.next}
       </button>
     </>
@@ -540,7 +545,7 @@ export default function OkrSetupWizardModal({
               </div>
               {targets.length > 1 ? (
                 // 브라우저 기본 목록은 맥 회색 목록으로 뜨고 화면 녹화에 안 잡힌다 — 디자이너 펼친 목록으로 (PW-1955).
-                <SearchSelect
+                <SearchSelect disabled={readOnly}
                   className="okr-wz-target-select"
                   value={targetId ?? ''}
                   aria-label={targetLabel}
@@ -551,7 +556,7 @@ export default function OkrSetupWizardModal({
                 <span className="okr-wz-step-eyebrow okr-wz-target-name">{targets[0].name}</span>
               ) : null}
             </div>
-            <textarea
+            <textarea readOnly={readOnly}
               className="okr-textarea okr-wz-textarea"
               value={narrative}
               maxLength={NARRATIVE_MAX}
@@ -571,7 +576,7 @@ export default function OkrSetupWizardModal({
                 <p className="okr-wz-vision-title">{L.visionTitle}</p>
                 <p className="okr-wz-desc">{L.visionDesc}</p>
               </div>
-              <button type="button" className="okr-wz-ai-btn" onClick={genVision} disabled={visionLoading}>
+              <button type="button" className="okr-wz-ai-btn" onClick={genVision} disabled={readOnly || visionLoading}>
                 {visionLoading ? L.generating : L.visionGenerate}
               </button>
             </div>
@@ -607,10 +612,11 @@ export default function OkrSetupWizardModal({
                 objConfirmed ? `✓ ${L.draftConfirmed}` : objective ? L.draftAi : L.draftManual,
               )}
               {!objConfirmed && objective.trim() && (
-                <Button type="button" className="okr-btn is-brand is-sm" onClick={() => setObjConfirmed(true)}>{L.confirm}</Button>
+                <Button disabled={readOnly} type="button" className="okr-btn is-brand is-sm" onClick={() => setObjConfirmed(true)}>{L.confirm}</Button>
               )}
             </div>
             <textarea
+              readOnly={readOnly}
               className="okr-textarea is-compact"
               value={objective}
               rows={2}
@@ -661,7 +667,7 @@ export default function OkrSetupWizardModal({
                   <p className="okr-wz-desc">{krsEmptyHint}</p>
                 </div>
               )}
-              <Button type="button" className="okr-cf-kr-add-btn" onClick={addKr}>+ {L.krAdd}</Button>
+              <Button disabled={readOnly} type="button" className="okr-cf-kr-add-btn" onClick={addKr}>+ {L.krAdd}</Button>
             </div>
           )}
           {krs.length > 0 && (
@@ -679,35 +685,35 @@ export default function OkrSetupWizardModal({
                   )}
                 </span>
                 {!krsConfirmed && (
-                  <Button type="button" className="okr-btn is-brand is-sm" onClick={() => setKrsConfirmed(true)}>{L.confirmAll}</Button>
+                  <Button disabled={readOnly} type="button" className="okr-btn is-brand is-sm" onClick={() => setKrsConfirmed(true)}>{L.confirmAll}</Button>
                 )}
               </div>
               {krs.map((k, i) => (
                 <div className="okr-cf-kr-card" key={k.id} data-testid="okr-wz-kr-card">
                   <div className="okr-cf-kr-card-head">
                     <span className="okr-kr-id">KR{i + 1}</span>
-                    <TextInput className="okr-cf-input" value={k.title} placeholder={L.krTitlePlaceholder} aria-label={L.krTitleAria} maxLength={krTitleMaxLength}
+                    <TextInput readOnly={readOnly} className="okr-cf-input" value={k.title} placeholder={L.krTitlePlaceholder} aria-label={L.krTitleAria} maxLength={krTitleMaxLength}
                       onChange={(e) => patchKr(k.id, { title: e.target.value })} />
-                    <Button type="button" className="okr-cf-x" onClick={() => removeKr(k.id)} aria-label={L.krRemove}>
+                    <Button disabled={readOnly} type="button" className="okr-cf-x" onClick={() => removeKr(k.id)} aria-label={L.krRemove}>
                       <Icon src={icons.xClose} size={14} color="var(--text-tertiary)" baseUrl={baseUrl} />
                     </Button>
                   </div>
                   <div className="okr-cf-kr-meta">
                     <span className="okr-cf-unit">{L.current}</span>
-                    <TextInput className="okr-cf-input is-sm" type="number" value={k.current} placeholder={L.current} aria-label={L.currentAria}
+                    <TextInput readOnly={readOnly} className="okr-cf-input is-sm" type="number" value={k.current} placeholder={L.current} aria-label={L.currentAria}
                       onChange={(e) => patchKr(k.id, { current: e.target.value })} />
                     {/* «완료 여부»는 목표 1 고정이라 칸을 감춘다(okr-spec §3.1B). */}
                     {k.type !== 'boolean' && (
                       <>
                         <span className="okr-cf-unit">{L.target}</span>
-                        <TextInput className="okr-cf-input is-sm" type="number" value={k.target} placeholder={L.target} aria-label={L.targetAria}
+                        <TextInput readOnly={readOnly} className="okr-cf-input is-sm" type="number" value={k.target} placeholder={L.target} aria-label={L.targetAria}
                           onChange={(e) => patchKr(k.id, { target: e.target.value })} />
                       </>
                     )}
-                    <TextInput className="okr-cf-input is-sm" value={k.unit} placeholder={L.unit} aria-label={L.unit}
+                    <TextInput readOnly={readOnly} className="okr-cf-input is-sm" value={k.unit} placeholder={L.unit} aria-label={L.unit}
                       onChange={(e) => patchKr(k.id, { unit: e.target.value })} />
                     {members.length > 0 && (
-                      <OkrMemberPicker ariaLabel={L.krOwner} placeholder={L.ownerPlaceholder}
+                      <OkrMemberPicker disabled={readOnly} ariaLabel={L.krOwner} placeholder={L.ownerPlaceholder}
                         searchPlaceholder={L.ownerSearchPlaceholder} noResultLabel={L.ownerNoResult}
                         searchAriaLabel={L.ownerSearchAriaLabel || undefined}
                         members={members} value={k.ownerId ?? ''}
@@ -716,7 +722,7 @@ export default function OkrSetupWizardModal({
                   </div>
                 </div>
               ))}
-              <Button type="button" className="okr-cf-kr-add-btn" onClick={addKr}>+ {L.krAdd}</Button>
+              <Button disabled={readOnly} type="button" className="okr-cf-kr-add-btn" onClick={addKr}>+ {L.krAdd}</Button>
             </div>
           )}
         </div>
@@ -735,7 +741,7 @@ export default function OkrSetupWizardModal({
           {!alignmentView && alignmentFailed && (
             <div className="okr-wz-align">
               <p className="okr-wz-error" role="alert">{L.alignmentFailed}</p>
-              <button type="button" className="okr-btn is-outline is-sm" onClick={retryAlignment}>{L.retry}</button>
+              <button disabled={readOnly} type="button" className="okr-btn is-outline is-sm" onClick={retryAlignment}>{L.retry}</button>
             </div>
           )}
           {alignmentView && (alignmentView.emptyMessage || alignmentView.members.length === 0) && (

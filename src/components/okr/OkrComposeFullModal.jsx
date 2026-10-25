@@ -371,6 +371,8 @@ export default function OkrComposeFullModal({
   icons,
   baseUrl = '',
   onClose,
+  readOnly = false,
+  readOnlyLabel = '',
   onSubmit,
   onGenerate,
   onGenerateKrs,
@@ -647,6 +649,7 @@ export default function OkrComposeFullModal({
   })();
 
   const handleSave = () => {
+    if (readOnly) return;
     if (!canSave || saving) return;
     // id 는 편집 진입(initialObjectives)에서만 붙는다 — 소비 측이 이 값으로
     // "고칠 것 / 새로 만들 것" 을 가르고, payload 에서 사라진 id 를 삭제로 읽는다.
@@ -685,7 +688,11 @@ export default function OkrComposeFullModal({
     // 확인창에서 취소). 실패가 아니므로 에러를 띄우지 않고 폼만 그대로 둔다.
     Promise.resolve(onSubmit?.(payload))
       .then((result) => { if (result === false) setSaving(false); else onClose(); })
-      .catch(() => { setSaveError(L.saveFailed); setSaving(false); });
+      .catch((error) => {
+        // 권한 거절(403)은 소비자가 토스트로 알리고 이 창을 readOnly 로 내린다 — 창 안 실패 문구를 겹쳐 띄우지 않는다.
+        if (error?.response?.status !== 403) setSaveError(L.saveFailed);
+        setSaving(false);
+      });
   };
 
   // 아래 버튼 줄 — 목표를 하나라도 쓰기 시작했을 때(또는 편집 중 전부 지웠을 때)만 그린다.
@@ -699,10 +706,14 @@ export default function OkrComposeFullModal({
           알약·바탕 없이 빨강/초록 글자만 (PW-2219). */}
       <span className="okr-wz-footer-hint">
       <span
-        className={`okr-status-text ${!saveError && !blockReason && totalW === 100 ? 'is-success' : 'is-error'}`}
+        className={`okr-status-text ${!readOnly && !saveError && !blockReason && totalW === 100 ? 'is-success' : 'is-error'}`}
         data-testid="okr-cf-total"
+        role={readOnly ? 'alert' : undefined}
       >
-        {saveError
+        {/* 권한이 거둬져 읽기 전용으로 내려왔으면 그 이유가 먼저다 — 저장 버튼이 왜 꺼졌는지 (pivit-work PW-1508). */}
+        {readOnly
+          ? readOnlyLabel
+          : saveError
           ? saveError
           : blockReason
             ? blockReason
@@ -725,7 +736,7 @@ export default function OkrComposeFullModal({
         <button
           type="button"
           className="okr-btn is-brand"
-          disabled={!canSave || saving}
+          disabled={readOnly || !canSave || saving}
           onClick={handleSave}
         >
           {saving ? L.saving : L.save}
@@ -797,7 +808,7 @@ export default function OkrComposeFullModal({
                 </div>
                 {group.krs.map((kr, ki) => (
                   <div className={`okr-cf-kr${isLinkedKr(gi, ki, kr) ? ' is-linked' : ''}`} key={rowKey(kr, ki, 'title')}>
-                    <button type="button" className="okr-cf-kr-add" onClick={() => linkTeamKr(gi, ki, kr)}>
+                    <button disabled={readOnly} type="button" className="okr-cf-kr-add" onClick={() => linkTeamKr(gi, ki, kr)}>
                       <Icon src={icons.plus} size={14} color="var(--text-secondary)" baseUrl={baseUrl} />
                     </button>
                     <div className="okr-cf-kr-main">
@@ -819,11 +830,11 @@ export default function OkrComposeFullModal({
             <p className="okr-cf-hint">{L.hint}</p>
             <div className="okr-cf-head-actions">
               {onGenerate && (
-                <button type="button" className="okr-wz-ai-btn" onClick={generate} disabled={genLoading} aria-busy={genLoading || undefined}>
+                <button type="button" className="okr-wz-ai-btn" onClick={generate} disabled={readOnly || genLoading} aria-busy={genLoading || undefined}>
                   {genLoading ? <span className="dp-busy-inline"><Spinner size={12} />{L.generating}</span> : `✦ ${L.generateObjectives}`}
                 </button>
               )}
-              <button type="button" className="okr-cf-add-btn" onClick={addObjective}>
+              <button disabled={readOnly} type="button" className="okr-cf-add-btn" onClick={addObjective}>
                 <Icon src={icons.plus} size={18} color="var(--text-white)" baseUrl={baseUrl} />
                 <span>{objectives.length ? L.addObjective : L.addFirst}</span>
               </button>
@@ -851,7 +862,7 @@ export default function OkrComposeFullModal({
                       <Icon src={icons.chevronDown} size={16} color="var(--text-tertiary)" baseUrl={baseUrl} />
                     </span>
                     <span className="okr-cf-obj-label">Objective</span>
-                    <input
+                    <input readOnly={readOnly}
                       className="okr-cf-input"
                       placeholder={L.objectiveTitlePlaceholder}
                       aria-label={L.objectiveTitlePlaceholder}
@@ -859,12 +870,12 @@ export default function OkrComposeFullModal({
                       value={objective.title}
                       onChange={(e) => patchObjective(objective.key, { title: e.target.value })}
                     />
-                    <button type="button" className="okr-cf-x" onClick={() => removeObjective(objective.key)}>
+                    <button disabled={readOnly} type="button" className="okr-cf-x" onClick={() => removeObjective(objective.key)}>
                       <Icon src={icons.xClose} size={18} color="var(--text-tertiary)" baseUrl={baseUrl} />
                     </button>
                   </div>
                   <div className="okr-cf-obj-meta">
-                    <input
+                    <input readOnly={readOnly}
                       className="okr-cf-input is-sm"
                       placeholder={L.weightPlaceholder}
                       aria-label={L.objectiveWeight}
@@ -876,7 +887,7 @@ export default function OkrComposeFullModal({
                     {parentOptions.length > 0 && (
                       // 이 창의 드롭다운 넷은 디자이너 펼친 목록(SearchSelect)이다 — 브라우저 기본 목록은
                       // 맥 회색 목록으로 뜨고 화면 녹화에 안 잡힌다(PW-1955). 닫힌 칸은 종전 클래스 그대로.
-                      <SearchSelect
+                      <SearchSelect disabled={readOnly}
                         className="okr-cf-select-real"
                         aria-label={L.parentOkr}
                         value={objective.parentId}
@@ -893,7 +904,7 @@ export default function OkrComposeFullModal({
                     <div className={`okr-cf-kr-card${refiningKey === kr.key ? ' is-refining' : ''}`} key={kr.key}>
                       <div className="okr-cf-kr-card-head">
                         <span className="okr-cf-bullet" />
-                        <input
+                        <input readOnly={readOnly}
                           className="okr-cf-input"
                           placeholder={L.krTitlePlaceholder}
                           aria-label={L.krTitlePlaceholder}
@@ -906,14 +917,14 @@ export default function OkrComposeFullModal({
                             <button
                               type="button"
                               className="okr-wz-ai-btn"
-                              disabled={!kr.title.trim() || refiningKey !== null}
+                              disabled={readOnly || !kr.title.trim() || refiningKey !== null}
                               onClick={() => refineKr(objective.key, kr)}
                             >
                               {refiningKey === kr.key ? L.refining : `✦ ${L.refine}`}
                             </button>
                           </Tooltip>
                         )}
-                        <button type="button" className="okr-cf-x" onClick={() => removeKr(objective.key, kr.key)}>
+                        <button disabled={readOnly} type="button" className="okr-cf-x" onClick={() => removeKr(objective.key, kr.key)}>
                           <Icon src={icons.xClose} size={16} color="var(--text-tertiary)" baseUrl={baseUrl} />
                         </button>
                       </div>
@@ -922,7 +933,7 @@ export default function OkrComposeFullModal({
                       )}
                       <div className="okr-cf-methods">
                         {METHODS.map((method) => (
-                          <button
+                          <button disabled={readOnly}
                             type="button"
                             className={`okr-cf-method${kr.inputType === method.key ? ' is-active' : ''}`}
                             key={method.key}
@@ -940,7 +951,7 @@ export default function OkrComposeFullModal({
                       </div>
                       <div className="okr-cf-kr-meta">
                         {kr.inputType !== 'binary' && (
-                          <input
+                          <input readOnly={readOnly}
                             className="okr-cf-input is-sm"
                             placeholder={L.targetPlaceholder}
                             aria-label={L.krTarget}
@@ -949,14 +960,14 @@ export default function OkrComposeFullModal({
                             onChange={(e) => patchKr(objective.key, kr.key, { target: e.target.value })}
                           />
                         )}
-                        <input
+                        <input readOnly={readOnly}
                           className="okr-cf-input is-sm"
                           placeholder={L.unitPlaceholder}
                           aria-label={L.krUnit}
                           value={kr.unit}
                           onChange={(e) => patchKr(objective.key, kr.key, { unit: e.target.value })}
                         />
-                        <input
+                        <input readOnly={readOnly}
                           className="okr-cf-input is-sm"
                           placeholder={L.weightPlaceholder}
                           aria-label={L.krWeight}
@@ -967,6 +978,7 @@ export default function OkrComposeFullModal({
                         <span className="okr-cf-unit">%</span>
                         {members.length > 0 && (
                           <OkrMemberPicker
+                            disabled={readOnly}
                             ariaLabel={L.krOwner}
                             placeholder={L.ownerPlaceholder}
                             searchPlaceholder={L.ownerSearchPlaceholder}
@@ -992,6 +1004,7 @@ export default function OkrComposeFullModal({
                                   {text}
                                 </span>
                                 <button
+                                  disabled={readOnly}
                                   type="button"
                                   className="okr-cf-x"
                                   aria-label={`${L.parentKrRemove}: ${text}`}
@@ -1002,7 +1015,7 @@ export default function OkrComposeFullModal({
                               </Fragment>
                             );
                           })}
-                          {parentCandidates.some((c) => !parentIdsOf(kr).includes(c.krId)) && (
+                          {!readOnly && parentCandidates.some((c) => !parentIdsOf(kr).includes(c.krId)) && (
                             <ParentKrAdd
                               label={L.parentKrAdd}
                               // 미니맵 묶음(상위 조직)마다 머리를 두고 그 아래 아직 안 건 KR 만 — 종전 optgroup 과 같다.
@@ -1033,6 +1046,7 @@ export default function OkrComposeFullModal({
                           <div className="okr-cf-kr-card-head" key={init.key}>
                             {/* 셋 중 하나라 검색칸은 끈다. 닫힌 칸은 디자이너 회색 pill. */}
                             <SearchSelect
+                              disabled={readOnly}
                               className="okr-cf-select okr-cf-select-btn"
                               chevronClassName="okr-cf-select-caret"
                               aria-label={L.initStatus}
@@ -1041,7 +1055,7 @@ export default function OkrComposeFullModal({
                               options={INIT_STATUS.map((st) => ({ value: st.key, label: L[st.labelKey] }))}
                               onChange={(v) => patchInitiative(objective.key, kr, init.key, { status: v })}
                             />
-                            <input
+                            <input readOnly={readOnly}
                               className={`okr-cf-input is-init${init.status === 'done' ? ' is-done' : ''}`}
                               placeholder={L.initTitlePlaceholder}
                               aria-label={L.initTitlePlaceholder}
@@ -1051,6 +1065,7 @@ export default function OkrComposeFullModal({
                             />
                             {members.length > 0 && (
                               <OkrMemberPicker
+                            disabled={readOnly}
                                 ariaLabel={L.initOwner}
                                 placeholder={L.ownerPlaceholder}
                                 searchPlaceholder={L.ownerSearchPlaceholder}
@@ -1063,7 +1078,7 @@ export default function OkrComposeFullModal({
                             )}
                             {/* 삭제 확인 창을 두지 않는다 — 저장 전 로컬 편집이고
                                 되돌림 비용이 「한 줄 다시 쓰기」다(§4A.4). */}
-                            <button
+                            <button disabled={readOnly}
                               type="button"
                               className="okr-cf-x"
                               aria-label={L.initRemove}
@@ -1079,6 +1094,7 @@ export default function OkrComposeFullModal({
                         )}
                         {/* 「KR 직접추가」와 같은 버튼(.okr-cf-kr-add-btn · 오른쪽 정렬). */}
                         <button
+                          disabled={readOnly}
                           type="button"
                           className="okr-cf-kr-add-btn"
                           onClick={() => addInitiative(objective.key, kr)}
@@ -1101,7 +1117,7 @@ export default function OkrComposeFullModal({
                   )}
                   {/* KR 을 더하는 두 길 — 직접추가 옆에 AI 생성(기획 JSX 의 「+ KR 직접 추가」·「✦ AI로 KR 생성」 한 줄). */}
                   <div className="okr-cf-kr-actions">
-                  <button type="button" className="okr-cf-kr-add-btn" onClick={() => addKr(objective.key)}>
+                  <button disabled={readOnly} type="button" className="okr-cf-kr-add-btn" onClick={() => addKr(objective.key)}>
                     <Icon src={icons.plus} size={16} color="var(--text-secondary)" baseUrl={baseUrl} />
                     <span>{L.addKr}</span>
                   </button>
@@ -1109,7 +1125,7 @@ export default function OkrComposeFullModal({
                     <button
                       type="button"
                       className="okr-wz-ai-btn"
-                      disabled={!objective.title.trim() || genKrKey !== null}
+                      disabled={readOnly || !objective.title.trim() || genKrKey !== null}
                       aria-busy={genKrKey === objective.key || undefined}
                       onClick={() => generateKrs(objective)}
                     >

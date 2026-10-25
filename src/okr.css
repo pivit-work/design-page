@@ -155,6 +155,8 @@ body:has(> .okr-ctx-banner) .tl-group-modal.okr-shell { max-height: calc(100vh -
    §2A.6 — 작성 권한 없음 = 회색 '읽기 전용'). 버튼만 조용히 사라지면 사용자는
    화면이 덜 로드된 줄 안다. .okr-header-actions 안에 버튼과 나란히 놓인다. */
 .okr-readonly-badge { display: flex; align-items: center; padding: 8px 14px; background: var(--bg-secondary); border: 1px solid var(--border-secondary); border-radius: 8px; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-tertiary); }
+/* 같은 자리의 파란 상태 배지 — 「작성 가능」·「기능 조직」 (pivit-work PW-1508). 색은 정책서 §2A.6 의 파랑을 토큰으로. */
+.okr-readonly-badge.is-info { background: var(--utility-blue-50); border-color: var(--utility-blue-200); color: var(--utility-blue-600); }
 
 /* (반응형 탭 축소 미디어쿼리 제거 — PW: 아직 responsive 미대응 방침.
    좁은 뷰포트는 앱 셸의 min-width: 1280px + 문서 가로 스크롤이 담당하므로,

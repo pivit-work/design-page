@@ -43,6 +43,7 @@ function panelStyle(rect) {
 
 
 export default function OkrMemberPicker({
+  disabled = false,
   members = [],
   value = '',
   onChange,
@@ -112,7 +113,7 @@ export default function OkrMemberPicker({
 
   return (
     <div className="okr-cf-pick" ref={wrapRef}>
-      <button
+      <button disabled={disabled}
         type="button"
         ref={triggerRef}
         className={`okr-cf-select okr-cf-select-btn okr-cf-pick-trigger${selected ? ' is-filled' : ''}`}
@@ -144,7 +145,7 @@ export default function OkrMemberPicker({
               shown.map((m) => {
                 const isSel = m.id === value;
                 return (
-                  <button
+                  <button disabled={disabled}
                     type="button"
                     key={m.id}
                     role="option"

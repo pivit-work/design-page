@@ -2171,6 +2171,10 @@
    "color": "#2e90fa",
    "border": "1px solid var(--utility-blue-400)"
   },
+  "okr.css|.okr-readonly-badge.is-info": {
+   "background": "#eff8ff / 어두운 화면 #102a56",
+   "color": "#1570ef / 어두운 화면 #53b1fd"
+  },
   "okr.css|.okr-q-badge.is-blue": {
    "background": "#53b1fd / 어두운 화면 #1570ef"
   },
