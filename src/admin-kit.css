@@ -524,14 +524,19 @@
 .admin-kit-usage-bar-fill { height: 100%; background: var(--kit-usage-fill); }
 .admin-kit-usage-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
 .admin-kit-usage-simulate {
-  padding: 6px 12px;
-  border-radius: 8px;
-  font-family: inherit;
-  font-size: 12px;
+  /* 공용 버튼 보조 작은 것(`.dp-btn--secondary` + `.dp-btn--sm`) 값 — 전에는 색을 hex 로 적어
+     디자인 토큰을 벗어났다. */
+  min-height: 28px;
+  padding: 5px 11px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+  line-height: 20px;
   cursor: pointer;
-  border: 1px solid #e2e8f0;
-  background: none;
-  color: #94a3b8;
+  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  background: var(--bg-quaternary);
+  color: var(--text-secondary);
 }
 
 /* ── 퇴사 처리 캔버스 (AdminOffboardingCanvas · PW-1081) ── */
