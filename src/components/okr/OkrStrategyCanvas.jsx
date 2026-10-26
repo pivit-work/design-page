@@ -68,6 +68,9 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
     setError(null);
   };
   const save = async () => {
+    // 편집 중에 권한이 거둬졌으면(canEdit 이 꺼짐) 저장하지 않는다 — 소비자가 onSave 를 거둬도
+    // 아래 미리보기 저장으로 흘러 화면에만 반영된 척하면 안 된다 (pivit-work PW-1508).
+    if (!canEdit) return;
     const next = fromDraft(rows, draft);
     if (!onSave) {
       setDemoRows(next);
@@ -79,9 +82,12 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
     try {
       await onSave(next);
       setEditing(false);
-    } catch {
-      // 편집 모드를 유지해 입력한 내용을 보존한다.
-      setError({ rowId: null, message: '전략 캔버스 저장에 실패했습니다. 잠시 후 다시 시도해주세요.' });
+    } catch (err) {
+      // 편집 모드를 유지해 입력한 내용을 보존한다. 권한 거절(403)은 소비자가 토스트로 알리고
+      // canEdit 을 내린다 — «잠시 후 다시 시도» 를 겹치지 않는다 (pivit-work PW-1508).
+      if (err?.response?.status !== 403) {
+        setError({ rowId: null, message: '전략 캔버스 저장에 실패했습니다. 잠시 후 다시 시도해주세요.' });
+      }
     } finally {
       setSaving(false);
     }
@@ -122,8 +128,10 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
         }),
       );
       setEditing(true);
-    } catch {
-      setError({ rowId: null, message: 'AI 자동완성에 실패했습니다. 잠시 후 다시 시도해주세요.' });
+    } catch (err) {
+      if (err?.response?.status !== 403) {
+        setError({ rowId: null, message: 'AI 자동완성에 실패했습니다. 잠시 후 다시 시도해주세요.' });
+      }
     } finally {
       setAiLoading(false);
     }
@@ -171,7 +179,7 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
               {editing ? (
                 <>
                   <button className="okr-s-edit-btn" onClick={cancelEdit} disabled={saving}>취소</button>
-                  <button className="okr-s-save-btn" onClick={save} disabled={saving}>
+                  <button className="okr-s-save-btn" onClick={save} disabled={saving || !canEdit}>
                     {saving ? '저장 중…' : '저장'}
                   </button>
                 </>
@@ -192,6 +200,7 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
                 <div className="okr-s-content">
                   {editing ? (
                     <textarea
+                      readOnly={!canEdit}
                       className="okr-s-input"
                       rows={Array.isArray(row.content) ? row.content.length + 1 : 2}
                       value={draft[i]}

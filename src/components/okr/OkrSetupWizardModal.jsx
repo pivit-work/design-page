@@ -373,8 +373,11 @@ export default function OkrSetupWizardModal({
   const isLast = step === steps.length;
 
   const handleNext = async () => {
-    if (readOnly || !canNext) return;
+    if (!canNext) return;
+    // 읽기 전용이어도 단계 이동은 막지 않는다 — 앞 단계에 쓴 구술·Objective 를 다시 보고 복사할 수 있어야 한다
+    // (okr-policy §2D.3 «입력값은 읽기 전용으로 남긴다» · pivit-work PW-1508). 막는 것은 마지막 저장뿐.
     if (!isLast) { setStep(step + 1); return; }
+    if (readOnly) return;
     setSaving(true); setError(null);
     try {
       await onSubmit?.({
@@ -389,6 +392,7 @@ export default function OkrSetupWizardModal({
       });
       onClose();
     } catch (error) {
+      // 권한 거절(403)은 소비자가 토스트로 알리고 창을 readOnly 로 내린다 — 실패 문구를 겹치지 않는다(pivit-work PW-1508).
       if (error?.response?.status !== 403) setError(L.saveFailed);
       setSaving(false);
     }
@@ -444,9 +448,9 @@ export default function OkrSetupWizardModal({
           : nextHint || fill(L.stepCounter, { step, total: steps.length })}
       </span>
       {step > 1 && (
-        <button disabled={readOnly} type="button" className="okr-btn is-outline is-sm" onClick={() => setStep(step - 1)}>{L.prev}</button>
+        <button type="button" className="okr-btn is-outline is-sm" onClick={() => setStep(step - 1)}>{L.prev}</button>
       )}
-      <button type="button" className="okr-btn is-brand" disabled={readOnly || !canNext || saving} onClick={handleNext}>
+      <button type="button" className="okr-btn is-brand" disabled={(readOnly && isLast) || !canNext || saving} onClick={handleNext}>
         {saving ? L.saving : isLast ? L.submit : L.next}
       </button>
     </>

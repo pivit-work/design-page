@@ -366,6 +366,9 @@ function ParentKrAdd({ label, groups, onPick }) {
   );
 }
 
+/** 저장·AI 요청이 권한 없음(403)으로 거절됐나 — 그때는 소비자가 토스트·readOnly 로 알린다 (pivit-work PW-1508). */
+const isForbidden = (error) => error?.response?.status === 403;
+
 export default function OkrComposeFullModal({
   minimap,
   icons,
@@ -454,8 +457,9 @@ export default function OkrComposeFullModal({
         title: o.title.trim(),
         weight: String(weights[i]),
       })));
-    } catch {
-      setGenError(L.genObjectivesFailed);
+    } catch (error) {
+      // 권한 거절(403)은 소비자가 토스트로 알리고 창을 readOnly 로 내린다 — 실패 문구를 겹치지 않는다(pivit-work PW-1508).
+      if (!isForbidden(error)) setGenError(L.genObjectivesFailed);
     } finally { setGenLoading(false); }
   };
 
@@ -496,8 +500,8 @@ export default function OkrComposeFullModal({
           };
         }),
       });
-    } catch {
-      setGenKrError({ key: objective.key, message: L.genKrsFailed });
+    } catch (error) {
+      if (!isForbidden(error)) setGenKrError({ key: objective.key, message: L.genKrsFailed });
     } finally {
       setGenKrKey(null);
     }
@@ -569,10 +573,10 @@ export default function OkrComposeFullModal({
       }
       // 기다리는 사이 그 행을 지웠으면 key 가 없어 아무 행도 안 바뀐다(§5.3 R-E4).
       patchKr(objKey, kr.key, patch);
-    } catch {
+    } catch (error) {
       // 실패는 상태를 만들지 않는다(INV-R1) — 위 patchKr 에 닿지 못하므로 어떤
-      // 필드도 바뀌지 않는다. 알림은 그 KR 블록 안에서만 한다(INV-R2).
-      setRefineError({ key: kr.key, message: L.refineKrFailed });
+      // 필드도 바뀌지 않는다. 알림은 그 KR 블록 안에서만 한다(INV-R2). 권한 거절은 소비자 토스트.
+      if (!isForbidden(error)) setRefineError({ key: kr.key, message: L.refineKrFailed });
     } finally {
       setRefiningKey(null);
     }
@@ -690,7 +694,7 @@ export default function OkrComposeFullModal({
       .then((result) => { if (result === false) setSaving(false); else onClose(); })
       .catch((error) => {
         // 권한 거절(403)은 소비자가 토스트로 알리고 이 창을 readOnly 로 내린다 — 창 안 실패 문구를 겹쳐 띄우지 않는다.
-        if (error?.response?.status !== 403) setSaveError(L.saveFailed);
+        if (!isForbidden(error)) setSaveError(L.saveFailed);
         setSaving(false);
       });
   };
