@@ -10,4 +10,5 @@ export { default as SignupInviteCanvas } from './SignupInviteCanvas.jsx';
 export { default as SignupIntegrationsCanvas } from './SignupIntegrationsCanvas.jsx';
 export { default as SignupPersonalityCanvas } from './SignupPersonalityCanvas.jsx';
 export { default as SignupCompleteCanvas } from './SignupCompleteCanvas.jsx';
+export { default as PasswordResetCanvas } from './PasswordResetCanvas.jsx';
 export { SIGNUP_LABELS, DEFAULT_SIGNUP_STEPS } from './signupLabels.js';

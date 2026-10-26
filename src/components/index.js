@@ -477,6 +477,7 @@ export {
   SignupIntegrationsCanvas,
   SignupPersonalityCanvas,
   SignupCompleteCanvas,
+  PasswordResetCanvas,
   SIGNUP_LABELS,
   DEFAULT_SIGNUP_STEPS,
 } from './login/index.js';

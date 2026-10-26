@@ -11,6 +11,7 @@ import {
   SignupIntegrationsCanvas,
   SignupPersonalityCanvas,
   SignupCompleteCanvas,
+  PasswordResetCanvas,
 } from './components/login';
 
 /**
@@ -20,6 +21,9 @@ import {
  * 이메일 → 인증 → 이름 → 회사 정보 → 승인 대기 → 결과(비밀번호) → 구성원 초대 → 연동 → 성향 설정 → 완료.
  * 내용은 실제 앱(app.dev.pivit.work/onboarding)의 단계와 문구를 따르고, 아직 시안이 없어 로그인 시안 값으로 조립했다.
  *
+ * 「비밀번호를 잊으셨나요?」는 같은 틀의 재설정 흐름(PasswordResetCanvas — 이메일 → 메일 안내 → 새 비밀번호 → 완료)을 연다.
+ * 메일 링크로 들어오는 장면은 데모에서 「미리 보기 (데모)」 링크로 넘어간다.
+ *
  * 데모라 검증 없이 넘어간다: [로그인]·[Google로 로그인] 과 마지막 [Pivit 시작하기] 는 바로 `onLoggedIn` 으로 첫 메뉴에 내린다.
  * 승인 대기는 실제로는 폴링으로 넘어가므로 「다음 단계 미리 보기 (데모)」 링크를 둔다.
  * 실제 앱(pivit-work)은 자기 Page 에서 같은 부품에 인증·가입 요청을 건다.
@@ -27,7 +31,8 @@ import {
 const SIGNUP_STEPS = ['email', 'verify', 'account', 'company', 'pending', 'result', 'invite', 'integrations', 'personality', 'complete'];
 
 export default function LoginPage({ baseUrl = '', onLoggedIn }) {
-  const [mode, setMode] = useState('login');
+  const [mode, setMode] = useState('login'); // 'login' | 'signup' | 'forgot'
+  const [resetStage, setResetStage] = useState('forgot');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -53,8 +58,34 @@ export default function LoginPage({ baseUrl = '', onLoggedIn }) {
   const changeMode = (m) => {
     setMode(m);
     if (m === 'signup') setStep(0);
+    if (m === 'forgot') setResetStage('forgot');
   };
   const toggle = (list, setList) => (key) => setList(list.includes(key) ? list.filter((k) => k !== key) : [...list, key]);
+
+  if (mode === 'forgot') {
+    return (
+      <PasswordResetCanvas
+        baseUrl={baseUrl}
+        onModeChange={changeMode}
+        stage={resetStage}
+        email={email}
+        onEmailChange={(e) => setEmail(e.target.value)}
+        password={password}
+        confirm={confirm}
+        onPasswordChange={(e) => setPassword(e.target.value)}
+        onConfirmChange={(e) => setConfirm(e.target.value)}
+        onSubmit={() => {
+          if (resetStage === 'forgot') setResetStage('sent');
+          else if (resetStage === 'reset') setResetStage('done');
+          else changeMode('login');
+        }}
+        onBackToLogin={() => changeMode('login')}
+        onRequestAgain={() => setResetStage('forgot')}
+        onAdvance={() => setResetStage('reset')}
+        testIds={{ email: 'reset-email', password: 'reset-password', confirm: 'reset-password-confirm', submit: 'reset-submit' }}
+      />
+    );
+  }
 
   if (mode !== 'signup') {
     return (
@@ -68,7 +99,7 @@ export default function LoginPage({ baseUrl = '', onLoggedIn }) {
         onPasswordChange={(e) => setPassword(e.target.value)}
         onSubmit={() => onLoggedIn?.()}
         onGoogle={() => onLoggedIn?.()}
-        onForgotPassword={() => {}}
+        onForgotPassword={() => changeMode('forgot')}
         onSignup={() => changeMode('signup')}
         testIds={{ email: 'login-email', password: 'login-password', submit: 'login-submit', google: 'login-google' }}
       />
