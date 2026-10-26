@@ -645,6 +645,14 @@
 /* 추천 팀원 (§5-5 · PW-1155) — hr_admin 은 추천 영역이 위에 붙으므로 목록 높이를 늘린다.
    넘치면 이 목록 안에서만 스크롤한다(§5-3.8 과 같은 원칙). */
 .sq-add-list.has-suggest { max-height: 320px; }
+
+/* 카드가 겹창보다 낮을 때(구성원·프로젝트가 적은 카드) — 카드가 넘침을 숨겨 제목과 취소/추가가 잘렸다.
+   모양은 그대로 두고 후보 목록 높이만 줄여 겹창을 카드 안에 맞춘다(목록은 원래 안에서 스크롤한다).
+   목록을 한 줄(66)까지 줄여도 모자라면 막 안에서 스크롤해 위부터 보이게 한다. */
+.sq-add-cover { overflow-y: auto; align-items: safe center; }
+.sq-add-dialog { max-height: 100%; }
+.sq-add-body { min-height: 0; }
+.sq-add-list { min-height: 66px; }
 .sq-suggest {
   border-bottom: 1px solid var(--border-secondary);
   padding-bottom: 4px;
