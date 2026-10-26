@@ -99,7 +99,12 @@ export function ShareBar({ rows, allotted, colorOf, height = 12 }) {
               key={r.userId}
               color={c}
               size="lg"
-              content={L('squad.tip.segment', { name: r.label, share: r.share, capacity: `${r.pct}%` })}
+              // 캐파 미설정은 범례와 같이 «미설정» — 0% 로 쓰면 «캐파를 안 쓴다»로 읽힌다
+              content={L('squad.tip.segment', {
+                name: r.label,
+                share: r.share,
+                capacity: r.capacityUnset ? L('squad.tip.capacityUnsetShort') : `${r.pct}%`,
+              })}
             >
             <div
               className="sq-share-seg"
@@ -410,7 +415,7 @@ export function SquadAssignPopover({
             <ShareBar
               rows={[
                 { userId: 'others', label: L('squad.pop.otherMembers'), share: othersShare, pct: 0 },
-                { userId: assignment.userId, label: personName, share: sharePct, pct: assignment.allocationPct },
+                { userId: assignment.userId, label: personName, share: sharePct, pct: assignment.allocationPct, capacityUnset },
               ]}
               allotted={allotted}
               colorOf={(id) => (id === 'others' ? 'var(--text-quaternary)' : squad.color)}
