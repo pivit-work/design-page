@@ -68,7 +68,7 @@ function StepHeaderInline({
  * 아이콘은 디자이너 완료 화면의 가운데 정렬(.login-center), 배지는 승인 대기 화면의 딱지 줄(.login-status-row) 자리를 따른다.
  * 한 화면의 두 번째 머리는 제목 묶음을 차지하지 못해 카드 안에 예전 모양 그대로 선다.
  */
-function LoginLookStepHeader({ look, title, description, icon, iconTone = 'brand', badge, testId, ...rest }) {
+function LoginLookStepHeader({ look, title, description, icon, iconTone = 'brand', badge, testId }) {
   const id = useId();
   const withSubtitle = !!description;
   const { claimHeading } = look;
@@ -77,16 +77,18 @@ function LoginLookStepHeader({ look, title, description, icon, iconTone = 'brand
   const placement = look.ownerId === id ? 'slot' : look.ownerId ? 'inline' : 'pending';
 
   if (placement === 'inline') {
+    // 한 화면의 두 번째 머리(초대의 Slack 칸 안내) — 카드 안 소제목이라 디자이너 칸 이름표·안내 글씨(.login-label·.login-hint)로,
+    // 아이콘은 가운데(.login-center). 예전 30px 단계 제목을 카드 안에 두지 않는다.
     return (
-      <StepHeaderInline
-        title={title}
-        description={description}
-        icon={icon}
-        iconTone={iconTone}
-        badge={badge}
-        testId={testId}
-        {...rest}
-      />
+      <div className="login-field" data-testid={testId}>
+        {icon && (
+          <div className="login-center">
+            <div className={cx('onb-head-icon', `onb-tone-${iconTone}`)}>{icon}</div>
+          </div>
+        )}
+        <h2 className="login-label">{title}</h2>
+        {description && <p className="login-hint">{description}</p>}
+      </div>
     );
   }
   if (placement === 'pending') return null;
@@ -589,7 +591,13 @@ export function OnbCompleteBody({ children, testId }) {
 export function OnbCompleteMark({ show = false, children }) {
   const look = useOnbLoginLook();
   // 디자이너 로그인 틀 안 — 디자이너 완료 화면의 큰 원(.login-done 56 · brand-100) (PW-1815)
-  if (look) return <div className="login-done" aria-hidden="true">{children}</div>;
+  if (look) {
+    return (
+      <div className="login-center">
+        <div className="login-done" aria-hidden="true">{children}</div>
+      </div>
+    );
+  }
   return <div className={cx('onb-mark', show && 'is-shown')}>{children}</div>;
 }
 

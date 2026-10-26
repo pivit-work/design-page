@@ -256,12 +256,12 @@ export function OnbButton({
 
 /**
  * 디자이너 로그인 틀 안의 버튼 모양 (PW-1815) — 같은 뜻의 디자이너 회원가입 버튼 클래스. 맞는 짝이 없으면 null(예전 모양).
- *   primary + 꽉 찬 폭 → [계속]·[신청하기] 큰 브랜드 버튼(.login-submit)
+ *   primary            → [계속]·[신청하기] 큰 브랜드 버튼(.login-submit — 디자이너 화면에 작은 브랜드 버튼이 없다)
  *   outlined·surface   → 흰 버튼(.login-google — 디자이너 [신청 내용 수정]·[Google로 …]). 꽉 차지 않으면 작은 흰 버튼(.is-compact)
  *   ghost              → 글자 버튼(.login-link — 디자이너 「나중에 하기」)
  */
 function loginButtonClass(variant, fullWidth) {
-  if (variant === 'primary' && fullWidth) return 'login-submit';
+  if (variant === 'primary') return 'login-submit';
   if (variant === 'outlined' || variant === 'surface') return fullWidth ? 'login-google' : 'login-google is-compact';
   if (variant === 'ghost') return 'login-link';
   return null;

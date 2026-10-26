@@ -63,10 +63,12 @@ export function SignupFrame({
 }
 
 /** 카드(폼) — submit 이벤트를 막고 onSubmit 을 부른다. */
-export function SignupCard({ onSubmit, children, testId }) {
+export function SignupCard({ onSubmit, children, testId, noValidate }) {
+  // noValidate — 칸 검사를 앱이 칸 아래 오류로 할 때 브라우저 기본 말풍선을 끈다(pivit-work PW-2243)
   return (
     <form
       className="login-card"
+      noValidate={noValidate}
       data-testid={testId}
       onSubmit={(e) => {
         e.preventDefault();

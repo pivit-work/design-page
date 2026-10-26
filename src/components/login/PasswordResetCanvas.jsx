@@ -95,7 +95,8 @@ export default function PasswordResetCanvas({
       subtitle={heading[1]}
       foot={foot}
     >
-      <SignupCard onSubmit={onSubmit} testId={`reset-${stage}`}>
+      {/* 칸 검사는 앱이 칸 아래 오류로 한다(한글 섞인 주소 등) — 브라우저 기본 말풍선이 먼저 막지 않게 (pivit-work PW-2243) */}
+      <SignupCard onSubmit={onSubmit} testId={`reset-${stage}`} noValidate>
         {stage === 'forgot' && (
           <>
             <SignupField label={l.email} error={emailError}>
