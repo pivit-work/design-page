@@ -134,11 +134,13 @@
 .onb-topbar-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; }
 .onb-topbar-center { display: flex; justify-content: center; min-width: 0; }
 /* 로고가 있으면 [로고 · 뒤로가기 · 진행 표시 · 짝 · 로고 짝]. 좁은 창(720 이하)에서는 진행 표시 자리가
-   모자라 로고를 한 줄 위로 올리고 로고 짝은 뺀다. */
+   모자라 [로고 · 뒤로가기]를 윗줄에 두고 진행 표시가 아랫줄 폭 전체를 쓴다 — 뒤로가기는 그래도
+   로고 오른쪽이다(기획서 entry §1). 짝 둘은 뺀다. */
 .onb-topbar-row.has-logo { grid-template-columns: auto auto minmax(0, 1fr) auto auto; }
 @media (max-width: 720px) {
-  .onb-topbar-row.has-logo { grid-template-columns: auto minmax(0, 1fr) auto; }
-  .onb-topbar-row.has-logo > .onb-logo:first-child { grid-column: 1 / -1; }
+  .onb-topbar-row.has-logo { grid-template-columns: auto auto minmax(0, 1fr); }
+  .onb-topbar-row.has-logo > .onb-topbar-center { grid-column: 1 / -1; }
+  .onb-topbar-row.has-logo > .onb-back.is-ghost,
   .onb-topbar-row.has-logo > .onb-logo.is-ghost { display: none; }
 }
 .onb-back {

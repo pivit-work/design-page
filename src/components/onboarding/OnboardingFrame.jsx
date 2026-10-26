@@ -132,7 +132,8 @@ export function OnboardingTopBar({ progress, backLabel, onBack, scrolled = false
       {backLabel}
     </span>
   ) : (
-    <div />
+    // 뒤로가기가 없어도 짝 자리는 is-ghost 로 둔다 — 좁은 창에서 짝을 숨기는 규칙이 이 자리도 잡게.
+    <span className="onb-back is-ghost" aria-hidden />
   );
   return (
     <div
