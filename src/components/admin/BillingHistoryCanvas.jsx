@@ -385,13 +385,20 @@ export default function BillingHistoryCanvas({
                   header: labels.tableHeaders.receipt,
                   render: (inv) => {
                     const isReceiptDownloading = !!downloading[`${inv.id}_receipt`];
-                    return inv.status === 'paid' ? (
+                    // 결제 뒤 전체환불로 취소된 청구서도 결제 때 받은 전표는 남긴다 — 환불 증빙도 그 전표다.
+                    // [청구서] 자리는 «—» (screen-billing-history.policy §2 · pivit-work PW-2206)
+                    const refundedVoid = inv.status === 'void' && !!inv.paid_at;
+                    return inv.status === 'paid' || refundedVoid ? (
                       <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                        <Btn size="sm" kind="secondary"
-                          disabled={isReceiptDownloading}
-                          onClick={() => handleReceipt(inv)}>
-                          {isReceiptDownloading ? labels.receiptDownloading : labels.receiptButton}
-                        </Btn>
+                        {inv.status === 'paid' ? (
+                          <Btn size="sm" kind="secondary"
+                            disabled={isReceiptDownloading}
+                            onClick={() => handleReceipt(inv)}>
+                            {isReceiptDownloading ? labels.receiptDownloading : labels.receiptButton}
+                          </Btn>
+                        ) : (
+                          <span style={{ color: T.muted }}>—</span>
+                        )}
                         {/* 결제사(토스)가 발급한 공식 카드매출전표 — 주소가 없는 결제(개발용 가짜 결제)는 그리지 않는다 */}
                         {inv.pg_receipt_url && (
                           <Btn size="sm" kind="secondary" href={inv.pg_receipt_url}>
