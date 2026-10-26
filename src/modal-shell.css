@@ -195,7 +195,8 @@
   transition: background-color 0.15s, border-color 0.15s, opacity 0.15s;
 }
 
-.tl-group-modal-btn:disabled {
+/* 생성 중(aria-busy)은 흐리게 하지 않는다 — 도는 표시가 보여야 한다 */
+.tl-group-modal-btn:disabled:not([aria-busy]) {
   opacity: 0.5;
   cursor: not-allowed;
 }

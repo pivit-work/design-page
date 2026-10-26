@@ -125,6 +125,7 @@ import EvalLeaderAssignmentSection from './EvalLeaderAssignmentSection.jsx';
 import { leavesBeforeDate, withoutLeavingBefore } from './evalRetiring.js';
 import RetiringTag from './RetiringTag.jsx';
 import { isEnterKey } from '../shared/enterKey.js';
+import Spinner from '../shared/Spinner.jsx';
 
 // 고정 단계 자물쇠 아이콘 — design-page 정본 lock-keyhole-square.
 // 두 곳 이상 쓰는 그림은 design-page `shared/lineIcons.jsx` 한 벌을 부른다(PW-1011).
@@ -4376,10 +4377,11 @@ export default function EvalCycleWizard({
                 type="button"
                 className="evc-rm-ai"
                 disabled={!canPolish || busy}
+                aria-busy={busy || undefined}
                 onClick={() => void runAiPolish(ph, rm, slot)}
                 data-testid={`evc-rm-ai${sfx}-${ph.id}-${i}`}
               >
-                {busy ? L.reminderAiBusy : L.reminderAiPolish}
+                {busy ? <span className="dp-busy-inline"><Spinner size={12} />{L.reminderAiBusy}</span> : L.reminderAiPolish}
               </button>
             </Tooltip>
           )}
@@ -12032,10 +12034,11 @@ export default function EvalCycleWizard({
                 type="button"
                 className="tl-group-modal-btn tl-group-modal-btn-primary"
                 disabled={aiSetupBusy}
+                aria-busy={aiSetupBusy || undefined}
                 onClick={requestAiSetup}
                 data-testid="evc-wiz-ai-setup-run"
               >
-                {aiSetupBusy ? L.aiSetupRunning : L.aiSetupRun}
+                {aiSetupBusy ? <span className="dp-busy-inline"><Spinner size={14} />{L.aiSetupRunning}</span> : L.aiSetupRun}
               </button>
             </>
           }

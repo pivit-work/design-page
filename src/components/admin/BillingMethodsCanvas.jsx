@@ -3,6 +3,7 @@ import ConfirmModal from '../shared/ConfirmModal.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import { BillingCard as Card, BillingBadge as Badge } from './kit/BillingSurface.jsx';
 import Skeleton from '../shared/Skeleton.jsx';
+import Spinner from '../shared/Spinner.jsx';
 
 // ─────────────────────────────────────────────────────────────
 // 결제·구독 — 결제수단 관리 (BillingMethodsCanvas)  /admin/billing/methods
@@ -304,7 +305,7 @@ export default function BillingMethodsCanvas({
           display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
           <div style={{ background: '#fff', borderRadius: 14, padding: '28px 36px',
             fontSize: 15, fontWeight: 700, color: T.text }}>
-            {addState === 'processing' ? labels.addProcessing : labels.addConfirming}
+            <span className="dp-busy-inline"><Spinner size={16} />{addState === 'processing' ? labels.addProcessing : labels.addConfirming}</span>
           </div>
         </div>
       )}

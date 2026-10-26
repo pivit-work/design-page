@@ -7,6 +7,7 @@ import { CloseGlyph } from '../shared/lineIcons.jsx';
 import OneOnOneRecordingWidget from './OneOnOneRecordingWidget.jsx';
 import LiveGuideCard from './LiveGuideCard.jsx';
 import { isEnterKey } from '../shared/enterKey.js';
+import Spinner from '../shared/Spinner.jsx';
 
 /**
  * "1on1 진행" 준비 뷰 — Figma 16817:39186(준비1) / 16972:15514(준비2).
@@ -910,8 +911,11 @@ export default function StartOneOnOneView({
                               className="ono-start-ai-draft-btn"
                               onClick={() => handleGenerate(sec.key)}
                               disabled={!onGenerateDrafts || isGenerating}
+                              aria-busy={generatingSection === sec.key || undefined}
                             >
-                              <Icon src="/icons-solid/ai-chat-01.svg" size={14} color="currentColor" baseUrl={baseUrl} />
+                              {generatingSection === sec.key
+                                ? <Spinner size={14} />
+                                : <Icon src="/icons-solid/ai-chat-01.svg" size={14} color="currentColor" baseUrl={baseUrl} />}
                               <span>
                                 {generatingSection === sec.key ? L.generatingShort : L.aiDraft}
                               </span>
@@ -927,8 +931,9 @@ export default function StartOneOnOneView({
                               className="ono-start-regen-btn"
                               onClick={() => handleGenerate(sec.key)}
                               disabled={isGenerating}
+                              aria-busy={generatingSection === sec.key || undefined}
                             >
-                              {generatingSection === sec.key ? L.generatingShort : L.regenerate}
+                              {generatingSection === sec.key ? <span className="dp-busy-inline"><Spinner size={12} />{L.generatingShort}</span> : L.regenerate}
                             </button>
                             <button type="button" className="ono-start-confirm-btn" onClick={() => toggleConfirm(sec.key)}>{L.confirm}</button>
                           </>

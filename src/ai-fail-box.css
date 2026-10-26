@@ -64,7 +64,8 @@
   filter: brightness(0.96);
 }
 /* 한도 초과·재시도 소진 — 누를 수 없다는 것이 «보여야» 한다(시안: 빈 배경 + 회색 글). */
-.aifail-retry:disabled {
+/* 다시 시도 중(aria-busy)은 빈 배경으로 바꾸지 않는다 — 도는 표시가 보여야 한다 */
+.aifail-retry:disabled:not([aria-busy]) {
   background: transparent;
   border: 1px solid var(--border-secondary);
   color: var(--text-quaternary);

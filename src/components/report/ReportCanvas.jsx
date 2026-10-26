@@ -153,6 +153,7 @@ export default function ReportCanvas({
               periodLabel={r.periodLabel}
               isCurrent={r.isCurrent}
               generateLabel={r.generateLabel}
+              generating={isGenerating && r.isCurrent}
               summary={r.summary}
               stats={r.stats}
               baseUrl={baseUrl}

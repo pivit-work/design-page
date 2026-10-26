@@ -15,6 +15,7 @@ import {
   transcriptAnchor,
   useTranscriptJump,
 } from './OneOnOneMemberCanvas.jsx';
+import Spinner from '../shared/Spinner.jsx';
 
 /**
  * 매니저가 보는 **한 팀원의 지난 1on1** — 리스트 / 회의록 / 대화 분석 3뷰.
@@ -397,7 +398,7 @@ function TranscriptStatus({ status, retrying, error, onRetry, L }) {
   if (status === 'processing' || retrying) {
     return (
       <p className="ono-mem-evidence-status ono-mem-center" role="status" data-testid="ono-past-stt-processing">
-        {retrying ? L.transcriptRetrying : L.transcriptProcessing}
+        <span className="dp-busy-inline"><Spinner size={11} />{retrying ? L.transcriptRetrying : L.transcriptProcessing}</span>
       </p>
     );
   }

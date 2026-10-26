@@ -12,6 +12,7 @@ import OkrMemberPicker from './OkrMemberPicker.jsx';
 import OkrProgressBar from './OkrProgressBar.jsx';
 import rowKey from './rowKey.js';
 import stripListMarker from '../shared/stripListMarker.js';
+import Spinner from '../shared/Spinner.jsx';
 
 /**
  * OkrComposeFullModal — 개인 OKR 작성 풀스크린 모달.
@@ -818,8 +819,8 @@ export default function OkrComposeFullModal({
             <p className="okr-cf-hint">{L.hint}</p>
             <div className="okr-cf-head-actions">
               {onGenerate && (
-                <button type="button" className="okr-wz-ai-btn" onClick={generate} disabled={genLoading}>
-                  {genLoading ? L.generating : `✦ ${L.generateObjectives}`}
+                <button type="button" className="okr-wz-ai-btn" onClick={generate} disabled={genLoading} aria-busy={genLoading || undefined}>
+                  {genLoading ? <span className="dp-busy-inline"><Spinner size={12} />{L.generating}</span> : `✦ ${L.generateObjectives}`}
                 </button>
               )}
               <button type="button" className="okr-cf-add-btn" onClick={addObjective}>
@@ -1109,9 +1110,10 @@ export default function OkrComposeFullModal({
                       type="button"
                       className="okr-wz-ai-btn"
                       disabled={!objective.title.trim() || genKrKey !== null}
+                      aria-busy={genKrKey === objective.key || undefined}
                       onClick={() => generateKrs(objective)}
                     >
-                      {genKrKey === objective.key ? L.generating : `✦ ${L.generateKrs}`}
+                      {genKrKey === objective.key ? <span className="dp-busy-inline"><Spinner size={12} />{L.generating}</span> : `✦ ${L.generateKrs}`}
                     </button>
                   )}
                   </div>

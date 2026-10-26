@@ -5,6 +5,7 @@ import Switch from '../shared/Switch.jsx';
 import Toast from '../shared/Toast.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import Button from '../shared/Button.jsx';
+import Spinner from '../shared/Spinner.jsx';
 
 /**
  * AdminAiPromptsCanvas — 어드민 "AI 프롬프트 설정" 화면 Pure 컴포넌트.
@@ -397,7 +398,7 @@ export default function AdminAiPromptsCanvas({
                       className="admin-link-button"
                       style={{ cursor: testLoading ? 'wait' : 'pointer' }}
                     >
-                      {testLoading ? labels.testRunning : labels.test}
+                      {testLoading ? <span className="dp-busy-inline"><Spinner size={12} />{labels.testRunning}</span> : labels.test}
                     </Button>
                     {/* 기본값 복원(커스텀 삭제)은 커스텀 프롬프트가 있을 때만 의미가 있다 */}
                     {selected.hasCustom && (

@@ -1182,9 +1182,10 @@ export function AiReportSection({ value, L, icons, baseUrl, readOnly = false }) 
       className="ono-mem-ai-regen"
       onClick={generate}
       disabled={busy || confirming}
+      aria-busy={busy || undefined}
       data-testid="ono-ai-report-regenerate"
     >
-      {busy ? L.aiReportGenerating : L.aiReportRegenerate}
+      {busy ? <span className="dp-busy-inline"><Spinner size={11} />{L.aiReportGenerating}</span> : L.aiReportRegenerate}
     </button>
   );
   const textarea = (
@@ -1246,9 +1247,10 @@ export function AiReportSection({ value, L, icons, baseUrl, readOnly = false }) 
             className="ono-mem-btn ono-mem-ai-generate"
             onClick={generate}
             disabled={busy || confirming}
+            aria-busy={busy || undefined}
             data-testid="ono-ai-report-generate"
           >
-            {busy ? L.aiReportGenerating : L.aiReportGenerate}
+            {busy ? <span className="dp-busy-inline"><Spinner size={14} />{L.aiReportGenerating}</span> : L.aiReportGenerate}
           </button>
           <p className="ono-mem-hint">{L.aiReportEmpty}</p>
         </>

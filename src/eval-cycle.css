@@ -465,7 +465,8 @@
   background: var(--bg-active);
   color: var(--text-primary);
 }
-.evc-btn:disabled {
+/* 생성 중(aria-busy)은 흐리게 하지 않는다 — 도는 표시가 보여야 한다 */
+.evc-btn:disabled:not([aria-busy]) {
   opacity: 0.45;
   cursor: not-allowed;
 }
@@ -10089,7 +10090,7 @@ button.evm-ai-source {
   background: var(--bg-brand-secondary);
   color: var(--text-brand-secondary);
 }
-.evc-rm-ai:disabled,
+.evc-rm-ai:disabled:not([aria-busy]),
 .evc-rm-save-msg:disabled {
   border-color: var(--border-secondary);
   background: var(--bg-secondary);

@@ -17,6 +17,13 @@
 @media (prefers-reduced-motion: reduce) {
   .dp-spinner { animation-duration: 2.4s; }
 }
+/* 기다리는 글 앞에 붙이는 도는 표시 — 「생성 중…」 글만 있으면 화면이 멈춘 것처럼 보인다.
+   AI 생성처럼 오래 걸리는 버튼·상태 글에 쓴다. 선례: 스니핏 「AI로 채우기」(PW-1191). */
+.dp-busy-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
 
 /* ── 자리 표시 ─────────────────────────────────────────────── */
 .dp-skeleton {

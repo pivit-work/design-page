@@ -1,6 +1,7 @@
 import { useId, useState } from 'react';
 import Checkbox from '../shared/Checkbox.jsx';
 import { BillingCard as Card, BillingCheckoutSteps } from './kit/BillingSurface.jsx';
+import Spinner from '../shared/Spinner.jsx';
 
 // ─────────────────────────────────────────────────────────────
 // 결제·구독 — 체크아웃 (BillingCheckoutCanvas)  /admin/billing/checkout
@@ -598,9 +599,12 @@ export default function BillingCheckoutCanvas({
             display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
             <div style={{ background: '#fff', borderRadius: 14, padding: '28px 36px',
               fontSize: 15, fontWeight: 700, color: T.text }}>
-              {payState === 'processing'
-                ? (opensCardWindow ? labels.overlayProcessing : labels.overlayProcessingSavedCard)
-                : returnedFromCardWindow ? labels.overlayConfirmingCardAdded : labels.overlayConfirming}
+              <span className="dp-busy-inline">
+                <Spinner size={16} />
+                {payState === 'processing'
+                  ? (opensCardWindow ? labels.overlayProcessing : labels.overlayProcessingSavedCard)
+                  : returnedFromCardWindow ? labels.overlayConfirmingCardAdded : labels.overlayConfirming}
+              </span>
             </div>
           </div>
         )}

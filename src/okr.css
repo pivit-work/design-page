@@ -690,7 +690,8 @@ body:has(.okr-ctx-banner-flag) .tl-group-modal.okr-wz-modal { height: min(1118px
 .okr-btn:disabled { opacity: 0.5; cursor: default; }
 /* AI 버튼도 같은 비활성 표시를 쓴다 — KR 내용이 비었을 때 눌리지 않는다는
    것이 보여야 한다(정책 §5.3 R-E1). 값은 위 .okr-btn 규칙과 같다. */
-.okr-wz-ai-btn:disabled { opacity: 0.5; cursor: default; }
+.okr-wz-ai-btn:disabled:not([aria-busy]) { opacity: 0.5; cursor: default; }
+.okr-wz-ai-btn[aria-busy] { cursor: progress; } /* 생성 중에는 흐리게 하지 않는다 — 도는 표시가 보여야 한다 */
 
 /* 분기별 KR 테이블 */
 .okr-quarter-tables { display: flex; flex-direction: column; }

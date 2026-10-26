@@ -1,5 +1,6 @@
 import { AlertTriangleGlyph } from './lineIcons.jsx';
 import Tooltip from './Tooltip.jsx';
+import Spinner from './Spinner.jsx';
 
 /**
  * AiFailBox — AI 생성이 실패했을 때의 안내 상자.
@@ -17,6 +18,7 @@ import Tooltip from './Tooltip.jsx';
  * @param {string}   [props.retryLabel]     없으면 버튼 자체를 그리지 않는다.
  * @param {Function} [props.onRetry]
  * @param {boolean}  [props.retryDisabled]  한도 초과·재시도 소진·재시도 중.
+ * @param {boolean}  [props.retrying]       다시 시도 중 — 글 앞에 도는 표시를 붙이고 흐리게 하지 않는다.
  * @param {string}   [props.retryTitle]     못 누를 때 이유(마우스를 올리면 보인다).
  * @param {string}   [props.testId]
  */
@@ -26,6 +28,7 @@ export default function AiFailBox({
   retryLabel,
   onRetry,
   retryDisabled = false,
+  retrying = false,
   retryTitle,
   testId,
 }) {
@@ -43,9 +46,10 @@ export default function AiFailBox({
               type="button"
               className="aifail-retry"
               onClick={onRetry}
-              disabled={retryDisabled}
+              disabled={retryDisabled || retrying}
+              aria-busy={retrying || undefined}
             >
-              {retryLabel}
+              {retrying ? <span className="dp-busy-inline"><Spinner size={12} />{retryLabel}</span> : retryLabel}
             </button>
           </Tooltip>
         </span>

@@ -8,6 +8,7 @@ import MemberAiButton from './MemberAiButton.jsx';
 import MemberField from './MemberField.jsx';
 import MemberReportCard from './MemberReportCard.jsx';
 import { isEnterKey } from '../shared/enterKey.js';
+import Spinner from '../shared/Spinner.jsx';
 
 /**
  * 「내 원온원」 — 내가 1on1 **대상자(guest · 팀원)** 일 때 보는 준비 화면.
@@ -332,8 +333,10 @@ export default function MemberOneOnOneView({
 
             {/* AI 보고서 생성 — 작성 중 · 아직 없을 때 (Figma 17416:27976) */}
             {editable && !reportEditor && !report?.generated && !report?.text && (
-              <button type="button" className="ono-start-cta is-cta" onClick={onGenerateReport} disabled={reportBusy || reportDisabled} data-testid="ono-my-cta-report">
-                <Icon src="/icons-solid/ai-chat-01.svg" size={20} color="var(--text-white)" baseUrl={baseUrl} />
+              <button type="button" className="ono-start-cta is-cta" onClick={onGenerateReport} disabled={reportBusy || reportDisabled} aria-busy={reportBusy || undefined} data-testid="ono-my-cta-report">
+                {reportBusy
+                  ? <Spinner size={20} />
+                  : <Icon src="/icons-solid/ai-chat-01.svg" size={20} color="var(--text-white)" baseUrl={baseUrl} />}
                 {reportBusy ? L.ctaReportBusy : L.ctaReport}
               </button>
             )}

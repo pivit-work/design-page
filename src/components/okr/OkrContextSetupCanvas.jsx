@@ -7,6 +7,7 @@ import Switch from '../shared/Switch.jsx';
 import { SkeletonList } from '../shared/Skeleton.jsx';
 import OkrContextAnalysisResult from './OkrContextAnalysisResult.jsx';
 import { isEnterKey } from '../shared/enterKey.js';
+import Spinner from '../shared/Spinner.jsx';
 
 /**
  * OkrContextSetupCanvas — OKR 컨텍스트 설정(관리자 전용) 지식 소스 단일 페이지.
@@ -569,7 +570,7 @@ function AnalysisSection({
 
       {analyzing && (
         <div className="okr-wz-vision-card" data-testid="okr-context-analysis-running">
-          <p className="okr-wz-desc">{fill('analysisRunning', ready)}</p>
+          <p className="okr-wz-desc dp-busy-inline"><Spinner size={12} />{fill('analysisRunning', ready)}</p>
         </div>
       )}
 

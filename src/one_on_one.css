@@ -3054,7 +3054,8 @@ button.ono-add-modal-input { cursor: pointer; }
   color: var(--text-white);
   cursor: pointer;
 }
-.ono-mem-btn:disabled {
+/* 생성 중(aria-busy)은 회색으로 바꾸지 않는다 — 도는 표시가 보여야 한다 */
+.ono-mem-btn:disabled:not([aria-busy]) {
   background: var(--bg-secondary);
   color: var(--text-tertiary);
   cursor: default;

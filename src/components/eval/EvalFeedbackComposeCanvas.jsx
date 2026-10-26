@@ -12,6 +12,7 @@ import FeedbackOkrPanel from './FeedbackOkrPanel.jsx';
 import { SkeletonList } from '../shared/Skeleton.jsx';
 import { FeedbackTextLimitContext, useFeedbackTextLimit, useFeedbackTextTooLong } from './feedbackTextLimit.js';
 import FeedbackLengthNote from './FeedbackLengthNote.jsx';
+import Spinner from '../shared/Spinner.jsx';
 
 /**
  * EvalFeedbackComposeCanvas — 팀 피드백 (매니저 뷰, v2 재설계).
@@ -421,11 +422,12 @@ function ModalComposeBox({ block, memberName, L, onSend, onAiDraft }) {
             <button
               type="button"
               disabled={aiState === 'loading'}
+              aria-busy={aiState === 'loading' || undefined}
               onClick={ai}
               data-testid="fbmgr-ai-draft"
               style={{ border: `1px solid ${C.accentBd}`, background: C.accentBg, color: C.accent, borderRadius: 8, padding: '8px 12px', fontSize: 13, fontWeight: 600, cursor: aiState === 'loading' ? 'wait' : 'pointer' }}
             >
-              {aiState === 'loading' ? L.aiDrafting : <><SparkleIcon size={13} /> {L.aiDraft}</>}
+              {aiState === 'loading' ? <span className="dp-busy-inline"><Spinner size={13} />{L.aiDrafting}</span> : <><SparkleIcon size={13} /> {L.aiDraft}</>}
             </button>
           )}
           <Button

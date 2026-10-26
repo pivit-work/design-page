@@ -409,7 +409,7 @@ function AnalysisBanner({ state, L, icons, baseUrl, retry, summaryRetry, replay,
             disabled={binding.retrying}
             data-testid="ono-done-banner-retry"
           >
-            {binding.retrying ? L.bannerRetrying : L.bannerRetry}
+            {binding.retrying ? <span className="dp-busy-inline"><Spinner size={12} />{L.bannerRetrying}</span> : L.bannerRetry}
           </Button>
         )}
         {binding?.error && <span className="ono-done-banner-error">{L.bannerRetryError}</span>}

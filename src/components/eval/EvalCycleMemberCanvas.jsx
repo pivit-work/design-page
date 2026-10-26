@@ -25,6 +25,7 @@ import {
   ArrowRightIcon,
 } from './evalIcons.jsx';
 import { fieldsShape, reseedKeepingEdits } from './reseedAnswers.js';
+import Spinner from '../shared/Spinner.jsx';
 
 /**
  * EvalCycleMemberCanvas — 멤버 셀프 리뷰 작성 화면.
@@ -1366,10 +1367,11 @@ export default function EvalCycleMemberCanvas({
                           type="button"
                           className="evc-btn is-ghost evm-ai-item-draft"
                           disabled={!!draftBusy || !!aiOff}
+                          aria-busy={draftBusy === f.key || undefined}
                           onClick={() => handleAiDraft(f)}
                           data-testid={`evm-ai-draft-item-${f.key}`}
                         >
-                          {draftBusy !== f.key && <SparkleIcon size={13} />}
+                          {draftBusy === f.key ? <Spinner size={13} /> : <SparkleIcon size={13} />}
                           {draftBusy === f.key ? L.aiDrafting : L.aiDraftItem}
                         </button>
                       )}
@@ -1556,10 +1558,11 @@ export default function EvalCycleMemberCanvas({
                   type="button"
                   className="evc-btn is-ghost"
                   disabled={!!draftBusy || emptyTextFields.length === 0 || !!aiDraftDisabledReason}
+                  aria-busy={draftBusy === 'all' || undefined}
                   onClick={() => handleAiDraft()}
                   data-testid="evm-ai-draft"
                 >
-                  {draftBusy !== 'all' && <SparkleIcon size={15} />}
+                  {draftBusy === 'all' ? <Spinner size={15} /> : <SparkleIcon size={15} />}
                   {draftBusy === 'all' ? L.aiDrafting : L.aiDraft}
                 </button>
               )}

@@ -1,4 +1,5 @@
 import Icon from '../shared/Icon.jsx';
+import Spinner from '../shared/Spinner.jsx';
 
 /**
  * ReportStatsRow — Monthly/Quarterly/Semi-annually/Annually 탭의 한 행.
@@ -14,6 +15,8 @@ export default function ReportStatsRow({
   isCurrent = false,
   emptyText = '아직 생성 전입니다.',
   generateLabel = '리포트 생성하기',
+  // 생성 중 — 아이콘 자리에 도는 표시
+  generating = false,
   onGenerate,
   summary,
   stats = [],
@@ -37,12 +40,15 @@ export default function ReportStatsRow({
             <button
               type="button"
               className="report-generate-btn"
+              aria-busy={generating || undefined}
               onClick={(e) => {
                 e.stopPropagation();
                 onGenerate?.();
               }}
             >
-              <Icon src="/icons-solid/ai-chat-01.svg" size={20} color="var(--colors-base-white)" baseUrl={baseUrl} />
+              {generating
+                ? <Spinner size={20} />
+                : <Icon src="/icons-solid/ai-chat-01.svg" size={20} color="var(--colors-base-white)" baseUrl={baseUrl} />}
               <span>{generateLabel}</span>
             </button>
           </div>
