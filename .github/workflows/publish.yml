@@ -93,7 +93,8 @@ jobs:
       - name: Check direct paint
         env:
           DIRECT_PAINT_BASE: ${{ github.event.before }}
-        run: npm run check:direct-paint
+        # 검사 자신의 시험(11초)은 여기서만 돈다 — push 전 검사에서는 빼 push 를 1초 안쪽으로 둔다.
+        run: npm run check:direct-paint:test && npm run check:direct-paint
 
       # 판 번호만 바꾸는 커밋이라 push 전 훅(lint 50초 등)을 다시 돌릴 까닭이 없다 — 위 단계에서 이미 검사했다.
       # 훅이 돌면 발행 한 번이 2분 34초가 되어 3분이 깎였다.
