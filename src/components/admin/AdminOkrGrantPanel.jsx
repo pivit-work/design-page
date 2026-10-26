@@ -14,7 +14,8 @@ import { SkeletonList } from '../shared/Skeleton.jsx';
  *
  * 디자이너 원본이 없는 화면이라 같은 화면(AdminRbacCanvas «역할별 권한» 탭)의 카드·머리·줄 모양을
  * 그대로 따른다 — 흰 카드(그림자·16 둥근 모서리) · 카드 머리(15/800 제목 + 12 회색 설명) · 줄 사이
- * 회색 선. 켬/끔·딱지·검색 칸·날짜 칸·버튼은 공용 부품이다. (design-review)
+ * 회색 선. 켬/끔·딱지·검색 칸·날짜 칸·버튼은 공용 부품이고, 딱지·날짜 칸 생김새는 같은 어드민 화면의
+ * 것을 쓴다(딱지 `admin-pill` — 팀 관리 상태 딱지 · 날짜 칸 `admin-emp-input` — 직원 관리 입력 칸). (design-review)
  */
 
 const DP = {
@@ -158,12 +159,13 @@ function GrantRow({ row, scope, L, today, onToggle, onExpiryChange }) {
         ) : null}
       </div>
       {row.isHead ? (
-        <StatusBadge tone="accent">{L.headDefault}</StatusBadge>
+        <StatusBadge className="admin-pill is-inactive">{L.headDefault}</StatusBadge>
       ) : (
         <>
-          {row.delegated ? <StatusBadge tone="success">{L.delegated}</StatusBadge> : null}
+          {row.delegated ? <StatusBadge className="admin-pill is-active">{L.delegated}</StatusBadge> : null}
           {row.on ? (
             <DateInput
+              className="admin-emp-input"
               value={row.expiresOn ?? ''}
               min={today}
               placeholder={L.expiresPlaceholder}
