@@ -89,11 +89,6 @@ export default function CalendarMonthView({
     setRange({ start: gridStartOf(selectedDate), weeks: ROW_COUNT });
   }
   const gridRef = useRef(null);
-  // 앞에 붙인 주 수 — 그려진 뒤 스크롤을 그만큼 내려 보이는 자리를 지킨다
-  const prepended = useRef(0);
-  useLayoutEffect(() => {
-    if (gridRef.current) gridRef.current.scrollTop = 0;
-  }, [monthKey]);
 
   // 줄 높이 = 칸 높이 ÷ 6 (최소 122). 창이 커지면 줄도 커지고 칸에 들어가는 pill 도 3, 4 … 로 는다.
   const [rowH, setRowH] = useState(ROW_MIN_H);
@@ -114,31 +109,58 @@ export default function CalendarMonthView({
     return () => ro.disconnect();
   }, []);
 
-  // 앞에 주를 붙인 직후 — 그만큼 스크롤을 내려 화면이 튀지 않게 한다
+  // 창의 첫 주가 옮겨지면(앞에 붙이거나 앞을 버리면) 그린 뒤 그 주 수만큼 스크롤을 옮겨 보이는 자리를 지킨다.
+  // 달이 바뀌었으면 맨 위로 돌아간다. 보정은 여기서 «지난번 그린 첫 주와의 차이»로만 센다 —
+  // setRange 계산 함수 안에서 스크롤을 만지면 StrictMode 가 그 함수를 두 번 돌려 보정이 두 배가 되고,
+  // 한 틀에 두 번 붙이면 하나가 빠졌다(화면이 아래 끝으로 튀어 엉뚱한 달로 넘어갔다).
+  const rendered = useRef({ start: range.start, monthKey });
   useLayoutEffect(() => {
-    if (!prepended.current || !gridRef.current) return;
-    gridRef.current.scrollTop += prepended.current * rowH;
-    prepended.current = 0;
-  }, [range, rowH]);
+    const prev = rendered.current;
+    rendered.current = { start: range.start, monthKey };
+    const grid = gridRef.current;
+    if (!grid) return;
+    if (prev.monthKey !== monthKey) {
+      grid.scrollTop = 0;
+      return;
+    }
+    const shiftedWeeks = Math.round((prev.start - range.start) / (COL_COUNT * 86400000));
+    if (shiftedWeeks) grid.scrollTop += shiftedWeeks * rowH;
+  }, [range.start, monthKey, rowH]);
 
-  // 끝에 가까워지면 주를 더 붙인다. 너무 많아지면 반대쪽 끝을 버린다(버린 만큼 스크롤 보정).
+  // 위·아래 끝에 주를 더 붙인다. 너무 많아지면 반대쪽 끝을 버린다(버린 만큼 스크롤 보정).
+  const extend = useCallback((dir) => {
+    setRange((r) => {
+      const trim = r.weeks + WEEK_CHUNK > WEEK_MAX ? WEEK_CHUNK : 0;
+      if (dir === 'down') {
+        return { start: addDays(r.start, trim * COL_COUNT), weeks: r.weeks + WEEK_CHUNK - trim };
+      }
+      return { start: addDays(r.start, -WEEK_CHUNK * COL_COUNT), weeks: r.weeks + WEEK_CHUNK - trim };
+    });
+  }, []);
+
+  // 끝에 가까워지면 주를 더 붙인다.
   const handleScroll = useCallback(() => {
     const grid = gridRef.current;
     if (!grid) return;
     const nearTop = grid.scrollTop < rowH * 2;
     const nearBottom = grid.scrollTop + grid.clientHeight > grid.scrollHeight - rowH * 2;
-    if (!nearTop && !nearBottom) return;
-    setRange((r) => {
-      if (nearBottom) {
-        const trim = r.weeks + WEEK_CHUNK > WEEK_MAX ? WEEK_CHUNK : 0;
-        if (trim) grid.scrollTop -= trim * rowH;
-        return { start: addDays(r.start, trim * COL_COUNT), weeks: r.weeks + WEEK_CHUNK - trim };
-      }
-      prepended.current += WEEK_CHUNK;
-      const trim = r.weeks + WEEK_CHUNK > WEEK_MAX ? WEEK_CHUNK : 0;
-      return { start: addDays(r.start, -WEEK_CHUNK * COL_COUNT), weeks: r.weeks + WEEK_CHUNK - trim };
-    });
-  }, [rowH]);
+    if (nearBottom) extend('down');
+    else if (nearTop) extend('up');
+  }, [rowH, extend]);
+
+  // 달을 연 직후는 맨 위(scrollTop 0)라 위로 굴려도 스크롤이 안 움직여 onScroll 이 안 온다 —
+  // 맨 위에서 위로 미는 휠·터치를 따로 받아 앞 주를 붙인다.
+  const touchY = useRef(null);
+  const pushUpAtTop = useCallback(() => {
+    if (gridRef.current && gridRef.current.scrollTop <= 0) extend('up');
+  }, [extend]);
+  const handleWheel = useCallback((e) => { if (e.deltaY < 0) pushUpAtTop(); }, [pushUpAtTop]);
+  const handleTouchStart = useCallback((e) => { touchY.current = e.touches[0]?.clientY ?? null; }, []);
+  const handleTouchMove = useCallback((e) => {
+    const y = e.touches[0]?.clientY;
+    if (touchY.current != null && y != null && y > touchY.current) pushUpAtTop();
+    touchY.current = y ?? null;
+  }, [pushUpAtTop]);
 
   const cells = buildWeeks(range.start, range.weeks);
 
@@ -160,7 +182,10 @@ export default function CalendarMonthView({
         ))}
       </div>
       {/* 줄 높이는 데이터(칸 높이)에서 온 값이라 인라인 변수로 넘긴다 */}
-      <div className="tl-cal-grid" ref={gridRef} onScroll={handleScroll} style={{ '--tl-cal-row': `${rowH}px` }}>
+      <div
+        className="tl-cal-grid" ref={gridRef} onScroll={handleScroll}
+        onWheel={handleWheel} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove}
+        style={{ '--tl-cal-row': `${rowH}px` }}>
         {cells.map((d) => {
           const iso = formatIsoDate(d);
           const isToday = iso === (now ? formatIsoDate(now()) : TODAY_STR);

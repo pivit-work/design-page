@@ -1626,6 +1626,9 @@
   overflow-y: auto;
   /* 스크롤바는 그리지 않는다 — 달력은 휠·트랙패드로만 민다 */
   scrollbar-width: none;
+  /* 앞에 주를 붙인 뒤의 스크롤 보정은 CalendarMonthView 가 직접 한다. 브라우저의 스크롤 고정까지 겹치면
+     두 번 옮겨져 엉뚱한 달로 튄다. */
+  overflow-anchor: none;
 }
 .tl-cal-grid::-webkit-scrollbar { display: none; }
 
