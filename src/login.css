@@ -91,6 +91,9 @@
 .login-foot-note { margin: 0; color: var(--text-tertiary); }
 .login-link { padding: 0; border: none; background: none; font-family: inherit; font-size: 12px; font-weight: 400; line-height: 18px; color: var(--text-brand-tertiary); cursor: pointer; }
 .login-link:hover { text-decoration: underline; }
+/* 개발 추가(pivit-work PW-2243) — 남은 시도 횟수 경고. 시안에 없는 상태라 칸 오류 문구(form-field.css p.dp-field-error)의
+   글씨 크기·줄 높이를 그대로 쓰고 색만 경고 토큰으로 둔다. 카드 gap 이 위 간격을 띄운다 */
+.login-warning { margin: 0; font-size: var(--font-size-text-xs, 12px); font-weight: 400; line-height: 16px; color: var(--text-warning-primary); }
 
 /* ══ 회원가입(온보딩 진입) 첫 화면 — 같은 틀에 단계 진행 표시 · 개인정보 안내 · 약관 링크가 더 붙는다 ══ */
 /* 개인정보 처리 안내 — 카드 안 회색 상자(alpha-black-3 · r10 · 안쪽 12/14), 12/400/18 text-secondary. 머리줄은 제목 12/600 + 접기 */
@@ -104,6 +107,10 @@
 .login-legal { margin: -8px 0 0; display: flex; align-items: center; gap: 4px; font-size: 12px; line-height: 18px; color: var(--text-tertiary); }
 .login-legal-dot { margin: 0 4px 0 0; }
 .login-link.is-legal { font-weight: 600; }
+/* 개발 추가(pivit-work PW-1815) — 약관 줄을 새 탭 링크(<a>)로 쓸 때도 글자 버튼과 같게(브라우저 기본 밑줄을 뺀다) */
+a.login-link,
+a.login-google { text-decoration: none; }
+a.login-link:hover { text-decoration: underline; }
 
 /* ══ 회원가입 단계 공통 — 고르는 칸 · 동의 줄 · 요약 표 · 도구 카드 · 줄 목록 (로그인 시안 문법) ══ */
 .login-input.is-readonly { color: var(--text-secondary); }
@@ -116,6 +123,13 @@
 .login-link.is-muted { color: var(--text-tertiary); }
 .login-link.is-add { display: inline-flex; align-items: center; gap: 4px; align-self: flex-start; font-weight: 600; }
 .login-link:disabled { opacity: 0.5; cursor: not-allowed; }
+/* 개발 추가(pivit-work PW-1815) — 큰 버튼·흰 버튼이 꺼졌을 때. 시안에 꺼진 모양이 없어(약관 미동의 등에 눌러도 티가 안 났다)
+   바로 위 디자이너 글자 링크의 꺼짐(흐림 0.5)을 그대로 따른다. 요청 중(aria-busy)은 흐리지 않고 커서만 기다림 */
+.login-submit:disabled:not([aria-busy]),
+.login-google:disabled:not([aria-busy]),
+.login-choice:disabled { opacity: 0.5; cursor: not-allowed; }
+.login-submit[aria-busy],
+.login-google[aria-busy] { cursor: wait; }
 /* 고르는 칸 — 2열, 안쪽 10/12, r10, 1px alpha-black-10 선. 고른 칸은 브랜드 선 + 연한 브랜드 바탕 */
 .login-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .login-choices.is-one { grid-template-columns: 1fr; }

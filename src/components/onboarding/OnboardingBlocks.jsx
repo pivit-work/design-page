@@ -1,4 +1,8 @@
-import { useId } from 'react';
+import { useId, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { useOnbLoginLook } from './onboardingLook.js';
+import { OnbTextButton } from './OnboardingControls.jsx';
+import { SignupFootRow, SignupNotice, SignupSummary } from '../login/SignupPieces.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
 import { isEnterKey } from '../shared/enterKey.js';
@@ -30,7 +34,12 @@ const mbClass = (v) => ([8, 12, 16, 20, 24].includes(v) ? `onb-mb-${v}` : undefi
  *   size       'lg' | 'md'(시안 승인 결과) — 둘 다 30px, 디자이너 창 제목 크기 (PW-1885)
  *   spacing    'normal' | 'tight' — 둘 다 아래 24 (PW-1885)
  */
-export function OnbStepHeader({
+export function OnbStepHeader(props) {
+  const look = useOnbLoginLook();
+  return look ? <LoginLookStepHeader look={look} {...props} /> : <StepHeaderInline {...props} />;
+}
+
+function StepHeaderInline({
   title,
   description,
   icon,
@@ -51,6 +60,79 @@ export function OnbStepHeader({
       <h1 className={cx('onb-title', size === 'md' && 'is-md')}>{title}</h1>
       {description && <p className="onb-desc">{description}</p>}
     </div>
+  );
+}
+
+/**
+ * 디자이너 로그인 틀 안(pivit-work PW-1815) — 제목·설명은 틀의 제목 묶음(카드 위)으로 옮겨 그리고, 아이콘·배지만 카드 안에 둔다.
+ * 아이콘은 디자이너 완료 화면의 가운데 정렬(.login-center), 배지는 승인 대기 화면의 딱지 줄(.login-status-row) 자리를 따른다.
+ * 한 화면의 두 번째 머리는 제목 묶음을 차지하지 못해 카드 안에 예전 모양 그대로 선다.
+ */
+function LoginLookStepHeader({ look, title, description, icon, iconTone = 'brand', badge, testId, ...rest }) {
+  const id = useId();
+  const withSubtitle = !!description;
+  const { claimHeading } = look;
+  useLayoutEffect(() => claimHeading(id, withSubtitle) ?? undefined, [claimHeading, id, withSubtitle]);
+  // 아직 아무도 안 잡았으면 한 번 비워 둔다(곧 잡는다). 다른 머리가 잡았으면 카드 안에 선다.
+  const placement = look.ownerId === id ? 'slot' : look.ownerId ? 'inline' : 'pending';
+
+  if (placement === 'inline') {
+    return (
+      <StepHeaderInline
+        title={title}
+        description={description}
+        icon={icon}
+        iconTone={iconTone}
+        badge={badge}
+        testId={testId}
+        {...rest}
+      />
+    );
+  }
+  if (placement === 'pending') return null;
+  return (
+    <>
+      {look.titleEl && createPortal(title, look.titleEl)}
+      {withSubtitle && look.subtitleEl && createPortal(description, look.subtitleEl)}
+      {/* 딱지가 있으면 디자이너 승인 대기 화면처럼 왼쪽 딱지 줄만(아이콘 없음), 아니면 아이콘을 가운데에 */}
+      {badge ? (
+        <div className="login-status-row" data-testid={testId}>{badge}</div>
+      ) : icon ? (
+        <div className="login-center" data-testid={testId}>
+          <div className={cx('onb-head-icon', `onb-tone-${iconTone}`)}>{icon}</div>
+        </div>
+      ) : testId ? (
+        <span data-testid={testId} hidden />
+      ) : null}
+    </>
+  );
+}
+
+/**
+ * 화면 아래 안내 줄 — 「이미 계정이 있으신가요? 로그인하기」.
+ * 디자이너 로그인 틀 안이면 디자이너처럼 화면 아래(.login-foot)로 옮겨 그리고(SignupFootRow, pivit-work PW-1815),
+ * 틀 밖이면 카드 아래 가운데 한 줄로 선다.
+ * Props: text · actionLabel · onAction · href(주면 글자가 링크) · testId
+ */
+export function OnbStepFoot({ text, actionLabel, onAction, href, testId }) {
+  const look = useOnbLoginLook();
+  if (look) {
+    if (!look.footEl) return null;
+    const row = href ? (
+      <p className="login-foot-row" data-testid={testId}>
+        {text && <span className="login-foot-text">{text}</span>}
+        <a className="login-link" href={href}>{actionLabel}</a>
+      </p>
+    ) : (
+      <SignupFootRow text={text} actionLabel={actionLabel} onAction={onAction} testId={testId} />
+    );
+    return createPortal(row, look.footEl);
+  }
+  return (
+    <OnbText size={13} tone="sub" align="center" mt={24} testId={testId}>
+      {text}{' '}
+      <OnbTextButton href={href} onClick={onAction}>{actionLabel}</OnbTextButton>
+    </OnbText>
   );
 }
 
@@ -155,6 +237,16 @@ export function OnbText({
  *   role · testId
  */
 export function OnbNotice({ tone = 'info', title, hero = false, align, role, testId, children }) {
+  const look = useOnbLoginLook();
+  // 디자이너 로그인 틀 안 — 알림·중립 안내는 디자이너 회색 안내 상자(SignupNotice)로. 오류·경고·성공은 디자이너 회원가입에
+  // 같은 뜻의 상자가 없어 예전 색 상자 그대로 둔다 (PW-1815).
+  if (look && (tone === 'info' || tone === 'neutral' || tone === 'subtle') && !hero) {
+    return (
+      <SignupNotice title={title} role={role} testId={testId}>
+        {children}
+      </SignupNotice>
+    );
+  }
   return (
     <div
       className={cx(
@@ -175,6 +267,15 @@ export function OnbNotice({ tone = 'info', title, hero = false, align, role, tes
 
 /** 상태 배지 (시안 승인 대기 「신청됨/검토중」). tone: 'warning' | 'brand' */
 export function OnbBadge({ tone = 'brand', icon, children, testId }) {
+  const look = useOnbLoginLook();
+  // 디자이너 로그인 틀 안 — 디자이너 승인 대기 딱지(StatusBadge tone «progress», 아이콘 없음) (PW-1815)
+  if (look) {
+    return (
+      <StatusBadge tone="progress" data-testid={testId}>
+        {children}
+      </StatusBadge>
+    );
+  }
   return (
     <StatusBadge className={cx('onb-badge', `onb-badge-${tone}`)} data-testid={testId}>
       {icon}
@@ -190,6 +291,9 @@ export function OnbBadge({ tone = 'brand', icon, children, testId }) {
  * 보통 굵기·왼쪽 정렬로 둔다. 짧은 값용 오른쪽 정렬 굵은 글씨에 긴 문장이 붙던 자리 (PW-2190).
  */
 export function OnbSummary({ rows = [], stacked = false, testId }) {
+  const look = useOnbLoginLook();
+  // 디자이너 로그인 틀 안 — 짧은 값 표는 디자이너 승인 대기 요약 표(SignupSummary)로 (PW-1815).
+  if (look && !stacked) return <SignupSummary rows={rows} testId={testId} />;
   return (
     <div className={cx('onb-summary', stacked && 'is-stacked')} data-testid={testId}>
       {rows.map((r) => (
@@ -377,6 +481,9 @@ export function OnbCheckRow({ checked = false, disabled = false, onChange, title
 
 /** 브랜드 로고 타일 — 흰 타일 + 가는 테두리. 로고 노드는 호출부가 준다. */
 export function OnbBrandTile({ children }) {
+  const look = useOnbLoginLook();
+  // 디자이너 로그인 틀 안 — 디자이너 도구 카드의 아이콘 자리(.login-tool-icon 24, 타일 없음) (PW-1815)
+  if (look) return <span className="login-tool-icon login-center">{children}</span>;
   return <span className="onb-brand-tile">{children}</span>;
 }
 
@@ -390,10 +497,39 @@ export function OnbBrandTile({ children }) {
  *   onActivate   누르거나 Enter/Space
  */
 export function OnbIntegrationCard({ logo, name, description, status = 'available', statusLabel, onActivate, testId }) {
+  const look = useOnbLoginLook();
   const disabled = status === 'soon';
   const activate = () => {
     if (!disabled) onActivate?.();
   };
+  const keyDown = (e) => {
+    if (isEnterKey(e) || e.key === ' ') {
+      e.preventDefault();
+      activate();
+    }
+  };
+  if (look) {
+    // 디자이너 로그인 틀 안 — 디자이너 연동 단계의 도구 카드(.login-tool: 아이콘 · 이름 14/600 · 설명 12 · 오른쪽 작은 버튼,
+    // 연결되면 브랜드 선) (PW-1815). 카드 전체가 누르는 자리인 것은 그대로다.
+    return (
+      <div
+        className={cx('login-tool', status === 'connected' && 'is-on')}
+        role="button"
+        aria-disabled={disabled}
+        tabIndex={disabled ? -1 : 0}
+        data-testid={testId}
+        onClick={activate}
+        onKeyDown={keyDown}
+      >
+        {logo}
+        <div className="login-tool-text">
+          <span className="login-tool-name">{name}</span>
+          {description && <span className="login-tool-desc">{description}</span>}
+        </div>
+        <span className={cx('login-tool-btn', status === 'connected' && 'is-on')}>{statusLabel}</span>
+      </div>
+    );
+  }
   return (
     <div
       className={cx('onb-integ', status === 'connected' && 'is-connected', disabled && 'is-disabled')}
@@ -451,6 +587,9 @@ export function OnbCompleteBody({ children, testId }) {
 
 /** 초록 원 표시 — show 가 true 가 되면 튀어나온다. */
 export function OnbCompleteMark({ show = false, children }) {
+  const look = useOnbLoginLook();
+  // 디자이너 로그인 틀 안 — 디자이너 완료 화면의 큰 원(.login-done 56 · brand-100) (PW-1815)
+  if (look) return <div className="login-done" aria-hidden="true">{children}</div>;
   return <div className={cx('onb-mark', show && 'is-shown')}>{children}</div>;
 }
 
@@ -465,6 +604,9 @@ export function OnbReveal({ show = false, delay = 0, children }) {
 
 /** 요약 목록 상자 — 초대·연동 개수. */
 export function OnbSummaryList({ children }) {
+  const look = useOnbLoginLook();
+  // 디자이너 로그인 틀 안 — 디자이너 완료 화면의 요약 회색 상자(SignupNotice) (PW-1815)
+  if (look) return <SignupNotice testId="signup-complete-summary">{children}</SignupNotice>;
   return <div className="onb-summary-list">{children}</div>;
 }
 

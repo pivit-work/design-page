@@ -1,5 +1,5 @@
 import LoginShell from './LoginShell.jsx';
-import FormField from '../shared/FormField.jsx';
+import FormField, { FieldError } from '../shared/FormField.jsx';
 import TextInput from '../shared/TextInput.jsx';
 import Button from '../shared/Button.jsx';
 import assetUrl from '../shared/assetUrl.js';
@@ -24,7 +24,13 @@ import assetUrl from '../shared/assetUrl.js';
  *   emailError · passwordError  칸 아래 오류 문구(없으면 안 그린다)
  *   pending           [로그인] 요청 중 잠금
  *   labels            문구 덮어쓰기 — 안 넘기면 한국어 기본값
- *   testIds           { email, password, submit, google } — 소비자 테스트가 잡는 자리
+ *   testIds           { email, password, submit, google, formError, warning } — 소비자 테스트가 잡는 자리
+ *
+ * 앱이 기능을 잇는 자리(시안에 없는 상태 — 안 넘기면 시안 그대로다):
+ *   notice      카드 맨 위에 끼우는 것(계정 잠김 안내 등)
+ *   formError   칸 하나에 묶이지 않는 오류(회사 정지·안내 메일 링크 거절 등) — 비밀번호 칸 아래, 칸 오류와 같은 글씨
+ *   warning     남은 시도 횟수 같은 경고 한 줄 — formError 아래
+ *   disabled    잠긴 동안 칸·[로그인]·[Google로 로그인]을 끈다
  */
 const DEFAULT_LABELS = {
   modeLogin: '로그인',
@@ -61,6 +67,10 @@ export default function LoginCanvas({
   pending = false,
   labels: labelsProp,
   testIds = {},
+  notice,
+  formError,
+  warning,
+  disabled = false,
 }) {
   const l = { ...DEFAULT_LABELS, ...labelsProp };
 
@@ -90,6 +100,7 @@ export default function LoginCanvas({
           onSubmit?.();
         }}
       >
+        {notice}
         <FormField label={l.email} error={emailError} className="login-field" labelClassName="login-label">
           <TextInput
             className="login-input"
@@ -99,6 +110,7 @@ export default function LoginCanvas({
             placeholder={l.emailPlaceholder}
             value={email}
             onChange={onEmailChange}
+            disabled={disabled}
             data-testid={testIds.email}
           />
         </FormField>
@@ -111,11 +123,22 @@ export default function LoginCanvas({
             placeholder={l.passwordPlaceholder}
             value={password}
             onChange={onPasswordChange}
+            disabled={disabled}
             data-testid={testIds.password}
           />
         </FormField>
+        {formError && (
+          <FieldError data-testid={testIds.formError}>
+            {formError}
+          </FieldError>
+        )}
+        {warning && (
+          <p className="login-warning" role="status" data-testid={testIds.warning}>
+            {warning}
+          </p>
+        )}
 
-        <Button type="submit" className="login-submit" pending={pending} data-testid={testIds.submit}>
+        <Button type="submit" className="login-submit" pending={pending} disabled={disabled} data-testid={testIds.submit}>
           {l.submit}
         </Button>
 
@@ -125,7 +148,7 @@ export default function LoginCanvas({
           <span className="login-divider-line" />
         </div>
 
-        <Button className="login-google" onClick={onGoogle} data-testid={testIds.google}>
+        <Button className="login-google" onClick={onGoogle} disabled={disabled} data-testid={testIds.google}>
           <img className="login-google-icon" src={assetUrl(baseUrl, '/icons-brand/google.svg')} alt="" draggable={false} />
           {l.google}
         </Button>

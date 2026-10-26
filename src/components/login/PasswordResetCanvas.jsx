@@ -1,6 +1,7 @@
 import TextInput from '../shared/TextInput.jsx';
 import LoginShell from './LoginShell.jsx';
 import { CheckGlyph } from '../shared/lineIcons.jsx';
+import { FieldError } from '../shared/FormField.jsx';
 import { SignupCard, SignupField, SignupSubmit, SignupFootRow, SignupNotice } from './SignupPieces.jsx';
 import { fill } from './signupLabels.js';
 
@@ -16,7 +17,11 @@ import { fill } from './signupLabels.js';
  * Props: baseUrl · onModeChange(위 전환 컨트롤) · stage · email · onEmailChange · emailError
  *        password · confirm · onPasswordChange · onConfirmChange · errors { password?, confirm? }
  *        onSubmit(장면의 큰 버튼) · onBackToLogin · onRequestAgain · onAdvance(데모 — sent 에서 reset 으로 미리 보기)
- *        pending · labels · testIds { email, password, confirm, submit }
+ *        pending · labels · testIds { email, password, confirm, submit, formError }
+ *
+ * 앱이 기능을 잇는 자리(시안에 없는 상태 — 안 넘기면 시안 그대로다, pivit-work PW-2243):
+ *   formError       칸 하나에 묶이지 않는 오류(요청 실패 · 만료되거나 이미 쓴 링크) — 큰 버튼 바로 위, 칸 오류와 같은 글씨
+ *   submitDisabled  큰 버튼을 끈다(forgot 에서 이메일이 비었을 때)
  */
 const DEFAULT_LABELS = {
   modeLogin: '로그인',
@@ -63,6 +68,8 @@ export default function PasswordResetCanvas({
   pending = false,
   labels: labelsProp,
   testIds = {},
+  formError,
+  submitDisabled = false,
 }) {
   const l = { ...DEFAULT_LABELS, ...labelsProp };
   const heading = {
@@ -76,6 +83,7 @@ export default function PasswordResetCanvas({
   if (stage === 'forgot') foot = <SignupFootRow actionLabel={l.backToLogin} onAction={onBackToLogin} />;
   if (stage === 'sent' && onAdvance) foot = <SignupFootRow actionLabel={l.demoAdvance} onAction={onAdvance} testId="reset-demo-advance" />;
   if (stage === 'reset') foot = <SignupFootRow actionLabel={l.requestAgain} onAction={onRequestAgain} />;
+  const formErrorLine = formError ? <FieldError data-testid={testIds.formError}>{formError}</FieldError> : null;
 
   return (
     <LoginShell
@@ -93,7 +101,8 @@ export default function PasswordResetCanvas({
             <SignupField label={l.email} error={emailError}>
               <TextInput className="login-input" type="email" name="email" autoComplete="username" autoFocus placeholder={l.emailPlaceholder} value={email} onChange={onEmailChange} data-testid={testIds.email} />
             </SignupField>
-            <SignupSubmit pending={pending} testId={testIds.submit}>{l.submit}</SignupSubmit>
+            {formErrorLine}
+            <SignupSubmit pending={pending} disabled={submitDisabled} testId={testIds.submit}>{l.submit}</SignupSubmit>
           </>
         )}
         {stage === 'sent' && (
@@ -114,7 +123,8 @@ export default function PasswordResetCanvas({
             <SignupField label={l.confirmPassword} error={errors.confirm}>
               <TextInput className="login-input" type="password" autoComplete="new-password" value={confirm} onChange={onConfirmChange} data-testid={testIds.confirm} />
             </SignupField>
-            <SignupSubmit pending={pending} testId={testIds.submit}>{l.resetSubmit}</SignupSubmit>
+            {formErrorLine}
+            <SignupSubmit pending={pending} disabled={submitDisabled} testId={testIds.submit}>{l.resetSubmit}</SignupSubmit>
           </>
         )}
         {stage === 'done' && (

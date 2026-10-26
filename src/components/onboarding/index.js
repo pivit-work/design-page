@@ -10,6 +10,8 @@ export {
   OnboardingCard,
   OnboardingProgress,
 } from './OnboardingFrame.jsx';
+export { OnboardingLoginFrame, OnboardingLoginCenter } from './OnboardingLoginFrame.jsx';
+export { useOnbLoginLook } from './onboardingLook.js';
 export {
   OnbField,
   OnbInput,
@@ -28,6 +30,7 @@ export {
 } from './OnboardingControls.jsx';
 export {
   OnbStepHeader,
+  OnbStepFoot,
   OnbStack,
   OnbText,
   OnbNotice,

@@ -126,6 +126,30 @@ export function SignupLink({ children, className = '', ...rest }) {
   );
 }
 
+/**
+ * 약관 링크 줄 — 「이용약관 · 개인정보처리방침 · 운영정책」. SignupEntryCanvas 의 줄(.login-legal)을 값 그대로 꺼냈다
+ * (pivit-work PW-1815 — 앱의 가입 단계 여러 곳이 같은 줄을 쓴다). href 를 주면 새 탭 링크, 아니면 onClick 글자 버튼.
+ * links: [{ key, label, href?, onClick?, testId? }]
+ */
+export function SignupLegalLinks({ links = [], testId }) {
+  return (
+    <p className="login-legal" data-testid={testId}>
+      {links.map((x, i) => (
+        <span key={x.key}>
+          {i > 0 && <span className="login-legal-dot" aria-hidden="true">·</span>}
+          {x.href ? (
+            <a className="login-link is-legal" href={x.href} target="_blank" rel="noopener noreferrer" data-testid={x.testId}>
+              {x.label}
+            </a>
+          ) : (
+            <SignupLink className="is-legal" onClick={x.onClick} data-testid={x.testId}>{x.label}</SignupLink>
+          )}
+        </span>
+      ))}
+    </p>
+  );
+}
+
 /** 카드 아래 안내 줄 — 「이미 계정이 있으신가요? 로그인하기」 · 「← 뒤로」 */
 export function SignupFootRow({ text, actionLabel, onAction, testId }) {
   return (
@@ -170,9 +194,9 @@ export function SignupCheck({ checked, onChange, children, testId }) {
 }
 
 /** 회색 안내 상자 — 접기/펼치기(onToggle 을 주면 머리줄 오른쪽에 글자 버튼) */
-export function SignupNotice({ title, open = true, onToggle, showLabel, hideLabel, children, testId }) {
+export function SignupNotice({ title, open = true, onToggle, showLabel, hideLabel, role, children, testId }) {
   return (
-    <div className="login-notice" data-testid={testId}>
+    <div className="login-notice" role={role} data-testid={testId}>
       {(title || onToggle) && (
         <div className="login-notice-head">
           <b className="login-notice-title">{title}</b>
