@@ -18,12 +18,16 @@ export function OkrHeaderActions({ children }) {
  * 탭 오른쪽 위 상태 배지. 기본은 작성 권한이 없을 때 [작성]·[편집] 자리에 놓는 회색 「읽기 전용」.
  * `tone="info"` 는 같은 자리·같은 모양의 파란 배지 — 「작성 가능」·조직 유형(「기능 조직」)처럼
  * 이 화면의 상태를 알리기만 하는 것 (pivit-work PW-1508 · 정책서 okr-policy §2A.6 · 조직 유형 표).
+ * `tone="plain"` 은 상자 없이 글자만 — 제목 아래 줄(`.header-subtitle`)과 같은 굵은 회색 글자다. 팀 탭은
+ * 기간 칩 줄 오른쪽 끝(OkrTeamCanvas `periodAside`)에 이 모양으로 둔다. 버튼 줄의 상자는 버튼처럼 읽혔다.
  * `title` 은 사유 툴팁.
  */
+const BADGE_TONE_CLASS = { info: 'okr-readonly-badge is-info', plain: 'okr-readonly-badge is-plain' };
+
 export function OkrReadOnlyBadge({ label, title, testId, tone }) {
   return (
     <Tooltip content={title}>
-      <span className={tone === 'info' ? 'okr-readonly-badge is-info' : 'okr-readonly-badge'} data-testid={testId}>
+      <span className={BADGE_TONE_CLASS[tone] ?? 'okr-readonly-badge'} data-testid={testId}>
         {label}
       </span>
     </Tooltip>

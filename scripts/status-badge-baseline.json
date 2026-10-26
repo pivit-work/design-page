@@ -2183,6 +2183,15 @@
    "background": "#eff8ff / 어두운 화면 #102a56",
    "color": "#1570ef / 어두운 화면 #53b1fd"
   },
+  "okr.css|.okr-readonly-badge.is-plain": {
+   "padding": "0",
+   "font-size": "14px",
+   "font-weight": "700",
+   "background": "none",
+   "color": "#687079 / 어두운 화면 #cecfd2",
+   "border": "none",
+   "letter-spacing": "-0.04em"
+  },
   "okr.css|.okr-q-badge.is-blue": {
    "background": "#53b1fd / 어두운 화면 #1570ef"
   },

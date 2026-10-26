@@ -22,8 +22,11 @@ import OkrTeamPicker, { TEAM_PICKER_MIN } from './OkrTeamPicker.jsx';
  * teamPickerLabels: { trigger, search, empty } — 소비자 번역. 안 주면 한국어 기본값.
  * notice: 팀 탭 줄 바로 아래 놓는 안내 한 줄(소비자가 NoteText 등으로 그려 넘긴다). 예: 조직장이 없어
  *   어드민만 쓸 수 있다는 안내(pivit-work PW-2039). 이 캔버스는 고정 자리라 바깥에 그리면 화면 맨 위 구석에 붙는다.
+ * periodAside: 기간 칩 줄 오른쪽 끝에 놓는 것 — 고른 팀에 쓸 수 있는지(「작성 가능」·「읽기 전용」). 권한은 팀마다
+ *   달라서 팀 서브탭 아래 이 줄이 자리다(기획 시안 팀 화면 «모드 세그먼트 + 권한 배지»). 줄은 개인 캔버스와 같은
+ *   `.okr-p-actions` 다. 안 주면 칩만 종전 그대로 선다.
  */
-export default function OkrTeamCanvas({ data, icons, baseUrl = '', activeTeam, onTeamChange, onKrUpdate, onSubmitFeedback, onViewAllFeedback, onWriteFeedback, onRefreshInsights, onInsightAction, onCloseInsights, showInsights = true, onToggleInitiative, canEditInitiative = false, teamPickerLabels, notice = null, focusKrId = null, focusObjectiveId = null, historyEmptyLabel }) {
+export default function OkrTeamCanvas({ data, icons, baseUrl = '', activeTeam, onTeamChange, onKrUpdate, onSubmitFeedback, onViewAllFeedback, onWriteFeedback, onRefreshInsights, onInsightAction, onCloseInsights, showInsights = true, onToggleInitiative, canEditInitiative = false, teamPickerLabels, notice = null, periodAside = null, focusKrId = null, focusObjectiveId = null, historyEmptyLabel }) {
   const { teams, periodLabel, links, parents, board, history } = data;
   const [internalTeam, setInternalTeam] = useState(teams[1] ?? teams[0]);
   const team = activeTeam ?? internalTeam;
@@ -54,6 +57,18 @@ export default function OkrTeamCanvas({ data, icons, baseUrl = '', activeTeam, o
     return () => ro.disconnect();
   }, [teamsKey]);
 
+  const periodChip = (
+    <SegmentedControl
+      className="okr-p-period"
+      items={[
+        { value: 'current', label: periodLabel },
+        { value: 'history', label: '히스토리' },
+      ]}
+      value={periodTab}
+      onChange={setPeriodTab}
+    />
+  );
+
   return (
     <div className="okr-personal-area">
       {/* 팀 서브탭 — 공용 Tabs, 기간 칩 — 공용 SegmentedControl (PW-836). */}
@@ -72,15 +87,12 @@ export default function OkrTeamCanvas({ data, icons, baseUrl = '', activeTeam, o
 
       {notice}
 
-      <SegmentedControl
-        className="okr-p-period"
-        items={[
-          { value: 'current', label: periodLabel },
-          { value: 'history', label: '히스토리' },
-        ]}
-        value={periodTab}
-        onChange={setPeriodTab}
-      />
+      {periodAside ? (
+        <div className="okr-p-actions">
+          {periodChip}
+          {periodAside}
+        </div>
+      ) : periodChip}
 
       {periodTab === 'history' ? (
         <OkrHistoryList history={history} icons={icons} baseUrl={baseUrl} emptyLabel={historyEmptyLabel} />
