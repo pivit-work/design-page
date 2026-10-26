@@ -161,9 +161,12 @@ export default function TimelineCanvas({
   // 셀 피커 메뉴 문구 묶음과 시각 표기 — `CellPicker` 의 `labels`·`formatHour` 로 그대로 넘긴다 (PW-2216)
   cellPickerLabels,
   cellPickerFormatHour,
-  // 캘린더 보기가 지금 그리는 날짜 범위 — { fromDate, toDate } ('YYYY-MM-DD'). 월 보기는 위아래로 끝없이
-  // 주를 붙이므로, 호스트가 받아 둔 일정 범위 밖으로 나가면 이 값을 보고 더 받아 온다(getEventsForDate 로 넘긴다).
-  onCalendarRangeChange,
+  // 지금 보이는 날짜 범위 — { fromDate, toDate } ('YYYY-MM-DD'). 캘린더 월 보기는 그리는 주 전부(위아래로 끝없이
+  // 붙는다), 주 보기는 그 주, 간트는 고른 하루. 호스트가 받아 둔 일정 범위 밖이면 이 값을 보고 더 받아 온다.
+  onVisibleRangeChange,
+  // 「진행 중 프로젝트」 이름과 수 표기 — 앱이 번역해 넘긴다. 없으면 아래 기본 한국어.
+  activeProjectCountLabel = '진행 중 프로젝트',
+  formatActiveProjectCount = (n) => `${n}개`,
 }) {
   // 간트 / 캘린더 탭 — 캘린더 탭은 별도의 월/주 뷰.
   const [currentTab, setCurrentTab] = useState(initialTab ?? 'gantt'); // 'gantt' | 'calendar'
@@ -193,6 +196,10 @@ export default function TimelineCanvas({
   const headerSnippetDisabled = isAfterToday(selectedIsoDate);
 
   const isGantt = currentTab === 'gantt';
+  // 간트는 고른 하루가 보이는 범위다 — 날짜를 멀리 골라도 호스트가 그날 일정을 받아 오게 알린다(캘린더 보기는 각 보기가 알린다)
+  useEffect(() => {
+    if (isGantt) onVisibleRangeChange?.({ fromDate: selectedIsoDate, toDate: selectedIsoDate });
+  }, [isGantt, selectedIsoDate, onVisibleRangeChange]);
   // 간트는 항상 일(day) 뷰 — 하루 단위 그리드.
   const dayCount = 1;
 
@@ -633,7 +640,7 @@ export default function TimelineCanvas({
         <div className="tl-toolbar-status">
           {activeProjectCountError ? (
             <div className="tl-page-meta" role="alert" data-testid="tl-project-count-error">
-              <span className="tl-meta-label">진행 중 프로젝트</span>
+              <span className="tl-meta-label">{activeProjectCountLabel}</span>
               <span className="tl-meta-sep">·</span>
               <span className="tl-meta-error">{activeProjectCountErrorLabel}</span>
               {onActiveProjectCountRetry && (
@@ -644,9 +651,9 @@ export default function TimelineCanvas({
             </div>
           ) : activeProjectCount !== null && (
             <div className="tl-page-meta">
-              <span className="tl-meta-label">진행 중 프로젝트</span>
+              <span className="tl-meta-label">{activeProjectCountLabel}</span>
               <span className="tl-meta-sep">·</span>
-              <span className="tl-meta-count">{activeProjectCount}개</span>
+              <span className="tl-meta-count">{formatActiveProjectCount(activeProjectCount)}</span>
             </div>
           )}
           <div
@@ -722,7 +729,7 @@ export default function TimelineCanvas({
           {calViewUnit === 'month' ? (
             <CalendarMonthView
               selectedDate={selectedDate}
-              onVisibleRangeChange={onCalendarRangeChange}
+              onVisibleRangeChange={onVisibleRangeChange}
               now={now}
               onEventClick={handleCalendarEventClick}
               onMoreClick={handleMoreClick}
@@ -732,7 +739,7 @@ export default function TimelineCanvas({
           ) : (
             <CalendarWeekView
               selectedDate={selectedDate}
-              onVisibleRangeChange={onCalendarRangeChange}
+              onVisibleRangeChange={onVisibleRangeChange}
               now={now}
               onMoreClick={handleMoreClick}
               onEventClick={handleCalendarEventClick}
