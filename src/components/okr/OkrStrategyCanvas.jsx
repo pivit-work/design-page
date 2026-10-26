@@ -25,6 +25,9 @@ import stripListMarker from '../shared/stripListMarker.js';
  *   행별 [AI] 는 AI_PREREQUISITES 의 선행 칸이 비어 있으면 부르지 않고 그 행 안에
  *   「Mission을 먼저 입력해주세요.」를 띄운다(편집 중이면 입력 중인 글로 판정 · PW-1505).
  * historyEmptyLabel: 히스토리 0건 문구. 앱이 ko/en 을 넘긴다.
+ * toolbarAside: 서브탭 아래 도구 줄 오른쪽 끝에 놓는 것 — 전사 OKR 을 쓸 수 있는지(「작성 가능」·「읽기 전용」).
+ *   기획 시안 전사 화면의 «권한 배지 줄» 자리다. 권한은 서브탭과 상관없이 전사 탭 전체라, 도구 줄이 없는
+ *   Company OKR·히스토리 서브탭에도 같은 줄을 세워 그 오른쪽 끝에 둔다. 안 주면 종전 그대로다.
  * canEdit: 전략 캔버스를 편집할 수 있는 사용자인가. false 면 [편집] 버튼을
  *   **그리지 않는다**(시안 okr-company.jsx `canEdit && !editing`). 기본 true 라
  *   데모는 지금처럼 편집을 시연한다.
@@ -35,7 +38,7 @@ import stripListMarker from '../shared/stripListMarker.js';
  *   화면이 바뀌는** 가짜 성공을 본다(PW-106 에서 실제로 그랬다). 새로고침하면
  *   되돌아간다. 데모 모드와 권한은 별개 축이라 prop 을 나눈다.
  */
-export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, history, icons, baseUrl = '', onKrUpdate, onSubmitFeedback, onViewAllFeedback, onWriteFeedback, onSave, onAiAutocomplete, canEdit = true, onRefreshInsights, onInsightAction, onCloseInsights, showInsights = true, onToggleInitiative, canEditInitiative = false , focusKrId = null, focusObjectiveId = null, historyEmptyLabel }) {
+export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, history, icons, baseUrl = '', onKrUpdate, onSubmitFeedback, onViewAllFeedback, onWriteFeedback, onSave, onAiAutocomplete, canEdit = true, onRefreshInsights, onInsightAction, onCloseInsights, showInsights = true, onToggleInitiative, canEditInitiative = false , focusKrId = null, focusObjectiveId = null, historyEmptyLabel, toolbarAside = null }) {
   const [subTab, setSubTab] = useState('canvas');
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(null);
@@ -163,6 +166,13 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
         />
       </div>
 
+      {subTab !== 'canvas' && toolbarAside && (
+        <div className="okr-s-toolbar">
+          <span />
+          <div className="okr-s-toolbar-right">{toolbarAside}</div>
+        </div>
+      )}
+
       {subTab === 'canvas' ? (
         <>
           <div className="okr-s-toolbar">
@@ -186,6 +196,7 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
               ) : canEdit ? (
                 <button className="okr-s-edit-btn" onClick={startEdit}>편집</button>
               ) : null}
+              {toolbarAside}
             </div>
           </div>
           {error && !error.rowId && errorBanner}
