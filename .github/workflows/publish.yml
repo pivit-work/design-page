@@ -26,6 +26,9 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          # check:direct-paint 가 줄마다 쓴 사람(git blame)을 본다 — 얕은 clone 이면 모든 줄이 마지막 작성자로 잡힌다.
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -84,6 +87,13 @@ jobs:
       # 줄 사이 간격을 쌓기 틀이 띄우는지, 옮긴 칸이 손 여백으로 되돌아가지 않았는지 (2026-10-23).
       - name: Check stacks
         run: npm run check:stacks
+
+      # 개발이 화면을 직접 칠한 줄(값으로 적은 색·간격, 따로 그린 버튼)이 늘지 않았는지. 디자이너가 쓴 줄은 세지 않는다.
+      # 이번 push 로 바뀐 파일만 쓴 사람을 찾는다(push 전 커밋 기준). (2026-10-26)
+      - name: Check direct paint
+        env:
+          DIRECT_PAINT_BASE: ${{ github.event.before }}
+        run: npm run check:direct-paint
 
       # 판 번호만 바꾸는 커밋이라 push 전 훅(lint 50초 등)을 다시 돌릴 까닭이 없다 — 위 단계에서 이미 검사했다.
       # 훅이 돌면 발행 한 번이 2분 34초가 되어 3분이 깎였다.
