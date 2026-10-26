@@ -723,7 +723,7 @@ function OkrSelfCard({ rows, L, icons, baseUrl }) {
   );
 }
 
-const CAP_COLS = [
+export const CAP_COLS = [
   { key: 'memberSelf', labelKey: 'capMemberSelf', cls: 'is-member' },
   { key: 'readyManager', labelKey: 'capReadyManager', cls: 'is-ready' },
   { key: 'doneFinal', labelKey: 'capDoneFinal', cls: 'is-done' },
@@ -738,7 +738,13 @@ const CAP_MAX = 5;
  * 안내 문구도 「클릭해서 수정」을 말하지 않는다. 항목에 `draft` 가 하나라도 있으면 아래에
  * 빨간 「AI 초안」 한 줄이 선다 — 확정 전 값이 최종인 줄 알고 넘어가지 않게.
  */
-function CapabilityCard({ rows, onChange, L, icons, baseUrl }) {
+/**
+ * 역량 평가 비교. 매니저 완료 화면이 기본 열 셋(자가진단 · READY 매니저 · 최종)으로 쓰고,
+ * 팀원 화면(`OneOnOneMemberCanvas` 결과 · 회의록 상세)이 열을 줄여 쓴다 (PW-2189 · policy §6.5.2) —
+ * 공개 전에는 자가평가 한 열만, 공개 뒤에는 자가평가 · 매니저 최종 · 차이.
+ * `hint` 를 `null` 로 주면 하단 안내를 그리지 않는다.
+ */
+export function CapabilityCard({ rows, onChange, L, icons, baseUrl, cols = CAP_COLS, showDelta = true, hint }) {
   if (!has(rows)) return null;
   const editable = typeof onChange === 'function';
   const hasDraft = rows.some((r) => r.draft);
@@ -761,12 +767,15 @@ function CapabilityCard({ rows, onChange, L, icons, baseUrl }) {
     });
   return (
     <DoneSection title={L.capTitle} testid="ono-done-capabilities">
-      <div className="ono-done-cap-table" role="table">
+      <div
+        className={`ono-done-cap-table${cols.length === CAP_COLS.length ? '' : ` is-cols-${cols.length}`}${showDelta ? '' : ' is-no-delta'}`}
+        role="table"
+      >
         <span aria-hidden="true" />
-        {CAP_COLS.map((c) => (
+        {cols.map((c) => (
           <span className="ono-done-cap-col-head" key={c.key}>{L[c.labelKey]}</span>
         ))}
-        <span className="ono-done-cap-delta-head">{L.capDelta}</span>
+        {showDelta && <span className="ono-done-cap-delta-head">{L.capDelta}</span>}
         {rows.map((r, i) => {
           const delta = r.doneFinal == null || r.memberSelf == null
             ? 0
@@ -774,7 +783,7 @@ function CapabilityCard({ rows, onChange, L, icons, baseUrl }) {
           return (
             <div className="ono-done-cap-row" key={r.key ?? i} data-testid="ono-done-cap-row">
               <span className="ono-done-cap-label">{r.label}</span>
-              {CAP_COLS.map((c) => (
+              {cols.map((c) => (
                 <span className="ono-done-cap-cell" key={c.key}>
                   <span className={`ono-done-cap-bar${editable && c.key === 'doneFinal' ? ' is-editable' : ''}`}>
                     {segs(r[c.key], c.cls, r.key, editable && c.key === 'doneFinal')}
@@ -782,17 +791,22 @@ function CapabilityCard({ rows, onChange, L, icons, baseUrl }) {
                   <span className={`ono-done-cap-num ${c.cls}`}>{r[c.key] ?? '-'}</span>
                 </span>
               ))}
-              <span
-                className={`ono-done-cap-delta${delta > 0 ? ' is-up' : delta < 0 ? ' is-down' : ''}`}
-                data-testid="ono-done-cap-delta"
-              >
-                {delta === 0 ? '-' : delta > 0 ? `+${delta}` : `${delta}`}
-              </span>
+              {showDelta && (
+                <span
+                  className={`ono-done-cap-delta${delta > 0 ? ' is-up' : delta < 0 ? ' is-down' : ''}`}
+                  data-testid="ono-done-cap-delta"
+                >
+                  {delta === 0 ? '-' : delta > 0 ? `+${delta}` : `${delta}`}
+                </span>
+              )}
             </div>
           );
         })}
       </div>
-      <p className="ono-done-cap-hint">{editable ? L.capHintEditable : L.capHint}</p>
+      {(() => {
+        const text = hint === undefined ? (editable ? L.capHintEditable : L.capHint) : hint;
+        return text ? <p className="ono-done-cap-hint">{text}</p> : null;
+      })()}
       {hasDraft && (
         <p className="ono-done-cap-draft" data-testid="ono-done-cap-draft">
           <Icon src={icons.alert} size={12} color="currentColor" baseUrl={baseUrl} />

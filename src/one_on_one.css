@@ -4558,6 +4558,9 @@ button.ono-add-modal-input { cursor: pointer; }
   row-gap: var(--spacing-md);
   align-items: center;
 }
+/* 팀원 화면은 열을 줄여 쓴다 (PW-2189) — 공개 뒤 자가평가·매니저 최종 + 차이, 공개 전 자가평가 한 열. */
+.ono-done-cap-table.is-cols-2 { grid-template-columns: auto repeat(2, minmax(0, 1fr)) auto; }
+.ono-done-cap-table.is-cols-1.is-no-delta { grid-template-columns: auto minmax(0, 1fr); }
 .ono-done-cap-row { display: contents; }
 .ono-done-cap-col-head {
   font-size: var(--font-size-text-xs);

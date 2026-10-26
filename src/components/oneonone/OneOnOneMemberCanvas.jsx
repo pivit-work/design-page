@@ -17,6 +17,9 @@ import {
 import OneOnOnePastSessionList from './OneOnOnePastSessionList.jsx';
 import { RatingBar } from './StartOneOnOneView.jsx';
 import { isEnterKey } from '../shared/enterKey.js';
+// 매니저 완료 화면과 같은 역량 비교 카드를 열만 줄여 쓴다 (PW-2189). 두 파일이 서로를 import 하지만
+// 렌더 때만 부르는 함수·상수라 순환이 문제 되지 않는다.
+import { CapabilityCard, CAP_COLS } from './DoneOneOnOneView.jsx';
 
 /**
  * 1on1 멤버(구성원) 뷰 — READY / LIVE / DONE / HISTORY 통합 캔버스.
@@ -142,6 +145,12 @@ const DEFAULT_LABELS = {
   pendingActions: '미완료 액션아이템',
   recordingNotice: '녹음 시작과 종료는 매니저 화면에서 진행됩니다',
   privateMemo: '개인 메모',
+  // 역량 평가 비교 — 팀원 화면 (PW-2189 · policy §6.5.2)
+  capTitle: '역량 평가 비교',
+  capMemberSelf: '나의 자가평가',
+  capDoneFinal: '매니저 최종',
+  capDelta: '차이',
+  capHint: '나의 자가평가와 매니저 최종 평가 간 차이가 표시됩니다.',
   privateMemoDesc: '매니저에게 공유되지 않습니다.',
   privateMemoOnlyMe: '나에게만 보임',
   memoSaving: '저장 중…',
@@ -1778,7 +1787,30 @@ function MemberAnalysisBanner({ session, L, icons, baseUrl }) {
   return null;
 }
 
-function ResultScreen({ session, manager, avatar, renderAvatar, L, icons, baseUrl, formatDate, formatDuration, deadlineOf, onToggleAction, feedbackEvidence, renderRecordingPlayer, resultNotes }) {
+/**
+ * 역량 평가 비교 — 팀원 (PW-2189 · policy §6.5.2). 매니저의 점수는 매니저 피드백과 같은 공개 규칙을 탄다:
+ * 공개 전에는 나의 자가평가 한 열만, 공개 뒤에는 자가평가 · 매니저 최종 · 차이와 하단 안내.
+ * 서버도 공개 전 응답에는 최종 점수를 싣지 않는다 — 여기서 열을 빼는 것은 그 계약을 화면에 맞춘 것이다.
+ * 행은 호스트가 `capabilityRowsOf(session)` 로 준다(역량 이름은 호스트 i18n). 행이 없으면 카드가 없다.
+ */
+function MemberCapabilityCard({ session, rowsOf, L, icons, baseUrl }) {
+  const rows = rowsOf ? rowsOf(session) : [];
+  const shared = session.isShared === true;
+  const cols = CAP_COLS.filter((c) => c.key === 'memberSelf' || (shared && c.key === 'doneFinal'));
+  return (
+    <CapabilityCard
+      rows={rows}
+      L={L}
+      icons={icons}
+      baseUrl={baseUrl}
+      cols={cols}
+      showDelta={shared}
+      hint={shared ? L.capHint : null}
+    />
+  );
+}
+
+function ResultScreen({ session, manager, avatar, renderAvatar, L, icons, baseUrl, formatDate, formatDuration, deadlineOf, onToggleAction, feedbackEvidence, renderRecordingPlayer, resultNotes, capabilityRowsOf }) {
   const myActions = session.actionItems.filter((a) => a.owner === 'member');
   const managerActions = session.actionItems.filter((a) => a.owner === 'manager');
   const doneCount = myActions.filter((a) => a.done).length;
@@ -1824,6 +1856,11 @@ function ResultScreen({ session, manager, avatar, renderAvatar, L, icons, baseUr
         testid="ono-result-notes"
       />
 
+      {/* 공개 전에는 자가평가 한 열만 — 공개된 것이 없는 화면에서도 내 점수는 내 것이다 (PW-2189). */}
+      {session.isShared === false && (
+        <MemberCapabilityCard session={session} rowsOf={capabilityRowsOf} L={L} icons={icons} baseUrl={baseUrl} />
+      )}
+
       {session.isShared === false ? null : (
         <>
           <NoteGrid
@@ -1833,6 +1870,8 @@ function ResultScreen({ session, manager, avatar, renderAvatar, L, icons, baseUr
             baseUrl={baseUrl}
             recordingPlayer={renderRecordingPlayer?.(session)}
           />
+
+          <MemberCapabilityCard session={session} rowsOf={capabilityRowsOf} L={L} icons={icons} baseUrl={baseUrl} />
 
           {/* 공개된 매니저 피드백 + 근거 발췌 (PW-103) + 전문 딥링크 (PW-327) */}
           <ManagerFeedback
@@ -1906,7 +1945,7 @@ function ResultScreen({ session, manager, avatar, renderAvatar, L, icons, baseUr
  *
  * 코칭 지표(발화 비율·반복 패턴·대화 분석)는 여기 넣지 않는다 — 멤버 공개 범위 밖이다.
  */
-function HistoryDetail({ session, manager, avatar, renderAvatar, L, icons, baseUrl, formatDate, formatDuration, onBack, feedbackEvidence, renderRecordingPlayer, historyNotes }) {
+function HistoryDetail({ session, manager, avatar, renderAvatar, L, icons, baseUrl, formatDate, formatDuration, onBack, feedbackEvidence, renderRecordingPlayer, historyNotes, capabilityRowsOf }) {
   // 지난 회차는 지금 매니저가 아니라 **그때 그 매니저**의 것이다 (PW-211).
   const host = hostOf(session, manager);
   const hostAvatar = renderAvatar
@@ -1992,6 +2031,9 @@ function HistoryDetail({ session, manager, avatar, renderAvatar, L, icons, baseU
         </Section>
       )}
 
+      {/* 역량 평가 비교 — OKR 당시 스냅샷 다음, 매니저 피드백 앞 (spec §5-5 회의록 구성 · PW-2189) */}
+      <MemberCapabilityCard session={session} rowsOf={capabilityRowsOf} L={L} icons={icons} baseUrl={baseUrl} />
+
       {/* 지난 회의록에서도 같은 규칙으로 근거 발췌를 연다 (policy §10.2·§10.7.2) */}
       <ManagerFeedback
         session={session}
@@ -2041,7 +2083,7 @@ function HistoryDetail({ session, manager, avatar, renderAvatar, L, icons, baseU
   );
 }
 
-function HistoryScreen({ sessions, session, onCurrentOpen, manager, avatar, renderAvatar, L, icons, baseUrl, formatDate, formatDuration, healthColor, healthBg, healthBorder, feedbackEvidence, onHistorySelect, renderRecordingPlayer, historyNotes }) {
+function HistoryScreen({ sessions, session, onCurrentOpen, manager, avatar, renderAvatar, L, icons, baseUrl, formatDate, formatDuration, healthColor, healthBg, healthBorder, feedbackEvidence, onHistorySelect, renderRecordingPlayer, historyNotes, capabilityRowsOf, openSessionId }) {
   const [selectedId, setSelectedId] = useState(null);
   const done = sessions.filter((s) => s.status === 'done');
   const selected = done.find((s) => s.id === selectedId);
@@ -2053,6 +2095,21 @@ function HistoryScreen({ sessions, session, onCurrentOpen, manager, avatar, rend
     if (onHistorySelect) onHistorySelect(id);
   };
 
+  // 알림이 가리킨 회차를 바로 연다 (PW-2189) — 「피드백 공개」·「지난 회의록」 알림은 그 회차의
+  // 회의록으로 가야 하는데, 목록만 열리면 팀원이 어느 회차인지 다시 찾아야 한다.
+  // 이미 이 화면에 있을 때 다른 알림을 눌러도 따라가도록 값이 바뀔 때마다 연다.
+  // 같은 id 로는 한 번만 연다 — 열어 준 뒤 팀원이 [목록으로]를 누르면 목록에 머문다.
+  const openable = Boolean(openSessionId) && done.some((s) => s.id === openSessionId);
+  const [openedFor, setOpenedFor] = useState(null);
+  if (openable && openedFor !== openSessionId) {
+    setOpenedFor(openSessionId);
+    setSelectedId(openSessionId);
+  }
+  // 호스트에도 알린다 — 그 회차의 근거 발췌를 불러오게 (위 `select` 와 같은 이유).
+  useEffect(() => {
+    if (openable && onHistorySelect) onHistorySelect(openSessionId);
+  }, [openable, openSessionId, onHistorySelect]);
+
   if (selected) {
     return (
       <HistoryDetail
@@ -2063,6 +2120,7 @@ function HistoryScreen({ sessions, session, onCurrentOpen, manager, avatar, rend
         feedbackEvidence={feedbackEvidence}
         renderRecordingPlayer={renderRecordingPlayer}
         historyNotes={historyNotes}
+        capabilityRowsOf={capabilityRowsOf}
       />
     );
   }
@@ -2220,6 +2278,17 @@ export default function OneOnOneMemberCanvas({
    */
   historyNotes,
   /**
+   * 역량 평가 비교 행 (PW-2189) — `(session) => [{ key, label, memberSelf, doneFinal }]`.
+   * 결과 탭과 회의록 상세가 서로 다른 회차를 그려서 함수로 받는다. 매니저 점수(`doneFinal`)는
+   * 공개된 회차에서만 열이 선다. **안 넘기거나 빈 배열이면 카드가 없다**(종전 화면 그대로).
+   */
+  capabilityRowsOf,
+  /**
+   * 히스토리 탭에서 바로 펼칠 회차 id (PW-2189) — 알림의 「그 회차 회의록」 주소(`?tab=history&sessionId=`)를
+   * 소비처가 넘긴다. 목록에 그 회차가 없으면 목록을 그대로 보인다. 안 넘기면 종전 그대로.
+   */
+  openSessionId = null,
+  /**
    * 탭 줄 **위**에 서는 안내 띠 자리 (PW-1718) — 팀원 녹음 안내·동의 띠를 소비처가 넣는다.
    *
    * 캔버스 밖에 두면 본문(가운데 좁은 칸)과 달리 화면 끝까지 펼쳐져서, 같은 칸 안에 세운다.
@@ -2276,6 +2345,7 @@ export default function OneOnOneMemberCanvas({
           feedbackEvidence={feedbackEvidence}
           renderRecordingPlayer={renderRecordingPlayer}
           resultNotes={resultNotes}
+          capabilityRowsOf={capabilityRowsOf}
         />
       ) : <EmptyState description={L.noResultSession} />)}
 
@@ -2292,6 +2362,8 @@ export default function OneOnOneMemberCanvas({
           onHistorySelect={onHistorySelect}
           renderRecordingPlayer={renderRecordingPlayer}
           historyNotes={historyNotes}
+          capabilityRowsOf={capabilityRowsOf}
+          openSessionId={openSessionId}
         />
       )}
     </div>
