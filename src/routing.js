@@ -17,6 +17,8 @@ export const PAGE_SLUGS = {
   meetings: 'meetings',
   manager: 'manager',
   settings: 'settings',
+  // 회사 홈페이지 [로그인] 이 여는 화면 — 사이드바 없이 혼자 선다 (Figma 17767:40732)
+  login: 'login',
 };
 
 function normalizeBase(base) {

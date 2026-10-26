@@ -12,6 +12,7 @@ import MeetingsPage from './MeetingsPage';
 import ManagerPage from './ManagerPage';
 import OkrPage from './OkrPage';
 import SettingsPage from './SettingsPage';
+import LoginPage from './LoginPage';
 import './App.css';
 import './org_chart.css';
 import './org_project.css';
@@ -27,6 +28,7 @@ import './report.css';
 import './snippet.css';
 import './okr.css';
 import './okr_resource.css';
+import './login.css';
 
 const BASE = import.meta.env.BASE_URL;
 
@@ -192,6 +194,11 @@ export default function App() {
       window.history.pushState({ page }, '', nextPath);
     }
   };
+
+  // 로그인 화면은 사이드바·상단 메뉴 없이 혼자 선다. 데모라 [로그인] 을 누르면 바로 첫 메뉴(스니핏)로 내린다.
+  if (currentPage === 'login') {
+    return <LoginPage baseUrl={BASE} onLoggedIn={() => handleNavigate('snippet')} />;
+  }
 
   return (
     <div className="app" data-page={currentPage}>

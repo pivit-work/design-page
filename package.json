@@ -28,6 +28,7 @@
     "./styles/meetings.css": "./src/meetings.css",
     "./styles/report.css": "./src/report.css",
     "./styles/manager.css": "./src/manager.css",
+    "./styles/login.css": "./src/login.css",
     "./styles/snippet.css": "./src/snippet.css",
     "./styles/action-items.css": "./src/action_items.css",
     "./styles/resource.css": "./src/resource.css",
