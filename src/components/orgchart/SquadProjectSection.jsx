@@ -24,6 +24,9 @@ import { CheckIcon, CloseIcon, FileIcon, LockIcon, PlusIcon, SearchIcon } from '
 import { useOrgLabels, rich } from './orgchart-labels.jsx';
 import { SQUAD_MODAL_Z } from './squad-constants.js';
 import { projectStatusText, projectStatusTone } from './project-constants.js';
+import { isEnterKey } from '../shared/enterKey.js';
+
+const NAME_MAX = 50;
 
 
 /** 실패 사유를 사람이 읽을 문구로. Error 가 아니면 호출부가 준 기본 문구. */
@@ -36,12 +39,13 @@ function messageOf(err, fallback) {
  * 열릴 때마다 새로 마운트돼 검색어·선택·새 프로젝트 폼이 비워진다(시안 `closeProjDropdown`).
  */
 function ProjectPicker({
-  squad, candidates, linkCountOf,
-  onLink, onClose,
+  squad, candidates, linkCountOf, canCreate, existingNames,
+  onLink, onCreate, onClose,
 }) {
   const L = useOrgLabels();
   const [query, setQuery] = useState('');
   const [picked, setPicked] = useState([]);
+  const [form, setForm] = useState(null); // { name, description, error }
   const [linkError, setLinkError] = useState('');
 
   const q = query.trim().toLowerCase();
@@ -58,6 +62,81 @@ function ProjectPicker({
       setLinkError(messageOf(err, L('squad.project.linkFailed')));
     }
   };
+
+  const submitCreate = async () => {
+    const name = form.name.trim();
+    if (!name) { setForm((f) => ({ ...f, error: L('squad.project.errNameRequired') })); return; }
+    // 동명은 서버가 409 로 막는다 — 아는 목록 안에서는 미리 잡는다(시안 createAndLinkProject).
+    if (existingNames.has(name.toLowerCase())) {
+      setForm((f) => ({ ...f, error: L('squad.project.errNameDuplicate') }));
+      return;
+    }
+    try {
+      await onCreate({ name, description: form.description.trim() });
+      onClose();
+    } catch (err) {
+      setForm((f) => (f ? { ...f, error: messageOf(err, L('squad.project.createFailed')) } : f));
+    }
+  };
+
+  /* 새 프로젝트 만들기(PW-1428 · 어드민) — 2026-10-26 시안(17765:40299)은 이 겹창에서 뺐지만 기능은 남긴다.
+     새 모양을 지어내지 않고 같은 겹창의 디자이너 모양을 그대로 쓴다: 들어가는 줄은 카드의 「프로젝트 추가」
+     파선 단추(.sq-proj-add), 입력 칸은 검색 칸(.sq-add-search), 아래 단추는 취소/추가 줄(.sq-add-actions).
+     폼에서 「취소」 는 겹창을 닫지 않고 후보 목록으로 돌아간다. */
+  if (form !== null) {
+    return (
+      <div
+        className="sq-add-cover" data-testid={`squad-project-picker-${squad.id}`}
+        onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      >
+      <div
+        className="sq-add-dialog" role="group" aria-label={L('squad.project.createOpen')}
+        data-testid={`squad-project-create-form-${squad.id}`}
+        onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } }}
+      >
+        <p className="sq-add-title">{L('squad.project.createOpen')}</p>
+        <div className="sq-add-body">
+          <label className="sq-add-search sq-add-field">
+            <input
+              autoFocus value={form.name} maxLength={NAME_MAX}
+              aria-label={L('squad.project.createName')}
+              aria-invalid={form.error ? true : undefined}
+              data-testid={`squad-project-create-name-${squad.id}`}
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value, error: '' }))}
+              onKeyDown={(e) => { if (isEnterKey(e)) submitCreate(); }}
+              placeholder={L('squad.project.createName')}
+            />
+          </label>
+          <label className="sq-add-search sq-add-field">
+            <input
+              value={form.description}
+              aria-label={L('squad.project.createDesc')}
+              data-testid={`squad-project-create-desc-${squad.id}`}
+              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              onKeyDown={(e) => { if (isEnterKey(e)) submitCreate(); }}
+              placeholder={L('squad.project.createDesc')}
+            />
+          </label>
+          {form.error && (
+            <div className="sq-proj-error" role="alert" data-testid={`squad-project-create-error-${squad.id}`}>
+              {form.error}
+            </div>
+          )}
+        </div>
+        <div className="sq-add-actions">
+          <button type="button" className="sq-btn sq-btn-sm sq-btn-outline" onClick={() => setForm(null)}>
+            {L('squad.project.cancel')}
+          </button>
+          <Button
+            className="sq-btn sq-btn-sm sq-btn-primary"
+            data-testid={`squad-project-create-submit-${squad.id}`}
+            onClick={submitCreate}
+          >{L('squad.project.createSubmit')}</Button>
+        </div>
+      </div>
+      </div>
+    );
+  }
 
   /* 팀원 추가 겹창(17765:40299)과 같은 틀 — 카드를 흐린 흰 막으로 덮고 가운데에 제목 · 검색 · 후보 목록 ·
      취소/연결. 고른 줄은 오른쪽 브랜드 체크, 올린 줄은 회색 바탕. 모양 규칙은 `.sq-add-*`(org_squad.css)를
@@ -108,11 +187,19 @@ function ProjectPicker({
         {rows.length === 0 && (
           <div className="sq-add-none" data-testid={`squad-project-none-${squad.id}`}>
             {L('squad.project.noCandidates')}
-            {/* 새 프로젝트는 여기서 만들지 않는다(2026-10-26 시안 17765:40299) — 어드민 콘솔에서 만든 것만 고른다 */}
-            <div>{L('squad.project.askAdmin')}</div>
+            {!canCreate && <div>{L('squad.project.askAdmin')}</div>}
           </div>
         )}
       </div>
+      {canCreate && (
+        <button
+          type="button" className="sq-proj-add"
+          data-testid={`squad-project-create-open-${squad.id}`}
+          onClick={() => setForm({ name: '', description: '', error: '' })}
+        >
+          <PlusIcon size={20} /> {L('squad.project.createOpen')}
+        </button>
+      )}
       </div>
       {linkError && <div className="sq-proj-error" role="alert">{linkError}</div>}
       <div className="sq-add-actions">
@@ -193,23 +280,26 @@ function PrimaryTransferModal({ project, others, onConfirm, onCancel }) {
  * @param squad          스쿼드 (`squad.projects` 를 그린다)
  * @param linkCountOf    (projectId) => 이 프로젝트가 연결된 스쿼드 수 — 후보 행 `연결 N개`
  * @param candidates     이 스쿼드에 아직 안 붙은 프로젝트 (`projectOptions` − 연결분)
+ * @param existingNames  Set<소문자 이름> — 새 프로젝트 동명 사전 검사
  * @param isEditing      「할당 편집」 이 켜져 있는가
  * @param editable       이 스쿼드의 프로젝트 칸을 고칠 수 있는가(편집 모드 포함 판정)
+ * @param canCreate      어드민 — 겹창 후보 목록 아래 「+ 새 프로젝트 만들기」
  * @param pickerOpen     이 카드의 추가 겹창이 열려 있는가(한 번에 한 카드)
- *
- * 새 프로젝트 만들기는 여기 없다(2026-10-26 시안 17765:40299) — 겹창은 이미 있는 프로젝트만 고른다.
  */
 export default function SquadProjectSection({
   squad,
   linkCountOf,
   candidates,
+  existingNames,
   isEditing,
   editable,
+  canCreate,
   pickerOpen,
   onOpenPicker,
   onClosePicker,
   onOpenProject,
   onLinkProjects,
+  onCreateProject,
   onSetPrimarySquad,
   onUnlinkProject,
 }) {
@@ -313,7 +403,10 @@ export default function SquadProjectSection({
             squad={squad}
             candidates={candidates}
             linkCountOf={linkCountOf}
+            canCreate={canCreate && !!onCreateProject}
+            existingNames={existingNames}
             onLink={(ids) => onLinkProjects(squad.id, ids)}
+            onCreate={(payload) => onCreateProject(squad.id, payload)}
             onClose={onClosePicker}
           />
         )}

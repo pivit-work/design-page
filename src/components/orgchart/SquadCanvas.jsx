@@ -218,14 +218,14 @@ export default function SquadCanvas({
    * 편집 모드에서도 읽기 전용이고 칸 머리에 자물쇠가 선다.
    */
   canLinkProjects = false,
-  /** 받기만 한다 — 「새 프로젝트 만들기」 는 프로젝트 추가 겹창에서 뺐다(2026-10-26 시안 17765:40299).
-      호스트 계약을 깨지 않으려고 이름만 남긴다. */
+  /** 프로젝트 추가 겹창 후보 목록 아래 「+ 새 프로젝트 만들기」 (어드민 · p062). 거짓이면 그 줄을 그리지 않는다.
+      2026-10-26 시안(17765:40299)은 겹창에서 뺐지만 기능(PW-1428)은 같은 겹창 모양으로 남긴다. */
   canCreateProject = false,
   /** 프로젝트 행을 눌렀을 때 — `(projectId) => void`. 主 지정·✕ 는 여기로 오지 않는다. */
   onOpenProject,
   /** 「선택 N개 추가」 — `(squadId, projectIds) => Promise`. 거절되면 드롭다운 안에 사유를 띄우고 열어 둔다. */
   onLinkProjects,
-  /** 받기만 한다 — 위 `canCreateProject` 와 같은 이유. */
+  /** 새 프로젝트 만들기 — `(squadId, { name, description }) => Promise`. 거절되면 `error.message` 를 폼에 띄우고 열어 둔다. */
   onCreateProject,
   /** 主 지정 — `(projectId, squadId) => Promise`. 실패는 호스트가 `actionError` 로 알린다. */
   onSetPrimarySquad,
@@ -476,6 +476,10 @@ export default function SquadCanvas({
     squads.forEach((sq) => (sq.projects || []).forEach((p) => counts.set(p.id, (counts.get(p.id) || 0) + 1)));
     return counts;
   }, [squads]);
+  const projectNames = useMemo(
+    () => new Set(projectOptions.map((p) => String(p.name || '').trim().toLowerCase())),
+    [projectOptions],
+  );
   const editableSet = useMemo(
     () => (editableUserIds === null ? null : new Set(editableUserIds)),
     [editableUserIds],
@@ -1279,13 +1283,16 @@ export default function SquadCanvas({
                           candidates={projTarget === sq.id
                             ? projectOptions.filter((p) => !sq.projects.some((x) => x.id === p.id))
                             : []}
+                          existingNames={projectNames}
                           isEditing={isEditing}
                           editable={canLinkProjectsOf(sq.id)}
+                          canCreate={canCreateProject}
                           pickerOpen={projTarget === sq.id}
                           onOpenPicker={() => setProjTarget(sq.id)}
                           onClosePicker={() => setProjTarget(null)}
                           onOpenProject={onOpenProject}
                           onLinkProjects={onLinkProjects}
+                          onCreateProject={onCreateProject}
                           onSetPrimarySquad={onSetPrimarySquad}
                           onUnlinkProject={onUnlinkProject}
                         />
