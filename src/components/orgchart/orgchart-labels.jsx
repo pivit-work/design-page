@@ -110,6 +110,7 @@ export const ORGCHART_LABELS = {
   'profile.employeeNo': '사번',
   'profile.joinedAt': '입사일',
   'profile.phone': '전화번호',
+  'profile.healthCheck': '헬스체크',
   'profile.skills': '스킬',
   'profile.contact': '연락처',
   'profile.links': '링크',

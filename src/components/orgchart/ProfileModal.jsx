@@ -174,6 +174,10 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
   const profile = displayMember?.profile || EMPTY_PROFILE;
   const isOpen = !!member;
 
+  const statusBadge = (
+    <StatusBadge className="modal-status-badge">{L(`member.status.${MEMBER_STATUSES[displayMember?.status] ? displayMember.status : 'working'}`)}</StatusBadge>
+  );
+
   return (
     // 닫혀 있어도 그려 둔다(3D 씬 미리 받기) — 막·Esc·바깥 누르기·body 포털은 공용 창 바탕이
     // 갖는다(PW-1013). 예전엔 막을 제자리에 그려서 본문 칸 안에 갇혀 왼쪽 메뉴를 못 덮었고, Esc 로도 안 닫혔다.
@@ -221,7 +225,17 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
             </ul>
           )}
           <div className="modal-bio">{profile.bio}</div>
-          <StatusBadge className="modal-status-badge">{L(`member.status.${MEMBER_STATUSES[displayMember?.status] ? displayMember.status : 'working'}`)}</StatusBadge>
+          {/* 헬스체크 점수 칩 — 카드 주인이 공개를 켰고 점수가 있을 때만 소비자가 `profile.healthChip`
+              (`{ value, tone }`)을 준다. 근무 상태 배지 옆 같은 알약 모양, 색은 뜻(tone)이 정한다
+              (pivit-work PW-2226 · 기획 조직도 screen-member §2-3). 없으면 배지만 종전 그대로 그린다. */}
+          {profile.healthChip ? (
+            <div className="modal-badge-row">
+              {statusBadge}
+              <StatusBadge tone={profile.healthChip.tone} className="modal-health-chip" data-testid="profile-health-chip">
+                {L('profile.healthCheck')} {profile.healthChip.value}
+              </StatusBadge>
+            </div>
+          ) : statusBadge}
           {/* 현지 시간 — 카드 주인이 공개했고 시간대가 있을 때만 소비자가 `profile.localTime` 을 준다.
               없으면 줄째 그리지 않는다(pivit-specs Public-Card 정책 §2 LocalTimeRow, PW-1217). */}
           {profile.localTime && (
@@ -335,6 +349,14 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
             <div className="modal-info-section">
               <div className="modal-info-label">{L('profile.phone')}</div>
               <div className="modal-info-content">{shown(profile.phone)}</div>
+            </div>
+            {/* 헬스체크 — 어드민은 카드 주인의 공개 여부와 무관하게 본다. 본인이 꺼 두었으면 소비자가
+                `profile.healthCheckNote`(「본인이 비공개로 설정함」)를 준다 (pivit-work PW-2226). */}
+            <div className="modal-info-section" data-testid="profile-health-check">
+              <div className="modal-info-label">{L('profile.healthCheck')}</div>
+              <div className="modal-info-content">
+                {[shown(profile.healthCheck), profile.healthCheck != null && profile.healthCheck !== '' ? profile.healthCheckNote : null].filter(Boolean).join(' · ')}
+              </div>
             </div>
           </div>
         )}

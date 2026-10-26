@@ -1644,6 +1644,13 @@
    "font-weight": "600",
    "line-height": "16px"
   },
+  "status-badge.css|.modal-health-chip": {
+   "border-radius": "pill",
+   "padding": "2px 10px",
+   "font-size": "12px",
+   "font-weight": "500",
+   "line-height": "18px"
+  },
   "status-badge.css|.sq-lead-tag": {
    "border-radius": "4px",
    "padding": "3px 4px",

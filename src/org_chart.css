@@ -601,6 +601,15 @@
 .modal-info-link:hover { text-decoration: underline; }
 
 /* 현지 시간·담당 프로젝트·근무지 — 공개 카드 정책의 세 줄 (PW-1217) */
+/* 근무 상태 배지와 헬스체크 점수 칩을 한 줄에 (pivit-work PW-2226). 칩이 없으면 이 줄 없이 배지만 그린다. */
+.modal-badge-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+
 .modal-local-time {
   display: flex;
   align-items: center;
