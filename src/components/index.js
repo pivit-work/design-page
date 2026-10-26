@@ -464,4 +464,19 @@ export { AiDraftLifecycleProvider } from './shared/AiDraftLifecycle.jsx';
 export { useAiDraftLifecycle } from './shared/useAiDraftLifecycle.js';
 export { default as OnbHelpVideos } from './onboarding/OnbHelpVideos.jsx';
 // 로그인 화면 (Figma 17767:40732) — 회사 홈페이지 [로그인] 이 연다
-export { LoginCanvas } from './login/index.js';
+export {
+  LoginShell,
+  LoginCanvas,
+  SignupEntryCanvas,
+  SignupVerifyCanvas,
+  SignupAccountCanvas,
+  SignupCompanyCanvas,
+  SignupPendingCanvas,
+  SignupResultCanvas,
+  SignupInviteCanvas,
+  SignupIntegrationsCanvas,
+  SignupPersonalityCanvas,
+  SignupCompleteCanvas,
+  SIGNUP_LABELS,
+  DEFAULT_SIGNUP_STEPS,
+} from './login/index.js';

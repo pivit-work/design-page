@@ -186,6 +186,7 @@
   --bg-primary-hover: var(--colors-background-bgPrimaryHover);
   --focus-ring: var(--colors-effects-focusRings-focusRing);
   --alpha-black-5: var(--componentColors-alpha-alphaBlack5);
+  --alpha-white-50: var(--componentColors-alpha-alphaWhite50);
   /* 조직도 스쿼드 탭 (Figma 16605:49720) — 배정 칸 글자·LEAD 태그·사진 테두리 */
   --alpha-black-10: var(--componentColors-alpha-alphaBlack10);
   --alpha-black-40: var(--componentColors-alpha-alphaBlack40);

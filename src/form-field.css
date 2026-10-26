@@ -101,14 +101,38 @@ p.dp-field-error {
   color: var(--text-primary);
 }
 :where(.dp-check-input) {
+  appearance: none;
+  -webkit-appearance: none;
+  box-sizing: border-box;
   width: 16px;
   height: 16px;
   margin: 0;
   flex-shrink: 0;
   cursor: pointer;
-  accent-color: var(--bg-brand-solid);
+  display: inline-grid;
+  place-content: center;
+  border: 1px solid var(--alpha-black-10);
+  border-radius: 4px;
+  background: var(--bg-quaternary);
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
-:where(.dp-check-input:disabled) { cursor: default; }
+/* 켜진 표시 — 브랜드 바탕에 «흰» 체크(2026-10-27). 브라우저 기본 체크(accent-color)는 밝은 브랜드색 위에서 검은
+   체크를 골라 어두워 보였다. 체크는 흰 ㄴ자를 돌려 그린다 — 아이콘 사본을 두지 않는다 */
+:where(.dp-check-input)::after {
+  content: '';
+  box-sizing: border-box;
+  width: 5px;
+  height: 9px;
+  margin-top: -2px;
+  border: solid var(--text-white);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+  opacity: 0;
+}
+:where(.dp-check-input:checked) { background: var(--bg-brand-solid); border-color: var(--bg-brand-solid); }
+:where(.dp-check-input:checked)::after { opacity: 1; }
+:where(.dp-check-input:focus-visible) { outline: 2px solid var(--border-brand); outline-offset: 2px; }
+:where(.dp-check-input:disabled) { cursor: default; opacity: 0.5; }
 input.dp-control[type='checkbox'][aria-invalid='true'] { outline: 1px solid var(--colors-border-borderError, #f04438); outline-offset: 1px; }
 
 /* ── 라디오 ──
