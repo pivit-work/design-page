@@ -377,6 +377,7 @@ function AiBriefingTab({ profile, agendas, icons, baseUrl, onGenerate, onReload,
             <MemberAiButton
               className="manager-modal-brief-generate"
               label={ai.generateLabel}
+              ariaLabel={`AI ${ai.generateLabel}`}
               pending={!!ai.generating}
               onClick={() => onGenerate?.()}
               baseUrl={baseUrl}
