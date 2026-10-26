@@ -742,9 +742,10 @@ const CAP_MAX = 5;
  * 역량 평가 비교. 매니저 완료 화면이 기본 열 셋(자가진단 · READY 매니저 · 최종)으로 쓰고,
  * 팀원 화면(`OneOnOneMemberCanvas` 결과 · 회의록 상세)이 열을 줄여 쓴다 (PW-2189 · policy §6.5.2) —
  * 공개 전에는 자가평가 한 열만, 공개 뒤에는 자가평가 · 매니저 최종 · 차이.
- * `hint` 를 `null` 로 주면 하단 안내를 그리지 않는다.
+ * `hint` 를 `null` 로 주면 하단 안내를 그리지 않는다. `bare` 면 제목 머리 없이 표만 그린다 — 팀원 화면은
+ * 옆 카드들과 같은 카드 틀(`OneOnOneMemberCanvas` 의 `Section`)에 넣는다.
  */
-export function CapabilityCard({ rows, onChange, L, icons, baseUrl, cols = CAP_COLS, showDelta = true, hint }) {
+export function CapabilityCard({ rows, onChange, L, icons, baseUrl, cols = CAP_COLS, showDelta = true, hint, bare = false }) {
   if (!has(rows)) return null;
   const editable = typeof onChange === 'function';
   const hasDraft = rows.some((r) => r.draft);
@@ -765,8 +766,8 @@ export function CapabilityCard({ rows, onChange, L, icons, baseUrl, cols = CAP_C
         <i key={i} className={className} />
       );
     });
-  return (
-    <DoneSection title={L.capTitle} testid="ono-done-capabilities">
+  const content = (
+    <>
       <div
         className={`ono-done-cap-table${cols.length === CAP_COLS.length ? '' : ` is-cols-${cols.length}`}${showDelta ? '' : ' is-no-delta'}`}
         role="table"
@@ -813,6 +814,12 @@ export function CapabilityCard({ rows, onChange, L, icons, baseUrl, cols = CAP_C
           {L.capAiDraft}
         </p>
       )}
+    </>
+  );
+  if (bare) return <div className="ono-done-section" data-testid="ono-done-capabilities">{content}</div>;
+  return (
+    <DoneSection title={L.capTitle} testid="ono-done-capabilities">
+      {content}
     </DoneSection>
   );
 }

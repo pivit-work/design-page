@@ -74,6 +74,7 @@ const DEFAULT_ICONS = {
   next: '/icons-solid/calendar.svg',
   feedback: '/icons-solid/message-heart-circle.svg',
   evidence: '/icons-solid/search-md.svg',
+  capability: '/icons-solid/bar-chart-01.svg',
   transcript: '/icons-solid/message-text-square-02.svg',
 };
 
@@ -1797,16 +1798,21 @@ function MemberCapabilityCard({ session, rowsOf, L, icons, baseUrl }) {
   const rows = rowsOf ? rowsOf(session) : [];
   const shared = session.isShared === true;
   const cols = CAP_COLS.filter((c) => c.key === 'memberSelf' || (shared && c.key === 'doneFinal'));
+  if (!rows || rows.length === 0) return null;
+  // 옆 카드(OKR 현황 등)와 같은 카드 틀에 넣는다 — 매니저 화면의 머리 모양을 그대로 쓰면 이 화면에서 혼자 틀 밖에 뜬다.
   return (
-    <CapabilityCard
-      rows={rows}
-      L={L}
-      icons={icons}
-      baseUrl={baseUrl}
-      cols={cols}
-      showDelta={shared}
-      hint={shared ? L.capHint : null}
-    />
+    <Section title={L.capTitle} icon={icons.capability} icons={icons} baseUrl={baseUrl}>
+      <CapabilityCard
+        rows={rows}
+        L={L}
+        icons={icons}
+        baseUrl={baseUrl}
+        cols={cols}
+        showDelta={shared}
+        hint={shared ? L.capHint : null}
+        bare
+      />
+    </Section>
   );
 }
 
