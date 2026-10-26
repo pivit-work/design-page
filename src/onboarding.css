@@ -489,3 +489,16 @@
 .onb-help-videos > .onb-summary-list { padding: 24px; }
 .onb-help-videos-title { margin: 0; font-size: 16px; line-height: 24px; font-weight: 600; color: var(--onb-text); }
 .onb-help-videos .onb-link { font-size: 16px; line-height: 24px; overflow-wrap: anywhere; }
+
+/* ── 베타 비밀유지계약 소유자 동의 창 · 재동의 창 — 좁은 화면 (PW-2173) ──
+   창 틀은 회의록 기록 방식 창 틀(.mtg-shell · 폭 560 · 본문 0 48 32)을 그대로 쓴다. 넓은 화면 값은 손대지 않는다.
+   정책서(owner-modal §2 «모달 셸»)가 폭 560+48 미만에서 «바깥 여백 16 · 본문 좌우 24»로 줄이라고 정했는데
+   공용 틀에는 좁은 화면 규칙이 없어, 이 창(.bnda-owner-shell)에만 건다 — 같은 틀을 쓰는 다른 창은 그대로다.
+   디자이너 원본이 없는 값이라 검수 대상(design-review)이다. */
+@media (max-width: 607px) {
+  .tl-modal-overlay:has(> .tl-group-modal.bnda-owner-shell) { padding: 16px; }
+  .tl-group-modal.mtg-shell.bnda-owner-shell { max-width: calc(100vw - 32px); max-height: calc(100vh - 32px); }
+  .tl-group-modal.mtg-shell.bnda-owner-shell .tl-group-modal-top { padding: 20px 24px 0; }
+  .tl-group-modal.mtg-shell.bnda-owner-shell .tl-group-modal-content { padding: 0 24px 32px; }
+  .tl-group-modal.mtg-shell.bnda-owner-shell .tl-group-modal-actions { padding: 24px; }
+}
