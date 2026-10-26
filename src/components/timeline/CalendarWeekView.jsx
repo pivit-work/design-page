@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import {
   SNIPPET_COLORS,
   WEEKDAY_LABELS,
@@ -64,9 +64,16 @@ export default function CalendarWeekView({
   now: nowProp,
   onEventHover,
   onEventHoverEnd,
+  // 보이는 주가 바뀔 때마다 { fromDate, toDate }('YYYY-MM-DD') — 호스트가 그 범위의 일정을 받아 오게 한다
+  onVisibleRangeChange,
 }) {
   const { getEventsForDate } = useTimelineData();
   const days = useMemo(() => getWeekDates(selectedDate), [selectedDate]);
+  const weekFrom = formatIsoDate(days[0]);
+  const weekTo = formatIsoDate(days[days.length - 1]);
+  useEffect(() => {
+    onVisibleRangeChange?.({ fromDate: weekFrom, toDate: weekTo });
+  }, [weekFrom, weekTo, onVisibleRangeChange]);
   const scrollRef = useRef(null);
 
   const now = nowProp ? nowProp() : new Date();

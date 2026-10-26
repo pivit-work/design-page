@@ -198,6 +198,31 @@
   align-items: center;
   gap: 8px;
 }
+/* 오른쪽 묶음 = [글 묶음][버튼 묶음]. 글 묶음(진행 중 프로젝트 수 · 구글 캘린더 연동 상태)은 앱 기능이라 시안 2차 뒤에
+   다시 넣었다. 한 줄에 다 들어가면 시안과 같은 한 줄이고, 좁으면 버튼은 왼쪽 묶음과 같은 줄에 남고 글 묶음만
+   그 아래 줄로 내려간다(wrap-reverse). 두 줄일 때 왼쪽 묶음이 가운데로 내려오지 않게 위로 붙인다 — 한 줄이면 높이가
+   모두 36 이라 시안과 같다. 글 묶음과 버튼 사이는 왼쪽 묶음 간격(16)을 따른다. */
+.tl-toolbar { align-items: flex-start; }
+.tl-toolbar-right {
+  flex: 1 1 0;
+  min-width: 0;
+  flex-wrap: wrap-reverse;
+  justify-content: flex-end;
+  column-gap: 16px;
+  row-gap: 8px;
+}
+.tl-toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tl-toolbar-status {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 36px;
+  white-space: nowrap;
+}
 
 /* Segmented control — 일/주/월 선택 (useSegmentedIndicator 가 width/left 계산) */
 .tl-seg-control {
@@ -1594,7 +1619,9 @@
   grid-template-columns: repeat(7, 1fr);
   /* 줄 높이는 CalendarMonthView 가 「칸 높이 ÷ 6」(최소 122 = CELL_FIXED_H 44 + 2 events × 30 + MORE 18)로
      재서 --tl-cal-row 로 준다 — 처음 화면은 6주, 그 뒤로 같은 높이의 주가 끝없이 이어진다. */
-  grid-auto-rows: var(--tl-cal-row, 122px);
+  /* 처음 재기 전 기본값을 여기 둔다 — var() 뒤값으로 두면 앱의 팔레트 가드가 막는다. 인라인 값이 이것을 덮는다. */
+  --tl-cal-row: 122px;
+  grid-auto-rows: var(--tl-cal-row);
   min-height: 0;
   overflow-y: auto;
   /* 스크롤바는 그리지 않는다 — 달력은 휠·트랙패드로만 민다 */

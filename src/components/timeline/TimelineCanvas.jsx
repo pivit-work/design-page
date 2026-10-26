@@ -17,6 +17,7 @@ import useTimelineDnD from './hooks/useTimelineDnD.js';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import StepNavButton, { StepNav } from '../shared/StepNav.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
+import Button from '../shared/Button.jsx';
 
 // 보기 고르기 — 툴바 맨 앞 segmented control (Figma 17757:36490). 종전 머리글 탭 줄은 시안에서 빠졌다.
 const TIMELINE_TAB_ITEMS = [
@@ -160,6 +161,9 @@ export default function TimelineCanvas({
   // 셀 피커 메뉴 문구 묶음과 시각 표기 — `CellPicker` 의 `labels`·`formatHour` 로 그대로 넘긴다 (PW-2216)
   cellPickerLabels,
   cellPickerFormatHour,
+  // 캘린더 보기가 지금 그리는 날짜 범위 — { fromDate, toDate } ('YYYY-MM-DD'). 월 보기는 위아래로 끝없이
+  // 주를 붙이므로, 호스트가 받아 둔 일정 범위 밖으로 나가면 이 값을 보고 더 받아 온다(getEventsForDate 로 넘긴다).
+  onCalendarRangeChange,
 }) {
   // 간트 / 캘린더 탭 — 캘린더 탭은 별도의 월/주 뷰.
   const [currentTab, setCurrentTab] = useState(initialTab ?? 'gantt'); // 'gantt' | 'calendar'
@@ -624,6 +628,49 @@ export default function TimelineCanvas({
         </div>
 
         <div className="tl-toolbar-right">
+        {/* 진행 중 프로젝트 수·구글 캘린더 연동 상태 — 시안 2차(17757:35821)에서 머리글과 함께 빠졌지만 앱 기능이라
+            (PW-1601 · PW-1668 · PW-2211) 툴바 오른쪽 묶음 앞에 종전 디자이너 모양(.tl-page-meta · .tl-gcal-status) 그대로 둔다. */}
+        <div className="tl-toolbar-status">
+          {activeProjectCountError ? (
+            <div className="tl-page-meta" role="alert" data-testid="tl-project-count-error">
+              <span className="tl-meta-label">진행 중 프로젝트</span>
+              <span className="tl-meta-sep">·</span>
+              <span className="tl-meta-error">{activeProjectCountErrorLabel}</span>
+              {onActiveProjectCountRetry && (
+                <Button variant="ghost" size="sm" onClick={() => onActiveProjectCountRetry()}>
+                  {activeProjectCountRetryLabel}
+                </Button>
+              )}
+            </div>
+          ) : activeProjectCount !== null && (
+            <div className="tl-page-meta">
+              <span className="tl-meta-label">진행 중 프로젝트</span>
+              <span className="tl-meta-sep">·</span>
+              <span className="tl-meta-count">{activeProjectCount}개</span>
+            </div>
+          )}
+          <div
+            className={`tl-gcal-status ${gcalConnected ? '' : 'is-disconnected'}`}
+            data-testid="tl-gcal-status"
+          >
+            <Icon src="/icons-solid/calendar-check-02.svg" size={14} color="var(--colors-foreground-fgTertiary)" baseUrl={baseUrl} />
+            <span>
+              {gcalStatusLabel ??
+                (gcalConnected
+                  ? gcalReauthRequired
+                    ? 'Google Calendar 재인증 필요'
+                    : 'Google Calendar 연동 중'
+                  : 'Google Calendar 미연동')}
+            </span>
+            {gcalConnected && !gcalReauthRequired && (
+              <Icon src="/icons-solid/check-circle.svg" size={14} color="#2dbd82" baseUrl={baseUrl} />
+            )}
+            {gcalConnected && gcalReauthRequired && (
+              <Icon src="/icons-solid/alert-triangle.svg" size={14} color="var(--colors-warning-600)" baseUrl={baseUrl} />
+            )}
+          </div>
+        </div>
+        <div className="tl-toolbar-actions">
         {isGantt && (
           <button
             type="button"
@@ -666,6 +713,7 @@ export default function TimelineCanvas({
           </div>
         )}
         </div>
+        </div>
       </div>
 
       {/* Body — 캘린더 탭이면 monthly grid, 간트 탭이면 기존 name col + grid */}
@@ -674,6 +722,7 @@ export default function TimelineCanvas({
           {calViewUnit === 'month' ? (
             <CalendarMonthView
               selectedDate={selectedDate}
+              onVisibleRangeChange={onCalendarRangeChange}
               now={now}
               onEventClick={handleCalendarEventClick}
               onMoreClick={handleMoreClick}
@@ -683,6 +732,7 @@ export default function TimelineCanvas({
           ) : (
             <CalendarWeekView
               selectedDate={selectedDate}
+              onVisibleRangeChange={onCalendarRangeChange}
               now={now}
               onMoreClick={handleMoreClick}
               onEventClick={handleCalendarEventClick}

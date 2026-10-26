@@ -1,4 +1,4 @@
-import { useCallback, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   SNIPPET_COLORS,
   WEEKDAY_LABELS,
@@ -74,6 +74,8 @@ export default function CalendarMonthView({
   now,
   onEventHover,
   onEventHoverEnd,
+  // 그리는 주가 바뀔 때마다 { fromDate, toDate }('YYYY-MM-DD') — 호스트가 그 범위의 일정을 받아 오게 한다
+  onVisibleRangeChange,
 }) {
   const { getEventsForDate } = useTimelineData();
 
@@ -139,6 +141,13 @@ export default function CalendarMonthView({
   }, [rowH]);
 
   const cells = buildWeeks(range.start, range.weeks);
+
+  // 붙이거나 버린 주가 바뀌면 그 범위를 호스트에 알린다 — 호스트는 같은 범위를 다시 받아도 아무것도 안 해야 한다
+  const rangeFrom = formatIsoDate(range.start);
+  const rangeTo = formatIsoDate(addDays(range.start, range.weeks * COL_COUNT - 1));
+  useEffect(() => {
+    onVisibleRangeChange?.({ fromDate: rangeFrom, toDate: rangeTo });
+  }, [rangeFrom, rangeTo, onVisibleRangeChange]);
 
 
   return (
