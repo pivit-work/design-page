@@ -156,6 +156,26 @@
   display: flex;
   width: 100%;
 }
+/* equal — 칸들이 줄 폭을 똑같이 나눈다. 칸마다 말풍선 겉 상자(.seg-tip, PW-1123)가 있어 겉 상자가 폭을 나눠 갖는다. */
+.seg-control.is-equal > .seg-tip {
+  flex: 1 0 0;
+  min-width: 0;
+}
+.seg-control.is-equal .seg-item {
+  flex: 1 0 0;
+  white-space: nowrap;
+}
+/* size="lg" — 디자이너가 매니저 팀원 상세 창에 그린 탭 줄(stesslee c4d2e402 `.manager-modal-tabs`) 값 그대로:
+   높이 44, 고른 칸 모서리 6 + 아래로 떨어지는 그림자. 줄 여백·글씨·칸 여백은 기본과 같다. */
+.seg-control.is-lg {
+  height: 44px;
+  align-items: stretch;
+}
+.seg-control.is-lg .seg-indicator {
+  border-radius: 6px;
+  box-shadow: none;
+  filter: drop-shadow(0 4px 3px rgba(10, 13, 18, 0.08));
+}
 /* 슬라이딩 indicator — 활성 segment 위치/크기로 절대 배치되어 left/width
    transition 으로 부드럽게 이동. 컴포넌트가 useSegmentedIndicator 훅으로
    active item 의 offsetLeft/Top/Width/Height 를 inline style 로 전달. */

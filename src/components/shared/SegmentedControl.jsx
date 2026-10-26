@@ -19,6 +19,8 @@ import Tooltip from './Tooltip.jsx';
  *   value     현재 선택된 value (controlled)
  *   onChange  (next) => void — segment 클릭 시 호출
  *   block     true 면 width:100% (가로 꽉 채움), false(기본) 는 content-sized
+ *   equal     true 면 칸들이 줄 폭을 똑같이 나눠 갖는다 (block 과 함께 쓴다)
+ *   size      'md'(기본, 높이 34 — 타임라인·리포트) | 'lg'(높이 44 — 매니저 팀원 상세 창, stesslee c4d2e402)
  *   ariaLabel role=tablist 의 aria-label
  *   className 추가 클래스 (래퍼)
  */
@@ -27,6 +29,8 @@ export default function SegmentedControl({
   value,
   onChange,
   block = false,
+  equal = false,
+  size = 'md',
   ariaLabel,
   className = '',
 }) {
@@ -35,7 +39,7 @@ export default function SegmentedControl({
 
   return (
     <div
-      className={`seg-control ${block ? 'is-block' : ''} ${className}`.trim()}
+      className={['seg-control', block && 'is-block', equal && 'is-equal', size === 'lg' && 'is-lg', className].filter(Boolean).join(' ')}
       role="tablist"
       aria-label={ariaLabel}
     >
@@ -53,7 +57,7 @@ export default function SegmentedControl({
       )}
       {items.map((it, i) => (
         // 왜 못 고르는지 같은 설명은 0.3초 뒤 뜨는 말풍선으로 (PW-1123). 꺼진 탭도 바깥을 둘러 받는다
-        <Tooltip key={it.value} content={it.title}>
+        <Tooltip key={it.value} content={it.title} className="seg-tip">
           <button
             ref={(el) => {
               itemsRef.current[i] = el;

@@ -5,9 +5,11 @@ import Spline from '@splinetool/react-spline';
 import Icon from '../shared/Icon.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import assetUrl from '../shared/assetUrl.js';
-import { CloseGlyph, SparkleGlyph } from '../shared/lineIcons.jsx';
+import { CloseGlyph } from '../shared/lineIcons.jsx';
 import AiFailBox from '../shared/AiFailBox.jsx';
 import Button from '../shared/Button.jsx';
+import LoadMoreButton from '../shared/LoadMoreButton.jsx';
+import MemberAiButton from '../oneonone/MemberAiButton.jsx';
 import { isEnterKey } from '../shared/enterKey.js';
 
 // member 가 자기 splineImage / avatar 를 갖고 있지 않을 때만 사용되는 데모 폴백.
@@ -255,9 +257,11 @@ export default function ProfileModal({
 
           {/* Body */}
           <div className="manager-modal-body">
-            {/* 공용 SegmentedControl(PW-836). 탭이 다섯 이상이면 한 줄에 서도록 글자를 줄인다. */}
+            {/* 공용 SegmentedControl(PW-836). 크기 lg·칸 똑같이 나눔이 디자이너가 이 창에 그린 탭 줄이다. */}
             <SegmentedControl
               block
+              equal
+              size="lg"
               className={`manager-modal-seg ${TABS.length > 4 ? 'is-compact' : ''}`.trim()}
               items={TABS.map((t) => ({ value: t.key, label: t.label }))}
               value={activeTab}
@@ -287,7 +291,7 @@ export default function ProfileModal({
               <OneOnOneTab data={profile.oneOnOne} labels={L} />
             )}
             {activeTab === 'action' && profile?.actionItems && (
-              <ActionItemsTab data={profile.actionItems} onMore={onActionItemsMore} labels={L} />
+              <ActionItemsTab data={profile.actionItems} onMore={onActionItemsMore} labels={L} baseUrl={baseUrl} />
             )}
             {activeTab === 'hr' && profile?.hrProfile && (
               <HrProfileTab
@@ -350,16 +354,16 @@ function AiBriefingTab({ profile, agendas, icons, baseUrl, onGenerate, onReload,
             <span className="manager-modal-brief-updated">{ai.updatedLabel}</span>
           )}
           {ai?.status === 'ready' && (
+            // 디자이너가 그린 AI 띠의 새로고침 — 바탕 없는 16px 보라 refresh-cw 하나
+            // (okr OkrDetailModal·OkrAiInsights, stesslee). 공용 버튼은 잠금만 얹는다.
             <Button
-              variant="ghost"
-              size="sm"
               className="manager-modal-brief-refresh"
               aria-label={ai.refreshLabel}
               title={ai.refreshLabel}
               pending={!!ai.generating}
               onClick={() => onGenerate?.()}
             >
-              <Icon src="/icons/refresh-ccw-05.svg" size={14} baseUrl={baseUrl} />
+              <Icon src="/icons-solid/refresh-cw-01.svg" size={16} color="var(--utility-purple-500)" baseUrl={baseUrl} />
             </Button>
           )}
         </div>
@@ -369,16 +373,14 @@ function AiBriefingTab({ profile, agendas, icons, baseUrl, onGenerate, onReload,
         {ai?.status === 'empty' && (
           <>
             <p className="manager-modal-brief-text">{ai.emptyText}</p>
-            <Button
-              variant="secondary"
-              size="sm"
+            {/* 디자이너가 그린 AI 실행 버튼 「✦ AI ○○」 (oneonone MemberAiButton, stesslee). 호스트는 동작 낱말만 넘긴다. */}
+            <MemberAiButton
               className="manager-modal-brief-generate"
+              label={ai.generateLabel}
               pending={!!ai.generating}
               onClick={() => onGenerate?.()}
-            >
-              <SparkleGlyph size={14} />
-              {ai.generateLabel}
-            </Button>
+              baseUrl={baseUrl}
+            />
           </>
         )}
         {ready && <p className="manager-modal-brief-text">{ai ? ai.content : profile.aiBrief}</p>}
@@ -461,16 +463,13 @@ function SnippetTab({ profile, icons, baseUrl, onMore, labels: L }) {
         profile.snippetsMore.error ? (
           <HrProfileFailure notice={profile.snippetsMore.error} onRetry={onMore} />
         ) : (
-          <Button
-            variant="ghost"
-            className="manager-modal-snippet-more"
-            disabled={!!profile.snippetsMore.loading}
-            onClick={() => onMore?.()}
-          >
-            {profile.snippetsMore.loading
-              ? profile.snippetsMore.loadingLabel
-              : profile.snippetsMore.label}
-          </Button>
+          // 디자이너가 그린 목록 끝 [더 보기](조직도 구성원 표 .pj-btn-more) 값 그대로인 공용 부품
+          <LoadMoreButton
+            label={profile.snippetsMore.label}
+            loadingLabel={profile.snippetsMore.loadingLabel}
+            loading={!!profile.snippetsMore.loading}
+            onClick={onMore}
+          />
         )
       )}
     </div>
@@ -566,7 +565,7 @@ function ArrowUpIcon({ size = 16, down = false }) {
  * `data.more` 가 `{ label, loadingLabel, loading }` 이면 버튼, `{ error: { message, retryLabel } }` 이면
  * 실패 문구와 [다시 시도]. 둘 다 `onMore` 로 간다. 더 남은 것이 없으면 호스트가 `more` 를 뺀다.
  */
-function ActionItemsTab({ data, onMore, labels: L }) {
+function ActionItemsTab({ data, onMore, labels: L, baseUrl }) {
   const items = data.items ?? [];
   const summary = data.summary ?? {};
 
@@ -603,17 +602,9 @@ function ActionItemsTab({ data, onMore, labels: L }) {
                 role="img"
                 aria-label={item.done ? L.actionDone : L.actionOpen}
               >
+                {/* 디자이너가 그린 1on1 상세 창 액션 아이템 체크(.ood-action-check)와 같은 흰 체크 14px */}
                 {item.done && (
-                  <svg width="9" height="7" viewBox="0 0 9 7" aria-hidden>
-                    <polyline
-                      points="1,4 3.5,6.5 8,1"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
+                  <Icon src="/icons-solid/check.svg" size={14} color="var(--text-white)" baseUrl={baseUrl} />
                 )}
               </span>
               <span className="manager-modal-action-title">{item.title}</span>
@@ -638,14 +629,12 @@ function ActionItemsTab({ data, onMore, labels: L }) {
         data.more.error ? (
           <HrProfileFailure notice={data.more.error} onRetry={onMore} />
         ) : (
-          <Button
-            variant="ghost"
-            className="manager-modal-snippet-more"
-            disabled={!!data.more.loading}
-            onClick={() => onMore?.()}
-          >
-            {data.more.loading ? data.more.loadingLabel : data.more.label}
-          </Button>
+          <LoadMoreButton
+            label={data.more.label}
+            loadingLabel={data.more.loadingLabel}
+            loading={!!data.more.loading}
+            onClick={onMore}
+          />
         )
       )}
     </div>
@@ -699,8 +688,6 @@ function HrProfileTab({ data, onRetry, onRowAction }) {
                 <dd className="manager-modal-hr-value">{row.value}</dd>
                 {row.action?.label && (
                   <Button
-                    variant="ghost"
-                    size="sm"
                     className="manager-modal-hr-action"
                     aria-label={row.action.ariaLabel}
                     onClick={() => onRowAction?.(row.key)}

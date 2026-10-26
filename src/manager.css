@@ -197,57 +197,68 @@
    두 층위가 있다.
    · `.manager-team-empty`  — 팀 레벨. 조회 범위 안 팀원이 0명일 때 KPI 아래 한 장.
    · `.manager-section-empty` — 섹션 레벨. 팀원은 있는데 그 분류가 비었을 때 한 줄.
-   새 시각 언어를 만들지 않는다 — 카드 반경·본문 타이포는 이 화면의 기존 규격
-   (KPI 카드 radius, 사유 문장 14/24)을 그대로 쓴다. */
-.manager-team-empty-section {
-  /* 섹션 사이 간격(56px)보다 좁게 — 카드가 KPI 그리드에 붙어 그 아래를 설명한다. */
-  margin-bottom: 44px;
+   모양은 디자이너가 그린 같은 용도의 칸을 값 그대로 따른다 — 새 모양을 짓지 않는다.
+   · 팀 레벨 = 1on1 대시보드 「팀원 0명」 안내 `.ono-team-empty` (one_on_one.css, stesslee 9f454350 ·
+     Figma 17749:20420) — 공용 EmptyState 위에 점선·바탕 없이 종이 그림 + lg Bold 제목 + 설명 + 글자 버튼.
+     그쪽은 화면에 그것 하나뿐이라 남은 높이를 채우지만(min-height) 여기는 아래 섹션이 이어지므로 채우지 않는다.
+   · 섹션 레벨 = 같은 화면 팀원 창의 빈 목록 문구 `.manager-modal-empty` (stesslee c4d2e402).
+   `.dp-empty.` 을 붙이는 것은 empty-state.css 가 이 파일보다 늦게 실려도 크기 기본값(.dp-empty--md)에 지지 않게 하려는 것뿐이다. */
+.manager-team-empty-section { display: flex; }
+
+.dp-empty.manager-team-empty {
+  flex: 1;
+  justify-content: center;
+  gap: var(--spacing-xl);
+  padding: 80px 10px;
+  background: none;
+  border: none;
 }
 
-.manager-team-empty {
-  box-sizing: border-box;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-secondary);
-  border-radius: var(--radius-2xl);
-  padding: 36px 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  text-align: center;
-}
+.manager-team-empty .dp-empty__icon { margin: 0; }
+.manager-team-empty-paper { width: 84px; height: auto; display: block; }
 
-.manager-team-empty-title {
-  margin: 0;
-  font-family: var(--font-family-body);
-  font-size: 14px;
-  line-height: 24px;
-  font-weight: 600;
-  color: var(--text-primary);
+.manager-team-empty .manager-team-empty-title {
+  font-size: var(--font-size-text-lg);
+  line-height: var(--line-height-text-lg);
+  color: var(--text-secondary);
   /* 팀명·조직명이 문구에 들어오므로 길이를 가정하지 않는다. */
   overflow-wrap: anywhere;
 }
 
-.manager-team-empty-desc {
-  margin: 0;
-  font-family: var(--font-family-body);
-  font-size: 14px;
-  line-height: 24px;
+.manager-team-empty .manager-team-empty-desc {
   font-weight: 500;
+  line-height: var(--line-height-text-md);
   color: var(--text-tertiary);
   overflow-wrap: anywhere;
 }
 
-/* 팀원 0명 안내의 버튼 — 모양은 공용 버튼(`Button variant="ghost" size="md"`). 전에는 원시 rgba 바탕에
-   더 흐린 글자(text-tertiary)라 눌리지 않는 버튼처럼 보였다. */
-.manager-team-empty-action { margin-top: 8px; }
+.manager-team-empty .dp-empty__actions { margin: 0; }
+
+/* 「조직단위 설정으로 이동」 — 디자이너 「전체 팀 보기」(.ono-team-empty-action) 와 같은 바탕·테두리 없는 sm/Medium 글자 */
+.manager-team-empty-action {
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-md);
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.manager-team-empty-action:hover {
+  text-decoration: underline;
+}
 
 .manager-section-empty {
   margin: 0;
+  width: 100%;
+  padding: 60px 0;
+  text-align: center;
   font-family: var(--font-family-body);
-  font-size: 14px;
-  line-height: 24px;
   font-weight: 500;
+  font-size: var(--font-size-text-sm);
   color: var(--text-tertiary);
 }
 
@@ -671,14 +682,9 @@
   width: 100%;
 }
 
-/* 상세 탭 — 공용 SegmentedControl(PW-836). 432px 카드 폭을 칸마다 똑같이 나눈다. */
-.seg-control.manager-modal-seg .seg-item {
-  flex: 1 0 0;
-  white-space: nowrap;
-}
-
-/* 탭이 5개가 되면(액션 아이템 탭 신설, PW-182) 432px 카드 안에서 라벨이 서로
-   밀린다. 4개일 때의 생김새는 그대로 두고, 5개일 때만 가로 여백을 줄인다. */
+/* 상세 탭 — 공용 SegmentedControl(PW-836) 의 size="lg"·equal 이 디자이너가 이 창에 그린 탭 줄이다.
+   디자이너는 탭 4개를 그렸다. 5개 이상(액션 아이템·인사 정보, PW-182·452)은 14px 로 한 줄에 서지 않아
+   그때만 글자·칸 여백을 줄인다. 디자이너 원본 없는 칸(design-review). */
 .seg-control.manager-modal-seg.is-compact .seg-item {
   padding-left: var(--spacing-xxs, 2px);
   padding-right: var(--spacing-xxs, 2px);
@@ -736,11 +742,18 @@
   color: var(--text-tertiary);
 }
 
-/* 오른쪽 위 새로고침 — 라벨 줄 끝으로 민다. 라벨 줄 높이를 늘리지 않게 위아래를 당긴다. */
+/* 오른쪽 위 새로고침 — 라벨 줄 끝으로 민다. 모양은 디자이너가 그린 AI 띠의 새로고침
+   (okr OkrDetailModal·OkrAiInsights 의 16px 보라 refresh-cw, 바탕·테두리 없음) 그대로. */
 .manager-modal-brief-refresh {
   margin-left: auto;
-  margin-block: -6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: var(--utility-purple-500);
+  cursor: pointer;
 }
 
 .manager-modal-brief-generate {
@@ -837,12 +850,8 @@
 }
 
 /* ── Snippet tab ── */
-/* 목록 끝 「더 보기」 — 공용 ghost 버튼을 목록 폭 전체로 늘린 것만 다르다 (PW-925). */
-.manager-modal-snippet-more {
-  width: 100%;
-  min-height: 36px;
-  margin-top: var(--spacing-lg);
-}
+/* 목록 끝 「더 보기」(PW-925·PW-1941) — 모양은 공용 LoadMoreButton(조직도 구성원 표 .pj-btn-more,
+   stesslee) 이 정한다. `.manager-modal-snippet-more` 는 자리 표시용 이름만 남는다. */
 
 .manager-modal-snippet-item {
   padding: var(--spacing-3xl) 0;
@@ -1030,48 +1039,51 @@
 }
 
 /* ── 액션 아이템 탭 (PW-182) ──
-   팀원 1명분 · 읽기 전용. 행은 1on1 기록 항목과 같은 리듬(구분선 + 세로 여백)을
-   쓰되, 한 줄에 체크·제목·출처·마감이 들어가야 해서 가로 배치다. */
+   팀원 1명분 · 읽기 전용. 목록·행·체크·제목·출처/마감 글씨는 디자이너가 그린 1on1 상세 창
+   「액션 아이템」 탭(one_on_one.css .ood-actions / .ood-action-*, stesslee 247aa088) 값 그대로다.
+   그 창은 이 창과 css 를 같이 싣지 않아 값을 옮겨 둔다. */
 .manager-modal-action-list {
   width: 100%;
   display: flex;
   flex-direction: column;
+  gap: 8px;
 }
 
 .manager-modal-action-row {
   display: flex;
   align-items: center;
-  gap: var(--spacing-lg);
-  padding: var(--spacing-xl) 0;
-  border-bottom: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  gap: 8px;
+  padding: 4px 12px;
+  min-height: 44px;
+  box-sizing: border-box;
+  border: 1px solid var(--border-secondary);
+  border-radius: 8px;
   width: 100%;
 }
 
 .manager-modal-action-check {
-  flex: 0 0 auto;
-  width: 16px;
-  height: 16px;
-  border-radius: var(--radius-xs);
-  border: 1.5px solid var(--border-primary);
-  display: flex;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  box-sizing: border-box;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: transparent;
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
 }
 
 .manager-modal-action-row.is-done .manager-modal-action-check {
-  background: var(--colors-foreground-fgSuccessPrimary, #17b26a);
-  border-color: var(--colors-foreground-fgSuccessPrimary, #17b26a);
-  color: var(--colors-foreground-fgLight, #fff);
+  background: var(--bg-brand-solid);
+  border: none;
 }
 
 .manager-modal-action-title {
-  flex: 1 1 auto;
+  flex: 1;
   min-width: 0;
-  font-family: var(--font-family-body);
-  font-weight: 600;
-  font-size: var(--font-size-text-sm);
-  line-height: var(--line-height-text-sm);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
   color: var(--text-primary);
   overflow-wrap: anywhere;
 }
@@ -1083,11 +1095,10 @@
 
 .manager-modal-action-source,
 .manager-modal-action-deadline {
-  flex: 0 0 auto;
-  font-family: var(--font-family-body);
-  font-weight: 600;
-  font-size: var(--font-size-text-xs);
-  line-height: var(--line-height-text-xs);
+  flex: none;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
   color: var(--text-tertiary);
   white-space: nowrap;
 }
@@ -1124,45 +1135,53 @@
   margin: 0;
 }
 
+/* 항목 한 줄 — 디자이너가 그린 조직도 프로필 창의 사번·입사일·전화번호 칸
+   (org_chart.css .modal-info-section / -label / -content, stesslee b6cdc19b) 값 그대로:
+   라벨이 위, 값이 아래. 그 창의 css 는 매니저 화면에 실리지 않아 값을 옮겨 둔다.
+   [고치기] 가 있는 줄만 값 오른쪽에 버튼이 선다. */
 .manager-modal-hr-row {
-  display: flex;
-  align-items: baseline;
-  gap: var(--spacing-lg);
-  padding: var(--spacing-lg) 0;
-  border-bottom: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--spacing-lg);
+  padding: 24px 0;
+  border-bottom: 1px solid var(--colors-border-borderSecondary);
   width: 100%;
 }
 
 .manager-modal-hr-label {
-  /* 라벨 칸은 고정폭이되 넘치면 줄바꿈한다 — 로케일이 바뀌면 라벨이 길어진다
-     (`고용형태` 4자 ↔ `Employment type` 15자). */
-  flex: 0 0 108px;
-  margin: 0;
-  font-family: var(--font-family-body);
-  font-weight: 600;
-  font-size: var(--font-size-text-xs);
-  line-height: var(--line-height-text-sm);
-  color: var(--text-tertiary);
-  overflow-wrap: anywhere;
-}
-
-.manager-modal-hr-value {
-  flex: 1 1 auto;
-  min-width: 0;
-  margin: 0;
-  font-family: var(--font-family-body);
-  font-weight: 600;
-  font-size: var(--font-size-text-sm);
-  line-height: var(--line-height-text-sm);
+  grid-column: 1 / -1;
+  margin: 0 0 12px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
   color: var(--text-primary);
   overflow-wrap: anywhere;
 }
 
-/* 줄 옆 작은 버튼 (PW-1094 — 직함 줄의 [고치기]). 버튼(28px)이 글자 줄(20px)보다 높아
-   그 줄만 두꺼워지지 않게 위아래를 당긴다. */
+.manager-modal-hr-value {
+  min-width: 0;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+/* 줄 옆 작은 버튼 (PW-1094 — 직함 줄의 [고치기]). 디자이너가 그린 1on1 준비 화면의 [수정]
+   (one_on_one.css .ono-start-edit-btn, stesslee fc27cec8) 값 그대로. */
 .manager-modal-hr-action {
-  flex: 0 0 auto;
-  margin-block: -6px;
+  padding: 4px 8px;
+  border: 1px solid var(--colors-border-borderSecondary);
+  border-radius: 6px;
+  background: var(--colors-base-white);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--text-secondary);
+  cursor: pointer;
 }
 
 .manager-modal-hr-failure {
@@ -1301,16 +1320,21 @@
    비선택 카드의 정적 대체 표현 · 로딩 스켈레톤 · 차트 실패 폴백.
    상태 클래스는 요소 자신에 붙인다 — 부모(.is-selected) 스코프로 쓰면 카드를 다른
    목록에 재사용할 때 표시가 통째로 사라진다. */
-.mgr-krm-static { display: flex; align-items: center; gap: 6px; padding: 7px 10px; border-radius: 8px; background: var(--bg-secondary); border: 1px dashed var(--border-secondary); }
-.mgr-krm-static-summary { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
-.mgr-krm-static-hint { margin-left: auto; font-size: 11px; font-weight: 500; color: var(--text-tertiary); white-space: nowrap; }
+/* 한 줄 요약은 같은 카드의 디자이너 줄 모양을 따른다 — 줄은 Initiative 이름 줄(.mgr-krm-initiative-row),
+   오른쪽 안내는 캡션(.mgr-krm-caption) 값 그대로 (stesslee 1984d53c). 점선 상자는 개발이 지은 것이라 걷었다. */
+.mgr-krm-static { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+.mgr-krm-static-summary { min-width: 0; }
+.mgr-krm-static-hint { font-size: 12px; font-weight: 600; color: var(--text-tertiary); white-space: nowrap; }
 .mgr-krm-empty { font-size: 12px; font-weight: 500; color: var(--text-tertiary); }
 
 /* 자리 표시는 공용 `Skeleton`(src/loading.css · PW-1010). 스켈레톤/에러는 실제 추이 차트와 같은 자리·높이를 차지해 선택 전환 시 레이아웃이 튀지 않는다. */
 .mgr-kr-trend-error { grid-column: 2; grid-row: 4; margin-top: 22px; min-height: 110px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border: 1px dashed var(--border-secondary); border-radius: 12px; }
 .mgr-kr-trend-error-text { font-size: 13px; font-weight: 500; color: var(--text-tertiary); }
-.mgr-kr-trend-retry { padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-primary); background: var(--bg-primary); font-size: 12px; font-weight: 600; color: var(--text-secondary); cursor: pointer; }
-.mgr-kr-empty { padding: 24px 0; font-size: 14px; font-weight: 500; color: var(--text-tertiary); }
+/* [다시 시도] 는 공용 보조 작은 버튼(Button variant="secondary" size="sm") — 클래스 이름은 찾는 데만 남긴다. */
+/* 빈 상태 — 이 KR 에 팀원 없음은 매니저 화면군의 빈 안내(.manager-modal-empty, stesslee c4d2e402),
+   팀 KR 자체가 없어 탭이 통째로 빈 때는 매니저 탭 자리 안내(.manager-tab-placeholder, stesslee 60b1ece6) 값 그대로. */
+.mgr-kr-empty { width: 100%; padding: 60px 0; text-align: center; font-family: var(--font-family-body); font-weight: 500; font-size: var(--font-size-text-sm); color: var(--text-tertiary); }
+.mgr-kr-empty.is-tab { padding: 120px 0; font-size: 14px; font-weight: 600; }
 
 /* 기여 상세 패널 */
 /* 스크롤 시 sticky 헤더(탭+팀원 메타) 아래에 고정 */
@@ -1385,7 +1409,15 @@
 .mgr-ts-feed { flex: 1; min-width: 0; background: var(--bg-quaternary); border-radius: 14px; box-shadow: 0 1px 3px rgba(10, 13, 18, 0.08); padding: 32px; display: flex; flex-direction: column; gap: 24px; }
 
 /* 필터 바 — Figma 17421:19533 (칩 radius 8, brand-100/error-100 배경, 12 Medium) */
-.tl-tabs-row.mgr-ts-feed-tabs-row { margin: 0; }  /* 날짜별·KR별 — 공용 Tabs(PW-836) */
+/* 날짜별·KR별 — 부품은 공용 Tabs(PW-836) 그대로 두고, 모양은 디자이너가 이 피드에 그린 반반 탭
+   (.mgr-ts-feed-tab, stesslee f7899248·b7eb7caa — PW-836 이 공용 16px 밑줄 탭으로 바꾸기 전 값)으로 되돌린다.
+   두 칸이 폭을 반씩 나누고 칸마다 2px 밑줄, 선택된 칸만 진한 밑줄. 미끄러지는 밑줄은 이 모양에 없어 숨긴다. */
+.tl-tabs-row.mgr-ts-feed-tabs-row { margin: 0; height: auto; border-bottom: none; }
+.mgr-ts-feed-tabs-row .tl-tabs { flex: 1; gap: 0; }
+.mgr-ts-feed-tabs-row .tl-tabs > .dp-tip-wrap { flex: 1; display: flex; }  /* 공용 Tabs 가 버튼마다 두르는 감싸개 */
+.mgr-ts-feed-tabs-row .tl-tab { flex: 1; height: auto; text-align: center; padding: 0 0 12px; font-size: 14px; font-weight: 600; line-height: inherit; color: var(--text-tertiary); border-bottom: 2px solid var(--border-secondary); }
+.mgr-ts-feed-tabs-row .tl-tab.is-active { color: var(--text-primary); border-bottom-color: var(--fg-primary); }
+.mgr-ts-feed-tabs-row .tl-tabs-indicator { display: none; }
 .mgr-ts-filterbar { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; line-height: 18px; color: var(--text-secondary); }
 .mgr-ts-filterbar-count { color: var(--text-tertiary); }
 
@@ -1461,11 +1493,13 @@
 /* ── 매니저 KR 드릴다운 · 1단 Objective 칩 (policy §7-1-A · PW-604)
    KR 칩과 «같은 트랙 문법»을 쓴다 — 새 시각 언어를 만들지 않는다.
    위계는 트랙 배경(브랜드 틴트)과 선택 칩 좌측 액센트 바로 낸다. */
-.mgr-kr-obj-summary { font-size: 11px; font-weight: 500; color: var(--text-tertiary); }
-.mgr-kr-obj-track { display: flex; padding: 4px; background: var(--utility-brand-50); border-radius: 12px; }
+/* 2026-10-25 — 디자이너 KR 칩 줄(.mgr-kr-cards·.mgr-kr-card, stesslee 1984d53c) 값 그대로 맞췄다:
+   트랙 배경·칩 여백·진척률 색. 요약 줄은 같은 탭의 캡션(.mgr-kr-contrib-caption, stesslee 60b1ece6). */
+.mgr-kr-obj-summary { font-size: 12px; font-weight: 600; color: var(--text-tertiary); }
+.mgr-kr-obj-track { display: flex; padding: 4px; background: var(--alpha-black-3); border-radius: 12px; }
 .mgr-kr-obj-track.is-wrap { flex-wrap: wrap; gap: 4px; }
 .mgr-kr-obj-chip {
-  flex: 1 1 0; min-width: 0; padding: 4px 8px 4px 10px; border: none; border-radius: 10px;
+  flex: 1 1 0; min-width: 0; padding: 4px 8px; border: none; border-radius: 10px;
   background: transparent; cursor: pointer;
   display: flex; flex-direction: column; gap: 4px; text-align: left; font: inherit;
 }
@@ -1476,22 +1510,24 @@
 }
 .mgr-kr-obj-head { display: flex; align-items: center; justify-content: space-between; padding: 2px 0; }
 .mgr-kr-obj-id { font-size: 12px; font-weight: 600; color: var(--text-tertiary); }
-.mgr-kr-obj-percent { font-size: 14px; font-weight: 700; color: var(--text-brand-secondary); }
+.mgr-kr-obj-percent { font-size: 14px; font-weight: 700; color: var(--text-primary); }
 .mgr-kr-obj-title-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .mgr-kr-obj-title {
   flex: 1; min-width: 0; font-size: 14px; font-weight: 700; line-height: 20px;
   color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .mgr-kr-obj-chip.is-selected .mgr-kr-obj-title { color: var(--text-primary); }
-.mgr-kr-obj-chip.is-selected .mgr-kr-obj-badge { background: var(--utility-brand-50); }
 
 /* Initiative 진행률 바 — 상태별 색 (policy §7-3 · PW-604).
    status 가 안 오면 클래스가 안 붙어 종전 단색 그대로다. */
-.mgr-krm-bar-fill.is-done { background: var(--utility-success-500); }
-.mgr-krm-bar-fill.is-in_progress { background: var(--utility-blue-500); }
+/* 2026-10-25 — 완료는 디자이너 바 기본색(.mgr-krm-bar-fill, stesslee 1984d53c), 진행 중은 같은 탭 기여 막대의
+   파랑(.mgr-kr-seg.is-blue, stesslee 60b1ece6) 값 그대로. 할 일 회색은 디자이너 원본이 없어 그대로 둔다. */
+.mgr-krm-bar-fill.is-done { background: var(--utility-success-400); }
+.mgr-krm-bar-fill.is-in_progress { background: var(--utility-blue-400); }
 .mgr-krm-bar-fill.is-todo { background: var(--componentColors-utility-gray-utilityGray400); }
 
 /* 팀 스니핏 — 조회 상태 (TeamSnippets `loading` · `feedNotice` · TeamSnippetFeed `emptyLabel`).
    pivit-work 가 직접 칠하던 값을 옮겼다 (PW-766). 빈 문구는 매니저 시안의 「해당하는 스니핏이 없습니다」 자리. */
 .mgr-ts-feedcol { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
-.mgr-ts-empty { padding: 24px; text-align: center; font-size: 14px; color: var(--text-tertiary); }
+/* 빈 문구 — 같은 화면 팀원 창의 빈 목록 문구(.manager-modal-empty, stesslee c4d2e402) 값 그대로 */
+.mgr-ts-empty { margin: 0; width: 100%; padding: 60px 0; text-align: center; font-family: var(--font-family-body); font-weight: 500; font-size: var(--font-size-text-sm); color: var(--text-tertiary); }

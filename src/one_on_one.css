@@ -5483,6 +5483,8 @@ button.ono-add-modal-input { cursor: pointer; }
 }
 .ono-my-ai-btn:hover:not(:disabled) { filter: brightness(0.97); }
 .ono-my-ai-btn:disabled { opacity: 0.6; cursor: default; }
+/* 요청 중 — 디자이너 원본에 없는 칸(개발 추가, design-review). 못 누를 때처럼 흐리지 않고 글자 옆 도는 표시로 알린다. */
+.ono-my-ai-btn.is-pending:disabled { opacity: 1; cursor: progress; }
 /* 「AI」 두 글자 — 보고서 생성 버튼(.ono-start-cta.is-cta)과 같은 보라→핑크. TODO: token 없음 */
 .ono-my-ai-word {
   background: linear-gradient(90deg, #7873f5 0%, #ec77ab 100%);

@@ -956,11 +956,11 @@
 
 .mgr-ts-filter-chip.is-flag { background: var(--utility-error-100); color: var(--text-error-primary); }
 
-/* 배지가 접히면 「KR 몇 개」가 안 읽힌다 — 제목이 양보한다 */
+/* 배지가 접히면 「KR 몇 개」가 안 읽힌다 — 제목이 양보한다.
+   모양은 같은 KR 탭의 디자이너 회색 딱지(.mgr-krd-tag, stesslee 60b1ece6) 값 그대로 (2026-10-25). */
 .mgr-kr-obj-badge {
-  flex-shrink: 0; white-space: nowrap; font-size: 11px; font-weight: 700; padding: 1px 6px;
-  border-radius: 99px; border: 1px solid var(--border-secondary);
-  background: var(--bg-quaternary); color: var(--text-tertiary);
+  flex-shrink: 0; white-space: nowrap;
+  padding: 2px 8px; border-radius: 5px; background: var(--alpha-black-3); font-size: 11px; font-weight: 500; color: var(--text-secondary);
 }
 
 /* ══ meetings.css 에서 옮겨 온 딱지 ══════════════════════════════════════════════ */

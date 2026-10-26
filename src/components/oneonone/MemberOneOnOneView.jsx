@@ -390,6 +390,7 @@ export default function MemberOneOnOneView({
                               <MemberAiButton
                                 label={L.aiGenerate}
                                 disabled={suggestionBlocked(`comment:${a.id}`)}
+                                pending={!!suggestionStates[`comment:${a.id}`]?.busy}
                                 baseUrl={baseUrl}
                                 ariaLabel={`${a.title} ${L.reasonComment} AI ${L.aiGenerate}`}
                                 onClick={() => generateComment(a.id)}
@@ -566,7 +567,7 @@ export default function MemberOneOnOneView({
                   badgeLabels={L}
                   aux={
                     editable && onSuggestTopics ? (
-                      <MemberAiButton disabled={suggestionBlocked('agenda')} label={L.aiSuggest} baseUrl={baseUrl} onClick={() => onSuggestTopics?.((items) => {
+                      <MemberAiButton disabled={suggestionBlocked('agenda')} pending={!!suggestionStates.agenda?.busy} label={L.aiSuggest} baseUrl={baseUrl} onClick={() => onSuggestTopics?.((items) => {
                         setTopics((prev) => {
                           const next = [...prev, ...items.filter((t) => !prev.some((p) => p.id === t.id))];
                           notify('topics', next);

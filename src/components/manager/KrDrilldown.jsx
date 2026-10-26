@@ -3,6 +3,7 @@ import StatusBadge from '../shared/StatusBadge.jsx';
 import KrMemberCard from './KrMemberCard.jsx';
 import KrContributionDetail from './KrContributionDetail.jsx';
 import Skeleton from '../shared/Skeleton.jsx';
+import Button from '../shared/Button.jsx';
 
 /**
  * KrDrilldown — 매니저 KR 드릴다운 탭 본문.
@@ -94,7 +95,7 @@ export default function KrDrilldown({
   };
 
   if (data.krs.length === 0) {
-    return <div className="mgr-kr"><p className="mgr-kr-empty">{l.krEmpty}</p></div>;
+    return <div className="mgr-kr"><p className="mgr-kr-empty is-tab">{l.krEmpty}</p></div>;
   }
 
   const selectedKr = data.krs.find((kr) => kr.id === krId) ?? data.krs[0];
@@ -197,9 +198,9 @@ export default function KrDrilldown({
           <div className="mgr-kr-trend-error" data-testid="kr-trend-error" role="alert">
             <span className="mgr-kr-trend-error-text">{l.chartError}</span>
             {onRetryDetail && (
-              <button type="button" className="mgr-kr-trend-retry" onClick={onRetryDetail}>
+              <Button variant="secondary" size="sm" onClick={onRetryDetail}>
                 {l.retry}
-              </button>
+              </Button>
             )}
           </div>
         ) : (
