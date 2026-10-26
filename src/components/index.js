@@ -343,7 +343,7 @@ export {
   ORG_PATH_SEP,
   ORG_FILTER_UNASSIGNED,
 } from './admin/index.js';
-export { AdminRbacCanvas } from './admin/index.js';
+export { AdminRbacCanvas, AdminOkrGrantPanel } from './admin/index.js';
 export { AdminTeamCanvas } from './admin/index.js';
 export { TeamIcon } from './admin/index.js';
 export { OrgSnapshotCanvas, AppointmentHistoryPanel, AppointmentBulkPanel } from './admin/index.js';

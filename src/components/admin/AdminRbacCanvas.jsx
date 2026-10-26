@@ -169,6 +169,9 @@ export default function AdminRbacCanvas({
   visibility = {},
   labels: providedLabels,
   initialTab = 'matrix',
+  // 소비 측이 덧붙이는 탭 하나 — { key, label, Icon?, content }. 편집하는 탭이라 그 탭에서는
+  // 머리의 「읽기 전용」 표시와 역할 요약 카드를 그리지 않는다 (pivit-work PW-1501 «OKR 작성 권한»).
+  extraTab = null,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const [tab, setTab] = useState(initialTab);
@@ -571,7 +574,9 @@ export default function AdminRbacCanvas({
     { key: 'matrix', label: L.tabs.matrix, Icon: GridIcon },
     { key: 'roles', label: L.tabs.roles, Icon: ShieldIcon },
     { key: 'visibility', label: L.tabs.visibility, Icon: EyeIcon },
+    ...(extraTab ? [{ key: extraTab.key, label: extraTab.label, Icon: extraTab.Icon ?? ShieldIcon }] : []),
   ];
+  const onExtraTab = !!extraTab && tab === extraTab.key;
 
   return (
     <div style={{ fontFamily: DP.font }}>
@@ -601,20 +606,22 @@ export default function AdminRbacCanvas({
             {L.description}
           </p>
         </div>
-        <span
-          style={{
-            flexShrink: 0,
-            fontSize: 11,
-            fontWeight: 700,
-            padding: '4px 10px',
-            borderRadius: 99,
-            background: DP.inset,
-            color: DP.textS,
-            border: `1px solid ${DP.borderT}`,
-          }}
-        >
-          {L.readOnly}
-        </span>
+        {onExtraTab ? null : (
+          <span
+            style={{
+              flexShrink: 0,
+              fontSize: 11,
+              fontWeight: 700,
+              padding: '4px 10px',
+              borderRadius: 99,
+              background: DP.inset,
+              color: DP.textS,
+              border: `1px solid ${DP.borderT}`,
+            }}
+          >
+            {L.readOnly}
+          </span>
+        )}
       </div>
 
       {/* 탭 바 — 공용 Tabs (PW-836) */}
@@ -635,69 +642,72 @@ export default function AdminRbacCanvas({
       </div>
 
       {/* 역할 요약 카드 (정본 admin-stat-tile + admin-eval-bar) */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: `repeat(${ROLES.length}, 1fr)`,
-          gap: 10,
-          marginBottom: 18,
-        }}
-      >
-        {ROLES.map((rid) => {
-          const cnt = countPerms(rid);
-          const pct = Math.min(100, Math.round((cnt / ALL_PERM_IDS.length) * 100));
-          const selected = tab === 'roles' && selectedRole === rid;
-          return (
-            <div
-              key={rid}
-              data-testid={`role-summary-card-${rid}`}
-              className="admin-stat-tile"
-              onClick={() => {
-                setTab('roles');
-                setSelectedRole(rid);
-              }}
-              style={{
-                padding: '14px 16px',
-                cursor: 'pointer',
-                boxShadow: selected
-                  ? `0 0 0 1.5px ${DP.accent}, var(--admin-card-shadow)`
-                  : undefined,
-                transition: 'box-shadow .15s',
-              }}
-            >
-              <div className="admin-stat-label" style={{ margin: '0 0 2px' }}>
-                {L.roles[rid]}
-              </div>
-              <div style={{ fontSize: 10, color: DP.textS, marginBottom: 10 }}>
-                {L.roleDescs[rid]}
-              </div>
+      {onExtraTab ? null : (
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: `repeat(${ROLES.length}, 1fr)`,
+            gap: 10,
+            marginBottom: 18,
+          }}
+        >
+          {ROLES.map((rid) => {
+            const cnt = countPerms(rid);
+            const pct = Math.min(100, Math.round((cnt / ALL_PERM_IDS.length) * 100));
+            const selected = tab === 'roles' && selectedRole === rid;
+            return (
               <div
+                key={rid}
+                data-testid={`role-summary-card-${rid}`}
+                className="admin-stat-tile"
+                onClick={() => {
+                  setTab('roles');
+                  setSelectedRole(rid);
+                }}
                 style={{
-                  display: 'flex',
-                  alignItems: 'baseline',
-                  justifyContent: 'space-between',
-                  marginBottom: 8,
+                  padding: '14px 16px',
+                  cursor: 'pointer',
+                  boxShadow: selected
+                    ? `0 0 0 1.5px ${DP.accent}, var(--admin-card-shadow)`
+                    : undefined,
+                  transition: 'box-shadow .15s',
                 }}
               >
-                <span className="admin-stat-value" style={{ fontSize: 24 }}>
-                  {cnt}
-                </span>
-                <span className="admin-stat-sub">
-                  {fill(L.permOf, { total: ALL_PERM_IDS.length })}
-                </span>
+                <div className="admin-stat-label" style={{ margin: '0 0 2px' }}>
+                  {L.roles[rid]}
+                </div>
+                <div style={{ fontSize: 10, color: DP.textS, marginBottom: 10 }}>
+                  {L.roleDescs[rid]}
+                </div>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'baseline',
+                    justifyContent: 'space-between',
+                    marginBottom: 8,
+                  }}
+                >
+                  <span className="admin-stat-value" style={{ fontSize: 24 }}>
+                    {cnt}
+                  </span>
+                  <span className="admin-stat-sub">
+                    {fill(L.permOf, { total: ALL_PERM_IDS.length })}
+                  </span>
+                </div>
+                <div className="admin-eval-bar" style={{ height: 6 }}>
+                  <div className="admin-eval-bar-fill" style={{ width: `${pct}%` }} />
+                </div>
               </div>
-              <div className="admin-eval-bar" style={{ height: 6 }}>
-                <div className="admin-eval-bar-fill" style={{ width: `${pct}%` }} />
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* 콘텐츠 */}
       {tab === 'matrix' && matrixContent}
       {tab === 'roles' && rolesContent}
       {tab === 'visibility' && visibilityContent}
+      {onExtraTab && extraTab.content}
     </div>
   );
 }
