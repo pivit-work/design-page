@@ -9608,8 +9608,11 @@ button.evm-ai-source {
    오른쪽 여백은 스니핏 본문 글의 오른쪽 끝(창-68)에 맞춘다 — 스니핏은 바깥 칸 오른쪽 40
    (`.tl-page`, 이 셸의 탭 줄 오른쪽 40 과 같다) 안에 본문 안쪽 28(`.snippet-body`)을 둔다.
    본문 폭 제한(1080)을 걷은 뒤 24 그대로면 평가 본문만 16px 더 나갔다 (PW-1951). */
+/* 위 여백은 상단바(72) + 내비 높이 다음에 제목 아래 간격(.evc-header)과 같은 값을 띄운다.
+   68 로 두었을 때 제목이 탭 줄 아래 끝에 4px 겹쳐 붙어 보였다. */
 .evnav-shell .evc-root {
-  top: calc(68px + var(--evnav-h));
+  top: calc(72px + var(--evnav-h));
+  padding-top: var(--spacing-3xl);
   padding-left: var(--evnav-pad-left);
   padding-right: 68px;
 }
