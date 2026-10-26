@@ -2104,6 +2104,9 @@ function HistoryScreen({ sessions, session, onCurrentOpen, manager, avatar, rend
   if (openable && openedFor !== openSessionId) {
     setOpenedFor(openSessionId);
     setSelectedId(openSessionId);
+  } else if (!openSessionId && openedFor !== null) {
+    // 소비처가 주소에서 회차를 지웠다 — 같은 회차를 가리키는 알림이 다시 오면 또 연다.
+    setOpenedFor(null);
   }
   // 호스트에도 알린다 — 그 회차의 근거 발췌를 불러오게 (위 `select` 와 같은 이유).
   useEffect(() => {
