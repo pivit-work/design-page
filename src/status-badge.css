@@ -1338,7 +1338,9 @@
 
 /* 공개 카드 헬스체크 점수 칩 (pivit-work PW-2226) — 옆의 근무 상태 배지(.modal-status-badge)와 같은 알약 모양.
    색은 뜻(tone="success|warning|danger")이 정한다 — 여기서 색을 박으면 점수 색이 무채색이 된다. */
+/* 테두리는 색 없이 두께만 — 옆 상태 배지의 1px 테두리만큼 높이를 맞춘다(없으면 2px 낮다). */
 .modal-health-chip {
+  border: 1px solid transparent;
   border-radius: 9999px;
   font-size: 12px;
   font-weight: 500;
