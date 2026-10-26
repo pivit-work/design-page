@@ -1,5 +1,6 @@
 import { OnbArrowLeftIcon, OnbCheckIcon, OnbLockIcon } from './onboardingIcons.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import assetUrl from '../shared/assetUrl.js';
 
 /**
  * 온보딩 화면 틀 — 시안 `8. onboarding/onboarding-app.jsx` 의 `Onboarding()` 레이아웃.
@@ -18,6 +19,19 @@ import StatusBadge from '../shared/StatusBadge.jsx';
  *   · 승인 대기 중 잠긴 단계는 시안에 없어 회색 원 + 자물쇠로 그린다.
  */
 
+/**
+ * 정식 로고(logo.svg · 아이콘+글자 · 원래 색) — 위쪽 머리 왼쪽 끝 자리.
+ * 높이 24(진행 표시 원과 같음) · 폭 약 68(기획서 entry §1 «폭 100 이하»).
+ * `ghost` 는 가운데 정렬용 보이지 않는 짝이다.
+ */
+function OnbLogo({ baseUrl, ghost = false }) {
+  return ghost ? (
+    <span className="onb-logo is-ghost" aria-hidden />
+  ) : (
+    <img className="onb-logo" src={assetUrl(baseUrl, 'logo.svg')} alt="Pivit" data-testid="onboarding-logo" />
+  );
+}
+
 export function OnboardingShell({ children, testId }) {
   return (
     <div className="onb-shell" data-testid={testId}>
@@ -29,10 +43,17 @@ export function OnboardingShell({ children, testId }) {
 /**
  * 가운데 한 덩어리만 보이는 전체 화면 — 불러오는 중 · 초대 만료/무효 · 계정 불일치.
  * `bare` 면 흰 카드 없이 글만 둔다(불러오는 중).
+ * `logo` 면 위쪽 머리와 같은 자리(왼쪽 위)에 정식 로고를 둔다 — 진행 표시가 없는 화면에도
+ * 로고는 남는다(기획서 entry §3 «항상» · PW-2222).
  */
-export function OnboardingCenter({ children, testId, bodyTestId, bare = false }) {
+export function OnboardingCenter({ children, testId, bodyTestId, bare = false, logo = false, baseUrl = '' }) {
   return (
-    <div className="onb-center" data-testid={testId}>
+    <div className={`onb-center${logo ? ' has-logo' : ''}`} data-testid={testId}>
+      {logo && (
+        <div className="onb-center-logo">
+          <OnbLogo baseUrl={baseUrl} />
+        </div>
+      )}
       <div className="onb-center-body" data-testid={bodyTestId}>
         {bare ? children : <div className="onb-card">{children}</div>}
       </div>
@@ -43,17 +64,18 @@ export function OnboardingCenter({ children, testId, bodyTestId, bare = false })
 /**
  * 왼쪽 안내 패널 (시안 LeftPanel).
  *
- * Props: eyebrow? · title · subtitle · pills: string[] · logo(기본 「pivit.」)
+ * Props: eyebrow? · title · subtitle · pills: string[] · baseUrl(로고 경로)
  * title·subtitle 의 줄바꿈 문자(\n)는 그대로 줄을 나눈다.
  */
-export function OnboardingBrandPanel({ eyebrow, title, subtitle, pills = [], testId }) {
+export function OnboardingBrandPanel({ eyebrow, title, subtitle, pills = [], testId, baseUrl = '' }) {
   return (
     <aside className="onb-panel" data-testid={testId}>
       <div className="onb-panel-grid" aria-hidden />
       <div className="onb-panel-glow" aria-hidden />
       <div className="onb-panel-body">
+        {/* 정식 로고를 흰색으로 — 로그인 화면 왼쪽 패널 로고와 같은 처리(PW-2222) */}
         <div className="onb-panel-logo">
-          pivit<i>.</i>
+          <img src={assetUrl(baseUrl, 'logo.svg')} alt="Pivit" data-testid="onboarding-panel-logo" />
         </div>
         <div className="onb-panel-copy">
           {eyebrow && <p className="onb-panel-eyebrow">{eyebrow}</p>}
@@ -84,15 +106,17 @@ export function OnboardingScrollPane({ children, onScroll, testId = 'onboarding-
 }
 
 /**
- * 위쪽 머리 — 뒤로가기(좌) + 진행 표시(가운데).
+ * 위쪽 머리 — [로고] + 뒤로가기(좌) + 진행 표시(가운데).
  *
  * Props:
+ *   logo       true 면 왼쪽 끝에 정식 로고, 뒤로가기는 그 오른쪽(PW-2222). 좁은 창에서는 로고가 한 줄 위로 간다
+ *   baseUrl    로고 경로의 base
  *   progress   진행 표시 노드
  *   backLabel  뒤로가기 글자. 없으면 뒤로가기 자리를 비운다
  *   onBack
  *   scrolled   true 면 아래 구분선을 긋는다(내용이 밑에 깔릴 때만)
  */
-export function OnboardingTopBar({ progress, backLabel, onBack, scrolled = false }) {
+export function OnboardingTopBar({ progress, backLabel, onBack, scrolled = false, logo = false, baseUrl = '' }) {
   const back = backLabel ? (
     <button type="button" className="onb-back" onClick={onBack}>
       <OnbArrowLeftIcon size={14} />
@@ -115,10 +139,12 @@ export function OnboardingTopBar({ progress, backLabel, onBack, scrolled = false
       className={`onb-topbar${scrolled ? ' is-scrolled' : ''}`}
       data-testid="onboarding-sticky-header"
     >
-      <div className="onb-topbar-row" data-testid="onboarding-top-chrome">
+      <div className={`onb-topbar-row${logo ? ' has-logo' : ''}`} data-testid="onboarding-top-chrome">
+        {logo && <OnbLogo baseUrl={baseUrl} />}
         {back}
         <div className="onb-topbar-center">{progress}</div>
         {mirror}
+        {logo && <OnbLogo ghost />}
       </div>
     </div>
   );

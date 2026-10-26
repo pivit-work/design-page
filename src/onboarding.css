@@ -69,6 +69,16 @@
   padding: 40px 16px; background: var(--onb-bg);
 }
 .onb-center-body { width: 100%; max-width: 400px; text-align: center; }
+/* 진행 표시가 없는 화면의 로고(PW-2222) — 위쪽 머리 로고와 같은 자리(위 24 · 왼쪽 32).
+   위 여백을 로고 자리만큼 더 둬 가운데 덩어리가 로고에 닿지 않게 한다. */
+.onb-center.has-logo { position: relative; padding-top: calc(var(--spacing-3xl) + var(--spacing-5xl) * 2); }
+.onb-center-logo { position: absolute; top: var(--spacing-3xl); left: var(--spacing-4xl); }
+
+/* 정식 로고 — 높이는 진행 표시 원(24)과 같게 둔다(폭 약 68 · 기획서 entry §1 «폭 100 이하»).
+   사이드바 크기(27)로 두면 머리가 3px 높아져 1440×900 첫 화면에 세로 스크롤바가 생기고
+   가입 카드가 옆으로 밀린다. */
+.onb-logo { display: block; flex-shrink: 0; width: auto; height: 24px; aspect-ratio: 76 / 27; }
+.onb-logo.is-ghost { visibility: hidden; }
 
 /* ── 왼쪽 안내 패널 (시안 LeftPanel) ── */
 .onb-panel {
@@ -87,8 +97,8 @@
   background: radial-gradient(circle, #2dbd8233 0%, transparent 70%); pointer-events: none;
 }
 .onb-panel-body { position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column; }
-.onb-panel-logo { margin-bottom: auto; font-size: 24px; font-weight: 900; color: #fff; letter-spacing: -0.05em; }
-.onb-panel-logo i { font-style: normal; color: var(--onb-brand); }
+.onb-panel-logo { margin-bottom: auto; }
+.onb-panel-logo img { display: block; width: 140px; height: auto; filter: brightness(0) invert(1); }
 .onb-panel-copy { margin: auto 0; }
 .onb-panel-eyebrow {
   margin: 0 0 16px; font-size: 13px; font-weight: 600; color: var(--onb-brand);
@@ -123,6 +133,14 @@
    가운데 칸이 정중앙에 온다. */
 .onb-topbar-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; }
 .onb-topbar-center { display: flex; justify-content: center; min-width: 0; }
+/* 로고가 있으면 [로고 · 뒤로가기 · 진행 표시 · 짝 · 로고 짝]. 좁은 창(720 이하)에서는 진행 표시 자리가
+   모자라 로고를 한 줄 위로 올리고 로고 짝은 뺀다. */
+.onb-topbar-row.has-logo { grid-template-columns: auto auto minmax(0, 1fr) auto auto; }
+@media (max-width: 720px) {
+  .onb-topbar-row.has-logo { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .onb-topbar-row.has-logo > .onb-logo:first-child { grid-column: 1 / -1; }
+  .onb-topbar-row.has-logo > .onb-logo.is-ghost { display: none; }
+}
 .onb-back {
   align-self: center; display: flex; align-items: center; gap: 4px; padding: 0;
   background: none; border: none; cursor: pointer; white-space: nowrap;
@@ -149,6 +167,8 @@
 
 @media (max-width: 560px) {
   .onb-topbar { padding: 16px; }
+  .onb-center.has-logo { padding-top: calc(var(--spacing-xl) + var(--spacing-5xl) * 2); }
+  .onb-center-logo { top: var(--spacing-xl); left: var(--spacing-xl); }
   .onb-content { padding: 24px 16px; }
   .onb-card { padding: 28px 20px; }
 }
