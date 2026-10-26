@@ -21,10 +21,10 @@ import { SkeletonList } from '../shared/Skeleton.jsx';
 const DP = {
   surface: 'var(--bg-quaternary, #ffffff)',
   inset: 'var(--bg-secondary, #f9fafb)',
-  borderT: '#e6e8ea',
+  borderT: 'var(--colors-border-borderSecondary, #e6e8ea)',
   textP: 'var(--text-primary, #596069)',
   textS: 'var(--text-secondary, #687079)',
-  shadow: '0 1px 2px 0 rgba(10,13,18,0.1), 0 1px 3px 0 rgba(10,13,18,0.1)',
+  shadow: 'var(--admin-card-shadow, 0 1px 2px 0 var(--colors-effects-shadows-shadowSm01), 0 1px 3px 0 var(--colors-effects-shadows-shadowSm02))',
   radius: { xl: 16 },
 };
 
@@ -124,8 +124,8 @@ function GrantRow({ row, scope, L, today, onToggle, onExpiryChange }) {
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 10,
-        padding: '10px 18px',
+        gap: 12,
+        padding: '10px 16px',
         borderBottom: `1px solid ${DP.borderT}`,
       }}
     >
@@ -165,7 +165,9 @@ function GrantRow({ row, scope, L, today, onToggle, onExpiryChange }) {
           {row.delegated ? <StatusBadge className="admin-pill is-active">{L.delegated}</StatusBadge> : null}
           {row.on ? (
             <DateInput
-              className="admin-emp-input"
+              className="admin-emp-input is-sm"
+              // 안내 글이 칸보다 길면 잘린다(영어 «Expires (optional)») — 글 길이만큼 넓힌다.
+              size={Math.max(13, String(L.expiresPlaceholder).length + 1)}
               value={row.expiresOn ?? ''}
               min={today}
               placeholder={L.expiresPlaceholder}
@@ -225,7 +227,8 @@ export default function AdminOkrGrantPanel({
 
   return (
     <div data-testid="okr-grant-panel">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+      {/* 버튼을 안 그리는 동안에도 sm 버튼 높이(32)를 잡아 두어, 다 받은 뒤 카드가 밀려 내려가지 않게 한다. */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, minHeight: 32 }}>
         <div style={{ flex: 1, fontSize: 13, color: DP.textS }}>{L.description}</div>
         {/* 목록을 받기 전에는 저장할 것이 없다 — 버튼도 그리지 않는다(§2F.6 fail-closed). */}
         {loading ? null : (

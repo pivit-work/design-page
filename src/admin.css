@@ -1486,6 +1486,13 @@
   transition: border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .admin-emp-input::placeholder { color: var(--text-placeholder, #b1b6be); }
+/* 목록 줄 안의 작은 입력 칸 — 같은 줄의 sm 버튼(.admin-emp-btn.is-sm: 높이 28 · 글씨 13)과 같은 크기라 줄이 혼자 높아지지 않는다 (PW-1501 OKR 작성 권한 만료일) */
+.admin-emp-input.is-sm {
+  min-height: 28px;
+  padding: 4px 12px;
+  font-size: var(--font-size-text-xs, 13px);
+  line-height: 18px;
+}
 .admin-emp-input:focus {
   border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
   box-shadow: inset 0 0 0 1px var(--colors-foreground-fgBrandPrimary, #2dbd82);
