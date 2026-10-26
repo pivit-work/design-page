@@ -107,6 +107,12 @@ function ProjectPicker({
               placeholder={L('squad.project.createName')}
             />
           </label>
+          {/* 이름 칸의 오류라 이름 칸 바로 아래에 둔다 — 설명 칸 밑이면 어느 칸 문제인지 흐려진다 */}
+          {form.error && (
+            <div className="sq-proj-error" role="alert" data-testid={`squad-project-create-error-${squad.id}`}>
+              {form.error}
+            </div>
+          )}
           <label className="sq-add-search sq-add-field">
             <input
               value={form.description}
@@ -117,11 +123,6 @@ function ProjectPicker({
               placeholder={L('squad.project.createDesc')}
             />
           </label>
-          {form.error && (
-            <div className="sq-proj-error" role="alert" data-testid={`squad-project-create-error-${squad.id}`}>
-              {form.error}
-            </div>
-          )}
         </div>
         <div className="sq-add-actions">
           <button type="button" className="sq-btn sq-btn-sm sq-btn-outline" onClick={() => setForm(null)}>
