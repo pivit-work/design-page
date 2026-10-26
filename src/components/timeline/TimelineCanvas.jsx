@@ -588,7 +588,8 @@ export default function TimelineCanvas({
           onChange={changeTab}
         />
         <div
-          className={`tl-gcal-status ${gcalConnected ? '' : 'is-disconnected'}${gcalConnected && gcalReauthRequired ? ' is-reauth' : ''}`}
+          className={`tl-gcal-status ${gcalConnected ? '' : 'is-disconnected'}`}
+          data-reauth={gcalConnected && gcalReauthRequired ? 'true' : undefined}
           data-testid="tl-gcal-status"
         >
           <Icon src="/icons-solid/calendar-check-02.svg" size={14} color="var(--colors-foreground-fgTertiary)" baseUrl={baseUrl} />
