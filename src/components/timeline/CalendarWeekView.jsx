@@ -52,6 +52,7 @@ function normalizeEvent(ev) {
  *
  * - 세로 시간축(0~23시) × 7일 컬럼. 구글 캘린더 주간 뷰와 동일한 레이아웃.
  * - 이벤트는 startMinutes/endMinutes 로 블록 top/height 를 잡고, 겹치면 weekEventLayout 규칙으로 나누거나 얹는다.
+ * - 나란히 놓을 일정이 넘치면 «+N» 을 두고, 누르면 onMoreClick(iso, events, rect) — 월 보기와 같다.
  * - 오늘 컬럼에 현재 시각 NOW 가로선.
  * - 헤더(요일+날짜)·이벤트 pill 스타일은 기존 design-page 토큰을 그대로 재사용.
  */
@@ -59,6 +60,7 @@ function normalizeEvent(ev) {
 export default function CalendarWeekView({
   selectedDate,
   onEventClick,
+  onMoreClick,
   now: nowProp,
   onEventHover,
   onEventHoverEnd,
@@ -124,9 +126,8 @@ export default function CalendarWeekView({
           {days.map((d) => {
             const iso = formatIsoDate(d);
             const isToday = iso === todayStr;
-            const events = layoutDayEvents(
-              (getEventsForDate?.(iso) ?? []).map(normalizeEvent),
-            );
+            const dayEvents = getEventsForDate?.(iso) ?? [];
+            const events = layoutDayEvents(dayEvents.map(normalizeEvent));
             return (
               <div key={iso} className="tl-week-cal-day-col">
                 {/* 시간 구분선 배경 */}
@@ -140,6 +141,32 @@ export default function CalendarWeekView({
 
                 {/* 이벤트 블록 */}
                 {events.map((ev) => {
+                  // 넘친 줄의 «+N» — 월 보기와 같이 그날 전체 일정을 날짜별 일정 창으로 연다.
+                  if (ev._more) {
+                    return (
+                      <button
+                        key={ev.id}
+                        type="button"
+                        className="tl-cal-more tl-week-cal-more"
+                        style={{
+                          top: (ev._start / 60) * HOUR_H,
+                          left: ev._left,
+                          width: ev._width,
+                          zIndex: ev._z,
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onMoreClick?.(
+                            iso,
+                            dayEvents,
+                            e.currentTarget.getBoundingClientRect(),
+                          );
+                        }}
+                      >
+                        +{ev._hidden.length}
+                      </button>
+                    );
+                  }
                   const palette = SNIPPET_COLORS[ev.color] || SNIPPET_COLORS.gray;
                   const top = (ev._start / 60) * HOUR_H;
                   const rawH = ((ev._end - ev._start) / 60) * HOUR_H;

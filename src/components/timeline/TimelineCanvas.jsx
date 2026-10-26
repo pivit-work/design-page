@@ -589,7 +589,6 @@ export default function TimelineCanvas({
         />
         <div
           className={`tl-gcal-status ${gcalConnected ? '' : 'is-disconnected'}`}
-          data-reauth={gcalConnected && gcalReauthRequired ? 'true' : undefined}
           data-testid="tl-gcal-status"
         >
           <Icon src="/icons-solid/calendar-check-02.svg" size={14} color="var(--colors-foreground-fgTertiary)" baseUrl={baseUrl} />
@@ -728,6 +727,7 @@ export default function TimelineCanvas({
             <CalendarWeekView
               selectedDate={selectedDate}
               now={now}
+              onMoreClick={handleMoreClick}
               onEventClick={handleCalendarEventClick}
               onEventHover={handleCalendarEventHover}
               onEventHoverEnd={endCalendarEventHover}

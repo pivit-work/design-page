@@ -170,7 +170,7 @@
   line-height: 18px;
   color: var(--text-secondary);
 }
-/* 미연동(.is-disconnected)·재인증 필요([data-reauth], PW-2211)도 글 색은 위 디자이너 값 그대로 둔다.
+/* 미연동(.is-disconnected)·재인증 필요(PW-2211)도 글 색은 위 디자이너 값 그대로 둔다(재인증 회색은 2026-10-26 커트 결정).
    상태는 디자이너 짜임대로 글(「미연동」「재인증 필요」)과 오른쪽 아이콘(연동 중 = 초록 체크,
    재인증 = 경고 삼각형)으로만 가른다 — 라벨 색을 따로 바꾸는 모양은 디자이너 것이 아니다. */
 
@@ -1721,6 +1721,11 @@
 .tl-cal-more:hover {
   background: var(--colors-background-bgSecondary);
   color: var(--colors-text-textSecondary);
+}
+
+/* 주 보기에서 나란히 놓을 일정이 넘친 줄의 «+N» — 월 보기 «+N more» 글자 그대로, 자리만 시간 칸에 둔다. */
+.tl-week-cal-more {
+  position: absolute;
 }
 
 /* ===========================
