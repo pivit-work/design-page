@@ -98,6 +98,7 @@
   /* Component Colors — 1on1 (linked to design system tokens) */
   --utility-brand-100: var(--componentColors-utility-brand-utilityBrand100);
   --utility-brand-200: var(--componentColors-utility-brand-utilityBrand200);
+  --utility-brand-400: var(--componentColors-utility-brand-utilityBrand400);
   --utility-brand-500: var(--componentColors-utility-brand-utilityBrand500);
   --utility-brand-600: var(--componentColors-utility-brand-utilityBrand600);
   --utility-brand-700: var(--componentColors-utility-brand-utilityBrand700);
@@ -109,9 +110,11 @@
   --bg-warning-primary: var(--colors-background-bgWarningPrimary);
   --utility-indigo-50: var(--componentColors-utility-indigo-utilityIndigo50);
   --utility-indigo-200: var(--componentColors-utility-indigo-utilityIndigo200);
+  --utility-indigo-400: var(--componentColors-utility-indigo-utilityIndigo400);
   --utility-indigo-500: var(--componentColors-utility-indigo-utilityIndigo500);
   --utility-indigo-700: var(--componentColors-utility-indigo-utilityIndigo700);
   --utility-fuchsia-200: var(--componentColors-utility-fuchsia-utilityFuchsia200);
+  --utility-fuchsia-400: var(--componentColors-utility-fuchsia-utilityFuchsia400);
   --utility-fuchsia-500: var(--componentColors-utility-fuchsia-utilityFuchsia500);
   --utility-pink-200: var(--componentColors-utility-pink-utilityPink200);
   --utility-pink-500: var(--componentColors-utility-pink-utilityPink500);
@@ -218,6 +221,7 @@
   --brand-600: var(--colors-brand-600);
   --brand-50: var(--colors-brand-50);
   --text-success-primary: var(--colors-text-textSuccessPrimary);
+  --text-primary-on-brand: var(--colors-text-textPrimaryOnBrand);
 
   /* Effects — 모달 그림자 (shadow-3xl 컬러 토큰 조합) */
   --shadows-shadow3xl: 0 21px 120px -12px var(--colors-effects-shadows-shadow3xl01),
@@ -228,6 +232,9 @@
     0 8px 8px -4px var(--colors-effects-shadows-shadowXl02);
   --shadows-chip-rest: 0 0 0 0 var(--colors-effects-shadows-shadowXl01),
     0 0 0 0 var(--colors-effects-shadows-shadowXl02);
+  /* Shadows/shadow-2xl 을 drop-shadow 필터로 — 큰 말풍선(Figma 17765:40618) */
+  --shadows-tooltip-lg: drop-shadow(0 24px 24px var(--colors-effects-shadows-shadow2xl01))
+    drop-shadow(0 4px 2px var(--colors-effects-shadows-shadow2xl02));
   /* Shadows/shadow-md — 드롭다운 메뉴 상자 (팀원 추가 겹창의 후보 목록, Figma 17765:40487) */
   --shadows-shadow-md: 0 4px 6px -1px var(--colors-effects-shadows-shadowLg01),
     0 2px 4px -2px var(--colors-effects-shadows-shadowMd02);

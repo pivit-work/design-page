@@ -45,6 +45,7 @@ import { TOOLTIP_DELAY, TOOLTIP_SKIP_WINDOW, tooltipGroup as group } from './too
  * @param {'top'|'bottom'} [placement='top'] 먼저 시도할 쪽
  * @param {'neutral'|'brand'} [tone='neutral'] 말풍선 색. `color` 를 주면 그 색으로 칠한다
  * @param {string} [color]  말풍선 바탕색(CSS 색 값) — OKR 리소스 막대처럼 막대 색을 따를 때
+ * @param {'sm'|'lg'} [size='sm'] 말풍선 치수. `lg` 는 안쪽 6/8 · r6 · 화살 10×6 · 큰 그림자(Figma 17765:40618, 스쿼드 진행률 막대)
  * @param {boolean} [wrap]  바깥을 두를지. 안 주면 위 규칙으로 정한다
  * @param {string} [className] 두른 쪽(`dp-tip-wrap`)에 더할 클래스
  * @param {number} [maxWidth] 말풍선 최대 폭(px). 기본은 CSS 의 280px
@@ -87,6 +88,7 @@ export default function Tooltip({
   placement = 'top',
   tone = 'neutral',
   color,
+  size = 'sm',
   wrap,
   className,
   maxWidth,
@@ -205,6 +207,7 @@ export default function Tooltip({
       placement={placement}
       tone={tone}
       color={color}
+      size={size}
       maxWidth={maxWidth}
       onLost={() => hide(true)}
     >
@@ -265,7 +268,7 @@ function Trigger({ element, handlers, describedBy, tipId }) {
   });
 }
 
-function TooltipBubble({ id, anchor: anchorOrFind, forced, placement, tone, color, maxWidth, onLost, children }) {
+function TooltipBubble({ id, anchor: anchorOrFind, forced, placement, tone, color, size, maxWidth, onLost, children }) {
   const [pos, setPos] = useState(null);
   const nodeRef = useRef(null);
   const onLostRef = useRef(onLost);
@@ -318,6 +321,7 @@ function TooltipBubble({ id, anchor: anchorOrFind, forced, placement, tone, colo
   const classes = [
     'dp-tooltip',
     tone === 'brand' || color ? 'is-brand' : null,
+    size === 'lg' ? 'is-lg' : null,
   ].filter(Boolean).join(' ');
 
   return createPortal(

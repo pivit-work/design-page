@@ -1240,155 +1240,173 @@
 .manager-tab { cursor: pointer; }
 .manager-tab-placeholder { padding: 120px 0; text-align: center; font-size: 14px; font-weight: 600; color: var(--text-tertiary); }
 
-/* 헤더(.manager-page-header)·다른 섹션과 좌우 정렬을 맞추는 12px 패딩 */
-.mgr-kr { display: flex; flex-direction: column; gap: 24px; padding: 0; }
+/* ══ KR 드릴다운 탭 — 2026-10-27 디자이너 시안(Figma 17026:24830) 값 그대로.
+   섹션 사이: 팀 OKR → Key Result 32 · Key Result → 팀원별 기여 40 · 기여 막대 → 본문 40. */
+.mgr-kr { display: flex; flex-direction: column; gap: 0; padding: 0; }
 
-/* 팀 OKR — KR 선택 카드 */
-.mgr-kr-okr { display: flex; flex-direction: column; gap: 10px; }
-.mgr-kr-okr-label { font-size: 12px; font-weight: 600; color: var(--text-tertiary); }
-.mgr-kr-okr-title { font-size: 18px; font-weight: 700; line-height: 26px; color: var(--text-primary); }
-.mgr-kr-cards { display: flex; padding: 4px; background: var(--alpha-black-3); border-radius: 12px; }
-.mgr-kr-card { flex: 1; min-width: 0; padding: 4px 8px; border-radius: 10px; cursor: pointer; display: flex; flex-direction: column; gap: 4px; }
-.mgr-kr-card.is-selected { background: var(--bg-quaternary); box-shadow: 0 2px 6px rgba(10, 13, 18, 0.1), 0 1px 2px rgba(10, 13, 18, 0.06); }
-.mgr-kr-card-head { display: flex; align-items: center; justify-content: space-between; padding: 2px 0; }
-.mgr-kr-card-id { font-size: 12px; font-weight: 600; color: var(--text-tertiary); }
-.mgr-kr-card-percent { font-size: 14px; font-weight: 700; color: var(--text-primary); }
-.mgr-kr-card-title-row { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.mgr-kr-card-title { font-size: 14px; font-weight: 700; line-height: 20px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mgr-kr-card.is-selected .mgr-kr-card-title { color: var(--text-primary); }
-.mgr-kr-status { font-size: 12px; font-weight: 600; }
-.mgr-kr-status.is-success { color: var(--utility-success-500); }
-.mgr-kr-status.is-warning { color: var(--utility-warning-500); }
-.mgr-kr-status.is-error { color: var(--utility-error-500); }
-.mgr-kr-status.is-muted { color: var(--text-tertiary); }
+/* 팀 OKR — 라벨 14/600 · 제목 20/700, 둘 사이 4 · 제목 → KR 칩 줄 20 */
+.mgr-kr-okr { display: flex; flex-direction: column; gap: 4px; }
+.mgr-kr-okr-label { font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-tertiary); }
+.mgr-kr-okr-title { font-size: 20px; font-weight: 700; line-height: 30px; color: var(--text-primary); }
+/* KR 선택 칩 줄 — 트랙 alpha-black-3 r8 안쪽 4 · 칩 r6, 안쪽 4/8(0.5px 안쪽 선 포함). 고른 칩만 흰 바탕(bg-quaternary — 시안의 fg-light 는 어두운 화면에서 회색이라 흰 카드 토큰을 쓴다) + shadow-md,
+   나머지는 글자 전부 text-tertiary. */
+.mgr-kr-cards { display: flex; margin-top: 16px; padding: 4px; background: var(--alpha-black-3); border-radius: 8px; }
+.mgr-kr-card { flex: 1; min-width: 0; padding: 4px 8px; border-radius: 6px; cursor: pointer; display: flex; flex-direction: column; gap: 4px; }
+.mgr-kr-card.is-selected { background: var(--bg-quaternary); box-shadow: inset 0 0 0 0.5px var(--fg-quaternary), var(--shadows-shadow-md); }
+.mgr-kr-card-head { display: flex; align-items: center; justify-content: space-between; height: 20px; }
+.mgr-kr-card-id { font-size: 12px; font-weight: 400; line-height: 18px; color: var(--text-tertiary); }
+.mgr-kr-card-percent { font-size: 14px; font-weight: 700; line-height: 20px; color: var(--text-tertiary); }
+.mgr-kr-card-title-row { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.mgr-kr-card-title { font-size: 14px; font-weight: 700; line-height: 20px; color: var(--text-tertiary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mgr-kr-card.is-selected .mgr-kr-card-id { color: var(--text-primary); }
+.mgr-kr-card.is-selected .mgr-kr-card-percent,
+.mgr-kr-card.is-selected .mgr-kr-card-title { color: var(--text-secondary); }
+/* 상태 — 체크 10 + 글자 12/400, 사이 4. 색은 글자 토큰(성공·경고·오류), 미시작은 fg-secondary. */
+.mgr-kr-status { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; font-size: 12px; font-weight: 400; line-height: 18px; }
+.mgr-kr-status.is-success { color: var(--text-success-primary); }
+.mgr-kr-status.is-warning { color: var(--text-warning-primary); }
+.mgr-kr-status.is-error { color: var(--text-error-primary); }
+.mgr-kr-status.is-muted { color: var(--fg-secondary); }
 
-/* Key Result 히어로 — grid 2컬럼(좌 576 / 우 522).
-   서브텍스트와 '달성도 추이' 라벨이 같은 행(row 3)에 온다 (시안 y=421). */
-.mgr-kr-hero { display: grid; grid-template-columns: minmax(0, 576px) 522px; grid-template-rows: auto auto auto auto; justify-content: space-between; column-gap: 40px; }
-.mgr-kr-eyebrow { grid-column: 1; display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 700; color: var(--text-secondary); }
-.mgr-kr-title { grid-column: 1; font-size: 30px; font-weight: 700; line-height: 44px; color: var(--fg-primary); white-space: nowrap; }
-.mgr-kr-subtitle { grid-column: 1; grid-row: 3; font-size: 14px; font-weight: 500; line-height: 20px; color: var(--text-tertiary); }
-.mgr-kr-progress { grid-column: 1; grid-row: 4; display: flex; flex-direction: column; gap: 8px; margin-top: 44px; align-self: end; }
-.mgr-kr-progress-track { height: 12px; background: var(--utility-gray-200); border-radius: 6px; }
-.mgr-kr-progress-fill { height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--utility-success-400), var(--bg-brand-solid)); }
+/* Key Result 히어로 — 눈썹 20 · 제목 44(36/700, -2%) 사이 7, 아래 두 단(각 1fr, 사이 32).
+   왼 단은 설명 + (맨 아래) 진행 바, 오른 단은 「달성도 추이」 + 막대 차트(최대 76). 두 단은 같은 높이. */
+.mgr-kr-hero { margin-top: 32px; display: flex; flex-direction: column; gap: 7px; }
+.mgr-kr-eyebrow { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 700; line-height: 20px; color: var(--text-secondary); }
+.mgr-kr-title { font-size: 36px; font-weight: 700; line-height: 44px; letter-spacing: -0.02em; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mgr-kr-hero-cols { display: flex; align-items: stretch; gap: 32px; }
+.mgr-kr-hero-col { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; justify-content: space-between; gap: 14px; }
+.mgr-kr-subtitle { font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-tertiary); }
+.mgr-kr-progress { display: flex; flex-direction: column; gap: 8px; }
+.mgr-kr-progress-track { height: 12px; background: var(--alpha-black-3); border-radius: 4px; overflow: hidden; }
+.mgr-kr-progress-fill { height: 12px; border-radius: 4px; background: var(--utility-brand-500); }
 .mgr-kr-progress-labels { display: flex; align-items: center; justify-content: space-between; font-size: 12px; font-weight: 500; line-height: 18px; color: var(--text-tertiary); }
-.mgr-kr-trend-label { grid-column: 2; grid-row: 3; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-secondary); }
-.mgr-kr-trend-bars { grid-column: 2; grid-row: 4; margin-top: 22px; display: flex; align-items: flex-end; gap: 8px; }
-.mgr-kr-trend-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; }
-.mgr-kr-trend-value { font-size: 12px; font-weight: 600; color: var(--text-secondary); }
-.mgr-kr-trend-bar { width: 100%; border-radius: 8px; background: var(--utility-success-300); }
-.mgr-kr-trend-col:last-child .mgr-kr-trend-bar { background: var(--utility-success-500); }
-.mgr-kr-trend-date { font-size: 12px; font-weight: 500; color: var(--text-tertiary); }
+.mgr-kr-trend-label { font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-tertiary); }
+.mgr-kr-trend-bars { display: flex; align-items: flex-end; gap: 8px; }
+.mgr-kr-trend-col { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.mgr-kr-trend-value { font-size: 12px; font-weight: 600; line-height: 18px; letter-spacing: -0.01em; color: var(--text-secondary); }
+.mgr-kr-trend-bar { width: 100%; border-radius: 8px; background: var(--utility-brand-400); }
+.mgr-kr-trend-col:last-child .mgr-kr-trend-bar { background: var(--utility-brand-500); }
+.mgr-kr-trend-date { font-size: 10px; font-weight: 400; line-height: 18px; letter-spacing: -0.01em; color: var(--text-secondary); }
 
-/* 팀원별 기여 — 스택바 */
-.mgr-kr-section-title { font-size: 18px; font-weight: 700; color: var(--text-primary); }
-.mgr-kr-contrib-head { display: flex; flex-direction: column; gap: 8px; }
-.mgr-kr-contrib-caption { font-size: 12px; font-weight: 600; color: var(--text-tertiary); }
-.mgr-kr-stackbar { display: flex; gap: 4px; height: 58px; }
-.mgr-kr-seg { display: flex; align-items: center; padding: 0 12px; border-radius: 12px; font-size: 14px; font-weight: 600; color: var(--text-white); white-space: nowrap; min-width: fit-content; }
+/* 팀원별 기여 — 제목 20/700 · 아래 20 · 캡션 14/600 · 아래 11 · 스택바 58(r4, 바탕 bg-secondary, 조각 사이 4) */
+.mgr-kr-contrib-head { margin-top: 40px; display: flex; flex-direction: column; gap: 11px; }
+.mgr-kr-section-title { margin-bottom: 9px; font-size: 20px; font-weight: 700; line-height: 30px; color: var(--text-primary); }
+.mgr-kr-contrib-caption { font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-tertiary); }
+.mgr-kr-stackbar { display: flex; gap: 4px; height: 58px; border-radius: 4px; overflow: hidden; background: var(--bg-secondary); }
+.mgr-kr-seg { display: flex; align-items: center; padding: 0 12px; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-primary-on-brand); white-space: nowrap; min-width: fit-content; }
+/* 데이터의 color 키(blue·purple·green·pink)는 그대로, 색만 시안의 utility 400 톤(파랑·남색·초록·자홍) */
 .mgr-kr-seg.is-blue { background: var(--utility-blue-400); }
-.mgr-kr-seg.is-purple { background: var(--utility-purple-400); }
-.mgr-kr-seg.is-green { background: var(--utility-success-400); }
-.mgr-kr-seg.is-pink { background: var(--utility-pink-400); }
+.mgr-kr-seg.is-purple { background: var(--utility-indigo-400); }
+.mgr-kr-seg.is-green { background: var(--utility-green-400); }
+.mgr-kr-seg.is-pink { background: var(--utility-fuchsia-400); }
 
-/* 본문 2컬럼 */
-.mgr-kr-body { display: flex; gap: 12px; align-items: flex-start; }
-.mgr-kr-members { width: 389px; flex-shrink: 0; display: flex; flex-direction: column; padding: 4px; background: var(--alpha-black-3); border-radius: 14px; }
+/* 본문 2컬럼 — 팀원 목록 389 고정, 상세는 나머지. 사이 12 */
+.mgr-kr-body { margin-top: 40px; display: flex; gap: 12px; align-items: flex-start; }
+.mgr-kr-members { width: 389px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px; padding: 4px; background: var(--alpha-black-3); border-radius: 8px; }
 
-/* 팀원 기여 카드 */
-.mgr-krm-card { padding: 16px; border-radius: 12px; background: transparent; cursor: pointer; display: flex; flex-direction: column; gap: 12px; opacity: 0.55; }
-.mgr-krm-card.is-selected { background: var(--bg-quaternary); box-shadow: 0 1px 3px rgba(10, 13, 18, 0.1), 0 1px 2px rgba(10, 13, 18, 0.1); opacity: 1; }
-.mgr-krm-head { display: flex; align-items: center; gap: 10px; }
-.mgr-krm-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+/* 팀원 기여 카드 — 고른 카드: 흰 바탕 r6, 안쪽 16, 0.5px 안쪽 선(fg-quaternary) + shadow-md, 줄 사이 4.
+   안 고른 카드: bg-primary 바탕에 1px 안쪽 선(border-primary), 안쪽 8/16, 머리줄만 보인다. */
+.mgr-krm-card { padding: 8px 16px; border-radius: 6px; background: var(--bg-primary); box-shadow: inset 0 0 0 1px var(--border-primary); cursor: pointer; display: flex; flex-direction: column; gap: 4px; }
+.mgr-krm-card.is-selected { padding: 16px; background: var(--bg-quaternary); box-shadow: inset 0 0 0 0.5px var(--fg-quaternary), var(--shadows-shadow-md); }
+.mgr-krm-head { display: flex; align-items: center; gap: 12px; }
+.mgr-krm-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0; box-sizing: border-box; border: 0.75px solid var(--alpha-black-10); }
 .mgr-krm-name-wrap { flex: 1; min-width: 0; }
-.mgr-krm-name { font-size: 14px; font-weight: 700; color: var(--text-primary); }
-.mgr-krm-role { font-size: 11px; font-weight: 500; color: var(--text-tertiary); }
-.mgr-krm-percent { font-size: 22px; font-weight: 700; line-height: 30px; color: var(--text-primary); }
-.mgr-krm-caption { font-size: 12px; font-weight: 600; color: var(--text-tertiary); }
-.mgr-krm-initiatives { display: flex; flex-direction: column; gap: 8px; }
-.mgr-krm-initiative { display: flex; flex-direction: column; gap: 4px; }
-.mgr-krm-initiative-row { display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 600; color: var(--text-secondary); }
-.mgr-krm-bar { height: 12px; background: var(--utility-gray-200); border-radius: 6px; }
-.mgr-krm-bar-fill { height: 12px; border-radius: 6px; background: var(--utility-success-400); }
-.mgr-krm-stats { display: flex; border-top: 1px solid var(--border-secondary); border-bottom: 1px solid var(--border-secondary); padding: 12px 0; }
-.mgr-krm-stat { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 1px; }
-.mgr-krm-stat b { font-size: 14px; font-weight: 700; line-height: 18px; color: var(--text-primary); }
-.mgr-krm-stat span { font-size: 12px; font-weight: 500; line-height: 18px; color: var(--text-tertiary); }
-.mgr-krm-alert { padding: 6px 8px; border-radius: 6px; background: var(--utility-error-50); font-size: 12px; font-weight: 600; line-height: 18px; color: var(--utility-error-500); }
+.mgr-krm-name { font-size: 14px; font-weight: 700; line-height: 20px; color: var(--text-primary); }
+.mgr-krm-role { font-size: 12px; font-weight: 400; line-height: 18px; color: var(--text-secondary); }
+.mgr-krm-percent { font-size: 20px; font-weight: 600; line-height: 30px; color: var(--text-tertiary); }
+.mgr-krm-card.is-selected .mgr-krm-percent { color: var(--text-secondary); }
+/* 개인 Initiative 진행률 — 캡션 12/400 text-primary · 아래 8 · 항목 사이 6.
+   항목: 이름(14/700) · %(14/600) 줄 → 2 → 바 자리(위아래 6 안에 12 바, r4, 바탕 bg-secondary, 채움 success-200) */
+.mgr-krm-block { display: flex; flex-direction: column; gap: 8px; }
+.mgr-krm-caption { font-size: 12px; font-weight: 400; line-height: 18px; color: var(--text-primary); }
+.mgr-krm-initiatives { display: flex; flex-direction: column; gap: 6px; }
+.mgr-krm-initiative { display: flex; flex-direction: column; gap: 2px; }
+.mgr-krm-initiative-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; font-size: 14px; font-weight: 700; line-height: 20px; color: var(--text-secondary); }
+.mgr-krm-initiative-row > :last-child { font-weight: 600; flex-shrink: 0; }
+.mgr-krm-bar { margin: 6px 0; height: 12px; background: var(--bg-secondary); border-radius: 4px; overflow: hidden; }
+.mgr-krm-bar-fill { height: 12px; border-radius: 4px; background: var(--utility-success-200); }
+/* 스니핏 · 액션 아이템 · Jira 셈 — 위아래 12, 칸 사이 2, 칸마다 오른쪽 1px 선(마지막 제외). 값 12/600 · 이름 12/400 */
+.mgr-krm-stats { display: flex; gap: 2px; padding: 12px 0; }
+.mgr-krm-stat { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; text-align: center; }
+.mgr-krm-stat:not(:last-child) { border-right: 1px solid var(--border-secondary); }
+.mgr-krm-stat b { font-size: 12px; font-weight: 600; line-height: 18px; letter-spacing: -0.01em; color: var(--text-primary); }
+.mgr-krm-stat span { font-size: 12px; font-weight: 400; line-height: 18px; color: var(--text-secondary); }
+.mgr-krm-alert { padding: 6px 8px; border-radius: 8px; background: var(--bg-error-primary); font-size: 12px; font-weight: 500; line-height: 18px; color: var(--utility-error-700); }
 
 /* 차트 온디맨드 (PW-93 · policy §7-6)
-   비선택 카드의 정적 대체 표현 · 로딩 스켈레톤 · 차트 실패 폴백.
+   로딩 스켈레톤 · 차트 실패 폴백. 비선택 카드는 시안(17026:24830)대로 머리줄만 그린다.
    상태 클래스는 요소 자신에 붙인다 — 부모(.is-selected) 스코프로 쓰면 카드를 다른
    목록에 재사용할 때 표시가 통째로 사라진다. */
-/* 한 줄 요약은 같은 카드의 디자이너 줄 모양을 따른다 — 줄은 Initiative 이름 줄(.mgr-krm-initiative-row),
-   오른쪽 안내는 캡션(.mgr-krm-caption) 값 그대로 (stesslee 1984d53c). 점선 상자는 개발이 지은 것이라 걷었다. */
-.mgr-krm-static { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 13px; font-weight: 600; color: var(--text-secondary); }
-.mgr-krm-static-summary { min-width: 0; }
-.mgr-krm-static-hint { font-size: 12px; font-weight: 600; color: var(--text-tertiary); white-space: nowrap; }
 .mgr-krm-empty { font-size: 12px; font-weight: 500; color: var(--text-tertiary); }
 
 /* 자리 표시는 공용 `Skeleton`(src/loading.css · PW-1010). 스켈레톤/에러는 실제 추이 차트와 같은 자리·높이를 차지해 선택 전환 시 레이아웃이 튀지 않는다. */
-.mgr-kr-trend-error { grid-column: 2; grid-row: 4; margin-top: 22px; min-height: 110px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border: 1px dashed var(--border-secondary); border-radius: 12px; }
+.mgr-kr-trend-error { min-height: 128px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border: 1px dashed var(--border-secondary); border-radius: 12px; }
 .mgr-kr-trend-error-text { font-size: 13px; font-weight: 500; color: var(--text-tertiary); }
 /* [다시 시도] 는 공용 보조 작은 버튼(Button variant="secondary" size="sm") — 클래스 이름은 찾는 데만 남긴다. */
 /* 빈 상태 — 이 KR 에 팀원 없음은 매니저 화면군의 빈 안내(.manager-modal-empty, stesslee c4d2e402),
    팀 KR 자체가 없어 탭이 통째로 빈 때는 매니저 탭 자리 안내(.manager-tab-placeholder, stesslee 60b1ece6) 값 그대로. */
-.mgr-kr-empty { width: 100%; padding: 60px 0; text-align: center; font-family: var(--font-family-body); font-weight: 500; font-size: var(--font-size-text-sm); color: var(--text-tertiary); }
-.mgr-kr-empty.is-tab { padding: 120px 0; font-size: 14px; font-weight: 600; }
+.mgr-kr-empty { width: 100%; margin-top: 40px; padding: 60px 0; text-align: center; font-family: var(--font-family-body); font-weight: 500; font-size: var(--font-size-text-sm); color: var(--text-tertiary); }
+.mgr-kr-empty.is-tab { margin-top: 0; padding: 120px 0; font-size: 14px; font-weight: 600; }
 
 /* 기여 상세 패널 */
 /* 스크롤 시 sticky 헤더(탭+팀원 메타) 아래에 고정 */
-.mgr-krd-panel { flex: 1; min-width: 0; position: sticky; top: 128px; padding: 32px; border-radius: 14px; background: var(--bg-quaternary); box-shadow: 0 1px 3px rgba(10, 13, 18, 0.1), 0 1px 2px rgba(10, 13, 18, 0.1); display: flex; flex-direction: column; gap: 24px; }
+.mgr-krd-panel { flex: 1; min-width: 0; position: sticky; top: 128px; padding: 32px; border-radius: 14px; background: var(--bg-quaternary); display: flex; flex-direction: column; gap: 24px; }
 .mgr-krd-head { display: flex; align-items: center; gap: 12px; }
-.mgr-krd-avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.mgr-krd-avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; flex-shrink: 0; box-sizing: border-box; border: 1px solid var(--alpha-black-10); }
 .mgr-krd-title-wrap { flex: 1; min-width: 0; }
 .mgr-krd-title { font-size: 18px; font-weight: 700; line-height: 28px; color: var(--text-primary); }
-.mgr-krd-role { font-size: 13px; font-weight: 500; line-height: 18px; color: var(--text-tertiary); }
-.mgr-krd-percent { font-size: 30px; font-weight: 700; line-height: 44px; color: var(--fg-primary); }
-.mgr-krd-list { display: flex; flex-direction: column; }
+.mgr-krd-role { font-size: 12px; font-weight: 400; line-height: 18px; color: var(--text-secondary); }
+.mgr-krd-percent { font-size: 36px; font-weight: 600; line-height: 44px; letter-spacing: -0.02em; color: var(--text-secondary); }
+.mgr-krd-list { display: flex; flex-direction: column; gap: 8px; }
 /* 스니핏·액션·Jira 탭 — 공용 Tabs(PW-836). 공용 줄의 위·왼쪽 여백은 패널 간격이 대신한다. */
 .tl-tabs-row.mgr-krd-tabs-row { margin: 0; }
 .mgr-krd-snippet { display: flex; flex-direction: column; gap: 8px; padding: 24px 0; border-bottom: 1px solid var(--border-secondary); }
+.mgr-krd-snippet:first-child { padding-top: 0; }
 .mgr-krd-snippet:last-child { border-bottom: none; }
 .mgr-krd-date { font-size: 12px; font-weight: 600; color: var(--text-tertiary); }
 .mgr-krd-text { font-size: 16px; font-weight: 500; line-height: 24px; color: var(--text-primary); }
 .mgr-krd-tags { display: flex; gap: 6px; }
-.mgr-krd-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--border-secondary); border-radius: 8px; margin-bottom: 8px; }
-.mgr-krd-key { font-size: 12px; font-weight: 700; color: var(--text-tertiary); white-space: nowrap; }
-.mgr-krd-row-title { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 액션·Jira 줄 — 높이 38(1px 선 안쪽 7/13), 사이 12. 키 12/500 gray-700 · 제목 14/600 text-secondary(좌우 2) · 딱지 */
+.mgr-krd-row { display: flex; align-items: center; gap: 12px; padding: 7px 13px; border: 1px solid var(--border-secondary); border-radius: 8px; }
+.mgr-krd-key { font-size: 12px; font-weight: 500; line-height: 18px; color: var(--utility-gray-700); white-space: nowrap; }
+.mgr-krd-row-title { flex: 1; min-width: 0; padding: 0 2px; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mgr-krd-due { font-size: 12px; font-weight: 500; color: var(--text-tertiary); white-space: nowrap; }
 
-/* ══ 팀 스니핏 탭 (Figma 17026:25297 / 17421:18420·19479·20057) ══ */
-.mgr-ts { display: flex; flex-direction: column; gap: 16px; padding: 0; }
+/* ══ 팀 스니핏 탭 (Figma 17026:25297 / 17421:18420·19479·20057) ══
+   2026-10-27 — 날짜별 시안(17026:25297) 개정분 반영: 줄 사이 20, 팀원·헬스 줄 32(안쪽 4/16, 아바타 24), 피드 그림자 없음,
+   날짜별·KR별 탭은 공용 Tabs 기본 모양(16/500, 밑줄 2px 미끄러짐)으로 반반. */
+.mgr-ts { display: flex; flex-direction: column; gap: 20px; padding: 0; }
 
 /* 필터 칩 행 — 기간은 세그먼트 컨트롤, 레드 플래그는 흰 원형 카운트 배지 */
 /* 컨트롤 바 — Figma 17421:18448 (세그먼트 p4 g2, 레드 플래그 p8x14 + 에러 필 카운트) */
 .mgr-ts-chips { display: flex; align-items: center; gap: 6px; }
 .mgr-ts-chip.is-redflag { display: flex; align-items: center; gap: 4px; padding: 8px 14px; background: var(--alpha-black-3); border: none; border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-secondary); cursor: pointer; }
-.mgr-ts-chip.is-redflag b { display: inline-flex; align-items: center; justify-content: center; padding: 2px 8px; border-radius: 999px; background: var(--utility-error-50); border: 1px solid var(--utility-error-200); font-size: 12px; font-weight: 500; line-height: 18px; color: var(--utility-error-700); }
+.mgr-ts-chip.is-redflag b { display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--utility-error-50); border: 1px solid var(--utility-error-200); font-size: 12px; font-weight: 500; line-height: 18px; color: var(--utility-error-700); }
 .mgr-ts-chip.is-redflag.is-active { background: var(--bg-tertiary); }
 
 /* 제출 현황 */
-.mgr-ts-submit { display: flex; flex-direction: column; gap: 2px; }
+.mgr-ts-submit { display: flex; flex-direction: column; gap: 7px; }
 .mgr-ts-submit-label { font-size: 14px; font-weight: 700; line-height: 20px; color: var(--text-secondary); }
-.mgr-ts-submit-count { font-size: 36px; font-weight: 700; line-height: 44px; color: var(--text-primary); }
+.mgr-ts-submit-count { font-size: 36px; font-weight: 700; line-height: 44px; letter-spacing: -0.02em; color: var(--text-primary); }
 
 .mgr-ts-body { display: flex; gap: 10px; align-items: flex-start; }
 
 /* ── 좌측 사이드바 ── */
 .mgr-ts-side { width: 370px; flex-shrink: 0; display: flex; flex-direction: column; gap: 10px; position: sticky; top: 128px; }
-.mgr-ts-roster { background: var(--alpha-black-3); border-radius: 8px; padding: 4px; display: flex; flex-direction: column; }
-.mgr-ts-roster-row.is-all { min-height: 52px; }
-.mgr-ts-roster-row { display: flex; align-items: center; gap: 12px; padding: 16px; border-radius: 6px; cursor: pointer; }
-.mgr-ts-roster-row.is-selected { background: var(--fg-light); border: 0.5px solid var(--fg-quaternary); box-shadow: 0 4px 6px -1px rgba(10, 13, 18, 0.08), 0 2px 4px -2px rgba(10, 13, 18, 0.06); }
-.mgr-ts-roster-row img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 0.75px solid var(--border-secondary-alt); }
+/* 팀원 목록 — 트랙 alpha-black-3 r8 안쪽 4, 줄 사이 4. 줄은 안쪽 4/16(전체 28 · 팀원 32), 고른 줄만 흰 바탕(bg-quaternary) + 0.5px 안쪽 선 + shadow-md */
+.mgr-ts-roster { background: var(--alpha-black-3); border-radius: 8px; padding: 4px; display: flex; flex-direction: column; gap: 4px; }
+.mgr-ts-roster-row { display: flex; align-items: center; gap: 12px; padding: 4px 16px; border-radius: 6px; cursor: pointer; }
+.mgr-ts-roster-row.is-all { min-height: 28px; box-sizing: border-box; }  /* 아바타가 없어 글자 줄(20)만 — 28 */
+.mgr-ts-roster-row.is-selected { background: var(--bg-quaternary); box-shadow: inset 0 0 0 0.5px var(--fg-quaternary), var(--shadows-shadow-md); }
+.mgr-ts-roster-row img { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; box-sizing: border-box; border: 0.5px solid var(--alpha-black-10); }
 .mgr-ts-roster-name { flex: 1; font-size: 14px; font-weight: 700; line-height: 20px; color: var(--text-primary); }
-.mgr-ts-roster-status { display: flex; align-items: center; gap: 8px; }
+.mgr-ts-roster-status { display: flex; align-items: center; gap: 12px; }
 
-.mgr-ts-health { background: transparent; border: 1px solid var(--border-primary); border-radius: 8px; padding: 8px 4px; display: flex; flex-direction: column; }
-.mgr-ts-health-head { padding: 12px 16px 8px; font-size: 14px; font-weight: 700; line-height: 20px; color: var(--text-secondary); }
-.mgr-ts-health-row { display: flex; align-items: center; gap: 12px; padding: 16px; }
-.mgr-ts-health-row img { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 0.5px solid var(--border-secondary-alt); }
+/* 이번 주 헬스 — 1px 선 카드 r8, 안쪽 8/4, 줄 사이 4. 머리 안쪽 4/16/8, 줄 안쪽 4/16(32) */
+.mgr-ts-health { background: transparent; border: 1px solid var(--border-primary); border-radius: 8px; padding: 7px 3px; display: flex; flex-direction: column; gap: 4px; }
+.mgr-ts-health-head { padding: 4px 16px 8px; font-size: 14px; font-weight: 700; line-height: 20px; color: var(--text-secondary); }
+.mgr-ts-health-row { display: flex; align-items: center; gap: 12px; padding: 4px 16px; }
+.mgr-ts-health-row img { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; box-sizing: border-box; border: 0.5px solid var(--alpha-black-10); }
 .mgr-ts-health-name { flex: 1; font-size: 14px; font-weight: 700; color: var(--text-primary); }
 .mgr-ts-dots { display: flex; gap: 4px; }
 .mgr-ts-dot { width: 12px; height: 12px; border-radius: 4px; display: inline-block; box-sizing: border-box; }
@@ -1396,28 +1414,27 @@
 .mgr-ts-dot.is-warn { background: var(--fg-warning-secondary); }
 .mgr-ts-dot.is-bad { background: var(--fg-error-primary); }
 .mgr-ts-dot.is-empty { background: transparent; border: 1px solid var(--border-secondary); }
-.mgr-ts-health-divider { height: 1px; background: var(--border-secondary); margin: 0 -4px; }
-.mgr-ts-health-legend { display: flex; gap: 9px; padding: 16px; font-size: 12px; font-weight: 400; color: var(--text-tertiary); }
+.mgr-ts-health-divider { height: 1px; background: var(--border-secondary); margin: 0 0 -1px; }  /* 시안의 0높이 선 — 카드 286 */
+.mgr-ts-health-legend { display: flex; gap: 9px; padding: 16px; font-size: 12px; font-weight: 400; line-height: 18px; color: var(--text-tertiary); }
 .mgr-ts-health-legend span { display: inline-flex; align-items: center; gap: 7px; }
 .mgr-ts-health-legend .mgr-ts-dot { width: 8px; height: 8px; border-radius: 4px; }
 
-.mgr-ts-ai { background: var(--utility-purple-100); border-radius: 8px; padding: 16px 24px; min-height: 100px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; gap: 8px; }
-.mgr-ts-ai-label { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; letter-spacing: -0.01em; color: var(--utility-purple-500); }
+.mgr-ts-ai { background: var(--utility-purple-100); border-radius: 8px; padding: 16px 24px; min-height: 100px; box-sizing: border-box; display: flex; flex-direction: column; justify-content: flex-start; gap: 2px; }
+/* 라벨 글자는 시안의 보라 그라데이션(Gradient/Linear/61) — 토큰 보라 500→400→300 으로 놓는다. 아이콘은 보라 500 */
+.mgr-ts-ai-label { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; line-height: 18px; letter-spacing: -0.01em; color: var(--utility-purple-500); }
+.mgr-ts-ai-label > span { background: linear-gradient(95deg, var(--utility-purple-500) 0%, var(--utility-purple-400) 60%, var(--utility-purple-300) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .mgr-ts-ai-text { font-size: 14px; font-weight: 500; line-height: 24px; color: var(--utility-purple-500); }
 
 /* ── 우측 피드 ── */
-.mgr-ts-feed { flex: 1; min-width: 0; background: var(--bg-quaternary); border-radius: 14px; box-shadow: 0 1px 3px rgba(10, 13, 18, 0.08); padding: 32px; display: flex; flex-direction: column; gap: 24px; }
+.mgr-ts-feed { flex: 1; min-width: 0; background: var(--bg-quaternary); border-radius: 14px; padding: 32px; display: flex; flex-direction: column; gap: 24px; }
 
 /* 필터 바 — Figma 17421:19533 (칩 radius 8, brand-100/error-100 배경, 12 Medium) */
-/* 날짜별·KR별 — 부품은 공용 Tabs(PW-836) 그대로 두고, 모양은 디자이너가 이 피드에 그린 반반 탭
-   (.mgr-ts-feed-tab, stesslee f7899248·b7eb7caa — PW-836 이 공용 16px 밑줄 탭으로 바꾸기 전 값)으로 되돌린다.
-   두 칸이 폭을 반씩 나누고 칸마다 2px 밑줄, 선택된 칸만 진한 밑줄. 미끄러지는 밑줄은 이 모양에 없어 숨긴다. */
-.tl-tabs-row.mgr-ts-feed-tabs-row { margin: 0; height: auto; border-bottom: none; }
-.mgr-ts-feed-tabs-row .tl-tabs { flex: 1; gap: 0; }
+/* 날짜별·KR별 — 공용 Tabs(PW-836) 기본 모양 그대로(36 · 16/500 · 밑줄 2px). 시안(17026:25297)은 두 칸이 폭을 반씩
+   나누고(사이 12) 고른 칸 아래만 밑줄이라, 칸 폭만 반반으로 늘린다. 공용 줄의 위 여백은 패널 간격이 대신한다. */
+.tl-tabs-row.mgr-ts-feed-tabs-row { margin: 0; }
+.mgr-ts-feed-tabs-row .tl-tabs { flex: 1; }
 .mgr-ts-feed-tabs-row .tl-tabs > .dp-tip-wrap { flex: 1; display: flex; }  /* 공용 Tabs 가 버튼마다 두르는 감싸개 */
-.mgr-ts-feed-tabs-row .tl-tab { flex: 1; height: auto; text-align: center; padding: 0 0 12px; font-size: 14px; font-weight: 600; line-height: inherit; color: var(--text-tertiary); border-bottom: 2px solid var(--border-secondary); }
-.mgr-ts-feed-tabs-row .tl-tab.is-active { color: var(--text-primary); border-bottom-color: var(--fg-primary); }
-.mgr-ts-feed-tabs-row .tl-tabs-indicator { display: none; }
+.mgr-ts-feed-tabs-row .tl-tab { flex: 1; }
 .mgr-ts-filterbar { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; line-height: 18px; color: var(--text-secondary); }
 .mgr-ts-filterbar-count { color: var(--text-tertiary); }
 
@@ -1426,7 +1443,7 @@
 .mgr-ts-date { display: flex; align-items: center; gap: 8px; font-size: 14px; line-height: 20px; font-weight: 600; color: var(--text-primary); }
 .mgr-ts-card { border-bottom: 0.5px solid var(--border-primary); padding: 24px 0; display: flex; flex-direction: column; gap: 16px; }
 .mgr-ts-card-head { display: flex; align-items: center; gap: 12px; }
-.mgr-ts-card-head img { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; }
+.mgr-ts-card-head img { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; box-sizing: border-box; border: 1px solid var(--alpha-black-10); }
 .mgr-ts-card-who { flex: 1; min-width: 0; }
 .mgr-ts-card-name { font-size: 18px; font-weight: 700; line-height: 28px; color: var(--text-primary); }
 .mgr-ts-card-role { font-size: 12px; font-weight: 400; line-height: 18px; color: var(--text-secondary); }
@@ -1434,25 +1451,28 @@
 .mgr-ts-card-when { flex: 1; min-width: 0; text-align: left; }
 .mgr-ts-card-time { font-size: 18px; font-weight: 500; line-height: 28px; color: var(--text-primary); }
 .mgr-ts-card-submit { font-size: 12px; font-weight: 400; line-height: 18px; color: var(--text-secondary); }
-.mgr-ts-score { min-width: 34px; box-sizing: border-box; text-align: center; padding: 4px 10px; border-radius: 10px; font-size: 14px; font-weight: 500; line-height: 24px; }
+.mgr-ts-score { min-width: 34px; box-sizing: border-box; text-align: center; padding: 3px 9px; border-radius: 10px; font-size: 14px; font-weight: 500; line-height: 24px; }
 .mgr-ts-score.is-good { background: var(--utility-success-50); border: 1px solid var(--utility-success-200); color: var(--utility-success-700); }
 .mgr-ts-score.is-warn { background: var(--utility-warning-50); border: 1px solid var(--utility-warning-200); color: var(--utility-warning-700); }
 .mgr-ts-score.is-bad { background: var(--utility-error-50); border: 1px solid var(--utility-error-200); color: var(--utility-error-700); }
 .mgr-ts-warning { padding: 6px 8px; border-radius: 8px; background: var(--bg-error-primary); font-size: 12px; font-weight: 500; line-height: 18px; color: var(--utility-error-700); }
+/* 본문 + 태그는 한 덩이(사이 8) — 머리줄·기여 KR 과는 카드 간격 16 */
+.mgr-ts-card-body { display: flex; flex-direction: column; gap: 8px; }
 .mgr-ts-card-text { font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-secondary); }
 .mgr-ts-tags { display: flex; gap: 8px; }
-.mgr-ts-kr { display: flex; flex-direction: column; gap: 6px; padding-top: 4px; }
+.mgr-ts-kr { display: flex; flex-direction: column; gap: 6px; }
+.mgr-ts-kr > .mgr-ts-kr-track { margin-top: 2px; }  /* 라벨→줄 6 · 줄→바 8 */
 .mgr-ts-kr-label { font-size: 12px; font-weight: 400; line-height: 18px; color: var(--text-secondary); }
-.mgr-ts-kr-row { display: flex; align-items: center; justify-content: space-between; font-size: 14px; }
+.mgr-ts-kr-row { display: flex; align-items: flex-start; justify-content: space-between; font-size: 14px; }
 .mgr-ts-kr-name { font-weight: 600; line-height: 20px; color: var(--text-secondary); }
 .mgr-ts-kr-okr { font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-tertiary); }
-.mgr-ts-kr-okr b { font-family: 'SUIT', var(--font-family-body); font-weight: 800; line-height: 24px; color: var(--text-brand-tertiary); margin-left: 12px; }
+.mgr-ts-kr-okr b { font-family: 'SUIT', var(--font-family-body); font-size: 16px; font-weight: 800; line-height: 24px; color: var(--text-brand-tertiary); margin-left: 12px; }
 .mgr-ts-kr-track { height: 12px; background: var(--bg-secondary); border-radius: 4px; }
 .mgr-ts-kr-fill { height: 12px; border-radius: 4px; }
 .mgr-ts-kr-fill.is-good { background: var(--utility-success-200); }
 .mgr-ts-kr-fill.is-blue { background: var(--utility-blue-200); }
 .mgr-ts-kr-fill.is-bad { background: var(--utility-error-200); }
-.mgr-ts-oneonone { align-self: flex-end; box-sizing: border-box; min-width: 127px; padding: 8px 14px; background: var(--bg-quaternary); border: 1px solid var(--border-secondary); border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-secondary); cursor: pointer; }
+.mgr-ts-oneonone { align-self: flex-end; box-sizing: border-box; min-width: 127px; padding: 7px 13px; background: var(--bg-quaternary); border: 1px solid var(--border-secondary); border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-secondary); cursor: pointer; }
 
 /* KR별 — Figma 17421:18469 (그룹 py24·헤더↔리스트 32·헤더 내부 12·행 간 8) */
 .mgr-ts-krgroup { display: flex; flex-direction: column; gap: 32px; padding: 24px 0; }
@@ -1495,18 +1515,18 @@
    위계는 트랙 배경(브랜드 틴트)과 선택 칩 좌측 액센트 바로 낸다. */
 /* 2026-10-25 — 디자이너 KR 칩 줄(.mgr-kr-cards·.mgr-kr-card, stesslee 1984d53c) 값 그대로 맞췄다:
    트랙 배경·칩 여백·진척률 색. 요약 줄은 같은 탭의 캡션(.mgr-kr-contrib-caption, stesslee 60b1ece6). */
-.mgr-kr-obj-summary { font-size: 12px; font-weight: 600; color: var(--text-tertiary); }
-.mgr-kr-obj-track { display: flex; padding: 4px; background: var(--alpha-black-3); border-radius: 12px; }
+.mgr-kr-obj-summary { margin-top: 6px; font-size: 12px; font-weight: 600; color: var(--text-tertiary); }
+.mgr-kr-obj-track { display: flex; margin-top: 6px; padding: 4px; background: var(--alpha-black-3); border-radius: 8px; }
 .mgr-kr-obj-track.is-wrap { flex-wrap: wrap; gap: 4px; }
 .mgr-kr-obj-chip {
-  flex: 1 1 0; min-width: 0; padding: 4px 8px; border: none; border-radius: 10px;
+  flex: 1 1 0; min-width: 0; padding: 4px 8px; border: none; border-radius: 6px;
   background: transparent; cursor: pointer;
   display: flex; flex-direction: column; gap: 4px; text-align: left; font: inherit;
 }
 .mgr-kr-obj-track.is-wrap .mgr-kr-obj-chip { flex: 0 0 calc(25% - 3px); }
 .mgr-kr-obj-chip.is-selected {
   background: var(--bg-quaternary);
-  box-shadow: 0 2px 6px rgba(10, 13, 18, 0.1), 0 1px 2px rgba(10, 13, 18, 0.06);
+  box-shadow: inset 0 0 0 0.5px var(--fg-quaternary), var(--shadows-shadow-md);
 }
 .mgr-kr-obj-head { display: flex; align-items: center; justify-content: space-between; padding: 2px 0; }
 .mgr-kr-obj-id { font-size: 12px; font-weight: 600; color: var(--text-tertiary); }
@@ -1520,9 +1540,9 @@
 
 /* Initiative 진행률 바 — 상태별 색 (policy §7-3 · PW-604).
    status 가 안 오면 클래스가 안 붙어 종전 단색 그대로다. */
-/* 2026-10-25 — 완료는 디자이너 바 기본색(.mgr-krm-bar-fill, stesslee 1984d53c), 진행 중은 같은 탭 기여 막대의
+/* 2026-10-27 — 완료는 디자이너 바 기본색(.mgr-krm-bar-fill, Figma 17026:24830 success-200), 진행 중은 같은 탭 기여 막대의
    파랑(.mgr-kr-seg.is-blue, stesslee 60b1ece6) 값 그대로. 할 일 회색은 디자이너 원본이 없어 그대로 둔다. */
-.mgr-krm-bar-fill.is-done { background: var(--utility-success-400); }
+.mgr-krm-bar-fill.is-done { background: var(--utility-success-200); }
 .mgr-krm-bar-fill.is-in_progress { background: var(--utility-blue-400); }
 .mgr-krm-bar-fill.is-todo { background: var(--componentColors-utility-gray-utilityGray400); }
 

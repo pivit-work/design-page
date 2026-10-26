@@ -4,14 +4,16 @@ import Skeleton from '../shared/Skeleton.jsx';
  * Figma 17026:23299.
  *
  * member: { id, name, role, percent, avatar,
- *   initiatives: [{ title, percent, status }], initiativeCount?, initiativeAvg?,
+ *   initiatives: [{ title, percent, status }],
  *   initiativesLoading?, stats: { snippets, actions, jira }, alert? }
- * 선택된 카드만 흰 배경, 나머지는 회색 dim.
+ * 선택된 카드만 흰 배경 + 상세, 나머지는 회색 바탕에 머리줄만.
  *
  * 2026-08-13 PW-93 — 차트 온디맨드 렌더링 (policy §7-6 / §7-3).
  *   Initiative 진행률 바는 **선택된 카드 1세트만** 마운트한다. 팀원이 20명이면
  *   예전엔 카드 20개가 각자 바를 그려 마운트가 누적됐다.
- *   비선택 카드는 바 대신 "Initiative n건 · 평균 m%" 정적 요약 한 줄만 그린다.
+ *
+ * 2026-10-27 — 시안 17026:24830 개정분. 비선택 카드는 **머리줄(아바타·이름·역할·%)만** 그린다.
+ *   Initiative 요약·셈·경고는 고른 카드에서만 보인다. 종전 「Initiative n건 · 평균 m%」 요약 줄은 뺐다.
  *
  * 2026-09-07 PW-604 — Initiative 바를 **상태별 색**으로 그린다 (policy §7-3).
  *   done 초록 · in_progress 파랑 · todo 회색. `status` 가 안 오면 종전 단색 그대로다.
@@ -22,30 +24,14 @@ const INITIATIVE_STATUSES = ['todo', 'in_progress', 'done'];
 
 const DEFAULT_LABELS = {
   initiativeCaption: '개인 Initiative 진행률',
-  initiativeSummary: (count, avg) => `Initiative ${count}건 · 평균 ${avg}%`,
-  initiativeHint: '클릭 시 차트 표시',
   initiativeEmpty: '등록된 initiative가 없습니다.',
   statSnippets: '스니핏',
   statActions: '액션 아이템',
   statJira: 'Jira',
 };
 
-/** 비선택 카드의 요약값. 소비자가 안 주면 initiatives 배열에서 유도한다. */
-function summarize(member) {
-  const list = member.initiatives ?? [];
-  const count = member.initiativeCount ?? list.length;
-  if (count === 0) return { count: 0, avg: 0 };
-  const avg = member.initiativeAvg ?? (
-    list.length > 0
-      ? Math.round(list.reduce((sum, it) => sum + (it.percent ?? 0), 0) / list.length)
-      : 0
-  );
-  return { count, avg };
-}
-
 export default function KrMemberCard({ member, selected = false, onClick, labels }) {
   const l = { ...DEFAULT_LABELS, ...labels };
-  const { count, avg } = summarize(member);
   const initiatives = member.initiatives ?? [];
 
   return (
@@ -59,73 +45,68 @@ export default function KrMemberCard({ member, selected = false, onClick, labels
         <span className="mgr-krm-percent">{member.percent}%</span>
       </div>
 
-      {selected ? (
+      {selected && (
         <>
-          <p className="mgr-krm-caption">{l.initiativeCaption}</p>
-          {member.initiativesLoading ? (
-            <div className="mgr-krm-initiatives" data-testid="kr-initiatives-skeleton">
-              {[0, 1].map((i) => (
-                <div className="mgr-krm-initiative" key={i}>
-                  <div className="mgr-krm-initiative-row">
-                    <Skeleton inline width={96} height={13} radius={4} />
-                    <Skeleton inline width={28} height={13} radius={4} />
-                  </div>
-                  <div className="mgr-krm-bar" />
-                </div>
-              ))}
-            </div>
-          ) : initiatives.length > 0 ? (
-            <div className="mgr-krm-initiatives" data-testid="kr-initiative-chart">
-              {initiatives.map((item) => {
-                // 모르는 값이 오면 색을 지어내지 않고 기본(단색)으로 둔다.
-                const tone = INITIATIVE_STATUSES.includes(item.status) ? item.status : null;
-                return (
-                  <div className="mgr-krm-initiative" key={item.title}>
+          <div className="mgr-krm-block">
+            <p className="mgr-krm-caption">{l.initiativeCaption}</p>
+            {member.initiativesLoading ? (
+              <div className="mgr-krm-initiatives" data-testid="kr-initiatives-skeleton">
+                {[0, 1].map((i) => (
+                  <div className="mgr-krm-initiative" key={i}>
                     <div className="mgr-krm-initiative-row">
-                      <span>{item.title}</span>
-                      <span>{item.percent}%</span>
+                      <Skeleton inline width={96} height={14} radius={4} />
+                      <Skeleton inline width={28} height={14} radius={4} />
                     </div>
-                    <div className="mgr-krm-bar">
-                      <div
-                        className={`mgr-krm-bar-fill${tone ? ` is-${tone}` : ''}`}
-                        data-status={tone ?? undefined}
-                        style={{ width: `${item.percent}%` }}
-                      />
-                    </div>
+                    <div className="mgr-krm-bar" />
                   </div>
-                );
-              })}
+                ))}
+              </div>
+            ) : initiatives.length > 0 ? (
+              <div className="mgr-krm-initiatives" data-testid="kr-initiative-chart">
+                {initiatives.map((item) => {
+                  // 모르는 값이 오면 색을 지어내지 않고 기본(단색)으로 둔다.
+                  const tone = INITIATIVE_STATUSES.includes(item.status) ? item.status : null;
+                  return (
+                    <div className="mgr-krm-initiative" key={item.title}>
+                      <div className="mgr-krm-initiative-row">
+                        <span>{item.title}</span>
+                        <span>{item.percent}%</span>
+                      </div>
+                      <div className="mgr-krm-bar">
+                        <div
+                          className={`mgr-krm-bar-fill${tone ? ` is-${tone}` : ''}`}
+                          data-status={tone ?? undefined}
+                          style={{ width: `${item.percent}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="mgr-krm-empty">{l.initiativeEmpty}</p>
+            )}
+          </div>
+
+          <div className="mgr-krm-stats">
+            <div className="mgr-krm-stat">
+              <b>{member.stats.snippets}</b>
+              <span>{l.statSnippets}</span>
             </div>
-          ) : (
-            <p className="mgr-krm-empty">{l.initiativeEmpty}</p>
+            <div className="mgr-krm-stat">
+              <b>{member.stats.actions}</b>
+              <span>{l.statActions}</span>
+            </div>
+            <div className="mgr-krm-stat">
+              <b>{member.stats.jira}</b>
+              <span>{l.statJira}</span>
+            </div>
+          </div>
+
+          {member.alert && (
+            <div className="mgr-krm-alert">⚠ {member.alert}</div>
           )}
         </>
-      ) : count > 0 ? (
-        <div className="mgr-krm-static" data-testid="kr-initiative-static">
-          <span className="mgr-krm-static-summary">{l.initiativeSummary(count, avg)}</span>
-          <span className="mgr-krm-static-hint">{l.initiativeHint}</span>
-        </div>
-      ) : (
-        <p className="mgr-krm-empty">{l.initiativeEmpty}</p>
-      )}
-
-      <div className="mgr-krm-stats">
-        <div className="mgr-krm-stat">
-          <b>{member.stats.snippets}</b>
-          <span>{l.statSnippets}</span>
-        </div>
-        <div className="mgr-krm-stat">
-          <b>{member.stats.actions}</b>
-          <span>{l.statActions}</span>
-        </div>
-        <div className="mgr-krm-stat">
-          <b>{member.stats.jira}</b>
-          <span>{l.statJira}</span>
-        </div>
-      </div>
-
-      {member.alert && (
-        <div className="mgr-krm-alert">▲ {member.alert}</div>
       )}
     </div>
   );

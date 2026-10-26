@@ -4,6 +4,7 @@ import KrMemberCard from './KrMemberCard.jsx';
 import KrContributionDetail from './KrContributionDetail.jsx';
 import Skeleton from '../shared/Skeleton.jsx';
 import Button from '../shared/Button.jsx';
+import { CheckGlyph } from '../shared/lineIcons.jsx';
 
 /**
  * KrDrilldown — 매니저 KR 드릴다운 탭 본문.
@@ -28,6 +29,9 @@ import Button from '../shared/Button.jsx';
  *   · 로딩 중에는 차트와 같은 높이의 스켈레톤, 실패 시 인라인 에러 + [다시 시도].
  *     숫자·진행 바는 실패해도 그대로 보인다.
  *
+ * 2026-10-27 — 시안 17026:24830 개정분. 상태는 체크 아이콘(10) + 글자, Key Result 아래는 설명·진행 바 / 달성도 추이
+ *   두 단(각 1fr) 으로 나란히, 비선택 팀원 카드는 머리줄만 보인다 (KrMemberCard 참조).
+ *
  * 2026-09-07 PW-604 — Objective 축 (policy §7-1-A).
  *   · `data.objectives` 가 **2개 이상**이면 KR 칩 줄 위에 Objective 칩 줄을 한 단 더 그린다.
  *     칩 = `O{n}` · 제목 · **`KR {k}개` 배지** · 진척률. 그 배지가 「분류」를 드러내는 장치라
@@ -50,6 +54,16 @@ const DEFAULT_LABELS = {
   objectiveSummary: (count, krCount) => `Objective ${count}개 · KR ${krCount}개`,
   krCountBadge: (count) => `KR ${count}개`,
 };
+
+/** 상태 표시 — 체크 아이콘 10 + 글자. 색은 tone(success·warning·error·muted)이 정한다. */
+function KrStatus({ status }) {
+  return (
+    <span className={`mgr-kr-status is-${status.tone}`}>
+      <CheckGlyph size={10} />
+      {status.label}
+    </span>
+  );
+}
 
 export default function KrDrilldown({
   data,
@@ -158,62 +172,68 @@ export default function KrDrilldown({
               </div>
               <div className="mgr-kr-card-title-row">
                 <p className="mgr-kr-card-title">{kr.title}</p>
-                <span className={`mgr-kr-status is-${kr.status.tone}`}>✓ {kr.status.label}</span>
+                <KrStatus status={kr.status} />
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Key Result 히어로 — grid 로 서브텍스트와 '달성도 추이' 라벨을 같은 행에 정렬 (시안 y=421) */}
+      {/* Key Result 히어로 — 눈썹·제목 아래 두 단: 왼쪽 설명 + 진행 바, 오른쪽 달성도 추이 (시안 y=421) */}
       <div className="mgr-kr-hero">
         <p className="mgr-kr-eyebrow">
           Key Result
-          <span className={`mgr-kr-status is-${selectedKr.status.tone}`}>✓ {selectedKr.status.label}</span>
+          <KrStatus status={selectedKr.status} />
         </p>
         <h2 className="mgr-kr-title">{selectedKr.title} ･ {selectedKr.percent}%</h2>
-        <p className="mgr-kr-subtitle">{detail.subtitle}</p>
-        <p className="mgr-kr-trend-label">{l.trendLabel}</p>
-        {/* 진행 바는 차트가 아니라 숫자 표현이라 로드 실패에도 계속 보인다 (§7-6 실패 처리) */}
-        <div className="mgr-kr-progress">
-          <div className="mgr-kr-progress-track">
-            <div className="mgr-kr-progress-fill" style={{ width: `${selectedKr.percent}%` }} />
-          </div>
-          <div className="mgr-kr-progress-labels">
-            <span>0%</span>
-            <span>{l.goal}</span>
-          </div>
-        </div>
-        {detail.loading ? (
-          <div className="mgr-kr-trend-bars" data-testid="kr-trend-skeleton">
-            {[0, 1, 2, 3, 4].map((i) => (
-              <div className="mgr-kr-trend-col" key={i}>
-                <Skeleton inline width={28} height={13} radius={4} />
-                <Skeleton height={40} radius={8} />
-                <Skeleton inline width={28} height={13} radius={4} />
+        <div className="mgr-kr-hero-cols">
+          <div className="mgr-kr-hero-col">
+            <p className="mgr-kr-subtitle">{detail.subtitle}</p>
+            {/* 진행 바는 차트가 아니라 숫자 표현이라 로드 실패에도 계속 보인다 (§7-6 실패 처리) */}
+            <div className="mgr-kr-progress">
+              <div className="mgr-kr-progress-track">
+                <div className="mgr-kr-progress-fill" style={{ width: `${selectedKr.percent}%` }} />
               </div>
-            ))}
+              <div className="mgr-kr-progress-labels">
+                <span>0%</span>
+                <span>{l.goal}</span>
+              </div>
+            </div>
           </div>
-        ) : detail.error ? (
-          <div className="mgr-kr-trend-error" data-testid="kr-trend-error" role="alert">
-            <span className="mgr-kr-trend-error-text">{l.chartError}</span>
-            {onRetryDetail && (
-              <Button variant="secondary" size="sm" onClick={onRetryDetail}>
-                {l.retry}
-              </Button>
+          <div className="mgr-kr-hero-col">
+            <p className="mgr-kr-trend-label">{l.trendLabel}</p>
+            {detail.loading ? (
+              <div className="mgr-kr-trend-bars" data-testid="kr-trend-skeleton">
+                {[0, 1, 2, 3, 4].map((i) => (
+                  <div className="mgr-kr-trend-col" key={i}>
+                    <Skeleton inline width={28} height={18} radius={4} />
+                    <Skeleton height={40} radius={8} />
+                    <Skeleton inline width={28} height={18} radius={4} />
+                  </div>
+                ))}
+              </div>
+            ) : detail.error ? (
+              <div className="mgr-kr-trend-error" data-testid="kr-trend-error" role="alert">
+                <span className="mgr-kr-trend-error-text">{l.chartError}</span>
+                {onRetryDetail && (
+                  <Button variant="secondary" size="sm" onClick={onRetryDetail}>
+                    {l.retry}
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="mgr-kr-trend-bars" data-testid="kr-trend-chart">
+                {trend.map((point) => (
+                  <div className="mgr-kr-trend-col" key={point.label}>
+                    <span className="mgr-kr-trend-value">{point.value}%</span>
+                    <div className="mgr-kr-trend-bar" style={{ height: `${Math.max((point.value / maxTrend) * 76, 8)}px` }} />
+                    <span className="mgr-kr-trend-date">{point.label}</span>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
-        ) : (
-          <div className="mgr-kr-trend-bars" data-testid="kr-trend-chart">
-            {trend.map((point) => (
-              <div className="mgr-kr-trend-col" key={point.label}>
-                <span className="mgr-kr-trend-value">{point.value}%</span>
-                <div className="mgr-kr-trend-bar" style={{ height: `${Math.max((point.value / maxTrend) * 76, 8)}px` }} />
-                <span className="mgr-kr-trend-date">{point.label}</span>
-              </div>
-            ))}
-          </div>
-        )}
+        </div>
       </div>
 
       {/* 팀원별 기여 — 기여도 합계 StackBar 는 차트 라이브러리를 안 쓰는 정적 바라 항상 1개 */}

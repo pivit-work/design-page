@@ -95,7 +95,12 @@ export function ShareBar({ rows, allotted, colorOf, height = 12 }) {
           const over = Math.max(0, Math.min(r.share, cumulative[i] - SQUAD_BASE));
           const c = colorOf(r.userId);
           return (
-            <Tooltip key={r.userId} content={L('squad.tip.memberSummary', { name: r.label, share: r.share, capacity: `${r.pct}%` })}>
+            <Tooltip
+              key={r.userId}
+              color={c}
+              size="lg"
+              content={L('squad.tip.segment', { name: r.label, share: r.share, capacity: `${r.pct}%` })}
+            >
             <div
               className="sq-share-seg"
               style={{ width: `${pc(r.share)}%` }}

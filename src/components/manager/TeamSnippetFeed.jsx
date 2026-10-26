@@ -139,9 +139,11 @@ export default function TeamSnippetFeed({ byDate, byKr, memberFilter, memberFilt
                   <ScoreChip score={item.score} tone={item.tone} />
                 </div>
                 {item.warning && <div className="mgr-ts-warning">⚠ {item.warning}</div>}
-                <p className="mgr-ts-card-text">{item.text}</p>
-                <div className="mgr-ts-tags">
-                  {item.tags.map((tag) => <StatusBadge key={tag} className="mgr-ts-tag">#{tag}</StatusBadge>)}
+                <div className="mgr-ts-card-body">
+                  <p className="mgr-ts-card-text">{item.text}</p>
+                  <div className="mgr-ts-tags">
+                    {item.tags.map((tag) => <StatusBadge key={tag} className="mgr-ts-tag">#{tag}</StatusBadge>)}
+                  </div>
                 </div>
                 {item.kr && (
                   <div className="mgr-ts-kr">
