@@ -125,7 +125,8 @@ function GrantRow({ row, scope, L, today, onToggle, onExpiryChange }) {
         display: 'flex',
         alignItems: 'center',
         gap: 12,
-        padding: '10px 16px',
+        // 좌우는 같은 카드의 머리·안내·검색 칸(18)과 맞춘다 — 아바타와 제목의 왼쪽 끝이 한 줄에 선다.
+        padding: '10px 18px',
         borderBottom: `1px solid ${DP.borderT}`,
       }}
     >
