@@ -210,7 +210,9 @@ export const ORGCHART_LABELS = {
   'squad.card.noMembers': '배정된 팀원이 없습니다',
   'squad.card.addCaption': '이 스쿼드의 구성은 리드·관리자가 정합니다',
   'squad.card.searchMember': '팀원 검색',
-  'squad.card.searchPlaceholder': '이름 · 팀 · 직함 검색…',
+  'squad.card.searchPlaceholder': '이름 · 팀 · 직함으로 검색해주세요',
+  'squad.card.addCancel': '취소',
+  'squad.card.addConfirm': '추가',
   'squad.card.noCandidates': '추가할 수 있는 구성원이 없습니다',
   'squad.card.noCandidatesOutOfScope': '추가할 수 있는 구성원이 없습니다 (내 조직 범위 밖)',
   'squad.card.addMember': '팀원 추가',
@@ -296,7 +298,7 @@ export const ORGCHART_LABELS = {
 
   // ── 스쿼드: 배정 편집 창 ──
   'squad.pop.desc': '분모가 다른 두 값을 따로 정합니다 · 리드 지정 (스쿼드당 1명)',
-  'squad.pop.shareAxis': '① 스쿼드 내 비중',
+  'squad.pop.shareAxis': '스쿼드 내 비중',
   'squad.pop.shareBasis': '이 스쿼드 100 기준',
   'squad.pop.shareOwnerLead': '· 리드인 내가 정하는 값',
   'squad.pop.shareOwnerProxy': '· 리드 대신 조정',
@@ -307,7 +309,7 @@ export const ORGCHART_LABELS = {
   'squad.pop.otherMembers': '다른 팀원',
   'squad.pop.divider': '두 값은 연동되지 않습니다',
   'squad.pop.dividerDesc': '비중을 바꿔도 아래 캐파 사용은 바뀌지 않으니 따로 정하세요.',
-  'squad.pop.capacityAxis': '② 개인 캐파 사용',
+  'squad.pop.capacityAxis': '개인 캐파 사용',
   'squad.pop.capacityBasis': '내 캐파 100 기준',
   'squad.pop.capacityOwnerSelf': '· 내가 정하는 값',
   'squad.pop.capacityOwnerOther': '· 본인만 정하는 값',

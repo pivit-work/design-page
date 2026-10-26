@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState } from 'react';
 import {
   SNIPPET_COLORS,
   WEEKDAY_LABELS,
@@ -9,7 +9,13 @@ import useTimelineData from './useTimelineData.js';
 
 // 주말(일/토) 컬럼은 그대로 보여주되 이벤트만 비움.
 const COL_COUNT = 7;
+// 처음 보이는 주 수 — 한 화면이 6주(시안의 월 달력). 줄 높이는 이 값으로 화면을 나눠 정한다.
 const ROW_COUNT = 6;
+// 끝없이 잇는 단위 — 한 번에 붙이는 주 수 · 한 번에 들고 있는 최대 주 수(넘치면 반대쪽을 버린다)
+const WEEK_CHUNK = 6;
+const WEEK_MAX = 60;
+// 줄 하나의 최소 높이 — 122 = CELL_FIXED_H(44) + 2 events × EVENT_STEP(30) + MORE_RESERVED(18)
+const ROW_MIN_H = 122;
 
 // 셀 내부 레이아웃 상수 — ResizeObserver 로 측정된 cell height 에서
 // 몇 개의 이벤트 pill 을 보여줄 수 있을지 역산하는 데 사용.
@@ -28,32 +34,34 @@ const MORE_RESERVED = 18;
 // 의 minmax 를 122px 이상으로 설정해 수용 공간을 보장한다 (timeline.css).
 const MIN_VISIBLE = 2;
 
-// 선택된 달의 첫 주 일요일부터 6주(42일) 분량의 Date 배열.
-// 이전/다음 달 날짜까지 포함해서 그리드가 항상 7×6 으로 고정.
-function buildMonthGrid(date) {
-  const year = date.getFullYear();
-  const month = date.getMonth();
-  const firstOfMonth = new Date(year, month, 1);
-  const startWeekday = firstOfMonth.getDay(); // 0 = Sun
-  const gridStart = new Date(firstOfMonth);
-  gridStart.setDate(firstOfMonth.getDate() - startWeekday);
-  return Array.from(
-    { length: ROW_COUNT * COL_COUNT },
-    (_, i) => {
-      const d = new Date(gridStart);
-      d.setDate(gridStart.getDate() + i);
-      return d;
-    }
-  );
+const addDays = (date, n) => {
+  const d = new Date(date);
+  d.setDate(d.getDate() + n);
+  return d;
+};
+
+// 선택된 달의 첫 주 일요일 — 끝없는 주 목록은 여기서 시작한다(처음 화면이 종전 6주 달력과 같다).
+function gridStartOf(date) {
+  const firstOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+  return addDays(firstOfMonth, -firstOfMonth.getDay()); // 0 = Sun
+}
+
+// `start`(일요일)부터 `weeks` 주 분량의 Date 배열 — 7 × weeks.
+function buildWeeks(start, weeks) {
+  return Array.from({ length: weeks * COL_COUNT }, (_, i) => addDays(start, i));
 }
 
 /**
- * CalendarMonthView — 캘린더 탭의 월별 그리드.
+ * CalendarMonthView — 캘린더 탭의 월 그리드. **주 단위로 끝없이 이어진다**(2026-10-25).
  *
- * - 7 column × 6 row + sticky 요일 header, 가로/세로 모두 1fr 로 fill
- * - 각 셀: day number(+ 1일은 "X월 Y일"), 이벤트 pill 최대 2개, "+N more..."
- * - 오늘 날짜는 녹색 원형 배경 하이라이트
- * - 현재 달이 아닌 날짜는 text-disabled 로 dim
+ * - 7 column × 주 목록 + sticky 요일 header. 줄 높이는 「칸 높이 ÷ 6」(최소 122)로 못 박아
+ *   처음 화면이 종전 6주 달력과 같고, 아래로 밀면 다음 주들이 붙고 위로 밀면 앞 주들이 붙는다
+ *   (앞에 붙일 때는 스크롤 위치를 그만큼 내려 화면이 튀지 않는다). 들고 있는 주가 WEEK_MAX 를
+ *   넘으면 반대쪽 끝을 버린다. 스크롤바는 그리지 않는다(timeline.css).
+ * - 각 셀: day number(+ 1일은 "X월 Y일"), 이벤트 pill 최대 N개, "+N more..."
+ * - 오늘 날짜는 녹색 원형 배경 하이라이트. 달이 이어져 보이므로 「이번 달 밖」 흐림은 두지 않는다 —
+ *   달의 경계는 1일의 「X월 1일」 라벨이 말한다.
+ * - 날짜(selectedDate)가 바뀌면 그 달의 첫 주로 돌아가 맨 위부터 다시 그린다.
  * - "+N more..." 클릭 시 onMoreClick(iso, events, cellRect) 호출 — 상위에서
  *   일별 이벤트 팝오버(DayEventsPopover)를 연다.
  */
@@ -68,30 +76,69 @@ export default function CalendarMonthView({
   onEventHoverEnd,
 }) {
   const { getEventsForDate } = useTimelineData();
-  const cells = buildMonthGrid(selectedDate);
-  const currentMonth = selectedDate.getMonth();
 
-  // 그리드 전체 높이를 측정해 각 셀(=grid/6)에 몇 개의 이벤트 pill 이
-  // 들어갈 수 있는지 런타임에 계산. 창 높이가 늘어나면 3, 4 ... 로 증가.
+  // 주 목록의 창 — 선택한 달의 첫 주부터 `weeks` 주. 날짜(달)가 바뀌면 처음으로 돌아간다.
+  const monthKey = `${selectedDate.getFullYear()}-${selectedDate.getMonth()}`;
+  const [range, setRange] = useState(() => ({ start: gridStartOf(selectedDate), weeks: ROW_COUNT }));
+  // 달이 바뀌면 그리는 중에 창을 처음으로 돌린다(React 의 「props 에서 state 를 다시 셈」 방식)
+  const [rangeMonth, setRangeMonth] = useState(monthKey);
+  if (rangeMonth !== monthKey) {
+    setRangeMonth(monthKey);
+    setRange({ start: gridStartOf(selectedDate), weeks: ROW_COUNT });
+  }
   const gridRef = useRef(null);
-  const [maxVisible, setMaxVisible] = useState(MIN_VISIBLE);
+  // 앞에 붙인 주 수 — 그려진 뒤 스크롤을 그만큼 내려 보이는 자리를 지킨다
+  const prepended = useRef(0);
+  useLayoutEffect(() => {
+    if (gridRef.current) gridRef.current.scrollTop = 0;
+  }, [monthKey]);
+
+  // 줄 높이 = 칸 높이 ÷ 6 (최소 122). 창이 커지면 줄도 커지고 칸에 들어가는 pill 도 3, 4 … 로 는다.
+  const [rowH, setRowH] = useState(ROW_MIN_H);
+  const maxVisible = Math.max(MIN_VISIBLE, Math.floor((rowH - CELL_FIXED_H - MORE_RESERVED) / EVENT_STEP));
   useLayoutEffect(() => {
     const grid = gridRef.current;
     if (!grid) return;
     const compute = () => {
-      const cellH = grid.clientHeight / ROW_COUNT;
-      const availForEvents = cellH - CELL_FIXED_H;
-      const n = Math.floor((availForEvents - MORE_RESERVED) / EVENT_STEP);
-      setMaxVisible((prev) => {
-        const next = Math.max(MIN_VISIBLE, n);
-        return prev === next ? prev : next;
-      });
+      const next = Math.max(ROW_MIN_H, Math.floor(grid.clientHeight / ROW_COUNT));
+      setRowH((prev) => (prev === next ? prev : next));
+      // 화면보다 주가 모자라면(아주 높은 창) 아래로 더 붙인다
+      const needed = Math.ceil(grid.clientHeight / next) + 1;
+      setRange((r) => (r.weeks < needed ? { ...r, weeks: needed + WEEK_CHUNK } : r));
     };
     compute();
     const ro = new ResizeObserver(compute);
     ro.observe(grid);
     return () => ro.disconnect();
   }, []);
+
+  // 앞에 주를 붙인 직후 — 그만큼 스크롤을 내려 화면이 튀지 않게 한다
+  useLayoutEffect(() => {
+    if (!prepended.current || !gridRef.current) return;
+    gridRef.current.scrollTop += prepended.current * rowH;
+    prepended.current = 0;
+  }, [range, rowH]);
+
+  // 끝에 가까워지면 주를 더 붙인다. 너무 많아지면 반대쪽 끝을 버린다(버린 만큼 스크롤 보정).
+  const handleScroll = useCallback(() => {
+    const grid = gridRef.current;
+    if (!grid) return;
+    const nearTop = grid.scrollTop < rowH * 2;
+    const nearBottom = grid.scrollTop + grid.clientHeight > grid.scrollHeight - rowH * 2;
+    if (!nearTop && !nearBottom) return;
+    setRange((r) => {
+      if (nearBottom) {
+        const trim = r.weeks + WEEK_CHUNK > WEEK_MAX ? WEEK_CHUNK : 0;
+        if (trim) grid.scrollTop -= trim * rowH;
+        return { start: addDays(r.start, trim * COL_COUNT), weeks: r.weeks + WEEK_CHUNK - trim };
+      }
+      prepended.current += WEEK_CHUNK;
+      const trim = r.weeks + WEEK_CHUNK > WEEK_MAX ? WEEK_CHUNK : 0;
+      return { start: addDays(r.start, -WEEK_CHUNK * COL_COUNT), weeks: r.weeks + WEEK_CHUNK - trim };
+    });
+  }, [rowH]);
+
+  const cells = buildWeeks(range.start, range.weeks);
 
 
   return (
@@ -103,11 +150,11 @@ export default function CalendarMonthView({
           </div>
         ))}
       </div>
-      <div className="tl-cal-grid" ref={gridRef}>
-        {cells.map((d, i) => {
+      {/* 줄 높이는 데이터(칸 높이)에서 온 값이라 인라인 변수로 넘긴다 */}
+      <div className="tl-cal-grid" ref={gridRef} onScroll={handleScroll} style={{ '--tl-cal-row': `${rowH}px` }}>
+        {cells.map((d) => {
           const iso = formatIsoDate(d);
           const isToday = iso === (now ? formatIsoDate(now()) : TODAY_STR);
-          const isCurrentMonth = d.getMonth() === currentMonth;
           // 주말 칸도 일정을 그대로 보인다(PW-1063). 예전엔 토·일 칸을 비워, 같은 일정이
           // 주 보기엔 있고 월 보기엔 없었다.
           const events = getEventsForDate(iso);
@@ -119,10 +166,7 @@ export default function CalendarMonthView({
               ? `${d.getMonth() + 1}월 ${d.getDate()}일`
               : String(d.getDate());
           return (
-            <div
-              key={i}
-              className={`tl-cal-cell ${isCurrentMonth ? '' : 'is-outside'}`}
-            >
+            <div key={iso} className="tl-cal-cell">
               <div className="tl-cal-day-head">
                 <span
                   className={`tl-cal-day-num ${isToday ? 'is-today' : ''}`}

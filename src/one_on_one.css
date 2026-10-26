@@ -541,14 +541,15 @@
   height: 20px;
 }
 
-/* 넓혀 본 상태 — 평소와 구별돼야 한다(policy P-Q3). 시안(Figma 17753:21186, 2026-10-24)은 경고색 대신
-   bg-primary-hover 바탕 + 브랜드 포커스 링(2px 바탕색 + 4px focus-ring)으로 「골라져 있음」을 알린다.
+/* 넓혀 본 상태 — 평소와 구별돼야 한다(policy P-Q3). 시안(Figma 17753:21186, 2026-10-25)은 경고색 대신
+   연한 브랜드 바탕(bg-brand-primary) + 브랜드 포커스 링(2px 바탕색 + 4px focus-ring)으로 「골라져 있음」을 알린다 —
+   조직도 리스트 탭의 「팀별 보기」(org_list.css .ol-filter.is-selected)와 같은 모양이다.
    열려 있거나 포커스가 와도 같은 링이 보인다(공용 .tl-select 의 안쪽 1px 링은 여기서 덮는다). */
 .ono-filter.is-widened .tl-select-trigger,
 .ono-filter.is-widened .tl-select.is-open .tl-select-trigger,
 .ono-filter.is-widened .tl-select-trigger:focus-visible {
   border-color: transparent;
-  background: var(--bg-primary-hover);
+  background: var(--bg-brand-primary);
   color: var(--text-secondary);
   box-shadow: 0 0 0 2px var(--bg-primary), 0 0 0 4px var(--focus-ring);
 }

@@ -22,8 +22,11 @@ import {
   CloseGlyph,
   EyeGlyph,
   LockGlyph,
-  PencilGlyph,
+  PencilSolidGlyph,
+  PieChartGlyph,
   PlusGlyph,
+  SearchGlyph,
+  UserGlyph,
   FileTextGlyph,
 } from '../shared/lineIcons.jsx';
 
@@ -115,9 +118,24 @@ export function CheckIcon({ size = 12 }) {
   return <CheckGlyph size={size} style={ICON_STYLE} />;
 }
 
-/** ✏️ 할당 편집 토글. */
+/** ✏️ 할당 편집 토글 — 머리 줄 「편집」 버튼(시안 17764:36822 solid_edit-02)이라 칠한 연필. */
 export function EditIcon({ size = 12 }) {
-  return <PencilGlyph size={size} style={ICON_STYLE} />;
+  return <PencilSolidGlyph size={size} style={ICON_STYLE} />;
+}
+
+/** ◔ 「스쿼드 내 비중」 축 머리 — 구성원 창(시안 17765:39353). */
+export function PieChartIcon({ size = 12 }) {
+  return <PieChartGlyph size={size} style={ICON_STYLE} />;
+}
+
+/** 👤 「개인 캐파 사용」 축 머리 — 구성원 창(시안 17765:39459). */
+export function UserIcon({ size = 12 }) {
+  return <UserGlyph size={size} style={ICON_STYLE} />;
+}
+
+/** 🔍 팀원 추가 겹창의 검색 칸(시안 17765:40485 search-md). */
+export function SearchIcon({ size = 12 }) {
+  return <SearchGlyph size={size} style={ICON_STYLE} />;
 }
 
 /** 👁 조회 전용 — 프로젝트 상세 머리 딱지(PW-1428). */

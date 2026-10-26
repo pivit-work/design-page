@@ -14,13 +14,13 @@ import DragPreview from './DragPreview.jsx';
 import useScrollMirror from './hooks/useScrollMirror.js';
 import useHorizontalDragScroll from './hooks/useHorizontalDragScroll.js';
 import useTimelineDnD from './hooks/useTimelineDnD.js';
-import Tabs from '../shared/Tabs.jsx';
+import SegmentedControl from '../shared/SegmentedControl.jsx';
 import StepNavButton, { StepNav } from '../shared/StepNav.jsx';
-import Button from '../shared/Button.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 
+// 보기 고르기 — 툴바 맨 앞 segmented control (Figma 17757:36490). 종전 머리글 탭 줄은 시안에서 빠졌다.
 const TIMELINE_TAB_ITEMS = [
-  { value: 'gantt', label: '간트' },
+  { value: 'gantt', label: '간트 차트' },
   { value: 'calendar', label: '캘린더' },
 ];
 
@@ -556,61 +556,16 @@ export default function TimelineCanvas({
       getEventsForDate={wrappedGetEventsForDate}
     >
     <main className="tl-page">
-      <div className="tl-page-header">
-        <div className="tl-page-title-wrap">
-          <h1 className="tl-page-title">Timeline</h1>
-          {activeProjectCountError ? (
-            <div className="tl-page-meta" role="alert" data-testid="tl-project-count-error">
-              <span className="tl-meta-label">진행 중 프로젝트</span>
-              <span className="tl-meta-sep">·</span>
-              <span className="tl-meta-error">{activeProjectCountErrorLabel}</span>
-              {onActiveProjectCountRetry && (
-                <Button variant="ghost" size="sm" onClick={() => onActiveProjectCountRetry()}>
-                  {activeProjectCountRetryLabel}
-                </Button>
-              )}
-            </div>
-          ) : activeProjectCount !== null && (
-            <div className="tl-page-meta">
-              <span className="tl-meta-label">진행 중 프로젝트</span>
-              <span className="tl-meta-sep">·</span>
-              <span className="tl-meta-count">{activeProjectCount}개</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Tab row (간트 / 캘린더) + GCal status */}
-      <div className="tl-tabs-row">
-        <Tabs
+      {/* 툴바(Figma 17757:36488) — 시안 2차(17757:35821)에서 머리글(제목·진행 중 프로젝트)·탭 줄·구글 캘린더 상태가
+          빠지고 이 줄이 첫 줄이 됐다. 왼쪽: 보기 고르기 · 날짜 · ‹ 오늘 › · (주/월) · 필터, 오른쪽: 이벤트 추가 · 스니핏 작성 */}
+      <div className="tl-toolbar">
+        <div className="tl-toolbar-left">
+        <SegmentedControl
           items={TIMELINE_TAB_ITEMS}
           value={currentTab}
           onChange={changeTab}
+          ariaLabel="타임라인 보기"
         />
-        <div
-          className={`tl-gcal-status ${gcalConnected ? '' : 'is-disconnected'}`}
-          data-testid="tl-gcal-status"
-        >
-          <Icon src="/icons-solid/calendar-check-02.svg" size={14} color="var(--colors-foreground-fgTertiary)" baseUrl={baseUrl} />
-          <span>
-            {gcalStatusLabel ??
-              (gcalConnected
-                ? gcalReauthRequired
-                  ? 'Google Calendar 재인증 필요'
-                  : 'Google Calendar 연동 중'
-                : 'Google Calendar 미연동')}
-          </span>
-          {gcalConnected && !gcalReauthRequired && (
-            <Icon src="/icons-solid/check-circle.svg" size={14} color="#2dbd82" baseUrl={baseUrl} />
-          )}
-          {gcalConnected && gcalReauthRequired && (
-            <Icon src="/icons-solid/alert-triangle.svg" size={14} color="var(--colors-warning-600)" baseUrl={baseUrl} />
-          )}
-        </div>
-      </div>
-
-      {/* Toolbar row — date picker, date nav, 캘린더 탭 보기 단위(주/월), filter */}
-      <div className="tl-toolbar">
         <button
           ref={dateBtnRef}
           type="button"
@@ -666,8 +621,9 @@ export default function TimelineCanvas({
           </button>
         )}
 
-        <div className="tl-toolbar-spacer" />
+        </div>
 
+        <div className="tl-toolbar-right">
         {isGantt && (
           <button
             type="button"
@@ -687,7 +643,7 @@ export default function TimelineCanvas({
               disabled={headerSnippetDisabled}
               onClick={() => handleSnippetCreate(selectedIsoDate)}
             >
-              <Icon src="/icons-solid/file-06.svg" size={20} color="#fff" baseUrl={baseUrl} />
+              <Icon src="/icons-solid/pencil-01.svg" size={20} color="#fff" baseUrl={baseUrl} />
               <span>스니핏 작성</span>
             </button>
           </Tooltip>
@@ -709,6 +665,7 @@ export default function TimelineCanvas({
             <span>스니핏 수정 승인 요청 완료</span>
           </div>
         )}
+        </div>
       </div>
 
       {/* Body — 캘린더 탭이면 monthly grid, 간트 탭이면 기존 name col + grid */}

@@ -20,14 +20,18 @@
      (flex:1 + min-height:0 조합이 일부 레이아웃에서 의도대로 shrink 되지
      않는 문제를 우회) */
   display: grid;
-  grid-template-rows: auto auto auto minmax(0, 1fr);
-  /* 시안(16621:1627 · 전 화면 공통 간격): 머리 줄 72 아래에서 시작 · 왼쪽 메뉴 판 바로 옆(왼쪽 0) · 오른쪽 32 */
+  grid-template-rows: auto minmax(0, 1fr);
+  /* 전 화면 공통 간격 — 머리 줄 72 아래에서 시작 · 왼쪽 메뉴 판 바로 옆(왼쪽 0) · 오른쪽 32.
+     이 틀은 스니핏·리포트 화면도 쓴다 — 타임라인만의 값은 아래 .app[data-page="timeline"] 규칙에. */
   padding: 72px 32px 20px 0;
   font-family: var(--font-family-body);
   background: var(--bg-primary);
   box-sizing: border-box;
   overflow: hidden;
 }
+/* 타임라인 시안 2차(17757:35821): 이 화면에는 상단 머리 줄이 없다(App.css 에서 숨긴다) — 툴바가 맨 위
+   (위 24 는 툴바 안쪽 여백) · 아래 22. 같은 틀을 쓰는 스니핏·리포트는 위 72 그대로다. */
+.app[data-page="timeline"] .tl-page { padding: 0 32px 22px 0; }
 
 /* Page header — Figma 16621:1843: 위 8 · 왼쪽 0 · 블록 높이 77(80 → 157). 아래 여백 5 는 안내 줄의 글줄
    높이(16)가 시안의 글자 높이(10)보다 커서 블록 높이를 맞추려 뺀 것이다. */
@@ -174,15 +178,25 @@
    상태는 디자이너 짜임대로 글(「미연동」「재인증 필요」)과 오른쪽 아이콘(연동 중 = 초록 체크,
    재인증 = 경고 삼각형)으로만 가른다 — 라벨 색을 따로 바꾸는 모양은 디자이너 것이 아니다. */
 
-/* Toolbar — Figma frameParent5: gap 16, no internal vertical padding
-   margin-top 8: gap from tabs (Figma y=213→y=221) */
+/* Toolbar — Figma 17757:36488: 위아래 24, 왼쪽 묶음(gap 16) · 오른쪽 묶음(gap 8) 양끝 정렬. 높이 36 → 본문은 y 84 */
 .tl-toolbar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 16px;
-  margin: 8px 0 0 0;
-  padding: 0;
+  margin: 0;
+  padding: 24px 0;
   flex-shrink: 0;
+}
+.tl-toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.tl-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* Segmented control — 일/주/월 선택 (useSegmentedIndicator 가 width/left 계산) */
@@ -319,10 +333,6 @@
   flex: 1;
 }
 
-.tl-toolbar-spacer {
-  flex: 1;
-}
-
 /* + 이벤트 추가 — Figma .buttons10: padding 8 12, radius 8, semibold, bg-brand-solid */
 .tl-add-event {
   display: flex;
@@ -402,7 +412,7 @@
   border: 1px solid var(--border-secondary-alt);
   border-radius: 16px;
   overflow: hidden;
-  margin: 8px 0 0 0;
+  margin: 0;
 }
 
 /* ---------- Left column (fixed) ---------- */
@@ -1547,10 +1557,9 @@
 .tl-cal {
   flex: 1 1 0;
   min-width: 0;
-  /* 부모 flex slot 을 채우는 기본(100%)을 유지하되, 뷰포트가 작아도 6 행 ×
-     minmax(122px) 셀이 잘리지 않도록 최소 높이 920px 를 보장. */
+  /* 카드를 꽉 채운다 — 주가 끝없이 이어지므로(CalendarMonthView) 스크롤은 아래 .tl-cal-grid 가 맡는다. */
   height: 100%;
-  min-height: 920px;
+  min-height: 0;
   display: grid;
   grid-template-rows: 40px minmax(0, 1fr);
   width: 100%;
@@ -1583,14 +1592,15 @@
 .tl-cal-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  /* 122px = CELL_FIXED_H(44) + 2 events × EVENT_STEP(30) + MORE_RESERVED(18).
-     디자이너 요구 "셀마다 최소 2 이벤트 + +N more" 를 작은 뷰포트에서도
-     보장. minmax(0, 1fr) 만 두면 행이 0 으로 축소되어 overflow:hidden 이
-     이벤트/더보기를 잘랐음. */
-  grid-template-rows: repeat(6, minmax(122px, 1fr));
+  /* 줄 높이는 CalendarMonthView 가 「칸 높이 ÷ 6」(최소 122 = CELL_FIXED_H 44 + 2 events × 30 + MORE 18)로
+     재서 --tl-cal-row 로 준다 — 처음 화면은 6주, 그 뒤로 같은 높이의 주가 끝없이 이어진다. */
+  grid-auto-rows: var(--tl-cal-row, 122px);
   min-height: 0;
   overflow-y: auto;
+  /* 스크롤바는 그리지 않는다 — 달력은 휠·트랙패드로만 민다 */
+  scrollbar-width: none;
 }
+.tl-cal-grid::-webkit-scrollbar { display: none; }
 
 .tl-cal-cell {
   position: relative;
@@ -1635,10 +1645,6 @@
   color: var(--colors-text-textSecondary);
   border-radius: 9999px;
   box-sizing: border-box;
-}
-
-.tl-cal-cell.is-outside .tl-cal-day-num {
-  color: var(--colors-text-textDisabled);
 }
 
 .tl-cal-day-num.is-today {

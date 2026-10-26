@@ -61,7 +61,7 @@ import {
   unsetCapacityCount,
 } from './squad-constants.js';
 import {
-  LeadStarIcon, CalendarIcon, WarningIcon, LockIcon,
+  LeadStarIcon, CalendarIcon, WarningIcon, LockIcon, SearchIcon,
   CloseIcon, MoreIcon, ChevronDownIcon, PlusIcon, CheckIcon, EditIcon, LeadTag,
 } from './squadIcons.jsx';
 import { useDismissLayer } from './hooks.js';
@@ -218,13 +218,14 @@ export default function SquadCanvas({
    * 편집 모드에서도 읽기 전용이고 칸 머리에 자물쇠가 선다.
    */
   canLinkProjects = false,
-  /** 드롭다운 맨 아래 「+ 새 프로젝트 만들기」 (어드민 · p062). 거짓이면 그 줄을 그리지 않는다. */
+  /** 받기만 한다 — 「새 프로젝트 만들기」 는 프로젝트 추가 겹창에서 뺐다(2026-10-26 시안 17765:40299).
+      호스트 계약을 깨지 않으려고 이름만 남긴다. */
   canCreateProject = false,
   /** 프로젝트 행을 눌렀을 때 — `(projectId) => void`. 主 지정·✕ 는 여기로 오지 않는다. */
   onOpenProject,
   /** 「선택 N개 추가」 — `(squadId, projectIds) => Promise`. 거절되면 드롭다운 안에 사유를 띄우고 열어 둔다. */
   onLinkProjects,
-  /** 새 프로젝트 만들기 — `(squadId, { name, description }) => Promise`. 거절되면 `error.message` 를 폼에 띄우고 열어 둔다. */
+  /** 받기만 한다 — 위 `canCreateProject` 와 같은 이유. */
   onCreateProject,
   /** 主 지정 — `(projectId, squadId) => Promise`. 실패는 호스트가 `actionError` 로 알린다. */
   onSetPrimarySquad,
@@ -248,6 +249,8 @@ export default function SquadCanvas({
   const [popover, setPopover] = useState(null); // { squadId, userId, x, y }
   const [addTarget, setAddTarget] = useState(null);
   const [addQuery, setAddQuery] = useState('');
+  // 팀원 추가 겹창에서 고른 사람들 — 「추가」 를 눌러야 배정된다(시안 17765:40480: 고르기 → 확인).
+  const [addPicked, setAddPicked] = useState([]);
   const [squadForm, setSquadForm] = useState(null);
   const [localErr, setLocalErr] = useState({});
   const [moreMenu, setMoreMenu] = useState(null);
@@ -318,12 +321,14 @@ export default function SquadCanvas({
   const personOf = useCallback((id) => peopleById.get(id) || null, [peopleById]);
 
   /** 팀원 추가 목록의 사람 아바타 — 검색 후보 행과 추천 행이 같은 모양을 쓴다(§5-5 · 새 부품 없음). */
-  const addItemAvatar = (n) => {
-    const fit = avatarLabelLayout(n.avatar || n.name.slice(0, 2), 24);
+  const addItemAvatar = (n, size = 24) => {
+    const fit = avatarLabelLayout(n.avatar || n.name.slice(0, 2), size);
     return (
       <div
         className={`sq-avatar${fit.lines.length > 1 ? ' is-two-line' : ''}`}
         style={{
+          width: size,
+          height: size,
           fontSize: fit.fontPx,
           ...(n.color
             ? { background: `${n.color}24`, color: n.color }
@@ -360,9 +365,13 @@ export default function SquadCanvas({
   };
 
   /** `[+ 팀원 추가]` 를 연다 — 추천은 이 순간에 한 번 계산한다(§5-5 절대규칙 5). */
+  const closeAddMember = () => { setAddTarget(null); setAddQuery(''); setAddPicked([]); };
+  const togglePick = (id) => setAddPicked((xs) => (xs.includes(id) ? xs.filter((x) => x !== id) : [...xs, id]));
+  const confirmAddMember = (sq) => { addPicked.forEach((id) => assign(sq.id, id)); closeAddMember(); };
   const openAddMember = (sq) => {
     setAddTarget(sq.id);
     setAddQuery('');
+    setAddPicked([]);
     if (onLoadMemberSuggestions && leadOf(sq)) onLoadMemberSuggestions(sq.id);
   };
 
@@ -457,6 +466,8 @@ export default function SquadCanvas({
   // 라이프사이클 관리이기 때문이다(§2).
   const ledgerReady = canManageLedger && !!onCreateSquad;
   const isEditing = editMode && canEditAssignments;
+  /* 편집 토글 — 켜고 끌 때 열려 있던 팝오버·추가 대상은 접는다(모드가 바뀌면 그 맥락이 사라진다). */
+  const toggleEditMode = () => { setEditMode((v) => !v); setPopover(null); setAddTarget(null); setProjTarget(null); };
   /** 프로젝트 칸 편집 — 「할당 편집」 이 켜져 있고, 이 스쿼드에 대해 자격이 있을 때 (PW-1428). */
   const canLinkProjectsOf = (squadId) => isEditing
     && (typeof canLinkProjects === 'function' ? !!canLinkProjects(squadId) : !!canLinkProjects);
@@ -465,10 +476,6 @@ export default function SquadCanvas({
     squads.forEach((sq) => (sq.projects || []).forEach((p) => counts.set(p.id, (counts.get(p.id) || 0) + 1)));
     return counts;
   }, [squads]);
-  const projectNames = useMemo(
-    () => new Set(projectOptions.map((p) => String(p.name || '').trim().toLowerCase())),
-    [projectOptions],
-  );
   const editableSet = useMemo(
     () => (editableUserIds === null ? null : new Set(editableUserIds)),
     [editableUserIds],
@@ -807,14 +814,40 @@ export default function SquadCanvas({
               <span className="brand-count">{L('squad.count', { count: squads.length })}</span>
             </div>
           </div>
-          {ledgerReady && !squadForm && (
-            <button
-              type="button" onClick={openSquadForm} data-testid="squad-create-open"
-              className="sq-btn sq-btn-primary sq-btn-lg"
-            >
-              <PlusIcon size={20} /> {L('squad.create')}
-            </button>
-          )}
+          {/* 오른쪽 단추(17764:36828) — 「스쿼드 만들기」 + 「편집」. 머리 줄이 sticky 라 스크롤해도 편집
+              토글이 늘 보인다. 편집 중에는 「편집 완료」 하나만 남긴다 — 만들기까지 보이면 배치 편집과
+              스쿼드 만들기 두 흐름이 한 줄에 섞인다. */}
+          <div className="sq-header-actions">
+            {isEditing ? (
+              <button
+                type="button" data-testid="squad-edit-toggle"
+                className="sq-btn sq-btn-primary sq-btn-lg"
+                onClick={toggleEditMode}
+              >
+                <CheckIcon size={20} /> {L('squad.editDone')}
+              </button>
+            ) : (
+              <>
+                {ledgerReady && !squadForm && (
+                  <button
+                    type="button" onClick={openSquadForm} data-testid="squad-create-open"
+                    className="sq-btn sq-btn-primary sq-btn-lg"
+                  >
+                    <PlusIcon size={20} /> {L('squad.create')}
+                  </button>
+                )}
+                {canEditAssignments && (
+                  <button
+                    type="button" data-testid="squad-edit-toggle"
+                    className="sq-btn sq-btn-secondary sq-btn-lg sq-btn-edit"
+                    onClick={toggleEditMode}
+                  >
+                    <EditIcon size={20} /> {L('squad.editAssign')}
+                  </button>
+                )}
+              </>
+            )}
+          </div>
         </div>
 
         <div className="pj-body">
@@ -841,18 +874,6 @@ export default function SquadCanvas({
                       : L('squad.desc.editLead'))
                   : L('squad.desc.view')}
               </p>
-            </div>
-            <div className="sq-toolbar-actions">
-              {canEditAssignments && (
-                <button
-                  type="button" data-testid="squad-edit-toggle"
-                  className={`sq-btn sq-btn-toggle${editMode ? ' is-on' : ''}`}
-                  onClick={() => { setEditMode((v) => !v); setPopover(null); setAddTarget(null); setProjTarget(null); }}
-                >
-                  {editMode ? <CheckIcon size={20} /> : <EditIcon size={20} />}
-                  {L(editMode ? 'squad.editDone' : 'squad.editAssign')}
-                </button>
-              )}
             </div>
           </div>
 
@@ -1068,7 +1089,10 @@ export default function SquadCanvas({
 
                       <div className="pj-card-info">
                         {/* 종류 딱지는 TF 에만 — 스쿼드가 기본이라 시안(16605:49760)은 이름만 쓴다 */}
-                        <p className="pj-card-name">
+                        <p className="pj-card-name sq-card-name">
+                          {/* 스쿼드 색 네모(시안 17765:40614, 20 · r6) — 신원색의 한 단계 연한 톤(utility-*-400).
+                              신원색은 500 톤이라 80% 로 깔면 400 에 맞는다(배치 표 머리 점은 50% 로 300 톤). */}
+                          <span className="sq-color-box" style={{ background: `${sq.color}cc` }} aria-hidden />
                           {sq.name}
                           {sq.kind === 'tf' && <StatusBadge tone="neutral" className="modal-team-chip" data-testid="squad-kind">{L('squad.form.tf')}</StatusBadge>}
                         </p>
@@ -1119,7 +1143,10 @@ export default function SquadCanvas({
                           <span className="pj-member-count">{L('squad.card.memberCount', { count: members.length })}</span>
                         </div>
                       ) : (
-                        <div>
+                        <div className="sq-members-edit">
+                          {/* 편집 중 팀원 줄(시안 17764:36918) — 흰 알약 칩(사진 32 · 이름 · x)이 4 간격으로
+                              감싸 흐르고, 「팀원 추가」 파선 알약이 같은 줄 끝에 선다. 비중·캐파 숫자는
+                              칩에 적지 않는다 — 위 「진행률」 범례와 말풍선이 들고 있다. */}
                           <div className="sq-chip-row">
                             {members.map((mm) => {
                               const p = personOf(mm.userId);
@@ -1128,18 +1155,13 @@ export default function SquadCanvas({
                                 <StatusBadge as="div"
                                   key={mm.userId}
                                   data-testid={`squad-chip-${sq.id}-${mm.userId}`}
-                                  className={[
-                                    'sq-chip',
-                                    mm.role === 'lead' ? 'is-lead' : '',
-                                    editable ? 'is-clickable' : 'is-locked',
-                                  ].filter(Boolean).join(' ')}
+                                  className={`sq-chip ${editable ? 'is-clickable' : 'is-locked'}`}
+                                  data-lead={mm.role === 'lead' ? 'true' : undefined}
                                   data-squad-popover-anchor="assign"
                                   onClick={(e) => editable && openAssignPopover(sq.id, mm.userId, e, 0, 10)}
                                   title={`${L('squad.tip.memberSummary', { name: nameOf(mm.userId), share: mm.sharePct || 0, capacity: capText(mm) })}${isCapacityIdle(mm) ? `\n${idleHint}` : ''}${editable ? `\n${L('squad.tip.clickEditAll')}` : `\n${lockReason()}`}`}
                                 >
-                                  {mm.role === 'lead' && (
-                                    <span className="sq-lead-mark"><LeadStarIcon size={11} /></span>
-                                  )}
+                                  {personAvatar(p || { name: nameOf(mm.userId) }, 32)}
                                   {/* 이유 문구는 칩 말풍선에 들어 있다 — 점에 따로 달면 말풍선이 둘 뜬다 */}
                                   {isCapacityIdle(mm) && (
                                     <span
@@ -1149,31 +1171,29 @@ export default function SquadCanvas({
                                     />
                                   )}
                                   <span className="sq-chip-name">{nameOf(mm.userId)}</span>
-                                  {/* 칩에도 두 축을 함께 — 비중(강조) + 캐파(괄호).
-                                      한 값만 보이면 나머지를 보는 사람이 추측으로 채운다 */}
-                                  <span
-                                    className="sq-chip-pct"
-                                    style={{ color: p?.color || 'var(--text-tertiary)' }}
-                                  >
-                                    {mm.sharePct || 0}%
-                                  </span>
-                                  <span className="sq-chip-cap">
-                                    {L('squad.card.chipCapacity', { value: isCapacityUnset(mm) ? '—' : mm.allocationPct })}
-                                  </span>
                                   {editable && onRemoveMember && (
                                     <span
                                       className="sq-chip-remove"
                                       onClick={(e) => { e.stopPropagation(); unassign(sq.id, mm.userId); }}
                                       title={L('squad.card.unassign')}
                                     >
-                                      <CloseIcon size={11} />
+                                      <CloseIcon size={14} />
                                     </span>
                                   )}
                                 </StatusBadge>
                               );
                             })}
-                            {members.length === 0 && (
+                            {members.length === 0 && !canAddToSquad(sq.id) && (
                               <span className="sq-chip-empty">{L('squad.card.noMembers')}</span>
+                            )}
+                            {canAddToSquad(sq.id) && (
+                              <button
+                                type="button" data-testid={`squad-add-member-${sq.id}`}
+                                className={`sq-add-member-btn${addTarget === sq.id ? ' is-open' : ''}`}
+                                onClick={() => (addTarget === sq.id ? closeAddMember() : openAddMember(sq))}
+                              >
+                                <PlusIcon size={20} /> {L('squad.card.addMember')}
+                              </button>
                             )}
                           </div>
 
@@ -1181,47 +1201,72 @@ export default function SquadCanvas({
                             /* 정본 :175 — 권한이 없으면 버튼 대신 캡션. 후보가 언제나
                                비는 버튼을 두면 눌러 보고 나서야 못 한다는 걸 안다. */
                             <p className="sq-add-caption">{L('squad.card.addCaption')}</p>
-                          ) : (addTarget === sq.id ? (
-                            <div className="sq-add-wrap">
-                              <input
-                                autoFocus value={addQuery} aria-label={L('squad.card.searchMember')}
-                                className="sq-add-input"
-                                onChange={(e) => setAddQuery(e.target.value)}
-                                onKeyDown={(e) => { if (e.key === 'Escape') { setAddTarget(null); setAddQuery(''); } }}
-                                placeholder={L('squad.card.searchPlaceholder')}
-                              />
-                              <div className={`sq-add-list${onLoadMemberSuggestions ? ' has-suggest' : ''}`}>
-                                {renderSuggestions(sq)}
-                                {candidates.map((n) => (
-                                  <div
-                                    key={n.id} data-testid={`squad-add-candidate-${n.id}`}
-                                    className="sq-add-item"
-                                    onClick={() => { assign(sq.id, n.id); setAddTarget(null); setAddQuery(''); }}
-                                  >
-                                    {addItemAvatar(n)}
-                                    <div>
-                                      <span className="sq-add-name">{n.name}</span>{' '}
-                                      <span className="sq-add-meta">{n.title} · {n.team}</span>
+                          ) : (addTarget === sq.id && (
+                            /* 팀원 추가 겹창(시안 17765:40299) — 카드 전체를 흐린 흰 막(alpha-white-60 + blur 20)으로
+                               덮고 가운데에 제목 · 검색 · 후보 목록 · 취소/추가 를 세운다. 후보를 눌러 고르고(여럿 가능)
+                               「추가」 로 확정한다 — 전처럼 한 번 눌러 바로 배정되지 않는다. 막 바깥(카드 흐린 부분)을
+                               누르거나 Escape 면 닫는다. */
+                            <div
+                              className="sq-add-cover" data-testid={`squad-add-overlay-${sq.id}`}
+                              onClick={(e) => { if (e.target === e.currentTarget) closeAddMember(); }}
+                            >
+                              <div
+                                className="sq-add-dialog" role="group" aria-label={L('squad.card.addMember')}
+                                onKeyDown={(e) => { if (e.key === 'Escape') closeAddMember(); }}
+                              >
+                                <p className="sq-add-title">{L('squad.card.addMember')}</p>
+                                <div className="sq-add-body">
+                                <label className="sq-add-search">
+                                  <SearchIcon size={20} />
+                                  <input
+                                    autoFocus value={addQuery} aria-label={L('squad.card.searchMember')}
+                                    onChange={(e) => setAddQuery(e.target.value)}
+                                    placeholder={L('squad.card.searchPlaceholder')}
+                                  />
+                                </label>
+                                <div className={`sq-add-list${onLoadMemberSuggestions ? ' has-suggest' : ''}`} role="listbox" aria-multiselectable="true">
+                                  {renderSuggestions(sq)}
+                                  {candidates.map((n) => (
+                                    <div
+                                      key={n.id} data-testid={`squad-add-candidate-${n.id}`}
+                                      className={`sq-add-item${addPicked.includes(n.id) ? ' is-picked' : ''}`}
+                                      role="option" aria-selected={addPicked.includes(n.id)}
+                                      onClick={() => togglePick(n.id)}
+                                    >
+                                      {addItemAvatar(n, 32)}
+                                      <div className="sq-add-text">
+                                        <span className="sq-add-name">{n.name}</span>
+                                        <span className="sq-add-meta">{n.title} · {n.team}</span>
+                                      </div>
+                                      {addPicked.includes(n.id) && (
+                                        <span className="sq-add-pick" aria-hidden><CheckIcon size={16} /></span>
+                                      )}
                                     </div>
-                                  </div>
-                                ))}
-                                {candidates.length === 0 && (
-                                  <div className="sq-add-none">
-                                    {/* 사유는 **이 자리에서 실제로 후보를 지운 조건**만 말한다.
-                                        리드에게는 조직 범위가 사유가 아니다(PW-423). */}
-                                    {L(editableSet !== null && !isLeadOf(sq.id) ? 'squad.card.noCandidatesOutOfScope' : 'squad.card.noCandidates')}
-                                  </div>
-                                )}
+                                  ))}
+                                  {candidates.length === 0 && (
+                                    <div className="sq-add-none">
+                                      {/* 사유는 **이 자리에서 실제로 후보를 지운 조건**만 말한다.
+                                          리드에게는 조직 범위가 사유가 아니다(PW-423). */}
+                                      {L(editableSet !== null && !isLeadOf(sq.id) ? 'squad.card.noCandidatesOutOfScope' : 'squad.card.noCandidates')}
+                                    </div>
+                                  )}
+                                </div>
+                                </div>
+                                <div className="sq-add-actions">
+                                  <button type="button" className="sq-btn sq-btn-sm sq-btn-outline" onClick={closeAddMember}>
+                                    {L('squad.card.addCancel')}
+                                  </button>
+                                  <button
+                                    type="button" className="sq-btn sq-btn-sm sq-btn-primary"
+                                    data-testid={`squad-add-confirm-${sq.id}`}
+                                    disabled={addPicked.length === 0}
+                                    onClick={() => confirmAddMember(sq)}
+                                  >
+                                    {L('squad.card.addConfirm')}
+                                  </button>
+                                </div>
                               </div>
                             </div>
-                          ) : (
-                            <button
-                              type="button" data-testid={`squad-add-member-${sq.id}`}
-                              className="sq-btn sq-btn-sm sq-btn-dashed"
-                              onClick={() => openAddMember(sq)}
-                            >
-                              <PlusIcon size={12} /> {L('squad.card.addMember')}
-                            </button>
                           ))}
                         </div>
                       )}
@@ -1234,16 +1279,13 @@ export default function SquadCanvas({
                           candidates={projTarget === sq.id
                             ? projectOptions.filter((p) => !sq.projects.some((x) => x.id === p.id))
                             : []}
-                          existingNames={projectNames}
                           isEditing={isEditing}
                           editable={canLinkProjectsOf(sq.id)}
-                          canCreate={canCreateProject}
                           pickerOpen={projTarget === sq.id}
                           onOpenPicker={() => setProjTarget(sq.id)}
                           onClosePicker={() => setProjTarget(null)}
                           onOpenProject={onOpenProject}
                           onLinkProjects={onLinkProjects}
-                          onCreateProject={onCreateProject}
                           onSetPrimarySquad={onSetPrimarySquad}
                           onUnlinkProject={onUnlinkProject}
                         />
@@ -1494,7 +1536,7 @@ export default function SquadCanvas({
                               className={`sq-cell-add${canAssign ? '' : ' is-locked'}`}
                               onClick={() => canAssign && assign(sq.id, userId)}
                             >
-                              {canAssign && <PlusIcon size={12} />}
+                              {canAssign && <PlusIcon size={14} />}
                             </div>
                           </Tooltip>
                         ) : (
@@ -1557,6 +1599,8 @@ export default function SquadCanvas({
           squad={popSquad}
           assignment={popAssign}
           personName={nameOf(popover.userId)}
+          topBoundarySelector=".sq-header"
+          avatar={personAvatar(personOf(popover.userId) || { name: nameOf(popover.userId) }, 32)}
           othersPct={plannedTotalPct(squads.filter((sq) => sq.id !== popSquad.id), popover.userId)}
           othersShare={(popSquad.members || [])
             .filter((m) => m.userId !== popover.userId)

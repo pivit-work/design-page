@@ -25,7 +25,7 @@ import {
   cumulativePct,
   squadComposition,
 } from './squad-constants.js';
-import { LeadStarIcon, LeadStarOutlineIcon } from './squadIcons.jsx';
+import { PieChartIcon, UserIcon, WarningIcon } from './squadIcons.jsx';
 import AnchoredLayer from '../shared/AnchoredLayer.jsx';
 import { useOrgLabels, squadStatusText } from './orgchart-labels.jsx';
 
@@ -56,7 +56,7 @@ export function CapacityBar({ segments, total, width = 132, height = 8 }) {
                 className="sq-gauge-over"
                 style={{
                   width: `${s.pct ? (overStart / s.pct) * 100 : 0}%`,
-                  background: 'repeating-linear-gradient(135deg, var(--utility-error-300) 0 2px, var(--utility-error-50) 2px 6px)',
+                  background: 'repeating-linear-gradient(135deg, var(--utility-error-500) 0 2px, var(--bg-primary) 2px 4px)',
                 }}
               />
             </div>
@@ -108,7 +108,7 @@ export function ShareBar({ rows, allotted, colorOf, height = 12 }) {
                 className="sq-share-over"
                 style={{
                   width: `${(over / r.share) * 100}%`,
-                  background: 'repeating-linear-gradient(135deg, var(--utility-error-300) 0 2px, var(--utility-error-50) 2px 6px)',
+                  background: 'repeating-linear-gradient(135deg, var(--utility-error-500) 0 2px, var(--bg-primary) 2px 4px)',
                 }}
               />
             </div>
@@ -255,7 +255,7 @@ export function SquadComposition({ squad, members, personOf }) {
  */
 export function SquadAssignPopover({
   pos, anchorSelector = null, anchorRect = null,
-  squad, assignment, personName, othersPct = 0, othersShare = 0, counted = true,
+  squad, assignment, personName, avatar = null, othersPct = 0, othersShare = 0, counted = true,
   canEditShare = true, canEditCapacity = true, isSelf = false,
   /**
    * ③ 배정·해제 — ①과 같은 축이지만 **④(리드 지정)와는 다른 축**이라 따로 받는다.
@@ -268,6 +268,8 @@ export function SquadAssignPopover({
   /** 지금 이 팝오버를 **리드 자격으로** 열었는가 — ① 캡션을 그 자격에 맞춰 말한다. */
   viaLead = false,
   canRequestCapacity = false, capacityRequested = false, onRequestCapacity,
+  /** 위쪽 경계가 되는 요소의 셀렉터 — sticky 머리 줄. 그 아랫변 위로는 팝오버가 올라가지 않는다. */
+  topBoundarySelector = null,
   onSetShare, onSetPct, onToggleLead, onRemove, onClose,
 }) {
   const L = useOrgLabels();
@@ -299,9 +301,13 @@ export function SquadAssignPopover({
     ? { x: pos.x + (live.left - anchorRect.left), y: pos.y + (live.top - anchorRect.top) }
     : pos;
 
-  // 앵커가 뷰포트를 완전히 벗어나면 닫는다 — 보이지 않는 셀의 값을 고치고 있는 상태를
-  // 만들지 않는다. 값은 조작 즉시 저장되므로 닫혀도 잃는 것이 없다.
-  const anchorGone = !!live && (live.bottom <= 0 || live.top >= window.innerHeight);
+  // 위쪽 경계 — sticky 머리 줄(제목·탭)의 아랫변. 머리 줄도 셀렉터로 매번 다시 찾는다(앵커와 같은 이유).
+  const boundaryEl = topBoundarySelector ? document.querySelector(topBoundarySelector) : null;
+  const topLimit = boundaryEl ? Math.max(0, boundaryEl.getBoundingClientRect().bottom) : 0;
+
+  // 앵커가 보이는 영역(머리 줄 아래 ~ 뷰포트 끝)을 완전히 벗어나면 닫는다 — 보이지 않는 셀의
+  // 값을 고치고 있는 상태를 만들지 않는다. 값은 조작 즉시 저장되므로 닫혀도 잃는 것이 없다.
+  const anchorGone = !!live && (live.bottom <= topLimit || live.top >= window.innerHeight);
   const closeRef = useRef(onClose);
   useEffect(() => { closeRef.current = onClose; });
   useEffect(() => { if (anchorGone) closeRef.current(); }, [anchorGone]);
@@ -310,7 +316,7 @@ export function SquadAssignPopover({
   // 세로 배치는 **가용 공간을 재서** 고른다 — 높이를 상수로 가정하면 뷰포트 하단에서
   // ②·액션이 화면 밖으로 밀려나고 스크롤도 걸리지 않는다(§5-3.8 · PW-109).
   // 따라가는 중에도 매번 다시 계산해야 한다 — 안 그러면 따라가다 화면 밖으로 나간다.
-  const vert = assignPopoverVertical(origin.y, window.innerHeight);
+  const vert = assignPopoverVertical(origin.y, window.innerHeight, topLimit);
 
   const sharePct = assignment.sharePct || 0;
   // ① 배분 합계는 **스쿼드 상태와 무관**하다 — 그 스쿼드 안의 사실이기 때문(§5-3.3).
@@ -331,12 +337,15 @@ export function SquadAssignPopover({
         className="sq-pop"
         style={{ position: 'fixed', left: x, ...vert, width: POP_W, zIndex: SQUAD_MENU_Z }}
       >
-        <div className="sq-pop-strip" style={{ background: squad.color }} />
-        {/* 헤더 — 함께 흘려보내지 않는다. 스크롤 중 대상을 잃으면 잘못된 사람의 값을 바꾼다(§5-3.8) */}
+        {/* 헤더(시안 17765:39343) — 사진 32 + 「이름 × 스쿼드」. 함께 흘려보내지 않는다. 스크롤 중
+            대상을 잃으면 잘못된 사람의 값을 바꾼다(§5-3.8) */}
         <div className="sq-pop-head">
-          <p className="sq-pop-title">
-            {personName} <span className="sq-pop-x">×</span> {squad.name}
-          </p>
+          <div className="sq-pop-title-row">
+            {avatar}
+            <p className="sq-pop-title">
+              {personName} <span className="sq-pop-x">×</span> {squad.name}
+            </p>
+          </div>
           <p className="sq-pop-desc">
             {L('squad.pop.desc')}
           </p>
@@ -345,9 +354,14 @@ export function SquadAssignPopover({
         {/* 본문 — 넘치는 만큼 여기만 스크롤한다. `min-height: 0` 이 없으면 flex 자식이
             줄지 않아 스크롤이 걸리지 않는다(§5-3.8) */}
         <div className="sq-pop-body" data-testid="squad-assign-popover-body">
-          {/* ① 스쿼드 내 비중 — 분모는 이 스쿼드의 볼륨 100 */}
+          {/* ① 스쿼드 내 비중 — 분모는 이 스쿼드의 볼륨 100. 머리는 아이콘 + 굵은 제목, 그 아래
+              12px 캡션에 기준과 주인을 적는다(시안 17765:39351). */}
+          <section className="sq-pop-section">
           <p className="sq-pop-axis">
-            {L('squad.pop.shareAxis')} <span className="sq-pop-axis-basis">{L('squad.pop.shareBasis')}</span>
+            <PieChartIcon size={20} /> {L('squad.pop.shareAxis')}
+          </p>
+          <p className="sq-pop-axis-caption">
+            <span className="sq-pop-axis-basis">{L('squad.pop.shareBasis')}</span>
             {/* 이 값의 주인은 **그 스쿼드의 리드**다(§5-3.9 ①) — 자격에 따라 말이 달라진다.
                 잠긴 쪽에 「조직이 정하는 값」 이라고 쓰면 실제 주인을 가리키지 못한다. */}
             {canEditShare
@@ -380,6 +394,8 @@ export function SquadAssignPopover({
           <div className={`sq-pop-preview${shareOver ? ' is-over' : ''}`} data-testid="squad-pop-share-preview">
             <div className="sq-pop-preview-head">
               <span className="sq-pop-preview-label">{L('squad.pop.sharePreview')}</span>
+              {/* 초과 표식 — 빨강만으로 초과를 말하지 않는다(§5-3.2) */}
+              {shareOver && <span className="sq-cap-warn"><WarningIcon size={14} /></span>}
               <span className={`sq-cap-total${shareOver ? ' is-over' : ''}`}>{allotted}</span>
               <span className="sq-cap-max">/ 100</span>
               <span className={`sq-pop-preview-state${shareOver ? ' is-over' : ''}`}>
@@ -393,23 +409,19 @@ export function SquadAssignPopover({
               ]}
               allotted={allotted}
               colorOf={(id) => (id === 'others' ? 'var(--text-quaternary)' : squad.color)}
-              height={7}
+              height={8}
             />
           </div>
+          </section>
 
-          {/* 두 축의 경계 — 생략 불가. 이 화면에서 오독이 가장 잦은 지점이다(§5-3.3) */}
-          <div className="sq-pop-divider" data-testid="squad-pop-axis-divider">
-            <span className="sq-pop-divider-line" />
-            <span className="sq-pop-divider-label">{L('squad.pop.divider')}</span>
-            <span className="sq-pop-divider-line" />
-          </div>
-          <p className="sq-pop-divider-desc">
-            {L('squad.pop.dividerDesc')}
-          </p>
-
-          {/* ② 개인 캐파 사용 — 분모는 이 사람의 캐파 100 */}
+          {/* ② 개인 캐파 사용 — 분모는 이 사람의 캐파 100. 두 축은 **연동되지 않는다**(§5-3.3) —
+              시안(17765:39341)은 가름선 대신 아이콘 머리 둘과 24 간격으로 두 축을 가른다. */}
+          <section className="sq-pop-section">
           <p className="sq-pop-axis">
-            {L('squad.pop.capacityAxis')} <span className="sq-pop-axis-basis">{L('squad.pop.capacityBasis')}</span>
+            <UserIcon size={20} /> {L('squad.pop.capacityAxis')}
+          </p>
+          <p className="sq-pop-axis-caption">
+            <span className="sq-pop-axis-basis">{L('squad.pop.capacityBasis')}</span>
             {isSelf
               ? <span className="sq-pop-axis-owner is-self">{L('squad.pop.capacityOwnerSelf')}</span>
               : <span className="sq-pop-axis-owner">{L('squad.pop.capacityOwnerOther')}</span>}
@@ -453,10 +465,10 @@ export function SquadAssignPopover({
           <div
             className="sq-pop-preview"
             data-testid="squad-pop-capacity-preview"
-            style={{ background: cst.bg, borderColor: cst.bd }}
           >
             <div className="sq-pop-preview-head">
               <span className="sq-pop-preview-label">{L('squad.pop.capacityPreview')}</span>
+              {cst.key === 'over' && <span className="sq-cap-warn"><WarningIcon size={14} /></span>}
               <span className="sq-cap-total" style={{ color: cst.color }}>{total}</span>
               <span className="sq-cap-max">/ 100</span>
               <span className="sq-pop-preview-state" style={{ color: cst.color }}>
@@ -503,7 +515,7 @@ export function SquadAssignPopover({
                 : L('squad.pop.request')}
             </button>
           )}
-
+          </section>
         </div>
 
         {/* 액션 — 하단 고정. 본문과 함께 흘려보내면 팝오버가 길어졌을 때 화면 밖으로
@@ -516,9 +528,8 @@ export function SquadAssignPopover({
               {canAssignLead && (
                 <button
                   type="button" onClick={onToggleLead}
-                  className={`sq-btn sq-btn-sm sq-btn-outline sq-btn-lead${isLead ? ' is-on' : ''}`}
+                  className={`sq-btn sq-btn-sm sq-btn-lead${isLead ? ' is-on' : ''}`}
                 >
-                  {isLead ? <LeadStarIcon size={12} /> : <LeadStarOutlineIcon size={12} />}
                   {L(isLead ? 'squad.pop.unsetLead' : 'squad.pop.setLead')}
                 </button>
               )}

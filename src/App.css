@@ -56,6 +56,8 @@
 .search-bar { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px; background: var(--bg-field); border: none; border-radius: 10px; width: 202px; cursor: text; box-sizing: border-box; }
 .search-kbd kbd { font-family: var(--font-family-body); font-size: 14px; font-weight: 500; color: var(--text-placeholder); background: var(--bg-active); border: 1px solid var(--border-secondary-alt); border-radius: 4px; padding: 1px 6px 1px 5px; }
 .search-placeholder { font-size: 16px; color: var(--text-placeholder); }
+/* 타임라인 시안 2차(Figma 17757:35821) — 이 화면에는 상단 머리 줄(홈·내 프로필·알림·검색)이 없다. 툴바가 맨 위에 선다. */
+.app[data-page="timeline"] .top-nav { display: none; }
 
 /* ── Content Area (shared across pages) ── */
 .content-area {

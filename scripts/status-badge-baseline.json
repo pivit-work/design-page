@@ -1247,15 +1247,15 @@
    "gap": "7px"
   },
   "org_squad.css|.sq-chip": {
-   "border-radius": "pill",
-   "padding": "4px 10px",
-   "font-size": "12px",
-   "background": "#f9fafb / 어두운 화면 #22262f",
+   "border-radius": "32px",
+   "padding": "7px",
+   "font-size": "14px",
+   "background": "#ffffff / 어두운 화면 #18191b",
    "display": "inline-flex",
    "align-items": "center",
-   "gap": "6px",
-   "line-height": "18px",
-   "border": "1px solid var(--border-secondary)"
+   "gap": "4px",
+   "line-height": "20px",
+   "border": "1px solid var(--alpha-black-10)"
   },
   "report.css|.report-row-status": {
    "border-radius": "8px",
@@ -2213,9 +2213,6 @@
   },
   "org_squad.css|.pj-card-status.sq-status.is-clickable:hover": {
    "background": "#f9fafb / 어두운 화면 #22262f"
-  },
-  "org_squad.css|.sq-chip.is-lead": {
-   "background": "#fffaeb / 어두운 화면 #4e1d09"
   },
   "settings.css|.msc-hist-badge.is-hr": {
    "background": "#f3f4f6 / 어두운 화면 #0c0e12",

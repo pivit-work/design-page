@@ -404,10 +404,10 @@ export function leadOf(squad) {
  * 이고, 본문 글 폭은 `폭 − 테두리 2 − 좌우 여백 32 − 스크롤바 11` 이라 315px 이 남는다.
  * 헤더 안내문(285.8px)도 여유가 있다.
  *
- * 🔴 이 값은 **개발이 임시로 정한 것**이다(PW-476, 커트 2026-08-24 지시 — 시안을
- * 기다리지 않고 먼저 개발). 디자이너가 폭·여백을 정해 주면 그 값으로 바꾼다.
+ * 2026-10-26 시안(Figma 17765:39341 people_modal)이 폭을 410 으로 정했다 — 안쪽 여백 24,
+ * 두 축의 슬라이더 줄은 아이콘만큼(32) 들여 쓴다.
  */
-export const POP_W = 360;
+export const POP_W = 410;
 export const POP_GUTTER = 8; // 뷰포트 가장자리 최소 여백
 export const POP_ANCHOR_GAP = 10; // 위로 뒤집을 때 클릭 지점과 띄우는 간격
 export const POP_MIN_H = 240; // 이 높이도 안 나오는 쪽에는 붙이지 않는다 (뒤집기 기준)
@@ -424,14 +424,18 @@ export const POP_MIN_H = 240; // 이 높이도 안 나오는 쪽에는 붙이지
  * 🔴 어느 배치든 `maxHeight` 를 **반드시 함께** 돌려준다. 위치만 옮기고 높이를 열어
  * 두면 같은 버그가 다른 좌표에서 재발한다. 넘치는 만큼은 본문만 스크롤한다.
  */
-export function assignPopoverVertical(anchorY, viewportH) {
-  const spaceBelow = viewportH - anchorY - POP_GUTTER;
-  const spaceAbove = anchorY - POP_ANCHOR_GAP - POP_GUTTER;
+export function assignPopoverVertical(anchorY, viewportH, topLimit = 0) {
+  // `topLimit` — 그 위로는 올라가지 않는 선(뷰포트 좌표). 스쿼드 탭은 sticky 머리 줄의 아랫변을 준다:
+  // 팝오버가 따라 올라가다 제목·탭을 덮으면 화면의 「어디」가 사라진다.
+  const topMin = topLimit + POP_GUTTER;
+  const top = Math.max(anchorY, topMin);
+  const spaceBelow = viewportH - top - POP_GUTTER;
+  const spaceAbove = anchorY - POP_ANCHOR_GAP - topMin;
   if (Math.max(spaceBelow, spaceAbove) < POP_MIN_H) {
     // 초단신 뷰포트 — 앵커를 포기한다. 앵커에 붙이는 것보다 조작 가능한 것이 먼저다.
-    return { top: POP_GUTTER, maxHeight: Math.max(0, viewportH - POP_GUTTER * 2) };
+    return { top: topMin, maxHeight: Math.max(0, viewportH - topMin - POP_GUTTER) };
   }
-  if (spaceBelow >= POP_MIN_H) return { top: anchorY, maxHeight: spaceBelow };
+  if (spaceBelow >= POP_MIN_H) return { top, maxHeight: spaceBelow };
   return { bottom: viewportH - anchorY + POP_ANCHOR_GAP, maxHeight: spaceAbove };
 }
 

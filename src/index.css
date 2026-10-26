@@ -193,6 +193,11 @@
   /* 1on1 상세 모달의 녹음 재생기 (Figma 17413:26357) — 회색 진행 바. */
   --fg-secondary: var(--colors-foreground-fgSecondary);
   --fg-disabled-subtle: var(--colors-foreground-fgDisabledSubtle);
+  --bg-secondary-hover: var(--colors-background-bgSecondaryHover);
+  --alpha-white-60: var(--componentColors-alpha-alphaWhite60);
+  --bg-error-secondary: var(--colors-background-bgErrorSecondary);
+  --bg-error-solid: var(--colors-background-bgErrorSolid);
+  --bg-error-solid-hover: var(--colors-background-bgErrorSolidHover);
 
   /* 평가 화면이 쓰던 이름들 (PW-831). 이 이름들은 정의된 적이 없어, 평가 화면이
      `var(--이름, #색)` 뒤에 적어 둔 값이 그대로 그려지고 있었다 — 옛 보라·청록 브랜드
@@ -217,6 +222,15 @@
   /* Effects — 모달 그림자 (shadow-3xl 컬러 토큰 조합) */
   --shadows-shadow3xl: 0 21px 120px -12px var(--colors-effects-shadows-shadow3xl01),
     0 14px 60px -2.5px var(--colors-effects-shadows-shadow3xl02);
+  /* 올렸을 때 떠오르는 칩 — 스쿼드 팀원 칩 hover (Figma 17764:37983 · Shadows/shadow-xl 앞 두 겹:
+     (0,20) 흐림 24 퍼짐 -4 · (0,8) 흐림 8 퍼짐 -4). 기본 상태는 같은 겹수의 0 그림자라 움직임이 이어진다. */
+  --shadows-chip-lift: 0 20px 24px -4px var(--colors-effects-shadows-shadowXl01),
+    0 8px 8px -4px var(--colors-effects-shadows-shadowXl02);
+  --shadows-chip-rest: 0 0 0 0 var(--colors-effects-shadows-shadowXl01),
+    0 0 0 0 var(--colors-effects-shadows-shadowXl02);
+  /* Shadows/shadow-md — 드롭다운 메뉴 상자 (팀원 추가 겹창의 후보 목록, Figma 17765:40487) */
+  --shadows-shadow-md: 0 4px 6px -1px var(--colors-effects-shadows-shadowLg01),
+    0 2px 4px -2px var(--colors-effects-shadows-shadowMd02);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }

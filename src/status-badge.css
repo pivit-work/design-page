@@ -1386,24 +1386,28 @@
   color: var(--text-white);
 }
 
+/* 2026-10-26 시안(Figma 17764:37895) — 흰 알약: 사진 32 · 이름 sm/600 · x 14, 안쪽 8, 테두리 alpha-black-10.
+   리드도 같은 모양이다 — 리드는 카드 기간 줄에 이름으로 선다. */
 .sq-chip {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: var(--radius-full);
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-secondary);
-  font-size: 12px;
-  line-height: 18px;
+  gap: 4px;
+  padding: 7px;
+  border-radius: 32px;
+  background: var(--bg-quaternary);
+  border: 1px solid var(--alpha-black-10);
+  font-size: 14px;
+  line-height: 20px;
 }
 
-.sq-chip.is-lead {
-  background: var(--utility-warning-50);
-  border-color: var(--utility-warning-200);
+/* 올리면 떠오른다(17764:37983) — 그림자가 0 에서 시안 값까지 움직인다. 쉬는 상태도 같은 겹수의
+   0 그림자를 두어야 위치·흐림이 보간된다(없음→값은 보간되지 않는다). */
+.sq-chip.is-clickable {
+  cursor: pointer;
+  box-shadow: var(--shadows-chip-rest);
+  transition: box-shadow 200ms ease-out;
 }
-
-.sq-chip.is-clickable { cursor: pointer; }
+.sq-chip.is-clickable:hover { box-shadow: var(--shadows-chip-lift); }
 
 .sq-chip.is-locked { opacity: 0.5; }
 
