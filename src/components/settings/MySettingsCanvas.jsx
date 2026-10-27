@@ -789,7 +789,7 @@ function MyProfileTab({ me, activePhoto, myProfile, labels, onEdit }) {
   const L = labels.myProfile;
   const mp = myProfile || {};
   return (
-    <>
+    <div className="msc-myprofile">
       <Card testId="myprofile-hero-card">
         <div className="msc-hero">
           <AvatarBox
@@ -847,7 +847,7 @@ function MyProfileTab({ me, activePhoto, myProfile, labels, onEdit }) {
       </Card>
 
       <Card testId="myprofile-comp-card">
-        <div className="msc-vis-header" style={{ marginBottom: 10 }}>
+        <div className="msc-vis-header">
           <div className="admin-section-label" style={{ flex: 1, marginBottom: 0 }}>{L.compInfo}</div>
           {mp.compCurrent && (
             <Button
@@ -876,7 +876,7 @@ function MyProfileTab({ me, activePhoto, myProfile, labels, onEdit }) {
           <div className="msc-empty-state">{L.noComp}</div>
         )}
       </Card>
-    </>
+    </div>
   );
 }
 
