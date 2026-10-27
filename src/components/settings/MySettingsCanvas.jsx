@@ -16,7 +16,7 @@ import { AwardGlyph, BookOpenGlyph, BriefcaseGlyph, DownloadGlyph, LockGlyph, Pa
 import { SkeletonList } from '../shared/Skeleton.jsx';
 import EducationAddForm, { MonthWheelField } from './EducationAddForm.jsx';
 import {
-  RecordAddRow, RecordAvatar, RecordChip, RecordField, RecordForm, RecordFormFoot, RecordGlyph, RecordGrid,
+  RecordAddRow, RecordChip, RecordField, RecordForm, RecordFormFoot, RecordGlyph, RecordGrid,
   RecordIconButton, RecordList, RecordRow,
 } from './recordParts.jsx';
 import PreferenceTab from './PreferenceTab.jsx';
@@ -1021,7 +1021,6 @@ function FamilyTab({ family, today, labels, saveState, onSave, onAddDependent, o
                   key={d.id}
                   testId={`dependent-${d.id}`}
                   editing={editing}
-                  lead={<RecordAvatar name={d.name} />}
                   name={d.name}
                   chips={[L.relationOptions[d.relation] || d.relation]}
                   tag={editing ? <RecordChip brand>{L.editing}</RecordChip> : null}

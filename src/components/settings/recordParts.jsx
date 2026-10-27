@@ -18,7 +18,7 @@ export function RecordList({ children, testId }) {
 }
 
 /**
- * 목록 줄 하나 — 앞 표시(이름 첫 글자 동그라미 또는 아이콘) · 이름(굵게) + 칩 · 아래 회색 한 줄 · 오른쪽 배지와 버튼.
+ * 목록 줄 하나 — 앞 표시(아이콘, 없어도 된다 — 부양가족은 사진이 없어 앞 표시 없이 이름부터) · 이름(굵게) + 칩 · 아래 회색 한 줄 · 오른쪽 배지와 버튼.
  * `children` 이 있으면 줄 아래에 붙는다(그 줄을 고치는 칸).
  */
 export function RecordRow({ lead, name, chips = [], tag, sub, badge, actions, testId, editing = false, children }) {
@@ -45,12 +45,6 @@ export function RecordRow({ lead, name, chips = [], tag, sub, badge, actions, te
 /** 작은 칩 — 1:1 기록 «작은 칩»(ono-mem-chip) 그대로. `brand` 는 이 화면의 초록 딱지(msc-vis-badge is-brand) */
 export function RecordChip({ brand = false, children }) {
   return <StatusBadge className={brand ? 'msc-vis-badge is-brand' : 'ono-mem-chip'}>{children}</StatusBadge>;
-}
-
-/** 이름 첫 글자 동그라미 — 사람 줄(부양가족) */
-export function RecordAvatar({ name }) {
-  const first = (name || '').trim().charAt(0);
-  return <span className="msc-rec-avatar" aria-hidden>{first}</span>;
 }
 
 /** 네모 아이콘 자리 — 사람이 아닌 줄(학교·회사·자격증·파일) */

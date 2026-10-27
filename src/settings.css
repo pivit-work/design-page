@@ -1349,7 +1349,6 @@
   padding: 14px var(--spacing-xl);
   background: var(--bg-quaternary);
 }
-.msc-rec-avatar,
 .msc-rec-glyph {
   width: 40px;
   height: 40px;
@@ -1358,13 +1357,6 @@
   place-items: center;
   background: var(--bg-secondary);
   color: var(--text-tertiary);
-}
-.msc-rec-avatar {
-  border-radius: var(--radius-full);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  font-size: var(--font-size-text-sm);
-  font-weight: 700;
-  color: var(--text-secondary);
 }
 .msc-rec-glyph { border-radius: var(--radius-md); }
 .msc-rec-info { flex: 1; min-width: 0; }
