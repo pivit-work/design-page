@@ -720,7 +720,7 @@ function EmploymentCard({ employment, labels }) {
   const L = labels.profile;
   return (
     <Card testId="profile-employment-card">
-      <div className="msc-vis-header" style={{ marginBottom: 10 }}>
+      <div className="msc-vis-header">
         <div className="admin-section-label" style={{ flex: 1, marginBottom: 0 }}>{L.employmentSection}</div>
         <StatusBadge className="msc-hist-badge" data-testid="profile-employment-admin-badge">{L.adminManagedBadge}</StatusBadge>
       </div>
@@ -742,7 +742,7 @@ function BenefitsCard({ benefits, labels }) {
   const shown = pairs.map((p) => (p.masked && !revealed ? { ...p, value: BENEFIT_MASK } : p));
   return (
     <Card testId="profile-benefits-card">
-      <div className="msc-vis-header" style={{ marginBottom: 10 }}>
+      <div className="msc-vis-header">
         <div className="admin-section-label" style={{ flex: 1, marginBottom: 0 }}>{L.benefitsSection}</div>
         {hasMasked && !benefits.loading && !benefits.error && (
           <Button variant={revealed ? 'primary' : 'secondary'} size="sm" className="admin-notif-btn"
@@ -1040,7 +1040,7 @@ function FamilyTab({ family, today, labels, saveState, onSave, onAddDependent, o
       </Card>
 
       <Card testId="family-dependents-card">
-        <div className="msc-vis-header" style={{ marginBottom: 8 }}>
+        <div className="msc-vis-header">
           <div className="admin-section-label" style={{ flex: 1, marginBottom: 0 }}>{L.dependents}</div>
           <span className="msc-nav-title">{L.childrenCount(childrenCount)}</span>
         </div>
@@ -1180,23 +1180,18 @@ function OrgTab({ org, labels, onAdd, onDelete, onUpload, onDownload, onDeleteDo
           <div className="msc-empty-state">{L.managerHistoryEmpty}</div>
         ) : (
           <div className="msc-list">
+            {/* 디자이너 이력 목록(매니저 대시보드 팀원 창 1on1 탭 .manager-modal-oneonone-*) 모양 — 날짜가 위,
+                사람이 아래, 줄 사이 선. 점·초록 상자는 개발이 지은 것이라 뺐다(2026-10-27 커트). */}
             {cur.manager && (
-              <div className="msc-list-row is-current">
-                <span className="msc-dot is-brand" />
-                <div style={{ flex: 1 }}>
-                  <div className="msc-notif-label">{cur.manager.name}</div>
-                  <div className="msc-notif-sub">{cur.manager.title} · {cur.manager.since || ''}~{L.now}</div>
-                </div>
-                <StatusBadge className="msc-vis-badge is-brand">{L.now}</StatusBadge>
+              <div className="msc-list-row is-stacked is-current">
+                <div className="msc-list-date">{cur.manager.since || ''} ~ {L.now}</div>
+                <div className="msc-list-title">{[cur.manager.name, cur.manager.title].filter(Boolean).join(' · ')}</div>
               </div>
             )}
             {(o.managerHistory || []).map((m, i) => (
-              <div key={i} className="msc-list-row">
-                <span className="msc-dot" />
-                <div style={{ flex: 1 }}>
-                  <div className="msc-notif-label">{m.name}</div>
-                  <div className="msc-notif-sub">{m.title} · {m.from}~{m.to || L.now}</div>
-                </div>
+              <div key={i} className="msc-list-row is-stacked">
+                <div className="msc-list-date">{m.from} ~ {m.to || L.now}</div>
+                <div className="msc-list-title">{[m.name, m.title].filter(Boolean).join(' · ')}</div>
               </div>
             ))}
           </div>
@@ -1210,12 +1205,9 @@ function OrgTab({ org, labels, onAdd, onDelete, onUpload, onDownload, onDeleteDo
         ) : (
           <div className="msc-list">
             {(o.appointmentHistory || []).map((a, i) => (
-              <div key={i} className="msc-list-row">
-                <span className="msc-mono">{a.date}</span>
-                <div style={{ flex: 1 }}>
-                  <span className="msc-notif-label" style={{ display: 'inline' }}>{a.type}</span>
-                  <span className="msc-notif-sub"> · {[a.dept, a.title].filter(Boolean).join(' · ')}</span>
-                </div>
+              <div key={i} className="msc-list-row is-stacked">
+                <div className="msc-list-date">{a.date}</div>
+                <div className="msc-list-title">{[a.type, a.dept, a.title].filter(Boolean).join(' · ')}</div>
               </div>
             ))}
           </div>
@@ -1500,7 +1492,7 @@ function CompensationTab({ compensation, isAdmin, labels }) {
         <>
           {comp.current && (
             <Card testId="compensation-current-card">
-              <div className="msc-vis-header" style={{ marginBottom: 10 }}>
+              <div className="msc-vis-header">
                 <div className="admin-section-label" style={{ flex: 1, marginBottom: 0 }}>{L.current}</div>
                 {!isAdmin && (
                   <Button variant={revealCurrent ? 'primary' : 'secondary'} size="sm" className="admin-notif-btn"
@@ -1528,7 +1520,7 @@ function CompensationTab({ compensation, isAdmin, labels }) {
           )}
           {comp.history && comp.history.length > 0 && (
             <Card testId="compensation-history-card">
-              <div className="msc-vis-header" style={{ marginBottom: 10 }}>
+              <div className="msc-vis-header">
                 <div className="admin-section-label" style={{ flex: 1, marginBottom: 0 }}>{L.history}</div>
                 {!isAdmin && (
                   <Button variant={revealHistory ? 'primary' : 'secondary'} size="sm" className="admin-notif-btn"

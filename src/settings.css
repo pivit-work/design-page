@@ -1574,7 +1574,6 @@
   font-weight: 700;
 }
 .msc-content .admin-card > .admin-section-label { margin-bottom: var(--spacing-2xl); }
-.msc-myprofile .msc-vis-header { margin-bottom: var(--spacing-2xl); padding-bottom: var(--spacing-xl); }
 /* 읽기 전용 칸 묶음 = 조직도 사람 정보 창(org_chart.css .modal-info-section·label·content, stesslee).
    이름표는 위에 12px 굵게 검정, 12 아래 값 16px 500 회색, 항목 사이 얇은 선·위아래 24.
    창은 한 열이지만 카드가 넓어 두 열로 둔다. 두 열에서 선은 반쪽만 남아 끊겨 보여 빼고 간격 24 만 둔다. */
@@ -1621,8 +1620,6 @@
 .msc-myprofile .msc-eval-row { gap: var(--spacing-xl); }
 .msc-myprofile .msc-notif-sub { font-size: var(--font-size-text-sm); line-height: var(--line-height-text-sm); margin-top: var(--spacing-xxs); }
 .msc-content .msc-empty-state { padding: var(--spacing-3xl) 0; font-size: var(--font-size-text-sm); }
-/* 보상 머리줄 아래 선 — 다른 카드 제목 아래엔 선이 없어 맞춰 뺀다 */
-.msc-myprofile .msc-vis-header { padding-bottom: 0; border-bottom: none; }
 
 /* 작은 제목·보조 글 — 전 탭. 가장 옅은 회색(quaternary)과 11~13px 를 걷어
    원온원 화면의 «14px 굵게 검정 제목 + 12~14px tertiary 보조» 위계로 맞춘다 */
@@ -1646,3 +1643,65 @@
 }
 .msc-content .msc-intg-sub-label,
 .msc-content .msc-intg-account-label { font-size: var(--font-size-text-sm); line-height: var(--line-height-text-sm); }
+
+/* 이력 줄 — 매니저·발령·보상·변경 이력, 교육 목록. 디자이너 이력 목록(manager.css .manager-modal-oneonone-item·date·title,
+   stesslee): 상자·바탕·점 없이 줄 사이 선, 날짜는 12px 굵게 검정, 내용은 16px 600 회색.
+   전에는 회색 상자 + 7px 점 + 연초록 «현재» 상자였다(개발이 지음). */
+.msc-content .msc-list { gap: 0; }
+.msc-content .msc-list-row,
+.msc-content .msc-list-row.is-current {
+  padding: var(--spacing-2xl) 0;
+  gap: var(--spacing-lg);
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border-secondary);
+  border-radius: 0;
+}
+.msc-content .msc-list-row:first-child { padding-top: 0; }
+.msc-content .msc-list-row:last-child { padding-bottom: 0; border-bottom: none; }
+.msc-content .msc-list-row.is-stacked { flex-direction: column; align-items: flex-start; }
+.msc-list-date,
+.msc-content .msc-list-row .msc-mono {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  font-size: var(--font-size-text-xs, 12px);
+  line-height: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+.msc-list-title {
+  font-size: var(--font-size-text-md);
+  line-height: 24px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+.msc-content .msc-list-row .msc-notif-label { font-size: var(--font-size-text-md); line-height: 24px; color: var(--text-secondary); }
+
+/* 「학력 추가」 같은 파선 추가 줄 — 디자이너 「프로젝트 추가」(org_squad.css .sq-proj-add, stesslee 2026-10-26):
+   흰 바탕 · 1px 파선 alpha-black-40 · r6 · 12px 600 tertiary, 올리면 선·글자만 브랜드(바탕은 칠하지 않는다) */
+.msc-content .msc-rec-add {
+  min-height: 40px;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border: 1px dashed var(--alpha-black-40);
+  border-radius: var(--radius-xs);
+  background: var(--bg-quaternary);
+  font-size: var(--font-size-text-xs, 12px);
+  line-height: 18px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+.msc-content .msc-rec-add:hover,
+.msc-content .msc-rec-add:focus-within {
+  border-color: var(--fg-brand-primary);
+  color: var(--text-brand-tertiary);
+  background: var(--bg-quaternary);
+}
+
+/* 제목 + 버튼만 있는 머리줄(보상·부양가족…) — 다른 카드 제목 아래엔 선이 없어 맞춰 뺀다.
+   공개 범위처럼 아이콘·설명이 붙은 머리줄은 아래 목록과 갈라야 해 선을 둔다 */
+.msc-content .msc-vis-header:has(> .admin-section-label) { padding-bottom: 0; border-bottom: none; margin-bottom: var(--spacing-2xl); }
+/* 가려진 금액 점 — 가장 옅은 회색이라 «비었다»로 읽혀 한 단계 진하게 */
+.msc-content .msc-amount.is-masked { color: var(--text-tertiary); }
