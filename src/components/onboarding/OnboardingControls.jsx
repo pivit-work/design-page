@@ -26,6 +26,7 @@ const cx = (...parts) => parts.filter(Boolean).join(' ');
  *   hintTone   'sub' | 'muted' | 'warning' | 'success'
  *   hintTestId · errorRole(기본 없음)
  *   children   칸(OnbInput 등). 칸 아래에 더 붙일 글씨는 extra 로 준다
+ *   labelExtra 이름표 줄 오른쪽에 붙일 것(인증 단계 [코드 재전송]) — 이름표가 있을 때만
  */
 export function OnbField({
   label,
@@ -38,22 +39,25 @@ export function OnbField({
   hintTestId,
   errorTestId,
   extra,
+  labelExtra,
   children,
   testId,
 }) {
   const look = useOnbLoginLook();
   if (look) {
+    const labelNode = label && (
+      <label className="login-label" htmlFor={htmlFor}>
+        {label}
+        {required && <span className="dp-field-required" aria-hidden>*</span>}
+        {optionalLabel && <span className="onb-label-opt">{optionalLabel}</span>}
+      </label>
+    );
     // 디자이너 로그인 틀 안 — 디자이너 회원가입 칸 묶음(SignupField: 이름표 12/600 · 아래 12 · 칸 · 칸 오류/안내)의 클래스로 (PW-1815).
     // 안내 글씨 중 경고·성공 색은 디자이너 회원가입에 없어 예전 색 그대로 둔다.
     return (
       <div className="login-field" data-testid={testId}>
-        {label && (
-          <label className="login-label" htmlFor={htmlFor}>
-            {label}
-            {required && <span className="dp-field-required" aria-hidden>*</span>}
-            {optionalLabel && <span className="onb-label-opt">{optionalLabel}</span>}
-          </label>
-        )}
+        {/* 이름표 줄 오른쪽 — 디자이너 인증 단계의 [코드 재전송] 자리(SignupField labelExtra · PW-1815). */}
+        {labelNode && labelExtra ? <div className="dp-field-label-row">{labelNode}{labelExtra}</div> : labelNode}
         {children}
         {error ? (
           <FieldError data-testid={errorTestId}>{error}</FieldError>
@@ -69,14 +73,22 @@ export function OnbField({
       </div>
     );
   }
+  const onbLabel = (
+    <label className="onb-label" htmlFor={htmlFor}>
+      {label}
+      {required && <span className="onb-label-req">*</span>}
+      {optionalLabel && <span className="onb-label-opt">{optionalLabel}</span>}
+    </label>
+  );
   return (
     <div className="onb-field" data-testid={testId}>
-      {label && (
-        <label className="onb-label" htmlFor={htmlFor}>
-          {label}
-          {required && <span className="onb-label-req">*</span>}
-          {optionalLabel && <span className="onb-label-opt">{optionalLabel}</span>}
-        </label>
+      {label && labelExtra ? (
+        <div className="dp-field-label-row">
+          {onbLabel}
+          {labelExtra}
+        </div>
+      ) : (
+        label && onbLabel
       )}
       {children}
       {error ? (
@@ -97,20 +109,22 @@ export function OnbField({
  * 입력 칸 (시안 Input 의 칸).
  *
  * Props: invalid · warning · size('md'|'sm') · width('full'|'auto'|'name') · prefix · suffix
+ *        code(디자이너 로그인 틀 안에서 6자리 인증 코드 칸 모양)
  *        + 네이티브 input 속성 전부
  */
 export const OnbInput = forwardRef(function OnbInput(
-  { invalid = false, warning = false, size = 'md', width = 'full', prefix, suffix, ...rest },
+  { invalid = false, warning = false, size = 'md', width = 'full', prefix, suffix, code = false, ...rest },
   ref,
 ) {
   const look = useOnbLoginLook();
   if (look) {
+    // code — 디자이너 인증 단계의 6자리 코드 칸(.login-code 48 · 가운데 20/600 · 글자 사이 0.3em, SignupVerifyCanvas) (PW-1815).
     // 디자이너 로그인 틀 안 — 디자이너 회원가입 칸(.login-input 36 · r10). 틀렸을 때는 공용 칸 오류 테두리(form-field.css) (PW-1815).
     // 앞뒤 붙임 글자(회사 도메인 칸의 「@」)는 디자이너 칸에 없다 — 디자이너 회사 정보 단계의 도메인 칸도 「@」 없이 «company.co.kr» 이다.
     return (
       <input
         ref={ref}
-        className={cx('login-input', invalid && 'dp-control is-invalid', rest.readOnly && 'is-readonly')}
+        className={cx('login-input', code && 'login-code', invalid && 'dp-control is-invalid', rest.readOnly && 'is-readonly')}
         aria-invalid={invalid || undefined}
         {...rest}
       />
