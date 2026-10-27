@@ -1523,18 +1523,18 @@
    - 카드 = .ono-mem-card 테두리(alpha 5%) · 모서리 16 · 안쪽 24 */
 .msc-layout {
   max-width: 1120px;
-  padding: var(--spacing-4xl, 32px) var(--spacing-3xl) var(--spacing-5xl);
+  padding: var(--spacing-4xl) var(--spacing-3xl) var(--spacing-5xl);
   grid-template-columns: 220px 1fr;
-  gap: var(--spacing-4xl, 32px);
+  gap: var(--spacing-4xl);
 }
-.msc-nav { gap: var(--spacing-xxs, 2px); }
+.msc-nav { gap: var(--spacing-xxs); }
 .msc-nav-profile {
   padding: var(--spacing-2xl) var(--spacing-xl);
   border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
   border-radius: var(--radius-2xl);
   margin-bottom: var(--spacing-xl);
 }
-.msc-nav-avatar { width: 56px; height: 56px; border-radius: var(--radius-xl); margin-bottom: var(--spacing-md, 8px); }
+.msc-nav-avatar { width: 56px; height: 56px; border-radius: var(--radius-xl); margin-bottom: var(--spacing-md); }
 .msc-nav-name { font-size: var(--font-size-text-sm); line-height: var(--line-height-text-sm); font-weight: 700; }
 .msc-nav-title { font-size: 12px; line-height: 18px; color: var(--text-tertiary); }
 .msc-nav-group-label {
@@ -1542,9 +1542,9 @@
   line-height: 18px;
   font-weight: 600;
   color: var(--text-tertiary);
-  padding: var(--spacing-md, 8px) var(--spacing-lg) var(--spacing-xs, 4px);
+  padding: var(--spacing-md) var(--spacing-lg) var(--spacing-xs);
 }
-.msc-nav-divider { margin: var(--spacing-md, 8px) var(--spacing-lg); }
+.msc-nav-divider { margin: var(--spacing-md) var(--spacing-lg); }
 .msc-nav-btn {
   padding: var(--spacing-md) var(--spacing-lg);
   font-size: var(--font-size-text-sm);
@@ -1579,7 +1579,7 @@
 .msc-content .msc-pairs > div,
 .msc-content .msc-comp-grid > div { min-width: 0; }
 .msc-content .msc-pair-label {
-  margin: 0 0 var(--spacing-lg, 12px);
+  margin: 0 0 var(--spacing-lg);
   font-size: 12px;
   line-height: 18px;
   font-weight: 700;
@@ -1601,7 +1601,7 @@
   border: 1px solid var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
   border-radius: var(--radius-2xl);
 }
-.msc-myprofile .msc-hero-name { font-size: var(--font-size-text-xl, 20px); line-height: 30px; font-weight: 700; }
+.msc-myprofile .msc-hero-name { font-size: 20px; line-height: 30px; font-weight: 700; }
 .msc-myprofile .msc-hero-sub { font-size: var(--font-size-text-sm); line-height: var(--line-height-text-sm); margin-top: var(--spacing-xxs); }
 .msc-myprofile .msc-hero-meta { font-size: var(--font-size-text-sm); line-height: var(--line-height-text-sm); margin-top: var(--spacing-xxs); }
 .msc-myprofile .msc-hero-bio {
@@ -1658,7 +1658,7 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
-  font-size: var(--font-size-text-xs, 12px);
+  font-size: var(--font-size-text-xs);
   line-height: 18px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -1681,7 +1681,7 @@
   border: 1px dashed var(--alpha-black-40);
   border-radius: var(--radius-xs);
   background: var(--bg-quaternary);
-  font-size: var(--font-size-text-xs, 12px);
+  font-size: var(--font-size-text-xs);
   line-height: 18px;
   font-weight: 600;
   color: var(--text-tertiary);
