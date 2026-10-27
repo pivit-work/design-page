@@ -1504,17 +1504,19 @@ function ShareControl({ shared, memberName, L, share, confirmedCount = null, unc
     return (
       <div className="ono-done-share-control" data-testid="ono-done-share-control" data-state="confirming">
         <div className="ono-done-share-confirm" data-testid="ono-done-share-confirm">
-          <p className="ono-done-share-confirm-title">
-            {memberName
-              ? fill(L.shareConfirmTitle, { name: memberName })
-              : L.shareConfirmTitleNoName}
-          </p>
-          <p className="ono-done-share-confirm-notice">{L.shareConfirmNotice}</p>
-          {unconfirmedCount > 0 && (
-            <p className="ono-done-share-confirm-notice" data-testid="ono-done-share-unconfirmed-notice">
-              {fill(L.shareUnconfirmedNotice, { count: unconfirmedCount })}
+          <div className="ono-done-share-confirm-text">
+            <p className="ono-done-share-confirm-title">
+              {memberName
+                ? fill(L.shareConfirmTitle, { name: memberName })
+                : L.shareConfirmTitleNoName}
             </p>
-          )}
+            <p className="ono-done-share-confirm-notice">{L.shareConfirmNotice}</p>
+            {unconfirmedCount > 0 && (
+              <p className="ono-done-share-confirm-notice" data-testid="ono-done-share-unconfirmed-notice">
+                {fill(L.shareUnconfirmedNotice, { count: unconfirmedCount })}
+              </p>
+            )}
+          </div>
           {share?.transcriptOption && (
             <Checkbox
               checked={withTranscript}
