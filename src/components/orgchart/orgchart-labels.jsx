@@ -253,7 +253,7 @@ export const ORGCHART_LABELS = {
   // ── 스쿼드: 매트릭스 ──
   'squad.matrix.title': '멤버 × 스쿼드 배치',
   'squad.matrix.subtitleEdit': '빈 셀 클릭 = 배정 (비중 미배분 · 캐파 미설정) · 배정 셀 클릭 = 비중·캐파·리드 편집',
-  'squad.matrix.subtitleView': '이름 클릭 시 프로필 확인 · 셀 윗줄 = 내 캐파 100 중 이 스쿼드 비율(본인이 설정) · 아랫줄 = 이 스쿼드 100 중 내 비중(스쿼드 리드가 설정)',
+  'squad.matrix.subtitleView': '이름 클릭 시 프로필 확인 · 셀의 큰 숫자 = 내 캐파 100 중 이 스쿼드 비율(본인이 설정) · 옆의 「스쿼드 N%」 = 이 스쿼드 100 중 내 비중(스쿼드 리드가 설정)',
   'squad.matrix.colMember': '이름',
   'squad.matrix.colCapacity': '캐파 사용',
   'squad.matrix.colCapacityBasis': '내 캐파 100 기준',
