@@ -1474,8 +1474,10 @@ function ShareControl({ shared, memberName, L, share, confirmedCount = null, unc
       <div className="ono-done-share-control" data-testid="ono-done-share-control" data-state="shared">
         <div className="ono-done-share-done">
           <span className="ono-done-share-done-text">{L.shareDone}</span>
-          <button
+          <Button
             type="button"
+            variant="secondary"
+            size="sm"
             className="ono-done-share-undo"
             onClick={() => {
               // 되돌리면 다시 비공개 분기로 내려간다. 확인 단계를 여기서 같이 접지
@@ -1489,7 +1491,7 @@ function ShareControl({ shared, memberName, L, share, confirmedCount = null, unc
             data-testid="ono-done-unshare"
           >
             {busy ? L.unshareBusy : L.unshareCta}
-          </button>
+          </Button>
         </div>
         {share?.error && (
           <p className="ono-done-inline-error" role="alert" data-testid="ono-done-share-error">
