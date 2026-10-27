@@ -100,7 +100,10 @@
 .login-notice { box-sizing: border-box; padding: 12px 14px; border-radius: 10px; background: var(--alpha-black-3); font-size: 12px; font-weight: 400; line-height: 18px; color: var(--text-secondary); }
 .login-notice-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .login-notice-title { font-weight: 600; color: var(--text-primary); }
-.login-notice-body { margin-top: 6px; display: flex; flex-direction: column; gap: 2px; overflow-wrap: anywhere; }
+.login-notice-body { display: flex; flex-direction: column; gap: 2px; overflow-wrap: anywhere; }
+/* 머리줄과 본문 사이 6 — 머리줄(제목·[접기])이 있을 때만. 제목 없이 쓰는 안내 상자(pivit-work 베타 신청 «선별 기업» 안내)는
+   글 위에 빈 6 이 생겨 위아래 여백이 어긋났다 (pivit-work PW-2288) */
+.login-notice-head + .login-notice-body { margin-top: 6px; }
 .login-notice-body p { margin: 0; }
 .login-notice-strong { font-weight: 600; color: var(--text-primary); }
 /* 이용약관 · 개인정보처리방침 · 운영정책 — 12 text-tertiary 줄, 링크는 brand */
