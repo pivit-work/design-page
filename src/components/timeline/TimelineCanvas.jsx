@@ -17,7 +17,6 @@ import useTimelineDnD from './hooks/useTimelineDnD.js';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import StepNavButton, { StepNav } from '../shared/StepNav.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
-import Button from '../shared/Button.jsx';
 
 // 보기 고르기 — 툴바 맨 앞 segmented control (Figma 17757:36490). 종전 머리글 탭 줄은 시안에서 빠졌다.
 const TIMELINE_TAB_ITEMS = [
@@ -116,30 +115,16 @@ export default function TimelineCanvas({
   // allLabel 은 목록 맨 위 「전체」 줄의 이름(다른 줄과 같은 모양).
   // [{ key, label, items: [{ id, label }], selected: string[], onChange(ids), allLabel? }]
   viewFilters,
-  // 구글 캘린더 연동 상태. 기본 true — 연동됨 라벨 + 초록 체크 아이콘.
-  // false 면 "Google Calendar 미연동" 라벨 + 회색 아이콘으로 대체.
+  // 구글 캘린더 연동 상태 — 셀 피커 「Google Calendar」 줄이 쓴다. 기본 true.
   gcalConnected = true,
-  // 연결은 됐는데 Google 이 인증을 거절함 — 초록 체크 대신 경고 아이콘·경고 톤 (pivit-work PW-2211 · 타임라인 정책서 §12).
+  // 연결은 됐는데 Google 이 인증을 거절함 — 셀 피커에서 미연동으로 본다 (pivit-work PW-2211).
   gcalReauthRequired = false,
-  // 배지 문구 — 앱이 번역해 넘긴다. 없으면 아래 기본 한국어.
-  gcalStatusLabel,
   // 초기 selectedDate. 생략 시 TODAY_STR(데모용 고정 2026-04-15). 실 운영
   // 환경에서는 new Date() 를 넘겨 앱 진입 시 실제 오늘이 보이도록.
   initialDate,
   // 「지금」 — 로컬 Date 그릇으로 돌려주는 함수(getHours()/getDate() 가 보여 줄 벽시계).
   // 없으면 브라우저 시계. 앱이 사용자 설정 시간대로 오늘·NOW 선을 그릴 때 넘긴다 (PW-781).
   now,
-  // 헤더 우측 "진행 중 프로젝트 · N개" 카운트. 생략하면 2(디자인 프리뷰용).
-  // 실 운영에서는 실제 active project 수를 넘긴다. 0 이면 "0개" 로 렌더.
-  // null 이면 그 줄을 그리지 않는다 — 볼 수 있는 프로젝트가 없는 사람에게
-  // 「있다는 것도」 알리지 않을 때 (PW-1601).
-  activeProjectCount = 2,
-  // 진행 중 프로젝트 수를 못 불러왔다 — 그 줄의 수 자리에 실패 문구와 [다시 시도]를 그린다.
-  // 「0개」로 그리면 실패가 「프로젝트가 없다」로 읽힌다 (PW-1668). activeProjectCount 보다 앞선다.
-  activeProjectCountError = false,
-  onActiveProjectCountRetry,
-  activeProjectCountErrorLabel = '불러오지 못했습니다',
-  activeProjectCountRetryLabel = '다시 시도',
   // 초기 탭 / 캘린더 보기 단위 — URL 진입점(예: /timeline/week)에서 주입.
   initialTab,
   initialCalViewUnit,
@@ -164,9 +149,6 @@ export default function TimelineCanvas({
   // 지금 보이는 날짜 범위 — { fromDate, toDate } ('YYYY-MM-DD'). 캘린더 월 보기는 그리는 주 전부(위아래로 끝없이
   // 붙는다), 주 보기는 그 주, 간트는 고른 하루. 호스트가 받아 둔 일정 범위 밖이면 이 값을 보고 더 받아 온다.
   onVisibleRangeChange,
-  // 「진행 중 프로젝트」 이름과 수 표기 — 앱이 번역해 넘긴다. 없으면 아래 기본 한국어.
-  activeProjectCountLabel = '진행 중 프로젝트',
-  formatActiveProjectCount = (n) => `${n}개`,
 }) {
   // 간트 / 캘린더 탭 — 캘린더 탭은 별도의 월/주 뷰.
   const [currentTab, setCurrentTab] = useState(initialTab ?? 'gantt'); // 'gantt' | 'calendar'
@@ -635,49 +617,6 @@ export default function TimelineCanvas({
         </div>
 
         <div className="tl-toolbar-right">
-        {/* 진행 중 프로젝트 수·구글 캘린더 연동 상태 — 시안 2차(17757:35821)에서 머리글과 함께 빠졌지만 앱 기능이라
-            (PW-1601 · PW-1668 · PW-2211) 툴바 오른쪽 묶음 앞에 종전 디자이너 모양(.tl-page-meta · .tl-gcal-status) 그대로 둔다. */}
-        <div className="tl-toolbar-status">
-          {activeProjectCountError ? (
-            <div className="tl-page-meta" role="alert" data-testid="tl-project-count-error">
-              <span className="tl-meta-label">{activeProjectCountLabel}</span>
-              <span className="tl-meta-sep">·</span>
-              <span className="tl-meta-error">{activeProjectCountErrorLabel}</span>
-              {onActiveProjectCountRetry && (
-                <Button variant="ghost" size="sm" onClick={() => onActiveProjectCountRetry()}>
-                  {activeProjectCountRetryLabel}
-                </Button>
-              )}
-            </div>
-          ) : activeProjectCount !== null && (
-            <div className="tl-page-meta">
-              <span className="tl-meta-label">{activeProjectCountLabel}</span>
-              <span className="tl-meta-sep">·</span>
-              <span className="tl-meta-count">{formatActiveProjectCount(activeProjectCount)}</span>
-            </div>
-          )}
-          <div
-            className={`tl-gcal-status ${gcalConnected ? '' : 'is-disconnected'}`}
-            data-testid="tl-gcal-status"
-          >
-            <Icon src="/icons-solid/calendar-check-02.svg" size={14} color="var(--colors-foreground-fgTertiary)" baseUrl={baseUrl} />
-            <span>
-              {gcalStatusLabel ??
-                (gcalConnected
-                  ? gcalReauthRequired
-                    ? 'Google Calendar 재인증 필요'
-                    : 'Google Calendar 연동 중'
-                  : 'Google Calendar 미연동')}
-            </span>
-            {gcalConnected && !gcalReauthRequired && (
-              <Icon src="/icons-solid/check-circle.svg" size={14} color="#2dbd82" baseUrl={baseUrl} />
-            )}
-            {gcalConnected && gcalReauthRequired && (
-              <Icon src="/icons-solid/alert-triangle.svg" size={14} color="var(--colors-warning-600)" baseUrl={baseUrl} />
-            )}
-          </div>
-        </div>
-        <div className="tl-toolbar-actions">
         {isGantt && (
           <button
             type="button"
@@ -719,7 +658,6 @@ export default function TimelineCanvas({
             <span>스니핏 수정 승인 요청 완료</span>
           </div>
         )}
-        </div>
         </div>
       </div>
 

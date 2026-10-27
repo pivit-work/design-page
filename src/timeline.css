@@ -198,31 +198,6 @@
   align-items: center;
   gap: 8px;
 }
-/* 오른쪽 묶음 = [글 묶음][버튼 묶음]. 글 묶음(진행 중 프로젝트 수 · 구글 캘린더 연동 상태)은 앱 기능이라 시안 2차 뒤에
-   다시 넣었다. 한 줄에 다 들어가면 시안과 같은 한 줄이고, 좁으면 버튼은 왼쪽 묶음과 같은 줄에 남고 글 묶음만
-   그 아래 줄로 내려간다(wrap-reverse). 두 줄일 때 왼쪽 묶음이 가운데로 내려오지 않게 위로 붙인다 — 한 줄이면 높이가
-   모두 36 이라 시안과 같다. 글 묶음과 버튼 사이는 왼쪽 묶음 간격(16)을 따른다. */
-.tl-toolbar { align-items: flex-start; }
-.tl-toolbar-right {
-  flex: 1 1 0;
-  min-width: 0;
-  flex-wrap: wrap-reverse;
-  justify-content: flex-end;
-  column-gap: 16px;
-  row-gap: 8px;
-}
-.tl-toolbar-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.tl-toolbar-status {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  min-height: 36px;
-  white-space: nowrap;
-}
 
 /* Segmented control — 일/주/월 선택 (useSegmentedIndicator 가 width/left 계산) */
 .tl-seg-control {
