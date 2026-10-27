@@ -561,11 +561,6 @@
   line-height: 24px;
 }
 .sq-add-search input::placeholder { color: var(--text-placeholder); }
-/* 새 프로젝트 만들기 폼의 입력 칸 — 검색 칸과 같은 상자. 칸이 둘이라 브랜드 테두리는 입력 중인 칸에만 둔다
-   (검색 칸은 열자마자 입력 중이라 늘 브랜드다). design-review 대상(PW-1428 다시 넣기). */
-.sq-add-field { cursor: text; }
-.sq-add-field:not(:focus-within) { border-color: var(--border-secondary); }
-.sq-add-field:has(input[aria-invalid='true']) { border-color: var(--utility-error-300); } /* 이 화면 칸 오류색(.sq-field.is-invalid)과 같다 */
 
 /* 검색 칸과 후보 목록은 6 간격(17765:40613) */
 .sq-add-body {

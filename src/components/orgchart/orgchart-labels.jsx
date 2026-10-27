@@ -405,7 +405,6 @@ export const ORGCHART_LABELS = {
   'squad.project.search': '프로젝트 검색',
   'squad.project.linkCount': '연결 {{count}}개',
   'squad.project.noCandidates': '추가할 수 있는 프로젝트가 없습니다',
-  'squad.project.askAdmin': '어드민에게 프로젝트 생성을 요청하세요',
   'squad.project.createOpen': '새 프로젝트 만들기',
   'squad.project.createName': '새 프로젝트명',
   'squad.project.createDesc': '한 줄 설명 (선택)',
