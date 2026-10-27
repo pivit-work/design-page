@@ -1573,7 +1573,8 @@
   line-height: 24px;
   font-weight: 700;
 }
-.msc-content .admin-card > .admin-section-label { margin-bottom: var(--spacing-2xl); }
+/* 카드 제목 → 내용 16 — 원온원 «섹션 제목 + 내용» 묶음(.ono-start-section gap 16) */
+.msc-content .admin-card > .admin-section-label { margin-bottom: var(--spacing-xl); }
 /* 읽기 전용 칸 묶음 = 조직도 사람 정보 창(org_chart.css .modal-info-section·label·content, stesslee).
    이름표는 위에 12px 굵게 검정, 12 아래 값 16px 500 회색, 항목 사이 얇은 선·위아래 24.
    창은 한 열이지만 카드가 넓어 두 열로 둔다. 두 열에서 선은 반쪽만 남아 끊겨 보여 빼고 간격 24 만 둔다. */
@@ -1650,7 +1651,7 @@
 .msc-content .msc-list { gap: 0; }
 .msc-content .msc-list-row,
 .msc-content .msc-list-row.is-current {
-  padding: var(--spacing-2xl) 0;
+  padding: var(--spacing-3xl) 0;
   gap: var(--spacing-lg);
   background: none;
   border: none;
@@ -1702,6 +1703,14 @@
 
 /* 제목 + 버튼만 있는 머리줄(보상·부양가족…) — 다른 카드 제목 아래엔 선이 없어 맞춰 뺀다.
    공개 범위처럼 아이콘·설명이 붙은 머리줄은 아래 목록과 갈라야 해 선을 둔다 */
-.msc-content .msc-vis-header:has(> .admin-section-label) { padding-bottom: 0; border-bottom: none; margin-bottom: var(--spacing-2xl); }
+.msc-content .msc-vis-header:has(> .admin-section-label) { padding-bottom: 0; border-bottom: none; margin-bottom: var(--spacing-xl); }
 /* 가려진 금액 점 — 가장 옅은 회색이라 «비었다»로 읽혀 한 단계 진하게 */
 .msc-content .msc-amount.is-masked { color: var(--text-tertiary); }
+
+/* 성과 줄 — 이력 줄(.msc-list-row)을 받고, 왼쪽 등급 딱지와 글 사이는 16 (원온원 «섹션 제목 + 내용» 간격) */
+.msc-content .msc-list-row.msc-eval-row,
+.msc-myprofile .msc-eval-row { gap: var(--spacing-xl); }
+.msc-content .msc-eval-row .msc-notif-sub { margin-top: var(--spacing-xxs); }
+
+/* 공개 범위 머리줄 아이콘 — 20 칸, 회색. 색은 감싸는 요소의 color 를 SVG 가 받는다(currentColor) */
+.msc-vis-icon { display: inline-flex; width: 20px; height: 20px; align-items: center; justify-content: center; flex-shrink: 0; color: var(--text-tertiary); }

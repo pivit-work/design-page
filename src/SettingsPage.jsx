@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { MySettingsCanvas } from './components/settings/index.js';
+import { EyeGlyph, LockGlyph } from './components/shared/lineIcons.jsx';
 import StateSwitcher from './devtools/StateSwitcher.jsx';
 import { ASYNC_KNOB, LABEL_KNOB, VOLUME_KNOB, knobKey, resize, useKnobs } from './devtools/knobs.js';
 import { stress, stressText } from './devtools/stress.js';
@@ -116,6 +117,29 @@ const DEPT_ALT = { long: '리더십·전략기획 총괄본부', latin: 'Leaders
 const KNOBS = [LABEL_KNOB, ASYNC_KNOB, VOLUME_KNOB];
 const SWITCHER_NOTE = '라벨: 등급 배지·직함·부서 / 비동기: 프로필·가족·비밀번호 저장 / 항목 수: 사진·부양가족·평가 이력·학력·경력·자격·문서';
 
+/* 선호 설정 데모 값 — 동의했고 칸마다 값이 든 상태. 값 낱말은 PreferenceTab.jsx 의 선택지 그대로 */
+const DEMO_PREFERENCE = {
+  agreed: true,
+  agreedDate: '2026-09-02',
+  feedbackProfile: {
+    feedbackTone: 'direct',
+    feedbackStyle: 'concise',
+    focusAreas: ['성과', '커리어'],
+    careerGoal: '3년 안에 제품 조직을 이끄는 리더가 되고 싶습니다.',
+    strengths: ['문제 해결', '실행력', '리더십'],
+    improveAreas: ['문서화', '시간 관리'],
+    personalityTraits: ['executor', 'strategist'],
+    growthPoint: '큰 그림을 먼저 공유받으면 더 빠르게 움직입니다. 피드백은 구체적인 예시와 함께 주시면 좋습니다.',
+  },
+  communicationPreference: {
+    responseSpeed: 'same_day',
+    meetingTimeSlots: ['morning', 'afternoon'],
+    focusHoursStart: '14:00',
+    focusHoursEnd: '16:00',
+  },
+};
+const DEMO_PREFERENCE_EMPTY = { agreed: false, agreedDate: null, feedbackProfile: {}, communicationPreference: {} };
+
 export default function SettingsPage() {
   const { values: knobs, set: setKnob, reset: resetKnobs } = useKnobs(KNOBS);
   const labelMode = knobs.labels;
@@ -123,6 +147,7 @@ export default function SettingsPage() {
   const volume = knobs.volume;
 
   const [tab, setTab] = useState('my_profile');
+  const [preference, setPreference] = useState(DEMO_PREFERENCE);
   const [photos, setPhotos] = useState([{ id: 'p1', url: 'https://i.pravatar.cc/150?img=11' }]);
   const [activePhotoId, setActivePhotoId] = useState('p1');
   const [saveState, setSaveState] = useState('idle');
@@ -312,11 +337,20 @@ export default function SettingsPage() {
       }}
       profileSaveState={effProfileSave}
       onSaveProfile={handleSaveProfile}
+      preference={preference}
+      onSavePreference={({ value }) => setPreference((p) => ({
+        ...p,
+        agreed: true,
+        agreedDate: p.agreedDate || '2026-10-27',
+        feedbackProfile: { ...p.feedbackProfile, ...value },
+        communicationPreference: { ...p.communicationPreference, ...value },
+      }))}
+      onWithdrawPreference={() => setPreference(DEMO_PREFERENCE_EMPTY)}
       visibilityGroups={[
         {
           key: 'always',
           tone: 'green',
-          icon: '🔓',
+          icon: <LockGlyph size={20} aria-hidden />,
           title: '항상 공개',
           desc: '모든 팀원에게 항상 표시됩니다. 변경할 수 없습니다.',
           locked: true,
@@ -326,7 +360,7 @@ export default function SettingsPage() {
         {
           key: 'optional',
           tone: 'brand',
-          icon: '👤',
+          icon: <EyeGlyph size={20} aria-hidden />,
           title: '선택 공개',
           desc: '내가 직접 공개 여부를 결정합니다.',
           locked: false,

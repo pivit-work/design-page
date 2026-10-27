@@ -1282,17 +1282,17 @@
   },
   "settings.css|.msc-grade-badge": {
    "border-radius": "10px",
-   "padding": "0 4px",
-   "font-size": "18px",
-   "font-weight": "800",
-   "display": "flex",
+   "padding": "4px 8px",
+   "font-size": "14px",
+   "font-weight": "500",
+   "display": "inline-flex",
    "align-items": "center",
    "justify-content": "center",
-   "line-height": "1.05",
+   "line-height": "24px",
    "flex-shrink": "0",
    "box-sizing": "border-box",
-   "overflow": "hidden",
-   "overflow-wrap": "anywhere"
+   "min-width": "34px",
+   "white-space": "nowrap"
   },
   "settings.css|.msc-hist-badge": {
    "border-radius": "pill",

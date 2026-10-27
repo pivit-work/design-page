@@ -641,52 +641,15 @@ function MaskedAmount({ amount, currency, revealed, testId }) {
   );
 }
 
-/* 평가 등급 배지 색 (시안 GRADE_COLOR 정본) */
-const GRADE_COLOR = {
-  S: { bg: '#FEF3C7', bd: '#FDE68A', tx: '#B45309' },
-  'A+': { bg: '#DBEAFE', bd: '#BFDBFE', tx: '#1D4ED8' },
-  A: { bg: '#EEF2FF', bd: '#C7D2FE', tx: '#4338CA' },
-  'B+': { bg: '#F0FDF4', bd: '#BBF7D0', tx: '#15803D' },
-  B: { bg: '#F8FAFC', bd: '#E2E8F0', tx: '#475569' },
-  C: { bg: '#FFF7ED', bd: '#FED7AA', tx: '#C2410C' },
-};
-const CJK_CHAR = /[ㄱ-힝぀-ヿ一-鿿]/;
+/* 평가 등급 딱지 — 디자이너 점수 딱지(manager.css .mgr-ts-score: 연한 바탕 · 진한 글자 · r10 · 14/500)의 모양.
+   전에는 기획 시안의 등급별 색 상자(44 정사각, 18px 800, 색 6벌 hex)였다. 색은 공용 딱지 뜻(tone)으로 고른다 —
+   상위 등급은 «충족», 중간은 «중립», 하위는 «주의»·«위험». 표에 없는 라벨(템플릿이 정한 「탁월」 등)은 중립.
+   딱지가 글자 폭만큼 늘어나 긴 라벨도 넘치지 않는다(예전 글자 크기 줄이기 계산이 필요 없다). */
+const GRADE_TONE = { S: 'success', 'A+': 'success', A: 'success', 'B+': 'neutral', B: 'neutral', C: 'warning', D: 'danger' };
 
-/**
- * 등급 라벨을 배지(정사각형) 안에 가둘 글자 크기.
- * 등급 라벨은 사이클 템플릿에서 정의되므로 'S'/'탁월' 같은 짧은 값만 온다는 보장이
- * 없다('해당없음', 영문 'Exceeds' 등). 기본 크기로 넘치면 배지 밖으로 글자가 삐져나오므로
- * 폭을 추정해 축소한다. 2~3자 이하(기존 케이스)는 기본 크기 그대로라 시각 변화가 없다.
- */
-function fitGradeFontSize(label, size) {
-  const text = String(label ?? '').trim();
-  const base = Math.round(size * 0.41); // 44px 배지 → 18px (기존 값)
-  if (!text) return base;
-  const inner = size - 8; // 좌우 패딩 4px
-  // 글자 폭 계수: CJK 는 폰트 크기와 거의 같고, 라틴·숫자는 bold 기준 약 62%.
-  const units = [...text].reduce((sum, ch) => sum + (CJK_CHAR.test(ch) ? 1 : 0.62), 0);
-  const lines = units > 2.6 ? 2 : 1; // 긴 라벨은 두 줄까지 허용
-  // 두 줄로 쪼갤 땐 줄 경계에서 남는 여백이 생기므로 0.85 로 보정한다.
-  const fitted =
-    lines === 1
-      ? Math.floor(inner / units)
-      : Math.floor((inner * lines * 0.85) / units);
-  return Math.max(9, Math.min(base, fitted));
-}
-
-function GradeBadge({ grade, size = 44 }) {
-  const c = GRADE_COLOR[grade] || GRADE_COLOR.B;
+function GradeBadge({ grade }) {
   return (
-    <StatusBadge
-      className="msc-grade-badge"
-      style={{
-        width: size,
-        height: size,
-        background: c.bg,
-        border: `1px solid ${c.bd}`,
-        color: c.tx,
-        fontSize: fitGradeFontSize(grade, size),
-      }}>
+    <StatusBadge tone={GRADE_TONE[grade] || 'neutral'} className="msc-grade-badge">
       {grade}
     </StatusBadge>
   );
@@ -833,7 +796,7 @@ function MyProfileTab({ me, activePhoto, myProfile, labels, onEdit }) {
         <div className="admin-section-label">{L.perfInfo}</div>
         {mp.latestEval ? (
           <div className="msc-eval-row">
-            <GradeBadge grade={mp.latestEval.grade} size={48} />
+            <GradeBadge grade={mp.latestEval.grade} />
             <div>
               <div className="msc-notif-label">{mp.latestEval.period}</div>
               <div className="msc-notif-sub">
@@ -1454,7 +1417,7 @@ function PerformanceTab({ performance, loading, error, labels }) {
         ) : (
           <div className="msc-list">
             {history.map((e, i) => (
-              <div key={i} className="msc-eval-row" data-testid={`eval-${i}`}>
+              <div key={i} className="msc-list-row msc-eval-row" data-testid={`eval-${i}`}>
                 <GradeBadge grade={e.grade} />
                 <div>
                   <div className="msc-notif-label">{e.period}</div>
@@ -3274,7 +3237,7 @@ export function VisibilitySettingsContent({ labels, visibilityGroups = [], visib
               {visibilityGroups.map((group) => (
                 <Card key={group.key} className={`is-${group.tone || 'brand'}`} testId={`visibility-group-${group.key}`}>
                   <div className="msc-vis-header">
-                    {group.icon && <span style={{ fontSize: 16 }}>{group.icon}</span>}
+                    {group.icon && <span className="msc-vis-icon">{group.icon}</span>}
                     <div style={{ flex: 1 }}>
                       <div className="msc-vis-group-title">{group.title}</div>
                       <div className="msc-vis-group-desc">{group.desc}</div>
