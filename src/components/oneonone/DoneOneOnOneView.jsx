@@ -128,6 +128,7 @@ const DEFAULT_LABELS = {
      같은 파일은 같은 판정을 낸다. 기획 시안 `1on1-app.jsx` 의 `skipped` 블록 문구 그대로. */
   bannerReplay: '녹음 다시 듣기',
   bannerManualEntry: '직접 입력',
+  bannerManualView: '적은 내용 보기',
 
   /* ── 대화 내용 직접 입력 (PW-812 · policy §11.7.4) ──
      기획 시안 `1on1-app.jsx` 의 `full_fail` 수동 입력 블록을 옮긴 것이다. 새 문구를
@@ -329,11 +330,15 @@ const has = (v) => Array.isArray(v) && v.length > 0;
  *
  * 적은 것이 없으면 「완료」를 잠근다. 저장 중에도 잠근다 — 두 번 눌러 같은 글이 두 번
  * 저장되면 요약 생성도 두 번 돈다(AI 비용이 두 번 나간다).
+ *
+ * `entry.readOnly` 면 적어 둔 글을 보여 주기만 한다 — 칸은 고칠 수 없고 「완료」가 없다.
+ * 끝난 지 30일이 지난 회차가 이렇다(PW-2287 · 다른 칸의 [편집]이 사라지는 것과 같은 기간).
  */
 function ManualEntryPanel({ L, entry }) {
   const text = entry.value ?? '';
   const empty = !text.trim();
   const saving = !!entry.saving;
+  const readOnly = !!entry.readOnly;
   return (
     <div className="ono-done-manual" data-testid="ono-done-manual">
       <div className="ono-done-manual-head">
@@ -346,6 +351,7 @@ function ManualEntryPanel({ L, entry }) {
         value={text}
         onChange={(e) => entry.onChange?.(e.target.value)}
         placeholder={L.manualEntryPlaceholder}
+        readOnly={readOnly}
         disabled={saving}
         aria-label={L.manualEntryTitle}
         data-testid="ono-done-manual-input"
@@ -367,17 +373,19 @@ function ManualEntryPanel({ L, entry }) {
         >
           {L.manualEntryCancel}
         </Button>
-        <Button
-          type="button"
-          variant="primary"
-          size="sm"
-          className="ono-done-action-add-btn"
-          onClick={entry.onSave}
-          disabled={empty || saving}
-          data-testid="ono-done-manual-save"
-        >
-          {saving ? L.manualEntrySaving : L.manualEntrySave}
-        </Button>
+        {!readOnly && (
+          <Button
+            type="button"
+            variant="primary"
+            size="sm"
+            className="ono-done-action-add-btn"
+            onClick={entry.onSave}
+            disabled={empty || saving}
+            data-testid="ono-done-manual-save"
+          >
+            {saving ? L.manualEntrySaving : L.manualEntrySave}
+          </Button>
+        )}
       </div>
     </div>
   );
@@ -477,7 +485,7 @@ function AnalysisBanner({ state, L, icons, baseUrl, retry, summaryRetry, replay,
                 onClick={manualEntry.onOpen}
                 data-testid="ono-done-banner-manual"
               >
-                {L.bannerManualEntry}
+                {manualEntry.readOnly ? L.bannerManualView : L.bannerManualEntry}
               </Button>
             )}
           </span>
