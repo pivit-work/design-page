@@ -1527,8 +1527,7 @@
    전에는 이름표 12px·가장 옅은 회색(quaternary), 값 13px, 화면 폭 920px 라 글자가 작고 희미하고 빽빽했다.
    따르는 디자이너 모양(one_on_one.css, stesslee):
    - 카드 제목 = 「내 원온원」 항목 제목 .ono-start-field-label 16px 굵게
-   - 이름표 = 숫자 카드 이름표 .ono-kpi-label 색(secondary), 크기는 14px
-   - 값 = 「일정 추가」 창 칸 글씨 14px primary
+   - 이름표·값 = 아래 「요약 표」
    - 카드 = .ono-mem-card 테두리(alpha 5%) · 모서리 16 · 안쪽 24 */
 .msc-layout {
   max-width: 1120px;
@@ -1576,16 +1575,48 @@
 }
 .msc-myprofile .admin-card > .admin-section-label { margin-bottom: var(--spacing-2xl); }
 .msc-myprofile .msc-vis-header { margin-bottom: var(--spacing-2xl); padding-bottom: var(--spacing-xl); }
-.msc-myprofile .msc-pairs { gap: var(--spacing-2xl) var(--spacing-3xl); }
+/* 읽기 전용 칸 묶음 = 회원가입 확인 단계 「요약 표」(login.css .login-summary, stesslee 2026-10-27):
+   연한 회색 상자 안 줄마다 이름표(왼쪽 회색)·값(오른쪽 검정 600), 줄 사이 얇은 선. 글자는 앱 안 화면이라 14px */
+.msc-myprofile .msc-pairs,
+.msc-myprofile .msc-comp-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: var(--spacing-xs, 4px) var(--spacing-xl);
+  border-radius: var(--radius-md, 10px);
+  background: var(--alpha-black-3, rgba(0, 0, 0, 0.03));
+}
+.msc-myprofile .msc-pairs > div,
+.msc-myprofile .msc-comp-grid > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-lg, 12px);
+  padding: var(--spacing-lg, 12px) 0;
+  min-width: 0;
+}
+.msc-myprofile .msc-pairs > div + div,
+.msc-myprofile .msc-comp-grid > div + div { border-top: 1px solid var(--border-secondary); }
 .msc-myprofile .msc-pair-label {
+  flex-shrink: 0;
+  margin: 0;
   font-size: var(--font-size-text-sm);
   line-height: var(--line-height-text-sm);
-  font-weight: 500;
+  font-weight: 400;
+  /* 시안은 tertiary 지만 넓은 화면에서 희미하다는 지적(2026-10-27 커트)으로 한 단계 진하게 */
   color: var(--text-secondary);
-  margin-bottom: var(--spacing-xs, 4px);
 }
-.msc-myprofile .msc-pair-value { font-size: var(--font-size-text-sm); line-height: var(--line-height-text-sm); font-weight: 500; }
-.msc-myprofile .msc-comp-grid { gap: var(--spacing-2xl) var(--spacing-3xl); }
+.msc-myprofile .msc-pair-value,
+.msc-myprofile .msc-comp-grid > div > :last-child {
+  justify-content: flex-end;
+  text-align: right;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
 
 .msc-myprofile .msc-hero { gap: var(--spacing-2xl); }
 .msc-myprofile .msc-hero-avatar {
@@ -1606,3 +1637,5 @@
 .msc-myprofile .msc-eval-row { gap: var(--spacing-xl); }
 .msc-myprofile .msc-notif-sub { font-size: var(--font-size-text-sm); line-height: var(--line-height-text-sm); margin-top: 2px; }
 .msc-myprofile .msc-empty-state { padding: var(--spacing-3xl) 0; font-size: var(--font-size-text-sm); }
+/* 보상 머리줄 아래 선은 요약 표 상자와 겹쳐 두 겹으로 보여 뺀다 */
+.msc-myprofile .msc-vis-header { padding-bottom: 0; border-bottom: none; }
