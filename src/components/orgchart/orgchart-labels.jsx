@@ -486,6 +486,7 @@ export const ORGCHART_LABELS = {
   // 리소스 탭 (PW-2319 · screen-project-detail.policy.md §4-2·§5-3·§7·§8·§9)
   'projectDetail.resource.loadFailed': '불러오지 못했습니다',
   'projectDetail.resource.retry': '다시 시도',
+  'projectDetail.resource.refreshing': '리소스를 다시 불러오는 중',
   'projectDetail.resource.unlinked': '먼저 조직도에서 스쿼드에 연결해 주세요',
   'projectDetail.resource.openSquads': '조직도 스쿼드로 가기',
   'projectDetail.resource.overCount': '초과 배정',

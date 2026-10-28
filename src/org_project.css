@@ -678,3 +678,11 @@
   font-weight: 600;
   color: var(--text-brand-secondary);
 }
+/* 탭 전환 로딩 — 앞 내용은 두고 위에 2px 진행 막대(원장 정책서 §9 · PW-2319). */
+.pd-tab-progress {
+  height: 2px;
+  margin-bottom: var(--spacing-md);
+  border-radius: var(--radius-full);
+  background: var(--fg-brand-primary);
+  opacity: 0.6;
+}

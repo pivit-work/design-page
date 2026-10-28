@@ -273,6 +273,10 @@ export default function ProjectResourceTab({
 
   return (
     <div data-testid="project-resource">
+      {/* 다시 받는 중 — 앞서 받은 표는 그대로 두고 위에 얇은 막대만(§9 «탭 전환 로딩»). */}
+      {resource?.loading && (
+        <div className="pd-tab-progress" role="progressbar" aria-label={L('projectDetail.resource.refreshing')} data-testid="project-resource-refreshing" />
+      )}
       {/* ── 숫자 4칸 (§4-2 · §5-3) ── */}
       <div className="rsx-stats pd-resource-stats" data-testid="project-resource-stats">
         <RsStatCard tone="brand" label={L('projectDetail.stats.headcount')}
