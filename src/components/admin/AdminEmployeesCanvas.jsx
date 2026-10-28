@@ -3982,6 +3982,11 @@ function EmployeesEditPanel({
      `onSave(patches, appointment)` · `onChangeAffiliations(id, payload, appointment)` 로 나가고
      `appointment` 는 `{ effectiveDate, appointmentType?, reason?, scheduled, changes }` 다. 미주입이면 종전 그대로다. */
   appointmentTypeOptions, inferAppointmentType,
+  /* 발령 충돌 확인 (pivit-work PW-2349 · org-snapshot-spec §6-7 · 발령 이력 정책 v1.5 §2) — [발령]을 누르면 소속·다른 칸을
+     보내기 «전에» 한 번 부른다: `onBeforeAppoint(memberId, { affiliation, appointment })`. 같은 칸의 다른 예정 건이나 예약 개편이
+     지우는 조직으로 옮기는 발령이면 호출부가 충돌 창(종전 «덮어쓸까요?» 자리)을 띄우고, 고른 대로 이어서 보낸다.
+     되던지면(창에서 [취소] 등) 아무것도 보내지 않고 창을 열어 둔다. 미주입이면 종전 그대로다. */
+  onBeforeAppoint,
 }) {
   const [draft, setDraft] = useState(member);
   const appointmentWired = Array.isArray(appointmentTypeOptions);
@@ -4375,6 +4380,18 @@ function EmployeesEditPanel({
          닫히는 것» 을 막기 위해서다. 그러니 여기서 **받아서** 패널을 열어 둔다(방금 친
          값이 남는다). 받지 않고 흘려보내면 [저장] 클릭의 처리되지 않은 오류로 기록돼,
          사용자가 고른 [취소]까지 피드백 제보에 버그처럼 섞인다(PW-647). */
+      /* 발령 충돌을 먼저 묻는다 — 소속과 다른 칸이 따로 나가므로, 하나씩 물으면 창이 두 번 뜨고 한쪽만 고른 채 반쯤 저장된다. */
+      if (appointmentPayload && onBeforeAppoint) {
+        try {
+          await onBeforeAppoint(member.id, {
+            affiliation: affilChanged ? pendingAffil : null,
+            appointment: appointmentPayload,
+          });
+        } catch (e) {
+          setSaveError(panelErrorOf(e));
+          return;
+        }
+      }
       /* 소속을 먼저 보낸다 — 소속이 거절되면 직급 등은 아직 안 바뀐 채로 창이 열려 있다. */
       if (affilChanged && onChangeAffiliations) {
         try {
@@ -5177,6 +5194,8 @@ export default function AdminEmployeesCanvas({
   appointmentsTab,
   /* 구성원 창 「발령으로 남습니다」 묶음 (PW-2034) — `EmployeesEditPanel` 주석 참조. 미주입이면 묶음이 없다. */
   appointmentTypeOptions,
+  /* 구성원 창 [발령] 직전 발령 충돌 확인 (PW-2349) — 단건 편집 패널로 그대로 넘긴다 */
+  onBeforeAppoint,
   inferAppointmentType,
   // 전체 구성원 탭의 초기 검색어(딥링크용) — 개요에서 특정 인원 클릭 시 사용.
   initialSearch = '',
@@ -5790,6 +5809,7 @@ export default function AdminEmployeesCanvas({
             onChangeAffiliations={onChangeAffiliations}
             appointmentTypeOptions={canEdit ? appointmentTypeOptions : undefined}
             inferAppointmentType={inferAppointmentType}
+            onBeforeAppoint={onBeforeAppoint}
             /* 재직 상태별 날짜 칸(§3.2.1) — HR 기록 모달과 **같은** 조회·저장 경로다.
                미주입이면(어드민 아님) 그 칸을 아예 그리지 않는다. */
             onLoadHrProfile={onLoadHrProfile}

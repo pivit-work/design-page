@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useCallback } from 'react';
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import EmptyState from '../shared/EmptyState.jsx';
@@ -219,6 +219,8 @@ const DEFAULT_LABELS = {
   historyDetail: '상세',
   historyModeSingle: '단건',
   historyModeBulk: '대량',
+  /** 조직단위 설정 편집기의 저장·예약 개편 (PW-2349 · 발령 이력 정책 E6) */
+  historyModeReorg: '개편',
   historyField: '항목',
   historyReason: '사유',
   // «퇴직» 상세의 퇴사 유형 — 직원 정보 수정 권한 어드민에게만 앱이 실어 준다 (pivit-work PW-1693 · org-snapshot-spec §4)
@@ -251,6 +253,8 @@ const DEFAULT_LABELS = {
   pendingOverwriteConfirm: '덮어쓰기',
   historyScheduled: '예정',
   historyCancelScheduled: '발효 전 취소',
+  /** 예약 개편 줄 — 취소는 조직단위 설정의 예약 배너에서 묶음째 한다 (PW-2349 · org-snapshot-spec §4 «예약 개편 행») */
+  historyReservationCancel: '조직단위 설정에서 취소',
   // 구조 개정 (org-snapshot-spec §4 · §5)
   historyTypeAll: '전체 유형',
   historyTypeRevision: '구조 개정',
@@ -1226,6 +1230,12 @@ function AppointmentBulkView({
   parseUpload, onFixPrimary, onRowAction, affiliationTemplate,
   /* 구성원 설정에서 연 대량 발령의 [← 발령 이력] (PW-2034). 넘기면 머리 줄이 생긴다 — 조직 현황 머리와 같은 모양 */
   onBack,
+  /* 발령 충돌 얼럿 자리 (PW-2349 · org-snapshot-spec §6-7 · 발령 이력 정책 v1.5 §3) — ③ 요약 아래·«발령 확정» 위.
+     충돌을 재고 고르는 일은 앱이 한다: ③ 의 확정 대상·발령일이 바뀔 때마다 `onReviewChange` 로 확정과 같은 모양을 넘기고,
+     앱이 그린 얼럿(`beforeConfirm`)을 이 자리에 둔다. `confirmBlocked` 면 «발령 확정»을 막는다(다 고르기 전 등) */
+  onReviewChange,
+  beforeConfirm,
+  confirmBlocked = false,
 }) {
   const [step, setStep] = useState(1);
   const [selectedColumns, setSelectedColumns] = useState(() => new Set());
@@ -1252,7 +1262,7 @@ function AppointmentBulkView({
   const warnRows = previewRows.filter((r) => r.status === 'warn');
   const errorRows = previewRows.filter((r) => r.status === 'error');
   // 확정 대상 = 정상 + 경고(진행 가능). 제외 행은 빠진다(§3-A-3).
-  const applicableRows = previewRows.filter((r) => r.status !== 'error');
+  const applicableRows = useMemo(() => previewRows.filter((r) => r.status !== 'error'), [previewRows]);
 
   const toggleColumn = (f) => setSelectedColumns((prev) => {
     const next = new Set(prev);
@@ -1357,19 +1367,28 @@ function AppointmentBulkView({
     setPreviewRows((prev) => prev.map((r) => (r === row ? next : r)));
   };
 
+  /** 확정에 실리는 행 — «발령 확정»과 발령 충돌 미리 재기가 같은 모양을 쓴다(갈리면 미리 잰 충돌이 거짓이 된다). */
+  const confirmRows = useMemo(
+    () => applicableRows
+      .filter((r) => r.memberId || r.matchedMember)
+      .map((r) => ({
+        memberId: r.memberId ?? r.matchedMember.id,
+        changes: r.fieldChanges ?? r.changes ?? {},
+        ...(r.teams ? { affiliation: { teams: r.teams, primary: r.primary, leaders: r.leaders ?? [] } } : {}),
+      })),
+    [applicableRows],
+  );
+  useEffect(() => {
+    if (step === 3 && onReviewChange) onReviewChange({ rows: confirmRows, date });
+  }, [step, confirmRows, date, onReviewChange]);
+
   const handleConfirm = async () => {
     if (applicableRows.length === 0) return;
     setSubmitting(true);
     setSubmitError('');
     try {
       await onSubmit?.({
-        rows: applicableRows
-          .filter((r) => r.memberId || r.matchedMember)
-          .map((r) => ({
-            memberId: r.memberId ?? r.matchedMember.id,
-            changes: r.fieldChanges ?? r.changes ?? {},
-            ...(r.teams ? { affiliation: { teams: r.teams, primary: r.primary, leaders: r.leaders ?? [] } } : {}),
-          })),
+        rows: confirmRows,
         date,
         reason,
         fields,
@@ -1650,6 +1669,7 @@ function AppointmentBulkView({
                 <input className="admin-snap-input" value={reason} onChange={(e) => setReason(e.target.value)} placeholder={labels.bulkReasonPlaceholder} />
               </div>
             </div>
+            {beforeConfirm}
             {submitError && (
               <p className="dp-field-error admin-snap-error" role="alert">{submitError}</p>
             )}
@@ -1659,7 +1679,7 @@ function AppointmentBulkView({
                 <button type="button" className="admin-emp-btn is-soft" disabled={submitting} onClick={reset}>{labels.cancelAll}</button>
               </div>
               {/* 확정 대상 = 정상 + 경고. 0건이면 누를 수 없다(§3-A-3). */}
-              <button type="button" className="admin-emp-btn is-primary" disabled={applicableRows.length === 0 || !date || submitting} onClick={handleConfirm}>
+              <button type="button" className="admin-emp-btn is-primary" disabled={applicableRows.length === 0 || !date || submitting || confirmBlocked} onClick={handleConfirm}>
                 {labels.confirmBulkPrefix} ({applicableRows.length}{labels.countUnit})
               </button>
             </div>
@@ -1704,6 +1724,10 @@ function AppointmentHistoryView({
   /* 구성원 설정 › 발령 이력 탭의 머리 줄 [대량 발령] (PW-2034). 넘기면 제목·버튼 머리 줄이 생긴다.
      조직 스냅샷의 발령 이력은 읽기만 해서 넘기지 않는다 */
   onOpenBulk,
+  /* 예약 개편 줄(`rec.reservation`)의 «조직단위 설정에서 취소 →» (PW-2349). 조직단위 설정을 열 수 있는 사람(p011)에게만
+     넘긴다 — 안 넘기면 그 줄에는 «상세 ▸» 만 남는다(매니저). 예약 개편 줄에는 «발효 전 취소»를 그리지 않는다 — 개편은 묶음이라
+     한 줄만 취소하면 «조직은 옮기는데 사람은 남는» 개편이 된다(편집기 정책 §4-8 R10). 구성원 설정 탭·조직 스냅샷 서브탭 둘 다 같다 */
+  onOpenReservation,
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   /** 발령 유형 필터 — '' 전체 · 유형 키 · `revision` 구조 개정 (§4 · PW-1422) */
@@ -1899,11 +1923,29 @@ function AppointmentHistoryView({
                       </StatusBadge>
                     </RosterTable.Cell>
                     <RosterTable.Cell className={`admin-snap-hist-mode${rec.mode === 'bulk' ? ' is-bulk' : ''}`}>
-                      {rec.mode === 'bulk' ? labels.historyModeBulk : labels.historyModeSingle}
+                      {rec.mode === 'reorg'
+                        ? labels.historyModeReorg
+                        : rec.mode === 'bulk'
+                          ? labels.historyModeBulk
+                          : labels.historyModeSingle}
                     </RosterTable.Cell>
                     <RosterTable.Cell className="admin-snap-hist-mode">{rec.by ?? '-'}</RosterTable.Cell>
                     <RosterTable.Cell>
-                      {rec.scheduled && !rec.members && onCancelScheduled && (
+                      {rec.scheduled && rec.reservation && onOpenReservation && (
+                        <>
+                          <button
+                            type="button"
+                            className="admin-snap-hist-detaillink"
+                            onClick={(e) => { e.stopPropagation(); onOpenReservation(rec); }}
+                            data-testid={`snap-hist-reservation-${rec.id}`}
+                          >
+                            {labels.historyReservationCancel}
+                            <ArrowRightGlyph size={12} />
+                          </button>
+                          <span className="admin-snap-hist-detaillink">{'\u00a0·\u00a0'}</span>
+                        </>
+                      )}
+                      {rec.scheduled && !rec.reservation && !rec.members && onCancelScheduled && (
                         <>
                           <button
                             type="button"
@@ -2446,6 +2488,8 @@ export default function OrgSnapshotCanvas({
    * 거절되면 그 사유를 이력 화면 안에 띄운다. 미주입이면 취소 버튼이 없다.
    */
   onCancelScheduled,
+  /** 예약 개편 줄 «조직단위 설정에서 취소 →» (PW-2349) — 조직단위 설정 권한(p011)이 있는 사람에게만 넘긴다 */
+  onOpenReservation,
   /**
    * 구조 개정 목록 `[{ version, savedAt, savedBy, changedUnits }]` (§4 · PW-1422).
    * 넘기면 발령 유형 필터에 「구조 개정」이 생긴다. `null` = 불러오는 중.
@@ -2600,6 +2644,7 @@ export default function OrgSnapshotCanvas({
               labels={labels}
               onExport={onExportHistory}
               onCancelScheduled={onCancelScheduled}
+              onOpenReservation={onOpenReservation}
               structureRevisions={structureRevisions}
               structureRevisionsError={structureRevisionsError}
               onLoadStructureRevision={onLoadStructureRevision}
