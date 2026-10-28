@@ -646,7 +646,7 @@
    아래는 그 조합에 필요한 자리·간격만이며 색은 토큰으로만 쓴다. */
 .pd-resource-stats { margin-bottom: var(--spacing-xl); }
 .pd-resource-group { margin-bottom: var(--spacing-3xl); }
-.pd-resource-rows { display: flex; flex-direction: column; gap: var(--spacing-lg); }
+.pd-resource-rows { display: flex; flex-direction: column; gap: var(--spacing-2xl); } /* 내 리소스 입력 행 사이와 같다(20) */
 /* 상한 대비 사용률은 아래 스택 바와 큰 %의 색(정상 프로젝트색 · 초과 빨강)으로 말한다 — 한쪽 굵은 선은 쓰지 않는다(PW-1101). */
 .pd-resource-row { align-items: flex-start; }
 .pd-resource-row .rsx-entry-title { flex-wrap: wrap; min-width: 0; }
@@ -665,11 +665,13 @@
   gap: var(--spacing-md);
   padding-top: var(--spacing-md);
 }
-.pd-resource-tools { display: flex; flex: none; align-items: center; gap: var(--spacing-md); }
 .pd-resource-note { margin-bottom: var(--spacing-xl); }
-.pd-resource-add { position: relative; margin-bottom: var(--spacing-xl); }
-/* 추가 겹창은 스쿼드 카드 대신 화면 가운데 위에 선다 — 카드가 없어 덮을 자리를 본문으로 잡는다. */
-.pd-resource-cover { position: fixed; z-index: 30; }
+.pd-resource .pd-form-actions { margin-bottom: var(--spacing-xl); }
+.pd-resource-add-row { margin-bottom: var(--spacing-xl); }
+/* 추가 겹창은 스쿼드 카드 겹창처럼 «덮는 자리»를 흐리게 덮는다 — 여기서는 리소스 탭 전체다(왼쪽 메뉴·머리는 안 덮는다).
+   [인원 추가] 버튼이 탭 아래쪽에 있어 창을 아래에 붙인다. */
+.pd-resource { position: relative; }
+.sq-add-cover.pd-resource-cover { align-items: flex-end; padding-bottom: var(--spacing-4xl); }
 .pd-resource-saved {
   display: inline-flex;
   align-items: center;

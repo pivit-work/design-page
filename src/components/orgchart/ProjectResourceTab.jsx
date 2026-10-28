@@ -272,7 +272,7 @@ export default function ProjectResourceTab({
   const pctColor = (over) => (over ? 'var(--text-error-primary)' : project.color || 'var(--fg-brand-primary)');
 
   return (
-    <div data-testid="project-resource">
+    <div className="pd-resource" data-testid="project-resource">
       {/* 다시 받는 중 — 앞서 받은 표는 그대로 두고 위에 얇은 막대만(§9 «탭 전환 로딩»). */}
       {resource?.loading && (
         <div className="pd-tab-progress" role="progressbar" aria-label={L('projectDetail.resource.refreshing')} data-testid="project-resource-refreshing" />
@@ -353,7 +353,7 @@ export default function ProjectResourceTab({
       )}
 
       {canAssign && (
-        <div className="pd-resource-add">
+        <div className="pd-resource-add-row">
           <Button className="sq-btn sq-btn-sm sq-btn-outline" data-testid="project-resource-add" onClick={() => setAdding(true)}>
             <PlusIcon size={12} /> {L('projectDetail.resource.add')}
           </Button>
@@ -477,22 +477,25 @@ function ResourceRow({
             ? L('projectDetail.resource.actualMissing')
             : L('projectDetail.resource.actual', { value: row.actualPct, gap: `${gap >= 0 ? '+' : ''}${gap}` })}
         </p>
-        {action && <div className="pd-resource-actions">{action}</div>}
+        {/* [PO 지정]은 행 아래 조치 줄에 — 오른쪽 열은 ✕ 하나라 큰 %의 오른쪽 끝이 행마다 같다(내 리소스 입력 행과 같은 열). */}
+        {(action || (editable && row.role !== 'po' && canSetPO)) && (
+          <div className="pd-resource-actions">
+            {editable && row.role !== 'po' && canSetPO && (
+              <Button className="sq-btn sq-btn-sm sq-btn-outline" data-testid={`project-resource-set-po-${row.memberId}`} onClick={onPO}>
+                {L('projectDetail.resource.setPo')}
+              </Button>
+            )}
+            {action}
+          </div>
+        )}
       </div>
       {editable && (
-        <span className="pd-resource-tools">
-          {row.role !== 'po' && canSetPO && (
-            <Button className="sq-btn sq-btn-sm sq-btn-outline" data-testid={`project-resource-set-po-${row.memberId}`} onClick={onPO}>
-              {L('projectDetail.resource.setPo')}
-            </Button>
-          )}
-          <button
-            type="button" className="rsx-close-btn"
-            aria-label={L('projectDetail.resource.removeAria', { name: row.name })}
-            data-testid={`project-resource-remove-${row.memberId}`}
-            onClick={onRemove}
-          ><CloseIcon size={14} /></button>
-        </span>
+        <button
+          type="button" className="rsx-close-btn"
+          aria-label={L('projectDetail.resource.removeAria', { name: row.name })}
+          data-testid={`project-resource-remove-${row.memberId}`}
+          onClick={onRemove}
+        ><CloseIcon size={14} /></button>
       )}
     </div>
   );
