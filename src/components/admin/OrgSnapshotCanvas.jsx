@@ -1236,6 +1236,8 @@ function AppointmentBulkView({
   onReviewChange,
   beforeConfirm,
   confirmBlocked = false,
+  /* «발령 완료» 아래 덧붙일 한 줄 (PW-2349 · 발령 이력 정책 v1.5 — «예정 발령으로 N건을 남겼어요»). 앱이 확정이 끝난 뒤 채운다 */
+  doneNote,
 }) {
   const [step, setStep] = useState(1);
   const [selectedColumns, setSelectedColumns] = useState(() => new Set());
@@ -1414,6 +1416,7 @@ function AppointmentBulkView({
         <div className="admin-snap-done-icon">✓</div>
         <div className="admin-snap-done-title">{labels.appointmentDone}</div>
         <div className="admin-snap-done-sub">{labels.okCount} {applicableRows.length}{labels.countUnit}</div>
+        {doneNote && <div className="admin-snap-done-sub">{doneNote}</div>}
         <button type="button" className="admin-emp-btn is-soft" onClick={reset}>{labels.close}</button>
       </div>
     );
@@ -1935,7 +1938,7 @@ function AppointmentHistoryView({
                         <>
                           <button
                             type="button"
-                            className="admin-snap-hist-detaillink"
+                            className="admin-snap-hist-detaillink admin-snap-hist-cancel"
                             onClick={(e) => { e.stopPropagation(); onOpenReservation(rec); }}
                             data-testid={`snap-hist-reservation-${rec.id}`}
                           >
