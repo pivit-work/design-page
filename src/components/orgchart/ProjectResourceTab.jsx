@@ -461,10 +461,11 @@ function ResourceRow({
           </div>
         )}
         <div className="pd-resource-bar">
+          {/* 0% 조각은 그리지 않는다 — 폭 0 조각에 붙은 말풍선이 카드 밖에 떠 남았다. */}
           <RsStackBar segments={[
             { pct: Math.min(100, row.other), color: 'var(--bg-quaternary)', label: L('projectDetail.resource.otherSeg', { value: row.other }) },
             { pct: Math.max(0, Math.min(100 - Math.min(100, row.other), row.planPct)), color, label: L('projectDetail.resource.mineSeg', { value: row.planPct }) },
-          ]} />
+          ].filter((seg) => seg.pct > 0)} />
         </div>
         <p className={`rsx-entry-note${red ? ' pd-resource-over' : ''}`} data-testid={`project-resource-caption-${row.memberId}`}>
           {L('projectDetail.resource.capLine', { cap: row.cap, other: row.other, mine: row.planPct })}
