@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import AppConfirmModal from '../shared/ConfirmModal.jsx';
 import { stampScheduleDateTime } from './evalScheduleStamp.js';
+import { resolveKoreanParticles } from '../shared/koreanParticle.js';
 
+// 값을 채운 뒤 조사를 고른다 — 「마감이 {{end}}(으)로」 → 「10/30 18:00으로」 (PW-2259).
+// 앱의 i18n 후처리는 이 창이 {{end}} 를 채우기 전에 돌아 여기서 다시 고른다.
 const fill = (s, vars) => {
   let out = s == null ? '' : String(s);
   for (const k of Object.keys(vars)) out = out.replace(`{{${k}}}`, vars[k]);
-  return out;
+  return resolveKoreanParticles(out);
 };
 
 /**

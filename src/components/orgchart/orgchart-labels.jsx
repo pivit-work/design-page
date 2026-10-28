@@ -520,7 +520,7 @@ export const ORGCHART_LABELS = {
   'projectDetail.resource.saveFailed': '저장하지 못했습니다. 다시 시도해 주세요.',
   'projectDetail.resource.conflict': '다른 관리자가 방금 변경했습니다',
   'projectDetail.resource.caption': '계획과 실제의 차이는 평가 근거가 아니라 대화의 재료입니다.',
-  'projectDetail.resource.poChanged': '기존 PO {{name}}은 팀원으로 변경됩니다',
+  'projectDetail.resource.poChanged': '기존 PO {{name}}은(는) 팀원으로 변경됩니다',
   'projectDetail.resource.setPo': 'PO 지정',
   'projectDetail.resource.removeAria': '{{name}} 배정 해제',
   'projectDetail.resource.sliderAria': '{{name}} 계획%',
