@@ -327,6 +327,8 @@ export const ORGCHART_LABELS = {
   'squad.pop.otherSquads': '다른 스쿼드',
   'squad.pop.notCounted': '이 스쿼드는 {{status}} 상태라 캐파 합계에 포함되지 않습니다.',
   'squad.pop.idleNote': '비중은 잡혀 있는데 캐파 사용이 0입니다 — 저장은 되지만 과부하 판단에 반영되지 않습니다.',
+  'squad.pop.planSum': '프로젝트 계획 합계 {{n}}% (이 스쿼드 자격)',
+  'squad.pop.planSumWarn': '프로젝트 계획 합계 {{n}}%보다 낮아집니다 — 저장하면 계획을 정한 사람에게 알림이 갑니다',
   'squad.pop.requested': '요청됨 — 본인이 설정하면 반영됩니다',
   'squad.pop.request': '캐파 설정 요청 보내기',
   'squad.pop.unsetLead': '리드 해제',

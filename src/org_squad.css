@@ -1238,6 +1238,14 @@
   justify-content: center;
 }
 .sq-pop-cap-request:disabled { opacity: 0.55; }
+/* 계획 합계보다 낮춘 캐파 경고 (§5-3.3 · PW-2325) — 디자이너 «종료일 지남» 띠(.sq-banner-warn)를 팝오버 안에 맞춰
+   안쪽만 줄이고 아래 여백을 없앤다. 색·모서리·글씨는 띠 그대로. 팝오버 안 경고 상자 원본이 없어 디자이너 검수 대상 */
+.sq-pop-plan-warn {
+  padding: var(--spacing-md) var(--spacing-lg);
+  margin-bottom: 0;
+}
+.sq-pop-plan-warn .sq-banner-title { align-items: flex-start; }
+.sq-pop-plan-warn .sq-banner-title svg { flex: none; margin-top: var(--spacing-xxs); }
 /* ── 팝오버 두 축 (§5-3.3) — 머리는 아이콘 20 + md/700, 캡션은 xs 로 들여 쓴다(시안 17765:39351) ── */
 .sq-pop-axis {
   display: flex;

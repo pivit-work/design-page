@@ -1613,6 +1613,7 @@ export default function SquadCanvas({
           canEditCapacity={canEditCapacityOf(popover.userId)}
           canRequestCapacity={canRequestCapacityOf(popover.squadId, popover.userId)}
           capacityRequested={isCapacityRequested(popover.squadId, popover.userId, popAssign)}
+          planSumPct={popAssign.planSumPct ?? null}
           onRequestCapacity={() => requestCapacity(popover.squadId, popover.userId)}
           isSelf={isSelfRow(popover.userId)}
           onSetShare={(share) => setShare(popover.squadId, popover.userId, share)}

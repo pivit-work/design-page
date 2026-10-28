@@ -278,6 +278,11 @@ export function SquadAssignPopover({
   /** 지금 이 팝오버를 **리드 자격으로** 열었는가 — ① 캡션을 그 자격에 맞춰 말한다. */
   viaLead = false,
   canRequestCapacity = false, capacityRequested = false, onRequestCapacity,
+  /**
+   * 이 스쿼드 자격으로 잡힌 프로젝트 계획% 합계 — 서버가 **본인 행에만** 숫자로 준다(남의 행은 `null` · §5-3.3 · PW-2325).
+   * 0 이면 줄을 그리지 않고, 캐파를 그보다 작게 맞추면 경고만 한다(저장은 막지 않는다 · A32).
+   */
+  planSumPct = null,
   /** 위쪽 경계가 되는 요소의 셀렉터 — sticky 머리 줄. 그 아랫변 위로는 팝오버가 올라가지 않는다. */
   topBoundarySelector = null,
   onSetShare, onSetPct, onToggleLead, onRemove, onClose,
@@ -509,6 +514,24 @@ export function SquadAssignPopover({
               </div>
             )}
           </div>
+
+          {/* 프로젝트 계획 합계 — 본인 배정에만(§5-3.3). 남의 계획%는 원장 소관이라 남의 행엔 줄도 경고도 없다 */}
+          {isSelf && planSumPct > 0 && (
+            <p className="sq-pop-note" data-testid="squad-pop-plan-sum">
+              {L('squad.pop.planSum', { n: planSumPct })}
+            </p>
+          )}
+          {isSelf && planSumPct > 0 && assignment.allocationPct < planSumPct && (
+            <div
+              className="sq-banner sq-banner-warn sq-pop-plan-warn"
+              role="status"
+              data-testid="squad-pop-plan-warn"
+            >
+              <div className="sq-banner-title">
+                <WarningIcon size={14} /> {L('squad.pop.planSumWarn', { n: planSumPct })}
+              </div>
+            </div>
+          )}
 
           {/* 🔴 값을 대신 넣는 버튼은 두지 않는다 — 남는 조치는 이 요청 하나다(§5-3.9 4).
               미설정이 아닌 배정에는 요청할 이유가 없어 버튼도 뜨지 않는다. */}
