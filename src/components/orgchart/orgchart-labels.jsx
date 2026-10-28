@@ -398,6 +398,7 @@ export const ORGCHART_LABELS = {
   'squad.project.primaryMark': '主',
   'squad.project.primaryTip': '주 스쿼드 — 투입% 집계 기준',
   'squad.project.primaryOf': '主 {{name}}',
+  'squad.project.cannotOpen': '원장은 내 스쿼드에 연결된 프로젝트만 열 수 있습니다',
   'squad.project.alreadyPrimary': '이미 주 스쿼드입니다',
   'squad.project.setPrimaryTip': '이 스쿼드를 주 스쿼드로 지정',
   'squad.project.unlink': '연결 해제 (프로젝트는 삭제되지 않습니다)',

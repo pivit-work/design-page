@@ -237,17 +237,23 @@ export default function SquadProjectSection({
       </div>
 
       <div className="sq-proj-list">
-        {projects.map((p) => (
+        {projects.map((p) => {
+          // 원장을 열 수 없는 행(canOpen === false)은 링크로 그리지 않는다 — 밑줄·포인터·이동 없음,
+          // 말풍선 끝에 사유 한 줄. 판정은 서버가 준 값만 본다(PW-2278 · 기획서 조직도 스쿼드 §9 「프로젝트 공개 범위」).
+          const openable = !!onOpenProject && p.canOpen !== false;
+          return (
           <div
             key={p.id}
-            className={`sq-proj-row${onOpenProject ? ' is-clickable' : ''}`}
+            className={`sq-proj-row${openable ? ' is-clickable' : ''}`}
             data-testid={`squad-project-row-${squad.id}-${p.id}`}
+            data-can-open={p.canOpen === false ? 'false' : undefined}
             title={[
               p.description,
               // 다른 스쿼드가 主 인 프로젝트 — 줄 안에 적으면 이름 자리를 먹어 말풍선으로 옮겼다(시안 17757:34900 은 이름만)
               !p.isPrimary && p.primarySquadName ? L('squad.project.primaryOf', { name: p.primarySquadName }) : '',
+              p.canOpen === false ? L('squad.project.cannotOpen') : '',
             ].filter(Boolean).join('\n') || undefined}
-            onClick={() => onOpenProject?.(p.id)}
+            onClick={openable ? () => onOpenProject(p.id) : undefined}
           >
             {/* 왼쪽 반 — 파일 아이콘 · 이름 · 主 표식 (Figma 17757:34900) */}
             <span className="sq-proj-main">
@@ -292,7 +298,8 @@ export default function SquadProjectSection({
               ><CloseIcon size={12} /></button>
             )}
           </div>
-        ))}
+          );
+        })}
         {projects.length === 0 && (
           <span className="sq-chip-empty">{L('squad.project.empty')}</span>
         )}

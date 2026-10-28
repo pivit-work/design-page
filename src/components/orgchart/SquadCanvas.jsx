@@ -204,7 +204,7 @@ export default function SquadCanvas({
   /**
    * ── 담당 프로젝트 칸 (PW-1428) ──
    * 각 `squad.projects`: `[{ id, name, description?, color?, status: 'planned'|'active'|'done',
-   * progress, isPrimary, primarySquadName?, linkedSquads?: [{ squadId, name }] }]`.
+   * progress, isPrimary, primarySquadName?, linkedSquads?: [{ squadId, name }], canOpen? }]`. `canOpen === false` 인 행은 원장 링크가 아니다(PW-2278).
    * 배열을 넘긴 스쿼드에만 칸이 생긴다.
    *
    * `projectOptions` — 조직의 모든 프로젝트 `[{ id, name, description?, status, color? }]`.

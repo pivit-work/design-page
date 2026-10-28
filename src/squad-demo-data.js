@@ -67,7 +67,7 @@ export const SQUADS = [
     ],
     projects: [
       { id: 'pj-phase1', name: 'Phase 1 개발', status: 'active', progress: 38, isPrimary: true, linkedSquads: [{ squadId: 'sq-phase1', name: 'Phase1 개발' }] },
-      { id: 'pj-ds', name: '디자인 시스템 foundation 제작', status: 'planned', progress: 8, isPrimary: false, primarySquadName: 'HR 데이터 스쿼드', linkedSquads: [{ squadId: 'sq-phase1', name: 'Phase1 개발' }, { squadId: 'sq-hr', name: 'HR 데이터 스쿼드' }] },
+      { id: 'pj-ds', name: '디자인 시스템 foundation 제작', status: 'planned', progress: 8, isPrimary: false, primarySquadName: 'HR 데이터 스쿼드', canOpen: false, linkedSquads: [{ squadId: 'sq-phase1', name: 'Phase1 개발' }, { squadId: 'sq-hr', name: 'HR 데이터 스쿼드' }] },
     ],
   },
   {
