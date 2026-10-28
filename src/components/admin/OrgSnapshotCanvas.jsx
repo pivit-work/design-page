@@ -1682,9 +1682,9 @@ function AppointmentBulkView({
                 <button type="button" className="admin-emp-btn is-soft" disabled={submitting} onClick={reset}>{labels.cancelAll}</button>
               </div>
               {/* 확정 대상 = 정상 + 경고. 0건이면 누를 수 없다(§3-A-3). */}
-              <button type="button" className="admin-emp-btn is-primary" disabled={applicableRows.length === 0 || !date || submitting || confirmBlocked} onClick={handleConfirm}>
+              <Button className="admin-emp-btn is-primary" disabled={applicableRows.length === 0 || !date || submitting || confirmBlocked} onClick={handleConfirm}>
                 {labels.confirmBulkPrefix} ({applicableRows.length}{labels.countUnit})
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -1936,15 +1936,14 @@ function AppointmentHistoryView({
                     <RosterTable.Cell>
                       {rec.scheduled && rec.reservation && onOpenReservation && (
                         <>
-                          <button
-                            type="button"
+                          <Button
                             className="admin-snap-hist-detaillink admin-snap-hist-cancel"
                             onClick={(e) => { e.stopPropagation(); onOpenReservation(rec); }}
                             data-testid={`snap-hist-reservation-${rec.id}`}
                           >
                             {labels.historyReservationCancel}
                             <ArrowRightGlyph size={12} />
-                          </button>
+                          </Button>
                           <span className="admin-snap-hist-detaillink">{'\u00a0·\u00a0'}</span>
                         </>
                       )}
