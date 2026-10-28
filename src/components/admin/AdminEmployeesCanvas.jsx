@@ -49,6 +49,7 @@ import { filterSearchOptions } from '../shared/searchOptions.js';
 import Pagination from '../shared/Pagination.jsx';
 import { SkeletonList } from '../shared/Skeleton.jsx';
 import LoadingState from '../shared/LoadingState.jsx';
+import { resolveKoreanParticles } from '../shared/koreanParticle.js';
 
 /**
  * AdminEmployeesCanvas — 어드민 "직원 관리" 화면 Pure 컴포넌트.
@@ -161,7 +162,7 @@ const DEFAULT_LABELS = {
   // 그 소속 조직의 조직장 표시 (admin-spec §3.1 「👤 조직장 배지」 · §3.6-B-4)
   leaderOfDept: '이 조직의 조직장',
   // 직군·직렬·직무 연결표에 없는 조합 (admin-spec §3.1 「미등록 조합 배지」)
-  unregisteredPair: "'{pair}'는 더 이상 연결되지 않은 조합입니다. 조직 설정에서 확인하세요.",
+  unregisteredPair: "'{pair}'은(는) 더 이상 연결되지 않은 조합입니다. 조직 설정에서 확인하세요.",
   // 직군을 바꿔 고른 직렬이 풀렸을 때 (admin-spec §3.1)
   ladderFilterCleared: '직렬 필터가 해제되었습니다',
   // 직함 열 머리 자물쇠의 말풍선 (admin-spec §3.1 ⚙ 정본표 「직함 🔒」)
@@ -450,7 +451,7 @@ const DEFAULT_LABELS = {
     rehireRevertHint: '퇴사 취소 기간({date}까지)이에요 — 잘못 처리한 퇴사라면 상세 패널에서 «퇴사 취소»를 쓰세요',
     /* 재입사자 보조 배지(PW-1355 · offboarding §5-G 「화면 표시」). 풍선은 부르는 쪽이 만든다(`member.rehireNote`). */
     rehireBadge: '재입사',
-    cancelOffboardingTip: '퇴사일 {date} 로 예약되어 있습니다',
+    cancelOffboardingTip: '퇴사일 {date}(으)로 예약되어 있습니다',
     /* 대표는 퇴사 처리에 들어가지 못한다 — 대표 지정부터 푼다(E2). */
     deactivateCeoBlocked: '대표 지정을 먼저 해제하세요',
     /* 퇴사자 행의 「대표로 지정」은 흐리게 두고 이 툴팁을 단다(ceo-assign 정책서 §7 E2). */
@@ -575,10 +576,13 @@ function namesText(names, labels) {
 
 /* 라벨 안의 `{key}` 를 값으로 바꾼다. i18next 는 `{{key}}` 를 쓰므로 소비자가 넘긴
    문장에서 이 자리는 치환되지 않은 채로 도착한다 — 이름·인원수를 아는 쪽이 여기다. */
+// 채운 뒤 「{date}(으)로」 같은 괄호 꼴 조사를 받침에 맞춘다 (PW-2259).
 function fill(template, vars) {
-  return Object.keys(vars).reduce(
-    (acc, k) => acc.split(`{${k}}`).join(String(vars[k])),
-    String(template ?? ''),
+  return resolveKoreanParticles(
+    Object.keys(vars).reduce(
+      (acc, k) => acc.split(`{${k}}`).join(String(vars[k])),
+      String(template ?? ''),
+    ),
   );
 }
 
@@ -1820,7 +1824,7 @@ function AxisPairCell({ value, parent, parentLabel, map, labels, testId }) {
   if (!value) return <Dash />;
   const bad = !!parent && !isValidPair(map, parent, value);
   if (!bad) return <TextCell value={value} />;
-  const tip = String(labels.unregisteredPair).split('{pair}').join(`${parentLabel || parent} · ${value}`);
+  const tip = fill(labels.unregisteredPair, { pair: `${parentLabel || parent} · ${value}` });
   return (
     <span className="admin-emp-cell-text admin-emp-cell-unregistered">
       {value}
@@ -4505,7 +4509,7 @@ function EmployeesEditPanel({
                             role="status"
                             data-testid="employees-panel-axis-unregistered"
                           >
-                            {String(labels.panel.axisUnregisteredPair).split('{pair}').join(unregisteredPair)}
+                            {fill(labels.panel.axisUnregisteredPair, { pair: unregisteredPair })}
                           </span>
                         )}
                         {axisLevel ? (

@@ -23,6 +23,7 @@ import RosterTable from '../shared/RosterTable.jsx';
 import { AlertTriangleGlyph, CheckGlyph, CloseGlyph, CrownGlyph, PlusGlyph } from '../shared/lineIcons.jsx';
 import LoadingState from '../shared/LoadingState.jsx';
 import Select from '../shared/Select.jsx';
+import { resolveKoreanParticles } from '../shared/koreanParticle.js';
 
 /* 시트에서 함께 옮겨 온 토큰 — 이 폴더의 다른 캔버스와 같은 값이다. */
 const T = {
@@ -230,7 +231,7 @@ export function CeoConfirmModal({ row, mode, currentCeoName, labels, positionOpt
         {assigning && checkbox(
           alsoSetJobPosition && positionAvailable,
           setAlsoSetJobPosition,
-          (L.ceoAlsoSetJobPosition || "직책을 '{value}'로 함께 변경").replace('{value}', ceoPositionLabel),
+          resolveKoreanParticles((L.ceoAlsoSetJobPosition || "직책을 '{value}'(으)로 함께 변경").replace('{value}', ceoPositionLabel)),
           !positionAvailable,
           positionAvailable ? null : (L.ceoPositionMissing || "직책 옵션에 '대표'가 없습니다"),
         )}

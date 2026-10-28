@@ -256,5 +256,5 @@ export const JOB_AXIS_DEFAULT_LABELS = {
   // 비활성 처리된 값을 지금 가진 사람 — 그 값만 선택지에 남기고 뒤에 붙인다(§3.5 · A3)
   inactiveSuffix: '(비활성)',
   // 미등록 조합을 가진 사람의 편집 창을 열었을 때 직군 칸 위(A4) — 자동으로 고치지 않는다
-  axisUnregisteredPair: "'{pair}'는 더 이상 연결되지 않은 조합입니다. 조직 설정에서 확인하세요.",
+  axisUnregisteredPair: "'{pair}'은(는) 더 이상 연결되지 않은 조합입니다. 조직 설정에서 확인하세요.",
 };

@@ -18,6 +18,7 @@
  */
 
 import { emailOk, jobPairIssue, nameHasEmail, normEmail } from './inviteRules.js';
+import { resolveKoreanParticles } from '../shared/koreanParticle.js';
 
 /**
  * 어드민 창 CSV 1회 상한(§1). 서버 `BulkInviteDto` 의 `@ArrayMaxSize(500)` 과 같은 값이며,
@@ -420,9 +421,9 @@ export const INVITE_CSV_DEFAULT_LABELS = {
   errNameTooLong: '이름은 {max}자까지 입력할 수 있어요',
   errNameEmail: '이름에 이메일 주소를 넣을 수 없어요. 실명을 입력해주세요',
   errPrimaryTeam: '주 소속을 지정해주세요',
-  csvErrUnknownRole: "'{value}'는 알 수 없는 역할이에요",
-  csvErrRoleManagerRetired: "'{value}'는 이제 권한 값이 아니에요. 조직장으로 지정되면 자동으로 매니저가 됩니다 — 멤버나 어드민으로 고쳐 주세요",
-  csvErrUnknownOption: "{column} '{value}'는 회사에 등록된 값이 아니에요",
+  csvErrUnknownRole: "'{value}'은(는) 알 수 없는 역할이에요",
+  csvErrRoleManagerRetired: "'{value}'은(는) 이제 권한 값이 아니에요. 조직장으로 지정되면 자동으로 매니저가 됩니다 — 멤버나 어드민으로 고쳐 주세요",
+  csvErrUnknownOption: "{column} '{value}'은(는) 회사에 등록된 값이 아니에요",
   // 고용형태는 회사가 등록하는 값이 아니라 시스템 고정값이다(PW-1299 · V15) — 「등록된 값이 아니에요」로는
   // 고칠 곳이 없어, 받는 값을 그대로 알려 준다.
   csvErrEmploymentType: '고용형태는 {choices} 중 하나로 적어 주세요',
@@ -430,32 +431,32 @@ export const INVITE_CSV_DEFAULT_LABELS = {
   csvErrGender: '성별은 남성·여성·기타·밝히지 않음 중 하나로 적어 주세요',
   // 결혼 여부도 고정값이다 — 미리보기가 «정상»인데 [발송]에서 서버가 막지 않게 같은 표로 거른다 (PW-1935).
   csvErrMarital: '혼인 여부는 미혼·기혼·기타 중 하나로 적어 주세요',
-  csvErrOrgPathNotFound: "조직경로 '{path}'를 찾을 수 없습니다",
+  csvErrOrgPathNotFound: "조직경로 '{path}'을(를) 찾을 수 없습니다",
   csvErrLadderNeedsFamily: '직군을 함께 지정해주세요',
   csvErrJobPair: '직군에 없는 직렬입니다',
   csvErrDutyNeedsLadder: '직렬을 함께 지정해주세요',
   csvErrDutyPair: '직렬에 없는 직무입니다',
-  csvErrDate: "{column}은 YYYY-MM-DD 로 적어 주세요 ('{value}')",
-  csvErrEmailFormat: "{column} '{value}'는 이메일 형식이 아니에요",
+  csvErrDate: "{column}은(는) YYYY-MM-DD 로 적어 주세요 ('{value}')",
+  csvErrEmailFormat: "{column} '{value}'은(는) 이메일 형식이 아니에요",
   // 고용상태도 고정값이다 — 구성원 설정 › CSV 업로드와 같은 문구로 받는 값을 알려 준다(PW-2103).
   csvErrStatus: '고용상태는 재직·수습·휴직·퇴사 중 하나로 적어 주세요',
-  csvErrStatusNotInvitable: "초대에는 고용상태 '{value}'를 쓸 수 없어요",
+  csvErrStatusNotInvitable: "초대에는 고용상태 '{value}'을(를) 쓸 수 없어요",
   csvErrFte: 'FTE 는 1~100 사이 정수로 적어 주세요',
-  csvErrBool: '{column} 칸은 예/아니오로 적어 주세요 — 「{value}」는 읽을 수 없습니다',
-  csvErrHours: '{column} 칸은 시간(숫자)으로 적어 주세요 — 「{value}」는 읽을 수 없습니다',
+  csvErrBool: '{column} 칸은 예/아니오로 적어 주세요 — 「{value}」은(는) 읽을 수 없습니다',
+  csvErrHours: '{column} 칸은 시간(숫자)으로 적어 주세요 — 「{value}」은(는) 읽을 수 없습니다',
   csvErrSalary: '연봉은 숫자로 적어 주세요',
-  csvErrMoney: '{column} 칸은 금액(숫자)으로 적어 주세요 — 「{value}」는 읽을 수 없습니다',
-  csvErrUnknownChoice: "{column} '{value}'는 쓸 수 없는 값이에요 — {choices} 중에서 적어 주세요",
+  csvErrMoney: '{column} 칸은 금액(숫자)으로 적어 주세요 — 「{value}」은(는) 읽을 수 없습니다',
+  csvErrUnknownChoice: "{column} '{value}'은(는) 쓸 수 없는 값이에요 — {choices} 중에서 적어 주세요",
   csvErrContractNeedsStart: '계약 종료일을 적었으면 계약 시작일도 적어 주세요',
   csvErrContractOrder: '계약 종료일이 시작일보다 앞설 수 없어요',
-  csvErrManagerUnknown: "상급자 '{value}'는 회사에도 이 파일에도 없는 사람이에요",
+  csvErrManagerUnknown: "상급자 '{value}'은(는) 회사에도 이 파일에도 없는 사람이에요",
   csvErrManagerSelf: '자기 자신을 상급자로 둘 수 없어요',
   csvErrLeaderFormat: '조직장은 조직경로와 같은 개수의 Y/N 을 | 로 이어 적어 주세요',
   csvErrTooLong: '{column} 칸은 {max}자까지 적을 수 있어요',
   csvErrTooManyItems: '{column} 칸은 {max}개까지 적을 수 있어요',
   csvErrItemTooLong: '{column} 칸의 값 하나는 {max}자까지 적을 수 있어요',
-  csvErrSquadUnknown: "스쿼드 '{value}'를 찾을 수 없어요",
-  csvErrEmployeeCodeTaken: "사번 '{value}'는 이미 다른 구성원이 쓰고 있어요",
+  csvErrSquadUnknown: "스쿼드 '{value}'을(를) 찾을 수 없어요",
+  csvErrEmployeeCodeTaken: "사번 '{value}'은(는) 이미 다른 구성원이 쓰고 있어요",
   csvNoteManagerIgnored: '조직장이 상급자가 됩니다 — 적은 상급자는 쓰지 않습니다',
 };
 
@@ -482,9 +483,12 @@ const foldPath = (v) =>
     .join('>');
 
 /** `{n}` 자리 치환 — `inviteRules.fmt` 와 같은 규칙. */
+// 채운 뒤 「'{value}'은(는)」 같은 괄호 꼴 조사를 받침에 맞춘다 (PW-2259).
 function fmtCsv(template, vars) {
-  return String(template ?? '').replace(/\{(\w+)\}/g, (m, k) =>
-    vars[k] === undefined || vars[k] === null ? m : String(vars[k]),
+  return resolveKoreanParticles(
+    String(template ?? '').replace(/\{(\w+)\}/g, (m, k) =>
+      vars[k] === undefined || vars[k] === null ? m : String(vars[k]),
+    ),
   );
 }
 

@@ -1,3 +1,4 @@
+import { resolveKoreanParticles } from '../shared/koreanParticle.js';
 /**
  * 회원가입(온보딩, 관리자 시나리오 A) 화면들의 문구 기본값 — 실제 앱(app.dev.pivit.work/onboarding)의
  * 온보딩 i18n(ko) 원문을 그대로 옮겼다. 소비자는 `labels` 로 일부만 덮어쓴다.
@@ -157,5 +158,8 @@ export const SIGNUP_LABELS = {
 
 /** `{{name}}` 자리를 값으로 바꾼다. */
 export function fill(template, vars = {}) {
-  return String(template).replace(/\{\{(\w+)\}\}/g, (_, k) => (vars[k] == null ? '' : String(vars[k])));
+  // 채운 뒤 「{{email}}(으)로」 같은 괄호 꼴 조사를 받침에 맞춘다 (PW-1790 · PW-2259).
+  return resolveKoreanParticles(
+    String(template).replace(/\{\{(\w+)\}\}/g, (_, k) => (vars[k] == null ? '' : String(vars[k]))),
+  );
 }
