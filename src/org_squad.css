@@ -1243,6 +1243,8 @@
 .sq-pop-plan-warn {
   padding: var(--spacing-md) var(--spacing-lg);
   margin-bottom: 0;
+  /* 바로 위 미리보기 상자·합계 줄과 같은 들여쓰기(32) — 두 축 머리 아이콘 다음에 선다 */
+  margin-left: var(--spacing-4xl);
 }
 .sq-pop-plan-warn .sq-banner-title { align-items: flex-start; }
 .sq-pop-plan-warn .sq-banner-title svg { flex: none; margin-top: var(--spacing-xxs); }
