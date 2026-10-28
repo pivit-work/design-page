@@ -328,6 +328,8 @@ export default function ProjectResourceTab({
                 requested={!!(requested[r.memberId] || r.capacityRequestedAt)}
                 requesting={requesting === r.memberId}
                 onPct={(v) => setPct(r.memberId, v)}
+                // 기존 PO 줄을 이 사람이 못 고치면 PO 를 옮길 수 없다 — 그 줄이 팀원으로 바뀌어 저장이 403 이 된다.
+                canSetPO={draft.every((x) => x.role !== 'po' || x.memberId === r.memberId || rowEditable(x))}
                 onPO={() => setPO(r.memberId)}
                 onRemove={() => remove(r.memberId)}
                 onRequest={() => request(r)}
@@ -384,7 +386,7 @@ export default function ProjectResourceTab({
 }
 
 function ResourceRow({
-  L, row, editable, over, flagged, mine, closed, color, requested, requesting,
+  L, row, editable, over, flagged, mine, closed, color, requested, requesting, canSetPO,
   onPct, onPO, onRemove, onRequest, onOpenMyCapacity,
 }) {
   const slack = slackOf(row);
@@ -479,7 +481,7 @@ function ResourceRow({
       </div>
       {editable && (
         <span className="pd-resource-tools">
-          {row.role !== 'po' && (
+          {row.role !== 'po' && canSetPO && (
             <Button className="sq-btn sq-btn-sm sq-btn-outline" data-testid={`project-resource-set-po-${row.memberId}`} onClick={onPO}>
               {L('projectDetail.resource.setPo')}
             </Button>
