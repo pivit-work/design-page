@@ -1468,11 +1468,12 @@ function InvitesTab({
             {filtered.map((inv) => (
               <div key={inv.id} className="admin-emp-row">
                 <div className="admin-emp-row-info">
-                  <div className="admin-emp-row-name">
+                  {/* 칩이 여럿이면 다음 줄로 — 한 줄에 몰면 한글이 글자마다 꺾여 행이 세로로 늘어난다 */}
+                  <div className="admin-emp-row-name" style={{ flexWrap: 'wrap', rowGap: 4 }}>
                     {inv.email || labels.invites.linkType}
                     {/* [PW-2348 · 초대 §4-5] 조직장 예약 칩 + «교체 예정» — 대기 중인 초대에만 */}
                     {inv.status === 'pending' && (inv.leaderReservations || []).map((l) => (
-                      <span key={l.teamId} className="admin-emp-row-name" data-testid={`invite-leader-${inv.id}-${l.teamId}`}>
+                      <span key={l.teamId} className="admin-emp-row-name" style={{ whiteSpace: 'nowrap', maxWidth: '100%' }} data-testid={`invite-leader-${inv.id}-${l.teamId}`}>
                         <DpStatusBadge className="admin-emp-role-pill is-manager">
                           <IconUser size={11} />{String(labels.invites.leaderReserved ?? '').replace('{team}', l.teamName ?? '')}
                         </DpStatusBadge>
