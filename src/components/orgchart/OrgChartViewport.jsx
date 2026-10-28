@@ -8,12 +8,13 @@ import {
   ExpandVerticalGlyph,
   ExpandScreenGlyph,
   DownloadSolidGlyph,
+  AutoArrangeGlyph,
 } from '../shared/lineIcons.jsx';
 import usePanZoom from '../shared/usePanZoom.js';
 import OrgNode from './OrgNode.jsx';
 import BezierConnectors from './BezierConnectors.jsx';
 import { CollapseContext, PositionsContext } from './contexts.js';
-import { saveCollapsed, clearCollapsed } from './hooks.js';
+import { saveCollapsed, clearCollapsed, countMovedCards } from './hooks.js';
 import exportOrgChartImage from './exportOrgChartImage.js';
 import AsOfButton from './AsOfButton.jsx';
 import { ISO, toIso, pad2 } from './asOfDate.js';
@@ -50,7 +51,7 @@ export function collapsedBelowRoot(root) {
  *
  * 툴바 (캔버스 안쪽 위 16px):
  *  - 왼쪽(17755:26880): 보이는 정보 양 세그먼트(전체 · 리더만 · 인원수만) + 기준일 버튼(날짜 고르기)
- *  - 오른쪽(17755:26881): 확대 · 축소 · 연결선 모양 토글 · 전체 펼치기/접기 토글 · 「이미지로 다운」
+ *  - 오른쪽(17755:26881): 확대 · 축소 · 연결선 모양 토글 · 자동 정렬(PW-2347) · 전체 펼치기/접기 토글 · 「이미지로 다운」
  *    그리고 30px 띄워 «전체 화면» 버튼. 토글 둘은 **지금 상태의 아이콘**을 보인다 —
  *    직각이면 꺾인 모서리(17755:26882), 곡선이면 둥근 모서리(17755:26938);
  *    펼쳐져 있으면 모으기(17755:26898), 접혀 있으면 펼치기(17755:26941).
@@ -190,6 +191,15 @@ export default function OrgChartViewport({
     saveCollapsed(collapseKey, next);
     refitView();
   };
+  // 자동 정렬 — 끌어 옮긴 위치만 지우고 첫 화면 위치로. 접힘·연결선·줌·보이는 양은 그대로(§5.4-D).
+  // 흐린 버튼은 툴팁이 떠야 해서 disabled 대신 aria-disabled 라, 여기서 무동작으로 막는다.
+  const positionsCtx = React.useContext(PositionsContext);
+  const movedCount = useMemo(() => countMovedCards(orgData, positionsCtx?.positions), [orgData, positionsCtx?.positions]);
+  const autoArrange = () => {
+    if (!movedCount) return;
+    resetPositions?.();
+    refitView();
+  };
 
   // 기준일 — 버튼·달력은 리스트 탭과 같은 AsOfButton 이다. 여기서는 내려받는 파일 이름에만 값을 쓴다.
   const asOfValid = !!asOf?.value && ISO.test(asOf.value);
@@ -221,7 +231,6 @@ export default function OrgChartViewport({
 
   // 카드 드래그가 화면 좌표를 캔버스 로컬 좌표로 되돌릴 때 쓰는 배율(PW-248)은 뷰포트마다 다르다 —
   // 바깥(OrgChartCanvas)의 위치 상태에 이 뷰포트의 배율만 얹어 다시 내린다.
-  const positionsCtx = React.useContext(PositionsContext);
   const positionsValue = useMemo(() => ({ ...positionsCtx, scale }), [positionsCtx, scale]);
 
   return (
@@ -275,6 +284,18 @@ export default function OrgChartViewport({
               onClick={() => onLineStyleChange(lineStyle === 'ortho' ? 'curve' : 'ortho')}
             >
               {lineStyle === 'ortho' ? <CornerAngleGlyph size={20} /> : <CornerSmoothGlyph size={20} />}
+            </button>
+            {/* 자동 정렬 — 연결선 모양 바로 다음 · 펼치기/접기 앞(pivit-specs §5.4-D · PW-2347). */}
+            <button
+              type="button"
+              className="org-tool-btn"
+              title={L(movedCount ? 'org.autoArrange' : 'org.autoArrangeEmpty')}
+              aria-label={L('org.autoArrangeLabel')}
+              aria-disabled={movedCount ? undefined : 'true'}
+              data-action="auto-arrange"
+              onClick={autoArrange}
+            >
+              <AutoArrangeGlyph size={20} />
             </button>
             {/* 전체 펼치기/접기 토글 — 속성은 «누르면 할 일»을 적는다. */}
             <button

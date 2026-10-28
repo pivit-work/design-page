@@ -68,6 +68,9 @@
 }
 .org-tool-btn:hover { background: var(--bg-active); }
 .org-tool-btn:disabled { opacity: 0.5; cursor: progress; }
+/* 흐린 툴바 버튼(«자동 정렬» · PW-2347) — 툴팁이 떠야 해서 disabled 대신 aria-disabled. 흐림 값은 위 :disabled 와 같다. */
+.org-tool-btn[aria-disabled='true'] { opacity: 0.5; cursor: default; }
+.org-tool-btn[aria-disabled='true']:hover { background: var(--alpha-black-3); }
 .org-tool-btn svg { flex: none; }
 .org-tool-btn.has-label { padding: 8px 14px; color: var(--text-primary); }
 .org-tool-btn.has-label > span { padding: 0 var(--spacing-xxs); white-space: nowrap; }

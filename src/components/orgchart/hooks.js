@@ -50,6 +50,29 @@ export function savePositions(positions) {
   } catch { /* 저장 못 함 — 이번 화면에서만 기억한다 */ }
 }
 
+/**
+ * 지금 트리에 있는 카드 중 끌어 옮긴(거리가 0 이 아닌) 카드 수 — «자동 정렬»을 켤지 가른다
+ * (pivit-specs org-chart-public-card-spec.md §5.4-D). 접힘·보이는 양으로 숨은 카드도 트리에 있으니 센다.
+ * 저장값에 남은 옛 카드 id(조직 개편·퇴사·기준일)는 그리는 데 안 쓰이니 세지 않는다(엣지 2).
+ * id 는 그리는 쪽과 같은 규칙이다 — 조직 `node.id`(OrgNode), 사람 `${parentId}_member_${i}`(MemberCard),
+ * 대표 직속 슬롯은 parentId 가 `${node.id}__direct` 다.
+ */
+export function countMovedCards(root, positions) {
+  if (!root || !positions) return 0;
+  const isMoved = (id) => { const p = positions[id]; return !!p && (p.x !== 0 || p.y !== 0); };
+  let count = 0;
+  const walk = (node) => {
+    if (isMoved(node.id)) count += 1;
+    (node.members ?? []).forEach((_, i) => { if (isMoved(`${node.id}_member_${i}`)) count += 1; });
+    (Array.isArray(node.directReports) ? node.directReports : []).forEach((_, i) => {
+      if (isMoved(`${node.id}__direct_member_${i}`)) count += 1;
+    });
+    (node.children ?? []).forEach(walk);
+  };
+  walk(root);
+  return count;
+}
+
 export function usePositions() {
   return React.useContext(PositionsContext);
 }

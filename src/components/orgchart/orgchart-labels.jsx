@@ -68,6 +68,10 @@ export const ORGCHART_LABELS = {
   'org.collapseChildren': '{{name}} 하위 조직 접기',
   'org.expandAll': '전체 펼치기 — 모든 조직을 펼친 첫 화면으로',
   'org.collapseAll': '전체 접기 — 회사와 최상위 조직 카드만 남기고 접기',
+  // 자동 정렬 (pivit-specs §5.4-D · PW-2347) — 툴팁은 켜짐·흐림이 다르다
+  'org.autoArrangeLabel': '자동 정렬',
+  'org.autoArrange': '자동 정렬 — 끌어 옮긴 카드를 모두 제자리로',
+  'org.autoArrangeEmpty': '끌어 옮긴 카드가 없습니다',
   // 캔버스 툴바 (Figma 16596:48857 개정 · 2026-10-25) — 보이는 정보의 양 · 기준일 · 확대/축소 · 전체 화면
   'org.density': '보이는 정보 양',
   'org.density.all': '전체',
