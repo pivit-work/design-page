@@ -352,6 +352,9 @@ const DEFAULT_LABELS = {
     ceoToggleHint: '켜거나 끄면 확인 창이 뜹니다',
     managerSection: '매니저',
     managerWhere: '매니저 배정은 «미배정 관리» 탭에서 합니다',
+    /* 로그인 잠김 줄 (admin-spec §3.2.12 «로그인 잠금» 행 · pivit-work PW-2286) */
+    loginSecuritySection: '로그인 보안',
+    loginLockRow: '로그인 잠금',
     statusSection: '재직 상태',
     /* 재직 상태별 날짜 칸 (§3.2.1). 상태를 고르면 그 칸이 라디오 바로 아래에 뜬다. */
     probationEnd: '수습 종료일',
@@ -4766,6 +4769,28 @@ function EmployeesEditPanel({
               </>
             )}
           </div>
+
+          {/* 로그인 잠김 — 잠긴 동안에만 그린다. 잠기지 않았으면 섹션째 없다(«잠기지 않음»도 쓰지 않는다).
+              해제 버튼은 두지 않는다(admin-spec §3.2.12 · §3.9-G-5 · pivit-work PW-2286). 2단계 인증 줄이 생기면
+              이 섹션의 위 줄로 들어온다(PW-2320). 줄 모양은 바로 위 «매니저» 읽기 전용 줄을 그대로 쓴다. */}
+          {member.loginLock && (
+            <>
+              <SectionLabel>{labels.panel.loginSecuritySection || '로그인 보안'}</SectionLabel>
+              {member.loginLock.state === 'locked' ? (
+                <div className="admin-emp-manager-readonly is-wrap" data-testid="employees-panel-login-lock">
+                  <span className="admin-emp-manager-name">{labels.panel.loginLockRow || '로그인 잠금'}</span>
+                  <DpStatusBadge tone="danger" className="admin-emp-status" data-testid="employees-panel-login-lock-badge">
+                    {member.loginLock.badge}
+                  </DpStatusBadge>
+                  <span className="admin-emp-manager-note">{member.loginLock.hint}</span>
+                </div>
+              ) : (
+                <span className="admin-emp-status-date-note is-error" role="alert" data-testid="employees-panel-login-lock-error">
+                  {member.loginLock.message}
+                </span>
+              )}
+            </>
+          )}
 
           <SectionLabel>{labels.panel.statusSection}</SectionLabel>
           <StatusRadios
