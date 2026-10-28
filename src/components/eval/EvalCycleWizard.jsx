@@ -1135,23 +1135,24 @@ function orgUnitKeyOf(candidate, hasUnits) {
  * 하위 팀 일부만 고른 부서를 켬·끔 둘 중 하나로 그리면 거짓말이 된다. 스크린리더에는
  * `aria-checked="mixed"` 로 나간다.
  */
-function TriCheck({ state, label, onToggle }) {
+function TriCheck({ state, label, onToggle, disabled = false }) {
   return (
     <span
       role="checkbox"
       aria-checked={state === 'partial' ? 'mixed' : state === 'on'}
       aria-label={label}
+      aria-disabled={disabled ? 'true' : undefined}
       tabIndex={0}
       className={`evc-tri-check is-${state}`}
       onClick={(e) => {
         e.stopPropagation();
-        onToggle();
+        if (!disabled) onToggle();
       }}
       onKeyDown={(e) => {
         if (e.key === ' ' || isEnterKey(e)) {
           e.preventDefault();
           e.stopPropagation();
-          onToggle();
+          if (!disabled) onToggle();
         }
       }}
       data-testid={`evc-tri-${state}`}
@@ -3091,6 +3092,13 @@ export default function EvalCycleWizard({
    * ⛔ 넘기지 않으면(`false`) 종전 그대로다.
    */
   committeeLocked = false,
+  /**
+   * PW-2323 — 4 대상자에서 대상자를 «늘리는» 조작을 막는다(정책 §5.3.6 «되돌리기» 행 — 캘리브레이션이
+   * 시작되면 되돌리기는 «추가»라 못 한다. 서버도 거절한다). 제외를 되돌리는 버튼 셋(←·모두 되돌리기·
+   * 일괄 제외 뒤 되돌리기)을 그리지 않고, 체크 안 된 조직 체크·켜 둔 제외 조건 끄기·그 기준 바꾸기를 끈다.
+   * 줄이는 쪽(제외)은 그대로 된다. 이유는 앱의 잠금 안내 자리에 적힌다. ⛔ 안 넘기면 종전 그대로다.
+   */
+  targetAddLocked = false,
   /** 잠근 위원회 단계 머리에 띄울 이유. */
   committeeLockedHint = null,
   /**
@@ -10339,6 +10347,7 @@ export default function EvalCycleWizard({
                     className="evl-promo-row"
                     inputClassName="dp-check-input"
                     checked={excludeOnLeave}
+                    disabled={targetAddLocked && excludeOnLeave}
                     onChange={(e) => setExcludeOnLeave(e.target.checked)}
                     data-testid="evc-wiz-excl-leave"
                   >
@@ -10348,6 +10357,7 @@ export default function EvalCycleWizard({
                     className="evl-promo-row"
                     inputClassName="dp-check-input"
                     checked={excludeHireDate}
+                    disabled={targetAddLocked && excludeHireDate}
                     onChange={(e) => setExcludeHireDate(e.target.checked)}
                     data-testid="evc-wiz-excl-hiredate"
                   >
@@ -10358,7 +10368,8 @@ export default function EvalCycleWizard({
                       <button
                         type="button"
                         className="evc-input evc-date-btn"
-                        style={{ textAlign: 'left', cursor: 'pointer' }}
+                        style={{ textAlign: 'left', cursor: targetAddLocked && hireDateRef ? 'default' : 'pointer' }}
+                        disabled={targetAddLocked && !!hireDateRef}
                         onClick={(e) =>
                           setHirePicker({
                             rect: e.currentTarget.getBoundingClientRect(),
@@ -10377,8 +10388,8 @@ export default function EvalCycleWizard({
                         value={hireDateDirection}
                         onChange={setHireDateDirection}
                         items={[
-                          { value: 'after', label: L.exclusionAfter, testId: 'evc-wiz-excl-dir-after' },
-                          { value: 'before', label: L.exclusionBefore, testId: 'evc-wiz-excl-dir-before' },
+                          { value: 'after', label: L.exclusionAfter, testId: 'evc-wiz-excl-dir-after', disabled: targetAddLocked && !!hireDateRef && hireDateDirection !== 'after' },
+                          { value: 'before', label: L.exclusionBefore, testId: 'evc-wiz-excl-dir-before', disabled: targetAddLocked && !!hireDateRef && hireDateDirection !== 'before' },
                         ]}
                       />
                     </div>
@@ -10388,6 +10399,7 @@ export default function EvalCycleWizard({
                     className="evl-promo-row"
                     inputClassName="dp-check-input"
                     checked={excludeRoleChange}
+                    disabled={targetAddLocked && excludeRoleChange}
                     onChange={(e) => setExcludeRoleChange(e.target.checked)}
                     data-testid="evc-wiz-excl-rolechange"
                   >
@@ -10397,6 +10409,7 @@ export default function EvalCycleWizard({
                     className="evl-promo-row"
                     inputClassName="dp-check-input"
                     checked={excludePromotion}
+                    disabled={targetAddLocked && excludePromotion}
                     onChange={(e) => setExcludePromotion(e.target.checked)}
                     data-testid="evc-wiz-excl-promotion"
                   >
@@ -10407,7 +10420,8 @@ export default function EvalCycleWizard({
                       <button
                         type="button"
                         className="evc-input evc-date-btn"
-                        style={{ textAlign: 'left', cursor: 'pointer' }}
+                        style={{ textAlign: 'left', cursor: targetAddLocked && promotionRef ? 'default' : 'pointer' }}
+                        disabled={targetAddLocked && !!promotionRef}
                         onClick={(e) =>
                           setPromotionPicker({
                             rect: e.currentTarget.getBoundingClientRect(),
@@ -10426,8 +10440,8 @@ export default function EvalCycleWizard({
                         value={promotionDirection}
                         onChange={setPromotionDirection}
                         items={[
-                          { value: 'after', label: L.exclusionPromotedAfter, testId: 'evc-wiz-excl-promo-dir-after' },
-                          { value: 'before', label: L.exclusionPromotedBefore, testId: 'evc-wiz-excl-promo-dir-before' },
+                          { value: 'after', label: L.exclusionPromotedAfter, testId: 'evc-wiz-excl-promo-dir-after', disabled: targetAddLocked && !!promotionRef && promotionDirection !== 'after' },
+                          { value: 'before', label: L.exclusionPromotedBefore, testId: 'evc-wiz-excl-promo-dir-before', disabled: targetAddLocked && !!promotionRef && promotionDirection !== 'before' },
                         ]}
                       />
                     </div>
@@ -10473,6 +10487,7 @@ export default function EvalCycleWizard({
                     className="evl-promo-row"
                     inputClassName="dp-check-input" title={L.exclusionEmploymentTypeHint}
                     checked={excludeEmploymentType}
+                    disabled={targetAddLocked && excludeEmploymentType}
                     onChange={(e) => setExcludeEmploymentType(e.target.checked)}
                     data-testid="evc-wiz-excl-employment"
                   >
@@ -10491,6 +10506,7 @@ export default function EvalCycleWizard({
                             <Checkbox
                               key={v}
                               checked={employmentTypeValues.includes(v)}
+                              disabled={targetAddLocked && employmentTypeValues.includes(v)}
                               label={v}
                               onChange={() =>
                                 setEmploymentTypeValues((prev) =>
@@ -10732,6 +10748,7 @@ export default function EvalCycleWizard({
                         <TriCheck
                           state={rootState}
                           label={L.targetOrgAll}
+                          disabled={targetAddLocked && rootState !== 'on'}
                           onToggle={() => toggleUnits(allUnitIds, rootState !== 'on')}
                         />
                         <button
@@ -10776,6 +10793,7 @@ export default function EvalCycleWizard({
                               <TriCheck
                                 state={state}
                                 label={d.name}
+                                disabled={targetAddLocked && state !== 'on'}
                                 onToggle={() =>
                                   toggleUnits(unitsOfDept(d), state !== 'on')
                                 }
@@ -10803,6 +10821,7 @@ export default function EvalCycleWizard({
                                   <TriCheck
                                     state={orgSel.has(t.id) ? 'on' : 'off'}
                                     label={t.name}
+                                    disabled={targetAddLocked && !orgSel.has(t.id)}
                                     onToggle={() =>
                                       toggleUnits([t.id], !orgSel.has(t.id))
                                     }
@@ -10834,6 +10853,7 @@ export default function EvalCycleWizard({
                           <TriCheck
                             state={orgSel.has(UNASSIGNED_ORG_ID) ? 'on' : 'off'}
                             label={L.targetOrgUnassigned}
+                            disabled={targetAddLocked && !orgSel.has(UNASSIGNED_ORG_ID)}
                             onToggle={() =>
                               toggleUnits(
                                 [UNASSIGNED_ORG_ID],
@@ -11081,7 +11101,8 @@ export default function EvalCycleWizard({
                         })
                       )}
                     </div>
-                    {undoSnapshot && (
+                    {/* PW-2323 — 캘리브레이션 뒤에는 되돌리기가 «추가»라 그리지 않는다(정책 §5.3.6). */}
+                    {undoSnapshot && !targetAddLocked && (
                       <div className="evc-review-pane-foot is-right">
                         {/* [PW-2077 · 정책 §5.5.6 E2] 확인 창 대신 «몇 명을 옮겼는지»를 되돌리기 옆에 적는다
                             — 오픈 전이라 아무도 알림을 받지 않았고 한 번에 되돌릴 수 있다. */}
@@ -11117,7 +11138,7 @@ export default function EvalCycleWizard({
                       {/* 규칙 12 (v2.46) — 되돌리는 쪽에도 일괄을 준다. 규칙으로 뺀 사람은
                           중앙 명단에 없어서, 이 버튼이 없으면 「인턴만 골라 되돌리기」를
                           할 자리가 없다(E18). */}
-                      {visibleExcluded.length > 0 && (
+                      {visibleExcluded.length > 0 && !targetAddLocked && (
                         <button
                           type="button"
                           className="evc-review-pane-action"
@@ -11146,16 +11167,18 @@ export default function EvalCycleWizard({
                       ) : (
                         visibleExcluded.map((c) => (
                           <div key={c.id} className="evc-excluded-row">
-                            <button
-                              type="button"
-                              className="evc-roster-move is-in"
-                              onClick={() => includeOne(c.id)}
-                              aria-label={L.targetReviewIncludeOne}
-                              title={L.targetReviewIncludeOne}
-                              data-testid={`evc-wiz-include-${c.id}`}
-                            >
-                              <ArrowLeftIcon size={13} />
-                            </button>
+                            {!targetAddLocked && (
+                              <button
+                                type="button"
+                                className="evc-roster-move is-in"
+                                onClick={() => includeOne(c.id)}
+                                aria-label={L.targetReviewIncludeOne}
+                                title={L.targetReviewIncludeOne}
+                                data-testid={`evc-wiz-include-${c.id}`}
+                              >
+                                <ArrowLeftIcon size={13} />
+                              </button>
+                            )}
                             <span className="evc-roster-name">
                               {c.name}
                               {missingOf(c).jobLevel && (

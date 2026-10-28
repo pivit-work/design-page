@@ -3324,6 +3324,11 @@
   justify-content: center;
   position: relative;
 }
+/* PW-2323 — 잠긴 칸은 공용 체크박스 비활성(.dp-check-input:disabled)과 같은 뜻으로 흐린다. */
+.evc-tri-check[aria-disabled='true'] {
+  cursor: default;
+  opacity: 0.5;
+}
 .evc-tri-check.is-on,
 .evc-tri-check.is-partial {
   border-color: var(--bg-brand-solid);
