@@ -236,9 +236,8 @@ export default function SquadCanvas({
    */
   onUnlinkProject,
   // 조직 축 탭 노출 여부. OrgChartCanvas 와 같은 계약 (pivit-work PW-249).
-  // 조직 축 탭 — 시안(16610:35972)은 조직도 · 리스트 · 스쿼드. 옛 프로젝트 탭은 호스트가 켤 때만.
+  // 조직 축 탭 — 시안(17788:33051)은 조직도 · 스쿼드. 옛 프로젝트 탭은 호스트가 켤 때만.
   showProjectTab = false,
-  showListTab = true,
   /**
    * 화면 문구 — 객체(`{ key: 문구 }`)나 함수(`(key, vars) => 문구`)로 번역을 넘긴다(PW-705).
    * 안 넘기면 한국어 기본값이다. 키 목록은 `orgchart-labels.jsx`.
@@ -779,7 +778,7 @@ export default function SquadCanvas({
   const leadCandidates = people.filter(isAssignable);
 
   const tabStrip = (
-    <OrgTabNav active="squad" onSubTabChange={onSubTabChange} showProjectTab={showProjectTab} showListTab={showListTab} L={L} />
+    <OrgTabNav active="squad" onSubTabChange={onSubTabChange} showProjectTab={showProjectTab} L={L} />
   );
 
   /**

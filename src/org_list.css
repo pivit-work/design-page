@@ -129,39 +129,29 @@
 @import './roster-table.css';
 
 /* ══════════════════════════════════════════════════
-   조직도 메뉴 · 리스트 탭 — components/orgchart/OrgListCanvas.jsx  (prefix: ol-)
-   Figma 16610:35863 (기본) · 17757:29331 (조직을 골라 걸러 보는 중)
+   조직도 탭 · 「리스트」 보기 — components/orgchart/OrgListView.jsx  (prefix: ol-)
+   Figma 17788:33051 (2026-10-28) · 표 17757:29445 · 조직을 골라 걸러 보는 중 17757:29507
 
-   머리 줄(.tab-nav · .header-subtitle)과 기준일 버튼(.org-tool-btn.org-asof-btn)은 조직도 탭의
-   org_chart.css 를 그대로 쓴다. 표의 뼈대(머리 행·줄·붙는 열·가로 스크롤)는 공용 명단 표
-   (roster-table.css)이고, 여기서는 시안의 칸 크기·글씨만 덮는다.
+   트리와 같은 카드(.canvas-area · org_chart.css) 안에 선다. 툴바는 트리 툴바와 같은 자리(안쪽 16 · 간격 8 ·
+   .org-toolbar)이고 기준일 버튼(.org-tool-btn.org-asof-btn)도 같은 것이다. 표의 뼈대(머리 행·줄·붙는 열·
+   스크롤)는 공용 명단 표(roster-table.css)이고, 여기서는 시안의 칸 크기·글씨만 덮는다.
    ══════════════════════════════════════════════════ */
 
-.ol-content-area {
-  top: 72px;
-  padding-top: 0;
+/* 리스트 보기의 카드 — 트리와 같은 자리·모양이되 끌 것이 없다 */
+.canvas-area.is-list {
+  cursor: default;
+  user-select: text;
 }
-.ol-header {
+.ol-view {
   display: flex;
   flex-direction: column;
-  gap: 13px;
-  padding: 8px 0 13px;
-  background: var(--bg-primary);
-  position: sticky;
-  top: 0;
-  z-index: 10;
+  height: 100%;
 }
-/* 시안 실측: 머리 줄 끝 → 툴바 20 · 툴바 끝 → 표 20 · 아래 42. 좌우는 전 화면 공통(왼쪽 0 · 오른쪽 32) */
-.ol-body {
-  padding: 20px 32px 42px 0;
-}
-
-/* ── 툴바 ── */
+/* 툴바(17788:33261) — 카드 안쪽 16, 항목 간격 8. 트리 툴바(.org-toolbar-left)와 같은 값이되 표 위에 흐르게 둔다 */
 .ol-toolbar {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xl);
-  margin-bottom: 20px;
+  position: static;
+  flex: none;
+  padding: 16px 16px 0;
 }
 .ol-filter {
   display: inline-flex;
@@ -170,7 +160,7 @@
 .ol-filter .tl-select {
   width: auto;
 }
-/* 드롭다운 닫힌 칸 — 시안 «Buttons»(17755:26802): 36 높이 · 8/14 여백 · r8 · 흐린 검정 바탕 · sm/600 둘째 글자색 */
+/* 드롭다운 닫힌 칸 — 시안 «Buttons»(17788:33389): 36 높이 · 8/14 여백 · r8 · 흐린 검정 바탕 · sm/600 둘째 글자색 */
 .ol-filter .tl-select-trigger {
   height: 36px;
   padding: var(--spacing-md) 14px;
@@ -198,11 +188,17 @@
   box-shadow: 0 0 0 2px var(--bg-primary), 0 0 0 4px var(--focus-ring);
 }
 
-/* ── 명단 표 (17757:29445) ── */
-.ol-table-card {
-  background: var(--bg-quaternary);
-  border-radius: var(--radius-2xl);
-  padding: var(--spacing-xs) var(--spacing-xl);
+/* ── 명단 표 (17757:29445) — 툴바 아래 18 띄워(시안 y 70) 카드 폭 가득, 카드 안에서 세로로 흐른다 ── */
+.ol-table-frame {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-top: 18px;
+}
+.ol-table-scroll {
+  flex: 1 1 0;
+  min-height: 0;
 }
 /* 칸 높이는 머리 40 · 줄 48 로 못 박는다(위아래 여백 대신) — 안의 글·사진이 줄 높이를 흔들지 않게. */
 .ol-table th {
@@ -293,4 +289,8 @@
 .ol-hours-slot {
   flex: none;
   width: 42px;
+}
+/* 끝나는 시 — 시안 글은 「 6pm」처럼 앞에 빈칸 하나를 둔다(17757:27011). 화살표와 4 더 띄운다. */
+.ol-hours-slot + span + .ol-hours-slot {
+  padding-left: var(--spacing-xs);
 }

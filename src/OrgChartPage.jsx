@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { OrgChartCanvas, OrgListCanvas, OrgMemberListCanvas, ProfileModal, ProjectCanvas, SquadCanvas } from './components';
+import { OrgChartCanvas, OrgMemberListCanvas, ProfileModal, ProjectCanvas, SquadCanvas } from './components';
 import { PROJECT_OPTIONS, SQUADS, SQUAD_PEOPLE } from './squad-demo-data.js';
 import StateSwitcher from './devtools/StateSwitcher.jsx';
 import { LABEL_KNOB, VOLUME_KNOB, knobKey, useKnobs } from './devtools/knobs.js';
@@ -238,9 +238,10 @@ function shapeOrg(node, volume, labelMode) {
 /**
  * OrgChartPage — 조직도 demo wrapper.
  *
- * orgSubTab ('orgchart' | 'list' | 'squad' | 'project') 과 admin mode 는 조직도 페이지 내부
+ * orgSubTab ('orgchart' | 'squad' | 'project') 과 admin mode 는 조직도 페이지 내부
  * 관심사이므로 App 이 아닌 이 wrapper 가 소유한다. App 은 currentPage === 'orgchart'
- * 일 때 이 컴포넌트만 마운트한다.
+ * 일 때 이 컴포넌트만 마운트한다. 「리스트」는 탭이 아니라 조직도 탭 안의 보기(트리 ↔ 리스트)다 —
+ * `OrgChartCanvas` 가 스스로 기억한다(Figma 17788:33051).
  */
 /* 기준일(Figma 17755:26872) — 데모는 2026-04-10 을 보고 있고, 기록은 2025-01-01 부터 오늘까지다. */
 const ASOF_MIN = '2025-01-01';
@@ -342,24 +343,6 @@ export default function OrgChartPage({ icons, statIcons, baseUrl, subTab, onSubT
     />
   );
 
-  if (subTab === 'list') {
-    return (
-      <>
-        <OrgListCanvas
-          key={knobKey(knobs)}
-          orgData={orgData}
-          onSubTabChange={onSubTabChange}
-          statIcons={statIcons}
-          baseUrl={baseUrl}
-          findSubordinates={subordinates}
-          adminMode={adminMode}
-          asOf={{ value: asOfValue, min: ASOF_MIN, max: ASOF_MAX, label: '기준일', onChange: setAsOfValue }}
-        />
-        {switcher}
-      </>
-    );
-  }
-
   if (subTab === 'squad') {
     return (
       <>
@@ -427,7 +410,6 @@ export default function OrgChartPage({ icons, statIcons, baseUrl, subTab, onSubT
         statIcons={statIcons}
         baseUrl={baseUrl}
         onSubTabChange={onSubTabChange}
-        showListTab
         findSubordinates={subordinates}
         adminMode={adminMode}
         onAdminModeChange={setAdminMode}

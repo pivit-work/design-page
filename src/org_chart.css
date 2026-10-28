@@ -43,7 +43,8 @@
 .org-toolbar-left { left: 16px; gap: var(--spacing-md); }
 .org-toolbar-right { right: 16px; gap: 30px; }
 .org-toolbar-group { display: flex; align-items: center; gap: 11px; }
-/* 보이는 정보 양 세그먼트(17755:26846) — 공용 SegmentedControl 에 시안의 뒷배경 흐림만 더한다. */
+/* 트리/리스트 전환(17788:33262)·보이는 정보 양 세그먼트(17755:26846) — 공용 SegmentedControl 에 시안의 뒷배경 흐림만 더한다. */
+.org-view-switch,
 .org-density { backdrop-filter: blur(20px); }
 .org-tool-btn {
   box-sizing: border-box;

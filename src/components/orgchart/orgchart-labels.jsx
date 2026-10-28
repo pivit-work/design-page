@@ -73,6 +73,10 @@ export const ORGCHART_LABELS = {
   'org.autoArrange': '자동 정렬 — 끌어 옮긴 카드를 모두 제자리로',
   'org.autoArrangeEmpty': '끌어 옮긴 카드가 없습니다',
   // 캔버스 툴바 (Figma 16596:48857 개정 · 2026-10-25) — 보이는 정보의 양 · 기준일 · 확대/축소 · 전체 화면
+  // 트리 ↔ 리스트 보기 전환 (Figma 17788:33051) — 조직도 탭 안 왼쪽 툴바 맨 앞 세그먼트
+  'org.view': '보기',
+  'org.view.tree': '트리',
+  'org.view.list': '리스트',
   'org.density': '보이는 정보 양',
   'org.density.all': '전체',
   'org.density.leaders': '리더만',

@@ -154,7 +154,7 @@ export default function OrgMemberListCanvas({
       <div className="content-area pj-content-area" data-testid="org-list-canvas">
         <div className="content-canvas">
           <div className="pj-header">
-            <OrgTabNav active="list" onSubTabChange={onSubTabChange} showProjectTab={showProjectTab} showListTab L={L} />
+            <OrgTabNav active="list" onSubTabChange={onSubTabChange} showProjectTab={showProjectTab} L={L} />
             <div className="ol-subline">
               <div className="header-subtitle">
                 <b>{L('org.totalHeadcount')}</b>

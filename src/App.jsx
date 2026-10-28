@@ -18,7 +18,6 @@ import './org_chart.css';
 import './org_project.css';
 import './org_list.css';
 import './org_squad.css';
-import './org_list.css';
 import './one_on_one.css';
 import './recording-player.css';
 import './timeline.css';

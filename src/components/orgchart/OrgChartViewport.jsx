@@ -78,6 +78,8 @@ export default function OrgChartViewport({
   onDownloadImage,
   onExpandView,
   expanded = false,
+  // 왼쪽 툴바 맨 앞에 서는 것 — 페이지 캔버스의 트리/리스트 전환(17788:33262). 전체 화면 창은 안 넘긴다.
+  toolbarLeading,
 }) {
   const canvasInnerRef = useRef(null);
   // 배지로 한 조직을 여닫으면 트리 폭이 바뀌고, 트리는 가운데 정렬이라 화면 전체가 옆으로 밀린다
@@ -252,8 +254,9 @@ export default function OrgChartViewport({
           <OrgNode node={orgData} showWorkHours={true} showVacation={true} editMode={editMode} adminMode={adminMode} showGrade={showGrade} density={density} baseUrl={baseUrl} />
         </div>
 
-        {/* 왼쪽 툴바 — 보이는 정보 양 · 기준일 (Figma 17755:26880) */}
+        {/* 왼쪽 툴바 — (트리/리스트) · 보이는 정보 양 · 기준일 (Figma 17755:26880 · 17788:33261) */}
         <div className="org-toolbar org-toolbar-left" data-testid="org-toolbar-left">
+          {toolbarLeading}
           <SegmentedControl
             className="org-density"
             items={densityItems}
