@@ -1,6 +1,7 @@
 import Avatar from '../shared/Avatar.jsx';
 import Button from '../shared/Button.jsx';
 import DateInput from '../shared/DateInput.jsx';
+import SearchInput from '../shared/SearchInput.jsx';
 import SearchSelect from '../shared/SearchSelect.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Switch from '../shared/Switch.jsx';
@@ -43,6 +44,8 @@ const DEFAULT_LABELS = {
     title: '전사 OKR 작성 권한',
     description: '조직장이나 대표에게 전사 OKR·전략 캔버스를 쓸 수 있게 합니다.',
     empty: '전사 OKR 을 넘겨받을 수 있는 사람이 없습니다. 조직장이나 대표가 지정되면 여기에 나타납니다.',
+    search: '이름으로 찾기',
+    noMatch: '찾는 사람이 없습니다.',
     footer: '위임 권한은 즉시 적용되며, 저장 시 확정됩니다.',
   },
   unit: {
@@ -194,6 +197,8 @@ export default function AdminOkrGrantPanel({
   status = 'ready',
   onRetry,
   companyRows = [],
+  companyQuery = '',
+  onCompanyQueryChange,
   unitOptions = [],
   selectedUnitId = null,
   onSelectUnit,
@@ -261,13 +266,25 @@ export default function AdminOkrGrantPanel({
         }}
       >
         <div style={cardStyle} data-testid="okr-grant-company">
-          <CardHead title={L.company.title} description={L.company.description} />
+          {/* 거르기는 소비 측이 한다 — 여기는 칸만 그리고, 받은 줄을 그대로 보여 준다. 후보가 아예 없으면 칸도 없다. */}
+          <CardHead title={L.company.title} description={L.company.description}>
+            {loading || (companyRows.length === 0 && !companyQuery) ? null : (
+              <SearchInput
+                value={companyQuery}
+                onChange={(e) => onCompanyQueryChange?.(e.target.value)}
+                placeholder={L.company.search}
+                data-testid="okr-grant-company-search"
+              />
+            )}
+          </CardHead>
           {loading ? (
             <div style={{ padding: 18 }}>
               <SkeletonList count={3} height={40} />
             </div>
           ) : companyRows.length === 0 ? (
-            <CardNote testId="okr-grant-company-empty">{L.company.empty}</CardNote>
+            <CardNote testId={companyQuery ? 'okr-grant-company-no-match' : 'okr-grant-company-empty'}>
+              {companyQuery ? L.company.noMatch : L.company.empty}
+            </CardNote>
           ) : (
             companyRows.map((row) => (
               <GrantRow key={row.userId} row={row} scope="company" {...rowProps} />
