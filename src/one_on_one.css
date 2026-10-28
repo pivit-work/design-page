@@ -2481,6 +2481,12 @@ button.ono-add-modal-input { cursor: pointer; }
   border-radius: 8px;
 }
 
+/* AI 브리핑 카드의 «만든 적 없음» 안내 (PW-2279) — 기획서 «중앙 정렬, 회색». 카드 줄 간격(gap)이 위를 띄운다. */
+.ono-start-briefing-empty {
+  margin: 0;
+  text-align: center;
+}
+
 /* 아젠다 / 액션아이템 리스트 — 매니저 모드에서 멤버 제안·예상 액션은 읽기 전용,
    "매니저 추가 아젠다"만 추가/삭제 가능. Figma: 흰 배경(채움 없음) + border-secondary
    외곽선 + radius-sm. */

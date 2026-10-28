@@ -128,6 +128,7 @@ const DEFAULT_START_LABELS = {
   noBriefing: '브리핑 없음',
   // 카드 머리 브리핑 버튼 (PW-2279 · policy §4.1.2 — 미생성 `브리핑 생성`, 생성 후 `재생성` + 접기/펼치기)
   generateBriefing: '브리핑 생성',
+  briefingEmpty: '버튼을 눌러 AI 브리핑을 생성하세요.',
   regenerating: '재생성 중…',
   coachingGuide: '코칭 가이드',
   memberReport: '멤버 AI 보고서 · 읽기 전용',
@@ -453,15 +454,18 @@ export default function StartOneOnOneView({
   // 의 prop 변경 시 state 리셋 패턴). 판정과 dep 비교는 예전 effect 와 같다 —
   // `[anyAiGenerated, briefing]` 중 하나라도 바뀐 렌더에서만 다시 펼친다.
   // effect 로 두면 접힌 상태가 한 프레임 그려졌다 펼쳐져 카드가 깜빡인다.
+  // 브리핑은 객체가 아니라 요약 글로 견준다 (PW-2279) — 소비처가 렌더마다 새 객체를 넘겨,
+  // 재생성을 기다리는 폴링이 돌 때마다 매니저가 접어 둔 카드가 다시 펼쳐졌다.
+  const briefingKey = briefing?.summary ?? null;
   const [prevBriefingDeps, setPrevBriefingDeps] = useState({
     anyAiGenerated,
-    briefing,
+    briefingKey,
   });
   if (
     prevBriefingDeps.anyAiGenerated !== anyAiGenerated ||
-    prevBriefingDeps.briefing !== briefing
+    prevBriefingDeps.briefingKey !== briefingKey
   ) {
-    setPrevBriefingDeps({ anyAiGenerated, briefing });
+    setPrevBriefingDeps({ anyAiGenerated, briefingKey });
     if (anyAiGenerated || briefing) setBriefingOpen(true);
   }
 
@@ -808,6 +812,12 @@ export default function StartOneOnOneView({
                 )}
               </span>
             </div>
+
+            {/* 만든 적 없음 — 머리 [브리핑 생성]을 가리키는 안내, 중앙·회색 (policy §4.1.2 · TC-1ON1-003).
+                같은 화면 빈 칸 안내(.ono-start-empty-hint)를 그대로 쓴다. */}
+            {onGenerateBriefing && !briefing && !briefingBusy && (
+              <p className="ono-start-empty-hint ono-start-briefing-empty">{L.briefingEmpty}</p>
+            )}
 
             {/* 브리핑 생성·재생성 실패 — 카드 안, 브리핑 위. 기존 브리핑은 지우지 않는다 (policy §7.5.2·§7.5.3). */}
             {failureOf('briefing') && (
