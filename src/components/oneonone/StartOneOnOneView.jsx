@@ -94,6 +94,7 @@ const DEFAULT_START_LABELS = {
   failTargetSbi: '개선 피드백',
   failTargetSupport: '지원 계획',
   failTargetCaps: '역량 매니저 평가',
+  failTargetBriefing: 'AI 브리핑',
   // ⚠·✓ 글리프는 부품이 붙인다 — 번역 값에는 글자만 들어온다.
   failTitle: '{{target}} 생성에 실패했습니다',
   failTimeout: '생성이 30초를 넘겨 중단됐습니다. 잠시 후 다시 시도해 주세요.',
@@ -125,6 +126,9 @@ const DEFAULT_START_LABELS = {
   collapse: '접기',
   expand: '펼치기',
   noBriefing: '브리핑 없음',
+  // 카드 머리 브리핑 버튼 (PW-2279 · policy §4.1.2 — 미생성 `브리핑 생성`, 생성 후 `재생성` + 접기/펼치기)
+  generateBriefing: '브리핑 생성',
+  regenerating: '재생성 중…',
   coachingGuide: '코칭 가이드',
   memberReport: '멤버 AI 보고서 · 읽기 전용',
   okrSelf: 'OKR 자가 평가',
@@ -175,6 +179,7 @@ const AI_FAIL_TARGET_KEYS = {
   sbi: 'failTargetSbi',
   support: 'failTargetSupport',
   caps: 'failTargetCaps',
+  briefing: 'failTargetBriefing',
 };
 // 사유는 3분류, 행동은 2가지 — 한도 초과만 `다시 시도` 가 잠긴다 (§7.5.5).
 const AI_FAIL_MESSAGE_KEYS = {
@@ -303,6 +308,13 @@ export default function StartOneOnOneView({
   onGenerateDrafts,
   generatingSection = null,
   aiFailures = null,
+  // ── AI 브리핑 카드 머리 버튼 (PW-2279) ──
+  // onGenerateBriefing 을 주면 머리에 `브리핑 생성`/`재생성` 을 그린다. 주지 않으면 종전 그대로(토글만).
+  // briefingGenerated: 진짜 브리핑이 있나 — 소비처가 대기 중에도 `data.briefing` 에 문구를 넣기 때문에 따로 받는다.
+  // briefingBusy: 서버가 만드는 중. 재생성 중에도 기존 브리핑은 그대로 그린다.
+  onGenerateBriefing,
+  briefingGenerated = false,
+  briefingBusy = false,
   initialPerspective = null,
   onPerspectiveChange,
   onBack,
@@ -725,8 +737,9 @@ export default function StartOneOnOneView({
             );
           })()}
 
-          {/* CTA bar — 한 섹션이라도 AI 초안 받았으면 "생성 완료" 상태로 전환. */}
-          {anyAiGenerated ? (
+          {/* CTA bar — 한 섹션이라도 AI 초안 받았거나 브리핑이 생기면 "생성 완료" 상태로 전환.
+              처음 한 번의 지름길이라 브리핑만 있어도 다시 누르지 않는다 (PW-2279 · policy §4.1.2). */}
+          {(anyAiGenerated || briefingGenerated) && generatingSection !== 'all' ? (
             <div className="ono-start-cta is-done">
               <span className="ono-start-cta-left">
                 <Icon src="/icons-solid/check-circle.svg" size={20} color="var(--utility-purple-500, #7a5af8)" baseUrl={baseUrl} />
@@ -766,16 +779,46 @@ export default function StartOneOnOneView({
                 <Icon src="/icons-solid/ai-chat-01.svg" size={14} color="#ad00fe" baseUrl={baseUrl} />
                 {L.briefingTitle}
               </span>
-              {briefingOpen ? (
-                <button type="button" className="ono-start-briefing-toggle" onClick={() => setBriefingOpen(false)}>{L.collapse}</button>
-              ) : briefing ? (
-                <button type="button" className="ono-start-briefing-toggle" onClick={() => setBriefingOpen(true)}>{L.expand}</button>
-              ) : (
-                <span className="ono-start-briefing-toggle is-disabled" aria-disabled="true">
-                  {L.noBriefing}
-                </span>
-              )}
+              <span className="ono-start-field-actions">
+                {onGenerateBriefing && (
+                  <button
+                    type="button"
+                    className="ono-start-briefing-toggle"
+                    onClick={() => onGenerateBriefing()}
+                    disabled={briefingBusy}
+                    aria-busy={briefingBusy || undefined}
+                    data-testid="ono-start-briefing-generate"
+                  >
+                    {briefingBusy ? (
+                      <span className="dp-busy-inline">
+                        <Spinner size={12} />
+                        {briefingGenerated ? L.regenerating : L.generatingShort}
+                      </span>
+                    ) : briefingGenerated ? L.regenerate : L.generateBriefing}
+                  </button>
+                )}
+                {briefingOpen ? (
+                  <button type="button" className="ono-start-briefing-toggle" onClick={() => setBriefingOpen(false)}>{L.collapse}</button>
+                ) : briefing ? (
+                  <button type="button" className="ono-start-briefing-toggle" onClick={() => setBriefingOpen(true)}>{L.expand}</button>
+                ) : onGenerateBriefing ? null : (
+                  <span className="ono-start-briefing-toggle is-disabled" aria-disabled="true">
+                    {L.noBriefing}
+                  </span>
+                )}
+              </span>
             </div>
+
+            {/* 브리핑 생성·재생성 실패 — 카드 안, 브리핑 위. 기존 브리핑은 지우지 않는다 (policy §7.5.2·§7.5.3). */}
+            {failureOf('briefing') && (
+              <AiFailBox
+                targetKey="briefing"
+                failure={failureOf('briefing')}
+                onRetry={() => onGenerateBriefing?.()}
+                busy={briefingBusy}
+                labels={L}
+              />
+            )}
 
             {briefingOpen && briefing && (
               <>

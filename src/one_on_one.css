@@ -2016,6 +2016,10 @@ button.ono-add-modal-input { cursor: pointer; }
   color: var(--utility-purple-600);
   cursor: pointer;
 }
+/* 카드 머리 브리핑 버튼이 만드는 중 (PW-2279) — 흐리게 하지 않고 손가락만 거둔다 (정본표 «AI 기다리는 표시») */
+.ono-start-briefing-toggle:disabled {
+  cursor: default;
+}
 .ono-start-briefing-block {
   display: flex;
   flex-direction: column;
