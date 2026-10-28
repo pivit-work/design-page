@@ -17,7 +17,7 @@
  * 표의 칸에서 고치면 그 즉시 사유가 사라져야 하기 때문이다.
  */
 
-import { emailOk, jobPairIssue, nameHasEmail, normEmail } from './inviteRules.js';
+import { emailOk, jobPairIssue, nameHasEmail, normEmail, seenLeaderIdsOf } from './inviteRules.js';
 import { resolveKoreanParticles } from '../shared/koreanParticle.js';
 
 /**
@@ -458,6 +458,7 @@ export const INVITE_CSV_DEFAULT_LABELS = {
   csvErrSquadUnknown: "스쿼드 '{value}'을(를) 찾을 수 없어요",
   csvErrEmployeeCodeTaken: "사번 '{value}'은(는) 이미 다른 구성원이 쓰고 있어요",
   csvNoteManagerIgnored: '조직장이 상급자가 됩니다 — 적은 상급자는 쓰지 않습니다',
+  csvNoteLeaderReplace: '교체 예정 · ‘{name}’님',
 };
 
 const normalize = (v) => String(v ?? '').trim();
@@ -908,6 +909,7 @@ export function parseInviteCsv(
  * @param {string[]} [opts.resendEmails]  명부에 있지만 아직 가입하지 않은 사람 — «이미 멤버»로 막고 목록 «초대 보내기»를 안내 (PW-1331 · V5)
  * @param {string[]} [opts.terminatedEmails]  명부의 퇴사자 — 막는다 (PW-1331)
  * @param {string[]} [opts.headTeamIds]    조직장이 있는 조직 id(상급자 안내)
+ * @param {Record<string, {id: string, name: string}>} [opts.teamHeads] 조직 id → 지금 조직장(«교체 예정» 안내 · PW-2348)
  * @param {object} [opts.labels]
  *
  * 아래 넷은 **앱이 정하는 규칙**이다 (PW-1057). 초대는 서버가 최종 판정하는데, 화면이 서버와
@@ -924,7 +926,7 @@ export function parseInviteCsv(
 export function buildInviteCsvContext(rows, {
   orgTree = [], fieldOptions = {}, laddersByFamily = {}, dutiesByLadder = {},
   jobCategoryEnabled = false, squadNames = null, memberEmails = [], supervisorEmails = null,
-  pendingEmails = [], resendEmails = [], terminatedEmails = [], rehireEmails = [], headTeamIds = [], labels = {},
+  pendingEmails = [], resendEmails = [], terminatedEmails = [], rehireEmails = [], headTeamIds = [], teamHeads = {}, labels = {},
   emailValid = emailOk, nameMaxLength = null, fieldLimits = {}, resolveOrgPath = null,
   blockedEmploymentStatuses = [], employeeCodeOwners = null,
 } = {}) {
@@ -951,6 +953,8 @@ export function buildInviteCsvContext(rows, {
     rehireEmails: new Set(rehireEmails.map(normEmail)),
     fileEmailCount,
     headTeamIds: new Set(headTeamIds),
+    // 조직 id → 지금 조직장 `{ id, name }` — «교체 예정» 안내와 보낼 때 본 조직장(PW-2348)
+    teamHeads: new Map(Object.entries(teamHeads || {})),
     reservedLeaderTeamIds: new Set(),
     emailValid: emailValid || emailOk,
     nameMaxLength,
@@ -1200,8 +1204,13 @@ export function inviteCsvNotes(row, ctx) {
     // [PW-1331 · V5] «이미 멤버»로 막은 가입 전 구성원 — 다시 보내는 입구(목록 «초대 보내기»)를 알려 준다.
     notes.push({ key: 'email', message: ctx.labels.csvNoteUnjoinedMember });
   }
+  // [PW-2348 · 초대 V13] 조직장 열을 켠 조직에 지금 조직장이 있으면 오류가 아니라 «교체 예정» 안내
+  const { primaryTeamId, leaderTeamIds } = resolveInviteCsvRow(row, ctx);
+  for (const teamId of leaderTeamIds) {
+    const head = ctx.teamHeads?.get(teamId);
+    if (head?.name) notes.push({ key: 'leader', message: fmtCsv(ctx.labels.csvNoteLeaderReplace, { name: head.name }) });
+  }
   if (!normEmail(row.values.managerEmail)) return notes;
-  const { primaryTeamId } = resolveInviteCsvRow(row, ctx);
   if (primaryTeamId && (ctx.headTeamIds.has(primaryTeamId) || ctx.reservedLeaderTeamIds.has(primaryTeamId))) {
     notes.push({ key: 'managerEmail', message: ctx.labels.csvNoteManagerIgnored });
   }
@@ -1253,6 +1262,9 @@ export function inviteCsvPayload(row, ctx) {
   }
   if (r.teamIds.length) out.teamIds = r.teamIds;
   put('teamId', r.primaryTeamId);
-  if (r.leaderTeamIds.length) out.leaderTeamIds = r.leaderTeamIds;
+  if (r.leaderTeamIds.length) {
+    out.leaderTeamIds = r.leaderTeamIds;
+    out.seenLeaderIds = seenLeaderIdsOf(r.teamIds, r.leaderTeamIds, ctx.teamHeads);
+  }
   return out;
 }

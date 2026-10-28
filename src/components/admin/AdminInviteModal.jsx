@@ -12,7 +12,7 @@ import {
 } from './employeesIcons.jsx';
 import {
   INVITE_MAX_ROWS, FAIL_LABEL_KEY, emailOk, jobPairIssue, ladderLocked, laddersForFamily,
-  nameHasEmail, normEmail, reconcilePrimary, fmt,
+  nameHasEmail, normEmail, reconcilePrimary, fmt, seenLeaderIdsOf,
 } from './inviteRules.js';
 import {
   INVITE_CSV_DEFAULT_LABELS, INVITE_CSV_MAX_ROWS,
@@ -142,6 +142,7 @@ const DEFAULT_LABELS = {
   primaryTeam: '주 소속',
   primaryMoved: '주 소속이 {path}(으)로 변경되었습니다',
   leaderReserve: '이 조직의 조직장으로 초대',
+  leaderReplaceNotice: '지금 조직장은 ‘{name}’님입니다. 가입하면 이 사람이 조직장이 되고, ‘{name}’님은 구성원으로 남습니다.',
   leaderNote: '조직장은 가입이 끝나는 시점에 적용됩니다.',
   squadNote: '스쿼드 배정은 조직도 스쿼드 뷰에서 별도로 합니다 (기능조직과 다른 축).',
   summary: '{n}명에게 초대를 보냅니다',
@@ -402,6 +403,7 @@ function OptionSelect({
  */
 function TeamSearchField({
   rowKey, tree, row, labels, disabled, onPick, onRemove, onPrimary, onLeader, loadFailed = false, onRetry,
+  teamHeads = {},
 }) {
   const [query, setQuery] = useState('');
   const [adding, setAdding] = useState(false);
@@ -486,6 +488,17 @@ function TeamSearchField({
                 >
                   <IconX size={12} />
                 </button>
+                {/* [PW-2348 · 초대 §2-3] 지금 조직장이 있는 조직에 조직장으로 초대하면 교체 안내 — 보내기는 막지 않는다 */}
+                {leader && teamHeads[id]?.name && (
+                  <p
+                    className="admin-inv-hint"
+                    style={{ flexBasis: '100%' }}
+                    role="status"
+                    data-testid={`inv-${rowKey}-leader-replace`}
+                  >
+                    {fmt(labels.leaderReplaceNotice, { name: teamHeads[id].name })}
+                  </p>
+                )}
               </li>
             );
           })}
@@ -668,6 +681,11 @@ export default function AdminInviteModal({
   squadNames = null,
   /** 조직장이 있는 조직 id — CSV 상급자 칸이 쓰이지 않는 줄을 안내한다(PW-902). */
   headTeamIds = [],
+  /**
+   * 조직 id → 지금 조직장 `{ id, name }` (PW-2348). 조직장 체크 아래 교체 안내와, 보낼 때 본 조직장
+   * (`seenLeaderIds`)으로 쓴다. 안 주면 안내 없이 «비어 있었다»(`null`)로 보낸다.
+   */
+  teamHeads = {},
   /**
    * 이 조직이 직종을 쓰는가 (PW-644 · 선택 적용). `true` 일 때만 직종 칸·CSV 열이 생긴다.
    * 켰는지 못 읽었으면 호출부가 `false` 를 넘긴다 — 칸이 없을 뿐 초대는 그대로 된다
@@ -927,7 +945,7 @@ export default function AdminInviteModal({
   const csvPreparedNotices = csvPrepared?.notices ?? [];
   const csvCtx = buildInviteCsvContext(csvRows, {
     orgTree: tree, fieldOptions: csvFieldOptions, laddersByFamily, dutiesByLadder, jobCategoryEnabled,
-    squadNames, memberEmails: existingEmails, supervisorEmails, pendingEmails, resendEmails, terminatedEmails, rehireEmails: rehireMembers.map((m) => m.email), headTeamIds, labels,
+    squadNames, memberEmails: existingEmails, supervisorEmails, pendingEmails, resendEmails, terminatedEmails, rehireEmails: rehireMembers.map((m) => m.email), headTeamIds, teamHeads, labels,
     emailValid, nameMaxLength, fieldLimits: csvFieldLimits, resolveOrgPath,
     blockedEmploymentStatuses: csvBlockedEmploymentStatuses, employeeCodeOwners: csvEmployeeCodeOwners,
   });
@@ -1189,6 +1207,8 @@ export default function AdminInviteModal({
         managerEmail: r.managerEmail || undefined,
         // 조직장 예약은 고른 소속 안에서만 — 가입 때 그 조직 소속이 생긴 뒤 적용된다(L3)
         leaderTeamIds: r.leaderTeamIds.length ? r.leaderTeamIds : undefined,
+        // [PW-2348] 보낼 때 본 조직장 — 소속과 같은 자리에. 가입 때 그 사람이 그대로면 교체, 아니면 조직장만 건너뛴다
+        seenLeaderIds: r.leaderTeamIds.length ? seenLeaderIdsOf(r.teamIds, r.leaderTeamIds, teamHeads) : undefined,
       }));
       const res = await onSend?.(payload);
       const failed = res?.failed ?? [];
@@ -1705,6 +1725,7 @@ export default function AdminInviteModal({
                     onRemove={(id) => removeTeam(r, id)}
                     onPrimary={(id) => patch(r.key, { primaryTeamId: id, primaryNote: '' })}
                     onLeader={(id) => toggleLeader(r, id)}
+                    teamHeads={teamHeads}
                   />
                   {r.primaryNote && <p className="admin-inv-hint" role="status">{r.primaryNote}</p>}
                 </div>

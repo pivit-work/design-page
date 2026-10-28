@@ -525,6 +525,8 @@ const DEFAULT_LABELS = {
     copyLink: '링크 복사', copied: '복사됨', resend: '재발송', cancel: '취소',
     // [PW-1312] 입사일 자동 초대로 예약된 초대 — 배지 뒤에 예정 시각(MM-DD HH:mm)이 붙는다
     scheduled: '발송 예정', scheduleFailed: '발송 실패', sendNow: '지금 보내기', cancelSchedule: '예약 취소',
+    // [PW-2348] 조직장을 예약한 대기 초대 — 소속마다 칩, 보낼 때 본 조직장이 있으면 옆에 «교체 예정»
+    leaderReserved: '{team} 조직장 예약', leaderReplacing: '교체 예정 · ‘{name}’님',
     statusPending: '대기중', statusAccepted: '수락됨', statusExpired: '만료됨',
     empty: '해당 상태의 초대가 없습니다.',
     linkType: '링크',
@@ -1370,6 +1372,16 @@ const INVITE_STATUSES = ['pending', 'accepted', 'expired'];
  * `AdminInviteModal` 을 연다 — 초대를 관리하다 하나 더 보내려고 탭을 옮길 필요가
  * 없고, 겸직 소속·인사 분류도 그 자리에서 지정한다.
  */
+/** 조직 id → 지금 조직장 `{ id, name }` — 조직장 맡은 조직 목록(`leaderUnitIdsByMember`)을 뒤집는다 (PW-2348). */
+function teamHeadsOf(leaderUnitIdsByMember, members) {
+  const nameById = new Map((members || []).map((m) => [String(m.id), m.name]));
+  const heads = {};
+  for (const [memberId, unitIds] of Object.entries(leaderUnitIdsByMember || {})) {
+    for (const unitId of unitIds || []) heads[String(unitId)] = { id: memberId, name: nameById.get(String(memberId)) ?? '' };
+  }
+  return heads;
+}
+
 function InvitesTab({
   invites, labels, canEdit, inviteBlockedReason = null,
   onOpenInvite, onResendInvite, onCancelInvite, onCopyInviteLink,
@@ -1456,7 +1468,22 @@ function InvitesTab({
             {filtered.map((inv) => (
               <div key={inv.id} className="admin-emp-row">
                 <div className="admin-emp-row-info">
-                  <div className="admin-emp-row-name">{inv.email || labels.invites.linkType}</div>
+                  <div className="admin-emp-row-name">
+                    {inv.email || labels.invites.linkType}
+                    {/* [PW-2348 · 초대 §4-5] 조직장 예약 칩 + «교체 예정» — 대기 중인 초대에만 */}
+                    {inv.status === 'pending' && (inv.leaderReservations || []).map((l) => (
+                      <span key={l.teamId} className="admin-emp-row-name" data-testid={`invite-leader-${inv.id}-${l.teamId}`}>
+                        <DpStatusBadge className="admin-emp-role-pill is-manager">
+                          <IconUser size={11} />{String(labels.invites.leaderReserved ?? '').replace('{team}', l.teamName ?? '')}
+                        </DpStatusBadge>
+                        {l.seenLeaderName && (
+                          <span style={{ fontSize: 'var(--font-size-text-xs)', fontWeight: 400, color: 'var(--text-secondary)' }}>
+                            {String(labels.invites.leaderReplacing ?? '').replace('{name}', l.seenLeaderName)}
+                          </span>
+                        )}
+                      </span>
+                    ))}
+                  </div>
                   <div className="admin-emp-row-meta">
                     <span>{labels.invites.colInviter} {inv.invitedByName || '—'}</span>
                     {inv.sentAt && (<><span className="admin-emp-meta-dot" aria-hidden="true">·</span><span>{inv.sentAt}</span></>)}
@@ -5939,6 +5966,8 @@ export default function AdminEmployeesCanvas({
           // 주 소속 조직에 조직장이 있으면 쓰이지 않는다고 안내한다.
           squadNames={(squadOptions || []).map((sq) => sq.name).filter(Boolean)}
           headTeamIds={[...new Set(Object.values(leaderUnitIdsByMember || {}).flat().map(String))]}
+          // [PW-2348] 조직 → 지금 조직장 — 조직장 체크 아래 교체 안내 · 보낼 때 본 조직장
+          teamHeads={teamHeadsOf(leaderUnitIdsByMember, members)}
           // 직종은 조직이 켰을 때만 받는다(PW-644). 목록 열과 같은 스위치·같은 직종 목록을 쓴다.
           jobCategoryEnabled={optionalFields?.job_category === true}
           onGoBilling={onGoBilling}

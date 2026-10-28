@@ -134,3 +134,15 @@ export function jobPairIssue(laddersByFamily, family, ladder) {
   const list = laddersForFamily(map, family, []);
   return list.some((o) => foldValue(o) === foldValue(l)) ? null : 'pair';
 }
+
+/**
+ * «보낼 때 본 조직장» — 소속(`teamIds`)과 같은 자리에 그 조직의 지금 조직장 id, 조직장을 예약하지
+ * 않았거나 비어 있던 자리는 `null` (초대 정책 §8 `seenLeaderIds` · PW-2348). 직접 입력·CSV 가 같이 쓴다.
+ * @param {string[]} teamIds
+ * @param {string[]} leaderTeamIds
+ * @param {Record<string, {id: string}>|Map<string, {id: string}>} teamHeads 조직 id → 지금 조직장
+ */
+export function seenLeaderIdsOf(teamIds, leaderTeamIds, teamHeads) {
+  const headOf = (t) => (teamHeads instanceof Map ? teamHeads.get(t) : teamHeads?.[t]);
+  return teamIds.map((t) => (leaderTeamIds.includes(t) ? headOf(t)?.id ?? null : null));
+}
