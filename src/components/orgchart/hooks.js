@@ -37,7 +37,9 @@ export function clearCollapsed(key) {
 export function loadPositions() {
   try {
     const raw = localStorage.getItem(POSITIONS_STORAGE_KEY);
-    return raw ? JSON.parse(raw) : {};
+    const parsed = raw ? JSON.parse(raw) : {};
+    // 깨진 값(null·배열·숫자)이면 카드마다 positions[id] 를 읽는 곳이 터진다 — 빈 기억으로 시작한다.
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
   } catch { return {}; }
 }
 
@@ -137,6 +139,8 @@ export function useDrag(nodeId, onDrop, onDragMove) {
     };
     const onUp = (ev) => {
       setDragPos(null);
+      // 4px 안에서 끝난 것은 클릭이다 — 손떨림만큼 옮긴 자리를 남기면 «자동 정렬»이 옮긴 카드로 센다(§5.4-D · PW-2347).
+      if (!didDragRef.current) updatePosition(nodeId, startPos.current);
       if (onDropRef.current) onDropRef.current(ev);
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
