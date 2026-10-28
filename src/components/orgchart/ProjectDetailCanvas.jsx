@@ -6,7 +6,7 @@
  *
  * 시안에서 옮기지 않은 것 (이 카드 범위 밖 — 뒤 카드가 붙인다):
  *  - 데모 계정 고르기(기획 데모 전용).
- *  - 리소스 탭의 내용. 탭은 보이지만 고를 수 없다(사유는 말풍선).
+ *  - (리소스 탭은 PW-2319 에서 `ProjectResourceTab` 으로 붙였다 — `resource` 를 주면 고를 수 있다.)
  *
  * 탭 줄과 이력 탭은 PW-1865 에서 붙였다 (§4-0 · §4-3 · §5-4 · 시안 `TABS` · `HistoryTab`).
  * 탭 줄은 시안의 흰 알약 모양 그대로인 공용 `SegmentedControl` 이다. 이력 한 줄은 시안처럼
@@ -50,6 +50,7 @@ import { OrgLabelsContext, makeOrgLabels, rich } from './orgchart-labels.jsx';
 import { projectStatusCode, projectStatusText, projectStatusTone } from './project-constants.js';
 import { SQUAD_MENU_Z, SQUAD_MODAL_Z, SQUAD_PALETTE } from './squad-constants.js';
 import { RsStatCard } from '../okr/OkrResourcePieces.jsx';
+import ProjectResourceTab from './ProjectResourceTab.jsx';
 
 /** 허용 전이 (§6-1). `→ planned` · `planned → done` 은 없다 — 메뉴에 비활성으로도 그리지 않는다. */
 const PROJECT_TRANSITIONS = {
@@ -73,7 +74,7 @@ const HISTORY_ICON = {
   assignment_removed: CloseGlyph,
 };
 
-/** 탭 (§1 `?tab=overview|resource|history`). 리소스는 내용이 아직 없어 고를 수 없다. */
+/** 탭 (§1 `?tab=overview|resource|history`). 리소스는 호스트가 `resource` 를 줄 때만 고를 수 있다(PW-2319). */
 const TAB_KEYS = ['overview', 'resource', 'history'];
 
 const clampProgress = (v) => Math.max(0, Math.min(100, Math.round(Number(v) || 0)));
@@ -138,6 +139,17 @@ export default function ProjectDetailCanvas({
   onLoadMoreHistory,
   /** `() => void` — 불러오기 실패 뒤 「다시 시도」. */
   onRetryHistory,
+  /**
+   * 리소스 탭 `{ loading, error, data }` (PW-2319) — `data` 는 `GET /projects/:id/assignments` 응답.
+   * 없으면 리소스 탭은 고를 수 없다(말풍선으로 사유). 나머지 리소스 콜백은 `ProjectResourceTab` 의 계약 그대로.
+   */
+  resource = null,
+  /** 보는 사람 id — 초과 행이 «내 행»인지 가른다. */
+  meId = null,
+  onSaveResource,
+  onRequestCapacity,
+  onReloadResource,
+  onOpenMyCapacity,
   /** 화면 문구 — `SquadCanvas` 와 같은 계약(`orgchart-labels.jsx`). */
   labels,
 }) {
@@ -167,14 +179,18 @@ export default function ProjectDetailCanvas({
     : palette;
   const deleteBlocked = deleteBlockedReason != null || !onDelete;
   const showTabs = typeof onChangeTab === 'function';
-  const activeTab = showTabs && tab === 'history' ? 'history' : 'overview';
+  const hasResource = resource != null;
+  const activeTab = showTabs && (tab === 'history' || (tab === 'resource' && hasResource)) ? tab : 'overview';
+  // 리소스 탭에서 고칠 수 있나 — 서버가 준 자격 스쿼드별 편집 가능(완료 프로젝트면 없음).
+  const resourceEditable = !!resource?.data && !resource.data.closed
+    && (resource.data.squads || []).some((s) => s.canEdit);
   // 머리의 딱지는 탭마다 — 이력은 누구에게나 조회 전용이다(§5-1 「탭별 편집 권한에 따라 전환」).
-  const modeEditable = activeTab === 'overview' && editable;
+  const modeEditable = activeTab === 'overview' ? editable : activeTab === 'resource' ? resourceEditable : false;
   const tabItems = TAB_KEYS.map((key) => ({
     value: key,
     label: L(`projectDetail.tabs.${key}`),
     testId: `project-detail-tab-${key}`,
-    ...(key === 'resource' ? { disabled: true, title: L('projectDetail.tabs.resourcePending') } : {}),
+    ...(key === 'resource' && !hasResource ? { disabled: true, title: L('projectDetail.tabs.resourcePending') } : {}),
   }));
   const modeBadge = (
     <StatusBadge tone={modeEditable ? 'accent' : 'neutral'} className="pd-badge" data-testid="project-detail-mode">
@@ -551,6 +567,20 @@ export default function ProjectDetailCanvas({
             )}
           </section>
           </>)}
+
+          {activeTab === 'resource' && (
+            <ProjectResourceTab
+              L={L}
+              project={project}
+              resource={resource}
+              meId={meId}
+              onSave={onSaveResource}
+              onRequestCapacity={onRequestCapacity}
+              onReload={onReloadResource}
+              onOpenMyCapacity={onOpenMyCapacity}
+              onOpenSquads={onOpenSquad ? () => onOpenSquad(null) : undefined}
+            />
+          )}
 
           {activeTab === 'history' && (
             <HistoryTab L={L} history={history} onLoadMore={onLoadMoreHistory} onRetry={onRetryHistory} />
