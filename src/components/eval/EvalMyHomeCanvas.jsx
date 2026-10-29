@@ -2,7 +2,7 @@ import { Fragment, useMemo } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Avatar from '../shared/Avatar.jsx';
 import EmptyState from '../shared/EmptyState.jsx';
-import { ArrowRightIcon, CheckCircleIcon, ChevronRightIcon } from './evalIcons.jsx';
+import { ArrowRightIcon, CheckCircleIcon, ChevronRightIcon, PauseIcon } from './evalIcons.jsx';
 
 /**
  * EvalMyHomeCanvas — 구성원 「내 평가 홈」 (PW-1468).
@@ -11,7 +11,8 @@ import { ArrowRightIcon, CheckCircleIcon, ChevronRightIcon } from './evalIcons.j
  * 셀프 + 동료(주는 리뷰) + 팀원 하향 + 캘리브레이션 + 결과를 «내가 해야 할 일» 한 장에 모은다.
  * 무엇을 그릴지(어느 단계가 있나·상태·마감)는 앱이 정해 넘기고, 이 캔버스는 그리기만 한다.
  *
- *   cycles[{ id, name, period, calibrationEnabled?, phases[{ id, label, due, status, actionable, evaluator }] }]
+ *   cycles[{ id, name, period, calibrationEnabled?, paused?, phases[{ id, label, due, status, actionable, evaluator }] }]
+ *     paused === true 면 관리자가 일시 중단한 평가다(PW-2423) — 배지를 「일시 중단」(warning)으로, 카드에 중단 안내 줄.
  *     calibrationEnabled === false 면 캘리브레이션 칩을 그리지 않는다 (member §10.1 M2).
  *     status: 라벨 사전(member §3.2-A · PW-1970) — 모양은 §3.2 세 가지 중 하나다
  *       완료(초록+체크): 'submitted' 제출 완료 · 'arrived' 도착
@@ -39,6 +40,8 @@ const DEFAULT_LABELS = {
   reportGrade: '최종 등급: {grade}',
   reportCta: '리포트 보기',
   inProgress: '진행 중',
+  paused: '일시 중단',
+  pausedNotice: '현재 평가가 일시 중단되었습니다. 재개 안내를 기다려주세요.',
   period: '대상 기간: {period}',
   due: '마감 {due}',
   status: {
@@ -246,8 +249,23 @@ export default function EvalMyHomeCanvas({
                   <h2 className="evc-card-name">{c.name}</h2>
                   {c.period && <p className="evmh-cycle-period">{fill(L.period, { period: c.period })}</p>}
                 </div>
-                <StatusBadge tone="progress" className="evc-status-badge">{L.inProgress}</StatusBadge>
+                <StatusBadge
+                  tone={c.paused ? 'warning' : 'progress'}
+                  className="evc-status-badge"
+                  data-testid={`evmh-cycle-${c.id}-status`}
+                >
+                  {c.paused ? L.paused : L.inProgress}
+                </StatusBadge>
               </div>
+              {/* HR 정책 §6.6 — 멈춘 동안 구성원 화면에 중단 안내. 모양은 관리자 화면의 중단 줄(재개 버튼 없이). */}
+              {c.paused && (
+                <div className="evc-onhold-banner" role="status" data-testid={`evmh-paused-${c.id}`}>
+                  <span className="evc-onhold-icon" aria-hidden>
+                    <PauseIcon size={14} />
+                  </span>
+                  <span className="evc-onhold-text">{L.pausedNotice}</span>
+                </div>
+              )}
               <div className="evmh-chips">
                 {/* member §10.1 M2 — 캘리브레이션을 끈 평가는 그 칩을 회색으로도 남기지 않는다. */}
                 {CHIP_ORDER.filter((id) => id !== 'calibration' || c.calibrationEnabled !== false).map((id) => {
