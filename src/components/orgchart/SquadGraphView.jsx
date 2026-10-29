@@ -63,6 +63,9 @@ export default function SquadGraphView({ squads, personOf, renderAvatar, onMembe
 
   const shown = useMemo(() => squads.filter((sq) => statusOn.includes(sq.status)), [squads, statusOn]);
   const layout = useMemo(() => squadGraphLayout({ squads: shown, personOf }), [shown, personOf]);
+  // 담당 프로젝트를 아직 못 받았거나 못 불러온 스쿼드는 `projects` 가 배열이 아니다(카드 보기는 그 칸을 안 그린다).
+  // 그때 범례가 «이어지지 않은 프로젝트는 그리지 않는다»를 말하면 «프로젝트 없음»으로 읽힌다 — 프로젝트 줄 범례를 걷는다.
+  const projectsKnown = shown.every((sq) => Array.isArray(sq.projects));
   const toggleStatus = (st) => setStatusOn((on) => (on.includes(st) ? on.filter((x) => x !== st) : [...on, st]));
 
   // 강조 — 올린 노드에 직접 이어진 선·칩·노드만 진하게(§5-6 「마우스 올림」)
@@ -342,7 +345,7 @@ export default function SquadGraphView({ squads, personOf, renderAvatar, onMembe
       <div className="sq-graph-legend" data-testid="squad-graph-legend">
         <p className="pj-table-subtitle">{L('squad.graph.legendChip')}</p>
         <p className="pj-table-subtitle">{L('squad.graph.legendLine')}</p>
-        <p className="pj-table-subtitle">{L('squad.graph.legendProject')}</p>
+        {projectsKnown && <p className="pj-table-subtitle">{L('squad.graph.legendProject')}</p>}
       </div>
     </div>
   );
