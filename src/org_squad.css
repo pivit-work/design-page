@@ -1747,7 +1747,7 @@
   overflow-x: auto;
   padding: var(--spacing-3xl) 0;
 }
-.sq-graph-canvas { position: relative; }
+.sq-graph-canvas { position: relative; margin: 0 auto; } /* 판이 그림보다 넓으면 가운데 */
 .sq-graph-lines { position: absolute; left: 0; top: 0; overflow: visible; }
 .sq-graph-edge { stroke-opacity: 0.55; stroke-linecap: round; }
 .sq-graph-edge.is-cap-unset { stroke: var(--text-quaternary); stroke-opacity: 1; stroke-dasharray: 4 3; }
@@ -1814,11 +1814,15 @@
   transition: opacity 0.15s;
 }
 .sq-graph-squad-name { min-width: 0; }
+/* 상태 배지는 꺾이지 않는다 — 영어 «Planned» 가 두 줄로 꺾였다. 아래 줄은 폭을 넘으면 말줄임 + 말풍선 */
+.sq-graph-squad-meta > :first-child { white-space: nowrap; }
+.sq-graph-squad-meta > :last-child { max-width: 100%; }
+/* 상태 배지 아래 줄에 «N명 · 리드 이름» — 한 줄에 나란히 두면 영어에서 리드 이름이 잘렸다 */
 .sq-graph-squad-meta {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-md);
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-xxs);
   min-width: 0;
   font-size: 12px;
   line-height: 18px;

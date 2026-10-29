@@ -209,7 +209,8 @@ export default function SquadGraphView({ squads, personOf, renderAvatar, onMembe
 
               {/* ── 노드: 프로젝트 — 눌러도 아무 일 없다(원장은 카드 보기에서 연다) ── */}
               {layout.projectNodes.map((p) => {
-                const on = !focus || (focus.kind === 'pj' ? focus.id === p.project.id : p.sis.some((si) => squadOn(shown[si])));
+                const on = !focus || (focus.kind === 'pj' ? focus.id === p.project.id
+                  : focus.kind === 'sq' && p.sis.some((si) => shown[si].id === focus.id));
                 return (
                   <div
                     key={`pj-${p.project.id}`}
@@ -264,9 +265,12 @@ export default function SquadGraphView({ squads, personOf, renderAvatar, onMembe
                         )}
                         <span>{squadStatusText(L, sq.status)}</span>
                       </StatusBadge>
-                      <span className="sq-graph-ellipsis" data-testid={`squad-graph-squad-meta-${sq.id}`}>
-                        {L('squad.graph.squadMeta', { count: (sq.members || []).length, lead: leadName })}
-                      </span>
+                      {/* 영어처럼 긴 말에서는 리드 이름이 잘린다 — 말풍선에 전문 */}
+                      <Tooltip content={L('squad.graph.squadMeta', { count: (sq.members || []).length, lead: leadName })}>
+                        <span className="sq-graph-ellipsis" data-testid={`squad-graph-squad-meta-${sq.id}`}>
+                          {L('squad.graph.squadMeta', { count: (sq.members || []).length, lead: leadName })}
+                        </span>
+                      </Tooltip>
                     </div>
                   </div>
                 );
@@ -282,7 +286,8 @@ export default function SquadGraphView({ squads, personOf, renderAvatar, onMembe
                 const ringR = G.pR + 4;
                 const C = 2 * Math.PI * ringR;
                 const filled = (Math.min(total, CAPACITY) / CAPACITY) * C;
-                const on = !focus || (focus.kind === 'p' ? focus.id === p.userId : p.links.some((l) => squadOn(l.squad)));
+                const on = !focus || (focus.kind === 'p' ? focus.id === p.userId
+                  : focus.kind === 'sq' && p.links.some((l) => l.squad.id === focus.id));
                 const line = graphPersonLine(L, person);
                 const over = total > CAPACITY;
                 return (
