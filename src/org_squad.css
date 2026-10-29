@@ -1725,3 +1725,167 @@
   gap: 6px;
   margin-top: 12px;
 }
+
+/* ── 그림 보기 — 스쿼드 · 사람 · 프로젝트 노드 그림 (pivit-work PW-2356 · 기획 §5-6) ──
+   디자이너 원본이 없어 같은 탭의 디자이너 모양을 옮겼다: 판 = 매트릭스 판(.sq-panel) · 칩 = 매트릭스 배정 칸
+   (스쿼드 색 8% · 미설정 gray-100) · 프로젝트 = 카드 «담당 프로젝트» 줄 · 이름 글씨 = 매트릭스 이름 칸.
+   색은 토큰만, 간격은 --spacing-* 만 쓴다. 좌표·폭·스쿼드 색은 데이터라 화면 부품이 인라인으로 준다. */
+.sq-graph-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: var(--spacing-lg);
+}
+.sq-graph-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+.sq-graph-empty { margin: var(--spacing-3xl); }
+.sq-graph-scroll {
+  overflow-x: auto;
+  padding: var(--spacing-3xl) 0;
+}
+.sq-graph-canvas { position: relative; }
+.sq-graph-lines { position: absolute; left: 0; top: 0; overflow: visible; }
+.sq-graph-edge { stroke-opacity: 0.55; stroke-linecap: round; }
+.sq-graph-edge.is-cap-unset { stroke: var(--text-quaternary); stroke-opacity: 1; stroke-dasharray: 4 3; }
+.sq-graph-project-edge { stroke: var(--border-primary); stroke-width: 1.2; stroke-dasharray: 4 3; }
+.sq-graph-project-edge.is-primary { stroke: var(--text-tertiary); stroke-width: 1.5; stroke-dasharray: none; }
+/* 선 위에 얹는 것(칩·主) — 좌표가 가운데가 되게 */
+.sq-graph-at {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  transition: opacity 0.15s;
+}
+.sq-graph-cell {
+  border-radius: var(--radius-sm);
+  background: var(--bg-quaternary);
+  overflow: hidden;
+}
+.sq-graph-cell-fill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--spacing-xxs) var(--spacing-md);
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+.sq-graph-cell.is-cap-unset .sq-graph-cell-fill {
+  background: var(--utility-gray-100);
+  outline: 1px dashed var(--text-quaternary);
+  outline-offset: -1px;
+}
+.sq-graph-cell-cap {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xxs);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--alpha-black-60);
+}
+.sq-graph-cell-share {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+  color: var(--alpha-black-50);
+}
+.sq-graph-cell.is-cap-unset .sq-graph-cell-cap,
+.sq-graph-cell.is-cap-unset .sq-graph-cell-share { color: var(--alpha-black-40); }
+.sq-graph-ellipsis {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.sq-graph-squad {
+  position: absolute;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  padding: 0 var(--spacing-xl);
+  border: 1px solid var(--border-secondary);
+  border-radius: 16px;
+  background: var(--bg-quaternary);
+  transition: opacity 0.15s;
+}
+.sq-graph-squad-name { min-width: 0; }
+.sq-graph-squad-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  min-width: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-tertiary);
+}
+.sq-graph-project {
+  position: absolute;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--spacing-xxs);
+  padding: 0 var(--spacing-lg);
+  border: 1px solid var(--border-secondary);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  transition: opacity 0.15s;
+}
+.sq-graph-project .sq-proj-main { display: flex; align-items: center; gap: var(--spacing-sm); min-width: 0; }
+.sq-graph-project .sq-proj-side { flex: none; gap: var(--spacing-sm); }
+.sq-graph-person {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xxs);
+  transition: opacity 0.15s;
+}
+.sq-graph-person.is-clickable { cursor: pointer; }
+.sq-graph-avatar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+}
+.sq-graph-ring { position: absolute; left: 0; top: 0; }
+.sq-graph-ring-track { fill: none; stroke: var(--bg-tertiary); stroke-width: 3; }
+.sq-graph-ring-fill { fill: none; stroke-width: 3; stroke-linecap: round; }
+.sq-graph-person-name {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xxs);
+  max-width: 100%;
+  font-size: 12px;
+  line-height: 18px;
+}
+.sq-graph-person-line {
+  display: block;
+  max-width: 120px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-tertiary);
+}
+.sq-graph-person-total {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.sq-graph-person-total.is-over { color: var(--text-error-primary); }
+.sq-graph-legend {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xl) var(--spacing-3xl);
+}

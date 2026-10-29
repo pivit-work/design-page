@@ -31,6 +31,8 @@ import Tooltip from '../shared/Tooltip.jsx';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
 import SquadFormCard from './SquadFormCard.jsx';
 import SquadProjectSection from './SquadProjectSection.jsx';
+import SquadGraphView from './SquadGraphView.jsx';
+import SegmentedControl from '../shared/SegmentedControl.jsx';
 import AssignmentGrid from './AssignmentGrid.jsx';
 import {
   CapacityBar,
@@ -255,6 +257,8 @@ export default function SquadCanvas({
   labels,
 }) {
   const [editMode, setEditMode] = useState(false);
+  // «카드 / 그림» 보기(PW-2356 · §5-6) — 화면 안 상태라 탭을 다시 열면 카드로 돌아온다(주소·저장 없음)
+  const [view, setView] = useState('card');
   const [popover, setPopover] = useState(null); // { squadId, userId, x, y }
   const [addTarget, setAddTarget] = useState(null);
   const [addQuery, setAddQuery] = useState('');
@@ -626,6 +630,16 @@ export default function SquadCanvas({
   };
 
   const closeSquadForm = () => { setSquadForm(null); setLocalErr({}); };
+  /* 그림은 보기 전용이다 — 넘어가면 편집 모드·배정 팝오버·팀원 추가·프로젝트 추가·스쿼드 폼을 닫는다(§5-6 「보기 전용」).
+     그림에서 값을 고치면 §5-3.9 의 값별 권한 잠금을 노드·선마다 다시 세워야 한다. */
+  const changeView = (next) => {
+    if (next === 'graph') {
+      setEditMode(false); setPopover(null); setProjTarget(null);
+      closeAddMember(); closeSquadForm();
+    }
+    setView(next);
+  };
+  const showGraph = view === 'graph' && squads.length > 0;
 
   const submitSquadForm = async () => {
     const f = squadForm;
@@ -877,7 +891,7 @@ export default function SquadCanvas({
               토글이 늘 보인다. 편집 중에는 「편집 완료」 하나만 남긴다 — 만들기까지 보이면 배치 편집과
               스쿼드 만들기 두 흐름이 한 줄에 섞인다. */}
           <div className="sq-header-actions">
-            {isEditing ? (
+            {showGraph ? null : isEditing ? (
               <button
                 type="button" data-testid="squad-edit-toggle"
                 className="sq-btn sq-btn-primary sq-btn-lg"
@@ -934,6 +948,17 @@ export default function SquadCanvas({
                   : L('squad.desc.view')}
               </p>
             </div>
+            {squads.length > 0 && (
+              <SegmentedControl
+                ariaLabel={L('squad.view.label')}
+                items={[
+                  { value: 'card', label: L('squad.view.card'), testId: 'squad-view-card' },
+                  { value: 'graph', label: L('squad.view.graph'), testId: 'squad-view-graph' },
+                ]}
+                value={view}
+                onChange={changeView}
+              />
+            )}
           </div>
 
           {actionError && (
@@ -1004,6 +1029,11 @@ export default function SquadCanvas({
                 </div>
               )}
 
+              {/* 그림 보기(PW-2356) — 카드 그리드·매트릭스 자리에 선다. 같은 스쿼드 응답으로 그린다 */}
+              {showGraph && (
+                <SquadGraphView squads={squads} personOf={personOf} renderAvatar={personAvatar} onMemberClick={onMemberClick} />
+              )}
+              {!showGraph && (<>
               {/* 카드 그리드 — 프로젝트 탭과 같은 격자 */}
               <div className="pj-cards-grid sq-cards-grid">
                 {squadForm && squadForm.mode === 'create' && (
@@ -1644,6 +1674,7 @@ export default function SquadCanvas({
                 </div>
                 </div>
               )}
+              </>)}
             </>
           )}
         </div>
