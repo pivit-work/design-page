@@ -149,6 +149,16 @@ export default function SquadCanvas({
    * 규칙만 남는다 — 「내 캐파」 배너도 뜨지 않는다.
    */
   currentUserId = null,
+  /**
+   * 들어오자마자 열 배정 — `{ squadId, userId }` (pivit-work PW-2319).
+   * 프로젝트 상세의 [스쿼드 뷰에서 내 캐파 조정] 처럼 «그 스쿼드의 내 캐파»를 가리켜 온 길이다.
+   * 그 스쿼드 카드로 내려가 그 사람의 칸을 누른 것과 같은 배정 편집 팝오버를 연다(칸을 못 찾으면
+   * 「내 캐파」 배너 버튼과 같은 자리). 고칠 수 없는 칸이거나 그 배정이 없으면 열지 않는다.
+   * 한 번 처리하면 `onFocusMemberDone(opened)` 를 부른다 — 호스트가 주소에서 값을 지워 다시 열리지 않게.
+   * `squads` 를 다 받은 뒤에 넘긴다(받기 전에 넘기면 «없음»으로 처리된다).
+   */
+  focusMember = null,
+  onFocusMemberDone,
   loading = false,
   error = null,
   onRetry,
@@ -748,6 +758,46 @@ export default function SquadCanvas({
 
   const popSquad = popover && squads.find((sq) => sq.id === popover.squadId);
   const popAssign = popSquad && (popSquad.members || []).find((m) => m.userId === popover.userId);
+
+  // 가리켜 온 배정을 한 번 연다 (PW-2319). 칸이 그려진 다음 프레임에 재서 연다 — 처리한 값은 기억해
+  // 같은 값으로 다시 그려도 두 번 열지 않는다. 그 프레임 전에 값이 바뀌면 취소하고 새 값으로 다시 한다.
+  const focusHandledRef = useRef(null);
+  const focusSquadId = focusMember?.squadId ?? null;
+  const focusUserId = focusMember?.userId ?? null;
+  useEffect(() => {
+    if (!focusSquadId || !focusUserId) {
+      focusHandledRef.current = null; // 지운 뒤 같은 곳을 다시 가리키면 다시 연다
+      return undefined;
+    }
+    const key = `${focusSquadId}:${focusUserId}`;
+    if (focusHandledRef.current === key) return undefined;
+    const frame = requestAnimationFrame(() => {
+      focusHandledRef.current = key;
+      const sq = squads.find((x) => x.id === focusSquadId);
+      const assigned = !!sq && (sq.members || []).some((m) => m.userId === focusUserId);
+      const opened = assigned && canEditMemberOf(focusSquadId, focusUserId);
+      if (sq) {
+        document.querySelector(`[data-testid="squad-card-${focusSquadId}"]`)?.scrollIntoView?.({ block: 'start' });
+      }
+      if (opened) {
+        const selector = `[data-testid="squad-cell-${focusSquadId}-${focusUserId}"]`;
+        const cell = document.querySelector(selector);
+        if (cell) {
+          cell.scrollIntoView?.({ block: 'center' });
+          const rect = cell.getBoundingClientRect();
+          setPopover({
+            squadId: focusSquadId, userId: focusUserId,
+            x: rect.left + 8, y: rect.bottom + 8,
+            anchorSelector: selector, anchorRect: rect,
+          });
+        } else {
+          setPopover({ squadId: focusSquadId, userId: focusUserId, x: window.innerWidth / 2, y: 220 });
+        }
+      }
+      onFocusMemberDone?.(opened);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [focusSquadId, focusUserId, squads, canEditMemberOf, onFocusMemberDone]);
 
   /**
    * 「팀원 추가」 검색 후보 — **조직 전체 − 이미 배정 − ③ 권한 밖**(정본 :175).

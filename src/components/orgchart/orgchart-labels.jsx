@@ -493,6 +493,7 @@ export const ORGCHART_LABELS = {
   'projectDetail.tabs.resource': '리소스',
   'projectDetail.tabs.history': '이력',
   'projectDetail.tabs.resourcePending': '리소스 탭은 준비 중입니다',
+  'projectDetail.tabs.loading': '탭 내용을 불러오는 중',
   // 리소스 탭 (PW-2319 · screen-project-detail.policy.md §4-2·§5-3·§7·§8·§9)
   'projectDetail.resource.loadFailed': '불러오지 못했습니다',
   'projectDetail.resource.retry': '다시 시도',

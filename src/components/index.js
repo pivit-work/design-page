@@ -141,6 +141,7 @@ export {
   SquadFormCard,
   SquadProjectSection,
   ProjectDetailCanvas,
+  ProjectDetailCanvasSkeleton,
   projectStatusCode,
   projectStatusText,
   projectStatusTone,

@@ -33,7 +33,7 @@ import Button from '../shared/Button.jsx';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
 import DateInput from '../shared/DateInput.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
-import { SkeletonList } from '../shared/Skeleton.jsx';
+import Skeleton, { SkeletonList } from '../shared/Skeleton.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import {
@@ -91,6 +91,39 @@ function squadLine(L, squads) {
     .join(' · ');
 }
 
+/**
+ * 프로젝트 상세를 처음 불러오는 동안의 자리 (PW-2319 · §9 «최초 로딩» · TC-PRJ-031-1).
+ * 머리(색 네모·이름·상태 딱지·보조 줄)와 탭 줄은 같은 칸(`pd-head` · `pd-title-row` · `pd-subline` ·
+ * `pd-tabs-row`)에 같은 높이의 회색 막대로, 본문은 카드 모양 막대 3개로 깐다 — 다 불러온 뒤 자리가 튀지 않게.
+ * 스피너만 두지 않는다. `label` 은 화면 읽기용 «불러오는 중» 문구.
+ */
+export function ProjectDetailCanvasSkeleton({ label, showTabs = true }) {
+  return (
+    <div className="content-area pj-content-area" role="status" aria-busy="true" aria-label={label} data-testid="project-detail-skeleton">
+      <div className="content-canvas">
+        <div className="pd-page">
+          <div className="pd-head">
+            <div className="pd-title-row">
+              <Skeleton width={32} height={32} />
+              <Skeleton width={220} height={28} />
+              <Skeleton width={56} height={22} radius="var(--radius-full)" />
+            </div>
+            <div className="pd-subline">
+              <Skeleton width={280} height={18} />
+            </div>
+            {showTabs && (
+              <div className="pd-tabs-row">
+                <Skeleton width={228} height={36} />
+              </div>
+            )}
+          </div>
+          <SkeletonList count={3} height={120} gap={14} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ProjectDetailCanvas({
   /** `{ id, name, description, color, status, progress, startDate, endDate, squads: [{ squadId, name, isPrimary }] }` */
   project,
@@ -129,6 +162,13 @@ export default function ProjectDetailCanvas({
   tab = 'overview',
   /** `(tab) => void` — 탭을 눌렀을 때. 없으면 탭 줄을 그리지 않는다. */
   onChangeTab,
+  /**
+   * 본문에 그릴 탭 — 안 주면 `tab` (PW-2319 · §9 «탭 전환 로딩»). 새 탭을 처음 불러오는 동안
+   * 호스트가 앞 탭을 넘기면 탭 줄은 새 탭을 가리키고 본문은 앞 탭 그대로 남는다.
+   */
+  bodyTab = null,
+  /** 새 탭을 불러오는 중 — 탭 줄 아래에 2px 진행 바(§9). */
+  tabPending = false,
   /**
    * 이력 탭 `{ items, loading, error, hasMore, loadingMore }` (§4-3 · §5-4 · §9).
    * `items[]` = `{ id, eventType, summary, actor, actorResigned, at, atTitle }` — `summary`·`at`(상대 시각)·
@@ -180,12 +220,15 @@ export default function ProjectDetailCanvas({
   const deleteBlocked = deleteBlockedReason != null || !onDelete;
   const showTabs = typeof onChangeTab === 'function';
   const hasResource = resource != null;
-  const activeTab = showTabs && (tab === 'history' || (tab === 'resource' && hasResource)) ? tab : 'overview';
+  const pickTab = (t) => (showTabs && (t === 'history' || (t === 'resource' && hasResource)) ? t : 'overview');
+  const activeTab = pickTab(tab);
+  // 본문 탭 — 새 탭을 불러오는 동안은 앞 탭(§9). 머리 딱지도 보이는 본문을 따른다.
+  const shownTab = bodyTab ? pickTab(bodyTab) : activeTab;
   // 리소스 탭에서 고칠 수 있나 — 서버가 준 자격 스쿼드별 편집 가능(완료 프로젝트면 없음).
   const resourceEditable = !!resource?.data && !resource.data.closed
     && (resource.data.squads || []).some((s) => s.canEdit);
   // 머리의 딱지는 탭마다 — 이력은 누구에게나 조회 전용이다(§5-1 「탭별 편집 권한에 따라 전환」).
-  const modeEditable = activeTab === 'overview' ? editable : activeTab === 'resource' ? resourceEditable : false;
+  const modeEditable = shownTab === 'overview' ? editable : shownTab === 'resource' ? resourceEditable : false;
   const tabItems = TAB_KEYS.map((key) => ({
     value: key,
     label: L(`projectDetail.tabs.${key}`),
@@ -366,13 +409,18 @@ export default function ProjectDetailCanvas({
             )}
           </div>
 
+          {/* 새 탭을 처음 불러오는 중 — 앞 탭 내용은 그대로 두고 얇은 막대만(§9 «탭 전환 로딩»). */}
+          {tabPending && (
+            <div className="pd-tab-progress" role="progressbar" aria-label={L('projectDetail.tabs.loading')} data-testid="project-detail-tab-pending" />
+          )}
+
           {actionError && (
             <div className="sq-banner sq-banner-error" role="alert" data-testid="project-detail-action-error">
               <div className="sq-banner-title">{actionError}</div>
             </div>
           )}
 
-          {activeTab === 'overview' && (<>
+          {shownTab === 'overview' && (<>
           {/* ── 요약 숫자 3칸 (§4-1 · §5-2) — 실제 합계는 당월, 안 적은 사람은 0 이 아니라 «미입력» 으로 센다(§10) ── */}
           {stats && (
             <div className="pd-stats" data-testid="project-detail-stats">
@@ -568,7 +616,7 @@ export default function ProjectDetailCanvas({
           </section>
           </>)}
 
-          {activeTab === 'resource' && (
+          {shownTab === 'resource' && (
             <ProjectResourceTab
               L={L}
               project={project}
@@ -582,7 +630,7 @@ export default function ProjectDetailCanvas({
             />
           )}
 
-          {activeTab === 'history' && (
+          {shownTab === 'history' && (
             <HistoryTab L={L} history={history} onLoadMore={onLoadMoreHistory} onRetry={onRetryHistory} />
           )}
         </div>
