@@ -783,7 +783,17 @@ export default function SquadCanvas({
         const selector = `[data-testid="squad-cell-${focusSquadId}-${focusUserId}"]`;
         const cell = document.querySelector(selector);
         if (cell) {
-          cell.scrollIntoView?.({ block: 'center' });
+          // 가로로도 가운데로 — 매트릭스 오른쪽에 고정된 «캐파 사용» 열 밑에 내 칸이 깔리지 않게.
+          cell.scrollIntoView?.({ block: 'center', inline: 'center' });
+          // 세로는 화면 위쪽(약 4분의 1)으로 더 올린다 — 칸 아래로 여는 팝오버의 «개인 캐파 사용» 칸까지 화면에 들어오게.
+          // 위에 고정된 머리 띠 밑으로는 올리지 않는다(4분의 1 지점이 그보다 아래다).
+          const lift = cell.getBoundingClientRect().top - window.innerHeight * 0.27;
+          if (lift > 0) {
+            let scroller = cell.parentElement;
+            while (scroller && !(scroller.scrollHeight > scroller.clientHeight
+              && /auto|scroll/.test(getComputedStyle(scroller).overflowY))) scroller = scroller.parentElement;
+            (scroller || window).scrollBy?.(0, lift);
+          }
           const rect = cell.getBoundingClientRect();
           setPopover({
             squadId: focusSquadId, userId: focusUserId,
