@@ -164,7 +164,7 @@ export default function EvalSheetBody({
                       <span className="evc-preview-scale-anchor">{q.scaleAnchorMin}</span>
                     )}
                     {Array.from({ length: scaleMaxOf(q) }, (_, i) => i + 1).map((n) => (
-                      <span key={n} className="evc-preview-scale-dot">{n}</span>
+                      <span key={n} className="mgr-ts-score evc-preview-scale-dot">{n}</span>
                     ))}
                     {q.scaleAnchorMax && (
                       <span className="evc-preview-scale-anchor">{q.scaleAnchorMax}</span>

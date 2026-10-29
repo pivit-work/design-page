@@ -1613,7 +1613,7 @@ export default function EvalCycleLeaderCanvas({
                             <button
                               type="button"
                               key={n}
-                              className={`evm-score-btn${state[f.key].score === n ? ' is-on' : ''}`}
+                              className={`mgr-ts-score evm-score-btn${state[f.key].score === n ? ' is-on' : ''}`}
                               disabled={formLocked}
                               onClick={() => setField(f.key, { score: n })}
                               data-testid={`evl-score-${f.key}-${n}`}

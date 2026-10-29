@@ -2023,15 +2023,11 @@
   color: var(--text-secondary);
 }
 
-/* 헬스 점수 — .mgr-ts-score (good/warn/bad 를 healthTier 의 good/mid/low 에 맞춘다) */
+/* 헬스 점수 — 크기·글씨·모서리는 마크업에 함께 붙인 디자이너 점수 딱지 클래스(manager.css .mgr-ts-score)가 정한다.
+   값을 옮겨 적었다가 디자이너가 10-27 에 여백을 3px 9px 로 줄인 것을 못 따라가 2px 컸다 (PW-2256).
+   색은 good/warn/bad 를 healthTier 의 good/mid/low 에 맞춘다. */
 .tl-snippet-detail-score {
   flex-shrink: 0;
-  box-sizing: border-box;
-  padding: 4px 10px;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 24px;
   white-space: nowrap;
 }
 .tl-snippet-detail-score.is-good { background: var(--utility-success-50); border: 1px solid var(--utility-success-200); color: var(--utility-success-700); }

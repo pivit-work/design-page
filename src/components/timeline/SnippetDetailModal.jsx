@@ -116,7 +116,7 @@ export default function SnippetDetailModal({ snippet, anchorRect, onClose, onOpe
             </div>
             {hasHealth && (
               <span
-                className={`tl-snippet-detail-score is-${healthTier(snippet.health)}`}
+                className={`mgr-ts-score tl-snippet-detail-score is-${healthTier(snippet.health)}`}
               >
                 {healthLabel(snippet.health)} {snippet.health}
               </span>

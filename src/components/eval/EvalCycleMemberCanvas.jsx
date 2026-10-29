@@ -1265,7 +1265,7 @@ export default function EvalCycleMemberCanvas({
                             <button
                               type="button"
                               key={n}
-                              className={`evm-score-btn${state[f.key].score === n ? ' is-on' : ''}`}
+                              className={`mgr-ts-score evm-score-btn${state[f.key].score === n ? ' is-on' : ''}`}
                               disabled={readOnly}
                               onClick={() =>
                                 // [PW-1464] §4.5 셀프 리뷰는 같은 점수를 다시 누르면 선택을 푼다.
