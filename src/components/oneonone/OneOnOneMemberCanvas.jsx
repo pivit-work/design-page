@@ -190,6 +190,7 @@ const DEFAULT_LABELS = {
      이쪽은 «팀원에게 공개한 뒤»다. */
   feedbackEditedAfterShare: '공개 후 수정됨',
   feedbackDoneShared: 'DONE 공개',
+  feedbackNotShared: '공유된 피드백 없음',
   /* 끝난 1on1 을 30일 동안 고치는 자리 (PW-1046) — 결과 탭의 개인 메모. */
   edit: '편집',
   editCancel: '취소',
@@ -722,10 +723,21 @@ export function EvidenceToggle({ items, managerName, edited, L, icons, baseUrl, 
  * `confirm` — 매니저 끝난 화면만 넘긴다 (PW-1551 · oneonone-spec §8-2). 항목마다 AI 초안의
  * 미확정(노랑 + «AI 미확정» + [확정]) / 확정(초록) 상태를 그린다. 공개하면 확정한 항목만 팀원에게 간다.
  * `{ confirmed: { strengths, sbi, support }, onConfirm(key), busyKey, error }`. 팀원 화면은 넘기지 않는다.
+ *
+ * `emptyNote` — 보일 피드백이 없을 때 칸을 숨기지 않고 머리 아래에 띄울 안내. 팀원 지난 회의록만 넘긴다
+ * (policy §10.7.2 «미공유 시 "공유된 피드백 없음"» · PW-2377). 팀원 결과 화면은 안내 없이 칸을 숨긴다(§6.5).
  */
-export function ManagerFeedback({ session, evidence, loading, error, onRetry, managerName, L, icons, baseUrl, jump, headerExtra, confirm, sharedTag = false }) {
+export function ManagerFeedback({ session, evidence, loading, error, onRetry, managerName, L, icons, baseUrl, jump, headerExtra, confirm, sharedTag = false, emptyNote }) {
   const items = session.managerFeedback ?? [];
-  if (items.length === 0) return null;
+  if (items.length === 0) {
+    if (!emptyNote) return null;
+    // 모양은 매니저 대시보드 상세의 «피드백 없음» 안내(디자이너 `.ood-analysis-note`)를 따른다.
+    return (
+      <Section title={L.managerFeedback} icon={icons.feedback} icons={icons} baseUrl={baseUrl} collapsible={false}>
+        <p className="ood-analysis-note" data-testid="ono-feedback-not-shared">{emptyNote}</p>
+      </Section>
+    );
+  }
   // 공개 뒤 고쳤는가 (PW-1046) — 서버가 공개된 회차에만 싣는다. 매니저·팀원 화면 공통.
   const editedAfterShare = !!session.feedbackEditedAfterShareAt;
   // 「DONE 공개」 — 팀원 화면만 켠다 (`sharedTag`). 매니저가 공개해 팀원에게 온 피드백임을 밝힌다 (spec §5-3).
@@ -2054,6 +2066,7 @@ function HistoryDetail({ session, manager, avatar, renderAvatar, L, icons, baseU
         L={L} icons={icons} baseUrl={baseUrl}
         jump={transcript.jump}
         sharedTag
+        emptyNote={L.feedbackNotShared}
         {...(feedbackEvidence || {})}
       />
 
