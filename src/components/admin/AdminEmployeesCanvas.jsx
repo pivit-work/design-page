@@ -364,6 +364,7 @@ const DEFAULT_LABELS = {
     resignedAt: '퇴사일',
     resignedAtHint: '재직 중이면 비워 두거나 퇴사 예정일·계약 종료일을 넣습니다. 넣어도 바로 퇴사로 바뀌지 않고, 퇴사일이 지나면 바뀝니다.',
     resignedAtRequired: '퇴사 상태에서는 퇴사일을 넣어야 저장할 수 있습니다.',
+    leaveStartRequired: '휴직 상태에서는 휴직 시작일을 넣어야 저장할 수 있습니다.',
     resignedAtBeforeLastDay: '퇴사일은 마지막 출근일보다 빠를 수 없습니다. 날짜를 고쳐야 저장할 수 있습니다.',
     /* 퇴사 예약이 걸린 사람(PW-1081) — 날짜를 비우면 예약이 뜬다. 취소는 목록 메뉴에서만. */
     resignedAtScheduled: '퇴사 예약이 있어 퇴사일을 비울 수 없습니다. 예약을 취소하려면 목록의 ⋯ › 퇴사 예약 취소를 누르세요.',
@@ -4275,6 +4276,11 @@ function EmployeesEditPanel({
   const offboardingScheduled = Boolean(member.offboardingScheduled);
   const terminationProblem = terminationDateProblem(draft, member.lastWorkingDate, offboardingScheduled);
   const terminationRequired = draft.employmentStatus === 'terminated' || offboardingScheduled;
+  /* 휴직 시작일은 휴직의 필수 값이다(커트 2026-10-29). 칸이 뜨는 화면에서만 막는다 — 신원 경로가
+     없는 호출부는 칸을 못 그리고, 그때는 서버가 상태를 바꾸는 저장에서 오늘로 채운다.
+     이미 휴직인데 시작일이 빈 사람도 같다 — 다른 칸을 고쳐 저장하려면 날짜부터 넣는다. */
+  const leaveStartMissing =
+    dateFields.some((f) => f.field === 'leaveStartDate') && !ymdOf(identityDraft?.leaveStartDate);
   /* 퇴사는 퇴사 처리 화면(목록 ⋯ › 비활성화)에서만 한다(PW-1081) — 여기서 라디오로 바꾸면
      데이터 처분 없이 퇴사자가 생긴다. 이미 퇴사인 사람은 그 값이 그대로 보여야 하므로 연다. */
   const terminatedLocked = member.employmentStatus !== 'terminated';
@@ -4357,7 +4363,7 @@ function EmployeesEditPanel({
 
   async function handleSave() {
     if (!dirty) { onClose(); return; }
-    if (terminationProblem) return;
+    if (terminationProblem || leaveStartMissing) return;
     if (apptTypeMissing || (showAppointment && !apptDate)) return;
     setSaving(true);
     setDateError('');
@@ -4853,6 +4859,13 @@ function EmployeesEditPanel({
                   className="admin-emp-field"
                   labelClassName="admin-emp-field-label"
                   label={labels.panel[f.label]}
+                  required={f.field === 'leaveStartDate'}
+                  error={
+                    f.field === 'leaveStartDate' && leaveStartMissing && identityState === 'ready'
+                      ? labels.panel.leaveStartRequired
+                      : undefined
+                  }
+                  errorTestId={`employees-panel-date-${f.field}-error`}
                 >
                   <DateInput
                     className="admin-emp-input"
@@ -5169,7 +5182,7 @@ function EmployeesEditPanel({
               type="button"
               className="admin-emp-btn is-primary admin-emp-btn-block"
               onClick={handleSave}
-              disabled={saving || !canEdit || !dirty || Boolean(terminationProblem) || axisIncomplete || apptTypeMissing || (showAppointment && !apptDate)}
+              disabled={saving || !canEdit || !dirty || Boolean(terminationProblem) || leaveStartMissing || axisIncomplete || apptTypeMissing || (showAppointment && !apptDate)}
             >
               {saving ? labels.panel.saving : labels.panel.save}
             </button>
