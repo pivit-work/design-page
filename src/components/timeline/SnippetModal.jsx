@@ -5,6 +5,7 @@ import Spinner from '../shared/Spinner.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import { CloseGlyph } from '../shared/lineIcons.jsx';
 import StepNavButton from '../shared/StepNav.jsx';
+import Toast from '../shared/Toast.jsx';
 import assetUrl from '../shared/assetUrl.js';
 import { healthTier, healthLabel } from './snippetHealth.js';
 import { isEnterKey } from '../shared/enterKey.js';
@@ -463,21 +464,31 @@ export default function SnippetModal({
     return `${y}.${m}.${day}`;
   })();
 
+  // 사람이 넣어 8개가 찬 순간 토스트를 잠깐 띄운다(TC-DS-031 «8개에서 토스트 후 입력 비활성»).
+  // 토스트가 사라진 뒤에도 막힌 이유가 보이게 칸 아래 안내 줄은 남긴다 (PW-2392).
+  const [tagLimitToast, setTagLimitToast] = useState(false);
+  const tagLimitToastTimer = useRef(null);
+  useEffect(() => () => clearTimeout(tagLimitToastTimer.current), []);
   const addTag = (t) => {
     const v = t.trim();
-    if (!v || tags.includes(v) || tags.length >= TAG_LIMIT) return;
+    if (!v || tags.includes(v) || tags.length >= TAG_LIMIT) return false;
     setTags((prev) => [...prev, v]);
+    if (tags.length + 1 === TAG_LIMIT) {
+      setTagLimitToast(true);
+      clearTimeout(tagLimitToastTimer.current);
+      tagLimitToastTimer.current = setTimeout(() => setTagLimitToast(false), 3000);
+    }
+    return true;
   };
   const tagsFull = tags.length >= TAG_LIMIT;
   const onTagKey = (e) => {
     if (isEnterKey(e)) {
       e.preventDefault();
-      // 한도에 걸리면 친 글자를 지우지 않는다 — 말없이 사라지면 왜 안 들어갔는지 모른다 (PW-2392)
-      if (tagsFull) return;
-      addTag(tagInput);
-      setTagInput('');
+      // 들어갔을 때만 칸을 비운다 — 이미 있는 태그·한도로 안 들어간 글자를 말없이 지우지 않는다 (PW-2392)
+      if (addTag(tagInput)) setTagInput('');
     }
   };
+
   const removeTag = (t) => {
     const next = tags.filter((x) => x !== t);
     setTags(next);
@@ -1018,8 +1029,9 @@ export default function SnippetModal({
                 )}
               </div>
               {!readOnly && tagsFull && (
-                <div className="tl-snippet-label-hint" role="status">{L.tagLimit}</div>
+                <div className="tl-snippet-label-hint">{L.tagLimit}</div>
               )}
+              <Toast message={tagLimitToast ? L.tagLimit : null} tone="info" data-testid="snippet-tag-limit-toast" />
               {/* AI 태그 추출 실패 시에만 인라인 에러 노출 — Summary 의 summaryError 와 동일
                   패턴(tl-snippet-info). 정상 상태에서는 렌더되지 않아 시각 변화 없음.
                   추천 chip(.tl-snippet-suggest-tags, padding-bottom:80px) 앞에 두어
