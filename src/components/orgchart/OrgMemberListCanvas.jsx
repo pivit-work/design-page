@@ -40,6 +40,10 @@ import { OrgLabelsContext, makeOrgLabels } from './orgchart-labels.jsx';
  * @param {{ page: number, pageSize: number, total: number, onPageChange: (p: number) => void }} pager
  *   `total` 이 `pageSize` 이하이면 페이지 넘김을 그리지 않는다
  * @param {(row) => void} [onRowClick]  줄을 누르면 — 트리와 같은 프로필 카드(§3-D-1 행 누르기)
+ * @param {React.ReactNode} [leading]  주면 «조직도» 탭 카드 안의 리스트 보기로 그린다(pivit-work PW-2374 ·
+ *   pivit-specs §3-D-0 「리스트 툴바」). 탭 줄·머리 줄은 OrgChartCanvas 것을 쓰고, 여기서는 디자이너 리스트 보기
+ *   (OrgListView)의 툴바 맨 앞에 `leading`(트리/리스트 전환), 그다음 팀 고르기 · 검색칸 · 결과 줄, 아래에 같은 틀의 표.
+ *   OrgChartCanvas 의 `renderList` 가 넘긴다. 없으면 예전 「리스트」 탭 모양 그대로다.
  */
 export default function OrgMemberListCanvas({
   rows = [],
@@ -58,6 +62,7 @@ export default function OrgMemberListCanvas({
   showProjectTab = false,
   labels,
   baseUrl = '',
+  leading,
 }) {
   const L = useMemo(() => makeOrgLabels(labels), [labels]);
   const query = search?.value ?? '';
@@ -149,6 +154,120 @@ export default function OrgMemberListCanvas({
     ? L(scope ? 'list.emptySearchInUnit' : 'list.emptySearch', { query })
     : L('list.emptyUnit');
 
+  const scopeLine = scope && (
+    <b data-testid="org-list-scope">
+      {L('list.scope', { unit: scope.unitName, count: scope.count })}
+      {scope.concurrent > 0 ? L('list.scopeConcurrent', { count: scope.concurrent }) : ''}
+    </b>
+  );
+  const searchCountLine = searchCount != null && (
+    <b data-testid="org-list-search-count">{L('list.searchCount', { count: searchCount })}</b>
+  );
+
+  const unitSelect = unitFilter && (
+    <span className="ol-filter">
+    <CustomSelect
+      value={unitFilter.value}
+      onChange={unitFilter.onChange}
+      options={unitFilter.options}
+      ariaLabel={L('list.unitFilter')}
+      size="sm"
+    />
+    </span>
+  );
+  const searchBox = search && (
+    <label className={`ol-search${query ? ' has-value' : ''}`}>
+      <Icon src="/icons/search-sm.svg" size={20} color="var(--text-tertiary)" baseUrl={baseUrl} />
+      <input
+        type="search"
+        value={query}
+        placeholder={L('list.searchPlaceholder')}
+        aria-label={L('list.searchPlaceholder')}
+        onChange={(e) => search.onChange(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Escape') search.onChange(''); }}
+        data-testid="org-list-search"
+      />
+      {query && (
+        <button type="button" className="ol-search-clear" aria-label={L('list.searchClear')} onClick={() => search.onChange('')} data-testid="org-list-search-clear">
+          <CloseGlyph width={16} height={16} />
+        </button>
+      )}
+    </label>
+  );
+
+  const rowPropsFor = (row) => ({
+    onClick: onRowClick ? () => onRowClick(row) : undefined,
+    // 키보드로도 줄을 고른다 — Tab 으로 옮겨 Enter·Space
+    ...(onRowClick
+      ? {
+          tabIndex: 0,
+          onKeyDown: (e) => {
+            if (isEnterKey(e) || e.key === ' ') {
+              e.preventDefault();
+              onRowClick(row);
+            }
+          },
+        }
+      : {}),
+    'data-testid': `org-list-row-${row.id}`,
+  });
+  const emptyNode = (
+    <span data-testid="org-list-empty">
+      {emptyText}
+      {query && (
+        <Button variant="ghost" size="sm" onClick={() => search.onChange('')}>{L('list.searchClear')}</Button>
+      )}
+    </span>
+  );
+  const pagerNode = pager && pager.total > pager.pageSize && (
+    <Pagination
+      page={pager.page}
+      totalPages={Math.ceil(pager.total / pager.pageSize)}
+      pageSize={pager.pageSize}
+      total={pager.total}
+      onPageChange={pager.onPageChange}
+      labels={{ of: L('list.pager.of'), prev: L('list.pager.prev'), next: L('list.pager.next') }}
+      countSuffix={L('list.pager.suffix')}
+      data-testid="org-list-pager"
+    />
+  );
+
+  // 카드 안 리스트 보기 — 틀·툴바·표 칸 모양은 디자이너 OrgListView(stesslee 1e4e63f9) 그대로, 열·쪽은 이 표 것
+  if (leading) {
+    return (
+      <OrgLabelsContext.Provider value={L}>
+        <div className="ol-view" data-testid="org-list-canvas">
+          <div className="org-toolbar org-toolbar-left ol-toolbar" data-testid="org-list-toolbar">
+            {leading}
+            {unitSelect}
+            {searchBox}
+            {(scopeLine || searchCountLine) && (
+              <span className="header-subtitle">
+                {scopeLine}
+                {scopeLine && searchCountLine && <span className="dot">&#8729;</span>}
+                {searchCountLine}
+              </span>
+            )}
+          </div>
+          <RosterTable
+            columns={columns}
+            rows={rows}
+            rowProps={rowPropsFor}
+            empty={emptyNode}
+            scroll="both"
+            nowrap
+            className="ol-table-frame"
+            scrollClassName="ol-table-scroll"
+            tableClassName="ol-table"
+            testId="org-list-table"
+            ariaLabel={L('org.view.list')}
+          />
+          {pagerNode}
+        </div>
+      </OrgLabelsContext.Provider>
+    );
+  }
+
   return (
     <OrgLabelsContext.Provider value={L}>
       <div className="content-area pj-content-area" data-testid="org-list-canvas">
@@ -160,53 +279,22 @@ export default function OrgMemberListCanvas({
                 <b>{L('org.totalHeadcount')}</b>
                 <span className="dot">&#8729;</span>
                 <span className="brand-count">{headcount}</span>
-                {scope && (
+                {scopeLine && (
                   <>
                     <span className="dot">&#8729;</span>
-                    <b data-testid="org-list-scope">
-                      {L('list.scope', { unit: scope.unitName, count: scope.count })}
-                      {scope.concurrent > 0 ? L('list.scopeConcurrent', { count: scope.concurrent }) : ''}
-                    </b>
+                    {scopeLine}
                   </>
                 )}
-                {searchCount != null && (
+                {searchCountLine && (
                   <>
                     <span className="dot">&#8729;</span>
-                    <b data-testid="org-list-search-count">{L('list.searchCount', { count: searchCount })}</b>
+                    {searchCountLine}
                   </>
                 )}
               </div>
               <div className="ol-tools">
-                {unitFilter && (
-                  <span className="ol-filter">
-                  <CustomSelect
-                    value={unitFilter.value}
-                    onChange={unitFilter.onChange}
-                    options={unitFilter.options}
-                    ariaLabel={L('list.unitFilter')}
-                    size="sm"
-                  />
-                  </span>
-                )}
-                {search && (
-                  <label className={`ol-search${query ? ' has-value' : ''}`}>
-                    <Icon src="/icons/search-sm.svg" size={20} color="var(--text-tertiary)" baseUrl={baseUrl} />
-                    <input
-                      type="search"
-                      value={query}
-                      placeholder={L('list.searchPlaceholder')}
-                      aria-label={L('list.searchPlaceholder')}
-                      onChange={(e) => search.onChange(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Escape') search.onChange(''); }}
-                      data-testid="org-list-search"
-                    />
-                    {query && (
-                      <button type="button" className="ol-search-clear" aria-label={L('list.searchClear')} onClick={() => search.onChange('')} data-testid="org-list-search-clear">
-                        <CloseGlyph width={16} height={16} />
-                      </button>
-                    )}
-                  </label>
-                )}
+                {unitSelect}
+                {searchBox}
               </div>
             </div>
           </div>
@@ -215,44 +303,11 @@ export default function OrgMemberListCanvas({
             <RosterTable
               columns={columns}
               rows={rows}
-              rowProps={(row) => ({
-                onClick: onRowClick ? () => onRowClick(row) : undefined,
-                // 키보드로도 줄을 고른다 — Tab 으로 옮겨 Enter·Space
-                ...(onRowClick
-                  ? {
-                      tabIndex: 0,
-                      onKeyDown: (e) => {
-                        if (isEnterKey(e) || e.key === ' ') {
-                          e.preventDefault();
-                          onRowClick(row);
-                        }
-                      },
-                    }
-                  : {}),
-                'data-testid': `org-list-row-${row.id}`,
-              })}
-              empty={
-                <span data-testid="org-list-empty">
-                  {emptyText}
-                  {query && (
-                    <Button variant="ghost" size="sm" onClick={() => search.onChange('')}>{L('list.searchClear')}</Button>
-                  )}
-                </span>
-              }
+              rowProps={rowPropsFor}
+              empty={emptyNode}
               testId="org-list-table"
             />
-            {pager && pager.total > pager.pageSize && (
-              <Pagination
-                page={pager.page}
-                totalPages={Math.ceil(pager.total / pager.pageSize)}
-                pageSize={pager.pageSize}
-                total={pager.total}
-                onPageChange={pager.onPageChange}
-                labels={{ of: L('list.pager.of'), prev: L('list.pager.prev'), next: L('list.pager.next') }}
-                countSuffix={L('list.pager.suffix')}
-                data-testid="org-list-pager"
-              />
-            )}
+            {pagerNode}
           </div>
         </div>
       </div>

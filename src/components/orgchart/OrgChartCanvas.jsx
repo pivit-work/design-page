@@ -29,9 +29,12 @@ import { OrgLabelsContext, makeOrgLabels } from './orgchart-labels.jsx';
 // view / onViewChange — 같은 카드 안의 보기 'tree' | 'list' (Figma 17788:33051 · 2026-10-28). 왼쪽 툴바 맨 앞
 //   세그먼트(트리 · 리스트)로 바꾼다. 리스트는 같은 orgData 를 한 줄에 한 사람인 표로 편다(OrgListView) —
 //   옛 「리스트」 탭이 이 안으로 들어왔다. 안 주면 캔버스가 세션 안에서 스스로 기억한다(기본 트리).
+// renderList(leading) — 리스트 보기 자리(.canvas-area.is-list)에 OrgListView 대신 그릴 것. `leading` 은 툴바 맨 앞에
+//   둘 트리/리스트 전환이다(pivit-work PW-2374 — 앱은 정본 명단 표 OrgMemberListCanvas 에 `leading` 으로 넘긴다).
+//   안 주면 OrgListView 그대로다.
 // locale — 리스트 보기의 정렬 글자 순서.
 // showListTab — 옛 「리스트」 탭 스위치. 받아도 아무 일도 하지 않는다(탭이 없다).
-export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIcons, baseUrl = '', onMemberClick, renderAvatar, editMode = false, onSubTabChange, findSubordinates, adminMode: adminModeProp = false, onAdminModeChange, showGrade = false, showProjectTab = false, lineStyleLabel: lineStyleLabelProp, labels, asOf, highlight, workspaceId, density: densityProp, onDensityChange, onDownloadImage, expandable = true, memberPatches, view: viewProp, onViewChange, locale }) {
+export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIcons, baseUrl = '', onMemberClick, renderAvatar, editMode = false, onSubTabChange, findSubordinates, adminMode: adminModeProp = false, onAdminModeChange, showGrade = false, showProjectTab = false, lineStyleLabel: lineStyleLabelProp, labels, asOf, highlight, workspaceId, density: densityProp, onDensityChange, onDownloadImage, expandable = true, memberPatches, view: viewProp, onViewChange, renderList, locale }) {
   // 화면 문구 — 소비자가 번역을 넘긴다(PW-705). 안 넘기면 한국어 기본값.
   const L = useMemo(() => makeOrgLabels(labels), [labels]);
   // `lineStyleLabel` 은 `labels` 보다 먼저 생긴 자리라 그대로 받는다 — 주면 그것이 이긴다.
@@ -198,15 +201,17 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
       {view === 'list' ? (
         // 리스트 보기 — 트리와 같은 카드 자리(.canvas-area)에 표를 편다. 팬·줌은 없다.
         <div className="canvas-area is-list" data-testid="org-canvas-list">
-          <OrgListView
-            orgData={orgData}
-            leading={viewSwitch}
-            asOf={asOf}
-            onOpenMember={openModal}
-            L={L}
-            baseUrl={baseUrl}
-            locale={locale}
-          />
+          {renderList ? renderList(viewSwitch) : (
+            <OrgListView
+              orgData={orgData}
+              leading={viewSwitch}
+              asOf={asOf}
+              onOpenMember={openModal}
+              L={L}
+              baseUrl={baseUrl}
+              locale={locale}
+            />
+          )}
         </div>
       ) : (
         <OrgChartViewport {...viewportProps} toolbarLeading={viewSwitch} onExpandView={expandable ? () => setExpanded(true) : undefined} />
