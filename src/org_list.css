@@ -190,6 +190,12 @@
   box-shadow: 0 0 0 2px var(--bg-primary), 0 0 0 4px var(--focus-ring);
 }
 
+/* 카드 안 명단 표의 쪽 넘김(pivit-work PW-2374) — 툴바와 같은 카드 안쪽 16 을 두고 카드 아래 끝에 붙지 않게 띄운다 */
+.ol-pager-row {
+  flex: none;
+  padding: 0 var(--spacing-xl) var(--spacing-md);
+}
+
 /* ── 명단 표 (17757:29445) — 툴바 아래 18 띄워(시안 y 70) 카드 폭 가득, 카드 안에서 세로로 흐른다 ── */
 .ol-table-frame {
   flex: 1 1 0;

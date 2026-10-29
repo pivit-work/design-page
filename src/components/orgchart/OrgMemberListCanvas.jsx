@@ -262,7 +262,7 @@ export default function OrgMemberListCanvas({
             testId="org-list-table"
             ariaLabel={L('org.view.list')}
           />
-          {pagerNode}
+          {pagerNode && <div className="ol-pager-row">{pagerNode}</div>}
         </div>
       </OrgLabelsContext.Provider>
     );
