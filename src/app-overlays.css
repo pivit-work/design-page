@@ -171,7 +171,9 @@
   padding: 10px 18px;
   border-radius: 10px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-  z-index: 10000;
+  /* 창(.tl-modal-overlay · 2147483000) 을 연 채 뜬 토스트도 창 위에 보인다 — 10000 이면 창 뒤에 깔렸다
+     (PW-2392 스니핏 작성 창 태그 8개 토스트). search-select 와 같은 층, 말풍선(2147483600)보다는 아래. */
+  z-index: 2147483100;
 }
 
 .pw-toast--success {
