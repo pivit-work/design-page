@@ -11974,6 +11974,10 @@ button.evm-ai-source {
   font-size: var(--font-size-text-xs);
   color: var(--text-secondary);
 }
+/* PW-2423 — 카드 안 중단 줄은 카드의 줄 간격만 쓴다. 관리자 화면용 아래 여백까지 얹으면 위 16 · 아래 24 로 기운다. */
+.evc-card > .evc-onhold-banner {
+  margin-bottom: 0;
+}
 .evmh-chips {
   display: flex;
   flex-wrap: wrap;
