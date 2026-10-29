@@ -12,7 +12,10 @@ export const healthTier = (v) => {
   return n >= 8 ? 'good' : n >= 6 ? 'mid' : 'low';
 };
 
-export const healthLabel = (v) => {
+// words — 화면 언어 낱말 { best, good, ok, tired, veryTired } (생략하면 한국어 · pivit-work PW-2373)
+const KO_HEALTH_WORDS = { best: '최고', good: '좋음', ok: '보통', tired: '힘듦', veryTired: '매우 힘듦' };
+export const healthLabel = (v, words = KO_HEALTH_WORDS) => {
   const n = Math.round(v);
-  return n >= 9 ? '최고' : n >= 8 ? '좋음' : n >= 7 ? '보통' : n >= 5 ? '힘듦' : '매우 힘듦';
+  const w = { ...KO_HEALTH_WORDS, ...words };
+  return n >= 9 ? w.best : n >= 8 ? w.good : n >= 7 ? w.ok : n >= 5 ? w.tired : w.veryTired;
 };

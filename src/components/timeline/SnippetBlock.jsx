@@ -1,4 +1,5 @@
 import { memberPalette } from './constants.js';
+import { useTimelineLabels } from './timelineLabels.js';
 
 /**
  * SnippetBlock — 간트 일 뷰에서 "이 사람이 이 시각에 스니핏을 썼다" 를 나타내는 블록.
@@ -24,6 +25,7 @@ import { memberPalette } from './constants.js';
  *   onClick  (snippet, rect) — 상세 모달을 여는 콜백
  */
 export default function SnippetBlock({ snippet, member, left, top, width, height, onClick }) {
+  const L = useTimelineLabels();
   const palette = memberPalette(member);
 
   return (
@@ -44,7 +46,7 @@ export default function SnippetBlock({ snippet, member, left, top, width, height
         e.stopPropagation();
         onClick?.(snippet, e.currentTarget.getBoundingClientRect());
       }}
-      aria-label={`${member?.name ?? ''} 스니핏 ${snippet.timeLabel ?? ''} 작성`.trim()}
+      aria-label={L.snippetBlock(member?.name ?? '', snippet.timeLabel ?? '').trim()}
     >
       <span className="tl-snippet-block-inner">
         <span className="tl-snippet-block-head">

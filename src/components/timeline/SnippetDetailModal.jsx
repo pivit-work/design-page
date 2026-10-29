@@ -4,6 +4,7 @@ import { CloseGlyph } from '../shared/lineIcons.jsx';
 import useTimelineData from './useTimelineData.js';
 import { memberPalette } from './constants.js';
 import { healthTier, healthLabel } from './snippetHealth.js';
+import { useTimelineLabels } from './timelineLabels.js';
 
 /**
  * SnippetDetailModal — 간트의 스니핏 블록을 클릭하면 뜨는 상세 팝오버.
@@ -29,6 +30,7 @@ import { healthTier, healthLabel } from './snippetHealth.js';
  *   onOpen      "스니핏 전체 보기" — 미주입이거나 canOpen=false 면 버튼을 숨긴다
  */
 export default function SnippetDetailModal({ snippet, anchorRect, onClose, onOpen }) {
+  const L = useTimelineLabels();
   const { members } = useTimelineData();
   const modalRef = useRef(null);
   const [pos, setPos] = useState({ left: 0, top: 0, opacity: 0 });
@@ -84,7 +86,7 @@ export default function SnippetDetailModal({ snippet, anchorRect, onClose, onOpe
             type="button"
             className="tl-meeting-modal-close"
             onClick={onClose}
-            aria-label="닫기"
+            aria-label={L.close}
           >
             <CloseGlyph size={24} color="var(--colors-foreground-fgPrimary)" />
           </button>
@@ -102,12 +104,12 @@ export default function SnippetDetailModal({ snippet, anchorRect, onClose, onOpe
             </div>
             <div className="tl-snippet-detail-who">
               <h2 id="tl-snippet-detail-title" className="tl-snippet-detail-name">
-                {member?.name ?? '스니핏'}
+                {member?.name ?? L.snippet}
               </h2>
               <p className="tl-snippet-detail-when">
                 {[
                   snippet.dateLabel,
-                  snippet.timeLabel && `${snippet.timeLabel} 작성`,
+                  snippet.timeLabel && L.snippetWrittenAt(snippet.timeLabel),
                   hasProgress && `${snippet.filledCount}/5`,
                 ]
                   .filter(Boolean)
@@ -118,7 +120,7 @@ export default function SnippetDetailModal({ snippet, anchorRect, onClose, onOpe
               <span
                 className={`mgr-ts-score tl-snippet-detail-score is-${healthTier(snippet.health)}`}
               >
-                {healthLabel(snippet.health)} {snippet.health}
+                {healthLabel(snippet.health, L.healthWords)} {snippet.health}
               </span>
             )}
           </div>
@@ -174,7 +176,7 @@ export default function SnippetDetailModal({ snippet, anchorRect, onClose, onOpe
                 onOpen(snippet);
               }}
             >
-              스니핏 전체 보기
+              {L.snippetOpenFull}
             </button>
           )}
         </div>

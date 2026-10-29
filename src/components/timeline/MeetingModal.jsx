@@ -3,6 +3,7 @@ import ModalLayer from '../shared/ModalLayer.jsx';
 import useDismissLayer from '../shared/useDismissLayer.js';
 import { CloseGlyph, MoreGlyph, PencilGlyph, TrashGlyph } from '../shared/lineIcons.jsx';
 import useTimelineData from './useTimelineData.js';
+import { useTimelineLabels } from './timelineLabels.js';
 
 /**
  * MeetingModal — popover-style modal that opens when a meeting block is
@@ -33,6 +34,7 @@ export default function MeetingModal({
   const [pos, setPos] = useState({ left: 0, top: 0, opacity: 0 });
   const [menuOpen, setMenuOpen] = useState(false);
   const hasActions = !!(onEdit || onDelete);
+  const words = useTimelineLabels();
   const L = { more: '더보기', edit: '수정', delete: '삭제', ...actionLabels };
   // 메뉴 바깥(창 안의 다른 곳)을 누르거나 Esc 면 메뉴만 닫는다 — 창은 남는다.
   useDismissLayer(() => setMenuOpen(false), menuRef, '.tl-meeting-modal-more', menuOpen);
@@ -154,7 +156,7 @@ export default function MeetingModal({
             type="button"
             className="tl-meeting-modal-close"
             onClick={onClose}
-            aria-label="닫기"
+            aria-label={words.close}
           >
             <CloseGlyph size={24} color="var(--colors-foreground-fgPrimary)" />
           </button>
@@ -192,7 +194,7 @@ export default function MeetingModal({
                     strokeLinejoin="round"
                   />
                 </svg>
-                <span>참석자 {participants.length}명</span>
+                <span>{L.attendees ? L.attendees(participants.length) : `참석자 ${participants.length}명`}</span>
               </div>
               <ul className="tl-meeting-modal-attendees">
                 {participants.map((p) => (
@@ -203,7 +205,7 @@ export default function MeetingModal({
                     <div className="tl-meeting-modal-attendee-text">
                       <span className="tl-meeting-modal-attendee-name">{p.name}</span>
                       {meeting.organizer === p.id && (
-                        <span className="tl-meeting-modal-attendee-role">주최자</span>
+                        <span className="tl-meeting-modal-attendee-role">{words.organizer}</span>
                       )}
                     </div>
                   </li>

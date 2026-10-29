@@ -6,8 +6,10 @@ import { ChevronDownGlyph, ChevronRightGlyph, CloseGlyph, DragHandleGlyph } from
 import { SUBHEADER_H, ROW_H, memberPalette } from './constants.js';
 import useTimelineData from './useTimelineData.js';
 import { isEnterKey } from '../shared/enterKey.js';
+import { useTimelineLabels } from './timelineLabels.js';
 
 function GroupHeader({ group, collapsed, onToggleCollapse, onAddMember, onRemoveGroup, onRenameGroup }) {
+  const L = useTimelineLabels();
   const [editing, setEditing] = useState(false);
   const commitRename = (value) => {
     setEditing(false);
@@ -26,9 +28,9 @@ function GroupHeader({ group, collapsed, onToggleCollapse, onAddMember, onRemove
           <button
             type="button"
             className={`tl-group-header-collapse${collapsed ? ' is-collapsed' : ''}`}
-            aria-label={collapsed ? '그룹 펼치기' : '그룹 접기'}
+            aria-label={collapsed ? L.groupExpand : L.groupCollapse}
             aria-expanded={!collapsed}
-            title={collapsed ? '펼치기' : '접기'}
+            title={collapsed ? L.expand : L.collapse}
             onClick={() => onToggleCollapse(group.id)}
           >
             <ChevronDownGlyph size={10} strokeWidth={3} />
@@ -39,7 +41,7 @@ function GroupHeader({ group, collapsed, onToggleCollapse, onAddMember, onRemove
             className="tl-group-header-edit"
             defaultValue={group.label}
             autoFocus
-            aria-label="그룹 이름"
+            aria-label={L.groupName}
             onBlur={(e) => commitRename(e.target.value)}
             onKeyDown={(e) => {
               if (isEnterKey(e)) commitRename(e.currentTarget.value);
@@ -47,7 +49,7 @@ function GroupHeader({ group, collapsed, onToggleCollapse, onAddMember, onRemove
             }}
           />
         ) : (
-          <Tooltip content={onRenameGroup ? '이름 변경' : undefined}>
+          <Tooltip content={onRenameGroup ? L.groupRename : undefined}>
             <span
               className={`tl-group-header-name${onRenameGroup ? ' is-editable' : ''}`}
               onClick={onRenameGroup ? () => setEditing(true) : undefined}
@@ -83,8 +85,8 @@ function GroupHeader({ group, collapsed, onToggleCollapse, onAddMember, onRemove
           <button
             type="button"
             className="tl-group-header-remove"
-            aria-label="그룹 삭제"
-            title="그룹 삭제"
+            aria-label={L.groupDelete}
+            title={L.groupDelete}
             onClick={() => onRemoveGroup(group.id)}
           >
             <CloseGlyph size={12} strokeWidth={3} />
@@ -93,7 +95,7 @@ function GroupHeader({ group, collapsed, onToggleCollapse, onAddMember, onRemove
         <button
           type="button"
           className="tl-group-header-add"
-          aria-label="멤버 추가"
+          aria-label={L.memberAdd}
           onClick={() => onAddMember?.(group.id)}
         >
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
@@ -106,6 +108,7 @@ function GroupHeader({ group, collapsed, onToggleCollapse, onAddMember, onRemove
 }
 
 function MemberRow({ member, groupId, idx, filteredIdx, hidden, canRemove, onMouseDown, onDetail, onRemove }) {
+  const L = useTimelineLabels();
   return (
     <div
       className="tl-member-row"
@@ -138,8 +141,8 @@ function MemberRow({ member, groupId, idx, filteredIdx, hidden, canRemove, onMou
           <button
             type="button"
             className="tl-member-remove"
-            aria-label={`${member.name} 그룹에서 제거`}
-            title="이 그룹에서 제거"
+            aria-label={L.memberRemove(member.name)}
+            title={L.memberRemoveTitle}
             onClick={() => onRemove?.(groupId, member.id)}
           >
             <CloseGlyph size={10} strokeWidth={3} />
@@ -149,7 +152,7 @@ function MemberRow({ member, groupId, idx, filteredIdx, hidden, canRemove, onMou
           type="button"
           className="tl-member-arrow"
           style={{ background: memberPalette(member).solid }}
-          aria-label={`${member.name} 상세 보기`}
+          aria-label={L.memberDetail(member.name)}
           onClick={() => onDetail?.(member.id)}
         >
           <ChevronRightGlyph size={10} strokeWidth={3} color="#fff" />
@@ -173,21 +176,22 @@ function PlaceholderRow({ groupId, index }) {
 }
 
 function BottomButtons({ icons, baseUrl, onAddGroup, onAddInternalMember, onAddExternalMember }) {
+  const L = useTimelineLabels();
   return (
     <div className="tl-left-bottom-inner">
       <button type="button" className="tl-btn-group-add" onClick={onAddGroup}>
         <span className="tl-btn-group-add-icon">
           <Icon src={icons.plus} size={14} color="var(--text-tertiary)" baseUrl={baseUrl} />
         </span>
-        <span>그룹 추가</span>
+        <span>{L.addGroup}</span>
       </button>
       <button type="button" className="tl-btn-add-member" onClick={onAddInternalMember}>
         <Icon src="/icons-solid/user-circle.svg" size={20} color="var(--colors-foreground-fgTertiary)" baseUrl={baseUrl} />
-        <span>내부 직원 추가</span>
+        <span>{L.addInternal}</span>
       </button>
       <button type="button" className="tl-btn-add-member" onClick={onAddExternalMember}>
         <Icon src="/icons-solid/user-plus-01.svg" size={20} color="var(--colors-foreground-fgTertiary)" baseUrl={baseUrl} />
-        <span>외부 직원 추가</span>
+        <span>{L.addExternal}</span>
       </button>
     </div>
   );
@@ -217,6 +221,7 @@ const NameColumn = forwardRef(function NameColumn(
   },
   ref
 ) {
+  const L = useTimelineLabels();
   const { members } = useTimelineData();
   // The dragged member is rendered with display:none so it collapses out of
   // layout (other rows shift up). The placeholder is inserted at dragOver.index
@@ -299,7 +304,7 @@ const NameColumn = forwardRef(function NameColumn(
 
   return (
     <div className="tl-left">
-      <div className="tl-left-header">이름</div>
+      <div className="tl-left-header">{L.nameHeader}</div>
       {/* tl-left-mid: 자체 스크롤 없음 (overflow:hidden). 내부의
           tl-left-mid-content 가 transform: translateY 로 이동해 오른쪽
           scrollTop 을 mirror 한다. wheel 이벤트는 부모에서 native

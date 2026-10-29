@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   SNIPPET_COLORS,
-  WEEKDAY_LABELS,
   TODAY_STR,
   formatIsoDate,
 } from './constants.js';
 import useTimelineData from './useTimelineData.js';
+import { weekdayShortLabels, formatMonthDay } from './timelineLabels.js';
 
 // 주말(일/토) 컬럼은 그대로 보여주되 이벤트만 비움.
 const COL_COUNT = 7;
@@ -175,7 +175,7 @@ export default function CalendarMonthView({
   return (
     <div className="tl-cal">
       <div className="tl-cal-header">
-        {WEEKDAY_LABELS.map((label) => (
+        {weekdayShortLabels().map((label) => (
           <div key={label} className="tl-cal-header-cell">
             {label}
           </div>
@@ -197,7 +197,7 @@ export default function CalendarMonthView({
           // 1일은 "X월 Y일" 라벨, 나머지는 숫자
           const dayLabel =
             d.getDate() === 1
-              ? `${d.getMonth() + 1}월 ${d.getDate()}일`
+              ? formatMonthDay(d)
               : String(d.getDate());
           return (
             <div key={iso} className="tl-cal-cell">

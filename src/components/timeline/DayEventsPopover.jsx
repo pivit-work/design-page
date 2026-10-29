@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { CloseGlyph } from '../shared/lineIcons.jsx';
-import { SNIPPET_COLORS, WEEKDAY_LABELS } from './constants.js';
+import { SNIPPET_COLORS } from './constants.js';
+import { useTimelineLabels, formatWeekdayShort, formatMonthDay } from './timelineLabels.js';
 
 const parseIsoDate = (s) => {
   const [y, m, d] = s.split('-').map(Number);
@@ -26,6 +27,7 @@ export default function DayEventsPopover({
   onClose,
   onEventClick,
 }) {
+  const L = useTimelineLabels();
   const popoverRef = useRef(null);
   const [pos, setPos] = useState({ left: 0, top: 0, opacity: 0 });
 
@@ -61,7 +63,7 @@ export default function DayEventsPopover({
   }, [onClose]);
 
   const d = parseIsoDate(dateIso);
-  const weekday = WEEKDAY_LABELS[d.getDay()];
+  const weekday = formatWeekdayShort(d);
 
   // Portal 로 body 에 렌더 — content-area(position:fixed)의 stacking context
   // 에서 탈출해 사이드바/탑네비 위로 올라오도록.
@@ -73,7 +75,7 @@ export default function DayEventsPopover({
         style={{ left: pos.left, top: pos.top, opacity: pos.opacity }}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
-        aria-label={`${d.getMonth() + 1}월 ${d.getDate()}일 일정`}
+        aria-label={L.dayEvents(formatMonthDay(d))}
       >
         <div className="tl-day-popover-header">
           <div className="tl-day-popover-date">
@@ -85,7 +87,7 @@ export default function DayEventsPopover({
             type="button"
             className="tl-day-popover-close"
             onClick={onClose}
-            aria-label="닫기"
+            aria-label={L.close}
           >
             <CloseGlyph size={24} color="var(--colors-foreground-fgPrimary)" />
           </button>

@@ -1,10 +1,9 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import useDismissLayer from '../shared/useDismissLayer.js';
 import { ChevronLeftGlyph, ChevronRightGlyph } from '../shared/lineIcons.jsx';
+import { useTimelineLabels, weekdayShortLabels, formatYearMonth } from './timelineLabels.js';
 // Popover 좌표는 DOM 측정 결과라 state 에 담아 다시 렌더할 필요가 없다.
 // react-hooks/set-state-in-effect 회피를 위해 ref.style 에 직접 기록.
-
-const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
 function buildGrid(year, month) {
   const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -50,6 +49,7 @@ export default function DatePickerPopover({
   // 「오늘」로 칠 날(로컬 Date 그릇). 없으면 브라우저 시계의 오늘 (PW-781).
   today: todayProp,
 }) {
+  const L = useTimelineLabels();
   const popoverRef = useRef(null);
   const [viewYear, setViewYear] = useState(selectedDate.getFullYear());
   const [viewMonth, setViewMonth] = useState(selectedDate.getMonth());
@@ -119,25 +119,25 @@ export default function DatePickerPopover({
             type="button"
             className="tl-datepicker-nav"
             onClick={prevMonth}
-            aria-label="이전 달"
+            aria-label={L.prevMonth}
           >
             <ChevronLeftGlyph size={20} />
           </button>
           <p className="tl-datepicker-month-label">
-            {viewYear}년 {viewMonth + 1}월
+            {formatYearMonth(viewYear, viewMonth)}
           </p>
           <button
             type="button"
             className="tl-datepicker-nav"
             onClick={nextMonth}
-            aria-label="다음 달"
+            aria-label={L.nextMonth}
           >
             <ChevronRightGlyph size={20} />
           </button>
         </div>
 
         <div className="tl-datepicker-grid">
-          {WEEKDAYS.map((w) => (
+          {weekdayShortLabels().map((w) => (
             <div key={w} className="tl-datepicker-cell tl-datepicker-weekday">
               {w}
             </div>

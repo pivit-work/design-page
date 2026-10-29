@@ -10,6 +10,7 @@ import {
   getTodayStr,
   formatIsoDate,
 } from './constants.js';
+import { formatGanttHour } from './timelineLabels.js';
 import MeetingBlock from './MeetingBlock.jsx';
 import SnippetBlock from './SnippetBlock.jsx';
 import useTimelineData from './useTimelineData.js';
@@ -103,7 +104,7 @@ const TimelineGrid = forwardRef(function TimelineGrid(
           <div className="tl-right-header" style={{ width: totalInnerW, height: HEADER_H }}>
             {HOURS.map((h) => (
               <div key={h} className="tl-hour-cell" style={{ width: HOUR_W }}>
-                {h}시
+                {formatGanttHour(h)}
               </div>
             ))}
           </div>

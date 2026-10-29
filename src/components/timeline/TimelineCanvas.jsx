@@ -19,16 +19,11 @@ import StepNavButton, { StepNav } from '../shared/StepNav.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 
 // 보기 고르기 — 툴바 맨 앞 segmented control (Figma 17757:36490). 종전 머리글 탭 줄은 시안에서 빠졌다.
-const TIMELINE_TAB_ITEMS = [
-  { value: 'gantt', label: '간트 차트' },
-  { value: 'calendar', label: '캘린더' },
-];
+// 이름은 화면 언어 문구(labels)에서 — 아래 렌더에서 붙인다 (PW-2373).
+const TIMELINE_TAB_VALUES = ['gantt', 'calendar'];
 
 // 캘린더 탭 보기 단위 — 주/월. (간트 탭의 viewUnit 과는 별개 개념)
-const CAL_VIEW_OPTIONS = [
-  { value: 'week', label: '주' },
-  { value: 'month', label: '월' },
-];
+const CAL_VIEW_VALUES = ['week', 'month'];
 import { TimelineDataProvider } from './TimelineDataContext.jsx';
 import FilterMenuPopover, { FILTER_TYPES } from './FilterMenuPopover.jsx';
 import FilterDropdown from './FilterDropdown.jsx';
@@ -47,9 +42,7 @@ import {
   getTodayStr,
   SNIPPET_COLORS,
 } from './constants.js';
-
-const formatKoreanDate = (d) =>
-  `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
+import { TimelineLabelsContext, mergeTimelineLabels, formatToolbarDate, formatEventDate } from './timelineLabels.js';
 
 const parseIsoDate = (s) => {
   const [y, m, d] = s.split('-').map(Number);
@@ -146,6 +139,9 @@ export default function TimelineCanvas({
   // 셀 피커 메뉴 문구 묶음과 시각 표기 — `CellPicker` 의 `labels`·`formatHour` 로 그대로 넘긴다 (PW-2216)
   cellPickerLabels,
   cellPickerFormatHour,
+  // 툴바·이름 열·캘린더·창의 화면 문구 — 넘긴 키만 한국어 기본값을 덮는다(`timelineLabels.js` 의
+  // DEFAULT_TIMELINE_LABELS). 날짜·요일·시각은 문구가 아니라 `<html lang>` 을 따른다 (PW-2373).
+  labels,
   // 지금 보이는 날짜 범위 — { fromDate, toDate } ('YYYY-MM-DD'). 캘린더 월 보기는 그리는 주 전부(위아래로 끝없이
   // 붙는다), 주 보기는 그 주, 간트는 고른 하루. 호스트가 받아 둔 일정 범위 밖이면 이 값을 보고 더 받아 온다.
   onVisibleRangeChange,
@@ -157,6 +153,16 @@ export default function TimelineCanvas({
 
   // 탭 / 캘린더 보기 단위 변경 — 내부 state 갱신 + onViewChange 통지(이벤트
   // 핸들러 내 호출이므로 렌더 중 setState 금지 규칙과 무관).
+  const L = useMemo(() => mergeTimelineLabels(labels), [labels]);
+  const timelineTabItems = useMemo(
+    () => TIMELINE_TAB_VALUES.map((value) => ({ value, label: value === 'gantt' ? L.viewGantt : L.viewCalendar })),
+    [L],
+  );
+  const calViewOptions = useMemo(
+    () => CAL_VIEW_VALUES.map((value) => ({ value, label: value === 'week' ? L.unitWeek : L.unitMonth })),
+    [L],
+  );
+
   const changeTab = (tab) => {
     setCurrentTab(tab);
     onViewChange?.({ tab, calViewUnit });
@@ -299,7 +305,6 @@ export default function TimelineCanvas({
       window.open(ev.externalUrl, '_blank', 'noopener,noreferrer');
       return;
     }
-    const WEEKDAYS = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
     const d = parseIsoDate(ev.date);
     const hasRealPeople = Array.isArray(ev.participants);
     // 이벤트 색(팔레트 key)을 모달 색 태그용 hex 로 변환 — 하드코딩 teal 대신.
@@ -308,7 +313,7 @@ export default function TimelineCanvas({
       id: ev.id,
       title: ev.title,
       color: palette.solid,
-      timeLabel: `${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEKDAYS[d.getDay()]}) · ${ev.time}`,
+      timeLabel: `${formatEventDate(d)} · ${ev.time}`,
       // 실데이터 이벤트는 반복 정보가 없으므로 repeat 라벨 미표기.
       repeatLabel: hasRealPeople ? '' : '매주 일요일, 수요일',
       participants: hasRealPeople ? ev.participants : ['m1', 'm2', 'm3', 'm4', 'm5'],
@@ -542,6 +547,7 @@ export default function TimelineCanvas({
   }, [selectedDate, isGantt, rightScrollRef, now]);
 
   return (
+    <TimelineLabelsContext.Provider value={L}>
     <TimelineDataProvider
       members={members}
       meetings={filteredMeetings}
@@ -554,10 +560,10 @@ export default function TimelineCanvas({
       <div className="tl-toolbar">
         <div className="tl-toolbar-left">
         <SegmentedControl
-          items={TIMELINE_TAB_ITEMS}
+          items={timelineTabItems}
           value={currentTab}
           onChange={changeTab}
-          ariaLabel="타임라인 보기"
+          ariaLabel={L.viewAria}
         />
         <button
           ref={dateBtnRef}
@@ -568,22 +574,22 @@ export default function TimelineCanvas({
           aria-expanded={datePickerOpen}
         >
           <Icon src="/icons/calendar.svg" size={20} color="var(--colors-foreground-fgTertiary)" baseUrl={baseUrl} />
-          <span>{formatKoreanDate(selectedDate)}</span>
+          <span>{formatToolbarDate(selectedDate)}</span>
         </button>
 
         <StepNav>
-          <StepNavButton direction="prev" aria-label="이전" onClick={goPrevDate} baseUrl={baseUrl} />
-          <StepNavButton onClick={goToday}>오늘</StepNavButton>
-          <StepNavButton direction="next" aria-label="다음" onClick={goNextDate} baseUrl={baseUrl} />
+          <StepNavButton direction="prev" aria-label={L.prev} onClick={goPrevDate} baseUrl={baseUrl} />
+          <StepNavButton onClick={goToday}>{L.today}</StepNavButton>
+          <StepNavButton direction="next" aria-label={L.next} onClick={goNextDate} baseUrl={baseUrl} />
         </StepNav>
 
         {!isGantt && (
           <CustomSelect
             value={calViewUnit}
             onChange={changeCalViewUnit}
-            options={CAL_VIEW_OPTIONS}
+            options={calViewOptions}
             size="sm"
-            ariaLabel="캘린더 보기 단위"
+            ariaLabel={L.unitAria}
           />
         )}
 
@@ -605,7 +611,7 @@ export default function TimelineCanvas({
             ref={filterBtnRef}
             type="button"
             className={`tl-filter-btn ${filterOpen ? 'is-open' : ''}`}
-            aria-label="필터"
+            aria-label={L.filter}
             aria-haspopup="menu"
             aria-expanded={filterOpen}
             onClick={toggleFilter}
@@ -624,7 +630,7 @@ export default function TimelineCanvas({
             onClick={() => handleAddEventClick(undefined, selectedIsoDate)}
           >
             <Icon src={icons.plus} size={20} color="var(--colors-foreground-fgBrandPrimary, #2dbd82)" baseUrl={baseUrl} />
-            <span>이벤트 추가</span>
+            <span>{L.addEvent}</span>
           </button>
         )}
 
@@ -637,7 +643,7 @@ export default function TimelineCanvas({
               onClick={() => handleSnippetCreate(selectedIsoDate)}
             >
               <Icon src="/icons-solid/pencil-01.svg" size={20} color="#fff" baseUrl={baseUrl} />
-              <span>스니핏 작성</span>
+              <span>{L.snippetWrite}</span>
             </button>
           </Tooltip>
         ) : snippetState === 'edit' ? (
@@ -649,13 +655,13 @@ export default function TimelineCanvas({
               onClick={() => handleSnippetEdit(selectedIsoDate)}
             >
               <Icon src="/icons-solid/pencil-01.svg" size={20} color="#fff" baseUrl={baseUrl} />
-              <span>스니핏 수정</span>
+              <span>{L.snippetEdit}</span>
             </button>
           </Tooltip>
         ) : (
           <div className="tl-snippet-status" role="status">
             <Icon src="/icons-solid/hand.svg" size={20} color="var(--colors-text-textBrandTertiary, #21a67a)" baseUrl={baseUrl} />
-            <span>스니핏 수정 승인 요청 완료</span>
+            <span>{L.snippetEditRequested}</span>
           </div>
         )}
         </div>
@@ -911,5 +917,6 @@ export default function TimelineCanvas({
       )}
     </main>
     </TimelineDataProvider>
+    </TimelineLabelsContext.Provider>
   );
 }

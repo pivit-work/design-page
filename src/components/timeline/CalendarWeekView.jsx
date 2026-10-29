@@ -1,13 +1,13 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import {
   SNIPPET_COLORS,
-  WEEKDAY_LABELS,
   formatIsoDate,
   getWeekDates,
   getTodayStr,
 } from './constants.js';
 import useTimelineData from './useTimelineData.js';
 import { layoutDayEvents } from './weekEventLayout.js';
+import { formatWeekdayShort, formatHour12, formatMinutesOfDay } from './timelineLabels.js';
 
 // 시간 그리드 레이아웃 상수.
 const HOUR_H = 56;            // 1시간 행 높이(px)
@@ -16,27 +16,6 @@ const GRID_H = HOUR_H * HOURS; // 전체 그리드 높이 = 1344
 const MIN_EVENT_H = 22;        // 아주 짧은 이벤트도 클릭 가능하도록 최소 높이
 const GUTTER_W = 64;           // 좌측 시간 라벨 거터 폭(px) — 헤더 거터와 동일해야 컬럼 정렬
 const DEFAULT_SCROLL_HOUR = 8; // 오늘이 아닌 주: 마운트 시 오전 8시로 스크롤
-
-// 0~23 시 → "오전/오후 N시" 라벨.
-function hourLabel(h) {
-  if (h === 0) return '오전 12시';
-  if (h < 12) return `오전 ${h}시`;
-  if (h === 12) return '오후 12시';
-  return `오후 ${h - 12}시`;
-}
-
-// 자정 기준 분 → 이벤트 시작 시각 라벨. 정시는 "오전 11시", 그 외는 "오전 11:30".
-// (ev.time 은 시 단위로 반올림돼 있어 시간 그리드의 블록 위치와 어긋나므로
-//  주간 뷰는 startMinutes 에서 분까지 정확히 표기한다.)
-function eventTimeLabel(minutes) {
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  const period = h < 12 ? '오전' : '오후';
-  const h12 = h % 12 === 0 ? 12 : h % 12;
-  return m === 0
-    ? `${period} ${h12}시`
-    : `${period} ${h12}:${String(m).padStart(2, '0')}`;
-}
 
 // 이벤트의 시작/종료 분을 안전하게 정규화. startMinutes/endMinutes 가 없으면
 // (디자인 프리뷰용 mock 등) 오전 9시 1시간 블록으로 폴백.
@@ -103,7 +82,7 @@ export default function CalendarWeekView({
             return (
               <div key={iso} className="tl-week-cal-head-cell">
                 <span className="tl-week-header-dow">
-                  {WEEKDAY_LABELS[d.getDay()]}
+                  {formatWeekdayShort(d)}
                 </span>
                 <span
                   className={`tl-week-header-date ${isToday ? 'is-today' : ''}`}
@@ -124,7 +103,7 @@ export default function CalendarWeekView({
                 className="tl-week-cal-hour-label"
                 style={{ height: HOUR_H }}
               >
-                {h === 0 ? '' : hourLabel(h)}
+                {h === 0 ? '' : formatHour12(h)}
               </div>
             ))}
           </div>
@@ -213,7 +192,7 @@ export default function CalendarWeekView({
                         className="tl-cal-event-time"
                         style={{ color: palette.timeText }}
                       >
-                        {eventTimeLabel(ev._start)}
+                        {formatMinutesOfDay(ev._start)}
                       </span>
                       <span
                         className="tl-cal-event-title"
