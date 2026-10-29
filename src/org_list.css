@@ -147,8 +147,10 @@
   flex-direction: column;
   height: 100%;
 }
-/* 툴바(17788:33261) — 카드 안쪽 16, 항목 간격 8. 트리 툴바(.org-toolbar-left)와 같은 값이되 표 위에 흐르게 둔다 */
-.ol-toolbar {
+/* 툴바(17788:33261) — 카드 안쪽 16, 항목 간격 8. 트리 툴바(.org-toolbar-left)와 같은 값이되 표 위에 흐르게 둔다.
+   선택자를 .org-toolbar 보다 세게 둔다 — 앱에서 org_chart.css 가 이 파일 뒤에 한 번 더 실리면 .org-toolbar 의
+   position: absolute 가 이겨 툴바가 표 머리 위에 떴다(pivit-work PW-2374 브라우저 확인). 미리보기 모양은 같다. */
+.org-toolbar.ol-toolbar {
   position: static;
   flex: none;
   padding: 16px 16px 0;
