@@ -1846,7 +1846,7 @@ function ResultScreen({ session, manager, avatar, renderAvatar, L, icons, baseUr
       <MemberAnalysisBanner session={session} L={L} icons={icons} baseUrl={baseUrl} />
 
       {session.isShared === false && (
-        <EmptyState title={L.managerPreparing} description={L.historyNotShared} />
+        <EmptyState title={L.managerPreparing} description={L.noSummary} />
       )}
 
       {/* 내 개인 메모 (PW-1046) — 팀원 자신의 글이라 매니저가 공개하지 않은 회차에도
