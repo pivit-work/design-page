@@ -7,6 +7,7 @@ import SnippetListRow from './SnippetListRow.jsx';
 import DatePicker from '../shared/DatePicker.jsx';
 import assetUrl from '../shared/assetUrl.js';
 import Switch from '../shared/Switch.jsx';
+import { matchesQuery } from './snippetSearch.js';
 
 /**
  * SnippetCanvas — "스니핏" (스니핏 히스토리) 페이지 Pure 컴포넌트.
@@ -38,20 +39,6 @@ const PERIOD_ITEMS = [
 
 function fmtDate(d) {
   return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
-}
-
-// 검색어(공백 구분 토큰)가 스니핏의 summary/dateLabel/tags 어딘가에 모두
-// 포함되면 매치. 토큰 0개면 전체 통과.
-function matchesQuery(s, query) {
-  const q = query.trim().toLowerCase();
-  if (!q) return true;
-  const tokens = q.split(/\s+/).filter(Boolean);
-  const haystack = [
-    s.summary ?? '',
-    s.dateLabel ?? '',
-    ...(s.detail?.tags ?? s.tags ?? []),
-  ].join(' ').toLowerCase();
-  return tokens.every((t) => haystack.includes(t));
 }
 
 // 막대 높이 — 칸(26) 안에서 점수/10 비율, 아주 낮은 점수도 보이게 3 이상 (기획 스니핏 작성 §10-A.1).
