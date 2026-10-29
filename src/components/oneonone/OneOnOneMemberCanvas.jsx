@@ -177,6 +177,8 @@ const DEFAULT_LABELS = {
   historyOpen: '기록보기', historyAnalyzing: 'AI 분석 중', historyAction: '액션',
   pastSessionsEmpty: '지난 1on1 기록이 없습니다',
   historyCurrent: '현재 진행 중',
+  /* 매니저가 공개하지 않은 끝난 회차 (PW-2313) — 목록 줄의 요약 자리와 상세 안내 설명에 같은 말을 쓴다. */
+  historyNotShared: '매니저가 아직 공개하지 않은 회의입니다',
   backToHistory: '목록으로',
   highlights: '하이라이트', count: '건', countUnit: '건',
   managerFeedback: '매니저 피드백',
@@ -1844,7 +1846,7 @@ function ResultScreen({ session, manager, avatar, renderAvatar, L, icons, baseUr
       <MemberAnalysisBanner session={session} L={L} icons={icons} baseUrl={baseUrl} />
 
       {session.isShared === false && (
-        <EmptyState title={L.managerPreparing} description={L.noSummary} />
+        <EmptyState title={L.managerPreparing} description={L.historyNotShared} />
       )}
 
       {/* 내 개인 메모 (PW-1046) — 팀원 자신의 글이라 매니저가 공개하지 않은 회차에도
@@ -1984,6 +1986,11 @@ function HistoryDetail({ session, manager, avatar, renderAvatar, L, icons, baseU
           {L.backToHistory}
         </button>
       </SessionHeader>
+
+      {/* 공개 전 회차 — 결과 탭과 같은 안내 (PW-2313). 목록 줄에서 [기록보기]로 들어온다. */}
+      {session.isShared === false && (
+        <EmptyState title={L.managerPreparing} description={L.historyNotShared} />
+      )}
 
       {/* 내 개인 메모 (PW-575 · 2026-10-25) — 결과 탭의 같은 카드를 그대로 옮겼다. 호스트가
           `historyNotes` 를 넘길 때만 선다(매니저가 팀원 화면을 보면 안 넘긴다 — 팀원만의 글이다).
@@ -2136,16 +2143,19 @@ function HistoryScreen({ sessions, session, onCurrentOpen, manager, avatar, rend
 
   // 목록은 공용 `OneOnOnePastSessionList` (Figma 17556:23218) — 날짜·길이는 호스트 포맷으로
   // 완성해 넘기고, AI 분석이 아직 끝나지 않은 회차는 [기록보기] 대신 「AI 분석 중」 이다.
+  // 🔴 매니저가 공개하지 않은 회차는 서버가 요약을 빼고 보내 «요약 없음»만으로는 분석 중과 갈리지 않는다(PW-2313).
+  // `isShared` 로 먼저 갈라 요약 자리에 미공개 문구를 두고, 상세에서 같은 안내를 보도록 [기록보기]를 남긴다.
   const rows = done.map((s) => {
     const mine = s.actionItems.filter((a) => a.owner === 'member');
+    const notShared = s.isShared === false;
     return {
       id: s.id,
       dateLabel: formatDate(heldAtOf(s), 'short'),
       durationLabel: s.durationSec > 0 ? formatDuration(s.durationSec) : '',
       actionDone: mine.filter((a) => a.done).length,
       actionTotal: mine.length,
-      summary: s.aiSummary ?? '',
-      analyzing: isDonePending(doneBannerState(s)),
+      summary: notShared ? L.historyNotShared : (s.aiSummary ?? ''),
+      analyzing: !notShared && isDonePending(doneBannerState(s)),
     };
   });
   // 진행 중인 회차(ready|live)는 목록 맨 위 「현재 진행 중」 행이다(Figma 17556:23596 · 데모 OneOnOnePage.jsx `memberCurrent`).
