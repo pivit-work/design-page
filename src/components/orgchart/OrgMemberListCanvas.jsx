@@ -164,8 +164,10 @@ export default function OrgMemberListCanvas({
     <b data-testid="org-list-search-count">{L('list.searchCount', { count: searchCount })}</b>
   );
 
+  // 조직을 골라 둔 동안은 디자이너 리스트(OrgListView)와 같은 «골라 둠» 모양 — 고르는 목록 맨 위(전체 조직)가 아닐 때
+  const unitSelected = unitFilter && unitFilter.value !== unitFilter.options?.[0]?.value;
   const unitSelect = unitFilter && (
-    <span className="ol-filter">
+    <span className={`ol-filter${leading && unitSelected ? ' is-selected' : ''}`}>
     <CustomSelect
       value={unitFilter.value}
       onChange={unitFilter.onChange}
