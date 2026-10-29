@@ -682,9 +682,17 @@
 }
 /* 탭 전환 로딩 — 앞 내용은 두고 위에 2px 진행 막대(원장 정책서 §9 · PW-2319). */
 .pd-tab-progress {
+  /* 흐름에서 빼서 머리 아래 여백(18) 안에 겹친다 — 떴다 사라질 때 본문이 밀리지 않게(§9 «레이아웃 점프 방지», PW-2319). */
+  position: absolute;
+  left: 0;
+  right: 0;
   height: 2px;
-  margin-bottom: var(--spacing-md);
   border-radius: var(--radius-full);
   background: var(--fg-brand-primary);
   opacity: 0.6;
 }
+/* 리소스 탭이 다시 받는 중 — 탭 본문 바로 위 여백에 */
+.pd-resource > .pd-tab-progress { bottom: calc(100% + var(--spacing-md)); }
+/* 새 탭을 처음 받는 중 — 앞 탭 본문 바로 위 여백에. 높이 0 자리(여백이 뚫고 지나가지 않게 flow-root) */
+.pd-tab-progress-slot { position: relative; display: flow-root; height: 0; }
+.pd-tab-progress-slot > .pd-tab-progress { bottom: var(--spacing-md); }

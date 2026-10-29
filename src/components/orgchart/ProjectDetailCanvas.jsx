@@ -411,7 +411,9 @@ export default function ProjectDetailCanvas({
 
           {/* 새 탭을 처음 불러오는 중 — 앞 탭 내용은 그대로 두고 얇은 막대만(§9 «탭 전환 로딩»). */}
           {tabPending && (
-            <div className="pd-tab-progress" role="progressbar" aria-label={L('projectDetail.tabs.loading')} data-testid="project-detail-tab-pending" />
+            <div className="pd-tab-progress-slot">
+              <div className="pd-tab-progress" role="progressbar" aria-label={L('projectDetail.tabs.loading')} data-testid="project-detail-tab-pending" />
+            </div>
           )}
 
           {actionError && (
