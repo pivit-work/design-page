@@ -181,6 +181,15 @@ export default function TimelineCanvas({
   // 툴바 「이벤트 추가」·「스니핏 작성」은 날짜 탭의 날짜로 연다. 그 날짜가 오늘보다 뒤면
   // 스니핏 작성만 끈다 (PW-1714 · 정책 §7.2-B).
   const selectedIsoDate = formatIsoDate(selectedDate);
+  // 날짜 탭이 «오늘»에 있던 채 자정을 넘기면(호스트가 새 todayDate 를 주면) 새 오늘로 따라간다 (PW-2379).
+  // 안 그러면 툴바 「스니핏 작성」이 탭의 어제 날짜로 열린다. 다른 날을 골라 둔 탭은 그대로 둔다(정책 §7.2-B).
+  const [seenTodayDate, setSeenTodayDate] = useState(todayDate);
+  if (seenTodayDate !== todayDate) {
+    setSeenTodayDate(todayDate);
+    if (seenTodayDate && todayDate && selectedIsoDate === seenTodayDate) {
+      setSelectedDate(parseIsoDate(todayDate));
+    }
+  }
   const headerSnippetDisabled = isAfterToday(selectedIsoDate);
 
   const isGantt = currentTab === 'gantt';
@@ -258,7 +267,9 @@ export default function TimelineCanvas({
 
   // ── Empty-cell picker state (본인 행 빈 셀 클릭) ──────────────────────────
   const [cellPicker, setCellPicker] = useState(null); // { pos, hour, date } | null
-  const handleCellClick = (pos, hour, date) => setCellPicker({ pos, hour, date });
+  // 「스니핏 작성」을 끌지는 연 순간에 정한다 — 연 채 자정을 넘겨도 열린 팝업은 그대로, 닫고 다시 열면 새 오늘로 (정책 §7.2-A).
+  const handleCellClick = (pos, hour, date) =>
+    setCellPicker({ pos, hour, date, snippetDisabled: isAfterToday(date) });
 
   // ── Meeting modal state ──────────────────────────────────────────────────
   const [openMeeting, setOpenMeeting] = useState(null);
@@ -815,7 +826,7 @@ export default function TimelineCanvas({
           formatHour={cellPickerFormatHour}
           baseUrl={baseUrl}
           onSnippet={handleSnippetCreate}
-          snippetDisabled={isAfterToday(cellPicker.date)}
+          snippetDisabled={cellPicker.snippetDisabled}
           snippetDisabledLabel={snippetFutureLabel}
           onEvent={handleAddEventClick}
           onClose={() => setCellPicker(null)}
