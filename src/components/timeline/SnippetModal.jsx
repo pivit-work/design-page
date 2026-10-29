@@ -103,6 +103,8 @@ const DEFAULT_DRAFT_LABELS = {
   progressLoading: '가져오는 중',
   progressDone: '완료',
   progressFail: '못 가져옴',
+  // 태그가 TAG_LIMIT 개 찼을 때 칸 아래 안내 (기획서 작성 화면 정책 §3.2 · §9 오류 표 문구 · PW-2392)
+  tagLimit: '태그는 최대 8개까지 추가할 수 있습니다.',
 };
 
 const PROGRESS_TONE = { loading: 'progress', done: 'success', fail: 'warning' };
@@ -168,6 +170,7 @@ const DEFAULT_SUGGESTED_TAGS = [
 //     (「Jira·GitHub 23:01에 가져옴」)로 접는다. 계정 연결 안내가 떠 있을 때는 그리지 않는다.
 //     딱지 문구는 draftLabels 의 progressLoading·progressDone·progressFail.
 //   draftLabels?: 위 문구들 — 호스트가 번역해 넘긴다. 없는 키는 한국어 기본값.
+//     tagLimit 은 태그가 8개 찼을 때 Tags 칸 아래 안내 (PW-2392).
 //   aiUsageNotice?: string | null — 아래 바 저장 상태 문구 밑에 같은 글씨로 한 줄 (PW-1515 · 기획서
 //     screen-daily-snippet-write §6 「AI 사용 안내」 · D21). 제출하면 AI 표시가 사라진다는 안내라
 //     호스트가 «AI 초안 칸이나 AI 추천 태그가 남아 있는 동안»만 넘긴다. 닫기 없음 · 제출을 막지 않는다.
@@ -465,9 +468,12 @@ export default function SnippetModal({
     if (!v || tags.includes(v) || tags.length >= TAG_LIMIT) return;
     setTags((prev) => [...prev, v]);
   };
+  const tagsFull = tags.length >= TAG_LIMIT;
   const onTagKey = (e) => {
     if (isEnterKey(e)) {
       e.preventDefault();
+      // 한도에 걸리면 친 글자를 지우지 않는다 — 말없이 사라지면 왜 안 들어갔는지 모른다 (PW-2392)
+      if (tagsFull) return;
       addTag(tagInput);
       setTagInput('');
     }
@@ -1007,9 +1013,13 @@ export default function SnippetModal({
                   onCompositionStart={handleCompositionStart}
                   onCompositionEnd={handleCompositionEnd}
                   onBlur={handleFieldBlur}
+                  disabled={tagsFull}
                 />
                 )}
               </div>
+              {!readOnly && tagsFull && (
+                <div className="tl-snippet-label-hint" role="status">{L.tagLimit}</div>
+              )}
               {/* AI 태그 추출 실패 시에만 인라인 에러 노출 — Summary 의 summaryError 와 동일
                   패턴(tl-snippet-info). 정상 상태에서는 렌더되지 않아 시각 변화 없음.
                   추천 chip(.tl-snippet-suggest-tags, padding-bottom:80px) 앞에 두어

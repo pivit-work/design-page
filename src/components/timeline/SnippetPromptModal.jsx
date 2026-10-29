@@ -46,7 +46,7 @@ export default function SnippetPromptModal({ onCancel, onConfirm }) {
             슬슬 스니핏 작성할 시간이에요
           </p>
           <p className="tl-snippet-prompt-desc">
-            미리미리 작성하는 습관을 가지시면 중요한 업무를 빠트리지 않게 되요.
+            미리미리 작성하는 습관을 가지시면 중요한 업무를 빠트리지 않게 돼요.
             지금 작성하시면 너무 좋구요 ^^
           </p>
         </div>
