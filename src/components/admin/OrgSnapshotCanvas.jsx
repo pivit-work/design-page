@@ -2274,7 +2274,6 @@ function AsOfSnapshotView({
             {/* 보기 전환 — 조직 현황 탭의 세그먼트와 같은 부품(§9-F). 기준 시점 왼쪽 */}
             {chart && (
               <SegmentedControl
-                className="admin-snap-asof-view"
                 items={[
                   { value: 'roster', label: labels.asofViewRoster, testId: 'asof-view-roster' },
                   { value: 'chart', label: labels.asofViewChart, testId: 'asof-view-chart' },
