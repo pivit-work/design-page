@@ -270,8 +270,14 @@ export default function BillingSettingsCanvas({
     draftFields ? seedFields(draftFields) : base,
   );
   const [saved, setSaved] = useState(base); // 마지막 저장값 (dirty 비교용)
-  const [touched, setTouched] = useState({}); // blur 된 필드 추적
-  const [errors, setErrors] = useState({});
+  // 이미 저장된 청구 담당자 메일이 받을 수 없는 주소면 처음부터 칸 아래에 보인다 (앱 PW-2413) — 안 보이면
+  // 다른 칸만 고쳐도 [저장]이 막힌 이유를 알 수 없다(그 칸은 손대지 않아 blur 가 없다).
+  const initialEmailError = () => validateField('billing_contact_email', fields.billing_contact_email ?? '');
+  const [touched, setTouched] = useState(() => (initialEmailError() ? { billing_contact_email: true } : {})); // blur 된 필드 추적
+  const [errors, setErrors] = useState(() => {
+    const e = initialEmailError();
+    return e ? { billing_contact_email: e } : {};
+  });
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [openingCard, setOpeningCard] = useState(false);
