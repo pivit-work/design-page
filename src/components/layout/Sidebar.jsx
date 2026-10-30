@@ -25,6 +25,8 @@ import assetUrl from '../shared/assetUrl.js';
  * 선택 prop 을 넘기지 않으면 기존 동작·디자인과 100% 동일하다.
  */
 export default function Sidebar({
+  // 로고 버튼의 화면 읽기용 이름 — 앱이 화면 언어로 넘긴다(pivit-work PW-2415). 안 넘기면 종전 한국어.
+  logoAriaLabel = 'Pivit 홈으로',
   menu,
   currentPage,
   onNavigate,
@@ -66,7 +68,7 @@ export default function Sidebar({
               type="button"
               className="logo-wrap logo-btn"
               onClick={onLogoClick}
-              aria-label="Pivit 홈으로"
+              aria-label={logoAriaLabel}
             >
               {logoImg}
             </button>
