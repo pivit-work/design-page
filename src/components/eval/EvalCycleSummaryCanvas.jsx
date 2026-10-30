@@ -4174,7 +4174,7 @@ export default function EvalCycleSummaryCanvas({
                         {L.cwAppealTitle} · {appeal.memberName}
                       </div>
                       <span className="evs-cw-review-sub">
-                        {appeal.job} · {appeal.team}
+                        {[appeal.job, appeal.team].filter(Boolean).join(' · ')}
                       </span>
                       <StatusBadge className={`evs-cw-status tone-${statusTone} evs-cw-review-status`}>
                         {statusText}
@@ -4370,8 +4370,7 @@ export default function EvalCycleSummaryCanvas({
                             <div className="evs-cw-appeal-name">
                               {a.memberName}
                               <span className="evs-cw-appeal-sub">
-                                {' '}
-                                · {a.job} · {a.team}
+                                {[a.job, a.team].filter(Boolean).map((v) => ` · ${v}`).join('')}
                               </span>
                             </div>
                             <div className="evs-cw-appeal-meta" data-testid="evs-cw-appeal-meta">
@@ -4413,8 +4412,7 @@ export default function EvalCycleSummaryCanvas({
                               <div className="evs-cw-appeal-name">
                                 {a.memberName}
                                 <span className="evs-cw-appeal-sub">
-                                  {' '}
-                                  · {a.job} · {a.team}
+                                  {[a.job, a.team].filter(Boolean).map((v) => ` · ${v}`).join('')}
                                 </span>
                               </div>
                               <div className="evs-cw-appeal-meta">
