@@ -19,3 +19,21 @@ export function measureHeaderMaxWidth(header, doc = document) {
   if (left === Infinity) return null;
   return Math.max(0, Math.floor(left - headerBox.left));
 }
+
+/** 탭 줄 끝과 버튼 사이에 남길 틈(px) — 이보다 좁으면 한 줄에 안 들어간 것으로 본다. */
+export const TAB_ACTIONS_GAP = 12;
+
+/**
+ * 버튼을 탭 줄 오른쪽에 둘지, 탭 아래 서브타이틀 줄로 내릴지 정한다 (pivit-work PW-2415).
+ * 버튼 앞에서 멈춘 탭 줄을 가로로 밀어 두면, 밀린 탭은 표시 없이 잘려 버튼 뒤에 숨은 것처럼 보였다.
+ * 탭 글자 전체 폭(`scrollWidth` — 밀려 가려진 부분까지)이 버튼 앞에 다 들어가면 종전처럼 오른쪽에 두고
+ * 폭만 막는다. 안 들어가면 버튼을 내리고 폭을 막지 않는다 — 버튼은 가로 자리가 그대로라 다시 재도 같은 답이다.
+ * @returns {{ maxWidth: number|null, below: boolean }}
+ */
+export function measureHeaderLayout(header, nav, doc = document) {
+  const maxWidth = measureHeaderMaxWidth(header, doc);
+  if (maxWidth == null || !nav) return { maxWidth, below: false };
+  const navStart = nav.getBoundingClientRect().left - header.getBoundingClientRect().left;
+  const below = navStart + nav.scrollWidth + TAB_ACTIONS_GAP > maxWidth;
+  return { maxWidth: below ? null : maxWidth, below };
+}

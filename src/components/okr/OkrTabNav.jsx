@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { measureHeaderMaxWidth } from './okrTabHeaderWidth.js';
+import { measureHeaderLayout } from './okrTabHeaderWidth.js';
 
 /**
  * OkrTabNav — OKR 페이지 상단 탭 헤더.
@@ -12,11 +12,14 @@ import { measureHeaderMaxWidth } from './okrTabHeaderWidth.js';
  * 탭 줄과 오른쪽 위 버튼은 서로 모르는 두 고정 상자라, 영어처럼 탭 글자가 길면 버튼이 탭을 덮었다
  * (pivit-work PW-2216). 그래서 탭 줄은 버튼 앞에서 멈추고, 넘치면 평가 화면 탭 줄(`.evnav-domains`)처럼
  * 줄바꿈 대신 가로로 민다. 자리가 넉넉하면(한국어) 모양은 종전 그대로다.
+ * 그래도 밀린 탭은 표시 없이 잘려 버튼 뒤에 숨은 것처럼 보였다(pivit-work PW-2415) — 탭이 버튼 앞에 다 안
+ * 들어가면 버튼 묶음을 탭 아래 서브타이틀 줄 오른쪽으로 내린다(`is-actions-below`, 자리는 okr.css).
  */
 export default function OkrTabNav({ tabs, activeTab, onTabChange, year, quarter }) {
   const headerRef = useRef(null);
   const navRef = useRef(null);
-  const [maxWidth, setMaxWidth] = useState(null);
+  const [layout, setLayout] = useState({ maxWidth: null, below: false });
+  const { maxWidth, below } = layout;
   const hasActions = maxWidth != null;
 
   useLayoutEffect(() => {
@@ -25,7 +28,8 @@ export default function OkrTabNav({ tabs, activeTab, onTabChange, year, quarter 
     let frame = 0;
     const measure = () => {
       frame = 0;
-      setMaxWidth(measureHeaderMaxWidth(header));
+      const next = measureHeaderLayout(header, navRef.current);
+      setLayout((prev) => (prev.maxWidth === next.maxWidth && prev.below === next.below ? prev : next));
     };
     const schedule = () => {
       if (!frame) frame = requestAnimationFrame(measure);
@@ -80,7 +84,7 @@ export default function OkrTabNav({ tabs, activeTab, onTabChange, year, quarter 
   return (
     <div
       ref={headerRef}
-      className={`content-header okr-tab-header${hasActions ? ' has-actions' : ''}`}
+      className={`content-header okr-tab-header${hasActions ? ' has-actions' : ''}${below ? ' is-actions-below' : ''}`}
       style={hasActions ? { '--okr-tab-header-max': `${maxWidth}px` } : undefined}
     >
       <div ref={navRef} className="tab-nav">
