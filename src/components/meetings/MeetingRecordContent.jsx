@@ -85,7 +85,9 @@ function useSummaryDraft({ summary, onSave, summaryMaxLength }) {
       clearTimeout(timerRef.current);
       if (!latestRef.current) return;
       const { draft: last, summary: saved, onSave: save } = latestRef.current;
-      if (last.trim() !== '' && last !== saved && last !== sentRef.current) Promise.resolve(save?.(last)).catch(() => {});
+      // 읽기 칸이거나 요약이 없으면(draft 가 글이 아님) 보낼 것이 없다.
+      if (typeof last !== 'string' || last.trim() === '') return;
+      if (last !== saved && last !== sentRef.current) Promise.resolve(save?.(last)).catch(() => {});
     },
     [],
   );
