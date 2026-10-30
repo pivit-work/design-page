@@ -593,10 +593,11 @@
   color: var(--text-tertiary);
   overflow-wrap: anywhere;
 }
-/* 담당자의 요약 입력칸 (PW-2435) — 디자이너 회색 칸(.tl-snippet-textarea)과 같은 모양. 높이는 글 길이만큼(앱이 잰다). */
-.mtg-record-summary-input {
+/* 담당자의 요약 입력칸 (PW-2435) — 디자이너 회색 칸(.tl-snippet-textarea)과 같은 모양·같은 최소 높이(읽기 칸과 같이 144).
+   글이 길면 글 길이만큼 늘어난다(컴포넌트가 잰다) — 그래서 끌어 바꾸는 손잡이와 칸 안 스크롤을 없앤다.
+   두 클래스로 건다 — 뒤에 읽히는 timeline.css 의 .tl-snippet-textarea { resize: vertical } 을 이겨야 한다. */
+.tl-snippet-textarea.mtg-record-summary-input {
   display: block;
-  min-height: 0;
   resize: none;
   overflow: hidden;
 }
