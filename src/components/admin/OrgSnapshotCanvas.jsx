@@ -109,6 +109,8 @@ const DEFAULT_LABELS = {
   asofPartialNote: '옛 스냅샷이라 일부 열은 기록되지 않아 비어 있습니다',
   /** 그 날짜엔 아직 없던 열 안내(E18) — 비어 있으면 안 그린다. 앱이 열 이름을 넣어 만든다. */
   asofBlankColumnsNote: '',
+  // 조직도 보기에서 보일 빈 열 안내 — 표 열 안내는 조직도에 맞지 않아 앱이 조직도에 닿는 열(겸직)만 골라 준다(PW-1998).
+  asofChartBlankColumnsNote: '',
   // 커버리지 경계 · 빈 상태 2종 (org-snapshot-spec §5-A · PW-139).
   // C1 = 기록의 부재, C2 = 사실의 확인. 문구를 서로 바꿔 쓰지 않는다.
   asofCoverageCaption: '',
@@ -2482,6 +2484,9 @@ function AsOfSnapshotView({
       {/* 그 날짜엔 아직 없던 열 — 열은 두고 값만 빈다(정책 E13·E18). 문장은 앱이 만든다(어느 열이 비는지는 서버가 안다). */}
       {labels.asofBlankColumnsNote && !isOut && !failed && !showChart && (
         <p className="admin-snap-footnote" data-testid="asof-blank-columns-note">{labels.asofBlankColumnsNote}</p>
+      )}
+      {labels.asofChartBlankColumnsNote && !isOut && !failed && showChart && (
+        <p className="admin-snap-footnote" data-testid="asof-chart-blank-columns-note">{labels.asofChartBlankColumnsNote}</p>
       )}
     </div>
   );

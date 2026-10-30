@@ -238,6 +238,12 @@
 .role-badge-staff {
   background: var(--text-secondary);
 }
+/* 겸직 단위에 한 번 더 그린 카드의 «겸직»(As Of · PW-1998) — 직책 배지 모양에 리스트 보기 «겸직»의 무채색.
+   흰 글자인 `.role-badge`(status-badge.css · 나중에 읽힌다)를 이기려고 두 클래스로 건다. */
+.role-badge.role-badge-concurrent {
+  background: var(--dp-badge-neutral-bg);
+  color: var(--dp-badge-neutral-fg);
+}
 
 /* ── Vacation Image ── */
 .vacation-img {
