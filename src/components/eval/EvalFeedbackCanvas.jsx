@@ -87,6 +87,8 @@ const DEFAULT_LABELS = {
   linkedInitFallback: '이니셔티브',
   threadEmpty: '이 항목에 연결된 피드백이 없어요',
   close: '닫기',
+  // 내가 보낸 요청 줄의 보낸 사람 자리 — 앱이 화면 언어로 넘긴다 (pivit-work PW-2415)
+  me: '나',
   newBadge: '새 피드백',
   replyToggle: '답변 달기 ↩',
   replyPlaceholder: '답변을 작성하거나, 내용 없이 전송하면 확인 처리됩니다',
@@ -275,7 +277,7 @@ function BlockCard({ block, L, onOpen, cardRef }) {
               <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.sub }}>
                   <span style={{ fontWeight: 700, color: C.text }}>
-                    {it.itemType === 'feedback' ? it.person?.name || '' : '나'}
+                    {it.itemType === 'feedback' ? it.person?.name || '' : L.me}
                   </span>
                   {it.itemType === 'request' && (
                     <Chip tone="accent">{L.requestTag}</Chip>
