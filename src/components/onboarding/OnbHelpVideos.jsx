@@ -11,7 +11,12 @@ export default function OnbHelpVideos({ title, items = [], allLabel, allHref }) 
           {items.map((item) => (
             <OnbStack key={item.id} gap={8} testId={`onboarding-help-video-${item.id}`}>
               <OnbText size={14}>{item.featureLabel}</OnbText>
-              <OnbTextButton href={item.href} target="_blank" rel="noopener noreferrer">{item.title}</OnbTextButton>
+              {/* `onClick` 이면 새 탭이 아니라 앱 안 영상 창을 연다 (pivit-work PW-2430). 모양은 같은 글자 링크다. */}
+              {item.onClick ? (
+                <OnbTextButton onClick={item.onClick}>{item.title}</OnbTextButton>
+              ) : (
+                <OnbTextButton href={item.href} target="_blank" rel="noopener noreferrer">{item.title}</OnbTextButton>
+              )}
             </OnbStack>
           ))}
           <OnbTextButton href={allHref}>{allLabel}</OnbTextButton>

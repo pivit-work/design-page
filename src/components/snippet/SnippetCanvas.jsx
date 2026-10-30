@@ -72,6 +72,8 @@ function HealthTrendBars({ days = [] }) {
 }
 
 export default function SnippetCanvas({
+  /** 제목 바로 오른쪽 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2430). 안 주면 지금과 같다. */
+  titleHelp,
   baseUrl,
   // 필터 — 기간 segmented
   periodTab,
@@ -160,6 +162,7 @@ export default function SnippetCanvas({
         <div className="snippet-header-info">
           <div className="snippet-title-row">
             <h1 className="snippet-title">스니핏</h1>
+            {titleHelp}
             {/* 개발 확인용 매니저 뷰 토글 */}
             {showManagerToggle && (
               <label className="snippet-view-switch" title="개발 확인용 — 매니저/멤버 뷰 전환">

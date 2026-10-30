@@ -1105,3 +1105,31 @@
   overflow-wrap: normal;
   word-break: keep-all;
 }
+
+/* 튜토리얼 영상 탭 (pivit-work PW-2430 · screen-support-help.policy.md v1.2) — 줄은 글 줄(.sup-help-row)을 그대로 쓴다.
+   공용 Button 으로 그려 글자 감싸개가 끼므로 그 감싸개를 풀어 글 줄과 같은 배치가 되게 한다. */
+.sup-help-video-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+.sup-help-video-group + .sup-help-video-group {
+  margin-top: var(--spacing-lg);
+}
+.sup-help-row.is-video > .dp-btn__label {
+  display: contents;
+}
+.sup-help-video-summary {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sup-help-media-label,
+.sup-help-video-title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}

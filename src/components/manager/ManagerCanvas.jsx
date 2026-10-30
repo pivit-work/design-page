@@ -20,6 +20,8 @@ import TeamSnippets from './TeamSnippets.jsx';
  * 하나만 뜨는 ProfileModal 에만 남아 있다.
  */
 export default function ManagerCanvas({
+  /** 제목 바로 오른쪽 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2430). 안 주면 지금과 같다. */
+  titleHelp,
   tabs = [],
   activeTab,
   onTabChange,
@@ -150,6 +152,7 @@ export default function ManagerCanvas({
               {tab.label}
             </span>
           ))}
+          {titleHelp}
         </div>
         {teamMemberCount != null && (
           <div className="manager-team-meta">

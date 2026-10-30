@@ -51,6 +51,8 @@ import Icon from '../shared/Icon.jsx';
  * (라우팅은 여기 없다). 안 넘기면 종전처럼 `title` 한 줄이다.
  */
 export default function OneOnOnePageHeader({
+  /** 제목 바로 오른쪽 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2430). 안 주면 지금과 같다. */
+  titleHelp,
   title = '1on1',
   titleTabs,
   /** 메타 줄을 통째로 바꿔 끼우는 글자 — 「내 원온원」 탭처럼 매니저·팀원 수 대신
@@ -88,9 +90,13 @@ export default function OneOnOnePageHeader({
                 {t.label}
               </button>
             ))}
+            {titleHelp}
           </div>
         ) : (
-          <h1 className="ono-title">{title}</h1>
+          <h1 className="ono-title">
+            {title}
+            {titleHelp}
+          </h1>
         )}
         {metaText && (
           <div className="ono-meta">

@@ -1,4 +1,4 @@
-import { PauseGlyph } from './lineIcons.jsx';
+import { PauseGlyph, PlayGlyph } from './lineIcons.jsx';
 
 /**
  * RecordingPlayerRow — 녹음 재생기 한 줄. 회의록·1on1 이 같은 부품을 쓴다.
@@ -77,15 +77,7 @@ export default function RecordingPlayerRow({
         {playing ? (
           <PauseGlyph size={14} />
         ) : (
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
-            <path
-              d="M7 4.5v15l13-7.5-13-7.5Z"
-              fill="currentColor"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinejoin="round"
-            />
-          </svg>
+          <PlayGlyph size={14} />
         )}
       </button>
 

@@ -83,6 +83,8 @@ function mergeLabels(provided) {
 }
 
 export default function AdminDashboardCanvas({
+  /** 제목 바로 오른쪽 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2430). 안 주면 지금과 같다. */
+  titleHelp,
   dateLabel = '',
   stats = [],              // [{ label, value, sub }]
   teamRows = [],
@@ -131,7 +133,7 @@ export default function AdminDashboardCanvas({
     <div className="admin-canvas">
       <header className="admin-header">
         <div className="admin-header-titles">
-          <h1 className="admin-page-title">{labels.pageTitle}</h1>
+          <h1 className="admin-page-title">{labels.pageTitle}{titleHelp}</h1>
           {labels.pageSubtitle && <p className="admin-page-subtitle">{labels.pageSubtitle}</p>}
         </div>
         <div className="admin-header-actions">

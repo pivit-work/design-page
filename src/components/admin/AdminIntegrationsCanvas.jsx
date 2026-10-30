@@ -1194,6 +1194,8 @@ function TabSwitcher({ active, labels, onChange, showAdminTab }) {
 /* ── 메인 캔버스 ────────────────────────────────────────────────────── */
 
 export default function AdminIntegrationsCanvas({
+  /** 제목 바로 오른쪽 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2430). 안 주면 지금과 같다. */
+  titleHelp,
   activeTab,
   cards = [],
   stats = [],
@@ -1285,7 +1287,7 @@ export default function AdminIntegrationsCanvas({
       <div className="admin-canvas" data-testid="intg-error">
         <header className="admin-header">
           <div className="admin-header-titles">
-            <h1 className="admin-page-title">{labels.summary.title}</h1>
+            <h1 className="admin-page-title">{labels.summary.title}{titleHelp}</h1>
             <p className="admin-page-subtitle">{labels.summary.description}</p>
           </div>
         </header>
@@ -1315,7 +1317,7 @@ export default function AdminIntegrationsCanvas({
 
       <header className="admin-header">
         <div className="admin-header-titles">
-          <h1 className="admin-page-title">{labels.summary.title}</h1>
+          <h1 className="admin-page-title">{labels.summary.title}{titleHelp}</h1>
           <p className="admin-page-subtitle">{labels.summary.description}</p>
         </div>
       </header>

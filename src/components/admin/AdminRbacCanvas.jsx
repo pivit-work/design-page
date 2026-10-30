@@ -165,6 +165,8 @@ function EyeIcon() {
 }
 
 export default function AdminRbacCanvas({
+  /** 제목 바로 오른쪽 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2430). 안 주면 지금과 같다. */
+  titleHelp,
   matrix = {},
   visibility = {},
   labels: providedLabels,
@@ -601,6 +603,7 @@ export default function AdminRbacCanvas({
             }}
           >
             {L.title}
+            {titleHelp}
           </h2>
           <p style={{ margin: '4px 0 0', fontSize: 13, color: DP.textS }}>
             {L.description}

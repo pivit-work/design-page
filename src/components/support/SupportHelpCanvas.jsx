@@ -11,6 +11,7 @@ import {
   BookOpenGlyph,
   CheckGlyph,
   CloseGlyph,
+  PlayGlyph,
   SearchGlyph,
   ThumbsUpGlyph,
 } from '../shared/lineIcons.jsx';
@@ -53,6 +54,11 @@ function Tags({ tags = [], limit }) {
  *   detailLoading · detailErrorText · onDetailRetry()
  *   helpfulPending · onHelpful() · onAsk() · onBack()
  *   onInternalLink(href, event)?  본문 안쪽 링크(`/…`)를 앱 안에서 옮길 때(없으면 보통 링크)
+ *   (튜토리얼 영상 탭 · pivit-work PW-2430 · screen-support-help.policy.md v1.2)
+ *   mediaTabs       [{ value, label }] — 비면 탭 줄을 그리지 않는다(종전 화면 그대로) · media · onMediaChange(value)
+ *   videoGroups     media === 'video' 일 때 목록 — [{ key, label, items: [{ code, title, summary?, durationText?, active }] }]
+ *   onVideoSelect(code)  영상 줄을 누름 — 상세 없이 바로 영상 창(호출부)
+ *                   영상 탭에서는 분류 칩을 숨기고, 오른쪽에는 상세 대신 안내(labels.videoGuide)와 [labels.ask]
  *   labels          { heading, sub, searchPlaceholder, clearSearch, all, emptyTitle, emptyBody, ask,
  *                     pickTitle, pickBody, notFoundTitle, notFoundBody, helpfulQuestion, helpfulCount,
  *                     helpful, helpfulDone, back, views, retry, loading,
@@ -82,8 +88,14 @@ export default function SupportHelpCanvas({
   onAsk,
   onBack,
   onInternalLink,
+  mediaTabs = [],
+  media = 'help',
+  onMediaChange,
+  videoGroups = [],
+  onVideoSelect,
   labels = {},
 }) {
+  const videoTab = media === 'video';
   const askButton = (testId, variant = 'primary') => (
     <Button variant={variant} onClick={() => onAsk?.()} data-testid={testId}>
       {labels.ask}
@@ -115,6 +127,56 @@ export default function SupportHelpCanvas({
           role="alert"
           data-testid="support-help-list-error"
         />
+      );
+    }
+    if (videoTab) {
+      const empty = videoGroups.every((g) => g.items.length === 0);
+      return (
+        <>
+          {summaryText && (
+            <p className="sup-help-summary" data-testid="support-help-summary">
+              {summaryText}
+            </p>
+          )}
+          {empty ? (
+            <EmptyState
+              icon={<SearchGlyph size={28} />}
+              title={labels.emptyTitle}
+              description={labels.emptyBody}
+              actions={askButton('support-help-empty-ask')}
+              data-testid="support-help-video-empty"
+            />
+          ) : (
+            videoGroups
+              .filter((g) => g.items.length > 0)
+              .map((g) => (
+                <section key={g.key} className="sup-help-video-group" data-testid={`support-help-video-group-${g.key}`}>
+                  <p className="sup-help-summary">{g.label}</p>
+                  <ul className="sup-help-rows">
+                    {g.items.map((v) => (
+                      <li key={v.code}>
+                        <Button
+                          className={`sup-help-row is-video${v.active ? ' is-active' : ''}`}
+                          aria-current={v.active ? 'true' : undefined}
+                          onClick={() => onVideoSelect?.(v.code)}
+                          data-testid={`support-help-video-${v.code}`}
+                        >
+                          <span className="sup-help-row-main">
+                            <span className="sup-help-row-title sup-help-video-title">
+                              <PlayGlyph size={12} />
+                              {v.title}
+                            </span>
+                            {v.summary && <span className="sup-help-video-summary">{v.summary}</span>}
+                          </span>
+                          {v.durationText && <span className="sup-help-row-stats">{v.durationText}</span>}
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ))
+          )}
+        </>
       );
     }
     return (
@@ -170,6 +232,15 @@ export default function SupportHelpCanvas({
   };
 
   const renderDetail = () => {
+    if (videoTab) {
+      return (
+        <section className="sup-card sup-help-pick">
+          <EmptyState size="lg" icon={<BookOpenGlyph size={32} />} description={labels.videoGuide} data-testid="support-help-video-guide">
+            <div className="sup-help-pick-ask">{askButton('support-help-video-ask', 'secondary')}</div>
+          </EmptyState>
+        </section>
+      );
+    }
     if (detailLoading) {
       return (
         <section className="sup-card sup-help-detail" data-testid="support-help-detail-loading">
@@ -272,7 +343,7 @@ export default function SupportHelpCanvas({
     );
   };
 
-  const opened = Boolean(detail || detailLoading || detailErrorText);
+  const opened = !videoTab && Boolean(detail || detailLoading || detailErrorText);
 
   return (
     <main className="tl-page sup-page" data-testid="support-help">
@@ -285,6 +356,29 @@ export default function SupportHelpCanvas({
 
       <div className="sup-body">
         <div className="sup-help">
+          {mediaTabs.length > 0 && (
+            <div className="sup-cats">
+              <SegmentedControl
+                ariaLabel={labels.mediaTabs}
+                value={media}
+                onChange={(next) => onMediaChange?.(next)}
+                items={mediaTabs.map((m) => ({
+                  value: m.value,
+                  // 영상 탭은 글자 앞에 ▶ 그림(번역 문구에 기호를 넣지 않는다)
+                  label:
+                    m.value === 'video' ? (
+                      <span className="sup-help-media-label">
+                        <PlayGlyph size={12} />
+                        {m.label}
+                      </span>
+                    ) : (
+                      m.label
+                    ),
+                  testId: `support-help-media-${m.value}`,
+                }))}
+              />
+            </div>
+          )}
           <div className="sup-help-search">
             <SearchInput
               value={query}
@@ -312,6 +406,7 @@ export default function SupportHelpCanvas({
           </div>
 
           {/* 하나만 고르는 칸이라 공용 세그먼트 버튼 (PW-1902). 「전체」는 null 값 대신 '' 로 싣는다 */}
+          {!videoTab && (
           <div className="sup-cats">
             <SegmentedControl
               ariaLabel={labels.all}
@@ -327,6 +422,7 @@ export default function SupportHelpCanvas({
               ]}
             />
           </div>
+          )}
 
           <div className={`sup-help-split${opened ? ' is-open' : ''}`}>
             <section className="sup-card sup-help-list">{renderList()}</section>

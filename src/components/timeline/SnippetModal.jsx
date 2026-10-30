@@ -215,6 +215,8 @@ const DEFAULT_SUGGESTED_TAGS = [
 //   closedNotice?: string   주면 머리 날짜(와 ‹ ›) 아래에 이 안내 한 줄만 그린다 —
 //                           입력 칸·초안·초기화·자동저장 표시를 그리지 않는다.
 export default function SnippetModal({
+  /** 제목 바로 오른쪽 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2430). 안 주면 지금과 같다. */
+  titleHelp,
   date,
   baseUrl,
   onClose,
@@ -681,6 +683,7 @@ export default function SnippetModal({
                 onClick={onNextDate}
               />
             )}
+            {titleHelp}
           </div>
 
           {closedNotice ? (

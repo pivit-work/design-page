@@ -695,3 +695,44 @@ export function DownloadSolidGlyph(props) {
     </SolidSvg>
   );
 }
+
+/** 원 안의 물음표 — 기능 화면 «?» 튜토리얼 도움말 버튼(pivit-work PW-2430). */
+export function HelpCircleGlyph(props) {
+  return (
+    <LineSvg {...props}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+      <path d="M12 17h.01" />
+    </LineSvg>
+  );
+}
+
+/** 가로 막대 — 창 접기(튜토리얼 영상 창). */
+export function MinusGlyph(props) {
+  return (
+    <LineSvg {...props}>
+      <path d="M5 12h14" />
+    </LineSvg>
+  );
+}
+
+/** 안쪽으로 모으는 화살표 — 크게 본 창을 작게 되돌리기(튜토리얼 영상 창). */
+export function ShrinkScreenGlyph(props) {
+  return (
+    <LineSvg {...props}>
+      <path d="M4 14h6v6" />
+      <path d="M20 10h-6V4" />
+      <path d="m14 10 7-7" />
+      <path d="m3 21 7-7" />
+    </LineSvg>
+  );
+}
+
+/** 재생 ▶ — 녹음 재생기·튜토리얼 영상 창이 함께 쓴다(같은 그림을 두 곳에 두지 않는다). */
+export function PlayGlyph({ size = 14 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M7 4.5v15l13-7.5-13-7.5Z" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+    </svg>
+  );
+}

@@ -3997,6 +3997,8 @@ function EmployeesEditPanel({
   /* 대표(CEO) 지정·해제 — `(mode: 'assign'|'release') => void`. 목록 행 ⋯ 메뉴와 **같은** 확인 창을 연다
      (admin-spec §3.6-A-2 ⓑ). 미주입이면(어드민 아님·퇴사자) «조직 위치» 칸을 그리지 않는다. */
   onOpenCeo,
+  /* «조직 위치» 제목 오른쪽 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2430). */
+  positionHelp,
   /* 따로 보관한 기록 (PW-1429 · 퇴사 처리 정책서 v1.19 §3-C) — 퇴사가 확정된 사람의 법정 보존분.
      `onLoadArchivedRecords(memberId) => Promise<{ pendingTerminationDate, segments }>` ·
      `onDownloadArchivedRecords(memberId, retireDate, reason) => Promise<void>`(실패면 reject).
@@ -4749,7 +4751,10 @@ function EmployeesEditPanel({
 
           {(onOpenCeo || (leaderUnitIds && leaderUnitIds.length > 0)) && (
             <>
-              <SectionLabel>{labels.panel.orgPosition}</SectionLabel>
+              <SectionLabel>
+                {labels.panel.orgPosition}
+                {positionHelp}
+              </SectionLabel>
               {onOpenCeo && (
               <div className="admin-emp-ceo-row">
                 <div className="admin-emp-ceo-text">
@@ -5221,6 +5226,8 @@ function EmployeesEditPanel({
 }
 
 export default function AdminEmployeesCanvas({
+  /** 제목 바로 오른쪽 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2430). 안 주면 지금과 같다. */
+  positionHelp,
   members = [],
   orgUnits = [],
   invites = [],
@@ -5829,6 +5836,7 @@ export default function AdminEmployeesCanvas({
         return (
           <EmployeesEditPanel
             member={target}
+            positionHelp={positionHelp}
             leaderUnitIds={(leaderUnitIdsByMember || {})[target.id] || EMPTY_ARRAY}
             onGoOrgUnit={canEdit ? onGoAssignLeader : undefined}
             squadOptions={squadOptions}

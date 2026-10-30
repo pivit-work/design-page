@@ -19,6 +19,9 @@ export { default as Toast } from './shared/Toast.jsx';
 // 마우스를 올리면 0.3초 뒤 뜨는 설명 말풍선 (PW-1123). 스타일은 tooltip.css(index.css 가 끌어온다)
 export { default as Tooltip } from './shared/Tooltip.jsx';
 export { TOOLTIP_DELAY } from './shared/tooltipGroup.js';
+// 기능 화면 «?» 튜토리얼 도움말 버튼·말풍선과 오른쪽 아래 영상 창 (pivit-work PW-2430). 스타일은 tutorial-help.css
+export { default as TutorialHelpButton } from './shared/TutorialHelpButton.jsx';
+export { default as TutorialVideoDock } from './shared/TutorialVideoDock.jsx';
 // 페이지 넘김·켜기/끄기 스위치·불러오는 동안 보이는 것 (PW-1010). 스타일은 index.css 가 끌어온다
 export { default as Pagination } from './shared/Pagination.jsx';
 // 목록 맨 아래 [더 보기] — 조직도 구성원 표의 버튼 모양 (pivit-work PW-1941). 스타일은 load-more.css(index.css 가 끌어온다)
