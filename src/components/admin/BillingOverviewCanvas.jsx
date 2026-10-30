@@ -241,10 +241,13 @@ function UsageBanner({ banner, canEdit, testId }) {
         )}
       </div>
       {banner.actionLabel && (
-        <Btn kind={banner.actionKind === 'secondary' ? 'secondary' : 'primary'}
-          onClick={banner.onAction} disabled={!canEdit}>
-          {banner.actionLabel}
-        </Btn>
+        // 버튼 글자가 두 줄로 꺾이지 않게 — 띠 본문이 길어도 버튼 폭을 지킨다 (PW-2360).
+        <div style={{ flex: 'none', whiteSpace: 'nowrap' }}>
+          <Btn kind={banner.actionKind === 'secondary' ? 'secondary' : 'primary'}
+            onClick={banner.onAction} disabled={!canEdit}>
+            {banner.actionLabel}
+          </Btn>
+        </div>
       )}
     </Card>
   );
@@ -801,21 +804,24 @@ export default function BillingOverviewCanvas({
             closeLabel={labels.close}
             onClose={onClosePriceChange}
             zIndex={1000}
-            className="adm-shell"
+            className="adm-shell is-wide"
             testId="billing-price-change-modal"
             footer={<>
               <button type="button" className="tl-group-modal-btn tl-group-modal-btn-secondary"
+                style={{ whiteSpace: 'nowrap' }}
                 onClick={onClosePriceChange}>
                 {labels.close}
               </button>
               {canCancel && (
                 <button type="button" className="tl-group-modal-btn tl-group-modal-btn-secondary"
+                  style={{ whiteSpace: 'nowrap' }}
                   data-testid="billing-price-change-cancel"
                   onClick={() => { onClosePriceChange?.(); setCancelOpen(true); }}>
                   {labels.priceChangeCancelSubscription}
                 </button>
               )}
               <Button className="tl-group-modal-btn tl-group-modal-btn-primary"
+                style={{ whiteSpace: 'nowrap' }}
                 data-testid="billing-price-change-agree" pending={priceChangeSaving}
                 onClick={() => onConsentPriceChange?.(priceChangeBodyRef.current?.innerText ?? '')}>
                 {labels.priceChangeAgree}
@@ -831,16 +837,20 @@ export default function BillingOverviewCanvas({
               {[
                 [labels.priceChangeWhenLabel, labels.priceChangeWhenValue(priceChange.chargeDate)],
                 [labels.priceChangePriceLabel, labels.priceChangePriceValue(priceChange.oldUnitPrice, priceChange.newUnitPrice)],
-                [labels.priceChangeEstimateLabel, labels.priceChangeEstimateValue(priceChange.estimatedAmount, sub.seats)],
+                [labels.priceChangeEstimateLabel, labels.priceChangeEstimateValue(priceChange.estimatedAmount, sub.seats),
+                  labels.priceChangeEstimateNote],
                 [labels.priceChangeMethodLabel, labels.priceChangeMethodValue(sub.method?.last4)],
                 [labels.priceChangeCancelLabel, labels.priceChangeCancelValue(priceChange.chargeDate)],
-              ].map(([label, value]) => (
+              ].map(([label, value, note]) => (
                 <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--spacing-xl)', fontSize: 13 }}>
                   <span style={{ color: T.sub, flex: 'none' }}>{label}</span>
-                  <span style={{ color: T.text, fontWeight: 600, textAlign: 'right' }}>{value}</span>
+                  <span style={{ color: T.text, fontWeight: 600, textAlign: 'right' }}>
+                    {value}
+                    {/* 예상 금액의 단서는 그 줄 바로 아래에 (PW-2360) */}
+                    {note && <span style={{ display: 'block', fontSize: 12, fontWeight: 400, color: T.muted }}>{note}</span>}
+                  </span>
                 </div>
               ))}
-              <div style={{ fontSize: 12, color: T.muted }}>{labels.priceChangeEstimateNote}</div>
               <div style={{ fontSize: 13, color: T.text, background: T.bl, borderRadius: 10,
                 padding: 'var(--spacing-md) var(--spacing-lg)' }}>
                 {labels.priceChangeNoResponse}

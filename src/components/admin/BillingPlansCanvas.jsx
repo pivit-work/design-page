@@ -366,7 +366,8 @@ function PlanCard({ plan, isCurrent, interval, onAction, canEdit, isCustomCta, f
           {benefit && (
             <div data-testid={`billing-plan-launch-benefit-${plan.code}`}
               style={{ fontSize: 12, color: T.accentText, fontWeight: 700, marginTop: 'var(--spacing-xxs)' }}>
-              {labels.launchBenefitPlanTag(launchBenefitUntil)}
+              {/* 날짜가 «2027-02-» / «07까지»로 끊기지 않게 줄바꿈 없는 하이픈으로 (PW-2360) */}
+              {labels.launchBenefitPlanTag(launchBenefitUntil.replace(/-/g, '\u2011'))}
               <div style={{ fontWeight: 500, color: T.muted }}>{labels.launchBenefitPlanAfter(plan.seatPrice)}</div>
             </div>
           )}
