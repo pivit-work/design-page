@@ -506,6 +506,9 @@ export default function EvalCycleMemberCanvas({
   // [PW-586] 머리 아래·폼 위에 끼우는 블록. 상향 리뷰는 평가 대상 카드와 접을 수 없는 익명
   // 안내를 여기 둔다 — 폼을 새로 그리지 않고 셀프·동료와 같은 폼을 쓰기 위한 자리다.
   headerSlot = null,
+  // [PW-2426] 입력 영역 맨 위(작성 진행 위)에 끼우는 블록. 2단이면 오른쪽 칸 맨 위다 — 정책 §4.11 ②
+  // «익명 안내(§5.2) · 작성 진행 · 항목». 머리 아래 자리(headerSlot)는 두 칸 위 전체 폭이라 그 순서가 안 된다.
+  formTopSlot = null,
   // [PW-1262 ③] 동료 리뷰에서 피평가자 셀프 리뷰를 참고로 보이는 영역. null 이면 영역이 없다
   // (관리자가 «동료에게 보이기»를 켠 질문이 없을 때). 모양:
   // { submitted, items: [{ id, label, score, scaleMax, text, choices }] }
@@ -1150,6 +1153,7 @@ export default function EvalCycleMemberCanvas({
   // [PW-2064] 입력 영역 — 작성 진행 · 구분선 · AI 초안 · 항목 · 하단 제출 바. 2단이면 오른쪽 칸이다.
   const formBody = (
     <>
+      {formTopSlot}
       {!submitted && fields.length > 0 && (
         <ReviewProgress
           fields={fields}
