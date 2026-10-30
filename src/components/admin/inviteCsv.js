@@ -506,7 +506,9 @@ const splitList = (v) => normalize(v).split(ORG_PATH_LIST_SEP).map(normalize).fi
  * 의존성을 추가하는 판단이 따로 필요하기 때문이다.
  */
 export function parseCsv(text) {
-  const src = String(text ?? '').replace(/^﻿/, '');
+  // 줄바꿈을 LF 하나로 맞춘다 — CRLF(윈도 엑셀)와 CR 만 쓰는 파일(맥 엑셀 «CSV» 저장)이 있다.
+  // CR 을 버리기만 하면 CR 파일은 통째로 한 줄이 돼 «필수 열이 없어요»로 거부됐다. 따옴표 칸 안의 CRLF 도 LF 가 된다.
+  const src = String(text ?? '').replace(/^﻿/, '').replace(/\r\n?/g, '\n');
   const rows = [];
   let row = [];
   let field = '';
@@ -527,7 +529,6 @@ export function parseCsv(text) {
     }
     if (c === '"') { quoted = true; i += 1; continue; }
     if (c === ',') { endField(); i += 1; continue; }
-    if (c === '\r') { i += 1; continue; }  // CRLF 의 CR 은 버린다
     if (c === '\n') { endRow(); i += 1; continue; }
     field += c; i += 1;
   }
