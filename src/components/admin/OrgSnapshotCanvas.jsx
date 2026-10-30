@@ -2248,7 +2248,8 @@ function AsOfSnapshotView({
   const showChart = !!chart && asOfView === 'chart';
   // 머리의 «전체 펼치기»·«↓ 조직도 이미지» — 그릴 조직도가 없으면(C1·C2) 비활성, 툴팁은 그 빈 상태 문구(정책 §2 · TC-ADM-385 ⑥).
   const chartBlockedHint = isOut ? labels.asofOutOfRangeTitle : isEmptyFact ? (labels.asofEmptyFact || labels.asofEmpty) : undefined;
-  const chartDisabled = isOut || isEmptyFact || isEmptyUnknown || failed || firstLoad || !chart?.orgData;
+  // 날짜를 바꿔 다시 불러오는 중(pending)에도 막는다 — 화면에 남은 직전 날짜 그림이 새 날짜 이름·머리로 나간다(PW-1998 리뷰).
+  const chartDisabled = isOut || isEmptyFact || isEmptyUnknown || failed || firstLoad || pending || !chart?.orgData;
   const cards = [
     { key: 'total', value: noValue ? dash : totalMembers },
     { key: 'joined', value: noValue || !delta ? dash : `+${delta.joinedCount}` },
@@ -2334,7 +2335,8 @@ function AsOfSnapshotView({
               <button
                 type="button"
                 className="admin-snap-export-btn"
-                disabled={isOut || failed}
+                // 다시 불러오는 중이면 직전 날짜 명단이 새 날짜 파일 이름으로 나간다 — 응답이 올 때까지 막는다(PW-1998).
+                disabled={isOut || failed || pending}
                 onClick={() => onExport?.()}
               >
                 ↓ {labels.asofExport}
