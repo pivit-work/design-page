@@ -149,8 +149,9 @@ export default function MemberCard({ member: rawMember, parentId, index, showWor
           </div>
           <span className="member-name">{member.name}</span>
           {member.changedHint && <span className="member-asof-mark" aria-hidden>▲</span>}
-          {/* 겸직 단위에 한 번 더 그린 카드(As Of · 정책 E20) — 리스트 보기의 «겸직» 표시와 같은 무채색, 모양은 옆 직책 배지와 같다(한 줄 · 12px). */}
-          {member.concurrentLabel && <StatusBadge tone="neutral" className="role-badge role-badge-concurrent" data-testid="org-member-concurrent">{member.concurrentLabel}</StatusBadge>}
+          {/* 겸직 단위에 한 번 더 그린 카드(As Of · 정책 E20) — 생김새는 조직도 «소속 칩»(`.modal-team-chip` — 무채색 · 11px), 이름 줄 안에서 꺾이거나 줄지 않는 것은 옆 직책 배지(`.role-badge`
+              — nowrap · flex-shrink 0). 칩이 CSS 에서 뒤라 색·글씨는 칩이 이긴다. 새 CSS 를 칠하지 않는다(PW-840 딱지 검사). */}
+          {member.concurrentLabel && <StatusBadge tone="neutral" className="role-badge modal-team-chip" data-testid="org-member-concurrent">{member.concurrentLabel}</StatusBadge>}
           {member.role && <StatusBadge className={`role-badge role-badge-${member.role.toLowerCase()}`}>{member.role}</StatusBadge>}
           {/* 조직 구조상의 대표 1인. isCeo 만 근거로 삼는다 — 권한이 대표거나
               직책 문자열이 '대표'인 것만으로는 붙지 않는다. */}
