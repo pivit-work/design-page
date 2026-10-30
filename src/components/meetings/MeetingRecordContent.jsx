@@ -59,7 +59,8 @@ function EmptyBox({ children }) {
  * 입력칸으로 바꾼다 — 누르면 디자이너 입력칸의 초점 테두리가 생기고, 글 길이만큼 높이가 늘어 회색 칸과 같은 높이다.
  * 칸을 벗어나면 바뀐 글만 `onSave(value)` 로 넘긴다. 그 프로미스를 붙들어 머리 줄 오른쪽에 「저장 중...」,
  * 끝나면 「저장됨 ✓」(체크는 아이콘)를 2초 보인다. 실패하면 상태만 지우고 친 글은 그대로 둔다 — 실패 안내는 caller 가 띄운다.
- * `summaryMaxLength` 를 넘게 치면 더 넣지 않고 칸 아래에 안내한다. 이미 한도보다 긴 글(AI 가 만든 요약)은 지우는 것만 받는다.
+ * `summaryMaxLength` 에 닿으면 더 넣지 않고 칸 아래에 안내한다. 이미 한도보다 긴 글(AI 가 만든 요약)은 지우는 것만 받는다.
+ * 다 지우고 벗어나면 저장하지 않고 labels.summaryEmpty 를 보인다.
  * 바깥 `summary` 가 바뀌면(다시 만들기) 칸을 벗어나 있을 때 새 값으로 바꾼다.
  */
 const SAVED_VISIBLE_MS = 2000;
@@ -69,7 +70,7 @@ function useSummaryDraft({ summary, onSave, summaryMaxLength }) {
   const [prevSummary, setPrevSummary] = useState(summary);
   const [focused, setFocused] = useState(false);
   const [status, setStatus] = useState('idle'); // 'idle' | 'saving' | 'saved'
-  const [tooLong, setTooLong] = useState(false);
+  const [empty, setEmpty] = useState(false);
   const seqRef = useRef(0);
   const timerRef = useRef(null);
   // 마지막으로 보낸 글 — 칸을 벗어나 보낸 것을 창이 닫힐 때 또 보내지 않는다.
@@ -84,7 +85,7 @@ function useSummaryDraft({ summary, onSave, summaryMaxLength }) {
       clearTimeout(timerRef.current);
       if (!latestRef.current) return;
       const { draft: last, summary: saved, onSave: save } = latestRef.current;
-      if (last !== saved && last !== sentRef.current) Promise.resolve(save?.(last)).catch(() => {});
+      if (last.trim() !== '' && last !== saved && last !== sentRef.current) Promise.resolve(save?.(last)).catch(() => {});
     },
     [],
   );
@@ -95,18 +96,22 @@ function useSummaryDraft({ summary, onSave, summaryMaxLength }) {
     if (!focused) setDraft(summary);
   }
 
+  // 한도는 입력칸 maxLength 가 막는다 — 한글 조합 중에도 깨지지 않고, 붙여 넣은 긴 글은 잘라 넣고,
+  // 이미 더 긴 글(AI 요약)은 지우는 것만 받는다. 안내는 한도에 닿았을 때 보인다.
+  const atLimit = !!summaryMaxLength && draft.length >= summaryMaxLength;
+
   const onChange = (e) => {
-    const next = e.target.value;
-    if (summaryMaxLength && next.length > summaryMaxLength && next.length > draft.length) {
-      setTooLong(true);
-      return;
-    }
-    setTooLong(false);
-    setDraft(next);
+    setEmpty(false);
+    setDraft(e.target.value);
   };
 
   const onBlur = () => {
     setFocused(false);
+    // 요약은 비울 수 없다 — 빈 요약은 «회의록이 없다»로 읽혀 AI 가 고친 회의록을 다시 만든다(서버도 거절한다).
+    if (draft.trim() === '') {
+      setEmpty(true);
+      return;
+    }
     if (draft === summary || draft === sentRef.current) return;
     sentRef.current = draft;
     const seq = ++seqRef.current;
@@ -126,7 +131,7 @@ function useSummaryDraft({ summary, onSave, summaryMaxLength }) {
     );
   };
 
-  return { draft, status, tooLong, onChange, onBlur, onFocus: () => setFocused(true) };
+  return { draft, status, atLimit, empty, onChange, onBlur, onFocus: () => setFocused(true) };
 }
 
 function SummaryStatus({ status, labels }) {
@@ -146,7 +151,7 @@ function SummaryStatus({ status, labels }) {
   );
 }
 
-function SummaryInput({ field, labels }) {
+function SummaryInput({ field, labels, maxLength }) {
   const ref = useRef(null);
   // 글 길이만큼 높이를 늘린다 — 읽기 전용 회색 칸처럼 내용만큼 보이고 칸 안에 스크롤이 생기지 않는다.
   useLayoutEffect(() => {
@@ -164,12 +169,18 @@ function SummaryInput({ field, labels }) {
         aria-label={labels.summary}
         data-testid="meeting-summary-input"
         rows={1}
+        maxLength={maxLength}
         value={field.draft}
         onChange={field.onChange}
         onFocus={field.onFocus}
         onBlur={field.onBlur}
       />
-      {field.tooLong && labels.summaryTooLong && (
+      {field.empty && labels.summaryEmpty && (
+        <p className="mtg-record-summary-note is-error" role="alert" data-testid="meeting-summary-empty">
+          {labels.summaryEmpty}
+        </p>
+      )}
+      {field.atLimit && labels.summaryTooLong && (
         <p className="mtg-record-summary-note is-error" role="alert" data-testid="meeting-summary-too-long">
           {labels.summaryTooLong}
         </p>
@@ -221,14 +232,14 @@ export default function MeetingRecordContent({
   minutesHidden = false,
   // 회의 담당자가 요약을 고친다 (PW-2435 · review §3.4) — true 면 요약 칸이 입력칸이다. 칸을 벗어나면 바뀐 글로
   // onSummarySave(value) 를 부르고, 그 프로미스로 「저장 중...」·「저장됨 ✓」(labels.summarySaving·summarySaved)를 그린다.
-  // 실패 안내는 caller 가 띄운다. summaryMaxLength 를 넘게 치면 막고 labels.summaryTooLong 을 보인다.
+  // 실패 안내는 caller 가 띄운다. summaryMaxLength 에 닿으면 막고 labels.summaryTooLong 을, 비우면 labels.summaryEmpty 를 보인다.
   summaryEditable = false,
   onSummarySave,
   summaryMaxLength,
 }) {
   const summaryField = useSummaryDraft({ summary, onSave: onSummarySave, summaryMaxLength });
   const summaryBody = summaryEditable ? (
-    <SummaryInput field={summaryField} labels={labels} />
+    <SummaryInput field={summaryField} labels={labels} maxLength={summaryMaxLength} />
   ) : (
     <Tooltip content={readOnly ? readOnlyHint : undefined}>
       <div className="tl-snippet-textarea mtg-record-readonly">{summary}</div>
