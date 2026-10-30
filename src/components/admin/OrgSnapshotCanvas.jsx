@@ -18,6 +18,7 @@ import Pagination from '../shared/Pagination.jsx';
 import LoadingState from '../shared/LoadingState.jsx';
 import Skeleton, { SkeletonList } from '../shared/Skeleton.jsx';
 import Select from '../shared/Select.jsx';
+import OrgChartTreeView from '../orgchart/OrgChartTreeView.jsx';
 import { isEnterKey } from '../shared/enterKey.js';
 
 /**
@@ -2208,6 +2209,9 @@ function AsOfPresetRows({ presets, labels, asOfDate, isPast, today, onAsOfDateCh
 function AsOfSnapshotView({
   data, labels, asOfDate, today, coverageFrom, onAsOfDateChange, showComp, onShowCompChange,
   onExport, onRosterMemberClick, rosterExtraColumns, rosterColumns, onRetry,
+  // [명단 · 조직도] 보기 전환(org-snapshot-spec §5-B · pivit-work PW-1998). 같은 기준 시점·같은 응답 —
+  // 보기를 바꿔도 다시 조회하지 않는다. `chart` 를 안 주면 전환도 없다(종전 화면).
+  asOfView = 'roster', onAsOfViewChange, chart,
 }) {
   const {
     presets = [], meta = null, delta = null, roster = [], totalMembers = 0, pending = false,
@@ -2241,6 +2245,10 @@ function AsOfSnapshotView({
   // 없었다" 는 사실 주장이고, 실제로는 "그날은 기록이 없다" 이다.
   const dash = '—';
   const noValue = isOut || failed;
+  const showChart = !!chart && asOfView === 'chart';
+  // 머리의 «전체 펼치기»·«↓ 조직도 이미지» — 그릴 조직도가 없으면(C1·C2) 비활성, 툴팁은 그 빈 상태 문구(정책 §2 · TC-ADM-385 ⑥).
+  const chartBlockedHint = isOut ? labels.asofOutOfRangeTitle : isEmptyFact ? (labels.asofEmptyFact || labels.asofEmpty) : undefined;
+  const chartDisabled = isOut || isEmptyFact || isEmptyUnknown || failed || firstLoad || !chart?.orgData;
   const cards = [
     { key: 'total', value: noValue ? dash : totalMembers },
     { key: 'joined', value: noValue || !delta ? dash : `+${delta.joinedCount}` },
@@ -2262,6 +2270,19 @@ function AsOfSnapshotView({
             날짜 칸 밑에 붙이면 그 묶음만 키가 커져 세 요소의 높이가 어긋났다(PW-1438). */}
         <div className="admin-snap-header-side">
           <div className="admin-snap-header-actions">
+            {/* 보기 전환 — 조직 현황 탭의 세그먼트와 같은 부품(§9-F). 기준 시점 왼쪽 */}
+            {chart && (
+              <SegmentedControl
+                className="admin-snap-asof-view"
+                items={[
+                  { value: 'roster', label: labels.asofViewRoster, testId: 'asof-view-roster' },
+                  { value: 'chart', label: labels.asofViewChart, testId: 'asof-view-chart' },
+                ]}
+                value={asOfView}
+                onChange={(v) => onAsOfViewChange?.(v)}
+                ariaLabel={labels.asofViewLabel}
+              />
+            )}
             <Checkbox
               className="admin-snap-comp-toggle"
               inputClassName="dp-check-input"
@@ -2280,6 +2301,34 @@ function AsOfSnapshotView({
                 onChange={(v) => onAsOfDateChange?.(v)}
               />
             </div>
+            {/* 조직도 보기에서만 — 모양은 옆 CSV 버튼 그대로(org-snapshot-spec §5-B «큰 조직»·«조직도 이미지» 행) */}
+            {showChart && (
+              <>
+                <Tooltip content={chartDisabled ? chartBlockedHint : undefined}>
+                  <button
+                    type="button"
+                    className="admin-snap-export-btn"
+                    data-testid="asof-chart-toggle-all"
+                    disabled={chartDisabled}
+                    onClick={() => chart.onToggleAll?.()}
+                  >
+                    {chart.allExpanded ? labels.asofChartCollapseAll : labels.asofChartExpandAll}
+                  </button>
+                </Tooltip>
+                <Tooltip content={chartDisabled ? chartBlockedHint : undefined}>
+                  <button
+                    type="button"
+                    className="admin-snap-export-btn"
+                    data-testid="asof-chart-image"
+                    disabled={chartDisabled || !!chart.downloading}
+                    aria-busy={chart.downloading || undefined}
+                    onClick={() => chart.onDownloadImage?.()}
+                  >
+                    ↓ {labels.asofChartImage}
+                  </button>
+                </Tooltip>
+              </>
+            )}
             {/* 0행 CSV 를 내보내면 "그날 아무도 없었다" 는 문서가 밖으로 나간다 */}
             <Tooltip content={isOut ? labels.asofOutOfRangeTitle : undefined}>
               <button
@@ -2391,12 +2440,30 @@ function AsOfSnapshotView({
           />
         ) : isEmptyUnknown ? (
           <EmptyState size="lg" data-testid="asof-empty-unknown" description={labels.asofEmpty} />
+        ) : showChart ? (
+          // 그날의 조직도 — 조직도 화면의 카드·연결선 그대로(§5-B «새 시각 언어를 만들지 않는다»).
+          <div className="admin-snap-orgchart" data-testid="asof-orgchart">
+            <OrgChartTreeView
+              orgData={chart.orgData}
+              collapsedIds={chart.collapsedIds}
+              onCollapsedIdsChange={chart.onCollapsedIdsChange}
+              labels={chart.labels}
+              icons={chart.icons}
+              baseUrl={chart.baseUrl}
+              onMemberClick={chart.onMemberClick}
+              onInnerElement={chart.onInnerElement}
+              fitKey={chart.fitKey}
+            />
+          </div>
         ) : (
           <SnapshotRoster
             rows={roster}
             labels={labels}
             showSalary={!!showComp && roster.some((r) => r.salary !== undefined)}
-            changedHint={(col, row) => `${labels.roster[col]} · ${row.name}`}
+            // 바뀐 칸 툴팁 `현재: {값}`(정책 I13 · PW-1998). 옛 서버가 지금 값을 안 주면 종전 문구.
+            changedHint={(col, row) => (row.currentValues && labels.asofCurrentValue
+              ? fill(labels.asofCurrentValue, { value: row.currentValues[col] ?? dash })
+              : `${labels.roster[col]} · ${row.name}`)}
             onMemberClick={onRosterMemberClick}
             extraColumns={rosterExtraColumns}
             baseColumns={rosterColumns}
@@ -2412,7 +2479,7 @@ function AsOfSnapshotView({
         <p className="admin-snap-footnote">{labels.asofPartialNote}</p>
       )}
       {/* 그 날짜엔 아직 없던 열 — 열은 두고 값만 빈다(정책 E13·E18). 문장은 앱이 만든다(어느 열이 비는지는 서버가 안다). */}
-      {labels.asofBlankColumnsNote && !isOut && !failed && (
+      {labels.asofBlankColumnsNote && !isOut && !failed && !showChart && (
         <p className="admin-snap-footnote" data-testid="asof-blank-columns-note">{labels.asofBlankColumnsNote}</p>
       )}
     </div>
@@ -2448,6 +2515,14 @@ export default function OrgSnapshotCanvas({
   onExportAsOf,
   /** As Of 명단 조회 실패(`asOf.error`) 때 [다시 시도] — 없으면 버튼을 그리지 않는다. */
   onAsOfRetry,
+  /**
+   * As Of 보기 `'roster' | 'chart'` 와 조직도 보기 재료(PW-1998 · org-snapshot-spec §5-B).
+   * asOfChart = { orgData, collapsedIds, onCollapsedIdsChange, allExpanded, onToggleAll, onDownloadImage,
+   *               downloading, onInnerElement, fitKey, labels, icons, baseUrl, onMemberClick } — 안 주면 보기 전환이 없다.
+   */
+  asOfView = 'roster',
+  onAsOfViewChange,
+  asOfChart,
   /** 조직 현황 집계 조회 실패(`'failed'`·`'timeout'`). 있으면 날짜 줄 아래를 안내 하나로 바꾼다. */
   snapshotError = null,
   /** 조직 현황 실패 때 [다시 시도] — 없으면 버튼을 그리지 않는다. */
@@ -2593,6 +2668,9 @@ export default function OrgSnapshotCanvas({
               onRosterMemberClick={onRosterMemberClick}
               rosterExtraColumns={rosterExtraColumns}
               rosterColumns={rosterColumns}
+              asOfView={asOfView}
+              onAsOfViewChange={onAsOfViewChange}
+              chart={asOfChart}
             />
           )}
           {view === 'single' && (

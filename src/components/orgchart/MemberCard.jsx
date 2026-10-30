@@ -126,8 +126,12 @@ export default function MemberCard({ member: rawMember, parentId, index, showWor
   return (
     <div
       ref={memberNodeRef}
-      className={`member-node ${isDragging ? 'member-dragging' : ''} ${isDetached ? 'member-detached' : ''}`}
+      className={`member-node ${isDragging ? 'member-dragging' : ''} ${isDetached ? 'member-detached' : ''}${member.changedHint ? ' is-asof-changed' : ''}`}
       data-detached={isDetached ? 'true' : undefined}
+      // 지난 날짜 조직도(어드민 As Of · pivit-work PW-1998)에서 지금과 다른 사람 — 앰버 점선 + ▲,
+      // 올리면 «현재: …». 명단의 변경 하이라이트와 같은 기준이다. 다른 화면은 이 값을 넘기지 않는다.
+      title={member.changedHint || undefined}
+      data-asof-changed={member.changedHint ? 'true' : undefined}
       data-self={member.isSelf ? 'true' : undefined}
       onMouseDown={handleMouseDown}
       onClick={handleClick}
@@ -144,6 +148,9 @@ export default function MemberCard({ member: rawMember, parentId, index, showWor
             <span className="online-dot" style={{ background: status.dotColor }} />
           </div>
           <span className="member-name">{member.name}</span>
+          {member.changedHint && <span className="member-asof-mark" aria-hidden>▲</span>}
+          {/* 겸직 단위에 한 번 더 그린 카드(As Of · 정책 E20) — 리스트 보기의 «겸직» 표시와 같은 배지다. */}
+          {member.concurrentLabel && <StatusBadge tone="neutral" data-testid="org-member-concurrent">{member.concurrentLabel}</StatusBadge>}
           {member.role && <StatusBadge className={`role-badge role-badge-${member.role.toLowerCase()}`}>{member.role}</StatusBadge>}
           {/* 조직 구조상의 대표 1인. isCeo 만 근거로 삼는다 — 권한이 대표거나
               직책 문자열이 '대표'인 것만으로는 붙지 않는다. */}

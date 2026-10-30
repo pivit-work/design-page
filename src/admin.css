@@ -2381,6 +2381,16 @@
   color: var(--utility-amber-700, #b54708);
   font-weight: 600;
 }
+/* As Of 조직도 보기(PW-1998) — 조직도 화면의 캔버스(.canvas-area, 원래 화면 고정 자리)를 콘텐츠 카드 안에 앉힌다.
+   카드·연결선·바탕은 조직도 화면 그대로이고 자리와 높이만 이 카드에 맞춘다. */
+.admin-snap-orgchart .canvas-area {
+  position: relative;
+  top: auto;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  height: 640px;
+}
 .admin-snap-roster-changed {
   margin-left: 4px;
   font-size: 9px;

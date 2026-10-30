@@ -153,6 +153,8 @@
 .dept-meta { display: flex; flex-wrap: wrap; align-items: center; column-gap: 8px; row-gap: 0; font-size: 16px; font-weight: 500; line-height: 24px; }
 .dept-type { color: var(--text-secondary); white-space: nowrap; }
 .dept-count { font-weight: 500; white-space: nowrap; }
+/* 어드민 As Of 조직도 «인건비 ₩합» 한 줄(pivit-work PW-1998) — 옆 계층 표기(.dept-type)와 같은 보조 글자색. */
+.dept-comp { font-size: 14px; font-weight: 500; line-height: 20px; color: var(--text-secondary); white-space: nowrap; }
 
 /* ── Member Card ── */
 /* 최소 폭 161 — 출퇴근 줄(⏱ 67% · 9 → 6)이 든 카드의 시안 폭(Figma 16606:25985). 138 이면 좁은 열(파트)에서
@@ -179,6 +181,11 @@
   align-items: center;
   gap: 8px;
 }
+/* 지난 날짜에 지금과 다른 사람(어드민 As Of 조직도 · PW-1998) — 앰버 점선 + ▲. 명단 변경 하이라이트와 같은 경고색. */
+.member-node.is-asof-changed { border: 1.5px dashed var(--fg-warning-primary); }
+/* 올려도 앰버를 지킨다 — 공용 hover 는 상태색으로 테두리를 바꿔 «현재와 다름» 표시가 사라졌다(브라우저 확인). */
+.member-node.is-asof-changed:hover { border-color: var(--fg-warning-primary); }
+.member-asof-mark { font-size: 10px; font-weight: 700; color: var(--fg-warning-primary); }
 .member-node:hover {
   border-color: var(--member-border-color, var(--bg-brand-solid));
   box-shadow: 0 20px 24px rgba(10,13,18,0.08), 0 8px 8px rgba(10,13,18,0.03), 0 3px 3px rgba(10,13,18,0.04);

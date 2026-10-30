@@ -80,8 +80,19 @@ export default function OrgChartViewport({
   expanded = false,
   // 왼쪽 툴바 맨 앞에 서는 것 — 페이지 캔버스의 트리/리스트 전환(17788:33262). 전체 화면 창은 안 넘긴다.
   toolbarLeading,
+  // toolbars=false — 캔버스 안 툴바 둘을 그리지 않는다. 버튼을 화면 머리에 따로 두는 곳(어드민 As Of 조직도 ·
+  // pivit-work PW-1998)이 쓴다. 트리·카드·연결선·끌기·확대는 그대로다.
+  toolbars = true,
+  // onInnerElement(el) — 트리 요소(canvas-inner)를 호스트에 알린다. 머리 버튼으로 이미지를 뜰 때 쓴다(PW-1998).
+  onInnerElement,
+  // fitKey — 값이 바뀌면 첫 화면 위치로 다시 맞춘다. 호스트가 펼침을 한꺼번에 바꿀 때(전체 펼치기·접기) 넘긴다.
+  fitKey,
 }) {
   const canvasInnerRef = useRef(null);
+  const setInnerRef = useCallback((el) => {
+    canvasInnerRef.current = el;
+    onInnerElement?.(el);
+  }, [onInnerElement]);
   // 배지로 한 조직을 여닫으면 트리 폭이 바뀌고, 트리는 가운데 정렬이라 화면 전체가 옆으로 밀린다
   // (브라우저 실측: 최상위 조직 하나를 접자 632px 튀었다). 기획서는 «보던 자리가 튀면 안 된다» —
   // 누른 카드의 화면 위치를 재 두었다가, 다시 그린 직후 그만큼 이동값을 되돌린다(§5.4 「첫 화면 위치」).
@@ -146,6 +157,12 @@ export default function OrgChartViewport({
     setFitNonce(n => n + 1);
   }, []);
   useEffect(() => { didCenterRef.current = false; }, [orgData]);
+  const fitKeyRef = useRef(fitKey);
+  useEffect(() => {
+    if (fitKeyRef.current === fitKey) return;
+    fitKeyRef.current = fitKey;
+    refitView();
+  }, [fitKey, refitView]);
   useEffect(() => {
     if (didCenterRef.current) return;
     const area = canvasRef.current;
@@ -245,7 +262,7 @@ export default function OrgChartViewport({
         style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
         data-testid={expanded ? 'org-canvas-expanded' : 'org-canvas'}
       >
-        <div className="canvas-inner" ref={canvasInnerRef} style={{
+        <div className="canvas-inner" ref={setInnerRef} style={{
           transform: `translate(${translate.x}px, ${translate.y}px) scale(${scale})`,
           transformOrigin: '0 0',
           position: 'relative',
@@ -255,6 +272,7 @@ export default function OrgChartViewport({
         </div>
 
         {/* 왼쪽 툴바 — (트리/리스트) · 보이는 정보 양 · 기준일 (Figma 17755:26880 · 17788:33261) */}
+        {toolbars && (<>
         <div className="org-toolbar org-toolbar-left" data-testid="org-toolbar-left">
           {toolbarLeading}
           <SegmentedControl
@@ -337,6 +355,7 @@ export default function OrgChartViewport({
             </button>
           )}
         </div>
+        </>)}
       </div>
     </CollapseContext.Provider>
     </PositionsContext.Provider>

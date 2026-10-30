@@ -5,6 +5,7 @@ export { default as BezierConnectors } from './BezierConnectors.jsx';
 export { default as ProfileModal, DEFAULT_PROFILE } from './ProfileModal.jsx';
 export { default as WorkHoursAdjustPanel } from './WorkHoursAdjustPanel.jsx';
 export { default as OrgChartCanvas } from './OrgChartCanvas.jsx';
+export { default as OrgChartTreeView } from './OrgChartTreeView.jsx';
 export { default as ProjectCanvas } from './ProjectCanvas.jsx';
 export { default as OrgListCanvas } from './OrgListCanvas.jsx';
 export { default as AsOfButton } from './AsOfButton.jsx';

@@ -25,6 +25,8 @@ export default function DeptCard({ node, onMouseDown, onClick, isDragging, isCol
         <span className="dept-type">{node.type}</span>
         {node.count && <span className="dept-count" style={{ color: lc.countColor }}>{node.count}</span>}
       </div>
+      {/* 어드민 As Of 조직도의 «인건비 ₩합»(보상 표시가 켜졌을 때만 · pivit-work PW-1998). 다른 화면은 넘기지 않는다. */}
+      {node.compLine && <div className="dept-comp" data-testid="org-dept-comp">{node.compLine}</div>}
       {isCollapsible && (
         <button
           type="button"
