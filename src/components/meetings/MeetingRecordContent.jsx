@@ -153,7 +153,8 @@ function SummaryInput({ field, labels }) {
     const el = ref.current;
     if (!el) return;
     el.style.height = 'auto';
-    el.style.height = `${el.scrollHeight}px`;
+    // 칸은 테두리까지 높이에 넣는 상자다 — scrollHeight 에 위아래 테두리를 더해야 칸 안에 스크롤이 안 남는다.
+    el.style.height = `${el.scrollHeight + el.offsetHeight - el.clientHeight}px`;
   }, [field.draft]);
   return (
     <>
