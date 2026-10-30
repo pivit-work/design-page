@@ -21,6 +21,10 @@ export default function ReportWeeklyRow({
   onGenerate,
   snippetCount,
   activeDays,
+  // 줄 글자 — 소비처가 언어에 맞춰 넘긴다. 안 넘기면 한국어 (pivit-work PW-2434).
+  snippetCountText,
+  activeDaysText,
+  shareLabel = '공유',
   healthScore,
   healthLevel = 'good',
   // 생성된 리포트의 본문 미리보기 (2줄 클램프)
@@ -45,9 +49,9 @@ export default function ReportWeeklyRow({
       <div className="report-row-body">
         <div className="report-row-info">
           <div className="report-row-meta">
-            <span>스니핏 {snippetCount}개</span>
+            <span>{snippetCountText ?? `스니핏 ${snippetCount}개`}</span>
             <span className="report-row-meta-dot">•</span>
-            <span>활동일 {activeDays}일</span>
+            <span>{activeDaysText ?? `활동일 ${activeDays}일`}</span>
             <span className="report-row-meta-dot">•</span>
             <span className={`report-row-health is-${healthLevel}`}>
               <Icon
@@ -86,7 +90,7 @@ export default function ReportWeeklyRow({
             <button
               type="button"
               className="report-row-share"
-              aria-label="공유"
+              aria-label={shareLabel}
               onClick={(e) => {
                 e.stopPropagation();
                 onShare?.();

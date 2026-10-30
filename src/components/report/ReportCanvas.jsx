@@ -20,13 +20,28 @@ import LoadMoreButton from '../shared/LoadMoreButton.jsx';
  *
  * 모든 데이터는 props 로 받는다.
  */
-const PERIOD_ITEMS = [
-  { value: 'weekly', label: 'Weekly' },
-  { value: 'monthly', label: 'Monthly' },
-  { value: 'quarterly', label: 'Quarterly' },
-  { value: 'semiAnnually', label: 'Semi-annually' },
-  { value: 'annually', label: 'Annually' },
-];
+const PERIOD_VALUES = ['weekly', 'monthly', 'quarterly', 'semiAnnually', 'annually'];
+
+/**
+ * 화면 문구 기본값. 소비자가 `labels` 로 덮는다 — 이 패키지는 i18n 을 모른다 (pivit-work PW-2434).
+ * `{count}` 는 숫자로 바뀐다.
+ */
+const DEFAULT_LABELS = {
+  title: '리포트',
+  countLabel: '생성된 리포트',
+  count: '{count}개',
+  weekly: 'Weekly',
+  monthly: 'Monthly',
+  quarterly: 'Quarterly',
+  semiAnnually: 'Semi-annually',
+  annually: 'Annually',
+  snippetCount: '스니핏 {count}개',
+  activeDays: '활동일 {count}일',
+  notGenerated: '아직 생성 전입니다.',
+  share: '공유',
+};
+
+const fill = (text, count) => text.replace('{count}', String(count));
 
 export default function ReportCanvas({
   baseUrl,
@@ -72,7 +87,12 @@ export default function ReportCanvas({
   // 있으면 머리의 «N개»·목록·[더 보기]를 그리지 않는다. 실패를 «0개 · 아직 생성 전»으로 보이지 않게 하려는 것이고,
   // 탭·안내 띠·기간 머리는 그대로 둬 어느 탭이 실패했는지 남긴다.
   listStatus = null,
+  // 화면 문구 묶음 — 키는 `DEFAULT_LABELS`. 빠진 키는 기본값 (pivit-work PW-2434).
+  labels,
 }) {
+  const L = { ...DEFAULT_LABELS, ...(labels ?? {}) };
+  // 글자가 바뀌면 새 목록이 내려가 Tabs 가 밑줄 폭을 다시 잰다(언어를 바꾼 뒤).
+  const periodItems = PERIOD_VALUES.map((value) => ({ value, label: L[value] }));
   const [internalPeriod, setInternalPeriod] = useState('weekly');
   const effectivePeriod = period ?? internalPeriod;
   const handlePeriodClick = (next) => {
@@ -84,18 +104,18 @@ export default function ReportCanvas({
     <main className="tl-page report-page">
       <div className="tl-page-header">
         <div className="tl-page-title-wrap">
-          <h1 className="tl-page-title">리포트</h1>
+          <h1 className="tl-page-title">{L.title}</h1>
           {!listStatus && <div className="tl-page-meta">
-            <span className="tl-meta-label">생성된 리포트</span>
+            <span className="tl-meta-label">{L.countLabel}</span>
             <span className="tl-meta-sep">·</span>
-            <span className="tl-meta-count">{count}개</span>
+            <span className="tl-meta-count">{fill(L.count, count)}</span>
           </div>}
         </div>
       </div>
 
       <div className="tl-tabs-row">
         <Tabs
-          items={PERIOD_ITEMS}
+          items={periodItems}
           value={effectivePeriod}
           onChange={handlePeriodClick}
         />
@@ -148,6 +168,9 @@ export default function ReportCanvas({
               healthLevel={r.healthLevel}
               summary={r.summary}
               baseUrl={baseUrl}
+              snippetCountText={fill(L.snippetCount, r.snippetCount)}
+              activeDaysText={fill(L.activeDays, r.activeDays)}
+              shareLabel={L.share}
               onClick={onReportClick ? () => onReportClick(r) : undefined}
               onShare={onReportShare ? () => onReportShare(r) : undefined}
               onGenerate={onReportGenerate ? () => onReportGenerate(r) : undefined}
@@ -162,6 +185,8 @@ export default function ReportCanvas({
               summary={r.summary}
               stats={r.stats}
               baseUrl={baseUrl}
+              emptyText={L.notGenerated}
+              shareLabel={L.share}
               onClick={onReportClick ? () => onReportClick(r) : undefined}
               onShare={onReportShare ? () => onReportShare(r) : undefined}
               onGenerate={onReportGenerate ? () => onReportGenerate(r) : undefined}

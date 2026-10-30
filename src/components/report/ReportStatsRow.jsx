@@ -15,6 +15,8 @@ export default function ReportStatsRow({
   isCurrent = false,
   emptyText = '아직 생성 전입니다.',
   generateLabel = '리포트 생성하기',
+  // 공유 버튼 읽기용 이름 — 소비처가 언어에 맞춰 넘긴다 (pivit-work PW-2434).
+  shareLabel = '공유',
   // 생성 중 — 아이콘 자리에 도는 표시
   generating = false,
   onGenerate,
@@ -67,7 +69,7 @@ export default function ReportStatsRow({
             <button
               type="button"
               className="report-row-share"
-              aria-label="공유"
+              aria-label={shareLabel}
               onClick={(e) => {
                 e.stopPropagation();
                 onShare?.();
