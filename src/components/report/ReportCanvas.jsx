@@ -68,6 +68,10 @@ export default function ReportCanvas({
   // 만들어 넘기고, 더 남은 것이 없으면 빼서 버튼이 사라진다. 누르면 `onMore`.
   more,
   onMore,
+  // 목록을 못 불러왔을 때 목록 자리에 대신 그리는 노드 — 소비처의 실패 안내 + [다시 시도] (pivit-work PW-2401).
+  // 있으면 머리의 «N개»·목록·[더 보기]를 그리지 않는다. 실패를 «0개 · 아직 생성 전»으로 보이지 않게 하려는 것이고,
+  // 탭·안내 띠·기간 머리는 그대로 둬 어느 탭이 실패했는지 남긴다.
+  listStatus = null,
 }) {
   const [internalPeriod, setInternalPeriod] = useState('weekly');
   const effectivePeriod = period ?? internalPeriod;
@@ -81,11 +85,11 @@ export default function ReportCanvas({
       <div className="tl-page-header">
         <div className="tl-page-title-wrap">
           <h1 className="tl-page-title">리포트</h1>
-          <div className="tl-page-meta">
+          {!listStatus && <div className="tl-page-meta">
             <span className="tl-meta-label">생성된 리포트</span>
             <span className="tl-meta-sep">·</span>
             <span className="tl-meta-count">{count}개</span>
-          </div>
+          </div>}
         </div>
       </div>
 
@@ -127,6 +131,7 @@ export default function ReportCanvas({
           {periodTitle && <h2 className="report-period-title">{periodTitle}</h2>}
         </div>
 
+        {listStatus ?? (<>
         <div className="report-list">
           {aiNotice && <div className="report-ai-notice" data-testid="report-ai-notice">{aiNotice}</div>}
           {reports.map((r) => (listType === 'weekly' ? (
@@ -171,6 +176,7 @@ export default function ReportCanvas({
             onClick={onMore}
           />
         )}
+        </>)}
       </div>
     </main>
   );
