@@ -501,18 +501,24 @@ export default function StartOneOnOneView({
   }
 
   // 새 초안이 도착한 렌더에서만 입력을 덮어쓴다 (dep 은 `[aiDrafts]` 그대로).
-  // 부분 생성은 소비처가 누적 머지해 새 객체로 주므로 identity 비교로 충분하다.
   // 마운트 시점에 이미 초안이 주어질 수 있다(복원·재렌더). `undefined` 센티널로
   // 첫 렌더에서 반드시 한 번 맞춘다 — `aiDrafts` 자체는 `null` 일 수 있어 `null` 은
   // 센티널로 못 쓴다.
+  // 🔴 덮어쓰는 것은 «이번에 새로 온 칸»만이다 (PW-2442). 부분 생성은 소비처가 앞서 받은 초안까지 누적 머지해
+  // 주므로, 묶음 전체를 다시 채우면 매니저가 앞 초안을 고친 글·역량 점수가 다른 칸 [AI 초안] 한 번에 되돌아갔다.
+  // 새로 왔는지는 칸 값이 바뀌었거나 그 칸의 초안 회차(`aiDraftRevisions`)가 올랐는가로 본다 — 재생성이 같은 글을 내도 다시 채운다.
   const [prevAiDrafts, setPrevAiDrafts] = useState(undefined);
-  if (prevAiDrafts !== aiDrafts) {
-    setPrevAiDrafts(aiDrafts);
+  if (prevAiDrafts === undefined || prevAiDrafts.drafts !== aiDrafts) {
+    const before = prevAiDrafts?.drafts ?? null;
+    const beforeRev = prevAiDrafts?.revisions ?? {};
+    const fresh = (field, key) =>
+      before?.[field] !== aiDrafts?.[field] || beforeRev[key] !== aiDraftRevisions[key];
+    setPrevAiDrafts({ drafts: aiDrafts, revisions: aiDraftRevisions });
     if (aiDrafts) {
-      if (aiDrafts.strengths != null) setStrengths(aiDrafts.strengths);
-      if (aiDrafts.sbi != null) setSbi(aiDrafts.sbi);
-      if (aiDrafts.support != null) setSupport(aiDrafts.support);
-      if (aiDrafts.capabilities) {
+      if (aiDrafts.strengths != null && fresh('strengths', 'strengths')) setStrengths(aiDrafts.strengths);
+      if (aiDrafts.sbi != null && fresh('sbi', 'sbi')) setSbi(aiDrafts.sbi);
+      if (aiDrafts.support != null && fresh('support', 'support')) setSupport(aiDrafts.support);
+      if (aiDrafts.capabilities && fresh('capabilities', 'caps')) {
         setCaps((prev) => ({ ...prev, ...aiDrafts.capabilities }));
       }
     }
