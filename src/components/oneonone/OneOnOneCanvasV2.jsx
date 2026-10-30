@@ -101,6 +101,8 @@ export const DEFAULT_LABELS = {
  */
 export default function OneOnOneCanvasV2({
   title = '1on1',
+  /** 제목 바로 오른쪽 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2430). 안 주면 지금과 같다. */
+  titleHelp,
   managerName,
   teamCount,
   briefing,
@@ -248,6 +250,7 @@ export default function OneOnOneCanvasV2({
       <OneOnOnePageHeader
         title={title}
         titleTabs={titleTabs}
+        titleHelp={titleHelp}
         metaText={metaText}
         managerName={managerName}
         teamCount={teamCount}

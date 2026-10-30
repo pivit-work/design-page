@@ -213,6 +213,8 @@ export default function OkrSetupWizardModal({
   // 안 넘기면 «비전 이미지» 상자를 통째로 그리지 않는다 — 눌러도 아무 일 없는 버튼을 남기지 않는다 (PW-1552).
   onGenerateVision,
   title = 'OKR 설정',
+  /** 제목 바로 오른쪽 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2430). 안 주면 지금과 같다. */
+  titleHelp,
   initialState,
   onStateChange,
   contextEntry = null,
@@ -460,6 +462,7 @@ export default function OkrSetupWizardModal({
     // 껍데기는 공용 창 틀(ModalShell · PW-836) — 막·Esc·닫기 X 는 틀이, 단계 이동 줄은 발(footer)로 넘긴다.
     <ModalShell
       title={title}
+      titleAside={titleHelp}
       titleId="okr-wz-title"
       closeLabel={closeLabel}
       onClose={onClose}

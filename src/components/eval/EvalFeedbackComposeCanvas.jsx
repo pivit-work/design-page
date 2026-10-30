@@ -888,6 +888,8 @@ function ThreadScreen({ member, thread, krs, initiatives, okrGroups, snippets, L
 }
 
 export default function EvalFeedbackComposeCanvas({
+  /** 제목 바로 오른쪽 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2430). 안 주면 지금과 같다. */
+  titleHelp,
   team = { members: [], summary: null },
   selectedMember = null,
   thread = null,
@@ -969,7 +971,10 @@ export default function EvalFeedbackComposeCanvas({
           같은 본문 폭이라야 탭을 옮길 때 내용의 좌우 끝이 움직이지 않는다 (PW-218). */}
       <header className="evc-header">
         <div>
-          <h1 className="evc-title">{L.title}</h1>
+          <h1 className="evc-title">
+            {L.title}
+            {titleHelp}
+          </h1>
           <p className="evc-summary">{L.subtitle}</p>
         </div>
       </header>

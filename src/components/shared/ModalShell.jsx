@@ -57,6 +57,8 @@ import { CloseGlyph } from './lineIcons.jsx';
  */
 export default function ModalShell({
   title,
+  /** 제목 바로 오른쪽 «?» 튜토리얼 도움말 버튼 등 제목 옆 노드 (pivit-work PW-2430). 안 주면 지금과 같다. */
+  titleAside,
   description,
   titleId,
   submitLabel,
@@ -143,7 +145,10 @@ export default function ModalShell({
         <div className={`tl-group-modal-content ${contentClassName}`.trim()}>
           {hasHeader && (
             <div className="tl-group-modal-header">
-              <h2 id={titleId} className="tl-group-modal-title">{title}</h2>
+              <h2 id={titleId} className="tl-group-modal-title">
+                {title}
+                {titleAside}
+              </h2>
               {description && (
                 <p className="tl-group-modal-desc">{description}</p>
               )}

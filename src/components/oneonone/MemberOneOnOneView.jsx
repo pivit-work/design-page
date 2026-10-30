@@ -107,6 +107,8 @@ export const DEFAULT_LABELS = {
 
 
 export default function MemberOneOnOneView({
+  /** «내 준비도» 제목 오른쪽 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2430). 안 주면 지금과 같다. */
+  readinessHelp,
   phase = 'prep',
   meetingTitle,
   meetingTime,
@@ -320,7 +322,10 @@ export default function MemberOneOnOneView({
             {/* 내 준비도 (Figma 17416:27962 · 17556:24396) */}
             <div className="ono-start-section" data-testid="ono-my-readiness">
               <div className="ono-my-head">
-                <h3 className="ono-my-h3">{L.readiness}</h3>
+                <h3 className="ono-my-h3">
+                  {L.readiness}
+                  {readinessHelp}
+                </h3>
                 <span className={`ono-my-readiness-count${allDone ? ' is-done' : ''}`}>
                   {readiness.done} / {readiness.total} {L.readinessUnit}
                 </span>
