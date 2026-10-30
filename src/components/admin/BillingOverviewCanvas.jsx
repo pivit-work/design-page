@@ -172,7 +172,7 @@ const DEFAULT_LABELS = {
   priceChangeTitle: '요금 변경 안내 — 동의가 필요합니다',
   priceChangeReason: (date) => `베타 출시 혜택 단가 기간이 ${date}에 끝납니다.`,
   priceChangeBody: (planLabel, chargeDate, oldPrice, newPrice) =>
-    `${planLabel} 좌석 단가가 ${chargeDate} 결제부터 ${won(oldPrice)}→${won(newPrice)}/월으로 바뀝니다. 동의하지 않으시면 기존 요금으로 계속 이용하십니다.`,
+    `${planLabel} 좌석 단가가 ${chargeDate} 결제부터 ${won(oldPrice)}→${won(newPrice)}/월로 바뀝니다. 동의하지 않으시면 기존 요금으로 계속 이용하십니다.`,
   priceChangeAction: '변경 내용 확인',
   priceChangeNoPerm: '동의는 결제 권한자만 할 수 있습니다 — 결제 담당자에게 문의하세요.',
   priceChangeConsentedTitle: (chargeDate, newPrice) =>
