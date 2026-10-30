@@ -372,7 +372,7 @@ function ModalComposeBox({ block, memberName, L, onSend, onAiDraft }) {
     setAiState('loading');
     let res = null;
     try {
-      res = await onAiDraft({ recipientName: memberName, hint: text.trim() || L.aiDraftHint.replace('{title}', block.title) });
+      res = await onAiDraft({ recipientName: memberName, hint: text.trim() || fill(L.aiDraftHint, { title: block.title }) });
     } catch {
       res = null;
     }
