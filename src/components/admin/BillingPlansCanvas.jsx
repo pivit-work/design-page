@@ -53,6 +53,9 @@ const DEFAULT_LABELS = {
   customPriceSuffix: (price) => `${won(price)}+ / 좌석 / 월 (약정 협의)`,
   perSeatMonth: ' / 좌석 / 월',
   annualPerSeatNote: '연간 35% 할인(확정) 적용 체감 단가',
+  // 베타 출시 혜택 (pivit-work PW-2360 · spec-billing §2.7.3-A 3 · screen-billing-plans «(출시 혜택)» 행)
+  launchBenefitPlanTag: (until) => `베타 출시 혜택 · ${until}까지 월간도 연간 단가`,
+  launchBenefitPlanAfter: (price) => `그 뒤 ${won(price)} / 좌석 / 월 — 바뀌기 30일 전에 동의를 여쭙니다`,
   annualComingSoon: '연간 할인 추후 공개',
   ctaCurrentPlan: '현재 플랜',
   ctaContactSales: '영업팀 문의',
@@ -287,11 +290,19 @@ function QuoteCard({ quote, canEdit, onPay, billedSeats, seatsOverMax, labels })
 }
 
 // ── 4티어 플랜 카드 ──────────────────────────────────────────
-function PlanCard({ plan, isCurrent, interval, onAction, canEdit, isCustomCta, featureKeys, featureLabelMap, labels, negotiatedPrice }) {
-  const price = interval === 'annual' && plan.seatPriceAnnual != null
+/** 베타 출시 혜택 단가가 이 카드에 걸리나 — 월간 · 연간 단가가 있는 정가 요금제 · 혜택 기간 안(PW-2360). */
+function launchBenefitApplies(plan, interval, launchBenefitUntil) {
+  return Boolean(launchBenefitUntil) && interval === 'monthly'
+    && plan != null && !plan.isCustom && plan.seatPriceAnnual != null;
+}
+
+function PlanCard({ plan, isCurrent, interval, onAction, canEdit, isCustomCta, featureKeys, featureLabelMap, labels, negotiatedPrice, launchBenefitUntil = null }) {
+  const isFree = !plan.isCustom && !plan.seatPrice;
+  // 베타 출시 혜택(PW-2360) — 기간 안이면 월간도 연간 단가. 연간은 원래 연간 단가라 겹쳐 주지 않고, 커스텀(Pro)은 대상이 아니다.
+  const benefit = launchBenefitApplies(plan, interval, launchBenefitUntil);
+  const price = (interval === 'annual' || benefit) && plan.seatPriceAnnual != null
     ? plan.seatPriceAnnual
     : plan.seatPrice;
-  const isFree = !plan.isCustom && !plan.seatPrice;
 
   return (
     <div style={{
@@ -351,6 +362,13 @@ function PlanCard({ plan, isCurrent, interval, onAction, canEdit, isCustomCta, f
           )}
           {interval === 'annual' && plan.seatPriceAnnual == null && (
             <div style={{ fontSize: 12, color: T.muted, marginTop: 2 }}>{labels.annualComingSoon}</div>
+          )}
+          {benefit && (
+            <div data-testid={`billing-plan-launch-benefit-${plan.code}`}
+              style={{ fontSize: 12, color: T.accentText, fontWeight: 700, marginTop: 'var(--spacing-xxs)' }}>
+              {labels.launchBenefitPlanTag(launchBenefitUntil)}
+              <div style={{ fontWeight: 500, color: T.muted }}>{labels.launchBenefitPlanAfter(plan.seatPrice)}</div>
+            </div>
           )}
         </div>
       )}
@@ -502,6 +520,11 @@ export default function BillingPlansCanvas({
   /** 위 금액을 불러오지 못했다 — 「없음」이 아니라 실패 안내와 [다시 시도]를 그린다. */
   quoteEstimateFailed = false,
   onRetryQuoteEstimate = () => {},
+  /**
+   * 베타 출시 혜택 종료일 `YYYY-MM-DD` — 혜택 기간 안일 때만 앱이 넘긴다(pivit-work PW-2360). 있으면 월간 Starter·Growth
+   * 카드 가격과 예상 청구액이 연간 단가다. 결제 금액은 서버가 다시 정한다.
+   */
+  launchBenefitUntil = null,
 }) {
   const seatConfirmId = useId();
   const labels = mergeLabels(providedLabels);
@@ -566,7 +589,8 @@ export default function BillingPlansCanvas({
   const billingPlan = plans.find((p) => p.code === effectivePreview) ?? currentPlan;
   const previewPlan = plans.find((p) => p.code === previewPlanCode);
 
-  const unitPrice = interval === 'annual' && billingPlan?.seatPriceAnnual != null
+  const unitPrice = (interval === 'annual' || launchBenefitApplies(billingPlan, interval, launchBenefitUntil))
+    && billingPlan?.seatPriceAnnual != null
     ? billingPlan.seatPriceAnnual
     : (billingPlan?.seatPrice ?? 0);
   // 한 주기분 — 월간 1개월, 연간 12개월 (spec-billing.md §2.3 선결제 원칙, PW-757).
@@ -781,6 +805,7 @@ export default function BillingPlansCanvas({
                   ? validQuote.seatPrice
                   : null
               }
+              launchBenefitUntil={launchBenefitUntil}
               onAction={() => onPlanAction(plan)}
             />
           ))}

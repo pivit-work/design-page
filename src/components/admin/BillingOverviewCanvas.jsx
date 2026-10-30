@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import ModalShell from '../shared/ModalShell.jsx';
+import Button from '../shared/Button.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import { ArrowRightGlyph } from '../shared/lineIcons.jsx';
 import { BillingCard as Card, BillingBadge as Badge } from './kit/BillingSurface.jsx';
@@ -164,6 +165,35 @@ const DEFAULT_LABELS = {
   contractRenewSoonNotice: (days) =>
     `계약 종료까지 D-${days} 입니다. 별도 조치가 없으면 현재 협의 단가 그대로 자동 갱신됩니다 — 구독이 끊기지 않습니다. 조건을 다시 협의하려면 영업팀에 문의해 주세요.`,
   contractContactSales: '영업팀 문의',
+
+  // ── 베타 출시 혜택 · 요금 인상 동의 (pivit-work PW-2360 · spec-billing §2.7.3-A · §3.2-D) ──
+  launchBenefitTag: (until) => ` · 베타 출시 혜택 · ${until}까지`,
+  launchBenefitAfter: (price) => `그 뒤 좌석당 ${won(price)} / 월 — 바뀌기 30일 전에 동의를 여쭙니다.`,
+  priceChangeTitle: '요금 변경 안내 — 동의가 필요합니다',
+  priceChangeReason: (date) => `베타 출시 혜택 단가 기간이 ${date}에 끝납니다.`,
+  priceChangeBody: (planLabel, chargeDate, oldPrice, newPrice) =>
+    `${planLabel} 좌석 단가가 ${chargeDate} 결제부터 ${won(oldPrice)}→${won(newPrice)}/월으로 바뀝니다. 동의하지 않으시면 기존 요금으로 계속 이용하십니다.`,
+  priceChangeAction: '변경 내용 확인',
+  priceChangeNoPerm: '동의는 결제 권한자만 할 수 있습니다 — 결제 담당자에게 문의하세요.',
+  priceChangeConsentedTitle: (chargeDate, newPrice) =>
+    `요금 변경에 동의했습니다 — ${chargeDate} 결제부터 좌석당 ${won(newPrice)}`,
+  priceChangeModalTitle: '요금 변경 내용 확인',
+  priceChangeWhenLabel: '적용 시점',
+  priceChangeWhenValue: (chargeDate) => `${chargeDate} 정기결제부터`,
+  priceChangePriceLabel: '좌석 단가',
+  priceChangePriceValue: (oldPrice, newPrice) => `${won(oldPrice)} → ${won(newPrice)} / 월`,
+  priceChangeEstimateLabel: '예상 결제 금액',
+  priceChangeEstimateValue: (amount, seats) => `${won(amount)} / 월 (VAT 별도 · 지금 ${seats}좌석 기준)`,
+  priceChangeEstimateNote: '실제 금액은 그날 활성 좌석으로 정합니다.',
+  priceChangeMethodLabel: '결제 방법',
+  priceChangeMethodValue: (last4) =>
+    last4 ? `등록된 결제수단(끝자리 ${last4})으로 자동 결제 · 변경 없음` : '등록된 결제수단으로 자동 결제 · 변경 없음',
+  priceChangeCancelLabel: '해지',
+  priceChangeCancelValue: (chargeDate) =>
+    `${chargeDate} 전까지 해지할 수 있습니다. 해지하면 이번 주기가 끝난 뒤 Free 로 바뀌며, 남은 기간 환불은 해지·환불 정책을 따릅니다.`,
+  priceChangeNoResponse: '동의하지도 해지하지도 않으시면 기존 요금으로 계속 이용하십니다.',
+  priceChangeAgree: '변경된 요금에 동의',
+  priceChangeCancelSubscription: '구독 해지',
 };
 
 function mergeLabels(provided) {
@@ -284,9 +314,27 @@ export default function BillingOverviewCanvas({
   onCancelRefund,
   /** 미납(past_due) 구독의 무환불 즉시 해지 (PW-1619). 해지 창이 미납일 때 이것 하나만 보인다. */
   onCancelPastDue,
+  /**
+   * 베타 출시 혜택 단가 줄 (pivit-work PW-2360 · screen-billing-overview «(출시 혜택)» 행). 유료 정가 월간 구독이
+   * 혜택 기간 안이고 보유 단가가 월간 정가보다 낮을 때만 앱이 채운다. `{ until: 'YYYY-MM-DD', monthlyListPrice }`
+   */
+  launchBenefit = null,
+  /**
+   * 요금 인상 통지 (PW-2360 · «(PW-1426)» 띠·동의 창 행). 띠를 보일 때만 앱이 채운다.
+   * `{ planLabel, chargeDate, benefitEndDate | null, oldUnitPrice, newUnitPrice, consented, estimatedAmount }`
+   * 동의 창은 앱이 연다(`priceChangeOpen`) — 메일 링크(`?priceChange=`)로 와도 같은 창이 열린다.
+   */
+  priceChange = null,
+  priceChangeOpen = false,
+  priceChangeSaving = false,
+  onOpenPriceChange,
+  onClosePriceChange,
+  /** [변경된 요금에 동의] — 창 본문에 보인 글을 그대로 넘긴다(서버가 «그때 보인 문안»으로 남긴다). */
+  onConsentPriceChange,
 }) {
   const labels = mergeLabels(providedLabels);
   const [cancelOpen, setCancelOpen] = useState(false); // 해지 방식 선택 모달
+  const priceChangeBodyRef = useRef(null);
 
   const sub = subscription;
   const quote = refundQuote;
@@ -405,6 +453,31 @@ export default function BillingOverviewCanvas({
           </Card>
         )}
 
+        {/* 요금 변경 안내 띠 (PW-2360 · §3.2-D) — 동의 전 앰버(녹음 풀 띠와 같은 모양), 동의 뒤 초록 */}
+        {priceChange && !priceChange.consented && (
+          <UsageBanner
+            banner={{
+              title: labels.priceChangeTitle,
+              body: `${priceChange.benefitEndDate ? `${labels.priceChangeReason(priceChange.benefitEndDate)} ` : ''}${labels.priceChangeBody(
+                priceChange.planLabel, priceChange.chargeDate, priceChange.oldUnitPrice, priceChange.newUnitPrice)}`,
+              actionLabel: labels.priceChangeAction,
+              actionKind: 'primary',
+              onAction: onOpenPriceChange,
+              noPermText: labels.priceChangeNoPerm,
+            }}
+            canEdit={canEdit}
+            testId="billing-price-change-banner"
+          />
+        )}
+        {priceChange && priceChange.consented && (
+          <Card style={{ marginBottom: 'var(--spacing-xl)', background: 'var(--bg-success-primary)', border: `1px solid ${T.green}` }}>
+            <div data-testid="billing-price-change-consented" role="status"
+              style={{ fontWeight: 800, color: 'var(--text-success-primary)' }}>
+              {labels.priceChangeConsentedTitle(priceChange.chargeDate, priceChange.newUnitPrice)}
+            </div>
+          </Card>
+        )}
+
         {/* 녹음 풀 배너 (PW-1023) — 80%·소진. 다음 달 풀이 다시 차면 사라진다 */}
         <UsageBanner banner={recordingBanner} canEdit={canEdit} testId="billing-recording-banner" />
         {/* 유료 AI 실행 배너 (PW-2191) — 녹음 배너 바로 아래, 같은 모양 */}
@@ -436,7 +509,17 @@ export default function BillingOverviewCanvas({
                   : sub.status === 'trial'
                     ? labels.trialSeatPrice /* PW-1025 — 체험은 청구서를 만들지 않는다 */
                     : labels.paidSeatPrice(contract ? contract.seatPrice : planUnitPrice)}
+                {/* 베타 출시 혜택(PW-2360 · §2.7.3-A 4) — 청구 단가가 정가보다 낮은 이유와 끝난 뒤 단가 */}
+                {launchBenefit && (
+                  <span data-testid="billing-launch-benefit"
+                    style={{ color: T.accentText, fontWeight: 700 }}>{labels.launchBenefitTag(launchBenefit.until)}</span>
+                )}
               </div>
+              {launchBenefit && (
+                <div style={{ fontSize: 12, color: T.muted, marginTop: 'var(--spacing-xs)' }}>
+                  {labels.launchBenefitAfter(launchBenefit.monthlyListPrice)}
+                </div>
+              )}
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               {/* 업그레이드 CTA: 다음 티어로 (동적 플랜명) */}
@@ -705,6 +788,63 @@ export default function BillingOverviewCanvas({
                 </div>
               )}
               </>)}
+            </div>
+          </ModalShell>
+        )}
+
+        {/* 요금 변경 동의 창 (PW-2360 · «(PW-1426)» 동의 창 행) — 해지 창과 같은 공용 틀. 법이 고지하라는 넷
+            (적용 시점 · 전후 단가 · 결제 방법 · 해지 조건)과 예상 금액, 무응답이면 기존 요금이라는 문장 */}
+        {priceChange && priceChangeOpen && canEdit && (
+          <ModalShell
+            title={labels.priceChangeModalTitle}
+            titleId="billing-price-change-title"
+            closeLabel={labels.close}
+            onClose={onClosePriceChange}
+            zIndex={1000}
+            className="adm-shell"
+            testId="billing-price-change-modal"
+            footer={<>
+              <button type="button" className="tl-group-modal-btn tl-group-modal-btn-secondary"
+                onClick={onClosePriceChange}>
+                {labels.close}
+              </button>
+              {canCancel && (
+                <button type="button" className="tl-group-modal-btn tl-group-modal-btn-secondary"
+                  data-testid="billing-price-change-cancel"
+                  onClick={() => { onClosePriceChange?.(); setCancelOpen(true); }}>
+                  {labels.priceChangeCancelSubscription}
+                </button>
+              )}
+              <Button className="tl-group-modal-btn tl-group-modal-btn-primary"
+                data-testid="billing-price-change-agree" pending={priceChangeSaving}
+                onClick={() => onConsentPriceChange?.(priceChangeBodyRef.current?.innerText ?? '')}>
+                {labels.priceChangeAgree}
+              </Button>
+            </>}
+          >
+            <div ref={priceChangeBodyRef} style={{ fontFamily: T.font, display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
+              {priceChange.benefitEndDate && (
+                <div style={{ fontSize: 13, color: T.text, fontWeight: 700 }}>
+                  {labels.priceChangeReason(priceChange.benefitEndDate)}
+                </div>
+              )}
+              {[
+                [labels.priceChangeWhenLabel, labels.priceChangeWhenValue(priceChange.chargeDate)],
+                [labels.priceChangePriceLabel, labels.priceChangePriceValue(priceChange.oldUnitPrice, priceChange.newUnitPrice)],
+                [labels.priceChangeEstimateLabel, labels.priceChangeEstimateValue(priceChange.estimatedAmount, sub.seats)],
+                [labels.priceChangeMethodLabel, labels.priceChangeMethodValue(sub.method?.last4)],
+                [labels.priceChangeCancelLabel, labels.priceChangeCancelValue(priceChange.chargeDate)],
+              ].map(([label, value]) => (
+                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--spacing-xl)', fontSize: 13 }}>
+                  <span style={{ color: T.sub, flex: 'none' }}>{label}</span>
+                  <span style={{ color: T.text, fontWeight: 600, textAlign: 'right' }}>{value}</span>
+                </div>
+              ))}
+              <div style={{ fontSize: 12, color: T.muted }}>{labels.priceChangeEstimateNote}</div>
+              <div style={{ fontSize: 13, color: T.text, background: T.bl, borderRadius: 10,
+                padding: 'var(--spacing-md) var(--spacing-lg)' }}>
+                {labels.priceChangeNoResponse}
+              </div>
             </div>
           </ModalShell>
         )}

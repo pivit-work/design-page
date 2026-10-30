@@ -98,6 +98,9 @@ const DEFAULT_LABELS = {
   negotiatedSeatBasisNote: (min) =>
     `금액은 결제일 기준 활성 좌석 수로 산정하되, 약정 최소 좌석(${min}명) 아래로는 내려가지 않습니다.`,
   negotiatedSuccessNote: ' · 협의 단가 적용',
+  // 베타 출시 혜택 (pivit-work PW-2360 · spec-billing §2.7.3-A 4 · screen-billing-checkout «(출시 혜택)» 행)
+  launchBenefitTag: (until) => `베타 출시 혜택 · ${until}까지 월간도 연간 단가`,
+  launchBenefitAfter: (price) => `그 뒤 좌석당 ${won(price)} / 월 — 바뀌기 30일 전에 동의를 여쭙니다.`,
   quoteBlockedTitleExpired: '견적이 만료되었습니다',
   quoteBlockedTitleSuperseded: '견적이 변경되었습니다',
   quoteBlockedBodyExpired:
@@ -216,6 +219,11 @@ export default function BillingCheckoutCanvas({
   onBackToPlans,
   onViewRefundPolicy,
   onSuccessGoOverview,
+  /**
+   * 베타 출시 혜택 단가로 계산된 주문 `{ until: 'YYYY-MM-DD', monthlyListPrice }` (pivit-work PW-2360). 서버 체크아웃
+   * 세션이 정한 값만 넘긴다 — 있으면 좌석 단가 줄 아래 혜택 기간과 그 뒤 단가·동의 절차를 미리 알린다.
+   */
+  launchBenefit = null,
 }) {
   const labels = mergeLabels(providedLabels);
 
@@ -412,6 +420,13 @@ export default function BillingCheckoutCanvas({
                   {labels.registeredSeats(seatCount)}
                 </span>
               </div>
+              {launchBenefit && (
+                <div data-testid="checkout-launch-benefit"
+                  style={{ fontSize: 12, color: T.accentText, fontWeight: 700, paddingBottom: 'var(--spacing-sm)' }}>
+                  {labels.launchBenefitTag(launchBenefit.until)}
+                  <div style={{ fontWeight: 500, color: T.muted }}>{labels.launchBenefitAfter(launchBenefit.monthlyListPrice)}</div>
+                </div>
+              )}
               {/* 계약 상한 초과분은 초과 단가로 별도 라인이 된다 — 차단이 아니라 과금이다
                   (spec-billing.md §2.6.5). 결제 버튼도 막지 않는다. */}
               {overSeats > 0 && (
