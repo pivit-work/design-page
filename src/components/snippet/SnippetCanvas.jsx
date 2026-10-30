@@ -115,11 +115,14 @@ export default function SnippetCanvas({
   // 헤더·본문 대신 페이지 칸에 그릴 것(불러오기 실패 등). 없으면 평소 화면.
   placeholder,
   // 리스트 맨 아래 [더 보기] `{ label, loadingLabel?, loading? }` (pivit-work PW-1941) — 호스트가 앞 몇 건만
-  // 받았을 때. 검색 중에는 그리지 않는다(검색은 호스트가 기간 안을 다 받아 둔 뒤 거른다). 누르면 `onMore`.
+  // 받았을 때. 검색 중에는 그리지 않는다(검색은 호스트가 기간 안을 다 받아 둔 뒤 거른다 — `searchOnHost` 면 그린다). 누르면 `onMore`.
   more,
   onMore,
   // 검색어가 바뀔 때 호스트에 알린다 (PW-1941) — 앞 몇 건만 받은 호스트가 검색 전에 나머지를 받게.
   onSearchChange,
+  // true 면 호스트가 검색어로 찾아 온 행을 그대로 그린다 (pivit-work PW-2445) — 서버가 본문까지 찾아 온 행을
+  // 여기서 요약·날짜·태그로 다시 걸러 지우지 않게. 검색 중에도 [더 보기]를 그린다.
+  searchOnHost = false,
 }) {
   const [innerDateFrom, setInnerDateFrom] = useState(initialDateFrom ?? new Date(2026, 3, 10));
   const [innerDateTo, setInnerDateTo] = useState(initialDateTo ?? new Date(2026, 3, 15));
@@ -130,7 +133,7 @@ export default function SnippetCanvas({
   // 검색어 — summary/dateLabel/tags 로 필터 + 결과 하이라이트.
   const [searchQuery, setSearchQuery] = useState('');
   const hasSearch = searchQuery.trim().length > 0;
-  const filteredSnippets = hasSearch
+  const filteredSnippets = hasSearch && !searchOnHost
     ? snippets.filter((s) => matchesQuery(s, searchQuery))
     : snippets;
   const isEmpty = filteredSnippets.length === 0;
@@ -305,7 +308,7 @@ export default function SnippetCanvas({
             ))}
           </div>
         )}
-        {!hasSearch && !isEmpty && more && (
+        {(!hasSearch || searchOnHost) && !isEmpty && more && (
           <LoadMoreButton
             label={more.label}
             loadingLabel={more.loadingLabel}
