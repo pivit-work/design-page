@@ -51,6 +51,11 @@ const parseIsoDate = (s) => {
 
 export default function TimelineCanvas({
   icons,
+  /**
+   * 화면 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2430 · 커트 2026-10-31) — 이 화면엔 제목 글자가 없어
+   * 도구 줄 왼쪽 묶음의 끝(거르기 바로 뒤)에 둔다. 안 주면 지금과 같다.
+   */
+  titleHelp,
   baseUrl,
   // 데이터 주입 — 생략하면 constants 의 mock 데이터 사용 (디자인 프리뷰 용도).
   members,
@@ -636,6 +641,7 @@ export default function TimelineCanvas({
           </button>
         )}
 
+        {titleHelp}
         </div>
 
         <div className="tl-toolbar-right">

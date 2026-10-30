@@ -18,6 +18,13 @@
   margin-left: var(--spacing-sm);
   flex: none;
 }
+/* 제목 글자 없이 탭 줄이 맨 위인 화면 — 탭과 «?»를 한 묶음으로 둬 마지막 탭 바로 뒤에 붙인다.
+   묶음 간격은 공용 Tabs 의 탭 사이(12)와 같고, «?» 자체의 margin-left 6 이 더해진다. */
+.tvh-help-group {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+}
 .tvh-help-btn {
   display: inline-flex;
   align-items: center;

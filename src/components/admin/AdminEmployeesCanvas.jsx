@@ -5228,6 +5228,11 @@ function EmployeesEditPanel({
 export default function AdminEmployeesCanvas({
   /** 제목 바로 오른쪽 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2430). 안 주면 지금과 같다. */
   positionHelp,
+  /**
+   * 화면 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2430 · 커트 2026-10-31) — 이 화면엔 제목 글자가 없어
+   * 탭 줄 마지막 탭 바로 뒤에 둔다(매니저 대시보드와 같은 자리). 안 주면 지금과 같다.
+   */
+  titleHelp,
   members = [],
   orgUnits = [],
   invites = [],
@@ -5666,6 +5671,27 @@ export default function AdminEmployeesCanvas({
     return <div className="admin-emp-canvas">{appointmentsTab.render()}</div>;
   }
 
+  // 탭 줄 — «?»(titleHelp)가 있으면 마지막 탭 바로 뒤에 붙인다
+  const tabsNode = (
+    <Tabs
+      items={tabs.map((t) => ({
+        value: t.id,
+        label: (
+          <span className="adm-tab-label">
+            {t.label}
+            {t.count != null && (
+              <span className={`admin-emp-tab-count${t.warn ? ' is-warn' : ''}${tab === t.id ? ' is-active' : ''}`}>
+                {t.count}
+              </span>
+            )}
+          </span>
+        ),
+      }))}
+      value={tab}
+      onChange={goTab}
+    />
+  );
+
   return (
     <div className="admin-emp-canvas">
       {billingSummary && (
@@ -5709,23 +5735,15 @@ export default function AdminEmployeesCanvas({
         </div>
       )}
       <div className="tl-tabs-row adm-tabs-row">
-        <Tabs
-          items={tabs.map((t) => ({
-            value: t.id,
-            label: (
-              <span className="adm-tab-label">
-                {t.label}
-                {t.count != null && (
-                  <span className={`admin-emp-tab-count${t.warn ? ' is-warn' : ''}${tab === t.id ? ' is-active' : ''}`}>
-                    {t.count}
-                  </span>
-                )}
-              </span>
-            ),
-          }))}
-          value={tab}
-          onChange={goTab}
-        />
+        {/* 줄이 양 끝으로 벌리므로(space-between) «?»는 탭과 한 묶음에 넣어 마지막 탭 바로 뒤에 붙인다 */}
+        {titleHelp ? (
+          <div className="tvh-help-group">
+            {tabsNode}
+            {titleHelp}
+          </div>
+        ) : (
+          tabsNode
+        )}
       </div>
 
       {loading ? (
