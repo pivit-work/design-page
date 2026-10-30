@@ -1,13 +1,15 @@
 import OkrProgressBar from './OkrProgressBar.jsx';
+import { useOkrLabels } from './okr-labels.jsx';
 
 /**
  * OkrOverallCard — 전체달성률 요약 카드 (큰 % + 풀폭 진행바 + 상태 뱃지).
  */
 export default function OkrOverallCard({ percent, status }) {
+  const L = useOkrLabels();
   return (
     <div className="okr-p-overall">
       <div className="okr-p-overall-head">
-        <span className="okr-p-overall-label">전체달성률</span>
+        <span className="okr-p-overall-label">{L('board.overall')}</span>
         {status && <span className={`okr-status-badge is-${status.tone}`}>{status.label}</span>}
       </div>
       <p className="okr-p-overall-percent">{percent}%</p>

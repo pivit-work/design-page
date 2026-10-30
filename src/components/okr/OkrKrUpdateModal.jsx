@@ -96,14 +96,14 @@ export default function OkrKrUpdateModal({ detail, icons, baseUrl = '', onClose,
       title={detail.title}
       description={(
         <span className="okr-kru-sub">
-          <span>{detail.krLabel} — 달성률 업데이트</span>
+          <span>{L.subtitle(detail.krLabel)}</span>
           <span className="okr-kru-method">{detail.method}</span>
         </span>
       )}
       titleId="okr-kru-title"
-      closeLabel="취소"
-      cancelLabel="취소"
-      submitLabel="확정"
+      closeLabel={L.close}
+      cancelLabel={L.cancel}
+      submitLabel={L.submit}
       canSubmit
       busy={saving}
       onClose={onClose}
@@ -117,15 +117,15 @@ export default function OkrKrUpdateModal({ detail, icons, baseUrl = '', onClose,
           <div className="okr-kru-ai-head">
             <div className="okr-kru-ai-label">
               <Icon src={icons.aiChat} size={14} color="var(--utility-purple-500)" baseUrl={baseUrl} />
-              <span>AI 초안</span>
+              <span>{L.aiDraft}</span>
             </div>
             <span>{detail.aiMeta}</span>
           </div>
           <div className="okr-kru-ai-result">
-            <p className="okr-kru-ai-caption">집계결과</p>
+            <p className="okr-kru-ai-caption">{L.aiCaption}</p>
             <p className="okr-kru-ai-value">{detail.aiValue}/{detail.total}{detail.unit}</p>
           </div>
-          <button type="button" className="okr-kru-apply" onClick={() => setValue(detail.aiValue)}>적용</button>
+          <button type="button" className="okr-kru-apply" onClick={() => setValue(detail.aiValue)}>{L.apply}</button>
         </div>
       )}
 

@@ -43,3 +43,6 @@ export {
   OkrWriteButton,
   OkrTabPlaceholder,
 } from './OkrHeaderParts.jsx';
+
+// 화면 문구 묶음 — 소비자가 번역을 넘긴다 (pivit-work PW-2415).
+export { OKR_LABELS, OkrLabelsContext, makeOkrLabels, useOkrLabels } from './okr-labels.jsx';

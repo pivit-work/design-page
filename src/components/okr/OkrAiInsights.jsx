@@ -1,6 +1,7 @@
 import Icon from '../shared/Icon.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import rowKey from './rowKey.js';
+import { useOkrLabels } from './okr-labels.jsx';
 
 /**
  * OkrAiInsights — 위험 신호 배너 + 신호 칩 목록.
@@ -31,13 +32,15 @@ export default function OkrAiInsights({
   onAction,
   onClose,
 }) {
+  // banner 가 문구를 주면 그것이 이기고, 없으면 OKR 문구 묶음(소비자 번역 → 한국어 기본값)을 쓴다.
+  const L = useOkrLabels();
   const {
-    label = 'AI 인사이트',
+    label = L('insights.label'),
     autoChip = true,
-    autoChipLabel = '자동 분석',
+    autoChipLabel = L('insights.autoChip'),
     showRefresh = true,
-    refreshLabel = '새로고침',
-    closeLabel = '닫기',
+    refreshLabel = L('insights.refresh'),
+    closeLabel = L('insights.close'),
   } = banner;
   const refreshIcon = (
     <Icon src={icons.refreshCw} size={16} color="var(--utility-purple-500)" baseUrl={baseUrl} />

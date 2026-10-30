@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 import { CloseGlyph } from '../shared/lineIcons.jsx';
-import { resolveKoreanParticles } from '../shared/koreanParticle.js';
 import Tabs from '../shared/Tabs.jsx';
+import Button from '../shared/Button.jsx';
 import OkrBoard from './OkrBoard.jsx';
 import OkrHistoryList from './OkrHistoryList.jsx';
 import rowKey from './rowKey.js';
 import { AI_PREREQUISITES } from './okrStrategyAiPrerequisites.js';
 import stripListMarker from '../shared/stripListMarker.js';
+import { OkrLabelsContext, makeOkrLabels } from './okr-labels.jsx';
 
 /**
  * OkrStrategyCanvas — 전사 OKR 탭 (전략 캔버스/Company OKR/히스토리).
@@ -38,7 +39,9 @@ import stripListMarker from '../shared/stripListMarker.js';
  *   화면이 바뀌는** 가짜 성공을 본다(PW-106 에서 실제로 그랬다). 새로고침하면
  *   되돌아간다. 데모 모드와 권한은 별개 축이라 prop 을 나눈다.
  */
-export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, history, icons, baseUrl = '', onKrUpdate, onSubmitFeedback, onViewAllFeedback, onWriteFeedback, onSave, onAiAutocomplete, canEdit = true, onRefreshInsights, onInsightAction, onCloseInsights, showInsights = true, onToggleInitiative, canEditInitiative = false , focusKrId = null, focusObjectiveId = null, historyEmptyLabel, toolbarAside = null }) {
+export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, history, icons, baseUrl = '', onKrUpdate, onSubmitFeedback, onViewAllFeedback, onWriteFeedback, onSave, onAiAutocomplete, canEdit = true, onRefreshInsights, onInsightAction, onCloseInsights, showInsights = true, onToggleInitiative, canEditInitiative = false , focusKrId = null, focusObjectiveId = null, historyEmptyLabel, toolbarAside = null, labels }) {
+  // 화면 문구 — 소비자가 번역을 넘긴다(PW-2415). 안 넘기면 종전 한국어.
+  const L = useMemo(() => makeOkrLabels(labels), [labels]);
   const [subTab, setSubTab] = useState('canvas');
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(null);
@@ -89,7 +92,7 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
       // 편집 모드를 유지해 입력한 내용을 보존한다. 권한 거절(403)은 소비자가 토스트로 알리고
       // canEdit 을 내린다 — «잠시 후 다시 시도» 를 겹치지 않는다 (pivit-work PW-1508).
       if (err?.response?.status !== 403) {
-        setError({ rowId: null, message: '전략 캔버스 저장에 실패했습니다. 잠시 후 다시 시도해주세요.' });
+        setError({ rowId: null, message: L('strategy.saveFailed') });
       }
     } finally {
       setSaving(false);
@@ -114,7 +117,7 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
     if (rowId) {
       const missing = missingPrerequisites(rowId);
       if (missing.length > 0) {
-        setError({ rowId, message: resolveKoreanParticles(`${missing.join(', ')}을(를) 먼저 입력해주세요.`) });
+        setError({ rowId, message: L('strategy.missingFirst', { fields: missing.join(', ') }) });
         return;
       }
     }
@@ -133,7 +136,7 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
       setEditing(true);
     } catch (err) {
       if (err?.response?.status !== 403) {
-        setError({ rowId: null, message: 'AI 자동완성에 실패했습니다. 잠시 후 다시 시도해주세요.' });
+        setError({ rowId: null, message: L('strategy.aiFailed') });
       }
     } finally {
       setAiLoading(false);
@@ -143,19 +146,21 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
   const errorBanner = (
     <div className="okr-s-error" role="alert">
       <span>{error?.message}</span>
-      <button type="button" className="okr-s-error-close" aria-label="닫기" onClick={() => setError(null)}>
+      {/* 공용 Button 에 종전 모양(okr-s-error-close)을 그대로 넘긴다 — 닫기 이름을 번역하면서 옮겼다(PW-2415). */}
+      <Button className="okr-s-error-close" aria-label={L('strategy.close')} onClick={() => setError(null)}>
         <CloseGlyph size={13} aria-hidden="true" />
-      </button>
+      </Button>
     </div>
   );
 
   const SUB_TABS = [
-    { id: 'canvas', label: '전략 캔버스' },
+    { id: 'canvas', label: L('strategy.tabCanvas') },
     { id: 'company', label: 'Company OKR' },
-    { id: 'history', label: '히스토리' },
+    { id: 'history', label: L('strategy.tabHistory') },
   ];
 
   return (
+    <OkrLabelsContext.Provider value={L}>
     <div className="okr-personal-area">
       {/* 화면 안 탭 — 공용 Tabs (PW-836). */}
       <div className="tl-tabs-row okr-s-tabs-row">
@@ -182,19 +187,19 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
                 onClick={() => runAi()}
                 disabled={!onAiAutocomplete || aiLoading !== false}
               >
-                {aiLoading === true ? 'AI 자동완성 중…' : '전략 전체 AI 자동완성'}
+                {aiLoading === true ? L('strategy.aiAllRunning') : L('strategy.aiAll')}
               </button>
             )}
             <div className="okr-s-toolbar-right">
               {editing ? (
                 <>
-                  <button className="okr-s-edit-btn" onClick={cancelEdit} disabled={saving}>취소</button>
+                  <button className="okr-s-edit-btn" onClick={cancelEdit} disabled={saving}>{L('strategy.cancel')}</button>
                   <button className="okr-s-save-btn" onClick={save} disabled={saving || !canEdit}>
-                    {saving ? '저장 중…' : '저장'}
+                    {saving ? L('strategy.saving') : L('strategy.save')}
                   </button>
                 </>
               ) : canEdit ? (
-                <button className="okr-s-edit-btn" onClick={startEdit}>편집</button>
+                <button className="okr-s-edit-btn" onClick={startEdit}>{L('strategy.edit')}</button>
               ) : null}
               {toolbarAside}
             </div>
@@ -230,14 +235,14 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
                   <button
                     type="button"
                     className="okr-s-ai-chip"
-                    title={`${row.label} AI 자동완성`}
-                    aria-label={`${row.label} AI 자동완성`}
+                    title={L('strategy.rowAi', { row: row.label })}
+                    aria-label={L('strategy.rowAi', { row: row.label })}
                     data-testid={`okr-s-ai-${row.id}`}
                     onClick={() => runAi(row.id)}
                     disabled={!onAiAutocomplete || aiLoading !== false}
                   >
                     <Icon src={icons.aiChat} size={12} color="var(--utility-purple-500)" baseUrl={baseUrl} />
-                    <span>{aiLoading === row.id ? '생성 중…' : 'AI'}</span>
+                    <span>{aiLoading === row.id ? L('strategy.rowAiRunning') : L('strategy.rowAiShort')}</span>
                   </button>
                 )}
               </div>
@@ -249,8 +254,9 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
       ) : subTab === 'history' ? (
         <OkrHistoryList history={history} icons={icons} baseUrl={baseUrl} emptyLabel={historyEmptyLabel} />
       ) : (
-        <div className="okr-s-placeholder">준비 중인 화면입니다</div>
+        <div className="okr-s-placeholder">{L('strategy.placeholder')}</div>
       )}
     </div>
+    </OkrLabelsContext.Provider>
   );
 }

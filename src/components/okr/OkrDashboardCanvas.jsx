@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 import Skeleton from '../shared/Skeleton.jsx';
 import usePanZoom from '../shared/usePanZoom.js';
@@ -6,6 +6,7 @@ import OkrConnectors from './OkrConnectors.jsx';
 import OkrGroupNode from './OkrGroupNode.jsx';
 import { OkrPositionsContext } from './contexts.js';
 import { loadOkrPositions, saveOkrPositions } from './hooks.js';
+import { OkrLabelsContext, makeOkrLabels } from './okr-labels.jsx';
 
 /**
  * OkrDashboardCanvas — OKR 대시보드 pan/zoom 캔버스.
@@ -30,7 +31,10 @@ export default function OkrDashboardCanvas({
   moreObjectivesLabel,
   // 처음 불러오는 동안 노드 골격을 깐다(okr-policy §3.4 「노드 골격 스켈레톤」 · PW-1503). 이때 data 는 없어도 된다.
   loading = false,
+  // 화면 문구 — 소비자가 번역을 넘긴다(PW-2415). 안 넘기면 종전 한국어.
+  labels,
 }) {
+  const L = useMemo(() => makeOkrLabels(labels), [labels]);
   const { canvasRef, scale, translate, isDragging, canvasProps, zoomIn, zoomOut, resetView, setView } = usePanZoom({
     ignoreSelector: '.zoom-controls, .okr-group-card, .okr-objective-row, .okr-objective-more, .okr-member-chip',
   });
@@ -103,6 +107,7 @@ export default function OkrDashboardCanvas({
 
   return (
     // scale 은 블록 드래그가 화면 좌표를 캔버스 로컬 좌표로 되돌릴 때 쓴다(PW-248).
+    <OkrLabelsContext.Provider value={L}>
     <OkrPositionsContext.Provider value={{ positions, updatePosition, scale }}>
       <div
         className="canvas-area okr-canvas-area"
@@ -112,7 +117,7 @@ export default function OkrDashboardCanvas({
       >
         <div className="drag-hint">
           <Icon src={icons.expand} size={14} color="var(--text-brand-tertiary)" baseUrl={baseUrl} />
-          <span>화면을 드래그하면 좀 더 쉽게 OKR를 보실 수 있습니다.</span>
+          <span>{L('dashboard.dragHint')}</span>
         </div>
 
         <div className="canvas-inner" data-okr-canvas-inner ref={canvasInnerRef} style={{
@@ -193,5 +198,6 @@ export default function OkrDashboardCanvas({
         </div>
       </div>
     </OkrPositionsContext.Provider>
+    </OkrLabelsContext.Provider>
   );
 }

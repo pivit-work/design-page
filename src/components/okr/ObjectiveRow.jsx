@@ -2,6 +2,7 @@ import OkrProgressBar from './OkrProgressBar.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import OkrUnalignedBadge from './OkrUnalignedBadge.jsx';
 import { useOkrDrag } from './hooks.js';
+import { useOkrLabels } from './okr-labels.jsx';
 
 /**
  * ObjectiveRow — Q# 뱃지 + 목표 제목 + 진행바 + % 카드 (디자이너 한 줄 .okr-objective-row, 406px).
@@ -13,6 +14,7 @@ import { useOkrDrag } from './hooks.js';
  */
 export default function ObjectiveRow({ objective, dragId, onClick }) {
   const { isDragging, onDown, style } = useOkrDrag(dragId, onClick);
+  const L = useOkrLabels();
   const badge = <StatusBadge className={`okr-q-badge is-${objective.badge || 'gray'}`}>{objective.q}</StatusBadge>;
   const title = (
     <span className="okr-objective-title" title={objective.title}>
@@ -25,7 +27,7 @@ export default function ObjectiveRow({ objective, dragId, onClick }) {
     <OkrUnalignedBadge
       variant="pill"
       count={objective.unalignedCount}
-      title={`상위 연결이 없는 KR ${objective.unalignedCount}개 — 아직 어느 팀도 받지 않았습니다`}
+      title={L('unaligned.rowTitle', { count: objective.unalignedCount })}
     />
   );
   const progress = (

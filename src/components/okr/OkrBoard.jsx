@@ -5,6 +5,7 @@ import OkrObjectiveSection from './OkrObjectiveSection.jsx';
 import OkrFeedbackComposeModal from './OkrFeedbackComposeModal.jsx';
 import OkrKrUpdateModal from './OkrKrUpdateModal.jsx';
 import rowKey from './rowKey.js';
+import { useOkrLabels } from './okr-labels.jsx';
 
 /**
  * OkrBoard — AI 인사이트 + 전체달성률 + Objective 테이블 + 피드백/업데이트
@@ -48,6 +49,7 @@ export default function OkrBoard({
   focusObjectiveId = null,
 }) {
   const { banner, insights, overall, theme, objectives } = board;
+  const L = useOkrLabels();
   // 피드백 작성 대상 KR(null=닫힘). 저장 콜백에 krId 를 전달하기 위해 kr 을 보관.
   const [composeKr, setComposeKr] = useState(null);
   const [krUpdate, setKrUpdate] = useState(null);
@@ -96,9 +98,9 @@ export default function OkrBoard({
 
       {composeKr && (
         <OkrFeedbackComposeModal
-          title="피드백 작성"
+          title={L('board.writeFeedback')}
           placeholder=""
-          submitLabel="완료"
+          submitLabel={L('board.feedbackSubmit')}
           icons={icons}
           baseUrl={baseUrl}
           onClose={() => setComposeKr(null)}

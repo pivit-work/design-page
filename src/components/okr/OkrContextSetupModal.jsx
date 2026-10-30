@@ -1,8 +1,9 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import OkrContextAnalysisResult from './OkrContextAnalysisResult.jsx';
 import { UploadCloudGlyph } from '../shared/lineIcons.jsx';
+import { makeOkrLabels } from './okr-labels.jsx';
 
 /**
  * OkrContextSetupModal — OKR 컨텍스트 설정 모달 (관리자 전용).
@@ -55,7 +56,10 @@ export default function OkrContextSetupModal({
   analyzeDisabledReason,
   analysisNotice = null,
   analysisLabels,
+  // 창 문구 — 소비자가 번역을 넘긴다(PW-2415). 안 넘기면 종전 한국어.
+  labels,
 }) {
+  const L = useMemo(() => makeOkrLabels(labels), [labels]);
   const AL = { ...ANALYSIS_LABELS, ...(analysisLabels || {}) };
   const analyzeDisabled = analyzing || !!analyzeDisabledReason;
   const fileRef = useRef(null);
@@ -71,10 +75,10 @@ export default function OkrContextSetupModal({
       title={(
         <span className="okr-ctx-head">
           <span className="okr-ctx-head-left">
-            OKR 컨텍스트 설정
-            <StatusBadge className="okr-ctx-admin-badge">관리자 전용</StatusBadge>
+            {L('context.title')}
+            <StatusBadge className="okr-ctx-admin-badge">{L('context.adminOnly')}</StatusBadge>
           </span>
-          <span className="okr-ctx-optional">선택사항</span>
+          <span className="okr-ctx-optional">{L('context.optional')}</span>
         </span>
       )}
       titleId="okr-ctx-title"
@@ -84,25 +88,25 @@ export default function OkrContextSetupModal({
       bodyClassName="okr-shell-body"
       footer={(
         <>
-          <span className="okr-wz-footer-hint">AI 분석은 선택입니다. 확인하지 않은 분석 결과는 컨텍스트로 주입되지 않습니다.</span>
+          <span className="okr-wz-footer-hint">{L('context.footerHint')}</span>
           <button type="button" className="okr-btn is-brand" disabled={!onStartOkr} onClick={() => onStartOkr?.()}>
-            OKR설정 시작
+            {L('context.start')}
           </button>
         </>
       )}
     >
       <div className="okr-ctx-intro">
         <p className="okr-ctx-intro-desc">
-          AI가 우리 회사를 이해하는 기반 지식입니다. 회사 문서·링크·전략 메모를 한 곳에 등록해두면, 이후 모든 OKR 수립(전사→부문→팀→개인)에서 AI 제안의 정확도가 높아집니다.
+          {L('context.intro')}
         </p>
-        <p className="okr-ctx-intro-note">비워두고도 OKR 설정을 진행할 수 있어요.</p>
+        <p className="okr-ctx-intro-note">{L('context.introNote')}</p>
       </div>
 
       <div className="okr-wz-stepblock">
         <div className="okr-wz-section">
           <p className="okr-wz-step-eyebrow">STEP1 - Backward Looking</p>
-          <p className="okr-wz-question">지식 소스</p>
-          <p className="okr-wz-desc">파일·링크·텍스트를 하나의 목록에 자유롭게 추가하세요. 분류는 필요 없습니다.</p>
+          <p className="okr-wz-question">{L('context.sourcesTitle')}</p>
+          <p className="okr-wz-desc">{L('context.sourcesDesc')}</p>
         </div>
         <div
           className={`okr-ctx-dropzone${dragOver ? ' is-dragover' : ''}`}
@@ -111,18 +115,18 @@ export default function OkrContextSetupModal({
           onDragLeave={() => setDragOver(false)}
           onDrop={(e) => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer?.files); }}
           role="button"
-          aria-label="지식 소스 파일 업로드"
+          aria-label={L('context.uploadAria')}
         >
           <span className="okr-ctx-dropzone-icon" aria-hidden>
             <UploadCloudGlyph size={20} strokeWidth={1.67} />
           </span>
           <div className="okr-ctx-dropzone-texts">
             <p className="okr-ctx-dropzone-action">
-              <b>업로드하려면 클릭하세요</b>
+              <b>{L('context.uploadClick')}</b>
               <svg className="okr-ctx-dropzone-ext" viewBox="0 0 12 12" width="9" height="9" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                 <path d="M5 2H2.5A1.5 1.5 0 0 0 1 3.5v6A1.5 1.5 0 0 0 2.5 11h6A1.5 1.5 0 0 0 10 9.5V7M7 1h4v4M11 1 5.5 6.5" />
               </svg>
-              <span className="okr-ctx-dropzone-or">또는 끌어서 놓기</span>
+              <span className="okr-ctx-dropzone-or">{L('context.uploadOr')}</span>
             </p>
             <p className="okr-ctx-dropzone-hint">{dropzoneHint ?? 'SVG, PNG, JPG, DOC, PDF 등'}</p>
           </div>
@@ -139,8 +143,8 @@ export default function OkrContextSetupModal({
       <div className="okr-wz-vision">
         <div className="okr-wz-vision-head">
           <div className="okr-wz-section">
-            <p className="okr-wz-vision-title">AI 분석 — 키워드·전략 테마 추출</p>
-            <p className="okr-wz-desc">소스가 1건 이상일 때 분석할 수 있습니다. 선택 사항이며 수동으로 실행됩니다.</p>
+            <p className="okr-wz-vision-title">{L('context.analysisTitle')}</p>
+            <p className="okr-wz-desc">{L('context.analysisDesc')}</p>
           </div>
           <button
             type="button"

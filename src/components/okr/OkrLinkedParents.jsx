@@ -1,14 +1,16 @@
 import rowKey from './rowKey.js';
+import { useOkrLabels } from './okr-labels.jsx';
 
 /**
  * OkrLinkedParents — 연결된 상위 OKR 섹션.
  * 헤더(제목 + 상위 링크들) + 상위 OKR 요약 카드 2열.
  */
 export default function OkrLinkedParents({ links, parents }) {
+  const L = useOkrLabels();
   return (
     <div className="okr-p-linked">
       <div className="okr-p-linked-head">
-        <span className="okr-p-linked-title">연결된 상위 OKR</span>
+        <span className="okr-p-linked-title">{L('board.linkedParents')}</span>
         {links.map((link, i) => (
           <span key={rowKey(link, i, 'label')} className={`okr-p-linked-link is-${link.tone || 'blue'}`}>{link.label}</span>
         ))}

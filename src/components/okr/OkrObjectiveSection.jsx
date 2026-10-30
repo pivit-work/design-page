@@ -8,6 +8,7 @@ import OkrUnalignedBadge from './OkrUnalignedBadge.jsx';
 import rowKey from './rowKey.js';
 import scrollToFocus from '../shared/scrollToFocus.js';
 import { isEnterKey } from '../shared/enterKey.js';
+import { useOkrLabels } from './okr-labels.jsx';
 
 /**
  * OkrObjectiveSection — 개인 OKR Objective 행 + 펼침 콘텐츠.
@@ -52,6 +53,7 @@ function ProgressCell({ percent, barVariant, percentLabel, status }) {
  * 않아야 하므로 숨기지도 않는다(G2 읽기 전용 배지 · G4 열람 보장).
  */
 function InitiativePill({ initiative, canEdit, onToggle }) {
+  const L = useOkrLabels();
   const cls = `okr-pill is-${initiative.status.tone}${canEdit ? ' is-toggleable' : ''}`;
   // 완료는 「✓ 완료」다(okr-spec §3.7 · PW-1504). 체크는 글자가 아니라 선 아이콘 — 라벨은 번역 문구라
   // 기호를 담지 않는다(pivit-work 번역 글리프 가드).
@@ -63,7 +65,7 @@ function InitiativePill({ initiative, canEdit, onToggle }) {
   );
   if (!canEdit) return <span className={cls}>{label}</span>;
   return (
-    <Tooltip content="클릭해 상태 전환">
+    <Tooltip content={L('board.statusToggleHint')}>
       <span
         className={cls}
         role="button"
@@ -95,6 +97,7 @@ export default function OkrObjectiveSection({
   focusKrId = null,
   focusObjectiveId = null,
 }) {
+  const L = useOkrLabels();
   const [expanded, setExpanded] = useState(defaultExpanded);
   // 소비처가 가리킨 KR(또는 목표)이 이 목표 안에 있으면 펼치고 그 줄까지 내린다 (PW-2016).
   // 내리기는 사용자가 이 목표를 직접 여닫기 전까지만 — 접었다 다시 펼칠 때 화면이 튀지 않게.
@@ -150,7 +153,7 @@ export default function OkrObjectiveSection({
               판정은 소비자(어댑터)가 이미 끝낸 뒤 boolean 으로 넘긴다: 이 컴포넌트는
               표시용 라벨을 판정에 섞을 수 없어야 한다. 기본값 false 라 기존 소비처는 그대로다. */}
           {objective.unaligned && (
-            <OkrUnalignedBadge note="회사 OKR 미연결" title="상위 KR 에 연결된 하위 KR 이 없습니다" />
+            <OkrUnalignedBadge note={L('board.unalignedNote')} title={L('board.unalignedTitle')} />
           )}
         </div>
         <div className="okr-p-col-weight">{objective.weight}</div>
@@ -180,7 +183,7 @@ export default function OkrObjectiveSection({
                   `badge` 를 주면 화살표 뒤 글자로 그대로 쓴다(「회사 KR 1-2」처럼 소비자가 번역해 넘긴다). */}
               {(kr.teamLinks ?? (kr.teamLink ? [kr.teamLink] : [])).map((link, n) => (
                 <div className="okr-p-kr-teamlink" key={link.id ?? n}>
-                  <span className="okr-p-kr-teamlink-badge">↑ {link.badge ?? `팀${link.team}`}</span>
+                  <span className="okr-p-kr-teamlink-badge">↑ {link.badge ?? L('board.teamLink', { team: link.team })}</span>
                   <span className="okr-p-kr-teamlink-title">{link.title}</span>
                   <ProgressCell {...link} />
                 </div>
@@ -194,7 +197,7 @@ export default function OkrObjectiveSection({
             <div className="okr-p-feedback">
               <div className="okr-p-row okr-p-feedback-head" onClick={() => toggleFeedback(i)}>
                 <div className="okr-p-col-label">
-                  <span className="okr-p-feedback-title">피드백</span>
+                  <span className="okr-p-feedback-title">{L('board.feedback')}</span>
                   <span className={`okr-p-caret${openFeedback[i] ? ' is-open' : ''}`}>
                     <Icon src={icons.chevronDown} size={16} color="var(--utility-green-600)" baseUrl={baseUrl} />
                   </span>
@@ -206,7 +209,7 @@ export default function OkrObjectiveSection({
                   {/* canWrite === false 면 칩을 그리지 않는다 — 소비처가 «이 KR 에는 쓰러 갈 곳이 없다»
                       (볼 수 없는 사람의 KR 등)고 판정했을 때. 눌러도 막히는 칩을 두지 않는다 (PW-1600). */}
                   {kr.feedback.canWrite !== false && (
-                    <StatusBadge className="okr-p-chip-btn" onClick={(e) => { e.stopPropagation(); onWriteFeedback && onWriteFeedback(kr); }}>피드백 작성</StatusBadge>
+                    <StatusBadge className="okr-p-chip-btn" onClick={(e) => { e.stopPropagation(); onWriteFeedback && onWriteFeedback(kr); }}>{L('board.writeFeedback')}</StatusBadge>
                   )}
                 </div>
               </div>
@@ -228,7 +231,7 @@ export default function OkrObjectiveSection({
                   <div className="okr-p-col-weight" />
                   <div className="okr-p-col-pic">
                     {ci === kr.feedback.comments.length - 1 && (
-                      <StatusBadge className="okr-p-chip-btn" onClick={() => onViewFeedback && onViewFeedback(kr)}>전체 보기</StatusBadge>
+                      <StatusBadge className="okr-p-chip-btn" onClick={() => onViewFeedback && onViewFeedback(kr)}>{L('board.viewAllFeedback')}</StatusBadge>
                     )}
                   </div>
                 </div>

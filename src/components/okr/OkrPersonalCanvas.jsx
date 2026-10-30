@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 import Button from '../shared/Button.jsx';
 import EmptyState from '../shared/EmptyState.jsx';
@@ -8,6 +8,7 @@ import OkrBoard from './OkrBoard.jsx';
 import OkrHistoryList from './OkrHistoryList.jsx';
 import OkrSelectMenu from './OkrSelectMenu.jsx';
 import useDismissLayer from '../shared/useDismissLayer.js';
+import { OkrLabelsContext, makeOkrLabels } from './okr-labels.jsx';
 
 /**
  * OkrPersonalCanvas — 개인 OKR 탭 콘텐츠 (스크롤 페이지).
@@ -68,7 +69,10 @@ export default function OkrPersonalCanvas({
   onEmptyWrite,
   emptyWriteLabel = '지금 작성하기',
   historyEmptyLabel,
+  labels,
 }) {
+  // 화면 문구 — 소비자가 번역을 넘긴다(PW-2415). 안 넘기면 종전 한국어.
+  const L = useMemo(() => makeOkrLabels(labels), [labels]);
   const { person, periodLabel, links, parents, banner, insights, overall, theme, objectives, history } = data;
   const [periodTab, setPeriodTab] = useState('current'); // 'current' | 'history'
   const [visibilityOpen, setVisibilityOpen] = useState(false);
@@ -86,6 +90,7 @@ export default function OkrPersonalCanvas({
   useDismissLayer(() => setVisibilityOpen(false), visibilityRef, null, panelOpen);
 
   return (
+    <OkrLabelsContext.Provider value={L}>
     <div className="okr-personal-area">
       <div className="okr-p-profile">
         <img className="okr-p-avatar" src={person.avatar} alt={person.name} draggable={false} />
@@ -101,7 +106,7 @@ export default function OkrPersonalCanvas({
           className="okr-p-period"
           items={[
             { value: 'current', label: periodLabel },
-            { value: 'history', label: '히스토리' },
+            { value: 'history', label: L('period.history') },
           ]}
           value={periodTab}
           onChange={setPeriodTab}
@@ -157,5 +162,6 @@ export default function OkrPersonalCanvas({
         </>
       )}
     </div>
+    </OkrLabelsContext.Provider>
   );
 }

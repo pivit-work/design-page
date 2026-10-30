@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import OkrLinkedParents from './OkrLinkedParents.jsx';
 import OkrBoard from './OkrBoard.jsx';
 import OkrHistoryList from './OkrHistoryList.jsx';
 import Tabs from '../shared/Tabs.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import OkrTeamPicker, { TEAM_PICKER_MIN } from './OkrTeamPicker.jsx';
+import { OkrLabelsContext, makeOkrLabels } from './okr-labels.jsx';
 
 /**
  * OkrTeamCanvas — 팀 OKR 탭 콘텐츠.
@@ -26,7 +27,9 @@ import OkrTeamPicker, { TEAM_PICKER_MIN } from './OkrTeamPicker.jsx';
  *   달라서 팀 서브탭 아래 이 줄이 자리다(기획 시안 팀 화면 «모드 세그먼트 + 권한 배지»). 줄은 개인 캔버스와 같은
  *   `.okr-p-actions` 다. 안 주면 칩만 종전 그대로 선다.
  */
-export default function OkrTeamCanvas({ data, icons, baseUrl = '', activeTeam, onTeamChange, onKrUpdate, onSubmitFeedback, onViewAllFeedback, onWriteFeedback, onRefreshInsights, onInsightAction, onCloseInsights, showInsights = true, onToggleInitiative, canEditInitiative = false, teamPickerLabels, notice = null, periodAside = null, focusKrId = null, focusObjectiveId = null, historyEmptyLabel }) {
+export default function OkrTeamCanvas({ data, icons, baseUrl = '', activeTeam, onTeamChange, onKrUpdate, onSubmitFeedback, onViewAllFeedback, onWriteFeedback, onRefreshInsights, onInsightAction, onCloseInsights, showInsights = true, onToggleInitiative, canEditInitiative = false, teamPickerLabels, notice = null, periodAside = null, focusKrId = null, focusObjectiveId = null, historyEmptyLabel, labels }) {
+  // 화면 문구 — 소비자가 번역을 넘긴다(PW-2415). 안 넘기면 종전 한국어.
+  const L = useMemo(() => makeOkrLabels(labels), [labels]);
   const { teams, periodLabel, links, parents, board, history } = data;
   const [internalTeam, setInternalTeam] = useState(teams[1] ?? teams[0]);
   const team = activeTeam ?? internalTeam;
@@ -62,7 +65,7 @@ export default function OkrTeamCanvas({ data, icons, baseUrl = '', activeTeam, o
       className="okr-p-period"
       items={[
         { value: 'current', label: periodLabel },
-        { value: 'history', label: '히스토리' },
+        { value: 'history', label: L('period.history') },
       ]}
       value={periodTab}
       onChange={setPeriodTab}
@@ -70,6 +73,7 @@ export default function OkrTeamCanvas({ data, icons, baseUrl = '', activeTeam, o
   );
 
   return (
+    <OkrLabelsContext.Provider value={L}>
     <div className="okr-personal-area">
       {/* 팀 서브탭 — 공용 Tabs, 기간 칩 — 공용 SegmentedControl (PW-836). */}
       <div className="tl-tabs-row okr-s-tabs-row">
@@ -103,5 +107,6 @@ export default function OkrTeamCanvas({ data, icons, baseUrl = '', activeTeam, o
         </>
       )}
     </div>
+    </OkrLabelsContext.Provider>
   );
 }

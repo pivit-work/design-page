@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import ModalShell from '../shared/ModalShell.jsx';
+import { useOkrLabels } from './okr-labels.jsx';
 
 /**
  * OkrFeedbackComposeModal — 피드백 작성/피드백 요청 작성 공용 모달.
@@ -14,6 +15,8 @@ import ModalShell from '../shared/ModalShell.jsx';
  * 규칙이다 — onSubmit 이 거부(reject)하면 창과 글을 그대로 두고, 사유는 소비처가 알린다.
  */
 export default function OkrFeedbackComposeModal({ title, placeholder, submitLabel, onClose, onSubmit }) {
+  // [취소] 문구는 보드 문구 묶음에서 꺼낸다 — 보드 안에서 열리므로 캔버스가 넘긴 번역을 그대로 쓴다(PW-2415).
+  const L = useOkrLabels();
   const [text, setText] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -33,8 +36,8 @@ export default function OkrFeedbackComposeModal({ title, placeholder, submitLabe
     <ModalShell
       title={title}
       titleId="okr-fb-compose-title"
-      closeLabel="취소"
-      cancelLabel="취소"
+      closeLabel={L('board.cancel')}
+      cancelLabel={L('board.cancel')}
       submitLabel={submitLabel}
       canSubmit
       busy={saving}

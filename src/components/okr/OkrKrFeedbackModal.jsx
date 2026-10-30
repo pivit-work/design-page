@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
+import Button from '../shared/Button.jsx';
+import { makeOkrLabels } from './okr-labels.jsx';
 
 /**
  * ⚠️ [레거시] 2026-08-18 PW-144 결정으로 **진입점이 제거됐다.** 어디서도 렌더하지
@@ -24,7 +26,9 @@ import ModalShell from '../shared/ModalShell.jsx';
  * onSubmitReply(commentId, text): 답변 저장. 저장 실패(reject)면 입력을 유지하고
  * 인라인 에러를 띄운다 — 작성 중 본문을 삼키지 않는다.
  */
-export default function OkrKrFeedbackModal({ detail, onClose, onSubmitReply, onRequestFeedback }) {
+export default function OkrKrFeedbackModal({ detail, onClose, onSubmitReply, onRequestFeedback, labels }) {
+  // 창 문구 — 소비자가 번역을 넘긴다(PW-2415). 안 넘기면 종전 한국어.
+  const L = useMemo(() => makeOkrLabels(labels), [labels]);
   const [replyOpen, setReplyOpen] = useState({});
   const [replyText, setReplyText] = useState({});
   const [replyError, setReplyError] = useState({});
@@ -49,7 +53,7 @@ export default function OkrKrFeedbackModal({ detail, onClose, onSubmitReply, onR
       setReplyText((prev) => ({ ...prev, [i]: '' }));
       setReplyOpen((prev) => ({ ...prev, [i]: false }));
     } catch {
-      setReplyError((prev) => ({ ...prev, [i]: '답변 등록에 실패했습니다. 잠시 후 다시 시도해주세요.' }));
+      setReplyError((prev) => ({ ...prev, [i]: L('krFeedback.replyFailed') }));
     } finally {
       setReplyBusy((prev) => ({ ...prev, [i]: false }));
     }
@@ -60,7 +64,7 @@ export default function OkrKrFeedbackModal({ detail, onClose, onSubmitReply, onR
     <ModalShell
       title={(
         <>
-          <span className="okr-krfb-eyebrow">KR 피드백</span>
+          <span className="okr-krfb-eyebrow">{L('krFeedback.eyebrow')}</span>
           {detail.krLabel}
         </>
       )}
@@ -71,7 +75,7 @@ export default function OkrKrFeedbackModal({ detail, onClose, onSubmitReply, onR
       className="okr-shell is-krfb"
       bodyClassName="okr-shell-body"
       footer={(
-        <button type="button" className="tl-group-modal-btn tl-group-modal-btn-primary" onClick={onRequestFeedback}>피드백 요청 보내기</button>
+        <Button className="tl-group-modal-btn tl-group-modal-btn-primary" onClick={onRequestFeedback}>{L('krFeedback.request')}</Button>
       )}
     >
       {detail.comments.map((comment, i) => (
@@ -102,25 +106,25 @@ export default function OkrKrFeedbackModal({ detail, onClose, onSubmitReply, onR
             </div>
           ))}
 
-          <p className="okr-krfb-reply-link" onClick={() => toggleReply(i)}>답변 달기</p>
+          <p className="okr-krfb-reply-link" onClick={() => toggleReply(i)}>{L('krFeedback.reply')}</p>
           {replyOpen[i] && (
             <div className="okr-krfb-reply">
               <textarea
                 className="okr-textarea is-compact"
-                placeholder="답변을 입력해 주세요."
+                placeholder={L('krFeedback.replyPlaceholder')}
                 value={replyText[i] ?? ''}
                 onChange={(e) => setReplyText((prev) => ({ ...prev, [i]: e.target.value }))}
               />
               {replyError[i] && <p className="okr-krfb-reply-error">{replyError[i]}</p>}
               <div className="okr-krfb-reply-actions">
-                <button type="button" className="okr-btn is-outline is-sm" onClick={() => toggleReply(i)}>취소</button>
+                <button type="button" className="okr-btn is-outline is-sm" onClick={() => toggleReply(i)}>{L('krFeedback.cancel')}</button>
                 <button
                   type="button"
                   className="okr-btn is-brand is-sm"
                   disabled={replyBusy[i] || !(replyText[i] ?? '').trim()}
                   onClick={() => submitReply(i, comment)}
                 >
-                  {replyBusy[i] ? '등록 중…' : '등록'}
+                  {replyBusy[i] ? L('krFeedback.submitting') : L('krFeedback.submit')}
                 </button>
               </div>
             </div>
