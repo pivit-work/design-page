@@ -624,6 +624,12 @@ export default function EvalCycleLeaderCanvas({
    */
   locked,
   /**
+   * PW-2440 — 부가 평가(위원회 전용 코멘트·승진·보상·승진 요청서)만 잠그는가. 그 칸을 볼 수 없는 사람
+   * (평가자가 아닌 윗선 조직장 등)에게 호출부가 `true` 를 넘긴다: 본문·등급은 `locked` 대로 쓰고, 두 카드는
+   * 받은 값(가려져 비어 있을 수 있다)을 보이되 고칠 수 없고 저장·제출에도 싣지 않는다. 기본 `false`.
+   */
+  assessmentLocked: assessmentLockedProp = false,
+  /**
    * PW-1045 — 등급 칸만 잠그는가. 캘리브레이션 위원회가 이 팀원의 등급을 한 번이라도 바꿨으면
    * 호출부가 `true` 를 넘긴다: 본문은 `locked` 대로 고쳐 다시 낼 수 있지만 등급 버튼은 눌리지
    * 않고, `labels.gradeLockedNote` 가 있으면 등급 카드 안에 띄운다. 기본 `false` — 종전과 같다.
@@ -709,7 +715,7 @@ export default function EvalCycleLeaderCanvas({
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const formLocked = locked ?? submitted;
-  const assessmentLocked = locked ?? false;
+  const assessmentLocked = assessmentLockedProp || (locked ?? false);
   // 평가지에 놓인 순서 그대로의 항목 전부 — 질문과 설명이 섞여 있다.
   const entries = useMemo(() => buildFields(template, L), [template, L]);
   /** [PW-602 ④ 불변식 ②] 답을 받는 항목만. 진행률·필수 검증은 전부 이것을 본다. */
