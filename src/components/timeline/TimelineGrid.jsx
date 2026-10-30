@@ -14,6 +14,7 @@ import { formatGanttHour } from './timelineLabels.js';
 import MeetingBlock from './MeetingBlock.jsx';
 import SnippetBlock from './SnippetBlock.jsx';
 import useTimelineData from './useTimelineData.js';
+import { ganttEmptyState } from './ganttEmptyState.js';
 
 // 스니핏 블록 여백 — 시안(timeline-feed-view.jsx GanttView)의 주별 셀과 같은 비율.
 const SNIPPET_INSET_X = 3;
@@ -35,6 +36,8 @@ const TimelineGrid = forwardRef(function TimelineGrid(
     collapsedGroups,
     // NameColumn 과 같은 조건으로 빈 그룹 안내 줄 자리를 비운다 (PW-1513).
     emptyGroupText,
+    emptyDayText,
+    emptyTeamText,
   // 「지금」 — 로컬 Date 그릇으로 돌려주는 함수(getHours()/getDate() 가 보여 줄 벽시계).
   // 없으면 브라우저 시계. 앱이 사용자 설정 시간대로 오늘·NOW 선을 그릴 때 넘긴다 (PW-781).
     now,
@@ -42,6 +45,11 @@ const TimelineGrid = forwardRef(function TimelineGrid(
   ref
 ) {
   const { members, meetings, snippets } = useTimelineData();
+  // 빈 상태 (PW-2403) — NameColumn 과 같은 판정이라 팀 안내 줄의 좌우 높이가 맞는다.
+  const empty =
+    emptyDayText || emptyTeamText
+      ? ganttEmptyState({ groups, members, snippets, meetings, targetDate })
+      : null;
   // Build flat rows parallel to NameColumn — 접힌 그룹은 멤버 행을 생략해
   // NameColumn 과 동일한 Y 좌표를 유지한다(스크롤 미러·미팅 블록 정렬).
   const flatRows = [];
@@ -53,6 +61,9 @@ const TimelineGrid = forwardRef(function TimelineGrid(
       if (m) flatRows.push({ type: 'member', member: m });
     });
     if (emptyGroupText && !g.isDefault && g.memberIds.length === 0) {
+      flatRows.push({ type: 'empty' });
+    }
+    if (emptyTeamText && empty.teamEmptyGroupIds.has(g.id)) {
       flatRows.push({ type: 'empty' });
     }
   });
@@ -275,6 +286,13 @@ const TimelineGrid = forwardRef(function TimelineGrid(
           </div>
         </div>
       </div>
+      {/* 고른 날에 아무도 기록이 없을 때 (PW-2403) — 스크롤 밖에 두어 가로로 넘겨도 보이는 칸 가운데에 머문다.
+          빈 칸 클릭(셀 피커)을 막지 않게 포인터를 통과시킨다(.tl-day-empty). */}
+      {emptyDayText && empty.dayEmpty && (
+        <div className="tl-day-empty" style={{ top: HEADER_H }} role="status">
+          <p className="tl-weekly-empty-text">{emptyDayText}</p>
+        </div>
+      )}
     </div>
   );
 });

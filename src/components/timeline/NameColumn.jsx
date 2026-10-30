@@ -6,6 +6,7 @@ import { ChevronDownGlyph, ChevronRightGlyph, CloseGlyph, DragHandleGlyph } from
 import { SUBHEADER_H, ROW_H, memberPalette } from './constants.js';
 import useTimelineData from './useTimelineData.js';
 import { isEnterKey } from '../shared/enterKey.js';
+import { ganttEmptyState } from './ganttEmptyState.js';
 import { useTimelineLabels } from './timelineLabels.js';
 
 function GroupHeader({ group, collapsed, onToggleCollapse, onAddMember, onRemoveGroup, onRenameGroup }) {
@@ -218,11 +219,17 @@ const NameColumn = forwardRef(function NameColumn(
     collapsedGroups,
     onToggleCollapse,
     emptyGroupText,
+    emptyTeamText,
+    targetDate,
   },
   ref
 ) {
   const L = useTimelineLabels();
-  const { members } = useTimelineData();
+  const { members, meetings, snippets } = useTimelineData();
+  // 그룹 안 사람 모두가 기록이 없으면 사람 행 아래에 팀 안내 한 줄 (PW-2403) — TimelineGrid 도 같은 판정으로 빈 줄을 넣는다.
+  const teamEmptyGroupIds = emptyTeamText
+    ? ganttEmptyState({ groups, members, snippets, meetings, targetDate }).teamEmptyGroupIds
+    : null;
   // The dragged member is rendered with display:none so it collapses out of
   // layout (other rows shift up). The placeholder is inserted at dragOver.index
   // in FILTERED space (index ignores the dragged row).
@@ -286,6 +293,9 @@ const NameColumn = forwardRef(function NameColumn(
     ) {
       flatRows.push({ type: 'empty', groupId: g.id, key: `empty-${g.id}` });
     }
+    if (teamEmptyGroupIds?.has(g.id)) {
+      flatRows.push({ type: 'teamEmpty', groupId: g.id, key: `team-empty-${g.id}` });
+    }
 
     // Placeholder at the END of this group?
     if (
@@ -336,6 +346,17 @@ const NameColumn = forwardRef(function NameColumn(
                   data-tl-index={0}
                 >
                   <span className="tl-member-title">{emptyGroupText}</span>
+                </div>
+              );
+            }
+            if (r.type === 'teamEmpty') {
+              return (
+                <div
+                  key={r.key}
+                  className="tl-member-row tl-group-empty"
+                  style={{ height: ROW_H }}
+                >
+                  <span className="tl-member-title">{emptyTeamText}</span>
                 </div>
               );
             }

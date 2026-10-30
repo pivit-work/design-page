@@ -97,6 +97,11 @@ export default function TimelineCanvas({
   // 직접 만든 그룹에 멤버가 0명일 때 그 그룹 자리에 한 줄 띄울 안내 (pivit-work PW-1513 · 피드 view-spec 엣지케이스).
   // 생략하면 예전처럼 머리 행만 그린다.
   emptyGroupText,
+  // 간트 빈 상태 안내 (pivit-work PW-2403 · 피드 정책 §9). 고른 날에 아무도 기록이 없으면 시간 칸 가운데에 emptyDayText,
+  // 그날 기록은 있는데 그룹 안 사람 모두가 받아 둔 기록에 없으면 그 그룹 아래에 emptyTeamText 한 줄. 둘은 함께 뜨지 않는다.
+  // 생략하면 안내를 그리지 않는다 — 호스트는 기록을 다 받기 전·조회 실패 때 넘기지 않는다(«아무도 안 썼다»로 읽히지 않게).
+  emptyDayText,
+  emptyTeamText,
   // 필터 타입 controlled — 주입 시 외부 state 로 동기화되고 onFilterChange 로
   // 통지. 생략하면 내부 state (전체 선택) 로 자체 관리. 선택된 type 에 해당하는
   // meeting/event 만 간트·캘린더에 렌더된다.
@@ -726,6 +731,8 @@ export default function TimelineCanvas({
             collapsedGroups={collapsedGroups}
             onToggleCollapse={handleToggleCollapse}
             emptyGroupText={emptyGroupText}
+            emptyTeamText={emptyTeamText}
+            targetDate={ganttDayDate ?? formatIsoDate(selectedDate)}
           />
           <TimelineGrid
             ref={rightScrollRef}
@@ -741,6 +748,8 @@ export default function TimelineCanvas({
             currentUserId={currentUserId}
             collapsedGroups={collapsedGroups}
             emptyGroupText={emptyGroupText}
+            emptyDayText={emptyDayText}
+            emptyTeamText={emptyTeamText}
           />
         </div>
       )}

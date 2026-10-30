@@ -667,6 +667,21 @@
 .tl-group-empty { cursor: default; }
 .tl-group-empty:active { cursor: default; }
 
+/* 간트 빈 날 안내 (pivit-work PW-2403) — 글씨는 리포트 Weekly 빈 안내(.tl-weekly-empty-text, 디자이너)를 그대로 쓴다.
+   .tl-right 의 보이는 칸 가운데에 머물고, 빈 칸 클릭(셀 피커)을 막지 않는다. top 은 시간 머리 줄 높이(HEADER_H)를 인라인으로. */
+.tl-day-empty {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  pointer-events: none;
+}
+
 /* Placeholder slot inserted at the drop target while dragging.
    Wrapper keeps full row height (no layout shift), inner box has the inset
    green dashed border + light tint per Figma. */
