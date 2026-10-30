@@ -539,13 +539,20 @@ export default function OneOnOnePage({ icons, baseUrl, active = true, onActivate
     : null;
 
   // 데모: AI 초안 생성 stub. section 미지정 = 전체, 지정 = 해당 섹션만 누적.
+  // 칸별 초안 회차 — 캔버스는 회차가 오른 칸만 다시 채운다(같은 데모 글이 와도 [재생성]이 먹게).
   const [aiDrafts, setAiDrafts] = useState(null);
+  const [aiDraftRevisions, setAiDraftRevisions] = useState({});
   const [generatingSection, setGeneratingSection] = useState(null);
   const handleGenerateDrafts = (section) => {
     setGeneratingSection(section ?? 'all');
     setTimeout(() => {
+      const bumped = section ? [section] : ['strengths', 'sbi', 'support', 'caps'];
+      setAiDraftRevisions((prev) => Object.fromEntries([
+        ...Object.entries(prev),
+        ...bumped.map((k) => [k, (prev[k] ?? 0) + 1]),
+      ]));
       if (!section) {
-        setAiDrafts(DEMO_AI_DRAFTS);
+        setAiDrafts({ ...DEMO_AI_DRAFTS });
       } else {
         // design-page 섹션 키 'caps' → aiDrafts 키 'capabilities'
         const key = section === 'caps' ? 'capabilities' : section;
@@ -625,6 +632,7 @@ export default function OneOnOnePage({ icons, baseUrl, active = true, onActivate
         managerCandidates={MANAGER_CANDIDATES}
         startOneOnOneData={DEMO_START_DATA}
         aiDrafts={knobs.async === 'loading' ? null : aiDrafts}
+        aiDraftRevisions={aiDraftRevisions}
         onGenerateDrafts={handleGenerateDrafts}
         generatingSection={effGenerating}
         renderRecordingPlayer={() => <DemoRecordingPlayer testIdPrefix="ood-recording" />}
