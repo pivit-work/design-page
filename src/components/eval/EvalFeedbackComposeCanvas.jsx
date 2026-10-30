@@ -53,6 +53,13 @@ const FONT = 'var(--font-family-body)';
 const DEFAULT_LABELS = {
   // PW-1799 — 입력칸이 본문 최대 길이에 닿았을 때. {max} 는 숫자로 바뀐다.
   textLimitNote: '최대 {max}자까지 쓸 수 있습니다.',
+  // 대화 요약·빈 요청·AI 초안 힌트 (pivit-work PW-2415 — 종전엔 창 안에 박혀 있어 영어 화면에도 한국어로 남았다)
+  summarize: '대화 요약',
+  summarizing: '요약 중...',
+  summarizeNotEnough: '아직 대화가 충분하지 않습니다',
+  summaryFailed: '대화 요약에 실패했습니다. 직접 스크롤하여 확인해 주세요.',
+  emptyRequest: '(내용 없는 요청)',
+  aiDraftHint: '{title} 관련 피드백',
   // 내가 쓴 피드백의 작성자 이름 — 영어 화면에서는 소비 측이 'Me' 를 넘긴다.
   me: '나',
   emptyItemText: '(내용 없음)',
@@ -365,7 +372,7 @@ function ModalComposeBox({ block, memberName, L, onSend, onAiDraft }) {
     setAiState('loading');
     let res = null;
     try {
-      res = await onAiDraft({ recipientName: memberName, hint: text.trim() || `${block.title} 관련 피드백` });
+      res = await onAiDraft({ recipientName: memberName, hint: text.trim() || L.aiDraftHint.replace('{title}', block.title) });
     } catch {
       res = null;
     }
@@ -584,7 +591,7 @@ function RequestBubble({ item, L }) {
           <span style={{ color: C.sub }}>{fmtDate(item.sentAt)}</span>
         </div>
         <div style={{ background: C.accentBg, border: `1px solid ${C.accentBd}`, borderRadius: '0 10px 10px 10px', padding: 10, fontSize: 13, color: C.text }}>
-          {item.text || '(내용 없는 요청)'}
+          {item.text || L.emptyRequest}
         </div>
       </div>
     </div>
@@ -642,7 +649,7 @@ function ThreadModal({ block, member, memberName, L, isPastPeriod, onSend, onAiD
     >
       <div className="evc-shell-thread-list">
         {onSummarize && (
-          <Tooltip content={canSummarize ? '' : '아직 대화가 충분하지 않습니다'} className="fbmgr-summarize-tip">
+          <Tooltip content={canSummarize ? '' : L.summarizeNotEnough} className="fbmgr-summarize-tip">
           <button
             type="button"
             disabled={!canSummarize || summaryState === 'loading'}
@@ -650,13 +657,13 @@ function ThreadModal({ block, member, memberName, L, isPastPeriod, onSend, onAiD
             data-testid="fbmgr-summarize"
             style={{ alignSelf: 'flex-end', border: `1px solid ${canSummarize ? C.accentBd : C.border}`, background: canSummarize ? C.accentBg : C.borderL, color: canSummarize ? C.accent : C.muted, borderRadius: 8, padding: '5px 10px', fontSize: 'var(--font-size-text-xs)', fontWeight: 600, cursor: canSummarize ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap' }}
           >
-            {summaryState === 'loading' ? '⏳ 요약 중...' : <><SparkleIcon size={12} /> 대화 요약</>}
+            {summaryState === 'loading' ? `⏳ ${L.summarizing}` : <><SparkleIcon size={12} /> {L.summarize}</>}
           </button>
           </Tooltip>
         )}
         {summary && (
           <div data-testid="fbmgr-summary" style={{ background: C.accentBg, border: `1px solid ${C.accentBd}`, borderRadius: 10, padding: 12 }}>
-            <div style={{ fontSize: 'var(--font-size-text-xs)', fontWeight: 700, color: C.accent, marginBottom: 4 }}><SparkleIcon size={12} /> 대화 요약</div>
+            <div style={{ fontSize: 'var(--font-size-text-xs)', fontWeight: 700, color: C.accent, marginBottom: 'var(--spacing-xs)' }}><SparkleIcon size={12} /> {L.summarize}</div>
             <p style={{ fontSize: 13, color: C.text, margin: 0, whiteSpace: 'pre-wrap' }}>{summary.summaryText}</p>
             {threadCount > summaryCount && (
               <p data-testid="fbmgr-summary-stale" style={{ fontSize: 12, color: C.sub, margin: '6px 0 0' }}>{L.summaryStale}</p>
@@ -665,7 +672,7 @@ function ThreadModal({ block, member, memberName, L, isPastPeriod, onSend, onAiD
         )}
         {summaryState === 'error' && (
           <div style={{ background: C.redBg, color: C.red, borderRadius: 10, padding: 10, fontSize: 'var(--font-size-text-xs)' }}>
-            대화 요약에 실패했습니다. 직접 스크롤하여 확인해 주세요.
+            {L.summaryFailed}
           </div>
         )}
         {items.length === 0 ? (
