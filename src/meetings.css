@@ -593,6 +593,32 @@
   color: var(--text-tertiary);
   overflow-wrap: anywhere;
 }
+/* 담당자의 요약 입력칸 (PW-2435) — 디자이너 회색 칸(.tl-snippet-textarea)과 같은 모양. 높이는 글 길이만큼(앱이 잰다). */
+.mtg-record-summary-input {
+  display: block;
+  min-height: 0;
+  resize: none;
+  overflow: hidden;
+}
+/* 요약 머리 줄 — 제목 왼쪽, 「저장 중...」 오른쪽 (review §4.2). 탭이 있으면 .tl-tabs-row 가 같은 자리를 준다. */
+.mtg-record-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+}
+/* 「저장 중...」·「저장됨 ✓」 — 요약 아래 한 줄(.mtg-record-summary-note)과 같은 12px 보조 회색 */
+.mtg-record-save-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xxs);
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+/* 「500자 이내로 입력해 주세요.」 — 같은 줄 모양에 오류 색 */
+.mtg-record-summary-note.is-error { color: var(--text-error-primary); }
 .mtg-record-bullet-list {
   list-style: disc;
   margin: 0;

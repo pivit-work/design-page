@@ -1,8 +1,8 @@
-import { useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 import Tabs from '../shared/Tabs.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
-import { CloseGlyph } from '../shared/lineIcons.jsx';
+import { CheckGlyph, CloseGlyph } from '../shared/lineIcons.jsx';
 import DatePickerPopover from '../timeline/DatePickerPopover.jsx';
 import ActionPersonPopover from './ActionPersonPopover.jsx';
 
@@ -53,6 +53,130 @@ function EmptyBox({ children }) {
   );
 }
 
+/**
+ * 요약 칸 (pivit-work PW-2435 · 회의록 검토 정책서 §3.4·§4.2·§5.3·§6).
+ * 디자이너가 그린 읽기 전용 회색 칸(`.tl-snippet-textarea.mtg-record-readonly`)을 회의 담당자에게는 같은 모양의
+ * 입력칸으로 바꾼다 — 누르면 디자이너 입력칸의 초점 테두리가 생기고, 글 길이만큼 높이가 늘어 회색 칸과 같은 높이다.
+ * 칸을 벗어나면 바뀐 글만 `onSave(value)` 로 넘긴다. 그 프로미스를 붙들어 머리 줄 오른쪽에 「저장 중...」,
+ * 끝나면 「저장됨 ✓」(체크는 아이콘)를 2초 보인다. 실패하면 상태만 지우고 친 글은 그대로 둔다 — 실패 안내는 caller 가 띄운다.
+ * `summaryMaxLength` 를 넘게 치면 더 넣지 않고 칸 아래에 안내한다. 이미 한도보다 긴 글(AI 가 만든 요약)은 지우는 것만 받는다.
+ * 바깥 `summary` 가 바뀌면(다시 만들기) 칸을 벗어나 있을 때 새 값으로 바꾼다.
+ */
+const SAVED_VISIBLE_MS = 2000;
+
+function useSummaryDraft({ summary, onSave, summaryMaxLength }) {
+  const [draft, setDraft] = useState(summary);
+  const [prevSummary, setPrevSummary] = useState(summary);
+  const [focused, setFocused] = useState(false);
+  const [status, setStatus] = useState('idle'); // 'idle' | 'saving' | 'saved'
+  const [tooLong, setTooLong] = useState(false);
+  const seqRef = useRef(0);
+  const timerRef = useRef(null);
+  // 마지막으로 보낸 글 — 칸을 벗어나 보낸 것을 창이 닫힐 때 또 보내지 않는다.
+  const sentRef = useRef(summary);
+  const latestRef = useRef(null);
+  useEffect(() => {
+    latestRef.current = { draft, summary, onSave };
+  });
+  // Esc 처럼 칸을 벗어나지 않고 창이 닫히면 blur 가 오지 않는다 — 닫힐 때 고친 글을 보낸다.
+  useEffect(
+    () => () => {
+      clearTimeout(timerRef.current);
+      if (!latestRef.current) return;
+      const { draft: last, summary: saved, onSave: save } = latestRef.current;
+      if (last !== saved && last !== sentRef.current) Promise.resolve(save?.(last)).catch(() => {});
+    },
+    [],
+  );
+
+  // 바깥 값이 바뀌었다 — 고치는 중이 아니면 따라간다 (render 중 갱신 — effect 안 setState 를 피한다).
+  if (summary !== prevSummary) {
+    setPrevSummary(summary);
+    if (!focused) setDraft(summary);
+  }
+
+  const onChange = (e) => {
+    const next = e.target.value;
+    if (summaryMaxLength && next.length > summaryMaxLength && next.length > draft.length) {
+      setTooLong(true);
+      return;
+    }
+    setTooLong(false);
+    setDraft(next);
+  };
+
+  const onBlur = () => {
+    setFocused(false);
+    if (draft === summary || draft === sentRef.current) return;
+    sentRef.current = draft;
+    const seq = ++seqRef.current;
+    clearTimeout(timerRef.current);
+    setStatus('saving');
+    Promise.resolve(onSave?.(draft)).then(
+      () => {
+        if (seq !== seqRef.current) return;
+        setStatus('saved');
+        timerRef.current = setTimeout(() => setStatus('idle'), SAVED_VISIBLE_MS);
+      },
+      () => {
+        // 실패한 글은 다시 벗어날 때 또 보낸다.
+        if (sentRef.current === draft) sentRef.current = summary;
+        if (seq === seqRef.current) setStatus('idle');
+      },
+    );
+  };
+
+  return { draft, status, tooLong, onChange, onBlur, onFocus: () => setFocused(true) };
+}
+
+function SummaryStatus({ status, labels }) {
+  if (status === 'idle') return null;
+  return (
+    <span className="mtg-record-save-status" role="status" data-testid="meeting-summary-status">
+      {status === 'saving' ? (
+        labels.summarySaving
+      ) : (
+        <>
+          {labels.summarySaved}
+          {/* 「저장됨 ✓」의 체크 — 글자 기호 대신 선 아이콘 (번역 문구에 기호를 넣지 않는다) */}
+          <CheckGlyph size={12} aria-hidden />
+        </>
+      )}
+    </span>
+  );
+}
+
+function SummaryInput({ field, labels }) {
+  const ref = useRef(null);
+  // 글 길이만큼 높이를 늘린다 — 읽기 전용 회색 칸처럼 내용만큼 보이고 칸 안에 스크롤이 생기지 않는다.
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [field.draft]);
+  return (
+    <>
+      <textarea
+        ref={ref}
+        className="tl-snippet-textarea mtg-record-summary-input"
+        aria-label={labels.summary}
+        data-testid="meeting-summary-input"
+        rows={1}
+        value={field.draft}
+        onChange={field.onChange}
+        onFocus={field.onFocus}
+        onBlur={field.onBlur}
+      />
+      {field.tooLong && labels.summaryTooLong && (
+        <p className="mtg-record-summary-note is-error" role="alert" data-testid="meeting-summary-too-long">
+          {labels.summaryTooLong}
+        </p>
+      )}
+    </>
+  );
+}
+
 export default function MeetingRecordContent({
   meeting,
   baseUrl = '',
@@ -94,7 +218,22 @@ export default function MeetingRecordContent({
   // 회의록을 아직 만들지 않은 회의 (PW-1832) — 요약·주요 논의·결정 사항·액션 아이템 섹션을 그리지 않는다.
   // 만들지 않은 것을 빈 섹션으로 보이지 않는다. 머리·메타·headerExtra 는 그대로다. 기본은 지금처럼 다 그린다.
   minutesHidden = false,
+  // 회의 담당자가 요약을 고친다 (PW-2435 · review §3.4) — true 면 요약 칸이 입력칸이다. 칸을 벗어나면 바뀐 글로
+  // onSummarySave(value) 를 부르고, 그 프로미스로 「저장 중...」·「저장됨 ✓」(labels.summarySaving·summarySaved)를 그린다.
+  // 실패 안내는 caller 가 띄운다. summaryMaxLength 를 넘게 치면 막고 labels.summaryTooLong 을 보인다.
+  summaryEditable = false,
+  onSummarySave,
+  summaryMaxLength,
 }) {
+  const summaryField = useSummaryDraft({ summary, onSave: onSummarySave, summaryMaxLength });
+  const summaryBody = summaryEditable ? (
+    <SummaryInput field={summaryField} labels={labels} />
+  ) : (
+    <Tooltip content={readOnly ? readOnlyHint : undefined}>
+      <div className="tl-snippet-textarea mtg-record-readonly">{summary}</div>
+    </Tooltip>
+  );
+  const summaryStatus = summaryEditable ? <SummaryStatus status={summaryField.status} labels={labels} /> : null;
   // controlled/uncontrolled 패턴: prop 이 주어지면 prop 이 원천, 아니면 내부 state.
   const [internalActions, setInternalActions] = useState([]);
   const actions = actionItems ?? internalActions;
@@ -173,11 +312,12 @@ export default function MeetingRecordContent({
               value={tab}
               onChange={setTab}
             />
+            {tab === 'summary' && summaryStatus}
           </div>
           <div className="mtg-record-tab-pane" role="tabpanel" data-testid={`meeting-record-tab-${tab}`}>
             {tab === 'summary' ? (
               <>
-                <div className="tl-snippet-textarea mtg-record-readonly">{summary}</div>
+                {summaryBody}
                 {summaryNote && <p className="mtg-record-summary-note">{summaryNote}</p>}
               </>
             ) : (
@@ -187,8 +327,15 @@ export default function MeetingRecordContent({
         </section>
       ) : (
         <section className="mtg-progress-section mtg-record-section">
-          <span className="mtg-progress-section-label">{labels.summary}</span>
-          <div className="tl-snippet-textarea mtg-record-readonly">{summary}</div>
+          {summaryStatus ? (
+            <div className="mtg-record-section-head">
+              <span className="mtg-progress-section-label">{labels.summary}</span>
+              {summaryStatus}
+            </div>
+          ) : (
+            <span className="mtg-progress-section-label">{labels.summary}</span>
+          )}
+          {summaryBody}
           {summaryNote && <p className="mtg-record-summary-note">{summaryNote}</p>}
         </section>
       )}
