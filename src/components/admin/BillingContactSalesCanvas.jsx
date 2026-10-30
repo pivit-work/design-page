@@ -148,6 +148,8 @@ export default function BillingContactSalesCanvas({
   onSubmit,
   onBack,
   onDone,
+  /** 메일 칸을 앱의 공용 메일 검사로 판정 — 받을 수 없는 주소면 안내 문구, 아니면 null (앱 PW-2413). */
+  emailError,
 }) {
   const labels = mergeLabels(providedLabels);
 
@@ -171,7 +173,7 @@ export default function BillingContactSalesCanvas({
     contactName: !f.contactName.trim() ? labels.errContactName : '',
     email: !f.email.trim()
       ? labels.errEmailRequired
-      : (!emailOk(f.email) ? labels.errEmailFormat : ''),
+      : (emailError?.(f.email.trim()) || (!emailOk(f.email) ? labels.errEmailFormat : '')),
     expectedSeats: !/^\d+$/.test(f.expectedSeats) || +f.expectedSeats < 1
       ? labels.errExpectedSeats
       : '',

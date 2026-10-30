@@ -33,6 +33,8 @@ import { isEnterKey } from '../shared/enterKey.js';
  *     labels.shareUrlLoadFailed 와 [labels.retry](onShareUrlRetry)를 보인다 (pivit-work PW-1792).
  *     빈 칸을 복사하면 아무것도 안 붙는데 「복사됨」이 떴다.
  *   - initialMode 로 처음 고른 방식을 정한다. 앱은 기획서 §8.1 대로 'manual'(수동 선택)로 연다 (pivit-work PW-1830).
+ *   - emailError(text) 는 @ 가 든 글을 앱의 메일 검사로 판정해, 받을 수 없는 주소면 안내 문구를 돌려준다.
+ *     문구가 오면 태그를 만들지 않고 입력칸 아래 안내 줄에 보인다 (pivit-work PW-2413). 없으면 모양만 본다.
  *   - labels.addOthersHint 는 넘길 때만 입력칸 아래에 보인다. 기획서 §5.3 은 상시 안내 줄을 두지 않는다 (PW-1830).
  */
 
@@ -114,6 +116,7 @@ const MeetingShareContent = forwardRef(function MeetingShareContent(
     labels,
     onShareSubmit,
     initialMode = 'participants',
+    emailError,
   },
   ref,
 ) {
@@ -163,6 +166,13 @@ const MeetingShareContent = forwardRef(function MeetingShareContent(
 
   // Enter 로 넣은 글을 받는 사람 하나로 확정한다 (§5.3-A 1~4). 확정 못 하면 태그를 만들지 않는다.
   const resolveEnter = (text) => {
+    // 메일로 적은 글은 앱의 공용 검사로 먼저 거른다 (pivit-work PW-2413). 아래 EMAIL_RE 는 모양만 봐서
+    // 「박도partner@outside.test」처럼 한글이 섞인 주소를 태그로 받았고, 서버가 거절해 공유가 이유 없이 실패했다.
+    const mailError = text.includes('@') ? emailError?.(text) : null;
+    if (mailError) {
+      setHint(mailError);
+      return;
+    }
     if (EMAIL_RE.test(text)) {
       const mail = text.toLowerCase();
       const member = directory.find((e) => String(e.email ?? '').toLowerCase() === mail);

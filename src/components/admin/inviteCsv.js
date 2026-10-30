@@ -1126,12 +1126,15 @@ export function inviteCsvIssues(row, ctx) {
   if (r.teamIds.length >= 2 && !r.primaryTeamId) add('primaryPath', l.errPrimaryTeam);
   if (!r.leaderOk) add('leader', l.csvErrLeaderFormat);
 
-  if (normalize(v.personalEmail) && !emailOk(v.personalEmail)) {
+  // 개인·매니저·HRBP 메일도 초대 메일 칸과 같은 판정(앱이 넘긴 emailValid)으로 본다 (앱 PW-2413). emailOk 는 모양만 봐서
+  // 한글이 섞인 개인 메일을 받았고, 서버도 그 칸은 글자만 봐 메일이 안 가는 주소가 저장됐다.
+  const mailOk = ctx.emailValid || emailOk;
+  if (normalize(v.personalEmail) && !mailOk(v.personalEmail)) {
     add('personalEmail', fmtCsv(l.csvErrEmailFormat, { column: labelOf('personalEmail'), value: v.personalEmail }));
   }
   const manager = normEmail(v.managerEmail);
   if (manager) {
-    if (!emailOk(manager)) {
+    if (!mailOk(manager)) {
       add('managerEmail', fmtCsv(l.csvErrEmailFormat, { column: labelOf('managerEmail'), value: v.managerEmail }));
     } else if (manager === email) {
       add('managerEmail', l.csvErrManagerSelf);
@@ -1149,7 +1152,7 @@ export function inviteCsvIssues(row, ctx) {
   // 아직 계정이 없어 가입 때 붙일 수 없다.
   const hrbp = normEmail(v.hrbpEmail);
   if (hrbp) {
-    if (!emailOk(hrbp)) {
+    if (!mailOk(hrbp)) {
       add('hrbpEmail', fmtCsv(l.csvErrEmailFormat, { column: labelOf('hrbpEmail'), value: v.hrbpEmail }));
     } else if (!ctx.supervisorEmails.has(hrbp)) {
       add('hrbpEmail', fmtCsv(l.csvErrHrbpUnknown, { value: v.hrbpEmail }));

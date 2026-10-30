@@ -240,6 +240,9 @@ export default function BillingSettingsCanvas({
   draftFields = null,
   // 입력값이 바뀔 때마다 알린다 — 앱이 떠나기 직전 고치던 값을 남기는 데 쓴다(앱 PW-1673).
   onFieldsChange,
+  // 메일 칸을 앱의 공용 메일 검사로 판정 — 받을 수 없는 주소면 안내 문구, 아니면 null (앱 PW-2413).
+  // EMAIL_PATTERN 은 모양만 봐서 한글이 섞인 주소를 받았다.
+  emailError,
 }) {
   const labels = mergeLabels(providedLabels);
 
@@ -253,8 +256,10 @@ export default function BillingSettingsCanvas({
     if (key === 'biz_reg_no' && value.trim() && !BIZ_REG_PATTERN.test(value.trim())) {
       return labels.bizRegError;
     }
-    if (key === 'billing_contact_email' && value.trim() && !EMAIL_PATTERN.test(value.trim())) {
-      return labels.emailError;
+    if (key === 'billing_contact_email' && value.trim()) {
+      const mailError = emailError?.(value.trim());
+      if (mailError) return mailError;
+      if (!EMAIL_PATTERN.test(value.trim())) return labels.emailError;
     }
     return '';
   };
