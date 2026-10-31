@@ -190,7 +190,8 @@ export default function ReportCanvas({
               baseUrl={baseUrl}
               emptyText={L.notGenerated}
               shareLabel={L.share}
-              onClick={onReportClick ? () => onReportClick(r) : undefined}
+              // 생성 전인 이번 기간 줄은 열 리포트가 없다 — 누를 수 있는 줄(버튼·포커스)로 그리지 않는다 (pivit-work PW-2399)
+              onClick={onReportClick && !r.isCurrent ? () => onReportClick(r) : undefined}
               onShare={onReportShare ? () => onReportShare(r) : undefined}
               onGenerate={onReportGenerate ? () => onReportGenerate(r) : undefined}
             />
