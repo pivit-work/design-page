@@ -377,6 +377,10 @@ const DEFAULT_LABELS = {
     cancel: '취소',
     save: '저장',
     saving: '저장 중…',
+    /* 발령 칸이 바뀌면 [저장] 자리가 셋이 된다 (pivit-work PW-2349 · org-snapshot-spec §6-2 · 발령 이력 정책 §2) */
+    draft: '임시저장',
+    correct: '수정',
+    appoint: '발령',
     /* 「발령으로 남습니다」 묶음 (PW-2034 · admin-spec §3.2-B · admin-app.jsx 시안 문구) */
     appointment: {
       title: '발령으로 남습니다',
@@ -389,6 +393,10 @@ const DEFAULT_LABELS = {
       reason: '사유 (선택)',
       reasonPlaceholder: '발령 사유',
       scheduled: (date) => `적용일(${date})에 반영돼요. 그때까지 발령 이력에 예정으로 보이고, 발효 전에는 취소할 수 있어요`,
+      /* 조직도 미리 보기 (pivit-work PW-2349 · §6-5) — 사유 칸 아래 보조 버튼 */
+      preview: '조직도 미리 보기',
+      /* 임시저장한 발령안을 불러왔는데 그 칸의 지금 값이 그 뒤 바뀌었다 (§6-4 «낡음») */
+      staleAfterDraft: (value) => `임시저장한 뒤 바뀌었어요 — 지금 ${value}`,
     },
     /* 소속 팝업 아래 상시 안내 (PW-2034 · admin-spec §3.1) */
     orgPickerFooter: '부서를 만들거나 옮기는 개편은 조직단위 설정에서 합니다',
@@ -4018,6 +4026,18 @@ function EmployeesEditPanel({
      지우는 조직으로 옮기는 발령이면 호출부가 충돌 창(종전 «덮어쓸까요?» 자리)을 띄우고, 고른 대로 이어서 보낸다.
      되던지면(창에서 [취소] 등) 아무것도 보내지 않고 창을 열어 둔다. 미주입이면 종전 그대로다. */
   onBeforeAppoint,
+  /* 발령 확정 절차 (pivit-work PW-2349 · org-snapshot-spec §6-2~§6-5) — 넘기면 발령 칸이 바뀐 창의 [저장]이
+     [임시저장] · [수정] · [발령] 셋이 된다. 모두 선택이고, 빠진 것은 그 버튼만 없다.
+     - `onRequestCorrection(memberId, { lines, changes, affiliation, submit })` — [수정]을 누르면 부른다. 호출부가 확인 창
+       (바뀐 칸 · 사유 필수)을 띄우고 [수정]에서 `submit(reason)` 을 부른다. `submit` 은 소속·칸을 «수정»으로 보내고
+       성공하면 이 창을 닫는다. 실패하면 되던진다 — 호출부가 확인 창 아래 사유를 보이고 창을 열어 둔다.
+     - `onSaveDraft(memberId, { changes, affiliation, effectiveDate, appointmentType, reason, patch })` — [임시저장].
+       성공하면 창을 닫는다. 실패하면 되던진다(창 안에 사유).
+     - `onPreview(memberId, { date, changes, affiliation })` — 묶음 사유 칸 아래 [조직도 미리 보기].
+     - `draftNoticeFor(memberId)` — 창 머리 아래 그릴 «임시저장한 발령안이 있어요» 줄(ReactNode · 없으면 null).
+     - `draftLoadFor(memberId)` — 불러온 발령안 `{ token, values, affiliation, effectiveDate, appointmentType, reason, stale }`.
+       `token` 이 바뀔 때 한 번 칸에 채운다. `stale` 은 `{ [field]: 지금 값 글자 }` — 그 칸 줄 아래 안내를 단다. */
+  appointmentFlow,
 }) {
   const [draft, setDraft] = useState(member);
   const appointmentWired = Array.isArray(appointmentTypeOptions);
@@ -4027,6 +4047,9 @@ function EmployeesEditPanel({
   const [apptDate, setApptDate] = useState(today || '');
   const [apptType, setApptType] = useState('');
   const [apptReason, setApptReason] = useState('');
+  /* 불러온 발령안의 토큰과 «임시저장한 뒤 바뀐» 칸 (PW-2349 · §6-4) */
+  const [loadedToken, setLoadedToken] = useState(null);
+  const [staleNotes, setStaleNotes] = useState({});
   const [syncedId, setSyncedId] = useState(member?.id);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -4391,6 +4414,84 @@ function EmployeesEditPanel({
       }
     : undefined;
 
+  /* 발령안 불러오기 (PW-2349 · §6-4) — 토큰이 바뀔 때 한 번만 칸에 채운다. 불러오기 전에는 지금 값을 보인다. */
+  const draftLoad = appointmentFlow?.draftLoadFor?.(member?.id) ?? null;
+  if (draftLoad && draftLoad.token !== loadedToken) {
+    setLoadedToken(draftLoad.token);
+    setDraft((d) => ({ ...d, ...(draftLoad.values || {}) }));
+    if (draftLoad.affiliation) setPendingAffil(draftLoad.affiliation);
+    if (draftLoad.effectiveDate) setApptDate(draftLoad.effectiveDate);
+    setApptType(draftLoad.appointmentType || '');
+    setApptReason(draftLoad.reason || '');
+    setStaleNotes(draftLoad.stale || {});
+  }
+  const flowWired = Boolean(appointmentFlow) && showAppointment;
+  const draftNotice = appointmentFlow?.draftNoticeFor?.(member?.id) ?? null;
+  /* 확인 창에 그릴 바뀐 칸 줄 — 이 창이 보이는 글자 그대로 넘긴다(값 라벨은 여기서만 안다). */
+  const changeLines = [
+    ...(affilChanged
+      ? [{ field: 'orgUnit', label: labels.panel.appointment.orgField, before: affilBeforeText, after: affilAfterText }]
+      : []),
+    ...apptChanges.map((c) => ({
+      field: c.field,
+      label: labels.panel[fieldLabelKey(c.field)] || c.field,
+      before: apptValueText(c.field, c.before),
+      after: apptValueText(c.field, c.after),
+    })),
+  ];
+
+  /* «수정» — 소속을 먼저, 그다음 칸. 거절은 되던져 확인 창이 사유를 보인다(정책 §4 «수정 실패»). */
+  async function submitCorrection(reason) {
+    const payload = { correction: { reason }, changes: apptChanges };
+    if (identityDirty && onSaveIdentity) {
+      await onSaveIdentity(member.id, identityPatch);
+      setIdentity((prev) => ({ ...(prev || {}), ...identityDraft }));
+    }
+    if (affilChanged && onChangeAffiliations) {
+      await onChangeAffiliations(member.id, pendingAffil, payload);
+      setPendingAffil(null);
+    }
+    if (Object.keys(patch).length > 1) await onSave([patch], payload);
+    onClose();
+  }
+
+  async function handleCorrect() {
+    if (!appointmentFlow?.onRequestCorrection) return;
+    setSaveError(null);
+    try {
+      await appointmentFlow.onRequestCorrection(member.id, {
+        lines: changeLines,
+        changes: apptChanges,
+        affiliation: affilChanged ? pendingAffil : null,
+        submit: submitCorrection,
+      });
+    } catch (e) {
+      /* 확인 창에서 [취소] — 사유 없는 거절이면 아무것도 안 띄운다. */
+      setSaveError(panelErrorOf(e));
+    }
+  }
+
+  async function handleSaveDraft() {
+    if (!appointmentFlow?.onSaveDraft) return;
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await appointmentFlow.onSaveDraft(member.id, {
+        changes: apptChanges,
+        affiliation: affilChanged ? pendingAffil : null,
+        effectiveDate: apptDate,
+        appointmentType: apptChanges.length > 0 ? effectiveApptType || undefined : undefined,
+        reason: apptReason.trim() || undefined,
+        patch,
+      });
+      onClose();
+    } catch (e) {
+      setSaveError(panelErrorOf(e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
   async function handleSave() {
     if (!dirty) { onClose(); return; }
     if (terminationProblem || leaveStartMissing) return;
@@ -4491,6 +4592,8 @@ function EmployeesEditPanel({
           </div>
           <button type="button" className="admin-emp-panel-close" onClick={onClose} aria-label={labels.panel.close}><IconX size={16} /></button>
         </div>
+        {/* «임시저장한 발령안이 있어요» 줄 (PW-2349 · §6-4) — 호출부가 그린다. */}
+        {draftNotice && <div data-testid="employees-panel-draft-notice">{draftNotice}</div>}
 
         {/* 탭 바 — 본문 스크롤 «밖» 이라 아래로 내려도 고정이다.
             건수 배지를 달지 않는다: 이력이 많은 것은 문제 신호가 아니라 오래 다닌
@@ -5149,6 +5252,11 @@ function EmployeesEditPanel({
                   <span className="admin-emp-hist-before">{apptValueText(c.field, c.before)}</span>
                   {' → '}
                   <span className="admin-emp-hist-after">{apptValueText(c.field, c.after)}</span>
+                  {staleNotes[c.field] != null && (
+                    <div className="admin-emp-panel-appointment-warn" data-testid={`employees-panel-draft-stale-${c.field}`}>
+                      {labels.panel.appointment.staleAfterDraft(apptValueText(c.field, staleNotes[c.field]))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -5202,6 +5310,23 @@ function EmployeesEditPanel({
                   data-testid="employees-panel-appointment-reason"
                 />
               </FormField>
+              {appointmentFlow?.onPreview && (
+                <div>
+                  <button
+                    type="button"
+                    className="admin-emp-btn is-secondary is-sm"
+                    onClick={() => appointmentFlow.onPreview(member.id, {
+                      date: apptDate,
+                      changes: apptChanges,
+                      affiliation: affilChanged ? pendingAffil : null,
+                    })}
+                    disabled={!apptDate}
+                    data-testid="employees-panel-appointment-preview"
+                  >
+                    {labels.panel.appointment.preview}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -5211,13 +5336,37 @@ function EmployeesEditPanel({
         {panelTab === 'info' && (
           <div className="admin-emp-panel-footer">
             <button type="button" className="admin-emp-btn is-secondary admin-emp-btn-block" onClick={onClose}>{labels.panel.cancel}</button>
+            {/* 발령 칸이 바뀐 창은 [임시저장] · [수정] · [발령] (PW-2349 · §6-2). 확정 없이 저장하는 길은 없다. */}
+            {flowWired && appointmentFlow.onSaveDraft && (
+              <button
+                type="button"
+                className="admin-emp-btn is-secondary admin-emp-btn-block"
+                onClick={handleSaveDraft}
+                disabled={saving || !canEdit}
+                data-testid="employees-panel-draft"
+              >
+                {labels.panel.draft}
+              </button>
+            )}
+            {flowWired && appointmentFlow.onRequestCorrection && (
+              <button
+                type="button"
+                className="admin-emp-btn is-secondary admin-emp-btn-block"
+                onClick={handleCorrect}
+                disabled={saving || !canEdit || Boolean(terminationProblem) || leaveStartMissing || axisIncomplete}
+                data-testid="employees-panel-correct"
+              >
+                {labels.panel.correct}
+              </button>
+            )}
             <button
               type="button"
               className="admin-emp-btn is-primary admin-emp-btn-block"
               onClick={handleSave}
               disabled={saving || !canEdit || !dirty || Boolean(terminationProblem) || leaveStartMissing || axisIncomplete || apptTypeMissing || (showAppointment && !apptDate)}
+              data-testid="employees-panel-save"
             >
-              {saving ? labels.panel.saving : labels.panel.save}
+              {saving ? labels.panel.saving : flowWired ? labels.panel.appoint : labels.panel.save}
             </button>
           </div>
         )}
@@ -5249,6 +5398,8 @@ export default function AdminEmployeesCanvas({
   appointmentTypeOptions,
   /* 구성원 창 [발령] 직전 발령 충돌 확인 (PW-2349) — 단건 편집 패널로 그대로 넘긴다 */
   onBeforeAppoint,
+  /* 발령 확정 절차 (PW-2349) — `EmployeesEditPanel` 의 `appointmentFlow` 주석 참조. 미주입이면 종전 [저장] 하나다. */
+  appointmentFlow,
   inferAppointmentType,
   // 전체 구성원 탭의 초기 검색어(딥링크용) — 개요에서 특정 인원 클릭 시 사용.
   initialSearch = '',
@@ -5877,6 +6028,7 @@ export default function AdminEmployeesCanvas({
             appointmentTypeOptions={canEdit ? appointmentTypeOptions : undefined}
             inferAppointmentType={inferAppointmentType}
             onBeforeAppoint={onBeforeAppoint}
+            appointmentFlow={canEdit ? appointmentFlow : undefined}
             /* 재직 상태별 날짜 칸(§3.2.1) — HR 기록 모달과 **같은** 조회·저장 경로다.
                미주입이면(어드민 아님) 그 칸을 아예 그리지 않는다. */
             onLoadHrProfile={onLoadHrProfile}
