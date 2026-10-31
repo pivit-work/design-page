@@ -4049,6 +4049,7 @@ function EmployeesEditPanel({
   const [apptReason, setApptReason] = useState('');
   /* 불러온 발령안의 토큰과 «임시저장한 뒤 바뀐» 칸 (PW-2349 · §6-4) */
   const [loadedToken, setLoadedToken] = useState(null);
+  const correcting = useRef(false);
   const [staleNotes, setStaleNotes] = useState({});
   const [syncedId, setSyncedId] = useState(member?.id);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -4456,7 +4457,9 @@ function EmployeesEditPanel({
   }
 
   async function handleCorrect() {
-    if (!appointmentFlow?.onRequestCorrection) return;
+    if (!appointmentFlow?.onRequestCorrection || correcting.current) return;
+    // 두 번 눌러 확인 창이 둘 뜨지 않게 — 첫 요청이 끝날 때까지 다시 받지 않는다(PW-2349 리뷰 17)
+    correcting.current = true;
     setSaveError(null);
     try {
       await appointmentFlow.onRequestCorrection(member.id, {
@@ -4468,6 +4471,8 @@ function EmployeesEditPanel({
     } catch (e) {
       /* 확인 창에서 [취소] — 사유 없는 거절이면 아무것도 안 띄운다. */
       setSaveError(panelErrorOf(e));
+    } finally {
+      correcting.current = false;
     }
   }
 
@@ -5244,6 +5249,11 @@ function EmployeesEditPanel({
                   <span className="admin-emp-hist-before">{affilBeforeText}</span>
                   {' → '}
                   <span className="admin-emp-hist-after">{affilAfterText}</span>
+                  {staleNotes.orgUnit != null && (
+                    <div className="admin-emp-panel-appointment-warn" data-testid="employees-panel-draft-stale-orgUnit">
+                      {labels.panel.appointment.staleAfterDraft(String(staleNotes.orgUnit))}
+                    </div>
+                  )}
                 </div>
               )}
               {apptChanges.map((c) => (
