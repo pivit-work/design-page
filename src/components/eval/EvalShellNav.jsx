@@ -36,6 +36,9 @@ import Tooltip from '../shared/Tooltip.jsx';
  *                                          줄이 서면 셸의 `--evnav-h` 가 그만큼 늘어 캔버스가 아래로 내려간다
  * @param {string}   [props.activeSubItemId] 3행의 활성 탭 id — 없으면 아무 탭도 켜지 않는다
  * @param {Function} [props.onSubSelect]    (subItemId) => void
+ * @param {React.ReactNode} [props.domainsHelp] 1행 마지막 탭 바로 뒤 «?» 도움말 — 페이지 제목이 없는 화면의
+ *                                          튜토리얼 버튼(앱이 그려 넘긴다 · pivit-work PW-2430). 간격은 탭 사이(20) +
+ *                                          «?» 자체 여백 6. 없으면 지금 그대로
  */
 export default function EvalShellNav({
   title = '평가',
@@ -48,6 +51,7 @@ export default function EvalShellNav({
   subItems = [],
   activeSubItemId,
   onSubSelect,
+  domainsHelp = null,
 }) {
   const desc = domains.find((d) => d.id === activeDomain)?.desc || '';
   const groups = sections
@@ -87,6 +91,7 @@ export default function EvalShellNav({
             </Tooltip>
           );
         })}
+        {domainsHelp}
       </div>
 
       {(groups.length > 0 || desc) && (

@@ -304,6 +304,8 @@ export function RatingBar({ value, ai = false, self = false, onChange, labelOf =
 export default function StartOneOnOneView({
   member,
   data,
+  /** 회차 제목 «1on1 • 날짜» 바로 뒤 «?» 도움말(앱이 그려 넘긴다 · pivit-work PW-2430). 없으면 제목만. */
+  titleHelp = null,
   aiDrafts,
   aiDraftRevisions = {},
   onGenerateDrafts,
@@ -680,7 +682,10 @@ export default function StartOneOnOneView({
     <div className={`ono-start-view${showAside ? ' has-aside' : ''}`} data-testid="ono-start-view">
       <div className="ono-start-view-card">
         <div className="ono-start-view-body">
-          <p className="ono-start-modal-title">{meetingTitle}</p>
+          <p className="ono-start-modal-title">
+            {meetingTitle}
+            {titleHelp}
+          </p>
 
           {/* 멤버 */}
           <div className="ono-add-modal-member">

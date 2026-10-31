@@ -1597,6 +1597,8 @@ function ShareControl({ shared, memberName, L, share, confirmedCount = null, unc
 
 export default function DoneOneOnOneView({
   session,
+  /** 머리 제목 «1on1 • 날짜» 바로 뒤 «?» 도움말(앱이 그려 넘긴다 · pivit-work PW-2430). 없으면 제목만. */
+  titleHelp = null,
   /** 화면 단위 매니저 — 회차에 이름이 없을 때의 폴백 (PW-211). */
   manager,
   memberName = '',
@@ -1791,6 +1793,7 @@ export default function DoneOneOnOneView({
               : memberName
                 ? fill(L.title, { name: memberName })
                 : L.titleNoName}
+            {titleHelp}
           </h1>
           {(memberName || avatar) && (
             <div className="ono-done-head-member">
