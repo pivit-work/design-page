@@ -66,6 +66,8 @@ export default function ReportCanvas({
   onReportGenerate,
   // 디테일 뷰 — selectedReport 가 있으면 본문이 TimelineWeeklyView 로 전환.
   // shape: 위 reports 행의 한 객체 (그 안의 weeklyReport 가 실제 리포트).
+  //   기간 탭이면 weeklyReport 대신 periodReport `{ title, dateRange, summary, stats }` 를 실어
+  //   같은 창에 ReportPeriodView 로 그린다 (pivit-work PW-2399).
   selectedReport,
   onCloseReport,
   // 리포트 창 닫기 X 의 aria-label (소비처가 i18n 문구를 넘긴다).
@@ -131,6 +133,7 @@ export default function ReportCanvas({
           generatingLabel={generatingLabel}
           closeLabel={closeLabel}
           ariaLabel={selectedReport.dateRange ?? selectedReport.periodLabel}
+          periodReport={selectedReport.periodReport}
           onClose={onCloseReport}
         />
       )}

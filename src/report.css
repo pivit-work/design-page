@@ -405,6 +405,21 @@
   display: none;
 }
 
+/* 기간 리포트 상세 창의 숫자 칸 줄 (pivit-work PW-2399) — 디자이너 원본이 없어
+   기간 줄 `.report-mrow`(16883:28267)의 바탕·모서리와 칸(`.report-mrow-stat`)을 값 그대로 옮겼다.
+   줄의 첫 칸은 앞에 기간 칸이 있어 왼쪽 구분선이 있지만, 여기서는 첫 칸이 맨 앞이라 구분선을 뺀다. */
+.report-period-stats {
+  display: flex;
+  width: fit-content;
+  margin: 0 auto;
+  min-height: 74px;
+  border-radius: 6px;
+  background: var(--colors-background-bgQuaternary);
+}
+.report-period-stats .report-mrow-stat:first-child {
+  border-left: none;
+}
+
 /* Share 버튼 — 우측 끝 */
 .report-row-share {
   display: inline-flex;

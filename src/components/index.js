@@ -292,6 +292,7 @@ export {
   ReportWeeklyRow,
   ReportStatsRow,
   ReportViewerModal,
+  ReportPeriodView,
 } from './report/index.js';
 
 // Snippet (스니핏 히스토리)

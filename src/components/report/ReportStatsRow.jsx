@@ -1,4 +1,5 @@
 import Icon from '../shared/Icon.jsx';
+import { isEnterKey } from '../shared/enterKey.js';
 import Spinner from '../shared/Spinner.jsx';
 
 /**
@@ -32,6 +33,12 @@ export default function ReportStatsRow({
       onClick={onClick}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
+      // 줄에 포커스를 두고 Enter·Space 로도 연다 — 안쪽 버튼(공유·생성)에서 누른 키는 그 버튼 몫이다 (pivit-work PW-2399)
+      onKeyDown={onClick ? (e) => {
+        if (e.target !== e.currentTarget || (!isEnterKey(e) && e.key !== ' ')) return;
+        e.preventDefault();
+        onClick();
+      } : undefined}
     >
       <div className="report-mrow-period">{periodLabel}</div>
 
