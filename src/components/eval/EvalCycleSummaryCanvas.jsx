@@ -367,6 +367,8 @@ const DEFAULT_LABELS = {
   cwCommentPlaceholder: '조정 근거·이견을 입력…',
   cwCommentSubmit: '코멘트 등록',
   cwCommentReadonly: 'HR 조회 전용 — 위원만 논의 코멘트를 작성할 수 있습니다.',
+  // 논의 코멘트 작성자 이름이 비었을 때 대신 보이는 말 (pivit-work PW-2293).
+  cwCommentAuthorFallback: '위원',
   cwCreateBtn: '＋ 위원회 생성',
   cwCreateTitle: '캘리브레이션 위원회 생성',
   cwCreateDesc: '① 평가 대상자(조직) 선택 → ② 참여 위원 지정. HR 준비 · 조정·확정 권한은 위원회.',
@@ -569,6 +571,8 @@ const DEFAULT_LABELS = {
   deptRankTitle: '부서별 평균 달성률 랭킹',
   deptDetailTitle: '부서별 상세 현황',
   deptOutlierTitle: '이상치 경고 — 캘리브레이션 재검토 권장',
+  // 이상치 경고 한 줄. {delta} 자리에 강조 글자 «+N%p» 가 들어간다 — 소비처가 언어에 맞춰 넘긴다 (pivit-work PW-2293).
+  deptOutlierRow: '{dept} — {grade} 비율 {actual}% (가이드 {guide}% 대비 {delta})',
   deptColDept: '부서',
   deptColCount: '인원',
   deptColAvgAchieve: '평균 달성률',
@@ -675,6 +679,8 @@ const DEFAULT_LABELS = {
   colLeader: '하향',
   // §8 피평가자 통합 요약 (2열)
   reListTitle: '피평가자 목록',
+  // 부서가 없는 사람을 묶는 이름 (pivit-work PW-2293).
+  reDeptUnassigned: '미지정',
   reAccessNote: '접근: 조직장(1차 검수) · HR · 위원회',
   reEmptyList: '이 사이클에 해당하는 구성원이 없습니다.',
   reSelectPrompt: '왼쪽 목록에서 피평가자를 선택하세요.',
@@ -735,6 +741,16 @@ function isObj(v) {
 }
 function fmt(str, vars) {
   return String(str).replace(/\{(\w+)\}/g, (m, k) => (vars[k] != null ? String(vars[k]) : m));
+}
+/**
+ * 문구 안 `{slot}` 자리에 글자 대신 노드(강조 span 등)를 끼운다. 나머지 `{key}` 는 fmt 로 채운다.
+ * 자리를 먼저 나눠 채우므로 값에 «{slot}» 글자가 들어 있어도 노드가 그 자리로 새지 않는다.
+ * 문구에 자리가 없으면 노드를 끝에 붙인다 — 강조 숫자가 빠지지 않게.
+ */
+function fillAround(str, slot, vars, node) {
+  const parts = String(str).split(`{${slot}}`);
+  if (parts.length < 2) return <>{fmt(parts[0], vars)}{node}</>;
+  return <>{fmt(parts[0], vars)}{node}{fmt(parts.slice(1).join(`{${slot}}`), vars)}</>;
 }
 /**
  * 이름 뒤 목적격 조사 — 끝소리로 「을」·「를」을 고른다(영문 이름도 읽는다, PW-1790).
@@ -2865,7 +2881,7 @@ export default function EvalCycleSummaryCanvas({
   const revieweeGroups = (() => {
     const byDept = new Map();
     for (const m of integrated) {
-      const d = m.dept || '미지정';
+      const d = m.dept || L.reDeptUnassigned;
       if (!byDept.has(d)) byDept.set(d, []);
       byDept.get(d).push(m);
     }
@@ -3172,7 +3188,8 @@ export default function EvalCycleSummaryCanvas({
                   {deptOutliers.map((o, i) => (
                     // [PW-1466] 정책 §5.B.5 — 심각도 «높음»은 빨강.
                     <div className={`evs-dept-outlier-row${o.severity === 'high' ? ' is-high' : ''}`} key={i} data-testid="evs-dept-outlier-row">
-                      {o.dept} — {o.grade} 비율 {o.actual}% (가이드 {o.guide}% 대비 <span className="evs-dept-outlier-delta">+{o.delta}%p</span>)
+                      {fillAround(L.deptOutlierRow, 'delta', { dept: o.dept, grade: o.grade, actual: o.actual, guide: o.guide },
+                        <span className="evs-dept-outlier-delta">+{o.delta}%p</span>)}
                     </div>
                   ))}
                 </div>
@@ -5581,7 +5598,7 @@ export default function EvalCycleSummaryCanvas({
                                                   data-testid="evs-cw-comment"
                                                 >
                                                   <span className="evs-cw-comment-author">
-                                                    {cm.authorName || '위원'}
+                                                    {cm.authorName || L.cwCommentAuthorFallback}
                                                   </span>
                                                   {/* §4.5 코멘트 목록 — 작성자·시각·본문. */}
                                                   {cm.createdAt ? (
