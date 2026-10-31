@@ -14,7 +14,11 @@ import SearchInput from '../shared/SearchInput.jsx';
  * 위에 검색칸과 발언자별 보기(전체 / 사람마다)를 둔다. 거르기는 이 부품 안에서 한다.
  * 높이는 감싸는 탭 칸(`MeetingRecordContent` 의 `.mtg-record-tab-pane`)이 정한다.
  *
- * @param {{ speaker: string, time: string, text: string }[]} lines 발언 — 시각은 caller 가 표시 글자로 준다
+ * 같은 일정으로 다시 모였거나 녹취를 다시 켠 자리는 그 첫 발언에 `divider`(표시 글자)를 실어 보낸다 (PW-2391).
+ * 그 앞에 구분 줄을 긋고, 같은 사람이 경계를 넘어 이어 말해도 묶음을 나눈다. 검색·발언자별 보기로 그 첫 발언이
+ * 빠지면 구분 줄은 그 녹취의 다음 보이는 발언 앞으로 옮긴다 — 걸러 봐도 어디서부터 다음 회의인지 남는다.
+ *
+ * @param {{ speaker: string, time: string, text: string, divider?: string }[]} lines 발언 — 시각·구분 글자는 caller 가 표시 글자로 준다
  * @param {{ searchPlaceholder: string, allSpeakers: string, speakerFilterAria: string, noMatch: string }} labels
  */
 export default function MeetingTranscript({ lines, labels }) {
@@ -25,16 +29,21 @@ export default function MeetingTranscript({ lines, labels }) {
 
   const groups = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const shown = lines.filter(
-      (l) =>
-        (!speaker || l.speaker === speaker) &&
-        (!q || l.text.toLowerCase().includes(q) || l.speaker.toLowerCase().includes(q)),
-    );
+    const matches = (l) =>
+      (!speaker || l.speaker === speaker) &&
+      (!q || l.text.toLowerCase().includes(q) || l.speaker.toLowerCase().includes(q));
     // 거른 뒤에 묶는다 — 사이에 낀 다른 사람 발언이 빠지면 앞뒤가 한 묶음이 된다.
     const out = [];
-    for (const l of shown) {
+    let divider = null;
+    for (const l of lines) {
+      if (l.divider) divider = l.divider;
+      if (!matches(l)) continue;
+      if (divider) {
+        out.push({ divider });
+        divider = null;
+      }
       const last = out[out.length - 1];
-      if (last && last.speaker === l.speaker) last.items.push(l);
+      if (last && !last.divider && last.speaker === l.speaker) last.items.push(l);
       else out.push({ speaker: l.speaker, items: [l] });
     }
     return out;
@@ -63,7 +72,13 @@ export default function MeetingTranscript({ lines, labels }) {
         <p className="mtg-transcript-empty" data-testid="meet-transcript-no-match">{labels.noMatch}</p>
       ) : (
         <ul className="mtg-transcript-list" data-testid="meet-transcript-lines">
-          {groups.map((g, gi) => (
+          {groups.map((g, gi) => g.divider ? (
+            <li key={`${gi}-divider`} className="mtg-transcript-divider" data-testid="meet-transcript-divider">
+              <span className="mtg-transcript-divider-line" aria-hidden="true" />
+              <span className="mtg-transcript-divider-text">{g.divider}</span>
+              <span className="mtg-transcript-divider-line" aria-hidden="true" />
+            </li>
+          ) : (
             <li key={`${gi}-${g.speaker}`} className="mtg-transcript-group" data-testid="meet-transcript-group">
               {/* 원 안에는 이름 첫 글자만 — 옆에 이름이 적혀 있어 원은 화면 읽기에서 숨긴다. */}
               <Avatar name={g.speaker} text={[...g.speaker.trim()][0] ?? ''} size={24} />

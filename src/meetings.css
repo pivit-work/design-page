@@ -1789,3 +1789,17 @@ input.mtg-record-action-title::placeholder {
   color: var(--text-tertiary);
 }
 .mtg-transcript-empty { margin: 12px 0; font-size: 13px; color: var(--text-tertiary); }
+/* 다시 모인 회의·다시 켠 녹취의 경계 (PW-2391) — 로그인 «또는» 구분선(.login-divider)의 선·글자·선 모양에
+   글씨는 이 목록의 발언 시각(.mtg-transcript-time) 크기·색으로. 위아래 8px — 앞뒤 묶음의 10px 여백과 더해 묶음 사이보다 조금 넓다. */
+.mtg-transcript-divider { display: flex; align-items: center; gap: var(--spacing-md); padding: var(--spacing-md) 0; }
+.mtg-transcript-divider-line { flex: 1; height: 1px; background: var(--border-secondary); }
+.mtg-transcript-divider-text {
+  flex: 0 1 auto;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--text-tertiary);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
