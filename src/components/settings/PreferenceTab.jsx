@@ -39,6 +39,10 @@ const STYLES = ['concise', 'detailed'];
 const SPEEDS = ['immediate', 'same_day', 'within_24h', 'async'];
 const SLOTS = ['morning', 'afternoon', 'evening'];
 const MAX_FOCUS_AREAS = 3;
+// 강점·보완점은 칸마다 20개까지 — 서버(pivit-work `UpdateFeedbackProfileDto` ArrayMaxSize · INPUT_LIMITS.feedbackProfile)
+// 한도다. 막지 않으면 고정 칩 8개 + 직접 입력 13개에서 [변경사항 저장]이 400 으로 실패했다. 관심 영역처럼 다 차면
+// 고르지 않은 칩과 직접 입력 칸을 막는다(고른 것은 빼서 자리를 낼 수 있다).
+const MAX_KEYWORDS = 20;
 const CAREER_GOAL_MAX = 100;
 const PERSONALITY_TRAITS = ['executor', 'analyst', 'empathizer', 'strategist'];
 const GROWTH_POINT_MAX = 200;
@@ -182,8 +186,9 @@ export default function PreferenceTab({
   const addCustom = (key, raw, clear) => {
     const v = raw.trim();
     if (!v) return;
-    // 목록에 이미 있으면 새로 만들지 않고 고른 상태로 둔다(policy §4).
-    setDraft((d) => (d[key].includes(v) ? d : { ...d, [key]: [...d[key], v] }));
+    // 목록에 이미 있으면 새로 만들지 않고 고른 상태로 둔다(policy §4). 다 찼으면 더하지 않는다.
+    setDraft((d) =>
+      d[key].includes(v) || d[key].length >= MAX_KEYWORDS ? d : { ...d, [key]: [...d[key], v] });
     clear('');
   };
 
@@ -198,12 +203,14 @@ export default function PreferenceTab({
 
   const keywordField = (key, base, custom, setCustom, testId) => {
     const extra = draft[key].filter((v) => !base.includes(v));
+    const full = draft[key].length >= MAX_KEYWORDS;
     return (
       <div>
         <PrefLabel hint={L.keywordHint}>{key === 'strengths' ? L.strengths : L.improveAreas}</PrefLabel>
         <div className="msc-pref-chips">
           {base.map((k) => (
             <Chip key={k} selected={draft[key].includes(k)} onClick={() => toggle(key, k)}
+              disabled={full && !draft[key].includes(k)}
               data-testid={`${testId}-${k}`}>{show(k)}</Chip>
           ))}
           {extra.map((k) => (
@@ -215,6 +222,7 @@ export default function PreferenceTab({
           className="admin-emp-input msc-pref-custom"
           value={custom}
           maxLength={50}
+          disabled={full}
           placeholder={L.customPlaceholder}
           aria-label={key === 'strengths' ? L.strengths : L.improveAreas}
           onChange={(e) => setCustom(e.target.value)}
