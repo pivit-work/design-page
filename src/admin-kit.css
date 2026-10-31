@@ -678,6 +678,56 @@
 }
 .admin-offb-choice-why { margin: 0; font-size: var(--font-size-text-xs); line-height: 16px; color: var(--text-tertiary); }
 .admin-offb-stack { display: flex; flex-direction: column; gap: 12px; }
+/* 섹션 1 끝 «휴가 정산» 칸 (pivit-work PW-2375 · 정책 v1.27 §2-B) — 위 칸들과 구분선으로 가른다.
+   머리 글씨는 위 칸 이름표(.admin-offb .dp-field-label), 값 줄 글씨는 섹션 3 목록(.admin-offb-effects 12px)과 맞춘다. */
+.admin-offb-leave {
+  margin-top: var(--spacing-3xl);
+  padding-top: var(--spacing-2xl);
+  border-top: 1px solid var(--border-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+.admin-offb-leave-head { display: flex; align-items: center; gap: var(--spacing-md); flex-wrap: wrap; }
+.admin-offb-leave-title {
+  font-family: var(--font-family-body);
+  font-weight: 700;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  color: var(--text-secondary);
+}
+.admin-offb-leave-basis {
+  margin-left: auto;
+  font-family: var(--font-family-body);
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+.admin-offb-leave-error { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-md); }
+.admin-offb-leave-rows { margin: 0; display: flex; flex-direction: column; }
+.admin-offb-leave-row {
+  display: flex;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-md) 0;
+  border-bottom: 1px dashed var(--border-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.admin-offb-leave-row:last-child { border-bottom: 0; }
+.admin-offb-leave-key { flex: 0 0 150px; margin: 0; color: var(--text-secondary); }
+.admin-offb-leave-val { flex: 1; min-width: 0; margin: 0; display: flex; flex-direction: column; gap: var(--spacing-xxs); }
+.admin-offb-leave-value {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.admin-offb-leave-note { color: var(--text-tertiary); overflow-wrap: anywhere; }
+.admin-offb-leave-note.is-warning { color: var(--colors-warning-600); }
+.admin-offb-leave-line { display: block; }
 .admin-offb-effects {
   margin: 0;
   padding-left: 18px;

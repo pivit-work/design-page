@@ -43,6 +43,11 @@ export const ADMIN_OFFBOARDING_DEFAULT_LABELS = {
     confirmDesc: '되돌릴 수 없습니다. 대상자 이름을 그대로 입력해야 실행됩니다.',
   },
   typeLabel: '퇴사 유형',
+  // 섹션 1 안 «휴가 정산» 칸의 머리 — 값·안내 문장은 소비자가 채워 `leaveSettlement` 로 넘긴다 (pivit-work PW-2375 · 정책 v1.27 §2-B)
+  leave: {
+    title: '휴가 정산',
+    badge: '휴가 애드온',
+  },
   types: {
     voluntary: '자발적 퇴사',
     involuntary: '권고사직',
@@ -135,6 +140,7 @@ export const ADMIN_OFFBOARDING_DEFAULT_LABELS = {
     seatsMinimum: '약정 최소 좌석({minimum}명) 기준으로 청구되므로 이번 변경은 청구 금액을 낮추지 않습니다.',
     candidates: '매니저·조직장·대표 후보에서 빠지고, 진행 중 기간의 팀 캐파 집계에서 제외됩니다.',
     oneOnOne: '1on1 예약 대상에서 빠집니다. 지나간 기록과 지표는 그대로 남습니다.',
+    leaveSettlement: '휴가 정산 값이 퇴사일 기준으로 고정되고(섹션 1 «휴가 정산»), 퇴사일 이후 휴가는 휴가 시스템이 취소하고 본인·결재선에 알립니다.',
     retention: '보존 기간이 지난 뒤의 파기 시점은 법무·노무 검토가 끝나면 정해집니다. 그때 값이 바뀌어도 위 처분 구조는 바뀌지 않습니다.',
   },
   nameLabel: '대상자 이름',

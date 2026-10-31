@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import DpStatusBadge from '../shared/StatusBadge.jsx';
 import Avatar from '../shared/Avatar.jsx';
 import Button from '../shared/Button.jsx';
@@ -86,6 +86,79 @@ function Notice({ tone, title, children, testId, role }) {
         {title && <p className="admin-kit-notice-title">{title}</p>}
         {title ? <p className="admin-kit-notice-desc">{children}</p> : children}
       </div>
+    </div>
+  );
+}
+
+/**
+ * @typedef {object} LeaveSettlementRow
+ * @property {string} id
+ * @property {string} label
+ * @property {string} value
+ * @property {{ tone: string, text: string }} [badge]
+ * @property {string} [note] 값 아래 보조 줄
+ * @property {'warning'} [noteTone] 보조 줄을 앰버로
+ *
+ * @typedef {object} LeaveSettlementView
+ * @property {'idle'|'loading'|'error'|'ready'} status
+ * @property {string} [basis] 머리 오른쪽 «퇴사일 {날짜} 기준»
+ * @property {string} [description] 머리 아래 설명 한 줄
+ * @property {string} [message] idle·loading 일 때 칸 안 한 줄
+ * @property {{ title: string, desc?: string, retryLabel: string, onRetry: () => void }} [error]
+ * @property {LeaveSettlementRow[]} [rows]
+ * @property {{ id: string, tone: 'warn'|'neutral', title?: string, lines: string[] }[]} [notices]
+ */
+
+/* 섹션 1 끝 «휴가 정산» 칸 — 값은 휴가 모듈이, 문장은 소비자가 채운다. 여기서는 배치만 한다 (정책 v1.27 §2-B). */
+function LeaveSettlement({ view, labels }) {
+  const rows = view.rows || [];
+  const notices = view.notices || [];
+  return (
+    <div className="admin-offb-leave" data-testid="offboarding-leave">
+      <div className="admin-offb-leave-head">
+        <span className="admin-offb-leave-title">{labels.leave.title}</span>
+        <DpStatusBadge tone="neutral">{labels.leave.badge}</DpStatusBadge>
+        {view.basis && (
+          <span className="admin-offb-leave-basis" data-testid="offboarding-leave-basis">{view.basis}</span>
+        )}
+      </div>
+      {view.description && <NoteText data-testid="offboarding-leave-desc">{view.description}</NoteText>}
+      {view.message && (
+        <Notice tone="neutral" testId="offboarding-leave-message">{view.message}</Notice>
+      )}
+      {view.status === 'error' && view.error && (
+        <div className="admin-offb-leave-error">
+          <Notice tone="error" title={view.error.title} testId="offboarding-leave-error" role="alert">
+            {view.error.desc}
+          </Notice>
+          <Button variant="secondary" size="sm" onClick={view.error.onRetry} data-testid="offboarding-leave-retry">
+            {view.error.retryLabel}
+          </Button>
+        </div>
+      )}
+      {rows.length > 0 && (
+        <dl className="admin-offb-leave-rows">
+          {rows.map((r) => (
+            <div className="admin-offb-leave-row" key={r.id} data-testid={`offboarding-leave-row-${r.id}`}>
+              <dt className="admin-offb-leave-key">{r.label}</dt>
+              <dd className="admin-offb-leave-val">
+                <span className="admin-offb-leave-value">
+                  {r.value}
+                  {r.badge && <DpStatusBadge tone={r.badge.tone}>{r.badge.text}</DpStatusBadge>}
+                </span>
+                {r.note && (
+                  <span className={`admin-offb-leave-note${r.noteTone === 'warning' ? ' is-warning' : ''}`}>{r.note}</span>
+                )}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      {notices.map((n) => (
+        <Notice key={n.id} tone={n.tone} title={n.title} testId={`offboarding-leave-notice-${n.id}`}>
+          {n.lines.map((l, i) => <span className="admin-offb-leave-line" key={i}>{l}</span>)}
+        </Notice>
+      ))}
     </div>
   );
 }
@@ -210,6 +283,10 @@ function AreaCard({
  *   ('YYYY-MM-DD'). 라벨의 `{confirmDate}` 자리를 채운다 — 규칙(기준일 · 14일)은 소비자가 갖는다 (pivit-work PW-2083)
  * @param {(resignationDate: string) => string} [props.revertDeadlineOf] 고른 퇴사일로 실행하면 퇴사를 취소할 수 있는
  *   마지막 날('YYYY-MM-DD'). 라벨의 `{deadline}` 자리를 채운다 (pivit-work PW-2142 · 정책 v1.26 §5-F «화면 문구 기준»)
+ * @param {LeaveSettlementView|null} [props.leaveSettlement] 섹션 1 끝 «휴가 정산» 칸에 그릴 것. 없으면(휴가 애드온 꺼짐) 칸이 없다.
+ *   값은 휴가 모듈이 계산하고 문장은 소비자가 채운다 — 캔버스는 더하거나 곱하지 않는다 (pivit-work PW-2375 · 정책 v1.27 §2-B · §5-J)
+ * @param {(dates: { resignationDate: string, lastDay: string }) => void} [props.onDatesChange] 퇴사일·마지막 출근일이
+ *   바뀔 때(처음 그릴 때 포함) 부른다 — 휴가 정산을 다시 계산하라는 신호다
  */
 export default function AdminOffboardingCanvas({
   member,
@@ -225,6 +302,8 @@ export default function AdminOffboardingCanvas({
   formatDate,
   confirmDateOf,
   revertDeadlineOf,
+  leaveSettlement = null,
+  onDatesChange,
 }) {
   const labels = merge(ADMIN_OFFBOARDING_DEFAULT_LABELS, providedLabels);
   const sep = labels.listSeparator;
@@ -244,6 +323,15 @@ export default function AdminOffboardingCanvas({
   const [reasons, setReasons] = useState({});
   const [typedName, setTypedName] = useState('');
   const [note, setNote] = useState('');
+
+  // onDatesChange 는 소비자가 그릴 때마다 새로 만들 수 있다 — 날짜가 바뀔 때만 부르려고 최신 함수를 ref 로 든다
+  const onDatesChangeRef = useRef(onDatesChange);
+  useEffect(() => {
+    onDatesChangeRef.current = onDatesChange;
+  });
+  useEffect(() => {
+    onDatesChangeRef.current?.({ resignationDate, lastDay });
+  }, [resignationDate, lastDay]);
 
   const isOverridden = (key) => picks[key] !== defaults?.[key];
   const overriddenAreas = CHOICE_AREAS.filter((a) => isOverridden(a.choice.key));
@@ -400,6 +488,7 @@ export default function AdminOffboardingCanvas({
             </span>
           </FormField>
         </div>
+        {leaveSettlement && <LeaveSettlement view={leaveSettlement} labels={labels} />}
       </Section>
 
       {/* 2 — 데이터 처리 */}
@@ -466,6 +555,10 @@ export default function AdminOffboardingCanvas({
             </li>
             <li>{labels.effects.candidates}</li>
             <li>{labels.effects.oneOnOne}</li>
+            {/* 휴가 정산 고정 · 퇴사일 이후 휴가 취소 — 휴가 애드온이 켜진 회사만 (정책 v1.27 §2 · pivit-work PW-2375) */}
+            {leaveSettlement && labels.effects.leaveSettlement && (
+              <li data-testid="offboarding-leave-effect">{labels.effects.leaveSettlement}</li>
+            )}
             {/* 지우는 처리가 실행되는 때 — 퇴사 확정 밤(퇴사 정책 v1.25 §2 · pivit-work PW-2083). 날짜는 confirmDateOf 로 */}
             {labels.effects.purgeTiming && (
               <li data-testid="offboarding-purge-timing">
