@@ -5400,6 +5400,8 @@ export default function AdminEmployeesCanvas({
   onBeforeAppoint,
   /* 발령 확정 절차 (PW-2349) — `EmployeesEditPanel` 의 `appointmentFlow` 주석 참조. 미주입이면 종전 [저장] 하나다. */
   appointmentFlow,
+  /* 구성원 창을 여는 요청 `{ memberId, token }` (PW-2349 · «임시저장» 묶음 [이어서]) */
+  openMemberRequest,
   inferAppointmentType,
   // 전체 구성원 탭의 초기 검색어(딥링크용) — 개요에서 특정 인원 클릭 시 사용.
   initialSearch = '',
@@ -5732,6 +5734,14 @@ export default function AdminEmployeesCanvas({
   // 편집 패널이 열린 구성원 id. 패널은 표 **바깥**에 그린다 — 표 안에 두면 탭을
   // 옮길 때 패널까지 함께 묻힌다.
   const [editMemberId, setEditMemberId] = useState(null);
+  /* 호출부가 구성원 창을 여는 요청 (pivit-work PW-2349 · «임시저장» 묶음의 [이어서]) — `{ memberId, token }`.
+     토큰이 바뀔 때 한 번 «구성원» 탭으로 옮겨 그 사람의 창을 연다. */
+  const [openedToken, setOpenedToken] = useState(null);
+  if (openMemberRequest && openMemberRequest.token !== openedToken) {
+    setOpenedToken(openMemberRequest.token);
+    setTab('members');
+    setEditMemberId(openMemberRequest.memberId);
+  }
 
   /* 목록 표에서 고른 사람 (PW-608).
      🔴 **목록 뷰가 아니라 여기가 정본이다.** 아래에서 `loading` 일 때 그 뷰를 로딩

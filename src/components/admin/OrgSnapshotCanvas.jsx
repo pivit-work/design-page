@@ -1241,6 +1241,15 @@ function AppointmentBulkView({
   confirmBlocked = false,
   /* «발령 완료» 아래 덧붙일 한 줄 (PW-2349 · 발령 이력 정책 v1.5 — «예정 발령으로 N건을 남겼어요»). 앱이 확정이 끝난 뒤 채운다 */
   doneNote,
+  /* ③ «발령 확정» 옆 [조직도 미리 보기] (pivit-work PW-2349 · org-snapshot-spec §6-5) — `({ rows, date, errorRows }) => void`.
+     정상 행만 싣고 오류 행 수를 함께 넘긴다(«오류 N행은 넣지 않았어요»). 미주입이면 버튼이 없다. */
+  onPreview,
+  /* ③ [임시저장] (PW-2349 · §6-4) — `({ fields, rows, previewRows, date, reason, affiliationMode, fileName }) => Promise`.
+     성공하면 앱이 화면을 닫는다. 미주입이면 버튼이 없다. */
+  onSaveDraft,
+  /* 임시저장한 발령안 이어서 열기 (PW-2349 · §6-4 «이어서») — `{ token, fields, previewRows, date, reason, affiliationMode, fileName }`.
+     토큰이 바뀔 때 한 번 ③ 검증 & 확정을 채운 채로 연다. */
+  resume,
 }) {
   const [step, setStep] = useState(1);
   const [selectedColumns, setSelectedColumns] = useState(() => new Set());
@@ -1258,6 +1267,18 @@ function AppointmentBulkView({
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const fileInputRef = useRef(null);
+  const [resumedToken, setResumedToken] = useState(null);
+  const [draftSaving, setDraftSaving] = useState(false);
+  if (resume && resume.token !== resumedToken) {
+    setResumedToken(resume.token);
+    setSelectedColumns(new Set(resume.fields ?? []));
+    setPreviewRows(resume.previewRows ?? []);
+    setDate(resume.date || defaultDate);
+    setReason(resume.reason ?? '');
+    setAffiliationMode(Boolean(resume.affiliationMode));
+    setFile(resume.fileName ? { name: resume.fileName } : null);
+    setStep(3);
+  }
 
   const fields = Array.from(selectedColumns);
   const okRows = previewRows.filter((r) => r.status === 'ok');
@@ -1684,10 +1705,46 @@ function AppointmentBulkView({
                 <button type="button" className="admin-emp-btn is-soft" onClick={() => setStep(2)}>← {labels.prev}</button>
                 <button type="button" className="admin-emp-btn is-soft" disabled={submitting} onClick={reset}>{labels.cancelAll}</button>
               </div>
-              {/* 확정 대상 = 정상 + 경고. 0건이면 누를 수 없다(§3-A-3). */}
-              <Button className="admin-emp-btn is-primary" disabled={applicableRows.length === 0 || !date || submitting || confirmBlocked} onClick={handleConfirm}>
-                {labels.confirmBulkPrefix} ({applicableRows.length}{labels.countUnit})
-              </Button>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {onPreview && (
+                  <button
+                    type="button"
+                    className="admin-emp-btn is-secondary"
+                    disabled={confirmRows.length === 0 || !date}
+                    onClick={() => onPreview({ rows: confirmRows, date, errorRows: errorRows.length })}
+                    data-testid="bulk-preview"
+                  >
+                    {labels.bulkPreview ?? '조직도 미리 보기'}
+                  </button>
+                )}
+                {onSaveDraft && (
+                  <button
+                    type="button"
+                    className="admin-emp-btn is-secondary"
+                    disabled={draftSaving || submitting || previewRows.length === 0}
+                    onClick={async () => {
+                      setDraftSaving(true);
+                      setSubmitError('');
+                      try {
+                        await onSaveDraft({
+                          fields, rows: confirmRows, previewRows, date, reason, affiliationMode, fileName: file?.name ?? null,
+                        });
+                      } catch (err) {
+                        setSubmitError(err?.message || String(err));
+                      } finally {
+                        setDraftSaving(false);
+                      }
+                    }}
+                    data-testid="bulk-save-draft"
+                  >
+                    {labels.bulkSaveDraft ?? '임시저장'}
+                  </button>
+                )}
+                {/* 확정 대상 = 정상 + 경고. 0건이면 누를 수 없다(§3-A-3). */}
+                <Button className="admin-emp-btn is-primary" disabled={applicableRows.length === 0 || !date || submitting || confirmBlocked} onClick={handleConfirm}>
+                  {labels.confirmBulkPrefix} ({applicableRows.length}{labels.countUnit})
+                </Button>
+              </div>
             </div>
           </div>
         )}
@@ -1734,6 +1791,9 @@ function AppointmentHistoryView({
      넘긴다 — 안 넘기면 그 줄에는 «상세 ▸» 만 남는다(매니저). 예약 개편 줄에는 «발효 전 취소»를 그리지 않는다 — 개편은 묶음이라
      한 줄만 취소하면 «조직은 옮기는데 사람은 남는» 개편이 된다(편집기 정책 §4-8 R10). 구성원 설정 탭·조직 스냅샷 서브탭 둘 다 같다 */
   onOpenReservation,
+  /* «임시저장 {N}» 묶음 (pivit-work PW-2349 · org-snapshot-spec §6-4) — 이력 목록 위. 호출부가 그린다(어드민 · 구성원 설정 탭만).
+     비어 있으면(null) 자리도 없다. */
+  draftsSlot,
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   /** 발령 유형 필터 — '' 전체 · 유형 키 · `revision` 구조 개정 (§4 · PW-1422) */
@@ -1760,7 +1820,8 @@ function AppointmentHistoryView({
       || (r.name ?? '').toLowerCase().includes(q)
       || (r.employeeCode ?? '').toLowerCase().includes(q);
     return rows.filter((row) =>
-      (!typeFilter || row.typeKey === typeFilter) &&
+      // «수정» 줄은 발령 유형이 없어(«—») 유형 키 대신 처리 유형으로 거른다 (PW-2349 · §6-3 R6 «유형 필터에 수정»)
+      (!typeFilter || (typeFilter === 'correction' ? row.mode === 'correction' : row.typeKey === typeFilter)) &&
       (!periodFrom || (row.date ?? '') >= periodFrom) &&
       (!periodTo || (row.date ?? '') <= periodTo) &&
       // 묶음은 한 사람이라도 맞으면 남기고 «전체 N명»은 그대로 둔다 — 걸러 낸 수로 바꾸면
@@ -1796,8 +1857,18 @@ function AppointmentHistoryView({
     ) : <div className="admin-snap-warnbox" role="alert">{error}</div>;
   }
   if (records.length === 0 && !revisionsWired) {
-    return <EmptyState size="lg" description={labels.historyEmpty} />;
+    return draftsSlot ? (
+      <div className="admin-snap-canvas">
+        {bulkHeader}
+        {draftsSlot}
+        <EmptyState size="lg" description={labels.historyEmpty} />
+      </div>
+    ) : <EmptyState size="lg" description={labels.historyEmpty} />;
   }
+  const hasCorrections = records.some((r) => r.mode === 'correction');
+  /* 처리 유형 글자 — 호출부가 키마다 넘긴 라벨이 먼저(구성원 창 · CSV 업로드 · 대량 · 개편 · 수정 · PW-2349), 없으면 종전 셋 */
+  const modeLabel = (mode) => labels.historyModeLabels?.[mode]
+    ?? (mode === 'reorg' ? labels.historyModeReorg : mode === 'bulk' ? labels.historyModeBulk : labels.historyModeSingle);
   const showRevisions = typeFilter === 'revision';
 
   const cancelScheduled = async (rec) => {
@@ -1832,6 +1903,7 @@ function AppointmentHistoryView({
   return (
     <div className="admin-snap-canvas">
       {bulkHeader}
+      {draftsSlot}
       <div className="admin-snap-hist-layout">
         <div className="admin-snap-hist-main">
           <div className="admin-snap-hist-toolbar">
@@ -1874,6 +1946,7 @@ function AppointmentHistoryView({
               >
                 <option value="">{labels.historyTypeAll}</option>
                 {typeKeys.map((k) => <option key={k} value={k}>{labels.typeLabels[k] ?? k}</option>)}
+                {hasCorrections && <option value="correction">{labels.historyTypeCorrection ?? '수정'}</option>}
                 {revisionsWired && <option value="revision">{labels.historyTypeRevision}</option>}
               </Select>
             )}
@@ -1921,6 +1994,14 @@ function AppointmentHistoryView({
                       {rec.scheduled && (
                         <StatusBadge className="admin-snap-type-badge is-gray admin-snap-sched-badge">{labels.historyScheduled}</StatusBadge>
                       )}
+                      {rec.correctionCancelled && (
+                        <StatusBadge
+                          className="admin-snap-type-badge is-gray admin-snap-sched-badge"
+                          data-testid={`snap-hist-correction-cancelled-${rec.id}`}
+                        >
+                          {labels.historyCorrectionCancelled ?? '수정으로 취소'}
+                        </StatusBadge>
+                      )}
                     </RosterTable.Cell>
                     <RosterTable.Cell className="admin-snap-hist-name">{rec.name ?? '-'}</RosterTable.Cell>
                     <RosterTable.Cell>
@@ -1929,11 +2010,7 @@ function AppointmentHistoryView({
                       </StatusBadge>
                     </RosterTable.Cell>
                     <RosterTable.Cell className={`admin-snap-hist-mode${rec.mode === 'bulk' ? ' is-bulk' : ''}`}>
-                      {rec.mode === 'reorg'
-                        ? labels.historyModeReorg
-                        : rec.mode === 'bulk'
-                          ? labels.historyModeBulk
-                          : labels.historyModeSingle}
+                      {modeLabel(rec.mode)}
                     </RosterTable.Cell>
                     <RosterTable.Cell className="admin-snap-hist-mode">{rec.by ?? '-'}</RosterTable.Cell>
                     <RosterTable.Cell>
@@ -2013,6 +2090,15 @@ function AppointmentHistoryView({
                 ))
               ) : (
                 <HistoryChangesTable changes={selected.changes} labels={labels} />
+              )}
+              {/* «수정» 상세 — 칸마다 고친 시작 기록(그 값을 들인 발령, 없으면 처음 들어온 값부터) (PW-2349 · §6-3 R6) */}
+              {selected.mode === 'correction' && Array.isArray(selected.correctionStarts) && selected.correctionStarts.length > 0 && (
+                <div data-testid="snap-hist-correction-from">
+                  <div className="admin-snap-hist-reason-label">{labels.historyCorrectionFromTitle ?? '고친 시작 기록'}</div>
+                  {selected.correctionStarts.map((c) => (
+                    <div key={c.field} className="admin-snap-hist-reason">{labels.historyCorrectionFrom?.(c) ?? c.field}</div>
+                  ))}
+                </div>
               )}
               {selected.reason && (
                 <>
