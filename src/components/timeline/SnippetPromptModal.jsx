@@ -2,14 +2,17 @@ import { useEffect, useRef } from 'react';
 import ModalLayer from '../shared/ModalLayer.jsx';
 import { CloseGlyph } from '../shared/lineIcons.jsx';
 import gsap from 'gsap';
+import { useTimelineLabels } from './timelineLabels.js';
 
 /**
  * SnippetPromptModal — 타임라인 진입 시 자동으로 뜨는 스니핏 작성 유도 모달.
  *
  * 모션: 등장 시 scale 0.9 → 1 + opacity 0 → 1 (back.out spring 이징).
+ * 문구는 타임라인 문구 묶음(`TimelineCanvas` 의 `labels`)에서 — 영어 화면은 앱이 넘긴다 (pivit-work PW-2329).
  */
 export default function SnippetPromptModal({ onCancel, onConfirm }) {
   const modalRef = useRef(null);
+  const L = useTimelineLabels();
 
   useEffect(() => {
     if (modalRef.current) {
@@ -35,7 +38,7 @@ export default function SnippetPromptModal({ onCancel, onConfirm }) {
         <button
           type="button"
           className="tl-snippet-prompt-close"
-          aria-label="닫기"
+          aria-label={L.close}
           onClick={onCancel}
         >
           <CloseGlyph size={24} color="var(--colors-foreground-fgQuaternary, #98a1b2)" />
@@ -43,11 +46,10 @@ export default function SnippetPromptModal({ onCancel, onConfirm }) {
 
         <div className="tl-snippet-prompt-header">
           <p id="tl-snippet-prompt-title" className="tl-snippet-prompt-title">
-            슬슬 스니핏 작성할 시간이에요
+            {L.promptTitle}
           </p>
           <p className="tl-snippet-prompt-desc">
-            미리미리 작성하는 습관을 가지시면 중요한 업무를 빠트리지 않게 돼요.
-            지금 작성하시면 너무 좋구요 ^^
+            {L.promptDesc}
           </p>
         </div>
 
@@ -57,14 +59,14 @@ export default function SnippetPromptModal({ onCancel, onConfirm }) {
             className="tl-snippet-prompt-btn tl-snippet-prompt-btn-secondary"
             onClick={onCancel}
           >
-            취소
+            {L.promptCancel}
           </button>
           <button
             type="button"
             className="tl-snippet-prompt-btn tl-snippet-prompt-btn-primary"
             onClick={onConfirm}
           >
-            작성하러 가기
+            {L.promptConfirm}
           </button>
         </div>
       </div>

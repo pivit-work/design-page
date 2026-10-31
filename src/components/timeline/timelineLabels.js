@@ -51,6 +51,11 @@ export const DEFAULT_TIMELINE_LABELS = {
   snippetWrittenAt: (time) => `${time} 작성`,
   snippetOpenFull: '스니핏 전체 보기',
   healthWords: { best: '최고', good: '좋음', ok: '보통', tired: '힘듦', veryTired: '매우 힘듦' },
+  // 스니핏 작성 알림 창(`SnippetPromptModal`)
+  promptTitle: '슬슬 스니핏 작성할 시간이에요',
+  promptDesc: '미리미리 작성하는 습관을 가지시면 중요한 업무를 빠트리지 않게 돼요. 지금 작성하시면 너무 좋구요 ^^',
+  promptCancel: '취소',
+  promptConfirm: '작성하러 가기',
 };
 
 export const TimelineLabelsContext = createContext(DEFAULT_TIMELINE_LABELS);

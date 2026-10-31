@@ -121,6 +121,38 @@ const DEFAULT_SUGGESTED_TAGS = [
   '기획', '회의', '개발', '디자인', '리뷰', '문서', '외부미팅', 'TaV', '번역', '산출물', '참석자',
 ];
 
+/**
+ * 화면 문구 — 기본값은 한국어(디자인 프리뷰·한국어 화면이 지금 그대로 보이게).
+ * 앱은 `labels` 로 화면 언어 문구를 넘기고, 넘긴 키만 덮어쓴다 (pivit-work PW-2329).
+ * 칸 이름(What·Why·Summary·Tags·Health Check)은 원래 영어라 문구 칸이 아니다.
+ */
+const DEFAULT_SNIPPET_MODAL_LABELS = {
+  sections: Object.fromEntries(SECTIONS.map((sec) => [sec.key, { hint: sec.hint, placeholder: sec.placeholder }])),
+  headerTitle: '데일리 스니펫',
+  close: '닫기',
+  prevDate: '이전 날짜',
+  nextDate: '다음 날짜',
+  healthAria: 'Health Check 점수',
+  // 점수 이름표 낱말 — snippetHealth.js 의 healthLabel 에 넘긴다. 안 주면 한국어
+  healthWords: undefined,
+  healthReasonPlaceholder: '무엇이 영향을 주었나요? (선택)',
+  summaryHint: 'AI 자동 생성 해줘요.',
+  summaryGenerate: '요약 생성',
+  summaryGenerating: '생성 중…',
+  summaryPlaceholder: '관련 내용 입력하면 AI 요약이 활성화됩니다',
+  summaryInfo: 'What·Why·Values 항목을 채운 뒤 AI 요약 버튼을 누르면 자동으로 작성됩니다.',
+  summaryFailed: 'AI 요약 생성에 실패했습니다.',
+  tagsHint: 'AI 자동 추출 해줘요',
+  tagsExtract: '태그 추출',
+  tagsExtracting: '추출 중…',
+  tagsFailed: 'AI 태그 추출에 실패했습니다.',
+  tagRemove: '삭제',
+  tagInputPlaceholder: '태그 입력 후 Enter',
+  reset: '초기화',
+  // `suggestedTags` 가 비었을 때 보이는 추천 칩
+  defaultSuggestedTags: DEFAULT_SUGGESTED_TAGS,
+};
+
 // 기존 스니핏을 수정할 때 prefill 하려면 initial 에 { summary, tags,
 // sections:{what,why,value,highlights,lowlights} } 모양으로 넘긴다.
 // (partial 허용 — 없는 필드는 빈 문자열/빈 배열로 초기화)
@@ -244,8 +276,11 @@ export default function SnippetModal({
   dateNavLabels,
   closedNotice,
   aiUsageNotice,
+  labels,
 }) {
   const L = { ...DEFAULT_DRAFT_LABELS, ...(draftLabels || {}) };
+  const T = labels ? { ...DEFAULT_SNIPPET_MODAL_LABELS, ...labels } : DEFAULT_SNIPPET_MODAL_LABELS;
+  const sectionText = (key) => ({ ...DEFAULT_SNIPPET_MODAL_LABELS.sections[key], ...(T.sections?.[key] || {}) });
   const [summary, setSummary] = useState(initial?.summary ?? '');
   const [tagInput, setTagInput] = useState('');
   const [tags, setTags] = useState(initial?.tags ? [...initial.tags] : []);
@@ -282,6 +317,7 @@ export default function SnippetModal({
           : null;
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [tagsLoading, setTagsLoading] = useState(false);
+  // AI 실패 — { message }. 서버가 준 말이 없으면 그릴 때 화면 언어 기본 문구(T.summaryFailed·T.tagsFailed)
   const [summaryError, setSummaryError] = useState(null);
   const [tagsError, setTagsError] = useState(null);
   const [aiSuggestedTags, setAiSuggestedTags] = useState([]);
@@ -304,7 +340,7 @@ export default function SnippetModal({
   const basePool =
     Array.isArray(suggestedTags) && suggestedTags.length > 0
       ? suggestedTags
-      : DEFAULT_SUGGESTED_TAGS;
+      : T.defaultSuggestedTags;
   const tagSuggestionPool = [...new Set([...aiSuggestedTags, ...basePool])];
 
   const contentRef = useRef(null);
@@ -531,7 +567,7 @@ export default function SnippetModal({
         setAiMarks((prev) => ({ ...prev, summary: 'unconfirmed' }));
       }
     } catch (err) {
-      setSummaryError(err?.message || 'AI 요약 생성에 실패했습니다.');
+      setSummaryError({ message: err?.message });
     } finally {
       setSummaryLoading(false);
     }
@@ -551,7 +587,7 @@ export default function SnippetModal({
         ]);
       }
     } catch (err) {
-      setTagsError(err?.message || 'AI 태그 추출에 실패했습니다.');
+      setTagsError({ message: err?.message });
     } finally {
       setTagsLoading(false);
     }
@@ -649,12 +685,12 @@ export default function SnippetModal({
       >
         <div className="tl-group-modal-top tl-snippet-top">
           <span className="tl-snippet-top-title" aria-hidden={!scrolled}>
-            {authorName ? `${authorName}  ·  ` : ''}데일리 스니펫  ·  {dateLabel}
+            {authorName ? `${authorName}  ·  ` : ''}{T.headerTitle}  ·  {dateLabel}
           </span>
           <button
             type="button"
             className="tl-group-modal-close"
-            aria-label="닫기"
+            aria-label={T.close}
             onClick={requestClose}
           >
             <CloseGlyph size={24} />
@@ -667,7 +703,7 @@ export default function SnippetModal({
               <StepNavButton
                 direction="prev"
                 baseUrl={baseUrl}
-                aria-label={dateNavLabels?.prev ?? '이전 날짜'}
+                aria-label={dateNavLabels?.prev ?? T.prevDate}
                 onClick={onPrevDate}
               />
             )}
@@ -678,7 +714,7 @@ export default function SnippetModal({
               <StepNavButton
                 direction="next"
                 baseUrl={baseUrl}
-                aria-label={dateNavLabels?.next ?? '다음 날짜'}
+                aria-label={dateNavLabels?.next ?? T.nextDate}
                 disabled={nextDateDisabled}
                 onClick={onNextDate}
               />
@@ -807,13 +843,13 @@ export default function SnippetModal({
                 <div className="tl-snippet-field-head">
                   <div className="tl-snippet-field-label">
                     {s.label}
-                    <span className="tl-snippet-label-hint">{s.hint}</span>
+                    <span className="tl-snippet-label-hint">{sectionText(s.key).hint}</span>
                   </div>
                   {renderMark(s.key)}
                 </div>
                 <textarea
                   className={`tl-snippet-textarea${markClass(s.key)}`}
-                  placeholder={readOnly ? undefined : s.placeholder}
+                  placeholder={readOnly ? undefined : sectionText(s.key).placeholder}
                   readOnly={readOnly}
                   value={sectionTexts[s.key]}
                   onChange={(e) => setSectionText(s.key, e.target.value)}
@@ -852,14 +888,14 @@ export default function SnippetModal({
                     <span
                       className={`tl-snippet-health-label tl-snippet-health-label--${healthTier(Math.round(healthScore))}`}
                     >
-                      {healthLabel(Math.round(healthScore))}
+                      {healthLabel(Math.round(healthScore), T.healthWords)}
                     </span>
                   )}
                 </div>
                 <div
                   className="tl-snippet-health-scores"
                   role="radiogroup"
-                  aria-label="Health Check 점수"
+                  aria-label={T.healthAria}
                   aria-readonly={readOnly || undefined}
                 >
                   {HEALTH_SCORES.map((n) => {
@@ -887,7 +923,7 @@ export default function SnippetModal({
               </div>
               <textarea
                 className="tl-snippet-textarea"
-                placeholder={readOnly ? undefined : '무엇이 영향을 주었나요? (선택)'}
+                placeholder={readOnly ? undefined : T.healthReasonPlaceholder}
                 readOnly={readOnly}
                 value={healthNote}
                 onChange={(e) => setHealthNote(e.target.value)}
@@ -907,7 +943,7 @@ export default function SnippetModal({
               <div className="tl-snippet-field-head">
                 <div className="tl-snippet-field-label">
                   Summary
-                  {!readOnly && <span className="tl-snippet-label-hint">AI 자동 생성 해줘요.</span>}
+                  {!readOnly && <span className="tl-snippet-label-hint">{T.summaryHint}</span>}
                 </div>
                 {renderMark('summary')}
                 {!readOnly && (
@@ -926,14 +962,14 @@ export default function SnippetModal({
                     aria-hidden="true"
                   />
                   <span className="tl-snippet-ai-gradient">AI</span>
-                  <span>{summaryLoading ? '생성 중…' : '요약 생성'}</span>
+                  <span>{summaryLoading ? T.summaryGenerating : T.summaryGenerate}</span>
                 </button>
                 )}
               </div>
               {noticeAt('summary')}
               <textarea
                 className={`tl-snippet-textarea ${summary.trim() ? 'is-ai-filled' : ''}${markClass('summary')}`}
-                placeholder={readOnly ? undefined : '관련 내용 입력하면 AI 요약이 활성화됩니다'}
+                placeholder={readOnly ? undefined : T.summaryPlaceholder}
                 readOnly={readOnly}
                 value={summary}
                 onChange={(e) => {
@@ -955,8 +991,8 @@ export default function SnippetModal({
                 />
                 <span className="tl-snippet-info-text">
                   {summaryError
-                    ? summaryError
-                    : 'What·Why·Values 항목을 채운 뒤 AI 요약 버튼을 누르면 자동으로 작성됩니다.'}
+                    ? summaryError.message || T.summaryFailed
+                    : T.summaryInfo}
                 </span>
               </div>
               )}
@@ -972,7 +1008,7 @@ export default function SnippetModal({
               <div className="tl-snippet-field-head">
                 <div className="tl-snippet-field-label">
                   Tags
-                  {!readOnly && <span className="tl-snippet-label-hint">AI 자동 추출 해줘요</span>}
+                  {!readOnly && <span className="tl-snippet-label-hint">{T.tagsHint}</span>}
                 </div>
                 {renderMark('tags')}
                 {!readOnly && (
@@ -991,7 +1027,7 @@ export default function SnippetModal({
                     aria-hidden="true"
                   />
                   <span className="tl-snippet-ai-gradient">AI</span>
-                  <span>{tagsLoading ? '추출 중…' : '태그 추출'}</span>
+                  <span>{tagsLoading ? T.tagsExtracting : T.tagsExtract}</span>
                 </button>
                 )}
               </div>
@@ -1005,7 +1041,7 @@ export default function SnippetModal({
                     <button
                       type="button"
                       className="tl-snippet-tag-x"
-                      aria-label="삭제"
+                      aria-label={T.tagRemove}
                       onClick={() => removeTag(t)}
                     >
                       <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -1020,7 +1056,7 @@ export default function SnippetModal({
                 <input
                   type="text"
                   className="tl-snippet-tag-inline-input"
-                  placeholder={tags.length === 0 ? '태그 입력 후 Enter' : ''}
+                  placeholder={tags.length === 0 ? T.tagInputPlaceholder : ''}
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyDown={onTagKey}
@@ -1048,7 +1084,7 @@ export default function SnippetModal({
                     height="14"
                     aria-hidden="true"
                   />
-                  <span className="tl-snippet-info-text">{tagsError}</span>
+                  <span className="tl-snippet-info-text">{tagsError.message || T.tagsFailed}</span>
                 </div>
               )}
               {!readOnly && (
@@ -1082,7 +1118,7 @@ export default function SnippetModal({
             className="tl-snippet-reset-btn"
             onClick={handleReset}
           >
-            초기화
+            {T.reset}
           </button>
           {blockedShown && (
             <span className="tl-snippet-draft-blocked" role="alert">

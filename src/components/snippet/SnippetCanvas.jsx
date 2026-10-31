@@ -8,6 +8,7 @@ import DatePicker from '../shared/DatePicker.jsx';
 import assetUrl from '../shared/assetUrl.js';
 import Switch from '../shared/Switch.jsx';
 import { matchesQuery } from './snippetSearch.js';
+import { formatToolbarDate } from '../timeline/timelineLabels.js';
 
 /**
  * SnippetCanvas — "스니핏" (스니핏 히스토리) 페이지 Pure 컴포넌트.
@@ -29,17 +30,30 @@ import { matchesQuery } from './snippetSearch.js';
 // 기간 빠른 선택 5종 — 기획 daily-snippet-spec §11.2/§11.3 정본
 // (이번 주 / 지난 주 / 이번 달 / 지난 달 / 전체). "지난 주" 가 빠져 있어
 // "지난 월~일" 한 주를 한 번에 잡을 방법이 없었다(PW-145).
-const PERIOD_ITEMS = [
-  { value: 'thisWeek', label: '이번 주' },
-  { value: 'lastWeek', label: '지난 주' },
-  { value: 'thisMonth', label: '이번 달' },
-  { value: 'lastMonth', label: '지난 달' },
-  { value: 'all', label: '전체' },
-];
+const PERIOD_KEYS = ['thisWeek', 'lastWeek', 'thisMonth', 'lastMonth', 'all'];
 
-function fmtDate(d) {
-  return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일`;
-}
+/**
+ * 화면 문구 — 기본값은 한국어(디자인 프리뷰·한국어 화면이 지금 그대로 보이게).
+ * 앱은 `labels` 로 화면 언어 문구를 넘기고, 넘긴 키만 덮어쓴다 (pivit-work PW-2329).
+ * 기간 버튼 날짜는 화면 언어(`<html lang>`)를 따른다 — 한국어 「2026년 10월 26일」 / 영어 「October 26, 2026」.
+ */
+const DEFAULT_SNIPPET_CANVAS_LABELS = {
+  title: '스니핏',
+  subtitle: '과거에 작성한 데일리 스니핏을 날짜별로 조회합니다.',
+  write: '스니핏 작성',
+  periods: { thisWeek: '이번 주', lastWeek: '지난 주', thisMonth: '이번 달', lastMonth: '지난 달', all: '전체' },
+  periodAria: '기간 선택',
+  searchPlaceholder: '키워드 또는 태그로 검색',
+  recordCount: '기록 수',
+  recordCountValue: (n) => `${n}개`,
+  avgHealth: '평균 헬스',
+  avgWrite: '평균 작성',
+  noResult: (q) => `"${q}"에 대한 검색 결과가 없습니다.`,
+  emptyTitleOther: '아직 작성된 스니핏이 없습니다',
+  emptyTitle: '아직 작성한 스니핏이 없습니다',
+  emptyDesc: ['오늘의 스니핏을 작성하여 업무 맥락을 기록해보세요.', 'AI가 OKR 달성 근거로 자동 연결합니다.'],
+  writeNow: '지금 작성하기',
+};
 
 // 막대 높이 — 칸(26) 안에서 점수/10 비율, 아주 낮은 점수도 보이게 3 이상 (기획 스니핏 작성 §10-A.1).
 const TREND_TRACK_HEIGHT = 26;
@@ -87,8 +101,10 @@ export default function SnippetCanvas({
   dateTo: dateToProp,
   onDateFromChange,
   onDateToChange,
-  // 검색어 (표시만)
-  searchPlaceholder = '키워드 또는 태그로 검색',
+  // 화면 문구 — DEFAULT_SNIPPET_CANVAS_LABELS 의 키 중 넘긴 것만 덮어쓴다
+  labels,
+  // 검색어 (표시만) — 안 주면 labels.searchPlaceholder
+  searchPlaceholder,
   // 통계 카드
   recordCount = 0,
   avgHealth = '-',
@@ -124,6 +140,11 @@ export default function SnippetCanvas({
   // 여기서 요약·날짜·태그로 다시 걸러 지우지 않게. 검색 중에도 [더 보기]를 그린다.
   searchOnHost = false,
 }) {
+  const L = labels ? { ...DEFAULT_SNIPPET_CANVAS_LABELS, ...labels } : DEFAULT_SNIPPET_CANVAS_LABELS;
+  const periodItems = PERIOD_KEYS.map((value) => ({
+    value,
+    label: L.periods[value] ?? DEFAULT_SNIPPET_CANVAS_LABELS.periods[value],
+  }));
   const [innerDateFrom, setInnerDateFrom] = useState(initialDateFrom ?? new Date(2026, 3, 10));
   const [innerDateTo, setInnerDateTo] = useState(initialDateTo ?? new Date(2026, 3, 15));
   const dateFrom = dateFromProp ?? innerDateFrom;
@@ -164,7 +185,7 @@ export default function SnippetCanvas({
       <div className="snippet-header">
         <div className="snippet-header-info">
           <div className="snippet-title-row">
-            <h1 className="snippet-title">스니핏</h1>
+            <h1 className="snippet-title">{L.title}</h1>
             {titleHelp}
             {/* 개발 확인용 매니저 뷰 토글 */}
             {showManagerToggle && (
@@ -175,12 +196,12 @@ export default function SnippetCanvas({
             )}
           </div>
           <p className="snippet-subtitle">
-            과거에 작성한 데일리 스니핏을 날짜별로 조회합니다.
+            {L.subtitle}
           </p>
         </div>
         <button type="button" className="snippet-write-btn" onClick={onWriteSnippet}>
           <Icon src="/icons-solid/pencil-01.svg" size={20} color="var(--text-white)" baseUrl={baseUrl} />
-          <span>스니핏 작성</span>
+          <span>{L.write}</span>
         </button>
       </div>
 
@@ -196,10 +217,10 @@ export default function SnippetCanvas({
         {/* 필터 row — 기간 segmented + 날짜 범위 + 검색 */}
         <div className="snippet-filter-row">
           <SegmentedControl
-            items={PERIOD_ITEMS}
+            items={periodItems}
             value={periodTab}
             onChange={onPeriodTabChange}
-            ariaLabel="기간 선택"
+            ariaLabel={L.periodAria}
           />
           <button
             type="button"
@@ -207,7 +228,7 @@ export default function SnippetCanvas({
             onClick={(e) => openPicker('from', e)}
           >
             <Icon src="/icons/calendar.svg" size={20} color="var(--text-tertiary)" baseUrl={baseUrl} />
-            <span>{fmtDate(dateFrom)}</span>
+            <span>{formatToolbarDate(dateFrom)}</span>
           </button>
           <span className="snippet-date-sep">-</span>
           <button
@@ -216,13 +237,13 @@ export default function SnippetCanvas({
             onClick={(e) => openPicker('to', e)}
           >
             <Icon src="/icons/calendar.svg" size={20} color="var(--text-tertiary)" baseUrl={baseUrl} />
-            <span>{fmtDate(dateTo)}</span>
+            <span>{formatToolbarDate(dateTo)}</span>
           </button>
           <div className={`snippet-search ${hasSearch ? 'is-active' : ''}`}>
             <Icon src="/icons/search-sm.svg" size={20} color="var(--text-tertiary)" baseUrl={baseUrl} />
             <input
               type="text"
-              placeholder={searchPlaceholder}
+              placeholder={searchPlaceholder ?? L.searchPlaceholder}
               value={searchQuery}
               onChange={(e) => {
                 setSearchQuery(e.target.value);
@@ -235,13 +256,13 @@ export default function SnippetCanvas({
         {/* 통계 카드 3개 */}
         <div className="snippet-stats">
           <div className="snippet-stat-card">
-            <span className="snippet-stat-label">기록 수</span>
-            <span className="snippet-stat-value">{recordCount}개</span>
+            <span className="snippet-stat-label">{L.recordCount}</span>
+            <span className="snippet-stat-value">{L.recordCountValue(recordCount)}</span>
           </div>
           {healthTrend ? (
             <div className="snippet-stat-card">
               <div className="snippet-stat-head">
-                <span className="snippet-stat-label">평균 헬스</span>
+                <span className="snippet-stat-label">{L.avgHealth}</span>
                 <span className="snippet-stat-caption">{healthTrend.caption}</span>
               </div>
               <div className="snippet-stat-value-row">
@@ -253,12 +274,12 @@ export default function SnippetCanvas({
             </div>
           ) : (
             <div className="snippet-stat-card">
-              <span className="snippet-stat-label">평균 헬스</span>
+              <span className="snippet-stat-label">{L.avgHealth}</span>
               <span className="snippet-stat-value">{avgHealth}</span>
             </div>
           )}
           <div className="snippet-stat-card">
-            <span className="snippet-stat-label">평균 작성</span>
+            <span className="snippet-stat-label">{L.avgWrite}</span>
             <span className="snippet-stat-value">{avgWrite}</span>
           </div>
         </div>
@@ -267,7 +288,7 @@ export default function SnippetCanvas({
         {isEmpty ? (
           hasSearch ? (
             <div className="snippet-noresult">
-              {`"${searchQuery.trim()}"에 대한 검색 결과가 없습니다.`}
+              {L.noResult(searchQuery.trim())}
             </div>
           ) : (
             <div className="snippet-empty">
@@ -275,18 +296,18 @@ export default function SnippetCanvas({
                 <img className="snippet-empty-paper" src={assetUrl(baseUrl, 'paper-empty.svg')} alt="" aria-hidden="true" />
                 {isManagerView ? (
                   // 매니저가 멤버의 스니핏을 볼 때 — 안내문/작성 버튼 없이 타이틀만.
-                  <p className="snippet-empty-title">아직 작성된 스니핏이 없습니다</p>
+                  <p className="snippet-empty-title">{L.emptyTitleOther}</p>
                 ) : (
                   <>
-                    <p className="snippet-empty-title">아직 작성한 스니핏이 없습니다</p>
+                    <p className="snippet-empty-title">{L.emptyTitle}</p>
                     <p className="snippet-empty-desc">
-                      오늘의 스니핏을 작성하여 업무 맥락을 기록해보세요.
+                      {L.emptyDesc[0]}
                       <br />
-                      AI가 OKR 달성 근거로 자동 연결합니다.
+                      {L.emptyDesc[1]}
                     </p>
                     <button type="button" className="snippet-empty-btn" onClick={onWriteNow}>
                       <Icon src="/icons-solid/pencil-01.svg" size={20} color="var(--text-secondary)" baseUrl={baseUrl} />
-                      <span>지금 작성하기</span>
+                      <span>{L.writeNow}</span>
                     </button>
                   </>
                 )}
