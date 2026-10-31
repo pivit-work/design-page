@@ -126,6 +126,10 @@ const MeetingShareContent = forwardRef(function MeetingShareContent(
   const [query, setQuery] = useState('');
   const [ddOpen, setDdOpen] = useState(false);
   const [hint, setHint] = useState('');
+  // 안내가 떠 있는 동안은 검색 목록을 그리지 않는다 — 목록의 «검색 결과 없음 — 메일 주소를 입력하면 Enter 로
+  // 추가됩니다»가 안내와 엇갈린다 (pivit-work PW-2413). 동명이인만 §5.3-A 3 대로 좁힌 목록을 연 채 둔다.
+  // 목록을 못 불러왔으면 그 실패 문구는 «왜 못 찾았나»라 안내와 함께 남긴다.
+  const [hintHidesList, setHintHidesList] = useState(false);
   const [narrow, setNarrow] = useState(null); // 동명이인 — 드롭다운을 이 이름으로 좁힌다
   const [copied, setCopied] = useState(false);
   const inputRef = useRef(null);
@@ -157,6 +161,7 @@ const MeetingShareContent = forwardRef(function MeetingShareContent(
     setTags((prev) => (prev.some((t) => t.key === tag.key) ? prev : [...prev, tag]));
     setQuery('');
     setHint('');
+    setHintHidesList(false);
     setNarrow(null);
     setDdOpen(false);
     inputRef.current?.focus();
@@ -171,6 +176,7 @@ const MeetingShareContent = forwardRef(function MeetingShareContent(
     const mailError = text.includes('@') ? emailError?.(text) : null;
     if (mailError) {
       setHint(mailError);
+      setHintHidesList(true);
       return;
     }
     if (EMAIL_RE.test(text)) {
@@ -191,6 +197,7 @@ const MeetingShareContent = forwardRef(function MeetingShareContent(
       return;
     }
     setHint(labels.notFound ?? '');
+    setHintHidesList(true);
   };
 
   const handleKeyDown = (e) => {
@@ -377,6 +384,7 @@ const MeetingShareContent = forwardRef(function MeetingShareContent(
                     setQuery(e.target.value);
                     setDdOpen(true);
                     setHint('');
+                    setHintHidesList(false);
                     setNarrow(null);
                   }}
                   onFocus={() => setDdOpen(true)}
@@ -384,7 +392,7 @@ const MeetingShareContent = forwardRef(function MeetingShareContent(
                   onKeyDown={handleKeyDown}
                 />
               </div>
-              {ddOpen && (
+              {ddOpen && !(hintHidesList && !directoryFailed) && (
                 <ul className="mtg-share-dropdown" role="listbox">
                   {candidates.length === 0 ? (
                     <li className="mtg-share-dropdown-empty" role={directoryFailed ? 'alert' : undefined}>
