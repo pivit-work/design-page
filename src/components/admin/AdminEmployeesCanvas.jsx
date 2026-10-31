@@ -5330,7 +5330,8 @@ function EmployeesEditPanel({
             </div>
           </div>
         )}
-        {panelTab === 'info' && manualSaveNotice && (
+        {/* «[저장]을 눌러야 반영됩니다» 안내는 [저장]이 있을 때만 — 발령 칸이 바뀌어 [임시저장]·[수정]·[발령]이 되면 뺀다(PW-2349) */}
+        {panelTab === 'info' && manualSaveNotice && !flowWired && (
           <div className="admin-emp-panel-save-mode" data-testid="employees-panel-save-mode">{manualSaveNotice}</div>
         )}
         {panelTab === 'info' && (
