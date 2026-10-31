@@ -105,6 +105,9 @@
    글 위에 빈 6 이 생겨 위아래 여백이 어긋났다 (pivit-work PW-2288) */
 .login-notice-head + .login-notice-body { margin-top: var(--spacing-sm); }
 .login-notice-body p { margin: 0; }
+/* 본문 없이 제목 한 줄만 쓰는 안내 상자(pivit-work 초대 첫 화면 «○○님이 ○○ 워크스페이스에 초대했습니다») —
+   빈 본문 칸에 머리줄 아래 6 이 붙어 아래 여백만 커졌다 */
+.login-notice-body:empty { display: none; }
 .login-notice-strong { font-weight: 600; color: var(--text-primary); }
 /* 이용약관 · 개인정보처리방침 · 운영정책 — 12 text-tertiary 줄, 링크는 brand */
 .login-legal { margin: -8px 0 0; display: flex; align-items: center; gap: 4px; font-size: 12px; line-height: 18px; color: var(--text-tertiary); }
