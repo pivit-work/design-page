@@ -106,6 +106,9 @@ const DEFAULT_DRAFT_LABELS = {
   progressFail: '못 가져옴',
   // 태그가 TAG_LIMIT 개 찼을 때 칸 아래 안내 (기획서 작성 화면 정책 §3.2 · §9 오류 표 문구 · PW-2392)
   tagLimit: '태그는 최대 8개까지 추가할 수 있습니다.',
+  // Summary 가 노란(확인 전)이고 Lowlights 에 글이 있을 때 노란 표시 줄 바로 아래 안내 (기획서 작성 화면 정책 §3.1
+  // «열람 범위 안내 한 줄» · PW-2441). 요약은 팀 동료도 보지만 Lowlights 칸은 본인·조직장·어드민만 본다.
+  summaryTeamVisible: '요약은 팀 동료도 봅니다 — 아쉬운 점(Lowlights)에서 옮겨진 내용이 있으면 확인 전에 고쳐 주세요.',
 };
 
 const PROGRESS_TONE = { loading: 'progress', done: 'success', fail: 'warning' };
@@ -204,6 +207,7 @@ const DEFAULT_SNIPPET_MODAL_LABELS = {
 //     딱지 문구는 draftLabels 의 progressLoading·progressDone·progressFail.
 //   draftLabels?: 위 문구들 — 호스트가 번역해 넘긴다. 없는 키는 한국어 기본값.
 //     tagLimit 은 태그가 8개 찼을 때 Tags 칸 아래 안내 (PW-2392).
+//     summaryTeamVisible 은 노란 요약 + Lowlights 에 글이 있을 때 Summary 노란 표시 줄 아래 안내 (PW-2441).
 //   aiUsageNotice?: string | null — 아래 바 저장 상태 문구 밑에 같은 글씨로 한 줄 (PW-1515 · 기획서
 //     screen-daily-snippet-write §6 「AI 사용 안내」 · D21). 제출하면 AI 표시가 사라진다는 안내라
 //     호스트가 «AI 초안 칸이나 AI 추천 태그가 남아 있는 동안»만 넘긴다. 닫기 없음 · 제출을 막지 않는다.
@@ -966,6 +970,13 @@ export default function SnippetModal({
                 </button>
                 )}
               </div>
+              {/* 노란 요약 + Lowlights 에 글 — 확인·요약 지움(표시 사라짐)·Lowlights 비움·사람이 쓴 요약이면 숨는다 (PW-2441).
+                  어느 버튼으로 채웠는지 따지지 않고 칸 상태로만 가른다 — 오늘 활동 초안으로 채운 노란 요약에도 보인다. */}
+              {!readOnly && aiMarks.summary === 'unconfirmed' && sectionTexts.lowlights.trim() && (
+                <div className="tl-snippet-label-hint" data-testid="snippet-summary-team-visible">
+                  {L.summaryTeamVisible}
+                </div>
+              )}
               {noticeAt('summary')}
               <textarea
                 className={`tl-snippet-textarea ${summary.trim() ? 'is-ai-filled' : ''}${markClass('summary')}`}
