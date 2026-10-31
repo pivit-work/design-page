@@ -155,6 +155,8 @@
 .dept-count { font-weight: 500; white-space: nowrap; }
 /* 어드민 As Of 조직도 «인건비 ₩합» 한 줄(pivit-work PW-1998) — 옆 계층 표기(.dept-type)와 같은 보조 글자색. */
 .dept-comp { font-size: 14px; font-weight: 500; line-height: 20px; color: var(--text-secondary); white-space: nowrap; }
+.dept-comp-stack { display: flex; gap: var(--spacing-xs); }
+.dept-comp-lines { display: flex; flex-direction: column; }
 
 /* ── Member Card ── */
 /* 최소 폭 161 — 출퇴근 줄(⏱ 67% · 9 → 6)이 든 카드의 시안 폭(Figma 16606:25985). 138 이면 좁은 열(파트)에서

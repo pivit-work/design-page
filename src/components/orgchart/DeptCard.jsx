@@ -25,8 +25,16 @@ export default function DeptCard({ node, onMouseDown, onClick, isDragging, isCol
         <span className="dept-type">{node.type}</span>
         {node.count && <span className="dept-count" style={{ color: lc.countColor }}>{node.count}</span>}
       </div>
-      {/* 어드민 As Of 조직도의 «인건비 ₩합»(보상 표시가 켜졌을 때만 · pivit-work PW-1998). 다른 화면은 넘기지 않는다. */}
-      {node.compLine && <div className="dept-comp" data-testid="org-dept-comp">{node.compLine}</div>}
+      {/* 어드민 As Of 조직도의 «인건비»(보상 표시가 켜졌을 때만 · pivit-work PW-1998). 다른 화면은 넘기지 않는다.
+          compLines 를 주면 이름표 오른쪽에 통화마다 한 줄을 세로로 쌓는다 — 통화가 섞여도 카드 폭이 늘지 않게(정책 E27). */}
+      {node.compLines ? (
+        <div className="dept-comp dept-comp-stack" data-testid="org-dept-comp">
+          <span>{node.compLabel}</span>
+          <span className="dept-comp-lines">
+            {node.compLines.map((line) => <span key={line}>{line}</span>)}
+          </span>
+        </div>
+      ) : node.compLine && <div className="dept-comp" data-testid="org-dept-comp">{node.compLine}</div>}
       {isCollapsible && (
         <button
           type="button"
