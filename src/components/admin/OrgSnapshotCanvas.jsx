@@ -2529,6 +2529,10 @@ function AsOfSnapshotView({
           <EmptyState size="lg" data-testid="asof-empty-unknown" description={labels.asofEmpty} />
         ) : showChart ? (
           // 그날의 조직도 — 조직도 화면의 카드·연결선 그대로(§5-B «새 시각 언어를 만들지 않는다»).
+          // 재료(orgData)가 아직 없으면(탭을 연 직후 응답 전) 자리만 두고 기다린다 — null 을 그리면 화면 전체가 깨진다.
+          !chart.orgData ? (
+            <div className="admin-snap-orgchart" data-testid="asof-orgchart" aria-busy="true" />
+          ) : (
           <div className="admin-snap-orgchart" data-testid="asof-orgchart">
             <OrgChartTreeView
               orgData={chart.orgData}
@@ -2542,6 +2546,7 @@ function AsOfSnapshotView({
               fitKey={chart.fitKey}
             />
           </div>
+          )
         ) : (
           <SnapshotRoster
             rows={roster}
