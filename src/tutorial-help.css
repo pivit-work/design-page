@@ -18,6 +18,12 @@
   margin-left: var(--spacing-sm);
   flex: none;
 }
+/* 제목 글자가 디스플레이 서체인 줄(원온원 회차 «1on1 • 날짜») — 인라인 `vertical-align: middle` 은 그 서체의
+   x-height 로 맞춰 «?»가 글줄 가운데보다 3px 내려간다. «?»를 줄 때만 줄 상자 가운데에 맞춘다(PW-2430). */
+.tvh-title-row {
+  display: flex;
+  align-items: center;
+}
 /* 제목 글자 없이 탭 줄이 맨 위인 화면 — 탭과 «?»를 한 묶음으로 둬 마지막 탭 바로 뒤에 붙인다.
    묶음 간격은 공용 Tabs 의 탭 사이(12)와 같고, «?» 자체의 margin-left 6 이 더해진다. */
 .tvh-help-group {

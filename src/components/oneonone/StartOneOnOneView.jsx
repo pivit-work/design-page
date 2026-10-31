@@ -682,7 +682,7 @@ export default function StartOneOnOneView({
     <div className={`ono-start-view${showAside ? ' has-aside' : ''}`} data-testid="ono-start-view">
       <div className="ono-start-view-card">
         <div className="ono-start-view-body">
-          <p className="ono-start-modal-title">
+          <p className={`ono-start-modal-title${titleHelp ? ' tvh-title-row' : ''}`}>
             {meetingTitle}
             {titleHelp}
           </p>

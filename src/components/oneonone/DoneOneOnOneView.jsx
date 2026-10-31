@@ -1787,7 +1787,7 @@ export default function DoneOneOnOneView({
               {L.back}
             </button>
           )}
-          <h1 className="ono-done-head-title">
+          <h1 className={`ono-done-head-title${titleHelp ? ' tvh-title-row' : ''}`}>
             {date
               ? fill(L.headTitle, { date })
               : memberName
