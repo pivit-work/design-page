@@ -165,6 +165,11 @@ export default function MemberCard({ member: rawMember, parentId, index, showWor
             {[member.grade, member.position].filter(Boolean).join(' · ')}
           </div>
         )}
+        {/* 조직도 미리 보기의 바뀐 칸 줄 (pivit-work PW-2349 · org-snapshot-spec §6-5 «{칸} {이전} → {이후}» · «← {이전 소속}»).
+            호출부가 줄 글자를 만들어 넘긴다(두 줄 + «외 N»). 없으면 그리지 않는다 — 직급 줄과 같은 글씨다. */}
+        {Array.isArray(member.changeLines) && member.changeLines.map((line, i) => (
+          <div key={i} className="member-grade" data-testid="org-member-change-line">{line}</div>
+        ))}
         {showWorkHours && member.workHours && (
           <>
             <div className="working-time-bar">

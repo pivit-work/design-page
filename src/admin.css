@@ -2391,6 +2391,9 @@
   bottom: auto;
   height: 640px;
 }
+/* 조직도 미리 보기 창(pivit-work PW-2349 · 발령 이력 정책 §10 «높이 뷰포트 −80») — 고정 640 대신 창 본문 높이를 채운다. */
+.admin-snap-orgchart.is-fill { height: 100%; }
+.admin-snap-orgchart.is-fill .canvas-area { height: 100%; }
 .admin-snap-roster-changed {
   margin-left: 4px;
   font-size: 9px;
