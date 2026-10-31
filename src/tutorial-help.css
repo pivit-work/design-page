@@ -118,10 +118,12 @@
 .tvh-dock.is-narrow {
   width: 320px;
 }
-/* 크게 보기 — 화면 가운데, 뒤는 막이 덮는다(보기 전용) */
+/* 크게 보기 — 화면 가운데, 뒤는 막이 덮는다(보기 전용).
+   상한 1306 = 영상 1280×720 + 안쪽 여백 24 + 테두리 2 (pivit-work PW-2430 · 커트 2026-10-31).
+   1920 영상을 절반 아래로 줄이면 크롬이 픽셀을 건너뛰어 1배율 모니터에서 영상 속 글씨가 깨진다(960 일 때 영상 934). */
 .tvh-dock.is-big {
   /* 낮은 화면에서도 위아래가 잘리지 않게 영상 높이(16:9)로도 묶는다 — 머리·조작 줄·여백 몫 140 */
-  width: min(960px, calc(100vw - var(--spacing-4xl)), calc((100vh - 140px) * 16 / 9 + var(--spacing-3xl)));
+  width: min(1306px, calc(100vw - var(--spacing-4xl)), calc((100vh - 140px) * 16 / 9 + var(--spacing-3xl)));
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
