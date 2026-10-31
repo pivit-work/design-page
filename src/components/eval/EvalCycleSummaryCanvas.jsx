@@ -564,6 +564,8 @@ const DEFAULT_LABELS = {
   cdAiNextCycle: 'AI 설명 · 다음 사이클 참고 사항',
   cdAiLoading: 'AI 가 조정 결과 설명을 쓰고 있습니다…',
   cdAiFailed: '데이터를 불러오지 못했습니다.',
+  // PW-2298 · 정책 §2-A — 설명은 전원 기준이라 본인을 뺄 수 없다. 본인 결과 전인 조직장에게는 가린다.
+  cdAiSelfPending: '본인 결과가 발송된 뒤 볼 수 있습니다.',
   // [PW-1466] 정책 §7.D.3·§7.D.7 — 조정 내역의 순변화가 분포 차이와 어긋나면 그래프를 그리지 않는다.
   cdMismatch: '조정 내역과 분포가 일치하지 않습니다',
   // §5.B 부서별 분석
@@ -730,6 +732,8 @@ const DEFAULT_LABELS = {
   no: '·',
   /* PW-1429 · 대시보드 정책 §16.2 — 퇴사 확정으로 결과에서 빠진 인원. {n} 은 사람 수 */
   archivedExcluded: '퇴사 확정 {n}명 제외',
+  /* PW-2298 · 정책 §2-A — 조직장이 본인 결과를 받기 전이라 모든 숫자에서 본인 1명을 뺐을 때 */
+  selfExcludedNotice: '본인 결과가 아직 발송되지 않아 집계에서 본인을 뺐습니다.',
   cwTrendPriorArchived: '이전 재직 구간 · 따로 보관 중',
   archivedNoticeTitle: '퇴사가 확정된 {n}명의 평가 결과는 따로 보관 중이라 이 화면에서 빠져 있습니다',
   archivedNoticeBody: '인원·등급 분포·비율·내보내기 파일이 모두 {n}명을 뺀 값이라, 처음 집계했을 때보다 인원이 적게 보일 수 있습니다.',
@@ -978,6 +982,13 @@ function CalibResultInsight({ L, insight, onRetry, onLoad }) {
     if (status === 'missing') onLoad?.();
   }, [status, onLoad]);
   if (!insight || status === 'unavailable' || status === 'none') return null;
+  if (status === 'selfPending') {
+    return (
+      <div className="evs-re-ai" data-testid="evs-cd-ai-self-pending">
+        <p className="evs-re-ai-text">{L.cdAiSelfPending}</p>
+      </div>
+    );
+  }
   if (status === 'loading' || status === 'missing') {
     return (
       <div className="evs-re-ai" data-testid="evs-cd-ai-loading">
@@ -2127,6 +2138,8 @@ export default function EvalCycleSummaryCanvas({
   archivedDepartedCount = 0,
   /* 꺼내는 길 문장은 회사 어드민(HR)에게만 — 꺼내는 권한이 HR 에게만 있다(§16.2). */
   showArchivedRecordsPath = false,
+  /* PW-2298 · 정책 §2-A — 보는 조직장 본인을 모든 숫자에서 뺀 응답이다. 서브헤더(조회 기간) 아래 회색 한 줄. */
+  selfExcluded = false,
   onGenerate,
   onPublish,
   onSendReminders,
@@ -2926,6 +2939,11 @@ export default function EvalCycleSummaryCanvas({
             onChange={onPeriodChange}
             L={L}
           />
+          {!workspaceOnly && selfExcluded && (
+            <p className="evc-summary" role="status" data-testid="evs-self-excluded">
+              {L.selfExcludedNotice}
+            </p>
+          )}
         </div>
         {!workspaceOnly && (
           <div className="evmon-controls">
