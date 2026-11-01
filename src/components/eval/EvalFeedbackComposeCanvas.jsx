@@ -5,7 +5,7 @@ import TextArea from '../shared/TextArea.jsx';
 import Select from '../shared/Select.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
-import { TargetIcon, CpuIcon, MailIcon, SparkleIcon, ClockIcon, ChatIcon, ChevronDownIcon } from './evalIcons';
+import { TargetIcon, CpuIcon, MailIcon, SparkleIcon, ClockIcon, ChatIcon, ChevronDownIcon, ArrowRightIcon } from './evalIcons';
 import Avatar from '../shared/Avatar.jsx';
 import Chip from '../shared/Chip.jsx';
 import FeedbackOkrPanel from './FeedbackOkrPanel.jsx';
@@ -151,7 +151,8 @@ const DEFAULT_LABELS = {
   tabRequests: '받은 요청',
   inboxNote: '팀원이 직접 요청한 피드백 {count}건입니다. 요청에 답변하면 해당 KR 스레드로 연결됩니다.',
   inboxRequested: '님이 피드백을 요청했습니다',
-  inboxWrite: '피드백 작성 →',
+  // 화살표는 글자가 아니라 아이콘으로 붙인다 — 번역 문구에 기호 글리프를 쓰지 않는다(pivit-work PW-315).
+  inboxWrite: '피드백 작성',
   inboxEmpty: '받은 피드백 요청이 없습니다',
   inboxEmptyHint: '팀원이 피드백을 요청하면 여기에 표시됩니다',
   // 연결 대상이 지금 기간 OKR 에 없을 때 칩 끝 (§3.4-A)
@@ -248,7 +249,7 @@ function InboxScreen({ requests, L, onOpen, loading = false, failed = false }) {
               {req.text && <p className="fbmgr-inbox-text">{req.text}</p>}
               <div className="fbmgr-inbox-foot">
                 <Button variant="ghost" size="sm" onClick={() => onOpen?.(req)} data-testid={`fbmgr-inbox-open-${req.id}`}>
-                  {L.inboxWrite}
+                  {L.inboxWrite} <ArrowRightIcon size={14} />
                 </Button>
               </div>
             </div>
