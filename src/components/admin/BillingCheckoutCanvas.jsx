@@ -146,6 +146,38 @@ const DEFAULT_LABELS = {
   termsNoticeMonthly: '매월 결제는 따로 미리 알리지 않고, 결제 직후 영수증을 메일로 보내 드립니다.',
   termsNoticeAnnual: '자동 갱신 30일 전에 한 번 메일로 미리 알려 드립니다.',
 
+  // ── 요금제 변경 모드 (pivit-work PW-2475 · screen-billing-checkout §2 · spec-billing §3.1) ──
+  // 이용 중 구독이 상위 요금제로 올릴 때 — 오늘은 남은 기간의 차액만, 청구 기준일·다음 청구일은 그대로.
+  planChangeDiffLine: (fromLabel, toLabel, lastDay, days) => `${fromLabel} → ${toLabel} 차액 · 오늘 ~ ${lastDay} ${days}일분`,
+  planChangeFormula: (seats, toUnit, fromUnit, months, days, periodDays) =>
+    `${seats}좌석 × (${won(toUnit)} − ${won(fromUnit)})${months > 1 ? ` × ${months}개월` : ''} × ${days}/${periodDays}`,
+  planChangeCarryNote: (diff) => `오늘 결제 없음 · 차액 ${won(diff)}은 다음 청구일에 함께 청구됩니다`,
+  planChangeNoneNote: '오늘 결제 없음 · 낼 차액이 없어 결제 없이 바뀝니다',
+  planChangeNextMonthly: (date, seats, unit, day) => (
+    <>다음 청구일({date})부터 {seats}좌석 × {won(unit)}로 자동 결제됩니다. 청구 기준일은 그대로 <b style={{ color: T.text }}>매월 {day}일</b>입니다.</>
+  ),
+  planChangeNextAnnual: (date, seats, unit, month, day) => (
+    <>다음 청구일({date})부터 {seats}좌석 × {won(unit)}로 자동 결제됩니다. 청구 기준일은 그대로 <b style={{ color: T.text }}>매년 {month}월 {day}일</b>입니다.</>
+  ),
+  planChangeIntervalSwitch: (toAnnual) =>
+    `청구 주기는 다음 청구일부터 ${toAnnual ? '연간' : '월간'}으로 바뀝니다 — 오늘 차액은 지금 주기 기준입니다.`,
+  termsChargePlanChangeMonthly: (total, date, day) =>
+    total > 0
+      ? `오늘 차액 ${won(total)}이 결제되고, 다음 청구일(${date})부터 매월 ${day}일에 새 요금제 금액으로 자동 결제됩니다(그 날짜가 없는 달은 말일).`
+      : `오늘은 결제하지 않고, 다음 청구일(${date})부터 매월 ${day}일에 새 요금제 금액으로 자동 결제됩니다(그 날짜가 없는 달은 말일).`,
+  termsChargePlanChangeAnnual: (total, date, month, day) =>
+    total > 0
+      ? `오늘 차액 ${won(total)}이 결제되고, 다음 청구일(${date})부터 매년 ${month}월 ${day}일에 새 요금제 금액으로 자동 결제됩니다(그 날짜가 없는 해는 말일).`
+      : `오늘은 결제하지 않고, 다음 청구일(${date})부터 매년 ${month}월 ${day}일에 새 요금제 금액으로 자동 결제됩니다(그 날짜가 없는 해는 말일).`,
+  payCtaPlanChangeNoCharge: '요금제 바꾸기',
+  successTitlePlanChange: '요금제를 바꿨습니다',
+  successSummaryPlanChange: (fromLabel, toLabel, total) => `${fromLabel} → ${toLabel} · 차액 ${won(total)} 결제 완료`,
+  successSummaryPlanChangeCarry: (fromLabel, toLabel, diff) =>
+    `${fromLabel} → ${toLabel} · 차액 ${won(diff)}은 다음 청구일에 함께 청구됩니다`,
+  successSummaryPlanChangeNone: (fromLabel, toLabel) => `${fromLabel} → ${toLabel}`,
+  successAnchorKeptMonthly: (day) => ` · 청구 기준일은 그대로 매월 ${day}일`,
+  successAnchorKeptAnnual: (month, day) => ` · 청구 기준일은 그대로 매년 ${month}월 ${day}일`,
+
   // ── 연간 협의 계약 약정 동의 (PW-344 · screen-billing-checkout §2) ──
   commitmentAgree: (total, start, end) => (
     <><b>연간 약정 조건</b>에 동의합니다. 지금 <b>1년분 {won(total)}</b>을 선결제하며, 약정 기간은 <b>{start} ~ {end}</b> 입니다. 중도 해지 시 사용분을 <b>정가로 차감</b>한 잔액만 환불됩니다(할인 회수).</>
@@ -224,6 +256,15 @@ export default function BillingCheckoutCanvas({
    * 세션이 정한 값만 넘긴다 — 있으면 좌석 단가 줄 아래 혜택 기간과 그 뒤 단가·동의 절차를 미리 알린다.
    */
   launchBenefit = null,
+  /**
+   * 요금제 변경 모드 (pivit-work PW-2475 · screen-billing-checkout §1·§2). 이용 중 구독이 상위 요금제로 올릴 때
+   * **서버 체크아웃 세션이 정한 값만** 넘긴다 — 화면이 차액·일수를 따로 세지 않는다.
+   * `{ kind: 'charge'|'carry'|'none', fromPlanLabel, fromUnitPrice, toUnitPrice, seats, months,
+   *    remainingDays, periodDays, diffSubtotal, lastDay, nextBillingDate: 'YYYY-MM-DD', anchorDay,
+   *    nextInterval: 'monthly'|'annual', intervalSwitch: boolean, nextUnitPrice, firstCycle }`.
+   * 있으면 금액(`amounts`)은 오늘 결제할 차액이고, «오늘이 청구 기준일» 안내 대신 다음 청구 안내를 그린다.
+   */
+  planChange = null,
 }) {
   const labels = mergeLabels(providedLabels);
 
@@ -236,8 +277,14 @@ export default function BillingCheckoutCanvas({
   // 다시 계산하지 않는다(판정을 두 벌 두면 한쪽만 느슨해진다).
   const quoteBlocked = quote ? quote.blocked ?? null : null;
   const quoteOk = Boolean(quote) && !quoteBlocked;
+  // 요금제 변경 모드에서 오늘 결제가 없으면(₩1,000 미만 · 차액 없음) 카드도 안 쓴다 (PW-2475)
+  const planChangeNoCharge = Boolean(planChange) && planChange.kind !== 'charge';
   // 결제 버튼이 카드 인증 창을 여는가 (PW-2110) — 쓸 등록 카드가 없으면 연다
-  const opensCardWindow = !savedCard;
+  const opensCardWindow = !savedCard && !planChangeNoCharge;
+  const [, nextMonth, nextDate] = planChange
+    ? planChange.nextBillingDate.split('-').map(Number)
+    : [0, 0, 0];
+  const nextAnnual = planChange ? planChange.nextInterval === 'annual' : false;
 
   // 협의 단가 모드에서는 플랜·주기·단가·좌석 범위가 견적에서 확정돼 온다. 화면에서 바꿀
   // 수 있는 값은 없다.
@@ -362,10 +409,23 @@ export default function BillingCheckoutCanvas({
               color: T.green, fontSize: 28, display: 'flex', alignItems: 'center',
               justifyContent: 'center', margin: '0 auto 16px' }}>✓</div>
             <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>
-              {isRenewal ? labels.successTitleRenewal : labels.successTitleNew}
+              {isRenewal ? labels.successTitleRenewal
+                : planChange ? labels.successTitlePlanChange
+                : labels.successTitleNew}
             </div>
             <div style={{ fontSize: 14, color: T.sub, marginBottom: 6 }}>
-              {labels.successSummary(order.planLabel, billedSeats, total)}
+              {planChange ? (
+                <>
+                  {planChange.kind === 'charge'
+                    ? labels.successSummaryPlanChange(planChange.fromPlanLabel, order.planLabel, total)
+                    : planChange.kind === 'carry'
+                      ? labels.successSummaryPlanChangeCarry(planChange.fromPlanLabel, order.planLabel, planChange.diffSubtotal)
+                      : labels.successSummaryPlanChangeNone(planChange.fromPlanLabel, order.planLabel)}
+                  {nextAnnual
+                    ? labels.successAnchorKeptAnnual(nextMonth, nextDate)
+                    : labels.successAnchorKeptMonthly(planChange.anchorDay)}
+                </>
+              ) : labels.successSummary(order.planLabel, billedSeats, total)}
               {quoteOk && labels.negotiatedSuccessNote}
               {isRenewal && labels.successReconciled}
             </div>
@@ -427,6 +487,22 @@ export default function BillingCheckoutCanvas({
                   <div style={{ fontWeight: 500, color: T.muted }}>{labels.launchBenefitAfter(launchBenefit.monthlyListPrice)}</div>
                 </div>
               )}
+              {/* 요금제 변경 차액 줄 (PW-2475 · screen-billing-checkout §2) — 아래 소계·부가세와 같은 Row,
+                  산식 줄은 출시 혜택 안내와 같은 12px 보조 글씨 */}
+              {planChange && (
+                <div data-testid="checkout-plan-change-diff">
+                  <Row
+                    label={labels.planChangeDiffLine(planChange.fromPlanLabel, order.planLabel,
+                      planChange.lastDay, planChange.remainingDays)}
+                    value={won(planChange.diffSubtotal)}
+                  />
+                  <div style={{ fontSize: 12, color: T.muted, paddingBottom: 'var(--spacing-sm)' }}>
+                    {labels.planChangeFormula(planChange.seats, planChange.toUnitPrice,
+                      planChange.fromUnitPrice, planChange.months,
+                      planChange.remainingDays, planChange.periodDays)}
+                  </div>
+                </div>
+              )}
               {/* 계약 상한 초과분은 초과 단가로 별도 라인이 된다 — 차단이 아니라 과금이다
                   (spec-billing.md §2.6.5). 결제 버튼도 막지 않는다. */}
               {overSeats > 0 && (
@@ -439,6 +515,36 @@ export default function BillingCheckoutCanvas({
               <Row label={labels.vat(vatRate)} value={won(vat)} />
               <div style={{ height: 1, background: T.border, margin: '8px 0' }} />
               <Row label={labels.payNow} value={won(total)} strong />
+              {planChange ? (
+                <>
+                  {planChangeNoCharge && (
+                    <div data-testid="checkout-plan-change-no-charge"
+                      style={{ fontSize: 12, color: T.sub, fontWeight: 700 }}>
+                      {planChange.kind === 'carry'
+                        ? labels.planChangeCarryNote(planChange.diffSubtotal)
+                        : labels.planChangeNoneNote}
+                    </div>
+                  )}
+                  {/* 다음 청구 안내 — 청구 기준일은 바뀌지 않는다. «오늘이 청구 기준일» 안내는 그리지 않는다. */}
+                  <div data-testid="checkout-plan-change-next"
+                    style={{ fontSize: 12, color: T.sub, marginTop: 10, paddingTop: 10,
+                      borderTop: `1px solid ${T.border}` }}>
+                    {nextAnnual
+                      ? labels.planChangeNextAnnual(planChange.nextBillingDate, planChange.seats,
+                        planChange.nextUnitPrice, nextMonth, nextDate)
+                      : labels.planChangeNextMonthly(planChange.nextBillingDate, planChange.seats,
+                        planChange.nextUnitPrice, planChange.anchorDay)}
+                    {planChange.intervalSwitch && (
+                      <div style={{ marginTop: 4 }}>{labels.planChangeIntervalSwitch(nextAnnual)}</div>
+                    )}
+                  </div>
+                  {planChange.firstCycle && (
+                    <div style={{ fontSize: 12, color: T.sub, marginTop: 6 }}>
+                      {labels.firstCycleNote(planChange.anchorDay)}
+                    </div>
+                  )}
+                </>
+              ) : (<>
               <div style={{ fontSize: 12, color: T.muted, marginTop: 8 }}>
                 {annual
                   ? labels.intervalNoteAnnual
@@ -463,6 +569,7 @@ export default function BillingCheckoutCanvas({
                   {labels.firstCycleNote(anchor.anchorDay)}
                 </div>
               )}
+              </>)}
             </Card>
 
             {/* 청구 정보 */}
@@ -509,7 +616,13 @@ export default function BillingCheckoutCanvas({
               </div>
               <div style={{ fontSize: 12, color: T.muted, marginBottom: 8 }}>{labels.termsSubtitle}</div>
               <ul data-testid="checkout-terms-summary" style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: T.sub, lineHeight: 1.7 }}>
-                {anchor && (
+                {planChange ? (
+                  <li>
+                    {nextAnnual
+                      ? labels.termsChargePlanChangeAnnual(total, planChange.nextBillingDate, nextMonth, nextDate)
+                      : labels.termsChargePlanChangeMonthly(total, planChange.nextBillingDate, planChange.anchorDay)}
+                  </li>
+                ) : anchor && (
                   <li>
                     {annual
                       ? labels.termsChargeAnnual(total, anchorMonth, anchorDate)
@@ -581,6 +694,7 @@ export default function BillingCheckoutCanvas({
               {payState === 'processing' ? (opensCardWindow ? labels.payProcessing : labels.payProcessingSavedCard)
                 : payState === 'confirming' ? labels.payConfirming
                 : payState === 'fail' ? labels.payRetry
+                : planChangeNoCharge ? labels.payCtaPlanChangeNoCharge
                 : opensCardWindow ? labels.payCta(total)
                 : labels.payCtaSavedCard(savedCard, total)}
             </button>

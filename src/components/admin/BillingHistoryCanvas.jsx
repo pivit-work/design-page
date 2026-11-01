@@ -49,6 +49,7 @@ const DEFAULT_LABELS = {
     initial: '첫 결제',
     rebill: '정기결제',
     seat_increment: '좌석 추가(일할)',
+    plan_change: '요금제 변경 차액',
   },
   seatIncrementTooltip: '첫 청구 주기 안에 추가된 좌석의 남은 기간분입니다',
 
@@ -126,6 +127,8 @@ const REASON_META = {
   initial: { color: T.accentText, bg: 'var(--bg-brand-secondary)' },
   rebill: { color: T.sub, bg: T.bl },
   seat_increment: { color: T.amber, bg: T.amberBg },
+  // 이용 중 상위 요금제로 올린 남은 기간 차액 (pivit-work PW-2475) — 좌석 추가 일할과 같은 «주기 중간 일할 청구»라 같은 배지 색
+  plan_change: { color: T.amber, bg: T.amberBg },
 };
 const reasonKey = (inv) => (REASON_META[inv.billing_reason] ? inv.billing_reason : 'rebill');
 

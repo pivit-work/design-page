@@ -108,6 +108,7 @@ const DEFAULT_LABELS = {
   confirmChangeTitle: (label) => `${label} 플랜으로 변경할까요?`,
   confirmDowngradeBody: '현재 청구 기간 종료 후 전환됩니다. 상위 기능 데이터는 보존(읽기 전용)되며 신규 생성이 차단됩니다.',
   confirmChangeBody: '다음 청구일에 변경된 플랜과 요금이 적용됩니다.',
+  // 문자열 또는 `(planLabel, switchedInterval: 'monthly'|'annual'|null) => string` (PW-2475).
   // Free 로 내릴 때만 쓰는 본문. 비워 두면 confirmDowngradeBody 를 쓴다.
   confirmDowngradeFreeBody: null,
   seatOverLimitTitle: '좌석 한도 초과 안내',
@@ -661,9 +662,14 @@ export default function BillingPlansCanvas({
   const seatOverLimit = isFreeTarget
     && freeLimit != null
     && activeSeats > freeLimit;
+  // 유료→유료 본문은 함수로도 받는다 (pivit-work PW-2475 · screen-billing-plans §4) — 낮출 요금제 이름과,
+  // 지금 구독(`subscription.interval`)과 다른 청구 주기를 골랐을 때 그 주기(아니면 null)를 넘긴다.
+  const switchedInterval = subscription.interval && interval !== subscription.interval ? interval : null;
   const downgradeBody = isFreeTarget && labels.confirmDowngradeFreeBody
     ? labels.confirmDowngradeFreeBody
-    : labels.confirmDowngradeBody;
+    : typeof labels.confirmDowngradeBody === 'function'
+      ? labels.confirmDowngradeBody(confirmTarget?.label ?? '', switchedInterval)
+      : labels.confirmDowngradeBody;
 
 
   // ── 협의 단가 (PW-344 ④) ───────────────────────────────────
