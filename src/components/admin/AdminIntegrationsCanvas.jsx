@@ -1280,6 +1280,23 @@ export default function AdminIntegrationsCanvas({
     );
   }
 
+  // 개인 연동 안내는 «항상» 보인다 (기획 screen-integrations.policy.md §2-6 · PW-2474) —
+  // 회사 연동 목록을 못 불러온 화면에서도 [개인 설정으로 →] 로 내 설정 › 연동에 갈 수 있어야 한다.
+  const personalBanner = (
+    <div className="intg-banner" data-testid="intg-personal-banner">
+      <div className="intg-banner-msg">
+        <Icon src={ICON_INFO} size={16} color="var(--text-brand-tertiary)" baseUrl={baseUrl} />
+        <span>
+          {labels.personalBanner.message}
+          <PersonalChips tools={personalChips} labels={labels} />
+        </span>
+      </div>
+      <Button variant="primary" size="sm" className="intg-btn" onClick={onPersonalIntegrationClick}>
+        {labels.personalBanner.button}
+      </Button>
+    </div>
+  );
+
   // ── 전체화면 상태: 권한없음(403) / 조회실패 ──────────────────────
   if (errorState) {
     const forbidden = errorState.kind === 'forbidden';
@@ -1306,6 +1323,7 @@ export default function AdminIntegrationsCanvas({
             </div>
           )}
         </section>
+        {personalBanner}
       </div>
     );
   }
@@ -1393,18 +1411,7 @@ export default function AdminIntegrationsCanvas({
 
           {showRequestBanner && <RequestBanner labels={labels} onOpen={onOpenRequestModal} />}
 
-          <div className="intg-banner" data-testid="intg-personal-banner">
-            <div className="intg-banner-msg">
-              <Icon src={ICON_INFO} size={16} color="var(--text-brand-tertiary)" baseUrl={baseUrl} />
-              <span>
-                {labels.personalBanner.message}
-                <PersonalChips tools={personalChips} labels={labels} />
-              </span>
-            </div>
-            <Button variant="primary" size="sm" className="intg-btn" onClick={onPersonalIntegrationClick}>
-              {labels.personalBanner.button}
-            </Button>
-          </div>
+          {personalBanner}
         </>
       )}
 
