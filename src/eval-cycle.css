@@ -12722,3 +12722,69 @@ button.evmh-phase:focus-visible {
   font-size: var(--font-size-text-sm);
   line-height: 20px;
 }
+
+/* ── 팀 피드백 «받은 요청» 탭 (pivit-work PW-2479 · screen-feedback-manager §2.6) ──
+   디자이너 원본이 없는 화면이라 같은 화면의 팀원 카드(바탕 bg-quaternary · 테두리 border-secondary ·
+   모서리 12 · 안쪽 12 · 사진과 글 사이 10→12)와 받은 요청 칸(연결 대상 칩·보낸 날짜) 모양을 따른다.
+   카드 사이는 팀원 목록과 같은 8. */
+.fbmgr-inbox {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+.fbmgr-inbox-note {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin: 0;
+  font-size: var(--font-size-text-sm);
+  font-weight: 600;
+  color: var(--utility-brand-600);
+}
+.fbmgr-inbox-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-lg);
+  background: var(--bg-quaternary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+}
+.fbmgr-inbox-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+.fbmgr-inbox-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-text-sm);
+  color: var(--text-secondary);
+}
+.fbmgr-inbox-name {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.fbmgr-inbox-meta {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-text-xs);
+  color: var(--text-tertiary);
+}
+.fbmgr-inbox-text {
+  margin: 0;
+  font-size: var(--font-size-text-sm);
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.fbmgr-inbox-foot {
+  display: flex;
+  justify-content: flex-end;
+}

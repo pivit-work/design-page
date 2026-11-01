@@ -13,6 +13,8 @@ import { SkeletonList } from '../shared/Skeleton.jsx';
 import { FeedbackTextLimitContext, useFeedbackTextLimit, useFeedbackTextTooLong } from './feedbackTextLimit.js';
 import FeedbackLengthNote from './FeedbackLengthNote.jsx';
 import Spinner from '../shared/Spinner.jsx';
+import Tabs from '../shared/Tabs.jsx';
+import EmptyState from '../shared/EmptyState.jsx';
 
 /**
  * EvalFeedbackComposeCanvas — 팀 피드백 (매니저 뷰, v2 재설계).
@@ -84,7 +86,8 @@ const DEFAULT_LABELS = {
   periodLabel: '기간',
   // 지난 기간 옵션 뒤에 붙는 표시. 이모지 글리프를 쓰지 않는다 — 앱 저장소 규칙 (PW-1261).
   pastPeriodMark: ' (과거 기간)',
-  pastBanner: '과거 기간을 조회 중입니다. 작성은 현재 기간에서만 가능합니다.',
+  // 과거 기간 문구 — 팀원 화면과 같은 문장(screen-feedback-manager §3.6 · EC-11, pivit-work PW-2479).
+  pastBanner: '과거 기록을 조회 중입니다. 피드백 작성은 현재 기간에서만 가능합니다.',
   sectionKr: 'KEY RESULTS',
   sectionInit: 'INITIATIVES',
   emptyBlock: '이 KR에 연결된 피드백이 없어요',
@@ -109,7 +112,7 @@ const DEFAULT_LABELS = {
   aiPersonalized: '수신자 선호 스타일 반영됨',
   aiFooter: '스니핏·OKR 데이터를 기반으로 AI가 초안을 작성했습니다',
   send: '전달 →',
-  pastReadonly: '과거 기간은 읽기 전용입니다. 현재 기간에서만 작성할 수 있습니다.',
+  pastReadonly: '과거 기록에는 피드백을 작성할 수 없습니다',
   toastSent: '피드백을 전달했습니다',
   toastError: '전송에 실패했습니다. 다시 시도해 주세요',
   aiError: 'AI 추천 생성에 실패했습니다. 직접 작성해 주세요.',
@@ -142,6 +145,17 @@ const DEFAULT_LABELS = {
   feedbackEditError: '수정에 실패했습니다. 잠시 후 다시 시도해 주세요.',
   feedbackDeleteError: '삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.',
   // 팀원 0명 빈 상태(FB-1) — 1행은 매니저 뷰 ME-1 과 같은 문장, 2행은 사유 (screen-feedback-manager §5-A).
+  // ── 「받은 요청」 탭 (screen-feedback-manager §2.6, pivit-work PW-2479) ──
+  tabTeam: '팀 피드백',
+  // 탭 이름. 건수는 캔버스가 괄호로 붙인다 — 0 건·불러오는 중·실패면 괄호 없이(§2.6.1 · §2.6.3).
+  tabRequests: '받은 요청',
+  inboxNote: '팀원이 직접 요청한 피드백 {count}건입니다. 요청에 답변하면 해당 KR 스레드로 연결됩니다.',
+  inboxRequested: '님이 피드백을 요청했습니다',
+  inboxWrite: '피드백 작성 →',
+  inboxEmpty: '받은 피드백 요청이 없습니다',
+  inboxEmptyHint: '팀원이 피드백을 요청하면 여기에 표시됩니다',
+  // 연결 대상이 지금 기간 OKR 에 없을 때 칩 끝 (§3.4-A)
+  inboxNotInPeriod: '· 현재 기간 OKR 에 없음',
   emptyTeam: '관리 중인 팀원이 없습니다.',
   emptyTeamHint: '팀원 배정은 관리자가 합니다. 워크스페이스 관리자에게 요청하세요.',
 };
@@ -171,6 +185,78 @@ function fmtDate(v) {
   const d = new Date(v);
   if (Number.isNaN(d.getTime())) return '';
   return `${d.getMonth() + 1}.${d.getDate()}`;
+}
+
+// ── 받은 요청 탭 (screen-feedback-manager §2.6, pivit-work PW-2479) ──
+/**
+ * 내가 매니저로 받은 미처리 요청. 순서·마감 배지는 소비 측이 정해 넘긴다(`due: { label, tone }`) —
+ * 마감은 «보낸 날 + 7일»을 사용자 달력으로 세야 해서다. 요청 한 줄의 글자 순서는 기획 셸
+ * InboxScreen 을 따른다: 사진 · 이름 «님이 피드백을 요청했습니다» · 연결 대상 칩 · (오른쪽) 보낸 날짜 · 배지
+ * / 요청 본문 · 「피드백 작성 →」. 모양은 같은 화면의 팀원 카드(`.fbmgr-inbox-card`)와 상태 칩(`Chip`)이다.
+ */
+function inboxTargetLabel(req, L) {
+  if (!req.linkedTargetType || !req.linkedTargetId) return null;
+  const title = req.linkedTargetTitle;
+  const base =
+    req.linkedTargetType === 'kr'
+      ? `KR${title ? ` · ${title}` : ''}`
+      : `# ${title || L.linkedInitFallback}`;
+  return req.linkedTargetInCurrentPeriod === false ? `${base} ${L.inboxNotInPeriod}` : base;
+}
+
+function InboxScreen({ requests, L, onOpen, loading = false, failed = false }) {
+  // 불러오는 동안 칸 자리 셋(§2.6.3 — 팀원 목록과 같은 모양). 못 불러왔으면 아무것도 그리지 않는다 —
+  // «요청이 없다»로 읽히지 않게, 실패 안내와 다시 시도는 화면(소비 측)이 띄운다.
+  if (loading) return <SkeletonList count={3} height={62} data-testid="fbmgr-inbox-skeleton" />;
+  if (failed) return null;
+  if (requests.length === 0) {
+    return (
+      <EmptyState
+        data-testid="fbmgr-inbox-empty"
+        icon={<MailIcon size={20} />}
+        title={L.inboxEmpty}
+        description={L.inboxEmptyHint}
+      />
+    );
+  }
+  return (
+    <div className="fbmgr-inbox" data-testid="fbmgr-inbox">
+      <p className="fbmgr-inbox-note">
+        <MailIcon size={14} /> {fill(L.inboxNote, { count: requests.length })}
+      </p>
+      {requests.map((req) => {
+        const target = inboxTargetLabel(req, L);
+        return (
+          <div key={req.id} className="fbmgr-inbox-card" data-testid={`fbmgr-inbox-${req.id}`}>
+            <Avatar name={req.requester?.name} photo={req.requester?.avatar} size={36} />
+            <div className="fbmgr-inbox-main">
+              <div className="fbmgr-inbox-head">
+                <span>
+                  <span className="fbmgr-inbox-name">{req.requester?.name}</span>
+                  {L.inboxRequested}
+                </span>
+                {target && <Chip tone="info">{target}</Chip>}
+                <span className="fbmgr-inbox-meta">
+                  <span>{fmtDate(req.sentAt)}</span>
+                  {req.due && (
+                    <Chip tone={req.due.tone} data-testid={`fbmgr-inbox-due-${req.id}`}>
+                      {req.due.label}
+                    </Chip>
+                  )}
+                </span>
+              </div>
+              {req.text && <p className="fbmgr-inbox-text">{req.text}</p>}
+              <div className="fbmgr-inbox-foot">
+                <Button variant="ghost" size="sm" onClick={() => onOpen?.(req)} data-testid={`fbmgr-inbox-open-${req.id}`}>
+                  {L.inboxWrite}
+                </Button>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 // ── 팀 목록 화면 ──
@@ -918,6 +1004,16 @@ export default function EvalFeedbackComposeCanvas({
   onOpenBlockChange,
   // 피드백 본문 최대 길이(PW-1799) — 쓰기·고치기 칸이 같이 쓴다. 안 넘기면 제한 없음.
   textMaxLength,
+  // ── 「받은 요청」 탭 (§2.6, pivit-work PW-2479) — `onChangeTab` 을 넘겨야 탭 줄이 생긴다. ──
+  // tab: 'team' | 'requests'. requests: 먼저 처리할 순으로 정렬된 요청
+  // `[{ id, requester: { name, avatar }, text, sentAt, linkedTargetType, linkedTargetId, linkedTargetTitle,
+  //    linkedTargetInCurrentPeriod, due: { label, tone } }]`. 실패 안내는 소비 측이 띄운다.
+  tab = 'team',
+  onChangeTab,
+  requests = [],
+  requestsLoading = false,
+  requestsFailed = false,
+  onOpenRequest,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const [toast, setToast] = useState(null);
@@ -978,6 +1074,27 @@ export default function EvalFeedbackComposeCanvas({
           <p className="evc-summary">{L.subtitle}</p>
         </div>
       </header>
+      {/* 탭 줄은 팀원 목록·받은 요청을 보는 동안만 — 팀원 스레드에 들어가면 숨긴다(§2.6.1).
+          건수는 탭 이름 괄호 안에만 한 번, 불러온 뒤에만 붙인다(실패·0 건이면 괄호 없이 — §2.6.3). */}
+      {!selectedMember && onChangeTab && (
+        <div className="tl-tabs-row evc-tabs-row">
+          <Tabs
+            items={[
+              { value: 'team', label: L.tabTeam, testId: 'fbmgr-tab-team' },
+              {
+                value: 'requests',
+                label:
+                  !requestsLoading && !requestsFailed && requests.length > 0
+                    ? `${L.tabRequests} (${requests.length})`
+                    : L.tabRequests,
+                testId: 'fbmgr-tab-requests',
+              },
+            ]}
+            value={tab}
+            onChange={onChangeTab}
+          />
+        </div>
+      )}
       <div className="evc-list">
         {selectedMember ? (
           <ThreadScreen
@@ -1000,6 +1117,8 @@ export default function EvalFeedbackComposeCanvas({
             openBlockKey={openBlockKey}
             onOpenBlockChange={onOpenBlockChange}
           />
+        ) : onChangeTab && tab === 'requests' ? (
+          <InboxScreen requests={requests} L={L} onOpen={onOpenRequest} loading={requestsLoading} failed={requestsFailed} />
         ) : (
           <TeamListScreen team={team} L={L} onSelect={onSelectMember} loading={teamLoading} failed={teamFailed} />
         )}
