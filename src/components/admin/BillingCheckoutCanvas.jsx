@@ -514,17 +514,20 @@ export default function BillingCheckoutCanvas({
               <Row label={labels.subtotal} value={won(subtotal)} />
               <Row label={labels.vat(vatRate)} value={won(vat)} />
               <div style={{ height: 1, background: T.border, margin: '8px 0' }} />
-              <Row label={labels.payNow} value={won(total)} strong />
+              {/* 요금제 변경에서 오늘 결제가 없으면 「지금 결제」 줄 «대신» 안내를 그린다 (screen-billing-checkout §2) —
+                  같은 굵은 합계 줄 자리·모양 */}
+              {planChangeNoCharge ? (
+                <div data-testid="checkout-plan-change-no-charge"
+                  style={{ padding: '8px 0', fontSize: 16, fontWeight: 800, color: T.text }}>
+                  {planChange.kind === 'carry'
+                    ? labels.planChangeCarryNote(planChange.diffSubtotal)
+                    : labels.planChangeNoneNote}
+                </div>
+              ) : (
+                <Row label={labels.payNow} value={won(total)} strong />
+              )}
               {planChange ? (
                 <>
-                  {planChangeNoCharge && (
-                    <div data-testid="checkout-plan-change-no-charge"
-                      style={{ fontSize: 12, color: T.sub, fontWeight: 700 }}>
-                      {planChange.kind === 'carry'
-                        ? labels.planChangeCarryNote(planChange.diffSubtotal)
-                        : labels.planChangeNoneNote}
-                    </div>
-                  )}
                   {/* 다음 청구 안내 — 청구 기준일은 바뀌지 않는다. «오늘이 청구 기준일» 안내는 그리지 않는다. */}
                   <div data-testid="checkout-plan-change-next"
                     style={{ fontSize: 12, color: T.sub, marginTop: 10, paddingTop: 10,
