@@ -103,20 +103,22 @@ export function squadGraphLayout({ squads, personOf }) {
 
   const personList = [...people.values()];
   const projectList = [...projects.values()];
-  const width = Math.max(
-    G.minW,
-    squads.length * (G.sqW + 48),
-    personList.length * G.personGap + G.padX * 2,
-    projectList.length * (G.pjW + 24) + G.padX * 2,
-  );
-  const inner = width - G.padX * 2;
-  // 스쿼드 x — 처음엔 고르게 나누고, 사람·프로젝트를 세운 뒤 «이어진 사람·프로젝트의 가운데»로 옮겨
-  // 다시 세우기를 몇 번 한다(스쿼드 순서는 그대로). 스쿼드를 고르게 둔 채 사람만 평균에 두면, 한 스쿼드에
-  // 사람이 몰려 줄이 꽉 찰 때 다시 고르게 나눈 것과 같아져 겸임자가 두 스쿼드 밖으로 나갔다(적대적 리뷰 2026-11-02).
-  const sqXs = squads.map((_, si) => G.padX + ((si + 0.5) * inner) / squads.length);
-  const squadX = (si) => sqXs[si];
   const sqGap = G.sqW + 48;
   const pjGap = G.pjW + 24;
+  // 스쿼드 x — 스쿼드마다 제 사람 수만큼 폭을 나눠 주고 그 가운데에 둔다(겸임자는 이어진 스쿼드마다 나눠 센다).
+  // 고르게 나누면 한 스쿼드에 사람이 몰릴 때 그 사람들이 옆 스쿼드 밑까지 밀려 겸임자가 두 스쿼드 밖에 섰다
+  // (브라우저 확인 2026-11-02 송지아 885 · AI 검색 실험 911 · 적대적 리뷰 «줄이 꽉 차면»).
+  const weight = squads.map(() => 0);
+  personList.forEach((p) => p.links.forEach((l) => { weight[l.si] += 1 / p.links.length; }));
+  let segs = weight.map((w) => Math.max(sqGap, w * G.personGap));
+  const segSum = segs.reduce((a, b) => a + b, 0);
+  const need = Math.max(G.minW - G.padX * 2, projectList.length * pjGap, personList.length * G.personGap);
+  if (segSum > 0 && segSum < need) segs = segs.map((w) => (w * need) / segSum);
+  const inner = Math.max(need, segs.reduce((a, b) => a + b, 0));
+  const width = inner + G.padX * 2;
+  const sqXs = [];
+  segs.reduce((left, w, si) => { sqXs[si] = G.padX + left + w / 2; return left + w; }, 0);
+  const squadX = (si) => sqXs[si];
 
   const placePeopleAndProjects = () => {
     // 같은 자리면 주 소속 조직 단위의 조직도 순서 → 리드 먼저 → 이름 가나다(§5-6 「배치」 v3.29) —
@@ -134,17 +136,6 @@ export function squadGraphLayout({ squads, personOf }) {
   };
 
   placePeopleAndProjects();
-  for (let round = 0; round < 4 && squads.length > 1; round += 1) {
-    const sqNodes = squads.map((_, si) => {
-      const xs = personList.filter((p) => p.links.some((l) => l.si === si)).map((p) => p.x)
-        .concat(projectList.filter((p) => p.sis.includes(si)).map((p) => p.x));
-      return { bary: xs.length ? mean(xs) : sqXs[si] };
-    });
-    // 순서를 지킨 채(뒤집히면 그 무리를 합쳐 가운데에 둔다) 겹치지 않게 — placeOnRow 는 거꾸로 선 것도 합친다
-    placeOnRow(sqNodes, sqGap, G.padX + sqGap / 2, width - G.padX - sqGap / 2);
-    sqNodes.forEach((n, si) => { sqXs[si] = n.x; });
-    placePeopleAndProjects();
-  }
 
   // ── 선 위 칩 자리 — 사람 쪽에서 출발해 선을 따라 빈 자리를 찾는다. 없으면 첫 자리(엣지 76) ──
   const placed = [];
