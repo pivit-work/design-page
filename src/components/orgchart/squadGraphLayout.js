@@ -33,6 +33,36 @@ const overlaps = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h
 const mean = (xs) => xs.reduce((a, b) => a + b, 0) / xs.length;
 
 /**
+ * 한 줄에 놓을 노드의 x — 저마다 «이어진 스쿼드들의 평균 x»(bary)에 두되, 서로 gap 보다 가까우면
+ * 순서를 지킨 채 그 무리의 가운데를 기준으로 벌린다. 그래서 겸임자는 두 스쿼드 사이에,
+ * 한 스쿼드에만 속한 사람들은 그 스쿼드 아래 가운데에 모인다(§5-6 「배치」 · 엣지 73 · TC-ORG-144 기대 4).
+ * 고르게 나눠 세우면 순서만 맞고 자리가 어긋났다 — 겸임자가 두 스쿼드보다 왼쪽에 섰다(2026-11-02 브라우저 확인).
+ * list 는 bary 순으로 정렬돼 있어야 한다. 양 끝은 [lo, hi] 안으로 민다(폭은 n*gap 이 들어가게 잡혀 있다).
+ */
+function placeOnRow(list, gap, lo, hi) {
+  const clusters = [];
+  list.forEach((node) => {
+    let c = { nodes: [node], sum: node.bary };
+    // 무리의 첫 자리 = 평균(bary - k*gap) — 무리 가운데가 bary 들의 가운데에 온다
+    c.start = c.sum;
+    while (clusters.length) {
+      const prev = clusters[clusters.length - 1];
+      if (prev.start + prev.nodes.length * gap <= c.start) break;
+      clusters.pop();
+      const nodes = prev.nodes.concat(c.nodes);
+      const sum = nodes.reduce((acc, n, k) => acc + n.bary - k * gap, 0);
+      c = { nodes, sum, start: sum / nodes.length };
+    }
+    clusters.push(c);
+  });
+  const xs = [];
+  clusters.forEach((c) => c.nodes.forEach((n, k) => xs.push(c.start + k * gap)));
+  for (let j = 0; j < xs.length; j += 1) xs[j] = Math.max(xs[j], j ? xs[j - 1] + gap : lo);
+  for (let j = xs.length - 1; j >= 0; j -= 1) xs[j] = Math.min(xs[j], j < xs.length - 1 ? xs[j + 1] - gap : hi);
+  list.forEach((n, j) => { n.x = xs[j]; });
+}
+
+/**
  * @param {object} args
  * @param {Array} args.squads 켜진 상태의 스쿼드(필터를 거친 것) — 화면에 그릴 순서
  * @param {(userId: string) => { name?: string, unitOrder?: number } | undefined} args.personOf 명부 조회
@@ -89,11 +119,12 @@ export function squadGraphLayout({ squads, personOf }) {
     || a.unitOrder - b.unitOrder
     || Number(b.isLead) - Number(a.isLead)
     || a.name.localeCompare(b.name, 'ko'));
-  personList.forEach((p, j) => { p.x = G.padX + ((j + 0.5) * inner) / personList.length; });
+  placeOnRow(personList, G.personGap, G.padX + G.personGap / 2, width - G.padX - G.personGap / 2);
 
   projectList.forEach((p) => { p.bary = mean(p.sis.map(squadX)); });
   projectList.sort((a, b) => a.bary - b.bary || a.project.name.localeCompare(b.project.name, 'ko'));
-  projectList.forEach((p, j) => { p.x = G.padX + ((j + 0.5) * inner) / projectList.length; });
+  const pjGap = G.pjW + 24;
+  placeOnRow(projectList, pjGap, G.padX + pjGap / 2, width - G.padX - pjGap / 2);
 
   // ── 선 위 칩 자리 — 사람 쪽에서 출발해 선을 따라 빈 자리를 찾는다. 없으면 첫 자리(엣지 76) ──
   const placed = [];
