@@ -108,8 +108,8 @@ const DEFAULT_LABELS = {
   withdrawFailedTitle: '환불이 처리되지 않았습니다',
   withdrawFailedDesc: (current) => `운영팀이 연락드립니다. 환불이 끝날 때까지 ${current}가 유지됩니다.`,
   withdrawTitle: '업그레이드 철회 · 차액 환불',
-  withdrawDescPaid: (from, to, amount) => `${from} → ${to}로 올린 차액 ${won(amount)}을 돌려드리고 ${from}로 돌아갑니다.`,
-  withdrawDescCarried: (amount, from) => `다음 청구서의 차액 ${won(amount)}을 지웁니다. ${from}로 돌아갑니다.`,
+  withdrawDescPaid: (from, to, amount) => `${from} → ${to}로 올린 차액 ${won(amount)} 전액을 돌려드리고 ${from}로 돌아갑니다.`,
+  withdrawDescCarried: (amount, from) => `다음 청구서의 차액 ${won(amount)} 줄을 지웁니다. ${from}로 돌아갑니다.`,
   withdrawDescTail: (date) =>
     ` 구독은 해지되지 않으며 다음 청구일(${date})과 청구 기준일은 그대로입니다. 구독을 끝내시려면 돌아간 뒤 기간말 해지를 고르세요.`,
   withdrawActionPaid: (amount) => `업그레이드 철회하고 ${won(amount)} 환불`,
@@ -745,8 +745,8 @@ export default function BillingOverviewCanvas({
                 {/* 청구 주기 변경 예약이면 새 주기의 1기간분 — 그날 실제로 결제할 금액 (overview §2 · PW-2475) */}
                 {scheduled
                   ? (scheduled.interval === 'annual'
-                    ? labels.nextBillingSubScheduledAnnual(sub.nextBillingAt, sub.seats, scheduled.seatPrice)
-                    : labels.nextBillingSubScheduledMonthly(sub.nextBillingAt, sub.seats, scheduled.seatPrice))
+                    ? labels.nextBillingSubScheduledAnnual(sub.nextBillingAt, scheduled.seats ?? sub.seats, scheduled.seatPrice)
+                    : labels.nextBillingSubScheduledMonthly(sub.nextBillingAt, scheduled.seats ?? sub.seats, scheduled.seatPrice))
                   : labels.nextBillingSub(
                     sub.nextBillingAt,
                     contract ? contract.billedSeats : sub.seats,
@@ -765,7 +765,8 @@ export default function BillingOverviewCanvas({
                   {labels.scheduledNote(scheduled.interval === 'annual')}
                 </div>
               )}
-              {withdrawal && (
+              {/* 다음 청구일이 와 정기결제를 보류하는 동안만 (overview §2 «다음 청구일이 오면») */}
+              {withdrawal?.holdingRenewal && (
                 <div style={{ fontSize: 12, color: T.amber, marginTop: 4 }}>{labels.withdrawHoldNote}</div>
               )}
               {scheduled ? (
