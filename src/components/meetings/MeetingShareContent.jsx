@@ -117,6 +117,8 @@ const MeetingShareContent = forwardRef(function MeetingShareContent(
     // shareUrlRevoked 면 주소 칸 대신 «끊었습니다» 안내와 [새 링크 만들기]만 그린다.
     // 두 콜백은 회의 주최자·링크를 만든 사람에게만 넘긴다 — 안 넘기면 버튼을 그리지 않는다(비활성으로 두지 않는다).
     shareUrlRevoked = false,
+    // 외부 링크 칸을 고를 때 부른다 — 앱이 이때 링크를 불러오거나 처음 만든다(§6.1).
+    onExternalSelect,
     onReissueLink,
     onRevokeLink,
     subtitle,
@@ -446,7 +448,12 @@ const MeetingShareContent = forwardRef(function MeetingShareContent(
         {/* 3. 외부 링크 */}
         <div
           className={`mtg-share-card ${mode === 'external' ? 'is-selected' : ''}`}
-          onClick={() => setMode('external')}
+          onClick={() => {
+            // 외부 링크는 이 칸을 고를 때 만든다(§6.1) — 고를 때마다 알려, 남이 끊거나 새로 만든 최신 링크를
+            // 다시 받게 한다(§11 · pivit-work PW-919).
+            if (mode !== 'external') onExternalSelect?.();
+            setMode('external');
+          }}
           role="button"
           tabIndex={0}
         >
