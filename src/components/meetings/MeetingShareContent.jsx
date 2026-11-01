@@ -1,5 +1,6 @@
 import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import Button from '../shared/Button.jsx';
 import Icon from '../shared/Icon.jsx';
 import { isEnterKey } from '../shared/enterKey.js';
 
@@ -112,6 +113,12 @@ const MeetingShareContent = forwardRef(function MeetingShareContent(
     shareUrl,
     shareUrlFailed = false,
     onShareUrlRetry,
+    // 외부 링크 끊기·새 링크 만들기 (pivit-work PW-919 · screen-minutes-share §6.5).
+    // shareUrlRevoked 면 주소 칸 대신 «끊었습니다» 안내와 [새 링크 만들기]만 그린다.
+    // 두 콜백은 회의 주최자·링크를 만든 사람에게만 넘긴다 — 안 넘기면 버튼을 그리지 않는다(비활성으로 두지 않는다).
+    shareUrlRevoked = false,
+    onReissueLink,
+    onRevokeLink,
     subtitle,
     labels,
     onShareSubmit,
@@ -130,7 +137,10 @@ const MeetingShareContent = forwardRef(function MeetingShareContent(
   // 추가됩니다»가 안내와 엇갈린다 (pivit-work PW-2413). 동명이인·못 찾음 안내는 «목록에서 고르라»(§5.3-A 3·4)라 목록을 둔다.
   const [hintHidesList, setHintHidesList] = useState(false);
   const [narrow, setNarrow] = useState(null); // 동명이인 — 드롭다운을 이 이름으로 좁힌다
-  const [copied, setCopied] = useState(false);
+  // «복사됨»은 복사한 그 주소에만 붙는다 — 새 링크가 들어오면 [복사]는 기본 모습으로 돌아온다
+  // (pivit-work PW-919 · screen-minutes-share §6.5).
+  const [copiedUrl, setCopiedUrl] = useState(null);
+  const copied = copiedUrl !== null && copiedUrl === shareUrl;
   const inputRef = useRef(null);
 
   const participants = calendarParticipants.map(toParticipant);
@@ -216,8 +226,8 @@ const MeetingShareContent = forwardRef(function MeetingShareContent(
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(shareUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      setCopiedUrl(shareUrl);
+      setTimeout(() => setCopiedUrl(null), 1500);
     } catch {
       /* no-op in preview */
     }
@@ -471,17 +481,44 @@ const MeetingShareContent = forwardRef(function MeetingShareContent(
                     </button>
                   )}
                 </div>
-              ) : (
-                <div className="mtg-share-link-row">
-                  <div className="mtg-share-link-url tl-snippet-textarea">{shareUrl}</div>
-                  <button
-                    type="button"
-                    className="mtg-share-copy-btn"
-                    onClick={handleCopy}
-                  >
-                    {copied ? labels.copied : labels.copy}
-                  </button>
+              ) : shareUrlRevoked ? (
+                <div className="mtg-share-link-revoked" data-testid="mtg-share-link-revoked">
+                  <p className="mtg-share-link-revoked-text">{labels.linkRevokedNotice}</p>
+                  {onReissueLink && (
+                    <div className="mtg-share-link-actions">
+                      <Button type="button" variant="ghost" size="sm" onClick={onReissueLink}>
+                        {labels.reissueLink}
+                      </Button>
+                    </div>
+                  )}
                 </div>
+              ) : (
+                <>
+                  <div className="mtg-share-link-row">
+                    <div className="mtg-share-link-url tl-snippet-textarea">{shareUrl}</div>
+                    <button
+                      type="button"
+                      className="mtg-share-copy-btn"
+                      onClick={handleCopy}
+                    >
+                      {copied ? labels.copied : labels.copy}
+                    </button>
+                  </div>
+                  {(onReissueLink || onRevokeLink) && (
+                    <div className="mtg-share-link-actions">
+                      {onReissueLink && (
+                        <Button type="button" variant="ghost" size="sm" onClick={onReissueLink}>
+                          {labels.reissueLink}
+                        </Button>
+                      )}
+                      {onRevokeLink && (
+                        <Button type="button" variant="danger-ghost" size="sm" onClick={onRevokeLink}>
+                          {labels.revokeLink}
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           )}

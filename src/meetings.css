@@ -1231,6 +1231,27 @@ input.mtg-record-action-title::placeholder {
   filter: brightness(0.97);
 }
 
+/* 외부 링크 끊기·새 링크 만들기 줄 (pivit-work PW-919 · screen-minutes-share §6.5).
+   주소 줄 아래 한 줄, 왼쪽부터 [새 링크 만들기] · [링크 끊기]. 버튼 모양은 공용 Button(sm · ghost / danger-ghost). */
+.mtg-share-link-actions {
+  display: flex;
+  gap: var(--spacing-md, 8px);
+}
+/* 카드 본문(.mtg-share-card-body)과 같은 8px 간격으로 안내와 버튼을 쌓는다. */
+.mtg-share-link-revoked {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-md, 8px);
+}
+/* 끊은 뒤 주소 칸 자리에 보이는 안내 — 카드 설명(.mtg-share-card-desc)과 같은 보조 글자색, 한 단계 작게. */
+.mtg-share-link-revoked-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--text-secondary);
+}
+
 /* ─── 기록 방식 / 마이크 선택 창 — 공용 창 틀(ModalShell) 위의 변형 (PW-836) ───
    막·카드·닫기 X·제목·푸터는 틀(modal-shell.css)이 그린다. 여기서는 틀의 고정 높이(428px)를
    내용 높이로 풀고, 본문 칸 사이 간격만 준다. 회의 종료 확인·회의록 생성 중 안내는 공용
