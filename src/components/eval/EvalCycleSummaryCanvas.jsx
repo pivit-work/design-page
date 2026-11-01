@@ -5671,11 +5671,16 @@ export default function EvalCycleSummaryCanvas({
                                                 data-testid="evs-cw-comment-submit"
                                                 disabled={!commentDraft.trim()}
                                                 onClick={() => {
-                                                  onAddCalibComment?.(
-                                                    row.memberId,
-                                                    commentDraft.trim(),
+                                                  // PW-2477 — 저장이 거절되면(예: 그사이 위원장이 확정) 쓴 글을 지우지 않는다.
+                                                  Promise.resolve(
+                                                    onAddCalibComment?.(
+                                                      row.memberId,
+                                                      commentDraft.trim(),
+                                                    ),
+                                                  ).then(
+                                                    () => setCommentDraft(''),
+                                                    () => undefined,
                                                   );
-                                                  setCommentDraft('');
                                                 }}
                                               >
                                                 {L.cwCommentSubmit}
