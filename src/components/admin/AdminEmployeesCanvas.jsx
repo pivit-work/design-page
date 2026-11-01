@@ -5322,8 +5322,7 @@ function EmployeesEditPanel({
               </FormField>
               {appointmentFlow?.onPreview && (
                 <div>
-                  <button
-                    type="button"
+                  <Button
                     className="admin-emp-btn is-secondary is-sm"
                     onClick={() => appointmentFlow.onPreview(member.id, {
                       date: apptDate,
@@ -5334,7 +5333,7 @@ function EmployeesEditPanel({
                     data-testid="employees-panel-appointment-preview"
                   >
                     {labels.panel.appointment.preview}
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>
@@ -5349,26 +5348,24 @@ function EmployeesEditPanel({
             <button type="button" className="admin-emp-btn is-secondary admin-emp-btn-block" onClick={onClose}>{labels.panel.cancel}</button>
             {/* 발령 칸이 바뀐 창은 [임시저장] · [수정] · [발령] (PW-2349 · §6-2). 확정 없이 저장하는 길은 없다. */}
             {flowWired && appointmentFlow.onSaveDraft && (
-              <button
-                type="button"
+              <Button
                 className="admin-emp-btn is-secondary admin-emp-btn-block"
                 onClick={handleSaveDraft}
                 disabled={saving || !canEdit}
                 data-testid="employees-panel-draft"
               >
                 {labels.panel.draft}
-              </button>
+              </Button>
             )}
             {flowWired && appointmentFlow.onRequestCorrection && (
-              <button
-                type="button"
+              <Button
                 className="admin-emp-btn is-secondary admin-emp-btn-block"
                 onClick={handleCorrect}
                 disabled={saving || !canEdit || Boolean(terminationProblem) || leaveStartMissing || axisIncomplete}
                 data-testid="employees-panel-correct"
               >
                 {labels.panel.correct}
-              </button>
+              </Button>
             )}
             <button
               type="button"

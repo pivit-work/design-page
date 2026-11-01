@@ -1705,21 +1705,19 @@ function AppointmentBulkView({
                 <button type="button" className="admin-emp-btn is-soft" onClick={() => setStep(2)}>← {labels.prev}</button>
                 <button type="button" className="admin-emp-btn is-soft" disabled={submitting} onClick={reset}>{labels.cancelAll}</button>
               </div>
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ display: 'flex', gap: 'var(--spacing-md)' }}>
                 {onPreview && (
-                  <button
-                    type="button"
+                  <Button
                     className="admin-emp-btn is-secondary"
                     disabled={confirmRows.length === 0 || !date}
                     onClick={() => onPreview({ rows: confirmRows, date, errorRows: errorRows.length })}
                     data-testid="bulk-preview"
                   >
                     {labels.bulkPreview ?? '조직도 미리 보기'}
-                  </button>
+                  </Button>
                 )}
                 {onSaveDraft && (
-                  <button
-                    type="button"
+                  <Button
                     className="admin-emp-btn is-secondary"
                     disabled={draftSaving || submitting || previewRows.length === 0}
                     onClick={async () => {
@@ -1738,7 +1736,7 @@ function AppointmentBulkView({
                     data-testid="bulk-save-draft"
                   >
                     {labels.bulkSaveDraft ?? '임시저장'}
-                  </button>
+                  </Button>
                 )}
                 {/* 확정 대상 = 정상 + 경고. 0건이면 누를 수 없다(§3-A-3). */}
                 <Button className="admin-emp-btn is-primary" disabled={applicableRows.length === 0 || !date || submitting || confirmBlocked} onClick={handleConfirm}>
