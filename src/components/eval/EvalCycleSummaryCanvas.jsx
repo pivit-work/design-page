@@ -247,6 +247,7 @@ const DEFAULT_LABELS = {
   cwConflictHidden: '{n}명이 이해상충으로 제외되었습니다.',
   // arch 조정자 표기 · §10.G.6 어필 중
   cwAdjusterBadge: '조정자 {name}',
+  cwManagerNotified: '담당 매니저에게 알림 발송됨',
   cwAppealInProgress: '어필 중',
   // §10.G.6 변경 로그 — 이름 옆 역할(코드값을 그대로 내지 않는다)
   cwLogRoles: { leader: '조직장', calibration_chair: '위원장', committee: '위원', hr: 'HR' },
@@ -4307,6 +4308,13 @@ export default function EvalCycleSummaryCanvas({
                             {appeal.reviewedByName ? ` · ${appeal.reviewedByName}` : ''}
                             {appeal.reviewedAt ? ` · ${fmtDateTime(appeal.reviewedAt)}` : ''}
                           </div>
+                          {/* PW-2477 · §7.5.3 결정 결과 — 수용하며 고른 재조정 등급(결정 폼의 「새 등급」 줄 모양). */}
+                          {appeal.revisedGradeLabel && (
+                            <div className="evs-cw-review-row" data-testid="evs-cw-review-revised">
+                              <span className="evs-cw-review-k">{L.cwNewGradeLabel}</span>
+                              <span className="evs-cw-review-v">{appeal.revisedGradeLabel}</span>
+                            </div>
+                          )}
                           <div className="evs-cw-review-v">{appeal.reviewNote}</div>
                         </div>
                       ) : appealCanReview ? (
@@ -4625,8 +4633,9 @@ export default function EvalCycleSummaryCanvas({
                             : L.cwModeReadOnlyHint
                         }
                       >
+                        {/* PW-2477 · spec-calibration §2 — 위원·HR·확정 완료는 버튼 대신 자물쇠 «조회 전용». */}
                         <span className="evs-cw-mode" tabIndex={0} data-testid="evs-cw-mode">
-                          {L.cwModeReadOnly}
+                          <LockIcon size={12} /> {L.cwModeReadOnly}
                         </span>
                       </Tooltip>
                     ))}
@@ -4772,6 +4781,7 @@ export default function EvalCycleSummaryCanvas({
                   ((calibTable?.chairAutoAssigned && !chairToastClosed) ||
                   (compView?.unassigned && !compBannerClosed)) && (
                     <div className="evs-cw-toast-dock" data-testid="evs-cw-toast-dock">
+
                       {calibTable?.chairAutoAssigned && !chairToastClosed && (
                         <MeetingSyncToast
                           portal={false}
@@ -5122,6 +5132,12 @@ export default function EvalCycleSummaryCanvas({
                                           </>
                                         )}
                                         {adjusterTag}
+                                        {/* PW-2477 · hr.policy §7.C — 확정된 줄에만. 확정 전(임시 저장) 줄은 서버가 false 로 준다. */}
+                                        {row.managerNotified && (
+                                          <span className="evs-cw-adjuster" data-testid="evs-cw-manager-notified">
+                                            {L.cwManagerNotified}
+                                          </span>
+                                        )}
                                       </div>
                                     );
                                   })()}
@@ -5631,7 +5647,9 @@ export default function EvalCycleSummaryCanvas({
                                               ))
                                             )}
                                           </div>
-                                          {calibTable.readOnly ? (
+                                          {/* PW-2477 — 위원도 확정 전에는 이견을 코멘트로 남긴다(조정만 위원장).
+                                              옛 소비처는 canComment 를 안 넘기므로 조정 권한으로 읽는다. */}
+                                          {!(calibTable.canComment ?? !calibTable.readOnly) ? (
                                             <div className="evs-cw-comment-readonly">
                                               {L.cwCommentReadonly}
                                             </div>
