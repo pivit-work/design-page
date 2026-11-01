@@ -518,7 +518,7 @@ export default function BillingCheckoutCanvas({
                   같은 굵은 합계 줄 자리·모양 */}
               {planChangeNoCharge ? (
                 <div data-testid="checkout-plan-change-no-charge"
-                  style={{ padding: '8px 0', fontSize: 16, fontWeight: 800, color: T.text }}>
+                  style={{ padding: 'var(--spacing-md) 0', fontSize: 16, fontWeight: 800, color: T.text }}>
                   {planChange.kind === 'carry'
                     ? labels.planChangeCarryNote(planChange.diffSubtotal)
                     : labels.planChangeNoneNote}
@@ -538,7 +538,7 @@ export default function BillingCheckoutCanvas({
                       : labels.planChangeNextMonthly(planChange.nextBillingDate, planChange.seats,
                         planChange.nextUnitPrice, planChange.anchorDay)}
                     {planChange.intervalSwitch && (
-                      <div style={{ marginTop: 4 }}>{labels.planChangeIntervalSwitch(nextAnnual)}</div>
+                      <div style={{ marginTop: 'var(--spacing-xs)' }}>{labels.planChangeIntervalSwitch(nextAnnual)}</div>
                     )}
                   </div>
                   {planChange.firstCycle && (

@@ -501,17 +501,17 @@ export default function BillingOverviewCanvas({
         {/* 업그레이드 철회 처리 중·실패 띠 (pivit-work PW-2475 · overview §2) — 해지 예약 띠와 같은 Card+앰버/빨강 · 버튼 없음 */}
         {withdrawal && (
           <Card
-            style={{ marginBottom: 16,
+            style={{ marginBottom: 'var(--spacing-xl)',
               background: withdrawal.status === 'failed' ? T.redBg : T.amberBg,
               border: withdrawal.status === 'failed' ? '1px solid #FCA5A5' : '1px solid #FDE68A' }}>
             {withdrawal.status === 'failed' ? (
               <>
-                <div data-testid="billing-withdrawal-failed" style={{ fontWeight: 800, color: T.red, marginBottom: 4 }}>{labels.withdrawFailedTitle}</div>
+                <div data-testid="billing-withdrawal-failed" style={{ fontWeight: 800, color: T.red, marginBottom: 'var(--spacing-xs)' }}>{labels.withdrawFailedTitle}</div>
                 <div style={{ fontSize: 13, color: T.text }}>{labels.withdrawFailedDesc(plan.label)}</div>
               </>
             ) : (
               <>
-                <div data-testid="billing-withdrawal-processing" style={{ fontWeight: 800, color: T.amber, marginBottom: 4 }}>{labels.withdrawingTitle}</div>
+                <div data-testid="billing-withdrawal-processing" style={{ fontWeight: 800, color: T.amber, marginBottom: 'var(--spacing-xs)' }}>{labels.withdrawingTitle}</div>
                 <div style={{ fontSize: 13, color: T.text }}>
                   {labels.withdrawingDesc(withdrawal.amount, withdrawal.fromPlanLabel, plan.label)}
                 </div>
@@ -756,18 +756,18 @@ export default function BillingOverviewCanvas({
               </div>
               {/* 넘어간 요금제 변경 차액 — 같은 청구서에 붙어 함께 결제된다 (위 금액에 이미 더해져 있다) */}
               {carriedDiff && (
-                <div data-testid="billing-carried-diff" style={{ fontSize: 13, color: T.sub, marginTop: 2 }}>
+                <div data-testid="billing-carried-diff" style={{ fontSize: 13, color: T.sub, marginTop: 'var(--spacing-xxs)' }}>
                   {labels.carriedDiffLine(carriedDiff.from, carriedDiff.to, carriedDiff.changedOn, carriedDiff.days, carriedDiff.amount)}
                 </div>
               )}
               {scheduled && (
-                <div data-testid="billing-scheduled-interval" style={{ fontSize: 12, color: T.amber, marginTop: 4 }}>
+                <div data-testid="billing-scheduled-interval" style={{ fontSize: 12, color: T.amber, marginTop: 'var(--spacing-xs)' }}>
                   {labels.scheduledNote(scheduled.interval === 'annual')}
                 </div>
               )}
               {/* 다음 청구일이 와 정기결제를 보류하는 동안만 (overview §2 «다음 청구일이 오면») */}
               {withdrawal?.holdingRenewal && (
-                <div style={{ fontSize: 12, color: T.amber, marginTop: 4 }}>{labels.withdrawHoldNote}</div>
+                <div style={{ fontSize: 12, color: T.amber, marginTop: 'var(--spacing-xs)' }}>{labels.withdrawHoldNote}</div>
               )}
               {scheduled ? (
                 <div data-testid="billing-anchor-note" style={{ fontSize: 12, color: T.muted, marginTop: 4 }}>
@@ -888,7 +888,7 @@ export default function BillingOverviewCanvas({
                   )}
                   {/* 구독 결제 줄과 요금제 변경 차액 결제 줄 — 환불 1건, 결제마다 돌려준다 (overview §4 ⓒ 행 · PW-2475) */}
                   {Array.isArray(quote.lines) && quote.lines.length > 1 && (
-                    <div data-testid="billing-refund-lines" style={{ fontSize: 13, color: T.sub, marginBottom: 8 }}>
+                    <div data-testid="billing-refund-lines" style={{ fontSize: 13, color: T.sub, marginBottom: 'var(--spacing-md)' }}>
                       {quote.lines.map((line) => (
                         <div key={line.invoiceId} style={{ display: 'flex', justifyContent: 'space-between' }}>
                           <span>{line.kind === 'plan_change' ? labels.refundLinePlanChange : labels.refundLineSubscription}</span>
@@ -919,13 +919,13 @@ export default function BillingOverviewCanvas({
               {/* ⓒ 업그레이드 철회 (pivit-work PW-2475 · overview §4 ⓒ) — ⓐ 와 같은 테두리 선택지 카드 + 기존 Btn(secondary).
                   해지가 아니라 직전 요금제로 돌아가는 선택지다. 견적을 받는 동안은 불러오는 중 표시 */}
               {refundQuoteLoading ? (
-                <div data-testid="billing-withdraw-loading" style={{ fontSize: 12, color: T.muted, padding: '10px 0' }}>
+                <div data-testid="billing-withdraw-loading" style={{ fontSize: 12, color: T.muted, padding: 'calc(var(--spacing-md) + var(--spacing-xxs)) 0' }}>
                   {labels.withdrawLoading}
                 </div>
               ) : withdrawQuote?.eligible ? (
                 <div data-testid="billing-withdraw-option"
-                  style={{ border: `1px solid ${T.border}`, borderRadius: 12, padding: 16, marginTop: 4, marginBottom: 8 }}>
-                  <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 4 }}>{labels.withdrawTitle}</div>
+                  style={{ border: `1px solid ${T.border}`, borderRadius: 12, padding: 'var(--spacing-xl)', marginTop: 'var(--spacing-xs)', marginBottom: 'var(--spacing-md)' }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 'var(--spacing-xs)' }}>{labels.withdrawTitle}</div>
                   <div style={{ fontSize: 13, color: T.sub, marginBottom: 12 }}>
                     {withdrawQuote.paid
                       ? labels.withdrawDescPaid(withdrawQuote.fromPlanName, plan.label, withdrawQuote.amount)
