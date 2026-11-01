@@ -604,7 +604,7 @@ export default function ProjectDetailCanvas({
                       <Button
                         className="sq-btn sq-btn-sm sq-btn-outline"
                         data-testid={`project-detail-unlink-${s.squadId}`}
-                        title={L(s.isPrimary ? 'projectDetail.squads.unlinkPrimaryHint' : 'projectDetail.squads.unlinkHint')}
+                        title={L(s.isPrimary && squads.length > 1 ? 'projectDetail.squads.unlinkPrimaryHint' : 'projectDetail.squads.unlinkHint')}
                         onClick={() => run(() => onUnlinkSquad(s.squadId), 'projectDetail.actionFailed')}
                       ><CloseIcon size={11} /> {L('projectDetail.squads.unlink')}</Button>
                     )}
