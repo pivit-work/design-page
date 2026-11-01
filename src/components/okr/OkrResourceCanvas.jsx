@@ -26,6 +26,10 @@ import { mergeOkrResourceLabels } from './okrResourceLabels.js';
  * 연다 — 권한이 없는 탭으로 들어온 사람은 자기 입력으로 떨어진다. 팀·조직 데이터가 늦게 와서
  * `views` 가 나중에 늘면 그때 그 탭으로 넘어간다.
  *
+ * `view` 를 주면 그 탭을 연다 — 사람이 앞서 고른 탭보다 앞선다. 호스트가 주소(`?tab=`)를 정본으로 둘 때
+ * 쓴다: 다른 탭을 보던 중 바깥(왼쪽 메뉴 등)에서 주소만 바뀌어도 그 탭으로 옮긴다. 사람이 탭을 고르면
+ * `onViewChange(view)` 로 알린다 — 호스트가 주소와 왼쪽 메뉴 선택 표시를 따라 옮기게(PW-2468).
+ *
  * `placeholder` 를 주면 헤더·본문 대신 같은 자리(`.rsx-area`)에 그것만 그린다 — 불러오는 중·
  * 불러오기 실패처럼 `data` 가 아직 없을 때. `viewPlaceholders` 는 같은 일을 서브탭 하나에만 한다 —
  * 조직 현황만 못 불러왔을 때 탭은 두고 그 탭 본문 자리에 실패 안내를 그린다(PW-2214). `actionError` 는 저장 실패 문구로(코멘트 실패는 앱이 따로 알린다 · PW-2214),
@@ -53,6 +57,8 @@ export default function OkrResourceCanvas({
   baseUrl = '',
   views,
   initialView,
+  view: requestedView,
+  onViewChange,
   onSave,
   onComment,
   onApplyEstimates,
@@ -72,8 +78,12 @@ export default function OkrResourceCanvas({
     .map((value) => ({ value, label: L.views[value] }));
   // 사람이 고른 탭이 없으면 initialView — 불러오는 중(placeholder)에 먼저 떠 있던 캔버스도 따라가게
   // 상태 초기값으로 굳히지 않는다.
-  const [picked, setView] = useState(null);
-  const wanted = picked ?? initialView;
+  const [picked, setPicked] = useState(null);
+  const wanted = requestedView ?? picked ?? initialView;
+  const setView = (next) => {
+    setPicked(next);
+    onViewChange?.(next);
+  };
   const view = items.some((item) => item.value === wanted) ? wanted : (items[0]?.value ?? 'my');
   const [openTeam, setOpenTeam] = useState(null);
 
