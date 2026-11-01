@@ -116,11 +116,20 @@ const DEFAULT_LABELS = {
   withdrawAction: '업그레이드 철회',
   withdrawBusy: '처리하는 중...',
   withdrawLoading: '업그레이드를 철회할 수 있는지 확인하는 중...',
+  // 즉시 해지·환불이 끝나지 않은 동안의 띠 (pivit-work PW-2476 · overview §2 «환불 처리 중 띠») — 구독은 환불이 «완료»될 때 해지된다.
+  cancelRefundProcessingTitle: '즉시 해지·환불을 처리하고 있습니다',
+  cancelRefundProcessingDesc: (amount) =>
+    `환불(${won(amount)})이 끝나면 구독이 해지되고 Free 로 바뀝니다. 그때까지 지금 요금제를 그대로 쓰실 수 있고, 정기결제는 하지 않습니다.`,
+  cancelRefundFailedTitle: '환불이 처리되지 않았습니다',
+  cancelRefundFailedDesc: '운영팀이 연락드립니다. 환불이 끝날 때까지 구독은 그대로 유지됩니다.',
+  cancelRefundHoldNote: '환불 처리 중 — 끝날 때까지 정기결제를 하지 않습니다',
+  refundBusy: '처리하는 중...',
   refundLineSubscription: '구독 결제',
   refundLinePlanChange: '요금제 변경 차액 결제',
   // 연간은 다음 갱신 때 1년분이 나간다 — 금액이 1년분이니 줄도 개월 수를 말한다 (PW-757).
+  // 날짜를 모르면(첫 결제 전 등) 날짜 없이 — «null ·»이 찍히지 않게 (pivit-work PW-2476).
   nextBillingSub: (date, seats, price, months = 1) =>
-    `${date} · ${seats}좌석 × ${won(price)}${months > 1 ? ` × ${months}개월` : ''}`,
+    `${date ? `${date} · ` : ''}${seats}좌석 × ${won(price)}${months > 1 ? ` × ${months}개월` : ''}`,
   methodLabel: '기본 결제수단',
   methodDisplay: (brand, last4) => `${brand} ···· ${last4}`,
   methodExp: (exp) => `유효기간 ${exp}`,
@@ -355,6 +364,11 @@ export default function BillingOverviewCanvas({
    * 동의 창은 앱이 연다(`priceChangeOpen`) — 메일 링크(`?priceChange=`)로 와도 같은 창이 열린다.
    */
   priceChange = null,
+  /**
+   * 즉시 해지·환불이 끝나지 않았다 `{ status: 'processing' | 'failed', amount }` (pivit-work PW-2476) — 처리 중 앰버·실패 빨강 띠,
+   * 버튼·정가 인상 띠 숨김, 다음 청구 카드 보류 줄. 없으면 null.
+   */
+  cancelRefund = null,
   priceChangeOpen = false,
   priceChangeSaving = false,
   onOpenPriceChange,
@@ -382,6 +396,7 @@ export default function BillingOverviewCanvas({
   const labels = mergeLabels(providedLabels);
   const [cancelOpen, setCancelOpen] = useState(false); // 해지 방식 선택 모달
   const [withdrawBusy, setWithdrawBusy] = useState(false);
+  const [refundBusy, setRefundBusy] = useState(false);
   const priceChangeBodyRef = useRef(null);
 
   const sub = subscription;
@@ -415,7 +430,20 @@ export default function BillingOverviewCanvas({
   const trialOverCap = Boolean(trial) && trial.seatCap != null && sub.seats > trial.seatCap;
 
   const handlePeriodEnd = () => { setCancelOpen(false); onCancelPeriodEnd?.(); };
-  const handleRefund = () => { setCancelOpen(false); onCancelRefund?.(); };
+  // 즉시 해지·환불 (overview §5 · PW-2476) — 진행 중엔 다시 못 누르고(환불은 1건), 요청이 실패하면 창을 연 채 버튼만 돌아온다.
+  // 앱이 약속을 돌려주지 않으면(옛 연결) 종전처럼 바로 닫는다.
+  const handleRefund = async () => {
+    if (refundBusy) return;
+    setRefundBusy(true);
+    try {
+      await onCancelRefund?.();
+      setCancelOpen(false);
+    } catch {
+      /* 앱이 오류 토스트를 띄운다 — 창은 그대로 */
+    } finally {
+      setRefundBusy(false);
+    }
+  };
   const handlePastDue = () => { setCancelOpen(false); onCancelPastDue?.(); };
   // 업그레이드 철회 (PW-2475 · overview §4 ⓒ · §5) — 진행 중엔 다시 못 누르고(환불은 1건), 실패하면 창을 연 채 둔다.
   const handleWithdraw = async () => {
@@ -431,6 +459,13 @@ export default function BillingOverviewCanvas({
     }
   };
   const withdrawal = planChange?.withdrawal ?? null;
+  // 즉시 해지·환불이 끝나지 않았다 (PW-2476 · overview §2) — 구독은 «구독 중» 그대로, 해지가 이미 요청된 구독이라 해지 예약과
+  // 같이 다룬다: [업그레이드]·[좌석·플랜 변경]·[구독 해지]·정가 인상 안내 띠를 그리지 않는다. 업그레이드 철회와 같은 자리다.
+  const refundOpen = cancelRefund && (sub.status === 'active' || sub.status === 'past_due') ? cancelRefund : null;
+  const holding = Boolean(withdrawal || refundOpen);
+  // Free 요금제는 상태가 «이용 중»으로 와도 청구가 없다 — 다음 청구·결제수단 칸, 해지·좌석 변경을 그리지 않는다
+  // (기획 시안의 Free 는 그 칸들이 없다 · overview §2 «다음 청구일» 행 Free 제외 · pivit-work PW-2476).
+  const isFree = sub.planCode === 'free';
   const scheduled = sub.status === 'active' ? (planChange?.scheduled ?? null) : null;
   const carriedDiff = sub.status === 'active' && !sub.cancelAtPeriodEnd ? (planChange?.carriedDiff ?? null) : null;
   const withdrawQuote = quote.upgradeWithdrawal ?? null;
@@ -441,7 +476,8 @@ export default function BillingOverviewCanvas({
   // 기간이 끝나도 닫히지 않아 고르지 못하게 한다.
   const pastDue = sub.status === 'past_due';
   // 업그레이드 철회가 끝나지 않은 동안은 요금제가 곧 바뀌는 구독이라 해지·변경 버튼을 숨긴다(overview §2 · PW-2475).
-  const canCancel = canEdit && !withdrawal && ((sub.status === 'active' && !sub.cancelAtPeriodEnd) || pastDue);
+  // 조회 전용(hr_admin)에게도 숨기지 않고 비활성으로 보인다 — 다른 편집 버튼과 같다(overview §2 «hr_admin 처리» · §6 · PW-2476).
+  const showCancel = !holding && !isFree && ((sub.status === 'active' && !sub.cancelAtPeriodEnd) || pastDue);
 
   return (
     <div style={{ fontFamily: T.font, background: T.bg, minHeight: '100vh', padding: 32, color: T.text }}>
@@ -520,6 +556,27 @@ export default function BillingOverviewCanvas({
           </Card>
         )}
 
+        {/* 즉시 해지·환불 처리 중·실패 띠 (pivit-work PW-2476 · overview §2) — 업그레이드 철회 띠와 같은 Card+앰버/빨강 · 버튼 없음.
+            처리 중/실패는 앱이 청구 내역 환불 배지와 같은 기준으로 넘긴다 */}
+        {refundOpen && (
+          <Card
+            style={{ marginBottom: 'var(--spacing-xl)',
+              background: refundOpen.status === 'failed' ? T.redBg : T.amberBg,
+              border: refundOpen.status === 'failed' ? '1px solid #FCA5A5' : '1px solid #FDE68A' }}>
+            {refundOpen.status === 'failed' ? (
+              <>
+                <div data-testid="billing-cancel-refund-failed" style={{ fontWeight: 800, color: T.red, marginBottom: 'var(--spacing-xs)' }}>{labels.cancelRefundFailedTitle}</div>
+                <div style={{ fontSize: 13, color: T.text }}>{labels.cancelRefundFailedDesc}</div>
+              </>
+            ) : (
+              <>
+                <div data-testid="billing-cancel-refund-processing" style={{ fontWeight: 800, color: T.amber, marginBottom: 'var(--spacing-xs)' }}>{labels.cancelRefundProcessingTitle}</div>
+                <div style={{ fontSize: 13, color: T.text }}>{labels.cancelRefundProcessingDesc(refundOpen.amount)}</div>
+              </>
+            )}
+          </Card>
+        )}
+
         {/* 체험 안내 배너 (PW-1025 §2.7.5) — 체험 중이면 항상. 베타(ops)와 기본 체험(signup)은 문구로 가른다.
             기획서 시안 billing-app.jsx 의 배너를 옮겼다 */}
         {trial && (
@@ -545,7 +602,7 @@ export default function BillingOverviewCanvas({
         )}
 
         {/* 요금 변경 안내 띠 (PW-2360 · §3.2-D) — 동의 전 앰버(녹음 풀 띠와 같은 모양), 동의 뒤 초록 */}
-        {priceChange && !priceChange.consented && !withdrawal && (
+        {priceChange && !priceChange.consented && !holding && (
           <UsageBanner
             banner={{
               title: labels.priceChangeTitle,
@@ -560,7 +617,7 @@ export default function BillingOverviewCanvas({
             testId="billing-price-change-banner"
           />
         )}
-        {priceChange && priceChange.consented && !withdrawal && (
+        {priceChange && priceChange.consented && !holding && (
           <Card style={{ marginBottom: 'var(--spacing-xl)', background: 'var(--bg-success-primary)', border: `1px solid ${T.green}` }}>
             <div data-testid="billing-price-change-consented" role="status"
               style={{ fontWeight: 800, color: 'var(--text-success-primary)' }}>
@@ -615,12 +672,12 @@ export default function BillingOverviewCanvas({
             <div style={{ display: 'flex', gap: 8 }}>
               {/* 업그레이드 CTA: 다음 티어로 (동적 플랜명) */}
               {/* 체험 중에는 체험 배너의 [결제하고 계속 쓰기]가 대신한다 (PW-1025) */}
-              {upgradeTargetLabel && !withdrawal && !sub.cancelAtPeriodEnd && sub.status !== 'past_due' && sub.status !== 'trial' && (
+              {upgradeTargetLabel && !holding && !sub.cancelAtPeriodEnd && sub.status !== 'past_due' && sub.status !== 'trial' && (
                 <Btn onClick={onNavigatePlans} disabled={!canEdit}>
                   {labels.upgradeCta(upgradeTargetLabel)}
                 </Btn>
               )}
-              {sub.status === 'active' && !sub.cancelAtPeriodEnd && !withdrawal && (
+              {sub.status === 'active' && !isFree && !sub.cancelAtPeriodEnd && !holding && (
                 <Btn kind="secondary" onClick={onNavigatePlans} disabled={!canEdit}>{labels.changePlan}</Btn>
               )}
               {sub.status === 'past_due' && (
@@ -736,7 +793,7 @@ export default function BillingOverviewCanvas({
         </Card>
 
         {/* 청구 정보 (active/past_due) */}
-        {(sub.status === 'active' || sub.status === 'past_due') && (
+        {(sub.status === 'active' || sub.status === 'past_due') && !isFree && (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
             <Card>
               <div style={{ fontSize: 13, color: T.sub, marginBottom: 8 }}>{labels.nextBillingLabel}</div>
@@ -768,6 +825,12 @@ export default function BillingOverviewCanvas({
               {/* 다음 청구일이 와 정기결제를 보류하는 동안만 (overview §2 «다음 청구일이 오면») */}
               {withdrawal?.holdingRenewal && (
                 <div style={{ fontSize: 12, color: T.amber, marginTop: 'var(--spacing-xs)' }}>{labels.withdrawHoldNote}</div>
+              )}
+              {/* 즉시 해지·환불이 끝날 때까지 정기결제 보류 (overview §2 · §7 · PW-2476) — 기획 시안처럼 띠가 있는 동안 늘 */}
+              {refundOpen && (
+                <div data-testid="billing-cancel-refund-hold" style={{ fontSize: 12, color: T.amber, marginTop: 'var(--spacing-xs)' }}>
+                  {labels.cancelRefundHoldNote}
+                </div>
               )}
               {scheduled ? (
                 <div data-testid="billing-anchor-note" style={{ fontSize: 12, color: T.muted, marginTop: 4 }}>
@@ -821,13 +884,13 @@ export default function BillingOverviewCanvas({
               fontSize: 14, cursor: 'pointer', padding: 0 }}>
             {labels.viewHistory}
           </button>
-          {canCancel && (
-            <Btn kind="danger" onClick={() => setCancelOpen(true)}>{labels.cancelSubscription}</Btn>
+          {showCancel && (
+            <Btn kind="danger" onClick={() => setCancelOpen(true)} disabled={!canEdit}>{labels.cancelSubscription}</Btn>
           )}
         </Card>
 
         {/* 해지 방식 선택 창 — 공용 창 틀(ModalShell · PW-836). 해지 두 방식의 버튼은 본문 카드 안에 산다. */}
-        {cancelOpen && (
+        {cancelOpen && canEdit && (
           <ModalShell
             title={labels.cancelModalTitle}
             description={labels.cancelModalSub(plan.label, sub.seats, sub.interval)}
@@ -905,7 +968,9 @@ export default function BillingOverviewCanvas({
                   <div style={{ fontSize: 11, color: T.muted, marginBottom: 12 }}>
                     {labels.refundNote}
                   </div>
-                  <Btn kind="danger" onClick={handleRefund}>{labels.refundAction(quote.amount)}</Btn>
+                  <Btn kind="danger" onClick={() => void handleRefund()} disabled={refundBusy}>
+                    {refundBusy ? labels.refundBusy : labels.refundAction(quote.amount)}
+                  </Btn>
                 </div>
               ) : (
                 <div style={{ fontSize: 12, color: T.muted, background: T.bl,
@@ -967,7 +1032,7 @@ export default function BillingOverviewCanvas({
                 onClick={onClosePriceChange}>
                 {labels.close}
               </button>
-              {canCancel && (
+              {showCancel && canEdit && (
                 <button type="button" className="tl-group-modal-btn tl-group-modal-btn-secondary"
                   style={{ whiteSpace: 'nowrap' }}
                   data-testid="billing-price-change-cancel"
