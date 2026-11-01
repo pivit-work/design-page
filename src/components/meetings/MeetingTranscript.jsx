@@ -33,19 +33,19 @@ export default function MeetingTranscript({ lines, labels }) {
       (!speaker || l.speaker === speaker) &&
       (!q || l.text.toLowerCase().includes(q) || l.speaker.toLowerCase().includes(q));
     // 거른 뒤에 묶는다 — 사이에 낀 다른 사람 발언이 빠지면 앞뒤가 한 묶음이 된다.
+    // 구분 줄은 걸러도 남긴다 — 뒤 회의 발언이 다 빠져도 회의가 더 있었던 것이 보이게. 맞는 발언이 없으면 안 그린다.
     const out = [];
-    let divider = null;
+    let pending = [];
     for (const l of lines) {
-      if (l.divider) divider = l.divider;
+      if (l.divider) pending.push(l.divider);
       if (!matches(l)) continue;
-      if (divider) {
-        out.push({ divider });
-        divider = null;
-      }
+      for (const divider of pending) out.push({ divider });
+      pending = [];
       const last = out[out.length - 1];
       if (last && !last.divider && last.speaker === l.speaker) last.items.push(l);
       else out.push({ speaker: l.speaker, items: [l] });
     }
+    if (out.length > 0) for (const divider of pending) out.push({ divider });
     return out;
   }, [lines, query, speaker]);
 
