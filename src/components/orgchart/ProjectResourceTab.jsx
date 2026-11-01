@@ -218,10 +218,10 @@ export default function ProjectResourceTab({
         setFlagged(err.violations.map((v) => v.memberId));
       }
       if (err?.code === 'project_edit_conflict') {
-        showToast(L('projectDetail.resource.conflict'), 'danger');
+        showToast(L('projectDetail.resource.conflict'), 'error');
         onReload?.();
       } else {
-        showToast(err?.message || L('projectDetail.resource.saveFailed'), 'danger');
+        showToast(err?.message || L('projectDetail.resource.saveFailed'), 'error');
       }
     } finally {
       setSaving(false);
@@ -238,10 +238,10 @@ export default function ProjectResourceTab({
       if (err?.status === 409) {
         setRequested((m) => ({ ...m, [row.memberId]: true }));
       } else if (err?.status === 403) {
-        showToast(L('projectDetail.resource.requestForbidden'), 'danger');
+        showToast(L('projectDetail.resource.requestForbidden'), 'error');
         onReload?.();
       } else {
-        showToast(L('projectDetail.resource.requestFailed'), 'danger');
+        showToast(L('projectDetail.resource.requestFailed'), 'error');
       }
     } finally {
       setRequesting(null);
