@@ -166,7 +166,7 @@ function Btn({ children, onClick, kind = 'primary', disabled }) {
 
 // ── 재사용 폼 필드 컴포넌트 ───────────────────────────────
 
-function FormField({ meta, value, error, disabled, onChange, onBlur, hint, style }) {
+function FormField({ meta, value, error, disabled, onChange, onBlur, hint, style, maxLength }) {
   return (
     // 칸 이름표·입력칸 = 디자이너가 그린 1on1 「일정 추가」 창 값 그대로 (PW-1894 · one_on_one.css `.ono-add-modal-*`).
     // 이름표 14px 굵게 회색 · 이름표 → 칸 12px · 칸 → 다음 칸 24px. 잠긴 칸은 1on1 창에 없어 원래 연회색을 둔다.
@@ -183,6 +183,7 @@ function FormField({ meta, value, error, disabled, onChange, onBlur, hint, style
         type="text"
         value={value}
         placeholder={meta.placeholder}
+        maxLength={maxLength}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
         onBlur={onBlur}
@@ -243,6 +244,9 @@ export default function BillingSettingsCanvas({
   // 메일 칸을 앱의 공용 메일 검사로 판정 — 받을 수 없는 주소면 안내 문구, 아니면 null (앱 PW-2413).
   // EMAIL_PATTERN 은 모양만 봐서 한글이 섞인 주소를 받았다.
   emailError,
+  // 칸마다 글자 수 한도 { company_name: 100, ... } — 앱이 서버와 같은 값을 넘긴다(앱 PW-2472).
+  // 넘기지 않은 칸은 한도 없이 받는다.
+  fieldMaxLengths = null,
 }) {
   const labels = mergeLabels(providedLabels);
 
@@ -477,6 +481,7 @@ export default function BillingSettingsCanvas({
 
               <FormField
                 meta={labels.fields.company_name}
+                maxLength={fieldMaxLengths?.company_name}
                 value={fields.company_name}
                 error={touched.company_name ? errors.company_name : ''}
                 disabled={!canEdit}
@@ -486,6 +491,7 @@ export default function BillingSettingsCanvas({
 
               <FormField
                 meta={labels.fields.biz_reg_no}
+                maxLength={fieldMaxLengths?.biz_reg_no}
                 value={fields.biz_reg_no}
                 error={touched.biz_reg_no ? errors.biz_reg_no : ''}
                 disabled={!canEdit}
@@ -496,6 +502,7 @@ export default function BillingSettingsCanvas({
 
               <FormField
                 meta={labels.fields.ceo_name}
+                maxLength={fieldMaxLengths?.ceo_name}
                 value={fields.ceo_name}
                 error={touched.ceo_name ? errors.ceo_name : ''}
                 disabled={!canEdit}
@@ -505,6 +512,7 @@ export default function BillingSettingsCanvas({
 
               <FormField
                 meta={labels.fields.biz_address}
+                maxLength={fieldMaxLengths?.biz_address}
                 value={fields.biz_address}
                 error={touched.biz_address ? errors.biz_address : ''}
                 disabled={!canEdit}
@@ -514,6 +522,7 @@ export default function BillingSettingsCanvas({
 
               <FormField
                 meta={labels.fields.biz_type}
+                maxLength={fieldMaxLengths?.biz_type}
                 value={fields.biz_type}
                 error={touched.biz_type ? errors.biz_type : ''}
                 disabled={!canEdit}
@@ -529,6 +538,7 @@ export default function BillingSettingsCanvas({
 
               <FormField
                 meta={labels.fields.billing_contact_name}
+                maxLength={fieldMaxLengths?.billing_contact_name}
                 value={fields.billing_contact_name}
                 error={touched.billing_contact_name ? errors.billing_contact_name : ''}
                 disabled={!canEdit}
@@ -538,6 +548,7 @@ export default function BillingSettingsCanvas({
 
               <FormField
                 meta={labels.fields.billing_contact_email}
+                maxLength={fieldMaxLengths?.billing_contact_email}
                 value={fields.billing_contact_email}
                 error={touched.billing_contact_email ? errors.billing_contact_email : ''}
                 disabled={!canEdit}
