@@ -49,9 +49,11 @@ const DEFAULT_LABELS = {
     initial: '첫 결제',
     rebill: '정기결제',
     seat_increment: '좌석 추가(일할)',
-    plan_change: '요금제 변경 차액',
+    plan_change: '요금제 변경(차액)',
   },
   seatIncrementTooltip: '첫 청구 주기 안에 추가된 좌석의 남은 기간분입니다',
+  // 요금제 변경 차액 줄 hover (pivit-work PW-2475 · screen-billing-history §4)
+  planDiffTooltip: '요금제를 올린 날부터 다음 청구일 전날까지의 차액입니다. 청구 기준일은 바뀌지 않습니다',
 
   refundLabels: {
     completed_full: '환불완료',
@@ -304,6 +306,18 @@ export default function BillingHistoryCanvas({
                         {rk === 'seat_increment' ? (
                           <Tooltip content={labels.seatIncrementTooltip}><span>{badge}</span></Tooltip>
                         ) : badge}
+                        {/* 요금제 변경 차액 줄 · 청구 주기 변경 줄 (pivit-work PW-2475 · history §2) — 좌석 라인과 합치지 않는 별도 줄.
+                            문구는 서버 청구서 줄 그대로다. 모양은 위 좌석 일할 툴팁과 같은 11px 회색 보조 글씨 */}
+                        {inv.plan_diff_line && (
+                          <Tooltip content={labels.planDiffTooltip}>
+                            <span data-testid="billing-history-plan-diff-line"
+                              style={{ fontSize: 11, color: T.muted, cursor: 'help' }}>{inv.plan_diff_line}</span>
+                          </Tooltip>
+                        )}
+                        {inv.cycle_change_line && (
+                          <span data-testid="billing-history-cycle-change-line"
+                            style={{ fontSize: 11, color: T.muted }}>{inv.cycle_change_line}</span>
+                        )}
                       </div>
                     );
                   },

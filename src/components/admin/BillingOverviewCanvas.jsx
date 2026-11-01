@@ -91,6 +91,33 @@ const DEFAULT_LABELS = {
   manageMembers: '구성원 관리 →',
 
   nextBillingLabel: '다음 청구',
+  // ── 요금제 변경 뒤의 다음 청구 · 업그레이드 철회 (pivit-work PW-2475 · screen-billing-overview §2·§4 ⓒ) ──
+  nextBillingSubScheduledAnnual: (date, seats, price) => `${date} · ${seats}좌석 × ${won(price)} × 12개월(연간)`,
+  nextBillingSubScheduledMonthly: (date, seats, price) => `${date} · ${seats}좌석 × ${won(price)}(월간)`,
+  carriedDiffLine: (from, to, changedOn, days, amount) =>
+    `+ 요금제 변경 차액 ${from} → ${to} · ${changedOn} ${days}일분 ${won(amount)}`,
+  scheduledNote: (toAnnual) => (toAnnual
+    ? '청구 주기 변경 예약 — 이 청구부터 연간 결제로 바뀝니다(1년분 선결제)'
+    : '청구 주기 변경 예약 — 이 청구부터 월간 결제로 바뀝니다'),
+  scheduledAutoPayAnnual: (date, month, day) => `${date}부터 매년 ${month}월 ${day}일 자동 결제`,
+  scheduledAutoPayMonthly: (date, day) => `${date}부터 매월 ${day}일 자동 결제`,
+  withdrawHoldNote: '환불 처리 중 — 끝날 때까지 정기결제를 하지 않습니다',
+  withdrawingTitle: '업그레이드 철회를 처리하고 있습니다',
+  withdrawingDesc: (amount, from, current) =>
+    `차액 환불(${won(amount)})이 끝나면 ${from}로 돌아갑니다. 그때까지 ${current}를 그대로 쓰실 수 있습니다.`,
+  withdrawFailedTitle: '환불이 처리되지 않았습니다',
+  withdrawFailedDesc: (current) => `운영팀이 연락드립니다. 환불이 끝날 때까지 ${current}가 유지됩니다.`,
+  withdrawTitle: '업그레이드 철회 · 차액 환불',
+  withdrawDescPaid: (from, to, amount) => `${from} → ${to}로 올린 차액 ${won(amount)}을 돌려드리고 ${from}로 돌아갑니다.`,
+  withdrawDescCarried: (amount, from) => `다음 청구서의 차액 ${won(amount)}을 지웁니다. ${from}로 돌아갑니다.`,
+  withdrawDescTail: (date) =>
+    ` 구독은 해지되지 않으며 다음 청구일(${date})과 청구 기준일은 그대로입니다. 구독을 끝내시려면 돌아간 뒤 기간말 해지를 고르세요.`,
+  withdrawActionPaid: (amount) => `업그레이드 철회하고 ${won(amount)} 환불`,
+  withdrawAction: '업그레이드 철회',
+  withdrawBusy: '처리하는 중...',
+  withdrawLoading: '업그레이드를 철회할 수 있는지 확인하는 중...',
+  refundLineSubscription: '구독 결제',
+  refundLinePlanChange: '요금제 변경 차액 결제',
   // 연간은 다음 갱신 때 1년분이 나간다 — 금액이 1년분이니 줄도 개월 수를 말한다 (PW-757).
   nextBillingSub: (date, seats, price, months = 1) =>
     `${date} · ${seats}좌석 × ${won(price)}${months > 1 ? ` × ${months}개월` : ''}`,
@@ -334,9 +361,27 @@ export default function BillingOverviewCanvas({
   onClosePriceChange,
   /** [변경된 요금에 동의] — 창 본문에 보인 글을 그대로 넘긴다(서버가 «그때 보인 문안»으로 남긴다). */
   onConsentPriceChange,
+  /**
+   * 요금제 변경 뒤의 상태 (pivit-work PW-2475 · 서버 구독 응답 값 그대로) —
+   * `{ scheduled: { interval: 'annual'|'monthly', seatPrice } | null,
+   *    carriedDiff: { from, to, changedOn, days, amount } | null,
+   *    withdrawal: { status: 'processing'|'failed', amount, fromPlanLabel } | null }`.
+   * `scheduled` 면 「다음 청구」를 새 주기 1기간분으로 말하고(금액 `periodAmount` 는 서버가 이미 새 주기·넘어간 차액 합계),
+   * `withdrawal` 이면 업그레이드 철회 처리 중·실패 띠를 그리고 [업그레이드]·[좌석·플랜 변경]·[구독 해지]·요금 변경 띠를 숨긴다.
+   */
+  planChange = null,
+  /** 해지 창 견적(환불·업그레이드 철회)을 아직 받는 중 — ⓒ 자리에 불러오는 중 표시 (overview §5). */
+  refundQuoteLoading = false,
+  /**
+   * [업그레이드 철회] — 약속을 돌려준다. 성공하면 창을 닫고, 거부하면 창을 연 채 둔다(앱이 토스트·사유를 띄운다).
+   * 사유(조건이 깨짐)는 `withdrawBlockedMessage` 로 받는다.
+   */
+  onWithdrawUpgrade,
+  withdrawBlockedMessage = null,
 }) {
   const labels = mergeLabels(providedLabels);
   const [cancelOpen, setCancelOpen] = useState(false); // 해지 방식 선택 모달
+  const [withdrawBusy, setWithdrawBusy] = useState(false);
   const priceChangeBodyRef = useRef(null);
 
   const sub = subscription;
@@ -372,10 +417,31 @@ export default function BillingOverviewCanvas({
   const handlePeriodEnd = () => { setCancelOpen(false); onCancelPeriodEnd?.(); };
   const handleRefund = () => { setCancelOpen(false); onCancelRefund?.(); };
   const handlePastDue = () => { setCancelOpen(false); onCancelPastDue?.(); };
+  // 업그레이드 철회 (PW-2475 · overview §4 ⓒ · §5) — 진행 중엔 다시 못 누르고(환불은 1건), 실패하면 창을 연 채 둔다.
+  const handleWithdraw = async () => {
+    if (withdrawBusy || !onWithdrawUpgrade) return;
+    setWithdrawBusy(true);
+    try {
+      await onWithdrawUpgrade();
+      setCancelOpen(false);
+    } catch {
+      /* 앱이 토스트·사유를 띄운다 — 창은 그대로 */
+    } finally {
+      setWithdrawBusy(false);
+    }
+  };
+  const withdrawal = planChange?.withdrawal ?? null;
+  const scheduled = sub.status === 'active' ? (planChange?.scheduled ?? null) : null;
+  const carriedDiff = sub.status === 'active' && !sub.cancelAtPeriodEnd ? (planChange?.carriedDiff ?? null) : null;
+  const withdrawQuote = quote.upgradeWithdrawal ?? null;
+  const [, nextMonth, nextDate] = sub.nextBillingAt
+    ? String(sub.nextBillingAt).split('-').map(Number)
+    : [0, 0, 0];
   // 미납이어도 해지는 된다 — 환불 없이 바로 끝난다(PW-1619). 기간말 예약은 미납 구독에선
   // 기간이 끝나도 닫히지 않아 고르지 못하게 한다.
   const pastDue = sub.status === 'past_due';
-  const canCancel = canEdit && ((sub.status === 'active' && !sub.cancelAtPeriodEnd) || pastDue);
+  // 업그레이드 철회가 끝나지 않은 동안은 요금제가 곧 바뀌는 구독이라 해지·변경 버튼을 숨긴다(overview §2 · PW-2475).
+  const canCancel = canEdit && !withdrawal && ((sub.status === 'active' && !sub.cancelAtPeriodEnd) || pastDue);
 
   return (
     <div style={{ fontFamily: T.font, background: T.bg, minHeight: '100vh', padding: 32, color: T.text }}>
@@ -432,6 +498,28 @@ export default function BillingOverviewCanvas({
           </Card>
         )}
 
+        {/* 업그레이드 철회 처리 중·실패 띠 (pivit-work PW-2475 · overview §2) — 해지 예약 띠와 같은 Card+앰버/빨강 · 버튼 없음 */}
+        {withdrawal && (
+          <Card
+            style={{ marginBottom: 16,
+              background: withdrawal.status === 'failed' ? T.redBg : T.amberBg,
+              border: withdrawal.status === 'failed' ? '1px solid #FCA5A5' : '1px solid #FDE68A' }}>
+            {withdrawal.status === 'failed' ? (
+              <>
+                <div data-testid="billing-withdrawal-failed" style={{ fontWeight: 800, color: T.red, marginBottom: 4 }}>{labels.withdrawFailedTitle}</div>
+                <div style={{ fontSize: 13, color: T.text }}>{labels.withdrawFailedDesc(plan.label)}</div>
+              </>
+            ) : (
+              <>
+                <div data-testid="billing-withdrawal-processing" style={{ fontWeight: 800, color: T.amber, marginBottom: 4 }}>{labels.withdrawingTitle}</div>
+                <div style={{ fontSize: 13, color: T.text }}>
+                  {labels.withdrawingDesc(withdrawal.amount, withdrawal.fromPlanLabel, plan.label)}
+                </div>
+              </>
+            )}
+          </Card>
+        )}
+
         {/* 체험 안내 배너 (PW-1025 §2.7.5) — 체험 중이면 항상. 베타(ops)와 기본 체험(signup)은 문구로 가른다.
             기획서 시안 billing-app.jsx 의 배너를 옮겼다 */}
         {trial && (
@@ -457,7 +545,7 @@ export default function BillingOverviewCanvas({
         )}
 
         {/* 요금 변경 안내 띠 (PW-2360 · §3.2-D) — 동의 전 앰버(녹음 풀 띠와 같은 모양), 동의 뒤 초록 */}
-        {priceChange && !priceChange.consented && (
+        {priceChange && !priceChange.consented && !withdrawal && (
           <UsageBanner
             banner={{
               title: labels.priceChangeTitle,
@@ -472,7 +560,7 @@ export default function BillingOverviewCanvas({
             testId="billing-price-change-banner"
           />
         )}
-        {priceChange && priceChange.consented && (
+        {priceChange && priceChange.consented && !withdrawal && (
           <Card style={{ marginBottom: 'var(--spacing-xl)', background: 'var(--bg-success-primary)', border: `1px solid ${T.green}` }}>
             <div data-testid="billing-price-change-consented" role="status"
               style={{ fontWeight: 800, color: 'var(--text-success-primary)' }}>
@@ -527,12 +615,12 @@ export default function BillingOverviewCanvas({
             <div style={{ display: 'flex', gap: 8 }}>
               {/* 업그레이드 CTA: 다음 티어로 (동적 플랜명) */}
               {/* 체험 중에는 체험 배너의 [결제하고 계속 쓰기]가 대신한다 (PW-1025) */}
-              {upgradeTargetLabel && !sub.cancelAtPeriodEnd && sub.status !== 'past_due' && sub.status !== 'trial' && (
+              {upgradeTargetLabel && !withdrawal && !sub.cancelAtPeriodEnd && sub.status !== 'past_due' && sub.status !== 'trial' && (
                 <Btn onClick={onNavigatePlans} disabled={!canEdit}>
                   {labels.upgradeCta(upgradeTargetLabel)}
                 </Btn>
               )}
-              {sub.status === 'active' && !sub.cancelAtPeriodEnd && (
+              {sub.status === 'active' && !sub.cancelAtPeriodEnd && !withdrawal && (
                 <Btn kind="secondary" onClick={onNavigatePlans} disabled={!canEdit}>{labels.changePlan}</Btn>
               )}
               {sub.status === 'past_due' && (
@@ -654,14 +742,39 @@ export default function BillingOverviewCanvas({
               <div style={{ fontSize: 13, color: T.sub, marginBottom: 8 }}>{labels.nextBillingLabel}</div>
               <div style={{ fontSize: 20, fontWeight: 800 }}>{won(sub.periodAmount)}</div>
               <div style={{ fontSize: 13, color: T.sub, marginTop: 4 }}>
-                {labels.nextBillingSub(
-                  sub.nextBillingAt,
-                  contract ? contract.billedSeats : sub.seats,
-                  contract ? contract.seatPrice : planUnitPrice,
-                  sub.interval === 'annual' ? 12 : 1,
-                )}
+                {/* 청구 주기 변경 예약이면 새 주기의 1기간분 — 그날 실제로 결제할 금액 (overview §2 · PW-2475) */}
+                {scheduled
+                  ? (scheduled.interval === 'annual'
+                    ? labels.nextBillingSubScheduledAnnual(sub.nextBillingAt, sub.seats, scheduled.seatPrice)
+                    : labels.nextBillingSubScheduledMonthly(sub.nextBillingAt, sub.seats, scheduled.seatPrice))
+                  : labels.nextBillingSub(
+                    sub.nextBillingAt,
+                    contract ? contract.billedSeats : sub.seats,
+                    contract ? contract.seatPrice : planUnitPrice,
+                    sub.interval === 'annual' ? 12 : 1,
+                  )}
               </div>
-              {sub.interval !== 'annual' && sub.anchorDay != null && (
+              {/* 넘어간 요금제 변경 차액 — 같은 청구서에 붙어 함께 결제된다 (위 금액에 이미 더해져 있다) */}
+              {carriedDiff && (
+                <div data-testid="billing-carried-diff" style={{ fontSize: 13, color: T.sub, marginTop: 2 }}>
+                  {labels.carriedDiffLine(carriedDiff.from, carriedDiff.to, carriedDiff.changedOn, carriedDiff.days, carriedDiff.amount)}
+                </div>
+              )}
+              {scheduled && (
+                <div data-testid="billing-scheduled-interval" style={{ fontSize: 12, color: T.amber, marginTop: 4 }}>
+                  {labels.scheduledNote(scheduled.interval === 'annual')}
+                </div>
+              )}
+              {withdrawal && (
+                <div style={{ fontSize: 12, color: T.amber, marginTop: 4 }}>{labels.withdrawHoldNote}</div>
+              )}
+              {scheduled ? (
+                <div data-testid="billing-anchor-note" style={{ fontSize: 12, color: T.muted, marginTop: 4 }}>
+                  {scheduled.interval === 'annual'
+                    ? labels.scheduledAutoPayAnnual(sub.nextBillingAt, nextMonth, nextDate)
+                    : labels.scheduledAutoPayMonthly(sub.nextBillingAt, sub.anchorDay ?? nextDate)}
+                </div>
+              ) : sub.interval !== 'annual' && sub.anchorDay != null && (
                 <div data-testid="billing-anchor-note" style={{ fontSize: 12, color: T.muted, marginTop: 4 }}>
                   {labels.anchorNote(sub.anchorDay)}
                 </div>
@@ -772,6 +885,17 @@ export default function BillingOverviewCanvas({
                       {labels.refundCoolingDeadline(quote.coolingOffDaysLeft, quote.coolingOffLastDate)}
                     </div>
                   )}
+                  {/* 구독 결제 줄과 요금제 변경 차액 결제 줄 — 환불 1건, 결제마다 돌려준다 (overview §4 ⓒ 행 · PW-2475) */}
+                  {Array.isArray(quote.lines) && quote.lines.length > 1 && (
+                    <div data-testid="billing-refund-lines" style={{ fontSize: 13, color: T.sub, marginBottom: 8 }}>
+                      {quote.lines.map((line) => (
+                        <div key={line.invoiceId} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span>{line.kind === 'plan_change' ? labels.refundLinePlanChange : labels.refundLineSubscription}</span>
+                          <span>{won(line.amount)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                     fontSize: 13, color: T.text, marginBottom: 12 }}>
                     <span>{labels.expectedRefund}</span>
@@ -788,6 +912,36 @@ export default function BillingOverviewCanvas({
                   {quote.reason === 'annual_zero'
                     ? labels.annualZeroNote(quote.monthsUsed)
                     : labels.monthlyNoRefundNote}
+                </div>
+              )}
+
+              {/* ⓒ 업그레이드 철회 (pivit-work PW-2475 · overview §4 ⓒ) — ⓐ 와 같은 테두리 선택지 카드 + 기존 Btn(secondary).
+                  해지가 아니라 직전 요금제로 돌아가는 선택지다. 견적을 받는 동안은 불러오는 중 표시 */}
+              {refundQuoteLoading ? (
+                <div data-testid="billing-withdraw-loading" style={{ fontSize: 12, color: T.muted, padding: '10px 0' }}>
+                  {labels.withdrawLoading}
+                </div>
+              ) : withdrawQuote?.eligible ? (
+                <div data-testid="billing-withdraw-option"
+                  style={{ border: `1px solid ${T.border}`, borderRadius: 12, padding: 16, marginTop: 4, marginBottom: 8 }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 4 }}>{labels.withdrawTitle}</div>
+                  <div style={{ fontSize: 13, color: T.sub, marginBottom: 12 }}>
+                    {withdrawQuote.paid
+                      ? labels.withdrawDescPaid(withdrawQuote.fromPlanName, plan.label, withdrawQuote.amount)
+                      : labels.withdrawDescCarried(withdrawQuote.carriedAmount, withdrawQuote.fromPlanName)}
+                    {labels.withdrawDescTail(withdrawQuote.nextBillingDate ?? sub.nextBillingAt)}
+                  </div>
+                  <Btn kind="secondary" onClick={() => void handleWithdraw()} disabled={withdrawBusy}>
+                    {withdrawBusy
+                      ? labels.withdrawBusy
+                      : withdrawQuote.paid ? labels.withdrawActionPaid(withdrawQuote.amount) : labels.withdrawAction}
+                  </Btn>
+                </div>
+              ) : null}
+              {withdrawBlockedMessage && (
+                <div data-testid="billing-withdraw-blocked" style={{ fontSize: 12, color: T.red, background: T.redBg,
+                  borderRadius: 10, padding: '10px 14px', marginBottom: 8 }}>
+                  {withdrawBlockedMessage}
                 </div>
               )}
               </>)}
