@@ -37,7 +37,7 @@ const mean = (xs) => xs.reduce((a, b) => a + b, 0) / xs.length;
  * 순서를 지킨 채 그 무리의 가운데를 기준으로 벌린다. 그래서 겸임자는 두 스쿼드 사이에,
  * 한 스쿼드에만 속한 사람들은 그 스쿼드 아래 가운데에 모인다(§5-6 「배치」 · 엣지 73 · TC-ORG-144 기대 4).
  * 고르게 나눠 세우면 순서만 맞고 자리가 어긋났다 — 겸임자가 두 스쿼드보다 왼쪽에 섰다(2026-11-02 브라우저 확인).
- * list 는 bary 순으로 정렬돼 있어야 한다. 양 끝은 [lo, hi] 안으로 민다(폭은 n*gap 이 들어가게 잡혀 있다).
+ * list 순서대로 세운다 — bary 가 거꾸로 선 이웃은 한 무리로 합쳐 가운데에 둔다. 양 끝은 [lo, hi] 안으로 민다(폭은 n*gap 이 들어가게 잡혀 있다).
  */
 function placeOnRow(list, gap, lo, hi) {
   const clusters = [];
@@ -110,21 +110,41 @@ export function squadGraphLayout({ squads, personOf }) {
     projectList.length * (G.pjW + 24) + G.padX * 2,
   );
   const inner = width - G.padX * 2;
-  const squadX = (si) => G.padX + ((si + 0.5) * inner) / squads.length;
-
-  // 같은 자리면 주 소속 조직 단위의 조직도 순서 → 리드 먼저 → 이름 가나다(§5-6 「배치」 v3.29) —
-  // 한 스쿼드 아래 같은 기능 조직 사람이 붙어 선다.
-  personList.forEach((p) => { p.bary = mean(p.links.map((l) => squadX(l.si))); });
-  personList.sort((a, b) => a.bary - b.bary
-    || a.unitOrder - b.unitOrder
-    || Number(b.isLead) - Number(a.isLead)
-    || a.name.localeCompare(b.name, 'ko'));
-  placeOnRow(personList, G.personGap, G.padX + G.personGap / 2, width - G.padX - G.personGap / 2);
-
-  projectList.forEach((p) => { p.bary = mean(p.sis.map(squadX)); });
-  projectList.sort((a, b) => a.bary - b.bary || a.project.name.localeCompare(b.project.name, 'ko'));
+  // 스쿼드 x — 처음엔 고르게 나누고, 사람·프로젝트를 세운 뒤 «이어진 사람·프로젝트의 가운데»로 옮겨
+  // 다시 세우기를 몇 번 한다(스쿼드 순서는 그대로). 스쿼드를 고르게 둔 채 사람만 평균에 두면, 한 스쿼드에
+  // 사람이 몰려 줄이 꽉 찰 때 다시 고르게 나눈 것과 같아져 겸임자가 두 스쿼드 밖으로 나갔다(적대적 리뷰 2026-11-02).
+  const sqXs = squads.map((_, si) => G.padX + ((si + 0.5) * inner) / squads.length);
+  const squadX = (si) => sqXs[si];
+  const sqGap = G.sqW + 48;
   const pjGap = G.pjW + 24;
-  placeOnRow(projectList, pjGap, G.padX + pjGap / 2, width - G.padX - pjGap / 2);
+
+  const placePeopleAndProjects = () => {
+    // 같은 자리면 주 소속 조직 단위의 조직도 순서 → 리드 먼저 → 이름 가나다(§5-6 「배치」 v3.29) —
+    // 한 스쿼드 아래 같은 기능 조직 사람이 붙어 선다.
+    personList.forEach((p) => { p.bary = mean(p.links.map((l) => squadX(l.si))); });
+    personList.sort((a, b) => a.bary - b.bary
+      || a.unitOrder - b.unitOrder
+      || Number(b.isLead) - Number(a.isLead)
+      || a.name.localeCompare(b.name, 'ko'));
+    placeOnRow(personList, G.personGap, G.padX + G.personGap / 2, width - G.padX - G.personGap / 2);
+
+    projectList.forEach((p) => { p.bary = mean(p.sis.map(squadX)); });
+    projectList.sort((a, b) => a.bary - b.bary || a.project.name.localeCompare(b.project.name, 'ko'));
+    placeOnRow(projectList, pjGap, G.padX + pjGap / 2, width - G.padX - pjGap / 2);
+  };
+
+  placePeopleAndProjects();
+  for (let round = 0; round < 4 && squads.length > 1; round += 1) {
+    const sqNodes = squads.map((_, si) => {
+      const xs = personList.filter((p) => p.links.some((l) => l.si === si)).map((p) => p.x)
+        .concat(projectList.filter((p) => p.sis.includes(si)).map((p) => p.x));
+      return { bary: xs.length ? mean(xs) : sqXs[si] };
+    });
+    // 순서를 지킨 채(뒤집히면 그 무리를 합쳐 가운데에 둔다) 겹치지 않게 — placeOnRow 는 거꾸로 선 것도 합친다
+    placeOnRow(sqNodes, sqGap, G.padX + sqGap / 2, width - G.padX - sqGap / 2);
+    sqNodes.forEach((n, si) => { sqXs[si] = n.x; });
+    placePeopleAndProjects();
+  }
 
   // ── 선 위 칩 자리 — 사람 쪽에서 출발해 선을 따라 빈 자리를 찾는다. 없으면 첫 자리(엣지 76) ──
   const placed = [];
