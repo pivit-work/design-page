@@ -249,6 +249,7 @@ const DEFAULT_LABELS = {
   compensationModerate: '어느 정도 필요',
   compensationMaintain: '현 상태 유지 적합',
   compensationReasonLabel: '보상 조정 사유',
+  compensationLocked: '열람 권한이 없습니다',
   compensationReasonPh:
     "예: '현재 시장 대비 급여 낮음, 이탈 리스크 있어 즉각 조정 필요', '성과 우수하나 조정 주기상 다음 분기 검토 적합'",
   promotionReasonMissing:
@@ -629,6 +630,8 @@ export default function EvalCycleLeaderCanvas({
    * 받은 값(가려져 비어 있을 수 있다)을 보이되 고칠 수 없고 저장·제출에도 싣지 않는다. 기본 `false`.
    */
   assessmentLocked: assessmentLockedProp = false,
+  // PW-2440 — 보상 고려 블록 모양(캘리브레이션 기획서 §4.5-A-2 4번). 'locked' 는 자물쇠 줄, 'hidden' 은 블록 없음.
+  compensationMask,
   /**
    * PW-1045 — 등급 칸만 잠그는가. 캘리브레이션 위원회가 이 팀원의 등급을 한 번이라도 바꿨으면
    * 호출부가 `true` 를 넘긴다: 본문은 `locked` 대로 고쳐 다시 낼 수 있지만 등급 버튼은 눌리지
@@ -1840,35 +1843,45 @@ export default function EvalCycleLeaderCanvas({
                 </div>
               )}
 
-              <div className="evm-field" role="radiogroup" aria-label={L.compensationStatusLabel}>
-                <span className="evc-field-label">{L.compensationStatusLabel}</span>
-                <div className="evl-choice-row">
-                  {COMPENSATION_CHOICES.map(([value, key]) => (
-                    <Radio
-                      key={value}
-                      name="evl-compensation-status"
-                      value={value}
-                      checked={compensationStatus === value}
-                      disabled={assessmentLocked}
-                      onChange={() => setCompensationStatus(value)}
-                      label={L[key]}
-                      data-testid={`evl-compensation-${value}`}
-                    />
-                  ))}
+              {compensationMask === 'locked' ? (
+                <div className="evm-field" data-testid="evl-compensation-locked">
+                  <span className="evc-field-label">{L.compensationStatusLabel}</span>
+                  {/* 캘리브레이션 정보 상자의 보상 잠금과 같은 줄 — 비우면 «값이 없다»로 읽힌다 */}
+                  <div className="evs-cw-detail-body evs-cw-comp-locked-box">
+                    <LockIcon size={12} /> {L.compensationLocked}
+                  </div>
                 </div>
-                {compensationStatus && (
-                  <textarea
-                    className="evm-textarea"
-                    rows={2}
-                    value={compensationReason}
-                    placeholder={L.compensationReasonPh}
-                    disabled={assessmentLocked}
-                    onChange={(e) => setCompensationReason(e.target.value)}
-                    aria-label={L.compensationReasonLabel}
-                    data-testid="evl-compensation-reason"
-                  />
-                )}
-              </div>
+              ) : compensationMask === 'hidden' ? null : (
+                <div className="evm-field" role="radiogroup" aria-label={L.compensationStatusLabel}>
+                  <span className="evc-field-label">{L.compensationStatusLabel}</span>
+                  <div className="evl-choice-row">
+                    {COMPENSATION_CHOICES.map(([value, key]) => (
+                      <Radio
+                        key={value}
+                        name="evl-compensation-status"
+                        value={value}
+                        checked={compensationStatus === value}
+                        disabled={assessmentLocked}
+                        onChange={() => setCompensationStatus(value)}
+                        label={L[key]}
+                        data-testid={`evl-compensation-${value}`}
+                      />
+                    ))}
+                  </div>
+                  {compensationStatus && (
+                    <textarea
+                      className="evm-textarea"
+                      rows={2}
+                      value={compensationReason}
+                      placeholder={L.compensationReasonPh}
+                      disabled={assessmentLocked}
+                      onChange={(e) => setCompensationReason(e.target.value)}
+                      aria-label={L.compensationReasonLabel}
+                      data-testid="evl-compensation-reason"
+                    />
+                  )}
+                </div>
+              )}
 
               <div className="evc-card-buttons">
                 <button

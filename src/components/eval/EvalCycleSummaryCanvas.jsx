@@ -506,7 +506,8 @@ const DEFAULT_LABELS = {
   j1NoCompetency: '역량 평가 항목이 없어 비율 분석이 불가합니다.',
   execJ2Title: 'J2 — 리더별 관대/엄격 평가 패턴 지표',
   execJ3Title: 'J3 — 승진/보상 9블록 매트릭스 + 승진 요청 페이지',
-  nbConfidential: '이 화면은 캘리브레이션 위원회 · HR만 열람 가능합니다. 매니저·구성원 비공개.',
+  // PW-2440 — 열람 범위 정본은 요약 정책 §9.F.4-A(2026-11-01). 기획 화면 J3 안내 띠와 같은 문구.
+  nbConfidential: 'HR · 맡은 캘리브레이션 위원 · 그 팀원의 평가자만 봅니다. 평가자가 아닌 윗선 조직장과 구성원에게는 그 팀원이 나오지 않습니다.',
   nbTitle: '승진 × 보상 9블록 (이름 표출)',
   nbWorkspaceOpen: '승진 9블록 매트릭스',
   cwClose: '닫기',
@@ -526,6 +527,8 @@ const DEFAULT_LABELS = {
   nbYDeferred: '보류',
   nbCaption: 'X축: 보상 조정 필요 수준 | Y축: 승진 고려 여부',
   nbEmpty: '승진·보상 평가 데이터가 아직 제출되지 않았습니다',
+  nbNoViewable:
+    '볼 수 있는 팀원이 없습니다. 이 표에는 내가 평가자인 팀원과 내가 맡은 위원회의 피평가자만 나옵니다.',
   prTitle: '승진 요청 목록',
   prEmpty: '제출된 승진 요청이 없습니다.',
   prRequester: '요청자',
@@ -3699,7 +3702,10 @@ export default function EvalCycleSummaryCanvas({
                 <div className="evs-two-col">
                   <section className="evc-card">
                     <h3 className="evc-card-name">{L.nbTitle}</h3>
-                    {!nineBox || nineBox.assessedCount === 0 ? (
+                    {/* PW-2440 §9.F.4-A — 볼 사람이 없는 것과 아직 안 낸 것을 가른다. HR 응답에는 viewableCount 가 없다. */}
+                    {nineBox?.viewableCount === 0 ? (
+                      <p className="evc-empty-sub" data-testid="evs-nb-no-viewable">{L.nbNoViewable}</p>
+                    ) : !nineBox || nineBox.assessedCount === 0 ? (
                       <p className="evc-empty-sub" data-testid="evs-nb-empty">{L.nbEmpty}</p>
                     ) : (() => {
                       const yKeys = ['recommended', 'deferred', 'not_yet'];
