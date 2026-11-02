@@ -1788,6 +1788,11 @@ export default function MySettingsCanvas({
   /* 알림 */
   notifGroups = [],
   onToggleNotif,
+  /**
+   * 알림 묶음 카드들 아래에 붙는 앱 카드 (pivit-work PW-2496 «광고성 정보 수신» — 내 설정 spec §6.3 «채널 카드 다음 · 탭 맨 아래»).
+   * 동의를 읽고 쓰는 일은 앱이 하므로 카드째 받는다. 없으면 아무것도 그리지 않는다.
+   */
+  notifFooter,
   /* 개인 연동 */
   integrations = [],
   integrationsLoading = false,
@@ -2638,6 +2643,7 @@ export default function MySettingsCanvas({
                   </div>
                 </Card>
               ))}
+              {notifFooter}
             </>
           )}
 

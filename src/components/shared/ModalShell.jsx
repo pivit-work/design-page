@@ -51,6 +51,7 @@ import { CloseGlyph } from './lineIcons.jsx';
  *   testId               카드(form)의 data-testid
  *   overlayTestId        막의 data-testid
  *   closeTestId          닫기 X 의 data-testid
+ *   closable             (PW-2496) false 면 닫기 X 를 그리지 않는다(줄 높이는 유지)
  *   topActions           (PW-1827) 닫기 X 왼쪽에 나란히 놓는 버튼들. `[{ key, label, icon, onClick, testId }]`.
  *                        닫기 X 와 같은 모양(44×44)으로 그린다 — label 은 접근성 이름이자 마우스를 올렸을 때의
  *                        설명이다. 비우면 종전 마크업 그대로다
@@ -80,6 +81,11 @@ export default function ModalShell({
   overlayTestId,
   closeTestId,
   topActions,
+  /**
+   * (pivit-work PW-2496) false 면 닫기 X 를 그리지 않는다 — 동의하기 전에는 닫을 수 없는 창(베타 가입자 재동의 창).
+   * 줄 높이는 그대로 두어 셸 모양이 바뀌지 않는다. Esc·막 클릭을 막는 것은 부르는 쪽(onClose·onOverlayClick)이다.
+   */
+  closable = true,
 }) {
   // 막·Esc·스크롤 잠금·겹친 창 순서는 `ModalLayer` 가 갖는다(PW-1013). 여기는 틀만 그린다.
   const requestClose = () => {
@@ -130,16 +136,20 @@ export default function ModalShell({
               {action.icon}
             </button>
           ))}
-          <button
-            type="button"
-            className="tl-group-modal-close"
-            aria-label={closeLabel}
-            onClick={requestClose}
-            disabled={busy || undefined}
-            data-testid={closeTestId}
-          >
-            <CloseGlyph size={24} />
-          </button>
+          {closable ? (
+            <button
+              type="button"
+              className="tl-group-modal-close"
+              aria-label={closeLabel}
+              onClick={requestClose}
+              disabled={busy || undefined}
+              data-testid={closeTestId}
+            >
+              <CloseGlyph size={24} />
+            </button>
+          ) : (
+            <span className="tl-group-modal-close" aria-hidden="true" style={{ visibility: 'hidden' }} />
+          )}
         </div>
 
         <div className={`tl-group-modal-content ${contentClassName}`.trim()}>
