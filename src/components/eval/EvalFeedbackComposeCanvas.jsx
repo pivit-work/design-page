@@ -456,11 +456,18 @@ function ModalComposeBox({ block, memberName, L, onSend, onAiDraft, aiDraftDisab
   const tooLong = useFeedbackTextTooLong(text);
   // AI 를 기다리는 동안 매니저가 직접 고쳤는가 — 그러면 늦게 온 초안은 버린다(manager §8-2).
   const typedDuringAi = useRef(false);
+  // 다시 받기 전 상태 — 기다리는 동안 칸 색·문구를 그대로 보이고, 실패하면 이 상태로 돌아간다.
+  // 그러지 않으면 고치지 않은 AI 초안이 직접 쓴 글처럼 보인다(§4.3 · 절대규칙 3, PW-2481 리뷰).
+  const [beforeAi, setBeforeAi] = useState('idle');
+  const textNow = useRef('');
 
   // 실패·빈 응답 안내는 onAiDraft 쪽(캔버스 루트)이 띄우고 null 을 준다. 입력은 그대로 둔다.
   const ai = async () => {
     if (!onAiDraft) return;
     typedDuringAi.current = false;
+    // 버튼은 기다리는 동안 꺼져 있어 여기 올 때 aiState 는 loading 이 아니다.
+    const before = aiState;
+    setBeforeAi(before);
     setAiState('loading');
     let res = null;
     try {
@@ -470,10 +477,14 @@ function ModalComposeBox({ block, memberName, L, onSend, onAiDraft, aiDraftDisab
     }
     const draft = typeof res === 'string' ? res : res?.draft;
     if (!draft || typedDuringAi.current) {
-      setAiState('idle');
+      const hadDraft = before === 'done' || before === 'confirmed';
+      // 칸에 AI 초안이 남아 있으면 그 상태로 — 기다리는 동안 고쳤으면 확인(초록), 전부 지웠으면 처음 상태.
+      if (!hadDraft || textNow.current === '') setAiState('idle');
+      else setAiState(typedDuringAi.current ? 'confirmed' : before);
       return;
     }
     setText(draft);
+    textNow.current = draft;
     setPersonalized(typeof res === 'object' ? !!res.personalized : false);
     setGrounded(typeof res === 'object' ? res.grounded !== false : true);
     setAiState('done');
@@ -484,6 +495,7 @@ function ModalComposeBox({ block, memberName, L, onSend, onAiDraft, aiDraftDisab
     try {
       await onSend({ linkedTargetType: block.type, linkedTargetId: block.id, text: text.trim() });
       setText('');
+      textNow.current = '';
       setAiState('idle');
     } catch {
       // 실패 안내는 캔버스 루트가 띄웠다 — 입력은 그대로 둔다(manager §8-4).
@@ -493,6 +505,8 @@ function ModalComposeBox({ block, memberName, L, onSend, onAiDraft, aiDraftDisab
     }
   };
 
+  // 화면에 보이는 초안 상태 — 다시 받는 동안은 받기 전 상태를 그대로 보인다.
+  const shown = aiState === 'loading' ? beforeAi : aiState;
   return (
     <div style={{ padding: 14, borderTop: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', gap: 8 }}>
       <TextArea
@@ -500,6 +514,7 @@ function ModalComposeBox({ block, memberName, L, onSend, onAiDraft, aiDraftDisab
         value={text}
         onChange={(e) => {
           setText(e.target.value);
+          textNow.current = e.target.value;
           if (aiState === 'loading') typedDuringAi.current = true;
           // 고치면 확인(초록). 확인은 전달하거나 전부 지울 때까지 남는다 — 다시 추천받으면 ai() 가 done 으로 되돌린다.
           if (aiState === 'done' || aiState === 'confirmed') setAiState(e.target.value === '' ? 'idle' : 'confirmed');
@@ -507,25 +522,25 @@ function ModalComposeBox({ block, memberName, L, onSend, onAiDraft, aiDraftDisab
         placeholder={L.composePlaceholder}
         maxLength={maxLen}
         data-testid="fbmgr-compose-text"
-        className={['evf-textarea', aiState === 'done' && 'is-ai-unconfirmed', aiState === 'confirmed' && 'is-ai-confirmed'].filter(Boolean).join(' ')}
+        className={['evf-textarea', shown === 'done' && 'is-ai-unconfirmed', shown === 'confirmed' && 'is-ai-confirmed'].filter(Boolean).join(' ')}
       />
       <FeedbackLengthNote text={text} label={L.textLimitNote} color={C.red} testId="fbmgr-compose-limit" />
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        {aiState === 'done' || aiState === 'confirmed' ? (
+        {shown === 'done' || shown === 'confirmed' ? (
           <span
             data-testid="fbmgr-ai-state"
-            data-state={aiState === 'done' ? 'unconfirmed' : 'confirmed'}
-            className={`evf-ai-state ${aiState === 'done' ? 'is-unconfirmed' : 'is-confirmed'}`}
+            data-state={shown === 'done' ? 'unconfirmed' : 'confirmed'}
+            className={`evf-ai-state ${shown === 'done' ? 'is-unconfirmed' : 'is-confirmed'}`}
           >
-            {aiState === 'confirmed' && <CheckCircleIcon size={12} />}
-            {aiState === 'done' ? L.aiHintDone : L.aiHintConfirmed}
+            {shown === 'confirmed' && <CheckCircleIcon size={12} />}
+            {shown === 'done' ? L.aiHintDone : L.aiHintConfirmed}
           </span>
         ) : (
           <span style={{ fontSize: 12, color: C.sub }}>
             {L.aiHintIdle}
           </span>
         )}
-        {(aiState === 'done' || aiState === 'confirmed') && personalized && (
+        {(shown === 'done' || shown === 'confirmed') && personalized && (
           <Chip tone="accent" icon={<TargetIcon size={11} />}>{L.aiPersonalized}</Chip>
         )}
         <span style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
@@ -555,7 +570,7 @@ function ModalComposeBox({ block, memberName, L, onSend, onAiDraft, aiDraftDisab
           </Button>
         </span>
       </div>
-      {(aiState === 'done' || aiState === 'confirmed') && grounded && <p style={{ fontSize: 12, color: C.sub, margin: 0 }}><CpuIcon size={11} /> {L.aiFooter}</p>}
+      {(shown === 'done' || shown === 'confirmed') && grounded && <p style={{ fontSize: 12, color: C.sub, margin: 0 }}><CpuIcon size={11} /> {L.aiFooter}</p>}
     </div>
   );
 }
