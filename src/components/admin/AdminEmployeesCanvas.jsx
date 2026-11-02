@@ -463,6 +463,9 @@ const DEFAULT_LABELS = {
     cancelOffboardingTip: '퇴사일 {date}(으)로 예약되어 있습니다',
     /* 대표는 퇴사 처리에 들어가지 못한다 — 대표 지정부터 푼다(E2). */
     deactivateCeoBlocked: '대표 지정을 먼저 해제하세요',
+    /* 권한 변경 — 누르면 편집 패널이 열린다(권한 칸). 본인 · 마지막 어드민 행에서는 흐리게 두고
+       `member.adminGuard.role` 툴팁을 단다(admin-spec §3.2-C · pivit-work PW-2492). */
+    changeRole: '권한 변경',
     /* 퇴사자 행의 「대표로 지정」은 흐리게 두고 이 툴팁을 단다(ceo-assign 정책서 §7 E2). */
     ceoResignedBlocked: '퇴사자는 대표로 지정할 수 없습니다',
     /* 대표(CEO) 지정·해제 (§3.6-A · PW-576 로 시트에서 옮겨 왔다) */
@@ -765,7 +768,7 @@ const ROW_MENU_Z = 1000;
  * 노드가 문서에서 떨어져 좌표를 잃는다(`AnchoredLayer` 의 PW-109 주석).
  */
 function RowActionMenu({
-  onEdit, onChangeManager, onDeactivate, onCancelOffboarding, onCancelRegistration, onInviteSend, onRehire, onCeo, ceoMode, ceoBlocked, onClose,
+  onEdit, onChangeManager, onChangeRole, onDeactivate, onCancelOffboarding, onCancelRegistration, onInviteSend, onRehire, onCeo, ceoMode, ceoBlocked, onClose,
   labels, canEdit, anchorSelector, member = {},
 }) {
   const ref = useRef(null);
@@ -813,11 +816,14 @@ function RowActionMenu({
         </>
       );
     }
-    if (member.isCeo) {
+    /* 본인 · 마지막 어드민(admin-spec §3.2-C S1·S2 · pivit-work PW-2492) — 대표 행과 같은 모양.
+       대표이기도 하면 위 대표 문구가 먼저다. 사유 문구는 부르는 쪽이 판정해 `member.adminGuard.offboard` 로 준다. */
+    const blockedTip = member.isCeo ? labels.menu.deactivateCeoBlocked : member.adminGuard?.offboard;
+    if (blockedTip) {
       return (
         <>
           <div className="admin-emp-row-menu-divider" />
-          <Tooltip content={labels.menu.deactivateCeoBlocked}>
+          <Tooltip content={blockedTip}>
             <button
               type="button"
               className="admin-emp-row-menu-item is-danger is-disabled"
@@ -857,6 +863,28 @@ function RowActionMenu({
       <button type="button" className="admin-emp-row-menu-item" onClick={() => { onChangeManager(); onClose(); }}>
         {labels.menu.changeManager}
       </button>
+      {/* 권한 변경(admin-spec §3.1 `⋯` 행) — 퇴사자 행에는 두지 않는다(퇴사자의 권한 칸은 잠겨 있다). */}
+      {onChangeRole && canEdit && member.employmentStatus !== 'terminated' && (member.adminGuard?.role ? (
+        <Tooltip content={member.adminGuard.role}>
+          <button
+            type="button"
+            className="admin-emp-row-menu-item is-disabled"
+            aria-disabled="true"
+            data-testid="employees-row-change-role-blocked"
+          >
+            {labels.menu.changeRole}
+          </button>
+        </Tooltip>
+      ) : (
+        <button
+          type="button"
+          className="admin-emp-row-menu-item"
+          data-testid="employees-row-change-role"
+          onClick={() => { onChangeRole(); onClose(); }}
+        >
+          {labels.menu.changeRole}
+        </button>
+      ))}
       {/* 대표(CEO) 지정·해제 (§3.6-A) — 폐기된 스프레드시트에만 있던 자리다(PW-576).
           정본이 정한 위치가 여기 «⋯ 더보기» 다. 지정 경로가 없으면(어드민 아님 ·
           퇴사자 행) 항목 자체를 그리지 않는다 — 눌러도 막히는 자리를 두지 않는다. */}
@@ -3199,6 +3227,7 @@ function EmployeesListView({
                 canEdit={canEdit && !!onDeactivate}
                 onEdit={() => onOpenEdit(m)}
                 onChangeManager={() => onOpenEdit(m)}
+                onChangeRole={() => onOpenEdit(m)}
                 onDeactivate={() => onDeactivate?.(m)}
                 onCancelOffboarding={onCancelOffboarding ? () => onCancelOffboarding(m) : undefined}
                 onCancelRegistration={onCancelRegistration ? () => onCancelRegistration([m.id]) : undefined}
@@ -4800,11 +4829,17 @@ function EmployeesEditPanel({
               승격은 서버가 하고(L10), 이 칸은 그 값을 직접 고치는 자리다. */}
           <SectionLabel>{labels.panel.roleSection}</SectionLabel>
           <div className="admin-emp-field-group">
-            <FormField className="admin-emp-field" labelClassName="admin-emp-field-label" label={labels.panel.role}>
+            {/* 본인 · 마지막 어드민이면 잠그고 사유 한 줄(admin-spec §3.2-C · pivit-work PW-2492). */}
+            <FormField
+              className="admin-emp-field"
+              labelClassName="admin-emp-field-label"
+              label={labels.panel.role}
+              hint={member.adminGuard?.role || undefined}
+            >
               <Select
                 className="admin-emp-input"
                 value={draft.orgRole || ''}
-                disabled={!canEdit}
+                disabled={!canEdit || !!member.adminGuard?.role}
                 data-testid="employees-panel-orgRole"
                 onChange={(e) => set('orgRole', e.target.value)}
               >
@@ -5039,16 +5074,20 @@ function EmployeesEditPanel({
                 ] : undefined}
                 errorTestId="employees-panel-date-terminationDate-error"
                 hint={
-                  offboardingScheduled
-                    ? labels.panel.resignedAtScheduled
-                    : terminationRequired ? undefined : labels.panel.resignedAtHint
+                  /* 아직 퇴사일이 없는 본인 · 마지막 어드민이면 칸을 잠그고 사유 한 줄
+                     (admin-spec §3.2-C · pivit-work PW-2492). 이미 퇴사일이 있으면 부르는 쪽이 비워 보낸다. */
+                  member.adminGuard?.terminationDate
+                    ? member.adminGuard.terminationDate
+                    : offboardingScheduled
+                      ? labels.panel.resignedAtScheduled
+                      : terminationRequired ? undefined : labels.panel.resignedAtHint
                 }
               >
                 <DateInput
                   className="admin-emp-input"
                   data-testid="employees-panel-date-terminationDate"
                   value={dateValue(TERMINATION_DATE_FIELD)}
-                  disabled={!canEdit}
+                  disabled={!canEdit || !!member.adminGuard?.terminationDate}
                   onChange={(v) => setDateValue(TERMINATION_DATE_FIELD, v)}
                 />
               </FormField>
