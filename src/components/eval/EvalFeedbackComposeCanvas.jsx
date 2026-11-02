@@ -147,7 +147,8 @@ const DEFAULT_LABELS = {
   feedbackEditSave: '저장',
   feedbackEditCancel: '취소',
   feedbackEditError: '수정에 실패했습니다. 잠시 후 다시 시도해 주세요.',
-  feedbackDeleteError: '삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.',
+  // 삭제 실패는 토스트로 (manager §3.8 「삭제 실패」 · pivit-work PW-2482)
+  feedbackDeleteError: '삭제하지 못했습니다. 다시 시도해 주세요.',
   // 팀원 0명 빈 상태(FB-1) — 1행은 매니저 뷰 ME-1 과 같은 문장, 2행은 사유 (screen-feedback-manager §5-A).
   // ── 「받은 요청」 탭 (screen-feedback-manager §2.6, pivit-work PW-2479) ──
   tabTeam: '팀 피드백',
@@ -616,7 +617,7 @@ function FeedbackBubble({ item, member, L, canModify, onEdit, onDelete }) {
     try {
       await onDelete(item);
     } catch {
-      setError(L.feedbackDeleteError);
+      // 안내는 캔버스 토스트가 한다 — 버블은 그대로 둔다(§3.8 「삭제 실패」).
       setBusy(false);
     }
   };
@@ -1076,6 +1077,17 @@ export default function EvalFeedbackComposeCanvas({
     }
   };
 
+  const handleDeleteFeedback = onDeleteFeedback
+    ? async (item) => {
+        try {
+          await onDeleteFeedback(item);
+        } catch (e) {
+          showToast(L.feedbackDeleteError, 'error');
+          throw e;
+        }
+      }
+    : undefined;
+
   // AI 초안 실패·빈 응답은 안내하고 null 을 준다 — 입력칸은 건드리지 않는다(manager §4.3·§8-9).
   const handleAiDraft = onAiDraft
     ? async (input) => {
@@ -1153,7 +1165,7 @@ export default function EvalFeedbackComposeCanvas({
             aiDraftDisabled={aiDraftDisabled}
             onSummarize={onSummarize}
             onEditFeedback={onUpdateFeedback}
-            onDeleteFeedback={onDeleteFeedback}
+            onDeleteFeedback={handleDeleteFeedback}
             openTarget={openTarget}
             onOpenTargetHandled={onOpenTargetHandled}
             openBlockKey={openBlockKey}

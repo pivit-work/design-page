@@ -107,6 +107,12 @@ const DEFAULT_LABELS = {
   requestEditCancel: '취소',
   requestEditError: '수정에 실패했습니다. 잠시 후 다시 시도해 주세요.',
   requestDeleteError: '취소에 실패했습니다. 잠시 후 다시 시도해 주세요.',
+  // 고치거나 지우려는 사이 상대가 답했다 (screen-feedback-member §5 · pivit-work PW-2482)
+  requestAlreadyAnswered: '상대가 이미 답해 요청을 고치거나 지울 수 없습니다.',
+  // KR·이니셔티브 블록 자리의 불러오기 실패 (§8) — «피드백 없음»과 다른 상태다
+  blocksLoadFailed: 'OKR 정보를 불러오지 못했습니다',
+  initiativesLoadFailed: '이니셔티브 정보를 불러오지 못했습니다',
+  blocksRetry: '다시 시도',
   requestCompose: '+ 피드백 요청',
   requestAlreadySuffix: '요청 대기중',
   requestAlreadyHint: '이미 요청한 사람은 응답이 오기 전까지 다시 선택할 수 없어요.',
@@ -568,11 +574,28 @@ function FeedbackBubble({ item, L, linkedLabel: targetLabel, isPastPeriod, onRep
  * 핸들러를 안 넘긴 화면에서는 버튼을 아예 그리지 않는다 — 눌리는데 저장은 안 되는
  * '가짜 저장'을 만들지 않기 위해서다.
  */
+/**
+ * 블록 목록을 못 불러왔을 때 그 자리에 두는 줄 (§8 · arch-feedback-data-model §4-1-4).
+ * 0건(«피드백 없음»)과 다른 상태라 따로 그린다. 다시 시도는 누를 때만 한다.
+ * 모양은 정기 평가 앞 차수 리뷰의 실패 줄(EvalLeaderPriorRounds)과 같다.
+ */
+function BlocksLoadFailed({ message, L, onRetry }) {
+  return (
+    <div data-testid="fbm-blocks-failed" role="alert">
+      <p className="evc-empty-sub">{message}</p>
+      {onRetry && (
+        <Button variant="secondary" size="sm" onClick={onRetry} data-testid="fbm-blocks-retry">
+          {L.blocksRetry}
+        </Button>
+      )}
+    </div>
+  );
+}
+
 function RequestBubble({ item, L, onEdit, onDelete }) {
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(item.text || '');
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(null);
   const maxLen = useFeedbackTextLimit();
   const editTooLong = useFeedbackTextTooLong(editText);
 
@@ -583,18 +606,21 @@ function RequestBubble({ item, L, onEdit, onDelete }) {
   const cancelEdit = () => {
     setEditing(false);
     setEditText(item.text || '');
-    setError(null);
   };
 
+  // 실패 안내는 캔버스 토스트가 한다(§5). 여기서는 화면 상태만 맞춘다.
   const save = async () => {
     setBusy(true);
-    setError(null);
     try {
       await onEdit(item.id, editText.trim());
       setEditing(false);
-    } catch {
-      // 저장 실패 시 입력을 유지한다 — 작성 중 본문을 삼키지 않는다.
-      setError(L.requestEditError);
+    } catch (e) {
+      if (e?.reason === 'alreadyAnswered') {
+        // 상대가 이미 답했다 — 고친 글을 버리고 원문으로 되돌린다(받은 답은 앱이 다시 불러온다).
+        setEditing(false);
+        setEditText(item.text || '');
+      }
+      // 그 밖의 실패는 입력을 유지한다 — 작성 중 본문을 삼키지 않는다.
     } finally {
       setBusy(false);
     }
@@ -602,11 +628,10 @@ function RequestBubble({ item, L, onEdit, onDelete }) {
 
   const remove = async () => {
     setBusy(true);
-    setError(null);
     try {
       await onDelete(item.id);
     } catch {
-      setError(L.requestDeleteError);
+      // 버블을 그대로 둔다 — 지워진 것처럼 보이지 않게.
     } finally {
       setBusy(false);
     }
@@ -638,7 +663,6 @@ function RequestBubble({ item, L, onEdit, onDelete }) {
               className="evf-textarea" style={{ marginBottom: 10 }}
             />
             <FeedbackLengthNote text={editText} label={L.textLimitNote} color={C.rose} testId="fbm-request-edit-limit" />
-            {error && <p style={{ margin: '0 0 8px', fontSize: 12, color: C.rose }}>{error}</p>}
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <Button
                 type="button"
@@ -693,9 +717,6 @@ function RequestBubble({ item, L, onEdit, onDelete }) {
             </button>
           )}
         </div>
-      )}
-      {!editing && error && (
-        <p style={{ margin: 0, fontSize: 12, color: C.rose }}>{error}</p>
       )}
     </div>
   );
@@ -1100,6 +1121,10 @@ export default function EvalFeedbackCanvas({
   onSendIncoming,
   // 첫 로딩 중이면 본문 자리에 스켈레톤만 그린다(screen-feedback-member §7 「전체 로딩」).
   loading = false,
+  // 블록 목록의 출처(내 OKR 정보)를 못 읽었다 (§8 · pivit-work PW-2482) — 'okr' 이면 KR·이니셔티브 블록
+  // 자리 전체, 'initiatives' 면 이니셔티브 자리에 «다시 시도» 줄을 그린다. «피드백 없음»으로 그리지 않는다.
+  blocksFailed = null,
+  onRetryBlocks,
   // 피드백 본문 최대 길이(PW-1799) — 입력칸 넷이 같이 쓴다. 안 넘기면 제한 없음.
   textMaxLength,
 }) {
@@ -1221,15 +1246,29 @@ export default function EvalFeedbackCanvas({
     }
   };
   // 수정·취소는 핸들러가 넘어온 화면에서만 노출한다(undefined 면 버블이 버튼을 숨김).
+  // 실패는 토스트로 알리고 다시 던진다 — 버블이 수정 칸·버블을 그대로 둘지 정한다(§5).
+  // 앱이 `reason: 'alreadyAnswered'` 로 거절하면 «상대가 이미 답함» 안내를 띄운다.
+  const failToast = (e, fallback) =>
+    showToast(e?.reason === 'alreadyAnswered' ? L.requestAlreadyAnswered : fallback, 'error');
   const handleEditRequest = onEditRequest
     ? async (itemId, text) => {
-        await onEditRequest(itemId, text);
+        try {
+          await onEditRequest(itemId, text);
+        } catch (e) {
+          failToast(e, L.requestEditError);
+          throw e;
+        }
         showToast(L.toastRequestEdited);
       }
     : undefined;
   const handleDeleteRequest = onDeleteRequest
     ? async (itemId) => {
-        await onDeleteRequest(itemId);
+        try {
+          await onDeleteRequest(itemId);
+        } catch (e) {
+          failToast(e, L.requestDeleteError);
+          throw e;
+        }
         showToast(L.toastRequestDeleted);
       }
     : undefined;
@@ -1303,6 +1342,10 @@ export default function EvalFeedbackCanvas({
           />
         )}
 
+        {blocksFailed === 'okr' ? (
+          <BlocksLoadFailed message={L.blocksLoadFailed} L={L} onRetry={onRetryBlocks} />
+        ) : (
+        <>
         {krBlocks.length > 0 && (
           <>
             <div style={{ fontSize: 'var(--font-size-text-xs)', fontWeight: 700, color: C.sub, letterSpacing: 0.5, margin: '4px 0 -4px' }}>
@@ -1314,7 +1357,14 @@ export default function EvalFeedbackCanvas({
           </>
         )}
 
-        {initBlocks.length > 0 && (
+        {blocksFailed === 'initiatives' ? (
+          <>
+            <div style={{ fontSize: 'var(--font-size-text-xs)', fontWeight: 700, color: C.sub, letterSpacing: 0.5, margin: '8px 0 -4px' }}>
+              {L.sectionInit}
+            </div>
+            <BlocksLoadFailed message={L.initiativesLoadFailed} L={L} onRetry={onRetryBlocks} />
+          </>
+        ) : initBlocks.length > 0 && (
           <>
             <div style={{ fontSize: 'var(--font-size-text-xs)', fontWeight: 700, color: C.sub, letterSpacing: 0.5, margin: '8px 0 -4px' }}>
               {L.sectionInit}
@@ -1334,8 +1384,10 @@ export default function EvalFeedbackCanvas({
           </>
         )}
 
-        {krBlocks.length === 0 && initBlocks.length === 0 && !etc && (
+        {krBlocks.length === 0 && initBlocks.length === 0 && !etc && !blocksFailed && (
           <p className="evc-empty-sub">{L.emptyBlockInit}</p>
+        )}
+        </>
         )}
         </>
         )}
