@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import Button from '../shared/Button.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
 import Chip from '../shared/Chip.jsx';
@@ -10,6 +11,7 @@ import {
   AlertTriangleGlyph,
   ArrowRightGlyph,
   CheckGlyph,
+  PlusGlyph,
   SparkleGlyph,
 } from '../shared/lineIcons.jsx';
 
@@ -19,7 +21,7 @@ import {
  * 무엇을 보여 주나는 pivit-specs `M. 고객지원/support-app.jsx` 의 `SupportNew`
  * (보내는 회사·요금제 · 문의 유형 칩 + 유형별 안내 · 제목 · 내용 · [문의 접수] · 접수 완료 화면).
  * AI 즉답 칸(PW-1132)은 같은 시안의 `AiAnswerPanel`·`AiNoKbPanel`·`AiErrorPanel` 과 대기·검색 중 줄.
- * 파일 첨부(PW-548)는 다른 카드 몫이라 그리지 않는다.
+ * 파일 첨부(pivit-work PW-2480 · 기획 PW-548)는 시안의 첨부 블록 — [+ 파일 첨부] · 고른 파일 줄 · 고지 한 줄.
  * 생김새는 알림 센터(`NotificationCenterCanvas`)와 같은 화면 문법 — 머리 카드(.tl-page) · 공용
  * `Chip`·`FormField`·`TextInput`·`TextArea`·`Button`. prefix: sup-
  *
@@ -50,6 +52,16 @@ import {
  *                     screenshotChecked, screenshotDisabled,
  *                     onScreenshotChange(checked)
  *                   }
+ *   fileAttach      null(칸을 그리지 않는다) | {           — PW-2480 · 시안 `SupportNew` 의 첨부 블록(내용 아래 · 자동 첨부 위)
+ *                     buttonLabel,         「파일 첨부」
+ *                     accept,              파일 선택 창이 고르게 할 형식(`.png,.jpg,…`)
+ *                     full, fullHint,      다 찼으면 버튼을 잠그고 그 아래 안내 한 줄
+ *                     files: [{ id, label, removeLabel }],  고른 파일(label = 「이름 · 크기」 — 호출부가 만든다)
+ *                     notice,              늘 보이는 고지 한 줄
+ *                     onPick(File[]),      선택 창에서 고른 것 — 검사·토스트는 호출부 몫
+ *                     onRemove(id)
+ *                   }
+ *                   끌어다 놓기는 두지 않는다(기획 문의하기 정책 §0-4 Q4).
  *   onCategoryChange(value) · onTitleChange(v) · onBodyChange(v) · onSubmit() · onViewMine() · onNewTicket()
  *   onAiAsk() · onAiResolved() · onAiRetry()   — 즉답 칸의 「그래도 접수」·「바로 접수」는 onSubmit
  *   labels          { heading, sub, workspaceLabel, categoryLabel, titleLabel, titlePlaceholder, bodyLabel,
@@ -73,6 +85,7 @@ export default function SupportNewCanvas({
   ai = null,
   submitHint = null,
   autoAttach = null,
+  fileAttach = null,
   onCategoryChange,
   onTitleChange,
   onBodyChange,
@@ -173,6 +186,8 @@ export default function SupportNewCanvas({
                 data-testid="support-body"
               />
             </FormField>
+
+            {fileAttach && <FileAttach fileAttach={fileAttach} busy={submitting} />}
 
             {autoAttach && (
               <div className="sup-attach" data-testid="support-auto-attach">
@@ -375,5 +390,69 @@ function AiSection({ ai, labels, busy, onAsk, onResolved, onRetry, onProceed }) 
         </div>
       )}
     </section>
+  );
+}
+
+/**
+ * 파일 첨부 칸 (PW-2480) — 디자이너 원본이 없어 같은 화면의 부품으로 만든다(design-review).
+ * 묶음은 바로 아래 자동 첨부 칸과 같은 `.sup-attach`, 파일 줄은 유형 칩 줄과 같은 `.sup-cats`,
+ * 안내는 스크린샷 보조 문구와 같은 `.sup-attach-sub`. 새 CSS 없음.
+ */
+function FileAttach({ fileAttach, busy }) {
+  const inputRef = useRef(null);
+  const { files = [] } = fileAttach;
+  return (
+    <div className="sup-attach" data-testid="support-files">
+      <input
+        ref={inputRef}
+        type="file"
+        multiple
+        hidden
+        accept={fileAttach.accept}
+        data-testid="support-files-input"
+        onChange={(e) => {
+          const picked = Array.from(e.target.files || []);
+          // 같은 파일을 빼고 다시 고를 수 있게 비운다.
+          e.target.value = '';
+          if (picked.length > 0) fileAttach.onPick?.(picked);
+        }}
+      />
+      <div>
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={busy || !!fileAttach.full}
+          onClick={() => inputRef.current?.click()}
+          data-testid="support-files-add"
+        >
+          <PlusGlyph size={14} />
+          {fileAttach.buttonLabel}
+        </Button>
+      </div>
+      {fileAttach.full && fileAttach.fullHint && (
+        <span className="sup-attach-sub" data-testid="support-files-full">
+          {fileAttach.fullHint}
+        </span>
+      )}
+      {files.length > 0 && (
+        <div className="sup-cats" role="list" data-testid="support-files-list">
+          {files.map((f) => (
+            <Chip
+              key={f.id}
+              role="listitem"
+              onRemove={busy ? undefined : () => fileAttach.onRemove?.(f.id)}
+              removeLabel={f.removeLabel}
+              removeProps={{ 'data-testid': 'support-file-remove' }}
+              data-testid="support-file"
+            >
+              {f.label}
+            </Chip>
+          ))}
+        </div>
+      )}
+      <span className="sup-attach-sub" data-testid="support-files-notice">
+        {fileAttach.notice}
+      </span>
+    </div>
   );
 }

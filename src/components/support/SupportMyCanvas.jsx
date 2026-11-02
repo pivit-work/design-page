@@ -4,7 +4,7 @@ import EmptyState from '../shared/EmptyState.jsx';
 import Icon from '../shared/Icon.jsx';
 import { SkeletonList } from '../shared/Skeleton.jsx';
 import TextArea from '../shared/TextArea.jsx';
-import { AlertTriangleGlyph, InfoGlyph } from '../shared/lineIcons.jsx';
+import { AlertTriangleGlyph, InfoGlyph, PaperclipGlyph } from '../shared/lineIcons.jsx';
 import { toneForStatus } from '../shared/statusBadgeTones.js';
 import { isEnterKey } from '../shared/enterKey.js';
 
@@ -24,7 +24,8 @@ function Star({ filled, baseUrl, size = 28 }) {
  *
  * 무엇을 보여 주나는 pivit-specs `M. 고객지원/support-app.jsx` 의 `SupportMy`
  * (왼쪽 문의 목록 · 오른쪽 상세 — 메타 · 상태 흐름 · 대화 · 추가 답변 · 해결 확인 · 별점).
- * AI 흔적 표시(PW-1132)·파일 첨부(PW-548)는 다른 카드 몫이라 그리지 않는다.
+ * AI 흔적 표시(PW-1132)는 다른 카드 몫이라 그리지 않는다. 접수 때 고른 파일(pivit-work PW-2480)은
+ * 호출부가 고른 메시지(접수 본문) 아래 칩 줄로 그린다 — 누르면 호출부가 내려받는다.
  * 생김새는 알림 센터와 같은 화면 문법 — 머리 카드(.tl-page) · 공용 `Chip`(상태 딱지) ·
  * `EmptyState` · `SkeletonList` · `TextArea` · `Button`. prefix: sup-
  *
@@ -39,6 +40,7 @@ function Star({ filled, baseUrl, size = 28 }) {
  *   detail         null | { number, title, categoryLabel, assigneeLabel, createdLabel, reopenedLabel,
  *                           status, steps: [{ value, label }], notice, noticeTone: 'info'|'warning' }
  *   messages       [{ id, authorType: 'customer'|'operator'|'system', authorLabel, body, timeLabel }]
+ *   messageFiles   { [messageId]: [{ id, label }] } — 그 메시지 말풍선 아래 파일 칩(label = 「이름 · 크기」) · onFileOpen(id)
  *   threadState    'loading' | 'error' | 'ready' · onRetryThread()
  *   canReply       입력 칸을 그리나
  *   reply · onReplyChange(v) · onReplySend() · replySending · messageMaxLength
@@ -60,6 +62,8 @@ export default function SupportMyCanvas({
   onNewTicket,
   detail = null,
   messages = [],
+  messageFiles = {},
+  onFileOpen,
   threadState = 'ready',
   onRetryThread,
   canReply = false,
@@ -280,6 +284,21 @@ export default function SupportMyCanvas({
                             {m.timeLabel && <time>{m.timeLabel}</time>}
                           </span>
                           <p className="sup-msg-bubble">{m.body}</p>
+                          {messageFiles[m.id]?.length > 0 && (
+                            <div className="sup-cats" data-testid="support-msg-files">
+                              {messageFiles[m.id].map((f) => (
+                                <Chip
+                                  key={f.id}
+                                  icon={<PaperclipGlyph size={12} />}
+                                  onClick={() => onFileOpen?.(f.id)}
+                                  aria-pressed={undefined}
+                                  data-testid="support-msg-file"
+                                >
+                                  {f.label}
+                                </Chip>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       );
                     })}
