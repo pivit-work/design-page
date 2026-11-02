@@ -75,6 +75,8 @@ const DEFAULT_LABELS = {
   partialRefundNote: '부분취소 전표(차액) 발급',
   // 결제사 환불이 자동 재시도까지 다 실패해 운영팀이 처리한다(PW-1816 답 (나) · PW-1944)
   refundFailedNote: '운영팀이 연락드립니다',
+  // 운영팀이 결제사 밖에서 돌려주고 «환불 완료»를 기록한 환불(pivit-work PW-2476 · cancellation-refund-policy §7-B · history policy §7)
+  refundOffPgNote: (paidAt) => `운영팀이 ${paidAt} 결제사 밖에서 돌려드렸습니다 — 카드 취소 전표는 없습니다`,
   voidNote: '취소됨',
 
   filterTabs: {
@@ -385,12 +387,18 @@ export default function BillingHistoryCanvas({
                           );
                         })()}
                         {/* 부분취소 전표는 환불이 끝난 뒤에 나온다(policy §7 「완료 후 노출」) */}
-                        {inv.refund?.type === 'partial' && inv.refund.status === 'completed' && (
+                        {inv.refund?.type === 'partial' && inv.refund.status === 'completed' && !inv.refund.offPg && (
                           <span style={{ fontSize: 11, color: T.muted }}>{labels.partialRefundNote}</span>
                         )}
                         {/* 환불 실패는 사용자가 할 일이 없다 — 운영팀이 연락한다는 안내를 같은 모양으로 붙인다 */}
                         {inv.refund?.status === 'failed' && (
                           <span style={{ fontSize: 11, color: T.muted }}>{labels.refundFailedNote}</span>
+                        )}
+                        {/* 결제사 밖에서 끝낸 환불 — 같은 자리·같은 모양(작은 회색). 결제사 취소가 아니라 취소 전표가 없다(PW-2476) */}
+                        {inv.refund?.offPg && inv.refund.status === 'completed' && (
+                          <span data-testid="billing-history-refund-offpg" style={{ fontSize: 11, color: T.muted, maxWidth: 220, lineHeight: 1.5 }}>
+                            {labels.refundOffPgNote(inv.refund.offPg.paidAt)}
+                          </span>
                         )}
                       </div>
                     );
