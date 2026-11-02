@@ -107,8 +107,8 @@ const DEFAULT_DRAFT_LABELS = {
   // 태그가 TAG_LIMIT 개 찼을 때 칸 아래 안내 (기획서 작성 화면 정책 §3.2 · §9 오류 표 문구 · PW-2392)
   tagLimit: '태그는 최대 8개까지 추가할 수 있습니다.',
   // Summary 가 노란(확인 전)이고 Lowlights 에 글이 있을 때 노란 표시 줄 바로 아래 안내 (기획서 작성 화면 정책 §3.1
-  // «열람 범위 안내 한 줄» · PW-2441). 요약은 팀 동료도 보지만 Lowlights 칸은 본인·조직장·어드민만 본다.
-  summaryTeamVisible: '요약은 팀 동료도 봅니다 — 아쉬운 점(Lowlights)에서 옮겨진 내용이 있으면 확인 전에 고쳐 주세요.',
+  // «열람 범위 안내 한 줄» · PW-2441). 요약은 같은 회사 재직 동료도 보지만(타임라인 그룹 · PW-2495) Lowlights 칸은 본인·조직장·어드민만 본다.
+  summaryTeamVisible: '요약은 같은 회사 동료도 봅니다 — 아쉬운 점(Lowlights)에서 옮겨진 내용이 있으면 확인 전에 고쳐 주세요.',
 };
 
 const PROGRESS_TONE = { loading: 'progress', done: 'success', fail: 'warning' };
@@ -139,13 +139,13 @@ const DEFAULT_SNIPPET_MODAL_LABELS = {
   // 점수 이름표 낱말 — snippetHealth.js 의 healthLabel 에 넘긴다. 안 주면 한국어
   healthWords: undefined,
   healthReasonPlaceholder: '무엇이 영향을 주었나요? (선택)',
-  summaryHint: 'AI 자동 생성 해줘요.',
+  summaryHint: '버튼을 누르면 AI가 초안을 씁니다',
   summaryGenerate: '요약 생성',
   summaryGenerating: '생성 중…',
   summaryPlaceholder: '관련 내용 입력하면 AI 요약이 활성화됩니다',
   summaryInfo: 'What·Why·Values 항목을 채운 뒤 AI 요약 버튼을 누르면 자동으로 작성됩니다.',
   summaryFailed: 'AI 요약 생성에 실패했습니다.',
-  tagsHint: 'AI 자동 추출 해줘요',
+  tagsHint: '버튼을 누르면 AI가 태그를 추천합니다',
   tagsExtract: '태그 추출',
   tagsExtracting: '추출 중…',
   tagsFailed: 'AI 태그 추출에 실패했습니다.',
