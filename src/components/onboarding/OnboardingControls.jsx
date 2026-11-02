@@ -342,8 +342,9 @@ export function OnbDivider({ label }) {
     return (
       <div className="login-divider" role="separator">
         <span className="login-divider-line" />
+        {/* 글자가 없으면 한 줄로 — 둘로 그리면 사이 간격에서 끊겨 보인다 (pivit-work PW-2496) */}
         {label && <span className="login-divider-text">{label}</span>}
-        <span className="login-divider-line" />
+        {label && <span className="login-divider-line" />}
       </div>
     );
   }
@@ -351,7 +352,7 @@ export function OnbDivider({ label }) {
     <div className="onb-divider" role="separator">
       <i />
       {label && <span>{label}</span>}
-      <i />
+      {label && <i />}
     </div>
   );
 }
