@@ -50,8 +50,9 @@ export function useHandleReorder({ count, onReorder, onStep }) {
     onDragStart: (e) => {
       if (armed !== i) return;
       e.dataTransfer.effectAllowed = 'move';
-      // Firefox 는 데이터가 없으면 드래그를 시작하지 않는다.
-      e.dataTransfer.setData('text/plain', String(i));
+      // Firefox 는 데이터가 없으면 드래그를 시작하지 않는다. 글자(text/plain)로 싣지 않는다 — 목록 옆 입력칸에
+      // 놓으면 줄 순번이 글자로 들어간다(PW-2540 적대적 리뷰).
+      e.dataTransfer.setData('application/x-dp-reorder', String(i));
       setDragIdx(i);
     },
     onDragOver: (e) => {

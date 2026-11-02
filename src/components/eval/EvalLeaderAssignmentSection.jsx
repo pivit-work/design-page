@@ -286,6 +286,8 @@ export default function EvalLeaderAssignmentSection({
     setRuleDraft(emptyLeaderRule(Math.min(ruleDraft.round, rounds)));
   };
   const editable = typeof onRulesChange === 'function';
+  // 규칙이 하나뿐이면 옮길 곳이 없어 손잡이를 그리지 않는다 — 손잡이가 보이면 끌린다고 읽힌다.
+  const sortable = editable && rules.length > 1;
 
   const pq = pickQuery.trim().toLowerCase();
   const pickList = withoutLeavingBefore(people, openCell ? roundDeadline(openCell.round) : '').filter(
@@ -520,14 +522,14 @@ export default function EvalLeaderAssignmentSection({
                     className={[
                       'evc-la-rule',
                       ruleRoundMissing(r) ? 'is-off' : '',
-                      editable ? `dp-reorder-row ${ruleRowClass(i)}` : '',
+                      sortable ? `dp-reorder-row ${ruleRowClass(i)}` : '',
                     ]
                       .filter(Boolean)
                       .join(' ')}
                     data-testid={`evc-la-rule-row-${i}`}
-                    {...(editable ? ruleRowProps(i) : {})}
+                    {...(sortable ? ruleRowProps(i) : {})}
                   >
-                    {editable && (
+                    {sortable && (
                       <ReorderHandle
                         handleProps={ruleHandleProps(i)}
                         label={L.leaderRuleHandle}

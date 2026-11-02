@@ -466,7 +466,7 @@ const DEFAULT_LABELS = {
   leaderRulesEmpty: "규칙이 없습니다. 모든 칸이 조직 단계 기준 추천을 따릅니다.",
   leaderRuleNoRound: "이 사이클에 {{round}}차가 없습니다",
   leaderRuleResigned: "퇴사",
-  leaderRuleHandle: "끌어서 순서 바꾸기",
+  leaderRuleHandle: "드래그하여 순서 변경",
   leaderRuleDelete: "삭제",
   leaderRuleAddHead: "+ 규칙 추가 — 조건(비워 두면 조건 없음)",
   leaderRuleAxisUnit: "조직",
