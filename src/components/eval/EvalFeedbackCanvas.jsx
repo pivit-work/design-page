@@ -1375,6 +1375,12 @@ export default function EvalFeedbackCanvas({
           </>
         )}
 
+        {krBlocks.length === 0 && initBlocks.length === 0 && !etc && !blocksFailed && (
+          <p className="evc-empty-sub">{L.emptyBlockInit}</p>
+        )}
+        </>
+        )}
+        {/* «기타»는 OKR 정보와 무관하게 받은 대화에서 그린다(§10-3) — OKR 을 못 읽어도 받은 피드백을 열 곳이 남는다. */}
         {etc && (
           <>
             <div style={{ fontSize: 'var(--font-size-text-xs)', fontWeight: 700, color: C.sub, letterSpacing: 0.5, margin: '8px 0 -4px' }}>
@@ -1384,11 +1390,6 @@ export default function EvalFeedbackCanvas({
           </>
         )}
 
-        {krBlocks.length === 0 && initBlocks.length === 0 && !etc && !blocksFailed && (
-          <p className="evc-empty-sub">{L.emptyBlockInit}</p>
-        )}
-        </>
-        )}
         </>
         )}
       </div>
