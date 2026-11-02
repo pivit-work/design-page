@@ -28,20 +28,17 @@ const T = {
   purple: '#7C3AED', purpleBg: '#F5F3FF',
 };
 
-// 관심 기능 옵션 (Pro·Enterprise 차별 기능) — 다중 선택
-const INTEREST_OPTS = [
-  { id: 'sso', label: 'SSO / 보안 정책' },
-  { id: 'rbac', label: '고급 권한·가시성' },
-  { id: 'ai', label: '전용 AI 한도' },
-  { id: 'aichat', label: 'AI Chat' },
-  { id: 'eval', label: '성과평가 운영' },
-  { id: 'support', label: '전담 지원·온보딩' },
-  { id: 'contract', label: '약정 할인·계약' },
-  { id: 'etc', label: '기타' },
-];
+// 관심 기능 옵션 (Pro·Enterprise 차별 기능) — 다중 선택. 보내는 값은 id, 보이는 이름은 labels.interestOptions[id]
+const INTEREST_IDS = ['sso', 'rbac', 'ai', 'aichat', 'eval', 'support', 'contract', 'etc'];
 
-// 희망 도입 시기 — 단일 선택 (라벨 그대로 저장)
-const TIMING_OPTS = ['1개월 내', '1~3개월', '3~6개월', '미정'];
+// 희망 도입 시기 — 단일 선택. value 는 영업팀 문의에 그대로 저장되는 값이라 화면 언어와 상관없이 한국어로 둔다
+// (앱 PW-2548). 보이는 이름은 labels.timingOptions[id] — 영어 화면은 앱이 영어 이름을 넘긴다.
+const TIMING_OPTS = [
+  { id: 'within1m', value: '1개월 내' },
+  { id: 'm1to3', value: '1~3개월' },
+  { id: 'm3to6', value: '3~6개월' },
+  { id: 'undecided', value: '미정' },
+];
 
 const emailOk = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
@@ -94,11 +91,34 @@ const DEFAULT_LABELS = {
   submit: '문의 보내기',
   submitting: '접수 중...',
   submitNote: '제출 시 입력하신 정보가 영업팀에 전달됩니다.',
+
+  // 고르는 칸의 보이는 이름 (앱 PW-2548 — 영어 화면에서 앱이 덮는다)
+  interestOptions: {
+    sso: 'SSO / 보안 정책',
+    rbac: '고급 권한·가시성',
+    ai: '전용 AI 한도',
+    aichat: 'AI Chat',
+    eval: '성과평가 운영',
+    support: '전담 지원·온보딩',
+    contract: '약정 할인·계약',
+    etc: '기타',
+  },
+  timingOptions: {
+    within1m: '1개월 내',
+    m1to3: '1~3개월',
+    m3to6: '3~6개월',
+    undecided: '미정',
+  },
 };
 
 function mergeLabels(provided) {
   if (!provided) return DEFAULT_LABELS;
-  return { ...DEFAULT_LABELS, ...provided };
+  return {
+    ...DEFAULT_LABELS,
+    ...provided,
+    interestOptions: { ...DEFAULT_LABELS.interestOptions, ...(provided.interestOptions || {}) },
+    timingOptions: { ...DEFAULT_LABELS.timingOptions, ...(provided.timingOptions || {}) },
+  };
 }
 
 // 칸 이름표·입력칸 = 디자이너가 그린 1on1 「일정 추가」 창 값 그대로 (PW-1894 · one_on_one.css `.ono-add-modal-*`).
@@ -299,10 +319,10 @@ export default function BillingContactSalesCanvas({
               <Field label={labels.interestsLabel}>
                 {/* 여럿 고르는 칸 = 공용 체크박스. 줄 사이는 1on1 창 고르기 묶음 간격(12px) */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-lg)' }}>
-                  {INTEREST_OPTS.map((o) => (
-                    <Checkbox key={o.id} label={o.label}
-                      checked={interests.includes(o.id)}
-                      onChange={() => toggleInterest(o.id)} />
+                  {INTEREST_IDS.map((id) => (
+                    <Checkbox key={id} label={labels.interestOptions[id]}
+                      checked={interests.includes(id)}
+                      onChange={() => toggleInterest(id)} />
                   ))}
                 </div>
               </Field>
@@ -311,7 +331,7 @@ export default function BillingContactSalesCanvas({
                 {/* 하나만 고르는 칸 = 공용 세그먼트 버튼 */}
                 <SegmentedControl
                   ariaLabel={labels.timingLabel}
-                  items={TIMING_OPTS.map((t) => ({ value: t, label: t }))}
+                  items={TIMING_OPTS.map((o) => ({ value: o.value, label: labels.timingOptions[o.id] }))}
                   value={f.timing}
                   onChange={(t) => set('timing', t)}
                 />
