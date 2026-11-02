@@ -358,7 +358,10 @@ function ThreadModal({ block, L, isPastPeriod, recipients, recipientsFailed, lin
   // 대화 요약 — 저장하지 않는 일회성 뷰(ai-spec §11.4). 요약을 만들 때의 대화 수를 기억해
   // 그 뒤 늘면 요약은 그대로 두고 안내만 붙인다. 활성 조건: 피드백+요청+답변 ≥ 5 (§11.2).
   const [summary, setSummary] = useState(null);
-  const [summaryState, setSummaryState] = useState('idle'); // idle | loading | error
+  const [summaryState, setSummaryState] = useState('idle'); // idle | loading | error | notice
+  // onSummarize 가 `{ notice }`(AI 한도 안내 등)를 주면 실패 문구 대신 이 창 안에 그린다 — 창 밖(페이지 머리)에
+  // 그리면 이 창의 막에 덮여 안 보인다(PW-2481).
+  const [summaryNotice, setSummaryNotice] = useState(null);
   const [summaryCount, setSummaryCount] = useState(0);
   const threadCount = items.reduce((n, it) => n + 1 + (it.myReply ? 1 : 0), 0);
   const canSummarize = threadCount >= 5;
@@ -367,7 +370,10 @@ function ThreadModal({ block, L, isPastPeriod, recipients, recipientsFailed, lin
     setSummaryState('loading');
     try {
       const res = await onSummarize(block);
-      if (res) {
+      if (res?.notice) {
+        setSummaryNotice(res.notice);
+        setSummaryState('notice');
+      } else if (res) {
         setSummary(res);
         setSummaryCount(threadCount);
         setSummaryState('idle');
@@ -433,6 +439,7 @@ function ThreadModal({ block, L, isPastPeriod, recipients, recipientsFailed, lin
             )}
           </div>
         )}
+        {summaryState === 'notice' && <div data-testid="fbm-summary-notice">{summaryNotice}</div>}
         {summaryState === 'error' && (
           <div data-testid="fbm-summary-error" style={{ background: C.roseBg, color: C.rose, borderRadius: 10, padding: 10, fontSize: 'var(--font-size-text-xs)' }}>
             {L.summaryFailed}

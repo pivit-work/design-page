@@ -461,6 +461,9 @@ function ModalComposeBox({ block, memberName, L, onSend, onAiDraft, aiDraftDisab
   // 그러지 않으면 고치지 않은 AI 초안이 직접 쓴 글처럼 보인다(§4.3 · 절대규칙 3, PW-2481 리뷰).
   const [beforeAi, setBeforeAi] = useState('idle');
   const textNow = useRef('');
+  // AI 한도 안내 같은 «실패 대신 보일 안내» — onAiDraft 가 `{ notice }` 를 주면 누른 버튼 바로 아래(이 창 안)에 그린다.
+  // 창 밖(페이지 머리)에 그리면 이 창의 막에 덮여 안 보인다(PW-2481 dev 확인).
+  const [notice, setNotice] = useState(null);
 
   // 실패·빈 응답 안내는 onAiDraft 쪽(캔버스 루트)이 띄우고 null 을 준다. 입력은 그대로 둔다.
   const ai = async () => {
@@ -470,12 +473,14 @@ function ModalComposeBox({ block, memberName, L, onSend, onAiDraft, aiDraftDisab
     const before = aiState;
     setBeforeAi(before);
     setAiState('loading');
+    setNotice(null);
     let res = null;
     try {
       res = await onAiDraft({ recipientName: memberName, hint: text.trim() || fill(L.aiDraftHint, { title: block.title }) });
     } catch {
       res = null;
     }
+    if (res && typeof res === 'object' && res.notice) setNotice(res.notice);
     const draft = typeof res === 'string' ? res : res?.draft;
     if (!draft || typedDuringAi.current) {
       const hadDraft = before === 'done' || before === 'confirmed';
@@ -571,6 +576,7 @@ function ModalComposeBox({ block, memberName, L, onSend, onAiDraft, aiDraftDisab
           </Button>
         </span>
       </div>
+      {notice && <div data-testid="fbmgr-ai-notice">{notice}</div>}
       {(shown === 'done' || shown === 'confirmed') && grounded && <p style={{ fontSize: 12, color: C.sub, margin: 0 }}><CpuIcon size={11} /> {L.aiFooter}</p>}
     </div>
   );
@@ -726,7 +732,9 @@ function ThreadModal({ block, member, memberName, L, isPastPeriod, onSend, onAiD
   const isEtc = block.type === 'etc';
   const items = [...block.items].sort((a, b) => new Date(a.sentAt) - new Date(b.sentAt));
   const [summary, setSummary] = useState(null);
-  const [summaryState, setSummaryState] = useState('idle'); // idle | loading | error
+  const [summaryState, setSummaryState] = useState('idle'); // idle | loading | error | notice
+  // onSummarize 가 `{ notice }`(AI 한도 안내 등)를 주면 실패 문구 대신 이 창 안에 그 안내를 그린다(PW-2481).
+  const [summaryNotice, setSummaryNotice] = useState(null);
   // 요약을 만들 때의 대화 수 — 그 뒤 늘면 요약은 그대로 두고 안내만 붙인다(일회성 뷰).
   const [summaryCount, setSummaryCount] = useState(0);
   // 활성화 조건: 스레드 아이템(피드백+요청+답변) ≥ 5 (ai-spec §11.2).
@@ -738,7 +746,10 @@ function ThreadModal({ block, member, memberName, L, isPastPeriod, onSend, onAiD
     setSummaryState('loading');
     try {
       const res = await onSummarize(block);
-      if (res) {
+      if (res?.notice) {
+        setSummaryNotice(res.notice);
+        setSummaryState('notice');
+      } else if (res) {
         setSummary(res);
         setSummaryCount(threadCount);
         setSummaryState('idle');
@@ -793,6 +804,7 @@ function ThreadModal({ block, member, memberName, L, isPastPeriod, onSend, onAiD
             )}
           </div>
         )}
+        {summaryState === 'notice' && <div data-testid="fbmgr-summary-notice">{summaryNotice}</div>}
         {summaryState === 'error' && (
           <div style={{ background: C.redBg, color: C.red, borderRadius: 10, padding: 10, fontSize: 'var(--font-size-text-xs)' }}>
             {L.summaryFailed}
@@ -1097,6 +1109,8 @@ export default function EvalFeedbackComposeCanvas({
         } catch {
           res = null;
         }
+        // `{ notice }` 는 실패 문구 대신 창 안에 그릴 안내다 — 일반 실패 토스트를 겹쳐 띄우지 않는다(PW-2481).
+        if (res && typeof res === 'object' && res.notice) return res;
         const draft = typeof res === 'string' ? res : res?.draft;
         if (!draft || !draft.trim()) {
           showToast(L.aiError, 'error');
