@@ -417,6 +417,9 @@
 .sq-avatar.sq-photo { box-shadow: none; }
 .sq-photo-24 { width: 24px; height: 24px; }
 .sq-photo-32 { width: 32px; height: 32px; border-width: 0.75px; }
+/* «그림» 보기 사람 노드(PW-2356) — 매트릭스 이름 칸 사진과 같은 40. 규칙이 없으면 올린 사진이
+   원본 크기(1024px 등)로 그려져 그림을 덮는다. 새 지름을 부르면 여기에 규칙을 더한다. */
+.sq-photo-40 { width: 40px; height: 40px; }
 /* 매트릭스의 40px 이니셜 원 — `pj-member-initials` 위에 같은 방어만 얹는다 */
 .sq-avatar-lg {
   white-space: nowrap;
