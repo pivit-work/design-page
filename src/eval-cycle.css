@@ -12366,6 +12366,35 @@ button.evmh-phase:focus-visible {
   color: var(--text-placeholder);
 }
 
+/* PW-2481 — 팀 피드백 KR 창 작성 칸의 AI 초안 상태 (screen-feedback-manager.policy §4.2·§4.3).
+   미확인 = 경고 노랑, 한 글자라도 고치면 확인 = 성공 초록. 값은 평가 화면 AI 초안 칸(.evm-textarea.is-ai-*)과 같다 — 정책이 그 칸을 가리킨다. */
+.evf-textarea.is-ai-unconfirmed {
+  background: var(--utility-warning-50);
+  border-color: var(--utility-warning-200);
+}
+.evf-textarea.is-ai-confirmed {
+  background: var(--utility-success-50);
+  border-color: var(--utility-success-200);
+}
+/* 상태를 색만으로 말하지 않는다 — 문구를 함께 둔다. 글자 색은 평가 AI 초안 배지(.evm-ai-draft-badge)와 같다. */
+.evf-ai-state {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+}
+.evf-ai-state.is-unconfirmed {
+  color: var(--utility-warning-700);
+}
+.evf-ai-state.is-confirmed {
+  color: var(--utility-success-700);
+}
+/* OKR 이 없어 꺼진 [✦ AI 추천 받기] — 기다리는 중(aria-busy)은 흐리게 하지 않는다 (.evf-btn 과 같은 규칙) */
+.fbmgr-ai-draft:disabled:not([aria-busy]) {
+  opacity: 0.5;
+}
+
 .evf-btn {
   display: inline-flex;
   align-items: center;

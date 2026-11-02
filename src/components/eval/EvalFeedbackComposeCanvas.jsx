@@ -5,7 +5,7 @@ import TextArea from '../shared/TextArea.jsx';
 import Select from '../shared/Select.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
-import { TargetIcon, CpuIcon, MailIcon, SparkleIcon, ClockIcon, ChatIcon, ChevronDownIcon, ArrowRightIcon } from './evalIcons';
+import { TargetIcon, CpuIcon, MailIcon, SparkleIcon, ClockIcon, ChatIcon, ChevronDownIcon, ArrowRightIcon, CheckCircleIcon } from './evalIcons';
 import Avatar from '../shared/Avatar.jsx';
 import Chip from '../shared/Chip.jsx';
 import FeedbackOkrPanel from './FeedbackOkrPanel.jsx';
@@ -109,6 +109,10 @@ const DEFAULT_LABELS = {
   aiDrafting: '⏳ 생성 중...',
   aiHintIdle: 'KR 달성률·최근 스니핏 기반 추천',
   aiHintDone: 'AI 초안 — 수정 후 전달하세요',
+  // PW-2481 — 한 글자라도 고친 초안(확인). 정책 §4.3 의 «✓» 는 글자 대신 체크 아이콘으로 그린다(PW-315 글리프 금지).
+  aiHintConfirmed: 'AI 초안 확인됨',
+  // PW-2481 — 그 팀원의 OKR 을 못 불러왔을 때 꺼진 [AI 추천 받기] 의 말풍선 (§4.3 · §5 · EC-3)
+  aiNeedsOkr: 'OKR 컨텍스트가 필요합니다',
   aiPersonalized: '수신자 선호 스타일 반영됨',
   aiFooter: '스니핏·OKR 데이터를 기반으로 AI가 초안을 작성했습니다',
   send: '전달 →',
@@ -439,9 +443,10 @@ function BlockCard({ block, member, L, onOpen }) {
 }
 
 // ── AI 초안 작성 박스 ──
-function ModalComposeBox({ block, memberName, L, onSend, onAiDraft }) {
+function ModalComposeBox({ block, memberName, L, onSend, onAiDraft, aiDraftDisabled = false }) {
   const [text, setText] = useState('');
-  const [aiState, setAiState] = useState('idle'); // idle | loading | done
+  // done = AI 초안 미확인(노랑) · confirmed = 한 글자라도 고친 초안(초록). 정책 §4.2·§4.3 (PW-2481)
+  const [aiState, setAiState] = useState('idle'); // idle | loading | done | confirmed
   const [personalized, setPersonalized] = useState(false);
   // 초안이 KR 달성률·스니핏을 재료로 썼나. 거짓이면 «스니핏·OKR 기반» 안내를 숨긴다 —
   // 메모만으로 쓴 초안에 그 문구가 붙으면 근거 있는 글로 믿게 된다. 값을 안 주면 예전처럼 띄운다.
@@ -496,33 +501,48 @@ function ModalComposeBox({ block, memberName, L, onSend, onAiDraft }) {
         onChange={(e) => {
           setText(e.target.value);
           if (aiState === 'loading') typedDuringAi.current = true;
-          if (aiState === 'done') setAiState('idle');
+          // 고치면 확인(초록). 확인은 전달하거나 전부 지울 때까지 남는다 — 다시 추천받으면 ai() 가 done 으로 되돌린다.
+          if (aiState === 'done' || aiState === 'confirmed') setAiState(e.target.value === '' ? 'idle' : 'confirmed');
         }}
         placeholder={L.composePlaceholder}
         maxLength={maxLen}
         data-testid="fbmgr-compose-text"
-        className="evf-textarea" style={aiState === 'done' ? { borderColor: C.accentBd, background: C.accentBg } : undefined}
+        className={['evf-textarea', aiState === 'done' && 'is-ai-unconfirmed', aiState === 'confirmed' && 'is-ai-confirmed'].filter(Boolean).join(' ')}
       />
       <FeedbackLengthNote text={text} label={L.textLimitNote} color={C.red} testId="fbmgr-compose-limit" />
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontSize: 12, color: C.sub }}>
-          {aiState === 'done' ? L.aiHintDone : L.aiHintIdle}
-        </span>
-        {aiState === 'done' && personalized && (
+        {aiState === 'done' || aiState === 'confirmed' ? (
+          <span
+            data-testid="fbmgr-ai-state"
+            data-state={aiState === 'done' ? 'unconfirmed' : 'confirmed'}
+            className={`evf-ai-state ${aiState === 'done' ? 'is-unconfirmed' : 'is-confirmed'}`}
+          >
+            {aiState === 'confirmed' && <CheckCircleIcon size={12} />}
+            {aiState === 'done' ? L.aiHintDone : L.aiHintConfirmed}
+          </span>
+        ) : (
+          <span style={{ fontSize: 12, color: C.sub }}>
+            {L.aiHintIdle}
+          </span>
+        )}
+        {(aiState === 'done' || aiState === 'confirmed') && personalized && (
           <Chip tone="accent" icon={<TargetIcon size={11} />}>{L.aiPersonalized}</Chip>
         )}
         <span style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
           {onAiDraft && (
+            <Tooltip content={aiDraftDisabled ? L.aiNeedsOkr : ''}>
             <button
               type="button"
-              disabled={aiState === 'loading'}
+              disabled={aiState === 'loading' || aiDraftDisabled}
               aria-busy={aiState === 'loading' || undefined}
               onClick={ai}
               data-testid="fbmgr-ai-draft"
+              className="fbmgr-ai-draft"
               style={{ border: `1px solid ${C.accentBd}`, background: C.accentBg, color: C.accent, borderRadius: 8, padding: '8px 12px', fontSize: 13, fontWeight: 600, cursor: aiState === 'loading' ? 'wait' : 'pointer' }}
             >
               {aiState === 'loading' ? <span className="dp-busy-inline"><Spinner size={13} />{L.aiDrafting}</span> : <><SparkleIcon size={13} /> {L.aiDraft}</>}
             </button>
+            </Tooltip>
           )}
           <Button
             type="button"
@@ -535,7 +555,7 @@ function ModalComposeBox({ block, memberName, L, onSend, onAiDraft }) {
           </Button>
         </span>
       </div>
-      {aiState === 'done' && grounded && <p style={{ fontSize: 12, color: C.sub, margin: 0 }}><CpuIcon size={11} /> {L.aiFooter}</p>}
+      {(aiState === 'done' || aiState === 'confirmed') && grounded && <p style={{ fontSize: 12, color: C.sub, margin: 0 }}><CpuIcon size={11} /> {L.aiFooter}</p>}
     </div>
   );
 }
@@ -685,7 +705,7 @@ function RequestBubble({ item, L }) {
   );
 }
 
-function ThreadModal({ block, member, memberName, L, isPastPeriod, onSend, onAiDraft, onSummarize, onEditFeedback, onDeleteFeedback, onClose }) {
+function ThreadModal({ block, member, memberName, L, isPastPeriod, onSend, onAiDraft, aiDraftDisabled, onSummarize, onEditFeedback, onDeleteFeedback, onClose }) {
   const isKr = block.type === 'kr';
   const isEtc = block.type === 'etc';
   const items = [...block.items].sort((a, b) => new Date(a.sentAt) - new Date(b.sentAt));
@@ -730,7 +750,7 @@ function ThreadModal({ block, member, memberName, L, isPastPeriod, onSend, onAiD
         isEtc ? null : isPastPeriod ? (
           <div style={{ padding: 16, background: C.pastBg, color: C.sub, fontSize: 'var(--font-size-text-xs)', textAlign: 'center' }}><ClockIcon size={12} /> {L.pastReadonly}</div>
         ) : (
-          <ModalComposeBox block={block} memberName={memberName} L={L} onSend={onSend} onAiDraft={onAiDraft} />
+          <ModalComposeBox block={block} memberName={memberName} L={L} onSend={onSend} onAiDraft={onAiDraft} aiDraftDisabled={aiDraftDisabled} />
         )
       }
     >
@@ -885,7 +905,7 @@ function IncomingRequestsSection({ requests, krBlocks, initBlocks, L, onAnswer }
 }
 
 // ── 팀원 스레드 화면 ──
-function ThreadScreen({ member, thread, krs, initiatives, okrGroups, snippets, L, onBack, onChangePeriod, onSend, onAiDraft, onSummarize, onEditFeedback, onDeleteFeedback, openTarget, onOpenTargetHandled, openBlockKey, onOpenBlockChange }) {
+function ThreadScreen({ member, thread, krs, initiatives, okrGroups, snippets, L, onBack, onChangePeriod, onSend, onAiDraft, aiDraftDisabled, onSummarize, onEditFeedback, onDeleteFeedback, openTarget, onOpenTargetHandled, openBlockKey, onOpenBlockChange }) {
   // 연 창은 소비 측이 쥘 수도 있다(`openBlockKey` 를 넘기면) — 브라우저 뒤로가기로 창만 닫으려면
   // 창이 열린 것을 주소 기록에 남겨야 해서다(manager §8-10). 안 넘기면 종전처럼 캔버스가 쥔다.
   const controlled = openBlockKey !== undefined;
@@ -968,7 +988,7 @@ function ThreadScreen({ member, thread, krs, initiatives, okrGroups, snippets, L
       {krBlocks.length === 0 && initBlocks.length === 0 && !etc && <p className="evc-empty-sub">{L.emptyBlock}</p>}
 
       {liveBlock && (
-        <ThreadModal block={liveBlock} member={member} memberName={member.name} L={L} isPastPeriod={thread?.isPastPeriod} onSend={onSend} onAiDraft={onAiDraft} onSummarize={onSummarize} onEditFeedback={onEditFeedback} onDeleteFeedback={onDeleteFeedback} onClose={() => { setOpenBlock(null); setLinkDismissed(true); }} />
+        <ThreadModal block={liveBlock} member={member} memberName={member.name} L={L} isPastPeriod={thread?.isPastPeriod} onSend={onSend} onAiDraft={onAiDraft} aiDraftDisabled={aiDraftDisabled} onSummarize={onSummarize} onEditFeedback={onEditFeedback} onDeleteFeedback={onDeleteFeedback} onClose={() => { setOpenBlock(null); setLinkDismissed(true); }} />
       )}
     </div>
   );
@@ -993,6 +1013,11 @@ export default function EvalFeedbackComposeCanvas({
   onChangePeriod,
   onSendFeedback,
   onAiDraft,
+  /**
+   * 그 팀원의 OKR(KR)을 불러오지 못했거나 KR 이 없으면 참 — [✦ AI 추천 받기] 를 끄고 «OKR 컨텍스트가 필요합니다»
+   * 말풍선을 단다(screen-feedback-manager.policy §4.3 · §5 · EC-3, pivit-work PW-2481). 안 주면 지금처럼 켜져 있다.
+   */
+  aiDraftDisabled = false,
   onSummarize,
   // 보낸 피드백 수정·삭제 (§3.8) — `(item, text)` · `(item)`. 실패는 던진다(말풍선이 받아 알린다).
   onUpdateFeedback,
@@ -1110,6 +1135,7 @@ export default function EvalFeedbackComposeCanvas({
             onChangePeriod={onChangePeriod}
             onSend={handleSend}
             onAiDraft={handleAiDraft}
+            aiDraftDisabled={aiDraftDisabled}
             onSummarize={onSummarize}
             onEditFeedback={onUpdateFeedback}
             onDeleteFeedback={onDeleteFeedback}
