@@ -167,6 +167,8 @@ const DEFAULT_LABELS = {
     `결제 시 ${seats}좌석 기준으로 청구됩니다. 결제 전까지 유료 기능은 열리지 않습니다.`,
   quotePayCta: '결제하기',
   quoteAcceptRenewalCta: '갱신 조건에 동의',
+  // 즉시 해지·환불이 끝나지 않은 동안 (pivit-work PW-2476 · screen-billing-plans §2 «갱신 견적» 행)
+  quoteRenewalLockedNote: '환불이 끝날 때까지 계약 조건을 바꿀 수 없습니다',
   // ── 이용 정지 안내 띠 (pivit-work PW-2549·PW-2550 · screen-billing-plans «이용 정지 안내 띠» 행) ──
   suspendedTitle: '서비스 이용이 정지된 상태입니다',
   suspendedBody:
@@ -217,7 +219,9 @@ function FeatureIcon({ status }) {
 //
 // 취소선은 참조 정가가 있고 **협의 단가가 그보다 쌀 때만** 쓴다. 인상 계약에 취소선·
 // 「할인」 문구를 붙이면 계약 조건을 잘못 말하는 것이 된다.
-function QuoteCard({ quote, canEdit, onPay, billedSeats, seatsOverMax, labels }) {
+function QuoteCard({ quote, canEdit, onPay, billedSeats, seatsOverMax, labels, renewalLocked = false }) {
+  // 갱신 동의만 잠근다 — 새 견적 [결제하기]는 서버가 따로 막고, 해지된 회사에는 갱신 견적이 오지 않는다.
+  const locked = Boolean(quote.isRenewal && renewalLocked);
   const dLeft = quote.daysUntilValidUntil;
   const urgent = dLeft != null && dLeft <= 7;
   const showStrike =
@@ -302,9 +306,14 @@ function QuoteCard({ quote, canEdit, onPay, billedSeats, seatsOverMax, labels })
       </div>
 
       <div style={{ marginTop: 12 }}>
-        <Btn onClick={onPay} disabled={!canEdit}>
+        <Btn onClick={onPay} disabled={!canEdit || locked}>
           {quote.isRenewal ? labels.quoteAcceptRenewalCta : labels.quotePayCta}
         </Btn>
+        {locked && (
+          <div data-testid="billing-quote-renewal-locked" style={{ fontSize: 12, color: T.amber, marginTop: 'var(--spacing-xs)' }}>
+            {labels.quoteRenewalLockedNote}
+          </div>
+        )}
       </div>
     </Card>
   );
@@ -514,6 +523,11 @@ export default function BillingPlansCanvas({
   onQuoteCheckout = () => {},
   /** 갱신 견적 동의 — 체크아웃을 재경유하지 않는다(빌링키·첫 결제가 이미 있다). */
   onAcceptQuoteRenewal = () => {},
+  /**
+   * 즉시 해지·환불이 끝나지 않았다(처리 중·실패) — 갱신 견적 [갱신 조건에 동의]를 끄고
+   * «환불이 끝날 때까지 계약 조건을 바꿀 수 없습니다»를 보인다 (pivit-work PW-2476).
+   */
+  renewalLocked = false,
   /**
    * 약정 기간 중 하향 차단 (spec-billing.md §2.6.4 · `screen-billing-plans.policy.md`
    * 「약정 기간 중 하향 CTA 비활성」). `{ contractEnd, lockedPlanCodes }` 또는 `null`.
@@ -822,6 +836,7 @@ export default function BillingPlansCanvas({
             billedSeats={quoteBilledSeats}
             seatsOverMax={quoteSeatsOverMax}
             labels={labels}
+            renewalLocked={renewalLocked}
             onPay={() =>
               validQuote.isRenewal
                 ? onAcceptQuoteRenewal(validQuote.quoteId)
