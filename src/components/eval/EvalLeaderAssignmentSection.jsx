@@ -14,6 +14,8 @@ import useDismissLayer from '../shared/useDismissLayer.js';
 import { SearchGlyph } from '../shared/lineIcons.jsx';
 import { AlertIcon, CheckCircleIcon } from './evalIcons.jsx';
 import { fill } from './evalTemplateItemModel.js';
+import { useHandleReorder } from './useHandleReorder.js';
+import { ReorderHandle } from './EvalTemplateBuilder.jsx';
 import {
   cellKey,
   emptyLeaderRule,
@@ -256,11 +258,23 @@ export default function EvalLeaderAssignmentSection({
   /** 툴팁용 글 — 요소가 아니라 문장. */
   const ruleTextPlain = (r) =>
     leaderRuleText(L, r, unitLabelOf, (id) => (id ? personOf(id)?.name ?? null : null));
-  const moveRule = (i, d) => {
-    const next = [...rules];
-    [next[i], next[i + d]] = [next[i + d], next[i]];
-    onRulesChange?.(next);
-  };
+  // 규칙 순서는 ⋮⋮ 손잡이 끌기 하나로 바꾼다 — 앱의 다른 순서 목록과 같은 조작(PW-2540 · 어니스트 2026-11-01).
+  // 종전 ▲▼ 는 없앴다. 손잡이에서 ↑/↓ 로도 한 칸씩 옮긴다(useHandleReorder).
+  // 고리 이름은 꺼내 쓴다 — 묶음째 들고 있으면 렌더 검사가 `ref` 에 건 값과 한 덩어리로 본다(EvalTemplateBuilder 와 같다).
+  const {
+    bindList: bindRuleList,
+    rowProps: ruleRowProps,
+    rowClass: ruleRowClass,
+    handleProps: ruleHandleProps,
+  } = useHandleReorder({
+    count: rules.length,
+    onReorder: (from, to) => {
+      const next = [...rules];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      onRulesChange?.(next);
+    },
+  });
   const toggleIn = (arr, v) => (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
   const draftInvalid = ruleDraft.action === 'assign' && !ruleDraft.evaluatorId;
   const addRule = () => {
@@ -493,7 +507,7 @@ export default function EvalLeaderAssignmentSection({
             <span className="evc-la-hint">{rulesOpen ? L.leaderRulesCollapse : L.leaderRulesExpand}</span>
           </button>
           {rulesOpen && (
-            <div className="evc-la-rules-body">
+            <div className="evc-la-rules-body" ref={bindRuleList}>
               {editable && <span className="evc-la-hint">{L.leaderRulesGuide}</span>}
               {rules.length === 0 ? (
                 <span className="evc-la-hint" data-testid="evc-la-rules-empty">
@@ -503,9 +517,24 @@ export default function EvalLeaderAssignmentSection({
                 rules.map((r, i) => (
                   <div
                     key={i}
-                    className={`evc-la-rule${ruleRoundMissing(r) ? ' is-off' : ''}`}
+                    className={[
+                      'evc-la-rule',
+                      ruleRoundMissing(r) ? 'is-off' : '',
+                      editable ? `dp-reorder-row ${ruleRowClass(i)}` : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
                     data-testid={`evc-la-rule-row-${i}`}
+                    {...(editable ? ruleRowProps(i) : {})}
                   >
+                    {editable && (
+                      <ReorderHandle
+                        handleProps={ruleHandleProps(i)}
+                        label={L.leaderRuleHandle}
+                        className="dp-reorder-handle"
+                        testId={`evc-la-rule-handle-${i}`}
+                      />
+                    )}
                     <span className="evc-la-hint">{i + 1}</span>
                     <span className="evc-la-rule-text">
                       {ruleCondition(r)} → {ruleAction(r)}
@@ -523,26 +552,6 @@ export default function EvalLeaderAssignmentSection({
                     </span>
                     {editable && (
                       <>
-                        <button
-                          type="button"
-                          className="evc-btn is-ghost"
-                          disabled={i === 0}
-                          aria-label={L.leaderRuleUp}
-                          onClick={() => moveRule(i, -1)}
-                          data-testid={`evc-la-rule-up-${i}`}
-                        >
-                          ▲
-                        </button>
-                        <button
-                          type="button"
-                          className="evc-btn is-ghost"
-                          disabled={i === rules.length - 1}
-                          aria-label={L.leaderRuleDown}
-                          onClick={() => moveRule(i, 1)}
-                          data-testid={`evc-la-rule-down-${i}`}
-                        >
-                          ▼
-                        </button>
                         <button
                           type="button"
                           className="evc-btn is-ghost"

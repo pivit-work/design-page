@@ -67,10 +67,19 @@ export function useHandleReorder({ count, onReorder, onStep }) {
     onDragEnd: reset,
   });
 
-  const rowClass = (i) =>
-    [overIdx === i && dragIdx !== i ? 'is-over' : '', dragIdx === i ? 'is-dragging' : '']
+  // `is-over-before` / `is-over-after` — 놓으면 끄는 줄이 그 줄의 위 · 아래 어느 쪽으로 들어가나.
+  // `move(from, to)` 는 위로 끌면 `to` 줄 앞, 아래로 끌면 `to` 줄 뒤에 넣는다. 놓일 자리를 선으로
+  // 그리는 목록(연차 정책 표 등, PW-2540)이 쓴다. `is-over` 는 그대로 둔다 — 테두리로 그리는 목록이 쓴다.
+  const rowClass = (i) => {
+    const over = overIdx === i && dragIdx !== null && dragIdx !== i;
+    return [
+      over ? 'is-over' : '',
+      over ? (dragIdx > i ? 'is-over-before' : 'is-over-after') : '',
+      dragIdx === i ? 'is-dragging' : '',
+    ]
       .filter(Boolean)
       .join(' ');
+  };
 
   const rowAt = (x, y) => {
     const el = document.elementFromPoint?.(x, y)?.closest('[data-reorder-row]');

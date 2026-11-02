@@ -135,6 +135,33 @@
 .rt-row.is-flagged { background: var(--colors-error-25, #fffbfa); }
 .rt-row.is-muted { opacity: 0.5; }
 
+/* ── 순서 끌기 (PW-2540) ─────────────────────────────────────── */
+/* ⋮⋮ 손잡이로 줄 순서를 바꾸는 목록이 함께 쓴다(useHandleReorder · ReorderHandle). 손잡이 모양·끄는
+   줄 반투명은 평가 항목 줄(.evc-tpl-item-handle · .evc-tpl-item.is-dragging)과 같다. 어드민 화면은
+   eval-cycle.css 를 싣지 않아 여기 둔다. 놓일 자리는 줄 폭을 바꾸지 않는 안쪽 그림자 선으로 그린다 —
+   위로 끌면 그 줄 위, 아래로 끌면 그 줄 아래(useHandleReorder 의 is-over-before/after). */
+.dp-reorder-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  cursor: grab;
+  touch-action: none;
+  border-radius: var(--radius-xs);
+}
+.dp-reorder-handle:focus-visible {
+  outline: 2px solid var(--utility-brand-500);
+  outline-offset: 1px;
+}
+.dp-reorder-row.is-dragging { opacity: 0.45; }
+.dp-reorder-row.is-over-before { box-shadow: inset 0 2px 0 var(--bg-brand-solid); }
+.dp-reorder-row.is-over-after { box-shadow: inset 0 -2px 0 var(--bg-brand-solid); }
+/* 표 줄은 <tr> 그림자가 그려지지 않는 브라우저가 있어 칸마다 긋는다. */
+.rt-row.dp-reorder-row.is-over-before,
+.rt-row.dp-reorder-row.is-over-after { box-shadow: none; }
+.rt-row.dp-reorder-row.is-over-before > td { box-shadow: inset 0 2px 0 var(--bg-brand-solid); }
+.rt-row.dp-reorder-row.is-over-after > td { box-shadow: inset 0 -2px 0 var(--bg-brand-solid); }
+
 .rt-group td {
   padding: 8px 12px;
   font-size: 12px;
