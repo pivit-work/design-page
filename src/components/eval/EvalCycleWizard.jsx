@@ -6898,13 +6898,34 @@ export default function EvalCycleWizard({
   };
   /* PW-2065 · §5.13.11 ① — 규칙 조건 값. 조직 = 부서(최상위)와 그 아래 팀(회사 노드 자체는 모든 사람의
      조상이라 «모든 대상자»와 같아 뺀다). 직급·직책 = 조직 설정 필드 옵션, 못 받았으면 구성원의 값. */
+  const leaderRuleUnitRows = orgTree
+    .filter((d) => !d.companyRoot && !String(d.id).startsWith('dept:'))
+    .flatMap((d) => [
+      { id: d.id, label: d.name, deptId: null },
+      ...d.teams.map((t) => ({ id: t.id, label: `${d.name} · ${t.name}`, deptId: d.id })),
+    ]);
+  /* 규칙의 조직은 트리 창(OrgTreePicker)에서 고른다 — 이름은 그 조직 자기 이름, 부모는 «목록에 있는
+     가장 가까운 윗조직»(사람이 없는 중간 조직은 목록에 없어서 건너뛴다). */
+  const leaderRuleUnitIds = new Set(leaderRuleUnitRows.map((r) => r.id));
+  const leaderRuleUnitSrc = new Map((Array.isArray(orgUnits) ? orgUnits : []).map((u) => [u.id, u]));
+  const leaderRuleParentOf = (row) => {
+    if (row.deptId == null) return null;
+    const seen = new Set();
+    let pid = leaderRuleUnitSrc.get(row.id)?.parentId;
+    while (pid != null && !seen.has(pid)) {
+      if (leaderRuleUnitIds.has(pid)) return pid;
+      seen.add(pid);
+      pid = leaderRuleUnitSrc.get(pid)?.parentId;
+    }
+    return row.deptId;
+  };
   const leaderRuleOptions = {
-    units: orgTree
-      .filter((d) => !d.companyRoot && !String(d.id).startsWith('dept:'))
-      .flatMap((d) => [
-        { id: d.id, label: d.name },
-        ...d.teams.map((t) => ({ id: t.id, label: `${d.name} · ${t.name}` })),
-      ]),
+    units: leaderRuleUnitRows.map((r) => ({
+      id: r.id,
+      label: r.label,
+      name: leaderRuleUnitSrc.get(r.id)?.name ?? r.label,
+      parentId: leaderRuleParentOf(r),
+    })),
     levels:
       fieldOptions?.jobLevel ?? [...new Set(candidates.map((c) => c.jobLevel).filter(Boolean))],
     positions:

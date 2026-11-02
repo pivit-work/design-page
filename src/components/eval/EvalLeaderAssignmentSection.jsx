@@ -11,7 +11,8 @@ import Chip from '../shared/Chip.jsx';
 import Select from '../shared/Select.jsx';
 import AnchoredLayer from '../shared/AnchoredLayer.jsx';
 import useDismissLayer from '../shared/useDismissLayer.js';
-import { SearchGlyph } from '../shared/lineIcons.jsx';
+import { PlusGlyph, SearchGlyph } from '../shared/lineIcons.jsx';
+import OrgTreePicker from '../admin/OrgTreePicker.jsx';
 import { AlertIcon, CheckCircleIcon } from './evalIcons.jsx';
 import { fill } from './evalTemplateItemModel.js';
 import { useHandleReorder } from './useHandleReorder.js';
@@ -105,7 +106,10 @@ export default function EvalLeaderAssignmentSection({
   /** 평가자 부담 경고 기준(0 = 끔). */
   loadLimit = 0,
   onLoadLimitChange,
-  /** 규칙 조건·평가자 값 목록 `{ units: [{ id, label }], levels: [], positions: [], people: [{ id, name, org }] }`. */
+  /**
+   * 규칙 조건·평가자 값 목록 `{ units: [{ id, label, name, parentId }], levels: [], positions: [], people: [{ id, name, org }] }`.
+   * 조직은 칩으로 다 펼치지 않고 트리 창(OrgTreePicker)에서 고르므로 `name`·`parentId` 로 트리를 만든다.
+   */
   ruleOptions = { units: [], levels: [], positions: [], people: [] },
   /** 조직 단위 id → 이름(없는 조직이면 null). */
   unitLabelOf = () => null,
@@ -125,6 +129,7 @@ export default function EvalLeaderAssignmentSection({
   const [rulesOpen, setRulesOpen] = useState(false);
   const [vacantOpen, setVacantOpen] = useState(false);
   const [ruleDraft, setRuleDraft] = useState(() => emptyLeaderRule(Math.min(2, rounds)));
+  const [unitPickerOpen, setUnitPickerOpen] = useState(false);
   const panelRef = useRef(null);
   useDismissLayer(
     () => {
@@ -570,8 +575,64 @@ export default function EvalLeaderAssignmentSection({
               {editable && (
                 <div className="evc-la-rule-form" data-testid="evc-la-rule-form">
                   <span className="evc-la-bar-detail">{L.leaderRuleAddHead}</span>
+                  {/* 조직은 수십 개라 칩으로 다 펼치면 직급·직책·[규칙 추가]가 화면 밖으로 밀린다 —
+                      고른 것만 칩으로 두고, 고르기는 어드민 소속 선택과 같은 트리 창에서 한다. */}
+                  {ruleOptions.units.length > 0 && (
+                    <div className="evc-la-rule-axis" data-testid="evc-la-rule-units">
+                      <span className="evc-la-hint">{L.leaderRuleAxisUnit}</span>
+                      {ruleDraft.units.map((id) => (
+                        <Chip
+                          key={id}
+                          selected
+                          onRemove={() => setRuleDraft((d) => ({ ...d, units: d.units.filter((x) => x !== id) }))}
+                          removeLabel={fill(L.leaderRuleUnitRemove, {
+                            name: ruleOptions.units.find((u) => u.id === id)?.label ?? unitLabelOf(id) ?? '',
+                          })}
+                          removeProps={{ 'data-testid': `evc-la-rule-unit-remove-${id}` }}
+                          data-testid={`evc-la-rule-chip-units-${id}`}
+                        >
+                          {ruleOptions.units.find((u) => u.id === id)?.label ?? unitLabelOf(id) ?? L.leaderRuleUnitMissing}
+                        </Chip>
+                      ))}
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setUnitPickerOpen(true)}
+                        data-testid="evc-la-rule-unit-pick"
+                      >
+                        <PlusGlyph aria-hidden="true" />
+                        {ruleDraft.units.length > 0 ? L.leaderRuleUnitChange : L.leaderRuleUnitPick}
+                      </Button>
+                    </div>
+                  )}
+                  {unitPickerOpen && (
+                    <OrgTreePicker
+                      open
+                      multi
+                      primarySelectable={false}
+                      units={ruleOptions.units.map((u) => ({
+                        id: u.id,
+                        name: u.name ?? u.label,
+                        parentId: u.parentId ?? null,
+                      }))}
+                      selectedIds={ruleDraft.units}
+                      labels={{
+                        title: L.leaderRuleUnitPickerTitle,
+                        search: L.leaderRuleUnitPickerSearch,
+                        hint: L.leaderRuleUnitPickerHint,
+                        appendHint: L.leaderRuleUnitPickerMultiHint,
+                        appendNone: L.leaderRuleUnitPickerNone,
+                        apply: L.leaderRuleUnitPickerApply,
+                        cancel: L.leaderRuleUnitPickerCancel,
+                      }}
+                      onApply={({ unitIds }) => {
+                        setRuleDraft((d) => ({ ...d, units: unitIds }));
+                        setUnitPickerOpen(false);
+                      }}
+                      onClose={() => setUnitPickerOpen(false)}
+                    />
+                  )}
                   {[
-                    ['units', L.leaderRuleAxisUnit, ruleOptions.units.map((u) => [u.id, u.label])],
                     ['levels', L.leaderRuleAxisLevel, ruleOptions.levels.map((v) => [v, v])],
                     ['positions', L.leaderRuleAxisPosition, ruleOptions.positions.map((v) => [v, v])],
                   ].map(([axis, label, opts]) =>
