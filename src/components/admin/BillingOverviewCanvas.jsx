@@ -2,6 +2,9 @@ import { useRef, useState } from 'react';
 import ModalShell from '../shared/ModalShell.jsx';
 import Button from '../shared/Button.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
+import Stack from '../shared/Stack.jsx';
+import FormField from '../shared/FormField.jsx';
+import TextArea from '../shared/TextArea.jsx';
 import { ArrowRightGlyph } from '../shared/lineIcons.jsx';
 import { BillingCard as Card, BillingBadge as Badge } from './kit/BillingSurface.jsx';
 
@@ -34,6 +37,8 @@ const STATUS_META = {
   canceled: { color: T.sub, bg: T.bl },
   // 체험(PW-1025) — 기획서 시안 billing-app.jsx 의 `trial` 배지 그대로
   trial: { color: T.accentText, bg: 'var(--bg-brand-secondary)' },
+  // 이용 정지(pivit-work PW-2549) — 결제 실패와 같은 «결제 문제로 막힘» 빨강 (기획 시안 billing-app.jsx 상태 배지)
+  usage_suspended: { color: T.red, bg: T.redBg },
 };
 
 const DEFAULT_LABELS = {
@@ -47,6 +52,7 @@ const DEFAULT_LABELS = {
     past_due: '결제 실패',
     canceled: '구독 종료됨',
     trial: '체험 중',
+    usage_suspended: '이용 정지',
   },
 
   // 체험 배너 (PW-1025 · screen-billing-overview.policy.md 「체험 안내 배너」)
@@ -204,11 +210,12 @@ const DEFAULT_LABELS = {
 
   // ── 베타 출시 혜택 · 요금 인상 동의 (pivit-work PW-2360 · spec-billing §2.7.3-A · §3.2-D) ──
   launchBenefitTag: (until) => ` · 베타 출시 혜택 · ${until}까지`,
-  launchBenefitAfter: (price) => `그 뒤 좌석당 ${won(price)} / 월 — 바뀌기 30일 전에 동의를 여쭙니다.`,
+  // 끝 구절 — 동의하지 않으면 이용 정지 (pivit-work PW-2549 · overview «베타 출시 혜택 표시» 행)
+  launchBenefitAfter: (price) => `그 뒤 좌석당 ${won(price)} / 월 — 바뀌기 30일 전에 동의를 여쭙니다 · 동의하지 않으시면 혜택이 끝난 뒤 첫 결제일부터 이용이 정지됩니다(기록 보기 · 결제는 됩니다).`,
   priceChangeTitle: '요금 변경 안내 — 동의가 필요합니다',
   priceChangeReason: (date) => `베타 출시 혜택 단가 기간이 ${date}에 끝납니다.`,
   priceChangeBody: (planLabel, chargeDate, oldPrice, newPrice) =>
-    `${planLabel} 좌석 단가가 ${chargeDate} 결제부터 ${won(oldPrice)}→${won(newPrice)}/월로 바뀝니다. 동의하지 않으시면 기존 요금으로 계속 이용하십니다.`,
+    `${planLabel} 좌석 단가가 ${chargeDate} 결제부터 ${won(oldPrice)}→${won(newPrice)}/월로 바뀝니다. 동의하지도 해지하지도 않으시면 ${chargeDate}부터 서비스 이용이 정지됩니다.`,
   priceChangeAction: '변경 내용 확인',
   priceChangeNoPerm: '동의는 결제 권한자만 할 수 있습니다 — 결제 담당자에게 문의하세요.',
   priceChangeConsentedTitle: (chargeDate, newPrice) =>
@@ -227,9 +234,36 @@ const DEFAULT_LABELS = {
   priceChangeCancelLabel: '해지',
   priceChangeCancelValue: (chargeDate) =>
     `${chargeDate} 전까지 해지할 수 있습니다. 해지하면 이번 주기가 끝난 뒤 Free 로 바뀌며, 남은 기간 환불은 해지·환불 정책을 따릅니다.`,
-  priceChangeNoResponse: '동의하지도 해지하지도 않으시면 기존 요금으로 계속 이용하십니다.',
+  // 무응답이면 인상 청구일부터 이용 정지 (pivit-work PW-2549 · overview «혜택 종료 사유 줄» 행) — 날짜를 받는다
+  priceChangeNoResponse: (chargeDate) =>
+    `동의하지도 해지하지도 않으시면 ${chargeDate}부터 서비스 이용이 정지됩니다. 기존 기록은 그대로 보실 수 있고, 정가로 결제하시면 바로 다시 이용하실 수 있습니다.`,
   priceChangeAgree: '변경된 요금에 동의',
   priceChangeCancelSubscription: '구독 해지',
+
+  // ── 이용 정지 · 해지 신청 (pivit-work PW-2549·PW-2550 · screen-billing-overview «이용 정지 배너»·«해지 신청» 행) ──
+  suspendedSeatPrice: '결제된 기간 없음',
+  suspendedTitle: '서비스 이용이 정지되었습니다 — 기존 기록은 보실 수 있습니다',
+  suspendedDesc: (since) =>
+    `베타 출시 혜택이 끝나 요금 변경에 동의하지 않으셔서 ${since}부터 정지되었습니다. 유료 요금제를 정가로 결제하시면 그 순간 다시 이용하시고, 결제한 날이 새 청구일이 됩니다. 해지를 원하시면 [해지 신청]을 눌러 주세요 — 운영팀이 확인한 뒤 해지됩니다.`,
+  suspendedNoPerm: '결제 권한이 없습니다 — 결제 담당자(Owner·billing_admin)에게 문의하세요.',
+  suspendedContactSupport: '고객지원 문의',
+  suspendedRequestCancel: '해지 신청',
+  suspendedPay: '결제하고 다시 이용하기',
+  cancelRequestPendingTitle: (date) => `해지 신청을 받았습니다 · ${date}`,
+  cancelRequestPendingDesc:
+    '운영팀이 확인하고 있습니다. 인정되면 Free 플랜으로 바뀌고 메일로 알려 드립니다. 그 전까지는 지금처럼 기록 보기와 결제만 됩니다.',
+  cancelRequestWithdraw: '해지 신청 취소',
+  cancelRequestRejectedTitle: (reason) => `해지 신청이 반려되었습니다 — ${reason}`,
+  cancelRequestRejectedDesc: '궁금한 점은 고객지원으로 문의해 주세요. 다시 신청하실 수 있습니다.',
+  cancelRequestModalTitle: '해지를 신청하시겠습니까?',
+  cancelRequestModalBody:
+    '해지가 인정되면 유료 구독이 끝나고 Free 플랜으로 바뀝니다. 기록은 그대로 남고, 구성원이 5명을 넘으면 새 구성원을 추가할 수 없습니다. 전자결재 · 휴가 패키지는 이미 꺼져 있습니다.',
+  cancelRequestModalNote: '운영팀이 확인한 뒤 인정되면 메일로 알려 드립니다. 정산은 신청하신 날의 달을 기준으로 정합니다.',
+  cancelRequestReasonLabel: '해지 사유 (선택)',
+  cancelRequestSubmit: '해지 신청',
+  cancelRequestWithdrawTitle: '해지 신청을 취소하시겠습니까?',
+  cancelRequestWithdrawBody: '서비스는 계속 정지된 상태입니다.',
+  cancelRequestWithdrawSubmit: '신청 취소',
 };
 
 function mergeLabels(provided) {
@@ -392,12 +426,38 @@ export default function BillingOverviewCanvas({
    */
   onWithdrawUpgrade,
   withdrawBlockedMessage = null,
+  /**
+   * 이용 정지 (pivit-work PW-2549 · overview «이용 정지 배너»·«정지 중 플랜 카드» 행) — 구독이 «이용 정지»일 때만 앱이
+   * `{ since: 'YYYY-MM-DD' }`(정지된 날)를 넘긴다. 있으면 빨간 정지 배너, 상태 배지 «이용 정지», 단가 줄 «결제된 기간 없음»,
+   * 「다음 청구」 카드와 [업그레이드]·[좌석·플랜 변경]·[결제수단 갱신]·[구독 해지]를 그리지 않는다. 결제는 배너의
+   * [결제하고 다시 이용하기](`onNavigatePlans`) 하나다.
+   */
+  suspension = null,
+  /**
+   * 이용 정지 회사의 해지 신청 (pivit-work PW-2550) — 서버 구독 응답 그대로 `{ status: 'pending' | 'rejected', requestedAt, rejectReason }`
+   * 또는 `null`. 접수됨이면 앰버 카드 + [해지 신청 취소]·배너의 [해지 신청] 감춤, 반려됨이면 빨간 테두리 카드.
+   */
+  cancellationRequest = null,
+  /** 해지 신청 상태를 못 불러왔다 — 카드를 그리지 않고 배너의 [해지 신청]을 잠근다(상태를 모른 채 두 번 받지 않는다). */
+  cancellationRequestUnavailable = false,
+  /** 해지 사유 글자 수 상한 — 앱이 서버와 같은 한도를 넘긴다. */
+  cancellationReasonMaxLength,
+  /** [고객지원 문의] — 앱이 문의하기 화면으로 보낸다. */
+  onContactSupport,
+  /** 해지 신청 창의 [해지 신청] `(reason) => Promise` — 끝나면 창을 닫고, 거부(throw)하면 창을 연 채 버튼만 돌아온다. */
+  onRequestCancellation,
+  /** 신청 취소 창의 [신청 취소] `() => Promise` — 위와 같다. */
+  onWithdrawCancellationRequest,
 }) {
   const labels = mergeLabels(providedLabels);
   const [cancelOpen, setCancelOpen] = useState(false); // 해지 방식 선택 모달
   const [withdrawBusy, setWithdrawBusy] = useState(false);
   const [refundBusy, setRefundBusy] = useState(false);
   const priceChangeBodyRef = useRef(null);
+  // 해지 신청 창 (PW-2550) — 'request' | 'withdraw' | null
+  const [cancelReqModal, setCancelReqModal] = useState(null);
+  const [cancelReqReason, setCancelReqReason] = useState('');
+  const [cancelReqBusy, setCancelReqBusy] = useState(false);
 
   const sub = subscription;
   const quote = refundQuote;
@@ -478,6 +538,24 @@ export default function BillingOverviewCanvas({
   // 업그레이드 철회가 끝나지 않은 동안은 요금제가 곧 바뀌는 구독이라 해지·변경 버튼을 숨긴다(overview §2 · PW-2475).
   // 조회 전용(hr_admin)에게도 숨기지 않고 비활성으로 보인다 — 다른 편집 버튼과 같다(overview §2 «hr_admin 처리» · §6 · PW-2476).
   const showCancel = !holding && !isFree && ((sub.status === 'active' && !sub.cancelAtPeriodEnd) || pastDue);
+  // 이용 정지 (PW-2549·PW-2550) — 상태를 못 불러왔으면 신청 카드를 그리지 않는다.
+  const suspended = Boolean(suspension);
+  const cancelReqKnown = suspended && !cancellationRequestUnavailable;
+  const cancelReqPending = cancelReqKnown && cancellationRequest?.status === 'pending';
+  const cancelReqRejected = cancelReqKnown && cancellationRequest?.status === 'rejected';
+  // 창의 [해지 신청]·[신청 취소] — 도는 동안 다시 못 누르고, 앱이 거부하면 창을 연 채 버튼만 돌아온다.
+  const runCancelRequest = async (action) => {
+    if (cancelReqBusy || !action) return;
+    setCancelReqBusy(true);
+    try {
+      await action();
+      setCancelReqModal(null);
+    } catch {
+      /* 앱이 토스트를 띄운다 — 창은 그대로 */
+    } finally {
+      setCancelReqBusy(false);
+    }
+  };
 
   return (
     <div style={{ fontFamily: T.font, background: T.bg, minHeight: '100vh', padding: 32, color: T.text }}>
@@ -491,6 +569,65 @@ export default function BillingOverviewCanvas({
         <p style={{ color: T.sub, fontSize: 14, marginTop: 0, marginBottom: 24 }}>
           {labels.pageSubtitle}
         </p>
+
+        {/* 이용 정지 배너 (pivit-work PW-2549·PW-2550 · overview «이용 정지 배너» 행) — Dunning 배너와 같은 빨간 Card.
+            버튼 순서는 기획 시안대로 [고객지원 문의] · [해지 신청](접수 중이면 감춤 · 결제 권한 없음·상태 모름이면 잠금) · [결제하고 다시 이용하기] */}
+        {suspended && (
+          <Card style={{ marginBottom: 'var(--spacing-xl)', background: T.redBg, border: '1px solid var(--utility-error-300)',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--spacing-xl)' }}>
+            <div data-testid="billing-suspended-banner" role="status">
+              <div style={{ fontWeight: 800, color: T.red, marginBottom: 'var(--spacing-xs)' }}>{labels.suspendedTitle}</div>
+              <div style={{ fontSize: 13, color: T.text }}>{labels.suspendedDesc(suspension.since)}</div>
+              {!canEdit && (
+                <div style={{ fontSize: 12, color: T.sub, marginTop: 'var(--spacing-sm)' }}>{labels.suspendedNoPerm}</div>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: 'var(--spacing-md)', flex: 'none', whiteSpace: 'nowrap' }}>
+              <Btn kind="secondary" onClick={onContactSupport}>{labels.suspendedContactSupport}</Btn>
+              {!cancelReqPending && (
+                <Btn kind="secondary" disabled={!canEdit || !cancelReqKnown}
+                  onClick={() => { setCancelReqReason(''); setCancelReqModal('request'); }}>
+                  {labels.suspendedRequestCancel}
+                </Btn>
+              )}
+              <Btn kind="danger" onClick={onNavigatePlans} disabled={!canEdit}>{labels.suspendedPay}</Btn>
+            </div>
+          </Card>
+        )}
+
+        {/* 해지 신청 접수 카드 (PW-2550 · overview «해지 신청 접수 Card») — 환불 처리 중 띠와 같은 Card + 앰버 */}
+        {cancelReqPending && (
+          <Card style={{ marginBottom: 'var(--spacing-xl)', background: T.amberBg, border: '1px solid var(--utility-warning-200)',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--spacing-xl)' }}>
+            <div data-testid="billing-cancel-request-pending" role="status">
+              <div style={{ fontWeight: 800, color: T.amber, marginBottom: 'var(--spacing-xs)' }}>
+                {labels.cancelRequestPendingTitle(cancellationRequest.requestedAt)}
+              </div>
+              <div style={{ fontSize: 13, color: T.text }}>{labels.cancelRequestPendingDesc}</div>
+            </div>
+            <div style={{ flex: 'none', whiteSpace: 'nowrap' }}>
+              <Btn kind="secondary" onClick={() => setCancelReqModal('withdraw')} disabled={!canEdit}>
+                {labels.cancelRequestWithdraw}
+              </Btn>
+            </div>
+          </Card>
+        )}
+
+        {/* 해지 신청 반려 카드 (PW-2550 · overview «해지 신청 반려 Card») — 환불 실패 띠와 같은 Card + 빨간 테두리 */}
+        {cancelReqRejected && (
+          <Card style={{ marginBottom: 'var(--spacing-xl)', border: '1px solid var(--utility-error-300)',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--spacing-xl)' }}>
+            <div data-testid="billing-cancel-request-rejected" role="status">
+              <div style={{ fontWeight: 800, color: T.red, marginBottom: 'var(--spacing-xs)' }}>
+                {labels.cancelRequestRejectedTitle(cancellationRequest.rejectReason ?? '')}
+              </div>
+              <div style={{ fontSize: 13, color: T.text }}>{labels.cancelRequestRejectedDesc}</div>
+            </div>
+            <div style={{ flex: 'none', whiteSpace: 'nowrap' }}>
+              <Btn kind="secondary" onClick={onContactSupport}>{labels.suspendedContactSupport}</Btn>
+            </div>
+          </Card>
+        )}
 
         {/* Dunning 경고 배너 */}
         {sub.status === 'past_due' && (
@@ -656,7 +793,9 @@ export default function BillingOverviewCanvas({
                   ? labels.freeSeatPrice(plan.seatLimit)
                   : sub.status === 'trial'
                     ? labels.trialSeatPrice /* PW-1025 — 체험은 청구서를 만들지 않는다 */
-                    : labels.paidSeatPrice(contract ? contract.seatPrice : planUnitPrice)}
+                    : suspended
+                      ? labels.suspendedSeatPrice /* PW-2549 — 정지는 청구서를 만들지 않는다 */
+                      : labels.paidSeatPrice(contract ? contract.seatPrice : planUnitPrice)}
                 {/* 베타 출시 혜택(PW-2360 · §2.7.3-A 4) — 청구 단가가 정가보다 낮은 이유와 끝난 뒤 단가 */}
                 {launchBenefit && (
                   <span data-testid="billing-launch-benefit"
@@ -672,7 +811,7 @@ export default function BillingOverviewCanvas({
             <div style={{ display: 'flex', gap: 8 }}>
               {/* 업그레이드 CTA: 다음 티어로 (동적 플랜명) */}
               {/* 체험 중에는 체험 배너의 [결제하고 계속 쓰기]가 대신한다 (PW-1025) */}
-              {upgradeTargetLabel && !holding && !sub.cancelAtPeriodEnd && sub.status !== 'past_due' && sub.status !== 'trial' && (
+              {upgradeTargetLabel && !holding && !suspended && !sub.cancelAtPeriodEnd && sub.status !== 'past_due' && sub.status !== 'trial' && (
                 <Btn onClick={onNavigatePlans} disabled={!canEdit}>
                   {labels.upgradeCta(upgradeTargetLabel)}
                 </Btn>
@@ -792,9 +931,10 @@ export default function BillingOverviewCanvas({
           </div>
         </Card>
 
-        {/* 청구 정보 (active/past_due) */}
-        {(sub.status === 'active' || sub.status === 'past_due') && !isFree && (
+        {/* 청구 정보 (active/past_due) — 이용 정지면 결제수단 요약만 남고 「다음 청구」는 없다(청구가 없다 · PW-2549) */}
+        {((sub.status === 'active' || sub.status === 'past_due') && !isFree || suspended) && (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+            {!suspended && (
             <Card>
               <div style={{ fontSize: 13, color: T.sub, marginBottom: 8 }}>{labels.nextBillingLabel}</div>
               <div style={{ fontSize: 20, fontWeight: 800 }}>{won(sub.periodAmount)}</div>
@@ -844,6 +984,7 @@ export default function BillingOverviewCanvas({
                 </div>
               )}
             </Card>
+            )}
             <Card>
               <div style={{ fontSize: 13, color: T.sub, marginBottom: 8 }}>{labels.methodLabel}</div>
               {sub.method ? (
@@ -1016,7 +1157,7 @@ export default function BillingOverviewCanvas({
         )}
 
         {/* 요금 변경 동의 창 (PW-2360 · «(PW-1426)» 동의 창 행) — 해지 창과 같은 공용 틀. 법이 고지하라는 넷
-            (적용 시점 · 전후 단가 · 결제 방법 · 해지 조건)과 예상 금액, 무응답이면 기존 요금이라는 문장 */}
+            (적용 시점 · 전후 단가 · 결제 방법 · 해지 조건)과 예상 금액, 무응답이면 인상 청구일부터 이용 정지라는 문장(PW-2549) */}
         {priceChange && priceChangeOpen && canEdit && (
           <ModalShell
             title={labels.priceChangeModalTitle}
@@ -1073,9 +1214,55 @@ export default function BillingOverviewCanvas({
               ))}
               <div style={{ fontSize: 13, color: T.text, background: T.bl, borderRadius: 10,
                 padding: 'var(--spacing-md) var(--spacing-lg)' }}>
-                {labels.priceChangeNoResponse}
+                {typeof labels.priceChangeNoResponse === 'function'
+                  ? labels.priceChangeNoResponse(priceChange.chargeDate)
+                  : labels.priceChangeNoResponse}
               </div>
             </div>
+          </ModalShell>
+        )}
+
+        {/* 해지 신청 확인 창 · 신청 취소 확인 창 (pivit-work PW-2550 · overview «해지 신청 확인 창» 행 · §4) — 해지 방식 선택 창과 같은 공용 틀.
+            [해지 신청]·[신청 취소]는 도는 동안 진행 표시(두 번 누름 막음) */}
+        {suspended && cancelReqModal && canEdit && (
+          <ModalShell
+            title={cancelReqModal === 'request' ? labels.cancelRequestModalTitle : labels.cancelRequestWithdrawTitle}
+            titleId="billing-cancel-request-title"
+            closeLabel={labels.close}
+            onClose={() => setCancelReqModal(null)}
+            busy={cancelReqBusy}
+            zIndex={1000}
+            className="adm-shell"
+            testId={cancelReqModal === 'request' ? 'billing-cancel-request-modal' : 'billing-cancel-request-withdraw-modal'}
+            footer={<>
+              <Button variant="secondary" disabled={cancelReqBusy} onClick={() => setCancelReqModal(null)}>
+                {labels.close}
+              </Button>
+              {cancelReqModal === 'request' ? (
+                <Button variant="danger" pending={cancelReqBusy} data-testid="billing-cancel-request-submit"
+                  onClick={() => runCancelRequest(() => onRequestCancellation?.(cancelReqReason))}>
+                  {labels.cancelRequestSubmit}
+                </Button>
+              ) : (
+                <Button variant="danger" pending={cancelReqBusy} data-testid="billing-cancel-request-withdraw-submit"
+                  onClick={() => runCancelRequest(() => onWithdrawCancellationRequest?.())}>
+                  {labels.cancelRequestWithdrawSubmit}
+                </Button>
+              )}
+            </>}
+          >
+            {cancelReqModal === 'request' ? (
+              <Stack gap="lg">
+                <div style={{ fontSize: 13, color: T.sub }}>{labels.cancelRequestModalBody}</div>
+                <div style={{ fontSize: 13, color: T.sub }}>{labels.cancelRequestModalNote}</div>
+                <FormField label={labels.cancelRequestReasonLabel}>
+                  <TextArea rows={3} value={cancelReqReason} maxLength={cancellationReasonMaxLength}
+                    onChange={(e) => setCancelReqReason(e.target.value)} />
+                </FormField>
+              </Stack>
+            ) : (
+              <div style={{ fontSize: 13, color: T.sub }}>{labels.cancelRequestWithdrawBody}</div>
+            )}
           </ModalShell>
         )}
 

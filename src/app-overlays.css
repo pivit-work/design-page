@@ -261,3 +261,29 @@
   cursor: not-allowed;
   opacity: 0.6;
 }
+
+/* 같은 띠를 «이용 정지» 안내에 쓸 때 (pivit-work PW-2549) — 빨강(결제 문제로 막힘), 둘째 줄, 버튼 여럿.
+   자리·높이·글씨·버튼 모양은 위 값 그대로다. */
+.pw-impersonation-banner.is-danger {
+  background: var(--bg-error-solid);
+}
+
+.pw-impersonation-banner.is-stacked .pw-impersonation-banner__text {
+  white-space: normal;
+}
+
+.pw-impersonation-banner__detail {
+  display: block;
+  font-weight: 500;
+}
+
+.pw-impersonation-banner__actions {
+  margin-left: auto;
+  flex-shrink: 0;
+  display: inline-flex;
+  gap: var(--spacing-md);
+}
+
+.pw-impersonation-banner__actions .pw-impersonation-banner__return {
+  margin-left: 0;
+}

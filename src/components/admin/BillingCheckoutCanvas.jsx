@@ -41,6 +41,8 @@ const DEFAULT_LABELS = {
   successReconciled: ' · 미수금 정산 완료',
   successReceiptNote: '영수증(카드매출전표)은 결제 완료 후 청구 내역에서 다운로드할 수 있습니다.',
   successGoOverview: '구독 현황으로',
+  // 이용 정지에서 결제했을 때 제목 아래 한 줄 (pivit-work PW-2549 · screen-billing-checkout «성공 화면» 행)
+  successResumed: (date) => `서비스 이용이 다시 열렸습니다 · 오늘(${date})이 새 청구일입니다`,
 
   orderSummary: '주문 요약',
   seatPriceLine: (planLabel, unitPrice) => `${planLabel} · 좌석당 ${won(unitPrice)} / 월`,
@@ -103,7 +105,8 @@ const DEFAULT_LABELS = {
   negotiatedSuccessNote: ' · 협의 단가 적용',
   // 베타 출시 혜택 (pivit-work PW-2360 · spec-billing §2.7.3-A 4 · screen-billing-checkout «(출시 혜택)» 행)
   launchBenefitTag: (until) => `베타 출시 혜택 · ${until}까지 월간도 연간 단가`,
-  launchBenefitAfter: (price) => `그 뒤 좌석당 ${won(price)} / 월 — 바뀌기 30일 전에 동의를 여쭙니다.`,
+  // 끝 구절 — 동의하지 않으면 이용 정지 (pivit-work PW-2549 · checkout «베타 출시 혜택 고지» 행)
+  launchBenefitAfter: (price) => `그 뒤 좌석당 ${won(price)} / 월 — 바뀌기 30일 전에 동의를 여쭙니다 · 동의하지 않으시면 혜택이 끝난 뒤 첫 결제일부터 이용이 정지됩니다(기록 보기 · 결제는 됩니다).`,
   quoteBlockedTitleExpired: '견적이 만료되었습니다',
   quoteBlockedTitleSuperseded: '견적이 변경되었습니다',
   quoteBlockedBodyExpired:
@@ -259,6 +262,11 @@ export default function BillingCheckoutCanvas({
    * 세션이 정한 값만 넘긴다 — 있으면 좌석 단가 줄 아래 혜택 기간과 그 뒤 단가·동의 절차를 미리 알린다.
    */
   launchBenefit = null,
+  /**
+   * 이용 정지에서 결제했다 (pivit-work PW-2549) — 결제가 끝나면 앱이 `{ date: 'YYYY-MM-DD' }`(결제한 날 = 새 청구일)를 넘긴다.
+   * 성공 화면 요약 아래 «서비스 이용이 다시 열렸습니다 · 오늘({결제일})이 새 청구일입니다» 한 줄을 붙인다.
+   */
+  resumedFromSuspension = null,
   /**
    * 요금제 변경 모드 (pivit-work PW-2475 · screen-billing-checkout §1·§2). 이용 중 구독이 상위 요금제로 올릴 때
    * **서버 체크아웃 세션이 정한 값만** 넘긴다 — 화면이 차액·일수를 따로 세지 않는다.
@@ -431,6 +439,12 @@ export default function BillingCheckoutCanvas({
               ) : labels.successSummary(order.planLabel, billedSeats, total)}
               {quoteOk && labels.negotiatedSuccessNote}
               {isRenewal && labels.successReconciled}
+              {resumedFromSuspension && !isRenewal && (
+                <div data-testid="billing-checkout-resumed"
+                  style={{ marginTop: 'var(--spacing-xs)', color: T.text, fontWeight: 700 }}>
+                  {labels.successResumed(resumedFromSuspension.date)}
+                </div>
+              )}
             </div>
             <div style={{ fontSize: 13, color: T.muted, marginBottom: 24 }}>
               {labels.successReceiptNote}

@@ -55,7 +55,8 @@ const DEFAULT_LABELS = {
   annualPerSeatNote: '연간 35% 할인(확정) 적용 체감 단가',
   // 베타 출시 혜택 (pivit-work PW-2360 · spec-billing §2.7.3-A 3 · screen-billing-plans «(출시 혜택)» 행)
   launchBenefitPlanTag: (until) => `베타 출시 혜택 · ${until}까지 월간도 연간 단가`,
-  launchBenefitPlanAfter: (price) => `그 뒤 ${won(price)} / 좌석 / 월 — 바뀌기 30일 전에 동의를 여쭙니다`,
+  // 끝 구절 — 동의하지 않으면 이용 정지 (pivit-work PW-2549 · plans «베타 출시 혜택 단가» 행)
+  launchBenefitPlanAfter: (price) => `그 뒤 ${won(price)} / 좌석 / 월 — 바뀌기 30일 전에 동의를 여쭙니다 · 동의하지 않으시면 혜택이 끝난 뒤 첫 결제일부터 이용이 정지됩니다(기록 보기 · 결제는 됩니다)`,
   annualComingSoon: '연간 할인 추후 공개',
   ctaCurrentPlan: '현재 플랜',
   ctaContactSales: '영업팀 문의',
@@ -166,6 +167,11 @@ const DEFAULT_LABELS = {
     `결제 시 ${seats}좌석 기준으로 청구됩니다. 결제 전까지 유료 기능은 열리지 않습니다.`,
   quotePayCta: '결제하기',
   quoteAcceptRenewalCta: '갱신 조건에 동의',
+  // ── 이용 정지 안내 띠 (pivit-work PW-2549·PW-2550 · screen-billing-plans «이용 정지 안내 띠» 행) ──
+  suspendedTitle: '서비스 이용이 정지된 상태입니다',
+  suspendedBody:
+    '유료 요금제를 정가로 결제하시면 그 순간 다시 이용하실 수 있고, 결제한 날이 새 청구일이 됩니다. Free 로 바꾸거나 해지하시려면 구독 현황에서 [해지 신청]을 눌러 주세요.',
+  suspendedBackToOverview: '구독 현황으로',
 };
 
 function mergeLabels(provided) {
@@ -541,6 +547,12 @@ export default function BillingPlansCanvas({
    * 카드 가격과 예상 청구액이 연간 단가다. 결제 금액은 서버가 다시 정한다.
    */
   launchBenefitUntil = null,
+  /**
+   * 이용 정지 (pivit-work PW-2549·PW-2550 · plans «이용 정지 안내 띠» 행) — 구독이 «이용 정지»면 앱이 `{}`(참)를 넘긴다.
+   * 맨 위 빨간 띠 + [구독 현황으로], «현재 플랜» 배지 없음(정지 전 요금제도 다시 고른다), Free 카드 버튼 잠금,
+   * 유료 카드는 모두 결제(체크아웃)로 간다 — 정지 전보다 낮은 요금제도 «변경 확인 창»이 아니라 결제다.
+   */
+  suspension = null,
 }) {
   const seatConfirmId = useId();
   const labels = mergeLabels(providedLabels);
@@ -586,8 +598,9 @@ export default function BillingPlansCanvas({
   });
 
   const currentPlan = plans.find((p) => p.code === subscription.planCode);
-  const currentRank = currentPlan?.tierRank ?? 0;
-  const isCurrentFree = (currentPlan?.tierRank ?? 0) === 0;
+  // 이용 정지면 지금 결제된 요금제가 없다 — 모든 유료 카드가 «결제»다 (PW-2549).
+  const currentRank = suspension ? 0 : (currentPlan?.tierRank ?? 0);
+  const isCurrentFree = suspension ? true : (currentPlan?.tierRank ?? 0) === 0;
 
   const lowestPaidPlan = plans
     .filter((p) => (p.tierRank ?? 0) > 0 && !p.isCustom)
@@ -757,6 +770,20 @@ export default function BillingPlansCanvas({
           </Card>
         )}
 
+        {/* 이용 정지 안내 띠 (pivit-work PW-2549·PW-2550) — 구독 현황 정지 배너와 같은 빨간 Card */}
+        {suspension && (
+          <Card style={{ marginBottom: 'var(--spacing-xl)', background: T.redBg, border: '1px solid var(--utility-error-300)',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--spacing-xl)' }}>
+            <div data-testid="billing-plans-suspended" role="status">
+              <div style={{ fontWeight: 800, color: T.red, marginBottom: 'var(--spacing-xs)' }}>{labels.suspendedTitle}</div>
+              <div style={{ fontSize: 13, color: T.text }}>{labels.suspendedBody}</div>
+            </div>
+            <div style={{ flex: 'none', whiteSpace: 'nowrap' }}>
+              <Btn kind="secondary" onClick={onNavigateBillingOverview}>{labels.suspendedBackToOverview}</Btn>
+            </div>
+          </Card>
+        )}
+
         {/* 해지 예약 상태 안내 */}
         {subscription.cancelAtPeriodEnd && (
           <Card style={{ marginBottom: 16, background: T.amberBg, border: '1px solid #FDE68A' }}>
@@ -809,11 +836,13 @@ export default function BillingPlansCanvas({
             <PlanCard
               key={plan.code}
               plan={plan}
-              isCurrent={plan.code === subscription.planCode}
+              isCurrent={!suspension && plan.code === subscription.planCode}
               interval={interval}
               canEdit={
                 canEdit &&
                 !subscriptionUnavailable &&
+                // 이용 정지면 Free 로 가는 결제는 없다 — 해지는 구독 현황의 [해지 신청] (띠 둘째 문장이 이유를 말한다)
+                !(suspension && (plan.tierRank ?? 0) === 0) &&
                 !subscription.cancelAtPeriodEnd &&
                 !(commitment?.lockedPlanCodes ?? []).includes(plan.code)
               }
@@ -847,7 +876,7 @@ export default function BillingPlansCanvas({
           plans={plans}
           featureKeys={featureKeys}
           featureLabelMap={featureLabelMap}
-          currentPlanCode={subscription.planCode}
+          currentPlanCode={suspension ? null : subscription.planCode}
           labels={labels}
         />
 

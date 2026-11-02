@@ -6,6 +6,8 @@
 // ─────────────────────────────────────────────────────────────
 
 import Tooltip from '../shared/Tooltip.jsx';
+import Button from '../shared/Button.jsx';
+import ModalLayer from '../shared/ModalLayer.jsx';
 import { resolveKoreanParticles } from '../shared/koreanParticle.js';
 
 const T = {
@@ -270,6 +272,93 @@ export function UpsellCard({ feature, requiredTier, onNavigate, labels }) {
         {labels?.footer ?? '업그레이드 후 즉시 활성화됩니다'}
       </div>
     </div>
+  );
+}
+
+/**
+ * SuspendedNoticeCard — 구독 «이용 정지» 회사가 막힌 동작·내려받기를 눌렀을 때 UpsellCard 대신 그리는 안내 카드
+ * (pivit-work PW-2549·PW-2550 · screen-tier-gating.policy.md §6.10 «막힌 동작을 누름»·«내려받기를 누름» 행).
+ *
+ * 같은 자리·같은 크기 — 겉 상자(흰 바탕·테두리·모서리 16·안쪽 여백 40/32·줄 사이 16·가운데 정렬)는 UpsellCard 와 같은 값을
+ * 간격 토큰으로 적었다. 자물쇠 칸은 티어 색 대신 «결제 문제로 막힘» 빨강(오류 토큰)이다. 버튼은 공용 `Button`.
+ * 문구·버튼(역할별)은 앱이 정해 넘긴다.
+ *
+ * Props:
+ *   title    굵은 첫 줄 («지금은 기록 보기만 할 수 있습니다»)
+ *   desc     둘째 줄
+ *   note     결제 권한이 없는 사람에게 덧붙이는 한 줄(«결제 담당자에게 결제를 요청해 주세요.») — 없으면 그리지 않는다
+ *   noteBelow true 면 note 를 버튼 줄 아래에 둔다(내려받기 안내 — 정본 «[고객지원 문의] + «…»» 순서). 기본은 버튼 위
+ *   actions  `[{ key, label, onClick, variant: 'primary' | 'secondary' | 'danger', testId }]` — 넘긴 순서대로
+ *   testId   겉 상자 data-testid
+ */
+export function SuspendedNoticeCard({ title, desc, note, noteBelow = false, actions = [], testId }) {
+  return (
+    <div
+      data-testid={testId}
+      role="status"
+      style={{
+        background: T.card,
+        border: `1px solid ${T.border}`,
+        borderRadius: 16,
+        padding: 'var(--spacing-5xl) var(--spacing-4xl)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 'var(--spacing-xl)',
+        textAlign: 'center',
+        fontFamily: T.font,
+      }}
+    >
+      <div
+        style={{
+          width: 56,
+          height: 56,
+          borderRadius: 16,
+          background: 'var(--bg-error-primary)',
+          border: '1.5px solid var(--utility-error-200)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="4" y="11" width="16" height="11" rx="3" stroke="var(--fg-error-primary)" strokeWidth="1.8" />
+          <path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="var(--fg-error-primary)" strokeWidth="1.8" strokeLinecap="round" fill="none" />
+          <circle cx="12" cy="16.5" r="1.5" fill="var(--fg-error-primary)" />
+        </svg>
+      </div>
+      <div>
+        <div style={{ fontSize: 16, fontWeight: 800, color: T.text, marginBottom: 'var(--spacing-sm)' }}>{title}</div>
+        <div style={{ fontSize: 13, color: T.sub, lineHeight: 1.7, maxWidth: 360 }}>{desc}</div>
+      </div>
+      {note && !noteBelow && <div style={{ fontSize: 13, color: T.sub }}>{note}</div>}
+      {actions.length > 0 && (
+        <div style={{ display: 'flex', gap: 'var(--spacing-md)', justifyContent: 'center', flexWrap: 'wrap' }}>
+          {actions.map((a) => (
+            <Button key={a.key} variant={a.variant ?? 'secondary'} onClick={a.onClick} data-testid={a.testId}>
+              {a.label}
+            </Button>
+          ))}
+        </div>
+      )}
+      {note && noteBelow && <div style={{ fontSize: 13, color: T.sub }}>{note}</div>}
+    </div>
+  );
+}
+
+/**
+ * SuspendedNoticeDialog — 화면을 바꾸지 않는 자리(내려받기 버튼 등)에서 `SuspendedNoticeCard` 를 화면 가운데에 띄운다
+ * (pivit-work PW-2550 · tier-gating §6.10 «내려받기를 누름» — 토스트 대신 안내 카드). 막·Esc·막 누르기 닫기는 공용
+ * `ModalLayer` 그대로, 카드 폭은 UpsellScreen 의 본문 폭(680)과 같다. props 는 카드와 같고 `onClose` 를 더 받는다.
+ */
+export function SuspendedNoticeDialog({ onClose, ...cardProps }) {
+  // 창 틀(제목 줄·닫기 X)이 없는 카드 한 장이라 ModalShell 이 아니라 막(ModalLayer)만 쓴다 — 카드가 `role="status"` 로 읽힌다.
+  return (
+    <ModalLayer onClose={onClose} testId="suspended-notice-dialog">
+      <div style={{ width: 'min(680px, 100%)' }}>
+        <SuspendedNoticeCard {...cardProps} />
+      </div>
+    </ModalLayer>
   );
 }
 

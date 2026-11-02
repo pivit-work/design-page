@@ -367,6 +367,8 @@ export {
   TierGate,
   UpsellCard,
   UpsellScreen,
+  SuspendedNoticeCard,
+  SuspendedNoticeDialog,
   LockBadge,
   FEATURE_TIER,
   TIER_RANK,
