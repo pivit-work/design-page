@@ -154,6 +154,10 @@ const DEFAULT_LABELS = {
   quoteIntervalAnnual: '연간 (1년분 선결제)',
   quoteIntervalMonthly: '월간',
   quoteValidUntil: '견적 유효기간',
+  // PW-2473 — 견적의 «좌석당 월 녹음 시간». 요금제 기본값보다 크면 «계약으로 늘린 시간»을 덧붙인다.
+  quoteRecording: '녹음',
+  quoteRecordingValue: (hours) => `좌석당 월 ${hours}시간`,
+  quoteRecordingExtendedNote: '계약으로 늘린 시간',
   quoteOverMaxNotice: (max, price) =>
     `계약 좌석 범위(${max}명)를 초과했습니다. 구성원 추가는 차단되지 않으며, 초과분은 ${won(price)} 단가로 청구되고 영업팀에 통지됩니다.`,
   quoteRenewalNote:
@@ -263,6 +267,16 @@ function QuoteCard({ quote, canEdit, onPay, billedSeats, seatsOverMax, labels })
           <div style={{ color: T.sub, marginBottom: 2 }}>{labels.quoteValidUntil}</div>
           <div style={{ fontWeight: 700 }}>{quote.validUntil}</div>
         </div>
+        {/* PW-2473 — 녹음 시간이 없는 옛 견적은 칸을 그리지 않는다. 옆 칸(계약 좌석·계약 기간)과 같은 이름표·값·보조 줄 모양. */}
+        {quote.recordHoursPerSeat != null && (
+          <div>
+            <div style={{ color: T.sub, marginBottom: 'var(--spacing-xxs)' }}>{labels.quoteRecording}</div>
+            <div style={{ fontWeight: 700 }}>{labels.quoteRecordingValue(quote.recordHoursPerSeat)}</div>
+            {quote.planRecordHoursPerSeat != null && quote.recordHoursPerSeat > quote.planRecordHoursPerSeat && (
+              <div style={{ fontSize: 11, color: T.muted }}>{labels.quoteRecordingExtendedNote}</div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* 계약 좌석 범위 초과 — **차단하지 않고** 초과 단가로 과금한다. Free 좌석 상한

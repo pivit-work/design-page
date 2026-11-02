@@ -94,6 +94,9 @@ const DEFAULT_LABELS = {
   negotiatedContract: (start, end, min, max, validUntil) =>
     `계약 기간 ${start} ~ ${end} · 계약 좌석 ${max == null ? `${min}명 이상` : `${min}~${max}명`} · 견적 유효기간 ${validUntil}`,
   negotiatedMinSeatsNote: (min) => `약정 최소 좌석 ${min}명 기준으로 청구됩니다.`,
+  // PW-2473 — 계약 요약의 녹음 «좌석당 월 {n}시간». 요금제 기본값보다 크면 «계약으로 늘린 시간»을 덧붙인다.
+  negotiatedRecording: (hours, extended) =>
+    `녹음 좌석당 월 ${hours}시간${extended ? ' · 계약으로 늘린 시간' : ''}`,
   negotiatedOverageLine: (seats, unit) => `계약 범위 초과 ${seats}좌석 × ${won(unit)}`,
   negotiatedSeatBasisNote: (min) =>
     `금액은 결제일 기준 활성 좌석 수로 산정하되, 약정 최소 좌석(${min}명) 아래로는 내려가지 않습니다.`,
@@ -457,6 +460,15 @@ export default function BillingCheckoutCanvas({
                   {labels.negotiatedContract(
                     quote.contractStart, quote.contractEnd,
                     quote.minSeats, quote.maxSeats, quote.validUntil,
+                  )}
+                  {quote.recordHoursPerSeat != null && (
+                    <div>
+                      {labels.negotiatedRecording(
+                        quote.recordHoursPerSeat,
+                        quote.planRecordHoursPerSeat != null
+                          && quote.recordHoursPerSeat > quote.planRecordHoursPerSeat,
+                      )}
+                    </div>
                   )}
                   {quote.minSeats > 1 && (
                     <div>{labels.negotiatedMinSeatsNote(quote.minSeats)}</div>
