@@ -86,7 +86,7 @@ export default function OkrResourceTeam({ data, icons, baseUrl = '', onComment, 
                   <p>{T.comments(commentsOf(member, i).length)}</p>
                 </div>
               </div>
-              <RsBullets items={member.items} onOpenProject={onOpenProject} openTitle={T.openProject} />
+              <RsBullets items={member.items} onOpenProject={onOpenProject} openTitle={T.openProject} cannotOpenTitle={T.cannotOpenProject} />
             </div>
             <button
               type="button"

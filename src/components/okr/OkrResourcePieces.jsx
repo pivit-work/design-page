@@ -70,13 +70,17 @@ export function RsStackBar({ segments }) {
  * 프로젝트 불릿 리스트 — 색상별 14 Semibold 불릿. Figma 17478:23485.
  * `onOpenProject(projectId)` 를 주면 `projectId` 가 있는 줄(원장이 있는 프로젝트)만 눌린다 — 프로젝트 상세로 간다
  * (PW-1865 · 기획서 screen-project-detail.policy.md §3 진입점 4행). 눌리는 모양은 내 입력의 프로젝트 이름(`rsx-entry-name.is-link`)과 같다.
+ * `canOpen === false` 인 줄(원장을 열 수 없는 프로젝트)은 글자로만 두고 말풍선에 `cannotOpenTitle` 한 줄 — 판정은 서버 값만 본다
+ * (PW-2321 · 원장 정책서 v1.8 §3 「팀 현황」 · 조직도 스쿼드 카드 PW-2278 과 같은 방식).
  */
-export function RsBullets({ items, onOpenProject, openTitle }) {
+export function RsBullets({ items, onOpenProject, openTitle, cannotOpenTitle }) {
   return (
     <ul className="rsx-bullets">
       {items.map((item, i) => (
         <li key={rowKey(item, i, 'text')} style={{ color: item.color }}>
-          {onOpenProject && item.projectId ? (
+          {item.projectId && item.canOpen === false ? (
+            <span data-testid={`rsx-bullet-closed-${item.projectId}`} data-can-open="false" title={cannotOpenTitle}>{item.text}</span>
+          ) : onOpenProject && item.projectId ? (
             <button
               type="button"
               className="rsx-bullet-link"

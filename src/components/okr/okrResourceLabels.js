@@ -66,6 +66,8 @@ export const OKR_RESOURCE_DEFAULT_LABELS = {
   },
   team: {
     openProject: '프로젝트 상세 보기',
+    // 원장을 열 수 없는 칩의 말풍선 — 원장 정책서 v1.8 §3 「팀 현황」 그대로 (PW-2321)
+    cannotOpenProject: '원장은 내 스쿼드나 내 조직이 리드인 스쿼드의 프로젝트만 열 수 있습니다',
     total: '팀원 총원',
     relaxed: '여유',
     focused: '몰입',
