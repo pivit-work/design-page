@@ -419,7 +419,7 @@
 .sq-photo-32 { width: 32px; height: 32px; border-width: 0.75px; }
 /* «그림» 보기 사람 노드(PW-2356) — 매트릭스 이름 칸 사진과 같은 40. 규칙이 없으면 올린 사진이
    원본 크기(1024px 등)로 그려져 그림을 덮는다. 새 지름을 부르면 여기에 규칙을 더한다. */
-.sq-photo-40 { width: 40px; height: 40px; }
+.sq-photo-40 { width: 40px; height: 40px; border-width: 1px; }  /* 테두리도 매트릭스 이름 칸 40(.pj-member-avatar 1px)과 같게 */
 /* 매트릭스의 40px 이니셜 원 — `pj-member-initials` 위에 같은 방어만 얹는다 */
 .sq-avatar-lg {
   white-space: nowrap;
@@ -1863,7 +1863,8 @@
   width: 54px;
   height: 54px;
 }
-.sq-graph-ring { position: absolute; left: 0; top: 0; }
+/* 둘레(52)를 사람 칸(54) 가운데에 — 왼쪽 위에 붙이면 사진과 둘레 사이 틈이 한쪽만 넓다 */
+.sq-graph-ring { position: absolute; inset: 0; margin: auto; }
 .sq-graph-ring-track { fill: none; stroke: var(--bg-tertiary); stroke-width: 3; }
 .sq-graph-ring-fill { fill: none; stroke-width: 3; stroke-linecap: round; }
 .sq-graph-person-name {
