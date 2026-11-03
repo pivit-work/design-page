@@ -8,7 +8,7 @@ import ConfirmModal from '../shared/ConfirmModal.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
 import Radio from '../shared/Radio.jsx';
 import Chip from '../shared/Chip.jsx';
-import { FieldInfo, FieldVisibility } from './evalFieldMeta.jsx';
+import { FieldInfo, FieldVisibility, FieldAuthorNote } from './evalFieldMeta.jsx';
 import EvalNoteBlock, { EvalMarkdownLite } from './EvalNoteBlock.jsx';
 import { isNoteItem, categoryKind } from './evalTemplateItemModel.js';
 import { resolveUiLocale } from '../shared/uiLocale.js';
@@ -235,6 +235,8 @@ function buildFields(template, L) {
           // 「항목 아래 상시 표시」도 화면에 닿지 않았고, 서식이 그려질 자리가 아예 없었다.
           descriptionDisplay: it.descriptionDisplay || 'tooltip',
           visibleToRoles: it.visibleToRoles ?? null,
+          // [PW-2426] 공개 범위 안내 아래 «어떤 이름으로 보이나» 한 줄. 앱이 옮긴 글을 들고 온다(없으면 안 그린다).
+          authorNote: it.authorNote ?? null,
           // PW-433 ①③ — 척도 길이·양끝 의미·선택지는 **항목이 들고 온다**. 화면이
           // 5점을 고정하면 설계자가 정한 7점 척도가 작성 화면에서 5점으로 보인다.
           scaleMax: it.scaleMax ?? null,
@@ -1467,6 +1469,7 @@ export default function EvalCycleMemberCanvas({
                       labels={L}
                     />
                   )}
+                  {showVisibility && <FieldAuthorNote text={f.authorNote} />}
                 </div>
                 ),
               )}
@@ -1695,9 +1698,12 @@ export default function EvalCycleMemberCanvas({
             <section className="evc-card evm-done" data-testid="evm-done" ref={doneRef}>
               <div className="evm-done-icon"><CheckCircleIcon size={32} /></div>
               <h2 className="evm-done-title">{L.doneTitle}</h2>
-              <p className="evm-done-body">
-                {next ? fill(L.doneBodyNext, { next: next.label }) : L.doneBody}
-              </p>
+              {/* [PW-2426] 본문이 비면(동료 리뷰가 남은 건수를 모를 때) 빈 줄을 그리지 않는다. */}
+              {(next ? L.doneBodyNext : L.doneBody) && (
+                <p className="evm-done-body">
+                  {next ? fill(L.doneBodyNext, { next: next.label }) : L.doneBody}
+                </p>
+              )}
               {doneSteps.length > 0 && (
                 <div className="evm-done-steps" data-testid="evm-done-steps">
                   <div className="evm-done-steps-title">{L.doneStepsTitle}</div>

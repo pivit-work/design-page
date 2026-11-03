@@ -1,6 +1,6 @@
 // TC-051/052 항목 설명(툴팁) · TC-053 항목별 공개 대상 — 셀프/동료/하향 캔버스 공용.
 // 캔버스마다 필드 렌더가 달라도 라벨 옆 info 툴팁과 항목 하단 공개범위 안내는 동일 규칙으로 노출한다.
-import { InfoIcon, EyeIcon, LockIcon } from './evalIcons.jsx';
+import { InfoIcon, EyeIcon, LockIcon, UsersIcon } from './evalIcons.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 
 const DEFAULT_VIS = {
@@ -46,6 +46,22 @@ export function FieldVisibility({ visibleToRoles, labels }) {
         {toEvaluatee ? <EyeIcon size={13} /> : <LockIcon size={13} />}
       </span>{' '}
       {toEvaluatee ? L.visibleToEvaluatee : L.visibleToOthers}
+    </p>
+  );
+}
+
+/**
+ * [PW-2426] 공개 범위 안내 바로 아래 «어떤 이름으로 보이나» 한 줄(구성원 정책 §5.2 ②).
+ * 위 줄과 같은 부품 모양 — «누구에게»는 위 줄이, «어떤 이름으로»는 이 줄이 말한다. 글이 없으면 그리지 않는다.
+ */
+export function FieldAuthorNote({ text }) {
+  if (!text) return null;
+  return (
+    <p className="evx-field-visibility" data-testid="evx-field-author-note">
+      <span aria-hidden="true">
+        <UsersIcon size={13} />
+      </span>{' '}
+      {text}
     </p>
   );
 }
