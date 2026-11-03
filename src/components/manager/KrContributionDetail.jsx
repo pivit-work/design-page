@@ -10,6 +10,7 @@ import Tabs from '../shared/Tabs.jsx';
  *   snippets: [{ date, text, tags: [string] }],
  *   actions:  [{ text, due, status: { label, tone } }],
  *   jira:     [{ key, title, status: { label, tone } }],
+ *   actionsEmpty?: string,  // 액션이 0건일 때 목록 자리에 보일 한 줄(예: «액션 없음»). 없으면 빈 칸 그대로
  * }
  */
 const DETAIL_TABS = [
@@ -21,6 +22,8 @@ const DETAIL_TABS = [
 export default function KrContributionDetail({ member }) {
   const [tab, setTab] = useState('snippets');
   const detail = member.detail ?? {};
+  // 빈 상태 글은 같은 KR 화면의 디자이너 빈 상태(`.mgr-kr-empty`, KrDrilldown «연결된 팀원이 없습니다»)를 그대로 쓴다.
+  const showActionsEmpty = !detail.actions?.length && !!detail.actionsEmpty;
 
   return (
     <div className="mgr-krd-panel">
@@ -55,7 +58,11 @@ export default function KrContributionDetail({ member }) {
         </div>
       )}
 
-      {tab === 'actions' && (
+      {tab === 'actions' && showActionsEmpty && (
+        <p className="mgr-kr-empty">{detail.actionsEmpty}</p>
+      )}
+
+      {tab === 'actions' && !showActionsEmpty && (
         <div className="mgr-krd-list">
           {detail.actions?.map((item) => (
             <div className="mgr-krd-row" key={item.text}>
