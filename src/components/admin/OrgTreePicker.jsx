@@ -96,9 +96,9 @@ const DEFAULT_LABELS = {
   makePrimaryTitle: '이 조직을 주 소속으로 지정합니다',
   // 조직장 지정 — PW-400 (라벨은 PW-422 에서 「매니저로」 → 「조직장으로」)
   makeLeader: '조직장으로',
-  makeLeaderTitle: '이 조직의 조직장으로 지정합니다. 권한이 매니저로 오르고 팀당 1명만 유지됩니다',
+  makeLeaderTitle: '이 조직의 매니저(조직장)로 지정합니다 — 이 조직과 하위 조직의 매니저가 됩니다',
   leaderBadge: '조직장',
-  leaderBadgeTitle: '이 조직의 조직장입니다. 눌러서 해제합니다 (권한은 유지)',
+  leaderBadgeTitle: '조직장 지정을 해제합니다 — 이 조직의 매니저 권한도 함께 사라집니다',
   leaderBlocked: '퇴사자는 조직장으로 지정할 수 없습니다',
   selectedCount: '선택 {count}곳',
   clearAll: '모두 해제',

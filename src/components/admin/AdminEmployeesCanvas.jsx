@@ -426,7 +426,7 @@ const DEFAULT_LABELS = {
     historyDeletedValue: '(삭제됨)',
     /* 조직 위치 — 이 사람이 조직장인 조직(읽기 전용, admin-spec §3.6-B-2) */
     leaderOf: '조직장',
-    leaderGoOrgUnits: '팀 · 조직에서 변경',
+    leaderGoOrgUnits: '조직단위 설정에서 변경 →',
     squadSection: '스쿼드',
     squadGoView: '조직도 스쿼드 뷰',
   },
@@ -1061,6 +1061,10 @@ function ManagerPicker({ candidates, labels, onPick, trigger, disabled = false }
 function UnassignedTab({
   members, orgUnits, labels, renderAvatar, onAssignOrgUnit, onChangeAffiliations,
   leaderGaps = EMPTY_LEADER_GAPS, onGoAssignLeader, onGoAssignCeo,
+  /* 조직단위 설정 화면을 열 수 없는 어드민(PW-2494 · admin-spec §3.3 «권한» 행) — 이 글이 오면
+     [조직장 지정 →]을 비활성으로 두고 이 글을 툴팁으로 단다. 지정 자격이 아니라 «이동할 화면을
+     열 수 있는가»라 버튼을 숨기지 않는다. */
+  goOrgUnitsBlockedTip,
 }) {
   const [pickerFor, setPickerFor] = useState(null);
   const orgTree = useMemo(() => buildOrgTree(orgUnits), [orgUnits]);
@@ -1219,9 +1223,17 @@ function UnassignedTab({
                   {/* 조직장 지정 자리는 조직이 맥락인 조직단위 설정이다(기획 §3.6-B-1). */}
                   {onGoAssignLeader && (
                     <div className="admin-emp-unassigned-action">
-                      <button type="button" className="admin-emp-btn is-primary is-sm" onClick={() => onGoAssignLeader(g.unitId)}>
-                        {labels.unassigned.leaderGapAction}
-                      </button>
+                      <Tooltip content={goOrgUnitsBlockedTip || undefined}>
+                        <button
+                          type="button"
+                          className="admin-emp-btn is-primary is-sm"
+                          disabled={Boolean(goOrgUnitsBlockedTip)}
+                          data-testid="leader-gap-go"
+                          onClick={() => onGoAssignLeader(g.unitId)}
+                        >
+                          {labels.unassigned.leaderGapAction}
+                        </button>
+                      </Tooltip>
                     </div>
                   )}
                 </div>
@@ -4030,6 +4042,8 @@ function EmployeesEditPanel({
   /* 이 사람이 조직장인 조직 id 목록과 그 조직을 조직단위 설정에서 여는 길(admin-spec §3.6-B-2).
      목록이 비면 「조직장: …」 줄을 그리지 않고, 길이 없으면 링크만 뺀다. */
   leaderUnitIds, onGoOrgUnit,
+  /* 조직단위 설정을 열 수 없는 어드민이면 그 버튼을 비활성 + 이 글 툴팁 (PW-2494). */
+  goOrgUnitsBlockedTip,
   /* 스쿼드 — 패널에서는 읽기 전용이다. 배정은 목록 스쿼드 칸 팝업, 비중·캐파는 조직도 스쿼드 뷰가
      정본이라(admin-spec §3.1 · TC-ADM-084) [조직도 스쿼드 뷰 →] 로 보낸다. `squadOptions` 가 비면
      (스쿼드를 안 쓰는 회사) 칸을 그리지 않고, `onGoSquadView` 가 없으면 버튼만 뺀다. */
@@ -4932,9 +4946,12 @@ function EmployeesEditPanel({
                     </div>
                   ))}
                   {onGoOrgUnit && (
-                    <button type="button" className="admin-emp-btn is-secondary is-sm"
-                      onClick={() => onGoOrgUnit(leaderUnitIds[0])}
-                      data-testid="employees-panel-leader-of-go">{labels.panel.leaderGoOrgUnits}</button>
+                    <Tooltip content={goOrgUnitsBlockedTip || undefined}>
+                      <button type="button" className="admin-emp-btn is-secondary is-sm"
+                        disabled={Boolean(goOrgUnitsBlockedTip)}
+                        onClick={() => onGoOrgUnit(leaderUnitIds[0])}
+                        data-testid="employees-panel-leader-of-go">{labels.panel.leaderGoOrgUnits}</button>
+                    </Tooltip>
                   )}
                 </div>
               )}
@@ -5569,6 +5586,8 @@ export default function AdminEmployeesCanvas({
   leaderGaps = EMPTY_LEADER_GAPS,
   /** [조직장 지정] `(unitId) => void` — 조직단위 설정으로 보낸다. 미주입이면 버튼이 없다. */
   onGoAssignLeader,
+  /* 조직단위 설정을 열 수 없는 어드민(p011 꺼짐)에게 줄 툴팁 — 오면 그 화면으로 가는 버튼이 비활성이 된다 (PW-2494). */
+  goOrgUnitsBlockedTip,
   /* [조직도 스쿼드 뷰 →] — 편집 패널 스쿼드 칸에서 조직도 스쿼드 뷰로 보낸다(TC-ADM-084). */
   onGoSquadView,
   /**
@@ -6039,6 +6058,7 @@ export default function AdminEmployeesCanvas({
           onChangeAffiliations={onChangeAffiliations}
           leaderGaps={leaderGaps}
           onGoAssignLeader={canEdit ? onGoAssignLeader : undefined}
+          goOrgUnitsBlockedTip={goOrgUnitsBlockedTip}
           /* 대표는 전체 구성원 행 메뉴에서 지정한다 — 그 메뉴가 서는 조건과 같게 건다. */
           onGoAssignCeo={canEdit && onAssignCeo && onReleaseCeo ? () => goTab('members') : undefined}
         />
@@ -6068,6 +6088,7 @@ export default function AdminEmployeesCanvas({
             positionHelp={positionHelp}
             leaderUnitIds={(leaderUnitIdsByMember || {})[target.id] || EMPTY_ARRAY}
             onGoOrgUnit={canEdit ? onGoAssignLeader : undefined}
+            goOrgUnitsBlockedTip={goOrgUnitsBlockedTip}
             squadOptions={squadOptions}
             squadLabels={labels.squadPicker}
             onGoSquadView={onGoSquadView}
