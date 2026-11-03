@@ -51,6 +51,38 @@ function toDraft(rows) {
   }));
 }
 
+/**
+ * 줄의 서버 값(상한·다른 프로젝트 몫·실제%·고칠 수 있나·캐파 요청 권한·요청됨)은 draft 에 굳히지 않고 지금 받은 판에서 읽는다.
+ * - 저장된 줄은 그 줄(`rows`), 저장 전에 넣은 줄은 [+ 인원 추가] 후보(`candidates`)의 그 자격 스쿼드 값 — 저장 전 줄도
+ *   저장된 줄과 같은 조치를 그린다(정책서 v1.9 §5-3 · 11-03 QA: 저장 전 줄만 «요청 권한 없음»이었다).
+ * - 판이 같아도 다시 불러오면(요청 403 뒤) 새 값을 따른다 — 고치는 값(계획%·PO)만 draft 에 남는다.
+ */
+function withServerFacts(row, data) {
+  const saved = data.rows.find((r) => r.memberId === row.memberId && r.viaSquadId === row.viaSquadId);
+  if (saved) {
+    return {
+      ...row,
+      cap: saved.squadAllocationPct,
+      other: saved.otherPct,
+      actualPct: saved.actualPct,
+      canEdit: !!saved.canEdit,
+      capacityRequestable: !!saved.capacityRequestable,
+      capacityRequestedAt: saved.capacityRequestedAt || null,
+    };
+  }
+  const candidate = (data.candidates || []).find((c) => c.memberId === row.memberId);
+  if (!candidate) return row;
+  const squadId = row.viaSquadId;
+  return {
+    ...row,
+    cap: candidate.caps?.[squadId] ?? row.cap,
+    other: candidate.otherPcts?.[squadId] ?? row.other,
+    actualPct: candidate.actualPct ?? null,
+    capacityRequestable: !!candidate.capacityRequestable?.[squadId],
+    capacityRequestedAt: candidate.capacityRequestedAt?.[squadId] || null,
+  };
+}
+
 /** 이 프로젝트에서 더 쓸 수 있는 몫 — 음수면 초과(§6-2 `Σ plan ≤ 개인 캐파`). */
 const slackOf = (row) => row.cap - row.other - row.planPct;
 
@@ -165,8 +197,9 @@ export default function ProjectResourceTab({
   }
 
   const rowEditable = (r) => !closed && (r.isNew || (r.canEdit && editableSquadIds.has(r.viaSquadId)));
-  const counted = draft.filter((r) => !r.resigned);
-  const overRows = draft.filter((r) => slackOf(r) < 0);
+  const shown = draft.map((r) => withServerFacts(r, data));
+  const counted = shown.filter((r) => !r.resigned);
+  const overRows = shown.filter((r) => slackOf(r) < 0);
   // 내가 고칠 수 있는 줄에 초과가 있으면 저장을 막는다 — 손댔는지는 따지지 않는다(정책서 v1.9 §8-6 · 서버와 같은 판정).
   // 고칠 수 없는 줄(매니저에게 관할 밖 묶음)의 초과는 빨간 채로 남고 저장은 된다. 어드민은 모든 줄을 고칠 수 있다.
   const saveBlocked = overRows.some(rowEditable);
@@ -246,7 +279,7 @@ export default function ProjectResourceTab({
         isPrimary: false,
       })),
   ]
-    .map((g) => ({ ...g, rows: draft.filter((r) => r.viaSquadId === g.squadId) }))
+    .map((g) => ({ ...g, rows: shown.filter((r) => r.viaSquadId === g.squadId) }))
     .filter((g) => g.rows.length > 0);
 
   const candidates = (data.candidates || []).filter((c) => !draft.some((r) => r.memberId === c.memberId));
@@ -262,6 +295,7 @@ export default function ProjectResourceTab({
         viaSquadName: squads.find((s) => s.squadId === squadId)?.name || null,
         planPct: 0,
         role: 'member',
+        // 아래 서버 값은 그릴 때 후보에서 다시 읽는다(withServerFacts) — 여기 값은 후보가 사라졌을 때의 기본값이다.
         cap: candidate.caps?.[squadId] ?? 0,
         other: candidate.otherPcts?.[squadId] ?? 0,
         actualPct: null,
@@ -334,7 +368,7 @@ export default function ProjectResourceTab({
                 requesting={requesting === r.memberId}
                 onPct={(v) => setPct(r.memberId, v)}
                 // 기존 PO 줄을 이 사람이 못 고치면 PO 를 옮길 수 없다 — 그 줄이 팀원으로 바뀌어 저장이 403 이 된다.
-                canSetPO={draft.every((x) => x.role !== 'po' || x.memberId === r.memberId || rowEditable(x))}
+                canSetPO={shown.every((x) => x.role !== 'po' || x.memberId === r.memberId || rowEditable(x))}
                 onPO={() => setPO(r.memberId)}
                 onRemove={() => remove(r.memberId)}
                 onRequest={() => request(r)}
