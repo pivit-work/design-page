@@ -1,5 +1,6 @@
 import { Component, useState, useEffect, useRef, useCallback } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 import ModalLayer from '../shared/ModalLayer.jsx';
 import Spline from '@splinetool/react-spline';
 import Icon from '../shared/Icon.jsx';
@@ -96,6 +97,7 @@ function applyTexture(app, objectName, imageSrc) {
  * 미주입 시 시안 그대로다.
  */
 const DEFAULT_PROFILE_LABELS = {
+  oneOnOneSchedule: '1on1 일정 잡기',
   close: '닫기',
   message: '메시지',
   tabAi: 'AI 브리핑',
@@ -129,6 +131,7 @@ export default function ProfileModal({
   onMessageClick,
   onHrRowAction,
   onHrProfileRetry,
+  onOneOnOneRetry,
   onSnippetsMore,
   // 「액션 아이템」 탭 맨 아래 [더 보기] (pivit-work PW-1941) — `profile.actionItems.more` 가 있을 때만 그린다
   onActionItemsMore,
@@ -182,6 +185,8 @@ export default function ProfileModal({
 
   const isOpen = !!member;
   const profile = displayMember?.profile;
+  // [1on1] 은 뷰어가 이 팀원의 조직장일 때만 (pivit-work PW-2486). 없으면 [메시지]가 줄을 쓴다.
+  const canOneOnOne = displayMember?.canOneOnOne !== false;
   const agendas = profile?.agendas ?? [];
 
   // 「액션 아이템」 탭은 액션 아이템 전체 화면이 본인 담당분으로 고정되면서
@@ -244,10 +249,12 @@ export default function ProfileModal({
             )}
 
             <div className="manager-modal-actions">
-              <button type="button" className="manager-modal-btn-primary" onClick={onOneOnOneClick}>
-                <Icon src={icons?.userOutline} size={20} color="var(--text-white)" baseUrl={baseUrl} />
-                <span>1on1</span>
-              </button>
+              {canOneOnOne && (
+                <button type="button" className="manager-modal-btn-primary" onClick={onOneOnOneClick}>
+                  <Icon src={icons?.userOutline} size={20} color="var(--text-white)" baseUrl={baseUrl} />
+                  <span>1on1</span>
+                </button>
+              )}
               <button type="button" className="manager-modal-btn-secondary" onClick={onMessageClick}>
                 <Icon src={icons?.messageText} size={20} color="var(--text-brand-tertiary)" baseUrl={baseUrl} />
                 <span>{L.message}</span>
@@ -288,7 +295,12 @@ export default function ProfileModal({
               <HealthTrendTab trend={profile.healthTrend} labels={L} />
             )}
             {activeTab === 'oneonone' && profile?.oneOnOne && (
-              <OneOnOneTab data={profile.oneOnOne} labels={L} />
+              <OneOnOneTab
+                data={profile.oneOnOne}
+                onSchedule={canOneOnOne ? onOneOnOneClick : undefined}
+                onRetry={onOneOnOneRetry}
+                labels={L}
+              />
             )}
             {activeTab === 'action' && profile?.actionItems && (
               <ActionItemsTab data={profile.actionItems} onMore={onActionItemsMore} labels={L} baseUrl={baseUrl} />
@@ -582,7 +594,8 @@ function ActionItemsTab({ data, onMore, labels: L, baseUrl }) {
         <p className="manager-modal-empty">{data.emptyLabel}</p>
       ) : (
         <div className="manager-modal-action-list">
-          {items.map((item) => (
+          {/* 진행자가 아닌 1on1 출처 행 (pivit-work PW-2486) — 눌리지 않고 마우스를 올리면 이유를 보인다. */}
+          {items.map((item) => withLockedHint(item, (
             <div
               key={item.id}
               className={`manager-modal-action-row ${item.done ? 'is-done' : ''}`.trim()}
@@ -595,7 +608,9 @@ function ActionItemsTab({ data, onMore, labels: L, baseUrl }) {
                     onClick: item.onOpen,
                     onKeyDown: (e) => { if (isEnterKey(e)) item.onOpen(); },
                   }
-                : {})}
+                : item.lockedHint
+                  ? { tabIndex: 0, style: { cursor: 'default' } }
+                  : {})}
             >
               {/* 체크박스가 아니라 상태 표시다 — button 이 아니므로 눌러도 반응하지 않는다. */}
               <span
@@ -622,7 +637,7 @@ function ActionItemsTab({ data, onMore, labels: L, baseUrl }) {
                 </span>
               )}
             </div>
-          ))}
+          )))}
         </div>
       )}
 
@@ -727,7 +742,29 @@ function HrProfileFailure({ notice, onRetry }) {
   );
 }
 
-function OneOnOneTab({ data, labels: L }) {
+/**
+ * 「1on1」 탭 (pivit-work PW-2486). 문구·날짜는 호스트가 만들어 넘긴다.
+ *  - `data.loading` + `loadingLabel` · `data.error: { message, retryLabel }` — 인사 정보 탭과 같은 모양
+ *  - `items: [{ id, date, hostLabel, statusLabel, statusTone, title?, onOpen?, lockedHint? }]`
+ *    `onOpen` 이 있는 행만 눌린다. `lockedHint` 가 있으면 눌리지 않고 마우스를 올리면 그 글을 보인다.
+ *  - 항목이 없으면 `emptyLabel`, 그 아래 [일정 잡기]는 `onSchedule` 이 있을 때만.
+ */
+function OneOnOneTab({ data, onSchedule, onRetry, labels: L }) {
+  if (data.loading) {
+    return (
+      <div className="manager-modal-content-section">
+        <p className="manager-modal-empty">{data.loadingLabel}</p>
+      </div>
+    );
+  }
+  if (data.error) {
+    return (
+      <div className="manager-modal-content-section">
+        <HrProfileFailure notice={data.error} onRetry={onRetry} />
+      </div>
+    );
+  }
+  const items = data.items ?? [];
   return (
     <div className="manager-modal-content-section">
       {/* 마지막 1on1 1-grid */}
@@ -736,14 +773,53 @@ function OneOnOneTab({ data, labels: L }) {
       </div>
 
       {/* 1on1 기록 항목들 */}
-      {data.items?.map((item, i) => (
-        <div key={i} className="manager-modal-oneonone-item">
-          <p className="manager-modal-oneonone-date">{item.date}</p>
-          <p className="manager-modal-oneonone-title">{item.title}</p>
-        </div>
+      {items.map((item, i) => (
+        <OneOnOneRow key={item.id ?? i} item={item} />
       ))}
+
+      {items.length === 0 && data.emptyLabel && (
+        <div className="manager-modal-oneonone-empty">
+          <p className="manager-modal-empty">{data.emptyLabel}</p>
+          {onSchedule && (
+            <Button variant="ghost" size="sm" onClick={onSchedule}>
+              {L.oneOnOneSchedule}
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   );
+}
+
+function OneOnOneRow({ item }) {
+  const row = (
+    <div
+      className="manager-modal-oneonone-item"
+      {...(item.onOpen
+        ? {
+            role: 'link',
+            tabIndex: 0,
+            style: { cursor: 'pointer' },
+            onClick: item.onOpen,
+            onKeyDown: (e) => { if (isEnterKey(e)) item.onOpen(); },
+          }
+        : { ...(item.lockedHint ? { tabIndex: 0 } : {}), style: { cursor: 'default' } })}
+    >
+      <p className="manager-modal-oneonone-date">{item.date}</p>
+      {(item.hostLabel || item.statusLabel) && (
+        <div className="manager-modal-oneonone-meta">
+          {item.hostLabel && <span className="manager-modal-oneonone-host">{item.hostLabel}</span>}
+          {item.statusLabel && <StatusBadge tone={item.statusTone} className="ono-done-badge">{item.statusLabel}</StatusBadge>}
+        </div>
+      )}
+      {item.title && <p className="manager-modal-oneonone-title">{item.title}</p>}
+    </div>
+  );
+  return withLockedHint(item, row);
+}
+
+function withLockedHint(item, row) {
+  return item.lockedHint ? <Tooltip key={item.id} content={item.lockedHint}>{row}</Tooltip> : row;
 }
 
 function HealthTrendTab({ trend, labels: L }) {

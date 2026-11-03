@@ -81,6 +81,8 @@ export default function ManagerCanvas({
    * 대부분은 쓰이지 않는다.
    */
   onMemberOpen,
+  /** 1on1 탭 [다시 시도] (pivit-work PW-2486). */
+  onOneOnOneRetry,
   onHrProfileRetry,
   onSnippetsMore,
   onActionItemsMore,
@@ -293,6 +295,7 @@ export default function ManagerCanvas({
       */}
       <ProfileModal
         onHrProfileRetry={onHrProfileRetry}
+        onOneOnOneRetry={onOneOnOneRetry}
         onSnippetsMore={onSnippetsMore}
         onActionItemsMore={onActionItemsMore}
         onAiBriefingGenerate={onAiBriefingGenerate}

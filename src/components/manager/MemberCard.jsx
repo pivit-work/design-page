@@ -24,6 +24,8 @@ export default function MemberCard({
   onCardClick,
   onOneOnOneClick,
   onMessageClick,
+  // false 면 [원온원]을 그리지 않는다 — 뷰어가 이 팀원의 조직장이 아닐 때 (pivit-work PW-2486). [메시지]가 줄 전체 폭을 쓴다.
+  canOneOnOne = true,
   // 아래 두 버튼 글자 — 넘기면 그대로 쓰고, 없으면 기본 한국어 (pivit-work PW-2216).
   labels,
 }) {
@@ -49,10 +51,12 @@ export default function MemberCard({
         </p>
         <StatusBadge status={status} label={statusLabel} />
         <div className="manager-member-actions">
-          <button type="button" className="manager-member-action-btn" onClick={stop(onOneOnOneClick)}>
-            <Icon src={icons?.userOutline} size={16} color="var(--text-secondary)" baseUrl={baseUrl} />
-            <span>{L.oneOnOne}</span>
-          </button>
+          {canOneOnOne && (
+            <button type="button" className="manager-member-action-btn" onClick={stop(onOneOnOneClick)}>
+              <Icon src={icons?.userOutline} size={16} color="var(--text-secondary)" baseUrl={baseUrl} />
+              <span>{L.oneOnOne}</span>
+            </button>
+          )}
           <button type="button" className="manager-member-action-btn" onClick={stop(onMessageClick)}>
             <Icon src={icons?.messageText} size={16} color="var(--text-secondary)" baseUrl={baseUrl} />
             <span>{L.message}</span>

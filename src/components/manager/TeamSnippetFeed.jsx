@@ -157,7 +157,10 @@ export default function TeamSnippetFeed({ byDate, byKr, memberFilter, memberFilt
                     </div>
                   </div>
                 )}
-                <button type="button" className="mgr-ts-oneonone" onClick={(e) => { e.stopPropagation(); onOneOnOne?.(item); }}>1on1 제안</button>
+                {/* 뷰어가 이 팀원의 조직장이 아니면 소비자가 `canOneOnOne: false` 를 싣는다 (pivit-work PW-2486). */}
+                {item.canOneOnOne !== false && (
+                  <button type="button" className="mgr-ts-oneonone" onClick={(e) => { e.stopPropagation(); onOneOnOne?.(item); }}>1on1 제안</button>
+                )}
               </div>
             ))}
           </div>
