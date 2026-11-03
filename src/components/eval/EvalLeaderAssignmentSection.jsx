@@ -3,6 +3,7 @@ import Button from '../shared/Button.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
 import TextInput from '../shared/TextInput.jsx';
+import { FieldError } from '../shared/FormField.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
@@ -23,6 +24,7 @@ import {
   leaderRuleText,
   rowHasNoChain,
   summarizeLeaderWarnings,
+  leaderLoadLimitOk,
 } from './evalLeaderRounds.js';
 import {
   LEADER_TOOL_LABELS,
@@ -208,6 +210,7 @@ export default function EvalLeaderAssignmentSection({
   const fullyConfirmed = !!confirm && !reconfirmReason;
   /* PW-2113 — 조직이 하나뿐이면 «0 / 1» 진행바는 뜻이 없다. 나누지 않는 회사처럼 상태 글씨만 둔다. */
   const showProgress = grouped && groups.length > 1;
+  const loadOk = leaderLoadLimitOk(loadLimit);
   const overloadPeople = loadLimit > 0 ? [...loadBy.values()].filter((n) => n > loadLimit).length : 0;
   /* PW-2113 — 0 인 경고 종류는 자리를 차지하지 않는다. */
   const warnDetail = [
@@ -714,14 +717,24 @@ export default function EvalLeaderAssignmentSection({
                   className="evc-input evc-la-load-input"
                   type="number"
                   min={0}
-                  value={String(loadLimit)}
+                  value={loadLimit ?? ''}
                   disabled={!onLoadLimitChange}
+                  invalid={!loadOk}
                   aria-label={L.leaderLoadAria}
-                  onChange={(e) => onLoadLimitChange?.(Math.max(0, Math.trunc(Number(e.target.value) || 0)))}
+                  aria-describedby={loadOk ? undefined : 'evc-la-load-error'}
+                  /* 적은 값을 그대로 넘긴다 — 음수·빈 칸을 말없이 0 으로 바꾸지 않는다(pivit-work PW-2569) */
+                  onChange={(e) => onLoadLimitChange?.(e.target.value === '' ? null : Number(e.target.value))}
                   data-testid="evc-la-load-input"
                 />
                 <span className="evc-la-hint">{L.leaderLoadAfter}</span>
               </div>
+              {!loadOk && (
+                <FieldError id="evc-la-load-error" data-testid="evc-la-load-error">
+                  {loadLimit === null || loadLimit === undefined || loadLimit === ''
+                    ? L.leaderLoadRequired
+                    : L.leaderLoadRange}
+                </FieldError>
+              )}
             </div>
           )}
         </div>

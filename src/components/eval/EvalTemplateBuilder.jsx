@@ -4,6 +4,7 @@ import StatusBadge from '../shared/StatusBadge.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import { useHandleReorder } from './useHandleReorder.js';
 import { MAX_GRADE_KEYWORDS, parseGradeKeywords } from './evalGradeKeywords.js';
+import { gradeRatioOk } from './evalTemplateGradeRules.js';
 import {
   QUESTION_TYPES,
   fill,
@@ -151,9 +152,10 @@ export function EvalTemplateGradeRows({
           {!absolute && (
             <input
               type="number"
-              className="evc-input evc-tpl-grade-ratio"
-              value={g.ratio ?? 0}
-              onChange={(e) => onUpdate(i, 'ratio', Number(e.target.value))}
+              className={`evc-input evc-tpl-grade-ratio${gradeRatioOk(g.ratio) ? '' : ' is-invalid'}`}
+              value={g.ratio ?? ''}
+              /* 적은 값을 그대로 둔다 — 비운 칸을 말없이 0 으로 바꾸지 않고 목록 아래 안내로 알린다(pivit-work PW-2569) */
+              onChange={(e) => onUpdate(i, 'ratio', e.target.value === '' ? null : Number(e.target.value))}
               data-testid={`${testPrefix}-ratio-${i}`}
             />
           )}
@@ -222,6 +224,11 @@ export function EvalTemplateGradeFoot({
           data-testid={`${testPrefix}-ratio-sum`}
         >
           {fill(L.templateRatioSum, { sum: issues.ratioSum })}
+        </span>
+      )}
+      {!absolute && issues.ratioRowBad && (
+        <span className="evc-tpl-ratiosum is-invalid" role="alert" data-testid={`${testPrefix}-ratio-row-warn`}>
+          {L.templateRatioRowRange}
         </span>
       )}
       {issues.hasEmpty && (

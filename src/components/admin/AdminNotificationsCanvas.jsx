@@ -194,7 +194,8 @@ function CooldownEditor({ cooldown, onChange, hasTimeParam, options, labels, bas
           min={1}
           max={99}
           value={cd.interval}
-          onChange={(e) => onChange({ ...cd, interval: Math.max(1, Number(e.target.value)) })}
+          /* 적은 숫자를 그대로 둔다 — 0·빈 칸을 말없이 1 로 바꾸지 않고 아래 안내(intervalError)로 알린다(pivit-work PW-2569) */
+          onChange={(e) => onChange({ ...cd, interval: e.target.value === '' ? '' : Number(e.target.value) })}
           aria-label={labels.every}
         />
         <Select

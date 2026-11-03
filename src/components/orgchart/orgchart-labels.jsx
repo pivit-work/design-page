@@ -494,6 +494,8 @@ export const ORGCHART_LABELS = {
   'projectDetail.form.progressDirect': '진행률 직접 입력',
   'projectDetail.form.errNameRequired': '프로젝트명을 입력해 주세요.',
   'projectDetail.form.errEndBeforeStart': '종료일은 시작일보다 빠를 수 없습니다.',
+  'projectDetail.form.errProgressRequired': '진행률을 입력해 주세요.',
+  'projectDetail.form.errProgressRange': '진행률은 0~100 사이 정수로 입력해 주세요.',
   'projectDetail.form.saveFailed': '저장하지 못했습니다.',
   'projectDetail.form.cancel': '취소',
   'projectDetail.form.save': '저장',

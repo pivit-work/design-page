@@ -10,6 +10,7 @@ import AppConfirmModal from '../shared/ConfirmModal.jsx';
 import DatePicker from '../shared/DatePicker.jsx';
 import TimeInput from '../shared/TimeInput.jsx';
 import TextInput from '../shared/TextInput.jsx';
+import { FieldError } from '../shared/FormField.jsx';
 import TextArea from '../shared/TextArea.jsx';
 import Select from '../shared/Select.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
@@ -83,6 +84,7 @@ import {
   isNoteItem,
   questionItems,
   scaleMaxOf,
+  templateItemsNumberBlank,
   sectionColor,
 } from './evalTemplateItemModel.js';
 import Switch from '../shared/Switch.jsx';
@@ -119,6 +121,7 @@ import {
   summarizeLeaderWarnings,
   topRoundHasNoRecommendation,
   withOverloadWarnings,
+  leaderLoadLimitOk,
 } from './evalLeaderRounds.js';
 import { applyLeaderBulk } from './evalLeaderTable.js';
 import EvalLeaderAssignmentSection from './EvalLeaderAssignmentSection.jsx';
@@ -427,6 +430,9 @@ const REMINDER_CHANNELS = [
   { id: 'email', labelKey: 'reminderChEmail', Icon: MailIcon },
   { id: 'slack', labelKey: 'reminderChSlack', Icon: ChatIcon },
 ];
+/** 리마인더 «D-N일» 범위 — 정책 §5.2.1 «D-오프셋 0~60». 서버(INPUT_LIMITS.evalReminderOffset)와 같은 값(pivit-work PW-2569). */
+const REMINDER_OFFSET_MIN = 0;
+const REMINDER_OFFSET_MAX = 60;
 const REMINDER_ANCHORS = [
   { id: 'before_end', labelKey: 'reminderAnchorEnd' },
   { id: 'before_start', labelKey: 'reminderAnchorStart' },
@@ -3890,7 +3896,15 @@ export default function EvalCycleWizard({
    * PW-2115 — 손으로 고친 단계는 그대로 둔다(«직접 고친 단계는 재배치에서 보호된다»). 그 단계도 순번은
    * 차지한다 — 뒤 단계가 그 자리를 당겨 쓰면 고친 단계와 겹친다. 들어온 일정(seeded)은 새 배치로 바뀐다.
    */
+  /* [pivit-work PW-2569] «모든 단계 [N]일씩» — 비우거나 0 이면 1 로 본다(정책 §5.2.1-E). 그 밖에 1~60 정수가
+     아니면(61 · -3 · 2.5) 말없이 60·1·2 로 바꾸지 않고 칸 아래 안내 + [적용]을 막는다. */
+  const bulkDaysBad = (() => {
+    if (bulkDays === '' || Number(bulkDays) === 0) return false;
+    const n = Number(bulkDays);
+    return !(Number.isInteger(n) && n >= 1 && n <= 60);
+  })();
   const applyBulkLayout = () => {
+    if (bulkDaysBad) return;
     const n = Math.max(1, Math.min(60, Math.trunc(Number(bulkDays)) || 1));
     const keep = new Set(handEditedShown);
     const offsets = {};
@@ -3967,8 +3981,13 @@ export default function EvalCycleWizard({
     ).length;
     return (selfOn ? 1 : 0) + cc;
   };
+  /* [pivit-work PW-2569 · 정책 §5.2.1 «D-오프셋 0~60»] 칸은 적은 값을 그대로 둔다 — 0~60 밖·빈 칸을 말없이
+     고치지 않고 패널에 안내를 띄우며 [다음]·저장을 막는다. 값이 없는 옛 리마인더(서버가 0 으로 본다)는 막지 않는다. */
+  const reminderOffsetOk = (rm) =>
+    rm.offset === undefined ||
+    (Number.isInteger(rm.offset) && rm.offset >= REMINDER_OFFSET_MIN && rm.offset <= REMINDER_OFFSET_MAX);
   const remindersValid = enabledRows.every((r) =>
-    remindersOf(r.id).every((rm) => reminderRecipientCount(r.id, rm) > 0),
+    remindersOf(r.id).every((rm) => reminderRecipientCount(r.id, rm) > 0 && reminderOffsetOk(rm)),
   );
 
   // §5.2.1 리마인더 편집
@@ -4648,7 +4667,7 @@ export default function EvalCycleWizard({
   /** 「종료 전 D-3 · 09:00」 — 목록 줄과 패널 머리가 같은 글을 쓴다. */
   const reminderWhenText = (rm) => {
     const anchor = REMINDER_ANCHORS.find((a) => a.id === rm.anchor) ?? REMINDER_ANCHORS[0];
-    return `${L[anchor.labelKey]} D-${rm.offset} · ${rm.time}`;
+    return `${L[anchor.labelKey]} D-${rm.offset ?? ''} · ${rm.time}`;
   };
   /** 목록 줄 끝의 문구 종류 — 기본 문구 / 직접 쓴 문구 / 그 밖의 준비된 문구는 제 이름. */
   const reminderMessageKindText = (msg) => {
@@ -4725,15 +4744,18 @@ export default function EvalCycleWizard({
               <span className="evc-rm-dtext">D-</span>
               <TextInput
                 type="number"
-                min={0}
-                max={60}
+                min={REMINDER_OFFSET_MIN}
+                max={REMINDER_OFFSET_MAX}
                 className="evc-rm-field evc-rm-offset"
-                value={rm.offset}
+                value={rm.offset ?? ''}
+                invalid={!reminderOffsetOk(rm)}
+                aria-describedby={reminderOffsetOk(rm) ? undefined : `evc-rm-offset-error-${ph.id}-${i}`}
                 onChange={(e) =>
                   updateReminder(
                     ph.id, rm.id, 'offset',
-                    Math.max(0, Math.min(60, Number(e.target.value) || 0)),
+                    e.target.value === '' ? null : Number(e.target.value),
                   )}
+                data-testid={`evc-rm-offset-${ph.id}-${i}`}
               />
               <span className="evc-rm-unit">{L.reminderDay}</span>
             </span>
@@ -4762,6 +4784,18 @@ export default function EvalCycleWizard({
               })}
             </span>
             </div>
+            {!reminderOffsetOk(rm) && (
+              <div
+                className="evc-rm-tgt-error"
+                role="alert"
+                id={`evc-rm-offset-error-${ph.id}-${i}`}
+                data-testid={`evc-rm-offset-error-${ph.id}-${i}`}
+              >
+                {rm.offset === null || rm.offset === ''
+                  ? L.reminderOffsetRequired
+                  : fill(L.reminderOffsetRange, { min: REMINDER_OFFSET_MIN, max: REMINDER_OFFSET_MAX })}
+              </div>
+            )}
             {/* [PW-2141 · 정책 §5.2.1-F «채널 안내 줄»] 채널이 회사 기본값을 따를 때만. 일수 때문에 채널이
                 바뀌었으면 무엇이 바뀌었는지(주황), 아니면 따르는 규칙(회색). 회사 기본값을 못 불러왔으면 회색 줄은
                 그리지 않는다 — 규칙의 채널 이름을 모른다. */}
@@ -5353,10 +5387,16 @@ export default function EvalCycleWizard({
   // ── 평가 템플릿 빌더 헬퍼 ──
   // [PW-2094] 등급 판정은 「평가 템플릿」 화면 [편집] 창·사이클 관리 탭과 같은 한 벌이다.
   const tplGradeIssues = templateGradeIssues(tplGrades, { absolute: tplAbsolute });
+  // [pivit-work PW-2569] 척도 최댓값·최소 응답 수를 비운 항목이 있으면 평가지를 저장하지 않는다.
+  const tplItemsBlank = templateItemsNumberBlank(tplQuestions);
   const tplGradesValid = tplGradeIssues.valid;
   // PW-119: 저장 버튼을 비활성으로만 두면 왜 안 눌리는지 알 길이 없다.
   // 막고 있는 첫 번째 사유를 골라 버튼 옆에 그대로 띄운다(위에서부터 우선).
-  const tplSaveBlockKey = !tplName.trim() ? 'templateBlockName' : tplGradeIssues.blockKey;
+  const tplSaveBlockKey = !tplName.trim()
+    ? 'templateBlockName'
+    : tplItemsBlank
+      ? 'templateBlockItemNumber'
+      : tplGradeIssues.blockKey;
   /* PW-1459 §5.10.2 — 직급 목록은 회사가 어드민에서 설정한 직급(job_level, 설정 순서)이다.
      조직 설정을 못 받았을 때만 종전대로 대상 멤버의 직책 값에서 뽑는다. */
   const roleFromSettings = Array.isArray(fieldOptions?.jobLevel);
@@ -6054,7 +6094,7 @@ export default function EvalCycleWizard({
   };
   const saveTemplate = () => {
     const name = tplName.trim();
-    if (!name || !tplGradesValid) return;
+    if (!name || !tplGradesValid || tplItemsBlank) return;
     setItemShareResult(null);
     // [PW-1540] 저장 «전» 확정을 기준으로 고른다 — 저장하면 그 칸의 확정이 새 템플릿으로 바뀐다.
     const shareRows = itemShareCandidatesFor(tplKey, tplQuestions);
@@ -6754,8 +6794,10 @@ export default function EvalCycleWizard({
     setLeaderRulesState(normalizeLeaderRules(next));
     dropLeaderConfirm('rules');
   };
+  /* [pivit-work PW-2569] 칸에 적은 값을 그대로 둔다 — 음수·빈 칸을 말없이 0(기본값)으로 바꾸지 않고 칸 아래 안내로
+     알리며 [다음]·[확정]·[평가 오픈하기]를 막는다. 0 은 «끔»이라 받는다(정책 §5.13 R5). 상한은 서버만의 기술 한도. */
   const setLeaderLoadLimit = (n) => {
-    setLeaderLoadLimitState(normalizeLoadLimit(n));
+    setLeaderLoadLimitState(n);
     dropLeaderConfirm('loadLimit');
   };
   const assignLeader = (evaluateeId, round, personId) =>
@@ -6784,6 +6826,7 @@ export default function EvalCycleWizard({
    */
   const confirmLeader = async () => {
     if (leaderConfirming || !onConfirmLeaderAssignments) return;
+    if (!leaderLoadLimitOk(leaderLoadLimit)) return;
     if (leaderWarnSummary.blocking > 0) return;
     setLeaderConfirming(true);
     setLeaderToast(null);
@@ -7797,6 +7840,8 @@ export default function EvalCycleWizard({
     .map((t) => confirmRowOf(t)?.shortLabel || L[REVIEW_TYPE_KEYS[t]] || t)
     .join(', ');
 
+  // [pivit-work PW-2569] 하향 평가자 «부하 상한» 칸 — 하향 배정을 쓰는 사이클에서만 본다.
+  const leaderLoadValid = !leaderSectionOn || leaderLoadLimitOk(leaderLoadLimit);
   const canAdvance =
     (step === 0 && step1Valid) ||
     step === 1 ||
@@ -7804,7 +7849,7 @@ export default function EvalCycleWizard({
        «거꾸로 된 일정»은 막는다 — 그건 미완성이 아니라 틀린 값이라서 뒤 단계에서
        고칠 수 있는 것이 아니다. 겹침은 여전히 통과시킨다(병렬 진행이 정상). */
     (step === 2 && scheduleValid && remindersValid) ||
-    (step === 3 && targetsValid) ||
+    (step === 3 && targetsValid && leaderLoadValid) ||
     /* [PW-2076 §5.1-D W2-c] 미완성 위원회는 [다음]을 막지 않는다 — [평가 오픈하기]에서 막는다(`canSubmit`).
        미완성 하나로 6단계 확인까지 못 가면 끄는 길을 찾는 것이 HR 몫이 된다. */
     step === 4;
@@ -7827,6 +7872,7 @@ export default function EvalCycleWizard({
     !leaderConfirmed;
   const openBlockedByGrades = opensOnSubmit && confirmedGradeMismatch.mismatch;
   const canSubmit =
+    leaderLoadValid &&
     step1Valid &&
     scheduleValid &&
     remindersValid &&
@@ -9625,7 +9671,7 @@ export default function EvalCycleWizard({
                   type="button"
                   className="evc-btn is-primary"
                   onClick={saveTemplate}
-                  disabled={!tplName.trim() || !tplGradesValid}
+                  disabled={!tplName.trim() || !tplGradesValid || tplItemsBlank}
                   data-testid="evc-tpl-save"
                 >
                   {L.templateSave}
@@ -9778,12 +9824,19 @@ export default function EvalCycleWizard({
                         max={60}
                         className="evc-rm-field evc-rm-offset"
                         value={bulkDays}
+                        invalid={bulkDaysBad}
+                        aria-describedby={bulkDaysBad ? 'evc-sched-bulk-days-error' : undefined}
                         onChange={(e) => setBulkDays(e.target.value)}
                         aria-label={L.scheduleBulkDaysAria}
                         data-testid="evc-sched-bulk-days"
                       />
                       <span className="evc-rm-unit">{L.scheduleBulkDayUnit}</span>
                     </span>
+                    {bulkDaysBad && (
+                      <FieldError id="evc-sched-bulk-days-error" data-testid="evc-sched-bulk-days-error">
+                        {fill(L.scheduleBulkDaysRange, { min: 1, max: 60 })}
+                      </FieldError>
+                    )}
                   </div>
                   <div className="evc-sched-bulk-field">
                     <span className="evc-sched-anchor-label">{L.scheduleBulkModeLabel}</span>
@@ -9802,6 +9855,7 @@ export default function EvalCycleWizard({
                     type="button"
                     className="evc-btn is-ghost evc-sched-bulk-apply"
                     onClick={requestBulkLayout}
+                    disabled={bulkDaysBad}
                     data-testid="evc-sched-bulk-apply"
                   >
                     {L.scheduleBulkApply}

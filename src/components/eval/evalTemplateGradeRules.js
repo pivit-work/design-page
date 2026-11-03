@@ -17,6 +17,10 @@ export const TEMPLATE_MAX_GRADES = 10;
 
 const gradeKeyOf = (g) => String(g?.label ?? '').trim().toLowerCase();
 
+/** 상대 평가 비율 한 칸이 받을 수 있는 값인가 — 0~100 숫자. 비운 칸(null·'')은 아니다. */
+export const gradeRatioOk = (r) =>
+  r !== null && r !== undefined && r !== '' && Number.isFinite(Number(r)) && Number(r) >= 0 && Number(r) <= 100;
+
 /** 상대 평가 비율 합. 빈 칸·숫자 아닌 값은 0 으로 센다. */
 export const templateGradeRatioSum = (grades) =>
   (grades || []).reduce((s, g) => s + (Number(g?.ratio) || 0), 0);
@@ -39,6 +43,8 @@ export function templateGradeIssues(grades, { absolute = true } = {}) {
   }
   const hasEmpty = list.some((g) => !gradeKeyOf(g));
   const ratioSum = templateGradeRatioSum(list);
+  // [pivit-work PW-2569] 줄마다 0~100. 합만 보면 150 / -50 / 0 이 «합 100» 으로 저장됐고, 비운 칸은 말없이 0 이 됐다.
+  const ratioRowBad = !absolute && list.some((g) => !gradeRatioOk(g?.ratio));
   const ratioInvalid = !absolute && ratioSum !== 100;
   const tooFew = list.length < TEMPLATE_MIN_GRADES;
   const blockKey = tooFew
@@ -47,13 +53,16 @@ export function templateGradeIssues(grades, { absolute = true } = {}) {
       ? 'templateBlockGradeLabel'
       : dupLabels.size > 0
         ? 'templateBlockDupGrade'
-        : ratioInvalid
-          ? 'templateBlockRatio'
-          : null;
+        : ratioRowBad
+          ? 'templateBlockRatioRow'
+          : ratioInvalid
+            ? 'templateBlockRatio'
+            : null;
   return {
     dupLabels,
     hasEmpty,
     ratioSum,
+    ratioRowBad,
     ratioInvalid,
     tooFew,
     atMax: list.length >= TEMPLATE_MAX_GRADES,

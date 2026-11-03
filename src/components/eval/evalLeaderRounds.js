@@ -387,6 +387,9 @@ export function normalizeLeaderRules(rules) {
 }
 
 /** 부담 기준 — 0 이상 정수. 비었거나 깨졌으면 기본 15. */
+/** [pivit-work PW-2569] 부하 상한 칸 값이 받을 수 있는 값인가 — 0 이상 정수(0 = 끔). 빈 칸·음수·소수는 아니다. */
+export const leaderLoadLimitOk = (v) => typeof v === 'number' && Number.isInteger(v) && v >= 0;
+
 export function normalizeLoadLimit(v) {
   const n = Math.trunc(Number(v));
   return v === null || v === undefined || v === '' || !Number.isFinite(n) || n < 0

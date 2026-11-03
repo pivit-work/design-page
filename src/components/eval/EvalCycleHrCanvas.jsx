@@ -482,6 +482,8 @@ const DEFAULT_LABELS = {
   leaderLoadBefore: "부담 경고 — 한 사람이 맡는 칸(모든 차수 합)이",
   leaderLoadAfter: "칸을 넘으면 경고합니다 (0 = 끔 · 확정은 막지 않습니다)",
   leaderLoadAria: "부담 경고 기준 칸 수",
+  leaderLoadRequired: "부담 경고 기준 칸 수를 적어 주세요 (0 = 끔)",
+  leaderLoadRange: "부담 경고 기준은 0 이상 정수로 적어 주세요 (0 = 끔)",
   leaderRuleUnitMissing: "없는 조직",
   leaderRuleUnitPick: "조직 선택",
   leaderRuleUnitChange: "조직 변경",

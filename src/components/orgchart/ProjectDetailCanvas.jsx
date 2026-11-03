@@ -273,6 +273,11 @@ export default function ProjectDetailCanvas({
       setFormError(L('projectDetail.form.errEndBeforeStart'));
       return;
     }
+    if (draft.progress === '') { setFormError(L('projectDetail.form.errProgressRequired')); return; }
+    if (!(Number.isInteger(draft.progress) && draft.progress >= 0 && draft.progress <= 100)) {
+      setFormError(L('projectDetail.form.errProgressRange'));
+      return;
+    }
     setFormError('');
     try {
       await onSave({
@@ -540,21 +545,22 @@ export default function ProjectDetailCanvas({
                   <div className="sq-field-label">{L('projectDetail.form.progress')}</div>
                   <div className="pd-form-progress">
                     <div className="rsx-slider" style={{ '--rsx-slider-fill': draft.color }}>
-                      <div className="rsx-slider-track"><i style={{ width: `${draft.progress}%` }} /></div>
+                      <div className="rsx-slider-track"><i style={{ width: `${clampProgress(draft.progress)}%` }} /></div>
                       <input
-                        type="range" min={0} max={100} step={5} value={draft.progress}
+                        type="range" min={0} max={100} step={5} value={clampProgress(draft.progress)}
                         aria-label={L('projectDetail.form.progress')}
                         data-testid="project-detail-form-progress"
                         onChange={(e) => setDraft((d) => ({ ...d, progress: clampProgress(e.target.value) }))}
                       />
-                      <span className="rsx-slider-ball" style={{ left: `${draft.progress}%` }} />
+                      <span className="rsx-slider-ball" style={{ left: `${clampProgress(draft.progress)}%` }} />
                     </div>
                     <div className="rsx-entry-input">
                       <input
                         type="number" min={0} max={100} value={draft.progress}
                         aria-label={L('projectDetail.form.progressDirect')}
                         data-testid="project-detail-form-progress-input"
-                        onChange={(e) => setDraft((d) => ({ ...d, progress: clampProgress(e.target.value) }))}
+                        /* 적은 값을 그대로 둔다 — 비운 칸·100 초과를 말없이 0·100 으로 바꾸지 않고 [저장] 때 알린다(pivit-work PW-2569) */
+                        onChange={(e) => setDraft((d) => ({ ...d, progress: e.target.value === '' ? '' : Number(e.target.value) }))}
                       />
                       <span>%</span>
                     </div>
