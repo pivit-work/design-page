@@ -43,6 +43,7 @@ const DEFAULT_LABELS = {
   },
   submitted: '제출',
   notSubmitted: '미제출',
+  leaveSnippet: '휴가',
   invitePending: '초대 대기 중',
   activeStatus: '활성',
   inactiveStatus: '비활성',
