@@ -1401,6 +1401,8 @@
 .mgr-ts-roster-row img { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; box-sizing: border-box; border: 0.5px solid var(--alpha-black-10); }
 .mgr-ts-roster-name { flex: 1; font-size: 14px; font-weight: 700; line-height: 20px; color: var(--text-primary); }
 .mgr-ts-roster-status { display: flex; align-items: center; gap: 12px; }
+/* 안 쓴 까닭(«—»·«휴가»)·주말 «세지 않아요» — 같은 탭 카드의 제출 시각 글자(.mgr-ts-card-submit)와 같은 크기·회색 (PW-2296) */
+.mgr-ts-note { font-size: 12px; font-weight: 400; line-height: 18px; color: var(--text-secondary); }
 
 /* 이번 주 헬스 — 1px 선 카드 r8, 안쪽 8/4, 줄 사이 4. 머리 안쪽 4/16/8, 줄 안쪽 4/16(32) */
 .mgr-ts-health { background: transparent; border: 1px solid var(--border-primary); border-radius: 8px; padding: 7px 3px; display: flex; flex-direction: column; gap: 4px; }

@@ -27,7 +27,9 @@ import LoadingState from '../shared/LoadingState.jsx';
  *                읽히지 않게 한다(pivit-work PW-1392). 없으면 null
  *   emptyLabel   걸러진 스니핏이 0건일 때 피드 안에 띄우는 문구. 실패 중에는 안 넘긴다
  *
- * labels: { redFlag, todayStatus, submittedTotal, loading } — 안 넘기면 한국어 기본값.
+ * labels: { redFlag, todayStatus, submittedTotal, submittedNote, loading } — 안 넘기면 한국어 기본값.
+ *   submittedNote 가 있으면 «done / total» 대신 «done» 옆에 그 글을 작게 둔다 — 토·일요일 «주말에는 세지 않아요»
+ *   (pivit-work PW-2296 · 기획 manager-view §3-3).
  * testIds: { redFlag, submitted, empty } — 소비자 테스트가 잡는 자리.
  */
 const DEFAULT_LABELS = {
@@ -94,7 +96,12 @@ export default function TeamSnippets({
         <p className="mgr-ts-submit-label">{labels.todayStatus}</p>
         {submittedNotice ?? (
           <p className="mgr-ts-submit-count">
-            {data.submitted.done} / {labels.submittedTotal ?? `${data.submitted.total}명`}
+            {labels.submittedNote ? (
+              // 토·일요일 — 숫자는 쓴 사람 그대로, «/ N명» 자리에 안내 한 줄 (pivit-work PW-2296)
+              <>{data.submitted.done} <span className="mgr-ts-note">{labels.submittedNote}</span></>
+            ) : (
+              <>{data.submitted.done} / {labels.submittedTotal ?? `${data.submitted.total}명`}</>
+            )}
           </p>
         )}
       </div>

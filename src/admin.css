@@ -317,6 +317,12 @@
 .admin-team-snippet.is-submitted .admin-team-snippet-text {
   color: var(--utility-green-600);
 }
+/* 평일 종일 휴가 — 속이 빈 점선 점, 글자는 «미제출»과 같은 회색 (admin-spec §2.3 · PW-2296) */
+.admin-team-snippet.is-leave .admin-team-snippet-dot {
+  box-sizing: border-box;
+  background: transparent;
+  border: 1px dashed var(--border-primary);
+}
 
 /* 헬스 점수 — good/warning/error 색 분기 (ReportWeeklyRow 패턴) */
 .admin-team-health {

@@ -17,6 +17,10 @@ function healthLevel(h) {
  * row.inactiveLabel 이 있으면 비활성 변형의 가운데 셀에 labels.invitePending 대신 그 값을 쓴다.
  * 비활성 줄에는 초대를 기다리는 사람만 오지 않는다 — 퇴사자·계정만 꺼진 사람도 온다(PW-1093).
  *
+ * row.snippetState 가 있으면 «오늘 스니핏» 칸을 넷으로 그린다 — 쓴 사람 «제출» · 토·일요일 «—» · 평일 종일 휴가 «휴가»
+ * (labels.leaveSnippet · 점선 테두리 점) · 그 밖 «미제출» (admin-spec §2.3 · PW-2296). 휴가 점은 스니핏 헬스 추이의
+ * 휴가 칸과 같은 점선 표시다.
+ *
  * labels: 표 셀 텍스트. 헬스 아이콘은 /icons/check-heart.svg (ReportWeeklyRow 와 동일).
  *
  * 🔴 레드플래그 칩의 경고 표시는 이모지(⚠)가 아니라 인라인 SVG 다 (PW-298).
@@ -50,6 +54,9 @@ export default function AdminTeamRow({ row, labels, baseUrl = '', renderAvatar, 
   }
 
   const level = row.health != null ? healthLevel(row.health) : null;
+  // 오늘 스니핏 칸 — 'submitted' · 'weekend'(토·일 · 안 씀) · 'leave'(평일 종일 휴가 · 안 씀) · 'missing'.
+  // 값을 안 주는 화면은 종전처럼 snippetSubmitted 하나로 가른다.
+  const snippetState = row.snippetState ?? (row.snippetSubmitted ? 'submitted' : 'missing');
   return (
     <Row tone={row.redFlag ? 'flagged' : undefined} onClick={rowClick}>
       <Cell>
@@ -63,12 +70,21 @@ export default function AdminTeamRow({ row, labels, baseUrl = '', renderAvatar, 
       </Cell>
       <Cell><span className="admin-team-dept">{row.dept}</span></Cell>
       <Cell>
-        <div className={`admin-team-snippet${row.snippetSubmitted ? ' is-submitted' : ''}`}>
-          <div className="admin-team-snippet-dot" />
-          <span className="admin-team-snippet-text">
-            {row.snippetSubmitted ? labels.submitted : labels.notSubmitted}
-          </span>
-        </div>
+        {snippetState === 'weekend' ? (
+          // 토·일요일에 안 쓴 사람 — 점 없이 «—», 같은 줄 헬스·레드플래그 빈 칸과 같은 모양 (admin-spec §2.3 · PW-2296)
+          <span className="admin-team-empty-cell">{labels.weekendSnippet ?? '—'}</span>
+        ) : (
+          <div className={`admin-team-snippet${snippetState === 'submitted' ? ' is-submitted' : snippetState === 'leave' ? ' is-leave' : ''}`}>
+            <div className="admin-team-snippet-dot" />
+            <span className="admin-team-snippet-text">
+              {snippetState === 'submitted'
+                ? labels.submitted
+                : snippetState === 'leave'
+                  ? labels.leaveSnippet
+                  : labels.notSubmitted}
+            </span>
+          </div>
+        )}
       </Cell>
       <Cell>
         {level ? (

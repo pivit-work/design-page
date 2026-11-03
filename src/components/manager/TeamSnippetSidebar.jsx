@@ -43,6 +43,10 @@ export default function TeamSnippetSidebar({ members, weekHealth, aiSummary, sel
               {member.submitted && (
                 <Icon src={icons.check} size={16} color="var(--fg-success-secondary)" baseUrl={baseUrl} />
               )}
+              {/* 안 쓴 사람의 까닭 — 토·일요일 «—» · 평일 종일 휴가 «휴가» (manager-view §3-3 W3 · PW-2296) */}
+              {!member.submitted && member.statusNote && (
+                <span className="mgr-ts-note">{member.statusNote}</span>
+              )}
             </span>
           </div>
         ))}
