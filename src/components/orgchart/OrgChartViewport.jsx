@@ -87,6 +87,10 @@ export default function OrgChartViewport({
   onInnerElement,
   // fitKey — 값이 바뀌면 첫 화면 위치로 다시 맞춘다. 호스트가 펼침을 한꺼번에 바꿀 때(전체 펼치기·접기) 넘긴다.
   fitKey,
+  // focusTarget — { el, seq }. 값이 바뀌면 그 요소(카드)를 캔버스 가운데로 옮긴다. 배율은 그대로.
+  // 캔버스는 스크롤이 아니라 이동(translate)으로 움직여 브라우저 scrollIntoView 가 닿지 않는다
+  // (pivit-work PW-2349 조직도 미리 보기 «바뀌는 사람» 누르기).
+  focusTarget,
 }) {
   const canvasInnerRef = useRef(null);
   const setInnerRef = useCallback((el) => {
@@ -194,6 +198,27 @@ export default function OrgChartViewport({
     }, 160);
     return () => { clearTimeout(timer); cancelAnimationFrame(raf); };
   }, [orgData, fitNonce, setView, canvasRef]);
+
+  useEffect(() => {
+    const el = focusTarget?.el;
+    const area = canvasRef.current;
+    if (!el || !area) return;
+    // 펼침으로 다시 그린 뒤에 잰다 — 첫 화면 맞추기와 같은 이유로 한 프레임 기다린다.
+    const raf = requestAnimationFrame(() => {
+      if (!el.isConnected) return;
+      const areaRect = area.getBoundingClientRect();
+      const elRect = el.getBoundingClientRect();
+      if (!areaRect.width || !elRect.width) return;
+      const { scale: s, translate: t } = viewRef.current;
+      setView(s, {
+        x: Math.round(t.x + (areaRect.left + areaRect.width / 2) - (elRect.left + elRect.width / 2)),
+        y: Math.round(t.y + (areaRect.top + areaRect.height / 2) - (elRect.top + elRect.height / 2)),
+      });
+      // 첫 화면 맞추기가 아직 안 돌았으면 뒤에 덮어쓰지 않게 막는다.
+      didCenterRef.current = true;
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [focusTarget, setView, canvasRef]);
 
   // 전체 펼치기 — 접힘을 비우고 기억도 지우고, 끌어 옮긴 카드도 제자리로.
   // 전체 접기 — 회사·최상위 조직 카드만 남기고 그 상태를 기억한다.

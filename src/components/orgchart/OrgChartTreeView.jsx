@@ -17,6 +17,7 @@ const NO_MOVE = { moveMember: NOOP };
  * - 끌어 옮긴 카드 위치도 이 화면 안에서만 기억한다 — 조직도 화면의 위치 기억(localStorage)과 섞지 않는다.
  * - `onInnerElement(el)` 로 트리 요소(canvas-inner)를 알린다 — 호스트가 «이미지»를 뜰 때 쓴다.
  * - `fitKey` 가 바뀌면 첫 화면 위치(회사 카드 가운데 위)로 다시 맞춘다.
+ * - `focusTarget`({ el, seq })이 바뀌면 그 카드를 캔버스 가운데로 옮긴다(배율은 그대로).
  */
 export default function OrgChartTreeView({
   orgData,
@@ -29,6 +30,7 @@ export default function OrgChartTreeView({
   onMemberClick,
   onInnerElement,
   fitKey,
+  focusTarget,
   density = 'all',
 }) {
   const L = useMemo(() => makeOrgLabels(labels), [labels]);
@@ -67,6 +69,7 @@ export default function OrgChartTreeView({
         toolbars={false}
         onInnerElement={onInnerElement}
         fitKey={fitKey}
+        focusTarget={focusTarget}
       />
     </DragContext.Provider>
     </MoveContext.Provider>
