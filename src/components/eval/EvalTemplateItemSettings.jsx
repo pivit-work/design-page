@@ -1,5 +1,4 @@
 import Checkbox from '../shared/Checkbox.jsx';
-import { FieldError } from '../shared/FormField.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import EvalNoteBlock from './EvalNoteBlock.jsx';
 import { AlertIcon } from './evalIcons.jsx';
@@ -74,8 +73,6 @@ export default function EvalTemplateItemSettings({
   phaseLocked = false,
 }) {
   const scaleMax = scaleMaxOf(q);
-  const scaleBlank = q.scaleMax === '';
-  const minBlank = disclosure?.minResponses === '';
   const guideDisplay = q.descriptionDisplay || 'tooltip';
   const isNote = isNoteItem(q);
 
@@ -140,14 +137,11 @@ export default function EvalTemplateItemSettings({
             <span className="evc-tpl-set-note">{L.scaleFrom}</span>
             <input
               type="number"
-              className={`evc-input evc-tpl-set-num${scaleBlank ? ' is-invalid' : ''}`}
-              value={scaleBlank ? '' : scaleMax}
+              className="evc-input evc-tpl-set-num"
+              value={scaleMax}
               min={SCALE_MAX_MIN}
               max={SCALE_MAX_MAX}
-              aria-invalid={scaleBlank || undefined}
-              aria-describedby={scaleBlank ? `evc-tpl-scalemax-error-${q.id}` : undefined}
-              /* 범위 밖 숫자는 §5.11-A 대로 맞추고, 지운 칸은 '' 로 남긴다(pivit-work PW-2569) */
-              onChange={(e) => onPatch(q.id, { scaleMax: e.target.value === '' ? '' : clampScaleMax(e.target.value) })}
+              onChange={(e) => onPatch(q.id, { scaleMax: clampScaleMax(e.target.value) })}
               data-testid={`evc-tpl-scalemax-${q.id}`}
             />
             <span className="evc-tpl-set-note">{L.scaleStepFixed}</span>
@@ -171,11 +165,6 @@ export default function EvalTemplateItemSettings({
               {fill(L.scaleAnyValueNote, { min: SCALE_MAX_MIN, max: SCALE_MAX_MAX })}
             </span>
           </div>
-          {scaleBlank && (
-            <FieldError id={`evc-tpl-scalemax-error-${q.id}`} data-testid={`evc-tpl-scalemax-error-${q.id}`}>
-              {L.scaleMaxRequired}
-            </FieldError>
-          )}
           {/* 숫자만으로는 '5점이 좋은 쪽인지'조차 알 수 없다 — 역방향 척도를 쓰는 조직이 있다. */}
           <div className="evc-tpl-set-row">
             <span className="evc-tpl-set-note">{L.scaleAnchorMinLabel}</span>
@@ -409,30 +398,19 @@ export default function EvalTemplateItemSettings({
               {disclosure.minResponses != null && (
                 <input
                   type="number"
-                  className={`evc-input evc-tpl-set-num${minBlank ? ' is-invalid' : ''}`}
+                  className="evc-input evc-tpl-set-num"
                   value={disclosure.minResponses}
                   min={2}
                   max={20}
-                  aria-invalid={minBlank || undefined}
-                  aria-describedby={minBlank ? `evc-tpl-minresponses-error-${q.id}` : undefined}
-                  /* 범위 밖 숫자는 §5.11-C 대로 2~20 에 맞추고, 지운 칸은 '' 로 남긴다(pivit-work PW-2569) */
                   onChange={(e) =>
                     onPatchDisclosure(q, {
-                      minResponses:
-                        e.target.value === ''
-                          ? ''
-                          : Math.min(20, Math.max(2, Math.round(+e.target.value) || 2)),
+                      minResponses: Math.min(20, Math.max(2, Math.round(+e.target.value) || 2)),
                     })
                   }
                   data-testid={`evc-tpl-minresponses-${q.id}`}
                 />
               )}
             </div>
-            {minBlank && (
-              <FieldError id={`evc-tpl-minresponses-error-${q.id}`} data-testid={`evc-tpl-minresponses-error-${q.id}`}>
-                {L.minResponsesRequired}
-              </FieldError>
-            )}
             <Checkbox
               checked={!!disclosure.aiSummaryOnly}
               onChange={(e) => onPatchDisclosure(q, { aiSummaryOnly: e.target.checked })}

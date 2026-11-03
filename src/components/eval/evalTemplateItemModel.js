@@ -68,14 +68,6 @@ export const SCALE_PRESETS = [3, 5, 7, 10];
 export const clampScaleMax = (v) =>
   Math.min(SCALE_MAX_MAX, Math.max(SCALE_MAX_MIN, Math.round(+v) || SCALE_MAX_MIN));
 export const scaleMaxOf = (q) => q?.scaleMax || DEFAULT_SCALE_MAX;
-/**
- * [pivit-work PW-2569] 비운 숫자 칸 — 척도 최댓값·최소 응답 수 칸을 지운 항목(값 '').
- * 범위 밖 숫자는 기획서(§5.11-A · §5.11-C)대로 칸이 맞추지만, 비운 칸을 말없이 2 로 채우지 않는다 —
- * 칸은 빈 채로 두고 안내를 띄우며, 이런 항목이 있으면 평가지를 저장하지 않는다.
- */
-export const itemNumberBlank = (q) =>
-  !isNoteItem(q) && (q?.scaleMax === '' || q?.disclosure?.minResponses === '');
-export const templateItemsNumberBlank = (items) => (items || []).some(itemNumberBlank);
 
 // [PW-2021] 받은 답 읽기 — 체크·선택 답은 서버가 고른 선택지 이름을 `checkedLabels`(배열)로 싣는다.
 //   체크가 아닌 답은 null 이다. 근거 칸·내 리포트·결과 요약·캘리브레이션이 같은 규칙으로 읽는다.

@@ -512,7 +512,14 @@ export default function EvalLeaderAssignmentSection({
               {fill(L.leaderRulesHead, { count: rules.length })}
             </span>
             <span className="evc-la-bar-detail">
-              {loadLimit > 0 ? fill(L.leaderRulesLoadOn, { limit: loadLimit }) : L.leaderRulesLoadOff}
+              {/* [pivit-work PW-2569] 틀린 값을 «끔»으로 보이지 않게 — 칸 아래와 같은 안내를 머리줄에도 */}
+              {!loadOk
+                ? loadLimit === null || loadLimit === undefined || loadLimit === ''
+                  ? L.leaderLoadRequired
+                  : L.leaderLoadRange
+                : loadLimit > 0
+                  ? fill(L.leaderRulesLoadOn, { limit: loadLimit })
+                  : L.leaderRulesLoadOff}
             </span>
             <span className="evc-la-hint">{rulesOpen ? L.leaderRulesCollapse : L.leaderRulesExpand}</span>
           </button>

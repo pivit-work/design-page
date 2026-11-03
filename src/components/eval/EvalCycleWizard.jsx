@@ -84,7 +84,6 @@ import {
   isNoteItem,
   questionItems,
   scaleMaxOf,
-  templateItemsNumberBlank,
   sectionColor,
 } from './evalTemplateItemModel.js';
 import Switch from '../shared/Switch.jsx';
@@ -3986,6 +3985,7 @@ export default function EvalCycleWizard({
   const reminderOffsetOk = (rm) =>
     rm.offset === undefined ||
     (Number.isInteger(rm.offset) && rm.offset >= REMINDER_OFFSET_MIN && rm.offset <= REMINDER_OFFSET_MAX);
+  const remindersOffsetBad = enabledRows.some((r) => remindersOf(r.id).some((rm) => !reminderOffsetOk(rm)));
   const remindersValid = enabledRows.every((r) =>
     remindersOf(r.id).every((rm) => reminderRecipientCount(r.id, rm) > 0 && reminderOffsetOk(rm)),
   );
@@ -5387,16 +5387,10 @@ export default function EvalCycleWizard({
   // ── 평가 템플릿 빌더 헬퍼 ──
   // [PW-2094] 등급 판정은 「평가 템플릿」 화면 [편집] 창·사이클 관리 탭과 같은 한 벌이다.
   const tplGradeIssues = templateGradeIssues(tplGrades, { absolute: tplAbsolute });
-  // [pivit-work PW-2569] 척도 최댓값·최소 응답 수를 비운 항목이 있으면 평가지를 저장하지 않는다.
-  const tplItemsBlank = templateItemsNumberBlank(tplQuestions);
   const tplGradesValid = tplGradeIssues.valid;
   // PW-119: 저장 버튼을 비활성으로만 두면 왜 안 눌리는지 알 길이 없다.
   // 막고 있는 첫 번째 사유를 골라 버튼 옆에 그대로 띄운다(위에서부터 우선).
-  const tplSaveBlockKey = !tplName.trim()
-    ? 'templateBlockName'
-    : tplItemsBlank
-      ? 'templateBlockItemNumber'
-      : tplGradeIssues.blockKey;
+  const tplSaveBlockKey = !tplName.trim() ? 'templateBlockName' : tplGradeIssues.blockKey;
   /* PW-1459 §5.10.2 — 직급 목록은 회사가 어드민에서 설정한 직급(job_level, 설정 순서)이다.
      조직 설정을 못 받았을 때만 종전대로 대상 멤버의 직책 값에서 뽑는다. */
   const roleFromSettings = Array.isArray(fieldOptions?.jobLevel);
@@ -6094,7 +6088,7 @@ export default function EvalCycleWizard({
   };
   const saveTemplate = () => {
     const name = tplName.trim();
-    if (!name || !tplGradesValid || tplItemsBlank) return;
+    if (!name || !tplGradesValid) return;
     setItemShareResult(null);
     // [PW-1540] 저장 «전» 확정을 기준으로 고른다 — 저장하면 그 칸의 확정이 새 템플릿으로 바뀐다.
     const shareRows = itemShareCandidatesFor(tplKey, tplQuestions);
@@ -6539,8 +6533,12 @@ export default function EvalCycleWizard({
      `{ [묶음 id]: { at, sig } }` 이고, 지금 그 조직 칸의 지문이 `sig` 와 같을 때만 «확정»이다 — 칸·규칙·
      명단·차수 어느 손잡이로 바뀌든 바뀐 칸의 조직만 풀린다(파생). 전체 확정(서버)은 종전 그대로다. */
   const [leaderRules, setLeaderRulesState] = useState(() => normalizeLeaderRules(D?.leaderRules));
+  /* [pivit-work PW-2569] 초안에 담긴 값은 그대로 다시 연다 — 음수·빈 칸을 기본값으로 말없이 바꾸지 않고 칸 아래 안내로 알린다.
+     값이 없으면(옛 초안) 기본값. */
   const [leaderLoadLimit, setLeaderLoadLimitState] = useState(() =>
-    normalizeLoadLimit(D?.leaderLoadLimit),
+    typeof D?.leaderLoadLimit === 'number' || D?.leaderLoadLimit === null
+      ? D.leaderLoadLimit
+      : normalizeLoadLimit(D?.leaderLoadLimit),
   );
   const [leaderGroupConfirms, setLeaderGroupConfirms] = useState(() =>
     D?.leaderGroupConfirms && typeof D.leaderGroupConfirms === 'object' ? D.leaderGroupConfirms : {},
@@ -6900,6 +6898,8 @@ export default function EvalCycleWizard({
    * 「확정」(전체 칸 · 서버)을 보낸다. 서버가 거절하면 조직 확정은 남기고 요약 바에서 다시 보낼 수 있다.
    */
   const confirmLeaderGroups = (gids) => {
+    // [pivit-work PW-2569] 부담 경고 기준 칸이 틀린 동안은 조직 확정도 하지 않는다 — 전체 확정이 말없이 멈췄다.
+    if (!leaderLoadLimitOk(leaderLoadLimit)) return;
     const at = new Date().toISOString();
     const next = { ...leaderGroupConfirms };
     gids.forEach((gid) => {
@@ -7905,9 +7905,13 @@ export default function EvalCycleWizard({
       : !scheduleValid
       ? L.submitBlockSchedule ?? L.dateOrderError
       : !remindersValid
-        ? L.reminderNoRecipientErr
+        ? remindersOffsetBad
+          ? L.reminderOffsetBlock
+          : L.reminderNoRecipientErr
         : !targetsValid
         ? L.submitBlockTargets
+        : !leaderLoadValid
+        ? L.leaderLoadBlock
         : !committeeValid
           ? incompleteCommitteeCount > 0 && L.submitBlockCommitteeCount
             ? fill(L.submitBlockCommitteeCount, { count: incompleteCommitteeCount })
@@ -9671,7 +9675,7 @@ export default function EvalCycleWizard({
                   type="button"
                   className="evc-btn is-primary"
                   onClick={saveTemplate}
-                  disabled={!tplName.trim() || !tplGradesValid || tplItemsBlank}
+                  disabled={!tplName.trim() || !tplGradesValid}
                   data-testid="evc-tpl-save"
                 >
                   {L.templateSave}
@@ -10252,6 +10256,18 @@ export default function EvalCycleWizard({
                                       </button>
                                     </span>
                                   </div>
+                                  {/* [pivit-work PW-2569] 날짜(D-) 오류도 패널을 닫으면 안 보인다 — 목록 줄에도 띄운다. */}
+                                  {!reminderOffsetOk(rm) && (
+                                    <div
+                                      className="evc-rm-tgt-error"
+                                      role="alert"
+                                      data-testid={`evc-rm-row-offset-error-${ph.id}-${i}`}
+                                    >
+                                      {rm.offset === null || rm.offset === ''
+                                        ? L.reminderOffsetRequired
+                                        : fill(L.reminderOffsetRange, { min: REMINDER_OFFSET_MIN, max: REMINDER_OFFSET_MAX })}
+                                    </div>
+                                  )}
                                   {/* [PW-1066] 패널을 열지 않으면 모르는 채로 넘어가는 것 — 목록 줄에도 띄운다. */}
                                   {noRecipient && (
                                     <div
