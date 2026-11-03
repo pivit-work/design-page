@@ -36,8 +36,8 @@ import { ChevronDownGlyph, ChevronLeftGlyph, ChevronRightGlyph } from './lineIco
  *                다른 나라 시간대면 오늘 강조·「Today」 버튼이 하루 어긋나지 않게 (PW-781)
  *   isDateDisabled (Date) => boolean — 범위(min · max) 안이라도 고를 수 없는 날(주말 · 휴일 등). true 면
  *                그 칸은 범위 밖 날과 같이 «눌리지 않는 칸»으로 그린다. 없으면 범위만 본다 (PW-2547)
- *   disabledTitle  (Date) => string | null — 고를 수 없는 칸에 마우스를 올리면 보일 까닭(«주말은 고를 수 없습니다»).
- *                isDateDisabled 로 막은 칸에만 붙는다 (PW-2547)
+ *   disabledTitle  (Date) => string | null — 고를 수 없는 칸(범위 밖 포함 · 다른 달 칸 제외)에 마우스를 올리면 보일
+ *                까닭(«주말은 고를 수 없습니다»). 없으면 title 을 붙이지 않는다 (PW-2547)
  *   selectedDates  Date[] — 여러 날을 고르는 화면의 고른 날 전부. 있으면 selectedDate 대신 이 날들에 선택 표시를
  *                한다(모양은 선택일과 같다) (PW-2547)
  *   startView    'day'(기본) | 'year' — 'year' 면 선택일이 없을 때 연도 보기로 열고,
@@ -357,7 +357,8 @@ export default function DatePicker({
               // PW-2547 — 범위 안의 주말 · 휴일도 같은 «눌리지 않는 칸». 누르면 골라진 것처럼 보이면 안 된다.
               const blocked = !outOfRange && !!isDateDisabled && !!isDateDisabled(day);
               const disabled = outOfRange || blocked;
-              const title = blocked && disabledTitle ? disabledTitle(day) || undefined : undefined;
+              // 까닭은 막힌 칸 전부에 — 범위 밖(지난 날 · 소멸일 뒤)도 부르는 쪽이 까닭을 줄 수 있다. disabledTitle 을 안 넘기면 전과 같다.
+              const title = disabled && !c.outside && disabledTitle ? disabledTitle(day) || undefined : undefined;
               return (
                 <button
                   key={i}
