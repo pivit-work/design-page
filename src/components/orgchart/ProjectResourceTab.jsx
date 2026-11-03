@@ -83,6 +83,8 @@ function withServerFacts(row, data) {
   };
 }
 
+const requestKey = (row) => `${row.memberId}|${row.viaSquadId}`;
+
 /** 이 프로젝트에서 더 쓸 수 있는 몫 — 음수면 초과(§6-2 `Σ plan ≤ 개인 캐파`). */
 const slackOf = (row) => row.cap - row.other - row.planPct;
 
@@ -130,7 +132,8 @@ export default function ProjectResourceTab({
   const [saved, setSaved] = useState(false);
   const [toast, setToast] = useState(null); // { message, tone }
   const [flagged, setFlagged] = useState([]); // 서버 422 가 짚은 사람
-  const [requested, setRequested] = useState({}); // memberId → true (보낸 뒤 · 409)
+  // `memberId|viaSquadId` → true (보낸 뒤 · 409) — 요청은 그 줄의 참여 스쿼드 기준이라(§8-7) 사람만으로 기억하지 않는다.
+  const [requested, setRequested] = useState({});
   const [requesting, setRequesting] = useState(null);
   const [adding, setAdding] = useState(false);
   const timers = useRef([]);
@@ -253,10 +256,10 @@ export default function ProjectResourceTab({
     setRequesting(row.memberId);
     try {
       await onRequestCapacity(row);
-      setRequested((m) => ({ ...m, [row.memberId]: true }));
+      setRequested((m) => ({ ...m, [requestKey(row)]: true }));
     } catch (err) {
       if (err?.status === 409) {
-        setRequested((m) => ({ ...m, [row.memberId]: true }));
+        setRequested((m) => ({ ...m, [requestKey(row)]: true }));
       } else if (err?.status === 403) {
         showToast(L('projectDetail.resource.requestForbidden'), 'error');
         onReload?.();
@@ -364,7 +367,7 @@ export default function ProjectResourceTab({
                 mine={r.memberId === meId}
                 closed={closed}
                 color={pctColor(slackOf(r) < 0)}
-                requested={!!(requested[r.memberId] || r.capacityRequestedAt)}
+                requested={!!(requested[requestKey(r)] || r.capacityRequestedAt)}
                 requesting={requesting === r.memberId}
                 onPct={(v) => setPct(r.memberId, v)}
                 // 기존 PO 줄을 이 사람이 못 고치면 PO 를 옮길 수 없다 — 그 줄이 팀원으로 바뀌어 저장이 403 이 된다.
