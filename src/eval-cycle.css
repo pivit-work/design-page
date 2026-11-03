@@ -955,8 +955,11 @@
 .evc-sched-modal-field.is-reason > textarea.evc-input::placeholder {
   color: var(--text-placeholder);
 }
-/* 평가지 «템플릿 이름» 칸의 회색 예시 — 위 사유 칸과 같은 자리표시 색 (pivit-work PW-2571). 다른 .evc-input 은 건드리지 않는다 */
-#evtpl-name.evc-input::placeholder {
+/* 평가지 «템플릿 이름» 칸의 회색 예시 — 위 사유 칸과 같은 자리표시 색 (pivit-work PW-2571). 다른 .evc-input 은 건드리지 않는다.
+   #etl-name·#etl-dup-name 은 평가 › 템플릿 보관함의 [새 템플릿]·[편집]·[복제] 창 이름 칸 */
+#evtpl-name.evc-input::placeholder,
+#etl-name.evc-input::placeholder,
+#etl-dup-name.evc-input::placeholder {
   color: var(--text-placeholder);
 }
 .evc-sched-modal-field.is-reason > textarea.evc-input:focus {
