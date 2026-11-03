@@ -39,7 +39,9 @@ import { isEnterKey } from '../shared/enterKey.js';
  * 상세로 가는 길이다(리소스 정책서 §7 「프로젝트 칩 클릭」 · 원장 정책서 §3, PW-1436). KR·직접 입력 행은
  * 원장이 없어 글자 그대로다. 아래 「투입 항목 추가」 칩은 그대로 «행에 더하기» 다. `unsaved` 는 화면에서
  * 고쳐 놓고 아직 저장하지 않은 값이 있는지 — 호스트가 이동 방식(같은 탭/새 탭)을 가르는 데 쓴다.
- * 끝난 달(`readOnly`)에도 눌린다 — 조회 목적이다.
+ * 끝난 달(`readOnly`)에도 눌린다 — 조회 목적이다. 눌리는 줄은 `data.entries`(보고 있는 달의 저장값)에 있는
+ * 프로젝트 줄뿐이다 — 저장 전에 새로 담은 줄은 저장이 성공할 때까지 글자로 두고 말풍선에 `M.openAfterSave`
+ * (리소스 정책서 v1.33 §6 「프로젝트 칩 클릭」 · PW-2321).
  *
  * `maxTotal` 을 주면 지금 화면의 합계가 그 값을 넘는 동안 [저장] 이 눌리지 않는다(리소스 흐름도
  * 「합계 200% 초과 → 저장 불가」 · PW-1587). 합계가 슬라이더와 함께 움직이므로 판정도 여기서 한다.
@@ -85,6 +87,10 @@ export default function OkrResourceMyInput({
 }) {
   const M = L.my;
   const [entries, setEntries] = useState(data.entries);
+  // 원장 링크는 «보고 있는 달의 마지막 저장값에 있는 프로젝트 줄»만 — `data.entries` 가 그 저장값이다.
+  // 새로 담은 줄은 저장이 성공해 호스트가 저장값을 다시 줄 때까지 글자로 둔다(리소스 정책서 v1.33 §6 · PW-2321).
+  // 줄마다 열람 자격을 다시 계산하지 않는다 — 저장한 줄은 원장 열람 조건 «내가 투입을 적은 프로젝트»에 든다.
+  const savedProjectIds = new Set(data.entries.map(entryProjectId).filter(Boolean));
   const [krOpen, setKrOpen] = useState(false);
   const [customName, setCustomName] = useState('');
   const [customError, setCustomError] = useState(null);
@@ -245,7 +251,7 @@ export default function OkrResourceMyInput({
           <div className="rsx-entry-main">
             <div className="rsx-entry-head">
               <div className="rsx-entry-title">
-                {onOpenProject && entryProjectId(entry) ? (
+                {onOpenProject && savedProjectIds.has(entryProjectId(entry)) ? (
                   <button
                     type="button"
                     className="rsx-entry-name is-link"
@@ -255,6 +261,12 @@ export default function OkrResourceMyInput({
                       unsaved: !sameEntries(entries, data.entries),
                     })}
                   >{entry.name}</button>
+                ) : onOpenProject && entryProjectId(entry) ? (
+                  <span
+                    className="rsx-entry-name"
+                    data-testid={`rsx-entry-unsaved-${entryProjectId(entry)}`}
+                    title={M.openAfterSave}
+                  >{entry.name}</span>
                 ) : (
                   <span className="rsx-entry-name">{entry.name}</span>
                 )}

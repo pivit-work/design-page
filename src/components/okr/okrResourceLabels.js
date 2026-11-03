@@ -54,6 +54,8 @@ export const OKR_RESOURCE_DEFAULT_LABELS = {
     // 합계 100% 초과 경고 — 저장된 값이 아니라 입력 중인 합계로 그린다(리소스 정책서 §3 「100% 초과 경고 배너」 · PW-2214)
     overTotal: (total) => `합계 ${total}% — 100%를 넘었습니다`,
     openProject: '프로젝트 상세 보기',
+    // 저장 전에 새로 담은 프로젝트 줄 이름의 말풍선 — 리소스 정책서 v1.33 §6 「프로젝트 칩 클릭」 그대로 (PW-2321)
+    openAfterSave: '저장한 뒤에 원장을 열 수 있습니다',
     readOnlyNotice: (month) => `${month}은 끝난 달입니다. 입력한 값은 볼 수만 있고 고칠 수 없습니다. 매니저 코멘트와 답글은 남길 수 있습니다.`,
     readOnlyEmpty: '이 달에 입력한 기록이 없습니다.',
     // 이번 달 0건 — 추가 카드는 그대로 두고 안내만 더한다(okr-policy E 표 · 시안 okr-app.jsx · PW-1502).
