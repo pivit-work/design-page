@@ -209,6 +209,39 @@
   line-height: 18px;
   color: var(--text-tertiary);
 }
+/* 문의하기 고른 파일 목록 (PW-2480 · QA 2026-11-03) — 기획 시안 SupportNew 첨부 블록: 파일마다 한 행인 세로 목록.
+   행은 시안 주석대로 같은 화면 자동 첨부 안내 상자(.sup-hint)의 바탕·모서리·안쪽 여백·글씨를 그대로 쓰고(li 에 함께 붙임),
+   여기서는 한 줄 배치만 정한다. 크기는 .sup-attach-sub(12px 보조 회색), [×] 는 디자이너의 행 빼기 버튼
+   .mtg-record-action-remove(26px) — 행 높이가 안내 상자와 같게 위아래로 조금 겹친다. */
+.sup-files {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sup-file {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin: 0;
+  color: var(--text-primary);
+}
+.sup-file-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sup-file-size {
+  flex-shrink: 0;
+}
+.sup-file .mtg-record-action-remove {
+  flex-shrink: 0;
+  margin: calc(var(--spacing-xxs) * -1.5) calc(var(--spacing-xs) * -1) calc(var(--spacing-xxs) * -1.5) 0;
+}
 .sup-actions-hint {
   font-size: 12px;
   line-height: 18px;

@@ -11,6 +11,7 @@ import {
   AlertTriangleGlyph,
   ArrowRightGlyph,
   CheckGlyph,
+  CloseGlyph,
   PlusGlyph,
   SparkleGlyph,
 } from '../shared/lineIcons.jsx';
@@ -56,7 +57,7 @@ import {
  *                     buttonLabel,         「파일 첨부」
  *                     accept,              파일 선택 창이 고르게 할 형식(`.png,.jpg,…`)
  *                     full, fullHint,      다 찼으면 버튼을 잠그고 그 아래 안내 한 줄
- *                     files: [{ id, label, removeLabel }],  고른 파일(label = 「이름 · 크기」 — 호출부가 만든다)
+ *                     files: [{ id, name, size, removeLabel }],  고른 파일 — 파일마다 한 행(왼쪽 이름 · 오른쪽 크기·×). size 는 호출부가 만든 글자(「2.0 MB」)
  *                     notice,              늘 보이는 고지 한 줄
  *                     onPick(File[]),      선택 창에서 고른 것 — 검사·토스트는 호출부 몫
  *                     onRemove(id)
@@ -397,8 +398,10 @@ function AiSection({ ai, labels, busy, onAsk, onResolved, onRetry, onProceed }) 
 
 /**
  * 파일 첨부 칸 (PW-2480) — 디자이너 원본이 없어 같은 화면의 부품으로 만든다(design-review).
- * 묶음은 바로 아래 자동 첨부 칸과 같은 `.sup-attach`, 파일 줄은 유형 칩 줄과 같은 `.sup-cats`,
- * 안내는 스크린샷 보조 문구와 같은 `.sup-attach-sub`. 새 CSS 없음.
+ * 묶음은 바로 아래 자동 첨부 칸과 같은 `.sup-attach`, 안내는 스크린샷 보조 문구와 같은 `.sup-attach-sub`.
+ * 고른 파일은 기획 시안(support-app.jsx SupportNew 첨부 블록)대로 파일마다 한 행인 세로 목록이다 — 가로 칩 줄이
+ * 아니다(QA 2026-11-03). 행은 시안 주석대로 같은 화면 자동 첨부 안내 상자(`.sup-hint`)와 같은 바탕·모서리·글씨,
+ * [×] 는 디자이너의 «행 빼기» 버튼(회의록 할 일 줄 `.mtg-record-action-remove`)을 그대로 쓴다.
  */
 function FileAttach({ fileAttach, busy }) {
   const inputRef = useRef(null);
@@ -437,20 +440,29 @@ function FileAttach({ fileAttach, busy }) {
         </span>
       )}
       {files.length > 0 && (
-        <div className="sup-cats" role="list" data-testid="support-files-list">
+        <ul className="sup-files" data-testid="support-files-list">
           {files.map((f) => (
-            <Chip
-              key={f.id}
-              role="listitem"
-              onRemove={busy ? undefined : () => fileAttach.onRemove?.(f.id)}
-              removeLabel={f.removeLabel}
-              removeProps={{ 'data-testid': 'support-file-remove' }}
-              data-testid="support-file"
-            >
-              {f.label}
-            </Chip>
+            <li key={f.id} className="sup-hint sup-file" data-testid="support-file">
+              <span className="sup-file-name" title={f.name} data-testid="support-file-name">
+                {f.name}
+              </span>
+              <span className="sup-attach-sub sup-file-size" data-testid="support-file-size">
+                {f.size}
+              </span>
+              {!busy && (
+                <button
+                  type="button"
+                  className="mtg-record-action-remove"
+                  aria-label={f.removeLabel}
+                  onClick={() => fileAttach.onRemove?.(f.id)}
+                  data-testid="support-file-remove"
+                >
+                  <CloseGlyph size={14} strokeWidth={2.571} color="var(--text-tertiary)" />
+                </button>
+              )}
+            </li>
           ))}
-        </div>
+        </ul>
       )}
       <span className="sup-attach-sub" data-testid="support-files-notice">
         {fileAttach.notice}
