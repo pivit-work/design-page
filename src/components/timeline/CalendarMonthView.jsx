@@ -6,6 +6,7 @@ import {
 } from './constants.js';
 import useTimelineData from './useTimelineData.js';
 import { weekdayShortLabels, formatMonthDay } from './timelineLabels.js';
+import { layoutAllDayWeek } from './allDayLayout.js';
 
 // 주말(일/토) 컬럼은 그대로 보여주되 이벤트만 비움.
 const COL_COUNT = 7;
@@ -163,6 +164,40 @@ export default function CalendarMonthView({
   }, [pushUpAtTop]);
 
   const cells = buildWeeks(range.start, range.weeks);
+  // 종일 일정 막대 자리는 주(일~토) 줄마다 정한다 — 한 막대가 걸친 날마다 같은 줄에 있게 (pivit-work PW-2462)
+  const weekLayouts = [];
+  for (let w = 0; w < range.weeks; w += 1) {
+    const isos = cells.slice(w * COL_COUNT, (w + 1) * COL_COUNT).map(formatIsoDate);
+    weekLayouts.push(layoutAllDayWeek(isos, getEventsForDate));
+  }
+
+  const renderPill = (ev, extraClass, children) => {
+    const palette = SNIPPET_COLORS[ev.color] || SNIPPET_COLORS.gray;
+    return (
+      <div
+        key={ev.id}
+        className={`tl-cal-event${extraClass}`}
+        style={{
+          // CSS variable 로 hover bg 주입 — :hover 시 bgHover 로 전환
+          '--event-bg': palette.bg,
+          '--event-bg-hover': palette.bgHover,
+          borderColor: palette.border,
+          cursor: 'pointer',
+        }}
+        // 호버 카드(PW-1515) — 0.3초 대기·닫기는 호스트가 정한다. 칸 위치만 올린다.
+        onMouseEnter={(e) =>
+          onEventHover?.(ev, e.currentTarget.getBoundingClientRect())
+        }
+        onMouseLeave={() => onEventHoverEnd?.()}
+        onClick={(e) => {
+          e.stopPropagation();
+          onEventClick?.(ev, e.currentTarget.getBoundingClientRect());
+        }}
+      >
+        {children(palette)}
+      </div>
+    );
+  };
 
   // 붙이거나 버린 주가 바뀌면 그 범위를 호스트에 알린다 — 호스트는 같은 범위를 다시 받아도 아무것도 안 해야 한다
   const rangeFrom = formatIsoDate(range.start);
@@ -186,14 +221,21 @@ export default function CalendarMonthView({
         className="tl-cal-grid" ref={gridRef} onScroll={handleScroll}
         onWheel={handleWheel} onTouchStart={handleTouchStart} onTouchMove={handleTouchMove}
         style={{ '--tl-cal-row': `${rowH}px` }}>
-        {cells.map((d) => {
+        {cells.map((d, cellIndex) => {
           const iso = formatIsoDate(d);
           const isToday = iso === (now ? formatIsoDate(now()) : TODAY_STR);
           // 주말 칸도 일정을 그대로 보인다(PW-1063). 예전엔 토·일 칸을 비워, 같은 일정이
           // 주 보기엔 있고 월 보기엔 없었다.
           const events = getEventsForDate(iso);
-          const visible = events.slice(0, maxVisible);
-          const moreCount = Math.max(0, events.length - maxVisible);
+          // 종일 막대가 먼저 자리를 차지하고 시각 있는 일정은 그 아래 — 칸에 들어가는 개수는 둘을 합쳐 센다 (§13.9 C)
+          const col = cellIndex % COL_COUNT;
+          const allDayBars = weekLayouts[Math.floor(cellIndex / COL_COUNT)].byCol[col];
+          const laneCount = allDayBars.length ? allDayBars[allDayBars.length - 1].lane + 1 : 0;
+          const shownLanes = Math.min(laneCount, maxVisible);
+          const hiddenAllDay = allDayBars.filter((b) => b.lane >= shownLanes).length;
+          const timed = events.filter((ev) => !ev.allDay);
+          const visible = timed.slice(0, maxVisible - shownLanes);
+          const moreCount = hiddenAllDay + Math.max(0, timed.length - visible.length);
           // 1일은 "X월 Y일" 라벨, 나머지는 숫자
           const dayLabel =
             d.getDate() === 1
@@ -208,31 +250,40 @@ export default function CalendarMonthView({
                   {dayLabel}
                 </span>
               </div>
-              {visible.length > 0 && (
+              {shownLanes > 0 && (
+                // 날짜 숫자 바로 아래 종일 줄 — 줄마다 그 칸을 지나는 막대 조각, 없으면 같은 높이의 빈 자리
+                <div className="tl-cal-allday-lanes">
+                  {Array.from({ length: shownLanes }, (_, lane) => {
+                    const bar = allDayBars.find((b) => b.lane === lane);
+                    if (!bar) {
+                      return (
+                        <div key={`lane-${lane}`} className="tl-cal-event tl-cal-allday-spacer" aria-hidden="true">
+                          <span className="tl-cal-event-title">&nbsp;</span>
+                        </div>
+                      );
+                    }
+                    // 옆 칸 조각과 붙는 쪽(join)과 주·보이는 범위 끝에서 잘린 쪽(cut) — 모양은 디자이너 그림 전 임시
+                    const cls = [
+                      ' tl-cal-allday',
+                      col > bar.startCol ? ' is-join-left' : '',
+                      col < bar.endCol ? ' is-join-right' : '',
+                      col === bar.startCol && bar.cutLeft ? ' is-cut-left' : '',
+                      col === bar.endCol && bar.cutRight ? ' is-cut-right' : '',
+                    ].join('');
+                    // 제목은 그 주 줄에서 막대가 시작하는 칸에만 쓴다 — 다음 주 줄에서 다시 시작한 막대에도 쓴다
+                    return renderPill(bar.ev, cls, (palette) => (
+                      <span className="tl-cal-event-title" style={{ color: palette.titleText }}>
+                        {col === bar.startCol ? bar.ev.title : '\u00a0'}
+                      </span>
+                    ));
+                  })}
+                </div>
+              )}
+              {(visible.length > 0 || moreCount > 0) && (
                 <div className="tl-cal-events">
-                  {visible.map((ev) => {
-                    const palette = SNIPPET_COLORS[ev.color] || SNIPPET_COLORS.gray;
-                    return (
-                      <div
-                        key={ev.id}
-                        className="tl-cal-event"
-                        style={{
-                          // CSS variable 로 hover bg 주입 — :hover 시 bgHover 로 전환
-                          '--event-bg': palette.bg,
-                          '--event-bg-hover': palette.bgHover,
-                          borderColor: palette.border,
-                            cursor: 'pointer',
-                        }}
-                        // 호버 카드(PW-1515) — 0.3초 대기·닫기는 호스트가 정한다. 칸 위치만 올린다.
-                        onMouseEnter={(e) =>
-                          onEventHover?.(ev, e.currentTarget.getBoundingClientRect())
-                        }
-                        onMouseLeave={() => onEventHoverEnd?.()}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onEventClick?.(ev, e.currentTarget.getBoundingClientRect());
-                        }}
-                      >
+                  {visible.map((ev) =>
+                    renderPill(ev, '', (palette) => (
+                      <>
                         <span
                           className="tl-cal-event-time"
                           style={{ color: palette.timeText }}
@@ -245,9 +296,9 @@ export default function CalendarMonthView({
                         >
                           {ev.title}
                         </span>
-                      </div>
-                    );
-                  })}
+                      </>
+                    )),
+                  )}
                   {moreCount > 0 && (
                     <button
                       type="button"

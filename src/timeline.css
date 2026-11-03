@@ -1749,6 +1749,106 @@
   color: var(--colors-text-textSecondary);
 }
 
+/* ===========================
+   구글 «종일» 일정 막대 (pivit-work PW-2462 · 타임라인 정책서 §13.9) — 디자이너 그림이 오기 전 임시 모양.
+   막대 하나하나는 같은 칸의 stesslee 일정 줄(.tl-cal-event — 4/8 여백·모서리 8·테두리 1·12/18)을 그대로 쓴다.
+   - 월 보기: 날짜 숫자 아래 줄(.tl-cal-allday-lanes, 줄 사이 = .tl-cal-events 4). 옆 칸 조각과 붙는 쪽(is-join-*)은
+     칸 여백(8 = --spacing-md)만큼 밖으로 늘이고 그쪽 테두리·모서리를 없앤다. 주·보이는 범위 끝에서 잘린 쪽(is-cut-*)은 모서리만 각지게.
+   - 주 보기: 머리줄 아래 붙박이 «종일» 줄. 요일 7칸 격자에 막대를 걸친 칸만큼 놓는다.
+   =========================== */
+.tl-cal-allday-lanes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+.tl-cal-allday-spacer {
+  visibility: hidden;
+}
+
+.tl-cal-allday.is-join-left {
+  margin-left: calc(-1 * var(--spacing-md));
+  border-left-width: 0;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.tl-cal-allday.is-join-right {
+  margin-right: calc(-1 * var(--spacing-md));
+  border-right-width: 0;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.tl-cal-allday.is-cut-left,
+.tl-week-cal-allday-bar.is-cut-left {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.tl-cal-allday.is-cut-right,
+.tl-week-cal-allday-bar.is-cut-right {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+/* 머리줄과 «종일» 줄을 함께 붙여 둔다 — 머리줄(.tl-week-cal-header)의 붙박이·층·바탕을 그대로 */
+.tl-week-cal-top {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--bg-quaternary);
+}
+
+.tl-week-cal-allday {
+  display: flex;
+  border-bottom: 1px solid var(--colors-border-borderSecondary);
+}
+
+/* «종일» 글씨 — 주 보기 시각 글씨(.tl-week-cal-hour-label: 12/18 600 · -0.12 · text-secondary · 오른쪽 여백 8)와 같다 */
+.tl-week-cal-allday-label {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: var(--spacing-sm) var(--spacing-md) 0 0;
+  box-sizing: border-box;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  letter-spacing: -0.12px;
+  color: var(--text-secondary);
+}
+
+.tl-week-cal-allday-days {
+  flex: 1 1 0;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  row-gap: var(--spacing-xs);
+  padding: var(--spacing-xs) 0;
+}
+
+/* 요일 칸 세로선 — 시간 격자 요일 칸(.tl-week-cal-day-col)의 오른쪽 선과 같다. 줄 위아래 여백까지 잇는다. */
+.tl-week-cal-allday-col {
+  margin: calc(-1 * var(--spacing-xs)) 0;
+  border-right: 1px solid var(--colors-grayNeutral-100);
+}
+
+.tl-week-cal-allday-col:nth-child(7) {
+  border-right: none;
+}
+
+.tl-week-cal-allday-bar {
+  margin: 0 var(--spacing-xxs);
+  min-width: 0;
+}
+
+.tl-week-cal-allday-days .tl-cal-more {
+  justify-self: start;
+}
+
 /* 주 보기에서 나란히 놓을 일정이 넘친 줄의 «+N» — 월 보기 «+N more» 글자 그대로, 자리만 시간 칸에 둔다. */
 .tl-week-cal-more {
   position: absolute;

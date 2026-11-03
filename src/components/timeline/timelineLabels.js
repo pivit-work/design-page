@@ -43,6 +43,8 @@ export const DEFAULT_TIMELINE_LABELS = {
   // 창
   dayEvents: (date) => `${date} 일정`,
   close: '닫기',
+  // 캘린더 주 보기 «종일» 줄 이름 (pivit-work PW-2462)
+  allDay: '종일',
   prevMonth: '이전 달',
   nextMonth: '다음 달',
   organizer: '주최자',

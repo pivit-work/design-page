@@ -334,7 +334,14 @@ export default function TimelineCanvas({
       id: ev.id,
       title: ev.title,
       color: palette.solid,
-      timeLabel: `${formatEventDate(d)} · ${ev.time}`,
+      // 종일 일정은 걸친 날짜 + «종일» — 누른 칸의 날짜가 아니라 일정의 첫날~끝날 (pivit-work PW-2462)
+      timeLabel: ev.allDay && ev.allDayStart
+        ? `${formatEventDate(parseIsoDate(ev.allDayStart))}${
+            ev.allDayEnd && ev.allDayEnd !== ev.allDayStart
+              ? ` ~ ${formatEventDate(parseIsoDate(ev.allDayEnd))}`
+              : ''
+          } · ${ev.time}`
+        : `${formatEventDate(d)} · ${ev.time}`,
       // 실데이터 이벤트는 반복 정보가 없으므로 repeat 라벨 미표기.
       repeatLabel: hasRealPeople ? '' : '매주 일요일, 수요일',
       participants: hasRealPeople ? ev.participants : ['m1', 'm2', 'm3', 'm4', 'm5'],
