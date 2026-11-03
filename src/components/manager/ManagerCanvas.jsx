@@ -35,6 +35,9 @@ export default function ManagerCanvas({
   onSelectMember,
   onRetryDetail,
   krLabels,
+  // KR 드릴다운 본문 대신 그릴 것(슬롯). 넘어오면 `krDrilldown` 보다 먼저 그린다 — 회사 요금제에
+  // OKR 이 없을 때 소비자가 요금제 잠금 카드를 넣는 자리다(pivit-work PW-2487 · 팀 스니핏 슬롯과 같은 모양).
+  krDrilldownSlot,
   teamSnippets,
   // 팀 스니핏 본문을 소비자가 직접 그리고 싶을 때 넘기는 자리(슬롯). 넘어오면
   // `teamSnippets` 대신 이걸 그린다.
@@ -165,7 +168,9 @@ export default function ManagerCanvas({
         )}
       </header>
 
-      {activeTab === 'kr' && krDrilldown ? (
+      {activeTab === 'kr' && krDrilldownSlot ? (
+        krDrilldownSlot
+      ) : activeTab === 'kr' && krDrilldown ? (
         <KrDrilldown
           data={krDrilldown}
           selectedObjectiveId={selectedObjectiveId}
