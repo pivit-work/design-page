@@ -440,7 +440,7 @@ function FileAttach({ fileAttach, busy }) {
         </span>
       )}
       {files.length > 0 && (
-        <ul className="sup-files" data-testid="support-files-list">
+        <ul className="sup-files" role="list" data-testid="support-files-list">
           {files.map((f) => (
             <li key={f.id} className="sup-hint sup-file" data-testid="support-file">
               <span className="sup-file-name" title={f.name} data-testid="support-file-name">
