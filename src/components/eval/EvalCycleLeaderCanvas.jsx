@@ -38,6 +38,9 @@ const DEFAULT_LABELS = {
   // PW-1017 제출 후 수정(기획 §5.11) — 확정 전에는 고쳐서 다시 낸다, 확정 뒤에는 잠긴다.
   resubmit: '다시 제출',
   lockedNotice: '',
+  // PW-2440 — 이 사이클의 위원이 맡은 피평가자의 하향 리뷰를 읽기 전용으로 열 때(리더 정책 §2 v2.38).
+  readOnlyBadge: '조회 전용',
+  readOnlyNotSubmitted: '하향 리뷰가 아직 제출되지 않았습니다.',
   workTitle: '업적 (What)',
   workPlaceholder: '업적에 대한 평가를 작성하세요.',
   competencyTitle: '역량 (How)',
@@ -715,6 +718,12 @@ export default function EvalCycleLeaderCanvas({
    * null 이면 초안을 만들기 전이라 사유 카드를 그리지 않는다. 등급 버튼을 채우지 않는다(R3).
    */
   aiGradeSuggestion = null,
+  /**
+   * PW-2440 — 위원이 맡은 피평가자의 제출된 하향 리뷰를 읽기만 하는 화면(리더 정책 §2 v2.38). 머리 제목 옆에
+   * «🔒 조회 전용», 왼쪽 근거 패널은 그리지 않고(앞 차수 카드는 오른쪽 칸 맨 위로), 제출 전이면 본문 자리에
+   * `labels.readOnlyNotSubmitted`. 칸 잠금·버튼 감춤은 `locked` 가 한다 — 호출부가 함께 켠다.
+   */
+  readOnlyView = false,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const formLocked = locked ?? submitted;
@@ -1360,7 +1369,19 @@ export default function EvalCycleLeaderCanvas({
   const header = (
     <header className="evc-header">
       <div>
-        <h1 className={`evc-title${titleHelp ? ' tvh-title-row' : ''}`} data-testid="evl-title">{titleText}{titleHelp}</h1>
+        <h1 className={`evc-title${titleHelp ? ' tvh-title-row' : ''}`} data-testid="evl-title">
+          {titleText}
+          {titleHelp}
+          {/* PW-2440 — 1on1 «열람모드»(.ood-mode)·캘리브레이션 «조회 전용»(.evs-cw-mode)과 같은 딱지. */}
+          {readOnlyView && (
+            <>
+              {' '}
+              <span className="evs-cw-mode" data-testid="evl-readonly-badge">
+                <LockIcon size={12} /> {L.readOnlyBadge}
+              </span>
+            </>
+          )}
+        </h1>
         {cycle?.name && <p className="evc-summary">{cycle.name}</p>}
       </div>
     </header>
@@ -1393,6 +1414,30 @@ export default function EvalCycleLeaderCanvas({
     );
   }
 
+  // PW-2440 — 위원에게 제출 전 하향 리뷰는 보이지 않는다(임시저장본 포함 · 리더 정책 §2 ①).
+  if (readOnlyView && !submitted) {
+    return (
+      <div className="evc-root">
+        {header}
+        <section className="evc-card" data-testid="evl-readonly-pending">
+          <p className="evc-empty-sub">{L.readOnlyNotSubmitted}</p>
+        </section>
+      </div>
+    );
+  }
+
+  const priorRoundCards =
+    round >= 2 && priorRounds ? (
+      <EvalLeaderPriorRounds
+        state={priorRounds}
+        onRetry={onRetryPriorRounds}
+        labelOf={priorLabelOf}
+        scaleMaxOf={priorScaleMaxOf}
+        gradeLabelOf={priorGradeLabelOf}
+        L={L}
+      />
+    ) : null;
+
   return (
     <div className="evc-root">
       {header}
@@ -1405,7 +1450,7 @@ export default function EvalCycleLeaderCanvas({
           {L.lockedNotice}
         </p>
       )}
-      {submitted && (
+      {submitted && !readOnlyView && (
         <p className="evx-notice is-success" data-testid="evl-submitted">
           {L.submittedBanner}
           {!calibrationEnabled && (
@@ -1429,19 +1474,11 @@ export default function EvalCycleLeaderCanvas({
       )}
 
       <div className="evl-2pane">
-        {/* 좌: 근거 */}
+        {/* 좌: 근거 — PW-2440 위원의 읽기 전용 화면에는 그리지 않는다(리더 정책 §2 ③). */}
+        {!readOnlyView && (
         <aside className="evl-evidence" data-testid="evl-evidence">
           {/* PW-1594 §5.13.3 — 2차 이후면 근거 칸 맨 위(셀프 리뷰보다 위)에 앞 차수 리뷰 */}
-          {round >= 2 && priorRounds && (
-            <EvalLeaderPriorRounds
-              state={priorRounds}
-              onRetry={onRetryPriorRounds}
-              labelOf={priorLabelOf}
-              scaleMaxOf={priorScaleMaxOf}
-              gradeLabelOf={priorGradeLabelOf}
-              L={L}
-            />
-          )}
+          {priorRoundCards}
           <h3 className="evc-card-name">{L.evidenceTitle}</h3>
           {!selfSubmitted && (
             <p className="evl-self-pending" data-testid="evl-self-pending">
@@ -1509,9 +1546,12 @@ export default function EvalCycleLeaderCanvas({
             <PastGradeTrend points={pastGrades} L={L} />
           )}
         </aside>
+        )}
 
         {/* 우: 작성 */}
         <div className="evl-form">
+          {/* PW-2440 — 근거 패널이 없으면 앞 차수 카드를 오른쪽 칸 맨 위에(«제출된 차수를 모두»). */}
+          {readOnlyView && priorRoundCards}
           {/* PW-2033 §5.2 — AI 초안 단추(수동만). 셀프 리뷰 AI 초안 카드와 같은 모양. */}
           {onAiDraft && !formLocked && (
             <section className="evc-card evm-ai-card" data-testid="evl-ai-card">
