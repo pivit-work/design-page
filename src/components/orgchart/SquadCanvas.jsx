@@ -115,6 +115,8 @@ function isAssignable(person) {
 }
 
 export default function SquadCanvas({
+  /** 탭 줄 끝 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2567). 안 주면 지금과 같다. */
+  titleHelp,
   squads = [],
   /**
    * 「오늘」을 셀 시간대(IANA, 예 `Asia/Seoul`). 새 스쿼드 시작일 기본값과 「종료일 지남」
@@ -852,7 +854,7 @@ export default function SquadCanvas({
   const leadCandidates = people.filter(isAssignable);
 
   const tabStrip = (
-    <OrgTabNav active="squad" onSubTabChange={onSubTabChange} showProjectTab={showProjectTab} L={L} />
+    <OrgTabNav active="squad" onSubTabChange={onSubTabChange} showProjectTab={showProjectTab} L={L} help={titleHelp} />
   );
 
   /**

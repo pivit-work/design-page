@@ -289,6 +289,8 @@ function AreaCard({
  *   바뀔 때(처음 그릴 때 포함) 부른다 — 휴가 정산을 다시 계산하라는 신호다
  */
 export default function AdminOffboardingCanvas({
+  /** 제목 바로 오른쪽 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2567). 안 주면 지금과 같다. */
+  titleHelp,
   member,
   today,
   defaults,
@@ -386,7 +388,7 @@ export default function AdminOffboardingCanvas({
           <ArrowLeftGlyph size={14} aria-hidden />
           {labels.back}
         </button>
-        <h1 className="admin-offb-title">{labels.title}</h1>
+        <h1 className={`admin-offb-title${titleHelp ? ' tvh-title-row' : ''}`}>{labels.title}{titleHelp}</h1>
         <p className="admin-page-subtitle">{labels.subtitle}</p>
         {/* 되돌릴 수 없는 것은 데이터 처리이고, 재직 상태는 «퇴사 취소»로 되돌릴 수 있다 (PW-1336 · §2) */}
         {labels.subtitleNote && (

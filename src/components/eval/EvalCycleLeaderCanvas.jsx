@@ -592,6 +592,8 @@ function OptionChoice({ multiple, label, ...rest }) {
 }
 
 export default function EvalCycleLeaderCanvas({
+  /** 제목 바로 오른쪽 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2567). 안 주면 지금과 같다. */
+  titleHelp,
   evaluateeName,
   cycle,
   selfAnswers = [],
@@ -1349,7 +1351,7 @@ export default function EvalCycleLeaderCanvas({
   const header = (
     <header className="evc-header">
       <div>
-        <h1 className="evc-title" data-testid="evl-title">{titleText}</h1>
+        <h1 className={`evc-title${titleHelp ? ' tvh-title-row' : ''}`} data-testid="evl-title">{titleText}{titleHelp}</h1>
         {cycle?.name && <p className="evc-summary">{cycle.name}</p>}
       </div>
     </header>

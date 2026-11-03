@@ -1146,6 +1146,8 @@ function ReviewRow({
 }
 
 export default function EvalReportReviewCanvas({
+  /** 제목 바로 오른쪽 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2567). 안 주면 지금과 같다. */
+  titleHelp,
   queue = null,
   cycleName,
   myUserId,
@@ -1482,7 +1484,7 @@ export default function EvalReportReviewCanvas({
       />
       <header className="evc-header">
         <div>
-          <h1 className="evc-title">{L.title}</h1>
+          <h1 className={`evc-title${titleHelp ? ' tvh-title-row' : ''}`}>{L.title}{titleHelp}</h1>
           <p className="evc-summary">{cycleName || L.subtitle}</p>
         </div>
       </header>

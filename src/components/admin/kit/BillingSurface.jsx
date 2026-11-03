@@ -63,11 +63,15 @@ const STEP_NUM_STYLE = {
   flexShrink: 0,
 };
 
-export function BillingCheckoutSteps({ steps = [], current = 0 }) {
-  return (
+/**
+ * @param {import('react').ReactNode} [help] 단계 줄 끝의 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2567). 단계 목록(ol) 밖에
+ *   둬 화면 읽기 프로그램이 단계로 세지 않는다. 안 주면 지금과 같다.
+ */
+export function BillingCheckoutSteps({ steps = [], current = 0, help }) {
+  const list = (
     <ol
       data-testid="billing-checkout-steps"
-      style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)', listStyle: 'none', margin: '0 0 16px', padding: 0 }}
+      style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)', listStyle: 'none', margin: help ? 0 : '0 0 16px', padding: 0 }}
     >
       {steps.map((label, i) => {
         const state = i < current ? 'done' : i === current ? 'current' : 'future';
@@ -99,5 +103,12 @@ export function BillingCheckoutSteps({ steps = [], current = 0 }) {
         );
       })}
     </ol>
+  );
+  if (!help) return list;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', margin: '0 0 16px' }}>
+      {list}
+      {help}
+    </div>
   );
 }

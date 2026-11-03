@@ -70,6 +70,8 @@ import {
  *                     aiLoading, aiNoKb, aiNoKbProceed, aiErrorTitle, aiErrorMessage, aiRetry, aiErrorProceed }
  */
 export default function SupportNewCanvas({
+  /** 제목 바로 오른쪽 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2567). 안 주면 지금과 같다. */
+  titleHelp,
   workspaceName,
   planLabel,
   categories = [],
@@ -103,7 +105,7 @@ export default function SupportNewCanvas({
     <main className="tl-page sup-page" data-testid="support-new">
       <div className="sup-header">
         <div className="sup-header-text">
-          <h1 className="sup-title">{labels.heading}</h1>
+          <h1 className={`sup-title${titleHelp ? ' tvh-title-row' : ''}`}>{labels.heading}{titleHelp}</h1>
           {labels.sub && <p className="sup-sub">{labels.sub}</p>}
         </div>
       </div>

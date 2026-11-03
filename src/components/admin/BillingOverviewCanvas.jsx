@@ -324,6 +324,8 @@ function UsageBanner({ banner, canEdit, testId }) {
 }
 
 export default function BillingOverviewCanvas({
+  /** 제목 바로 오른쪽 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2567). 안 주면 지금과 같다. */
+  titleHelp,
   subscription = {
     planCode: 'free', status: 'free', seats: 0, cancelAtPeriodEnd: false,
     interval: 'monthly', nextBillingAt: null, periodAmount: 0, method: null,
@@ -563,7 +565,7 @@ export default function BillingOverviewCanvas({
 
         {/* 헤더 */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>{labels.pageTitle}</h1>
+          <h1 className={titleHelp ? 'tvh-title-row' : undefined} style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>{labels.pageTitle}{titleHelp}</h1>
           {!canEdit && <Badge color={T.sub} bg={T.bl}>{labels.viewOnly}</Badge>}
         </div>
         <p style={{ color: T.sub, fontSize: 14, marginTop: 0, marginBottom: 24 }}>

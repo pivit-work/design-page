@@ -4053,6 +4053,8 @@ function EmployeesEditPanel({
   onOpenCeo,
   /* «조직 위치» 제목 오른쪽 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2430). */
   positionHelp,
+  /* «정보 · 변경 이력» 탭 줄 끝(«변경 이력» 바로 뒤) «?» 튜토리얼 도움말 버튼 (pivit-work PW-2567). 안 주면 지금과 같다. */
+  historyHelp,
   /* 따로 보관한 기록 (PW-1429 · 퇴사 처리 정책서 v1.19 §3-C) — 퇴사가 확정된 사람의 법정 보존분.
      `onLoadArchivedRecords(memberId) => Promise<{ pendingTerminationDate, segments }>` ·
      `onDownloadArchivedRecords(memberId, retireDate, reason) => Promise<void>`(실패면 reject).
@@ -4651,19 +4653,24 @@ function EmployeesEditPanel({
             사람이라는 뜻이라 주의를 끌 이유가 없다. */}
         {onLoadPersonalHistory && (
           <div className="tl-tabs-row adm-tabs-row is-panel" data-testid="employees-panel-tabs">
-            <Tabs
-              items={[
-                { value: 'info', label: labels.panel.tabInfo, testId: 'employees-panel-tab-info' },
-                { value: 'history', label: labels.panel.tabHistory, testId: 'employees-panel-tab-history' },
-              ]}
-              value={panelTab}
-              onChange={(id) => {
-                setPanelTab(id);
-                if (id === 'history' && historyState.status === 'idle') {
-                  setHistoryState({ status: 'loading', page: null });
-                }
-              }}
-            />
+            {/* 줄이 양 끝으로 벌리므로 «?»는 탭과 한 묶음에 넣어 «변경 이력» 바로 뒤에 붙인다(목록 탭 줄과 같다).
+                «?»가 없으면 묶음 상자가 줄 배치에 끼지 않게 contents 로 둔다 — 지금과 같다. */}
+            <div className={historyHelp ? 'tvh-help-group' : undefined} style={historyHelp ? undefined : { display: 'contents' }}>
+              <Tabs
+                items={[
+                  { value: 'info', label: labels.panel.tabInfo, testId: 'employees-panel-tab-info' },
+                  { value: 'history', label: labels.panel.tabHistory, testId: 'employees-panel-tab-history' },
+                ]}
+                value={panelTab}
+                onChange={(id) => {
+                  setPanelTab(id);
+                  if (id === 'history' && historyState.status === 'idle') {
+                    setHistoryState({ status: 'loading', page: null });
+                  }
+                }}
+              />
+              {historyHelp}
+            </div>
           </div>
         )}
 
@@ -5444,6 +5451,8 @@ function EmployeesEditPanel({
 export default function AdminEmployeesCanvas({
   /** 제목 바로 오른쪽 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2430). 안 주면 지금과 같다. */
   positionHelp,
+  /** 구성원 상세 «정보 · 변경 이력» 탭 줄 끝 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2567). 안 주면 지금과 같다. */
+  historyHelp,
   /**
    * 화면 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2430 · 커트 2026-10-31) — 이 화면엔 제목 글자가 없어
    * 탭 줄 마지막 탭 바로 뒤에 둔다(매니저 대시보드와 같은 자리). 안 주면 지금과 같다.
@@ -6086,6 +6095,7 @@ export default function AdminEmployeesCanvas({
           <EmployeesEditPanel
             member={target}
             positionHelp={positionHelp}
+            historyHelp={historyHelp}
             leaderUnitIds={(leaderUnitIdsByMember || {})[target.id] || EMPTY_ARRAY}
             onGoOrgUnit={canEdit ? onGoAssignLeader : undefined}
             goOrgUnitsBlockedTip={goOrgUnitsBlockedTip}

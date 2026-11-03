@@ -44,6 +44,8 @@ const DEFAULT_LABELS = {
 const fill = (text, count) => text.replace('{count}', String(count));
 
 export default function ReportCanvas({
+  /** 제목 바로 오른쪽 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2567). 안 주면 지금과 같다. */
+  titleHelp,
   baseUrl,
   // 헤더 우측 "생성된 리포트 · N개" 카운트.
   count = 0,
@@ -106,7 +108,7 @@ export default function ReportCanvas({
     <main className="tl-page report-page">
       <div className="tl-page-header">
         <div className="tl-page-title-wrap">
-          <h1 className="tl-page-title">{L.title}</h1>
+          <h1 className={`tl-page-title${titleHelp ? ' tvh-title-row' : ''}`}>{L.title}{titleHelp}</h1>
           {!listStatus && <div className="tl-page-meta">
             <span className="tl-meta-label">{L.countLabel}</span>
             <span className="tl-meta-sep">·</span>

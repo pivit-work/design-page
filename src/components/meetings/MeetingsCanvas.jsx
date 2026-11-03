@@ -110,6 +110,8 @@ function MeetingRow({ meeting, onStart, onRowClick, statusLabels, isStarting, st
 }
 
 export default function MeetingsCanvas({
+  /** 제목 바로 오른쪽 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2567). 안 주면 지금과 같다. */
+  titleHelp,
   baseUrl = '',
   todayMeetings,
   pastMeetings,
@@ -214,7 +216,7 @@ export default function MeetingsCanvas({
       {/* Page header — 타임라인/다른 페이지와 동일한 공용 스타일 재사용 */}
       <div className="tl-page-header">
         <div className="tl-page-title-wrap">
-          <h1 className="tl-page-title">{labels.headerTitle}</h1>
+          <h1 className={`tl-page-title${titleHelp ? ' tvh-title-row' : ''}`}>{labels.headerTitle}{titleHelp}</h1>
           <div className="tl-page-meta">
             <span className="tl-meta-label">{labels.todayMetaLabel}</span>
             <span className="tl-meta-sep">·</span>

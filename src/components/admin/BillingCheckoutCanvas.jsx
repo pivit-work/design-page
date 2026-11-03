@@ -207,6 +207,8 @@ function Row({ label, value, strong }) {
 }
 
 export default function BillingCheckoutCanvas({
+  /** 결제 단계 표시 줄 끝 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2567). 안 주면 지금과 같다. */
+  stepsHelp,
   order = { planCode: 'growth', planLabel: 'Growth', unitPrice: 15000, interval: 'monthly', seatCount: 1 },
   profile = null,
   amounts = null,
@@ -357,6 +359,7 @@ export default function BillingCheckoutCanvas({
           <BillingCheckoutSteps
             steps={labels.checkoutSteps}
             current={payState === 'success' ? labels.checkoutSteps.length : 2}
+            help={stepsHelp}
           />
         )}
 

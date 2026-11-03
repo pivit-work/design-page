@@ -1539,6 +1539,10 @@ function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, advancing = 
 }
 
 export default function EvalCycleHrCanvas({
+  /** 제목 바로 오른쪽 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2567). 안 주면 지금과 같다. */
+  titleHelp,
+  /** «+ 새 평가 사이클» 마법사 창 제목 오른쪽 «?» (pivit-work PW-2567). 사이클 관리 창에는 넘기지 않는다. 안 주면 지금과 같다. */
+  wizardTitleHelp,
   cycles = [],
   candidates = [],
   /** PW-443 — 마법사 4 대상자의 조직 트리 원본 `[{ id, name, parentId }]`. */
@@ -2255,7 +2259,7 @@ export default function EvalCycleHrCanvas({
 
       <header className="evc-header">
         <div>
-          <h1 className="evc-title">{L.title}</h1>
+          <h1 className={`evc-title${titleHelp ? ' tvh-title-row' : ''}`}>{L.title}{titleHelp}</h1>
           <p className="evc-summary" data-testid="evc-summary">{fill(L.summary, { count: tabCycles.length })}</p>
         </div>
         <div className="evc-header-actions">
@@ -2373,6 +2377,7 @@ export default function EvalCycleHrCanvas({
 
       {showCreate && (
         <EvalCycleWizard
+          titleHelp={wizardTitleHelp}
           existingCycles={cycles}
           draftCycleId={draftSession?.cycleId ?? null}
           key={wizardKey}

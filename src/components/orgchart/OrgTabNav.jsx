@@ -13,8 +13,9 @@ import React from 'react';
  * @param {(tab: string) => void} [onSubTabChange]
  * @param {boolean} [showProjectTab]
  * @param {(key: string) => string} L  조직도 문구
+ * @param {import('react').ReactNode} [help]  탭 줄 끝(마지막 탭 바로 뒤) «?» 튜토리얼 도움말 버튼 (pivit-work PW-2567). 안 주면 지금과 같다.
  */
-export default function OrgTabNav({ active, onSubTabChange, showProjectTab = false, L }) {
+export default function OrgTabNav({ active, onSubTabChange, showProjectTab = false, L, help }) {
   // 순서는 시안 — 조직도 · 스쿼드. 프로젝트는 호스트가 켤 때만 그 사이에.
   const tabs = [
     'orgchart',
@@ -37,6 +38,7 @@ export default function OrgTabNav({ active, onSubTabChange, showProjectTab = fal
           </span>
         ),
       )}
+      {help}
     </div>
   );
 }

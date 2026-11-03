@@ -747,7 +747,7 @@ function saveLabelOf(state, L) {
 }
 
 /* ═══ 내 프로필 (표출·읽기 전용) ═══ */
-function MyProfileTab({ me, activePhoto, myProfile, labels, onEdit }) {
+function MyProfileTab({ me, activePhoto, myProfile, labels, onEdit, titleHelp }) {
   const [revealComp, setRevealComp] = useState(false);
   const L = labels.myProfile;
   const mp = myProfile || {};
@@ -763,7 +763,7 @@ function MyProfileTab({ me, activePhoto, myProfile, labels, onEdit }) {
             testId="myprofile-hero-avatar"
           />
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div className="msc-hero-name">{me.name}</div>
+            <div className={`msc-hero-name${titleHelp ? ' tvh-title-row' : ''}`}>{me.name}{titleHelp}</div>
             {mp.displayName && <div className="msc-hero-sub">{mp.displayName}</div>}
             <div className="msc-hero-meta">
               {[me.title, mp.dept].filter(Boolean).join(' · ')}
@@ -1654,6 +1654,8 @@ function HistoryTab({
 /* ══════════════════════════════════════════════════════ */
 
 export default function MySettingsCanvas({
+  /** «내 프로필» 탭 첫 카드의 이름 줄 오른쪽 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2567) — 이 탭에는 페이지 제목이 없다. 안 주면 지금과 같다. */
+  profileHelp,
   activeTab = 'my_profile',
   onTabChange,
   tabs = [
@@ -2071,6 +2073,7 @@ export default function MySettingsCanvas({
               myProfile={myProfile}
               labels={labels}
               onEdit={onEditProfile}
+              titleHelp={profileHelp}
             />
           )}
 

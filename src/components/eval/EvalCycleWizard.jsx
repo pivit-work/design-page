@@ -2684,6 +2684,8 @@ function CommitteeCard({
 }
 
 export default function EvalCycleWizard({
+  /** 창 제목 바로 오른쪽 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2567) — 틀(`ModalShell`)의 `titleAside` 로 넘긴다. 안 주면 지금과 같다. */
+  titleHelp,
   labels: L,
   candidates = [],
   /**
@@ -12673,6 +12675,7 @@ export default function EvalCycleWizard({
     <>
       <ModalShell
         title={<span data-testid="evc-wiz-title">{wizardTitle}</span>}
+        titleAside={titleHelp}
         titleId="evc-wiz-title"
         closeLabel={L.cancel}
         onClose={requestClose}

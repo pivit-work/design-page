@@ -2008,6 +2008,8 @@ function PeriodSelector({ periods, selectedCycleId, onChange, L }) {
 }
 
 export default function EvalCycleSummaryCanvas({
+  /** 제목 바로 오른쪽 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2567). 안 주면 지금과 같다. */
+  titleHelp,
   cycle,
   // TC-095/118 조회 기간 선택기(분기/반기/연간 → cycleId 재조회).
   periods = [],
@@ -2916,8 +2918,9 @@ export default function EvalCycleSummaryCanvas({
     <div className="evc-root">
       <header className="evc-header">
         <div>
-          <h1 className="evc-title">
+          <h1 className={`evc-title${titleHelp ? ' tvh-title-row' : ''}`}>
             {workspaceOnly ? L.workspaceTitle : L.title}
+            {titleHelp}
           </h1>
           {workspaceOnly ? (
             /* PW-1928 — 만든 사람의 메모(「조견표 로스터 → …」)는 빼고 사이클 이름만 남긴다. */

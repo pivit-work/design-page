@@ -18,7 +18,8 @@ import { isEnterKey } from '../shared/enterKey.js';
  * 코멘트가 목록에 남고 글은 지워지던 일을 막는다(PW-1787). 기다리는 동안 다시 눌러도 한 번만 보낸다.
  */
 /** `onOpenProject(projectId)` — 팀원 칩 가운데 원장이 있는 프로젝트를 눌렀을 때 (PW-1865). 없으면 칩은 글자뿐이다. */
-export default function OkrResourceTeam({ data, icons, baseUrl = '', onComment, onOpenProject, labels: L = OKR_RESOURCE_DEFAULT_LABELS }) {
+/** `scopeHelp` — 탭 본문 첫 제목(조직 이름) 오른쪽 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2567). 안 주면 지금과 같다. */
+export default function OkrResourceTeam({ data, icons, baseUrl = '', onComment, onOpenProject, labels: L = OKR_RESOURCE_DEFAULT_LABELS, scopeHelp }) {
   const T = L.team;
   const [openIds, setOpenIds] = useState({});
   const [drafts, setDrafts] = useState({});
@@ -56,7 +57,7 @@ export default function OkrResourceTeam({ data, icons, baseUrl = '', onComment, 
 
   return (
     <div className="rsx-team">
-      <p className="rsx-scope-label">{data.label}</p>
+      <p className={`rsx-scope-label${scopeHelp ? ' tvh-title-row' : ''}`}>{data.label}{scopeHelp}</p>
       <div className="rsx-stats">
         <RsStatCard label={T.total} value={data.stats.total} tone="brand" />
         <RsStatCard label={T.relaxed} value={data.stats.relaxed} />

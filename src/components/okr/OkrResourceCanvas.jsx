@@ -52,6 +52,12 @@ import { mergeOkrResourceLabels } from './okrResourceLabels.js';
 const VIEWS = ['my', 'team', 'org'];
 
 export default function OkrResourceCanvas({
+  /**
+   * «?» 튜토리얼 도움말 버튼 (pivit-work PW-2567) — `(view) => node`. 고른 서브탭마다 영상이 달라 함수로 받는다.
+   * «팀 현황»(team)은 탭 본문 첫 제목(조직 이름) 오른쪽, 본문에 제목이 없는 탭은 위 제목 «리소스 투입» 오른쪽에 그린다.
+   * 안 주면 지금과 같다.
+   */
+  titleHelp: renderTitleHelp,
   data,
   icons,
   baseUrl = '',
@@ -85,6 +91,8 @@ export default function OkrResourceCanvas({
     onViewChange?.(next);
   };
   const view = items.some((item) => item.value === wanted) ? wanted : (items[0]?.value ?? 'my');
+  const viewHelp = renderTitleHelp ? renderTitleHelp(view) : null;
+  const titleHelp = view === 'team' ? null : viewHelp;
   const [openTeam, setOpenTeam] = useState(null);
 
   if (placeholder != null) {
@@ -99,7 +107,7 @@ export default function OkrResourceCanvas({
         </p>
       )}
       <div className="rsx-head">
-        <p className="rsx-title">{data.title}</p>
+        <p className={`rsx-title${titleHelp ? ' tvh-title-row' : ''}`}>{data.title}{titleHelp}</p>
         <div className="rsx-meta">
           <span className="rsx-meta-org">{data.org}</span>
           <span className="rsx-meta-dot">∙</span>
@@ -137,7 +145,7 @@ export default function OkrResourceCanvas({
       {view !== 'my' && viewPlaceholders?.[view] != null ? viewPlaceholders[view] : (
         <>
           {view === 'team' && (
-            <OkrResourceTeam key={data.periodKey} data={data.team} icons={icons} baseUrl={baseUrl} onComment={onComment} onOpenProject={onOpenProject ? (id) => onOpenProject(id, { unsaved: false }) : undefined} labels={L} />
+            <OkrResourceTeam key={data.periodKey} scopeHelp={view === 'team' ? viewHelp : null} data={data.team} icons={icons} baseUrl={baseUrl} onComment={onComment} onOpenProject={onOpenProject ? (id) => onOpenProject(id, { unsaved: false }) : undefined} labels={L} />
           )}
           {view === 'org' && (
             <OkrResourceOrg key={data.periodKey} data={data.orgView} icons={icons} baseUrl={baseUrl} onOpenTeam={setOpenTeam} labels={L} />

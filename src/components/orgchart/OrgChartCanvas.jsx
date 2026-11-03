@@ -34,7 +34,7 @@ import { OrgLabelsContext, makeOrgLabels } from './orgchart-labels.jsx';
 //   안 주면 OrgListView 그대로다.
 // locale — 리스트 보기의 정렬 글자 순서.
 // showListTab — 옛 「리스트」 탭 스위치. 받아도 아무 일도 하지 않는다(탭이 없다).
-export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIcons, baseUrl = '', onMemberClick, renderAvatar, editMode = false, onSubTabChange, findSubordinates, adminMode: adminModeProp = false, onAdminModeChange, showGrade = false, showProjectTab = false, lineStyleLabel: lineStyleLabelProp, labels, asOf, highlight, workspaceId, density: densityProp, onDensityChange, onDownloadImage, expandable = true, memberPatches, view: viewProp, onViewChange, renderList, locale }) {
+export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIcons, baseUrl = '', onMemberClick, renderAvatar, editMode = false, onSubTabChange, findSubordinates, adminMode: adminModeProp = false, onAdminModeChange, showGrade = false, showProjectTab = false, lineStyleLabel: lineStyleLabelProp, labels, asOf, highlight, workspaceId, density: densityProp, onDensityChange, onDownloadImage, expandable = true, memberPatches, view: viewProp, onViewChange, renderList, locale, /* 탭 줄 끝 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2567) — 안 주면 지금과 같다 */ titleHelp }) {
   // 화면 문구 — 소비자가 번역을 넘긴다(PW-705). 안 넘기면 한국어 기본값.
   const L = useMemo(() => makeOrgLabels(labels), [labels]);
   // `lineStyleLabel` 은 `labels` 보다 먼저 생긴 자리라 그대로 받는다 — 주면 그것이 이긴다.
@@ -173,7 +173,7 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
       {!onMemberClick && <ProfileModal member={selectedMember} onClose={closeModal} statIcons={statIcons} baseUrl={baseUrl} renderAvatar={renderAvatar} adminMode={adminMode} findSubordinates={findSubordinates} />}
 
       <div className="content-header">
-        <OrgTabNav active="orgchart" onSubTabChange={onSubTabChange} showProjectTab={showProjectTab} L={L} />
+        <OrgTabNav active="orgchart" onSubTabChange={onSubTabChange} showProjectTab={showProjectTab} L={L} help={titleHelp} />
         <div className="header-subtitle">
           <b>{L('org.totalHeadcount')}</b>
           <span className="dot">&#8729;</span>

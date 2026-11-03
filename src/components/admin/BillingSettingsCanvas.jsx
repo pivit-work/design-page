@@ -212,6 +212,8 @@ function FormField({ meta, value, error, disabled, onChange, onBlur, hint, style
 // ── 메인 컴포넌트 ─────────────────────────────────────────
 
 export default function BillingSettingsCanvas({
+  /** 결제 단계 표시 줄 끝 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2567). 결제 진행 중일 때만 그린다. 안 주면 지금과 같다. */
+  stepsHelp,
   profile = null,
   role = 'owner',
   // 결제 진행 모드 (PW-2110) — 결제 도중 들어왔다. 저장 영역의 주 버튼이 «저장 + 결제로 이어 가기»가 된다.
@@ -390,7 +392,7 @@ export default function BillingSettingsCanvas({
       <div style={{ maxWidth: 680, margin: '0 auto' }}>
 
         {/* 결제 진행 단계 표시 (PW-2110) — 화면 제목 위. ① 플랜 선택 ✓ ② 청구 정보(지금) ③ 카드 등록·결제 */}
-        {checkoutMode && <BillingCheckoutSteps steps={labels.checkoutSteps} current={1} />}
+        {checkoutMode && <BillingCheckoutSteps steps={labels.checkoutSteps} current={1} help={stepsHelp} />}
         {/* 카드 등록 단계 표시 (PW-2111) — 같은 부품. ① 청구 정보(지금) ② 카드 등록 */}
         {cardMode && <BillingCheckoutSteps steps={labels.cardSteps} current={0} />}
 
