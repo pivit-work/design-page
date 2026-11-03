@@ -1445,7 +1445,8 @@ export default function EvalCycleLeaderCanvas({
       {/* 안내 줄 사이·아래는 Stack 이 띄운다(12px). 줄마다 손으로 적던 여백을 걷었다. 자동저장 표시와 본문
           사이만 8px 이라 안쪽 Stack 으로 묶는다 — 저장됨·실패는 함께 뜨지 않는다. */}
       <Stack gap="lg" testId="evl-notices">
-      {formLocked && locked && L.lockedNotice && (
+      {/* PW-2440 — 위원의 읽기 전용 화면은 «잠긴 이유»가 없다(처음부터 쓰는 화면이 아니다) — 딱지가 말한다. */}
+      {formLocked && locked && !readOnlyView && L.lockedNotice && (
         <p className="evx-notice" data-testid="evl-locked">
           {L.lockedNotice}
         </p>
@@ -1864,6 +1865,8 @@ export default function EvalCycleLeaderCanvas({
                         ✓ {L.promoReqSaved}
                       </span>
                     )}
+                    {/* PW-2440 — 읽기 전용 화면에는 쓰는 버튼을 세우지 않는다(리더 정책 §2 ②) — 요청서 글은 보인다. */}
+                    {!readOnlyView && (
                     <button
                       type="button"
                       className="evc-btn is-ghost"
@@ -1879,6 +1882,7 @@ export default function EvalCycleLeaderCanvas({
                     >
                       {L.promoReqSubmit}
                     </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -1923,6 +1927,7 @@ export default function EvalCycleLeaderCanvas({
                 </div>
               )}
 
+              {!readOnlyView && (
               <div className="evc-card-buttons">
                 <button
                   type="button"
@@ -1934,6 +1939,7 @@ export default function EvalCycleLeaderCanvas({
                   {L.saveAssessment}
                 </button>
               </div>
+              )}
             </section>
           </div>
 
