@@ -866,14 +866,17 @@ function RowActionMenu({
       {/* 권한 변경(admin-spec §3.1 `⋯` 행) — 퇴사자 행에는 두지 않는다(퇴사자의 권한 칸은 잠겨 있다). */}
       {onChangeRole && canEdit && member.employmentStatus !== 'terminated' && (member.adminGuard?.role ? (
         <Tooltip content={member.adminGuard.role}>
-          <button
-            type="button"
-            className="admin-emp-row-menu-item is-disabled"
+          {/* 누를 수 없는 모양은 디자이너 원본이 없다(같은 메뉴의 `is-disabled` 도 개발이 만든 것). 공용 Button 에
+              항목 클래스를 얹고 흐림만 style 로 준다 — 옆의 막힌 «비활성화»와 같은 흐림, 올려도 바탕이 안 바뀐다.
+              `disabled` 를 걸지 않는 이유: 막힌 버튼에는 마우스가 안 닿아 사유 풍선이 안 뜬다. 디자이너 확인 대기. */}
+          <Button
+            className="admin-emp-row-menu-item"
+            style={{ opacity: 0.45, cursor: 'not-allowed', background: 'transparent' }}
             aria-disabled="true"
             data-testid="employees-row-change-role-blocked"
           >
             {labels.menu.changeRole}
-          </button>
+          </Button>
         </Tooltip>
       ) : (
         <button
