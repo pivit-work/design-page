@@ -370,6 +370,7 @@
   line-height: 16px;
   color: var(--text-tertiary);
   white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 /* ── Card members (읽기 모드 · 16606:25737) ──
