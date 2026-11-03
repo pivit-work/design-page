@@ -361,6 +361,16 @@
   cursor: not-allowed;
 }
 .sq-menu-item.is-disabled:hover { background: transparent; }
+/* 지울 수 없는 이유 — 프로젝트 상세 메뉴의 .pd-menu-hint 와 같은 값. 말풍선은 휴대폰에서 안 뜨므로 항목 아래 글씨로 늘 보인다 (pivit-work PW-2571) */
+.sq-menu-hint {
+  display: block;
+  max-width: 260px;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 16px;
+  color: var(--text-tertiary);
+  white-space: normal;
+}
 
 /* ── Card members (읽기 모드 · 16606:25737) ──
    사진 32 를 4 간격으로 나란히(이름 글자 동그라미가 섞여 겹치지 않는다) · 오른쪽은 인원수. */

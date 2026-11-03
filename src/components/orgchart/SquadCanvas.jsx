@@ -1127,16 +1127,32 @@ export default function SquadCanvas({
                                 onClick={() => { setHistFor(sq.id); setMoreMenu(null); onLoadHistory?.(sq.id); }}
                                 className="sq-menu-item"
                               >{L('squad.card.history')}</div>
-                              {/* 삭제는 보관 상태에서만 활성 — 운영 중 조직의 실수 삭제 방지(§5-2-B 1번) */}
-                              <Tooltip content={sq.status === 'archived' ? undefined : L('squad.card.deleteOnlyArchived')}>
-                                <div
-                                  data-testid={`squad-more-delete-${sq.id}`}
-                                  onClick={() => {
-                                    if (sq.status === 'archived') { setDelAsk({ squadId: sq.id, typed: '' }); setMoreMenu(null); }
-                                  }}
-                                  className={`sq-menu-item sq-menu-item-danger${sq.status === 'archived' ? '' : ' is-disabled'}`}
-                                >{L('squad.card.delete')}</div>
-                              </Tooltip>
+                              {/* 삭제는 보관 상태에서만 활성 — 운영 중 조직의 실수 삭제 방지(§5-2-B 1번).
+                                  보관했어도 앱이 `deleteBlockedReason` 을 넘기면(주 스쿼드로 맡은 프로젝트가 다른 스쿼드에도 붙음 등)
+                                  누르기 전에 꺼 두고 그 이유를 같은 풍선으로 보인다 — 눌렀다가 서버 거절로 카드가 사라졌다 돌아오지 않게 (pivit-work PW-2571). */}
+                              {(() => {
+                                const notArchived = sq.status !== 'archived';
+                                // 보관했어도 지울 수 없는 이유 — 프로젝트 상세 ⋯ 메뉴 «삭제» 아래 사유 줄(.pd-menu-hint)과 같은 모양으로 늘 보인다
+                                const reason = notArchived ? null : (sq.deleteBlockedReason || null);
+                                const delBlocked = notArchived || reason != null;
+                                return (
+                                  <Tooltip content={notArchived ? L('squad.card.deleteOnlyArchived') : undefined}>
+                                    <div
+                                      data-testid={`squad-more-delete-${sq.id}`}
+                                      aria-disabled={delBlocked ? 'true' : undefined}
+                                      onClick={() => {
+                                        if (!delBlocked) { setDelAsk({ squadId: sq.id, typed: '' }); setMoreMenu(null); }
+                                      }}
+                                      className={`sq-menu-item sq-menu-item-danger${delBlocked ? ' is-disabled' : ''}`}
+                                    >
+                                      {L('squad.card.delete')}
+                                      {reason != null && (
+                                        <span className="sq-menu-hint" data-testid={`squad-delete-reason-${sq.id}`}>{reason}</span>
+                                      )}
+                                    </div>
+                                  </Tooltip>
+                                );
+                              })()}
                             </AnchoredLayer>
                           </>
                         )}
