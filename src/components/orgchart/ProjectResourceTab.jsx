@@ -54,15 +54,6 @@ function toDraft(rows) {
 /** 이 프로젝트에서 더 쓸 수 있는 몫 — 음수면 초과(§6-2 `Σ plan ≤ 개인 캐파`). */
 const slackOf = (row) => row.cap - row.other - row.planPct;
 
-/**
- * 이번 저장에서 상한을 따지는 줄인가 — 서버와 같은 판정(pivit-work `capCheckedRows`). 새로 넣었거나 계획%·참여 스쿼드를
- * 바꾼 줄. PO 만 바꾼 줄은 계획%가 그대로라 아니다(2026-11-01 커트 결정 ②).
- */
-function changedForCap(row, loaded) {
-  const before = loaded.get(row.memberId);
-  return !before || before.planPct !== row.planPct || before.viaSquadId !== row.viaSquadId;
-}
-
 function sameDraft(a, b) {
   if (a.length !== b.length) return false;
   const key = (r) => `${r.memberId}|${r.viaSquadId}|${r.planPct}|${r.role}`;
@@ -176,15 +167,11 @@ export default function ProjectResourceTab({
   const rowEditable = (r) => !closed && (r.isNew || (r.canEdit && editableSquadIds.has(r.viaSquadId)));
   const counted = draft.filter((r) => !r.resigned);
   const overRows = draft.filter((r) => slackOf(r) < 0);
-  // 어드민은 모든 초과 줄이 저장을 막는다(§10). 매니저는 이번에 바꾼 줄만 — 고칠 수 없는 남의 스쿼드 초과 줄은
-  // 빨간 채로 남고 저장은 된다(2026-11-01 커트 결정 ② · 서버가 `capCheck` 로 알려 준다).
-  const loadedById = new Map(data.rows.map((r) => [r.memberId, r]));
-  const blockingRows = data.capCheck === 'changed'
-    ? overRows.filter((r) => changedForCap(r, loadedById))
-    : overRows;
-  const saveBlocked = blockingRows.length > 0;
-  // 초과 줄은 있지만 이 사람의 저장은 막히지 않을 때 — 띠가 «저장할 수 없습니다»라고 하면 사실과 다르다.
-  const overSavable = canAssign && overRows.length > 0 && !saveBlocked;
+  // 내가 고칠 수 있는 줄에 초과가 있으면 저장을 막는다 — 손댔는지는 따지지 않는다(정책서 v1.9 §8-6 · 서버와 같은 판정).
+  // 고칠 수 없는 줄(매니저에게 관할 밖 묶음)의 초과는 빨간 채로 남고 저장은 된다. 어드민은 모든 줄을 고칠 수 있다.
+  const saveBlocked = overRows.some(rowEditable);
+  // 초과 줄이 모두 내가 고칠 수 없는 줄이라 저장이 막히지 않을 때만 띠 문구 ②(§5-3). 편집 칸이 없는 사람은 ①.
+  const overSavable = canAssign && !closed && overRows.length > 0 && !saveBlocked;
   const actualMissing = counted.filter((r) => r.actualPct == null).length;
   const unallocated = counted.reduce((sum, r) => sum + Math.max(0, slackOf(r)), 0);
 

@@ -526,7 +526,7 @@ export const ORGCHART_LABELS = {
   'projectDetail.resource.overCount': '초과 배정',
   'projectDetail.resource.overTitle': '스쿼드 계획%를 넘는 배정이 있습니다. 조정 전에는 저장할 수 없습니다.',
   'projectDetail.resource.overTitleSavable': '스쿼드 계획%를 넘는 배정이 있습니다.',
-  'projectDetail.resource.overBodySavable': '바꾼 줄이 상한 안이면 저장됩니다. 넘는 줄은 그 줄을 고칠 수 있는 관리자가 줄이거나, 해당 행에서 본인에게 요청하세요.',
+  'projectDetail.resource.overBodySavable': '내가 고칠 수 없는 행이라 저장은 막히지 않습니다 — 그 행은 그 스쿼드를 맡은 관리자나 본인이 조정합니다.',
   'projectDetail.resource.overBody': '계획%를 줄이거나, 상한(본인이 정하는 캐파)을 늘려야 하면 해당 행에서 본인에게 요청하세요.',
   'projectDetail.resource.closed': '완료된 프로젝트입니다. 배정 편집은 잠겨 있으며, 재개하면 다시 열립니다.',
   'projectDetail.resource.outOfScope': '관할 밖 — 조회 전용',
