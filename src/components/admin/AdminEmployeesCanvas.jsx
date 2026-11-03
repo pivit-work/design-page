@@ -426,7 +426,7 @@ const DEFAULT_LABELS = {
     historyDeletedValue: '(삭제됨)',
     /* 조직 위치 — 이 사람이 조직장인 조직(읽기 전용, admin-spec §3.6-B-2) */
     leaderOf: '조직장',
-    leaderGoOrgUnits: '조직단위 설정에서 변경 →',
+    leaderGoOrgUnits: '조직단위 설정에서 변경',
     squadSection: '스쿼드',
     squadGoView: '조직도 스쿼드 뷰',
   },
