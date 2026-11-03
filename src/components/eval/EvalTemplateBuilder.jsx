@@ -154,6 +154,7 @@ export function EvalTemplateGradeRows({
               type="number"
               className={`evc-input evc-tpl-grade-ratio${gradeRatioOk(g.ratio) ? '' : ' is-invalid'}`}
               value={g.ratio ?? ''}
+              aria-invalid={gradeRatioOk(g.ratio) ? undefined : true}
               /* 적은 값을 그대로 둔다 — 비운 칸을 말없이 0 으로 바꾸지 않고 목록 아래 안내로 알린다(pivit-work PW-2569) */
               onChange={(e) => onUpdate(i, 'ratio', e.target.value === '' ? null : Number(e.target.value))}
               data-testid={`${testPrefix}-ratio-${i}`}
