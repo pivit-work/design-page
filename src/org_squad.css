@@ -1757,11 +1757,9 @@
   gap: var(--spacing-sm);
 }
 .sq-graph-empty { margin: var(--spacing-3xl); }
-.sq-graph-scroll {
-  overflow-x: auto;
-  padding: var(--spacing-3xl) 0;
-}
-.sq-graph-canvas { position: relative; margin: 0 auto; } /* 판이 그림보다 넓으면 가운데 */
+/* 그림 판 — 끌어서 옮기고 버튼으로 확대·축소한다(조직도 트리 캔버스와 같다). 자리는 transform 으로 옮겨 스크롤바가 없다. */
+.sq-graph-viewport { position: relative; overflow: hidden; user-select: none; }
+.sq-graph-canvas { position: absolute; left: 0; top: 0; }
 .sq-graph-lines { position: absolute; left: 0; top: 0; overflow: visible; }
 .sq-graph-edge { stroke-opacity: 0.55; stroke-linecap: round; }
 .sq-graph-edge.is-cap-unset { stroke: var(--text-quaternary); stroke-opacity: 1; stroke-dasharray: 4 3; }

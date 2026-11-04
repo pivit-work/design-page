@@ -265,6 +265,8 @@ export const ORGCHART_LABELS = {
   'squad.view.graph': '그림',
   'squad.graph.title': '스쿼드 연결 그림',
   'squad.graph.subtitle': '위 = 담당 프로젝트 · 가운데 = 스쿼드 · 아래 = 사람 — 노드에 마우스를 올리면 이어진 선만 진하게 보입니다 · 편집은 카드 보기에서 합니다',
+  'squad.graph.zoomFit': '맞춤',
+  'squad.graph.zoomFitTip': '그림 전체가 판에 들어오게 줄입니다',
   'squad.graph.filterLabel': '스쿼드 상태',
   'squad.graph.filterCount': '{{status}} {{count}}',
   'squad.graph.emptyTitle': '선택한 상태의 스쿼드가 없습니다',

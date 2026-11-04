@@ -186,3 +186,23 @@ export function memberEdgeWidth(member) {
   if (isCapacityUnset(member)) return 1.2;
   return 1.5 + (Math.min(Math.max(member.allocationPct || 0, 0), 100) / 100) * 4.5;
 }
+
+/** 줌 범위 — 조직도 트리 캔버스 줌 스택과 같다(40~150% · 기획 §9-G). */
+export const GRAPH_ZOOM_MIN = 0.4;
+export const GRAPH_ZOOM_MAX = 1.5;
+export const GRAPH_VIEW_PAD = 24; // 판 위·아래 여백(--spacing-3xl) — 종전 스크롤 칸의 위아래 여백과 같다
+
+/**
+ * 판(폭 `viewW`)에 그림(폭 `graphW` · 높이 `graphH`)을 놓는 첫 자리.
+ *  - `fit=false`(처음 · 필터를 바꾼 뒤): 100%. 판보다 좁으면 가운데, 넓으면 왼쪽 끝부터(종전 스크롤 첫 자리와 같다).
+ *  - `fit=true`(«맞춤» 버튼): 그림 전체가 판 폭에 들어오게 줄여 가운데. 100% 보다 키우지 않고 40% 아래로 줄이지 않는다.
+ */
+export function graphPlacement({ viewW, graphW, graphH, fit }) {
+  const scale = fit && graphW > 0
+    ? Math.min(1, Math.max(GRAPH_ZOOM_MIN, viewW / graphW))
+    : 1;
+  const w = graphW * scale;
+  const x = w <= viewW ? Math.round((viewW - w) / 2) : 0;
+  const y = Math.round(GRAPH_VIEW_PAD + (graphH - graphH * scale) / 2);
+  return { scale, translate: { x, y } };
+}

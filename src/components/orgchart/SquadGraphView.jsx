@@ -14,10 +14,18 @@
  *   둘레 게이지   = 매트릭스 «캐파 사용» 열과 같은 값·같은 구간색(capacityState)
  *   프로젝트 노드 = 카드 «담당 프로젝트» 줄(파일 아이콘 · 이름 · 상태 딱지 · %)
  *   상태 필터     = 공용 필터 칩(Chip selected)
+ *   확대·축소·맞춤 = 조직도 트리 캔버스 툴바 버튼(.org-toolbar · .org-tool-btn) · 공용 팬·줌(usePanZoom)
+ *
+ * 그림이 판보다 넓을 때 — 기획서는 «판 안에서 가로로 스크롤»이다(§5-6 「배치」). 가로 스크롤바만 두면
+ * 맥에서는 스크롤바가 숨고 마우스 휠은 세로로만 돌아, 판 오른쪽을 볼 방법이 없었다(2026-11-04 커트 dev).
+ * 그래서 조직도 트리와 같이 **끌어서 옮기고**, 오른쪽 위 버튼으로 확대·축소·«판에 맞춤»을 한다.
+ * 휠은 가로채지 않는다 — 이 판은 페이지 한가운데라 휠은 페이지 스크롤이어야 한다.
  */
-import { useMemo, useState } from 'react';
+import { useCallback, useLayoutEffect, useMemo, useState } from 'react';
 import Chip from '../shared/Chip.jsx';
 import Icon from '../shared/Icon.jsx';
+import { MinusGlyph, PlusGlyph } from '../shared/lineIcons.jsx';
+import usePanZoom from '../shared/usePanZoom.js';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import { squadStatusText, useOrgLabels } from './orgchart-labels.jsx';
@@ -31,7 +39,15 @@ import {
   squadStatusMeta,
   unsetCapacityCount,
 } from './squad-constants.js';
-import { GRAPH_GEOM, memberEdgeWidth, squadGraphLayout } from './squadGraphLayout.js';
+import {
+  GRAPH_GEOM,
+  GRAPH_VIEW_PAD,
+  GRAPH_ZOOM_MAX,
+  GRAPH_ZOOM_MIN,
+  graphPlacement,
+  memberEdgeWidth,
+  squadGraphLayout,
+} from './squadGraphLayout.js';
 
 export const GRAPH_STATUS_ORDER = ['planned', 'active', 'done', 'archived'];
 /** 기본 = 지금 움직이는 조직. 완료·보관은 켜야 보인다(§5-6 「상태 필터」). */
@@ -66,6 +82,21 @@ export default function SquadGraphView({ squads, personOf, renderAvatar, onMembe
   // 담당 프로젝트를 아직 못 받았거나 못 불러온 스쿼드는 `projects` 가 배열이 아니다(카드 보기는 그 칸을 안 그린다).
   // 그때 범례가 «이어지지 않은 프로젝트는 그리지 않는다»를 말하면 «프로젝트 없음»으로 읽힌다 — 프로젝트 줄 범례를 걷는다.
   const projectsKnown = shown.every((sq) => Array.isArray(sq.projects));
+  const { canvasRef, scale, translate, isDragging, canvasProps, zoomIn, zoomOut, setView } = usePanZoom({
+    // 버튼과 누를 수 있는 사람 노드에서 시작한 끌기는 옮기지 않는다 — 클릭이 먹어야 한다
+    ignoreSelector: '[data-testid="squad-graph-tools"], .sq-graph-person.is-clickable',
+    minScale: GRAPH_ZOOM_MIN,
+    maxScale: GRAPH_ZOOM_MAX,
+    wheelZoom: false,
+  });
+  const place = useCallback((fit) => {
+    const el = canvasRef.current;
+    if (!el) return;
+    const p = graphPlacement({ viewW: el.clientWidth, graphW: layout.width, graphH: layout.height, fit });
+    setView(p.scale, p.translate);
+  }, [canvasRef, layout.width, layout.height, setView]);
+  // 그림이 바뀌면(필터를 켜고 끔) 첫 자리로 — 옛 자리에 두면 새 그림이 판 밖에 있을 수 있다
+  useLayoutEffect(() => { if (shown.length > 0) place(false); }, [place, shown.length]);
   const toggleStatus = (st) => setStatusOn((on) => (on.includes(st) ? on.filter((x) => x !== st) : [...on, st]));
 
   // 강조 — 올린 노드에 직접 이어진 선·칩·노드만 진하게(§5-6 「마우스 올림」)
@@ -121,10 +152,39 @@ export default function SquadGraphView({ squads, personOf, renderAvatar, onMembe
             <p className="sq-empty-desc">{L('squad.graph.emptyDesc')}</p>
           </div>
         ) : (
-          <div className="sq-graph-scroll">
+          <div
+            className="sq-graph-viewport"
+            ref={canvasRef}
+            {...canvasProps}
+            style={{ height: layout.height + GRAPH_VIEW_PAD * 2, cursor: isDragging ? 'grabbing' : 'grab' }}
+            data-testid="squad-graph-viewport"
+          >
+            {/* 오른쪽 위 확대 · 축소 · 맞춤 — 조직도 트리 캔버스 툴바와 같은 버튼 */}
+            <div className="org-toolbar org-toolbar-right" data-testid="squad-graph-tools">
+              <div className="org-toolbar-group">
+                <button type="button" className="org-tool-btn" onClick={zoomIn} disabled={scale >= GRAPH_ZOOM_MAX}
+                  title={L('org.zoomIn')} aria-label={L('org.zoomIn')} data-action="zoom-in">
+                  <PlusGlyph size={20} />
+                </button>
+                <button type="button" className="org-tool-btn" onClick={zoomOut} disabled={scale <= GRAPH_ZOOM_MIN}
+                  title={L('org.zoomOut')} aria-label={L('org.zoomOut')} data-action="zoom-out">
+                  <MinusGlyph size={20} />
+                </button>
+                <button type="button" className="org-tool-btn has-label" onClick={() => place(true)}
+                  title={L('squad.graph.zoomFitTip')} data-action="zoom-fit">
+                  <span>{L('squad.graph.zoomFit')}</span>
+                </button>
+              </div>
+            </div>
             <div
               className="sq-graph-canvas"
-              style={{ width: layout.width, height: layout.height }}
+              style={{
+                width: layout.width,
+                height: layout.height,
+                transform: `translate(${translate.x}px, ${translate.y}px) scale(${scale})`,
+                transformOrigin: '0 0',
+              }}
+              data-scale={scale.toFixed(2)}
               onMouseLeave={() => setFocus(null)}
             >
               {/* ── 선 — 칩·노드보다 아래 ── */}

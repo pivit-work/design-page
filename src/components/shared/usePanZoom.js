@@ -9,8 +9,12 @@ import { useState, useRef, useCallback, useEffect } from 'react';
  *
  * canvasRef 를 캔버스 컨테이너에, canvasProps 를 같은 요소에 스프레드하고
  * scale/translate 로 inner 요소를 transform 한다.
+ *
+ * `wheelZoom: false` — 휠을 가로채지 않는다(줌은 버튼으로만). 페이지 한가운데 놓인 판처럼
+ * 휠이 페이지 스크롤이어야 하는 곳이 쓴다 — 휠을 줌에 쓰면 판 위에서 페이지가 안 내려간다
+ * (pivit-work 스쿼드 그림 보기 · screen-org-chart-squad.policy.md §5-6).
  */
-export default function usePanZoom({ ignoreSelector, minScale = 0.2, maxScale = 3 } = {}) {
+export default function usePanZoom({ ignoreSelector, minScale = 0.2, maxScale = 3, wheelZoom = true } = {}) {
   const [scale, setScale] = useState(1);
   const [translate, setTranslate] = useState({ x: 0, y: 0 });
   const scaleRef = useRef(1);
@@ -48,11 +52,12 @@ export default function usePanZoom({ ignoreSelector, minScale = 0.2, maxScale = 
   }, [zoomAt]);
 
   useEffect(() => {
+    if (!wheelZoom) return undefined;
     const el = canvasRef.current;
-    if (!el) return;
+    if (!el) return undefined;
     el.addEventListener('wheel', handleWheel, { passive: false });
     return () => el.removeEventListener('wheel', handleWheel);
-  }, [handleWheel]);
+  }, [handleWheel, wheelZoom]);
 
   const onMouseDown = (e) => {
     if (ignoreSelector && e.target.closest(ignoreSelector)) return;
