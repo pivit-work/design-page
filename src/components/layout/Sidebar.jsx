@@ -22,6 +22,9 @@ import assetUrl from '../shared/assetUrl.js';
  *    한국어로 보였다(PW-469). 호스트가 번역을 넘길 자리를 낸다 — 안 넘기면 종전 그대로다.
  *  - showFeedback: false 면 하단 「의견보내기」 항목을 그리지 않는다(PW-1177 — 앱은 「의견보내기」를
  *    없애고 「고객지원·문의」 하나로 합쳤다). 기본 true — 안 넘기면 종전 그대로다.
+ *  - beta: true 면 로고 오른쪽 8px 에 「Beta」 마크를 단다 (Figma 17816:27362 · 2026-11-04 — 서비스가
+ *    베타인 동안). 0.5px fg-tertiary 테두리 · r2 · 안쪽 4 상자에 글자 그림(beta-mark.svg). 기본 false.
+ *    `betaLabel` 은 그 마크의 화면 읽기용 이름(기본 'Beta').
  * 선택 prop 을 넘기지 않으면 기존 동작·디자인과 100% 동일하다.
  */
 export default function Sidebar({
@@ -41,8 +44,19 @@ export default function Sidebar({
   feedbackLabel = '의견보내기',
   settingsLabel = '설정',
   showFeedback = true,
+  beta = false,
+  betaLabel = 'Beta',
 }) {
-  const logoImg = <img src={assetUrl(baseUrl, 'logo.svg')} alt="Pivit" />;
+  const logoImg = (
+    <>
+      <img src={assetUrl(baseUrl, 'logo.svg')} alt="Pivit" />
+      {beta && (
+        <span className="logo-beta" role="img" aria-label={betaLabel} data-testid="logo-beta">
+          <img src={assetUrl(baseUrl, 'beta-mark.svg')} alt="" />
+        </span>
+      )}
+    </>
+  );
   const renderItem = (m) => {
     const isActive = m.page === currentPage;
     const className = ['menu-item', isActive && 'active', m.disabled && 'disabled']

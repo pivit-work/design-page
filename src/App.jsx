@@ -213,6 +213,7 @@ export default function App() {
         onFeedbackClick={() => { window.location.href = 'mailto:m@pivit.work'; }}
         onSettingsClick={() => handleNavigate('settings')}
         onLogoClick={() => handleNavigate('snippet')}
+        beta
       />
       <TopNav icons={ICONS} baseUrl={BASE} onHomeClick={() => handleNavigate('snippet')} />
 
