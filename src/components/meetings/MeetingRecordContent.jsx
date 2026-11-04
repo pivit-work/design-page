@@ -447,7 +447,17 @@ export default function MeetingRecordContent({
                 {a.person ? (
                   <>
                     <span className="mtg-record-action-avatar">{a.person.charAt(0)}</span>
-                    <span className="mtg-record-action-name">{a.person}</span>
+                    {/* 담당자 상태 표시(«(퇴사)» · pivit-work PW-2501)는 이름과 따로 둔다 — 칸 폭(110)이 좁아 한 글자로
+                        두면 말줄임에 표시가 먼저 잘린다. 이름이 먼저 줄고 표시는 남는다. 다 보는 글은 title 로. */}
+                    <span
+                      className="mtg-record-action-name"
+                      title={a.personMark ? `${a.person} ${a.personMark}` : undefined}
+                    >
+                      {a.person}
+                    </span>
+                    {a.personMark && (
+                      <span className="mtg-record-action-name mtg-record-action-name--mark">{a.personMark}</span>
+                    )}
                   </>
                 ) : (
                   <span className="mtg-record-action-name mtg-record-action-name--placeholder">
@@ -521,7 +531,8 @@ export default function MeetingRecordContent({
           members={memberPool}
           selected={actions[openPicker.idx]?.person}
           onSelect={(name) => {
-            updateAction(openPicker.idx, { person: name });
+            // 다른 사람으로 바꾸면 앞 사람의 상태 표시는 지운다 (PW-2501).
+            updateAction(openPicker.idx, { person: name, personMark: undefined });
             setOpenPicker(null);
           }}
           onClose={() => setOpenPicker(null)}

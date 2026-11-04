@@ -763,6 +763,10 @@ input.mtg-record-action-title::placeholder {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* 담당자 상태 표시(«(퇴사)» · pivit-work PW-2501) — 이름 옆에서 줄지 않는다. 글씨는 이름과 같다. */
+.mtg-record-action-name--mark {
+  flex: none;
+}
 .mtg-record-action-date {
   width: 90px;
   font-size: 14px;
