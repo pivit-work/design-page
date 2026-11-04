@@ -7,6 +7,7 @@ import FormField from '../shared/FormField.jsx';
 import TextInput from '../shared/TextInput.jsx';
 import TextArea from '../shared/TextArea.jsx';
 import Radio from '../shared/Radio.jsx';
+import { fill } from './sessionHelpers.js';
 
 /**
  * "1on1 일정 추가 / 1on1 잡기" 모달.
@@ -52,6 +53,18 @@ import Radio from '../shared/Radio.jsx';
  *   한 줄로 보인다. 예전에는 부르자마자 닫혀서, 서버가 거절해도 고른 값이 사라지고
  *   매니저는 잡힌 줄 알았다. 닫는 것은 여전히 호스트 몫이다(성공하면 open 을 내린다).
  *
+ * startNow: 주면 «팀원 검색»(또는 팀원 이름) 아래에 «언제: [지금 바로] [예약]» 줄이 생긴다 (PW-2592).
+ *   안 주면 줄이 없고 종전 화면 그대로다 — «일정 변경»·«다음 1on1 예약» 창은 미래 시각만 고르는
+ *   창이라 넘기지 않는다. 기본은 «예약»이다.
+ *   - startNow.upcomingFor(memberId): 그 팀원과 잡아 둔 1on1 하나를 알려 준다 —
+ *     `{ id, whenLabel, topicCount?, startable }` 또는 null. `whenLabel` 은 호스트가 그 사람
+ *     시간대·언어로 만든 글자다. `startable` 이면 이미 시작 가능 시간 안이라 새로 잡지 않고
+ *     버튼이 «그 1on1 진행»이 된다. 아니면 «그 1on1 을 지금으로 당기기»(기본)/«따로 새 1on1 잡기»를
+ *     고르게 한다.
+ *   «지금 바로»면 날짜·시간 칸이 빠지고 버튼이 «바로 시작 (N분)»이다. onSubmit 에 `when`
+ *   ('now'|'later')·`upcomingAction`('start'|'pull'|'separate'|null)·`upcomingId` 가 더 실린다.
+ *   시각은 싣지 않는다 — 서버가 자기 지금으로 잡는다(호스트 몫).
+ *
  * 창은 공용 창 틀(ModalShell)로 그린다 (PW-836). 닫혀 있는 동안에는 틀을 그리지 않지만,
  * 입력 상태는 이 컴포넌트가 들고 있어 종전처럼 열고 닫아도 남는다(새로 잡으려면 `key`).
  * Esc·막 클릭·닫기 X 는 틀이 onClose 로 부른다. 막의 data-testid 는 `ono-add-modal-overlay`,
@@ -85,6 +98,23 @@ export const DEFAULT_LABELS = {
   delete: '이 1on1 없애기',
   /* 저장이 거부됐는데 사유 문구가 없을 때 창 안에 보이는 한 줄 (PW-987). */
   submitFailed: '저장하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+  /* «언제» 줄과 «지금 바로» 갈래 (PW-2592). `startNow` 를 준 창에서만 보인다. */
+  when: '언제',
+  whenNow: '지금 바로',
+  whenLater: '예약',
+  startNowSubmit: '바로 시작 ({minutes}분)',
+  startNowSubmitPlain: '바로 시작',
+  startNowNotice:
+    '지금 시각으로 1on1 을 잡고 바로 준비 화면으로 갑니다. {name} 님에게 알림이 갑니다. 준비 화면에서 매니저 관점 네 칸을 확정하면 [시작하기]가 열립니다.',
+  upcoming: '잡아 둔 1on1',
+  upcomingNotice: '{when}에 잡아 둔 1on1 이 있습니다.',
+  upcomingTopics: '{name} 님이 논의 주제 {count}개를 적어 두었습니다.',
+  upcomingPull: '그 1on1 을 지금으로 당기기',
+  upcomingPullHint: '준비한 내용이 그대로 이어지고, {when} 일정은 지금으로 옮겨집니다.',
+  upcomingSeparate: '따로 새 1on1 잡기',
+  upcomingSeparateHint: '{when} 일정은 그대로 남습니다.',
+  inWindowNotice: '{when}에 잡아 둔 1on1 을 지금 시작할 수 있습니다. 새로 잡지 않고 그 1on1 을 엽니다.',
+  inWindowSubmit: '그 1on1 진행',
   prevMonth: '이전 달',
   nextMonth: '다음 달',
 };
@@ -170,7 +200,7 @@ function weekdayLabels(locale) {
 // 상세(열람모드) 모달도 같은 시간 옵션·데이트피커를 쓴다 — export 해 공유.
 export const TIME_OPTIONS = TIME_SLOTS.map((slot) => formatTime(slot));
 
-export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, member, icons, baseUrl = '', members, defaultDate, defaultTime, locale = 'ko', labels }) {
+export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, member, icons, baseUrl = '', members, defaultDate, defaultTime, locale = 'ko', labels, startNow }) {
   const L = { ...DEFAULT_LABELS, ...(labels || {}) };
   const memberList = useMemo(
     () => (Array.isArray(members) ? members : DEMO_MEMBERS).map(toMemberOption),
@@ -204,7 +234,26 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
+  /* «언제» (PW-2592) — 기본은 «예약»이라 종전에 쓰던 사람에게 바뀌는 것이 없다. */
+  const [when, setWhen] = useState('later');
+  const [upcomingChoice, setUpcomingChoice] = useState('pull');
+
   const canSubmit = !!member || pickedId != null;
+  const isNow = !!startNow && when === 'now';
+  const targetId = member ? (member.id != null ? String(member.id) : null) : pickedId;
+  const targetName = member ? member.name : (memberList.find((m) => m.id === pickedId)?.name ?? '');
+  const upcoming = isNow && targetId != null ? (startNow.upcomingFor?.(targetId) ?? null) : null;
+  const startable = !!upcoming?.startable;
+  const pulling = !!upcoming && !startable && upcomingChoice === 'pull';
+  const upcomingAction = !upcoming ? null : startable ? 'start' : upcomingChoice;
+  const nowMinutes = duration === 'custom' ? (customDuration.match(/\d+/)?.[0] ?? '') : duration;
+  const submitLabel = !isNow
+    ? L.submit
+    : startable
+      ? L.inWindowSubmit
+      : nowMinutes
+        ? fill(L.startNowSubmit, { minutes: nowMinutes })
+        : L.startNowSubmitPlain;
 
   const submit = async () => {
     if (saving || !canSubmit) return;
@@ -213,7 +262,14 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
     try {
       /* time 은 «화면에 보인 글자», time24 는 로케일 무관 'HH:MM'. 저장하는
          쪽은 time24 를 읽는다 — 영어 '1:00 PM' 을 1시로 잘못 읽지 않게 (PW-469). */
-      await onSubmit?.({ member, memberId: member ? null : pickedId, search, duration, customDuration, date, time: formatTime(time), time24: time, memo });
+      await onSubmit?.({
+        member, memberId: member ? null : pickedId, search, duration, customDuration, date, time: formatTime(time), time24: time,
+        /* 당기기·이미 열 수 있는 회차는 새 회차가 아니라서 메모를 싣지 않는다 — 칸도 숨긴다. */
+        memo: upcomingAction === 'pull' || upcomingAction === 'start' ? '' : memo,
+        when: isNow ? 'now' : 'later',
+        upcomingAction: isNow ? upcomingAction : null,
+        upcomingId: isNow && upcoming ? upcoming.id : null,
+      });
     } catch (err) {
       setSubmitError((err && err.message) || L.submitFailed);
       return;
@@ -278,7 +334,7 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
             onClick={() => void submit()}
             disabled={!canSubmit || saving}
           >
-            {L.submit}
+            {submitLabel}
           </button>
         </>
       }
@@ -341,8 +397,29 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
           </Field>
         )}
 
+        {/* 언제 (PW-2592) — 디자이너 원본이 없어 바로 아래 «미팅 시간» 라디오 칸 모양을 그대로 쓴다. */}
+        {startNow && (
+          <Field label={L.when} group>
+            <div className="ono-add-modal-radio-group">
+              {[['now', L.whenNow], ['later', L.whenLater]].map(([key, label]) => (
+                <Radio
+                  key={key}
+                  variant="card"
+                  name="ono-add-when"
+                  value={key}
+                  checked={when === key}
+                  onChange={() => setWhen(key)}
+                  label={label}
+                  data-testid={`ono-add-when-${key}`}
+                />
+              ))}
+            </div>
+          </Field>
+        )}
+
         {/* 미팅 시간 — 공용 라디오(PW-1012). 전에는 동그라미를 버튼으로 직접 그려 키보드 화살표로
             옮겨 다닐 수 없었고, 화면 읽기 프로그램은 「버튼」으로 읽었다. */}
+        {!startable && (
         <Field label={L.duration} group>
           <div className="ono-add-modal-radio-group">
             {durationOptions(L).map((opt) => (
@@ -370,8 +447,49 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
             </div>
           )}
         </Field>
+        )}
 
-        {/* 날짜 + 시간 */}
+        {/* 잡아 둔 1on1 (PW-2592) — 그 팀원과 이미 잡아 둔 회차가 있으면 당길지 따로 잡을지 고른다.
+            안내 글씨는 디자이너의 일정 추가 창 안내(.tl-event-helper), 고르는 칸은 위 라디오 칸에
+            회의 공유 창의 설명 줄(.mtg-share-card-desc)을 붙인 것이다. */}
+        {upcoming && !startable && (
+          <Field label={L.upcoming} group>
+            <p className="tl-event-helper ono-add-modal-hint" data-testid="ono-add-modal-upcoming">
+              {fill(L.upcomingNotice, { when: upcoming.whenLabel })}
+              {upcoming.topicCount > 0 && ` ${fill(L.upcomingTopics, { name: targetName, count: upcoming.topicCount })}`}
+            </p>
+            <div className="ono-add-modal-choice-list">
+              {[
+                ['pull', L.upcomingPull, L.upcomingPullHint],
+                ['separate', L.upcomingSeparate, L.upcomingSeparateHint],
+              ].map(([key, title, hint]) => (
+                <Radio
+                  key={key}
+                  variant="card"
+                  name="ono-add-upcoming"
+                  value={key}
+                  checked={upcomingChoice === key}
+                  onChange={() => setUpcomingChoice(key)}
+                  data-testid={`ono-add-upcoming-${key}`}
+                  label={
+                    <span className="ono-add-modal-choice">
+                      <span>{title}</span>
+                      <span className="mtg-share-card-desc">{fill(hint, { when: upcoming.whenLabel })}</span>
+                    </span>
+                  }
+                />
+              ))}
+            </div>
+          </Field>
+        )}
+        {startable && (
+          <p className="tl-event-helper ono-add-modal-hint" data-testid="ono-add-modal-in-window">
+            {fill(L.inWindowNotice, { when: upcoming.whenLabel })}
+          </p>
+        )}
+
+        {/* 날짜 + 시간 — «지금 바로»면 서버가 시각을 정하므로 뺀다 (PW-2592). */}
+        {!isNow && (
         <div className="ono-add-modal-row">
           {/* 날짜 */}
           <Field label={L.date}>
@@ -422,8 +540,10 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
             </div>
           </Field>
         </div>
+        )}
 
-        {/* 메모 */}
+        {/* 메모 — 당기기·이미 열 수 있는 회차는 새 회차가 아니라 싣지 않으므로 칸도 뺀다 (PW-2592). */}
+        {!pulling && !startable && (
         <Field label={L.memo}>
           <TextArea
             className="ono-add-modal-textarea"
@@ -432,6 +552,12 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
             onChange={(e) => setMemo(e.target.value)}
           />
         </Field>
+        )}
+        {isNow && !upcoming && canSubmit && (
+          <p className="tl-event-helper ono-add-modal-hint" data-testid="ono-add-modal-now-notice">
+            {fill(L.startNowNotice, { name: targetName })}
+          </p>
+        )}
         {/* 저장 실패 사유 (PW-987) — 1on1 화면의 다른 인라인 실패 줄과 같은 모양이다. */}
         {submitError && (
           <p className="ono-done-inline-error" role="alert" data-testid="ono-add-modal-error">

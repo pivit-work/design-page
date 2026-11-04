@@ -89,6 +89,8 @@ export const DEFAULT_LABELS = {
  *    키는 `DEFAULT_LABELS` 참조. 안 넘긴 키는 한국어 기본값이다.
  *  - managerLabel / teamCountLabel: 제목 줄의 「매니저」·「팀원 N명」. 숫자가 껴 있어
  *    호스트가 완성된 글자를 넘긴다. 그대로 OneOnOnePageHeader 로 간다.
+ *  - scheduleStartNow: 예약 모달 «언제: 지금 바로» 줄 (PW-2592). 그대로 AddOneOnOneModal 의 `startNow` 로
+ *    넘긴다 — 안 넘기면 줄이 없다.
  *  - scheduleDefaultDate: 예약 모달 날짜 칸의 기본값(Date). 호스트가 «사용자 시간대의
  *    내일» 을 계산해 넘긴다. 미지정 시 모달이 브라우저 로컬 기준 내일로 폴백한다.
  *  - onStartMember(member): "1on1 진행" 버튼이 눌렸을 때의 외부 핸들러. 지정 시
@@ -140,6 +142,7 @@ export default function OneOnOneCanvasV2({
    */
   teamEmpty,
   scheduleDefaultDate,
+  scheduleStartNow,
   onStartMember,
   // 사원 카드 본문 클릭 핸들러. 지정 시 내부 상세 모달 대신 호스트에 위임.
   // 호스트가 멤버에 `clickable: false` 를 달면 그 카드만 안 눌린다(hover 그림자도 없음) —
@@ -303,6 +306,7 @@ export default function OneOnOneCanvasV2({
             defaultDate={scheduleDefaultDate}
             locale={locale}
             labels={scheduleLabels}
+            startNow={scheduleStartNow}
           />
 
           {/* 멤버 카드 "1on1 잡기" → 멤버 고정 예약 모달 */}
@@ -320,6 +324,7 @@ export default function OneOnOneCanvasV2({
             defaultDate={scheduleDefaultDate}
             locale={locale}
             labels={scheduleLabels}
+            startNow={scheduleStartNow}
           />
 
           {briefing && (
