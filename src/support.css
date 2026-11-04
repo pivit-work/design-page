@@ -440,6 +440,10 @@
   line-height: 22px;
   text-align: center;
 }
+/* 0건인데 볼 수 없는 문의를 가리켜 들어왔을 때 목록 칸 안의 빈 안내 — 오른쪽 빈 상세와 같은 안쪽 여백 */
+.sup-list-empty {
+  padding: var(--spacing-3xl);
+}
 .sup-list-rows {
   margin: 0;
   padding: 0;

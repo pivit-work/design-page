@@ -47,7 +47,9 @@ function Star({ filled, baseUrl, size = 28 }) {
  *   showResolveActions · onResolve() · onReopen() · statusBusy
  *   rating         null | { value, submitted, busy } · onRatingChange(n) · onRatingSubmit()
  *   onRetry()      목록 다시 불러오기 · onNewTicket() 빈 목록의 [새 문의 작성]
- *   labels         { heading, listTitle, needsReply, empty, emptyAction, loadError, retry, selectPrompt,
+ *   selectionDenied 주소·알림이 가리킨 문의를 볼 수 없다(남의 문의 등) — 오른쪽에 «접근 권한» 에러 카드(labels.forbidden).
+ *                  문의가 0건이어도 둘로 나눈 화면을 그리고 왼쪽 목록 칸에 빈 목록 안내를 둔다(pivit-work PW-2483)
+ *   labels         { heading, listTitle, needsReply, empty, emptyAction, loadError, retry, selectPrompt, forbidden,
  *                    metaCategory, metaAssignee, metaCreated, metaReopened, threadError,
  *                    replyPlaceholder, replySend, replyHint, resolveYes, resolveNo, resolvePrompt,
  *                    ratingTitle, ratingStars: string[5], ratingSubmit, ratingThanks }
@@ -60,6 +62,7 @@ export default function SupportMyCanvas({
   onSelect,
   onRetry,
   onNewTicket,
+  selectionDenied = false,
   detail = null,
   messages = [],
   messageFiles = {},
@@ -105,23 +108,24 @@ export default function SupportMyCanvas({
         />
       );
     }
-    if (tickets.length === 0) {
-      return (
-        <EmptyState
-          size="lg"
-          icon={<Icon src="/icons-solid/inbox-01.svg" size={32} baseUrl={baseUrl} />}
-          description={labels.empty}
-          actions={
-            <Button variant="primary" onClick={() => onNewTicket?.()} data-testid="support-empty-new">
-              {labels.emptyAction}
-            </Button>
-          }
-          data-testid="support-list-empty"
-        />
-      );
-    }
+    // 볼 수 없는 문의를 가리켜 들어왔으면 0건이어도 둘로 나눈 화면 — 오른쪽 «접근 권한» 카드가 설 자리가 있어야 한다.
+    if (tickets.length === 0 && !selectionDenied) return renderEmpty('lg');
     return null;
   };
+
+  const renderEmpty = (size) => (
+    <EmptyState
+      size={size}
+      icon={<Icon src="/icons-solid/inbox-01.svg" size={32} baseUrl={baseUrl} />}
+      description={labels.empty}
+      actions={
+        <Button variant="primary" onClick={() => onNewTicket?.()} data-testid="support-empty-new">
+          {labels.emptyAction}
+        </Button>
+      }
+      data-testid="support-list-empty"
+    />
+  );
 
   const listFallback = renderList();
   const currentStep = detail ? detail.steps?.findIndex((s) => s.value === detail.status) ?? -1 : -1;
@@ -144,6 +148,7 @@ export default function SupportMyCanvas({
                 <span className="sup-list-title">{labels.listTitle}</span>
                 <span className="sup-list-count">{tickets.length}</span>
               </div>
+              {tickets.length === 0 && <div className="sup-list-empty">{renderEmpty('md')}</div>}
               <ul className="sup-list-rows">
                 {tickets.map((t) => (
                   <li key={t.id}>
@@ -180,7 +185,15 @@ export default function SupportMyCanvas({
             </section>
 
             {/* ── 오른쪽: 상세 ── */}
-            {!detail ? (
+            {selectionDenied ? (
+              <section className="sup-card sup-detail-empty">
+                <EmptyState
+                  icon={<Icon src="/icons-solid/alert-circle.svg" size={32} baseUrl={baseUrl} />}
+                  description={labels.forbidden}
+                  data-testid="support-detail-forbidden"
+                />
+              </section>
+            ) : !detail ? (
               <section className="sup-card sup-detail-empty">
                 <EmptyState description={labels.selectPrompt} data-testid="support-select-prompt" />
               </section>
