@@ -13,6 +13,7 @@ import ManagerPage from './ManagerPage';
 import OkrPage from './OkrPage';
 import SettingsPage from './SettingsPage';
 import LoginPage from './LoginPage';
+import BroadcastPage from './BroadcastPage';
 import './App.css';
 import './org_chart.css';
 import './org_project.css';
@@ -28,6 +29,7 @@ import './snippet.css';
 import './okr.css';
 import './okr_resource.css';
 import './login.css';
+import './broadcast.css';
 
 const BASE = import.meta.env.BASE_URL;
 
@@ -246,6 +248,7 @@ export default function App() {
       {currentPage === 'manager' && <ManagerPage icons={ICONS} baseUrl={BASE} />}
       {currentPage === 'okr' && <OkrPage icons={ICONS} baseUrl={BASE} />}
       {currentPage === 'settings' && <SettingsPage />}
+      {currentPage === 'broadcast' && <BroadcastPage baseUrl={BASE} />}
     </div>
   );
 }

@@ -489,3 +489,5 @@ export {
   SIGNUP_LABELS,
   DEFAULT_SIGNUP_STEPS,
 } from './login/index.js';
+// 어드민 브로드캐스트 공지 바 (Figma 17816:26924 일반 · 17816:26435 경고/장애) — 화면 맨 위 한 줄. 스타일은 broadcast.css
+export { BroadcastBar, BROADCAST_KINDS, BROADCAST_BAR_HEIGHT } from './broadcast/index.js';

@@ -19,6 +19,8 @@ export const PAGE_SLUGS = {
   settings: 'settings',
   // 회사 홈페이지 [로그인] 이 여는 화면 — 사이드바 없이 혼자 선다 (Figma 17767:40732)
   login: 'login',
+  // 어드민 브로드캐스트 공지 바 데모 — 사이드바에 없고 주소(/broadcast)로만 연다 (Figma 17816:26924 · 17816:26435)
+  broadcast: 'broadcast',
 };
 
 function normalizeBase(base) {

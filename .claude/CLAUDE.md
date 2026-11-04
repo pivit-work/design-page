@@ -60,6 +60,7 @@ pivit-work(실 프로덕트) 는 이 wrapper 를 import 하지 않고, 자신의
 | 타임라인 | `src/TimelinePage.jsx` | `TimelineCanvas` |
 | 회의록 | `src/MeetingsPage.jsx` | `MeetingsCanvas`, `MeetingInProgressModal` |
 | 1on1 | `src/OneOnOnePage.jsx` | `OneOnOneDashboardCanvas` |
+| 공지 바 (주소 `/broadcast`) | `src/BroadcastPage.jsx` | `BroadcastBar` |
 
 ### ❌ 절대 하지 않는 것
 

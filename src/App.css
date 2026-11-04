@@ -15,7 +15,8 @@
 .app { width: 100vw; min-width: 1280px; height: 100%; position: relative; overflow: hidden; background: var(--bg-primary); transform: translateZ(0); }
 
 /* ── Sidebar ── */
-.sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 240px; padding: 12px 20px 20px; z-index: 100; } /* 메뉴 판 위 12 (시안 16621:1724) */
+/* 어드민 공지 바(broadcast.css)가 떠 있으면 호스트가 `--broadcast-bar-h`(48px)를 :root 에 두고, 사이드바·머리 줄·본문이 그만큼 내려선다 (Figma 17816:26924). 평소엔 0. */
+.sidebar { position: fixed; left: 0; top: var(--broadcast-bar-h, 0px); bottom: 0; width: 240px; padding: 12px 20px 20px; z-index: 100; } /* 메뉴 판 위 12 (시안 16621:1724) */
 .sidebar-inner { width: 200px; height: 100%; backdrop-filter: blur(40px); border-radius: 24px; background: var(--bg-primary-alt); padding: 12px; display: flex; flex-direction: column; justify-content: space-between; gap: 20px; box-sizing: border-box; }
 /* 창 높이가 메뉴 전체보다 낮으면 메뉴 목록만 스크롤하고 로고·제목·아래 항목은 늘 보인다
    (PW-1414 · admin-spec §1.2). min-height:0 이 없으면 flex 자식이 내용 높이 밑으로 안 줄어
@@ -48,7 +49,7 @@
 
 /* ── Top Nav ── */
 /* 머리 줄 — 2026-10-25 시안(타임라인 16621:1627 기준, 전 화면 공통): 왼쪽 여백 0 · 위 20 · 오른쪽 32 → 높이 72 */
-.top-nav { position: fixed; top: 0; left: 240px; right: 0; padding: 20px 32px 12px 0; display: flex; align-items: center; justify-content: space-between; background: var(--bg-primary); z-index: 90; gap: 20px; }
+.top-nav { position: fixed; top: var(--broadcast-bar-h, 0px); left: 240px; right: 0; padding: 20px 32px 12px 0; display: flex; align-items: center; justify-content: space-between; background: var(--bg-primary); z-index: 90; gap: 20px; }
 .nav-links { display: flex; align-items: center; gap: 28px; }
 .nav-link { font-size: 14px; font-weight: 600; color: var(--text-tertiary); cursor: pointer; letter-spacing: -0.04em; position: relative; }
 .nav-link:hover { color: var(--text-secondary); }
@@ -62,8 +63,8 @@
 /* ── Content Area (shared across pages) ── */
 .content-area {
   position: fixed;
-  /* 머리 줄(72) 바로 아래 — 화면 머리글이 y 72 에서 시작한다(전 화면 공통 간격). */
-  top: 72px;
+  /* 머리 줄(72) 바로 아래 — 화면 머리글이 y 72 에서 시작한다(전 화면 공통 간격). 공지 바가 떠 있으면 그만큼 더 아래. */
+  top: calc(72px + var(--broadcast-bar-h, 0px));
   left: 240px;
   right: 0;
   bottom: 0;
