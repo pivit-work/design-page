@@ -27,6 +27,9 @@ import { isEnterKey } from '../shared/enterKey.js';
  * 이름이 둘이거나 구성원이 아닌 글을 적었을 때 메일을 못 찾아 조용히 빠졌다.
  *   - 참석자 행은 key(없으면 name)로 가른다. reachable === false 면 메일 주소가
  *     없는 사람이라 체크를 막고 기본 체크에서도 뺀다.
+ *     다른 이유로 못 받는 사람(퇴사 등)은 unreachableLabel 을 함께 준다 — 역할 자리에 labels.noEmail 대신
+ *     그 글을 보이고, 옵션 1 의 «메일 주소 없음» 안내 수에서 뺀다. tagLabel 을 주면 옵션 1 이름 태그에
+ *     name 대신 보인다(«이름 (퇴사)») (pivit-work PW-2501).
  *   - 「그 외 인원」은 참석자 행으로 붙이지 않고 태그로 둔다. 태그마다 × 버튼으로 뺀다.
  *   - directory({ id, name, email, department }[]) 가 드롭다운 후보다. 후보를 못 불러왔으면
  *     directoryFailed — 「검색 결과 없음」 대신 labels.directoryLoadFailed 를 보인다.
@@ -81,6 +84,8 @@ function toParticipant(p) {
     userId: p.userId ?? null,
     email: p.email ?? null,
     reachable: p.reachable !== false,
+    ...(p.unreachableLabel ? { unreachableLabel: p.unreachableLabel } : {}),
+    ...(p.tagLabel ? { tagLabel: p.tagLabel } : {}),
   };
 }
 
@@ -147,7 +152,9 @@ const MeetingShareContent = forwardRef(function MeetingShareContent(
 
   const participants = calendarParticipants.map(toParticipant);
   const reachableParticipants = participants.filter((p) => p.reachable);
-  const unreachableCount = participants.length - reachableParticipants.length;
+  // 「메일 주소가 없어 받지 못합니다」는 주소가 없는 사람만 센다 — 다른 이유(unreachableLabel)로 못 받는 사람은
+  // 그 줄에 이유가 따로 보인다 (pivit-work PW-2501 · 퇴사한 참석자).
+  const unreachableCount = participants.filter((p) => !p.reachable && !p.unreachableLabel).length;
 
   const toggleMember = (key) => {
     setMembers((prev) =>
@@ -310,7 +317,7 @@ const MeetingShareContent = forwardRef(function MeetingShareContent(
               )}
               <div className="mtg-share-pill-list">
                 {participants.map((p) => (
-                  <StatusBadge key={p.key} className="mtg-progress-pill">{p.name}</StatusBadge>
+                  <StatusBadge key={p.key} className="mtg-progress-pill">{p.tagLabel ?? p.name}</StatusBadge>
                 ))}
               </div>
             </div>
@@ -354,7 +361,7 @@ const MeetingShareContent = forwardRef(function MeetingShareContent(
                     <span className="mtg-record-action-avatar">{m.name.charAt(0)}</span>
                     <span className="mtg-share-member-name">{m.name}</span>
                     <span className="mtg-share-member-role">
-                      {m.reachable ? m.role : labels.noEmail}
+                      {m.reachable ? m.role : (m.unreachableLabel ?? labels.noEmail)}
                     </span>
                   </li>
                 ))}
