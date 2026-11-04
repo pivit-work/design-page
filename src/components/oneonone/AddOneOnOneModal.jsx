@@ -244,7 +244,6 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
   const targetName = member ? member.name : (memberList.find((m) => m.id === pickedId)?.name ?? '');
   const upcoming = isNow && targetId != null ? (startNow.upcomingFor?.(targetId) ?? null) : null;
   const startable = !!upcoming?.startable;
-  const pulling = !!upcoming && !startable && upcomingChoice === 'pull';
   const upcomingAction = !upcoming ? null : startable ? 'start' : upcomingChoice;
   const nowMinutes = duration === 'custom' ? (customDuration.match(/\d+/)?.[0] ?? '') : duration;
   const submitLabel = !isNow
@@ -264,8 +263,8 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
          쪽은 time24 를 읽는다 — 영어 '1:00 PM' 을 1시로 잘못 읽지 않게 (PW-469). */
       await onSubmit?.({
         member, memberId: member ? null : pickedId, search, duration, customDuration, date, time: formatTime(time), time24: time,
-        /* 당기기·이미 열 수 있는 회차는 새 회차가 아니라서 메모를 싣지 않는다 — 칸도 숨긴다. */
-        memo: upcomingAction === 'pull' || upcomingAction === 'start' ? '' : memo,
+        /* 이미 열 수 있는 회차는 저장할 곳이 없어 메모를 싣지 않는다 — 칸도 숨긴다. 당기기는 그 회차에 더한다. */
+        memo: upcomingAction === 'start' ? '' : memo,
         when: isNow ? 'now' : 'later',
         upcomingAction: isNow ? upcomingAction : null,
         upcomingId: isNow && upcoming ? upcoming.id : null,
@@ -542,8 +541,8 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
         </div>
         )}
 
-        {/* 메모 — 당기기·이미 열 수 있는 회차는 새 회차가 아니라 싣지 않으므로 칸도 뺀다 (PW-2592). */}
-        {!pulling && !startable && (
+        {/* 메모 — 이미 열 수 있는 회차는 저장할 곳이 없어 칸을 뺀다 (PW-2592). 당기기는 그 회차에 한 줄 더한다. */}
+        {!startable && (
         <Field label={L.memo}>
           <TextArea
             className="ono-add-modal-textarea"
