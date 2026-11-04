@@ -13,6 +13,7 @@ import { isEnterKey } from '../shared/enterKey.js';
  * byKr:   [{ id?, okr, tone, title, percent?, members, avatars, snippets:
  *   [{ id?, member, avatar, date, score, tone, text, flagged? }] }]
  *   `percent` 도 선택 — KR 이 아닌 묶음(예: 'KR 미연결' 버킷)에는 진척률이 없다.
+ *   `percentHidden: true`(카드 `kr`·KR별 묶음 둘 다) — 요금제로 OKR 이 잠겨 달성률을 가린다. 숫자 자리에 «-», 막대 없음 (PW-2487).
  *   `score` 는 `null` 일 수 있다 — 헬스를 고르지 않고 낸 스니핏이다. 그때는 `-` 를 색 없이
  *   그린다(`tone` 도 비운다). 0 으로 그리면 빨간 칩이 붙어 위험한 사람으로 읽힌다 (PW-1213).
  *
@@ -150,11 +151,14 @@ export default function TeamSnippetFeed({ byDate, byKr, memberFilter, memberFilt
                     <p className="mgr-ts-kr-label">기여 KR</p>
                     <div className="mgr-ts-kr-row">
                       <span className="mgr-ts-kr-name">{item.kr.name}</span>
-                      <span className="mgr-ts-kr-okr">{item.kr.okr} <b>{item.kr.percent}%</b></span>
+                      {/* percentHidden: 요금제로 OKR 이 잠겨 달성률을 가린다 — 숫자 대신 «-», 막대 없음 (PW-2487). */}
+                      <span className="mgr-ts-kr-okr">{item.kr.okr} <b>{item.kr.percentHidden ? '-' : `${item.kr.percent}%`}</b></span>
                     </div>
-                    <div className="mgr-ts-kr-track">
-                      <div className={`mgr-ts-kr-fill is-${item.kr.tone}`} style={{ width: `${item.kr.percent}%` }} />
-                    </div>
+                    {!item.kr.percentHidden && (
+                      <div className="mgr-ts-kr-track">
+                        <div className={`mgr-ts-kr-fill is-${item.kr.tone}`} style={{ width: `${item.kr.percent}%` }} />
+                      </div>
+                    )}
                   </div>
                 )}
                 {/* 뷰어가 이 팀원의 조직장이 아니면 소비자가 `canOneOnOne: false` 를 싣는다 (pivit-work PW-2486). */}
@@ -172,11 +176,11 @@ export default function TeamSnippetFeed({ byDate, byKr, memberFilter, memberFilt
               <p className={`mgr-ts-krgroup-okr is-${group.tone}`}><i /> {group.okr}</p>
               <div className="mgr-ts-krgroup-head">
                 <h3 className="mgr-ts-krgroup-title">{group.title}</h3>
-                {group.percent != null && (
-                  <span className={`mgr-ts-krgroup-percent is-${group.tone}`}>{group.percent}%</span>
+                {(group.percent != null || group.percentHidden) && (
+                  <span className={`mgr-ts-krgroup-percent is-${group.tone}`}>{group.percentHidden ? '-' : `${group.percent}%`}</span>
                 )}
               </div>
-              {group.percent != null && (
+              {group.percent != null && !group.percentHidden && (
                 <div className="mgr-ts-kr-track">
                   <div className={`mgr-ts-kr-fill is-${group.tone}`} style={{ width: `${group.percent}%` }} />
                 </div>
