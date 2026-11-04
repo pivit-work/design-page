@@ -672,6 +672,10 @@
    [인원 추가] 버튼이 탭 아래쪽에 있어 창을 아래에 붙인다. */
 .pd-resource { position: relative; }
 .sq-add-cover.pd-resource-cover { align-items: flex-end; padding-bottom: var(--spacing-4xl); }
+/* 배정된 사람이 적으면(새 프로젝트는 0명) 탭이 창보다 낮아 후보 목록이 한 줄(66)로 눌렸다(PW-2319, 11-04 커트 (나)).
+   창이 떠 있는 동안만 탭을 창이 다 들어가는 높이로 늘린다 — 창 196 + 목록 최대 256 + 위아래 32씩.
+   탭이 이보다 높으면 아무것도 안 바뀐다. 스쿼드 카드 겹창은 이 규칙을 타지 않는다. */
+.pd-resource:has(.pd-resource-cover) { min-height: 520px; }
 .pd-resource-saved {
   display: inline-flex;
   align-items: center;
