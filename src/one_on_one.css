@@ -3851,6 +3851,15 @@ button.ono-add-modal-input { cursor: pointer; }
   padding: var(--spacing-3xl) 48px 48px;
   border-top: 1px solid var(--border-tertiary);
 }
+/* 카드는 전체 폭, 안쪽 본문·푸터는 720 가운데 — 「내 원온원」 회차 화면(.ono-my-view)과 같은 규칙 (2026-11-04).
+   창이 넓어져도 글 줄이 카드 끝까지 늘어나지 않는다. */
+.ono-done-body,
+.ono-done-footer {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+}
 
 /* ── 머리 (17556:24905) — 「1on1 • 날짜」 · 팀원 줄(아바타 48 · 이름 18 · 딱지 · 보조 글 12) ── */
 .ono-done-head {
