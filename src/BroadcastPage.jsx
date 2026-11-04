@@ -40,7 +40,7 @@ const BROADCASTS = {
 };
 
 const PREVIEWS = [
-  { kind: 'notice', name: '일반 공지', sub: '기능 변경·안내 — 보라 → 초록 (Figma 17816:26924)' },
+  { kind: 'notice', name: '일반 공지', sub: '기능 변경·안내 — 하늘 → 민트 (Figma 17816:26924)' },
   { kind: 'warning', name: '경고 · 장애', sub: '장애·복구 중 — 분홍 → 주황 (Figma 17816:26435)' },
 ];
 

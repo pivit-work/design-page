@@ -17,9 +17,9 @@
   color: var(--text-primary-on-brand);
   font-family: var(--font-family-body);
 }
-/* 일반 공지 — 보라 → 초록 (17816:27174). TODO: token 없음 — 시안의 그라데이션 색 그대로 */
+/* 일반 공지 — 하늘(utility-blue-400) → 민트 (17816:27174 · 2026-11-04 색 수정). 끝 색은 TODO: token 없음 */
 .broadcast-bar.is-notice {
-  background-image: linear-gradient(176.18deg, rgb(110, 92, 232) 16.65%, rgb(41, 186, 157) 83.35%);
+  background-image: linear-gradient(176.18deg, var(--utility-blue-400) 16.65%, rgb(84, 213, 187) 83.35%);
 }
 /* 경고·장애 — 분홍 → 주황 (17816:26907). TODO: token 없음 */
 .broadcast-bar.is-warning {
