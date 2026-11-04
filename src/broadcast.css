@@ -17,9 +17,9 @@
   color: var(--text-primary-on-brand);
   font-family: var(--font-family-body);
 }
-/* 일반 공지 — 하늘(utility-blue-400) → 민트 (17816:27174 · 2026-11-04 색 수정). 끝 색은 TODO: token 없음 */
+/* 일반 공지 — 파랑 utility-blue-400 → utility-blue-500 (17816:27174 · 2026-11-04 색 수정, 둘 다 토큰) */
 .broadcast-bar.is-notice {
-  background-image: linear-gradient(176.18deg, var(--utility-blue-400) 16.65%, rgb(84, 213, 187) 83.35%);
+  background-image: linear-gradient(176.18deg, var(--utility-blue-400) 16.65%, var(--utility-blue-500) 83.35%);
 }
 /* 경고·장애 — 분홍 → 주황 (17816:26907). TODO: token 없음 */
 .broadcast-bar.is-warning {
