@@ -162,6 +162,7 @@ const DEFAULT_LABELS = {
   statusSelfReview: '셀프 리뷰',
   statusPeerReview: '동료 리뷰',
   statusLeaderReview: '하향 리뷰',
+  statusUpwardReview: '상향 리뷰',
   statusCalibration: '캘리브레이션',
   statusHrReview: 'HR 검수',
   statusReportReview: '리포트 검수',
@@ -1226,11 +1227,24 @@ function StatusBadge({ status, label }) {
  * 이 사이클이 실제로 거치는 단계. 서버가 `lifecycle` 을 내려주면 그대로 쓰고(리뷰 종류·단계
  * ON/OFF 반영), 없으면 종래 고정 체인으로 폴백한다. draft 는 스테퍼에 표시하지 않는다.
  */
+/** 리뷰 작성 구간의 단계 → 이름. 서버가 `reviewPhase`·`nextReviewPhase` 로 준다 (pivit-work PW-2583). */
+function reviewPhaseLabel(phase, L) {
+  if (phase === 'peer') return L.statusPeerReview;
+  if (phase === 'upward') return L.statusUpwardReview;
+  if (phase === 'leader') return L.statusLeaderReview;
+  return null;
+}
+
 /**
- * peer_review 는 '리뷰 작성' 단계로, 동료·상향·하향 리뷰가 여기서 진행된다.
+ * peer_review 는 '리뷰 작성' 단계로, 동료·상향·하향 리뷰가 한 단계씩 열린다 — 서버가 준 `reviewPhase`
+ * (지금 열린 단계)의 이름을 쓴다. 이 값이 없는 데이터(미리보기)만 아래처럼 리뷰 종류로 가른다:
  * 동료 리뷰를 안 쓰는 사이클에서 '동료 리뷰'라고 부르면 사실과 다르므로 '하향 리뷰'로 부른다.
  */
 function statusLabel(cycle, status, L) {
+  if (status === 'peer_review') {
+    const named = reviewPhaseLabel(cycle?.reviewPhase, L);
+    if (named) return named;
+  }
   if (
     status === 'peer_review' &&
     Array.isArray(cycle?.reviewTypes) &&
@@ -1239,6 +1253,11 @@ function statusLabel(cycle, status, L) {
     return L.statusLeaderReview;
   }
   return L[STATUS_META[status]?.key ?? 'statusDraft'];
+}
+
+/** 다음에 열릴 단계 이름 — 리뷰 작성 구간 안에서 넘기면 그 단계, 아니면 다음 사이클 상태. */
+function nextStageLabel(cycle, L) {
+  return reviewPhaseLabel(cycle?.nextReviewPhase, L) ?? statusLabel(cycle, cycle?.nextStatus, L);
 }
 
 function stepsOf(cycle) {
@@ -1260,11 +1279,19 @@ const STEP_SCHEDULE_PHASES = {
   hr_review: ['share'],
 };
 
+const REVIEW_PHASE_SCHEDULE = {
+  peer: ['peer'],
+  upward: ['upward'],
+  leader: ['leader', 'manager'],
+};
+
 /** 이 단계의 일정 `{ start, end }`(날짜 'YYYY-MM-DD') — 없으면 null. */
 function stepScheduleOf(cycle, status) {
   const rs = cycle?.reviewSequence;
   const schedule = rs?.schedule ?? {};
-  const ids = (STEP_SCHEDULE_PHASES[status] ?? []).filter((id) => rs?.enabled?.[id] !== false);
+  // 리뷰 작성 칸은 그 칸이 부르는 단계의 일정만 — 이름은 «상향 리뷰»인데 하향 일정까지 합치면 틀린다.
+  const phaseIds = status === 'peer_review' ? REVIEW_PHASE_SCHEDULE[cycle?.reviewPhase] : null;
+  const ids = (phaseIds ?? STEP_SCHEDULE_PHASES[status] ?? []).filter((id) => rs?.enabled?.[id] !== false);
   const day = (v) => (typeof v === 'string' && v.length >= 10 ? v.slice(0, 10) : '');
   let start = '';
   let end = '';
@@ -1502,7 +1529,7 @@ function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, advancing = 
               onClick={() => onAdvance(cycle)}
               data-testid="evc-advance"
             >
-              {fill(L.advance, { stage: statusLabel(cycle, cycle.nextStatus, L) })}
+              {fill(L.advance, { stage: nextStageLabel(cycle, L) })}
             </Button>
           )}
           {(isActive || isOnHold) && cycle.reviewSequence && (
@@ -1909,7 +1936,7 @@ export default function EvalCycleHrCanvas({
   const [advancingId, setAdvancingId] = useState(null);
   const advanceNow = (cycle) => {
     setAdvancingId(cycle.id);
-    void run(() => onAdvanceCycle?.(cycle.id, cycle.status), L.toastAdvanced).finally(() =>
+    void run(() => onAdvanceCycle?.(cycle.id, cycle.status, cycle.reviewPhase), L.toastAdvanced).finally(() =>
       setAdvancingId(null),
     );
   };
@@ -1943,7 +1970,7 @@ export default function EvalCycleHrCanvas({
       }
     }
     setAdvancingId(null);
-    const stage = statusLabel(cycle, cycle.nextStatus, L);
+    const stage = nextStageLabel(cycle, L);
     const proceed = () => {
       setConfirmModal(null);
       advanceNow(cycle);

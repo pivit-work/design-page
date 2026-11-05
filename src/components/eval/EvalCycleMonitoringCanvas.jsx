@@ -187,6 +187,19 @@ const OPEN_STATUS_OF_STAGE = {
   result_share: ['report_review', 'hr_review'],
 };
 
+/** 리뷰 작성 구간의 줄 → 그 줄의 단계. 서버가 `reviewPhase` 를 주면 열린 단계의 줄에만 «진행 중»을 단다 (pivit-work PW-2583). */
+const REVIEW_PHASE_OF_STAGE = {
+  peer_review: 'peer',
+  upward_review: 'upward',
+  leader_review: 'leader',
+};
+
+function stageOpenNow(stageKey, status, reviewPhase) {
+  if (!(OPEN_STATUS_OF_STAGE[stageKey] ?? []).includes(status)) return false;
+  const own = REVIEW_PHASE_OF_STAGE[stageKey];
+  return !reviewPhase || !own || own === reviewPhase;
+}
+
 /** `YYYY-MM-DD…` → 로컬 자정 `Date`. 못 읽으면 null. */
 function isoToDate(iso) {
   const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso ?? ''));
@@ -384,6 +397,8 @@ export default function EvalCycleMonitoringCanvas({
   completionPct = 0,
   members = [],
   status,
+  /** 리뷰 작성 구간에서 지금 열린 단계(`peer`·`upward`·`leader`). */
+  reviewPhase,
   gradeLabels = {},
   labels: providedLabels,
   onRemind,
@@ -810,7 +825,7 @@ export default function EvalCycleMonitoringCanvas({
             {stages.map((s) => {
               /* [PW-1968] 하향 차수 줄(`leader_review_2` …)은 키 표에 없는 이름이라 화면이 이름을 실어 보낸다. */
               const stageLabel = s.label ?? L[STAGE_KEY[s.key]] ?? s.key;
-              const isOpenNow = !!status && (OPEN_STATUS_OF_STAGE[s.key] ?? []).includes(status);
+              const isOpenNow = !!status && stageOpenNow(s.key, status, reviewPhase);
               const inner = (
                 <>
                   <span className="evmon-stage-label">
