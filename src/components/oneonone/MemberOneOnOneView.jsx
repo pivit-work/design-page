@@ -325,16 +325,17 @@ export default function MemberOneOnOneView({
             {/* 내 준비도 (Figma 17416:27962 · 17556:24396) */}
             <div className="ono-start-section" data-testid="ono-my-readiness">
               <div className="ono-my-head">
-                <h3 className="ono-my-h3">
-                  {L.readiness}
-                  {readinessHelp}
-                </h3>
+                {/* 배지는 제목 옆 — 오른쪽 위에 떠 있는 녹음 위젯이 머리 줄 오른쪽 끝을 가린다 */}
                 <div className="ono-mem-readiness-top">
-                  <span className={`ono-my-readiness-count${allDone ? ' is-done' : ''}`}>
-                    {pct == null ? '—' : `${pct}%`}
-                  </span>
+                  <h3 className="ono-my-h3">
+                    {L.readiness}
+                    {readinessHelp}
+                  </h3>
                   <ReadinessBadge value={pct} L={L} />
                 </div>
+                <span className={`ono-my-readiness-count${allDone ? ' is-done' : ''}`}>
+                  {pct == null ? '—' : `${pct}%`}
+                </span>
               </div>
               <div className="ono-my-track" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct ?? undefined} aria-label={L.readiness}>
                 <div className={`ono-my-fill${allDone ? ' is-done' : ''}`} style={{ width: `${pct ?? 0}%` }} />
