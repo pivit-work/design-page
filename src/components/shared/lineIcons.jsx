@@ -402,6 +402,39 @@ export function FolderGlyph(props) {
   );
 }
 
+/** 얼굴 — 불편했어요. */
+export function FaceBadGlyph(props) {
+  return (
+    <LineSvg {...props}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M16 16s-1.5-2-4-2-4 2-4 2" />
+      <path d="M9 9h.01M15 9h.01" />
+    </LineSvg>
+  );
+}
+
+/** 얼굴 — 그저 그래요. */
+export function FaceMehGlyph(props) {
+  return (
+    <LineSvg {...props}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M8 15h8" />
+      <path d="M9 9h.01M15 9h.01" />
+    </LineSvg>
+  );
+}
+
+/** 얼굴 — 편했어요. */
+export function FaceGoodGlyph(props) {
+  return (
+    <LineSvg {...props}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M8 14s1.5 2 4 2 4-2 4-2" />
+      <path d="M9 9h.01M15 9h.01" />
+    </LineSvg>
+  );
+}
+
 /** 말풍선. */
 export function ChatGlyph(props) {
   return (

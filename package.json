@@ -19,6 +19,7 @@
     "./styles/one-on-one.css": "./src/one_on_one.css",
     "./styles/recording-player.css": "./src/recording-player.css",
     "./styles/tutorial-help.css": "./src/tutorial-help.css",
+    "./styles/beta-feedback.css": "./src/beta-feedback.css",
     "./styles/ai-fail-box.css": "./src/ai-fail-box.css",
     "./styles/recording-limit-notice.css": "./src/recording-limit-notice.css",
     "./styles/shared-text.css": "./src/shared-text.css",

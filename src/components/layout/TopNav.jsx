@@ -12,6 +12,7 @@ import { isEnterKey } from '../shared/enterKey.js';
  *    (Enter·Space 로도 열린다).
  *  - labels: { home, profile, notifications, searchPlaceholder } — 호스트가 번역을
  *    넘길 자리. 없는 키는 한국어 기본값.
+ *  - actions: 검색 칸 왼쪽에 호스트가 넣을 조각(PW-2566 베타 의견 버튼). 없으면 지금 모양 그대로다.
  *  - 나머지 속성(data-* 등)은 `<header>` 에 그대로 붙는다.
  */
 const DEFAULT_LABELS = {
@@ -31,6 +32,7 @@ export default function TopNav({
   showHome = true,
   hasUnread = true,
   labels,
+  actions,
   ...rest
 }) {
   const L = { ...DEFAULT_LABELS, ...labels };
@@ -44,6 +46,13 @@ export default function TopNav({
         },
       }
     : {};
+  const search = (
+    <div className="search-bar" {...searchProps}>
+      <Icon src={icons.search} size={20} color="var(--colors-foreground-fgTertiary)" baseUrl={baseUrl} />
+      <div className="search-kbd"><kbd>/</kbd></div>
+      <span className="search-placeholder">{L.searchPlaceholder}</span>
+    </div>
+  );
   return (
     <header className="top-nav" {...rest}>
       <div className="nav-links">
@@ -54,11 +63,14 @@ export default function TopNav({
           {hasUnread && <span className="notification-dot" data-testid="notification-dot" />}
         </span>
       </div>
-      <div className="search-bar" {...searchProps}>
-        <Icon src={icons.search} size={20} color="var(--colors-foreground-fgTertiary)" baseUrl={baseUrl} />
-        <div className="search-kbd"><kbd>/</kbd></div>
-        <span className="search-placeholder">{L.searchPlaceholder}</span>
-      </div>
+      {actions ? (
+        <div className="dp-bf-right">
+          {actions}
+          {search}
+        </div>
+      ) : (
+        search
+      )}
     </header>
   );
 }

@@ -1,0 +1,138 @@
+/*
+ * 베타 의견 두 표면 (pivit-work PW-2566) — 규격 pivit-specs `M. 고객지원/screen-support-beta-feedback.policy.md` §2.
+ * 이 표면의 디자이너 원본은 없다 — 떠 있는 카드 모양은 회의 녹음 위젯, 칸·버튼은 공용 부품을 따른다. 폭 360 은 정책서 값.
+ */
+.dp-bf-trigger {
+  height: 36px;
+}
+.dp-bf-anchor {
+  position: relative;
+  display: inline-flex;
+}
+.dp-bf-right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+}
+.dp-bf-card {
+  box-sizing: border-box;
+  width: 360px;
+  padding: var(--spacing-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  background: var(--bg-secondary);
+  /* 화면 위에 떠 있는 카드의 디자이너 모양 — 회의 녹음 위젯(.mtg-rec-widget · stesslee 247aa088)과 같은 값 */
+  border: 1px solid var(--alpha-black-5);
+  border-radius: 20px;
+  box-shadow:
+    0 3px 3px -1.5px var(--colors-effects-shadows-shadowXl03),
+    0 8px 8px -4px var(--colors-effects-shadows-shadowXl02),
+    0 20px 24px -4px var(--colors-effects-shadows-shadowXl01);
+  font-family: var(--font-family-body);
+  white-space: normal;
+}
+.dp-bf-popover {
+  position: absolute;
+  top: calc(100% + var(--spacing-md));
+  right: 0;
+  z-index: 1;
+}
+.dp-bf-prompt {
+  position: fixed;
+  /* 자리도 회의 녹음 위젯과 같다(오른쪽 아래 40) */
+  right: var(--spacing-5xl);
+  bottom: var(--spacing-5xl);
+  z-index: 85;
+  gap: var(--spacing-lg);
+}
+.dp-bf-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+}
+.dp-bf-head .dp-bf-title {
+  flex: 1;
+  min-width: 0;
+}
+.dp-bf-title {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.dp-bf-count {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-tertiary);
+  text-align: right;
+}
+.dp-bf-note {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-tertiary);
+}
+.dp-bf-link {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-brand-secondary);
+  text-decoration: none;
+}
+.dp-bf-link:hover {
+  text-decoration: underline;
+}
+.dp-bf-error {
+  padding: var(--spacing-md);
+  border-radius: 8px;
+  background: var(--bg-error-primary);
+  color: var(--text-error-primary);
+  font-size: 12px;
+  line-height: 18px;
+}
+.dp-bf-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-md);
+}
+.dp-bf-ask,
+.dp-bf-tail {
+  flex: 1;
+  min-width: 0;
+}
+.dp-bf-ask {
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--text-secondary);
+}
+.dp-bf-close {
+  flex: none;
+}
+.dp-bf-faces {
+  display: flex;
+  gap: var(--spacing-md);
+}
+.dp-bf-face {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-md) var(--spacing-xs);
+  border-radius: 10px;
+  border: 1px solid var(--colors-border-borderSecondary, currentColor);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-family: var(--font-family-body);
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.dp-bf-face.is-selected {
+  border-color: var(--text-brand-tertiary);
+  background: var(--bg-brand-primary);
+  color: var(--text-brand-secondary);
+}
