@@ -143,6 +143,11 @@ export function useHandleReorder({ count, onReorder, onStep }) {
     };
     const onMove = (ev) => {
       if (ev.pointerId !== e.pointerId) return;
+      // 뗀 신호를 놓쳤다(맥 Ctrl+클릭 메뉴 등) — 버튼 없이 움직이는데 줄이 붙어 다니면 안 된다.
+      if (ev.pointerType === 'mouse' && ev.buttons === 0) {
+        session.finish(false);
+        return;
+      }
       session.x = ev.clientX;
       session.y = ev.clientY;
       if (!session.started) {
@@ -157,15 +162,26 @@ export function useHandleReorder({ count, onReorder, onStep }) {
       }
       paint();
     };
+    // 뗀 자리에서 브라우저가 click 을 낸다 — 끌었든 칸을 조금 벗어났든 줄의 편집 창이 열리면 안 된다. 목록 밖 click 은 그대로 둔다.
+    const swallowNextClick = () => {
+      const swallow = (ev) => {
+        if (listEl?.contains(ev.target)) ev.stopPropagation();
+      };
+      window.addEventListener('click', swallow, true);
+      setTimeout(() => window.removeEventListener('click', swallow, true), 0);
+    };
     const onUp = (ev) => {
-      if (ev.pointerId === e.pointerId) session.finish(true);
+      if (ev.pointerId !== e.pointerId) return;
+      swallowNextClick();
+      session.finish(true);
     };
     const onCancel = () => session.finish(false);
     const onKey = (ev) => {
       if (ev.key !== 'Escape' || !session.started) return;
-      // 끌기만 무른다 — 창까지 닫히지 않게 한다.
+      // 끌기만 무른다 — 창까지 닫히지 않게 한다. 아직 누르고 있으니 뗄 때의 click 도 삼킨다.
       ev.stopPropagation();
       session.finish(false);
+      window.addEventListener('pointerup', swallowNextClick, { once: true });
     };
     session.finish = (commit) => {
       window.removeEventListener('pointermove', onMove);
@@ -180,12 +196,6 @@ export function useHandleReorder({ count, onReorder, onStep }) {
       document.documentElement.classList.remove('dp-reorder-dragging');
       setDragIdx(null);
       setOverIdx(null);
-      // 끌고 뗀 자리에서 브라우저가 click 을 낸다 — 줄의 편집 창이 열리면 안 된다. 목록 밖 click 은 그대로 둔다.
-      const swallow = (ev) => {
-        if (listEl?.contains(ev.target)) ev.stopPropagation();
-      };
-      window.addEventListener('click', swallow, true);
-      setTimeout(() => window.removeEventListener('click', swallow, true), 0);
       if (commit && session.over !== null) move(i, session.over);
     };
     press.current = session;
@@ -215,6 +225,11 @@ export function useHandleReorder({ count, onReorder, onStep }) {
     role: 'button',
     tabIndex: 0,
     onKeyDown: (e) => {
+      // 끄는 중에 순서를 또 바꾸면 놓을 때 옛 순번으로 옮겨 본 것과 달라진다.
+      if (press.current) {
+        e.preventDefault();
+        return;
+      }
       if (e.key === ' ') {
         e.preventDefault();
         return;

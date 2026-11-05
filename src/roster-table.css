@@ -167,6 +167,8 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadows-shadow-md);
 }
+/* 끄는 동안 지나가는 손잡이의 말풍선이 놓일 자리 선을 가리지 않게 한다. */
+html.dp-reorder-dragging .dp-tooltip { display: none; }
 html.dp-reorder-dragging,
 html.dp-reorder-dragging * {
   cursor: grabbing !important;
