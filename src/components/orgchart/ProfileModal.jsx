@@ -9,6 +9,8 @@ import { MEMBER_STATUSES } from './constants.js';
 import assetUrl from '../shared/assetUrl.js';
 import { useOrgLabels, makeOrgLabels } from './orgchart-labels.jsx';
 import ModalLayer from '../shared/ModalLayer.jsx';
+import Stack from '../shared/Stack.jsx';
+import OkrProgressBar from '../okr/OkrProgressBar.jsx';
 import DateInput from '../shared/DateInput.jsx';
 
 const DEFAULT_PROFILE = {
@@ -115,6 +117,31 @@ function applyTexture(app, objectName, imageSrc) {
 //   note — 조정 메모. 값에 마우스를 올리면 뜬다 · onEdit — 본인 카드(isSelf)에서만 값이 눌리고 연필이 붙는다
 //   editDisabled — 오늘 휴가처럼 고칠 수 없을 때 · editing — 창이 열려 칸을 강조 · panel — 칸 아래 펼칠 창(WorkHoursAdjustPanel)
 //   absent — 오늘 휴가라 value 자리에 근무시간 대신 «부재중»을 회색으로 보인다(pivit-work PW-2210 · 정책서 §3 「당일 휴가」)
+/** «성과 정보» 한 줄. 문구는 소비자가 번역해서 준다 — 막대 · 알약 · 안내 글 셋 중 하나. */
+function PerformanceRow({ row }) {
+  const testId = `profile-performance-${row.key}`;
+  if (row.note) return <div className="modal-perf-note" data-testid={testId}>{row.note}</div>;
+  if (row.percent != null) {
+    return (
+      <Stack gap="xs" testId={testId}>
+        <div className="modal-perf-head">
+          <span className="modal-perf-label">{row.label}</span>
+          <span className="modal-perf-value">{row.percent}%</span>
+        </div>
+        <OkrProgressBar percent={row.percent} variant="brand" />
+      </Stack>
+    );
+  }
+  return (
+    <div className="modal-perf-inline" data-testid={testId}>
+      <span className="modal-perf-label">{row.label}</span>
+      {row.tone
+        ? <StatusBadge tone={row.tone}>{row.text}</StatusBadge>
+        : <span className="modal-perf-note">{row.text}</span>}
+    </div>
+  );
+}
+
 export default function ProfileModal({ member, onClose, statIcons, baseUrl = '', renderAvatar, resolvePhoto, adminMode = false, findSubordinates, showSubordinates = true, subordinatesTitle, directReportChipLabel, onFeedbackClick, onMeetingClick, isSelf = false, labels, actions, hideFeedback = false, slackDmUrl, managerHistory, asOf, onEditVisibility, editVisibilityLabel, workHours }) {
   // 화면 문구 — 조직도 캔버스 안에서 열리면 캔버스가 받은 번역을 쓰고, 캔버스 밖(소비자가
   // 따로 띄우는 카드)에서는 `labels` 로 받는다(PW-705). 둘 다 없으면 한국어 기본값.
@@ -428,6 +455,16 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
               ))}
             </div>
           </div>
+          {/* 성과 정보 (pivit-work PW-2531) — 보는 사람 몫이 있을 때만 소비자가 `profile.performance` 를 준다.
+              없으면 자리도 남기지 않는다. 모양은 위 구획과 같고, 막대·알약은 디자이너 OKR·공용 부품을 쓴다. */}
+          {profile.performance?.rows?.length > 0 && (
+            <div className="modal-info-section" data-testid="profile-performance">
+              <div className="modal-info-label">{profile.performance.title}</div>
+              <Stack gap="lg">
+                {profile.performance.rows.map((row) => <PerformanceRow key={row.key} row={row} />)}
+              </Stack>
+            </div>
+          )}
         </div>
 
         {/* 매니저 이력 · 날짜별 소속·직급 (pivit-work PW-1837) — 소비자가 볼 수 있는 사람에게만 넘긴다.
