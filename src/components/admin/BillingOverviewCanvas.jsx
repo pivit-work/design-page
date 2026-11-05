@@ -164,13 +164,19 @@ const DEFAULT_LABELS = {
     `${date}까지 ${planLabel} 기능을 계속 사용한 뒤 Free로 전환됩니다. 잔여기간 환불은 없습니다. 기간 내 해지 취소 가능.`,
   periodEndAction: '기간말 해지 예약',
 
+  arrearsTitle: '결제되지 않은 청구서가 있습니다',
+  arrearsDesc: (billedOn, amount) =>
+    `${billedOn} 청구 ${won(amount)}(부가세 포함)이 아직 결제되지 않았습니다. 유료 요금제를 다시 쓰시려면 먼저 이 금액을 결제해 주세요.`,
+  arrearsNoPerm: '결제 권한이 없습니다 — 결제 담당자에게 문의하세요.',
+  arrearsAction: '미납 결제',
+  pastDueNewAnchorNote: '결제하신 날이 새 청구일이 되고, 그 전에는 새 청구가 없습니다',
   // 미납(past_due) 해지 — 환불 대상 결제가 없어 무환불 즉시 해지 하나만 있다
   // (screen-billing-overview.policy.md §7 · cancellation-refund-policy.md §10 · PW-1619).
-  pastDueCancelTitle: '지금 해지',
+  pastDueCancelTitle: '해지',
   pastDueCancelBadge: '(환불 없음)',
   pastDueCancelDesc: (planLabel) =>
-    `결제가 밀려 있어 환불은 없습니다. 누르면 바로 ${planLabel} 구독이 끝나고 Free로 전환됩니다. 밀린 요금은 청구하지 않으며 회사 데이터는 그대로 남습니다.`,
-  pastDueCancelAction: '지금 해지',
+    `결제가 밀려 있어 환불은 없습니다. 누르면 바로 ${planLabel} 구독이 끝나고 Free로 전환됩니다. 결제되지 않은 요금은 해지해도 남아 청구 내역에 미결제로 보이며, 유료 요금제를 다시 쓰시려면 먼저 결제하셔야 합니다. 데이터는 보존됩니다.`,
+  pastDueCancelAction: '해지하기',
 
   refundTitle: '즉시 해지 + 환불',
   refundCoolingDesc: '결제 후 7일 이내·유료기능 미사용 — 청약철회로 전액 환불됩니다.',
@@ -338,6 +344,8 @@ export default function BillingOverviewCanvas({
   upgradeTargetLabel = null,
   refundQuote = { eligible: false, reason: 'none' },
   canEdit = false,
+  /** 미납이 남은 해지 회사 (pivit-work PW-2526) — `{ billedOn, amount }`. 있으면 미납 띠 + [업그레이드] 자리에 [미납 결제]. */
+  arrears = null,
   labels: providedLabels,
   /**
    * 협의 단가 **계약** (PW-344 ⑤). `accepted` 견적이 있을 때만 채워지고, 정가 플랜은
@@ -661,6 +669,23 @@ export default function BillingOverviewCanvas({
           </Card>
         )}
 
+        {/* 미납 띠 (pivit-work PW-2526) — 해지됐지만 결제되지 않은 청구서가 남음. Dunning 배너와 같은 빨간 Card */}
+        {arrears && (
+          <Card style={{ marginBottom: 'var(--spacing-xl)', background: T.redBg, border: '1px solid var(--utility-error-300)',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--spacing-xl)' }}>
+            <div data-testid="billing-arrears-band">
+              <div style={{ fontWeight: 800, color: T.red, marginBottom: 'var(--spacing-xs)' }}>{labels.arrearsTitle}</div>
+              <div style={{ fontSize: 13, color: T.text }}>{labels.arrearsDesc(arrears.billedOn, arrears.amount)}</div>
+              {!canEdit && (
+                <div style={{ fontSize: 12, color: T.sub, marginTop: 'var(--spacing-xs)' }}>{labels.arrearsNoPerm}</div>
+              )}
+            </div>
+            <div style={{ flex: 'none', whiteSpace: 'nowrap' }}>
+              <Btn kind="danger" onClick={onNavigateMethods} disabled={!canEdit}>{labels.arrearsAction}</Btn>
+            </div>
+          </Card>
+        )}
+
         {/* 해지 예약 배너 */}
         {sub.cancelAtPeriodEnd && sub.status === 'active' && (
           <Card style={{ marginBottom: 16, background: T.amberBg, border: '1px solid #FDE68A',
@@ -813,7 +838,7 @@ export default function BillingOverviewCanvas({
             <div style={{ display: 'flex', gap: 8 }}>
               {/* 업그레이드 CTA: 다음 티어로 (동적 플랜명) */}
               {/* 체험 중에는 체험 배너의 [결제하고 계속 쓰기]가 대신한다 (PW-1025) */}
-              {upgradeTargetLabel && !holding && !suspended && !sub.cancelAtPeriodEnd && sub.status !== 'past_due' && sub.status !== 'trial' && (
+              {upgradeTargetLabel && !holding && !suspended && !arrears && !sub.cancelAtPeriodEnd && sub.status !== 'past_due' && sub.status !== 'trial' && (
                 <Btn onClick={onNavigatePlans} disabled={!canEdit}>
                   {labels.upgradeCta(upgradeTargetLabel)}
                 </Btn>
@@ -823,6 +848,9 @@ export default function BillingOverviewCanvas({
               )}
               {sub.status === 'past_due' && (
                 <Btn onClick={onNavigateMethods} disabled={!canEdit}>{labels.updateMethod}</Btn>
+              )}
+              {arrears && (
+                <Btn onClick={onNavigateMethods} disabled={!canEdit}>{labels.arrearsAction}</Btn>
               )}
             </div>
           </div>
@@ -969,6 +997,11 @@ export default function BillingOverviewCanvas({
                 <div style={{ fontSize: 12, color: T.amber, marginTop: 'var(--spacing-xs)' }}>{labels.withdrawHoldNote}</div>
               )}
               {/* 즉시 해지·환불이 끝날 때까지 정기결제 보류 (overview §2 · §7 · PW-2476) — 기획 시안처럼 띠가 있는 동안 늘 */}
+              {sub.status === 'past_due' && (
+                <div data-testid="billing-past-due-anchor-note" style={{ fontSize: 12, color: T.red, marginTop: 'var(--spacing-xs)' }}>
+                  {labels.pastDueNewAnchorNote}
+                </div>
+              )}
               {refundOpen && (
                 <div data-testid="billing-cancel-refund-hold" style={{ fontSize: 12, color: T.amber, marginTop: 'var(--spacing-xs)' }}>
                   {labels.cancelRefundHoldNote}

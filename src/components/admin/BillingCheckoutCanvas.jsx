@@ -2,6 +2,7 @@ import { useId, useState } from 'react';
 import Checkbox from '../shared/Checkbox.jsx';
 import { BillingCard as Card, BillingCheckoutSteps } from './kit/BillingSurface.jsx';
 import Spinner from '../shared/Spinner.jsx';
+import Button from '../shared/Button.jsx';
 
 // ─────────────────────────────────────────────────────────────
 // 결제·구독 — 체크아웃 (BillingCheckoutCanvas)  /admin/billing/checkout
@@ -38,7 +39,7 @@ const DEFAULT_LABELS = {
   successTitleRenewal: '구독이 재활성화되었습니다',
   successTitleNew: '구독이 시작되었습니다',
   successSummary: (planLabel, seats, total) => `${planLabel} · ${seats}좌석 · ${won(total)} 결제 완료`,
-  successReconciled: ' · 미수금 정산 완료',
+  successReconciled: ' · 결제되지 않은 청구서 결제 완료 · 오늘이 새 청구일입니다',
   successReceiptNote: '영수증(카드매출전표)은 결제 완료 후 청구 내역에서 다운로드할 수 있습니다.',
   successGoOverview: '구독 현황으로',
   // 이용 정지에서 결제했을 때 제목 아래 한 줄 (pivit-work PW-2549 · screen-billing-checkout «성공 화면» 행)
@@ -107,6 +108,10 @@ const DEFAULT_LABELS = {
   launchBenefitTag: (until) => `베타 출시 혜택 · ${until}까지 월간도 연간 단가`,
   // 끝 구절 — 동의하지 않으면 이용 정지 (pivit-work PW-2549 · checkout «베타 출시 혜택 고지» 행)
   launchBenefitAfter: (price) => `그 뒤 좌석당 ${won(price)} / 월 — 바뀌기 30일 전에 동의를 여쭙니다 · 동의하지 않으시면 혜택이 끝난 뒤 첫 결제일부터 이용이 정지됩니다(기록 보기 · 결제는 됩니다).`,
+  unpaidBlockedTitle: '결제되지 않은 청구서가 있습니다',
+  unpaidBlockedBody: '유료 요금제를 다시 쓰시려면 먼저 결제되지 않은 금액을 결제해 주세요. 결제한 뒤 플랜 화면에서 다시 고르실 수 있습니다.',
+  unpaidBlockedPay: '미납 결제',
+  unpaidBlockedBack: '플랜으로',
   quoteBlockedTitleExpired: '견적이 만료되었습니다',
   quoteBlockedTitleSuperseded: '견적이 변경되었습니다',
   quoteBlockedBodyExpired:
@@ -214,6 +219,9 @@ export default function BillingCheckoutCanvas({
   amounts = null,
   vatRate = 0.1,
   isRenewal = false,
+  /** 미납이 남은 해지 회사 (pivit-work PW-2526) — 결제 UI 대신 미납 안내 카드. 견적 막힘보다 앞선다. */
+  unpaidBlocked = false,
+  onPayUnpaid,
   payState = 'idle',
   failReason = '',
   /**
@@ -355,7 +363,7 @@ export default function BillingCheckoutCanvas({
 
         {/* 결제 진행 단계 표시 (PW-2110) — ③ 카드 등록·결제가 지금, 성공하면 세 단계 모두 완료.
             견적이 막힌 화면에는 두지 않는다(결제를 이어 갈 수 없다). */}
-        {!(quoteBlocked && payState !== 'success') && (
+        {!(quoteBlocked && payState !== 'success') && !unpaidBlocked && (
           <BillingCheckoutSteps
             steps={labels.checkoutSteps}
             current={payState === 'success' ? labels.checkoutSteps.length : 2}
@@ -367,7 +375,18 @@ export default function BillingCheckoutCanvas({
 
         {/* 견적이 막힌 상태 (PW-344 ④) — 만료·대체. **결제 UI 를 아예 그리지 않는다.**
             옛 단가로 결제할 수 있다고 읽히면 안 된다. */}
-        {quoteBlocked && payState !== 'success' ? (
+        {unpaidBlocked ? (
+          <Card style={{ background: T.amberBg, border: '1px solid var(--utility-warning-300)' }}>
+            <div data-testid="billing-checkout-unpaid" role="status">
+              <div style={{ fontWeight: 800, color: T.amber, marginBottom: 'var(--spacing-sm)' }}>{labels.unpaidBlockedTitle}</div>
+              <div style={{ fontSize: 14, color: T.text, marginBottom: 'var(--spacing-lg)' }}>{labels.unpaidBlockedBody}</div>
+            </div>
+            <div style={{ display: 'flex', gap: 'var(--spacing-md)', flexWrap: 'wrap' }}>
+              <Button onClick={onPayUnpaid}>{labels.unpaidBlockedPay}</Button>
+              <Button variant="secondary" onClick={onBackToPlans}>{labels.unpaidBlockedBack}</Button>
+            </div>
+          </Card>
+        ) : quoteBlocked && payState !== 'success' ? (
           <Card style={{ background: T.amberBg, border: '1px solid #FDE68A' }}>
             <div style={{ fontWeight: 800, color: T.amber, marginBottom: 6 }}>
               {quoteBlocked !== 'superseded'

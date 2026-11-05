@@ -567,6 +567,12 @@ export default function BillingPlansCanvas({
    * 유료 카드는 모두 결제(체크아웃)로 간다 — 정지 전보다 낮은 요금제도 «변경 확인 창»이 아니라 결제다.
    */
   suspension = null,
+  /**
+   * 결제 문제 안내 띠 (pivit-work PW-2526 · plans «결제 문제 안내 띠» 행) — 결제 실패 회사·미납이 남은 해지 회사에 앱이
+   * `{ title, body, action }` 을 넘긴다. 뜨는 동안 요금제 카드 버튼은 Free·Pro·견적 결제까지 모두 비활성이다.
+   */
+  payBlock = null,
+  onPayBlockAction,
 }) {
   const seatConfirmId = useId();
   const labels = mergeLabels(providedLabels);
@@ -798,6 +804,20 @@ export default function BillingPlansCanvas({
           </Card>
         )}
 
+        {/* 결제 문제 안내 띠 (pivit-work PW-2526) — 이용 정지 띠와 같은 빨간 Card */}
+        {payBlock && (
+          <Card style={{ marginBottom: 'var(--spacing-xl)', background: T.redBg, border: '1px solid var(--utility-error-300)',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--spacing-xl)' }}>
+            <div data-testid="billing-plans-pay-block" role="status">
+              <div style={{ fontWeight: 800, color: T.red, marginBottom: 'var(--spacing-xs)' }}>{payBlock.title}</div>
+              <div style={{ fontSize: 13, color: T.text }}>{payBlock.body}</div>
+            </div>
+            <div style={{ flex: 'none', whiteSpace: 'nowrap' }}>
+              <Btn kind="secondary" onClick={onPayBlockAction} disabled={!canEdit}>{payBlock.action}</Btn>
+            </div>
+          </Card>
+        )}
+
         {/* 해지 예약 상태 안내 */}
         {subscription.cancelAtPeriodEnd && (
           <Card style={{ marginBottom: 16, background: T.amberBg, border: '1px solid #FDE68A' }}>
@@ -856,6 +876,7 @@ export default function BillingPlansCanvas({
               canEdit={
                 canEdit &&
                 !subscriptionUnavailable &&
+                !payBlock &&
                 // 이용 정지면 Free 로 가는 결제는 없다 — 해지는 구독 현황의 [해지 신청] (띠 둘째 문장이 이유를 말한다)
                 !(suspension && (plan.tierRank ?? 0) === 0) &&
                 !subscription.cancelAtPeriodEnd &&
@@ -1065,7 +1086,7 @@ export default function BillingPlansCanvas({
             <div style={{ fontWeight: 800, color: T.purple, marginBottom: 4 }}>{labels.proCardTitle}</div>
             <div style={{ fontSize: 13, color: T.text }}>{labels.proCardBody}</div>
             <div style={{ marginTop: 12 }}>
-              <Btn kind="secondary" onClick={onNavigateContactSales} disabled={!canEdit}>
+              <Btn kind="secondary" onClick={onNavigateContactSales} disabled={!canEdit || !!payBlock}>
                 {labels.proCardCta}
               </Btn>
             </div>

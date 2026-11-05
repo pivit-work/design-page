@@ -37,7 +37,10 @@ const DEFAULT_LABELS = {
     '등록된 결제수단을 관리합니다. 카드 정보는 포트원 보안 결제를 통해 처리되며 PIVIT에 저장되지 않습니다.',
 
   pastDueTitle: '결제 실패',
-  pastDueDesc: '새 카드를 등록하면 즉시 재결제됩니다. 결제 미완료 시 유료 기능이 잠금됩니다.',
+  pastDueDesc: '새 카드를 등록하면 결제되지 않은 청구서 1건이 바로 결제되고, 결제한 날이 새 청구일이 됩니다. 결제 미완료 시 유료 기능이 잠금됩니다.',
+  arrearsTitle: '결제되지 않은 청구서가 있습니다',
+  arrearsDesc: (billedOn, amount) =>
+    `새 카드를 등록하면 ${billedOn} 청구 ₩${Number(amount).toLocaleString('ko-KR')}(부가세 포함)이 바로 결제됩니다. 결제해도 구독은 Free 그대로이고, 그 뒤 플랜 화면에서 요금제를 고르실 수 있습니다.`,
   viewHistory: '청구 내역 보기',
 
   emptyTitle: '등록된 결제수단이 없습니다',
@@ -127,6 +130,8 @@ const expYear2 = (y) => String(y).slice(-2);
 export default function BillingMethodsCanvas({
   cards = [],
   subscriptionStatus = 'free',
+  /** 미납이 남은 해지 회사 (pivit-work PW-2526) — `{ billedOn, amount }`. 있으면 미납 띠를 그린다. */
+  arrears = null,
   loading = false,
   addState = 'idle',
   canEdit = true,
@@ -200,6 +205,20 @@ export default function BillingMethodsCanvas({
                 background: '#fff', color: T.red, cursor: 'pointer' }}>
               {labels.viewHistory}
             </button>
+          </Card>
+        )}
+
+        {/* 미납 띠 (pivit-work PW-2526) — 해지됐지만 결제되지 않은 청구서가 남음. past_due 배너와 같은 모양 */}
+        {arrears && (
+          <Card style={{ marginBottom: 'var(--spacing-xl)', background: T.redBg, border: '1px solid var(--utility-error-300)',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--spacing-xl)' }}>
+            <div data-testid="billing-methods-arrears">
+              <div style={{ fontWeight: 800, color: T.red, marginBottom: 'var(--spacing-xs)' }}>{labels.arrearsTitle}</div>
+              <div style={{ fontSize: 13, color: T.text }}>{labels.arrearsDesc(arrears.billedOn, arrears.amount)}</div>
+            </div>
+            <div style={{ flex: 'none', whiteSpace: 'nowrap' }}>
+              <Btn kind="secondary" onClick={onViewHistory}>{labels.viewHistory}</Btn>
+            </div>
           </Card>
         )}
 
