@@ -4,7 +4,7 @@ import Spline from '@splinetool/react-spline';
 import Icon from '../shared/Icon.jsx';
 import Avatar from '../shared/Avatar.jsx';
 import PhotoOr from './PhotoOr.jsx';
-import { CloseGlyph, ClockGlyph, MapPinGlyph, PencilGlyph, SettingsGlyph } from '../shared/lineIcons.jsx';
+import { CheckGlyph, CloseGlyph, ClockGlyph, MapPinGlyph, PencilGlyph, SettingsGlyph } from '../shared/lineIcons.jsx';
 import { MEMBER_STATUSES } from './constants.js';
 import assetUrl from '../shared/assetUrl.js';
 import { useOrgLabels, makeOrgLabels } from './orgchart-labels.jsx';
@@ -136,7 +136,7 @@ function PerformanceRow({ row }) {
     <div className="modal-perf-inline" data-testid={testId}>
       <span className="okr-p-overall-label">{row.label}</span>
       {row.tone
-        ? <StatusBadge tone={row.tone} className="modal-health-chip">{row.text}</StatusBadge>
+        ? <StatusBadge tone={row.tone} className="modal-health-chip modal-perf-chip">{row.check && <CheckGlyph size={12} />}{row.text}</StatusBadge>
         : <span className="modal-perf-note">{row.text}</span>}
     </div>
   );

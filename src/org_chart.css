@@ -608,6 +608,11 @@
   align-items: center;
   gap: var(--spacing-md);
 }
+.modal-perf-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
 .modal-perf-head {
   justify-content: space-between;
 }
