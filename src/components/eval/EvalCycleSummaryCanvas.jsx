@@ -151,6 +151,7 @@ const DEFAULT_LABELS = {
   cwPromoReadyYes: '승진 고려 대상으로 표시함',
   cwCompNoteLabel: '보상 메모',
   cwCompOpinionLabel: '보상 조정 의견',
+  cwCompOpinionLocked: '열람 권한이 없습니다',
   cwCompAssign: '지정하기',
   cwCompBannerClose: '닫기',
   cwCompAccessBtn: '보상 열람 권한 {n}명',
@@ -932,7 +933,7 @@ function ManagerNoteLines({ note, L }) {
   const promoReason = note.promotionReason?.trim();
   const compStatus = note.compensationStatus ? L.cwCompStatus?.[note.compensationStatus] : null;
   const compReason = note.compensationReason?.trim();
-  if (!comment && !note.promotionReady && !promoReason && !compNote && !compStatus && !compReason)
+  if (!comment && !note.promotionReady && !promoReason && !compNote && !compStatus && !compReason && !note.compensationLocked)
     return null;
   return (
     <>
@@ -964,6 +965,13 @@ function ManagerNoteLines({ note, L }) {
         <div className="evs-cw-detail-body" data-testid="evs-mgr-comp-note">
           <span className="evs-cw-committee-k">{L.cwCompNoteLabel}</span>
           {compNote}
+        </div>
+      )}
+      {/* 권한 없는 HR·위원 — 비우면 «값이 없다»로 읽힌다. 하향 리뷰 보상 잠금과 같은 줄 */}
+      {note.compensationLocked && (
+        <div className="evs-cw-detail-body evs-cw-comp-locked-box" data-testid="evs-mgr-comp-locked">
+          <span className="evs-cw-committee-k">{L.cwCompOpinionLabel}</span>
+          <LockIcon size={12} /> {L.cwCompOpinionLocked}
         </div>
       )}
     </>
@@ -1143,7 +1151,19 @@ function LeaderRoundNotes({ r, L }) {
   const R = L.leaderRoundDetail || {};
   const promoLabel = { recommended: L.nbYRecommended, not_yet: L.nbYNotYet, deferred: L.nbYDeferred };
   const promoStatus = r.promotionStatus ? promoLabel[r.promotionStatus] : null;
-  if (!r.confidentialComment?.trim() && !r.promotionReason?.trim() && !promoStatus) return null;
+  const comp = {
+    compensationStatus: r.compensationStatus,
+    compensationReason: r.compensationReason,
+    compensationNote: r.compensationNote,
+    compensationLocked: r.compensationLocked,
+  };
+  const hasComp = !!(
+    comp.compensationStatus ||
+    comp.compensationReason?.trim() ||
+    comp.compensationNote?.trim() ||
+    comp.compensationLocked
+  );
+  if (!r.confidentialComment?.trim() && !r.promotionReason?.trim() && !promoStatus && !hasComp) return null;
   return (
     <div data-testid="evs-leader-round-notes">
       <div className="evs-cw-review-k">
@@ -1156,7 +1176,7 @@ function LeaderRoundNotes({ r, L }) {
         </div>
       )}
       <ManagerNoteLines
-        note={{ confidentialComment: r.confidentialComment, promotionReason: r.promotionReason }}
+        note={{ confidentialComment: r.confidentialComment, promotionReason: r.promotionReason, ...comp }}
         L={L}
       />
     </div>
