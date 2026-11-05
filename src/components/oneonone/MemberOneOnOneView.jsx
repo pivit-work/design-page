@@ -48,7 +48,7 @@ export const DEFAULT_LABELS = {
   readyTitle: '준비 완료',
   readyText: '— 매니저에게 알렸습니다. 미팅 중 내용을 참고하세요.',
   readiness: '내 준비도',
-  readinessDoneNote: '✓ 준비를 마치고 매니저에게 알렸습니다.',
+  readinessDoneNote: '준비를 마치고 매니저에게 알렸습니다.',
   readinessComplete: '준비 완료',
   readinessInProgress: '준비 중',
   readinessNeeded: '준비 필요',
@@ -340,7 +340,7 @@ export default function MemberOneOnOneView({
               <div className="ono-my-track" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct ?? undefined} aria-label={L.readiness}>
                 <div className={`ono-my-fill${allDone ? ' is-done' : ''}`} style={{ width: `${pct ?? 0}%` }} />
               </div>
-              {!editable && showReadyNotice && <p className="ono-my-readiness-note">{L.readinessDoneNote}</p>}
+              {!editable && showReadyNotice && <p className="ono-my-readiness-note">✓ {L.readinessDoneNote}</p>}
             </div>
 
             {/* AI 보고서 생성 — 작성 중 · 아직 없을 때 (Figma 17416:27976) */}
