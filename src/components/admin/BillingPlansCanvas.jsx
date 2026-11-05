@@ -66,6 +66,7 @@ const DEFAULT_LABELS = {
   compareFeatureHeader: '기능',
   compareRecommendedTag: '추천',
   recordingRowLabel: '녹음시간 한도',
+  aiRunsRowLabel: 'AI 실행',
   compareLegend: '✓ 포함  ◑ 제한적 포함  – 미포함  |  상위 티어는 하위 기능을 모두 포함합니다 (추가형). 단가·기능 범위 확정(pricing-policy.md, 2026-06-27).',
   seatCardTitle: '결제 좌석 수',
   seatTooltip: '예상 비용 산정용 인원입니다. 기본값은 현재 재직 구성원 수이며, 조정해 예상 청구액을 미리 볼 수 있습니다. 실제 청구는 청구일의 재직(활성) 좌석으로 확정됩니다(좌석 선구매·약정 쿼터 없음). 기간 요금은 선결제(월간 1개월분/연간 1년분).',
@@ -478,6 +479,14 @@ function FeatureCompareTable({ plans, featureKeys, featureLabelMap, currentPlanC
             {plans.map((p) => (
               <RosterTable.Cell key={p.code} align="center" style={{ fontSize: 11, color: T.sub }}>
                 {(p.recordingNote || '').split(' (')[0]}
+              </RosterTable.Cell>
+            ))}
+          </RosterTable.Row>
+          <RosterTable.Row>
+            <RosterTable.Cell style={{ color: T.sub, fontSize: 12 }}>{labels.aiRunsRowLabel}</RosterTable.Cell>
+            {plans.map((p) => (
+              <RosterTable.Cell key={p.code} align="center" style={{ fontSize: 11, color: T.sub }}>
+                {p.aiRunsNote}
               </RosterTable.Cell>
             ))}
           </RosterTable.Row>
