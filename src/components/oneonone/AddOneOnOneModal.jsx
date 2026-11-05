@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import useDismissLayer from '../shared/useDismissLayer.js';
@@ -233,6 +233,11 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
   /* 저장 중 잠금과 실패 사유 (PW-987) — 실패해도 위 입력값은 건드리지 않는다. */
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const submitErrorRef = useRef(null);
+  /* 낮은 창에서는 실패 줄이 본문 스크롤 아래에 있어, 눌러도 아무 일 없는 것처럼 보인다 (pivit-work PW-2592). */
+  useEffect(() => {
+    if (submitError) submitErrorRef.current?.scrollIntoView?.({ block: 'nearest' });
+  }, [submitError]);
 
   /* «언제» (PW-2592) — 기본은 «예약»이라 종전에 쓰던 사람에게 바뀌는 것이 없다. */
   const [when, setWhen] = useState('later');
@@ -559,7 +564,7 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
         )}
         {/* 저장 실패 사유 (PW-987) — 1on1 화면의 다른 인라인 실패 줄과 같은 모양이다. */}
         {submitError && (
-          <p className="ono-done-inline-error" role="alert" data-testid="ono-add-modal-error">
+          <p ref={submitErrorRef} className="ono-done-inline-error" role="alert" data-testid="ono-add-modal-error">
             {submitError}
           </p>
         )}
