@@ -103,7 +103,7 @@ const DEFAULT_LABELS = {
   memberReady: '준비 완료',
   memberReadyHint: '준비를 마쳤다고 매니저에게 알립니다.',
   memberReadySent: '매니저에게 알렸습니다',
-  memberReadySentHint: '작성한 내용이 매니저에게 공유되었습니다.',
+  memberReadySentHint: '준비를 마치고 매니저에게 알렸습니다.',
   memberReadyFailed: '준비 완료를 보내지 못했습니다.',
   memberReadyRetry: '다시 시도',
   /* 팀원 자기 보고 (PW-1262 ②) — 시안 `1on1-app.jsx` 멤버 READY 의 S3·S6·S7 중

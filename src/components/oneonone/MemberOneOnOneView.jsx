@@ -46,7 +46,7 @@ export const DEFAULT_LABELS = {
   aiRetry: "다시 시도",
   actionIncomplete: "미완료",
   readyTitle: '준비 완료',
-  readyText: '매니저에게 알렸습니다. 미팅 중 내용을 참고하세요.',
+  readyText: '— 매니저에게 알렸습니다. 미팅 중 내용을 참고하세요.',
   readiness: '내 준비도',
   readinessDoneNote: '✓ 준비를 마치고 매니저에게 알렸습니다.',
   readinessComplete: '준비 완료',
