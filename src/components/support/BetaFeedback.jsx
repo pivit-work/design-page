@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import Button from '../shared/Button.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
 import TextArea from '../shared/TextArea.jsx';
@@ -157,7 +158,9 @@ export function BetaFeedbackPrompt({
   onClose,
   onSend,
 }) {
-  return (
+  // body 로 바로 붙인다 — 앱 틀(`.app`)에 transform 이 걸려 그 안에서는 z-index 가 틀 안에서만 정해져,
+  // body 에 붙은 회의 녹음 위젯에 [보내기]·[✕]가 가린다.
+  return createPortal(
     <div
       className="dp-bf-card dp-bf-prompt"
       role="dialog"
@@ -218,7 +221,8 @@ export function BetaFeedbackPrompt({
           {sending ? labels.sending : failed ? labels.retry : labels.send}
         </Button>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
