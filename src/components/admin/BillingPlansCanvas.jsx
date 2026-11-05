@@ -1,3 +1,4 @@
+import { ArrowRightGlyph } from '../shared/lineIcons.jsx';
 import { useState, useId } from 'react';
 import Checkbox from '../shared/Checkbox.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
@@ -813,7 +814,11 @@ export default function BillingPlansCanvas({
               <div style={{ fontSize: 13, color: T.text }}>{payBlock.body}</div>
             </div>
             <div style={{ flex: 'none', whiteSpace: 'nowrap' }}>
-              <Btn kind="secondary" onClick={onPayBlockAction} disabled={!canEdit}>{payBlock.action}</Btn>
+              <Btn kind="secondary" onClick={onPayBlockAction} disabled={!canEdit}>
+                {payBlock.action}
+                {payBlock.arrow && ' '}
+                {payBlock.arrow && <ArrowRightGlyph size={13} />}
+              </Btn>
             </div>
           </Card>
         )}
