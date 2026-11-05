@@ -149,6 +149,7 @@ export function BetaFeedbackPrompt({
   faces,
   face,
   text,
+  maxLength,
   error,
   notice,
   failed,
@@ -202,6 +203,7 @@ export function BetaFeedbackPrompt({
       </div>
       <TextInput
         value={text}
+        maxLength={maxLength}
         placeholder={labels.placeholder}
         aria-label={labels.placeholder}
         data-testid="beta-feedback-text"
