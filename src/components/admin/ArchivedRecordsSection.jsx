@@ -126,9 +126,9 @@ function Segment({ seg, L, memberName, onDownload }) {
       <div className="admin-emp-archived-intro">{L.intro}</div>
       <ItemChips items={L.items} />
       <div className="admin-emp-archived-meta">
-        {fill(L.meta, { retire: dot(seg.terminationDate), moved: dot(seg.movedAt), purge: dot(seg.purgeAt) })}
+        {fill(seg.purged && L.metaPurged ? L.metaPurged : L.meta, { retire: dot(seg.terminationDate), moved: dot(seg.movedAt), purge: dot(seg.purgeAt) })}
       </div>
-      {onDownload && !open && (
+      {onDownload && !open && !seg.purged && (
         <div>
           <Button variant="secondary" size="sm" onClick={() => setOpen(true)} data-testid={`${tid}-open`}>
             {L.download}

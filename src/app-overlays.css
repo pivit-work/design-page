@@ -29,6 +29,7 @@
   box-shadow: 0 20px 60px rgba(10, 13, 18, 0.24);
   width: 100%;
   max-width: 420px;
+  max-height: calc(100vh - 48px);
   padding: var(--spacing-2xl, 20px);
   display: flex;
   flex-direction: column;
@@ -49,6 +50,9 @@
   margin: 0;
   white-space: pre-line;
   line-height: 1.65;
+  /* 본문이 길면 본문만 스크롤해 버튼 줄이 화면 안에 남는다 (pivit-work PW-2576 — 경고 창 · 영어 화면 1280×700) */
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .pw-confirm-actions {

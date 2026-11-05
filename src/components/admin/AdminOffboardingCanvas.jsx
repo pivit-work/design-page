@@ -561,10 +561,12 @@ export default function AdminOffboardingCanvas({
             {leaveSettlement && labels.effects.leaveSettlement && (
               <li data-testid="offboarding-leave-effect">{labels.effects.leaveSettlement}</li>
             )}
-            {/* 지우는 처리가 실행되는 때 — 퇴사 확정 밤(퇴사 정책 v1.25 §2 · pivit-work PW-2083). 날짜는 confirmDateOf 로 */}
+            {/* 따로 보관 · 지우는 때 — 완료일 밤. 즉시와 예약이 첫 마디가 다르다 (퇴사 정책 §5-L ③ · pivit-work PW-2576) */}
             {labels.effects.purgeTiming && (
               <li data-testid="offboarding-purge-timing">
-                {fill(labels.effects.purgeTiming, dateVars)}
+                {!due && labels.effects.purgeTimingScheduled
+                  ? fill(labels.effects.purgeTimingScheduled, { date: dateText, ...dateVars })
+                  : fill(labels.effects.purgeTiming, dateVars)}
               </li>
             )}
           </ul>

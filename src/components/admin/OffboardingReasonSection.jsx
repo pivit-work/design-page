@@ -112,7 +112,8 @@ export default function OffboardingReasonSection({ state, typeOnly = false, onRe
   };
 
   const startEdit = async () => {
-    const current = summary.hasNote ? await reveal() : '';
+    // 완료 뒤에는 유형만 고친다 — 세부 사유는 따로 보관이라 펼치지 않는다 (pivit-work PW-2576 · 퇴사 정책 §5-L ⑦)
+    const current = !summary.typeOnly && summary.hasNote ? await reveal() : '';
     if (current === null) return;
     // 미지정이면 아무것도 고르지 않은 채 연다 — 미리 골라 두면 세부 사유만 채워도 유형이 조용히 바뀐다
     setEType(summary.type);
@@ -131,7 +132,7 @@ export default function OffboardingReasonSection({ state, typeOnly = false, onRe
     setSaving(true);
     setSaveFailed(false);
     try {
-      const next = await onSave?.({ type: eType, note: trimmed });
+      const next = await onSave?.(summary.typeOnly ? { type: eType } : { type: eType, note: trimmed });
       if (next) setOverride(next);
       setNote(trimmed);
       setEditing(false);
@@ -193,7 +194,7 @@ export default function OffboardingReasonSection({ state, typeOnly = false, onRe
                 {L.revealFailed}
               </span>
             )}
-            {summary.editable && !summary.archived && (
+            {summary.editable && (
               <div>
                 <Button
                   variant="ghost"
@@ -221,6 +222,7 @@ export default function OffboardingReasonSection({ state, typeOnly = false, onRe
                 testId: `offboarding-reason-type-${id}`,
               }))}
             />
+            {!summary.typeOnly && (
             <TextArea
               className="admin-emp-input"
               rows={3}
@@ -232,9 +234,12 @@ export default function OffboardingReasonSection({ state, typeOnly = false, onRe
               onChange={(e) => setENote(e.target.value.slice(0, OFFBOARDING_NOTE_MAX))}
               data-testid="offboarding-reason-note-input"
             />
+            )}
+            {!summary.typeOnly && (
             <NoteText>
               {L.noteHint} · {fill(L.noteCount, { count: eNote.length, max: OFFBOARDING_NOTE_MAX })}
             </NoteText>
+            )}
             {saveFailed && (
               <span className="admin-emp-status-date-note is-error" role="alert" data-testid="offboarding-reason-save-failed">
                 {L.saveFailed}

@@ -412,6 +412,7 @@ const DEFAULT_LABELS = {
     historyRemoved: '삭제',
     historyPurged: '파기됨',
     historyPurgePending: '파기 예정 — {date}',
+    historySeparated: '따로 보관 중',
     historyWithheld: '변경됨',
     historyNone: '—',
     /* 필드 거르기·더 보기 (정책서 §2-3·§2-4). `{field}` 는 고른 항목 이름. */
@@ -457,7 +458,7 @@ const DEFAULT_LABELS = {
     /* 퇴사자 행(PW-1355 · admin-spec §3.1 `⋯` 행 · 초대 §9 E8). 초대 창을 재입사 모드로 연다.
        정정 기간(퇴사일 + 14일) 안에도 뜨고, 그때는 «퇴사 취소»를 먼저 떠올리게 풍선을 단다. */
     rehire: '재입사 초대',
-    rehireRevertHint: '퇴사 취소 기간({date}까지)이에요 — 잘못 처리한 퇴사라면 상세 패널에서 «퇴사 취소»를 쓰세요',
+    rehireRevertHint: '퇴사를 없던 일로 하려면 상세 패널에서 «퇴사 취소»를 쓰세요 — 재입사는 새 재직 구간을 엽니다.',
     /* 재입사자 보조 배지(PW-1355 · offboarding §5-G 「화면 표시」). 풍선은 부르는 쪽이 만든다(`member.rehireNote`). */
     rehireBadge: '재입사',
     cancelOffboardingTip: '퇴사일 {date}(으)로 예약되어 있습니다',
@@ -928,7 +929,7 @@ function RowActionMenu({
       {/* 퇴사자 한 명에게 재입사 초대 (PW-1355). 이메일이 지워진 퇴사자(`emailPurged`)는 이을 기록이 없어 새 구성원 초대다. */}
       {onRehire && member.employmentStatus === 'terminated' && !member.emailPurged && (
         member.revertWindow?.state === 'open' ? (
-          <Tooltip content={String(labels.menu.rehireRevertHint ?? '').replace('{date}', member.revertWindow.until ?? '')}>
+          <Tooltip content={labels.menu.rehireRevertHint}>
             <button
               type="button"
               className="admin-emp-row-menu-item"
@@ -3887,7 +3888,9 @@ function PersonalHistoryList({
                   </div>
                   <div className="admin-emp-hist-values">
                     {h.state === 'purged' ? L.historyPurged
-                      /* 퇴사 정정 기간 — 값은 보이지 않고 파기할 날만 (퇴사 정책 v1.25 E45 · pivit-work PW-2083) */
+                      /* 따로 보관 중 — 값은 보이지 않고 «바뀌었다»만 (변경 이력 정책 §4-1 · pivit-work PW-2576) */
+                      : h.state === 'separated' ? <>{L.historySeparated} · {L.historyWithheld}</>
+                      /* 시행 전 건의 파기 예정 — 값은 보이지 않고 파기할 날만 (퇴사 정책 v1.25 E45 · pivit-work PW-2083) */
                       : h.state === 'purge_pending' ? fill(L.historyPurgePending, { date: h.purgeDueOn || '' })
                       : h.state === 'withheld' ? L.historyWithheld
                         : (
@@ -4014,6 +4017,7 @@ function ChangeReasonModal({ prompt, labels }) {
 }
 
 function EmployeesEditPanel({
+  onRehireMember,
   member, orgUnits, labels, renderAvatar, canEdit,
   gradeOptions, positionOptions, onClose, onSave, onChangeAffiliations,
   onLoadHrProfile, onSaveIdentity,
@@ -4192,7 +4196,13 @@ function EmployeesEditPanel({
       .catch(() => { if (alive) setArchive({ status: 'error', view: null }); });
     return () => { alive = false; };
   }, [archive.status, memberId, onLoadArchivedRecords]);
-  const archivedLabels = { ...ARCHIVED_RECORDS_DEFAULT_LABELS, ...(labels.panel?.archived || {}) };
+  const baseArchivedLabels = { ...ARCHIVED_RECORDS_DEFAULT_LABELS, ...(labels.panel?.archived || {}) };
+  /* 3년이 지나 파기한 구간이면 옮긴 칸 자리 글도 바뀐다 (pivit-work PW-2576 · 퇴사 정책 §1-B ⑥) */
+  const archivedLabels = (archive.view?.segments ?? []).some(
+    (seg) => seg.purged && seg.terminationDate === member?.terminationDate,
+  )
+    ? { ...baseArchivedLabels, note: baseArchivedLabels.purgedNote ?? baseArchivedLabels.note }
+    : baseArchivedLabels;
   /* 지금 구간의 기록이 옮겨졌나 — 그러면 옮긴 칸 자리에 «따로 보관 중»을 둔다. 재입사해 재직 중이면
      지금 구간 값은 새로 넣은 값이라 그대로 보인다(정책서 E35). */
   const archivedNow =
@@ -4376,7 +4386,16 @@ function EmployeesEditPanel({
     (f) => f.via === 'member' || Boolean(onLoadHrProfile),
   );
   const offboardingScheduled = Boolean(member.offboardingScheduled);
-  const terminationProblem = terminationDateProblem(draft, member.lastWorkingDate, offboardingScheduled);
+  /* 퇴직 처리가 끝난 구성원의 퇴사일을 앞당기면 마지막 출근일은 서버가 함께 옮긴다 — 패널에 없는 칸 때문에 막지 않는다 (pivit-work PW-2576) */
+  const terminationProblem = terminationDateProblem(
+    draft,
+    member.terminationDateError ? null : member.lastWorkingDate,
+    offboardingScheduled,
+  );
+  /* 퇴직 처리가 끝난 구성원의 퇴사일 범위 — 규칙은 소비자가 갖는다(pivit-work PW-2576 · 퇴사 정책 §5-L ① · E100). 문구를 돌려주면 칸 오류 + [저장] 비활성 */
+  const terminationRuleError = draft.employmentStatus === 'terminated'
+    ? member.terminationDateError?.(draft.terminationDate) ?? null
+    : null;
   const terminationRequired = draft.employmentStatus === 'terminated' || offboardingScheduled;
   /* 휴직 시작일은 휴직의 필수 값이다(커트 2026-10-29). 칸이 뜨는 화면에서만 막는다 — 신원 경로가
      없는 호출부는 칸을 못 그리고, 그때는 서버가 상태를 바꾸는 저장에서 오늘로 채운다.
@@ -4390,7 +4409,6 @@ function EmployeesEditPanel({
      되돌릴 수 있고, 그 뒤에는 라디오가 통째로 잠긴다. 날짜 계산은 앱이 서버와 같은 함수로
      해서 넘긴다 — 캔버스가 따로 세면 열린 라디오가 저장에서 거절된다. */
   const revertWindow = member.revertWindow || null;
-  const revertClosed = revertWindow?.state === 'closed';
   const identityBusy = identityState === 'loading';
   const identityBroken = identityState === 'error';
   const dateValue = (f) =>
@@ -4547,7 +4565,7 @@ function EmployeesEditPanel({
 
   async function handleSave() {
     if (!dirty) { onClose(); return; }
-    if (terminationProblem || leaveStartMissing) return;
+    if (terminationProblem || terminationRuleError || leaveStartMissing) return;
     if (apptTypeMissing || (showAppointment && !apptDate)) return;
     setSaving(true);
     setDateError('');
@@ -4555,8 +4573,10 @@ function EmployeesEditPanel({
     try {
       /* 날짜를 **먼저** 보낸다. 상태 저장이 성공한 뒤 날짜가 실패하면 「수습으로 바뀌었는데
          종료일은 안 들어간」 반쪽 상태가 남는데, 순서를 뒤집으면 그 조합이 안 생긴다.
-         실패는 **인라인으로만** 알리고 패널을 열어 둔다 — 닫으면 방금 친 날짜가 사라진다. */
-      if (identityDirty && onSaveIdentity) {
+         실패는 **인라인으로만** 알리고 패널을 열어 둔다 — 닫으면 방금 친 날짜가 사라진다.
+         퇴사 취소만 거꾸로다 — 확인 창·경고 창에서 [취소]하면 아무것도 저장되지 않아야 하므로 되돌린 뒤에 날짜를 보낸다 (pivit-work PW-2576 · 퇴사 정책 §5-L ①). */
+      const revertingResignation = member.employmentStatus === 'terminated' && draft.employmentStatus !== 'terminated';
+      if (!revertingResignation && identityDirty && onSaveIdentity) {
         try {
           await onSaveIdentity(member.id, identityPatch);
         } catch {
@@ -4600,6 +4620,16 @@ function EmployeesEditPanel({
         } catch (e) {
           /* 호출부가 확인 창에서 [닫기]를 받으면 되돌릴 칸을 알려 준다(PW-1336 퇴사 취소 —
              닫으면 재직 상태가 «퇴사» 그대로 보여야 한다). */
+          /* 경고 창 [재입사로 진행] — 바꾼 값은 저장하지 않고 패널을 닫은 뒤 초대 창 재입사 모드를 연다 (pivit-work PW-2576 · 퇴사 정책 §5-L ① · E98) */
+          if (e?.closePanel) {
+            onClose();
+            return;
+          }
+          if (e?.openRehire) {
+            onClose();
+            onRehireMember?.(member);
+            return;
+          }
           if (e && Array.isArray(e.resetFields)) {
             setDraft((d) => {
               const next = { ...d };
@@ -4610,6 +4640,14 @@ function EmployeesEditPanel({
           /* 서버가 거절한 경우엔 사유를 창 안에 남긴다(PW-727). 되던진 거절이 «저장 0명 +
              오류» 정상 응답에서 온 것이어도 호출부가 같은 모양으로 실어 보낸다. */
           setSaveError(panelErrorOf(e));
+          return;
+        }
+      }
+      if (revertingResignation && identityDirty && onSaveIdentity) {
+        try {
+          await onSaveIdentity(member.id, identityPatch);
+        } catch {
+          setDateError(labels.panel.statusDateSaveError);
           return;
         }
       }
@@ -5028,7 +5066,7 @@ function EmployeesEditPanel({
             value={draft.employmentStatus}
             onPick={(key) => set('employmentStatus', key)}
             name={`employmentStatus-${member.id}`}
-            disabled={!canEdit || revertClosed}
+            disabled={!canEdit}
             disabledKeys={terminatedLocked ? ['terminated'] : []}
             labels={labels}
             ariaLabel={labels.panel.statusSection}
@@ -5041,15 +5079,8 @@ function EmployeesEditPanel({
           )}
           {revertWindow?.state === 'open' && canEdit && (
             <span className="admin-emp-status-date-note" data-testid="employees-panel-revert-until">
-              {/* 마감일과 다음 날의 확정일을 한 문장에 (pivit-work PW-2142 · 정책 v1.26 §5-F «화면 문구 기준») */}
-              {(labels.panel.revertOpenUntil || '퇴사 취소는 {date}까지 할 수 있어요. 다음 날({confirmDate}) 퇴사가 확정돼요.')
-                .replace('{date}', revertWindow.until)
-                .replace('{confirmDate}', revertWindow.confirmDate ?? '')}
-            </span>
-          )}
-          {revertClosed && (
-            <span className="admin-emp-status-date-note" data-testid="employees-panel-revert-closed">
-              {labels.panel.revertClosed || '퇴사가 확정됐어요 — 다시 들이려면 «재입사 초대»를 쓰세요'}
+              {/* 완료 전 · 뒤 두 판 — 기한이 없어 날짜를 말하지 않는다 (pivit-work PW-2576 · 퇴사 정책 §5-L ③) */}
+              {revertWindow.completed ? labels.panel.revertCompleted : labels.panel.revertOpenUntil}
             </span>
           )}
 
@@ -5094,11 +5125,11 @@ function EmployeesEditPanel({
                 labelClassName="admin-emp-field-label"
                 label={labels.panel.resignedAt}
                 required={terminationRequired}
-                error={terminationProblem ? labels.panel[
+                error={terminationRuleError ?? (terminationProblem ? labels.panel[
                   terminationProblem === 'missing'
                     ? (draft.employmentStatus === 'terminated' ? 'resignedAtRequired' : 'resignedAtScheduled')
                     : 'resignedAtBeforeLastDay'
-                ] : undefined}
+                ] : undefined)}
                 errorTestId="employees-panel-date-terminationDate-error"
                 hint={
                   /* 아직 퇴사일이 없는 본인 · 마지막 어드민이면 칸을 잠그고 사유 한 줄
@@ -5427,7 +5458,7 @@ function EmployeesEditPanel({
               <Button
                 className="admin-emp-btn is-secondary admin-emp-btn-block"
                 onClick={handleCorrect}
-                disabled={saving || !canEdit || Boolean(terminationProblem) || leaveStartMissing || axisIncomplete}
+                disabled={saving || !canEdit || Boolean(terminationProblem) || Boolean(terminationRuleError) || leaveStartMissing || axisIncomplete}
                 data-testid="employees-panel-correct"
               >
                 {labels.panel.correct}
@@ -5437,7 +5468,7 @@ function EmployeesEditPanel({
               type="button"
               className="admin-emp-btn is-primary admin-emp-btn-block"
               onClick={handleSave}
-              disabled={saving || !canEdit || !dirty || Boolean(terminationProblem) || leaveStartMissing || axisIncomplete || apptTypeMissing || (showAppointment && !apptDate)}
+              disabled={saving || !canEdit || !dirty || Boolean(terminationProblem) || Boolean(terminationRuleError) || leaveStartMissing || axisIncomplete || apptTypeMissing || (showAppointment && !apptDate)}
               data-testid="employees-panel-save"
             >
               {saving ? labels.panel.saving : flowWired ? labels.panel.appoint : labels.panel.save}
@@ -5866,9 +5897,10 @@ export default function AdminEmployeesCanvas({
         jobDuty: m.jobDuty || '',
         workLocation: m.workLocation || '',
         employmentType: m.employmentType || '',
-        revertOpen: m.revertWindow?.state === 'open',
+        /* 완료 전(처리한 그날)만 — 완료 뒤에는 고정값만 미리 채운다 (pivit-work PW-2576 · 퇴사 정책 §5-G-1 · §5-L ⑥) */
+        revertOpen: m.revertWindow?.state === 'open' && !m.revertWindow.completed,
         // 재입사 모드 안내의 «퇴사 취소 기간({date}까지)» (pivit-work PW-2142)
-        revertUntil: m.revertWindow?.state === 'open' ? m.revertWindow.until : null,
+        revertUntil: null,
       })),
     [members],
   );
@@ -6115,6 +6147,7 @@ export default function AdminEmployeesCanvas({
             positionOptions={positionOptions ?? EMPTY_ARRAY}
             onClose={() => setEditMemberId(null)}
             onSave={onSaveMembers}
+            onRehireMember={canEdit && canInvite ? openRehire : undefined}
             onChangeAffiliations={onChangeAffiliations}
             appointmentTypeOptions={canEdit ? appointmentTypeOptions : undefined}
             inferAppointmentType={inferAppointmentType}

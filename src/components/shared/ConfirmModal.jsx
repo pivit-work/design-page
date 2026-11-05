@@ -22,6 +22,9 @@ import { createPortal } from 'react-dom';
  *                          조건이 맞을 때까지 확인을 막는 창 (PW-836 — 조직도 스쿼드 삭제)
  *   onConfirm, onCancel    막을 눌러도 onCancel
  *   cancelRef, confirmRef  호스트가 초점을 줄 버튼 ref
+ *   extraLabel, onExtra    취소와 확인 사이의 보조 버튼 하나 — 같은 자리에서 다른 길로 가는 창 (pivit-work PW-2576 «재입사로 진행»).
+ *                          없으면 그리지 않는다. busy 일 때 함께 잠긴다
+ *   extraTestId            보조 버튼의 data-testid
  *   zIndex                 막의 겹침 순서 (기본은 CSS 값)
  *   testId                 창의 data-testid (기본 'confirm-dialog')
  *   cancelTestId, confirmTestId  두 버튼의 data-testid (기본 'confirm-dialog-cancel' · 'confirm-dialog-confirm').
@@ -36,6 +39,9 @@ export default function ConfirmModal({
   hideCancel = false,
   busy = false,
   confirmDisabled = false,
+  extraLabel,
+  onExtra,
+  extraTestId,
   onConfirm,
   onCancel,
   cancelRef,
@@ -77,6 +83,17 @@ export default function ConfirmModal({
               disabled={busy}
             >
               {cancelLabel}
+            </button>
+          )}
+          {extraLabel && (
+            <button
+              type="button"
+              className="pw-confirm-btn is-ghost"
+              data-testid={extraTestId}
+              onClick={onExtra}
+              disabled={busy}
+            >
+              {extraLabel}
             </button>
           )}
           <button

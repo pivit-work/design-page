@@ -164,8 +164,8 @@ const DEFAULT_LABELS = {
   /* 재입사 모드(PW-1355 · 초대 §9 E8 · 퇴사 처리 §5-G) — 명부의 퇴사자 이메일을 넣은 행 */
   rehireBadge: '재입사',
   rehireNotice: '이전에 퇴사한 구성원이에요. 수락하면 이전 기록에 이어서 재입사로 등록됩니다.',
-  rehireRevertNotice: '퇴사 취소 기간({date}까지)이에요 — 잘못 처리한 퇴사라면 상세 패널에서 «퇴사 취소»를 쓰세요',
-  rehireConfirmedNotice: '퇴사가 확정된 구성원이라 이메일·이름·사번만 미리 채웠어요. 소속·직급·직무 등은 새로 정해 주세요.',
+  rehireRevertNotice: '퇴사를 없던 일로 하려면 상세 패널에서 «퇴사 취소»를 쓰세요 — 재입사는 새 재직 구간을 엽니다.',
+  rehireConfirmedNotice: '퇴직 처리가 완료된 구성원이라 이메일·이름·사번만 미리 채웠어요. 소속·직급·직무 등은 새로 정해 주세요.',
   rehireRoleLocked: '재입사자는 멤버로 시작합니다 — 가입 뒤 권한을 바꾸세요',
   errRehireHireDate: '재입사는 새 입사일이 필요해요',
   errPendingInvite: '초대 대기 중',
@@ -626,7 +626,7 @@ export default function AdminInviteModal({
    * 재입사 대상 퇴사자 (PW-1355 · 초대 §9 E8) — `{ email, name, employeeCode, teamIds, primaryTeamId, jobLevel,
    * jobPosition, jobFamily, jobTitle(직렬), jobDuty, workLocation, employmentType, revertOpen }`.
    * 이 이메일을 넣은 행은 «재입사 모드»다: 배지·안내, 새 입사일 필수, 권한 «멤버» 고정, 비어 있는 칸은 이전 값으로 채운다.
-   * `revertOpen` 이 아니면(퇴사 확정) 이름·사번·이메일만 채운다(PW-1423 · 퇴사 처리 §5-G-1).
+   * `revertOpen` 이 아니면(퇴직 처리 완료 뒤) 이름·사번·이메일만 채운다(PW-1423 · 퇴사 처리 §5-G-1).
    */
   rehireMembers = [],
   /** 이 이메일의 재입사 대상으로 미리 채운 한 명으로 연다 — 목록 행 «재입사 초대» (PW-1355). */
@@ -1699,14 +1699,13 @@ export default function AdminInviteModal({
                   </label>
                 </div>
 
-                {/* 재입사 모드(초대 §9 E8 · PW-1355) — 배지·안내, 정정 기간 안이면 «퇴사 취소» 안내 한 줄 */}
+                {/* 재입사 모드(초대 §9 E8 · PW-1355) — 배지·안내, «퇴사 취소»와의 차이 한 줄(늘), 완료 뒤면 고정값만 채웠다는 줄 (pivit-work PW-2576 · 퇴사 정책 §5-L ⑥) */}
                 {rehire && (
                   <div className="admin-inv-hint" role="status" data-testid="admin-invite-rehire">
                     <StatusBadge tone="neutral" className="admin-emp-role-pill">{labels.rehireBadge}</StatusBadge>{' '}
                     {labels.rehireNotice}
-                    {rehire.revertOpen
-                      ? <div>{String(labels.rehireRevertNotice ?? '').replace('{date}', rehire.revertUntil ?? '')}</div>
-                      : <div data-testid="admin-invite-rehire-confirmed">{labels.rehireConfirmedNotice}</div>}
+                    <div>{labels.rehireRevertNotice}</div>
+                    {!rehire.revertOpen && <div data-testid="admin-invite-rehire-confirmed">{labels.rehireConfirmedNotice}</div>}
                   </div>
                 )}
 
