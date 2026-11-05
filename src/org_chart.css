@@ -601,7 +601,7 @@
   color: var(--text-secondary);
 }
 
-/* 성과 정보 줄 (PW-2531) — 글자는 같은 창 값 글자·통계 보조 줄(.modal-stat-note)을 따른다. */
+/* 성과 정보 줄 (PW-2531) — 이름표·숫자는 okr.css 값, 안내 글은 통계 보조 줄(.modal-stat-note)을 따른다. */
 .modal-perf-head,
 .modal-perf-inline {
   display: flex;
@@ -610,15 +610,6 @@
 }
 .modal-perf-head {
   justify-content: space-between;
-}
-.modal-perf-label,
-.modal-perf-value {
-  font-size: 14px;
-  line-height: 20px;
-  color: var(--text-secondary);
-}
-.modal-perf-value {
-  font-weight: 600;
 }
 .modal-perf-note {
   font-size: 12px;

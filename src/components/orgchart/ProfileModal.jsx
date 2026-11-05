@@ -125,18 +125,18 @@ function PerformanceRow({ row }) {
     return (
       <Stack gap="xs" testId={testId}>
         <div className="modal-perf-head">
-          <span className="modal-perf-label">{row.label}</span>
-          <span className="modal-perf-value">{row.percent}%</span>
+          <span className="okr-p-overall-label">{row.label}</span>
+          <span className={`okr-group-percent is-${row.variant}`}>{row.percent}%</span>
         </div>
-        <OkrProgressBar percent={row.percent} variant="brand" />
+        <OkrProgressBar percent={row.percent} variant={row.variant} />
       </Stack>
     );
   }
   return (
     <div className="modal-perf-inline" data-testid={testId}>
-      <span className="modal-perf-label">{row.label}</span>
+      <span className="okr-p-overall-label">{row.label}</span>
       {row.tone
-        ? <StatusBadge tone={row.tone}>{row.text}</StatusBadge>
+        ? <StatusBadge tone={row.tone} className="modal-health-chip">{row.text}</StatusBadge>
         : <span className="modal-perf-note">{row.text}</span>}
     </div>
   );
@@ -456,7 +456,7 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
             </div>
           </div>
           {/* 성과 정보 (pivit-work PW-2531) — 보는 사람 몫이 있을 때만 소비자가 `profile.performance` 를 준다.
-              없으면 자리도 남기지 않는다. 모양은 위 구획과 같고, 막대·알약은 디자이너 OKR·공용 부품을 쓴다. */}
+              없으면 자리도 남기지 않는다. 모양은 위 구획과 같고, 이름표·숫자·막대는 디자이너 OKR 화면 값(okr.css), 표시는 같은 창 헬스체크 칩 알약을 쓴다. */}
           {profile.performance?.rows?.length > 0 && (
             <div className="modal-info-section" data-testid="profile-performance">
               <div className="modal-info-label">{profile.performance.title}</div>
