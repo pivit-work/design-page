@@ -3250,6 +3250,8 @@ button.ono-add-modal-input { cursor: pointer; }
   justify-content: space-between;
   gap: 8px;
 }
+/* 준비도 배지는 아이콘이 없어, 아이콘 자리를 뺀 왼쪽 여백(6)이면 글자가 왼쪽으로 치우친다. */
+.ono-mem-readiness-top .ono-start-flag { padding-inline: var(--spacing-md); }
 /* 그리드 셀 안의 배지는 늘어나지 않게 — grid item 기본 stretch 상쇄. */
 .ono-mem-row > .ono-start-flag { justify-self: start; }
 
