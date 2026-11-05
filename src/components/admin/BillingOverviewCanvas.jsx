@@ -175,7 +175,7 @@ const DEFAULT_LABELS = {
   pastDueCancelTitle: '해지',
   pastDueCancelBadge: '(환불 없음)',
   pastDueCancelDesc: (planLabel) =>
-    `결제가 밀려 있어 환불은 없습니다. 누르면 바로 ${planLabel} 구독이 끝나고 Free로 전환됩니다. 결제되지 않은 요금은 해지해도 남아 청구 내역에 미결제로 보이며, 유료 요금제를 다시 쓰시려면 먼저 결제하셔야 합니다. 데이터는 보존됩니다.`,
+    `결제가 밀려 있어 환불은 없습니다. 누르면 바로 ${planLabel} 구독이 끝나고 Free로 전환됩니다. 데이터는 보존됩니다.`,
   pastDueCancelAction: '해지하기',
 
   refundTitle: '즉시 해지 + 환불',
@@ -665,7 +665,9 @@ export default function BillingOverviewCanvas({
                 </div>
               )}
             </div>
-            <Btn kind="danger" onClick={onNavigateMethods} disabled={!canEdit}>{labels.dunningAction}</Btn>
+            <div style={{ flex: 'none', whiteSpace: 'nowrap' }}>
+              <Btn kind="danger" onClick={onNavigateMethods} disabled={!canEdit}>{labels.dunningAction}</Btn>
+            </div>
           </Card>
         )}
 

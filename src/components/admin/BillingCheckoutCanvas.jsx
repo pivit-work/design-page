@@ -382,7 +382,7 @@ export default function BillingCheckoutCanvas({
               <div style={{ fontSize: 14, color: T.text, marginBottom: 'var(--spacing-lg)' }}>{labels.unpaidBlockedBody}</div>
             </div>
             <div style={{ display: 'flex', gap: 'var(--spacing-md)', flexWrap: 'wrap' }}>
-              <Button onClick={onPayUnpaid}>{labels.unpaidBlockedPay}</Button>
+              <Button variant="primary" onClick={onPayUnpaid}>{labels.unpaidBlockedPay}</Button>
               <Button variant="secondary" onClick={onBackToPlans}>{labels.unpaidBlockedBack}</Button>
             </div>
           </Card>
