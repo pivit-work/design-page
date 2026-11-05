@@ -7635,6 +7635,10 @@ button.evm-ai-source {
   gap: 6px;
   color: var(--text-secondary);
 }
+/* 줄 간격이 이미 벌려 준다 — 이름표 오른쪽 여백까지 더하면 옆 줄(이름표 뒤 6)의 두 배가 된다. */
+.evs-cw-comp-locked-box .evs-cw-committee-k {
+  margin-right: 0;
+}
 .evs-cw-comp-access-status {
   margin-top: 12px;
   padding: 8px 12px;
