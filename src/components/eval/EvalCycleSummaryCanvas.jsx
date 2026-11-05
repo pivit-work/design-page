@@ -933,7 +933,9 @@ function ManagerNoteLines({ note, L }) {
   const promoReason = note.promotionReason?.trim();
   const compStatus = note.compensationStatus ? L.cwCompStatus?.[note.compensationStatus] : null;
   const compReason = note.compensationReason?.trim();
-  if (!comment && !note.promotionReady && !promoReason && !compNote && !compStatus && !compReason && !note.compensationLocked)
+  // 세 갈래로 쓴 의견은 하향 리뷰처럼 판정까지 보인다 — 옛 체크(`promotionReady`)로는 비대상·보류가 사라진다.
+  const promoStatus = { recommended: L.nbYRecommended, not_yet: L.nbYNotYet, deferred: L.nbYDeferred }[note.promotionStatus];
+  if (!comment && !note.promotionReady && !promoStatus && !promoReason && !compNote && !compStatus && !compReason && !note.compensationLocked)
     return null;
   return (
     <>
@@ -943,7 +945,13 @@ function ManagerNoteLines({ note, L }) {
           {comment}
         </div>
       )}
-      {note.promotionReady && (
+      {promoStatus && (
+        <div className="evs-cw-detail-body" data-testid="evs-mgr-promo-status">
+          <span className="evs-cw-committee-k">{L.leaderRoundDetail?.promoStatusLabel}</span>
+          {promoStatus}
+        </div>
+      )}
+      {!promoStatus && note.promotionReady && (
         <div className="evs-cw-detail-body" data-testid="evs-mgr-promo-ready">
           <span className="evs-cw-committee-k">{L.cwPromoReadyLabel}</span>
           {L.cwPromoReadyYes}
@@ -1147,16 +1155,19 @@ function AnswerLines({ answers, empty, testId, L = DEFAULT_LABELS }) {
 }
 
 /** 차수 묶음 안의 비공개 의견(위원회 전용) — 차수마다 나눠 보인다. 그릴 것이 없으면 null. */
-function LeaderRoundNotes({ r, L }) {
+function LeaderRoundNotes({ r, L, showCompensation }) {
   const R = L.leaderRoundDetail || {};
   const promoLabel = { recommended: L.nbYRecommended, not_yet: L.nbYNotYet, deferred: L.nbYDeferred };
   const promoStatus = r.promotionStatus ? promoLabel[r.promotionStatus] : null;
-  const comp = {
-    compensationStatus: r.compensationStatus,
-    compensationReason: r.compensationReason,
-    compensationNote: r.compensationNote,
-    compensationLocked: r.compensationLocked,
-  };
+  // 보상은 통합 리뷰 요약에서만(§4.5-A-2 5번) — 캘리브레이션 펼친 칸은 아래 자기 보상 블록이 표 판정을 따른다.
+  const comp = showCompensation
+    ? {
+        compensationStatus: r.compensationStatus,
+        compensationReason: r.compensationReason,
+        compensationNote: r.compensationNote,
+        compensationLocked: r.compensationLocked,
+      }
+    : {};
   const hasComp = !!(
     comp.compensationStatus ||
     comp.compensationReason?.trim() ||
@@ -1205,7 +1216,7 @@ function LeaderRoundGap({ r, R, className = 'evs-cw-detail-body' }) {
  * 답변 글씨는 원본 16px 대신 14px(상세 열이 좁다). 그 차수의 비공개 의견은 댓글 안에 둔다.
  * `grades` 는 위가 먼저인 등급 목록({ gradeKey }[]) — 모르면 딱지가 회색이다.
  */
-function LeaderRoundsDetail({ rounds, L, grades }) {
+function LeaderRoundsDetail({ rounds, L, grades, showCompensation = false }) {
   const R = L.leaderRoundDetail || {};
   const sorted = [...rounds].sort((a, b) => a.round - b.round);
   return (
@@ -1242,7 +1253,7 @@ function LeaderRoundsDetail({ rounds, L, grades }) {
             </div>
             <div className="evs-round-comment-body">
               <AnswerLines answers={r.answers} empty={L.cwDetailEmpty} testId="evs-leader-round-answers" L={L} />
-              <LeaderRoundNotes r={r} L={L} />
+              <LeaderRoundNotes r={r} L={L} showCompensation={showCompensation} />
             </div>
           </div>
         );
@@ -3986,7 +3997,7 @@ export default function EvalCycleSummaryCanvas({
                     <h3 className="evc-card-name evs-re-sec-manager">{L.reManagerTitle}</h3>
                     <AiSummaryText L={L} text={memberDetail.integratedSummary?.managerSummary} status={memberDetail.integratedSummary?.status} testId="evs-re-ai-manager" />
                     {leaderRoundsOf(memberDetail.manager) ? (
-                      <LeaderRoundsDetail rounds={leaderRoundsOf(memberDetail.manager)} L={L} grades={roundGrades} />
+                      <LeaderRoundsDetail rounds={leaderRoundsOf(memberDetail.manager)} L={L} grades={roundGrades} showCompensation />
                     ) : memberDetail.manager?.submitted ? (
                       <>
                         {memberDetail.manager.gradeLabel && (
