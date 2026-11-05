@@ -2167,6 +2167,8 @@ export default function EvalCycleSummaryCanvas({
   selectedMemberId = null,
   memberDetail = null,
   memberDetailLoading = false,
+  /** 고른 사람의 요약을 못 불러왔다 — «아직 준비되지 않았습니다»로 보이면 «없다»로 읽힌다. */
+  memberDetailFailed = false,
   report = null,
   gradeLabels = {},
   labels: providedLabels,
@@ -3918,7 +3920,7 @@ export default function EvalCycleSummaryCanvas({
               ) : !selectedMemberId ? (
                 <section className="evc-card"><p className="evc-empty-sub" data-testid="evs-re-prompt">{L.reSelectPrompt}</p></section>
               ) : !memberDetail ? (
-                <section className="evc-card"><p className="evc-empty-sub">{L.reNoData}</p></section>
+                <section className="evc-card"><p className="evc-empty-sub">{memberDetailFailed ? L.cwHoverFailed : L.reNoData}</p></section>
               ) : (
                 <>
                   <div className="evs-re-head">
