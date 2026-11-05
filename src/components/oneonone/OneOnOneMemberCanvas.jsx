@@ -20,6 +20,7 @@ import { isEnterKey } from '../shared/enterKey.js';
 // 매니저 완료 화면과 같은 역량 비교 카드를 열만 줄여 쓴다 (PW-2189). 두 파일이 서로를 import 하지만
 // 렌더 때만 부르는 함수·상수라 순환이 문제 되지 않는다.
 import { CapabilityCard, CAP_COLS } from './DoneOneOnOneView.jsx';
+import ReadinessBadge from './ReadinessBadge.jsx';
 
 /**
  * 1on1 멤버(구성원) 뷰 — READY / LIVE / DONE / HISTORY 통합 캔버스.
@@ -258,20 +259,17 @@ function StatusBadge({ status, L }) {
 }
 
 function Readiness({ value, L }) {
-  // 준비도 톤 — 매니저 뷰의 flag 어휘를 그대로 쓴다(blue/warning/error).
-  const tone = value >= 80 ? 'blue' : value >= 50 ? 'warning' : 'error';
-  const label = value >= 80 ? L.readinessComplete : value >= 50 ? L.readinessInProgress : L.readinessNeeded;
   return (
     <div className="ono-start-prep">
       {/* .ono-start-prep-row 는 세로 배치라 배지가 폭을 다 먹는다 — 가로 행은 따로 둔다. */}
       <div className="ono-mem-readiness-top">
         <span className="ono-start-prep-who">{L.myReadiness}</span>
-        <span className={`ono-start-flag ono-start-flag-${tone}`}>{label}</span>
+        <ReadinessBadge value={value} L={L} />
       </div>
       <div className="ono-start-progress-track">
-        <div className="ono-start-progress-fill" style={{ width: `${value}%` }} />
+        <div className="ono-start-progress-fill" style={{ width: `${value ?? 0}%` }} />
       </div>
-      <span className="ono-start-prep-pct">{value}%</span>
+      <span className="ono-start-prep-pct">{value == null ? '—' : `${value}%`}</span>
     </div>
   );
 }
@@ -1312,12 +1310,14 @@ export function AiReportSection({ value, L, icons, baseUrl, readOnly = false }) 
   );
 }
 
-function PrepScreen({ session, manager, avatar, okrStatus, healthHistory, isHost, L, icons, baseUrl, formatDate, healthColor, onTopicsChange, onStart, onMemberReady, memberReady, selfAssessment, aiReport }) {
+function PrepScreen({ session, manager, avatar, okrStatus, readinessPct, healthHistory, isHost, L, icons, baseUrl, formatDate, healthColor, onTopicsChange, onStart, onMemberReady, memberReady, selfAssessment, aiReport }) {
   const [draft, setDraft] = useState('');
   const topics = session.memberTopics ?? [];
   const prevActions = session.aiBriefing?.prevActions ?? [];
-  const readiness =
-    [topics.length > 0, prevActions.length > 0, !!session.aiBriefing?.summary, okrStatus.length > 0]
+  // 호스트가 세어 넘기면 그 값이다 — 그 회차에 해당하는 항목은 호스트만 안다. `null` 은 모른다(—). 안 넘기면 미리보기용 산식.
+  const readiness = readinessPct !== undefined
+    ? readinessPct
+    : [topics.length > 0, prevActions.length > 0, !!session.aiBriefing?.summary, okrStatus.length > 0]
       .filter(Boolean).length * 25;
 
   const addTopic = () => {
@@ -2239,6 +2239,7 @@ export default function OneOnOneMemberCanvas({
   sessions = [],
   healthHistory = [],
   okrStatus = [],
+  readinessPct,
   isHost = false,
   labels: providedLabels,
   icons: providedIcons,
@@ -2356,7 +2357,7 @@ export default function OneOnOneMemberCanvas({
       {tab === 'prep' && (preparation ?? (session && session.status === 'ready' ? (
         <PrepScreen
           {...shared}
-          session={session} manager={manager} avatar={avatar} okrStatus={okrStatus}
+          session={session} manager={manager} avatar={avatar} okrStatus={okrStatus} readinessPct={readinessPct}
           healthHistory={healthHistory} isHost={isHost} healthColor={healthColor}
           onTopicsChange={onTopicsChange} onStart={onStart}
           onMemberReady={onMemberReady} memberReady={memberReady}

@@ -7,6 +7,7 @@ import { RatingBar } from './StartOneOnOneView.jsx';
 import MemberAiButton from './MemberAiButton.jsx';
 import MemberField from './MemberField.jsx';
 import MemberReportCard from './MemberReportCard.jsx';
+import ReadinessBadge from './ReadinessBadge.jsx';
 import { isEnterKey } from '../shared/enterKey.js';
 import Spinner from '../shared/Spinner.jsx';
 
@@ -25,8 +26,8 @@ import Spinner from '../shared/Spinner.jsx';
  *  - AI 대화 내비게이터·발화 비율·헬스 지표는 매니저 코칭 지표라 멤버 화면에 **없다**(§5.3 · §10.7.2).
  *
  * ## 호스트가 소유하는 것
- *  - `readiness` — 네 항목(팀원이 적은 주제 · 이전 액션아이템 · AI 브리핑 요약 · OKR 현황 · §4.2.3)을 세어
- *    `{ done, total }` 로 넘긴다. 이 컴포넌트는 세지 않는다.
+ *  - `readiness` — 그 회차에 해당하는 항목(팀원이 적은 주제 · 이전 액션아이템 · AI 브리핑 요약 · OKR 현황 · §4.2.3)을 세어
+ *    `{ done, total }` 로 넘긴다. 이 컴포넌트는 세지 않는다. 해당 여부를 모르면 `null` — 숫자 대신 — 를 보인다.
  *  - `statusOptions` — 이전 액션아이템 상태 선택지. 시안(17416:28657)은 완료·진행 중·미완료 셋이고,
  *    policy §4.2.4 는 `done` 불리언이라 둘(완료·미완료)이다 — 어느 쪽을 쓸지는 데이터를 아는 호스트가 정한다.
  *  - 날짜·기간·경과 시계는 완성된 글자로 받는다. 라벨은 `labels` 로 덮어쓴다.
@@ -44,11 +45,13 @@ export const DEFAULT_LABELS = {
   aiFailManual: "직접 입력해도 됩니다 — AI 없이 저장·제출할 수 있습니다.",
   aiRetry: "다시 시도",
   actionIncomplete: "미완료",
-  readyTitle: '준비완료',
-  readyText: '작성한 내용이 매니저에게 공유되었습니다. 미팅 중 내용을 참고하세요.',
+  readyTitle: '준비 완료',
+  readyText: '매니저에게 알렸습니다. 미팅 중 내용을 참고하세요.',
   readiness: '내 준비도',
-  readinessUnit: '섹션',
-  readinessDoneNote: '✓ 모든 항목이 작성·확정되어 매니저에게 공유되었습니다.',
+  readinessDoneNote: '✓ 준비를 마치고 매니저에게 알렸습니다.',
+  readinessComplete: '준비 완료',
+  readinessInProgress: '준비 중',
+  readinessNeeded: '준비 필요',
   ctaReport: 'AI 보고서 생성 - Daily Snippet, 회의록, 피드백 기반',
   ctaReportBusy: 'AI 보고서를 만드는 중…',
   prevActions: '이전 액션아이템 점검',
@@ -258,8 +261,8 @@ export default function MemberOneOnOneView({
     }
   };
 
-  const pct = readiness.total ? Math.round(((readiness.done ?? 0) / readiness.total) * 100) : 0;
-  const allDone = readiness.total > 0 && readiness.done >= readiness.total;
+  const pct = readiness?.total ? Math.round(((readiness.done ?? 0) / readiness.total) * 100) : null;
+  const allDone = pct === 100;
   const suggestionBlocked = (key) => suggestionStates[key]?.busy || suggestionStates[key]?.failure?.reason === 'quota_exceeded' || suggestionStates[key]?.failure?.retryLeft === 0;
   const suggestionFailure = (key, retry, commentId) => {
     const failure = suggestionStates[key]?.failure;
@@ -326,14 +329,17 @@ export default function MemberOneOnOneView({
                   {L.readiness}
                   {readinessHelp}
                 </h3>
-                <span className={`ono-my-readiness-count${allDone ? ' is-done' : ''}`}>
-                  {readiness.done} / {readiness.total} {L.readinessUnit}
-                </span>
+                <div className="ono-mem-readiness-top">
+                  <span className={`ono-my-readiness-count${allDone ? ' is-done' : ''}`}>
+                    {pct == null ? '—' : `${pct}%`}
+                  </span>
+                  <ReadinessBadge value={pct} L={L} />
+                </div>
               </div>
-              <div className="ono-my-track" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label={L.readiness}>
-                <div className={`ono-my-fill${allDone ? ' is-done' : ''}`} style={{ width: `${pct}%` }} />
+              <div className="ono-my-track" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct ?? undefined} aria-label={L.readiness}>
+                <div className={`ono-my-fill${allDone ? ' is-done' : ''}`} style={{ width: `${pct ?? 0}%` }} />
               </div>
-              {allDone && <p className="ono-my-readiness-note">{L.readinessDoneNote}</p>}
+              {!editable && showReadyNotice && <p className="ono-my-readiness-note">{L.readinessDoneNote}</p>}
             </div>
 
             {/* AI 보고서 생성 — 작성 중 · 아직 없을 때 (Figma 17416:27976) */}
