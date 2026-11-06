@@ -724,6 +724,9 @@ export function HrProfileModal({
      퇴사일은 이 창이 아니라 구성원 창에서 고친다. 그래서 그 창이 넘긴 행의 값과 견준다. */
   const lastDayAfterResign = lastWorkingDateAfterTermination(idDraft.lastWorkingDate, row?.terminationDate);
   const rehireDateBad = rehireFirstHireNotBefore(idDraft.isRehire, idDraft.firstHireDate, row?.hireDate);
+  // 서버(`moneyDigits`)와 같은 판정 — 공백·₩·끝 «원»은 걷고 정수·세 자리 쉼표만 받는다.
+  const targetBonusText = String(idDraft.targetBonus ?? '').replace(/[\s₩]|원$/g, '');
+  const targetBonusBad = targetBonusText !== '' && !isMoneyCellText(targetBonusText);
   /* [보기]로 받은 번호가 입력칸에 채워진 것은 «고친 것»이 아니다 — 그 번호를 기준으로 견준다. */
   const identityBase = { ...flattenIdentity(identity), bankAccount: bankRevealed ?? '' };
   const identityDirty =
@@ -732,7 +735,7 @@ export function HrProfileModal({
       (k) => (identityDraft[k] ?? '') !== (identityBase[k] ?? ''),
     );
   const submitIdentity = () => {
-    if (lastDayAfterResign || rehireDateBad) return;
+    if (lastDayAfterResign || rehireDateBad || targetBonusBad) return;
     setIdentityState('saving');
     /* [보기]로 연 번호를 그대로 두었으면 보내지 않는다 — 계좌는 손대지 않은 것이다. */
     const draftToSave =
@@ -940,7 +943,7 @@ export function HrProfileModal({
                     <button
                       type="button"
                       onClick={submitIdentity}
-                      disabled={!identityDirty || identityState === 'saving' || lastDayAfterResign || rehireDateBad}
+                      disabled={!identityDirty || identityState === 'saving' || lastDayAfterResign || rehireDateBad || targetBonusBad}
                       data-testid="hr-identity-save"
                       className="admin-emp-btn is-primary"
                     >
@@ -1026,6 +1029,9 @@ export function HrProfileModal({
                 <HrEditPair k={L.hrContractHoliday || '포괄 계약 시간 · 휴일'} value={idDraft.contractHoliday} onChange={setIdDigits('contractHoliday')} inputMode="numeric" />
                 <HrEditPair k={L.hrContractNight || '포괄 계약 시간 · 야간'} value={idDraft.contractNight} onChange={setIdDigits('contractNight')} inputMode="numeric" />
                 <HrEditPair k={L.hrTargetBonus || '타겟 보너스'} value={idDraft.targetBonus} onChange={setIdField('targetBonus')} />
+                {targetBonusBad && (
+                  <div style={{ fontSize: 11, color: '#DC2626', padding: '2px 0 0 96px' }} role="alert">{L.hrPensionContributionInvalid || '금액은 소수점·단위 없는 정수로 적어 주세요.'}</div>
+                )}
                 <HrEditPair k={L.hrTargetBonusStart || '타겟 보너스 시작'} date value={idDraft.targetBonusStart} onChange={setIdField('targetBonusStart')} />
                 <HrEditPair k={L.hrTargetBonusEnd || '타겟 보너스 종료'} date value={idDraft.targetBonusEnd} onChange={setIdField('targetBonusEnd')} />
                 <HrEditPair k={L.hrBankName || '은행명'} value={idDraft.bankName} onChange={setIdField('bankName')} />
