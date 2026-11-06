@@ -97,7 +97,8 @@ export function ShareBar({ rows, allotted, colorOf, height = 12 }) {
           return (
             <Tooltip
               key={r.userId}
-              color={c}
+              // 합친 조각의 회색 바탕은 흰 글자가 안 읽힌다 — 기본 말풍선 색으로 둔다
+              color={r.merged ? undefined : c}
               size="lg"
               // 캐파 미설정은 범례와 같이 «미설정» — 0% 로 쓰면 «캐파를 안 쓴다»로 읽힌다.
               // 여러 사람을 합친 조각은 한 사람의 값이 아니라 캐파를 붙이지 않는다(§5-3.4)
