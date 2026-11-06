@@ -742,8 +742,11 @@ export default function BillingOverviewCanvas({
                 {labels.coolingOffDesc(coolingOff.receivedAt, coolingOff.confirmBy, coolingOff.amount, coolingOff.paidTotal)}
               </div>
             </div>
+            {/* 글이 길어도 버튼 글자가 세로로 접히지 않게 줄어들지 않는다. */}
             {canEdit && (
-              <Btn kind="secondary" onClick={() => setCoolingOffOpen(true)}>{labels.coolingOffAction}</Btn>
+              <div style={{ flexShrink: 0 }}>
+                <Btn kind="secondary" onClick={() => setCoolingOffOpen(true)}>{labels.coolingOffAction}</Btn>
+              </div>
             )}
           </Card>
         )}
