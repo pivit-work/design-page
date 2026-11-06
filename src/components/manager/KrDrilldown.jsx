@@ -84,10 +84,14 @@ export default function KrDrilldown({
   const l = { ...DEFAULT_LABELS, ...labels };
   const objectives = data.objectives ?? [];
   const [innerObjectiveId, setInnerObjectiveId] = useState(objectives[0]?.id);
-  // 어느 목록을 펼쳤는지로 기억한다 — 다른 팀으로 옮겨 목록이 바뀌면 저절로 접힌다.
-  const firstObjectiveId = objectives[0]?.id;
-  const [objectivesOpenFor, setObjectivesOpenFor] = useState(null);
-  const objectivesOpen = firstObjectiveId !== undefined && objectivesOpenFor === firstObjectiveId;
+  // 다시 불러와 목록이 바뀌면 접는다 — 4개 이하로 줄면 [접기]가 없어 펼친 채 갇힌다.
+  const objectiveListKey = objectives.map((o) => o.id).join();
+  const [objectivesOpen, setObjectivesOpen] = useState(false);
+  const [openedListKey, setOpenedListKey] = useState(objectiveListKey);
+  if (openedListKey !== objectiveListKey) {
+    setOpenedListKey(objectiveListKey);
+    setObjectivesOpen(false);
+  }
   const [innerKrId, setInnerKrId] = useState(data.krs[0]?.id);
   const [innerMemberId, setInnerMemberId] = useState(data.members[0]?.id);
 
@@ -154,7 +158,7 @@ export default function KrDrilldown({
                   key={o.id}
                   className={`mgr-kr-card${o.id === selectedObjective?.id ? ' is-selected' : ''}`}
                   onClick={() => {
-                    setObjectivesOpenFor(null);
+                    setObjectivesOpen(false);
                     selectObjective(o.id);
                   }}
                 >
@@ -175,7 +179,7 @@ export default function KrDrilldown({
                   aria-expanded={objectivesOpen}
                   onClick={(e) => {
                     const button = e.currentTarget;
-                    setObjectivesOpenFor(objectivesOpen ? null : firstObjectiveId);
+                    setObjectivesOpen(!objectivesOpen);
                     // 줄 높이가 크게 바뀌어도 누른 버튼이 화면 밖으로 나가지 않게 — 다시 그린 뒤에 맞춘다.
                     requestAnimationFrame(() => button.scrollIntoView?.({ block: 'nearest' }));
                   }}
