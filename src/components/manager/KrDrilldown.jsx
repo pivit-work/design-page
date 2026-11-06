@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import StatusBadge from '../shared/StatusBadge.jsx';
 import KrMemberCard from './KrMemberCard.jsx';
 import KrContributionDetail from './KrContributionDetail.jsx';
 import Skeleton from '../shared/Skeleton.jsx';
@@ -41,6 +40,8 @@ import { CheckGlyph } from '../shared/lineIcons.jsx';
  *     트랙 문법을 쓰고 새 시각 언어를 만들지 않는다.
  */
 
+const OBJECTIVE_ROW_LIMIT = 4;
+
 const DEFAULT_LABELS = {
   objectiveLabel: '팀 OKR',
   trendLabel: '달성도 추이',
@@ -53,6 +54,8 @@ const DEFAULT_LABELS = {
   membersEmpty: '이 KR에 연결된 팀원이 없습니다.',
   objectiveSummary: (count, krCount) => `Objective ${count}개 · KR ${krCount}개`,
   krCountBadge: (count) => `KR ${count}개`,
+  objectiveMore: (count) => `더 보기 +${count}`,
+  objectiveLess: '접기',
 };
 
 /** 상태 표시 — 체크 아이콘 10 + 글자. 색은 tone(success·warning·error·muted)이 정한다. */
@@ -81,6 +84,10 @@ export default function KrDrilldown({
   const l = { ...DEFAULT_LABELS, ...labels };
   const objectives = data.objectives ?? [];
   const [innerObjectiveId, setInnerObjectiveId] = useState(objectives[0]?.id);
+  // 어느 목록을 펼쳤는지로 기억한다 — 다른 팀으로 옮겨 목록이 바뀌면 저절로 접힌다.
+  const firstObjectiveId = objectives[0]?.id;
+  const [objectivesOpenFor, setObjectivesOpenFor] = useState(null);
+  const objectivesOpen = firstObjectiveId !== undefined && objectivesOpenFor === firstObjectiveId;
   const [innerKrId, setInnerKrId] = useState(data.krs[0]?.id);
   const [innerMemberId, setInnerMemberId] = useState(data.members[0]?.id);
 
@@ -120,6 +127,12 @@ export default function KrDrilldown({
 
   const totalKrCount = objectives.reduce((sum, o) => sum + (o.krCount ?? 0), 0);
   const selectedObjective = objectives.find((o) => o.id === objectiveId) ?? objectives[0];
+  // 접힌 줄은 4칸 고정 — 고른 칸이 앞 4칸 밖이면 앞 3칸 + 고른 칸이라 고른 것이 늘 보인다.
+  const shownObjectives = objectivesOpen || objectives.length <= OBJECTIVE_ROW_LIMIT
+    ? objectives
+    : objectives.indexOf(selectedObjective) < OBJECTIVE_ROW_LIMIT
+      ? objectives.slice(0, OBJECTIVE_ROW_LIMIT)
+      : [...objectives.slice(0, OBJECTIVE_ROW_LIMIT - 1), selectedObjective];
 
   return (
     <div className="mgr-kr">
@@ -132,28 +145,45 @@ export default function KrDrilldown({
               {l.objectiveSummary(objectives.length, totalKrCount)}
             </p>
             <div
-              className={`mgr-kr-obj-track${objectives.length > 4 ? ' is-wrap' : ''}`}
+              className={`mgr-kr-obj-track${objectivesOpen ? ' is-open' : ''}`}
               data-testid="kr-objective-track"
             >
-              {objectives.map((o, i) => (
+              {shownObjectives.map((o) => (
                 <button
                   type="button"
                   key={o.id}
-                  className={`mgr-kr-obj-chip${o.id === selectedObjective?.id ? ' is-selected' : ''}`}
-                  onClick={() => selectObjective(o.id)}
+                  className={`mgr-kr-card${o.id === selectedObjective?.id ? ' is-selected' : ''}`}
+                  onClick={() => {
+                    setObjectivesOpenFor(null);
+                    selectObjective(o.id);
+                  }}
                 >
-                  <span className="mgr-kr-obj-head">
-                    <span className="mgr-kr-obj-id">{o.label ?? `O${i + 1}`}</span>
-                    <span className="mgr-kr-obj-percent">{o.percent}%</span>
+                  <span className="mgr-kr-card-head">
+                    <span className="mgr-kr-card-id">{o.label ?? `O${objectives.indexOf(o) + 1}`}</span>
+                    <span className="mgr-kr-card-percent">{o.percent}%</span>
                   </span>
-                  <span className="mgr-kr-obj-title-row">
-                    <span className="mgr-kr-obj-title">{o.title}</span>
+                  <span className="mgr-kr-card-title-row">
+                    <span className="mgr-kr-card-title">{o.title}</span>
                     {/* 「분류」를 드러내는 장치 — 빼면 KR 이 어디에 몇 개 있는지 안 보인다 */}
-                    <StatusBadge className="mgr-kr-obj-badge">{l.krCountBadge(o.krCount ?? 0)}</StatusBadge>
+                    <span className="mgr-kr-status mgr-kr-obj-count">{l.krCountBadge(o.krCount ?? 0)}</span>
                   </span>
                 </button>
               ))}
+              {objectives.length > OBJECTIVE_ROW_LIMIT && (
+                <Button
+                  className="mgr-kr-obj-more"
+                  aria-expanded={objectivesOpen}
+                  onClick={() => setObjectivesOpenFor(objectivesOpen ? null : firstObjectiveId)}
+                >
+                  {objectivesOpen
+                    ? l.objectiveLess
+                    : l.objectiveMore(objectives.length - shownObjectives.length)}
+                </Button>
+              )}
             </div>
+            <p className="mgr-kr-okr-title mgr-kr-obj-current" data-testid="kr-objective-current">
+              {selectedObjective?.title}
+            </p>
           </>
         ) : (
           <p className="mgr-kr-okr-title">{data.objective}</p>

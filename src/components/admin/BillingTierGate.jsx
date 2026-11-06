@@ -17,13 +17,8 @@ const T = {
   text: '#0F172A',
   sub: '#64748B',
   muted: '#94A3B8',
-  accent: '#4F6AF5',
-  green: '#22C55E',
-  greenBg: '#F0FDF4',
   amber: '#F59E0B',
   amberBg: '#FFFBEB',
-  purple: '#8B5CF6',
-  purpleBg: '#F5F3FF',
 };
 
 /** 티어 서열 (숫자가 클수록 상위 — 추가형 사다리). */
@@ -122,7 +117,8 @@ export function LockBadge({ requiredTier, size = 'sm', labels, title }) {
 }
 
 /**
- * UpsellCard — 잠금 상태 대체 영역(콘텐츠 대신 렌더).
+ * UpsellCard — 잠금 상태 대체 영역(콘텐츠 대신 렌더). 색은 요금제와 상관없이 브랜드 초록이다 —
+ * 어느 요금제인지는 «Growth+ 전용 기능» 글자가 말한다(pivit-work PW-2487 · 2026-11-06 커트 결정).
  * feature: FEATURE_TIER 키 / requiredTier: 필요 최소 티어 / onNavigate: 플랜 보기 CTA
  * labels: { featureLabels?, tierLabels?, title?, desc?, badge?, cta?, footer? } (선택)
  */
@@ -135,25 +131,6 @@ export function UpsellCard({ feature, requiredTier, onNavigate, labels }) {
     labels?.tierLabels?.[requiredTier] ??
     TIER_LABEL[requiredTier] ??
     requiredTier;
-
-  const tierColor =
-    requiredTier === 'pro'
-      ? T.purple
-      : requiredTier === 'growth'
-        ? T.accent
-        : T.green;
-  const tierBg =
-    requiredTier === 'pro'
-      ? T.purpleBg
-      : requiredTier === 'growth'
-        ? '#EEF2FF'
-        : T.greenBg;
-  const tierBd =
-    requiredTier === 'pro'
-      ? '#DDD6FE'
-      : requiredTier === 'growth'
-        ? '#C7D2FE'
-        : '#BBF7D0';
 
   return (
     <div
@@ -175,8 +152,8 @@ export function UpsellCard({ feature, requiredTier, onNavigate, labels }) {
           width: 56,
           height: 56,
           borderRadius: 16,
-          background: tierBg,
-          border: `1.5px solid ${tierBd}`,
+          background: 'var(--bg-brand-secondary)',
+          border: '1.5px solid var(--utility-brand-200)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -189,7 +166,7 @@ export function UpsellCard({ feature, requiredTier, onNavigate, labels }) {
             width="16"
             height="11"
             rx="3"
-            fill={tierColor}
+            fill="var(--fg-brand-primary)"
             opacity=".18"
           />
           <rect
@@ -198,17 +175,17 @@ export function UpsellCard({ feature, requiredTier, onNavigate, labels }) {
             width="16"
             height="11"
             rx="3"
-            stroke={tierColor}
+            stroke="var(--fg-brand-primary)"
             strokeWidth="1.8"
           />
           <path
             d="M8 11V7a4 4 0 0 1 8 0v4"
-            stroke={tierColor}
+            stroke="var(--fg-brand-primary)"
             strokeWidth="1.8"
             strokeLinecap="round"
             fill="none"
           />
-          <circle cx="12" cy="16.5" r="1.5" fill={tierColor} />
+          <circle cx="12" cy="16.5" r="1.5" fill="var(--fg-brand-primary)" />
         </svg>
       </div>
 
@@ -239,35 +216,22 @@ export function UpsellCard({ feature, requiredTier, onNavigate, labels }) {
           display: 'inline-flex',
           alignItems: 'center',
           gap: 6,
-          background: tierBg,
-          border: `1px solid ${tierBd}`,
+          background: 'var(--bg-brand-secondary)',
+          border: '1px solid var(--utility-brand-200)',
           borderRadius: 99,
           padding: '5px 14px',
           fontSize: 12,
           fontWeight: 700,
-          color: tierColor,
+          color: 'var(--text-brand-secondary)',
         }}
       >
-        <MiniLockIcon size={11} color={tierColor} />
+        <MiniLockIcon size={11} color="var(--text-brand-secondary)" />
         {labels?.badge ? labels.badge(tierLabel) : `${tierLabel}+ 전용 기능`}
       </div>
 
-      <button
-        onClick={() => onNavigate?.('/admin/billing/plans')}
-        style={{
-          fontFamily: T.font,
-          fontSize: 14,
-          fontWeight: 700,
-          padding: '11px 28px',
-          borderRadius: 10,
-          cursor: 'pointer',
-          background: tierColor,
-          color: '#fff',
-          border: 'none',
-        }}
-      >
+      <Button variant="primary" onClick={() => onNavigate?.('/admin/billing/plans')}>
         {labels?.cta ?? '플랜 보기'}
-      </button>
+      </Button>
       <div style={{ fontSize: 11, color: T.muted }}>
         {labels?.footer ?? '업그레이드 후 즉시 활성화됩니다'}
       </div>
