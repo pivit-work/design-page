@@ -1937,6 +1937,7 @@
 .sq-iso-label.is-down { opacity: 0; pointer-events: none; }
 .sq-iso-slab.is-dashed { opacity: 0.75; }
 .sq-iso-slab-top { fill: color-mix(in srgb, var(--iso-c) 6%, var(--bg-primary)); stroke: var(--border-secondary); stroke-width: 1; }
+.sq-iso-slab.is-team .sq-iso-slab-top { fill: var(--bg-primary); }
 .sq-iso-slab.is-dashed .sq-iso-slab-top { fill: var(--bg-primary); stroke-dasharray: 5 4; }
 .sq-iso-slab-front { fill: var(--border-secondary); }
 .sq-iso-slab-side { fill: var(--border-primary); }
@@ -1950,6 +1951,9 @@
 .sq-iso-block.is-clickable { cursor: pointer; }
 .sq-iso-block.is-faded { opacity: 0.45; }
 .sq-iso.is-hovering .sq-iso-block:not(.is-hot) { opacity: 0.2; }
+.sq-iso-block.is-hot { opacity: 1; }
+.sq-iso-block:focus-visible { outline: none; }
+.sq-iso-block:focus-visible .sq-iso-tag { stroke: var(--border-brand); stroke-width: 2; }
 .sq-iso-block-top { fill: color-mix(in srgb, var(--iso-c) 24%, var(--bg-primary)); }
 .sq-iso-block-front { fill: color-mix(in srgb, var(--iso-c) 55%, var(--bg-primary)); }
 .sq-iso-block-side { fill: color-mix(in srgb, var(--iso-c) 78%, var(--bg-primary)); }

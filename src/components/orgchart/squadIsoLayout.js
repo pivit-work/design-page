@@ -16,7 +16,7 @@ export const ISO = {
 };
 export const ISO_ZOOM_MIN = 0.4;
 /** «맞춤» 만 이보다 더 줄인다 — 100명이 넘으면 40% 로는 판에 다 안 들어간다(TC-ORG-160 «한 화면에 들어오게»). */
-export const ISO_FIT_MIN = 0.2;
+export const ISO_FIT_MIN = 0.05;
 export const ISO_ZOOM_MAX = 1.5;
 export const ISO_VIEW_MAX_H = 760;
 /** 이보다 블록이 많으면 재생하지 않는다 — 움직임이 끊겨 약 2.4초 안에 끝나지 않는다(규모 · 기획서에 없어 개발이 정함). */
@@ -82,7 +82,9 @@ export function isoScene({ squads, people }) {
   shownSquads.forEach((sq) => (sq.members || []).forEach((m) => {
     if (!byId.has(m.userId)) byId.set(m.userId, { id: m.userId, name: '', unknown: true });
   }));
-  const persons = [...byId.values()];
+  const assigned = new Set(shownSquads.flatMap((sq) => (sq.members || []).map((m) => m.userId)));
+  // 대상 스쿼드에 없는 퇴사자는 그리지 않는다 — 명부에는 완료·보관 스쿼드의 퇴사자까지 실려 온다(§5-7 «대상 스쿼드»).
+  const persons = [...byId.values()].filter((p) => p.employmentStatus !== 'terminated' || assigned.has(p.id));
 
   const teamMap = new Map();
   persons.forEach((p) => {
@@ -103,7 +105,6 @@ export function isoScene({ squads, people }) {
     t.hasHeadHere = t.people.some((p) => p.id === t.headId);
   });
 
-  const assigned = new Set(shownSquads.flatMap((sq) => (sq.members || []).map((m) => m.userId)));
   const noSquad = persons.filter((p) => !assigned.has(p.id));
   const squadRows = shownSquads.map((sq) => {
     const members = [...(sq.members || [])].sort((a, b) => (b.role === 'lead') - (a.role === 'lead'));
@@ -153,19 +154,21 @@ export function isoScene({ squads, people }) {
     teams, teamSlabs: teamLay.slabs,
     squadRows, squadSlabs: squadLay.slabs,
     noSquadCount: noSquad.length, noSquadSlab: noSquad.length ? squadLay.slabs[squadRows.length] : null,
+    // 위 줄 인원은 조직도 «전체 인원»과 같은 재직 기준이다 — 스쿼드에 남은 퇴사자·명부에 없는 사람은 판에는 서도 세지 않는다.
+    headcount: persons.filter((p) => !p.unknown && p.employmentStatus !== 'terminated').length,
     persons, personById: byId, teamOfPerson, blocks, floorW, floorH,
     squadsOf: (id) => shownSquads.filter((sq) => (sq.members || []).some((m) => m.userId === id)),
   };
 }
 
 /**
- * 글자가 칸을 넘으면 말줄임 — 한글은 글자 크기만큼, 영문·숫자는 그 0.62배로 어림한다(기획서 엣지 85).
+ * 글자가 칸을 넘으면 말줄임 — 한글은 글자 크기만큼, 영문·숫자는 대문자는 0.72배, 그 밖은 0.58배로 어림한다(기획서 엣지 85).
  * 이름표 폭은 늘리지 않는다 — 늘리면 옆 칸 이름표와 겹친다.
  */
 export function isoFit(text, maxPx, fontPx) {
   let w = 0; let out = '';
   for (const ch of String(text || '')) {
-    const cw = /[ㄱ-힣]/.test(ch) ? fontPx : fontPx * 0.62;
+    const cw = /[ㄱ-힣\u3040-\u30ff\u4e00-\u9fff]/.test(ch) ? fontPx : fontPx * (/[A-Z]/.test(ch) ? 0.72 : 0.58);
     if (w + cw > maxPx) return `${out}…`;
     w += cw; out += ch;
   }

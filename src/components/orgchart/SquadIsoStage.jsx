@@ -9,6 +9,7 @@
  */
 import { memo, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Button from '../shared/Button.jsx';
+import { isEnterKey } from '../shared/enterKey.js';
 import { MinusGlyph, PlusGlyph } from '../shared/lineIcons.jsx';
 import { useOrgLabels } from './orgchart-labels.jsx';
 import {
@@ -47,7 +48,7 @@ const LOW = cubeFaces(ISO.blockH);
 const TALL = cubeFaces(ISO.blockH * ISO.headRatio);
 
 /** 판 — 윗면·앞면·옆면 세 단 명암. 앞면 위 띠는 팀이면 직군 색, 스쿼드면 직군 비율 줄무늬다. */
-function Slab({ s, id, up, family, color, stripes, dashed }) {
+function Slab({ s, id, up, family, color, stripes, dashed, team }) {
   const { x, y, w, d } = s;
   const t = ISO.slab;
   const tot = stripes ? stripes.reduce((a, b) => a + b.n, 0) : 0;
@@ -58,7 +59,7 @@ function Slab({ s, id, up, family, color, stripes, dashed }) {
     acc += st.n;
   });
   return (
-    <g className={`sq-iso-slab${up ? '' : ' is-down'}${dashed ? ' is-dashed' : ''} ${famClass(family)}`} data-iso-slab={id} style={color ? { '--iso-c': color } : undefined}>
+    <g className={`sq-iso-slab${up ? '' : ' is-down'}${dashed ? ' is-dashed' : ''}${team ? ' is-team' : ''} ${famClass(family)}`} data-iso-slab={id} style={color ? { '--iso-c': color } : undefined}>
       <polygon className="sq-iso-slab-front" points={isoPoints([[x, y + d, 0], [x + w, y + d, 0], [x + w, y + d, -t], [x, y + d, -t]])} />
       {parts.map((pt) => (
         <polygon key={pt.family || 'none'} className={`sq-iso-slab-stripe ${famClass(pt.family)}`} points={isoPoints([[pt.x0, y + d, 0], [pt.x1, y + d, 0], [pt.x1, y + d, -4], [pt.x0, y + d, -4]])} />
@@ -107,6 +108,9 @@ const Block = memo(function Block({ tk, transform, isHead, role, line1, line2, t
       className={`sq-iso-block ${famClass(tk.person.jobFamilyGroup)}${hot ? ' is-hot' : ''}${faded ? ' is-faded' : ''}${clickable ? ' is-clickable' : ''}`}
       data-iso-block={tk.key}
       data-person={tk.person.id}
+      role={clickable ? 'button' : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      aria-label={clickable ? tip : undefined}
       transform={transform}
     >
       <title>{tip}</title>
@@ -254,7 +258,7 @@ export default function SquadIsoStage({ to, animate, overlay, squads, people, on
   const arrival = to === 'squad' && scene.squadRows.length > 0
     ? scene.squadSlabs.slice(0, scene.squadRows.length)
     : (to === 'squad' ? scene.squadSlabs : scene.teamSlabs);
-  const corners = arrival.flatMap((sl) => [isoPoint(sl.x, sl.y), isoPoint(sl.x + sl.w, sl.y), isoPoint(sl.x, sl.y + sl.d), isoPoint(sl.x + sl.w, sl.y + sl.d)]);
+  const corners = [[0, 0], ...arrival].length === 1 ? [[0, 0]] : arrival.flatMap((sl) => [isoPoint(sl.x, sl.y), isoPoint(sl.x + sl.w, sl.y), isoPoint(sl.x, sl.y + sl.d), isoPoint(sl.x + sl.w, sl.y + sl.d)]);
   const firstY = Math.min(...corners.map((c) => c[1]));
   const centerX = (Math.min(...corners.map((c) => c[0])) + Math.max(...corners.map((c) => c[0]))) / 2;
   useLayoutEffect(() => {
@@ -320,7 +324,7 @@ export default function SquadIsoStage({ to, animate, overlay, squads, people, on
     <div className={`sq-iso${leaving ? ' is-leaving' : ''}${hov ? ' is-hovering' : ''}`} data-testid="squad-iso-stage" data-phase={phase} data-to={to}>
       <div className="pj-table-header-text sq-matrix-head sq-graph-head sq-iso-head">
         <p className="pj-table-title sq-iso-summary" data-testid="squad-iso-summary">
-          <span className={atSquad ? 'sq-iso-off' : undefined}>{L('squad.iso.summaryTeams', { teams: scene.teams.length, people: scene.persons.length })}</span>
+          <span className={atSquad ? 'sq-iso-off' : undefined}>{L('squad.iso.summaryTeams', { teams: scene.teams.length, people: scene.headcount })}</span>
           <span className="sq-iso-off"> {to === 'squad' ? '→' : '←'} </span>
           <span className={to === 'squad' ? undefined : 'sq-iso-off'}>{L('squad.iso.summarySquads', { count: scene.squadRows.length })}</span>
         </p>
@@ -335,7 +339,7 @@ export default function SquadIsoStage({ to, animate, overlay, squads, people, on
           <div className="org-toolbar-group">
             <button type="button" className="org-tool-btn" onClick={() => setZoom((z) => Math.min(z + 0.1, ISO_ZOOM_MAX))}
               title={L('org.zoomIn')} aria-label={L('org.zoomIn')} data-action="zoom-in"><PlusGlyph size={20} /></button>
-            <button type="button" className="org-tool-btn" onClick={() => setZoom((z) => Math.max(z - 0.1, ISO_ZOOM_MIN))}
+            <button type="button" className="org-tool-btn" onClick={() => setZoom((z) => Math.max(z - 0.1, Math.min(z, ISO_ZOOM_MIN)))}
               title={L('org.zoomOut')} aria-label={L('org.zoomOut')} data-action="zoom-out"><MinusGlyph size={20} /></button>
             <button type="button" className="org-tool-btn has-label" onClick={fit} title={L('squad.iso.zoomFitTip')} data-action="zoom-fit">
               <span>{L('squad.graph.zoomFit')}</span>
@@ -358,6 +362,14 @@ export default function SquadIsoStage({ to, animate, overlay, squads, people, on
             onMouseOver={onBlockOver}
             onMouseLeave={() => setHov(null)}
             onClick={onBlockClick}
+            onFocus={onBlockOver}
+            onBlur={() => setHov(null)}
+            onKeyDown={(e) => {
+              if ((isEnterKey(e) || e.key === ' ') && e.target.closest?.('[data-person]')) {
+                e.preventDefault();
+                onBlockClick(e);
+              }
+            }}
             viewBox={`${vbX.toFixed(0)} ${vbY.toFixed(0)} ${vbW.toFixed(0)} ${vbH.toFixed(0)}`}
             width={Math.round(vbW * zoom)}
             height={Math.round(vbH * zoom)}
@@ -368,7 +380,7 @@ export default function SquadIsoStage({ to, animate, overlay, squads, people, on
             {grid.map((ln, i) => <polyline key={`g${i}`} className="sq-iso-grid" points={isoPoints(ln)} />)}
 
             {scene.teams.map((t, i) => (
-              <Slab key={`t-${t.key}`} id={`t-${t.key}`} s={scene.teamSlabs[i]} up={up === 'org'} family={t.family} />
+              <Slab key={`t-${t.key}`} id={`t-${t.key}`} s={scene.teamSlabs[i]} up={up === 'org'} family={t.family} team />
             ))}
             {scene.squadRows.map((r, i) => (
               <Slab key={`s-${r.squad.id}`} id={`s-${r.squad.id}`} s={scene.squadSlabs[i]} up={up === 'squad'} color={r.squad.color}
