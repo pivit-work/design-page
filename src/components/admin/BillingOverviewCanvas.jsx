@@ -1268,13 +1268,13 @@ export default function BillingOverviewCanvas({
             className="adm-shell"
             testId="billing-cooling-off-modal"
             footer={<>
-              <button type="button" className="tl-group-modal-btn tl-group-modal-btn-secondary"
-                onClick={() => setCoolingOffOpen(false)}>
+              <Button variant="secondary" disabled={coolingOffBusy} onClick={() => setCoolingOffOpen(false)}>
                 {labels.close}
-              </button>
-              <Btn kind="danger" onClick={() => void handleConfirmCoolingOff()} disabled={coolingOffBusy}>
-                {coolingOffBusy ? labels.refundBusy : labels.coolingOffSubmit(coolingOff.amount)}
-              </Btn>
+              </Button>
+              <Button variant="danger" pending={coolingOffBusy} data-testid="billing-cooling-off-submit"
+                onClick={() => void handleConfirmCoolingOff()}>
+                {labels.coolingOffSubmit(coolingOff.amount)}
+              </Button>
             </>}
           >
             <div style={{ fontFamily: T.font }}>
