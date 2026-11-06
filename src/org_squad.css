@@ -665,6 +665,8 @@
    목록을 한 줄(66)까지 줄여도 모자라면 막 안에서 스크롤해 위부터 보이게 한다. */
 .sq-add-cover { overflow-y: auto; align-items: safe center; }
 .sq-add-dialog { max-height: 100%; }
+/* 포커스를 창 안에 두려고 tabIndex 를 달았다(Esc) — 테두리는 그리지 않는다. 칸·버튼의 포커스 표시는 그대로다 */
+.sq-add-dialog:focus { outline: none; }
 .sq-add-body { min-height: 0; }
 .sq-add-list { min-height: 66px; }
 /* 만들기 줄은 눌리지 않는다 — 카드가 낮으면 후보 목록이 대신 줄어 안에서 스크롤한다 */

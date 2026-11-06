@@ -59,6 +59,12 @@ function ProjectPicker({
   const busy = creating || linking;
   const closeIfIdle = () => { if (!busy) onClose(); };
   // Esc 는 포커스가 창 안에 있어야 듣는다(위에 뜬 다른 창을 함께 닫지 않으려고) — tabIndex 로 여백을 눌러도 창 안에 남긴다
+  const dialogRef = useRef(null);
+  // 잠긴 버튼에서 빠진 포커스를 창으로 돌린다 — 사용자가 이미 다른 곳으로 옮겼으면 빼앗지 않는다
+  const refocus = (target) => {
+    const active = document.activeElement;
+    if (!active || active === document.body || dialogRef.current?.contains(active)) target?.focus();
+  };
   const onDialogKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); closeIfIdle(); } };
 
   const q = query.trim().toLowerCase();
@@ -74,6 +80,7 @@ function ProjectPicker({
       if (mounted.current) onClose();
     } catch (err) {
       setLinking(false);
+      refocus(dialogRef.current);
       setLinkError(messageOf(err, L('squad.project.linkFailed')));
     }
   };
@@ -98,7 +105,7 @@ function ProjectPicker({
       const message = err instanceof Error && err.message === '' ? '' : messageOf(err, L('squad.project.createFailed'));
       setForm((f) => (f ? { ...f, error: message } : f));
       // 눌렀던 [만들기]가 잠겨 포커스가 빠졌다 — 다시 고치고 Esc 도 듣게 이름 칸으로 돌린다
-      nameInput.current?.focus();
+      refocus(nameInput.current);
     }
   };
 
@@ -116,6 +123,7 @@ function ProjectPicker({
       <div
         className="sq-add-dialog" role="group" aria-label={L('squad.project.createOpen')}
         data-testid={`squad-project-create-form-${squad.id}`}
+        ref={dialogRef}
         tabIndex={-1}
         onKeyDown={onDialogKey}
       >
@@ -175,6 +183,7 @@ function ProjectPicker({
     >
     <div
       className="sq-add-dialog" role="group" aria-label={L('squad.project.add')}
+      ref={dialogRef}
       tabIndex={-1}
       onKeyDown={onDialogKey}
     >
@@ -222,6 +231,7 @@ function ProjectPicker({
       {canCreate && (
         <button
           type="button" className="sq-proj-add"
+          disabled={busy}
           data-testid={`squad-project-create-open-${squad.id}`}
           onClick={() => setForm({ name: '', description: '', error: '' })}
         >
