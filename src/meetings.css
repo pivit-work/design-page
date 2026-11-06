@@ -767,6 +767,15 @@ input.mtg-record-action-title::placeholder {
 .mtg-record-action-name--mark {
   flex: none;
 }
+/* 110 칸의 글자 자리는 아바타를 빼면 66 인데 세 글자 이름 41.5 + 간격 8 + «(퇴사)» 37.9 = 87.4 라 이름이 잘린다.
+ * 148 = 네 글자 이름까지 다 보이는 폭. 늘어난 폭은 남은 폭을 채우는 제목 칸에서 가져온다. 표시가 없는 목록은 110 그대로. */
+.mtg-record-action-list.has-person-mark .mtg-record-action-person {
+  width: 148px;
+}
+/* 짧은 이름도 표시가 바로 뒤에 붙는다 — 이름 칸이 남는 폭을 다 차지하면 «오세린     (퇴사)»로 벌어진다. */
+.mtg-record-action-list.has-person-mark .mtg-record-action-name:not(.mtg-record-action-name--mark) {
+  flex: 0 1 auto;
+}
 .mtg-record-action-date {
   width: 90px;
   font-size: 14px;

@@ -412,7 +412,8 @@ export default function MeetingRecordContent({
         {actions.length === 0 && labels.actionItemsEmpty && (
           <EmptyBox>{labels.actionItemsEmpty}</EmptyBox>
         )}
-        <ul className="mtg-record-action-list">
+        {/* 퇴사 등 상태 표시가 있는 목록만 담당자 칸을 함께 넓힌다(pivit-work PW-2501) — 줄마다 넓히면 아바타 세로줄이 어긋난다. */}
+        <ul className={`mtg-record-action-list${actions.some((a) => a.person && a.personMark) ? ' has-person-mark' : ''}`}>
           {actions.map((a, idx) => (
             <li key={idx} className="mtg-record-action-item">
               <Tooltip content={readOnly ? readOnlyHint : undefined} className="mtg-record-action-title-tip">
