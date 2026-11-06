@@ -123,6 +123,26 @@ const DEFAULT_LABELS = {
   withdrawBusy: '처리하는 중...',
   withdrawLoading: '업그레이드를 철회할 수 있는지 확인하는 중...',
   // 즉시 해지·환불이 끝나지 않은 동안의 띠 (pivit-work PW-2476 · overview §2 «환불 처리 중 띠») — 구독은 환불이 «완료»될 때 해지된다.
+  // 고객지원으로 받은 청약철회 요청 — 확정 대기 (pivit-work PW-2532 · overview §4 · cancellation-refund-policy §4.2).
+  coolingOffTitle: '청약철회를 확정해 주세요',
+  coolingOffDesc: (received, confirmBy, amount, paidTotal) =>
+    amount < paidTotal
+      ? `${received}에 받은 요청입니다. ${confirmBy}까지 [확정]을 누르시면 결제 금액 ${won(paidTotal)} 중 아직 돌려드리지 않은 ${won(amount)}을 환불하고 Free 로 바뀝니다. 확정하지 않으면 기간말 해지만 남습니다.`
+      : `${received}에 받은 요청입니다. ${confirmBy}까지 [확정]을 누르시면 결제 금액 ${won(amount)}을 전액 환불하고 Free 로 바뀝니다. 확정하지 않으면 기간말 해지만 남습니다.`,
+  coolingOffAction: '확정',
+  coolingOffModalTitle: '청약철회 확정',
+  coolingOffReceivedLabel: '접수 시각',
+  coolingOffRequesterLabel: '요청자',
+  coolingOffAmountLabel: '환불 금액',
+  coolingOffAmountValue: (amount, paidTotal) =>
+    amount < paidTotal
+      ? `${won(amount)} (결제 금액 ${won(paidTotal)} 중 남은 금액 · VAT 포함)`
+      : `${won(amount)} (결제 금액 전액 · VAT 포함)`,
+  coolingOffConfirmByLabel: '확정 기한',
+  coolingOffConfirmByValue: (confirmBy) => `${confirmBy}까지`,
+  coolingOffNote: '확정하면 접수 시각을 기준으로 다시 판정해 결제 금액을 환불합니다. 환불이 끝나면 구독이 해지되고 Free 로 바뀝니다. 확정하지 않으면 기간말 해지만 남습니다.',
+  coolingOffSubmit: (amount) => `확정하고 ${won(amount)} 환불`,
+  // 즉시 해지·환불이 끝나지 않은 동안의 띠 (pivit-work PW-2476 · overview §2 «환불 처리 중 띠») — 구독은 환불이 «완료»될 때 해지된다.
   cancelRefundProcessingTitle: '즉시 해지·환불을 처리하고 있습니다',
   cancelRefundProcessingDesc: (amount) =>
     `환불(${won(amount)})이 끝나면 구독이 해지되고 Free 로 바뀝니다. 그때까지 지금 요금제를 그대로 쓰실 수 있고, 정기결제는 하지 않습니다.`,
@@ -395,6 +415,13 @@ export default function BillingOverviewCanvas({
   onUndoCancel,
   onCancelPeriodEnd,
   onCancelRefund,
+  /**
+   * 고객지원으로 받은 청약철회 요청이 고객의 답을 기다린다 (pivit-work PW-2532).
+   * `{ receivedAt, requesterName, confirmBy, amount, paidTotal }` — 표시용 글자는 앱이 만들어 넘긴다.
+   */
+  coolingOffRequest = null,
+  /** [확정] — 약속을 돌려준다. 거부하면 창을 연 채 둔다. */
+  onConfirmCoolingOff,
   /** 미납(past_due) 구독의 무환불 즉시 해지 (PW-1619). 해지 창이 미납일 때 이것 하나만 보인다. */
   onCancelPastDue,
   /**
@@ -463,6 +490,8 @@ export default function BillingOverviewCanvas({
   const [cancelOpen, setCancelOpen] = useState(false); // 해지 방식 선택 모달
   const [withdrawBusy, setWithdrawBusy] = useState(false);
   const [refundBusy, setRefundBusy] = useState(false);
+  const [coolingOffOpen, setCoolingOffOpen] = useState(false);
+  const [coolingOffBusy, setCoolingOffBusy] = useState(false);
   const priceChangeBodyRef = useRef(null);
   // 해지 신청 창 (PW-2550) — 'request' | 'withdraw' | null
   const [cancelReqModal, setCancelReqModal] = useState(null);
@@ -528,11 +557,25 @@ export default function BillingOverviewCanvas({
       setWithdrawBusy(false);
     }
   };
+  // 청약철회 확정 (PW-2532) — 진행 중엔 다시 못 누르고(환불은 1건), 실패하면 창을 연 채 둔다.
+  const handleConfirmCoolingOff = async () => {
+    if (coolingOffBusy) return;
+    setCoolingOffBusy(true);
+    try {
+      await onConfirmCoolingOff?.();
+      setCoolingOffOpen(false);
+    } catch {
+      /* 앱이 토스트를 띄운다 — 창은 그대로 */
+    } finally {
+      setCoolingOffBusy(false);
+    }
+  };
   const withdrawal = planChange?.withdrawal ?? null;
   // 즉시 해지·환불이 끝나지 않았다 (PW-2476 · overview §2) — 구독은 «구독 중» 그대로, 해지가 이미 요청된 구독이라 해지 예약과
   // 같이 다룬다: [업그레이드]·[좌석·플랜 변경]·[구독 해지]·정가 인상 안내 띠를 그리지 않는다. 업그레이드 철회와 같은 자리다.
   const refundOpen = cancelRefund && (sub.status === 'active' || sub.status === 'past_due') ? cancelRefund : null;
   const holding = Boolean(withdrawal || refundOpen);
+  const coolingOff = coolingOffRequest && sub.status === 'active' && sub.cancelAtPeriodEnd && !refundOpen ? coolingOffRequest : null;
   // Free 요금제는 상태가 «이용 중»으로 와도 청구가 없다 — 다음 청구·결제수단 칸, 해지·좌석 변경을 그리지 않는다
   // (기획 시안의 Free 는 그 칸들이 없다 · overview §2 «다음 청구일» 행 Free 제외 · pivit-work PW-2476).
   const isFree = sub.planCode === 'free';
@@ -685,6 +728,23 @@ export default function BillingOverviewCanvas({
             <div style={{ flex: 'none', whiteSpace: 'nowrap' }}>
               <Btn kind="danger" onClick={onNavigateMethods} disabled={!canEdit}>{labels.arrearsAction}</Btn>
             </div>
+          </Card>
+        )}
+
+        {/* «청약철회를 확정해 주세요» 띠 (pivit-work PW-2532 · overview §4) — 해지 예약 배너 자리 위 · 같은 Card+앰버.
+            [확정]은 결제 권한자만 — 조회 전용은 띠만(다른 편집 버튼의 «비활성» 규칙과 다르다 · 정책 행 그대로) */}
+        {coolingOff && (
+          <Card style={{ marginBottom: 'var(--spacing-xl)', background: T.amberBg, border: '1px solid var(--colors-warning-200)',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--spacing-xl)' }}>
+            <div data-testid="billing-cooling-off-banner">
+              <div style={{ fontWeight: 800, color: T.amber, marginBottom: 'var(--spacing-xs)' }}>{labels.coolingOffTitle}</div>
+              <div style={{ fontSize: 13, color: T.text }}>
+                {labels.coolingOffDesc(coolingOff.receivedAt, coolingOff.confirmBy, coolingOff.amount, coolingOff.paidTotal)}
+              </div>
+            </div>
+            {canEdit && (
+              <Btn kind="secondary" onClick={() => setCoolingOffOpen(true)}>{labels.coolingOffAction}</Btn>
+            )}
           </Card>
         )}
 
@@ -1189,6 +1249,48 @@ export default function BillingOverviewCanvas({
                 </div>
               )}
               </>)}
+            </div>
+          </ModalShell>
+        )}
+
+        {/* 청약철회 확정 창 (pivit-work PW-2532 · cancellation-refund-policy §4.2 ⑤) — 해지 창과 같은 공용 틀 */}
+        {coolingOff && coolingOffOpen && canEdit && (
+          <ModalShell
+            title={labels.coolingOffModalTitle}
+            description={labels.cancelModalSub(plan.label, sub.seats, sub.interval)}
+            titleId="billing-cooling-off-title"
+            closeLabel={labels.close}
+            onClose={() => setCoolingOffOpen(false)}
+            zIndex={1000}
+            className="adm-shell"
+            testId="billing-cooling-off-modal"
+            footer={<>
+              <button type="button" className="tl-group-modal-btn tl-group-modal-btn-secondary"
+                onClick={() => setCoolingOffOpen(false)}>
+                {labels.close}
+              </button>
+              <Btn kind="danger" onClick={() => void handleConfirmCoolingOff()} disabled={coolingOffBusy}>
+                {coolingOffBusy ? labels.refundBusy : labels.coolingOffSubmit(coolingOff.amount)}
+              </Btn>
+            </>}
+          >
+            <div style={{ fontFamily: T.font }}>
+              {[
+                [labels.coolingOffReceivedLabel, coolingOff.receivedAt],
+                [labels.coolingOffRequesterLabel, coolingOff.requesterName],
+                [labels.coolingOffAmountLabel, labels.coolingOffAmountValue(coolingOff.amount, coolingOff.paidTotal)],
+                [labels.coolingOffConfirmByLabel, labels.coolingOffConfirmByValue(coolingOff.confirmBy)],
+              ].map(([k, v]) => (
+                <div key={k} style={{ display: 'flex', gap: 'var(--spacing-lg)', fontSize: 13,
+                  padding: 'var(--spacing-md) 0', borderBottom: `1px solid ${T.border}` }}>
+                  <span style={{ width: 96, flexShrink: 0, color: T.sub }}>{k}</span>
+                  <span style={{ color: T.text }}>{v}</span>
+                </div>
+              ))}
+              <div style={{ fontSize: 12, color: T.sub, background: T.bl, borderRadius: 10,
+                padding: 'var(--spacing-md) var(--spacing-lg)', marginTop: 'var(--spacing-lg)' }}>
+                {labels.coolingOffNote}
+              </div>
             </div>
           </ModalShell>
         )}
