@@ -667,6 +667,8 @@
 .sq-add-dialog { max-height: 100%; }
 .sq-add-body { min-height: 0; }
 .sq-add-list { min-height: 66px; }
+/* 만들기 줄은 눌리지 않는다 — 카드가 낮으면 후보 목록이 대신 줄어 안에서 스크롤한다 */
+.sq-add-body > .sq-proj-add { flex-shrink: 0; }
 .sq-suggest {
   border-bottom: 1px solid var(--border-secondary);
   padding-bottom: 4px;
