@@ -48,29 +48,32 @@ function ProjectPicker({
   const [form, setForm] = useState(null); // { name, description, error }
   const [creating, setCreating] = useState(false);
   const [linkError, setLinkError] = useState('');
+  const [linking, setLinking] = useState(false);
   const mounted = useRef(true);
   useEffect(() => {
     mounted.current = true;
     return () => { mounted.current = false; };
   }, []);
-  // 입력 칸 여백을 눌러 포커스가 창 밖으로 빠져도 Esc 로 닫힌다. 만드는 중에는 닫지 않는다 — 요청은 멈추지 않아 취소된 것처럼 보이면 안 된다
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape' && !creating) onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [creating, onClose]);
+  const nameInput = useRef(null);
+  // 요청 중에는 닫지 않는다 — 요청은 멈추지 않아 취소된 것처럼 보이면 안 된다
+  const busy = creating || linking;
+  const closeIfIdle = () => { if (!busy) onClose(); };
+  // Esc 는 포커스가 창 안에 있어야 듣는다(위에 뜬 다른 창을 함께 닫지 않으려고) — tabIndex 로 여백을 눌러도 창 안에 남긴다
+  const onDialogKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); closeIfIdle(); } };
 
   const q = query.trim().toLowerCase();
   const rows = candidates.filter((p) => q === '' || `${p.name} ${p.description || ''}`.toLowerCase().includes(q));
   const toggle = (id) => setPicked((ps) => (ps.includes(id) ? ps.filter((x) => x !== id) : [...ps, id]));
 
   const commitLink = async () => {
-    if (picked.length === 0) return;
+    if (picked.length === 0 || linking) return;
     setLinkError('');
+    setLinking(true);
     try {
       await onLink(picked);
-      onClose();
+      if (mounted.current) onClose();
     } catch (err) {
+      setLinking(false);
       setLinkError(messageOf(err, L('squad.project.linkFailed')));
     }
   };
@@ -94,6 +97,8 @@ function ProjectPicker({
       // 빈 message = 화면이 이미 토스트로 알렸다(권한 없음·네트워크 §7-11). 입력만 남기고 칸 아래엔 쓰지 않는다
       const message = err instanceof Error && err.message === '' ? '' : messageOf(err, L('squad.project.createFailed'));
       setForm((f) => (f ? { ...f, error: message } : f));
+      // 눌렀던 [만들기]가 잠겨 포커스가 빠졌다 — 다시 고치고 Esc 도 듣게 이름 칸으로 돌린다
+      nameInput.current?.focus();
     }
   };
 
@@ -106,17 +111,19 @@ function ProjectPicker({
     return (
       <div
         className="sq-add-cover" data-testid={`squad-project-picker-${squad.id}`}
-        onClick={(e) => { if (e.target === e.currentTarget && !creating) onClose(); }}
+        onClick={(e) => { if (e.target === e.currentTarget) closeIfIdle(); }}
       >
       <div
         className="sq-add-dialog" role="group" aria-label={L('squad.project.createOpen')}
         data-testid={`squad-project-create-form-${squad.id}`}
+        tabIndex={-1}
+        onKeyDown={onDialogKey}
       >
         <p className="sq-add-title">{L('squad.project.createOpen')}</p>
         <div className="sq-add-body">
           <label className="sq-add-search sq-add-field">
             <input
-              autoFocus value={form.name} maxLength={NAME_MAX}
+              ref={nameInput} autoFocus value={form.name} maxLength={NAME_MAX}
               aria-label={L('squad.project.createName')}
               aria-invalid={form.error ? true : undefined}
               data-testid={`squad-project-create-name-${squad.id}`}
@@ -164,11 +171,12 @@ function ProjectPicker({
   return (
     <div
       className="sq-add-cover" data-testid={`squad-project-picker-${squad.id}`}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={(e) => { if (e.target === e.currentTarget) closeIfIdle(); }}
     >
     <div
       className="sq-add-dialog" role="group" aria-label={L('squad.project.add')}
-      onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } }}
+      tabIndex={-1}
+      onKeyDown={onDialogKey}
     >
       <p className="sq-add-title">{L('squad.project.add')}</p>
       <div className="sq-add-body">
@@ -223,13 +231,14 @@ function ProjectPicker({
       </div>
       {linkError && <div className="sq-proj-error" role="alert">{linkError}</div>}
       <div className="sq-add-actions">
-        <button type="button" className="sq-btn sq-btn-sm sq-btn-outline" onClick={onClose}>
+        <Button className="sq-btn sq-btn-sm sq-btn-outline" disabled={busy} onClick={onClose}>
           {L('squad.project.cancel')}
-        </button>
+        </Button>
         <Button
           className="sq-btn sq-btn-sm sq-btn-primary"
           data-testid={`squad-project-link-${squad.id}`}
           disabled={picked.length === 0}
+          pending={linking}
           onClick={commitLink}
         >{L('squad.project.linkSelected', { count: picked.length })}</Button>
       </div>
