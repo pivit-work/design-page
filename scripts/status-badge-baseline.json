@@ -661,26 +661,6 @@
    "gap": "4px",
    "border": "1px solid var(--border-primary)"
   },
-  "manager.css|.mgr-kr-obj-badge": {
-   "border-radius": "5px",
-   "padding": "2px 8px",
-   "font-size": "11px",
-   "font-weight": "500",
-   "background": "rgba(0, 0, 0, 0.03) / 어두운 화면 rgba(255, 255, 255, 0.03)",
-   "color": "#687079 / 어두운 화면 #cecfd2",
-   "white-space": "nowrap",
-   "flex-shrink": "0"
-  },
-  "manager.css|.mgr-kr-obj-chip": {
-   "border-radius": "6px",
-   "padding": "4px 8px",
-   "background": "transparent",
-   "display": "flex",
-   "gap": "4px",
-   "border": "none",
-   "min-width": "0",
-   "flex": "1 1 0"
-  },
   "manager.css|.mgr-krd-pill": {
    "border-radius": "8px",
    "padding": "1px 5px",
@@ -2124,13 +2104,6 @@
   "eval-cycle.css|.evs-re-grade.seg-top": {
    "background": "#edfcf2 / 어두운 화면 #052e1c",
    "color": "#087443 / 어두운 화면 #73e2a3"
-  },
-  "manager.css|.mgr-kr-obj-chip.is-selected": {
-   "background": "#ffffff / 어두운 화면 #18191b",
-   "box-shadow": "inset 0 0 0 0.5px var(--fg-quaternary), var(--shadows-shadow-md)"
-  },
-  "manager.css|.mgr-kr-obj-chip.is-selected .mgr-kr-obj-title": {
-   "color": "#596069 / 어두운 화면 #ececed"
   },
   "manager.css|.mgr-krd-pill.is-done": {
    "background": "#ecfdf3 / 어두운 화면 #053321",
