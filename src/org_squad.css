@@ -1906,3 +1906,59 @@
   gap: var(--spacing-xs);
   padding: var(--spacing-xl) var(--spacing-3xl);
 }
+
+/* ── 스쿼드 «한눈에» 무대 (pivit-work PW-2607 · 기획 §5-7) ──
+   디자이너 원본이 없다. 판·제목·버튼은 같은 탭의 디자이너 모양을 쓰고 여기는 무대 그림만 둔다.
+   색은 토큰만. 명암은 같은 토큰을 바탕색과 섞어 만든다(새 색 아님). 스쿼드 색은 데이터라 화면 부품이 --iso-c 로 준다. */
+.sq-iso { transition: opacity 0.4s; }
+.sq-iso.is-leaving { opacity: 0; }
+.sq-iso-summary { display: flex; flex-wrap: wrap; gap: var(--spacing-xs); }
+.sq-iso-off { color: var(--text-quaternary); transition: color 0.4s; }
+.sq-iso-panel { position: relative; background: var(--bg-tertiary); }
+.sq-iso-scroll { overflow: auto; max-height: 760px; cursor: grab; user-select: none; }
+.sq-iso-scroll:active { cursor: grabbing; }
+.sq-iso-svg { display: block; margin: 0 auto; }
+.sq-iso-fam-dev { --iso-c: var(--utility-blue-500); }
+.sq-iso-fam-design { --iso-c: var(--utility-purple-500); }
+.sq-iso-fam-pm { --iso-c: var(--utility-brand-500); }
+.sq-iso-fam-biz { --iso-c: var(--utility-orange-500); }
+.sq-iso-fam-ops { --iso-c: var(--utility-gray-500); }
+.sq-iso-fam-none { --iso-c: var(--text-quaternary); }
+.sq-iso-floor { fill: var(--bg-secondary); }
+.sq-iso-floor-front { fill: var(--border-secondary); }
+.sq-iso-floor-side { fill: var(--border-primary); }
+.sq-iso-grid { fill: none; stroke: var(--border-secondary); stroke-width: 1; }
+.sq-iso-slab, .sq-iso-label { transition: transform 0.42s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.38s; pointer-events: none; }
+.sq-iso-label { transition: opacity 0.38s; pointer-events: auto; }
+.sq-iso-slab.is-down { transform: translateY(26px); opacity: 0; }
+.sq-iso-label.is-down { opacity: 0; pointer-events: none; }
+.sq-iso-slab.is-dashed { opacity: 0.75; }
+.sq-iso-slab-top { fill: color-mix(in srgb, var(--iso-c) 6%, var(--bg-primary)); stroke: var(--border-secondary); stroke-width: 1; }
+.sq-iso-slab.is-dashed .sq-iso-slab-top { fill: var(--bg-primary); stroke-dasharray: 5 4; }
+.sq-iso-slab-front { fill: var(--border-secondary); }
+.sq-iso-slab-side { fill: var(--border-primary); }
+.sq-iso-slab-stripe { fill: color-mix(in srgb, var(--iso-c) 70%, var(--bg-primary)); }
+.sq-iso-label-name { font-size: 14px; font-weight: 700; fill: var(--text-primary); paint-order: stroke; stroke: var(--bg-secondary); stroke-width: 4px; stroke-linejoin: round; }
+.sq-iso-label-sub { font-size: 12px; font-weight: 600; fill: var(--text-tertiary); paint-order: stroke; stroke: var(--bg-secondary); stroke-width: 4px; stroke-linejoin: round; }
+.sq-iso-label-dot { fill: var(--iso-c); }
+.sq-iso-star { fill: var(--utility-warning-500); }
+.sq-iso-shadow { fill: var(--bg-overlay); opacity: 0.14; }
+.sq-iso-block { transition: opacity 0.2s; }
+.sq-iso-block.is-clickable { cursor: pointer; }
+.sq-iso-block.is-faded { opacity: 0.45; }
+.sq-iso.is-hovering .sq-iso-block:not(.is-hot) { opacity: 0.2; }
+.sq-iso-block-top { fill: color-mix(in srgb, var(--iso-c) 24%, var(--bg-primary)); }
+.sq-iso-block-front { fill: color-mix(in srgb, var(--iso-c) 55%, var(--bg-primary)); }
+.sq-iso-block-side { fill: color-mix(in srgb, var(--iso-c) 78%, var(--bg-primary)); }
+.sq-iso-tag { fill: var(--bg-primary); stroke: var(--border-secondary); stroke-width: 1; }
+.sq-iso-block.is-hot .sq-iso-tag { stroke: var(--border-brand); }
+.sq-iso-tag-seam { fill: var(--bg-primary); }
+.sq-iso-tag-band { fill: color-mix(in srgb, var(--iso-c) 70%, var(--bg-primary)); }
+.sq-iso-tag-name { font-size: 12px; font-weight: 700; fill: var(--text-primary); }
+.sq-iso-tag-role { font-size: 11px; font-weight: 600; fill: var(--text-brand-secondary, var(--text-secondary)); }
+.sq-iso-tag-line { font-size: 11px; font-weight: 500; fill: var(--text-tertiary); }
+.sq-iso-legend-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-lg); font-size: 12px; line-height: 18px; color: var(--text-tertiary); }
+.sq-iso-legend-title { font-weight: 600; }
+.sq-iso-legend-item { display: inline-flex; align-items: center; gap: var(--spacing-xs); }
+.sq-iso-legend-box { width: 8px; height: 8px; border-radius: 2px; background: color-mix(in srgb, var(--iso-c) 70%, var(--bg-primary)); }
+.sq-iso-hint.is-on { color: var(--text-primary); }
