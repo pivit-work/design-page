@@ -453,7 +453,7 @@ export const INVITE_CSV_DEFAULT_LABELS = {
   csvErrBool: '{column} 칸은 예/아니오로 적어 주세요 — 「{value}」은(는) 읽을 수 없습니다',
   csvErrHours: '{column} 칸은 시간(숫자)으로 적어 주세요 — 「{value}」은(는) 읽을 수 없습니다',
   csvErrSalary: '연봉은 소수점·단위 없는 정수로 적어 주세요',
-  csvErrMoney: '{column} 칸은 소수점·단위 없는 정수로 적어 주세요 — 「{value}」은(는) 읽을 수 없습니다',
+  csvErrMoney: '{column} 칸은 소수점·단위 없는 정수로 적어 주세요',
   csvErrUnknownChoice: "{column} '{value}'은(는) 쓸 수 없는 값이에요 — {choices} 중에서 적어 주세요",
   csvErrContractNeedsStart: '계약 종료일을 적었으면 계약 시작일도 적어 주세요',
   csvErrContractOrder: '계약 종료일이 시작일보다 앞설 수 없어요',
@@ -1114,7 +1114,7 @@ export function inviteCsvIssues(row, ctx) {
     }
     // 금액 칸(타겟 보너스·퇴직연금·초과근무 수당) — 정수·쉼표만. 연봉은 아래에서 따로 본다.
     if (col.kind === 'salary' && col.key !== 'salary' && normalize(v[col.key]) && !isMoneyCellText(v[col.key])) {
-      add(col.key, fmtCsv(l.csvErrMoney, { column: labelOf(col.key), value: v[col.key] }));
+      add(col.key, fmtCsv(l.csvErrMoney, { column: labelOf(col.key) }));
     }
     // 포괄 계약 시간 — 0 이상의 정수(시간).
     if (col.kind === 'hours' && normalize(v[col.key]) && !/^\d+$/.test(normalize(v[col.key]))) {
