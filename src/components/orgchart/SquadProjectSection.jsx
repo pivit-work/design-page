@@ -14,7 +14,7 @@
  *     [지정 후 해제]» 로 그린다. 하는 일(새 主 지정 → 이 스쿼드 연결 해제)은 같다.
  */
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Button from '../shared/Button.jsx';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
 import Radio from '../shared/Radio.jsx';
@@ -48,6 +48,17 @@ function ProjectPicker({
   const [form, setForm] = useState(null); // { name, description, error }
   const [creating, setCreating] = useState(false);
   const [linkError, setLinkError] = useState('');
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
+  // 입력 칸 여백을 눌러 포커스가 창 밖으로 빠져도 Esc 로 닫힌다. 만드는 중에는 닫지 않는다 — 요청은 멈추지 않아 취소된 것처럼 보이면 안 된다
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape' && !creating) onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [creating, onClose]);
 
   const q = query.trim().toLowerCase();
   const rows = candidates.filter((p) => q === '' || `${p.name} ${p.description || ''}`.toLowerCase().includes(q));
@@ -76,7 +87,8 @@ function ProjectPicker({
     setCreating(true);
     try {
       await onCreate({ name, description: form.description.trim() });
-      onClose();
+      // 그사이 다른 카드의 창을 열었으면 그 창을 닫지 않는다
+      if (mounted.current) onClose();
     } catch (err) {
       setCreating(false);
       // 빈 message = 화면이 이미 토스트로 알렸다(권한 없음·네트워크 §7-11). 입력만 남기고 칸 아래엔 쓰지 않는다
@@ -94,12 +106,11 @@ function ProjectPicker({
     return (
       <div
         className="sq-add-cover" data-testid={`squad-project-picker-${squad.id}`}
-        onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+        onClick={(e) => { if (e.target === e.currentTarget && !creating) onClose(); }}
       >
       <div
         className="sq-add-dialog" role="group" aria-label={L('squad.project.createOpen')}
         data-testid={`squad-project-create-form-${squad.id}`}
-        onKeyDown={(e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } }}
       >
         <p className="sq-add-title">{L('squad.project.createOpen')}</p>
         <div className="sq-add-body">
@@ -132,7 +143,7 @@ function ProjectPicker({
           </label>
         </div>
         <div className="sq-add-actions">
-          <Button className="sq-btn sq-btn-sm sq-btn-outline" onClick={() => setForm(null)}>
+          <Button className="sq-btn sq-btn-sm sq-btn-outline" disabled={creating} onClick={() => setForm(null)}>
             {L('squad.project.cancel')}
           </Button>
           <Button
