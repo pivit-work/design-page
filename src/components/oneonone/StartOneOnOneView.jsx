@@ -397,6 +397,8 @@ export default function StartOneOnOneView({
   startLockedLabel = null,
   /** 잠긴 푸터 버튼의 툴팁. 예) 「진행 중인 회의 녹음을 종료하면 시작할 수 있습니다」 */
   startLockedTitle = null,
+  /** 푸터 버튼 줄 바로 위 회색 한 줄 — 팀원의 녹음 선택 (pivit-work PW-2594 · policy §4.1.7-A). 없으면 안 그린다. */
+  footerHint = null,
   /** 푸터 위 안내 배너 본문. 노드로 줘도 된다(강조는 소비처가 <strong> 으로). */
   startLockedNotice = null,
   /** 잠금을 푸는 화면으로 가는 버튼의 라벨. 없으면 버튼을 안 그린다. */
@@ -1155,6 +1157,9 @@ export default function StartOneOnOneView({
               </button>
             )}
           </div>
+        )}
+        {footerHint && (
+          <p className="ono-start-cap-hint ono-rec-consent-slot" data-testid="ono-start-footer-hint">{footerHint}</p>
         )}
         <div className="ono-start-view-footer">
           <button type="button" className="ono-add-modal-btn ono-add-modal-btn-secondary" onClick={onBack}>{L.save}</button>

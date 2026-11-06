@@ -5406,6 +5406,23 @@ button.ono-add-modal-input { cursor: pointer; }
 .ono-my-fill.is-self { background: var(--utility-blue-400); }
 /* 가로 줄(막대 + 숫자) 안에서는 막대가 남는 폭을 채운다 */
 .ono-start-okr-bar-line .ono-my-track { flex: 1 1 0; width: auto; }
+/* PW-2594: 녹음 안내 보조 줄 — 칸 보조 글(`.ono-my-field-aux`)은 한 줄 고정이라 긴 문장이 넘치지 않게 푼다. */
+.ono-my-field-aux.ono-rec-consent-line {
+  margin: 0;
+  white-space: normal;
+}
+/* 카드 바로 아래 자식이다 — 바닥 버튼 줄(`.ono-start-view-footer`)과 같은 폭·왼쪽 선에 선다.
+   매니저 카드는 폭을 묶지 않고, 팀원 카드(`.ono-my-view`)는 720 으로 묶는다.
+   옆·아래 여백 48 — 본문이 바닥 선과 띄우는 값과 같다. */
+.ono-rec-consent-slot {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0 calc(var(--spacing-5xl) + var(--spacing-md)) calc(var(--spacing-5xl) + var(--spacing-md));
+}
+.ono-my-view .ono-rec-consent-slot {
+  max-width: 720px;
+  margin: 0 auto;
+}
 .ono-my-section-head {
   display: flex;
   align-items: flex-start;
