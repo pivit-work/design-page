@@ -242,6 +242,8 @@ export default function SquadCanvas({
   onLinkProjects,
   /** 새 프로젝트 만들기 — `(squadId, { name, description }) => Promise`. 거절되면 `error.message` 를 폼에 띄우고 열어 둔다. */
   onCreateProject,
+  /** 붙이기·만들기가 실패했는데 그사이 추가 창이 닫혀 창 안에 쓸 수 없을 때 — `(message) => void`. */
+  onProjectDetachedError,
   /** 主 지정 — `(projectId, squadId) => Promise`. 실패는 호스트가 `actionError` 로 알린다. */
   onSetPrimarySquad,
   /**
@@ -1449,6 +1451,7 @@ export default function SquadCanvas({
                           onOpenProject={onOpenProject}
                           onLinkProjects={onLinkProjects}
                           onCreateProject={onCreateProject}
+                          onDetachedError={onProjectDetachedError}
                           onSetPrimarySquad={onSetPrimarySquad}
                           onUnlinkProject={onUnlinkProject}
                         />

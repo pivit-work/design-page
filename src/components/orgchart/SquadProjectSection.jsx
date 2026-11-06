@@ -40,7 +40,7 @@ function messageOf(err, fallback) {
  */
 function ProjectPicker({
   squad, candidates, linkCountOf, canCreate, existingNames,
-  onLink, onCreate, onClose,
+  onLink, onCreate, onClose, onDetachedError,
 }) {
   const L = useOrgLabels();
   const [query, setQuery] = useState('');
@@ -79,9 +79,12 @@ function ProjectPicker({
       await onLink(picked);
       if (mounted.current) onClose();
     } catch (err) {
+      const message = messageOf(err, L('squad.project.linkFailed'));
+      // 그사이 편집을 끄거나 다른 카드로 옮겨 이 창이 없다 — 창 안에 쓸 수 없으니 화면이 알린다
+      if (!mounted.current) { onDetachedError?.(message); return; }
       setLinking(false);
       refocus(dialogRef.current);
-      setLinkError(messageOf(err, L('squad.project.linkFailed')));
+      setLinkError(message);
     }
   };
 
@@ -100,9 +103,10 @@ function ProjectPicker({
       // 그사이 다른 카드의 창을 열었으면 그 창을 닫지 않는다
       if (mounted.current) onClose();
     } catch (err) {
-      setCreating(false);
       // 빈 message = 화면이 이미 토스트로 알렸다(권한 없음·네트워크 §7-11). 입력만 남기고 칸 아래엔 쓰지 않는다
       const message = err instanceof Error && err.message === '' ? '' : messageOf(err, L('squad.project.createFailed'));
+      if (!mounted.current) { if (message) onDetachedError?.(message); return; }
+      setCreating(false);
       setForm((f) => (f ? { ...f, error: message } : f));
       // 눌렀던 [만들기]가 잠겨 포커스가 빠졌다 — 다시 고치고 Esc 도 듣게 이름 칸으로 돌린다
       refocus(nameInput.current);
@@ -339,6 +343,7 @@ export default function SquadProjectSection({
   onOpenProject,
   onLinkProjects,
   onCreateProject,
+  onDetachedError,
   onSetPrimarySquad,
   onUnlinkProject,
 }) {
@@ -454,6 +459,7 @@ export default function SquadProjectSection({
             onLink={(ids) => onLinkProjects(squad.id, ids)}
             onCreate={(payload) => onCreateProject(squad.id, payload)}
             onClose={onClosePicker}
+            onDetachedError={onDetachedError}
           />
         )}
       </div>
