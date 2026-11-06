@@ -21,6 +21,14 @@ import { emailOk, jobPairIssue, nameHasEmail, normEmail, seenLeaderIdsOf } from 
 import { resolveKoreanParticles } from '../shared/koreanParticle.js';
 
 /**
+ * 금액 칸 — 정수와 세 자리 쉼표만 받는다. 서버 `normalizeSalary`(hr-cell.util)와 같은 판정 (pivit-work PW-1998).
+ * 글자를 지우고 남은 숫자로 읽으면 `85000.50` 이 8,500,050 이 된다.
+ */
+export function isMoneyCellText(text) {
+  return /^(\d+|\d{1,3}(,\d{3})+)$/.test(String(text ?? '').trim());
+}
+
+/**
  * 어드민 창 CSV 1회 상한(§1). 서버 `BulkInviteDto` 의 `@ArrayMaxSize(500)` 과 같은 값이며,
  * 서버는 최종 방어로 그대로 남는다. 온보딩은 200 이다(기획서 탭 4) — `parseInviteCsv` 의
  * `maxRows` 로 넘긴다.
@@ -444,8 +452,8 @@ export const INVITE_CSV_DEFAULT_LABELS = {
   csvErrFte: 'FTE 는 1~100 사이 정수로 적어 주세요',
   csvErrBool: '{column} 칸은 예/아니오로 적어 주세요 — 「{value}」은(는) 읽을 수 없습니다',
   csvErrHours: '{column} 칸은 시간(숫자)으로 적어 주세요 — 「{value}」은(는) 읽을 수 없습니다',
-  csvErrSalary: '연봉은 숫자로 적어 주세요',
-  csvErrMoney: '{column} 칸은 금액(숫자)으로 적어 주세요 — 「{value}」은(는) 읽을 수 없습니다',
+  csvErrSalary: '연봉은 소수점·단위 없는 정수로 적어 주세요',
+  csvErrMoney: '{column} 칸은 소수점·단위 없는 정수로 적어 주세요 — 「{value}」은(는) 읽을 수 없습니다',
   csvErrUnknownChoice: "{column} '{value}'은(는) 쓸 수 없는 값이에요 — {choices} 중에서 적어 주세요",
   csvErrContractNeedsStart: '계약 종료일을 적었으면 계약 시작일도 적어 주세요',
   csvErrContractOrder: '계약 종료일이 시작일보다 앞설 수 없어요',
@@ -1104,8 +1112,8 @@ export function inviteCsvIssues(row, ctx) {
     if (col.kind === 'bool' && normalize(v[col.key]) && parseBoolCell(v[col.key]) === null) {
       add(col.key, fmtCsv(l.csvErrBool, { column: labelOf(col.key), value: v[col.key] }));
     }
-    // 금액 칸(타겟 보너스·퇴직연금·초과근무 수당) — 숫자가 하나는 있어야 한다. 연봉은 아래에서 따로 본다.
-    if (col.kind === 'salary' && col.key !== 'salary' && normalize(v[col.key]) && !/\d/.test(v[col.key])) {
+    // 금액 칸(타겟 보너스·퇴직연금·초과근무 수당) — 정수·쉼표만. 연봉은 아래에서 따로 본다.
+    if (col.kind === 'salary' && col.key !== 'salary' && normalize(v[col.key]) && !isMoneyCellText(v[col.key])) {
       add(col.key, fmtCsv(l.csvErrMoney, { column: labelOf(col.key), value: v[col.key] }));
     }
     // 포괄 계약 시간 — 0 이상의 정수(시간).
@@ -1167,7 +1175,7 @@ export function inviteCsvIssues(row, ctx) {
   const fte = normalize(v.ftePercent);
   // 발령·구성원 편집·CSV 업로드와 같은 1~100 — 0 을 받으면 가입 뒤 FTE 0 으로 저장됐다(PW-2103).
   if (fte && !(/^\d+$/.test(fte) && Number(fte) >= 1 && Number(fte) <= 100)) add('ftePercent', fmtCsv(l.csvErrFte, { value: fte }));
-  if (normalize(v.salary) && !/\d/.test(v.salary)) add('salary', l.csvErrSalary);
+  if (normalize(v.salary) && !isMoneyCellText(v.salary)) add('salary', l.csvErrSalary);
 
   // 계약 기간 — 시작일이 있어야 보상 이력의 행이 선다(서버와 같은 규칙).
   const cStart = normalize(v.contractStartDate);

@@ -23,6 +23,7 @@ import RosterTable from '../shared/RosterTable.jsx';
 import { AlertTriangleGlyph, CheckGlyph, CloseGlyph, CrownGlyph, PlusGlyph } from '../shared/lineIcons.jsx';
 import LoadingState from '../shared/LoadingState.jsx';
 import Select from '../shared/Select.jsx';
+import { isMoneyCellText } from './inviteCsv.js';
 import { resolveKoreanParticles } from '../shared/koreanParticle.js';
 
 /* 시트에서 함께 옮겨 온 토큰 — 이 폴더의 다른 캔버스와 같은 값이다. */
@@ -1785,7 +1786,8 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
   const isContract = form.compensationType === 'contract';
   const isPeriod = COMP_PERIOD_TYPES.has(form.compensationType);
   const endBeforeStart = isPeriod && form.effectiveEndDate && form.effectiveDate && form.effectiveEndDate < form.effectiveDate;
-  const canSubmit = form.effectiveDate && (form.amount || isContract) && !endBeforeStart && !busy;
+  const amountInvalid = form.amount.trim() !== '' && !isMoneyCellText(form.amount);
+  const canSubmit = form.effectiveDate && (form.amount.trim() || isContract) && !amountInvalid && !endBeforeStart && !busy;
   const currencyOf = (h) => h.currency || defaultCurrency;
   // 통화가 섞이면 합산하지 않는다 — 통화마다 한 줄 (admin-spec §3.2.4 · 환산 환율을 저장하지 않는다).
   const totals = [];
@@ -2045,7 +2047,8 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
                 inputMode="numeric"
                 placeholder={L.salaryHistAmountPh || '금액'}
                 value={form.amount}
-                onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value.replace(/[^0-9]/g, '') }))}
+                aria-invalid={amountInvalid || undefined}
+                onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
               />
             </div>
             <div className="admin-emp-field">
@@ -2082,6 +2085,9 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
               {editingId ? (L.hrRecordSave || '저장') : (L.salaryHistAddBtn || '추가')}
             </button>
           </div>
+          {amountInvalid && (
+            <div className="admin-emp-sal-error" role="alert">{L.salaryHistAmountInvalid || '금액은 소수점·단위 없는 정수로 적어 주세요.'}</div>
+          )}
           {endBeforeStart && (
             <div className="admin-emp-sal-error" role="alert">{L.salaryHistEndBeforeStart || '종료일이 시작일보다 앞설 수 없습니다.'}</div>
           )}
