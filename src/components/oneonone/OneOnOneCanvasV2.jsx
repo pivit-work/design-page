@@ -195,6 +195,8 @@ export default function OneOnOneCanvasV2({
   const [addOpen, setAddOpen] = useState(false);
   // "1on1 잡기" 버튼이 눌린 멤버 — null 이면 예약 모달 닫힘.
   const [scheduleMember, setScheduleMember] = useState(null);
+  // 그 창의 «언제» 처음 값 — 카드 [바로 시작]만 'now' 로 연다 (PW-2593).
+  const [scheduleWhen, setScheduleWhen] = useState('later');
   // "1on1 진행" 버튼이 눌린 멤버 — null 이면 대시보드, 객체면 진행 준비 뷰.
   const [startMember, setStartMember] = useState(null);
   // 카드 본문 클릭으로 여는 완료된 1on1 상세(열람모드) 모달 — Figma 17413:26357.
@@ -215,10 +217,14 @@ export default function OneOnOneCanvasV2({
     setAddOpen(true);
   };
   // 멤버 카드의 액션 버튼 클릭 핸들러.
-  //   'book' → 예약 모달, 'start' → 외부 핸들러 우선, 그 외 → 데이터 onClick.
+  //   'book' → 예약 모달, 'startNow' → 같은 모달을 «지금 바로»로, 'start' → 외부 핸들러 우선, 그 외 → 데이터 onClick.
   const handleMemberAction = (m, action) => {
     const kind = resolveActionKind(action);
-    if (kind === 'book') { setScheduleMember(m); return; }
+    if (kind === 'book' || kind === 'startNow') {
+      setScheduleWhen(kind === 'startNow' ? 'now' : 'later');
+      setScheduleMember(m);
+      return;
+    }
     if (kind === 'start') {
       if (!setupDone && managerCandidates?.length) {
         setPendingStart(m);
@@ -309,10 +315,11 @@ export default function OneOnOneCanvasV2({
             startNow={scheduleStartNow}
           />
 
-          {/* 멤버 카드 "1on1 잡기" → 멤버 고정 예약 모달 */}
+          {/* 멤버 카드 "1on1 잡기"·"바로 시작" → 멤버 고정 예약 모달 */}
           <AddOneOnOneModal
-            key={`book-${scheduleMember ? scheduleMember.name : ''}`}
+            key={`book-${scheduleMember ? scheduleMember.name : ''}-${scheduleWhen}`}
             open={!!scheduleMember}
+            initialWhen={scheduleWhen}
             member={scheduleMember}
             onClose={() => setScheduleMember(null)}
             onSubmit={async (data) => {

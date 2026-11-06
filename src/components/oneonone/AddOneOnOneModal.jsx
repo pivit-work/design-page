@@ -64,6 +64,7 @@ import { fill } from './sessionHelpers.js';
  *   «지금 바로»면 날짜·시간 칸이 빠지고 버튼이 «바로 시작 (N분)»이다. onSubmit 에 `when`
  *   ('now'|'later')·`upcomingAction`('start'|'pull'|'separate'|null)·`upcomingId` 가 더 실린다.
  *   시각은 싣지 않는다 — 서버가 자기 지금으로 잡는다(호스트 몫).
+ *   - initialWhen: «언제»의 처음 값. 카드 [바로 시작]이 'now' 로 연다 (PW-2593). `startNow` 가 없으면 무시한다.
  *
  * 창은 공용 창 틀(ModalShell)로 그린다 (PW-836). 닫혀 있는 동안에는 틀을 그리지 않지만,
  * 입력 상태는 이 컴포넌트가 들고 있어 종전처럼 열고 닫아도 남는다(새로 잡으려면 `key`).
@@ -200,7 +201,7 @@ function weekdayLabels(locale) {
 // 상세(열람모드) 모달도 같은 시간 옵션·데이트피커를 쓴다 — export 해 공유.
 export const TIME_OPTIONS = TIME_SLOTS.map((slot) => formatTime(slot));
 
-export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, member, icons, baseUrl = '', members, defaultDate, defaultTime, locale = 'ko', labels, startNow }) {
+export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, member, icons, baseUrl = '', members, defaultDate, defaultTime, locale = 'ko', labels, startNow, initialWhen = 'later' }) {
   const L = { ...DEFAULT_LABELS, ...(labels || {}) };
   const memberList = useMemo(
     () => (Array.isArray(members) ? members : DEMO_MEMBERS).map(toMemberOption),
@@ -240,7 +241,7 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
   }, [submitError]);
 
   /* «언제» (PW-2592) — 기본은 «예약»이라 종전에 쓰던 사람에게 바뀌는 것이 없다. */
-  const [when, setWhen] = useState('later');
+  const [when, setWhen] = useState(initialWhen);
   const [upcomingChoice, setUpcomingChoice] = useState('pull');
 
   const canSubmit = !!member || pickedId != null;
