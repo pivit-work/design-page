@@ -25,7 +25,7 @@ import { resolveKoreanParticles } from '../shared/koreanParticle.js';
  * 글자를 지우고 남은 숫자로 읽으면 `85000.50` 이 8,500,050 이 된다.
  */
 export function isMoneyCellText(text) {
-  return /^(\d+|\d{1,3}(,\d{3})+)$/.test(String(text ?? '').trim());
+  return /^(\d+|[1-9]\d{0,2}(,\d{3})+)$/.test(String(text ?? '').trim());
 }
 
 /**

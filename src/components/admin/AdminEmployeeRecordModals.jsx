@@ -1616,7 +1616,7 @@ function HrBenefitsSection({ memberId, labels, onLoad, onSave }) {
   const removeOther = (i) => { setDraft((p) => ({ ...p, otherBenefits: p.otherBenefits.filter((_, j) => j !== i) })); setState('idle'); };
 
   const dirty = draft !== null && JSON.stringify(draft) !== JSON.stringify(base);
-  const pensionBad = d.pensionContribution !== '' && !/^\d+$/.test(String(d.pensionContribution).replace(/,/g, ''));
+  const pensionBad = d.pensionContribution !== '' && !isMoneyCellText(d.pensionContribution);
 
   const save = () => {
     setState('saving');
@@ -1662,7 +1662,7 @@ function HrBenefitsSection({ memberId, labels, onLoad, onSave }) {
             <HrEditPair k={L.hrInsurancePlanType || '보험 플랜 유형'} value={d.planType} onChange={set('planType')} />
             <HrEditPair k={L.hrPensionContribution || '퇴직연금 기여금'} value={d.pensionContribution} onChange={set('pensionContribution')} />
             {pensionBad && (
-              <div style={{ fontSize: 11, color: '#DC2626', padding: '2px 0 0 96px' }} role="alert">{L.hrPensionContributionInvalid || '금액(숫자)으로 적어 주세요.'}</div>
+              <div style={{ fontSize: 11, color: '#DC2626', padding: '2px 0 0 96px' }} role="alert">{L.hrPensionContributionInvalid || '금액은 소수점·단위 없는 정수로 적어 주세요.'}</div>
             )}
             <HrEditPair k={L.hrStockOptions || '주식 옵션'} value={d.stockOptions} onChange={set('stockOptions')} />
             <div style={{ display: 'flex', gap: 8, fontSize: 12, padding: '3px 0', alignItems: 'flex-start' }}>
