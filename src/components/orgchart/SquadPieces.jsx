@@ -99,12 +99,15 @@ export function ShareBar({ rows, allotted, colorOf, height = 12 }) {
               key={r.userId}
               color={c}
               size="lg"
-              // 캐파 미설정은 범례와 같이 «미설정» — 0% 로 쓰면 «캐파를 안 쓴다»로 읽힌다
-              content={L('squad.tip.segment', {
-                name: r.label,
-                share: r.share,
-                capacity: r.capacityUnset ? L('squad.tip.capacityUnsetShort') : `${r.pct}%`,
-              })}
+              // 캐파 미설정은 범례와 같이 «미설정» — 0% 로 쓰면 «캐파를 안 쓴다»로 읽힌다.
+              // 여러 사람을 합친 조각은 한 사람의 값이 아니라 캐파를 붙이지 않는다(§5-3.4)
+              content={r.merged
+                ? L('squad.tip.segmentMerged', { name: r.label, share: r.share })
+                : L('squad.tip.segment', {
+                  name: r.label,
+                  share: r.share,
+                  capacity: r.capacityUnset ? L('squad.tip.capacityUnsetShort') : `${r.pct}%`,
+                })}
             >
             <div
               className="sq-share-seg"
@@ -419,7 +422,7 @@ export function SquadAssignPopover({
             </div>
             <ShareBar
               rows={[
-                { userId: 'others', label: L('squad.pop.otherMembers'), share: othersShare, pct: 0 },
+                { userId: 'others', label: L('squad.pop.otherMembers'), share: othersShare, pct: 0, merged: true },
                 { userId: assignment.userId, label: personName, share: sharePct, pct: assignment.allocationPct, capacityUnset },
               ]}
               allotted={allotted}

@@ -241,7 +241,8 @@ export const ORGCHART_LABELS = {
   // ── 스쿼드: 마우스를 올리면 뜨는 설명 ──
   'squad.tip.memberSummary': '{{name}} — 스쿼드 내 비중 {{share}}% · 개인 캐파 사용 {{capacity}}',
   // 카드 진행률 막대 조각 말풍선(Figma 17765:40618) — 조각 색 바탕에 한 줄
-  'squad.tip.segment': '{{name}} 스쿼드 내 비중 {{share}}%  •  내 캐파 사용 {{capacity}}',
+  'squad.tip.segment': '{{name}} 스쿼드 내 비중 {{share}}%  •  개인 캐파 사용 {{capacity}}',
+  'squad.tip.segmentMerged': '{{name}} 합계 — 스쿼드 내 비중 {{share}}%',
   'squad.tip.leadSuffix': ' · 리드',
   'squad.tip.capacityUnset': '미설정 — 합계에서 제외됨',
   'squad.tip.capacityUnsetShort': '미설정',
@@ -464,6 +465,7 @@ export const ORGCHART_LABELS = {
   'squad.project.search': '프로젝트 검색',
   'squad.project.linkCount': '연결 {{count}}개',
   'squad.project.noCandidates': '추가할 수 있는 프로젝트가 없습니다',
+  'squad.project.askAdmin': '어드민에게 프로젝트 생성을 요청하세요',
   'squad.project.createOpen': '새 프로젝트 만들기',
   'squad.project.createName': '새 프로젝트명',
   'squad.project.createDesc': '한 줄 설명 (선택)',
