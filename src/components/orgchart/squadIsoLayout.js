@@ -165,10 +165,13 @@ export function isoScene({ squads, people }) {
  * 글자가 칸을 넘으면 말줄임 — 한글은 글자 크기만큼, 영문·숫자는 대문자는 0.72배, 그 밖은 0.58배로 어림한다(기획서 엣지 85).
  * 이름표 폭은 늘리지 않는다 — 늘리면 옆 칸 이름표와 겹친다.
  */
+const glyphPx = (ch, fontPx) => (/[ㄱ-힣\u3040-\u30ff\u4e00-\u9fff]/.test(ch) ? fontPx : fontPx * (/[A-Z]/.test(ch) ? 0.72 : 0.58));
+export const isoTextPx = (text, fontPx) => [...String(text || '')].reduce((a, ch) => a + glyphPx(ch, fontPx), 0);
+
 export function isoFit(text, maxPx, fontPx) {
   let w = 0; let out = '';
   for (const ch of String(text || '')) {
-    const cw = /[ㄱ-힣\u3040-\u30ff\u4e00-\u9fff]/.test(ch) ? fontPx : fontPx * (/[A-Z]/.test(ch) ? 0.72 : 0.58);
+    const cw = glyphPx(ch, fontPx);
     if (w + cw > maxPx) return `${out}…`;
     w += cw; out += ch;
   }

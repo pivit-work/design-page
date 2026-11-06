@@ -284,7 +284,7 @@ export const ORGCHART_LABELS = {
   'squad.iso.family.biz': '마케팅·영업',
   'squad.iso.family.ops': '경영지원',
   'squad.iso.family.none': '미지정',
-  'squad.iso.hint': '★ = 조직장(팀 = 팀장 · 스쿼드 = 리드) · 이름표 둘째 줄 = 팀에서는 직함, 스쿼드에서는 주 소속 팀 · 여러 스쿼드면 블록이 나뉜다 · 점선 판 = 스쿼드 없음 · 끌어서 옮기기',
+  'squad.iso.hint': '별 = 조직장(팀 = 팀장 · 스쿼드 = 리드) · 이름표 둘째 줄 = 팀에서는 직함, 스쿼드에서는 주 소속 팀 · 여러 스쿼드면 블록이 나뉜다 · 점선 판 = 스쿼드 없음 · 끌어서 옮기기',
   'squad.iso.hoverSquads': '스쿼드 {{count}}개 ({{names}})',
   'squad.iso.hoverNoSquad': '스쿼드 0개',
   'squad.graph.title': '스쿼드 연결 그림',

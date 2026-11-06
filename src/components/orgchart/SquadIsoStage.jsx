@@ -12,6 +12,7 @@ import Button from '../shared/Button.jsx';
 import { isEnterKey } from '../shared/enterKey.js';
 import { MinusGlyph, PlusGlyph } from '../shared/lineIcons.jsx';
 import { useOrgLabels } from './orgchart-labels.jsx';
+import { LeadStarIcon } from './squadIcons.jsx';
 import {
   ISO,
   ISO_FAMILIES,
@@ -24,6 +25,7 @@ import {
   isoPoint,
   isoPoints,
   isoScene,
+  isoTextPx,
 } from './squadIsoLayout.js';
 
 const clamp01 = (v) => Math.max(0, Math.min(1, v));
@@ -79,8 +81,9 @@ function SlabLabel({ s, id, up, name, role, headName, unsetLabel, sub, family, c
   const head = headName || unsetLabel;
   const prefix = role ? `${role} ` : '';
   const suffix = `${role ? ' · ' : ''}${sub}`;
-  const suffixPx = [...`${prefix}${suffix}`].reduce((a, c) => a + (/[ㄱ-힣]/.test(c) ? 12 : 7.5), 0);
+  const suffixPx = isoTextPx(`${prefix}${suffix}`, 12);
   const fittedHead = role ? isoFit(head, Math.max(56, s.w - suffixPx - 20), 12) : '';
+  const subLine = isoFit(`${prefix}${fittedHead}${suffix}`, s.w - 20, 12);
   return (
     <g className={`sq-iso-label${up ? '' : ' is-down'}`} data-iso-label={id} transform={`matrix(${ISO.cos} ${ISO.sin} 0 1 ${lx.toFixed(1)} ${ly.toFixed(1)})`}>
       <title>{`${name}${role ? ` · ${prefix}${head}` : ''} · ${sub}`}</title>
@@ -88,9 +91,13 @@ function SlabLabel({ s, id, up, name, role, headName, unsetLabel, sub, family, c
         <tspan className={`sq-iso-label-dot ${famClass(family)}`} style={color ? { '--iso-c': color } : undefined}>{'● '}</tspan>
         {isoFit(name, s.w - 20, 14)}
       </text>
+      {role && (
+        <g className="sq-iso-star" transform={`translate(${(-isoTextPx(subLine, 12) / 2 - 16).toFixed(1)} 25)`}>
+          <LeadStarIcon size={12} />
+        </g>
+      )}
       <text className="sq-iso-label-sub" x={0} y={35} textAnchor="middle">
-        {role && <tspan className="sq-iso-star">{'★ '}</tspan>}
-        {isoFit(`${prefix}${fittedHead}${suffix}`, s.w - 20, 12)}
+        {subLine}
       </text>
     </g>
   );
@@ -102,7 +109,7 @@ const Block = memo(function Block({ tk, transform, isHead, role, line1, line2, t
   const bh = isHead ? ISO.blockH * ISO.headRatio : ISO.blockH;
   const W = ISO.tagW; const H = ISO.tagH;
   const cy = -bh - H2 - 9 - H; // 이름표 윗변 — 블록 꼭대기 위 9px(꼭지 자리)
-  const nameMax = W - (isHead ? 50 : 14);
+  const nameMax = W - (isHead ? 56 : 14);
   return (
     <g
       className={`sq-iso-block ${famClass(tk.person.jobFamilyGroup)}${hot ? ' is-hot' : ''}${faded ? ' is-faded' : ''}${clickable ? ' is-clickable' : ''}`}
@@ -121,8 +128,12 @@ const Block = memo(function Block({ tk, transform, isHead, role, line1, line2, t
       <rect className="sq-iso-tag" x={-W / 2} y={cy} width={W} height={H} rx={6} />
       <rect className="sq-iso-tag-seam" x={-5} y={cy + H - 2} width={10} height={3} />
       <rect className="sq-iso-tag-band" x={-W / 2} y={cy} width={3} height={H} rx={1.5} />
-      <text className="sq-iso-tag-name" x={-W / 2 + 9} y={cy + 14}>
-        {isHead && <tspan className="sq-iso-star">★</tspan>}
+      {isHead && (
+        <g className="sq-iso-star" transform={`translate(${-W / 2 + 7} ${cy + 4})`}>
+          <LeadStarIcon size={12} />
+        </g>
+      )}
+      <text className="sq-iso-tag-name" x={-W / 2 + (isHead ? 20 : 9)} y={cy + 14}>
         {isoFit(line1, nameMax, 12)}
         {isHead && <tspan className="sq-iso-tag-role">{` · ${role}`}</tspan>}
       </text>
