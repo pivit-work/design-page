@@ -1,3 +1,4 @@
+import Button from './Button.jsx';
 import { createPortal } from 'react-dom';
 
 /**
@@ -86,15 +87,14 @@ export default function ConfirmModal({
             </button>
           )}
           {extraLabel && (
-            <button
-              type="button"
+            <Button
               className="pw-confirm-btn is-ghost"
               data-testid={extraTestId}
               onClick={onExtra}
               disabled={busy}
             >
               {extraLabel}
-            </button>
+            </Button>
           )}
           <button
             type="button"
