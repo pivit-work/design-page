@@ -173,7 +173,12 @@ export default function KrDrilldown({
                 <Button
                   className="mgr-kr-obj-more"
                   aria-expanded={objectivesOpen}
-                  onClick={() => setObjectivesOpenFor(objectivesOpen ? null : firstObjectiveId)}
+                  onClick={(e) => {
+                    const button = e.currentTarget;
+                    setObjectivesOpenFor(objectivesOpen ? null : firstObjectiveId);
+                    // 줄 높이가 크게 바뀌어도 누른 버튼이 화면 밖으로 나가지 않게 — 다시 그린 뒤에 맞춘다.
+                    requestAnimationFrame(() => button.scrollIntoView?.({ block: 'nearest' }));
+                  }}
                 >
                   {objectivesOpen
                     ? l.objectiveLess
