@@ -1,3 +1,4 @@
+import Button from '../shared/Button.jsx';
 import EmptyState from '../shared/EmptyState.jsx';
 import assetUrl from '../shared/assetUrl.js';
 
@@ -14,9 +15,9 @@ export default function ManagerTeamEmpty({ teamEmpty, baseUrl = '' }) {
       icon={<img className="manager-team-empty-paper" src={assetUrl(baseUrl, 'paper-empty.svg')} alt="" />}
       actions={
         teamEmpty.actionLabel ? (
-          <button type="button" className="manager-team-empty-action" onClick={teamEmpty.onAction}>
+          <Button className="manager-team-empty-action" onClick={teamEmpty.onAction}>
             {teamEmpty.actionLabel}
-          </button>
+          </Button>
         ) : null
       }
     >
