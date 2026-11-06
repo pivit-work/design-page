@@ -1,6 +1,4 @@
 import { useState } from 'react';
-import EmptyState from '../shared/EmptyState.jsx';
-import assetUrl from '../shared/assetUrl.js';
 import SummaryCard from './SummaryCard.jsx';
 import StatTile from './StatTile.jsx';
 import SectionHeading from './SectionHeading.jsx';
@@ -9,6 +7,7 @@ import ProgressiveItems from '../shared/ProgressiveItems.jsx';
 import ProfileModal from './ProfileModal.jsx';
 import KrDrilldown from './KrDrilldown.jsx';
 import TeamSnippets from './TeamSnippets.jsx';
+import ManagerTeamEmpty from './ManagerTeamEmpty.jsx';
 
 /**
  * 매니저 페이지 Pure 컴포넌트.
@@ -205,23 +204,7 @@ export default function ManagerCanvas({
           0명의 사유는 화면에서 한 번만 말한다. */}
       {teamEmpty && (
         <section className="manager-section manager-team-empty-section">
-          {/* 모양은 디자이너가 1on1 대시보드에 그린 「팀원 0명」 안내(.ono-team-empty, 9f454350) 그대로 —
-              종이 그림 + 제목 + 설명 + 글자 버튼. 클래스 이름은 소비자 테스트가 찾으므로 남긴다. */}
-          <EmptyState
-            className="manager-team-empty"
-            data-testid="manager-team-empty"
-            icon={<img className="manager-team-empty-paper" src={assetUrl(baseUrl, 'paper-empty.svg')} alt="" />}
-            actions={
-              teamEmpty.actionLabel ? (
-                <button type="button" className="manager-team-empty-action" onClick={teamEmpty.onAction}>
-                  {teamEmpty.actionLabel}
-                </button>
-              ) : null
-            }
-          >
-            <p className="dp-empty__title manager-team-empty-title">{teamEmpty.title}</p>
-            <p className="dp-empty__desc manager-team-empty-desc">{teamEmpty.description}</p>
-          </EmptyState>
+          <ManagerTeamEmpty teamEmpty={teamEmpty} baseUrl={baseUrl} />
         </section>
       )}
 

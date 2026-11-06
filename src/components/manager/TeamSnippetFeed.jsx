@@ -3,6 +3,7 @@ import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
 import Tabs from '../shared/Tabs.jsx';
 import { isEnterKey } from '../shared/enterKey.js';
+import ManagerTeamEmpty from './ManagerTeamEmpty.jsx';
 
 /**
  * TeamSnippetFeed — 팀 스니핏 우측 피드 패널 (날짜별/KR별 서브탭).
@@ -35,6 +36,7 @@ import { isEnterKey } from '../shared/enterKey.js';
  * 읽기 전용으로 연다(pivit-work PW-1251 · QA TC-MGR-005). 안 넘기면 카드는 눌리지 않는다(종전 그대로).
  * [1on1 제안] 을 눌렀을 때는 부르지 않는다.
  *
+ * teamEmpty: 담당 팀원이 0명일 때 피드 자리에 그리는 팀 레벨 빈 상태(`ManagerTeamEmpty`). 넘기면 emptyLabel 대신 그린다.
  * emptyLabel: 걸러진 결과가 0건일 때 피드 안에 띄우는 문구(매니저 시안 「해당하는 스니핏이
  * 없습니다」). 안 넘기면 아무것도 그리지 않는다 — 조회 실패 중에는 「없다」고 말하면 안 된다.
  */
@@ -64,7 +66,7 @@ const openProps = (onOpen, item) =>
 const matchesMember = (item, memberFilter) =>
   !memberFilter || item.memberId === memberFilter || item.member === memberFilter;
 
-export default function TeamSnippetFeed({ byDate, byKr, memberFilter, memberFilterLabel, redFlagOnly, onClearMember, onClearRedFlag, onOneOnOne, onOpenSnippet, icons, baseUrl = '', emptyLabel, emptyTestId }) {
+export default function TeamSnippetFeed({ teamEmpty, byDate, byKr, memberFilter, memberFilterLabel, redFlagOnly, onClearMember, onClearRedFlag, onOneOnOne, onOpenSnippet, icons, baseUrl = '', emptyLabel, emptyTestId }) {
   const [tab, setTab] = useState('date');
 
   const dateGroups = byDate
@@ -114,7 +116,9 @@ export default function TeamSnippetFeed({ byDate, byKr, memberFilter, memberFilt
         </div>
       )}
 
-      {emptyLabel && filterCount === 0 && (
+      {teamEmpty && <ManagerTeamEmpty teamEmpty={teamEmpty} baseUrl={baseUrl} />}
+
+      {!teamEmpty && emptyLabel && filterCount === 0 && (
         <p className="mgr-ts-empty" data-testid={emptyTestId}>{emptyLabel}</p>
       )}
 

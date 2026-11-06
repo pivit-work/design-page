@@ -26,6 +26,8 @@ import LoadingState from '../shared/LoadingState.jsx';
  *                조회가 실패해 제출 수를 모를 때 «0 / N명»이 «아무도 안 냈다»로
  *                읽히지 않게 한다(pivit-work PW-1392). 없으면 null
  *   emptyLabel   걸러진 스니핏이 0건일 때 피드 안에 띄우는 문구. 실패 중에는 안 넘긴다
+ *   teamEmpty    담당 팀원이 0명일 때 피드 자리에 그리는 팀 레벨 빈 상태(title·description·actionLabel·onAction).
+ *                넘기면 emptyLabel 대신 이것을 그린다
  *
  * labels: { redFlag, todayStatus, submittedTotal, submittedNote, loading } — 안 넘기면 한국어 기본값.
  *   submittedNote 가 있으면 «done / total» 대신 «done» 옆에 그 글을 작게 둔다 — 토·일요일 «주말에는 세지 않아요»
@@ -56,6 +58,7 @@ export default function TeamSnippets({
   feedNotice = null,
   submittedNotice = null,
   emptyLabel,
+  teamEmpty,
   labels: labelsProp,
   testIds = {},
 }) {
@@ -134,6 +137,7 @@ export default function TeamSnippets({
               onOneOnOne={onOneOnOne}
               onOpenSnippet={onOpenSnippet}
               emptyLabel={emptyLabel}
+              teamEmpty={teamEmpty}
               emptyTestId={testIds.empty}
             />
           </div>
