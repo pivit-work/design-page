@@ -11,10 +11,12 @@ export const ISO = {
   cos: 0.866, sin: 0.5,
   pad: 12, gapX: 48, gapY: 120, rowW: 1000,
   slab: 10, lift: 56,
-  cell: 88, block: 20, blockH: 16, headRatio: 1.7,
+  cell: 92, block: 20, blockH: 16, headRatio: 1.7,
   tagW: 96, tagH: 34,
 };
 export const ISO_ZOOM_MIN = 0.4;
+/** «맞춤» 만 이보다 더 줄인다 — 100명이 넘으면 40% 로는 판에 다 안 들어간다(TC-ORG-160 «한 화면에 들어오게»). */
+export const ISO_FIT_MIN = 0.2;
 export const ISO_ZOOM_MAX = 1.5;
 export const ISO_VIEW_MAX_H = 760;
 /** 이보다 블록이 많으면 재생하지 않는다 — 움직임이 끊겨 약 2.4초 안에 끝나지 않는다(규모 · 기획서에 없어 개발이 정함). */
@@ -23,6 +25,11 @@ export const ISO_FAMILIES = ['dev', 'design', 'pm', 'biz', 'ops'];
 
 export const isoPoint = (x, y, z = 0) => [(x - y) * ISO.cos, (x + y) * ISO.sin - z];
 export const isoPoints = (list) => list.map(([x, y, z]) => isoPoint(x, y, z).map((v) => v.toFixed(1)).join(',')).join(' ');
+
+/** «맞춤» 배율 — 그림이 판 안에 다 들어오는 가장 큰 값. 키우지는 않는다. */
+export function isoFitZoom({ viewW, viewH, sceneW, sceneH }) {
+  return Math.max(ISO_FIT_MIN, Math.min(1, (viewW - 8) / sceneW, (viewH - 8) / sceneH));
+}
 
 /** 판 자리 — 한 줄을 x 로 채우고 넘치면 y 로 다음 줄. 사람 수에 맞춰 판 크기가 정해진다. */
 function layoutSlabs(counts) {
@@ -152,13 +159,13 @@ export function isoScene({ squads, people }) {
 }
 
 /**
- * 글자가 칸을 넘으면 말줄임 — 한글은 글자 크기만큼, 영문·숫자는 그 0.58배로 어림한다(기획서 엣지 85).
+ * 글자가 칸을 넘으면 말줄임 — 한글은 글자 크기만큼, 영문·숫자는 그 0.62배로 어림한다(기획서 엣지 85).
  * 이름표 폭은 늘리지 않는다 — 늘리면 옆 칸 이름표와 겹친다.
  */
 export function isoFit(text, maxPx, fontPx) {
   let w = 0; let out = '';
   for (const ch of String(text || '')) {
-    const cw = /[ㄱ-힣]/.test(ch) ? fontPx : fontPx * 0.58;
+    const cw = /[ㄱ-힣]/.test(ch) ? fontPx : fontPx * 0.62;
     if (w + cw > maxPx) return `${out}…`;
     w += cw; out += ch;
   }

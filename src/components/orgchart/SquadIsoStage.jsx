@@ -19,6 +19,7 @@ import {
   ISO_ZOOM_MAX,
   ISO_ZOOM_MIN,
   isoFit,
+  isoFitZoom,
   isoPoint,
   isoPoints,
   isoScene,
@@ -77,8 +78,8 @@ function SlabLabel({ s, id, up, name, role, headName, unsetLabel, sub, family, c
   const head = headName || unsetLabel;
   const prefix = role ? `${role} ` : '';
   const suffix = `${role ? ' · ' : ''}${sub}`;
-  const suffixPx = [...`${prefix}${suffix}`].reduce((a, c) => a + (/[ㄱ-힣]/.test(c) ? 12 : 7), 0);
-  const fittedHead = role ? isoFit(head, Math.max(36, s.w - suffixPx - 20), 12) : '';
+  const suffixPx = [...`${prefix}${suffix}`].reduce((a, c) => a + (/[ㄱ-힣]/.test(c) ? 12 : 7.5), 0);
+  const fittedHead = role ? isoFit(head, Math.max(56, s.w - suffixPx - 20), 12) : '';
   return (
     <g className={`sq-iso-label${up ? '' : ' is-down'}`} data-iso-label={id} transform={`matrix(${ISO.cos} ${ISO.sin} 0 1 ${lx.toFixed(1)} ${ly.toFixed(1)})`}>
       <title>{`${name}${role ? ` · ${prefix}${head}` : ''} · ${sub}`}</title>
@@ -88,7 +89,7 @@ function SlabLabel({ s, id, up, name, role, headName, unsetLabel, sub, family, c
       </text>
       <text className="sq-iso-label-sub" x={0} y={35} textAnchor="middle">
         {role && <tspan className="sq-iso-star">{'★ '}</tspan>}
-        {prefix}{fittedHead}{suffix}
+        {isoFit(`${prefix}${fittedHead}${suffix}`, s.w - 20, 12)}
       </text>
     </g>
   );
@@ -281,8 +282,7 @@ export default function SquadIsoStage({ to, animate, overlay, squads, people, on
   const fit = () => {
     const el = scroller.current;
     if (!el) return;
-    const next = Math.min((el.clientWidth - 8) / vbW, (ISO_VIEW_MAX_H - 8) / vbH, 1);
-    setZoom(Math.max(ISO_ZOOM_MIN, next));
+    setZoom(isoFitZoom({ viewW: el.clientWidth, viewH: ISO_VIEW_MAX_H, sceneW: vbW, sceneH: vbH }));
   };
 
   const onSquadFloor = phase === 'done' ? to === 'squad' : from === 'squad';
@@ -318,7 +318,7 @@ export default function SquadIsoStage({ to, animate, overlay, squads, people, on
 
   return (
     <div className={`sq-iso${leaving ? ' is-leaving' : ''}${hov ? ' is-hovering' : ''}`} data-testid="squad-iso-stage" data-phase={phase} data-to={to}>
-      <div className="pj-table-header-text sq-matrix-head sq-graph-head">
+      <div className="pj-table-header-text sq-matrix-head sq-graph-head sq-iso-head">
         <p className="pj-table-title sq-iso-summary" data-testid="squad-iso-summary">
           <span className={atSquad ? 'sq-iso-off' : undefined}>{L('squad.iso.summaryTeams', { teams: scene.teams.length, people: scene.persons.length })}</span>
           <span className="sq-iso-off"> {to === 'squad' ? '→' : '←'} </span>
@@ -333,9 +333,9 @@ export default function SquadIsoStage({ to, animate, overlay, squads, people, on
       <div className="sq-panel sq-iso-panel">
         <div className="org-toolbar org-toolbar-right" data-iso-tools data-testid="squad-iso-tools">
           <div className="org-toolbar-group">
-            <button type="button" className="org-tool-btn" onClick={() => setZoom((z) => Math.min(z + 0.1, ISO_ZOOM_MAX))} disabled={zoom >= ISO_ZOOM_MAX}
+            <button type="button" className="org-tool-btn" onClick={() => setZoom((z) => Math.min(z + 0.1, ISO_ZOOM_MAX))}
               title={L('org.zoomIn')} aria-label={L('org.zoomIn')} data-action="zoom-in"><PlusGlyph size={20} /></button>
-            <button type="button" className="org-tool-btn" onClick={() => setZoom((z) => Math.max(z - 0.1, ISO_ZOOM_MIN))} disabled={zoom <= ISO_ZOOM_MIN}
+            <button type="button" className="org-tool-btn" onClick={() => setZoom((z) => Math.max(z - 0.1, ISO_ZOOM_MIN))}
               title={L('org.zoomOut')} aria-label={L('org.zoomOut')} data-action="zoom-out"><MinusGlyph size={20} /></button>
             <button type="button" className="org-tool-btn has-label" onClick={fit} title={L('squad.iso.zoomFitTip')} data-action="zoom-fit">
               <span>{L('squad.graph.zoomFit')}</span>
@@ -429,7 +429,7 @@ export default function SquadIsoStage({ to, animate, overlay, squads, people, on
           </svg>
         </div>
       </div>
-      <div className="sq-graph-legend" data-testid="squad-iso-legend">
+      <div className="sq-graph-legend sq-iso-legend" data-testid="squad-iso-legend">
         <div className="sq-iso-legend-row">
           <span className="sq-iso-legend-title">{L('squad.iso.legendTitle')}</span>
           {[...ISO_FAMILIES, null].map((f) => (

@@ -1912,9 +1912,12 @@
    색은 토큰만. 명암은 같은 토큰을 바탕색과 섞어 만든다(새 색 아님). 스쿼드 색은 데이터라 화면 부품이 --iso-c 로 준다. */
 .sq-iso { transition: opacity 0.4s; }
 .sq-iso.is-leaving { opacity: 0; }
-.sq-iso-summary { display: flex; flex-wrap: wrap; gap: var(--spacing-xs); }
-.sq-iso-off { color: var(--text-quaternary); transition: color 0.4s; }
-.sq-iso-panel { position: relative; background: var(--bg-tertiary); }
+.sq-iso-summary { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-xs); min-height: 32px; }
+.sq-iso-off { color: var(--text-tertiary); transition: color 0.4s; }
+/* 재생 중에만 뜨는 버튼 때문에 판이 위아래로 튀지 않게 버튼 높이만큼 잡아 둔다 */
+.sq-iso-head { align-items: center; }
+.sq-iso-legend { padding: var(--spacing-xl); }
+.sq-iso-panel { position: relative; background: var(--bg-tertiary); border-radius: 14px; }
 .sq-iso-scroll { overflow: auto; max-height: 760px; cursor: grab; user-select: none; }
 .sq-iso-scroll:active { cursor: grabbing; }
 .sq-iso-svg { display: block; margin: 0 auto; }
@@ -1957,8 +1960,8 @@
 .sq-iso-tag-name { font-size: 12px; font-weight: 700; fill: var(--text-primary); }
 .sq-iso-tag-role { font-size: 11px; font-weight: 600; fill: var(--text-brand-secondary, var(--text-secondary)); }
 .sq-iso-tag-line { font-size: 11px; font-weight: 500; fill: var(--text-tertiary); }
-.sq-iso-legend-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-lg); font-size: 12px; line-height: 18px; color: var(--text-tertiary); }
-.sq-iso-legend-title { font-weight: 600; }
-.sq-iso-legend-item { display: inline-flex; align-items: center; gap: var(--spacing-xs); }
-.sq-iso-legend-box { width: 8px; height: 8px; border-radius: 2px; background: color-mix(in srgb, var(--iso-c) 70%, var(--bg-primary)); }
+.sq-iso-legend-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-md); font-size: 12px; line-height: 18px; color: var(--text-tertiary); }
+.sq-iso-legend-title { font-weight: 400; }
+.sq-iso-legend-item { display: inline-flex; align-items: center; gap: var(--spacing-md); }
+.sq-iso-legend-box { width: 8px; height: 8px; border-radius: 50%; background: color-mix(in srgb, var(--iso-c) 70%, var(--bg-primary)); }
 .sq-iso-hint.is-on { color: var(--text-primary); }
