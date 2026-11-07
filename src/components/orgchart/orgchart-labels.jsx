@@ -43,6 +43,7 @@ export const ORGCHART_LABELS = {
   'list.allUnits': '전체 조직',
   'list.scope': '{{unit}} · 하위 포함 {{count}}명',
   'list.scopeConcurrent': ' +{{count}} 겸직',
+  'list.scopeHeadDirect': ' +{{count}} 조직장 직속',
   'list.searchPlaceholder': '이름·이메일로 찾기',
   'list.searchClear': '검색 지우기',
   'list.searchCount': '검색 결과 {{count}}명',

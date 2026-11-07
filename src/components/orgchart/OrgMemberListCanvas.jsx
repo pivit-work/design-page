@@ -29,7 +29,8 @@ import { OrgLabelsContext, makeOrgLabels } from './orgchart-labels.jsx';
  *   unit: { kind: 'unit'|'ceo'|'ceoDirect'|'unassigned', name?, path? }, concurrent?: string[], concurrentHere?,
  *   title?, grade?, position?, status? }`
  * @param {string} headcount   머리 줄 「전체 인원 · …」 오른쪽 문구(조직도 탭과 같은 값)
- * @param {{ unitName: string, count: number, concurrent: number }|null} [scope]  고른 조직의 결과 줄
+ * @param {{ unitName: string, count: number, concurrent: number, headDirect?: number }|null} [scope]  고른 조직의 결과 줄
+ *   — `headDirect` 는 소속 없이 그 조직의 조직장에게 바로 보고하는 사람 수(«+K 조직장 직속», 0 이면 안 적는다 · pivit-work PW-2503)
  * @param {number|null} [searchCount]  찾는 말이 있을 때 결과 수
  * @param {boolean} showGrade  회사가 직급 표시를 켰나 — 끄면 「직급·직책」 열이 없다(§3-D-1 4열)
  * @param {boolean} [showStatus]  「근무 상태」 열을 그릴지 — 호스트가 그 값의 출처를 정할 때까지 끌 수 있다
@@ -158,6 +159,7 @@ export default function OrgMemberListCanvas({
     <b data-testid="org-list-scope">
       {L('list.scope', { unit: scope.unitName, count: scope.count })}
       {scope.concurrent > 0 ? L('list.scopeConcurrent', { count: scope.concurrent }) : ''}
+      {scope.headDirect > 0 ? L('list.scopeHeadDirect', { count: scope.headDirect }) : ''}
     </b>
   );
   const searchCountLine = searchCount != null && (
