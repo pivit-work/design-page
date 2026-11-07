@@ -202,6 +202,7 @@ function fmtDate(v) {
  */
 function inboxTargetLabel(req, L) {
   if (!req.linkedTargetType || !req.linkedTargetId) return null;
+  // 받은 요청 탭과 팀원 화면(목록 밖 대상 · §3.4-A)이 같은 글을 쓴다.
   const title = req.linkedTargetTitle;
   const base =
     req.linkedTargetType === 'kr'
@@ -422,6 +423,7 @@ function BlockCard({ block, member, L, onOpen }) {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.sub }}>
                     <span style={{ fontWeight: 700, color: C.text }}>{name}</span>
                     {kind === 'request' && <Chip tone="accent">{L.requestChip}</Chip>}
+                    {isEtc && kind !== 'reply' && etcTargetLabel(it, L) && <Chip tone="info">{etcTargetLabel(it, L)}</Chip>}
                     <span>{fmtDate(at)}</span>
                   </div>
                   <p style={{ fontSize: 'var(--font-size-text-xs)', color: C.sub, margin: '2px 0 0', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
@@ -587,7 +589,7 @@ function ModalComposeBox({ block, memberName, L, onSend, onAiDraft, aiDraftDisab
  * 수정은 그 자리 입력칸 — 빈 글은 저장 못 하고, 취소하면 원래 글로 돌아간다. 삭제는 확인 없이 바로.
  * 실패하면 입력을 그대로 두고 말풍선 아래에 알린다.
  */
-function FeedbackBubble({ item, member, L, canModify, onEdit, onDelete }) {
+function FeedbackBubble({ item, member, L, canModify, onEdit, onDelete, targetLabel = null }) {
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(item.text || '');
   const [busy, setBusy] = useState(false);
@@ -635,6 +637,7 @@ function FeedbackBubble({ item, member, L, canModify, onEdit, onDelete }) {
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-text-xs)', marginBottom: 3 }}>
             <span style={{ fontWeight: 700, color: C.text }}>{author}</span>
+            {targetLabel && <Chip tone="info">{targetLabel}</Chip>}
             <span style={{ color: C.sub }}>{fmtDate(item.sentAt)}</span>
             {modifiable && !editing && (
               <span style={{ marginLeft: 'auto', display: 'flex', gap: 10 }}>
@@ -699,7 +702,7 @@ function FeedbackBubble({ item, member, L, canModify, onEdit, onDelete }) {
  * 답했는지는 팀원 본인 화면의 보낸 요청 말풍선과 같은 「대기중 / 응답됨」 칩으로 보인다 (PW-1736).
  * 이 말풍선에는 버튼이 없다 — 나에게 온 열린 요청의 답은 「받은 피드백 요청」 칸과 아래 작성칸이 맡는다.
  */
-function RequestBubble({ item, L }) {
+function RequestBubble({ item, L, targetLabel = null }) {
   const toMe = isToMe(item);
   const resolved = !!item.resolvedAt;
   return (
@@ -717,6 +720,7 @@ function RequestBubble({ item, L }) {
           {(resolved || !toMe) && (
             <Chip tone={resolved ? 'success' : 'warning'}>{resolved ? L.requestAnswered : L.requestPending}</Chip>
           )}
+          {targetLabel && <Chip tone="info">{targetLabel}</Chip>}
           <span style={{ color: C.sub }}>{fmtDate(item.sentAt)}</span>
         </div>
         <div style={{ background: C.accentBg, border: `1px solid ${C.accentBd}`, borderRadius: '0 10px 10px 10px', padding: 10, fontSize: 13, color: C.text }}>
@@ -728,8 +732,10 @@ function RequestBubble({ item, L }) {
 }
 
 function ThreadModal({ block, member, memberName, L, isPastPeriod, onSend, onAiDraft, aiDraftDisabled, onSummarize, onEditFeedback, onDeleteFeedback, onClose }) {
-  const isKr = block.type === 'kr';
+  const isOrphan = !!block.orphan;
+  const isKr = block.type === 'kr' && !isOrphan;
   const isEtc = block.type === 'etc';
+  const targetOf = (it) => (isEtc ? etcTargetLabel(it, L) : null);
   const items = [...block.items].sort((a, b) => new Date(a.sentAt) - new Date(b.sentAt));
   const [summary, setSummary] = useState(null);
   const [summaryState, setSummaryState] = useState('idle'); // idle | loading | error | notice
@@ -763,7 +769,7 @@ function ThreadModal({ block, member, memberName, L, isPastPeriod, onSend, onAiD
 
   return (
     <ModalShell
-      title={isKr ? `${block.badge} · ${block.title}` : isEtc ? L.sectionEtc : `# ${block.title}`}
+      title={isOrphan ? orphanLabel(block.type, block.title, L) : isKr ? `${block.badge} · ${block.title}` : isEtc ? L.sectionEtc : `# ${block.title}`}
       description={isKr ? `${block.progress ?? 0}%` : isEtc ? L.etcHint : undefined}
       titleId="fbmgr-thread-title"
       closeLabel={L.close}
@@ -822,8 +828,9 @@ function ThreadModal({ block, member, memberName, L, isPastPeriod, onSend, onAiD
               canModify={!isPastPeriod && !!onEditFeedback && !!onDeleteFeedback}
               onEdit={onEditFeedback}
               onDelete={onDeleteFeedback}
+              targetLabel={targetOf(it)}
             />
-          ) : <RequestBubble key={it.id} item={it} L={L} />)
+          ) : <RequestBubble key={it.id} item={it} L={L} targetLabel={targetOf(it)} />)
         )}
       </div>
     </ModalShell>
@@ -870,7 +877,29 @@ function groupBlocks(items, krs, initiatives) {
     if (!shown.has(key)) etcItems.push(...list);
   }
   const etc = etcItems.length ? { type: 'etc', id: 'etc', key: 'etc', title: '', items: etcItems } : null;
-  return { krBlocks, initBlocks, etc };
+  // 목록 밖 대상마다 대화 창 하나(§3.4-A) — 카드로는 그리지 않고(글은 「기타」에 보인다), 그 대상에 걸린
+  // 요청에 답할 때만 연다. 제목은 서버가 준 것(지워졌으면 글을 만들 때 남긴 제목)이다.
+  const orphans = [];
+  for (const [key, list] of byKey) {
+    if (key === 'etc' || shown.has(key)) continue;
+    const [type, ...rest] = key.split(':');
+    const titled = [...list].reverse().find((it) => it.linkedTargetTitle);
+    orphans.push({ type, id: rest.join(':'), key, orphan: true, title: titled?.linkedTargetTitle || '', items: list });
+  }
+  return { krBlocks, initBlocks, etc, orphans };
+}
+
+/**
+ * 「기타」에 든 글의 연결 대상 칩(§3.7 · §3.4-A). 기타에는 연결 없는 글과 목록 밖 대상의 글만 들어서,
+ * 대상이 있으면 늘 목록 밖이다. 연결 없는 글에는 칩이 없다.
+ */
+function etcTargetLabel(it, L) {
+  return it.linkedTargetType && it.linkedTargetId ? orphanLabel(it.linkedTargetType, it.linkedTargetTitle, L) : null;
+}
+
+/** 목록 밖 대상의 칩·창 제목 — «KR · {제목} · 현재 기간 OKR 에 없음» (§3.4-A). 받은 요청 탭과 같은 글. */
+function orphanLabel(type, title, L) {
+  return inboxTargetLabel({ linkedTargetType: type, linkedTargetId: 'x', linkedTargetTitle: title, linkedTargetInCurrentPeriod: false }, L);
 }
 
 /** 요청에 걸린 대상 배지 문구 — 목록에 있으면 카드와 같은 이름, 없으면 종류만. */
@@ -881,21 +910,21 @@ function linkedLabel(item, krBlocks, initBlocks, L) {
   if (kr) return `${kr.badge} · ${kr.title}`;
   const init = initBlocks.find((b) => b.key === key);
   if (init) return `# ${init.title}`;
-  return item.linkedTargetType === 'kr' ? L.linkedKrFallback : L.linkedInitFallback;
+  return orphanLabel(item.linkedTargetType, item.linkedTargetTitle, L);
 }
 
 /**
  * 받은 피드백 요청 칸 (§3.4) — 그 팀원이 나에게 보낸, 아직 답하지 않은 요청만. 같은 대상으로
  * 피드백을 보내면 서버가 그 요청을 해결로 바꾸고 다시 읽은 스레드에서 빠진다.
- * 「답변 작성」은 그 요청의 KR/이니셔티브 대화 창을 연다. 걸린 대상이 지금 목록에 없으면
- * 버튼을 달지 않는다 — 그때 무엇을 할지는 기획 질문으로 남겼다(§8-7, PW-1455).
+ * 「답변 작성」은 그 요청의 KR/이니셔티브 대화 창을 연다. 걸린 대상이 지금 목록에 없어도(지워짐·
+ * 지난 분기) 그 대상을 고정한 창을 연다 — 칩 끝에 «· 현재 기간 OKR 에 없음»(§3.4-A · EC-7, pivit-work PW-1535).
  */
-function IncomingRequestsSection({ requests, krBlocks, initBlocks, L, onAnswer }) {
+function IncomingRequestsSection({ requests, krBlocks, initBlocks, orphans = [], L, onAnswer }) {
   if (requests.length === 0) return null;
   const sorted = [...requests].sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt));
   const blockFor = (it) =>
     it.linkedTargetType && it.linkedTargetId
-      ? [...krBlocks, ...initBlocks].find((b) => b.key === `${it.linkedTargetType}:${it.linkedTargetId}`) || null
+      ? [...krBlocks, ...initBlocks, ...orphans].find((b) => b.key === `${it.linkedTargetType}:${it.linkedTargetId}`) || null
       : null;
   return (
     <div data-testid="fbmgr-incoming" style={{ background: C.accentBg, border: `1px solid ${C.accentBd}`, borderRadius: 12, padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -951,7 +980,13 @@ function ThreadScreen({ member, thread, krs, initiatives, okrGroups, snippets, L
   // [PW-1736] 팀원의 피드백은 전부 블록에 남긴다 — 답한 요청·동료에게 간 요청도 기록이다(OKR 칩과 같은 건수).
   // 「받은 피드백 요청」 칸만 나에게 온 아직 답하지 않은 요청이다 — 같은 대상으로 피드백을 보내면 사라진다(§3.4 · §3.6).
   const items = useMemo(() => thread?.items || [], [thread]);
-  const { krBlocks, initBlocks, etc } = useMemo(() => groupBlocks(items, krs, initiatives), [items, krs, initiatives]);
+  const { krBlocks, initBlocks, etc, orphans } = useMemo(() => groupBlocks(items, krs, initiatives), [items, krs, initiatives]);
+  // 목록 밖 대상 중 나에게 온 열린 요청이 걸린 것만 창을 열 수 있다(§3.4-A). 그 밖의 목록 밖 대상은
+  // 예전처럼 «기타»에서 읽기만 하고, 딥링크도 «찾을 수 없음»으로 둔다(§3.1.1).
+  const answerable = useMemo(
+    () => orphans.filter((b) => b.items.some((i) => isToMe(i) && !i.resolvedAt)),
+    [orphans],
+  );
   const openRequests = useMemo(() => items.filter((i) => isToMe(i) && !i.resolvedAt), [items]);
 
   // 딥링크 진입(OKR 타인 KR 「전체 보기」 → `/feedback/team?member=…&kr=…`).
@@ -960,8 +995,8 @@ function ThreadScreen({ member, thread, krs, initiatives, okrGroups, snippets, L
   const linkedBlock = useMemo(() => {
     if (linkDismissed || !openTarget?.type || !openTarget?.id) return null;
     const key = `${openTarget.type}:${openTarget.id}`;
-    return [...krBlocks, ...initBlocks].find((b) => b.key === key) || null;
-  }, [openTarget, krBlocks, initBlocks, linkDismissed]);
+    return [...krBlocks, ...initBlocks, ...answerable].find((b) => b.key === key) || null;
+  }, [openTarget, krBlocks, initBlocks, answerable, linkDismissed]);
 
   // 도착 결과를 한 번만 알린다. 소비 측은 스레드 로딩이 끝난 뒤에 `openTarget` 을
   // 넘겨야 한다 — 로딩 중에 넘기면 «찾을 수 없음» 으로 잘못 판정된다.
@@ -980,12 +1015,13 @@ function ThreadScreen({ member, thread, krs, initiatives, okrGroups, snippets, L
   const liveBlock = useMemo(() => {
     const active = openBlock || (controlled ? null : linkedBlock);
     if (!active) return null;
-    const found = [...krBlocks, ...initBlocks, ...(etc ? [etc] : [])].find((b) => b.key === active.key);
+    // 답한 뒤에도 그 대상 창은 닫지 않는다 — 방금 보낸 답이 창에 보여야 한다(목록 밖 대상 전부를 본다).
+    const found = [...krBlocks, ...initBlocks, ...orphans, ...(etc ? [etc] : [])].find((b) => b.key === active.key);
     if (found) return found;
     // 다시 읽은 뒤 블록이 사라졌으면(기타의 마지막 피드백을 지움 등) 창을 닫는다.
     // 소비 측이 준 키만 있고 블록이 아직 없으면(스레드 로딩 중) 열지 않는다.
     return active.items && active.type !== 'etc' ? active : null;
-  }, [openBlock, controlled, linkedBlock, krBlocks, initBlocks, etc]);
+  }, [openBlock, controlled, linkedBlock, krBlocks, initBlocks, orphans, etc]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -1006,7 +1042,7 @@ function ThreadScreen({ member, thread, krs, initiatives, okrGroups, snippets, L
       {okrGroups.length > 0 && krBlocks.length > 0 && (
         <FeedbackOkrPanel groups={okrGroups} krBlocks={krBlocks} initBlocks={initBlocks} snippets={snippets} L={L} testIdPrefix="fbmgr" />
       )}
-      <IncomingRequestsSection requests={openRequests} krBlocks={krBlocks} initBlocks={initBlocks} L={L} onAnswer={setOpenBlock} />
+      <IncomingRequestsSection requests={openRequests} krBlocks={krBlocks} initBlocks={initBlocks} orphans={answerable} L={L} onAnswer={setOpenBlock} />
       {krBlocks.length > 0 && <div style={{ fontSize: 12, fontWeight: 700, color: C.sub, letterSpacing: 0.5 }}>{L.sectionKr}</div>}
       {krBlocks.map((b) => <BlockCard key={b.key} block={b} member={member} L={L} onOpen={setOpenBlock} />)}
       {initBlocks.length > 0 && <div style={{ fontSize: 12, fontWeight: 700, color: C.sub, letterSpacing: 0.5, marginTop: 6 }}>{L.sectionInit}</div>}
