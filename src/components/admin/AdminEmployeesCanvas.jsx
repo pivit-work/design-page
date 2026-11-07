@@ -647,7 +647,7 @@ function BillingSummaryBanner({ summary, labels, onGoBilling }) {
           <b style={{ color: 'var(--text-error-primary)' }}>{labels.suspendedStatus}</b>
           {' · '}
           {labels.activeSeats} <b style={{ color: '#0F172A' }}>{summary.activeSeats}</b>
-          <span style={{ marginLeft: 'var(--spacing-md)', color: 'var(--text-quaternary)' }}>· {labels.suspendedNote}</span>
+          <span style={{ marginLeft: 'var(--spacing-md)', color: 'var(--text-tertiary)' }}>· {labels.suspendedNote}</span>
         </div>
       ) : (
       <div>
