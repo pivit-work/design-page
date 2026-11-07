@@ -710,6 +710,8 @@ export default function AdminInviteModal({
   resolveOrgPath = null,
   /** CSV 고용상태 중 초대에 쓸 수 없는 코드(예: `['terminated']`) — 그 줄을 오류로 세운다(PW-1042). */
   csvBlockedEmploymentStatuses = [],
+  /** CSV 연봉 칸을 판정할 회사 기본 통화 — 달러·유로면 소수 둘째 자리까지 받는다(pivit-work PW-2613). */
+  csvSalaryCurrency = null,
   /**
    * 사번 겹침 확인 — 회사 사람들의 `{ code, email }`. 못 받았으면 `null`(서버가 판정한다).
    * CSV 탭과 직접 입력 탭(V16 · PW-1310)이 같은 명부를 쓴다.
@@ -948,6 +950,7 @@ export default function AdminInviteModal({
     squadNames, memberEmails: existingEmails, supervisorEmails, pendingEmails, resendEmails, terminatedEmails, rehireEmails: rehireMembers.map((m) => m.email), headTeamIds, teamHeads, labels,
     emailValid, nameMaxLength, fieldLimits: csvFieldLimits, resolveOrgPath,
     blockedEmploymentStatuses: csvBlockedEmploymentStatuses, employeeCodeOwners: csvEmployeeCodeOwners,
+    salaryCurrency: csvSalaryCurrency,
   });
   const csvIssuesByKey = {};
   const csvNotesByKey = {};
