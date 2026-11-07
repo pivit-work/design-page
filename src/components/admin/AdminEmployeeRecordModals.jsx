@@ -344,6 +344,16 @@ function joinAddressLine(address) {
   return [head, line, tail].filter(Boolean).join(' ');
 }
 
+/* HrEditPair 칸 바로 아래 사유. 칸 줄과 같은 이름 칸 자리를 둬 칸 왼쪽 끝에서 시작한다. */
+function HrEditPairError({ children }) {
+  return (
+    <div role="alert" style={{ display: 'flex', gap: 'var(--spacing-md)', fontSize: 12, paddingTop: 'var(--spacing-xxs)', color: 'var(--text-error-primary)' }}>
+      <span className="adm-hr-pair-k" aria-hidden="true" />
+      <span style={{ flex: 1, minWidth: 0 }}>{children}</span>
+    </div>
+  );
+}
+
 function HrEditPair({ k, value, onChange, type = 'text', date = false, options, inputMode, startView, max, today, disabled = false, placeholder }) {
   return (
     <div style={{ display: 'flex', gap: 8, fontSize: 12, padding: '3px 0', alignItems: 'center' }}>
@@ -1028,10 +1038,13 @@ export function HrProfileModal({
                 <HrEditPair k={L.hrContractOvertime || '포괄 계약 시간 · 초과'} value={idDraft.contractOvertime} onChange={setIdDigits('contractOvertime')} inputMode="numeric" />
                 <HrEditPair k={L.hrContractHoliday || '포괄 계약 시간 · 휴일'} value={idDraft.contractHoliday} onChange={setIdDigits('contractHoliday')} inputMode="numeric" />
                 <HrEditPair k={L.hrContractNight || '포괄 계약 시간 · 야간'} value={idDraft.contractNight} onChange={setIdDigits('contractNight')} inputMode="numeric" />
-                <HrEditPair k={L.hrTargetBonus || '타겟 보너스'} value={idDraft.targetBonus} onChange={setIdField('targetBonus')} />
-                {targetBonusBad && (
-                  <div style={{ fontSize: 11, color: 'var(--text-error-primary)', paddingTop: 'var(--spacing-xxs)', paddingLeft: 'calc(var(--spacing-24-96px) * 1px)' }} role="alert">{L.hrPensionContributionInvalid || '금액은 소수점·단위 없는 정수로 적어 주세요.'}</div>
-                )}
+                {/* 칸과 사유를 한 줄로 묶는다 — 묶지 않으면 섹션 줄 간격(12px)이 사유 위에도 붙는다 */}
+                <div>
+                  <HrEditPair k={L.hrTargetBonus || '타겟 보너스'} value={idDraft.targetBonus} onChange={setIdField('targetBonus')} />
+                  {targetBonusBad && (
+                    <HrEditPairError>{L.hrPensionContributionInvalid || '금액은 소수점·단위 없는 정수로 적어 주세요.'}</HrEditPairError>
+                  )}
+                </div>
                 <HrEditPair k={L.hrTargetBonusStart || '타겟 보너스 시작'} date value={idDraft.targetBonusStart} onChange={setIdField('targetBonusStart')} />
                 <HrEditPair k={L.hrTargetBonusEnd || '타겟 보너스 종료'} date value={idDraft.targetBonusEnd} onChange={setIdField('targetBonusEnd')} />
                 <HrEditPair k={L.hrBankName || '은행명'} value={idDraft.bankName} onChange={setIdField('bankName')} />
@@ -1668,7 +1681,7 @@ function HrBenefitsSection({ memberId, labels, onLoad, onSave }) {
             <HrEditPair k={L.hrInsurancePlanType || '보험 플랜 유형'} value={d.planType} onChange={set('planType')} />
             <HrEditPair k={L.hrPensionContribution || '퇴직연금 기여금'} value={d.pensionContribution} onChange={set('pensionContribution')} />
             {pensionBad && (
-              <div style={{ fontSize: 11, color: 'var(--text-error-primary)', paddingTop: 'var(--spacing-xxs)', paddingLeft: 'calc(var(--spacing-24-96px) * 1px)' }} role="alert">{L.hrPensionContributionInvalid || '금액은 소수점·단위 없는 정수로 적어 주세요.'}</div>
+              <HrEditPairError>{L.hrPensionContributionInvalid || '금액은 소수점·단위 없는 정수로 적어 주세요.'}</HrEditPairError>
             )}
             <HrEditPair k={L.hrStockOptions || '주식 옵션'} value={d.stockOptions} onChange={set('stockOptions')} />
             <div style={{ display: 'flex', gap: 8, fontSize: 12, padding: '3px 0', alignItems: 'flex-start' }}>
