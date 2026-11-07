@@ -98,6 +98,8 @@ const DEFAULT_LABELS = {
     billingBlocked: '결제수단 미등록 — 좌석을 늘릴 수 없습니다',
     seatCapReached: 'Free 상한 도달 — 업그레이드 필요',
     goBilling: '결제·구독 →',
+    suspendedStatus: '이용 정지',
+    suspendedNote: '정지 중에는 구성원을 늘리거나 줄일 수 없습니다. 결제하시면 그 순간 다시 이용하고, 결제한 날이 새 청구일이 됩니다.',
   },
   countSuffix: '명',
   // `dept` 는 «소속(기능조직)» 이다 — 구 «부서»·단일 select 는 폐기됐다(§3.8.1).
@@ -611,7 +613,8 @@ function fill(template, vars) {
  * 결제수단이 없거나(유료) 무료 상한에 닿으면 red — 좌석을 늘리는 길이 막혔다는 뜻이다.
  */
 function BillingSummaryBanner({ summary, labels, onGoBilling }) {
-  const blocked = Boolean(summary.billingBlocked || summary.seatCapReached);
+  const suspended = Boolean(summary.usageSuspended);
+  const blocked = Boolean(suspended || summary.billingBlocked || summary.seatCapReached);
   const cycleText = summary.firstCycle
     ? labels.firstCycle(summary.firstCycleDaysLeft ?? null)
     : summary.nextBillingDate
@@ -637,6 +640,16 @@ function BillingSummaryBanner({ summary, labels, onGoBilling }) {
         color: '#64748B',
       }}
     >
+      {suspended ? (
+        <div data-testid="employees-billing-banner-suspended">
+          <b style={{ color: '#0F172A' }}>{labels.plan(summary.planName)}</b>
+          {' · '}
+          <b style={{ color: '#DC2626' }}>{labels.suspendedStatus}</b>
+          {' · '}
+          {labels.activeSeats} <b style={{ color: '#0F172A' }}>{summary.activeSeats}</b>
+          <span style={{ marginLeft: 8, color: '#94A3B8' }}>· {labels.suspendedNote}</span>
+        </div>
+      ) : (
       <div>
         <b style={{ color: '#0F172A' }}>{labels.plan(summary.planName)}</b>
         {' · '}
@@ -651,6 +664,7 @@ function BillingSummaryBanner({ summary, labels, onGoBilling }) {
         {summary.seatPrice > 0 && <> · {labels.perSeat(summary.seatPrice)}</>}
         {cycleText && <span style={{ marginLeft: 8, color: '#94A3B8' }}>· {cycleText}</span>}
       </div>
+      )}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         {summary.billingBlocked && (
           <span data-testid="employees-billing-banner-blocked" style={{ fontWeight: 700, color: '#DC2626' }}>
