@@ -637,6 +637,12 @@ export default function AdminInviteModal({
    */
   seats = null,
   /**
+   * true 면 좌석 상한이 있을 때만 머리글 좌석 요약을 그린다 — 상한이 없거나(`seats.limit === null`)
+   * 못 불러왔으면(`seats === null`) 요약 줄을 빼고 그리지 않는다. 회원가입 «구성원 초대» CSV 창이 켠다
+   * (pivit-work PW-2500 · 온보딩 정책 §9-2 «조건» 행). 어드민 창은 기본값 그대로 늘 그린다.
+   */
+  seatSummaryLimitedOnly = false,
+  /**
    * 협의 단가 계약 — `{ maxSeats, overageSeatPrice, seatPrice, activeSeats }`. 정가 플랜은 null.
    * «활성 좌석 + 좌석을 차지할 행»이 `maxSeats` 를 넘으면 warning 배너만 띄운다(§4-4-B).
    * 🔴 발송은 막지 않는다 — 좌석 상한(Free)과 달리 이건 금액이 늘어난다는 안내다.
@@ -1247,6 +1253,7 @@ export default function AdminInviteModal({
 
   if (!open) return null;
 
+  const showSeatSummary = !seatSummaryLimitedOnly || (seats !== null && seats.limit !== null);
   const seatSummary =
     seats === null
       ? `${labels.seatsActiveUnknown} · ${labels.seatsUnknown}`
@@ -1396,11 +1403,12 @@ export default function AdminInviteModal({
     <ModalShell
       title={labels.title}
       description={
+        !showSeatSummary && !billingNotice?.text ? undefined : (
         <>
-          {`${seatSummary} · ${fmt(labels.seatsWillGrow, { n: seatNeed })}`}
+          {showSeatSummary && `${seatSummary} · ${fmt(labels.seatsWillGrow, { n: seatNeed })}`}
           {billingNotice?.text && (
             <>
-              {' · '}
+              {showSeatSummary && ' · '}
               <span
                 className={billingNotice.emphasis ? 'admin-inv-billing is-emphasis' : 'admin-inv-billing'}
                 data-testid="admin-invite-billing-notice"
@@ -1410,6 +1418,7 @@ export default function AdminInviteModal({
             </>
           )}
         </>
+        )
       }
       titleId="admin-invite-title"
       closeLabel={labels.close}
