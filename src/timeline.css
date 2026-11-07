@@ -964,6 +964,10 @@
   gap: 12px;
 }
 
+/* 퇴사 참석자를 못 불러온 안내(pivit-work PW-2501) — 줄 사이는 칸의 gap 12 가 이미 띄운다. 오류 문구 자체의 위 4 를 빼
+   일정 수정 창 참석자 칸 아래 같은 안내(12)와 맞춘다. */
+.tl-meeting-modal-section > p.dp-field-error { margin-top: 0; }
+
 .tl-meeting-modal-section-header {
   display: flex;
   align-items: center;
