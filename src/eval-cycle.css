@@ -12442,6 +12442,24 @@ button.evmh-phase:focus-visible {
 .evf-btn-primary:hover:not(:disabled) {
   background: var(--colors-background-bgBrandSolidHover);
 }
+/* 피드백 관리(HR) «피드백 필요 멤버» [매니저 알림] — 카드 색을 따른다(정책 §2.4). 빨강·앰버는
+   같은 카드의 글자·아바타 색(EvalFeedbackHrCanvas C.red · C.amber)과 같은 토큰이다. */
+.evf-btn-danger {
+  background: var(--utility-error-600);
+  color: var(--text-white);
+  border: 1px solid transparent; /* 보조 버튼(.evf-btn-secondary)과 같은 높이 46px */
+}
+.evf-btn-danger:hover:not(:disabled) {
+  background: var(--utility-error-700);
+}
+.evf-btn-warning {
+  background: var(--utility-warning-700);
+  color: var(--text-white);
+  border: 1px solid transparent; /* 보조 버튼(.evf-btn-secondary)과 같은 높이 46px */
+}
+.evf-btn-warning:hover:not(:disabled) {
+  background: var(--colors-warning-800);
+}
 
 /* 기간 고르기 — 이름표 옆에 공용 고르기 칸(`dp-input dp-select`) 하나. 진행 현황 부서 고르기
    (.evmon-dept-filter)와 같은 쓰임이라 같은 배치를 쓴다. 지난 기간이면 이름표만 경고색이다. */

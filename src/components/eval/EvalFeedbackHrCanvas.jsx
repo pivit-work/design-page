@@ -183,19 +183,21 @@ function SectionError({ L, onRetry, testId }) {
 
 function KpiRow({ kpi, L }) {
   const noCoverage = kpi.coveragePct == null;
+  const noReply = kpi.reactionRate == null;
   const cards = [
     { icon: <UsersIcon size={18} />, label: L.kpiTotal, value: kpi.total, unit: L.unitPeople, color: C.text },
     // 집계 대상 0명이면 0% 가 아니라 「—」 (정책 §8-8).
     { icon: <CheckCircleIcon size={18} />, label: L.kpiCoverage, value: noCoverage ? '—' : kpi.coveragePct, unit: noCoverage ? '' : '%', color: noCoverage ? C.muted : covColor(kpi.coveragePct) },
     { icon: <RefreshIcon size={18} />, label: L.kpiInterval, value: kpi.avgInterval, unit: L.unitDays, color: kpi.avgInterval <= 30 ? C.green : C.amber },
-    { icon: <ChatIcon size={18} />, label: L.kpiReaction, value: kpi.reactionRate, unit: '%', color: kpi.reactionRate >= 70 ? C.green : C.amber },
+    // 최근 30일 분모(퇴사자가 받은 것 제외)가 0건이면 서버가 null — 「—」 중립 회색, 색 기준을 걸지 않는다(정책 §2.2 v2.8).
+    { id: 'reply', icon: <ChatIcon size={18} />, label: L.kpiReaction, value: noReply ? '—' : kpi.reactionRate, unit: noReply ? '' : '%', color: noReply ? C.muted : kpi.reactionRate >= 70 ? C.green : C.amber },
   ];
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12 }}>
       {cards.map((c) => (
         <div key={c.label} style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: '16px 20px' }}>
           <div style={{ fontSize: 18 }}>{c.icon}</div>
-          <div style={{ fontSize: 'var(--font-size-display-xs)', fontWeight: 800, color: c.color, marginTop: 4 }}>
+          <div data-testid={c.id ? `fbhr-kpi-${c.id}-value` : undefined} style={{ fontSize: 'var(--font-size-display-xs)', fontWeight: 800, color: c.color, marginTop: 'var(--spacing-xs)' }}>
             {c.value}
             <span style={{ fontSize: 13, color: C.sub }}>{c.unit}</span>
           </div>
@@ -277,7 +279,8 @@ function AtRiskMembers({ atRisk, L, onNudge, isSent }) {
                     disabled={!m.managerName || sent}
                     onClick={() => onNudge({ type: 'request', targetManagerId: m.managerId, targetManagerName: m.managerName, memberId: m.id, memberName: m.name })}
                     data-testid={`fbhr-nudge-atrisk-${m.id}`}
-                    className="evf-btn evf-btn-secondary"
+                    // 버튼 색은 카드 색을 따른다 — 빨강 카드는 빨강, 그 밖은 앰버(정책 §2.4).
+                    className={`evf-btn ${m.urgent ? 'evf-btn-danger' : 'evf-btn-warning'}`}
                   >
                     {!m.managerName ? L.noManager : sent ? L.sent : L.nudgeManager}
                   </Button>
@@ -435,7 +438,7 @@ export default function EvalFeedbackHrCanvas({
   managerActivityNotice = null,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
-  const kpi = dashboard?.kpi ?? { total: 0, covered: 0, coveragePct: null, avgInterval: 0, reactionRate: 0 };
+  const kpi = dashboard?.kpi ?? { total: 0, covered: 0, coveragePct: null, avgInterval: 0, reactionRate: null };
   const teams = dashboard?.teams ?? [];
   const atRisk = dashboard?.atRisk ?? [];
   const managerActivity = dashboard?.managerActivity ?? [];
