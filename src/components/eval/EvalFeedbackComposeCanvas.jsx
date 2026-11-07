@@ -200,6 +200,10 @@ function fmtDate(v) {
  * InboxScreen 을 따른다: 사진 · 이름 «님이 피드백을 요청했습니다» · 연결 대상 칩 · (오른쪽) 보낸 날짜 · 배지
  * / 요청 본문 · 「피드백 작성 →」. 모양은 같은 화면의 팀원 카드(`.fbmgr-inbox-card`)와 상태 칩(`Chip`)이다.
  */
+// 연결 대상 칩은 KR 제목(최대 255자)을 담는다 — 줄에서 줄어들 수 있게 해 칩 안에서 말줄임(dp-chip__label)되고,
+// 전체 글은 마우스를 올리면 보인다(pivit-work PW-1535 dev 확인).
+const LONG_CHIP = { minWidth: 0 };
+
 function inboxTargetLabel(req, L) {
   if (!req.linkedTargetType || !req.linkedTargetId) return null;
   // 받은 요청 탭과 팀원 화면(목록 밖 대상 · §3.4-A)이 같은 글을 쓴다.
@@ -242,7 +246,7 @@ function InboxScreen({ requests, L, onOpen, loading = false, failed = false }) {
                   <span className="fbmgr-inbox-name">{req.requester?.name}</span>
                   {L.inboxRequested}
                 </span>
-                {target && <Chip tone="info">{target}</Chip>}
+                {target && <Chip tone="info" title={target} style={LONG_CHIP}>{target}</Chip>}
                 <span className="fbmgr-inbox-meta">
                   <span>{fmtDate(req.sentAt)}</span>
                   {req.due && (
@@ -423,7 +427,7 @@ function BlockCard({ block, member, L, onOpen }) {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.sub }}>
                     <span style={{ fontWeight: 700, color: C.text }}>{name}</span>
                     {kind === 'request' && <Chip tone="accent">{L.requestChip}</Chip>}
-                    {isEtc && kind !== 'reply' && etcTargetLabel(it, L) && <Chip tone="info">{etcTargetLabel(it, L)}</Chip>}
+                    {isEtc && kind !== 'reply' && etcTargetLabel(it, L) && <Chip tone="info" title={etcTargetLabel(it, L)} style={LONG_CHIP}>{etcTargetLabel(it, L)}</Chip>}
                     <span>{fmtDate(at)}</span>
                   </div>
                   <p style={{ fontSize: 'var(--font-size-text-xs)', color: C.sub, margin: '2px 0 0', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
@@ -637,7 +641,7 @@ function FeedbackBubble({ item, member, L, canModify, onEdit, onDelete, targetLa
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-text-xs)', marginBottom: 3 }}>
             <span style={{ fontWeight: 700, color: C.text }}>{author}</span>
-            {targetLabel && <Chip tone="info">{targetLabel}</Chip>}
+            {targetLabel && <Chip tone="info" title={targetLabel} style={LONG_CHIP}>{targetLabel}</Chip>}
             <span style={{ color: C.sub }}>{fmtDate(item.sentAt)}</span>
             {modifiable && !editing && (
               <span style={{ marginLeft: 'auto', display: 'flex', gap: 10 }}>
@@ -720,7 +724,7 @@ function RequestBubble({ item, L, targetLabel = null }) {
           {(resolved || !toMe) && (
             <Chip tone={resolved ? 'success' : 'warning'}>{resolved ? L.requestAnswered : L.requestPending}</Chip>
           )}
-          {targetLabel && <Chip tone="info">{targetLabel}</Chip>}
+          {targetLabel && <Chip tone="info" title={targetLabel} style={LONG_CHIP}>{targetLabel}</Chip>}
           <span style={{ color: C.sub }}>{fmtDate(item.sentAt)}</span>
         </div>
         <div style={{ background: C.accentBg, border: `1px solid ${C.accentBd}`, borderRadius: '0 10px 10px 10px', padding: 10, fontSize: 13, color: C.text }}>
@@ -940,7 +944,7 @@ function IncomingRequestsSection({ requests, krBlocks, initBlocks, orphans = [],
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-text-xs)', marginBottom: 3 }}>
                 <span style={{ fontWeight: 700, color: C.text }}>{it.author?.name}</span>
-                {label && <Chip tone="info">{label}</Chip>}
+                {label && <Chip tone="info" title={label} style={LONG_CHIP}>{label}</Chip>}
                 <span style={{ color: C.sub }}>{fmtDate(it.sentAt)}</span>
               </div>
               {it.text && (
