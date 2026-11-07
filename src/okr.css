@@ -613,7 +613,12 @@ body:has(.okr-ctx-banner-flag) .tl-group-modal.okr-wz-modal { height: min(1118px
 .okr-ctx-composer-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .okr-ctx-composer-actions { display: flex; justify-content: flex-end; gap: 8px; }
 /* 링크 형식 오류면 칸 테두리도 빨갛게(§9 「인라인 빨강 보더») — 지금 값(에러 200) 그대로 */
-.okr-ctx-composer .okr-textarea[aria-invalid='true'] { border-color: var(--utility-error-200); }
+.okr-ctx-composer .okr-textarea[aria-invalid='true'],
+.okr-term-row .okr-textarea[aria-invalid='true'] { border-color: var(--utility-error-200); }
+/* PW-2587 목표 체계 이름 줄 — 입력칸이 남는 폭을 쓰고 버튼·글자 수는 줄지 않는다 */
+.okr-term-row .okr-btn,
+.okr-term-row .okr-ghost-btn,
+.okr-term-row > p { flex: none; white-space: nowrap; }
 /* PW-2219: 열람 전용 안내 — 연회색 안내 상자(.okr-wz-vision-card) 안 자물쇠 + 글자 한 줄 */
 .okr-ctx-readonly { display: flex; align-items: center; gap: 10px; color: var(--text-tertiary); }
 .okr-ctx-readonly svg { flex: none; }

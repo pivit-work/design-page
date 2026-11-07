@@ -16,6 +16,7 @@ import ReportPeriodView from './ReportPeriodView.jsx';
  * Props:
  *   generatingLabel  생성 중 문구 (소비처가 i18n 문구를 넘긴다 · 없으면 TimelineWeeklyView 기본값)
  *   closeLabel  닫기 X 의 aria-label (소비처가 i18n 문구를 넘긴다)
+ *   okrChangesLabel  주간 리포트 «OKR 달성도 변화» 절 제목 (PW-2587 · TimelineWeeklyView 로 넘긴다)
  *   ariaLabel   창 이름 (제목 줄이 없어 화면 읽기 프로그램이 읽을 이름. ReportCanvas 는 리포트 기간을 넘긴다)
  *   periodReport  월간·분기·반기·연간 리포트 — 있으면 본문을 TimelineWeeklyView 대신 ReportPeriodView 로 그린다
  *                 (pivit-work PW-2399). 창 틀·크기는 주간과 같다.
@@ -27,6 +28,7 @@ export default function ReportViewerModal({
   generatingLabel,
   baseUrl = '',
   closeLabel,
+  okrChangesLabel,
   ariaLabel,
   periodReport,
   onClose,
@@ -51,6 +53,7 @@ export default function ReportViewerModal({
           isGenerating={isGenerating}
           generatingLabel={generatingLabel}
           showInfoBanner={false}
+          okrChangesLabel={okrChangesLabel}
         />
       )}
     </ModalShell>

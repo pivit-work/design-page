@@ -58,6 +58,8 @@ export default function TimelineWeeklyView({
   onViewHistory,
   // AI 안내 배너 노출 여부. 리포트 디테일 뷰에서는 false (상위에서 안 띄움).
   showInfoBanner = true,
+  // «OKR 달성도 변화» 절 제목 — 회사가 정한 목표 체계 이름이 들어가게 소비처가 i18n 문구를 넘긴다 (PW-2587). 안 넘기면 시안 그대로.
+  okrChangesLabel = 'OKR 달성도 변화',
 }) {
   const cardInnerRef = useRef(null);
   const prevReportIdRef = useRef(null);
@@ -290,7 +292,7 @@ export default function TimelineWeeklyView({
         {/* OKR progress — 그 주에 넣을 KR 이 없으면 제목까지 통째로 그리지 않는다 (PW-1602 커트 결정 2026-10-11) */}
         {(report.okrItems ?? []).length > 0 && (
           <section className="tl-weekly-section">
-            <div className="tl-weekly-section-title">OKR 달성도 변화</div>
+            <div className="tl-weekly-section-title">{okrChangesLabel}</div>
             <ul className="tl-weekly-okr-list">
               {(report.okrItems ?? []).map((o, i) => (
                 // KR title(label) 은 OKR 간 중복될 수 있어 unique 하지 않다. index 를 함께 키로 쓴다.

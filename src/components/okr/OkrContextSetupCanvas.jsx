@@ -6,6 +6,7 @@ import StatusBadge from '../shared/StatusBadge.jsx';
 import Switch from '../shared/Switch.jsx';
 import { SkeletonList } from '../shared/Skeleton.jsx';
 import OkrContextAnalysisResult from './OkrContextAnalysisResult.jsx';
+import OkrTermSection from './OkrTermSection.jsx';
 import { isEnterKey } from '../shared/enterKey.js';
 import Spinner from '../shared/Spinner.jsx';
 
@@ -59,6 +60,11 @@ import Spinner from '../shared/Spinner.jsx';
  *   unitPolicyLoading / unitPolicyError — 칸 안에 «불러오는 중» / 실패 문구.
  *   onUnitPolicyChange(next) — 카드·스위치를 누르면 바뀐 정책 전체로 부른다. 편집 권한이 없거나
  *     미주입이면 칸은 보기만 한다. 저장·실패 되돌리기는 호스트 몫이다.
+ *   okrTerm — 운영 단위 아래 «목표 체계 이름» 칸(정책 §3-1B · okr-policy §2H · PW-2587)의 저장된 이름.
+ *     `okrTermLabels` 를 주면 칸이 그려진다(안 주면 구버전 호출부 — 칸 없음). `okrTerm` 이 없으면 불러오는 중.
+ *   okrTermError / onOkrTermRetry — 불러오기 실패 문구와 [다시 시도]. 실패면 입력칸을 그리지 않는다(N7).
+ *   onOkrTermApply(name) — [적용]·Enter. 편집 권한이 없거나 미주입이면 값만 보인다. 저장·토스트는 호스트 몫.
+ *   okrTermMenuNames — 겹침 안내(N3)에 견줄 다른 메뉴 이름들.
  */
 
 /** 표시할 종류 이름 — 소스 줄 부가 정보 앞·추가 칸 머리가 같은 라벨을 쓴다(§3-2 · PW-1507). */
@@ -848,6 +854,12 @@ export default function OkrContextSetupCanvas({
   unitPolicyLoading = false,
   unitPolicyError = null,
   onUnitPolicyChange,
+  okrTerm,
+  okrTermError = null,
+  onOkrTermRetry,
+  onOkrTermApply,
+  okrTermMenuNames,
+  okrTermLabels,
   headerAction = null,
 }) {
   const hasEditHandlers = !!(onAddUrl || onAddText || onAddFile);
@@ -901,6 +913,19 @@ export default function OkrContextSetupCanvas({
               readOnly={readOnly}
               onChange={onUnitPolicyChange}
               labels={L}
+            />
+          )}
+
+          {/* 목표 체계 이름(§3-1B) — 운영 단위 바로 아래 */}
+          {okrTermLabels && (
+            <OkrTermSection
+              term={okrTerm}
+              error={okrTermError}
+              readOnly={readOnly}
+              onApply={onOkrTermApply}
+              onRetry={onOkrTermRetry}
+              otherMenuNames={okrTermMenuNames}
+              labels={{ loading: L.loading, ...okrTermLabels }}
             />
           )}
 

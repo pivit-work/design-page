@@ -155,7 +155,7 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
 
   const SUB_TABS = [
     { id: 'canvas', label: L('strategy.tabCanvas') },
-    { id: 'company', label: 'Company OKR' },
+    { id: 'company', label: L('strategy.tabCompany') },
     { id: 'history', label: L('strategy.tabHistory') },
   ];
 

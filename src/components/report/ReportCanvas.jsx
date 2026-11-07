@@ -74,6 +74,8 @@ export default function ReportCanvas({
   onCloseReport,
   // 리포트 창 닫기 X 의 aria-label (소비처가 i18n 문구를 넘긴다).
   closeLabel,
+  // 주간 리포트 «OKR 달성도 변화» 절 제목 — 목표 체계 이름(PW-2587). 안 넘기면 시안 그대로.
+  okrChangesLabel,
   // 생성 중 — TimelineWeeklyView 의 로딩 비디오를 띄울지 여부.
   // 생성 버튼 클릭 직후 selectedReport 가 세팅되고 isGenerating=true 면
   // weeklyReport 가 도착할 때까지 로딩이 보이고, 도착하면 자연스럽게 리포트로 전환.
@@ -134,6 +136,7 @@ export default function ReportCanvas({
           isGenerating={isGenerating}
           generatingLabel={generatingLabel}
           closeLabel={closeLabel}
+          okrChangesLabel={okrChangesLabel}
           ariaLabel={selectedReport.dateRange ?? selectedReport.periodLabel}
           periodReport={selectedReport.periodReport}
           onClose={onCloseReport}

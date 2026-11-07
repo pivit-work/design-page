@@ -48,6 +48,7 @@ export const OKR_LABELS = {
 
   // ── 전략 캔버스 ──
   'strategy.tabCanvas': '전략 캔버스',
+  'strategy.tabCompany': 'Company OKR',
   'strategy.tabHistory': '히스토리',
   'strategy.aiAll': '전략 전체 AI 자동완성',
   'strategy.aiAllRunning': 'AI 자동완성 중…',
