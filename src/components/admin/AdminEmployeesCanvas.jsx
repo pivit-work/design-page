@@ -644,10 +644,10 @@ function BillingSummaryBanner({ summary, labels, onGoBilling }) {
         <div data-testid="employees-billing-banner-suspended">
           <b style={{ color: '#0F172A' }}>{labels.plan(summary.planName)}</b>
           {' · '}
-          <b style={{ color: '#DC2626' }}>{labels.suspendedStatus}</b>
+          <b style={{ color: 'var(--text-error-primary)' }}>{labels.suspendedStatus}</b>
           {' · '}
           {labels.activeSeats} <b style={{ color: '#0F172A' }}>{summary.activeSeats}</b>
-          <span style={{ marginLeft: 8, color: '#94A3B8' }}>· {labels.suspendedNote}</span>
+          <span style={{ marginLeft: 'var(--spacing-md)', color: 'var(--text-quaternary)' }}>· {labels.suspendedNote}</span>
         </div>
       ) : (
       <div>
