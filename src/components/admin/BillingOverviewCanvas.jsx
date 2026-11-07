@@ -122,6 +122,7 @@ const DEFAULT_LABELS = {
   withdrawAction: '업그레이드 철회',
   withdrawBusy: '처리하는 중...',
   withdrawLoading: '업그레이드를 철회할 수 있는지 확인하는 중...',
+  refundLoading: '환불 금액을 불러오는 중...',
   // 즉시 해지·환불이 끝나지 않은 동안의 띠 (pivit-work PW-2476 · overview §2 «환불 처리 중 띠») — 구독은 환불이 «완료»될 때 해지된다.
   // 고객지원으로 받은 청약철회 요청 — 확정 대기 (pivit-work PW-2532 · overview §4 · cancellation-refund-policy §4.2).
   coolingOffTitle: '청약철회를 확정해 주세요',
@@ -458,6 +459,11 @@ export default function BillingOverviewCanvas({
   /** 해지 창 견적(환불·업그레이드 철회)을 아직 받는 중 — ⓒ 자리에 불러오는 중 표시 (overview §5). */
   refundQuoteLoading = false,
   /**
+   * [구독 해지] 창이 열릴 때 (pivit-work PW-2524 · overview §5 «해지 방식 선택 모달 진입») — 앱이 환불 견적을 다시 불러온다.
+   * 화면을 띄워 둔 채 달이 넘어가면 처음 받은 금액이 낡는다. 받는 동안은 `refundQuoteLoading` 으로 ⓑ·ⓒ 자리에 불러오는 중.
+   */
+  onOpenCancel,
+  /**
    * [업그레이드 철회] — 약속을 돌려준다. 성공하면 창을 닫고, 거부하면 창을 연 채 둔다(앱이 토스트·사유를 띄운다).
    * 사유(조건이 깨짐)는 `withdrawBlockedMessage` 로 받는다.
    */
@@ -528,6 +534,7 @@ export default function BillingOverviewCanvas({
   const trialSoon = Boolean(trial) && trial.daysLeft <= 14;
   const trialOverCap = Boolean(trial) && trial.seatCap != null && sub.seats > trial.seatCap;
 
+  const openCancel = () => { setCancelOpen(true); onOpenCancel?.(); };
   const handlePeriodEnd = () => { setCancelOpen(false); onCancelPeriodEnd?.(); };
   // 즉시 해지·환불 (overview §5 · PW-2476) — 진행 중엔 다시 못 누르고(환불은 1건), 요청이 실패하면 창을 연 채 버튼만 돌아온다.
   // 앱이 약속을 돌려주지 않으면(옛 연결) 종전처럼 바로 닫는다.
@@ -1126,7 +1133,7 @@ export default function BillingOverviewCanvas({
             {labels.viewHistory}
           </button>
           {showCancel && (
-            <Btn kind="danger" onClick={() => setCancelOpen(true)} disabled={!canEdit}>{labels.cancelSubscription}</Btn>
+            <Btn kind="danger" onClick={openCancel} disabled={!canEdit}>{labels.cancelSubscription}</Btn>
           )}
         </Card>
 
@@ -1175,8 +1182,12 @@ export default function BillingOverviewCanvas({
                 <Btn kind="secondary" onClick={handlePeriodEnd}>{labels.periodEndAction}</Btn>
               </div>
 
-              {/* ⓑ 즉시 해지+환불 (환불 사유 충족 시에만 노출) */}
-              {quote.eligible ? (
+              {/* ⓑ 즉시 해지+환불 (환불 사유 충족 시에만 노출) — 견적을 다시 받는 동안은 옛 금액 대신 불러오는 중(ⓒ 와 같은 줄) */}
+              {refundQuoteLoading ? (
+                <div data-testid="billing-refund-loading" style={{ fontSize: 12, color: T.muted, padding: 'calc(var(--spacing-md) + var(--spacing-xxs)) 0' }}>
+                  {labels.refundLoading}
+                </div>
+              ) : quote.eligible ? (
                 <div style={{ border: `1px solid ${T.green}`, borderRadius: 12, padding: 16, marginBottom: 8, background: T.greenBg }}>
                   <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 4 }}>{labels.refundTitle}</div>
                   <div style={{ fontSize: 13, color: T.sub, marginBottom: 8 }}>
@@ -1319,7 +1330,7 @@ export default function BillingOverviewCanvas({
                 <button type="button" className="tl-group-modal-btn tl-group-modal-btn-secondary"
                   style={{ whiteSpace: 'nowrap' }}
                   data-testid="billing-price-change-cancel"
-                  onClick={() => { onClosePriceChange?.(); setCancelOpen(true); }}>
+                  onClick={() => { onClosePriceChange?.(); openCancel(); }}>
                   {labels.priceChangeCancelSubscription}
                 </button>
               )}
