@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import ModalLayer from '../shared/ModalLayer.jsx';
+import { FieldError } from '../shared/FormField.jsx';
 import useDismissLayer from '../shared/useDismissLayer.js';
 import { CloseGlyph, MoreGlyph, PencilGlyph, TrashGlyph } from '../shared/lineIcons.jsx';
 import useTimelineData from './useTimelineData.js';
@@ -211,6 +212,11 @@ export default function MeetingModal({
                   </li>
                 ))}
               </ul>
+              {/* 퇴사 참석자를 못 불러온 일정 — 불러온 사람만 줄로 보이고 목록 아래 안내 한 줄 (pivit-work PW-2501 · 정책서 §15.2-A).
+                  글자는 호스트가 준다. 일정 수정 창의 같은 안내와 같은 부품(FieldError)이다. */}
+              {meeting.attendeesNotice && (
+                <FieldError role="status">{meeting.attendeesNotice}</FieldError>
+              )}
             </section>
 
             {meeting.notification && (

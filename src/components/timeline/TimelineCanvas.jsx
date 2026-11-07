@@ -350,6 +350,8 @@ export default function TimelineCanvas({
       // 「수정」·「삭제」 콜백에 그대로 돌려줄 원래 일정과, 「···」 를 보일지 (PW-1515)
       calendarEvent: ev,
       canManage: ev.canManage === true,
+      // 퇴사 참석자를 못 불러온 일정의 안내 (pivit-work PW-2501) — 상세 창만 그린다. 호버 카드는 안내 없이 불러온 사람만.
+      attendeesNotice: ev.attendeesNotice,
     };
     setOpenMeeting(meetingShape);
     setOpenMeetingAnchor(rect);
