@@ -1030,7 +1030,7 @@ export function HrProfileModal({
                 <HrEditPair k={L.hrContractNight || '포괄 계약 시간 · 야간'} value={idDraft.contractNight} onChange={setIdDigits('contractNight')} inputMode="numeric" />
                 <HrEditPair k={L.hrTargetBonus || '타겟 보너스'} value={idDraft.targetBonus} onChange={setIdField('targetBonus')} />
                 {targetBonusBad && (
-                  <div style={{ fontSize: 11, color: '#DC2626', padding: '2px 0 0 96px' }} role="alert">{L.hrPensionContributionInvalid || '금액은 소수점·단위 없는 정수로 적어 주세요.'}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-error-primary)', paddingTop: 'var(--spacing-xxs)', paddingLeft: 'calc(var(--spacing-24-96px) * 1px)' }} role="alert">{L.hrPensionContributionInvalid || '금액은 소수점·단위 없는 정수로 적어 주세요.'}</div>
                 )}
                 <HrEditPair k={L.hrTargetBonusStart || '타겟 보너스 시작'} date value={idDraft.targetBonusStart} onChange={setIdField('targetBonusStart')} />
                 <HrEditPair k={L.hrTargetBonusEnd || '타겟 보너스 종료'} date value={idDraft.targetBonusEnd} onChange={setIdField('targetBonusEnd')} />
@@ -1668,7 +1668,7 @@ function HrBenefitsSection({ memberId, labels, onLoad, onSave }) {
             <HrEditPair k={L.hrInsurancePlanType || '보험 플랜 유형'} value={d.planType} onChange={set('planType')} />
             <HrEditPair k={L.hrPensionContribution || '퇴직연금 기여금'} value={d.pensionContribution} onChange={set('pensionContribution')} />
             {pensionBad && (
-              <div style={{ fontSize: 11, color: '#DC2626', padding: '2px 0 0 96px' }} role="alert">{L.hrPensionContributionInvalid || '금액은 소수점·단위 없는 정수로 적어 주세요.'}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-error-primary)', paddingTop: 'var(--spacing-xxs)', paddingLeft: 'calc(var(--spacing-24-96px) * 1px)' }} role="alert">{L.hrPensionContributionInvalid || '금액은 소수점·단위 없는 정수로 적어 주세요.'}</div>
             )}
             <HrEditPair k={L.hrStockOptions || '주식 옵션'} value={d.stockOptions} onChange={set('stockOptions')} />
             <div style={{ display: 'flex', gap: 8, fontSize: 12, padding: '3px 0', alignItems: 'flex-start' }}>
