@@ -39,6 +39,8 @@ import { isEnterKey } from '../shared/enterKey.js';
  *   - initialMode 로 처음 고른 방식을 정한다. 앱은 기획서 §8.1 대로 'manual'(수동 선택)로 연다 (pivit-work PW-1830).
  *   - emailError(text) 는 @ 가 든 글을 앱의 메일 검사로 판정해, 받을 수 없는 주소면 안내 문구를 돌려준다.
  *     문구가 오면 태그를 만들지 않고 입력칸 아래 안내 줄에 보인다 (pivit-work PW-2413). 없으면 모양만 본다.
+ *   - checkResignedEmail(mail) 은 명단에 없는 메일이 회사 퇴사자의 계정인지 앱에 묻는다(Promise<boolean>). 맞으면 태그를
+ *     만들지 않고 입력을 둔 채 labels.resignedEmail 을 안내 줄에 보인다. 물음이 실패하면 메일 태그를 만든다 (pivit-work PW-2501).
  *   - labels.addOthersHint 는 넘길 때만 입력칸 아래에 보인다. 기획서 §5.3 은 상시 안내 줄을 두지 않는다 (PW-1830).
  */
 
@@ -131,6 +133,7 @@ const MeetingShareContent = forwardRef(function MeetingShareContent(
     onShareSubmit,
     initialMode = 'participants',
     emailError,
+    checkResignedEmail,
   },
   ref,
 ) {
@@ -149,6 +152,8 @@ const MeetingShareContent = forwardRef(function MeetingShareContent(
   const [copiedUrl, setCopiedUrl] = useState(null);
   const copied = copiedUrl !== null && copiedUrl === shareUrl;
   const inputRef = useRef(null);
+  // 메일을 묻는 사이 입력이 바뀌면 그 답은 버린다 — 지금 칸의 글과 다른 메일의 안내·태그가 뜨면 안 된다.
+  const emailAskRef = useRef(0);
 
   const participants = calendarParticipants.map(toParticipant);
   const reachableParticipants = participants.filter((p) => p.reachable);
@@ -188,7 +193,7 @@ const MeetingShareContent = forwardRef(function MeetingShareContent(
   const removeTag = (key) => setTags((prev) => prev.filter((t) => t.key !== key));
 
   // Enter 로 넣은 글을 받는 사람 하나로 확정한다 (§5.3-A 1~4). 확정 못 하면 태그를 만들지 않는다.
-  const resolveEnter = (text) => {
+  const resolveEnter = async (text) => {
     // 메일로 적은 글은 앱의 공용 검사로 먼저 거른다 (pivit-work PW-2413). 아래 EMAIL_RE 는 모양만 봐서
     // 「박도partner@outside.test」처럼 한글이 섞인 주소를 태그로 받았고, 서버가 거절해 공유가 이유 없이 실패했다.
     const mailError = text.includes('@') ? emailError?.(text) : null;
@@ -200,7 +205,21 @@ const MeetingShareContent = forwardRef(function MeetingShareContent(
     if (EMAIL_RE.test(text)) {
       const mail = text.toLowerCase();
       const member = directory.find((e) => String(e.email ?? '').toLowerCase() === mail);
-      pushTag(member ? memberTag(member) : { key: `m:${mail}`, label: text, userId: null, email: text });
+      if (member) {
+        pushTag(memberTag(member));
+        return;
+      }
+      if (checkResignedEmail) {
+        const asked = ++emailAskRef.current;
+        const resigned = await Promise.resolve(checkResignedEmail(text)).catch(() => false);
+        if (asked !== emailAskRef.current) return;
+        if (resigned) {
+          setHint(labels.resignedEmail ?? '');
+          setHintHidesList(true);
+          return;
+        }
+      }
+      pushTag({ key: `m:${mail}`, label: text, userId: null, email: text });
       return;
     }
     const hits = directory.filter((e) => e.name === text || (e.displayName && e.displayName === text));
@@ -400,6 +419,7 @@ const MeetingShareContent = forwardRef(function MeetingShareContent(
                   placeholder={tags.length === 0 ? labels.addOthersPlaceholder : ''}
                   value={query}
                   onChange={(e) => {
+                    emailAskRef.current += 1;
                     setQuery(e.target.value);
                     setDdOpen(true);
                     setHint('');
