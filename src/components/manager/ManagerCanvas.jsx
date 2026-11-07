@@ -8,6 +8,8 @@ import ProfileModal from './ProfileModal.jsx';
 import KrDrilldown from './KrDrilldown.jsx';
 import TeamSnippets from './TeamSnippets.jsx';
 import ManagerTeamEmpty from './ManagerTeamEmpty.jsx';
+import CustomSelect from '../timeline/CustomSelect.jsx';
+import Icon from '../shared/Icon.jsx';
 
 /**
  * 매니저 페이지 Pure 컴포넌트.
@@ -50,6 +52,15 @@ export default function ManagerCanvas({
   // 팀 스니핏 피드 카드의 [1on1] 버튼. 없으면 그 버튼이 눌러도 아무 일이 없다.
   onTeamSnippetOneOnOne,
   teamMemberCount,
+  /**
+   * 머리글 「N명」 오른쪽의 팀 범위 고르기 (pivit-work PW-2606) — 원온원 대시보드 필터와 같은 부품·같은 값
+   * (`OneOnOnePageHeader` 의 `scopeFilter`·`scopeNotice`). 모양은 `styles/one-on-one.css`, 드롭다운은
+   * `styles/timeline.css` 에 있으니 이것을 넘기는 화면은 그 스타일도 불러야 한다.
+   * `scopeFilter` = { value, options: [{value,label}], onChange, ariaLabel }
+   * `scopeNotice` = 넓혀 본 상태를 알리는 글자. 둘 다 안 넘기면 종전과 같은 화면이다.
+   */
+  scopeFilter,
+  scopeNotice,
   summary,
   kpis = [],
   /**
@@ -158,11 +169,32 @@ export default function ManagerCanvas({
           ))}
           {titleHelp}
         </div>
-        {teamMemberCount != null && (
+        {(teamMemberCount != null || scopeFilter) && (
           <div className="manager-team-meta">
-            <span className="manager-team-meta-label">{teamMemberLabel}</span>
-            <span className="manager-team-meta-divider">∙</span>
-            <span className="manager-team-meta-count">{teamMemberCountLabel}</span>
+            {teamMemberCount != null && (
+              <>
+                <span className="manager-team-meta-label">{teamMemberLabel}</span>
+                <span className="manager-team-meta-divider">∙</span>
+                <span className="manager-team-meta-count">{teamMemberCountLabel}</span>
+              </>
+            )}
+            {scopeFilter && (
+              <span className={`ono-filter${scopeNotice ? ' is-widened' : ''}`}>
+                <CustomSelect
+                  value={scopeFilter.value}
+                  onChange={scopeFilter.onChange}
+                  options={scopeFilter.options}
+                  ariaLabel={scopeFilter.ariaLabel}
+                  size="sm"
+                />
+              </span>
+            )}
+            {scopeNotice && (
+              <span className="ono-filter-notice" role="status">
+                <Icon src="/icons-solid/eye.svg" size={16} color="var(--text-brand-tertiary)" baseUrl={baseUrl} />
+                <span>{scopeNotice}</span>
+              </span>
+            )}
           </div>
         )}
       </header>
