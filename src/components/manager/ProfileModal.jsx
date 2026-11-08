@@ -113,6 +113,7 @@ const DEFAULT_PROFILE_LABELS = {
   metricLastOneOnOne: '마지막 1on1',
   metricKrProgress: 'KR 달성률',
   aiSummaryWeek: 'AI 요약 · 이번 주',
+  snippetEmpty: '최근 스니핏이 없습니다.',
   actionTotal: '전체',
   actionOpen: '미완료',
   actionDone: '완료',
@@ -456,6 +457,15 @@ function AiBriefingTab({ profile, agendas, icons, baseUrl, onGenerate, onReload,
  * 더 남은 것이 없으면 호스트가 `snippetsMore` 를 빼서 버튼이 사라진다.
  */
 function SnippetTab({ profile, icons, baseUrl, onMore, labels: L }) {
+  // 볼 수 있는 스니핏이 0건이면 AI 요약·[더 보기] 없이 빈 안내만 — 같은 창 액션 아이템 탭의 빈 목록과
+  // 같은 모양(.manager-modal-empty). 요약 자리를 카드 브리핑 문장으로 채우지 않는다 (PW-2512 · 매니저 뷰 §10-2).
+  if (profile.snippets.length === 0 && !profile.snippetsMore) {
+    return (
+      <div className="manager-modal-content-section">
+        <p className="manager-modal-empty">{L.snippetEmpty}</p>
+      </div>
+    );
+  }
   return (
     <div className="manager-modal-content-section">
       {/* AI 요약 카드 (이번 주) */}
