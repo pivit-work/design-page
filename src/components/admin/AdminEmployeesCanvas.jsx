@@ -4659,6 +4659,11 @@ function EmployeesEditPanel({
       }
     : undefined;
 
+  /* 조직 변경 승인 안내 한 줄 (pivit-work PW-2597 · 발령 이력 정책 §2 «승인 안내») — 아래 `PanelApprovalNotice` 가 그린다 */
+  const approvalKey = showAppointment && appointmentFlow?.approvalNotice
+    ? JSON.stringify([member?.id, affilChanged ? pendingAffil : null, apptChanges.map((c) => [c.field, c.after]), apptDate])
+    : '';
+
   /* 발령안 불러오기 (PW-2349 · §6-4) — 토큰이 바뀔 때 한 번만 칸에 채운다. 불러오기 전에는 지금 값을 보인다. */
   const draftLoad = appointmentFlow?.draftLoadFor?.(member?.id) ?? null;
   if (draftLoad && draftLoad.token !== loadedToken) {
@@ -5614,6 +5619,16 @@ function EmployeesEditPanel({
                   data-testid="employees-panel-appointment-reason"
                 />
               </FormField>
+              {approvalKey && (
+                <PanelApprovalNotice
+                  key={approvalKey}
+                  load={() => appointmentFlow.approvalNotice(member.id, {
+                    affiliation: affilChanged ? pendingAffil : null,
+                    changes: apptChanges,
+                    effectiveDate: apptDate,
+                  })}
+                />
+              )}
               {appointmentFlow?.onPreview && (
                 <div>
                   <Button
@@ -6493,6 +6508,30 @@ export default function AdminEmployeesCanvas({
           onApply={onBulkLeaveApply}
         />
       )}
+    </div>
+  );
+}
+
+/**
+ * 구성원 창 발령 묶음의 조직 변경 승인 안내 한 줄 (pivit-work PW-2597 · 발령 이력 정책 §2 «승인 안내»).
+ * 입력이 바뀌면 호출부가 `key` 를 바꿔 새로 연다 — 한 번 부르고, 받은 글을 정보 톤 안내(`admin-emp-manager-note`)로 그린다.
+ * 못 받거나 빈 글이면 그리지 않는다(확정 때 서버가 같은 판정으로 다시 잰다).
+ */
+function PanelApprovalNotice({ load }) {
+  const [text, setText] = useState(null);
+  const loadRef = useRef(load);
+  useEffect(() => {
+    let alive = true;
+    Promise.resolve(loadRef.current()).then(
+      (v) => { if (alive) setText(v || null); },
+      () => { if (alive) setText(null); },
+    );
+    return () => { alive = false; };
+  }, []);
+  if (!text) return null;
+  return (
+    <div className="admin-emp-manager-note" data-testid="employees-panel-approval-notice">
+      {text}
     </div>
   );
 }
