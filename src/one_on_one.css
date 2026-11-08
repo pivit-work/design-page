@@ -2789,6 +2789,8 @@ button.ono-add-modal-input { cursor: pointer; }
   border-bottom: 1px solid var(--border-secondary);
 }
 .ono-mem-row.is-head { padding: 8px 0; }
+/* 지난 회의록 액션아이템 — 상태 칸 앞에 마감 칸을 하나 더 둔다 (PW-2471). 칸 폭은 1on1 결과 탭 마감 칸(110px)과 같다. */
+.ono-mem-row.has-due { grid-template-columns: 1fr 80px 110px 110px; }
 .ono-mem-row.is-clickable { cursor: pointer; }
 .ono-mem-row.is-muted { opacity: .7; }
 .ono-mem-col-head {

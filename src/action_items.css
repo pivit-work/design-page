@@ -316,18 +316,7 @@
   flex-shrink: 0;
 }
 
-.ai-deadline {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-tertiary);
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  font-family: inherit;
-}
-.ai-deadline.is-overdue { color: var(--text-error-primary); }
-.ai-deadline.is-today { color: var(--utility-warning-700); }
+/* 마감 칩 `.ai-deadline` 은 1on1 화면과 함께 쓰는 공용 부품이 되어 status-badge.css 로 옮겼다 (PW-2471). */
 
 .ai-owner {
   display: inline-flex;

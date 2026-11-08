@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import Icon from '../shared/Icon.jsx';
 import scrollToFocus from '../shared/scrollToFocus.js';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import DueBadge from '../shared/DueBadge.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Skeleton, { SkeletonList } from '../shared/Skeleton.jsx';
 import LoadMoreButton from '../shared/LoadMoreButton.jsx';
@@ -105,13 +106,11 @@ function ActionRow({ item, labels, onToggle, renderDeadlineEditor, renderKrPicke
 
         {renderDeadlineEditor?.(item) ??
           (item.deadlineLabel ? (
-            <button
-              type="button"
-              className={`ai-deadline ${item.deadlineTone ? `is-${item.deadlineTone}` : ''}`.trim()}
+            <DueBadge
+              label={item.deadlineLabel}
+              tone={item.deadlineTone}
               onClick={() => item.onDeadlineClick?.(item.id)}
-            >
-              {item.deadlineLabel}
-            </button>
+            />
           ) : null)}
 
         {item.ownerName && (

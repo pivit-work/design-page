@@ -1868,3 +1868,22 @@ button.dp-chip {
   white-space: nowrap;
 }
 .ono-done-badge.is-pill { padding: var(--spacing-xxs) var(--spacing-md); border-radius: var(--radius-full); }
+
+/* ══ 마감 표시 — DueBadge (PW-2471) ═══════════════════════════════════════════════════
+   회의록 › 액션 아이템 화면의 마감 칩 모양을 그대로 옮겨 1on1 끝난 화면·지난 회의록과 함께 쓴다.
+   색 뜻: 지연 = 오류 빨강 · 오늘~D-2 = 경고 주황 · 완료 = 연한 회색 · 나머지 = 보조 회색 (oneonone-spec §7). */
+.ai-deadline {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.ai-deadline.is-static { cursor: default; }
+.ai-deadline.is-overdue { color: var(--text-error-primary); }
+.ai-deadline.is-warning { color: var(--utility-warning-700); }
+.ai-deadline.is-muted { color: var(--text-quaternary); }

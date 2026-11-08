@@ -2,6 +2,7 @@ import { useAiDraftLifecycle } from '../shared/useAiDraftLifecycle.js';
 import Button from '../shared/Button.jsx';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import DpStatusBadge from '../shared/StatusBadge.jsx';
+import DueBadge from '../shared/DueBadge.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import EmptyState from '../shared/EmptyState.jsx';
 import Icon from '../shared/Icon.jsx';
@@ -409,9 +410,9 @@ function HealthGraph({ data, healthColor, ariaLabel }) {
   );
 }
 
-export function ColHeads({ cols }) {
+export function ColHeads({ cols, className = '' }) {
   return (
-    <div className="ono-mem-row is-head">
+    <div className={`ono-mem-row is-head${className ? ` ${className}` : ''}`}>
       {cols.map((h) => (
         <span key={h} className="ono-mem-col-head">{h}</span>
       ))}
@@ -1686,10 +1687,9 @@ function ActionRow({ item, L, deadlineOf, onToggle, muted, icons, baseUrl }) {
         <span className={item.done && onToggle ? 'is-done' : ''}>{item.text}</span>
       </span>
       <span className="ono-mem-cell is-sub">{ownerLabelOf(item, L)}</span>
+      {/* 마감 — 액션 아이템 화면과 같은 배지(PW-2471 · oneonone-spec §7). `deadlineOf` 는 `{ label, tone }`. */}
       {dm ? (
-        <span className="ono-start-flag" style={{ background: dm.bg, borderColor: dm.bd, color: dm.color }}>
-          {dm.label}
-        </span>
+        <span className="ono-mem-cell"><DueBadge label={dm.label} tone={dm.tone} data-testid="ono-action-due" /></span>
       ) : (
         <span className="ono-mem-cell is-sub">—</span>
       )}
@@ -1965,7 +1965,7 @@ function ResultScreen({ session, manager, avatar, renderAvatar, L, icons, baseUr
  *
  * 코칭 지표(발화 비율·반복 패턴·대화 분석)는 여기 넣지 않는다 — 멤버 공개 범위 밖이다.
  */
-function HistoryDetail({ session, manager, avatar, renderAvatar, L, icons, baseUrl, formatDate, formatDuration, onBack, feedbackEvidence, renderRecordingPlayer, historyNotes, capabilityRowsOf }) {
+function HistoryDetail({ session, manager, avatar, renderAvatar, L, icons, baseUrl, formatDate, formatDuration, onBack, feedbackEvidence, renderRecordingPlayer, historyNotes, capabilityRowsOf, deadlineOf }) {
   // 지난 회차는 지금 매니저가 아니라 **그때 그 매니저**의 것이다 (PW-211).
   const host = hostOf(session, manager);
   const hostAvatar = renderAvatar
@@ -2081,13 +2081,20 @@ function HistoryDetail({ session, manager, avatar, renderAvatar, L, icons, baseU
           badge={<DpStatusBadge className="ono-start-topic-badge">{session.actionItems.length}{L.count}</DpStatusBadge>}
         >
           <div className="ono-mem-table">
-            <ColHeads cols={[L.colContent, L.colAssignee, L.colStatus]} />
+            <ColHeads
+              cols={deadlineOf ? [L.colContent, L.colAssignee, L.colDeadline, L.colStatus] : [L.colContent, L.colAssignee, L.colStatus]}
+              className={deadlineOf ? 'has-due' : ''}
+            />
             {/* 지난 회의록은 읽기 전용이다 — 눌러도 완료가 바뀌지 않는다 (PW-1638, 기획 §10.3).
                 메모와 달리 30일 안이어도 열지 않는다(PW-575 · 2026-10-25). */}
             {session.actionItems.map((item) => (
-              <div className="ono-mem-row" key={item.id}>
+              <div className={`ono-mem-row${deadlineOf ? ' has-due' : ''}`} key={item.id}>
                 <span className="ono-mem-cell">{item.text}</span>
                 <span className="ono-mem-cell is-sub">{ownerLabelOf(item, L)}</span>
+                {/* 마감 — 1on1 결과·액션 아이템 화면과 같은 배지 (PW-2471 · oneonone-spec §7) */}
+                {deadlineOf && (
+                  <span className="ono-mem-cell"><DueBadge {...deadlineOf(item)} data-testid="ono-history-action-due" /></span>
+                )}
                 <span className={`ono-start-flag ono-start-flag-${item.done ? 'blue' : 'warning'}`}>
                   {item.done ? L.statusDone : L.statusPending}
                 </span>
@@ -2109,7 +2116,7 @@ function HistoryDetail({ session, manager, avatar, renderAvatar, L, icons, baseU
   );
 }
 
-function HistoryScreen({ sessions, session, onCurrentOpen, manager, avatar, renderAvatar, L, icons, baseUrl, formatDate, formatDuration, healthColor, healthBg, healthBorder, feedbackEvidence, onHistorySelect, renderRecordingPlayer, historyNotes, capabilityRowsOf, openSessionId }) {
+function HistoryScreen({ sessions, session, onCurrentOpen, manager, avatar, renderAvatar, L, icons, baseUrl, formatDate, formatDuration, healthColor, healthBg, healthBorder, feedbackEvidence, onHistorySelect, renderRecordingPlayer, historyNotes, capabilityRowsOf, openSessionId, deadlineOf }) {
   const [selectedId, setSelectedId] = useState(null);
   const done = sessions.filter((s) => s.status === 'done');
   const selected = done.find((s) => s.id === selectedId);
@@ -2150,6 +2157,7 @@ function HistoryScreen({ sessions, session, onCurrentOpen, manager, avatar, rend
         renderRecordingPlayer={renderRecordingPlayer}
         historyNotes={historyNotes}
         capabilityRowsOf={capabilityRowsOf}
+        deadlineOf={deadlineOf}
       />
     );
   }
@@ -2397,6 +2405,7 @@ export default function OneOnOneMemberCanvas({
           historyNotes={historyNotes}
           capabilityRowsOf={capabilityRowsOf}
           openSessionId={openSessionId}
+          deadlineOf={deadlineOf}
         />
       )}
     </div>

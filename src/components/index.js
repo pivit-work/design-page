@@ -14,6 +14,7 @@ export { default as SidePanelShell } from './shared/SidePanelShell.jsx';
 export { default as ConfirmModal } from './shared/ConfirmModal.jsx';
 export { default as RosterTable } from './shared/RosterTable.jsx';
 export { default as StatusBadge } from './shared/StatusBadge.jsx';
+export { default as DueBadge } from './shared/DueBadge.jsx';
 export { TONES, TONE_NAMES, STATUS_TONE, toneForStatus } from './shared/statusBadgeTones.js';
 export { default as Toast } from './shared/Toast.jsx';
 // 마우스를 올리면 0.3초 뒤 뜨는 설명 말풍선 (PW-1123). 스타일은 tooltip.css(index.css 가 끌어온다)

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Button from '../shared/Button.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import DueBadge from '../shared/DueBadge.jsx';
 import Icon from '../shared/Icon.jsx';
 import { fill, hostOf, heldAtOf, ownerLabelOf } from './sessionHelpers.js';
 import {
@@ -960,7 +961,13 @@ function ActionItemsCard({ session, L, icons, baseUrl, actions }) {
                 <StatusBadge tone={item.owner === 'member' ? 'info' : 'success'} className="ono-done-badge">
                   {ownerLabelOf(item, L)}
                 </StatusBadge>
-                {item.dueDate && <StatusBadge tone="neutral" className="ono-done-badge">{item.dueDate}</StatusBadge>}
+                {/* 마감 — 액션 아이템 화면과 같은 배지(PW-2471 · oneonone-spec §7). 글자·뜻은 호스트의
+                    `actions.deadlineOf` 가 정한다. 호스트가 안 넘기면 예전처럼 날짜 글자만. */}
+                {actions?.deadlineOf ? (
+                  <DueBadge {...actions.deadlineOf(item)} data-testid="ono-done-action-due" />
+                ) : (
+                  item.dueDate && <StatusBadge tone="neutral" className="ono-done-badge">{item.dueDate}</StatusBadge>
+                )}
                 {(item.ai || item.source === 'ai') && (
                   <StatusBadge tone="ai" className="ono-done-badge">{L.actionAi}</StatusBadge>
                 )}

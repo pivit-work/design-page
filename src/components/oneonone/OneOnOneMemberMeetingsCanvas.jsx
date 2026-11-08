@@ -3,6 +3,7 @@ import LoadMoreButton from '../shared/LoadMoreButton.jsx';
 import EmptyState from '../shared/EmptyState.jsx';
 import Button from '../shared/Button.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import DueBadge from '../shared/DueBadge.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import { fill, hostOf, healthOf, heldAtOf, ownerLabelOf } from './sessionHelpers.js';
 import {
@@ -102,6 +103,7 @@ const DEFAULT_LABELS = {
   colContent: '내용',
   colAssignee: '담당',
   colStatus: '상태',
+  colDeadline: '마감',
   roleMember: '멤버',
   roleManager: '매니저',
   statusDone: '완료',
@@ -568,6 +570,7 @@ function RecordScreen({
   onBackToList,
   renderRecordingPlayer,
   recordEdit,
+  deadlineOf,
 }) {
   const host = hostOf(session, { name: managerName });
   const actions = session.actionItems ?? [];
@@ -639,12 +642,19 @@ function RecordScreen({
           <p className="ono-mem-hint ono-mem-center">{L.noActions}</p>
         ) : (
           <div className="ono-mem-table">
-            <ColHeads cols={[L.colContent, L.colAssignee, L.colStatus]} />
+            <ColHeads
+              cols={deadlineOf ? [L.colContent, L.colAssignee, L.colDeadline, L.colStatus] : [L.colContent, L.colAssignee, L.colStatus]}
+              className={deadlineOf ? 'has-due' : ''}
+            />
             {actions.map((item) => (
               /* 열람 전용 — 행에 onClick 을 달지 않는다. 체크는 상태 표시일 뿐이다. */
-              <div className="ono-mem-row" data-testid="ono-past-action-row" key={item.id}>
+              <div className={`ono-mem-row${deadlineOf ? ' has-due' : ''}`} data-testid="ono-past-action-row" key={item.id}>
                 <span className="ono-mem-cell">{item.text}</span>
                 <span className="ono-mem-cell is-sub">{ownerLabelOf(item, L)}</span>
+                {/* 마감 — 1on1 결과·액션 아이템 화면과 같은 배지 (PW-2471 · oneonone-spec §7) */}
+                {deadlineOf && (
+                  <span className="ono-mem-cell"><DueBadge {...deadlineOf(item)} data-testid="ono-past-action-due" /></span>
+                )}
                 <span className={`ono-start-flag ono-start-flag-${item.done ? 'blue' : 'warning'}`}>
                   {item.done ? L.statusDone : L.statusPending}
                 </span>
@@ -809,6 +819,8 @@ export default function OneOnOneMemberMeetingsCanvas({
    * 고치지 않는다(기획 §14-4 열람 전용). 기간 판정은 소비처가 하고, 지났으면 안 넘긴다.
    */
   recordEdit,
+  /** 액션아이템 마감 배지 `(item) => ({ label, tone })` — 액션 아이템 화면과 같은 배지 (PW-2471). 없으면 마감 칸을 그리지 않는다. */
+  deadlineOf,
 }) {
   const L = mergeLabels(DEFAULT_LABELS, labels);
   const I = { ...DEFAULT_ICONS, ...(icons || {}) };
@@ -850,6 +862,7 @@ export default function OneOnOneMemberMeetingsCanvas({
       ) : screen === 'record' ? (
         <RecordScreen
           recordEdit={recordEdit}
+          deadlineOf={deadlineOf}
           session={session}
           memberName={memberName}
           managerName={managerName}
