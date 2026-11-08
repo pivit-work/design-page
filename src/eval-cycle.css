@@ -5883,7 +5883,7 @@ button.evm-ai-source {
 /* PW-2537 — 3×3 칸에 넣지 않은 팀원의 오른쪽 칸(보상 열람 권한 없음 · 회사 설정으로 보상 미표시). 보상 축 칸이 아니라 중립 바탕. */
 .evs-nb-grid.has-aside { grid-template-columns: auto repeat(4, 1fr); }
 .evs-nb-cell.x-aside { background: var(--bg-secondary); border-style: dashed; }
-.evs-nb-xhead.is-aside { display: inline-flex; align-items: center; justify-content: center; gap: 4px; color: var(--text-tertiary); }
+.evs-nb-xhead.is-aside { display: inline-flex; align-items: center; justify-content: center; gap: var(--spacing-xs); color: var(--text-tertiary); }
 .evs-nb-name {
   background: none; border: none; padding: 1px 0; text-align: left; cursor: pointer;
   font-size: var(--font-size-text-xs); font-weight: 600; color: var(--text-primary);
