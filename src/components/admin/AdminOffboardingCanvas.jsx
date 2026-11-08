@@ -95,6 +95,7 @@ function Notice({ tone, title, children, testId, role }) {
  * @property {string} id
  * @property {string} label
  * @property {string} value
+ * @property {string} [valueSuffix] 값 뒤 회색 꼬리 — 예 «· 법정 부여끼리 비교 기준»(정책 v1.42 §5-J-0)
  * @property {{ tone: string, text: string }} [badge]
  * @property {string} [note] 값 아래 보조 줄
  * @property {'warning'} [noteTone] 보조 줄을 앰버로
@@ -103,6 +104,7 @@ function Notice({ tone, title, children, testId, role }) {
  * @property {'idle'|'loading'|'error'|'ready'} status
  * @property {string} [basis] 머리 오른쪽 «퇴사일 {날짜} 기준»
  * @property {string} [description] 머리 아래 설명 한 줄
+ * @property {string} [guide] 설명 줄 바로 아래 회색 한 줄 — 연차 정산 기준 안내(정책 v1.42 §5-J-0 «블록 안내 줄»)
  * @property {string} [message] idle·loading 일 때 칸 안 한 줄
  * @property {{ title: string, desc?: string, retryLabel: string, onRetry: () => void }} [error]
  * @property {LeaveSettlementRow[]} [rows]
@@ -123,6 +125,7 @@ function LeaveSettlement({ view, labels }) {
         )}
       </div>
       {view.description && <NoteText data-testid="offboarding-leave-desc">{view.description}</NoteText>}
+      {view.guide && <NoteText data-testid="offboarding-leave-guide">{view.guide}</NoteText>}
       {view.message && (
         <Notice tone="neutral" testId="offboarding-leave-message">{view.message}</Notice>
       )}
@@ -144,6 +147,9 @@ function LeaveSettlement({ view, labels }) {
               <dd className="admin-offb-leave-val">
                 <span className="admin-offb-leave-value">
                   {r.value}
+                  {r.valueSuffix && (
+                    <NoteText as="span" data-testid={`offboarding-leave-suffix-${r.id}`}>{r.valueSuffix}</NoteText>
+                  )}
                   {r.badge && <DpStatusBadge tone={r.badge.tone}>{r.badge.text}</DpStatusBadge>}
                 </span>
                 {r.note && (

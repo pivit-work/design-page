@@ -725,6 +725,8 @@
   color: var(--text-primary);
   overflow-wrap: anywhere;
 }
+/* 값 뒤 회색 꼬리(«· 법정 부여끼리 비교 기준» — 정책 v1.42 §5-J-0) — 값의 굵기를 물려받지 않는다 */
+.admin-offb-leave-value .dp-note-text { font-weight: 400; }
 .admin-offb-leave-note { color: var(--text-tertiary); overflow-wrap: anywhere; }
 .admin-offb-leave-note.is-warning { color: var(--colors-warning-600); }
 .admin-offb-leave-line { display: block; }
