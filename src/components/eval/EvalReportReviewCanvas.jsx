@@ -1112,6 +1112,8 @@ function ReviewRow({
         }}
         onSubmit={approve}
         testId={`evrr-approve-modal-${row.memberId}`}
+        // 다듬기 카드(두 칸)가 들어오면 고정 높이(428)를 넘는다 — 평가 창의 내용 높이 틀로, 화면 높이에서 멈추고 본문만 스크롤 (pivit-work PW-2591 11-09 dev)
+        className="evc-shell"
       >
         <label className="evrr-reject-field" htmlFor={`evrr-comment-${row.memberId}`}>
           <span className="evrr-reject-label">{L.approveCommentLabel}</span>
@@ -1147,12 +1149,6 @@ function ReviewRow({
             {L.approveCommentOver.replace('{max}', String(commentMax))}
           </p>
         )}
-        {/* [PW-2591 · R-14] 등급이 조정된 사람 + 칸에 글 — 막지 않는다. 낱말·AI 판정 없음. */}
-        {row.gradeAdjusted === true && comment.trim() && (
-          <p className="evl-lc-grade-warn" data-testid={`evrr-grade-warn-${row.memberId}`}>
-            {L.approveGradeAdjustedWarn}
-          </p>
-        )}
         {onPolishComment && (
           <LeaderCommentPolish
             comment={comment}
@@ -1166,6 +1162,13 @@ function ReviewRow({
             L={L}
             testId={`evrr-comment-${row.memberId}`}
           />
+        )}
+        {/* [PW-2591 · R-14] 등급이 조정된 사람 + 칸에 글 — 막지 않는다. 낱말·AI 판정 없음.
+            시안처럼 다듬기 카드 아래 — 버튼 위에 두면 다듬기 버튼 툴팁에 가렸다(11-09 dev). */}
+        {row.gradeAdjusted === true && comment.trim() && (
+          <p className="evl-lc-grade-warn" data-testid={`evrr-grade-warn-${row.memberId}`}>
+            {L.approveGradeAdjustedWarn}
+          </p>
         )}
         {approveError && (
           <p className="evrr-refine-error" role="alert" data-testid={`evrr-approve-error-${row.memberId}`}>
