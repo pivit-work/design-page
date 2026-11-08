@@ -1973,24 +1973,22 @@ function AppointmentHistoryView({
           {/* 승인 필터 칩(PW-2597 · 정책 §3) — 승인 대기 건이 1건 이상일 때만. 0건이면 줄째 그리지 않는다 */}
           {approvalPendingCount > 0 && !showRevisions && (
             <div className="admin-snap-approval-chips" data-testid="snap-hist-approval-chips">
-              <button
-                type="button"
+              <Button
                 className={`admin-snap-approval-chip${approvalOnly ? '' : ' is-active'}`}
                 aria-pressed={!approvalOnly}
                 onClick={() => { setApprovalOnly(false); setSelected(null); }}
                 data-testid="snap-hist-approval-all"
               >
                 {labels.historyApprovalAll ?? '전체'}
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
                 className={`admin-snap-approval-chip${approvalOnly ? ' is-active' : ''}`}
                 aria-pressed={approvalOnly}
                 onClick={() => { setApprovalOnly(true); setSelected(null); }}
                 data-testid="snap-hist-approval-only"
               >
                 {String(labels.historyApprovalPending ?? '승인 대기 {n}').replace('{n}', String(approvalPendingCount))}
-              </button>
+              </Button>
             </div>
           )}
           {cancelError && (

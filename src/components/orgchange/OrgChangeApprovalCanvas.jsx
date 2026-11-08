@@ -119,7 +119,7 @@ function RequestCard({ card, labels, onToggle, onAction, onReasonChange, onToggl
   const actions = card.actions ?? [];
   return (
     <div className="oca-card" data-testid={`oca-card-${card.id}`}>
-      <button type="button" className="oca-card-head" aria-expanded={!!card.open}
+      <Button className="oca-card-head" aria-expanded={!!card.open}
         onClick={() => onToggle?.(card.id)} data-testid={`oca-card-toggle-${card.id}`}>
         <span className="oca-card-title">{card.title}</span>
         {card.meta && <span className="oca-card-meta">{card.meta}</span>}
@@ -128,7 +128,7 @@ function RequestCard({ card, labels, onToggle, onAction, onReasonChange, onToggl
         )}
         {card.count && <span className="oca-card-meta">{card.count}</span>}
         <span className={`oca-card-chevron${card.open ? ' is-open' : ''}`} aria-hidden="true">›</span>
-      </button>
+      </Button>
       {card.open && (
         <div className="oca-card-body">
           {card.lines.map((line) => (
@@ -147,8 +147,8 @@ function RequestCard({ card, labels, onToggle, onAction, onReasonChange, onToggl
                     </ul>
                   )}
                   {line.moreLabel && (
-                    <button type="button" className="oca-more" onClick={() => onMore?.(card.id, line.id)}
-                      data-testid={`oca-more-${line.id}`}>{line.moreLabel}</button>
+                    <Button variant="ghost" size="sm" onClick={() => onMore?.(card.id, line.id)}
+                      data-testid={`oca-more-${line.id}`}>{line.moreLabel}</Button>
                   )}
                   {line.closedText && <div className="oca-line-note">{line.closedText}</div>}
                 </div>
