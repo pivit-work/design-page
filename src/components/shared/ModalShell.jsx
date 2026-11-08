@@ -34,7 +34,7 @@ import { CloseGlyph } from './lineIcons.jsx';
  *
  * 선택 props (PW-832 — 평가 화면의 창들이 이 껍데기로 옮겨 오면서 더했다. 안 넘기면
  * 종전 동작·마크업 그대로다):
- *   footer               푸터 «안»을 바꿔 끼운다. undefined 면 기본 취소/확인 버튼,
+ *   footer               푸터 «안»을 바꿔 끼운다. undefined 면 기본 취소/확인 버튼(문구가 둘 다 없으면 안 그림),
  *                        null·false 면 푸터 줄 자체를 그리지 않는다(읽기만 하는 창)
  *   busy                 요청이 도는 중 — Esc·막 클릭·닫기 X 를 받지 않고 기본 두 버튼을 잠근다.
  *                        닫혀도 요청은 이미 나갔으므로 「아무것도 안 바뀌었다」로 읽히면 거짓이 된다
@@ -158,7 +158,9 @@ export default function ModalShell({
           <div className={bodyClassName}>{children}</div>
         </div>
 
-        {footer === undefined ? (
+        {/* 버튼 문구를 하나도 안 넘기고 footer 도 비워 두면 글자 없는 네모 둘이 남는다(pivit-work PW-1651·
+            PW-2508 결과 문서). 그럴 때는 기본 버튼 줄을 그리지 않는다. */}
+        {footer === undefined ? (cancelLabel || submitLabel ? (
           <div className="tl-group-modal-actions">
             <button
               type="button"
@@ -176,7 +178,7 @@ export default function ModalShell({
               {submitLabel}
             </button>
           </div>
-        ) : footer ? (
+        ) : null) : footer ? (
           <div className="tl-group-modal-actions">{footer}</div>
         ) : null}
       </form>

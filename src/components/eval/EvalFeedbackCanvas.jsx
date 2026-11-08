@@ -398,8 +398,9 @@ function ThreadModal({ block, L, isPastPeriod, recipients, recipientsFailed, lin
       testId="fbm-thread-modal"
       closeTestId="fbm-thread-close"
       footer={
-        // 「기타」는 한 대상의 스레드가 아니라 요청을 걸 곳이 없다.
-        isEtc ? undefined : isPastPeriod ? (
+        // 「기타」는 한 대상의 스레드가 아니라 요청을 걸 곳이 없다. undefined 면 창 틀이 기본 취소·확인
+        // 버튼을 그려 글자 없는 네모 둘이 남는다(팀 피드백 쪽은 pivit-work PW-1651 에서 같은 일).
+        isEtc ? null : isPastPeriod ? (
           <div style={{ padding: 16, background: C.pastBg, color: C.sub, fontSize: 'var(--font-size-text-xs)', textAlign: 'center' }}>
             {L.pastReadonly}
           </div>
