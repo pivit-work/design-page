@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 import assetUrl from '../shared/assetUrl.js';
 
@@ -25,6 +26,13 @@ import assetUrl from '../shared/assetUrl.js';
  *  - beta: true 면 로고 오른쪽 8px 에 「Beta」 마크를 단다 (Figma 17816:27362 · 2026-11-04 — 서비스가
  *    베타인 동안). 0.5px fg-tertiary 테두리 · r2 · 안쪽 4 상자에 글자 그림(beta-mark.svg). 기본 false.
  *    `betaLabel` 은 그 마크의 화면 읽기용 이름(기본 'Beta').
+ *  - companyLogo: 회사가 올린 로고 (pivit-work PW-2634 · 기획 arch-nav-routing-policy §1-로고).
+ *    `{ src, alt }` 면 맨 위 로고 자리에 Pivit 로고 대신 그 그림을 높이 27 · 너비 168 이하로 비율을
+ *    지켜 그리고(자르지 않는다 · Beta 마크 없음), 맨 아래 「설정」 밑에 «Powered by + Pivit 로고 + Beta»
+ *    한 줄을 단다(누르는 곳이 아니다). `'loading'` 이면 같은 크기의 빈 자리 — Pivit 로고를 먼저
+ *    그렸다가 바꾸면 깜빡인다. 그림을 못 그리면(깨진 파일) 없는 것과 같다. 기본 null — 종전 그대로.
+ *    `poweredByLabel` 은 그 줄 앞 글자(기본 'Powered by'). `logoPendingLabel` 을 넘기면 빈 자리에 그 글자를 쓴다
+ *    (회사 설정 미리보기의 「올리는 중…」).
  * 선택 prop 을 넘기지 않으면 기존 동작·디자인과 100% 동일하다.
  */
 export default function Sidebar({
@@ -46,17 +54,47 @@ export default function Sidebar({
   showFeedback = true,
   beta = false,
   betaLabel = 'Beta',
+  companyLogo = null,
+  poweredByLabel = 'Powered by',
+  logoPendingLabel,
 }) {
-  const logoImg = (
-    <>
-      <img src={assetUrl(baseUrl, 'logo.svg')} alt="Pivit" />
-      {beta && (
-        <span className="logo-beta" role="img" aria-label={betaLabel} data-testid="logo-beta">
-          <img src={assetUrl(baseUrl, 'beta-mark.svg')} alt="" />
-        </span>
-      )}
-    </>
+  // 회사 로고 그림을 못 그렸다 — 못 그린 주소만 기억하므로, 주소가 바뀌면 저절로 다시 그려 본다.
+  const companySrc = companyLogo && typeof companyLogo === 'object' ? companyLogo.src : null;
+  const [failedSrc, setFailedSrc] = useState(null);
+  const hasCompanyLogo = !!companySrc && failedSrc !== companySrc;
+  const logoPending = companyLogo === 'loading';
+
+  const betaMark = beta && (
+    <span className="logo-beta" role="img" aria-label={betaLabel} data-testid="logo-beta">
+      <img src={assetUrl(baseUrl, 'beta-mark.svg')} alt="" />
+    </span>
   );
+  let logoImg;
+  if (hasCompanyLogo) {
+    logoImg = (
+      <img
+        className="logo-company"
+        src={companySrc}
+        alt={companyLogo.alt || ''}
+        data-testid="logo-company"
+        onError={() => setFailedSrc(companySrc)}
+      />
+    );
+  } else if (logoPending) {
+    // 왼쪽 메뉴는 빈 자리, 회사 설정 미리보기는 「올리는 중…」 글자를 넘긴다(logoPendingLabel).
+    logoImg = (
+      <span className="logo-pending" aria-hidden={logoPendingLabel ? undefined : 'true'} data-testid="logo-pending">
+        {logoPendingLabel}
+      </span>
+    );
+  } else {
+    logoImg = (
+      <>
+        <img src={assetUrl(baseUrl, 'logo.svg')} alt="Pivit" />
+        {betaMark}
+      </>
+    );
+  }
   const renderItem = (m) => {
     const isActive = m.page === currentPage;
     const className = ['menu-item', isActive && 'active', m.disabled && 'disabled']
@@ -125,6 +163,13 @@ export default function Sidebar({
             </div>
           ))}
           <div className="menu-item" onClick={onSettingsClick}><Icon src={icons.settings} size={16} color="var(--colors-foreground-fgTertiary)" baseUrl={baseUrl} /><span>{settingsLabel}</span></div>
+          {hasCompanyLogo && (
+            <div className="sidebar-powered" data-testid="sidebar-powered-by">
+              <span className="sidebar-powered-label">{poweredByLabel}</span>
+              <img className="sidebar-powered-logo" src={assetUrl(baseUrl, 'logo.svg')} alt="Pivit" />
+              {betaMark}
+            </div>
+          )}
         </div>
       </div>
     </aside>
