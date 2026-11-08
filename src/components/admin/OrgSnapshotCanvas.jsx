@@ -1238,6 +1238,9 @@ function AppointmentBulkView({
      앱이 그린 얼럿(`beforeConfirm`)을 이 자리에 둔다. `confirmBlocked` 면 «발령 확정»을 막는다(다 고르기 전 등) */
   onReviewChange,
   beforeConfirm,
+  /* 조직 변경 승인 안내 한 줄 (pivit-work PW-2597 · 발령 이력 정책 §3 «대량 발령 ③ 승인 안내») — 앱이 지은 글.
+     «매니저가 바뀌는 {N}명은 승인자 {M}명의 승인을 받은 뒤 반영돼요 …». 확정 버튼을 막지 않는다 */
+  approvalNote,
   confirmBlocked = false,
   /* «발령 완료» 아래 덧붙일 한 줄 (PW-2349 · 발령 이력 정책 v1.5 — «예정 발령으로 N건을 남겼어요»). 앱이 확정이 끝난 뒤 채운다 */
   doneNote,
@@ -1698,6 +1701,9 @@ function AppointmentBulkView({
                 <input className="admin-snap-input" value={reason} onChange={(e) => setReason(e.target.value)} placeholder={labels.bulkReasonPlaceholder} />
               </div>
             </div>
+            {approvalNote && (
+              <div className="admin-snap-sched-hint" data-testid="snap-bulk-approval-note">{approvalNote}</div>
+            )}
             {beforeConfirm}
             {submitError && (
               <p className="dp-field-error admin-snap-error" role="alert">{submitError}</p>
