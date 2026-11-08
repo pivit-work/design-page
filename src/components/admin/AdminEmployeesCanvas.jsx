@@ -218,7 +218,7 @@ const DEFAULT_LABELS = {
     leaveSkipOnLeave: '이미 휴직 중인 {count}명',
     leaveSkipResigned: '퇴사자 {count}명',
     leaveSkipScheduled: '휴직 예정 {count}명',
-    leaveSkipSuffix: '{list}은 건너뜁니다',
+    leaveSkipSuffix: '{list}은(는) 건너뜁니다',
     leaveApply: '휴직으로 바꾸기',
     leaveEndBeforeStart: '휴직 종료일은 시작일보다 앞설 수 없습니다',
     leaveFutureHint: '{date}에 휴직으로 바뀌어요. 그때까지 발령 이력에 예정으로 보이고, 발효 전에는 취소할 수 있어요',
