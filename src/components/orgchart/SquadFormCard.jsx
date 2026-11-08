@@ -110,7 +110,7 @@ export default function SquadFormCard({
       <div className="sq-form-fields">
         <div className="sq-form-field">
           <label className="sq-field-label" htmlFor={`squad-kind-${form.id || 'new'}`}>{L('squad.form.kind')}</label>
-          <Select aria-label={L('squad.form.kind')} id={`squad-kind-${form.id || 'new'}`} className="sq-field" value={form.kind || 'squad'} onChange={(e) => setForm((f) => ({ ...f, kind: e.target.value }))}>
+          <Select disabled={readOnly} aria-label={L('squad.form.kind')} id={`squad-kind-${form.id || 'new'}`} className="sq-field" value={form.kind || 'squad'} onChange={(e) => setForm((f) => ({ ...f, kind: e.target.value }))}>
             <option value="squad">{L('squad.form.squad')}</option>
             <option value="tf">{L('squad.form.tf')}</option>
           </Select>
@@ -142,7 +142,7 @@ export default function SquadFormCard({
         <div className="sq-field-row">
           <div className="sq-form-field">
             <div className="sq-field-label">{L('squad.form.startDateLabel')}</div>
-            <DateInput
+            <DateInput readOnly={readOnly}
               value={form.startDate} aria-label={L('squad.form.startDate')}
               className="sq-field"
               onChange={(v) => setForm((f) => ({ ...f, startDate: v }))}
@@ -150,7 +150,7 @@ export default function SquadFormCard({
           </div>
           <div className="sq-form-field">
             <div className="sq-field-label">{L('squad.form.endDateLabel')}</div>
-            <DateInput
+            <DateInput readOnly={readOnly}
               value={form.endDate} aria-label={L('squad.form.endDate')}
               className={`sq-field${errors.endDate ? ' is-invalid' : ''}`}
               onChange={(v) => setForm((f) => ({ ...f, endDate: v }))}
@@ -164,7 +164,7 @@ export default function SquadFormCard({
           <div className="sq-swatches">
             {palette.map((c) => (
               <div
-                key={c} onClick={() => setForm((f) => ({ ...f, color: c }))} title={c}
+                key={c} onClick={() => setForm((f) => ({ ...f, color: c }))} title={c} aria-disabled={readOnly || undefined}
                 data-testid={`squad-color-${c}`}
                 className={`sq-swatch${form.color === c ? ' is-picked' : ''}`}
                 style={{ background: c }}
