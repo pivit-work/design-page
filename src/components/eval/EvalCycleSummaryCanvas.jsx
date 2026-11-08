@@ -528,6 +528,9 @@ const DEFAULT_LABELS = {
   nbYDeferred: '보류',
   nbCaption: 'X축: 보상 조정 필요 수준 | Y축: 승진 고려 여부',
   nbEmpty: '승진·보상 평가 데이터가 아직 제출되지 않았습니다',
+  // PW-2537 · spec-calibration §4.5-A-2 6번 — 3×3 칸에 넣지 않은 팀원을 승진 줄만 맞춰 담는 오른쪽 칸 머리.
+  nbAsideLocked: '보상 열람 권한 없음',
+  nbAsideCompanyOff: '보상 미표시 (회사 설정)',
   nbNoViewable:
     '볼 수 있는 팀원이 없습니다. 이 표에는 내가 평가자인 팀원과 내가 맡은 위원회의 피평가자만 나옵니다.',
   prTitle: '승진 요청 목록',
@@ -1933,6 +1936,21 @@ const PERIOD_TYPE_KEYS = {
   half: 'periodHalf',
   annual: 'periodAnnual',
 };
+/**
+ * PW-2537 · spec-calibration §4.5-A-2 6번 — 9블록 오른쪽 칸 머리. 서버가 `nineBox.aside` 를 줄 때만 그린다.
+ * `locked` = 보는 사람에게 보상 열람 권한이 없다(자물쇠) · `company_off` = 회사가 «보상 조정» 열을 껐다
+ * (권한 문제가 아니라 자물쇠를 쓰지 않는다). 그 칸 사람의 보상 값은 서버가 싣지 않는다.
+ */
+function NineBoxAsideHead({ aside, L }) {
+  if (aside.kind === 'company_off') {
+    return <span className="evs-nb-xhead is-aside" data-testid="evs-nb-aside-head">{L.nbAsideCompanyOff}</span>;
+  }
+  return (
+    <span className="evs-nb-xhead is-aside" data-testid="evs-nb-aside-head">
+      <LockIcon size={12} /> {L.nbAsideLocked}
+    </span>
+  );
+}
 /** PW-1877 — 펼친 칸에 바로 보이는 이름 수. 넘는 사람은 「외 N명」으로 접힌다. */
 const NINE_BOX_NAME_PREVIEW = 5;
 /**
@@ -3748,9 +3766,10 @@ export default function EvalCycleSummaryCanvas({
                       const yTone = { recommended: 'green', not_yet: 'neutral', deferred: 'amber' };
                       return (
                         <div data-testid="evs-ninebox">
-                          <div className="evs-nb-grid">
+                          <div className={`evs-nb-grid${nineBox.aside ? ' has-aside' : ''}`}>
                             <span className="evs-nb-corner" />
                             {xKeys.map((x) => <span className="evs-nb-xhead" key={x}>{xLabel[x]}</span>)}
+                            {nineBox.aside && <NineBoxAsideHead aside={nineBox.aside} L={L} />}
                             {yKeys.map((y) => (
                               <Fragment key={y}>
                                 <span className={`evs-nb-yhead tone-${yTone[y]}`}>{yLabel[y]}</span>
@@ -3770,6 +3789,19 @@ export default function EvalCycleSummaryCanvas({
                                     </div>
                                   );
                                 })}
+                                {/* PW-2537 — 이름 클릭(승진 요청)은 어느 칸에서나 같다(요약 정책 §9.F.4). */}
+                                {nineBox.aside && (
+                                  <div className="evs-nb-cell x-aside" data-testid={`evs-nb-aside-${y}`}>
+                                    <NineBoxCellBody
+                                      members={nineBox.aside.rows[y] ?? []}
+                                      L={L}
+                                      testId={`evs-nb-count-aside-${y}`}
+                                      renderName={(m) => (
+                                        <button type="button" className="evs-nb-name" key={m.memberId} onClick={() => { setNbSelectedMember(m.memberId); if (onNineBoxNameClick) onNineBoxNameClick(m.memberId); }}>{m.name || m.memberId}</button>
+                                      )}
+                                    />
+                                  </div>
+                                )}
                               </Fragment>
                             ))}
                           </div>
@@ -4141,13 +4173,14 @@ export default function EvalCycleSummaryCanvas({
                   };
                   return (
                     <div data-testid="evs-cw-ninebox-grid">
-                      <div className="evs-nb-grid">
+                      <div className={`evs-nb-grid${nineBox.aside ? ' has-aside' : ''}`}>
                         <span className="evs-nb-corner" />
                         {xKeys.map((x) => (
                           <span className="evs-nb-xhead" key={x}>
                             {xLabel[x]}
                           </span>
                         ))}
+                        {nineBox.aside && <NineBoxAsideHead aside={nineBox.aside} L={L} />}
                         {yKeys.map((y) => (
                           <Fragment key={y}>
                             <span className={`evs-nb-yhead tone-${yTone[y]}`}>
@@ -4177,6 +4210,19 @@ export default function EvalCycleSummaryCanvas({
                                 </div>
                               );
                             })}
+                            {nineBox.aside && (
+                              <div className="evs-nb-cell x-aside" data-testid={`evs-cw-nb-aside-${y}`}>
+                                <NineBoxCellBody
+                                  members={nineBox.aside.rows[y] ?? []}
+                                  L={L}
+                                  renderName={(m) => (
+                                    <span className="evs-nb-name" key={m.memberId}>
+                                      {m.name || m.memberId}
+                                    </span>
+                                  )}
+                                />
+                              </div>
+                            )}
                           </Fragment>
                         ))}
                       </div>
