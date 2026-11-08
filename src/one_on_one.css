@@ -2483,6 +2483,7 @@ button.ono-add-modal-input { cursor: pointer; }
 }
 .ono-start-rating-num.is-warn { color: var(--colors-text-textWarningPrimary); }
 .ono-start-rating-num.is-bad { color: var(--colors-text-textErrorPrimary); }
+.ono-start-rating-num.is-empty { color: var(--text-placeholder); }
 .ono-start-cap-hint {
   margin: 0;
   font-size: 12px;

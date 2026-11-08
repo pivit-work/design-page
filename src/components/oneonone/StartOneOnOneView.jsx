@@ -265,7 +265,8 @@ function ProgressBar({ pct, color }) {
 }
 
 // 매니저 평가 점수 색상: 3 주의(warning), 2↓ 위험(error), 그 외(4·5)는 기본 색.
-const ratingTone = (v) => (v === 3 ? 'is-warn' : v <= 2 ? 'is-bad' : '');
+// 0 = 아직 안 매김 — 점수 자리에 «-» 를 흐리게 (pivit-work PW-2517 · policy §4.1.5 «처음 값»).
+const ratingTone = (v) => (!v ? 'is-empty' : v === 3 ? 'is-warn' : v <= 2 ? 'is-bad' : '');
 
 // ai=true(AI 초안 생성됨)이면 막대 색이 green → purple 로 바뀐다.
 // onChange 가 주어지면 매니저가 1-5 막대를 클릭해 직접 평가 입력 (spec §4.1.5).
@@ -296,7 +297,7 @@ export function RatingBar({ value, ai = false, self = false, onChange, labelOf =
           />
         ))}
       </div>
-      <span className={`ono-start-rating-num ${ratingTone(value)}`}>{value}</span>
+      <span className={`ono-start-rating-num ${ratingTone(value)}`}>{value || '-'}</span>
     </div>
   );
 }

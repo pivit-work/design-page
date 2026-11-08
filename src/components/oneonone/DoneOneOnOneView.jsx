@@ -1342,7 +1342,9 @@ function DoneFeedbackList({ session, evidence, loading, error, onRetry, managerN
                   {L.feedbackConfirmed}
                 </StatusBadge>
               )}
-              {confirm && !confirmed && (
+              {/* «AI 미확정»은 AI 가 쓴 글에만 — 손으로 쓰거나 고친 글은 노란 바탕과 [확정]만 (pivit-work PW-2517 · policy §6.4.1).
+                  `confirm.aiAuthored` 를 안 넘기거나 그 칸 값이 없으면 AI 글로 친다(예전 동작). */}
+              {confirm && !confirmed && confirm.aiAuthored?.[item.key] !== false && (
                 <StatusBadge tone="warning" className="ono-done-badge" data-testid={`ono-feedback-unconfirmed-${item.key}`}>
                   {L.feedbackUnconfirmed}
                 </StatusBadge>
@@ -1726,6 +1728,7 @@ export default function DoneOneOnOneView({
    * 회의 후 피드백 확정 (PW-1551 · oneonone-spec §8-2) — `{ confirmed: { strengths, sbi, support },
    * onConfirm(key), busyKey, error }`. 넘기면 항목마다 노랑(미확정)/초록(확정)이 그려지고, 확정 0개면
    * 공개 버튼이 꺼진다. 안 넘기면 예전 모습 그대로다.
+   * `aiAuthored: { strengths, sbi, support }`(PW-2517) — 값이 false 인 칸은 미확정이어도 «AI 미확정» 딱지를 달지 않는다.
    */
   feedbackConfirm,
   /**
