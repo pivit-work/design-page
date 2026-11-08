@@ -543,6 +543,10 @@ export default function AdminOffboardingCanvas({
           {leaderOf.length > 0 && (
             <Notice tone="warn" title={labels.effects.leaderWarning} testId="offboarding-leader-warning">
               {fill(labels.effects.leaderOf, { names: leaderOf.join(sep) })}
+              {/* pivit-work PW-2597 · E3 · E113 — «매니저가 바뀌는 {N}명에게 퇴사 처리가 실행될 때 알립니다.»(앱이 짓는다 · 없으면 줄 없음) */}
+              {member.leaderManagerNotice && (
+                <div data-testid="offboarding-leader-manager-notice">{member.leaderManagerNotice}</div>
+              )}
             </Notice>
           )}
           {!due && resignationDate && (
