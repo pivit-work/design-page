@@ -585,7 +585,8 @@ function RuleRow({ rule, labels, formatCondition, formatCooldown, onEdit, onTogg
   const conditionText = formatCondition(rule.id, rule.conditionValues, rule.conditionFixed);
   return (
     <div className={`admin-notif-rule${rule.enabled ? '' : ' is-off'}`} data-testid="notif-rule">
-      <Switch checked={rule.enabled} onChange={() => onToggle(rule.id)} label={rule.label} disabled={busy} />
+      {/* 회사도 끌 수 없는 알림(pivit-work PW-2597 · 조직 변경 승인 요청)은 켠 채 잠근다 */}
+      <Switch checked={rule.enabled} onChange={() => onToggle(rule.id)} label={rule.label} disabled={busy || !!rule.alwaysOn} />
       <div className="admin-notif-rule-main">
         <div className="admin-notif-rule-head">
           <span className="admin-notif-rule-label">{rule.label}</span>
