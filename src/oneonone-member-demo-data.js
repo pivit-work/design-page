@@ -79,7 +79,7 @@ const CAPABILITIES = [
   { key: 'communication', label: '커뮤니케이션', value: 3 },
   { key: 'problemSolving', label: '문제 해결력', value: 4 },
   { key: 'teamwork', label: '협업 / 팀워크', value: 5 },
-  { key: 'selfDriven', label: '자가주도성', value: 2 },
+  { key: 'selfDriven', label: '자기주도성', value: 2 },
 ];
 
 const GROWTH_EMPTY = {

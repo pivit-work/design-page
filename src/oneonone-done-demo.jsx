@@ -118,7 +118,7 @@ export const DONE_DEMO_PROPS = {
     { key: 'communication', label: '커뮤니케이션', memberSelf: 3, readyManager: 3, doneFinal: 3, draft: true },
     { key: 'problem', label: '문제 해결력', memberSelf: 4, readyManager: 4, doneFinal: 4, draft: true },
     { key: 'teamwork', label: '협업 / 팀워크', memberSelf: 5, readyManager: 5, doneFinal: 5, draft: true },
-    { key: 'initiative', label: '자가주도성', memberSelf: 2, readyManager: 2, doneFinal: 3, draft: true },
+    { key: 'initiative', label: '자기주도성', memberSelf: 2, readyManager: 2, doneFinal: 3, draft: true },
   ],
   onCapabilityChange: noop,
   feedbackConfirm: { confirmed: { strengths: true, sbi: true, support: true }, onConfirm: noop },

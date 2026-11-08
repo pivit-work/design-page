@@ -110,7 +110,7 @@ const DEFAULT_START_LABELS = {
   capCommunication: '커뮤니케이션',
   capProblemSolving: '문제 해결력',
   capTeamwork: '협업 / 팀워크',
-  capSelfDriven: '자가주도성',
+  capSelfDriven: '자기주도성',
   ratingPoint: '{{n}}점',
   // 준비도
   memberFallback: '팀원',
