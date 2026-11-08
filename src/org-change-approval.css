@@ -34,10 +34,9 @@
 .oca-line-title { font-weight: 700; color: var(--text-primary); }
 .oca-line-note { font-size: var(--font-size-text-xs); color: var(--text-tertiary); }
 .oca-people { margin: var(--spacing-xs) 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--spacing-xxs); font-size: var(--font-size-text-xs); color: var(--text-secondary); }
-.oca-more { background: none; border: none; padding: 0; font: inherit; font-size: var(--font-size-text-xs); color: var(--text-brand, var(--text-secondary)); cursor: pointer; text-align: left; }
 
 .oca-reason-label { margin: var(--spacing-lg) 0 var(--spacing-xs); font-size: 12px; font-weight: 600; color: var(--text-secondary); }
 .oca-reason { font-size: 13px; line-height: 1.5; color: var(--text-primary); padding: var(--spacing-md); background: var(--bg-secondary); border-radius: var(--radius-sm, 8px); white-space: pre-wrap; }
 .oca-actions { display: flex; flex-wrap: wrap; gap: var(--spacing-md); justify-content: flex-end; margin-top: var(--spacing-md); }
 .oca-result { margin: var(--spacing-md) 0 0; font-size: var(--font-size-text-sm); color: var(--text-secondary); }
-.oca-error { margin: var(--spacing-sm) 0 0; font-size: var(--font-size-text-xs); color: var(--text-error, var(--colors-error-600)); }
+.oca-error { margin: var(--spacing-sm) 0 0; font-size: var(--font-size-text-xs); color: var(--text-error-primary); }

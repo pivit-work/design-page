@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import Chip from '../shared/Chip.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import EmptyState from '../shared/EmptyState.jsx';
 import Button from '../shared/Button.jsx';
@@ -1802,6 +1803,9 @@ function AppointmentHistoryView({
   /* «임시저장 {N}» 묶음 (pivit-work PW-2349 · org-snapshot-spec §6-4) — 이력 목록 위. 호출부가 그린다(어드민 · 구성원 설정 탭만).
      비어 있으면(null) 자리도 없다. */
   draftsSlot,
+  /* 처음 열 때 상세를 펼칠 발령 id (pivit-work PW-2597) — 승인 결과 알림 링크(`?appointment=`)가 그 발령을 바로 연다.
+     묶음 줄이면 그 사람이 든 묶음을 연다. 목록에 없으면 아무것도 펼치지 않는다. 값이 바뀌면 다시 연다 */
+  focusRecordId,
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   /** 발령 유형 필터 — '' 전체 · 유형 키 · `revision` 구조 개정 (§4 · PW-1422) */
@@ -1844,6 +1848,15 @@ function AppointmentHistoryView({
     () => rows.filter((r) => r.approvalPending).length,
     [rows],
   );
+  // 링크로 연 발령 — 목록이 들어온 뒤 한 번 펼친다(렌더 중 상태 맞추기 · 효과 없이)
+  const [focusedId, setFocusedId] = useState(null);
+  if (focusRecordId && focusedId !== focusRecordId) {
+    const row = rows.find((r) => r.id === focusRecordId || (r.members ?? []).some((m) => m.id === focusRecordId));
+    if (row) {
+      setFocusedId(focusRecordId);
+      setSelected(row);
+    }
+  }
 
   // 구조 개정 필터를 배선하지 않은 호스트는 종전처럼 발령만 본다.
   const revisionsWired = Array.isArray(structureRevisions) || !!structureRevisionsError;
@@ -1973,22 +1986,20 @@ function AppointmentHistoryView({
           {/* 승인 필터 칩(PW-2597 · 정책 §3) — 승인 대기 건이 1건 이상일 때만. 0건이면 줄째 그리지 않는다 */}
           {approvalPendingCount > 0 && !showRevisions && (
             <div className="admin-snap-approval-chips" data-testid="snap-hist-approval-chips">
-              <Button
-                className={`admin-snap-approval-chip${approvalOnly ? '' : ' is-active'}`}
-                aria-pressed={!approvalOnly}
+              <Chip
+                selected={!approvalOnly}
                 onClick={() => { setApprovalOnly(false); setSelected(null); }}
                 data-testid="snap-hist-approval-all"
               >
                 {labels.historyApprovalAll ?? '전체'}
-              </Button>
-              <Button
-                className={`admin-snap-approval-chip${approvalOnly ? ' is-active' : ''}`}
-                aria-pressed={approvalOnly}
+              </Chip>
+              <Chip
+                selected={approvalOnly}
                 onClick={() => { setApprovalOnly(true); setSelected(null); }}
                 data-testid="snap-hist-approval-only"
               >
                 {String(labels.historyApprovalPending ?? '승인 대기 {n}').replace('{n}', String(approvalPendingCount))}
-              </Button>
+              </Chip>
             </div>
           )}
           {cancelError && (
