@@ -5,7 +5,7 @@ import StepNavButton, { StepNav } from '../shared/StepNav.jsx';
 const DEFAULT_LABELS = { prevTabs: '이전 탭 보기', nextTabs: '다음 탭 보기' };
 
 /** 탭 줄이 넘치나 · 맨 앞인가 · 맨 끝인가. 넘침은 ‹ › 를 뺀 줄 폭(row)으로 잰다 — 버튼 때문에 넘치는 일이 없게. */
-export function measureTabEdge(row, nav) {
+function measureTabEdge(row, nav) {
   if (!row || !nav) return { over: false, atStart: true, atEnd: true };
   return {
     over: nav.scrollWidth > row.clientWidth,
@@ -15,7 +15,7 @@ export function measureTabEdge(row, nav) {
 }
 
 /** 그 탭이 다 보일 만큼만 민다. 이미 다 보이면 그대로 둔다 — 사용자가 밀어 놓은 자리를 지킨다. */
-export function revealTab(nav, el) {
+function revealTab(nav, el) {
   if (!nav || !el) return;
   const navBox = nav.getBoundingClientRect();
   const box = el.getBoundingClientRect();
@@ -24,7 +24,7 @@ export function revealTab(nav, el) {
 }
 
 /** ‹(-1)·›(1) — 그 방향에서 아직 다 안 보이는 가장 가까운 탭. 없으면 null. */
-export function nextHiddenTab(nav, dir) {
+function nextHiddenTab(nav, dir) {
   const navBox = nav.getBoundingClientRect();
   const tabs = [...nav.children];
   return dir > 0
