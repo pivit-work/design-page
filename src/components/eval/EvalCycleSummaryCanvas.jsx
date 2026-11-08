@@ -351,6 +351,8 @@ const DEFAULT_LABELS = {
   cwDetailEmpty: '내용 없음',
   // [PW-1594 · spec-calibration §20.2] 하향 차수가 둘 이상인 사이클 — 대상자 상세의 하향 리뷰를 차수별로 나눈다.
   leaderRoundDetail: {
+    // [PW-2591 · spec-calibration §20.2] 그 차수가 제출한 리더 코멘트(제출한 글 그대로)
+    leaderCommentTitle: '리더 코멘트',
     round: '{k}차',
     skipped: '{k}차 — 건너뜀',
     pending: '{k}차 — 미제출',
@@ -1256,6 +1258,13 @@ function LeaderRoundsDetail({ rounds, L, grades, showCompensation = false }) {
             </div>
             <div className="evs-round-comment-body">
               <AnswerLines answers={r.answers} empty={L.cwDetailEmpty} testId="evs-leader-round-answers" L={L} />
+              {/* [PW-2591 · spec-calibration §20.2 · R-13] 그 차수가 제출한 리더 코멘트 — 리포트 검수에서 고쳐도 그대로. */}
+              {r.leaderComment?.trim() ? (
+                <div data-testid="evs-leader-round-comment">
+                  <div className="evs-cw-review-k">{R.leaderCommentTitle}</div>
+                  <div className="evs-cw-detail-body">{r.leaderComment}</div>
+                </div>
+              ) : null}
               <LeaderRoundNotes r={r} L={L} showCompensation={showCompensation} />
             </div>
           </div>

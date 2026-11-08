@@ -11,12 +11,15 @@ import Checkbox from '../shared/Checkbox.jsx';
 import { FieldInfo, FieldVisibility } from './evalFieldMeta.jsx';
 import EvalNoteBlock, { EvalMarkdownLite } from './EvalNoteBlock.jsx';
 import { isNoteItem, categoryKind, storedCategoryName, answerScoreText, checkedAnswerText } from './evalTemplateItemModel.js';
-import { AlertIcon, LockIcon, SparkleIcon, CheckCircleIcon } from './evalIcons.jsx';
+import { AlertIcon, LockIcon, SparkleIcon, CheckCircleIcon, EyeIcon } from './evalIcons.jsx';
 import { fieldsShape, reseedKeepingEdits } from './reseedAnswers.js';
 import EvalLeaderEvidenceSignals from './EvalLeaderEvidenceSignals.jsx';
 import EvalLeaderPriorRounds from './EvalLeaderPriorRounds.jsx';
 import EvalLeaderPeerSummary from './EvalLeaderPeerSummary.jsx';
 import Stack from '../shared/Stack.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
+import LeaderCommentPolish from './LeaderCommentPolish.jsx';
+import { LEADER_COMMENT_POLISH_LABELS } from './leaderCommentPolishLabels.js';
 
 /**
  * EvalCycleLeaderCanvas — 매니저 하향 리뷰 (근거↔작성 2단 패널).
@@ -236,6 +239,18 @@ const DEFAULT_LABELS = {
   committeeOnlyTooltip: '상위 경영진, HR, 캘리브레이션 위원회에게만 공개됩니다.',
   committeeOnlyHint:
     '이 영역은 상위 경영진, HR, 캘리브레이션 위원회에만 공유됩니다. 피평가자 본인에게는 절대 공개되지 않습니다.',
+  // [PW-2591 · leader.policy §5.6 · §5.6-A · spec R-16] 리더 코멘트
+  leaderCommentTitle: '리더 코멘트',
+  leaderCommentSub: '리포트 검수에서 조직장이 확정한 글 한 편이 팀원에게 전달됩니다',
+  leaderCommentBadge: '팀원에게 전달',
+  leaderCommentBadgeTip:
+    '리포트 검수에서 조직장이 확정한 글 한 편이 피평가자 본인에게 전달됩니다. 이 코멘트는 그 글의 시작이 될 수 있습니다.',
+  leaderCommentPh:
+    '팀원에게 직접 전하는 메시지를 충실히 작성해주세요. 한 줄 코멘트는 무관심으로 받아들여질 수 있습니다.',
+  leaderCommentCount: '{count}/{max}',
+  leaderCommentOver: '최대 {max}자까지 입력 가능합니다.',
+  leaderCommentSubmitBlocked: '리더 코멘트를 {max}자 이내로 줄이면 제출할 수 있습니다',
+  ...LEADER_COMMENT_POLISH_LABELS,
   confidentialLabel: '캘리브레이션 위원회 전용 코멘트 (CONFIDENTIAL)',
   confidentialPh: '캘리브레이션 위원회에 전하고 싶은 의견',
   // PW-1461 leader §5.8 — 승진·보상 세 갈래 + 사유
@@ -724,6 +739,21 @@ export default function EvalCycleLeaderCanvas({
    * `labels.readOnlyNotSubmitted`. 칸 잠금·버튼 감춤은 `locked` 가 한다 — 호출부가 함께 켠다.
    */
   readOnlyView = false,
+  /**
+   * PW-2591 — 리더 코멘트(leader.policy §5.6). 넘기면(빈 문자열 포함) 등급 카드 아래에 칸을 그린다 — 안 주면(undefined) 종전 그대로.
+   * 쓰는 평가자에게는 작성 중인 글, 읽기만 하는 사람에게는 제출한 글을 호출부가 넘긴다. 임시저장·제출에 함께 실린다
+   * (`onSave`·`onSubmit` 셋째 인자의 `leaderComment`). 500자를 넘어도 저장되고 [제출하기]만 꺼진다(spec R-16).
+   */
+  leaderComment,
+  /** PW-2591 — 이 사람이 리더 코멘트를 쓰는 평가자인가. 아니면 칸은 읽기만, 다듬기 버튼 없음(§5.6-A 역할). */
+  leaderCommentWritable = true,
+  /** PW-2591 — 리포트에 실리는 한 편의 한도(앱 `inputLimits` 와 같은 값). */
+  leaderCommentMax = 500,
+  /**
+   * PW-2591 — [✨ 개선 방향으로 다듬기] — onPolishLeaderComment(comment) → Promise<{ changed, text, sources, noEvidence } | { notice } | null>.
+   * 넘기지 않으면 버튼을 그리지 않는다. 누를 때만 부른다(절대규칙 5).
+   */
+  onPolishLeaderComment,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const formLocked = locked ?? submitted;
@@ -766,6 +796,18 @@ export default function EvalCycleLeaderCanvas({
   // 그 값이 저장된 줄 알게 두지 않는다.
   const grade = gradeLocked ? initialGrade : pickedGrade;
   const [confidentialComment, setConfidentialComment] = useState(assessment?.confidentialComment ?? '');
+  // PW-2591 — 리더 코멘트. 서버 값이 새로 오면(저장 응답) 그 사이 고치지 않았을 때만 따라간다.
+  const leaderCommentOn = leaderComment !== undefined;
+  const [lc, setLc] = useState(leaderComment ?? '');
+  const [lcSeed, setLcSeed] = useState(leaderComment ?? '');
+  const [lcBaseline, setLcBaseline] = useState(leaderComment ?? '');
+  if ((leaderComment ?? '') !== lcSeed) {
+    setLcSeed(leaderComment ?? '');
+    setLcBaseline(leaderComment ?? '');
+    if (lc === lcSeed) setLc(leaderComment ?? '');
+  }
+  const [lcPolishUsed, setLcPolishUsed] = useState(false);
+  const lcOver = leaderCommentOn && lc.length > leaderCommentMax;
   // PW-1461 §5.8 승진 고려 세 갈래. 옛 저장(체크만)은 «대상임»으로 읽고, 승진 요청서가 이미 있으면 «대상임».
   const [promotionStatus, setPromotionStatus] = useState(
     () =>
@@ -827,12 +869,12 @@ export default function EvalCycleLeaderCanvas({
 
   const snapshot = snapshotOf(itemsOf(fields, state), grade);
   const editable = active && !formLocked && !submitted && !showCompletion;
-  const dirty = editable && snapshot !== baseline;
+  const dirty = editable && (snapshot !== baseline || (leaderCommentOn && lc !== lcBaseline));
 
   // 렌더 밖(타이머·버튼)에서 읽을 최신 값 — 렌더 중에는 ref 를 건드리지 않는다.
   const latest = useRef(null);
   useEffect(() => {
-    latest.current = { fields, state, grade, onSave, snapshot, dirty };
+    latest.current = { fields, state, grade, onSave, snapshot, dirty, lc };
   });
   // 같은 값을 다시 알려도 호출부(상태 setter)에는 아무 일이 없다.
   useEffect(() => {
@@ -846,9 +888,16 @@ export default function EvalCycleLeaderCanvas({
     if (!cur?.onSave || savingRef.current) return false;
     savingRef.current = true;
     const sent = cur.snapshot;
+    const sentLc = cur.lc;
     try {
-      await cur.onSave(itemsOf(cur.fields, cur.state), cur.grade, { auto });
+      // PW-2591 — 리더 코멘트도 함께 보낸다. 500자를 넘어도 그대로 저장한다(spec R-16).
+      await cur.onSave(
+        itemsOf(cur.fields, cur.state),
+        cur.grade,
+        leaderCommentOn ? { auto, leaderComment: sentLc } : { auto },
+      );
       setBaseline(sent);
+      setLcBaseline(sentLc);
       setSaveStatus({ kind: 'saved', at: new Date() });
       return true;
     } catch {
@@ -1059,7 +1108,10 @@ export default function EvalCycleLeaderCanvas({
     compensationReason: compensationStatus ? compensationReason : null,
   });
   const submitNow = () =>
-    onSubmit?.(toItems(), grade, assessmentLocked ? {} : { assessment: assessmentPayload() });
+    onSubmit?.(toItems(), grade, {
+      ...(assessmentLocked ? {} : { assessment: assessmentPayload() }),
+      ...(leaderCommentOn && leaderCommentWritable ? { leaderComment: lc } : {}),
+    });
   // §5.8 — 승진을 골랐는데 사유가 비면 권장 경고(막지 않는다). 둘 다 안 골라도 제출된다.
   const askPromoReasonThenSubmit = () => {
     if (!assessmentLocked && promotionStatus && !promotionReason.trim() && L.promotionReasonMissing) {
@@ -1774,6 +1826,58 @@ export default function EvalCycleLeaderCanvas({
           {!gradeAtTop && gradeCard}
           {!gradeAtTop && alignBlock}
 
+          {/* [PW-2591] 리더 코멘트 — leader §5.6 · §5.6-A. 등급 카드 아래 · 비공개 영역 위(기획 시안 ManagerReview 자리). */}
+          {leaderCommentOn && (
+            <section className="evc-card" data-testid="evl-leader-comment-card">
+              <h3 className="evc-card-name">
+                {L.leaderCommentTitle}
+                <Tooltip content={L.leaderCommentBadgeTip}>
+                  <StatusBadge tone="info" className="evl-public-badge" tabIndex={0} data-testid="evl-leader-comment-badge">
+                    <EyeIcon size={12} /> {L.leaderCommentBadge}
+                  </StatusBadge>
+                </Tooltip>
+              </h3>
+              <p className="evl-sec-note">{L.leaderCommentSub}</p>
+              <textarea
+                className={`evm-textarea${lcPolishUsed ? ' is-ai-confirmed' : ''}${lcOver ? ' is-invalid' : ''}`}
+                rows={4}
+                value={lc}
+                placeholder={L.leaderCommentPh}
+                disabled={formLocked || !leaderCommentWritable}
+                onChange={(e) => {
+                  setLc(e.target.value);
+                  setLcPolishUsed(false);
+                }}
+                aria-label={L.leaderCommentTitle}
+                data-testid="evl-leader-comment"
+              />
+              {leaderCommentWritable && !formLocked && (
+                <div className={`evl-lc-count${lcOver ? ' is-over' : ''}`} data-testid="evl-leader-comment-count">
+                  {fillLabel(L.leaderCommentCount, { count: lc.length, max: leaderCommentMax })}
+                </div>
+              )}
+              {lcOver && leaderCommentWritable && !formLocked && (
+                <p className="evl-lc-over" role="alert" data-testid="evl-leader-comment-over">
+                  {fillLabel(L.leaderCommentOver, { max: leaderCommentMax })}
+                </p>
+              )}
+              {onPolishLeaderComment && leaderCommentWritable && !readOnlyView && (
+                <LeaderCommentPolish
+                  comment={lc}
+                  disabled={formLocked}
+                  onPolish={onPolishLeaderComment}
+                  onUse={(text) => {
+                    setLc(text);
+                    setLcPolishUsed(true);
+                  }}
+                  used={lcPolishUsed}
+                  L={L}
+                  testId="evl-leader-comment"
+                />
+              )}
+            </section>
+          )}
+
           {/* F5 위원회 전용 코멘트 + 승진·보상 — leader §5.7·§5.8 비공개 영역(연빨강 바탕·빨간 테두리·빨간 안내) */}
           <div className="evl-assessment" data-testid="evl-assessment">
             <section className="evc-card evl-confidential-zone" data-testid="evl-confidential-card">
@@ -1952,6 +2056,11 @@ export default function EvalCycleLeaderCanvas({
                     ? ''
                     : L.gradeRequired}
               </span>
+              {lcOver && (
+                <span className="evl-lc-submit-block" data-testid="evl-leader-comment-submit-block">
+                  {fillLabel(L.leaderCommentSubmitBlocked, { max: leaderCommentMax })}
+                </span>
+              )}
               {(calibrationEnabled ? L.submitCaptionCalibOn : L.submitCaptionCalibOff) && (
                 <span
                   className={`evl-submit-caption${calibrationEnabled ? '' : ' is-calib-off'}`}
@@ -1972,6 +2081,7 @@ export default function EvalCycleLeaderCanvas({
                   type="button"
                   className="evc-btn is-primary"
                   onClick={handleSubmitClick}
+                  disabled={lcOver}
                   data-testid="evl-submit"
                 >
                   {submitted ? L.resubmit : L.submit}

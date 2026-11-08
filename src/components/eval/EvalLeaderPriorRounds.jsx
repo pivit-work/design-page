@@ -110,6 +110,13 @@ function PriorCard({ r, open, onToggle, labelOf, scaleMaxOf, gradeLabelOf, L }) 
               </div>
             ))
           )}
+          {/* [PW-2591 · spec R-13] 그 차수가 제출한 리더 코멘트 — 제출한 글 그대로. 앞 답 줄과 같은 모양. */}
+          {r.leaderComment ? (
+            <div className="evl-prior-answer" data-testid={`evl-prior-leader-comment-${r.round}`}>
+              <span className="evc-field-label">{L.leaderCommentTitle}</span>
+              <p className="evl-evi-text">{r.leaderComment}</p>
+            </div>
+          ) : null}
           <p className="evl-prior-private" data-testid={`evl-prior-private-${r.round}`}>
             {L.priorPrivateNote}
           </p>

@@ -10,6 +10,8 @@ import Tabs from '../shared/Tabs.jsx';
 import AnchoredLayer from '../shared/AnchoredLayer.jsx';
 import useDismissLayer from '../shared/useDismissLayer.js';
 import { ArrowRightIcon, MoreIcon } from './evalIcons.jsx';
+import LeaderCommentPolish from './LeaderCommentPolish.jsx';
+import { LEADER_COMMENT_POLISH_LABELS } from './leaderCommentPolishLabels.js';
 
 /**
  * EvalReportReviewCanvas — 리포트 검수/발송 파이프라인 (G6).
@@ -64,6 +66,16 @@ const DEFAULT_LABELS = {
   approveCancel: '취소',
   approveClose: '닫기',
   approveError: '승인하지 못했습니다. 다시 시도해 주세요.',
+  // [PW-2591 · leader.policy §8.4·§8.5 · spec R-11·R-14·R-15] 승인 창 최종 코멘트
+  approveCommentStartOther: '{round}차 평가자 {name}의 코멘트로 시작합니다 — 고쳐서 보낼 수 있습니다',
+  approveCommentCount: '{count}/{max}',
+  approveCommentOver: '최대 {max}자까지 입력 가능합니다.',
+  approveGradeAdjustedWarn:
+    '캘리브레이션에서 등급이 조정되었습니다. 리더 코멘트가 최종 등급과 맞는지 확인한 뒤 승인하세요.',
+  bulkApprovedSkipped: '{ok}명을 승인했습니다. {count}명은 하나씩 승인해 주세요 — {names}',
+  bulkNoneApprovedSkipped: '승인한 사람이 없습니다. {count}명은 하나씩 승인해 주세요 — {names}',
+  bulkApproveFailed: '{ok}명을 승인했습니다. {count}명은 승인하지 못했습니다 — 다시 시도해 주세요',
+  ...LEADER_COMMENT_POLISH_LABELS,
   sendSelected: '선택 발송',
   sendAllApproved: '승인분 일괄 발송',
   noRows: '검수할 리포트가 없습니다.',
@@ -754,8 +766,12 @@ function ReviewRow({
   trialAiNotice,
   onPromote,
   onSaveNextGoals,
+  onPolishComment,
+  commentMax = 500,
 }) {
   const [comment, setComment] = useState('');
+  // [PW-2591] 「✓ 다듬은 문구를 썼습니다」 — 칸을 다시 고치면 지운다. 창을 닫으면 칸과 함께 사라진다.
+  const [commentPolished, setCommentPolished] = useState(false);
   const [goalsOpen, setGoalsOpen] = useState(false);
   // 손대기 전(`null`)에는 서버 값을 그대로 보인다 — AI 초안이 막 나왔거나 저장한 값이 따라온다.
   const [goalsDraft, setGoalsDraft] = useState(null);
@@ -1038,7 +1054,16 @@ function ReviewRow({
             disabled={busy || goalsInvalid}
             // PW-1922 — 최종 코멘트는 리더 단계에서만 받는다. 그 단계면 작은 창에서 적고(선택) 승인하고,
             // 본부장·인사담당자 단계는 받을 것이 없어 바로 승인한다.
-            onClick={leaderStep ? () => setApproveAsk(true) : approve}
+            onClick={
+              leaderStep
+                ? () => {
+                    // [PW-2591 · R-11] 창을 열 때마다 시작값으로 — 닫으면 고친 글과 다듬기 카드가 사라진다(§8.4).
+                    setComment(row.commentStart?.text ?? '');
+                    setCommentPolished(false);
+                    setApproveAsk(true);
+                  }
+                : approve
+            }
             data-testid={`evrr-approve-${row.memberId}`}
           >
             {L.approve}
@@ -1078,7 +1103,7 @@ function ReviewRow({
         submitLabel={L.approve}
         cancelLabel={L.approveCancel}
         closeLabel={L.approveClose}
-        canSubmit={!busy && !goalsInvalid}
+        canSubmit={!busy && !goalsInvalid && comment.length <= commentMax}
         busy={busy}
         onOverlayClick={null}
         onClose={() => {
@@ -1090,15 +1115,58 @@ function ReviewRow({
       >
         <label className="evrr-reject-field" htmlFor={`evrr-comment-${row.memberId}`}>
           <span className="evrr-reject-label">{L.approveCommentLabel}</span>
+          {/* [PW-2591 · R-11] 남의 글로 시작하면 누구 글인지 알린다 — 남의 글이 내 글로 보이지 않게. */}
+          {row.commentStart?.source === 'round' && (
+            <span className="evl-lc-start-note" data-testid={`evrr-comment-start-${row.memberId}`}>
+              {L.approveCommentStartOther
+                .replace('{round}', String(row.commentStart.round ?? ''))
+                .replace('{name}', row.commentStart.evaluatorName || '')}
+            </span>
+          )}
           <TextArea
             id={`evrr-comment-${row.memberId}`}
             rows={3}
             value={comment}
             placeholder={L.approveCommentPh}
-            onChange={(e) => setComment(e.target.value)}
+            className={commentPolished ? 'is-ai-confirmed' : undefined}
+            onChange={(e) => {
+              setComment(e.target.value);
+              setCommentPolished(false);
+            }}
             data-testid={`evrr-comment-${row.memberId}`}
           />
         </label>
+        <div
+          className={`evl-lc-count${comment.length > commentMax ? ' is-over' : ''}`}
+          data-testid={`evrr-comment-count-${row.memberId}`}
+        >
+          {L.approveCommentCount.replace('{count}', String(comment.length)).replace('{max}', String(commentMax))}
+        </div>
+        {comment.length > commentMax && (
+          <p className="evl-lc-over" role="alert" data-testid={`evrr-comment-over-${row.memberId}`}>
+            {L.approveCommentOver.replace('{max}', String(commentMax))}
+          </p>
+        )}
+        {/* [PW-2591 · R-14] 등급이 조정된 사람 + 칸에 글 — 막지 않는다. 낱말·AI 판정 없음. */}
+        {row.gradeAdjusted === true && comment.trim() && (
+          <p className="evl-lc-grade-warn" data-testid={`evrr-grade-warn-${row.memberId}`}>
+            {L.approveGradeAdjustedWarn}
+          </p>
+        )}
+        {onPolishComment && (
+          <LeaderCommentPolish
+            comment={comment}
+            onPolish={(text) => onPolishComment(row.memberId, text)}
+            onUse={(text) => {
+              setComment(text);
+              setCommentPolished(true);
+            }}
+            used={commentPolished}
+            stacked
+            L={L}
+            testId={`evrr-comment-${row.memberId}`}
+          />
+        )}
         {approveError && (
           <p className="evrr-refine-error" role="alert" data-testid={`evrr-approve-error-${row.memberId}`}>
             {L.approveError}
@@ -1166,6 +1234,13 @@ export default function EvalReportReviewCanvas({
    * (`queue.canEditSections`)에서만 쓴다. 안 주면 승인할 차례가 아닌 줄은 읽기 전용이다.
    */
   onSaveNextGoals = null,
+  /**
+   * PW-2591 — 승인 창 «최종 코멘트»의 [✨ 개선 방향으로 다듬기]. `(memberId, comment)` →
+   * `{ changed, text, sources, noEvidence } | { notice } | null`. 실패는 throw. 안 주면 버튼을 그리지 않는다.
+   */
+  onPolishComment = null,
+  /** PW-2591 — 최종 코멘트 한도(앱 `inputLimits` 와 같은 값). 넘으면 [승인]이 꺼진다(§8.4). */
+  commentMax = 500,
   /** 끌 «수 없는» 항목. 사이클 기본 구성과 같은 둘이다. */
   requiredSections = ['summary', 'highlights'],
   /**
@@ -1298,26 +1373,63 @@ export default function EvalReportReviewCanvas({
   const selectedSendable = [...selected].filter((id) => !approvableIds.has(id));
   const showToolbar = q.canSend || approvableIds.size > 0;
 
-  /** 선택 항목 일괄 승인(정책 §8.6) — 한 명씩 보내고, 실패한 수를 알린다(나머지는 승인된다). */
+  /**
+   * 선택 항목 일괄 승인(정책 §8.6) — 한 명씩 보내고, 실패한 수를 알린다(나머지는 승인된다).
+   *
+   * [PW-2591 · spec R-15] 리더 단계 줄은 창을 열고 칸을 건드리지 않은 채 [승인]한 것과 같다 — 서버가 준 시작값
+   * (`commentStart`)이 최종 코멘트가 된다. 창을 열었다면 무언가를 보여 줬을 사람은 승인하지 않고 체크를 남긴다:
+   * 등급 조정 경고가 뜰 사람(등급 조정 + 시작값에 글) · 남의 글로 시작하는 사람 · 시작값이 한도를 넘는 사람.
+   * 본부장·HR 단계 줄은 칸이 없어 종전 그대로.
+   */
+  const leaderHeldBack = (row) => {
+    if (!row || !isLeaderStep(row.status) || !row.commentStart) return false;
+    const start = row.commentStart;
+    return (
+      (row.gradeAdjusted === true && !!start.text.trim()) ||
+      start.source === 'round' ||
+      start.text.length > commentMax
+    );
+  };
   const approveSelected = async () => {
     setBulkBusy(true);
     let ok = 0;
-    let failed = 0;
+    const failedIds = [];
+    const heldIds = [];
     for (const id of selectedApprovable) {
       const row = q.rows.find((r) => r.memberId === id);
+      if (leaderHeldBack(row)) {
+        heldIds.push(id);
+        continue;
+      }
+      const comment =
+        row && isLeaderStep(row.status) && row.commentStart ? row.commentStart.text.trim() || null : undefined;
       try {
-        await onApprove?.(id, undefined, row?.status);
+        await onApprove?.(id, comment, row?.status);
         ok += 1;
       } catch {
-        failed += 1;
+        failedIds.push(id);
       }
     }
     setBulkBusy(false);
-    setSelected(new Set());
+    // 남긴 사람·실패한 사람의 체크는 남긴다 — 다시 누르거나 하나씩 열 수 있게.
+    setSelected(new Set([...heldIds, ...failedIds]));
+    const nameOf = (id) => q.rows.find((r) => r.memberId === id)?.name || id;
     const parts = [];
-    if (ok > 0) parts.push(L.toastApprovedCount.replace('{count}', String(ok)));
-    if (failed > 0) parts.push(L.toastApproveFailed.replace('{count}', String(failed)));
-    showToast(parts.join(' · '), failed > 0 ? 'error' : 'success');
+    if (heldIds.length > 0) {
+      parts.push(
+        (ok > 0 ? L.bulkApprovedSkipped : L.bulkNoneApprovedSkipped)
+          .replace('{ok}', String(ok))
+          .replace('{count}', String(heldIds.length))
+          .replace('{names}', heldIds.map(nameOf).join(', ')),
+      );
+    }
+    if (failedIds.length > 0) {
+      parts.push(
+        L.bulkApproveFailed.replace('{ok}', String(ok)).replace('{count}', String(failedIds.length)),
+      );
+    }
+    if (parts.length === 0 && ok > 0) parts.push(L.toastApprovedCount.replace('{count}', String(ok)));
+    showToast(parts.join(' · '), failedIds.length > 0 ? 'error' : heldIds.length > 0 ? 'warning' : 'success');
   };
 
   const handlePromote = async (memberId, seenStatus) => {
@@ -1627,6 +1739,8 @@ export default function EvalReportReviewCanvas({
                 trialAiNotice={trialAiNotice}
                 onPromote={onPromote ? handlePromote : null}
                 onSaveNextGoals={q.canEditSections === true ? onSaveNextGoals : null}
+                onPolishComment={onPolishComment}
+                commentMax={commentMax}
               />
             ))
           )}

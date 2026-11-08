@@ -1,0 +1,20 @@
+/** 두 화면이 같이 쓰는 기본 문구(정책 §5.6-A 그대로). 앱은 `t()` 로 덮는다. */
+export const LEADER_COMMENT_POLISH_LABELS = {
+  polishButton: '개선 방향으로 다듬기',
+  polishBusy: '다듬는 중…',
+  polishHint: '부족한 점은 그대로 두고, 근거와 개선 방향을 붙여 다시 씁니다',
+  polishEmptyHint: '다듬을 코멘트를 먼저 입력하세요',
+  polishCardTitle: '다듬은 문구',
+  polishUnconfirmed: '미확인',
+  polishNoEvidence: '근거 데이터가 없어 표현만 다듬었습니다',
+  polishStale: '원문이 바뀌었습니다 — 다시 다듬어 주세요',
+  polishNoChange: '고칠 표현이 없습니다',
+  polishClose: '닫기',
+  polishOriginal: '원문',
+  polishPolished: '다듬은 문구',
+  polishUse: '다듬은 문구 쓰기',
+  polishKeep: '원문 그대로 두기',
+  polishUsed: '다듬은 문구를 썼습니다 · 이어서 고칠 수 있습니다',
+  polishFailed: '코멘트를 다듬지 못했습니다. 잠시 후 다시 시도해 주세요',
+  polishRetry: '다시 시도',
+};

@@ -12857,3 +12857,133 @@ button.evmh-phase:focus-visible {
   display: flex;
   justify-content: flex-end;
 }
+
+/* ── [PW-2591] 리더 코멘트 칸 · «개선 방향으로 다듬기» (leader.policy §5.6 · §5.6-A · §8.4) ──
+   개발 추가 영역. 값은 같은 화면·같은 용도의 기존 모양에서 그대로 가져왔다:
+   버튼·노란 카드 = 리마인더 «AI로 문구 다듬기»(.evc-rm-ai · .evc-rm-ai-draft) · 보조 글 = .evl-sec-note ·
+   글자 수 = .evu-counter(상향 리뷰 글자 수) · 넘침·실패 글씨 = .evc-rm-ai-error · 공개 딱지 = .evl-committee-badge 틀의 중립색. */
+.evl-lc-count {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-xs);
+  font-size: var(--font-size-text-xs);
+  color: var(--text-secondary);
+}
+.evl-lc-count.is-over {
+  color: var(--text-error-primary);
+  font-weight: 700;
+}
+.evl-lc-over,
+.evl-lc-submit-block {
+  margin: var(--spacing-xs) 0 0;
+  font-size: var(--font-size-text-xs);
+  color: var(--text-error-primary);
+}
+.evl-lc-start-note {
+  display: block;
+  margin: 0 0 var(--spacing-xs);
+  font-size: var(--font-size-text-xs);
+  color: var(--text-secondary);
+}
+.evl-lc-grade-warn {
+  margin: var(--spacing-xs) 0 0;
+  font-size: var(--font-size-text-xs);
+  font-weight: 700;
+  color: var(--utility-warning-700);
+}
+.evl-lcp-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+}
+.evl-lcp-hint {
+  font-size: var(--font-size-text-xs);
+  color: var(--text-tertiary);
+}
+.evl-lcp-used {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin: var(--spacing-xs) 0 0;
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+  color: var(--text-success-primary);
+}
+.evl-lcp-error {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+.evl-lcp-head-note {
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+.evl-lcp-nochange {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-text-xs);
+  color: var(--text-secondary);
+}
+.evl-lcp-cols {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+.evl-lcp-col {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+.evl-lcp-cols.is-stacked {
+  flex-direction: column;
+}
+.evl-lcp-cols.is-stacked .evl-lcp-col {
+  flex-basis: auto;
+}
+.evl-lcp-col-label {
+  margin-bottom: var(--spacing-xs);
+  font-size: var(--font-size-text-xs);
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+.evl-lcp-col-label.is-polished {
+  color: var(--utility-warning-700);
+}
+.evl-lcp-box {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  font-size: var(--font-size-text-sm);
+  line-height: 1.7;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.evl-lcp-box.is-original {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+.evl-lcp-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-xs);
+}
+.evl-lcp-source {
+  padding: var(--spacing-xxs) var(--spacing-md);
+  border: 1px solid var(--border-secondary);
+  border-radius: 999px;
+  background: var(--bg-primary);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+/* 승인 창 칸(공용 TextArea)에서 다듬은 문구를 썼을 때 — 하향 리뷰 칸 .evm-textarea.is-ai-confirmed 와 같은 초록(확인). */
+.dp-textarea.is-ai-confirmed {
+  background: var(--utility-success-50);
+  border-color: var(--utility-success-200);
+}

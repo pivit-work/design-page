@@ -1889,3 +1889,17 @@ button.dp-chip {
 .ai-deadline.is-overdue { color: var(--text-error-primary); }
 .ai-deadline.is-warning { color: var(--utility-warning-700); }
 .ai-deadline.is-muted { color: var(--text-quaternary); }
+
+/* [PW-2591] 하향 리뷰 «리더 코멘트» 카드 제목 옆 «팀원에게 전달» 딱지 — 바로 아래 «위원회 전용» 딱지(.evl-committee-badge)와 같은 틀, 색은 tone(info). */
+.evl-public-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin-left: var(--spacing-md);
+  padding: var(--spacing-xxs) var(--spacing-md);
+  border-radius: var(--radius-xs);
+  font-size: 12px;
+  font-weight: 700;
+  vertical-align: middle;
+  cursor: help;
+}

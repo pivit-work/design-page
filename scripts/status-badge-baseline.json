@@ -1664,6 +1664,16 @@
    "color": "#596069 / 어두운 화면 #ececed",
    "font-family": "var(--font-family-body)",
    "border": "1px solid var(--border-secondary)"
+  },
+  "eval-cycle.css|.evl-public-badge": {
+   "border-radius": "6px",
+   "padding": "2px 8px",
+   "font-size": "12px",
+   "font-weight": "700",
+   "display": "inline-flex",
+   "align-items": "center",
+   "gap": "4px",
+   "vertical-align": "middle"
   }
  },
  "variants": {
