@@ -114,6 +114,9 @@ import {
   leaderRoundOf,
   mergeRecommendedCells,
   moveGroupedPhase,
+  phaseGroupId,
+  calibrationBeforeLeader,
+  normalizePhaseConstraints,
   normalizeLeaderOrder,
   normalizeLeaderRules,
   normalizeLoadLimit,
@@ -3728,12 +3731,15 @@ export default function EvalCycleWizard({
   const middleIds = activePhases.filter((p) => !p.anchor).map((p) => p.id);
   /* [PW-1594 · 정책 §5.13.3] 하향 차수 단계는 순서 안에서 «연속 · 오름차순» 한 묶음이다 — 저장된 순서가
      어떻게 왔든(차수를 늘린 직후 · 옛 초안) 여기서 묶음으로 맞춘다. 서버도 오픈 때 같은 것을 본다. */
-  const orderedMiddle = normalizeLeaderOrder(
-    [
-      ...phaseOrder.filter((id) => middleIds.includes(id)),
-      ...middleIds.filter((id) => !phaseOrder.includes(id)),
-    ],
-    roundsInUse,
+  // [pivit-work PW-2583 · §5.2.1 «순서 제약»] 제약을 어긴 옛 순서는 어긴 단계만 제약 자리로 옮겨 읽는다.
+  const orderedMiddle = normalizePhaseConstraints(
+    normalizeLeaderOrder(
+      [
+        ...phaseOrder.filter((id) => middleIds.includes(id)),
+        ...middleIds.filter((id) => !phaseOrder.includes(id)),
+      ],
+      roundsInUse,
+    ),
   );
   const displayPhases = [
     activePhases.find((p) => p.id === 'self'),
@@ -5255,6 +5261,12 @@ export default function EvalCycleWizard({
        종전과 같다(대상 자리로 옮긴다). */
     const arr = moveGroupedPhase(orderedMiddle, dragId, targetId);
     if (!arr) return null;
+    /* [pivit-work PW-2583 · §5.2.1 «순서 제약» ②] 캘리브레이션은 하향 리뷰 등급을 조정하는 단계라 마지막 하향
+       리뷰 뒤에만 놓인다 — 그 앞으로 가는 드롭은 반영하지 않고 목록 위에 까닭을 띄운다(다음 드롭이 성립하면 사라진다). */
+    if (calibrationBeforeLeader(arr)) {
+      setOrderNotice('calibrationAfterLeader');
+      return null;
+    }
     setPhaseOrder(arr);
     setOrderNotice(null);
     /* [PW-1461 · 정책 §5.2.2 · §12] 초안이면 옮긴 순서를 바로 저장한다. 실패하면 옮기기 전
@@ -5284,7 +5296,7 @@ export default function EvalCycleWizard({
     onStep: (i, dir) => {
       const id = orderedMiddle[i];
       let j = i + dir;
-      while (orderedMiddle[j] && phaseBaseId(orderedMiddle[j]) === phaseBaseId(id)) j += dir;
+      while (orderedMiddle[j] && phaseGroupId(orderedMiddle[j]) === phaseGroupId(id)) j += dir;
       if (!orderedMiddle[j]) return null;
       const arr = movePhase(id, orderedMiddle[j]);
       return arr ? arr.indexOf(id) : null;
@@ -9973,7 +9985,9 @@ export default function EvalCycleWizard({
                 >
                   {orderNotice === 'locked'
                     ? (phaseOrderLockedHint ?? L.phaseOrderLocked)
-                    : L.phaseOrderSaveFailed}
+                    : orderNotice === 'calibrationAfterLeader'
+                      ? L.phaseOrderCalibrationAfterLeader
+                      : L.phaseOrderSaveFailed}
                 </p>
               )}
               {(() => {

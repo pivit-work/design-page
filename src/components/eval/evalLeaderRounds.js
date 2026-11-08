@@ -83,12 +83,47 @@ export function normalizeLeaderOrder(order, n) {
 }
 
 /**
+ * [pivit-work PW-2583 · 정책 §5.2.1 «순서 제약» ①] 끌기 묶음 — 하향 차수 단계는 하향 하나로, 동료 리뷰어 확정은
+ * 동료 리뷰와 한 묶음이다(확정 → 동료 리뷰 순서 그대로 함께 옮겨 간다). 그 밖의 단계는 저마다 한 묶음.
+ */
+export function phaseGroupId(id) {
+  if (id === 'peer_confirm') return 'peer';
+  return phaseBaseId(id);
+}
+
+/** [PW-2583 · §5.2.1 «순서 제약» ②] 캘리브레이션이 마지막 하향 리뷰 앞에 있나 — 하향이 없으면 걸리지 않는다. */
+export function calibrationBeforeLeader(order) {
+  const cal = order.indexOf('calibration');
+  if (cal < 0) return false;
+  const lastLeader = order.reduce((at, id, i) => (isLeaderPhaseId(id) ? i : at), -1);
+  return lastLeader > cal;
+}
+
+/**
+ * [PW-2583 · §5.2.1 엣지] 제약 전에 저장된 순서(옛 초안·프리셋)가 제약을 어겼으면 어긴 단계만 제약 자리로 옮겨
+ * 읽는다 — 동료 리뷰어 확정 = 동료 리뷰 바로 앞, 캘리브레이션 = 마지막 하향 리뷰 바로 뒤. 나머지는 그대로다.
+ */
+export function normalizePhaseConstraints(order) {
+  let out = [...order];
+  if (out.includes('peer_confirm') && out.includes('peer')) {
+    out = out.filter((id) => id !== 'peer_confirm');
+    out.splice(out.indexOf('peer'), 0, 'peer_confirm');
+  }
+  if (calibrationBeforeLeader(out)) {
+    out = out.filter((id) => id !== 'calibration');
+    const lastLeader = out.reduce((at, id, i) => (isLeaderPhaseId(id) ? i : at), -1);
+    out.splice(lastLeader + 1, 0, 'calibration');
+  }
+  return out;
+}
+
+/**
  * 끌어 놓기. 하향 차수 단계는 한 묶음으로 움직인다 — 어느 차수를 끌어도 묶음 전체가 옮겨 가고,
  * 묶음 안 순서는 바꾸지 않는다(순차 작성 · D-3). 묶음이 아닌 단계를 묶음에 놓으면 묶음 앞(위로)이나
  * 뒤(아래로)로 간다 — 묶음 사이에 끼지 않는다. 옮길 수 없으면 `null`.
  */
 export function moveGroupedPhase(order, dragId, targetId) {
-  const grp = (id) => phaseBaseId(id);
+  const grp = (id) => phaseGroupId(id);
   if (!dragId || !targetId || grp(dragId) === grp(targetId)) return null;
   const from = order.findIndex((id) => grp(id) === grp(dragId));
   const toOrig = order.findIndex((id) => grp(id) === grp(targetId));
