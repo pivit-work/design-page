@@ -402,6 +402,8 @@ export default function EvalCycleMonitoringCanvas({
   gradeLabels = {},
   labels: providedLabels,
   onRemind,
+  /** [pivit-work PW-2583] 전체 리마인더를 끈다 — 지금 쓸 수 있는 리뷰에 미제출자가 없다. */
+  remindDisabled = false,
   onEmergencyStop,
   onReopen,
   /**
@@ -701,8 +703,15 @@ export default function EvalCycleMonitoringCanvas({
           {L.resume}
         </button>
       )}
+      {/* [pivit-work PW-2583] 지금 쓸 수 있는 리뷰에 미제출자가 없으면 끈다(정책 §6.3 버튼 조건). */}
       {!stopped && !isOnHold && onRemind && (
-        <button type="button" className="evc-btn is-ghost" onClick={() => onRemind()} data-testid="evmon-remind">
+        <button
+          type="button"
+          className="evc-btn is-ghost"
+          disabled={!!remindDisabled}
+          onClick={() => onRemind()}
+          data-testid="evmon-remind"
+        >
           {L.remind}
         </button>
       )}
@@ -1035,8 +1044,11 @@ export default function EvalCycleMonitoringCanvas({
                 </span>
                 <span className="evmon-controls evmon-row-actions">
                   {/* [PW-1462] 미제출 1건 이상일 때만 (정책 §6.2.1). 뺀 사람·퇴사자는 리마인더를 받지 않는다. */}
+                  {/* [pivit-work PW-2583] `m.remindable` 를 주면 «지금 쓸 수 있는 리뷰에 미제출» 판정을 그대로 쓴다(§6.2.1). */}
                   {onRemindMember && !m.excluded && !m.retired && !stopped && !isOnHold &&
-                    (m.phases || []).some((p) => p.status !== null && p.done < p.total) && (
+                    (typeof m.remindable === 'boolean'
+                      ? m.remindable
+                      : (m.phases || []).some((p) => p.status !== null && p.done < p.total)) && (
                     <button type="button" className="evc-btn is-ghost" onClick={() => onRemindMember(m.memberId)} data-testid="evmon-remind-member">
                       {L.remindOne}
                     </button>

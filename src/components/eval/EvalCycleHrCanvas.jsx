@@ -1978,6 +1978,11 @@ export default function EvalCycleHrCanvas({
       }
     }
     setAdvancingId(null);
+    // [pivit-work PW-2583] 줄 가운데 `{ note }` 는 글머리 없이 미제출 줄 아래에 적는 안내다(«…까지는 계속 쓸 수 있습니다»).
+    const pendingLines = Array.isArray(pending) ? pending.filter((x) => typeof x === 'string') : null;
+    const pendingNotes = Array.isArray(pending)
+      ? pending.filter((x) => x && typeof x === 'object' && typeof x.note === 'string').map((x) => x.note)
+      : [];
     const stage = nextStageLabel(cycle, L);
     const proceed = () => {
       setConfirmModal(null);
@@ -2002,13 +2007,18 @@ export default function EvalCycleHrCanvas({
         <div data-testid="evc-advance-confirm-body">
           <div>{L.confirmAdvanceIrreversible}</div>
           {pendingFailed && <div>{L.confirmAdvancePendingUnknown}</div>}
-          {Array.isArray(pending) && pending.length === 0 && <div>{L.confirmAdvanceAllDone}</div>}
-          {Array.isArray(pending) && pending.length > 0 && (
+          {pendingLines && pendingLines.length === 0 && <div>{L.confirmAdvanceAllDone}</div>}
+          {pendingLines && pendingLines.length > 0 && (
             <>
               <div>{L.confirmAdvancePendingLead}</div>
-              {pending.map((line) => (
+              {pendingLines.map((line) => (
                 <div key={line} data-testid="evc-advance-pending-line">
                   · {line}
+                </div>
+              ))}
+              {pendingNotes.map((note) => (
+                <div key={note} data-testid="evc-advance-pending-note">
+                  {note}
                 </div>
               ))}
             </>

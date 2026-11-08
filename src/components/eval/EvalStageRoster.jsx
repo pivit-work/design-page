@@ -2,6 +2,7 @@ import AvatarPhoto from './AvatarPhoto.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import { CheckCircleIcon, MailIcon } from './evalIcons.jsx';
 import Select from '../shared/Select.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 
 /**
  * EvalStageRoster — 진행 현황 «단계 상세»의 「미완료 N / 완료 N」 두 명단과
@@ -58,6 +59,8 @@ export default function EvalStageRoster({
   emptyLabel = '해당 대상이 없습니다.',
   doneLabel = '완료',
   remindLabel = '리마인더',
+  /** [pivit-work PW-2583] 주면 그 리뷰를 지금 쓸 수 있는 기간이 아니다 — 일괄·줄 리마인더를 끄고 이 말을 툴팁으로 띄운다. */
+  remindClosedTip = null,
   /** 「미완료 일괄 리마인더」 버튼 글. 안 주면 버튼을 그리지 않는다. */
   remindAllLabel = '',
   /** 받는 사람이 0명이면 누를 수 없다 — 호출부가 서버가 준 인원으로 판정한다. */
@@ -98,15 +101,17 @@ export default function EvalStageRoster({
     <div className={`evmon-roster${onAdd ? ' has-add' : ''}`} data-testid="evmon-roster">
       {remindAllLabel && onRemindAll && (
         <div className="evmon-roster-actions">
-          <button
-            type="button"
-            className="evc-btn is-ghost"
-            disabled={remindAllDisabled || busy}
-            onClick={() => onRemindAll()}
-            data-testid="evmon-roster-remind-all"
-          >
-            <MailIcon size={14} /> {remindAllLabel}
-          </button>
+          <Tooltip content={remindClosedTip || undefined}>
+            <button
+              type="button"
+              className="evc-btn is-ghost"
+              disabled={!!remindClosedTip || remindAllDisabled || busy}
+              onClick={() => onRemindAll()}
+              data-testid="evmon-roster-remind-all"
+            >
+              <MailIcon size={14} /> {remindAllLabel}
+            </button>
+          </Tooltip>
         </div>
       )}
       <Group
@@ -140,7 +145,14 @@ export default function EvalStageRoster({
                 ))}
               </Select>
             )}
-            {onRemindOne && row.canRemind !== false ? (
+            {onRemindOne && remindClosedTip ? (
+              // [pivit-work PW-2583] 그 리뷰를 지금 쓸 수 있는 기간이 아니면 줄 버튼도 끄고 까닭을 말한다(정책 §6.8).
+              <Tooltip content={remindClosedTip}>
+                <button type="button" className="evc-btn is-ghost" disabled data-testid="evmon-roster-remind-one">
+                  {remindLabel}
+                </button>
+              </Tooltip>
+            ) : onRemindOne && row.canRemind !== false ? (
               <button
                 type="button"
                 className="evc-btn is-ghost"
