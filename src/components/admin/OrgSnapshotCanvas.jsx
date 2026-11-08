@@ -112,6 +112,10 @@ const DEFAULT_LABELS = {
   asofBlankColumnsNote: '',
   // 조직도 보기에서 보일 빈 열 안내 — 표 열 안내는 조직도에 맞지 않아 앱이 조직도에 닿는 열(겸직)만 골라 준다(PW-1998).
   asofChartBlankColumnsNote: '',
+  // 기록 없는 재입사 전 기간 줄이 섞인 날짜의 안내 한 줄(명단·조직도 보기 공통) — 비어 있으면 안 그린다. 앱이 인원 수를 넣어 만든다.
+  asofRehireUnrecordedNote: '',
+  // 그 줄의 빈 칸에 마우스를 올리면 — 행에 `unrecordedPastPeriod` 가 있을 때만.
+  asofRehireUnrecordedCell: '재입사 전 기간이라 기록이 남아 있지 않습니다',
   // 커버리지 경계 · 빈 상태 2종 (org-snapshot-spec §5-A · PW-139).
   // C1 = 기록의 부재, C2 = 사실의 확인. 문구를 서로 바꿔 쓰지 않는다.
   asofCoverageCaption: '',
@@ -385,7 +389,16 @@ const ROSTER_PAGE_SIZE = 50;
  * 헤더는 `labels.roster[key]`. `comp: true` 는 보상 열이라 연봉과 같은 조건(`showSalary`)에서만 나온다.
  * 무엇을 덧붙일지는 앱이 정한다 — 앱의 CSV 와 같은 목록을 넘겨야 「보이는 것 = 받는 것」이 맞는다.
  */
+/** 기록 없는 재입사 전 기간 줄에서도 그대로 두는 칸(asof 정책 E29) — 비어 있어도 그 이유가 아니다. */
+const REHIRE_KEPT_COLUMNS = new Set(['name', 'nickname', 'displayName', 'email', 'employeeCode', 'employmentStatus']);
+
 function SnapshotRoster({ rows, labels, showSalary, changedHint, onMemberClick, rowBadge, extraColumns = [], baseColumns }) {
+  // 기록 없는 재입사 전 기간 줄의 빈 칸 — 왜 비었는지(asof 정책 E29). 조직 현황 지난 조회일 명단도 같은 줄이다.
+  // 서버가 비운 칸(발령성 칸·매니저·입사일·확정등급·연봉)에만 — 그대로 두는 칸과 양식 열은 다른 이유로 빈다.
+  const extraKeys = new Set(extraColumns.map((c) => c.key));
+  const blankHint = (r, c) => (r.unrecordedPastPeriod && !REHIRE_KEPT_COLUMNS.has(c) && !extraKeys.has(c)
+    ? labels.asofRehireUnrecordedCell ?? DEFAULT_LABELS.asofRehireUnrecordedCell
+    : undefined);
   const columns = [
     ...(baseColumns ?? ROSTER_COLUMNS),
     ...(showSalary ? ['salary'] : []),
@@ -426,9 +439,10 @@ function SnapshotRoster({ rows, labels, showSalary, changedHint, onMemberClick, 
           header: labels.roster[c],
           cellProps: (r) => {
             const changed = (r.changedFields ?? []).includes(c);
+            const blank = (r[c] ?? null) === null || r[c] === '';
             return {
               className: changed ? 'is-changed' : undefined,
-              title: changed && changedHint ? changedHint(c, r) : undefined,
+              title: changed && changedHint ? changedHint(c, r) : blank ? blankHint(r, c) : undefined,
             };
           },
           render: (r) => {
@@ -2678,6 +2692,9 @@ function AsOfSnapshotView({
       {/* partial 은 명단을 가리지 않는다 — 한 줄만 붙인다(§5-A) */}
       {meta?.state === 'partial' && !isOut && !failed && (
         <p className="admin-snap-footnote">{labels.asofPartialNote}</p>
+      )}
+      {labels.asofRehireUnrecordedNote && !isOut && !failed && (
+        <p className="admin-snap-footnote" data-testid="asof-rehire-unrecorded-note">{labels.asofRehireUnrecordedNote}</p>
       )}
       {/* 그 날짜엔 아직 없던 열 — 열은 두고 값만 빈다(정책 E13·E18). 문장은 앱이 만든다(어느 열이 비는지는 서버가 안다). */}
       {labels.asofBlankColumnsNote && !isOut && !failed && !showChart && (
