@@ -1413,13 +1413,15 @@ function AppointmentBulkView({
     setSubmitting(true);
     setSubmitError('');
     try {
-      await onSubmit?.({
+      // 소비자가 false 를 돌려주면 확정하지 않은 것이다 — 그 위에 띄운 확인 창에서 [돌아가기]를 눌렀다(pivit-work PW-2349
+      // «같은 예정 발령 나눠 고름 팝업»). ③ 에 그대로 남고 오류도 없다.
+      const outcome = await onSubmit?.({
         rows: confirmRows,
         date,
         reason,
         fields,
       });
-      setDone(true);
+      if (outcome !== false) setDone(true);
     } catch (err) {
       // 실패를 삼키고 '발령 완료' 를 띄우면 어드민은 반영된 줄 알고 화면을 닫는다.
       setSubmitError(err?.message || String(err));
