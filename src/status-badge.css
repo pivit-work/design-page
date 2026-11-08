@@ -1763,6 +1763,8 @@ button.dp-chip {
   padding-right: 4px;
 }
 .dp-chip__label {
+  /* 칩이 줄어들 때 글도 따라 줄어 「…」가 된다. 없으면 글이 제 길이를 고집해 칩이 칸 밖으로 넘친다(pivit-work PW-1535). */
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
 }

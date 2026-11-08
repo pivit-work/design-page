@@ -12823,12 +12823,19 @@ button.evmh-phase:focus-visible {
   font-size: var(--font-size-text-sm);
   color: var(--text-secondary);
 }
+/* 이름·날짜는 줄어들지 않는다 — 긴 KR 칩과 한 줄에 서면 한 글자 폭까지 눌려 세로로 써졌다(pivit-work PW-1535). */
+.fbmgr-inbox-who {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
 .fbmgr-inbox-name {
   font-weight: 700;
   color: var(--text-primary);
 }
 .fbmgr-inbox-meta {
   margin-left: auto;
+  flex-shrink: 0;
+  white-space: nowrap;
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-sm);

@@ -203,6 +203,9 @@ function fmtDate(v) {
 // 연결 대상 칩은 KR 제목(최대 255자)을 담는다 — 줄에서 줄어들 수 있게 해 칩 안에서 말줄임(dp-chip__label)되고,
 // 전체 글은 마우스를 올리면 보인다(pivit-work PW-1535 dev 확인).
 const LONG_CHIP = { minWidth: 0 };
+// 같은 줄의 이름·날짜는 줄어들지 않는다 — 안 막으면 긴 칩과 함께 한 글자 폭까지 눌려 세로로 써진다
+// (pivit-work PW-1535 결과 문서 · 「기타」 창의 「김지수」「11.8」). 줄어드는 몫은 LONG_CHIP 칩만 진다.
+const NO_SHRINK = { flexShrink: 0, whiteSpace: 'nowrap' };
 
 function inboxTargetLabel(req, L) {
   if (!req.linkedTargetType || !req.linkedTargetId) return null;
@@ -242,7 +245,7 @@ function InboxScreen({ requests, L, onOpen, loading = false, failed = false }) {
             <Avatar name={req.requester?.name} photo={req.requester?.avatar} size={36} />
             <div className="fbmgr-inbox-main">
               <div className="fbmgr-inbox-head">
-                <span>
+                <span className="fbmgr-inbox-who">
                   <span className="fbmgr-inbox-name">{req.requester?.name}</span>
                   {L.inboxRequested}
                 </span>
@@ -425,10 +428,10 @@ function BlockCard({ block, member, L, onOpen }) {
                 <Avatar name={name} photo={photo} size={22} />
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.sub }}>
-                    <span style={{ fontWeight: 700, color: C.text }}>{name}</span>
+                    <span style={{ ...NO_SHRINK, fontWeight: 700, color: C.text }}>{name}</span>
                     {kind === 'request' && <Chip tone="accent">{L.requestChip}</Chip>}
                     {isEtc && kind !== 'reply' && etcTargetLabel(it, L) && <Chip tone="info" title={etcTargetLabel(it, L)} style={LONG_CHIP}>{etcTargetLabel(it, L)}</Chip>}
-                    <span>{fmtDate(at)}</span>
+                    <span style={NO_SHRINK}>{fmtDate(at)}</span>
                   </div>
                   <p style={{ fontSize: 'var(--font-size-text-xs)', color: C.sub, margin: '2px 0 0', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                     {text}
@@ -640,9 +643,9 @@ function FeedbackBubble({ item, member, L, canModify, onEdit, onDelete, targetLa
         <Avatar name={author} photo={item.author?.avatar} size={30} />
         <div style={{ minWidth: 0, flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-text-xs)', marginBottom: 3 }}>
-            <span style={{ fontWeight: 700, color: C.text }}>{author}</span>
+            <span style={{ ...NO_SHRINK, fontWeight: 700, color: C.text }}>{author}</span>
             {targetLabel && <Chip tone="info" title={targetLabel} style={LONG_CHIP}>{targetLabel}</Chip>}
-            <span style={{ color: C.sub }}>{fmtDate(item.sentAt)}</span>
+            <span style={{ ...NO_SHRINK, color: C.sub }}>{fmtDate(item.sentAt)}</span>
             {modifiable && !editing && (
               <span style={{ marginLeft: 'auto', display: 'flex', gap: 10 }}>
                 <button type="button" onClick={() => setEditing(true)} disabled={busy} data-testid="fbmgr-feedback-edit" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: C.sub, padding: 0 }}>
@@ -714,9 +717,9 @@ function RequestBubble({ item, L, targetLabel = null }) {
       <Avatar name={item.author?.name} photo={item.author?.avatar} size={30} />
       <div style={{ minWidth: 0, flex: 1 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-text-xs)', marginBottom: 3 }}>
-          <span style={{ fontWeight: 700, color: C.text }}>{item.author?.name}</span>
+          <span style={{ ...NO_SHRINK, fontWeight: 700, color: C.text }}>{item.author?.name}</span>
           {!toMe && item.recipient && (
-            <span style={{ color: C.sub }}>
+            <span style={{ ...NO_SHRINK, color: C.sub }}>
               → {item.recipient.name} ({item.recipientKind === 'peer' ? L.kindPeer : L.kindManager})
             </span>
           )}
@@ -725,7 +728,7 @@ function RequestBubble({ item, L, targetLabel = null }) {
             <Chip tone={resolved ? 'success' : 'warning'}>{resolved ? L.requestAnswered : L.requestPending}</Chip>
           )}
           {targetLabel && <Chip tone="info" title={targetLabel} style={LONG_CHIP}>{targetLabel}</Chip>}
-          <span style={{ color: C.sub }}>{fmtDate(item.sentAt)}</span>
+          <span style={{ ...NO_SHRINK, color: C.sub }}>{fmtDate(item.sentAt)}</span>
         </div>
         <div style={{ background: C.accentBg, border: `1px solid ${C.accentBd}`, borderRadius: '0 10px 10px 10px', padding: 10, fontSize: 13, color: C.text }}>
           {item.text || L.emptyRequest}
@@ -943,9 +946,9 @@ function IncomingRequestsSection({ requests, krBlocks, initBlocks, orphans = [],
             <Avatar name={it.author?.name} photo={it.author?.avatar} size={30} />
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-text-xs)', marginBottom: 3 }}>
-                <span style={{ fontWeight: 700, color: C.text }}>{it.author?.name}</span>
+                <span style={{ ...NO_SHRINK, fontWeight: 700, color: C.text }}>{it.author?.name}</span>
                 {label && <Chip tone="info" title={label} style={LONG_CHIP}>{label}</Chip>}
-                <span style={{ color: C.sub }}>{fmtDate(it.sentAt)}</span>
+                <span style={{ ...NO_SHRINK, color: C.sub }}>{fmtDate(it.sentAt)}</span>
               </div>
               {it.text && (
                 <div style={{ background: 'var(--bg-primary)', border: `1px solid ${C.accentBd}`, borderRadius: '0 10px 10px 10px', padding: 10, fontSize: 13, color: C.text, whiteSpace: 'pre-wrap' }}>
