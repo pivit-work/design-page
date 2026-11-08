@@ -92,6 +92,10 @@ const DEFAULT_LABELS = {
   seatsFreeCount: (seats, limit) => `${seats} / ${limit}`,
   seatsPaidCount: (seats) => `${seats}명`,
   nearLimitWarning: 'Free 좌석 한도에 근접했습니다. 구성원을 더 추가하려면 업그레이드가 필요합니다.',
+  // 도달·초과 머리 문구는 어드민 구성원 화면 좌석 요약 줄과 같은 말 (pivit-work PW-2561)
+  seatCapTitle: 'Free 상한 도달 — 업그레이드 필요',
+  seatCapReachedDesc: '구성원을 더 추가하려면 업그레이드가 필요합니다.',
+  seatCapOverDesc: (seats, limit) => `현재 ${seats}명으로 Free 한도(${limit}명)를 넘었습니다. 기존 구성원은 그대로 쓰실 수 있고, 새 구성원을 추가하려면 업그레이드가 필요합니다.`,
   // 수습도 좌석으로 센다(PW-1348) — 「재직」만 쓰면 수습이 빠지는 것처럼 읽힌다 (PW-1949).
   seatAutoNote: '좌석은 재직·수습 구성원 수로 자동 산정됩니다. 구성원 초대·비활성으로 조정 → 다음 청구일 반영.',
   manageMembers: '구성원 관리 →',
@@ -517,9 +521,13 @@ export default function BillingOverviewCanvas({
   const seatPct = plan.seatLimit
     ? Math.min(100, Math.round((sub.seats / plan.seatLimit) * 100))
     : null;
-  // 좌석 한도 근접 경고: Free 플랜에서만 (활성 좌석 ≥ 상한×0.8)
-  const nearLimit = sub.planCode === 'free' && plan.seatLimit != null
-    && sub.seats >= plan.seatLimit * 0.8;
+  // 좌석 한도 안내: Free 플랜에서만 세 단계 (pivit-work PW-2561 · screen-billing-overview §2)
+  //   근접 = 상한×0.8 ≤ 활성 좌석 < 상한 · 도달 = 상한 · 초과 = 상한 초과
+  //   종전엔 «≥ 상한×0.8» 하나라 이미 넘은 7 / 5 에도 «근접»이 나왔다.
+  const isFreeCap = sub.planCode === 'free' && plan.seatLimit != null;
+  const overLimit = isFreeCap && sub.seats > plan.seatLimit;
+  const atLimit = isFreeCap && sub.seats === plan.seatLimit;
+  const nearLimit = isFreeCap && sub.seats >= plan.seatLimit * 0.8 && sub.seats < plan.seatLimit;
 
   // 협의 단가 계약 (PW-344 ⑤). 값은 전부 **서버 재계산값**이며 화면이 산식을 갖지 않는다.
   const contractUnderMin = Boolean(contract) && sub.seats < contract.minSeats;
@@ -952,10 +960,19 @@ export default function BillingOverviewCanvas({
                 background: seatPct >= 100 ? T.red : nearLimit ? T.amber : T.accent }} />
             </div>
           )}
-          {/* 좌석 한도 근접 경고: Free에서만 */}
+          {/* 좌석 한도 근접 경고: Free에서만 — 상한 미만일 때만 */}
           {nearLimit && (
             <div style={{ fontSize: 12, color: T.amber, marginTop: 8 }}>
               {labels.nearLimitWarning}
+            </div>
+          )}
+          {/* 좌석 한도 도달·초과: Free에서만 — 머리 문구는 어드민 구성원 좌석 요약 줄과 같다 (PW-2561) */}
+          {(atLimit || overLimit) && (
+            <div data-testid="billing-seat-cap-notice" role="status"
+              style={{ fontSize: 12, color: 'var(--text-error-primary)', marginTop: 'var(--spacing-md)' }}>
+              <b>{labels.seatCapTitle}</b>
+              {' · '}
+              {overLimit ? labels.seatCapOverDesc(sub.seats, plan.seatLimit) : labels.seatCapReachedDesc}
             </div>
           )}
           {/* 협의 단가 계약 정보 (PW-344 ⑤) — 정가 플랜에는 이 블록이 아예 없다. */}
