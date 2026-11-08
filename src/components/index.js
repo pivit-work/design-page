@@ -128,7 +128,15 @@ export { default as ContentArea } from './layout/ContentArea.jsx';
 export { default as ImpersonationBanner } from './layout/ImpersonationBanner.jsx';
 
 // Org Chart
-export { default as OrgChartViewport } from './orgchart/OrgChartViewport.jsx';
+export { default as OrgChartViewport, collapsedBelowRoot } from './orgchart/OrgChartViewport.jsx';
+export {
+  default as OrgCanvasFrame,
+  OrgToolButton,
+  OrgToolbarGroup,
+  OrgZoomButtons,
+  OrgLineStyleToggle,
+  OrgExpandAllToggle,
+} from './orgchart/OrgCanvasFrame.jsx';
 export { default as OrgChartTreeView } from './orgchart/OrgChartTreeView.jsx';
 export {
   DeptCard,

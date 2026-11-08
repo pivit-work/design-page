@@ -34,7 +34,7 @@ export default async function exportOrgChartImage({ element, fileName, pixelRati
       quality,
       backgroundColor: '#ffffff',
       // 팬·줌을 걷는다 — 복제본에만 걸리는 스타일이라 화면은 그대로다.
-      style: { transform: 'none', transition: 'none' },
+      style: { transform: 'none', transition: 'none', zoom: '1' },
       // 아바타는 캐시를 지나쳐 CORS 로 다시 받는다 — 캐시된 응답에 CORS 머리가 없으면 그림이 비기 때문.
       cacheBust: true,
       fontEmbedCSS,

@@ -1,17 +1,13 @@
 import React, { useState, useRef, useCallback, useEffect, useLayoutEffect, useMemo } from 'react';
-import Icon from '../shared/Icon.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import {
-  CornerAngleGlyph,
-  CornerSmoothGlyph,
-  ContractVerticalGlyph,
-  ExpandVerticalGlyph,
   ExpandScreenGlyph,
   DownloadSolidGlyph,
   AutoArrangeGlyph,
 } from '../shared/lineIcons.jsx';
 import usePanZoom from '../shared/usePanZoom.js';
 import OrgNode from './OrgNode.jsx';
+import OrgCanvasFrame, { OrgToolButton, OrgToolbarGroup, OrgZoomButtons, OrgLineStyleToggle, OrgExpandAllToggle } from './OrgCanvasFrame.jsx';
 import BezierConnectors from './BezierConnectors.jsx';
 import { CollapseContext, PositionsContext } from './contexts.js';
 import { saveCollapsed, clearCollapsed, countMovedCards } from './hooks.js';
@@ -185,7 +181,7 @@ export default function OrgChartViewport({
         if (!areaRect.width || !deptRect.width) return;
 
         // 재는 좌표는 지금 화면(배율·이동이 걸린 뒤)이다. 배율은 그대로 두고 이동만 그 차이만큼
-        // 옮기면 된다 — transformOrigin 이 0 0 이라 이동은 화면 좌표에 그대로 더해진다.
+        // 옮기면 된다 — 이동은 바깥 상자(배율 밖)에 걸려 화면 좌표에 그대로 더해진다(OrgCanvasFrame).
         const { scale: s, translate: t } = viewRef.current;
         const areaCenterX = areaRect.left + areaRect.width / 2;
         const deptCenterX = deptRect.left + deptRect.width / 2;
@@ -280,25 +276,17 @@ export default function OrgChartViewport({
   return (
     <PositionsContext.Provider value={positionsValue}>
     <CollapseContext.Provider value={collapseContext}>
-      <div
-        className={`canvas-area${expanded ? ' is-expanded' : ''}`}
-        ref={canvasRef}
-        {...canvasProps}
-        style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
-        data-testid={expanded ? 'org-canvas-expanded' : 'org-canvas'}
-      >
-        <div className="canvas-inner" ref={setInnerRef} style={{
-          transform: `translate(${translate.x}px, ${translate.y}px) scale(${scale})`,
-          transformOrigin: '0 0',
-          position: 'relative',
-        }}>
-          <BezierConnectors containerRef={canvasInnerRef} scale={scale} lineStyle={lineStyle} highlightIds={highlight?.unitIds} />
-          <OrgNode node={orgData} showWorkHours={true} showVacation={true} editMode={editMode} adminMode={adminMode} showGrade={showGrade} density={density} baseUrl={baseUrl} />
-        </div>
-
-        {/* 왼쪽 툴바 — (트리/리스트) · 보이는 정보 양 · 기준일 (Figma 17755:26880 · 17788:33261) */}
-        {toolbars && (<>
-        <div className="org-toolbar org-toolbar-left" data-testid="org-toolbar-left">
+      <OrgCanvasFrame
+        canvasRef={canvasRef}
+        canvasProps={canvasProps}
+        isDragging={isDragging}
+        scale={scale}
+        translate={translate}
+        innerRef={setInnerRef}
+        className={expanded ? 'is-expanded' : ''}
+        testId={expanded ? 'org-canvas-expanded' : 'org-canvas'}
+        // 왼쪽 툴바 — (트리/리스트) · 보이는 정보 양 · 기준일 (Figma 17755:26880 · 17788:33261)
+        toolbarLeft={toolbars && (<>
           {toolbarLeading}
           <SegmentedControl
             className="org-density"
@@ -308,53 +296,25 @@ export default function OrgChartViewport({
             ariaLabel={L('org.density')}
           />
           {asOf && <AsOfButton asOf={asOf} L={L} />}
-        </div>
-
-        {/* 오른쪽 툴바 — 확대·축소·연결선·펼침·이미지 + 전체 화면 (Figma 17755:26881 · 17755:26946) */}
-        <div className="org-toolbar org-toolbar-right" data-testid="org-toolbar-right">
-          <div className="org-toolbar-group">
-            <button type="button" className="org-tool-btn" onClick={zoomIn} title={L('org.zoomIn')} aria-label={L('org.zoomIn')} data-action="zoom-in">
-              <Icon src={icons.plus} size={20} color="var(--fg-primary)" baseUrl={baseUrl} />
-            </button>
-            <button type="button" className="org-tool-btn" onClick={zoomOut} title={L('org.zoomOut')} aria-label={L('org.zoomOut')} data-action="zoom-out">
-              <Icon src={icons.minus} size={20} color="var(--fg-primary)" baseUrl={baseUrl} />
-            </button>
+        </>)}
+        // 오른쪽 툴바 — 확대·축소·연결선·펼침·이미지 + 전체 화면 (Figma 17755:26881 · 17755:26946)
+        toolbarRight={toolbars && (<>
+          <OrgToolbarGroup>
+            <OrgZoomButtons onZoomIn={zoomIn} onZoomOut={zoomOut} icons={icons} baseUrl={baseUrl} L={L} />
             {/* 연결선 모양 토글 — 아이콘은 «지금» 모양을 그린다(어드민 조직단위 설정과 같다 · PW-1820). */}
-            <button
-              type="button"
-              className="org-tool-btn"
-              title={L(lineStyle === 'ortho' ? 'org.lineStyleOrtho' : 'org.lineStyleCurve')}
-              aria-label={lineStyleLabel}
-              aria-pressed={lineStyle === 'ortho'}
-              data-line-style={lineStyle}
-              onClick={() => onLineStyleChange(lineStyle === 'ortho' ? 'curve' : 'ortho')}
-            >
-              {lineStyle === 'ortho' ? <CornerAngleGlyph size={20} /> : <CornerSmoothGlyph size={20} />}
-            </button>
+            <OrgLineStyleToggle lineStyle={lineStyle} onChange={onLineStyleChange} label={lineStyleLabel} L={L} />
             {/* 자동 정렬 — 연결선 모양 바로 다음 · 펼치기/접기 앞(pivit-specs §5.4-D · PW-2347). */}
-            <button
-              type="button"
-              className="org-tool-btn"
+            <OrgToolButton
+              label={L('org.autoArrangeLabel')}
               title={L(movedCount ? 'org.autoArrange' : 'org.autoArrangeEmpty')}
-              aria-label={L('org.autoArrangeLabel')}
               aria-disabled={movedCount ? undefined : 'true'}
               data-action="auto-arrange"
               onClick={autoArrange}
             >
               <AutoArrangeGlyph size={20} />
-            </button>
+            </OrgToolButton>
             {/* 전체 펼치기/접기 토글 — 속성은 «누르면 할 일»을 적는다. */}
-            <button
-              type="button"
-              className="org-tool-btn"
-              title={L(allCollapsed ? 'org.expandAll' : 'org.collapseAll')}
-              aria-label={L(allCollapsed ? 'org.expandAll' : 'org.collapseAll')}
-              aria-pressed={allCollapsed}
-              data-action={allCollapsed ? 'expand-all' : 'collapse-all'}
-              onClick={allCollapsed ? expandAll : collapseAll}
-            >
-              {allCollapsed ? <ExpandVerticalGlyph size={20} /> : <ContractVerticalGlyph size={20} />}
-            </button>
+            <OrgExpandAllToggle allCollapsed={allCollapsed} onExpandAll={expandAll} onCollapseAll={collapseAll} L={L} />
             <button
               type="button"
               className="org-tool-btn has-label"
@@ -366,22 +326,17 @@ export default function OrgChartViewport({
               <DownloadSolidGlyph size={20} />
               <span>{L('org.downloadImage')}</span>
             </button>
-          </div>
+          </OrgToolbarGroup>
           {onExpandView && (
-            <button
-              type="button"
-              className="org-tool-btn"
-              title={L('org.expandView')}
-              aria-label={L('org.expandView')}
-              onClick={onExpandView}
-              data-action="expand-view"
-            >
+            <OrgToolButton label={L('org.expandView')} onClick={onExpandView} data-action="expand-view">
               <ExpandScreenGlyph size={20} />
-            </button>
+            </OrgToolButton>
           )}
-        </div>
         </>)}
-      </div>
+      >
+        <BezierConnectors containerRef={canvasInnerRef} scale={scale} lineStyle={lineStyle} highlightIds={highlight?.unitIds} />
+        <OrgNode node={orgData} showWorkHours={true} showVacation={true} editMode={editMode} adminMode={adminMode} showGrade={showGrade} density={density} baseUrl={baseUrl} />
+      </OrgCanvasFrame>
     </CollapseContext.Provider>
     </PositionsContext.Provider>
   );

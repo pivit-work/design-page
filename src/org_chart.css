@@ -13,6 +13,8 @@
 
 /* ── 기준일 칸 (pivit-work PW-1836) — 값은 As Of 탭 `.admin-snap-datepicker`·`.admin-snap-coverage-caption` 그대로 ── */
 .canvas-area { position: fixed; top: 181px; left: 240px; right: 32px; bottom: 40px; background-color: var(--bg-quaternary); border-radius: 14px; overflow: hidden; user-select: none; }
+/* 화면 안에 놓는 판(pivit-work 어드민 «조직단위 설정» · PW-2645) — 조직도 탭 고정 자리만 풀고 모양은 그대로. 높이는 쓰는 쪽이 준다. */
+.canvas-area.is-embedded { position: relative; top: auto; left: auto; right: auto; bottom: auto; }
 .canvas-inner { padding: 80px 40px 100px; display: inline-flex; justify-content: center; min-width: 100%; transition: transform 0.05s linear; position: relative; }
 /* 이미지로 뜰 때(exportOrgChartImage.js)는 점 격자를 뺀다 — 흰 종이 위의 조직도가 된다. */
 .canvas-inner.is-exporting::before { display: none; }
@@ -144,6 +146,10 @@
 /* 접힘 상태는 아래로 퍼지는 3중 드롭섀도가 더 강하다 (Figma 17501:19709). */
 .dept-toggle.is-collapsed { box-shadow: 0 20px 24px -4px rgba(10, 13, 18, 0.08), 0 8px 8px -4px rgba(10, 13, 18, 0.03), 0 3px 3px -1.5px rgba(10, 13, 18, 0.04); }
 .card-dragging { box-shadow: 0 20px 24px rgba(10,13,18,0.12), 0 8px 8px rgba(10,13,18,0.06) !important; z-index: 200; cursor: grabbing !important; outline: 2px solid var(--bg-brand-solid); outline-offset: -2px; border-radius: 12px; }
+/* 카드 머리 아래 흰 칸(pivit-work 조직단위 설정 · PW-2645) — 머리 줄 사이(--spacing-lg)만큼 띄우고, 칸 안은 --spacing-md. 바탕은 판(.canvas-area)과 같은 흰색. */
+.dept-card-body { margin-top: var(--spacing-lg); padding: var(--spacing-md); border-radius: var(--radius-md); background: var(--bg-quaternary); cursor: default; }
+/* 접힌 카드의 접기 버튼에 하위 조직 수를 함께 보일 때 — 동그라미가 글자만큼 옆으로 늘어난다. */
+.dept-toggle.has-count { width: auto; min-width: 28px; gap: var(--spacing-xs); padding: 0 var(--spacing-md); font-family: var(--font-family-body); font-size: var(--font-size-text-xs); font-weight: 600; line-height: var(--line-height-text-xs); }
 .dept-name { font-size: 18px; font-weight: 700; line-height: 28px; color: var(--text-primary); }
 /* 이름 줄 — 대표 직속 배지(§5.6)가 이름 옆에 붙는다. 배지는 줄지 않고 이름이 줄어든다. */
 .dept-title { display: flex; align-items: center; gap: 8px; min-width: 0; }
