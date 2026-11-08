@@ -178,6 +178,7 @@ export default function SquadFormCard({
           <div className="sq-form-field">
             <label className="sq-field-label" htmlFor={`squad-group-${form.id || 'new'}`}>{L('squad.form.group', { level: groupLevelName })}</label>
             <Select
+              disabled={readOnly}
               aria-label={L('squad.form.group', { level: groupLevelName })}
               id={`squad-group-${form.id || 'new'}`}
               className={`sq-field${errors.groupId ? ' is-invalid' : ''}`}
