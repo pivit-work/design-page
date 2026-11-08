@@ -4562,7 +4562,9 @@ export default function EvalCycleWizard({
       <div className="evc-rm-sample" data-testid={`evc-rm-sample-${ph.id}-${i}`}>
         <div className="evc-rm-sample-head">
           <span className="evc-rm-preview-tag">
-            {L.reminderSampleTitle} · {L.reminderSampleNoteShort}
+            {/* 덧붙임 말이 비면 « · » 도 그리지 않는다 — 머리가 «미리보기 · » 로 끝나지 않게 */}
+            {L.reminderSampleTitle}
+            {L.reminderSampleNoteShort ? ` · ${L.reminderSampleNoteShort}` : null}
           </span>
           {both && (
             <SegmentedControl
