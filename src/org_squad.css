@@ -1928,6 +1928,10 @@
 .sq-struct-scroll:active { cursor: grabbing; }
 .sq-struct-sizer { position: relative; margin: 0 auto; }
 .sq-struct-tree { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+/* 공용 Button(.dp-btn · position: relative)으로 그린 노드·칸도 트리 좌표에 선다 */
+.sq-struct-tree .sq-struct-node, .sq-struct-tree .sq-struct-card { position: absolute; }
+.sq-struct-none > .dp-btn__label { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-xxs); }
+.sq-struct-head > .dp-btn__label { gap: var(--spacing-xs); min-width: 0; max-width: 100%; justify-content: flex-start; }
 .sq-struct-edge { fill: none; stroke: var(--border-primary); stroke-width: 1; }
 .sq-struct-edge.is-dashed { stroke-dasharray: 4 3; }
 .sq-struct-node {

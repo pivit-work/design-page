@@ -25,6 +25,7 @@
 
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import Icon from '../shared/Icon.jsx';
+import Button from '../shared/Button.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import OrgTabNav from './OrgTabNav.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
@@ -977,13 +978,13 @@ export default function SquadCanvas({
               <>
                 {/* [묶음 관리] — p013 · 카드 보기 · 편집 모드와 무관 · [+ 스쿼드 만들기] 왼쪽(§4 · 엣지 86) */}
                 {canManageLedger && onSaveGroupLevels && (
-                  <button
+                  <Button
                     type="button" onClick={() => setGroupPanel((v) => !v)} data-testid="squad-group-open"
                     aria-expanded={groupPanel}
                     className="sq-btn sq-btn-secondary sq-btn-lg"
                   >
                     {L('squad.groups.open')}
-                  </button>
+                  </Button>
                 )}
                 {ledgerReady && !squadForm && (
                   <button

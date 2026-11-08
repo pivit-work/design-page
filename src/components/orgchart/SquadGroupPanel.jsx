@@ -20,6 +20,7 @@
  */
 import { useState } from 'react';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
+import Button from '../shared/Button.jsx';
 import Select from '../shared/Select.jsx';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
 import { SQUAD_MODAL_Z } from './squad-constants.js';
@@ -201,10 +202,10 @@ export default function SquadGroupPanel({
       </div>
       <p className="sq-form-note">{L('squad.groups.headNote')}</p>
       <div className="sq-form-actions">
-        <button type="button" className="sq-btn sq-btn-primary" onClick={submit} disabled={busy === 'edit'} data-testid="squad-group-submit">
+        <Button type="button" className="sq-btn sq-btn-primary" onClick={submit} disabled={busy === 'edit'} data-testid="squad-group-submit">
           {busy === 'edit' ? L('squad.groups.saving') : L(edit.mode === 'create' ? 'squad.form.create' : 'squad.form.save')}
-        </button>
-        <button type="button" className="sq-btn sq-btn-outline" onClick={() => setEdit(null)}>{L('squad.form.cancel')}</button>
+        </Button>
+        <Button type="button" className="sq-btn sq-btn-outline" onClick={() => setEdit(null)}>{L('squad.form.cancel')}</Button>
       </div>
     </div>
   );
@@ -220,7 +221,7 @@ export default function SquadGroupPanel({
           <p className="sq-form-title">{L('squad.groups.title')}</p>
           <p className="sq-form-note">{L('squad.groups.desc')}</p>
         </div>
-        <button type="button" className="sq-btn sq-btn-outline sq-btn-sm" onClick={onClose} data-testid="squad-group-close">{L('squad.groups.close')}</button>
+        <Button type="button" className="sq-btn sq-btn-outline sq-btn-sm" onClick={onClose} data-testid="squad-group-close">{L('squad.groups.close')}</Button>
       </div>
 
       <div className="sq-group-levels">
@@ -259,13 +260,13 @@ export default function SquadGroupPanel({
                 onChange={(e) => { const v = e.target.value; setNames((ns) => ns.map((x, j) => (j === i ? v : x))); setNameErr((er) => ({ ...er, [i]: '' })); }}
                 onKeyDown={(e) => { if (isEnterKey(e) && dirty) saveName(i); }}
               />
-              <button
+              <Button
                 type="button" className="sq-btn sq-btn-outline sq-btn-sm"
                 onClick={() => saveName(i)} disabled={!dirty || busy === `name${i}`}
                 data-testid={`squad-group-level-save-${i}`}
               >
                 {busy === `name${i}` ? L('squad.groups.saving') : L('squad.form.save')}
-              </button>
+              </Button>
             </div>
             {nameErr[i] && <div className="sq-field-error" data-testid={`squad-group-level-error-${i}`}>{nameErr[i]}</div>}
 
@@ -285,16 +286,16 @@ export default function SquadGroupPanel({
                   <span className="sq-group-row-meta">{head ? L('squad.groups.headLine', { level: lv(i), name: head }) : L('squad.struct.headUnset')}</span>
                   <span className="sq-group-row-meta">{childText(g)}</span>
                   <span className="sq-group-row-actions">
-                    <button type="button" className="sq-btn sq-btn-sm sq-btn-outline" onClick={() => openEdit(g)} data-testid={`squad-group-edit-${g.id}`}>{L('squad.groups.edit')}</button>
-                    <button type="button" className="sq-btn sq-btn-sm sq-btn-outline" onClick={() => { setDelAsk(g.id); setEdit(null); }} data-testid={`squad-group-del-${g.id}`}>{L('squad.groups.delete')}</button>
+                    <Button type="button" className="sq-btn sq-btn-sm sq-btn-outline" onClick={() => openEdit(g)} data-testid={`squad-group-edit-${g.id}`}>{L('squad.groups.edit')}</Button>
+                    <Button type="button" className="sq-btn sq-btn-sm sq-btn-outline" onClick={() => { setDelAsk(g.id); setEdit(null); }} data-testid={`squad-group-del-${g.id}`}>{L('squad.groups.delete')}</Button>
                   </span>
                 </div>
               );
             })}
             {edit && edit.mode === 'create' && edit.level === i ? editor : (
-              <button type="button" className="sq-btn sq-btn-sm sq-btn-outline sq-group-add" onClick={() => openCreate(i)} data-testid={`squad-group-add-${i}`}>
+              <Button type="button" className="sq-btn sq-btn-sm sq-btn-outline sq-group-add" onClick={() => openCreate(i)} data-testid={`squad-group-add-${i}`}>
                 {L('squad.groups.add', { level: lv(i) })}
-              </button>
+              </Button>
             )}
           </div>
         );

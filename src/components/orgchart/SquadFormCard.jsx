@@ -12,6 +12,7 @@
 import { useState } from 'react';
 import Chip from '../shared/Chip.jsx';
 import Select from '../shared/Select.jsx';
+import Button from '../shared/Button.jsx';
 import DateInput from '../shared/DateInput.jsx';
 import { LeadStarIcon, PlusIcon } from './squadIcons.jsx';
 import { useOrgLabels, rich } from './orgchart-labels.jsx';
@@ -71,13 +72,13 @@ export function PersonPickField({ value, candidates, onPick, labels, testId }) {
     );
   }
   return (
-    <button
+    <Button
       type="button" onClick={() => setOpen(true)}
       className="sq-btn sq-btn-sm sq-btn-outline"
       data-testid={testId ? `${testId}-open` : undefined}
     >
       <PlusIcon size={12} /> {labels.pick}
-    </button>
+    </Button>
   );
 }
 

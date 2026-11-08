@@ -18,6 +18,7 @@
  */
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
+import Button from '../shared/Button.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
@@ -246,7 +247,7 @@ export default function SquadStructureView({
           <span className="sq-struct-node-name sq-graph-ellipsis">{name}</span>
           {!g.virtual && (head ? (
             <Tooltip content={L('squad.struct.headTip', { level: n.levelName, name: head.name })}>
-              <button
+              <Button
                 type="button"
                 className="sq-struct-head"
                 data-testid={`squad-struct-head-${g.id}`}
@@ -256,7 +257,7 @@ export default function SquadStructureView({
                 {renderAvatar(head, 24)}
                 <span className="pj-member-name sq-graph-ellipsis">{head.name}</span>
                 <StatusBadge tone="neutral" className="sq-struct-head-badge">{L('squad.struct.headBadge')}</StatusBadge>
-              </button>
+              </Button>
             </Tooltip>
           ) : (
             <span className="sq-struct-node-meta" data-testid={`squad-struct-head-unset-${g.id}`}>{L('squad.struct.headUnset')}</span>
@@ -268,7 +269,7 @@ export default function SquadStructureView({
     }
     if (n.kind === 'none') {
       return (
-        <button
+        <Button
           key={n.key}
           type="button"
           className="sq-struct-node is-virtual sq-struct-none"
@@ -283,7 +284,7 @@ export default function SquadStructureView({
           <span className="sq-struct-node-meta">
             {L(noneOpen ? 'squad.struct.noneOpen' : 'squad.struct.noneClosed', { count: n.data.count })}
           </span>
-        </button>
+        </Button>
       );
     }
     return null;
@@ -411,7 +412,7 @@ export default function SquadStructureView({
               </svg>
               {lay.nodes.map(renderNode)}
               {lay.mores.map((m) => (
-                <button
+                <Button
                   key={`${m.key}/more`}
                   type="button"
                   className="sq-struct-card sq-struct-more"
@@ -421,7 +422,7 @@ export default function SquadStructureView({
                   onClick={guard(() => toggleMore(m.key))}
                 >
                   {m.open ? L('squad.struct.moreClose') : L('squad.struct.more', { count: m.hidden })}
-                </button>
+                </Button>
               ))}
               {lay.cards.map(renderCard)}
             </div>
