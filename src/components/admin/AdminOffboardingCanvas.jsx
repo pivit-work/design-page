@@ -285,6 +285,8 @@ function AreaCard({
  *   마지막 날('YYYY-MM-DD'). 라벨의 `{deadline}` 자리를 채운다 (pivit-work PW-2142 · 정책 v1.26 §5-F «화면 문구 기준»)
  * @param {LeaveSettlementView|null} [props.leaveSettlement] 섹션 1 끝 «휴가 정산» 칸에 그릴 것. 없으면(휴가 애드온 꺼짐) 칸이 없다.
  *   값은 휴가 모듈이 계산하고 문장은 소비자가 채운다 — 캔버스는 더하거나 곱하지 않는다 (pivit-work PW-2375 · 정책 v1.27 §2-B · §5-J)
+ * @param {Array<{ id: string, text: string }>} [props.extraEffects] 섹션 3 «실행하면 일어나는 일» 목록 끝에 더할 줄. 문장과
+ *   보일지 말지는 소비자가 정한다 — 예: «걸어 둔 예정 발령 N건은 반영되지 않고 적용일에 취소됩니다.» (pivit-work PW-2349 · 퇴사 정책 §2 머리)
  * @param {(dates: { resignationDate: string, lastDay: string }) => void} [props.onDatesChange] 퇴사일·마지막 출근일이
  *   바뀔 때(처음 그릴 때 포함) 부른다 — 휴가 정산을 다시 계산하라는 신호다
  */
@@ -306,6 +308,7 @@ export default function AdminOffboardingCanvas({
   revertDeadlineOf,
   leaveSettlement = null,
   onDatesChange,
+  extraEffects = [],
 }) {
   const labels = merge(ADMIN_OFFBOARDING_DEFAULT_LABELS, providedLabels);
   const sep = labels.listSeparator;
@@ -569,6 +572,9 @@ export default function AdminOffboardingCanvas({
                   : fill(labels.effects.purgeTiming, dateVars)}
               </li>
             )}
+            {extraEffects.map((e) => (
+              <li key={e.id} data-testid={`offboarding-extra-effect-${e.id}`}>{e.text}</li>
+            ))}
           </ul>
           <Notice tone="neutral">{fill(labels.effects.retention, dateVars)}</Notice>
         </div>
