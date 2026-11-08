@@ -410,6 +410,14 @@ function AppCard({ card, labels, baseUrl, onConnect, onDisconnect, onReconnect, 
         <div className="intg-note is-error">{card.errorMessage}</div>
       )}
 
+      {/* 방금 [연결하기]가 거절됐다 — 카드는 가기 전 상태 그대로 두고 사유만 보인다 (pivit-work PW-2509).
+          연결 기록의 오류(위 상자)와 달리 화면에만 있는 값이라 호스트가 다음 [연결하기]·새로 열기에 비운다. */}
+      {card.connectError && (
+        <div className="intg-note is-error" role="alert" data-testid={`intg-connect-error-${app}`}>
+          {card.connectError}
+        </div>
+      )}
+
       {card.syncInProgress && card.syncProgress && (
         <div>
           <div className="intg-meta" style={{ marginBottom: 6 }}>

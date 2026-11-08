@@ -494,12 +494,46 @@ export function OnbBrandTile({ children }) {
  *
  * Props:
  *   logo · name · description
- *   status       'available' | 'connected' | 'soon'
+ *   status       'available' | 'connected' | 'soon' | 'rejected'
  *   statusLabel  오른쪽 글씨(「연결」「연결 요청됨」「준비 중」)
  *   onActivate   누르거나 Enter/Space
+ *   rejectedMessage · rejectedActionLabel · onRejectedAction
+ *                status 'rejected' 일 때만 — 연결을 거절당한 카드(pivit-work PW-2509 «연결 거절»).
+ *                카드는 누르는 자리가 아니고, 위 로고·이름 / 빨간 사유 / 아래 오른쪽 버튼 하나다.
  */
-export function OnbIntegrationCard({ logo, name, description, status = 'available', statusLabel, onActivate, testId }) {
+export function OnbIntegrationCard({
+  logo,
+  name,
+  description,
+  status = 'available',
+  statusLabel,
+  onActivate,
+  testId,
+  rejectedMessage,
+  rejectedActionLabel,
+  onRejectedAction,
+}) {
   const look = useOnbLoginLook();
+  if (status === 'rejected') {
+    // 기획 시안(onboarding A-6 «연결 거절»)의 세로 쌓기 — 로고·이름 / 빨간 사유 / 오른쪽 아래 글자 버튼.
+    // 다시 시도가 없으니 카드 전체를 누르는 자리로 두지 않는다.
+    return (
+      <div className={look ? 'login-tool is-rejected' : 'onb-integ is-rejected'} data-testid={testId}>
+        <div className={look ? 'login-tool-row' : 'onb-integ-main'}>
+          {logo}
+          {look ? <span className="login-tool-name">{name}</span> : <p className="onb-integ-name">{name}</p>}
+        </div>
+        <p className={look ? 'login-tool-error' : 'onb-integ-error'} role="alert">
+          {rejectedMessage}
+        </p>
+        <div className={look ? 'login-tool-end' : 'onb-integ-end'}>
+          <OnbTextButton size="sm" tone="muted" onClick={onRejectedAction}>
+            {rejectedActionLabel}
+          </OnbTextButton>
+        </div>
+      </div>
+    );
+  }
   const disabled = status === 'soon';
   const activate = () => {
     if (!disabled) onActivate?.();

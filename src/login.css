@@ -180,5 +180,11 @@ a.login-link:hover { text-decoration: underline; }
 .login-tool-btn { box-sizing: border-box; height: 32px; padding: 5px 11px; border: 1px solid var(--alpha-black-10); border-radius: 8px; background: var(--bg-quaternary); font-family: inherit; font-size: 12px; font-weight: 600; line-height: 18px; color: var(--text-secondary); cursor: pointer; flex-shrink: 0; white-space: nowrap; }
 .login-tool-btn:not(:disabled):hover { background: var(--bg-secondary); }
 .login-tool-btn.is-on { border-color: transparent; background: var(--utility-brand-50); color: var(--text-brand-secondary); }
+/* 개발 추가(pivit-work PW-2509) — 연결을 거절당한 도구 카드(기획 시안 A-6 «연결 거절»). 같은 카드의 치수·버튼을 그대로 두고
+   세로로 쌓는다(로고·이름 / 사유 / 오른쪽 아래 버튼). 사유 글자는 같은 틀의 경고 문구(.login-warning)와 같은 크기에 오류 색 */
+.login-tool.is-rejected { flex-direction: column; align-items: stretch; gap: var(--spacing-md); border-color: var(--colors-border-borderError); }
+.login-tool-row { display: flex; align-items: center; gap: var(--spacing-lg); }
+.login-tool-error { margin: 0; font-size: var(--font-size-text-xs, 12px); font-weight: 400; line-height: 18px; color: var(--text-error-primary); }
+.login-tool-end { align-self: flex-end; }
 /* 완료 — 큰 체크 원 56, 브랜드 */
 .login-done { align-self: center; display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; border-radius: 50%; background: var(--utility-brand-100); color: var(--text-brand-secondary); }

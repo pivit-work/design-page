@@ -456,6 +456,10 @@
 .onb-integ:focus-visible { outline: 2px solid var(--onb-brand); outline-offset: 2px; }
 .onb-integ.is-connected { border-color: var(--onb-success-border); background: var(--onb-success-bg); }
 .onb-integ.is-disabled { cursor: default; opacity: 0.6; background: var(--onb-bg); }
+/* 연결을 거절당한 카드(pivit-work PW-2509 · 기획 시안 A-6 «연결 거절») — 세로로 쌓고 누르는 자리가 아니다 */
+.onb-integ.is-rejected { flex-direction: column; align-items: stretch; gap: var(--spacing-md); cursor: default; border-color: var(--onb-error-border); background: var(--onb-error-bg); }
+.onb-integ-error { margin: 0; font-size: 12px; line-height: 18px; color: var(--onb-error); }
+.onb-integ-end { align-self: flex-end; }
 .onb-integ-main { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .onb-integ-name { margin: 0; font-size: 14px; line-height: 20px; font-weight: 700; color: var(--onb-text); letter-spacing: 0; }
 .onb-integ-desc { margin: 0; font-size: 12px; line-height: 18px; color: var(--onb-sub); }
