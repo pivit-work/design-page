@@ -35,8 +35,10 @@ export const TAB_ACTIONS_GAP = 12;
  * 버튼을 탭 줄 오른쪽에 둘지, 탭 아래 서브타이틀 줄로 내릴지 정한다 (pivit-work PW-2415).
  * 버튼 앞에서 멈춘 탭 줄을 가로로 밀어 두면, 밀린 탭은 표시 없이 잘려 버튼 뒤에 숨은 것처럼 보였다.
  * 탭 글자 전체 폭(`scrollWidth` — 밀려 가려진 부분까지)이 버튼 앞에 다 들어가면 종전처럼 오른쪽에 두고
- * 폭만 막는다. 안 들어가면 버튼을 내리고, 폭은 버튼 오른쪽 끝 + 틈까지로 넓힌다 — 회사 단계 이름이 길어
+ * 폭만 막는다. 안 들어가면 버튼을 내리고, 폭은 버튼 오른쪽 끝까지로 넓힌다 — 회사 단계 이름이 길어
  * 그래도 넘치면 화면 밖으로 잘리지 않고 종전처럼 가로로 민다. 버튼은 가로 자리가 그대로라 다시 재도 같은 답이다.
+ * 넘치면 탭 줄 오른쪽 끝에 ‹ › 가 서므로(pivit-work PW-2633) 그 끝이 아래로 내린 버튼·본문 카드 오른쪽 끝과
+ * 맞아야 한다 — 종전의 «+ 틈 12» 는 ‹ › 를 12px 튀어나오게 했다.
  * @returns {{ maxWidth: number|null, below: boolean }}
  */
 export function measureHeaderLayout(header, nav, doc = document) {
@@ -48,5 +50,5 @@ export function measureHeaderLayout(header, nav, doc = document) {
   const navStart = nav.getBoundingClientRect().left - headerLeft;
   const below = navStart + nav.scrollWidth + TAB_ACTIONS_GAP > maxWidth;
   if (!below) return { maxWidth, below };
-  return { maxWidth: Math.max(0, Math.floor(actions.right + TAB_ACTIONS_GAP - headerLeft)), below };
+  return { maxWidth: Math.max(0, Math.floor(actions.right - headerLeft)), below };
 }

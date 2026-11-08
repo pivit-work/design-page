@@ -143,6 +143,12 @@ body:has(> .okr-ctx-banner) .tl-group-modal.okr-shell { max-height: calc(100vh -
    시안 okr-app.jsx 컨트롤 행(좌: 기간 / 우: 액션). 세로 가운데를 서브타이틀 줄에 맞춘 값:
    72(머리 위) + 8(위 여백) + 38(탭 줄) + 13(줄 사이) + 8.5(서브타이틀 반) − 18(버튼 반) = 121.5. 서브타이틀이 없는 탭도 같은 높이다. */
 body:has(.okr-tab-header.is-actions-below) :is(.okr-header-actions, .okr-write-btn:not(.is-inline)) { top: 121.5px; }
+/* 그래도 칸의 끝이 탭 사이에 걸리면 잘린 글자도 없어 뒤 탭이 없는 줄로 읽혔다(pivit-work PW-2633). 넘칠 때만
+   OkrTabNav 가 탭 줄 오른쪽 끝에 ‹ › (공용 StepNav — 내 리소스 ‹ 2026년 9월 › 와 같은 버튼)를 놓고, 그 폭만큼 탭 칸이
+   줄어든다. 탭과의 사이 12 는 OKR 정책서 §2B.3 «버튼 규격». 넘치지 않으면 버튼이 없어 줄 모양이 종전과 같다. */
+.okr-tab-row { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.okr-tab-row > .tab-nav { flex: 1 1 auto; }
+.okr-tab-row > .okr-tab-step { flex-shrink: 0; }
 
 /* ══ 개인 OKR 탭 ══ */
 .okr-write-btn { position: fixed; top: 86px; right: 32px; z-index: 90; display: flex; align-items: center; gap: 4px; padding: 8px 14px; background: var(--bg-brand-solid); border: none; border-radius: 8px; font-family: inherit; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-white); cursor: pointer; }
