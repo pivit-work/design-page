@@ -26,6 +26,9 @@ import Chip from '../shared/Chip.jsx';
 import Icon from '../shared/Icon.jsx';
 import { MinusGlyph, PlusGlyph } from '../shared/lineIcons.jsx';
 import usePanZoom from '../shared/usePanZoom.js';
+import SegmentedControl from '../shared/SegmentedControl.jsx';
+import SquadStructureView from './SquadStructureView.jsx';
+import { groupBands, orderSquadsByGroups } from './squadStructureLayout.js';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import { squadStatusText, useOrgLabels } from './orgchart-labels.jsx';
@@ -71,13 +74,30 @@ export function graphPersonLine(L, person) {
   return title ? `${title} · ${unit}` : unit;
 }
 
-export default function SquadGraphView({ squads, personOf, renderAvatar, onMemberClick }) {
+export default function SquadGraphView({
+  squads,
+  personOf,
+  renderAvatar,
+  onMemberClick,
+  // 구조 갈래(PW-2599 · §5-6-A·B) — 묶음 층 · 명부(«스쿼드 없음»·기능 조직 쪽) · 조직 단위 · 회사 이름
+  levelNames = [],
+  groups = [],
+  people = [],
+  units = [],
+  companyName = '',
+}) {
   const L = useOrgLabels();
   const G = GRAPH_GEOM;
+  // 갈래 — 기본 `구조`, 탭을 다시 열면 `구조`(§5-6 «두 갈래»). 상태 필터는 두 갈래가 함께 쓴다
+  const [branch, setBranch] = useState('tree');
   const [statusOn, setStatusOn] = useState(GRAPH_DEFAULT_STATUS);
   const [focus, setFocus] = useState(null); // { kind: 'sq' | 'p' | 'pj', id } — 마우스를 올린 노드
 
-  const shown = useMemo(() => squads.filter((sq) => statusOn.includes(sq.status)), [squads, statusOn]);
+  // 묶음 층이 있으면 연결 갈래의 스쿼드 줄을 묶음 트리 순서로 세운다(§5-6 «묶음 (연결 갈래)»)
+  const shown = useMemo(
+    () => orderSquadsByGroups(squads.filter((sq) => statusOn.includes(sq.status)), levelNames, groups),
+    [squads, statusOn, levelNames, groups],
+  );
   const layout = useMemo(() => squadGraphLayout({ squads: shown, personOf }), [shown, personOf]);
   // 담당 프로젝트를 아직 못 받았거나 못 불러온 스쿼드는 `projects` 가 배열이 아니다(카드 보기는 그 칸을 안 그린다).
   // 그때 범례가 «이어지지 않은 프로젝트는 그리지 않는다»를 말하면 «프로젝트 없음»으로 읽힌다 — 프로젝트 줄 범례를 걷는다.
@@ -96,7 +116,8 @@ export default function SquadGraphView({ squads, personOf, renderAvatar, onMembe
     setView(p.scale, p.translate);
   }, [canvasRef, layout.width, layout.height, setView]);
   // 그림이 바뀌면(필터를 켜고 끔) 첫 자리로 — 옛 자리에 두면 새 그림이 판 밖에 있을 수 있다
-  useLayoutEffect(() => { if (shown.length > 0) place(false); }, [place, shown.length]);
+  useLayoutEffect(() => { if (branch === 'link' && shown.length > 0) place(false); }, [place, shown.length, branch]);
+  const bands = useMemo(() => groupBands(layout.squadNodes, groups, levelNames.length), [layout, groups, levelNames.length]);
   const toggleStatus = (st) => setStatusOn((on) => (on.includes(st) ? on.filter((x) => x !== st) : [...on, st]));
 
   // 강조 — 올린 노드에 직접 이어진 선·칩·노드만 진하게(§5-6 「마우스 올림」)
@@ -119,11 +140,21 @@ export default function SquadGraphView({ squads, personOf, renderAvatar, onMembe
     <div className="pj-table-section sq-matrix-section" data-testid="squad-graph">
       <div className="pj-table-header-text sq-matrix-head sq-graph-head">
         <div>
-          <p className="pj-table-title">{L('squad.graph.title')}</p>
-          <p className="pj-table-subtitle">{L('squad.graph.subtitle')}</p>
+          <p className="pj-table-title">{L(branch === 'tree' ? 'squad.graph.treeTitle' : 'squad.graph.title')}</p>
+          <p className="pj-table-subtitle">{L(branch === 'tree' ? 'squad.graph.treeSubtitle' : 'squad.graph.subtitle')}</p>
         </div>
         {/* 상태 필터 — 여러 개를 함께 켠다. 버튼마다 그 상태의 스쿼드 수(필터와 무관한 전체 수) */}
         <div className="sq-graph-filters" role="group" aria-label={L('squad.graph.filterLabel')}>
+          {/* 갈래 — 상태 필터 왼쪽 맨 앞(§4 «구조 / 연결» 갈래) */}
+          <SegmentedControl
+            ariaLabel={L('squad.graph.branchLabel')}
+            items={[
+              { value: 'tree', label: L('squad.graph.branch.tree'), testId: 'squad-graph-branch-tree' },
+              { value: 'link', label: L('squad.graph.branch.link'), testId: 'squad-graph-branch-link' },
+            ]}
+            value={branch}
+            onChange={(v) => { setBranch(v); setFocus(null); }}
+          />
           {GRAPH_STATUS_ORDER.map((st) => {
             const meta = squadStatusMeta(st);
             const on = statusOn.includes(st);
@@ -145,6 +176,27 @@ export default function SquadGraphView({ squads, personOf, renderAvatar, onMembe
         </div>
       </div>
 
+      {shown.length === 0 && branch === 'tree' && (
+        <div className="sq-empty sq-graph-empty" data-testid="squad-graph-empty">
+          <p className="sq-empty-title">{L('squad.graph.emptyTitle')}</p>
+          <p className="sq-empty-desc">{L('squad.graph.emptyDesc')}</p>
+        </div>
+      )}
+      {/* 구조 갈래 — 켜진 스쿼드가 0건이어도 묶음은 그린다(§5-6-B «빈 상태» · «묶음과 필터») */}
+      {branch === 'tree' ? (
+        <SquadStructureView
+          shown={shown}
+          all={squads}
+          levelNames={levelNames}
+          groups={groups}
+          people={people}
+          units={units}
+          companyName={companyName}
+          personOf={personOf}
+          renderAvatar={renderAvatar}
+          onMemberClick={onMemberClick}
+        />
+      ) : (<>
       <div className="sq-panel">
         {shown.length === 0 ? (
           <div className="sq-empty sq-graph-empty" data-testid="squad-graph-empty">
@@ -187,6 +239,21 @@ export default function SquadGraphView({ squads, personOf, renderAvatar, onMembe
               data-scale={scale.toFixed(2)}
               onMouseLeave={() => setFocus(null)}
             >
+              {/* ── 묶음 띠 — 같은 아래 층 묶음의 스쿼드 노드 뒤 옅은 띠 + 묶음 이름(§5-6 «묶음 (연결 갈래)») ── */}
+              {bands.map((b) => (
+                <div
+                  key={`band-${b.group.id}`}
+                  className="sq-graph-band"
+                  data-testid={`squad-graph-band-${b.group.id}`}
+                  style={{
+                    left: b.x1 - G.sqW / 2 - 12, top: G.ySq - 28,
+                    width: b.x2 - b.x1 + G.sqW + 24, height: G.sqH + 40,
+                    background: `${b.group.color}12`, border: `1px solid ${b.group.color}38`,
+                  }}
+                >
+                  <span className="sq-graph-band-name sq-graph-ellipsis">{b.group.name}</span>
+                </div>
+              ))}
               {/* ── 선 — 칩·노드보다 아래 ── */}
               <svg className="sq-graph-lines" width={layout.width} height={layout.height} aria-hidden>
                 {layout.projectEdges.map((e) => (
@@ -407,6 +474,7 @@ export default function SquadGraphView({ squads, personOf, renderAvatar, onMembe
         <p className="pj-table-subtitle">{L('squad.graph.legendLine')}</p>
         {projectsKnown && <p className="pj-table-subtitle">{L('squad.graph.legendProject')}</p>}
       </div>
+      </>)}
     </div>
   );
 }

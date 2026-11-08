@@ -17,21 +17,77 @@ import { LeadStarIcon, PlusIcon } from './squadIcons.jsx';
 import { useOrgLabels, rich } from './orgchart-labels.jsx';
 import { isEnterKey } from '../shared/enterKey.js';
 
+/**
+ * 구성원 한 명 고르기 — 고른 사람은 칩, 아니면 [고르기] → 검색 칸 + 후보 목록.
+ * 스쿼드 폼의 ⭐ 팀장(리드) 칸과 묶음 관리 패널의 헤드 칸이 같은 부품을 쓴다(기획 §5-6-A «헤드 고르기는 팀장 선택 칸과 같은 부품»).
+ */
+export function PersonPickField({ value, candidates, onPick, labels, testId }) {
+  const [query, setQuery] = useState('');
+  const [open, setOpen] = useState(false);
+  const q = query.trim().toLowerCase();
+  const cands = (candidates || []).filter(
+    (n) => q === '' || `${n.name} ${n.nameEn || ''} ${n.team || ''} ${n.dept || ''} ${n.title || ''}`.toLowerCase().includes(q),
+  );
+  const picked = value ? (candidates || []).find((n) => n.id === value) : null;
+  if (picked) {
+    return (
+      <div>
+        <Chip
+          person={{ name: picked.name, photo: picked.avatar }}
+          onRemove={() => onPick(null)}
+          removeLabel={labels.clear}
+          data-testid={testId ? `${testId}-chip` : undefined}
+        >
+          {picked.name}
+        </Chip>
+      </div>
+    );
+  }
+  if (open) {
+    return (
+      <div className="sq-lead-search">
+        <input
+          autoFocus value={query} aria-label={labels.search}
+          className="sq-field"
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Escape') { setOpen(false); setQuery(''); } }}
+          placeholder={labels.searchPlaceholder}
+        />
+        <div className="sq-lead-list">
+          {cands.map((n) => (
+            <div
+              key={n.id}
+              className="sq-lead-item"
+              onClick={() => { onPick(n.id); setOpen(false); setQuery(''); }}
+            >
+              {n.name} <span className="sq-lead-item-meta">· {n.team} {n.title}</span>
+            </div>
+          ))}
+          {cands.length === 0 && (
+            <div className="sq-lead-none">{labels.none}</div>
+          )}
+        </div>
+      </div>
+    );
+  }
+  return (
+    <button
+      type="button" onClick={() => setOpen(true)}
+      className="sq-btn sq-btn-sm sq-btn-outline"
+      data-testid={testId ? `${testId}-open` : undefined}
+    >
+      <PlusIcon size={12} /> {labels.pick}
+    </button>
+  );
+}
+
 export default function SquadFormCard({
   form, setForm, errors, palette, onSubmit, onCancel, leadCandidates, submitting,
+  // 소속 묶음 칸(PW-2599 · §5-6-A) — 층이 없으면 칸이 없다
+  groupLevelName = null, groupOptions = null,
 }) {
   const L = useOrgLabels();
   const editing = form.mode === 'edit';
-  const [leadQuery, setLeadQuery] = useState('');
-  const [leadOpen, setLeadOpen] = useState(false);
-
-  const q = leadQuery.trim().toLowerCase();
-  const cands = (leadCandidates || []).filter(
-    (n) => q === '' || `${n.name} ${n.nameEn || ''} ${n.team || ''} ${n.dept || ''} ${n.title || ''}`.toLowerCase().includes(q),
-  );
-  const leadPerson = form.leadUserId
-    ? (leadCandidates || []).find((n) => n.id === form.leadUserId)
-    : null;
 
   return (
     <div
@@ -109,6 +165,25 @@ export default function SquadFormCard({
           </div>
         </div>
 
+        {/* 소속 {층 이름} — 맨 아래 층 묶음 + 미분류(기본). 2층이면 «위 묶음 › 묶음»(§4 · §5-6-A «스쿼드의 소속») */}
+        {groupLevelName && groupOptions && (
+          <div className="sq-form-field">
+            <label className="sq-field-label" htmlFor={`squad-group-${form.id || 'new'}`}>{L('squad.form.group', { level: groupLevelName })}</label>
+            <Select
+              aria-label={L('squad.form.group', { level: groupLevelName })}
+              id={`squad-group-${form.id || 'new'}`}
+              className={`sq-field${errors.groupId ? ' is-invalid' : ''}`}
+              data-testid="squad-form-group"
+              value={form.groupId || ''}
+              onChange={(e) => setForm((f) => ({ ...f, groupId: e.target.value || null }))}
+            >
+              <option value="">{L('squad.struct.ungrouped')}</option>
+              {groupOptions.map((g) => <option key={g.id} value={g.id}>{g.label}</option>)}
+            </Select>
+            {errors.groupId && <div className="sq-field-error">{errors.groupId}</div>}
+          </div>
+        )}
+
         {/* 팀장(리드) 선택 — 생성 폼에만. 리드 교체는 배정 편집 팝오버의 책임이라 수정 폼에는 없다 */}
         {!editing && (
           <div className="sq-form-field">
@@ -116,49 +191,19 @@ export default function SquadFormCard({
               <span className="sq-lead-mark"><LeadStarIcon size={11} /></span>{' '}
               {L('squad.form.leadLabel')}
             </div>
-            {leadPerson ? (
-              <div>
-                <Chip
-                  person={{ name: leadPerson.name, photo: leadPerson.avatar }}
-                  onRemove={() => setForm((f) => ({ ...f, leadUserId: null }))}
-                  removeLabel={L('squad.form.leadClear')}
-                  data-testid="sq-lead-chip"
-                >
-                  {leadPerson.name}
-                </Chip>
-              </div>
-            ) : leadOpen ? (
-              <div className="sq-lead-search">
-                <input
-                  autoFocus value={leadQuery} aria-label={L('squad.form.leadSearch')}
-                  className="sq-field"
-                  onChange={(e) => setLeadQuery(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Escape') { setLeadOpen(false); setLeadQuery(''); } }}
-                  placeholder={L('squad.form.leadSearchPlaceholder')}
-                />
-                <div className="sq-lead-list">
-                  {cands.map((n) => (
-                    <div
-                      key={n.id}
-                      className="sq-lead-item"
-                      onClick={() => { setForm((f) => ({ ...f, leadUserId: n.id })); setLeadOpen(false); setLeadQuery(''); }}
-                    >
-                      {n.name} <span className="sq-lead-item-meta">· {n.team} {n.title}</span>
-                    </div>
-                  ))}
-                  {cands.length === 0 && (
-                    <div className="sq-lead-none">{L('squad.form.leadNoResults')}</div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <button
-                type="button" onClick={() => setLeadOpen(true)}
-                className="sq-btn sq-btn-sm sq-btn-outline"
-              >
-                <PlusIcon size={12} /> {L('squad.form.leadPick')}
-              </button>
-            )}
+            <PersonPickField
+              value={form.leadUserId}
+              candidates={leadCandidates}
+              onPick={(id) => setForm((f) => ({ ...f, leadUserId: id }))}
+              labels={{
+                clear: L('squad.form.leadClear'),
+                search: L('squad.form.leadSearch'),
+                searchPlaceholder: L('squad.form.leadSearchPlaceholder'),
+                none: L('squad.form.leadNoResults'),
+                pick: L('squad.form.leadPick'),
+              }}
+              testId="sq-lead"
+            />
           </div>
         )}
       </div>

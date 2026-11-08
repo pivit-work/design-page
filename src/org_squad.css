@@ -1916,6 +1916,103 @@
   padding: var(--spacing-xl) var(--spacing-3xl);
 }
 
+/* ── 그림 보기 «구조» 갈래 (pivit-work PW-2599 · 기획 §5-6-B) ──
+   디자이너 원본이 없다. 새 색·새 크기를 짓지 않고 같은 탭의 디자이너 모양을 옮겼다:
+   캔버스 = «한눈에» 판(.sq-iso-panel · .sq-iso-scroll) · 스쿼드 노드 = 연결 갈래(.sq-graph-squad) ·
+   묶음·조직 노드 = 같은 상자(테두리 border-secondary · r16) · 접기 단추 = 조직도 .dept-toggle.
+   묶음 색은 데이터라 화면 부품이 --sq-struct-color 로 준다. */
+.sq-struct-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-lg); padding: 0 var(--spacing-3xl) var(--spacing-lg); }
+.sq-struct-canvas { position: relative; margin: 0 var(--spacing-3xl); background: var(--bg-tertiary); border-radius: 14px; }
+.sq-struct-tools { top: var(--spacing-lg); right: var(--spacing-lg); }
+.sq-struct-scroll { overflow: auto; cursor: grab; user-select: none; border-radius: 14px; }
+.sq-struct-scroll:active { cursor: grabbing; }
+.sq-struct-sizer { position: relative; margin: 0 auto; }
+.sq-struct-tree { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.sq-struct-edge { fill: none; stroke: var(--border-primary); stroke-width: 1; }
+.sq-struct-edge.is-dashed { stroke-dasharray: 4 3; }
+.sq-struct-node {
+  position: absolute;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--spacing-xxs);
+  padding: 0 var(--spacing-xl);
+  border: 1px solid var(--border-secondary);
+  border-radius: 16px;
+  background: var(--bg-quaternary);
+  text-align: left;
+  font: inherit;
+  transition: opacity 0.15s;
+}
+.sq-struct-node.is-virtual { background: var(--bg-secondary); border-style: dashed; border-color: var(--border-primary); }
+.sq-struct-root { background: var(--bg-brand-primary); border-color: transparent; }
+.sq-struct-root-meta { font-size: 12px; font-weight: 600; line-height: 18px; color: var(--text-brand-secondary); }
+.sq-struct-node-name { min-width: 0; font-size: 14px; font-weight: 700; line-height: 20px; color: var(--text-primary); }
+.sq-struct-node.is-virtual .sq-struct-node-name { color: var(--text-secondary); }
+.sq-struct-node-meta { font-size: 12px; font-weight: 500; line-height: 18px; color: var(--text-tertiary); }
+.sq-struct-group { overflow: visible; }
+.sq-struct-group::before {
+  content: '';
+  position: absolute;
+  left: -1px; right: -1px; top: -1px;
+  height: 4px;
+  border-radius: 16px 16px 0 0;
+  background: var(--sq-struct-color, transparent);
+}
+.sq-struct-group.is-virtual::before { display: none; }
+.sq-struct-group-level { display: inline-flex; align-items: center; gap: var(--spacing-xs); font-size: 12px; font-weight: 600; line-height: 18px; color: var(--text-tertiary); }
+.sq-struct-dot { width: 6px; height: 6px; border-radius: 50%; flex: none; }
+.sq-struct-head {
+  display: flex; align-items: center; gap: var(--spacing-xs); min-width: 0; max-width: 100%;
+  padding: 0; border: 0; background: none; cursor: pointer; font: inherit; text-align: left;
+}
+.sq-struct-head .pj-member-name { min-width: 0; font-size: 12px; line-height: 18px; }
+.sq-struct-head-badge { flex: none; }
+.sq-struct-none { cursor: pointer; }
+.sq-struct-card {
+  position: absolute;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: 0 var(--spacing-md);
+  border: 1px solid var(--border-secondary);
+  border-radius: 10px;
+  background: var(--bg-quaternary);
+  transition: opacity 0.15s;
+}
+.sq-struct-card.is-clickable { cursor: pointer; }
+.sq-struct-card-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.sq-struct-card-name { display: inline-flex; align-items: center; gap: var(--spacing-xxs); min-width: 0; font-size: 12px; line-height: 18px; }
+.sq-struct-card-role { flex: none; font-weight: 500; color: var(--text-tertiary); }
+.sq-struct-card-line { font-size: 12px; line-height: 18px; color: var(--text-tertiary); }
+.sq-struct-multi { flex: none; }
+.sq-struct-more {
+  justify-content: center;
+  background: var(--bg-secondary);
+  border-style: dashed;
+  border-color: var(--border-primary);
+  font: inherit; font-size: 12px; font-weight: 600; line-height: 18px; color: var(--text-secondary);
+  cursor: pointer;
+}
+/* ── 묶음 관리 패널 (pivit-work PW-2599 · 기획 §5-6-A «자리») — 생성 폼 카드(.sq-form) 부품을 그대로 쓰고 줄 배치만 둔다 ── */
+.sq-group-panel { display: flex; flex-direction: column; gap: var(--spacing-lg); margin-bottom: var(--spacing-xl); }
+.sq-group-panel-head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--spacing-lg); }
+.sq-group-levels { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-lg); }
+.sq-group-level { display: flex; flex-direction: column; gap: var(--spacing-md); padding-top: var(--spacing-lg); border-top: 1px solid var(--border-secondary); }
+.sq-group-level-head { display: flex; align-items: center; gap: var(--spacing-md); }
+.sq-group-level-input { width: 160px; }
+.sq-group-row { display: flex; align-items: center; gap: var(--spacing-lg); padding: var(--spacing-md) 0; border-bottom: 1px solid var(--border-secondary); }
+.sq-group-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.sq-group-row-name { min-width: 80px; max-width: 200px; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-primary); }
+.sq-group-row-meta { font-size: 12px; line-height: 18px; color: var(--text-tertiary); white-space: nowrap; }
+.sq-group-row-actions { display: flex; gap: var(--spacing-sm); margin-left: auto; }
+.sq-group-add { align-self: flex-start; }
+.sq-group-editor { display: flex; flex-direction: column; gap: var(--spacing-md); padding: var(--spacing-lg); border: 1px solid var(--border-secondary); border-radius: 12px; }
+.sq-graph-band { position: absolute; border-radius: 16px; }
+.sq-graph-band-name { position: absolute; left: var(--spacing-md); top: var(--spacing-xxs); font-size: 12px; font-weight: 600; line-height: 18px; color: var(--text-tertiary); }
+
 /* ── 스쿼드 «한눈에» 무대 (pivit-work PW-2607 · 기획 §5-7) ──
    디자이너 원본이 없다. 판·제목·버튼은 같은 탭의 디자이너 모양을 쓰고 여기는 무대 그림만 둔다.
    색은 토큰만. 명암은 같은 토큰을 바탕색과 섞어 만든다(새 색 아님). 스쿼드 색은 데이터라 화면 부품이 --iso-c 로 준다. */

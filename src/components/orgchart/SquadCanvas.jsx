@@ -32,6 +32,7 @@ import ConfirmModal from '../shared/ConfirmModal.jsx';
 import SquadFormCard from './SquadFormCard.jsx';
 import SquadProjectSection from './SquadProjectSection.jsx';
 import SquadGraphView from './SquadGraphView.jsx';
+import SquadGroupPanel from './SquadGroupPanel.jsx';
 import SquadIsoStage from './SquadIsoStage.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import AssignmentGrid from './AssignmentGrid.jsx';
@@ -266,6 +267,20 @@ export default function SquadCanvas({
   openCardView = false,
   /** 조직도 탭을 눌러 들어왔을 때만 참 — 팀 → 스쿼드 움직임을 한 번 재생한다. 새로고침·주소로 들어오면 거짓. */
   playEntrance = false,
+  /**
+   * 묶음 층(트라이브·그룹 · PW-2599 · 기획 §5-6-A) — `groupLevelNames[0]` 아래 층 · `[1]` 위 층, 빈 배열 = 층 없음.
+   * `squadGroups` = `{ id, level, name, color, headUserId, headActive, parentId }`. 스쿼드의 소속은 `squad.groupId`.
+   * 바꾸는 콜백 넷은 `{ ok, field?, message? }` 를 돌려준다(`SquadGroupPanel` 머리 주석). 없으면 [묶음 관리] 를 그리지 않는다.
+   */
+  groupLevelNames = [],
+  squadGroups = [],
+  onSaveGroupLevels,
+  onCreateGroup,
+  onUpdateGroup,
+  onDeleteGroup,
+  /** 그림 보기 구조 갈래의 기능 조직 쪽 — 조직도 순서(깊이 우선)의 조직 단위 `{ id, name, depth }` · 회사 이름 */
+  orgUnits = [],
+  companyName = '',
 }) {
   const [editMode, setEditMode] = useState(false);
   // 보기 — 화면 안 상태라 탭을 다시 열면 처음 보기로 돌아온다(주소·저장 없음)
@@ -288,6 +303,7 @@ export default function SquadCanvas({
   const [statusMenu, setStatusMenu] = useState(null);
   const [statusAsk, setStatusAsk] = useState(null); // { squadId, to, kind, overloads }
   const [projTarget, setProjTarget] = useState(null); // 「+ 프로젝트 추가」 를 연 스쿼드 id
+  const [groupPanel, setGroupPanel] = useState(false); // [묶음 관리] 패널(§5-6-A «자리»)
 
   // 화면 문구 — 소비자가 번역을 넘긴다(PW-705). 안 넘기면 한국어 기본값.
   const L = useMemo(() => makeOrgLabels(labels), [labels]);
@@ -348,6 +364,18 @@ export default function SquadCanvas({
     return map;
   }, [people]);
   const personOf = useCallback((id) => peopleById.get(id) || null, [peopleById]);
+  // 폼 «소속 {층 이름}» 항목 — 맨 아래 층 묶음(이름 가나다). 2층이면 «위 묶음 › 묶음»(§4 생성·수정 폼 행)
+  const groupOptions = useMemo(() => {
+    if (!groupLevelNames.length) return null;
+    const tops = new Map(squadGroups.filter((g) => g.level === 1).map((g) => [g.id, g]));
+    return squadGroups
+      .filter((g) => g.level === 0)
+      .sort((a, b) => a.name.localeCompare(b.name, 'ko'))
+      .map((g) => ({
+        id: g.id,
+        label: groupLevelNames.length === 2 ? `${tops.get(g.parentId)?.name || L('squad.struct.ungrouped')} › ${g.name}` : g.name,
+      }));
+  }, [groupLevelNames, squadGroups, L]);
 
   /** 팀원 추가 목록의 사람 아바타 — 검색 후보 행과 추천 행이 같은 모양을 쓴다(§5-5 · 새 부품 없음). */
   const addItemAvatar = (n, size = 24) => {
@@ -636,6 +664,7 @@ export default function SquadCanvas({
       name: '', mission: '', startDate: todayIsoInZone(timeZone), endDate: '',
       color: SQUAD_PALETTE.find((c) => !used.has(c)) || SQUAD_PALETTE[0],
       leadUserId: null,
+      groupId: null,
     });
     setLocalErr({});
   };
@@ -645,6 +674,7 @@ export default function SquadCanvas({
       mode: 'edit', id: sq.id, kind: sq.kind || 'squad',
       name: sq.name, mission: sq.mission || '',
       startDate: sq.startDate, endDate: sq.endDate || '', color: sq.color,
+      groupId: sq.groupId || null,
     });
     setLocalErr({});
     setMoreMenu(null);
@@ -702,6 +732,8 @@ export default function SquadCanvas({
       color: f.color,
       startDate: f.startDate,
       endDate: f.endDate || null,
+      // 소속 묶음 — 층이 있을 때만 보낸다(없으면 서버가 그대로 둔다 · §7-2·§7-3)
+      ...(groupLevelNames.length ? { groupId: f.groupId || null } : {}),
     };
 
     // status 는 어느 경로로도 보내지 않는다 — 전이 규칙 우회 차단(§7)
@@ -943,6 +975,16 @@ export default function SquadCanvas({
               </button>
             ) : (
               <>
+                {/* [묶음 관리] — p013 · 카드 보기 · 편집 모드와 무관 · [+ 스쿼드 만들기] 왼쪽(§4 · 엣지 86) */}
+                {canManageLedger && onSaveGroupLevels && (
+                  <button
+                    type="button" onClick={() => setGroupPanel((v) => !v)} data-testid="squad-group-open"
+                    aria-expanded={groupPanel}
+                    className="sq-btn sq-btn-secondary sq-btn-lg"
+                  >
+                    {L('squad.groups.open')}
+                  </button>
+                )}
                 {ledgerReady && !squadForm && (
                   <button
                     type="button" onClick={openSquadForm} data-testid="squad-create-open"
@@ -1005,6 +1047,23 @@ export default function SquadCanvas({
               />
             )}
           </div>
+
+          {/* 묶음 관리 패널 — 툴바 아래 인라인(모달·별도 화면 아님 · §5-6-A «자리»). 카드 보기에서만 */}
+          {groupPanel && !viewOnly && canManageLedger && onSaveGroupLevels && (
+            <SquadGroupPanel
+              key={groupLevelNames.join('\n')}
+              levelNames={groupLevelNames}
+              groups={squadGroups}
+              squads={squads}
+              people={people}
+              palette={SQUAD_PALETTE}
+              onSaveLevels={onSaveGroupLevels}
+              onCreateGroup={onCreateGroup}
+              onUpdateGroup={onUpdateGroup}
+              onDeleteGroup={onDeleteGroup}
+              onClose={() => setGroupPanel(false)}
+            />
+          )}
 
           {actionError && (
             <div className="sq-banner sq-banner-error" data-testid="squad-action-error" role="alert">
@@ -1088,7 +1147,10 @@ export default function SquadCanvas({
                 />
               )}
               {showGraph && !leaving && (
-                <SquadGraphView squads={squads} personOf={personOf} renderAvatar={personAvatar} onMemberClick={onMemberClick} />
+                <SquadGraphView
+                  squads={squads} personOf={personOf} renderAvatar={personAvatar} onMemberClick={onMemberClick}
+                  levelNames={groupLevelNames} groups={squadGroups} people={people} units={orgUnits} companyName={companyName}
+                />
               )}
               {!viewOnly && (<>
               {/* 카드 그리드 — 프로젝트 탭과 같은 격자 */}
@@ -1098,6 +1160,7 @@ export default function SquadCanvas({
                     form={squadForm} setForm={editForm} errors={errors}
                     palette={SQUAD_PALETTE} onSubmit={submitSquadForm} onCancel={closeSquadForm}
                     leadCandidates={leadCandidates} submitting={submitting}
+                    groupLevelName={groupLevelNames[0] || null} groupOptions={groupOptions}
                   />
                 )}
 
@@ -1109,6 +1172,7 @@ export default function SquadCanvas({
                         form={squadForm} setForm={editForm} errors={errors}
                         palette={SQUAD_PALETTE} onSubmit={submitSquadForm} onCancel={closeSquadForm}
                         leadCandidates={leadCandidates} submitting={submitting}
+                    groupLevelName={groupLevelNames[0] || null} groupOptions={groupOptions}
                       />
                     );
                   }
