@@ -1,0 +1,43 @@
+/*
+ * 조직 변경 승인 — 승인자 화면(PW-2597 · screen-org-change-approval.policy.md §9).
+ * 디자이너 원본이 없어 같은 일반 모드 화면의 디자이너 모양을 그대로 따른다(디자이너 검수 대기 · design-review):
+ * - 페이지 머리 = 고객지원 화면 `.sup-header`·`.sup-title`(30/38 700)·`.sup-sub`(14/20 tertiary)
+ * - 본문 · 카드 = `.sup-body` · `.sup-card`(r14 · border-secondary)
+ * - 접고 펴는 요청 카드 = 평가 «리마인더 발송 기록» `.evmon-dispatch*`(머리 전체가 버튼 · › 회전)
+ * - 사유 상자 = 발령 이력 상세 `.admin-snap-hist-reason`(13px · bg-secondary · r8)
+ * 새 색 · 새 크기를 짓지 않는다 — 값은 위 원본과 같은 토큰이다.
+ */
+.oca-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+.oca-header-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.oca-title { margin: 0; font-size: 30px; font-weight: 700; line-height: 38px; color: var(--text-primary); }
+.oca-sub { margin: 0; font-size: 14px; line-height: 20px; color: var(--text-tertiary); }
+.oca-body { display: flex; flex-direction: column; gap: 16px; margin: 18px 0 12px 6px; padding: 6px 28px 0 6px; min-height: 0; flex: 1; overflow-y: auto; }
+.oca-section { box-sizing: border-box; border: 1px solid var(--border-secondary); border-radius: 14px; background: var(--bg-primary); padding: var(--spacing-lg); }
+.oca-section-title { margin: 0 0 var(--spacing-md); font-size: var(--font-size-text-sm); font-weight: 700; color: var(--text-primary); }
+.oca-section-empty { margin: 0; font-size: var(--font-size-text-sm); color: var(--text-tertiary); }
+
+.oca-card { border: 1px solid var(--bg-active); border-radius: var(--radius-md); overflow: hidden; }
+.oca-card + .oca-card { margin-top: 8px; }
+.oca-card-head { width: 100%; display: flex; align-items: center; gap: var(--spacing-md); padding: var(--spacing-md) var(--spacing-lg); background: var(--bg-secondary, transparent); border: none; font: inherit; text-align: left; cursor: pointer; }
+.oca-card-title { font-size: var(--font-size-text-sm); font-weight: 700; color: var(--text-secondary); min-width: 0; }
+.oca-card-meta { font-size: var(--font-size-text-xs); color: var(--text-tertiary); }
+.oca-card-chevron { margin-left: auto; color: var(--text-tertiary); transition: transform 0.12s; }
+.oca-card-chevron.is-open { transform: rotate(90deg); }
+.oca-card-body { border-top: 1px solid var(--bg-active); padding: var(--spacing-md) var(--spacing-lg); }
+
+.oca-line { padding: var(--spacing-md) 0; border-bottom: 1px solid var(--bg-active); font-size: var(--font-size-text-sm); color: var(--text-secondary); }
+.oca-line:last-child { border-bottom: none; }
+.oca-line.is-rejected { background: var(--colors-error-50); }
+.oca-line.is-closed { opacity: 0.55; }
+.oca-line-head { display: flex; align-items: flex-start; gap: var(--spacing-md); }
+.oca-line-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.oca-line-title { font-weight: 700; color: var(--text-primary); }
+.oca-line-note { font-size: var(--font-size-text-xs); color: var(--text-tertiary); }
+.oca-people { margin: var(--spacing-xs) 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 2px; font-size: var(--font-size-text-xs); color: var(--text-secondary); }
+.oca-more { background: none; border: none; padding: 0; font: inherit; font-size: var(--font-size-text-xs); color: var(--text-brand, var(--text-secondary)); cursor: pointer; text-align: left; }
+
+.oca-reason-label { margin: 14px 0 4px; font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+.oca-reason { font-size: 13px; line-height: 1.5; color: var(--text-primary); padding: 10px; background: var(--bg-secondary); border-radius: 8px; white-space: pre-wrap; }
+.oca-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; margin-top: var(--spacing-md); }
+.oca-result { margin: var(--spacing-md) 0 0; font-size: var(--font-size-text-sm); color: var(--text-secondary); }
+.oca-error { margin: var(--spacing-sm) 0 0; font-size: var(--font-size-text-xs); color: var(--text-error, var(--colors-error-600)); }

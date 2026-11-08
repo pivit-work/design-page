@@ -28,6 +28,8 @@ export function groupHistoryRows(records, labels) {
       // 사유가 사람마다 다르면 묶음 줄에는 싣지 않는다 — 사람 칸에 남는다(CSV).
       reason: reasons.size === 1 ? r.reason : '',
       scheduled: members.some((m) => m.scheduled),
+      // 묶음 안에 승인 대기 사람이 있으면 «승인 대기 N» 칩이 이 줄을 남긴다(PW-2597)
+      approvalPending: members.some((m) => m.approvalPending),
     });
   }
   return out;

@@ -4233,3 +4233,18 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
 .admin-emp-btn.is-danger-ghost:not(:disabled):hover {
   background: var(--utility-error-50);
 }
+
+/* 발령 이력 승인 필터 칩(PW-2597 · 정책 §3 «승인 필터 칩») — 머리 필터 버튼과 같은 꼴(11 · r8 · 보더) · 선택 시 brandSoft */
+.admin-snap-approval-chips { display: flex; gap: 6px; margin: 0 0 8px; }
+.admin-snap-approval-chip {
+  font: inherit;
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border-secondary);
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.admin-snap-approval-chip.is-active { background: var(--bg-brand-secondary, var(--bg-secondary)); color: var(--text-primary); }
+.admin-snap-approval-actions { display: flex; gap: 6px; margin-top: 8px; }

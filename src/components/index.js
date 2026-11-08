@@ -379,6 +379,9 @@ export {
 // 내 설정
 export { MySettingsCanvas, PreferenceConsentModal } from './settings/index.js';
 
+// 조직 변경 승인 — 승인자 화면 (PW-2597)
+export { OrgChangeApprovalCanvas } from './orgchange/index.js';
+
 // Notifications (알림 센터)
 export { NotificationCenterCanvas } from './notifications/index.js';
 

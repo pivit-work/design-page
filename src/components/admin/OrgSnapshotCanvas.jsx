@@ -1783,6 +1783,8 @@ function HistoryChangesTable({ changes, labels }) {
 
 function AppointmentHistoryView({
   records, error, labels, onExport, onCancelScheduled,
+  /* 상세 «승인» 블록의 버튼(다시 알림 · 승인 없이 확정) — `(record, key) => void` (PW-2597). 읽기 전용 서브탭은 넘기지 않는다 */
+  onApprovalAction,
   structureRevisions, structureRevisionsError, onLoadStructureRevision,
   /* 구성원 설정 › 발령 이력 탭의 머리 줄 [대량 발령] (PW-2034). 넘기면 제목·버튼 머리 줄이 생긴다.
      조직 스냅샷의 발령 이력은 읽기만 해서 넘기지 않는다 */
@@ -1804,6 +1806,8 @@ function AppointmentHistoryView({
   /** 구조 개정 상세 — `{ version, status: 'loading'|'ready'|'error', changes, error }` */
   const [revision, setRevision] = useState(null);
 
+  /** 승인 필터 칩 — 승인 대기 건만 보기(PW-2597) */
+  const [approvalOnly, setApprovalOnly] = useState(false);
   /** 기간 — 발령일 시작·끝 (YYYY-MM-DD, 빈 값은 열린 끝) (§4 필터) */
   const [periodFrom, setPeriodFrom] = useState('');
   const [periodTo, setPeriodTo] = useState('');
@@ -1826,8 +1830,14 @@ function AppointmentHistoryView({
       (!periodTo || (row.date ?? '') <= periodTo) &&
       // 묶음은 한 사람이라도 맞으면 남기고 «전체 N명»은 그대로 둔다 — 걸러 낸 수로 바꾸면
       // 그 발령이 몇 명짜리였는지가 거짓이 된다.
-      (row.members ? row.members.some(hit) : hit(row)));
-  }, [rows, searchQuery, typeFilter, periodFrom, periodTo]);
+      (row.members ? row.members.some(hit) : hit(row)) &&
+      // 승인 필터 칩 «승인 대기 N»(PW-2597 · 정책 §3) — 승인 대기 · 승인자 없음 건만
+      (!approvalOnly || !!row.approvalPending));
+  }, [rows, searchQuery, typeFilter, periodFrom, periodTo, approvalOnly]);
+  const approvalPendingCount = useMemo(
+    () => rows.filter((r) => r.approvalPending).length,
+    [rows],
+  );
 
   // 구조 개정 필터를 배선하지 않은 호스트는 종전처럼 발령만 본다.
   const revisionsWired = Array.isArray(structureRevisions) || !!structureRevisionsError;
@@ -1954,6 +1964,29 @@ function AppointmentHistoryView({
               <button type="button" className="admin-snap-export-btn" onClick={() => onExport?.()}>↓ {labels.export}</button>
             )}
           </div>
+          {/* 승인 필터 칩(PW-2597 · 정책 §3) — 승인 대기 건이 1건 이상일 때만. 0건이면 줄째 그리지 않는다 */}
+          {approvalPendingCount > 0 && !showRevisions && (
+            <div className="admin-snap-approval-chips" data-testid="snap-hist-approval-chips">
+              <button
+                type="button"
+                className={`admin-snap-approval-chip${approvalOnly ? '' : ' is-active'}`}
+                aria-pressed={!approvalOnly}
+                onClick={() => { setApprovalOnly(false); setSelected(null); }}
+                data-testid="snap-hist-approval-all"
+              >
+                {labels.historyApprovalAll ?? '전체'}
+              </button>
+              <button
+                type="button"
+                className={`admin-snap-approval-chip${approvalOnly ? ' is-active' : ''}`}
+                aria-pressed={approvalOnly}
+                onClick={() => { setApprovalOnly(true); setSelected(null); }}
+                data-testid="snap-hist-approval-only"
+              >
+                {String(labels.historyApprovalPending ?? '승인 대기 {n}').replace('{n}', String(approvalPendingCount))}
+              </button>
+            </div>
+          )}
           {cancelError && (
             <div className="admin-snap-warnbox" role="alert">{cancelError}</div>
           )}
@@ -1994,6 +2027,15 @@ function AppointmentHistoryView({
                       {rec.scheduled && (
                         <StatusBadge className="admin-snap-type-badge is-gray admin-snap-sched-badge">{labels.historyScheduled}</StatusBadge>
                       )}
+                      {/* 조직 변경 승인(PW-2597 · 정책 §3) — «승인 대기» · «승인자 없음»(앰버). 앱이 글과 톤을 넘긴다. */}
+                      {rec.approvalBadge && (
+                        <StatusBadge
+                          className={`admin-snap-type-badge is-${rec.approvalBadge.tone === 'amber' ? 'amber' : 'gray'} admin-snap-sched-badge`}
+                          data-testid={`snap-hist-approval-${rec.id}`}
+                        >
+                          {rec.approvalBadge.text}
+                        </StatusBadge>
+                      )}
                       {rec.correctionCancelled && (
                         <StatusBadge
                           className="admin-snap-type-badge is-gray admin-snap-sched-badge"
@@ -2008,6 +2050,15 @@ function AppointmentHistoryView({
                       <StatusBadge className={`admin-snap-type-badge is-${TYPE_TONE[rec.typeKey] ?? 'gray'}`}>
                         {rec.typeKey ? (labels.typeLabels[rec.typeKey] ?? rec.typeKey) : '-'}
                       </StatusBadge>
+                      {/* 승인이 끝난 상태 — «거절» · «승인 없이 확정» · «취소»(회색 · 정책 §3) */}
+                      {rec.approvalOutcome && (
+                        <StatusBadge
+                          className="admin-snap-type-badge is-gray admin-snap-sched-badge"
+                          data-testid={`snap-hist-approval-outcome-${rec.id}`}
+                        >
+                          {rec.approvalOutcome}
+                        </StatusBadge>
+                      )}
                     </RosterTable.Cell>
                     <RosterTable.Cell className={`admin-snap-hist-mode${rec.mode === 'bulk' ? ' is-bulk' : ''}`}>
                       {modeLabel(rec.mode)}
@@ -2027,7 +2078,7 @@ function AppointmentHistoryView({
                           <span className="admin-snap-hist-detaillink">{'\u00a0·\u00a0'}</span>
                         </>
                       )}
-                      {rec.scheduled && !rec.reservation && !rec.members && onCancelScheduled && (
+                      {(rec.scheduled || rec.approvalPending) && !rec.reservation && !rec.members && onCancelScheduled && (
                         <>
                           <button
                             type="button"
@@ -2105,6 +2156,38 @@ function AppointmentHistoryView({
                   <div className="admin-snap-hist-reason-label">{labels.historyReason}</div>
                   <div className="admin-snap-hist-reason">{selected.reason}</div>
                 </>
+              )}
+              {/* 상세 «승인» 블록(PW-2597 · 정책 §3) — 승인자마다 한 줄 · 요청 · 마지막 알림 · 처리. 글은 앱이 짓는다.
+                  버튼(다시 알림 · 승인 없이 확정)은 앱이 넘긴 것만 — 조직 스냅샷 서브탭(읽기 전용)은 넘기지 않는다. */}
+              {selected.approvalBlock && (
+                <div data-testid="snap-hist-approval-block">
+                  <div className="admin-snap-hist-reason-label">{selected.approvalBlock.title}</div>
+                  <div className="admin-snap-hist-reason">
+                    {selected.approvalBlock.lines.map((line) => (
+                      <div key={line}>{line}</div>
+                    ))}
+                  </div>
+                  {selected.approvalBlock.hint && (
+                    <div className="admin-snap-hist-processed">{selected.approvalBlock.hint}</div>
+                  )}
+                  {onApprovalAction && (selected.approvalBlock.actions ?? []).length > 0 && (
+                    <div className="admin-snap-approval-actions">
+                      {selected.approvalBlock.actions.map((a) => (
+                        <Button
+                          key={a.key}
+                          variant="secondary"
+                          size="sm"
+                          disabled={a.disabled}
+                          title={a.title}
+                          onClick={() => onApprovalAction(selected, a.key)}
+                          data-testid={`snap-hist-approval-${a.key}`}
+                        >
+                          {a.label}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
               {/* «퇴직» 상세: 퇴사 유형 한 줄 + 세부 사유는 구성원 상세에서 — 앱이 `offboardTypeLabel` 을 실어 줄 때만
                   (p003 어드민). 위 «사유»에는 퇴사 사유를 싣지 않는다 (pivit-work PW-1693 · org-snapshot-spec §4) */}
