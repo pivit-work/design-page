@@ -418,7 +418,9 @@ export default function BillingOverviewCanvas({
   onCancelRefund,
   /**
    * 고객지원으로 받은 청약철회 요청이 고객의 답을 기다린다 (pivit-work PW-2532).
-   * `{ receivedAt, requesterName, confirmBy, amount, paidTotal }` — 표시용 글자는 앱이 만들어 넘긴다.
+   * `{ receivedAt, requesterName, confirmBy, amount, paidTotal, ended? }` — 표시용 글자는 앱이 만들어 넘긴다.
+   * `ended` = 확정 기한보다 해지일이 먼저 와 구독이 이미 끝났다 — Free 화면에도 띠를 그린다(pivit-work PW-2532 ·
+   * cancellation-refund-policy §4.2 2026-11-07 덧붙임).
    */
   coolingOffRequest = null,
   /** [확정] — 약속을 돌려준다. 거부하면 창을 연 채 둔다. */
@@ -582,7 +584,8 @@ export default function BillingOverviewCanvas({
   // 같이 다룬다: [업그레이드]·[좌석·플랜 변경]·[구독 해지]·정가 인상 안내 띠를 그리지 않는다. 업그레이드 철회와 같은 자리다.
   const refundOpen = cancelRefund && (sub.status === 'active' || sub.status === 'past_due') ? cancelRefund : null;
   const holding = Boolean(withdrawal || refundOpen);
-  const coolingOff = coolingOffRequest && sub.status === 'active' && sub.cancelAtPeriodEnd && !refundOpen ? coolingOffRequest : null;
+  const coolingOff = coolingOffRequest && !refundOpen &&
+    ((sub.status === 'active' && sub.cancelAtPeriodEnd) || coolingOffRequest.ended) ? coolingOffRequest : null;
   // Free 요금제는 상태가 «이용 중»으로 와도 청구가 없다 — 다음 청구·결제수단 칸, 해지·좌석 변경을 그리지 않는다
   // (기획 시안의 Free 는 그 칸들이 없다 · overview §2 «다음 청구일» 행 Free 제외 · pivit-work PW-2476).
   const isFree = sub.planCode === 'free';
@@ -766,7 +769,8 @@ export default function BillingOverviewCanvas({
               <div style={{ fontWeight: 800, color: T.amber, marginBottom: 4 }}>{labels.cancelReservedTitle}</div>
               <div style={{ fontSize: 13, color: T.text }}>{labels.cancelReservedDesc(sub.nextBillingAt)}</div>
             </div>
-            <Btn kind="secondary" onClick={onUndoCancel} disabled={!canEdit}>{labels.undoCancel}</Btn>
+            {/* 고객지원 철회로 차액을 돌려받는 동안은 [해지 취소]가 없고 돌아간 뒤에 보인다(pivit-work PW-2532 · 시안 billing-app.jsx «!withdrawOpen»). */}
+            {!withdrawal && <Btn kind="secondary" onClick={onUndoCancel} disabled={!canEdit}>{labels.undoCancel}</Btn>}
           </Card>
         )}
 
