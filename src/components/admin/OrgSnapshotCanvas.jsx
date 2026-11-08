@@ -234,6 +234,8 @@ const DEFAULT_LABELS = {
   /* 구성원 설정 › 발령 이력 탭 (PW-2034 · screen-admin-employees-appointments.policy §발령 이력 탭) */
   historyTitle: '발령 이력',
   openBulk: '대량 발령',
+  // 공지 게시판으로 옮겨 «발령 고르기» 창을 연다(pivit-work PW-2598 · spec-notice-board §10-1). 호스트가 onMakeNotice 를 넘길 때만.
+  makeNotice: '발령 공지 만들기',
   bulkTitle: '인사 발령 — 대량',
   backToHistory: '발령 이력',
   /* 조직 스냅샷 › 발령 이력은 읽기만 한다 — 발령을 내는 곳으로 보내는 한 줄 */
@@ -1796,6 +1798,8 @@ function AppointmentHistoryView({
   /* 구성원 설정 › 발령 이력 탭의 머리 줄 [대량 발령] (PW-2034). 넘기면 제목·버튼 머리 줄이 생긴다.
      조직 스냅샷의 발령 이력은 읽기만 해서 넘기지 않는다 */
   onOpenBulk,
+  /** 머리 줄 [발령 공지 만들기] — 넘길 때만 그린다(pivit-work PW-2598). */
+  onMakeNotice,
   /* 예약 개편 줄(`rec.reservation`)의 «조직단위 설정에서 취소 →» (PW-2349). 조직단위 설정을 열 수 있는 사람(p011)에게만
      넘긴다 — 안 넘기면 그 줄에는 «상세 ▸» 만 남는다(매니저). 예약 개편 줄에는 «발효 전 취소»를 그리지 않는다 — 개편은 묶음이라
      한 줄만 취소하면 «조직은 옮기는데 사람은 남는» 개편이 된다(편집기 정책 §4-8 R10). 구성원 설정 탭·조직 스냅샷 서브탭 둘 다 같다 */
@@ -1869,6 +1873,11 @@ function AppointmentHistoryView({
       </div>
       <div className="admin-snap-header-side">
         <div className="admin-snap-header-actions">
+          {onMakeNotice && (
+            <Button variant="secondary" size="sm" onClick={() => onMakeNotice()} data-testid="snap-hist-make-notice">
+              {labels.makeNotice}
+            </Button>
+          )}
           <Button variant="primary" size="sm" onClick={() => onOpenBulk()} data-testid="snap-hist-open-bulk">
             {labels.openBulk}
           </Button>
