@@ -143,6 +143,8 @@ export default function OneOnOneCanvasV2({
   teamEmpty,
   scheduleDefaultDate,
   scheduleStartNow,
+  /** 예약 모달 «지난 시각» 판정 (pivit-work PW-2516). 그대로 AddOneOnOneModal 의 `isPastStart` 로 넘긴다 — 안 넘기면 브라우저 시각. */
+  scheduleIsPastStart,
   onStartMember,
   // 사원 카드 본문 클릭 핸들러. 지정 시 내부 상세 모달 대신 호스트에 위임.
   // 호스트가 멤버에 `clickable: false` 를 달면 그 카드만 안 눌린다(hover 그림자도 없음) —
@@ -313,6 +315,7 @@ export default function OneOnOneCanvasV2({
             locale={locale}
             labels={scheduleLabels}
             startNow={scheduleStartNow}
+            isPastStart={scheduleIsPastStart}
           />
 
           {/* 멤버 카드 "1on1 잡기"·"바로 시작" → 멤버 고정 예약 모달 */}
@@ -332,6 +335,7 @@ export default function OneOnOneCanvasV2({
             locale={locale}
             labels={scheduleLabels}
             startNow={scheduleStartNow}
+            isPastStart={scheduleIsPastStart}
           />
 
           {briefing && (

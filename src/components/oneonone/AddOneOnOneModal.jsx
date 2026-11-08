@@ -3,7 +3,7 @@ import StatusBadge from '../shared/StatusBadge.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import useDismissLayer from '../shared/useDismissLayer.js';
 import Icon from '../shared/Icon.jsx';
-import FormField from '../shared/FormField.jsx';
+import FormField, { FieldError } from '../shared/FormField.jsx';
 import TextInput from '../shared/TextInput.jsx';
 import TextArea from '../shared/TextArea.jsx';
 import Radio from '../shared/Radio.jsx';
@@ -66,6 +66,15 @@ import { fill } from './sessionHelpers.js';
  *   시각은 싣지 않는다 — 서버가 자기 지금으로 잡는다(호스트 몫).
  *   - initialWhen: «언제»의 처음 값. 카드 [바로 시작]이 'now' 로 연다 (PW-2593). `startNow` 가 없으면 무시한다.
  *
+ * isPastStart(date, time24): 고른 날짜(로컬 달력일 그릇)와 시각이 «지금보다 앞»인지 (pivit-work PW-2516).
+ *   앞이면 [예약완료]가 꺼지고 날짜·시간 칸 바로 아래 `labels.pastTime` 한 줄이 뜬다. 지난 시각을
+ *   목록에서 빼거나 흐리게 하지 않고, 골라 둔 시각을 저절로 바꾸지도 않는다 — 막힌 이유는 문구가 말한다.
+ *   🔴 «지금»은 예약하는 사람의 시간대로 재야 하므로 호스트가 넘긴다(브라우저 시간대와 다를 수 있다).
+ *   안 넘기면 브라우저 로컬 시각으로 잰다. 누를 때 한 번 더 재므로, 창을 열어 둔 사이 시각이 지나도 저장되지 않는다.
+ *   «지금 바로»는 서버가 시각을 잡으므로 재지 않는다.
+ * keepPrefilledPast: 채워 연 날짜·시각(defaultDate·defaultTime)을 그대로 두면 지난 시각이어도 막지 않는다 —
+ *   «일정 변경»에서 시작 시각이 이미 지난 회차의 길이·메모만 고칠 때다. 날짜나 시각 하나라도 바꾸면 위 판정이 걸린다.
+ *
  * 창은 공용 창 틀(ModalShell)로 그린다 (PW-836). 닫혀 있는 동안에는 틀을 그리지 않지만,
  * 입력 상태는 이 컴포넌트가 들고 있어 종전처럼 열고 닫아도 남는다(새로 잡으려면 `key`).
  * Esc·막 클릭·닫기 X 는 틀이 onClose 로 부른다. 막의 data-testid 는 `ono-add-modal-overlay`,
@@ -99,6 +108,8 @@ export const DEFAULT_LABELS = {
   delete: '이 1on1 없애기',
   /* 저장이 거부됐는데 사유 문구가 없을 때 창 안에 보이는 한 줄 (PW-987). */
   submitFailed: '저장하지 못했습니다. 잠시 후 다시 시도해 주세요.',
+  /* 고른 날짜·시각이 지금보다 앞일 때 날짜·시간 칸 아래 한 줄 (pivit-work PW-2516). */
+  pastTime: '지난 시간은 선택할 수 없습니다',
   /* «언제» 줄과 «지금 바로» 갈래 (PW-2592). `startNow` 를 준 창에서만 보인다. */
   when: '언제',
   whenNow: '지금 바로',
@@ -168,14 +179,19 @@ function tomorrowKey(now = new Date()) {
    🔴 오전·오후를 붙이지 않는다 (PW-867). 예전 한국어 표기 «오후 13:00» 은 오전·오후와
    24시간 숫자를 함께 써서 한 목록에 두 표기가 섞였고, 영어만 «1:00 PM» 이었다.
    예약이 잡힌 뒤 1on1 카드·일정표가 보여 주는 시각은 언어와 무관하게 «13:00» 이라
-   고르는 자리도 그쪽에 맞춘다(TimeInput·evalScheduleStamp 와 같은 24시간 규약). */
-export const TIME_SLOTS = [
-  '09:00', '09:30', '10:00', '10:30',
-  '11:00', '11:30', '12:00', '12:30',
-  '13:00', '13:30', '14:00', '14:30',
-  '15:00', '15:30', '16:00', '16:30',
-  '17:00', '17:30', '18:00',
-];
+   고르는 자리도 그쪽에 맞춘다(TimeInput·evalScheduleStamp 와 같은 24시간 규약).
+
+   하루 전체 00:00~23:30 의 30분 단위 48개다 (pivit-work PW-2516). 근무 시간은 회사·사람마다 달라
+   09:00~18:00 으로 자르지 않는다. */
+export const TIME_SLOTS = Array.from({ length: 48 }, (_, i) =>
+  `${String(Math.floor(i / 2)).padStart(2, '0')}:${i % 2 ? '30' : '00'}`);
+
+/** 브라우저 로컬 시각 기준 «지난 시각» — 호스트가 `isPastStart` 를 안 넘겼을 때만 쓴다. */
+function isPastLocal(date, time24) {
+  const [h, m] = String(time24).split(':').map(Number);
+  const at = new Date(date.getFullYear(), date.getMonth(), date.getDate(), h, m);
+  return at.getTime() < Date.now();
+}
 
 /**
  * 'HH:MM'(24h) → 화면에 보일 글자. 언어와 무관하게 24시간 그대로다 (PW-867).
@@ -201,7 +217,7 @@ function weekdayLabels(locale) {
 // 상세(열람모드) 모달도 같은 시간 옵션·데이트피커를 쓴다 — export 해 공유.
 export const TIME_OPTIONS = TIME_SLOTS.map((slot) => formatTime(slot));
 
-export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, member, icons, baseUrl = '', members, defaultDate, defaultTime, locale = 'ko', labels, startNow, initialWhen = 'later' }) {
+export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, member, icons, baseUrl = '', members, defaultDate, defaultTime, locale = 'ko', labels, startNow, initialWhen = 'later', isPastStart = isPastLocal, keepPrefilledPast = false }) {
   const L = { ...DEFAULT_LABELS, ...(labels || {}) };
   const memberList = useMemo(
     () => (Array.isArray(members) ? members : DEMO_MEMBERS).map(toMemberOption),
@@ -230,6 +246,11 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
      보여 주고 고치게** 하는 자리에서 쓴다(PW-825). 안 주면 종전대로 10:00 이다. */
   const [time, setTime] = useState(defaultTime || '10:00');
   const [timeOpen, setTimeOpen] = useState(false);
+  /* 시각 목록을 펼치면 골라 둔 줄이 보이게 내린다 — 48줄이라 맨 위(00:00)만 보이면 고른 값이 안 보인다. */
+  const selectedTimeRef = useRef(null);
+  useEffect(() => {
+    if (timeOpen) selectedTimeRef.current?.scrollIntoView?.({ block: 'nearest' });
+  }, [timeOpen]);
   const [memo, setMemo] = useState('');
   /* 저장 중 잠금과 실패 사유 (PW-987) — 실패해도 위 입력값은 건드리지 않는다. */
   const [saving, setSaving] = useState(false);
@@ -252,6 +273,13 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
   const startable = !!upcoming?.startable;
   const upcomingAction = !upcoming ? null : startable ? 'start' : upcomingChoice;
   const nowMinutes = duration === 'custom' ? (customDuration.match(/\d+/)?.[0] ?? '') : duration;
+  /* 지난 시각 (PW-2516) — 채워 연 값을 그대로 둔 «일정 변경»은 재지 않는다. 렌더 때 재고, 누를 때 한 번 더 잰다. */
+  const prefilledKept = keepPrefilledPast && dayKey(date) === (defaultKey || tomorrowKey()) && time === (defaultTime || '10:00');
+  const checkPast = () => !isNow && !prefilledKept && !!isPastStart(date, time);
+  /* 누를 때 지난 것으로 잰 값 — 날짜·시각을 바꾸면 그 값이 아니게 되어 다시 렌더 때 판정으로 돌아간다. */
+  const pickedKey = `${dayKey(date)} ${time}`;
+  const [pastAtClickKey, setPastAtClickKey] = useState(null);
+  const isPast = checkPast() || (!isNow && pastAtClickKey === pickedKey);
   const submitLabel = !isNow
     ? L.submit
     : startable
@@ -262,6 +290,10 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
 
   const submit = async () => {
     if (saving || !canSubmit) return;
+    if (checkPast()) {
+      setPastAtClickKey(pickedKey);
+      return;
+    }
     setSubmitError('');
     setSaving(true);
     try {
@@ -337,7 +369,7 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
             className="tl-group-modal-btn tl-group-modal-btn-primary"
             data-testid="ono-add-modal-submit"
             onClick={() => void submit()}
-            disabled={!canSubmit || saving}
+            disabled={!canSubmit || saving || isPast}
           >
             {submitLabel}
           </button>
@@ -495,6 +527,7 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
 
         {/* 날짜 + 시간 — «지금 바로»면 서버가 시각을 정하므로 뺀다 (PW-2592). */}
         {!isNow && (
+        <div>
         <div className="ono-add-modal-row">
           {/* 날짜 */}
           <Field label={L.date}>
@@ -533,6 +566,7 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
                   {TIME_SLOTS.map((slot) => (
                     <button
                       key={slot}
+                      ref={slot === time ? selectedTimeRef : undefined}
                       type="button"
                       className={`ono-add-modal-menu-item ${slot === time ? 'is-selected' : ''}`}
                       onClick={() => { setTime(slot); setTimeOpen(false); }}
@@ -544,6 +578,11 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
               )}
             </div>
           </Field>
+        </div>
+        {/* 지난 시각 (PW-2516) — 두 칸 «바로 아래» 공용 칸 오류 한 줄. 줄 사이 간격(3xl) 밖에 두려고 두 칸과 함께 묶는다. */}
+        {isPast && (
+          <FieldError id="ono-add-modal-past" data-testid="ono-add-modal-past">{L.pastTime}</FieldError>
+        )}
         </div>
         )}
 
