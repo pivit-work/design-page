@@ -175,7 +175,8 @@ export default function SquadFormCard({
               id={`squad-group-${form.id || 'new'}`}
               className={`sq-field${errors.groupId ? ' is-invalid' : ''}`}
               data-testid="squad-form-group"
-              value={form.groupId || ''}
+              // 고른 묶음이 그 사이 지워졌으면(엣지 94) «미분류»로 보인다 — 저장도 미분류로 간다
+              value={groupOptions.some((g) => g.id === form.groupId) ? form.groupId : ''}
               onChange={(e) => setForm((f) => ({ ...f, groupId: e.target.value || null }))}
             >
               <option value="">{L('squad.struct.ungrouped')}</option>

@@ -176,7 +176,7 @@ export default function SquadGroupPanel({
             onPick={(id) => setEdit((x) => ({ ...x, headUserId: id }))}
             labels={{
               clear: L('squad.groups.headClear'),
-              search: L('squad.form.leadSearch'),
+              search: L('squad.groups.headSearch', { level: lv(edit.level) }),
               searchPlaceholder: L('squad.form.leadSearchPlaceholder'),
               none: L('squad.form.leadNoResults'),
               pick: L('squad.groups.headPick'),

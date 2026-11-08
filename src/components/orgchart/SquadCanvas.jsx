@@ -734,7 +734,9 @@ export default function SquadCanvas({
       startDate: f.startDate,
       endDate: f.endDate || null,
       // 소속 묶음 — 층이 있을 때만 보낸다(없으면 서버가 그대로 둔다 · §7-2·§7-3)
-      ...(groupLevelNames.length ? { groupId: f.groupId || null } : {}),
+      ...(groupLevelNames.length
+        ? { groupId: squadGroups.some((g) => g.level === 0 && g.id === f.groupId) ? f.groupId : null }
+        : {}),
     };
 
     // status 는 어느 경로로도 보내지 않는다 — 전이 규칙 우회 차단(§7)

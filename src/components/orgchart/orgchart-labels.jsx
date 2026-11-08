@@ -376,6 +376,7 @@ export const ORGCHART_LABELS = {
   'squad.groups.parent': '위 {{level}}',
   'squad.groups.head': '{{level}} 헤드',
   'squad.groups.headPick': '헤드 고르기',
+  'squad.groups.headSearch': '{{level}} 헤드 검색',
   'squad.groups.headClear': '헤드 지우기',
   'squad.groups.headNote': '헤드는 그림 보기의 묶음 머리에 적힐 뿐, 그 묶음 스쿼드를 고칠 권한은 생기지 않습니다',
   'squad.groups.headLine': '{{level}} 헤드 {{name}}',
