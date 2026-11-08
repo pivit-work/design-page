@@ -573,10 +573,15 @@ const DEFAULT_MODES = ['direct', 'csv'];
  * 전건 실패 처리 (§8) — `onSend` 가 던진 값의 `code` 를 본다(앱이 서버 사유 코드를 싣는다).
  *  · `FORBIDDEN`(403) — 권한이 사라졌다. 창을 닫는다(어디로 보낼지는 앱이 정한다)
  *  · `SEAT_LIMIT_EXCEEDED`(402) — 행을 그대로 두고 좌석 부족 빨간 배너
+ *  · `notified: true` — 앱이 이미 사유를 알렸다(이용 정지·요금제 잠금 토스트). 행을 그대로 두고 배너를 띄우지 않는다 —
+ *    「잠시 후 다시 시도」는 결제 전에는 풀리지 않는 거절에 맞지 않고, 같은 사유를 두 번 말하게 된다
  *  · 그 밖(네트워크 끊김·시간 초과 포함) — 행을 그대로 두고 「보내지 못했어요」
  */
 function sendFailureClosesModal(e) {
   return Boolean(e) && typeof e === 'object' && e.code === 'FORBIDDEN';
+}
+function sendFailureNotified(e) {
+  return Boolean(e) && typeof e === 'object' && e.notified === true;
 }
 /* 실패가 전부 좌석 부족이면 좌석 배너로 말한다(§8 `SEAT_LIMIT_EXCEEDED` — 행 유지 + 빨간 배너).
    「N건 실패 — 사유를 확인하세요」로는 무엇을 해야 하는지(플랜 변경)가 안 보인다. */
@@ -586,6 +591,7 @@ function partialFailBanner(failed, labels) {
     : fmt(labels.partialFail, { n: failed.length });
 }
 function sendFailureBanner(e, labels) {
+  if (sendFailureNotified(e)) return '';
   const code = e && typeof e === 'object' ? e.code : undefined;
   return code === 'SEAT_LIMIT_EXCEEDED' ? labels.seatNone : labels.sendError;
 }
