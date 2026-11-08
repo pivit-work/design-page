@@ -1,4 +1,5 @@
 import { LEVEL_COLORS } from './constants.js';
+import { FoldToggleGlyph } from '../shared/lineIcons.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import { useOrgLabels } from './orgchart-labels.jsx';
 
@@ -44,9 +45,7 @@ export default function DeptCard({ node, onMouseDown, onClick, isDragging, isCol
           onClick={(e) => { e.stopPropagation(); onToggle?.(); }}
         >
           {/* 17px 는 Figma 아이콘 프레임 크기 — 실제 글리프는 12px 로 그려야 시안 비율. */}
-          <svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <path d="M2.5 7.5 6 4l3.5 3.5" />
-          </svg>
+          <FoldToggleGlyph />
         </button>
       )}
     </div>

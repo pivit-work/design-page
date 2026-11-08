@@ -22,7 +22,7 @@ import Button from '../shared/Button.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
-import { ContractVerticalGlyph, ExpandVerticalGlyph, MinusGlyph, PlusGlyph } from '../shared/lineIcons.jsx';
+import { ContractVerticalGlyph, ExpandVerticalGlyph, FoldToggleGlyph, MinusGlyph, PlusGlyph } from '../shared/lineIcons.jsx';
 import { squadStatusText, useOrgLabels } from './orgchart-labels.jsx';
 import { LeadStarIcon } from './squadIcons.jsx';
 import { squadStatusMeta } from './squad-constants.js';
@@ -152,9 +152,7 @@ export default function SquadStructureView({
       onMouseDown={(e) => e.stopPropagation()}
       onClick={guard(() => toggleFold(n.key))}
     >
-      <svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-        <path d="M2.5 7.5 6 4l3.5 3.5" />
-      </svg>
+      <FoldToggleGlyph />
     </button>
   );
 

@@ -29,6 +29,9 @@ import { useOrgLabels } from './orgchart-labels.jsx';
 import { isEnterKey } from '../shared/enterKey.js';
 
 const byKo = (a, b) => a.name.localeCompare(b.name, 'ko');
+/** 칸 글자 수 — 서버 정본 `INPUT_LIMITS.squadGroup`(pivit-work)과 같다. 앱의 대조 테스트가 이 줄을 읽는다 */
+const LEVEL_NAME_MAX = 10;
+const GROUP_NAME_MAX = 30;
 
 /** 층 수를 바꿀 때 보낼 층 이름 — 늘리면 새 층은 위에 기본 이름으로, 줄이면 위 층부터 없앤다(§5-6-A «층 늘리기 · 층 줄이기»). */
 function nextLevelNames(current, to, defaults) {
@@ -143,7 +146,7 @@ export default function SquadGroupPanel({
         <div className="sq-form-field">
           <div className="sq-field-label">{L('squad.groups.name', { level: lv(edit.level) })}</div>
           <input
-            autoFocus value={edit.name} maxLength={30}
+            autoFocus value={edit.name} maxLength={GROUP_NAME_MAX}
             aria-label={L('squad.groups.name', { level: lv(edit.level) })}
             data-testid="squad-group-name"
             className={`sq-field${editErr.name ? ' is-invalid' : ''}`}
@@ -253,7 +256,7 @@ export default function SquadGroupPanel({
             <div className="sq-group-level-head">
               <span className="sq-field-label">{levelTag(i)}</span>
               <input
-                value={names[i] || ''} maxLength={10}
+                value={names[i] || ''} maxLength={LEVEL_NAME_MAX}
                 aria-label={L('squad.groups.levelName', { tag: levelTag(i) })}
                 data-testid={`squad-group-level-name-${i}`}
                 className={`sq-field sq-group-level-input${nameErr[i] ? ' is-invalid' : ''}`}

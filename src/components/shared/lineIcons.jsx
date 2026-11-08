@@ -769,3 +769,15 @@ export function PlayGlyph({ size = 14 }) {
     </svg>
   );
 }
+
+/**
+ * 조직도 노드 아래 «하위 접기» 단추의 화살표(12px 상자 · 접히면 단추 CSS 가 뒤집는다). Figma 아이콘 프레임 17px 안에 12px 로 그린다.
+ * 조직도 부서 카드(DeptCard)와 스쿼드 구조 트리(SquadStructureView)가 같은 그림을 쓴다 — 두 곳에 따로 그리지 않는다(PW-1011).
+ */
+export function FoldToggleGlyph() {
+  return (
+    <svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M2.5 7.5 6 4l3.5 3.5" />
+    </svg>
+  );
+}
