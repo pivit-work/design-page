@@ -47,7 +47,7 @@ export default function OrgChangeApprovalCanvas({
 
   if (state === 'loading') {
     return (
-      <main className="tl-page oca-page" data-testid="oca-page">
+      <main className="tl-page" data-testid="oca-page">
         {header}
         <div className="oca-body" data-testid="oca-loading">
           <SkeletonList count={2} height={88} gap={8} />
@@ -57,7 +57,7 @@ export default function OrgChangeApprovalCanvas({
   }
   if (state === 'error') {
     return (
-      <main className="tl-page oca-page" data-testid="oca-page">
+      <main className="tl-page" data-testid="oca-page">
         {header}
         <div className="oca-body">
           <EmptyState
@@ -74,7 +74,7 @@ export default function OrgChangeApprovalCanvas({
   }
   const nothing = pending.length === 0 && done.length === 0;
   return (
-    <main className="tl-page oca-page" data-testid="oca-page">
+    <main className="tl-page" data-testid="oca-page">
       {header}
       <div className="oca-body">
         {notMine && (
