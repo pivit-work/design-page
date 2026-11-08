@@ -212,6 +212,16 @@ const DEFAULT_LABELS = {
     managerCeoExcluded: '대표 {count}명은 상급자를 가질 수 없어 제외됩니다',
     managerAllCeo: '고른 사람이 대표뿐이라 배정할 대상이 없습니다',
     statusChange: '상태 일괄 변경',
+    /* 「상태 일괄 변경 → 휴직」 창 (pivit-work PW-2520 · admin-spec §3.1 «상태 일괄 변경 → 휴직»).
+       `{count}` 는 건너뛰는 사람을 뺀 수, 건너뛰는 줄은 0 인 항목을 뺀 조각을 « · »로 잇는다. */
+    leaveTitle: '{count}명을 휴직으로 바꿉니다',
+    leaveSkipOnLeave: '이미 휴직 중인 {count}명',
+    leaveSkipResigned: '퇴사자 {count}명',
+    leaveSkipScheduled: '휴직 예정 {count}명',
+    leaveSkipSuffix: '{list}은 건너뜁니다',
+    leaveApply: '휴직으로 바꾸기',
+    leaveEndBeforeStart: '휴직 종료일은 시작일보다 앞설 수 없습니다',
+    leaveFutureHint: '{date}에 휴직으로 바뀌어요. 그때까지 발령 이력에 예정으로 보이고, 발효 전에는 취소할 수 있어요',
     /* 「여러 칸 한 번에 고치기」 (PW-901). 스프레드시트 뷰가 폐기되며(PW-576) 함께
        사라졌던 «여러 사람의 여러 항목을 한 번에» 가 이 항목으로 돌아왔다 — 2026-09-02
        회의가 없애기로 한 것은 겹치는 «보여 주는 방식» 이었지 이 기능이 아니었다
@@ -367,6 +377,21 @@ const DEFAULT_LABELS = {
     resignedAtHint: '재직 중이면 비워 두거나 퇴사 예정일·계약 종료일을 넣습니다. 넣어도 바로 퇴사로 바뀌지 않고, 퇴사일이 지나면 바뀝니다.',
     resignedAtRequired: '퇴사 상태에서는 퇴사일을 넣어야 저장할 수 있습니다.',
     leaveStartRequired: '휴직 상태에서는 휴직 시작일을 넣어야 저장할 수 있습니다.',
+    /* 휴직 사유 (pivit-work PW-2520 · admin-spec §3.2.1 «휴직 사유» 6종) — 휴가 메뉴가 켜진 회사는 필수다. */
+    leaveReason: '휴직 사유',
+    leaveReasonNone: '— 미지정 —',
+    leaveReasonRequired: '휴직 사유를 골라야 저장할 수 있습니다 — 연차 출근율 계산이 이 값을 씁니다',
+    leaveReasonOptional: '선택 입력입니다 — 휴가 애드온을 켜면 연차 출근율 계산이 이 값을 씁니다',
+    leaveReasonCounts: '연차 출근율 계산에서 이 휴직 기간을 출근한 것으로 봅니다',
+    leaveReasonExcludes: '연차 출근율 계산에서 이 휴직 기간을 소정근로일에서 뺍니다',
+    leaveReasons: {
+      childcare: '육아휴직',
+      family_care: '가족돌봄휴직',
+      work_injury: '업무상 부상·질병',
+      maternity: '출산전후휴가',
+      personal: '개인 사유',
+      other: '기타',
+    },
     resignedAtBeforeLastDay: '퇴사일은 마지막 출근일보다 빠를 수 없습니다. 날짜를 고쳐야 저장할 수 있습니다.',
     /* 퇴사 예약이 걸린 사람(PW-1081) — 날짜를 비우면 예약이 뜬다. 취소는 목록 메뉴에서만. */
     resignedAtScheduled: '퇴사 예약이 있어 퇴사일을 비울 수 없습니다. 예약을 취소하려면 목록의 ⋯ › 퇴사 예약 취소를 누르세요.',
@@ -2194,6 +2219,96 @@ function BulkStatusModal({ selectedRows, labels, onClose, onApply }) {
  *
  * 금액은 적지 않는다 — 청구액은 서버 재계산값만 쓴다(§3.7-B ④).
  */
+/**
+ * 「상태 일괄 변경 → 휴직」 창 (pivit-work PW-2520 · admin-spec §3.1 «상태 일괄 변경 → 휴직»).
+ *
+ * 휴직 시작일(필수 · 기본값 없음) · 종료일(선택) · 사유(휴가 메뉴가 켜진 회사는 필수)를 받는다. 세 값은 대상 모두에게 같게
+ * 들어가고 지난 휴직의 값을 덮는다. 누구를 건너뛰는지(이미 휴직 · 퇴사자 · 휴직 예정)는 부르는 쪽이 서버에 물어 `split` 으로
+ * 넘긴다 — 휴직 예정 발령은 목록 행에 없는 값이라 캔버스가 셀 수 없다. 시작일 기본값을 두지 않는 것은 «지난주부터 휴직»
+ * 같은 경우가 오늘로 그냥 지나가지 않게 하려는 것이다(§3.1 «시작일에 기본값을 두지 않는 이유»).
+ */
+function BulkLeaveModal({ split, labels, leaveAddon, today, onClose, onApply }) {
+  const L = labels.listBulk;
+  const P = labels.panel;
+  const [start, setStart] = useState('');
+  const [end, setEnd] = useState('');
+  const [reason, setReason] = useState('');
+  const [busy, setBusy] = useState(false);
+  const endBad = Boolean(start && end && end < start);
+  const disabled = busy || !start || endBad || (Boolean(leaveAddon) && !reason);
+  const skips = [
+    split.onLeave > 0 && fill(L.leaveSkipOnLeave, { count: split.onLeave }),
+    split.resigned > 0 && fill(L.leaveSkipResigned, { count: split.resigned }),
+    split.scheduled > 0 && fill(L.leaveSkipScheduled, { count: split.scheduled }),
+  ].filter(Boolean);
+  const future = Boolean(start && today && start > today);
+  async function submit() {
+    if (disabled) return;
+    setBusy(true);
+    try {
+      await onApply({ leaveStartDate: start, leaveEndDate: end || null, leaveOfAbsenceReason: reason || null });
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <BulkActionModal
+      testId="employees-list-bulk-leave-modal"
+      title={fill(L.leaveTitle, { count: split.targets })}
+      subtitle={skips.length > 0 ? fill(L.leaveSkipSuffix, { list: skips.join(' · ') }) : undefined}
+      onClose={onClose}
+      closeLabel={L.cancel}
+      footer={(
+        <>
+          <button type="button" className="tl-group-modal-btn tl-group-modal-btn-secondary" onClick={onClose}
+            data-testid="employees-list-bulk-leave-cancel">{L.cancel}</button>
+          <button
+            type="button"
+            className="tl-group-modal-btn tl-group-modal-btn-primary"
+            disabled={disabled}
+            data-testid="employees-list-bulk-leave-apply"
+            onClick={submit}
+          >
+            {L.leaveApply}
+          </button>
+        </>
+      )}
+    >
+      <div className="admin-emp-status-dates" data-testid="employees-list-bulk-leave-fields">
+        <FormField
+          className="admin-emp-field"
+          labelClassName="admin-emp-field-label"
+          label={P.leaveStart}
+          required
+          hint={future ? fill(L.leaveFutureHint, { date: start }) : undefined}
+        >
+          <DateInput className="admin-emp-input" data-testid="employees-list-bulk-leave-start"
+            value={start} onChange={setStart} />
+        </FormField>
+        <FormField
+          className="admin-emp-field"
+          labelClassName="admin-emp-field-label"
+          label={P.leaveEnd}
+          error={endBad ? L.leaveEndBeforeStart : undefined}
+          errorTestId="employees-list-bulk-leave-end-error"
+        >
+          <DateInput className="admin-emp-input" data-testid="employees-list-bulk-leave-end"
+            value={end} onChange={setEnd} />
+        </FormField>
+        <FormField
+          className="admin-emp-field"
+          labelClassName="admin-emp-field-label"
+          label={P.leaveReason}
+          required={Boolean(leaveAddon)}
+          hint={leaveReasonHint(reason, leaveAddon, P)}
+        >
+          <LeaveReasonSelect value={reason} onChange={setReason} L={P} testId="employees-list-bulk-leave-reason" />
+        </FormField>
+      </div>
+    </BulkActionModal>
+  );
+}
+
 function BulkDeactivateModal({ selectedRows, labels, onClose, onApply }) {
   const L = labels.listBulk;
   const seatDrop = seatsHeldBy(selectedRows);
@@ -3648,6 +3763,45 @@ const STATUS_DATE_FIELDS = {
  */
 const TERMINATION_DATE_FIELD = { field: 'terminationDate', label: 'resignedAt', via: 'member' };
 
+/**
+ * 휴직 사유 6종과 연차 출근율에서 쓰이는 쪽 (pivit-work PW-2520 · admin-spec §3.2.1 «휴직 사유» 표 · spec-leave §6-4).
+ * `count` = 출근한 것으로 본다 · `exclude` = 소정근로일에서 뺀다. 순서는 코어 값 순서다.
+ */
+const LEAVE_REASONS = [
+  { key: 'childcare', attend: 'count' },
+  { key: 'family_care', attend: 'exclude' },
+  { key: 'work_injury', attend: 'count' },
+  { key: 'maternity', attend: 'count' },
+  { key: 'personal', attend: 'exclude' },
+  { key: 'other', attend: 'exclude' },
+];
+
+/** 휴직 사유 칸 아래 한 줄 — 고르면 출근율 안내, 안 골랐으면 필수/선택 안내(§3.2.1 «필수 여부» · «고른 뒤 안내»). */
+function leaveReasonHint(reason, leaveAddon, L) {
+  const picked = LEAVE_REASONS.find((r) => r.key === reason);
+  if (picked) return picked.attend === 'count' ? L.leaveReasonCounts : L.leaveReasonExcludes;
+  return leaveAddon ? L.leaveReasonRequired : L.leaveReasonOptional;
+}
+
+/** 휴직 사유 고르기 — 구성원 창과 일괄 휴직 창이 같은 칸을 쓴다. */
+function LeaveReasonSelect({ value, onChange, disabled, L, testId }) {
+  return (
+    <Select
+      className="admin-emp-input"
+      value={value || ''}
+      disabled={disabled}
+      onChange={(e) => onChange(e.target.value)}
+      aria-label={L.leaveReason}
+      data-testid={testId}
+    >
+      <option value="">{L.leaveReasonNone}</option>
+      {LEAVE_REASONS.map((r) => (
+        <option key={r.key} value={r.key}>{L.leaveReasons?.[r.key] ?? r.key}</option>
+      ))}
+    </Select>
+  );
+}
+
 /** 날짜 앞 10자(`YYYY-MM-DD`)만 — 서버가 시각까지 붙여 보내도 날짜로 비교한다. */
 const ymdOf = (v) => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v) ? v.slice(0, 10) : '');
 
@@ -3672,6 +3826,8 @@ function terminationDateProblem(draft, savedLastWorkingDate, offboardingSchedule
 
 /** 신원 저장 경로가 들고 있는 날짜 칸 — 패널이 따로 불러와야 하는 값들. */
 const IDENTITY_DATE_FIELDS = ['probationEndDate', 'leaveStartDate', 'leaveEndDate'];
+/** 신원 저장 경로로 나가는 글자 칸 — 휴직 사유(pivit-work PW-2520). 날짜처럼 다듬지 않고 그대로 싣는다. */
+const IDENTITY_TEXT_FIELDS = ['leaveOfAbsenceReason'];
 
 /** 구성원 저장 patch 로 나가는 날짜 칸 — 비우면 `''` 이 아니라 `null` 이다. */
 const DATE_PATCH_FIELDS = new Set(['hireDate', 'terminationDate']);
@@ -4036,6 +4192,8 @@ function EmployeesEditPanel({
   gradeOptions, positionOptions, onClose, onSave, onChangeAffiliations,
   onLoadHrProfile, onSaveIdentity,
   today,
+  /* 휴가 메뉴(애드온)가 켜진 회사인가 — 휴직 사유가 필수가 된다(pivit-work PW-2520 · §3.2.1 «필수 여부»). */
+  leaveAddon,
   onLoadPersonalHistory,
   // 저장 방식 안내(PW-1350) — 캔버스 prop 주석 참조.
   instantSaveNotice, manualSaveNotice,
@@ -4234,6 +4392,7 @@ function EmployeesEditPanel({
         const src = profile?.identity || {};
         const loaded = {};
         for (const f of IDENTITY_DATE_FIELDS) loaded[f] = toDateInput(src[f]);
+        for (const f of IDENTITY_TEXT_FIELDS) loaded[f] = src[f] ?? '';
         setIdentity(loaded);
         setIdentityDraft(loaded);
         setIdentityState('ready');
@@ -4416,6 +4575,11 @@ function EmployeesEditPanel({
      이미 휴직인데 시작일이 빈 사람도 같다 — 다른 칸을 고쳐 저장하려면 날짜부터 넣는다. */
   const leaveStartMissing =
     dateFields.some((f) => f.field === 'leaveStartDate') && !ymdOf(identityDraft?.leaveStartDate);
+  /* 휴직 사유 (pivit-work PW-2520 · §3.2.1) — 휴직 날짜 칸과 같은 자리·같은 경로다. 휴가 메뉴가 켜진 회사는 필수라
+     비면 저장을 막는다 — 사유 없이 저장돼 있던 기존 휴직자도 같다(다른 칸을 고쳐 저장하려면 사유부터). */
+  const showLeaveReason = dateFields.some((f) => f.field === 'leaveStartDate');
+  const leaveReasonMissing =
+    showLeaveReason && Boolean(leaveAddon) && identityState === 'ready' && !identityDraft?.leaveOfAbsenceReason;
   /* 퇴사는 퇴사 처리 화면(목록 ⋯ › 비활성화)에서만 한다(PW-1081) — 여기서 라디오로 바꾸면
      데이터 처분 없이 퇴사자가 생긴다. 이미 퇴사인 사람은 그 값이 그대로 보여야 하므로 연다. */
   const terminatedLocked = member.employmentStatus !== 'terminated';
@@ -4451,7 +4615,7 @@ function EmployeesEditPanel({
   function buildIdentityPatch() {
     if (!identity || !identityDraft) return {};
     const out = {};
-    for (const f of IDENTITY_DATE_FIELDS) {
+    for (const f of [...IDENTITY_DATE_FIELDS, ...IDENTITY_TEXT_FIELDS]) {
       if ((identityDraft[f] ?? '') !== (identity[f] ?? '')) out[f] = identityDraft[f] || null;
     }
     return out;
@@ -4579,7 +4743,7 @@ function EmployeesEditPanel({
 
   async function handleSave() {
     if (!dirty) { onClose(); return; }
-    if (terminationProblem || terminationRuleError || leaveStartMissing) return;
+    if (terminationProblem || terminationRuleError || leaveStartMissing || leaveReasonMissing) return;
     if (apptTypeMissing || (showAppointment && !apptDate)) return;
     setSaving(true);
     setDateError('');
@@ -5124,6 +5288,25 @@ function EmployeesEditPanel({
                   />
                 </FormField>
               ))}
+              {showLeaveReason && (
+                <FormField
+                  className="admin-emp-field"
+                  labelClassName="admin-emp-field-label"
+                  label={labels.panel.leaveReason}
+                  required={Boolean(leaveAddon)}
+                  error={leaveReasonMissing ? labels.panel.leaveReasonRequired : undefined}
+                  errorTestId="employees-panel-leave-reason-error"
+                  hint={leaveReasonHint(identityDraft?.leaveOfAbsenceReason, leaveAddon, labels.panel)}
+                >
+                  <LeaveReasonSelect
+                    value={identityDraft?.leaveOfAbsenceReason}
+                    onChange={(v) => setIdentityDraft((d) => ({ ...(d || {}), leaveOfAbsenceReason: v }))}
+                    disabled={!canEdit || identityState !== 'ready'}
+                    L={labels.panel}
+                    testId="employees-panel-leave-reason"
+                  />
+                </FormField>
+              )}
               {dateFields.some((f) => f.via === 'identity') && identityBusy && (
                 <span className="admin-emp-status-date-note">{labels.panel.statusDateLoading}</span>
               )}
@@ -5472,7 +5655,7 @@ function EmployeesEditPanel({
               <Button
                 className="admin-emp-btn is-secondary admin-emp-btn-block"
                 onClick={handleCorrect}
-                disabled={saving || !canEdit || Boolean(terminationProblem) || Boolean(terminationRuleError) || leaveStartMissing || axisIncomplete}
+                disabled={saving || !canEdit || Boolean(terminationProblem) || Boolean(terminationRuleError) || leaveStartMissing || leaveReasonMissing || axisIncomplete}
                 data-testid="employees-panel-correct"
               >
                 {labels.panel.correct}
@@ -5482,7 +5665,7 @@ function EmployeesEditPanel({
               type="button"
               className="admin-emp-btn is-primary admin-emp-btn-block"
               onClick={handleSave}
-              disabled={saving || !canEdit || !dirty || Boolean(terminationProblem) || Boolean(terminationRuleError) || leaveStartMissing || axisIncomplete || apptTypeMissing || (showAppointment && !apptDate)}
+              disabled={saving || !canEdit || !dirty || Boolean(terminationProblem) || Boolean(terminationRuleError) || leaveStartMissing || leaveReasonMissing || axisIncomplete || apptTypeMissing || (showAppointment && !apptDate)}
               data-testid="employees-panel-save"
             >
               {saving ? labels.panel.saving : flowWired ? labels.panel.appoint : labels.panel.save}
@@ -5604,6 +5787,11 @@ export default function AdminEmployeesCanvas({
      `onBulkDeactivate(memberIds)` — 퇴사 처리. 확인 창을 거친 뒤에만 불린다(§3.7).
      미주입이면 그 항목이 드롭다운에 없다. */
   onBulkChangeStatus,
+  /* 「상태 일괄 변경 → 휴직」 창 (pivit-work PW-2520) — 부르는 쪽이 휴직을 받으면 서버에 대상을 물어 `bulkLeave`
+     (`{ split: { targets, onLeave, resigned, scheduled } }`)를 채운다. 비면 창이 닫혀 있다. 저장은 `onBulkLeaveApply(values)`. */
+  bulkLeave, onBulkLeaveApply, onBulkLeaveClose,
+  /* 휴가 메뉴(애드온)가 켜진 회사 — 휴직 사유가 필수가 된다(§3.2.1). */
+  leaveAddon,
   onBulkDeactivate,
   /* 「여러 칸 한 번에 고치기」 (PW-901) — `onBulkEditFields(memberIds)`. 고른 사람들의
      여러 항목을 한 번에 고치는 창을 **부르는 쪽이** 연다. 이 캔버스는 창을 그리지 않는다:
@@ -6170,6 +6358,7 @@ export default function AdminEmployeesCanvas({
             /* 재직 상태별 날짜 칸(§3.2.1) — HR 기록 모달과 **같은** 조회·저장 경로다.
                미주입이면(어드민 아님) 그 칸을 아예 그리지 않는다. */
             onLoadHrProfile={onLoadHrProfile}
+            leaveAddon={leaveAddon}
             today={today}
             onSaveIdentity={onSaveIdentity}
             onLoadPersonalHistory={onLoadPersonalHistory}
@@ -6292,6 +6481,16 @@ export default function AdminEmployeesCanvas({
           billingNotice={inviteBillingNotice}
           onSeatNeedChange={onInviteSeatNeedChange}
           labels={inviteLabels}
+        />
+      )}
+      {bulkLeave && onBulkLeaveApply && (
+        <BulkLeaveModal
+          split={bulkLeave.split}
+          labels={labels}
+          leaveAddon={leaveAddon}
+          today={today}
+          onClose={onBulkLeaveClose}
+          onApply={onBulkLeaveApply}
         />
       )}
     </div>
