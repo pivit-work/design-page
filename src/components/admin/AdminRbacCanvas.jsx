@@ -174,9 +174,20 @@ export default function AdminRbacCanvas({
   // 소비 측이 덧붙이는 탭 하나 — { key, label, Icon?, content }. 편집하는 탭이라 그 탭에서는
   // 머리의 「읽기 전용」 표시와 역할 요약 카드를 그리지 않는다 (pivit-work PW-1501 «OKR 작성 권한»).
   extraTab = null,
+  // 덧붙이는 탭 여럿 — 같은 모양 { key, label, Icon?, content }[]. `extraTab` 뒤에 차례로 붙는다
+  // (pivit-work PW-2635 «스쿼드 조직 권한» — OKR 작성 권한 오른쪽 다섯째 탭).
+  extraTabs = [],
+  // 탭을 옮기기 전에 묻는다 — (지금 탭, 갈 탭) => boolean | Promise<boolean>. 거짓이면 머문다.
+  // 덧붙인 탭에 저장하지 않은 변경이 있을 때 소비 측이 확인 창을 띄운다(PW-2635 · 스쿼드 정책 §5-8-A «저장»).
+  onBeforeTabChange,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
-  const [tab, setTab] = useState(initialTab);
+  const [tab, setTabNow] = useState(initialTab);
+  const setTab = async (next) => {
+    if (next === tab) return;
+    if (onBeforeTabChange && !(await onBeforeTabChange(tab, next))) return;
+    setTabNow(next);
+  };
   const [selectedRole, setSelectedRole] = useState('org_admin');
 
   const getMatrix = (roleId, permId) => matrix[roleId]?.[permId] ?? false;
@@ -572,13 +583,15 @@ export default function AdminRbacCanvas({
     </div>
   );
 
+  const added = [...(extraTab ? [extraTab] : []), ...(extraTabs ?? [])];
   const TABS = [
     { key: 'matrix', label: L.tabs.matrix, Icon: GridIcon },
     { key: 'roles', label: L.tabs.roles, Icon: ShieldIcon },
     { key: 'visibility', label: L.tabs.visibility, Icon: EyeIcon },
-    ...(extraTab ? [{ key: extraTab.key, label: extraTab.label, Icon: extraTab.Icon ?? ShieldIcon }] : []),
+    ...added.map((x) => ({ key: x.key, label: x.label, Icon: x.Icon ?? ShieldIcon })),
   ];
-  const onExtraTab = !!extraTab && tab === extraTab.key;
+  const shownExtra = added.find((x) => x.key === tab) ?? null;
+  const onExtraTab = !!shownExtra;
 
   return (
     <div style={{ fontFamily: DP.font }}>
@@ -710,7 +723,7 @@ export default function AdminRbacCanvas({
       {tab === 'matrix' && matrixContent}
       {tab === 'roles' && rolesContent}
       {tab === 'visibility' && visibilityContent}
-      {onExtraTab && extraTab.content}
+      {shownExtra && shownExtra.content}
     </div>
   );
 }

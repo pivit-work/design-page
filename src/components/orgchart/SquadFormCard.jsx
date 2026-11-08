@@ -22,7 +22,7 @@ import { isEnterKey } from '../shared/enterKey.js';
  * 구성원 한 명 고르기 — 고른 사람은 칩, 아니면 [고르기] → 검색 칸 + 후보 목록.
  * 스쿼드 폼의 ⭐ 팀장(리드) 칸과 묶음 관리 패널의 헤드 칸이 같은 부품을 쓴다(기획 §5-6-A «헤드 고르기는 팀장 선택 칸과 같은 부품»).
  */
-export function PersonPickField({ value, candidates, onPick, labels, testId }) {
+export function PersonPickField({ value, candidates, onPick, labels, testId, disabled = false }) {
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
   const q = query.trim().toLowerCase();
@@ -35,7 +35,7 @@ export function PersonPickField({ value, candidates, onPick, labels, testId }) {
       <div>
         <Chip
           person={{ name: picked.name, photo: picked.avatar }}
-          onRemove={() => onPick(null)}
+          onRemove={disabled ? undefined : () => onPick(null)}
           removeLabel={labels.clear}
           data-testid={testId ? `${testId}-chip` : undefined}
         >
@@ -73,7 +73,7 @@ export function PersonPickField({ value, candidates, onPick, labels, testId }) {
   }
   return (
     <Button
-      type="button" onClick={() => setOpen(true)}
+      type="button" onClick={() => setOpen(true)} disabled={disabled}
       className="sq-btn sq-btn-sm sq-btn-outline"
       data-testid={testId ? `${testId}-open` : undefined}
     >
@@ -83,10 +83,17 @@ export function PersonPickField({ value, candidates, onPick, labels, testId }) {
 }
 
 export default function SquadFormCard({
-  form, setForm, errors, palette, onSubmit, onCancel, leadCandidates, submitting,
+  form, setForm: setFormRaw, errors, palette, onSubmit: submitRaw, onCancel, leadCandidates, submitting,
   // 소속 묶음 칸(PW-2599 · §5-6-A) — 층이 없으면 칸이 없다
   groupLevelName = null, groupOptions = null,
+  /**
+   * 읽기 전용 — 폼을 연 사이 권한이 거둬져 저장이 거절됐을 때(pivit-work PW-2635 · 스쿼드 정책 §7-18).
+   * 폼은 닫지 않고 적던 글을 남겨 복사할 수 있게 한다. 값은 바뀌지 않고 [저장]·[만들기]는 꺼진다.
+   */
+  readOnly = false,
 }) {
+  const setForm = readOnly ? () => {} : setFormRaw;
+  const onSubmit = readOnly ? () => {} : submitRaw;
   const L = useOrgLabels();
   const editing = form.mode === 'edit';
 
@@ -111,7 +118,7 @@ export default function SquadFormCard({
         <div className="sq-form-field">
           <div className="sq-field-label">{L('squad.form.name')}</div>
           <input
-            autoFocus value={form.name} maxLength={30}
+            autoFocus value={form.name} maxLength={30} readOnly={readOnly}
             aria-label={L('squad.form.name')}
             className={`sq-field${errors.name ? ' is-invalid' : ''}`}
             onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
@@ -124,7 +131,7 @@ export default function SquadFormCard({
         <div className="sq-form-field">
           <div className="sq-field-label">{L('squad.form.mission')}</div>
           <input
-            value={form.mission} maxLength={60}
+            value={form.mission} maxLength={60} readOnly={readOnly}
             aria-label={L('squad.form.mission')}
             className="sq-field"
             onChange={(e) => setForm((f) => ({ ...f, mission: e.target.value }))}
@@ -205,6 +212,7 @@ export default function SquadFormCard({
                 pick: L('squad.form.leadPick'),
               }}
               testId="sq-lead"
+              disabled={readOnly}
             />
           </div>
         )}
@@ -224,7 +232,7 @@ export default function SquadFormCard({
 
       <div className="sq-form-actions">
         <button
-          type="button" onClick={onSubmit} disabled={submitting}
+          type="button" onClick={onSubmit} disabled={submitting || readOnly}
           className="sq-btn sq-btn-primary"
         >
           {L(editing ? 'squad.form.save' : 'squad.form.create')}

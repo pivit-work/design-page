@@ -210,6 +210,7 @@ export const ORGCHART_LABELS = {
   // ── 스쿼드: 카드 ──
   'squad.card.changeStatus': '상태 변경',
   'squad.card.manage': '스쿼드 관리',
+  'squad.card.organizable': '편성 가능',
   'squad.card.edit': '수정',
   'squad.card.history': '이력',
   'squad.card.delete': '삭제',

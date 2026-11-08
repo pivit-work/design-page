@@ -11,6 +11,7 @@ export {
 } from './AdminEmployeeRecordModals.jsx';
 export { default as AdminRbacCanvas } from './AdminRbacCanvas.jsx';
 export { default as AdminOkrGrantPanel } from './AdminOkrGrantPanel.jsx';
+export { default as AdminSquadGrantPanel } from './AdminSquadGrantPanel.jsx';
 export { default as AdminTeamCanvas } from './AdminTeamCanvas.jsx';
 export { default as OrgTreePicker, OrgPathLabel } from './OrgTreePicker.jsx';
 export {

@@ -85,7 +85,7 @@ const cardStyle = {
   flexDirection: 'column',
 };
 
-function CardHead({ title, description, children }) {
+export function CardHead({ title, description, children }) {
   return (
     <div style={{ padding: '14px 18px', borderBottom: `1px solid ${DP.borderT}` }}>
       <div style={{ fontSize: 15, fontWeight: 800, color: DP.textP, marginBottom: 3 }}>{title}</div>
@@ -95,7 +95,7 @@ function CardHead({ title, description, children }) {
   );
 }
 
-function CardNote({ children, testId }) {
+export function CardNote({ children, testId }) {
   return (
     <div data-testid={testId} style={{ padding: '18px', fontSize: 12, color: DP.textS }}>
       {children}
@@ -103,7 +103,7 @@ function CardNote({ children, testId }) {
   );
 }
 
-function CardFoot({ children }) {
+export function CardFoot({ children }) {
   return (
     <div
       style={{
@@ -120,10 +120,14 @@ function CardFoot({ children }) {
   );
 }
 
-function GrantRow({ row, scope, L, today, onToggle, onExpiryChange }) {
+/**
+ * 위임 한 줄 — «스쿼드 조직 권한» 탭도 같은 줄을 쓴다(pivit-work PW-2635). 그 탭은 `testIdPrefix` 로
+ * 시험 이름을 바꾸고, 만료일 칸 없이(`onExpiryChange` 없음) 리드·휴직·만든 사람 딱지를 `chips` 로 넣는다.
+ */
+export function GrantRow({ row, scope, L, today, onToggle, onExpiryChange, testIdPrefix = 'okr-grant', chips = null }) {
   return (
     <div
-      data-testid={`okr-grant-row-${scope}-${row.userId}`}
+      data-testid={`${testIdPrefix}-row-${scope}-${row.userId}`}
       style={{
         display: 'flex',
         alignItems: 'center',
@@ -166,8 +170,9 @@ function GrantRow({ row, scope, L, today, onToggle, onExpiryChange }) {
         <StatusBadge className="admin-pill is-inactive">{L.headDefault}</StatusBadge>
       ) : (
         <>
+          {chips}
           {row.delegated ? <StatusBadge className="admin-pill is-active">{L.delegated}</StatusBadge> : null}
-          {row.on ? (
+          {row.on && onExpiryChange ? (
             <DateInput
               className="admin-emp-input is-sm"
               // 안내 글이 칸보다 길면 잘린다(영어 «Expires (optional)») — 글 길이만큼 넓힌다.
@@ -183,7 +188,7 @@ function GrantRow({ row, scope, L, today, onToggle, onExpiryChange }) {
           <Switch
             checked={row.on}
             label={fill(L.toggle, { name: row.name })}
-            data-testid={`okr-grant-toggle-${scope}-${row.userId}`}
+            data-testid={`${testIdPrefix}-toggle-${scope}-${row.userId}`}
             onChange={(next) => onToggle?.(scope, row.userId, next)}
           />
         </>

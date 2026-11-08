@@ -149,6 +149,24 @@ export default function SquadCanvas({
    */
   leadSquadIds = null,
   /**
+   * 내가 **«스쿼드 편성» 권한을 받은 스쿼드**의 id 목록 (pivit-work PW-2635 · 스쿼드 정책 §5-8-B).
+   * 리드처럼 스쿼드마다 따로 서는 자격이다. 그 카드에서는 원장(⋯ 수정·이력·삭제 · 상태 전환)과
+   * ①③ 배정·비중 · ④ ⭐리드 지정이 열리고, 팀원 후보가 회사 전원이 된다. 다른 카드로 번지지 않는다.
+   */
+  organizerSquadIds = null,
+  /** «+ 스쿼드 만들기»를 보이나 — 안 주면 `canManageLedger` 그대로다(«스쿼드 만들기» 권한자 · PW-2635). */
+  canCreateSquad,
+  /**
+   * 편성 권한이 있는 카드 이름 옆 `편성 가능` 표시 (§5-8-B). 어드민에게는 그리지 않는다 — 모든 카드가 해당한다.
+   */
+  showOrganizerBadge = false,
+  /**
+   * 잠깐 강조할 카드 — 권한 알림을 누르고 들어온 길(§5-8-C). 그 카드로 내려가 테두리를 잠깐 강조한다.
+   * 처리하면 `onHighlightSquadDone(found)` 를 부른다 — 카드가 없으면(그 사이 지워짐) `false`.
+   */
+  highlightSquadId = null,
+  onHighlightSquadDone,
+  /**
    * 로그인한 본인의 userId (§5-3.7).
    *
    * 캐파 사용의 **소유자는 본인**이라, 이 값이 있어야 «내 행은 역할·편집 모드와 무관하게
@@ -522,7 +540,8 @@ export default function SquadCanvas({
   // 원장 관리(p013)는 **편집 모드와 무관하게 상시** 동작한다 — 스쿼드가 0건이면 편집할
   // 대상 자체가 없어 편집 모드 진입이 무의미하고, 상태 전환은 '할당' 이 아니라 조직
   // 라이프사이클 관리이기 때문이다(§2).
-  const ledgerReady = canManageLedger && !!onCreateSquad;
+  // 만들기 — `p013` 또는 «스쿼드 만들기» 권한(PW-2635). 원장 관리(수정·상태·삭제)는 아래 `ledgerOf` 로 카드마다 판정한다.
+  const ledgerReady = (canCreateSquad ?? canManageLedger) && !!onCreateSquad;
   const isEditing = editMode && canEditAssignments;
   /* 편집 토글 — 켜고 끌 때 열려 있던 팝오버·추가 대상은 접는다(모드가 바뀌면 그 맥락이 사라진다). */
   const toggleEditMode = () => { setEditMode((v) => !v); setPopover(null); setAddTarget(null); setProjTarget(null); };
@@ -567,6 +586,19 @@ export default function SquadCanvas({
   );
   /** 내가 **이 스쿼드의** ⭐리드인가 — 자격이 스쿼드마다 따로 선다. */
   const isLeadOf = useCallback((squadId) => leadSet.has(squadId), [leadSet]);
+  const organizerSet = useMemo(
+    () => (organizerSquadIds === null ? new Set() : new Set(organizerSquadIds)),
+    [organizerSquadIds],
+  );
+  /** 이 스쿼드의 «스쿼드 편성» 권한이 있나(PW-2635) — ①③에서는 리드와 같고, ④ 리드 지정까지 연다. */
+  const isOrganizerOf = useCallback((squadId) => organizerSet.has(squadId), [organizerSet]);
+  /** ①③ 의 스쿼드 축 — 그 스쿼드의 ⭐리드 ∪ 편성 권한자. 둘 다 조직 경계 없이 그 스쿼드 전원이다. */
+  const squadAxisOf = useCallback(
+    (squadId) => isLeadOf(squadId) || isOrganizerOf(squadId),
+    [isLeadOf, isOrganizerOf],
+  );
+  /** 이 카드의 원장(⋯ 수정·이력·삭제 · 상태 전환) — `p013` ∪ 그 스쿼드의 편성 권한(§5-8-B). */
+  const ledgerOf = (squadId) => canManageLedger || isOrganizerOf(squadId);
 
   /**
    * ① 비중 · ③ 배정·해제 — 리드(자기 스쿼드 전원) ∪ 조직 범위의 **합집합**.
@@ -577,8 +609,8 @@ export default function SquadCanvas({
    */
   const canEditShareOf = useCallback(
     (squadId, userId) =>
-      isEditing && (isLeadOf(squadId) || inScope(userId)) && !!onUpsertMember,
-    [isEditing, isLeadOf, inScope, onUpsertMember],
+      isEditing && (squadAxisOf(squadId) || inScope(userId)) && !!onUpsertMember,
+    [isEditing, squadAxisOf, inScope, onUpsertMember],
   );
   const isSelfRow = useCallback(
     (userId) => !!currentUserId && userId === currentUserId,
@@ -594,16 +626,17 @@ export default function SquadCanvas({
    * 밖에서 순환한다. ①③과 **다른 판정**이어야 하는 이유가 이것이다.
    */
   const canSetLeadOf = useCallback(
-    (userId) => isEditing && inScope(userId) && !!onSetLead,
-    [isEditing, inScope, onSetLead],
+    // «스쿼드 편성» 권한자는 그 스쿼드의 ④까지 연다 — 어드민이 스쿼드를 통째로 맡긴 사람이다(§5-8 «리드와의 관계»).
+    (squadId, userId) => isEditing && (inScope(userId) || isOrganizerOf(squadId)) && !!onSetLead,
+    [isEditing, inScope, isOrganizerOf, onSetLead],
   );
   /** 「캐파 설정 요청」 을 보낼 수 있는가 — ①③ 권한자에게만(본인은 직접 정한다). */
   const canRequestCapacityOf = useCallback(
     (squadId, userId) =>
       !!onRequestCapacity &&
       !isSelfRow(userId) &&
-      (isLeadOf(squadId) || inScope(userId)),
-    [onRequestCapacity, isSelfRow, isLeadOf, inScope],
+      (squadAxisOf(squadId) || inScope(userId)),
+    [onRequestCapacity, isSelfRow, squadAxisOf, inScope],
   );
   /**
    * 이 사용자가 **조직 축**(hr_admin 전체 / manager 서브트리)을 조금이라도 갖고 있는가.
@@ -617,8 +650,8 @@ export default function SquadCanvas({
    * 후보가 언제나 비는 버튼은 막다른 길이라 버튼 자체를 내지 않는다.
    */
   const canAddToSquad = useCallback(
-    (squadId) => isEditing && !!onUpsertMember && (isLeadOf(squadId) || hasOrgAxis),
-    [isEditing, onUpsertMember, isLeadOf, hasOrgAxis],
+    (squadId) => isEditing && !!onUpsertMember && (squadAxisOf(squadId) || hasOrgAxis),
+    [isEditing, onUpsertMember, squadAxisOf, hasOrgAxis],
   );
   /**
    * 잠긴 자리(셀·칩)의 **사유**. 판정이 합집합이므로 잠겼다는 건 두 조건이 **모두** 실패
@@ -747,7 +780,10 @@ export default function SquadCanvas({
   };
 
   // ── 상태 전이 ──
-  const transitionsFor = (sq) => (ledgerReady && onChangeStatus ? transitionsFrom(sq.status) : []);
+  const transitionsFor = (sq) => (ledgerOf(sq.id) && onChangeStatus ? transitionsFrom(sq.status) : []);
+  // 폼을 연 사이 권한이 거둬지면(호스트가 권한을 다시 읽어 넘긴다) 폼을 닫지 않고 읽기 전용으로 남긴다 —
+  // 적던 글을 복사할 수 있게(§7-18 · pivit-work PW-2635). 만들기는 만들기 자격, 수정은 그 카드의 원장 자격으로 본다.
+  const squadFormLocked = !!squadForm && (squadForm.mode === 'edit' ? !ledgerOf(squadForm.id) : !ledgerReady);
 
   // 재개(완료→진행중) 시 이 스쿼드 계획%가 합계에 다시 더해져 과부하가 새로 생길 수 있다.
   // 캐파 미설정 배정은 지금도 합계 밖이라 재개해도 더해지지 않는다.
@@ -777,8 +813,9 @@ export default function SquadCanvas({
   };
 
   // ── 완료 전환 넛지: 종료일이 지난 진행중 스쿼드. 자동 전이는 하지 않는다(안내만) ──
-  const overdueSquads = ledgerReady
-    ? squads.filter((sq) => sq.status === 'active' && sq.endDate && sq.endDate < todayIsoInZone(timeZone))
+  // 편성 권한자는 맡은 스쿼드만 센다(§5-8-B «종료일 경과 넛지 배너»).
+  const overdueSquads = onChangeStatus
+    ? squads.filter((sq) => ledgerOf(sq.id) && sq.status === 'active' && sq.endDate && sq.endDate < todayIsoInZone(timeZone))
     : [];
 
   // ── 배정 ──
@@ -900,6 +937,32 @@ export default function SquadCanvas({
     return () => cancelAnimationFrame(frame);
   }, [focusSquadId, focusUserId, squads, canEditMemberOf, onFocusMemberDone]);
 
+  // 권한 알림으로 들어온 카드 — 내려가 테두리를 잠깐 강조한다(§5-8-C · PW-2635). 없으면 호스트가 «지워짐»을 알린다.
+  const [flashSquadId, setFlashSquadId] = useState(null);
+  const highlightHandledRef = useRef(null);
+  useEffect(() => {
+    if (!highlightSquadId) {
+      highlightHandledRef.current = null;
+      return undefined;
+    }
+    if (highlightHandledRef.current === highlightSquadId) return undefined;
+    const frame = requestAnimationFrame(() => {
+      highlightHandledRef.current = highlightSquadId;
+      const found = squads.some((x) => x.id === highlightSquadId);
+      if (found) {
+        document.querySelector(`[data-testid="squad-card-${highlightSquadId}"]`)?.scrollIntoView?.({ block: 'center' });
+        setFlashSquadId(highlightSquadId);
+      }
+      onHighlightSquadDone?.(found);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [highlightSquadId, squads, onHighlightSquadDone]);
+  useEffect(() => {
+    if (!flashSquadId) return undefined;
+    const timer = setTimeout(() => setFlashSquadId(null), 2400);
+    return () => clearTimeout(timer);
+  }, [flashSquadId]);
+
   /**
    * 「팀원 추가」 검색 후보 — **조직 전체 − 이미 배정 − ③ 권한 밖**(정본 :175).
    *
@@ -913,7 +976,7 @@ export default function SquadCanvas({
    */
   const candidatesFor = (sq) => {
     const q = addQuery.trim().toLowerCase();
-    const openToAll = isLeadOf(sq.id);
+    const openToAll = squadAxisOf(sq.id);
     return people.filter(
       (n) => !(sq.members || []).some((m) => m.userId === n.id)
         // 비활성(퇴사·휴직)은 후보가 아니다 — 서버가 422 로 막는 사람을 목록에 두면
@@ -1162,7 +1225,7 @@ export default function SquadCanvas({
                   <SquadFormCard
                     form={squadForm} setForm={editForm} errors={errors}
                     palette={SQUAD_PALETTE} onSubmit={submitSquadForm} onCancel={closeSquadForm}
-                    leadCandidates={leadCandidates} submitting={submitting}
+                    leadCandidates={leadCandidates} submitting={submitting} readOnly={squadFormLocked}
                     groupLevelName={groupLevelNames[0] || null} groupOptions={groupOptions}
                   />
                 )}
@@ -1174,7 +1237,7 @@ export default function SquadCanvas({
                         key={sq.id}
                         form={squadForm} setForm={editForm} errors={errors}
                         palette={SQUAD_PALETTE} onSubmit={submitSquadForm} onCancel={closeSquadForm}
-                        leadCandidates={leadCandidates} submitting={submitting}
+                        leadCandidates={leadCandidates} submitting={submitting} readOnly={squadFormLocked}
                     groupLevelName={groupLevelNames[0] || null} groupOptions={groupOptions}
                       />
                     );
@@ -1193,6 +1256,7 @@ export default function SquadCanvas({
                         'pj-card sq-card',
                         addTarget === sq.id ? 'is-open' : '',
                         sq.status === 'archived' ? 'is-archived' : '',
+                        flashSquadId === sq.id ? 'is-focused' : '',
                       ].filter(Boolean).join(' ')}
                     >
                       {/* 카드 메뉴·이력 팝오버의 **앵커**. 여기 붙여야 종전 CSS
@@ -1219,7 +1283,7 @@ export default function SquadCanvas({
                           {canTransition && <ChevronDownIcon size={12} />}
                         </StatusBadge>
 
-                        {ledgerReady && (
+                        {ledgerOf(sq.id) && (
                           <span
                             data-testid={`squad-more-${sq.id}`}
                             className="sq-more"
@@ -1231,7 +1295,7 @@ export default function SquadCanvas({
                           </span>
                         )}
 
-                        {moreMenu === sq.id && ledgerReady && (
+                        {moreMenu === sq.id && ledgerOf(sq.id) && (
                           <>
                             <AnchoredLayer
                               anchorSelector={`[data-testid="squad-actions-${sq.id}"]`}
@@ -1324,6 +1388,10 @@ export default function SquadCanvas({
                           <span className="sq-color-box" style={{ background: `${sq.color}cc` }} aria-hidden />
                           {sq.name}
                           {sq.kind === 'tf' && <StatusBadge tone="neutral" className="modal-team-chip" data-testid="squad-kind">{L('squad.form.tf')}</StatusBadge>}
+                          {/* 편성 권한이 있는 카드 — 받은 사람이 «어디서 고치나»를 찾게(§5-8-B · PW-2635). TF 딱지와 같은 작은 칩. */}
+                          {showOrganizerBadge && isOrganizerOf(sq.id) && (
+                            <StatusBadge tone="neutral" className="modal-team-chip" data-testid={`squad-organizer-${sq.id}`}>{L('squad.card.organizable')}</StatusBadge>
+                          )}
                         </p>
                         <p className="pj-card-desc">{sq.mission}</p>
                       </div>
@@ -1476,7 +1544,7 @@ export default function SquadCanvas({
                                     <div className="sq-add-none">
                                       {/* 사유는 **이 자리에서 실제로 후보를 지운 조건**만 말한다.
                                           리드에게는 조직 범위가 사유가 아니다(PW-423). */}
-                                      {L(editableSet !== null && !isLeadOf(sq.id) ? 'squad.card.noCandidatesOutOfScope' : 'squad.card.noCandidates')}
+                                      {L(editableSet !== null && !squadAxisOf(sq.id) ? 'squad.card.noCandidatesOutOfScope' : 'squad.card.noCandidates')}
                                     </div>
                                   )}
                                 </div>
@@ -1842,8 +1910,8 @@ export default function SquadCanvas({
           counted={isCountedStatus(popSquad.status)}
           canEditShare={canEditShareOf(popover.squadId, popover.userId)}
           canManageMember={canEditShareOf(popover.squadId, popover.userId)}
-          canAssignLead={canSetLeadOf(popover.userId)}
-          viaLead={isLeadOf(popover.squadId)}
+          canAssignLead={canSetLeadOf(popover.squadId, popover.userId)}
+          viaLead={squadAxisOf(popover.squadId)}
           canEditCapacity={canEditCapacityOf(popover.userId)}
           canRequestCapacity={canRequestCapacityOf(popover.squadId, popover.userId)}
           capacityRequested={isCapacityRequested(popover.squadId, popover.userId, popAssign)}
