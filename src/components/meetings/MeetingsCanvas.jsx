@@ -16,7 +16,7 @@ import { isEnterKey } from '../shared/enterKey.js';
  * 모든 데이터/라벨은 caller 에서 주입한다. 패키지 내부에는 demo fallback 이 없다.
  */
 
-function MeetingRow({ meeting, onStart, onRowClick, statusLabels, isStarting, startLock: listLock }) {
+function MeetingRow({ meeting, onStart, onRowClick, statusLabels, isStarting, startLock: listLock, planLockBadge }) {
   // 다른 사람이 이미 시작한 회의에 «함께 들어가는» 행은 1on1 잠금을 걸지 않는다 (PW-1825) — 녹음을
   // 시작하지 않으므로 마이크를 다투지 않는다. caller 가 행에 `skipStartLock` 을 준다.
   const startLock = meeting.skipStartLock ? null : listLock;
@@ -47,6 +47,10 @@ function MeetingRow({ meeting, onStart, onRowClick, statusLabels, isStarting, st
       <div className="mtg-row-body">
         <div className="mtg-row-head">
           <span className="mtg-row-title">{meeting.title}</span>
+          {/* 외부 전사로 가져온 회의 — 회의명 오른쪽 회색 출처 배지 「파일 · 다글로」 (pivit-work PW-2602 · list.policy §3.2). */}
+          {meeting.originBadge && (
+            <StatusBadge tone="neutral" data-testid="mtg-row-origin-badge">{meeting.originBadge}</StatusBadge>
+          )}
           {statusTag && (
             <StatusBadge className={`mtg-tag ${statusTag.className}`}>{statusTag.label}</StatusBadge>
           )}
@@ -102,6 +106,7 @@ function MeetingRow({ meeting, onStart, onRowClick, statusLabels, isStarting, st
             }}
           >
             {statusLabels.startLabel}
+            {planLockBadge}
           </button>
         ))
       )}
@@ -155,6 +160,17 @@ export default function MeetingsCanvas({
    */
   onUploadRecording,
   uploadRecordingPending = false,
+  /**
+   * 외부 전사(다글로·클로바노트 등) 파일로 회의록을 만드는 진입 훅 (pivit-work PW-2602 · list.policy §3.1-A).
+   * [액션 아이템]과 [녹음 파일 올리기] 사이의 같은 보조 버튼. 미지정 시 숨긴다.
+   */
+  onImportTranscript,
+  /**
+   * 요금제에 회의록이 없는 회사(Free·Starter)의 녹음 입구 잠금 배지 (pivit-work PW-2602 · tier-gating §6.1 덧붙임).
+   * 소비처가 `LockBadge` 로 만들어 넘기면 [녹음 파일 올리기]·[회의 시작]·행의 [시작 →] 글자 옆에 붙는다.
+   * 버튼은 잠그지 않는다 — 누르면 소비처가 업그레이드 안내를 띄운다(§6.1 «노출 유지 + LockBadge · 클릭 시 안내»).
+   */
+  planLockBadge = null,
   /** 시작 flow 가 이미 열려 있는(녹음 진행 중) 회의 id — 해당 행의 [시작] 을
    *  비활성 [진행 중] 버튼으로 바꾼다 (Figma 16817:40731). */
   startingMeetingId,
@@ -196,6 +212,7 @@ export default function MeetingsCanvas({
   const L = {
     viewActions: '액션 아이템',
     uploadRecording: '녹음 파일 올리기',
+    importTranscript: '외부 전사 가져오기',
     uploadRecordingPending: '확인 중…',
     ...labels,
   };
@@ -232,6 +249,18 @@ export default function MeetingsCanvas({
               <span>{L.viewActions}</span>
             </button>
           )}
+          {/* 다른 도구의 전사 파일로 새 회의록 — 녹음 시간을 쓰지 않는다. [액션 아이템]과 같은 보조 버튼 모양. */}
+          {onImportTranscript && (
+            <button
+              type="button"
+              className="mtg-actions-link"
+              onClick={onImportTranscript}
+              data-testid="mtg-import-transcript"
+            >
+              <Icon src="/icons-solid/download-01.svg" size={16} color="var(--text-secondary)" baseUrl={baseUrl} />
+              <span>{L.importTranscript}</span>
+            </button>
+          )}
           {/* 회의 밖에서 녹음한 파일로 새 회의록 — [액션 아이템]과 같은 보조 버튼 모양. */}
           {onUploadRecording && (
             <button
@@ -244,6 +273,7 @@ export default function MeetingsCanvas({
             >
               <Icon src="/icons-solid/upload-01.svg" size={16} color="var(--text-secondary)" baseUrl={baseUrl} />
               <span>{uploadRecordingPending ? L.uploadRecordingPending : L.uploadRecording}</span>
+              {planLockBadge}
             </button>
           )}
           {/* 캘린더 없이 지금 바로 녹음 — 목록 전체에서 유일하게 항상 열려 있는 진입점. */}
@@ -259,6 +289,7 @@ export default function MeetingsCanvas({
               >
                 <Icon src="/icons-solid/microphone-01.svg" size={16} color="currentColor" baseUrl={baseUrl} />
                 <span>{L.startAdhoc}</span>
+                {planLockBadge}
               </button>
             </Tooltip>
           )}
@@ -359,6 +390,7 @@ export default function MeetingsCanvas({
                   statusLabels={statusLabels}
                   isStarting={m.id === startingMeetingId}
                   startLock={startLock}
+                  planLockBadge={planLockBadge}
                 />
               ))}
             </div>
