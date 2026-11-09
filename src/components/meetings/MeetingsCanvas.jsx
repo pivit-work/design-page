@@ -257,7 +257,7 @@ export default function MeetingsCanvas({
               onClick={onImportTranscript}
               data-testid="mtg-import-transcript"
             >
-              <Icon src="/icons-solid/download-01.svg" size={16} color="var(--text-secondary)" baseUrl={baseUrl} />
+              <Icon src="/icons-solid/inbox-01.svg" size={16} color="var(--text-secondary)" baseUrl={baseUrl} />
               <span>{L.importTranscript}</span>
             </button>
           )}
