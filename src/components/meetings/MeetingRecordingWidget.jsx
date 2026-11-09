@@ -3,6 +3,7 @@ import StatusBadge from '../shared/StatusBadge.jsx';
 import { createPortal } from 'react-dom';
 import Icon from '../shared/Icon.jsx';
 import useMicWave from '../shared/useMicWave.js';
+import ChipFold from '../shared/ChipFold.jsx';
 
 /**
  * MeetingRecordingWidget — 회의 진행 중 모달을 dimmed 클릭으로 닫았을 때
@@ -12,7 +13,8 @@ import useMicWave from '../shared/useMicWave.js';
  * 실시간 마이크 파형 + [종료]. 우상단 maximize 아이콘으로 모달 복귀.
  *
  * 데이터/라벨은 caller 주입: meeting { title, participants }, labels
- * { title, tag, stop, expand }. elapsed 는 "04:29" 포맷 문자열.
+ * { title, tag, stop, expand, participantsMore?, participantsLess? }. participantsMore(n) 를 주면
+ * 이름 줄이 두 줄을 넘을 때 «외 N명»으로 접힌다(PW-2570) — 안 주면 접지 않고 줄바꿈만 한다. elapsed 는 "04:29" 포맷 문자열.
  *
  * ## 1on1 이 함께 쓴다 (PW-578)
  *
@@ -61,11 +63,27 @@ export default function MeetingRecordingWidget({
             <span>{meeting?.title}</span>
             <StatusBadge className="mtg-rec-widget-tag">{labels.tag}</StatusBadge>
           </div>
-          <div className="mtg-rec-widget-people">
-            {participants.map((p, i) => (
-              <span key={p}>{i > 0 && '• '}{p}</span>
-            ))}
-          </div>
+          {labels.participantsMore ? (
+            // 두 줄을 넘으면 «외 N명»으로 접는다 — 진행 창·미니 창과 같은 접기(pivit-work PW-2570 ·
+            // screen-minutes-recording §3.1 «접은 위젯도 같다»). 이름 하나는 한 줄로 둔다(PW-2501).
+            <ChipFold
+              className="mtg-rec-widget-people"
+              testId="mtg-rec-widget-people"
+              items={participants}
+              getKey={(p) => p}
+              renderItem={(p, i) => (
+                <span key={p}>{i > 0 && '• '}{p}</span>
+              )}
+              moreLabel={labels.participantsMore}
+              lessLabel={labels.participantsLess}
+            />
+          ) : (
+            <div className="mtg-rec-widget-people">
+              {participants.map((p, i) => (
+                <span key={p}>{i > 0 && '• '}{p}</span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
       {recording && (
