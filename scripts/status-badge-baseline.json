@@ -1690,22 +1690,12 @@
    "border-radius": "10px",
    "padding": "4px",
    "background": "#f3f4f6 / 어두운 화면 #0c0e12",
-   "box-shadow": "0 8px 24px -4px rgba(10, 13, 18, 0.16), 0 0 0 1px rgba(10, 13, 18, 0.06)",
+   "box-shadow": "var(--shadows-shadow-md)",
    "overflow": "auto"
   },
-  "org_squad.css|.sq-pillar-results button": {
-   "border-radius": "6px",
-   "padding": "7px 10px",
-   "font-size": "12px",
-   "color": "#b1b6be / 어두운 화면 #85888e",
-   "display": "block",
-   "line-height": "18px",
-   "width": "100%",
-   "box-sizing": "border-box"
-  },
-  "org_squad.css|.sq-pillar-chip": {
+  "org_squad.css|.dp-btn.sq-pillar-chip": {
    "border-radius": "8px",
-   "padding": "0 10px",
+   "padding": "0 8px",
    "font-size": "13px",
    "font-weight": "600",
    "background": "rgba(0, 0, 0, 0.05) / 어두운 화면 rgba(255, 255, 255, 0.05)",
@@ -1724,33 +1714,33 @@
    "color": "#b1b6be / 어두운 화면 #85888e",
    "line-height": "20px",
    "border": "1px solid var(--border-secondary)",
-   "box-shadow": "0 12px 40px rgba(10, 13, 18, 0.14), 0 4px 10px rgba(10, 13, 18, 0.05)",
+   "box-shadow": "var(--shadows-shadow-md)",
    "width": "340px",
    "overflow": "auto"
   },
-  "org_squad.css|.sq-pillar-go": {
+  "org_squad.css|.dp-btn.sq-pillar-go": {
    "border-radius": "8px",
    "padding": "8px",
    "display": "block",
    "width": "calc(100% + 16px)",
    "box-sizing": "border-box"
   },
-  "org_squad.css|.sq-pillar-fam": {
+  "org_squad.css|.dp-btn.sq-pillar-fam": {
    "border-radius": "6px",
-   "padding": "1px 7px",
+   "padding": "2px 6px",
    "display": "inline-flex",
    "align-items": "center",
    "gap": "6px"
   },
   "org_squad.css|.sq-pillar-hovercard": {
    "border-radius": "12px",
-   "padding": "12px 14px",
+   "padding": "12px 12px",
    "font-size": "12px",
    "background": "#f3f4f6 / 어두운 화면 #0c0e12",
    "color": "#b1b6be / 어두운 화면 #85888e",
    "display": "none",
    "line-height": "18px",
-   "box-shadow": "0 8px 24px -4px rgba(10, 13, 18, 0.16), 0 0 0 1px rgba(10, 13, 18, 0.06)",
+   "box-shadow": "var(--shadows-shadow-md)",
    "width": "252px"
   }
  },
@@ -2422,19 +2412,80 @@
    "color": "#b1b6be / 어두운 화면 #85888e",
    "font-family": "inherit"
   },
-  "org_squad.css|.sq-pillar-results button.is-on": {
+  "org_squad.css|.sq-pillar-results .dp-btn": {
+   "border-radius": "6px",
+   "padding": "6px 8px",
+   "font-size": "12px",
+   "color": "#b1b6be / 어두운 화면 #85888e",
+   "display": "block",
+   "line-height": "18px",
+   "width": "100%",
+   "box-sizing": "border-box"
+  },
+  "org_squad.css|.sq-pillar-results .dp-btn b": {
+   "font-size": "14px",
+   "font-weight": "600",
+   "color": "#596069 / 어두운 화면 #ececed",
+   "display": "block",
+   "line-height": "20px"
+  },
+  "org_squad.css|.sq-pillar-results .dp-btn.is-on": {
    "background": "rgba(0, 0, 0, 0.05) / 어두운 화면 rgba(255, 255, 255, 0.05)"
   },
-  "org_squad.css|.sq-pillar-go.is-head": {
+  "org_squad.css|.sq-pillar-results .dp-btn:hover": {
+   "background": "rgba(0, 0, 0, 0.05) / 어두운 화면 rgba(255, 255, 255, 0.05)"
+  },
+  "org_squad.css|.dp-btn.sq-pillar-chip": {
+   "border-radius": "8px",
+   "padding": "0 8px",
+   "font-size": "13px",
+   "font-weight": "600",
+   "background": "rgba(0, 0, 0, 0.05) / 어두운 화면 rgba(255, 255, 255, 0.05)",
+   "color": "#b1b6be / 어두운 화면 #85888e",
+   "display": "inline-flex",
+   "align-items": "center",
+   "gap": "6px",
+   "line-height": "18px",
+   "height": "28px"
+  },
+  "org_squad.css|.dp-btn.sq-pillar-chip b": {
+   "font-weight": "700",
+   "color": "#596069 / 어두운 화면 #ececed"
+  },
+  "org_squad.css|.dp-btn.sq-pillar-chip[aria-pressed='true']": {
+   "background": "#2dbd82",
+   "color": "#ffffff"
+  },
+  "org_squad.css|.dp-btn.sq-pillar-chip[aria-pressed='true'] b": {
+   "color": "#ffffff"
+  },
+  "org_squad.css|.dp-btn.sq-pillar-go:hover": {
+   "background": "rgba(0, 0, 0, 0.05) / 어두운 화면 rgba(255, 255, 255, 0.05)"
+  },
+  "org_squad.css|.dp-btn.sq-pillar-go:focus-visible": {
+   "background": "rgba(0, 0, 0, 0.05) / 어두운 화면 rgba(255, 255, 255, 0.05)"
+  },
+  "org_squad.css|.dp-btn.sq-pillar-go b": {
    "font-weight": "600",
    "color": "#596069 / 어두운 화면 #ececed"
   },
-  "org_squad.css|.sq-pillar-go.is-head span": {
+  "org_squad.css|.dp-btn.sq-pillar-go.is-head": {
+   "font-weight": "600",
+   "color": "#596069 / 어두운 화면 #ececed"
+  },
+  "org_squad.css|.dp-btn.sq-pillar-go.is-head span": {
    "font-size": "12px",
    "font-weight": "400",
    "color": "#b1b6be / 어두운 화면 #85888e",
    "display": "block",
    "line-height": "18px"
+  },
+  "org_squad.css|.dp-btn.sq-pillar-fam:hover": {
+   "background": "rgba(0, 0, 0, 0.05) / 어두운 화면 rgba(255, 255, 255, 0.05)"
+  },
+  "org_squad.css|.dp-btn.sq-pillar-fam[aria-pressed='true']": {
+   "background": "#596069 / 어두운 화면 #ececed",
+   "color": "#f3f4f6 / 어두운 화면 #0c0e12"
   }
  }
 }

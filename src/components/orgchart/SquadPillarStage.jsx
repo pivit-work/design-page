@@ -125,7 +125,7 @@ function Plate({ n }) {
       {band}
       <path
         d={roundPath(n.ax, n.ay, n.w, n.d, r, n.top)}
-        style={{ fill: topFill, stroke: n.dashed ? C.muted : 'rgba(255,255,255,.9)' }}
+        style={{ fill: topFill, stroke: n.dashed ? C.muted : 'var(--alpha-white-90)' }}
         strokeWidth={1}
         strokeDasharray={n.dashed ? '5 4' : undefined}
       />
@@ -137,7 +137,7 @@ function Plate({ n }) {
 function PlateLabel({ n, name }) {
   const [lx, ly] = pillarIso(n.ax + 2, n.ay + n.d, n.z);
   const tf = `matrix(${PILLAR.cos} ${PILLAR.sin} 0 1 ${lx.toFixed(1)} ${ly.toFixed(1)})`;
-  const halo = { paintOrder: 'stroke', stroke: 'rgba(243,244,246,.92)', strokeWidth: 3.5, strokeLinejoin: 'round' };
+  const halo = { paintOrder: 'stroke', stroke: 'var(--alpha-white-90)', strokeWidth: 3.5, strokeLinejoin: 'round' };
   let body;
   if (n.squad) {
     body = (
@@ -179,15 +179,15 @@ function Pillar({ tk, side, gradId, hatchId, unsetOn }) {
   const len = h * 0.42;
   const out = [];
   if (isCyl && (side === 'squad' || tk.bottom)) out.push(<g key="ring">{ring}</g>);
-  out.push(<polygon key="sh" points={pillarPts([[HALF, -HALF, 0], [HALF + len, -HALF + len * 0.15, 0], [HALF + len, HALF + len * 0.15, 0], [HALF, HALF, 0]])} style={{ fill: 'rgba(30,40,60,.07)' }} />);
+  out.push(<polygon key="sh" points={pillarPts([[HALF, -HALF, 0], [HALF + len, -HALF + len * 0.15, 0], [HALF + len, HALF + len * 0.15, 0], [HALF, HALF, 0]])} style={{ fill: 'var(--alpha-black-5)' }} />);
   if (isCyl) {
     const ty = -h;
     out.push(<path key="b" d={`M${-RX} ${ty}L${-RX} 0A${RX} ${RY} 0 0 0 ${RX} 0L${RX} ${ty}Z`} fill={`url(#${gradId}-${famOf(p)})`} style={dash || undefined} />);
-    out.push(<ellipse key="t" cx={0} cy={ty} rx={RX} ry={RY} strokeWidth={0.8} style={{ fill: mixWhite(c, 34), stroke: 'rgba(255,255,255,.75)', ...dash }} />);
+    out.push(<ellipse key="t" cx={0} cy={ty} rx={RX} ry={RY} strokeWidth={0.8} style={{ fill: mixWhite(c, 34), stroke: 'var(--alpha-white-80)', ...dash }} />);
   } else {
     out.push(<polygon key="f" points={pillarPts([[-HALF, HALF, h], [HALF, HALF, h], [HALF, HALF, 0], [-HALF, HALF, 0]])} style={{ fill: mixWhite(c, 66), ...dash }} />);
     out.push(<polygon key="s" points={pillarPts([[HALF, HALF, h], [HALF, -HALF, h], [HALF, -HALF, 0], [HALF, HALF, 0]])} style={{ fill: mixWhite(c, 92), ...dash }} />);
-    out.push(<polygon key="t" points={pillarPts([[-HALF, -HALF, h], [HALF, -HALF, h], [HALF, HALF, h], [-HALF, HALF, h]])} strokeWidth={0.8} style={{ fill: mixWhite(c, 30), stroke: 'rgba(255,255,255,.75)', ...dash }} />);
+    out.push(<polygon key="t" points={pillarPts([[-HALF, -HALF, h], [HALF, -HALF, h], [HALF, HALF, h], [-HALF, HALF, h]])} strokeWidth={0.8} style={{ fill: mixWhite(c, 30), stroke: 'var(--alpha-white-80)', ...dash }} />);
   }
   if (side === 'squad' && tk.multi > 1) {
     for (let i = 0; i < tk.multi; i++) {
@@ -242,7 +242,7 @@ function Tag({ tk, side, name, mine, L }) {
       return (
         <g>
           <rect x={x0} y={y - 15} width={w} height={22} rx={8} style={{ fill: C.paper, stroke: C.line }} />
-          <rect x={x0 + 6} y={y - 10.5} width={27} height={13} rx={3} style={{ fill: 'rgba(0,0,0,.4)' }} />
+          <rect x={x0 + 6} y={y - 10.5} width={27} height={13} rx={3} style={{ fill: 'var(--alpha-black-40)' }} />
           <text x={x0 + 19.5} y={y - 1} textAnchor="middle" fontSize={7.5} fontWeight={700} letterSpacing={0.6} style={{ fill: C.paper }}>LEAD</text>
           <text x={x0 + 38} y={y + 0.5} fontSize={11.5} fontWeight={600} style={{ fill: C.ink }}>{name}</text>
         </g>
@@ -259,7 +259,7 @@ function Tag({ tk, side, name, mine, L }) {
   }
   return (
     <text x={0} y={-5 - lift} textAnchor="middle" fontSize={10} fontWeight={600}
-      paintOrder="stroke" strokeWidth={2.6} strokeLinejoin="round" style={{ fill: tk.a ? C.ink : C.sub, stroke: 'rgba(255,255,255,.92)' }}>{name}</text>
+      paintOrder="stroke" strokeWidth={2.6} strokeLinejoin="round" style={{ fill: tk.a ? C.ink : C.sub, stroke: 'var(--alpha-white-90)' }}>{name}</text>
   );
 }
 
@@ -739,13 +739,13 @@ export default function SquadPillarStage({
             {resultsOpen && nq && (
               <div className="sq-pillar-results" role="listbox" data-testid="squad-pillar-results">
                 {results.length ? results.map((r, i) => (
-                  <button
+                  <Button
                     type="button" key={`${r.type}-${r.id}`} role="option" aria-selected={i === resultOn}
                     className={i === resultOn ? 'is-on' : undefined}
                     onMouseDown={(e) => { e.preventDefault(); pick(r); }}
                   >
                     <b>{r.title}</b>{r.sub}
-                  </button>
+                  </Button>
                 )) : <div className="sq-pillar-empty">{L('squad.pillar.noResult')}</div>}
               </div>
             )}
@@ -756,22 +756,22 @@ export default function SquadPillarStage({
       <div className="sq-pillar-tools" data-testid="squad-pillar-chips">
         <span className="sq-pillar-tools-label">{L('squad.pillar.chipsLabel')}</span>
         {PILLAR_CHIPS.map(([key, fn]) => (
-          <button
+          <Button
             key={key} type="button" className="sq-pillar-chip" aria-pressed={chip === key} disabled={playing}
             data-testid={`squad-pillar-chip-${key}`}
             onClick={() => { setChip(chip === key ? null : key); setSel(null); }}
           >
             {L(`squad.pillar.chip.${key}`)} <b>{L('squad.iso.count', { count: chipCount(fn) })}</b>
-          </button>
+          </Button>
         ))}
       </div>
       {chip === 'over' && (
         <div className="sq-overload sq-pillar-overload" data-testid="squad-pillar-overload" role="status">
           <span className="sq-overload-title"><WarningIcon size={14} /> {L('squad.overload.title')}</span>
           {overList.map((x) => (
-            <button key={x.id} type="button" className="sq-overload-person sq-pillar-ov-person" title={`${nameOf(x)} ${x.total}%`} onClick={() => selectPerson(x.id)}>
+            <Button key={x.id} type="button" className="sq-overload-person sq-pillar-ov-person" title={`${nameOf(x)} ${x.total}%`} onClick={() => selectPerson(x.id)}>
               <span>{nameOf(x)}</span>
-            </button>
+            </Button>
           ))}
           <span className="sq-overload-body">{L('squad.overload.body')}</span>
         </div>
@@ -780,13 +780,13 @@ export default function SquadPillarStage({
       <div className="sq-pillar-wrap">
         <div className="org-toolbar org-toolbar-right sq-pillar-zoom" data-testid="squad-iso-tools">
           <div className="org-toolbar-group">
-            <button type="button" className="org-tool-btn" onClick={() => setZoomCentered(Math.min(z + 0.1, PILLAR_ZOOM_MAX))} title={L('org.zoomIn')} aria-label={L('org.zoomIn')} data-action="zoom-in"><PlusGlyph size={20} /></button>
-            <button type="button" className="org-tool-btn" onClick={() => setZoomCentered(Math.max(z - 0.1, PILLAR_ZOOM_MIN))} title={L('org.zoomOut')} aria-label={L('org.zoomOut')} data-action="zoom-out"><MinusGlyph size={20} /></button>
-            <button type="button" className="org-tool-btn has-label" onClick={() => setZoomCentered(null)} title={L('squad.iso.zoomFitTip')} data-action="zoom-fit"><span>{L('squad.graph.zoomFit')}</span></button>
+            <Button type="button" className="org-tool-btn" onClick={() => setZoomCentered(Math.min(z + 0.1, PILLAR_ZOOM_MAX))} title={L('org.zoomIn')} aria-label={L('org.zoomIn')} data-action="zoom-in"><PlusGlyph size={20} /></Button>
+            <Button type="button" className="org-tool-btn" onClick={() => setZoomCentered(Math.max(z - 0.1, PILLAR_ZOOM_MIN))} title={L('org.zoomOut')} aria-label={L('org.zoomOut')} data-action="zoom-out"><MinusGlyph size={20} /></Button>
+            <Button type="button" className="org-tool-btn has-label" onClick={() => setZoomCentered(null)} title={L('squad.iso.zoomFitTip')} data-action="zoom-fit"><span>{L('squad.graph.zoomFit')}</span></Button>
           </div>
         </div>
         <div className="sq-pillar-dock" ref={dockRef} hidden={!dock} data-testid="squad-pillar-dock">
-          <button type="button" className="sq-pillar-dock-x" aria-label={L('squad.pillar.close')} onClick={() => setSel(null)}><CloseGlyph size={14} /></button>
+          <Button type="button" className="sq-pillar-dock-x" aria-label={L('squad.pillar.close')} onClick={() => setSel(null)}><CloseGlyph size={14} /></Button>
           {dock}
         </div>
         <div
@@ -864,7 +864,7 @@ export default function SquadPillarStage({
                 {flattenNodes(s === 'squad' ? model.sTree : model.oTree).map((n) => <PlateLabel key={n.id} n={n} name={nodeName(n)} />)}
               </g>
             ))}
-            <g className="sq-pillar-tags" pointerEvents="none" style={{ opacity: playing ? 0 : 1 }} data-testid="squad-pillar-tags">
+            <g pointerEvents="none" style={{ opacity: playing ? 0 : 1 }} data-testid="squad-pillar-tags">
               {!playing && tagsSorted.map((t) => {
                 const qq = at(t, view);
                 const [sx, sy] = pillarIso(qq.x, qq.y, qq.z + t.h);
@@ -902,10 +902,10 @@ export default function SquadPillarStage({
         <span className="sq-pillar-legend-item"><Mini h={10} c={PILLAR_FAMILY_COLOR.dev} warn />{L('squad.pillar.legendOver')}</span>
         <span className="sq-pillar-legend-item" data-testid="squad-pillar-families">
           {PILLAR_FAMILIES.map((f) => (
-            <button key={f} type="button" className="sq-pillar-fam" aria-pressed={fam === f} disabled={playing}
+            <Button key={f} type="button" className="sq-pillar-fam" aria-pressed={fam === f} disabled={playing}
               onClick={() => { setFam(fam === f ? null : f); setSel(null); }} data-testid={`squad-pillar-fam-${f}`}>
               <i className="sq-pillar-sw" style={{ background: mixWhite(PILLAR_FAMILY_COLOR[f], 72) }} />{famName(f)}
-            </button>
+            </Button>
           ))}
         </span>
         <span className="sq-pillar-legend-item"><b>{L(atSquad ? 'squad.pillar.legendBand' : 'squad.pillar.legendDiv')}</b></span>
@@ -931,7 +931,7 @@ function PersonCard({ x, L, nameOf, unitName, famName, mineHint }) {
   });
   const over = x.total > PILLAR_OVER;
   return (
-    <div className="sq-pillar-person" data-testid="squad-pillar-person">
+    <div data-testid="squad-pillar-person">
       <div className="sq-pillar-person-name">{nameOf(x)}</div>
       <div>{[p.businessTitle, p.unitName || unitName({ kind: p.unitKind }), famName(famOf(p))].filter(Boolean).join(' · ')}</div>
       {x.as.length > 0 ? (
@@ -988,11 +988,11 @@ function NodeCard({ n, L, nameOf, famName, today, onGo, unitName }) {
   const squadRow = (pl) => {
     const pj = pl.info.project; const lead = leadOf(pl);
     return (
-      <button type="button" key={pl.id} className="sq-pillar-go" onClick={() => onGo(pl.id)}>
+      <Button type="button" key={pl.id} className="sq-pillar-go" onClick={() => onGo(pl.id)}>
         <span className="sq-pillar-row"><span><i className="sq-pillar-dot" style={{ background: pl.squad.color }} /><b>{pl.squad.name}</b></span><span>{L('squad.iso.count', { count: pl.people.length })}</span></span>
         <span className="sq-pillar-line2">{lead && <><LeadTag />{nameOf(lead)} · </>}{pj ? `${pj.name} ${pj.progress ?? 0}%` : L('squad.pillar.noProject')}</span>
         <span className="sq-pillar-bar is-thin"><i style={{ width: `${pj ? pj.progress ?? 0 : 0}%`, background: pl.squad.color }} /></span>
-      </button>
+      </Button>
     );
   };
   if (n.squad) {
@@ -1055,10 +1055,10 @@ function NodeCard({ n, L, nameOf, famName, today, onGo, unitName }) {
         {n.kind === 'group'
           ? n.children.map((t) => (
             <div key={t.id}>
-              <button type="button" className="sq-pillar-go is-head" onClick={() => onGo(t.id)}>
+              <Button type="button" className="sq-pillar-go is-head" onClick={() => onGo(t.id)}>
                 {`${t.layer} ${t.name}`}
                 <span>{`${t.headName ? L('squad.pillar.head', { name: t.headName }) : L('squad.pillar.noHead')} · ${L('squad.iso.count', { count: t.peopleCount })}`}</span>
-              </button>
+              </Button>
               {t.children.map(squadRow)}
             </div>
           ))
