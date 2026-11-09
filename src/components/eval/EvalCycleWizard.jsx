@@ -19,7 +19,7 @@ import Checkbox from '../shared/Checkbox.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import Toast from '../shared/Toast.jsx';
 import Stack from '../shared/Stack.jsx';
-import EvalHintTip from './EvalHintTip.jsx';
+import EvalHintTip, { joinHintSentences } from './EvalHintTip.jsx';
 import MemberAiButton from '../oneonone/MemberAiButton.jsx';
 import {
   ArrowLeftGlyph,
@@ -9004,7 +9004,7 @@ export default function EvalCycleWizard({
                   <span className="evc-field-label">
                     {L.tplConfirmTitle}
                     <EvalHintTip
-                      text={[L.tplConfirmLibraryNote, L.templateHint].filter(Boolean).join(' ')}
+                      text={joinHintSentences([L.tplConfirmLibraryNote, L.templateHint])}
                       testId="evc-tpl-confirm-hint"
                     />
                   </span>
@@ -9419,16 +9419,14 @@ export default function EvalCycleWizard({
                     <span className="evc-field-label">
                       {L.roleVersionTitle}
                       <EvalHintTip
-                        text={[
+                        text={joinHintSentences([
                           roleFromSettings ? fill(L.roleLevelsSourceHint, { count: roleLevels.length }) : '',
                           roleMode === 'uniform'
                             ? fill(L.roleUniformNote, {
                                 version: L[TEMPLATE_VERSIONS.find((v) => v.id === tplVersion)?.labelKey],
                               })
                             : '',
-                        ]
-                          .filter(Boolean)
-                          .join(' ')}
+                        ])}
                         testId="evc-tpl-role-source-hint"
                       />
                     </span>

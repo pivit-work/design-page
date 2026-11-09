@@ -2,7 +2,7 @@ import { AlertIcon, InfoIcon } from './evalIcons.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
 import Switch from '../shared/Switch.jsx';
-import EvalHintTip from './EvalHintTip.jsx';
+import EvalHintTip, { joinHintSentences } from './EvalHintTip.jsx';
 
 /**
  * EvalCycleReportSettings — 사이클 관리 › 리포트 탭 (PW-534 ㉰㉱ · 정책 §8.3 · §4.6.5).
@@ -261,7 +261,7 @@ export default function EvalCycleReportSettings({
         <h3 className="evc-card-name evrs-card-name">
           {L.timelineTitle}
           <EvalHintTip
-            text={[L.timelineHint, L.timelineFootnote].filter(Boolean).join(' ')}
+            text={joinHintSentences([L.timelineHint, L.timelineFootnote])}
             testId="evrs-timeline-tip"
           />
         </h3>
