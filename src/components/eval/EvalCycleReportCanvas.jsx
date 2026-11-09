@@ -55,7 +55,8 @@ const DEFAULT_LABELS = {
   leaderCommentLabel: '최종 코멘트',
   // PW-1594 — 하향 리뷰가 여러 차수일 때 묶음 머리. `{round}` 자리에 차수.
   leaderRoundTitle: '하향 리뷰 · {round}차',
-  peerTitle: '동료 피드백 요약 (익명)',
+  // PW-2580 — 실명 항목 답에는 작성자 이름이 붙으므로 «(익명)»을 떼었다(member §7.5 · spec §4.5.1).
+  peerTitle: '동료 피드백 요약',
   /** PW-1458 — 응답 인원이 공개 기준 미만이라 뺀 동료 항목이 있을 때 (정책 §12). */
   peerBelowMin: '응답 인원이 공개 기준 미만입니다',
   growthTitle: '성장 영역 & 개선',
@@ -150,6 +151,8 @@ function AnswerList({ answers, L }) {
           <span className="evc-field-label">
             {catLabel(a, L)}
             {answerScoreText(a) ? ` · ${answerScoreText(a)}` : ''}
+            {/* PW-2580 — 실명 항목 동료 답만 서버가 `authorName` 을 싣는다. 익명·관계만 답에는 없다. */}
+            {a.authorName ? <span data-testid="evr-answer-author">{` · ${a.authorName}`}</span> : null}
           </span>
           {/* [PW-2021] 체크·선택 답은 고른 이름을 쉼표로 — 본문이 빈 줄로 보이던 자리 */}
           {checkedAnswerText(a, L.noneChecked) ? (

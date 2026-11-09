@@ -2,6 +2,7 @@ import { useState } from 'react';
 import ModalShell from '../shared/ModalShell.jsx';
 import Skeleton from '../shared/Skeleton.jsx';
 import Button from '../shared/Button.jsx';
+import Avatar from '../shared/Avatar.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import { answerScoreText, checkedAnswerText } from './evalTemplateItemModel.js';
 
@@ -12,7 +13,12 @@ import { answerScoreText, checkedAnswerText } from './evalTemplateItemModel.js';
  * 화면을 열었다고 AI 를 부르지 않는다). 아래: 동료마다 «원본 보기» 버튼, 누르면 그 동료가 낸 원문 창.
  *
  * 작성자 이름은 서버가 정한다 — 질문의 «작성자 표기»가 실명인 동료만 `named` 로 이름·직무가 오고,
- * 나머지는 `label`(«동료 1» 같은)만 온다. 화면이 이름을 감추는 것이 아니라 애초에 안 온다.
+ * 나머지는 `label`(«동료 1»·«동료 (익명) 1» 같은)만 온다. 화면이 이름을 감추는 것이 아니라 애초에 안 온다.
+ *
+ * PW-2580 — 버튼은 «사람»이 아니라 «그 답을 쓴 항목의 작성자 표기»로 묶인다. 한 동료가 실명·익명 항목에
+ * 함께 답했으면 버튼이 둘이고 둘을 잇는 표시가 없다(리더 정책 §5.1.1). 실명 버튼은 사람 원 + 이름 + 직무.
+ * «원본 보기»는 원문을 공개하는 항목의 답이 있을 때만 붙는다 — «AI 요약으로만 공개» 답뿐인 실명 작성자는
+ * 누를 것 없이 이름만 보인다. 제목 옆 «N명 작성»은 버튼 수가 아니라 답을 낸 사람 수(`writerCount`).
  *
  * 요약 상태(`summary.status`):
  *   'none'    아직 안 만들었다 — 안내 + [요약 만들기]
@@ -24,8 +30,9 @@ import { answerScoreText, checkedAnswerText } from './evalTemplateItemModel.js';
  *   'blocked' AI 를 쓸 수 없다(체험 횟수 소진 등) — `summary.message` 를 보이고, `summary.notice`(노드)가
  *             있으면 그 아래에 그린다(결제 안내)
  *
- * @param {{ reviewers: object[], hiddenBelowMin?: number, canSummarize?: boolean, summary?: object }|null} peer
+ * @param {{ reviewers: object[], writerCount?: number, hiddenBelowMin?: number, canSummarize?: boolean, summary?: object }|null} peer
  *   reviewers: [{ key, label, named, role, submittedAt, answers: [{ id, itemCategory, growthType, itemLabel, score, textAnswer }] }]
+ *   writerCount: 답을 낸 사람 수. 없으면 `reviewers` 수
  *   hiddenBelowMin: 응답 인원이 공개 기준 미만이라 뺀 질문 수
  *   canSummarize: 요약에 넣을 답이 있는가(«AI 요약으로만 공개» 질문만 있는 경우 원본 버튼 없이도 참)
  * @param {() => void} [onGenerate]
@@ -107,6 +114,9 @@ export default function EvalLeaderPeerSummary({ peer, onGenerate, labelOf, L }) 
   if (!peer) return null;
   const reviewers = peer.reviewers || [];
   const withOriginal = reviewers.filter((r) => (r.answers || []).length > 0);
+  // 실명 작성자는 원문이 없어도(«AI 요약으로만 공개» 답뿐) 이름을 보인다. 익명·관계만은 누를 것이 없으면 뺀다.
+  const shown = reviewers.filter((r) => r.named || (r.answers || []).length > 0);
+  const writerCount = peer.writerCount ?? reviewers.length;
   const hidden = peer.hiddenBelowMin ?? 0;
   const canSummarize = peer.canSummarize ?? withOriginal.length > 0;
 
@@ -114,10 +124,10 @@ export default function EvalLeaderPeerSummary({ peer, onGenerate, labelOf, L }) 
     <section data-testid="evl-peer">
       <h3 className="evc-card-name" style={{ marginTop: 'var(--spacing-xl)' }}>
         {L.peerEvidenceTitle}
-        {reviewers.length > 0 ? (
+        {writerCount > 0 ? (
           <span className="evl-sig-sub" data-testid="evl-peer-count">
             {' '}
-            {fill(L.peerReviewerCount, { count: reviewers.length })}
+            {fill(L.peerReviewerCount, { count: writerCount })}
           </span>
         ) : null}
       </h3>
@@ -133,22 +143,42 @@ export default function EvalLeaderPeerSummary({ peer, onGenerate, labelOf, L }) 
         <SummaryBody summary={peer.summary} onGenerate={onGenerate} L={L} />
       )}
 
-      {withOriginal.length > 0 && (
+      {shown.length > 0 && (
         <ul className="evl-sig-krs" data-testid="evl-peer-reviewers">
-          {withOriginal.map((r) => (
-            <li key={r.key}>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setOpen(r)}
-                data-testid="evl-peer-reviewer"
-              >
+          {shown.map((r) => {
+            const who = (
+              <>
+                {r.named ? <Avatar name={r.label} size={20} /> : null}
                 {r.label}
                 {r.named && r.role ? ` · ${r.role}` : ''}
-                {` · ${L.peerOriginalOpen}`}
-              </Button>
-            </li>
-          ))}
+              </>
+            );
+            return (
+              <li key={r.key}>
+                {(r.answers || []).length > 0 ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setOpen(r)}
+                    data-testid="evl-peer-reviewer"
+                    data-identity={r.identity}
+                  >
+                    {who}
+                    {` · ${L.peerOriginalOpen}`}
+                  </Button>
+                ) : (
+                  // 원문이 없는 실명 작성자 — 누를 것이 없으니 버튼이 아니라 이름 줄(차수 코멘트 작성자 줄과 같은 모양).
+                  <span className="evs-round-comment-author" data-testid="evl-peer-reviewer-name-only">
+                    <Avatar name={r.label} size={20} />
+                    <span className="evs-round-comment-name">
+                      {r.label}
+                      {r.role ? ` · ${r.role}` : ''}
+                    </span>
+                  </span>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
 

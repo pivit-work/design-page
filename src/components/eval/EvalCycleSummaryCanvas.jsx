@@ -337,7 +337,8 @@ const DEFAULT_LABELS = {
   cwExclusionBanner: '이해상충 자동 제외 적용 중 — {n}명(위원 겸 대상자) 제외됨',
   cwDetailSelf: '올해 셀프 서머리',
   cwDetailManager: '매니저 코멘트',
-  cwDetailPeer: '동료 리뷰 요약(익명)',
+  // PW-2580 — 실명 항목 답에는 작성자 이름이 붙으므로 «(익명)»을 떼었다(summary §8.3.B).
+  cwDetailPeer: '동료 리뷰 요약',
   cwDetailUpward: '상향 리뷰 요약(익명)',
   cwDetailUpwardEmpty: '상향 리뷰 데이터가 없습니다.',
   cwDetailTrait: '강점 · 보완',
@@ -721,6 +722,9 @@ const DEFAULT_LABELS = {
   reAdjustedBadge: '캘리브레이션 조정됨',
   reSelfTitle: '셀프 리뷰 요약',
   rePeerTitle: '동료 리뷰 요약',
+  // PW-2580 — 동료 AI 요약 위 이름 줄(기획 시안 eval-app.jsx ReportReview). {names} = 실명 작성자를 « · »로 이은 것
+  rePeerNamedKicker: 'AI 종합 · 실명 작성자 {names} · 그 밖의 답은 이름 없이 종합',
+  rePeerAnonKicker: '익명 종합 · 작성자 비공개',
   reManagerTitle: '매니저 평가 요약',
   reCalibTitle: '캘리브레이션 결과',
   reManagerGrade: '매니저 부여 등급',
@@ -1052,11 +1056,11 @@ function CalibResultInsight({ L, insight, onRetry, onLoad }) {
   );
 }
 
-function AiSummaryText({ L, text, status, testId }) {
+function AiSummaryText({ L, text, status, testId, kicker }) {
   if (!text) return null;
   return (
     <div className={`evs-re-ai${status === 'unreviewed' ? ' is-unreviewed' : ''}`} data-testid={testId}>
-      <div className="evs-re-ai-k">{L.reAiSummary}</div>
+      <div className="evs-re-ai-k" data-testid={`${testId}-kicker`}>{kicker ?? L.reAiSummary}</div>
       <p className="evs-re-ai-text">{text}</p>
     </div>
   );
@@ -1149,8 +1153,12 @@ function leaderRoundsOf(manager) {
  * [PW-2021] 한 줄 = 한 답 — 척도 점수(만점과 함께)·체크 답의 고른 이름도 싣는다.
  */
 function AnswerLines({ answers, empty, testId, L = DEFAULT_LABELS }) {
+  // PW-2580 — 실명 항목 동료 답은 서버가 `authorName` 을 싣는다. 익명·관계만 답에는 없다.
   const texts = (answers ?? [])
-    .map((a) => answerLineText(a, { scoreLabel: L.reScore, noneLabel: L.reNoneChecked }))
+    .map((a) => {
+      const text = answerLineText(a, { scoreLabel: L.reScore, noneLabel: L.reNoneChecked });
+      return text && a.authorName ? `${a.authorName} · ${text}` : text;
+    })
     .filter(Boolean);
   if (!texts.length) return <div className="evs-cw-detail-body">{empty}</div>;
   return (
@@ -4019,14 +4027,25 @@ export default function EvalCycleSummaryCanvas({
                     )}
                   </section>
 
-                  {/* B. 동료 (익명) */}
+                  {/* B. 동료 — 이름은 그 답을 쓴 항목의 작성자 표기를 따른다(PW-2580 · summary §8.3.B) */}
                   <section className="evc-card evs-re-sec">
                     <h3 className="evc-card-name evs-re-sec-peer">{L.rePeerTitle}</h3>
-                    <AiSummaryText L={L} text={memberDetail.integratedSummary?.peerSummary} status={memberDetail.integratedSummary?.status} testId="evs-re-ai-peer" />
+                    <AiSummaryText
+                      L={L}
+                      text={memberDetail.integratedSummary?.peerSummary}
+                      status={memberDetail.integratedSummary?.status}
+                      testId="evs-re-ai-peer"
+                      kicker={
+                        memberDetail.integratedSummary?.peerNamedAuthors?.length
+                          ? fmt(L.rePeerNamedKicker, { names: memberDetail.integratedSummary.peerNamedAuthors.join(' · ') })
+                          : L.rePeerAnonKicker
+                      }
+                    />
                     {memberDetail.peer?.answers.length ? (
                       <div className="evs-re-answers">
                         {memberDetail.peer.answers.map((a) => (
                           <div className="evs-re-answer" key={a.id}>
+                            {a.authorName && <span className="evc-field-label" data-testid="evs-re-peer-author">{a.authorName}</span>}
                             {answerScoreText(a) && <span className="evs-re-score">{L.reScore} {answerScoreText(a)}</span>}
                             {checkedAnswerText(a, L.reNoneChecked) && <span className="evs-re-atext" data-testid="evs-re-checked">{checkedAnswerText(a, L.reNoneChecked)}</span>}
                             {a.textAnswer && <span className="evs-re-atext">{a.textAnswer}</span>}
