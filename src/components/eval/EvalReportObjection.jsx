@@ -83,6 +83,8 @@ export function ObjectionPanel({
   onWithdraw,
   busy = false,
   error = null,
+  /** 사유 글자 한도 — 앱이 서버 한도(INPUT_LIMITS.memberObjectionReason)를 넘긴다. */
+  reasonMaxLength,
   L,
 }) {
   const [targets, setTargets] = useState([]);
@@ -118,6 +120,7 @@ export function ObjectionPanel({
             <TextArea
               rows={4}
               value={reason}
+              maxLength={reasonMaxLength}
               placeholder={L.objectionReasonPlaceholder}
               onChange={(e) => setReason(e.target.value)}
               data-testid="evr-objection-reason"

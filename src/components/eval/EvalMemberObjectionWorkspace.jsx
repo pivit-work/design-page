@@ -73,6 +73,8 @@ function Panel({
   onEscalate,
   onAnswer,
   fmtDate,
+  interimMaxLength,
+  answerMaxLength,
   L,
 }) {
   const [interim, setInterim] = useState('');
@@ -198,6 +200,7 @@ function Panel({
               <TextArea
                 rows={2}
                 value={interim}
+                maxLength={interimMaxLength}
                 placeholder={L.interimPlaceholder}
                 onChange={(e) => setInterim(e.target.value)}
                 aria-label={L.interimTitle}
@@ -243,6 +246,7 @@ function Panel({
                 <TextArea
                   rows={4}
                   value={answer}
+                  maxLength={answerMaxLength}
                   placeholder={L.answerPlaceholder}
                   onChange={(e) => setAnswer(e.target.value)}
                   data-testid="evrr-obj-answer"
@@ -253,6 +257,7 @@ function Panel({
                   <TextArea
                     rows={5}
                     value={aiText}
+                    maxLength={answerMaxLength}
                     onChange={(e) => setAiEdited(e.target.value)}
                     data-testid="evrr-obj-ai"
                   />
@@ -314,6 +319,9 @@ export default function EvalMemberObjectionWorkspace({
   onAnswer,
   fmtDate = (iso) => String(iso ?? '').slice(0, 10),
   dueLabel = () => null,
+  /** 중간 안내·답변(AI 설명 포함) 글자 한도 — 앱이 서버 한도(INPUT_LIMITS)를 넘긴다. */
+  interimMaxLength,
+  answerMaxLength,
   labels,
 }) {
   const L = { ...OBJECTION_WORKSPACE_LABELS, ...(labels ?? {}) };
@@ -391,6 +399,8 @@ export default function EvalMemberObjectionWorkspace({
           onEscalate={onEscalate}
           onAnswer={onAnswer}
           fmtDate={fmtDate}
+          interimMaxLength={interimMaxLength}
+          answerMaxLength={answerMaxLength}
           L={L}
         />
       ) : (

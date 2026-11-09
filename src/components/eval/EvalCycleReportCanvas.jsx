@@ -443,6 +443,8 @@ export default function EvalCycleReportCanvas({
   onObjectionWithdraw,
   objectionBusy = false,
   objectionError = null,
+  /** 이의 사유 글자 한도(앱이 넘긴다). */
+  objectionReasonMaxLength,
   labels: providedLabels,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
@@ -510,6 +512,7 @@ export default function EvalCycleReportCanvas({
           onWithdraw={onObjectionWithdraw}
           busy={objectionBusy}
           error={objectionError}
+          reasonMaxLength={objectionReasonMaxLength}
           L={L}
         />
         {on('grade') && gradeKey && (
