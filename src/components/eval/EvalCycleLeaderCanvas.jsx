@@ -11,7 +11,7 @@ import Checkbox from '../shared/Checkbox.jsx';
 import { FieldInfo, FieldVisibility } from './evalFieldMeta.jsx';
 import EvalNoteBlock, { EvalMarkdownLite } from './EvalNoteBlock.jsx';
 import { isNoteItem, categoryKind, storedCategoryName, answerScoreText, checkedAnswerText } from './evalTemplateItemModel.js';
-import { AlertIcon, LockIcon, SparkleIcon, CheckCircleIcon, EyeIcon } from './evalIcons.jsx';
+import { AlertIcon, LockIcon, SparkleIcon, EyeIcon } from './evalIcons.jsx';
 import { fieldsShape, reseedKeepingEdits } from './reseedAnswers.js';
 import EvalLeaderEvidenceSignals from './EvalLeaderEvidenceSignals.jsx';
 import EvalLeaderPriorRounds from './EvalLeaderPriorRounds.jsx';
@@ -19,6 +19,7 @@ import EvalLeaderPeerSummary from './EvalLeaderPeerSummary.jsx';
 import Stack from '../shared/Stack.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import LeaderCommentPolish from './LeaderCommentPolish.jsx';
+import MemberAiButton from '../oneonone/MemberAiButton.jsx';
 import { LEADER_COMMENT_POLISH_LABELS } from './leaderCommentPolishLabels.js';
 
 /**
@@ -65,7 +66,8 @@ const DEFAULT_LABELS = {
   // PW-1842 · PW-2033 — 하향 리뷰 AI 초안(leader.policy §5.2 · §5.2.1 · §5.4)과 AI 등급 «참고» 제안(spec §17.3-A).
   aiCardTitle: 'AI 초안',
   aiCardSub: '근거 데이터로 서술 초안과 점수·등급 참고 제안을 만듭니다. 점수·등급은 직접 고릅니다.',
-  aiDraft: 'AI 초안 생성',
+  // PW-2654 — 디자이너 AI 버튼(MemberAiButton)이 «AI» 를 그리고 문구는 동작 낱말만(«초안»은 상자 제목이 말한다).
+  aiDraft: '생성',
   aiDraftAgain: 'AI 초안 다시 생성',
   aiDrafting: '생성 중…',
   aiDraftNoData: '데이터가 부족합니다. 직접 작성해주세요.',
@@ -137,6 +139,8 @@ const DEFAULT_LABELS = {
   alignButton: '정합성 검토',
   alignHint: '고른 등급의 기대 키워드가 글에 들어 있는지 봅니다 · 참고용',
   alignNeedGrade: '등급을 먼저 고르면 검토할 수 있습니다',
+  // PW-2654 — 잠긴 [정합성 검토] 옆은 짧은 꼬리, 전체 문장(alignNeedGrade)은 버튼에 마우스를 올리면.
+  alignNeedGradeShort: '등급을 고르면 열림',
   alignTitle: '평가 정합성 검토 · {grade}',
   alignVerdictMatch: '부합',
   alignVerdictPartial: '부분 부합',
@@ -180,7 +184,7 @@ const DEFAULT_LABELS = {
   evidenceRationaleLabel: '점수 근거',
   // F5 evidence + assessment
   peerEvidenceTitle: '동료 피드백 요약', // PW-2580 — 실명 답에 이름이 붙어 «(익명)»을 뗐다(앱 문구와 같게)
-  peerEvidenceEmpty: '제출된 동료 피드백이 없습니다.',
+  peerEvidenceEmpty: '없음',
   // PW-1613 — 동료 피드백 요약(`peerSummary` 를 넘겼을 때)
   peerReviewerCount: '{count}명 작성',
   peerChunkWork: '업적 관련',
@@ -203,7 +207,7 @@ const DEFAULT_LABELS = {
   peerBelowMin: '응답 인원이 공개 기준보다 적은 질문 {count}개는 보이지 않습니다.',
   // PW-1461 leader §5.1.2 · spec §4.4-B — 지난 사이클 최종 등급 추이(최근 4회)
   historyTitle: '과거 평가 추이',
-  historyEmpty: '지난 평가 이력이 아직 없습니다.',
+  historyEmpty: '없음',
   // PW-1214 근거 넷 (TC-EVAL-020)
   signalsPeriod: '평가 기간',
   signalsLoadFailed: '불러오지 못했습니다.',
@@ -213,17 +217,21 @@ const DEFAULT_LABELS = {
   signalsOkrEmpty: '개인 OKR 이 없습니다.',
   signalsKrSelf: '팀원 입력',
   signalsKrSelfNone: '팀원 입력 없음',
+  // PW-2654 — «OKR 달성도» 옆 ⓘ 에 한 번(핵심결과마다 되풀이하지 않는다).
+  signalsKrSelfNoneAll: '아래 핵심결과 모두 팀원 입력이 없습니다.',
+  signalsKrSelfNoneCount: '팀원 입력이 없는 핵심결과가 {count}개 있습니다.',
   signalsKrNote: '달성 근거',
   signalsHealthTitle: '헬스체크 12주 추이',
   signalsHealthAverage: '12주 평균',
-  signalsHealthEmpty: '헬스체크 기록이 없습니다.',
+  // PW-2654 — 칸 이름이 무엇이 없는지 말하니 빈 칸 글은 한 낱말.
+  signalsHealthEmpty: '없음',
   signalsActionsTitle: '원온원 할 일 이행률',
-  signalsActionsEmpty: '원온원 할 일이 없습니다.',
+  signalsActionsEmpty: '없음',
   signalsDone: '완료',
   signalsTotal: '전체',
   signalsSnippetTitle: '스니핏 활동량',
   signalsHighlightsTitle: '스니핏 하이라이트',
-  signalsHighlightsEmpty: '작성된 하이라이트가 없습니다',
+  signalsHighlightsEmpty: '없음',
   signalsDays: '일',
   signalsRate: '작성률',
   // PW-1461 leader §5.3.1 — 위치 일시 토글. {position} = 템플릿 기본 위치 이름
@@ -237,8 +245,8 @@ const DEFAULT_LABELS = {
   // PW-1461 leader §5.7 — 공개 대상 배지(호버 툴팁) · 빨간 안내
   committeeOnlyBadge: '상위 경영진·HR·캘리 위원회 전용',
   committeeOnlyTooltip: '상위 경영진, HR, 캘리브레이션 위원회에게만 공개됩니다.',
-  committeeOnlyHint:
-    '이 영역은 상위 경영진, HR, 캘리브레이션 위원회에만 공유됩니다. 피평가자 본인에게는 절대 공개되지 않습니다.',
+  // PW-2654 — «누구에게»는 옆 꼬리표가 말하니 문장은 «피평가자에게는 공개되지 않습니다» 만, 첫 상자에 한 번.
+  committeeOnlyHint: '피평가자에게는 공개되지 않습니다.',
   // [PW-2591 · leader.policy §5.6 · §5.6-A · spec R-16] 리더 코멘트
   leaderCommentTitle: '리더 코멘트',
   leaderCommentSub: '리포트 검수에서 조직장이 확정한 글 한 편이 팀원에게 전달됩니다',
@@ -251,7 +259,7 @@ const DEFAULT_LABELS = {
   leaderCommentOver: '최대 {max}자까지 입력 가능합니다.',
   leaderCommentSubmitBlocked: '리더 코멘트를 {max}자 이내로 줄이면 제출할 수 있습니다',
   ...LEADER_COMMENT_POLISH_LABELS,
-  confidentialLabel: '캘리브레이션 위원회 전용 코멘트 (CONFIDENTIAL)',
+  confidentialLabel: '캘리브레이션 위원회 전용 코멘트',
   confidentialPh: '캘리브레이션 위원회에 전하고 싶은 의견',
   // PW-1461 leader §5.8 — 승진·보상 세 갈래 + 사유
   promoCompTitle: '승진 · 보상 고려',
@@ -1147,15 +1155,19 @@ export default function EvalCycleLeaderCanvas({
       }))}
     />
   );
+  // PW-2654 — 위치 설명은 상단·하단 스위치 옆 ⓘ, 캘리브레이션 안내는 «최종 등급» 옆 ⓘ(커트 11-09 시안).
+  // «최종 등급은 리더가 … 직접 결정합니다»는 늘 보인다 — AI 기본법 사람 감독 장치(David 11-09 · leader.policy §5.2.1 ④).
   const gradePosNote = (
-    <span className="evl-grade-caption" data-testid="evl-grade-pos-note">
-      {fillLabel(L.gradePosNote, { position: L[GRADE_POS_LABEL_KEY[templatePos]] })}
+    <span className="evl-grade-pos-tip" data-testid="evl-grade-pos-note">
+      <FieldInfo description={fillLabel(L.gradePosNote, { position: L[GRADE_POS_LABEL_KEY[templatePos]] })} />
     </span>
   );
+  const gradeTitleTip = calibrationEnabled && L.gradeCaptionCalibOn ? (
+    <span data-testid="evl-grade-caption">
+      <FieldInfo description={L.gradeCaptionCalibOn} />
+    </span>
+  ) : null;
   const gradeCaptions = [
-    calibrationEnabled && L.gradeCaptionCalibOn && (
-      <p className="evl-grade-caption" data-testid="evl-grade-caption" key="calib">{L.gradeCaptionCalibOn}</p>
-    ),
     // PW-1842 — AI 사유 카드가 있으면 그 맨 아래 안내(「… · AI 제안 등급은 참고용입니다」)가 이 문장을 대신한다.
     !aiHint && L.gradeDecisionNote && (
       <p className="evl-grade-caption" data-testid="evl-grade-decision-note" key="decision">{L.gradeDecisionNote}</p>
@@ -1252,13 +1264,7 @@ export default function EvalCycleLeaderCanvas({
   // PW-1845 §5.3.1 — 상단고정은 «제목·등급 버튼·위치 전환만 있는 한 줄 띠»다. 안내 문장·경고까지 따라붙으면
   // 띠가 화면의 40% 를 덮어 바로 아래 의견 칸이 가려졌다. 안내·경고는 띠 바로 아래(스크롤하면 사라지는 자리)로
   // 내리고, 안내 문장은 제목 옆 (i) 말풍선으로도 본다. 상단·하단일 때는 한 카드 그대로다.
-  const gradeInfoText = [
-    calibrationEnabled && L.gradeCaptionCalibOn,
-    L.gradeDecisionNote,
-    fillLabel(L.gradePosNote, { position: L[GRADE_POS_LABEL_KEY[templatePos]] }),
-  ]
-    .filter(Boolean)
-    .join('\n');
+  // PW-2654 — 결정 안내는 띠 아래 늘 보이고 위치 설명은 스위치 옆 ⓘ 라, 제목 옆 ⓘ 는 캘리브레이션 안내만.
   /*
    * PW-1840 — 평가 정합성 검토 (leader.policy §5.3 「평가 정합성 검토 규칙」 · spec §17.3-B).
    * 검사할 글은 평가지 답(서술·사유) 전부다. 위원회 전용 코멘트·승진/보상 사유는 이 칸들이 아니라
@@ -1297,12 +1303,13 @@ export default function EvalCycleLeaderCanvas({
           className="evc-btn is-ghost"
           onClick={() => void runAlignCheck()}
           disabled={!grade || align?.status === 'loading'}
+          title={grade ? undefined : L.alignNeedGrade}
           data-testid="evl-align-run"
         >
           {L.alignButton}
         </button>
         <p className="evl-grade-caption evl-align-hint" data-testid="evl-align-hint">
-          {grade ? L.alignHint : L.alignNeedGrade}
+          {grade ? L.alignHint : L.alignNeedGradeShort || L.alignNeedGrade}
         </p>
       </div>
       {align?.status === 'failed' && (
@@ -1368,16 +1375,15 @@ export default function EvalCycleLeaderCanvas({
         <div className="evl-grade-strip" data-testid="evl-grade-strip">
           <h3 className="evc-card-name">
             {L.gradeTitle}
-            <FieldInfo description={gradeInfoText} />
+            {gradeTitleTip}
           </h3>
           {gradeButtons}
-          <div className="evl-grade-strip-pos">{gradePosSwitch}</div>
+          <div className="evl-grade-strip-pos">{gradePosSwitch}{gradePosNote}</div>
         </div>
       </section>
       <div className="evl-grade-freeze-notes" data-testid="evl-grade-freeze-notes">
         {gradeCaptions}
         {gradeWarnings}
-        {gradePosNote}
         {gradeRoundNote}
       </div>
     </>
@@ -1392,7 +1398,10 @@ export default function EvalCycleLeaderCanvas({
         {gradePosSwitch}
         {gradePosNote}
       </div>
-      <h3 className="evc-card-name">{L.gradeTitle}</h3>
+      <h3 className="evc-card-name">
+        {L.gradeTitle}
+        {gradeTitleTip}
+      </h3>
       {aiGradeCard}
       {gradeCaptions}
       {gradeWarnings}
@@ -1532,14 +1541,18 @@ export default function EvalCycleLeaderCanvas({
         <aside className="evl-evidence" data-testid="evl-evidence">
           {/* PW-1594 §5.13.3 — 2차 이후면 근거 칸 맨 위(셀프 리뷰보다 위)에 앞 차수 리뷰 */}
           {priorRoundCards}
-          <h3 className="evc-card-name">{L.evidenceTitle}</h3>
+          <h3 className="evc-card-name">
+            {L.evidenceTitle}
+            {/* PW-2654 — 아직 안 냈을 때 «제출하면 여기에 보입니다»는 미제출 문장과 겹쳐 제목 옆 ⓘ 로. */}
+            {!selfSubmitted && selfAnswers.length === 0 && <FieldInfo description={L.evidenceEmpty} />}
+          </h3>
           {!selfSubmitted && (
             <p className="evl-self-pending" data-testid="evl-self-pending">
               {L.selfNotSubmitted}
             </p>
           )}
           {selfAnswers.length === 0 ? (
-            <p className="evc-empty-sub">{L.evidenceEmpty}</p>
+            selfSubmitted && <p className="evc-empty-sub">{L.evidenceEmpty}</p>
           ) : (
             selfAnswers.map((a) => (
               <div className="evl-evi-item" key={a.id} data-testid="evl-self-item">
@@ -1609,11 +1622,12 @@ export default function EvalCycleLeaderCanvas({
           {onAiDraft && !formLocked && (
             <section className="evc-card evm-ai-card" data-testid="evl-ai-card">
               <div>
+                {/* PW-2654 — 회색 설명은 제목 옆 ⓘ 로(커트 11-09 시안). */}
                 <div className="evm-ai-card-title">
                   <SparkleIcon size={15} />
                   <span>{L.aiCardTitle}</span>
+                  <FieldInfo description={L.aiCardSub} />
                 </div>
-                <div className="evm-ai-card-sub">{L.aiCardSub}</div>
               </div>
               <div className="evc-card-buttons">
                 {(aiDraftDisabledReason || !aiDraftAvailable) && (
@@ -1621,27 +1635,15 @@ export default function EvalCycleLeaderCanvas({
                     {aiDraftDisabledReason || L.aiDraftNoData}
                   </span>
                 )}
-                <button
-                  type="button"
-                  className="evc-btn is-ghost"
-                  disabled={aiBusy || !aiDraftAvailable || !!aiDraftDisabledReason || aiTargets.length === 0}
-                  onClick={() => void handleAiDraft()}
-                  data-testid="evl-ai-draft"
-                >
-                  {aiBusy ? (
-                    L.aiDrafting
-                  ) : aiDrafted ? (
-                    <>
-                      <CheckCircleIcon size={15} />
-                      {L.aiDraftAgain}
-                    </>
-                  ) : (
-                    <>
-                      <SparkleIcon size={15} />
-                      {L.aiDraft}
-                    </>
-                  )}
-                </button>
+                <span data-testid="evl-ai-draft">
+                  {/* PW-2654 — 디자이너 1on1 «AI 생성» 버튼(MemberAiButton) 그대로. */}
+                  <MemberAiButton
+                    label={aiBusy ? L.aiDrafting : aiDrafted ? L.aiDraftAgain : L.aiDraft}
+                    pending={aiBusy}
+                    disabled={aiBusy || !aiDraftAvailable || !!aiDraftDisabledReason || aiTargets.length === 0}
+                    onClick={() => void handleAiDraft()}
+                  />
+                </span>
               </div>
               {/* 체험 AI 소진처럼 단추를 끈 이유가 왔으면 그 안내가 실패 문구를 대신한다(겹쳐 띄우지 않는다). */}
               {aiFailed && !aiDraftDisabledReason && (
@@ -1903,7 +1905,7 @@ export default function EvalCycleLeaderCanvas({
                 {L.promoCompTitle}
                 {committeeBadge('evl-committee-badge-promo')}
               </h3>
-              <p className="evl-committee-hint">{L.committeeOnlyHint}</p>
+              {/* PW-2654 — 같은 빨간 문장은 첫 상자에만. 이 상자는 꼬리표가 «누구에게»를 말한다. */}
 
               <div className="evm-field" role="radiogroup" aria-label={L.promotionStatusLabel}>
                 <span className="evc-field-label">{L.promotionStatusLabel}</span>
@@ -2061,13 +2063,16 @@ export default function EvalCycleLeaderCanvas({
                   {fillLabel(L.leaderCommentSubmitBlocked, { max: leaderCommentMax })}
                 </span>
               )}
-              {(calibrationEnabled ? L.submitCaptionCalibOn : L.submitCaptionCalibOff) && (
-                <span
-                  className={`evl-submit-caption${calibrationEnabled ? '' : ' is-calib-off'}`}
-                  data-testid="evl-submit-caption"
-                >
-                  {!calibrationEnabled && <AlertIcon size={12} />}{' '}
-                  {calibrationEnabled ? L.submitCaptionCalibOn : L.submitCaptionCalibOff}
+              {/* PW-2654 — 켠 사이클의 «제출 후 캘리브레이션 단계에서 조정 가능»은 앞 문장 옆 ⓘ.
+                  끈 사이클의 «제출한 등급이 그대로 최종» 경고는 그대로 보인다(되돌릴 수 없는 결과라). */}
+              {calibrationEnabled && L.submitCaptionCalibOn && (
+                <span className="evl-submit-tip" data-testid="evl-submit-caption">
+                  <FieldInfo description={L.submitCaptionCalibOn} />
+                </span>
+              )}
+              {!calibrationEnabled && L.submitCaptionCalibOff && (
+                <span className="evl-submit-caption is-calib-off" data-testid="evl-submit-caption">
+                  <AlertIcon size={12} /> {L.submitCaptionCalibOff}
                 </span>
               )}
               <div className="evc-card-buttons">

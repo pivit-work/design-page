@@ -14,6 +14,7 @@
  */
 
 import StatusBadge from '../shared/StatusBadge.jsx';
+import { FieldInfo } from './evalFieldMeta.jsx';
 
 const HEALTH_MAX = 10;
 
@@ -74,6 +75,23 @@ function Failed({ L, testId }) {
   );
 }
 
+/**
+ * PW-2654 — «OKR 달성도» 옆 ⓘ 글. 평균의 계산 기준 + 팀원 입력이 없는 핵심결과 수.
+ * 예전엔 평균 옆에 기준을, 핵심결과마다 «팀원 입력 없음»을 늘 적었다(커트 11-09 시안 «글을 줄인다»).
+ */
+function okrTip(okr, L) {
+  const none = okr.keyResults.filter((kr) => kr.selfAchievePct == null).length;
+  const parts = [L.signalsOkrAverage];
+  if (none > 0) {
+    parts.push(
+      none === okr.keyResults.length
+        ? L.signalsKrSelfNoneAll
+        : String(L.signalsKrSelfNoneCount || '').replace('{count}', String(none)),
+    );
+  }
+  return parts.filter((t) => t && String(t).trim()).join(' ') || null;
+}
+
 export default function EvalLeaderEvidenceSignals({ signals, L }) {
   if (!signals) return null;
   const { okr, healthTrend, oneOnOneActions, snippetActivity, snippetHighlights } = signals;
@@ -85,7 +103,13 @@ export default function EvalLeaderEvidenceSignals({ signals, L }) {
 
       {/* OKR 달성도 */}
       <section className="evl-sig-block" data-testid="evl-sig-okr">
-        <span className="evc-field-label">{L.signalsOkrTitle}</span>
+        <span className="evc-field-label">
+          {L.signalsOkrTitle}
+          {/* PW-2654 — 계산 기준과 «팀원 입력 없음»은 핵심결과마다 되풀이하지 않고 제목 옆 ⓘ 에 한 번. */}
+          {okr != null && (okr.keyResults.length > 0 || okr.averagePct != null) && (
+            <FieldInfo description={okrTip(okr, L)} />
+          )}
+        </span>
         {okr == null ? (
           <Failed L={L} testId="evl-sig-okr-failed" />
         ) : okr.keyResults.length === 0 && okr.averagePct == null ? (
@@ -94,12 +118,11 @@ export default function EvalLeaderEvidenceSignals({ signals, L }) {
           <>
             {okr.averagePct != null ? (
               <p className="evl-sig-big">
-                {okr.averagePct}%<span className="evl-sig-sub"> {L.signalsOkrAverage}</span>
+                {okr.averagePct}%
               </p>
             ) : (
               <p className="evl-sig-big" data-testid="evl-sig-okr-unentered">
                 <StatusBadge className="evc-status-badge tone-neutral">{L.signalsOkrUnentered}</StatusBadge>
-                <span className="evl-sig-sub"> {L.signalsOkrAverage}</span>
               </p>
             )}
             <ul className="evl-sig-krs">
@@ -110,11 +133,11 @@ export default function EvalLeaderEvidenceSignals({ signals, L }) {
                     <span className="evl-sig-kr-pct">{kr.progressPct}%</span>
                   </span>
                   <Bar pct={kr.progressPct} />
-                  <span className="evl-sig-self" data-testid="evl-sig-kr-self">
-                    {kr.selfAchievePct != null
-                      ? `${L.signalsKrSelf} ${kr.selfAchievePct}%`
-                      : L.signalsKrSelfNone}
-                  </span>
+                  {kr.selfAchievePct != null && (
+                    <span className="evl-sig-self" data-testid="evl-sig-kr-self">
+                      {`${L.signalsKrSelf} ${kr.selfAchievePct}%`}
+                    </span>
+                  )}
                   {kr.selfAchieveNote ? (
                     <p className="evl-evi-text" data-testid="evl-sig-kr-note">
                       {L.signalsKrNote} · {kr.selfAchieveNote}

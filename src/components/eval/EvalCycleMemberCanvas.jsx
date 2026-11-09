@@ -25,7 +25,7 @@ import {
   ArrowRightIcon,
 } from './evalIcons.jsx';
 import { fieldsShape, reseedKeepingEdits } from './reseedAnswers.js';
-import Spinner from '../shared/Spinner.jsx';
+import MemberAiButton from '../oneonone/MemberAiButton.jsx';
 
 /**
  * EvalCycleMemberCanvas — 멤버 셀프 리뷰 작성 화면.
@@ -62,10 +62,11 @@ const DEFAULT_LABELS = {
   actKrSaved: '저장되었습니다',
   actKrEmpty: '이 기간에 입력할 개인 KR이 없습니다.',
   // PW-1464 · 대상자 화면 정책 §4.2 — 셀프 리뷰 요약 박스는 비어도 칸마다 «없다»를 말한다.
-  actOneOnOneEmpty: '이 기간 1:1 기록이 없습니다',
-  actFeedbackEmpty: '이 기간 받은 피드백이 없습니다',
-  actSnippetsEmpty: '이 기간 스니핏이 없습니다',
-  actOkrEmpty: '이 기간 OKR이 없습니다',
+  // PW-2654 — 칸 이름이 무엇이 없는지 말하니 안의 글은 한 낱말.
+  actOneOnOneEmpty: '없음',
+  actFeedbackEmpty: '없음',
+  actSnippetsEmpty: '없음',
+  actOkrEmpty: '없음',
   actOkrTitle: 'OKR 달성 현황',
   // 불러오지 못한 칸은 «없다»로 말하지 않는다.
   actLoadFailed: '불러오지 못했습니다',
@@ -92,7 +93,8 @@ const DEFAULT_LABELS = {
   doneRemainingTitle: '남은 동료 리뷰 {{count}}건',
   doneAllPeerDone: '모든 동료 리뷰 완료',
   // §4.3 AI 초안 카드.
-  aiCardTitle: 'AI 초안 생성 ({{period}})',
+  // PW-2654 — 기간은 왼쪽 근거 칸이, «생성»은 버튼이 말한다. 설명은 제목 옆 ⓘ.
+  aiCardTitle: 'AI 초안',
   aiCardNoPeriod: '기간 미설정',
   aiCardSub: '상단 활동 요약을 분석해 항목별 초안을 만듭니다',
   aiDraftDone: '초안 생성 완료',
@@ -127,18 +129,22 @@ const DEFAULT_LABELS = {
   showMissing: '미작성 항목 보기',
   // [PW-2064] §4.11 ② 2단 근거 패널 제목
   evidenceSelfTitle: '근거 · 내 활동',
+  // PW-2654 — 셀프 리뷰 근거 칸은 머리에 기간만 두고, 설명과 «현재 기간 데이터만»은 제목 옆 ⓘ 로.
+  evidenceSelfTip: 'AI가 분석한 내 활동 데이터입니다. 셀프 리뷰를 쓰기 전에 참고하세요.',
+  actPeriodLine: '',
   evidencePeerTitle: '근거 · 리뷰 대상',
   // TC-135 자동저장 상태 표시
   autoSaving: '자동 저장 중…',
   autoSaved: '자동 저장됨 · {{time}}',
   saveError: '저장에 실패했습니다. 작성 내용은 유지되며, 잠시 후 다시 시도됩니다.',
-  aiPolish: 'AI 다듬기',
+  // PW-2654 — 디자이너 AI 버튼(MemberAiButton)이 «AI» 를 그리고 문구는 동작 낱말만.
+  aiPolish: '다듬기',
   aiPolishing: '다듬는 중…',
   aiError: 'AI 다듬기에 실패했습니다.',
   // §4.3 AI 초안 생성 — 빈 칸이 아니라 근거가 붙은 초안에서 시작한다.
-  aiDraft: '전체 AI 초안 생성',
+  aiDraft: '전체 생성',
   // spec-eval-cycle §4.3.4 E3 — 전체 생성과 함께 서술형 항목마다 그 항목만 만드는 단추.
-  aiDraftItem: '항목별 AI 초안 생성',
+  aiDraftItem: '항목별 초안 생성',
   aiDrafting: '초안 만드는 중…',
   // feedback-ai-spec §8.3 실패 문구 그대로.
   aiDraftError: 'AI 초안 생성에 실패했습니다. 직접 작성하거나 다시 시도해 주세요.',
@@ -397,6 +403,8 @@ const fill = (s, vars) => {
 const DEFAULT_SCALE_MAX = 5;
 const scaleMaxOf = (f) => f?.scaleMax || DEFAULT_SCALE_MAX;
 /** 라벨이 빈 선택지는 렌더하지 않는다 (policy §5.11-B). */
+/** PW-2654 — ⓘ 말풍선 글을 문장 여럿으로 잇는다. 빈 문장은 건너뛰고, 다 비면 ⓘ 를 그리지 않는다. */
+const joinTip = (...parts) => parts.filter((t) => t && String(t).trim()).join(' ') || null;
 const filledOptions = (f) => (f?.options || []).filter((o) => o.label?.trim());
 const selectedOptions = (v) => v?.checkedOptions?.selected ?? [];
 /** 복수 허용이 꺼져 있으면 라디오처럼 하나만 남긴다. */
@@ -1013,10 +1021,17 @@ export default function EvalCycleMemberCanvas({
         if (blocks.length === 0 && krList.length === 0) return null;
         return (
             <section className="evm-activity" data-testid="evm-activity">
-              <div className="evm-activity-head">
-                <div className="evm-activity-title">{L.actTitle}</div>
-                <div className="evm-activity-sub">{L.actSub}</div>
-              </div>
+              {selfReview && L.actPeriodLine ? (
+                /* PW-2654 — 셀프 리뷰는 머리에 기간만. 설명은 «근거 · 내 활동» 옆 ⓘ 에 있다. */
+                <div className="evm-activity-head">
+                  <div className="evm-activity-period" data-testid="evm-activity-period">{L.actPeriodLine}</div>
+                </div>
+              ) : (
+                <div className="evm-activity-head">
+                  <div className="evm-activity-title">{L.actTitle}</div>
+                  <div className="evm-activity-sub">{L.actSub}</div>
+                </div>
+              )}
               <div className="evm-activity-grid">
                 {blocks.map((b) => (
                   <div className="evm-activity-block" key={b.key} data-testid={`evm-activity-${b.key}`}>
@@ -1117,12 +1132,8 @@ export default function EvalCycleMemberCanvas({
                   </div>
                 )}
               </div>
-              {selfReview && noActivityData && (
-                <div className="evm-activity-note" data-testid="evm-activity-nodata">
-                  {L.actNoData}
-                </div>
-              )}
-              {L.actPeriodNote && (
+              {/* PW-2654 — 셀프 리뷰는 맨 위 «데이터가 부족하여…» 줄 하나가 말하고, 기간 안내는 제목 옆 ⓘ 로 갔다. */}
+              {!selfReview && L.actPeriodNote && (
                 <div className="evm-activity-note" data-testid="evm-activity-period-note">
                   {L.actPeriodNote}
                 </div>
@@ -1183,39 +1194,21 @@ export default function EvalCycleMemberCanvas({
           <div className="evc-list">
             <section className="evc-card evm-ai-card" data-testid="evm-ai-card">
               <div>
+                {/* PW-2654 — 설명과 지금 못 만드는 이유는 제목 옆 ⓘ. 오른쪽에 이유 문장을 따로 두지 않는다. */}
                 <div className="evm-ai-card-title" data-testid="evm-ai-card-title">
                   <SparkleIcon size={15} />
                   <span>{fill(L.aiCardTitle, { period: aiPeriod || L.aiCardNoPeriod })}</span>
+                  <FieldInfo description={joinTip(L.aiCardSub, aiOff)} />
                 </div>
-                <div className="evm-ai-card-sub">{L.aiCardSub}</div>
               </div>
-              <div className="evc-card-buttons">
-                {aiOff && (
-                  <span className="evm-autosave" data-testid="evm-ai-draft-reason">
-                    {aiOff}
-                  </span>
-                )}
-                <button
-                  type="button"
-                  className="evc-btn is-ghost"
+              <div className="evc-card-buttons" data-testid="evm-ai-draft">
+                {/* PW-2654 — 디자이너 1on1 «AI 생성» 버튼(MemberAiButton) 그대로. */}
+                <MemberAiButton
+                  label={draftBusy === 'all' ? L.aiDrafting : draftDoneAll ? L.aiDraftDone : L.aiDraft}
+                  pending={draftBusy === 'all'}
                   disabled={!!draftBusy || emptyTextFields.length === 0 || !!aiOff}
                   onClick={() => handleAiDraft()}
-                  data-testid="evm-ai-draft"
-                >
-                  {draftBusy === 'all' ? (
-                    L.aiDrafting
-                  ) : draftDoneAll ? (
-                    <>
-                      <CheckCircleIcon size={15} />
-                      {L.aiDraftDone}
-                    </>
-                  ) : (
-                    <>
-                      <SparkleIcon size={15} />
-                      {L.aiDraft}
-                    </>
-                  )}
-                </button>
+                />
               </div>
             </section>
           </div>
@@ -1373,17 +1366,14 @@ export default function EvalCycleMemberCanvas({
                         </p>
                       )}
                       {onAiDraft && !readOnly && !aiDraftUnavailable && !state[f.key].textAnswer.trim() && !pendingDraft[f.key] && (
-                        <button
-                          type="button"
-                          className="evc-btn is-ghost evm-ai-item-draft"
-                          disabled={!!draftBusy || !!aiOff}
-                          aria-busy={draftBusy === f.key || undefined}
-                          onClick={() => handleAiDraft(f)}
-                          data-testid={`evm-ai-draft-item-${f.key}`}
-                        >
-                          {draftBusy === f.key ? <Spinner size={13} /> : <SparkleIcon size={13} />}
-                          {draftBusy === f.key ? L.aiDrafting : L.aiDraftItem}
-                        </button>
+                        <span className="evm-ai-item-draft" data-testid={`evm-ai-draft-item-${f.key}`}>
+                          <MemberAiButton
+                            label={draftBusy === f.key ? L.aiDrafting : L.aiDraftItem}
+                            pending={draftBusy === f.key}
+                            disabled={!!draftBusy || !!aiOff}
+                            onClick={() => handleAiDraft(f)}
+                          />
+                        </span>
                       )}
                       {draftError === f.key && (
                         <p className="evm-field-error" data-testid={`evm-ai-draft-error-${f.key}`}>
@@ -1566,23 +1556,24 @@ export default function EvalCycleMemberCanvas({
                 </span>
               )}
               {onAiDraft && !selfReview && aiDraftAllButton && (
-                <button
-                  type="button"
-                  className="evc-btn is-ghost"
-                  disabled={!!draftBusy || emptyTextFields.length === 0 || !!aiDraftDisabledReason}
-                  aria-busy={draftBusy === 'all' || undefined}
-                  onClick={() => handleAiDraft()}
-                  data-testid="evm-ai-draft"
-                >
-                  {draftBusy === 'all' ? <Spinner size={15} /> : <SparkleIcon size={15} />}
-                  {draftBusy === 'all' ? L.aiDrafting : L.aiDraft}
-                </button>
+                <span data-testid="evm-ai-draft">
+                  {/* PW-2654 — 셀프 리뷰 AI 상자와 같은 디자이너 AI 버튼(상향 리뷰 하단 줄). */}
+                  <MemberAiButton
+                    label={draftBusy === 'all' ? L.aiDrafting : L.aiDraft}
+                    pending={draftBusy === 'all'}
+                    disabled={!!draftBusy || emptyTextFields.length === 0 || !!aiDraftDisabledReason}
+                    onClick={() => handleAiDraft()}
+                  />
+                </span>
               )}
               {onAiPolish && (
-                <button type="button" className="evc-btn is-ghost" disabled={aiBusy} onClick={handleAiPolish} data-testid="evm-ai-polish">
-                  {!aiBusy && <SparkleIcon size={15} />}
-                  {aiBusy ? L.aiPolishing : L.aiPolish}
-                </button>
+                <span data-testid="evm-ai-polish">
+                  <MemberAiButton
+                    label={aiBusy ? L.aiPolishing : L.aiPolish}
+                    pending={aiBusy}
+                    onClick={handleAiPolish}
+                  />
+                </span>
               )}
               <button
                 type="button"
@@ -1794,7 +1785,12 @@ export default function EvalCycleMemberCanvas({
       {twoPane ? (
         <div className="evl-2pane evm-2pane">
           <aside className="evl-evidence" data-testid="evm-evidence">
-            <h3 className="evc-card-name">{evidenceTitle}</h3>
+            <h3 className="evc-card-name">
+              {evidenceTitle}
+              {!selfReference && selfReview && (
+                <FieldInfo description={joinTip(L.evidenceSelfTip, L.actPeriodNote)} />
+              )}
+            </h3>
             {evidenceNode}
           </aside>
           <div className="evl-form">{formBody}</div>

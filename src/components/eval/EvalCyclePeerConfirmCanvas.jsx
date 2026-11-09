@@ -6,6 +6,7 @@ import { ChevronRightIcon } from './evalIcons.jsx';
 import SearchSelect from '../shared/SearchSelect.jsx';
 import RetiringTag from './RetiringTag.jsx';
 import { isEnterKey } from '../shared/enterKey.js';
+import { FieldInfo } from './evalFieldMeta.jsx';
 
 /**
  * EvalCyclePeerConfirmCanvas — 동료 리뷰어 확정 (리더 게이트, 신규).
@@ -39,8 +40,11 @@ const DEFAULT_LABELS = {
   title: '동료 리뷰어 확정',
   // 리더 정책 §6.0-A — 전용 화면 상단 복귀 버튼(PW-1469). `onBack` 이 없으면 그리지 않는다.
   back: '팀 평가 관리',
-  subtitle: 'AI·본인·HR이 추천한 동료 리뷰어를 검토하고, 가감 후 최종 확정하세요.',
-  // 리더 정책 §6.0 — 동료 리뷰 = 피드백 전용
+  // PW-2654 — 제목 아래는 지금 할 일에 걸리는 한 문장(앱은 단계 안내를 넘긴다). 비면 그리지 않는다.
+  subtitle: '',
+  // PW-2654 — 추천 출처·제외 규칙은 제목 옆 ⓘ (커트 11-09 시안).
+  titleTip: 'AI·본인·HR이 추천한 동료 리뷰어를 검토하고, 가감 후 최종 확정하세요.',
+  // 리더 정책 §6.0 — 동료 리뷰 = 피드백 전용. PW-2654 — 늘 보이는 배너가 아니라 제목 옆 ⓘ (leader.policy §6.0 덧붙임 · David 11-09).
   feedbackOnlyNotice: '',
   emptyTitle: '확정할 대상이 없습니다',
   emptySub: '피평가자별 동료 리뷰어 후보를 추가해 주세요.',
@@ -296,10 +300,10 @@ function PeerGroupCard({
           {group.evaluatee.job && <span className="evp-nominee-job">{group.evaluatee.job}</span>}
           <span className="evc-pending" data-testid="evp-peer-off-badge">{L.peerOffNotTarget}</span>
         </div>
-        <div className="evc-wiz-soft-warn" data-testid="evp-peer-off">
+        {/* PW-2654 — 굵은 문장만 늘 보이고, 왜 바꿀 수 없는지는 옆 ⓘ (커트 11-09 시안). */}
+        <div className="evc-wiz-soft-warn evp-peer-off" data-testid="evp-peer-off">
           <strong>{L.peerOffTitle}</strong>
-          <br />
-          {L.peerOffSub}
+          <FieldInfo description={L.peerOffSub} />
         </div>
       </section>
     );
@@ -575,17 +579,16 @@ export default function EvalCyclePeerConfirmCanvas({
             </div>
           )}
           <div>
-            <h1 className="evc-title">{L.title}</h1>
-            <p className="evc-summary">{L.subtitle}</p>
+            <h1 className="evc-title evp-title">
+              {L.title}
+              <span className="evp-title-tip" data-testid="evp-title-tip">
+                <FieldInfo description={[L.titleTip, L.feedbackOnlyNotice].filter(Boolean).join(' ') || null} />
+              </span>
+            </h1>
+            {L.subtitle && <p className="evc-summary" data-testid="evp-subtitle">{L.subtitle}</p>}
           </div>
         </Stack>
       </header>
-
-      {L.feedbackOnlyNotice && (
-        <div className="evc-list">
-          <p className="evx-notice" data-testid="evp-feedback-only">{L.feedbackOnlyNotice}</p>
-        </div>
-      )}
 
       {notice && <div className="evc-list">{notice}</div>}
 
