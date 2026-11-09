@@ -380,8 +380,8 @@
 .ai-due-editor {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
 }
 
 /* 마감 칩 `.ai-deadline` 은 1on1 화면과 함께 쓰는 공용 부품이 되어 status-badge.css 로 옮겼다 (PW-2471). */
