@@ -8176,6 +8176,14 @@ button.evm-ai-source {
   flex-wrap: wrap;
   gap: var(--spacing-sm);
 }
+/* 답 글 — 긴 글은 줄을 넘겨 칸 안에서 줄바꿈된다 */
+.evs-qa-text {
+  min-width: 0;
+}
+/* 위원회 논의 카드 — 좁은 단 안에서 목록·입력칸이 카드 폭을 넘지 않게 */
+.evs-cw-detail-comments {
+  min-width: 0;
+}
 .evs-qa-who {
   font-weight: 600;
   color: var(--text-primary);
