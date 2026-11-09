@@ -8023,41 +8023,192 @@ button.evm-ai-source {
 }
 
 /* §4.5 R5 상세 3단 박스 + 논의 코멘트 */
-.evs-cw-detail-3col {
-  display: grid;
-  grid-template-columns: 0.9fr 1.4fr 1.1fr;
-  gap: 14px;
-  align-items: start;
-}
-.evs-cw-detail-profile {
-  background: var(--bg-secondary);
-  border-radius: 8px;
-  padding: 12px 14px;
-}
 .evs-cw-detail-profile-name {
   font-size: 13px;
   font-weight: 800;
   color: var(--text-primary);
 }
+
+/* PW-2655 — 펼친 상세: 회색 판 위에 맨 위 사람 카드 + 왼쪽 넓은 단 · 오른쪽 좁은 단의 흰 카드(spec-calibration §4.5 끝 덧붙임).
+   디자이너 원본이 없어 디자이너 값을 빌렸다 — 회색 판·카드 안쪽은 1on1 숫자 카드(.ono-kpi-card · stesslee 47210785),
+   이름은 1on1 구성원 이름(.ono-add-modal-member-name 18/28 700), 질문 이름은 숫자 카드 이름표(.ono-kpi-label 12 600),
+   답 글은 주간 리포트 요약(.report-row-summary 14/22), 점수 딱지는 매니저 대시보드 점수(.mgr-ts-score)의 모양을 회색으로. */
+.evs-cw-detail.evs-cw-detail-board {
+  background: var(--bg-quaternary);
+  border: 0;
+  border-radius: var(--radius-2xl);
+  padding: var(--spacing-xl);
+  gap: var(--spacing-xl);
+}
+.evs-cw-detail-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-2xl);
+  padding: var(--spacing-xl) var(--spacing-3xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  min-width: 0;
+}
+.evs-cw-detail-person {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-2xl);
+  padding: var(--spacing-xl) var(--spacing-3xl);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-3xl);
+  flex-wrap: wrap;
+}
+.evs-cw-detail-person-avatar {
+  flex: none;
+}
+.evs-cw-detail-person-who {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-xxs);
+  min-width: 140px;
+}
+.evs-cw-detail-person .evs-cw-detail-profile-name {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 28px;
+}
+.evs-cw-detail-person .evs-cw-timeline {
+  margin: 0;
+}
+.evs-cw-detail-person .evs-cw-exclude-btn {
+  margin-left: auto;
+}
+.evs-cw-detail-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+  gap: var(--spacing-xl);
+  align-items: start;
+}
+.evs-cw-detail-main,
+.evs-cw-detail-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+  min-width: 0;
+}
+.evs-cw-card-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 24px;
+  color: var(--text-primary);
+}
+.evs-cw-sec-title {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+/* 위원회 전용 · 구성원 비공개 — 매니저 코멘트 칸 안의 회색 상자 */
+.evs-cw-confidential-box {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-lg) var(--spacing-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+/* 답 줄 — 묶음(성과·역량·성장) 사이 가는 선, 줄마다 «질문 이름 | 답» */
+.evs-qa {
+  display: flex;
+  flex-direction: column;
+}
+.evs-qa-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg) 0;
+}
+.evs-qa-group:first-child {
+  padding-top: 0;
+}
+.evs-qa-group:last-child {
+  padding-bottom: 0;
+}
+.evs-qa-group + .evs-qa-group {
+  border-top: 1px solid var(--border-secondary);
+}
+.evs-qa-group-name {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--text-tertiary);
+}
+.evs-qa-row {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr);
+  gap: var(--spacing-xl);
+  align-items: baseline;
+}
+.evs-qa-q {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 22px;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+.evs-qa-a {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+.evs-qa-a > li {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+.evs-qa-who {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.evs-qa-score {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--spacing-xxs) var(--spacing-md);
+  border-radius: var(--radius-full);
+  background: var(--utility-gray-50);
+  border: 1px solid var(--utility-gray-200);
+  color: var(--utility-gray-700);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+}
 .evs-cw-detail-profile-role {
   font-size: 12px;
   color: var(--text-secondary);
-  margin: 2px 0 10px;
 }
 .evs-cw-detail-facts {
   margin: 0;
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: var(--spacing-md) var(--spacing-3xl);
 }
 .evs-cw-detail-facts > div {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--spacing-xxs);
 }
 .evs-cw-detail-facts dt {
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-secondary);
 }
 .evs-cw-detail-facts dd {
@@ -8065,22 +8216,31 @@ button.evm-ai-source {
   font-size: var(--font-size-text-xs);
   color: var(--text-primary);
 }
-.evs-cw-detail-mid {
+.evs-cw-sec-toggle {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  align-items: center;
+  gap: var(--spacing-xs);
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+.evs-cw-detail-sec-all {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-xs);
+}
+/* 변경 로그는 오른쪽 좁은 단 카드 안 — 위 줄 테두리 대신 카드가 칸을 가른다. */
+.evs-cw-detail-card.evs-cw-detail-logs {
+  border-top: 1px solid var(--border-secondary);
+  padding-top: var(--spacing-xl);
 }
 .evs-cw-detail-block {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-}
-.evs-cw-detail-comments {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  border-left: 1px solid var(--border-primary);
-  padding-left: 14px;
+  gap: var(--spacing-xxs);
 }
 /* PW-2190 간격 — 좁은 오른쪽 칸이고 160px 에서 스크롤되므로 기준(사이 12 · 안쪽 12 16)보다 한 단계 덜 넓힌다 */
 .evs-cw-comment-list {
@@ -8132,10 +8292,6 @@ button.evm-ai-source {
   align-self: flex-end;
   font-size: 12px;
   padding: 4px 12px;
-}
-.evs-cw-comment-readonly {
-  font-size: 12px;
-  color: var(--text-secondary);
 }
 
 /* §9.1 R7 승진 2축 마킹 */
@@ -8194,49 +8350,12 @@ button.evm-ai-source {
   gap: 4px;
   margin-left: auto;
 }
-.evs-cw-sec-toggle {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  width: 100%;
-  padding: 0;
-  border: 0;
-  background: none;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-.evs-cw-detail-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-/* 칩 하나 = «이름 값» 한 덩어리. 딱지(둥근 바탕)로 칠하지 않는다 — 딱지 생김새는 status-badge.css 한 곳(PW-840). */
-.evs-cw-detail-stat {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: var(--font-size-text-xs);
-  color: var(--text-secondary);
-}
-.evs-cw-detail-sec-all {
-  display: flex;
-  justify-content: flex-end;
-  gap: 4px;
-  margin-top: 8px;
-}
 .evs-cw-comment-at {
   margin-left: 6px;
   font-size: var(--font-size-text-xs);
   color: var(--text-secondary);
 }
 
-.evs-cw-detail-profile-level {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin-bottom: 8px;
-}
 
 /* R9 myRole 배지 (조견표) */
 .evs-cw-myrole {
@@ -9710,6 +9829,12 @@ button.evm-ai-source {
    키워드 칸은 안내 문구(「…정합성 검토 기준」)가 잘리지 않게 조금 넓다. */
 .evc-tpl-grade {
   grid-template-columns: 20px 16px 100px 1fr 1.25fr 72px auto;
+}
+/* PW-2655 등급 줄 위 머리 한 번 — 이름 · 설명 · 기대 키워드(+ⓘ). 칸 이름표와 같은 글씨(.evc-field-label 12). */
+.evc-tpl-grade-head {
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
 }
 /* PW-1840 기대 키워드 21개 이상 — 그 칸 바로 아래 줄에 비율 합 경고와 같은 빨간 작은 글씨 */
 .evc-tpl-grade-kw-over {

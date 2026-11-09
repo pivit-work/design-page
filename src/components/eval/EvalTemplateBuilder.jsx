@@ -2,6 +2,7 @@ import EvalTemplateItemSettings from './EvalTemplateItemSettings.jsx';
 import Select from '../shared/Select.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
+import { FieldInfo } from './evalFieldMeta.jsx';
 import { useHandleReorder } from './useHandleReorder.js';
 import { MAX_GRADE_KEYWORDS, parseGradeKeywords } from './evalGradeKeywords.js';
 import { gradeRatioOk } from './evalTemplateGradeRules.js';
@@ -107,8 +108,30 @@ export function EvalTemplateGradeRows({
     count: grades.length,
     onReorder,
   });
+  // PW-2655 — 칸 안 안내(«기대 키워드 — 쉼표로 구분 · …»)는 좁은 칸에서 잘렸다. 칸 안은 그 등급의 짧은 예시,
+  // 등급 줄 위에 «이름 · 설명 · 기대 키워드» 머리 한 번, 쓰는 법은 머리의 ⓘ(hr.policy §5.4.5 «자리» 덧붙임 · David 11-09).
+  // 예시는 기본 등급 이름일 때만 그 등급 것, 이름을 바꾼 등급은 공통 예시.
+  const keywordsPlaceholderOf = (g) => {
+    const name = String(g.label ?? '').trim();
+    const hit = ['Top', 'Mid', 'Low'].find((k) => name && L[`gradeKeywordsEx${k}Grade`] === name);
+    return (hit && L[`gradeKeywordsEx${hit}`]) || L.gradeKeywordsPlaceholder;
+  };
   return (
     <div className="evc-tpl-grades" ref={bindList}>
+      {L.gradeHeadName ? (
+        <div className="evc-tpl-grade evc-tpl-grade-head" data-testid={`${testPrefix}-head`}>
+          <span />
+          <span />
+          <span>{L.gradeHeadName}</span>
+          <span>{L.gradeHeadDesc}</span>
+          <span>
+            {L.gradeHeadKeywords}
+            <span data-testid={`${testPrefix}-keywords-info`}>
+              <FieldInfo description={L.gradeKeywordsHelp} />
+            </span>
+          </span>
+        </div>
+      ) : null}
       {grades.map((g, i) => (
         <div
           key={i}
@@ -145,8 +168,8 @@ export function EvalTemplateGradeRows({
           <input
             className={`evc-input${keywordsOver(g) ? ' is-invalid' : ''}`}
             value={g.keywords ?? ''}
-            placeholder={L.gradeKeywordsPlaceholder}
-            aria-label={L.gradeKeywordsPlaceholder}
+            placeholder={keywordsPlaceholderOf(g)}
+            aria-label={L.gradeHeadKeywords || L.gradeKeywordsPlaceholder}
             onChange={(e) => onUpdate(i, 'keywords', e.target.value)}
             data-testid={`${testPrefix}-keywords-${i}`}
           />
@@ -301,6 +324,12 @@ export function EvalTemplateAddRow({
           ))}
         </Select>
       )}
+      {/* PW-2655 — «만든 뒤에는 유형을 바꿀 수 없습니다 — 지금 정해 주세요.»는 유형 고르기 칸 옆 ⓘ(hr.policy §5.11-E 덧붙임). */}
+      {typeOptions && L.typeFixedNote && (
+        <span data-testid={`${testPrefix}-add-type-fixed-note`}>
+          <FieldInfo description={L.typeFixedNote} />
+        </span>
+      )}
       <button
         type="button"
         className="evc-btn is-ghost"
@@ -320,11 +349,6 @@ export function EvalTemplateAddRow({
           {icon}
           {L.addNote}
         </button>
-      )}
-      {typeOptions && L.typeFixedNote && (
-        <span className="evc-tpl-set-note" data-testid={`${testPrefix}-add-type-fixed-note`}>
-          {L.typeFixedNote}
-        </span>
       )}
     </div>
   );

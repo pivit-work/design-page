@@ -17,11 +17,13 @@ import Avatar from '../shared/Avatar.jsx';
 import LoadingState from '../shared/LoadingState.jsx';
 import DateInput from '../shared/DateInput.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
-import { scaleMaxOf, answerScoreText, checkedAnswerText, answerLineText } from './evalTemplateItemModel.js';
+import { scaleMaxOf, answerScoreText, checkedAnswerText, answerLineText, categoryKind, storedCategoryName } from './evalTemplateItemModel.js';
 import { leaderGradeMarks } from './evalLeaderLive.js';
 import { pickParticle } from '../shared/koreanParticle.js';
 import Select from '../shared/Select.jsx';
+import Button from '../shared/Button.jsx';
 import { isEnterKey } from '../shared/enterKey.js';
+import { FieldInfo } from './evalFieldMeta.jsx';
 
 /**
  * 탭이 열리는 사이클 단계 (요약 정책 §3). 통합 요약·캘리브레이션 워크스페이스는 캘리브레이션부터,
@@ -82,7 +84,7 @@ const DEFAULT_LABELS = {
     '평가 사이클 설정(3단계 단계별 일정)에서 캘리브레이션 단계가 꺼져 있어, 하향 리뷰에서 제출된 등급이 조정 없이 그대로 최종 등급이 되었습니다. 조정 건수·전후 분포 비교·위원회 조정 이력은 생성되지 않습니다.',
   calibOffCta: '사이클 설정 열기',
   calibReleasedBanner: '이 사이클은 진행 중 캘리브레이션이 해제되었습니다.',
-  cwSessionsTitle: '내가 초대된 캘리브레이션 세션',
+  cwSessionsTitle: '내 캘리브레이션 세션',
   cwNoSessions: '참여할 캘리브레이션이 없습니다',
   cwNoSessionsSub: '현재 사이클에서 초대된 세션이 없습니다. HR Admin이 세션에 초대하면 이 목록에 표시됩니다.',
   cwSessionMeta: '대상자 {members}명 · 위원 {committee}명',
@@ -92,7 +94,8 @@ const DEFAULT_LABELS = {
   cwRoleChair: '위원장',
   cwRoleMember: '위원',
   cwRoleHrView: '참관(HR)',
-  cwCreateLevelLabel: '레벨 · 직급 (복수 선택, 미선택=전 레벨)',
+  cwCreateLevelLabel: '레벨 · 직급',
+  cwCreateLevelHint: '여러 개 고를 수 있고, 안 고르면 전 레벨입니다.',
   cwOpen: '→ 열기',
   cwStatusDraft: '예정',
   cwStatusInProgress: '진행 중',
@@ -131,6 +134,9 @@ const DEFAULT_LABELS = {
   cwTrendEmpty: '이력 없음',
   // §4.5 상세 요약 칩 — 사이클 기간 개인 OKR 진행률 평균.
   cwOkrChip: 'OKR 달성률 {pct}',
+  cwOkrLabel: 'OKR 달성률',
+  // PW-2655 — 펼친 상세 답 묶음 이름. 평가지에 사람이 지은 분류 이름이 있으면 그 이름이 이긴다.
+  cwCatNames: { work_achievement: '성과', competency: '역량', growth: '성장' },
   cwExpandAll: '모두 펼치기',
   cwSecExpandAll: '이 대상자 모두 펼치기',
   cwSecCollapseAll: '이 대상자 모두 접기',
@@ -303,7 +309,7 @@ const DEFAULT_LABELS = {
   cwPresetBarLabel: '프리셋',
   cwPresetBarPlaceholder: '프리셋 적용',
   cwInboxTitle: '어필 재검토 인박스',
-  cwInboxEmpty: '재검토 대기 중인 어필이 없습니다. 확정 후 매니저가 이의를 제기하면 여기에 표시됩니다.',
+  cwInboxEmpty: '재검토 대기 어필 없음',
   cwAppealPending: '재검토 대기',
   // PW-1612 — 위원이 1인 재검토 화면을 연 뒤의 이의(기획서 이의 상태 reviewing).
   cwAppealReviewing: '재검토 중',
@@ -340,7 +346,7 @@ const DEFAULT_LABELS = {
   // PW-2580 — 실명 항목 답에는 작성자 이름이 붙으므로 «(익명)»을 떼었다(summary §8.3.B).
   cwDetailPeer: '동료 리뷰 요약',
   cwDetailUpward: '상향 리뷰 요약(익명)',
-  cwDetailUpwardEmpty: '상향 리뷰 데이터가 없습니다.',
+  cwDetailUpwardEmpty: '—',
   cwDetailTrait: '강점 · 보완',
   cwDetailTimeline: '직급·레벨 변동',
   cwTimelineEmpty: '직급 변동 이력 없음',
@@ -368,7 +374,7 @@ const DEFAULT_LABELS = {
   cwDetailProfile: '프로필',
   cwDetailPerf: '성과 요약',
   cwCommentsTitle: '위원회 논의',
-  cwCommentsEmpty: '아직 논의 코멘트가 없습니다.',
+  cwCommentsEmpty: '—',
   cwCommentsFailed: '논의 코멘트를 불러오지 못했습니다. 접었다 다시 펼치면 다시 불러옵니다.',
   cwCommentPlaceholder: '조정 근거·이견을 입력…',
   cwCommentSubmit: '코멘트 등록',
@@ -377,18 +383,17 @@ const DEFAULT_LABELS = {
   cwCommentAuthorFallback: '위원',
   cwCreateBtn: '＋ 위원회 생성',
   cwCreateTitle: '캘리브레이션 위원회 생성',
-  cwCreateDesc: '① 평가 대상자(조직) 선택 → ② 참여 위원 지정. HR 준비 · 조정·확정 권한은 위원회.',
+  cwCreateDesc: '① 평가 대상자(조직)를 고르고 ② 참여 위원을 지정합니다. HR 이 준비하고, 조정·확정은 그 세션의 위원장이 합니다.',
   cwCreateNameLabel: '제목',
   cwCreateNamePlaceholder: '예: Engineering 팀장급 캘리브레이션',
   // PW-1611 — 개최 날짜(선택). 상태(예정/진행 중)와는 엮지 않는 «언제 모이나» 표시다.
   cwCreateDateLabel: '개최 날짜 (선택)',
   cwCreateDateHint: '비워 두면 «날짜 미정»으로 보입니다. 위원 관리에서 나중에 바꿀 수 있습니다.',
-  cwCreateTargetLabel: '① 평가 대상자 · 조직 (복수 선택)',
-  cwCreateTargetHint: '선택 조직의 대상자가 자동 매핑됩니다. 대상 인원은 생성 후 조견표에 표시됩니다.',
+  cwCreateTargetLabel: '① 평가 대상자 · 조직',
+  cwCreateTargetHint: '여러 개 고를 수 있습니다. 고른 조직의 대상자가 자동으로 들어가고, 대상 인원은 만든 뒤 표에서 확인할 수 있습니다.',
   cwCreatePreview: '예상 대상자 {n}명 (위원 제외)',
   // PW-444 — 카운트만으로는 「이 15명이 누구인지」를 볼 수 없어 개인을 뺄 수도 더할 수도 없다.
   cwCreateRosterFound: '· 검색 {n}명',
-  cwCreateRosterHint: '· 위원 본인은 대상에서 빠집니다',
   cwCreateRosterSearch: '명단에서 찾기 — 이름 · 조직 · 직급',
   cwCreateRosterEmpty: '대상자가 없습니다. 조직·직급 선택을 넓히거나 개별로 추가하세요.',
   cwCreateRosterSearchEmpty: '검색 결과가 없습니다.',
@@ -401,8 +406,8 @@ const DEFAULT_LABELS = {
   cwCreateExcludedMore: '더 보기 +{n}',
   cwCreateExcludedLess: '접기',
   cwCreateSearchReset: '검색 초기화',
-  cwCreateCommitteeLabel: '② 참여 위원 (조직장·시니어 IC)',
-  cwCreateCommitteeHint: '먼저 선택한 위원이 위원장이 됩니다.',
+  cwCreateCommitteeLabel: '② 참여 위원',
+  cwCreateCommitteeHint: '조직 구성원 중에서 고릅니다. 먼저 선택한 위원이 위원장이 됩니다.',
   cwAutoAssign: '상위 조직장 자동 지정 ({n}명)',
   cwAutoAssignHint: '대상자보다 위에 있는 조직장을 위원으로 더합니다.',
   cwAutoAssignNone: '대상자 위에 조직장이 없어 자동으로 고를 사람이 없습니다. 직접 골라 주세요.',
@@ -702,8 +707,7 @@ const DEFAULT_LABELS = {
   reSelectPrompt: '왼쪽 목록에서 피평가자를 선택하세요.',
   reNoData: '이 구성원의 통합 리뷰 요약 데이터가 아직 준비되지 않았습니다.',
   // [PW-1466] 정책 §8.4~§8.6·§13 — 통합 요약 AI 생성·검수
-  reSummaryNone: '이 구성원의 통합 리뷰 요약 데이터가 아직 준비되지 않았습니다. [AI 요약 생성] 버튼을 눌러주세요.',
-  reStatusNone: '요약 생성 필요',
+  reStatusNone: '요약 없음',
   reStatusGenerating: '생성 중…',
   reStatusUnreviewed: 'AI 초안 미확인',
   reStatusReviewed: '검수 완료',
@@ -715,7 +719,7 @@ const DEFAULT_LABELS = {
   reGenFailed: 'AI 요약 생성에 실패했습니다. 다시 시도해 주세요.',
   reRetry: '재시도',
   reNewData: '새 데이터가 추가되었습니다. 재생성을 권장합니다.',
-  rePeerFew: '동료 리뷰 데이터가 부족합니다 ({n}건). 요약의 정확도가 낮을 수 있습니다.',
+  rePeerFew: '동료 리뷰 데이터 부족({n}건) — 요약의 정확도가 낮을 수 있습니다.',
   reAiSummary: 'AI 요약',
   reUnconfirmed: '미확인',
   reFinalGrade: '최종 등급',
@@ -1134,9 +1138,6 @@ function IntegratedSummaryActions({ L, detail, status, statusLabel, failed, view
       {can && !busy && (detail.peerReviewerCount ?? 0) < 3 && (
         <div className="evs-re-alert" data-testid="evs-re-peer-few">{fmt(L.rePeerFew, { n: detail.peerReviewerCount ?? 0 })}</div>
       )}
-      {!exists && !busy && (
-        <p className="evc-empty-sub" data-testid="evs-re-summary-none">{L.reSummaryNone}</p>
-      )}
     </section>
   );
 }
@@ -1173,7 +1174,7 @@ function AnswerLines({ answers, empty, testId, L = DEFAULT_LABELS }) {
 }
 
 /** 차수 묶음 안의 비공개 의견(위원회 전용) — 차수마다 나눠 보인다. 그릴 것이 없으면 null. */
-function LeaderRoundNotes({ r, L, showCompensation }) {
+function LeaderRoundNotes({ r, L, showCompensation, boxed = false }) {
   const R = L.leaderRoundDetail || {};
   const promoLabel = { recommended: L.nbYRecommended, not_yet: L.nbYNotYet, deferred: L.nbYDeferred };
   const promoStatus = r.promotionStatus ? promoLabel[r.promotionStatus] : null;
@@ -1194,7 +1195,7 @@ function LeaderRoundNotes({ r, L, showCompensation }) {
   );
   if (!r.confidentialComment?.trim() && !r.promotionReason?.trim() && !promoStatus && !hasComp) return null;
   return (
-    <div data-testid="evs-leader-round-notes">
+    <div data-testid="evs-leader-round-notes" className={boxed ? 'evs-cw-confidential-box' : undefined}>
       <div className="evs-cw-review-k">
         <LockIcon size={12} /> {R.confidentialTitle}
       </div>
@@ -1213,26 +1214,66 @@ function LeaderRoundNotes({ r, L, showCompensation }) {
 }
 
 /**
- * [PW-2426] 상향 리뷰 답 줄 — 실명 항목 답은 쓴 팀원 이름, 익명 항목 답은 «팀원 (익명)»을 앞에 붙인다
- * (HR 정책 §5.12.3 «상향 답을 받아 보는 자리의 작성자 이름»). 읽는 차례(실명 먼저 · 익명은 제출 순서 아님)는
- * 서버가 정해 보낸다 — 여기서 다시 늘어놓지 않는다.
+ * PW-2655 — 캘리브레이션 펼친 상세의 답 줄. 답마다 왼쪽에 평가지 항목 이름(줄이지 않음), 오른쪽에 답.
+ * 점수는 둥근 «4/5» 딱지(매니저 대시보드 점수 딱지 값 · 판정 색 없이 회색). 평가지 항목 분류(성과·역량·성장)로 묶고
+ * 묶음 사이에 가는 선, 줄 순서는 평가지 항목 순서(spec-calibration §4.5 끝 덧붙임 · David 11-09).
+ * 같은 항목에 답이 여럿(동료·상향)이면 이름은 한 번, 답은 그 칸 안에 잇는다 — 같은 항목 안의 차례는 서버 순서
+ * (상향은 실명 먼저 · PW-2426). 쓴 사람은 `authorOf` 가 앞에 붙인다(동료 실명 항목 PW-2580 · 상향 PW-2426).
  */
-function UpwardAnswerLines({ answers, empty, L = DEFAULT_LABELS }) {
-  const lines = (answers ?? [])
-    .map((a) => {
-      const text = answerLineText(a, { scoreLabel: L.reScore, noneLabel: L.reNoneChecked });
-      return text ? { who: a.authorName || L.cwDetailUpwardAnonAuthor, text } : null;
-    })
-    .filter(Boolean);
-  if (!lines.length) return <div className="evs-cw-detail-body">{empty}</div>;
+function QuestionAnswerList({ answers, empty, testId, L = DEFAULT_LABELS, authorOf = (a) => a.authorName }) {
+  const rows = (answers ?? [])
+    .map((a, i) => ({ a, i, score: answerScoreText(a), text: [checkedAnswerText(a, L.reNoneChecked), a.textAnswer].filter(Boolean).join(' · ') }))
+    .filter((r) => r.score || r.text);
+  if (!rows.length) return <div className="evs-cw-detail-body">{empty}</div>;
+  const order = (a) => a.itemOrder ?? Number.MAX_SAFE_INTEGER;
+  rows.sort((x, y) => order(x.a) - order(y.a) || x.i - y.i);
+  const groups = [];
+  for (const r of rows) {
+    const gKey = categoryKind(r.a.itemCategory) ?? String(r.a.itemCategory ?? '');
+    let g = groups.find((x) => x.key === gKey);
+    if (!g) {
+      g = {
+        key: gKey,
+        name: storedCategoryName(r.a.itemCategory) ?? L.cwCatNames?.[gKey] ?? '',
+        items: [],
+      };
+      groups.push(g);
+    }
+    const iKey = r.a.templateItemId ?? r.a.itemLabel ?? `#${r.i}`;
+    let it = g.items.find((x) => x.key === iKey);
+    if (!it) {
+      it = { key: iKey, label: r.a.itemLabel ?? '', rows: [] };
+      g.items.push(it);
+    }
+    it.rows.push(r);
+  }
   return (
-    <ul className="evs-answer-lines" data-testid="evs-cw-upward-answers">
-      {lines.map((l, i) => (
-        <li key={i}>
-          <span data-testid="evs-cw-upward-author">{l.who}</span> · {l.text}
-        </li>
+    <div className="evs-qa" data-testid={testId}>
+      {groups.map((g) => (
+        <div className="evs-qa-group" key={g.key} data-testid="evs-qa-group">
+          {g.name ? <div className="evs-qa-group-name">{g.name}</div> : null}
+          {g.items.map((it) => (
+            <div className="evs-qa-row" key={it.key} data-testid="evs-qa-row">
+              <div className="evs-qa-q" data-testid="evs-qa-q">{it.label}</div>
+              <ul className="evs-qa-a">
+                {it.rows.map((r) => {
+                  const who = authorOf(r.a);
+                  return (
+                    <li key={r.i}>
+                      {who ? <span className="evs-qa-who">{who}</span> : null}
+                      {r.score ? (
+                        <span className="evs-qa-score" data-testid="evs-qa-score">{r.score}</span>
+                      ) : null}
+                      {r.text ? <span className="evs-qa-text">{r.text}</span> : null}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
+        </div>
       ))}
-    </ul>
+    </div>
   );
 }
 
@@ -1258,7 +1299,7 @@ function LeaderRoundGap({ r, R, className = 'evs-cw-detail-body' }) {
  * 답변 글씨는 원본 16px 대신 14px(상세 열이 좁다). 그 차수의 비공개 의견은 댓글 안에 둔다.
  * `grades` 는 위가 먼저인 등급 목록({ gradeKey }[]) — 모르면 딱지가 회색이다.
  */
-function LeaderRoundsDetail({ rounds, L, grades, showCompensation = false }) {
+function LeaderRoundsDetail({ rounds, L, grades, showCompensation = false, questionNames = false }) {
   const R = L.leaderRoundDetail || {};
   const sorted = [...rounds].sort((a, b) => a.round - b.round);
   return (
@@ -1294,7 +1335,15 @@ function LeaderRoundsDetail({ rounds, L, grades, showCompensation = false }) {
               </div>
             </div>
             <div className="evs-round-comment-body">
-              <AnswerLines answers={r.answers} empty={L.cwDetailEmpty} testId="evs-leader-round-answers" L={L} />
+              {/* PW-2655 — 캘리브레이션 펼친 상세는 답마다 질문 이름. 위원회에 공개된 답이 없어도 위원회 전용 코멘트가 있으면
+                  작성자 줄과 그 상자만 보인다(§4.5-A-2 4번). 통합 요약은 종전 한 줄씩. */}
+              {questionNames ? (
+                r.answers?.length || !r.confidentialComment?.trim() ? (
+                  <QuestionAnswerList answers={r.answers} empty={L.cwDetailEmpty} testId="evs-leader-round-answers" L={L} />
+                ) : null
+              ) : (
+                <AnswerLines answers={r.answers} empty={L.cwDetailEmpty} testId="evs-leader-round-answers" L={L} />
+              )}
               {/* [PW-2591 · spec-calibration §20.2 · R-13] 그 차수가 제출한 리더 코멘트 — 리포트 검수에서 고쳐도 그대로. */}
               {r.leaderComment?.trim() ? (
                 <div data-testid="evs-leader-round-comment">
@@ -1302,7 +1351,7 @@ function LeaderRoundsDetail({ rounds, L, grades, showCompensation = false }) {
                   <div className="evs-cw-detail-body">{r.leaderComment}</div>
                 </div>
               ) : null}
-              <LeaderRoundNotes r={r} L={L} showCompensation={showCompensation} />
+              <LeaderRoundNotes r={r} L={L} showCompensation={showCompensation} boxed={questionNames} />
             </div>
           </div>
         );
@@ -1356,13 +1405,14 @@ function DetailSectionHead({ open, onToggle, testId, children }) {
   return (
     <button
       type="button"
-      className="evs-cw-review-k evs-cw-sec-toggle"
+      className="evs-cw-card-title evs-cw-sec-toggle"
       aria-expanded={open}
       onClick={onToggle}
       data-testid={testId}
     >
-      {open ? <ChevronUpIcon size={12} /> : <ChevronDownIcon size={12} />}
-      <span>{children}</span>
+      {/* PW-2655 — 칸마다 흰 카드의 제목(16 굵게) + 오른쪽 접기 꺾쇠. */}
+      <span className="evs-cw-sec-title">{children}</span>
+      {open ? <ChevronUpIcon size={16} /> : <ChevronDownIcon size={16} />}
     </button>
   );
 }
@@ -3020,6 +3070,10 @@ export default function EvalCycleSummaryCanvas({
         <div>
           <h1 className={`evc-title${titleHelp ? ' tvh-title-row' : ''}`}>
             {workspaceOnly ? L.workspaceTitle : L.title}
+            {/* PW-2655 — 늘 보이던 권한 두 줄은 세션을 열기 전 첫 화면의 제목 옆 ⓘ 로(summary §10.G.2 «권한 배너»). */}
+            {workspaceOnly && shownTab === 'calib_work' && !selectedCalibSessionId ? (
+              <span data-testid="evs-cw-banner-info"><FieldInfo description={L.cwBanner} /></span>
+            ) : null}
             {titleHelp}
           </h1>
           {workspaceOnly ? (
@@ -3941,8 +3995,10 @@ export default function EvalCycleSummaryCanvas({
           <div className="evs-re" data-testid="evs-reviewee">
             {/* 좌: 피평가자 목록 */}
             <section className="evc-card evs-re-list">
-              <h3 className="evc-card-name">{L.reListTitle}</h3>
-              <p className="evs-re-access">{L.reAccessNote}</p>
+              <h3 className="evc-card-name">
+                {L.reListTitle}
+                <span data-testid="evs-re-access-info"><FieldInfo description={L.reAccessNote} /></span>
+              </h3>
               {integrated.length === 0 ? (
                 <p className="evc-empty-sub">{L.reEmptyList}</p>
               ) : (
@@ -4175,14 +4231,8 @@ export default function EvalCycleSummaryCanvas({
         {shownTab === 'calib_work' && workspaceOnly && (
           <div className="evs-cw" data-testid="evs-calib-workspace">
             {/* PW-1928 — 위원회를 열면 권한은 제목 옆 「조회 전용」/「위원장」이 말하므로 이 줄을 걷는다. */}
-            {!selectedCalibSessionId && (
+            {!selectedCalibSessionId && nineBox && nineBox.assessedCount > 0 && (
             <div className="evs-cw-banner-row">
-              <div
-                className={`evs-cw-banner${cwBannerTone === 'brand' ? ' is-brand' : ''}`}
-                data-testid="evs-cw-banner"
-              >
-                {L.cwBanner}
-              </div>
               {/* 세션을 열면 같은 버튼이 표 위 승진 마킹 요약 줄로 옮겨 간다(§9.1). */}
               {!selectedCalibSessionId && nineBox && nineBox.assessedCount > 0 && (
                 <button
@@ -5231,11 +5281,19 @@ export default function EvalCycleSummaryCanvas({
                                       </>
                                     );
                                     // arch 조정자 표기 — 실제로 등급이 바뀐 가장 최근 기록의 사람. 모두 유지면 없다.
+                                    /* PW-2477 · hr.policy §7.C — 확정된 줄에만(확정 전 줄은 서버가 false).
+                                       PW-2655 — 늘 보이던 «담당 매니저에게 알림 발송됨»은 «조정자 …» 옆 ⓘ 로(§7.C «화면 표시» 덧붙임). */
+                                    const notifiedInfo = row.managerNotified ? (
+                                      <span data-testid="evs-cw-manager-notified">
+                                        <FieldInfo description={L.cwManagerNotified} />
+                                      </span>
+                                    ) : null;
                                     const adjusterTag = row.adjusterName ? (
                                       <span className="evs-cw-adjuster" data-testid="evs-cw-adjuster">
                                         {fmt(L.cwAdjusterBadge, { name: row.adjusterName })}
+                                        {notifiedInfo}
                                       </span>
-                                    ) : null;
+                                    ) : notifiedInfo;
                                     return (
                                       <div className="evs-cw-adjust">
                                         {calibTable.readOnly ? (
@@ -5278,12 +5336,6 @@ export default function EvalCycleSummaryCanvas({
                                           </>
                                         )}
                                         {adjusterTag}
-                                        {/* PW-2477 · hr.policy §7.C — 확정된 줄에만. 확정 전(임시 저장) 줄은 서버가 false 로 준다. */}
-                                        {row.managerNotified && (
-                                          <span className="evs-cw-adjuster" data-testid="evs-cw-manager-notified">
-                                            {L.cwManagerNotified}
-                                          </span>
-                                        )}
                                       </div>
                                     );
                                   })()}
@@ -5416,21 +5468,20 @@ export default function EvalCycleSummaryCanvas({
                                         {L.cwDetailLoading}
                                       </LoadingState>
                                     ) : (
-                                      <div className="evs-cw-detail evs-cw-detail-3col">
-                                        {/* 좌: 프로필 */}
-                                        <div className="evs-cw-detail-profile">
-                                          <div className="evs-cw-detail-profile-name">
-                                            {row.name}
-                                          </div>
-                                          <div className="evs-cw-detail-profile-role">
-                                            {(row.job || '—') + ' · ' + row.team}
-                                          </div>
-                                          {(hasRankFields(row) ? row.jobRank || row.jobLevel : row.level) ? (
-                                            <div className="evs-cw-detail-profile-level" data-testid="evs-cw-detail-profile-level">
-                                              {L.cwColLevel}: <strong><RankLevel row={row} /></strong>
+                                      <div className="evs-cw-detail evs-cw-detail-board">
+                                        {/* PW-2655 — 펼친 상세 배치(spec-calibration §4.5 끝 덧붙임 · David 11-09): 맨 위 사람 카드 한 장 +
+                                            왼쪽 넓은 단(셀프 · 매니저 · 동료 · 상향 · 강점·보완) + 오른쪽 좁은 단(논의 · 위원회 전용 · 변경 로그).
+                                            디자이너 원본이 없어 1on1 숫자 카드(.ono-kpi-card)의 회색 판·흰 카드 값을 빌렸다(design-review). */}
+                                        <div className="evs-cw-detail-person" data-testid="evs-cw-detail-person">
+                                          <Avatar name={row.name} size={40} className="evs-cw-detail-person-avatar" />
+                                          <div className="evs-cw-detail-person-who">
+                                            <div className="evs-cw-detail-profile-name">
+                                              {row.name}
                                             </div>
-                                          ) : null}
-                                          {/* §4.5 좌측 프로필의 매니저 승진 추천 배지(§9.1 매니저 축과 같은 값). */}
+                                            <div className="evs-cw-detail-profile-role">
+                                              {(row.job || '—') + ' · ' + row.team}
+                                            </div>
+                                            {/* §4.5 좌측 프로필의 매니저 승진 추천 배지(§9.1 매니저 축과 같은 값). */}
                                           {row.promotionStatus === 'recommended' ? (
                                             <span className="evs-cw-promo tone-green" data-testid="evs-cw-detail-promo">
                                               {L.cwPromoRecommended}
@@ -5440,47 +5491,33 @@ export default function EvalCycleSummaryCanvas({
                                               {L.cwPromoNotRecommended}
                                             </span>
                                           ) : null}
-                                          <button
-                                            type="button"
-                                            className="evc-btn is-ghost evs-cw-exclude-btn"
-                                            onClick={() =>
-                                              setCalibFilter((fs) => ({
-                                                ...fs,
-                                                excludeIds: [
-                                                  ...(fs.excludeIds || []),
-                                                  row.memberId,
-                                                ],
-                                              }))
-                                            }
-                                            data-testid="evs-cw-exclude-member"
-                                          >
-                                            {L.cwExcludeMember}
-                                          </button>
-                                          <dl className="evs-cw-detail-facts">
-                                            <div>
-                                              <dt>{currentGradeColLabel}</dt>
-                                              <dd>
-                                                {row.currentGradeLabel ? (
-                                                  <StatusBadge
-                                                    className={`evs-cw-badge tone-${gradeTone(row.currentGradeKey, og)}`}>
-                                                    {row.currentGradeLabel}
-                                                  </StatusBadge>
-                                                ) : (
-                                                  '—'
-                                                )}
-                                              </dd>
-                                            </div>
-                                            <div>
-                                              <dt>{L.cwColLeader}</dt>
-                                              <dd>{row.leaderName ?? '—'}</dd>
-                                            </div>
-                                            <div>
-                                              <dt>{L.cwColDates}</dt>
-                                              <dd>
-                                                {(row.hireDate ?? '—') +
-                                                  ' / ' +
-                                                  (row.promotedAt ?? L.cwNoPromotion)}
-                                              </dd>
+                                          </div>
+                                          {/* 직급·레벨·현재 등급·«1차 → 위원회»는 끌 수 없는 표 열이라 바로 위 줄에 늘 있다 — 여기서 뺀다.
+                                              팀장·입사일/승급일·과거 성과 추이는 표의 그 열을 회사가 껐을 때만 여기 남긴다(§4.5 «좌»·«중» 덧붙임). */}
+                                          <dl className="evs-cw-detail-facts" data-testid="evs-cw-detail-chips">
+                                            {!colOn('lead') && (
+                                              <div data-testid="evs-cw-detail-fact-lead">
+                                                <dt>{L.cwColLeader}</dt>
+                                                <dd>{row.leaderName ?? '—'}</dd>
+                                              </div>
+                                            )}
+                                            {!colOn('joined') && (
+                                              <div data-testid="evs-cw-detail-fact-joined">
+                                                <dt>{L.cwColDates}</dt>
+                                                <dd>
+                                                  {(row.hireDate ?? '—') + ' / ' + (row.promotedAt ?? L.cwNoPromotion)}
+                                                </dd>
+                                              </div>
+                                            )}
+                                            {!colOn('trend') && (
+                                              <div data-testid="evs-cw-detail-fact-trend">
+                                                <dt>{L.cwColTrend}</dt>
+                                                <dd><MiniSparkline trend={row.gradeTrend} domain={domain} emptyLabel={L.cwTrendEmpty} archivedPrior={row.priorTenureArchived} archivedLabel={L.cwTrendPriorArchived} /></dd>
+                                              </div>
+                                            )}
+                                            <div data-testid="evs-cw-detail-chip-okr">
+                                              <dt>{L.cwOkrLabel}</dt>
+                                              <dd>{row.okrAchievementPct == null ? '—' : `${row.okrAchievementPct}%`}</dd>
                                             </div>
                                           </dl>
                                           {/* R5b 직급·레벨 변동 타임라인 — PW-520 선택 칸 */}
@@ -5532,67 +5569,77 @@ export default function EvalCycleSummaryCanvas({
                                             )}
                                           </div>
                                           )}
-                                        </div>
-
-                                        {/* 중: 성과 요약 */}
-                                        <div className="evs-cw-detail-mid">
-                                          {/* §4.5 요약 칩 — 현재 등급 · 1차→위원회 조정 · 성과 추이 · OKR 달성률. */}
-                                          <div className="evs-cw-detail-chips" data-testid="evs-cw-detail-chips">
-                                            <span className="evs-cw-detail-stat">
-                                              {currentGradeColLabel}{' '}
-                                              {row.currentGradeLabel ? (
-                                                <StatusBadge className={`evs-cw-badge tone-${gradeTone(row.currentGradeKey, og)}`}>
-                                                  {row.currentGradeLabel}
-                                                </StatusBadge>
-                                              ) : '—'}
-                                            </span>
-                                            {adjustDirection(row, og) && (
-                                              <span className="evs-cw-detail-stat" data-testid="evs-cw-detail-chip-adjust">
-                                                {(row.currentGradeLabel ?? '—') + ' → ' + row.calibratedGradeLabel}
-                                              </span>
-                                            )}
-                                            <span className="evs-cw-detail-stat">
-                                              {L.cwColTrend}{' '}
-                                              <MiniSparkline trend={row.gradeTrend} domain={domain} emptyLabel={L.cwTrendEmpty} archivedPrior={row.priorTenureArchived} archivedLabel={L.cwTrendPriorArchived} />
-                                            </span>
-                                            <span className="evs-cw-detail-stat" data-testid="evs-cw-detail-chip-okr">
-                                              {fmt(L.cwOkrChip, {
-                                                pct: row.okrAchievementPct == null ? '—' : `${row.okrAchievementPct}%`,
-                                              })}
-                                            </span>
+                                          <button
+                                            type="button"
+                                            className="evc-btn is-ghost evs-cw-exclude-btn"
+                                            onClick={() =>
+                                              setCalibFilter((fs) => ({
+                                                ...fs,
+                                                excludeIds: [
+                                                  ...(fs.excludeIds || []),
+                                                  row.memberId,
+                                                ],
+                                              }))
+                                            }
+                                            data-testid="evs-cw-exclude-member"
+                                          >
+                                            {L.cwExcludeMember}
+                                          </button>
                                           </div>
-                                          <div className="evs-cw-detail-block">
+
+                                        <div className="evs-cw-detail-cols">
+                                        <div className="evs-cw-detail-main">
+                                          <div className="evs-cw-detail-card">
                                             <DetailSectionHead open={secOpen('self')} onToggle={() => toggleSec('self')} testId="evs-cw-sec-self">
                                               {L.cwDetailSelf}
                                             </DetailSectionHead>
                                             {secOpen('self') && (
-                                              <AnswerLines answers={detail.self?.answers} empty={L.cwDetailEmpty} testId="evs-cw-self-answers" L={L} />
+                                              <QuestionAnswerList answers={detail.self?.answers} empty={L.cwDetailEmpty} testId="evs-cw-self-answers" L={L} />
                                             )}
                                           </div>
-                                          <div className="evs-cw-detail-block">
+                                          <div className="evs-cw-detail-card">
                                             <DetailSectionHead open={secOpen('manager')} onToggle={() => toggleSec('manager')} testId="evs-cw-sec-manager">
                                               {L.cwDetailManager}
                                             </DetailSectionHead>
                                             {secOpen('manager') && leaderRoundsOf(detail.manager) ? (
-                                              <LeaderRoundsDetail rounds={leaderRoundsOf(detail.manager)} L={L} grades={roundGrades} />
+                                              <LeaderRoundsDetail rounds={leaderRoundsOf(detail.manager)} L={L} grades={roundGrades} questionNames />
                                             ) : secOpen('manager') && (
-                                              <AnswerLines answers={detail.manager?.answers} empty={L.cwDetailEmpty} testId="evs-cw-manager-answers" L={L} />
+                                              <>
+                                                {/* 위원회에 공개된 답이 없어도 위원회 전용 코멘트가 있으면 이 상자만 보인다(§4.5-A-2 4번). */}
+                                                {(detail.manager?.answers?.length || !row.confidentialComment?.trim()) ? (
+                                                  <QuestionAnswerList answers={detail.manager?.answers} empty={L.cwDetailEmpty} testId="evs-cw-manager-answers" L={L} />
+                                                ) : null}
+                                                {row.confidentialComment?.trim() ? (
+                                                  <div className="evs-cw-confidential-box" data-testid="evs-cw-manager-confidential">
+                                                    <div className="evs-cw-review-k">
+                                                      <LockIcon size={12} /> {L.leaderRoundDetail?.confidentialTitle}
+                                                    </div>
+                                                    <div className="evs-cw-detail-body">{row.confidentialComment}</div>
+                                                  </div>
+                                                ) : null}
+                                              </>
                                             )}
                                           </div>
-                                          <div className="evs-cw-detail-block">
+                                          <div className="evs-cw-detail-card">
                                             <DetailSectionHead open={secOpen('peer')} onToggle={() => toggleSec('peer')} testId="evs-cw-sec-peer">
                                               {L.cwDetailPeer}
                                             </DetailSectionHead>
                                             {secOpen('peer') && (
-                                              <AnswerLines answers={detail.peer?.answers} empty={L.cwDetailEmpty} testId="evs-cw-peer-answers" L={L} />
+                                              <QuestionAnswerList answers={detail.peer?.answers} empty={L.cwDetailEmpty} testId="evs-cw-peer-answers" L={L} />
                                             )}
                                           </div>
-                                          <div className="evs-cw-detail-block">
+                                          <div className="evs-cw-detail-card">
                                             <DetailSectionHead open={secOpen('upward')} onToggle={() => toggleSec('upward')} testId="evs-cw-sec-upward">
                                               {L.cwDetailUpward}
                                             </DetailSectionHead>
                                             {secOpen('upward') && (
-                                              <UpwardAnswerLines answers={detail.upward?.answers} empty={L.cwDetailUpwardEmpty} L={L} />
+                                              <QuestionAnswerList
+                                                answers={detail.upward?.answers}
+                                                empty={L.cwDetailUpwardEmpty}
+                                                testId="evs-cw-upward-answers"
+                                                L={L}
+                                                authorOf={(a) => a.authorName || L.cwDetailUpwardAnonAuthor}
+                                              />
                                             )}
                                           </div>
                                           {(() => {
@@ -5606,25 +5653,103 @@ export default function EvalCycleSummaryCanvas({
                                             // PW-520 「강점·성장 영역」은 회사가 끌 수 있는 칸이다.
                                             if (!traits.length || !secOn('strength')) return null;
                                             return (
-                                              <div className="evs-cw-detail-block">
+                                              <div className="evs-cw-detail-card">
                                                 <DetailSectionHead open={secOpen('trait')} onToggle={() => toggleSec('trait')} testId="evs-cw-sec-trait">
                                                   {L.cwDetailTrait}
                                                 </DetailSectionHead>
                                                 {secOpen('trait') && (
-                                                  <div className="evs-cw-detail-body">
-                                                    {traits
-                                                      .map((a) => a.textAnswer)
-                                                      .join(' · ')}
-                                                  </div>
+                                                  <QuestionAnswerList answers={traits} empty={L.cwDetailEmpty} testId="evs-cw-trait-answers" L={L} />
                                                 )}
                                               </div>
                                             );
                                           })()}
+                                        </div>
+
+                                        <div className="evs-cw-detail-side">
+                                        <div className="evs-cw-detail-card evs-cw-detail-comments">
+                                          <div className="evs-cw-card-title">
+                                            {L.cwCommentsTitle}
+                                            {/* PW-2655 — 조회 전용 안내는 제목 옆 ⓘ 로(§4.5 «우» 덧붙임). 입력칸이 없는 것이 사실을 보인다. */}
+                                            {!(calibTable.canComment ?? !calibTable.readOnly) ? (
+                                              <span data-testid="evs-cw-comment-readonly">
+                                                <FieldInfo description={L.cwCommentReadonly} />
+                                              </span>
+                                            ) : null}
+                                          </div>
+                                          <div className="evs-cw-comment-list">
+                                            {rowComments.length === 0 && calibCommentsFailed.includes(row.memberId) ? (
+                                              <div className="evs-cw-comment-empty" role="alert" data-testid="evs-cw-comments-failed">
+                                                {L.cwCommentsFailed}
+                                              </div>
+                                            ) : rowComments.length === 0 ? (
+                                              <div className="evs-cw-comment-empty">
+                                                {L.cwCommentsEmpty}
+                                              </div>
+                                            ) : (
+                                              rowComments.map((cm) => (
+                                                <div
+                                                  className="evs-cw-comment"
+                                                  key={cm.id}
+                                                  data-testid="evs-cw-comment"
+                                                >
+                                                  <span className="evs-cw-comment-author">
+                                                    {cm.authorName || L.cwCommentAuthorFallback}
+                                                  </span>
+                                                  {/* §4.5 코멘트 목록 — 작성자·시각·본문. */}
+                                                  {cm.createdAt ? (
+                                                    <span className="evs-cw-comment-at" data-testid="evs-cw-comment-at">
+                                                      {fmtDateTime(cm.createdAt)}
+                                                    </span>
+                                                  ) : null}
+                                                  <span className="evs-cw-comment-body">
+                                                    {cm.body}
+                                                  </span>
+                                                </div>
+                                              ))
+                                            )}
+                                          </div>
+                                          {/* PW-2477 — 위원도 확정 전에는 이견을 코멘트로 남긴다(조정만 위원장).
+                                              옛 소비처는 canComment 를 안 넘기므로 조정 권한으로 읽는다. */}
+                                          {!(calibTable.canComment ?? !calibTable.readOnly) ? null : (
+                                            <div className="evs-cw-comment-form">
+                                              <textarea
+                                                className="evs-cw-comment-input"
+                                                data-testid="evs-cw-comment-input"
+                                                value={commentDraft}
+                                                onChange={(e) =>
+                                                  setCommentDraft(e.target.value)
+                                                }
+                                                placeholder={L.cwCommentPlaceholder}
+                                                rows={2}
+                                              />
+                                              <Button
+                                                className="evc-btn is-primary evs-cw-comment-submit"
+                                                data-testid="evs-cw-comment-submit"
+                                                disabled={!commentDraft.trim()}
+                                                onClick={() => {
+                                                  // PW-2477 — 저장이 거절되면(예: 그사이 위원장이 확정) 쓴 글을 지우지 않는다.
+                                                  // 공용 Button 이 저장이 끝날 때까지 잠가 두 번 눌러도 한 번만 올라간다.
+                                                  return Promise.resolve(
+                                                    onAddCalibComment?.(
+                                                      row.memberId,
+                                                      commentDraft.trim(),
+                                                    ),
+                                                  ).then(
+                                                    () => setCommentDraft(''),
+                                                    () => undefined,
+                                                  );
+                                                }}
+                                              >
+                                                {L.cwCommentSubmit}
+                                              </Button>
+                                            </div>
+                                          )}
+                                        </div>
                                           {/* PW-519 위원회 전용 — 승진 사유는 그대로, 보상 부분만 권한으로 가린다.
                                               칸째로 닫으면 승진 검토 사유까지 함께 사라진다(§4.5-A-2). */}
                                           {compView && secOn('committee') && (
                                             <div
-                                              className="evs-cw-detail-block"
+                                              className="evs-cw-detail-card"
                                               data-testid="evs-cw-committee-only"
                                             >
                                               <DetailSectionHead open={secOpen('committee')} onToggle={() => toggleSec('committee')} testId="evs-cw-sec-committee">
@@ -5634,7 +5759,7 @@ export default function EvalCycleSummaryCanvas({
                                                 <>
                                                   <ManagerNoteLines
                                                     note={{
-                                                      confidentialComment: row.confidentialComment,
+                                                      /* PW-2655 — 위원회 전용 코멘트는 매니저 코멘트 안 상자에 한 번만(§4.5 «중» 덧붙임). */
                                                       promotionReady: row.promotionReady,
                                                     }}
                                                     L={L}
@@ -5685,8 +5810,8 @@ export default function EvalCycleSummaryCanvas({
                                             </div>
                                           )}
                                           {detail.calibration?.history?.length > 0 && (
-                                            <div className="evs-cw-detail-logs">
-                                              <div className="evs-cw-review-k">
+                                            <div className="evs-cw-detail-card evs-cw-detail-logs">
+                                              <div className="evs-cw-card-title">
                                                 {L.cwDetailLogs}
                                               </div>
                                               {detail.calibration.history.map(
@@ -5735,7 +5860,9 @@ export default function EvalCycleSummaryCanvas({
                                               )}
                                             </div>
                                           )}
-                                          {/* §4.5 이 대상자 한정 모두 접기/펼치기. */}
+                                          </div>
+                                        </div>
+                                        {/* §4.5 이 대상자 한정 모두 접기/펼치기. */}
                                           <div className="evs-cw-detail-sec-all">
                                             <button
                                               type="button"
@@ -5754,86 +5881,6 @@ export default function EvalCycleSummaryCanvas({
                                               {L.cwSecExpandAll}
                                             </button>
                                           </div>
-                                        </div>
-
-                                        {/* 우: 위원회 논의 코멘트 */}
-                                        <div className="evs-cw-detail-comments">
-                                          <div className="evs-cw-review-k">
-                                            {L.cwCommentsTitle}
-                                          </div>
-                                          <div className="evs-cw-comment-list">
-                                            {rowComments.length === 0 && calibCommentsFailed.includes(row.memberId) ? (
-                                              <div className="evs-cw-comment-empty" role="alert" data-testid="evs-cw-comments-failed">
-                                                {L.cwCommentsFailed}
-                                              </div>
-                                            ) : rowComments.length === 0 ? (
-                                              <div className="evs-cw-comment-empty">
-                                                {L.cwCommentsEmpty}
-                                              </div>
-                                            ) : (
-                                              rowComments.map((cm) => (
-                                                <div
-                                                  className="evs-cw-comment"
-                                                  key={cm.id}
-                                                  data-testid="evs-cw-comment"
-                                                >
-                                                  <span className="evs-cw-comment-author">
-                                                    {cm.authorName || L.cwCommentAuthorFallback}
-                                                  </span>
-                                                  {/* §4.5 코멘트 목록 — 작성자·시각·본문. */}
-                                                  {cm.createdAt ? (
-                                                    <span className="evs-cw-comment-at" data-testid="evs-cw-comment-at">
-                                                      {fmtDateTime(cm.createdAt)}
-                                                    </span>
-                                                  ) : null}
-                                                  <span className="evs-cw-comment-body">
-                                                    {cm.body}
-                                                  </span>
-                                                </div>
-                                              ))
-                                            )}
-                                          </div>
-                                          {/* PW-2477 — 위원도 확정 전에는 이견을 코멘트로 남긴다(조정만 위원장).
-                                              옛 소비처는 canComment 를 안 넘기므로 조정 권한으로 읽는다. */}
-                                          {!(calibTable.canComment ?? !calibTable.readOnly) ? (
-                                            <div className="evs-cw-comment-readonly">
-                                              {L.cwCommentReadonly}
-                                            </div>
-                                          ) : (
-                                            <div className="evs-cw-comment-form">
-                                              <textarea
-                                                className="evs-cw-comment-input"
-                                                data-testid="evs-cw-comment-input"
-                                                value={commentDraft}
-                                                onChange={(e) =>
-                                                  setCommentDraft(e.target.value)
-                                                }
-                                                placeholder={L.cwCommentPlaceholder}
-                                                rows={2}
-                                              />
-                                              <button
-                                                type="button"
-                                                className="evc-btn is-primary evs-cw-comment-submit"
-                                                data-testid="evs-cw-comment-submit"
-                                                disabled={!commentDraft.trim()}
-                                                onClick={() => {
-                                                  // PW-2477 — 저장이 거절되면(예: 그사이 위원장이 확정) 쓴 글을 지우지 않는다.
-                                                  Promise.resolve(
-                                                    onAddCalibComment?.(
-                                                      row.memberId,
-                                                      commentDraft.trim(),
-                                                    ),
-                                                  ).then(
-                                                    () => setCommentDraft(''),
-                                                    () => undefined,
-                                                  );
-                                                }}
-                                              >
-                                                {L.cwCommentSubmit}
-                                              </button>
-                                            </div>
-                                          )}
-                                        </div>
                                       </div>
                                     )}
                                   </RosterTable.Cell>
@@ -6443,7 +6490,10 @@ export default function EvalCycleSummaryCanvas({
       {showCreate && (
         <ModalShell
           title={committeeManage ? L.cwManageTitle : L.cwCreateTitle}
-          description={committeeManage ? L.cwManageDesc : L.cwCreateDesc}
+          titleAside={committeeManage ? null : (
+            <span data-testid="evs-cw-create-desc-info"><FieldInfo description={L.cwCreateDesc} /></span>
+          )}
+          description={committeeManage ? L.cwManageDesc : undefined}
           titleId="evs-cw-create-title"
           closeLabel={L.cwClose}
           onClose={closeCreateModal}
@@ -6568,6 +6618,7 @@ export default function EvalCycleSummaryCanvas({
 
             <label className="evs-cw-create-lbl" htmlFor="evs-cw-create-date">
               {L.cwCreateDateLabel}
+              <span data-testid="evs-cw-create-date-info"><FieldInfo description={L.cwCreateDateHint} /></span>
             </label>
             <DateInput
               id="evs-cw-create-date"
@@ -6577,11 +6628,13 @@ export default function EvalCycleSummaryCanvas({
               disabled={committeeReadOnly}
               data-testid="evs-cw-create-date"
             />
-            <div className="evs-cw-create-muted">{L.cwCreateDateHint}</div>
 
             {!committeeManage && (
             <div className="evs-cw-create-section">
-              <div className="evs-cw-create-lbl">{L.cwCreateTargetLabel}</div>
+              <div className="evs-cw-create-lbl">
+                {L.cwCreateTargetLabel}
+                <span data-testid="evs-cw-create-target-info"><FieldInfo description={L.cwCreateTargetHint} /></span>
+              </div>
               {sessionDeptOptions.length === 0 ? (
                 <div className="evs-cw-create-muted">{L.cwCreateNoDept}</div>
               ) : (
@@ -6612,7 +6665,10 @@ export default function EvalCycleSummaryCanvas({
               )}
               {sessionLevelOptions.length > 0 && (
                 <>
-                  <div className="evs-cw-create-lbl">{L.cwCreateLevelLabel}</div>
+                  <div className="evs-cw-create-lbl">
+                    {L.cwCreateLevelLabel}
+                    <span data-testid="evs-cw-create-level-info"><FieldInfo description={L.cwCreateLevelHint} /></span>
+                  </div>
                   <ChipPicker
                     items={sessionLevelOptions}
                     isOn={(lv) => createLevels.includes(lv)}
@@ -6639,7 +6695,6 @@ export default function EvalCycleSummaryCanvas({
                   />
                 </>
               )}
-              <div className="evs-cw-create-hint">{L.cwCreateTargetHint}</div>
               {scopeRoster.length > 0 && (
                 <div className="evs-cw-roster">
                   <div
@@ -6654,9 +6709,6 @@ export default function EvalCycleSummaryCanvas({
                         })}
                       </span>
                     )}
-                    <span className="evs-cw-roster-sub">
-                      {L.cwCreateRosterHint}
-                    </span>
                   </div>
 
                   {/* 개별 추가 — 조직·직급으로는 안 걸리는 사람을 이름으로 더한다 */}
@@ -6806,6 +6858,9 @@ export default function EvalCycleSummaryCanvas({
             <div className="evs-cw-create-section">
               <div className="evs-cw-create-lbl">
                 {committeeManage ? L.cwManageListLabel : L.cwCreateCommitteeLabel}
+                {!committeeManage && (
+                  <span data-testid="evs-cw-create-committee-info"><FieldInfo description={L.cwCreateCommitteeHint} /></span>
+                )}
               </div>
               {committeeCandidates.length === 0 ? (
                 <div className="evs-cw-create-muted">{L.cwCreateNoCommittee}</div>
@@ -6824,12 +6879,16 @@ export default function EvalCycleSummaryCanvas({
                     >
                       <ZapIcon size={12} /> {fmt(L.cwAutoAssign, { n: autoCommitteeIds.length })}
                     </button>
-                    <span className="evs-cw-create-muted" data-testid="evs-cw-auto-assign-hint">
-                      {autoCommitteeAll.length === 0
-                        ? L.cwAutoAssignNone
-                        : autoCommitteeIds.length === 0
-                          ? L.cwAutoAssignDone
-                          : L.cwAutoAssignHint}
+                    <span data-testid="evs-cw-auto-assign-hint">
+                      <FieldInfo
+                        description={
+                          autoCommitteeAll.length === 0
+                            ? L.cwAutoAssignNone
+                            : autoCommitteeIds.length === 0
+                              ? L.cwAutoAssignDone
+                              : L.cwAutoAssignHint
+                        }
+                      />
                     </span>
                   </div>
                 )}
@@ -6941,9 +7000,7 @@ export default function EvalCycleSummaryCanvas({
                 )}
                 </>
               )}
-              <div className="evs-cw-create-hint">
-                {committeeManage ? L.cwManageHint : L.cwCreateCommitteeHint}
-              </div>
+              {committeeManage && <div className="evs-cw-create-hint">{L.cwManageHint}</div>}
               {committeeManage && pastCommittee.length > 0 && (
                 <div
                   className="evs-cw-create-hint"
