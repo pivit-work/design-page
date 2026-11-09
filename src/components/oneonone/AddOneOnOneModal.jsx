@@ -107,7 +107,8 @@ export const DEFAULT_LABELS = {
   memo: '메모 (선택)',
   memoPlaceholder: '사전 아젠다 또는 주요 논의 포인트를 메모하세요.',
   cancel: '취소',
-  submit: '예약완료',
+  /* «예약» 갈래 저장 버튼 — {minutes} 에 고른 길이, 비거나 0 이면 «?» (pivit-work PW-2521 · oneonone-spec §13-5). */
+  submit: '예약 완료 ({minutes}분)',
   /* 푸터 왼쪽 «없애기». `onDelete` 를 준 호출부에서만 보인다 (PW-825). */
   delete: '이 1on1 없애기',
   /* 저장이 거부됐는데 사유 문구가 없을 때 창 안에 보이는 한 줄 (PW-987). */
@@ -295,7 +296,7 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
   const [pastAtClickKey, setPastAtClickKey] = useState(null);
   const isPast = checkPast() || (!isNow && pastAtClickKey === pickedKey);
   const submitLabel = !isNow
-    ? L.submit
+    ? fill(L.submit, { minutes: Number(nowMinutes) > 0 ? nowMinutes : '?' })
     : startable
       ? L.inWindowSubmit
       : nowMinutes
