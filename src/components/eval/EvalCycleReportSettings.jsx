@@ -2,7 +2,8 @@ import { AlertIcon, InfoIcon } from './evalIcons.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
 import Switch from '../shared/Switch.jsx';
-import EvalHintTip, { joinHintSentences } from './EvalHintTip.jsx';
+import EvalHintTip from './EvalHintTip.jsx';
+import { joinHintSentences } from './joinHintSentences.js';
 
 /**
  * EvalCycleReportSettings — 사이클 관리 › 리포트 탭 (PW-534 ㉰㉱ · 정책 §8.3 · §4.6.5).

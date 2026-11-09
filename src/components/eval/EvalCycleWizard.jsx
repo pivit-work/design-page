@@ -19,7 +19,8 @@ import Checkbox from '../shared/Checkbox.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import Toast from '../shared/Toast.jsx';
 import Stack from '../shared/Stack.jsx';
-import EvalHintTip, { joinHintSentences } from './EvalHintTip.jsx';
+import EvalHintTip from './EvalHintTip.jsx';
+import { joinHintSentences } from './joinHintSentences.js';
 import MemberAiButton from '../oneonone/MemberAiButton.jsx';
 import {
   ArrowLeftGlyph,
