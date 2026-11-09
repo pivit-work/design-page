@@ -1015,5 +1015,6 @@
 @keyframes org-lie {
   to { transform: perspective(1400px) rotateX(58deg) rotateZ(-28deg) scale(0.72); opacity: 0; }
 }
-.org-iso-area { display: flex; flex-direction: column; background: var(--bg-primary); border-radius: 16px; overflow: hidden; }
+/* 트리·리스트와 같은 고정 자리(.canvas-area) — 흐름에 두면 왼쪽 메뉴·머리글 밑으로 깔린다(브라우저 확인 8). 무대가 길면 안에서 내린다 */
+.canvas-area.is-iso { display: flex; flex-direction: column; overflow: auto; background: var(--bg-primary); user-select: auto; }
 .org-toolbar.org-iso-toolbar { padding: 16px 24px 0; }

@@ -218,8 +218,8 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
       )}
 
       {view === 'iso' && renderIso ? (
-        // 입체 보기 — 기둥 무대의 조직도 쪽(보기 전용). 끌기·편집이 없다
-        <div className="org-iso-area" data-testid="org-canvas-iso">
+        // 입체 보기 — 기둥 무대의 조직도 쪽(보기 전용). 트리·리스트와 같은 카드 자리(.canvas-area 고정 자리)에 선다
+        <div className="canvas-area is-iso" data-testid="org-canvas-iso">
           <div className="org-toolbar ol-toolbar org-iso-toolbar">{viewSwitch}</div>
           {renderIso(viewSwitch)}
         </div>

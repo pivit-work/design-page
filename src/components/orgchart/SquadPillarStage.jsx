@@ -43,6 +43,11 @@ const { half: HALF, rad: RAD } = PILLAR;
 const RX = RAD * 1.2247; const RY = RAD * 0.7071;
 const ALERT_D = 'M12.8126 1.66837C12.2953 1.43834 11.7047 1.43834 11.1874 1.66837C10.7878 1.84602 10.5283 2.15894 10.3477 2.41391C10.1701 2.66461 9.98004 2.99303 9.77096 3.35422L1.50381 17.6339C1.2939 17.9964 1.10315 18.3258 0.973806 18.6054C0.842356 18.8895 0.699752 19.2714 0.745201 19.7074C0.804012 20.2715 1.09955 20.7841 1.55827 21.1176C1.91276 21.3753 2.31476 21.4433 2.62652 21.4719C2.93327 21.5 3.31392 21.5 3.73281 21.5H20.2671C20.686 21.5 21.0667 21.5 21.3734 21.4719C21.6852 21.4433 22.0872 21.3753 22.4417 21.1176C22.9004 20.7841 23.1959 20.2715 23.2547 19.7074C23.3002 19.2714 23.1576 18.8895 23.0261 18.6054C22.8968 18.3258 22.7061 17.9964 22.4962 17.6339L14.229 3.35419C14.0199 2.99301 13.8298 2.66459 13.6522 2.41391C13.4716 2.15894 13.2121 1.84602 12.8126 1.66837ZM13 9C13 8.44772 12.5523 8 12 8C11.4477 8 11 8.44772 11 9V13C11 13.5523 11.4477 14 12 14C12.5523 14 13 13.5523 13 13V9ZM12 16C11.4477 16 11 16.4477 11 17C11 17.5523 11.4477 18 12 18H12.01C12.5623 18 13.01 17.5523 13.01 17C13.01 16.4477 12.5623 16 12.01 16H12Z';
 const MAX_TAG_SCALE = 1.45;
+/**
+ * 내 캐파 창을 열 때 내 기둥 윗끝을 둘 자리(화면 위에서 px). 기둥 위 이름표(약 50px)까지 고정 머리글(아래끝 약 160) 밑으로
+ * 들어가지 않고, 창(약 560px)이 기둥 아래에 들어갈 만큼 위다 — 200 이면 이름표 윗줄이 머리글에 가렸다(브라우저 확인 12).
+ */
+const MINE_TOP = 250;
 /** 이보다 기둥이 많으면 재생하지 않는다 — 움직임이 끊긴다(PW-2607 과 같은 값 · 개발이 정함). */
 const PLAY_MAX = 500;
 
@@ -474,7 +479,22 @@ export default function SquadPillarStage({
     const el = svgRef.current?.querySelector(`[data-pillar-key="${tk.key}"]`);
     if (!el || !onOpenMine) return;
     const selector = `[data-pillar-key="${tk.key}"]`;
-    onOpenMine({ squadId: tk.a.squadId, userId: tk.x.id, rect: el.getBoundingClientRect(), selector });
+    // 창이 기둥 바로 아래에 열리게 기둥을 화면 위쪽으로 올린다 — 창이 높아 아래 자리가 모자라면 위로 떠서 기둥을 덮는다(브라우저 확인 11·12)
+    recenter.current = false;
+    el.scrollIntoView?.({ block: 'start', inline: 'center' });
+    // 맨 위로 올리면 위쪽 고정 머리글 밑에 깔린다 — 기둥 윗끝이 화면 위에서 MINE_TOP 아래에 오게 조상 스크롤을 되돌린다
+    let need = el.getBoundingClientRect().top - MINE_TOP;
+    for (let a = el.parentElement; a && need < 0; a = a.parentElement) {
+      if (a.scrollHeight > a.clientHeight && /auto|scroll/.test(getComputedStyle(a).overflowY)) {
+        const back = Math.min(a.scrollTop, -need);
+        a.scrollTop -= back;
+        need += back;
+      }
+    }
+    if (need < 0) window.scrollBy?.(0, need);
+    requestAnimationFrame(() => {
+      onOpenMine({ squadId: tk.a.squadId, userId: tk.x.id, rect: el.getBoundingClientRect(), selector });
+    });
   }, [onOpenMine]);
   const focusKey = focusMine ? `${focusMine.squadId}:${focusMine.n}` : null;
   useEffect(() => {
