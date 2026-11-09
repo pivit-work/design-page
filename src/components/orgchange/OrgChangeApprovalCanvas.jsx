@@ -17,9 +17,10 @@ import EmptyState from '../shared/EmptyState.jsx';
  * - state: 'loading' | 'error' | 'ready'
  * - notMine: 링크로 연 요청이 내 것이 아님 — 그 자리에 문구만(내용 없음)
  * - pending · done: 카드 목록 (아래 Card)
- * Card: { id, open, title, meta, badge: { text, tone }, count?, lines: Line[], reason?, result?, error?,
+ * Card: { id, open, title, meta, badge: { text, tone }, count?, badges?, lines: Line[], reason?, result?, error?,
  *         rejecting, reasonValue, reasonInvalid, actions: [{ key, label, variant, disabled, pending, testId }] }
  * Line: { id, title, notes: string[], people?: string[], moreLabel?, rejectLabel?, rejectChecked?, rejected?, closedText? }
+ * badges: [{ text, tone }] — 있으면 badge · count 대신 이 배지들을 나란히(처리함의 일부 승인 · 일부 거절 묶음 «승인 {A}명» · «거절 {R}명»)
  * 핸들러: onToggle(cardId) · onAction(cardId, key) · onReasonChange(cardId, text) · onToggleReject(cardId, lineId) ·
  *        onMore(cardId, lineId) · onRetry()
  */
@@ -123,10 +124,18 @@ function RequestCard({ card, labels, onToggle, onAction, onReasonChange, onToggl
         onClick={() => onToggle?.(card.id)} data-testid={`oca-card-toggle-${card.id}`}>
         <span className="oca-card-title">{card.title}</span>
         {card.meta && <span className="oca-card-meta">{card.meta}</span>}
-        {card.badge && (
-          <StatusBadge tone={card.badge.tone}>{card.badge.text}</StatusBadge>
+        {card.badges?.length ? (
+          card.badges.map((b) => (
+            <StatusBadge key={b.text} tone={b.tone}>{b.text}</StatusBadge>
+          ))
+        ) : (
+          <>
+            {card.badge && (
+              <StatusBadge tone={card.badge.tone}>{card.badge.text}</StatusBadge>
+            )}
+            {card.count && <span className="oca-card-meta">{card.count}</span>}
+          </>
         )}
-        {card.count && <span className="oca-card-meta">{card.count}</span>}
         <span className={`oca-card-chevron${card.open ? ' is-open' : ''}`} aria-hidden="true">›</span>
       </Button>
       {card.open && (
