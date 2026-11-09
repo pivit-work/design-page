@@ -13035,7 +13035,7 @@ button.evmh-phase:focus-visible {
   /* 옆 칸들의 이름표 줄 + 이름표→칸(--spacing-md) 만큼 내려 칸 줄과 같은 높이에 선다(RULES 4). */
   margin-top: calc(var(--line-height-text-sm) + var(--spacing-md));
 }
-/* 단계 카드는 필수 단계(결과 발송)도 같은 회색 판 #F3F4F6 — 필수는 «필수» 딱지가 말한다(RULES 11). */
+/* 단계 카드는 필수 단계(결과 발송)도 같은 회색 판(--bg-primary) — 필수는 «필수» 딱지가 말한다. */
 .evc-sched-card.is-required {
   background: var(--bg-primary);
 }
