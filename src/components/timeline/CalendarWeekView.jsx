@@ -120,13 +120,13 @@ export default function CalendarWeekView({
                   '--event-bg': palette.bg,
                   '--event-bg-hover': palette.bgHover,
                   borderColor: palette.border,
-                  cursor: 'pointer',
+                  cursor: ev.noOpen ? 'default' : 'pointer',
                 }}
                 onMouseEnter={(e) => onEventHover?.(ev, e.currentTarget.getBoundingClientRect())}
                 onMouseLeave={() => onEventHoverEnd?.()}
                 onClick={(e) => {
                   e.stopPropagation();
-                  onEventClick?.(ev, e.currentTarget.getBoundingClientRect());
+                  if (!ev.noOpen) onEventClick?.(ev, e.currentTarget.getBoundingClientRect());
                 }}
               >
                 <span className="tl-cal-event-title" style={{ color: palette.titleText }}>
@@ -266,7 +266,7 @@ export default function CalendarWeekView({
                         '--event-bg': palette.bg,
                         '--event-bg-hover': palette.bgHover,
                         borderColor: palette.border,
-                        cursor: 'pointer',
+                        cursor: ev.noOpen ? 'default' : 'pointer',
                       }}
                       // 호버 카드(PW-1515) — 0.3초 대기·닫기는 호스트가 정한다. 칸 위치만 올린다.
                       onMouseEnter={(e) =>
@@ -275,7 +275,7 @@ export default function CalendarWeekView({
                       onMouseLeave={() => onEventHoverEnd?.()}
                       onClick={(e) => {
                         e.stopPropagation();
-                        onEventClick?.(
+                        if (!ev.noOpen) onEventClick?.(
                           ev,
                           e.currentTarget.getBoundingClientRect(),
                         );

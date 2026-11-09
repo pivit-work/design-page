@@ -104,11 +104,11 @@ export default function DayEventsPopover({
                   '--event-bg': palette.bg,
                   '--event-bg-hover': palette.bgHover,
                   borderColor: palette.border,
-                  cursor: 'pointer',
+                  cursor: ev.noOpen ? 'default' : 'pointer',
                 }}
                 onClick={(e) => {
                   e.stopPropagation();
-                  onEventClick?.(ev, e.currentTarget.getBoundingClientRect());
+                  if (!ev.noOpen) onEventClick?.(ev, e.currentTarget.getBoundingClientRect());
                 }}
               >
                 <span

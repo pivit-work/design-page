@@ -182,7 +182,7 @@ export default function CalendarMonthView({
           '--event-bg': palette.bg,
           '--event-bg-hover': palette.bgHover,
           borderColor: palette.border,
-          cursor: 'pointer',
+          cursor: ev.noOpen ? 'default' : 'pointer',
         }}
         // 호버 카드(PW-1515) — 0.3초 대기·닫기는 호스트가 정한다. 칸 위치만 올린다.
         onMouseEnter={(e) =>
@@ -191,7 +191,7 @@ export default function CalendarMonthView({
         onMouseLeave={() => onEventHoverEnd?.()}
         onClick={(e) => {
           e.stopPropagation();
-          onEventClick?.(ev, e.currentTarget.getBoundingClientRect());
+          if (!ev.noOpen) onEventClick?.(ev, e.currentTarget.getBoundingClientRect());
         }}
       >
         {children(palette)}

@@ -164,17 +164,28 @@ export default function MeetingBlock({
           transform: 'translate(-50%, -50%)',
         }}
       >
-        <button
-          type="button"
-          className="tl-meeting-title-pill"
-          onClick={(e) => {
-            e.stopPropagation();
-            const rect = e.currentTarget.getBoundingClientRect();
-            onTitleClick?.(meeting, rect);
-          }}
-        >
-          {meeting.title}
-        </button>
+        {/* noOpen — 열어 보일 내용이 없는 칸(동료의 구글 «비공개» 일정 = «바쁨», pivit-work PW-2641). 누를 수 없는 글자로 둔다. */}
+        {meeting.noOpen ? (
+          <span
+            className="tl-meeting-title-pill"
+            style={{ cursor: 'default' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {meeting.title}
+          </span>
+        ) : (
+          <button
+            type="button"
+            className="tl-meeting-title-pill"
+            onClick={(e) => {
+              e.stopPropagation();
+              const rect = e.currentTarget.getBoundingClientRect();
+              onTitleClick?.(meeting, rect);
+            }}
+          >
+            {meeting.title}
+          </button>
+        )}
         <div className="tl-meeting-count">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
             <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm0 1.333c-2.21 0-6 1.11-6 3.334V14h12v-1.333c0-2.224-3.79-3.334-6-3.334z" />
