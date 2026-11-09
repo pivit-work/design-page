@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import Button from '../shared/Button.jsx';
 import DueBadge from '../shared/DueBadge.jsx';
 import FormField, { FieldError } from '../shared/FormField.jsx';
 import Radio from '../shared/Radio.jsx';
@@ -162,26 +163,24 @@ function Panel({
         <>
           <div className="evc-card-buttons">
             {item.status === 'submitted' ? (
-              <button
-                type="button"
+              <Button
                 className="evc-btn"
                 disabled={busy}
                 onClick={() => onStartReview?.(item.id)}
                 data-testid="evrr-obj-start"
               >
                 {L.startReview}
-              </button>
+              </Button>
             ) : null}
             {item.canEscalate ? (
-              <button
-                type="button"
+              <Button
                 className="evc-btn"
                 disabled={busy}
                 onClick={() => setConfirmEscalate(true)}
                 data-testid="evrr-obj-escalate"
               >
                 {L.escalate}
-              </button>
+              </Button>
             ) : null}
           </div>
           {!calibrationEnabled && item.targets.includes('grade') ? (
@@ -207,8 +206,7 @@ function Panel({
                 data-testid="evrr-obj-interim"
               />
               <div className="evc-card-buttons">
-                <button
-                  type="button"
+                <Button
                   className="evc-btn"
                   disabled={busy || !interim.trim()}
                   onClick={async () => {
@@ -218,7 +216,7 @@ function Panel({
                   data-testid="evrr-obj-interim-send"
                 >
                   {L.interimSend}
-                </button>
+                </Button>
               </div>
             </Stack>
           </div>
@@ -264,18 +262,16 @@ function Panel({
                 </FormField>
               ) : null}
               <div className="evc-card-buttons">
-                <button
-                  type="button"
+                <Button
                   className="evc-btn is-primary"
                   disabled={busy || !ready}
-                  aria-busy={busy || undefined}
                   onClick={() =>
                     onAnswer?.(item.id, { result, answer, aiExplanation: needsAi ? aiText : null })
                   }
                   data-testid="evrr-obj-send"
                 >
                   {L.send}
-                </button>
+                </Button>
               </div>
             </Stack>
           </div>
@@ -330,9 +326,9 @@ export default function EvalMemberObjectionWorkspace({
     return (
       <div className="evs-cw-empty" role="alert" data-testid="evrr-obj-load-failed">
         <span className="evs-cw-empty-title">{L.loadFailed}</span>
-        <button type="button" className="evc-btn" onClick={onRetry} data-testid="evrr-obj-retry">
+        <Button className="evc-btn" onClick={onRetry} data-testid="evrr-obj-retry">
           {L.retry}
-        </button>
+        </Button>
       </div>
     );
   }
@@ -364,8 +360,7 @@ export default function EvalMemberObjectionWorkspace({
           const due = isOpen(o.status) ? dueLabel(o) : null;
           return (
             <li key={o.id}>
-              <button
-                type="button"
+              <Button
                 className={`evs-cw-appeal${o.id === selectedId ? ' is-selected' : ''}`}
                 aria-pressed={o.id === selectedId}
                 onClick={() => onSelect?.(o.id)}
@@ -381,7 +376,7 @@ export default function EvalMemberObjectionWorkspace({
                   <StatusTag status={o.status} L={L} />
                   {due ? <DueBadge label={due.label} tone={due.tone} data-testid="evrr-obj-due" /> : null}
                 </Stack>
-              </button>
+              </Button>
             </li>
           );
         })}

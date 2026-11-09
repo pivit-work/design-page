@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import Button from '../shared/Button.jsx';
 import FormField, { FieldError } from '../shared/FormField.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
 import TextArea from '../shared/TextArea.jsx';
@@ -60,8 +61,7 @@ export function ObjectionHeaderAction({ objection, formOpen, onToggleForm, L }) 
   }
   const closed = state === 'closed';
   return (
-    <button
-      type="button"
+    <Button
       className="evc-btn is-ghost"
       disabled={closed}
       title={closed ? L.objectionClosedTip : undefined}
@@ -70,7 +70,7 @@ export function ObjectionHeaderAction({ objection, formOpen, onToggleForm, L }) 
       data-testid="evr-objection-open"
     >
       {L.objectionButton}
-    </button>
+    </Button>
   );
 }
 
@@ -132,25 +132,22 @@ export function ObjectionPanel({
           </Stack>
           {error ? <FieldError data-testid="evr-objection-error">{error}</FieldError> : null}
           <div className="evc-card-buttons">
-            <button
-              type="button"
+            <Button
               className="evc-btn is-ghost"
               onClick={onCloseForm}
               disabled={busy}
               data-testid="evr-objection-cancel"
             >
               {L.objectionCancel}
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
               className="evc-btn is-primary"
               disabled={!ready || busy}
-              aria-busy={busy || undefined}
               onClick={() => onSubmit?.({ targets, reason })}
               data-testid="evr-objection-submit"
             >
               {L.objectionSubmit}
-            </button>
+            </Button>
           </div>
         </Stack>
       </section>
@@ -205,15 +202,14 @@ export function ObjectionPanel({
           <h3 className="evc-card-name">{fill(L.objectionActiveTitle, 'due', item.dueLabel)}</h3>
           {onWithdraw ? (
             <div className="evc-card-buttons">
-              <button
-                type="button"
+              <Button
                 className="evc-link-btn"
                 onClick={() => setConfirmWithdraw(true)}
                 disabled={busy}
                 data-testid="evr-objection-withdraw"
               >
                 {L.objectionWithdraw}
-              </button>
+              </Button>
             </div>
           ) : null}
         </div>
