@@ -1758,6 +1758,16 @@ const fmtAmount = (v, currency) => {
   const digits = currencyDecimals(currency) === 0 || Number.isInteger(n) ? 0 : 2;
   return n.toLocaleString('ko-KR', { minimumFractionDigits: digits, maximumFractionDigits: digits });
 };
+/**
+ * 연봉 한 줄 표시 — 금액 + 통화(pivit-work PW-2612 · admin-spec §3.2.2 ②). 원화는 `₩85,000,000`,
+ * 그 밖 통화는 `85,000.50 USD`·`100,000 USD`(자리는 `fmtAmount` 그대로). 통화가 비면 회사 기본 통화, 금액이 없으면 `—`.
+ */
+export const fmtSalaryWithCurrency = (v, currency, defaultCurrency = 'KRW') => {
+  const amount = fmtAmount(v, currency || defaultCurrency);
+  if (amount === '—') return amount;
+  const cur = currency || defaultCurrency;
+  return cur === 'KRW' ? `₩${amount}` : `${amount} ${cur}`;
+};
 const localToday = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -1849,7 +1859,7 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
       const res = editingId ? await onUpdate(row.id, editingId, body) : await onAdd(row.id, body);
       if (res?.history) setHistory(res.history);
       else if (!editingId) setHistory((prev) => [...prev, { ...body }]);
-      if (res && 'salary' in res) onSalarySynced?.(res.salary);
+      if (res && 'salary' in res) onSalarySynced?.(res.salary, res.salaryCurrency ?? null);
       setForm(EMPTY_COMP_FORM);
       setEditingId(null);
     } catch {
@@ -1870,7 +1880,7 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
       const res = await onDelete(row.id, h.id);
       if (res?.history) setHistory(res.history);
       else setHistory((prev) => prev.filter((x) => x.id !== h.id));
-      if (res && 'salary' in res) onSalarySynced?.(res.salary);
+      if (res && 'salary' in res) onSalarySynced?.(res.salary, res.salaryCurrency ?? null);
       if (editingId === h.id) { setEditingId(null); setForm(EMPTY_COMP_FORM); }
     } catch {
       setAddError(true);

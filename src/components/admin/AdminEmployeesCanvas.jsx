@@ -20,7 +20,7 @@ import SquadPicker, { SquadCell, isVisibleSquadStatus } from './SquadPicker.jsx'
 import { ExportMenu, SalaryExportModal, IconLock } from './employeeExport.jsx';
 /* 구성원 기록 창 3종 — 폐기된 스프레드시트에서 옮겨 왔다(PW-576). 코드는 그대로다. */
 import {
-  HrProfileModal, SalaryHistoryModal, CeoConfirmModal, CeoBadge, IconSalary, IconCrown,
+  HrProfileModal, SalaryHistoryModal, CeoConfirmModal, CeoBadge, IconSalary, IconCrown, fmtSalaryWithCurrency,
 } from './AdminEmployeeRecordModals.jsx';
 import { buildExportItems } from './employeeExportItems.js';
 import AdminInviteModal from './AdminInviteModal.jsx';
@@ -4174,7 +4174,7 @@ const PANEL_PATCH_FIELDS = [
   'jobLevel', 'jobRank', 'jobPosition', 'jobCategory',
   'jobFamily', 'jobTitle', 'jobDuty', 'businessTitle', 'employmentType',
   'workCountry', 'workLocation', 'workBuilding', 'ftePercent',
-  'orgRole', 'salary', 'education',
+  'orgRole', 'education',
   'hireDate', 'employmentStatus', 'terminationDate',
   // PW-1345 — 중간 이름·영문명·책상·사무실 전화·담당 HRBP
   'middleName', 'nameEn', 'workDesk', 'officePhone', 'hrbpId',
@@ -5722,13 +5722,17 @@ function EmployeesEditPanel({
                   {archivedNow ? (
                     <ArchivedNote text={archivedLabels.note} testId="employees-panel-archived-salary" />
                   ) : (
-                    <TextInput
-                      className="admin-emp-input"
-                      value={draft.salary ?? ''}
-                      disabled={!canEdit}
-                      data-testid="employees-panel-salary"
-                      onChange={(e) => set('salary', e.target.value)}
-                    />
+                    /* 읽기 전용 — 연봉을 바꾸는 길은 아래 [연봉 이력] 하나다(admin-spec §3.2.2 · pivit-work PW-2612).
+                       값은 오늘 반영되는 «기본급·연봉» 이력 줄의 금액과 통화이고, 그 줄이 없으면 흐린 «—».
+                       줄 모양은 같은 창의 «매니저» 읽기 전용 줄을 그대로 쓴다. */
+                    <div className="admin-emp-manager-readonly">
+                      <span
+                        className={draft.salary == null || draft.salary === '' ? 'admin-emp-manager-note' : 'admin-emp-manager-name'}
+                        data-testid="employees-panel-salary"
+                      >
+                        {fmtSalaryWithCurrency(draft.salary, draft.salaryCurrency, defaultCurrency || undefined)}
+                      </span>
+                    </div>
                   )}
                 </FormField>
                 {onLoadSalaryHistory && !archivedNow && (
@@ -5851,7 +5855,7 @@ function EmployeesEditPanel({
             confirmDelete={hrRecordHandlers?.confirmDelete}
             defaultCurrency={defaultCurrency || undefined}
             onClose={() => setSalaryOpen(false)}
-            onSalarySynced={(v) => set('salary', v)}
+            onSalarySynced={(v, currency) => { set('salary', v); set('salaryCurrency', currency); }}
           />
         )}
 
