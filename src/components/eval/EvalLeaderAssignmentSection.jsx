@@ -40,6 +40,7 @@ import { LeaderBulkBar, LeaderEvaluatorView, LeaderSearch, LeaderToolbar } from 
 import { useLeaderTableTools } from './useLeaderTableTools.js';
 import { withoutLeavingBefore } from './evalRetiring.js';
 import RetiringTag from './RetiringTag.jsx';
+import EvalHintTip from './EvalHintTip.jsx';
 
 /** 로딩 자리 표시 줄 수 — 표 높이를 미리 잡아 레이아웃이 튀지 않게(§5.13.4 「로딩」). */
 const SKELETON_ROWS = 5;
@@ -458,8 +459,11 @@ export default function EvalLeaderAssignmentSection({
   return (
     <div className="evc-la" data-testid="evc-leader-assign">
       <div className="evc-la-head">
-        <span className="evc-field-label">{L.leaderAsgTitle}</span>
-        <p className="evc-wiz-hint">{grouped ? L.leaderAsgSubGrouped : L.leaderAsgSub}</p>
+        {/* PW-2646 — 늘 보이던 설명 문장은 제목 옆 ⓘ 로 옮겼다. «순서: ① … ⑤» 줄은 기획서 글이라 그대로. */}
+        <span className="evc-field-label evc-la-title">
+          {L.leaderAsgTitle}
+          <EvalHintTip text={grouped ? L.leaderAsgSubGrouped : L.leaderAsgSub} testId="evc-la-sub-tip" />
+        </span>
         {grouped && editable && (
           <span className="evc-la-hint" data-testid="evc-la-order">
             {L.leaderAsgOrder}
@@ -472,9 +476,12 @@ export default function EvalLeaderAssignmentSection({
         <div className="evx-notice evc-la-vacant" data-testid="evc-la-vacant">
           <span>
             {/* PW-2130 — 빈 조직이 많으면 줄이 끝없이 늘어 아래 확정 목록을 밀어냈다. 처음엔 머리 한 줄만,
-                펼쳐도 상자 안에서만 스크롤한다. 고치는 길(맨 아래 안내)은 접어도 보인다. */}
+                펼쳐도 상자 안에서만 스크롤한다. 고치는 길은 머리 줄 ⓘ 에 있다(PW-2646). */}
             <span className="evc-la-vacant-head">
-              {fill(L.leaderAsgVacantHead, { count: vacantUnits.length })}
+              <span className="evc-la-vacant-text">
+                {fill(L.leaderAsgVacantHead, { count: vacantUnits.length })}
+                <EvalHintTip text={L.leaderAsgVacantFoot} testId="evc-la-vacant-tip" />
+              </span>
               <Button
                 variant="ghost"
                 size="sm"
@@ -494,7 +501,6 @@ export default function EvalLeaderAssignmentSection({
                 ))}
               </span>
             )}
-            <span className="evc-la-hint">{L.leaderAsgVacantFoot}</span>
           </span>
         </div>
       )}

@@ -12,8 +12,9 @@ import Spinner from '../shared/Spinner.jsx';
  *   (다른 AI 기다림과 같은 자리 — 선례 스니핏 「AI로 채우기」 PW-1191).
  *   디자이너 원본에 «만드는 중» 모양이 없어 개발이 더한 칸이다 (design-review).
  * @param {string} [className]  자리 잡기용 클래스를 덧붙인다 (매니저 팀원 상세 창 「AI 브리핑」 탭 등)
+ * @param {string} [testId]  `data-testid` — 평가 사이클 만들기 창 «AI 초안 만들기»가 같은 버튼을 쓰며 붙인다 (PW-2646)
  */
-export default function MemberAiButton({ label, onClick, disabled = false, pending = false, baseUrl = '', ariaLabel, className = '' }) {
+export default function MemberAiButton({ label, onClick, disabled = false, pending = false, baseUrl = '', ariaLabel, className = '', testId }) {
   return (
     <button
       type="button"
@@ -22,6 +23,7 @@ export default function MemberAiButton({ label, onClick, disabled = false, pendi
       disabled={disabled || pending}
       aria-busy={pending || undefined}
       aria-label={ariaLabel}
+      data-testid={testId}
     >
       {pending ? <Spinner size={14} /> : <AiMark size={14} baseUrl={baseUrl} />}
       <span className="ono-my-ai-word" aria-hidden="true">AI</span>

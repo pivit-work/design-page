@@ -2,6 +2,7 @@ import { AlertIcon, InfoIcon } from './evalIcons.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
 import Switch from '../shared/Switch.jsx';
+import EvalHintTip from './EvalHintTip.jsx';
 
 /**
  * EvalCycleReportSettings — 사이클 관리 › 리포트 탭 (PW-534 ㉰㉱ · 정책 §8.3 · §4.6.5).
@@ -28,8 +29,7 @@ import Switch from '../shared/Switch.jsx';
 
 const DEFAULT_LABELS = {
   sectionsTitle: '리포트 구성',
-  sectionsHint:
-    '이 사이클의 모든 리포트에 들어갈 섹션입니다. 한 사람만 빼려면 리포트 검수에서 개별 예외로 두십시오.',
+  sectionsHint: '이 사이클의 모든 리포트에 들어갈 섹션입니다.',
   required: '필수',
   requiredHint: '필수 섹션 — 끌 수 없습니다',
   channelsTitle: '발송 채널 기본값',
@@ -39,17 +39,15 @@ const DEFAULT_LABELS = {
   timelineTitle: '리포트가 보이는 시점',
   timelineHint: '정해진 순서입니다 — 여기서 바꾸지 않습니다.',
   timelineNow: '지금 여기',
-  timelineBefore:
-    '아직 리포트 단계 전입니다 — 캘리브레이션이 확정되면 위 순서가 시작됩니다.',
+  timelineBefore: '아직 리포트 단계 전입니다 — 캘리브레이션이 확정되면 시작됩니다.',
   timelineFootnote:
     '위 «본부장 승인 단계»를 켜 두면 조직장 승인 뒤 본부장이 한 번 더 승인합니다 (정책 §8.6).',
   // PW-1839 — 회사 단위 «본부장 승인 단계» (PW-1854 커트 결정 ② 2026-10-17)
   execApprovalTitle: '본부장 승인 단계',
-  execApprovalLabel: '본부장 승인 단계 사용',
+  execApprovalLabel: '사용',
   execApprovalHint:
-    '켜면 조직장이 승인한 리포트를 그 조직장의 바로 위 조직장(본부장)이 한 번 더 승인합니다. 바로 위가 대표뿐이면 건너뜁니다.',
-  execApprovalScope:
-    '회사의 모든 평가 사이클에 적용됩니다. 바꾼 뒤에 조직장이 승인한 리포트부터 적용되고, 이미 승인된 리포트는 그대로 둡니다.',
+    '켜면 조직장이 승인한 리포트를 바로 위 조직장(본부장)이 한 번 더 승인합니다. 이미 승인된 리포트는 그대로 둡니다.',
+  execApprovalScope: '회사의 모든 평가 사이클에 적용됩니다.',
   execApprovalSaveError: '본부장 승인 단계를 바꾸지 못했습니다. 잠시 뒤 다시 시도해 주세요.',
   execApprovalLoadError: '본부장 승인 단계 설정을 불러오지 못했습니다.',
   generatedWarn:
@@ -137,6 +135,8 @@ export default function EvalCycleReportSettings({
   const requiredSet = new Set(requiredSections);
   const timeline = { ...DEFAULT_TIMELINE, ...(L.timelineRows || {}) };
   const beforeReportPhase = !currentPhaseKey;
+  const allChannelsLocked =
+    channelOptions.length > 0 && channelOptions.every((k) => lockedChannels.includes(k));
 
   return (
     <>
@@ -155,8 +155,11 @@ export default function EvalCycleReportSettings({
       )}
 
       <section className="evc-card">
-        <h3 className="evc-card-name">{L.sectionsTitle}</h3>
-        <p className="evc-wiz-hint">{L.sectionsHint}</p>
+        {/* PW-2646 — 늘 보이던 설명은 제목 옆 ⓘ 로 */}
+        <h3 className="evc-card-name evrs-card-name">
+          {L.sectionsTitle}
+          <EvalHintTip text={L.sectionsHint} testId="evrs-sections-tip" />
+        </h3>
         {/* PW-1892 — 알약 안 브라우저 기본 체크박스 대신 공용 체크박스(새 평가 사이클 마법사와 같은 모양).
             줄 단위 data-testid 는 속성 없는 span 에 남긴다. */}
         <div className="evc-check-row evrs-chips" data-testid="evrs-sections">
@@ -186,8 +189,16 @@ export default function EvalCycleReportSettings({
       </section>
 
       <section className="evc-card">
-        <h3 className="evc-card-name">{L.channelsTitle}</h3>
-        <p className="evc-wiz-hint">{L.channelsHint}</p>
+        {/* PW-2646 — 채널이 모두 잠겼으면 «회사 알림 설정»을 체크 상자마다 되풀이하지 않고 제목 옆에 한 번. */}
+        <h3 className="evc-card-name evrs-card-name">
+          {L.channelsTitle}
+          {allChannelsLocked && (
+            <span className="evrs-chip-req" data-testid="evrs-channels-locked">
+              {L.channelLocked}
+            </span>
+          )}
+          <EvalHintTip text={L.channelsHint} testId="evrs-channels-tip" />
+        </h3>
         <div className="evc-check-row evrs-chips" data-testid="evrs-channels">
           {channelOptions.map((key) => {
             const locked = lockedChannels.includes(key);
@@ -201,7 +212,9 @@ export default function EvalCycleReportSettings({
                   label={
                     <>
                       {L.channelLabels?.[key] ?? key}
-                      {locked && <span className="evrs-chip-req">{L.channelLocked}</span>}
+                      {locked && !allChannelsLocked && (
+                        <span className="evrs-chip-req">{L.channelLocked}</span>
+                      )}
                     </>
                   }
                 />
@@ -213,8 +226,10 @@ export default function EvalCycleReportSettings({
 
       {execApproval && (
         <section className="evc-card" data-testid="evrs-exec-approval">
-          <h3 className="evc-card-name">{L.execApprovalTitle}</h3>
-          <p className="evc-wiz-hint">{L.execApprovalHint}</p>
+          <h3 className="evc-card-name evrs-card-name">
+            {L.execApprovalTitle}
+            <EvalHintTip text={L.execApprovalHint} testId="evrs-exec-approval-tip" />
+          </h3>
           {/* 글씨를 눌러도 켜지게 체크박스 줄과 같은 `<label>` 로 묶는다. */}
           <div className="evc-check-row">
             <label className="dp-check">
@@ -223,6 +238,7 @@ export default function EvalCycleReportSettings({
                 disabled={execApproval.busy === true || execApproval.loadFailed === true}
                 onChange={(next) => execApproval.onChange?.(next)}
                 data-testid="evrs-exec-approval-switch"
+                aria-label={`${L.execApprovalTitle} ${L.execApprovalLabel}`}
               />
               {L.execApprovalLabel}
             </label>
@@ -241,8 +257,14 @@ export default function EvalCycleReportSettings({
 
       {/* ㉱ 읽기 전용 — 정본 §8.6 을 화면으로 옮긴 것이지 새 규칙이 아니다. */}
       <section className="evc-card">
-        <h3 className="evc-card-name">{L.timelineTitle}</h3>
-        <p className="evc-wiz-hint">{L.timelineHint}</p>
+        {/* PW-2646 — «정해진 순서» 설명과 본부장 승인 각주는 제목 옆 ⓘ 하나로. 표는 그대로. */}
+        <h3 className="evc-card-name evrs-card-name">
+          {L.timelineTitle}
+          <EvalHintTip
+            text={[L.timelineHint, L.timelineFootnote].filter(Boolean).join(' ')}
+            testId="evrs-timeline-tip"
+          />
+        </h3>
         <ol className="evrs-timeline" data-testid="evrs-timeline">
           {REPORT_TIMELINE_KEYS.map((key) => {
             const row = timeline[key] ?? {};
@@ -269,10 +291,6 @@ export default function EvalCycleReportSettings({
             {L.timelineBefore}
           </p>
         )}
-        <p className="evc-wiz-hint evc-manage-lock" data-testid="evrs-timeline-note">
-          <InfoIcon size={14} />
-          <span>{L.timelineFootnote}</span>
-        </p>
         {onOpenReportReview && (
           <button
             type="button"

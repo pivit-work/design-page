@@ -30,4 +30,16 @@ export function stampScheduleDateTime(value, labels) {
   return `${d}(${wd}) ${t}`;
 }
 
+/**
+ * 날짜 하나의 요일 글자 — `2027-07-01` → `목` (PW-2646). 3단계 날짜 칸 안에 «(목)»으로 붙인다.
+ * 칸 밑에 값을 한 번 더 적던 줄(위 표기)을 걷어 내면서 요일만 칸 안으로 옮겼다. 형식이 깨지면 빈 글.
+ */
+export function weekdayOfIsoDate(iso, labels) {
+  const d = String(iso ?? '');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return '';
+  const dt = new Date(`${d}T00:00:00`);
+  if (Number.isNaN(dt.getTime())) return '';
+  return labels?.[WEEKDAY_KEYS[dt.getDay()]] ?? '';
+}
+
 export default stampScheduleDateTime;

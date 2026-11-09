@@ -19,11 +19,22 @@ export default function EvalWizardChipPicker({
   extraSelected = [],
   onRemoveExtra,
   extraTestIdPrefix,
+  /* PW-2646 (RULES 9) — 이름표를 부품이 그려 오른쪽에 «N곳 선택 · 모두 해제»를 둔다.
+     목록은 테두리 상자 안 8줄 높이에서 내린다. */
+  label,
+  countLabel,
+  onClear,
+  // 검색 칸 — 'always'(조직) · 'many'(값이 많을 때만 — 직급).
+  search = 'always',
+  searchPlaceholder,
 }) {
   const [query, setQuery] = useState('');
   const many = options.length > CHIP_PICKER_SEARCH_MIN;
-  const visible = filterByQuery(options, query);
+  const showSearch = search === 'always' || many;
+  // 검색 칸이 없으면 거르지 않는다 — 가려진 검색어가 목록을 줄이지 않게.
+  const visible = showSearch ? filterByQuery(options, query) : options;
   const selectedCount = selected.length + extraSelected.length;
+  const placeholder = searchPlaceholder ?? L.wizardValueSearch;
 
   // 요약의 고른 값 — 누르면 푼다(위원 선택 요약의 칩과 같은 자리).
   const chip = (value, onClick, testId) => (
@@ -60,39 +71,61 @@ export default function EvalWizardChipPicker({
 
   return (
     <>
-      <TextInput
-        className="evc-wiz-committee-search"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder={L.wizardValueSearch}
-        aria-label={L.wizardValueSearch}
-        data-testid={`${testIdPrefix}s-search`}
-      />
-      {many && selectedCount > 0 && (
-        <div className="evc-wiz-chippicker-selected" data-testid={`${testIdPrefix}s-selected`}>
-          <span className="evc-wiz-committee-summary-count">
-            {fill(L.wizardValueSelected, { count: selectedCount })}
+      {label != null && (
+        <div className="evc-wiz-calibscope-label evc-wiz-chippicker-head" data-testid={`${testIdPrefix}s-head`}>
+          <span>{label}</span>
+          <span className="evc-wiz-chippicker-count" data-testid={`${testIdPrefix}s-count`}>
+            {fill(countLabel ?? L.wizardValueSelected, { count: selectedCount })}
+            {selectedCount > 0 && onClear && (
+              <>
+                {' · '}
+                <button
+                  type="button"
+                  className="evc-wiz-chippicker-clear"
+                  onClick={onClear}
+                  data-testid={`${testIdPrefix}s-clear`}
+                >
+                  {L.wizardValueClear ?? '모두 해제'}
+                </button>
+              </>
+            )}
           </span>
-          {selected.map((v) => chip(v, () => onToggle(v), `${testIdPrefix}s-selected-${v}`))}
-          {extraSelected.map((v) =>
-            chip(v, () => onRemoveExtra(v), `${testIdPrefix}s-selected-extra-${v}`),
-          )}
         </div>
       )}
-      <div className="evc-wiz-committee-list" data-testid={`${testIdPrefix}s-list`}>
-        {visible.map((v) =>
-          row(v, selected.includes(v), () => onToggle(v), `${testIdPrefix}-${v}`),
+      <div className="evc-wiz-pick-frame" data-testid={`${testIdPrefix}s-box`}>
+        {showSearch && (
+          <TextInput
+            className="evc-wiz-committee-search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={placeholder}
+            aria-label={placeholder}
+            data-testid={`${testIdPrefix}s-search`}
+          />
         )}
-        {/* 옛 선택은 검색과 무관하게 목록 끝에 둔다(전과 같다). 끄면 지운다. */}
-        {extraSelected.map((v) =>
-          row(v, true, () => onRemoveExtra(v), `${extraTestIdPrefix}-${v}`),
+        {many && selectedCount > 0 && (
+          <div className="evc-wiz-chippicker-selected" data-testid={`${testIdPrefix}s-selected`}>
+            {selected.map((v) => chip(v, () => onToggle(v), `${testIdPrefix}s-selected-${v}`))}
+            {extraSelected.map((v) =>
+              chip(v, () => onRemoveExtra(v), `${testIdPrefix}s-selected-extra-${v}`),
+            )}
+          </div>
+        )}
+        <div className="evc-wiz-committee-list" data-testid={`${testIdPrefix}s-list`}>
+          {visible.map((v) =>
+            row(v, selected.includes(v), () => onToggle(v), `${testIdPrefix}-${v}`),
+          )}
+          {/* 옛 선택은 검색과 무관하게 목록 끝에 둔다(전과 같다). 끄면 지운다. */}
+          {extraSelected.map((v) =>
+            row(v, true, () => onRemoveExtra(v), `${extraTestIdPrefix}-${v}`),
+          )}
+        </div>
+        {showSearch && query.trim() && visible.length === 0 && (
+          <span className="evc-wiz-hint" data-testid={`${testIdPrefix}s-empty`}>
+            {fill(L.wizardValueSearchEmpty, { query: query.trim() })}
+          </span>
         )}
       </div>
-      {query.trim() && visible.length === 0 && (
-        <span className="evc-wiz-hint" data-testid={`${testIdPrefix}s-empty`}>
-          {fill(L.wizardValueSearchEmpty, { query: query.trim() })}
-        </span>
-      )}
     </>
   );
 }
