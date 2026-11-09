@@ -36,7 +36,7 @@ const DEFAULT_LABELS = {
   modeLogin: '로그인',
   modeSignup: '회원가입',
   title: 'Login',
-  subtitle: '당신의 회사, 팀을 위한 생산성 플랫폼',
+  subtitle: '목표 관리와 리소스 관리 중심의 HR SaaS',
   email: '이메일',
   emailPlaceholder: '이메일 주소를 입력해 주세요',
   password: '비밀번호',
