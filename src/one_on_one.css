@@ -1130,6 +1130,12 @@
   background: var(--utility-error-50);
   border-color: var(--colors-error-200);
 }
+/* 저장 버튼 글자 «예약 완료 (N분)»을 한 줄로 (pivit-work PW-2521). «없애기»가 붙은 일정 변경 창은
+   버튼이 셋이라 반씩 나눈 폭(약 132px)에서 «(55분)»이 다음 줄로 꺾였다. 꺾지 않으면 저장 버튼이
+   글자 폭만큼 넓어지고 [취소]가 남은 폭을 갖는다. */
+.tl-group-modal.ono-add-shell .tl-group-modal-btn {
+  white-space: nowrap;
+}
 
 .ono-add-modal-form {
   display: flex;
