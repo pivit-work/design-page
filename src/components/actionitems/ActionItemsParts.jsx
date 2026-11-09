@@ -31,7 +31,9 @@ export function ActionItemsEmptyState({ title, hint, actionLabel, onAction, test
 }
 
 /**
- * 행의 마감 칩을 눌렀을 때 그 자리에 서는 날짜 입력 + [저장]·[마감 지우기]·[취소].
+ * 행의 마감 칩을 눌렀을 때 칩 아래 뜨는 창 안의 날짜 입력 + [저장]·[마감 지우기]·[취소].
+ * 창(자리·뒤집기)은 캔버스가 `renderDeadlineEditor` 결과를 `AnchoredLayer` 로 띄워 정한다 —
+ * 줄 안에 끼우면 다른 칸이 밀렸다 (screen-action-items.policy §3-1 ⑧ · pivit-work PW-2643).
  * `onRemove` 를 안 넘기면(마감이 없는 항목) [마감 지우기] 를 그리지 않는다.
  * 키보드·바깥 누르기 (`screen-action-items.policy.md §6`): Enter 저장 / Esc 취소 / 바깥 누르기 저장.
  * 달력 팝오버(`.dp-datepicker`) 안을 누르는 것은 바깥이 아니다. 달력이 열려 있으면 Esc 는 달력만 닫는다.
@@ -53,8 +55,8 @@ export function ActionItemDeadlineEditor({
     () => onCancel?.(),
   );
   return (
-    <span
-      className="ai-row-meta"
+    <div
+      className="ai-due-editor"
       ref={ref}
       onKeyDown={(e) => {
         if (!isEnterKey(e)) return;
@@ -79,6 +81,6 @@ export function ActionItemDeadlineEditor({
       <button type="button" className="ai-kr-btn" onClick={onCancel}>
         {labels.cancel}
       </button>
-    </span>
+    </div>
   );
 }

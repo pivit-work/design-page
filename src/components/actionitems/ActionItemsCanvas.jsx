@@ -7,6 +7,7 @@ import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Skeleton, { SkeletonList } from '../shared/Skeleton.jsx';
 import LoadMoreButton from '../shared/LoadMoreButton.jsx';
 import Select from '../shared/Select.jsx';
+import AnchoredLayer from '../shared/AnchoredLayer.jsx';
 
 /**
  * ActionItemsCanvas — "액션 아이템" 페이지 Pure 컴포넌트.
@@ -49,6 +50,14 @@ function ActionRow({ item, labels, onToggle, renderDeadlineEditor, renderKrPicke
   useEffect(() => {
     if (focused) return scrollToFocus(rowRef.current);
   }, [focused]);
+  // 마감 편집기는 줄 안이 아니라 칩 아래 뜨는 창에 둔다 — 줄 안에 끼우면 다른 칸이 밀린다
+  // (screen-action-items.policy §3-1 ⑧ · pivit-work PW-2643). 칩은 눌린 표시로 제자리에 남는다.
+  const dueRef = useRef(null);
+  // 창이 열린 채 칩을 누르면 그 누르기는 바깥 누르기(저장하고 닫기)다. 바깥 누르기 감지가
+  // mousedown 에서 먼저 창을 닫아 버려 이어지는 click 은 «닫힌 칩»을 누른 것으로 보이므로,
+  // 그보다 앞서 오는 pointerdown 에서 «열려 있었다»를 적어 두고 그 click 은 열기로 쓰지 않는다.
+  const pressedWhileOpen = useRef(false);
+  const deadlineEditor = renderDeadlineEditor?.(item) ?? null;
   return (
     <div
       ref={rowRef}
@@ -95,40 +104,68 @@ function ActionRow({ item, labels, onToggle, renderDeadlineEditor, renderKrPicke
         </span>
       )}
 
+      {/* 오른쪽 다섯 칸은 값이 없어도 자리를 둔다 — 모든 줄이 같은 세로선에 서게 (기획 §3-1 · PW-2643).
+          너비는 action_items.css 의 `.ai-cell[data-cell=…]` 가 정한다. */}
       <span className="ai-row-meta">
         {/* 어느 자리에서 나온 할 일인지 — 회의 / 1on1 / OKR (기획 §4 «출처 배지 항상»). */}
-        {item.sourceLabel && (
-          <StatusBadge className="ai-badge is-low" data-source-badge="">{item.sourceLabel}</StatusBadge>
-        )}
-        {item.priorityLabel && (
-          <StatusBadge className={`ai-badge is-${item.priorityTone || 'low'}`}>{item.priorityLabel}</StatusBadge>
-        )}
+        <span className="ai-cell" data-cell="source">
+          {item.sourceLabel && (
+            <StatusBadge className="ai-badge is-low" data-source-badge="">{item.sourceLabel}</StatusBadge>
+          )}
+        </span>
+        <span className="ai-cell" data-cell="priority">
+          {item.priorityLabel && (
+            <StatusBadge className={`ai-badge is-${item.priorityTone || 'low'}`}>{item.priorityLabel}</StatusBadge>
+          )}
+        </span>
 
-        {renderDeadlineEditor?.(item) ??
-          (item.deadlineLabel ? (
+        <span className="ai-cell" data-cell="due" ref={dueRef}>
+          {item.deadlineLabel ? (
             <DueBadge
               label={item.deadlineLabel}
               tone={item.deadlineTone}
-              onClick={() => item.onDeadlineClick?.(item.id)}
+              title={item.deadlineLabel}
+              className={deadlineEditor ? 'is-pressed' : ''}
+              aria-pressed={!!deadlineEditor}
+              onPointerDown={() => {
+                pressedWhileOpen.current = !!deadlineEditor;
+              }}
+              onClick={() => {
+                const wasOpen = pressedWhileOpen.current;
+                pressedWhileOpen.current = false;
+                if (wasOpen || deadlineEditor) return;
+                item.onDeadlineClick?.(item.id);
+              }}
             />
-          ) : null)}
-
-        {item.ownerName && (
-          <span className="ai-owner">
-            <span className="ai-owner-avatar">{initial(item.ownerName)}</span>
-            {item.ownerName}
-          </span>
+          ) : null}
+        </span>
+        {deadlineEditor && (
+          <AnchoredLayer anchorRef={dueRef} gap={4} className="ai-due-pop">
+            {deadlineEditor}
+          </AnchoredLayer>
         )}
 
-        {renderKrPicker?.(item) ?? (
-          <button
-            type="button"
-            className={`ai-kr-btn ${item.krLabel ? 'is-linked' : ''}`.trim()}
-            onClick={() => onKrClick?.(item.id)}
-          >
-            {item.krLabel || labels.krLink || '+ KR 연결'}
-          </button>
-        )}
+        <span className="ai-cell" data-cell="owner" title={item.ownerName || undefined}>
+          {item.ownerName && (
+            <span className="ai-owner">
+              <span className="ai-owner-avatar">{initial(item.ownerName)}</span>
+              <span className="ai-owner-name">{item.ownerName}</span>
+            </span>
+          )}
+        </span>
+
+        <span className="ai-cell" data-cell="kr">
+          {renderKrPicker?.(item) ?? (
+            <button
+              type="button"
+              className={`ai-kr-btn ${item.krLabel ? 'is-linked' : ''}`.trim()}
+              title={item.krLabel || undefined}
+              onClick={() => onKrClick?.(item.id)}
+            >
+              {item.krLabel || labels.krLink || '+ KR 연결'}
+            </button>
+          )}
+        </span>
       </span>
     </div>
   );
@@ -298,7 +335,13 @@ export default function ActionItemsCanvas({
             objectives.map((obj) => (
               <section className="ai-obj" key={obj.id}>
                 <header className="ai-obj-head">
-                  {obj.levelLabel && <StatusBadge className="ai-badge is-low">{obj.levelLabel}</StatusBadge>}
+                  {/* 계층 표시(«전사»·«팀»)는 고정 폭 자리 — 표시가 없는 목표도 빈 자리를 둬서
+                      목표 이름이 같은 세로선에서 시작한다 (기획 §3-2 ① · PW-2643). */}
+                  <span className="ai-obj-level">
+                    {obj.levelLabel && (
+                      <StatusBadge className="ai-badge is-low" title={obj.levelLabel}>{obj.levelLabel}</StatusBadge>
+                    )}
+                  </span>
                   <span className="ai-obj-title">{obj.title}</span>
                   <span className="ai-obj-meta">
                     {labels.linkedActions} {obj.actionCount}
@@ -322,7 +365,8 @@ export default function ActionItemsCanvas({
                         {kr.ownerName ? ` · ${kr.ownerName}` : ''}
                       </span>
                       <Icon
-                        src={kr.expanded ? '/icons/chevron-down.svg' : '/icons-solid/chevron-selector-vertical.svg'}
+                        // 목록 보기 묶음 머리와 같다 — 접힘 오른쪽 · 펼침 아래 (기획 §3-2 ③ · PW-2643).
+                        src={kr.expanded ? '/icons/chevron-down.svg' : '/icons/chevron-right.svg'}
                         size={16}
                         color="var(--text-tertiary)"
                         baseUrl={baseUrl}
