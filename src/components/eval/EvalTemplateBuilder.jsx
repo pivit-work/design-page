@@ -130,6 +130,8 @@ export function EvalTemplateGradeRows({
               <FieldInfo description={L.gradeKeywordsHelp} />
             </span>
           </span>
+          {/* 줄마다 있는 × 칸(auto)이 머리에 없으면 나머지 칸이 그만큼 넓어져 아래 입력 칸과 어긋난다 — 같은 폭으로 비워 둔다. */}
+          <span className="evc-tpl-x evc-tpl-grade-head-x" aria-hidden="true">✕</span>
         </div>
       ) : null}
       {grades.map((g, i) => (
