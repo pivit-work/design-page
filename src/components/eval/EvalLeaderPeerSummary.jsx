@@ -148,7 +148,7 @@ export default function EvalLeaderPeerSummary({ peer, onGenerate, labelOf, L }) 
           {shown.map((r) => {
             const who = (
               <>
-                {r.named ? <Avatar name={r.label} size={20} /> : null}
+                {r.named ? <Avatar name={r.label} size={24} /> : null}
                 {r.label}
                 {r.named && r.role ? ` · ${r.role}` : ''}
               </>
@@ -169,7 +169,7 @@ export default function EvalLeaderPeerSummary({ peer, onGenerate, labelOf, L }) 
                 ) : (
                   // 원문이 없는 실명 작성자 — 누를 것이 없으니 버튼이 아니라 이름 줄(차수 코멘트 작성자 줄과 같은 모양).
                   <span className="evs-round-comment-author" data-testid="evl-peer-reviewer-name-only">
-                    <Avatar name={r.label} size={20} />
+                    <Avatar name={r.label} size={24} />
                     <span className="evs-round-comment-name">
                       {r.label}
                       {r.role ? ` · ${r.role}` : ''}
@@ -212,7 +212,11 @@ export default function EvalLeaderPeerSummary({ peer, onGenerate, labelOf, L }) 
             </div>
             <h2 id="evl-peer-original-title" className="tl-group-modal-title">{open.label}</h2>
             <div className="evl-peer-original-sub">
-              {[open.named && open.role, fill(L.peerOriginalSubmittedAt, { at: mmddhhmm(open.submittedAt) })]
+              {/* PW-2580 — 익명·관계만 버튼은 서버가 제출 시각을 안 싣는다. 값 없는 «제출»만 남기지 않는다. */}
+              {[
+                open.named && open.role,
+                open.submittedAt && fill(L.peerOriginalSubmittedAt, { at: mmddhhmm(open.submittedAt) }),
+              ]
                 .filter(Boolean)
                 .join(' · ')}
             </div>
