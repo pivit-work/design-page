@@ -12,6 +12,7 @@ import ModalLayer from '../shared/ModalLayer.jsx';
 import Stack from '../shared/Stack.jsx';
 import OkrProgressBar from '../okr/OkrProgressBar.jsx';
 import DateInput from '../shared/DateInput.jsx';
+import Skeleton, { SkeletonList } from '../shared/Skeleton.jsx';
 
 const DEFAULT_PROFILE = {
   title: '사원',
@@ -117,6 +118,9 @@ function applyTexture(app, objectName, imageSrc) {
 //   note — 조정 메모. 값에 마우스를 올리면 뜬다 · onEdit — 본인 카드(isSelf)에서만 값이 눌리고 연필이 붙는다
 //   editDisabled — 오늘 휴가처럼 고칠 수 없을 때 · editing — 창이 열려 칸을 강조 · panel — 칸 아래 펼칠 창(WorkHoursAdjustPanel)
 //   absent — 오늘 휴가라 value 자리에 근무시간 대신 «부재중»을 회색으로 보인다(pivit-work PW-2210 · 정책서 §3 「당일 휴가」)
+// cardStatus — 'loading' | 'error'. 소비자가 카드 칸을 받는 중·못 받았을 때 준다(pivit-work PW-2665). 주면 member 가 없어도 창이 열리고
+//   카드 자리 전체를 스켈레톤(loading) 또는 cardError(error)로 바꾼다. 닫기 X·바깥 누르기는 그대로. 안 주면 지금까지 그대로다.
+// cardError — error 일 때 카드 자리에 놓을 안내(번역된 문구 + 다시 시도 버튼). 소비자가 그려 준다.
 /** «성과 정보» 한 줄. 문구는 소비자가 번역해서 준다 — 막대 · 알약 · 안내 글 셋 중 하나. */
 function PerformanceRow({ row }) {
   const testId = `profile-performance-${row.key}`;
@@ -142,7 +146,7 @@ function PerformanceRow({ row }) {
   );
 }
 
-export default function ProfileModal({ member, onClose, statIcons, baseUrl = '', renderAvatar, resolvePhoto, adminMode = false, findSubordinates, showSubordinates = true, subordinatesTitle, directReportChipLabel, onFeedbackClick, onMeetingClick, isSelf = false, labels, actions, hideFeedback = false, slackDmUrl, managerHistory, asOf, onEditVisibility, editVisibilityLabel, workHours }) {
+export default function ProfileModal({ member, onClose, statIcons, baseUrl = '', renderAvatar, resolvePhoto, adminMode = false, findSubordinates, showSubordinates = true, subordinatesTitle, directReportChipLabel, onFeedbackClick, onMeetingClick, isSelf = false, labels, actions, hideFeedback = false, slackDmUrl, managerHistory, asOf, onEditVisibility, editVisibilityLabel, workHours, cardStatus, cardError }) {
   // 화면 문구 — 조직도 캔버스 안에서 열리면 캔버스가 받은 번역을 쓰고, 캔버스 밖(소비자가
   // 따로 띄우는 카드)에서는 `labels` 로 받는다(PW-705). 둘 다 없으면 한국어 기본값.
   // `subordinatesTitle`·`directReportChipLabel`(PW-546)은 주면 그것이 이긴다.
@@ -199,7 +203,8 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
     }
   }, [member]);
   const profile = displayMember?.profile || EMPTY_PROFILE;
-  const isOpen = !!member;
+  // 카드 칸을 받는 중·못 받았을 때도 창은 연다 — 카드 자리는 CardStatusBlock 이 대신한다(pivit-work PW-2665).
+  const isOpen = !!member || !!cardStatus;
 
   const statusBadge = (
     <StatusBadge className="modal-status-badge">{L(`member.status.${MEMBER_STATUSES[displayMember?.status] ? displayMember.status : 'working'}`)}</StatusBadge>
@@ -211,6 +216,10 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
     <ModalLayer open={isOpen} keepMounted onClose={onClose}>
     <div className="modal-scroll-wrap" ref={scrollWrapRef} onClick={onClose}>
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+        {cardStatus && <CardStatusBlock status={cardStatus} error={cardError} onClose={onClose} />}
+        {/* 받는 중·실패일 때는 카드 내용을 숨기기만 한다 — 3D 씬은 그대로 붙어 있어야 받은 뒤 바로 뜬다.
+            보일 때는 display: contents 라 감싸기 전과 배치가 같다. */}
+        <div style={{ display: cardStatus ? 'none' : 'contents' }}>
         {/* Header */}
         <div className="modal-header">
           <button className="modal-close" onClick={onClose}>
@@ -509,9 +518,37 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
           <span className="modal-footer-text">Get Communication with</span>
           <img src={assetUrl(baseUrl, 'logo.svg')} alt="Pivit" className="modal-footer-logo" />
         </div>
+        </div>
       </div>
     </div>
     </ModalLayer>
+  );
+}
+
+/**
+ * 카드 칸을 받는 중·못 받았을 때 카드 자리 전체를 대신한다(pivit-work PW-2665 · Public-Card 정책 §8 «카드 내용» 행 · §9).
+ * loading — 3D 아바타·이름 줄·직책 줄·정보 줄 자리를 진짜 카드와 같은 크기로 깐다.
+ * error — 소비자가 준 안내(`cardError` — 번역된 문구 + 다시 시도)를 그대로 놓는다.
+ * 조직도가 가진 이름·연락처로 카드 일부를 채우지 않는다 — 비공개로 둔 것과 못 불러온 것을 가를 수 없게 된다.
+ */
+function CardStatusBlock({ status, error, onClose }) {
+  const loading = status === 'loading';
+  return (
+    <div className="modal-header modal-card-status" aria-busy={loading} data-testid={loading ? 'profile-card-loading' : 'profile-card-failed'}>
+      <button type="button" className="modal-close" onClick={onClose} data-testid="profile-card-status-close">
+        <CloseGlyph size={20} strokeWidth={2.4} />
+      </button>
+      {loading ? (
+        <>
+          <Skeleton width={240} height={240} radius="50%" className="modal-card-status-avatar" />
+          <Skeleton width={140} height={24} className="modal-card-status-name" />
+          <Skeleton width={180} height={14} />
+          <SkeletonList count={3} height={52} className="modal-card-status-rows" />
+        </>
+      ) : (
+        <div className="modal-card-status-error">{error}</div>
+      )}
+    </div>
   );
 }
 

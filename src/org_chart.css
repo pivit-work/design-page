@@ -451,6 +451,13 @@
   pointer-events: auto;
 }
 
+/* 카드 칸을 받는 중·못 받았을 때 카드 자리 전체 (pivit-work PW-2665) — 머리 띠 하나가 창 전체라 아래 모서리도 둥글게 */
+.modal-card-status { border-radius: var(--radius-4xl); padding-bottom: var(--spacing-4xl); }
+.modal-card-status-avatar { margin: var(--spacing-5xl) 0 var(--spacing-4xl); }
+.modal-card-status-name { margin-bottom: var(--spacing-md); }
+.modal-card-status-rows { width: 100%; margin-top: var(--spacing-4xl); }
+.modal-card-status-error { width: 100%; padding-top: var(--spacing-5xl); }
+
 .modal-name {
   font-size: 24px;
   font-weight: 600;
