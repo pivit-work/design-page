@@ -364,9 +364,12 @@ function PlanCard({ plan, isCurrent, interval, onAction, canEdit, isCustomCta, f
 
       <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 4 }}>{plan.label}</div>
       {trialNote && (
-        <div data-testid={`billing-plan-trial-${plan.code}`} style={{ marginBottom: 'var(--spacing-xs)' }}>
-          {/* 색은 구독 현황의 «체험 중» 상태 배지와 같다 (BillingOverviewCanvas STATUS_META.trial) */}
-          <Badge color={T.accentText} bg="var(--bg-brand-secondary)">{trialNote}</Badge>
+        <div data-testid={`billing-plan-trial-${plan.code}`}
+          style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'var(--spacing-xs)', marginBottom: 'var(--spacing-md)' }}>
+          {/* 색은 구독 현황의 «체험 중» 상태 배지와 같다 (BillingOverviewCanvas STATUS_META.trial).
+              배지는 줄바꿈이 없어 이름만 담고, 종료일은 옆 글자로 둔다 — 카드 넷이 나란히면 글 칸이 160px 남짓이다. */}
+          <Badge color={T.accentText} bg="var(--bg-brand-secondary)">{trialNote.badge}</Badge>
+          <span style={{ fontSize: 12, color: T.sub }}>{trialNote.until}</span>
         </div>
       )}
       <div style={{ fontSize: 12, color: T.sub, marginBottom: 12 }}>{plan.tagline}</div>
@@ -587,8 +590,8 @@ export default function BillingPlansCanvas({
    */
   suspension = null,
   /**
-   * 체험으로 받은 요금제 (pivit-work PW-2657) — 유효한 체험 중이면 앱이 `{ planCode, note }` 를 넘긴다
-   * (`note` 는 «베타 무상 제공 중 · 2027-02-04까지» 같은 다 만든 글). 그 카드에 «현재 플랜» 배지와 `note` 배지를 붙이고
+   * 체험으로 받은 요금제 (pivit-work PW-2657) — 유효한 체험 중이면 앱이 `{ planCode, badge, until }` 을 넘긴다
+   * (`badge` «베타 무상 제공 중» · `until` «2027-02-04까지» — 다 만든 글). 그 카드에 «현재 플랜» 배지와 체험 배지·종료일을 붙이고
    * 비교표도 그 요금제를 강조한다. 버튼은 끄지 않는다 — 결제 흐름은 `subscription.planCode`(체험이면 Free)를
    * 그대로 따라 모든 유료 카드가 결제로 간다. Free 카드는 «현재 플랜»이 아니고 버튼은 꺼진다(체험 중 Free 로 바꾸는 길은 없다).
    */
@@ -924,7 +927,7 @@ export default function BillingPlansCanvas({
                   : null
               }
               launchBenefitUntil={launchBenefitUntil}
-              trialNote={!suspension && trialPlan && trialPlan.planCode === plan.code ? trialPlan.note : null}
+              trialNote={!suspension && trialPlan && trialPlan.planCode === plan.code ? trialPlan : null}
               onAction={() => onPlanAction(plan)}
             />
           ))}
