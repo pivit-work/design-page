@@ -574,6 +574,9 @@ function MemberCard({ member, tone, icons, baseUrl, onAction, onCardClick, rende
       className={`ono-member-card${tone === 'brand' ? ' is-brand' : ''}${onCardClick ? ' is-clickable' : ''}`}
       onClick={onCardClick}
     >
+      {/* 팀원이 보낸 «대기» 1on1 신청 줄 — 카드 맨 위 (pivit-work PW-2639 · 기획 §13-10). 호스트가 노드를 넘긴다.
+          누르기는 그 줄 안에서 멈춘다 — 카드 클릭(지난 회의 창)으로 번지지 않게. */}
+      {member.requestSlot}
       <div className="ono-member-top">
         <div className="ono-member-identity">
           <div className="ono-member-avatar">
