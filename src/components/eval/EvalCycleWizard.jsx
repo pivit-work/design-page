@@ -4686,28 +4686,30 @@ export default function EvalCycleWizard({
   /**
    * [PW-2646] 단계 카드 «리마인더 N회» 옆 한 줄 — 줄마다 되풀이되던 «받는 사람 · 회사 기본값» ·
    * «채널 · 회사 기본값» · «· 기본 문구» 를 모든 줄이 같을 때만 머리에 한 번 적는다.
-   * 한 줄이라도 «이 사이클만»이면 그 축은 머리에서 빠지고 줄마다 딱지(+ [기본값으로])가 그대로 선다 —
-   * 정보는 빼지 않고 «같은 말 반복»만 접는다. 문구 종류도 줄마다 다르면 줄에 남긴다.
+   * 딱지는 «모두 아니면 없음»이다(기획 답 2026-11-09 · 정책 §5.2.1-F «배지를 한 번만»): 그 단계의 모든 줄이
+   * 두 축 다 회사 기본값일 때만 머리에 두 딱지를 한 번 두고, 한 줄이라도 한 축이 «이 사이클만»이면 머리 딱지 없이
+   * 줄마다 두 딱지(+ [기본값으로])를 그린다 — 예외 줄이 있는데 머리가 «회사 기본값»이라 말하면 안 된다.
+   * 문구 종류는 줄마다 같을 때만 머리에, 다르면 줄에 남긴다.
    */
   const reminderHeadSummary = (ph) => {
     const list = remindersOf(ph.id);
     if (list.length === 0) return null;
-    const covers = {
-      targets: list.every((rm) => rm.inherit?.targets !== false),
-      channels: list.every((rm) => rm.inherit?.channels !== false),
-    };
+    const allDefault = list.every((rm) => rm.inherit?.targets !== false && rm.inherit?.channels !== false);
     const kinds = new Set(list.map((rm) => reminderMessageKindText(messageOf(rm))));
     const msgKind = kinds.size === 1 ? [...kinds][0] : null;
-    const axes = [
-      covers.targets ? L.reminderInheritTargets : null,
-      covers.channels ? L.reminderInheritChannels : null,
-    ].filter(Boolean);
-    const parts = [
-      axes.length ? `${axes.join('·')} ${L.reminderInheritDefault}` : null,
-      msgKind,
-    ].filter(Boolean);
-    return { covers, msgKind, text: parts.join(' · ') };
+    return { allDefault, msgKind };
   };
+
+  /** 채널 «회사 기본값» 딱지 말풍선 — 기본값 설명 + 채널 규칙 문장(편집 창 «언제 · 어느 채널로» ⓘ 와 같은 말). */
+  const channelRuleNames = (ids) =>
+    REMINDER_CHANNELS.filter((ch) => (ids ?? []).includes(ch.id)).map((ch) => L[ch.labelKey]).join(' + ');
+  const channelDefaultHint = () =>
+    L.reminderChannelInheritNote && !reminderCompanyDefaultsFailed
+      ? `${L.reminderInheritDefaultHint} ${fill(L.reminderChannelInheritNote, {
+          far: channelRuleNames(companyRemind.channelsFar),
+          near: channelRuleNames(companyRemind.channelsNear),
+        })}`
+      : L.reminderInheritDefaultHint;
 
   /**
    * [PW-1066] 리마인더 편집 패널 — 목록의 [편집] 이 오른쪽에서 연다.
@@ -8791,13 +8793,10 @@ export default function EvalCycleWizard({
                   <span className="evc-field-label">
                     {L.leaderRoundsLabel}
                     {/* 최대 차수 · 2차 평가자가 쓰는 때 — 늘 보이던 회색 두 문장을 ⓘ 로 옮겼다 (PW-2646). */}
-                    {leaderRoundsMaxStatus === 'ready' && (
+                    {/* 1차 하나뿐인 회사는 버튼이 하나인 이유를 화면이 말하지 못해 버튼 옆에 늘 보인다(아래) — 기획 답 11-09 §5.13.1. */}
+                    {leaderRoundsMaxStatus === 'ready' && leaderMax > 1 && (
                       <EvalHintTip
-                        text={`${
-                          leaderMax > 1
-                            ? fill(L.leaderRoundsHintMax, { max: leaderMax })
-                            : L.leaderRoundsHintSingle
-                        } ${L.leaderRoundsHintSequential}`}
+                        text={`${fill(L.leaderRoundsHintMax, { max: leaderMax })} ${L.leaderRoundsHintSequential}`}
                         testId="evc-wiz-leader-rounds-hint"
                       />
                     )}
@@ -8807,6 +8806,7 @@ export default function EvalCycleWizard({
                       {L.leaderRoundsLoading}
                     </span>
                   ) : (
+                    <div className="evc-wiz-rounds-row">
                     <SegmentedControl
                       ariaLabel={L.leaderRoundsLabel}
                       value={leaderRounds}
@@ -8817,6 +8817,12 @@ export default function EvalCycleWizard({
                         testId: `evc-wiz-leader-rounds-${i + 1}`,
                       }))}
                     />
+                    {leaderRoundsMaxStatus === 'ready' && leaderMax <= 1 && (
+                      <span className="evc-field-note" data-testid="evc-wiz-leader-rounds-single">
+                        {L.leaderRoundsHintSingle}
+                      </span>
+                    )}
+                    </div>
                   )}
                   {leaderRoundsMaxStatus === 'error' ? (
                     <p className="evc-wiz-warn" role="alert" data-testid="evc-wiz-leader-rounds-error">
@@ -10183,14 +10189,22 @@ export default function EvalCycleWizard({
                             )}
                             {(() => {
                               const sum = reminderHeadSummary(ph);
-                              if (!sum?.text) return null;
+                              if (!sum || (!sum.allDefault && !sum.msgKind)) return null;
                               return (
-                                <span
-                                  className="evc-rm-head-sum"
-                                  title={sum.covers.targets || sum.covers.channels ? L.reminderInheritDefaultHint : undefined}
-                                  data-testid={`evc-rm-head-sum-${ph.id}`}
-                                >
-                                  {sum.text}
+                                <span className="evc-rm-head-sum" data-testid={`evc-rm-head-sum-${ph.id}`}>
+                                  {sum.allDefault &&
+                                    ['targets', 'channels'].map((axis) => (
+                                      <StatusBadge
+                                        key={axis}
+                                        className="evc-status-badge tone-neutral"
+                                        title={axis === 'channels' ? channelDefaultHint() : L.reminderInheritDefaultHint}
+                                        data-testid={`evc-rm-head-inherit-${axis}-${ph.id}`}
+                                      >
+                                        {axis === 'channels' ? L.reminderInheritChannels : L.reminderInheritTargets} ·{' '}
+                                        {L.reminderInheritDefault}
+                                      </StatusBadge>
+                                    ))}
+                                  {sum.msgKind && <span className="evc-rm-head-msg">{sum.msgKind}</span>}
                                 </span>
                               );
                             })()}
@@ -10242,13 +10256,15 @@ export default function EvalCycleWizard({
                                     {/* [PW-2089 · 정책 §5.2.1-F] 받는 사람·채널 축마다 회사 기본값 / 이 사이클만.
                                         딱지 = 같은 줄 발송 상태 칩과 같은 `.evc-status-badge`(neutral / info) ·
                                         «기본값으로» = 같은 줄 [편집] 과 같은 글자 버튼. */}
-                                    {['targets', 'channels'].filter((axis) => !headSum?.covers[axis]).map((axis) => {
+                                    {(headSum?.allDefault ? [] : ['targets', 'channels']).map((axis) => {
                                       const inh = rm.inherit ?? {};
                                       const follows = inh[axis] !== false;
                                       const byId = inh.changedBy?.[axis];
                                       const byName = byId ? reminderChangers?.[byId] : null;
                                       const title = follows
-                                        ? L.reminderInheritDefaultHint
+                                        ? axis === 'channels'
+                                          ? channelDefaultHint()
+                                          : L.reminderInheritDefaultHint
                                         : inh.unsaved?.[axis]
                                           ? L.reminderInheritCustomHint
                                           : byName
