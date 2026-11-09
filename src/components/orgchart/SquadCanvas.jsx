@@ -35,7 +35,7 @@ import SquadFormCard from './SquadFormCard.jsx';
 import SquadProjectSection from './SquadProjectSection.jsx';
 import SquadGraphView from './SquadGraphView.jsx';
 import SquadGroupPanel from './SquadGroupPanel.jsx';
-import SquadIsoStage from './SquadIsoStage.jsx';
+import SquadPillarStage from './SquadPillarStage.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import AssignmentGrid from './AssignmentGrid.jsx';
 import {
@@ -324,6 +324,8 @@ export default function SquadCanvas({
   const [statusAsk, setStatusAsk] = useState(null); // { squadId, to, kind, overloads }
   const [projTarget, setProjTarget] = useState(null); // 「+ 프로젝트 추가」 를 연 스쿼드 id
   const [groupPanel, setGroupPanel] = useState(false); // [묶음 관리] 패널(§5-6-A «자리»)
+  // 「내 캐파」 배너가 «한눈에»에 보내는 요청 — 그 스쿼드의 내 기둥으로 옮겨 가 창을 연다(§4 배너 행 v3.48)
+  const [stageFocus, setStageFocus] = useState(null); // { squadId, n }
 
   // 화면 문구 — 소비자가 번역을 넘긴다(PW-705). 안 넘기면 한국어 기본값.
   const L = useMemo(() => makeOrgLabels(labels), [labels]);
@@ -882,8 +884,36 @@ export default function SquadCanvas({
     const target = mine.find((sq) => isCapacityUnset(memberIn(sq)))
       ?? [...mine].sort((a, b) => (memberIn(b)?.allocationPct || 0) - (memberIn(a)?.allocationPct || 0))[0];
 
-    return { total, unset, target, diff: total - CAPACITY, state: capacityState(total) };
+    return { total, unset, target, count: mine.length, diff: total - CAPACITY, state: capacityState(total) };
   }, [squads, currentUserId]);
+
+  /** 무대의 내 기둥을 눌렀다 — 그 기둥 바로 아래 배정 편집 창(본인 모드 · §5-7 «내 블록» v3.48) */
+  const openMineFromStage = ({ squadId, userId, rect, selector }) => setPopover({
+    squadId, userId, x: rect.left + 8, y: rect.bottom + 8, anchorSelector: selector, anchorRect: rect,
+  });
+  /** 카드 보기 — 표의 본인 칸으로 옮겨 가 그 칸 아래 창을 연다. 칸이 없으면 가운데 */
+  const openCellPopover = (squadId, userId) => {
+    const selector = `[data-testid="squad-cell-${squadId}-${userId}"]`;
+    const cell = document.querySelector(selector);
+    if (!cell) {
+      setPopover({ squadId, userId, x: window.innerWidth / 2, y: 220 });
+      return;
+    }
+    cell.scrollIntoView?.({ block: 'center', inline: 'center' });
+    const rect = cell.getBoundingClientRect();
+    setPopover({ squadId, userId, x: rect.left + 8, y: rect.bottom + 8, anchorSelector: selector, anchorRect: rect });
+  };
+  /** 「내 캐파」 배너 버튼 — 보기마다(§4 배너 행 v3.48): 한눈에 = 내 기둥 · 그림 = 한눈에로 바꾼 뒤 같다 · 카드 = 표의 본인 칸 */
+  const openMyCapacity = () => {
+    const target = myCapacity?.target;
+    if (!target || !currentUserId) return;
+    if (view === 'card') {
+      openCellPopover(target.id, currentUserId);
+      return;
+    }
+    if (view !== 'stage') changeView('stage');
+    setStageFocus((f) => ({ squadId: target.id, n: (f?.n || 0) + 1 }));
+  };
 
   const popSquad = popover && squads.find((sq) => sq.id === popover.squadId);
   const popAssign = popSquad && (popSquad.members || []).find((m) => m.userId === popover.userId);
@@ -1115,6 +1145,43 @@ export default function SquadCanvas({
             )}
           </div>
 
+          {/* ── 「내 캐파」 요약 배너 (§5-3.7 · §4 배너 행 v3.48) ──
+              캐파의 소유자는 본인이므로, 본인이 자기 값을 어디서 정하는지가 화면에 늘 보여야 한다.
+              자리는 스쿼드 탭 공통(보기 전환 아래 · 한눈에·카드·그림) — 첫 보기가 «한눈에»라 표 머리에 두면 못 찾는다. */}
+          {myCapacity && !leaving && (
+            <div className="sq-mycap sq-mycap-common" data-testid="squad-my-capacity-banner">
+              <span className="sq-mycap-label">{L('squad.mycap.label')}</span>
+              <span className="sq-mycap-total" style={{ color: myCapacity.state.color }}>
+                {myCapacity.total}
+              </span>
+              <span className="sq-mycap-max">/ 100</span>
+              <span className="sq-mycap-note">
+                {myCapacity.diff > 0
+                  ? L('squad.mycap.over', { diff: myCapacity.diff })
+                  : L('squad.mycap.slack', { diff: -myCapacity.diff })}
+                {L('squad.mycap.squads', { count: myCapacity.count })}
+                {myCapacity.unset > 0 && (
+                  <span className="sq-mycap-unset">{L('squad.mycap.unset', { count: myCapacity.unset })}</span>
+                )}
+              </span>
+              <span className="sq-mycap-owner">
+                {rich(L('squad.mycap.owner'))}
+                {view === 'stage' && <span data-testid="squad-my-capacity-tail">{L('squad.mycap.tailStage')}</span>}
+                {view === 'graph' && <span data-testid="squad-my-capacity-tail">{L('squad.mycap.tailGraph')}</span>}
+              </span>
+              {myCapacity.target && (
+                <button
+                  type="button"
+                  className="sq-btn sq-btn-sm sq-btn-primary"
+                  data-testid="squad-my-capacity-cta"
+                  onClick={openMyCapacity}
+                >
+                  {L(myCapacity.unset > 0 ? 'squad.mycap.setCta' : 'squad.mycap.adjustCta')} →
+                </button>
+              )}
+            </div>
+          )}
+
           {/* 묶음 관리 패널 — 툴바 아래 인라인(모달·별도 화면 아님 · §5-6-A «자리»). 카드 보기에서만 */}
           {groupPanel && !viewOnly && canManageLedger && onSaveGroupLevels && (
             <SquadGroupPanel
@@ -1202,14 +1269,20 @@ export default function SquadCanvas({
 
               {/* 그림 보기(PW-2356) — 카드 그리드·매트릭스 자리에 선다. 같은 스쿼드 응답으로 그린다 */}
               {showStage && (
-                <SquadIsoStage
+                <SquadPillarStage
                   key={`${leaving ? 'org' : 'squad'}-${stageRun}`}
-                  to={leaving ? 'org' : 'squad'}
-                  animate={leaving || stagePlay}
+                  side={leaving ? 'org' : 'squad'}
+                  playFrom={leaving ? 'squad' : (stagePlay ? 'org' : null)}
                   overlay={leaving}
                   squads={squads}
                   people={people}
-                  onMemberClick={onMemberClick}
+                  orgUnits={orgUnits}
+                  groupLevelNames={groupLevelNames}
+                  squadGroups={squadGroups}
+                  currentUserId={currentUserId}
+                  onOpenMine={leaving ? undefined : openMineFromStage}
+                  onOpenProfile={onMemberClick}
+                  focusMine={stageFocus}
                   onDone={leaving ? () => onSubTabChange?.('orgchart') : () => setStagePlay(false)}
                 />
               )}
@@ -1637,44 +1710,6 @@ export default function SquadCanvas({
                 )}
                 <div className="sq-panel">
 
-                  {/* ── 「내 캐파」 요약 배너 (§5-3.7) ──
-                      캐파의 소유자는 본인이므로, 본인이 자기 값을 어디서 정하는지가 화면에
-                      늘 보여야 한다. 관리자용 [할당 편집] 토글과 무관하게 상시 노출한다. */}
-                  {myCapacity && (
-                    <div className="sq-mycap" data-testid="squad-my-capacity-banner">
-                      <span className="sq-mycap-label">{L('squad.mycap.label')}</span>
-                      <span className="sq-mycap-total" style={{ color: myCapacity.state.color }}>
-                        {myCapacity.total}
-                      </span>
-                      <span className="sq-mycap-max">/ 100</span>
-                      <span className="sq-mycap-note">
-                        {myCapacity.diff > 0
-                          ? L('squad.mycap.over', { diff: myCapacity.diff })
-                          : L('squad.mycap.slack', { diff: -myCapacity.diff })}
-                        {myCapacity.unset > 0 && (
-                          <span className="sq-mycap-unset">{L('squad.mycap.unset', { count: myCapacity.unset })}</span>
-                        )}
-                      </span>
-                      <span className="sq-mycap-owner">
-                        {rich(L('squad.mycap.owner'))}
-                      </span>
-                      {myCapacity.target && (
-                        <button
-                          type="button"
-                          className="sq-btn sq-btn-sm sq-btn-primary"
-                          data-testid="squad-my-capacity-cta"
-                          onClick={() => setPopover({
-                            squadId: myCapacity.target.id,
-                            userId: currentUserId,
-                            x: window.innerWidth / 2,
-                            y: 220,
-                          })}
-                        >
-                          {L(myCapacity.unset > 0 ? 'squad.mycap.setCta' : 'squad.mycap.adjustCta')} →
-                        </button>
-                      )}
-                    </div>
-                  )}
 
 
                   {/* 바둑판 뼈대는 프로젝트 탭과 같은 AssignmentGrid 다(PW-838) — 이름 칸과

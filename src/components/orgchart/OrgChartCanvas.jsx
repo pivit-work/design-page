@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import Icon from '../shared/Icon.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import OrgChartViewport from './OrgChartViewport.jsx';
@@ -32,9 +32,12 @@ import { OrgLabelsContext, makeOrgLabels } from './orgchart-labels.jsx';
 // renderList(leading) — 리스트 보기 자리(.canvas-area.is-list)에 OrgListView 대신 그릴 것. `leading` 은 툴바 맨 앞에
 //   둘 트리/리스트 전환이다(pivit-work PW-2374 — 앱은 정본 명단 표 OrgMemberListCanvas 에 `leading` 으로 넘긴다).
 //   안 주면 OrgListView 그대로다.
+// renderIso(leading) — 셋째 보기 «입체»(pivit-work PW-2616 · 기획 조직도 §3-D-0 «전환» v3.49 임시 적용). 주면 전환이
+//   «트리 / 리스트 / 입체» 셋이 되고, 그 보기 자리에 그린다(보기 전용 · 기둥 무대의 조직도 쪽). 안 주면 지금처럼 둘이다.
+//   트리·리스트에서 맨 위 «스쿼드» 탭을 누르면 트리가 누운 뒤 탭을 옮긴다(동작 줄이기면 바로 옮긴다).
 // locale — 리스트 보기의 정렬 글자 순서.
 // showListTab — 옛 「리스트」 탭 스위치. 받아도 아무 일도 하지 않는다(탭이 없다).
-export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIcons, baseUrl = '', onMemberClick, renderAvatar, editMode = false, onSubTabChange, findSubordinates, adminMode: adminModeProp = false, onAdminModeChange, showGrade = false, showProjectTab = false, lineStyleLabel: lineStyleLabelProp, labels, asOf, highlight, workspaceId, density: densityProp, onDensityChange, onDownloadImage, expandable = true, memberPatches, view: viewProp, onViewChange, renderList, locale, /* 탭 줄 끝 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2567) — 안 주면 지금과 같다 */ titleHelp }) {
+export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIcons, baseUrl = '', onMemberClick, renderAvatar, editMode = false, onSubTabChange, findSubordinates, adminMode: adminModeProp = false, onAdminModeChange, showGrade = false, showProjectTab = false, lineStyleLabel: lineStyleLabelProp, labels, asOf, highlight, workspaceId, density: densityProp, onDensityChange, onDownloadImage, expandable = true, memberPatches, view: viewProp, onViewChange, renderList, renderIso, locale, /* 탭 줄 끝 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2567) — 안 주면 지금과 같다 */ titleHelp }) {
   // 화면 문구 — 소비자가 번역을 넘긴다(PW-705). 안 넘기면 한국어 기본값.
   const L = useMemo(() => makeOrgLabels(labels), [labels]);
   // `lineStyleLabel` 은 `labels` 보다 먼저 생긴 자리라 그대로 받는다 — 주면 그것이 이긴다.
@@ -125,6 +128,21 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
   }, [onMemberClick]);
   const closeModal = useCallback(() => setSelectedMember(null), []);
 
+  // 맨 위 «스쿼드» 탭 — 트리·리스트에서 누르면 트리가 누운 뒤 옮긴다. 그다음 스쿼드 탭 무대가 입체 조직도에서 날아간다
+  // (기획 스쿼드 §5-7 «진입» v3.49 임시 적용). «입체»에서는 바로 옮긴다 — 무대가 그 모습 그대로 날아간다.
+  const [lying, setLying] = useState(false);
+  const lyingTimer = useRef(0);
+  useEffect(() => () => clearTimeout(lyingTimer.current), []);
+  const goTab = useCallback((tab) => {
+    const reduce = typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    if (tab !== 'squad' || !renderIso || view === 'iso' || reduce || lying) {
+      onSubTabChange?.(tab);
+      return;
+    }
+    setLying(true);
+    lyingTimer.current = setTimeout(() => onSubTabChange?.(tab), 600);
+  }, [onSubTabChange, renderIso, view, lying]);
+
   // 트리/리스트 전환(17788:33262) — 페이지 캔버스의 왼쪽 툴바 맨 앞. 전체 화면 창에는 없다.
   const viewSwitch = (
     <SegmentedControl
@@ -132,6 +150,7 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
       items={[
         { value: 'tree', label: L('org.view.tree'), testId: 'org-view-tree' },
         { value: 'list', label: L('org.view.list'), testId: 'org-view-list' },
+        ...(renderIso ? [{ value: 'iso', label: L('org.view.iso'), testId: 'org-view-iso' }] : []),
       ]}
       value={view}
       onChange={changeView}
@@ -173,7 +192,7 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
       {!onMemberClick && <ProfileModal member={selectedMember} onClose={closeModal} statIcons={statIcons} baseUrl={baseUrl} renderAvatar={renderAvatar} adminMode={adminMode} findSubordinates={findSubordinates} />}
 
       <div className="content-header">
-        <OrgTabNav active="orgchart" onSubTabChange={onSubTabChange} showProjectTab={showProjectTab} L={L} help={titleHelp} />
+        <OrgTabNav active="orgchart" onSubTabChange={goTab} showProjectTab={showProjectTab} L={L} help={titleHelp} />
         <div className="header-subtitle">
           <b>{L('org.totalHeadcount')}</b>
           <span className="dot">&#8729;</span>
@@ -191,33 +210,43 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
       </div>
 
       {/* 끌기 안내 — 시안(16596:49052)은 머리글 줄 오른쪽 끝, 캔버스 위에 둔다. 끌 것이 없는 리스트 보기에는 없다. */}
-      {view !== 'list' && (
+      {view === 'tree' && (
         <div className="drag-hint org-drag-hint">
           <Icon src={icons.expand} size={14} color="var(--text-brand-tertiary)" baseUrl={baseUrl} />
           <span>{L('org.dragHint')}</span>
         </div>
       )}
 
-      {view === 'list' ? (
-        // 리스트 보기 — 트리와 같은 카드 자리(.canvas-area)에 표를 편다. 팬·줌은 없다.
-        <div className="canvas-area is-list" data-testid="org-canvas-list">
-          {renderList ? renderList(viewSwitch) : (
-            <OrgListView
-              orgData={orgData}
-              leading={viewSwitch}
-              asOf={asOf}
-              onOpenMember={openModal}
-              L={L}
-              baseUrl={baseUrl}
-              locale={locale}
-            />
-          )}
+      {view === 'iso' && renderIso ? (
+        // 입체 보기 — 기둥 무대의 조직도 쪽(보기 전용). 끌기·편집이 없다
+        <div className="org-iso-area" data-testid="org-canvas-iso">
+          <div className="org-toolbar ol-toolbar org-iso-toolbar">{viewSwitch}</div>
+          {renderIso(viewSwitch)}
         </div>
       ) : (
-        <OrgChartViewport {...viewportProps} toolbarLeading={viewSwitch} onExpandView={expandable ? () => setExpanded(true) : undefined} />
+        <div className={`org-lie-wrap${lying ? ' is-lying' : ''}`} data-testid="org-lie-wrap">
+          {view === 'list' ? (
+            // 리스트 보기 — 트리와 같은 카드 자리(.canvas-area)에 표를 편다. 팬·줌은 없다.
+            <div className="canvas-area is-list" data-testid="org-canvas-list">
+              {renderList ? renderList(viewSwitch) : (
+                <OrgListView
+                  orgData={orgData}
+                  leading={viewSwitch}
+                  asOf={asOf}
+                  onOpenMember={openModal}
+                  L={L}
+                  baseUrl={baseUrl}
+                  locale={locale}
+                />
+              )}
+            </div>
+          ) : (
+            <OrgChartViewport {...viewportProps} toolbarLeading={viewSwitch} onExpandView={expandable ? () => setExpanded(true) : undefined} />
+          )}
+        </div>
       )}
 
-      {expanded && view !== 'list' && (
+      {expanded && view === 'tree' && (
         <ModalShell
           ariaLabel={L('tab.orgchart')}
           closeLabel={L('org.closeExpandView')}

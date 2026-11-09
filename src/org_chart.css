@@ -1007,3 +1007,13 @@
 }
 .modal-wh-delete:hover { background: var(--colors-background-bgBrandSecondary); }
 .modal-wh-delete:disabled { cursor: not-allowed; opacity: 0.5; }
+
+/* ── «입체» 보기 · 트리가 눕는 연출 (pivit-work PW-2616 · 기획 조직도 §3-D-0 «전환» v3.49 임시 적용) ──
+   디자이너 원본이 없다. 입체 보기는 같은 탭 리스트 보기의 툴바 자리(.ol-toolbar)를 쓰고, 무대는 스쿼드 탭 «한눈에»와 같은 부품이다. */
+.org-lie-wrap { display: contents; }
+.org-lie-wrap.is-lying { display: block; transform-origin: 50% 40%; animation: org-lie 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+@keyframes org-lie {
+  to { transform: perspective(1400px) rotateX(58deg) rotateZ(-28deg) scale(0.72); opacity: 0; }
+}
+.org-iso-area { display: flex; flex-direction: column; background: var(--bg-primary); border-radius: 16px; overflow: hidden; }
+.org-toolbar.org-iso-toolbar { padding: 16px 24px 0; }
