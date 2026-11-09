@@ -154,6 +154,10 @@ const DEFAULT_LABELS = {
   cancelRefundFailedTitle: '환불이 처리되지 않았습니다',
   cancelRefundFailedDesc: '운영팀이 연락드립니다. 환불이 끝날 때까지 구독은 그대로 유지됩니다.',
   cancelRefundHoldNote: '환불 처리 중 — 끝날 때까지 정기결제를 하지 않습니다',
+  // 출시 혜택이 끝나는 인상 청구일의 다음 청구 (pivit-work PW-2647 · overview §2 «다음 청구 — 출시 혜택이 끝나는 인상 청구일»)
+  launchBenefitPendingNote: (date) =>
+    `요금 변경에 동의하셔야 결제됩니다 — 동의하지 않으시면 이 청구는 없고 ${date}부터 서비스 이용이 정지됩니다`,
+  launchBenefitAgreedNote: (price) => `요금 변경에 동의하셨습니다 — 이 청구부터 좌석당 ${won(price)}/월`,
   refundBusy: '처리하는 중...',
   refundLineSubscription: '구독 결제',
   refundLinePlanChange: '요금제 변경 차액 결제',
@@ -447,6 +451,12 @@ export default function BillingOverviewCanvas({
    * 버튼·정가 인상 띠 숨김, 다음 청구 카드 보류 줄. 없으면 null.
    */
   cancelRefund = null,
+  /**
+   * 출시 혜택이 끝나는 인상 청구일이 다음 청구일이다 `{ chargeDate, newUnitPrice, consented: boolean | null }` (pivit-work PW-2647).
+   * 금액(`subscription.periodAmount`)·단가 줄은 앱이 월간 정가로 센 값을 넘긴다. 카드 아래 한 줄 — 동의 전 앰버 / 동의 뒤 초록.
+   * `consented` 가 null 이면(통지를 못 읽어 모름) 줄을 그리지 않는다. 띠(`priceChange`)와 따로 온다 — 띠가 없어도 카드는 그린다.
+   */
+  launchBenefitNext = null,
   priceChangeOpen = false,
   priceChangeSaving = false,
   onOpenPriceChange,
@@ -1083,6 +1093,17 @@ export default function BillingOverviewCanvas({
               {scheduled && (
                 <div data-testid="billing-scheduled-interval" style={{ fontSize: 12, color: T.amber, marginTop: 'var(--spacing-xs)' }}>
                   {labels.scheduledNote(scheduled.interval === 'annual')}
+                </div>
+              )}
+              {/* 출시 혜택 종료 요금 변경 — 동의해야 결제(아니면 이용 정지) / 동의함 (pivit-work PW-2647 · overview §2) */}
+              {launchBenefitNext && launchBenefitNext.consented === false && (
+                <div data-testid="billing-launch-benefit-next-pending" style={{ fontSize: 12, color: T.amber, marginTop: 'var(--spacing-xs)' }}>
+                  {labels.launchBenefitPendingNote(launchBenefitNext.chargeDate)}
+                </div>
+              )}
+              {launchBenefitNext && launchBenefitNext.consented === true && (
+                <div data-testid="billing-launch-benefit-next-agreed" style={{ fontSize: 12, color: 'var(--text-success-primary)', marginTop: 'var(--spacing-xs)' }}>
+                  {labels.launchBenefitAgreedNote(launchBenefitNext.newUnitPrice)}
                 </div>
               )}
               {/* 다음 청구일이 와 정기결제를 보류하는 동안만 (overview §2 «다음 청구일이 오면») */}
