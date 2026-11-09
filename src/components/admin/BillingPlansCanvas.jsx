@@ -328,18 +328,21 @@ function launchBenefitApplies(plan, interval, launchBenefitUntil) {
     && plan != null && !plan.isCustom && plan.seatPriceAnnual != null;
 }
 
-function PlanCard({ plan, isCurrent, interval, onAction, canEdit, isCustomCta, featureKeys, featureLabelMap, labels, negotiatedPrice, launchBenefitUntil = null }) {
+function PlanCard({ plan, isCurrent, interval, onAction, canEdit, isCustomCta, featureKeys, featureLabelMap, labels, negotiatedPrice, launchBenefitUntil = null, trialNote = null }) {
   const isFree = !plan.isCustom && !plan.seatPrice;
   // 베타 출시 혜택(PW-2360) — 기간 안이면 월간도 연간 단가. 연간은 원래 연간 단가라 겹쳐 주지 않고, 커스텀(Pro)은 대상이 아니다.
   const benefit = launchBenefitApplies(plan, interval, launchBenefitUntil);
   const price = (interval === 'annual' || benefit) && plan.seatPriceAnnual != null
     ? plan.seatPriceAnnual
     : plan.seatPrice;
+  // 체험으로 받은 요금제(pivit-work PW-2657) — «현재 플랜» 표시는 붙이되 버튼은 끄지 않는다.
+  // 체험이 끝나기 전에 그 요금제로 결제할 수 있어야 한다.
+  const markedCurrent = isCurrent || Boolean(trialNote);
 
   return (
     <div style={{
       background: T.card,
-      border: `2px solid ${isCurrent ? T.accent : plan.recommended ? T.purple : T.border}`,
+      border: `2px solid ${markedCurrent ? T.accent : plan.recommended ? T.purple : T.border}`,
       borderRadius: 16,
       padding: 24,
       position: 'relative',
@@ -348,18 +351,24 @@ function PlanCard({ plan, isCurrent, interval, onAction, canEdit, isCustomCta, f
       display: 'flex',
       flexDirection: 'column',
     }}>
-      {isCurrent && (
+      {markedCurrent && (
         <div style={{ position: 'absolute', top: -12, left: 16 }}>
           <Badge color="#fff" bg={T.accent}>{labels.currentPlanBadge}</Badge>
         </div>
       )}
-      {plan.recommended && !isCurrent && (
+      {plan.recommended && !markedCurrent && (
         <div style={{ position: 'absolute', top: -12, left: 16 }}>
           <Badge color="#fff" bg={T.purple}>{labels.recommendedBadge}</Badge>
         </div>
       )}
 
       <div style={{ fontSize: 18, fontWeight: 800, marginBottom: 4 }}>{plan.label}</div>
+      {trialNote && (
+        <div data-testid={`billing-plan-trial-${plan.code}`} style={{ marginBottom: 'var(--spacing-xs)' }}>
+          {/* 색은 구독 현황의 «체험 중» 상태 배지와 같다 (BillingOverviewCanvas STATUS_META.trial) */}
+          <Badge color={T.accentText} bg="var(--bg-brand-secondary)">{trialNote}</Badge>
+        </div>
+      )}
       <div style={{ fontSize: 12, color: T.sub, marginBottom: 12 }}>{plan.tagline}</div>
 
       {/* 협의 단가가 등록돼 있으면 커스텀 플랜의 「커스텀 견적」 대신 그 단가를 보여 준다
@@ -577,6 +586,13 @@ export default function BillingPlansCanvas({
    * 유료 카드는 모두 결제(체크아웃)로 간다 — 정지 전보다 낮은 요금제도 «변경 확인 창»이 아니라 결제다.
    */
   suspension = null,
+  /**
+   * 체험으로 받은 요금제 (pivit-work PW-2657) — 유효한 체험 중이면 앱이 `{ planCode, note }` 를 넘긴다
+   * (`note` 는 «베타 무상 제공 중 · 2027-02-04까지» 같은 다 만든 글). 그 카드에 «현재 플랜» 배지와 `note` 배지를 붙이고
+   * 비교표도 그 요금제를 강조한다. 버튼은 끄지 않는다 — 결제 흐름은 `subscription.planCode`(체험이면 Free)를
+   * 그대로 따라 모든 유료 카드가 결제로 간다. Free 카드는 «현재 플랜»이 아니고 버튼은 꺼진다(체험 중 Free 로 바꾸는 길은 없다).
+   */
+  trialPlan = null,
   /**
    * 결제 문제 안내 띠 (pivit-work PW-2526 · plans «결제 문제 안내 띠» 행) — 결제 실패 회사·미납이 남은 해지 회사에 앱이
    * `{ title, body, action }` 을 넘긴다. 뜨는 동안 요금제 카드 버튼은 Free·Pro·견적 결제까지 모두 비활성이다.
@@ -885,7 +901,7 @@ export default function BillingPlansCanvas({
             <PlanCard
               key={plan.code}
               plan={plan}
-              isCurrent={!suspension && plan.code === subscription.planCode}
+              isCurrent={!suspension && !trialPlan && plan.code === subscription.planCode}
               interval={interval}
               canEdit={
                 canEdit &&
@@ -893,6 +909,8 @@ export default function BillingPlansCanvas({
                 !payBlock &&
                 // 이용 정지면 Free 로 가는 결제는 없다 — 해지는 구독 현황의 [해지 신청] (띠 둘째 문장이 이유를 말한다)
                 !(suspension && (plan.tierRank ?? 0) === 0) &&
+                // 체험 중 Free 카드 — 지금 Free 를 쓰는 것이 아니지만 Free 로 바꾸는 길도 없다 (PW-2657)
+                !(trialPlan && !suspension && (plan.tierRank ?? 0) === 0) &&
                 !subscription.cancelAtPeriodEnd &&
                 !(commitment?.lockedPlanCodes ?? []).includes(plan.code)
               }
@@ -906,6 +924,7 @@ export default function BillingPlansCanvas({
                   : null
               }
               launchBenefitUntil={launchBenefitUntil}
+              trialNote={!suspension && trialPlan && trialPlan.planCode === plan.code ? trialPlan.note : null}
               onAction={() => onPlanAction(plan)}
             />
           ))}
@@ -926,7 +945,7 @@ export default function BillingPlansCanvas({
           plans={plans}
           featureKeys={featureKeys}
           featureLabelMap={featureLabelMap}
-          currentPlanCode={suspension ? null : subscription.planCode}
+          currentPlanCode={suspension ? null : (trialPlan?.planCode ?? subscription.planCode)}
           labels={labels}
         />
 
