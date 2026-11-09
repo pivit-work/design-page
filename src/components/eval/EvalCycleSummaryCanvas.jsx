@@ -320,6 +320,8 @@ const DEFAULT_LABELS = {
   cwBackToInbox: '← 어필 목록',
   cwAppealTitle: '어필 재검토',
   cwAppealReasonLabel: '이의 사유 (매니저)',
+  // pivit-work PW-2636 — 구성원 이의에서 넘어온 재검토는 구성원이 쓴 사유를 그대로 싣는다.
+  cwAppealMemberReasonLabel: '이의 사유 (구성원)',
   cwAppealFromTo: '근거 확정 등급',
   cwAppealRaisedBy: '제출 매니저',
   cwAppealRaisedSuffix: '어필',
@@ -4444,6 +4446,12 @@ export default function EvalCycleSummaryCanvas({
                               <StatusBadge className="evs-cw-badge tone-muted">
                                 {appeal.fromGradeLabel}
                               </StatusBadge>
+                            ) : !appeal.toGradeLabel && appeal.currentGradeLabel ? (
+                              // pivit-work PW-2636 — 위원회가 조정하지 않은 등급에 낸 구성원 이의는 근거 기록이 없다.
+                              // 빈칸 대신 지금 확정 등급을 보인다.
+                              <StatusBadge className="evs-cw-badge tone-muted" data-testid="evs-cw-review-current-grade">
+                                {appeal.currentGradeLabel}
+                              </StatusBadge>
                             ) : (
                               '—'
                             )}
@@ -4460,7 +4468,9 @@ export default function EvalCycleSummaryCanvas({
                         </div>
                       </div>
                       <div className="evs-cw-review-reason">
-                        <div className="evs-cw-review-k">{L.cwAppealReasonLabel}</div>
+                        <div className="evs-cw-review-k">
+                          {appeal.source === 'member_objection' ? L.cwAppealMemberReasonLabel : L.cwAppealReasonLabel}
+                        </div>
                         <div className="evs-cw-review-reason-body">{appeal.reason}</div>
                       </div>
                       {appeal.originalNote ? (

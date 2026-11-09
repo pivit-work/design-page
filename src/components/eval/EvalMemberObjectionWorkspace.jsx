@@ -258,7 +258,6 @@ function Panel({
                   />
                 </FormField>
               ) : null}
-              {error ? <FieldError data-testid="evrr-obj-error">{error}</FieldError> : null}
               <div className="evc-card-buttons">
                 <button
                   type="button"
@@ -277,6 +276,10 @@ function Panel({
           </div>
         </>
       ) : null}
+
+      {/* 처리 실패·거절 문구 — 다른 담당자가 먼저 답했거나 구성원이 철회해 칸이 읽기 전용으로 바뀌어도 이유가 남게
+          상태와 상관없이 패널 끝에 둔다. */}
+      {error ? <FieldError data-testid="evrr-obj-error">{error}</FieldError> : null}
 
       {confirmEscalate ? (
         <ConfirmModal
