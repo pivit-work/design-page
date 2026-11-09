@@ -16,6 +16,12 @@
     0 5px 5px -2.5px var(--colors-effects-shadows-shadow3xl02, rgba(10, 13, 18, 0.04));
   overflow: hidden;
 }
+
+/* 띄우지 않고 놓인 자리에 그린다(inline prop · PW-2663) — 모양은 그대로, 자리만 문서 흐름 */
+.dp-datepicker.is-inline {
+  position: relative;
+  z-index: auto;
+}
 .dp-datepicker-content {
   display: flex;
   flex-direction: column;

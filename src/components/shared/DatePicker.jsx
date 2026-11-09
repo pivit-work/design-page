@@ -16,8 +16,10 @@ import { ChevronDownGlyph, ChevronLeftGlyph, ChevronRightGlyph } from './lineIco
  * - ESC / 바깥 클릭으로 닫힘 (앵커 버튼 클릭은 제외).
  *
  * Props:
- *   anchorRect   클릭한 버튼의 DOMRect
+ *   anchorRect   클릭한 버튼의 DOMRect (inline 이면 쓰지 않는다)
  *   anchorEl     클릭한 버튼 element (outside-click 판정에서 제외)
+ *   inline       boolean — true 면 띄우지 않고 놓인 자리(문서 흐름)에 그린다. 모양은 같다. 연 채 여러 날을 고르는 곳에서
+ *                아래 줄(고른 날 · 안내)을 덮지 않고 밀어내며, 스크롤하면 자리와 함께 움직인다 (PW-2663 · 연차 사용 계획)
  *   selectedDate Date | null — 현재 선택일. null 이면 어느 보기에도 선택 표시가 없다
  *   onSelect     (Date) => void
  *   onClose      () => void
@@ -93,6 +95,7 @@ export default function DatePicker({
   isDateDisabled,
   disabledTitle,
   selectedDates,
+  inline = false,
   ...rest
 }) {
   const auto = useMemo(() => datePickerLabels(locale), [locale]);
@@ -112,7 +115,12 @@ export default function DatePicker({
 
   useLayoutEffect(() => {
     const el = popoverRef.current;
-    if (!el || !anchorRect) return;
+    if (!el) return;
+    if (inline) {
+      el.style.opacity = '1';
+      return;
+    }
+    if (!anchorRect) return;
     const m = el.getBoundingClientRect();
     const vw = window.innerWidth;
     const vh = window.innerHeight;
@@ -129,7 +137,7 @@ export default function DatePicker({
     el.style.left = `${left}px`;
     el.style.top = `${top}px`;
     el.style.opacity = '1';
-  }, [anchorRect, viewYear, viewMonth, view]);
+  }, [anchorRect, inline, viewYear, viewMonth, view]);
 
   useDismissLayer(onClose, popoverRef, anchorEl ? { current: anchorEl } : null);
 
@@ -249,7 +257,7 @@ export default function DatePicker({
     <div
       {...rest}
       ref={popoverRef}
-      className="dp-datepicker"
+      className={inline ? 'dp-datepicker is-inline' : 'dp-datepicker'}
       style={{ left: 0, top: 0, opacity: 0 }}
       role="dialog"
       data-view={view}
