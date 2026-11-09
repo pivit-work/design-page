@@ -72,6 +72,10 @@ import { fill } from './sessionHelpers.js';
  *   🔴 «지금»은 예약하는 사람의 시간대로 재야 하므로 호스트가 넘긴다(브라우저 시간대와 다를 수 있다).
  *   안 넘기면 브라우저 로컬 시각으로 잰다. 누를 때 한 번 더 재므로, 창을 열어 둔 사이 시각이 지나도 저장되지 않는다.
  *   «지금 바로»는 서버가 시각을 잡으므로 재지 않는다.
+ * defaultDuration: 미팅 시간 칸의 처음 값(분, 숫자) — «일정 변경»이 그 회차의 길이로 여는 자리다 (pivit-work PW-2521).
+ *   25·55 면 그 버튼, 그 밖의 양수면 «직접입력»이 골라지고 칸에 그 분이 들어간다. 생략하거나 비면(null·0) 종전대로 55분.
+ *   날짜·시각처럼 **마운트 시점에** 잡힌다.
+ *
  * keepPrefilledPast: 채워 연 날짜·시각(defaultDate·defaultTime)을 그대로 두면 지난 시각이어도 막지 않는다 —
  *   «일정 변경»에서 시작 시각이 이미 지난 회차의 길이·메모만 고칠 때다. 날짜나 시각 하나라도 바꾸면 위 판정이 걸린다.
  *
@@ -130,6 +134,14 @@ export const DEFAULT_LABELS = {
   prevMonth: '이전 달',
   nextMonth: '다음 달',
 };
+
+/* 처음 골라 둘 미팅 시간 버튼 — 25·55 는 그 버튼, 그 밖의 양수는 «직접입력», 없으면 55 (pivit-work PW-2521). */
+function initialDurationKey(min) {
+  const n = Number(min);
+  if (!Number.isFinite(n) || n <= 0) return '55';
+  if (n === 25 || n === 55) return String(n);
+  return 'custom';
+}
 
 function durationOptions(L) {
   return [
@@ -217,7 +229,7 @@ function weekdayLabels(locale) {
 // 상세(열람모드) 모달도 같은 시간 옵션·데이트피커를 쓴다 — export 해 공유.
 export const TIME_OPTIONS = TIME_SLOTS.map((slot) => formatTime(slot));
 
-export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, member, icons, baseUrl = '', members, defaultDate, defaultTime, locale = 'ko', labels, startNow, initialWhen = 'later', isPastStart = isPastLocal, keepPrefilledPast = false }) {
+export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, member, icons, baseUrl = '', members, defaultDate, defaultTime, locale = 'ko', labels, startNow, initialWhen = 'later', isPastStart = isPastLocal, keepPrefilledPast = false, defaultDuration }) {
   const L = { ...DEFAULT_LABELS, ...(labels || {}) };
   const memberList = useMemo(
     () => (Array.isArray(members) ? members : DEMO_MEMBERS).map(toMemberOption),
@@ -233,8 +245,10 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
      눌러도 창이 닫히고 예약은 안 생겼다 (PW-1061). */
   const [pickedId, setPickedId] = useState(null);
   const [memberOpen, setMemberOpen] = useState(false);
-  const [duration, setDuration] = useState('55');
-  const [customDuration, setCustomDuration] = useState('');
+  const [duration, setDuration] = useState(() => initialDurationKey(defaultDuration));
+  const [customDuration, setCustomDuration] = useState(() =>
+    initialDurationKey(defaultDuration) === 'custom' ? String(defaultDuration) : '',
+  );
   /* 날짜 기본값은 «마운트 시점» 에 잡는다. 이 모달은 닫혀도 언마운트되지 않고
      display 로만 숨기 때문에, 열 때마다 새로 잡히게 하려면 호출부가 열림 상태를
      `key` 에 실어야 한다 (`OneOnOneCanvasV2` 가 그렇게 한다). */
