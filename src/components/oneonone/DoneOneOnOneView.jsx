@@ -401,7 +401,8 @@ function AnalysisBanner({ state, L, icons, baseUrl, retry, summaryRetry, replay,
       </div>
     );
   }
-  if (state === 'failed' || state === 'summary-failed') {
+  // `failed-summarized` — 메모로 만든 요약은 왔지만 대화는 받아쓰지 못했다 (PW-2630). 같은 띠다.
+  if (state === 'failed' || state === 'failed-summarized' || state === 'summary-failed') {
     const summaryStalled = state === 'summary-failed';
     const binding = summaryStalled ? summaryRetry : retry;
     return (
