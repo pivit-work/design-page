@@ -339,6 +339,7 @@ export {
   ManagerTeamSnippetFeed,
   MANAGER_STATUS_COLORS,
 } from './manager/index.js';
+export { LeaveAnnualCard } from './leave/index.js';
 
 // Admin
 export { AdminDashboardCanvas } from './admin/index.js';

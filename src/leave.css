@@ -1,0 +1,116 @@
+/* 구성원 «내 휴가» 연차 카드 (pivit-work PW-2564) — 개발이 만든 틀 · design-review.
+   숫자 칸은 manager.css 의 매니저 KPI 칸(stesslee 2026-05-09)을 그대로 쓰고 높이 · 보조 줄 · 강조만 더한다.
+   상자는 같은 화면 촉진 카드 상자와 같은 값(바탕 --bg-quaternary · 둥근 --radius-xl · 안쪽 --spacing-xl). */
+
+.leave-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-xl);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-secondary);
+  background: var(--bg-quaternary);
+  min-width: 0;
+}
+
+.leave-card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  min-width: 0;
+}
+
+.leave-card-aside {
+  margin-left: auto;
+}
+
+/* 네 칸 — 칸 사이 16(시안 gap 16) · 좁으면 줄을 바꾼다. */
+.leave-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--spacing-xl);
+}
+
+.leave-tile.manager-kpi-card {
+  height: auto;
+  justify-content: flex-start;
+  gap: var(--spacing-xs);
+  border: 1px solid var(--border-secondary);
+  min-width: 0;
+}
+
+.leave-tile.is-brand {
+  background: var(--bg-brand-primary);
+  border-color: var(--border-brand);
+}
+
+.leave-tile.is-brand .manager-stat-value {
+  color: var(--text-brand-secondary);
+}
+
+.leave-tile.is-warning .manager-stat-value {
+  color: var(--text-warning-primary);
+}
+
+/* 막대 → 범례 → 회색 줄 — 8 씩(시안 marginTop 8). */
+.leave-card-foot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  min-width: 0;
+}
+
+.leave-card-foot:empty {
+  display: none;
+}
+
+.leave-bar {
+  display: flex;
+  height: 10px;
+  border-radius: var(--radius-xs);
+  background: var(--bg-secondary);
+  overflow: hidden;
+}
+
+.leave-bar-part.is-used,
+.leave-legend-swatch.is-used {
+  background: var(--fg-disabled-subtle);
+}
+
+.leave-bar-part.is-planned,
+.leave-legend-swatch.is-planned {
+  background: var(--bg-brand-secondary);
+}
+
+.leave-bar-part.is-available,
+.leave-legend-swatch.is-available {
+  background: var(--bg-brand-solid);
+}
+
+.leave-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-xl);
+  min-width: 0;
+}
+
+.leave-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  color: var(--text-tertiary);
+}
+
+.leave-legend-end {
+  margin-left: auto;
+}
+
+.leave-legend-swatch {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-xxs);
+  flex: none;
+}

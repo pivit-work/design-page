@@ -30,6 +30,7 @@
     "./styles/meetings.css": "./src/meetings.css",
     "./styles/report.css": "./src/report.css",
     "./styles/manager.css": "./src/manager.css",
+    "./styles/leave.css": "./src/leave.css",
     "./styles/login.css": "./src/login.css",
     "./styles/broadcast.css": "./src/broadcast.css",
     "./styles/snippet.css": "./src/snippet.css",
