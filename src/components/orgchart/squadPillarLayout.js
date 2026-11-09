@@ -15,9 +15,10 @@ export const PILLAR = {
   unsetH: 14, noneH: 2.5, minH: 6,
 };
 export const PILLAR_FAMILIES = ['dev', 'design', 'pm', 'biz', 'ops'];
-/** 직군 색 — 블록·띠·범례에 쓴다. 디자인 토큰 값(info · role · brand · warning · sub)이다. */
+/** 직군 색 — 블록·띠·범례에 쓴다. 디자인 토큰(info · role · brand · warning · sub)이다. */
 export const PILLAR_FAMILY_COLOR = {
-  dev: '#1570ef', design: '#5925dc', pm: '#2dbd82', biz: '#dc6803', ops: '#687079', none: '#b1b6be',
+  dev: 'var(--utility-blue-500)', design: 'var(--utility-purple-500)', pm: 'var(--utility-brand-500)',
+  biz: 'var(--utility-orange-500)', ops: 'var(--utility-gray-500)', none: 'var(--text-quaternary)',
 };
 export const PILLAR_ZOOM_MIN = 0.2;
 export const PILLAR_ZOOM_MAX = 2.5;
@@ -29,22 +30,10 @@ const { cos: COS, sin: SIN } = PILLAR;
 export const pillarIso = (x, y, z = 0) => [(x - y) * COS, (x + y) * SIN - z];
 export const pillarPts = (list) => list.map(([x, y, z]) => pillarIso(x, y, z).map((v) => v.toFixed(1)).join(',')).join(' ');
 
-const hex = (c) => {
-  const s = /^#[0-9a-f]{6}$/i.test(c || '') ? c : '#b1b6be';
-  return [1, 3, 5].map((i) => parseInt(s.slice(i, i + 2), 16));
-};
-/** 흰색과 섞기 — pct 100 이면 원색. */
-export const mixWhite = (c, pct) => {
-  const m = (v) => Math.round(255 + (v - 255) * pct / 100);
-  const [r, g, b] = hex(c);
-  return `rgb(${m(r)},${m(g)},${m(b)})`;
-};
+/** 흰색과 섞기 — pct 100 이면 원색. c 는 토큰(var)이나 스쿼드 색(데이터)이다. SVG 에서는 style 로만 칠한다(속성은 var 를 못 푼다). */
+export const mixWhite = (c, pct) => `color-mix(in srgb, ${c} ${pct}%, white)`;
 /** 검정과 섞기 — 글자·점 테두리처럼 진하게 쓸 때. */
-export const shadeDark = (c, pct) => {
-  const m = (v) => Math.round(v * pct / 100);
-  const [r, g, b] = hex(c);
-  return `rgb(${m(r)},${m(g)},${m(b)})`;
-};
+export const shadeDark = (c, pct) => `color-mix(in srgb, ${c} ${pct}%, black)`;
 
 /** 자식을 가로로 놓다가 넘치면 다음 줄 */
 function pack(items, maxW, gapX, lane) {

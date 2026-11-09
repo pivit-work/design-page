@@ -42,6 +42,13 @@ import {
 const { half: HALF, rad: RAD } = PILLAR;
 const RX = RAD * 1.2247; const RY = RAD * 0.7071;
 const ALERT_D = 'M12.8126 1.66837C12.2953 1.43834 11.7047 1.43834 11.1874 1.66837C10.7878 1.84602 10.5283 2.15894 10.3477 2.41391C10.1701 2.66461 9.98004 2.99303 9.77096 3.35422L1.50381 17.6339C1.2939 17.9964 1.10315 18.3258 0.973806 18.6054C0.842356 18.8895 0.699752 19.2714 0.745201 19.7074C0.804012 20.2715 1.09955 20.7841 1.55827 21.1176C1.91276 21.3753 2.31476 21.4433 2.62652 21.4719C2.93327 21.5 3.31392 21.5 3.73281 21.5H20.2671C20.686 21.5 21.0667 21.5 21.3734 21.4719C21.6852 21.4433 22.0872 21.3753 22.4417 21.1176C22.9004 20.7841 23.1959 20.2715 23.2547 19.7074C23.3002 19.2714 23.1576 18.8895 23.0261 18.6054C22.8968 18.3258 22.7061 17.9964 22.4962 17.6339L14.229 3.35419C14.0199 2.99301 13.8298 2.66459 13.6522 2.41391C13.4716 2.15894 13.2121 1.84602 12.8126 1.66837ZM13 9C13 8.44772 12.5523 8 12 8C11.4477 8 11 8.44772 11 9V13C11 13.5523 11.4477 14 12 14C12.5523 14 13 13.5523 13 13V9ZM12 16C11.4477 16 11 16.4477 11 17C11 17.5523 11.4477 18 12 18H12.01C12.5623 18 13.01 17.5523 13.01 17C13.01 16.4477 12.5623 16 12.01 16H12Z';
+/** 무대 색 — 토큰만 쓴다. SVG 속성은 var() 를 풀지 못해 모두 style 로 칠한다. */
+const C = {
+  ink: 'var(--text-primary)', sub: 'var(--text-tertiary)', muted: 'var(--text-quaternary)', paper: 'var(--bg-primary)',
+  line: 'var(--border-primary)', err: 'var(--text-error-primary)', errLine: 'var(--utility-error-500)', hatch: 'var(--utility-error-200)',
+  brand: 'var(--utility-brand-700)', brandSoft: 'var(--bg-brand-primary)', warn: 'var(--utility-warning-600)',
+  side: 'var(--utility-gray-200)', sideDark: 'var(--utility-gray-400)', groupTop: 'var(--bg-secondary)', gray: 'var(--utility-gray-500)',
+};
 const MAX_TAG_SCALE = 1.45;
 /**
  * 내 캐파 창을 열 때 내 기둥 윗끝을 둘 자리(화면 위에서 px). 기둥 위 이름표(약 50px)까지 고정 머리글(아래끝 약 160) 밑으로
@@ -88,9 +95,9 @@ function Plate({ n }) {
   const isStep = n.kind !== 'plate';
   const r = isStep ? 12 : 7;
   const c = n.squad?.color || n.color || (n.family ? PILLAR_FAMILY_COLOR[n.family] : null);
-  const topFill = n.dashed ? 'transparent' : isStep ? (n.kind === 'group' ? '#fafbfc' : mixWhite(c, 9)) : (c && n.squad ? mixWhite(c, 11) : '#ffffff');
-  const side = n.kind === 'group' ? '#d8dce1' : '#dfe2e6';
-  const dark = n.kind === 'group' ? '#c4c9d0' : '#ccd0d6';
+  const topFill = n.dashed ? 'transparent' : isStep ? (n.kind === 'group' ? C.groupTop : mixWhite(c, 9)) : (c && n.squad ? mixWhite(c, 11) : C.paper);
+  const side = n.kind === 'group' ? mixWhite(C.sideDark, 60) : C.side;
+  const dark = n.kind === 'group' ? C.sideDark : mixWhite(C.sideDark, 70);
   const x0 = n.ax + 7; const x1 = n.ax + n.w - 7; const y = n.ay + n.d; const W = x1 - x0;
   const layers = [];
   if (!n.dashed) for (let k = n.t; k > 0; k -= 1.5) layers.push(k);
@@ -101,25 +108,24 @@ function Plate({ n }) {
       const pct = pj ? Math.max(0, Math.min(100, Number(pj.progress) || 0)) : 0;
       band = (
         <>
-          <polygon points={faceFront(x0, x1, y, n.top, n.t)} fill={mixWhite(pj ? c : '#687079', 16)} />
-          {pj && pct > 0 && <polygon data-pillar-progress={n.squad.id} points={faceFront(x0, x0 + (W * pct) / 100, y, n.top, n.t)} fill={mixWhite(c, 92)} />}
+          <polygon points={faceFront(x0, x1, y, n.top, n.t)} style={{ fill: mixWhite(pj ? c : C.sub, 16) }} />
+          {pj && pct > 0 && <polygon data-pillar-progress={n.squad.id} points={faceFront(x0, x0 + (W * pct) / 100, y, n.top, n.t)} style={{ fill: mixWhite(c, 92) }} />}
         </>
       );
     } else if (c) {
-      band = <polygon points={faceFront(x0, x1, y, n.top, n.t)} fill={mixWhite(c, n.kind === 'group' ? 48 : 62)} />;
+      band = <polygon points={faceFront(x0, x1, y, n.top, n.t)} style={{ fill: mixWhite(c, n.kind === 'group' ? 48 : 62) }} />;
     } else {
-      band = <polygon points={faceFront(x0, x1, y, n.top, n.t)} fill="#d2d6db" />;
+      band = <polygon points={faceFront(x0, x1, y, n.top, n.t)} style={{ fill: C.line }} />;
     }
   }
   return (
     <>
-      {layers.map((k) => <path key={k} d={roundPath(n.ax, n.ay, n.w, n.d, r, n.top - k)} fill={side} />)}
-      {!n.dashed && <polygon points={faceRight(n.ax + n.w, n.ay + r, n.ay + n.d - r, n.top, n.t)} fill={dark} />}
+      {layers.map((k) => <path key={k} d={roundPath(n.ax, n.ay, n.w, n.d, r, n.top - k)} style={{ fill: side }} />)}
+      {!n.dashed && <polygon points={faceRight(n.ax + n.w, n.ay + r, n.ay + n.d - r, n.top, n.t)} style={{ fill: dark }} />}
       {band}
       <path
         d={roundPath(n.ax, n.ay, n.w, n.d, r, n.top)}
-        fill={topFill}
-        stroke={n.dashed ? '#b1b6be' : 'rgba(255,255,255,.9)'}
+        style={{ fill: topFill, stroke: n.dashed ? C.muted : 'rgba(255,255,255,.9)' }}
         strokeWidth={1}
         strokeDasharray={n.dashed ? '5 4' : undefined}
       />
@@ -136,17 +142,17 @@ function PlateLabel({ n, name }) {
   if (n.squad) {
     body = (
       <>
-        <rect x={2} y={n.t + 7} width={9} height={9} rx={2} fill={n.squad.color} />
-        <text x={16} y={n.t + 18} fontSize={15} fontWeight={700} fill="#2c3744" style={halo}>{name}</text>
+        <rect x={2} y={n.t + 7} width={9} height={9} rx={2} style={{ fill: n.squad.color }} />
+        <text x={16} y={n.t + 18} fontSize={15} fontWeight={700} style={{ ...halo, fill: C.ink }}>{name}</text>
       </>
     );
   } else if (n.kind === 'plate') {
-    body = <text x={2} y={n.t + 17} fontSize={14} fontWeight={700} fill={n.team ? '#2c3744' : '#687079'} style={halo}>{name}</text>;
+    body = <text x={2} y={n.t + 17} fontSize={14} fontWeight={700} style={{ ...halo, fill: n.team ? C.ink : C.sub }}>{name}</text>;
   } else {
     const big = n.kind === 'group' ? 17 : n.kind === 'div' ? 16 : 15;
     body = (
-      <text x={2} y={n.t + 20} fontSize={big} fontWeight={700} fill="#2c3744" style={halo}>
-        {n.layer && <tspan fontSize={12} fontWeight={600} fill={shadeDark(n.color, 75)}>{`${n.layer} `}</tspan>}
+      <text x={2} y={n.t + 20} fontSize={big} fontWeight={700} style={{ ...halo, fill: C.ink }}>
+        {n.layer && <tspan fontSize={12} fontWeight={600} style={{ fill: shadeDark(n.color, 75) }}>{`${n.layer} `}</tspan>}
         {name}
       </text>
     );
@@ -160,32 +166,32 @@ function Pillar({ tk, side, gradId, hatchId, unsetOn }) {
   const c = colorOf(p);
   const { a, h } = tk;
   const isCyl = side === 'squad' ? tk.lead : tk.head;
-  const ring = <ellipse cx={0} cy={0} rx={RX + 5} ry={RY + 3} fill="#fff" stroke="#2c3744" strokeWidth={1.6} />;
+  const ring = <ellipse cx={0} cy={0} rx={RX + 5} ry={RY + 3} strokeWidth={1.6} style={{ fill: C.paper, stroke: C.ink }} />;
   if (!a && side === 'org' && tk.head) {
-    return <>{ring}<ellipse cx={0} cy={-2} rx={RX} ry={RY} fill={mixWhite(c, 34)} /></>;
+    return <>{ring}<ellipse cx={0} cy={-2} rx={RX} ry={RY} style={{ fill: mixWhite(c, 34) }} /></>;
   }
   if (!a) {
     const s = 7;
-    return <polygon points={pillarPts([[-s, -s, h], [s, -s, h], [s, s, h], [-s, s, h]])} fill={mixWhite(c, 22)} opacity={0.85} />;
+    return <polygon points={pillarPts([[-s, -s, h], [s, -s, h], [s, s, h], [-s, s, h]])} opacity={0.85} style={{ fill: mixWhite(c, 22) }} />;
   }
   const unset = unsetOn && a.unset;
-  const dash = unset ? { fillOpacity: 0.18, stroke: mixWhite(c, 70), strokeWidth: 1, strokeDasharray: '3 2.5' } : {};
+  const dash = unset ? { fillOpacity: 0.18, stroke: mixWhite(c, 70), strokeWidth: 1, strokeDasharray: '3 2.5' } : null;
   const len = h * 0.42;
   const out = [];
   if (isCyl && (side === 'squad' || tk.bottom)) out.push(<g key="ring">{ring}</g>);
-  out.push(<polygon key="sh" points={pillarPts([[HALF, -HALF, 0], [HALF + len, -HALF + len * 0.15, 0], [HALF + len, HALF + len * 0.15, 0], [HALF, HALF, 0]])} fill="rgba(30,40,60,.07)" />);
+  out.push(<polygon key="sh" points={pillarPts([[HALF, -HALF, 0], [HALF + len, -HALF + len * 0.15, 0], [HALF + len, HALF + len * 0.15, 0], [HALF, HALF, 0]])} style={{ fill: 'rgba(30,40,60,.07)' }} />);
   if (isCyl) {
     const ty = -h;
-    out.push(<path key="b" d={`M${-RX} ${ty}L${-RX} 0A${RX} ${RY} 0 0 0 ${RX} 0L${RX} ${ty}Z`} fill={`url(#${gradId}-${famOf(p)})`} {...dash} />);
-    out.push(<ellipse key="t" cx={0} cy={ty} rx={RX} ry={RY} fill={mixWhite(c, 34)} stroke="rgba(255,255,255,.75)" strokeWidth={0.8} {...dash} />);
+    out.push(<path key="b" d={`M${-RX} ${ty}L${-RX} 0A${RX} ${RY} 0 0 0 ${RX} 0L${RX} ${ty}Z`} fill={`url(#${gradId}-${famOf(p)})`} style={dash || undefined} />);
+    out.push(<ellipse key="t" cx={0} cy={ty} rx={RX} ry={RY} strokeWidth={0.8} style={{ fill: mixWhite(c, 34), stroke: 'rgba(255,255,255,.75)', ...dash }} />);
   } else {
-    out.push(<polygon key="f" points={pillarPts([[-HALF, HALF, h], [HALF, HALF, h], [HALF, HALF, 0], [-HALF, HALF, 0]])} fill={mixWhite(c, 66)} {...dash} />);
-    out.push(<polygon key="s" points={pillarPts([[HALF, HALF, h], [HALF, -HALF, h], [HALF, -HALF, 0], [HALF, HALF, 0]])} fill={mixWhite(c, 92)} {...dash} />);
-    out.push(<polygon key="t" points={pillarPts([[-HALF, -HALF, h], [HALF, -HALF, h], [HALF, HALF, h], [-HALF, HALF, h]])} fill={mixWhite(c, 30)} stroke="rgba(255,255,255,.75)" strokeWidth={0.8} {...dash} />);
+    out.push(<polygon key="f" points={pillarPts([[-HALF, HALF, h], [HALF, HALF, h], [HALF, HALF, 0], [-HALF, HALF, 0]])} style={{ fill: mixWhite(c, 66), ...dash }} />);
+    out.push(<polygon key="s" points={pillarPts([[HALF, HALF, h], [HALF, -HALF, h], [HALF, -HALF, 0], [HALF, HALF, 0]])} style={{ fill: mixWhite(c, 92), ...dash }} />);
+    out.push(<polygon key="t" points={pillarPts([[-HALF, -HALF, h], [HALF, -HALF, h], [HALF, HALF, h], [-HALF, HALF, h]])} strokeWidth={0.8} style={{ fill: mixWhite(c, 30), stroke: 'rgba(255,255,255,.75)', ...dash }} />);
   }
   if (side === 'squad' && tk.multi > 1) {
     for (let i = 0; i < tk.multi; i++) {
-      out.push(<circle key={`d${i}`} data-pillar-dot cx={(i - (tk.multi - 1) / 2) * 6} cy={-h} r={2} fill="#fff" stroke={shadeDark(c, 70)} strokeWidth={0.7} />);
+      out.push(<circle key={`d${i}`} data-pillar-dot cx={(i - (tk.multi - 1) / 2) * 6} cy={-h} r={2} strokeWidth={0.7} style={{ fill: C.paper, stroke: shadeDark(c, 70) }} />);
     }
   }
   if (tk.x.total > PILLAR_OVER) {
@@ -196,16 +202,16 @@ function Pillar({ tk, side, gradId, hatchId, unsetOn }) {
     if (h > lo) {
       if (isCyl) {
         out.push(<path key="hc" data-pillar-hatch d={`M${-RX} ${-h}L${-RX} ${-lo}A${RX} ${RY} 0 0 0 ${RX} ${-lo}L${RX} ${-h}A${RX} ${RY} 0 0 1 ${-RX} ${-h}Z`} fill={`url(#${hatchId})`} />);
-        if (off < L100) out.push(<path key="mk" data-pillar-mark d={`M${-RX} ${-lo}A${RX} ${RY} 0 0 0 ${RX} ${-lo}`} fill="none" stroke="#f04438" strokeWidth={1.6} />);
+        if (off < L100) out.push(<path key="mk" data-pillar-mark d={`M${-RX} ${-lo}A${RX} ${RY} 0 0 0 ${RX} ${-lo}`} fill="none" strokeWidth={1.6} style={{ stroke: C.errLine }} />);
       } else {
         out.push(<polygon key="h1" data-pillar-hatch points={pillarPts([[-HALF, HALF, h], [HALF, HALF, h], [HALF, HALF, lo], [-HALF, HALF, lo]])} fill={`url(#${hatchId})`} />);
         out.push(<polygon key="h2" points={pillarPts([[HALF, HALF, h], [HALF, -HALF, h], [HALF, -HALF, lo], [HALF, HALF, lo]])} fill={`url(#${hatchId})`} />);
-        if (off < L100) out.push(<polyline key="mk" data-pillar-mark points={pillarPts([[-HALF, HALF, lo], [HALF, HALF, lo], [HALF, -HALF, lo]])} fill="none" stroke="#f04438" strokeWidth={1.6} />);
+        if (off < L100) out.push(<polyline key="mk" data-pillar-mark points={pillarPts([[-HALF, HALF, lo], [HALF, HALF, lo], [HALF, -HALF, lo]])} fill="none" strokeWidth={1.6} style={{ stroke: C.errLine }} />);
       }
     }
     // 조직도 쪽은 한 사람이 조각으로 쌓이므로 꼭대기 조각에만 단다
     if (side === 'squad' || tk.top) {
-      out.push(<path key="al" data-pillar-alert transform={`translate(-7 ${-h - 20}) scale(.5833)`} fill="#d92d20" fillRule="evenodd" clipRule="evenodd" stroke="#fff" strokeWidth={3} paintOrder="stroke" d={ALERT_D} />);
+      out.push(<path key="al" data-pillar-alert transform={`translate(-7 ${-h - 20}) scale(.5833)`} fillRule="evenodd" clipRule="evenodd" strokeWidth={3} paintOrder="stroke" d={ALERT_D} style={{ fill: C.err, stroke: C.paper }} />);
     }
   }
   return <>{out}</>;
@@ -222,9 +228,9 @@ function Tag({ tk, side, name, mine, L }) {
     const sub = unset ? L('squad.pillar.mineUnset') : L('squad.pillar.minePct', { pct: tk.a.capa });
     return (
       <g data-pillar-mine-tag>
-        <rect x={-w / 2} y={y - 32} width={w} height={34} rx={8} fill="#f1fffa" stroke="#10774d" strokeWidth={1.6} strokeDasharray={unset ? '4 3' : undefined} />
-        <text x={0} y={y - 18} textAnchor="middle" fontSize={11.5} fontWeight={700} fill="#2c3744">{L('squad.pillar.mineName', { name })}</text>
-        <text x={0} y={y - 4} textAnchor="middle" fontSize={10.5} fontWeight={600} fill={unset ? '#dc6803' : '#10774d'}>{sub}</text>
+        <rect x={-w / 2} y={y - 32} width={w} height={34} rx={8} strokeWidth={1.6} strokeDasharray={unset ? '4 3' : undefined} style={{ fill: C.brandSoft, stroke: C.brand }} />
+        <text x={0} y={y - 18} textAnchor="middle" fontSize={11.5} fontWeight={700} style={{ fill: C.ink }}>{L('squad.pillar.mineName', { name })}</text>
+        <text x={0} y={y - 4} textAnchor="middle" fontSize={10.5} fontWeight={600} style={{ fill: unset ? C.warn : C.brand }}>{sub}</text>
       </g>
     );
   }
@@ -235,10 +241,10 @@ function Tag({ tk, side, name, mine, L }) {
       const w = [...name].length * 11.5 + 44; const x0 = -w / 2;
       return (
         <g>
-          <rect x={x0} y={y - 15} width={w} height={22} rx={8} fill="#fff" stroke="#d2d6db" />
-          <rect x={x0 + 6} y={y - 10.5} width={27} height={13} rx={3} fill="rgba(0,0,0,.4)" />
-          <text x={x0 + 19.5} y={y - 1} textAnchor="middle" fontSize={7.5} fontWeight={700} letterSpacing={0.6} fill="#fff">LEAD</text>
-          <text x={x0 + 38} y={y + 0.5} fontSize={11.5} fontWeight={600} fill="#2c3744">{name}</text>
+          <rect x={x0} y={y - 15} width={w} height={22} rx={8} style={{ fill: C.paper, stroke: C.line }} />
+          <rect x={x0 + 6} y={y - 10.5} width={27} height={13} rx={3} style={{ fill: 'rgba(0,0,0,.4)' }} />
+          <text x={x0 + 19.5} y={y - 1} textAnchor="middle" fontSize={7.5} fontWeight={700} letterSpacing={0.6} style={{ fill: C.paper }}>LEAD</text>
+          <text x={x0 + 38} y={y + 0.5} fontSize={11.5} fontWeight={600} style={{ fill: C.ink }}>{name}</text>
         </g>
       );
     }
@@ -246,14 +252,14 @@ function Tag({ tk, side, name, mine, L }) {
     const w = [...label].length * 11.5 + 12;
     return (
       <g>
-        <rect x={-w / 2} y={y - 15} width={w} height={22} rx={8} fill="#fff" stroke="#d2d6db" />
-        <text x={0} y={y + 0.5} textAnchor="middle" fontSize={11.5} fontWeight={600} fill="#2c3744">{label}</text>
+        <rect x={-w / 2} y={y - 15} width={w} height={22} rx={8} style={{ fill: C.paper, stroke: C.line }} />
+        <text x={0} y={y + 0.5} textAnchor="middle" fontSize={11.5} fontWeight={600} style={{ fill: C.ink }}>{label}</text>
       </g>
     );
   }
   return (
-    <text x={0} y={-5 - lift} textAnchor="middle" fontSize={10} fontWeight={600} fill={tk.a ? '#2c3744' : '#687079'}
-      paintOrder="stroke" stroke="rgba(255,255,255,.92)" strokeWidth={2.6} strokeLinejoin="round">{name}</text>
+    <text x={0} y={-5 - lift} textAnchor="middle" fontSize={10} fontWeight={600}
+      paintOrder="stroke" strokeWidth={2.6} strokeLinejoin="round" style={{ fill: tk.a ? C.ink : C.sub, stroke: 'rgba(255,255,255,.92)' }}>{name}</text>
   );
 }
 
@@ -262,23 +268,23 @@ function Mini({ h, c, cyl, dash, dots, warn }) {
   const w = 34; const H = h + 22; const ox = 17; const oy = h + 12; const s = 7;
   const q = (x, y, z) => { const [a, b] = pillarIso(x, y, z); return `${(a + ox).toFixed(1)},${(b + oy).toFixed(1)}`; };
   const f = (arr) => arr.map((v) => q(...v)).join(' ');
-  const d = dash ? { fillOpacity: 0.18, stroke: mixWhite(c, 70), strokeDasharray: '3 2.5' } : {};
+  const d = dash ? { fillOpacity: 0.18, stroke: mixWhite(c, 70), strokeDasharray: '3 2.5' } : null;
   return (
     <svg width={w} height={H} viewBox={`0 0 ${w} ${H}`} aria-hidden>
       {cyl ? (
         <>
-          <path d={`M${ox - 10} ${oy - h}L${ox - 10} ${oy}A10 5.8 0 0 0 ${ox + 10} ${oy}L${ox + 10} ${oy - h}Z`} fill={mixWhite(c, 74)} />
-          <ellipse cx={ox} cy={oy - h} rx={10} ry={5.8} fill={mixWhite(c, 34)} />
+          <path d={`M${ox - 10} ${oy - h}L${ox - 10} ${oy}A10 5.8 0 0 0 ${ox + 10} ${oy}L${ox + 10} ${oy - h}Z`} style={{ fill: mixWhite(c, 74) }} />
+          <ellipse cx={ox} cy={oy - h} rx={10} ry={5.8} style={{ fill: mixWhite(c, 34) }} />
         </>
       ) : (
         <>
-          <polygon points={f([[-s, s, h], [s, s, h], [s, s, 0], [-s, s, 0]])} fill={mixWhite(c, 66)} {...d} />
-          <polygon points={f([[s, s, h], [s, -s, h], [s, -s, 0], [s, s, 0]])} fill={mixWhite(c, 92)} {...d} />
-          <polygon points={f([[-s, -s, h], [s, -s, h], [s, s, h], [-s, s, h]])} fill={mixWhite(c, 30)} {...d} />
+          <polygon points={f([[-s, s, h], [s, s, h], [s, s, 0], [-s, s, 0]])} style={{ fill: mixWhite(c, 66), ...d }} />
+          <polygon points={f([[s, s, h], [s, -s, h], [s, -s, 0], [s, s, 0]])} style={{ fill: mixWhite(c, 92), ...d }} />
+          <polygon points={f([[-s, -s, h], [s, -s, h], [s, s, h], [-s, s, h]])} style={{ fill: mixWhite(c, 30), ...d }} />
         </>
       )}
-      {dots && [-3.5, 3.5].map((dx) => <circle key={dx} cx={ox + dx} cy={oy - h} r={2} fill="#fff" stroke={shadeDark(c, 70)} strokeWidth={0.7} />)}
-      {warn && <path transform={`translate(${ox - 6} ${oy - h - 16}) scale(.5)`} fill="#d92d20" fillRule="evenodd" clipRule="evenodd" d={ALERT_D} />}
+      {dots && [-3.5, 3.5].map((dx) => <circle key={dx} cx={ox + dx} cy={oy - h} r={2} strokeWidth={0.7} style={{ fill: C.paper, stroke: shadeDark(c, 70) }} />)}
+      {warn && <path transform={`translate(${ox - 6} ${oy - h - 16}) scale(.5)`} fillRule="evenodd" clipRule="evenodd" d={ALERT_D} style={{ fill: C.err }} />}
     </svg>
   );
 }
@@ -805,12 +811,12 @@ export default function SquadPillarStage({
             onKeyDown={onKeyDown}
           >
             <defs>
-              <pattern id={hatchId} patternUnits="userSpaceOnUse" width="4" height="4" patternTransform="rotate(45)"><rect width="2" height="4" fill="#fecdca" /></pattern>
+              <pattern id={hatchId} patternUnits="userSpaceOnUse" width="4" height="4" patternTransform="rotate(45)"><rect width="2" height="4" style={{ fill: C.hatch }} /></pattern>
               {[...PILLAR_FAMILIES, 'none'].map((f) => {
                 const c = PILLAR_FAMILY_COLOR[f];
                 return (
                   <linearGradient key={f} id={`${gradId}-${f}`} x1="0" x2="1" y1="0" y2="0">
-                    <stop offset="0" stopColor={mixWhite(c, 58)} /><stop offset=".55" stopColor={mixWhite(c, 74)} /><stop offset="1" stopColor={mixWhite(c, 96)} />
+                    <stop offset="0" style={{ stopColor: mixWhite(c, 58) }} /><stop offset=".55" style={{ stopColor: mixWhite(c, 74) }} /><stop offset="1" style={{ stopColor: mixWhite(c, 96) }} />
                   </linearGradient>
                 );
               })}
@@ -851,7 +857,7 @@ export default function SquadPillarStage({
               })}
             </g>
             <g pointerEvents="none">
-              {links.map((d) => <path key={d} d={d} fill="none" stroke="#2c3744" strokeWidth={1.4} strokeDasharray="4 3" />)}
+              {links.map((d) => <path key={d} d={d} fill="none" strokeWidth={1.4} strokeDasharray="4 3" style={{ stroke: C.ink }} />)}
             </g>
             {['org', 'squad'].map((s) => (
               <g key={s} className="sq-pillar-labels" style={{ opacity: platesUp === s ? 1 : 0 }}>
@@ -935,7 +941,7 @@ function PersonCard({ x, L, nameOf, unitName, famName, mineHint }) {
               {segs.map(({ a, ov }) => (
                 <i key={a.squadId} className="sq-pillar-gseg" style={{ width: `${(a.capa / scale) * 100}%` }}>
                   <i style={{ width: `${a.capa ? ((a.capa - ov) / a.capa) * 100 : 0}%`, background: a.squad.color }} />
-                  {ov > 0 && <i style={{ width: `${(ov / a.capa) * 100}%`, background: `repeating-linear-gradient(45deg,${a.squad.color},${a.squad.color} 2px,#fecdca 2px,#fecdca 4px)` }} />}
+                  {ov > 0 && <i style={{ width: `${(ov / a.capa) * 100}%`, background: `repeating-linear-gradient(45deg,${a.squad.color},${a.squad.color} 2px,${C.hatch} 2px,${C.hatch} 4px)` }} />}
                 </i>
               ))}
             </div>
