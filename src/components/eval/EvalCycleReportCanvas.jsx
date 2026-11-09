@@ -149,10 +149,14 @@ function AnswerList({ answers, L }) {
       {answers.map((a) => (
         <div className="evr-answer" key={a.id}>
           <span className="evc-field-label">
-            {catLabel(a, L)}
-            {answerScoreText(a) ? ` · ${answerScoreText(a)}` : ''}
+            {/* 분류 이름이 빈 답(평가지 항목에 분류가 없는 동료 답)에서 줄이 «·»로 시작하지 않게 빈 칸은 뺀다 */}
+            {[catLabel(a, L), answerScoreText(a)].filter(Boolean).join(' · ')}
             {/* PW-2580 — 실명 항목 동료 답만 서버가 `authorName` 을 싣는다. 익명·관계만 답에는 없다. */}
-            {a.authorName ? <span data-testid="evr-answer-author">{` · ${a.authorName}`}</span> : null}
+            {a.authorName ? (
+              <span data-testid="evr-answer-author">
+                {catLabel(a, L) || answerScoreText(a) ? ` · ${a.authorName}` : a.authorName}
+              </span>
+            ) : null}
           </span>
           {/* [PW-2021] 체크·선택 답은 고른 이름을 쉼표로 — 본문이 빈 줄로 보이던 자리 */}
           {checkedAnswerText(a, L.noneChecked) ? (
