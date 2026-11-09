@@ -3182,7 +3182,7 @@ function EmployeesListView({
     if (!spec || te.disabled || te.locked(m, spec.key)) return;
     if (spec.kind === 'select' && te.options(m, spec.key) === null) return;
     if (!te.onStart(m, spec.key)) return;
-    setEditing({ id: m.id, colId, start: te.value(m, spec.key) });
+    setEditing({ id: m.id, colId, start: te.value(m, spec.key), m });
   }
   /* Enter 편집 끝 · Esc 그 칸 입력 취소 · Tab 다음 칸(§3.1-G «칸 모양»). 한글 조합 중 Enter 는 글자를 확정하는 키라 넘긴다. */
   function onCellKey(e, m, colId) {
@@ -3202,18 +3202,19 @@ function EmployeesListView({
       if (next) openCell(m, next);
     }
   }
-  /* 입력 밖을 누르면 닫는다 — 날짜 칸은 달력이 body 직속 창이라 입력의 blur 로는 닫을 수 없다(달력을 누르는 순간 닫힌다). */
-  useEffect(() => {
-    if (!editing) return undefined;
-    const onDown = (ev) => {
-      const t = ev.target;
-      if (editingRef.current?.contains(t)) return;
-      if (t instanceof Element && t.closest('.dp-datepicker, .dp-search-select-menu')) return;
+  /* 입력 밖을 누르면 닫는다 — 날짜 칸은 달력이 body 직속 창이라 입력의 blur 로는 닫을 수 없다(달력을 누르는 순간 닫힌다).
+     Esc 는 그 칸 입력을 처음 값으로 되돌리고 닫는다(목록 · 달력이 위에 열려 있으면 그쪽이 먼저 닫힌다). */
+  useDismissLayer(
+    () => setEditing(null),
+    editingRef,
+    ['.dp-datepicker', '.dp-search-select-menu'],
+    !!editing,
+    () => {
+      if (!editing) return;
+      te.onChange(editing.m, te.columns[editing.colId].key, editing.start);
       setEditing(null);
-    };
-    document.addEventListener('mousedown', onDown);
-    return () => document.removeEventListener('mousedown', onDown);
-  }, [editing]);
+    },
+  );
 
   function editCell(m, colId) {
     if (!te) return null;
