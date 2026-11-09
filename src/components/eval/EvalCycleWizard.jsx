@@ -10204,7 +10204,7 @@ export default function EvalCycleWizard({
                                         {L.reminderInheritDefault}
                                       </StatusBadge>
                                     ))}
-                                  {sum.msgKind && <span className="evc-rm-head-msg">{sum.msgKind}</span>}
+                                  {sum.msgKind && <span data-testid={`evc-rm-head-msg-${ph.id}`}>{sum.msgKind}</span>}
                                 </span>
                               );
                             })()}

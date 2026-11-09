@@ -1,3 +1,4 @@
+import Button from '../shared/Button.jsx';
 import { useState } from 'react';
 import TextInput from '../shared/TextInput.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
@@ -79,14 +80,13 @@ export default function EvalWizardChipPicker({
             {selectedCount > 0 && onClear && (
               <>
                 {' · '}
-                <button
-                  type="button"
+                <Button
                   className="evc-wiz-chippicker-clear"
                   onClick={onClear}
                   data-testid={`${testIdPrefix}s-clear`}
                 >
                   {L.wizardValueClear ?? '모두 해제'}
-                </button>
+                </Button>
               </>
             )}
           </span>
