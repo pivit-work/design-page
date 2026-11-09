@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef, Fragment } from 'react';
 import RetiringTag from './RetiringTag.jsx';
+import ChipFold from '../shared/ChipFold.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
@@ -396,6 +397,8 @@ const DEFAULT_LABELS = {
   cwCreateExclude: '대상자 제외',
   cwCreateExcludedCount: '제외한 대상자 {n}명',
   cwCreateRestore: '되돌리기',
+  cwCreateExcludedMore: '더 보기 +{n}',
+  cwCreateExcludedLess: '접기',
   cwCreateSearchReset: '검색 초기화',
   cwCreateCommitteeLabel: '② 참여 위원 (조직장·시니어 IC)',
   cwCreateCommitteeHint: '먼저 선택한 위원이 위원장이 됩니다.',
@@ -6722,8 +6725,15 @@ export default function EvalCycleSummaryCanvas({
                           n: createExcludedMembers.length,
                         })}
                       </div>
-                      <div className="evs-cw-roster-excluded-chips">
-                        {createExcludedMembers.map((m) => (
+                      {/* 두 줄까지만 보이고 「더 보기 +N」(PW-2570) — 열어서 되돌릴 수 있어야 한다 */}
+                      <ChipFold
+                        className="evs-cw-roster-excluded-chips"
+                        testId="evs-cw-roster-excluded-chips"
+                        items={createExcludedMembers}
+                        getKey={(m) => m.memberId}
+                        moreLabel={(n) => fmt(L.cwCreateExcludedMore, { n })}
+                        lessLabel={L.cwCreateExcludedLess}
+                        renderItem={(m) => (
                           <StatusBadge
                             key={m.memberId}
                             className="evs-cw-roster-excluded-chip">
@@ -6738,8 +6748,8 @@ export default function EvalCycleSummaryCanvas({
                               <RefreshIcon size={12} />
                             </button>
                           </StatusBadge>
-                        ))}
-                      </div>
+                        )}
+                      />
                     </div>
                   )}
                 </div>

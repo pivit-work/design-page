@@ -1786,6 +1786,30 @@ button.dp-chip {
   opacity: 1;
 }
 
+/* ══ 칩 줄 접기 — ChipFold (pivit-work PW-2570) ═════════════════════════════════════════
+ * 줄 모양(간격)은 화면의 줄 클래스가 정하고, 여기서는 줄바꿈만 켠다.
+ * 「더 보기 +N」·「접기」는 시점별 조직 기록 시점 줄의 글자 버튼(`.admin-snap-preset-more`)과 같은 값 —
+ * 칩 줄 끝에서 목록을 여닫는 같은 용도다. */
+.dp-chip-fold {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.dp-btn.dp-chip-fold-more {
+  flex: none;
+  padding: var(--spacing-xxs) var(--spacing-xs);
+  border: none;
+  background: none;
+  font-family: var(--font-family-body);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--text-brand-tertiary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.dp-btn.dp-chip-fold-more:hover { text-decoration: underline; }
+
 /* ══ 스쿼드 카드 담당 프로젝트 · 프로젝트 상세 (PW-1428) ══════════════════════════════
  * 색은 `StatusBadge tone` 이 준다 — 여기는 모양만. */
 

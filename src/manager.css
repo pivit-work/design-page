@@ -1483,6 +1483,8 @@
 .mgr-ts-card-body { display: flex; flex-direction: column; gap: 8px; }
 .mgr-ts-card-text { font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-secondary); }
 .mgr-ts-tags { display: flex; gap: 8px; }
+/* 줄바꿈 — 긴 태그가 여럿이면 알약이 좁아져 글자가 꺾였다. 최대 8개라 접지는 않는다 (pivit-work PW-2570) */
+.mgr-ts-tags { flex-wrap: wrap; }
 .mgr-ts-kr { display: flex; flex-direction: column; gap: 6px; }
 .mgr-ts-kr > .mgr-ts-kr-track { margin-top: 2px; }  /* 라벨→줄 6 · 줄→바 8 */
 .mgr-ts-kr-label { font-size: 12px; font-weight: 400; line-height: 18px; color: var(--text-secondary); }

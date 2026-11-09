@@ -132,6 +132,8 @@ export default function EvalLeaderAssignmentSection({
   const [vacantOpen, setVacantOpen] = useState(false);
   const [ruleDraft, setRuleDraft] = useState(() => emptyLeaderRule(Math.min(2, rounds)));
   const [unitPickerOpen, setUnitPickerOpen] = useState(false);
+  // 직급·직책 고르기 창 — 열린 축('levels' | 'positions'), 닫혔으면 null (PW-2570)
+  const [valuePickerAxis, setValuePickerAxis] = useState(null);
   const panelRef = useRef(null);
   useDismissLayer(
     () => {
@@ -283,7 +285,6 @@ export default function EvalLeaderAssignmentSection({
       onRulesChange?.(next);
     },
   });
-  const toggleIn = (arr, v) => (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
   const draftInvalid = ruleDraft.action === 'assign' && !ruleDraft.evaluatorId;
   const addRule = () => {
     if (draftInvalid) return;
@@ -642,26 +643,68 @@ export default function EvalLeaderAssignmentSection({
                       onClose={() => setUnitPickerOpen(false)}
                     />
                   )}
+                  {/* 직급·직책도 조직 줄과 같은 까닭(직책 50개면 칩이 [규칙 추가]를 밀어낸다)이라 같은 방식 —
+                      고른 것만 칩으로 두고 창에서 고른다 (PW-2570 · 커트 11-06). 창은 조직 창을 평평한 목록으로 쓴다. */}
                   {[
-                    ['levels', L.leaderRuleAxisLevel, ruleOptions.levels.map((v) => [v, v])],
-                    ['positions', L.leaderRuleAxisPosition, ruleOptions.positions.map((v) => [v, v])],
+                    ['levels', L.leaderRuleAxisLevel, ruleOptions.levels],
+                    ['positions', L.leaderRuleAxisPosition, ruleOptions.positions],
                   ].map(([axis, label, opts]) =>
                     opts.length === 0 ? null : (
-                      <div key={axis} className="evc-la-rule-axis">
+                      <div key={axis} className="evc-la-rule-axis" data-testid={`evc-la-rule-${axis}`}>
                         <span className="evc-la-hint">{label}</span>
-                        {opts.map(([v, text]) => (
+                        {ruleDraft[axis].map((v) => (
                           <Chip
                             key={v}
-                            selected={ruleDraft[axis].includes(v)}
-                            onClick={() => setRuleDraft((d) => ({ ...d, [axis]: toggleIn(d[axis], v) }))}
+                            selected
+                            onRemove={() => setRuleDraft((d) => ({ ...d, [axis]: d[axis].filter((x) => x !== v) }))}
+                            removeLabel={fill(L.leaderRuleUnitRemove, { name: v })}
+                            removeProps={{ 'data-testid': `evc-la-rule-${axis}-remove-${v}` }}
                             data-testid={`evc-la-rule-chip-${axis}-${v}`}
                           >
-                            {text}
+                            {v}
                           </Chip>
                         ))}
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => setValuePickerAxis(axis)}
+                          data-testid={`evc-la-rule-${axis}-pick`}
+                        >
+                          <PlusGlyph aria-hidden="true" />
+                          {fill(ruleDraft[axis].length > 0 ? L.leaderRuleValueChange : L.leaderRuleValuePick, { axis: label })}
+                        </Button>
                       </div>
                     ),
                   )}
+                  {valuePickerAxis && (() => {
+                    const axisLabel = valuePickerAxis === 'levels' ? L.leaderRuleAxisLevel : L.leaderRuleAxisPosition;
+                    return (
+                      <OrgTreePicker
+                        open
+                        multi
+                        primarySelectable={false}
+                        units={ruleOptions[valuePickerAxis].map((v) => ({ id: v, name: v, parentId: null }))}
+                        selectedIds={ruleDraft[valuePickerAxis]}
+                        labels={{
+                          title: fill(L.leaderRuleValuePick, { axis: axisLabel }),
+                          search: fill(L.leaderRuleValuePickerSearch, { axis: axisLabel }),
+                          hint: L.leaderRuleValuePickerHint,
+                          appendHint: fill(L.leaderRuleValuePickerEmptyHint, { axis: axisLabel }),
+                          appendNone: L.leaderRuleValuePickerNone,
+                          selectedCount: L.leaderRuleValuePickerCount,
+                          apply: L.leaderRuleUnitPickerApply,
+                          cancel: L.leaderRuleUnitPickerCancel,
+                        }}
+                        onApply={({ unitIds }) => {
+                          const axis = valuePickerAxis;
+                          // 창이 고른 순서가 아니라 후보 순서로 둔다 — 칩 순서가 매번 달라지지 않게.
+                          setRuleDraft((d) => ({ ...d, [axis]: ruleOptions[axis].filter((v) => unitIds.includes(v)) }));
+                          setValuePickerAxis(null);
+                        }}
+                        onClose={() => setValuePickerAxis(null)}
+                      />
+                    );
+                  })()}
                   <div className="evc-la-rule-axis">
                     <span className="evc-la-hint">{L.leaderRuleThen}</span>
                     <span className="evc-la-rule-pick">

@@ -51,6 +51,7 @@ export { filterSearchOptions } from './shared/searchOptions.js';
 export { default as EmptyState } from './shared/EmptyState.jsx';
 export { default as Avatar } from './shared/Avatar.jsx';
 export { default as Chip } from './shared/Chip.jsx';
+export { default as ChipFold } from './shared/ChipFold.jsx';
 export { default as AnchoredLayer } from './shared/AnchoredLayer.jsx';
 export {
   default as RecordingPlayerRow,

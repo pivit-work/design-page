@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import ChipFold from '../shared/ChipFold.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import MeetingEndConfirmModal from './MeetingEndConfirmModal.jsx';
@@ -221,11 +222,16 @@ export default function MeetingInProgressModal({
         ) : (
           <>
             {participants.length > 0 && (
-              <div className="mtg-progress-participants">
-                {participants.map((p) => (
-                  <StatusBadge key={p} className="mtg-progress-pill">{p}</StatusBadge>
-                ))}
-              </div>
+              /* 참석자가 많으면 두 줄까지만 보이고 「외 N명」으로 연다(PW-2570) — 녹음 카드가 아래로 밀렸다. */
+              <ChipFold
+                className="mtg-progress-participants"
+                testId="mtg-progress-participants"
+                items={participants}
+                getKey={(p) => p}
+                renderItem={(p) => <StatusBadge key={p} className="mtg-progress-pill">{p}</StatusBadge>}
+                moreLabel={(n) => (typeof labels.participantsMore === 'function' ? labels.participantsMore(n) : `외 ${n}명`)}
+                lessLabel={labels.participantsLess || '접기'}
+              />
             )}
 
             {mode === 'record' && !recordingStopped && (

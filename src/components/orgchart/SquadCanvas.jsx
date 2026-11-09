@@ -27,6 +27,7 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import Icon from '../shared/Icon.jsx';
 import Button from '../shared/Button.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import ChipFold from '../shared/ChipFold.jsx';
 import OrgTabNav from './OrgTabNav.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
@@ -1444,8 +1445,16 @@ export default function SquadCanvas({
                           {/* 편집 중 팀원 줄(시안 17764:36918) — 흰 알약 칩(사진 32 · 이름 · x)이 4 간격으로
                               감싸 흐르고, 「팀원 추가」 파선 알약이 같은 줄 끝에 선다. 비중·캐파 숫자는
                               칩에 적지 않는다 — 위 「진행률」 범례와 말풍선이 들고 있다. */}
-                          <div className="sq-chip-row">
-                            {members.map((mm) => {
+                          {/* 팀원이 많으면 두 줄까지만 보이고 「더 보기 +N」으로 연다(PW-2570) — 칩이 48px 라
+                              카드가 금세 길어져 옆 스쿼드와 비교가 안 됐다. 「팀원 추가」는 끝에 남는다. */}
+                          <ChipFold
+                            className="sq-chip-row"
+                            testId={`squad-chip-row-${sq.id}`}
+                            items={members}
+                            getKey={(mm) => mm.userId}
+                            moreLabel={(n) => L('squad.card.moreMembers', { count: n })}
+                            lessLabel={L('squad.card.foldMembers')}
+                            renderItem={(mm) => {
                               const p = personOf(mm.userId);
                               const editable = canEditMemberOf(sq.id, mm.userId);
                               return (
@@ -1479,7 +1488,8 @@ export default function SquadCanvas({
                                   )}
                                 </StatusBadge>
                               );
-                            })}
+                            }}
+                            trailing={<>
                             {members.length === 0 && !canAddToSquad(sq.id) && (
                               <span className="sq-chip-empty">{L('squad.card.noMembers')}</span>
                             )}
@@ -1492,7 +1502,8 @@ export default function SquadCanvas({
                                 <PlusIcon size={20} /> {L('squad.card.addMember')}
                               </button>
                             )}
-                          </div>
+                            </>}
+                          />
 
                           {!canAddToSquad(sq.id) ? (
                             /* 정본 :175 — 권한이 없으면 버튼 대신 캡션. 후보가 언제나

@@ -97,6 +97,8 @@ const MODAL_LABELS = {
   close: '닫기',
   title: '회의 진행 중',
   startedSuffix: '시작',
+  participantsMore: (n) => `외 ${n}명`,
+  participantsLess: '접기',
   memoLabel: '실시간 메모',
   memoPlaceholder: '회의 중 중요한 내용을 메모하세요 (선택)',
   endButton: '종료하고 회의록 만들기',

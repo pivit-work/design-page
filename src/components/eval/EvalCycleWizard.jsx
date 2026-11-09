@@ -1,6 +1,7 @@
 import { useAiDraftLifecycle } from '../shared/useAiDraftLifecycle.js';
 import Button from '../shared/Button.jsx';
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import ChipFold from '../shared/ChipFold.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Chip from '../shared/Chip.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
@@ -2424,8 +2425,16 @@ function CommitteeCard({
                   { count: committeeExcludedMembers.length },
                 )}
               </div>
-              <div className="evc-wiz-calibscope-excluded-chips">
-                {committeeExcludedMembers.map((m) => (
+              {/* 많이 빼면 두 줄까지만 보이고 「더 보기 +N」으로 연다(PW-2570) — 「참여 위원」이 아래로 밀렸다.
+                  «외 N명»으로 끝내지 않는다 — 열어서 되돌릴 수 있어야 한다. */}
+              <ChipFold
+                className="evc-wiz-calibscope-excluded-chips"
+                testId="evc-wiz-committee-excluded-chips"
+                items={committeeExcludedMembers}
+                getKey={(m) => m.id}
+                moreLabel={(n) => fill(L.wizardCommitteeExcludedMore ?? '더 보기 +{{count}}', { count: n })}
+                lessLabel={L.wizardCommitteeExcludedLess ?? '접기'}
+                renderItem={(m) => (
                   <StatusBadge
                     key={m.id}
                     className="evc-wiz-calibscope-excluded-chip">
@@ -2440,8 +2449,8 @@ function CommitteeCard({
                       <UndoIcon size={12} />
                     </button>
                   </StatusBadge>
-                ))}
-              </div>
+                )}
+              />
             </div>
           )}
         </div>
