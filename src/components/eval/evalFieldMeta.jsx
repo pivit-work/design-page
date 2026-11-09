@@ -33,10 +33,14 @@ export function FieldInfo({ description }) {
   );
 }
 
-/** 항목 하단 공개 범위 안내. labels 로 문구 오버라이드 가능. */
-export function FieldVisibility({ visibleToRoles, labels }) {
+/**
+ * 항목 하단 공개 범위 안내. labels 로 문구 오버라이드 가능.
+ * [PW-2426] note 를 주면 그 글을 그대로 쓴다 — 상향 리뷰처럼 항목 설정으로 문장을 조립하는 화면은 앱이 옮긴
+ * 글({ text, toEvaluatee })을 넘긴다. toEvaluatee 가 거짓이면 «대상 비공개» 모양(자물쇠 · 굵게)이다.
+ */
+export function FieldVisibility({ visibleToRoles, labels, note = null }) {
   const L = { ...DEFAULT_VIS, ...(labels || {}) };
-  const toEvaluatee = isVisibleToEvaluatee(visibleToRoles);
+  const toEvaluatee = note?.text ? !!note.toEvaluatee : isVisibleToEvaluatee(visibleToRoles);
   return (
     <p
       className={`evx-field-visibility${toEvaluatee ? '' : ' is-restricted'}`}
@@ -45,7 +49,7 @@ export function FieldVisibility({ visibleToRoles, labels }) {
       <span aria-hidden="true">
         {toEvaluatee ? <EyeIcon size={13} /> : <LockIcon size={13} />}
       </span>{' '}
-      {toEvaluatee ? L.visibleToEvaluatee : L.visibleToOthers}
+      {note?.text || (toEvaluatee ? L.visibleToEvaluatee : L.visibleToOthers)}
     </p>
   );
 }

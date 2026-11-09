@@ -141,6 +141,18 @@ export const IDENTITY_OPTIONS = [
   { id: 'role_only', labelKey: 'identityRoleOnly', descKey: 'identityRoleOnlyDesc' },
   { id: 'anonymous', labelKey: 'identityAnonymous', descKey: 'identityAnonymousDesc' },
 ];
+/**
+ * [PW-2426] 이 리뷰 유형에서 고를 수 있는 작성자 표기. 상향에는 «관계만»이 없다 — 쓰는 사람이 모두 그 리더의
+ * 팀원이라 «팀원» 하나만 보여 «익명»과 같다(HR 정책 §5.12.3). 동료·하향은 셋 그대로.
+ */
+export function identityOptionsFor(reviewType) {
+  return reviewType === 'upward' ? IDENTITY_OPTIONS.filter((o) => o.id !== 'role_only') : IDENTITY_OPTIONS;
+}
+/** [PW-2426] 화면에 켜 보일 작성자 표기 — 상향 항목의 옛 «관계만» 값은 «익명»이 켜진 것으로 보인다. */
+export function shownIdentity(identity, reviewType) {
+  const v = identity || 'anonymous';
+  return reviewType === 'upward' && v === 'role_only' ? 'anonymous' : v;
+}
 export const DEFAULT_MIN_RESPONSES = 3;
 /**
  * 리뷰 유형별 기본값 (policy §5.12.3).

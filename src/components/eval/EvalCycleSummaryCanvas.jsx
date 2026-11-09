@@ -739,6 +739,8 @@ const DEFAULT_LABELS = {
   reScore: '점수',
   // [PW-2021] 체크 문항에서 하나도 고르지 않은 답
   reNoneChecked: '고른 항목이 없습니다.',
+  // [PW-2426] 상향 리뷰 칸 — 익명 항목 답 앞에 붙는 이름 대신 말(HR 정책 §5.12.3).
+  cwDetailUpwardAnonAuthor: '팀원 (익명)',
   // report control
   reportNotGenerated: '리포트 미생성',
   reportGenerated: '검수 대기',
@@ -1207,6 +1209,30 @@ function LeaderRoundNotes({ r, L, showCompensation }) {
         L={L}
       />
     </div>
+  );
+}
+
+/**
+ * [PW-2426] 상향 리뷰 답 줄 — 실명 항목 답은 쓴 팀원 이름, 익명 항목 답은 «팀원 (익명)»을 앞에 붙인다
+ * (HR 정책 §5.12.3 «상향 답을 받아 보는 자리의 작성자 이름»). 읽는 차례(실명 먼저 · 익명은 제출 순서 아님)는
+ * 서버가 정해 보낸다 — 여기서 다시 늘어놓지 않는다.
+ */
+function UpwardAnswerLines({ answers, empty, L = DEFAULT_LABELS }) {
+  const lines = (answers ?? [])
+    .map((a) => {
+      const text = answerLineText(a, { scoreLabel: L.reScore, noneLabel: L.reNoneChecked });
+      return text ? { who: a.authorName || L.cwDetailUpwardAnonAuthor, text } : null;
+    })
+    .filter(Boolean);
+  if (!lines.length) return <div className="evs-cw-detail-body">{empty}</div>;
+  return (
+    <ul className="evs-answer-lines" data-testid="evs-cw-upward-answers">
+      {lines.map((l, i) => (
+        <li key={i}>
+          <span data-testid="evs-cw-upward-author">{l.who}</span> · {l.text}
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -5565,7 +5591,7 @@ export default function EvalCycleSummaryCanvas({
                                               {L.cwDetailUpward}
                                             </DetailSectionHead>
                                             {secOpen('upward') && (
-                                              <AnswerLines answers={detail.upward?.answers} empty={L.cwDetailUpwardEmpty} testId="evs-cw-upward-answers" L={L} />
+                                              <UpwardAnswerLines answers={detail.upward?.answers} empty={L.cwDetailUpwardEmpty} L={L} />
                                             )}
                                           </div>
                                           {(() => {

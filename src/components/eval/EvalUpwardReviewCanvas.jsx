@@ -309,10 +309,10 @@ export default function EvalUpwardReviewCanvas({
       aiDraftDisabledReason={aiDraftDisabledReason}
       doneSteps={data.submitted ? doneSteps : null}
       cancelledNotice={cancelledNotice}
-      // 항목별 공개 안내는 끈다 — 그 줄은 옛 항목 필드(visibleToRoles)를 읽어, 값이 비면
-      // 「피평가자 본인에게도 공개됩니다」라고 적는다. 상향의 공개는 위 익명 안내가 정본이다
-      // (평가지 공개 설정 = 인사담당자만 · 최소 인원). 두 문장이 서로 반대로 말하면 안 된다.
-      showVisibility={false}
+      // 항목별 공개 안내는 앱이 항목 설정으로 조립한 글(visibilityNote)이 있을 때만 그린다 — 없으면 그 줄은
+      // 옛 항목 필드(visibleToRoles)를 읽어 「피평가자 본인에게도 공개됩니다」라고 적어 위 익명 안내와 반대로
+      // 말한다. [PW-2426] 구성원 정책 §5U.3-A ②-A · 항목 이름 줄(②)도 같은 자리에 붙는다.
+      showVisibility={!!data.template?.items?.some((it) => it.visibilityNote?.text)}
       headerSlot={
         <div className="evc-list">
           <TargetCard target={data.target} L={L} />

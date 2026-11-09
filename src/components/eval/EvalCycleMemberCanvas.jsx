@@ -237,6 +237,8 @@ function buildFields(template, L) {
           visibleToRoles: it.visibleToRoles ?? null,
           // [PW-2426] 공개 범위 안내 아래 «어떤 이름으로 보이나» 한 줄. 앱이 옮긴 글을 들고 온다(없으면 안 그린다).
           authorNote: it.authorNote ?? null,
+          // [PW-2426] 앱이 항목 설정으로 조립한 공개 범위 안내({ text, toEvaluatee }). 없으면 visibleToRoles 로 고른다.
+          visibilityNote: it.visibilityNote ?? null,
           // PW-433 ①③ — 척도 길이·양끝 의미·선택지는 **항목이 들고 온다**. 화면이
           // 5점을 고정하면 설계자가 정한 7점 척도가 작성 화면에서 5점으로 보인다.
           scaleMax: it.scaleMax ?? null,
@@ -1467,6 +1469,7 @@ export default function EvalCycleMemberCanvas({
                     <FieldVisibility
                       visibleToRoles={f.visibleToRoles}
                       labels={L}
+                      note={f.visibilityNote}
                     />
                   )}
                   {showVisibility && <FieldAuthorNote text={f.authorNote} />}

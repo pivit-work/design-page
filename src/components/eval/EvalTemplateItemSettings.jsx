@@ -9,7 +9,8 @@ import {
   DISCLOSURE_AUDIENCES,
   GROWTH_TYPE_OPTIONS,
   GUIDE_DISPLAYS,
-  IDENTITY_OPTIONS,
+  identityOptionsFor,
+  shownIdentity,
   QUESTION_TYPES,
   SCALE_MAX_MAX,
   SCALE_MAX_MIN,
@@ -372,13 +373,13 @@ export default function EvalTemplateItemSettings({
             <div className="evc-tpl-set-title">{L.identityLabel}</div>
             <SegmentedControl
               ariaLabel={L.identityLabel}
-              items={IDENTITY_OPTIONS.map((o) => ({
+              items={identityOptionsFor(reviewType).map((o) => ({
                 value: o.id,
                 label: L[o.labelKey],
                 title: L[o.descKey],
                 testId: `evc-tpl-identity-${q.id}-${o.id}`,
               }))}
-              value={disclosure.identity || 'anonymous'}
+              value={shownIdentity(disclosure.identity, reviewType)}
               onChange={(v) => onPatchDisclosure(q, { identity: v })}
             />
           </div>

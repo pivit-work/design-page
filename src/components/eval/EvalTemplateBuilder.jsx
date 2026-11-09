@@ -11,6 +11,7 @@ import {
   filledOptions,
   isNoteItem,
   scaleMaxOf,
+  shownIdentity,
 } from './evalTemplateItemModel.js';
 
 /**
@@ -441,8 +442,11 @@ export function EvalTemplateItemRow({
           <StatusBadge
             className="evc-tpl-item-badge"
             data-testid={`evc-tpl-badge-disclosure-${q.id}`}>
+            {/* [PW-2426] 상향 항목의 옛 «관계만»은 «익명»으로 보인다(HR 정책 §5.12.3). */}
             {fill(L.disclosureBadge, {
-              identity: L[`identity_${q.disclosure.identity}`] ?? q.disclosure.identity,
+              identity:
+                L[`identity_${shownIdentity(q.disclosure.identity, reviewType)}`] ??
+                shownIdentity(q.disclosure.identity, reviewType),
             })}
           </StatusBadge>
         )}
