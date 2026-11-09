@@ -13,20 +13,28 @@ import { useOrgLabels } from './orgchart-labels.jsx';
  * - `toggleCount` — 접혔을 때 접기 버튼에 함께 보일 하위 조직 수.
  * - `toggleLabel` — 접기 버튼의 읽기 이름을 쓰는 쪽 문구로 바꿀 때.
  * - `toggleProps` — 접기 버튼에 더 붙일 속성(data-testid 등).
+ *
+ * 스쿼드 그림 보기 «구조»(pivit-work PW-2599 3회차)가 조직도와 같은 카드를 쓰려고 연 자리 — 안 넘기면 조직도 모양 그대로다.
+ * - `metaExtra` — 둘째 줄(계층 이름 · 인원) 끝에 붙일 것(«리드 미지정» 등).
+ * - `cardProps` — 카드 틀에 더 붙일 속성. `className` 은 덧붙고 `style` 은 바탕 위에 덮인다(묶음 색 바탕 등).
+ * - `node.countColor` — 인원 글자색을 계층 색 대신 쓸 때(묶음 색).
+ * - `node.level` 이 계층 색표에 없으면 바탕을 칠하지 않는다(쓰는 쪽 클래스가 칠한다).
  */
-export default function DeptCard({ node, onMouseDown, onClick, isDragging, isCollapsible, isCollapsed, onToggle, nameSlot, titleExtra, children, toggleCount, toggleLabel, toggleProps }) {
-  const lc = LEVEL_COLORS[node.level];
+export default function DeptCard({ node, onMouseDown, onClick, isDragging, isCollapsible, isCollapsed, onToggle, nameSlot, titleExtra, children, toggleCount, toggleLabel, toggleProps, metaExtra, cardProps }) {
+  const lc = LEVEL_COLORS[node.level] || {};
+  const { className: cardClass, style: cardStyle, ...cardRest } = cardProps || {};
   const L = useOrgLabels();
   // 하위(멤버·하위 조직)가 있는 카드는 접기/펼치기 토글이다. 카드 클릭 토글에 더해
   // 하단 중앙에 시각 토글 버튼을 둔다 — Figma 16558:19978(펼침 ∧)/17501:19709(접힘 ∨).
   return (
     <div
-      className={`dept-card ${isDragging ? 'card-dragging' : ''}`}
-      style={{ background: lc.bg }}
+      className={`dept-card ${isDragging ? 'card-dragging' : ''}${cardClass ? ` ${cardClass}` : ''}`}
+      style={{ background: lc.bg, ...cardStyle }}
       onMouseDown={onMouseDown}
       onClick={onClick}
       aria-expanded={isCollapsible ? !isCollapsed : undefined}
       data-collapsed={isCollapsible ? String(!!isCollapsed) : undefined}
+      {...cardRest}
     >
       <div className="dept-title">
         <div className="dept-name">{nameSlot ?? node.name}</div>
@@ -36,7 +44,8 @@ export default function DeptCard({ node, onMouseDown, onClick, isDragging, isCol
       </div>
       <div className="dept-meta">
         <span className="dept-type">{node.type}</span>
-        {node.count && <span className="dept-count" style={{ color: lc.countColor }}>{node.count}</span>}
+        {node.count && <span className="dept-count" style={{ color: node.countColor ?? lc.countColor }}>{node.count}</span>}
+        {metaExtra}
       </div>
       {/* 어드민 As Of 조직도의 «인건비»(보상 표시가 켜졌을 때만 · pivit-work PW-1998). 다른 화면은 넘기지 않는다.
           compLines 를 주면 이름표 오른쪽에 통화마다 한 줄을 세로로 쌓는다 — 통화가 섞여도 카드 폭이 늘지 않게(정책 E27). */}

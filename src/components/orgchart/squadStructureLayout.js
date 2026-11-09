@@ -1,36 +1,21 @@
 /**
- * 그림 보기 «구조» 갈래의 트리 배치 (pivit-work PW-2599 · 기획 screen-org-chart-squad.policy.md §5-6-A · §5-6-B · §5-6-C · v3.44).
+ * 그림 보기 «구조» 갈래의 트리 재료 (pivit-work PW-2599 · 기획 screen-org-chart-squad.policy.md §5-6-A · §5-6-B · §5-6-C · v3.44).
  *
- * 순수 함수만 둔다 — 같은 입력이면 같은 좌표다. 그리는 쪽(`SquadStructureView`)은 좌표를 그대로 쓴다.
- *
- * 두 쪽(`side`)을 같은 배치로 그린다:
+ * 순수 함수만 둔다. 두 쪽(`side`)을 같은 노드 트리로 만든다:
  *   스쿼드 조직 = 회사 → (위 묶음) → (아래 묶음) → 스쿼드 → 사람 · 맨 오른쪽 «스쿼드 없음»(처음 접힘)
  *   기능 조직   = 회사 → 조직 단위(조직도의 상하 · 조직도 순서) → 사람(주 소속에 한 장) · 맨 뒤 «미배정»
  *
- * 사람 카드는 노드 아래로 쌓는다(조직도 직속 슬롯처럼). 옆으로 늘어놓으면 한 스쿼드 아래 6명만 돼도 트리 폭이 1,000 을 넘는다.
- * 사람과 하위 노드를 함께 가진 노드는 사람 묶음을 첫 자식 칸(`stack`)으로 내린다.
+ * 3회차(2026-11-09 커트 결정)부터 좌표를 계산하지 않는다 — 조직도 «트리»와 같은 부품(.org-node · .children-row ·
+ * .members-list · DeptCard · BezierConnectors)이 흐름 배치로 그리고 선은 화면에서 잰다. 사람 카드는 노드 카드 바로 아래에
+ * 쌓이고, 하위 노드로 가는 선은 사람 카드 줄 아래에서 나간다(조직도와 같다).
  *
  * 큰 조직(§5-6-B «큰 조직» · v3.44) — 노드 접기 · 한 노드 아래 11명 이상이면 9장 + «더 보기» 한 칸.
  * 노드의 인원 숫자는 접어도 그대로다(접힘은 «보이는 것»만 줄인다).
  */
 
-export const STRUCT_GEOM = {
-  nodeW: 196,
-  cardW: 180,
-  cardH: 44,
-  cardGap: 6,
-  hGap: 24,
-  vGap: 44,
-  stackTop: 12,
-  /** 묶음 영역이 그 아래 가지를 감싸는 좌우 여백 */
-  gPad: 12,
-  /** 캔버스 가장자리 여백 */
-  pad: 24,
-  /** 이만큼 넘으면(11명부터) 처음엔 `moreShow` 장 + «더 보기» 한 칸 — 묶음 없는 회사에서 최대 높이 760 안에 위아래가 다 드는 칸 수가 10 */
-  moreAt: 11,
-  moreShow: 9,
-  h: { root: 68, group: 100, squad: 72, unit: 60, none: 56, stack: 0 },
-};
+/** 이만큼 넘으면(11명부터) 처음엔 `STRUCT_MORE_SHOW` 장 + «더 보기» 한 칸 — 묶음 없는 회사에서 최대 높이 760 안에 위아래가 다 드는 칸 수가 10 */
+export const STRUCT_MORE_AT = 11;
+export const STRUCT_MORE_SHOW = 9;
 
 /** 확대·축소 범위 — 40~150%(§5-6-B «큰 조직» ②). 한 번 누를 때 10%p. */
 export const STRUCT_ZOOM_MIN = 0.4;
@@ -52,85 +37,40 @@ export function structFitScale(viewW, treeW) {
 }
 
 /**
- * 트리 배치. `root` 는 `{ key, kind, data, children, people }` 노드 트리 — 이 함수가 노드에 좌표를 덧붙인다.
+ * 보이는 트리. `root` 는 `{ key, kind, data, children, people }` 노드 트리 — 고치지 않고 새 트리를 돌려준다.
  * `view.folded` = 접은 노드 key · `view.more` = «더 보기»를 연 노드 key.
+ * 노드마다 `foldTotal`(접기 단추에 걸리는 하위 노드 + 사람 수 · 0 이면 단추 없음) · `folded` · `ownCount`(접기 전 사람 수) ·
+ * `moreTotal`(더 보기가 걸린 사람 수 · 0 이면 없음) · `moreOpen` · `hidden`(가려진 사람 수)을 붙인다.
+ * `foldable` = 접을 수 있는 노드 key 전부(«전체 접기»의 재료 — 접힌 노드 아래도 센다).
  */
-export function layoutStructure(root, view = STRUCT_VIEW_ALL) {
-  const G = STRUCT_GEOM;
+export function structureView(root, view = STRUCT_VIEW_ALL) {
   const foldable = [];
-  const mores = [];
-  const prep = (n) => {
-    n.children = n.children || [];
-    n.people = n.people || [];
-    n.ownCount = n.people.length;
-    // 접는 단추가 보이는 노드 — 그 아래 노드나 사람이 하나라도 있으면
-    n.foldTotal = n.children.length + n.ownCount;
-    if ((n.kind === 'group' || n.kind === 'unit' || n.kind === 'squad') && n.foldTotal) foldable.push(n.key);
-    n.folded = view.folded.has(n.key) && n.foldTotal > 0;
-    if (n.folded) { n.children = []; n.people = []; }
-    n.children = n.children.map(prep);
-    if (n.people.length && n.children.length) {
-      n.children.unshift(prep({ key: `${n.key}/stack`, kind: 'stack', people: n.people, children: [] }));
-      n.people = [];
-    }
-    n.h = G.h[n.kind];
-    n.moreTotal = n.people.length >= G.moreAt ? n.people.length : 0;
-    n.moreOpen = n.moreTotal > 0 && view.more.has(n.key);
-    if (n.moreTotal && !n.moreOpen) n.people = n.people.slice(0, G.moreShow);
-    const slots = n.people.length + (n.moreTotal ? 1 : 0);
-    const stackH = slots ? (n.kind === 'stack' ? 0 : G.stackTop) + slots * (G.cardH + G.cardGap) - G.cardGap : 0;
-    n.selfW = n.kind === 'stack' ? G.cardW : G.nodeW;
-    n.selfH = n.h + stackH;
-    n.childW = n.children.reduce((a, c) => a + c.w, 0) + Math.max(0, n.children.length - 1) * G.hGap;
-    const regionPad = n.kind === 'group' && !n.data?.virtual ? G.gPad * 2 : 0;
-    n.w = Math.max(n.selfW, n.childW) + regionPad;
-    return n;
+  const walk = (n, collectOnly) => {
+    const children = n.children || [];
+    const people = n.people || [];
+    const total = children.length + people.length;
+    const canFold = (n.kind === 'group' || n.kind === 'unit' || n.kind === 'squad') && total > 0;
+    if (canFold) foldable.push(n.key);
+    const folded = canFold && view.folded.has(n.key);
+    if (collectOnly || folded) children.forEach((c) => walk(c, true));
+    if (collectOnly) return null;
+    let shown = folded ? [] : people;
+    const moreTotal = shown.length >= STRUCT_MORE_AT ? shown.length : 0;
+    const moreOpen = moreTotal > 0 && view.more.has(n.key);
+    if (moreTotal && !moreOpen) shown = shown.slice(0, STRUCT_MORE_SHOW);
+    return {
+      ...n,
+      ownCount: people.length,
+      foldTotal: canFold ? total : 0,
+      folded,
+      people: shown,
+      moreTotal,
+      moreOpen,
+      hidden: moreTotal - shown.length,
+      children: folded ? [] : children.map((c) => walk(c, false)),
+    };
   };
-  prep(root);
-
-  const nodes = [];
-  const edges = [];
-  const spines = [];
-  const regions = [];
-  const cards = [];
-  const place = (n, left, y) => {
-    let bottom = y + n.selfH;
-    if (n.children.length) {
-      let x = left + (n.w - n.childW) / 2;
-      const cy = y + n.h + G.vGap;
-      n.children.forEach((c) => { bottom = Math.max(bottom, place(c, x, cy)); x += c.w + G.hGap; });
-      n.cx = (n.children[0].cx + n.children[n.children.length - 1].cx) / 2;
-    } else {
-      n.cx = left + n.w / 2;
-    }
-    n.y = y;
-    if (n.kind !== 'stack') nodes.push(n);
-    n.children.forEach((c) => edges.push({ key: `${n.key}>${c.key}`, x1: n.cx, y1: y + n.h, x2: c.cx, y2: c.y }));
-    if (n.people.length) {
-      const top = y + (n.kind === 'stack' ? 0 : n.h + G.stackTop);
-      n.people.forEach((p, i) => {
-        cards.push({ ...p, x: n.cx - G.cardW / 2, y: top + i * (G.cardH + G.cardGap) });
-      });
-      if (n.moreTotal) {
-        mores.push({
-          key: n.key,
-          x: n.cx - G.cardW / 2,
-          y: top + n.people.length * (G.cardH + G.cardGap),
-          hidden: n.moreTotal - n.people.length,
-          open: n.moreOpen,
-        });
-      }
-      const last = top + (n.people.length - (n.moreTotal ? 0 : 1)) * (G.cardH + G.cardGap) + G.cardH / 2;
-      spines.push({ key: `${n.key}/spine`, x: n.cx, y1: n.kind === 'stack' ? y : y + n.h, y2: last, dashed: n.kind === 'none' });
-    }
-    if (n.kind === 'group' && !n.data?.virtual) {
-      bottom += G.gPad;
-      regions.push({ key: `${n.key}/region`, x: left + 2, y: y - 10, w: n.w - 4, h: bottom - y + 10, color: n.data.color });
-    }
-    return bottom;
-  };
-  const h = place(root, 0, 0);
-  return { nodes, edges, spines, regions, cards, mores, foldable, w: root.w, h, root };
+  return { root: walk(root, false), foldable };
 }
 
 /** 한 스쿼드 아래 사람 순서 — 리드 먼저 → 주 소속 조직 단위의 조직도 순서 → 이름 가나다(§5-6-B «사람 순서»). */
@@ -181,6 +121,10 @@ export function buildSquadSide({ shown, all, levelNames = [], groups = [], roste
   // 묶음 아래의 스쿼드 — 아래 층은 소속이 그 묶음인 것, 위 층은 소속 묶음의 위 묶음이 그 묶음인 것
   const under = (list, g) => list.filter((sq) => (g.level === 0 ? sq.groupId === g.id : groupOf(sq.groupId)?.parentId === g.id && lowIds.has(sq.groupId)));
   const uniquePeople = (list) => new Set(list.flatMap((sq) => (sq.members || []).map((m) => m.userId))).size;
+  // 헤드는 조직도의 조직장처럼 묶음 카드 바로 아래 사람 카드로 선다(3회차 · 커트 2026-11-09). 퇴사·휴직이면 «헤드 미지정»(엣지 89).
+  const headCard = (g) => (g.headActive && g.headUserId && personOf?.(g.headUserId)
+    ? [{ key: `${g.headUserId}#head:${g.id}`, userId: g.headUserId, squadId: null, groupKey: `g:${g.id}`, headOf: g.id, lead: false, multi: 0, dim: 1 }]
+    : []);
   const groupNode = (g, kids) => {
     const inShown = under(shown, g);
     return {
@@ -189,7 +133,7 @@ export function buildSquadSide({ shown, all, levelNames = [], groups = [], roste
       data: g,
       levelName: levelNames[g.level],
       children: kids,
-      people: [],
+      people: headCard(g),
       squadIds: new Set(inShown.map((sq) => sq.id)),
       peopleCount: uniquePeople(inShown),
       allCount: under(all, g).length,
@@ -253,7 +197,7 @@ export function buildSquadSide({ shown, all, levelNames = [], groups = [], roste
  */
 export function buildOrgSide({ units = [], people = [] }) {
   const known = new Set(units.map((u) => u.id));
-  const card = (p) => ({ key: `${p.id}#org`, userId: p.id, squadId: null, lead: false, multi: 0, head: p.unitHeadId === p.id, dim: 1 });
+  const card = (p) => ({ key: `${p.id}#org`, userId: p.id, squadId: null, lead: false, multi: 0, unitHead: p.unitHeadId === p.id, dim: 1 });
   const peopleOf = (unitId) => people
     .filter((p) => p.unitKind === 'unit' && p.unitId === unitId)
     .sort((a, b) => ((b.unitHeadId === b.id) - (a.unitHeadId === a.id)) || byKo(a.name || '', b.name || ''))
