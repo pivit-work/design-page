@@ -87,6 +87,10 @@ const DEFAULT_LABELS = {
     private: '비공개',
     sensitive: '민감',
     principlesTitle: '',
+    // 어드민이 고르지 않는 칸(값 'fixed') — pivit-work PW-2575 · admin-spec §4.4
+    fixed: '고정',
+    fixedCaption: '',
+    fixedHints: {},
   },
 };
 
@@ -517,6 +521,31 @@ export default function AdminRbacCanvas({
                 </RosterTable.Cell>
                 {ROLES.map((rid) => {
                   const on = visibility[rid]?.[item.id] ?? false;
+                  // 'fixed' — 어드민이 고르는 값이 아닌 칸. 소비 측이 정해 넘긴다(pivit-work PW-2575).
+                  // 누를 것 없이 «고정» 딱지와 그 아래 한 줄, 마우스를 올리면 설명 한 문장.
+                  if (on === 'fixed') return (
+                    <RosterTable.Cell key={rid} align="center" title={L.visibility.fixedHints?.[item.id] || undefined}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--spacing-xs)' }}>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            fontSize: 10,
+                            fontWeight: 700,
+                            padding: 'var(--spacing-xxs) var(--spacing-md)',
+                            borderRadius: 99,
+                            background: DP.inset,
+                            color: DP.textS,
+                            border: `1px solid ${DP.borderT}`,
+                          }}
+                        >
+                          {L.visibility.fixed}
+                        </span>
+                        {L.visibility.fixedCaption && (
+                          <span style={{ fontSize: 10, color: DP.textS }}>{L.visibility.fixedCaption}</span>
+                        )}
+                      </div>
+                    </RosterTable.Cell>
+                  );
                   return (
                     <RosterTable.Cell key={rid} align="center">
                       <span
