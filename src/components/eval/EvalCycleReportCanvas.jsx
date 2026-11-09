@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import { ArrowRightIcon, InfoIcon } from './evalIcons.jsx';
 import { scaleMaxOf, categoryKind, storedCategoryName, answerScoreText, checkedAnswerText } from './evalTemplateItemModel.js';
+import { ObjectionHeaderAction, ObjectionPanel } from './EvalReportObjection.jsx';
+import { OBJECTION_DEFAULT_LABELS } from './evalObjectionLabels.js';
 
 /**
  * EvalCycleReportCanvas — 내 평가 리포트 (멤버, 읽기 전용, 원페이지).
@@ -25,6 +27,11 @@ import { scaleMaxOf, categoryKind, storedCategoryName, answerScoreText, checkedA
  *
  * `onPrint`(선택) — [PW-1846] 머리 오른쪽 [PDF 저장]. 넘기면 버튼을 그린다(소비 측은 `window.print`).
  * 인쇄 때는 버튼·셸 메뉴를 빼고 본문만 찍는다(`eval-cycle.css` 의 `@media print`).
+ *
+ * `objection`(선택) — [pivit-work PW-2636] 구성원 본인 이의. 넘기면 [PDF 저장] 왼쪽에 [이의 제기]
+ * (또는 상태 딱지)를, 머리 아래에 접수 칸·진행 안내·답변을 그린다(`EvalReportObjection.jsx`).
+ * `onObjectionSubmit({ targets, reason })` · `onObjectionWithdraw()` 는 Promise 를 돌려준다 —
+ * 성공하면 접수 칸을 닫는다. `objectionBusy`·`objectionError` 는 호스트가 정한다.
  */
 
 const DEFAULT_LABELS = {
@@ -65,6 +72,7 @@ const DEFAULT_LABELS = {
   /** `{date}` 자리에 「M/D」. */
   highlightSource: '스니핏 {date}',
   printButton: 'PDF 저장',
+  ...OBJECTION_DEFAULT_LABELS,
   selfTitle: '나의 셀프 리뷰',
   catWork: '업적',
   catCompetency: '역량',
@@ -430,10 +438,16 @@ export default function EvalCycleReportCanvas({
   nextGoals = [],
   onPrint,
   sections,
+  objection = null,
+  onObjectionSubmit,
+  onObjectionWithdraw,
+  objectionBusy = false,
+  objectionError = null,
   labels: providedLabels,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const [showAnchor, setShowAnchor] = useState(false);
+  const [objectionFormOpen, setObjectionFormOpen] = useState(false);
 
   // 리포트 항목 켜짐/꺼짐(서버가 사람마다 내려준다). 맵에 없는 항목은 켜진 것으로 본다.
   const on = (key) => sections?.[key] !== false;
@@ -462,8 +476,15 @@ export default function EvalCycleReportCanvas({
           <h1 className={`evc-title${titleHelp ? ' tvh-title-row' : ''}`}>{L.title}{titleHelp}</h1>
           {cycle?.name && <p className="evc-summary">{cycle.name}</p>}
         </div>
-        {onPrint && (
+        {(onPrint || (objection && objection.state !== 'none')) && (
           <div className="evc-header-actions" data-print-hide>
+            <ObjectionHeaderAction
+              objection={objection}
+              formOpen={objectionFormOpen}
+              onToggleForm={() => setObjectionFormOpen((v) => !v)}
+              L={L}
+            />
+            {onPrint && (
             <button
               type="button"
               className="evc-btn is-primary"
@@ -472,11 +493,25 @@ export default function EvalCycleReportCanvas({
             >
               {L.printButton}
             </button>
+            )}
           </div>
         )}
       </header>
 
       <div className="evc-list">
+        <ObjectionPanel
+          objection={objection}
+          formOpen={objectionFormOpen}
+          onCloseForm={() => setObjectionFormOpen(false)}
+          onSubmit={async (input) => {
+            const ok = await onObjectionSubmit?.(input);
+            if (ok !== false) setObjectionFormOpen(false);
+          }}
+          onWithdraw={onObjectionWithdraw}
+          busy={objectionBusy}
+          error={objectionError}
+          L={L}
+        />
         {on('grade') && gradeKey && (
           <section className="evr-grade-hero" data-testid="evr-grade">
             <span className="evr-grade-label">{L.gradeLabel}</span>

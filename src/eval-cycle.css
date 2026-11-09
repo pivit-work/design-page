@@ -13338,3 +13338,25 @@ button.evmh-phase:focus-visible {
   gap: var(--spacing-lg);
 }
 .evc-wiz-rounds-row > .evc-field-note { margin: 0; }
+
+/* ── pivit-work PW-2636 · hr.policy §8.7 — 리포트 검수 › 구성원 이의 (좌 목록 · 우 처리) ──
+   줄·칸 모양은 어필 재검토 인박스(.evs-cw-appeal*)·1인 재검토(.evs-cw-review-*)를 그대로 쓰고,
+   여기는 두 칸 배치만 둔다. 폭·간격은 캘리브레이션 상세 두 칸(.evs-cw-detail-cols)의 값을 좌우만 바꿨다. */
+.evrr-obj-cols {
+  display: grid;
+  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+  gap: var(--spacing-xl);
+  align-items: start;
+}
+.evrr-obj-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.evs-cw-appeal.is-selected {
+  border-color: var(--border-brand);
+}
+.evrr-obj-pre {
+  white-space: pre-line;
+}
+

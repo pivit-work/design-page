@@ -2,6 +2,9 @@ import { AlertIcon, InfoIcon } from './evalIcons.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
 import Switch from '../shared/Switch.jsx';
+import Stack from '../shared/Stack.jsx';
+import FormField from '../shared/FormField.jsx';
+import TextInput from '../shared/TextInput.jsx';
 import EvalHintTip from './EvalHintTip.jsx';
 import { joinHintSentences } from './joinHintSentences.js';
 
@@ -33,6 +36,17 @@ const DEFAULT_LABELS = {
   sectionsHint: '이 사이클의 모든 리포트에 들어갈 섹션입니다.',
   required: '필수',
   requiredHint: '필수 섹션 — 끌 수 없습니다',
+  // pivit-work PW-2636 · hr.policy §8.7 — 구성원 본인 이의 기간·기한(사이클마다).
+  objectionTitle: '구성원 이의',
+  objectionHint:
+    '구성원이 내 평가 리포트에서 이의를 낼 수 있는 기간과 인사 담당자가 답해야 하는 기한입니다. 이미 받은 이의의 기한은 바뀌지 않습니다.',
+  objectionWindowLabel: '접수 기간',
+  objectionWindowNote: '리포트 첫 발송부터 · 7~30일',
+  objectionReplyLabel: '답변 기한',
+  objectionReplyNote: '접수부터 · 1~10일',
+  objectionDayUnit: '일',
+  objectionWindowRange: '접수 기간은 7~30일로 정해 주십시오.',
+  objectionReplyRange: '답변 기한은 1~10일로 정해 주십시오.',
   channelsTitle: '발송 채널 기본값',
   channelsHint:
     '발송은 「리포트 검수」에서 하고, 여기서 정한 값이 그 화면의 기본 선택이 됩니다.',
@@ -130,6 +144,13 @@ export default function EvalCycleReportSettings({
    * 안 주면 이 카드를 그리지 않는다.
    */
   execApproval = null,
+  /**
+   * PW-2636 — 구성원 이의 접수 기간·답변 기한 `{ windowDays, replyDays }`(숫자 · 빈칸이면 null).
+   * 섹션·채널과 함께 «변경사항 저장»으로 저장한다. 안 주면 이 카드를 그리지 않는다.
+   * 범위 밖이면 칸 아래에 알리고, 호스트가 저장을 막는다(`objectionDaysValid`).
+   */
+  objectionDays = null,
+  onChangeObjectionDays,
   labels: providedLabels,
 }) {
   const L = { ...DEFAULT_LABELS, ...(providedLabels || {}) };
@@ -224,6 +245,49 @@ export default function EvalCycleReportSettings({
           })}
         </div>
       </section>
+
+      {objectionDays && (
+        <section className="evc-card" data-testid="evrs-objection">
+          <h3 className="evc-card-name evrs-card-name">
+            {L.objectionTitle}
+            <EvalHintTip text={L.objectionHint} testId="evrs-objection-tip" />
+          </h3>
+          <Stack gap="lg">
+            {[
+              { key: 'windowDays', label: L.objectionWindowLabel, note: L.objectionWindowNote, min: 7, max: 30, error: L.objectionWindowRange },
+              { key: 'replyDays', label: L.objectionReplyLabel, note: L.objectionReplyNote, min: 1, max: 10, error: L.objectionReplyRange },
+            ].map((f) => {
+              const v = objectionDays[f.key];
+              const ok = Number.isInteger(v) && v >= f.min && v <= f.max;
+              return (
+                <FormField
+                  key={f.key}
+                  label={f.label}
+                  hint={f.note}
+                  error={ok ? undefined : f.error}
+                  errorTestId={`evrs-objection-${f.key}-error`}
+                >
+                  <span className="evc-rm-inline">
+                    <TextInput
+                      type="number"
+                      min={f.min}
+                      max={f.max}
+                      className="evc-rm-field evc-rm-offset"
+                      value={v ?? ''}
+                      disabled={readOnly}
+                      onChange={(e) =>
+                        onChangeObjectionDays?.(f.key, e.target.value === '' ? null : Number(e.target.value))
+                      }
+                      data-testid={`evrs-objection-${f.key}`}
+                    />
+                    <span className="evc-rm-unit">{L.objectionDayUnit}</span>
+                  </span>
+                </FormField>
+              );
+            })}
+          </Stack>
+        </section>
+      )}
 
       {execApproval && (
         <section className="evc-card" data-testid="evrs-exec-approval">

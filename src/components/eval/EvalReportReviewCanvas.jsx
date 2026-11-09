@@ -42,6 +42,8 @@ const DEFAULT_LABELS = {
   tabHr: 'HR 검수 대기',
   tabApproved: '승인 완료',
   tabSent: '발송 완료',
+  // pivit-work PW-2636 — 단계 줄 맨 끝 구성원 이의 탭(인사 담당자만).
+  tabObjections: '구성원 이의',
   tabEmpty: '이 단계의 리포트가 없습니다.',
   approveSelected: '선택 항목 일괄 승인',
   toastApprovedCount: '{count}명을 승인했습니다',
@@ -1254,6 +1256,16 @@ export default function EvalReportReviewCanvas({
    */
   toolbar = null,
   /**
+   * pivit-work PW-2636 · hr.policy §8.7 — 단계 줄 맨 끝 «구성원 이의 N» 탭. 인사 담당자 화면에서만 넘긴다
+   * (`{ count }` · N = 미답변 수, 0 이면 숫자 없이). 이 탭을 고르면 본문이 `objectionPanel` 로 바뀐다.
+   * 안 주면 탭이 없다 — 리더 화면에는 이 탭이 없다(불이익 금지).
+   */
+  objectionTab = null,
+  objectionPanel = null,
+  /** 처음 고를 탭(주소 `?tab=objections` 로 들어온 알림 링크) · 탭이 바뀔 때 알림. */
+  initialStage = 'all',
+  onStageChange = null,
+  /**
    * PW-711 — 동료 피드백 다듬기 검수 배선 (정책 §8.5). 셋을 한 묶음으로 받는다:
    * `load(memberId)` 는 그 사람의 리뷰 목록을, `decide`·`retry` 는 **바뀐 목록을 다시**
    * 돌려줘야 한다(캔버스가 그것으로 다시 그린다). 실패하면 throw 해야 칸 안에서 알린다.
@@ -1298,7 +1310,8 @@ export default function EvalReportReviewCanvas({
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const q = queue ?? { rows: [], counts: { pending: 0, leaderApproved: 0, sent: 0 }, canSend: false, canApproveAsLeader: false };
   /** PW-1839 — 단계 걸러보기. 처음에는 «전체». */
-  const [stage, setStage] = useState('all');
+  const [stage, setStage] = useState(initialStage === 'objections' && !objectionTab ? 'all' : initialStage);
+  const objectionsShown = stage === 'objections' && !!objectionTab;
   const stageTab = STAGE_TABS.find((tab) => tab.key === stage) ?? STAGE_TABS[0];
   const shownRows = stageTab.statuses
     ? q.rows.filter((r) => r.excluded !== true && stageTab.statuses.includes(r.status))
@@ -1609,19 +1622,34 @@ export default function EvalReportReviewCanvas({
       {/* PW-1839 — 단계 걸러보기(정책 §8.6). 종합 리포트의 하위 탭 줄과 같은 공용 탭이다. */}
       <div className="tl-tabs-row evc-tabs-row">
         <Tabs
-          items={STAGE_TABS.map((tab) => ({
-            value: tab.key,
-            label: tab.count ? `${L[tab.label]} ${tab.count(q.counts ?? {})}` : `${L[tab.label]} ${q.rows.length}`,
-            testId: `evrr-tab-${tab.key}`,
-          }))}
-          value={stageTab.key}
+          items={[
+            ...STAGE_TABS.map((tab) => ({
+              value: tab.key,
+              label: tab.count ? `${L[tab.label]} ${tab.count(q.counts ?? {})}` : `${L[tab.label]} ${q.rows.length}`,
+              testId: `evrr-tab-${tab.key}`,
+            })),
+            ...(objectionTab
+              ? [
+                  {
+                    value: 'objections',
+                    label: objectionTab.count > 0 ? `${L.tabObjections} ${objectionTab.count}` : L.tabObjections,
+                    testId: 'evrr-tab-objections',
+                  },
+                ]
+              : []),
+          ]}
+          value={objectionsShown ? 'objections' : stageTab.key}
           onChange={(next) => {
             setStage(next);
             setSelected(new Set());
+            onStageChange?.(next);
           }}
         />
       </div>
 
+      {objectionsShown ? (
+        <div className="evc-list" data-testid="evrr-objections-body">{objectionPanel}</div>
+      ) : (
       <div className="evc-list">
         {q.canSend && failedIds.length > 0 && (
           <div className="evc-wiz-warn evrr-send-failed" role="alert" data-testid="evrr-send-failed">
@@ -1749,6 +1777,7 @@ export default function EvalReportReviewCanvas({
           )}
         </section>
       </div>
+      )}
     </div>
   );
 }

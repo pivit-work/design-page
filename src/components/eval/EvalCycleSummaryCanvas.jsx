@@ -323,6 +323,10 @@ const DEFAULT_LABELS = {
   cwAppealFromTo: '근거 확정 등급',
   cwAppealRaisedBy: '제출 매니저',
   cwAppealRaisedSuffix: '어필',
+  // pivit-work PW-2636 · spec-calibration §7.5.1 — 인박스 출처 딱지. 구성원 이의는 제출 매니저 자리에 «피평가자 본인 · HR 전달».
+  cwAppealSourceManager: '매니저 어필',
+  cwAppealSourceMember: '구성원 이의',
+  cwAppealMemberRaisedBy: '피평가자 본인 · HR 전달',
   cwAppealNoSession: '—',
   cwAppealOriginalNote: '원 조정 사유',
   cwAppealContextTitle: '재검토 판단 자료',
@@ -853,6 +857,21 @@ function calibScopeLabel(scope, L) {
  */
 function isAppealDecided(status) {
   return status === 'accepted' || status === 'rejected';
+}
+
+/** pivit-work PW-2636 — 출처 딱지(매니저 어필 / 구성원 이의). 옛 서버(출처 없음)는 매니저 어필. */
+function AppealSourceBadge({ source, L }) {
+  const member = source === 'member_objection';
+  return (
+    <StatusBadge tone="neutral" className="evs-cw-appeal-badge" data-testid="evs-cw-appeal-source">
+      {member ? L.cwAppealSourceMember : L.cwAppealSourceManager}
+    </StatusBadge>
+  );
+}
+
+/** 이의를 올린 사람 글자 — 구성원 이의면 HR 이름 대신 «피평가자 본인 · HR 전달». */
+function appealRaiserText(a, L) {
+  return a.source === 'member_objection' ? L.cwAppealMemberRaisedBy : a.raisedByName;
 }
 
 function appealWaitingText(status, L) {
@@ -4416,7 +4435,7 @@ export default function EvalCycleSummaryCanvas({
                       <div className="evs-cw-review-grid">
                         <div>
                           <div className="evs-cw-review-k">{L.cwAppealRaisedBy}</div>
-                          <div className="evs-cw-review-v">{appeal.raisedByName || '—'}</div>
+                          <div className="evs-cw-review-v">{appealRaiserText(appeal, L) || '—'}</div>
                         </div>
                         <div>
                           <div className="evs-cw-review-k">{L.cwAppealFromTo}</div>
@@ -4605,6 +4624,7 @@ export default function EvalCycleSummaryCanvas({
                           <StatusBadge className="evs-cw-appeal-badge" data-status={a.status}>
                             {appealWaitingText(a.status, L)}
                           </StatusBadge>
+                          <AppealSourceBadge source={a.source} L={L} />
                           <div className="evs-cw-appeal-main">
                             <div className="evs-cw-appeal-name">
                               {a.memberName}
@@ -4618,8 +4638,9 @@ export default function EvalCycleSummaryCanvas({
                               {a.fromGradeLabel && a.toGradeLabel
                                 ? `${a.fromGradeLabel} → ${a.toGradeLabel} · `
                                 : ''}
-                              {a.raisedByName ? `${a.raisedByName} ` : ''}
-                              {L.cwAppealRaisedSuffix}
+                              {a.source === 'member_objection'
+                                ? appealRaiserText(a, L)
+                                : `${a.raisedByName ? `${a.raisedByName} ` : ''}${L.cwAppealRaisedSuffix}`}
                               {a.createdAt ? ` · ${fmtDateTime(a.createdAt)}` : ''}
                             </div>
                           </div>
@@ -4647,6 +4668,7 @@ export default function EvalCycleSummaryCanvas({
                             >
                               {a.status === 'accepted' ? L.cwStatusAccepted : L.cwStatusRejected}
                             </StatusBadge>
+                            <AppealSourceBadge source={a.source} L={L} />
                             <div className="evs-cw-appeal-main">
                               <div className="evs-cw-appeal-name">
                                 {a.memberName}
