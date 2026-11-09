@@ -179,7 +179,7 @@ const DEFAULT_LABELS = {
   // [PW-1087] 점수 항목에 팀원이 적은 점수 근거 — 근거 칸에 본문 아래 붙인다
   evidenceRationaleLabel: '점수 근거',
   // F5 evidence + assessment
-  peerEvidenceTitle: '동료 피드백 요약 (익명)',
+  peerEvidenceTitle: '동료 피드백 요약', // PW-2580 — 실명 답에 이름이 붙어 «(익명)»을 뗐다(앱 문구와 같게)
   peerEvidenceEmpty: '제출된 동료 피드백이 없습니다.',
   // PW-1613 — 동료 피드백 요약(`peerSummary` 를 넘겼을 때)
   peerReviewerCount: '{count}명 작성',
