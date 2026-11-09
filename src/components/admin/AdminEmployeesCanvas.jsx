@@ -1,4 +1,4 @@
-import { Fragment, useState, useMemo, useRef, useEffect, useCallback } from 'react';
+import { Fragment, useState, useMemo, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import DpStatusBadge from '../shared/StatusBadge.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import AvatarFallback from './AvatarFallback.jsx';
@@ -45,6 +45,7 @@ import {
   IconMore, IconPlus, IconSettings, IconUser, IconX,
 } from './employeesIcons.jsx';
 import useDismissLayer from '../shared/useDismissLayer.js';
+import { isEnterKey } from '../shared/enterKey.js';
 import { filterSearchOptions } from '../shared/searchOptions.js';
 import Pagination from '../shared/Pagination.jsx';
 import { SkeletonList } from '../shared/Skeleton.jsx';
@@ -1991,13 +1992,33 @@ function optionsOf(members, pick, allLabel) {
  * 이 카드가 세우는 항목은 「소속 일괄 추가」 하나다 — 나머지 3종(매니저 일괄 배정 ·
  * 상태 일괄 변경 · 일괄 비활성화)은 PW-610 이 이 배열에 더한다.
  */
-function BulkMenu({ count, items, labels }) {
+function BulkMenu({ count, items, labels, blockedReason = null }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   useDismissLayer(() => setOpen(false), ref, null, open);
   /* 고른 사람이 0명이 되면 이 컴포넌트가 통째로 사라진다 — 열려 있던 메뉴도 `open`
      상태와 함께 버려지므로 따로 닫아 줄 필요가 없다. */
   if (count === 0 || items.length === 0) return null;
+  /* 표에서 고친 칸이 저장 전이면 드롭다운을 통째로 끈다 (PW-1333 · admin-spec §3.1-G «같은 사람을 다른 길로»).
+     두 길이 같은 값을 고치면 나중에 저장한 쪽이 앞의 것을 조용히 덮어쓴다. 꺼진 이유는 말풍선으로. */
+  if (blockedReason) {
+    return (
+      <Tooltip content={blockedReason}>
+        <div className="admin-emp-select is-right is-active">
+          <button
+            type="button"
+            className="admin-emp-select-trigger"
+            disabled
+            aria-disabled
+            data-testid="employees-list-bulk-trigger"
+          >
+            <span className="admin-emp-select-value">{fill(labels.listBulk.trigger, { count })}</span>
+            <span className="admin-emp-select-chevron"><IconChevronDown size={13} /></span>
+          </button>
+        </div>
+      </Tooltip>
+    );
+  }
   return (
     <div ref={ref} className={`admin-emp-select is-right is-active${open ? ' is-open' : ''}`}>
       <button
@@ -2343,6 +2364,95 @@ function BulkDeactivateModal({ selectedRows, labels, onClose, onApply }) {
   );
 }
 
+/**
+ * 열 머리 ▾ «체크한 N명에게 한 번에 넣기» (PW-1333 · admin-spec §3.1-G 권고 4).
+ *
+ * 값을 고르고 [넣기]를 누르면 **체크한 사람에게만** 저장 전 칸으로 들어간다 — 저장이 아니다.
+ * 체크가 없으면 항목을 끈다: «보이는 사람 전부»에 넣는 동작은 두지 않는다(필터를 잘못 건 채 누르면
+ * 의도하지 않은 사람 전원이 바뀐다). 창은 body 직속(AnchoredLayer)이라 표 틀의 넘침에 잘리지 않는다.
+ */
+function FillMenu({ colId, spec, te, selectedIds, title }) {
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState('');
+  const triggerRef = useRef(null);
+  const panelRef = useRef(null);
+  const close = () => { setOpen(false); setValue(''); };
+  // 값 고르기 목록 · 달력은 body 직속 창이라 «바깥»에서 뺀다 — 안 빼면 값을 고르는 순간 이 창이 닫힌다.
+  useDismissLayer(close, panelRef, [triggerRef, '.dp-search-select-menu', '.dp-datepicker'], open);
+  const count = selectedIds.size;
+  const opts = spec.kind === 'select' ? te.options(null, spec.key) : [];
+  const L = te.labels;
+  return (
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        className="admin-emp-edit-fill-trigger"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-label={`${title} — ${fill(L.fillTitle, { count })}`}
+        data-testid={`employees-fill-trigger-${colId}`}
+        onClick={(e) => { e.stopPropagation(); setOpen((o) => !o); }}
+      >
+        <IconChevronDown size={12} />
+      </button>
+      {open && (
+        <AnchoredLayer
+          anchorRef={triggerRef}
+          panelRef={panelRef}
+          width={240}
+          className="admin-emp-select-menu"
+          data-testid={`employees-fill-menu-${colId}`}
+        >
+          <div className="admin-emp-select-title">{fill(L.fillTitle, { count })}</div>
+          {count === 0 ? (
+            <div className="admin-emp-select-item-sub" data-testid={`employees-fill-needs-check-${colId}`}>{L.fillNeedsCheck}</div>
+          ) : (
+            <div className="admin-emp-edit-fill-body">
+              {spec.kind === 'select' ? (
+                <Select
+                  className="admin-emp-edit-input"
+                  data-testid={`employees-fill-value-${colId}`}
+                  aria-label={title}
+                  value={value}
+                  placeholder={L.fillPlaceholder}
+                  options={[{ value: '', label: L.noValue }, ...(opts ?? [])]}
+                  onChange={(ev) => setValue(ev.target.value)}
+                />
+              ) : spec.kind === 'date' ? (
+                <DateInput
+                  className="admin-emp-edit-input"
+                  data-testid={`employees-fill-value-${colId}`}
+                  aria-label={title}
+                  value={value}
+                  onChange={setValue}
+                />
+              ) : (
+                <TextInput
+                  className="admin-emp-edit-input"
+                  data-testid={`employees-fill-value-${colId}`}
+                  aria-label={title}
+                  inputMode={spec.kind === 'number' ? 'numeric' : undefined}
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                />
+              )}
+              <Button
+                size="sm"
+                variant="primary"
+                data-testid={`employees-fill-apply-${colId}`}
+                onClick={() => { te.onFill(spec.key, value, [...selectedIds]); close(); }}
+              >
+                {L.fillAction}
+              </Button>
+            </div>
+          )}
+        </AnchoredLayer>
+      )}
+    </>
+  );
+}
+
 function ColumnMenu({ cols, value, onChange, labels }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -2480,6 +2590,11 @@ function EmployeesListView({
   bulkFailure, onDismissBulkFailure,
   /* 「재입사 초대」 (PW-1355) — 퇴사자 행 한 명. 캔버스가 초대 창을 재입사 모드로 연다. */
   onRehireMember,
+  /* 표에서 바로 고치기 (PW-1333 · admin-spec §3.1-G). 미주입이면 칸은 종전대로 읽기 전용이다.
+     🔴 저장 전 칸(drafts)·값 판정·저장은 **부르는 쪽이** 든다 — 이 뷰는 새로고침 때마다 통째로 다시
+     생기므로(위 `ownSelectedIds` 주석) 여기 두면 소속 팝업 한 번에 고친 칸이 말없이 사라진다.
+     이 뷰가 갖는 것은 «지금 입력이 열린 칸» 하나뿐이다. 모양: `TableEdit` (아래 `editCell` 주석). */
+  tableEdit,
   /* 보던 상태 되살리기 (PW-157 · PW-576). 종전에는 이 계약을 **스프레드시트만**
      들고 있어서, 그 뷰가 없어지면 다른 화면에 다녀올 때마다 검색어·필터가 풀렸다.
      키는 시트가 쓰던 컬럼 id 그대로다 — 이름을 바꾸면 이미 저장된 값이 버려진다. */
@@ -2806,6 +2921,20 @@ function EmployeesListView({
   const safePage = Math.min(page, totalPages);
   const pageRows = ordered.slice((safePage - 1) * pageSize, safePage * pageSize);
 
+  /* «내역 보기» 줄을 누르면 그 사람이 있는 쪽으로 간다 (PW-1333 · admin-spec §3.1-G «내역 보기»).
+     `tableEdit.focus` = `{ id, token }` — 토큰이 바뀔 때 한 번. 필터에 가려진 사람이면 옮기지 않고
+     `tableEdit.onFocusHidden()` 으로 부르는 쪽에 알린다(토스트는 그쪽 몫 — 부모 상태를 바꾸므로 효과에서 부른다). */
+  const focusToken = tableEdit?.focus?.token ?? null;
+  const focusRef = useRef({ tableEdit, ordered, pageSize });
+  useLayoutEffect(() => { focusRef.current = { tableEdit, ordered, pageSize }; });
+  useEffect(() => {
+    if (focusToken == null) return;
+    const { tableEdit: te0, ordered: rows, pageSize: size } = focusRef.current;
+    const at = rows.findIndex((r) => String(r.id) === String(te0?.focus?.id));
+    if (at < 0) te0?.onFocusHidden?.();
+    else setPage(Math.floor(at / size) + 1);
+  }, [focusToken]);
+
   /* ── 행 선택 (PW-608 · 기획 §3.1) ─────────────────────────────────────────
    * 체크박스는 **편집 권한이 있을 때만** 세운다. 골라도 할 수 있는 일이 없는 선택을
    * 만들지 않는다 — 내보내기 범위 ② 도 어드민 전용이라 권한 없는 사람에게는 체크칸이
@@ -3028,6 +3157,190 @@ function EmployeesListView({
   // 열이 스물 가까이 늘면 고정 minWidth 로는 칸이 눌려 글자가 세로로 쪼개진다.
   // **보이는 열 폭의 합**으로 잡고, 넘치는 만큼은 가로 스크롤로 읽는다.
   const minWidth = cols.reduce((n, c) => n + c.width, 0);
+
+  /* ── 표에서 바로 고치기 (PW-1333 · admin-spec §3.1-G) ──────────────────────────────────────
+   * `tableEdit`(TableEdit) — 부르는 쪽이 저장 전 칸과 판정을 들고, 이 뷰는 칸을 그리고 입력을 연다.
+   *   columns  { [열 id]: { key, kind: 'select'|'date'|'number'|'text', appointment?, fill? } }
+   *            고칠 수 있는 열. 칸 목록은 §3.1-C 가 정본이라 부르는 쪽이 정한다.
+   *   lockTips { [열 id]: 문구 } — 고칠 수 없는 칸(업무 이메일 등)에 마우스를 올리면 «고치는 곳».
+   *   headTips { [열 id]: 문구 } — 머리 말풍선(소속 · 스쿼드 «팝업에서 바로 적용»).
+   *   value(m, key) · drafted(m, key) · error(m, key) · locked(m, key)(잠긴 사유 | null)
+   *   options(m, key) → [{ value, label }] | null(선택지를 못 불러옴 — 칸을 열지 않는다)
+   *   label(key, value) — 고친 칸에 보일 글 · note(key) — 입력 아래 회색 한 줄
+   *   onStart(m, key) → boolean(false 면 열지 않는다 — 50명 상한 등) · onChange(m, key, value)
+   *   onFill(key, value, memberIds) — 열 머리 «체크한 N명에게 한 번에 넣기»(체크한 사람에게만)
+   *   blockedReason — 저장 전 칸이 있으면 일괄 처리 · CSV 업로드를 끈 사유 · disabled — 저장 중
+   *   focus { id, token } · onFocusHidden() — «내역 보기» 줄을 누르면 그 사람이 있는 쪽으로(위 `focusReq`)
+   *   footer — 표 아래 저장 바(부르는 쪽이 그린다) · labels — 문구
+   */
+  const te = tableEdit;
+  const [editing, setEditing] = useState(null); // { id, colId, start } — 지금 입력이 열린 칸 하나
+  const editingRef = useRef(null);
+  const editColIds = te ? cols.filter((c) => te.columns[c.id]).map((c) => c.id) : [];
+  function openCell(m, colId) {
+    const spec = te?.columns[colId];
+    if (!spec || te.disabled || te.locked(m, spec.key)) return;
+    if (spec.kind === 'select' && te.options(m, spec.key) === null) return;
+    if (!te.onStart(m, spec.key)) return;
+    setEditing({ id: m.id, colId, start: te.value(m, spec.key) });
+  }
+  /* Enter 편집 끝 · Esc 그 칸 입력 취소 · Tab 다음 칸(§3.1-G «칸 모양»). 한글 조합 중 Enter 는 글자를 확정하는 키라 넘긴다. */
+  function onCellKey(e, m, colId) {
+    if (!editing) return;
+    if (isEnterKey(e)) {
+      e.preventDefault();
+      setEditing(null);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      te.onChange(m, te.columns[colId].key, editing.start);
+      setEditing(null);
+    } else if (e.key === 'Tab') {
+      e.preventDefault();
+      const next = editColIds[editColIds.indexOf(colId) + (e.shiftKey ? -1 : 1)];
+      setEditing(null);
+      if (next) openCell(m, next);
+    }
+  }
+  /* 입력 밖을 누르면 닫는다 — 날짜 칸은 달력이 body 직속 창이라 입력의 blur 로는 닫을 수 없다(달력을 누르는 순간 닫힌다). */
+  useEffect(() => {
+    if (!editing) return undefined;
+    const onDown = (ev) => {
+      const t = ev.target;
+      if (editingRef.current?.contains(t)) return;
+      if (t instanceof Element && t.closest('.dp-datepicker, .dp-search-select-menu')) return;
+      setEditing(null);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [editing]);
+
+  function editCell(m, colId) {
+    if (!te) return null;
+    const lockTip = te.lockTips?.[colId];
+    if (lockTip) {
+      return (
+        <Tooltip content={lockTip}>
+          <span className="admin-emp-edit-readonly" data-testid={`employees-cell-lock-${colId}-${m.id}`}>{cell(m, colId)}</span>
+        </Tooltip>
+      );
+    }
+    const spec = te.columns[colId];
+    if (!spec) return null;
+    const { key } = spec;
+    const lockedWhy = te.locked(m, key);
+    const opts = spec.kind === 'select' ? te.options(m, key) : [];
+    const why = lockedWhy || (opts === null ? te.labels.optionsUnavailable : null);
+    const changed = te.drafted(m, key);
+    const err = te.error(m, key);
+    const isEditing = !!editing && editing.id === m.id && editing.colId === colId;
+    const value = te.value(m, key);
+    const inputId = `employees-cell-input-${colId}-${m.id}`;
+    const aria = `${cols.find((c) => c.id === colId)?.label ?? ''} — ${m.displayName || m.name}`;
+    let body;
+    if (isEditing && spec.kind === 'select') {
+      const note = te.note(key);
+      body = (
+        <>
+          <Select
+            autoOpen
+            className="admin-emp-edit-input"
+            data-testid={inputId}
+            aria-label={aria}
+            value={value}
+            options={[...(spec.required ? [] : [{ value: '', label: te.labels.noValue }]), ...(opts ?? [])]}
+            onChange={(ev) => { te.onChange(m, key, ev.target.value); setEditing(null); }}
+            onOpenChange={(o) => { if (!o) setEditing(null); }}
+          />
+          {note && <span className="admin-emp-edit-note">{note}</span>}
+        </>
+      );
+    } else if (isEditing && spec.kind === 'date') {
+      body = (
+        <DateInput
+          autoFocus
+          className="admin-emp-edit-input"
+          data-testid={inputId}
+          aria-label={aria}
+          value={value}
+          onChange={(v) => te.onChange(m, key, v)}
+        />
+      );
+    } else if (isEditing) {
+      body = (
+        <TextInput
+          autoFocus
+          className="admin-emp-edit-input"
+          data-testid={inputId}
+          aria-label={aria}
+          inputMode={spec.kind === 'number' ? 'numeric' : undefined}
+          value={value}
+          onChange={(e) => te.onChange(m, key, e.target.value)}
+        />
+      );
+    } else if (changed) {
+      body = value === ''
+        ? <span className="admin-emp-cell-dash">—</span>
+        : <span className="admin-emp-cell-text admin-emp-edit-value">{te.label(key, value)}</span>;
+    } else {
+      body = cell(m, colId);
+    }
+    const cls = [
+      'admin-emp-edit-cell',
+      changed ? 'is-changed' : '',
+      isEditing ? 'is-editing' : '',
+      why ? 'is-locked' : '',
+    ].filter(Boolean).join(' ');
+    const inner = (
+      <div
+        ref={isEditing ? editingRef : undefined}
+        className={cls}
+        data-testid={`employees-cell-${colId}-${m.id}`}
+        data-changed={changed ? 'true' : undefined}
+        role={isEditing || why ? undefined : 'button'}
+        tabIndex={isEditing || why ? undefined : 0}
+        aria-label={isEditing || why ? undefined : aria}
+        onClick={() => { if (!isEditing) openCell(m, colId); }}
+        onKeyDown={(e) => {
+          if (isEditing) onCellKey(e, m, colId);
+          else if (isEnterKey(e) && e.target === e.currentTarget) { e.preventDefault(); openCell(m, colId); }
+        }}
+      >
+        {body}
+        {err && (
+          <span className="admin-emp-edit-error" role="alert" data-testid={`employees-cell-error-${colId}-${m.id}`}>{err}</span>
+        )}
+      </div>
+    );
+    return why ? <Tooltip content={why}>{inner}</Tooltip> : inner;
+  }
+
+  /* 열 머리 — 발령 칸 표시 · 소속/스쿼드 말풍선 · «체크한 N명에게 한 번에 넣기» ▾ (§3.1-G «칸 모양» · 권고 3 · 권고 4) */
+  function editHead(c) {
+    const spec = te?.columns[c.id];
+    const tip = te?.headTips?.[c.id];
+    if (!spec && !tip) return null;
+    const label = (
+      <span className="admin-emp-edit-head">
+        {c.label}
+        {spec?.appointment && <span className="admin-emp-edit-head-mark">{te.labels.appointmentMark}</span>}
+      </span>
+    );
+    if (tip) return <Tooltip content={tip}>{label}</Tooltip>;
+    if (!spec.fill) return label;
+    return (
+      <span className="admin-emp-edit-head">
+        {label}
+        <FillMenu
+          colId={c.id}
+          spec={spec}
+          te={te}
+          selectedIds={selectedIds}
+          title={c.label}
+        />
+      </span>
+    );
+  }
 
   // 켤 수 없는 항목은 메뉴에도 두지 않는다 — 연봉(권한 없음)도, 이 회사가 안 쓰기로
   // 한 선택 적용 항목도 마찬가지다(§1-3-a M8).
@@ -3422,7 +3735,7 @@ function EmployeesListView({
         <div className="admin-emp-toolbar-actions">
           {/* 「일괄 처리 (N)」 — 고른 사람이 있을 때만 뜬다(§3.1). 시안과 같이 ⚙ 컬럼
               **앞**이다: 고르는 동작의 결과라 선택 상태 가까이 있어야 읽힌다. */}
-          <BulkMenu count={selectedCount} items={bulkItems} labels={labels} />
+          <BulkMenu count={selectedCount} items={bulkItems} labels={labels} blockedReason={te?.blockedReason ?? null} />
           <ColumnMenu cols={optionalForMenu} value={optCols} onChange={setOptCols} labels={labels} />
           {/* 「⚙ 컬럼」 과 「CSV 업로드」 **사이**다(정책 §2-1) — 업로드와 방향이
               헷갈리지 않게 라벨도 「명부 내보내기」 로 둔다. */}
@@ -3438,7 +3751,12 @@ function EmployeesListView({
             />
           )}
           {canEdit && onCsvUpload && (
-            <button type="button" className="admin-emp-btn is-ghost" onClick={onCsvUpload}>{labels.csvUpload}</button>
+            /* 표에서 고친 칸이 저장 전이면 끈다 (PW-1333 · §3.1-G) — 업로드가 같은 칸을 덮어쓴다. 모양은 종전 버튼 그대로(공용 Button 에 className). */
+            <Tooltip content={te?.blockedReason ?? null}>
+              <Button className="admin-emp-btn is-ghost" disabled={!!te?.blockedReason} onClick={onCsvUpload} data-testid="employees-list-csv-upload">
+                {labels.csvUpload}
+              </Button>
+            </Tooltip>
           )}
           {/* [PW-1331] 「+ 구성원 초대」는 두지 않는다 — 새 사람 초대는 초대 관리 탭의 「새 초대 발송」 한 곳이다
               (2026-10-05 커트 결정). 명부에 이미 있는 사람에게 다시 보내는 것도 그 창에서 한다. */}
@@ -3531,6 +3849,9 @@ function EmployeesListView({
         columns={cols.map((c) => ({
           key: c.id,
           width: c.width,
+          /* 체크박스 · 이름 두 열은 가로로 밀어도 왼쪽에 남는다 (PW-1333 · admin-spec §3.1 «정렬 · 고정 열»).
+             열이 스물 넘어 오른쪽 칸만 보면 그 줄이 누구인지 알 수 없다. 경계선은 명단 표(roster-table.css)가 긋는다. */
+          sticky: c.id === 'select' || c.id === 'name',
           /* 열 id 를 DOM 에 남긴다 — 두 보기의 열 묶음을 견주는 테스트가 여기서
              읽는다(PW-463). 라벨로 견주면 i18n 을 바꿀 때마다 테스트가 깨진다. */
           headerProps: { 'data-testid': `list-head-${c.id}` },
@@ -3545,6 +3866,8 @@ function EmployeesListView({
               data-testid="employees-list-check-all"
               aria-label={labels.listBulk.selectPage}
             />
+          ) : editHead(c) ? (
+            editHead(c)
           ) : c.id === 'businessTitle' ? (
             /* 직함은 목록에서 못 고친다는 표시 (admin-spec §3.1 ⚙ 정본표 「직함 🔒」). */
             <span className="admin-emp-head-locked" title={labels.businessTitleLocked}>
@@ -3558,9 +3881,11 @@ function EmployeesListView({
         rowProps={(m) => (failedIds.has(String(m.id))
           ? { 'data-testid': `employees-list-row-${m.id}`, tone: 'error', 'data-bulk-failed': 'true' }
           : { 'data-testid': `employees-list-row-${m.id}` })}
-        renderCell={(m, col) => cell(m, col.key)}
+        renderCell={(m, col) => editCell(m, col.key) ?? cell(m, col.key)}
         empty={labels.listEmptyFiltered}
       />
+      {/* 저장 바 (PW-1333 · §3.1-G «저장 바») — 부르는 쪽이 그린다. 표 바로 아래에 붙는다. */}
+      {te?.footer ?? null}
 
       {/* 소속(기능조직) 팝업 — 겸직 다중 선택 + [매니저로].
           🔴 이 화면이 조직장 지정이 사는 **유일한 자리**다(PW-326 확정). 시트의 같은
@@ -5819,6 +6144,11 @@ export default function AdminEmployeesCanvas({
   /* 편집 패널을 연 사람 (PW-1355) — `onOpenMember(memberId)`. 패널에만 쓰는 값(«재직 구간» 줄)을 부르는 쪽이
      그때 불러와 그 사람 행에 실어 준다(`employmentPeriodsNote`). 미주입이면 아무 일도 없다. */
   onOpenMember,
+  /* 표에서 바로 고치기 (PW-1333 · admin-spec §3.1-G) — 목록 뷰의 `tableEdit` 계약 그대로 넘긴다. 캔버스가 더 쓰는 것:
+       · `guard(m, run)` — 저장 전 칸이 있는 사람을 구성원 창 · 비활성화(퇴사 처리) · 대표 지정으로 열려 할 때
+         부르는 쪽이 그 사람만 막는 확인을 띄우고, 통과하면 `run()` 한다.
+       · `confirmLeave()` → Promise<boolean> — 다른 탭으로 옮기기 전에 묻는다(«고친 칸 N개가 사라져요»). */
+  tableEdit,
   /* 「등록 취소」 (PW-1351 · admin-spec §3.1-D) — `onCancelRegistration(memberIds)`. 일괄 처리 맨 아래와
      미가입 행(`member.unjoined`)의 ⋯ 메뉴(«비활성화» 대신)에 뜬다. 가입한 사람을 거르는 판정·확인 창은
      부르는 쪽이 한다. 미주입이면 두 자리 모두 없다. */
@@ -6083,10 +6413,16 @@ export default function AdminEmployeesCanvas({
   /* 대표(CEO) 지정·해제 확인 창 (§3.6-A · PW-576). 행 «⋯» 메뉴가 연다. */
   const [ceoConfirm, setCeoConfirm] = useState(null);
   // 탭 이동도 소비자에게 알린다 — 돌아왔을 때 보던 탭이 그대로여야 한다(PW-157).
-  const goTab = (id) => {
+  const moveTab = (id) => {
     setTab(id);
     onTabChange?.(id);
   };
+  /* 표에서 고친 칸이 저장 전이면 다른 탭으로 가기 전에 묻는다 (PW-1333 · §3.1-G «화면을 떠날 때»). */
+  const goTab = (id) => {
+    if (id === tab || !tableEdit?.confirmLeave) { moveTab(id); return; }
+    void tableEdit.confirmLeave().then((ok) => { if (ok) moveTab(id); });
+  };
+  const guardMember = (m, run) => (tableEdit?.guard ? tableEdit.guard(m, run) : run());
   /* [PW-114] 초대 발송 모달 — 탭 A `+ 구성원 초대` 와 탭 C `+ 새 초대 발송` 이
      **같은 모달**을 연다. 권한이 없거나 발송 콜백이 없으면 진입점 자체가 없다(§7). */
   const canInvite = canEdit && typeof onSendInvites === 'function';
@@ -6255,8 +6591,9 @@ export default function AdminEmployeesCanvas({
             leaderUnitIdsByMember={leaderUnitIdsByMember}
             onToggleOrgLeader={canEdit ? onToggleOrgLeader : undefined}
             onChangeAffiliations={onChangeAffiliations}
-            onOpenEdit={(m) => { setEditMemberId(m.id); onOpenMember?.(m.id); }}
-            onDeactivate={canEdit ? onDeactivateMember : undefined}
+            /* 같은 사람을 다른 길로 고칠 때(PW-1333 · §3.1-G 권고 2) — 저장 전 칸이 있는 사람만 막는다 */
+            onOpenEdit={(m) => guardMember(m, () => { setEditMemberId(m.id); onOpenMember?.(m.id); })}
+            onDeactivate={canEdit && onDeactivateMember ? (m) => guardMember(m, () => onDeactivateMember(m)) : undefined}
             onCancelOffboarding={canEdit ? onCancelOffboarding : undefined}
             onAssignManager={onAssignManager}
             onCsvUpload={onCsvUpload}
@@ -6299,9 +6636,10 @@ export default function AdminEmployeesCanvas({
             /* 대표 지정 — 두 콜백이 다 있어야 행 메뉴에 항목이 선다(§3.6-A). */
             onOpenCeo={
               canEdit && onAssignCeo && onReleaseCeo
-                ? (m, mode) => setCeoConfirm({ row: m, mode })
+                ? (m, mode) => guardMember(m, () => setCeoConfirm({ row: m, mode }))
                 : undefined
             }
+            tableEdit={tableEdit}
           />
         </div>
       ) : tab === 'appointments' && appointmentsTab ? (

@@ -430,13 +430,18 @@ function SnapshotRoster({ rows, labels, showSalary, changedHint, onMemberClick, 
         {
           key: '#',
           header: labels.roster.index,
-          width: 44,
+          /* 40 — 브라우저에서 잰 순번 칸 폭(PW-1333). 44 면 이름 칸이 4px 떨어져 붙어 그 틈으로 밀린 칸이 비친다. */
+          width: 40,
+          /* 순번 · 이름은 가로로 밀어도 왼쪽에 남는다 (PW-1333) — 열이 열다섯 넘어 오른쪽 칸만 보면 누구 줄인지 모른다.
+             직종을 켠 회사는 이름 앞에 직종이 있다 — 직종은 밀려 이름 밑으로 지나가고 이름이 순번 옆에 붙는다. */
+          sticky: true,
           cellProps: { className: 'admin-snap-roster-idx' },
           render: (r, i) => offset + i + 1,
         },
         ...columns.map((c) => ({
           key: c,
           header: labels.roster[c],
+          ...(c === 'name' ? { sticky: true } : {}),
           cellProps: (r) => {
             const changed = (r.changedFields ?? []).includes(c);
             const blank = (r[c] ?? null) === null || r[c] === '';
