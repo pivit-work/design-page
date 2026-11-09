@@ -8034,7 +8034,7 @@ button.evm-ai-source {
    이름은 1on1 구성원 이름(.ono-add-modal-member-name 18/28 700), 질문 이름은 숫자 카드 이름표(.ono-kpi-label 12 600),
    답 글은 주간 리포트 요약(.report-row-summary 14/22), 점수 딱지는 매니저 대시보드 점수(.mgr-ts-score)의 모양을 회색으로. */
 .evs-cw-detail.evs-cw-detail-board {
-  /* 토큰 이름과 달리 bg-primary 가 회색 #F3F4F6, bg-quaternary 가 흰색이다(tokens.css). */
+  /* 토큰 이름과 달리 bg-primary 가 회색(grayNeutral-100), bg-quaternary 가 흰색이다(tokens.css). */
   background: var(--bg-primary);
   border: 0;
   border-radius: var(--radius-2xl);
