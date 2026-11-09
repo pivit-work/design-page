@@ -5803,7 +5803,14 @@ button.evm-ai-source {
 /* 직함은 한 줄을 다 쓰고 배지는 그 아래로 — 같은 줄에 두면 좁은 목록에서 직함이 몇 글자만 남는다 */
 .evs-re-item-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; min-width: 0; }
 .evs-re-item-title { flex: 1 1 100%; min-width: 0; font-size: var(--font-size-text-xs); color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.evs-re-reviewed { flex: none; }
+/* [PW-2628] 목록 줄 상태 «● 글자» — 디자이너 .mgr-kr-status(manager.css, 12px · 400 · 18px · 간격 4)와 같은 모양.
+   긴 직함·이름이어도 칸 밖으로 넘치지 않게 글자만 말줄임 */
+.evs-re-item-status { display: inline-flex; align-items: center; gap: var(--spacing-xs); min-width: 0; max-width: 100%; font-size: var(--font-size-text-xs); font-weight: 400; line-height: var(--line-height-text-xs); color: var(--fg-secondary); }
+.evs-re-item-status.is-generating { color: var(--utility-orange-600); }
+.evs-re-item-status.is-unreviewed { color: var(--text-warning-primary); }
+.evs-re-item-status.is-reviewed { color: var(--text-success-primary); }
+.evs-re-item-status .evs-re-dot { width: 6px; height: 6px; }
+.evs-re-item-status-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .evs-re-dot { display: inline-block; flex: none; width: 8px; height: 8px; border-radius: var(--radius-full); background: var(--utility-gray-500); }
 .evs-re-dot.is-generating { background: var(--utility-orange-500); }
 .evs-re-dot.is-unreviewed { background: var(--utility-warning-400); }

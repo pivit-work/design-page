@@ -3959,27 +3959,28 @@ export default function EvalCycleSummaryCanvas({
                           data-testid={`evs-re-item-${m.memberId}`}
                         >
                           <span className="evs-leader-avatar" style={{ position: 'relative' }}>{(m.name || '?').slice(0, 1)}<AvatarPhoto photo={m.avatar} name={m.name} /></span>
-                          {/* [PW-1466] §8.2 — 이름 아래 직함, 요약 상태 점, 검수 완료 배지 */}
+                          {/* [PW-1466] §8.2 — 이름 아래 직함, 그 아래 요약 상태.
+                              [PW-2628] 점만 두면 뜻을 몰라 «● 상태 글자»로 보인다(디자이너 매니저 KR 목록 .mgr-kr-status 모양).
+                              검수 완료는 따로 있던 초록 딱지와 점을 이 한 줄로 합쳤다. */}
                           <span className="evs-re-item-who">
                             <span className="evs-re-item-name">{m.name || m.memberId}</span>
-                            {(m.title || m.summaryStatus === 'reviewed') && (
-                              <span className="evs-re-item-sub">
-                                {m.title && <span className="evs-re-item-title" title={m.title} data-testid="evs-re-item-title">{m.title}</span>}
-                                {/* 배지는 이름 줄이 아니라 둘째 줄에 — 이름 줄에 두면 이름·직함이 잘린다 */}
-                                {m.summaryStatus === 'reviewed' && (
-                                  <StatusBadge tone="success" className="evs-re-reviewed" data-testid="evs-re-reviewed">{L.reStatusReviewed}</StatusBadge>
-                                )}
+                            <span className="evs-re-item-sub">
+                              {m.title && <span className="evs-re-item-title" title={m.title} data-testid="evs-re-item-title">{m.title}</span>}
+                              <span
+                                className={`evs-re-item-status is-${summaryStatusOf(m.memberId, m.summaryStatus)}`}
+                                data-testid={`evs-re-item-status-${m.memberId}`}
+                                data-status={summaryStatusOf(m.memberId, m.summaryStatus)}
+                              >
+                                <span
+                                  className={`evs-re-dot is-${summaryStatusOf(m.memberId, m.summaryStatus)}`}
+                                  data-testid={`evs-re-dot-${m.memberId}`}
+                                  data-status={summaryStatusOf(m.memberId, m.summaryStatus)}
+                                  aria-hidden
+                                />
+                                <span className="evs-re-item-status-label">{summaryStatusLabel(summaryStatusOf(m.memberId, m.summaryStatus))}</span>
                               </span>
-                            )}
+                            </span>
                           </span>
-                          <Tooltip content={summaryStatusLabel(summaryStatusOf(m.memberId, m.summaryStatus))}>
-                            <span
-                              className={`evs-re-dot is-${summaryStatusOf(m.memberId, m.summaryStatus)}`}
-                              data-testid={`evs-re-dot-${m.memberId}`}
-                              data-status={summaryStatusOf(m.memberId, m.summaryStatus)}
-                              aria-label={summaryStatusLabel(summaryStatusOf(m.memberId, m.summaryStatus))}
-                            />
-                          </Tooltip>
                           {m.gradeLabel && (
                             <StatusBadge className={`evs-re-grade ${gradeSeg(m.gradeLabel)}`}>{m.gradeLabel}</StatusBadge>
                           )}
