@@ -36,6 +36,9 @@ import { confirmOpen, isTopLayer, pushLayer } from './dismissStack.js';
  *   testId           패널의 data-testid
  *   ariaLabel        패널의 aria-label (제목 요소가 없을 때)
  *   ariaLabelledBy   패널의 aria-labelledby
+ *   modeless         true 면 막 없이 연다 — 패널 뒤 화면을 그대로 누를 수 있다(PW-2600 회사 자산 › 책상 배치의
+ *                    책상 서랍: 서랍을 연 채 편집 줄에서 이름 · 돌리기 · 지우기를 한다 — 배치 정책서 §2-A «아래»).
+ *                    막을 눌러 닫는 길이 없으니 패널 안에 닫기 버튼을 둔다. 기본 false
  *   zIndex           겹침 순서 (기본은 CSS 의 101). 가운데 창 위에서 여는 패널이 쓴다 —
  *                    평가 사이클 마법사 창(1000) 위의 리마인더 패널(PW-1066)
  *   children         패널 안 전부
@@ -52,6 +55,7 @@ const SidePanelShell = forwardRef(function SidePanelShell(
     ariaLabel,
     ariaLabelledBy,
     zIndex,
+    modeless = false,
     children,
   },
   ref,
@@ -80,18 +84,27 @@ const SidePanelShell = forwardRef(function SidePanelShell(
   }, [closeOnEscape]);
 
   return createPortal(
-    <div className="pw-side-panel-root" style={zIndex != null ? { zIndex } : undefined}>
-      <div
-        className={`pw-side-panel-scrim ${scrimClassName}`.trim()}
-        role="presentation"
-        onClick={onClose}
-        data-testid="side-panel-scrim"
-      />
+    <div
+      className="pw-side-panel-root"
+      style={{
+        ...(zIndex != null ? { zIndex } : {}),
+        ...(modeless ? { pointerEvents: 'none' } : {}),
+      }}
+    >
+      {!modeless && (
+        <div
+          className={`pw-side-panel-scrim ${scrimClassName}`.trim()}
+          role="presentation"
+          onClick={onClose}
+          data-testid="side-panel-scrim"
+        />
+      )}
       <Tag
         ref={ref}
         className={`pw-side-panel ${className}`.trim()}
+        style={modeless ? { pointerEvents: 'auto' } : undefined}
         role="dialog"
-        aria-modal="true"
+        aria-modal={modeless ? undefined : 'true'}
         aria-label={ariaLabel}
         aria-labelledby={ariaLabelledBy}
         data-testid={testId}
