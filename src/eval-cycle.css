@@ -18144,4 +18144,74 @@ button.evmh-phase:focus-visible {
 .evc-list-search .dp-search-input {
   height: 36px;
 }
+/* ── PW-2683 W4 ─────────────────────────────────────────────────────────────
+   ① 사이클 관리 › 캘리브레이션 위원회 탭의 카드 번호 — 시안 admin_manage-peer-committee .cm-h .no:
+      24px 네모 · 6px 모서리 · 진한 바탕(--fg-primary) 흰 글씨. 만들기 창 5단계(시안 admin_wizard-5)는
+      옅은 회색 그대로라 관리 탭(.evc-wiz-calibstep.is-manage)에만 건다. */
+.evc-wiz-calibstep.is-manage .evc-wiz-calibcard-num {
+  min-width: 24px;
+  height: 24px;
+  background: var(--fg-primary);
+  color: var(--text-white);
+}
+/* ② 제외 조건 퇴사 고정 행 — 시안 admin_manage-peer-targets .chk .lk / .bd.neutral:
+      «이름  [자물쇠] 항상 제외(12px 회색 --text-subtle)  [해당 N명 딱지]». 딱지는 공용 StatusBadge neutral. */
+.evc-excl-fixed {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-md);
+  min-width: 0;
+}
+.evc-excl-fixed-lock {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--font-size-text-xs);
+  color: var(--text-subtle);
+}
+/* ③ 날짜·시각 칸 왼쪽 선 아이콘 — 시안 admin_wizard-1·3: 칸 안 왼쪽 12px 에 16px 아이콘(--text-tertiary),
+      글자는 아이콘 뒤 8px 에서 시작(왼쪽 안쪽 12 + 16 + 8). 칸 자체(TextInput·TimeInput) 값은 그대로다. */
+.evc-date-iconwrap,
+.evc-time-iconwrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.evc-field-lead-icon {
+  position: absolute;
+  top: 50%;
+  left: var(--spacing-lg);
+  transform: translateY(-50%);
+  color: var(--text-tertiary);
+  pointer-events: none;
+  z-index: 1;
+}
+.evc-date-iconwrap > .evc-input.has-lead-icon,
+.evc-sched-date-wrap > .evc-input.has-lead-icon,
+.evc-time-iconwrap > .evc-input.has-lead-icon,
+.evc-wiz-panel.is-form .evc-field-grid .evc-date-iconwrap > .evc-input.has-lead-icon {
+  padding-left: calc(var(--spacing-lg) + var(--spacing-xl) + var(--spacing-md));
+}
+.evc-date-iconwrap > .evc-input { flex: 1 1 auto; min-width: 0; }
+/* 일정 시작일 칸은 150 폭을 그대로 쓴다 — 감싸는 칸이 늘지 않게. */
+.evc-date-iconwrap:has(> .evc-sched-anchor-input) { flex: 0 0 auto; }
+/* 단계 카드 날짜 칸 위에 겹친 «(목)» 도 글자 시작을 같이 민다. */
+.evc-sched-date-wrap.has-lead-icon > .evc-sched-date-weekday {
+  padding-left: calc(var(--spacing-lg) + var(--spacing-xl) + var(--spacing-md));
+}
+.evc-sched-dt > .evc-time-iconwrap {
+  flex: 0 0 auto;
+  width: 108px;
+}
+.evc-time-iconwrap > .evc-time-input {
+  width: 100%;
+  box-sizing: border-box;
+}
+.evc-time-iconwrap > .evc-time-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.evc-time-iconwrap:has(> .evc-time-input:disabled) > .evc-field-lead-icon { opacity: 0.5; }
 /* PW-2683-W3-END */

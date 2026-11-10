@@ -60,9 +60,11 @@ export default function EvalWizardChipPicker({
         labels={L}
         extraSelected={extraSelected}
         onRemoveExtra={onRemoveExtra}
+        extraTestIdPrefix={extraTestIdPrefix}
         label={label}
         countLabel={countLabel}
         onClear={onClear}
+        search={search}
         searchPlaceholder={searchPlaceholder}
         buttonLabel={buttonLabel}
         optionLabel={optionLabel}
@@ -211,7 +213,10 @@ function ChipPickerList({
 
 /* PW-2683 — «선택» 드롭다운. 버튼 옆에는 고른 것만 칩으로, 많으면 앞 chipMax 개 + «외 N개».
    목록은 창 본문 스크롤·overflow 에 잘리지 않게 포털(AnchoredLayer)로 버튼 밑 4px 에 띄운다.
-   바깥을 누르거나 Esc 면 닫힌다 — Esc 는 이 목록만 닫고 만들기 창은 닫지 않는다(useDismissLayer). */
+   바깥을 누르거나 Esc 면 닫힌다 — Esc 는 이 목록만 닫고 만들기 창은 닫지 않는다(useDismissLayer).
+   5단계 위원회 대상(조직·직급)도 이 모양이다(시안 admin_wizard-5) — 이름표(label)를 주면 이름표 오른쪽
+   «N곳 선택 · 모두 해제»를 목록 상자 때와 같은 자리에 두고, 옛 선택(extraSelected)은 칩과 목록 끝 켜진 줄로
+   보인다(누르면 지운다). search='many' 면 값이 CHIP_PICKER_SEARCH_MIN 을 넘을 때만 목록 위 검색칸(PW-1875). */
 function ChipPickerDropdown({
   options,
   selected,
@@ -220,9 +225,11 @@ function ChipPickerDropdown({
   labels: L,
   extraSelected = [],
   onRemoveExtra,
+  extraTestIdPrefix,
   label,
   countLabel,
   onClear,
+  search = 'always',
   searchPlaceholder,
   buttonLabel,
   optionLabel,
@@ -266,7 +273,8 @@ function ChipPickerDropdown({
   const hidden = chips.length - shown.length;
   const selectedCount = chips.length;
 
-  const q = query.trim().toLowerCase();
+  const showSearch = search === 'always' || options.length > CHIP_PICKER_SEARCH_MIN;
+  const q = showSearch ? query.trim().toLowerCase() : '';
   let rows = q ? options.filter((v) => nameOf(v).toLowerCase().includes(q)) : options;
   if (chosenFirst) rows = [...rows.filter((v) => selected.includes(v)), ...rows.filter((v) => !selected.includes(v))];
 
@@ -284,6 +292,18 @@ function ChipPickerDropdown({
           <span>{label}</span>
           <span className="evc-wiz-chippicker-count" data-testid={`${testIdPrefix}s-count`}>
             {fill(countLabel ?? L.wizardValueSelected, { count: selectedCount })}
+            {selectedCount > 0 && onClear && (
+              <>
+                {' · '}
+                <Button
+                  className="evc-wiz-chippicker-clear"
+                  onClick={onClear}
+                  data-testid={`${testIdPrefix}s-clear`}
+                >
+                  {L.wizardValueClear ?? '모두 해제'}
+                </Button>
+              </>
+            )}
           </span>
         </div>
       )}
@@ -310,8 +330,10 @@ function ChipPickerDropdown({
             className="evc-pick-chip"
             onRemove={disabled ? undefined : remove}
             removeLabel={removeLabel ? removeLabel(nameOf(v)) : nameOf(v)}
-            removeProps={{ 'data-testid': ids.remove(v) }}
-            data-testid={ids.chip(v)}
+            removeProps={{
+              'data-testid': extra ? `${testIdPrefix}s-remove-extra-${v}` : ids.remove(v),
+            }}
+            data-testid={extra ? `${testIdPrefix}s-selected-extra-${v}` : ids.chip(v)}
           >
             <span title={nameOf(v)}>{nameOf(v) || v}</span>
           </Chip>
@@ -336,18 +358,26 @@ function ChipPickerDropdown({
           className="evc-pick-menu"
           data-testid={`${testIdPrefix}s-menu`}
         >
-          <label className="evc-pick-search">
-            <SearchGlyph size={16} aria-hidden="true" />
-            <input
-              ref={searchRef}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={placeholder}
-              aria-label={placeholder}
-              data-testid={`${testIdPrefix}s-search`}
-            />
-          </label>
-          <div className="evc-pick-list" role="listbox" aria-multiselectable="true" aria-label={buttonLabel ?? label}>
+          {showSearch && (
+            <label className="evc-pick-search">
+              <SearchGlyph size={16} aria-hidden="true" />
+              <input
+                ref={searchRef}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={placeholder}
+                aria-label={placeholder}
+                data-testid={`${testIdPrefix}s-search`}
+              />
+            </label>
+          )}
+          <div
+            className="evc-pick-list"
+            role="listbox"
+            aria-multiselectable="true"
+            aria-label={buttonLabel ?? label}
+            data-testid={`${testIdPrefix}s-list`}
+          >
             {rows.map((v) => {
               const on = selected.includes(v);
               return (
@@ -368,6 +398,24 @@ function ChipPickerDropdown({
                 </Button>
               );
             })}
+            {/* 옛 선택은 검색과 무관하게 목록 끝에 켜진 줄로 둔다(목록 상자 때와 같다). 누르면 지운다. */}
+            {extraSelected.map((v) => (
+              <Button
+                key={`x:${v}`}
+                role="option"
+                aria-selected
+                className="evc-pick-item is-on"
+                onClick={() => onRemoveExtra?.(v)}
+                data-testid={`${extraTestIdPrefix ?? `${testIdPrefix}-extra`}-${v}`}
+              >
+                <span className="evc-pick-box" aria-hidden="true">
+                  <CheckGlyph size={11} />
+                </span>
+                <span className="evc-pick-name" title={v}>
+                  {v}
+                </span>
+              </Button>
+            ))}
             {q && rows.length === 0 && (
               <span className="evc-pick-empty" data-testid={`${testIdPrefix}s-empty`}>
                 {fill(L.wizardValueSearchEmpty ?? '"{{query}}"과(와) 맞는 값이 없습니다.', { query: query.trim() })}
@@ -378,7 +426,8 @@ function ChipPickerDropdown({
             <span data-testid={`${testIdPrefix}s-menu-count`}>
               {fill(countLabel ?? L.wizardValueSelected ?? '{{count}}개 선택', { count: selectedCount })}
             </span>
-            {selectedCount > 0 && onClear && (
+            {/* 이름표가 있으면 «모두 해제»는 이름표 오른쪽에 있다 — 같은 단추를 두 번 두지 않는다. */}
+            {label == null && selectedCount > 0 && onClear && (
               <Button className="evc-pick-more" onClick={onClear} data-testid={`${testIdPrefix}s-clear`}>
                 {L.wizardValueClear ?? '모두 해제'}
               </Button>

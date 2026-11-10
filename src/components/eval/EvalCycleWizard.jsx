@@ -27,7 +27,9 @@ import {
   ArrowLeftGlyph,
   ArrowRightGlyph,
   ChatGlyph,
+  CalendarGlyph,
   CheckGlyph,
+  ClockGlyph,
   CloseGlyph,
   EyeGlyph,
   FileTextGlyph,
@@ -143,6 +145,32 @@ import Spinner from '../shared/Spinner.jsx';
 
 // 고정 단계 자물쇠 아이콘 — design-page 정본 lock-keyhole-square.
 // 두 곳 이상 쓰는 그림은 design-page `shared/lineIcons.jsx` 한 벌을 부른다(PW-1011).
+/* PW-2683 — 제외 조건의 퇴사 고정 행(시안 admin_manage-peer-targets): «이름  [자물쇠] 항상 제외  (해당 N명)».
+   글은 한 문구(«이름 · 항상 제외 · 해당 N명») 그대로 두고 « · » 로 갈라 칠만 나눈다. 셋으로 안 갈리면 전처럼 한 줄. */
+function ResignedFixedLabel({ text }) {
+  const parts = String(text).split(' · ');
+  if (parts.length !== 3) {
+    return (
+      <span>
+        <LockIcon size={11} /> {text}
+      </span>
+    );
+  }
+  const [name, always, hit] = parts;
+  return (
+    <span className="evc-excl-fixed">
+      <span>{name}</span>
+      <span className="evc-excl-fixed-lock">
+        <LockIcon size={12} />
+        {always}
+      </span>
+      <StatusBadge tone="neutral" data-testid="evc-wiz-excl-resigned-count">
+        {hit}
+      </StatusBadge>
+    </span>
+  );
+}
+
 function LockIcon({ size = 13 }) {
   return <LockKeyholeSquareGlyph size={size} />;
 }
@@ -347,7 +375,27 @@ const dateTimeOutOfOrder = (start, end) => {
  * 눌렀을 때 달력이 뜨는 것도 그대로다. 달라진 것은 캐럿이 생겨 값을 칠 수 있다는 것뿐.
  * 먼 날짜로 가려고 달을 여러 번 넘길 필요가 없어진다.
  */
-function DateField({ value, onType, onOpen, isOpen, invalid, describedBy, testId, ariaLabel, className, disabled }) {
+function DateField({ value, onType, onOpen, isOpen, invalid, describedBy, testId, ariaLabel, className, disabled, icon }) {
+  /* PW-2683 — icon 이면 칸 왼쪽에 달력 선 아이콘(시안 admin_wizard-1·3). 칸 값·모양은 그대로, 감싸는 칸만 더한다. */
+  if (icon) {
+    return (
+      <span className="evc-date-iconwrap">
+        <CalendarGlyph size={16} className="evc-field-lead-icon" aria-hidden="true" />
+        <DateField
+          value={value}
+          onType={onType}
+          onOpen={onOpen}
+          isOpen={isOpen}
+          invalid={invalid}
+          describedBy={describedBy}
+          testId={testId}
+          ariaLabel={ariaLabel}
+          className={[className, 'has-lead-icon'].filter(Boolean).join(' ')}
+          disabled={disabled}
+        />
+      </span>
+    );
+  }
   return (
     <TextInput
       inputMode="numeric"
@@ -2288,10 +2336,19 @@ function CommitteeCard({
         </div>
 
 
-        {/* PW-2646 (RULES 9) — 조직은 회사마다 늘어난다. 이름표 오른쪽 «N곳 선택 · 모두 해제»,
-            테두리 상자 안 검색 칸 + 8줄 높이 목록. 직급은 같은 부품이되 검색 칸은 값이 많을 때만. */}
+        {/* PW-2646 (RULES 9) — 조직은 회사마다 늘어난다. 이름표 오른쪽 «N곳 선택 · 모두 해제».
+            PW-2683 — 펼친 목록 상자 대신 4단계 배정 규칙과 같은 «선택» 드롭다운(시안 admin_wizard-5):
+            고른 것만 칩(6개 넘으면 «외 N개»), 고르기는 버튼 밑 검색·스크롤 목록. 직급은 검색 칸이 값이 많을 때만. */}
         {committeeDeptOptions.length > 0 && (
           <EvalWizardChipPicker
+            mode="dropdown"
+            buttonLabel={
+              committeeDepts.length > 0
+                ? (L.leaderRuleUnitChange ?? '조직 변경')
+                : (L.leaderRuleUnitPick ?? '조직 선택')
+            }
+            moreLabel={L.leaderRuleValueMore}
+            removeLabel={(name) => fill(L.leaderRuleUnitRemove ?? '{{name}} 빼기', { name })}
             label={L.wizardCommitteeDeptLabel ?? '조직 (복수 선택 · 비우면 전 조직)'}
             countLabel={L.wizardDeptSelected ?? '{{count}}곳 선택'}
             onClear={() => setCommitteeDepts([])}
@@ -2306,6 +2363,15 @@ function CommitteeCard({
 
         {(committeeLevelOptions.length > 0 || card.levels.length > 0) && (
           <EvalWizardChipPicker
+            mode="dropdown"
+            buttonLabel={fill(
+              committeeLevels.length + card.levels.length > 0
+                ? (L.leaderRuleValueChange ?? '{{axis}} 변경')
+                : (L.leaderRuleValuePick ?? '{{axis}} 선택'),
+              { axis: L.leaderRuleAxisLevel ?? '직급' },
+            )}
+            moreLabel={L.leaderRuleValueMore}
+            removeLabel={(name) => fill(L.leaderRuleUnitRemove ?? '{{name}} 빼기', { name })}
             label={L.wizardCommitteeLevelLabel ?? '직급 (복수 선택 · 비우면 전 직급)'}
             onClear={() => {
               setCommitteeLevels([]);
@@ -8834,6 +8900,7 @@ export default function EvalCycleWizard({
                     describedBy={dateErrorId}
                     ariaLabel={L.periodStartDate ?? L.startDate}
                     testId="evc-wiz-start"
+                    icon
                   />
                 </div>
                 <div>
@@ -8849,6 +8916,7 @@ export default function EvalCycleWizard({
                     describedBy={dateErrorId}
                     ariaLabel={L.periodEndDate ?? L.endDate}
                     testId="evc-wiz-end"
+                    icon
                   />
                   {/* [PW-536 · 정책 §5.2.1-A] 이 기간은 «무엇을 평가하는가» 다.
                       «언제 진행하는가» 는 3단계 「일정 시작일」이 정한다 — 두 축이
@@ -10069,6 +10137,7 @@ export default function EvalCycleWizard({
                       ariaLabel={L.scheduleAnchorLabel}
                       className="evc-sched-anchor-input"
                       testId="evc-sched-anchor-date"
+                      icon
                     />
                   </div>
                   <div className="evc-sched-bulk-field">
@@ -10289,8 +10358,10 @@ export default function EvalCycleWizard({
                                 {/* PW-2646 — 칸 밑에 값을 한 번 더 적던 «…(목) 09:00 시작» 줄을 걷고, 요일만 칸 안
                                     날짜 뒤에 붙인다. 시각은 24시간 칸(TimeInput · PW-793)이 이미 그대로 보여 준다.
                                     요일은 칸 위에 겹친 글(눌러도 칸이 받는다) — 칸 값은 «YYYY-MM-DD» 그대로다. */}
-                                <span className="evc-sched-date-wrap">
+                                <span className="evc-sched-date-wrap has-lead-icon">
+                                  <CalendarGlyph size={16} className="evc-field-lead-icon" aria-hidden="true" />
                                   <DateField
+                                    className="has-lead-icon"
                                     value={schedShown(ph.id, field)}
                                     onType={typeSchedDate(ph.id, field)}
                                     onOpen={openSchedPicker(ph.id, field)}
@@ -10311,14 +10382,18 @@ export default function EvalCycleWizard({
                                     </span>
                                   )}
                                 </span>
-                                <TimeInput
-                                  className="evc-input evc-time-input"
-                                  value={timePart(sc[field], field)}
-                                  onChange={(v) => updateSchedTime(ph.id, field, v)}
-                                  disabled={!datePart(sc[field]) || isDonePhase(ph.id)}
-                                  aria-label={field === 'start' ? L.startTime : L.endTime}
-                                  data-testid={`evc-sched-${field}-time-${ph.id}`}
-                                />
+                                {/* PW-2683 — 시각 칸 왼쪽 시계 선 아이콘(시안 admin_wizard-3). */}
+                                <span className="evc-time-iconwrap">
+                                  <ClockGlyph size={16} className="evc-field-lead-icon" aria-hidden="true" />
+                                  <TimeInput
+                                    className="evc-input evc-time-input has-lead-icon"
+                                    value={timePart(sc[field], field)}
+                                    onChange={(v) => updateSchedTime(ph.id, field, v)}
+                                    disabled={!datePart(sc[field]) || isDonePhase(ph.id)}
+                                    aria-label={field === 'start' ? L.startTime : L.endTime}
+                                    data-testid={`evc-sched-${field}-time-${ph.id}`}
+                                  />
+                                </span>
                               </div>
                             </div>
                             </Fragment>
@@ -10754,13 +10829,12 @@ export default function EvalCycleWizard({
                     }
                     data-testid="evc-wiz-excl-resigned"
                   >
-                    <span>
-                      <LockIcon size={11} />{' '}
-                      {fill(
+                    <ResignedFixedLabel
+                      text={fill(
                         L.exclusionResignedFixed ?? '퇴사 처리된 구성원 · 항상 제외 · 해당 {{count}}명',
                         { count: resignedRuleCount },
                       )}
-                    </span>
+                    />
                   </Checkbox>
                   <Checkbox
                     className="evl-promo-row"
@@ -11789,7 +11863,7 @@ export default function EvalCycleWizard({
             </div>
           )}
           {step === 4 && calibrationOn && !committeeElsewhere && (
-            <div className="evc-wiz-panel evc-wiz-calibstep">
+            <div className={`evc-wiz-panel evc-wiz-calibstep${isSingleStep ? ' is-manage' : ''}`}>
               {/* PW-822 — 잠겨도 «내용은 보인다». 입력은 fieldset 하나로 한꺼번에 막는다 —
                   단추마다 disabled 를 달면 새 단추가 생길 때 하나를 빠뜨린다. */}
               {committeeLocked && committeeLockedHint && (
