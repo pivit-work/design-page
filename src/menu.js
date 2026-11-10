@@ -83,6 +83,8 @@ export const ADMIN_MENU = [
   // 가리키는 이름. 종전 이름 「조직 설정」은 그룹 헤딩으로 올라갔다.
   { id: 'field-options',      icon: '/icons-solid/settings-02.svg',     label: '직군/직렬/직무 설정', group: 'org-settings' },
   { id: 'employees',          icon: '/icons-solid/user-03.svg',         label: '구성원 설정',         group: 'org-settings' },
+  // 회사 자산(PW-2600 · spec-company-assets §4 D3 «구성원 설정 바로 다음»).
+  { id: 'assets',             icon: '/icons-solid/inbox-01.svg',        label: '회사 자산',           group: 'org-settings' },
   { id: 'rbac',               icon: '/icons-solid/lock-keyhole-square.svg', label: '권한 기준정보',   group: 'org-settings' },
   // «② 리포트» — [L] 2026-08-24 (PW-446) 에 신설, 2026-08-25 (PW-447) 에 「개요」가
   // 합류했다. 그룹은 «편집인가 조회인가»로 가른다: ① 조직 설정은 값을 손보는 곳이고,
