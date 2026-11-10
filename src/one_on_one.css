@@ -5808,19 +5808,33 @@ button.ono-add-modal-input { cursor: pointer; }
   color: var(--utility-success-700);
 }
 
-/* ── 팀원의 1on1 신청 (pivit-work PW-2639 · 기획 oneonone-spec §13-10) ──
-   디자이너 원본이 없어 같은 화면의 디자이너 모양을 옮겼다(`OneOnOneRequestParts.jsx` 주석).
-   카드 신청 줄 = «준비 완료» 띠(.ono-my-ready-banner · stesslee · Figma 17556:23843)의 브랜드 테두리 ·
-   r 8 · 14/500 글씨를 세로로 쌓은 것. 줄 사이는 카드 안 다른 줄과 같은 spacing 토큰. */
-.ono-member-request {
+/* ── 팀원의 1on1 신청 (pivit-work PW-2639 · 기획 oneonone-spec v3.16 §13-10 «신청 묶음») ──
+   디자이너 원본이 없어 같은 대시보드의 디자이너 모양을 옮겼다(`OneOnOneRequestParts.jsx` 주석).
+   묶음 판 = 팀원 카드 판(.ono-member-card 바탕 · radius · 옆 안쪽 4xl), 줄 = 사람 표시(.ono-member-identity) |
+   신청 글 | 버튼, 줄 사이 나눔선(커트 시안 2026-11-10 place-after.html). */
+.ono-request-inbox {
+  background: var(--bg-quaternary);
+  border-radius: var(--radius-2xl);
+  padding: var(--spacing-md) var(--spacing-4xl);
+}
+.ono-request-inbox-count {
+  color: var(--text-brand-secondary);
+}
+.ono-request-row {
+  display: grid;
+  grid-template-columns: minmax(0, 220px) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--spacing-3xl);
+  padding: var(--spacing-xl) 0;
+}
+.ono-request-row + .ono-request-row {
+  border-top: 1px solid var(--border-secondary);
+}
+.ono-request-row-body {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
-  padding: var(--spacing-md) var(--spacing-xl);
-  border: 1px solid var(--utility-brand-500);
-  border-radius: var(--radius-md);
-  background: var(--bg-primary);
-  cursor: default;
+  gap: var(--spacing-xs);
+  min-width: 0;
 }
 .ono-member-request-head {
   margin: 0;
@@ -5840,13 +5854,21 @@ button.ono-add-modal-input { cursor: pointer; }
 }
 .ono-member-request-actions {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-end;
   gap: var(--spacing-sm);
 }
-.ono-member-request-reason {
-  flex: 1 1 140px;
-  min-width: 0;
+.ono-request-row-reason {
+  width: 220px;
+}
+/* 팀원 카드 이름 아래 칩 — 1on1 작은 칩(.ono-mem-chip) 크기에 «강조» 뜻 색(StatusBadge accent ·
+   우리 서비스가 붙인 표시 — 커트 시안의 브랜드 칩). 직급 줄 아래 xs. */
+.ono-mem-chip.ono-member-request-chip {
+  align-self: flex-start;
+  margin-top: var(--spacing-xs);
+  background: var(--bg-brand-secondary);
+  color: var(--text-brand-secondary);
+  font-weight: 600;
 }
 /* 팀원 머리의 «신청함 · 응답 대기» 칩 + [신청 취소] — [1on1 신청] 자리를 그대로 차지한다(기획 v3.12 «자리»). */
 .ono-request-pending {

@@ -20,4 +20,4 @@ export { default as MicPermissionModal } from './MicPermissionModal.jsx';
 export { default as ManagerAssignModal } from './ManagerAssignModal.jsx';
 export { default as OneOnOnePastSessionList } from './OneOnOnePastSessionList.jsx';
 export { default as MemberRequestModal } from './MemberRequestModal.jsx';
-export { MemberRequestHeaderSlot, OneOnOneRequestRow } from './OneOnOneRequestParts.jsx';
+export { MemberRequestHeaderSlot, OneOnOneRequestInbox, OneOnOneRequestRow } from './OneOnOneRequestParts.jsx';

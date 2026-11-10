@@ -170,6 +170,8 @@ export default function OneOnOneCanvasV2({
   /** 멤버 카드의 아바타 렌더 콜백. 외부에서 호스트 앱의 Avatar 컴포넌트(이니셜
    *  fallback 등) 를 주입할 때 사용. 미지정 시 member.avatar URL 그대로 <img>. */
   renderMemberAvatar,
+  /** «1on1 신청 {N}건» 묶음 노드(`OneOnOneRequestInbox`) — 팀원 묶음들 맨 앞에 선다 (pivit-work PW-2639). */
+  requestInbox,
   /**
    * `(member) => node | null` — 카드 클릭으로 연 상세(열람모드) 모달의 **녹음 재생기**
    * (Figma 17413:26357). 호스트가 공용 `RecordingPlayerRow` 로 만든 노드를 돌려준다.
@@ -354,6 +356,10 @@ export default function OneOnOneCanvasV2({
               </div>
             </section>
           )}
+
+          {/* «1on1 신청 {N}건» 묶음 — 팀원 묶음들 맨 앞(«오늘 예정» 위). 검색 · 범위와 상관없어 팀원 목록이 비어도
+              선다 (pivit-work PW-2639 · 기획 v3.16 §13-10 «신청 묶음»). 호스트가 노드를 넘긴다. */}
+          {requestInbox}
 
           {teamEmpty && (
             <section className="ono-section ono-team-empty-section">
@@ -574,9 +580,6 @@ function MemberCard({ member, tone, icons, baseUrl, onAction, onCardClick, rende
       className={`ono-member-card${tone === 'brand' ? ' is-brand' : ''}${onCardClick ? ' is-clickable' : ''}`}
       onClick={onCardClick}
     >
-      {/* 팀원이 보낸 «대기» 1on1 신청 줄 — 카드 맨 위 (pivit-work PW-2639 · 기획 §13-10). 호스트가 노드를 넘긴다.
-          누르기는 그 줄 안에서 멈춘다 — 카드 클릭(지난 회의 창)으로 번지지 않게. */}
-      {member.requestSlot}
       <div className="ono-member-top">
         <div className="ono-member-identity">
           <div className="ono-member-avatar">
@@ -587,6 +590,13 @@ function MemberCard({ member, tone, icons, baseUrl, onAction, onCardClick, rende
           <div className="ono-member-name-block">
             <p className="ono-member-name">{member.name}</p>
             <p className="ono-member-role">{member.role}</p>
+            {/* 팀원이 보낸 «대기» 1on1 신청이 있다는 표시만 — 신청 줄과 응답은 대시보드 맨 앞 묶음에 있다
+                (pivit-work PW-2639 · 기획 v3.16 §13-10 «신청 묶음» ③ ⑧). 누르는 동작이 없다. */}
+            {member.requestChip && (
+              <StatusBadge tone="accent" className="ono-mem-chip ono-member-request-chip" data-testid="ono-member-request-chip">
+                {member.requestChip}
+              </StatusBadge>
+            )}
           </div>
         </div>
         <StatusBadge as="div" className="ono-member-badge" style={{ background: badge.bg, color: badge.color }}>
