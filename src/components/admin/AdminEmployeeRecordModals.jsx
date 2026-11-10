@@ -2014,11 +2014,11 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
             {
               key: 'type',
               header: L.salaryHistType || '종류',
-              // 「초과근무 수당」이 좁은 칸에서 한 글자씩 꺾이지 않게 날짜 칸과 같이 줄바꿈을 막는다.
-              cellProps: { className: 'is-date is-kind' },
+              // 「초과근무 수당」이 좁은 칸에서 한 글자씩 꺾이지 않게 이름은 한 줄로 묶는다. «반납 조건» 딱지만 아래로 내려갈 수 있다.
+              cellProps: { className: 'is-kind' },
               render: (h) => (
                 <>
-                  {typeLabel(typeOf(h))}
+                  <span className="admin-emp-sal-kind-name">{typeLabel(typeOf(h))}</span>
                   {COMP_CLAWBACK_TYPES.has(typeOf(h)) && (
                     <span className="admin-emp-sal-clawback" data-testid="comp-clawback-badge">{L.salaryHistClawback || '반납 조건'}</span>
                   )}

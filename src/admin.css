@@ -1790,10 +1790,14 @@
   padding: var(--spacing-lg) calc(var(--spacing-lg) + var(--spacing-xxs));
   border-radius: var(--radius-md);
   background: var(--bg-secondary);
-  font-size: var(--font-size-text-xs, 13px);
+  font-size: 13px;
 }
 /* 이력 표 — 틀은 명단 표(RosterTable `framed`)가, 칸 여백·머리 행은 roster-table.css 가 정한다 (PW-839).
    종류·금액은 진한 글로, 「현재」 줄은 줄 전체를 칠하지 않고 날짜 옆 딱지로만 (pivit-work PW-2693 · 커트 ③). */
+/* 종류 이름은 한 줄, «반납 조건» 딱지는 자리가 모자라면 이름 아래로 내려간다 — 한 줄로 묶으면 종류 칸이 넓어져
+   사인온 줄의 [지우기]가 표 밖으로 밀렸다(브라우저 확인 2026-11-10 · 표 683 > 칸 654). */
+.admin-emp-sal-kind-name { white-space: nowrap; }
+.admin-emp-sal-table td.is-kind .admin-emp-sal-clawback { display: inline-block; white-space: nowrap; }
 .admin-emp-sal-table td.is-kind,
 .admin-emp-sal-table td.is-amount {
   font-weight: 600;
@@ -1851,7 +1855,7 @@
 .admin-emp-sal-add .admin-emp-field { gap: var(--spacing-sm); min-width: 0; }
 /* 칸 이름은 칸 안 안내 글(옅은 회색)보다 진하게 — 13px 굵은 보조 회색. */
 .admin-emp-sal-add .admin-emp-field-label {
-  font-size: var(--font-size-text-xs, 13px);
+  font-size: 13px;
   font-weight: 600;
   line-height: 18px;
   color: var(--text-secondary);
@@ -1951,7 +1955,7 @@
   display: flex;
   align-items: baseline;
   gap: var(--spacing-md);
-  font-size: var(--font-size-text-xs, 13px);
+  font-size: 13px;
   color: var(--text-subtle);
 }
 .admin-emp-sal-total-amount {
@@ -2003,7 +2007,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--spacing-sm);
-  font-size: var(--font-size-text-xs, 13px);
+  font-size: 13px;
   font-weight: 400;
   line-height: 18px;
   color: var(--text-secondary);
@@ -4443,7 +4447,7 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
 .adm-hr-add-pair { display: flex; align-items: center; gap: var(--spacing-md); }
 .adm-hr-add-pair.is-top { align-items: flex-start; }
 .adm-hr-add .adm-hr-pair-k {
-  font-size: var(--font-size-text-xs, 13px);
+  font-size: 13px;
   font-weight: 600;
   line-height: 18px;
   color: var(--text-secondary);
