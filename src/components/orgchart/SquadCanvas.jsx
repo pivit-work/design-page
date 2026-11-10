@@ -551,6 +551,11 @@ export default function SquadCanvas({
   // 만들기 — `p013` 또는 «스쿼드 만들기» 권한(PW-2635). 원장 관리(수정·상태·삭제)는 아래 `ledgerOf` 로 카드마다 판정한다.
   const ledgerReady = (canCreateSquad ?? canManageLedger) && !!onCreateSquad;
   const isEditing = editMode && canEditAssignments;
+  /* 스쿼드마다 «방금 더한 팀원» 한 명 — 팀원 칩 줄이 접혀도 이 칩은 남긴다(PW-2570 · 조직도 스쿼드 정책서 §4 · 엣지 124).
+     여럿을 한 번에 더하면 마지막 한 명. 편집 모드를 끄면 잊어 다시 켤 때 처음 접힌 모양으로 시작한다. */
+  const [justAddedBySquad, setJustAddedBySquad] = useState({});
+  const [justAddedEditing, setJustAddedEditing] = useState(isEditing);
+  if (justAddedEditing !== isEditing) { setJustAddedEditing(isEditing); setJustAddedBySquad({}); }
   /* 편집 토글 — 켜고 끌 때 열려 있던 팝오버·추가 대상은 접는다(모드가 바뀌면 그 맥락이 사라진다). */
   const toggleEditMode = () => { setEditMode((v) => !v); setPopover(null); setAddTarget(null); setProjTarget(null); };
   /** 프로젝트 칸 편집 — 「할당 편집」 이 켜져 있고, 이 스쿼드에 대해 자격이 있을 때 (PW-1428). */
@@ -834,7 +839,10 @@ export default function SquadCanvas({
   // ── 배정 ──
   // 신규 배정은 **아무 값도 보내지 않는다** — 서버가 비중 0(미배분) · 캐파 미설정으로
   // 만든다(§5-3.7). 여기서 기본 캐파를 채우면 관리자가 남의 시간에 숫자를 적는 것이 된다.
-  const assign = (squadId, userId) => onUpsertMember?.(squadId, userId, {});
+  const assign = (squadId, userId) => {
+    setJustAddedBySquad((prev) => (prev[squadId] === userId ? prev : { ...prev, [squadId]: userId }));
+    return onUpsertMember?.(squadId, userId, {});
+  };
   // 🔴 두 축은 각각 **자기 필드만** 보낸다. 한 호출에 둘을 같이 실으면 슬라이더 하나를
   // 움직였을 때 다른 값이 함께 저장되고, 그 순간 두 축이 다시 묶인다(§10-A17).
   const setShare = (squadId, userId, share) =>
@@ -1535,6 +1543,7 @@ export default function SquadCanvas({
                             testId={`squad-chip-row-${sq.id}`}
                             items={members}
                             getKey={(mm) => mm.userId}
+                            keep={(mm) => mm.userId === justAddedBySquad[sq.id]}
                             moreLabel={(n) => L('squad.card.moreMembers', { count: n })}
                             lessLabel={L('squad.card.foldMembers')}
                             renderItem={(mm) => {
