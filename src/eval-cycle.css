@@ -6765,12 +6765,13 @@ button.evm-ai-source {
   overflow-y: auto;
   max-height: max(320px, calc(100vh - 440px));
   background: var(--bg-quaternary);
-  border: 1px solid var(--border-primary);
+  /* PW-2687 — 회색 페이지 위 흰 칸은 테두리 없이 나눈다(디자이너 회의 목록 .mtg-row). 투명 1px 로 크기만 지킨다. */
+  border: 1px solid transparent;
   border-radius: var(--radius-md);
   box-shadow: none;
 }
 .evrr-table:hover {
-  border-color: var(--border-primary);
+  border-color: transparent;
   box-shadow: none;
 }
 .evrr-row {
@@ -7439,7 +7440,8 @@ button.evm-ai-source {
   flex-direction: column;
   min-width: 0;
   background: var(--bg-quaternary);
-  border: 1px solid var(--border-secondary);
+  /* PW-2687 — 테두리 없는 흰 칸(투명 1px 로 크기 유지) */
+  border: 1px solid transparent;
   border-radius: var(--radius-lg);
   overflow: hidden;
 }
