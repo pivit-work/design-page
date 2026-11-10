@@ -1,6 +1,8 @@
 import { useState, useMemo } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Radio from '../shared/Radio.jsx';
+import EmptyState from '../shared/EmptyState.jsx';
+import assetUrl from '../shared/assetUrl.js';
 import { CloseGlyph, PlusGlyph } from '../shared/lineIcons.jsx';
 import { AlertIcon, CheckCircleIcon } from './evalIcons.jsx';
 
@@ -121,6 +123,8 @@ export default function EvalPeerVolunteerCanvas({
   labels: providedLabels,
   onSubmit,
   segment = null,
+  /** 종이 그림(빈 화면) 경로의 base. */
+  baseUrl = '',
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const [query, setQuery] = useState('');
@@ -207,12 +211,16 @@ export default function EvalPeerVolunteerCanvas({
 
   if (!available) {
     return (
-      <div className="evc-root">
+      <div className="evc-root evpn-my">
         {segment}
-        <div className="evc-empty" data-testid="evpv-empty">
-          <p className="evc-empty-title">{L.emptyTitle}</p>
-          <p className="evc-empty-sub">{L.emptySub}</p>
-        </div>
+        {/* [PW-2685] 디자이너 종이 그림 안내(1on1 «팀원 0명» .ono-team-empty 규격) */}
+        <EmptyState
+          className="evpn-my-empty"
+          data-testid="evpv-empty"
+          icon={<img className="evr-my-empty-paper" src={assetUrl(baseUrl, 'paper-empty.svg')} alt="" />}
+          title={L.emptyTitle}
+          description={L.emptySub}
+        />
       </div>
     );
   }
@@ -406,7 +414,7 @@ export default function EvalPeerVolunteerCanvas({
   );
 
   return (
-    <div className="evc-root">
+    <div className="evc-root evpn-my">
       <header className="evc-header">
         <div>
           <h1 className="evc-title">{L.title}</h1>

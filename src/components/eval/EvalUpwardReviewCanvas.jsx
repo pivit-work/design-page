@@ -3,6 +3,7 @@ import EvalCycleMemberCanvas from './EvalCycleMemberCanvas.jsx';
 import AvatarPhoto from './AvatarPhoto.jsx';
 import { AlertIcon, LockIcon, RefreshIcon } from './evalIcons.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import AiMark from '../shared/AiMark.jsx';
 import LoadingState from '../shared/LoadingState.jsx';
 
 /**
@@ -111,15 +112,20 @@ function TargetCard({ target, L }) {
         <span className="evc-card-name">{target.name}</span>
         {meta && <span className="evc-card-meta">{meta}</span>}
         <span className="evu-target-relation">{L.targetRelation}</span>
-        <StatusBadge className="evc-status-badge tone-purple" data-testid="evu-target-ai-badge">
-          {L.aiBadge}
-        </StatusBadge>
       </div>
+      {/* [PW-2685] AI 표시는 디자이너 AI 딱지(.ons-ai-tag — 연보라·옅은 테두리·AI 아이콘), 카드 오른쪽. */}
+      <StatusBadge className="ons-ai-tag evu-ai-tag" data-testid="evu-target-ai-badge">
+        <AiMark size={14} />
+        <span>{L.aiBadge}</span>
+      </StatusBadge>
     </section>
   );
 }
 
-/** 접을 수 없는 익명 안내 + 최소 응답 인원 표시 (§5U.3). 닫기·접기 버튼을 두지 않는다. */
+/**
+ * 접을 수 없는 익명 안내 + 최소 응답 인원 표시 (§5U.3). 닫기·접기 버튼을 두지 않는다.
+ * [PW-2685] 안내는 흰 카드, 최소 인원에 못 미친다는 경고는 카드 밑 주황 띠(모양 시안 member_upward).
+ */
 function AnonymityNotice({ target, reviewerCount, minResponses, L }) {
   const hasMin = typeof minResponses === 'number' && minResponses > 0;
   const below = hasMin && reviewerCount < minResponses;
@@ -129,29 +135,32 @@ function AnonymityNotice({ target, reviewerCount, minResponses, L }) {
       ? fill(L.counterWarn, { count: reviewerCount, min: minResponses })
       : fill(L.counterOk, { count: reviewerCount, min: minResponses });
   return (
-    <section className="evu-notice" data-testid="evu-notice" aria-label={L.noticeTitleNoName}>
-      <p className="evu-notice-title">
-        <LockIcon size={14} />
-        <span>
-          {target?.name ? fill(L.noticeTitle, { name: target.name }) : L.noticeTitleNoName}
-        </span>
-      </p>
-      <ul className="evu-notice-list">
-        <li>{L.noticeAnonymous}</li>
-        {hasMin && <li>{fill(L.noticeMinimum, { min: minResponses })}</li>}
-        <li>{L.noticeHrOnly}</li>
-      </ul>
-      {target && (
-        <p
-          className={`evu-counter${below ? ' is-warn' : ''}`}
-          data-testid="evu-counter"
-          role={below ? 'alert' : undefined}
-        >
-          {below && <AlertIcon size={14} />}
+    <>
+      <section className="evu-notice evu-notice-card" data-testid="evu-notice" aria-label={L.noticeTitleNoName}>
+        <p className="evu-notice-title">
+          <LockIcon size={14} />
+          <span>
+            {target?.name ? fill(L.noticeTitle, { name: target.name }) : L.noticeTitleNoName}
+          </span>
+        </p>
+        <ul className="evu-notice-list">
+          <li>{L.noticeAnonymous}</li>
+          {hasMin && <li>{fill(L.noticeMinimum, { min: minResponses })}</li>}
+          <li>{L.noticeHrOnly}</li>
+        </ul>
+        {target && !below && (
+          <p className="evu-counter" data-testid="evu-counter">
+            <span>{counter}</span>
+          </p>
+        )}
+      </section>
+      {target && below && (
+        <p className="evu-counter is-warn evu-warn-band" data-testid="evu-counter" role="alert">
+          <AlertIcon size={18} />
           <span>{counter}</span>
         </p>
       )}
-    </section>
+    </>
   );
 }
 

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import ModalShell from '../shared/ModalShell.jsx';
 import Skeleton from '../shared/Skeleton.jsx';
 import Button from '../shared/Button.jsx';
+import MemberAiButton from '../oneonone/MemberAiButton.jsx';
 import Avatar from '../shared/Avatar.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import { answerScoreText, checkedAnswerText } from './evalTemplateItemModel.js';
@@ -81,10 +82,15 @@ function SummaryBody({ summary, onGenerate, L }) {
       </div>
     );
   }
+  // PW-2685 — 시안 manager_leader-review: AI 로 만드는 요약이라 디자이너 1on1 «AI 생성» 버튼(MemberAiButton) 그대로.
   const generate = onGenerate && (
-    <Button variant="secondary" size="sm" onClick={onGenerate} data-testid="evl-peer-summary-generate">
-      {status === 'ready' ? L.peerSummaryRefresh : status === 'failed' ? L.peerSummaryRetry : L.peerSummaryGenerate}
-    </Button>
+    <div className="evlr-peer-generate">
+      <MemberAiButton
+        label={status === 'ready' ? L.peerSummaryRefresh : status === 'failed' ? L.peerSummaryRetry : L.peerSummaryGenerate}
+        onClick={onGenerate}
+        testId="evl-peer-summary-generate"
+      />
+    </div>
   );
   if (status === 'ready') {
     return (
@@ -122,7 +128,7 @@ export default function EvalLeaderPeerSummary({ peer, onGenerate, labelOf, L }) 
 
   return (
     <section data-testid="evl-peer">
-      <h3 className="evc-card-name" style={{ marginTop: 'var(--spacing-xl)' }}>
+      <h3 className="evc-card-name">
         {L.peerEvidenceTitle}
         {writerCount > 0 ? (
           <span className="evl-sig-sub" data-testid="evl-peer-count">
@@ -144,7 +150,8 @@ export default function EvalLeaderPeerSummary({ peer, onGenerate, labelOf, L }) 
       )}
 
       {shown.length > 0 && (
-        <ul className="evl-sig-krs" data-testid="evl-peer-reviewers">
+        /* PW-2685 — 동료가 30명이어도 근거 칸이 길게 밀리지 않게 이 목록만 안에서 스크롤한다(시안 .peer-src). */
+        <ul className="evl-sig-krs evlr-peer-list" data-testid="evl-peer-reviewers">
           {shown.map((r) => {
             const who = (
               <>

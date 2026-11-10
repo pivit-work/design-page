@@ -8,7 +8,8 @@ import ConfirmModal from '../shared/ConfirmModal.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
 import Radio from '../shared/Radio.jsx';
 import Chip from '../shared/Chip.jsx';
-import { FieldInfo, FieldVisibility, FieldAuthorNote } from './evalFieldMeta.jsx';
+import { FieldVisibility, FieldAuthorNote } from './evalFieldMeta.jsx';
+import EvalHintTip from './EvalHintTip.jsx';
 import EvalNoteBlock, { EvalMarkdownLite } from './EvalNoteBlock.jsx';
 import { isNoteItem, categoryKind } from './evalTemplateItemModel.js';
 import { resolveUiLocale } from '../shared/uiLocale.js';
@@ -23,6 +24,7 @@ import {
   AlertIcon,
   CheckCircleIcon,
   ArrowRightIcon,
+  InfoIcon,
 } from './evalIcons.jsx';
 import { fieldsShape, reseedKeepingEdits } from './reseedAnswers.js';
 import MemberAiButton from '../oneonone/MemberAiButton.jsx';
@@ -34,6 +36,9 @@ import MemberAiButton from '../oneonone/MemberAiButton.jsx';
  * 섹션을 작성해 임시저장·제출하는 순수 컴포넌트. answers(서버 저장본)로 폼을 시드하고
  * onSave(items)/onSubmit 로 상위에 위임. 제출 완료 상태면 읽기 전용.
  */
+
+/** [PW-2685] 내 평가 이력 — 접힌 채 보이는 개수(최근 것부터). */
+const HISTORY_VISIBLE = 3;
 
 /** spec-eval-cycle §4.3.4 E5 — 자동 임시저장 주기. */
 export const AUTOSAVE_INTERVAL_MS = 60000;
@@ -174,6 +179,9 @@ const DEFAULT_LABELS = {
   // TC-012 지난 사이클 평가 이력
   historyTitle: '내 평가 이력',
   historySub: '지난 사이클에서 받은 최종 등급입니다. 이번 자기평가 작성에 참고하세요.',
+  // [PW-2685] 이력이 많으면 최근 3개만 보이고 나머지는 이 단추로 펼친다(펼치면 세 줄 높이에서 스크롤).
+  historyMore: '외 {{count}}개',
+  historyLess: '접기',
   // [PW-1262 ③] 동료 리뷰 — 피평가자 셀프 리뷰 참조 영역
   selfRefTitle: '피평가자의 셀프 리뷰 참조 (작성 참고용)',
   selfRefNote: '이 내용은 작성 참고용으로만 제공됩니다.',
@@ -643,6 +651,8 @@ export default function EvalCycleMemberCanvas({
   // TC-063/134: 제출 시 미입력 항목 자동 스크롤·빨강 강조용 훅(early-return 앞에 선언).
   const fieldRefs = useRef({});
   const [triedSubmit, setTriedSubmit] = useState(false);
+  // [PW-2685] 내 평가 이력 «외 N개» 펼침.
+  const [historyOpen, setHistoryOpen] = useState(false);
   /** [PW-2082] 「미작성 항목 보기」가 마지막으로 옮겨 간 칸 key. */
   const navCursor = useRef(null);
   /** [PW-1464] 달성률 미입력 KR 확인 창이 떠 있다. */
@@ -1198,7 +1208,7 @@ export default function EvalCycleMemberCanvas({
                 <div className="evm-ai-card-title" data-testid="evm-ai-card-title">
                   <SparkleIcon size={15} />
                   <span>{fill(L.aiCardTitle, { period: aiPeriod || L.aiCardNoPeriod })}</span>
-                  <FieldInfo description={joinTip(L.aiCardSub, aiOff)} />
+                  <EvalHintTip text={joinTip(L.aiCardSub, aiOff)} testId="evx-field-info" />
                 </div>
               </div>
               <div className="evc-card-buttons" data-testid="evm-ai-draft">
@@ -1216,7 +1226,7 @@ export default function EvalCycleMemberCanvas({
 
         <div className="evc-list">
           {sections.map((sec) => (
-            <section className="evc-card" key={sec.title} data-testid={`evm-section-${sec.title}`}>
+            <section className="evc-card evm-section-card" key={sec.title} data-testid={`evm-section-${sec.title}`}>
               <h3 className="evc-card-name evm-section-title">{sec.title}</h3>
               {/* [PW-1464] §4.0 역량 섹션 머리 — 관리자가 정한 역량 항목을 참고할 수 있다는 표시 */}
               {selfReview && sec.fields.some((f) => categoryKind(f.category) === 'competency') && (
@@ -1243,7 +1253,7 @@ export default function EvalCycleMemberCanvas({
                       {/* [PW-602 ③] 표시 방식 셋을 실제로 따른다 — 「표시 안 함」이면 아무것도,
                           「툴팁」이면 ⓘ 말풍선, 「항목 아래 상시」면 아래 블록으로. */}
                       {(f.descriptionDisplay || 'tooltip') === 'tooltip' && (
-                        <FieldInfo description={f.description} />
+                        <EvalHintTip text={f.description} testId="evx-field-info" />
                       )}
                     </span>
                   )}
@@ -1632,23 +1642,28 @@ export default function EvalCycleMemberCanvas({
       {/* TC-012 지난 사이클 본인 최종 등급 이력 — 읽기전용 참고(제출 후에도 노출). 이력 있을 때만 */}
       {Array.isArray(evaluationHistory) && evaluationHistory.length > 0 && (
        <div className="evc-list">
-        <section className="evm-history" data-testid="evm-history">
+        <section className="evm-history evm-history-card" data-testid="evm-history">
           <div className="evm-history-head">
             <div className="evm-history-title">
-              <TrendIcon size={15} />
+              <TrendIcon size={18} />
               <span>{L.historyTitle}</span>
             </div>
             <div className="evm-history-sub">{L.historySub}</div>
           </div>
-          <div className="evm-history-rows">
-            {evaluationHistory.map((h) => (
+          {/* [PW-2685] 최근 3개 + «외 N개». 펼치면 전부 보이고 세 줄 높이에서 스크롤, «접기»로 다시 접는다. */}
+          <div
+            className={`evm-history-rows${historyOpen ? ' is-open' : ''}`}
+            data-testid="evm-history-rows"
+          >
+            {(historyOpen ? evaluationHistory : evaluationHistory.slice(0, HISTORY_VISIBLE)).map((h) => (
               <div
                 className="evm-history-row"
                 key={h.cycleId}
                 data-testid={`evm-history-${h.cycleId}`}
               >
                 <span className="evm-history-cycle">{h.cycleName}</span>
-                <StatusBadge className="evm-history-grade">{h.gradeLabel}</StatusBadge>
+                {/* 등급은 좋고 나쁨의 색이 아니다(PW-2105) — 시안의 초록 «충족» 대신 회색 딱지. */}
+                <StatusBadge className="evc-status-badge tone-neutral">{h.gradeLabel}</StatusBadge>
                 {h.endDate && (
                   <span className="evm-history-date">
                     {String(h.endDate).slice(0, 7).replace('-', '.')}
@@ -1656,6 +1671,18 @@ export default function EvalCycleMemberCanvas({
                 )}
               </div>
             ))}
+            {evaluationHistory.length > HISTORY_VISIBLE && (
+              <Button
+                className="evm-history-more"
+                aria-expanded={historyOpen}
+                onClick={() => setHistoryOpen((v) => !v)}
+                data-testid="evm-history-more"
+              >
+                {historyOpen
+                  ? L.historyLess
+                  : fill(L.historyMore, { count: evaluationHistory.length - HISTORY_VISIBLE })}
+              </Button>
+            )}
           </div>
         </section>
        </div>
@@ -1668,8 +1695,9 @@ export default function EvalCycleMemberCanvas({
       {/* [PW-1460] spec §10 — 이 기간 스니핏·OKR 이 비었거나 AI 가 일부 항목을 못 채웠다. */}
       {!submitted && (dataShortage || draftShort) && (
         <div className="evc-list">
-          <p className="evx-notice is-warn" data-testid="evm-data-shortage">
-            {L.dataShortage}
+          <p className="evx-notice is-warn evm-band" data-testid="evm-data-shortage">
+            <AlertIcon size={18} />
+            <span>{L.dataShortage}</span>
           </p>
         </div>
       )}
@@ -1776,8 +1804,9 @@ export default function EvalCycleMemberCanvas({
 
       {closed && !submitted && !cancelledNotice && (
         <div className="evc-list">
-          <p className="evx-notice is-warn" data-testid="evm-closed">
-            {L.closedNotice}
+          <p className="evx-notice is-error evm-band" data-testid="evm-closed">
+            <InfoIcon size={18} />
+            <span>{L.closedNotice}</span>
           </p>
         </div>
       )}
@@ -1788,7 +1817,7 @@ export default function EvalCycleMemberCanvas({
             <h3 className="evc-card-name">
               {evidenceTitle}
               {!selfReference && selfReview && (
-                <FieldInfo description={joinTip(L.evidenceSelfTip, L.actPeriodNote)} />
+                <EvalHintTip text={joinTip(L.evidenceSelfTip, L.actPeriodNote)} testId="evx-field-info" />
               )}
             </h3>
             {evidenceNode}

@@ -1,7 +1,13 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import Toast from '../shared/Toast.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
-import { AlertIcon, CheckCircleIcon, LockIcon } from './evalIcons.jsx';
+import Button from '../shared/Button.jsx';
+import Checkbox from '../shared/Checkbox.jsx';
+import Chip from '../shared/Chip.jsx';
+import SearchInput from '../shared/SearchInput.jsx';
+import EmptyState from '../shared/EmptyState.jsx';
+import assetUrl from '../shared/assetUrl.js';
+import { AlertIcon, LockIcon } from './evalIcons.jsx';
 
 /**
  * EvalPeerNominateCanvas — 동료 리뷰어 지정 (본인 지명 · self_select, 멤버용).
@@ -16,6 +22,9 @@ import { AlertIcon, CheckCircleIcon, LockIcon } from './evalIcons.jsx';
  *
  * 사람마다 `aiRecommended: true` 면 이름 옆에 «AI 추천» 표시가 붙고, 안내 끝에 `guideAi` 가 붙는다
  * (멤버 정책 §4Z.2 · PW-1393). 기본 체크는 `selected` 에 넣어 주는 것으로 한다 — 화면이 따로 체크하지 않는다.
+ *
+ * [PW-2685] 동료가 1,500명이어도 고를 수 있게 칩 벽 대신 검색칸 + 4열 체크 목록(칸 안 스크롤·높이 제한)으로 그린다.
+ * 고른 동료는 목록 위에 칩으로 서고 칩의 X 로 뺀다. 칩은 앞 `PICKED_FOLD` 명까지, 나머지는 «외 N명»으로 편다.
  *
  * onSubmit(ids) 가 throw 하면 `err.toastMessage` 가 있으면 그 문구로, 없으면 `labels.toastError` 로 알린다.
  */
@@ -34,6 +43,12 @@ const DEFAULT_LABELS = {
   countShort: '(최소 {{min}}명 필요)',
   rule: '최소 {{min}}명 · 상한 없음',
   searchPlaceholder: '이름 또는 부서로 검색',
+  // [PW-2685] 검색칸 오른쪽 인원 · 고른 칩 «외 N명» 펼치기 · 칩 X 이름
+  searchCount: '{{n}}명',
+  searchCountFiltered: '{{shown}} / {{n}}명',
+  pickedMore: '외 {{count}}명',
+  pickedLess: '접기',
+  removePicked: '{{name}} 빼기',
   noResult: '검색 결과 없음',
   noCandidates: '지정할 수 있는 동료가 없습니다.',
   hintBefore: '제출 시 리더에게 확정 요청이 전달됩니다',
@@ -74,6 +89,9 @@ const fill = (s, vars) => {
 // 기본값을 매 렌더 새 배열로 두면 아래 «서버 값으로 다시 맞추기»가 렌더마다 돌아 고른 것이 지워진다.
 const EMPTY = [];
 
+/** [PW-2685] 고른 동료 칩을 접기 전까지 보이는 수 — 나머지는 «외 N명». */
+const PICKED_FOLD = 10;
+
 const LOCK_KEY = {
   leader_confirmed: 'lockLeaderConfirmed',
   phase_closed: 'lockPhaseClosed',
@@ -91,6 +109,8 @@ export default function EvalPeerNominateCanvas({
   segment = null,
   // 선택 카드 위에 끼우는 안내(앱이 그린다) — 예: 체험 AI 를 다 써 «AI 추천»을 건너뛰었다(PW-1394).
   notice = null,
+  /** 종이 그림(빈 화면) 경로의 base. */
+  baseUrl = '',
   labels: providedLabels,
   onSubmit,
 }) {
@@ -104,6 +124,7 @@ export default function EvalPeerNominateCanvas({
     setPicked(new Set(serverIds));
   }
   const [query, setQuery] = useState('');
+  const [pickedOpen, setPickedOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState(null);
   const timer = useRef(null);
@@ -131,6 +152,8 @@ export default function EvalPeerNominateCanvas({
     );
   }, [people, picked, query, locked]);
 
+  // 칩은 고른 순서가 아니라 목록 순서(서버가 준 순서)로 세운다.
+  const pickedPeople = useMemo(() => people.filter((p) => picked.has(p.id)), [people, picked]);
   const count = picked.size;
   const enough = count >= minimum;
   const canSubmit = !locked && enough && !busy;
@@ -169,19 +192,23 @@ export default function EvalPeerNominateCanvas({
 
   if (!available) {
     return (
-      <div className="evc-root">
+      <div className="evc-root evpn-my">
         {header}
         {segment}
-        <div className="evc-empty" data-testid="evpn-empty">
-          <p className="evc-empty-title">{L.emptyTitle}</p>
-          <p className="evc-empty-sub">{L.emptySub}</p>
-        </div>
+        {/* [PW-2685] 디자이너 종이 그림 안내(1on1 «팀원 0명» .ono-team-empty 규격) */}
+        <EmptyState
+          className="evpn-my-empty"
+          data-testid="evpn-empty"
+          icon={<img className="evr-my-empty-paper" src={assetUrl(baseUrl, 'paper-empty.svg')} alt="" />}
+          title={L.emptyTitle}
+          description={L.emptySub}
+        />
       </div>
     );
   }
 
   return (
-    <div className="evc-root">
+    <div className="evc-root evpn-my">
       {/* PW-983 — 공용 Toast 로 그린다(<body> 바로 아래). `.evc-root` 가 position: fixed 라 그 안에
           그리면 z-index 가 앱 위쪽 바를 넘지 못해 알림이 바 밑에 깔려 보이지 않았다(PW-978 과 같은 원인). */}
       <Toast
@@ -210,7 +237,7 @@ export default function EvalPeerNominateCanvas({
 
         {notice}
 
-        <section className="evc-card" data-testid="evpn-card">
+        <section className="evc-card evpn-pick-card" data-testid="evpn-card">
           <div className="evc-card-head">
             <h3 className="evc-card-name">{L.pickTitle}</h3>
             <StatusBadge className="evc-status-badge tone-error">{L.required}</StatusBadge>
@@ -224,50 +251,84 @@ export default function EvalPeerNominateCanvas({
             <span className="evpn-rule">{fill(L.rule, { min: minimum })}</span>
           </div>
 
-          {!locked && (
-            <input
-              className="evc-input"
-              type="text"
-              value={query}
-              placeholder={L.searchPlaceholder}
-              aria-label={L.searchPlaceholder}
-              onChange={(e) => setQuery(e.target.value)}
-              data-testid="evpn-search"
-            />
+          {/* [PW-2685] 고른 동료 — 목록 위 칩(X 로 빼기). 많으면 앞 PICKED_FOLD 명 + «외 N명». */}
+          {!locked && pickedPeople.length > 0 && (
+            <div className="evpn-picked" data-testid="evpn-picked">
+              {(pickedOpen ? pickedPeople : pickedPeople.slice(0, PICKED_FOLD)).map((p) => (
+                <Chip
+                  key={p.id}
+                  selected
+                  className="evpn-picked-chip"
+                  onRemove={() => toggle(p.id)}
+                  removeLabel={fill(L.removePicked, { name: p.name })}
+                  removeProps={{ 'data-testid': `evpn-chip-remove-${p.id}` }}
+                  data-testid={`evpn-chip-${p.id}`}
+                >
+                  {p.name}
+                </Chip>
+              ))}
+              {pickedPeople.length > PICKED_FOLD && (
+                <Button
+                  className="evc-link-btn evpn-picked-more"
+                  aria-expanded={pickedOpen}
+                  onClick={() => setPickedOpen((v) => !v)}
+                  data-testid="evpn-picked-more"
+                >
+                  {pickedOpen
+                    ? L.pickedLess
+                    : fill(L.pickedMore, { count: pickedPeople.length - PICKED_FOLD })}
+                </Button>
+              )}
+            </div>
           )}
 
-          <div className="evpv-candidates evpn-candidates" data-testid="evpn-candidates">
+          {!locked && (
+            <div className="evpn-search-row">
+              <SearchInput
+                className="evpn-search"
+                iconClassName="evpn-search-icon"
+                inputClassName="evpn-search-input"
+                value={query}
+                placeholder={L.searchPlaceholder}
+                onChange={(e) => setQuery(e.target.value)}
+                data-testid="evpn-search"
+              />
+              <span className="evpn-search-count" data-testid="evpn-search-count">
+                {query.trim()
+                  ? fill(L.searchCountFiltered, { shown: shown.length, n: people.length })
+                  : fill(L.searchCount, { n: people.length })}
+              </span>
+            </div>
+          )}
+
+          <div className="evpn-list" data-testid="evpn-candidates">
             {shown.length === 0 ? (
-              <p className="evc-empty-sub">{people.length === 0 ? L.noCandidates : L.noResult}</p>
+              <p className="evpn-list-none">{people.length === 0 ? L.noCandidates : L.noResult}</p>
             ) : (
               shown.map((p) => {
                 const on = picked.has(p.id);
                 return (
-                  <button
+                  <Checkbox
                     key={p.id}
-                    type="button"
-                    role="checkbox"
-                    aria-checked={on}
+                    className={`evpn-cand${on ? ' is-on' : ''}`}
+                    inputClassName="dp-check-input"
+                    checked={on}
                     disabled={locked}
-                    className={`evpv-candidate evpn-candidate${on ? ' is-on' : ''}`}
-                    onClick={() => toggle(p.id)}
+                    onChange={() => toggle(p.id)}
                     data-testid={`evpn-cand-${p.id}`}
                   >
-                    <span className="evpn-cand-row">
-                      <span className="evpv-cand-name">{p.name}</span>
-                      {p.aiRecommended && (
-                        <StatusBadge className="evc-type-badge" data-testid={`evpn-ai-${p.id}`}>
-                          {L.aiRecommended}
-                        </StatusBadge>
-                      )}
-                      {on && (
-                        <span className="evpn-check" aria-hidden="true">
-                          <CheckCircleIcon size={14} />
-                        </span>
-                      )}
+                    <span className="evpn-cand-tx">
+                      <span className="evpn-cand-row">
+                        <span className="evpn-cand-name">{p.name}</span>
+                        {p.aiRecommended && (
+                          <StatusBadge className="evc-type-badge" data-testid={`evpn-ai-${p.id}`}>
+                            {L.aiRecommended}
+                          </StatusBadge>
+                        )}
+                      </span>
+                      {p.department && <span className="evpn-cand-dept">{p.department}</span>}
                     </span>
-                    {p.department && <span className="evpv-cand-dept">{p.department}</span>}
-                  </button>
+                  </Checkbox>
                 );
               })
             )}
@@ -281,15 +342,14 @@ export default function EvalPeerNominateCanvas({
           ) : (
             <div className="evpn-actions">
               <span className="evpn-hint">{submitted ? L.hintAfter : L.hintBefore}</span>
-              <button
-                type="button"
-                className="evc-btn is-primary"
+              <Button
+                variant="primary"
                 disabled={!canSubmit}
                 onClick={submit}
                 data-testid="evpn-submit"
               >
                 {busy ? L.submitting : submitted ? L.resubmit : L.submit}
-              </button>
+              </Button>
             </div>
           )}
         </section>

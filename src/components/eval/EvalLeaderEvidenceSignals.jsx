@@ -14,7 +14,7 @@
  */
 
 import StatusBadge from '../shared/StatusBadge.jsx';
-import { FieldInfo } from './evalFieldMeta.jsx';
+import EvalHintTip from './EvalHintTip.jsx';
 
 const HEALTH_MAX = 10;
 
@@ -107,7 +107,7 @@ export default function EvalLeaderEvidenceSignals({ signals, L }) {
           {L.signalsOkrTitle}
           {/* PW-2654 — 계산 기준과 «팀원 입력 없음»은 핵심결과마다 되풀이하지 않고 제목 옆 ⓘ 에 한 번. */}
           {okr != null && (okr.keyResults.length > 0 || okr.averagePct != null) && (
-            <FieldInfo description={okrTip(okr, L)} />
+            <EvalHintTip text={okrTip(okr, L)} testId="evx-field-info" />
           )}
         </span>
         {okr == null ? (

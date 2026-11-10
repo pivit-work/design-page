@@ -8,7 +8,9 @@ import { resolveKoreanParticles } from '../shared/koreanParticle.js';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Radio from '../shared/Radio.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
-import { FieldInfo, FieldVisibility } from './evalFieldMeta.jsx';
+import { FieldVisibility } from './evalFieldMeta.jsx';
+import EvalHintTip from './EvalHintTip.jsx';
+import Button from '../shared/Button.jsx';
 import EvalNoteBlock, { EvalMarkdownLite } from './EvalNoteBlock.jsx';
 import { isNoteItem, categoryKind, storedCategoryName, answerScoreText, checkedAnswerText } from './evalTemplateItemModel.js';
 import { AlertIcon, LockIcon, SparkleIcon, EyeIcon } from './evalIcons.jsx';
@@ -241,6 +243,8 @@ const DEFAULT_LABELS = {
   gradePosAria: '최종 등급 카드 위치',
   gradePosNote: '템플릿 기본 위치: {position} · 일시 변경은 본인 화면에만 적용',
   assessmentTitle: '승진 · 보상 · 비밀 코멘트',
+  // PW-2685 — HR·경영진 코멘트와 승진·보상을 묶는 카드 제목. [부가 평가 저장] 버튼 이름에서 땄다.
+  assessmentGroupTitle: '부가 평가',
   // TC-054 상위(위원회) 전용 섹션 배지 — 피평가자에게 노출되지 않음을 명시
   // PW-1461 leader §5.7 — 공개 대상 배지(호버 툴팁) · 빨간 안내
   committeeOnlyBadge: '상위 경영진·HR·캘리 위원회 전용',
@@ -564,7 +568,11 @@ function cyclePeriodLabel(p) {
  */
 function PastGradeTrend({ points, L }) {
   const n = points.length;
-  const W = 240;
+  // PW-2685 — 지난 평가가 많으면(서버는 지금 4회까지) 칸마다 56px 를 지켜 가로로 넓히고, 근거 칸 안에서만
+  // 옆으로 스크롤한다. 좁은 칸에 다 밀어 넣으면 등급·기간 글자가 한 자씩 세로로 꺾였다.
+  const COL_MIN = 56;
+  const W = Math.max(240, n * COL_MIN);
+  const wide = W > 240;
   const H = 72;
   const PAD = 10;
   const x = (i) => ((i + 0.5) / n) * W;
@@ -579,6 +587,7 @@ function PastGradeTrend({ points, L }) {
   const d = drawn.map(([px, py], i) => `${i === 0 ? 'M' : 'L'} ${px.toFixed(1)} ${py.toFixed(1)}`).join(' ');
   return (
     <div className="evl-trend" data-testid="evl-trend">
+      <div className="evlr-trend-track" style={wide ? { minWidth: `${W}px` } : undefined} data-testid="evl-trend-track">
       <svg
         className="evl-trend-svg"
         viewBox={`0 0 ${W} ${H}`}
@@ -602,6 +611,7 @@ function PastGradeTrend({ points, L }) {
           </li>
         ))}
       </ol>
+      </div>
     </div>
   );
 }
@@ -945,7 +955,7 @@ export default function EvalCycleLeaderCanvas({
 
   if (!active) {
     return (
-      <div className="evc-root">
+      <div className="evc-root evlr-root">
         <div className="evc-empty" data-testid="evl-not-active">
           <p className="evc-empty-title">{L.notActive}</p>
           <p className="evc-empty-sub">{L.notActiveSub}</p>
@@ -1159,12 +1169,12 @@ export default function EvalCycleLeaderCanvas({
   // «최종 등급은 리더가 … 직접 결정합니다»는 늘 보인다 — AI 기본법 사람 감독 장치(David 11-09 · leader.policy §5.2.1 ④).
   const gradePosNote = (
     <span className="evl-grade-pos-tip" data-testid="evl-grade-pos-note">
-      <FieldInfo description={fillLabel(L.gradePosNote, { position: L[GRADE_POS_LABEL_KEY[templatePos]] })} />
+      <EvalHintTip text={fillLabel(L.gradePosNote, { position: L[GRADE_POS_LABEL_KEY[templatePos]] })} testId="evx-field-info" />
     </span>
   );
   const gradeTitleTip = calibrationEnabled && L.gradeCaptionCalibOn ? (
     <span data-testid="evl-grade-caption">
-      <FieldInfo description={L.gradeCaptionCalibOn} />
+      <EvalHintTip text={L.gradeCaptionCalibOn} testId="evx-field-info" />
     </span>
   ) : null;
   const gradeCaptions = [
@@ -1411,9 +1421,11 @@ export default function EvalCycleLeaderCanvas({
   );
 
   // leader §5.7 공개 대상 배지 — 자물쇠 + 짧은 이름, 마우스를 올리면 공개 대상 말풍선.
+  // PW-2685 — 시안 manager_leader-review: 빨간 위험 딱지가 아니라 자물쇠 붙은 중립 딱지(«누구에게 보이나»를 알리는 표시).
   const committeeBadge = (testId) => (
     <StatusBadge
-      className="evl-committee-badge"
+      tone="neutral"
+      className="evc-status-badge"
       title={L.committeeOnlyTooltip}
       tabIndex={0}
       data-testid={testId}
@@ -1451,7 +1463,7 @@ export default function EvalCycleLeaderCanvas({
   // §5.10·§12.1 L5 — 제출 완료 화면. 끈 사이클은 「팀원 목록으로」 하나만.
   if (showCompletion) {
     return (
-      <div className="evc-root">
+      <div className="evc-root evlr-root">
         {header}
         <section className="evc-card evl-done" data-testid="evl-done">
           <h3 className="evc-card-name">{L.doneTitle}</h3>
@@ -1478,7 +1490,7 @@ export default function EvalCycleLeaderCanvas({
   // PW-2440 — 위원에게 제출 전 하향 리뷰는 보이지 않는다(임시저장본 포함 · 리더 정책 §2 ①).
   if (readOnlyView && !submitted) {
     return (
-      <div className="evc-root">
+      <div className="evc-root evlr-root">
         {header}
         <section className="evc-card" data-testid="evl-readonly-pending">
           <p className="evc-empty-sub">{L.readOnlyNotSubmitted}</p>
@@ -1500,7 +1512,7 @@ export default function EvalCycleLeaderCanvas({
     ) : null;
 
   return (
-    <div className="evc-root">
+    <div className="evc-root evlr-root">
       {header}
 
       {/* 안내 줄 사이·아래는 Stack 이 띄운다(12px). 줄마다 손으로 적던 여백을 걷었다. 자동저장 표시와 본문
@@ -1508,8 +1520,10 @@ export default function EvalCycleLeaderCanvas({
       <Stack gap="lg" testId="evl-notices">
       {/* PW-2440 — 위원의 읽기 전용 화면은 «잠긴 이유»가 없다(처음부터 쓰는 화면이 아니다) — 딱지가 말한다. */}
       {formLocked && locked && !readOnlyView && L.lockedNotice && (
-        <p className="evx-notice" data-testid="evl-locked">
-          {L.lockedNotice}
+        /* PW-2685 — 시안 manager_leader-review: «더 이상 수정할 수 없습니다»는 자물쇠 붙은 회색 안내 줄. */
+        <p className="evx-notice evlr-lock-note" data-testid="evl-locked">
+          <LockIcon size={14} />
+          <span>{L.lockedNotice}</span>
         </p>
       )}
       {submitted && !readOnlyView && (
@@ -1538,13 +1552,16 @@ export default function EvalCycleLeaderCanvas({
       <div className="evl-2pane">
         {/* 좌: 근거 — PW-2440 위원의 읽기 전용 화면에는 그리지 않는다(리더 정책 §2 ③). */}
         {!readOnlyView && (
-        <aside className="evl-evidence" data-testid="evl-evidence">
+        /* PW-2685 — 시안 manager_leader-review: 근거 칸은 흰 카드 하나(스크롤 따라옴), 안은 선으로 나눈 세 묶음
+           (셀프 리뷰·근거 지표 / 동료 피드백 / 과거 평가 추이). 가운데 묶음은 근거 칸 «안»에서만 스크롤한다. */
+        <aside className="evl-evidence evlr-evidence" data-testid="evl-evidence">
+          <div className="evlr-ev-blk">
           {/* PW-1594 §5.13.3 — 2차 이후면 근거 칸 맨 위(셀프 리뷰보다 위)에 앞 차수 리뷰 */}
           {priorRoundCards}
           <h3 className="evc-card-name">
             {L.evidenceTitle}
             {/* PW-2654 — 아직 안 냈을 때 «제출하면 여기에 보입니다»는 미제출 문장과 겹쳐 제목 옆 ⓘ 로. */}
-            {!selfSubmitted && selfAnswers.length === 0 && <FieldInfo description={L.evidenceEmpty} />}
+            {!selfSubmitted && selfAnswers.length === 0 && <EvalHintTip text={L.evidenceEmpty} testId="evx-field-info" />}
           </h3>
           {!selfSubmitted && (
             <p className="evl-self-pending" data-testid="evl-self-pending">
@@ -1575,7 +1592,9 @@ export default function EvalCycleLeaderCanvas({
           )}
 
           <EvalLeaderEvidenceSignals signals={evidenceSignals} L={L} />
+          </div>
 
+          <div className="evlr-ev-blk">
           {peerSummary ? (
             <EvalLeaderPeerSummary
               peer={peerSummary}
@@ -1585,7 +1604,7 @@ export default function EvalCycleLeaderCanvas({
             />
           ) : (
             <>
-              <h3 className="evc-card-name" style={{ marginTop: 'var(--spacing-xl)' }}>{L.peerEvidenceTitle}</h3>
+              <h3 className="evc-card-name">{L.peerEvidenceTitle}</h3>
               {peerAnswers.length === 0 ? (
                 <p className="evc-empty-sub" data-testid="evl-peer-empty">{L.peerEvidenceEmpty}</p>
               ) : (
@@ -1605,12 +1624,16 @@ export default function EvalCycleLeaderCanvas({
             </>
           )}
 
-          <h3 className="evc-card-name" style={{ marginTop: 'var(--spacing-xl)' }}>{L.historyTitle}</h3>
+          </div>
+
+          <div className="evlr-ev-blk">
+          <h3 className="evc-card-name">{L.historyTitle}</h3>
           {pastGrades.length === 0 ? (
             <p className="evc-empty-sub" data-testid="evl-history-empty">{L.historyEmpty}</p>
           ) : (
             <PastGradeTrend points={pastGrades} L={L} />
           )}
+          </div>
         </aside>
         )}
 
@@ -1626,7 +1649,7 @@ export default function EvalCycleLeaderCanvas({
                 <div className="evm-ai-card-title">
                   <SparkleIcon size={15} />
                   <span>{L.aiCardTitle}</span>
-                  <FieldInfo description={L.aiCardSub} />
+                  <EvalHintTip text={L.aiCardSub} testId="evx-field-info" />
                 </div>
               </div>
               <div className="evc-card-buttons">
@@ -1659,18 +1682,19 @@ export default function EvalCycleLeaderCanvas({
             const isCollapsed = !!collapsed[sec.title];
             const isCompetency = sec.fields.some((x) => isCompetencyCategory(x.category));
             return (
-            <section className="evc-card" key={sec.title} data-testid="evl-section">
+            /* PW-2685 — 시안: 성과·역량·성장은 접는 흰 카드. 머리 줄 아래 선은 카드 끝에서 끝까지, [접기]는 공용 보조 버튼. */
+            <section className={`evc-card evlr-sec${isCollapsed ? ' is-folded' : ''}`} key={sec.title} data-testid="evl-section">
               <div className="evl-sec-head">
                 <h3 className="evc-card-name evm-section-title">{sec.title}</h3>
-                <button
-                  type="button"
-                  className="evl-sec-toggle"
+                <Button
+                  variant="ghost"
+                  size="sm"
                   aria-expanded={!isCollapsed}
                   onClick={() => setCollapsed((c) => ({ ...c, [sec.title]: !c[sec.title] }))}
                   data-testid="evl-section-toggle"
                 >
                   {isCollapsed ? L.sectionExpand : L.sectionCollapse}
-                </button>
+                </Button>
               </div>
               {!isCollapsed && isCompetency && L.competencyFrameNote && (
                 <p className="evl-sec-note" data-testid="evl-competency-note">{L.competencyFrameNote}</p>
@@ -1692,10 +1716,11 @@ export default function EvalCycleLeaderCanvas({
                     <span className="evc-field-label" data-testid={`evl-label-${f.key}`}>
                       {f.label}
                       {(f.descriptionDisplay || 'tooltip') === 'tooltip' && (
-                        <FieldInfo
-                          description={
+                        <EvalHintTip
+                          text={
                             f.description || (GROWTH_HINT_KEY[f.growthKind] ? L[GROWTH_HINT_KEY[f.growthKind]] : null)
                           }
+                          testId="evx-field-info"
                         />
                       )}
                     </span>
@@ -1880,13 +1905,16 @@ export default function EvalCycleLeaderCanvas({
             </section>
           )}
 
-          {/* F5 위원회 전용 코멘트 + 승진·보상 — leader §5.7·§5.8 비공개 영역(연빨강 바탕·빨간 테두리·빨간 안내) */}
-          <div className="evl-assessment" data-testid="evl-assessment">
-            <section className="evc-card evl-confidential-zone" data-testid="evl-confidential-card">
-              <h3 className="evc-card-name">
+          {/* F5 위원회 전용 코멘트 + 승진·보상 — leader §5.7·§5.8 비공개 영역.
+              PW-2685 — 시안 manager_leader-review: 두 상자를 «부가 평가» 제목 흰 카드 하나로 묶고, 비공개는
+              자물쇠 딱지·안내 줄이 말한다. [부가 평가 저장]은 카드 맨 아래 오른쪽. */}
+          <section className="evc-card evlr-assess" data-testid="evl-assessment">
+            <h3 className="evc-card-name evlr-assess-title">{L.assessmentGroupTitle}</h3>
+            <div className="evlr-assess-q" data-testid="evl-confidential-card">
+              <h4 className="evc-card-name">
                 {L.confidentialLabel}
                 {committeeBadge('evl-committee-badge')}
-              </h3>
+              </h4>
               <p className="evl-committee-hint" data-testid="evl-committee-hint">{L.committeeOnlyHint}</p>
               <textarea
                 className="evm-textarea"
@@ -1898,13 +1926,13 @@ export default function EvalCycleLeaderCanvas({
                 aria-label={L.confidentialLabel}
                 data-testid="evl-confidential"
               />
-            </section>
+            </div>
 
-            <section className="evc-card evl-confidential-zone" data-testid="evl-promo-comp-card">
-              <h3 className="evc-card-name">
+            <div className="evlr-assess-q" data-testid="evl-promo-comp-card">
+              <h4 className="evc-card-name">
                 {L.promoCompTitle}
                 {committeeBadge('evl-committee-badge-promo')}
-              </h3>
+              </h4>
               {/* PW-2654 — 같은 빨간 문장은 첫 상자에만. 이 상자는 꼬리표가 «누구에게»를 말한다. */}
 
               <div className="evm-field" role="radiogroup" aria-label={L.promotionStatusLabel}>
@@ -2033,21 +2061,21 @@ export default function EvalCycleLeaderCanvas({
                 </div>
               )}
 
-              {!readOnlyView && (
-              <div className="evc-card-buttons">
-                <button
-                  type="button"
-                  className="evc-btn is-ghost"
-                  disabled={assessmentLocked}
-                  onClick={() => onSaveAssessment?.(assessmentPayload())}
-                  data-testid="evl-save-assessment"
-                >
-                  {L.saveAssessment}
-                </button>
-              </div>
-              )}
-            </section>
-          </div>
+            </div>
+
+            {!readOnlyView && (
+            <div className="evc-card-buttons evlr-assess-foot">
+              <Button
+                variant="secondary"
+                disabled={assessmentLocked}
+                onClick={() => onSaveAssessment?.(assessmentPayload())}
+                data-testid="evl-save-assessment"
+              >
+                {L.saveAssessment}
+              </Button>
+            </div>
+            )}
+          </section>
 
           {!formLocked && (
             <div className="evm-submit-bar">
@@ -2067,7 +2095,7 @@ export default function EvalCycleLeaderCanvas({
                   끈 사이클의 «제출한 등급이 그대로 최종» 경고는 그대로 보인다(되돌릴 수 없는 결과라). */}
               {calibrationEnabled && L.submitCaptionCalibOn && (
                 <span className="evl-submit-tip" data-testid="evl-submit-caption">
-                  <FieldInfo description={L.submitCaptionCalibOn} />
+                  <EvalHintTip text={L.submitCaptionCalibOn} testId="evx-field-info" />
                 </span>
               )}
               {!calibrationEnabled && L.submitCaptionCalibOff && (

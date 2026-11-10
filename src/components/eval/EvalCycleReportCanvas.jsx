@@ -1,6 +1,10 @@
 import { useMemo, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
-import { ArrowRightIcon, InfoIcon } from './evalIcons.jsx';
+import Button from '../shared/Button.jsx';
+import EmptyState from '../shared/EmptyState.jsx';
+import AiMark from '../shared/AiMark.jsx';
+import assetUrl from '../shared/assetUrl.js';
+import { ArrowRightIcon, DownloadIcon, InfoIcon } from './evalIcons.jsx';
 import { scaleMaxOf, categoryKind, storedCategoryName, answerScoreText, checkedAnswerText } from './evalTemplateItemModel.js';
 import { ObjectionHeaderAction, ObjectionPanel } from './EvalReportObjection.jsx';
 import { OBJECTION_DEFAULT_LABELS } from './evalObjectionLabels.js';
@@ -54,6 +58,8 @@ const DEFAULT_LABELS = {
   gapDiff: '갭',
   insightTitle: 'AI 종합 인사이트',
   insightHint: '여러 평가 소스를 교차 분석한 요약입니다.',
+  // [PW-2685] AI 종합 인사이트 제목 옆 AI 딱지(1on1 «AI 추천» 딱지 .ons-ai-tag 모양)
+  aiTag: 'AI',
   sourceSelf: '셀프',
   sourceLeader: '리더',
   sourcePeer: '동료',
@@ -153,7 +159,7 @@ function groupLeaderRounds(answers) {
 
 function AnswerList({ answers, L }) {
   return (
-    <div className="evr-answers">
+    <div className="evr-answers evr-my-qa">
       {answers.map((a) => (
         <div className="evr-answer" key={a.id}>
           <span className="evc-field-label">
@@ -283,15 +289,22 @@ function AiInsight({ insight, L }) {
     <section className="evc-card evr-insight" data-testid="evr-insight">
       <div className="evr-insight-head">
         <h3 className="evc-card-name">{L.insightTitle}</h3>
+        {/* [PW-2685] AI 가 쓴 글임을 제목 옆 AI 딱지로 — 1on1 «AI 추천» 딱지(.ons-ai-tag) 그대로 */}
+        <StatusBadge className="ons-ai-tag evr-my-ai-tag" data-testid="evr-insight-ai-tag">
+          <AiMark size={12} />
+          <span>{L.aiTag}</span>
+        </StatusBadge>
         <div className="evr-insight-sources">
           {insight.sources.map((s) => (
-            <StatusBadge className="evr-insight-badge" key={s}>
+            // [PW-2685] 근거 소스는 회색 딱지(시안 .bd.neutral)
+            <StatusBadge className="evc-status-badge tone-neutral" key={s}>
               {L[SOURCE_KEY[s]] ?? s}
             </StatusBadge>
           ))}
         </div>
       </div>
-      <p className="evr-insight-text">{insight.insight}</p>
+      {/* [PW-2685] 본문은 1on1 AI 요약 읽기 상자(.ono-my-readbox.is-ai)의 연보라 바탕 */}
+      <p className="evr-insight-text evr-my-ai-box">{insight.insight}</p>
       <p className="evc-empty-sub evr-insight-hint">{L.insightHint}</p>
     </section>
   );
@@ -324,14 +337,14 @@ function Highlights({ highlights, onOpenHighlight, L }) {
                     onClick={() => onOpenHighlight(h)}
                     data-testid="evr-highlight-source"
                   >
-                    <StatusBadge className="evr-insight-badge">
+                    <StatusBadge className="evc-status-badge tone-success">
                       {String(L.highlightSource || '').replace('{date}', shortDate(h.date))}
                     </StatusBadge>
                   </button>
                 </span>
               ) : (
                 <span>
-                  <StatusBadge className="evr-insight-badge">
+                  <StatusBadge className="evc-status-badge tone-success">
                     {String(L.highlightSource || '').replace('{date}', shortDate(h.date))}
                   </StatusBadge>
                 </span>
@@ -445,6 +458,8 @@ export default function EvalCycleReportCanvas({
   objectionError = null,
   /** 이의 사유 글자 한도(앱이 넘긴다). */
   objectionReasonMaxLength,
+  /** 종이 그림(빈 화면) 경로의 base — 앱은 '/' 아래에서 돈다. */
+  baseUrl = '',
   labels: providedLabels,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
@@ -461,18 +476,22 @@ export default function EvalCycleReportCanvas({
     : !published || (!gradeKey && leaderAnswers.length === 0 && !leaderComment);
 
   if (notReady) {
+    // [PW-2685] 빈 화면은 디자이너가 1on1 «팀원 0명»에 그린 종이 그림 안내(.ono-team-empty 규격) 모양.
     return (
-      <div className="evc-root">
-        <div className="evc-empty" data-testid="evr-empty">
-          <p className="evc-empty-title">{L.emptyTitle}</p>
-          <p className="evc-empty-sub">{L.emptySub}</p>
-        </div>
+      <div className="evc-root evr-my">
+        <EmptyState
+          className="evr-my-empty"
+          data-testid="evr-empty"
+          icon={<img className="evr-my-empty-paper" src={assetUrl(baseUrl, 'paper-empty.svg')} alt="" />}
+          title={L.emptyTitle}
+          description={L.emptySub}
+        />
       </div>
     );
   }
 
   return (
-    <div className="evc-root evr-print-root">
+    <div className="evc-root evr-print-root evr-my">
       <header className="evc-header">
         <div>
           <h1 className={`evc-title${titleHelp ? ' tvh-title-row' : ''}`}>{L.title}{titleHelp}</h1>
@@ -487,14 +506,10 @@ export default function EvalCycleReportCanvas({
               L={L}
             />
             {onPrint && (
-            <button
-              type="button"
-              className="evc-btn is-primary"
-              onClick={onPrint}
-              data-testid="evr-print"
-            >
-              {L.printButton}
-            </button>
+              <Button variant="primary" onClick={() => { onPrint(); }} data-testid="evr-print">
+                <DownloadIcon size={16} />
+                {L.printButton}
+              </Button>
             )}
           </div>
         )}

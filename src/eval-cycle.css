@@ -14719,3 +14719,880 @@ button.evmh-phase:focus-visible {
   white-space: pre-line;
 }
 
+
+/* ══ PW-2685 내 리포트 · 동료 리뷰어 지정 (디자이너 모양 시안 eval-look-2026-11-08 after/member_my-report·member_volunteer) ══ */
+/* 내 리포트 — `.evr-my` 는 EvalCycleReportCanvas 뿌리에만 붙는다(이 캔버스를 쓰는 화면은 구성원 «내 리포트» 하나).
+   공용 .evc-card·.evr-* 값은 그대로 두고 이 뿌리 아래에서만 덮는다. */
+.evr-my .evc-card {
+  background: var(--bg-quaternary);
+  gap: var(--spacing-lg);
+  padding: var(--spacing-2xl) var(--spacing-3xl);
+  box-shadow: none;
+}
+.evr-my .evc-card:hover { border-color: var(--border-secondary); box-shadow: none; }
+.evr-my .evc-card-name {
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
+  color: var(--fg-primary);
+}
+.evr-my .evc-title { color: var(--fg-primary); }
+.evr-my .evc-summary { color: var(--text-subtle); }
+.evr-my .evc-header-actions .dp-btn .dp-btn__label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+/* 카드 안 보조 한 줄(갭 설명·OKR 없음 등) — 시안 .meta 13 · subtle */
+.evr-my .evc-card .evc-empty-sub {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-subtle);
+}
+
+/* 최종 등급 — 상자는 PW-2105 회색 그대로, 글만 시안(.grade) 값: 이름표 13 subtle · 값 28/36 */
+.evr-my .evr-grade-label {
+  font-size: 13px;
+  color: var(--text-subtle);
+}
+.evr-my .evr-grade-value {
+  font-size: 28px;
+  line-height: 36px;
+  color: var(--fg-primary);
+}
+
+/* AI 종합 인사이트 — 흰 카드 + 제목 옆 AI 딱지 + 연보라 읽기 상자(1on1 .ono-my-readbox.is-ai 바탕) */
+.evr-my .evr-insight {
+  border-color: var(--border-secondary);
+  background: var(--bg-quaternary);
+}
+.evr-my .evr-insight-head { justify-content: flex-start; }
+.evr-my .evr-insight-head .evr-insight-sources { margin-left: auto; }
+.ons-ai-tag.evr-my-ai-tag {
+  padding: var(--spacing-xxs) var(--spacing-sm);
+  font-size: var(--font-size-text-xs);
+  line-height: 16px;
+}
+.evr-my .evr-insight-text.evr-my-ai-box {
+  margin: 0;
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border-radius: var(--radius-md);
+  background: var(--utility-purple-50);
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-md);
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+.evr-my .evr-insight-hint { margin: 0; }
+
+/* 목표(OKR) 리뷰 — 목표 줄(이름 · 달성률) 아래 KR 줄은 회색 칸 안 [이름 | 12px 막대 | 값] (시안 .okr-k · 막대 1on1 .ono-start-progress-track) */
+.evr-my .evr-okr-list { gap: var(--spacing-xl); }
+.evr-my .evr-okr-obj {
+  gap: var(--spacing-md);
+  padding: 0;
+  border-top: 0;
+}
+.evr-my .evr-okr-obj-title { color: var(--fg-primary); }
+.evr-my .evr-okr-obj-prog { font-size: 13px; }
+.evr-my .evr-okr-kr {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 200px auto;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+.evr-my .evr-okr-kr-title {
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.evr-my .evr-okr-kr-bar {
+  width: auto;
+  height: 12px;
+  border-radius: var(--radius-full);
+  background: var(--alpha-black-5);
+}
+.evr-my .evr-okr-kr-fill { border-radius: var(--radius-full); }
+.evr-my .evr-okr-kr-pct {
+  width: auto;
+  font-size: 13px;
+  color: var(--text-subtle);
+  white-space: nowrap;
+}
+
+/* 자기평가 갭 — 표 모양(roster-table.css 머리줄 12 tertiary · 칸 12/16 · 테두리 primary·칸 줄 secondary) */
+.evr-my .evr-gap-grid {
+  gap: 0;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.evr-my .evr-gap-head,
+.evr-my .evr-gap-row {
+  grid-template-columns: minmax(0, 1fr) 96px 96px 72px;
+  gap: 0;
+  padding: 0;
+  font-size: 13px;
+}
+.evr-my .evr-gap-head > span,
+.evr-my .evr-gap-row > span { padding: var(--spacing-lg) var(--spacing-xl); }
+.evr-my .evr-gap-head {
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+  color: var(--text-tertiary);
+  background: var(--bg-quaternary);
+  border-bottom: 1px solid var(--border-primary);
+}
+.evr-my .evr-gap-row + .evr-gap-row { border-top: 1px solid var(--border-secondary); }
+.evr-my .evr-gap-head > span:not(:first-child),
+.evr-my .evr-gap-row > span:not(:first-child) { text-align: center; }
+.evr-my .evr-gap-row > .evc-field-label {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg-primary);
+}
+
+/* 성과 하이라이트 · 다음 분기 목표 · 성장 영역 — 번호는 회색 작은 네모(시안 .num). 출처 딱지는 status-badge.css 초록 딱지 */
+.evr-my .evr-highlights { margin: 0; gap: var(--spacing-md); }
+.evr-my .evr-highlight { align-items: center; gap: var(--spacing-md); }
+.evr-my .evr-highlight-num {
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-xs);
+  background: var(--alpha-black-3);
+  font-size: var(--font-size-text-xs);
+  color: var(--text-secondary);
+}
+.evr-my .evr-highlight .evr-answer {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+.evr-my .evr-growth-block > .evc-field-label {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+/* 리더 코멘트 · 나의 셀프 리뷰 · 동료 피드백 — 테두리 칸 안 줄마다 [이름표 13 · 글] (시안 .qa).
+   〔11-10 간격〕 이름표↔글 8(--spacing-md) · 줄 위아래 14 — 토큰에 14 가 없어 6 + 8 토큰 합으로 둔다
+   (커트가 고른 시안 값 · 디자이너 회의록 창 묶음 간격 timeline.css 의 이름표↔글 8 기준). 줄 좌우 16. */
+.evr-my .evr-answers.evr-my-qa {
+  gap: 0;
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.evr-my .evr-my-qa > .evr-answer {
+  gap: var(--spacing-md);
+  padding: calc(var(--spacing-sm) + var(--spacing-md)) var(--spacing-xl);
+}
+.evr-my .evr-my-qa > .evr-answer + .evr-answer { border-top: 1px solid var(--border-secondary); }
+.evr-my .evr-my-qa > .evr-answer > .evc-field-label {
+  margin: 0;
+  font-size: 13px;
+  line-height: var(--line-height-text-sm);
+  color: var(--text-subtle);
+}
+.evr-my .evr-my-qa .evr-answer-text {
+  font-size: var(--font-size-text-sm);
+  line-height: 22px;
+  color: var(--text-primary);
+}
+/* 최종 코멘트 칸(리더 코멘트 맨 위)도 같은 줄 모양 */
+.evr-my .evc-card > .evr-answers:not(.evr-my-qa) {
+  gap: 0;
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.evr-my .evc-card > .evr-answers:not(.evr-my-qa) > .evr-answer {
+  gap: var(--spacing-md);
+  padding: calc(var(--spacing-sm) + var(--spacing-md)) var(--spacing-xl);
+}
+.evr-my .evc-card > .evr-answers:not(.evr-my-qa) > .evr-answer > .evc-field-label {
+  margin: 0;
+  font-size: 13px;
+  line-height: var(--line-height-text-sm);
+  color: var(--text-subtle);
+}
+.evr-my .evr-leader-round-title { color: var(--text-secondary); font-size: 13px; }
+
+/* 빈 화면 — 디자이너 종이 그림 안내(one_on_one.css .ono-team-empty 규격: 16 간격 · 위아래 80 · 제목 lg secondary · 설명 tertiary) */
+.dp-empty.evr-my-empty,
+.dp-empty.evpn-my-empty {
+  justify-content: center;
+  gap: var(--spacing-xl);
+  padding: calc(var(--spacing-5xl) * 2) var(--spacing-2xl);
+  background: none;
+  border: none;
+}
+.evr-my-empty .dp-empty__icon,
+.evpn-my-empty .dp-empty__icon { margin: 0; }
+.evr-my-empty-paper { width: 84px; height: auto; display: block; }
+.evr-my-empty .dp-empty__title,
+.evpn-my-empty .dp-empty__title {
+  font-size: var(--font-size-text-lg);
+  line-height: var(--line-height-text-lg);
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+.evr-my-empty .dp-empty__desc,
+.evpn-my-empty .dp-empty__desc {
+  font-weight: 500;
+  line-height: var(--line-height-text-md);
+  color: var(--text-tertiary);
+  overflow-wrap: anywhere;
+}
+
+/* ══ PW-2685 하향 리뷰 작성 (EvalCycleLeaderCanvas · 시안 pivit-work worklog/eval-look-2026-11-08/after/manager_leader-review.html) ══ */
+/* 모두 .evlr-root(하향 리뷰 캔버스 뿌리) 아래로 좁힌다 — .evl-2pane·.evl-evidence 는 셀프·동료 2단(.evm-2pane)도 쓴다. */
+.evlr-root .evl-2pane { gap: var(--spacing-xl); }
+.evlr-root .evl-form { gap: var(--spacing-xl); }
+
+/* 잠금 안내 — 자물쇠 붙은 흰 바탕 회색 띠(시안 .note.plain). */
+.evlr-root .evx-notice.evlr-lock-note {
+  /* PW-2104 «안내는 상자 없이 한 줄»(.evx-notice 묶음)보다 뒤·구체적이라 이긴다 — 시안이 이 줄만 띠로 그렸다. */
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-lg);
+  background: var(--bg-quaternary);
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+.evlr-root .evlr-lock-note > svg {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+}
+
+/* 왼쪽 근거 칸 — 흰 카드 하나, 안은 선으로 나눈 묶음. 화면을 따라 내려오고 길면 칸 안에서 스크롤(.evl-evidence 그대로). */
+.evlr-root .evl-evidence.evlr-evidence {
+  background: var(--bg-quaternary);
+  border-color: var(--border-secondary);
+  padding: 0;
+  gap: 0;
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-wrap: anywhere;
+}
+.evlr-ev-blk {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: var(--spacing-2xl) var(--spacing-2xl) var(--spacing-3xl);
+  border-bottom: 1px solid var(--border-secondary);
+}
+.evlr-ev-blk:last-child { border-bottom: 0; }
+.evlr-evidence h3.evc-card-name {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--fg-primary);
+}
+.evlr-evidence h3.evc-card-name .evl-sig-sub { font-weight: 600; color: var(--text-subtle); }
+/* 항목 — 이름표 13px · 이름표↔글 8 · 위아래 16 (11-10 디자이너 회의록 창 묶음 간격). */
+.evlr-evidence .evl-evi-item {
+  gap: var(--spacing-md);
+  padding: var(--spacing-xl) 0;
+  border-bottom-color: var(--border-secondary);
+  min-width: 0;
+}
+.evlr-ev-blk > .evl-evi-item:last-child { border-bottom: 0; padding-bottom: 0; }
+.evlr-evidence .evl-evi-item > .evc-field-label,
+.evlr-evidence .evl-sig-block > .evc-field-label {
+  margin-top: 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--text-subtle);
+}
+.evlr-evidence .evl-evi-text {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-primary);
+}
+.evlr-evidence .evl-self-pending { margin: var(--spacing-md) 0 0; }
+.evlr-evidence .evc-empty-sub { margin: var(--spacing-md) 0 0; font-size: 13px; color: var(--text-subtle); }
+/* 지표 묶음 안의 «없음» 글은 묶음 간격(이름표↔글 8)만 — 제 위 여백을 더하지 않는다. */
+.evlr-evidence .evl-sig-block > .evc-empty-sub { margin: 0; }
+/* 근거 지표 — 기간 줄 다음에 선으로 나눈 항목, 큰 숫자는 진하게. */
+.evlr-evidence .evl-signals { gap: 0; margin-top: var(--spacing-xl); }
+.evlr-evidence .evl-sig-period { font-size: var(--font-size-text-xs); color: var(--text-subtle); }
+.evlr-evidence .evl-sig-block {
+  gap: var(--spacing-md);
+  padding: var(--spacing-xl) 0;
+  border-bottom-color: var(--border-secondary);
+}
+.evlr-evidence .evl-sig-block:last-child { border-bottom: 0; padding-bottom: 0; }
+.evlr-evidence .evl-sig-big { font-size: 18px; font-weight: 700; color: var(--fg-primary); }
+.evlr-evidence .evl-sig-big .evl-sig-sub { font-size: 13px; font-weight: 400; color: var(--text-subtle); }
+.evlr-evidence .evl-sig-krs { gap: var(--spacing-md); }
+/* 동료 피드백 — [요약 만들기] 는 보라 AI 버튼, 원본 보기 버튼은 칸 폭 그대로 왼쪽 정렬, 많으면 이 목록만 스크롤. */
+.evlr-peer-generate { margin-top: var(--spacing-md); }
+.evlr-evidence .evlr-peer-list {
+  margin-top: var(--spacing-md);
+  gap: var(--spacing-sm);
+  max-height: 220px;
+  overflow-y: auto;
+}
+.evlr-peer-list > li { min-width: 0; }
+.evlr-peer-list .dp-btn {
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.evlr-peer-list .dp-btn .dp-btn__label { justify-content: flex-start; min-width: 0; }
+.evlr-evidence .evl-trend { margin-top: var(--spacing-lg); overflow-x: auto; }
+.evlr-trend-track { display: block; }
+
+/* 오른쪽 작성 칸 — 카드는 흰 바탕(AI 초안 카드는 보라 그대로). */
+.evlr-root .evl-form > .evc-card:not(.evm-ai-card),
+.evlr-root .evl-align .evc-card {
+  background: var(--bg-quaternary);
+  border-color: var(--border-secondary);
+  box-shadow: none;
+}
+/* 성과·역량·성장 — 접는 흰 카드. 머리 줄 아래 선은 카드 끝에서 끝까지. */
+.evlr-root .evc-card.evlr-sec {
+  gap: 0;
+  padding: 0 var(--spacing-3xl) var(--spacing-3xl);
+}
+.evlr-sec > .evl-sec-head {
+  margin: 0 calc(-1 * var(--spacing-3xl)) var(--spacing-xl);
+  padding: var(--spacing-xl) var(--spacing-3xl);
+  border-bottom-color: var(--border-secondary);
+}
+.evlr-root .evc-card.evlr-sec.is-folded { padding-bottom: 0; }
+.evlr-sec.is-folded > .evl-sec-head { margin-bottom: 0; border-bottom: 0; }
+.evlr-sec .evc-card-name.evm-section-title { font-size: 17px; color: var(--fg-primary); }
+.evlr-sec > .evl-sec-note { margin: 0 0 var(--spacing-xl); font-size: 13px; color: var(--text-subtle); }
+.evlr-sec .evm-field > .evc-field-label { font-size: 15px; line-height: 22px; color: var(--fg-primary); }
+/* 카드 세로 간격(gap)을 0 으로 풀었으니 질문 사이 24 는 여기서 준다(시안 .q). */
+.evlr-root .evc-card.evlr-sec > .evm-field + .evm-field { margin-top: var(--spacing-3xl); }
+/* 점수 1~5 — 네모 버튼(흰 바탕 · 고르면 연초록). 크기는 디자이너 점수 딱지(.mgr-ts-score) 그대로. */
+.evlr-root .evm-score-btn {
+  border-radius: var(--radius-sm);
+  border-color: var(--border-secondary);
+  background: var(--bg-quaternary);
+  color: var(--text-subtle);
+  font-weight: 600;
+}
+.evlr-root .evm-score-btn:not(:disabled):hover { background: var(--bg-secondary); }
+.evlr-root .evm-score-btn.is-on {
+  background: var(--bg-brand-secondary);
+  border-color: var(--bg-brand-secondary);
+  color: var(--text-brand-secondary);
+}
+/* 쓰는 칸 — 흰 바탕·회색 테두리(시안 .ta). 상태 색(주황·초록·빨강)·잠김·누른 칸은 기존 규칙 그대로. */
+.evlr-root .evm-textarea:not(:disabled):not(:focus):not(.is-invalid):not(.is-pending):not(.is-ai-unconfirmed):not(.is-ai-confirmed) {
+  background: var(--bg-quaternary);
+  border-color: var(--border-primary);
+}
+/* 부가 평가 — HR·경영진 코멘트와 승진·보상을 «부가 평가» 제목 흰 카드 하나로. 저장 버튼은 맨 아래 오른쪽. */
+.evlr-root .evc-card.evlr-assess {
+  gap: 0;
+  padding: 0 var(--spacing-3xl) var(--spacing-3xl);
+}
+.evlr-assess > .evlr-assess-title {
+  margin: 0 calc(-1 * var(--spacing-3xl));
+  padding: var(--spacing-xl) var(--spacing-3xl);
+  border-bottom: 1px solid var(--border-secondary);
+  font-size: 17px;
+  color: var(--fg-primary);
+}
+.evlr-assess-q {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding-top: var(--spacing-2xl);
+  min-width: 0;
+}
+.evlr-assess-q > .evc-card-name {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+  font-size: 15px;
+  color: var(--fg-primary);
+}
+.evlr-assess-q > .evc-card-name > .dp-badge { display: inline-flex; align-items: center; gap: var(--spacing-xs); }
+.evlr-assess .evl-committee-hint { margin: 0; font-size: 13px; color: var(--text-subtle); }
+.evlr-assess .evm-field + .evm-field { margin-top: var(--spacing-xl); }
+.evlr-assess .evc-card-buttons.evlr-assess-foot { justify-content: flex-end; padding-top: var(--spacing-xl); }
+
+/* 동료 리뷰어 지정 — `.evpn-my` 는 EvalPeerNominateCanvas·EvalPeerVolunteerCanvas 뿌리에만 붙는다. */
+/* [내 리뷰어 지정 / 자발적 리뷰 신청] — 공용 밑줄 탭(Tabs · timeline.css .tl-tabs-row, stesslee). 머리 아래 본문 칸 왼쪽에 맞춘다. */
+.tl-tabs-row.evpn-my-tabs-row {
+  justify-content: flex-start;
+  margin: 0 0 var(--spacing-2xl);
+}
+/* 본인 지명 안내 — 연초록 띠(시안 .guide-c): 제목 14 brand-secondary · 글 14/22 secondary */
+.evpn-my .evc-card.evpn-guide {
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xl) var(--spacing-2xl);
+  border-radius: var(--radius-lg);
+  border-color: var(--bg-brand-secondary);
+  background: var(--bg-brand-primary);
+  box-shadow: none;
+}
+.evpn-my .evpn-guide .evpn-guide-title {
+  margin: 0;
+  color: var(--text-brand-secondary);
+}
+.evpn-my .evpn-guide .evc-empty-sub {
+  margin: 0;
+  line-height: 22px;
+  color: var(--text-secondary);
+}
+/* 고르기 카드 — 흰 카드 20·24 · 그림자 없음 */
+.evpn-my .evc-card.evpn-pick-card {
+  background: var(--bg-quaternary);
+  gap: var(--spacing-lg);
+  padding: var(--spacing-2xl) var(--spacing-3xl);
+  box-shadow: none;
+}
+.evpn-my .evc-card.evpn-pick-card:hover { border-color: var(--border-secondary); box-shadow: none; }
+.evpn-my .evpn-pick-card .evc-card-name { color: var(--fg-primary); }
+.evpn-my .evpn-counter { margin: 0; }
+.evpn-my .evpn-count { font-size: 13px; }
+.evpn-my .evpn-count.is-short { color: var(--text-warning-primary); }
+.evpn-my .evpn-count.is-ok { color: var(--text-brand-secondary); }
+.evpn-my .evpn-rule { font-size: 13px; color: var(--text-subtle); }
+/* 고른 동료 칩 — 8px 모서리 · 연초록(시안 .picked .chip), X 로 뺀다 */
+.evpn-picked {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+.evpn-picked .dp-chip.evpn-picked-chip {
+  height: 28px;
+  border-color: transparent;
+  border-radius: var(--radius-sm);
+}
+.evpn-picked-more {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-brand-tertiary);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.evpn-picked-more:hover { color: var(--text-brand-secondary); text-decoration: underline; }
+/* 검색칸 — 회색 바탕 40 · 누르면 초록 테두리(시안 .srch · org_list.css 검색칸) + 오른쪽 인원 */
+.evpn-search-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.evpn-search {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--spacing-md);
+  min-width: 0;
+  height: 40px;
+  padding: 0 var(--spacing-lg);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--alpha-black-3);
+  color: var(--text-tertiary);
+}
+.evpn-search:focus-within {
+  border-color: var(--border-brand);
+  background: var(--bg-quaternary);
+}
+.evpn-search-icon { display: inline-flex; flex-shrink: 0; }
+.evpn-search-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0 calc(var(--spacing-5xl) * 2) 0 0;
+  border: 0;
+  outline: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--font-size-text-sm);
+  color: var(--fg-primary);
+}
+.evpn-search-input::placeholder { color: var(--text-tertiary); }
+.evpn-search-count {
+  position: absolute;
+  right: var(--spacing-lg);
+  font-size: var(--font-size-text-xs);
+  color: var(--text-subtle);
+  white-space: nowrap;
+  pointer-events: none;
+}
+/* 후보 목록 — 4열 체크 목록 · 칸 안 스크롤(높이 296, 시안 .cand · okr.css .okr-team-picker-list 방식) */
+.evpn-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-content: start;
+  gap: 0 var(--spacing-md);
+  max-height: 296px;
+  overflow-y: auto;
+  padding: var(--spacing-sm);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-md);
+}
+.evpn-cand {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  min-width: 0;
+  height: 46px;
+  padding: 0 var(--spacing-md);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.evpn-cand:hover { background: var(--bg-secondary); }
+.evpn-cand.is-on { background: var(--bg-brand-primary); }
+.evpn-cand:has(input:disabled) { cursor: default; }
+.evpn-cand .dp-check-input { flex-shrink: 0; }
+.evpn-cand-tx {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: var(--line-height-text-xs);
+}
+.evpn-cand-tx .evpn-cand-row { display: flex; min-width: 0; }
+.evpn-cand-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-text-sm);
+  font-weight: 600;
+  color: var(--fg-primary);
+}
+.evpn-cand-row .evc-type-badge { flex-shrink: 0; }
+.evpn-cand-dept {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-text-xs);
+  color: var(--text-subtle);
+}
+.evpn-list-none {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: var(--spacing-3xl);
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-subtle);
+}
+.evpn-my .evpn-actions { margin-top: var(--spacing-xs); }
+.evpn-my .evpn-hint { font-size: 13px; color: var(--text-subtle); }
+
+/* ══ PW-2685 구성원 셀프·동료·상향 리뷰 작성 (디자이너 모양 시안 eval-look-2026-11-08 member_self·member_peer·member_upward) ══ */
+/* 작성 화면(EvalCycleMemberCanvas — 셀프·동료·상향 공용)의 묶음은 흰 카드. 공용 .evc-card 값은 그대로 두고 이 화면 안에서만 칠한다. */
+.evm-root .evc-card.evm-section-card,
+.evm-root .evc-card.evm-done {
+  background: var(--bg-quaternary);
+  box-shadow: none;
+}
+
+/* 내 평가 이력 — 흰 카드, 이름 · 충족 딱지 · 날짜 칸. 최근 3개 + «외 N개»(펼치면 세 줄 높이에서 스크롤). */
+.evm-root .evm-history.evm-history-card {
+  width: auto;
+  background: var(--bg-quaternary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-2xl);
+  padding: var(--spacing-2xl) var(--spacing-3xl);
+}
+.evm-history-card .evm-history-head {
+  margin-bottom: var(--spacing-lg);
+}
+.evm-history-card .evm-history-title {
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-xxs);
+  font-size: var(--font-size-text-md);
+  line-height: 24px;
+  color: var(--fg-primary);
+}
+.evm-history-card .evm-history-sub {
+  font-size: 13px;
+  color: var(--text-subtle);
+}
+.evm-history-card .evm-history-rows.is-open {
+  /* 칸 32px × 3줄 + 줄 사이 8px × 2 */
+  max-height: calc(32px * 3 + var(--spacing-md) * 2);
+  overflow-y: auto;
+}
+.evm-history-card .evm-history-row {
+  box-sizing: border-box;
+  max-width: 100%;
+  height: 32px;
+  gap: var(--spacing-md);
+  padding: 0 var(--spacing-lg);
+  background: var(--bg-quaternary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-sm);
+}
+.evm-history-card .evm-history-cycle {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg-primary);
+}
+.evm-history-card .evm-history-date {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-subtle);
+}
+.evm-history-card .evc-status-badge {
+  flex-shrink: 0;
+}
+.evm-history-more {
+  height: 32px;
+  padding: 0 var(--spacing-lg);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--alpha-black-3);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.evm-history-more:hover {
+  background: var(--alpha-black-5);
+  color: var(--text-primary);
+}
+
+/* «데이터가 부족…» 주황 띠 · «마감이 지났습니다…» 빨강 띠 */
+.evm-root .evx-notice.evm-band {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border: 0;
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-text-sm);
+  font-weight: 600;
+  line-height: 20px;
+}
+.evm-root .evx-notice.evm-band.is-warn {
+  background: var(--bg-warning-primary);
+  color: var(--text-warning-primary);
+}
+.evm-root .evx-notice.evm-band.is-error {
+  background: var(--bg-error-primary);
+  color: var(--text-error-primary);
+}
+.evm-root .evx-notice.evm-band svg {
+  flex-shrink: 0;
+}
+
+/* 근거 칸 — 흰 카드, 안의 활동 카드도 흰 카드(제목↔설명 사이·안쪽 여백을 넓힘). */
+.evm-2pane .evl-evidence {
+  background: var(--bg-quaternary);
+  border: 1px solid var(--border-secondary);
+  padding: var(--spacing-2xl) var(--spacing-3xl);
+}
+.evm-2pane .evl-evidence .evm-activity-grid {
+  gap: var(--spacing-md);
+}
+.evm-root .evm-activity-block {
+  padding: var(--spacing-xl);
+  background: var(--bg-quaternary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-lg);
+}
+.evm-root .evm-activity-block-title {
+  margin-bottom: var(--spacing-md);
+  font-size: 13px;
+  color: var(--fg-primary);
+}
+.evm-root .evm-activity-block-title svg {
+  color: var(--text-tertiary);
+}
+.evm-root .evm-activity-item {
+  color: var(--text-subtle);
+}
+
+/* 작성 진행 — 흰 카드 */
+.evm-root .evm-review-progress {
+  gap: var(--spacing-lg);
+  padding: var(--spacing-2xl) var(--spacing-3xl);
+  border-color: var(--border-secondary);
+}
+
+/* 제출 완료 — 아이콘 판, 다음 단계 표의 지금 단계는 초록 */
+.evm-root .evm-done-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-2xl);
+  background: var(--bg-brand-secondary);
+  color: var(--text-brand-secondary);
+}
+.evm-root .evm-done-steps {
+  border-color: var(--border-secondary);
+}
+.evm-root .evm-done-step + .evm-done-step {
+  border-top-color: var(--border-secondary);
+}
+.evm-root .evm-done-step-mark {
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-xs);
+  background: var(--alpha-black-3);
+  color: var(--text-subtle);
+}
+.evm-root .evm-done-step.is-done {
+  color: var(--text-brand-secondary);
+  font-weight: 700;
+}
+.evm-root .evm-done-step.is-done .evm-done-step-mark {
+  background: var(--bg-brand-secondary);
+  color: var(--text-brand-secondary);
+}
+
+/* 동료 리뷰 목록(EvalCyclePeerTasksCanvas) — 한 흰 카드 안 줄. 위에 «N명 중 M명 제출 완료» 막대, 많으면 목록만 스크롤. */
+.evpt-card {
+  min-width: 0;
+  overflow: hidden;
+  background: var(--bg-quaternary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-2xl);
+}
+.evpt-head {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-xl) var(--spacing-2xl);
+}
+.evpt-count {
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--text-subtle);
+}
+.evpt-count b {
+  color: var(--fg-primary);
+}
+.evpt-bar {
+  flex-shrink: 0;
+  width: 160px;
+  height: 12px;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: var(--alpha-black-5);
+}
+.evpt-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-full);
+  background: var(--bg-brand-solid);
+}
+.evpt-rows {
+  max-height: 560px;
+  overflow-y: auto;
+}
+.evpt-card .evpt-row {
+  justify-content: flex-start;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-lg) var(--spacing-2xl);
+  border-top: 1px solid var(--border-secondary);
+}
+.evpt-avatar {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background: var(--bg-active);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+.evpt-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-text-sm);
+  font-weight: 700;
+  color: var(--fg-primary);
+}
+.evpt-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  flex-shrink: 0;
+}
+.evpt-action {
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+/* 상향 리뷰 — 대상 카드는 흰 카드(AI 딱지 오른쪽), 익명 안내는 흰 카드, «1명입니다» 경고는 카드 밑 주황 띠. */
+.evc-card.evu-target {
+  gap: var(--spacing-lg);
+  padding: var(--spacing-2xl) var(--spacing-3xl);
+  background: var(--bg-quaternary);
+  box-shadow: none;
+}
+.evu-target .evu-ai-tag {
+  margin-left: auto;
+}
+.evc-card.evu-target .evu-avatar {
+  background: var(--bg-active);
+  color: var(--text-secondary);
+}
+.evu-notice.evu-notice-card {
+  padding: var(--spacing-xl) var(--spacing-2xl);
+  background: var(--bg-quaternary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-2xl);
+}
+.evu-notice-card .evu-notice-title {
+  margin: 0;
+  font-weight: 700;
+  color: var(--fg-primary);
+}
+.evu-notice-card .evu-notice-title svg {
+  color: var(--text-subtle);
+}
+.evu-notice-card .evu-notice-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  margin: var(--spacing-md) 0 0;
+  padding-left: var(--spacing-2xl);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+.evu-counter.is-warn.evu-warn-band {
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  margin: 0;
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--bg-warning-primary);
+  font-size: var(--font-size-text-sm);
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--text-warning-primary);
+}
+.evu-warn-band svg {
+  flex-shrink: 0;
+}
