@@ -286,7 +286,18 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
   const targetName = member ? member.name : (memberList.find((m) => m.id === pickedId)?.name ?? '');
   const upcoming = isNow && targetId != null ? (startNow.upcomingFor?.(targetId) ?? null) : null;
   const startable = !!upcoming?.startable;
+  /* 같은 팀원인데 창에 보이는 잡아 둔 회차가 바뀌면(당기기가 거절돼 목록을 다시 읽어 다음 회차가 옴) 고른 것을 푼다 —
+     골라진 채 두면 한 번 더 누를 때 보지도 않은 다음 회차를 당긴다 (pivit-work PW-2592). 팀원을 바꾸거나
+     «예약»을 오가는 것은 회차가 바뀐 것이 아니라 그대로 둔다. */
+  const upcomingId = upcoming ? upcoming.id : null;
+  const [seenUpcoming, setSeenUpcoming] = useState({ target: null, id: null });
+  if (upcomingId != null && (seenUpcoming.target !== targetId || seenUpcoming.id !== upcomingId)) {
+    if (seenUpcoming.target === targetId && seenUpcoming.id != null) setUpcomingChoice(null);
+    setSeenUpcoming({ target: targetId, id: upcomingId });
+  }
   const upcomingAction = !upcoming ? null : startable ? 'start' : upcomingChoice;
+  /* 회차가 바뀌어 고른 것이 풀렸으면 다시 고를 때까지 누를 수 없다. */
+  const needsUpcomingChoice = isNow && !!upcoming && !startable && upcomingChoice == null;
   const nowMinutes = duration === 'custom' ? (customDuration.match(/\d+/)?.[0] ?? '') : duration;
   /* 지난 시각 (PW-2516) — 채워 연 값을 그대로 둔 «일정 변경»은 재지 않는다. 렌더 때 재고, 누를 때 한 번 더 잰다. */
   const prefilledKept = keepPrefilledPast && dayKey(date) === (defaultKey || tomorrowKey()) && time === (defaultTime || '10:00');
@@ -304,7 +315,7 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
         : L.startNowSubmitPlain;
 
   const submit = async () => {
-    if (saving || !canSubmit) return;
+    if (saving || !canSubmit || needsUpcomingChoice) return;
     if (checkPast()) {
       setPastAtClickKey(pickedKey);
       return;
@@ -384,7 +395,7 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
             className="tl-group-modal-btn tl-group-modal-btn-primary"
             data-testid="ono-add-modal-submit"
             onClick={() => void submit()}
-            disabled={!canSubmit || saving || isPast}
+            disabled={!canSubmit || saving || isPast || needsUpcomingChoice}
           >
             {submitLabel}
           </button>
