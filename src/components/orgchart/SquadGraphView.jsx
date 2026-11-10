@@ -323,10 +323,12 @@ export default function SquadGraphView({
                   >
                     <span className="sq-graph-avatar">
                       <svg className="sq-graph-ring" width={ringR * 2 + 4} height={ringR * 2 + 4} aria-hidden>
-                        <circle className="sq-graph-ring-track" cx={ringR + 2} cy={ringR + 2} r={ringR} />
+                        {/* 칠하기 없음은 속성으로도 단다 — [이미지로 다운]이 CSS 의 fill:none 을 못 옮겨 고리 안이 검게 찍혀 사진을 덮었다(PW-2599 4회차) */}
+                        <circle className="sq-graph-ring-track" cx={ringR + 2} cy={ringR + 2} r={ringR} fill="none" />
                         {total > 0 && (
                           <circle
                             className="sq-graph-ring-fill"
+                            fill="none"
                             data-testid={`squad-graph-ring-${p.userId}`}
                             cx={ringR + 2} cy={ringR + 2} r={ringR}
                             transform={`rotate(-90 ${ringR + 2} ${ringR + 2})`}

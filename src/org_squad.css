@@ -1950,6 +1950,8 @@
 /* 부서 카드 — 끌어 옮기지 않으므로 손 모양을 쓰지 않는다. 긴 이름은 한 줄에서 줄인다. */
 .sq-struct-dept, .sq-struct-dept:hover { cursor: default; }
 .sq-struct-dept { max-width: 280px; transition: box-shadow 0.2s, opacity 0.15s; }
+/* 스쿼드 카드 둘째 줄(상태 · N명)은 한 줄로 — 줄을 꺾게 두면 [이미지로 다운] 그림에서 글자가 조금만 넓어도 셋째 줄로 넘어가 접기 단추에 덮였다(4회차) */
+.sq-struct-dept.is-squad .dept-meta { flex-wrap: nowrap; }
 .sq-struct-dept.is-clickable, .sq-struct-dept.is-clickable:hover { cursor: pointer; }
 .sq-struct-dept .dept-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* 미분류 · 미배정 · 스쿼드 없음 — 조직도 «직속» 칸처럼 점선(.direct-slot > .member-node 와 같은 테두리) */

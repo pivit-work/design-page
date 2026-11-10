@@ -404,7 +404,7 @@ function StructureCanvas({
             </span>
           )}
           cardProps={{
-            className: 'sq-struct-dept',
+            className: 'sq-struct-dept is-squad',
             'data-testid': `squad-struct-squad-${sq.id}`,
             style: { background: 'var(--bg-quaternary)', opacity: sq.status === 'archived' ? 0.6 : 1 },
             onMouseEnter: () => setFocus({ kind: 'sq', id: sq.id }),
