@@ -101,6 +101,7 @@ export function OneOnOneRequestInbox({ heading, countLabel, children }) {
  * @param {{name: string, role?: string, avatar?: import('react').ReactNode}} props.member 줄 앞 사람 표시
  * @param {{sentLabel: string, whenLabel: string, minutes: number, text: string}} props.request
  * @param {boolean} props.canAdd 그 매니저가 잡은 시작 전 회차가 있을 때만 [잡아 둔 1on1 에 넣기]
+ * @param {() => void} [props.onDeclineCancel] 사유 칸 [취소] — 호스트가 그 줄의 실패 줄을 걷는다
  * @param {null|'add'|'decline'} [props.busy] 보내는 중인 응답 — 누른 버튼만 흐린다
  */
 export function OneOnOneRequestRow({
@@ -110,6 +111,7 @@ export function OneOnOneRequestRow({
   onBook,
   onAdd,
   onDecline,
+  onDeclineCancel,
   busy = null,
   error = '',
   labels,
@@ -159,6 +161,8 @@ export function OneOnOneRequestRow({
             onClick={() => {
               setReason('');
               setDeclining(false);
+              // 거절 실패 줄도 함께 걷는다 — 버튼 셋으로 돌아왔는데 «보내지 못했습니다»가 남으면 아직 실패 중으로 읽힌다.
+              onDeclineCancel?.();
             }}
             data-testid="ono-member-request-decline-cancel"
           >

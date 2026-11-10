@@ -5862,10 +5862,14 @@ button.ono-add-modal-input { cursor: pointer; }
   width: 220px;
 }
 /* 팀원 카드 이름 아래 칩 — 1on1 작은 칩(.ono-mem-chip) 크기에 «강조» 뜻 색(StatusBadge accent ·
-   우리 서비스가 붙인 표시 — 커트 시안의 브랜드 칩). 직급 줄 아래 xs. */
+   우리 서비스가 붙인 표시 — 커트 시안의 브랜드 칩). 직급 줄 옆자리(줄 높이 20 안의 18)라 카드 높이가 그대로다. */
+.ono-member-role-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
 .ono-mem-chip.ono-member-request-chip {
-  align-self: flex-start;
-  margin-top: var(--spacing-xs);
+  white-space: nowrap;
   background: var(--bg-brand-secondary);
   color: var(--text-brand-secondary);
   font-weight: 600;

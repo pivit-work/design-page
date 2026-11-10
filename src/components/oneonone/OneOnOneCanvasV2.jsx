@@ -589,13 +589,18 @@ function MemberCard({ member, tone, icons, baseUrl, onAction, onCardClick, rende
           </div>
           <div className="ono-member-name-block">
             <p className="ono-member-name">{member.name}</p>
-            <p className="ono-member-role">{member.role}</p>
             {/* 팀원이 보낸 «대기» 1on1 신청이 있다는 표시만 — 신청 줄과 응답은 대시보드 맨 앞 묶음에 있다
-                (pivit-work PW-2639 · 기획 v3.16 §13-10 «신청 묶음» ③ ⑧). 누르는 동작이 없다. */}
-            {member.requestChip && (
-              <StatusBadge tone="accent" className="ono-mem-chip ono-member-request-chip" data-testid="ono-member-request-chip">
-                {member.requestChip}
-              </StatusBadge>
+                (pivit-work PW-2639 · 기획 v3.16 §13-10 «신청 묶음» ③ ⑧). 누르는 동작이 없다(카드를 누른 것과 같다).
+                직급 줄 안 옆자리에 둔다 — 아래 줄로 쌓으면 카드 높이가 신청 때문에 18px 늘어난다(11-11 로컬 확인). */}
+            {member.requestChip ? (
+              <div className="ono-member-role-row">
+                <p className="ono-member-role">{member.role}</p>
+                <StatusBadge tone="accent" className="ono-mem-chip ono-member-request-chip" data-testid="ono-member-request-chip">
+                  {member.requestChip}
+                </StatusBadge>
+              </div>
+            ) : (
+              <p className="ono-member-role">{member.role}</p>
             )}
           </div>
         </div>
