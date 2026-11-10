@@ -26,12 +26,14 @@ import {
   ArrowLeftGlyph,
   ArrowRightGlyph,
   ChatGlyph,
+  CheckGlyph,
   CloseGlyph,
   EyeGlyph,
   FileTextGlyph,
   FolderGlyph,
   LockKeyholeSquareGlyph,
   MailGlyph,
+  MinusGlyph,
   PaperclipGlyph,
   PencilGlyph,
   SearchGlyph,
@@ -1450,7 +1452,14 @@ function StepBar({
               data-testid={`evc-wiz-step-${i}`}
             >
               <span className="evc-wiz-step-num">
-                {skipped ? '–' : state === 'done' ? '✓' : i + 1}
+                {/* PW-2646 — 글자 «–»·«✓» 대신 공용 선 아이콘(시안 RULES 6). */}
+                {skipped ? (
+                  <MinusGlyph size={12} />
+                ) : state === 'done' ? (
+                  <CheckGlyph size={12} />
+                ) : (
+                  i + 1
+                )}
               </span>
               <span className="evc-wiz-step-label">{L[s.titleKey]}</span>
               {skipped && <span className="evc-wiz-step-skip">{L.badgeUnused}</span>}
@@ -2166,7 +2175,7 @@ function CommitteeCard({
             })}
             data-testid="evc-wiz-calibcard-remove"
           >
-            ×
+            <CloseIcon size={16} />
           </button>
         )}
       </div>
@@ -2332,7 +2341,7 @@ function CommitteeCard({
                   aria-label={L.wizardCommitteeSearchReset ?? '검색 초기화'}
                   data-testid="evc-wiz-committee-roster-search-reset"
                 >
-                  ×
+                  <CloseIcon size={12} />
                 </button>
               )}
             </div>
@@ -2399,7 +2408,7 @@ function CommitteeCard({
                     aria-label={`${m.name} ${L.wizardCommitteeExclude ?? '대상자 제외'}`}
                     data-testid={`evc-wiz-committee-roster-remove-${m.id}`}
                   >
-                    ×
+                    <CloseIcon size={12} />
                   </button>
                 </li>
               ))}
@@ -2548,7 +2557,7 @@ function CommitteeCard({
                     aria-label={`${c?.name ?? id} ${L.wizardCommitteeRemove ?? '위원 제거'}`}
                     data-testid={`evc-wiz-committee-chip-remove-${id}`}
                   >
-                    ×
+                    <CloseIcon size={12} />
                   </button>
                 </StatusBadge>
               );
@@ -10038,7 +10047,7 @@ export default function EvalCycleWizard({
                             </span>
                           )}
                         </Tooltip>
-                        <span className="evc-sched-num">{enabled ? n : '–'}</span>
+                        <span className="evc-sched-num">{enabled ? n : <MinusGlyph size={12} />}</span>
                         <span className="evc-sched-name">{phaseName(ph)}</span>
                         <span className="evc-sched-owner">
                           {L.ownerLabel}: {phaseOwner(ph)}

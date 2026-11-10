@@ -1,3 +1,4 @@
+import { CloseGlyph } from '../shared/lineIcons.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import EvalNoteBlock from './EvalNoteBlock.jsx';
@@ -214,7 +215,7 @@ export default function EvalTemplateItemSettings({
                   aria-label={L.delete}
                   data-testid={`evc-tpl-option-del-${q.id}-${oi}`}
                 >
-                  ✕
+                  <CloseGlyph size={14} style={{ verticalAlign: 'middle' }} />
                 </button>
               </div>
             ))}

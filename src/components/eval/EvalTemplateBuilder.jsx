@@ -1,3 +1,4 @@
+import { CloseGlyph } from '../shared/lineIcons.jsx';
 import EvalTemplateItemSettings from './EvalTemplateItemSettings.jsx';
 import Select from '../shared/Select.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
@@ -127,7 +128,7 @@ export function EvalTemplateGradeRows({
           <span>{L.gradeHeadDesc}</span>
           <span>{L.gradeHeadKeywords}</span>
           {/* 줄마다 있는 × 칸(auto)이 머리에 없으면 나머지 칸이 그만큼 넓어져 아래 입력 칸과 어긋난다 — 같은 폭으로 비워 둔다. */}
-          <span className="evc-tpl-x evc-tpl-grade-head-x" aria-hidden="true">✕</span>
+          <span className="evc-tpl-x evc-tpl-grade-head-x" aria-hidden="true"><CloseGlyph size={14} style={{ verticalAlign: 'middle' }} /></span>
         </div>
       ) : null}
       {grades.map((g, i) => (
@@ -190,7 +191,7 @@ export function EvalTemplateGradeRows({
             aria-label={L.delete}
             data-testid={`${testPrefix}-del-${i}`}
           >
-            ✕
+            <CloseGlyph size={14} style={{ verticalAlign: 'middle' }} />
           </button>
           {/* × 뒤에 둔다 — 키워드 칸 아래(다음 줄 5열)로 내려가고 × 는 제 줄에 남는다 */}
           {keywordsOver(g) && (
@@ -500,7 +501,7 @@ export function EvalTemplateItemRow({
           aria-label={L.delete}
           data-testid={`evc-tpl-item-del-${q.id}`}
         >
-          ✕
+          <CloseGlyph size={14} style={{ verticalAlign: 'middle' }} />
         </button>
       )}
       {open && (
