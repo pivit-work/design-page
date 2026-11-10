@@ -336,45 +336,51 @@ export function pillarViewBox(tree) {
   return { x: x0 - 24, y: y0 - 96, w: x1 - x0 + 48, h: y1 - y0 + 112 };
 }
 
-/** 사람 이름표 너비(바닥 단위 · 배율 1) — 리드·조직장 알약과 일반 이름 */
+/**
+ * 사람 이름표 상자(바닥 단위 · 배율 1) — 그리는 모양(SquadPillarStage «Tag»)과 같은 자리.
+ * top = 기둥 꼭대기에서 상자 위 끝까지(과부하 20 올림 전), h = 상자 높이.
+ * 내 이름표는 두 줄 알약(위 끝 42 · 높이 34), 리드·조직장 알약(위 끝 25 · 높이 22), 일반 이름 글자(위 끝 15 · 높이 13).
+ */
 export function tagBox(tk, side, name, mine) {
   const lead = side === 'squad' ? tk.lead : tk.head;
   const len = [...String(name || '')].length;
-  if (side === 'squad' && mine) return { w: Math.max(len + 2, 7) * 11 + 24, h: 32, lead: true };
-  if (lead) return { w: side === 'squad' ? len * 11.5 + 44 : (len + 5) * 11.5 + 16, h: 22, lead: true };
-  return { w: nameTagW(Math.min(len, PILLAR_NAME_MAX)), h: 13, lead: false };
+  if (side === 'squad' && mine) return { w: Math.max(len + 2, 7) * 11 + 24, top: 42, h: 34, lead: true };
+  if (lead) return { w: side === 'squad' ? len * 11.5 + 44 : (len + 5) * 11.5 + 16, top: 25, h: 22, lead: true };
+  return { w: nameTagW(Math.min(len, PILLAR_NAME_MAX)), top: 15, h: 13, lead: false };
 }
 
-const MAX_LIFT_LINES = 3;
 /**
- * 이름표 자리 — 겹치면 위로 올린다(최대 세 줄). 리드·조직장이 먼저, 그다음 앞쪽 사람부터 자리를 잡는다.
- * @returns Map<key, dy> (화면 단위 · 위로 올린 거리, 배율 k 를 곱한 값)
+ * 이름표 자리 — 겹치면 겹친 상자 위로 올린다. 리드·조직장·내 이름표가 먼저, 그다음 앞쪽 사람부터 자리를 잡는다.
+ * 올리는 거리에 상한을 두지 않는다 — 상한에서 멈추면 그 자리에서 겹친 채 남는다
+ * (11-10 dev: 높이 34 인 내 이름표 바로 뒤 이름이 세 줄 상한에 걸려 통째로 덮였다).
+ * @returns [{ key, x, top, w, h, dy }] (화면 단위 · 배율 k · 올린 뒤 자리 · dy = 위로 올린 거리)
  */
-export function layoutTags(list, side, k, nameOf, isMine) {
+export function placeTagBoxes(list, side, k, nameOf, isMine) {
   const items = list.map((t) => {
     const q = side === 'squad' ? t.S : t.O;
     const [x, y] = pillarIso(q.x, q.y, q.z + t.h);
-    const mine = isMine(t);
-    const b = tagBox(t, side, nameOf(t), mine);
+    const b = tagBox(t, side, nameOf(t), isMine(t));
     const over = t.a && t.x.total > PILLAR_OVER ? 20 : 0;
-    return { key: t.key, x, top: y - ((b.lead ? (mine ? 34 : 24) : 15) + over) * k, w: b.w * k, h: b.h * k, lead: b.lead, order: q.x + q.y };
+    return { key: t.key, x, top: y - (b.top + over) * k, w: b.w * k, h: b.h * k, lead: b.lead, order: q.x + q.y };
   });
   items.sort((a, b) => (b.lead - a.lead) || (b.order - a.order));
   const placed = [];
-  const out = new Map();
-  const cap = MAX_LIFT_LINES * 13 * k;
   items.forEach((it) => {
-    let dy = 0;
-    for (let i = 0; i < 12; i++) {
-      const c = placed.find((p) => Math.abs(p.x - it.x) < (p.w + it.w) / 2 && it.top - dy < p.top + p.h && it.top - dy + it.h > p.top);
+    let top = it.top;
+    // 한 번 올릴 때마다 겹친 상자 하나의 위로 넘어가므로, 놓인 상자 수만큼이면 반드시 빈 자리에 닿는다
+    for (let i = 0; i <= placed.length; i++) {
+      const c = placed.find((p) => Math.abs(p.x - it.x) < (p.w + it.w) / 2 && top < p.top + p.h && top + it.h > p.top);
       if (!c) break;
-      dy = Math.min(it.top + it.h - c.top + 1, cap);
-      if (dy >= cap) break;
+      top = c.top - it.h - 1;
     }
-    placed.push({ x: it.x, top: it.top - dy, w: it.w, h: it.h });
-    out.set(it.key, dy);
+    placed.push({ key: it.key, x: it.x, top, w: it.w, h: it.h, dy: it.top - top });
   });
-  return out;
+  return placed;
+}
+
+/** @returns Map<key, dy> (화면 단위 · 위로 올린 거리, 배율 k 를 곱한 값) */
+export function layoutTags(list, side, k, nameOf, isMine) {
+  return new Map(placeTagBoxes(list, side, k, nameOf, isMine).map((p) => [p.key, p.dy]));
 }
 
 // ── 찾기 (초성 포함) ──
