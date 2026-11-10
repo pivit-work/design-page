@@ -14,6 +14,9 @@ import FeedbackOkrPanel from './FeedbackOkrPanel.jsx';
 import { SkeletonList } from '../shared/Skeleton.jsx';
 import { FeedbackTextLimitContext, useFeedbackTextLimit, useFeedbackTextTooLong } from './feedbackTextLimit.js';
 import FeedbackLengthNote from './FeedbackLengthNote.jsx';
+import LoadMoreButton from '../shared/LoadMoreButton.jsx';
+import EmptyState from '../shared/EmptyState.jsx';
+import { PencilGlyph } from '../shared/lineIcons.jsx';
 
 /**
  * EvalFeedbackCanvas — 내 피드백 (멤버 뷰, v2 재설계).
@@ -156,7 +159,19 @@ const DEFAULT_LABELS = {
   okrPanelCoverage: '{covered}/{total} KR 커버',
   okrObjectiveSuffix: ' Objective',
   okrPanelInitiatives: 'Initiatives',
+  // PW-2684 — 많아지면 접는다. {count} 는 접어 둔 건수.
+  incomingMore: '나머지 {count}건 더 보기',
+  earlierFeedback: '이전 피드백 {count}건 보기',
 };
+
+/** 받은 요청은 앞 몇 건만 펼쳐 둔다 — 나머지는 «나머지 N건 더 보기» (PW-2684). */
+const INCOMING_VISIBLE = 3;
+/** KR·이니셔티브 카드는 최근 몇 건만 미리 보인다 — 이전 것은 «이전 피드백 N건 보기» (PW-2684). */
+const BLOCK_PREVIEW = 2;
+
+function fill(template, vars) {
+  return String(template).replace(/\{(\w+)\}/g, (_, k) => (vars[k] ?? ''));
+}
 
 function isObj(v) {
   return v && typeof v === 'object' && !Array.isArray(v);
@@ -171,11 +186,6 @@ function mergeLabels(base, provided) {
   return out;
 }
 
-function krColor(p) {
-  if (p >= 80) return C.green;
-  if (p >= 50) return C.amber;
-  return C.rose;
-}
 function fmtDate(v) {
   if (!v) return '';
   const d = new Date(v);
@@ -186,8 +196,6 @@ function fmtDate(v) {
 
 
 // ── 블록 카드(KR/이니셔티브 공통) ──
-/** KR 진행률 바 폭. 카드가 1080px 로 넓어져 40px 는 점처럼 보였다 (PW-218). */
-const PROGRESS_BAR_W = 96;
 /**
  * 미리보기가 2줄 clamp 로 잘렸는지 (PW-103 · `screen-feedback-member.policy.md` §1.7.1).
  *
@@ -210,104 +218,94 @@ function BlockCard({ block, L, onOpen, cardRef }) {
   const isKr = block.type === 'kr';
   const isEtc = block.type === 'etc';
   const items = block.items;
-  const accent = isKr ? C.blue : C.purple;
-  const accentBg = isKr ? C.blueBg : C.purpleBg;
-  const accentBd = isKr ? C.blueBd : C.purpleBd;
-  const barColor = isKr ? krColor(block.progress ?? 0) : C.purple;
-  const latest = [...items]
-    .sort((a, b) => new Date(a.sentAt) - new Date(b.sentAt))
-    .slice(-2);
+  const [showAll, setShowAll] = useState(false);
+  const sorted = [...items].sort((a, b) => new Date(a.sentAt) - new Date(b.sentAt));
+  // PW-2684 — 최근 2건만 미리 보이고, 이전 것은 «이전 피드백 N건 보기»를 누르면 카드 안에 다 펼친다.
+  const hiddenCount = showAll ? 0 : Math.max(0, sorted.length - BLOCK_PREVIEW);
+  const latest = sorted.slice(hiddenCount);
   const last = items[items.length - 1];
   // 턴: 마지막이 받은 피드백이고 미응답이면 내 차례. 마지막이 내 요청이면 대기.
   const isMyTurn =
     last && last.itemType === 'feedback' && !last.myReply;
   const isWaiting = last && last.itemType === 'request';
+  const progress = block.progress ?? 0;
 
+  // 카드 아무 곳이나 누르면 스레드 창이 열린다(예전 모양 그대로). 안에 «이전 피드백 보기»·«스레드 열기» 버튼이
+  // 있어 카드 자체는 버튼이 아니다 — 키보드는 «스레드 열기» 버튼으로 연다.
   return (
-    <button
-      type="button"
+    <div
       ref={cardRef}
       onClick={() => onOpen(block)}
       data-testid={`fbm-block-${block.key}`}
-      style={{
-        display: 'block',
-        width: '100%',
-        textAlign: 'left',
-        background: C.surface,
-        border: `1px solid ${C.border}`,
-        borderRadius: 12,
-        // 카드가 1080px 폭으로 넓어졌다 — 좌우 패딩만 소폭 키워 글이 테두리에 붙지 않게 한다 (PW-218)
-        padding: '14px 18px',
-        cursor: 'pointer',
-        fontFamily: FONT,
-      }}
+      className={`evf-block${!isKr && !isEtc ? ' is-init' : ''}`}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+      <div className="evf-block-head">
         {isKr ? (
           <Chip tone="info">{block.badge}</Chip>
         ) : isEtc ? (
-          <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>{L.sectionEtc}</span>
+          <span className="evf-block-title">{L.sectionEtc}</span>
         ) : (
-          <span style={{ fontSize: 13, fontWeight: 700, color: C.purple }}>
+          <span className="evf-block-title is-init">
             # {block.title}
           </span>
         )}
         {isKr && (
-          <span style={{ fontSize: 13, fontWeight: 700, color: C.text }}>
+          <span className="evf-block-title">
             {block.title}
           </span>
         )}
         {isKr && (
-          <span style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ width: PROGRESS_BAR_W, height: 4, background: C.borderL, borderRadius: 2, overflow: 'hidden' }}>
-              <span style={{ display: 'block', width: `${block.progress ?? 0}%`, height: '100%', background: barColor }} />
+          <span className="evf-block-progress">
+            {/* 디자이너 KR 진행 막대(매니저 대시보드 .mgr-kr-progress-*) */}
+            <span className="mgr-kr-progress-track evf-block-bar">
+              <span className="mgr-kr-progress-fill" style={{ width: `${progress}%` }} />
             </span>
-            <span style={{ fontSize: 12, color: C.sub }}>{block.progress ?? 0}%</span>
+            <span className="evf-block-pct">{progress}%</span>
           </span>
         )}
       </div>
 
       {latest.length === 0 ? (
-        <p style={{ fontSize: 'var(--font-size-text-xs)', fontStyle: 'italic', color: C.sub, margin: '4px 0' }}>
+        <p className="evf-block-empty">
           {isKr ? L.emptyBlock : L.emptyBlockInit}
         </p>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div className="evf-msgs">
+          {hiddenCount > 0 && (
+            <Button
+              type="button"
+              className="evf-fold-btn"
+              data-testid={`fbm-block-earlier-${block.key}`}
+              onClick={(e) => { e.stopPropagation(); setShowAll(true); }}
+            >
+              {fill(L.earlierFeedback, { count: hiddenCount })}
+            </Button>
+          )}
           {latest.map((it) => (
-            <div key={it.id} style={{ display: 'flex', gap: 8 }}>
+            <div key={it.id} className="evf-msg">
               <Avatar
                 name={it.person?.name}
                 photo={it.person?.avatar}
-                size={22}
+                size={24}
               />
-              <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: C.sub }}>
-                  <span style={{ fontWeight: 700, color: C.text }}>
+              <div className="evf-msg-body">
+                <div className="evf-msg-head">
+                  <span className="evf-msg-name">
                     {it.itemType === 'feedback' ? it.person?.name || '' : L.me}
                   </span>
                   {it.itemType === 'request' && (
                     <Chip tone="accent">{L.requestTag}</Chip>
                   )}
-                  <span>{fmtDate(it.sentAt)}</span>
+                  <span className="evf-msg-date">{fmtDate(it.sentAt)}</span>
                 </div>
-                <p
-                  style={{
-                    fontSize: 'var(--font-size-text-xs)',
-                    color: C.sub,
-                    margin: '2px 0 0',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                  }}
-                >
+                <p className="evf-msg-text">
                   {it.text || L.emptyText}
                 </p>
                 {/* 잘림을 드러낸다 — 카드 전체가 이미 스레드 오픈 트리거라 별도 핸들러는 없다 */}
                 {isPreviewTruncated(it.text) && (
                   <span
                     data-testid={`fbm-truncated-${it.id}`}
-                    style={{ fontSize: 12, fontWeight: 600, color: isKr ? C.teal : C.purple }}
+                    className={`evf-msg-more${isKr ? '' : ' is-init'}`}
                   >
                     {L.truncatedHint}
                   </span>
@@ -318,19 +316,23 @@ function BlockCard({ block, L, onOpen, cardRef }) {
         </div>
       )}
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
-        <span style={{ fontSize: 12, color: C.sub }}>
+      <div className="evf-block-foot">
+        <span className="evf-block-count">
           {items.length}{L.countSuffix}
         </span>
         {isMyTurn && <Chip tone="warning">{L.myTurn}</Chip>}
         {!isMyTurn && isWaiting && (
           <Chip tone="progress">{L.waiting}</Chip>
         )}
-        <span style={{ marginLeft: 'auto', fontSize: 'var(--font-size-text-xs)', fontWeight: 600, color: isKr ? C.teal : C.purple }}>
+        <Button
+          type="button"
+          className={`evf-block-open${isKr ? '' : ' is-init'}`}
+          onClick={(e) => { e.stopPropagation(); onOpen(block); }}
+        >
           {L.openThread}
-        </span>
+        </Button>
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -921,9 +923,15 @@ function IncomingRequestSection({ requests, L, isPastPeriod, onSend }) {
   const [openId, setOpenId] = useState(null);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
+  const [showAll, setShowAll] = useState(false);
   const maxLen = useFeedbackTextLimit();
   const tooLong = useFeedbackTextTooLong(text);
   if (!requests.length) return null;
+  // PW-2684 — 앞 3건만 펼치고 나머지는 «나머지 N건 더 보기». 쓰던 칸이 접힌 줄에 있으면 접지 않는다.
+  const openIdx = requests.findIndex((r) => r.id === openId);
+  const visibleCount = showAll || openIdx >= INCOMING_VISIBLE ? requests.length : INCOMING_VISIBLE;
+  const visible = requests.slice(0, visibleCount);
+  const restCount = requests.length - visible.length;
 
   const submit = async (req) => {
     const body = text.trim();
@@ -941,33 +949,30 @@ function IncomingRequestSection({ requests, L, isPastPeriod, onSend }) {
   };
 
   return (
-    <div
-      data-testid="fbm-incoming"
-      style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-text-xs)', fontWeight: 700, color: C.teal }}>
-        <MailIcon size={13} /> {L.incomingTitle} {requests.length}{L.countSuffix}
+    <div data-testid="fbm-incoming" className="evf-incoming">
+      <div className="evf-incoming-title">
+        <MailIcon size={14} /> {L.incomingTitle} {requests.length}{L.countSuffix}
       </div>
-      {requests.map((req) => (
-        <div key={req.id} data-testid={`fbm-incoming-${req.id}`} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-          <Avatar name={req.person?.name} photo={req.person?.avatar} size={30} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 'var(--font-size-text-xs)', fontWeight: 700, color: C.text }}>
+      {visible.map((req) => (
+        <div key={req.id} data-testid={`fbm-incoming-${req.id}`} className="evf-incoming-row">
+          <Avatar name={req.person?.name} photo={req.person?.avatar} size={32} />
+          <div className="evf-incoming-body">
+            <div className="evf-incoming-head">
+              <span className="evf-incoming-name">
                 {req.person?.name}{req.person?.inactive ? ` ${L.incomingInactive}` : ''}
               </span>
-              <span style={{ fontSize: 'var(--font-size-text-xs)', color: C.sub }}>
+              <span className="evf-incoming-meta">
                 {req.person?.role ? `${req.person.role} · ` : ''}{fmtDate(req.sentAt)}
               </span>
               {req.linkedTargetTitle && <Chip tone="info">{req.linkedTargetTitle}</Chip>}
             </div>
             {req.text && (
-              <div style={{ background: C.borderL, borderRadius: '0 10px 10px 10px', padding: '9px 12px', fontSize: 13, color: C.text, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
+              <div className="evf-incoming-bubble">
                 {req.text}
               </div>
             )}
             {isPastPeriod ? (
-              <div style={{ marginTop: 8, fontSize: 'var(--font-size-text-xs)', color: C.sub }}>
+              <div className="evf-incoming-past">
                 <ClockIcon size={11} /> {L.incomingPastReadonly}
               </div>
             ) : openId !== req.id ? (
@@ -975,12 +980,13 @@ function IncomingRequestSection({ requests, L, isPastPeriod, onSend }) {
                 type="button"
                 onClick={() => { setOpenId(req.id); setText(''); }}
                 data-testid={`fbm-incoming-write-${req.id}`}
-                className="evf-btn evf-btn-secondary" style={{ marginTop: 8 }}
+                className="evf-btn evf-btn-secondary"
               >
+                <PencilGlyph size={13} />
                 {L.incomingWrite}
               </Button>
             ) : (
-              <div style={{ marginTop: 8, background: C.bg, border: `1px solid ${C.border}`, borderRadius: '0 10px 10px 10px', padding: '12px 14px' }}>
+              <div className="evf-incoming-compose">
                 <TextArea
                   rows={3}
                   value={text}
@@ -988,10 +994,10 @@ function IncomingRequestSection({ requests, L, isPastPeriod, onSend }) {
                   placeholder={L.incomingPlaceholder}
                   maxLength={maxLen}
                   data-testid={`fbm-incoming-text-${req.id}`}
-                  className="evf-textarea" style={{ marginBottom: 10 }}
+                  className="evf-textarea evf-incoming-textarea"
                 />
                 <FeedbackLengthNote text={text} label={L.textLimitNote} color={C.rose} testId={`fbm-incoming-limit-${req.id}`} />
-                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                <div className="evf-incoming-actions">
                   <Button
                     type="button"
                     onClick={() => { setOpenId(null); setText(''); }}
@@ -1015,6 +1021,13 @@ function IncomingRequestSection({ requests, L, isPastPeriod, onSend }) {
           </div>
         </div>
       ))}
+      {restCount > 0 && (
+        <LoadMoreButton
+          className="evf-incoming-more"
+          label={fill(L.incomingMore, { count: restCount })}
+          onClick={() => setShowAll(true)}
+        />
+      )}
     </div>
   );
 }
@@ -1328,12 +1341,12 @@ export default function EvalFeedbackCanvas({
             <ClockIcon size={12} /> {L.pastBanner}
           </div>
         )}
-        <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 12px', fontSize: 'var(--font-size-text-xs)', color: C.sub }}>
-          <ChatIcon size={12} /> {L.infoBanner}
+        <div className="evf-note">
+          <ChatIcon size={16} /> <span>{L.infoBanner}</span>
         </div>
         {unread > 0 && (
-          <div style={{ background: C.tealBg, border: `1px solid ${C.tealBd}`, color: C.teal, borderRadius: 10, padding: '10px 12px', fontSize: 13, fontWeight: 600 }} data-testid="fbm-unread">
-            {unread}{L.countSuffix} {L.unreadSuffix}
+          <div className="evf-note is-brand" data-testid="fbm-unread">
+            <MailIcon size={16} /> <span>{unread}{L.countSuffix} {L.unreadSuffix}</span>
           </div>
         )}
 
@@ -1356,7 +1369,7 @@ export default function EvalFeedbackCanvas({
         <>
         {krBlocks.length > 0 && (
           <>
-            <div style={{ fontSize: 'var(--font-size-text-xs)', fontWeight: 700, color: C.sub, letterSpacing: 0.5, margin: '4px 0 -4px' }}>
+            <div className="evf-sec-label">
               {L.sectionKr}
             </div>
             {krBlocks.map((b) => (
@@ -1367,14 +1380,14 @@ export default function EvalFeedbackCanvas({
 
         {blocksFailed === 'initiatives' ? (
           <>
-            <div style={{ fontSize: 'var(--font-size-text-xs)', fontWeight: 700, color: C.sub, letterSpacing: 0.5, margin: '8px 0 -4px' }}>
+            <div className="evf-sec-label">
               {L.sectionInit}
             </div>
             <BlocksLoadFailed message={L.initiativesLoadFailed} L={L} onRetry={onRetryBlocks} />
           </>
         ) : initBlocks.length > 0 && (
           <>
-            <div style={{ fontSize: 'var(--font-size-text-xs)', fontWeight: 700, color: C.sub, letterSpacing: 0.5, margin: '8px 0 -4px' }}>
+            <div className="evf-sec-label">
               {L.sectionInit}
             </div>
             {initBlocks.map((b) => (
@@ -1384,14 +1397,21 @@ export default function EvalFeedbackCanvas({
         )}
 
         {krBlocks.length === 0 && initBlocks.length === 0 && !etc && !blocksFailed && (
-          <p className="evc-empty-sub">{L.emptyBlockInit}</p>
+          // PW-2684 — 빈 상태는 회색 네모 그림 + 진한 제목(내 평가 홈 빈 상태와 같은 모양).
+          <EmptyState
+            data-testid="fbm-empty"
+            className="evf-empty"
+            size="lg"
+            icon={<ChatIcon size={24} />}
+            title={L.emptyBlockInit}
+          />
         )}
         </>
         )}
         {/* «기타»는 OKR 정보와 무관하게 받은 대화에서 그린다(§10-3) — OKR 을 못 읽어도 받은 피드백을 열 곳이 남는다. */}
         {etc && (
           <>
-            <div style={{ fontSize: 'var(--font-size-text-xs)', fontWeight: 700, color: C.sub, letterSpacing: 0.5, margin: '8px 0 -4px' }}>
+            <div className="evf-sec-label">
               {L.sectionEtc}
             </div>
             <BlockCard block={etc} L={L} onOpen={setOpenBlock} cardRef={etcCardRef} />

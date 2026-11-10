@@ -9,7 +9,7 @@ import MeetingSyncToast from '../meetings/MeetingSyncToast.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Tabs from '../shared/Tabs.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
-import { AlertIcon, ChevronDownIcon, ChevronUpIcon, InfoIcon, LockIcon, RefreshIcon, ZapIcon } from './evalIcons.jsx';
+import { AlertIcon, ChevronDownIcon, ChevronRightIcon, ChevronUpIcon, InfoIcon, LockIcon, RefreshIcon, ZapIcon } from './evalIcons.jsx';
 import { ClockGlyph, CloseGlyph } from '../shared/lineIcons.jsx';
 import { autoCommitteeIdsOf } from './calibrationAutoCommittee.js';
 import AvatarPhoto from './AvatarPhoto';
@@ -22,6 +22,10 @@ import { leaderGradeMarks } from './evalLeaderLive.js';
 import { pickParticle } from '../shared/koreanParticle.js';
 import Select from '../shared/Select.jsx';
 import Button from '../shared/Button.jsx';
+import MemberAiButton from '../oneonone/MemberAiButton.jsx';
+import SearchInput from '../shared/SearchInput.jsx';
+import EmptyState from '../shared/EmptyState.jsx';
+import assetUrl from '../shared/assetUrl.js';
 import { isEnterKey } from '../shared/enterKey.js';
 import { FieldInfo } from './evalFieldMeta.jsx';
 
@@ -316,6 +320,16 @@ const DEFAULT_LABELS = {
   cwAppealReviewCta: '→ 재검토',
   // spec-calibration §14 「이미 처리된 어필 재진입」 — 결과를 읽기 전용으로 다시 연다(재결정 불가).
   cwInboxDecidedTitle: '처리된 어필',
+  // PW-2684 — 많아질 때(세션·어필·리더·피평가자 수백) 검색칸과 «더 보기».
+  cwSessionSearch: '세션 이름 검색',
+  cwSessionSearchEmpty: '검색 결과가 없습니다',
+  cwDecidedMore: '이전 {n}건 더 보기',
+  cwDecidedLess: '접기',
+  leaderSearch: '리더 · 부서 검색',
+  leaderSearchEmpty: '검색 결과가 없습니다',
+  reSearch: '이름 · 부서 검색',
+  reSearchEmpty: '검색 결과가 없습니다',
+  reCount: '{n}명',
   cwAppealResultCta: '→ 결과 보기',
   cwBackToInbox: '← 어필 목록',
   cwAppealTitle: '어필 재검토',
@@ -718,6 +732,8 @@ const DEFAULT_LABELS = {
   reStatusUnreviewed: 'AI 초안 미확인',
   reStatusReviewed: '검수 완료',
   reGenerate: 'AI 요약 생성',
+  // PW-2684 — AI 버튼 안 동작 낱말(앞의 «AI»는 버튼이 그린다). 화면 읽기 이름은 reGenerate 그대로.
+  reGenerateAction: '요약 생성',
   reRegenerate: '요약 재생성',
   reReviewComplete: '1차 검수 완료',
   reGenerateLeaderOnly: 'AI 요약 생성은 조직장만 실행할 수 있습니다.',
@@ -772,6 +788,10 @@ const DEFAULT_LABELS = {
 function isObj(v) {
   return v && typeof v === 'object' && !Array.isArray(v);
 }
+/** PW-2684 — 처리된 어필은 앞 3건만, 나머지는 «이전 N건 더 보기». 세션이 이보다 많으면 이름 검색칸. */
+const DECIDED_PREVIEW = 3;
+const SESSION_SEARCH_MIN = 5;
+
 function fmt(str, vars) {
   return String(str).replace(/\{(\w+)\}/g, (m, k) => (vars[k] != null ? String(vars[k]) : m));
 }
@@ -1115,9 +1135,14 @@ function IntegratedSummaryActions({ L, detail, status, statusLabel, failed, view
           <div className="evs-re-actions-btns">
             {!exists ? (
               <Tooltip content={can ? '' : L.reGenerateLeaderOnly}>
-                <button type="button" className="evc-btn is-primary" disabled={!can || busy} onClick={() => onGenerate(false)} data-testid="evs-re-generate">
-                  {L.reGenerate}
-                </button>
+                {/* PW-2684 — AI 가 도는 버튼은 디자이너 AI 버튼(1on1 «✦ AI 생성», MemberAiButton) 모양. 글자는 «AI» + 동작 낱말. */}
+                <MemberAiButton
+                  label={L.reGenerateAction}
+                  ariaLabel={L.reGenerate}
+                  disabled={!can || busy}
+                  onClick={() => onGenerate(false)}
+                  testId="evs-re-generate"
+                />
               </Tooltip>
             ) : (
               <Tooltip content={can ? '' : L.reGenerateLeaderOnly}>
@@ -1157,7 +1182,7 @@ function IntegratedSummaryActions({ L, detail, status, statusLabel, failed, view
         </div>
       )}
       {can && !busy && (detail.peerReviewerCount ?? 0) < 3 && (
-        <div className="evs-re-alert" data-testid="evs-re-peer-few">{fmt(L.rePeerFew, { n: detail.peerReviewerCount ?? 0 })}</div>
+        <div className="evs-re-alert is-warn-line" data-testid="evs-re-peer-few"><AlertIcon size={14} />{fmt(L.rePeerFew, { n: detail.peerReviewerCount ?? 0 })}</div>
       )}
     </section>
   );
@@ -2145,7 +2170,7 @@ function PeriodSelector({ periods, selectedCycleId, onChange, L }) {
   );
   const ofType = periods.filter((p) => p.type === currentType);
   return (
-    <div className="evc-period" data-testid="evc-period">
+    <div className="evc-period evs-period" data-testid="evc-period">
       <span className="evc-period-label">{L.periodLabel}</span>
       <SegmentedControl
         ariaLabel={L.periodLabel}
@@ -2507,6 +2532,11 @@ export default function EvalCycleSummaryCanvas({
   const [presetName, setPresetName] = useState('');
   const [presetShared, setPresetShared] = useState(false);
   const [presetSaving, setPresetSaving] = useState(false);
+  // PW-2684 — 많아질 때: 세션 이름 검색 · 처리된 어필 앞 3건 + 더 보기 · 리더·피평가자 검색.
+  const [sessionQuery, setSessionQuery] = useState('');
+  const [decidedOpen, setDecidedOpen] = useState(false);
+  const [leaderQuery, setLeaderQuery] = useState('');
+  const [revieweeQuery, setRevieweeQuery] = useState('');
   // R1(v0.3) 위원회 생성 모달
   const [showCreate, setShowCreate] = useState(false);
   const [createName, setCreateName] = useState('');
@@ -3064,10 +3094,20 @@ export default function EvalCycleSummaryCanvas({
           ? L.reStatusReviewed
           : L.reStatusNone;
 
+  // PW-2684 — 리더별 제출 현황 검색(이름·부서).
+  const leaderQ = leaderQuery.trim().toLowerCase();
+  const shownLeaders = leaderQ
+    ? leaderStats.filter((s) => `${s.name || ''} ${s.dept || ''}`.toLowerCase().includes(leaderQ))
+    : leaderStats;
+  // PW-2684 — 피평가자 목록 검색(이름·부서).
+  const revieweeQ = revieweeQuery.trim().toLowerCase();
+  const shownReviewees = revieweeQ
+    ? integrated.filter((m) => `${m.name || ''} ${m.dept || ''}`.toLowerCase().includes(revieweeQ))
+    : integrated;
   // §8 피평가자 목록 — 부서 그룹핑 + 이름 가나다.
   const revieweeGroups = (() => {
     const byDept = new Map();
-    for (const m of integrated) {
+    for (const m of shownReviewees) {
       const d = m.dept || L.reDeptUnassigned;
       if (!byDept.has(d)) byDept.set(d, []);
       byDept.get(d).push(m);
@@ -3254,7 +3294,7 @@ export default function EvalCycleSummaryCanvas({
             {/* PW-1047 ③ 등급 분포 — 가이드 점선 + 지난 평가 눈금을 한 막대에 겹친다.
                 따로 있던 「이전 사이클 비교」 상자는 없앴다: 막대 길이·점선·눈금이 모두 «전체 대비 %»
                 하나의 자로 재여야 셋을 겹쳐 읽을 수 있다(그래서 막대 길이도 최다 인원 대비가 아니라 %다). */}
-            <section className="evc-card" data-testid="evs-dist-card">
+            <section className="evc-card evs-ov-card" data-testid="evs-dist-card">
               <h3 className="evc-card-name">{L.distributionTitle}</h3>
               {gradeDistribution.length === 0 ? (
                 <p className="evc-empty-sub">{L.empty}</p>
@@ -3295,6 +3335,8 @@ export default function EvalCycleSummaryCanvas({
                       );
                     })}
                   </div>
+                  {(previousCycle || hasDistGuide || distNote.length > 0) && (
+                  <div className="evs-dist-foot">
                   {(previousCycle || hasDistGuide) && (
                     <p className="evs-chart-legend" data-testid="evs-dist-legend">
                       {previousCycle && (
@@ -3320,17 +3362,31 @@ export default function EvalCycleSummaryCanvas({
                   {distNote.length > 0 && (
                     <p className="evs-dist-note" data-testid="evs-dist-note">{distNote.join(' ')}</p>
                   )}
+                  </div>
+                  )}
                 </>
               )}
             </section>
 
             {/* §4.A 리더별 제출 현황 */}
-            <section className="evc-card" data-testid="evs-leaders">
-              <h3 className="evc-card-name">{L.leaderTitle}</h3>
+            {/* PW-2684 — 리더가 수백 명이면: 리더·부서 검색 + 표 칸 안 스크롤(머리줄 고정). */}
+            <section className="evc-card evs-ov-card" data-testid="evs-leaders">
+              <div className="evs-ov-head">
+                <h3 className="evc-card-name">{L.leaderTitle}</h3>
+                {leaderStats.length > 0 && (
+                  <SearchInput
+                    className="dp-search evs-ov-search"
+                    value={leaderQuery}
+                    onChange={(e) => setLeaderQuery(e.target.value)}
+                    placeholder={L.leaderSearch}
+                    data-testid="evs-leader-search"
+                  />
+                )}
+              </div>
               {leaderStats.length === 0 ? (
                 <p className="evc-empty-sub">{L.leaderEmpty}</p>
               ) : (
-                <div className="evs-leader-table">
+                <div className="evs-leader-table" data-testid="evs-leader-table">
                   <div className="evs-leader-row evs-leader-head">
                     <span>{L.leaderColLeader}</span>
                     <span>{L.leaderColDept}</span>
@@ -3339,7 +3395,10 @@ export default function EvalCycleSummaryCanvas({
                     <span className="evs-leader-num">{L.leaderColDelayed}</span>
                     <span className="evs-leader-prog-head">{L.leaderColProgress}</span>
                   </div>
-                  {leaderStats.map((s) => {
+                  {shownLeaders.length === 0 && (
+                    <p className="evs-ov-search-empty" data-testid="evs-leader-search-empty">{L.leaderSearchEmpty}</p>
+                  )}
+                  {shownLeaders.map((s) => {
                     const incomplete = s.total - s.done;
                     const pct = s.total > 0 ? Math.round((100 * s.done) / s.total) : 0;
                     return (
@@ -3353,7 +3412,7 @@ export default function EvalCycleSummaryCanvas({
                         <span className={`evs-leader-num${incomplete > 0 ? ' evs-leader-bad' : ' is-muted'}`}>{incomplete}{L.unit}</span>
                         <span className="evs-leader-num">
                           {s.delayed > 0 ? (
-                            <span className="evs-leader-delay" data-testid="evs-leader-delay">{fmt(L.leaderDelayCount, { n: s.delayed })}</span>
+                            <StatusBadge tone="danger" className="evs-cw-badge" data-testid="evs-leader-delay">{fmt(L.leaderDelayCount, { n: s.delayed })}</StatusBadge>
                           ) : (
                             <span className="is-muted">—</span>
                           )}
@@ -4015,13 +4074,28 @@ export default function EvalCycleSummaryCanvas({
         {shownTab === 'integrated' && (
           <div className="evs-re" data-testid="evs-reviewee">
             {/* 좌: 피평가자 목록 */}
+            {/* PW-2684 — 피평가자가 수백 명이면: 이름·부서 검색 + 인원수, 목록만 칸 안에서 스크롤(부서 머리 고정). */}
             <section className="evc-card evs-re-list">
               <h3 className="evc-card-name">
                 {L.reListTitle}
                 <span data-testid="evs-re-access-info"><FieldInfo description={L.reAccessNote} /></span>
               </h3>
+              {integrated.length > 0 && (
+                <div className="evs-re-filter">
+                  <SearchInput
+                    className="dp-search evs-re-search"
+                    value={revieweeQuery}
+                    onChange={(e) => setRevieweeQuery(e.target.value)}
+                    placeholder={L.reSearch}
+                    data-testid="evs-re-search"
+                  />
+                  <span className="evs-re-count" data-testid="evs-re-count">{fmt(L.reCount, { n: shownReviewees.length })}</span>
+                </div>
+              )}
               {integrated.length === 0 ? (
                 <p className="evc-empty-sub">{L.reEmptyList}</p>
+              ) : shownReviewees.length === 0 ? (
+                <p className="evs-re-search-empty" data-testid="evs-re-search-empty">{L.reSearchEmpty}</p>
               ) : (
                 <div className="evs-re-groups">
                   {revieweeGroups.map((g) => (
@@ -4074,7 +4148,7 @@ export default function EvalCycleSummaryCanvas({
               {memberDetailLoading ? (
                 <section className="evc-card"><p className="evc-empty-sub">{L.reLoading}</p></section>
               ) : !selectedMemberId ? (
-                <section className="evc-card"><p className="evc-empty-sub" data-testid="evs-re-prompt">{L.reSelectPrompt}</p></section>
+                <section className="evc-card"><p className="evc-empty-sub evs-re-prompt" data-testid="evs-re-prompt">{L.reSelectPrompt}</p></section>
               ) : !memberDetail ? (
                 <section className="evc-card"><p className="evc-empty-sub">{memberDetailFailed ? L.cwHoverFailed : L.reNoData}</p></section>
               ) : (
@@ -4120,7 +4194,7 @@ export default function EvalCycleSummaryCanvas({
                             {a.aiUnconfirmed && (
                               <StatusBadge tone="warning" className="evs-re-unconfirmed" data-testid="evs-re-unconfirmed">{L.reUnconfirmed}</StatusBadge>
                             )}
-                            {answerScoreText(a) && <span className="evs-re-score">{L.reScore} {answerScoreText(a)}</span>}
+                            {answerScoreText(a) && <span className="evs-re-score">{L.reScore} <b className="evs-re-score-v">{answerScoreText(a)}</b></span>}
                             {checkedAnswerText(a, L.reNoneChecked) && <span className="evs-re-atext" data-testid="evs-re-checked">{checkedAnswerText(a, L.reNoneChecked)}</span>}
                             {a.textAnswer && <span className="evs-re-atext">{a.textAnswer}</span>}
                           </div>
@@ -4150,7 +4224,7 @@ export default function EvalCycleSummaryCanvas({
                         {memberDetail.peer.answers.map((a) => (
                           <div className="evs-re-answer" key={a.id}>
                             {a.authorName && <span className="evc-field-label" data-testid="evs-re-peer-author">{a.authorName}</span>}
-                            {answerScoreText(a) && <span className="evs-re-score">{L.reScore} {answerScoreText(a)}</span>}
+                            {answerScoreText(a) && <span className="evs-re-score">{L.reScore} <b className="evs-re-score-v">{answerScoreText(a)}</b></span>}
                             {checkedAnswerText(a, L.reNoneChecked) && <span className="evs-re-atext" data-testid="evs-re-checked">{checkedAnswerText(a, L.reNoneChecked)}</span>}
                             {a.textAnswer && <span className="evs-re-atext">{a.textAnswer}</span>}
                           </div>
@@ -4175,7 +4249,7 @@ export default function EvalCycleSummaryCanvas({
                         <div className="evs-re-answers">
                           {memberDetail.manager.answers.map((a) => (
                             <div className="evs-re-answer" key={a.id}>
-                              {answerScoreText(a) && <span className="evs-re-score">{L.reScore} {answerScoreText(a)}</span>}
+                              {answerScoreText(a) && <span className="evs-re-score">{L.reScore} <b className="evs-re-score-v">{answerScoreText(a)}</b></span>}
                               {checkedAnswerText(a, L.reNoneChecked) && <span className="evs-re-atext" data-testid="evs-re-checked">{checkedAnswerText(a, L.reNoneChecked)}</span>}
                               {a.textAnswer && <span className="evs-re-atext">{a.textAnswer}</span>}
                             </div>
@@ -4607,22 +4681,32 @@ export default function EvalCycleSummaryCanvas({
                 );
               })()
             ) : !selectedCalibSessionId ? (
-              /* G1 — 어필 인박스 + 내가 초대된 세션 조견표 */
-              <div className="evs-cw-roster">
-                <div className="evs-cw-inbox">
-                  <div className="evs-section-label">
-                    {L.cwInboxTitle}
-                    {gradeAppeals.filter((a) => !isAppealDecided(a.status)).length > 0
-                      ? ` (${gradeAppeals.filter((a) => !isAppealDecided(a.status)).length})`
-                      : ''}
+              /* G1 — 어필 인박스 + 내가 초대된 세션 조견표.
+                 PW-2684 — 구역마다 흰 카드 하나에 줄 목록(줄 사이 옅은 선). 많아지면 처리된 어필은 앞 3건 + «이전 N건 더 보기»,
+                 세션은 이름 검색 + 칸 안 스크롤. */
+              (() => {
+                const pendingAppeals = gradeAppeals.filter((a) => !isAppealDecided(a.status));
+                const decidedAppeals = gradeAppeals.filter((a) => isAppealDecided(a.status));
+                const shownDecided = decidedOpen ? decidedAppeals : decidedAppeals.slice(0, DECIDED_PREVIEW);
+                const q = sessionQuery.trim().toLowerCase();
+                const shownSessions = q ? calibSessions.filter((s) => (s.name || '').toLowerCase().includes(q)) : calibSessions;
+                return (
+              <div className="evs-cw-roster evs-cw-landing">
+                <section className="evs-cwl-card evs-cw-inbox" data-testid="evs-cw-inbox-card">
+                  <div className="evs-cwl-head">
+                    <h3 className="evs-section-label evs-cwl-title">
+                      {L.cwInboxTitle}
+                      {pendingAppeals.length > 0 && (
+                        <>{' '}<span className="evs-cwl-count">{pendingAppeals.length}</span></>
+                      )}
+                    </h3>
                   </div>
-                  {gradeAppeals.filter((a) => !isAppealDecided(a.status)).length === 0 ? (
-                    <div className="evs-cw-empty">
+                  {pendingAppeals.length === 0 ? (
+                    <div className="evs-cw-empty evs-cwl-empty">
                       <div className="evs-cw-empty-sub">{L.cwInboxEmpty}</div>
                     </div>
                   ) : (
-                    gradeAppeals
-                      .filter((a) => !isAppealDecided(a.status))
+                    pendingAppeals
                       .map((a) => (
                         <button
                           type="button"
@@ -4654,17 +4738,19 @@ export default function EvalCycleSummaryCanvas({
                               {a.createdAt ? ` · ${fmtDateTime(a.createdAt)}` : ''}
                             </div>
                           </div>
-                          <span className="evs-cw-appeal-cta">{L.cwAppealReviewCta}</span>
+                          <span className="evs-cw-appeal-cta">{L.cwAppealReviewCta}<ChevronRightIcon size={14} /></span>
                         </button>
                       ))
                   )}
-                  {gradeAppeals.some((a) => isAppealDecided(a.status)) && (
-                    <>
-                      <div className="evs-section-label" data-testid="evs-cw-decided-title">
-                        {L.cwInboxDecidedTitle} ({gradeAppeals.filter((a) => isAppealDecided(a.status)).length})
+                </section>
+                  {decidedAppeals.length > 0 && (
+                    <section className="evs-cwl-card" data-testid="evs-cw-decided-card">
+                      <div className="evs-cwl-head">
+                        <h3 className="evs-section-label evs-cwl-title" data-testid="evs-cw-decided-title">
+                          {L.cwInboxDecidedTitle}{' '}<span className="evs-cwl-count">{decidedAppeals.length}</span>
+                        </h3>
                       </div>
-                      {gradeAppeals
-                        .filter((a) => isAppealDecided(a.status))
+                      {shownDecided
                         .map((a) => (
                           <button
                             type="button"
@@ -4673,8 +4759,12 @@ export default function EvalCycleSummaryCanvas({
                             onClick={() => onSelectAppeal?.(a.id)}
                             data-testid="evs-cw-appeal-decided"
                           >
+                            {/* PW-2684 — 결과 딱지는 공용 뜻→색 표로: 반려 = 위험(빨강), 수용 = 성공(초록).
+                                예전 클래스 겹침(.evs-cw-appeal-badge)이 색을 주황으로 덮어 «반려 완료»가 경고처럼 보였다. */}
                             <StatusBadge
-                              className={`evs-cw-status tone-${a.status === 'accepted' ? 'green' : 'red'} evs-cw-appeal-badge`}
+                              tone={a.status === 'accepted' ? 'success' : 'danger'}
+                              className="evs-cw-badge"
+                              data-testid="evs-cw-decided-badge"
                             >
                               {a.status === 'accepted' ? L.cwStatusAccepted : L.cwStatusRejected}
                             </StatusBadge>
@@ -4692,18 +4782,38 @@ export default function EvalCycleSummaryCanvas({
                                 {a.reviewedAt ? ` · ${fmtDateTime(a.reviewedAt)}` : ''}
                               </div>
                             </div>
-                            <span className="evs-cw-appeal-cta">{L.cwAppealResultCta}</span>
+                            <span className="evs-cw-appeal-cta">{L.cwAppealResultCta}<ChevronRightIcon size={14} /></span>
                           </button>
                         ))}
-                    </>
+                      {decidedAppeals.length > DECIDED_PREVIEW && (
+                        <div className="evs-cwl-more">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setDecidedOpen((v) => !v)}
+                            aria-expanded={decidedOpen}
+                            data-testid="evs-cw-decided-more"
+                          >
+                            {decidedOpen
+                              ? L.cwDecidedLess
+                              : fmt(L.cwDecidedMore, { n: decidedAppeals.length - DECIDED_PREVIEW })}
+                          </Button>
+                        </div>
+                      )}
+                    </section>
                   )}
-                </div>
-                <div className="evs-cw-roster-head">
-                  <div className="evs-section-label">{L.cwSessionsTitle}</div>
+                <section className="evs-cwl-card" data-testid="evs-cw-sessions-card">
+                <div className="evs-cw-roster-head evs-cwl-head">
+                  <h3 className="evs-section-label evs-cwl-title">
+                    {L.cwSessionsTitle}
+                    {calibSessions.length > 0 && (
+                      <>{' '}<span className="evs-cwl-count" data-testid="evs-cw-session-count">{calibSessions.length}</span></>
+                    )}
+                  </h3>
                   {canCreateSession && (
-                    <button
-                      type="button"
-                      className="evc-btn is-primary evs-cw-create-btn"
+                    <Button
+                      variant="primary"
+                      size="sm"
                       onClick={() => {
                         setShowCreate(true);
                         setCreateName('');
@@ -4716,28 +4826,52 @@ export default function EvalCycleSummaryCanvas({
                       data-testid="evs-cw-create"
                     >
                       {L.cwCreateBtn}
-                    </button>
+                    </Button>
                   )}
                 </div>
-                {calibSessions.length === 0 ? (
-                  <div className="evs-cw-empty" data-testid="evs-cw-empty">
-                    <div className="evs-cw-empty-title">{L.cwNoSessions}</div>
-                    <div className="evs-cw-empty-sub">{L.cwNoSessionsSub}</div>
+                {calibSessions.length > SESSION_SEARCH_MIN && (
+                  <div className="evs-cwl-filter">
+                    <SearchInput
+                      className="dp-search evs-cwl-search"
+                      value={sessionQuery}
+                      onChange={(e) => setSessionQuery(e.target.value)}
+                      placeholder={L.cwSessionSearch}
+                      data-testid="evs-cw-session-search"
+                    />
                   </div>
+                )}
+                {calibSessions.length === 0 ? (
+                  /* 디자이너 원온원 «팀원 0명» 안내(종이 그림 + 제목 + 설명, .ono-team-empty) 모양 */
+                  <EmptyState
+                    className="evs-cw-empty evs-cwl-empty-page"
+                    data-testid="evs-cw-empty"
+                    icon={<img className="evs-cwl-paper" src={assetUrl('', 'paper-empty.svg')} alt="" />}
+                  >
+                    <p className="dp-empty__title evs-cw-empty-title">{L.cwNoSessions}</p>
+                    <p className="dp-empty__desc evs-cw-empty-sub">{L.cwNoSessionsSub}</p>
+                  </EmptyState>
                 ) : (
-                  calibSessions.map((s) => {
+                  <div className="evs-cwl-scroll" data-testid="evs-cw-session-list">
+                  {shownSessions.length === 0 && (
+                    <div className="evs-cw-empty evs-cwl-empty" data-testid="evs-cw-session-search-empty">
+                      <div className="evs-cw-empty-sub">{L.cwSessionSearchEmpty}</div>
+                    </div>
+                  )}
+                  {shownSessions.map((s) => {
                     const statusLabel =
                       s.status === 'closed'
                         ? L.cwStatusClosed
                         : s.status === 'in_progress'
                           ? L.cwStatusInProgress
                           : L.cwStatusDraft;
+                    // PW-2684 — 공용 뜻→색 표: 완료 = 성공(초록) · 진행 중 = 정보(파랑) · 예정 = 중립(회색).
+                    // 위원회를 연 제목 줄 딱지(evs-cw-state)와 같은 뜻·색이다.
                     const tone =
                       s.status === 'closed'
-                        ? 'muted'
+                        ? 'success'
                         : s.status === 'in_progress'
-                          ? 'accent'
-                          : 'muted';
+                          ? 'info'
+                          : 'neutral';
                     const closed = s.status === 'closed';
                     return (
                       /* PW-1927 — 「열기」와 「위원 관리」를 한 상자 안에 둔다. 상자는 바깥 div 가 그리고,
@@ -4751,7 +4885,7 @@ export default function EvalCycleSummaryCanvas({
                       >
                         <div className="evs-cw-session-main">
                           <div className="evs-cw-session-name">
-                            {s.name}
+                            <span className="evs-cwl-name-text">{s.name}</span>
                             {s.myRole === 'chair' ? (
                               <span className="evs-cw-myrole tone-chair">
                                 {L.cwRoleChair}
@@ -4779,14 +4913,16 @@ export default function EvalCycleSummaryCanvas({
                             })}
                           </div>
                         </div>
-                        <StatusBadge className={`evs-cw-status tone-${tone}`}>{statusLabel}</StatusBadge>
-                        <span className="evs-cw-open">{L.cwOpen}</span>
+                        <StatusBadge tone={tone} className="evs-cw-badge" data-testid="evs-cw-session-status">{statusLabel}</StatusBadge>
+                        {/* 줄 전체가 여는 버튼이라 «열기»는 버튼 안의 글자다 — 모양만 공용 회색 버튼(dp-btn ghost sm). */}
+                        <span className="evs-cw-open dp-btn dp-btn--ghost dp-btn--sm">{L.cwOpen}</span>
                       </button>
                       {/* §10.G.2-D — 줄을 눌러 여는 것과 따로, 그 세션의 위원 관리 창만 연다. */}
                       {onOpenCommittee && (
-                        <button
-                          type="button"
-                          className="evc-btn is-ghost evs-cw-session-manage"
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          className="evs-cw-session-manage"
                           onClick={() => {
                             setShowCreate(true);
                             setCommitteeManage(true);
@@ -4798,13 +4934,17 @@ export default function EvalCycleSummaryCanvas({
                           data-testid="evs-cw-session-manage"
                         >
                           {L.cwSessionManage}
-                        </button>
+                        </Button>
                       )}
                       </div>
                     );
-                  })
+                  })}
+                  </div>
                 )}
+                </section>
               </div>
+                );
+              })()
             ) : (
               /* G2 — 세션 9칼럼 테이블 (read-only) */
               <div className="evs-cw-table-view">

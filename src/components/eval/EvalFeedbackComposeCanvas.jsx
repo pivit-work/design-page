@@ -15,6 +15,7 @@ import FeedbackLengthNote from './FeedbackLengthNote.jsx';
 import Spinner from '../shared/Spinner.jsx';
 import Tabs from '../shared/Tabs.jsx';
 import EmptyState from '../shared/EmptyState.jsx';
+import LoadMoreButton from '../shared/LoadMoreButton.jsx';
 
 /**
  * EvalFeedbackComposeCanvas — 팀 피드백 (매니저 뷰, v2 재설계).
@@ -135,6 +136,8 @@ const DEFAULT_LABELS = {
   okrPanelSnippets: '최근 스니핏',
   // 받은 요청 칸 (§3.4) — {count} 에 건수
   incomingSection: '받은 피드백 요청 {count}건',
+  // PW-2684 — 받은 요청 앞 3건만 펼치고 나머지는 이 버튼으로. {count} 는 접어 둔 건수.
+  incomingMore: '나머지 {count}건 더 보기',
   answerRequest: '이 요청에 답변 작성',
   linkedKrFallback: 'KR',
   linkedInitFallback: '이니셔티브',
@@ -926,44 +929,64 @@ function linkedLabel(item, krBlocks, initBlocks, L) {
  * 「답변 작성」은 그 요청의 KR/이니셔티브 대화 창을 연다. 걸린 대상이 지금 목록에 없어도(지워짐·
  * 지난 분기) 그 대상을 고정한 창을 연다 — 칩 끝에 «· 현재 기간 OKR 에 없음»(§3.4-A · EC-7, pivit-work PW-1535).
  */
+/** 받은 요청은 최근 몇 건만 펼쳐 둔다 — 나머지는 «나머지 N건 더 보기» (PW-2684). */
+const INCOMING_VISIBLE = 3;
+
 function IncomingRequestsSection({ requests, krBlocks, initBlocks, orphans = [], L, onAnswer }) {
+  const [showAll, setShowAll] = useState(false);
   if (requests.length === 0) return null;
   const sorted = [...requests].sort((a, b) => new Date(b.sentAt) - new Date(a.sentAt));
+  const visible = showAll ? sorted : sorted.slice(0, INCOMING_VISIBLE);
+  const restCount = sorted.length - visible.length;
   const blockFor = (it) =>
     it.linkedTargetType && it.linkedTargetId
       ? [...krBlocks, ...initBlocks, ...orphans].find((b) => b.key === `${it.linkedTargetType}:${it.linkedTargetId}`) || null
       : null;
+  // 모양은 «내 피드백»의 받은 요청 칸과 같다(흰 카드 한 장 안의 줄 · 옅은 말풍선 · 작은 테두리 버튼 — PW-2684).
   return (
-    <div data-testid="fbmgr-incoming" style={{ background: C.accentBg, border: `1px solid ${C.accentBd}`, borderRadius: 12, padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: C.accent }}>
+    <div data-testid="fbmgr-incoming" className="evf-incoming">
+      <div className="evf-incoming-title">
         <MailIcon size={14} /> {fill(L.incomingSection, { count: requests.length })}
       </div>
-      {sorted.map((it) => {
+      {visible.map((it) => {
         const target = blockFor(it);
         const label = linkedLabel(it, krBlocks, initBlocks, L);
         return (
-          <div key={it.id} data-testid={`fbmgr-incoming-${it.id}`} style={{ display: 'flex', gap: 8 }}>
-            <Avatar name={it.author?.name} photo={it.author?.avatar} size={30} />
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-text-xs)', marginBottom: 3 }}>
-                <span style={{ ...NO_SHRINK, fontWeight: 700, color: C.text }}>{it.author?.name}</span>
+          <div key={it.id} data-testid={`fbmgr-incoming-${it.id}`} className="evf-incoming-row">
+            <Avatar name={it.author?.name} photo={it.author?.avatar} size={32} />
+            <div className="evf-incoming-body">
+              <div className="evf-incoming-head is-nowrap">
+                <span className="evf-incoming-name" style={NO_SHRINK}>{it.author?.name}</span>
                 {label && <Chip tone="info" title={label} style={LONG_CHIP}>{label}</Chip>}
-                <span style={{ ...NO_SHRINK, color: C.sub }}>{fmtDate(it.sentAt)}</span>
+                <span className="evf-incoming-meta" style={NO_SHRINK}>{fmtDate(it.sentAt)}</span>
               </div>
               {it.text && (
-                <div style={{ background: 'var(--bg-primary)', border: `1px solid ${C.accentBd}`, borderRadius: '0 10px 10px 10px', padding: 10, fontSize: 13, color: C.text, whiteSpace: 'pre-wrap' }}>
+                <div className="evf-incoming-bubble">
                   {it.text}
                 </div>
               )}
               {target && (
-                <button type="button" onClick={() => onAnswer(target)} data-testid={`fbmgr-incoming-answer-${it.id}`} style={{ marginTop: 6, background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 12, fontWeight: 600, color: C.accent, display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: FONT }}>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => onAnswer(target)}
+                  data-testid={`fbmgr-incoming-answer-${it.id}`}
+                >
                   {L.answerRequest} <ChevronDownIcon size={12} />
-                </button>
+                </Button>
               )}
             </div>
           </div>
         );
       })}
+      {restCount > 0 && (
+        <LoadMoreButton
+          className="evf-incoming-more"
+          label={fill(L.incomingMore, { count: restCount })}
+          onClick={() => setShowAll(true)}
+        />
+      )}
     </div>
   );
 }

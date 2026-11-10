@@ -7,9 +7,10 @@ import ModalShell from '../shared/ModalShell.jsx';
 import TextArea from '../shared/TextArea.jsx';
 import Spinner from '../shared/Spinner.jsx';
 import Tabs from '../shared/Tabs.jsx';
+import SearchInput from '../shared/SearchInput.jsx';
 import AnchoredLayer from '../shared/AnchoredLayer.jsx';
 import useDismissLayer from '../shared/useDismissLayer.js';
-import { ArrowRightIcon, MoreIcon } from './evalIcons.jsx';
+import { ArrowRightIcon, MoreIcon, svgProps } from './evalIcons.jsx';
 import LeaderCommentPolish from './LeaderCommentPolish.jsx';
 import { LEADER_COMMENT_POLISH_LABELS } from './leaderCommentPolishLabels.js';
 
@@ -45,6 +46,9 @@ const DEFAULT_LABELS = {
   // pivit-work PW-2636 — 단계 줄 맨 끝 구성원 이의 탭(인사 담당자만).
   tabObjections: '구성원 이의',
   tabEmpty: '이 단계의 리포트가 없습니다.',
+  // PW-2684 — 표 위 검색칸(피평가자·담당 리더 이름) · 맞는 사람이 없을 때
+  searchPh: '피평가자 · 담당 리더 검색',
+  searchEmpty: '검색 결과가 없습니다.',
   approveSelected: '선택 항목 일괄 승인',
   toastApprovedCount: '{count}명을 승인했습니다',
   toastApproveFailed: '{count}명은 승인하지 못했습니다',
@@ -212,13 +216,14 @@ function mergeLabels(base, provided) {
 }
 
 /**
- * PW-1839 — 색은 «누가 손을 써야 하나»로 가른다: 기다리는 셋(리더·본부장·HR)은 노랑, HR 이 승인해
- * 보낼 수 있는 것은 파랑, 보낸 것은 초록. 기존 딱지 색 그대로다.
+ * PW-1839 — 색은 «누가 손을 써야 하나»로 가른다. PW-2684 — 기다리는 셋(리더·본부장·HR)은 «하는 중»이라
+ * 파랑(딱지 뜻 표 progress), HR 이 승인한 것과 보낸 것은 초록, 리더에게 돌려보낸 것은 노랑.
  */
 const STATUS_META = {
-  pending: { key: 'statusPending', cls: 'is-pending' },
-  exec_pending: { key: 'statusExecPending', cls: 'is-pending' },
-  leader_approved: { key: 'statusHrReview', cls: 'is-pending' },
+  // 색은 화면 CSS 가 아니라 공용 딱지 뜻(tone)으로 — 딱지는 status-badge.css·StatusBadge 한 곳에서 칠한다(PW-840).
+  pending: { key: 'statusPending', cls: '', tone: 'progress' },
+  exec_pending: { key: 'statusExecPending', cls: '', tone: 'progress' },
+  leader_approved: { key: 'statusHrReview', cls: '', tone: 'progress' },
   hr_approved: { key: 'statusApproved', cls: 'is-approved' },
   sent: { key: 'statusSent', cls: 'is-sent' },
   leader_rejected: { key: 'statusRejected', cls: 'is-rejected' },
@@ -745,6 +750,26 @@ function RowMenu({ anchorSelector, items, onClose }) {
   );
 }
 
+/** PW-2684 — 안내 띠(빨강) 앞 동그라미 느낌표. 색은 띠 글자색을 따른다. */
+function AlertGlyph() {
+  return (
+    <svg {...svgProps(16)}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 8v5M12 16h.01" />
+    </svg>
+  );
+}
+
+/** PW-2684 — [선택 발송] 앞 종이비행기. */
+function SendGlyph() {
+  return (
+    <svg {...svgProps(16)}>
+      <path d="M21 3L10 14" />
+      <path d="M21 3l-7 18-4-7-7-4z" />
+    </svg>
+  );
+}
+
 /** 표 위에 뜨는 줄 메뉴의 겹침 순서 — 구성원 목록 «⋯» 메뉴와 같은 값. */
 const ROW_MENU_Z = 1000;
 
@@ -1012,7 +1037,7 @@ function ReviewRow({
         )}
       </div>
       <div className="evrr-cell evrr-status-cell">
-        <StatusBadge className={`evrr-badge ${meta.cls}`}>{L[meta.key]}</StatusBadge>
+        <StatusBadge className={`evrr-badge ${meta.cls}`.trim()} tone={meta.tone}>{L[meta.key]}</StatusBadge>
         {rejected && (
           <span className="evrr-name-sub" data-testid={`evrr-rejected-${row.memberId}`}>
             {L.rejectedNote}
@@ -1052,7 +1077,7 @@ function ReviewRow({
         {canApprove ? (
           <button
             type="button"
-            className="evc-btn is-primary"
+            className="evc-btn is-primary is-sm evrr-approve"
             disabled={busy || goalsInvalid}
             // PW-1922 — 최종 코멘트는 리더 단계에서만 받는다. 그 단계면 작은 창에서 적고(선택) 승인하고,
             // 본부장·인사담당자 단계는 받을 것이 없어 바로 승인한다.
@@ -1085,7 +1110,7 @@ function ReviewRow({
             onClick={() => setMenuOpen((v) => !v)}
             data-testid={`evrr-more-${row.memberId}`}
           >
-            <MoreIcon size={16} />
+            <MoreIcon size={14} />
           </button>
         )}
       </div>
@@ -1316,6 +1341,17 @@ export default function EvalReportReviewCanvas({
   const shownRows = stageTab.statuses
     ? q.rows.filter((r) => r.excluded !== true && stageTab.statuses.includes(r.status))
     : q.rows;
+  /**
+   * PW-2684 — 표 위 검색칸. 피평가자·담당 리더 이름으로 거른다(대소문자·앞뒤 빈칸 무시). 단계 탭과 함께 걸린다.
+   * 거른 줄만 그리고, 고른 것(체크)은 그대로 둔다 — 검색을 지우면 다시 보인다.
+   */
+  const [search, setSearch] = useState('');
+  const needle = search.trim().toLowerCase();
+  const visibleRows = needle
+    ? shownRows.filter((r) =>
+        [r.name, r.leaderName].some((v) => typeof v === 'string' && v.toLowerCase().includes(needle)),
+      )
+    : shownRows;
   /**
    * 켜고 끌 수 있는 항목 = 필수 둘 + 그 사이클이 쓰는 리뷰의 항목. 순서·목록은 서버가
    * 준 것을 그대로 쓴다 — 화면이 따로 세우면 「리포트」 탭과 갈린다.
@@ -1625,14 +1661,28 @@ export default function EvalReportReviewCanvas({
           items={[
             ...STAGE_TABS.map((tab) => ({
               value: tab.key,
-              label: tab.count ? `${L[tab.label]} ${tab.count(q.counts ?? {})}` : `${L[tab.label]} ${q.rows.length}`,
+              // PW-2684 — 수는 이름 옆 흐린 글씨로 따로(고른 탭은 초록). 글자는 «이름 수» 그대로다.
+              label: (
+                <>
+                  {L[tab.label]}{' '}
+                  <span className="evrr-tab-count">{tab.count ? tab.count(q.counts ?? {}) : q.rows.length}</span>
+                </>
+              ),
               testId: `evrr-tab-${tab.key}`,
             })),
             ...(objectionTab
               ? [
                   {
                     value: 'objections',
-                    label: objectionTab.count > 0 ? `${L.tabObjections} ${objectionTab.count}` : L.tabObjections,
+                    label:
+                      objectionTab.count > 0 ? (
+                        <>
+                          {L.tabObjections}{' '}
+                          <span className="evrr-tab-count">{objectionTab.count}</span>
+                        </>
+                      ) : (
+                        L.tabObjections
+                      ),
                     testId: 'evrr-tab-objections',
                   },
                 ]
@@ -1652,8 +1702,9 @@ export default function EvalReportReviewCanvas({
       ) : (
       <div className="evc-list">
         {q.canSend && failedIds.length > 0 && (
-          <div className="evc-wiz-warn evrr-send-failed" role="alert" data-testid="evrr-send-failed">
-            <span>
+          <div className="evrr-alert evrr-send-failed" role="alert" data-testid="evrr-send-failed">
+            <AlertGlyph />
+            <span className="evrr-alert-text">
               {L.sendFailedNote
                 .replace('{count}', String(failedIds.length))
                 .replace(
@@ -1675,14 +1726,16 @@ export default function EvalReportReviewCanvas({
         )}
 
         {q.canSend && notYetApproved > 0 && (
-          <p className="evc-wiz-warn" data-testid="evrr-incomplete-warn">
-            {L.incompleteSendWarn.replace('{count}', String(notYetApproved))}
+          <p className="evrr-alert" data-testid="evrr-incomplete-warn">
+            <AlertGlyph />
+            <span className="evrr-alert-text">{L.incompleteSendWarn.replace('{count}', String(notYetApproved))}</span>
           </p>
         )}
 
         {q.canSend && excludedCount > 0 && (
-          <p className="evc-wiz-warn" data-testid="evrr-refine-excluded">
-            {L.refineExcluded.replace('{count}', String(excludedCount))}
+          <p className="evrr-alert" data-testid="evrr-refine-excluded">
+            <AlertGlyph />
+            <span className="evrr-alert-text">{L.refineExcluded.replace('{count}', String(excludedCount))}</span>
           </p>
         )}
 
@@ -1692,14 +1745,25 @@ export default function EvalReportReviewCanvas({
           </p>
         )}
 
-        {showToolbar && (
+        {(showToolbar || q.rows.length > 0) && (
           <div className="evrr-toolbar">
+            {q.rows.length > 0 && (
+              <SearchInput
+                className="dp-search evrr-search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={L.searchPh}
+                data-testid="evrr-search"
+              />
+            )}
+            {showToolbar && (
+            <>
             <span className="evc-empty-sub">{q.canSend ? L.selectHint : ''}</span>
             <span className="evrr-toolbar-actions">
               {approvableIds.size > 0 && (
                 <button
                   type="button"
-                  className="evc-btn"
+                  className="evc-btn evrr-btn-sec"
                   disabled={selectedApprovable.length === 0 || bulkBusy}
                   onClick={approveSelected}
                   data-testid="evrr-approve-selected"
@@ -1711,7 +1775,7 @@ export default function EvalReportReviewCanvas({
               <>
               <button
                 type="button"
-                className="evc-btn"
+                className="evc-btn evrr-btn-sec"
                 disabled={approvedIds.length === 0}
                 onClick={() => send(approvedIds)}
                 data-testid="evrr-send-all"
@@ -1725,11 +1789,14 @@ export default function EvalReportReviewCanvas({
                 onClick={() => send(selectedSendable)}
                 data-testid="evrr-send-selected"
               >
+                <SendGlyph />
                 {L.sendSelected} ({selectedSendable.length})
               </button>
               </>
               )}
             </span>
+            </>
+            )}
           </div>
         )}
 
@@ -1747,8 +1814,10 @@ export default function EvalReportReviewCanvas({
             <p className="evc-empty-sub" data-testid="evrr-empty">{L.noRows}</p>
           ) : shownRows.length === 0 ? (
             <p className="evc-empty-sub" data-testid="evrr-tab-empty">{L.tabEmpty}</p>
+          ) : visibleRows.length === 0 ? (
+            <p className="evc-empty-sub" data-testid="evrr-search-empty">{L.searchEmpty}</p>
           ) : (
-            shownRows.map((row) => (
+            visibleRows.map((row) => (
               <ReviewRow
                 key={row.memberId}
                 row={row}

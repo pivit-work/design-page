@@ -2,6 +2,12 @@ import { useMemo, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import EmptyState from '../shared/EmptyState.jsx';
 import AvatarPhoto from './AvatarPhoto';
+import LoadMoreButton from '../shared/LoadMoreButton.jsx';
+import { svgProps } from './evalIcons.jsx';
+import { gradeTone } from './teamCalibrationGradeTone.js';
+
+/** PW-2684 — 표는 처음 이만큼만 그리고 [N건 더 보기]로 이어 붙인다. */
+const PAGE_SIZE = 20;
 
 /**
  * EvalCycleTeamCalibrationCanvas — 매니저(팀장) 팀 캘리브레이션 결과 · 이의(어필). [R8]
@@ -23,8 +29,12 @@ const DEFAULT_LABELS = {
     '워크스페이스 접근은 위원 초대(조직장 지정) 기반입니다. 초대된 위원만 조정·확정할 수 있으며, HR은 조회 전용입니다.',
   resultTitle: '내 팀 캘리브레이션 결과 · 이의(어필)',
   adjustedBadge: '위원회 조정 {n}건',
+  // PW-2684 — 팀원 줄을 표로: 머리줄 «팀원 | 1차 제출 | → | 위원회 확정 | 조정»
+  colMember: '팀원',
   colFirst: '1차 제출',
   colCommittee: '위원회 확정',
+  colAdjust: '조정',
+  moreRows: '{n}건 더 보기',
   noChange: '조정 없음',
   appealCta: '이의(어필)',
   appealClose: '닫기',
@@ -68,13 +78,23 @@ function mergeLabels(base, provided) {
 function fmt(tpl, vars) {
   return tpl.replace(/\{(\w+)\}/g, (_, k) => (vars[k] != null ? vars[k] : `{${k}}`));
 }
-function gradeTone(gradeKey, orderedGrades) {
-  if (!gradeKey || !orderedGrades?.length) return 'muted';
-  const idx = orderedGrades.findIndex((g) => g.gradeKey === gradeKey);
-  if (idx < 0) return 'muted';
-  if (idx === 0) return 'green';
-  if (idx === orderedGrades.length - 1) return 'red';
-  return 'accent';
+/** PW-2684 — 1차 제출 → 위원회 확정 사이 화살표. */
+function ArrowGlyph() {
+  return (
+    <svg {...svgProps(14)}>
+      <path d="M5 12h14M13 6l6 6-6 6" />
+    </svg>
+  );
+}
+
+/** PW-2684 — 권한 안내 줄 앞 동그라미 i. */
+function InfoGlyph() {
+  return (
+    <svg {...svgProps(18)} className="evtcal-redirect-icon">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 11v5M12 8h.01" />
+    </svg>
+  );
 }
 function initials(name) {
   if (!name) return '?';
@@ -108,6 +128,7 @@ export default function EvalCycleTeamCalibrationCanvas({
   const [drafts, setDrafts] = useState({});
   const [busyId, setBusyId] = useState(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [shown, setShown] = useState(PAGE_SIZE);
 
   const labelOf = (key) =>
     orderedGrades.find((g) => g.gradeKey === key)?.label ?? key ?? '—';
@@ -166,6 +187,7 @@ export default function EvalCycleTeamCalibrationCanvas({
           못 열어서 누르는 버튼으로 편다. */}
       <section className="evc-card evtcal-redirect" data-testid="evtcal-redirect">
         <div className="evtcal-redirect-line">
+          <InfoGlyph />
           <span className="evtcal-redirect-summary">{L.redirectSummary}</span>
           <button
             type="button"
@@ -202,20 +224,30 @@ export default function EvalCycleTeamCalibrationCanvas({
         {rows.length === 0 ? (
           <EmptyState description={L.empty} data-testid="evtcal-empty" />
         ) : (
+          <div className="evtcal-table" data-testid="evtcal-table">
+          <div className="evtcal-grid evtcal-head" aria-hidden="true">
+            <span>{L.colMember}</span>
+            <span>{L.colFirst}</span>
+            <span />
+            <span>{L.colCommittee}</span>
+            <span>{L.colAdjust}</span>
+          </div>
           <div className="evtcal-rows">
-            {rows.map((r) => {
+            {rows.slice(0, shown).map((r) => {
               const isOpen = openId === r.memberId;
               const draft = drafts[r.memberId] || '';
               const appeal = r.appeal;
               const statusBadge =
+                // PW-2684 — 예전 tone-green·red·accent 는 이 딱지(.evc-status-badge)에 없는 색 이름이라 글자만
+                // 검게 나왔다. 딱지 뜻 표대로: 수용 = 성공(초록) · 반려 = 주의(주황) · 접수됨·재검토 중 = 진행(파랑).
                 appeal?.status === 'accepted'
-                  ? { cls: 'tone-green', txt: L.appealAcceptedBadge }
+                  ? { cls: 'tone-success', txt: L.appealAcceptedBadge }
                   : appeal?.status === 'rejected'
-                    ? { cls: 'tone-red', txt: L.appealRejectedBadge }
+                    ? { cls: 'tone-warn', txt: L.appealRejectedBadge }
                     : appeal?.status === 'reviewing'
-                      ? { cls: 'tone-accent', txt: L.appealReviewingBadge }
+                      ? { cls: 'tone-info', txt: L.appealReviewingBadge }
                       : appeal
-                        ? { cls: 'tone-accent', txt: L.appealSubmittedBadge }
+                        ? { cls: 'tone-info', txt: L.appealSubmittedBadge }
                         : null;
               return (
                 <div
@@ -223,38 +255,41 @@ export default function EvalCycleTeamCalibrationCanvas({
                   className={`evtcal-row${r.changed ? ' is-changed' : ''}`}
                   data-testid="evtcal-row"
                 >
-                  <div className="evtcal-row-top">
-                    <span className="evtcal-avatar" style={{ position: 'relative' }}>
-                      <span aria-hidden="true">{initials(r.name)}</span>
-                      <AvatarPhoto photo={r.avatar} name={r.name} />
-                    </span>
-                    <div className="evtcal-who">
-                      <span className="evtcal-name">{r.name}</span>
-                      <span className="evtcal-meta">
-                        {[r.team, r.job].filter(Boolean).join(' · ')}
+                  <div className="evtcal-grid evtcal-row-top">
+                    <div className="evtcal-member">
+                      <span className="evtcal-avatar" style={{ position: 'relative' }}>
+                        <span aria-hidden="true">{initials(r.name)}</span>
+                        <AvatarPhoto photo={r.avatar} name={r.name} />
                       </span>
+                      <div className="evtcal-who">
+                        <span className="evtcal-name">{r.name}</span>
+                        <span className="evtcal-meta">
+                          {[r.team, r.job].filter(Boolean).join(' · ')}
+                        </span>
+                      </div>
                     </div>
-                    <div className="evtcal-flow">
-                      <div className="evtcal-flow-col">
-                        <span className="evtcal-flow-cap">{L.colFirst}</span>
-                        <StatusBadge
-                          className={`evs-cw-badge tone-${gradeTone(r.managerGradeKey, orderedGrades)}`}>
-                          {labelOf(r.managerGradeKey)}
-                        </StatusBadge>
-                      </div>
-                      <span
-                        className={`evtcal-arrow${r.changed ? ' is-changed' : ''}`}
-                        aria-hidden="true"
-                      >
-                        →
-                      </span>
-                      <div className="evtcal-flow-col">
-                        <span className="evtcal-flow-cap">{L.colCommittee}</span>
-                        <StatusBadge
-                          className={`evs-cw-badge tone-${gradeTone(r.committeeGradeKey, orderedGrades)}`}>
-                          {labelOf(r.committeeGradeKey)}
-                        </StatusBadge>
-                      </div>
+                    {/* 칸 이름은 머리줄에 한 번 — 읽기 프로그램에는 칸마다 이름을 붙여 둔다. */}
+                    <div className="evtcal-flow-col">
+                      <span className="evtcal-flow-cap">{L.colFirst}</span>
+                      <StatusBadge
+                        className={`evs-cw-badge tone-${gradeTone(r.managerGradeKey, orderedGrades)}`}>
+                        {labelOf(r.managerGradeKey)}
+                      </StatusBadge>
+                    </div>
+                    <span
+                      className={`evtcal-arrow${r.changed ? ' is-changed' : ''}`}
+                      aria-hidden="true"
+                    >
+                      <ArrowGlyph />
+                    </span>
+                    <div className="evtcal-flow-col">
+                      <span className="evtcal-flow-cap">{L.colCommittee}</span>
+                      <StatusBadge
+                        className={`evs-cw-badge tone-${gradeTone(r.committeeGradeKey, orderedGrades)}`}>
+                        {labelOf(r.committeeGradeKey)}
+                      </StatusBadge>
+                    </div>
+                    <div className="evtcal-adjust">
                       {r.changed ? (
                         statusBadge || !onAppeal ? (
                           statusBadge && <StatusBadge
@@ -265,7 +300,7 @@ export default function EvalCycleTeamCalibrationCanvas({
                         ) : (
                           <button
                             type="button"
-                            className={`evc-btn ${isOpen ? 'is-ghost' : 'is-warn-ghost'}`}
+                            className={`evc-btn is-sm ${isOpen ? 'is-ghost' : 'is-warn-ghost'}`}
                             onClick={() => setOpenId(isOpen ? null : r.memberId)}
                             data-testid="evtcal-appeal-cta"
                           >
@@ -319,24 +354,34 @@ export default function EvalCycleTeamCalibrationCanvas({
                   {/* 접수된 이의 사유 + 재검토 결과(읽기 전용) */}
                   {appeal && (
                     <div className="evtcal-appeal-done">
-                      <div className="evtcal-appeal-reason-title">
-                        {L.appealReasonTitle}
+                      <div className="evtcal-appeal-col">
+                        <div className="evtcal-appeal-reason-title">
+                          {L.appealReasonTitle}
+                        </div>
+                        <div className="evtcal-appeal-reason">{appeal.reason}</div>
                       </div>
-                      <div className="evtcal-appeal-reason">{appeal.reason}</div>
                       {appeal.reviewNote && (
-                        <>
+                        <div className="evtcal-appeal-col">
                           <div className="evtcal-appeal-reason-title">
                             {L.appealReviewTitle}
                             {appeal.reviewedByName ? ` · ${appeal.reviewedByName}` : ''}
                           </div>
                           <div className="evtcal-appeal-reason">{appeal.reviewNote}</div>
-                        </>
+                        </div>
                       )}
                     </div>
                   )}
                 </div>
               );
             })}
+          </div>
+          {rows.length > shown && (
+            <LoadMoreButton
+              className="evtcal-more"
+              label={fmt(L.moreRows, { n: Math.min(PAGE_SIZE, rows.length - shown) })}
+              onClick={() => setShown((n) => n + PAGE_SIZE)}
+            />
+          )}
           </div>
         )}
       </section>

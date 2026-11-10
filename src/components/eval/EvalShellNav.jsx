@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import Tabs from '../shared/Tabs.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
@@ -15,6 +16,9 @@ import Tooltip from '../shared/Tooltip.jsx';
  *     「오늘 / 이번 주 / 전체」 「레드 플래그」와 같은 모양 · PW-1653). 고른 화면만 흰 알약으로 뜨고,
  *     통 사이 틈이 섹션을 가른다. 섹션 이름은 화면에 쓰지 않는다. 도메인 설명은 줄 오른쪽에 둔다.
  *     밑줄 탭 한 줄(PW-832)이던 동안 관리자의 탭 아홉 개가 한 줄에 붙어 고른 탭이 안 보였다.
+ *     묶음 사이는 세로선으로 가른다(PW-2684 · 11-10 커트가 고른 시안 eval-look-2026-11-08).
+ *     묶음이 둘이면 통 사이에 세로선, 셋 이상(관리자 아홉 칸)이면 옅은 판 하나 안에 세로선으로
+ *     이어 붙이고 도메인 설명은 줄이 모자라 1행 큰 제목 탭 옆으로 옮긴다.
  *
  * 시안의 '역할 전환기'는 데모용(`TODO(auth)`)이라 옮기지 않았다 — 실제 앱은
  * 로그인 사용자의 역할로 항목을 필터해서 넘긴다.
@@ -71,6 +75,8 @@ export default function EvalShellNav({
     testId: `evnav-subitem-${item.id}`,
   }));
   if (domains.length === 0) return null;
+  // 묶음이 셋 이상이면 판 하나로 잇는다 — 통 셋 + 틈이 2행 폭을 넘겨 설명 글이 접혔다(PW-2684)
+  const joined = groups.length >= 3;
 
   return (
     <nav className="evnav-nav" aria-label={title}>
@@ -92,27 +98,30 @@ export default function EvalShellNav({
           );
         })}
         {domainsHelp}
+        {joined && desc && <span className="evnav-desc is-inline">{desc}</span>}
       </div>
 
       {(groups.length > 0 || desc) && (
         <div className="evnav-views">
           {groups.length > 0 ? (
-            <div className="evnav-groups" data-testid="evnav-groups">
+            <div className={joined ? 'evnav-groups is-joined' : 'evnav-groups'} data-testid="evnav-groups">
               {/* 고른 화면이 없는 통은 알약 없이 선다 — SegmentedControl 이 value 가 목록에 없으면 알약을 내린다 */}
-              {groups.map((g) => (
-                <SegmentedControl
-                  key={g.id}
-                  items={g.items}
-                  value={activeItemId}
-                  onChange={(id) => id !== activeItemId && onSelect?.(id)}
-                  ariaLabel={g.label}
-                />
+              {groups.map((g, gi) => (
+                <Fragment key={g.id}>
+                  {gi > 0 && <span className="evnav-group-divider" aria-hidden="true" data-testid="evnav-group-divider" />}
+                  <SegmentedControl
+                    items={g.items}
+                    value={activeItemId}
+                    onChange={(id) => id !== activeItemId && onSelect?.(id)}
+                    ariaLabel={g.label}
+                  />
+                </Fragment>
               ))}
             </div>
           ) : (
             <span />
           )}
-          {desc && <span className="evnav-desc">{desc}</span>}
+          {!joined && desc && <span className="evnav-desc">{desc}</span>}
         </div>
       )}
 

@@ -3,6 +3,7 @@ import StatusBadge from '../shared/StatusBadge.jsx';
 import Avatar from '../shared/Avatar.jsx';
 import EmptyState from '../shared/EmptyState.jsx';
 import { ArrowRightIcon, CheckCircleIcon, ChevronRightIcon, PauseIcon } from './evalIcons.jsx';
+import { FileTextGlyph, PencilGlyph, PieChartGlyph, UserGlyph, UsersGlyph } from '../shared/lineIcons.jsx';
 
 /**
  * EvalMyHomeCanvas — 구성원 「내 평가 홈」 (PW-1468).
@@ -16,7 +17,8 @@ import { ArrowRightIcon, CheckCircleIcon, ChevronRightIcon, PauseIcon } from './
  *     calibrationEnabled === false 면 캘리브레이션 칩을 그리지 않는다 (member §10.1 M2).
  *     status: 라벨 사전(member §3.2-A · PW-1970) — 모양은 §3.2 세 가지 중 하나다
  *       완료(초록+체크): 'submitted' 제출 완료 · 'arrived' 도착
- *       진행(주황): 'not_started' 작성 전 · 'in_progress' 작성 중 · 'open' 진행 중
+ *       진행: 'not_started' 작성 전(주황) · 'in_progress' 작성 중(파랑) · 'open' 진행 중(파랑) — PW-2684 카드가
+ *         «작성 중»을 디자이너 진행 상태 색(파랑)으로 정했다. 손대지 않은 «작성 전»만 주황으로 남는다
  *       대기(회색): 'not_open' 열리기 전 · 'missed' 미제출 · 'closed' 마감 · 'pending'(옛 값)
  *     waitsForSelf: 셀프를 먼저 내야 열린다 — 보조 줄 「셀프 완료 후 오픈」. 안 주면 옛 판정(동료·대기·못 누름)
  *     actionable: 누르면 갈 곳이 있다 · evaluator: 평가자 자격으로 열리는 상자(하향·캘리브레이션)
@@ -89,6 +91,21 @@ const STATUS_SHAPE = {
   pending: 'idle',
 };
 const SHAPE_TONE = { done: 'success', active: 'warning', idle: 'neutral' };
+/** 진행 모양 안에서도 이미 쓰고 있는 상태는 파랑(진행) — 딱지 뜻 표(statusBadgeTones) «progress» (PW-2684) */
+const STATUS_TONE = { in_progress: 'progress', open: 'progress' };
+/**
+ * 단계 상자 왼쪽 그림(PW-2684) — 무엇을 하는 단계인지 한눈에. 내가 쓰는 셀프는 사람 하나, 여럿이 주고받는 동료·상향은
+ * 사람 둘, 평가자로 쓰는 하향은 연필, 결과는 문서. 모르는 단계는 연필.
+ */
+const PHASE_ICON = {
+  self: UserGlyph,
+  peer_nominate: UsersGlyph,
+  peer: UsersGlyph,
+  upward: UsersGlyph,
+  manager: PencilGlyph,
+  calibration: PieChartGlyph,
+  report: FileTextGlyph,
+};
 const CHIP_ORDER = ['self', 'peer', 'manager', 'calibration'];
 
 function isObj(v) {
@@ -119,31 +136,37 @@ function PhaseBox({ cycleId, phase, L, onPhaseClick }) {
     phase.evaluator ? 'is-evaluator' : done ? 'is-done' : shape === 'active' || phase.actionable ? 'is-active' : '',
     phase.actionable ? '' : 'is-idle',
   ].filter(Boolean).join(' ');
+  const Icon = PHASE_ICON[phase.id] || PencilGlyph;
   const body = (
     <>
+      <span className="evmh-phase-icon" aria-hidden>
+        <Icon size={18} strokeWidth={1.8} />
+      </span>
+      <span className="evmh-phase-text">
+        <span className="evmh-phase-top">
+          <span className="evmh-phase-label">{phase.label}</span>
+          {phase.evaluator && L.evaluatorHint[phase.id] && (
+            <span className="evmh-phase-hint">
+              {L.evaluatorHint[phase.id]}
+              <ChevronRightIcon size={12} />
+            </span>
+          )}
+        </span>
+        <span className="evmh-phase-bottom">
+          {phase.due && <span className="evmh-phase-due">{fill(L.due, { due: phase.due })}</span>}
+          <StatusBadge tone={STATUS_TONE[phase.status] || SHAPE_TONE[shape]} className="evc-status-badge evmh-phase-badge">
+            {L.status[phase.status] || phase.status}
+          </StatusBadge>
+          {waitsForSelf && (
+            <span className="evmh-phase-due">{L.peerWaitsSelf}</span>
+          )}
+        </span>
+      </span>
       {done && (
         <span className="evmh-phase-check" aria-hidden>
           <CheckCircleIcon size={18} />
         </span>
       )}
-      <span className="evmh-phase-top">
-        <span className="evmh-phase-label">{phase.label}</span>
-        {phase.evaluator && L.evaluatorHint[phase.id] && (
-          <span className="evmh-phase-hint">
-            {L.evaluatorHint[phase.id]}
-            <ChevronRightIcon size={12} />
-          </span>
-        )}
-      </span>
-      <span className="evmh-phase-bottom">
-        {phase.due && <span className="evmh-phase-due">{fill(L.due, { due: phase.due })}</span>}
-        <StatusBadge tone={SHAPE_TONE[shape]} className="evc-status-badge">
-          {L.status[phase.status] || phase.status}
-        </StatusBadge>
-        {waitsForSelf && (
-          <span className="evmh-phase-due">{L.peerWaitsSelf}</span>
-        )}
-      </span>
     </>
   );
   if (!phase.actionable) {
@@ -163,6 +186,24 @@ function PhaseBox({ cycleId, phase, L, onPhaseClick }) {
     >
       {body}
     </button>
+  );
+}
+
+/**
+ * «최종 등급: 탁월» — 등급 낱말만 딱지로 세운다(PW-2684 · 결과를 한눈에). 문구 틀은 앱이 준 그대로 쓰고
+ * `{grade}` 자리만 딱지로 바꾼다. 틀에 `{grade}` 가 없으면 예전처럼 글로만 붙인다.
+ */
+function GradeText({ tpl, grade }) {
+  const parts = String(tpl).split('{grade}');
+  if (parts.length < 2) return <>{` ${fill(tpl, { grade })}`}</>;
+  return (
+    <>
+      {` ${parts[0]}`}
+      <StatusBadge tone="accent" className="evc-status-badge" data-testid="evmh-report-grade">
+        {grade}
+      </StatusBadge>
+      {parts.slice(1).join(grade)}
+    </>
   );
 }
 
@@ -222,7 +263,7 @@ export default function EvalMyHomeCanvas({
             <span className="evmh-banner-title">{L.reportTitle}</span>
             <span className="evmh-banner-sub">
               {fill(L.reportSub, { cycle: reportBanner.cycleName })}
-              {reportBanner.gradeLabel ? ` ${fill(L.reportGrade, { grade: reportBanner.gradeLabel })}` : ''}
+              {reportBanner.gradeLabel ? <GradeText tpl={L.reportGrade} grade={reportBanner.gradeLabel} /> : null}
             </span>
           </span>
           <button
@@ -238,12 +279,19 @@ export default function EvalMyHomeCanvas({
       )}
 
       {cycles.length === 0 ? (
-        <EmptyState data-testid="evmh-empty" title={L.empty} description={L.emptySub} />
+        <EmptyState
+          data-testid="evmh-empty"
+          className="evmh-empty"
+          size="lg"
+          icon={<FileTextGlyph size={24} strokeWidth={1.8} />}
+          title={L.empty}
+          description={L.emptySub}
+        />
       ) : (
         cycles.map((c) => {
           const present = new Set(c.phases.map((p) => p.id));
           return (
-            <section className="evc-card" key={c.id} data-testid={`evmh-cycle-${c.id}`}>
+            <section className="evc-card evmh-cycle" key={c.id} data-testid={`evmh-cycle-${c.id}`}>
               <div className="evmh-cycle-head">
                 <div>
                   <h2 className="evc-card-name">{c.name}</h2>
@@ -302,7 +350,7 @@ export default function EvalMyHomeCanvas({
       )}
 
       {peerTasks.length > 0 && (
-        <section className="evc-card" data-testid="evmh-peers">
+        <section className="evc-card evmh-cycle" data-testid="evmh-peers">
           <div className="evmh-cycle-head">
             <h2 className="evc-card-name">{L.peerTitle}</h2>
             <StatusBadge tone="info" className="evc-status-badge">
