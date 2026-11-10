@@ -168,8 +168,14 @@ export default function EvalCycleManageCanvas({
   const L = { ...DEFAULT_LABELS, ...(providedLabels || {}) };
 
   return (
-    <div className="evc-root">
-      <header className="evc-header">
+    <div className="evc-root evmg-root">
+      <header className="evc-header evmg-header">
+        {/* 「지금 한 사이클 «안» 에 있다」를 항상 보이게 한다 (정책 §4.6.3) —
+            셸 서브네비와 이 탭 줄에 같은 이름이 둘(진행 현황 · 리포트) 있다.
+            PW-2683 — 시안 admin_manage-peer: 제목 뒤 «· 사이클 관리»를 제목 위 작은 초록 글씨로. */}
+        <span className="evc-manage-suffix evmg-eyebrow" data-testid="evmg-suffix">
+          {L.manageSuffix}
+        </span>
         <div className="evc-manage-head">
           {/* key 를 주지 않는다 — 사이클을 읽기 전·후로 같은 제목 요소가 이어져야 한다. */}
           <CycleTitle
@@ -177,11 +183,6 @@ export default function EvalCycleManageCanvas({
             onRename={cycle ? onRename : null}
             L={L}
           />
-          {/* 「지금 한 사이클 «안» 에 있다」를 항상 보이게 한다 (정책 §4.6.3) —
-              셸 서브네비와 이 탭 줄에 같은 이름이 둘(진행 현황 · 리포트) 있다. */}
-          <span className="evc-manage-suffix" data-testid="evmg-suffix">
-            · {L.manageSuffix}
-          </span>
           {/* PW-1116 중단 중에는 단계 배지를 세우지 않는다 — 「중단」은 아래 주황 띠 한 줄에만
               적는다. 제목 옆 배지·띠가 같은 말을 세 번, 그것도 평소 «진행 중» 색으로 했었다. */}
           {statusLabel && !onHold && (
@@ -192,7 +193,7 @@ export default function EvalCycleManageCanvas({
         </div>
       </header>
 
-      {toolbar && <div className="evc-toolbar">{toolbar}</div>}
+      {toolbar && <div className="evc-toolbar evmg-toolbar">{toolbar}</div>}
 
       {onHold && (
         <p className="evx-notice is-warn evc-manage-onhold" data-testid="evmg-onhold">

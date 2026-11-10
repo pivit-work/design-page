@@ -1,7 +1,11 @@
 import Button from '../shared/Button.jsx';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import TextInput from '../shared/TextInput.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
+import Chip from '../shared/Chip.jsx';
+import AnchoredLayer from '../shared/AnchoredLayer.jsx';
+import useDismissLayer from '../shared/useDismissLayer.js';
+import { CheckGlyph, ChevronDownGlyph, SearchGlyph } from '../shared/lineIcons.jsx';
 import { fill } from './evalTemplateItemModel.js';
 import { CHIP_PICKER_SEARCH_MIN, filterByQuery } from './chipPickerFilter.js';
 
@@ -26,6 +30,81 @@ export default function EvalWizardChipPicker({
   countLabel,
   onClear,
   // 검색 칸 — 'always'(조직) · 'many'(값이 많을 때만 — 직급).
+  search = 'always',
+  searchPlaceholder,
+  /* PW-2683 — 'dropdown' 이면 «선택» 버튼 + 고른 것만 칩(앞 chipMax 개 + «외 N개»), 고르기는 버튼 밑에 뜨는
+     검색·스크롤 목록(원온원 만들기 창 메뉴 .ono-add-modal-menu 값 · 시안 eval-look-2026-11-08 admin_wizard-4).
+     기본 'list' 는 전과 같은 테두리 상자 목록이다 — 지금 쓰는 곳은 그대로 돈다. */
+  mode = 'list',
+  /** dropdown — 버튼 글씨(없으면 label). */
+  buttonLabel,
+  /** dropdown — 값 → 보이는 이름(조직 id → 조직 이름 등). 검색도 이 이름으로 거른다. */
+  optionLabel,
+  /** dropdown — 칩으로 보이는 최대 개수. 넘으면 «외 N개» 가 남은 것을 목록 맨 위에 띄워 연다. */
+  chipMax = 6,
+  /** dropdown — «외 {{count}}개». */
+  moreLabel,
+  /** dropdown — 칩 X 의 읽는 이름(값 이름을 받는다). */
+  removeLabel,
+  /** dropdown — 시험용 이름을 지금 쓰는 이름에 맞출 때: { button, chip(v), remove(v), item(v) } */
+  testIds,
+  disabled = false,
+}) {
+  if (mode === 'dropdown') {
+    return (
+      <ChipPickerDropdown
+        options={options}
+        selected={selected}
+        onToggle={onToggle}
+        testIdPrefix={testIdPrefix}
+        labels={L}
+        extraSelected={extraSelected}
+        onRemoveExtra={onRemoveExtra}
+        label={label}
+        countLabel={countLabel}
+        onClear={onClear}
+        searchPlaceholder={searchPlaceholder}
+        buttonLabel={buttonLabel}
+        optionLabel={optionLabel}
+        chipMax={chipMax}
+        moreLabel={moreLabel}
+        removeLabel={removeLabel}
+        testIds={testIds}
+        disabled={disabled}
+      />
+    );
+  }
+  return (
+    <ChipPickerList
+      options={options}
+      selected={selected}
+      onToggle={onToggle}
+      testIdPrefix={testIdPrefix}
+      labels={L}
+      extraSelected={extraSelected}
+      onRemoveExtra={onRemoveExtra}
+      extraTestIdPrefix={extraTestIdPrefix}
+      label={label}
+      countLabel={countLabel}
+      onClear={onClear}
+      search={search}
+      searchPlaceholder={searchPlaceholder}
+    />
+  );
+}
+
+function ChipPickerList({
+  options,
+  selected,
+  onToggle,
+  testIdPrefix,
+  labels: L,
+  extraSelected = [],
+  onRemoveExtra,
+  extraTestIdPrefix,
+  label,
+  countLabel,
+  onClear,
   search = 'always',
   searchPlaceholder,
 }) {
@@ -127,5 +206,186 @@ export default function EvalWizardChipPicker({
         )}
       </div>
     </>
+  );
+}
+
+/* PW-2683 — «선택» 드롭다운. 버튼 옆에는 고른 것만 칩으로, 많으면 앞 chipMax 개 + «외 N개».
+   목록은 창 본문 스크롤·overflow 에 잘리지 않게 포털(AnchoredLayer)로 버튼 밑 4px 에 띄운다.
+   바깥을 누르거나 Esc 면 닫힌다 — Esc 는 이 목록만 닫고 만들기 창은 닫지 않는다(useDismissLayer). */
+function ChipPickerDropdown({
+  options,
+  selected,
+  onToggle,
+  testIdPrefix,
+  labels: L,
+  extraSelected = [],
+  onRemoveExtra,
+  label,
+  countLabel,
+  onClear,
+  searchPlaceholder,
+  buttonLabel,
+  optionLabel,
+  chipMax = 6,
+  moreLabel,
+  removeLabel,
+  testIds = {},
+  disabled = false,
+}) {
+  const [open, setOpen] = useState(false);
+  const [chosenFirst, setChosenFirst] = useState(false);
+  const [query, setQuery] = useState('');
+  const btnRef = useRef(null);
+  const wrapRef = useRef(null);
+  const menuRef = useRef(null);
+  const searchRef = useRef(null);
+  useDismissLayer(() => setOpen(false), menuRef, wrapRef, open);
+  // 열자마자 검색칸으로 — 마우스 없이 바로 친다.
+  useEffect(() => {
+    if (open) searchRef.current?.focus();
+  }, [open]);
+
+  const nameOf = (v) => (optionLabel ? optionLabel(v) : v) ?? '';
+  const ids = {
+    button: testIds.button ?? `${testIdPrefix}s-pick`,
+    chip: testIds.chip ?? ((v) => `${testIdPrefix}s-selected-${v}`),
+    remove: testIds.remove ?? ((v) => `${testIdPrefix}s-remove-${v}`),
+    item: testIds.item ?? ((v) => `${testIdPrefix}-${v}`),
+  };
+  const placeholder = searchPlaceholder ?? L.wizardValueSearch;
+  const chosen = [
+    ...options.filter((v) => selected.includes(v)),
+    // 후보에서 사라진 옛 선택도 칩으로 남긴다 — X 로만 지운다.
+    ...selected.filter((v) => !options.includes(v)),
+  ];
+  const chips = [
+    ...chosen.map((v) => ({ v, remove: () => onToggle(v) })),
+    ...extraSelected.map((v) => ({ v, remove: () => onRemoveExtra?.(v), extra: true })),
+  ];
+  const shown = chips.slice(0, chipMax);
+  const hidden = chips.length - shown.length;
+  const selectedCount = chips.length;
+
+  const q = query.trim().toLowerCase();
+  let rows = q ? options.filter((v) => nameOf(v).toLowerCase().includes(q)) : options;
+  if (chosenFirst) rows = [...rows.filter((v) => selected.includes(v)), ...rows.filter((v) => !selected.includes(v))];
+
+  const toggleOpen = (first) => {
+    const next = !open;
+    setChosenFirst(next && first);
+    if (!next) setQuery('');
+    setOpen(next);
+  };
+
+  return (
+    <div className="evc-pick" ref={wrapRef} data-testid={`${testIdPrefix}s-box`}>
+      {label != null && (
+        <div className="evc-wiz-calibscope-label evc-wiz-chippicker-head" data-testid={`${testIdPrefix}s-head`}>
+          <span>{label}</span>
+          <span className="evc-wiz-chippicker-count" data-testid={`${testIdPrefix}s-count`}>
+            {fill(countLabel ?? L.wizardValueSelected, { count: selectedCount })}
+          </span>
+        </div>
+      )}
+      <div className="evc-pick-row">
+        <span className="evc-pick-anchor" ref={btnRef}>
+          <Button
+            variant="secondary"
+            size="sm"
+            className={`evc-pick-btn${open ? ' is-open' : ''}`}
+            aria-haspopup="listbox"
+            aria-expanded={open}
+            disabled={disabled}
+            onClick={() => toggleOpen(false)}
+            data-testid={ids.button}
+          >
+            {buttonLabel ?? label}
+            <ChevronDownGlyph size={16} aria-hidden="true" />
+          </Button>
+        </span>
+        {shown.map(({ v, remove, extra }) => (
+          <Chip
+            key={`${extra ? 'x:' : ''}${v}`}
+            selected
+            className="evc-pick-chip"
+            onRemove={disabled ? undefined : remove}
+            removeLabel={removeLabel ? removeLabel(nameOf(v)) : nameOf(v)}
+            removeProps={{ 'data-testid': ids.remove(v) }}
+            data-testid={ids.chip(v)}
+          >
+            <span title={nameOf(v)}>{nameOf(v) || v}</span>
+          </Chip>
+        ))}
+        {hidden > 0 && (
+          <Button
+            className="evc-pick-more"
+            aria-haspopup="listbox"
+            onClick={() => toggleOpen(true)}
+            data-testid={`${testIdPrefix}s-more`}
+          >
+            {fill(moreLabel ?? '외 {{count}}개', { count: hidden })}
+          </Button>
+        )}
+      </div>
+      {open && (
+        <AnchoredLayer
+          anchorRef={btnRef}
+          panelRef={menuRef}
+          width={340}
+          maxHeight={360}
+          className="evc-pick-menu"
+          data-testid={`${testIdPrefix}s-menu`}
+        >
+          <label className="evc-pick-search">
+            <SearchGlyph size={16} aria-hidden="true" />
+            <input
+              ref={searchRef}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={placeholder}
+              aria-label={placeholder}
+              data-testid={`${testIdPrefix}s-search`}
+            />
+          </label>
+          <div className="evc-pick-list" role="listbox" aria-multiselectable="true" aria-label={buttonLabel ?? label}>
+            {rows.map((v) => {
+              const on = selected.includes(v);
+              return (
+                <Button
+                  key={v}
+                  role="option"
+                  aria-selected={on}
+                  className={`evc-pick-item${on ? ' is-on' : ''}`}
+                  onClick={() => onToggle(v)}
+                  data-testid={ids.item(v)}
+                >
+                  <span className="evc-pick-box" aria-hidden="true">
+                    {on && <CheckGlyph size={11} />}
+                  </span>
+                  <span className="evc-pick-name" title={nameOf(v)}>
+                    {nameOf(v)}
+                  </span>
+                </Button>
+              );
+            })}
+            {q && rows.length === 0 && (
+              <span className="evc-pick-empty" data-testid={`${testIdPrefix}s-empty`}>
+                {fill(L.wizardValueSearchEmpty ?? '"{{query}}"과(와) 맞는 값이 없습니다.', { query: query.trim() })}
+              </span>
+            )}
+          </div>
+          <div className="evc-pick-foot">
+            <span data-testid={`${testIdPrefix}s-menu-count`}>
+              {fill(countLabel ?? L.wizardValueSelected ?? '{{count}}개 선택', { count: selectedCount })}
+            </span>
+            {selectedCount > 0 && onClear && (
+              <Button className="evc-pick-more" onClick={onClear} data-testid={`${testIdPrefix}s-clear`}>
+                {L.wizardValueClear ?? '모두 해제'}
+              </Button>
+            )}
+          </div>
+        </AnchoredLayer>
+      )}
+    </div>
   );
 }

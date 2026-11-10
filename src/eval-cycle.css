@@ -16383,3 +16383,1765 @@ button.evmh-phase:focus-visible {
   font-size: var(--font-size-text-xs);
   color: var(--utility-error-600);
 }
+
+/* ══ PW-2683 만들기 창 틀·1·2단계 (디자이너 모양 시안 eval-look-2026-11-08) ══════════ */
+/* 창 높이 — 단계마다 내용 높이가 달라 창이 커졌다 줄었다 했다. 화면 높이에 맞춰 둔다(시안 .modal). */
+.tl-group-modal.evc-shell.evc-wiz-shell {
+  height: calc(100vh - 48px);
+}
+/* 닫기 X 는 제목 줄 오른쪽 위에 띄운다 — 위 줄을 따로 두면 제목이 그만큼 내려간다. */
+.tl-group-modal.evc-wiz-shell > .tl-group-modal-top {
+  position: absolute;
+  top: var(--spacing-3xl);
+  right: var(--spacing-4xl);
+  z-index: 2;
+  padding: 0;
+}
+/* 틀 본문은 스크롤하지 않는다 — 제목·안내 줄·단계 표는 서 있고 아래 .evc-wiz-body 만 스크롤한다. */
+.tl-group-modal.evc-shell.evc-wiz-shell .evc-wiz-shell-content {
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+.tl-group-modal.evc-wiz-shell .evc-wiz-shell-content > .tl-group-modal-header {
+  flex-shrink: 0;
+  padding: var(--spacing-3xl) calc(var(--spacing-4xl) * 2 + var(--spacing-3xl)) 0 var(--spacing-4xl);
+}
+.tl-group-modal.evc-wiz-shell .evc-wiz-shell-content .tl-group-modal-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+  font-size: 20px;
+  line-height: 28px;
+  color: var(--fg-primary);
+  overflow-wrap: anywhere;
+}
+.evc-wiz-shell-frame {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+/* 이어서 작성 안내 — 제목 바로 아래 회색 한 줄(시안 .m-draft). 실패 띠는 빨간 글씨 그대로. */
+.tl-group-modal.evc-shell.evc-wiz-shell .evc-wiz-shell-frame > .evc-wiz-draft-banner {
+  flex-shrink: 0;
+  margin: var(--spacing-sm) var(--spacing-4xl) 0;
+  font-size: 13px;
+  line-height: var(--line-height-text-xs);
+}
+.tl-group-modal.evc-shell.evc-wiz-shell .evc-wiz-shell-frame > .evc-wiz-draft-banner:not(.is-error) {
+  color: var(--text-subtle);
+}
+.tl-group-modal.evc-shell.evc-wiz-shell .evc-wiz-shell-frame > .evc-wiz-draft-banner:not(.is-error) svg {
+  color: var(--text-tertiary);
+}
+/* 단계 표 — 칸마다 위에 진행 막대(로그인 온보딩 진행 막대 4px), 끝난·지금 단계는 초록. */
+.tl-group-modal.evc-shell.evc-wiz-shell .evc-wiz-steps {
+  flex-shrink: 0;
+  align-items: stretch;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-2xl);
+  padding: 0 var(--spacing-4xl);
+  border-bottom: 1px solid var(--border-secondary);
+}
+.tl-group-modal.evc-wiz-shell .evc-wiz-steps > .evc-wiz-step,
+.tl-group-modal.evc-wiz-shell .evc-wiz-steps > * > .evc-wiz-step {
+  flex: 1 1 0;
+  min-width: 0;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--spacing-md);
+  padding-bottom: var(--spacing-lg);
+}
+.evc-wiz-step-bar {
+  display: block;
+  height: 4px;
+  border-radius: var(--radius-xxs);
+  background: var(--alpha-black-5);
+}
+.evc-wiz-step.is-done .evc-wiz-step-bar,
+.evc-wiz-step.is-current .evc-wiz-step-bar {
+  background: var(--bg-brand-solid);
+}
+.evc-wiz-step-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+.tl-group-modal.evc-wiz-shell .evc-wiz-step-num {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-xs);
+  font-size: var(--font-size-text-xs);
+  background: var(--alpha-black-3);
+  color: var(--text-tertiary);
+}
+.tl-group-modal.evc-wiz-shell .evc-wiz-step.is-current .evc-wiz-step-num {
+  background: var(--bg-brand-solid);
+  color: var(--text-white);
+}
+.tl-group-modal.evc-wiz-shell .evc-wiz-step.is-done .evc-wiz-step-num {
+  background: var(--bg-brand-secondary);
+  color: var(--text-brand-secondary);
+}
+.tl-group-modal.evc-wiz-shell .evc-wiz-step-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+.tl-group-modal.evc-wiz-shell .evc-wiz-step.is-done .evc-wiz-step-label {
+  color: var(--text-secondary);
+}
+.tl-group-modal.evc-wiz-shell .evc-wiz-step.is-current .evc-wiz-step-label {
+  color: var(--fg-primary);
+  font-weight: 700;
+}
+.tl-group-modal.evc-wiz-shell .evc-wiz-step:not(.is-current):hover .evc-wiz-step-label {
+  color: var(--fg-primary);
+}
+/* 본문 — 이 칸만 스크롤한다. */
+.tl-group-modal.evc-shell.evc-wiz-shell .evc-wiz-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--spacing-2xl) var(--spacing-4xl) var(--spacing-3xl);
+}
+/* 바닥 줄 — 이전 · (막힌 이유) · 저장 상태 · 임시저장 · 다음 */
+.tl-group-modal.evc-shell.evc-wiz-shell .evc-wiz-footer {
+  align-items: center;
+  padding: var(--spacing-lg) var(--spacing-4xl);
+  border-top: 1px solid var(--border-secondary);
+}
+.tl-group-modal.evc-wiz-shell .evc-wiz-footer .evc-wiz-draft-state:not(.is-error) {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-subtle);
+}
+.tl-group-modal.evc-wiz-shell .evc-wiz-footer .evc-wiz-draft-state:not(.is-error) svg {
+  color: var(--text-brand-tertiary);
+}
+
+/* ── 흰 카드 묶음(1·2단계) — 시안 .card · .card-h · .card-b ── */
+.evc-wiz-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+  min-width: 0;
+  padding: var(--spacing-lg) var(--spacing-xl) var(--spacing-xl);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-lg);
+  background: var(--bg-quaternary);
+}
+.evc-wiz-card-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 22px;
+  color: var(--fg-primary);
+}
+.evc-wiz-card-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+  min-width: 0;
+}
+/* 카드가 놓이는 단계는 카드 사이 20px(시안 .m-body gap). */
+.evc-wiz-panel.is-form:has(> .evc-wiz-card),
+.evc-wiz-panel.is-tpl-form {
+  gap: var(--spacing-2xl);
+}
+/* 카드 안 이름표 — 12px 굵게, 이름표 ↔ 칸 8px(시안 .lbl · .fld). */
+.evc-wiz-panel .evc-wiz-card .evc-field-label {
+  margin: 0;
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+  line-height: var(--line-height-text-xs);
+  color: var(--text-primary);
+}
+.evc-wiz-panel .evc-wiz-card .evc-wiz-card-head > .evc-field-label,
+.evc-wiz-panel .evc-wiz-card > .evc-tpl-confirm-head > .evc-field-label,
+.evc-wiz-panel .evc-wiz-card > .evc-tpl-items-head > .evc-field-label {
+  flex: 1 1 auto;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 22px;
+  color: var(--fg-primary);
+}
+.evc-wiz-field,
+.evc-wiz-panel.is-form .evc-wiz-card .evc-field-grid > div,
+.evc-wiz-card .evc-wiz-rounds {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  min-width: 0;
+  margin: 0;
+}
+.evc-wiz-panel.is-form .evc-wiz-card .evc-field-grid {
+  column-gap: var(--spacing-lg);
+  margin: 0;
+}
+.evc-wiz-panel .evc-wiz-card > div:not([class]) > .evc-field-label:first-child {
+  display: flex;
+  margin: 0 0 var(--spacing-md);
+}
+/* 1단계 이름 칸 — 패널 바로 아래가 아니게 되어 회색 칸 규칙을 다시 건다(날짜 칸과 같은 값). */
+.evc-wiz-panel.is-form .evc-wiz-field > .evc-input {
+  min-height: 40px;
+  height: auto;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-color: transparent;
+  border-radius: var(--radius-md);
+  background: var(--alpha-black-3);
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
+}
+.evc-wiz-panel.is-form .evc-wiz-field > .evc-input:focus {
+  border-color: var(--border-brand);
+}
+.evc-wiz-panel.is-form .evc-wiz-field > .evc-input.is-invalid {
+  border-color: var(--utility-error-500);
+  background: var(--bg-error-primary);
+}
+/* 리뷰 종류와 그 아래 칸 사이 가는 선(시안 .divider) */
+.evc-wiz-field.is-types:not(:last-child) {
+  padding-bottom: var(--spacing-xl);
+  border-bottom: 1px solid var(--border-secondary);
+}
+/* AI 로 초안 만들기 · 불러오기 — 카드 위 오른쪽(시안 .start). 종전의 점선·아래 여백은 걷는다. */
+.evc-wiz-panel .evc-wiz-start-actions {
+  margin: 0 0 calc(-1 * var(--spacing-md));
+  padding: 0;
+  border: 0;
+}
+.evc-wiz-panel .evc-wiz-start-actions .evc-preset-item-actions {
+  justify-content: flex-end;
+}
+/* 리뷰 종류 — 네모는 숨긴 체크박스, 겉은 8px 칩(고르면 연초록 + 체크). */
+.evc-check-row.evc-wiz-type-picks {
+  column-gap: var(--spacing-sm);
+  row-gap: var(--spacing-sm);
+}
+.evc-wiz-type-pick {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  height: 32px;
+  padding: 0 var(--spacing-lg);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-sm);
+  background: var(--bg-quaternary);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.evc-wiz-type-pick:hover {
+  background: var(--bg-secondary);
+}
+.evc-wiz-type-pick.is-on {
+  border-color: transparent;
+  background: var(--bg-brand-secondary);
+  color: var(--text-brand-secondary);
+}
+.evc-wiz-type-pick:has(:focus-visible) {
+  outline: 2px solid var(--border-brand);
+  outline-offset: 1px;
+}
+.evc-wiz-type-pick > .evc-wiz-type-pick-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.evc-wiz-type-pick-check {
+  display: none;
+}
+.evc-wiz-type-pick.is-on .evc-wiz-type-pick-check {
+  display: inline-flex;
+}
+
+/* ── 2단계 «지금 편집 중» 줄 — 창 폭 끝까지, 본문 맨 위에 붙는다(시안 .editing). 관리 탭은 종전 상자 그대로. ── */
+.tl-group-modal.evc-shell.evc-wiz-shell .evc-wiz-panel.is-tpl-form > .evc-tpl-ctxbar {
+  top: calc(-1 * var(--spacing-2xl));
+  margin: calc(-1 * var(--spacing-2xl)) calc(-1 * var(--spacing-4xl)) 0;
+  padding: var(--spacing-lg) var(--spacing-4xl);
+  border: 0;
+  border-bottom: 1px solid var(--border-secondary);
+  border-radius: 0;
+  background: var(--bg-quaternary);
+  box-shadow: none;
+}
+.evc-wiz-panel.is-tpl-form .evc-tpl-ctxbar-type {
+  padding: var(--spacing-xxs) var(--spacing-md);
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: var(--bg-brand-secondary);
+  color: var(--text-brand-secondary);
+  font-weight: 600;
+}
+.tl-group-modal.evc-wiz-shell .evc-wiz-panel.is-tpl-form .evc-tpl-ctxbar-label {
+  font-size: var(--font-size-text-sm);
+  color: var(--fg-primary);
+}
+
+/* ── 2단계 «이 사이클에 적용할 템플릿» 카드 ── */
+.evc-wiz-panel .evc-tpl-confirm.evc-wiz-card {
+  gap: var(--spacing-sm);
+  margin: 0;
+  padding: var(--spacing-lg) var(--spacing-xl) var(--spacing-xl);
+  background: var(--bg-quaternary);
+}
+.evc-wiz-panel .evc-tpl-confirm.evc-wiz-card > .evc-tpl-confirm-head {
+  margin-bottom: var(--spacing-sm);
+}
+.evc-wiz-panel .evc-wiz-card .evc-tpl-confirm-row {
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-md) var(--spacing-md) var(--spacing-lg);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-md);
+}
+.evc-wiz-panel .evc-wiz-card .evc-tpl-confirm-row.is-editing {
+  border-color: var(--border-brand);
+  background: var(--bg-brand-primary);
+}
+/* 유형 이름 — 굵은 글씨(시안 .apply-row .k) */
+.evc-tpl-confirm-type {
+  min-width: 44px;
+  font-size: var(--font-size-text-sm);
+  font-weight: 700;
+  color: var(--fg-primary);
+  white-space: nowrap;
+}
+/* 확정 상태 — 미확정 주황 · 확정 초록 · 확정 뒤 고침 노랑, 6px 네모 딱지(시안 .state) */
+.evc-wiz-panel .evc-wiz-card .evc-tpl-confirm-state {
+  padding: var(--spacing-xxs) var(--spacing-md);
+  border: 0;
+  border-radius: var(--radius-xs);
+  font-weight: 600;
+}
+.evc-wiz-panel .evc-wiz-card .evc-tpl-confirm-state.is-none {
+  background: var(--utility-orange-50);
+  color: var(--utility-orange-600);
+}
+.evc-wiz-panel .evc-wiz-card .evc-tpl-confirm-state.is-done {
+  background: var(--bg-brand-secondary);
+  color: var(--text-brand-secondary);
+}
+.evc-wiz-panel .evc-wiz-card .evc-tpl-confirm-state.is-dirty {
+  background: var(--bg-warning-primary);
+  color: var(--text-warning-primary);
+}
+.evc-wiz-panel .evc-wiz-card .evc-tpl-confirm-select {
+  width: 220px;
+  background: var(--bg-quaternary);
+}
+
+/* ── 2단계 저장된 템플릿 카드 · 버전 프리셋 ── */
+.evc-wiz-panel.is-tpl-form .evc-tpl-start-cards {
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+.evc-wiz-panel.is-tpl-form .evc-tpl-start-card {
+  gap: var(--spacing-xs);
+  background: var(--bg-quaternary);
+}
+.evc-wiz-panel.is-tpl-form .evc-tpl-start-card-actions {
+  margin-top: var(--spacing-md);
+}
+.evc-wiz-panel.is-tpl-form .evc-tpl-presets {
+  margin: 0;
+}
+.evc-wiz-panel.is-tpl-form .evc-tpl-preset {
+  gap: var(--spacing-sm);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-md);
+  background: var(--bg-quaternary);
+  color: var(--text-tertiary);
+}
+.evc-wiz-panel.is-tpl-form .evc-tpl-preset.is-on {
+  border-color: transparent;
+  background: var(--bg-brand-secondary);
+  color: var(--text-brand-secondary);
+}
+.evc-wiz-panel.is-tpl-form .evc-tpl-preset-icon {
+  display: inline-flex;
+}
+.evc-wiz-panel.is-tpl-form .evc-tpl-preset-label {
+  color: var(--fg-primary);
+}
+.evc-wiz-panel.is-tpl-form .evc-tpl-preset.is-on .evc-tpl-preset-label,
+.evc-wiz-panel.is-tpl-form .evc-tpl-preset.is-on .evc-tpl-preset-desc {
+  color: var(--text-brand-secondary);
+}
+.evc-wiz-panel.is-tpl-form .evc-tpl-preset-desc {
+  color: var(--text-subtle);
+}
+/* 평가 항목 카드 머리 · 저장 줄 — 카드 안이라 위 여백을 걷는다. */
+.evc-wiz-panel .evc-wiz-card > .evc-tpl-items-head,
+.evc-wiz-panel .evc-wiz-card > .evc-tpl-start-head,
+.evc-wiz-panel .evc-wiz-card > .evc-tpl-lib {
+  margin-top: 0;
+}
+.evc-wiz-panel .evc-wiz-card > .evc-tpl-lib {
+  padding-top: var(--spacing-lg);
+}
+/* PW-2683-W1-END */
+
+/* ══ PW-2683 만들기 창 3·4단계 · 하향 평가자 · 선택 드롭다운 ══════════════════════ */
+/* ── 3단계 단계별 일정 (사이클 관리 › 단계별 일정 탭도 같은 블록) ──────────────────
+   시안 admin_wizard-3 · admin_manage-peer-schedule — 겹친 회색 상자 단계 → 흰 카드. 한꺼번에 배치 칸도 흰 카드.
+   시작 → 종료 일시 한 줄, 리마인더는 옅은 회색 줄, «템플릿 미확정»은 주황 띠 + 버튼. */
+.evc-sched-panel .evc-sched-anchor {
+  gap: var(--spacing-lg);
+  margin: 0; /* 창 본문 칸 사이(gap 12)가 띄운다 */
+  padding: var(--spacing-xl);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-lg);
+  background: var(--bg-quaternary);
+}
+.evc-sched-panel .evc-sched-anchor-title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--fg-primary);
+}
+.evc-sched-panel .evc-sched-anchor-label {
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--text-primary);
+}
+.evc-sched-panel .evc-sched-card,
+.evc-sched-panel .evc-sched-card.is-required {
+  margin-bottom: 0;
+  padding: var(--spacing-lg) var(--spacing-xl) var(--spacing-xl);
+  background: var(--bg-quaternary);
+}
+.evc-sched-panel .evc-sched-head {
+  gap: var(--spacing-md);
+  min-height: 28px;
+}
+.evc-sched-panel .evc-sched-num {
+  border-radius: var(--radius-xs);
+  background: var(--bg-brand-secondary);
+  color: var(--text-brand-secondary);
+}
+.evc-sched-panel .evc-sched-card.is-off .evc-sched-num {
+  background: var(--bg-primary);
+  color: var(--text-tertiary);
+}
+.evc-sched-panel .evc-sched-name {
+  font-size: 15px;
+  color: var(--fg-primary);
+}
+.evc-sched-panel .evc-sched-owner {
+  font-size: 13px;
+  color: var(--text-subtle);
+}
+.evc-sched-panel .evc-sched-fields {
+  grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr);
+  align-items: start;
+  margin-top: var(--spacing-lg);
+}
+.evc-sched-panel .evc-sched-field > .evc-field-label {
+  margin-top: 0;
+  line-height: 18px;
+  color: var(--text-primary);
+}
+.evc-sched-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: end;
+  height: 36px;
+  color: var(--text-tertiary);
+}
+.evc-sched-panel .evc-rm-block,
+.evc-sched-panel .evc-sched-tpl {
+  margin-top: var(--spacing-lg);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--border-secondary);
+}
+.evc-sched-panel .evc-rm-head .evc-field-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-top: 0;
+  font-size: 13px;
+  color: var(--fg-primary);
+}
+.evc-sched-panel .evc-rm-head .evc-field-label svg { color: var(--text-tertiary); }
+.evc-sched-panel .evc-rm-list { gap: var(--spacing-sm); }
+.evc-sched-panel .evc-rm-row {
+  padding: var(--spacing-md) var(--spacing-md) var(--spacing-md) var(--spacing-lg);
+  background: var(--bg-secondary);
+  font-size: var(--font-size-text-xs);
+  color: var(--text-subtle);
+}
+.evc-sched-panel .evc-rm-row:not(.is-editing) { border-color: transparent; }
+.evc-sched-panel .evc-rm-main { gap: var(--spacing-md); }
+.evc-sched-panel .evc-rm-num {
+  font-weight: 700;
+  color: var(--text-subtle);
+}
+.evc-sched-panel .evc-rm-when {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fg-primary);
+  white-space: nowrap;
+}
+.evc-sched-panel .evc-rm-add {
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+.evc-sched-panel .evc-rm-add:hover { background: var(--bg-field); }
+.evc-sched-panel .evc-sched-tpl.is-unset { padding-top: var(--spacing-lg); }
+.evc-sched-panel .evc-sched-tpl-unset {
+  margin-top: 0;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-md) var(--spacing-md) var(--spacing-lg);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--colors-orange-50);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--colors-orange-600);
+}
+.evc-sched-tpl-unset-text {
+  display: inline-flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-width: 0;
+}
+.evc-sched-tpl-unset-key { color: var(--fg-primary); }
+.evc-sched-panel .evc-sched-tpl-unset .evc-sched-tpl-goto { background: var(--bg-quaternary); }
+
+/* ── 4단계 대상자 (사이클 관리 › 대상자 탭도 같은 블록 · 탭은 .is-manage) ─────────────────
+   시안 admin_wizard-4 · admin_manage-peer-targets. 제외 조건·리뷰 & 조정을 흰 카드로. 만들기 창의 제외 조건은
+   8px 모서리 칩(고르면 연초록 · 퇴사 조건은 자물쇠로 못 끔), 관리 탭은 체크 6개를 두 줄로. */
+.evc-tgt-panel .evc-excl-block,
+.evc-tgt-panel:not(.is-manage) .evc-review-block {
+  margin-top: 0;
+  padding: var(--spacing-xl);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-lg);
+  background: var(--bg-quaternary);
+}
+.evc-tgt-panel .evc-review-block { margin-top: var(--spacing-md); } /* + 창 본문 gap 12 = 카드 사이 20 (시안) */
+.evc-tgt-panel.is-manage .evc-review-block {
+  margin-top: var(--spacing-3xl);
+  padding-top: 0;
+  border-top: 0;
+}
+.evc-tgt-panel .evc-excl-block > .evc-field-label,
+.evc-tgt-panel .evc-review-head > .evc-field-label {
+  margin-top: 0;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 22px;
+  color: var(--fg-primary);
+}
+.evc-tgt-panel .evc-excl-block > .evc-wiz-hint { margin: var(--spacing-xs) 0 var(--spacing-lg); }
+.evc-tgt-panel .evc-review-counter b,
+.evc-tgt-panel .evc-review-counter { color: var(--text-subtle); font-weight: 500; }
+/* 칩 줄 — 만들기 창 */
+.evc-tgt-panel:not(.is-manage) .evc-excl-block {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+.evc-tgt-panel:not(.is-manage) .evc-excl-block > * { flex: 0 0 100%; }
+.evc-tgt-panel:not(.is-manage) .evc-excl-block > .evl-promo-row {
+  position: relative;
+  flex: 0 0 auto;
+  gap: var(--spacing-sm);
+  height: 32px;
+  margin: 0;
+  padding: 0 var(--spacing-lg);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-sm);
+  background: var(--bg-quaternary);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.evc-tgt-panel:not(.is-manage) .evc-excl-block > .evl-promo-row:hover { background: var(--bg-secondary); }
+.evc-tgt-panel:not(.is-manage) .evc-excl-block > .evl-promo-row > span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+/* 네모는 보이지 않게만 둔다 — 글씨를 누르면 켜지고, Tab·Space 도 그대로 받는다. */
+.evc-tgt-panel:not(.is-manage) .evc-excl-block > .evl-promo-row > input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.evc-tgt-panel:not(.is-manage) .evc-excl-block > .evl-promo-row:has(> input:focus-visible) {
+  outline: 2px solid var(--border-brand);
+  outline-offset: 1px;
+}
+.evc-tgt-panel:not(.is-manage) .evc-excl-block > .evl-promo-row:has(> input:checked) {
+  border-color: transparent;
+  background: var(--bg-brand-secondary);
+  color: var(--text-brand-secondary);
+}
+.evc-tgt-panel:not(.is-manage) .evc-excl-block > .evl-promo-row:has(> input:disabled) { cursor: not-allowed; }
+.evc-tgt-panel:not(.is-manage) .evc-excl-block > .evl-promo-row:has(> input:disabled:not(:checked)) { opacity: 0.55; }
+.evc-excl-chip-check { display: none; }
+.evc-tgt-panel:not(.is-manage) .evl-promo-row:has(> input:checked) .evc-excl-chip-check { display: inline; }
+.evc-tgt-panel:not(.is-manage) .evc-excl-block > .evc-excl-date { margin-top: 0; }
+/* 두 줄 체크 — 관리 탭 */
+.evc-tgt-panel.is-manage .evc-excl-block {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: var(--spacing-3xl);
+  align-items: center;
+}
+.evc-tgt-panel.is-manage .evc-excl-block > * { grid-column: 1 / -1; }
+.evc-tgt-panel.is-manage .evc-excl-block > .evl-promo-row {
+  grid-column: auto;
+  margin: var(--spacing-xs) 0;
+}
+/* 세 칸 — 머리줄(이름 + 인원) · 칸 안 스크롤 · 높이 상한 560 */
+.evc-tgt-panel .evc-review-pane {
+  max-height: 560px;
+  overflow: hidden;
+  border-color: var(--border-secondary);
+  border-radius: var(--radius-md);
+  background: var(--bg-quaternary);
+}
+.evc-tgt-panel .evc-review-pane-head {
+  flex: 0 0 auto;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom-color: var(--border-secondary);
+  min-height: 40px;
+}
+.evc-tgt-panel .evc-review-pane-title {
+  font-size: 13px;
+  color: var(--fg-primary);
+}
+.evc-tgt-panel .evc-review-pane-action { font-size: 13px; color: var(--text-brand-tertiary); }
+.evc-tgt-panel .evc-review-pane-action:hover:not(:disabled) { color: var(--text-brand-secondary); }
+.evc-tgt-panel .evc-review-pane-body {
+  min-height: 0;
+  max-height: none;
+  padding: var(--spacing-sm);
+}
+.evc-tgt-panel .evc-review-pane-foot {
+  flex: 0 0 auto;
+  border-top-color: var(--border-secondary);
+  color: var(--text-subtle);
+}
+.evc-review-pane-search {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin: var(--spacing-md) var(--spacing-md) 0;
+  padding: 0 var(--spacing-lg);
+  height: 32px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--bg-field);
+  color: var(--text-tertiary);
+}
+.evc-review-pane-search:focus-within {
+  border-color: var(--border-brand);
+  background: var(--bg-quaternary);
+}
+.evc-review-pane-search > input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  color: var(--fg-primary);
+}
+.evc-review-pane-search > input::placeholder { color: var(--text-tertiary); }
+.evc-tgt-panel .evc-org-name { font-size: 13px; }
+.evc-tgt-panel .evc-org-n { color: var(--text-subtle); }
+/* 명단 — 흰 줄. 가상 스크롤 줄 높이(52px)는 그대로 둔다. */
+.evc-tgt-panel .evc-roster-row { background: var(--bg-quaternary); border-bottom-color: var(--border-secondary); }
+.evc-tgt-panel .evc-roster-group-head { background: var(--bg-secondary); border-bottom-color: var(--border-secondary); }
+/* «제외 →» · «←» — 작은 회색 버튼, 올리면 뜻 색 */
+.evc-tgt-panel .evc-roster-move {
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--radius-xs);
+  background: var(--bg-primary);
+  color: var(--text-subtle);
+}
+.evc-tgt-panel .evc-roster-move.is-out:hover { background: var(--bg-error-primary); color: var(--text-error-primary); }
+.evc-tgt-panel .evc-roster-move.is-in:hover { background: var(--bg-brand-secondary); color: var(--text-brand-secondary); }
+.evc-tgt-panel .evc-excluded-row { align-items: center; padding: var(--spacing-md); border-bottom: 1px solid var(--border-secondary); border-radius: 0; }
+.evc-tgt-panel .evc-excluded-row:last-child { border-bottom: 0; }
+.evc-tgt-panel .evc-excluded-row .evc-roster-move.is-in { grid-row: span 2; align-self: center; }
+/* «직급 없음» · «입사일 없음» — 주황 딱지 */
+.evc-tgt-panel .evc-roster-missing {
+  display: inline-flex;
+  align-items: center;
+  margin-left: var(--spacing-xs);
+  padding: 0 var(--spacing-sm);
+  border-radius: var(--radius-xs);
+  background: var(--colors-orange-50);
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--colors-orange-600);
+}
+/* 직급·입사일 빈 대상자 — 앞 5명 + «외 N명» 펼치기 */
+.evc-tgt-panel .evc-tgt-missing {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  margin: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--colors-orange-50);
+  font-size: var(--font-size-text-xs);
+  line-height: 18px;
+  color: var(--colors-orange-600);
+}
+.evc-tgt-missing-text {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+}
+.evc-tgt-missing-text > svg { flex: 0 0 auto; margin-top: var(--spacing-xxs); }
+.evc-tgt-missing-more.dp-btn {
+  display: inline;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 600;
+  color: var(--colors-orange-600);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.evc-tgt-missing-names {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  max-height: 96px;
+  overflow: auto;
+  padding: var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  background: var(--bg-quaternary);
+}
+.evc-tgt-missing-names > span {
+  padding: 0 var(--spacing-sm);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* ── 4단계 하향 평가자 (시안 worklog/eval-leader-assign-designer-2026-11-08/demo.html · 커트 승인) ── */
+.evc-tgt-panel .evc-la { margin-top: var(--spacing-3xl); gap: var(--spacing-lg); }
+.evc-tgt-panel .evc-la-title {
+  margin-top: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--fg-primary);
+}
+.evc-la-order {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+}
+.evc-la-order-lead { color: var(--text-subtle); }
+.evc-la-order-step {
+  padding: var(--spacing-xxs) var(--spacing-md);
+  border-radius: var(--radius-xs);
+  background: var(--bg-primary);
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--text-secondary);
+}
+.evc-la-order-step.is-first { background: var(--bg-brand-secondary); color: var(--text-brand-secondary); }
+.evc-tgt-panel .evc-la-vacant {
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+.evc-tgt-panel .evc-la-rules {
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border-color: var(--border-secondary);
+  border-radius: var(--radius-md);
+  background: var(--bg-quaternary);
+}
+.evc-tgt-panel .evc-la-rule-form {
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  border-style: solid;
+  border-color: var(--border-secondary);
+}
+.evc-tgt-panel .evc-la-rule-axis { align-items: flex-start; }
+.evc-tgt-panel .evc-la-rule-axis > .evc-la-hint:first-child { min-width: 48px; line-height: 32px; }
+.evc-tgt-panel .evc-la-rule-axis > .evc-pick { flex: 1 1 0; }
+/* 긴 표 — 틀 안 스크롤에서 조직 줄도 머리줄 밑에 붙는다 */
+.evc-la-scroll .rt-group td {
+  position: sticky;
+  top: 37px;
+  z-index: 1;
+}
+
+/* ── «선택» 드롭다운 (EvalWizardChipPicker mode="dropdown" · 4단계 배정 규칙 · 5단계도 같은 부품) ──
+   원온원 만들기 창 메뉴(one_on_one.css .ono-add-modal-menu · stesslee) 값 — 버튼 밑 4px · 흰 바탕 · 테두리 · 그림자 ·
+   안쪽 4px · 목록 최대 256 스크롤 · 항목 사이 2px · 고른 항목 연초록. 고른 것만 칩(8px 모서리 · 연초록). */
+.evc-pick { display: flex; flex-direction: column; gap: var(--spacing-md); min-width: 0; }
+.evc-pick-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-sm); min-width: 0; }
+.evc-pick-anchor { display: inline-flex; }
+.evc-pick-btn.dp-btn { gap: var(--spacing-xs); height: 32px; }
+.evc-pick-btn.dp-btn .dp-btn__label { display: inline-flex; align-items: center; gap: var(--spacing-xs); }
+.evc-pick-btn.is-open { border-color: var(--border-brand); }
+.evc-pick-btn svg { color: var(--text-tertiary); }
+.evc-pick-chip .dp-chip__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.evc-pick-more.dp-btn {
+  height: 32px;
+  padding: 0 var(--spacing-md);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-brand-tertiary);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.evc-pick-more.dp-btn:hover { background: var(--bg-secondary); color: var(--text-brand-secondary); }
+.evc-pick-foot .evc-pick-more.dp-btn { height: 24px; }
+.evc-pick-menu {
+  z-index: 1001; /* 만들기 창(ModalLayer 1000) 위 — 하향 평가자 칸 고르기 창(.evc-la-pop)과 같은 층 */
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-md);
+  background: var(--bg-quaternary);
+  box-shadow: var(--shadows-shadow-md);
+  box-sizing: border-box;
+}
+.evc-pick-search {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  height: 36px;
+  padding: 0 var(--spacing-lg);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--bg-field);
+  color: var(--text-tertiary);
+}
+.evc-pick-search:focus-within { border-color: var(--border-brand); background: var(--bg-quaternary); }
+.evc-pick-search > input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: none;
+  font: inherit;
+  font-size: var(--font-size-text-sm);
+  color: var(--fg-primary);
+}
+.evc-pick-search > input::placeholder { color: var(--text-tertiary); }
+.evc-pick-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+  max-height: 256px;
+  overflow-y: auto;
+}
+.evc-pick-item.dp-btn {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: none;
+  font-size: var(--font-size-text-sm);
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-align: left;
+  cursor: pointer;
+}
+.evc-pick-item.dp-btn .dp-btn__label { display: flex; align-items: center; gap: var(--spacing-md); min-width: 0; width: 100%; }
+.evc-pick-item.dp-btn:hover { background: var(--bg-secondary); }
+.evc-pick-item.dp-btn.is-on { background: var(--bg-brand-secondary); color: var(--text-brand-secondary); font-weight: 600; }
+.evc-pick-box {
+  display: grid;
+  flex: 0 0 16px;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--border-primary);
+  border-radius: 4px;
+  background: var(--bg-quaternary);
+  color: var(--text-white);
+}
+.evc-pick-item.is-on .evc-pick-box { border-color: var(--bg-brand-solid); background: var(--bg-brand-solid); }
+.evc-pick-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.evc-pick-empty { padding: var(--spacing-lg) var(--spacing-xl); font-size: 13px; text-align: center; color: var(--text-tertiary); }
+.evc-pick-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-md) var(--spacing-xs);
+  border-top: 1px solid var(--border-secondary);
+  font-size: var(--font-size-text-xs);
+  color: var(--text-subtle);
+}
+/* PW-2683-W2-END */
+
+/* ══ PW-2683 만들기 창 5·6단계 · 사이클 목록 · 사이클 관리 ══════════════════════ */
+/* ── 5단계 캘리브레이션 위원회 (시안 admin_wizard-5 · 사이클 관리 › 위원회 탭 admin_manage-peer-committee) ──
+   같은 블록이 관리 탭(한 단계만 띄운 위자드)에서도 그려진다. 띠는 상자 테두리 없이 옅은 바탕,
+   카드는 흰 바탕 · 회색 테두리 · 12 모서리, 카드 안 칸 사이 12. */
+.evc-wiz-panel.evc-wiz-calibstep,
+.evc-wiz-calibstep .evc-wiz-committee-fieldset {
+  gap: var(--spacing-xl);
+}
+.evc-wiz-calibstep .evc-wiz-calib-alert {
+  margin: 0;
+  padding: var(--spacing-lg) var(--spacing-lg);
+  border: 0;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  line-height: 1.55;
+}
+.evc-wiz-calibstep .evc-wiz-calib-alert.is-error {
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  background: var(--bg-error-primary);
+  color: var(--text-error-primary);
+}
+.evc-wiz-calibstep .evc-wiz-calib-alert.is-error > svg {
+  margin-top: var(--spacing-xxs);
+}
+.evc-wiz-calib-alert-text {
+  flex: 1;
+  min-width: 0;
+}
+.evc-wiz-calib-alert-text > b {
+  font-weight: 700;
+}
+.evc-wiz-calib-alert-sub {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-xxs);
+  font-size: var(--font-size-text-xs);
+}
+.evc-wiz-calibstep .evc-wiz-calib-alert > .evc-btn {
+  flex-shrink: 0;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-color: var(--border-secondary);
+  background: var(--bg-quaternary);
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+.evc-wiz-calibstep .evc-wiz-calib-alert.is-dup {
+  background: var(--bg-warning-primary);
+  color: var(--text-warning-primary);
+}
+.evc-wiz-calibstep .evc-wiz-calib-alert.is-done {
+  gap: var(--spacing-xs);
+  background: var(--bg-brand-primary);
+  color: var(--text-brand-secondary);
+}
+.evc-wiz-calibstep .evc-wiz-calib-alert.is-done svg {
+  color: var(--text-brand-tertiary);
+}
+/* 카드 — 머리(번호 · 제목 · 미완성 딱지) 아래로 칸 사이 12 */
+.evc-wiz-calibstep .evc-wiz-calibcard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  margin: 0;
+  padding: 0 var(--spacing-xl) var(--spacing-xl);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-lg);
+  background: var(--bg-quaternary);
+}
+.evc-wiz-calibstep .evc-wiz-calibcard.is-incomplete {
+  border-color: var(--colors-border-borderError);
+}
+.evc-wiz-calibstep .evc-wiz-calibcard-head {
+  gap: var(--spacing-md);
+  margin: 0;
+  padding-top: var(--spacing-lg);
+}
+.evc-wiz-calibstep .evc-wiz-calibcard-num {
+  min-width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: var(--radius-xs);
+  background: var(--componentColors-alpha-alphaBlack3);
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+.evc-wiz-calibstep .evc-wiz-calibcard-title {
+  font-size: 15px;
+  color: var(--fg-primary);
+}
+.evc-wiz-calibcard-state {
+  flex-shrink: 0;
+  padding: var(--spacing-xxs) var(--spacing-md);
+  border-radius: var(--radius-xs);
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.evc-wiz-calibcard-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+.evc-wiz-calibstep .evc-wiz-calibcard-field > .evc-wiz-calibscope-label {
+  margin: 0;
+  font-size: var(--font-size-text-xs);
+  line-height: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+/* 제목이 비면 「다음」이 막힌다 — 어디가 막는지 빨간 테두리 · 옅은 빨강 바탕(시안 .input.err) */
+.evc-wiz-calibstep .evc-wiz-calibscope-name.evc-wiz-calibscope-name.is-blank {
+  border-color: var(--colors-border-borderError);
+  background: var(--bg-error-primary);
+}
+/* ① 대상 · ② 참여 위원 — 위에 구분선, 번호는 연초록 동그라미 */
+.evc-wiz-calibstep .evc-wiz-calibscope {
+  gap: var(--spacing-lg);
+  margin: 0;
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--border-secondary);
+}
+.evc-wiz-calibstep .evc-wiz-calibscope-head {
+  gap: var(--spacing-md);
+}
+.evc-wiz-calibstep .evc-wiz-calibscope-head.is-committee {
+  margin: 0;
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--border-secondary);
+}
+/* 번호 동그라미 — 상태 딱지가 아니라 순서 표시라 딱지 부품을 쓰지 않는다(옛 파랑·분홍 → 연초록 하나). */
+.evc-wiz-calibscope-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--bg-brand-secondary);
+  color: var(--text-brand-secondary);
+  font-size: var(--font-size-text-xs);
+  font-weight: 700;
+}
+.evc-wiz-calibstep .evc-wiz-calibscope-title {
+  color: var(--fg-primary);
+}
+/* 대상자 명단 — 테두리 상자 하나: 머리 / 추가·찾기 칸 / 상자 안에서 따로 스크롤하는 명단 */
+.evc-wiz-calibstep .evc-wiz-calibscope-roster {
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-md);
+}
+.evc-wiz-calibstep .evc-wiz-calibscope-roster-head {
+  gap: var(--spacing-sm);
+  margin: 0;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--border-secondary);
+  font-size: 13px;
+  color: var(--text-subtle);
+}
+.evc-wiz-calibstep .evc-wiz-calibscope-roster-count {
+  font-size: 13px;
+  color: var(--text-brand-secondary);
+}
+.evc-wiz-calibscope-tools {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--border-secondary);
+}
+.evc-wiz-calibstep .evc-wiz-calibscope-add,
+.evc-wiz-calibstep .evc-wiz-calibscope-find {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  height: 36px;
+  margin: 0;
+  padding: 0 var(--spacing-lg);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--componentColors-alpha-alphaBlack3);
+  color: var(--text-tertiary);
+}
+.evc-wiz-calibstep .evc-wiz-calibscope-add:focus-within,
+.evc-wiz-calibstep .evc-wiz-calibscope-find:focus-within {
+  border-color: var(--border-brand);
+  background: var(--bg-quaternary);
+}
+.evc-wiz-calibstep .evc-wiz-calibscope-add-input,
+.evc-wiz-calibstep .evc-wiz-calibscope-find-input {
+  flex: 1;
+  min-width: 0;
+  height: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: var(--font-size-text-sm);
+  color: var(--fg-primary);
+  box-shadow: none;
+  outline: none;
+}
+.evc-wiz-calibstep .evc-wiz-calibscope-find-x {
+  right: var(--spacing-lg);
+}
+.evc-wiz-calibstep .evc-wiz-calibscope-add-results {
+  top: 100%;
+  margin-top: var(--spacing-xs);
+}
+.evc-wiz-calibstep .evc-wiz-calibscope-list {
+  max-height: 172px;
+  gap: 0;
+  padding: var(--spacing-xs) var(--spacing-sm);
+}
+.evc-wiz-calibstep .evc-wiz-calibscope-row {
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-sm);
+  background: none;
+  font-size: 13px;
+}
+.evc-wiz-calibstep .evc-wiz-calibscope-row:hover {
+  background: var(--bg-secondary);
+}
+.evc-wiz-calibstep .evc-wiz-calibscope-row-num {
+  min-width: 18px;
+  text-align: right;
+  color: var(--text-tertiary);
+}
+.evc-wiz-calibstep .evc-wiz-calibscope-row-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg-primary);
+}
+.evc-wiz-calibstep .evc-wiz-calibscope-row-meta {
+  flex: 1;
+  min-width: 0;
+  color: var(--text-subtle);
+}
+.evc-wiz-calibstep .evc-wiz-calibscope-empty {
+  margin: 0;
+  padding: var(--spacing-lg);
+}
+.evc-wiz-calibstep .evc-wiz-calibscope-excluded {
+  margin: 0 var(--spacing-lg) var(--spacing-lg);
+}
+/* ② 참여 위원 */
+.evc-wiz-calibstep .evs-cw-auto-assign {
+  gap: var(--spacing-md);
+  margin: 0;
+}
+.evc-wiz-calibstep .evs-cw-auto-assign-btn {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-color: var(--border-secondary);
+  background: var(--bg-quaternary);
+  font-size: 13px;
+}
+.evc-wiz-calibstep .evc-wiz-committee-search {
+  height: 36px;
+  margin: 0;
+  border-color: transparent;
+  background: var(--componentColors-alpha-alphaBlack3);
+  font-size: var(--font-size-text-sm);
+}
+.evc-wiz-calibstep .evc-wiz-committee-search:focus {
+  border-color: var(--border-brand);
+  background: var(--bg-quaternary);
+}
+/* 고른 위원 — 없으면 주황 띠(시안 «위원을 1명 이상 선택하세요»), 있으면 상자 없는 한 줄 */
+.evc-wiz-calibstep .evc-wiz-committee-summary {
+  gap: var(--spacing-xs) var(--spacing-sm);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.evc-wiz-calibstep .evc-wiz-committee-summary.is-empty {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  background: var(--bg-warning-primary);
+  color: var(--text-warning-primary);
+}
+.evc-wiz-calibstep .evc-wiz-committee-summary-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg-primary);
+}
+.evc-wiz-calibstep .evc-wiz-committee-summary.is-empty .evc-wiz-committee-summary-count {
+  font-weight: 500;
+  color: var(--text-warning-primary);
+}
+.evc-wiz-calibstep .evc-wiz-committee-chips {
+  align-items: center;
+  width: auto;
+}
+.evc-wiz-names-more {
+  font-weight: 600;
+  white-space: nowrap;
+}
+.evc-wiz-committee-chips > .evc-wiz-names-more {
+  color: var(--text-brand-tertiary);
+  text-decoration: none;
+}
+.evc-wiz-calibstep .evc-wiz-committee-pool {
+  margin: 0;
+  font-weight: 400;
+  color: var(--text-subtle);
+}
+.evc-wiz-calibstep .evc-wiz-committee-group-head {
+  margin: 0 0 var(--spacing-sm);
+  color: var(--text-secondary);
+}
+.evc-wiz-calibstep .evc-wiz-committee-group-count {
+  font-weight: 500;
+  color: var(--text-subtle);
+}
+/* 후보 카드 — 흰 칸, 고르면 연초록(시안 .person.on). 칸 사이 6 */
+.evc-wiz-calibstep .evc-wiz-committee-list {
+  gap: var(--spacing-sm);
+  margin: 0;
+  padding: var(--spacing-xxs);
+}
+.evc-wiz-calibstep .evc-wiz-committee-item {
+  gap: var(--spacing-md);
+  min-height: 52px;
+  padding: var(--spacing-md) var(--spacing-md);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-sm);
+  background: var(--bg-quaternary);
+}
+.evc-wiz-calibstep .evc-wiz-committee-item:hover {
+  background: var(--bg-secondary);
+}
+.evc-wiz-calibstep .evc-wiz-committee-item.is-on {
+  border-color: transparent;
+  background: var(--bg-brand-secondary);
+}
+.evc-wiz-calibstep .evc-wiz-committee-name {
+  gap: var(--spacing-xs);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--fg-primary);
+}
+.evc-wiz-calibstep .evc-wiz-committee-meta {
+  font-size: var(--font-size-text-xs);
+  line-height: 15px;
+  color: var(--text-subtle);
+}
+/* 위원장 딱지 — 연초록(뜻 accent). 고른 칸 바탕도 연초록이라 그 안에서는 흰 바탕으로 띄운다. */
+.evc-wiz-calibstep .evc-wiz-committee-chair {
+  padding: 0 var(--spacing-sm);
+  border-radius: var(--radius-xs);
+  background: var(--dp-badge-accent-bg);
+  color: var(--dp-badge-accent-fg);
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+}
+.evc-wiz-calibstep .evc-wiz-committee-item.is-on .evc-wiz-committee-chair {
+  background: var(--bg-quaternary);
+}
+/* 위원 고르기 동그라미 — 디자이너 라디오 점(timeline.css .tl-event-radio-dot): 흰 바탕 · 회색 1px 테두리,
+   고르면 대표색으로 차고 가운데 흰 점 6px. 위원 칸 한 곳에만 붙인 클래스라 다른 체크 상자는 그대로다. */
+.evc-member-check.evc-wiz-committee-radio {
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid var(--border-primary);
+  border-radius: 50%;
+  background: var(--bg-quaternary);
+}
+.evc-member-check.evc-wiz-committee-radio.is-on {
+  border-color: var(--bg-brand-solid);
+  background: var(--bg-brand-solid);
+}
+.evc-member-check.evc-wiz-committee-radio.is-on::after {
+  position: static;
+  width: 6px;
+  height: 6px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--bg-quaternary);
+  transform: none;
+}
+.evc-wiz-calibstep .evc-wiz-calib-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  margin: 0;
+  padding: 0;
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-text-sm);
+}
+.evc-wiz-calibstep .evc-wiz-calib-add:hover {
+  background: var(--bg-secondary);
+}
+
+/* ── 6단계 확인 및 생성 (시안 admin_wizard-6) ──
+   «오픈할 수 없음» 빨간 띠가 맨 위, 요약은 이름표 | 값 두 칸 표(줄마다 구분선), 미확정은 주황 딱지,
+   진행 단계는 › 로 이은 회색 칩, 팀 3명 미만 안내는 주황 띠, 프리셋 저장은 아래 흰 카드. */
+.evc-wiz-panel.evc-wiz-review {
+  gap: var(--spacing-xl);
+}
+.evc-wiz-review .evc-wiz-open-block {
+  gap: var(--spacing-md);
+  flex-wrap: nowrap;
+  margin: 0;
+  padding: var(--spacing-lg) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  background: var(--bg-error-primary);
+  color: var(--text-error-primary);
+  font-size: 13px;
+}
+.evc-wiz-review .evc-wiz-open-block > svg {
+  flex-shrink: 0;
+}
+.evc-wiz-open-block-text {
+  flex: 1;
+  min-width: 0;
+  font-weight: 700;
+}
+.evc-wiz-review .evc-wiz-open-block-go {
+  flex-shrink: 0;
+}
+.evc-wiz-review .evc-summary-card {
+  gap: 0;
+  padding: var(--spacing-xs) var(--spacing-xl);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-lg);
+  background: var(--bg-quaternary);
+}
+.evc-wiz-review .evc-summary-row {
+  justify-content: flex-start;
+  align-items: flex-start;
+  gap: var(--spacing-xl);
+  padding: var(--spacing-lg) 0;
+  border-bottom: 1px solid var(--border-secondary);
+  font-size: 13px;
+  line-height: 20px;
+}
+.evc-wiz-review .evc-summary-row:last-child {
+  border-bottom: 0;
+}
+.evc-wiz-review .evc-summary-row > span:first-child {
+  flex: 0 0 160px;
+  color: var(--text-secondary);
+}
+.evc-wiz-review .evc-summary-row > b {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  color: var(--fg-primary);
+}
+.evc-wiz-review .evc-summary-tpl {
+  align-items: flex-start;
+  gap: var(--spacing-sm);
+  text-align: left;
+}
+.evc-wiz-review .evc-summary-tpl-item.has-badge {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-xs) var(--spacing-md);
+  color: inherit;
+}
+.evc-wiz-review .evc-summary-go {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  color: var(--text-brand-tertiary);
+  font-weight: 600;
+  text-decoration: none;
+}
+.evc-wiz-review .evc-summary-go:hover {
+  color: var(--text-brand-secondary);
+}
+.evc-summary-phases {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+.evc-wiz-review .evc-summary-row .evc-summary-phase-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  color: var(--text-tertiary);
+}
+.evc-wiz-review .evc-summary-row .evc-summary-phase {
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--radius-xs);
+  background: var(--componentColors-alpha-alphaBlack3);
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.evc-wiz-review .evc-wiz-small-team {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  margin: 0;
+  padding: var(--spacing-lg) var(--spacing-lg);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--bg-warning-primary);
+  color: var(--text-warning-primary);
+  font-size: 13px;
+  line-height: 20px;
+}
+.evc-wiz-review .evc-wiz-small-team > svg {
+  flex-shrink: 0;
+  margin-top: var(--spacing-xxs);
+}
+.evc-wiz-small-team-text {
+  flex: 1;
+  min-width: 0;
+}
+.evc-wiz-review .evc-wiz-preset-save {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  margin: 0;
+  padding: var(--spacing-lg) var(--spacing-xl) var(--spacing-xl);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-lg);
+  background: var(--bg-quaternary);
+}
+.evc-wiz-review .evc-wiz-preset-save > .evc-field-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--fg-primary);
+}
+.evc-wiz-review > .evc-wiz-hint {
+  margin: 0;
+}
+
+/* ── 사이클 목록 카드 (시안 admin_cycles) ──
+   회색 그림자 카드 → 흰 카드. 단계 줄은 옅은 회색 판 안에 점 · 이름 · 잇는 선,
+   끝난 단계는 초록 점 안 체크, 지금 단계는 초록 고리 + 굵은 이름. */
+.evc-card.evc-cycle-card {
+  gap: var(--spacing-lg);
+  padding: var(--spacing-2xl) var(--spacing-3xl) var(--spacing-xl);
+  border-color: var(--border-secondary);
+  border-radius: var(--radius-lg);
+  background: var(--bg-quaternary);
+  box-shadow: none;
+}
+.evc-card.evc-cycle-card:hover {
+  border-color: var(--border-primary);
+  box-shadow: none;
+}
+.evc-cycle-card .evc-card-top {
+  gap: var(--spacing-xxs);
+}
+.evc-cycle-card .evc-card-name {
+  color: var(--fg-primary);
+}
+.evc-cycle-card .evc-card-meta {
+  gap: var(--spacing-xs);
+  font-size: 13px;
+  color: var(--text-subtle);
+}
+.evc-cycle-card .evc-card-types {
+  color: var(--text-subtle);
+}
+.evc-cycle-card .evc-stepper {
+  flex-wrap: nowrap;
+  gap: 0;
+  padding: var(--spacing-lg) var(--spacing-lg);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+.evc-cycle-card .evc-step {
+  gap: var(--spacing-md);
+  min-width: 0;
+  padding: 0;
+}
+.evc-cycle-card .evc-step:not(:last-child)::after {
+  content: '';
+  flex: 1;
+  min-width: var(--spacing-md);
+  height: 1px;
+  margin-right: var(--spacing-md);
+  background: var(--border-secondary);
+}
+.evc-cycle-card .evc-step-dot {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  box-sizing: border-box;
+  border: 1.5px solid var(--border-primary);
+  background: var(--bg-quaternary);
+  color: var(--bg-quaternary);
+}
+.evc-cycle-card .evc-step.is-past .evc-step-dot {
+  border-color: var(--bg-brand-solid);
+  background: var(--bg-brand-solid);
+}
+.evc-cycle-card .evc-step.is-current .evc-step-dot {
+  border: 5px solid var(--bg-brand-solid);
+  box-shadow: none;
+}
+.evc-cycle-card .evc-step-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+.evc-cycle-card .evc-step.is-past .evc-step-label {
+  color: var(--text-secondary);
+}
+.evc-cycle-card .evc-step.is-current .evc-step-label {
+  font-weight: 700;
+  color: var(--fg-primary);
+}
+.evc-cycle-card .evc-completion-label {
+  font-size: 13px;
+  color: var(--text-subtle);
+}
+.evc-cycle-card .evc-completion-value {
+  color: var(--fg-primary);
+}
+.evc-cycle-card .evc-card-buttons {
+  gap: var(--spacing-md);
+}
+.evc-cycle-card .evc-btn.is-ghost svg {
+  color: var(--text-tertiary);
+}
+.evc-empty.evc-cycles-empty {
+  padding: var(--spacing-5xl) var(--spacing-lg);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-lg);
+}
+
+/* ── 사이클 관리 틀 (시안 admin_manage-peer · -hr · -template · -schedule · -targets · -committee) ──
+   제목 위 «사이클 관리» 작은 초록 글씨 · 탭 줄 아래 회색 선 · 본문 카드는 흰 바탕 ·
+   잠금 안내는 자물쇠 붙은 옅은 회색 띠. */
+.evmg-header {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-2xl);
+}
+.evmg-eyebrow.evc-manage-suffix {
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+  color: var(--text-brand-tertiary);
+}
+.evmg-header .evc-manage-head {
+  align-items: center;
+}
+.evmg-header .evc-title {
+  color: var(--fg-primary);
+}
+.evmg-toolbar {
+  align-items: stretch;
+}
+.evmg-toolbar .tl-tabs {
+  border-bottom: 1px solid var(--border-secondary);
+}
+.evmg-root .evc-manage-lock {
+  align-items: center;
+  /* 아래 본문 카드와 붙지 않게 — 버튼 줄↔카드와 같은 16 */
+  margin-bottom: var(--spacing-xl);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--componentColors-alpha-alphaBlack3);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.evmg-root .evc-manage-lock svg {
+  margin-top: 0;
+  color: var(--text-tertiary);
+}
+.evmg-root .evc-card {
+  border-color: var(--border-secondary);
+  border-radius: var(--radius-lg);
+  background: var(--bg-quaternary);
+  box-shadow: none;
+  padding: var(--spacing-2xl) var(--spacing-3xl);
+}
+.evmg-root .evc-card:hover {
+  box-shadow: none;
+}
+/* 진행 현황 버튼 줄 — «회수할 수 없습니다» 안내가 왼쪽에서 남은 폭을 쓰고, 버튼은 오른쪽 끝 */
+.evmg-root .evmon-embedded-actions.has-note {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+.evmg-root .evmon-embedded-actions.has-note > .evmon-revoke-note {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-width: 0;
+  font-size: 13px;
+  color: var(--text-subtle);
+}
+.evmg-root .evmon-revoke-note > svg {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+}
+.evmg-root .evmon-controls .evc-btn.is-ghost {
+  border-color: var(--border-secondary);
+  background: var(--bg-quaternary);
+}
+.evmg-root .evmon-controls .evc-btn.is-hold {
+  border-color: var(--border-secondary);
+  background: var(--bg-quaternary);
+  color: var(--text-warning-primary);
+}
+.evmg-root .evmon-controls .evc-btn.is-hold:hover {
+  background: var(--bg-warning-primary);
+}
+.evmg-root .evmon-controls .evc-btn.is-danger-ghost {
+  background: var(--bg-quaternary);
+}
+.evmg-root .evmon-controls .evc-btn:disabled {
+  border-color: var(--border-secondary);
+  color: var(--text-tertiary);
+}
+/* 전체 완료율 — 큰 숫자 + 막대, 아래 구분선 뒤 «단계별 진행» */
+.evmg-root .evmon-completion {
+  margin: 0;
+  padding-bottom: var(--spacing-2xl);
+  border-bottom: 1px solid var(--border-secondary);
+}
+.evmg-root .evmon-completion-row {
+  gap: var(--spacing-3xl);
+}
+.evmg-root .evmon-completion-value {
+  font-size: 36px;
+  line-height: 44px;
+  color: var(--fg-primary);
+}
+/* 단계별 진행 — 줄마다 구분선, 바꿀 수 있는 날짜는 초록 점선 밑줄 */
+.evmg-root .evmon-stages {
+  gap: 0;
+}
+.evmg-root .evmon-stages > .evmon-stage,
+.evmg-root .evmon-stages > .evmon-stage-row {
+  padding: var(--spacing-xs) 0;
+  border-bottom: 1px solid var(--border-secondary);
+}
+.evmg-root .evmon-stages > :last-child {
+  border-bottom: 0;
+}
+.evmg-root .evmon-stage-label {
+  color: var(--fg-primary);
+}
+.evmg-root .evmon-stage-count {
+  color: var(--fg-primary);
+}
+.evmg-root .evmon-stage-period {
+  font-size: 13px;
+  color: var(--text-subtle);
+}
+.evmg-root .evmon-stage-date {
+  border-bottom: 1px dashed currentColor;
+  font-weight: 600;
+  color: var(--text-brand-tertiary);
+  text-decoration: none;
+}
+.evmg-root .evmon-stage-date:hover {
+  color: var(--text-brand-secondary);
+}
+.evmg-root .evmon-stage-date.is-locked {
+  border-bottom: 0;
+  font-weight: 400;
+  color: var(--text-subtle);
+}
+/* 평가지 탭 — «바꿀 수 없습니다»는 자물쇠 붙은 회색 띠, 잠긴 평가 방식은 흐리게 */
+.evx-notice.evtpl-lock-notice {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  background: var(--componentColors-alpha-alphaBlack3);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.evx-notice.evtpl-lock-notice > svg {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+}
+.evtpl-toggle-locked .seg-control {
+  opacity: 0.55;
+}
+/* PW-2683 사이클 목록 «많아질 때» — 이름 찾기 칸을 상태 탭 왼쪽에(시안 admin_cycles, 폭 300 · 높이 36 = 탭 높이).
+   [더 보기]는 공용 LoadMoreButton 그대로, 흰 카드 줄 하나로 목록 끝에 붙인다. */
+.evc-list-filter:has(.evc-list-search) {
+  align-items: center;
+  gap: var(--spacing-lg);
+}
+.evc-list-search {
+  width: 300px;
+  flex: none;
+}
+.evc-list-search .dp-search-input {
+  height: 36px;
+}
+/* PW-2683-W3-END */

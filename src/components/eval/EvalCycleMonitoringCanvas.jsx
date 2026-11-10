@@ -2,7 +2,7 @@ import { Fragment, useMemo, useState } from 'react';
 import EvalProgressBar from './EvalProgressBar.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import DatePicker from '../shared/DatePicker.jsx';
-import { ChevronLeftIcon, PauseIcon, StopIcon, TrashIcon, UndoIcon } from './evalIcons.jsx';
+import { ChevronLeftIcon, InfoIcon, PauseIcon, StopIcon, TrashIcon, UndoIcon } from './evalIcons.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
@@ -753,6 +753,7 @@ export default function EvalCycleMonitoringCanvas({
   /* [PW-2077 정정] 툴팁이 아니라 늘 보이는 한 줄 — 눌러 볼 수 없는 버튼의 툴팁은 못 찾는다. */
   const revokeNote = revokeBlockedNote && (
     <p className="evc-field-note evmon-revoke-note" id="evmon-revoke-blocked" data-testid="evmon-revoke-blocked">
+      <InfoIcon size={14} />
       {revokeBlockedNote}
     </p>
   );
@@ -770,8 +771,9 @@ export default function EvalCycleMonitoringCanvas({
             className={`evmon-embedded-actions${revokeNote ? ' has-note' : ''}`}
             data-testid="evmon-embedded-actions"
           >
-            {controls}
+            {/* PW-2683 — 시안 admin_manage-peer: «회수할 수 없습니다» 안내가 버튼 줄 왼쪽(읽는 순서도 안내 → 버튼). */}
             {revokeNote}
+            {controls}
           </div>
         )
       ) : (
@@ -840,9 +842,9 @@ export default function EvalCycleMonitoringCanvas({
                   <span className="evmon-stage-label">
                     {stageLabel}
                     {isOpenNow && L.stageOpenNow && (
-                      <span className="evmon-stage-now" data-testid={`evmon-stage-now-${s.key}`}>
+                      <StatusBadge tone="progress" className="evc-status-badge" data-testid={`evmon-stage-now-${s.key}`}>
                         {L.stageOpenNow}
-                      </span>
+                      </StatusBadge>
                     )}
                   </span>
                   <EvalProgressBar done={s.done} total={s.total} className="evmon-stage-bar" testId={`evmon-stage-bar-${s.key}`} />

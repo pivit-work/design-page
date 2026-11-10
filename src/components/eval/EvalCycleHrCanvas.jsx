@@ -8,9 +8,12 @@ import ModalShell from '../shared/ModalShell.jsx';
 import Button from '../shared/Button.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
+import SearchInput from '../shared/SearchInput.jsx';
+import LoadMoreButton from '../shared/LoadMoreButton.jsx';
 import EvalProgressBar from './EvalProgressBar.jsx';
 import { cycleListTab } from './evalCycleListTab.js';
 import { ChevronDownIcon, ChevronUpIcon, PauseIcon, PlayIcon } from './evalIcons.jsx';
+import { ArrowRightGlyph, CheckGlyph } from '../shared/lineIcons.jsx';
 import { stampScheduleDateTime } from './evalScheduleStamp.js';
 import {
   countRemindersBeforePhaseStart,
@@ -70,6 +73,9 @@ function SchedDateTime({ value, field, min, onChange, dateLabel, timeLabel, test
  * 캘리브레이션·리포트검수 탭은 후속 슬라이스에서 확장.
  */
 
+/** PW-2683 사이클 목록 한 번에 보이는 수(시안 admin_cycles). */
+const CYCLE_LIST_PAGE = 20;
+
 const DEFAULT_LABELS = {
   title: '성과 평가',
   summary: '평가 사이클 {{count}}개',
@@ -104,6 +110,9 @@ const DEFAULT_LABELS = {
   listTabDraft: '초안',
   listTabDone: '완료',
   listTabEmpty: '이 상태의 평가 사이클이 없습니다.',
+  listSearchPlaceholder: '사이클 이름으로 찾기',
+  listSearchEmpty: '찾는 이름의 평가 사이클이 없습니다.',
+  listMore: '더 보기 · {{shown}}개 표시 중 · {{left}}개 남음',
   // PW-1458 — 실패 문구 (정책 §5.7.1 엣지케이스). 실패하면 상태는 그대로다.
   holdError: '일시 중단에 실패했습니다. 다시 시도해 주세요.',
   resumeError: '재개에 실패했습니다. 다시 시도해 주세요.',
@@ -1381,7 +1390,7 @@ function LifecycleStepper({ cycle, status, steps = LIFECYCLE, items: givenItems,
         if (!clickable) {
           return (
             <div key={item.key} className={`evc-step is-${state}`}>
-              <span className="evc-step-dot" />
+              <span className="evc-step-dot">{state === 'past' && <CheckGlyph size={10} strokeWidth={2.6} />}</span>
               <span className="evc-step-label">{label}</span>
             </div>
           );
@@ -1399,7 +1408,8 @@ function LifecycleStepper({ cycle, status, steps = LIFECYCLE, items: givenItems,
                 onSelectStep(s, itemCycle);
               }}
             >
-              <span className="evc-step-dot" />
+              {/* PW-2683 — 시안 admin_cycles: 끝난 단계는 초록 점 안 체크, 지금 단계는 초록 고리 + 굵은 이름. */}
+              <span className="evc-step-dot">{state === 'past' && <CheckGlyph size={10} strokeWidth={2.6} />}</span>
               <span className="evc-step-label">{label}</span>
             </button>
           </Tooltip>
@@ -1446,7 +1456,7 @@ function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, advancing = 
     cycle.status !== 'revoked' && cycle.status !== 'emergency_stopped';
 
   return (
-    <section className="evc-card" data-testid="evc-cycle-card">
+    <section className="evc-card evc-cycle-card" data-testid="evc-cycle-card">
       <div className="evc-card-top">
         <div className="evc-card-head">
           <h3 className="evc-card-name">{cycle.name}</h3>
@@ -1565,28 +1575,11 @@ function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, advancing = 
               {L.draftDelete}
             </button>
           )}
-          {/* 오픈된 사이클을 다음 단계로 — 이 버튼이 없어 사이클이 첫 단계에 영구 정체했다.
-              nextStatus 는 서버가 계산(리뷰 종류·단계 ON/OFF 반영). 마지막 단계면 숨긴다. */}
-          {isActive && cycle.nextStatus && (
-            // [PW-1007] 잠금은 캔버스가 쥔다(`advancing`) — 어필 확인 창을 거쳐 넘길 때는 이
-            // 버튼이 아니라 창의 버튼이 요청을 내므로, 버튼이 스스로 잠그는 길로는 못 막는다.
-            <Button
-              className="evc-btn is-primary"
-              pending={advancing}
-              onClick={() => onAdvance(cycle)}
-              data-testid="evc-advance"
-            >
-              {fill(L.advance, { stage: nextStageLabel(cycle, L) })}
-            </Button>
-          )}
-          {(isActive || isOnHold) && cycle.reviewSequence && (
-            <button
-              type="button"
-              className="evc-btn is-ghost"
-              onClick={() => onEditSchedule(cycle)}
-              data-testid="evc-edit-schedule"
-            >
-              {L.editSchedule}
+          {/* PW-2683 — 시안 admin_cycles: 다음 단계로 넘기는 초록 버튼이 줄 맨 오른쪽(가장 마지막에 읽힘), 일시 중단이 맨 왼쪽. */}
+          {isActive && (
+            /* PW-2115 — 카드마다 주황이 반복되지 않게 다른 버튼과 같은 흰 버튼. 멈춘다는 무게는 누른 뒤 빨간 확인 창이 진다. */
+            <button type="button" className="evc-btn is-ghost" onClick={() => onHold(cycle)} data-testid="evc-hold">
+              <PauseIcon size={14} /> {L.hold}
             </button>
           )}
           {isDone ? (
@@ -1602,11 +1595,30 @@ function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, advancing = 
               </button>
             )
           )}
-          {isActive && (
-            /* PW-2115 — 카드마다 주황이 반복되지 않게 다른 버튼과 같은 흰 버튼. 멈춘다는 무게는 누른 뒤 빨간 확인 창이 진다. */
-            <button type="button" className="evc-btn is-ghost" onClick={() => onHold(cycle)} data-testid="evc-hold">
-              <PauseIcon size={14} /> {L.hold}
+          {(isActive || isOnHold) && cycle.reviewSequence && (
+            <button
+              type="button"
+              className="evc-btn is-ghost"
+              onClick={() => onEditSchedule(cycle)}
+              data-testid="evc-edit-schedule"
+            >
+              {L.editSchedule}
             </button>
+          )}
+          {/* 오픈된 사이클을 다음 단계로 — 이 버튼이 없어 사이클이 첫 단계에 영구 정체했다.
+              nextStatus 는 서버가 계산(리뷰 종류·단계 ON/OFF 반영). 마지막 단계면 숨긴다. */}
+          {isActive && cycle.nextStatus && (
+            // [PW-1007] 잠금은 캔버스가 쥔다(`advancing`) — 어필 확인 창을 거쳐 넘길 때는 이
+            // 버튼이 아니라 창의 버튼이 요청을 내므로, 버튼이 스스로 잠그는 길로는 못 막는다.
+            <Button
+              className="evc-btn is-primary"
+              pending={advancing}
+              onClick={() => onAdvance(cycle)}
+              data-testid="evc-advance"
+            >
+              {fill(L.advance, { stage: nextStageLabel(cycle, L) })}
+              <ArrowRightGlyph size={14} />
+            </Button>
           )}
         </div>
       </div>
@@ -2309,9 +2321,17 @@ export default function EvalCycleHrCanvas({
   const [showStaleDrafts, setShowStaleDrafts] = useState(false);
   /* PW-2115 — 목록 위 탭. 개수는 고른 탭 기준이다. */
   const [listTab, setListTab] = useState('all');
-  const tabCycles = listTab === 'all' ? cycles : cycles.filter((c) => cycleListTab(c.status) === listTab);
+  /* PW-2683 — 사이클이 수십 개로 늘면 목록이 끝없이 길어진다(시안 admin_cycles «많아질 때»).
+     이름 찾기 + 20개씩 보이고 [더 보기]로 이어 본다. 숨기는 것은 없다 — 누르면 다음 20개. */
+  const [listQuery, setListQuery] = useState('');
+  const [listLimit, setListLimit] = useState(CYCLE_LIST_PAGE);
+  const query = listQuery.trim().toLowerCase();
+  const tabCycles = (listTab === 'all' ? cycles : cycles.filter((c) => cycleListTab(c.status) === listTab))
+    .filter((c) => !query || (c.name ?? '').toLowerCase().includes(query));
   const staleDrafts = tabCycles.filter(isStaleDraft);
-  const freshCycles = staleDrafts.length ? tabCycles.filter((c) => !isStaleDraft(c)) : tabCycles;
+  const allFreshCycles = staleDrafts.length ? tabCycles.filter((c) => !isStaleDraft(c)) : tabCycles;
+  const freshCycles = allFreshCycles.slice(0, listLimit);
+  const freshLeft = allFreshCycles.length - freshCycles.length;
 
   /** 위자드를 닫는다 — 초안 세션과 복원값을 함께 비운다(다음에 열면 새 초안이다). */
   const closeWizard = () => {
@@ -2374,7 +2394,7 @@ export default function EvalCycleHrCanvas({
         <LoadingState className="evc-loading">…</LoadingState>
       ) : cycles.length === 0 ? (
         // PW-1461 · 정책 §4.2 — 한 줄 문구 + 가운데 「새 평가 사이클」(+ 없이).
-        <div className="evc-empty" data-testid="evc-empty">
+        <div className="evc-empty evc-cycles-empty" data-testid="evc-empty">
           <p className="evc-empty-title" data-testid="evc-empty-text">
             {[L.emptyTitle, L.emptySub].filter(Boolean).join(' ')}
           </p>
@@ -2390,10 +2410,23 @@ export default function EvalCycleHrCanvas({
       ) : (
         <div className="evc-list">
           <div className="evc-list-filter">
+            <SearchInput
+              className="dp-search evc-list-search"
+              placeholder={L.listSearchPlaceholder}
+              value={listQuery}
+              onChange={(e) => {
+                setListQuery(e.target.value);
+                setListLimit(CYCLE_LIST_PAGE);
+              }}
+              data-testid="evc-list-search"
+            />
             <SegmentedControl
               ariaLabel={L.listTabsAria}
               value={listTab}
-              onChange={setListTab}
+              onChange={(v) => {
+                setListTab(v);
+                setListLimit(CYCLE_LIST_PAGE);
+              }}
               items={[
                 { value: 'all', label: L.listTabAll, testId: 'evc-list-tab-all' },
                 { value: 'active', label: L.listTabActive, testId: 'evc-list-tab-active' },
@@ -2403,7 +2436,9 @@ export default function EvalCycleHrCanvas({
             />
           </div>
           {tabCycles.length === 0 && (
-            <p className="evc-list-tab-empty" data-testid="evc-list-tab-empty">{L.listTabEmpty}</p>
+            <p className="evc-list-tab-empty" data-testid="evc-list-tab-empty">
+              {query ? L.listSearchEmpty : L.listTabEmpty}
+            </p>
           )}
           {freshCycles.map((cycle) => (
             <CycleCard
@@ -2425,6 +2460,12 @@ export default function EvalCycleHrCanvas({
               onOpenStage={onOpenCycleStage ? (c, st) => onOpenCycleStage(c.id, st) : undefined}
             />
           ))}
+          {freshLeft > 0 && (
+            <LoadMoreButton
+              label={fill(L.listMore, { shown: freshCycles.length, left: freshLeft })}
+              onClick={() => setListLimit((n) => n + CYCLE_LIST_PAGE)}
+            />
+          )}
           {/* PW-1459 §5.1-A-6 — 90일 넘게 손대지 않은 초안은 지우지 않고 접어 둔다.
               지우면 무엇이 있었는지 설명할 수 없고, 펼쳐 두면 진행 중 사이클을 밀어낸다. */}
           {staleDrafts.length > 0 && (

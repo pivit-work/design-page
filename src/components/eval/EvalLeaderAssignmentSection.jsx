@@ -8,12 +8,11 @@ import Checkbox from '../shared/Checkbox.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import Skeleton from '../shared/Skeleton.jsx';
-import Chip from '../shared/Chip.jsx';
 import Select from '../shared/Select.jsx';
 import AnchoredLayer from '../shared/AnchoredLayer.jsx';
 import useDismissLayer from '../shared/useDismissLayer.js';
-import { PlusGlyph, SearchGlyph } from '../shared/lineIcons.jsx';
-import OrgTreePicker from '../admin/OrgTreePicker.jsx';
+import { SearchGlyph } from '../shared/lineIcons.jsx';
+import EvalWizardChipPicker from './EvalWizardChipPicker.jsx';
 import { AlertIcon, CheckCircleIcon } from './evalIcons.jsx';
 import { fill } from './evalTemplateItemModel.js';
 import { useHandleReorder } from './useHandleReorder.js';
@@ -111,7 +110,7 @@ export default function EvalLeaderAssignmentSection({
   onLoadLimitChange,
   /**
    * 규칙 조건·평가자 값 목록 `{ units: [{ id, label, name, parentId }], levels: [], positions: [], people: [{ id, name, org }] }`.
-   * 조직은 칩으로 다 펼치지 않고 트리 창(OrgTreePicker)에서 고르므로 `name`·`parentId` 로 트리를 만든다.
+   * 조직은 고른 것만 칩으로 두고 «선택» 목록(EvalWizardChipPicker dropdown)에서 `label`(상위 · 하위 길)로 고른다.
    */
   ruleOptions = { units: [], levels: [], positions: [], people: [] },
   /** 조직 단위 id → 이름(없는 조직이면 null). */
@@ -132,9 +131,14 @@ export default function EvalLeaderAssignmentSection({
   const [rulesOpen, setRulesOpen] = useState(false);
   const [vacantOpen, setVacantOpen] = useState(false);
   const [ruleDraft, setRuleDraft] = useState(() => emptyLeaderRule(Math.min(2, rounds)));
-  const [unitPickerOpen, setUnitPickerOpen] = useState(false);
-  // 직급·직책 고르기 창 — 열린 축('levels' | 'positions'), 닫혔으면 null (PW-2570)
-  const [valuePickerAxis, setValuePickerAxis] = useState(null);
+  // PW-2683 — 규칙 조건 값(조직·직급·직책)을 켜고 끈다. 칩 순서가 고른 순서로 매번 달라지지 않게 후보 순서로 둔다
+  // (후보에서 사라진 옛 값은 뒤에 남긴다 — 칩 X 로 지운다).
+  const toggleDraftValue = (axis, v, order) =>
+    setRuleDraft((d) => {
+      const has = d[axis].includes(v);
+      const next = has ? d[axis].filter((x) => x !== v) : [...d[axis], v];
+      return { ...d, [axis]: [...order.filter((x) => next.includes(x)), ...next.filter((x) => !order.includes(x))] };
+    });
   const panelRef = useRef(null);
   useDismissLayer(
     () => {
@@ -465,8 +469,26 @@ export default function EvalLeaderAssignmentSection({
           <EvalHintTip text={grouped ? L.leaderAsgSubGrouped : L.leaderAsgSub} testId="evc-la-sub-tip" />
         </span>
         {grouped && editable && (
-          <span className="evc-la-hint" data-testid="evc-la-order">
-            {L.leaderAsgOrder}
+          /* PW-2683 — «순서: ① … → ⑤» 를 단계 칩 줄로(시안 admin_wizard-4). 글은 라벨 그대로 화살표에서만 끊는다. */
+          <span className="evc-la-hint evc-la-order" data-testid="evc-la-order">
+            {(() => {
+              const text = String(L.leaderAsgOrder ?? '');
+              const cut = text.indexOf(':');
+              const lead = cut > 0 && cut < 8 ? text.slice(0, cut + 1) : '';
+              return (
+                <>
+                  {lead && <span className="evc-la-order-lead">{lead}</span>}
+                  {text
+                    .slice(lead.length)
+                    .split('→')
+                    .map((part, i) => (
+                      <span key={i} className={`evc-la-order-step${i === 0 ? ' is-first' : ''}`}>
+                        {part.trim()}
+                      </span>
+                    ))}
+                </>
+              );
+            })()}
           </span>
         )}
       </div>
@@ -593,64 +615,39 @@ export default function EvalLeaderAssignmentSection({
                 <div className="evc-la-rule-form" data-testid="evc-la-rule-form">
                   <span className="evc-la-bar-detail">{L.leaderRuleAddHead}</span>
                   {/* 조직은 수십 개라 칩으로 다 펼치면 직급·직책·[규칙 추가]가 화면 밖으로 밀린다 —
-                      고른 것만 칩으로 두고, 고르기는 어드민 소속 선택과 같은 트리 창에서 한다. */}
+                      고른 것만 칩으로 둔다. PW-2683 — 고르기는 창 대신 «선택» 버튼 밑에 뜨는 검색·스크롤 목록
+                      (커트가 고른 시안 eval-look-2026-11-08 admin_wizard-4 〔많아질 때〕). 조직 이름은 «상위 · 하위» 길로 적어
+                      트리 없이도 어디 조직인지 읽힌다. 칩이 6개를 넘으면 «외 N개» 가 고른 것을 맨 위로 올려 연다. */}
                   {ruleOptions.units.length > 0 && (
                     <div className="evc-la-rule-axis" data-testid="evc-la-rule-units">
                       <span className="evc-la-hint">{L.leaderRuleAxisUnit}</span>
-                      {ruleDraft.units.map((id) => (
-                        <Chip
-                          key={id}
-                          selected
-                          onRemove={() => setRuleDraft((d) => ({ ...d, units: d.units.filter((x) => x !== id) }))}
-                          removeLabel={fill(L.leaderRuleUnitRemove, {
-                            name: ruleOptions.units.find((u) => u.id === id)?.label ?? unitLabelOf(id) ?? '',
-                          })}
-                          removeProps={{ 'data-testid': `evc-la-rule-unit-remove-${id}` }}
-                          data-testid={`evc-la-rule-chip-units-${id}`}
-                        >
-                          {ruleOptions.units.find((u) => u.id === id)?.label ?? unitLabelOf(id) ?? L.leaderRuleUnitMissing}
-                        </Chip>
-                      ))}
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => setUnitPickerOpen(true)}
-                        data-testid="evc-la-rule-unit-pick"
-                      >
-                        <PlusGlyph aria-hidden="true" />
-                        {ruleDraft.units.length > 0 ? L.leaderRuleUnitChange : L.leaderRuleUnitPick}
-                      </Button>
+                      <EvalWizardChipPicker
+                        mode="dropdown"
+                        options={ruleOptions.units.map((u) => u.id)}
+                        optionLabel={(id) =>
+                          ruleOptions.units.find((u) => u.id === id)?.label ?? unitLabelOf(id) ?? L.leaderRuleUnitMissing
+                        }
+                        selected={ruleDraft.units}
+                        onToggle={(id) => toggleDraftValue('units', id, ruleOptions.units.map((u) => u.id))}
+                        onClear={() => setRuleDraft((d) => ({ ...d, units: [] }))}
+                        buttonLabel={ruleDraft.units.length > 0 ? L.leaderRuleUnitChange : L.leaderRuleUnitPick}
+                        searchPlaceholder={L.leaderRuleUnitPickerSearch}
+                        countLabel={(L.leaderRuleValuePickerCount ?? '선택 {count}개').replace('{count}', '{{count}}')}
+                        moreLabel={L.leaderRuleValueMore}
+                        removeLabel={(name) => fill(L.leaderRuleUnitRemove, { name })}
+                        labels={L}
+                        testIdPrefix="evc-la-rule-unit"
+                        testIds={{
+                          button: 'evc-la-rule-unit-pick',
+                          chip: (id) => `evc-la-rule-chip-units-${id}`,
+                          remove: (id) => `evc-la-rule-unit-remove-${id}`,
+                          item: (id) => `evc-la-rule-unit-item-${id}`,
+                        }}
+                      />
                     </div>
                   )}
-                  {unitPickerOpen && (
-                    <OrgTreePicker
-                      open
-                      multi
-                      primarySelectable={false}
-                      units={ruleOptions.units.map((u) => ({
-                        id: u.id,
-                        name: u.name ?? u.label,
-                        parentId: u.parentId ?? null,
-                      }))}
-                      selectedIds={ruleDraft.units}
-                      labels={{
-                        title: L.leaderRuleUnitPickerTitle,
-                        search: L.leaderRuleUnitPickerSearch,
-                        hint: L.leaderRuleUnitPickerHint,
-                        appendHint: L.leaderRuleUnitPickerMultiHint,
-                        appendNone: L.leaderRuleUnitPickerNone,
-                        apply: L.leaderRuleUnitPickerApply,
-                        cancel: L.leaderRuleUnitPickerCancel,
-                      }}
-                      onApply={({ unitIds }) => {
-                        setRuleDraft((d) => ({ ...d, units: unitIds }));
-                        setUnitPickerOpen(false);
-                      }}
-                      onClose={() => setUnitPickerOpen(false)}
-                    />
-                  )}
                   {/* 직급·직책도 조직 줄과 같은 까닭(직책 50개면 칩이 [규칙 추가]를 밀어낸다)이라 같은 방식 —
-                      고른 것만 칩으로 두고 창에서 고른다 (PW-2570 · 커트 11-06). 창은 조직 창을 평평한 목록으로 쓴다. */}
+                      고른 것만 칩으로 두고 같은 «선택» 목록에서 고른다 (PW-2570 · PW-2683). */}
                   {[
                     ['levels', L.leaderRuleAxisLevel, ruleOptions.levels],
                     ['positions', L.leaderRuleAxisPosition, ruleOptions.positions],
@@ -658,59 +655,31 @@ export default function EvalLeaderAssignmentSection({
                     opts.length === 0 ? null : (
                       <div key={axis} className="evc-la-rule-axis" data-testid={`evc-la-rule-${axis}`}>
                         <span className="evc-la-hint">{label}</span>
-                        {ruleDraft[axis].map((v) => (
-                          <Chip
-                            key={v}
-                            selected
-                            onRemove={() => setRuleDraft((d) => ({ ...d, [axis]: d[axis].filter((x) => x !== v) }))}
-                            removeLabel={fill(L.leaderRuleUnitRemove, { name: v })}
-                            removeProps={{ 'data-testid': `evc-la-rule-${axis}-remove-${v}` }}
-                            data-testid={`evc-la-rule-chip-${axis}-${v}`}
-                          >
-                            {v}
-                          </Chip>
-                        ))}
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => setValuePickerAxis(axis)}
-                          data-testid={`evc-la-rule-${axis}-pick`}
-                        >
-                          <PlusGlyph aria-hidden="true" />
-                          {fill(ruleDraft[axis].length > 0 ? L.leaderRuleValueChange : L.leaderRuleValuePick, { axis: label })}
-                        </Button>
+                        <EvalWizardChipPicker
+                          mode="dropdown"
+                          options={opts}
+                          selected={ruleDraft[axis]}
+                          onToggle={(v) => toggleDraftValue(axis, v, opts)}
+                          onClear={() => setRuleDraft((d) => ({ ...d, [axis]: [] }))}
+                          buttonLabel={fill(ruleDraft[axis].length > 0 ? L.leaderRuleValueChange : L.leaderRuleValuePick, {
+                            axis: label,
+                          })}
+                          searchPlaceholder={fill(L.leaderRuleValuePickerSearch, { axis: label })}
+                          countLabel={(L.leaderRuleValuePickerCount ?? '선택 {count}개').replace('{count}', '{{count}}')}
+                          moreLabel={L.leaderRuleValueMore}
+                          removeLabel={(name) => fill(L.leaderRuleUnitRemove, { name })}
+                          labels={L}
+                          testIdPrefix={`evc-la-rule-${axis}`}
+                          testIds={{
+                            button: `evc-la-rule-${axis}-pick`,
+                            chip: (v) => `evc-la-rule-chip-${axis}-${v}`,
+                            remove: (v) => `evc-la-rule-${axis}-remove-${v}`,
+                            item: (v) => `evc-la-rule-${axis}-item-${v}`,
+                          }}
+                        />
                       </div>
                     ),
                   )}
-                  {valuePickerAxis && (() => {
-                    const axisLabel = valuePickerAxis === 'levels' ? L.leaderRuleAxisLevel : L.leaderRuleAxisPosition;
-                    return (
-                      <OrgTreePicker
-                        open
-                        multi
-                        primarySelectable={false}
-                        units={ruleOptions[valuePickerAxis].map((v) => ({ id: v, name: v, parentId: null }))}
-                        selectedIds={ruleDraft[valuePickerAxis]}
-                        labels={{
-                          title: fill(L.leaderRuleValuePick, { axis: axisLabel }),
-                          search: fill(L.leaderRuleValuePickerSearch, { axis: axisLabel }),
-                          hint: L.leaderRuleValuePickerHint,
-                          appendHint: fill(L.leaderRuleValuePickerEmptyHint, { axis: axisLabel }),
-                          appendNone: L.leaderRuleValuePickerNone,
-                          selectedCount: L.leaderRuleValuePickerCount,
-                          apply: L.leaderRuleUnitPickerApply,
-                          cancel: L.leaderRuleUnitPickerCancel,
-                        }}
-                        onApply={({ unitIds }) => {
-                          const axis = valuePickerAxis;
-                          // 창이 고른 순서가 아니라 후보 순서로 둔다 — 칩 순서가 매번 달라지지 않게.
-                          setRuleDraft((d) => ({ ...d, [axis]: ruleOptions[axis].filter((v) => unitIds.includes(v)) }));
-                          setValuePickerAxis(null);
-                        }}
-                        onClose={() => setValuePickerAxis(null)}
-                      />
-                    );
-                  })()}
                   <div className="evc-la-rule-axis">
                     <span className="evc-la-hint">{L.leaderRuleThen}</span>
                     <span className="evc-la-rule-pick">
@@ -971,7 +940,16 @@ export default function EvalLeaderAssignmentSection({
           testPrefix="evc-la"
         />
       ) : (
-        <RosterTable scroll="x" framed tableClassName="evc-la-table" testId="evc-la-table">
+        /* PW-2683 — 대상자가 수백·수천 명이면 표가 창 본문을 끝없이 밀었다. 표 틀 안 높이 560 에서 스크롤하고
+           머리줄·조직 줄은 틀 위에 붙는다(공용 표 scroll="both" · 시안 admin_wizard-4 〔많아질 때〕). */
+        <RosterTable
+          scroll="both"
+          maxHeight={560}
+          framed
+          tableClassName="evc-la-table"
+          scrollClassName="evc-la-scroll"
+          testId="evc-la-table"
+        >
           <RosterTable.Head>
             {bulkOn && (
               <RosterTable.HeadCell width={36}>

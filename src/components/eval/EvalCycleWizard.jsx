@@ -1,6 +1,6 @@
 import { useAiDraftLifecycle } from '../shared/useAiDraftLifecycle.js';
 import Button from '../shared/Button.jsx';
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import ChipFold from '../shared/ChipFold.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Chip from '../shared/Chip.jsx';
@@ -22,6 +22,7 @@ import Stack from '../shared/Stack.jsx';
 import EvalHintTip from './EvalHintTip.jsx';
 import { joinHintSentences } from './joinHintSentences.js';
 import MemberAiButton from '../oneonone/MemberAiButton.jsx';
+import AiMark from '../shared/AiMark.jsx';
 import {
   ArrowLeftGlyph,
   ArrowRightGlyph,
@@ -36,6 +37,8 @@ import {
   MinusGlyph,
   PaperclipGlyph,
   PencilGlyph,
+  PlusGlyph,
+  ChevronRightGlyph,
   SearchGlyph,
   SettingsGlyph,
   UserGlyph,
@@ -1058,6 +1061,61 @@ const UNASSIGNED_ORG_ID = '__unassigned__';
 /** [PW-1591 J-3] 정보가 빈 대상자 요약 줄에 이름을 몇 명까지 적나 — 나머지는 「외 N명」. */
 const MISSING_NAMES_MAX = 5;
 
+/* PW-2683 — 4단계 조직 트리 «부서 찾기». 부서 이름이 맞으면 그 팀 전부, 아니면 이름이 맞는 팀만 남긴다.
+   부서 객체는 그대로 넘긴다 — 체크·인원 수는 거른 팀이 아니라 원래 부서 전체 기준이다. */
+function filterOrgTree(tree, query) {
+  const q = (query ?? '').trim().toLowerCase();
+  if (!q) return tree.map((d) => ({ dept: d, teams: d.teams }));
+  return tree.flatMap((d) => {
+    if (String(d.name ?? '').toLowerCase().includes(q)) return [{ dept: d, teams: d.teams }];
+    const teams = d.teams.filter((t) => String(t.name ?? '').toLowerCase().includes(q));
+    return teams.length > 0 ? [{ dept: d, teams }] : [];
+  });
+}
+
+/* PW-2683 — 직급·입사일이 빈 대상자 문장. 이름은 앞 max 명 + «외 N명» 버튼 — 누르면 나머지 이름이 문장 밑
+   칸 안에서 스크롤되는 명단으로 펼쳐진다(시안 admin_wizard-4 〔많아질 때〕). 문장 글은 라벨 그대로다. */
+function MissingTargetsNote({ list, max, summary, moreLabel }) {
+  const [open, setOpen] = useState(false);
+  const rest = list.length - max;
+  const [pre, post = ''] = fill(summary, { count: list.length }).split('{{names}}');
+  return (
+    <div className="evc-wiz-soft-warn is-flat evc-tgt-missing" data-testid="evc-wiz-missing-summary">
+      <span className="evc-tgt-missing-text">
+        <AlertIcon size={13} />
+        <span>
+          {pre}
+          {list
+            .slice(0, max)
+            .map((c) => c.name)
+            .join(', ')}
+          {rest > 0 && (
+            <>
+              {' '}
+              <Button
+                className="evc-tgt-missing-more"
+                aria-expanded={open}
+                onClick={() => setOpen((o) => !o)}
+                data-testid="evc-wiz-missing-more"
+              >
+                {fill(moreLabel, { count: rest })}
+              </Button>
+            </>
+          )}
+          {post}
+        </span>
+      </span>
+      {open && rest > 0 && (
+        <span className="evc-tgt-missing-names" data-testid="evc-wiz-missing-names">
+          {list.slice(max).map((c) => (
+            <span key={c.id}>{c.name}</span>
+          ))}
+        </span>
+      )}
+    </div>
+  );
+}
+
 /**
  * 조직 트리 — 부서(최상위 단위) → 팀(그 아래 인원을 직접 가진 단위) 2계층.
  *
@@ -1451,18 +1509,22 @@ function StepBar({
               aria-current={state === 'current' ? 'step' : undefined}
               data-testid={`evc-wiz-step-${i}`}
             >
-              <span className="evc-wiz-step-num">
-                {/* PW-2646 — 글자 «–»·«✓» 대신 공용 선 아이콘(시안 RULES 6). */}
-                {skipped ? (
-                  <MinusGlyph size={12} />
-                ) : state === 'done' ? (
-                  <CheckGlyph size={12} />
-                ) : (
-                  i + 1
-                )}
+              {/* PW-2683 — 단계 칸 위 진행 막대(끝난·지금 단계는 초록). 로그인 온보딩 진행 막대 모양. */}
+              <span className="evc-wiz-step-bar" aria-hidden="true" />
+              <span className="evc-wiz-step-row">
+                <span className="evc-wiz-step-num">
+                  {/* PW-2646 — 글자 «–»·«✓» 대신 공용 선 아이콘(시안 RULES 6). */}
+                  {skipped ? (
+                    <MinusGlyph size={12} />
+                  ) : state === 'done' ? (
+                    <CheckGlyph size={12} />
+                  ) : (
+                    i + 1
+                  )}
+                </span>
+                <span className="evc-wiz-step-label">{L[s.titleKey]}</span>
+                {skipped && <span className="evc-wiz-step-skip">{L.badgeUnused}</span>}
               </span>
-              <span className="evc-wiz-step-label">{L[s.titleKey]}</span>
-              {skipped && <span className="evc-wiz-step-skip">{L.badgeUnused}</span>}
             </button>
           </Tooltip>
         );
@@ -1997,6 +2059,11 @@ const COMMITTEE_GROUPS = [
   { key: 'member', test: (c) => c.kind !== 'lead', labelKey: 'wizardCommitteeSenior' },
 ];
 
+/** PW-2683 — 고른 위원 줄은 앞 5명까지 보이고 나머지는 «외 N명»으로 편다(6단계 작은 팀 이름 줄과 같은 수). */
+const COMMITTEE_CHIP_FOLD = 5;
+/** PW-2683 — 6단계 «팀이 3명 미만인 대상자 N명» 뒤 이름은 앞 5명까지, 나머지는 «외 N명»(시안 admin_wizard-6). */
+const SMALL_TEAM_NAME_FOLD = 5;
+
 function CommitteeCard({
   index,
   card,
@@ -2042,6 +2109,7 @@ function CommitteeCard({
   const [committeeSearch, setCommitteeSearch] = useState('');
   const [committeeRosterSearch, setCommitteeRosterSearch] = useState('');
   const [committeeAddSearch, setCommitteeAddSearch] = useState('');
+  const [committeeChipsOpen, setCommitteeChipsOpen] = useState(false);
 
   const committeeSelectedIds = new Set(committee);
   const committeeAddedSet = new Set(card.added);
@@ -2165,6 +2233,16 @@ function CommitteeCard({
           {committeeName.trim() ||
             fill(L.wizardCalibCardUntitled ?? '캘리브레이션 {{n}}', { n: index + 1 })}
         </span>
+        {/* PW-2683 — 빨간 테두리만으로는 어느 카드가 막는지 글로 읽히지 않는다. 머리 오른쪽 주황 딱지. */}
+        {!complete && (
+          <StatusBadge
+            tone="warning"
+            className="evc-wiz-calibcard-state"
+            data-testid="evc-wiz-calibcard-incomplete"
+          >
+            {L.wizardCalibCardIncomplete ?? '미완성'}
+          </StatusBadge>
+        )}
         {onRemove && (
           <button
             type="button"
@@ -2179,29 +2257,31 @@ function CommitteeCard({
           </button>
         )}
       </div>
-      <label
-        className="evc-wiz-calibscope-label"
-        htmlFor={`${idBase}-name`}
-      >
-        {L.wizardCommitteeNameLabel ?? '위원회 제목'}
-      </label>
-      <TextInput
-        id={`${idBase}-name`}
-        className={`evc-wiz-calibscope-name${committeeName.trim() ? '' : ' is-blank'}`}
-        value={committeeName}
-        onChange={(e) => setCommitteeName(e.target.value)}
-        placeholder={
-          L.wizardCommitteeNamePlaceholder ??
-          '예: Engineering 팀장급 캘리브레이션'
-        }
-        data-testid="evc-wiz-committee-name"
-      />
+      <div className="evc-wiz-calibcard-field">
+        <label
+          className="evc-wiz-calibscope-label"
+          htmlFor={`${idBase}-name`}
+        >
+          {L.wizardCommitteeNameLabel ?? '위원회 제목'}
+        </label>
+        <TextInput
+          id={`${idBase}-name`}
+          className={`evc-wiz-calibscope-name${committeeName.trim() ? '' : ' is-blank'}`}
+          value={committeeName}
+          onChange={(e) => setCommitteeName(e.target.value)}
+          placeholder={
+            L.wizardCommitteeNamePlaceholder ??
+            '예: Engineering 팀장급 캘리브레이션'
+          }
+          data-testid="evc-wiz-committee-name"
+        />
+      </div>
 
       {/* PW-444 ① 대상 — **먼저** 정한다. 누구를 조정할지가 정해져야
           그 등급을 누가 조정할지(② 위원)를 고를 수 있다(정책 §7.A-1 대상 우선). */}
       <div className="evc-wiz-calibscope" data-testid="evc-wiz-calibscope">
         <div className="evc-wiz-calibscope-head">
-          <span className="evc-wiz-calibscope-badge">1</span>
+          <span className="evc-wiz-calibscope-num">1</span>
           <span className="evc-wiz-calibscope-title">
             {L.wizardCommitteeTargetTitle ?? '대상 · 조직 / 직급'}
           </span>
@@ -2271,8 +2351,11 @@ function CommitteeCard({
             />
           </div>
 
+          {/* PW-2683 — 추가·찾기 칸은 명단 상자 안 머리 아래 한 묶음(시안 admin_wizard-5). */}
+          <div className="evc-wiz-calibscope-tools">
           {/* 개별 추가 — 조직·직급으로는 안 걸리는 사람을 이름으로 더한다 */}
           <div className="evc-wiz-calibscope-add">
+            <PlusGlyph size={14} aria-hidden="true" />
             <TextInput
               className="evc-wiz-calibscope-add-input"
               value={committeeAddSearch}
@@ -2346,6 +2429,7 @@ function CommitteeCard({
               )}
             </div>
           )}
+          </div>
 
           {committeeRoster.length === 0 ? (
             <p
@@ -2462,7 +2546,7 @@ function CommitteeCard({
 
       {/* ② 참여 위원 — 대상이 정해진 뒤에 고른다 */}
       <div className="evc-wiz-calibscope-head is-committee">
-        <span className="evc-wiz-calibscope-badge is-committee">2</span>
+        <span className="evc-wiz-calibscope-num">2</span>
         <span className="evc-wiz-calibscope-title">
           {L.wizardCommitteeMembersTitle ?? '참여 위원'}
         </span>
@@ -2515,18 +2599,20 @@ function CommitteeCard({
         className={`evc-wiz-committee-summary${committee.length === 0 ? ' is-empty' : ''}`}
         data-testid="evc-wiz-committee-summary"
       >
+        {committee.length === 0 && <AlertIcon size={13} />}
         <span className="evc-wiz-committee-summary-count">
           {committee.length > 0
             ? fill(L.wizardCommitteeSummary, { count: committee.length })
             : (L.wizardCommitteeSelectOne ?? '위원을 1명 이상 선택하세요')}
         </span>
         {committeeChair && (
-          <span
+          <StatusBadge
+            tone="accent"
             className="evc-wiz-committee-chair"
             data-testid="evc-wiz-committee-summary-chair"
           >
             {`${L.wizardCommitteeChair} ${committeeChair.name}`}
-          </span>
+          </StatusBadge>
         )}
         {hiddenSelectedCount > 0 && (
           <span
@@ -2542,7 +2628,8 @@ function CommitteeCard({
         )}
         {committee.length > 0 && (
           <span className="evc-wiz-committee-chips">
-            {committee.map((id, i) => {
+            {/* PW-2683 — 위원이 많아도 이 줄이 후보 목록을 밀어내지 않게 앞 5명만, 나머지는 «외 N명»으로 편다. */}
+            {(committeeChipsOpen ? committee : committee.slice(0, COMMITTEE_CHIP_FOLD)).map((id, i) => {
               const c = committeeById.get(id);
               return (
                 <StatusBadge
@@ -2562,6 +2649,20 @@ function CommitteeCard({
                 </StatusBadge>
               );
             })}
+            {committee.length > COMMITTEE_CHIP_FOLD && (
+              <Button
+                className="evc-link-btn evc-wiz-names-more"
+                aria-expanded={committeeChipsOpen}
+                onClick={() => setCommitteeChipsOpen((v) => !v)}
+                data-testid="evc-wiz-committee-chips-more"
+              >
+                {committeeChipsOpen
+                  ? (L.namesLess ?? '접기')
+                  : fill(L.namesMore ?? '외 {{count}}명', {
+                      count: committee.length - COMMITTEE_CHIP_FOLD,
+                    })}
+              </Button>
+            )}
           </span>
         )}
       </div>
@@ -2668,8 +2769,9 @@ function CommitteeCard({
                       onClick={() => toggleCommittee(c.id)}
                       data-testid="evc-wiz-committee-item"
                     >
+                      {/* PW-2683 — 동그라미는 디자이너 라디오 점(timeline.css .tl-event-radio-dot) 색 */}
                       <span
-                        className={`evc-member-check${on ? ' is-on' : ''}`}
+                        className={`evc-member-check evc-wiz-committee-radio${on ? ' is-on' : ''}`}
                         data-testid={`evc-wiz-committee-check-${c.id}`}
                       />
                       <span className="evc-wiz-committee-text">
@@ -2680,9 +2782,9 @@ function CommitteeCard({
                             testId={`evc-wiz-committee-retiring-${c.id}`}
                           />
                           {on && idx === 0 && (
-                            <span className="evc-wiz-committee-chair">
+                            <StatusBadge tone="accent" className="evc-wiz-committee-chair">
                               {L.wizardCommitteeChair}
-                            </span>
+                            </StatusBadge>
                           )}
                         </span>
                         <span className="evc-wiz-committee-meta">
@@ -3438,6 +3540,8 @@ export default function EvalCycleWizard({
   });
   const [orgSelTouched, setOrgSelTouched] = useState(false); // [PW-1591 J-4] 이 화면에서 조직 선택을 고쳤나
   const [treeCollapsed, setTreeCollapsed] = useState(() => new Set());
+  // PW-2683 — 4단계 조직 트리 «부서 찾기» 검색어.
+  const [orgTreeQuery, setOrgTreeQuery] = useState('');
   const [groupCollapsed, setGroupCollapsed] = useState(() => new Set());
   // 필터·검색은 **표시만** 거른다. 카운터 세 값과 저장되는 대상자는 흔들리지 않는다.
   const [reviewFilters, setReviewFilters] = useState(emptyAxisSel);
@@ -6673,6 +6777,8 @@ export default function EvalCycleWizard({
   /* PW-1945 — 6단계에 들어설 때마다 «팀이 3명 미만인 대상자»를 다시 센다(HR 정책 §5.1-C 엣지 ②).
      동료 리뷰가 없거나 연 사이클이면 묻지 않는다 — 그 줄을 그리지 않는다. */
   const smallTeamsOn = step === 5 && hasPeer && !openedManage;
+  /* PW-2683 — «팀이 3명 미만인 대상자» 이름 줄을 다 펼쳤는가(앞 5명 + «외 N명»). 보기 상태라 초안에 싣지 않는다. */
+  const [smallTeamNamesOpen, setSmallTeamNamesOpen] = useState(false);
   // 소비자는 콜백을 고정해 넘긴다(조직이 바뀔 때만 새로 만든다) — 들어설 때 한 번 묻는다.
   useEffect(() => {
     if (smallTeamsOn && typeof onReloadSmallTeams === 'function') onReloadSmallTeams();
@@ -8578,6 +8684,16 @@ export default function EvalCycleWizard({
               : isDraftResume
                 ? fill(L.draftResumeTitle, { name: name || L.draftUntitled })
       : L.createTitle;
+  /* PW-2683 — 이어서 작성 제목(«{name} · 이어서 작성»)은 이름 뒤 «이어서 작성» 을 초록 딱지로 뗀다.
+     문구는 그대로 쓰고, 틀이 «{{name}} · 꼬리» 모양이 아니면 종전처럼 한 줄 글로 둔다. */
+  const wizardTitleTag = (() => {
+    if (isManage || !isDraftResume) return null;
+    const [pre, post] = String(L.draftResumeTitle ?? '').split('{{name}}');
+    if (post === undefined || pre.trim()) return null;
+    const tag = post.replace(/^\s*·\s*/, '').trim();
+    if (!tag) return null;
+    return { name: name || L.draftUntitled, tag };
+  })();
 
   const wizardContent = (
     <>
@@ -8639,7 +8755,7 @@ export default function EvalCycleWizard({
               {!isManage && (onLoadPreset || onLoadPastCycle || onAiSetupDraft) && (
                 /* PW-2104 — 회색 상자와 «이전 사이클 0개 · 저장된 설정 0개» 문장을 걷고 오른쪽 위 버튼만 둔다.
                    불러올 것이 없어도 버튼은 남긴다(정책 §5.9 — 열면 «이전 사이클이 없습니다»). */
-                <div className="evc-wiz-preset-load" data-testid="evc-wiz-preset-load">
+                <div className="evc-wiz-preset-load evc-wiz-start-actions" data-testid="evc-wiz-preset-load">
                   <div className="evc-preset-cta">
                     <div className="evc-preset-item-actions">
                       {/* PW-2646 — 회색 버튼은 디자이너 것이 아니었다. 디자이너 1on1 «AI 생성» 버튼을 그대로 쓴다
@@ -8665,6 +8781,10 @@ export default function EvalCycleWizard({
                   </div>
                 </div>
               )}
+              {/* PW-2683 — 칸을 «이름과 대상 기간»·«리뷰 구성» 흰 카드 둘로 묶는다(시안 admin_wizard-1). */}
+              <section className="evc-wiz-card" data-testid="evc-wiz-card-period">
+              {L.basicCardPeriod && <h3 className="evc-wiz-card-title">{L.basicCardPeriod}</h3>}
+              <div className="evc-wiz-field">
               <label className="evc-field-label" htmlFor="evc-wiz-name">
                 {req(L.cycleName)}
               </label>
@@ -8685,6 +8805,7 @@ export default function EvalCycleWizard({
                   {L.cycleNameTaken}
                 </p>
               )}
+              </div>
               {/* [PW-2135 J-2a] 기본값을 비워 둔 이유. 두 칸 중 하나라도 채우면(직접·불러오기) 할 말이 없어진다. */}
               {periodDefault.heldBack && !startDate && !endDate && L.periodDefaultHeldBack && (
                 <p className="evc-field-note" data-testid="evc-wiz-period-held-back">
@@ -8782,19 +8903,34 @@ export default function EvalCycleWizard({
                 />
               )}
 
+              </section>
+
+              <section className="evc-wiz-card" data-testid="evc-wiz-card-review">
+              {L.basicCardReview && <h3 className="evc-wiz-card-title">{L.basicCardReview}</h3>}
+              <div className="evc-wiz-field is-types">
               <span className="evc-field-label">
                 {L.reviewTypes}
                 {aiUnconfirmedBadge(0, 'evc-wiz-ai-unconfirmed-0')}
               </span>
               {/* PW-1887 — 여럿 고르는 칸이라 공용 체크박스. 하나만 고르는 칸(하향 차수)은 세그먼트 버튼이다. */}
-              <div className="evc-check-row">
+              {/* PW-2683 — 네모는 그대로 체크박스(여럿 고름)이고, 겉모양만 고르면 연초록이 되는 8px 칩이다. */}
+              <div className="evc-check-row evc-wiz-type-picks">
                 {['self', 'peer', 'upward', 'leader'].map((t) => (
                   <Checkbox
                     key={t}
+                    className={`evc-wiz-type-pick${reviewTypes.includes(t) ? ' is-on' : ''}`}
+                    inputClassName="evc-wiz-type-pick-input"
                     checked={reviewTypes.includes(t)}
                     onChange={() => toggleType(t)}
                     data-testid={`evc-wiz-type-${t}`}
-                    label={L[REVIEW_TYPE_KEYS[t]]}
+                    label={
+                      <>
+                        <span className="evc-wiz-type-pick-check" aria-hidden="true">
+                          <CheckGlyph size={14} />
+                        </span>
+                        {L[REVIEW_TYPE_KEYS[t]]}
+                      </>
+                    }
                   />
                 ))}
               </div>
@@ -8806,6 +8942,8 @@ export default function EvalCycleWizard({
                   {L.allTypesOffWarn}
                 </p>
               )}
+
+              </div>
 
               {/* [PW-1594 · 정책 §5.13.1] 하향 차수 — 하향 리뷰를 골랐을 때만. 평가 종류 바로 아래,
                   동료 리뷰어 지정 방식보다 위. 기본 1차(D-1). 최댓값 M 을 계산하는 동안·못 읽었을 때도
@@ -8869,6 +9007,7 @@ export default function EvalCycleWizard({
 
               {hasPeer && (
                 <>
+                  <div className="evc-wiz-field">
                   <span className="evc-field-label">
                     {L.peerAssignModeLabel}
                     {/* PW-433 C안 — 결과 공개 스위치가 2단계 항목으로 옮겨 갔다는 안내. 늘 보이던 회색 줄을 ⓘ 로 (PW-2646). */}
@@ -8895,6 +9034,7 @@ export default function EvalCycleWizard({
                         )}
                       </button>
                     ))}
+                  </div>
                   </div>
                   {/* [PW-1946 · HR 정책 §5.1-D] 협업 기록이 적을 때 — AI 추천을 체크했을 때만, 지정 방식 바로 아래.
                       바로 위 «하향 차수»와 같은 모양(이름 줄 + SegmentedControl + 설명 줄). 막지 않는다. */}
@@ -8942,6 +9082,7 @@ export default function EvalCycleWizard({
                   )}
                 </>
               )}
+              </section>
             </div>
           )}
 
@@ -9017,7 +9158,7 @@ export default function EvalCycleWizard({
                   만드는 것이 이 블록이고, 만들고 나면 3단계에서 물을 것이 없어진다(§5.2.4).
                   시각은 §9-D-1 「선택 요약 바」 규격을 그대로 이어 쓴다 — 새 시각 언어를
                   만들지 않는다. */}
-              <div className="evc-tpl-confirm" data-testid="evc-tpl-confirm">
+              <div className="evc-tpl-confirm evc-wiz-card" data-testid="evc-tpl-confirm">
                 <div className="evc-tpl-confirm-head">
                   {/* 「범용 양식이면 별도 탭이 낫지 않나」 — 이미 그렇다. 위자드에서 저장한
                       템플릿도 그 즉시 조직 라이브러리 자산이 된다(§5.10.1). 구조는 이미 그
@@ -9047,7 +9188,8 @@ export default function EvalCycleWizard({
                     className={`evc-tpl-confirm-row${row.editing ? ' is-editing' : ''}`}
                     data-testid={`evc-tpl-confirm-row-${row.type}`}
                   >
-                    <StatusBadge className="evc-mode-badge">{row.label}</StatusBadge>
+                    {/* PW-2683 — 유형 이름은 딱지가 아니라 굵은 글씨(시안 .apply-row .k). */}
+                    <span className="evc-tpl-confirm-type">{row.label}</span>
                     {/* 상태 배지는 라이브러리 조회를 «기다리지 않고» 먼저 그린다 —
                         확정 여부는 위자드가 이미 아는 사실인데 덮으면 「모른다」로 보인다
                         (엣지 1-A). */}
@@ -9138,6 +9280,9 @@ export default function EvalCycleWizard({
                 ))}
               </div>
 
+              {/* PW-2683 — 평가 유형 · 저장된 템플릿 · 이름 · 버전 · 직급을 흰 카드 하나로(시안 admin_wizard-2). */}
+              <section className="evc-wiz-card" data-testid="evc-tpl-card-type">
+              <div className="evc-wiz-card-head">
               <span className="evc-field-label">{L.templateTypeLabel}</span>
               {/* [PW-1888] 하나만 고르는 칸 — 공용 세그먼트 버튼(1단계 「하향 차수」와 같은 부품). */}
               <SegmentedControl
@@ -9167,6 +9312,7 @@ export default function EvalCycleWizard({
                   };
                 })}
               />
+              </div>
 
               {/* [PW-1594 · 정책 §5.13.2] 하향 차수 칩 — 하향을 편집 중이고 차수가 2 이상일 때만. 칩 = 지금
                   편집 중인 차수, 점 = 상태 3종(미확정 회색 · 확정 초록 · 확정·수정 중 노랑 — §5.10-D 와 같은 뜻).
@@ -9517,12 +9663,16 @@ export default function EvalCycleWizard({
                 </>
               )}
 
+              </section>
+
+              <section className="evc-wiz-card" data-testid="evc-tpl-card-grades">
               {/* PW-433 ② 기준 정보(등급 체계)가 평가 항목보다 **위**에 온다.
                   등급은 아래 '등급 라벨' 항목의 **선택지 재료**다 — 재료를 나중에 정하면
                   항목을 만드는 시점에 선택지가 비어 있다. 2026-06-28 A7 에서 이미 지적됐으나
                   그때는 안내 문구만 붙이고 배치는 그대로 뒀다 (policy §5.4-0-A). */}
               {/* A7(2026-06-28) 관계 안내 — PW-433 ② 로 배치가 뒤집혔으므로 방향도 반대로 고친다.
                   「위 평가 항목」이 아니라 「아래 평가 항목」이다. PW-2646 — 늘 보이던 줄을 제목 옆 ⓘ 로. */}
+              <div className="evc-wiz-card-head">
               <span className="evc-field-label">
                 {L.templateGradesLabel}
                 {/* PW-2655 — 기대 키워드 쓰는 법도 이 제목 옆이다(hr.policy §5.4.5 «자리» ③). ⓘ 를 둘 세우지 않고 한 말풍선에 잇는다. */}
@@ -9539,6 +9689,7 @@ export default function EvalCycleWizard({
               >
                 <span>{L.templateAbsolute}</span>
               </Checkbox>
+              </div>
               {!tplAbsolute && !hideRatioScope && (
                 <Select
                   className="evc-input"
@@ -9616,12 +9767,9 @@ export default function EvalCycleWizard({
                 </div>
               )}
 
-              {/* PW-1459 §5.10 — 막지 않고 경고만 한다. */}
-              {tplQuestions.length > TEMPLATE_ITEMS_WARN && (
-                <p className="evc-wiz-warn" data-testid="evc-tpl-too-many">
-                  {L.templateTooManyItems}
-                </p>
-              )}
+              </section>
+
+              <section className="evc-wiz-card" data-testid="evc-tpl-card-items">
               <div className="evc-tpl-items-head">
                 <span className="evc-field-label">
                   {L.templateItemsLabel} ({tplQuestions.length})
@@ -9635,6 +9783,12 @@ export default function EvalCycleWizard({
                   <EyeIcon size={15} /> {L.templatePreview}
                 </button>
               </div>
+              {/* PW-1459 §5.10 — 막지 않고 경고만 한다. */}
+              {tplQuestions.length > TEMPLATE_ITEMS_WARN && (
+                <p className="evc-wiz-warn" data-testid="evc-tpl-too-many">
+                  {L.templateTooManyItems}
+                </p>
+              )}
               <div className="evc-tpl-items" ref={bindTplList}>
                 {tplQuestions.map((q, idx) => (
                   /* [PW-527 ①] 항목 줄과 그 아래 설정 패널은 「평가 템플릿」 화면의
@@ -9691,7 +9845,13 @@ export default function EvalCycleWizard({
                     }
                     trailing={
                       <>
-                        {q.ai && <StatusBadge className="evc-mode-badge evc-tpl-ai">{L.templateAiBadge}</StatusBadge>}
+                        {/* PW-2683 — 디자이너 AI 딱지(.ons-ai-tag)의 작은 판 .okr-ai-tag — 연보라·옅은 테두리·AI 아이콘. */}
+                        {q.ai && (
+                          <StatusBadge className="okr-ai-tag">
+                            <AiMark />
+                            <span>{L.templateAiBadge}</span>
+                          </StatusBadge>
+                        )}
                         {q.type === 'rating' && (
                           <button
                             type="button"
@@ -9833,6 +9993,7 @@ export default function EvalCycleWizard({
                   </span>
                 )}
               </div>
+              </section>
               {/* PW-434 ⑤ 하단 액션바에는 «미리보기 · 템플릿 저장» 만 남는다. 불러오기 목록은
                   2단계 최상단 「저장된 템플릿에서 시작」 블록으로 올라갔다 — 불러오기는 «시작»
                   행위이고 저장은 «마무리» 행위인데, 둘을 같은 자리에 묶어 두면 다 만든 뒤에야
@@ -9874,7 +10035,7 @@ export default function EvalCycleWizard({
           )}
 
           {step === 2 && (
-            <div className="evc-wiz-panel is-form" ref={bindPhaseList}>
+            <div className="evc-wiz-panel is-form evc-sched-panel" ref={bindPhaseList}>
               {/* PW-2115 — 오픈한 사이클은 단계를 켜고 끌 수 없으니 «종류에 따라 단계가 구성된다» 안내가 할 일이 없다. */}
               {/* PW-2646 — 늘 보이던 회색 줄을 «모든 단계 한꺼번에 배치» 옆 ⓘ 로 옮겼다. */}
               {/* PW-536 — 일정 시작일(D0). 모든 단계 일정의 기준점(정책 §5.2.1-A).
@@ -10113,7 +10274,14 @@ export default function EvalCycleWizard({
                       {enabled && (
                         <div className="evc-sched-fields">
                           {['start', 'end'].map((field) => (
-                            <div className="evc-sched-field" key={field}>
+                            <Fragment key={field}>
+                            {/* PW-2683 — 시작 → 종료를 한 줄에(시안 admin_wizard-3). 화살표는 꾸밈이라 읽지 않는다. */}
+                            {field === 'end' && (
+                              <span className="evc-sched-arrow" aria-hidden="true">
+                                <ArrowRightIcon size={14} />
+                              </span>
+                            )}
+                            <div className="evc-sched-field">
                               <span className="evc-field-label">
                                 {field === 'start' ? L.startDateTime ?? L.startDate : L.endDateTime ?? L.endDate}
                               </span>
@@ -10153,6 +10321,7 @@ export default function EvalCycleWizard({
                                 />
                               </div>
                             </div>
+                            </Fragment>
                           ))}
                         </div>
                       )}
@@ -10434,11 +10603,14 @@ export default function EvalCycleWizard({
                         // [PW-1594] 확정 칸의 키는 단계 id 와 같다 — 하향 차수 단계는 그 차수 칸을 읽는다.
                         const row = confirmRowOf(ph.id);
                         return (
-                          <div className="evc-sched-tpl">
-                            <span className="evc-field-label">
-                              {L.appliedTemplate}{' '}
-                              <StatusBadge className="evc-mode-badge">{L[REVIEW_TYPE_KEYS[rtype]]}</StatusBadge>
-                            </span>
+                          <div className={`evc-sched-tpl${row?.confirmed ? '' : ' is-unset'}`}>
+                            {/* PW-2683 — 미확정이면 이름표까지 주황 띠 안으로(시안 admin_wizard-3 «템플릿 미확정» 띠 + 버튼). */}
+                            {row?.confirmed && (
+                              <span className="evc-field-label">
+                                {L.appliedTemplate}{' '}
+                                <StatusBadge className="evc-mode-badge">{L[REVIEW_TYPE_KEYS[rtype]]}</StatusBadge>
+                              </span>
+                            )}
                             {row?.confirmed ? (
                               <div
                                 className="evc-sched-tpl-fixed"
@@ -10478,10 +10650,15 @@ export default function EvalCycleWizard({
                                     <AlertIcon size={12} /> {L.tplVanished}
                                   </span>
                                 )}
-                                <span>
-                                  {fill(L.tplConfirmMissing, {
-                                    type: row?.round ? row.shortLabel : L[REVIEW_TYPE_KEYS[rtype]],
-                                  })}
+                                <span className="evc-sched-tpl-unset-text">
+                                  {!row?.vanished && <AlertIcon size={13} />}
+                                  <span className="evc-sched-tpl-unset-key">{L.appliedTemplate}</span>
+                                  <StatusBadge className="evc-mode-badge">{L[REVIEW_TYPE_KEYS[rtype]]}</StatusBadge>
+                                  <span>
+                                    {fill(L.tplConfirmMissing, {
+                                      type: row?.round ? row.shortLabel : L[REVIEW_TYPE_KEYS[rtype]],
+                                    })}
+                                  </span>
                                 </span>
                                 <button
                                   type="button"
@@ -10529,7 +10706,7 @@ export default function EvalCycleWizard({
           )}
 
           {step === 3 && (
-            <div className="evc-wiz-panel is-form">
+            <div className={`evc-wiz-panel is-form evc-tgt-panel${isSingleStep ? ' is-manage' : ''}`}>
               {/* PW-980 — 후보 명단을 못 받으면 「대상이 없다」로 읽히지 않게 말하고 다시 받게
                   한다. PW-1459 §5.5.5 부터 그 자리는 가운데 명단이다(아래). */}
               {/* PW-443 — 상단 「대상 범위」 탭 7종과 딸린 축 값 칩·개별 선택 명단을
@@ -10593,7 +10770,10 @@ export default function EvalCycleWizard({
                     onChange={(e) => setExcludeOnLeave(e.target.checked)}
                     data-testid="evc-wiz-excl-leave"
                   >
-                    <span>{L.exclusionOnLeave}</span>
+                    <span>
+                      <CheckGlyph size={14} className="evc-excl-chip-check" />
+                      {L.exclusionOnLeave}
+                    </span>
                   </Checkbox>
                   <Checkbox
                     className="evl-promo-row"
@@ -10603,7 +10783,10 @@ export default function EvalCycleWizard({
                     onChange={(e) => setExcludeHireDate(e.target.checked)}
                     data-testid="evc-wiz-excl-hiredate"
                   >
-                    <span>{L.exclusionHireDate}</span>
+                    <span>
+                      <CheckGlyph size={14} className="evc-excl-chip-check" />
+                      {L.exclusionHireDate}
+                    </span>
                   </Checkbox>
                   {excludeHireDate && (
                     <div className="evc-excl-date">
@@ -10645,7 +10828,10 @@ export default function EvalCycleWizard({
                     onChange={(e) => setExcludeRoleChange(e.target.checked)}
                     data-testid="evc-wiz-excl-rolechange"
                   >
-                    <span>{L.exclusionRoleChange}</span>
+                    <span>
+                      <CheckGlyph size={14} className="evc-excl-chip-check" />
+                      {L.exclusionRoleChange}
+                    </span>
                   </Checkbox>
                   <Checkbox
                     className="evl-promo-row"
@@ -10655,7 +10841,10 @@ export default function EvalCycleWizard({
                     onChange={(e) => setExcludePromotion(e.target.checked)}
                     data-testid="evc-wiz-excl-promotion"
                   >
-                    <span>{L.exclusionPromotion}</span>
+                    <span>
+                      <CheckGlyph size={14} className="evc-excl-chip-check" />
+                      {L.exclusionPromotion}
+                    </span>
                   </Checkbox>
                   {excludePromotion && (
                     <div className="evc-excl-date">
@@ -10733,7 +10922,10 @@ export default function EvalCycleWizard({
                     onChange={(e) => setExcludeEmploymentType(e.target.checked)}
                     data-testid="evc-wiz-excl-employment"
                   >
-                    <span>{L.exclusionEmploymentType}</span>
+                    <span>
+                      <CheckGlyph size={14} className="evc-excl-chip-check" />
+                      {L.exclusionEmploymentType}
+                    </span>
                   </Checkbox>
                   {excludeEmploymentType && (
                     <div className="evc-excl-date" data-testid="evc-wiz-excl-employment-values">
@@ -10960,6 +11152,20 @@ export default function EvalCycleWizard({
                         {L.targetOrgCollapseAll}
                       </button>
                     </div>
+                    {/* PW-2683 — 조직이 수백 개면 트리를 내려 찾기 어렵다. 이름으로 거르고, 거르는 동안은 맞는 부서를 펼친다
+                        (시안 admin_manage-peer-targets 〔많아질 때〕 «부서 찾기»). 체크는 거른 것과 상관없이 원래 부서 단위다. */}
+                    {!targetsLoading && !orgUnitsError && orgTree.length > 0 && (
+                      <label className="evc-review-pane-search">
+                        <SearchIcon size={14} />
+                        <input
+                          value={orgTreeQuery}
+                          onChange={(e) => setOrgTreeQuery(e.target.value)}
+                          placeholder={L.targetOrgSearch ?? '부서 찾기'}
+                          aria-label={L.targetOrgSearch ?? '부서 찾기'}
+                          data-testid="evc-wiz-org-search"
+                        />
+                      </label>
+                    )}
                     <div className="evc-review-pane-body">
                       {/* PW-1459 §5.5.5 — 오기 전엔 자리 표시, 못 받으면 그 자리에서 다시 시도.
                           조직만 실패하면 명단은 그대로 둔다(부분 실패를 전체 실패로 만들지 않는다). */}
@@ -11003,9 +11209,9 @@ export default function EvalCycleWizard({
                         </button>
                         <span className="evc-org-n">{candidates.length}</span>
                       </div>
-                      {orgTree.map((d) => {
+                      {filterOrgTree(orgTree, orgTreeQuery).map(({ dept: d, teams: shownTeams }) => {
                         const state = deptState(d);
-                        const open = !treeCollapsed.has(d.id);
+                        const open = !!orgTreeQuery.trim() || !treeCollapsed.has(d.id);
                         return (
                           <div key={d.id}>
                             <div className={`evc-org-row is-dept${state === 'on' ? ' is-on' : ''}`}>
@@ -11057,7 +11263,7 @@ export default function EvalCycleWizard({
                               <span className="evc-org-n">{deptCount(d)}</span>
                             </div>
                             {open &&
-                              d.teams.map((t) => (
+                              shownTeams.map((t) => (
                                 <div key={t.id} className="evc-org-row is-team">
                                   <span className="evc-org-caret" />
                                   <TriCheck
@@ -11089,7 +11295,12 @@ export default function EvalCycleWizard({
                       })}
                       {/* 소속이 없는 사람도 고를 수 있어야 한다 — 노드가 없으면
                           그 사람은 어떤 조직에도 안 걸려 대상이 될 방법 자체가 없다. */}
-                      {unassignedCount > 0 && (
+                      {orgTreeQuery.trim() && filterOrgTree(orgTree, orgTreeQuery).length === 0 && (
+                        <p className="evc-review-empty" data-testid="evc-wiz-org-search-empty">
+                          {fill(L.wizardValueSearchEmpty ?? '', { query: orgTreeQuery.trim() })}
+                        </p>
+                      )}
+                      {unassignedCount > 0 && !orgTreeQuery.trim() && (
                         <div className="evc-org-row is-dept" data-testid="evc-wiz-org-unassigned">
                           <span className="evc-org-caret" />
                           <TriCheck
@@ -11156,22 +11367,14 @@ export default function EvalCycleWizard({
                         </button>
                       )}
                     </div>
+                    {/* PW-2683 — 이름은 앞 5명 + «외 N명», 누르면 나머지가 칸 안에서 스크롤되는 명단으로 펼쳐진다. */}
                     {missingTargets.length > 0 && L.targetMissingSummary && (
-                      <div className="evc-wiz-soft-warn is-flat" data-testid="evc-wiz-missing-summary">
-                        {fill(L.targetMissingSummary, {
-                          count: missingTargets.length,
-                          names:
-                            missingTargets
-                              .slice(0, MISSING_NAMES_MAX)
-                              .map((c) => c.name)
-                              .join(', ') +
-                            (missingTargets.length > MISSING_NAMES_MAX
-                              ? ` ${fill(L.targetMissingMore ?? '', {
-                                  count: missingTargets.length - MISSING_NAMES_MAX,
-                                })}`
-                              : ''),
-                        })}
-                      </div>
+                      <MissingTargetsNote
+                        list={missingTargets}
+                        max={MISSING_NAMES_MAX}
+                        summary={L.targetMissingSummary}
+                        moreLabel={L.targetMissingMore ?? ''}
+                      />
                     )}
                     <div
                       className="evc-review-pane-body"
@@ -11586,7 +11789,7 @@ export default function EvalCycleWizard({
             </div>
           )}
           {step === 4 && calibrationOn && !committeeElsewhere && (
-            <div className="evc-wiz-panel">
+            <div className="evc-wiz-panel evc-wiz-calibstep">
               {/* PW-822 — 잠겨도 «내용은 보인다». 입력은 fieldset 하나로 한꺼번에 막는다 —
                   단추마다 disabled 를 달면 새 단추가 생길 때 하나를 빠뜨린다. */}
               {committeeLocked && committeeLockedHint && (
@@ -11629,18 +11832,32 @@ export default function EvalCycleWizard({
               )}
               {!committeeInScope ? null : incompleteCommitteeCount > 0 ? (
                 <div className="evc-wiz-calib-alert is-error" data-testid="evc-wiz-calib-incomplete">
-                  <span>
-                    <AlertIcon size={14} />{' '}
-                    {fill(
-                      L.wizardCalibIncomplete ??
-                        '미완성 캘리브레이션 {{count}}개 — 각 캘리브레이션에 제목 · 대상(1개 이상) · 참여 위원(1명 이상)을 모두 지정하세요.',
-                      { count: incompleteCommitteeCount },
-                    )}{' '}
+                  <AlertIcon size={16} />
+                  <span className="evc-wiz-calib-alert-text">
+                    {/* PW-2683 — 시안 admin_wizard-5: 앞 마디(«미완성 캘리브레이션 N개»)만 굵게, 끄는 길은 아랫줄 작은 글씨. 글은 그대로. */}
+                    {(() => {
+                      const text = fill(
+                        L.wizardCalibIncomplete ??
+                          '미완성 캘리브레이션 {{count}}개 — 각 캘리브레이션에 제목 · 대상(1개 이상) · 참여 위원(1명 이상)을 모두 지정하세요.',
+                        { count: incompleteCommitteeCount },
+                      );
+                      const cut = text.indexOf(' — ');
+                      return cut > 0 ? (
+                        <>
+                          <b>{text.slice(0, cut)}</b>
+                          {text.slice(cut)}
+                        </>
+                      ) : (
+                        text
+                      );
+                    })()}{' '}
                     {/* [PW-2076 §5.1-D W2-c] [다음]은 열려 있으니 끄는 길을 여기서 알린다. */}
-                    {L.wizardCalibTurnOffHint ??
-                      '캘리브레이션을 쓰지 않으시면 3단계(단계별 일정)에서 끌 수 있습니다.'}
-                    {/* PW-2646 — 맨 위 안내는 완료 줄 ⓘ 로 옮겼다. 아직 미완성일 때도 같은 ⓘ 가 있어야 읽힌다. */}
-                    <EvalHintTip text={L.wizardCalibDoneHint} testId="evc-wiz-calib-incomplete-tip" />
+                    <span className="evc-wiz-calib-alert-sub">
+                      {L.wizardCalibTurnOffHint ??
+                        '캘리브레이션을 쓰지 않으시면 3단계(단계별 일정)에서 끌 수 있습니다.'}
+                      {/* PW-2646 — 맨 위 안내는 완료 줄 ⓘ 로 옮겼다. 아직 미완성일 때도 같은 ⓘ 가 있어야 읽힌다. */}
+                      <EvalHintTip text={L.wizardCalibDoneHint} testId="evc-wiz-calib-incomplete-tip" />
+                    </span>
                   </span>
                   <button
                     type="button"
@@ -11714,7 +11931,42 @@ export default function EvalCycleWizard({
           )}
 
           {step === 5 && (
-            <div className="evc-wiz-panel">
+            <div className="evc-wiz-panel evc-wiz-review">
+              {/* [PW-1594 · 정책 §5.13.5] 오픈 차단 사유 2종 — 미확정 템플릿 차단과 같은 자리에서 막고, 고치러
+                  갈 곳(4단계 ④ 섹션 · 2단계의 그 차수 칩)까지 함께 준다.
+                  PW-2683 — 시안 admin_wizard-6: «오픈할 수 없음»은 요약보다 먼저 읽혀야 해서 맨 위 빨간 띠. */}
+              {openBlockedByLeader && (
+                <div className="evc-wiz-warn evc-wiz-open-block" role="alert" data-testid="evc-wiz-open-block-leader">
+                  <AlertIcon size={16} />
+                  <b className="evc-wiz-open-block-text">{L.leaderOpenBlockUnconfirmed}</b>{' '}
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="evc-wiz-open-block-go"
+                    onClick={goToLeaderSection}
+                    data-testid="evc-wiz-open-block-leader-go"
+                  >
+                    {L.leaderAsgGoConfirm}
+                    <ArrowRightGlyph size={13} aria-hidden="true" />
+                  </Button>
+                </div>
+              )}
+              {openBlockedByGrades && (
+                <div className="evc-wiz-warn evc-wiz-open-block" role="alert" data-testid="evc-wiz-open-block-grades">
+                  <AlertIcon size={16} />
+                  <b className="evc-wiz-open-block-text">{L.leaderOpenBlockGrades}</b>{' '}
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="evc-wiz-open-block-go"
+                    onClick={() => goToTemplateStep(leaderPhaseId(firstMismatchRound ?? 1))}
+                    data-testid="evc-wiz-open-block-grades-go"
+                  >
+                    {fill(L.leaderOpenBlockGoGrades, { round: firstMismatchRound ?? 1 })}
+                    <ArrowRightGlyph size={13} aria-hidden="true" />
+                  </Button>
+                </div>
+              )}
               <div className="evc-summary-card">
                 <div className="evc-summary-row"><span>{L.cycleName}</span><b>{name}</b></div>
                 <div className="evc-summary-row"><span>{L.period}</span><b>{startDate} ~ {endDate}</b></div>
@@ -11772,22 +12024,27 @@ export default function EvalCycleWizard({
                         미확정 유형은 한 줄로 묶고, 가는 길은 글이 아니라 [2단계에서 확정하기] 버튼으로 준다. */}
                     {confirmRows.some((row) => !row.confirmed) && (
                       <span
-                        className="evc-summary-tpl-item is-warn"
+                        className="evc-summary-tpl-item is-warn has-badge"
                         data-testid="evc-wiz-summary-tpl-missing"
                       >
-                        {confirmRows
-                          .filter((row) => !row.confirmed)
-                          .map((row) => row.shortLabel)
-                          .join('·')}{' '}
-                        {L.tplConfirmSummaryMissing}{' '}
-                        <button
-                          type="button"
-                          className="evc-link-btn"
+                        {/* PW-2683 — 시안 admin_wizard-6: 미확정은 주황 딱지, 가는 길은 딱지 옆 초록 글씨 버튼. */}
+                        <StatusBadge as="strong" tone="warning" className="evc-status-badge">
+                          <AlertIcon size={12} />
+                          {'\u00a0'}
+                          {confirmRows
+                            .filter((row) => !row.confirmed)
+                            .map((row) => row.shortLabel)
+                            .join('·')}{' '}
+                          {L.tplConfirmSummaryMissing}
+                        </StatusBadge>{' '}
+                        <Button
+                          className="evc-link-btn evc-summary-go"
                           onClick={() => goToTemplateStep(confirmRows.find((row) => !row.confirmed)?.type)}
                           data-testid="evc-wiz-summary-tpl-go"
                         >
                           {L.tplConfirmSummaryGo}
-                        </button>
+                          <ArrowRightGlyph size={12} aria-hidden="true" />
+                        </Button>
                       </span>
                     )}
                     {confirmRows.filter((row) => row.confirmed).map((row) => (
@@ -11823,27 +12080,38 @@ export default function EvalCycleWizard({
                         })}
                       </b>
                     ) : (
-                      <b className="evc-summary-tpl-item is-warn" data-testid="evc-wiz-summary-leader-unconfirmed">
-                        {L.leaderAsgSummaryUnconfirmed}{' '}
-                        <button
-                          type="button"
-                          className="evc-link-btn"
+                      <b className="evc-summary-tpl-item is-warn has-badge" data-testid="evc-wiz-summary-leader-unconfirmed">
+                        <StatusBadge as="strong" tone="warning" className="evc-status-badge">
+                          <AlertIcon size={12} />
+                          {'\u00a0'}
+                          {L.leaderAsgSummaryUnconfirmed}
+                        </StatusBadge>{' '}
+                        <Button
+                          className="evc-link-btn evc-summary-go"
                           onClick={goToLeaderSection}
                           data-testid="evc-wiz-summary-leader-go"
                         >
                           {L.leaderAsgGoConfirm}
-                        </button>
+                          <ArrowRightGlyph size={12} aria-hidden="true" />
+                        </Button>
                       </b>
                     )}
                   </div>
                 )}
                 <div className="evc-summary-row">
                   <span>{L.scheduleSummaryLabel}</span>
-                  <b>
+                  {/* PW-2683 — 시안 admin_wizard-6: 순서가 보이게 단계를 회색 칩으로 놓고 › 로 잇는다. */}
+                  <b className="evc-summary-phases" data-testid="evc-wiz-summary-phases">
                     {displayPhases
                       .filter((p) => !disabledPhases.has(p.id))
-                      .map((p) => phaseName(p))
-                      .join(' · ')}
+                      .map((p, i) => (
+                        <span key={p.id} className="evc-summary-phase-item">
+                          {i > 0 && (
+                            <ChevronRightGlyph size={12} aria-hidden="true" />
+                          )}
+                          <span className="evc-summary-phase">{phaseName(p)}</span>
+                        </span>
+                      ))}
                   </b>
                 </div>
               </div>
@@ -11864,42 +12132,42 @@ export default function EvalCycleWizard({
                   )}
                 </div>
               ) : hasPeer && !openedManage && smallTeamTargets.length > 0 ? (
-                <div className="evc-wiz-soft-warn" data-testid="evc-wiz-summary-small-team">
-                  <strong>{fill(L.summarySmallTeamTitle, { count: smallTeamTargets.length })}</strong>
-                  {/* PW-2646 — 굵은 첫 문장과 이름은 그대로, 뒷문장(오픈은 막지 않는다)만 ⓘ 로. */}
-                  <EvalHintTip text={L.summarySmallTeamSub} testId="evc-wiz-summary-small-team-sub" />
-                  {' — '}
-                  {smallTeamTargets.map((c) => c.name).join(', ')}
+                <div className="evc-wiz-soft-warn evc-wiz-small-team" data-testid="evc-wiz-summary-small-team">
+                  <AlertIcon size={16} />
+                  <span className="evc-wiz-small-team-text">
+                    <strong>{fill(L.summarySmallTeamTitle, { count: smallTeamTargets.length })}</strong>
+                    {/* PW-2646 — 굵은 첫 문장과 이름은 그대로, 뒷문장(오픈은 막지 않는다)만 ⓘ 로. */}
+                    <EvalHintTip text={L.summarySmallTeamSub} testId="evc-wiz-summary-small-team-sub" />
+                    {' — '}
+                    {/* PW-2683 — 수십 명이면 이름이 띠를 몇 줄씩 채웠다. 앞 5명 + «외 N명», 누르면 전부. */}
+                    <span data-testid="evc-wiz-summary-small-team-names">
+                      {(smallTeamNamesOpen
+                        ? smallTeamTargets
+                        : smallTeamTargets.slice(0, SMALL_TEAM_NAME_FOLD)
+                      )
+                        .map((c) => c.name)
+                        .join(', ')}
+                    </span>
+                    {smallTeamTargets.length > SMALL_TEAM_NAME_FOLD && (
+                      <>
+                        {' '}
+                        <Button
+                          className="evc-link-btn evc-wiz-names-more"
+                          aria-expanded={smallTeamNamesOpen}
+                          onClick={() => setSmallTeamNamesOpen((v) => !v)}
+                          data-testid="evc-wiz-summary-small-team-more"
+                        >
+                          {smallTeamNamesOpen
+                            ? (L.namesLess ?? '접기')
+                            : fill(L.namesMore ?? '외 {{count}}명', {
+                                count: smallTeamTargets.length - SMALL_TEAM_NAME_FOLD,
+                              })}
+                        </Button>
+                      </>
+                    )}
+                  </span>
                 </div>
               ) : null}
-              {/* [PW-1594 · 정책 §5.13.5] 오픈 차단 사유 2종 — 미확정 템플릿 차단과 같은 자리에서 막고, 고치러
-                  갈 곳(4단계 ④ 섹션 · 2단계의 그 차수 칩)까지 함께 준다. */}
-              {openBlockedByLeader && (
-                <p className="evc-wiz-warn evc-wiz-open-block" role="alert" data-testid="evc-wiz-open-block-leader">
-                  {L.leaderOpenBlockUnconfirmed}{' '}
-                  <button
-                    type="button"
-                    className="evc-link-btn"
-                    onClick={goToLeaderSection}
-                    data-testid="evc-wiz-open-block-leader-go"
-                  >
-                    {L.leaderAsgGoConfirm}
-                  </button>
-                </p>
-              )}
-              {openBlockedByGrades && (
-                <p className="evc-wiz-warn evc-wiz-open-block" role="alert" data-testid="evc-wiz-open-block-grades">
-                  {L.leaderOpenBlockGrades}{' '}
-                  <button
-                    type="button"
-                    className="evc-link-btn"
-                    onClick={() => goToTemplateStep(leaderPhaseId(firstMismatchRound ?? 1))}
-                    data-testid="evc-wiz-open-block-grades-go"
-                  >
-                    {fill(L.leaderOpenBlockGoGrades, { round: firstMismatchRound ?? 1 })}
-                  </button>
-                </p>
-              )}
               {/* PW-1459 — 6단계가 곧 오픈이면 「준비 중으로 저장 · 목록에서 오픈」 안내는 거짓이다. */}
               {!opensOnSubmit && (
                 <p className="evc-wiz-hint">
@@ -12896,13 +13164,27 @@ export default function EvalCycleWizard({
   return (
     <>
       <ModalShell
-        title={<span data-testid="evc-wiz-title">{wizardTitle}</span>}
+        title={
+          wizardTitleTag ? (
+            <>
+              <span data-testid="evc-wiz-title">{wizardTitleTag.name}</span>
+              <StatusBadge className="evc-mode-badge" data-testid="evc-wiz-title-tag">
+                {wizardTitleTag.tag}
+              </StatusBadge>
+            </>
+          ) : (
+            <span data-testid="evc-wiz-title">{wizardTitle}</span>
+          )
+        }
         titleAside={titleHelp}
         titleId="evc-wiz-title"
         closeLabel={L.cancel}
         onClose={requestClose}
         zIndex={1000}
         className="evc-shell is-xwide has-own-footer evc-wiz-shell"
+        /* PW-2683 — 제목·안내 줄·단계 표는 위에 두고 본문(.evc-wiz-body)만 스크롤한다. */
+        contentClassName="evc-wiz-shell-content"
+        bodyClassName="evc-wiz-shell-frame"
         testId="evc-wiz"
         footer={wizardFooter}
       >
