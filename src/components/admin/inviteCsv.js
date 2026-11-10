@@ -21,25 +21,11 @@ import { emailOk, jobPairIssue, nameHasEmail, normEmail, seenLeaderIdsOf } from 
 import { resolveKoreanParticles } from '../shared/koreanParticle.js';
 
 /**
- * 통화가 쓰는 소수 자리 — 원화·엔화 0, 달러·유로 2. 통화를 모르면 원화로 본다(pivit-work PW-2613 ·
- * 서버 `currencyDecimals`(hr-cell.util)와 같다).
- */
-export function currencyDecimals(currency) {
-  if (!currency) return 0;
-  return currency === 'KRW' || currency === 'JPY' ? 0 : 2;
-}
-
-/**
  * 금액 칸 — 정수와 세 자리 쉼표만 받는다. 서버 `normalizeSalary`(hr-cell.util)와 같은 판정 (pivit-work PW-1998).
  * 글자를 지우고 남은 숫자로 읽으면 `85000.50` 이 8,500,050 이 된다.
- * `currency` 를 넘기면 그 통화의 자리까지 받는다 — 달러·유로는 소수 둘째 자리까지(`85,000.50`).
- * 서버 `normalizeMoney` 와 같은 판정 (pivit-work PW-2613). 안 넘기면 정수만(통화가 없는 칸).
  */
-export function isMoneyCellText(text, currency) {
-  const v = String(text ?? '').trim();
-  return currencyDecimals(currency) === 0
-    ? /^(\d+|[1-9]\d{0,2}(,\d{3})+)$/.test(v)
-    : /^(\d+|[1-9]\d{0,2}(,\d{3})+)(\.\d{1,2})?$/.test(v);
+export function isMoneyCellText(text) {
+  return /^(\d+|[1-9]\d{0,2}(,\d{3})+)$/.test(String(text ?? '').trim());
 }
 
 /**
@@ -498,7 +484,6 @@ export const INVITE_CSV_DEFAULT_LABELS = {
   csvErrBool: '{column} 칸은 예/아니오로 적어 주세요 — 「{value}」은(는) 읽을 수 없습니다',
   csvErrHours: '{column} 칸은 시간(숫자)으로 적어 주세요 — 「{value}」은(는) 읽을 수 없습니다',
   csvErrSalary: '연봉은 소수점·단위 없는 정수로 적어 주세요',
-  csvErrSalaryDecimal: '연봉은 단위 없이 숫자로, 소수는 둘째 자리까지 적어 주세요',
   csvErrMoney: '{column} 칸은 소수점·단위 없는 정수로 적어 주세요',
   csvErrUnknownChoice: "{column} '{value}'은(는) 쓸 수 없는 값이에요 — {choices} 중에서 적어 주세요",
   csvErrContractNeedsStart: '계약 종료일을 적었으면 계약 시작일도 적어 주세요',
@@ -979,15 +964,13 @@ export function parseInviteCsv(
  * @param {(raw: string) => (string|null)} [opts.resolveOrgPath] 조직경로 글자 → 조직 id(못 찾으면 null)
  * @param {string[]} [opts.blockedEmploymentStatuses] 초대에 쓸 수 없는 고용상태 코드(예: `terminated`) —
  *   알아보는 값이어도 그 줄을 세운다. 안 넘기면 보지 않는다(PW-1042)
- * @param {string|null} [opts.salaryCurrency] 연봉 칸을 판정할 회사 기본 통화 — 달러·유로면 소수 둘째 자리까지
- *   받는다. 안 넘기면 정수만(pivit-work PW-2613)
  */
 export function buildInviteCsvContext(rows, {
   orgTree = [], fieldOptions = {}, laddersByFamily = {}, dutiesByLadder = {},
   jobCategoryEnabled = false, squadNames = null, memberEmails = [], supervisorEmails = null,
   pendingEmails = [], resendEmails = [], terminatedEmails = [], rehireEmails = [], headTeamIds = [], teamHeads = {}, labels = {},
   emailValid = emailOk, nameMaxLength = null, fieldLimits = {}, resolveOrgPath = null,
-  blockedEmploymentStatuses = [], employeeCodeOwners = null, salaryCurrency = null,
+  blockedEmploymentStatuses = [], employeeCodeOwners = null,
 } = {}) {
   const l = withDefaults(labels);
   const index = buildOrgPathIndex(orgTree);
@@ -1019,8 +1002,6 @@ export function buildInviteCsvContext(rows, {
     nameMaxLength,
     fieldLimits: fieldLimits || {},
     blockedEmploymentStatuses: new Set(blockedEmploymentStatuses || []),
-    // 연봉 칸을 판정할 통화 — 회사 기본 통화(초대 파일에는 통화 칸이 없다 · pivit-work PW-2613).
-    salaryCurrency,
     // 사번 → 그 사번을 가진 사람의 이메일. 못 받았으면 `null`(서버가 판정한다).
     employeeCodeOwner: employeeCodeOwnerMap(employeeCodeOwners),
     lookupPath: resolveOrgPath || ((raw) => lookupOrgPath(index, raw)),
@@ -1241,9 +1222,7 @@ export function inviteCsvIssues(row, ctx) {
   const fte = normalize(v.ftePercent);
   // 발령·구성원 편집·CSV 업로드와 같은 1~100 — 0 을 받으면 가입 뒤 FTE 0 으로 저장됐다(PW-2103).
   if (fte && !(/^\d+$/.test(fte) && Number(fte) >= 1 && Number(fte) <= 100)) add('ftePercent', fmtCsv(l.csvErrFte, { value: fte }));
-  if (normalize(v.salary) && !isMoneyCellText(v.salary, ctx.salaryCurrency)) {
-    add('salary', currencyDecimals(ctx.salaryCurrency) === 0 ? l.csvErrSalary : l.csvErrSalaryDecimal);
-  }
+  if (normalize(v.salary) && !isMoneyCellText(v.salary)) add('salary', l.csvErrSalary);
 
   // 계약 기간 — 시작일이 있어야 보상 이력의 행이 선다(서버와 같은 규칙).
   const cStart = normalize(v.contractStartDate);

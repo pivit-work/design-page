@@ -23,7 +23,7 @@ import RosterTable from '../shared/RosterTable.jsx';
 import { AlertTriangleGlyph, CheckGlyph, CloseGlyph, CrownGlyph, PlusGlyph } from '../shared/lineIcons.jsx';
 import LoadingState from '../shared/LoadingState.jsx';
 import Select from '../shared/Select.jsx';
-import { currencyDecimals, isMoneyCellText } from './inviteCsv.js';
+import { isMoneyCellText } from './inviteCsv.js';
 import { resolveKoreanParticles } from '../shared/koreanParticle.js';
 
 /* 시트에서 함께 옮겨 온 토큰 — 이 폴더의 다른 캔버스와 같은 값이다. */
@@ -1744,19 +1744,11 @@ const COMP_TYPE_DEFAULT_LABEL = {
 const COMP_PERIOD_TYPES = new Set(['contract', 'signon_bonus', 'retention_bonus']);
 /** 기간 안에 퇴사하면 돌려받는 보상 — 줄에 «반납 조건» 딱지. 정산 금액은 여기서 계산하지 않는다. */
 const COMP_CLAWBACK_TYPES = new Set(['signon_bonus', 'retention_bonus']);
-/** 회사 «기본 통화»와 같은 목록 (서버 `CURRENCY_CODES`). */
-const COMP_CURRENCIES = ['KRW', 'USD', 'JPY', 'EUR'];
 const emptyCompForm = (currency) => ({ compensationType: 'salary', effectiveDate: '', effectiveEndDate: '', amount: '', currency, reason: '' });
-/**
- * 보상 금액 표시 — 그 줄의 통화 자리까지(pivit-work PW-2613 · admin-spec §3.2.4). 원화·엔화는 정수,
- * 달러·유로는 소수가 있으면 둘째 자리까지 채워(`85,000.50`), 없으면 정수(`100,000`).
- */
-const fmtAmount = (v, currency) => {
+const fmtAmount = (v) => {
   if (v === '' || v === null || v === undefined) return '—';
   const n = Number(String(v).replace(/[^0-9.]/g, ''));
-  if (!Number.isFinite(n) || n <= 0) return '—';
-  const digits = currencyDecimals(currency) === 0 || Number.isInteger(n) ? 0 : 2;
-  return n.toLocaleString('ko-KR', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+  return Number.isFinite(n) && n > 0 ? Math.round(n).toLocaleString('ko-KR') : '—';
 };
 /**
  * 연봉 한 줄 표시 — 금액 + 통화(pivit-work PW-2612 · admin-spec §3.2.2 ②). 원화는 `₩85,000,000`,
@@ -1775,8 +1767,8 @@ const localToday = () => {
 
 // ── 보상 이력 모달 (연봉 · 계약 기간 · 보너스·수당 · 통화별 합계) ──────────────────────
 /**
- * `defaultCurrency` 는 회사 «기본 통화» — 새 줄의 통화 칸이 이 값으로 시작하고, 통화가 비어 있는
- * 옛 줄도 이 통화로 센다. 안 주면 KRW.
+ * 보상은 원화 하나다(pivit-work PW-2624 · 커트 11-10) — 통화 고르기 칸과 통화 열이 없다. 새 줄은
+ * `defaultCurrency`(안 주면 KRW)로 저장하고, 통화가 비어 있는 옛 줄도 이 통화로 센다.
  */
 export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDelete, onClose, onSalarySynced, confirmDelete, defaultCurrency = 'KRW' }) {
   const L = labels || {};
@@ -1821,25 +1813,18 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
   const isContract = form.compensationType === 'contract';
   const isPeriod = COMP_PERIOD_TYPES.has(form.compensationType);
   const endBeforeStart = isPeriod && form.effectiveEndDate && form.effectiveDate && form.effectiveEndDate < form.effectiveDate;
-  // 금액은 고른 통화가 쓰는 자리까지 — 고르지 않았으면 회사 기본 통화 (pivit-work PW-2613 · admin-spec §3.2.4).
-  // 통화를 바꾸면 그 자리에서 다시 판정한다.
-  const formCurrency = form.currency || defaultCurrency;
-  const amountInvalid = form.amount.trim() !== '' && !isMoneyCellText(form.amount, formCurrency);
-  const amountInvalidText = currencyDecimals(formCurrency) === 0
-    ? (L.salaryHistAmountInvalid || '금액은 소수점·단위 없는 정수로 적어 주세요.')
-    : (L.salaryHistAmountInvalidDecimal || '금액은 단위 없이 숫자로, 소수는 둘째 자리까지 적어 주세요.');
+  const amountInvalid = form.amount.trim() !== '' && !isMoneyCellText(form.amount);
   const canSubmit = form.effectiveDate && (form.amount.trim() || isContract) && !amountInvalid && !endBeforeStart && !busy;
   const currencyOf = (h) => h.currency || defaultCurrency;
   // 통화가 섞이면 합산하지 않는다 — 통화마다 한 줄 (admin-spec §3.2.4 · 환산 환율을 저장하지 않는다).
-  // 센트 단위로 더한다 — 소수 금액(달러·유로)을 그대로 더하면 0.1 + 0.2 같은 끝자리가 남는다.
   const totals = [];
   for (const h of sorted) {
     const n = Number(String(h.amount ?? '').replace(/[^0-9.]/g, ''));
     if (!Number.isFinite(n) || n <= 0) continue;
     const c = currencyOf(h);
     const t = totals.find((x) => x.currency === c);
-    if (t) t.cents += Math.round(n * 100);
-    else totals.push({ currency: c, cents: Math.round(n * 100) });
+    if (t) t.sum += n;
+    else totals.push({ currency: c, sum: n });
   }
   const canEditRow = (h) => typeOf(h) !== 'salary' && h.id;
 
@@ -1896,8 +1881,7 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
       compensationType: typeOf(h),
       effectiveDate: h.effectiveDate ?? '',
       effectiveEndDate: h.effectiveEndDate ?? '',
-      // 저장된 소수(달러 85000.50)를 지우지 않는다 — numeric 의 `.00` 끝자리만 걷는다 (pivit-work PW-2613).
-      amount: h.amount != null ? String(Number(h.amount)) : '',
+      amount: h.amount != null ? String(Math.round(Number(h.amount))) : '',
       currency: currencyOf(h),
       reason: h.reason ?? '',
     });
@@ -1983,13 +1967,8 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
               header: L.salaryHistAmount || '금액',
               align: 'right',
               cellProps: { className: 'is-amount' },
-              render: (h) => fmtAmount(h.amount, currencyOf(h)),
-            },
-            {
-              key: 'currency',
-              header: L.salaryHistCurrency || '통화',
-              cellProps: { className: 'is-date' },
-              render: (h) => currencyOf(h),
+              // 보상은 원화 하나라 통화 열이 없다(pivit-work PW-2624) — 금액에 ₩ 를 붙여 원화임을 보인다.
+              render: (h) => fmtSalaryWithCurrency(h.amount, currencyOf(h)),
             },
             {
               key: 'reason',
@@ -2029,7 +2008,7 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
           {totals.map((t) => (
             <div key={t.currency} className="admin-emp-sal-total">
               <span>{L.salaryHistTotal || '합계'} · {t.currency}</span>
-              <span className="admin-emp-sal-total-amount">{fmtAmount(t.cents / 100, t.currency)}</span>
+              <span className="admin-emp-sal-total-amount">{fmtAmount(t.sum)}</span>
             </div>
           ))}
         </div>
@@ -2087,26 +2066,12 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
                 id="sal-hist-amount"
                 className="admin-emp-input admin-emp-sal-amount"
                 type="text"
-                inputMode="decimal"
+                inputMode="numeric"
                 placeholder={L.salaryHistAmountPh || '금액'}
                 value={form.amount}
                 aria-invalid={amountInvalid || undefined}
                 onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
               />
-            </div>
-            <div className="admin-emp-field">
-              <label className="admin-emp-field-label" htmlFor="sal-hist-currency">{L.salaryHistCurrency || '통화'}</label>
-              {/* 줄마다 고른다 — 달러 계약이 섞이면 회사 통화 하나로 표현되지 않는다(§3.2.2). */}
-              <Select
-                id="sal-hist-currency"
-                className="admin-emp-input"
-                value={form.currency}
-                onChange={(e) => setForm((f) => ({ ...f, currency: e.target.value }))}
-              >
-                {(COMP_CURRENCIES.includes(form.currency) ? COMP_CURRENCIES : [...COMP_CURRENCIES, form.currency]).map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </Select>
             </div>
             <div className="admin-emp-field is-reason">
               <label className="admin-emp-field-label" htmlFor="sal-hist-reason">{L.salaryHistReason || '사유'}</label>
@@ -2129,7 +2094,7 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
             </button>
           </div>
           {amountInvalid && (
-            <div className="admin-emp-sal-error" role="alert">{amountInvalidText}</div>
+            <div className="admin-emp-sal-error" role="alert">{L.salaryHistAmountInvalid || '금액은 소수점·단위 없는 정수로 적어 주세요.'}</div>
           )}
           {endBeforeStart && (
             <div className="admin-emp-sal-error" role="alert">{L.salaryHistEndBeforeStart || '종료일이 시작일보다 앞설 수 없습니다.'}</div>
