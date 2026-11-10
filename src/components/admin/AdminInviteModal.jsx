@@ -207,6 +207,7 @@ const DEFAULT_LABELS = {
   // 닫기 확인(§6-2)
   discardTitle: '작성 중인 초대가 있습니다',
   discardBody: '입력한 {n}명의 정보가 사라집니다.',
+  discardBodyCsv: '올린 파일의 {n}행이 사라집니다.',
   discardKeep: '계속 작성',
   discardLeave: '입력 내용 버리기',
   // CSV 업로드 탭(§2-4 / PW-212)
@@ -280,6 +281,12 @@ function blankRow(bulk) {
   };
   for (const k of BULK_KEYS) row[k] = bulk[k];
   return row;
+}
+
+/** 사람 카드에 어드민이 적은 값이 하나라도 있나 — 일괄 지정 바 기본값(역할 등)은 세지 않는다. */
+const ROW_TEXT_KEYS = ['email', 'name', 'jobPosition', 'hireDate', 'jobRank', 'nickname', 'employeeCode', 'managerEmail'];
+function isFilledRow(r) {
+  return ROW_TEXT_KEYS.some((k) => String(r[k] ?? '').trim() !== '') || r.teamIds.length > 0;
 }
 
 const EMPTY_BULK = {
@@ -1005,13 +1012,15 @@ export default function AdminInviteModal({
     ? validCount > 0
     : activeRows.length > 0 && validCount === activeRows.length);
 
-  /** 입력이 있는지 — 빈 행 1개뿐이면 확인 없이 닫는다(§6-2). */
-  const isDirty =
-    rows.length > 1 ||
-    rows.some(
-      (r) => r.email.trim() || r.name.trim() || r.teamIds.length > 0 || r.employeeCode.trim() || r.hireDate,
-    ) ||
-    csvRows.length > 0;
+  /* 닫으면 사라지는 사람 수(§6-2 · PW-2678) — **두 탭을 합쳐** 센다. 탭을 옮겨도 반대 탭의
+     입력은 남아 있다가 닫을 때 함께 사라지므로, 보고 있는 탭만 세면 직접 입력 3명을 둔 채 빈 CSV
+     탭에서 닫을 때 «0명»이 떠 어드민이 버려도 되는 줄 안다. 직접 입력은 값이 든 사람 카드만
+     (빈 줄은 사라질 것이 없다), CSV 는 오류 행까지 올린 행 전부. 아무도 없으면 확인 없이 닫는다. */
+  const filledDirectCount = rows.filter(isFilledRow).length;
+  const isDirty = filledDirectCount + csvRows.length > 0;
+  const discardBody = filledDirectCount === 0
+    ? fmt(labels.discardBodyCsv, { n: csvRows.length })
+    : fmt(labels.discardBody, { n: filledDirectCount + csvRows.length });
 
   const requestClose = () => {
     if (sending) return; // 발송 중에는 닫기를 막는다(§3)
@@ -1908,7 +1917,7 @@ export default function AdminInviteModal({
         <ConfirmModal
           testId="admin-invite-discard-confirm"
           title={labels.discardTitle}
-          body={fmt(labels.discardBody, { n: activeRows.length })}
+          body={discardBody}
           cancelLabel={labels.discardKeep}
           confirmLabel={labels.discardLeave}
           danger
