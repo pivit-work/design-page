@@ -3,6 +3,7 @@ import StatusBadge from '../shared/StatusBadge.jsx';
 import { CheckCircleIcon, MailIcon } from './evalIcons.jsx';
 import Select from '../shared/Select.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
+import Button from '../shared/Button.jsx';
 
 /**
  * EvalStageRoster — 진행 현황 «단계 상세»의 「미완료 N / 완료 N」 두 명단과
@@ -148,9 +149,9 @@ export default function EvalStageRoster({
             {onRemindOne && remindClosedTip ? (
               // [pivit-work PW-2583] 그 리뷰를 지금 쓸 수 있는 기간이 아니면 줄 버튼도 끄고 까닭을 말한다(정책 §6.8).
               <Tooltip content={remindClosedTip}>
-                <button type="button" className="evc-btn is-ghost" disabled data-testid="evmon-roster-remind-one">
+                <Button className="evc-btn is-ghost" disabled data-testid="evmon-roster-remind-one">
                   {remindLabel}
-                </button>
+                </Button>
               </Tooltip>
             ) : onRemindOne && row.canRemind !== false ? (
               <button
