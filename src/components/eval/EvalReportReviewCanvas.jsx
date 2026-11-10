@@ -10,8 +10,13 @@ import Tabs from '../shared/Tabs.jsx';
 import SearchInput from '../shared/SearchInput.jsx';
 import AnchoredLayer from '../shared/AnchoredLayer.jsx';
 import useDismissLayer from '../shared/useDismissLayer.js';
-import { ArrowRightIcon, MoreIcon, svgProps } from './evalIcons.jsx';
-import LeaderCommentPolish from './LeaderCommentPolish.jsx';
+import { AlertIcon, ArrowRightIcon, MoreIcon, svgProps } from './evalIcons.jsx';
+import {
+  useLeaderCommentPolish,
+  LeaderCommentPolishButton,
+  LeaderCommentPolishUsed,
+  LeaderCommentPolishResult,
+} from './LeaderCommentPolish.jsx';
 import { LEADER_COMMENT_POLISH_LABELS } from './leaderCommentPolishLabels.js';
 
 /**
@@ -68,6 +73,9 @@ const DEFAULT_LABELS = {
   approveModalTitle: '리포트 승인',
   approveModalDesc: '{name}님 리포트를 승인합니다',
   approveCommentLabel: '최종 코멘트 (선택)',
+  // PW-2591 4회차 — 이름표는 18px 굵게, «(선택)»은 14px 옅은 글로 나눠 그린다(11-10 시안 ①).
+  approveCommentName: '최종 코멘트',
+  approveCommentOptional: '(선택)',
   approveCommentPh: '리포트에 함께 실릴 한마디를 적어 주세요',
   approveCancel: '취소',
   approveClose: '닫기',
@@ -773,6 +781,94 @@ function SendGlyph() {
 /** 표 위에 뜨는 줄 메뉴의 겹침 순서 — 구성원 목록 «⋯» 메뉴와 같은 값. */
 const ROW_MENU_Z = 1000;
 
+/**
+ * [PW-2591] 리포트 승인 창 «최종 코멘트» 칸 묶음.
+ *
+ * 모양은 11-10 커트가 고른 시안(pivit-work `worklog/report-approve-modal-designer-2026-11-10` ①~⑩) — 디자이너 원온원
+ * «내 작성» 칸(one_on_one.css `.ono-my-field-head`·`-field-label-row`·`-field-aux`·`-textarea`, stesslee 1d9b5e5b)을
+ * 그대로 쓰고, 이름표는 타임라인 창 이름표(`.tl-group-modal-label` 18/28) 값이다. 글과 나오는 조건은 앞 회차 그대로다.
+ * 다듬기 카드 상태는 이 묶음이 들고 있어 창을 닫으면 함께 사라진다(R-6).
+ */
+function ApproveCommentField({ row, comment, setComment, polished, setPolished, commentMax, onPolishComment, L }) {
+  const testId = `evrr-comment-${row.memberId}`;
+  const polish = useLeaderCommentPolish({
+    comment,
+    onPolish: (text) => onPolishComment(row.memberId, text),
+  });
+  const over = comment.length > commentMax;
+  return (
+    <div className="evrr-approve-field">
+      <div className="ono-my-field-head">
+        <div className="ono-my-field-label-row">
+          <label className="evrr-approve-label" htmlFor={testId}>
+            {L.approveCommentName}
+            <span className="evrr-approve-optional">{L.approveCommentOptional}</span>
+          </label>
+          {polished && <LeaderCommentPolishUsed L={L} testId={testId} />}
+        </div>
+        {onPolishComment && <LeaderCommentPolishButton polish={polish} L={L} testId={testId} />}
+      </div>
+      {/* [PW-2591 · R-11] 남의 글로 시작하면 누구 글인지 알린다 — 남의 글이 내 글로 보이지 않게. */}
+      {row.commentStart?.source === 'round' && (
+        <span className="evl-lc-start-note" data-testid={`evrr-comment-start-${row.memberId}`}>
+          {L.approveCommentStartOther
+            .replace('{round}', String(row.commentStart.round ?? ''))
+            .replace('{name}', row.commentStart.evaluatorName || '')}
+        </span>
+      )}
+      <TextArea
+        id={testId}
+        rows={5}
+        value={comment}
+        placeholder={L.approveCommentPh}
+        // 원온원 «내 작성» 칸 모양 + 다듬은 문구를 쓴 칸은 초록(확인 — 하향 리뷰 .evm-textarea.is-ai-confirmed 와 같은 뜻)
+        className={`ono-my-textarea evrr-approve-textarea${polished ? ' is-ai-confirmed' : ''}`}
+        onChange={(e) => {
+          setComment(e.target.value);
+          setPolished(false);
+        }}
+        data-testid={testId}
+      />
+      {/* 칸 바로 아래 한 줄 — 왼쪽 버튼 안내 · 오른쪽 글자 수(시안 ④) */}
+      <div className="evl-lc-aux">
+        {onPolishComment ? <span className="ono-my-field-aux evl-lc-hint">{L.polishHint}</span> : <span />}
+        <span
+          className={`ono-my-field-aux evl-lc-count${over ? ' is-over' : ''}`}
+          data-testid={`evrr-comment-count-${row.memberId}`}
+        >
+          {L.approveCommentCount.replace('{count}', String(comment.length)).replace('{max}', String(commentMax))}
+        </span>
+      </div>
+      {over && (
+        <p className="evl-lc-over" role="alert" data-testid={`evrr-comment-over-${row.memberId}`}>
+          {L.approveCommentOver.replace('{max}', String(commentMax))}
+        </p>
+      )}
+      {onPolishComment && (
+        <LeaderCommentPolishResult
+          polish={polish}
+          onUse={(text) => {
+            setComment(text);
+            setPolished(true);
+          }}
+          stacked
+          L={L}
+          testId={testId}
+        />
+      )}
+      {/* [PW-2591 · R-14] 등급이 조정된 사람 + 칸에 글 — 막지 않는다. 낱말·AI 판정 없음.
+          시안처럼 칸 묶음 맨 아래(다듬기 카드 아래) — 버튼 위에 두면 다듬기 버튼 툴팁에 가렸다(11-09 dev).
+          모양은 안내 줄(원온원 .ono-filter-notice — 주의 아이콘 16 + 12px, 바탕 없음) · 색은 주의(시안 ⑤). */}
+      {row.gradeAdjusted === true && comment.trim() && (
+        <p className="evl-lcp-line is-warn" data-testid={`evrr-grade-warn-${row.memberId}`}>
+          <AlertIcon size={16} />
+          <span className="evl-lcp-line-text">{L.approveGradeAdjustedWarn}</span>
+        </p>
+      )}
+    </div>
+  );
+}
+
 function ReviewRow({
   row,
   L,
@@ -1142,61 +1238,16 @@ function ReviewRow({
         // 다듬기 카드(두 칸)가 들어오면 고정 높이(428)를 넘는다 — 평가 창의 내용 높이 틀로, 화면 높이에서 멈추고 본문만 스크롤 (pivit-work PW-2591 11-09 dev)
         className="evc-shell"
       >
-        <label className="evrr-reject-field" htmlFor={`evrr-comment-${row.memberId}`}>
-          <span className="evrr-reject-label">{L.approveCommentLabel}</span>
-          {/* [PW-2591 · R-11] 남의 글로 시작하면 누구 글인지 알린다 — 남의 글이 내 글로 보이지 않게. */}
-          {row.commentStart?.source === 'round' && (
-            <span className="evl-lc-start-note" data-testid={`evrr-comment-start-${row.memberId}`}>
-              {L.approveCommentStartOther
-                .replace('{round}', String(row.commentStart.round ?? ''))
-                .replace('{name}', row.commentStart.evaluatorName || '')}
-            </span>
-          )}
-          <TextArea
-            id={`evrr-comment-${row.memberId}`}
-            rows={3}
-            value={comment}
-            placeholder={L.approveCommentPh}
-            className={commentPolished ? 'is-ai-confirmed' : undefined}
-            onChange={(e) => {
-              setComment(e.target.value);
-              setCommentPolished(false);
-            }}
-            data-testid={`evrr-comment-${row.memberId}`}
-          />
-        </label>
-        <div
-          className={`evl-lc-count${comment.length > commentMax ? ' is-over' : ''}`}
-          data-testid={`evrr-comment-count-${row.memberId}`}
-        >
-          {L.approveCommentCount.replace('{count}', String(comment.length)).replace('{max}', String(commentMax))}
-        </div>
-        {comment.length > commentMax && (
-          <p className="evl-lc-over" role="alert" data-testid={`evrr-comment-over-${row.memberId}`}>
-            {L.approveCommentOver.replace('{max}', String(commentMax))}
-          </p>
-        )}
-        {onPolishComment && (
-          <LeaderCommentPolish
-            comment={comment}
-            onPolish={(text) => onPolishComment(row.memberId, text)}
-            onUse={(text) => {
-              setComment(text);
-              setCommentPolished(true);
-            }}
-            used={commentPolished}
-            stacked
-            L={L}
-            testId={`evrr-comment-${row.memberId}`}
-          />
-        )}
-        {/* [PW-2591 · R-14] 등급이 조정된 사람 + 칸에 글 — 막지 않는다. 낱말·AI 판정 없음.
-            시안처럼 다듬기 카드 아래 — 버튼 위에 두면 다듬기 버튼 툴팁에 가렸다(11-09 dev). */}
-        {row.gradeAdjusted === true && comment.trim() && (
-          <p className="evl-lc-grade-warn" data-testid={`evrr-grade-warn-${row.memberId}`}>
-            {L.approveGradeAdjustedWarn}
-          </p>
-        )}
+        <ApproveCommentField
+          row={row}
+          comment={comment}
+          setComment={setComment}
+          polished={commentPolished}
+          setPolished={setCommentPolished}
+          commentMax={commentMax}
+          onPolishComment={onPolishComment}
+          L={L}
+        />
         {approveError && (
           <p className="evrr-refine-error" role="alert" data-testid={`evrr-approve-error-${row.memberId}`}>
             {L.approveError}

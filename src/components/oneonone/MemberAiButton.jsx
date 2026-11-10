@@ -13,8 +13,10 @@ import Spinner from '../shared/Spinner.jsx';
  *   디자이너 원본에 «만드는 중» 모양이 없어 개발이 더한 칸이다 (design-review).
  * @param {string} [className]  자리 잡기용 클래스를 덧붙인다 (매니저 팀원 상세 창 「AI 브리핑」 탭 등)
  * @param {string} [testId]  `data-testid` — 평가 사이클 만들기 창 «AI 초안 만들기»가 같은 버튼을 쓰며 붙인다 (PW-2646)
+ * @param {boolean} [aiWord=true]  그라디언트 「AI」 두 글자를 붙인다. 기획이 정한 버튼 글이 따로 있어 «AI» 를 덧붙이면
+ *   글이 바뀌는 자리(평가 «개선 방향으로 다듬기» — pivit-work PW-2591)는 `false` — 모양(바탕·AI 마크·보라 글)은 그대로다.
  */
-export default function MemberAiButton({ label, onClick, disabled = false, pending = false, baseUrl = '', ariaLabel, className = '', testId }) {
+export default function MemberAiButton({ label, onClick, disabled = false, pending = false, baseUrl = '', ariaLabel, className = '', testId, aiWord = true }) {
   return (
     <button
       type="button"
@@ -26,7 +28,7 @@ export default function MemberAiButton({ label, onClick, disabled = false, pendi
       data-testid={testId}
     >
       {pending ? <Spinner size={14} /> : <AiMark size={14} baseUrl={baseUrl} />}
-      <span className="ono-my-ai-word" aria-hidden="true">AI</span>
+      {aiWord && <span className="ono-my-ai-word" aria-hidden="true">AI</span>}
       <span>{label}</span>
     </button>
   );

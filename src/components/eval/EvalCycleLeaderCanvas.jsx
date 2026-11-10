@@ -20,7 +20,12 @@ import EvalLeaderPriorRounds from './EvalLeaderPriorRounds.jsx';
 import EvalLeaderPeerSummary from './EvalLeaderPeerSummary.jsx';
 import Stack from '../shared/Stack.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
-import LeaderCommentPolish from './LeaderCommentPolish.jsx';
+import {
+  useLeaderCommentPolish,
+  LeaderCommentPolishButton,
+  LeaderCommentPolishUsed,
+  LeaderCommentPolishResult,
+} from './LeaderCommentPolish.jsx';
 import MemberAiButton from '../oneonone/MemberAiButton.jsx';
 import { LEADER_COMMENT_POLISH_LABELS } from './leaderCommentPolishLabels.js';
 
@@ -826,6 +831,13 @@ export default function EvalCycleLeaderCanvas({
   }
   const [lcPolishUsed, setLcPolishUsed] = useState(false);
   const lcOver = leaderCommentOn && lc.length > leaderCommentMax;
+  // 다듬기 버튼이 보이는 때 — 앞 회차와 같다(위원·HR 읽기 전용·평가자가 아닌 조직장은 없음).
+  const lcPolishOn = !!onPolishLeaderComment && leaderCommentWritable && !readOnlyView;
+  const lcPolish = useLeaderCommentPolish({
+    comment: lc,
+    disabled: formLocked,
+    onPolish: (text) => onPolishLeaderComment?.(text),
+  });
   // PW-1461 §5.8 승진 고려 세 갈래. 옛 저장(체크만)은 «대상임»으로 읽고, 승진 요청서가 이미 있으면 «대상임».
   const [promotionStatus, setPromotionStatus] = useState(
     () =>
@@ -1856,14 +1868,22 @@ export default function EvalCycleLeaderCanvas({
           {/* [PW-2591] 리더 코멘트 — leader §5.6 · §5.6-A. 등급 카드 아래 · 비공개 영역 위(기획 시안 ManagerReview 자리). */}
           {leaderCommentOn && (
             <section className="evc-card" data-testid="evl-leader-comment-card">
-              <h3 className="evc-card-name">
-                {L.leaderCommentTitle}
-                <Tooltip content={L.leaderCommentBadgeTip}>
-                  <StatusBadge tone="info" className="evl-public-badge" tabIndex={0} data-testid="evl-leader-comment-badge">
-                    <EyeIcon size={12} /> {L.leaderCommentBadge}
-                  </StatusBadge>
-                </Tooltip>
-              </h3>
+              {/* PW-2591 4회차 — 다듬기 버튼은 제목 줄 오른쪽, 안내·글자 수는 칸 바로 아래 한 줄(11-10 시안 ③ —
+                  원온원 «내 작성» 칸 머리 .ono-my-field-head · 아래 줄 .ono-my-field-aux). */}
+              <div className="ono-my-field-head evl-lc-head">
+                <div className="ono-my-field-label-row">
+                  <h3 className="evc-card-name">
+                    {L.leaderCommentTitle}
+                    <Tooltip content={L.leaderCommentBadgeTip}>
+                      <StatusBadge tone="info" className="evl-public-badge" tabIndex={0} data-testid="evl-leader-comment-badge">
+                        <EyeIcon size={12} /> {L.leaderCommentBadge}
+                      </StatusBadge>
+                    </Tooltip>
+                  </h3>
+                  {lcPolishUsed && <LeaderCommentPolishUsed L={L} testId="evl-leader-comment" />}
+                </div>
+                {lcPolishOn && <LeaderCommentPolishButton polish={lcPolish} L={L} testId="evl-leader-comment" />}
+              </div>
               <p className="evl-sec-note">{L.leaderCommentSub}</p>
               <textarea
                 className={`evm-textarea${lcPolishUsed ? ' is-ai-confirmed' : ''}${lcOver ? ' is-invalid' : ''}`}
@@ -1878,9 +1898,17 @@ export default function EvalCycleLeaderCanvas({
                 aria-label={L.leaderCommentTitle}
                 data-testid="evl-leader-comment"
               />
-              {leaderCommentWritable && !formLocked && (
-                <div className={`evl-lc-count${lcOver ? ' is-over' : ''}`} data-testid="evl-leader-comment-count">
-                  {fillLabel(L.leaderCommentCount, { count: lc.length, max: leaderCommentMax })}
+              {(lcPolishOn || (leaderCommentWritable && !formLocked)) && (
+                <div className="evl-lc-aux">
+                  {lcPolishOn ? <span className="ono-my-field-aux evl-lc-hint">{L.polishHint}</span> : <span />}
+                  {leaderCommentWritable && !formLocked && (
+                    <span
+                      className={`ono-my-field-aux evl-lc-count${lcOver ? ' is-over' : ''}`}
+                      data-testid="evl-leader-comment-count"
+                    >
+                      {fillLabel(L.leaderCommentCount, { count: lc.length, max: leaderCommentMax })}
+                    </span>
+                  )}
                 </div>
               )}
               {lcOver && leaderCommentWritable && !formLocked && (
@@ -1888,16 +1916,13 @@ export default function EvalCycleLeaderCanvas({
                   {fillLabel(L.leaderCommentOver, { max: leaderCommentMax })}
                 </p>
               )}
-              {onPolishLeaderComment && leaderCommentWritable && !readOnlyView && (
-                <LeaderCommentPolish
-                  comment={lc}
-                  disabled={formLocked}
-                  onPolish={onPolishLeaderComment}
+              {lcPolishOn && (
+                <LeaderCommentPolishResult
+                  polish={lcPolish}
                   onUse={(text) => {
                     setLc(text);
                     setLcPolishUsed(true);
                   }}
-                  used={lcPolishUsed}
                   L={L}
                   testId="evl-leader-comment"
                 />

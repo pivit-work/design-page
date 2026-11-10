@@ -14375,14 +14375,7 @@ button.evmh-phase:focus-visible {
    개발 추가 영역. 값은 같은 화면·같은 용도의 기존 모양에서 그대로 가져왔다:
    버튼·노란 카드 = 리마인더 «AI로 문구 다듬기»(.evc-rm-ai · .evc-rm-ai-draft) · 보조 글 = .evl-sec-note ·
    글자 수 = .evu-counter(상향 리뷰 글자 수) · 넘침·실패 글씨 = .evc-rm-ai-error · 공개 딱지 = .evl-committee-badge 틀의 중립색. */
-.evl-lc-count {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--spacing-sm);
-  margin-top: var(--spacing-xs);
-  font-size: var(--font-size-text-xs);
-  color: var(--text-secondary);
-}
+/* 글자 수 — 칸 바로 아래 줄 오른쪽(.ono-my-field-aux 12/18 옅은 글). 넘치면 빨강 굵게. */
 .evl-lc-count.is-over {
   color: var(--text-error-primary);
   font-weight: 700;
@@ -14399,54 +14392,129 @@ button.evmh-phase:focus-visible {
   font-size: var(--font-size-text-xs);
   color: var(--text-secondary);
 }
-.evl-lc-grade-warn {
-  margin: var(--spacing-xs) 0 0;
-  font-size: var(--font-size-text-xs);
+
+/* ── PW-2591 4회차 (11-10 커트 시안 · worklog/report-approve-modal-designer-2026-11-10) ──
+   칸 묶음은 원온원 «내 작성» 칸(one_on_one.css .ono-my-field-head · -field-label-row · -field-aux · -field-done ·
+   -textarea · -readbox, 디자이너 stesslee 1d9b5e5b)을 그대로 쓰고, 여기엔 그 사이 자리와 평가 쪽 뜻(노랑·초록·주황)만 둔다. */
+
+/* 하향 리뷰 카드 제목 줄 — 제목+딱지 왼쪽, 보라 AI 버튼 오른쪽 */
+.evl-lc-head .evc-card-name {
+  margin: 0;
+}
+.evl-lc-head {
+  margin-bottom: var(--spacing-xs);
+}
+/* 칸 바로 아래 한 줄 — 왼쪽 버튼 안내 · 오른쪽 글자 수 */
+.evl-lc-aux {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--spacing-lg);
+  margin-top: var(--spacing-md);
+}
+.ono-my-field-aux.evl-lc-hint {
+  min-width: 0;
+  white-space: normal;
+}
+
+/* 리포트 승인 창 «최종 코멘트» 묶음 — 줄 사이 12(원온원 칸 묶음 간격) */
+.evrr-approve-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+.evrr-approve-field > .evl-lc-start-note,
+.evrr-approve-field > .evl-lc-over {
+  margin: 0;
+}
+/* 칸과 아래 줄은 붙여 읽는다 — 묶음 간격 12 에서 4 를 빼 8 */
+.evrr-approve-field > .evl-lc-aux {
+  margin-top: calc(var(--spacing-xs) * -1);
+}
+/* 이름표 — 타임라인 창 이름표(modal-shell.css .tl-group-modal-label 18/28 굵게) · «(선택)»은 14 옅은 글 */
+.evrr-approve-label {
+  font-size: var(--font-size-text-lg);
+  line-height: var(--line-height-text-lg);
   font-weight: 700;
+  color: var(--text-primary);
+}
+.evrr-approve-optional {
+  margin-left: var(--spacing-xs);
+  font-size: var(--font-size-text-sm);
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+/* 다듬은 문구를 쓴 칸 = 확인(초록) — 하향 리뷰 칸 .evm-textarea.is-ai-confirmed 와 같은 뜻 */
+.ono-my-textarea.evrr-approve-textarea.is-ai-confirmed,
+.dp-textarea.is-ai-confirmed {
+  background: var(--utility-success-50);
+  border-color: var(--utility-success-200);
+}
+
+/* 안내 줄 — 원온원 .ono-filter-notice 모양(아이콘 16 + 12 Medium, 바탕 없음). 색만 뜻대로: 주의 · 오류 */
+.evl-lcp-line {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  margin: 0;
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  font-weight: 500;
+}
+.evl-lcp-line > svg {
+  flex: none;
+}
+.evl-lcp-line.is-warn {
   color: var(--utility-warning-700);
 }
-.evl-lcp-row {
+.evl-lcp-line.is-error {
+  align-items: center;
+  color: var(--text-error-primary);
+}
+.evl-lcp-line-text {
+  flex: 1;
+  min-width: 0;
+}
+/* 하향 리뷰 카드는 흐름 배치라 칸 아래 줄·카드에 위 간격 8 · 승인 창 묶음과 카드 안은 gap 이 맡는다 */
+.evl-lcp-line,
+.evl-lcp-card {
+  margin-top: var(--spacing-md);
+}
+.evrr-approve-field > .evl-lcp-line,
+.evrr-approve-field > .evl-lcp-card,
+.evl-lcp-card .evl-lcp-line {
+  margin-top: 0;
+}
+
+/* 노란 카드(미확인) — 노랑 = 아직 고르지 않음(리마인더 다듬기 카드와 같은 뜻) · 안 상자는 원온원 읽기 상자 */
+.evl-lcp-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-xl);
+  border: 1px solid var(--utility-warning-200);
+  border-radius: var(--radius-md);
+  background: var(--utility-warning-50);
+}
+.evl-lcp-card-head {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--spacing-sm);
-  margin-top: var(--spacing-sm);
-}
-.evl-lcp-hint {
-  font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
-}
-.evl-lcp-used {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  margin: var(--spacing-xs) 0 0;
-  font-size: var(--font-size-text-xs);
-  font-weight: 600;
-  color: var(--text-success-primary);
-}
-.evl-lcp-error {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-md);
 }
 .evl-lcp-head-note {
-  font-weight: 400;
-  color: var(--text-secondary);
-}
-.evl-lcp-nochange {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
   font-size: var(--font-size-text-xs);
   color: var(--text-secondary);
 }
 .evl-lcp-cols {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-lg);
 }
 .evl-lcp-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
   flex: 1 1 220px;
   min-width: 0;
 }
@@ -14457,48 +14525,36 @@ button.evmh-phase:focus-visible {
   flex-basis: auto;
 }
 .evl-lcp-col-label {
-  margin-bottom: var(--spacing-xs);
   font-size: var(--font-size-text-xs);
-  font-weight: 700;
+  line-height: var(--line-height-text-xs);
+  font-weight: 600;
   color: var(--text-secondary);
 }
-.evl-lcp-col-label.is-polished {
-  color: var(--utility-warning-700);
+/* 원문 = 옅은 회색 읽기 상자(원온원 기본) · 다듬은 문구 = 흰 상자 */
+.evl-lcp-readbox.is-original {
+  color: var(--text-secondary);
 }
-.evl-lcp-box {
-  padding: var(--spacing-sm) var(--spacing-md);
-  border: 1px solid var(--border-secondary);
-  border-radius: var(--radius-sm);
+.evl-lcp-readbox:not(.is-original) {
   background: var(--bg-primary);
-  font-size: var(--font-size-text-sm);
-  line-height: 1.7;
-  color: var(--text-primary);
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
 }
-.evl-lcp-box.is-original {
-  background: var(--bg-secondary);
+/* 근거 칩 왼쪽 · 버튼 오른쪽(흰 보조 → 초록 주) */
+.evl-lcp-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-md);
+  font-size: var(--font-size-text-xs);
   color: var(--text-secondary);
 }
 .evl-lcp-sources {
   display: flex;
   flex-wrap: wrap;
   gap: var(--spacing-xs);
-  margin-top: var(--spacing-xs);
 }
-.evl-lcp-source {
-  padding: var(--spacing-xxs) var(--spacing-md);
-  border: 1px solid var(--border-secondary);
-  border-radius: 999px;
-  background: var(--bg-primary);
-  font-size: var(--font-size-text-xs);
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-/* 승인 창 칸(공용 TextArea)에서 다듬은 문구를 썼을 때 — 하향 리뷰 칸 .evm-textarea.is-ai-confirmed 와 같은 초록(확인). */
-.dp-textarea.is-ai-confirmed {
-  background: var(--utility-success-50);
-  border-color: var(--utility-success-200);
+.evl-lcp-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-left: auto;
 }
 
 /* PW-2646 — 이름표·제목 옆 ⓘ (EvalHintTip). 옆 글자와 같은 줄 가운데, 연한 회색 → 올리면 진하게. */

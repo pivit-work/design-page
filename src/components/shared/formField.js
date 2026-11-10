@@ -44,9 +44,23 @@ export function useFieldControl({ id, invalid, describedBy }) {
  * 칸의 클래스.
  *
  * - `dp-control` 은 늘 붙는다 — 틀렸을 때의 빨간 테두리가 이 표시에 걸린다.
- * - 모양은 **둘 중 하나**다. 화면이 `className` 을 주면 그 클래스만, 안 주면 공용 기본 모양
+ * - 모양은 **둘 중 하나**다. 화면이 `className` 으로 자기 모양 클래스를 주면 그 클래스만, 안 주면 공용 기본 모양
  *   (`base`). 둘을 겹치지 않는 것은, 화면 클래스가 정하지 않은 값(최소 높이·줄 높이 등)을
  *   공용 기본값이 채워 넣어 옮기기 전과 모양이 달라지는 일을 막기 위해서다.
+ * - 단 `className` 이 상태 표시(`is-…`)뿐이면 모양을 넘긴 것이 아니므로 기본 모양을 지키고 그 뒤에 붙인다.
+ *   예전엔 이때도 기본 모양을 버려, 리포트 승인 창 칸이 `is-ai-confirmed` 하나를 받자 맨 브라우저 칸이 됐다
+ *   (pivit-work PW-2591 11-10). 자기 모양 클래스가 하나라도 섞이면 지금처럼 그 클래스만 쓴다.
  */
+const isStateOnly = (className) => {
+  const tokens = (className || '').split(/\s+/).filter(Boolean);
+  return tokens.length > 0 && tokens.every((c) => c.startsWith('is-'));
+};
+
 export const controlClass = (base, className, isInvalid) =>
-  ['dp-control', className || base, isInvalid ? 'is-invalid' : ''].filter(Boolean).join(' ');
+  [
+    'dp-control',
+    isStateOnly(className) ? `${base} ${className.trim()}` : className || base,
+    isInvalid ? 'is-invalid' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
