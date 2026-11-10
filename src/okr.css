@@ -25,6 +25,8 @@
 .okr-select-item { display: flex; align-items: center; padding: 1px 6px; }
 .okr-select-item-inner { flex: 1; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px; border-radius: 6px; font-size: 16px; font-weight: 500; line-height: 24px; color: var(--text-primary); white-space: nowrap; cursor: pointer; }
 .okr-select-item-inner:hover { background: var(--alpha-black-3); }
+/* 라벨 아래 설명 한 줄 — 설명을 준 항목만(pivit-work PW-2671 공개 범위). 글씨는 NoteText 가 정한다 */
+.okr-select-item-text { display: flex; flex-direction: column; min-width: 0; }
 
 /* ── 캔버스 ── */
 /* 툴바 줄이 있어 조직도(177px)보다 아래에서 시작.
