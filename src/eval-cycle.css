@@ -14393,7 +14393,7 @@ button.evmh-phase:focus-visible {
   color: var(--text-secondary);
 }
 
-/* ── PW-2591 4회차 (11-10 커트 시안 · worklog/report-approve-modal-designer-2026-11-10) ──
+/* ── PW-2591 4회차 (11-10 22:02 커트가 고른 전후 시안) ──
    칸 묶음은 원온원 «내 작성» 칸(one_on_one.css .ono-my-field-head · -field-label-row · -field-aux · -field-done ·
    -textarea · -readbox, 디자이너 stesslee 1d9b5e5b)을 그대로 쓰고, 여기엔 그 사이 자리와 평가 쪽 뜻(노랑·초록·주황)만 둔다. */
 

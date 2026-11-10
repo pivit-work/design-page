@@ -784,7 +784,7 @@ const ROW_MENU_Z = 1000;
 /**
  * [PW-2591] 리포트 승인 창 «최종 코멘트» 칸 묶음.
  *
- * 모양은 11-10 커트가 고른 시안(pivit-work `worklog/report-approve-modal-designer-2026-11-10` ①~⑩) — 디자이너 원온원
+ * 모양은 11-10 커트가 고른 시안(pivit-work PW-2591 11-10 22:02 댓글 ①~⑩) — 디자이너 원온원
  * «내 작성» 칸(one_on_one.css `.ono-my-field-head`·`-field-label-row`·`-field-aux`·`-textarea`, stesslee 1d9b5e5b)을
  * 그대로 쓰고, 이름표는 타임라인 창 이름표(`.tl-group-modal-label` 18/28) 값이다. 글과 나오는 조건은 앞 회차 그대로다.
  * 다듬기 카드 상태는 이 묶음이 들고 있어 창을 닫으면 함께 사라진다(R-6).

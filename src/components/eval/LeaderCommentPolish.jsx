@@ -20,7 +20,7 @@ import { AlertIcon, CheckCircleIcon, InfoIcon } from './evalIcons.jsx';
  *
  * - 누를 때만 돈다(절대규칙 5). 고르기 전에는 칸을 바꾸지 않는다(노랑 = 미확인).
  * - 결과는 저장하지 않는다(R-6) — 카드는 이 상태라 부르는 쪽이 다시 그리면(창을 닫으면) 사라진다.
- * - 모양은 11-10 커트가 고른 시안(pivit-work `worklog/report-approve-modal-designer-2026-11-10` ③⑦⑧⑨⑩)대로
+ * - 모양은 11-10 커트가 고른 시안(pivit-work PW-2591 11-10 22:02 댓글 ③⑦⑧⑨⑩)대로
  *   원온원 «내 작성» 칸·읽기 상자·안내 줄(`.ono-filter-notice`)의 디자이너 값을 쓴다. 글과 나오는 조건은 그대로다.
  */
 
