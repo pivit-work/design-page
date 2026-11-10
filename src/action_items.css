@@ -99,9 +99,9 @@
   justify-content: space-between;
   height: 100px;
   padding: 16px 24px;
-  border: 1px solid var(--border-primary);
+  border: 1px solid transparent;
   border-radius: 16px;
-  background: var(--bg-primary);
+  background: var(--bg-quaternary);
   overflow: hidden;
 }
 .ai-stat-label {
@@ -510,9 +510,9 @@
 
 .ai-kr-card {
   flex-shrink: 0;
-  border: 1px solid var(--border-primary);
+  border: 1px solid transparent;
   border-radius: 16px;
-  background: var(--bg-primary);
+  background: var(--bg-quaternary);
   overflow: hidden;
 }
 .ai-kr-card + .ai-kr-card { margin-top: 10px; }

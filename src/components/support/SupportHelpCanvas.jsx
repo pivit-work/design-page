@@ -59,6 +59,7 @@ function Tags({ tags = [], limit }) {
  *   videoGroups     media === 'video' 일 때 목록 — [{ key, label, items: [{ code, title, summary?, durationText?, active }] }]
  *   onVideoSelect(code)  영상 줄을 누름 — 상세 없이 바로 영상 창(호출부)
  *                   영상 탭에서는 분류 칩을 숨기고, 오른쪽에는 상세 대신 안내(labels.videoGuide)와 [labels.ask]
+ *   nav             머리 안 제목·안내 아래에 놓을 탭 줄(보통 SupportTopNav) — PW-2687
  *   labels          { heading, sub, searchPlaceholder, clearSearch, all, emptyTitle, emptyBody, ask,
  *                     pickTitle, pickBody, notFoundTitle, notFoundBody, helpfulQuestion, helpfulCount,
  *                     helpful, helpfulDone, back, views, retry, loading,
@@ -94,6 +95,7 @@ export default function SupportHelpCanvas({
   videoGroups = [],
   onVideoSelect,
   labels = {},
+  nav,
 }) {
   const videoTab = media === 'video';
   const askButton = (testId, variant = 'primary') => (
@@ -352,6 +354,7 @@ export default function SupportHelpCanvas({
           <h1 className="sup-title">{labels.heading}</h1>
           {labels.sub && <p className="sup-sub">{labels.sub}</p>}
         </div>
+        {nav}
       </div>
 
       <div className="sup-body">

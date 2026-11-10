@@ -1600,7 +1600,7 @@ input.mtg-record-action-title::placeholder {
   gap: 6px;
   padding: 48px 20px;
   border-radius: 12px;
-  background: var(--colors-background-bgSecondary);
+  background: var(--bg-quaternary); /* 디자이너 오늘 회의 줄(.mtg-row)과 같은 흰 칸 (PW-2687) */
   text-align: center;
 }
 .mtg-empty .icon { margin-bottom: 2px; }

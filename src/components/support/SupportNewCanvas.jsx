@@ -65,6 +65,7 @@ import {
  *                   끌어다 놓기는 두지 않는다(기획 문의하기 정책 §0-4 Q4).
  *   onCategoryChange(value) · onTitleChange(v) · onBodyChange(v) · onSubmit() · onViewMine() · onNewTicket()
  *   onAiAsk() · onAiResolved() · onAiRetry()   — 즉답 칸의 「그래도 접수」·「바로 접수」는 onSubmit
+ *   nav             머리 안 제목·안내 아래에 놓을 탭 줄(보통 SupportTopNav) — PW-2687
  *   labels          { heading, sub, workspaceLabel, categoryLabel, titleLabel, titlePlaceholder, bodyLabel,
  *                     bodyPlaceholder, submit, submitting, doneTitle, doneNumberLabel, doneViewMine, doneNewTicket,
  *                     aiSection, aiAsk, aiBadge, aiNotice, aiUnconfident, aiSources, aiResolved, aiProceed,
@@ -99,6 +100,7 @@ export default function SupportNewCanvas({
   onAiResolved,
   onAiRetry,
   labels = {},
+  nav,
 }) {
   const selected = categories.find((c) => c.value === category);
 
@@ -109,6 +111,7 @@ export default function SupportNewCanvas({
           <h1 className={`sup-title${titleHelp ? ' tvh-title-row' : ''}`}>{labels.heading}{titleHelp}</h1>
           {labels.sub && <p className="sup-sub">{labels.sub}</p>}
         </div>
+        {nav}
       </div>
 
       <div className="sup-body">

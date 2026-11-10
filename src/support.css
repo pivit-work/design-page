@@ -5,20 +5,13 @@
    공용 칩(상태 딱지)·빈 칸·자리 표시·입력칸·버튼. 색은 index.css 의 짧은 이름만 쓴다.
    ══════════════════════════════════════════════════════════ */
 
-/* ── 위쪽 띠 — 앱 상단바(.top-nav, 72px) 바로 아래. 평가 화면 .evnav-nav 와 같은 자리 ── */
+/* ── 탭 줄 — 머리(.sup-header) 안, 제목·안내 아래에 놓인다 (PW-2687).
+   예전에는 앱 상단바 아래 고정 띠(«고객지원 + 탭»)였다. 제목은 이제 머리의 큰 제목이 맡아,
+   스니핏·회의록과 같은 자리(.tl-page-header)에 선다. ── */
 .sup-topnav {
-  position: fixed;
-  top: 72px;
-  left: 240px;
-  right: 0;
-  z-index: 80;
-  box-sizing: border-box;
-  height: 52px;
-  padding: 4px 32px 4px 0;
   display: flex;
   align-items: center;
-  gap: 16px;
-  background: var(--bg-primary);
+  gap: var(--spacing-xl);
   font-family: var(--font-family-body);
 }
 .sup-topnav-title {
@@ -35,20 +28,19 @@
   white-space: nowrap;
 }
 
-/* ── 화면 — 위쪽 띠(52px) 만큼 아래에서 시작 ─────────────── */
+/* ── 화면 — .tl-page 틀 그대로(위 72 · 왼쪽 240 · 오른쪽 32) ─────────────── */
 .sup-page {
   display: flex;
   flex-direction: column;
-  padding-top: calc(72px + 52px);
 }
 
-/* 머리 카드 — .ncc-header 와 같은 치수 */
+/* 머리 — 스니핏·회의록 머리(.tl-page-header)와 같은 자리: 위 8 · 좌우 0. 탭 줄은 안내 아래 20 */
 .sup-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-  padding: 8px 12px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-2xl);
+  padding: var(--spacing-md) 0;
   border-radius: 14px;
   background: var(--bg-primary);
   flex-shrink: 0;
@@ -78,19 +70,21 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  margin: 18px 0 12px 6px;
-  padding: 6px 28px 0 6px;
+  /* 위 24(예전 18+6 그대로). 좌우 0 — 칸 왼쪽 끝을 머리 제목(240)에, 오른쪽 끝을 검색창 끝(오른쪽 32)에 맞춘다 */
+  margin: 0 0 var(--spacing-lg);
+  padding: var(--spacing-3xl) 0 0;
   min-height: 0;
   flex: 1;
   overflow-y: auto;
 }
 
 /* 카드 */
+/* 흰 칸 · 테두리 없음 — 디자이너 회의 목록 줄(.mtg-row)처럼 회색 바닥 위 흰 덩어리로 나눈다 (PW-2687) */
 .sup-card {
   box-sizing: border-box;
-  border: 1px solid var(--border-secondary);
+  border: 1px solid transparent;
   border-radius: 14px;
-  background: var(--bg-primary);
+  background: var(--bg-quaternary);
 }
 
 .sup-actions {
@@ -145,7 +139,7 @@
   flex-wrap: wrap;
   gap: 8px;
   padding-bottom: 16px;
-  border-bottom: 1px solid var(--border-secondary);
+  border-bottom: 1px solid var(--bg-primary);
   font-size: 14px;
   line-height: 20px;
 }
@@ -177,7 +171,7 @@
   flex-direction: column;
   gap: 12px;
   padding-top: 16px;
-  border-top: 1px solid var(--border-secondary);
+  border-top: 1px solid var(--bg-primary);
 }
 .sup-ai-divider {
   margin: 0;
@@ -419,7 +413,7 @@
   align-items: center;
   gap: 8px;
   padding: 16px 20px;
-  border-bottom: 1px solid var(--border-secondary);
+  border-bottom: 1px solid var(--bg-primary);
 }
 .sup-list-title {
   font-size: 15px;
@@ -450,7 +444,7 @@
   list-style: none;
 }
 .sup-list-rows > li + li {
-  border-top: 1px solid var(--border-secondary);
+  border-top: 1px solid var(--bg-primary);
 }
 .sup-row {
   display: flex;
@@ -536,7 +530,7 @@
   flex-direction: column;
   gap: 14px;
   padding: 20px 24px;
-  border-bottom: 1px solid var(--border-secondary);
+  border-bottom: 1px solid var(--bg-primary);
 }
 .sup-detail-title-row {
   display: flex;
@@ -611,7 +605,7 @@
   font-size: 12px;
   font-weight: 500;
   line-height: 18px;
-  color: var(--text-quaternary);
+  color: var(--text-tertiary); /* 디자이너 작은 보조 글 회색 — #d2d6db 는 흰 칸 위에서 거의 안 보였다 */
   white-space: nowrap;
 }
 .sup-step + .sup-step::before {
@@ -630,7 +624,7 @@
   height: 8px;
   border-radius: var(--radius-full);
   border: 2px solid var(--border-primary);
-  background: var(--bg-primary);
+  background: var(--bg-quaternary);
 }
 .sup-step.is-done,
 .sup-step.is-current {
@@ -727,7 +721,7 @@
   flex-direction: column;
   gap: 16px;
   padding: 16px 24px 24px;
-  border-top: 1px solid var(--border-secondary);
+  border-top: 1px solid var(--bg-primary);
 }
 .sup-reply {
   display: flex;
@@ -1019,7 +1013,7 @@
   width: 100%;
   margin: 8px 0;
   border: none;
-  border-top: 1px solid var(--border-secondary);
+  border-top: 1px solid var(--bg-primary);
 }
 
 /* 도움됨 · 문의하기 안내 상자 */
