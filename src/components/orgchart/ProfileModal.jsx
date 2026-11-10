@@ -4,7 +4,7 @@ import Spline from '@splinetool/react-spline';
 import Icon from '../shared/Icon.jsx';
 import Avatar from '../shared/Avatar.jsx';
 import PhotoOr from './PhotoOr.jsx';
-import { CheckGlyph, CloseGlyph, ClockGlyph, MapPinGlyph, PencilGlyph, SettingsGlyph } from '../shared/lineIcons.jsx';
+import { ChairGlyph, CheckGlyph, CloseGlyph, ClockGlyph, MapPinGlyph, PencilGlyph, SettingsGlyph } from '../shared/lineIcons.jsx';
 import { MEMBER_STATUSES } from './constants.js';
 import assetUrl from '../shared/assetUrl.js';
 import { useOrgLabels, makeOrgLabels } from './orgchart-labels.jsx';
@@ -444,6 +444,15 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
               </div>
             ) : (
               <div className="modal-info-content">{profile.contacts}</div>
+            )}
+            {/* 자리 — 회사가 정한 자리 한 줄(빌딩 · 층 · 책상 · 자리 유형). 이메일 바로 다음 · 본인 공개 «위치»보다 먼저 ·
+                전 역할 항상 공개 · 값이 없으면 줄 없음(PW-2600 · 조직도 screen-member.policy v1.25 §2-3 «자리 한 줄»).
+                모양은 아래 «위치» 줄과 같은 modal-location 줄이고 아이콘만 의자로 가른다(한 카드에 같은 아이콘 두 줄 금지). */}
+            {profile.seat && (
+              <div className="modal-location" data-testid="profile-seat">
+                <ChairGlyph size={16} aria-label={L('profile.seat')} />
+                <span>{profile.seat}</span>
+              </div>
             )}
             {/* 근무지 — 공개했고 값이 있을 때만 연락처 아래 핀 줄로(PW-1217). */}
             {profile.location && (

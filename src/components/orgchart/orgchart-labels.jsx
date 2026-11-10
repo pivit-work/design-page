@@ -133,6 +133,7 @@ export const ORGCHART_LABELS = {
   'squad.form.tf': 'TF',
   'profile.localTime': '현지 시간',
   'profile.location': '근무지',
+  'profile.seat': '자리',
   'profile.directReports': '직속팀원',
   'profile.directReportChip': '직속',
   'profile.peopleCount': '{{count}}명',

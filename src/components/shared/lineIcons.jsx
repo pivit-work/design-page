@@ -241,6 +241,21 @@ export function MapPinGlyph(props) {
   );
 }
 
+/**
+ * 의자(선) — 퍼블릭 카드 «자리» 줄(PW-2600 · 조직도 screen-member.policy v1.25 §2-3 «자리 한 줄» · 🪑).
+ * 같은 카드의 «위치» 줄이 핀(MapPinGlyph)을 써서 핀과 헷갈리지 않는 모양이 기준이다. 앱 아이콘 세트에
+ * 의자가 없어 개발이 같은 선 굵기로 그렸다 — 디자이너가 고르면 바꾼다(design-review).
+ */
+export function ChairGlyph(props) {
+  return (
+    <LineSvg {...props}>
+      <path d="M7 11V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v6" />
+      <path d="M5 11h14v3H5z" />
+      <path d="M7 14v7M17 14v7" />
+    </LineSvg>
+  );
+}
+
 /* ── 자물쇠 · 눈 · 돋보기 ─────────────────────────────── */
 
 /**
