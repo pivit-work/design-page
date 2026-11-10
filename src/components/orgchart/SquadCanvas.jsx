@@ -23,7 +23,7 @@
  * (PW-1428). `squad.projects` 를 넘긴 스쿼드에만 칸이 생긴다 — 안 넘기면 종전 카드 그대로다.
  */
 
-import { useState, useMemo, useCallback, useEffect, useLayoutEffect, useRef } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import Icon from '../shared/Icon.jsx';
 import Button from '../shared/Button.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
@@ -293,11 +293,6 @@ export default function SquadCanvas({
   /** 조직도 탭을 눌러 들어왔을 때만 참 — 팀 → 스쿼드 움직임을 한 번 재생한다. 새로고침·주소로 들어오면 거짓. */
   playEntrance = false,
   /**
-   * 맨 위 탭 밖(왼쪽 메뉴 «조직도» 등)에서 조직도로 옮겨 갈 때 호스트가 올리는 번호 — 바뀔 때마다 [조직도] 탭을 누른 것과
-   * 같이 거꾸로 날아간 뒤 `onSubTabChange('orgchart')` 를 부른다. 0 이면 아무것도 하지 않는다.
-   */
-  leaveSignal = 0,
-  /**
    * 묶음 층(트라이브·그룹 · PW-2599 · 기획 §5-6-A) — `groupLevelNames[0]` 아래 층 · `[1]` 위 층, 빈 배열 = 층 없음.
    * `squadGroups` = `{ id, level, name, color, headUserId, headActive, parentId }`. 스쿼드의 소속은 `squad.groupId`.
    * 바꾸는 콜백 넷은 `{ ok, field?, message? }` 를 돌려준다(`SquadGroupPanel` 머리 주석). 없으면 [묶음 관리] 를 그리지 않는다.
@@ -317,9 +312,8 @@ export default function SquadCanvas({
   const [view, setView] = useState(defaultView);
   if (openCardView && view !== 'card') setView('card');
   const [stagePlay, setStagePlay] = useState(playEntrance);
-  // 조직도 탭을 눌렀을 때 뜨는 덮개 — 끝나면 그때 탭을 옮긴다. 값이 바뀌면 새로 재생한다.
+  // [스쿼드] 탭을 다시 누르면 «한눈에»를 새로 재생한다 — 값이 바뀌면 무대를 새로 그린다.
   const [stageRun, setStageRun] = useState(0);
-  const [leaving, setLeaving] = useState(false);
   const [popover, setPopover] = useState(null); // { squadId, userId, x, y }
   const [addTarget, setAddTarget] = useState(null);
   const [addQuery, setAddQuery] = useState('');
@@ -745,30 +739,18 @@ export default function SquadCanvas({
     setView(next);
   };
   const showGraph = view === 'graph' && squads.length > 0;
-  const showStage = (view === 'stage' || leaving) && squads.length > 0 && !error;
+  const showStage = view === 'stage' && squads.length > 0 && !error;
   const viewOnly = showGraph || showStage;
-  // 스쿼드 응답이 있을 때만 움직임으로 나간다. 무대가 재생하지 못하는 때(동작 줄이기 등)는 곧바로 끝을 알린다.
+  // [스쿼드] 탭을 다시 누르면 «한눈에»를 새로 재생한다. 조직도로 돌아갈 때는 움직임 없이 곧바로 탭을 옮긴다(pivit-work PW-2616 · 커트 2026-11-10).
   const onTopTab = (tab) => {
     if (tab === 'squad') {
-      setLeaving(false);
       setView('stage');
       setStagePlay(true);
       setStageRun((n) => n + 1);
       return;
     }
-    if (tab === 'orgchart' && squads.length > 0 && !error) {
-      closeEditing();
-      setLeaving(true);
-      setStageRun((n) => n + 1);
-      return;
-    }
     onSubTabChange?.(tab);
   };
-  const onTopTabRef = useRef(onTopTab);
-  useLayoutEffect(() => { onTopTabRef.current = onTopTab; });
-  useEffect(() => {
-    if (leaveSignal > 0) onTopTabRef.current('orgchart');
-  }, [leaveSignal]);
 
   const submitSquadForm = async () => {
     const f = squadForm;
@@ -1046,7 +1028,7 @@ export default function SquadCanvas({
   const leadCandidates = people.filter(isAssignable);
 
   const tabStrip = (
-    <OrgTabNav active={leaving ? 'orgchart' : 'squad'} onSubTabChange={onTopTab} showProjectTab={showProjectTab} L={L} help={titleHelp} />
+    <OrgTabNav active="squad" onSubTabChange={onTopTab} showProjectTab={showProjectTab} L={L} help={titleHelp} />
   );
 
   /**
@@ -1154,7 +1136,7 @@ export default function SquadCanvas({
                     : L('squad.desc.view')}
               </p>
             </div>
-            {squads.length > 0 && !leaving && (
+            {squads.length > 0 && (
               <SegmentedControl
                 ariaLabel={L('squad.view.label')}
                 items={[
@@ -1171,7 +1153,7 @@ export default function SquadCanvas({
           {/* ── 「내 캐파」 요약 배너 (§5-3.7 · §4 배너 행 v3.48) ──
               캐파의 소유자는 본인이므로, 본인이 자기 값을 어디서 정하는지가 화면에 늘 보여야 한다.
               자리는 스쿼드 탭 공통(보기 전환 아래 · 한눈에·카드·그림) — 첫 보기가 «한눈에»라 표 머리에 두면 못 찾는다. */}
-          {myCapacity && !leaving && (
+          {myCapacity && (
             <div className="sq-mycap sq-mycap-common" data-testid="squad-my-capacity-banner">
               <span className="sq-mycap-label">{L('squad.mycap.label')}</span>
               <span className="sq-mycap-total" style={{ color: myCapacity.state.color }}>
@@ -1293,23 +1275,22 @@ export default function SquadCanvas({
               {/* 그림 보기(PW-2356) — 카드 그리드·매트릭스 자리에 선다. 같은 스쿼드 응답으로 그린다 */}
               {showStage && (
                 <SquadPillarStage
-                  key={`${leaving ? 'org' : 'squad'}-${stageRun}`}
-                  side={leaving ? 'org' : 'squad'}
-                  playFrom={leaving ? 'squad' : (stagePlay ? 'org' : null)}
-                  overlay={leaving}
+                  key={`squad-${stageRun}`}
+                  side="squad"
+                  playFrom={stagePlay ? 'org' : null}
                   squads={squads}
                   people={people}
                   orgUnits={orgUnits}
                   groupLevelNames={groupLevelNames}
                   squadGroups={squadGroups}
                   currentUserId={currentUserId}
-                  onOpenMine={leaving ? undefined : openMineFromStage}
+                  onOpenMine={openMineFromStage}
                   onOpenProfile={onMemberClick}
                   focusMine={stageFocus}
-                  onDone={leaving ? () => onSubTabChange?.('orgchart') : () => setStagePlay(false)}
+                  onDone={() => setStagePlay(false)}
                 />
               )}
-              {showGraph && !leaving && (
+              {showGraph && (
                 <SquadGraphView
                   squads={squads} personOf={personOf} renderAvatar={personAvatar} onMemberClick={onMemberClick}
                   levelNames={groupLevelNames} groups={squadGroups} people={people} units={orgUnits} companyName={companyName}

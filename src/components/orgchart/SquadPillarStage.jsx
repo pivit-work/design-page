@@ -293,13 +293,12 @@ function Mini({ h, c, cyl, dash, dots, warn }) {
 /**
  * @param {'squad'|'org'} side  그리는 쪽(재생이 끝난 뒤의 쪽)
  * @param {'squad'|'org'|null} playFrom  이 쪽에서 출발해 side 로 날아간다. 없으면 바로 그린다
- * @param {boolean} overlay  조직도로 돌아가는 덮개 — 끝나면 onDone
  * @param {(arg: { squadId, userId, rect, selector }) => void} onOpenMine  내 기둥(스쿼드 쪽) 누름 → 내 캐파 창
  * @param {(person) => void} onOpenProfile  고정한 사람 정보의 [프로필 보기]
  * @param {{ squadId: string, n: number } | null} focusMine  「내 캐파」 배너 — 그 스쿼드의 내 기둥으로 옮겨 가 창을 연다
  */
 export default function SquadPillarStage({
-  side, playFrom = null, overlay = false,
+  side, playFrom = null,
   squads, people, orgUnits = [], groupLevelNames = [], squadGroups = [],
   currentUserId = null, onOpenMine, onOpenProfile, onDone, focusMine = null,
 }) {
@@ -384,15 +383,11 @@ export default function SquadPillarStage({
     });
     recenter.current = true;
     setView(side); setPlatesUp(side); setPlaying(false);
-    if (overlay) r.timers.push(setTimeout(() => onDoneRef.current?.(), 350));
-    else onDoneRef.current?.();
-  }, [tokens, side, overlay]);
+    onDoneRef.current?.();
+  }, [tokens, side]);
 
   useLayoutEffect(() => {
-    if (!canPlay) {
-      if (overlay) onDoneRef.current?.();
-      return undefined;
-    }
+    if (!canPlay) return undefined;
     const r = runRef.current;
     const svg = svgRef.current;
     const from = playFrom;
@@ -719,7 +714,7 @@ export default function SquadPillarStage({
           <span className={atSquad ? undefined : 'sq-iso-off'}>{L('squad.iso.summarySquads', { count: model.squadInfo.length })}</span>
         </p>
         {playing ? (
-          <Button variant="secondary" size="sm" onClick={overlay ? () => onDoneRef.current?.() : finish} data-testid="squad-iso-skip">{L('squad.iso.skip')}</Button>
+          <Button variant="secondary" size="sm" onClick={finish} data-testid="squad-iso-skip">{L('squad.iso.skip')}</Button>
         ) : (
           <div className="sq-pillar-search">
             <SearchInput
