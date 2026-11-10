@@ -44,6 +44,8 @@ import Button from '../shared/Button.jsx';
  *    stageChannelsTitle?: string,       // 표 제목. 없으면 labels.modal.stageChannels (PW-2089 «리마인더 기본 채널»)
  *    stageChannelKeys?: string[],       // 표의 열(채널). 없으면 push·slack·email 전부 (PW-2089 — 이메일·Slack 만)
  *    stageChannelsRequireOne?: bool,    // 줄마다 채널 하나는 남긴다 — 마지막 하나는 끌 수 없다 (PW-2089)
+ *    lockedChannels?: string[],         // 회사가 끌 수 없는 채널(pivit-work PW-2547). 수정 창에서 켠 채 잠기고 말풍선
+ *                                       // labels.modal.channelLocked 가 뜬다. 저장값에 없어도 켜진 칸으로 보인다
  *    enabled: bool,
  *    recipientsFixed?: string,          // 받는 사람만 정해진 규칙의 안내(PW-2099 · spec-eval-cycle §14.4 N-2). 있으면
  *                                       // 수정 창의 받는 사람 칸은 잠금 안내, 채널은 그대로 체크로 고르고, 목록 행은
@@ -89,6 +91,7 @@ const DEFAULT_LABELS = {
     recipients: '수신 대상',
     channels: '발송 채널',
     stageChannels: '단계별 발송 채널',
+    channelLocked: '이 알림은 이 채널을 끌 수 없습니다',
     cancel: '취소',
     save: '저장',
     close: '닫기',
@@ -359,8 +362,11 @@ function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatC
 
   const toggleRecipient = (r) =>
     setRecipients((p) => (p.includes(r) ? p.filter((x) => x !== r) : [...p, r]));
-  const toggleChannel = (c) =>
+  const lockedChannels = rule.lockedChannels ?? [];
+  const toggleChannel = (c) => {
+    if (lockedChannels.includes(c)) return;
     setChannels((p) => (p.includes(c) ? p.filter((x) => x !== c) : [...p, c]));
+  };
   const toggleStageChannel = (key, c) =>
     setStageChannels((p) => p.map((s) => {
       if (s.key !== key) return s;
@@ -564,15 +570,21 @@ function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatC
         <div>
           <SL>{labels.modal.channels}</SL>
           <div className="admin-notif-check-row">
-            {CHANNEL_KEYS.map((key) => (
-              <Checkbox
-                key={key}
-                checked={channels.includes(key)}
-                onChange={() => toggleChannel(key)}
-                label={labels.channels[key]}
-                data-testid={`notif-channel-${key}`}
-              />
-            ))}
+            {/* 회사가 끌 수 없는 채널(rule.lockedChannels · pivit-work PW-2547 연차 촉진 안내)은 켠 채 잠근다 */}
+            {CHANNEL_KEYS.map((key) => {
+              const locked = lockedChannels.includes(key);
+              return (
+                <Checkbox
+                  key={key}
+                  checked={locked || channels.includes(key)}
+                  disabled={locked}
+                  title={locked ? labels.modal.channelLocked : undefined}
+                  onChange={() => toggleChannel(key)}
+                  label={labels.channels[key]}
+                  data-testid={`notif-channel-${key}`}
+                />
+              );
+            })}
           </div>
         </div>
         </>)}
