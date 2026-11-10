@@ -114,3 +114,234 @@
   border-radius: var(--radius-xxs);
   flex: none;
 }
+
+/* ── 칸으로 나뉜 휴가 카드 — 연차 사용 촉진 카드(pivit-work PW-2688). 상자는 위 .leave-card 그대로, 안을 칸으로 나눈다. ── */
+.leave-card.is-sectioned {
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+.leave-card-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-xl);
+  min-width: 0;
+}
+
+.leave-card-section + .leave-card-section {
+  border-top: 1px solid var(--border-secondary);
+}
+
+.leave-card-head.is-top {
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-xl);
+}
+
+.leave-card-head-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  flex: 1;
+  min-width: 0;
+}
+
+.leave-card-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-md);
+  min-width: 0;
+}
+
+.leave-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  min-width: 0;
+}
+
+.leave-section-title.dp-section-title {
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+}
+
+.leave-section-aside {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-left: auto;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  color: var(--text-tertiary);
+}
+
+
+.leave-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  min-width: 0;
+}
+
+.leave-toolbar-start {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-md);
+  min-width: 0;
+}
+
+.leave-toolbar-end {
+  margin-left: auto;
+}
+
+.leave-count {
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.leave-count-strong {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.leave-card-foot-band {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border-top: 1px solid var(--border-secondary);
+  background: var(--bg-secondary);
+}
+
+.leave-card-foot-note {
+  flex: 1;
+  min-width: 0;
+}
+
+.leave-card-foot-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-left: auto;
+}
+
+/* 숫자 옆 작은 회색 글 — 등록 기한 «D-10». */
+.leave-tile-aside {
+  margin-left: var(--spacing-sm);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-sm);
+  font-weight: 600;
+  /* 숫자 줄 높이를 늘리지 않는다 — «연차» 칸과 같은 높이(PW-2688). */
+  line-height: 0;
+  color: var(--text-tertiary);
+}
+
+/* ── 고른 날짜 — 달마다 한 줄(PW-2688 ⑥). ── */
+.leave-months {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-lg);
+  min-width: 0;
+}
+
+.leave-month {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-md) var(--spacing-lg);
+}
+
+.leave-month + .leave-month {
+  border-top: 1px solid var(--border-secondary);
+}
+
+.leave-month-label {
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.leave-month-days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+  min-width: 0;
+}
+
+.leave-month-sum {
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+
+.leave-day {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xxs);
+  box-sizing: border-box;
+  min-width: 30px;
+  height: 28px;
+  padding-inline: var(--spacing-sm);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--bg-brand-primary);
+  color: var(--text-brand-secondary);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-sm);
+  font-weight: 600;
+  line-height: 1;
+}
+
+.leave-day.is-half {
+  background: var(--bg-quaternary);
+  border-style: dashed;
+  border-color: var(--border-brand);
+}
+
+.leave-day-half {
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+}
+
+.leave-day.is-passed {
+  background: var(--bg-secondary);
+  border-color: transparent;
+  color: var(--text-quaternary);
+}
+
+/* × 는 마우스를 올리거나 Tab 으로 옮겨 갈 때만. 자리는 비워 두지 않는다 — 올렸을 때만 칸이 넓어진다. */
+.leave-day .leave-day-remove {
+  display: none;
+}
+
+.leave-day.has-remove:hover,
+.leave-day.has-remove:focus-within {
+  background: var(--bg-quaternary);
+  border-style: solid;
+  border-color: var(--border-primary);
+  color: var(--text-secondary);
+}
+
+.leave-day.has-remove:hover .leave-day-remove,
+.leave-day.has-remove:focus-within .leave-day-remove {
+  display: inline-flex;
+}

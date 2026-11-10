@@ -1,4 +1,5 @@
 import { NoteText, SectionTitle } from '../shared/SharedText.jsx';
+import LeaveTiles from './LeaveTiles.jsx';
 
 /**
  * 구성원 «내 휴가» 맨 위 연차 카드 (pivit-work PW-2564 · 기획 screen-leave-my §2 «연차 요약 4칸» · «진행 막대»).
@@ -40,20 +41,7 @@ export default function LeaveAnnualCard({
           </NoteText>
         )}
       </div>
-      <div className="leave-tiles">
-        {tiles.map((x) => (
-          <div
-            key={x.key}
-            className={`manager-kpi-card manager-stat-tile leave-tile${x.tone ? ` is-${x.tone}` : ''}`}
-            data-testid={x.testId}
-            data-tone={x.tone || undefined}
-          >
-            <p className="manager-stat-label">{x.label}</p>
-            <p className="manager-stat-value">{x.value}</p>
-            {x.sub && <NoteText>{x.sub}</NoteText>}
-          </div>
-        ))}
-      </div>
+      <LeaveTiles tiles={tiles} />
       <div className="leave-card-foot">
         {bar && bar.length > 0 && (
           <>
