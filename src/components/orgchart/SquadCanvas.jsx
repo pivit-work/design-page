@@ -23,7 +23,7 @@
  * (PW-1428). `squad.projects` 를 넘긴 스쿼드에만 칸이 생긴다 — 안 넘기면 종전 카드 그대로다.
  */
 
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { useState, useMemo, useCallback, useEffect, useLayoutEffect, useRef } from 'react';
 import Icon from '../shared/Icon.jsx';
 import Button from '../shared/Button.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
@@ -287,6 +287,11 @@ export default function SquadCanvas({
   openCardView = false,
   /** 조직도 탭을 눌러 들어왔을 때만 참 — 팀 → 스쿼드 움직임을 한 번 재생한다. 새로고침·주소로 들어오면 거짓. */
   playEntrance = false,
+  /**
+   * 맨 위 탭 밖(왼쪽 메뉴 «조직도» 등)에서 조직도로 옮겨 갈 때 호스트가 올리는 번호 — 바뀔 때마다 [조직도] 탭을 누른 것과
+   * 같이 거꾸로 날아간 뒤 `onSubTabChange('orgchart')` 를 부른다. 0 이면 아무것도 하지 않는다.
+   */
+  leaveSignal = 0,
   /**
    * 묶음 층(트라이브·그룹 · PW-2599 · 기획 §5-6-A) — `groupLevelNames[0]` 아래 층 · `[1]` 위 층, 빈 배열 = 층 없음.
    * `squadGroups` = `{ id, level, name, color, headUserId, headActive, parentId }`. 스쿼드의 소속은 `squad.groupId`.
@@ -749,6 +754,11 @@ export default function SquadCanvas({
     }
     onSubTabChange?.(tab);
   };
+  const onTopTabRef = useRef(onTopTab);
+  useLayoutEffect(() => { onTopTabRef.current = onTopTab; });
+  useEffect(() => {
+    if (leaveSignal > 0) onTopTabRef.current('orgchart');
+  }, [leaveSignal]);
 
   const submitSquadForm = async () => {
     const f = squadForm;

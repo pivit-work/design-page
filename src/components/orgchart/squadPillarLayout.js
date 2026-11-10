@@ -25,6 +25,15 @@ export const PILLAR_ZOOM_MAX = 2.5;
 /** 이 크기(px) 아래로 작아진 일반 이름은 접는다 — 읽히지 않는다(카드 본문 «7px 아래로 내려가면»). */
 export const PILLAR_MIN_NAME_PX = 7;
 export const PILLAR_OVER = 100;
+/** 멀리서 볼 때 이름표를 키우는 상한 — 이름표는 배율 1~이 값 사이로 커진다. */
+export const PILLAR_TAG_SCALE_MAX = 1.45;
+/** 일반 이름표에 싣는 글자 수 상한 — 넘으면 앞 글자 + «…»(온전한 이름은 마우스 올림 카드·찾기에 있다). */
+export const PILLAR_NAME_MAX = 8;
+export const shortName = (name) => {
+  const ch = [...String(name || '')];
+  return ch.length > PILLAR_NAME_MAX ? `${ch.slice(0, PILLAR_NAME_MAX - 1).join('')}…` : ch.join('');
+};
+const nameTagW = (len) => len * 10.2 + 4;
 
 const { cos: COS, sin: SIN } = PILLAR;
 export const pillarIso = (x, y, z = 0) => [(x - y) * COS, (x + y) * SIN - z];
@@ -51,11 +60,12 @@ function plate(id, name, people, opts = {}) {
   const rows = Math.ceil(n / cols);
   // 앞쪽(오른쪽 아래 꼭지)일수록 뒤 번호 — 맨 뒤 사람(리드·조직장)은 판의 맨 앞 꼭지 칸에 선다.
   // 칸이 남으면 앞 꼭지와 같은 줄의 칸이 빌 수 있어, 앞 사람들은 뒤에서부터 채우고 마지막 사람만 꼭지로 보낸다.
+  const cell = opts.cell || PILLAR.cell;
   const cells = [...Array(cols * rows).keys()].map((k) => [k % cols, Math.floor(k / cols)]).sort((a, b) => (a[0] + a[1]) - (b[0] + b[1]));
   const slots = n === 1 ? [cells[0]] : [...cells.slice(0, n - 1), cells[cells.length - 1]];
   return {
     kind: 'plate', id, name, people, cols, rows, slots,
-    w: Math.max(cols * PILLAR.cell + PILLAR.pad * 2, 164), d: rows * PILLAR.cell + PILLAR.pad * 2, ...opts,
+    w: Math.max(cols * cell + PILLAR.pad * 2, 164), d: rows * cell + PILLAR.pad * 2, ...opts, cell,
   };
 }
 
@@ -85,12 +95,25 @@ function rootOf(tops, maxW, gap, lane) {
   return root;
 }
 
+/**
+ * «스쿼드 없음» 판의 칸 크기 — 납작한 타일이라 이름표가 모두 같은 높이에 선다. 화면에서 같은 줄에 놓이는 이웃 칸은
+ * 가로로 2·cell·cos 떨어지므로, 가장 긴 이름표(멀리서 키운 크기까지)가 그 안에 들어가게 칸을 넓힌다.
+ * 앞뒤 줄의 세로 간격도 키운 이름표 높이보다 넓게 잡아 짧은 이름만 있어도 40 이다(시안 30 은 멀리서 겹쳤다).
+ */
+function noneCell(list) {
+  const len = Math.max(0, ...list.map((x) => [...shortName(x.person?.name)].length));
+  const across = (nameTagW(len) * PILLAR_TAG_SCALE_MAX) / (2 * COS) + 2;
+  // 앞뒤 줄은 세로로 cell·sin 떨어진다 — 키운 이름표 높이(13)보다 넓어야 위로 밀어 올리지 않는다.
+  const down = (13 * PILLAR_TAG_SCALE_MAX + 1) / SIN;
+  return Math.max(PILLAR.cell, Math.ceil(Math.max(across, down)));
+}
+
 /** 판 위 사람 자리(바닥 좌표) */
 export function cellAt(pl, i) {
   const [c, r] = pl.slots[i];
   return [
-    pl.ax + PILLAR.pad + (pl.w - PILLAR.pad * 2 - pl.cols * PILLAR.cell) / 2 + (c + 0.5) * PILLAR.cell,
-    pl.ay + PILLAR.pad + (r + 0.5) * PILLAR.cell,
+    pl.ax + PILLAR.pad + (pl.w - PILLAR.pad * 2 - pl.cols * pl.cell) / 2 + (c + 0.5) * pl.cell,
+    pl.ay + PILLAR.pad + (r + 0.5) * pl.cell,
   ];
 }
 
@@ -208,7 +231,7 @@ export function pillarModel({ squads = [], people = [], orgUnits = [], groupLeve
     }
   }
   shown.forEach((sq) => { if (!used.has(sq.id)) tops.push(plateOf.get(sq.id)); });
-  const nonePlate = NONE.length ? plate('none', '', NONE, { dashed: true, wide: true }) : null;
+  const nonePlate = NONE.length ? plate('none', '', NONE, { dashed: true, wide: true, cell: noneCell(NONE) }) : null;
   if (nonePlate) tops.push(nonePlate);
   const sTree = rootOf(tops, layers === 0 ? 800 : 1020, 34, 124);
 
@@ -319,7 +342,7 @@ export function tagBox(tk, side, name, mine) {
   const len = [...String(name || '')].length;
   if (side === 'squad' && mine) return { w: Math.max(len + 2, 7) * 11 + 24, h: 32, lead: true };
   if (lead) return { w: side === 'squad' ? len * 11.5 + 44 : (len + 5) * 11.5 + 16, h: 22, lead: true };
-  return { w: len * 10.2 + 4, h: 13, lead: false };
+  return { w: nameTagW(Math.min(len, PILLAR_NAME_MAX)), h: 13, lead: false };
 }
 
 const MAX_LIFT_LINES = 3;

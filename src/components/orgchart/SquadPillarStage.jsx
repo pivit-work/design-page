@@ -23,6 +23,8 @@ import {
   PILLAR_FAMILIES,
   PILLAR_FAMILY_COLOR,
   PILLAR_MIN_NAME_PX,
+  PILLAR_TAG_SCALE_MAX,
+  shortName,
   PILLAR_OVER,
   PILLAR_ZOOM_MAX,
   PILLAR_ZOOM_MIN,
@@ -49,7 +51,6 @@ const C = {
   brand: 'var(--utility-brand-700)', brandSoft: 'var(--bg-brand-primary)', warn: 'var(--utility-warning-600)',
   side: 'var(--utility-gray-200)', sideDark: 'var(--utility-gray-400)', groupTop: 'var(--bg-secondary)', gray: 'var(--utility-gray-500)',
 };
-const MAX_TAG_SCALE = 1.45;
 /**
  * 내 캐파 창을 열 때 내 기둥 윗끝을 둘 자리(화면 위에서 px). 기둥 위 이름표(약 50px)까지 고정 머리글(아래끝 약 160) 밑으로
  * 들어가지 않고, 창(약 560px)이 기둥 아래에 들어갈 만큼 위다 — 200 이면 이름표 윗줄이 머리글에 가렸다(브라우저 확인 12).
@@ -259,7 +260,7 @@ function Tag({ tk, side, name, mine, L }) {
   }
   return (
     <text x={0} y={-5 - lift} textAnchor="middle" fontSize={10} fontWeight={600}
-      paintOrder="stroke" strokeWidth={2.6} strokeLinejoin="round" style={{ fill: tk.a ? C.ink : C.sub, stroke: 'var(--alpha-white-90)' }}>{name}</text>
+      paintOrder="stroke" strokeWidth={2.6} strokeLinejoin="round" style={{ fill: tk.a ? C.ink : C.sub, stroke: 'var(--alpha-white-90)' }}>{shortName(name)}</text>
   );
 }
 
@@ -341,7 +342,7 @@ export default function SquadPillarStage({
   const VB = useMemo(() => pillarViewBox(tree), [tree]);
   const fitZoom = Math.min(1.5, Math.max(PILLAR_ZOOM_MIN, Math.min((box.w - 8) / VB.w, (box.h - 8) / VB.h)));
   const z = zoom == null ? fitZoom : zoom;
-  const k = Math.min(MAX_TAG_SCALE, Math.max(1, 0.95 / z));
+  const k = Math.min(PILLAR_TAG_SCALE_MAX, Math.max(1, 0.95 / z));
   const far = z * k * 10 < PILLAR_MIN_NAME_PX;
 
   const nameOf = useCallback((x) => x?.person?.name || L('squad.unknownMember'), [L]);
