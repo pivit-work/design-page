@@ -5,7 +5,7 @@ import TextArea from '../shared/TextArea.jsx';
 import Select from '../shared/Select.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
-import { TargetIcon, CpuIcon, MailIcon, SparkleIcon, ClockIcon, ChatIcon, ChevronDownIcon, ArrowRightIcon, CheckCircleIcon } from './evalIcons';
+import { TargetIcon, CpuIcon, MailIcon, SparkleIcon, ClockIcon, ChatIcon, ArrowRightIcon, CheckCircleIcon } from './evalIcons';
 import Avatar from '../shared/Avatar.jsx';
 import Chip from '../shared/Chip.jsx';
 import FeedbackOkrPanel from './FeedbackOkrPanel.jsx';
@@ -16,6 +16,7 @@ import Spinner from '../shared/Spinner.jsx';
 import Tabs from '../shared/Tabs.jsx';
 import EmptyState from '../shared/EmptyState.jsx';
 import LoadMoreButton from '../shared/LoadMoreButton.jsx';
+import MemberAiButton from '../oneonone/MemberAiButton.jsx';
 
 /**
  * EvalFeedbackComposeCanvas — 팀 피드백 (매니저 뷰, v2 재설계).
@@ -107,7 +108,9 @@ const DEFAULT_LABELS = {
   composePlaceholder:
     'SBI 형식을 참고해 자유롭게 작성해 주세요.\n상황(S): 언제, 어떤 맥락에서\n행동(B): 구체적으로 어떤 행동을\n영향(I): 팀/OKR에 어떤 영향이 있었는지',
   aiDraft: 'AI 추천 받기',
-  aiDrafting: '⏳ 생성 중...',
+  // PW-2696 — AI 버튼이 «AI» 를 그리므로 버튼 글자는 동작 낱말만(읽는 이름은 aiDraft).
+  aiDraftAction: '추천 받기',
+  aiDrafting: '생성 중...',
   aiHintIdle: 'KR 달성률·최근 스니핏 기반 추천',
   aiHintDone: 'AI 초안 — 수정 후 전달하세요',
   // PW-2481 — 한 글자라도 고친 초안(확인). 정책 §4.3 의 «✓» 는 글자 대신 체크 아이콘으로 그린다(PW-315 글리프 금지).
@@ -136,6 +139,8 @@ const DEFAULT_LABELS = {
   okrPanelSnippets: '최근 스니핏',
   // 받은 요청 칸 (§3.4) — {count} 에 건수
   incomingSection: '받은 피드백 요청 {count}건',
+  // PW-2696 — 팀 목록 위 소제목. {count} 는 팀원 수.
+  teamSection: '팀원 {count}명',
   // PW-2684 — 받은 요청 앞 3건만 펼치고 나머지는 이 버튼으로. {count} 는 접어 둔 건수.
   incomingMore: '나머지 {count}건 더 보기',
   answerRequest: '이 요청에 답변 작성',
@@ -181,6 +186,20 @@ function mergeLabels(base, provided) {
   }
   return out;
 }
+/**
+ * «받은 피드백 요청 5건»·«팀원 24명» 같은 소제목 — 개수 부분만 초록(원온원 «주의 필요 24명» .ono-section-count).
+ * 문구 틀의 {count} 앞은 그대로, {count}와 그 뒤(«건»·«명»)를 묶어 칠한다 (PW-2696).
+ */
+function CountHeading({ template, count }) {
+  const [head, tail = ''] = String(template || '').split('{count}');
+  return (
+    <>
+      {head}
+      <span className="fbmgr-section-count">{`${count}${tail}`}</span>
+    </>
+  );
+}
+
 function fill(template, vars) {
   return String(template).replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m));
 }
@@ -237,37 +256,42 @@ function InboxScreen({ requests, L, onOpen, loading = false, failed = false }) {
     );
   }
   return (
-    <div className="fbmgr-inbox" data-testid="fbmgr-inbox">
+    <div className="fbmgr-inbox is-team" data-testid="fbmgr-inbox">
       <p className="fbmgr-inbox-note">
-        <MailIcon size={14} /> {fill(L.inboxNote, { count: requests.length })}
+        <MailIcon size={16} /> {fill(L.inboxNote, { count: requests.length })}
       </p>
       {requests.map((req) => {
         const target = inboxTargetLabel(req, L);
         return (
           <div key={req.id} className="fbmgr-inbox-card" data-testid={`fbmgr-inbox-${req.id}`}>
-            <Avatar name={req.requester?.name} photo={req.requester?.avatar} size={36} />
+            <Avatar name={req.requester?.name} photo={req.requester?.avatar} size={40} />
             <div className="fbmgr-inbox-main">
               <div className="fbmgr-inbox-head">
                 <span className="fbmgr-inbox-who">
                   <span className="fbmgr-inbox-name">{req.requester?.name}</span>
                   {L.inboxRequested}
                 </span>
-                {target && <Chip tone="info" title={target} style={LONG_CHIP}>{target}</Chip>}
-                <span className="fbmgr-inbox-meta">
-                  <span>{fmtDate(req.sentAt)}</span>
-                  {req.due && (
-                    <Chip tone={req.due.tone} data-testid={`fbmgr-inbox-due-${req.id}`}>
-                      {req.due.label}
-                    </Chip>
-                  )}
-                </span>
               </div>
+              {/* 연결 대상 칩은 이름 줄 아래 한 줄 — 넘치면 칩 안에서 말줄임, 전체는 마우스를 올리면(PW-2696) */}
+              {target && (
+                <div className="fbmgr-inbox-target">
+                  <Chip tone="info" title={target} style={LONG_CHIP}>{target}</Chip>
+                </div>
+              )}
               {req.text && <p className="fbmgr-inbox-text">{req.text}</p>}
-              <div className="fbmgr-inbox-foot">
-                <Button variant="ghost" size="sm" onClick={() => onOpen?.(req)} data-testid={`fbmgr-inbox-open-${req.id}`}>
-                  {L.inboxWrite} <ArrowRightIcon size={14} />
-                </Button>
-              </div>
+            </div>
+            <div className="fbmgr-inbox-side">
+              <span className="fbmgr-inbox-meta">
+                <span>{fmtDate(req.sentAt)}</span>
+                {req.due && (
+                  <Chip tone={req.due.tone} data-testid={`fbmgr-inbox-due-${req.id}`}>
+                    {req.due.label}
+                  </Chip>
+                )}
+              </span>
+              <Button variant="secondary" size="sm" onClick={() => onOpen?.(req)} data-testid={`fbmgr-inbox-open-${req.id}`}>
+                {L.inboxWrite} <ArrowRightIcon size={14} />
+              </Button>
             </div>
           </div>
         );
@@ -288,34 +312,43 @@ function TeamListScreen({ team, L, onSelect, loading = false, failed = false }) 
     return new Date(a.lastFeedbackAt || 0) - new Date(b.lastFeedbackAt || 0);
   });
   const s = team.summary || { requests: 0, noFeedback: 0, overdue: 0, normal: 0 };
+  // 바탕색 없이 뜻 있는 숫자 글자에만 색 — 요청 초록 · 없음 빨강 · 30일 초과 주황. 0 이거나 «정상»은 회색
+  // (PW-2696 · 원온원 «이번 달 코칭 지표» 칸). tone 은 소비 측 시험이 읽도록 data-tone 에도 싣는다.
   const cards = [
-    { label: L.cardRequests, value: s.requests, color: C.accent, bg: C.accentBg, suffix: L.countSuffix },
-    { label: L.cardNoFeedback, value: s.noFeedback, color: C.red, bg: C.redBg, suffix: L.peopleSuffix },
-    { label: L.cardOverdue, value: s.overdue, color: C.amber, bg: C.amberBg, suffix: L.peopleSuffix },
-    { label: L.cardNormal, value: s.normal, color: C.green, bg: C.greenBg, suffix: L.peopleSuffix },
+    { key: 'requests', label: L.cardRequests, value: s.requests, tone: 'accent', suffix: L.countSuffix },
+    { key: 'noFeedback', label: L.cardNoFeedback, value: s.noFeedback, tone: 'danger', suffix: L.peopleSuffix },
+    { key: 'overdue', label: L.cardOverdue, value: s.overdue, tone: 'warning', suffix: L.peopleSuffix },
+    { key: 'normal', label: L.cardNormal, value: s.normal, tone: 'muted', suffix: L.peopleSuffix },
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
-        {cards.map((c) => (
-          <div key={c.label} style={{ background: c.bg, borderRadius: 12, padding: 12, textAlign: 'center' }}>
-            <div style={{ fontSize: 26, fontWeight: 800, color: c.color }}>
-              {c.value}
-              <span style={{ fontSize: 13 }}>{c.suffix}</span>
+    <div className="fbmgr-team">
+      <div className="fbmgr-kpi-grid">
+        {cards.map((c) => {
+          const tone = c.value > 0 ? c.tone : 'muted';
+          return (
+            <div key={c.key} className="fbmgr-kpi" data-testid={`fbmgr-kpi-${c.key}`}>
+              <span className="fbmgr-kpi-label">{c.label}</span>
+              <span className={`fbmgr-kpi-value is-${tone}`} data-tone={tone}>
+                {c.value}
+                <span className="fbmgr-kpi-suffix">{c.suffix}</span>
+              </span>
             </div>
-            <div style={{ fontSize: 'var(--font-size-text-xs)', color: C.sub, marginTop: 2 }}>{c.label}</div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {members.length === 0 ? (
-        <div data-testid="fbmgr-team-empty" style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20, textAlign: 'center' }}>
+        <div data-testid="fbmgr-team-empty" className="fbmgr-team-empty">
           <p style={{ margin: 0, fontSize: 'var(--font-size-text-sm)', fontWeight: 600, color: C.text }}>{L.emptyTeam}</p>
           {L.emptyTeamHint && <p style={{ margin: '4px 0 0', fontSize: 'var(--font-size-text-xs)', fontWeight: 500, color: C.sub }}>{L.emptyTeamHint}</p>}
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <>
+        <h3 className="fbmgr-section-heading" data-testid="fbmgr-team-heading">
+          <CountHeading template={L.teamSection} count={members.length} />
+        </h3>
+        <div className="fbmgr-member-list">
           {members.map((m) => {
             const noFb = m.lastFeedbackAt == null;
             const over = !noFb && m.daysSince != null && m.daysSince >= 30;
@@ -330,20 +363,24 @@ function TeamListScreen({ team, L, onSelect, loading = false, failed = false }) 
                 type="button"
                 onClick={() => onSelect(m)}
                 data-testid={`fbmgr-member-${m.id}`}
-                style={{ display: 'flex', alignItems: 'center', gap: 10, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 12, cursor: 'pointer', textAlign: 'left', fontFamily: FONT }}
+                className="fbmgr-member-row"
               >
-                <Avatar name={m.name} photo={m.avatar} size={36} />
-                <span style={{ fontSize: 'var(--font-size-text-sm)', fontWeight: 700, color: C.text }}>{m.name}</span>
+                <Avatar name={m.name} photo={m.avatar} size={40} />
+                <span className="fbmgr-member-name">{m.name}</span>
                 <Chip tone={badge.tone}>{badge.label}</Chip>
                 {m.pendingRequests > 0 && (
                   <Chip tone="accent" icon={<MailIcon size={11} />}>{`${L.requestChip} ${m.pendingRequests}${L.countSuffix}`}</Chip>
                 )}
-                {m.department && <span style={{ fontSize: 'var(--font-size-text-xs)', color: C.sub }}>{m.department}</span>}
-                <span style={{ marginLeft: 'auto', fontSize: 'var(--font-size-text-xs)', fontWeight: 600, color: C.accent }}>{L.writeFeedback}</span>
+                {m.department && <span className="fbmgr-member-dept">{m.department}</span>}
+                {/* 줄 전체가 버튼이라 안에 버튼을 또 둘 수 없다 — 공용 Button 보조 모양 클래스만 입힌 글 */}
+                <span className="dp-btn dp-btn--secondary dp-btn--sm fbmgr-member-cta" data-testid={`fbmgr-member-cta-${m.id}`}>
+                  <span className="dp-btn__label">{L.writeFeedback}</span>
+                </span>
               </button>
             );
           })}
         </div>
+        </>
       )}
     </div>
   );
@@ -540,7 +577,7 @@ function ModalComposeBox({ block, memberName, L, onSend, onAiDraft, aiDraftDisab
         placeholder={L.composePlaceholder}
         maxLength={maxLen}
         data-testid="fbmgr-compose-text"
-        className={['evf-textarea', shown === 'done' && 'is-ai-unconfirmed', shown === 'confirmed' && 'is-ai-confirmed'].filter(Boolean).join(' ')}
+        className={['evf-textarea', 'is-team', shown === 'done' && 'is-ai-unconfirmed', shown === 'confirmed' && 'is-ai-confirmed'].filter(Boolean).join(' ')}
       />
       <FeedbackLengthNote text={text} label={L.textLimitNote} color={C.red} testId="fbmgr-compose-limit" />
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -564,17 +601,16 @@ function ModalComposeBox({ block, memberName, L, onSend, onAiDraft, aiDraftDisab
         <span style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
           {onAiDraft && (
             <Tooltip content={aiDraftDisabled ? L.aiNeedsOkr : ''}>
-            <button
-              type="button"
-              disabled={aiState === 'loading' || aiDraftDisabled}
-              aria-busy={aiState === 'loading' || undefined}
+            {/* 디자이너 AI 버튼(원온원 «AI 생성» · PW-2696). 버튼이 «AI» 를 그리므로 글자는 동작 낱말만 — 읽는 이름은 전체 문구. */}
+            <MemberAiButton
+              label={aiState === 'loading' ? L.aiDrafting : L.aiDraftAction}
+              ariaLabel={L.aiDraft}
               onClick={ai}
-              data-testid="fbmgr-ai-draft"
+              disabled={aiDraftDisabled}
+              pending={aiState === 'loading'}
               className="fbmgr-ai-draft"
-              style={{ border: `1px solid ${C.accentBd}`, background: C.accentBg, color: C.accent, borderRadius: 8, padding: '8px 12px', fontSize: 13, fontWeight: 600, cursor: aiState === 'loading' ? 'wait' : 'pointer' }}
-            >
-              {aiState === 'loading' ? <span className="dp-busy-inline"><Spinner size={13} />{L.aiDrafting}</span> : <><SparkleIcon size={13} /> {L.aiDraft}</>}
-            </button>
+              testId="fbmgr-ai-draft"
+            />
             </Tooltip>
           )}
           <Button
@@ -599,7 +635,7 @@ function ModalComposeBox({ block, memberName, L, onSend, onAiDraft, aiDraftDisab
  * 수정은 그 자리 입력칸 — 빈 글은 저장 못 하고, 취소하면 원래 글로 돌아간다. 삭제는 확인 없이 바로.
  * 실패하면 입력을 그대로 두고 말풍선 아래에 알린다.
  */
-function FeedbackBubble({ item, member, L, canModify, onEdit, onDelete, targetLabel = null }) {
+function FeedbackBubble({ item, member, L, canModify, onEdit, onDelete, targetLabel = null, asReply = false }) {
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(item.text || '');
   const [busy, setBusy] = useState(false);
@@ -640,68 +676,63 @@ function FeedbackBubble({ item, member, L, canModify, onEdit, onDelete, targetLa
     }
   };
 
+  // 대화 모양은 디자이너 OKR «KR 피드백» 창의 댓글·답(.okr-krfb-comment · -reply-item)을 따른다(PW-2696):
+  // 말 상자 없이 이름·날짜 줄 아래 글. 요청 뒤에 단 답(asReply)과 팀원 답은 36 들여 14/20 보조 회색.
   return (
-    <div data-testid={`fbmgr-feedback-${item.id}`}>
-      <div style={{ display: 'flex', gap: 8 }}>
-        <Avatar name={author} photo={item.author?.avatar} size={30} />
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-text-xs)', marginBottom: 3 }}>
-            <span style={{ ...NO_SHRINK, fontWeight: 700, color: C.text }}>{author}</span>
-            {targetLabel && <Chip tone="info" title={targetLabel} style={LONG_CHIP}>{targetLabel}</Chip>}
-            <span style={{ ...NO_SHRINK, color: C.sub }}>{fmtDate(item.sentAt)}</span>
-            {modifiable && !editing && (
-              <span style={{ marginLeft: 'auto', display: 'flex', gap: 10 }}>
-                <button type="button" onClick={() => setEditing(true)} disabled={busy} data-testid="fbmgr-feedback-edit" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: C.sub, padding: 0 }}>
-                  {L.feedbackEdit}
-                </button>
-                <button type="button" onClick={remove} disabled={busy} data-testid="fbmgr-feedback-delete" style={{ background: 'none', border: 'none', cursor: busy ? 'default' : 'pointer', fontSize: 12, color: C.red, padding: 0, opacity: busy ? 0.6 : 1 }}>
-                  {L.feedbackDelete}
-                </button>
-              </span>
-            )}
+    <div data-testid={`fbmgr-feedback-${item.id}`} className={asReply ? 'fbmgr-cm is-reply' : 'fbmgr-cm'} data-reply={asReply ? 'true' : undefined}>
+      <div className="fbmgr-cm-head">
+        <Avatar name={author} photo={item.author?.avatar} size={24} />
+        <span className="fbmgr-cm-name">{author}</span>
+        {targetLabel && <Chip tone="info" title={targetLabel} style={LONG_CHIP}>{targetLabel}</Chip>}
+        <span className="fbmgr-cm-date">{fmtDate(item.sentAt)}</span>
+        {modifiable && !editing && (
+          <span className="fbmgr-cm-actions">
+            <Button type="button" variant="ghost" size="sm" onClick={() => setEditing(true)} disabled={busy} data-testid="fbmgr-feedback-edit">
+              {L.feedbackEdit}
+            </Button>
+            <Button type="button" variant="danger-ghost" size="sm" onClick={remove} disabled={busy} data-testid="fbmgr-feedback-delete">
+              {L.feedbackDelete}
+            </Button>
+          </span>
+        )}
+      </div>
+      {editing ? (
+        <div className="evf-incoming-compose">
+          <TextArea
+            value={editText}
+            onChange={(e) => setEditText(e.target.value)}
+            maxLength={maxLen}
+            data-testid="fbmgr-feedback-edit-input"
+            className="evf-textarea evf-incoming-textarea"
+          />
+          <FeedbackLengthNote text={editText} label={L.textLimitNote} color={C.red} testId="fbmgr-feedback-edit-limit" />
+          <div className="evf-incoming-actions">
+            <Button type="button" onClick={cancelEdit} data-testid="fbmgr-feedback-edit-cancel" className="evf-btn evf-btn-secondary">
+              {L.feedbackEditCancel}
+            </Button>
+            <Button type="button" onClick={save} disabled={busy || !editText.trim() || editTooLong} data-testid="fbmgr-feedback-edit-save" className="evf-btn evf-btn-primary">
+              {L.feedbackEditSave}
+            </Button>
           </div>
-          {editing ? (
-            <div style={{ background: C.surface, border: `1px solid ${C.accentBd}`, borderRadius: '0 10px 10px 10px', padding: 10 }}>
-              <TextArea
-                value={editText}
-                onChange={(e) => setEditText(e.target.value)}
-                maxLength={maxLen}
-                data-testid="fbmgr-feedback-edit-input"
-                className="evf-textarea" style={{ marginBottom: 8 }}
-              />
-              <FeedbackLengthNote text={editText} label={L.textLimitNote} color={C.red} testId="fbmgr-feedback-edit-limit" />
-              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                <Button type="button" onClick={cancelEdit} data-testid="fbmgr-feedback-edit-cancel" className="evf-btn evf-btn-secondary">
-                  {L.feedbackEditCancel}
-                </Button>
-                <Button type="button" onClick={save} disabled={busy || !editText.trim() || editTooLong} data-testid="fbmgr-feedback-edit-save" className="evf-btn evf-btn-primary">
-                  {L.feedbackEditSave}
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: '0 10px 10px 10px', padding: 10, fontSize: 13, color: C.text, whiteSpace: 'pre-wrap' }}>
-              {item.text}
+        </div>
+      ) : (
+        <p className="fbmgr-cm-text">{item.text}</p>
+      )}
+      {error && <p data-testid="fbmgr-feedback-error" className="fbmgr-cm-error">{error}</p>}
+      {item.memberReply && (
+        // 팀원 답변 — 팀원 사진·이름 + 글 (screen-feedback-manager §3.8).
+        <div data-testid="fbmgr-member-reply" className="fbmgr-cm is-reply">
+          <div className="fbmgr-cm-head">
+            <Avatar name={member?.name} photo={member?.avatar} size={24} />
+            <span className="fbmgr-cm-name">{member?.name}</span>
+          </div>
+          <p className="fbmgr-cm-text">{item.memberReply.text || L.replyConfirmed}</p>
+          {/* 출처 표시는 이름·날짜 줄과 같은 작은 회색 글씨 (PW-1908) */}
+          {item.memberReply.source === 'slack' && (
+            <div data-testid="fbmgr-reply-via-slack" className="fbmgr-cm-note">
+              {L.replyViaSlack}
             </div>
           )}
-          {error && <p data-testid="fbmgr-feedback-error" style={{ margin: '4px 0 0', fontSize: 12, color: C.red }}>{error}</p>}
-        </div>
-      </div>
-      {item.memberReply && (
-        // 팀원 답변 — 팀원 아바타 + 텍스트 (screen-feedback-manager §3.8).
-        <div data-testid="fbmgr-member-reply" style={{ marginLeft: 38, marginTop: 6, display: 'flex', gap: 8 }}>
-          <Avatar name={member?.name} photo={member?.avatar} size={24} />
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ background: C.borderL, border: `1px solid ${C.border}`, borderRadius: 10, padding: '8px 10px', fontSize: 13, color: C.text }}>
-              {item.memberReply.text || L.replyConfirmed}
-            </div>
-            {/* 출처 표시는 피드백 위 이름·날짜 줄과 같은 작은 회색 글씨 (PW-1908) */}
-            {item.memberReply.source === 'slack' && (
-              <div data-testid="fbmgr-reply-via-slack" style={{ fontSize: 12, color: C.sub, marginTop: 3 }}>
-                {L.replyViaSlack}
-              </div>
-            )}
-          </div>
         </div>
       )}
     </div>
@@ -715,28 +746,25 @@ function FeedbackBubble({ item, member, L, canModify, onEdit, onDelete, targetLa
 function RequestBubble({ item, L, targetLabel = null }) {
   const toMe = isToMe(item);
   const resolved = !!item.resolvedAt;
+  // 요청 글은 원온원 읽기 상자(.ono-my-readbox) — 내 답과 갈려 «무엇에 대한 답»인지 보이게(PW-2696).
   return (
-    <div style={{ display: 'flex', gap: 8 }} data-testid={`fbmgr-request-${item.id}`}>
-      <Avatar name={item.author?.name} photo={item.author?.avatar} size={30} />
-      <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-text-xs)', marginBottom: 3 }}>
-          <span style={{ ...NO_SHRINK, fontWeight: 700, color: C.text }}>{item.author?.name}</span>
-          {!toMe && item.recipient && (
-            <span style={{ ...NO_SHRINK, color: C.sub }}>
-              → {item.recipient.name} ({item.recipientKind === 'peer' ? L.kindPeer : L.kindManager})
-            </span>
-          )}
-          <Chip tone="accent" icon={<MailIcon size={11} />}>{toMe ? L.incomingReq : L.requestChip}</Chip>
-          {(resolved || !toMe) && (
-            <Chip tone={resolved ? 'success' : 'warning'}>{resolved ? L.requestAnswered : L.requestPending}</Chip>
-          )}
-          {targetLabel && <Chip tone="info" title={targetLabel} style={LONG_CHIP}>{targetLabel}</Chip>}
-          <span style={{ ...NO_SHRINK, color: C.sub }}>{fmtDate(item.sentAt)}</span>
-        </div>
-        <div style={{ background: C.accentBg, border: `1px solid ${C.accentBd}`, borderRadius: '0 10px 10px 10px', padding: 10, fontSize: 13, color: C.text }}>
-          {item.text || L.emptyRequest}
-        </div>
+    <div className="fbmgr-cm" data-testid={`fbmgr-request-${item.id}`}>
+      <div className="fbmgr-cm-head">
+        <Avatar name={item.author?.name} photo={item.author?.avatar} size={24} />
+        <span className="fbmgr-cm-name">{item.author?.name}</span>
+        {!toMe && item.recipient && (
+          <span className="fbmgr-cm-sub">
+            → {item.recipient.name} ({item.recipientKind === 'peer' ? L.kindPeer : L.kindManager})
+          </span>
+        )}
+        <Chip tone="accent" icon={<MailIcon size={11} />}>{toMe ? L.incomingReq : L.requestChip}</Chip>
+        {(resolved || !toMe) && (
+          <Chip tone={resolved ? 'success' : 'warning'}>{resolved ? L.requestAnswered : L.requestPending}</Chip>
+        )}
+        {targetLabel && <Chip tone="info" title={targetLabel} style={LONG_CHIP}>{targetLabel}</Chip>}
+        <span className="fbmgr-cm-date is-end">{fmtDate(item.sentAt)}</span>
       </div>
+      <p className="fbmgr-readbox">{item.text || L.emptyRequest}</p>
     </div>
   );
 }
@@ -747,6 +775,14 @@ function ThreadModal({ block, member, memberName, L, isPastPeriod, onSend, onAiD
   const isEtc = block.type === 'etc';
   const targetOf = (it) => (isEtc ? etcTargetLabel(it, L) : null);
   const items = [...block.items].sort((a, b) => new Date(a.sentAt) - new Date(b.sentAt));
+  // 요청 뒤에 온 피드백은 그 요청의 답으로 들여 쓴다. 서버에 «어느 요청의 답» 연결이 없어 시간 순서로 가른다 —
+  // 요청 없이 먼저 쓴 피드백은 답이 아니라 들여 쓰지 않는다(PW-2696 카드 메모).
+  const replyIds = new Set();
+  items.reduce((seenRequest, it) => {
+    if (it.itemType !== 'feedback') return true;
+    if (seenRequest) replyIds.add(it.id);
+    return seenRequest;
+  }, false);
   const [summary, setSummary] = useState(null);
   const [summaryState, setSummaryState] = useState('idle'); // idle | loading | error | notice
   // onSummarize 가 `{ notice }`(AI 한도 안내 등)를 주면 실패 문구 대신 이 창 안에 그 안내를 그린다(PW-2481).
@@ -777,9 +813,27 @@ function ThreadModal({ block, member, memberName, L, isPastPeriod, onSend, onAiD
     }
   };
 
+  // 창 머리 — «KR»·«현재 기간 OKR 에 없음»은 제목 위 딱지로 떼고, 제목(공용 창 30px)은 2줄에서 말줄임 —
+  // 255자 KR 제목이 창 절반을 덮었다. 전체는 마우스를 올리면 보인다(PW-2696 · OKR «KR 피드백» 창 머리 자리).
+  const titleText = isEtc ? L.sectionEtc : block.type === 'kr' ? block.title : `# ${block.title}`;
+  const eyebrow = [];
+  if (isKr) eyebrow.push({ key: 'type', tone: 'info', label: block.badge });
+  else if (isOrphan && block.type === 'kr') eyebrow.push({ key: 'type', tone: 'info', label: L.linkedKrFallback });
+  if (isOrphan) eyebrow.push({ key: 'period', tone: 'neutral', label: String(L.inboxNotInPeriod || '').replace(/^[·\s]+/, '') });
+  const titleNode = (
+    <>
+      {eyebrow.length > 0 && (
+        <span className="fbmgr-thread-eyebrow" data-testid="fbmgr-thread-eyebrow">
+          {eyebrow.map((e) => <Chip key={e.key} tone={e.tone}>{e.label}</Chip>)}
+        </span>
+      )}
+      <span className="fbmgr-thread-title-text" title={titleText} data-testid="fbmgr-thread-title-text">{titleText}</span>
+    </>
+  );
+
   return (
     <ModalShell
-      title={isOrphan ? orphanLabel(block.type, block.title, L) : isKr ? `${block.badge} · ${block.title}` : isEtc ? L.sectionEtc : `# ${block.title}`}
+      title={titleNode}
       description={isKr ? `${block.progress ?? 0}%` : isEtc ? L.etcHint : undefined}
       titleId="fbmgr-thread-title"
       closeLabel={L.close}
@@ -797,18 +851,18 @@ function ThreadModal({ block, member, memberName, L, isPastPeriod, onSend, onAiD
         )
       }
     >
-      <div className="evc-shell-thread-list">
+      <div className="evc-shell-thread-list is-team">
         {onSummarize && (
           <Tooltip content={canSummarize ? '' : L.summarizeNotEnough} className="fbmgr-summarize-tip">
-          <button
-            type="button"
-            disabled={!canSummarize || summaryState === 'loading'}
-            onClick={summarize}
-            data-testid="fbmgr-summarize"
-            style={{ alignSelf: 'flex-end', border: `1px solid ${canSummarize ? C.accentBd : C.border}`, background: canSummarize ? C.accentBg : C.borderL, color: canSummarize ? C.accent : C.muted, borderRadius: 8, padding: '5px 10px', fontSize: 'var(--font-size-text-xs)', fontWeight: 600, cursor: canSummarize ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap' }}
-          >
-            {summaryState === 'loading' ? `⏳ ${L.summarizing}` : <><SparkleIcon size={12} /> {L.summarize}</>}
-          </button>
+            {/* 디자이너 AI 버튼(원온원 «AI 생성» · PW-2696). 기다리는 동안은 AI 마크 자리에서 돈다. */}
+            <MemberAiButton
+              label={summaryState === 'loading' ? L.summarizing : L.summarize}
+              ariaLabel={L.summarize}
+              onClick={summarize}
+              disabled={!canSummarize}
+              pending={summaryState === 'loading'}
+              testId="fbmgr-summarize"
+            />
           </Tooltip>
         )}
         {summary && (
@@ -831,6 +885,7 @@ function ThreadModal({ block, member, memberName, L, isPastPeriod, onSend, onAiD
         ) : (
           items.map((it) => it.itemType === 'feedback' ? (
             <FeedbackBubble
+              asReply={replyIds.has(it.id)}
               key={it.id}
               item={it}
               member={member}
@@ -942,56 +997,56 @@ function IncomingRequestsSection({ requests, krBlocks, initBlocks, orphans = [],
     it.linkedTargetType && it.linkedTargetId
       ? [...krBlocks, ...initBlocks, ...orphans].find((b) => b.key === `${it.linkedTargetType}:${it.linkedTargetId}`) || null
       : null;
-  // 모양은 «내 피드백»의 받은 요청 칸과 같다(흰 카드 한 장 안의 줄 · 옅은 말풍선 · 작은 테두리 버튼 — PW-2684).
+  // 팀장 쪽은 소제목을 카드 밖에 두고, 요청은 흰 카드 한 장 안에 위아래 24 + 가는 줄(PW-2696 · 원온원 «주의 필요» 소제목 ·
+  // OKR «KR 피드백» 창 이름·날짜 · 원온원 읽기 상자). 앞 3건 + «나머지 N건 더 보기»는 PW-2684 그대로.
   return (
-    <div data-testid="fbmgr-incoming" className="evf-incoming">
-      <div className="evf-incoming-title">
-        <MailIcon size={14} /> {fill(L.incomingSection, { count: requests.length })}
-      </div>
-      {visible.map((it) => {
-        const target = blockFor(it);
-        const label = linkedLabel(it, krBlocks, initBlocks, L);
-        return (
-          <div key={it.id} data-testid={`fbmgr-incoming-${it.id}`} className="evf-incoming-row">
-            <Avatar name={it.author?.name} photo={it.author?.avatar} size={32} />
-            <div className="evf-incoming-body">
-              <div className="evf-incoming-head is-nowrap">
-                <span className="evf-incoming-name" style={NO_SHRINK}>{it.author?.name}</span>
-                {label && <Chip tone="info" title={label} style={LONG_CHIP}>{label}</Chip>}
-                <span className="evf-incoming-meta" style={NO_SHRINK}>{fmtDate(it.sentAt)}</span>
-              </div>
-              {it.text && (
-                <div className="evf-incoming-bubble">
-                  {it.text}
+    <section data-testid="fbmgr-incoming-section">
+      <h3 className="fbmgr-section-heading" data-testid="fbmgr-incoming-title">
+        <CountHeading template={L.incomingSection} count={requests.length} />
+      </h3>
+      <div data-testid="fbmgr-incoming" className="evf-incoming is-team">
+        {visible.map((it) => {
+          const target = blockFor(it);
+          const label = linkedLabel(it, krBlocks, initBlocks, L);
+          return (
+            <div key={it.id} data-testid={`fbmgr-incoming-${it.id}`} className="evf-incoming-row">
+              <Avatar name={it.author?.name} photo={it.author?.avatar} size={40} />
+              <div className="evf-incoming-body">
+                <div className="evf-incoming-head is-nowrap">
+                  <span className="evf-incoming-name" style={NO_SHRINK}>{it.author?.name}</span>
+                  {label && <Chip tone="info" title={label} style={LONG_CHIP}>{label}</Chip>}
+                  <span className="evf-incoming-meta" style={NO_SHRINK}>{fmtDate(it.sentAt)}</span>
                 </div>
-              )}
-              {target && (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => onAnswer(target)}
-                  data-testid={`fbmgr-incoming-answer-${it.id}`}
-                >
-                  {L.answerRequest} <ChevronDownIcon size={12} />
-                </Button>
-              )}
+                {it.text && <p className="fbmgr-readbox">{it.text}</p>}
+                {target && (
+                  <div className="fbmgr-incoming-act">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => onAnswer(target)}
+                      data-testid={`fbmgr-incoming-answer-${it.id}`}
+                    >
+                      {L.answerRequest}
+                    </Button>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        );
-      })}
-      {restCount > 0 && (
-        <LoadMoreButton
-          className="evf-incoming-more"
-          label={fill(L.incomingMore, { count: restCount })}
-          onClick={() => setShowAll(true)}
-        />
-      )}
-    </div>
+          );
+        })}
+        {restCount > 0 && (
+          <LoadMoreButton
+            className="evf-incoming-more"
+            label={fill(L.incomingMore, { count: restCount })}
+            onClick={() => setShowAll(true)}
+          />
+        )}
+      </div>
+    </section>
   );
 }
 
-// ── 팀원 스레드 화면 ──
 function ThreadScreen({ member, thread, krs, initiatives, okrGroups, snippets, L, onBack, onChangePeriod, onSend, onAiDraft, aiDraftDisabled, onSummarize, onEditFeedback, onDeleteFeedback, openTarget, onOpenTargetHandled, openBlockKey, onOpenBlockChange }) {
   // 연 창은 소비 측이 쥘 수도 있다(`openBlockKey` 를 넘기면) — 브라우저 뒤로가기로 창만 닫으려면
   // 창이 열린 것을 주소 기록에 남겨야 해서다(manager §8-10). 안 넘기면 종전처럼 캔버스가 쥔다.
@@ -1066,9 +1121,10 @@ function ThreadScreen({ member, thread, krs, initiatives, okrGroups, snippets, L
       {thread?.isPastPeriod && (
         <div data-testid="fbmgr-past-banner" style={{ background: C.pastBg, border: `1px solid ${C.border}`, color: C.sub, borderRadius: 10, padding: '10px 12px', fontSize: 'var(--font-size-text-xs)' }}><ClockIcon size={12} /> {L.pastBanner}</div>
       )}
-      <div data-testid="fbmgr-info-banner" style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 12px', fontSize: 'var(--font-size-text-xs)', color: C.sub }}>
-        <ChatIcon size={12} /> {fill(L.infoBanner, { name: member.name })}
-      </div>
+      {/* 안내는 테두리 상자 없이 아이콘 + 회색 한 줄(원온원 «보는 범위» 안내 쓰임 · PW-2696) */}
+      <p data-testid="fbmgr-info-banner" className="fbmgr-team-hint">
+        <ChatIcon size={16} /> {fill(L.infoBanner, { name: member.name })}
+      </p>
       {okrGroups.length > 0 && krBlocks.length > 0 && (
         <FeedbackOkrPanel groups={okrGroups} krBlocks={krBlocks} initBlocks={initBlocks} snippets={snippets} L={L} testIdPrefix="fbmgr" />
       )}
