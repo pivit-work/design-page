@@ -10831,10 +10831,11 @@ button.evm-ai-source {
   grid-column: -2 / -1;
   justify-self: end;
 }
-/* 평가 항목 줄은 안쪽 여백 12px + 테두리 1px 안에 × 를 둔다. 등급 줄도 같은 만큼 오른쪽을 비워
-   두 줄의 × 를 한 세로 줄에 세운다 (PW-1652). */
+/* 평가 항목 줄은 오른쪽 안쪽 여백 16px + 테두리 1px 안에 × 를 둔다. 등급 줄도 같은 만큼 오른쪽을 비워
+   두 줄의 × 를 한 세로 줄에 세운다 (PW-1652). PW-1886 이 항목 줄 여백을 12→16 으로 바꾼 뒤 여기만
+   12 로 남아 4px 어긋났다 — PW-2646 에서 16 으로 맞춤. 테두리 1px 몫은 간격 토큰이 없어 남긴다(1px 차). */
 .evc-tpl-grade {
-  padding-right: calc(var(--spacing-lg) + 1px);
+  padding-right: var(--spacing-xl);
 }
 .evc-tpl-grade-move {
   display: flex;
