@@ -1829,6 +1829,9 @@ function AppointmentHistoryView({
   /* 처음 열 때 상세를 펼칠 발령 id (pivit-work PW-2597) — 승인 결과 알림 링크(`?appointment=`)가 그 발령을 바로 연다.
      묶음 줄이면 그 사람이 든 묶음을 연다. 목록에 없으면 아무것도 펼치지 않는다. 값이 바뀌면 다시 연다 */
   focusRecordId,
+  /* 처음 받는 중 (pivit-work PW-2689) — 받기 전의 빈 목록을 «발령 이력이 없습니다»로 그리지 않고 표 자리에 회색 줄 5개를 둔다
+     (기획 screen-admin-employees-appointments §4 「이력 로딩」). 머리 줄·검색·칩은 그대로. 다시 받을 때는 넘기지 않는다(목록·상세 유지) */
+  loading = false,
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   /** 발령 유형 필터 — '' 전체 · 유형 키 · `revision` 구조 개정 (§4 · PW-1422) */
@@ -1905,7 +1908,7 @@ function AppointmentHistoryView({
     </header>
   ) : null;
 
-  if (error && records.length === 0 && !revisionsWired) {
+  if (!loading && error && records.length === 0 && !revisionsWired) {
     return bulkHeader ? (
       <div className="admin-snap-canvas">
         {bulkHeader}
@@ -1913,7 +1916,7 @@ function AppointmentHistoryView({
       </div>
     ) : <div className="admin-snap-warnbox" role="alert">{error}</div>;
   }
-  if (records.length === 0 && !revisionsWired) {
+  if (!loading && records.length === 0 && !revisionsWired) {
     return draftsSlot ? (
       <div className="admin-snap-canvas">
         {bulkHeader}
@@ -2033,7 +2036,7 @@ function AppointmentHistoryView({
           {cancelError && (
             <div className="admin-snap-warnbox" role="alert">{cancelError}</div>
           )}
-          {error && !showRevisions && (
+          {!loading && error && !showRevisions && (
             <div className="admin-snap-warnbox" role="alert" data-testid="snap-hist-load-error">{error}</div>
           )}
           {showRevisions ? (
@@ -2044,6 +2047,8 @@ function AppointmentHistoryView({
               labels={labels}
               onOpen={openRevision}
             />
+          ) : loading ? (
+            <SkeletonList count={5} height={28} gap={6} data-testid="snap-hist-skeleton" />
           ) : filtered.length === 0 ? (
             error ? null : <EmptyState size="lg" description={labels.historyEmpty} />
           ) : (
