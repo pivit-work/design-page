@@ -8,6 +8,7 @@
  * 콜백은 저장 결과를 돌려준다 — `{ ok: true }` 또는 `{ ok: false, field?, message? }`.
  * `field` 가 있으면 그 칸 아래에 문구를 단다(입력은 그대로 둔다). 토스트·다시 불러오기는 호스트 몫이다.
  *   field: 'levels'(층 수) · 'levelNames.{0|1}'(층 이름) · 'name' · 'color' · 'headUserId' · 'parentId'
+ *   `fields` 에 층 이름 칸이 둘이면(겹친 이름) 두 칸 모두에 문구를 달고, 어느 한 칸을 고치면 둘 다 지운다.
  *
  * 층 번호는 아래에서부터 센다 — `levelNames[0]` = 아래 층(스쿼드가 속함) · `[1]` = 위 층. 화면은 위 층부터 적는다.
  *
@@ -59,6 +60,7 @@ export default function SquadGroupPanel({
   const [levelErr, setLevelErr] = useState('');
   const [names, setNames] = useState(levelNames);
   const [nameErr, setNameErr] = useState({});
+  const [nameErrPair, setNameErrPair] = useState([]); // 한 실패로 함께 틀린 층 이름 칸들 — 한 칸을 고치면 함께 지운다
   const [edit, setEdit] = useState(null); // { mode, id?, level, name, color, headUserId, parentId }
   const [editErr, setEditErr] = useState({});
   const [delAsk, setDelAsk] = useState(null);
@@ -88,11 +90,18 @@ export default function SquadGroupPanel({
   };
   const saveName = (i) => {
     const next = levelNames.map((x, j) => (j === i ? (names[i] || '').trim() : x));
-    setNameErr((e) => ({ ...e, [i]: '' }));
+    clearNameErr(i);
     run(`name${i}`, () => onSaveLevels(next), (res) => {
-      const at = res.field && res.field.startsWith('levelNames.') ? Number(res.field.split('.')[1]) : i;
-      setNameErr((e) => ({ ...e, [at]: res.message || '' }));
+      const named = (res.fields || (res.field ? [res.field] : [])).filter((f) => f.startsWith('levelNames.'));
+      const at = named.length ? named.map((f) => Number(f.split('.')[1])) : [i];
+      setNameErr((e) => ({ ...e, ...Object.fromEntries(at.map((k) => [k, res.message || ''])) }));
+      setNameErrPair(at.length > 1 ? at : []);
     });
+  };
+  const clearNameErr = (i) => {
+    const both = nameErrPair.includes(i) ? nameErrPair : [i];
+    setNameErr((e) => ({ ...e, ...Object.fromEntries(both.map((k) => [k, ''])) }));
+    if (both.length > 1) setNameErrPair([]);
   };
 
   const openCreate = (level) => {
@@ -260,7 +269,7 @@ export default function SquadGroupPanel({
                 aria-label={L('squad.groups.levelName', { tag: levelTag(i) })}
                 data-testid={`squad-group-level-name-${i}`}
                 className={`sq-field sq-group-level-input${nameErr[i] ? ' is-invalid' : ''}`}
-                onChange={(e) => { const v = e.target.value; setNames((ns) => ns.map((x, j) => (j === i ? v : x))); setNameErr((er) => ({ ...er, [i]: '' })); }}
+                onChange={(e) => { const v = e.target.value; setNames((ns) => ns.map((x, j) => (j === i ? v : x))); clearNameErr(i); }}
                 onKeyDown={(e) => { if (isEnterKey(e) && dirty) saveName(i); }}
               />
               <Button
