@@ -41,6 +41,7 @@ const WORDS = {
  *  - valueClassName · chevronClassName · chevron — 닫힌 칸 안 글·꺾쇠에 화면 고유 모양을 그대로 두고 싶을 때.
  *      `chevron={false}` 는 꺾쇠를 안 그린다 — 화면이 칸 배경이나 옆 아이콘으로 이미 화살표를 그릴 때
  *  - onOpenChange(open) — 펼침/닫힘을 바깥(칸을 감싼 요소의 `is-open` 등)이 알아야 할 때
+ *  - valueText — 닫힌 칸에 고른 값의 이름 대신 보일 글(표 칸이 빈 값을 목록 이름 «(고르지 않음)» 대신 «—» 로 보일 때 · PW-1333)
  *  - autoOpen — 참이 되는 순간 칸에 초점을 두고 목록을 편다(직무 칸이 후보만 남겼을 때 — 기본 목록의 showPicker 자리)
  *  - 칸과 줄에는 `data-value` 가 붙는다 — 테스트·자동화가 글자 대신 값으로 찾게.
  *  - ref — 칸(버튼)에 붙는다
@@ -63,6 +64,7 @@ export default function SearchSelect({
   chevron,
   onOpenChange,
   autoOpen = false,
+  valueText,
   ref,
   disabled,
   invalid,
@@ -189,7 +191,7 @@ export default function SearchSelect({
         onClick={() => (open ? close(false) : openMenu())}
       >
         <span className={`dp-search-select-value${selected ? '' : ' is-placeholder'}${valueClassName ? ` ${valueClassName}` : ''}`}>
-          {selected ? selected.label : (placeholder ?? '')}
+          {valueText ?? (selected ? selected.label : (placeholder ?? ''))}
         </span>
         {chevron !== false && (
           <span className={`dp-search-select-chevron${chevronClassName ? ` ${chevronClassName}` : ''}`} aria-hidden="true">

@@ -1039,16 +1039,54 @@
   min-height: 20px;
   cursor: text;
 }
-.admin-emp-edit-cell:not(.is-locked):not(.is-editing):hover,
-.admin-emp-edit-cell:not(.is-locked):not(.is-editing):focus-visible {
+.admin-emp-edit-cell:not(.is-locked):not(.is-editing):hover {
   outline: none;
   box-shadow: inset 0 0 0 1px var(--border-primary);
 }
+/* 키보드로 고른 칸(초점) — 열린 칸과 같은 초록 테두리, 번짐 없이(디자이너 .tl-select-trigger:focus-visible 와 같은 값). 방향키로 옮기는 자리가 보이게. */
+.admin-emp-edit-cell:not(.is-locked):not(.is-editing):focus {
+  outline: none;
+  box-shadow: inset 0 0 0 1px var(--colors-foreground-fgBrandPrimary);
+}
 .admin-emp-edit-cell.is-changed { background: var(--bg-brand-secondary); }
 .admin-emp-edit-cell.is-locked { cursor: default; }
-.admin-emp-edit-cell.is-editing { padding: 0 var(--spacing-xxs); }
+/* 열린 칸 (PW-1333 2회차 · 시안 worklog/employees-cell-edit-demo-2026-11-10) — 칸 안에 상자를 더 넣지 않고 칸 자체가 열린다.
+   테두리는 디자이너의 열린 선택 칸(timeline.css .tl-select.is-open · stesslee 005d80ab)과 같은 초록, 번짐은 같은 화면 툴바
+   필터가 열릴 때(.admin-emp-select.is-open)처럼 3px. 여백은 닫힌 칸과 같아 칸 글이 열어도 같은 자리 · 크기다. */
+.admin-emp-edit-cell.is-editing,
+.admin-emp-edit-cell.is-changed.is-editing {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  background: var(--bg-primary);
+  box-shadow: inset 0 0 0 1px var(--colors-foreground-fgBrandPrimary), 0 0 0 3px var(--utility-brand-50);
+  cursor: default;
+}
+.admin-emp-edit-cell:focus-visible { outline: none; }
 .admin-emp-edit-value { font-weight: 600; color: var(--text-primary); }
-.admin-emp-edit-input { width: 100%; min-width: 0; }
+/* 칸 안 입력 · 선택 칸 버튼은 맨 글 — 테두리 · 바탕 · 여백 없이 칸 글과 같은 글씨 */
+.admin-emp-edit-input {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  height: 20px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  outline: none;
+  font: inherit;
+  color: var(--text-primary);
+  gap: var(--spacing-xs);
+}
+.admin-emp-edit-cell.is-editing .admin-emp-edit-error,
+.admin-emp-edit-cell.is-editing .admin-emp-edit-note { flex-basis: 100%; }
+.admin-emp-edit-field { display: flex; align-items: center; gap: var(--spacing-xs); flex: 1; min-width: 0; }
+.admin-emp-edit-chevron { display: inline-flex; flex: none; color: var(--colors-foreground-fgBrandPrimary); }
+/* 열 머리 ▾ «한 번에 넣기» 창의 값 칸 — 창 안 입력이라 공용 입력칸 모양(dp-input)에 폭만 채운다 */
+.admin-emp-edit-fill-input { width: 100%; min-width: 0; }
 /* 칸 아래 한 줄 — 틀린 값 사유(빨강) · 입력 안내(회색). 칸은 한 줄 말줄임이지만 이 줄은 접어 다 보인다. */
 .admin-emp-edit-error,
 .admin-emp-edit-note {

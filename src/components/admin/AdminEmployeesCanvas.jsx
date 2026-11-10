@@ -46,6 +46,7 @@ import {
 } from './employeesIcons.jsx';
 import useDismissLayer from '../shared/useDismissLayer.js';
 import { isEnterKey } from '../shared/enterKey.js';
+import { CalendarGlyph } from '../shared/lineIcons.jsx';
 import { filterSearchOptions } from '../shared/searchOptions.js';
 import Pagination from '../shared/Pagination.jsx';
 import { SkeletonList } from '../shared/Skeleton.jsx';
@@ -2413,7 +2414,7 @@ function FillMenu({ colId, spec, te, selectedIds, title }) {
             <div className="admin-emp-edit-fill-body">
               {spec.kind === 'select' ? (
                 <Select
-                  className="admin-emp-edit-input"
+                  className="dp-input dp-select admin-emp-edit-fill-input"
                   data-testid={`employees-fill-value-${colId}`}
                   aria-label={title}
                   value={value}
@@ -2423,7 +2424,7 @@ function FillMenu({ colId, spec, te, selectedIds, title }) {
                 />
               ) : spec.kind === 'date' ? (
                 <DateInput
-                  className="admin-emp-edit-input"
+                  className="dp-input admin-emp-edit-fill-input"
                   data-testid={`employees-fill-value-${colId}`}
                   aria-label={title}
                   value={value}
@@ -2431,7 +2432,7 @@ function FillMenu({ colId, spec, te, selectedIds, title }) {
                 />
               ) : (
                 <TextInput
-                  className="admin-emp-edit-input"
+                  className="dp-input admin-emp-edit-fill-input"
                   data-testid={`employees-fill-value-${colId}`}
                   aria-label={title}
                   inputMode={spec.kind === 'number' ? 'numeric' : undefined}
@@ -3173,35 +3174,147 @@ function EmployeesListView({
    *   onFill(key, value, memberIds) — 열 머리 «체크한 N명에게 한 번에 넣기»(체크한 사람에게만)
    *   blockedReason — 저장 전 칸이 있으면 일괄 처리 · CSV 업로드를 끈 사유 · disabled — 저장 중
    *   focus { id, token } · onFocusHidden() — «내역 보기» 줄을 누르면 그 사람이 있는 쪽으로(위 `focusReq`)
+   *   errorFocus { token } — 저장 바 «틀린 칸 N개» 를 누르면 표 순서로 첫 틀린 칸을 고른다(필터에 가려졌으면 onFocusHidden)
+   *   onUndo() — 표의 칸에서 ⌘Z · onRevert(m, key, start) — Esc 로 그 칸에서 친 것만 되돌릴 때(없으면 onChange(start))
    *   footer — 표 아래 저장 바(부르는 쪽이 그린다) · labels — 문구
    */
   const te = tableEdit;
   const [editing, setEditing] = useState(null); // { id, colId, start } — 지금 입력이 열린 칸 하나
   const editingRef = useRef(null);
   const editColIds = te ? cols.filter((c) => te.columns[c.id]).map((c) => c.id) : [];
-  function openCell(m, colId) {
+  /* 키보드로 고를 칸 (PW-1333 2회차 · «여러 칸 한 번에 고치기» 창 PW-2642 와 같은 손버릇).
+     입력을 닫거나 쪽을 옮긴 «뒤» 그려진 칸에 초점을 줘야 해서, 칸이 그려질 때까지 들고 있다. */
+  const pendingFocusRef = useRef(null);
+  const cellEl = (id, colId) => document.querySelector(`[data-testid="employees-cell-${colId}-${id}"]`);
+  useLayoutEffect(() => {
+    const p = pendingFocusRef.current;
+    if (!p) return;
+    const el = cellEl(p.id, p.colId);
+    if (!el) return;
+    pendingFocusRef.current = null;
+    el.focus();
+    el.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+  });
+  const selectCell = (id, colId) => { pendingFocusRef.current = { id, colId }; };
+  /** 눌러서 열 수 있는 칸인가 — 키보드로 옮길 때 잠긴 칸은 건너뛴다(잠겼는데 고쳐지나 의심하지 않게). */
+  function canOpen(m, colId) {
     const spec = te?.columns[colId];
-    if (!spec || te.disabled || te.locked(m, spec.key)) return;
-    if (spec.kind === 'select' && te.options(m, spec.key) === null) return;
-    if (!te.onStart(m, spec.key)) return;
-    setEditing({ id: m.id, colId, start: te.value(m, spec.key), m });
+    if (!spec || te.disabled || te.locked(m, spec.key)) return false;
+    return !(spec.kind === 'select' && te.options(m, spec.key) === null);
   }
-  /* Enter 편집 끝 · Esc 그 칸 입력 취소 · Tab 다음 칸(§3.1-G «칸 모양»). 한글 조합 중 Enter 는 글자를 확정하는 키라 넘긴다. */
+  /** 이 쪽 안에서 (dRow, dCol) 만큼 옮긴 다음 칸. 줄 · 쪽 끝이면 null. `wrap` 이면 줄 끝에서 다음 줄로(Tab). */
+  function stepFrom(m, colId, dRow, dCol, wrap) {
+    let r = pageRows.findIndex((x) => x.id === m.id);
+    let c = editColIds.indexOf(colId);
+    if (r < 0 || c < 0) return null;
+    for (;;) {
+      r += dRow;
+      c += dCol;
+      if (dCol !== 0 && (c < 0 || c >= editColIds.length)) {
+        if (!wrap) return null;
+        r += dCol > 0 ? 1 : -1;
+        c = dCol > 0 ? 0 : editColIds.length - 1;
+      }
+      if (r < 0 || r >= pageRows.length) return null;
+      if (canOpen(pageRows[r], editColIds[c])) return { m: pageRows[r], colId: editColIds[c] };
+    }
+  }
+  function moveFocus(m, colId, dRow, dCol, wrap) {
+    const next = stepFrom(m, colId, dRow, dCol, wrap);
+    if (!next) return false;
+    const el = cellEl(next.m.id, next.colId);
+    el?.focus();
+    el?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+    return true;
+  }
+  /** `typed` — 고른 칸에서 친 글자. 글자 · 날짜 칸은 그 글자로 덮어쓰며 연다(엑셀처럼). */
+  function openCell(m, colId, typed) {
+    if (!canOpen(m, colId)) return;
+    const spec = te.columns[colId];
+    if (!te.onStart(m, spec.key)) return;
+    const start = te.value(m, spec.key);
+    setEditing({ id: m.id, colId, start, m });
+    if (typed !== undefined && spec.kind !== 'select') te.onChange(m, spec.key, typed);
+  }
+  const closeKeep = (m, colId) => { setEditing(null); selectCell(m.id, colId); };
+  const revert = (m, colId, start) => {
+    const { key } = te.columns[colId];
+    if (te.onRevert) te.onRevert(m, key, start);
+    else te.onChange(m, key, start);
+  };
+  const isUndoKey = (e) => (e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'z';
+  /* 고치는 중 — Enter 끝(글자 · 날짜는 아랫줄 칸으로) · Esc 그 칸 입력 취소 · Tab 다음 칸(§3.1-G «칸 모양»).
+     한글 조합 중 Enter 는 글자를 확정하는 키라 넘긴다. 선택 칸의 Enter 는 펼친 목록이 먼저 받아 값을 고른다. */
   function onCellKey(e, m, colId) {
     if (!editing) return;
+    const kind = te.columns[colId].kind;
     if (isEnterKey(e)) {
       e.preventDefault();
+      const below = kind === 'select' ? null : stepFrom(m, colId, 1, 0, false);
       setEditing(null);
+      if (below) selectCell(below.m.id, below.colId);
+      else selectCell(m.id, colId);
     } else if (e.key === 'Escape') {
       e.preventDefault();
       e.stopPropagation();
-      te.onChange(m, te.columns[colId].key, editing.start);
-      setEditing(null);
+      revert(m, colId, editing.start);
+      closeKeep(m, colId);
     } else if (e.key === 'Tab') {
       e.preventDefault();
       const next = editColIds[editColIds.indexOf(colId) + (e.shiftKey ? -1 : 1)];
       setEditing(null);
       if (next) openCell(m, next);
+    }
+  }
+  /* 글자 · 날짜 칸을 고치는 중 ↑↓ 는 칸을 옮기고(날짜 칸이 ↓ 로 달력을 펴기 전에 받는다 · Alt+↓ 는 달력),
+     ⌘Z 는 입력의 글자 되돌리기가 아니라 표의 되돌리기다 — 창과 같다. 선택 칸은 펼친 목록이 ↑↓ 를 받는다. */
+  function onCellKeyCapture(e, m, colId) {
+    if (!editing || e.nativeEvent.isComposing || te.columns[colId].kind === 'select') return;
+    if (isUndoKey(e)) {
+      e.preventDefault();
+      e.stopPropagation();
+      setEditing(null);
+      te.onUndo?.();
+      selectCell(m.id, colId);
+    } else if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && !e.altKey) {
+      e.preventDefault();
+      e.stopPropagation();
+      const next = stepFrom(m, colId, e.key === 'ArrowDown' ? 1 : -1, 0, false);
+      setEditing(null);
+      selectCell(next ? next.m.id : m.id, next ? next.colId : colId);
+    }
+  }
+  /* 고른 칸(초점만 있는 칸) — 방향키 · Tab 으로 옮기고, 치면 바로 고치기, Enter · F2 · Space · Alt+↓ 로 연다. */
+  function onSelectedKey(e, m, colId) {
+    if (e.nativeEvent.isComposing) return;
+    const kind = te.columns[colId].kind;
+    const mod = e.metaKey || e.ctrlKey;
+    const arrows = { ArrowRight: [0, 1], ArrowLeft: [0, -1], ArrowDown: [1, 0], ArrowUp: [-1, 0] };
+    if (isUndoKey(e)) {
+      e.preventDefault();
+      te.onUndo?.();
+    } else if (e.key === 'ArrowDown' && e.altKey) {
+      e.preventDefault();
+      openCell(m, colId);
+    } else if (arrows[e.key] && !mod && !e.altKey) {
+      e.preventDefault();
+      moveFocus(m, colId, arrows[e.key][0], arrows[e.key][1], false);
+    } else if (e.key === 'Tab') {
+      // 표 끝에서는 막지 않는다 — 다음 버튼으로 나간다.
+      if (moveFocus(m, colId, 0, e.shiftKey ? -1 : 1, true)) e.preventDefault();
+    } else if (isEnterKey(e) || e.key === 'F2' || (e.key === ' ' && kind === 'select')) {
+      e.preventDefault();
+      openCell(m, colId);
+    } else if (mod || e.altKey) {
+      // 다른 단축키는 그대로 둔다
+    } else if (e.key === 'Backspace' || e.key === 'Delete') {
+      if (kind === 'select') return;
+      e.preventDefault();
+      openCell(m, colId, '');
+    } else if (e.key.length === 1 || e.key === 'Process') {
+      // 글자 하나(한글 조합 시작 key=Process 는 글자를 알 수 없어 빈 칸으로 연다)
+      e.preventDefault();
+      openCell(m, colId, kind === 'select' ? undefined : (e.key === 'Process' ? '' : e.key));
     }
   }
   /* 입력 밖을 누르면 닫는다 — 날짜 칸은 달력이 body 직속 창이라 입력의 blur 로는 닫을 수 없다(달력을 누르는 순간 닫힌다).
@@ -3213,10 +3326,33 @@ function EmployeesListView({
     !!editing,
     () => {
       if (!editing) return;
-      te.onChange(editing.m, te.columns[editing.colId].key, editing.start);
-      setEditing(null);
+      revert(editing.m, editing.colId, editing.start);
+      closeKeep(editing.m, editing.colId);
     },
   );
+  /* 열린 입력은 글 끝에 커서를 둔다 — 친 글자로 열었을 때 다음 글자가 그 뒤에 붙게. */
+  const caretEnd = (e) => {
+    const n = e.target.value?.length ?? 0;
+    e.target.setSelectionRange?.(n, n);
+  };
+
+  /* 저장 바 «틀린 칸 N개» → 표 순서(정렬된 줄 → 열 순서)로 첫 틀린 칸이 있는 쪽으로 가서 그 칸을 고른다(PW-1333 2회차). */
+  const errorToken = te?.errorFocus?.token ?? null;
+  const errorRef = useRef({ te, ordered, pageSize, editColIds });
+  useLayoutEffect(() => { errorRef.current = { te, ordered, pageSize, editColIds }; });
+  useEffect(() => {
+    if (errorToken == null) return;
+    const { te: te0, ordered: rows, pageSize: size, editColIds: colIds } = errorRef.current;
+    for (let i = 0; i < rows.length; i += 1) {
+      const colId = colIds.find((id) => te0.error(rows[i], te0.columns[id].key));
+      if (colId) {
+        setPage(Math.floor(i / size) + 1);
+        selectCell(rows[i].id, colId);
+        return;
+      }
+    }
+    te0?.onFocusHidden?.();
+  }, [errorToken]);
 
   function editCell(m, colId) {
     if (!te) return null;
@@ -3243,31 +3379,45 @@ function EmployeesListView({
     let body;
     if (isEditing && spec.kind === 'select') {
       const note = te.note(key);
+      /* 칸 안에 상자를 더 넣지 않는다 — 칸 자체가 열린 모양(.is-editing)이고, 칸 글은 닫혔을 때와 같은 자리 · 크기(시안 ①).
+         빈 값은 목록 이름 «(고르지 않음)» 이 아니라 닫힌 칸과 같은 «—». */
       body = (
         <>
           <Select
             autoOpen
             className="admin-emp-edit-input"
+            valueText={value === '' ? '—' : undefined}
+            valueClassName={value === '' ? 'admin-emp-cell-dash' : undefined}
+            chevronClassName="admin-emp-edit-chevron"
             data-testid={inputId}
             aria-label={aria}
             value={value}
             options={[...(spec.required ? [] : [{ value: '', label: te.labels.noValue }]), ...(opts ?? [])]}
-            onChange={(ev) => { te.onChange(m, key, ev.target.value); setEditing(null); }}
-            onOpenChange={(o) => { if (!o) setEditing(null); }}
+            onChange={(ev) => { te.onChange(m, key, ev.target.value); closeKeep(m, colId); }}
+            onOpenChange={(o) => {
+              if (o) return;
+              // 목록에서 고르거나 Esc 로 닫으면 초점이 칸 버튼에 있다 — 그 칸을 고른 채 남긴다(바깥을 누른 것이면 두지 않는다).
+              if (editingRef.current?.contains(document.activeElement)) closeKeep(m, colId);
+              else setEditing(null);
+            }}
           />
           {note && <span className="admin-emp-edit-note">{note}</span>}
         </>
       );
     } else if (isEditing && spec.kind === 'date') {
       body = (
-        <DateInput
-          autoFocus
-          className="admin-emp-edit-input"
-          data-testid={inputId}
-          aria-label={aria}
-          value={value}
-          onChange={(v) => te.onChange(m, key, v)}
-        />
+        <span className="admin-emp-edit-field">
+          <DateInput
+            autoFocus
+            className="admin-emp-edit-input"
+            data-testid={inputId}
+            aria-label={aria}
+            value={value}
+            onFocus={caretEnd}
+            onChange={(v) => te.onChange(m, key, v)}
+          />
+          <span className="admin-emp-edit-chevron" aria-hidden="true"><CalendarGlyph size={14} /></span>
+        </span>
       );
     } else if (isEditing) {
       body = (
@@ -3278,6 +3428,7 @@ function EmployeesListView({
           aria-label={aria}
           inputMode={spec.kind === 'number' ? 'numeric' : undefined}
           value={value}
+          onFocus={caretEnd}
           onChange={(e) => te.onChange(m, key, e.target.value)}
         />
       );
@@ -3304,9 +3455,10 @@ function EmployeesListView({
         tabIndex={isEditing || why ? undefined : 0}
         aria-label={isEditing || why ? undefined : aria}
         onClick={() => { if (!isEditing) openCell(m, colId); }}
+        onKeyDownCapture={(e) => { if (isEditing) onCellKeyCapture(e, m, colId); }}
         onKeyDown={(e) => {
           if (isEditing) onCellKey(e, m, colId);
-          else if (isEnterKey(e) && e.target === e.currentTarget) { e.preventDefault(); openCell(m, colId); }
+          else if (e.target === e.currentTarget) onSelectedKey(e, m, colId);
         }}
       >
         {body}
