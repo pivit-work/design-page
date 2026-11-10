@@ -21,12 +21,24 @@ export const STRUCT_MORE_SHOW = 9;
 export const STRUCT_ZOOM_MIN = 0.4;
 export const STRUCT_ZOOM_MAX = 1.5;
 export const STRUCT_ZOOM_STEP = 0.1;
+/** 휠 한 칸(deltaY)당 배율 변화 — 조직도 트리 탭(usePanZoom)과 같은 세기. */
+export const STRUCT_WHEEL_RATE = 0.002;
 /** 캔버스 최대 높이 — «한눈에»와 같은 자리(§5-6-B «큰 조직» ①). */
 export const STRUCT_CANVAS_MAX_H = 760;
 /** 끌다가 놓은 것을 클릭으로 치지 않는 거리(§5.4 · 엣지 104). */
 export const STRUCT_DRAG_THRESHOLD = 4;
 
-export const STRUCT_VIEW_ALL = { folded: new Set(), more: new Set() };
+export const STRUCT_VIEW_ALL = { folded: new Set(), more: new Set(), density: 'all' };
+
+/**
+ * 보이는 정보 양(조직도 트리 탭 툴바와 같은 세 갈래 · 4회차 2026-11-10 커트 결정).
+ *  - all     사람 카드 전부
+ *  - leaders 스쿼드 리드 · 트라이브·그룹 헤드 · 조직장 카드만, 나머지는 «N명» 한 줄
+ *  - count   카드 없이 «N명» 한 줄
+ * «N명» 줄은 그 노드 «자기» 사람만 센다. 묶음 노드(사람 = 헤드뿐)와 «스쿼드 없음»은 카드가 이미 수를 말해 줄을 두지 않는다.
+ */
+export const STRUCT_DENSITIES = ['all', 'leaders', 'count'];
+const isStructLeader = (c) => !!(c.lead || c.headOf || c.unitHead);
 
 const byKo = (a, b) => a.localeCompare(b, 'ko');
 
@@ -40,7 +52,9 @@ export function structFitScale(viewW, treeW) {
  * 보이는 트리. `root` 는 `{ key, kind, data, children, people }` 노드 트리 — 고치지 않고 새 트리를 돌려준다.
  * `view.folded` = 접은 노드 key · `view.more` = «더 보기»를 연 노드 key.
  * 노드마다 `foldTotal`(접기 단추에 걸리는 하위 노드 + 사람 수 · 0 이면 단추 없음) · `folded` · `ownCount`(접기 전 사람 수) ·
- * `moreTotal`(더 보기가 걸린 사람 수 · 0 이면 없음) · `moreOpen` · `hidden`(가려진 사람 수)을 붙인다.
+ * `moreTotal`(더 보기가 걸린 사람 수 · 0 이면 없음) · `moreOpen` · `hidden`(가려진 사람 수) ·
+ * `summaryCount`(«리더만»·«인원수만»에서 카드 대신 «N명» 한 줄로 세는 사람 수 · 0 이면 줄 없음)을 붙인다.
+ * `view.density` = 보이는 정보 양(`STRUCT_DENSITIES`).
  * `foldable` = 접을 수 있는 노드 key 전부(«전체 접기»의 재료 — 접힌 노드 아래도 센다).
  */
 export function structureView(root, view = STRUCT_VIEW_ALL) {
@@ -54,7 +68,10 @@ export function structureView(root, view = STRUCT_VIEW_ALL) {
     const folded = canFold && view.folded.has(n.key);
     if (collectOnly || folded) children.forEach((c) => walk(c, true));
     if (collectOnly) return null;
-    let shown = folded ? [] : people;
+    const density = view.density || 'all';
+    const kept = density === 'count' ? [] : density === 'leaders' ? people.filter(isStructLeader) : people;
+    const summaryCount = density !== 'all' && !folded && n.kind !== 'group' && n.kind !== 'none' ? people.length - kept.length : 0;
+    let shown = folded ? [] : kept;
     const moreTotal = shown.length >= STRUCT_MORE_AT ? shown.length : 0;
     const moreOpen = moreTotal > 0 && view.more.has(n.key);
     if (moreTotal && !moreOpen) shown = shown.slice(0, STRUCT_MORE_SHOW);
@@ -67,6 +84,7 @@ export function structureView(root, view = STRUCT_VIEW_ALL) {
       moreTotal,
       moreOpen,
       hidden: moreTotal - shown.length,
+      summaryCount,
       children: folded ? [] : children.map((c) => walk(c, false)),
     };
   };

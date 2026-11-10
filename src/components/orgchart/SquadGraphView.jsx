@@ -19,12 +19,16 @@
  * 그림이 판보다 넓을 때 — 기획서는 «판 안에서 가로로 스크롤»이다(§5-6 「배치」). 가로 스크롤바만 두면
  * 맥에서는 스크롤바가 숨고 마우스 휠은 세로로만 돌아, 판 오른쪽을 볼 방법이 없었다(2026-11-04 커트 dev).
  * 그래서 조직도 트리와 같이 **끌어서 옮기고**, 오른쪽 위 버튼으로 확대·축소·«판에 맞춤»을 한다.
- * 휠은 가로채지 않는다 — 이 판은 페이지 한가운데라 휠은 페이지 스크롤이어야 한다.
+ * 4회차(PW-2599 · 2026-11-10 커트 결정) — 조직도 «트리» 탭과 같게 판 위 휠은 마우스 자리 기준 확대·축소다(전에는 페이지 스크롤로
+ * 넘겼다). 툴바에 조직도와 같은 [이미지로 다운]과 30 띄운 [전체 화면](같은 ModalShell 창 · 같은 상태 필터의 그림)을 더한다.
  */
-import { useCallback, useLayoutEffect, useMemo, useState } from 'react';
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Chip from '../shared/Chip.jsx';
 import Icon from '../shared/Icon.jsx';
-import { MinusGlyph, PlusGlyph } from '../shared/lineIcons.jsx';
+import { DownloadSolidGlyph, ExpandScreenGlyph, MinusGlyph, PlusGlyph } from '../shared/lineIcons.jsx';
+import ModalShell from '../shared/ModalShell.jsx';
+import { OrgToolButton, OrgToolbarGroup } from './OrgCanvasFrame.jsx';
+import useSquadGraphImage from './useSquadGraphImage.js';
 import usePanZoom from '../shared/usePanZoom.js';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import SquadStructureView from './SquadStructureView.jsx';
@@ -85,6 +89,8 @@ export default function SquadGraphView({
   people = [],
   units = [],
   companyName = '',
+  // [이미지로 다운] — ({ element, branch: 'tree' | 'link' }) => void | Promise. 안 주면 여기서 JPG 로 뜬다(useSquadGraphImage).
+  onDownloadImage,
 }) {
   const L = useOrgLabels();
   const G = GRAPH_GEOM;
@@ -102,21 +108,8 @@ export default function SquadGraphView({
   // 담당 프로젝트를 아직 못 받았거나 못 불러온 스쿼드는 `projects` 가 배열이 아니다(카드 보기는 그 칸을 안 그린다).
   // 그때 범례가 «이어지지 않은 프로젝트는 그리지 않는다»를 말하면 «프로젝트 없음»으로 읽힌다 — 프로젝트 줄 범례를 걷는다.
   const projectsKnown = shown.every((sq) => Array.isArray(sq.projects));
-  const { canvasRef, scale, translate, isDragging, canvasProps, zoomIn, zoomOut, setView } = usePanZoom({
-    // 버튼과 누를 수 있는 사람 노드에서 시작한 끌기는 옮기지 않는다 — 클릭이 먹어야 한다
-    ignoreSelector: '[data-testid="squad-graph-tools"], .sq-graph-person.is-clickable',
-    minScale: GRAPH_ZOOM_MIN,
-    maxScale: GRAPH_ZOOM_MAX,
-    wheelZoom: false,
-  });
-  const place = useCallback((fit) => {
-    const el = canvasRef.current;
-    if (!el) return;
-    const p = graphPlacement({ viewW: el.clientWidth, graphW: layout.width, graphH: layout.height, fit });
-    setView(p.scale, p.translate);
-  }, [canvasRef, layout.width, layout.height, setView]);
-  // 그림이 바뀌면(필터를 켜고 끔) 첫 자리로 — 옛 자리에 두면 새 그림이 판 밖에 있을 수 있다
-  useLayoutEffect(() => { if (branch === 'link' && shown.length > 0) place(false); }, [place, shown.length, branch]);
+  const [expanded, setExpanded] = useState(false);
+  const { download, exporting } = useSquadGraphImage({ onDownloadImage, L });
   const bands = useMemo(() => groupBands(layout.squadNodes, groups, levelNames.length), [layout, groups, levelNames.length]);
   const toggleStatus = (st) => setStatusOn((on) => (on.includes(st) ? on.filter((x) => x !== st) : [...on, st]));
 
@@ -136,109 +129,8 @@ export default function SquadGraphView({
   const opacity = (on, faded = false) => (on ? 1 : DIM) * (faded ? FADED : 1);
   const inactive = (sq) => !isCountedStatus(sq.status);
 
-  return (
-    <div className="pj-table-section sq-matrix-section" data-testid="squad-graph">
-      <div className="pj-table-header-text sq-matrix-head sq-graph-head">
-        <div>
-          <p className="pj-table-title">{L(branch === 'tree' ? 'squad.graph.treeTitle' : 'squad.graph.title')}</p>
-          <p className="pj-table-subtitle">{L(branch === 'tree' ? 'squad.graph.treeSubtitle' : 'squad.graph.subtitle')}</p>
-        </div>
-        {/* 상태 필터 — 여러 개를 함께 켠다. 버튼마다 그 상태의 스쿼드 수(필터와 무관한 전체 수) */}
-        <div className="sq-graph-filters" role="group" aria-label={L('squad.graph.filterLabel')}>
-          {/* 갈래 — 상태 필터 왼쪽 맨 앞(§4 «구조 / 연결» 갈래) */}
-          <SegmentedControl
-            ariaLabel={L('squad.graph.branchLabel')}
-            items={[
-              { value: 'tree', label: L('squad.graph.branch.tree'), testId: 'squad-graph-branch-tree' },
-              { value: 'link', label: L('squad.graph.branch.link'), testId: 'squad-graph-branch-link' },
-            ]}
-            value={branch}
-            onChange={(v) => { setBranch(v); setFocus(null); }}
-          />
-          {GRAPH_STATUS_ORDER.map((st) => {
-            const meta = squadStatusMeta(st);
-            const on = statusOn.includes(st);
-            return (
-              <Chip
-                key={st}
-                selected={on}
-                onClick={() => toggleStatus(st)}
-                data-testid={`squad-graph-filter-${st}`}
-                icon={<span className="pj-status-dot" style={{ background: meta.dotColor }} aria-hidden />}
-              >
-                {L('squad.graph.filterCount', {
-                  status: squadStatusText(L, st),
-                  count: squads.filter((sq) => sq.status === st).length,
-                })}
-              </Chip>
-            );
-          })}
-        </div>
-      </div>
-
-      {shown.length === 0 && branch === 'tree' && (
-        <div className="sq-empty sq-graph-empty" data-testid="squad-graph-empty">
-          <p className="sq-empty-title">{L('squad.graph.emptyTitle')}</p>
-          <p className="sq-empty-desc">{L('squad.graph.emptyDesc')}</p>
-        </div>
-      )}
-      {/* 구조 갈래 — 켜진 스쿼드가 0건이어도 묶음은 그린다(§5-6-B «빈 상태» · «묶음과 필터») */}
-      {branch === 'tree' ? (
-        <SquadStructureView
-          shown={shown}
-          all={squads}
-          levelNames={levelNames}
-          groups={groups}
-          people={people}
-          units={units}
-          companyName={companyName}
-          personOf={personOf}
-          renderAvatar={renderAvatar}
-          onMemberClick={onMemberClick}
-        />
-      ) : (<>
-      <div className="sq-panel">
-        {shown.length === 0 ? (
-          <div className="sq-empty sq-graph-empty" data-testid="squad-graph-empty">
-            <p className="sq-empty-title">{L('squad.graph.emptyTitle')}</p>
-            <p className="sq-empty-desc">{L('squad.graph.emptyDesc')}</p>
-          </div>
-        ) : (
-          <div
-            className="sq-graph-viewport"
-            ref={canvasRef}
-            {...canvasProps}
-            style={{ height: layout.height + GRAPH_VIEW_PAD * 2, cursor: isDragging ? 'grabbing' : 'grab' }}
-            data-testid="squad-graph-viewport"
-          >
-            {/* 오른쪽 위 확대 · 축소 · 맞춤 — 조직도 트리 캔버스 툴바와 같은 버튼 */}
-            <div className="org-toolbar org-toolbar-right" data-testid="squad-graph-tools">
-              <div className="org-toolbar-group">
-                <button type="button" className="org-tool-btn" onClick={zoomIn} disabled={scale >= GRAPH_ZOOM_MAX}
-                  title={L('org.zoomIn')} aria-label={L('org.zoomIn')} data-action="zoom-in">
-                  <PlusGlyph size={20} />
-                </button>
-                <button type="button" className="org-tool-btn" onClick={zoomOut} disabled={scale <= GRAPH_ZOOM_MIN}
-                  title={L('org.zoomOut')} aria-label={L('org.zoomOut')} data-action="zoom-out">
-                  <MinusGlyph size={20} />
-                </button>
-                <button type="button" className="org-tool-btn has-label" onClick={() => place(true)}
-                  title={L('squad.graph.zoomFitTip')} data-action="zoom-fit">
-                  <span>{L('squad.graph.zoomFit')}</span>
-                </button>
-              </div>
-            </div>
-            <div
-              className="sq-graph-canvas"
-              style={{
-                width: layout.width,
-                height: layout.height,
-                transform: `translate(${translate.x}px, ${translate.y}px) scale(${scale})`,
-                transformOrigin: '0 0',
-              }}
-              data-scale={scale.toFixed(2)}
-              onMouseLeave={() => setFocus(null)}
-            >
+  // 연결 그림 한 장 — 페이지 판과 «전체 화면» 창이 같은 그림을 그린다(배율·이동만 판마다 따로)
+  const linkContent = (<>
               {/* ── 묶음 띠 — 같은 아래 층 묶음의 스쿼드 노드 뒤 옅은 띠 + 묶음 이름(§5-6 «묶음 (연결 갈래)») ── */}
               {bands.map((b) => (
                 <div
@@ -463,8 +355,89 @@ export default function SquadGraphView({
                   </div>
                 );
               })}
-            </div>
+  </>);
+
+  return (
+    <div className="pj-table-section sq-matrix-section" data-testid="squad-graph">
+      <div className="pj-table-header-text sq-matrix-head sq-graph-head">
+        <div>
+          <p className="pj-table-title">{L(branch === 'tree' ? 'squad.graph.treeTitle' : 'squad.graph.title')}</p>
+          <p className="pj-table-subtitle">{L(branch === 'tree' ? 'squad.graph.treeSubtitle' : 'squad.graph.subtitle')}</p>
+        </div>
+        {/* 상태 필터 — 여러 개를 함께 켠다. 버튼마다 그 상태의 스쿼드 수(필터와 무관한 전체 수) */}
+        <div className="sq-graph-filters" role="group" aria-label={L('squad.graph.filterLabel')}>
+          {/* 갈래 — 상태 필터 왼쪽 맨 앞(§4 «구조 / 연결» 갈래) */}
+          <SegmentedControl
+            ariaLabel={L('squad.graph.branchLabel')}
+            items={[
+              { value: 'tree', label: L('squad.graph.branch.tree'), testId: 'squad-graph-branch-tree' },
+              { value: 'link', label: L('squad.graph.branch.link'), testId: 'squad-graph-branch-link' },
+            ]}
+            value={branch}
+            onChange={(v) => { setBranch(v); setFocus(null); }}
+          />
+          {GRAPH_STATUS_ORDER.map((st) => {
+            const meta = squadStatusMeta(st);
+            const on = statusOn.includes(st);
+            return (
+              <Chip
+                key={st}
+                selected={on}
+                onClick={() => toggleStatus(st)}
+                data-testid={`squad-graph-filter-${st}`}
+                icon={<span className="pj-status-dot" style={{ background: meta.dotColor }} aria-hidden />}
+              >
+                {L('squad.graph.filterCount', {
+                  status: squadStatusText(L, st),
+                  count: squads.filter((sq) => sq.status === st).length,
+                })}
+              </Chip>
+            );
+          })}
+        </div>
+      </div>
+
+      {shown.length === 0 && branch === 'tree' && (
+        <div className="sq-empty sq-graph-empty" data-testid="squad-graph-empty">
+          <p className="sq-empty-title">{L('squad.graph.emptyTitle')}</p>
+          <p className="sq-empty-desc">{L('squad.graph.emptyDesc')}</p>
+        </div>
+      )}
+      {/* 구조 갈래 — 켜진 스쿼드가 0건이어도 묶음은 그린다(§5-6-B «빈 상태» · «묶음과 필터») */}
+      {branch === 'tree' ? (
+        <SquadStructureView
+          shown={shown}
+          all={squads}
+          levelNames={levelNames}
+          groups={groups}
+          people={people}
+          units={units}
+          companyName={companyName}
+          personOf={personOf}
+          renderAvatar={renderAvatar}
+          onMemberClick={onMemberClick}
+          onDownloadImage={onDownloadImage}
+        />
+      ) : (<>
+      <div className="sq-panel">
+        {shown.length === 0 ? (
+          <div className="sq-empty sq-graph-empty" data-testid="squad-graph-empty">
+            <p className="sq-empty-title">{L('squad.graph.emptyTitle')}</p>
+            <p className="sq-empty-desc">{L('squad.graph.emptyDesc')}</p>
           </div>
+        ) : (
+          <LinkViewport
+            L={L}
+            layout={layout}
+            branch={branch}
+            shownCount={shown.length}
+            exporting={exporting}
+            onDownload={(el) => download(el, 'link')}
+            onExpandView={() => setExpanded(true)}
+            onLeave={() => setFocus(null)}
+          >
+            {linkContent}
+          </LinkViewport>
         )}
       </div>
 
@@ -474,7 +447,112 @@ export default function SquadGraphView({
         <p className="pj-table-subtitle">{L('squad.graph.legendLine')}</p>
         {projectsKnown && <p className="pj-table-subtitle">{L('squad.graph.legendProject')}</p>}
       </div>
+      {/* 전체 화면 — 조직도 트리 탭 «전체 화면»과 같은 창. 같은 상태 필터의 그림을 크게 본다 */}
+      {expanded && shown.length > 0 && (
+        <ModalShell
+          ariaLabel={L('squad.graph.title')}
+          closeLabel={L('org.closeExpandView')}
+          onClose={() => setExpanded(false)}
+          footer={null}
+          className="org-expand-shell"
+          bodyClassName="org-expand-body"
+          testId="squad-graph-expand-modal"
+          closeTestId="squad-graph-expand-close"
+        >
+          <LinkViewport
+            L={L}
+            layout={layout}
+            branch={branch}
+            shownCount={shown.length}
+            exporting={exporting}
+            onDownload={(el) => download(el, 'link')}
+            onLeave={() => setFocus(null)}
+            expanded
+          >
+            {linkContent}
+          </LinkViewport>
+        </ModalShell>
+      )}
       </>)}
+    </div>
+  );
+}
+
+/**
+ * 연결 그림을 놓는 판 하나 — 끌어서 옮기기 · 휠 확대·축소(마우스 자리 기준) · 오른쪽 위 툴바.
+ * 페이지 판은 그림 높이만큼, 전체 화면 창의 판은 창 본문을 채운다. 배율·이동은 판마다 따로다.
+ */
+function LinkViewport({ L, layout, branch, shownCount, exporting, onDownload, onExpandView, onLeave, expanded = false, children }) {
+  const canvasElRef = useRef(null);
+  const { canvasRef, scale, translate, isDragging, canvasProps, zoomIn, zoomOut, setView } = usePanZoom({
+    // 버튼과 누를 수 있는 사람 노드에서 시작한 끌기는 옮기지 않는다 — 클릭이 먹어야 한다
+    ignoreSelector: '[data-testid="squad-graph-tools"], .sq-graph-person.is-clickable',
+    minScale: GRAPH_ZOOM_MIN,
+    maxScale: GRAPH_ZOOM_MAX,
+  });
+  const place = useCallback((fit) => {
+    const el = canvasRef.current;
+    if (!el) return;
+    const p = graphPlacement({ viewW: el.clientWidth, graphW: layout.width, graphH: layout.height, fit });
+    setView(p.scale, p.translate);
+  }, [canvasRef, layout.width, layout.height, setView]);
+  // 그림이 바뀌면(필터를 켜고 끔) 첫 자리로 — 옛 자리에 두면 새 그림이 판 밖에 있을 수 있다
+  useLayoutEffect(() => { if (branch === 'link' && shownCount > 0) place(false); }, [place, shownCount, branch]);
+  return (
+    <div
+      className={`sq-graph-viewport${expanded ? ' is-expanded' : ''}`}
+      ref={canvasRef}
+      {...canvasProps}
+      style={{ ...(expanded ? {} : { height: layout.height + GRAPH_VIEW_PAD * 2 }), cursor: isDragging ? 'grabbing' : 'grab' }}
+      data-testid={expanded ? 'squad-graph-viewport-expanded' : 'squad-graph-viewport'}
+    >
+      {/* 오른쪽 위 확대 · 축소 · 맞춤 · 이미지 + 30 띄운 전체 화면 — 조직도 트리 캔버스 툴바와 같은 버튼 */}
+      <div className="org-toolbar org-toolbar-right" data-testid="squad-graph-tools">
+        <OrgToolbarGroup>
+          <button type="button" className="org-tool-btn" onClick={zoomIn} disabled={scale >= GRAPH_ZOOM_MAX}
+            title={L('org.zoomIn')} aria-label={L('org.zoomIn')} data-action="zoom-in">
+            <PlusGlyph size={20} />
+          </button>
+          <button type="button" className="org-tool-btn" onClick={zoomOut} disabled={scale <= GRAPH_ZOOM_MIN}
+            title={L('org.zoomOut')} aria-label={L('org.zoomOut')} data-action="zoom-out">
+            <MinusGlyph size={20} />
+          </button>
+          <button type="button" className="org-tool-btn has-label" onClick={() => place(true)}
+            title={L('squad.graph.zoomFitTip')} data-action="zoom-fit">
+            <span>{L('squad.graph.zoomFit')}</span>
+          </button>
+          <button
+            type="button"
+            className="org-tool-btn has-label"
+            onClick={() => onDownload(canvasElRef.current)}
+            disabled={exporting || undefined}
+            aria-busy={exporting || undefined}
+            data-action="download-image"
+          >
+            <DownloadSolidGlyph size={20} />
+            <span>{L('org.downloadImage')}</span>
+          </button>
+        </OrgToolbarGroup>
+        {onExpandView && (
+          <OrgToolButton label={L('org.expandView')} onClick={onExpandView} data-action="expand-view">
+            <ExpandScreenGlyph size={20} />
+          </OrgToolButton>
+        )}
+      </div>
+      <div
+        ref={canvasElRef}
+        className="sq-graph-canvas"
+        style={{
+          width: layout.width,
+          height: layout.height,
+          transform: `translate(${translate.x}px, ${translate.y}px) scale(${scale})`,
+          transformOrigin: '0 0',
+        }}
+        data-scale={scale.toFixed(2)}
+        onMouseLeave={onLeave}
+      >
+        {children}
+      </div>
     </div>
   );
 }

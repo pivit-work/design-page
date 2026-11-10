@@ -236,6 +236,11 @@ export default function SquadCanvas({
    */
   memberSuggestions = null,
   onMemberClick,
+  /**
+   * 그림 보기 «구조»·«연결» 툴바 [이미지로 다운](PW-2599 4회차) — ({ element, branch: 'tree' | 'link' }) => void | Promise.
+   * 조직도 트리 탭과 같은 받기를 쓰게 호스트가 넘긴다. 안 주면 캔버스가 JPG 로 뜬다.
+   */
+  onDownloadGraphImage,
   onSubTabChange,
   /**
    * ── 담당 프로젝트 칸 (PW-1428) ──
@@ -1308,6 +1313,7 @@ export default function SquadCanvas({
                 <SquadGraphView
                   squads={squads} personOf={personOf} renderAvatar={personAvatar} onMemberClick={onMemberClick}
                   levelNames={groupLevelNames} groups={squadGroups} people={people} units={orgUnits} companyName={companyName}
+                  onDownloadImage={onDownloadGraphImage}
                 />
               )}
               {!viewOnly && (<>

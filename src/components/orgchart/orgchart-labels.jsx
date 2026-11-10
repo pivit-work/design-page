@@ -353,6 +353,7 @@ export const ORGCHART_LABELS = {
   'squad.graph.subtitle': '위 = 담당 프로젝트 · 가운데 = 스쿼드 · 아래 = 사람 — 노드에 마우스를 올리면 이어진 선만 진하게 보입니다 · 편집은 카드 보기에서 합니다',
   'squad.graph.zoomFit': '맞춤',
   'squad.graph.zoomFitTip': '그림 전체가 판에 들어오게 줄입니다',
+  'squad.graph.imageFileName': '스쿼드 연결_{{date}}_{{time}}',
   'squad.graph.filterLabel': '스쿼드 상태',
   'squad.graph.filterCount': '{{status}} {{count}}',
   'squad.graph.emptyTitle': '선택한 상태의 스쿼드가 없습니다',
@@ -410,6 +411,8 @@ export const ORGCHART_LABELS = {
   'squad.struct.foldClose': '하위 {{count}}개 접기',
   'squad.struct.expandAllTip': '전체 펼치기 — 처음 모습으로',
   'squad.struct.collapseAllTip': '전체 접기 — 회사와 맨 위 노드만 남기고 접기',
+  // 이미지로 다운 — 호스트가 받기를 안 넘길 때 쓰는 파일 이름(조직도 'org.imageFileName' 과 같은 꼴)
+  'squad.struct.imageFileName': '스쿼드 구조_{{date}}_{{time}}',
   'squad.struct.legendSquad': '카드 한 장 = 배정 하나 · 겸임 n = 켜진 스쿼드 n곳에 함께 있음 · 흐린 카드 = 켜진 스쿼드에 배정 없음 · LEAD = 스쿼드 리드',
   'squad.struct.legendGroups': ' · 색 영역 = {{level}} 묶음 · 헤드는 표기만(권한 없음)',
   'squad.struct.legendOrg': '카드 한 장 = 한 사람(주 소속) · «조직장» 딱지 = 그 조직의 조직장 · LEAD 딱지는 스쿼드 리드에만 씁니다',

@@ -12,14 +12,21 @@
  *   사람 카드       = 조직도 구성원 카드(.member-node — 사진 + 상태 점 · 이름 · 아래 줄 주 소속) · 리드 = 카드 보기의 LEAD 딱지
  *   선              = 조직도 BezierConnectors(직각) — 사람 카드 줄 아래에서 하위 노드로 나간다. 카드를 꿰뚫는 선이 없다
  *   도구 단추·접기  = 조직도 트리 캔버스 툴바(.org-tool-btn) · 부서 카드 접기 단추(.dept-toggle)
+ * 4회차(2026-11-10 커트 결정 · 카드 11-10 21:01·21:13 댓글) — 조직도 «트리» 탭 툴바에 있는데 여기 없던 것을 같은 부품으로 더한다:
+ *   휠 확대·축소(마우스 자리 기준) · 왼쪽 «보이는 정보 양»(전체·리더만·인원수만) · 연결선 모양 토글 · 펼치기/접기 토글 하나 ·
+ *   [이미지로 다운] · 30 띄운 [전체 화면](조직도와 같은 ModalShell 창). 기준일·자동 정렬은 넣지 않는다(카드 댓글).
+ *   전체 화면 창은 접힘·더 보기·보는 쪽·정보 양·선 모양을 페이지 그림과 함께 쓰고, 배율·끌기 위치는 창마다 따로다(조직도와 같다).
  * 디자이너 원본이 없는 조합(묶음 카드 바탕색 · 스쿼드 카드의 색 네모·상태 줄)은 pivit-work 카드에 design-review 라벨.
  * 사유표는 pivit-work `docs/ticket-notes/pw-2599.md` 「화면 점검」.
  */
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
+import ModalShell from '../shared/ModalShell.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
-import { ContractVerticalGlyph, ExpandVerticalGlyph, MinusGlyph, PlusGlyph } from '../shared/lineIcons.jsx';
+import { DownloadSolidGlyph, ExpandScreenGlyph, MinusGlyph, PlusGlyph } from '../shared/lineIcons.jsx';
+import { OrgExpandAllToggle, OrgLineStyleToggle, OrgToolButton, OrgToolbarGroup } from './OrgCanvasFrame.jsx';
+import useSquadGraphImage from './useSquadGraphImage.js';
 import { squadStatusText, useOrgLabels } from './orgchart-labels.jsx';
 import { LeadTag } from './squadIcons.jsx';
 import { squadStatusMeta } from './squad-constants.js';
@@ -32,6 +39,7 @@ import {
   STRUCT_CANVAS_MAX_H,
   STRUCT_DRAG_THRESHOLD,
   STRUCT_VIEW_ALL,
+  STRUCT_WHEEL_RATE,
   STRUCT_ZOOM_MAX,
   STRUCT_ZOOM_MIN,
   STRUCT_ZOOM_STEP,
@@ -63,34 +71,171 @@ export default function SquadStructureView({
   companyName = '',
   personOf,
   onMemberClick,
+  // [이미지로 다운] — ({ element, branch: 'tree' }) => void | Promise. 안 주면 여기서 JPG 로 뜬다(useSquadGraphImage).
+  onDownloadImage,
 }) {
   const L = useOrgLabels();
   // 기본·탭을 다시 열 때 = 스쿼드 조직(§5-6-C «트리거»)
   const [side, setSide] = useState('squad');
   const [noneOpen, setNoneOpen] = useState(false);
-  const [focus, setFocus] = useState(null); // { kind: 'p' | 'sq' | 'g', id, ids? }
-  const [zoom, setZoom] = useState(1);
   const [folded, setFolded] = useState(() => new Set());
   const [more, setMore] = useState(() => new Set());
+  // 보이는 정보 양 · 연결선 모양 — 조직도 트리 탭과 같은 기본값(전체 · 직각). 저장하지 않는다.
+  const [density, setDensity] = useState('all');
+  const [lineStyle, setLineStyle] = useState('ortho');
   const [centerTick, setCenterTick] = useState(0);
-  const [size, setSize] = useState({ w: 0, h: 0 });
-  const scrollRef = useRef(null);
-  const treeRef = useRef(null);
-  const rootCardRef = useRef(null);
-  const drag = useRef(null);
+  const [expanded, setExpanded] = useState(false);
 
   // «스쿼드 없음» 재료 — 조직도 명부의 재직 중 사람(스쿼드에만 남은 퇴사자 이름은 빼고)
   const roster = useMemo(() => people.filter((p) => p.employmentStatus !== 'terminated'), [people]);
   const tree = useMemo(() => (side === 'squad'
     ? buildSquadSide({ shown, all, levelNames, groups, roster, personOf, noneOpen })
     : buildOrgSide({ units, people })), [side, shown, all, levelNames, groups, roster, personOf, noneOpen, units, people]);
-  const view = useMemo(() => structureView(tree, { folded, more }), [tree, folded, more]);
+  const view = useMemo(() => structureView(tree, { folded, more, density }), [tree, folded, more, density]);
+  const foldable = useMemo(() => structureView(tree, STRUCT_VIEW_ALL).foldable, [tree]);
+  // 펼치기/접기 토글 — 접을 수 있는 노드가 모두 접혀 있으면 «접힘»(누르면 펼친다). 조직도 트리 탭과 같은 판정.
+  const allCollapsed = foldable.length > 0 && foldable.every((k) => folded.has(k));
+
+  // 쪽을 바꾸면 바로 그린다 · 접힘과 더 보기는 처음 모습으로 · 배율은 그대로(§5-6-B ⑤)
+  const changeSide = (to) => {
+    if (to === side) return;
+    setFolded(new Set());
+    setMore(new Set());
+    setSide(to);
+    setCenterTick((t) => t + 1);
+  };
+  const expandAll = () => { setFolded(new Set()); setMore(new Set()); setCenterTick((t) => t + 1); };
+  const collapseAll = () => { setFolded(new Set(foldable)); setCenterTick((t) => t + 1); };
+  const { download, exporting } = useSquadGraphImage({ onDownloadImage, L });
+
+  const sideControl = (
+    <SegmentedControl
+      ariaLabel={L('squad.struct.sideLabel')}
+      items={[
+        { value: 'org', label: L('squad.struct.side.org'), testId: 'squad-struct-side-org' },
+        { value: 'squad', label: L('squad.struct.side.squad'), testId: 'squad-struct-side-squad' },
+      ]}
+      value={side}
+      onChange={changeSide}
+    />
+  );
+  const canvas = {
+    L,
+    view,
+    side,
+    density,
+    lineStyle,
+    noneOpen,
+    centerTick,
+    allCollapsed,
+    shown,
+    personOf,
+    onMemberClick,
+    companyName,
+    exporting,
+    onToggleFold: toggleIn(setFolded),
+    onToggleMore: toggleIn(setMore),
+    onToggleNone: () => setNoneOpen((v) => !v),
+    onExpandAll: expandAll,
+    onCollapseAll: collapseAll,
+    onDensityChange: setDensity,
+    onLineStyleChange: setLineStyle,
+    onDownload: (el) => download(el, 'tree'),
+  };
+
+  const levels = levelNames.length;
+  const pathDesc = levels
+    ? L('squad.struct.descSquad', { path: [...levelNames].reverse().join(' → '), level: levelNames[0] })
+    : L('squad.struct.descSquadFlat');
+
+  return (
+    <div data-testid="squad-struct" data-side={side}>
+      <div className="sq-struct-bar">
+        {sideControl}
+        <p className="pj-table-subtitle" data-testid="squad-struct-desc">{side === 'squad' ? pathDesc : L('squad.struct.descOrg')}</p>
+      </div>
+
+      <StructureCanvas {...canvas} onExpandView={() => setExpanded(true)} />
+
+      <div className="sq-graph-legend" data-testid="squad-struct-legend">
+        <p className="pj-table-subtitle">
+          {side === 'squad'
+            ? `${L('squad.struct.legendSquad')}${levels ? L('squad.struct.legendGroups', { level: levelNames[0] }) : ''}`
+            : L('squad.struct.legendOrg')}
+        </p>
+        <p className="pj-table-subtitle">{L('squad.struct.legendNote')}</p>
+      </div>
+
+      {/* 전체 화면 — 조직도 트리 탭 «전체 화면»과 같은 창(ModalShell .org-expand-shell). 보는 쪽 고르기는 창 툴바 맨 앞에 */}
+      {expanded && (
+        <ModalShell
+          ariaLabel={L('squad.graph.treeTitle')}
+          closeLabel={L('org.closeExpandView')}
+          onClose={() => setExpanded(false)}
+          footer={null}
+          className="org-expand-shell"
+          bodyClassName="org-expand-body"
+          testId="squad-struct-expand-modal"
+          closeTestId="squad-struct-expand-close"
+        >
+          <StructureCanvas {...canvas} expanded toolbarLeading={sideControl} />
+        </ModalShell>
+      )}
+    </div>
+  );
+}
+
+/**
+ * 구조 트리를 그리는 판 하나 — 페이지 안 판과 «전체 화면» 창이 같은 트리·같은 접힘을 그린다(조직도 OrgChartViewport 와 같은 나눔).
+ * 배율 · 스크롤 위치 · 마우스 올림 강조는 판마다 따로다.
+ */
+function StructureCanvas({
+  L,
+  view,
+  side,
+  density,
+  lineStyle,
+  noneOpen,
+  centerTick,
+  allCollapsed,
+  shown,
+  personOf,
+  onMemberClick,
+  companyName,
+  exporting,
+  onToggleFold: toggleFold,
+  onToggleMore: toggleMore,
+  onToggleNone,
+  onExpandAll,
+  onCollapseAll,
+  onDensityChange,
+  onLineStyleChange,
+  onDownload,
+  onExpandView,
+  expanded = false,
+  toolbarLeading,
+}) {
+  // 마우스를 올린 것 { kind: 'p' | 'sq' | 'g', id, ids? } — 올린 쪽(side)과 함께 둔다. 쪽을 바꾸면 강조가 풀린다(쪽마다 카드가 다르다).
+  const [focusAt, setFocusAt] = useState(null);
+  const focus = focusAt && focusAt.side === side ? focusAt : null;
+  const setFocus = (f) => setFocusAt(f ? { ...f, side } : null);
+  const [zoom, setZoom] = useState(1);
+  const zoomRef = useRef(1);
+  const [size, setSize] = useState({ w: 0, h: 0 });
+  const scrollRef = useRef(null);
+  const sizerRef = useRef(null);
+  const treeRef = useRef(null);
+  const rootCardRef = useRef(null);
+  const drag = useRef(null);
+  // 휠로 바꾼 배율 — 그 자리(트리 좌표)와 판 안 마우스 위치. 다시 그린 뒤 그 점이 마우스 아래 남게 스크롤을 옮긴다.
+  const wheelAnchor = useRef(null);
+  useLayoutEffect(() => { zoomRef.current = zoom; }, [zoom]);
 
   // 트리 크기는 흐름 배치가 정한다 — 그린 뒤 재서 스크롤 판(배율만큼) 크기를 맞춘다.
-  // 처음 · 쪽을 바꿀 때 · ⊞ ⊟ · 배율을 바꿀 때 회사 카드가 가로 가운데 · 맨 위(§5-6-B «큰 조직» ①).
-  // 펼침·더 보기로 트리가 바뀔 때는 옮기지 않는다 — 보던 자리를 잃는다.
+  // 처음 · 쪽을 바꿀 때 · ⊞ ⊟ · 버튼으로 배율을 바꿀 때 회사 카드가 가로 가운데 · 맨 위(§5-6-B «큰 조직» ①).
+  // 휠로 바꿀 때는 마우스 자리를 지킨다(조직도 트리 탭과 같다 · 4회차). 펼침·더 보기로 트리가 바뀔 때는 옮기지 않는다.
   const pendingCenter = useRef(true);
-  useLayoutEffect(() => { pendingCenter.current = true; }, [centerTick, zoom]);
+  useLayoutEffect(() => { if (!wheelAnchor.current) pendingCenter.current = true; }, [centerTick, zoom]);
   useLayoutEffect(() => {
     const tr = treeRef.current;
     const el = scrollRef.current;
@@ -98,6 +243,14 @@ export default function SquadStructureView({
     const w = tr.offsetWidth;
     const h = tr.offsetHeight;
     if (w !== size.w || h !== size.h) { setSize({ w, h }); return; }
+    const a = wheelAnchor.current;
+    if (a) {
+      wheelAnchor.current = null;
+      const s = sizerRef.current;
+      el.scrollLeft = Math.max(0, a.px * zoom + (s?.offsetLeft || 0) - a.mx);
+      el.scrollTop = Math.max(0, a.py * zoom + (s?.offsetTop || 0) - a.my);
+      return;
+    }
     if (!pendingCenter.current) return;
     pendingCenter.current = false;
     const card = rootCardRef.current;
@@ -108,22 +261,33 @@ export default function SquadStructureView({
     el.scrollTop = 0;
   }, [view, zoom, centerTick, size.w, size.h]);
 
-  // 쪽을 바꾸면 바로 그린다 · 접힘과 더 보기는 처음 모습으로 · 배율은 그대로(§5-6-B ⑤)
-  const changeSide = (to) => {
-    if (to === side) return;
-    setFocus(null);
-    setFolded(new Set());
-    setMore(new Set());
-    setSide(to);
-    setCenterTick((t) => t + 1);
-  };
-  const toggleFold = toggleIn(setFolded);
-  const toggleMore = toggleIn(setMore);
-  const expandAll = () => { setFolded(new Set()); setMore(new Set()); setCenterTick((t) => t + 1); };
-  const collapseAll = () => {
-    setFolded(new Set(structureView(tree, STRUCT_VIEW_ALL).foldable));
-    setCenterTick((t) => t + 1);
-  };
+  // 휠 = 마우스 자리 기준 확대·축소(조직도 트리 탭 usePanZoom 과 같은 세기 · 한도는 버튼과 같은 40~150%).
+  // 판 위에서는 페이지가 스크롤되지 않는다. React onWheel 은 수동(passive)이라 막지 못해 직접 붙인다.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return undefined;
+    const onWheel = (e) => {
+      e.preventDefault();
+      const z = zoomRef.current;
+      const next = Math.min(STRUCT_ZOOM_MAX, Math.max(STRUCT_ZOOM_MIN, z - e.deltaY * STRUCT_WHEEL_RATE));
+      if (next === z) return;
+      const r = el.getBoundingClientRect();
+      const s = sizerRef.current;
+      const mx = e.clientX - r.left;
+      const my = e.clientY - r.top;
+      wheelAnchor.current = {
+        px: (el.scrollLeft + mx - (s?.offsetLeft || 0)) / z,
+        py: (el.scrollTop + my - (s?.offsetTop || 0)) / z,
+        mx,
+        my,
+      };
+      zoomRef.current = next;
+      setZoom(next);
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
+
   const zoomBy = (d) => setZoom((z) => Math.round(Math.min(STRUCT_ZOOM_MAX, Math.max(STRUCT_ZOOM_MIN, z + d)) * 10) / 10);
   const fit = () => {
     const el = scrollRef.current;
@@ -276,7 +440,7 @@ export default function SquadStructureView({
             'data-testid': 'squad-struct-none',
             'aria-expanded': noneOpen,
             title: L('squad.struct.noneTip', { count: n.data.count }),
-            ...asButton(() => setNoneOpen((v) => !v)),
+            ...asButton(onToggleNone),
           }}
         />
       );
@@ -336,7 +500,7 @@ export default function SquadStructureView({
   // 선은 BezierConnectors 가 이 뼈대를 읽어 긋는다(사람 카드가 있으면 마지막 사람 카드 아래에서 하위로).
   const renderNode = (n) => {
     const region = side === 'squad' && n.kind === 'group' && !n.data.virtual;
-    const hasPeople = n.people.length > 0 || n.moreTotal > 0;
+    const hasPeople = n.people.length > 0 || n.moreTotal > 0 || n.summaryCount > 0;
     return (
       <div
         className={`org-node${n.children.length ? ' has-children' : ''}${region ? ' sq-struct-region' : ''}`}
@@ -358,6 +522,12 @@ export default function SquadStructureView({
                 {n.moreOpen ? L('squad.struct.moreClose') : L('squad.struct.more', { count: n.hidden })}
               </div>
             )}
+            {/* «리더만»·«인원수만» — 카드 대신 그 노드 사람 수 한 줄(조직도 트리 탭 .members-summary 와 같다) */}
+            {n.summaryCount > 0 && (
+              <div className="members-summary" data-testid={`squad-struct-summary-${n.key}`}>
+                {L('org.headcount', { count: n.summaryCount })}
+              </div>
+            )}
           </div>
         )}
         {n.children.length > 0 && (
@@ -369,82 +539,89 @@ export default function SquadStructureView({
     );
   };
 
-  const levels = levelNames.length;
-  const pathDesc = levels
-    ? L('squad.struct.descSquad', { path: [...levelNames].reverse().join(' → '), level: levelNames[0] })
-    : L('squad.struct.descSquadFlat');
+
+  const densityItems = [
+    { value: 'all', label: L('org.density.all'), testId: 'squad-struct-density-all' },
+    { value: 'leaders', label: L('org.density.leaders'), testId: 'squad-struct-density-leaders' },
+    { value: 'count', label: L('org.density.count'), testId: 'squad-struct-density-count' },
+  ];
 
   return (
-    <div data-testid="squad-struct" data-side={side}>
-      <div className="sq-struct-bar">
+    <div className={`sq-struct-canvas${expanded ? ' is-expanded' : ''}`} data-testid={expanded ? 'squad-struct-canvas-expanded' : 'squad-struct-canvas'}>
+      {/* 왼쪽 툴바 — (보는 쪽) · 보이는 정보 양. 조직도 트리 탭 왼쪽 툴바와 같다(Figma 17755:26880) */}
+      <div className="org-toolbar org-toolbar-left sq-struct-tools-left" data-testid="squad-struct-tools-left">
+        {toolbarLeading}
         <SegmentedControl
-          ariaLabel={L('squad.struct.sideLabel')}
-          items={[
-            { value: 'org', label: L('squad.struct.side.org'), testId: 'squad-struct-side-org' },
-            { value: 'squad', label: L('squad.struct.side.squad'), testId: 'squad-struct-side-squad' },
-          ]}
-          value={side}
-          onChange={changeSide}
+          className="org-density"
+          items={densityItems}
+          value={density}
+          onChange={onDensityChange}
+          ariaLabel={L('org.density')}
         />
-        <p className="pj-table-subtitle" data-testid="squad-struct-desc">{side === 'squad' ? pathDesc : L('squad.struct.descOrg')}</p>
       </div>
-
-      <div className="sq-struct-canvas">
-        <div className="org-toolbar org-toolbar-right sq-struct-tools" data-testid="squad-struct-tools">
-          <div className="org-toolbar-group">
-            <button type="button" className="org-tool-btn" onClick={() => zoomBy(STRUCT_ZOOM_STEP)} disabled={zoom >= STRUCT_ZOOM_MAX}
-              title={L('org.zoomIn')} aria-label={L('org.zoomIn')} data-action="zoom-in">
-              <PlusGlyph size={20} />
-            </button>
-            <button type="button" className="org-tool-btn" onClick={() => zoomBy(-STRUCT_ZOOM_STEP)} disabled={zoom <= STRUCT_ZOOM_MIN}
-              title={L('org.zoomOut')} aria-label={L('org.zoomOut')} data-action="zoom-out">
-              <MinusGlyph size={20} />
-            </button>
-            <button type="button" className="org-tool-btn has-label" onClick={fit} title={L('squad.graph.zoomFitTip')} data-action="zoom-fit">
-              <span>{L('squad.graph.zoomFit')}</span>
-            </button>
-            <button type="button" className="org-tool-btn" onClick={expandAll} title={L('squad.struct.expandAllTip')}
-              aria-label={L('org.expandAll')} data-action="expand-all">
-              <ExpandVerticalGlyph size={20} />
-            </button>
-            <button type="button" className="org-tool-btn" onClick={collapseAll} title={L('squad.struct.collapseAllTip')}
-              aria-label={L('org.collapseAll')} data-action="collapse-all">
-              <ContractVerticalGlyph size={20} />
-            </button>
+      {/* 오른쪽 툴바 — 확대 · 축소 · 맞춤 · 연결선 · 펼치기/접기 · 이미지 + 30 띄운 전체 화면(조직도 Figma 17755:26881) */}
+      <div className="org-toolbar org-toolbar-right sq-struct-tools" data-testid="squad-struct-tools">
+        <OrgToolbarGroup>
+          <button type="button" className="org-tool-btn" onClick={() => zoomBy(STRUCT_ZOOM_STEP)} disabled={zoom >= STRUCT_ZOOM_MAX}
+            title={L('org.zoomIn')} aria-label={L('org.zoomIn')} data-action="zoom-in">
+            <PlusGlyph size={20} />
+          </button>
+          <button type="button" className="org-tool-btn" onClick={() => zoomBy(-STRUCT_ZOOM_STEP)} disabled={zoom <= STRUCT_ZOOM_MIN}
+            title={L('org.zoomOut')} aria-label={L('org.zoomOut')} data-action="zoom-out">
+            <MinusGlyph size={20} />
+          </button>
+          <button type="button" className="org-tool-btn has-label" onClick={fit} title={L('squad.graph.zoomFitTip')} data-action="zoom-fit">
+            <span>{L('squad.graph.zoomFit')}</span>
+          </button>
+          <OrgLineStyleToggle lineStyle={lineStyle} onChange={onLineStyleChange} label={L('org.lineStyle')} L={L} />
+          <OrgExpandAllToggle
+            allCollapsed={allCollapsed}
+            onExpandAll={onExpandAll}
+            onCollapseAll={onCollapseAll}
+            L={L}
+            title={L(allCollapsed ? 'squad.struct.expandAllTip' : 'squad.struct.collapseAllTip')}
+          />
+          <button
+            type="button"
+            className="org-tool-btn has-label"
+            onClick={() => onDownload(treeRef.current)}
+            disabled={exporting || undefined}
+            aria-busy={exporting || undefined}
+            data-action="download-image"
+          >
+            <DownloadSolidGlyph size={20} />
+            <span>{L('org.downloadImage')}</span>
+          </button>
+        </OrgToolbarGroup>
+        {onExpandView && (
+          <OrgToolButton label={L('org.expandView')} onClick={onExpandView} data-action="expand-view">
+            <ExpandScreenGlyph size={20} />
+          </OrgToolButton>
+        )}
+      </div>
+      <div
+        ref={scrollRef}
+        className="sq-struct-scroll"
+        style={expanded ? undefined : { maxHeight: STRUCT_CANVAS_MAX_H }}
+        data-testid={expanded ? 'squad-struct-scroll-expanded' : 'squad-struct-scroll'}
+        onMouseDown={onDown}
+        onMouseMove={onMove}
+        onMouseUp={onUp}
+        onMouseLeave={onUp}
+      >
+        <div ref={sizerRef} className="sq-struct-sizer" style={{ width: Math.round(size.w * zoom), height: Math.round(size.h * zoom) }}>
+          <div
+            ref={treeRef}
+            className="sq-struct-tree"
+            style={{ transform: `scale(${zoom})` }}
+            data-scale={zoom.toFixed(2)}
+            data-line-style={lineStyle}
+            onMouseLeave={() => setFocus(null)}
+          >
+            <BezierConnectors containerRef={treeRef} scale={zoom} lineStyle={lineStyle} />
+            {renderNode(view.root)}
           </div>
         </div>
-        <div
-          ref={scrollRef}
-          className="sq-struct-scroll"
-          style={{ maxHeight: STRUCT_CANVAS_MAX_H }}
-          data-testid="squad-struct-scroll"
-          onMouseDown={onDown}
-          onMouseMove={onMove}
-          onMouseUp={onUp}
-          onMouseLeave={onUp}
-        >
-          <div className="sq-struct-sizer" style={{ width: Math.round(size.w * zoom), height: Math.round(size.h * zoom) }}>
-            <div
-              ref={treeRef}
-              className="sq-struct-tree"
-              style={{ transform: `scale(${zoom})` }}
-              data-scale={zoom.toFixed(2)}
-              onMouseLeave={() => setFocus(null)}
-            >
-              <BezierConnectors containerRef={treeRef} scale={zoom} />
-              {renderNode(view.root)}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="sq-graph-legend" data-testid="squad-struct-legend">
-        <p className="pj-table-subtitle">
-          {side === 'squad'
-            ? `${L('squad.struct.legendSquad')}${levels ? L('squad.struct.legendGroups', { level: levelNames[0] }) : ''}`
-            : L('squad.struct.legendOrg')}
-        </p>
-        <p className="pj-table-subtitle">{L('squad.struct.legendNote')}</p>
       </div>
     </div>
   );

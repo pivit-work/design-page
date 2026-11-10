@@ -1772,6 +1772,8 @@
 .sq-graph-empty { margin: var(--spacing-3xl); }
 /* 그림 판 — 끌어서 옮기고 버튼으로 확대·축소한다(조직도 트리 캔버스와 같다). 자리는 transform 으로 옮겨 스크롤바가 없다. */
 .sq-graph-viewport { position: relative; overflow: hidden; user-select: none; }
+/* 전체 화면 창 — 조직도 .canvas-area.is-expanded 처럼 창 본문을 채운다(PW-2599 4회차) */
+.sq-graph-viewport.is-expanded { position: absolute; inset: 0; }
 .sq-graph-canvas { position: absolute; left: 0; top: 0; }
 .sq-graph-lines { position: absolute; left: 0; top: 0; overflow: visible; }
 .sq-graph-edge { stroke-opacity: 0.55; stroke-linecap: round; }
@@ -1929,6 +1931,10 @@
 .sq-struct-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-lg); padding: 0 var(--spacing-3xl) var(--spacing-lg); }
 .sq-struct-canvas { position: relative; margin: 0 var(--spacing-3xl); background: var(--bg-quaternary); border-radius: 14px; }
 .sq-struct-tools { top: var(--spacing-lg); right: var(--spacing-lg); z-index: 5; }
+.sq-struct-tools-left { top: var(--spacing-lg); left: var(--spacing-lg); z-index: 5; }
+/* 전체 화면 창 — 조직도 .canvas-area.is-expanded 처럼 창 본문을 채운다. 스크롤 판도 창 높이를 다 쓴다. */
+.sq-struct-canvas.is-expanded { position: absolute; inset: 0; margin: 0; display: flex; flex-direction: column; }
+.sq-struct-canvas.is-expanded > .sq-struct-scroll { flex: 1; min-height: 0; }
 .sq-struct-scroll {
   overflow: auto; cursor: grab; user-select: none; border-radius: 14px;
   background-color: var(--bg-quaternary);
