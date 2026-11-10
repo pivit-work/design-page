@@ -134,7 +134,7 @@ const DEFAULT_LABELS = {
   // PW-1461 · 정책 §5.2.2 — 단계별 일정의 리뷰 순서
   phaseOrderLocked: '오픈 이후 리뷰 순서는 변경할 수 없습니다.',
   phaseOrderSaveFailed: '순서 저장에 실패했습니다. 다시 시도해 주세요.',
-  phaseOrderCalibrationAfterLeader: '⚠ 캘리브레이션은 하향 리뷰 뒤에만 둘 수 있습니다 — 하향 리뷰 등급을 조정하는 단계입니다.',
+  phaseOrderCalibrationAfterLeader: '캘리브레이션은 하향 리뷰 뒤에만 둘 수 있습니다 — 하향 리뷰 등급을 조정하는 단계입니다.',
   editScheduleOrderErr: '종료 일시는 시작 일시와 같거나 이후여야 합니다.',
   editScheduleSave: '일정 저장',
   toastScheduleSaved: '일정이 수정되었습니다',
