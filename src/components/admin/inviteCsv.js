@@ -143,7 +143,10 @@ export const INVITE_CSV_COLUMNS = [
   { key: 'workCountry', labelKey: 'csvColWorkCountry', option: 'workCountry', width: 110 },
   { key: 'workLocation', labelKey: 'csvColWorkLocation', option: 'workLocation', width: 110, aliases: ['근무지'] },
   { key: 'workBuilding', labelKey: 'csvColWorkBuilding', option: 'workBuilding', width: 130 },
+  // 층 · 자리 유형 — 83열 양식의 자리 묶음 «빌딩 · 층 · 책상 · 자리 유형» 순(pivit-work PW-2600 · 서버 `csv-upload-form.ts`).
+  { key: 'workFloor', labelKey: 'csvColWorkFloor', kind: 'floor', width: 90 },
   { key: 'workDesk', labelKey: 'csvColWorkDesk', width: 110 },
+  { key: 'seatType', labelKey: 'csvColSeatType', kind: 'seatType', width: 100 },
   { key: 'officePhone', labelKey: 'csvColOfficePhone', width: 120 },
   // 권한
   { key: 'role', labelKey: 'csvColRole', kind: 'role', width: 90, legacyHeaders: ['역할', 'Role'] },
@@ -220,6 +223,28 @@ export const ORG_PATH_LIST_SEP = '|';
 
 /** Excel 이 BOM 없는 UTF-8 CSV 의 한글을 깨뜨려 읽는다. */
 export const CSV_BOM = '﻿';
+
+/** 층 글자 수 상한 — 서버 `INPUT_LIMITS.memberWorkFloor` 와 같다(pivit-work PW-2600). */
+export const WORK_FLOOR_MAX_LENGTH = 20;
+
+/**
+ * 자리 유형 — 저장 코드 4종 ↔ 화면 이름(서버 `hr-cell.util.ts` `SEAT_TYPE_LABELS` 와 같다 · pivit-work PW-2600).
+ * 회사가 늘리지 않는다.
+ */
+export const SEAT_TYPE_CELL_LABELS = { desk: '책상', room: '개인실', hot_desk: '자유석', remote: '원격' };
+
+/** 자리 유형 칸 글자 → 코드. 화면 이름·코드 둘 다 받는다(대소문자·공백 무시 · 서버와 같다). 못 읽으면 `null`. */
+export function parseSeatTypeCell(value) {
+  const t = fold(value);
+  if (!t) return null;
+  for (const [code, label] of Object.entries(SEAT_TYPE_CELL_LABELS)) {
+    if (t === fold(code) || t === fold(label)) return code;
+  }
+  return null;
+}
+
+/** 책상을 받지 않는 자리 유형(자유석 · 원격). */
+export const seatTypeRefusesDesk = (code) => code === 'hot_desk' || code === 'remote';
 
 /**
  * 역할 코드값 ↔ 라벨 키 — 초대에 실을 수 있는 권한은 **둘뿐이다** (PW-847).
@@ -389,7 +414,9 @@ export const INVITE_CSV_DEFAULT_LABELS = {
   csvColLeaveStartDate: '휴직 시작일',
   csvColLeaveEndDate: '휴직 종료일',
   csvColWorkBuilding: '근무 위치(빌딩)',
+  csvColWorkFloor: '층',
   csvColWorkDesk: '근무 위치(책상)',
+  csvColSeatType: '자리 유형',
   csvColOfficePhone: '사무실 전화',
   csvColExpertise: '업무 전문 분야',
   csvColSkills: '스킬셋',
@@ -397,6 +424,10 @@ export const INVITE_CSV_DEFAULT_LABELS = {
   csvColEducation: '학력',
   csvErrHrbpUnknown: '담당 HRBP «{value}» 은(는) 이 회사의 재직 구성원이 아닙니다',
   csvErrMilitary: '병역은 군필·미필·면제·복무중·해당없음 중 하나로 적어 주세요',
+  // 층 · 자리 유형 (pivit-work PW-2600 · 서버 `hr-cell.util.ts` 와 같은 문구)
+  csvErrSeatType: '자리 유형은 책상·개인실·자유석·원격 중 하나로 적어 주세요',
+  csvErrWorkFloorTooLong: '층은 {max}자까지 적어 주세요',
+  csvErrSeatDeskNotAccepted: '자유석 · 원격이면 책상 칸을 비워 주세요',
   csvColContractStartDate: '계약 시작일',
   csvColContractEndDate: '계약 종료일',
   csvColOvertimeAllowance: '초과근무 수당',
@@ -601,6 +632,8 @@ const TEMPLATE_SAMPLE = {
   hireDate: '2026-10-01',
   workCountry: '대한민국',
   workLocation: '서울',
+  workFloor: '3층',
+  seatType: '책상',
   certifications: '정보처리기사',
 };
 
@@ -1079,7 +1112,8 @@ export function inviteCsvIssues(row, ctx) {
   for (const col of inviteCsvColumns({ jobCategoryEnabled: ctx.jobCategoryEnabled })) {
     // 글자 수·개수 상한(PW-1057) — 앱이 넘긴 칸만 본다. 여러 값 칸은 `|` 로 나눈 값마다 본다.
     const limit = ctx.fieldLimits?.[col.key];
-    if (limit && normalize(v[col.key])) {
+    // 층은 글자 수 문구가 따로다(아래) — 같은 칸에 두 줄을 세우지 않는다.
+    if (limit && col.kind !== 'floor' && normalize(v[col.key])) {
       if (col.kind === 'list') {
         const items = splitList(v[col.key]);
         if (limit.maxItems && items.length > limit.maxItems) {
@@ -1128,6 +1162,14 @@ export function inviteCsvIssues(row, ctx) {
     if (col.kind === 'military' && normalize(v[col.key]) && !MILITARY_BY_TEXT[normalize(v[col.key]).replace(/\s+/g, '').toLowerCase()]) {
       add(col.key, l.csvErrMilitary);
     }
+    // 층 — 자유 입력 20자(서버 `WORK_FLOOR_MAX_LENGTH`). 앱이 상한을 넘기면 그 값을 쓴다.
+    if (col.kind === 'floor' && normalize(v[col.key]).length > (limit?.maxLength || WORK_FLOOR_MAX_LENGTH)) {
+      add(col.key, fmtCsv(l.csvErrWorkFloorTooLong, { max: limit?.maxLength || WORK_FLOOR_MAX_LENGTH }));
+    }
+    // 자리 유형 — 4종 고정(책상·개인실·자유석·원격). 받는 글자는 서버 `parseSeatTypeCell` 과 같다(화면 이름·코드).
+    if (col.kind === 'seatType' && normalize(v[col.key]) && !parseSeatTypeCell(v[col.key])) {
+      add(col.key, l.csvErrSeatType);
+    }
     if (col.kind === 'bool' && normalize(v[col.key]) && parseBoolCell(v[col.key]) === null) {
       add(col.key, fmtCsv(l.csvErrBool, { column: labelOf(col.key), value: v[col.key] }));
     }
@@ -1139,6 +1181,11 @@ export function inviteCsvIssues(row, ctx) {
     if (col.kind === 'hours' && normalize(v[col.key]) && !/^\d+$/.test(normalize(v[col.key]))) {
       add(col.key, fmtCsv(l.csvErrHours, { column: labelOf(col.key), value: v[col.key] }));
     }
+  }
+
+  // ⑨ 자유석 · 원격이면 책상 칸을 받지 않는다 — 책상 칸에 붙는다(admin-spec §3.1-B · spec-company-assets §1-1).
+  if (seatTypeRefusesDesk(parseSeatTypeCell(v.seatType)) && normalize(v.workDesk)) {
+    add('workDesk', l.csvErrSeatDeskNotAccepted);
   }
 
   /* (직군, 직렬) 쌍 — INV-3. (직렬, 직무) 쌍 — INV-8. 값 하나만 조용히 버리지 않는다 —

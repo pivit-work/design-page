@@ -23,6 +23,7 @@ import PreferenceTab from './PreferenceTab.jsx';
 import PersonalTagsField from './PersonalTagsField.jsx';
 import { formatEduPeriod, formatYm, fromRange, nowYm, ymNum, isYm } from './educationForm.js';
 import Button from '../shared/Button.jsx';
+import Stack from '../shared/Stack.jsx';
 
 /**
  * MySettingsCanvas — 내 설정 화면 정본.
@@ -329,6 +330,13 @@ const DEFAULT_LABELS = {
     employmentSection: '고용·근무 위치',
     adminManagedBadge: '어드민 관리',
     employmentNote: '값이 실제와 다르면 인사 담당자에게 알려 주세요. 이 화면에서는 수정할 수 없습니다.',
+    /* 내가 쓰는 회사 자산 (pivit-work PW-2600 · my-settings §4.3) */
+    myAssetsSection: '내가 쓰는 회사 자산',
+    myAssetsNote: '자산에 문제가 있으면 인사 담당자에게 알려 주세요.',
+    myAssetsIssuedOn: '지급일 {date}',
+    myAssetsLoadError: '회사 자산을 불러오지 못했습니다',
+    myAssetsRetry: '다시 시도',
+    myAssetsRetrying: '다시 불러오는 중…',
     benefitsSection: '복리후생·교육',
     trainingsTitle: '수료한 교육 과정',
     trainingsEmpty: '수료한 교육 과정이 없습니다.',
@@ -689,6 +697,55 @@ function EmploymentCard({ employment, labels }) {
       </div>
       <ReadonlyPairs pairs={employment.pairs || []} />
       <p className="msc-field-note">{L.employmentNote}</p>
+    </Card>
+  );
+}
+
+/* ═══ 기본 정보 › 내가 쓰는 회사 자산 (읽기 전용 · pivit-work PW-2600 · my-settings §4.3 · 정책 §2 · §3 · §4) ═══
+   지금 «사용 중»으로 나에게 지급된 자산만(책상에 둔 것 제외 — 소비자가 거른다). 0건 · 불러오는 중이면 카드를 그리지 않는다 —
+   0건이면 숨는 카드라 떴다 사라지면 «자산이 없어졌다»로 읽힌다(정책 §3). 실패면 머리 + 실패 줄 + [다시 시도].
+   줄은 누를 수 없다. 모양은 바로 위 «고용·근무 위치» 카드 머리(배지)와 «복리후생·교육»의 «수료한 교육 과정» 목록을 그대로 쓴다. */
+function MyAssetsCard({ myAssets, labels }) {
+  const L = labels.profile;
+  const items = myAssets.items || [];
+  if (myAssets.status === 'loading') return null;
+  if (myAssets.status !== 'error' && items.length === 0) return null;
+  return (
+    <Card testId="profile-my-assets-card">
+      <div className="msc-vis-header">
+        <div className="admin-section-label" style={{ flex: 1, marginBottom: 0 }}>{L.myAssetsSection}</div>
+        <StatusBadge className="msc-hist-badge" data-testid="profile-my-assets-admin-badge">{L.adminManagedBadge}</StatusBadge>
+      </div>
+      {myAssets.status === 'error' ? (
+        <Stack gap="md" className="msc-empty-state" testId="profile-my-assets-error">
+          <div>{L.myAssetsLoadError}</div>
+          {myAssets.onRetry && (
+            <div>
+              <Button variant="secondary" size="sm" className="admin-notif-btn" disabled={Boolean(myAssets.retrying)}
+                onClick={myAssets.onRetry} data-testid="profile-my-assets-retry">
+                {myAssets.retrying ? L.myAssetsRetrying : L.myAssetsRetry}
+              </Button>
+            </div>
+          )}
+        </Stack>
+      ) : (
+        <>
+          <div className="msc-list" data-testid="profile-my-assets">
+            {items.map((a) => (
+              <div key={a.id} className="msc-list-row" data-testid={`profile-my-asset-${a.id}`}>
+                <div style={{ flex: 1 }}>
+                  <div className="msc-notif-label">{a.name}</div>
+                  <div className="msc-notif-sub">
+                    {[a.assetNo, a.kindName, a.issuedOn ? String(L.myAssetsIssuedOn).split('{date}').join(a.issuedOn) : null]
+                      .filter(Boolean).join(' · ')}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="msc-field-note">{L.myAssetsNote}</p>
+        </>
+      )}
     </Card>
   );
 }
@@ -1703,6 +1760,9 @@ export default function MySettingsCanvas({
   performanceError = false,
   /* 기본 정보 탭 읽기 전용 블록 (PW-1477) — { pairs } / { pairs, trainings, loading, error } */
   employment = null,
+  /* 내가 쓰는 회사 자산 (pivit-work PW-2600) — { status: 'loading'|'error'|'ready', items: [{ id, assetNo, kindName, name, issuedOn }],
+     onRetry, retrying }. 미주입이면 카드가 없다 */
+  myAssets = null,
   benefits = null,
   /* 변경 이력 (PW-460) */
   history = null,
@@ -2568,6 +2628,7 @@ export default function MySettingsCanvas({
               </Card>
 
               {employment && <EmploymentCard employment={employment} labels={labels} />}
+              {myAssets && <MyAssetsCard myAssets={myAssets} labels={labels} />}
               {benefits && <BenefitsCard benefits={benefits} labels={labels} />}
 
               <button

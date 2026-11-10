@@ -33,6 +33,12 @@ export const ADMIN_OFFBOARDING_DEFAULT_LABELS = {
   title: '퇴사 처리',
   subtitle: '되돌릴 수 없습니다. 아래를 확인한 뒤 한 번에 실행합니다.',
   listSeparator: ' · ',
+  /* 섹션 1 «회수하지 않은 자산 N건» 한 줄 (pivit-work PW-2600 · 퇴사 정책 §2-D) */
+  unreturnedAssets: {
+    title: '회수하지 않은 자산 {count}건',
+    desc: '퇴사 처리는 그대로 실행할 수 있어요. 회수는 «회사 자산»에서 따로 합니다.',
+    view: '자산 보기',
+  },
   sections: {
     target: '대상자',
     data: '데이터 처리',

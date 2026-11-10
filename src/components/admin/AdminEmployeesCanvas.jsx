@@ -30,6 +30,7 @@ import ToneBadge from '../shared/StatusBadge.jsx';
 import Chip from '../shared/Chip.jsx';
 import TextInput from '../shared/TextInput.jsx';
 import ArchivedRecordsSection, { ArchivedNote } from './ArchivedRecordsSection.jsx';
+import MemberAssetsSection, { SeatLockedBox } from './MemberAssetsSection.jsx';
 import OffboardingReasonSection from './OffboardingReasonSection.jsx';
 import { ARCHIVED_RECORDS_DEFAULT_LABELS } from './archivedRecordsLabels.js';
 import Select from '../shared/Select.jsx';
@@ -341,6 +342,26 @@ const DEFAULT_LABELS = {
     workLocation: '근무지(도시)',
     workBuilding: '근무 위치(빌딩)',
     ftePercent: 'FTE (%)',
+    /* 층 · 자리 유형 · 자리 미리 보기 · 책상 배치에 앉은 사람의 읽기 전용 상자 (pivit-work PW-2600 · admin-spec §3.2.5) */
+    workFloor: '층',
+    workFloorPlaceholder: '예: 3층 · 3F · B1',
+    seatType: '자리 유형',
+    seatDeskRefused: '자유석 · 원격은 책상 칸을 받지 않습니다',
+    seatRoomHint: '개인실이면 방 이름을 적습니다 — 예: 대표실 · 301호',
+    seatPreview: '동료에게 보이는 자리 · {line} (조직도 퍼블릭 카드)',
+    seatLocked: '책상 배치에서 정한 자리입니다 — 동료에게 보이는 자리 · {line}',
+    seatGoLayout: '배치도에서 보기',
+    /* «지급된 자산» 묶음 (pivit-work PW-2600 · admin-spec §3.2.13 · spec-company-assets §10) */
+    assets: {
+      section: '지급된 자산',
+      loading: '지급된 자산을 불러오는 중…',
+      loadError: '지급된 자산을 불러오지 못했습니다',
+      retry: '다시 시도',
+      empty: '지급된 자산이 없습니다',
+      issue: '자산 지급',
+      issuedOn: '지급 {date}',
+      resignedNote: '퇴사한 구성원이 가진 자산은 회사 자산 목록에 «퇴사자 보유»로 보입니다. 회수는 회사 자산에서 합니다.',
+    },
     roleSection: '권한',
     role: '권한',
     roles: { admin: '어드민', member: '멤버' },
@@ -4332,7 +4353,12 @@ const PANEL_PATCH_FIELDS = [
   'hireDate', 'employmentStatus', 'terminationDate',
   // PW-1345 — 중간 이름·영문명·책상·사무실 전화·담당 HRBP
   'middleName', 'nameEn', 'workDesk', 'officePhone', 'hrbpId',
+  // PW-2600 — 층 · 자리 유형 (admin-spec §3.2.5)
+  'workFloor', 'seatType',
 ];
+
+/** 자리 네 칸 — 책상 배치에 앉은 사람이면 배치도가 정해 패널에서 고치지 못한다(spec-company-assets §13-A-5). */
+const SEAT_FIELD_KEYS = new Set(['workBuilding', 'workFloor', 'seatType', 'workDesk']);
 
 /**
  * 권한 select 의 값 — **둘뿐이다** (PW-847). admin 승격은 서버가 초대로만 허용한다.
@@ -4408,6 +4434,10 @@ const PANEL_FIELD_GROUPS = [
       // 기존 값은 아래 select 가 선택지 맨 앞에 남겨 지워진 것처럼 보이지 않는다.
       { key: 'workLocation', labelKey: 'workLocation', kind: 'select', catalog: 'workLocationOptions' },
       { key: 'workBuilding', labelKey: 'workBuilding', kind: 'select', catalog: 'buildingOptions' },
+      /* 층 · 자리 유형 (pivit-work PW-2600 · §3.2.5). 입력 순서는 빌딩 → 층 → 자리 유형 → 책상 — 자리 유형이 책상 칸을
+         켜고 끄므로 먼저 고르게 한다(CSV 열 순서와 일부러 다르다). 소비자가 `seatFields` 를 넘길 때만 칸이 선다. */
+      { key: 'workFloor', labelKey: 'workFloor', kind: 'text', maxLength: 20, placeholderKey: 'workFloorPlaceholder', needsSeat: true },
+      { key: 'seatType', labelKey: 'seatType', kind: 'choice', catalog: 'seatTypeOptions', needsSeat: true },
       // 책상·사무실 전화 — 빌딩 다음 (PW-1345 · §3.2.5). 책상은 회사마다 표기가 달라 자유 입력이다.
       { key: 'workDesk', labelKey: 'workDesk', kind: 'text' },
       { key: 'officePhone', labelKey: 'officePhone', kind: 'text' },
@@ -4747,6 +4777,17 @@ function EmployeesEditPanel({
      - `draftLoadFor(memberId)` — 불러온 발령안 `{ token, values, affiliation, effectiveDate, appointmentType, reason, stale }`.
        `token` 이 바뀔 때 한 번 칸에 채운다. `stale` 은 `{ [field]: 지금 값 글자 }` — 그 칸 줄 아래 안내를 단다. */
   appointmentFlow,
+  /* 층 · 자리 유형 칸과 자리 미리 보기 줄 (pivit-work PW-2600 · admin-spec §3.2.5). `{ typeOptions: [{ value, label }],
+     refusesDesk(type) => boolean, lineOf({ workBuilding, workFloor, workDesk, seatType }) => string|null }`.
+     자리 유형이 `refusesDesk` 이면 책상 칸이 잠기고 값이 빈다. 미주입이면 두 칸과 미리 보기 줄이 없다(종전 그대로). */
+  seatFields,
+  /* 책상 배치 자리 · «지급된 자산» (pivit-work PW-2600 · admin-spec §3.2.5 · §3.2.13). 미주입이면 둘 다 없다.
+     - `onLoad(memberId) => Promise<{ seat: { deskId, layoutId, deskName, seatLine } | null, assets: [{ id, assetNo, kindName, name, issuedOn }] }>`
+       — 앉아 있으면(`seat`) 자리 네 칸 대신 읽기 전용 상자를 그린다. 실패하면 칸은 그대로 두고 묶음 자리에 실패 + [다시 시도].
+     - `onOpenAsset(assetId)` 줄을 누름 · `onOpenSeat(seat)` [배치도에서 보기]
+     - `onIssue(member, done)` [자산 지급] — 창은 소비자가 띄우고, 지급하면 `done()` 을 불러 목록을 다시 받는다.
+       패널 [저장]과 따로 바로 저장된다. 미주입이거나 퇴사자면 버튼이 없다. */
+  memberAssets,
 }) {
   const [draft, setDraft] = useState(member);
   const appointmentWired = Array.isArray(appointmentTypeOptions);
@@ -4813,6 +4854,9 @@ function EmployeesEditPanel({
    */
   /* 따로 보관한 기록 — 불러오기 상태는 효과 밖(사람이 바뀌는 자리·[다시 시도])에서만 'loading' 으로 세운다 */
   const [archive, setArchive] = useState({ status: onLoadArchivedRecords ? 'loading' : 'idle', view: null });
+  /* 책상 배치 자리 · 지급된 자산 (PW-2600) — `archive` 와 같이 사람이 바뀌는 자리·[다시 시도]·지급 뒤에만 'loading' 으로 세운다 */
+  const assetsLoader = memberAssets?.onLoad;
+  const [assetsState, setAssetsState] = useState({ status: assetsLoader ? 'loading' : 'idle', view: null });
   const [panelTab, setPanelTab] = useState('info');
   const [historyState, setHistoryState] = useState({ status: 'idle', page: null });
   /* 고른 항목(`all` = 전체)과 「더 보기」 진행 중 여부 (정책서 §2-3·§2-4) */
@@ -4841,9 +4885,22 @@ function EmployeesEditPanel({
     setHistoryField('all');
     setHistoryMoreLoading(false);
     setArchive({ status: onLoadArchivedRecords ? 'loading' : 'idle', view: null });
+    setAssetsState({ status: assetsLoader ? 'loading' : 'idle', view: null });
   }
 
   const memberId = member?.id;
+  useEffect(() => {
+    if (assetsState.status !== 'loading' || !memberId || !assetsLoader) return undefined;
+    let alive = true;
+    Promise.resolve(assetsLoader(memberId))
+      .then((view) => { if (alive) setAssetsState({ status: 'ready', view: view || null }); })
+      // 빈 목록으로 보이면 «지급된 것이 없다»로 읽힌다 — 실패는 실패로 보인다(자리 칸은 입력 그대로 둔다)
+      .catch(() => { if (alive) setAssetsState({ status: 'error', view: null }); });
+    return () => { alive = false; };
+  }, [assetsState.status, memberId, assetsLoader]);
+  const reloadAssets = useCallback(() => setAssetsState((s) => ({ status: 'loading', view: s.view })), []);
+  /* 책상 배치에 앉은 사람 — 자리 네 칸은 배치도가 정한다(§13-A-5). 못 불러왔으면 입력 그대로다(서버가 막는다). */
+  const seatedAt = assetsState.view?.seat || null;
   useEffect(() => {
     if (archive.status !== 'loading' || !memberId || !onLoadArchivedRecords) return undefined;
     let alive = true;
@@ -4955,6 +5012,7 @@ function EmployeesEditPanel({
     businessTitleOptions, employmentTypeOptions, countryOptions, buildingOptions,
     workLocationOptions: workLocationOptions || [],
     hrbpOptions: hrbpOptions || [],
+    seatTypeOptions: seatFields?.typeOptions || [],
     jobFamilies: axis.families,
     jobLadders: axis.ladders,
     jobDuties: axis.duties,
@@ -4964,7 +5022,17 @@ function EmployeesEditPanel({
     jobDuty: [axis.duties, axis.dutiesByLadder],
   };
   /** 회사가 끈 선택 적용 항목은 칸 자체를 그리지 않는다 — 켤 수 없는 칸을 보여주지 않는다. */
-  const fieldOn = (f) => !f.optionalKey || (optionalFields || {})[f.optionalKey] === true;
+  const fieldOn = (f) =>
+    (!f.needsSeat || Boolean(seatFields)) && (!f.optionalKey || (optionalFields || {})[f.optionalKey] === true);
+  /* 자유석 · 원격이면 책상 칸을 받지 않는다 — 칸이 잠기고 값이 빈다(spec-company-assets §1-1) */
+  const deskRefused = Boolean(seatFields?.refusesDesk?.(draft.seatType));
+  const seatPreview = seatFields?.lineOf
+    ? seatFields.lineOf({ workBuilding: draft.workBuilding, workFloor: draft.workFloor, workDesk: draft.workDesk, seatType: draft.seatType })
+    : null;
+  const pickSeatType = (v) => {
+    set('seatType', v);
+    if (seatFields?.refusesDesk?.(v)) set('workDesk', '');
+  };
   /** 지금 이 패널에 서 있는 칸 키 — 거절 사유를 칸 아래에 붙일 수 있는지 가른다(PW-727). */
   const shownFieldKeys = new Set(
     PANEL_FIELD_GROUPS.flatMap((g) => g.fields.filter(fieldOn).map((f) => f.key)),
@@ -5089,6 +5157,8 @@ function EmployeesEditPanel({
     const patch = { id: draft.id };
     for (const f of PANEL_PATCH_FIELDS) {
       if ((draft[f] ?? '') === (member[f] ?? '')) continue;
+      // 책상 배치에 앉은 사람의 자리 네 칸은 패널이 보내지 않는다 — 배치도가 정한다(§13-A-5 · 서버 SEAT_LOCKED)
+      if (seatedAt && SEAT_FIELD_KEYS.has(f)) continue;
       /* 날짜를 비운 것은 `''` 이 아니라 `null` 로 보낸다 — 날짜 칸에 빈 문자열이
          들어가면 저장이 통째로 실패한다. `null` 은 「지웠다」 는 뜻이라 서버도 그렇게
          읽는다(퇴사일은 명시값이 있으면 자동 채움을 건너뛴다). */
@@ -5403,6 +5473,19 @@ function EmployeesEditPanel({
                 <SectionLabel>{labels.panel[g.labelKey]}</SectionLabel>
                 <div className="admin-emp-field-group">
                   {shown.map((f) => {
+                    /* 책상 배치에 앉은 사람 — 자리 네 칸 자리에 읽기 전용 상자 하나(§3.2.5 · spec-company-assets §13-A-5) */
+                    if (seatedAt && SEAT_FIELD_KEYS.has(f.key)) {
+                      return f.key === 'workBuilding' ? (
+                        <SeatLockedBox
+                          key="seat-locked"
+                          member={member}
+                          seat={seatedAt}
+                          labels={labels.panel}
+                          typeOptions={seatFields?.typeOptions || []}
+                          onOpenSeat={memberAssets?.onOpenSeat}
+                        />
+                      ) : null;
+                    }
                     if (archivedNow && f.key === 'employmentType') {
                       return (
                         <FormField key={f.key} className="admin-emp-field" labelClassName="admin-emp-field-label" label={labels.panel[f.labelKey]}>
@@ -5449,6 +5532,20 @@ function EmployeesEditPanel({
                             disabled={!canEdit}
                             testId={`employees-panel-${f.key}`}
                           />
+                        ) : f.kind === 'choice' ? (
+                          /* 고정 선택지 `{ value, label }` — 자리 유형 4종(PW-2600). 화면엔 라벨만, 코드값은 내보내지 않는다 */
+                          <Select
+                            className="admin-emp-input"
+                            value={draft[f.key] || ''}
+                            disabled={!canEdit}
+                            data-testid={`employees-panel-${f.key}`}
+                            onChange={(e) => (f.key === 'seatType' ? pickSeatType(e.target.value) : set(f.key, e.target.value))}
+                          >
+                            <option value="">{labels.panel.none}</option>
+                            {optionsFor(f).map((o) => (
+                              <option key={o.value} value={o.value}>{o.label}</option>
+                            ))}
+                          </Select>
                         ) : f.kind === 'person' ? (
                           <Select
                             className="admin-emp-input"
@@ -5532,12 +5629,26 @@ function EmployeesEditPanel({
                             className="admin-emp-input"
                             type={f.kind === 'number' ? 'number' : 'text'}
                             value={draft[f.key] ?? ''}
-                            disabled={!canEdit}
+                            /* 자유석 · 원격이면 책상 칸을 잠근다 — 값은 유형을 고르는 순간 비웠다(PW-2600 · §3.2.5) */
+                            disabled={!canEdit || (f.key === 'workDesk' && deskRefused)}
+                            maxLength={f.maxLength}
+                            placeholder={f.placeholderKey ? labels.panel[f.placeholderKey] : undefined}
                             data-testid={`employees-panel-${f.key}`}
-                            onChange={(e) => set(f.key, e.target.value)}
+                            onChange={(e) => set(f.key, f.maxLength ? e.target.value.slice(0, f.maxLength) : e.target.value)}
                           />
                         )}
                         {f.note && <span className="admin-emp-manager-note">{labels.panel[f.note]}</span>}
+                        {f.key === 'workDesk' && seatFields && (deskRefused || seatFields.isRoom?.(draft.seatType)) && (
+                          <span className="admin-emp-manager-note" data-testid="employees-panel-workDesk-hint">
+                            {deskRefused ? labels.panel.seatDeskRefused : labels.panel.seatRoomHint}
+                          </span>
+                        )}
+                        {/* 표시 한 줄 미리 보기 — 조직도 퍼블릭 카드에 늘 보인다. 한 줄이 없으면 그리지 않는다(spec-company-assets §1-2) */}
+                        {f.key === 'workDesk' && seatPreview && (
+                          <span className="admin-emp-manager-note" data-testid="employees-panel-seat-preview">
+                            {fill(labels.panel.seatPreview, { line: seatPreview })}
+                          </span>
+                        )}
                         {axisLevel && axisNotice && axisNotice.field === axisLevel && (
                           <span
                             className={`admin-emp-manager-note admin-emp-axis-notice${/Reset|Ambiguous/.test(axisNotice.kind) ? ' is-warn' : ''}`}
@@ -5554,6 +5665,18 @@ function EmployeesEditPanel({
               </div>
             );
           })}
+
+          {/* «지급된 자산» — 근무지 묶음 바로 아래(자리와 함께 보는 정보 · admin-spec §3.2.13 · pivit-work PW-2600) */}
+          {memberAssets && (
+            <MemberAssetsSection
+              state={assetsState}
+              labels={labels.panel.assets}
+              resigned={member.employmentStatus === 'resigned'}
+              onRetry={reloadAssets}
+              onOpenAsset={memberAssets.onOpenAsset}
+              onIssue={memberAssets.onIssue ? () => memberAssets.onIssue(member, reloadAssets) : undefined}
+            />
+          )}
 
           {/* 권한 — 시트의 «권한» 열이 여기로 왔다(PW-576). 조직장 지정에 따른 자동
               승격은 서버가 하고(L10), 이 칸은 그 값을 직접 고치는 자리다. */}
@@ -6208,6 +6331,9 @@ export default function AdminEmployeesCanvas({
   onBeforeAppoint,
   /* 발령 확정 절차 (PW-2349) — `EmployeesEditPanel` 의 `appointmentFlow` 주석 참조. 미주입이면 종전 [저장] 하나다. */
   appointmentFlow,
+  /* 층 · 자리 유형 칸 · 책상 배치 자리 · «지급된 자산» (pivit-work PW-2600) — `EmployeesEditPanel` 의 같은 이름 주석 참조 */
+  seatFields,
+  memberAssets,
   /* 구성원 창을 여는 요청 `{ memberId, token }` (PW-2349 · «임시저장» 묶음 [이어서]) */
   openMemberRequest,
   inferAppointmentType,
@@ -6872,6 +6998,8 @@ export default function AdminEmployeesCanvas({
             inferAppointmentType={inferAppointmentType}
             onBeforeAppoint={onBeforeAppoint}
             appointmentFlow={canEdit ? appointmentFlow : undefined}
+            seatFields={seatFields}
+            memberAssets={memberAssets}
             /* 재직 상태별 날짜 칸(§3.2.1) — HR 기록 모달과 **같은** 조회·저장 경로다.
                미주입이면(어드민 아님) 그 칸을 아예 그리지 않는다. */
             onLoadHrProfile={onLoadHrProfile}

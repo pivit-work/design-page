@@ -8,7 +8,7 @@ import SegmentedControl from '../shared/SegmentedControl.jsx';
 import TextArea from '../shared/TextArea.jsx';
 import TextInput from '../shared/TextInput.jsx';
 import { NoteText } from '../shared/SharedText.jsx';
-import { ArrowLeftGlyph, CalendarGlyph } from '../shared/lineIcons.jsx';
+import { ArrowLeftGlyph, ArrowRightGlyph, CalendarGlyph } from '../shared/lineIcons.jsx';
 import Card from './Card.jsx';
 import { IconAlert } from './employeesIcons.jsx';
 import {
@@ -76,7 +76,8 @@ function Section({ n, title, desc, children, testId }) {
   );
 }
 
-function Notice({ tone, title, children, testId, role }) {
+/* `action` — 띠 오른쪽 끝 버튼 하나(PW-2600 «회수하지 않은 자산» [자산 보기]). 안 주면 지금과 같다. */
+function Notice({ tone, title, children, testId, role, action }) {
   return (
     <div className={`admin-kit-notice is-${tone}${title ? ' has-title' : ''}`} data-testid={testId} role={role}>
       {tone !== 'neutral' && (
@@ -86,6 +87,7 @@ function Notice({ tone, title, children, testId, role }) {
         {title && <p className="admin-kit-notice-title">{title}</p>}
         {title ? <p className="admin-kit-notice-desc">{children}</p> : children}
       </div>
+      {action}
     </div>
   );
 }
@@ -315,6 +317,10 @@ export default function AdminOffboardingCanvas({
   leaveSettlement = null,
   onDatesChange,
   extraEffects = [],
+  /* 섹션 1 «회수하지 않은 자산 N건» 한 줄 (pivit-work PW-2600 · 퇴사 정책 §2-D) — `{ items: [{ id, assetNo, kindName }], onView }`.
+     대상자가 «사용 중»으로 지급받은 자산(책상에 둔 것 제외)을 소비자가 넘긴다. 없거나 0건이거나 못 불러왔으면 줄이 없다.
+     실행 조건(§5-A)에 들지 않는다 — 막지 않고 알린다. */
+  unreturnedAssets = null,
 }) {
   const labels = merge(ADMIN_OFFBOARDING_DEFAULT_LABELS, providedLabels);
   const sep = labels.listSeparator;
@@ -419,6 +425,32 @@ export default function AdminOffboardingCanvas({
             </p>
           </div>
         </div>
+
+        {/* 회수하지 않은 자산 — 대상자 카드 바로 아래 · 퇴사 유형 위. 섹션 3 «예약» 안내와 같은 중립 띠(경고색 없음 · §2-D) */}
+        {unreturnedAssets?.items?.length > 0 && (
+          <Notice
+            tone="neutral"
+            testId="offboarding-unreturned-assets"
+            title={[
+              fill(labels.unreturnedAssets.title, { count: unreturnedAssets.items.length }),
+              ...unreturnedAssets.items.map((a) => [a.assetNo, a.kindName].filter(Boolean).join(' ')),
+            ].join(sep)}
+            action={unreturnedAssets.onView && (
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={running}
+                onClick={unreturnedAssets.onView}
+                data-testid="offboarding-unreturned-assets-view"
+              >
+                {labels.unreturnedAssets.view}
+                <ArrowRightGlyph size={14} aria-hidden />
+              </Button>
+            )}
+          >
+            {labels.unreturnedAssets.desc}
+          </Notice>
+        )}
 
         <div className="admin-offb-fields">
           <FormField group label={labels.typeLabel} className="admin-offb-field is-type">
