@@ -2938,7 +2938,22 @@ export default function MySettingsCanvas({
                         <div className="msc-intg-sub-title">{intg.subSettingsTitle}</div>
                         {intg.subSettings.map((s) => (
                           <div key={s.key} className="msc-row">
-                            <span className="msc-intg-sub-label">{s.label}</span>
+                            {/* 설명 줄(`desc` — 문자열 또는 줄 배열) · 안내 줄(`note` — 꺼짐 안내 등, 넘기는 쪽이 언제 보일지 정한다)은
+                                같은 탭의 «제목 + 아래 줄» 행(보안 탭 로그아웃 · 로그인 방법)과 같은 `.msc-row-sub` (pivit-work PW-2595 ·
+                                my-settings-spec §7.2-B «내 구글 캘린더에 넣기»). 둘 다 없으면 종전과 같은 한 줄이다. */}
+                            {s.desc || s.note ? (
+                              <div>
+                                <span className="msc-intg-sub-label">{s.label}</span>
+                                {(Array.isArray(s.desc) ? s.desc : s.desc ? [s.desc] : []).map((line, i) => (
+                                  <div key={i} className="msc-row-sub" data-testid={`integration-sub-desc-${s.key}`}>{line}</div>
+                                ))}
+                                {s.note && (
+                                  <div className="msc-row-sub" data-testid={`integration-sub-note-${s.key}`}>{s.note}</div>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="msc-intg-sub-label">{s.label}</span>
+                            )}
                             <Switch
                               checked={Boolean(s.on)}
                               disabled={Boolean(s.disabled)}

@@ -42,6 +42,11 @@ import { ChevronDownGlyph, ChevronLeftGlyph, ChevronRightGlyph } from './lineIco
  *                까닭(«주말은 고를 수 없습니다»). 없으면 title 을 붙이지 않는다 (PW-2547)
  *   selectedDates  Date[] — 여러 날을 고르는 화면의 고른 날 전부. 있으면 selectedDate 대신 이 날들에 선택 표시를
  *                한다(모양은 선택일과 같다) (PW-2547)
+ *   isDateMuted  (Date) => boolean — 흐린 글자로 그리되 **누를 수 있는** 날. 다른 달 칸과 같은 흐린 톤이고 hover · 누르기는
+ *                그대로다. 지난 일정을 받는 창이 오늘보다 앞 날을 이렇게 둔다(arch-meeting-room §5-C ➕ 2026-11-08 · PW-2595).
+ *                고를 수 없는 날(범위 밖 · isDateDisabled)에는 쓰지 않는다 — 그쪽이 먼저다
+ *   dismissible  boolean(기본 true) — false 면 Esc · 바깥 누르기로 닫는 층을 올리지 않는다. 창 안에 늘 펼쳐 둔 inline 달력이
+ *                쓴다 — 닫을 것이 없는 달력이 Esc 를 먼저 가로채면 창이 Esc 로 닫히지 않는다(PW-2595). 그때 onClose 는 안 넘겨도 된다
  *   startView    'day'(기본) | 'year' — 'year' 면 선택일이 없을 때 연도 보기로 열고,
  *                (오늘 연도 − 30)이 든 20년 쪽을 보여 준다. 생년월일 칸이 쓴다 (PW-1301)
  *   ...rest      data-*·aria-label 등은 겉 상자에 그대로 붙는다
@@ -96,6 +101,8 @@ export default function DatePicker({
   disabledTitle,
   selectedDates,
   inline = false,
+  isDateMuted,
+  dismissible = true,
   ...rest
 }) {
   const auto = useMemo(() => datePickerLabels(locale), [locale]);
@@ -139,7 +146,7 @@ export default function DatePicker({
     el.style.opacity = '1';
   }, [anchorRect, inline, viewYear, viewMonth, view]);
 
-  useDismissLayer(onClose, popoverRef, anchorEl ? { current: anchorEl } : null);
+  useDismissLayer(() => onClose?.(), popoverRef, anchorEl ? { current: anchorEl } : null, dismissible);
 
   const min = minDate ? startOfDay(minDate) : null;
   const max = maxDate ? startOfDay(maxDate) : null;
@@ -243,10 +250,11 @@ export default function DatePicker({
   }[view];
 
   // 칸 상태는 세 보기가 같다 — 선택 · 오늘(선택과 겹치면 선택) · 고를 수 없음.
-  const cellClass = ({ selected, isToday, disabled, outside }) =>
+  const cellClass = ({ selected, isToday, disabled, outside, muted }) =>
     [
       'dp-datepicker-cell',
       outside ? 'is-outside' : '',
+      muted ? 'is-muted' : '',
       selected ? 'is-selected' : '',
       !selected && isToday ? 'is-today' : '',
       disabled ? 'is-disabled' : '',
@@ -365,13 +373,15 @@ export default function DatePicker({
               // PW-2547 — 범위 안의 주말 · 휴일도 같은 «눌리지 않는 칸». 누르면 골라진 것처럼 보이면 안 된다.
               const blocked = !outOfRange && !!isDateDisabled && !!isDateDisabled(day);
               const disabled = outOfRange || blocked;
+              // PW-2595 — 흐리게 그리되 누를 수 있는 날(지난 날을 받는 창의 앞 날). 막힌 칸 · 다른 달 칸은 이미 흐리다.
+              const muted = !disabled && !c.outside && !!isDateMuted && !!isDateMuted(day);
               // 까닭은 막힌 칸 전부에 — 범위 밖(지난 날 · 소멸일 뒤)도 부르는 쪽이 까닭을 줄 수 있다. disabledTitle 을 안 넘기면 전과 같다.
               const title = disabled && !c.outside && disabledTitle ? disabledTitle(day) || undefined : undefined;
               return (
                 <button
                   key={i}
                   type="button"
-                  className={cellClass({ selected, isToday: sameDay(c, today), disabled, outside: c.outside })}
+                  className={cellClass({ selected, isToday: sameDay(c, today), disabled, outside: c.outside, muted })}
                   disabled={disabled}
                   aria-disabled={disabled || undefined}
                   aria-pressed={selected}

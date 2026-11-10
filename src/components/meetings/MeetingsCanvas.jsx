@@ -166,6 +166,12 @@ export default function MeetingsCanvas({
    */
   onImportTranscript,
   /**
+   * 나중에 할 회의를 잡는 진입 훅 (pivit-work PW-2595 · spec-minutes §3.7 B «버튼»). [회의 시작] 바로 앞의
+   * [액션 아이템]과 같은 보조 버튼 [회의 잡기]. 미지정 시 숨긴다. 문구는 `labels.scheduleMeeting`.
+   * `planLockBadge` 가 있으면 글자 옆에 붙는다 — 잠그지 않고 누르면 소비처가 안내한다(§3.7 B · 2026-11-09 덧붙임).
+   */
+  onScheduleMeeting,
+  /**
    * 요금제에 회의록이 없는 회사(Free·Starter)의 녹음 입구 잠금 배지 (pivit-work PW-2602 · tier-gating §6.1 덧붙임).
    * 소비처가 `LockBadge` 로 만들어 넘기면 [녹음 파일 올리기]·[회의 시작]·행의 [시작 →] 글자 옆에 붙는다.
    * 버튼은 잠그지 않는다 — 누르면 소비처가 업그레이드 안내를 띄운다(§6.1 «노출 유지 + LockBadge · 클릭 시 안내»).
@@ -214,6 +220,7 @@ export default function MeetingsCanvas({
     uploadRecording: '녹음 파일 올리기',
     importTranscript: '외부 전사 가져오기',
     uploadRecordingPending: '확인 중…',
+    scheduleMeeting: '회의 잡기',
     ...labels,
   };
   const statusLabels = {
@@ -273,6 +280,19 @@ export default function MeetingsCanvas({
             >
               <Icon src="/icons-solid/upload-01.svg" size={16} color="var(--text-secondary)" baseUrl={baseUrl} />
               <span>{uploadRecordingPending ? L.uploadRecordingPending : L.uploadRecording}</span>
+              {planLockBadge}
+            </button>
+          )}
+          {/* 나중에 할 회의 잡기 — [회의 시작](지금 바로) 바로 앞, [액션 아이템]과 같은 보조 버튼 모양 (PW-2595). */}
+          {onScheduleMeeting && (
+            <button
+              type="button"
+              className="mtg-actions-link"
+              onClick={onScheduleMeeting}
+              data-testid="mtg-schedule-meeting"
+            >
+              <Icon src="/icons-solid/calendar.svg" size={16} color="var(--text-secondary)" baseUrl={baseUrl} />
+              <span>{L.scheduleMeeting}</span>
               {planLockBadge}
             </button>
           )}

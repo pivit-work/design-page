@@ -21,7 +21,7 @@ export const SIDEBAR_MENU = [
   // i18n ko 라벨이 이미 «원온원» 이고, `SideNav.drift.test` 가 두 값을 대조한다.
   { id: 'oneonone', icon: '/icons-solid/user-03.svg',             label: '원온원',   section: 'top' },
   { id: 'orgchart', icon: '/icons-solid/layers-three-01.svg',     label: '조직도',   section: 'top' },
-  { id: 'meetings', icon: '/icons-solid/file-02.svg',             label: '회의록',   section: 'top' },
+  { id: 'meetings', icon: '/icons-solid/file-02.svg',             label: '회의',     section: 'top' },
   // '평가'(/eval)는 역할로 분기한다(스펙 eval-app.jsx 역할섹션): 매니저는 '팀 평가
   // 관리' 허브로, 구성원은 셀프 리뷰로, HR 은 사이클 목록으로. 과거 별도 최상위였던
   // '팀 평가'(캘리 결과 딥링크)는 중복·의미축소라 제거하고 '평가' 안으로 일원화했다.
