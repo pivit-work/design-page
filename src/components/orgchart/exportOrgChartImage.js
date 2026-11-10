@@ -127,7 +127,7 @@ const fontCssCache = new Map();
  * 캔버스가 쓰는 글꼴·굵기의 @font-face 만 골라 파일을 data URL 로 심은 CSS.
  * 같은 조합은 한 번만 만든다(모듈 캐시) — 두 번째 내려받기부터는 바로 그린다.
  */
-async function buildFontEmbedCSS(element) {
+export async function buildFontEmbedCSS(element) {
   const used = usedFonts(element);
   const key = [...used].sort().join(',');
   if (fontCssCache.has(key)) return fontCssCache.get(key);

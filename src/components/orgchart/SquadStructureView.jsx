@@ -50,6 +50,8 @@ import {
 } from './squadStructureLayout.js';
 
 const DIM = 0.2; // 마우스를 올린 것과 무관한 카드(§5-6-B «마우스 올림»)
+/** 흐림을 걷은 뒤 그려지고 전환(.sq-struct-member opacity 0.15초)이 끝날 때까지 기다린다. */
+export const settleBeforeCapture = () => new Promise((resolve) => { setTimeout(resolve, 200); });
 
 const toggleIn = (setter) => (key) => setter((prev) => {
   const next = new Set(prev);
@@ -288,6 +290,13 @@ function StructureCanvas({
     return () => el.removeEventListener('wheel', onWheel);
   }, []);
 
+  // [이미지로 다운] — 마우스 올림 흐림(DIM)을 걷고 흐림 전환(0.15초)이 끝난 뒤 뜬다. 안 그러면 누르기 직전 올려 둔
+  // 카드 밖 사람 카드가 20% 로 흐린 채 찍힌다(4회차 브라우저 확인).
+  const downloadImage = async () => {
+    setFocusAt(null);
+    await settleBeforeCapture();
+    onDownload(treeRef.current);
+  };
   const zoomBy = (d) => setZoom((z) => Math.round(Math.min(STRUCT_ZOOM_MAX, Math.max(STRUCT_ZOOM_MIN, z + d)) * 10) / 10);
   const fit = () => {
     const el = scrollRef.current;
@@ -584,7 +593,7 @@ function StructureCanvas({
           <button
             type="button"
             className="org-tool-btn has-label"
-            onClick={() => onDownload(treeRef.current)}
+            onClick={downloadImage}
             disabled={exporting || undefined}
             aria-busy={exporting || undefined}
             data-action="download-image"

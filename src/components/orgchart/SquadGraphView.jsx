@@ -31,7 +31,7 @@ import { OrgToolButton, OrgToolbarGroup } from './OrgCanvasFrame.jsx';
 import useSquadGraphImage from './useSquadGraphImage.js';
 import usePanZoom from '../shared/usePanZoom.js';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
-import SquadStructureView from './SquadStructureView.jsx';
+import SquadStructureView, { settleBeforeCapture } from './SquadStructureView.jsx';
 import { groupBands, orderSquadsByGroups } from './squadStructureLayout.js';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
@@ -524,7 +524,7 @@ function LinkViewport({ L, layout, branch, shownCount, exporting, onDownload, on
           <button
             type="button"
             className="org-tool-btn has-label"
-            onClick={() => onDownload(canvasElRef.current)}
+            onClick={async () => { onLeave(); await settleBeforeCapture(); onDownload(canvasElRef.current); }}
             disabled={exporting || undefined}
             aria-busy={exporting || undefined}
             data-action="download-image"

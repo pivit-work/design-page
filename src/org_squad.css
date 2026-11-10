@@ -1945,7 +1945,8 @@
 .sq-struct-scroll:active { cursor: grabbing; }
 .sq-struct-sizer { position: relative; margin: 0 auto; }
 /* 흐름 배치의 트리 — 크기는 내용이 정한다(화면 부품이 재서 판 크기를 맞춘다). 바깥 여백은 조직도 판 좌우 여백과 같다. */
-.sq-struct-tree { position: absolute; left: 0; top: 0; width: max-content; display: flex; justify-content: center; padding: var(--spacing-5xl); transform-origin: 0 0; }
+/* 위 여백은 조직도 판 여백 40 + 24 — 판 안 위 툴바(위 12 · 높이 36)가 처음 모습의 회사 카드를 덮지 않게(1280 폭에서 8px 덮었다 · 4회차) */
+.sq-struct-tree { position: absolute; left: 0; top: 0; width: max-content; display: flex; justify-content: center; padding: calc(var(--spacing-5xl) + var(--spacing-3xl)) var(--spacing-5xl) var(--spacing-5xl); transform-origin: 0 0; }
 /* 부서 카드 — 끌어 옮기지 않으므로 손 모양을 쓰지 않는다. 긴 이름은 한 줄에서 줄인다. */
 .sq-struct-dept, .sq-struct-dept:hover { cursor: default; }
 .sq-struct-dept { max-width: 280px; transition: box-shadow 0.2s, opacity 0.15s; }
