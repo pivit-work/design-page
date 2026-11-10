@@ -109,7 +109,8 @@ export function EvalTemplateGradeRows({
     onReorder,
   });
   // PW-2655 — 칸 안 안내(«기대 키워드 — 쉼표로 구분 · …»)는 좁은 칸에서 잘렸다. 칸 안은 그 등급의 짧은 예시,
-  // 등급 줄 위에 «이름 · 설명 · 기대 키워드» 머리 한 번, 쓰는 법은 머리의 ⓘ(hr.policy §5.4.5 «자리» 덧붙임 · David 11-09).
+  // 등급 줄 위에 «이름 · 설명 · 기대 키워드» 머리 한 번(hr.policy §5.4.5 «자리» 덧붙임 · David 11-09).
+  // 쓰는 법(L.gradeKeywordsHelp)은 이 부품이 아니라 부르는 쪽의 «등급 체계» 제목 옆 ⓘ 에 둔다(같은 덧붙임 ③).
   // 예시는 기본 등급 이름일 때만 그 등급 것, 이름을 바꾼 등급은 공통 예시.
   const keywordsPlaceholderOf = (g) => {
     const name = String(g.label ?? '').trim();
@@ -124,12 +125,7 @@ export function EvalTemplateGradeRows({
           <span />
           <span>{L.gradeHeadName}</span>
           <span>{L.gradeHeadDesc}</span>
-          <span>
-            {L.gradeHeadKeywords}
-            <span data-testid={`${testPrefix}-keywords-info`}>
-              <FieldInfo description={L.gradeKeywordsHelp} />
-            </span>
-          </span>
+          <span>{L.gradeHeadKeywords}</span>
           {/* 줄마다 있는 × 칸(auto)이 머리에 없으면 나머지 칸이 그만큼 넓어져 아래 입력 칸과 어긋난다 — 같은 폭으로 비워 둔다. */}
           <span className="evc-tpl-x evc-tpl-grade-head-x" aria-hidden="true">✕</span>
         </div>

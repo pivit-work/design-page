@@ -9516,7 +9516,11 @@ export default function EvalCycleWizard({
                   「위 평가 항목」이 아니라 「아래 평가 항목」이다. PW-2646 — 늘 보이던 줄을 제목 옆 ⓘ 로. */}
               <span className="evc-field-label">
                 {L.templateGradesLabel}
-                <EvalHintTip text={L.gradesFeedItemsNote} testId="evc-tpl-grade-note" />
+                {/* PW-2655 — 기대 키워드 쓰는 법도 이 제목 옆이다(hr.policy §5.4.5 «자리» ③). ⓘ 를 둘 세우지 않고 한 말풍선에 잇는다. */}
+                <EvalHintTip
+                  text={[L.gradesFeedItemsNote, L.gradeKeywordsHelp].filter(Boolean).join(' ')}
+                  testId="evc-tpl-grade-note"
+                />
               </span>
               <Checkbox
                 className="evl-promo-row"
