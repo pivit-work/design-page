@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import Button from '../shared/Button.jsx';
@@ -17,41 +16,13 @@ import { AlertIcon, CheckCircleIcon, InfoIcon } from './evalIcons.jsx';
  * - `LeaderCommentPolishUsed` — 이름표 바로 옆 «✓ 다듬은 문구를 썼습니다»(원온원 `.ono-my-field-done`).
  * - `LeaderCommentPolishResult` — 칸 아래 실패 줄·한도 안내·노란 카드.
  *
- * 세 조각이 같은 상태를 보도록 `useLeaderCommentPolish` 하나를 부르는 쪽이 들고 나눠 준다.
+ * 세 조각이 같은 상태를 보도록 `useLeaderCommentPolish`(./useLeaderCommentPolish.js) 하나를 부르는 쪽이 들고 나눠 준다.
  *
  * - 누를 때만 돈다(절대규칙 5). 고르기 전에는 칸을 바꾸지 않는다(노랑 = 미확인).
  * - 결과는 저장하지 않는다(R-6) — 카드는 이 상태라 부르는 쪽이 다시 그리면(창을 닫으면) 사라진다.
  * - 모양은 11-10 커트가 고른 시안(pivit-work `worklog/report-approve-modal-designer-2026-11-10` ③⑦⑧⑨⑩)대로
  *   원온원 «내 작성» 칸·읽기 상자·안내 줄(`.ono-filter-notice`)의 디자이너 값을 쓴다. 글과 나오는 조건은 그대로다.
- *
- * @param {string} comment 지금 칸의 글
- * @param {boolean} [disabled] 칸이 잠겼다 — 버튼도 함께 꺼진다
- * @param {(comment: string) => Promise<{changed: boolean, text: string, sources: string[], noEvidence: boolean} | {notice: any} | null>} onPolish
- *   실패는 throw 또는 null. 체험·유료 AI 한도 안내는 `{ notice }` 로 돌려준다(그 자리에 그대로 그린다).
  */
-export function useLeaderCommentPolish({ comment, disabled = false, onPolish }) {
-  const [state, setState] = useState(null); // null | {status:'loading'|'done'|'error'|'notice', original, ...}
-  const empty = !(comment || '').trim();
-  const loading = state?.status === 'loading';
-  const stale = state?.status === 'done' && state.original !== comment;
-
-  const run = async () => {
-    if (empty || loading || disabled) return;
-    const original = comment;
-    setState({ status: 'loading', original });
-    try {
-      const out = await onPolish(original);
-      if (!out) setState({ status: 'error', original });
-      else if (out.notice) setState({ status: 'notice', original, notice: out.notice });
-      else setState({ status: 'done', original, ...out });
-    } catch {
-      // AI 실패가 임시저장·제출·승인을 막지 않는다(R-8) — 칸은 그대로, 인라인 안내만.
-      setState({ status: 'error', original });
-    }
-  };
-
-  return { state, setState, run, empty, loading, stale, disabled };
-}
 
 /** 이름표 줄 오른쪽 보라 AI 버튼. 비어 있으면 꺼지고 툴팁이 이유를 말한다. */
 export function LeaderCommentPolishButton({ polish, L, testId }) {

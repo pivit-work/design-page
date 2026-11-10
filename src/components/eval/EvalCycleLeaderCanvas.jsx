@@ -20,8 +20,8 @@ import EvalLeaderPriorRounds from './EvalLeaderPriorRounds.jsx';
 import EvalLeaderPeerSummary from './EvalLeaderPeerSummary.jsx';
 import Stack from '../shared/Stack.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
+import useLeaderCommentPolish from './useLeaderCommentPolish.js';
 import {
-  useLeaderCommentPolish,
   LeaderCommentPolishButton,
   LeaderCommentPolishUsed,
   LeaderCommentPolishResult,

@@ -11,8 +11,8 @@ import SearchInput from '../shared/SearchInput.jsx';
 import AnchoredLayer from '../shared/AnchoredLayer.jsx';
 import useDismissLayer from '../shared/useDismissLayer.js';
 import { AlertIcon, ArrowRightIcon, MoreIcon, svgProps } from './evalIcons.jsx';
+import useLeaderCommentPolish from './useLeaderCommentPolish.js';
 import {
-  useLeaderCommentPolish,
   LeaderCommentPolishButton,
   LeaderCommentPolishUsed,
   LeaderCommentPolishResult,
