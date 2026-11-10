@@ -158,6 +158,9 @@ const DEFAULT_LABELS = {
   launchBenefitPendingNote: (date) =>
     `요금 변경에 동의하셔야 결제됩니다 — 동의하지 않으시면 이 청구는 없고 ${date}부터 서비스 이용이 정지됩니다`,
   launchBenefitAgreedNote: (price) => `요금 변경에 동의하셨습니다 — 이 청구부터 좌석당 ${won(price)}/월`,
+  // 요금 변경 통지만 못 불러와 동의 여부를 모를 때 — 동의 여부와 무관하게 맞는 한 줄 (pivit-work PW-2647 · overview §5 11-09 정정)
+  launchBenefitUnknownNote: (date) =>
+    `이 청구는 요금 변경에 동의하신 경우에만 결제됩니다 — 동의하지 않으시면 이 청구는 없고 ${date}부터 서비스 이용이 정지됩니다`,
   refundBusy: '처리하는 중...',
   refundLineSubscription: '구독 결제',
   refundLinePlanChange: '요금제 변경 차액 결제',
@@ -454,7 +457,7 @@ export default function BillingOverviewCanvas({
   /**
    * 출시 혜택이 끝나는 인상 청구일이 다음 청구일이다 `{ chargeDate, newUnitPrice, consented: boolean | null }` (pivit-work PW-2647).
    * 금액(`subscription.periodAmount`)·단가 줄은 앱이 월간 정가로 센 값을 넘긴다. 카드 아래 한 줄 — 동의 전 앰버 / 동의 뒤 초록.
-   * `consented` 가 null 이면(통지를 못 읽어 모름) 줄을 그리지 않는다. 띠(`priceChange`)와 따로 온다 — 띠가 없어도 카드는 그린다.
+   * `consented` 가 null 이면(통지를 못 읽어 모름) 동의 여부와 무관하게 맞는 앰버 한 줄(PW-2647 · overview §5 11-09 정정). 띠(`priceChange`)와 따로 온다 — 띠가 없어도 카드는 그린다.
    */
   launchBenefitNext = null,
   priceChangeOpen = false,
@@ -1099,6 +1102,12 @@ export default function BillingOverviewCanvas({
               {launchBenefitNext && launchBenefitNext.consented === false && (
                 <div data-testid="billing-launch-benefit-next-pending" style={{ fontSize: 12, color: T.amber, marginTop: 'var(--spacing-xs)' }}>
                   {labels.launchBenefitPendingNote(launchBenefitNext.chargeDate)}
+                </div>
+              )}
+              {/* 통지만 못 불러와 동의 여부를 모름 — 양쪽에 맞는 앰버 한 줄 · [다시 시도] 없음 (PW-2647 · overview §5 11-09 정정) */}
+              {launchBenefitNext && launchBenefitNext.consented == null && (
+                <div data-testid="billing-launch-benefit-next-unknown" style={{ fontSize: 12, color: T.amber, marginTop: 'var(--spacing-xs)' }}>
+                  {labels.launchBenefitUnknownNote(launchBenefitNext.chargeDate)}
                 </div>
               )}
               {launchBenefitNext && launchBenefitNext.consented === true && (
