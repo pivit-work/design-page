@@ -1634,6 +1634,10 @@
   background: var(--bg-secondary);
 }
 .admin-emp-manager-name { font-size: var(--font-size-text-sm, 14px); font-weight: 600; color: var(--text-primary); }
+/* 이름은 줄지 않고 한 줄 — 옆 안내문이 남은 폭에서 줄을 넘기거나, 자리가 모자라면 이름 아래로 내려간다 (pivit-work PW-2693).
+   패널보다 긴 이름은 끝을 말줄임한다. */
+.admin-emp-manager-readonly.is-manager > .admin-emp-manager-name { flex: 0 0 auto; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin-emp-manager-readonly.is-manager > .admin-emp-manager-note { flex: 1 1 180px; min-width: 0; }
 /* 로그인 잠김 줄 (PW-2286) — 배지·문장이 길어지면 줄을 넘기고, 패널 몸통(세로 flex)에 눌려 글이 바탕 밖으로 나가지 않게
    줄 높이를 내용만큼 둔다. 값은 매니저 줄 그대로. */
 .admin-emp-manager-readonly.is-wrap { flex-wrap: wrap; flex-shrink: 0; }
@@ -1776,16 +1780,26 @@
    이 모달만 다른 앱처럼 보인다 (PW-136).
    ──────────────────────────────────────────────────────────── */
 .admin-emp-sal-status {
-  padding: 24px 0;
+  padding: var(--spacing-3xl) 0;
   text-align: center;
   font-size: var(--font-size-text-sm, 14px);
   color: var(--text-secondary);
 }
-/* 이력 표의 칸 여백·머리 행·구분선·「현재」 줄 바탕은 명단 표(roster-table.css)가 정한다 (PW-839). */
-.admin-emp-sal-table td.is-amount {
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
+/* 이력이 없을 때 — 옅은 회색 칸 한 줄 (pivit-work PW-2693 · 커트 시안 `.empty-rule`). */
+.admin-emp-sal-status.is-empty {
+  padding: var(--spacing-lg) calc(var(--spacing-lg) + var(--spacing-xxs));
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  font-size: var(--font-size-text-xs, 13px);
 }
+/* 이력 표 — 틀은 명단 표(RosterTable `framed`)가, 칸 여백·머리 행은 roster-table.css 가 정한다 (PW-839).
+   종류·금액은 진한 글로, 「현재」 줄은 줄 전체를 칠하지 않고 날짜 옆 딱지로만 (pivit-work PW-2693 · 커트 ③). */
+.admin-emp-sal-table td.is-kind,
+.admin-emp-sal-table td.is-amount {
+  font-weight: 600;
+  color: var(--fg-primary);
+}
+.admin-emp-sal-table td.is-amount { font-variant-numeric: tabular-nums; }
 .admin-emp-sal-table td.is-date { white-space: nowrap; }
 .admin-emp-sal-table td.is-amount { white-space: nowrap; }
 /* 기간은 날짜 단위로만 꺾인다 — 「2026-01-」에서 끊기지 않게 (PW-942). */
@@ -1795,57 +1809,76 @@
 .admin-emp-sal-table .is-reason { width: 42%; min-width: 8em; word-break: keep-all; overflow-wrap: anywhere; }
 /* 고치기·지우기는 한 줄로, 꼭 필요한 폭만 — 남는 폭은 사유 칸이 갖는다 (PW-942). */
 .admin-emp-sal-table td.is-actions { width: 1%; white-space: nowrap; }
+.admin-emp-sal-row-actions { display: inline-flex; gap: var(--spacing-xs); }
 .admin-emp-sal-current {
-  margin-left: 6px;
-  padding: 1px 6px;
-  border-radius: var(--radius-xs, 4px);
-  background: var(--bg-brand-solid);
-  color: var(--colors-text-textWhite, #fff);
-  font-size: 11px;
-  font-weight: 700;
-  vertical-align: 1px;
+  margin-left: var(--spacing-sm);
+  padding: var(--spacing-xxs) var(--spacing-md);
+  border-radius: var(--radius-xs, 6px);
+  background: var(--bg-brand-secondary);
+  color: var(--text-brand-secondary);
+  font-size: var(--font-size-text-xs, 12px);
+  font-weight: 600;
 }
-/* 추가 폼 — 점선 테두리(design-page 어디에도 없는 표현) 대신 카드 톤 채움. */
+/* 추가·고치기 칸 — 흰 카드(얇은 테두리·둥근 모서리) 안에 진한 제목, 36px 흰 입력칸 (pivit-work PW-2693 · 커트 시안 `.card`).
+   값은 커트가 승인한 평가 담당자 지정 시안과 같다. HR 기록 창 추가 칸(.adm-hr-add)도 같은 값을 쓴다. */
 .admin-emp-sal-add {
-  /* 표와의 간격은 `.adm-shell-body` 의 gap 이 준다 — 여기서 또 주면 두 배가 된다. */
-  padding: 14px;
-  border-radius: var(--radius-md);
-  background: var(--bg-primary);
-  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-lg) + var(--spacing-xxs));
+  padding: var(--spacing-xl);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-lg, 12px);
+  background: var(--bg-quaternary);
 }
 .admin-emp-sal-add-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 22px;
+  color: var(--fg-primary);
+}
+/* 네 칸 한 줄: 종류(종류 이름이 다 보이는 폭) · 적용일 · 금액 · 통화.
+   기간형은 종류 · 시작일 · 종료일 다음 줄에 금액(두 칸 폭) · 통화. */
+.admin-emp-sal-add-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: var(--spacing-lg);
+}
+.admin-emp-sal-add-row.is-period { grid-template-columns: minmax(150px, 1.3fr) minmax(0, 1fr) minmax(0, 1fr); }
+.admin-emp-sal-add-row.is-period .admin-emp-field.is-amount { grid-column: 1 / 3; }
+.admin-emp-sal-reason-row { display: flex; align-items: flex-end; gap: var(--spacing-md); }
+.admin-emp-sal-reason-row .admin-emp-field { flex: 1; }
+.admin-emp-sal-add .admin-emp-field { gap: var(--spacing-sm); min-width: 0; }
+/* 칸 이름은 칸 안 안내 글(옅은 회색)보다 진하게 — 13px 굵은 보조 회색. */
+.admin-emp-sal-add .admin-emp-field-label {
   font-size: var(--font-size-text-xs, 13px);
-  font-weight: 700;
+  font-weight: 600;
+  line-height: 18px;
   color: var(--text-secondary);
-  margin-bottom: 10px;
+  white-space: nowrap;
 }
-/* 세 칸 + 버튼이 520px 모달 안에서 한 줄에 들어가도록 basis 를 좁게 잡는다 —
-   넘치면 버튼만 아래로 떨어져 폼이 두 덩이로 보인다. */
-.admin-emp-sal-add-row { display: flex; gap: var(--spacing-3xl) 17px; flex-wrap: wrap; align-items: flex-end; }
-.admin-emp-sal-add-row .admin-emp-field { flex: 1 1 104px; min-width: 0; }
-.admin-emp-sal-add-row .admin-emp-field.is-reason { flex: 2 1 130px; }
-/* 칸 이름표·이름표↔칸·칸 사이·입력칸 — 디자이너가 그린 1on1 「일정 추가」 창(.ono-add-modal-*) 값 그대로 (PW-1896).
-   위아래 칸 사이 24px, 옆 칸 사이 17px(.ono-add-modal-row). .admin-emp-field·-label·-input 은 구성원 시트
-   다른 창도 쓰므로 이 추가 칸 안에서만 덮는다. */
-.admin-emp-sal-add-row .admin-emp-field { gap: var(--spacing-lg); }
-.admin-emp-sal-add-row .admin-emp-field-label {
-  font-family: var(--font-family-body);
-  font-weight: 700;
-  font-size: var(--font-size-text-sm);
-  line-height: var(--line-height-text-sm);
-  color: var(--text-secondary);
+.admin-emp-sal-add .admin-emp-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 36px;
+  height: 36px;
+  padding: 0 var(--spacing-lg);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-sm, 8px);
+  background: var(--bg-quaternary);
+  font-size: var(--font-size-text-sm, 14px);
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--fg-primary);
 }
-.admin-emp-sal-add-row .admin-emp-input {
-  /* 높이는 min-height 40px(.ono-add-modal-input)이 정한다 — 글 칸과 고르기 칸 높이가 같게 */
-  padding: 7px 12px;
-  border-color: var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-text-md);
-  line-height: var(--line-height-text-md);
-  color: var(--text-primary);
+.admin-emp-sal-add .admin-emp-input::placeholder { color: var(--text-tertiary); font-weight: 400; }
+.admin-emp-sal-add .admin-emp-input:focus {
+  border-color: var(--border-brand);
+  box-shadow: inset 0 0 0 1px var(--border-brand);
 }
-.admin-emp-sal-add-row .admin-emp-input:focus { border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82); }
-.admin-emp-sal-add-row .admin-emp-btn { min-height: 40px; flex: 0 0 auto; }
+.admin-emp-sal-add .admin-emp-input:disabled { background: var(--bg-secondary); color: var(--text-secondary); }
+/* 버튼은 칸과 같은 높이(36) — 공용 Button md 가 테두리까지 36px 이다. */
+.admin-emp-sal-add .dp-btn { flex: 0 0 auto; min-height: 36px; }
 /* 날짜 입력은 브라우저 기본 date 입력(mm/dd/yyyy)이 아니라 공용 DatePicker 를
    여는 버튼이다 — 로케일에 따라 표기가 갈리지 않고 다른 화면과 생김새가 같다. */
 .admin-emp-sal-date { text-align: left; cursor: pointer; }
@@ -1854,38 +1887,45 @@
   box-shadow: inset 0 0 0 1px var(--colors-foreground-fgBrandPrimary, #2dbd82);
 }
 .admin-emp-sal-date.is-empty { color: var(--text-placeholder, #b1b6be); }
-.admin-emp-sal-amount { text-align: right; }
+.admin-emp-sal-amount { text-align: right; font-variant-numeric: tabular-nums; }
+/* 오류 — 빨간 아이콘 + 글 한 줄. 아이콘은 글 색을 따른다. */
 .admin-emp-sal-error {
-  margin-top: 10px;
-  font-size: var(--font-size-text-xs, 13px);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin-top: calc(-1 * var(--spacing-sm));
+  font-size: var(--font-size-text-xs, 12px);
   line-height: 18px;
   color: var(--text-error-primary);
 }
+.admin-emp-sal-error > svg { flex-shrink: 0; }
+/* 안내문은 구분선 아래. */
 .admin-emp-sal-note {
-  margin-top: 10px;
-  font-size: var(--font-size-text-xs, 13px);
-  line-height: 18px;
-  color: var(--text-secondary);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--border-secondary);
+  font-size: var(--font-size-text-xs, 12px);
+  line-height: 1.6;
+  color: var(--text-subtle);
 }
 /* 헤더 설명의 마스킹 고지 — 자물쇠 SVG 는 이 span 의 color 를 상속한다. */
 .admin-emp-sal-mask {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  margin-left: 6px;
-  color: var(--text-secondary);
+  color: var(--text-subtle);
 }
-/* 보상 이력 창 위 «HR 전용» 고정 안내 (W69 · admin-spec §3.2.4). 자물쇠 SVG 는 color 를 상속한다. */
+/* 보상 이력 창 위 «HR 전용» 고정 안내 (W69 · admin-spec §3.2.4) — 글 폭만큼의 작은 회색 딱지 (pivit-work PW-2693 · 커트 시안 `.hr-only`).
+   자물쇠 SVG 는 color 를 상속한다. */
 .admin-emp-sal-hronly {
-  display: flex;
+  display: inline-flex;
+  align-self: flex-start;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 12px;
-  padding: 8px 12px;
-  border-radius: var(--radius-sm, 6px);
-  background: var(--bg-secondary, #F8FAFC);
-  color: var(--text-secondary, #475569);
-  font-size: var(--font-size-text-xs, 13px);
+  gap: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--radius-xs, 6px);
+  background: var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
+  color: var(--text-secondary);
+  font-size: var(--font-size-text-xs, 12px);
   font-weight: 600;
 }
 /* 사인온·리텐션 줄의 «반납 조건» 딱지 — 「현재」와 같은 크기, 테두리만 있는 중립 색. */
@@ -1899,23 +1939,79 @@
   font-weight: 600;
   vertical-align: 1px;
 }
-/* 통화별 합계 — 통화마다 한 줄, 금액은 오른쪽 정렬. */
+/* 통화별 합계 — 표 아래 오른쪽, 통화마다 한 줄 (pivit-work PW-2693 · 커트 시안 `.totals`). */
 .admin-emp-sal-totals {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--border-secondary, #EEF2F6);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--spacing-xs);
+  padding: 0 var(--spacing-xs);
 }
 .admin-emp-sal-total {
   display: flex;
-  justify-content: space-between;
-  padding: 2px 4px;
-  font-size: var(--font-size-text-sm, 14px);
-  color: var(--text-secondary, #475569);
+  align-items: baseline;
+  gap: var(--spacing-md);
+  font-size: var(--font-size-text-xs, 13px);
+  color: var(--text-subtle);
 }
 .admin-emp-sal-total-amount {
   font-variant-numeric: tabular-nums;
+  font-size: 15px;
   font-weight: 700;
-  color: var(--text-primary, #0F172A);
+  color: var(--fg-primary);
+}
+/* 보상 이력 창의 머리·폭 — 이 창만 (pivit-work PW-2693 · 커트 시안 `.modal`·`.m-head`).
+   제목 20px · 부제 13px · 머리 아래 선 · 닫기 40px. 머리는 두고 본문만 스크롤한다. 공용 창 틀(.tl-group-modal)은 그대로다.
+   폭 720 은 이력 표의 사유 칸이 꺾이지 않는 폭(커트 ③). */
+.tl-group-modal.adm-shell.admin-emp-sal-shell { width: 720px; border-radius: var(--radius-4xl, 24px); overflow: hidden; }
+.tl-group-modal.adm-shell.admin-emp-sal-shell > .tl-group-modal-top {
+  position: absolute;
+  top: calc(var(--spacing-3xl) + var(--spacing-xxs));
+  right: var(--spacing-4xl);
+  z-index: 1;
+  padding: 0;
+}
+.tl-group-modal.adm-shell.admin-emp-sal-shell .tl-group-modal-close {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md, 10px);
+  background: var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
+}
+.tl-group-modal.adm-shell.admin-emp-sal-shell .tl-group-modal-close:hover {
+  background: var(--componentColors-alpha-alphaBlack6, rgba(0, 0, 0, 0.06));
+}
+.tl-group-modal.adm-shell.admin-emp-sal-shell .tl-group-modal-close svg { width: 18px; height: 18px; }
+.tl-group-modal.adm-shell.admin-emp-sal-shell .tl-group-modal-content {
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+}
+.tl-group-modal.adm-shell.admin-emp-sal-shell .tl-group-modal-header {
+  flex-shrink: 0;
+  gap: var(--spacing-sm);
+  /* 오른쪽은 닫기 X(40) 자리를 비운다 — 32 + 40 + 16 */
+  padding: calc(var(--spacing-3xl) + var(--spacing-xs)) calc(var(--spacing-4xl) * 2 + var(--spacing-xl) + var(--spacing-md)) var(--spacing-xl) var(--spacing-4xl);
+  border-bottom: 1px solid var(--border-secondary);
+}
+.tl-group-modal.adm-shell.admin-emp-sal-shell .tl-group-modal-title {
+  font-size: 20px;
+  line-height: 28px;
+  color: var(--fg-primary);
+}
+.tl-group-modal.adm-shell.admin-emp-sal-shell .tl-group-modal-desc {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: var(--font-size-text-xs, 13px);
+  font-weight: 400;
+  line-height: 18px;
+  color: var(--text-secondary);
+}
+.admin-emp-sal-body {
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--spacing-2xl) var(--spacing-4xl) calc(var(--spacing-3xl) + var(--spacing-xs));
 }
 
 /* ============================================================
@@ -4324,6 +4420,81 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
   min-width: 0;
   overflow-wrap: anywhere;
 }
+/* HR 기록 창의 추가 칸 7곳 — 보상 이력 창 «보상 이력 추가»(.admin-emp-sal-add)와 같은 흰 카드·진한 제목·13px 진한 칸 이름·
+   36px 흰 칸·36px 버튼 (pivit-work PW-2693 · 커트 ④). 이름 칸이 왼쪽에 서는 줄 배치는 이 창 그대로다. */
+.adm-hr-add {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--spacing-lg) + var(--spacing-xxs));
+  margin-top: var(--spacing-lg);
+  padding: var(--spacing-xl);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-lg, 12px);
+  background: var(--bg-quaternary);
+}
+.adm-hr-add-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 22px;
+  color: var(--fg-primary);
+}
+.adm-hr-add-fields { display: flex; flex-direction: column; gap: var(--spacing-md); }
+.adm-hr-add-pair { display: flex; align-items: center; gap: var(--spacing-md); }
+.adm-hr-add-pair.is-top { align-items: flex-start; }
+.adm-hr-add .adm-hr-pair-k {
+  font-size: var(--font-size-text-xs, 13px);
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--text-secondary);
+}
+.adm-hr-add-pair.is-top > .adm-hr-pair-k { padding-top: var(--spacing-md); }
+.adm-hr-add-pair > .admin-emp-input,
+.adm-hr-add-file,
+.adm-hr-add-stack { flex: 1; min-width: 0; }
+.adm-hr-add .admin-emp-input {
+  box-sizing: border-box;
+  min-height: 36px;
+  height: 36px;
+  padding: 0 var(--spacing-lg);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-sm, 8px);
+  background: var(--bg-quaternary);
+  font-size: var(--font-size-text-sm, 14px);
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--fg-primary);
+}
+.adm-hr-add .admin-emp-input::placeholder { color: var(--text-tertiary); font-weight: 400; }
+.adm-hr-add .admin-emp-input:focus {
+  border-color: var(--border-brand);
+  box-shadow: inset 0 0 0 1px var(--border-brand);
+}
+/* 기타 복리후생 — 이름·내용 칸 둘과 [지우기]가 한 줄, 그 아래 [항목 추가]. */
+.adm-hr-add-stack { display: flex; flex-direction: column; gap: var(--spacing-sm); }
+.adm-hr-add-stack > .dp-btn { align-self: flex-start; }
+.adm-hr-add-inline { display: flex; align-items: center; gap: var(--spacing-xs); }
+.adm-hr-add-inline > .admin-emp-input { flex: 1; min-width: 0; }
+/* 파일 끌어놓기 칸(공용 CsvDropZone) — 칸 안의 글이 고른 파일 이름이다. 줄 안에 들어가게 위아래 여백만 줄인다. */
+.adm-hr-add-file .admin-inv-drop { padding: var(--spacing-xl); }
+.adm-hr-add-file .admin-inv-drop-title { overflow-wrap: anywhere; }
+.adm-hr-add-actions { display: flex; align-items: center; justify-content: flex-end; gap: var(--spacing-md); }
+.adm-hr-add-actions .dp-btn { min-height: 36px; }
+.adm-hr-add-saved {
+  margin-right: auto;
+  font-size: var(--font-size-text-xs, 12px);
+  color: var(--utility-success-700);
+}
+/* 오류 — 빨간 아이콘 + 글 한 줄(보상 이력 추가 칸 .admin-emp-sal-error 와 같은 모양). 칸 바로 아래 오류는 빈 이름 칸을 둔 줄(.adm-hr-add-pair)에 넣어 칸 왼쪽 끝에서 시작한다. */
+.adm-hr-add-error {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--font-size-text-xs, 12px);
+  line-height: 18px;
+  color: var(--text-error-primary);
+}
+.adm-hr-add-error > svg { flex-shrink: 0; }
 .admin-emp-btn.is-danger-ghost {
   background: transparent;
   border: 1px solid var(--utility-error-100);

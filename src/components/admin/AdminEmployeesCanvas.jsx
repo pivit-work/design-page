@@ -5814,7 +5814,8 @@ function EmployeesEditPanel({
           )}
 
           <SectionLabel>{labels.panel.managerSection}</SectionLabel>
-          <div className="admin-emp-manager-readonly">
+          {/* 안내문이 길어 이름 자리를 밀면 이름이 한 글자씩 세로로 꺾였다 — 줄을 넘기게 두고 이름은 줄지 않는다 (pivit-work PW-2693). */}
+          <div className="admin-emp-manager-readonly is-wrap is-manager" data-testid="employees-panel-manager">
             {member.isCeo ? (
               /* 대표는 상급자를 가질 수 없다 — 매니저 칸이 이 문구로 바뀐다(admin-spec §3.2 조직 위치). */
               <span className="admin-emp-manager-note" data-testid="employees-panel-manager-ceo">

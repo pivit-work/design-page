@@ -18,9 +18,11 @@ import { todayIsoInZone } from '../shared/calendarDate.js';
 import { IconLock } from './employeeExport.jsx';
 import { IconChevronRight } from './employeesIcons.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
+import Button from '../shared/Button.jsx';
+import { CsvDropZone } from './kit/CsvImportParts.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
-import { AlertTriangleGlyph, CheckGlyph, CloseGlyph, CrownGlyph, PlusGlyph } from '../shared/lineIcons.jsx';
+import { AlertCircleGlyph, AlertTriangleGlyph, CheckGlyph, CloseGlyph, CrownGlyph, PlusGlyph } from '../shared/lineIcons.jsx';
 import LoadingState from '../shared/LoadingState.jsx';
 import Select from '../shared/Select.jsx';
 import { isMoneyCellText } from './inviteCsv.js';
@@ -323,6 +325,30 @@ function HrList({ items, render, empty }) {
   );
 }
 
+/**
+ * HR 기록 창의 추가 칸 — 보상 이력 창 «보상 이력 추가»와 같은 흰 카드(얇은 테두리·진한 제목·36px 칸·36px 버튼).
+ * 늘 열린 입력 칸 + 아래 버튼 줄 구조는 그대로다. 오류는 빨간 아이콘 줄로 버튼 줄 아래 (pivit-work PW-2693 · 커트 ④).
+ * `title` 이 없으면 제목 줄을 두지 않는다(복리후생 — 묶음 제목 바로 아래가 곧 입력 칸이다).
+ */
+function HrAddCard({ title, testId, error, status, actions, children }) {
+  return (
+    <section className="adm-hr-add" data-testid={testId}>
+      {title && <h4 className="adm-hr-add-title">{title}</h4>}
+      <div className="adm-hr-add-fields">{children}</div>
+      <div className="adm-hr-add-actions">
+        {status}
+        {actions}
+      </div>
+      {error && (
+        <div className="adm-hr-add-error" role="alert">
+          <AlertCircleGlyph size={14} />
+          {error}
+        </div>
+      )}
+    </section>
+  );
+}
+
 // ── HR 기록 모달 (읽기 전용) ──────────────────────────────
 // 어드민(HR)이 구성원의 신원·가족·부양가족·학력·경력·자격증·증빙을 조회한다.
 // 편집은 향후(admin EditPanel) — 현재는 표출 전용. 입력은 본인 내 설정에서.
@@ -354,9 +380,14 @@ function HrEditPairError({ children }) {
   );
 }
 
-function HrEditPair({ k, value, onChange, type = 'text', date = false, options, inputMode, startView, max, today, disabled = false, placeholder }) {
-  return (
-    <div style={{ display: 'flex', gap: 8, fontSize: 12, padding: '3px 0', alignItems: 'center' }}>
+/**
+ * `card` — 추가 칸(.adm-hr-add) 안의 줄. 칸 높이·글씨는 그 카드의 클래스가 정한다(36px 흰 칸 · pivit-work PW-2693).
+ * 안 주면 지금 그대로(신원·인사 편집 줄).
+ */
+function HrEditPair({ k, value, onChange, type = 'text', date = false, options, inputMode, startView, max, today, disabled = false, placeholder, card = false }) {
+  const fieldStyle = card ? undefined : { flex: 1, height: 30, fontSize: 12 };
+  const parts = (
+    <>
       <span className="adm-hr-pair-k">{k}</span>
       {options ? (
         <Select
@@ -365,7 +396,7 @@ function HrEditPair({ k, value, onChange, type = 'text', date = false, options, 
           onChange={(e) => onChange(e.target.value)}
           aria-label={k}
           disabled={disabled}
-          style={{ flex: 1, height: 30, fontSize: 12 }}
+          style={fieldStyle}
         >
           <option value="">—</option>
           {options.map((o) => (
@@ -382,7 +413,7 @@ function HrEditPair({ k, value, onChange, type = 'text', date = false, options, 
           startView={startView}
           max={max}
           today={today}
-          style={{ flex: 1, height: 30, fontSize: 12 }}
+          style={fieldStyle}
         />
       ) : (
         <input
@@ -394,9 +425,15 @@ function HrEditPair({ k, value, onChange, type = 'text', date = false, options, 
           onChange={(e) => onChange(e.target.value)}
           aria-label={k}
           disabled={disabled}
-          style={{ flex: 1, height: 30, fontSize: 12 }}
+          style={fieldStyle}
         />
       )}
+    </>
+  );
+  if (card) return <div className="adm-hr-add-pair">{parts}</div>;
+  return (
+    <div style={{ display: 'flex', gap: 8, fontSize: 12, padding: '3px 0', alignItems: 'center' }}>
+      {parts}
     </div>
   );
 }
@@ -1276,30 +1313,33 @@ function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelet
           </div>
         )}
         {canEdit && !loadError && (
-          <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${T.bl}` }}>
-            <HrEditPair k={L.hrTrainingCourse || '과정명'} value={form.courseName} onChange={(v) => setForm((f) => ({ ...f, courseName: v }))} />
+          <HrAddCard
+            title={editingId ? `${L.hrTrainings || '수료한 교육 과정'} ${L.hrRecordEdit || '고치기'}` : (L.hrTrainingAdd || '교육 과정 추가')}
+            error={error ? (L.hrRecordSaveError || '저장하지 못했습니다. 잠시 후 다시 시도해 주세요.') : null}
+            actions={
+              <>
+                {editingId && (
+                  <Button variant="secondary" onClick={cancelEdit} disabled={busy}>
+                    {L.hrRecordCancel || '취소'}
+                  </Button>
+                )}
+                <Button
+                  variant="primary"
+                  data-testid="hr-training-submit"
+                  onClick={submit}
+                  disabled={busy || !form.courseName.trim()}
+                >
+                  {editingId ? (L.hrRecordSave || '저장') : (L.hrTrainingAdd || '교육 과정 추가')}
+                </Button>
+              </>
+            }
+          >
+            <HrEditPair card k={L.hrTrainingCourse || '과정명'} value={form.courseName} onChange={(v) => setForm((f) => ({ ...f, courseName: v }))} />
             {/* 과정명·교육기관·수료일 순서 (admin-spec §3.2.10 · W69). */}
-            <HrEditPair k={L.hrTrainingProvider || '교육기관'} value={form.provider} onChange={(v) => setForm((f) => ({ ...f, provider: v }))} />
-            <HrEditPair k={L.hrTrainingCompletedAt || '수료일'} date value={form.completedAt} onChange={(v) => setForm((f) => ({ ...f, completedAt: v }))} />
-            <HrEditPair k={L.hrTrainingNote || '메모'} value={form.note} onChange={(v) => setForm((f) => ({ ...f, note: v }))} />
-            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 6 }}>
-              {error && <span style={{ fontSize: 11, color: '#DC2626' }} role="alert">{L.hrRecordSaveError || '저장하지 못했습니다. 잠시 후 다시 시도해 주세요.'}</span>}
-              {editingId && (
-                <button type="button" className="admin-emp-btn" onClick={cancelEdit} disabled={busy} style={{ fontSize: 12, padding: '6px 12px' }}>
-                  {L.hrRecordCancel || '취소'}
-                </button>
-              )}
-              <button
-                type="button"
-                className="admin-emp-btn is-primary"
-                data-testid="hr-training-submit"
-                onClick={submit}
-                disabled={busy || !form.courseName.trim()}
-              >
-                {editingId ? (L.hrRecordSave || '저장') : (L.hrTrainingAdd || '교육 과정 추가')}
-              </button>
-            </div>
-          </div>
+            <HrEditPair card k={L.hrTrainingProvider || '교육기관'} value={form.provider} onChange={(v) => setForm((f) => ({ ...f, provider: v }))} />
+            <HrEditPair card k={L.hrTrainingCompletedAt || '수료일'} date value={form.completedAt} onChange={(v) => setForm((f) => ({ ...f, completedAt: v }))} />
+            <HrEditPair card k={L.hrTrainingNote || '메모'} value={form.note} onChange={(v) => setForm((f) => ({ ...f, note: v }))} />
+          </HrAddCard>
         )}
       </div>
     </HrSection>
@@ -1454,9 +1494,30 @@ function HrRecordListSection({
           </div>
         )}
         {onSave && (
-          <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${T.bl}` }}>
+          <HrAddCard
+            title={editingId ? `${title} ${L.hrRecordEdit || '고치기'}` : addLabel}
+            error={error ? (L.hrRecordSaveError || '저장하지 못했습니다. 잠시 후 다시 시도해 주세요.') : null}
+            actions={
+              <>
+                {editingId && (
+                  <Button variant="secondary" onClick={cancelEdit} disabled={busy}>
+                    {L.hrRecordCancel || '취소'}
+                  </Button>
+                )}
+                <Button
+                  variant="primary"
+                  data-testid={`${testId}-submit`}
+                  onClick={submit}
+                  disabled={busy || missing || reversed}
+                >
+                  {editingId ? (L.hrRecordSave || '저장') : addLabel}
+                </Button>
+              </>
+            }
+          >
             {fields.map((f) => (
               <HrEditPair
+                card
                 key={f.key}
                 k={f.required ? `${f.label} *` : f.label}
                 value={form[f.key]}
@@ -1469,33 +1530,17 @@ function HrRecordListSection({
                 placeholder={f.placeholder}
               />
             )).flatMap((pair, i) => (
-              // 마지막 출근일 안내(hr-last-working-date-error)와 같은 자리·모양 — 고칠 칸 바로 아래
+              // 마지막 출근일 안내(hr-last-working-date-error)와 같은 자리 — 고칠 칸 바로 아래, 칸 왼쪽 끝에서
               reversed && fields[i].key === 'to'
                 ? [pair, (
-                  <span key="period-error" style={{ display: 'block', fontSize: 11, color: '#DC2626', paddingLeft: 96 }} role="alert" data-testid={`${testId}-period-error`}>
-                    {periodError}
-                  </span>
+                  <div key="period-error" className="adm-hr-add-pair" role="alert" data-testid={`${testId}-period-error`}>
+                    <span className="adm-hr-pair-k" aria-hidden="true" />
+                    <span className="adm-hr-add-error"><AlertCircleGlyph size={14} />{periodError}</span>
+                  </div>
                 )]
                 : [pair]
             ))}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 6 }}>
-              {error && <span style={{ fontSize: 11, color: '#DC2626' }} role="alert">{L.hrRecordSaveError || '저장하지 못했습니다. 잠시 후 다시 시도해 주세요.'}</span>}
-              {editingId && (
-                <button type="button" className="admin-emp-btn" onClick={cancelEdit} disabled={busy} style={{ fontSize: 12, padding: '6px 12px' }}>
-                  {L.hrRecordCancel || '취소'}
-                </button>
-              )}
-              <button
-                type="button"
-                className="admin-emp-btn is-primary"
-                data-testid={`${testId}-submit`}
-                onClick={submit}
-                disabled={busy || missing || reversed}
-              >
-                {editingId ? (L.hrRecordSave || '저장') : addLabel}
-              </button>
-            </div>
-          </div>
+          </HrAddCard>
         )}
       </div>
     </HrSection>
@@ -1513,6 +1558,7 @@ function HrDocumentsSection({
   const [docType, setDocType] = useState('');
   const [file, setFile] = useState(null);
   const [inputKey, setInputKey] = useState(0);
+  const [dragging, setDragging] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
   const typeLabel = (v) => docTypeOptions?.find((o) => o.value === v)?.label ?? v;
@@ -1566,30 +1612,42 @@ function HrDocumentsSection({
           </div>
         )}
         {onUpload && (
-          <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${T.bl}` }}>
-            <HrEditPair k={`${L.hrDocType || '서류 종류'} *`} value={docType} onChange={setDocType} options={docTypeOptions || []} />
-            <div style={{ display: 'flex', gap: 8, fontSize: 12, padding: '3px 0', alignItems: 'center' }}>
-              <span className="adm-hr-pair-k">{`${L.hrDocFile || '파일'} *`}</span>
-              <input
-                key={inputKey}
-                type="file"
-                accept=".pdf,.jpg,.jpeg,.png,.webp"
-                aria-label={L.hrDocFile || '파일'}
-                data-testid="hr-documents-file"
-                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                style={{ flex: 1, fontSize: 12 }}
-              />
-            </div>
-            <div style={{ fontSize: 11, color: T.muted, padding: '2px 0 0 96px' }}>
-              {L.hrDocHint || 'pdf · jpg · png · webp, 10MB 까지'}
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 6 }}>
-              {error && <span style={{ fontSize: 11, color: '#DC2626' }} role="alert">{L.hrRecordSaveError || '저장하지 못했습니다. 잠시 후 다시 시도해 주세요.'}</span>}
-              <button type="button" className="admin-emp-btn is-primary" data-testid="hr-documents-submit" onClick={upload} disabled={busy || !docType || !file}>
+          <HrAddCard
+            title={L.hrDocUpload || '서류 올리기'}
+            error={error ? (L.hrRecordSaveError || '저장하지 못했습니다. 잠시 후 다시 시도해 주세요.') : null}
+            actions={
+              <Button variant="primary" data-testid="hr-documents-submit" onClick={upload} disabled={busy || !docType || !file}>
                 {L.hrDocUpload || '서류 올리기'}
-              </button>
+              </Button>
+            }
+          >
+            <HrEditPair card k={`${L.hrDocType || '서류 종류'} *`} value={docType} onChange={setDocType} options={docTypeOptions || []} />
+            {/* 브라우저 기본 파일 버튼(«Choose File / No file chosen»)은 브라우저 언어로 나온다 — 다른 화면의 파일
+                올리기와 같은 공용 끌어놓기 칸을 쓴다. 칸 글이 고른 파일 이름을 보인다 (pivit-work PW-2693 · 커트 ⑤). */}
+            <div className="adm-hr-add-pair is-top">
+              <span className="adm-hr-pair-k">{`${L.hrDocFile || '파일'} *`}</span>
+              <div className="adm-hr-add-file">
+                <CsvDropZone
+                  key={inputKey}
+                  dragging={dragging}
+                  title={file ? file.name : (L.hrDocFilePick || '파일을 끌어다 놓거나 눌러서 고르세요')}
+                  hint={L.hrDocHint || 'pdf · jpg · png · webp, 10MB 까지'}
+                  accept=".pdf,.jpg,.jpeg,.png,.webp"
+                  inputTestId="hr-documents-file"
+                  testId="hr-documents-drop"
+                  onFileChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                  onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+                  onDragLeave={() => setDragging(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setDragging(false);
+                    const dropped = e.dataTransfer?.files?.[0];
+                    if (dropped) setFile(dropped);
+                  }}
+                />
+              </div>
             </div>
-          </div>
+          </HrAddCard>
         )}
       </div>
     </HrSection>
@@ -1676,44 +1734,47 @@ function HrBenefitsSection({ memberId, labels, onLoad, onSave }) {
             <HrPair k={L.hrOtherBenefits || '기타 복리후생'} v={d.otherBenefits.map((o) => (o.value ? `${o.name}: ${o.value}` : o.name)).join(' · ')} />
           </>
         ) : (
-          <>
-            <HrEditPair k={L.hrHealthInsuranceProvider || '건강 보험 제공사'} value={d.healthInsuranceProvider} onChange={set('healthInsuranceProvider')} />
-            <HrEditPair k={L.hrInsurancePlanType || '보험 플랜 유형'} value={d.planType} onChange={set('planType')} />
-            <HrEditPair k={L.hrPensionContribution || '퇴직연금 기여금'} value={d.pensionContribution} onChange={set('pensionContribution')} />
-            {pensionBad && (
-              <HrEditPairError>{L.hrPensionContributionInvalid || '금액은 소수점·단위 없는 정수로 적어 주세요.'}</HrEditPairError>
-            )}
-            <HrEditPair k={L.hrStockOptions || '주식 옵션'} value={d.stockOptions} onChange={set('stockOptions')} />
-            <div style={{ display: 'flex', gap: 8, fontSize: 12, padding: '3px 0', alignItems: 'flex-start' }}>
-              <span className="adm-hr-pair-k" style={{ paddingTop: 7 }}>{L.hrOtherBenefits || '기타 복리후생'}</span>
-              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {d.otherBenefits.map((o, i) => (
-                  <div key={i} style={{ display: 'flex', gap: 4 }} data-testid="hr-other-benefit-row">
-                    <input className="admin-emp-input" value={o.name} onChange={(e) => setOther(i, 'name', e.target.value)} placeholder={L.hrOtherBenefitName || '항목 (예: 식대)'} aria-label={L.hrOtherBenefitName || '항목'} style={{ flex: 1, minWidth: 0, height: 30, fontSize: 12 }} />
-                    <input className="admin-emp-input" value={o.value} onChange={(e) => setOther(i, 'value', e.target.value)} placeholder={L.hrOtherBenefitValue || '내용 (예: 월 20만원)'} aria-label={L.hrOtherBenefitValue || '내용'} style={{ flex: 1, minWidth: 0, height: 30, fontSize: 12 }} />
-                    <button type="button" className="admin-emp-btn is-danger-ghost is-sm" onClick={() => removeOther(i)} style={{ flexShrink: 0 }}>{L.hrRecordDelete || '지우기'}</button>
-                  </div>
-                ))}
-                <button type="button" className="admin-emp-btn" onClick={addOther} style={{ alignSelf: 'flex-start', fontSize: 11, padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                  <IconPlusSmall size={11} />
-                  {L.hrOtherBenefitAdd || '항목 추가'}
-                </button>
-              </div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 8, marginTop: 8 }}>
-              {state === 'error' && <span style={{ fontSize: 11, color: '#DC2626' }} role="alert">{L.hrRecordSaveError || '저장하지 못했습니다. 잠시 후 다시 시도해 주세요.'}</span>}
-              {state === 'saved' && <span style={{ fontSize: 11, color: '#16A34A' }} role="status">{L.hrIdentitySaved || '저장됐습니다'}</span>}
-              <button
-                type="button"
-                className="admin-emp-btn is-primary"
+          <HrAddCard
+            error={state === 'error' ? (L.hrRecordSaveError || '저장하지 못했습니다. 잠시 후 다시 시도해 주세요.') : null}
+            status={state === 'saved' ? <span className="adm-hr-add-saved" role="status">{L.hrIdentitySaved || '저장됐습니다'}</span> : null}
+            actions={
+              <Button
+                variant="primary"
                 data-testid="hr-benefits-save"
                 onClick={save}
                 disabled={!dirty || pensionBad || state === 'saving'}
               >
                 {state === 'saving' ? (L.hrIdentitySaving || '저장 중…') : (L.hrBenefitsSave || '복리후생 저장')}
-              </button>
+              </Button>
+            }
+          >
+            <HrEditPair card k={L.hrHealthInsuranceProvider || '건강 보험 제공사'} value={d.healthInsuranceProvider} onChange={set('healthInsuranceProvider')} />
+            <HrEditPair card k={L.hrInsurancePlanType || '보험 플랜 유형'} value={d.planType} onChange={set('planType')} />
+            <HrEditPair card k={L.hrPensionContribution || '퇴직연금 기여금'} value={d.pensionContribution} onChange={set('pensionContribution')} />
+            {pensionBad && (
+              <div className="adm-hr-add-pair" role="alert">
+                <span className="adm-hr-pair-k" aria-hidden="true" />
+                <span className="adm-hr-add-error"><AlertCircleGlyph size={14} />{L.hrPensionContributionInvalid || '금액은 소수점·단위 없는 정수로 적어 주세요.'}</span>
+              </div>
+            )}
+            <HrEditPair card k={L.hrStockOptions || '주식 옵션'} value={d.stockOptions} onChange={set('stockOptions')} />
+            <div className="adm-hr-add-pair is-top">
+              <span className="adm-hr-pair-k">{L.hrOtherBenefits || '기타 복리후생'}</span>
+              <div className="adm-hr-add-stack">
+                {d.otherBenefits.map((o, i) => (
+                  <div key={i} className="adm-hr-add-inline" data-testid="hr-other-benefit-row">
+                    <input className="admin-emp-input" value={o.name} onChange={(e) => setOther(i, 'name', e.target.value)} placeholder={L.hrOtherBenefitName || '항목 (예: 식대)'} aria-label={L.hrOtherBenefitName || '항목'} />
+                    <input className="admin-emp-input" value={o.value} onChange={(e) => setOther(i, 'value', e.target.value)} placeholder={L.hrOtherBenefitValue || '내용 (예: 월 20만원)'} aria-label={L.hrOtherBenefitValue || '내용'} />
+                    <Button variant="danger-ghost" size="sm" onClick={() => removeOther(i)}>{L.hrRecordDelete || '지우기'}</Button>
+                  </div>
+                ))}
+                <Button variant="secondary" size="sm" onClick={addOther}>
+                  <IconPlusSmall size={12} />
+                  {L.hrOtherBenefitAdd || '항목 추가'}
+                </Button>
+              </div>
             </div>
-          </>
+          </HrAddCard>
         )}
       </div>
     </HrSection>
@@ -1760,6 +1821,16 @@ export const fmtSalaryWithCurrency = (v, currency, defaultCurrency = 'KRW') => {
   const cur = currency || defaultCurrency;
   return cur === 'KRW' ? `₩${amount}` : `${amount} ${cur}`;
 };
+/**
+ * 금액 칸 표시 — 숫자·점만 적힌 값이면 정수 자리에 천 단위 쉼표를 넣는다(`70000000` → `70,000,000`, `85000.5` → `85,000.5`).
+ * 그 밖(쉼표를 이미 적었거나 글자가 섞임)은 적은 그대로 둔다 — `85000,50` 을 고쳐 보이면 틀린 값이 맞아 보인다(PW-1998).
+ */
+const groupThousands = (v) => {
+  const raw = String(v ?? '');
+  const m = /^(\d+)(\.\d*)?$/.exec(raw);
+  if (!m) return raw;
+  return m[1].replace(/\B(?=(\d{3})+(?!\d))/g, ',') + (m[2] ?? '');
+};
 const localToday = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -1779,6 +1850,7 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
   const [editingId, setEditingId] = useState(null);
   const [busy, setBusy] = useState(false);
   const [addError, setAddError] = useState(false);
+  const [amountGrouped, setAmountGrouped] = useState(false);
 
   useEffect(() => {
     // loading 초기값이 true — 모달은 열 때마다 새로 마운트되므로 여기서 다시
@@ -1876,6 +1948,7 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
 
   function startEdit(h) {
     setEditingId(h.id);
+    setAmountGrouped(true);
     setAddError(false);
     setForm({
       compensationType: typeOf(h),
@@ -1888,9 +1961,19 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
   }
 
   const withActions = Boolean(onUpdate || onDelete);
+  // 금액 칸은 칸을 떠난 뒤 천 단위 쉼표로 보인다 — 적는 동안은 적은 그대로라 커서가 튀지 않는다.
+  // 값(form.amount)은 적은 그대로 두므로 보내는 값·판정은 바뀌지 않는다 (pivit-work PW-2693).
+  const amountShown = amountGrouped ? groupThousands(form.amount) : form.amount;
+  const cancelEdit = () => { setEditingId(null); setForm(EMPTY_COMP_FORM); };
+  const submitButton = (
+    <Button variant="primary" data-testid="comp-submit" onClick={submit} disabled={!canSubmit}>
+      {editingId ? (L.hrRecordSave || '저장') : (L.salaryHistAddBtn || '추가')}
+    </Button>
+  );
 
   return (
     // 껍데기는 공용 창 틀(ModalShell · PW-836). 읽기 + 추가 줄 창이라 아래 버튼 줄이 없다.
+    // 머리·폭은 이 창 전용 클래스(admin-emp-sal-shell)만 바꾼다 — 공용 틀은 그대로 (pivit-work PW-2693 · 커트 시안).
     <ModalShell
       title={`${row.name || (L.newEmployee || '신규 직원')} · ${L.salaryHistoryTitle || '보상 이력'}`}
       description={
@@ -1907,8 +1990,8 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
       closeLabel={L.close || '닫기'}
       onClose={onClose}
       zIndex={1000}
-      className="adm-shell is-wide"
-      bodyClassName="adm-shell-body"
+      className="adm-shell admin-emp-sal-shell"
+      bodyClassName="adm-shell-body admin-emp-sal-body"
       testId="salary-history-modal"
       footer={null}
     >
@@ -1920,19 +2003,19 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
       {loading ? (
         <div className="admin-emp-sal-status">{L.loading || '불러오는 중…'}</div>
       ) : sorted.length === 0 ? (
-        <div className="admin-emp-sal-status">{L.salaryHistoryEmpty || '등록된 보상 이력이 없습니다. 아래에서 추가하세요. (보상은 비필수 항목입니다)'}</div>
+        <div className="admin-emp-sal-status is-empty">{L.salaryHistoryEmpty || '등록된 보상 이력이 없습니다. 아래에서 추가하세요. (보상은 비필수 항목입니다)'}</div>
       ) : (
         <RosterTable
+          framed
           tableClassName="admin-emp-sal-table"
           rows={sorted}
           rowKey={(h, i) => h.id ?? i}
-          rowProps={(h) => ({ tone: h === currentSalary ? 'current' : undefined })}
           columns={[
             {
               key: 'type',
               header: L.salaryHistType || '종류',
               // 「초과근무 수당」이 좁은 칸에서 한 글자씩 꺾이지 않게 날짜 칸과 같이 줄바꿈을 막는다.
-              cellProps: { className: 'is-date' },
+              cellProps: { className: 'is-date is-kind' },
               render: (h) => (
                 <>
                   {typeLabel(typeOf(h))}
@@ -1956,9 +2039,12 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
                       <span className="admin-emp-sal-day">{h.effectiveEndDate}</span>
                     </>
                   ) : (
-                    <span className="admin-emp-sal-day">{h.effectiveDate}</span>
+                    <span className="admin-emp-sal-day">
+                      {h.effectiveDate}
+                      {/* «현재»는 날짜 바로 옆 — 날짜와 함께 한 줄로 묶어 아래로 떨어지지 않게 (pivit-work PW-2693). */}
+                      {h === currentSalary && <span className="admin-emp-sal-current">{L.salaryHistCurrent || '현재'}</span>}
+                    </span>
                   )}
-                  {h === currentSalary && <span className="admin-emp-sal-current">{L.salaryHistCurrent || '현재'}</span>}
                 </>
               ),
             },
@@ -1985,16 +2071,16 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
                   cellProps: { className: 'is-actions' },
                   render: (h) =>
                     canEditRow(h) ? (
-                      <span style={{ display: 'inline-flex', gap: 4 }}>
+                      <span className="admin-emp-sal-row-actions">
                         {onUpdate && (
-                          <button type="button" className="admin-emp-btn" data-testid="comp-row-edit" onClick={() => startEdit(h)} disabled={busy} style={{ fontSize: 11, padding: '3px 8px' }}>
+                          <Button variant="ghost" size="sm" data-testid="comp-row-edit" onClick={() => startEdit(h)} disabled={busy}>
                             {L.hrRecordEdit || '고치기'}
-                          </button>
+                          </Button>
                         )}
                         {onDelete && (
-                          <button type="button" className="admin-emp-btn" data-testid="comp-row-delete" onClick={() => remove(h)} disabled={busy} style={{ fontSize: 11, padding: '3px 8px' }}>
+                          <Button variant="ghost" size="sm" data-testid="comp-row-delete" onClick={() => remove(h)} disabled={busy}>
                             {L.hrRecordDelete || '지우기'}
-                          </button>
+                          </Button>
                         )}
                       </span>
                     ) : null,
@@ -2015,11 +2101,12 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
       )}
 
       {onAdd && (
-        <div className="admin-emp-sal-add">
-          <div className="admin-emp-sal-add-title">
+        <section className="admin-emp-sal-add" aria-labelledby="sal-hist-add-title">
+          <h3 className="admin-emp-sal-add-title" id="sal-hist-add-title">
             {editingId ? (L.salaryHistEditTitle || '보상 이력 고치기') : (L.salaryHistAdd || '보상 이력 추가')}
-          </div>
-          <div className="admin-emp-sal-add-row">
+          </h3>
+          {/* 기간형(계약·사인온·리텐션)은 «종류 | 시작일 | 종료일 // 금액 | 통화» 두 줄, 그 밖은 네 칸 한 줄 (커트 시안). */}
+          <div className={`admin-emp-sal-add-row${isPeriod ? ' is-period' : ''}`}>
             <div className="admin-emp-field">
               <label className="admin-emp-field-label" htmlFor="sal-hist-type">{L.salaryHistType || '종류'}</label>
               {/* 고치는 중에는 종류를 못 바꾼다 — 서버도 종류는 그대로 둔다. */}
@@ -2058,7 +2145,7 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
                 />
               </div>
             )}
-            <div className="admin-emp-field">
+            <div className="admin-emp-field is-amount">
               <label className="admin-emp-field-label" htmlFor="sal-hist-amount">
                 {isContract ? (L.salaryHistAmountOptional || '금액(선택)') : (L.salaryHistAmount || '금액')}
               </label>
@@ -2068,11 +2155,16 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
                 type="text"
                 inputMode="numeric"
                 placeholder={L.salaryHistAmountPh || '금액'}
-                value={form.amount}
+                value={amountShown}
                 aria-invalid={amountInvalid || undefined}
+                onFocus={() => setAmountGrouped(false)}
+                onBlur={() => setAmountGrouped(true)}
                 onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
               />
             </div>
+          </div>
+          {/* 사유 칸과 버튼은 한 줄 — 버튼 바닥을 칸 바닥에 맞춘다 (커트 시안). 통화 칸은 PW-2624 에서 걷었다. */}
+          <div className="admin-emp-sal-reason-row">
             <div className="admin-emp-field is-reason">
               <label className="admin-emp-field-label" htmlFor="sal-hist-reason">{L.salaryHistReason || '사유'}</label>
               <input
@@ -2085,27 +2177,26 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
               />
             </div>
             {editingId && (
-              <button type="button" className="admin-emp-btn" onClick={() => { setEditingId(null); setForm(EMPTY_COMP_FORM); }} disabled={busy}>
+              <Button variant="secondary" onClick={cancelEdit} disabled={busy}>
                 {L.hrRecordCancel || '취소'}
-              </button>
+              </Button>
             )}
-            <button type="button" className="admin-emp-btn is-primary" data-testid="comp-submit" onClick={submit} disabled={!canSubmit}>
-              {editingId ? (L.hrRecordSave || '저장') : (L.salaryHistAddBtn || '추가')}
-            </button>
+            {submitButton}
           </div>
           {amountInvalid && (
-            <div className="admin-emp-sal-error" role="alert">{L.salaryHistAmountInvalid || '금액은 소수점·단위 없는 정수로 적어 주세요.'}</div>
+            <div className="admin-emp-sal-error" role="alert"><AlertCircleGlyph size={14} />{L.salaryHistAmountInvalid || '금액은 소수점·단위 없는 정수로 적어 주세요.'}</div>
           )}
           {endBeforeStart && (
-            <div className="admin-emp-sal-error" role="alert">{L.salaryHistEndBeforeStart || '종료일이 시작일보다 앞설 수 없습니다.'}</div>
+            <div className="admin-emp-sal-error" role="alert"><AlertCircleGlyph size={14} />{L.salaryHistEndBeforeStart || '종료일이 시작일보다 앞설 수 없습니다.'}</div>
           )}
           {addError && (
             <div className="admin-emp-sal-error" role="alert">
+              <AlertCircleGlyph size={14} />
               {L.salaryHistAddError || '보상 이력을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.'}
             </div>
           )}
           <div className="admin-emp-sal-note">{L.salaryHistNote || '적용일은 발령/조정 효력 시작일입니다. 요청일과 다를 수 있습니다(effective-date 기준). 연봉 이력은 고치거나 지울 수 없어 새 이력으로 추가합니다.'}</div>
-        </div>
+        </section>
       )}
     </ModalShell>
   );

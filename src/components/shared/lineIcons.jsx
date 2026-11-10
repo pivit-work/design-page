@@ -197,6 +197,17 @@ export function AlertTriangleGlyph(props) {
   );
 }
 
+/** 오류 — 느낌표 원. 칸 아래 오류 줄의 머리 표식(pivit-work PW-2693 보상 이력 추가 칸). */
+export function AlertCircleGlyph(props) {
+  return (
+    <LineSvg {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 8v4" />
+      <path d="M12 16h.01" />
+    </LineSvg>
+  );
+}
+
 /** 경고(칠한 삼각형) — `icons-solid/alert-triangle.svg` 와 같은 그림. 띠·합계 칸의 경고 표식(스쿼드 탭 시안 solid_alert-triangle). */
 export function AlertTriangleSolidGlyph(props) {
   return (
