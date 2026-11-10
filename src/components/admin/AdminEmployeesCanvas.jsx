@@ -463,6 +463,8 @@ const DEFAULT_LABELS = {
   changeReason: {
     title: '개인정보를 변경합니다',
     lead: '남이 바꾼 기록이라 사유를 남깁니다. 이력에 그대로 보입니다.',
+    /* 본인이 고친 기록 — 사유는 선택(prompt.optional · 시안 admin-app.jsx ChangeReasonModal 문구) */
+    leadOptional: '본인이 바꾸는 기록이라 사유는 선택입니다.',
     label: '변경 사유',
     /* `{name}` 대상 이름 · `{count}` 바뀌는 항목 수 (정책서 §2-5) */
     summary: '{name} · 변경 항목 {count}개',
@@ -4444,7 +4446,9 @@ function PersonalHistoryList({
 function ChangeReasonModal({ prompt, labels }) {
   const L = labels.changeReason;
   const [reason, setReason] = useState('');
-  const canSubmit = reason.trim().length > 0;
+  /* pivit-work PW-2460 — `optional`: 본인이 고친 기록이라 사유가 선택이지만 창은 띄울 때(휴가 영향을 먼저 보이려고 ·
+     admin-spec §3.2.10 «PW-2418» E-d). `submitBlocked`: 창 안 덩어리가 아직 계산 중이라 저장을 잠근다(같은 블록 «불러오는 중»). */
+  const canSubmit = !prompt.submitBlocked && (prompt.optional || reason.trim().length > 0);
   return (
     /* 공용 창 틀(ModalShell · PW-836) — body 직속 포털이라 앱 크롬(사이드바 z:100) 위에 뜨고
        조상의 `overflow: hidden` 에 잘리지 않는다. 편집 패널(z:101) 위에 서는 것도 막의
@@ -4462,7 +4466,7 @@ function ChangeReasonModal({ prompt, labels }) {
           <button type="button" className="tl-group-modal-btn tl-group-modal-btn-secondary" onClick={prompt.onCancel}
             data-testid="change-reason-cancel">{L.cancel}</button>
           <button type="button" className="tl-group-modal-btn tl-group-modal-btn-primary" disabled={!canSubmit}
-            onClick={() => prompt.onSubmit(reason.trim())}
+            onClick={() => canSubmit && prompt.onSubmit(reason.trim())}
             data-testid="change-reason-submit">{L.submit}</button>
         </>
       }
@@ -4495,9 +4499,12 @@ function ChangeReasonModal({ prompt, labels }) {
           ))}
         </div>
       )}
+      {/* 변경 목록과 사유 칸 사이 — 앱이 넣는 덩어리(입사일 · 기산일 정정의 «휴가에 미치는 영향» · pivit-work PW-2460).
+          창을 따로 겹쳐 띄우지 않는다(admin-spec §3.2.10 «PW-2418» ⑤ «구성원 창의 모양»). */}
+      {prompt.extra || null}
       <label className="admin-emp-field">
-        {/* 남이 바꾼 기록이라 사유가 필수다 — 이 창은 서버가 사유를 요구할 때만 뜬다. */}
-        <span className="admin-emp-field-label">{L.label}<span aria-hidden="true"> *</span></span>
+        {/* 남이 바꾼 기록이라 사유가 필수다 — 이 창은 서버가 사유를 요구할 때 뜬다. 본인 기록이면 선택(`optional`). */}
+        <span className="admin-emp-field-label">{L.label}{!prompt.optional && <span aria-hidden="true"> *</span>}</span>
         <input
           className="admin-emp-input"
           value={reason}
@@ -4507,7 +4514,7 @@ function ChangeReasonModal({ prompt, labels }) {
           data-testid="change-reason-input"
         />
       </label>
-      <p className="admin-emp-reason-lead">{L.lead}</p>
+      <p className="admin-emp-reason-lead">{prompt.optional && L.leadOptional ? L.leadOptional : L.lead}</p>
     </ModalShell>
   );
 }
