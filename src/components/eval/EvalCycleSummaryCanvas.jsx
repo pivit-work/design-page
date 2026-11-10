@@ -5657,7 +5657,13 @@ export default function EvalCycleSummaryCanvas({
                                               {L.cwDetailPeer}
                                             </DetailSectionHead>
                                             {secOpen('peer') && (
-                                              <QuestionAnswerList answers={detail.peer?.answers} empty={L.cwDetailEmpty} testId="evs-cw-peer-answers" L={L} />
+                                              <QuestionAnswerList
+                                                answers={detail.peer?.answers}
+                                                /* [pivit-work PW-2583] 캘리브레이션 뒤에 둔 동료 리뷰는 등급에 들어가지 않아 싣지 않았다 — «—» (§4.1-C). */
+                                                empty={detail.peer?.afterCalibration ? L.cwDetailUpwardEmpty : L.cwDetailEmpty}
+                                                testId="evs-cw-peer-answers"
+                                                L={L}
+                                              />
                                             )}
                                           </div>
                                           <div className="evs-cw-detail-card">

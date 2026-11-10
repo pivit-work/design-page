@@ -1266,6 +1266,10 @@ function statusLabel(cycle, status, L) {
 
 /** 다음에 열릴 단계 이름 — 리뷰 작성 구간 안에서 넘기면 그 단계, 아니면 다음 사이클 상태. */
 function nextStageLabel(cycle, L) {
+  // [pivit-work PW-2583] 저장 순서의 단계 줄이 있으면 바로 다음 칸의 이름 — 리뷰 칸이면 그 칸의 리뷰 이름이다.
+  const line = Array.isArray(cycle?.stageSteps) ? cycle.stageSteps : null;
+  const next = line && typeof cycle?.stageIndex === 'number' ? line[cycle.stageIndex + 1] : null;
+  if (next) return reviewPhaseLabel(next.reviewPhase, L) ?? statusLabel(cycle, next.status, L);
   return reviewPhaseLabel(cycle?.nextReviewPhase, L) ?? statusLabel(cycle, cycle?.nextStatus, L);
 }
 
@@ -1273,6 +1277,34 @@ function stepsOf(cycle) {
   const server = Array.isArray(cycle?.lifecycle) ? cycle.lifecycle : null;
   const steps = (server ?? LIFECYCLE).filter((s) => s !== 'draft');
   return steps.length > 0 ? steps : LIFECYCLE;
+}
+
+/**
+ * [pivit-work PW-2583 · 정책 §5.2.1 · §4.1-B] 카드 단계 칸 — 서버가 준 저장 순서의 단계 줄(`stageSteps`)이 있으면 그 순서로,
+ * 이웃한 리뷰 단계는 한 칸으로 묶는다. 상향을 동료 리뷰어 확정 앞에 · 동료를 캘리브레이션 뒤에 둔 사이클은 리뷰 칸이 둘
+ * 이상 선다. 칸마다 `{ status, phases, from, to }` — `from~to` 는 단계 줄의 자리(지금 칸은 `stageIndex` 로 찾는다).
+ */
+function stepItemsOf(cycle) {
+  const line = Array.isArray(cycle?.stageSteps) ? cycle.stageSteps : null;
+  if (!line?.length) return stepsOf(cycle).map((s, i) => ({ status: s, phases: [], from: i, to: i, key: s }));
+  const items = [];
+  line.forEach((st, i) => {
+    if (st.status === 'draft') return;
+    const last = items[items.length - 1];
+    if (last && last.status === st.status) {
+      if (st.reviewPhase) last.phases.push(st.reviewPhase);
+      last.to = i;
+    } else {
+      items.push({ status: st.status, phases: st.reviewPhase ? [st.reviewPhase] : [], from: i, to: i, key: `${st.status}-${i}` });
+    }
+  });
+  return items;
+}
+
+/** 그 칸을 부를 때의 사이클 — 지금 리뷰가 그 칸에 없으면 그 칸의 첫 리뷰 이름·일정으로 부른다. */
+function cycleForItem(cycle, item) {
+  if (item.status !== 'peer_review' || !item.phases.length || item.phases.includes(cycle?.reviewPhase)) return cycle;
+  return { ...cycle, reviewPhase: item.phases[0] };
 }
 
 /**
@@ -1333,24 +1365,29 @@ function stepTooltipText(cycle, status, L) {
  * 마우스를 올리면 진행 수치·일정 말풍선을 띄운다(정책 §4.1-A · §4.3 단계 타임라인 클릭).
  * 안 주면 종래처럼 읽기 전용 그림이다(보조기기에는 숨긴다 — 상태 배지가 같은 말을 한다).
  */
-function LifecycleStepper({ cycle, status, steps = LIFECYCLE, labels: L, onSelectStep }) {
-  const currentIdx = steps.indexOf(status);
+function LifecycleStepper({ cycle, status, steps = LIFECYCLE, items: givenItems, labels: L, onSelectStep }) {
+  const items = givenItems ?? steps.map((s, i) => ({ status: s, phases: [], from: i, to: i, key: s }));
+  const at = typeof cycle?.stageIndex === 'number' && givenItems ? cycle.stageIndex : null;
+  const currentIdx =
+    at !== null ? items.findIndex((it) => it.from <= at && at <= it.to) : items.findIndex((it) => it.status === status);
   const clickable = typeof onSelectStep === 'function';
   return (
     <div className="evc-stepper" aria-hidden={clickable ? undefined : 'true'}>
-      {steps.map((s, i) => {
+      {items.map((item, i) => {
+        const s = item.status;
+        const itemCycle = cycleForItem(cycle, item);
         const state = currentIdx < 0 ? 'future' : i < currentIdx ? 'past' : i === currentIdx ? 'current' : 'future';
-        const label = statusLabel(cycle, s, L);
+        const label = statusLabel(itemCycle, s, L);
         if (!clickable) {
           return (
-            <div key={s} className={`evc-step is-${state}`}>
+            <div key={item.key} className={`evc-step is-${state}`}>
               <span className="evc-step-dot" />
               <span className="evc-step-label">{label}</span>
             </div>
           );
         }
         return (
-          <Tooltip key={s} content={stepTooltipText(cycle, s, L)}>
+          <Tooltip key={item.key} content={stepTooltipText(itemCycle, s, L)}>
             <button
               type="button"
               className={`evc-step is-${state} is-clickable`}
@@ -1359,7 +1396,7 @@ function LifecycleStepper({ cycle, status, steps = LIFECYCLE, labels: L, onSelec
               data-testid={`evc-step-${s}`}
               onClick={(e) => {
                 e.stopPropagation();
-                onSelectStep(s);
+                onSelectStep(s, itemCycle);
               }}
             >
               <span className="evc-step-dot" />
@@ -1449,8 +1486,9 @@ function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, advancing = 
           cycle={cycle}
           status={cycle.status}
           steps={stepsOf(cycle)}
+          items={stepItemsOf(cycle)}
           labels={L}
-          onSelectStep={onOpenStage ? (s) => onOpenStage(cycle, s) : undefined}
+          onSelectStep={onOpenStage ? (s, itemCycle) => onOpenStage(itemCycle ?? cycle, s) : undefined}
         />
       )}
 
