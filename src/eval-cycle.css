@@ -14397,6 +14397,18 @@ button.evmh-phase:focus-visible {
    칸 묶음은 원온원 «내 작성» 칸(one_on_one.css .ono-my-field-head · -field-label-row · -field-aux · -field-done ·
    -textarea · -readbox, 디자이너 stesslee 1d9b5e5b)을 그대로 쓰고, 여기엔 그 사이 자리와 평가 쪽 뜻(노랑·초록·주황)만 둔다. */
 
+/* 이름표 줄 오른쪽 AI 버튼은 줄지 않는다 — 승인 창(칸 폭 424)에서 «다듬은 문구를 썼습니다»까지 한 줄에 못 들어가면
+   그 문구가 이름표 아래로 접히고 버튼은 칸 오른쪽 끝에 그대로 선다(11-10 로컬: 버튼이 33px 밖으로 나갔다). */
+.evrr-approve-field .ono-my-field-head {
+  align-items: flex-start;
+}
+.evrr-approve-field .ono-my-field-head > .dp-tip-wrap,
+.evrr-approve-field .ono-my-field-head > .ono-my-ai-btn,
+.evl-lc-head > .dp-tip-wrap,
+.evl-lc-head > .ono-my-ai-btn {
+  flex: none;
+}
+
 /* 하향 리뷰 카드 제목 줄 — 제목+딱지 왼쪽, 보라 AI 버튼 오른쪽 */
 .evl-lc-head .evc-card-name {
   margin: 0;
@@ -14535,7 +14547,7 @@ button.evmh-phase:focus-visible {
   color: var(--text-secondary);
 }
 .evl-lcp-readbox:not(.is-original) {
-  background: var(--bg-primary);
+  background: var(--bg-quaternary);
 }
 /* 근거 칩 왼쪽 · 버튼 오른쪽(흰 보조 → 초록 주) */
 .evl-lcp-foot {
