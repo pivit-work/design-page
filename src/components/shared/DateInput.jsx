@@ -13,7 +13,8 @@ import { useFieldControl } from './formField.js';
  *
  * 값 규약은 기본 날짜 칸과 같다 — `''` 이거나 온전한 `YYYY-MM-DD`. 치는 중인 값
  * (`2026-0`)은 칸 안에만 있고 `onChange` 로 나가지 않는다. 칸을 떠날 때 온전하지
- * 않으면 마지막 값으로 되돌린다.
+ * 않으면 마지막 값으로 되돌리고, 온전하면 부르는 쪽의 값(`value`)을 보인다 — 빈 값을
+ * 받지 않고 다른 값으로 돌리는 칸도 떠나면 그 값이 보인다 (PW-2596).
  *
  * 겉 상자는 **호출부의 className** 이 그린다 — 기존 기본 날짜 칸이 쓰던 클래스를 그대로
  * 넘기면 모양이 안 바뀐다.
@@ -108,7 +109,9 @@ export default function DateInput({
 
   const onBlur = () => {
     const v = normalize(draft);
-    if (v === '' || isIsoDate(v)) setDraft(v);
+    // 온전한 값·빈 칸은 이미 onChange 로 내보냈다. 칸에는 부르는 쪽이 가진 값을 보인다 — 받아들였으면 친 값과 같고,
+    // 받지 않았으면(비우면 오늘로 돌리는 칸) 그 값이다. 바깥 값이 그대로면 위의 «따라가기»가 안 돌아 빈 칸이 남았다 (PW-2596).
+    if (v === '' || isIsoDate(v)) setDraft(current);
     else {
       setDraft(current);
       // 손대지 않은 칸(바깥 값이 처음부터 온전하지 않은 경우)은 되돌린 것이 없다.
