@@ -1241,6 +1241,14 @@
   color: var(--text-secondary);
 }
 
+/* 매니저 대시보드 팀원 카드의 «1on1 신청» 칩 — 작은 칩 크기에 브랜드 색(커트 시안 · PW-2639) */
+.ono-mem-chip.ono-member-request-chip {
+  white-space: nowrap;
+  background: var(--bg-brand-secondary);
+  color: var(--text-brand-secondary);
+  font-weight: 600;
+}
+
 .ono-guide-tag {
   display: inline-flex;
   align-items: center;

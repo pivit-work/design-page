@@ -123,7 +123,7 @@ export function OneOnOneRequestRow({
   const [reason, setReason] = useState('');
   return (
     <div className="ono-request-row" ref={rowRef} data-testid="ono-member-request" {...rest}>
-      <div className="ono-member-identity ono-request-row-who">
+      <div className="ono-member-identity">
         <div className="ono-member-avatar">{member?.avatar}</div>
         <div className="ono-member-name-block">
           <p className="ono-member-name">{member?.name}</p>

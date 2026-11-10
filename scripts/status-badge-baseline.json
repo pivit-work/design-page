@@ -2486,6 +2486,12 @@
   "org_squad.css|.dp-btn.sq-pillar-fam[aria-pressed='true']": {
    "background": "#596069 / 어두운 화면 #ececed",
    "color": "#f3f4f6 / 어두운 화면 #0c0e12"
+  },
+  "status-badge.css|.ono-mem-chip.ono-member-request-chip": {
+   "font-weight": "600",
+   "background": "#e1fef2 / 어두운 화면 #10774d",
+   "color": "#10774d / 어두운 화면 #2dbd82",
+   "white-space": "nowrap"
   }
  }
 }
