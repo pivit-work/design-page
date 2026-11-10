@@ -6341,6 +6341,357 @@ button.evm-ai-source {
 .evs-j1-ratio-note { margin-top: var(--spacing-sm); }
 .evs-j1-drow { grid-template-columns: 1.3fr 0.6fr repeat(var(--gcols, 3), 0.7fr) 0.9fr 0.9fr 1fr; }
 
+/* ── PW-2691 성과평가 대시보드 › 모든 탭 — 커트 11-10 시안(worklog/eval-dashboard-tabs-designer-2026-11-10) ──
+   평가 화면은 디자이너 원본이 없어 다른 화면의 디자이너 값을 따른다(대응표: pivit-work docs/ticket-notes/pw-2691.md).
+   카드 틀은 PW-2684 전사 요약 카드(.evs-ov-card)를 다른 탭에도 붙인다. */
+
+/* 숫자 칸 — 큰 숫자는 진한 글 하나. 색은 뜻이 있는 딱지에만(가이드 2배 초과는 옆 «초과» 딱지가 말한다) */
+.evs-kpis .evs-kpi.tone-amber .evs-kpi-value,
+.evs-kpis .evs-cd-down .evs-kpi-value {
+  color: var(--fg-primary);
+}
+.evs-kpis .evs-kpi-label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+/* 상향·하향 — 이름 앞 작은 화살표만 초록·빨강 */
+.evs-cd-arrow { display: inline-flex; }
+.evs-cd-arrow.is-up { color: var(--utility-green-600); }
+.evs-cd-arrow.is-down { color: var(--utility-error-600); }
+
+/* 등급 막대 — 매니저 KR 진행 막대(manager.css .mgr-kr-progress-track · stesslee): 12px · 모서리 4 · 옅은 바탕.
+   등급 색은 매니저 막대 조각(.mgr-kr-seg) 400 톤 — 탁월 초록 · 충족 파랑 · 미흡 빨강, 모든 탭 같게. */
+.evs-ov-card .evs-dist-track,
+.evs-lp-bar,
+.evs-rank-bar,
+.evs-j1-ratio-track {
+  height: 12px;
+  border-radius: var(--radius-xxs);
+  background: var(--alpha-black-3);
+}
+.evs-ov-card .evs-dist-fill,
+.evs-rank-fill,
+.evs-j1-ratio-fill {
+  border-radius: var(--radius-xxs);
+}
+.evs-ov-card .evs-leader-track { height: 8px; }
+.evs-ov-card .evs-dist-fill.seg-top,
+.evs-lp-seg.seg-top,
+.evs-lp-dot.seg-top { background: var(--utility-green-400); }
+.evs-ov-card .evs-dist-fill.seg-mid,
+.evs-lp-seg.seg-mid,
+.evs-lp-dot.seg-mid { background: var(--utility-blue-400); }
+.evs-ov-card .evs-dist-fill.seg-bottom,
+.evs-lp-seg.seg-bottom,
+.evs-lp-dot.seg-bottom { background: var(--utility-error-400); }
+.evs-ov-card .evs-dist-body { gap: var(--spacing-xs); }
+.evs-ov-card .evs-dist-guide-cap {
+  font-size: var(--font-size-text-xs);
+  color: var(--text-subtle);
+}
+/* 범례·건수는 카드 제목 줄 오른쪽 */
+.evs-head-legend {
+  flex-shrink: 1;
+  min-width: 0;
+  justify-content: flex-end;
+  margin: 0;
+  color: var(--text-subtle);
+}
+.evs-head-meta {
+  flex-shrink: 0;
+  font-size: var(--font-size-text-sm);
+  color: var(--text-subtle);
+}
+/* 가이드라인 결론 문장 앞 «15%p 낮음» 주황 딱지 */
+.evs-dist-note-badge { margin-right: var(--spacing-sm); }
+
+/* 부서별 분석 — 히트맵: 브랜드 연초록 단계 바탕 + 진한 글(머리는 같은 회색) */
+.evs-ov-card .evs-heat-gh {
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+.evs-ov-card .evs-heat-dept { color: var(--fg-primary); }
+.evs-heat-cell.is-h0 { background: var(--bg-secondary); }
+.evs-heat-cell.is-h1,
+.evs-heat-swatch.is-h1 { background: var(--utility-brand-50); }
+.evs-heat-cell.is-h2,
+.evs-heat-swatch.is-h2 { background: var(--utility-brand-100); }
+.evs-heat-cell.is-h3,
+.evs-heat-swatch.is-h3 { background: var(--utility-brand-200); }
+.evs-heat-cell.is-h4,
+.evs-heat-swatch.is-h4 { background: var(--utility-brand-300); }
+.evs-ov-card .evs-heat-cnt {
+  font-weight: 700;
+  color: var(--fg-primary);
+}
+.evs-ov-card .evs-heat-pct { color: var(--text-subtle); }
+.evs-heat-cell.is-h4 .evs-heat-pct { color: var(--text-brand-secondary); }
+.evs-ov-card .evs-heat-legend { margin-top: var(--spacing-lg); color: var(--text-subtle); }
+/* 랭킹 — 브랜드 초록 막대 · 순위는 회색 작은 딱지 · 설명은 구분선 아래 */
+.evs-rank-fill,
+.evs-rank-fill.is-first {
+  background: var(--bg-brand-solid);
+  opacity: 1;
+}
+.evs-rank-badge {
+  min-width: 22px;
+  justify-content: center;
+}
+.evs-ov-card .evs-rank-dept {
+  font-weight: 600;
+  color: var(--fg-primary);
+}
+.evs-ov-card .evs-rank-val {
+  font-weight: 700;
+  color: var(--fg-primary);
+}
+.evs-ov-card .evs-rank-cap {
+  margin: var(--spacing-xs) 0 0;
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--border-secondary);
+  font-size: var(--font-size-text-sm);
+  color: var(--text-subtle);
+}
+/* 상세 표 — 등급 숫자도 같은 진한 글(0 은 옅게) */
+.evs-ov-card .evs-dept-drow .seg-top-text,
+.evs-ov-card .evs-dept-drow .seg-mid-text,
+.evs-ov-card .evs-dept-drow .seg-bottom-text { color: var(--fg-primary); }
+.evs-dept-vsguide.is-zero { color: var(--text-tertiary); }
+
+/* 리더별 평가 패턴 — 경향 칸은 다른 숫자 칸과 같은 흰 칸 + 이름 상태 딱지 */
+.evs-kpis.evs-lp-banner { grid-template-columns: repeat(3, 1fr); }
+.evs-ov-card .evs-lp-row + .evs-lp-row { border-top: 1px solid var(--border-secondary); }
+.evs-ov-card .evs-lp-lead { gap: var(--spacing-md); }
+.evs-ov-card .evs-lp-dept {
+  font-size: var(--font-size-text-sm);
+  color: var(--text-subtle);
+}
+.evs-lp-bar { gap: var(--spacing-xxs); }
+.evs-ov-card .evs-lp-legend { color: var(--text-subtle); }
+.evs-lp-tag-none {
+  font-size: var(--font-size-text-sm);
+  color: var(--text-tertiary);
+}
+
+/* 캘리브레이션 결과 — 등급 조정 상세: 옅은 회색 칸 안에 안내 + 흰 보조 버튼 */
+.evs-ov-card .evs-cd-delegate {
+  flex-wrap: nowrap;
+  padding: var(--spacing-xl);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+.evs-ov-card .evs-cd-delegate-line { color: var(--fg-primary); }
+.evs-ov-card .evs-cd-delegate-note {
+  font-size: var(--font-size-text-sm);
+  color: var(--text-subtle);
+}
+
+/* 경영진 대시보드 — 안쪽 탭은 글 길이만큼의 판, 누가 무엇을 보나는 그 옆 한 줄 */
+.evs-exec { gap: var(--spacing-xl); }
+.evs-exec-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-lg);
+}
+.evs-exec-head .evs-exec-tabs { flex: none; }
+.evs-exec .evs-exec-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin: 0;
+  font-size: var(--font-size-text-sm);
+  color: var(--text-subtle);
+}
+.evs-exec .evs-exec-banner svg { color: var(--text-tertiary); }
+/* 보는 범위 안내 — 원온원·매니저 «보는 범위» 줄(one_on_one.css .ono-filter-notice · stesslee 9f454350) 값 그대로 */
+.evs-exec .evs-exec-confidential {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin: 0;
+  font-weight: 500;
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  color: var(--text-brand-tertiary);
+}
+.evs-exec-j3 { align-items: start; }
+/* 역량·업적 막대 — 남색·초록 400 톤 */
+.evs-j1-ratio-fill.tone-purple { background: var(--utility-indigo-400); }
+.evs-j1-ratio-fill.tone-accent { background: var(--utility-green-400); }
+.evs-ov-card .evs-j1-ratio-label {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.evs-ov-card .evs-j1-ratio-note {
+  margin-top: var(--spacing-xs);
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--border-secondary);
+  font-size: var(--font-size-text-sm);
+  color: var(--text-subtle);
+}
+
+/* 9블록 — 칸은 모두 옅은 회색, 먼저 볼 «대상 × 시급» 칸만 연초록 + 초록 테두리(기획 «강조 테두리») */
+.evs-exec .evs-nb-axis {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  margin: 0 0 var(--spacing-xs);
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+  color: var(--text-subtle);
+}
+.evs-exec .evs-nb-xhead {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.evs-exec .evs-nb-yhead { justify-content: flex-start; padding-right: var(--spacing-xs); }
+.evs-exec .evs-nb-cell,
+.evs-exec .evs-nb-cell.x-urgent,
+.evs-exec .evs-nb-cell.x-moderate,
+.evs-exec .evs-nb-cell.x-maintain {
+  min-height: 64px;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border: 1px solid var(--border-secondary);
+  background: var(--bg-secondary);
+}
+.evs-exec .evs-nb-cell.is-priority {
+  border-color: var(--border-brand);
+  background: var(--bg-brand-primary);
+}
+.evs-exec .evs-nb-cell.x-aside { border-style: dashed; }
+.evs-exec .evs-nb-count { color: var(--fg-primary); }
+.evs-exec .evs-nb-count svg { color: var(--text-tertiary); }
+.evs-exec .evs-nb-name {
+  font-size: var(--font-size-text-sm);
+  font-weight: 500;
+  color: var(--text-brand-tertiary);
+  text-decoration: none;
+}
+.evs-exec .evs-nb-name:hover {
+  color: var(--text-brand-secondary);
+  text-decoration: underline;
+}
+.evs-exec .evs-nb-empty-cell { color: var(--text-quaternary); }
+.evs-exec .evs-nb-caption {
+  margin-top: var(--spacing-md);
+  font-size: var(--font-size-text-sm);
+  color: var(--text-subtle);
+}
+
+/* 승진 요청 — 상태 칩(개수) + 검색 + 한 줄 목록(눌러 펼침), 목록은 카드 안에서만 스크롤(조직도 명단 .ol-table-scroll 방식) */
+.evs-pr-head { gap: var(--spacing-md); }
+.evs-pr-tools {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+.evs-pr-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+.evs-pr-chip-n { font-weight: 700; }
+.evs-pr-search { width: 100%; }
+.evs-exec .evs-pr-list {
+  gap: 0;
+  max-height: 520px;
+  overflow-y: auto;
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-md);
+}
+.evs-exec .evs-pr-card {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+}
+.evs-exec .evs-pr-card + .evs-pr-card { border-top: 1px solid var(--border-secondary); }
+.evs-exec .evs-pr-card-head {
+  display: flex;
+  width: 100%;
+  margin: 0;
+  padding: var(--spacing-md) var(--spacing-xl);
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+.evs-exec .evs-pr-card-head > .dp-btn__label {
+  flex: 1;
+  min-width: 0;
+  justify-content: flex-start;
+  gap: var(--spacing-lg);
+}
+.evs-exec .evs-pr-card-head:hover,
+.evs-exec .evs-pr-card.is-open .evs-pr-card-head { background: var(--bg-secondary); }
+.evs-exec .evs-leader-avatar {
+  width: 28px;
+  height: 28px;
+  background: var(--bg-brand-secondary);
+  color: var(--text-brand-secondary);
+}
+.evs-pr-who {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.evs-exec .evs-pr-name { color: var(--fg-primary); }
+.evs-exec .evs-pr-sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-subtle);
+}
+.evs-pr-chev {
+  display: inline-flex;
+  color: var(--text-tertiary);
+}
+.evs-pr-body { padding: 0 var(--spacing-xl) var(--spacing-lg) var(--spacing-5xl); }
+.evs-pr-body .evs-pr-field {
+  gap: var(--spacing-xxs);
+  padding: var(--spacing-md) 0;
+  border-top: 1px solid var(--border-secondary);
+}
+.evs-pr-body .evs-pr-field-label {
+  font-weight: 600;
+  color: var(--text-subtle);
+}
+.evs-exec .evs-pr-showall { padding: 0; border: 0; }
+
+/* 필터 · CSV — 버튼은 제목 줄 오른쪽, 설명은 그 아래 */
+.evs-ov-card .evs-j4-actions {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--spacing-sm);
+}
+.evs-ov-card .evs-j4-desc {
+  margin: 0;
+  font-size: var(--font-size-text-sm);
+  color: var(--text-subtle);
+}
+.evs-ov-card .evs-j4-presets { margin: 0; }
+
+/* 피평가자 통합 요약 — 사람 줄은 «이름» 아래 «직함 · 요약 상태» 한 줄(점 없이 12px 글자) */
+.evs-re-item-sub { flex-wrap: nowrap; gap: 0 var(--spacing-xs); }
+.evs-re-item-title { flex: 0 1 auto; }
+.evs-re-item-status { flex: none; }
+.evs-re-item-status .evs-re-dot { display: none; }
+.evs-re-item-title + .evs-re-item-status::before {
+  content: '·';
+  margin-right: var(--spacing-xs);
+  color: var(--text-tertiary);
+}
+/* 고르기 전 오른쪽 빈 안내 칸은 왼쪽 목록과 같은 높이 */
+.evs-re-detail.is-empty { align-self: stretch; }
+.evs-re-detail.is-empty > .evc-card {
+  flex: 1;
+  justify-content: center;
+}
+
 /* ════════════════════════════════════════════════════════════
    내 평가 리포트 (EvalCycleReportCanvas)
    ════════════════════════════════════════════════════════════ */

@@ -113,6 +113,22 @@ export function ArrowRightIcon({ size = 16 }) {
   return <ArrowRightGlyph size={size} style={GLYPH_STYLE} />;
 }
 
+// ↑ ↓ 올라감·내려감 — 화살표 (PW-2691 캘리브레이션 결과 «상향 조정»·«하향 조정» 이름 앞). 색은 감싸는 요소의 color.
+export function ArrowUpIcon({ size = 16 }) {
+  return (
+    <svg {...svgProps(size)}>
+      <path d="M12 19V5M5 12l7-7 7 7" />
+    </svg>
+  );
+}
+export function ArrowDownIcon({ size = 16 }) {
+  return (
+    <svg {...svgProps(size)}>
+      <path d="M12 5v14M5 12l7 7 7-7" />
+    </svg>
+  );
+}
+
 // ⋯ 더 보기 — 점 셋 (PW-1922 리포트 검수 줄 메뉴).
 export function MoreIcon({ size = 16 }) {
   return <MoreGlyph size={size} style={GLYPH_STYLE} />;

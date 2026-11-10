@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef, Fragment } from 'react';
 import RetiringTag from './RetiringTag.jsx';
 import ChipFold from '../shared/ChipFold.jsx';
+import Chip from '../shared/Chip.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
@@ -9,7 +10,7 @@ import MeetingSyncToast from '../meetings/MeetingSyncToast.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Tabs from '../shared/Tabs.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
-import { AlertIcon, ChevronDownIcon, ChevronRightIcon, ChevronUpIcon, InfoIcon, LockIcon, RefreshIcon, ZapIcon } from './evalIcons.jsx';
+import { AlertIcon, ArrowDownIcon, ArrowRightIcon, ArrowUpIcon, ChevronDownIcon, ChevronRightIcon, ChevronUpIcon, DownloadIcon, EyeIcon, InfoIcon, LockIcon, RefreshIcon, ZapIcon } from './evalIcons.jsx';
 import { ClockGlyph, CloseGlyph } from '../shared/lineIcons.jsx';
 import { autoCommitteeIdsOf } from './calibrationAutoCommittee.js';
 import AvatarPhoto from './AvatarPhoto';
@@ -511,18 +512,18 @@ const DEFAULT_LABELS = {
   cwManagePastMember: '{name}(조정 {n}건 보존)',
   cwManageAdjustCount: '조정 {n}건',
   // §9.F 경영진 대시보드
-  execBanner: '접근: HR Admin(전체) · 조직장·위원회(집계 조회) — CSV 다운로드는 HR Admin만 가능',
-  execJ1: 'J1 전사 서머리',
-  execJ2: 'J2 리더 평가 패턴',
-  execJ3: 'J3 9블록 + 승진 요청',
-  execJ4: 'J4 필터/CSV',
-  execJ4Title: 'J4 — 표 필터/정렬 + CSV 다운로드 (공통 컴포넌트)',
+  execBanner: '인사 관리자는 전체, 조직장·위원회는 집계만 보며 CSV는 인사 관리자만 받습니다.',
+  execJ1: '전사 요약',
+  execJ2: '리더 평가 패턴',
+  execJ3: '9블록 · 승진 요청',
+  execJ4: '필터 · CSV',
+  execJ4Title: '표 필터/정렬 + CSV 다운로드',
   j4SavePreset: '+ 프리셋 저장',
   j4Shared: '공용',
   j4Personal: '개인',
   j4NoPreset: '저장된 프리셋이 없습니다.',
-  j4Desc: '헤더 클릭 정렬 / 칼럼 필터 드롭다운 / AND·OR 조합 / 프리셋 불러오기 / CSV 다운로드(HR Admin 전용) — J4·G6·G4 공통 컴포넌트. 프리셋은 G 탭 캘리브레이션 워크스페이스와 동일 eval_filter_presets 엔티티 공유.',
-  j4Csv: 'CSV 다운로드 (HR Admin)',
+  j4Desc: '헤더를 눌러 정렬하고 열 필터·프리셋을 쓸 수 있습니다. CSV 다운로드는 인사 관리자만 됩니다.',
+  j4Csv: 'CSV 다운로드',
   j4Reset: '필터 초기화',
   execJ1Title: 'J1 — 전사 서머리 (등급분포·역량/업적·부서별)',
   j1DistTitle: '전사 등급 분포',
@@ -536,7 +537,7 @@ const DEFAULT_LABELS = {
   j1ColAchieve: 'OKR 달성률',
   j1NoScore: '—',
   j1NoCompetency: '역량 평가 항목이 없어 비율 분석이 불가합니다.',
-  execJ2Title: 'J2 — 리더별 관대/엄격 평가 패턴 지표',
+  execJ2Title: '리더별 관대/엄격 평가 패턴 지표',
   execJ3Title: 'J3 — 승진/보상 9블록 매트릭스 + 승진 요청 페이지',
   // PW-2440 — 열람 범위 정본은 요약 정책 §9.F.4-A(2026-11-01). 기획 화면 J3 안내 띠와 같은 문구.
   nbConfidential: 'HR · 맡은 캘리브레이션 위원 · 그 팀원의 평가자만 봅니다. 평가자가 아닌 윗선 조직장과 구성원에게는 그 팀원이 나오지 않습니다.',
@@ -558,6 +559,15 @@ const DEFAULT_LABELS = {
   nbYNotYet: '비대상',
   nbYDeferred: '보류',
   nbCaption: 'X축: 보상 조정 필요 수준 | Y축: 승진 고려 여부',
+  nbAxisX: '보상 조정 필요 수준',
+  nbAxisY: '세로: 승진 고려 여부',
+  distGuideBadgeOver: '{delta}%p 높음',
+  distGuideBadgeUnder: '{delta}%p 낮음',
+  prCount: '{n}건',
+  prFilterLabel: '승진 요청 상태',
+  prFilterAll: '전체',
+  prSearch: '이름 · 부서 · 요청자 검색',
+  prFilterEmpty: '조건에 맞는 승진 요청이 없습니다.',
   nbEmpty: '승진·보상 평가 데이터가 아직 제출되지 않았습니다',
   // PW-2537 · spec-calibration §4.5-A-2 6번 — 3×3 칸에 넣지 않은 팀원을 승진 줄만 맞춰 담는 오른쪽 칸 머리.
   nbAsideLocked: '보상 열람 권한 없음',
@@ -2161,6 +2171,122 @@ function NineBoxCellBody({ members, L, renderName, testId }) {
   );
 }
 
+/**
+ * PW-2691 — 승진 요청 목록. 대상자마다 1건까지라 대상자 수만큼 쌓인다(예시 60건이면 화면이 약 17,800px 로 늘었다).
+ * 요약 정책 §9.F.4 «HR 조회 — 전체 승진 요청 목록 조회 (상태 필터 포함)»: 상태 칩(개수)·이름·부서·요청자 검색,
+ * 한 줄 목록(이름 · 부서 · 요청자 · 상태 딱지)을 눌러 펼치고, 목록은 카드 안에서만 스크롤한다.
+ * 순서는 먼저 볼 것부터 — 검토 대기 → 위원회 검토 중 → 작성 중 → 승인 → 반려(개발이 정함 · 커트 11-10 시안).
+ * 9블록에서 이름을 누르면(selectedMemberId) 그 사람 요청만 펼쳐 보이고, [전체 목록 보기]로 돌아간다.
+ * 누가 보이는지는 서버가 이미 걸러 보낸다(§9.F.4-A) — 여기서는 거르기·찾기만 한다.
+ */
+const PR_STATUS_ORDER = ['submitted', 'committee_review', 'draft', 'approved', 'rejected'];
+function PromotionRequestList({ L, requests, selectedMemberId, onShowAll, statusMeta }) {
+  const [status, setStatus] = useState('all');
+  const [query, setQuery] = useState('');
+  const [toggled, setToggled] = useState(() => new Set());
+  const statusOf = (r) => (statusMeta[r.status] ? r.status : 'draft');
+  const rank = (r) => PR_STATUS_ORDER.indexOf(statusOf(r));
+  const sorted = [...requests].sort((a, b) => rank(a) - rank(b));
+  const picked = selectedMemberId ? sorted.filter((r) => r.memberId === selectedMemberId) : null;
+  const q = query.trim().toLowerCase();
+  const shown = picked ?? sorted.filter((r) =>
+    (status === 'all' || statusOf(r) === status)
+    && (!q || [r.memberName, r.dept, r.requesterName].some((v) => String(v ?? '').toLowerCase().includes(q))));
+  const chips = [
+    { key: 'all', label: L.prFilterAll, n: requests.length },
+    ...PR_STATUS_ORDER.map((k) => ({ key: k, label: statusMeta[k].label, n: sorted.filter((r) => statusOf(r) === k).length })),
+  ];
+  const toggle = (id) => setToggled((prev) => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    return next;
+  });
+  return (
+    <>
+      <div className="evs-ov-head evs-pr-head">
+        <h3 className="evc-card-name">{L.prTitle}</h3>
+        {selectedMemberId ? (
+          <Button className="evs-pr-showall" onClick={onShowAll}>{L.prShowAll}</Button>
+        ) : requests.length > 0 && (
+          <span className="evs-head-meta" data-testid="evs-pr-total">{fmt(L.prCount, { n: requests.length })}</span>
+        )}
+      </div>
+      {requests.length === 0 || (picked && picked.length === 0) ? (
+        <p className="evc-empty-sub">{L.prEmpty}</p>
+      ) : (
+        <>
+          {!picked && (
+            <div className="evs-pr-tools">
+              <div className="evs-pr-chips" role="group" aria-label={L.prFilterLabel}>
+                {chips.map((c) => (
+                  <Chip key={c.key} selected={status === c.key} onClick={() => setStatus(c.key)} data-testid={`evs-pr-chip-${c.key}`}>
+                    {c.label} <span className="evs-pr-chip-n">{c.n}</span>
+                  </Chip>
+                ))}
+              </div>
+              <SearchInput
+                className="dp-search evs-pr-search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={L.prSearch}
+                data-testid="evs-pr-search"
+              />
+            </div>
+          )}
+          {shown.length === 0 ? (
+            <p className="evs-ov-search-empty" data-testid="evs-pr-filter-empty">{L.prFilterEmpty}</p>
+          ) : (
+            <div className="evs-pr-list" data-testid="evs-pr-list">
+              {shown.map((r) => {
+                const meta = statusMeta[statusOf(r)];
+                // 9블록에서 고른 사람은 펼친 채로 — 누르면 접힌다
+                const open = picked ? !toggled.has(r.memberId) : toggled.has(r.memberId);
+                const fields = [
+                  { label: L.prF1, val: r.evalHistorySummary },
+                  { label: L.prF2, val: r.reviewBackground },
+                  { label: L.prF3, val: r.levelRoleExamples },
+                  { label: L.prF4, val: r.additionalNotes },
+                  // §9.F.4 위원회 검토 결과 — 의견이 있을 때만.
+                  { label: L.prCommitteeNote, val: r.committeeNote },
+                ].filter((f) => f.val);
+                return (
+                  <div className={`evs-pr-card${open ? ' is-open' : ''}`} key={r.memberId} data-testid="evs-pr-card">
+                    <Button
+                      className="evs-pr-card-head"
+                      aria-expanded={open}
+                      onClick={() => toggle(r.memberId)}
+                      data-testid="evs-pr-row"
+                    >
+                      <span className="evs-leader-avatar">{(r.memberName || '?').slice(0, 1)}</span>
+                      <span className="evs-pr-who">
+                        <span className="evs-pr-name">{r.memberName || r.memberId}</span>
+                        <span className="evs-pr-sub">{r.dept} · {L.prRequester}: {r.requesterName || r.requesterId}</span>
+                      </span>
+                      <StatusBadge className={`evs-lp-tag tone-${meta.tone}`}>{meta.label}</StatusBadge>
+                      <span className="evs-pr-chev" aria-hidden>{open ? <ChevronUpIcon size={16} /> : <ChevronDownIcon size={16} />}</span>
+                    </Button>
+                    {open && fields.length > 0 && (
+                      <div className="evs-pr-body">
+                        {fields.map((f) => (
+                          <div className="evs-pr-field" key={f.label}>
+                            <div className="evs-pr-field-label">{f.label}</div>
+                            <div className="evs-pr-field-val">{f.val}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+    </>
+  );
+}
+
 function PeriodSelector({ periods, selectedCycleId, onChange, L }) {
   if (!periods || periods.length === 0) return null;
   const current = periods.find((p) => p.cycleId === selectedCycleId);
@@ -2887,6 +3013,11 @@ export default function EvalCycleSummaryCanvas({
       }),
     );
   }
+  // PW-2691 — 가이드라인 결론 문장 앞에 «15%p 낮음» 같은 주황 딱지(시안). 같으면 딱지 없음.
+  const distGuideNoteIdx = distNote.length;
+  const distGuideBadge = topGrade && excellentGuidelinePct != null && excellentPct !== excellentGuidelinePct
+    ? fmt(excellentPct > excellentGuidelinePct ? L.distGuideBadgeOver : L.distGuideBadgeUnder, { delta: Math.abs(excellentPct - excellentGuidelinePct) })
+    : null;
   if (topGrade && excellentGuidelinePct != null) {
     const d = excellentPct - excellentGuidelinePct;
     distNote.push(
@@ -3036,10 +3167,70 @@ export default function EvalCycleSummaryCanvas({
     patternBuckets[0].leaders.length > leaderPatterns.length / 2;
   const tagOf = (t) =>
     t === 'lenient' ? L.lpTagLenient : t === 'strict' ? L.lpTagStrict : t === 'balanced' ? L.lpTagBalanced : L.lpTagNa;
+  // PW-2691 — 경향 판정이 없는 리더는 딱지 없이 «—» 글(예전엔 «-» 회색 알약이라 무엇인지 몰랐다).
+  const tendencyCell = (p) => (tendencyMeta[p.tendency] ? (
+    <StatusBadge className={`evs-lp-tag tone-${tendencyMeta[p.tendency].tone}`}>{tagOf(p.tendency)}</StatusBadge>
+  ) : (
+    <span className="evs-lp-tag-none" data-testid="evs-lp-tag-none">—</span>
+  ));
+  // PW-2691 — 등급 범례는 카드 제목 줄 오른쪽에 한 번(탁월 초록 · 충족 파랑 · 미흡 빨강, 모든 탭 같은 색).
+  const renderGradeLegend = (grades) => grades.length > 0 && (
+    <span className="evs-chart-legend evs-head-legend" data-testid="evs-grade-legend">
+      {grades.map((g, i) => (
+        <span className="evs-chart-legend-item" key={g.gradeKey}>
+          <span className={`evs-lp-dot ${segClass(i, grades.length)}`} aria-hidden />
+          {g.label}
+        </span>
+      ))}
+    </span>
+  );
+  // PW-2691 — 관대화·엄격화·균형: 색 칠한 큰 칸 대신 다른 숫자 칸과 같은 흰 칸 + 이름 상태 딱지.
+  const renderPatternBanner = (testId) => (
+    <div className="evs-kpis evs-lp-banner" data-testid={testId}>
+      {patternBuckets.map((b) => (
+        <div className="evs-kpi evs-lp-card" key={b.key} data-testid={testId ? `evs-lp-bucket-${b.key}` : undefined}>
+          <span className="evs-kpi-label evs-lp-card-label">
+            <StatusBadge className={`evs-lp-tag tone-${b.tone}`}>{b.label}</StatusBadge>
+          </span>
+          <span className="evs-kpi-value evs-lp-card-count">{b.leaders.length}<span className="evs-kpi-unit">{L.unit}</span></span>
+          <span className="evs-kpi-sub evs-lp-card-names">{b.leaders.length ? b.leaders.map((l) => l.name).join(', ') : '—'}</span>
+        </div>
+      ))}
+    </div>
+  );
+  const renderPatternRows = (withTestId) => (
+    <div className="evs-lp-list">
+      {leaderPatterns.map((p) => (
+        <div className="evs-lp-row" key={p.leaderId} data-testid={withTestId ? 'evs-lp-row' : undefined}>
+          <div className="evs-lp-row-head">
+            <span className="evs-lp-lead">
+              <span className="evs-leader-avatar" style={{ position: 'relative' }}>{(p.name || '?').slice(0, 1)}<AvatarPhoto photo={p.avatar} name={p.name} /></span>
+              <span className="evs-leader-name">{p.name || p.leaderId}</span>
+              <span className="evs-lp-dept">{p.dept}</span>
+            </span>
+            {tendencyCell(p)}
+          </div>
+          <div className="evs-lp-bar" role="img" aria-label={p.gradeDistribution.map((g) => `${g.label} ${g.pct}%`).join(', ')}>
+            {p.gradeDistribution.map((g, i) => (
+              g.pct > 0 && (
+                <span key={g.gradeKey} className={`evs-lp-seg ${segClass(i, p.gradeDistribution.length)}`} style={{ width: `${g.pct}%` }} />
+              )
+            ))}
+          </div>
+          <div className="evs-lp-legend">
+            {p.gradeDistribution.map((g) => (
+              <span className="evs-lp-legend-item" key={g.gradeKey}>{g.label} {g.pct}%</span>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 
   // §5.B 부서별 — 달성률 내림차순 랭킹 + 히트맵 셀 명도.
   const rankedDepts = [...deptStats].sort((a, b) => b.avgAchieve - a.avgAchieve);
-  const heatAlpha = (pct) => (pct <= 0 ? 0 : Math.min(0.15 + (pct / 100) * 0.65, 0.8));
+  // PW-2691 — 히트맵 칸: 브랜드 연초록 네 단계(0 은 옅은 회색), 글은 늘 진한 색이라 숫자가 읽힌다.
+  const heatStep = (pct) => (pct <= 0 ? 0 : pct < 25 ? 1 : pct < 50 ? 2 : pct < 75 ? 3 : 4);
   const segClass = (i, n) => (i === 0 ? 'seg-top' : i === n - 1 ? 'seg-bottom' : 'seg-mid');
   // PW-1047 ② 가이드를 10%p 넘게 넘은 부서만 칠한다 — 모든 줄이 칠해지면 어느 부서를 봐야 할지 안 보인다.
   const DEPT_GUIDE_ALERT_PP = 10;
@@ -3295,13 +3486,42 @@ export default function EvalCycleSummaryCanvas({
                 따로 있던 「이전 사이클 비교」 상자는 없앴다: 막대 길이·점선·눈금이 모두 «전체 대비 %»
                 하나의 자로 재여야 셋을 겹쳐 읽을 수 있다(그래서 막대 길이도 최다 인원 대비가 아니라 %다). */}
             <section className="evc-card evs-ov-card" data-testid="evs-dist-card">
-              <h3 className="evc-card-name">{L.distributionTitle}</h3>
+              {/* PW-2691 — 범례(지난 평가 눈금·가이드라인)는 제목 줄 오른쪽, 결론 문장만 아래 구분선 밑 */}
+              <div className="evs-ov-head">
+                <h3 className="evc-card-name">{L.distributionTitle}</h3>
+                {gradeDistribution.length > 0 && (
+                  <>
+                    {(previousCycle || hasDistGuide) && (
+                      <p className="evs-chart-legend evs-head-legend" data-testid="evs-dist-legend">
+                        {previousCycle && (
+                          <span className="evs-chart-legend-item">
+                            <span className="evs-legend-tick" aria-hidden />
+                            {L.distPrevLegend}{previousCycle.name ? ` (${previousCycle.name})` : ''}
+                          </span>
+                        )}
+                        {hasDistGuide && (
+                          <span className="evs-chart-legend-item">
+                            <span className="evs-legend-guide" aria-hidden />
+                            {L.guidelineLabel}
+                          </span>
+                        )}
+                        {distMovers.length > 0 && (
+                          <span className="evs-chart-legend-item" data-testid="evs-dist-movers">
+                            {L.distMoversLabel}{' '}
+                            {distMovers.map((m) => `${m.label} ${m.delta > 0 ? '+' : ''}${m.delta}%p`).join(', ')}
+                          </span>
+                        )}
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
               {gradeDistribution.length === 0 ? (
                 <p className="evc-empty-sub">{L.empty}</p>
               ) : (
                 <>
                   <div className="evs-dist">
-                    {gradeDistribution.map((d) => {
+                    {gradeDistribution.map((d, gi) => {
                       const pct = distPct(d);
                       const prev = previousCycle ? prevPctByKey.get(d.gradeKey) : undefined;
                       return (
@@ -3309,7 +3529,7 @@ export default function EvalCycleSummaryCanvas({
                           <span className="evs-dist-label">{d.label ?? gradeLabels[d.gradeKey] ?? d.gradeKey}</span>
                           <div className="evs-dist-body">
                             <div className="evs-dist-track">
-                              <div className="evs-dist-fill" style={{ width: `${Math.min(100, pct)}%` }} data-testid="evs-dist-fill" />
+                              <div className={`evs-dist-fill ${segClass(gi, gradeDistribution.length)}`} style={{ width: `${Math.min(100, pct)}%` }} data-testid="evs-dist-fill" />
                               {d.guidelinePct != null && (
                                 <Tooltip content={`${L.guidelineLabel} ${d.guidelinePct}%`}>
                                   <div
@@ -3335,32 +3555,20 @@ export default function EvalCycleSummaryCanvas({
                       );
                     })}
                   </div>
-                  {(previousCycle || hasDistGuide || distNote.length > 0) && (
-                  <div className="evs-dist-foot">
-                  {(previousCycle || hasDistGuide) && (
-                    <p className="evs-chart-legend" data-testid="evs-dist-legend">
-                      {previousCycle && (
-                        <span className="evs-chart-legend-item">
-                          <span className="evs-legend-tick" aria-hidden />
-                          {L.distPrevLegend}{previousCycle.name ? ` (${previousCycle.name})` : ''}
-                        </span>
-                      )}
-                      {hasDistGuide && (
-                        <span className="evs-chart-legend-item">
-                          <span className="evs-legend-guide" aria-hidden />
-                          {L.guidelineLabel}
-                        </span>
-                      )}
-                      {distMovers.length > 0 && (
-                        <span className="evs-chart-legend-item" data-testid="evs-dist-movers">
-                          {L.distMoversLabel}{' '}
-                          {distMovers.map((m) => `${m.label} ${m.delta > 0 ? '+' : ''}${m.delta}%p`).join(', ')}
-                        </span>
-                      )}
-                    </p>
-                  )}
                   {distNote.length > 0 && (
-                    <p className="evs-dist-note" data-testid="evs-dist-note">{distNote.join(' ')}</p>
+                  <div className="evs-dist-foot">
+                  {distNote.length > 0 && (
+                    <p className="evs-dist-note" data-testid="evs-dist-note">
+                      {distNote.map((line, i) => (
+                        <Fragment key={i}>
+                          {i > 0 && ' '}
+                          {i === distGuideNoteIdx && distGuideBadge && (
+                            <StatusBadge tone="warning" className="evs-dist-note-badge" data-testid="evs-dist-guide-badge">{distGuideBadge}</StatusBadge>
+                          )}
+                          {line}
+                        </Fragment>
+                      ))}
+                    </p>
                   )}
                   </div>
                   )}
@@ -3453,7 +3661,7 @@ export default function EvalCycleSummaryCanvas({
 
               {/* Block 2 — 히트맵 + 달성률 랭킹 */}
               <div className="evs-two-col">
-                <section className="evc-card">
+                <section className="evc-card evs-ov-card">
                   <h3 className="evc-card-name">{L.deptHeatTitle}</h3>
                   <div className="evs-heat">
                     <div className="evs-heat-row evs-heat-head" style={{ gridTemplateColumns: `1.4fr repeat(${(deptStats[0]?.gradeCounts.length || 3)}, 1fr) auto` }}>
@@ -3466,8 +3674,8 @@ export default function EvalCycleSummaryCanvas({
                     {deptStats.map((d) => (
                       <div className="evs-heat-row" key={d.dept} data-testid="evs-heat-row" style={{ gridTemplateColumns: `1.4fr repeat(${d.gradeCounts.length}, 1fr) auto` }}>
                         <span className="evs-heat-dept">{d.dept}</span>
-                        {d.gradeCounts.map((g, i) => (
-                          <span className={`evs-heat-cell ${segClass(i, d.gradeCounts.length)}`} key={g.gradeKey} style={{ '--heat': heatAlpha(g.pct) }}>
+                        {d.gradeCounts.map((g) => (
+                          <span className={`evs-heat-cell is-h${heatStep(g.pct)}`} key={g.gradeKey} data-heat={heatStep(g.pct)}>
                             <span className="evs-heat-cnt">{g.count}</span>
                             <span className="evs-heat-pct">{g.pct}%</span>
                           </span>
@@ -3477,20 +3685,20 @@ export default function EvalCycleSummaryCanvas({
                     ))}
                     <div className="evs-heat-legend">
                       <span>{L.deptLegendLow}</span>
-                      {[0.15, 0.3, 0.5, 0.7, 0.85].map((a) => (
-                        <span className="evs-heat-swatch" key={a} style={{ '--heat': a }} />
+                      {[1, 2, 3, 4].map((h) => (
+                        <span className={`evs-heat-swatch is-h${h}`} key={h} />
                       ))}
                       <span>{L.deptLegendHigh}</span>
                     </div>
                   </div>
                 </section>
 
-                <section className="evc-card">
+                <section className="evc-card evs-ov-card">
                   <h3 className="evc-card-name">{L.deptRankTitle}</h3>
                   <div className="evs-rank">
                     {rankedDepts.map((d, i) => (
                       <div className="evs-rank-row" key={d.dept} data-testid="evs-rank-row">
-                        <span className={`evs-rank-num${i === 0 ? ' is-first' : ''}`}>{i + 1}</span>
+                        <StatusBadge tone="neutral" className="evs-rank-badge">{i + 1}</StatusBadge>
                         <span className="evs-rank-dept">{d.dept}</span>
                         <div className="evs-rank-bar">
                           <span className={`evs-rank-fill${i === 0 ? ' is-first' : ''}`} style={{ width: `${d.avgAchieve}%` }} />
@@ -3504,7 +3712,7 @@ export default function EvalCycleSummaryCanvas({
               </div>
 
               {/* Block 3 — 부서별 상세 현황 */}
-              <section className="evc-card" data-testid="evs-dept-detail">
+              <section className="evc-card evs-ov-card" data-testid="evs-dept-detail">
                 <h3 className="evc-card-name">{L.deptDetailTitle}</h3>
                 <div className="evs-leader-table">
                   <div className="evs-leader-row evs-dept-drow evs-leader-head" style={{ '--gcols': deptStats[0]?.gradeCounts.length || 3 }}>
@@ -3524,10 +3732,18 @@ export default function EvalCycleSummaryCanvas({
                         <span className={`evs-leader-num${g.count > 0 ? ` ${segClass(i, d.gradeCounts.length)}-text` : ' is-muted'}`} key={g.gradeKey}>{g.count}{L.unit}</span>
                       ))}
                       <span className="evs-leader-num">{d.avgAchieve}%</span>
-                      <span
-                        className={`evs-leader-num evs-dept-vsguide${vsGuideOver(d.deltaVsGuide) ? ' is-over' : ''}`}
-                        data-testid="evs-dept-vsguide">
-                        {d.deltaVsGuide > 0 ? `+${d.deltaVsGuide}` : d.deltaVsGuide}%p
+                      {/* PW-2691 — 가이드 대비 차이는 주황 딱지, 10%p 넘게 넘은 부서는 빨강 딱지(PW-1047 ② 구분 유지), 0 은 옅은 글 */}
+                      <span className="evs-leader-num">
+                        {d.deltaVsGuide === 0 ? (
+                          <span className="evs-dept-vsguide is-zero" data-testid="evs-dept-vsguide">0%p</span>
+                        ) : (
+                          <StatusBadge
+                            tone={vsGuideOver(d.deltaVsGuide) ? 'danger' : 'warning'}
+                           
+                            data-testid="evs-dept-vsguide">
+                            {d.deltaVsGuide > 0 ? `+${d.deltaVsGuide}` : d.deltaVsGuide}%p
+                          </StatusBadge>
+                        )}
                       </span>
                     </div>
                   ))}
@@ -3535,7 +3751,7 @@ export default function EvalCycleSummaryCanvas({
                 {deptStats.some((d) => vsGuideOver(d.deltaVsGuide)) && (
                   <p className="evs-chart-legend" data-testid="evs-dept-vsguide-note">
                     <span>
-                      <span className="evs-dept-vsguide is-over">{L.deptVsGuideNoteMark}</span>
+                      <StatusBadge tone="danger">{L.deptVsGuideNoteMark}</StatusBadge>
                       {L.deptVsGuideNote}
                     </span>
                   </p>
@@ -3550,67 +3766,26 @@ export default function EvalCycleSummaryCanvas({
             <section className="evc-card"><p className="evc-empty-sub" data-testid="evs-lp-empty">{L.lpEmpty}</p></section>
           ) : (
             <>
-              {/* Block 1 — 경향 요약 배너 */}
-              <div className="evs-lp-banner" data-testid="evs-lp-banner">
-                {patternBuckets.map((b) => (
-                  <div className={`evs-lp-card tone-${b.tone}`} key={b.key} data-testid={`evs-lp-bucket-${b.key}`}>
-                    <div className="evs-lp-card-label">{b.label}</div>
-                    <div className="evs-lp-card-count">{b.leaders.length}{L.unit}</div>
-                    <div className="evs-lp-card-names">{b.leaders.length ? b.leaders.map((l) => l.name).join(', ') : '—'}</div>
-                  </div>
-                ))}
-              </div>
+              {/* Block 1 — 경향 요약 */}
+              {renderPatternBanner('evs-lp-banner')}
               {lenientMajority && (
                 <p className="evs-lp-warn" data-testid="evs-lp-warn"><AlertIcon size={14} /> {L.lpMajorityWarn}</p>
               )}
 
               {/* Block 2 — 리더별 등급 분포 비교 */}
-              <section className="evc-card">
-                <h3 className="evc-card-name">{L.lpDistTitle}</h3>
-                <div className="evs-lp-list">
-                  {leaderPatterns.map((p) => (
-                    <div className="evs-lp-row" key={p.leaderId} data-testid="evs-lp-row">
-                      <div className="evs-lp-row-head">
-                        <span className="evs-lp-lead">
-                          <span className="evs-leader-avatar" style={{ position: 'relative' }}>{(p.name || '?').slice(0, 1)}<AvatarPhoto photo={p.avatar} name={p.name} /></span>
-                          <span>
-                            <span className="evs-leader-name">{p.name || p.leaderId}</span>
-                            <span className="evs-lp-dept"> · {p.dept}</span>
-                          </span>
-                        </span>
-                        <StatusBadge className={`evs-lp-tag tone-${tendencyMeta[p.tendency]?.tone ?? 'neutral'}`}>
-                          {tagOf(p.tendency)}
-                        </StatusBadge>
-                      </div>
-                      <div className="evs-lp-bar" role="img">
-                        {p.gradeDistribution.map((g, i) => (
-                          g.pct > 0 && (
-                            <span
-                              key={g.gradeKey}
-                              className={`evs-lp-seg seg-${i === 0 ? 'top' : i === p.gradeDistribution.length - 1 ? 'bottom' : 'mid'}`}
-                              style={{ width: `${g.pct}%` }}
-                            />
-                          )
-                        ))}
-                      </div>
-                      <div className="evs-lp-legend">
-                        {p.gradeDistribution.map((g, i) => (
-                          <span className="evs-lp-legend-item" key={g.gradeKey}>
-                            <span className={`evs-lp-dot seg-${i === 0 ? 'top' : i === p.gradeDistribution.length - 1 ? 'bottom' : 'mid'}`} />
-                            {g.label} {g.pct}%
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
+              <section className="evc-card evs-ov-card">
+                <div className="evs-ov-head">
+                  <h3 className="evc-card-name">{L.lpDistTitle}</h3>
+                  {renderGradeLegend(leaderPatterns[0]?.gradeDistribution ?? [])}
                 </div>
+                {renderPatternRows(true)}
               </section>
 
               {/* Block 3 — 캘리브레이션 전후 등급 변화 */}
-              <section className="evc-card" data-testid="evs-lp-calib">
+              <section className="evc-card evs-ov-card" data-testid="evs-lp-calib">
                 <h3 className="evc-card-name">{L.lpCalibTitle}</h3>
                 {leaderPatterns.every((p) => p.calibDelta === 0) ? (
-                  <p className="evc-empty-sub">{L.lpCalibEmpty}</p>
+                  <p className="evs-ov-search-empty" data-testid="evs-lp-calib-empty">{L.lpCalibEmpty}</p>
                 ) : (
                   <div className="evs-leader-table">
                     <div className="evs-leader-row evs-lp-calib-row evs-leader-head">
@@ -3658,25 +3833,39 @@ export default function EvalCycleSummaryCanvas({
             {/* Block 1 — 요약 지표 3-up */}
             <div className="evs-kpis evs-cd-cards" data-testid="evs-cd-cards">
               <div className="evs-kpi tone-accent">
-                <span className="evs-kpi-value">{calibResult.adjustedCount}{L.unit}</span>
+                <span className="evs-kpi-value">{calibResult.adjustedCount}<span className="evs-kpi-unit">{L.unit}</span></span>
                 <span className="evs-kpi-label">{L.cdAdjusted}</span>
                 <span className="evs-kpi-sub">{fmt(L.cdOfTotal, { total: calibResult.total, pct: calibResult.total > 0 ? Math.round((100 * calibResult.adjustedCount) / calibResult.total) : 0 })}</span>
               </div>
               <div className="evs-kpi tone-green">
-                <span className="evs-kpi-value">{calibResult.upwardCount}{L.unit}</span>
-                <span className="evs-kpi-label">{L.cdUpward}</span>
+                <span className="evs-kpi-value">{calibResult.upwardCount}<span className="evs-kpi-unit">{L.unit}</span></span>
+                <span className="evs-kpi-label"><span className="evs-cd-arrow is-up"><ArrowUpIcon size={14} /></span>{L.cdUpward}</span>
                 <span className="evs-kpi-sub">{L.cdUpwardSub}</span>
               </div>
               <div className="evs-kpi evs-cd-down">
-                <span className="evs-kpi-value">{calibResult.downwardCount}{L.unit}</span>
-                <span className="evs-kpi-label">{L.cdDownward}</span>
+                <span className="evs-kpi-value">{calibResult.downwardCount}<span className="evs-kpi-unit">{L.unit}</span></span>
+                <span className="evs-kpi-label"><span className="evs-cd-arrow is-down"><ArrowDownIcon size={14} /></span>{L.cdDownward}</span>
                 <span className="evs-kpi-sub">{L.cdDownwardSub}</span>
               </div>
             </div>
 
             {/* Block 2 — 조정 전후 등급 분포 비교 */}
-            <section className="evc-card">
-              <h3 className="evc-card-name">{L.cdDistTitle}</h3>
+            <section className="evc-card evs-ov-card">
+              <div className="evs-ov-head">
+                <h3 className="evc-card-name">{L.cdDistTitle}</h3>
+                <span className="evs-chart-legend evs-head-legend" data-testid="evs-cd-legend">
+                  <span className="evs-chart-legend-item">
+                    <span className="evs-legend-tick" aria-hidden />
+                    {L.cdBeforeLegend}
+                  </span>
+                  {calibResult.afterExcellentGuidelinePct != null && (
+                    <span className="evs-chart-legend-item">
+                      <span className="evs-legend-guide" aria-hidden />
+                      {L.guidelineLabel}
+                    </span>
+                  )}
+                </span>
+              </div>
               {/* PW-1047 ① 등급마다 막대 한 줄 — 조정 후를 칠하고, 조정 전은 눈금으로 겹친다.
                   늘었다·줄었다를 초록·빨강으로 칠하지 않는다(최하가 늘어도 초록이 되던 문제). */}
               {calibMismatch ? (
@@ -3695,7 +3884,7 @@ export default function EvalCycleSummaryCanvas({
                       <span className="evs-dist-label">{b.label}</span>
                       <div className="evs-dist-body">
                         <div className="evs-dist-track">
-                          <div className="evs-dist-fill" style={{ width: `${Math.min(100, a.pct)}%` }} data-testid="evs-cd-fill" />
+                          <div className={`evs-dist-fill ${segClass(i, calibResult.before.length)}`} style={{ width: `${Math.min(100, a.pct)}%` }} data-testid="evs-cd-fill" />
                           {guide != null && (
                             <Tooltip content={`${L.guidelineLabel} ${guide}%`}>
                               <div className="evs-dist-guide" style={{ left: `${Math.min(100, guide)}%` }} />
@@ -3729,26 +3918,15 @@ export default function EvalCycleSummaryCanvas({
                 })}
               </div>
               )}
-              <p className="evs-chart-legend" data-testid="evs-cd-legend">
-                <span className="evs-chart-legend-item">
-                  <span className="evs-legend-tick" aria-hidden />
-                  {L.cdBeforeLegend}
-                </span>
-                {calibResult.afterExcellentGuidelinePct != null && (
-                  <span className="evs-chart-legend-item">
-                    <span className="evs-legend-guide" aria-hidden />
-                    {L.guidelineLabel}
-                  </span>
-                )}
-              </p>
-              {calibResult.summary && (
+              {/* PW-2691 — 조정 0건이면 같은 문장이 아래 «등급 조정 상세» 카드에 있어 여기선 뺀다 */}
+              {calibResult.summary && calibResult.adjustedCount > 0 && (
                 <p className="evs-cd-summary" data-testid="evs-cd-summary">{calibResult.summary}</p>
               )}
               <CalibResultInsight L={L} insight={calibResultInsight} onRetry={onLoadCalibResultInsight} onLoad={onLoadCalibResultInsight} />
             </section>
 
             {/* Block 3 — 개별 조정 위임 카드 */}
-            <section className="evc-card">
+            <section className="evc-card evs-ov-card">
               <h3 className="evc-card-name">{L.cdDetailTitle}</h3>
               <div className="evs-cd-delegate">
                 <div className="evs-cd-delegate-text">
@@ -3762,9 +3940,9 @@ export default function EvalCycleSummaryCanvas({
                   )}
                   <div className="evs-cd-delegate-note">{L.cdDelegateNote}</div>
                 </div>
-                <button
-                  type="button"
-                  className="evc-btn is-primary"
+                {/* PW-2691 — 이 화면의 주 동작이 아니라 다른 화면으로 가는 길이라 흰 보조 버튼 */}
+                <Button
+                  variant="secondary"
                   onClick={() => {
                     setTab('calib_work');
                     onOpenWorkspace?.();
@@ -3772,7 +3950,8 @@ export default function EvalCycleSummaryCanvas({
                   data-testid="evs-cd-workspace"
                 >
                   {L.cdOpenWorkspace}
-                </button>
+                  <ChevronRightIcon size={16} />
+                </Button>
               </div>
             </section>
           </>
@@ -3780,7 +3959,8 @@ export default function EvalCycleSummaryCanvas({
 
         {shownTab === 'exec' && (
           <div className="evs-exec" data-testid="evs-exec">
-            <p className="evs-exec-banner">{L.execBanner}</p>
+            {/* PW-2691 — 안쪽 탭은 글 길이만큼의 판, 누가 무엇을 보나는 그 옆 한 줄(ⓘ) */}
+            <div className="evs-exec-head">
             <SegmentedControl
               className="evs-exec-tabs"
               items={[
@@ -3792,23 +3972,32 @@ export default function EvalCycleSummaryCanvas({
               value={execSection}
               onChange={setExecSection}
             />
+            <p className="evs-exec-banner"><InfoIcon size={16} /> {L.execBanner}</p>
+            </div>
 
             {/* J1 — 전사 서머리 */}
             {execSection === 'j1' && (
               <>
                 <div className="evs-two-col">
-                  <section className="evc-card">
-                    <h3 className="evc-card-name">{L.j1DistTitle}</h3>
+                  <section className="evc-card evs-ov-card">
+                    <div className="evs-ov-head">
+                      <h3 className="evc-card-name">{L.j1DistTitle}</h3>
+                      {gradeDistribution.some((d) => d.guidelinePct != null) && (
+                        <span className="evs-chart-legend evs-head-legend">
+                          <span className="evs-chart-legend-item"><span className="evs-legend-guide" aria-hidden />{L.guidelineLabel}</span>
+                        </span>
+                      )}
+                    </div>
                     {gradeDistribution.length === 0 ? (
                       <p className="evc-empty-sub">{L.empty}</p>
                     ) : (
                       <div className="evs-dist">
-                        {gradeDistribution.map((d) => (
+                        {gradeDistribution.map((d, gi) => (
                           <div className="evs-dist-row" key={d.gradeKey}>
                             <span className="evs-dist-label">{d.label ?? d.gradeKey}</span>
                             <div className="evs-dist-body">
                               <div className="evs-dist-track">
-                                <div className="evs-dist-fill" style={{ width: `${(d.count / maxCount) * 100}%` }} />
+                                <div className={`evs-dist-fill ${segClass(gi, gradeDistribution.length)}`} style={{ width: `${(d.count / maxCount) * 100}%` }} />
                                 {d.guidelinePct != null && (
                                   <div className="evs-dist-guide" style={{ left: `${Math.min(100, d.guidelinePct)}%` }} />
                                 )}
@@ -3823,7 +4012,7 @@ export default function EvalCycleSummaryCanvas({
                       </div>
                     )}
                   </section>
-                  <section className="evc-card" data-testid="evs-j1-ratio">
+                  <section className="evc-card evs-ov-card" data-testid="evs-j1-ratio">
                     <h3 className="evc-card-name">{L.j1RatioTitle}</h3>
                     {/* §13 — 하향 평가지에 역량 항목이 없으면 비율을 그리지 않고 이유를 말한다. */}
                     {execSummary?.hasCompetencyItems === false && (
@@ -3847,7 +4036,7 @@ export default function EvalCycleSummaryCanvas({
                   </section>
                 </div>
 
-                <section className="evc-card" data-testid="evs-j1-dept">
+                <section className="evc-card evs-ov-card" data-testid="evs-j1-dept">
                   <h3 className="evc-card-name">{L.j1DeptTitle}</h3>
                   {deptStats.length === 0 ? (
                     <p className="evc-empty-sub">{L.deptDataEmpty}</p>
@@ -3881,46 +4070,19 @@ export default function EvalCycleSummaryCanvas({
               </>
             )}
 
-            {/* J2 — 리더 평가 패턴(탭 C 데이터 재사용) */}
+            {/* J2 — 리더 평가 패턴(탭 C 데이터 재사용) — «리더별 평가 패턴» 탭과 같은 모양 */}
             {execSection === 'j2' && (
-              <section className="evc-card" data-testid="evs-exec-j2">
-                <h3 className="evc-card-name">{L.execJ2Title}</h3>
+              <section className="evc-card evs-ov-card" data-testid="evs-exec-j2">
+                <div className="evs-ov-head">
+                  <h3 className="evc-card-name">{L.execJ2Title}</h3>
+                  {renderGradeLegend(leaderPatterns[0]?.gradeDistribution ?? [])}
+                </div>
                 {leaderPatterns.length === 0 ? (
-                  <p className="evc-empty-sub">{L.lpEmpty}</p>
+                  <p className="evs-ov-search-empty">{L.lpEmpty}</p>
                 ) : (
                   <>
-                    <div className="evs-lp-banner">
-                      {patternBuckets.map((b) => (
-                        <div className={`evs-lp-card tone-${b.tone}`} key={b.key}>
-                          <div className="evs-lp-card-label">{b.label}</div>
-                          <div className="evs-lp-card-count">{b.leaders.length}{L.unit}</div>
-                          <div className="evs-lp-card-names">{b.leaders.length ? b.leaders.map((l) => l.name).join(', ') : '—'}</div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="evs-lp-list">
-                      {leaderPatterns.map((p) => (
-                        <div className="evs-lp-row" key={p.leaderId}>
-                          <div className="evs-lp-row-head">
-                            <span className="evs-lp-lead">
-                              <span className="evs-leader-avatar" style={{ position: 'relative' }}>{(p.name || '?').slice(0, 1)}<AvatarPhoto photo={p.avatar} name={p.name} /></span>
-                              <span><span className="evs-leader-name">{p.name || p.leaderId}</span><span className="evs-lp-dept"> · {p.dept}</span></span>
-                            </span>
-                            <StatusBadge className={`evs-lp-tag tone-${tendencyMeta[p.tendency]?.tone ?? 'neutral'}`}>{tagOf(p.tendency)}</StatusBadge>
-                          </div>
-                          <div className="evs-lp-bar">
-                            {p.gradeDistribution.map((g, i) => (
-                              g.pct > 0 && <span key={g.gradeKey} className={`evs-lp-seg ${segClass(i, p.gradeDistribution.length)}`} style={{ width: `${g.pct}%` }} />
-                            ))}
-                          </div>
-                          <div className="evs-lp-legend">
-                            {p.gradeDistribution.map((g, i) => (
-                              <span className="evs-lp-legend-item" key={g.gradeKey}><span className={`evs-lp-dot ${segClass(i, p.gradeDistribution.length)}`} />{g.label} {g.pct}%</span>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                    {renderPatternBanner()}
+                    {renderPatternRows(false)}
                   </>
                 )}
               </section>
@@ -3929,9 +4091,10 @@ export default function EvalCycleSummaryCanvas({
             {/* J3 — 9블록 매트릭스 + 승진 요청 */}
             {execSection === 'j3' && (
               <>
-                <p className="evs-exec-confidential"><LockIcon size={14} /> {L.nbConfidential}</p>
-                <div className="evs-two-col">
-                  <section className="evc-card">
+                {/* PW-2691 — «누가 보이나» 안내: 원온원·매니저 «보는 범위» 줄(.ono-filter-notice) 모양 — 눈 아이콘 + 12px 초록 글 */}
+                <p className="evs-exec-confidential"><EyeIcon size={16} /> {L.nbConfidential}</p>
+                <div className="evs-two-col evs-exec-j3">
+                  <section className="evc-card evs-ov-card">
                     <h3 className="evc-card-name">{L.nbTitle}</h3>
                     {/* PW-2440 §9.F.4-A — 볼 사람이 없는 것과 아직 안 낸 것을 가른다. HR 응답에는 viewableCount 가 없다. */}
                     {nineBox?.viewableCount === 0 ? (
@@ -3946,13 +4109,16 @@ export default function EvalCycleSummaryCanvas({
                       const yTone = { recommended: 'green', not_yet: 'neutral', deferred: 'amber' };
                       return (
                         <div data-testid="evs-ninebox">
+                          <p className="evs-nb-axis" data-testid="evs-nb-axis-x">{L.nbAxisX} <ArrowRightIcon size={14} /></p>
                           <div className={`evs-nb-grid${nineBox.aside ? ' has-aside' : ''}`}>
                             <span className="evs-nb-corner" />
                             {xKeys.map((x) => <span className="evs-nb-xhead" key={x}>{xLabel[x]}</span>)}
                             {nineBox.aside && <NineBoxAsideHead aside={nineBox.aside} L={L} />}
                             {yKeys.map((y) => (
                               <Fragment key={y}>
-                                <span className={`evs-nb-yhead tone-${yTone[y]}`}>{yLabel[y]}</span>
+                                <span className={`evs-nb-yhead tone-${yTone[y]}`}>
+                                  <StatusBadge className={`evs-lp-tag tone-${yTone[y]}`}>{yLabel[y]}</StatusBadge>
+                                </span>
                                 {xKeys.map((x) => {
                                   const members = nineBox.cells[y][x];
                                   const highlight = y === 'recommended' && x === 'urgent';
@@ -3985,55 +4151,19 @@ export default function EvalCycleSummaryCanvas({
                               </Fragment>
                             ))}
                           </div>
-                          <p className="evs-nb-caption">{L.nbCaption}</p>
+                          <p className="evs-nb-caption" data-testid="evs-nb-axis-y">{L.nbAxisY}</p>
                         </div>
                       );
                     })()}
                   </section>
-                  <section className="evc-card" data-testid="evs-exec-pr">
-                    <div className="evs-pr-head">
-                      <h3 className="evc-card-name">{L.prTitle}</h3>
-                      {nbSelectedMember && (
-                        <button type="button" className="evs-pr-showall" onClick={() => setNbSelectedMember(null)}>{L.prShowAll}</button>
-                      )}
-                    </div>
-                    {(() => {
-                      const list = nbSelectedMember
-                        ? promotionRequests.filter((r) => r.memberId === nbSelectedMember)
-                        : promotionRequests;
-                      if (list.length === 0) return <p className="evc-empty-sub">{L.prEmpty}</p>;
-                      return (
-                        <div className="evs-pr-list">
-                          {list.map((r) => {
-                            const meta = prStatusMeta[r.status] ?? prStatusMeta.draft;
-                            return (
-                              <div className="evs-pr-card" key={r.memberId} data-testid="evs-pr-card">
-                                <div className="evs-pr-card-head">
-                                  <div>
-                                    <span className="evs-pr-name">{r.memberName || r.memberId}</span>
-                                    <span className="evs-pr-sub"> {r.dept} · {L.prRequester}: {r.requesterName || r.requesterId}</span>
-                                  </div>
-                                  <StatusBadge className={`evs-lp-tag tone-${meta.tone}`}>{meta.label}</StatusBadge>
-                                </div>
-                                {[
-                                  { label: L.prF1, val: r.evalHistorySummary },
-                                  { label: L.prF2, val: r.reviewBackground },
-                                  { label: L.prF3, val: r.levelRoleExamples },
-                                  { label: L.prF4, val: r.additionalNotes },
-                                  // §9.F.4 위원회 검토 결과 — 의견이 있을 때만.
-                                  { label: L.prCommitteeNote, val: r.committeeNote },
-                                ].map((f) => f.val && (
-                                  <div className="evs-pr-field" key={f.label}>
-                                    <div className="evs-pr-field-label">{f.label}</div>
-                                    <div className="evs-pr-field-val">{f.val}</div>
-                                  </div>
-                                ))}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      );
-                    })()}
+                  <section className="evc-card evs-ov-card" data-testid="evs-exec-pr">
+                    <PromotionRequestList
+                      L={L}
+                      requests={promotionRequests}
+                      selectedMemberId={nbSelectedMember}
+                      onShowAll={() => setNbSelectedMember(null)}
+                      statusMeta={prStatusMeta}
+                    />
                   </section>
                 </div>
               </>
@@ -4041,8 +4171,21 @@ export default function EvalCycleSummaryCanvas({
 
             {/* J4 — 필터 / CSV */}
             {execSection === 'j4' && (
-              <section className="evc-card" data-testid="evs-exec-j4">
-                <h3 className="evc-card-name">{L.execJ4Title}</h3>
+              <section className="evc-card evs-ov-card" data-testid="evs-exec-j4">
+                <div className="evs-ov-head">
+                  <h3 className="evc-card-name">{L.execJ4Title}</h3>
+                  <div className="evs-j4-actions">
+                    <Button variant="ghost" size="sm" data-testid="evs-j4-reset">{L.j4Reset}</Button>
+                    {/* CSV 는 HR Admin 만 — 조직장·위원회는 조회만(요약 정책 §9.F.5). 핸들러를 안 주면 버튼이 없다. */}
+                    {onExportCsv && (
+                      <Button variant="primary" size="sm" onClick={() => onExportCsv()} data-testid="evs-j4-csv">
+                        <DownloadIcon size={16} />
+                        {L.j4Csv}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+                <p className="evs-j4-desc">{L.j4Desc}</p>
                 <div className="evs-j4-presets">
                   {filterPresets.length === 0 ? (
                     <span className="evc-empty-sub">{L.j4NoPreset}</span>
@@ -4057,14 +4200,6 @@ export default function EvalCycleSummaryCanvas({
                   {onSaveFilterPreset && (
                     <button type="button" className="evs-j4-save" onClick={() => onSaveFilterPreset()} data-testid="evs-j4-save">{L.j4SavePreset}</button>
                   )}
-                </div>
-                <p className="evs-j4-desc">{L.j4Desc}</p>
-                <div className="evs-j4-actions">
-                  {/* CSV 는 HR Admin 만 — 조직장·위원회는 조회만(요약 정책 §9.F.5). 핸들러를 안 주면 버튼이 없다. */}
-                  {onExportCsv && (
-                    <button type="button" className="evc-btn is-primary" onClick={() => onExportCsv()} data-testid="evs-j4-csv">{L.j4Csv}</button>
-                  )}
-                  <button type="button" className="evc-btn is-ghost" data-testid="evs-j4-reset">{L.j4Reset}</button>
                 </div>
               </section>
             )}
@@ -4144,7 +4279,7 @@ export default function EvalCycleSummaryCanvas({
             </section>
 
             {/* 우: 상세 4섹션 */}
-            <div className="evs-re-detail">
+            <div className={`evs-re-detail${!memberDetailLoading && !selectedMemberId ? ' is-empty' : ''}`}>
               {memberDetailLoading ? (
                 <section className="evc-card"><p className="evc-empty-sub">{L.reLoading}</p></section>
               ) : !selectedMemberId ? (
