@@ -11,7 +11,7 @@
  * 그래서 시트를 걷어내기 전에 여기로 **옮겨** 두고, 목록 뷰가 그대로 쓴다.
  * 코드는 옮긴 것이고 동작은 바뀌지 않았다 — 시트에서 열든 패널에서 열든 같은 창이다.
  */
-import { useState, useEffect, useMemo, useId } from 'react';
+import { useState, useEffect, useLayoutEffect, useMemo, useId, useRef } from 'react';
 import Checkbox from '../shared/Checkbox.jsx';
 import DateInput from '../shared/DateInput.jsx';
 import { todayIsoInZone } from '../shared/calendarDate.js';
@@ -1851,6 +1851,16 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
   const [busy, setBusy] = useState(false);
   const [addError, setAddError] = useState(false);
   const [amountGrouped, setAmountGrouped] = useState(false);
+  // Tab 으로 들어오면 브라우저가 칸 글을 통째로 고른다. 쉼표를 걷어 값이 바뀌면 그 고름이 풀려
+  // 새로 친 숫자가 옛 값 뒤에 붙는다(70,000,000 → 5 → «700000005»). 다 골라 있던 칸이면 바뀐 값을 다시 고른다.
+  const amountRef = useRef(null);
+  const reselectAmount = useRef(false);
+  useLayoutEffect(() => {
+    if (!amountGrouped && reselectAmount.current) {
+      reselectAmount.current = false;
+      if (amountRef.current && document.activeElement === amountRef.current) amountRef.current.select();
+    }
+  }, [amountGrouped]);
 
   useEffect(() => {
     // loading 초기값이 true — 모달은 열 때마다 새로 마운트되므로 여기서 다시
@@ -2157,7 +2167,12 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
                 placeholder={L.salaryHistAmountPh || '금액'}
                 value={amountShown}
                 aria-invalid={amountInvalid || undefined}
-                onFocus={() => setAmountGrouped(false)}
+                ref={amountRef}
+                onFocus={(e) => {
+                  const el = e.currentTarget;
+                  reselectAmount.current = el.value.length > 0 && el.selectionStart === 0 && el.selectionEnd === el.value.length;
+                  setAmountGrouped(false);
+                }}
                 onBlur={() => setAmountGrouped(true)}
                 onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
               />
