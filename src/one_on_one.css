@@ -5862,11 +5862,27 @@ button.ono-add-modal-input { cursor: pointer; }
   width: 220px;
 }
 /* 팀원 카드 직급 줄 + «1on1 신청» 칩 — 직급 줄 옆자리(줄 높이 20 안의 18)라 카드 높이가 그대로다.
-   칩 색은 딱지 모음(status-badge.css · .ono-mem-chip.ono-member-request-chip). */
+   칩 색은 딱지 모음(status-badge.css · .ono-mem-chip.ono-member-request-chip).
+   직급이 길어 칩이 한 줄에 안 들어가면 직급을 말줄임하고 칩은 남긴다 — 칩 때문에 줄을 바꾸지 않는다
+   (pivit-work PW-2639 · 기획 v3.17 §13-10 «신청 묶음» ③ 2026-11-11). 말줄임이 먹으려면 이름 블록까지 줄어들 수 있어야 한다. */
+.ono-member-identity:has(.ono-member-role-row),
+.ono-member-name-block:has(.ono-member-role-row) {
+  min-width: 0;
+}
 .ono-member-role-row {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
+  min-width: 0;
+}
+.ono-member-role-row .ono-member-role {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ono-member-role-row .ono-member-request-chip {
+  flex-shrink: 0;
 }
 /* 팀원 머리의 «신청함 · 응답 대기» 칩 + [신청 취소] — [1on1 신청] 자리를 그대로 차지한다(기획 v3.12 «자리»). */
 .ono-request-pending {
