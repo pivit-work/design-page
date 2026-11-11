@@ -381,6 +381,39 @@ function HrEditPairError({ children }) {
 }
 
 /**
+ * 편집 줄 아래 회색 안내 — 이름표 자리를 비워 값 칸 아래에 맞춘다(HrEditPairError 와 같은 줄 모양 · 색만 보조 회색).
+ */
+function HrEditPairHint({ children, testId }) {
+  return (
+    <div data-testid={testId} style={{ display: 'flex', gap: 'var(--spacing-md)', fontSize: 11, paddingBottom: 'var(--spacing-xxs)', color: 'var(--text-tertiary)' }}>
+      <span className="adm-hr-pair-k" aria-hidden="true" />
+      <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 'var(--spacing-xxs)' }}>{children}</span>
+    </div>
+  );
+}
+
+/**
+ * 기산일 칸 아래 안내 (pivit-work PW-2460 · admin-spec §3.2.10 «PW-2418» ① · 시안 admin-app.jsx 기산일 Field).
+ * 비어 있으면 입사일을 따른다는 것을 늘 보이고, 값이 있으면 [비우기 — 입사일 따르기],
+ * 값이 입사일과 다르면 «입사일과 다릅니다 …» — 입사일을 고쳐도 휴가가 왜 그대로인지 담당자가 알아보게.
+ */
+const isoDay = (v) => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v) ? v.slice(0, 10) : '');
+
+function serviceStartHintText(L, serviceStartDate, hireDate) {
+  const about = L.hrServiceStartAbout || '연차·퇴직금 산정 기준일. 그룹 입사일이나 재입사자의 이전 근속처럼 따로 정할 때만 넣습니다.';
+  const own = isoDay(serviceStartDate);
+  const hire = isoDay(hireDate);
+  const tail = !own
+    ? hire
+      ? (L.hrServiceStartFollows || '비어 있으면 입사일({date})을 따릅니다').replace('{date}', hire)
+      : L.hrServiceStartFollowsNoHire || '비어 있으면 입사일을 따릅니다'
+    : hire && own !== hire
+      ? (L.hrServiceStartDiffers || '입사일({date})과 다릅니다 — 그룹 입사일이나 재입사자의 이전 근속이 아니면 비워 두세요').replace('{date}', hire)
+      : '';
+  return tail ? `${about} ${tail}` : about;
+}
+
+/**
  * `card` — 추가 칸(.adm-hr-add) 안의 줄. 칸 높이·글씨는 그 카드의 클래스가 정한다(36px 흰 칸 · pivit-work PW-2693).
  * 안 주면 지금 그대로(신원·인사 편집 줄).
  */
@@ -947,6 +980,14 @@ export function HrProfileModal({
                   ))}
                   {/* ── 고용 일자·근무 일정 (PW-920 · 코어 §1-3-g 분류 2·4) ── */}
                   <HrEditPair k={L.hrServiceStartDate || '기산일'} date value={idDraft.serviceStartDate} onChange={setIdField('serviceStartDate')} />
+                  <HrEditPairHint testId="hr-service-start-hint">
+                    <span>{serviceStartHintText(L, idDraft.serviceStartDate, row?.hireDate)}</span>
+                    {isoDay(idDraft.serviceStartDate) && (
+                      <Button variant="ghost" size="sm" data-testid="hr-service-start-clear" onClick={() => setIdField('serviceStartDate')('')}>
+                        {L.hrServiceStartClear || '비우기 — 입사일 따르기'}
+                      </Button>
+                    )}
+                  </HrEditPairHint>
                   <HrEditPair k={L.hrFirstHireDate || '최초 입사일'} date value={idDraft.firstHireDate} onChange={setIdField('firstHireDate')} />
                   {kept(L.hrEmploymentTypeStartDate || '현 고용형태 시작일', (
                     <HrEditPair k={L.hrEmploymentTypeStartDate || '현 고용형태 시작일'} date value={idDraft.employmentTypeStartDate} onChange={setIdField('employmentTypeStartDate')} />
