@@ -227,6 +227,11 @@ const DEFAULT_LABELS = {
     leaveSkipScheduled: '휴직 예정 {count}명',
     leaveSkipSuffix: '{list}은(는) 건너뜁니다',
     leaveApply: '휴직으로 바꾸기',
+    // 「상태 일괄 변경 → 재직 · 수습」 사유 창 (pivit-work PW-1333)
+    statusReasonTitle: '{count}명의 재직상태를 {status}으로 바꿉니다',
+    statusReasonNote: '그중 재직 ↔ 수습 {count}명은 개인정보 변경 이력에 남아요',
+    statusReasonLabel: '변경 사유',
+    statusReasonApply: '바꾸기',
     leaveEndBeforeStart: '휴직 종료일은 시작일보다 앞설 수 없습니다',
     leaveFutureHint: '{date}에 휴직으로 바뀌어요. 그때까지 발령 이력에 예정으로 보이고, 발효 전에는 취소할 수 있어요',
     /* 「여러 칸 한 번에 고치기」 (PW-901). 스프레드시트 뷰가 폐기되며(PW-576) 함께
@@ -2390,6 +2395,56 @@ function BulkLeaveModal({ split, labels, leaveAddon, today, onClose, onApply }) 
           <LeaveReasonSelect value={reason} onChange={setReason} L={P} testId="employees-list-bulk-leave-reason" />
         </FormField>
       </div>
+    </BulkActionModal>
+  );
+}
+
+/**
+ * 「상태 일괄 변경 → 재직 · 수습」 사유 창 (pivit-work PW-1333 · admin-spec §3.1 «상태 일괄 변경 → 휴직» 표 «여는 때»).
+ *
+ * 고른 사람 중 재직 ↔ 수습이 바뀌는 사람이 있을 때만 뜬다 — 그 전환은 개인정보 변경 이력에 남고(§3.2.11 «PW-1333» 줄),
+ * 어드민이 남의 값을 바꾼 것이라 사유 1건이 필수다. 휴직에서 돌아오는 사람만 있으면 부르는 쪽이 창 없이 바꾼다(발령 «복직»).
+ * `pending` = { count, swaps, status } — 몇 명을 · 그중 몇 명이 재직 ↔ 수습인지 · 무엇으로. 저장은 `onApply(reason)`.
+ */
+function BulkStatusReasonModal({ pending, labels, onClose, onApply }) {
+  const L = labels.listBulk;
+  const [reason, setReason] = useState('');
+  const [busy, setBusy] = useState(false);
+  const disabled = busy || !reason.trim();
+  async function submit() {
+    if (disabled) return;
+    setBusy(true);
+    try {
+      await onApply(reason.trim());
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <BulkActionModal
+      testId="employees-list-bulk-status-reason-modal"
+      title={fill(L.statusReasonTitle, { count: pending.count, status: labels.status[pending.status] ?? '' })}
+      subtitle={fill(L.statusReasonNote, { count: pending.swaps })}
+      onClose={onClose}
+      closeLabel={L.close}
+      footer={(
+        <>
+          {/* 같은 메뉴 «휴직» 창과 같은 창 아래 버튼 모양 — 공용 Button 에 그 모양 클래스를 넘긴다 */}
+          <Button className="tl-group-modal-btn tl-group-modal-btn-secondary" onClick={onClose}
+            data-testid="employees-list-bulk-status-reason-cancel">{L.cancel}</Button>
+          <Button className="tl-group-modal-btn tl-group-modal-btn-primary" disabled={disabled}
+            data-testid="employees-list-bulk-status-reason-apply" onClick={submit}>{L.statusReasonApply}</Button>
+        </>
+      )}
+    >
+      <FormField className="admin-emp-field" labelClassName="admin-emp-field-label" label={L.statusReasonLabel} required>
+        <TextInput
+          className="admin-emp-input"
+          data-testid="employees-list-bulk-status-reason-input"
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+        />
+      </FormField>
     </BulkActionModal>
   );
 }
@@ -6617,6 +6672,9 @@ export default function AdminEmployeesCanvas({
   /* 「상태 일괄 변경 → 휴직」 창 (pivit-work PW-2520) — 부르는 쪽이 휴직을 받으면 서버에 대상을 물어 `bulkLeave`
      (`{ split: { targets, onLeave, resigned, scheduled } }`)를 채운다. 비면 창이 닫혀 있다. 저장은 `onBulkLeaveApply(values)`. */
   bulkLeave, onBulkLeaveApply, onBulkLeaveClose,
+  /* 「상태 일괄 변경 → 재직 · 수습」 사유 창 (pivit-work PW-1333) — 재직 ↔ 수습이 바뀌는 사람이 있으면 부르는 쪽이
+     `bulkStatusReason`(`{ count, swaps, status }`)를 채운다. 저장은 `onBulkStatusReasonApply(reason)`. */
+  bulkStatusReason, onBulkStatusReasonApply, onBulkStatusReasonClose,
   /* 휴가 메뉴(애드온)가 켜진 회사 — 휴직 사유가 필수가 된다(§3.2.1). */
   leaveAddon,
   onBulkDeactivate,
@@ -7336,6 +7394,14 @@ export default function AdminEmployeesCanvas({
           billingNotice={inviteBillingNotice}
           onSeatNeedChange={onInviteSeatNeedChange}
           labels={inviteLabels}
+        />
+      )}
+      {bulkStatusReason && onBulkStatusReasonApply && (
+        <BulkStatusReasonModal
+          pending={bulkStatusReason}
+          labels={labels}
+          onClose={onBulkStatusReasonClose}
+          onApply={onBulkStatusReasonApply}
         />
       )}
       {bulkLeave && onBulkLeaveApply && (
