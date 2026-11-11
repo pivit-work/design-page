@@ -1,5 +1,6 @@
 import Button from './Button.jsx';
 import { CloseGlyph } from './lineIcons.jsx';
+import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
 /**
@@ -10,7 +11,11 @@ import { createPortal } from 'react-dom';
  * PW-836 에서 이 창을 공용 부품으로 모을 때 평가 사이클 확인 창 값으로 덮였던 것을 되돌렸다
  * (pivit-work PW-2705). 닫기 X 는 디자이너 클래스 `.tl-group-modal-close`(modal-shell.css)를 쓴다.
  *
- * 화면만 그린다 — 약속(promise)·초점·Esc 처리 같은 동작은 호스트가 갖는다.
+ * Esc 와 처음 초점은 창이 갖는다 (pivit-work PW-2705). 전에는 «호스트가 갖는다»였는데, 이 창을 쓰는
+ * 쉰 곳 가까이 중 Esc 를 단 곳은 열몇 곳뿐이라 평가 사이클 단계 넘김·연차 정책 삭제·직군 차단 창이
+ * Esc 로 안 닫혔고 초점도 화면 바탕에 남았다. 이제 Esc = 닫기 X = 막 누르기 = onCancel 이고,
+ * 처음 초점은 [취소](없으면 확인)다 — 읽지 않고 Enter 로 넘기지 않게. 창 안의 칸이 autoFocus 로
+ * 이미 초점을 가져갔으면 건드리지 않는다. 약속(promise) 같은 나머지 동작은 호스트가 갖는다.
  * `document.body` 직속 포털로 그린다: 본문 칸(`.content-area`)이 `position: fixed`
  * 라 자기 스태킹 컨텍스트를 만들어, 그 안에서 그리면 막이 왼쪽 메뉴를 못 덮는다.
  *
@@ -26,6 +31,8 @@ import { createPortal } from 'react-dom';
  *   onConfirm, onCancel    막을 눌러도, 닫기 X 를 눌러도 onCancel
  *   closeLabel             닫기 X 의 읽어 주는 이름 (기본 '닫기')
  *   cancelRef, confirmRef  호스트가 초점을 줄 버튼 ref
+ *   closeOnEscape          false 면 Esc 로 닫지 않는다(기본 true) — 이름을 쳐야 지우는 창처럼 실수로 닫히면 안 되는 창.
+ *                          false 여도 Esc 는 이 창에서 멈춘다(밑의 창·메뉴가 대신 닫히지 않게)
  *   extraLabel, onExtra    취소와 확인 사이의 보조 버튼 하나 — 같은 자리에서 다른 길로 가는 창 (pivit-work PW-2576 «재입사로 진행»).
  *                          없으면 그리지 않는다. busy 일 때 함께 잠긴다
  *   extraTestId            보조 버튼의 data-testid
@@ -51,13 +58,46 @@ export default function ConfirmModal({
   closeLabel = '닫기',
   cancelRef,
   confirmRef,
+  closeOnEscape = true,
   zIndex,
   testId = 'confirm-dialog',
   cancelTestId = 'confirm-dialog-cancel',
   confirmTestId = 'confirm-dialog-confirm',
 }) {
+  const overlayRef = useRef(null);
+  // Esc·처음 초점 처리가 그때의 값을 읽는다 — 그리는 중에는 ref 를 만지지 않으므로 효과에서 넣는다.
+  const live = useRef({});
+  useEffect(() => {
+    live.current = { onCancel, busy, closeOnEscape, hideCancel };
+  });
+
+  // 처음 초점 — [취소], 없으면 확인. 칸이 autoFocus 로 가져갔으면 그대로 둔다. 호스트가 뒤에서 다른 곳에 줘도 그것이 이긴다.
+  useEffect(() => {
+    const modal = overlayRef.current?.firstElementChild;
+    if (!modal || modal.contains(document.activeElement)) return;
+    const btns = modal.querySelectorAll('.pw-confirm-actions > button');
+    (live.current.hideCancel ? btns[btns.length - 1] : btns[0])?.focus();
+  }, []);
+
+  // Esc — 문서의 잡기 단계에서 받아 이 창에서 멈춘다. 창 밑의 화면·호스트가 단 Esc 처리는 받지 않는다
+  // (둘 다 닫히거나 onCancel 이 두 번 불리지 않게). 확인 창이 겹쳐 있으면 맨 위(나중에 붙은) 것만 닫는다.
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return;
+      const all = document.querySelectorAll('.pw-confirm-overlay');
+      if (all[all.length - 1] !== overlayRef.current) return;
+      e.stopImmediatePropagation();
+      e.preventDefault();
+      const { onCancel: cancel, busy: isBusy, closeOnEscape: canClose } = live.current;
+      if (!isBusy && canClose) cancel?.();
+    };
+    document.addEventListener('keydown', onKey, true);
+    return () => document.removeEventListener('keydown', onKey, true);
+  }, []);
+
   return createPortal(
     <div
+      ref={overlayRef}
       className="pw-confirm-overlay"
       style={zIndex != null ? { zIndex } : undefined}
       onClick={onCancel}

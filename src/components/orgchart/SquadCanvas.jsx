@@ -2076,6 +2076,7 @@ export default function SquadCanvas({
             cancelLabel={L('squad.del.cancel')}
             onConfirm={() => { if (nameOk) { onDeleteSquad?.(sq.id, { effectiveDate: delAsk.effectiveDate }); setDelAsk(null); setMoreMenu(null); } }}
             onCancel={() => setDelAsk(null)}
+            closeOnEscape={false}
             zIndex={SQUAD_MODAL_Z}
             testId="squad-delete-modal"
             cancelTestId="squad-delete-cancel"

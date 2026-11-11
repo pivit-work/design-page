@@ -4264,17 +4264,7 @@ export default function EvalCycleWizard({
     pendingAsk?.resolve(ok);
     setPendingAsk(null);
   };
-  // 공용 확인 창은 Esc 를 호스트에 맡긴다 — 브라우저 확인 창처럼 Esc 는 «취소»다.
-  useEffect(() => {
-    if (!pendingAsk) return undefined;
-    const onKey = (e) => {
-      if (e.key !== 'Escape') return;
-      pendingAsk.resolve(false);
-      setPendingAsk(null);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [pendingAsk]);
+  // Esc 는 공용 확인 창이 onCancel(= answerAsk(false))로 받는다 (pivit-work PW-2705).
 
   /**
    * [PW-529] 당사자 해제 확인 — 소비 측이 넘긴 확인 모달을 쓰고, 없으면 공용 확인 창.

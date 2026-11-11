@@ -26,8 +26,8 @@ export function isTopLayer(token) {
 }
 
 /**
- * 공용 확인 창(`ConfirmModal`)이 떠 있나. 확인 창은 Esc·초점을 호스트가 갖는 «그림만 그리는»
- * 부품이라 이 목록에 들지 않는다 — 떠 있으면 그 밑의 층은 Esc 를 받지 않는다.
+ * 공용 확인 창(`ConfirmModal`)이 떠 있나. 확인 창은 이 목록에 들지 않고 Esc 를 문서의 잡기 단계에서
+ * 스스로 받는다(pivit-work PW-2705) — 떠 있으면 그 밑의 층은 Esc 를 받지 않는다.
  */
 export function confirmOpen() {
   return typeof document !== 'undefined' && !!document.querySelector('.pw-confirm-overlay');

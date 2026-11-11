@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
 
 /**
@@ -13,15 +12,7 @@ import ConfirmModal from '../shared/ConfirmModal.jsx';
  * labels: { title, descLine1, descLine2?, cancel, confirm, close? }
  */
 export default function MeetingEndConfirmModal({ onCancel, onConfirm, labels }) {
-  // 공용 확인 창은 Esc 를 호스트에 맡긴다 — 종전처럼 Esc 는 취소다.
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === 'Escape') onCancel?.();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onCancel]);
-
+  // Esc 는 공용 확인 창이 onCancel 로 받는다 (pivit-work PW-2705).
   return (
     <ConfirmModal
       title={labels.title}
