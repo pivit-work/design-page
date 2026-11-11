@@ -307,6 +307,7 @@ export default function CalendarWeekView({
                         style={{ color: palette.titleText }}
                       >
                         {ev.title}
+                        {ev.roomName ? ` · ${ev.roomName}` : ''}
                       </span>
                     </div>
                   );

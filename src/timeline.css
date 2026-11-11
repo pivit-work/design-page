@@ -2852,6 +2852,55 @@
   color: var(--text-tertiary);
 }
 
+/* pivit-work PW-2637 일정 상세 창 · 호버 카드의 회의실 줄 — 시각 줄과 같은 글씨, 없어진 방(«회의실 정보 없음»)만 흐린 글자(정책서 §7.6 B). */
+.tl-meeting-modal-room.is-gone {
+  color: var(--text-disabled);
+}
+/* pivit-work PW-2637 «반복 · 종료 · 맞춤» 고르기(RecurrencePicker) — 디자이너 원본 없음(design-review).
+   줄은 같은 창 칸들처럼 가로로 세우고 줄 사이 · 칸 사이는 공용 간격(sm 6 · md 8)만 쓴다.
+   맞춤 패널 바탕 · 테두리는 «일시 · 회의실» 팝업의 칸 줄 바탕(--bg-secondary · --border-secondary)과 같다. */
+.tl-recurrence {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+.tl-recurrence-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+.tl-recurrence-row.tl-recurrence-end {
+  justify-content: flex-end;
+}
+.tl-recurrence-label {
+  font-size: 14px;
+  line-height: 20px;
+}
+.tl-recurrence-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+.tl-emp-input.tl-recurrence-number {
+  width: 72px;
+}
+.tl-emp-input.tl-recurrence-date {
+  width: 160px;
+}
+.tl-recurrence-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-secondary);
+}
+.tl-recurrence-detail {
+  display: block;
+}
+
 /* Google Calendar 등록 row — checkbox hidden, 전체 row 가 클릭 영역 */
 .tl-event-gcal-row {
   display: inline-flex;

@@ -389,8 +389,11 @@ export default function TimelineCanvas({
               : ''
           } · ${ev.time}`
         : `${formatEventDate(d)} · ${ev.time}`,
-      // 실데이터 이벤트는 반복 정보가 없으므로 repeat 라벨 미표기.
-      repeatLabel: hasRealPeople ? '' : '매주 일요일, 수요일',
+      // 반복 회차면 «반복 · {반복 이름}{ · 종료}» (pivit-work PW-2637 · 정책서 §7.8 C). 반복이 없는 실데이터는 비운다.
+      repeatLabel: hasRealPeople ? (ev.recurrenceLabel || '') : '매주 일요일, 수요일',
+      // 회의실 «회의실 {목록 한 줄}» · 없어진 방은 흐린 «회의실 정보 없음» (pivit-work PW-2637 · 정책서 §7.6 B)
+      roomLabel: ev.roomDetailLabel || '',
+      roomGone: ev.roomGone === true,
       participants: hasRealPeople ? ev.participants : ['m1', 'm2', 'm3', 'm4', 'm5'],
       organizer: ev.organizer ?? 'm1',
       notification: ev.notification ?? '30분 전',

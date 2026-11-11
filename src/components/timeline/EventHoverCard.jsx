@@ -17,7 +17,8 @@ import useTimelineData from './useTimelineData.js';
  * 칸이 화면 오른쪽 절반이면 왼쪽에, 아니면 오른쪽에 붙고 위아래는 화면 안으로 접는다(일정 창과 같은 규칙).
  *
  * Props:
- *   event        { title, color(hex), timeRangeLabel, participants(멤버 id[]), typeLabel?, minutesLabel? }
+ *   event        { title, color(hex), timeRangeLabel, participants(멤버 id[]), typeLabel?, minutesLabel?,
+ *                  roomHoverLabel?, roomGone?, recurrenceLabel? } — 회의실 이름 · 반복 줄(pivit-work PW-2637)
  *                minutesLabel 이 있을 때만 «회의록 있음» 딱지를 그린다
  *   anchorRect   일정 칸의 getBoundingClientRect()
  *   attendeesLabel  참석자 줄 머리 문구 (예: 「참석자 3명」)
@@ -81,6 +82,13 @@ export default function EventHoverCard({ event, anchorRect, attendeesLabel }) {
           </div>
           <div className="tl-meeting-modal-time">
             <p>{event.timeRangeLabel}</p>
+            {/* 회의실(이름만) · 반복 — 시각 줄 아래 (pivit-work PW-2637 · 정책서 §7.6 B · §7.8 C) */}
+            {event.roomHoverLabel && (
+              <p className={event.roomGone ? 'tl-meeting-modal-room is-gone' : 'tl-meeting-modal-room'} data-testid="calendar-event-hover-room">
+                {event.roomHoverLabel}
+              </p>
+            )}
+            {event.recurrenceLabel && <p data-testid="calendar-event-hover-repeat">{event.recurrenceLabel}</p>}
           </div>
         </div>
 

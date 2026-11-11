@@ -296,6 +296,7 @@ export default function CalendarMonthView({
                           style={{ color: palette.titleText }}
                         >
                           {ev.title}
+                          {ev.roomName ? ` · ${ev.roomName}` : ''}
                         </span>
                       </>
                     )),

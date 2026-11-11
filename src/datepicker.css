@@ -129,6 +129,24 @@
 .dp-datepicker-cell.is-outside {
   color: var(--text-disabled, #b1b6be);
 }
+/* pivit-work PW-2637 반복 회차가 드는 날(isDateMarked) — 숫자 아래 브랜드 점 하나(arch-meeting-room §5-C «회차가 드는 날에 점»). 고른 날은 채움이 대신한다. */
+.dp-datepicker-cell.is-marked {
+  position: relative;
+}
+.dp-datepicker-cell.is-marked::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  width: 4px;
+  height: 4px;
+  border-radius: 9999px;
+  background: var(--bg-brand-solid);
+  transform: translateX(-50%);
+}
+.dp-datepicker-cell.is-selected.is-marked::after {
+  display: none;
+}
 /* PW-2595 흐리게 그리되 누를 수 있는 날(isDateMuted) — is-outside 와 같은 흐린 톤 · hover 는 그대로(누를 수 있다). */
 .dp-datepicker-cell.is-muted {
   color: var(--text-disabled, #b1b6be);

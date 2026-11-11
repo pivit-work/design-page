@@ -122,6 +122,7 @@ export default function DayEventsPopover({
                   style={{ color: palette.titleText }}
                 >
                   {ev.title}
+                  {ev.roomName ? ` · ${ev.roomName}` : ''}
                 </span>
               </div>
             );

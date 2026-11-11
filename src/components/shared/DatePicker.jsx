@@ -45,6 +45,8 @@ import { ChevronDownGlyph, ChevronLeftGlyph, ChevronRightGlyph } from './lineIco
  *   isDateMuted  (Date) => boolean — 흐린 글자로 그리되 **누를 수 있는** 날. 다른 달 칸과 같은 흐린 톤이고 hover · 누르기는
  *                그대로다. 지난 일정을 받는 창이 오늘보다 앞 날을 이렇게 둔다(arch-meeting-room §5-C ➕ 2026-11-08 · PW-2595).
  *                고를 수 없는 날(범위 밖 · isDateDisabled)에는 쓰지 않는다 — 그쪽이 먼저다
+ *   isDateMarked (Date) => boolean — 숫자 아래 점을 찍는 날. 반복을 고르면 회차가 드는 날에 찍는다(arch-meeting-room §5-C · pivit-work PW-2637).
+ *                누르기 · 흐림과는 따로다
  *   dismissible  boolean(기본 true) — false 면 Esc · 바깥 누르기로 닫는 층을 올리지 않는다. 창 안에 늘 펼쳐 둔 inline 달력이
  *                쓴다 — 닫을 것이 없는 달력이 Esc 를 먼저 가로채면 창이 Esc 로 닫히지 않는다(PW-2595). 그때 onClose 는 안 넘겨도 된다
  *   startView    'day'(기본) | 'year' — 'year' 면 선택일이 없을 때 연도 보기로 열고,
@@ -102,6 +104,7 @@ export default function DatePicker({
   selectedDates,
   inline = false,
   isDateMuted,
+  isDateMarked,
   dismissible = true,
   ...rest
 }) {
@@ -250,11 +253,12 @@ export default function DatePicker({
   }[view];
 
   // 칸 상태는 세 보기가 같다 — 선택 · 오늘(선택과 겹치면 선택) · 고를 수 없음.
-  const cellClass = ({ selected, isToday, disabled, outside, muted }) =>
+  const cellClass = ({ selected, isToday, disabled, outside, muted, marked }) =>
     [
       'dp-datepicker-cell',
       outside ? 'is-outside' : '',
       muted ? 'is-muted' : '',
+      marked ? 'is-marked' : '',
       selected ? 'is-selected' : '',
       !selected && isToday ? 'is-today' : '',
       disabled ? 'is-disabled' : '',
@@ -375,13 +379,15 @@ export default function DatePicker({
               const disabled = outOfRange || blocked;
               // PW-2595 — 흐리게 그리되 누를 수 있는 날(지난 날을 받는 창의 앞 날). 막힌 칸 · 다른 달 칸은 이미 흐리다.
               const muted = !disabled && !c.outside && !!isDateMuted && !!isDateMuted(day);
+              // PW-2637 — 반복 회차가 드는 날에 점(다른 달 칸 제외).
+              const marked = !c.outside && !!isDateMarked && !!isDateMarked(day);
               // 까닭은 막힌 칸 전부에 — 범위 밖(지난 날 · 소멸일 뒤)도 부르는 쪽이 까닭을 줄 수 있다. disabledTitle 을 안 넘기면 전과 같다.
               const title = disabled && !c.outside && disabledTitle ? disabledTitle(day) || undefined : undefined;
               return (
                 <button
                   key={i}
                   type="button"
-                  className={cellClass({ selected, isToday: sameDay(c, today), disabled, outside: c.outside, muted })}
+                  className={cellClass({ selected, isToday: sameDay(c, today), disabled, outside: c.outside, muted, marked })}
                   disabled={disabled}
                   aria-disabled={disabled || undefined}
                   aria-pressed={selected}

@@ -183,7 +183,13 @@ export default function MeetingModal({
             </div>
             <div className="tl-meeting-modal-time">
               <p>{meeting.timeLabel}</p>
-              {meeting.repeatLabel && <p>{meeting.repeatLabel}</p>}
+              {/* 회의실 줄은 시각 줄 바로 아래, 반복 줄은 그 아래 (pivit-work PW-2637 · 정책서 §7.6 B · §7.8 C) */}
+              {meeting.roomLabel && (
+                <p className={meeting.roomGone ? 'tl-meeting-modal-room is-gone' : 'tl-meeting-modal-room'} data-testid="meeting-modal-room">
+                  {meeting.roomLabel}
+                </p>
+              )}
+              {meeting.repeatLabel && <p data-testid="meeting-modal-repeat">{meeting.repeatLabel}</p>}
             </div>
           </div>
 
