@@ -18292,3 +18292,10 @@ button.evmh-phase:focus-visible {
 }
 .evc-time-iconwrap:has(> .evc-time-input:disabled) > .evc-field-lead-icon { opacity: 0.5; }
 /* PW-2683-W3-END */
+
+/* PW-2683 (11-11 dev 되돌림) — 2단계 새 항목 줄 첫 칸(분류 이름)이 100px 라 «성과 (What)»이 «성과 (What» 로
+   잘렸다. 기본 이름은 한국어 두 글자로 줄였고, 사람이 지은 이름(한글 8자 안팎)도 다 보이게 160px 로 넓힌다.
+   만들기 창 2단계에만 건다 — 칸 순서(분류 · 질문 · 유형 · 추가)는 그대로. */
+.evc-wiz-panel.is-tpl-form .evc-tpl-additem {
+  grid-template-columns: 160px 1fr 96px auto;
+}

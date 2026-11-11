@@ -12,7 +12,7 @@ import { FieldVisibility } from './evalFieldMeta.jsx';
 import EvalHintTip from './EvalHintTip.jsx';
 import Button from '../shared/Button.jsx';
 import EvalNoteBlock, { EvalMarkdownLite } from './EvalNoteBlock.jsx';
-import { isNoteItem, categoryKind, storedCategoryName, answerScoreText, checkedAnswerText } from './evalTemplateItemModel.js';
+import { isNoteItem, categoryKind, storedCategoryName, sectionDisplayName, answerScoreText, checkedAnswerText } from './evalTemplateItemModel.js';
 import { AlertIcon, LockIcon, SparkleIcon, EyeIcon } from './evalIcons.jsx';
 import { fieldsShape, reseedKeepingEdits } from './reseedAnswers.js';
 import EvalLeaderEvidenceSignals from './EvalLeaderEvidenceSignals.jsx';
@@ -52,9 +52,9 @@ const DEFAULT_LABELS = {
   // PW-2440 — 이 사이클의 위원이 맡은 피평가자의 하향 리뷰를 읽기 전용으로 열 때(리더 정책 §2 v2.38).
   readOnlyBadge: '조회 전용',
   readOnlyNotSubmitted: '하향 리뷰가 아직 제출되지 않았습니다.',
-  workTitle: '업적 (What)',
+  workTitle: '업적',
   workPlaceholder: '업적에 대한 평가를 작성하세요.',
-  competencyTitle: '역량 (How)',
+  competencyTitle: '역량',
   competencyPlaceholder: '역량에 대한 평가를 작성하세요.',
   scoreLabel: '평가 점수',
   rationalePlaceholder: '점수 근거를 서술하세요.',
@@ -391,7 +391,7 @@ function buildFields(template, L) {
             templateItemId: it.id,
             category: it.category,
             type: 'note',
-            section: it.section || it.category || '평가 항목',
+            section: sectionDisplayName(it.section || it.category) || '평가 항목',
             text: it.label ?? null,
             description: it.description ?? null,
           };
@@ -412,7 +412,7 @@ function buildFields(template, L) {
           type,
           label: it.label,
           placeholder: it.label,
-          section: it.section || it.category || '평가 항목',
+          section: sectionDisplayName(it.section || it.category) || '평가 항목',
           requiresRationale: !!it.requiresRationale,
           score: type === 'rating',
           description: it.description ?? null,

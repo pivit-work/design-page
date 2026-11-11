@@ -183,11 +183,32 @@ export const DEFAULT_DISCLOSURE = {
   },
 };
 
+/**
+ * PW-2683 — 기본 평가지의 분류 이름. 예전에는 «성과 (What)»처럼 영어를 붙여 저장했는데, 앱에서 영어를
+ * 걷어낸 뒤(11-07)에도 그대로 나오고 2단계 새 항목 칸에서는 «성과 (What» 처럼 잘렸다(11-11 dev).
+ * 새로 만드는 평가지는 한국어 이름만 저장하고, 이미 옛 이름으로 저장된 평가지는 화면에 그릴 때 옮긴다.
+ * 업적·역량·성장 가르기 표는 옛 이름·새 이름을 둘 다 갖는다(서버 `rules/eval-item-category.ts` 와 같다).
+ */
+export const SECTION_WORK = '성과';
+export const SECTION_COMPETENCY = '역량';
+export const SECTION_GROWTH = '성장';
+const LEGACY_SECTION_NAME = {
+  '성과 (What)': SECTION_WORK,
+  '역량 (How)': SECTION_COMPETENCY,
+  '성장 (Growth)': SECTION_GROWTH,
+};
+/** 저장된 분류 이름을 화면에 그릴 이름으로 — 옛 영어 섞인 기본 이름만 한국어로 옮기고 나머지는 그대로. */
+export function sectionDisplayName(section) {
+  if (section == null) return section;
+  const raw = String(section).trim();
+  return LEGACY_SECTION_NAME[raw] ?? section;
+}
+
 // 섹션별 색(시안 SECTION_COLORS): 성과=blue, 역량=purple, 성장=green, 최종등급=amber.
 export const SECTION_COLORS = {
-  '성과 (What)': 'var(--utility-blue-600)',
-  '역량 (How)': 'var(--utility-purple-600)',
-  '성장 (Growth)': 'var(--utility-success-600)',
+  [SECTION_WORK]: 'var(--utility-blue-600)',
+  [SECTION_COMPETENCY]: 'var(--utility-purple-600)',
+  [SECTION_GROWTH]: 'var(--utility-success-600)',
   '최종 등급 결정': 'var(--utility-warning-600)',
 };
 /**
@@ -202,7 +223,7 @@ export const CATEGORY_COLORS = {
 };
 /** 구분 칩 색. `category`(저장 값)가 표에 있으면 그것, 없으면 보이는 문구(시안 문구)로 찾는다. */
 export const sectionColor = (s, category) =>
-  CATEGORY_COLORS[category] || SECTION_COLORS[s] || 'var(--text-tertiary)';
+  CATEGORY_COLORS[category] || SECTION_COLORS[sectionDisplayName(s)] || 'var(--text-tertiary)';
 
 /**
  * 저장된 구분이 업적·역량·성장 중 어느 쪽인가 — 모르면 null (PW-1464).
@@ -214,36 +235,38 @@ export const sectionColor = (s, category) =>
  * eval-item-category.ts` 이고, 문장 표는 위 `SECTION_COLORS` 의 열쇠와 같다.
  */
 const SECTION_KIND = {
-  '성과 (What)': 'work_achievement',
-  '역량 (How)': 'competency',
-  '성장 (Growth)': 'growth',
+  [SECTION_WORK]: 'work_achievement',
+  [SECTION_COMPETENCY]: 'competency',
+  [SECTION_GROWTH]: 'growth',
 };
 export function categoryKind(category) {
   const raw = String(category ?? '').trim();
   if (!raw) return null;
   const lower = raw.toLowerCase();
   if (lower === 'work_achievement' || lower === 'competency' || lower === 'growth') return lower;
-  return SECTION_KIND[raw] ?? null;
+  return SECTION_KIND[sectionDisplayName(raw)] ?? null;
 }
 
 /**
- * [PW-1995] 답에 저장된 분류를 그대로 보여 줄 이름 — 사람이 지은 이름(「성과 (What)」 등)이면 그 이름,
+ * [PW-1995] 답에 저장된 분류를 그대로 보여 줄 이름 — 사람이 지은 이름(「성과」 등)이면 그 이름(옛 «성과 (What)»은 «성과»로),
  * 내부 값(`work_achievement` 같은 영문 소문자·`snake_case`)이거나 비었으면 `null`.
  * 근거 칸·리포트가 «업적»·«역량» 같은 고정 이름은 `null` 일 때만 붙인다.
  */
 const CODE_SHAPED = /^[a-z][a-z0-9]*(_[a-z0-9]+)*$/;
 export function storedCategoryName(category) {
   const raw = String(category ?? '').trim();
-  return raw && !CODE_SHAPED.test(raw) ? raw : null;
+  return raw && !CODE_SHAPED.test(raw) ? sectionDisplayName(raw) : null;
 }
 
 /** 섹션별로 항목을 묶는다 — 미리보기·평가지 렌더가 같은 순서로 그리게 한다. */
 export function groupBySection(items) {
   const groups = [];
   (items || []).forEach((q) => {
-    let g = groups.find((s) => s.sec === q.section);
+    // PW-2683 — 옛 이름(«성과 (What)»)과 새 이름(«성과»)이 섞여도 한 묶음으로, 이름은 한국어로.
+    const sec = sectionDisplayName(q.section);
+    let g = groups.find((s) => s.sec === sec);
     if (!g) {
-      g = { sec: q.section, items: [] };
+      g = { sec, items: [] };
       groups.push(g);
     }
     g.items.push(q);

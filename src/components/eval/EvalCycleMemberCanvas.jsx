@@ -11,7 +11,7 @@ import Chip from '../shared/Chip.jsx';
 import { FieldVisibility, FieldAuthorNote } from './evalFieldMeta.jsx';
 import EvalHintTip from './EvalHintTip.jsx';
 import EvalNoteBlock, { EvalMarkdownLite } from './EvalNoteBlock.jsx';
-import { isNoteItem, categoryKind } from './evalTemplateItemModel.js';
+import { isNoteItem, categoryKind, sectionDisplayName } from './evalTemplateItemModel.js';
 import { resolveUiLocale } from '../shared/uiLocale.js';
 import {
   TrendIcon,
@@ -106,9 +106,9 @@ const DEFAULT_LABELS = {
   cancel: '취소',
   // TC-140 달성률 미입력 경고(제출은 가능)
   actKrUnfilledWarn: '달성률 미입력 KR {{count}}개 — 제출 전 입력을 권장합니다(제출은 가능).',
-  workTitle: '업적 (What)',
+  workTitle: '업적',
   workPlaceholder: '이번 기간의 핵심 성과와 결과를 기록하세요.',
-  competencyTitle: '역량 (How)',
+  competencyTitle: '역량',
   competencyPlaceholder: '업무 수행 방식·협업·리더십 등 역량을 기록하세요.',
   scoreLabel: '자기 평가 점수',
   rationalePlaceholder: '점수 근거를 서술하세요.',
@@ -218,7 +218,7 @@ function buildFields(template, L) {
             templateItemId: it.id,
             category: it.category,
             type: 'note',
-            section: it.section || it.category || '평가 항목',
+            section: sectionDisplayName(it.section || it.category) || '평가 항목',
             text: it.label ?? null,
             description: it.description ?? null,
           };
@@ -240,7 +240,7 @@ function buildFields(template, L) {
           type,
           label: it.label,
           placeholder: it.label,
-          section: it.section || it.category || '평가 항목',
+          section: sectionDisplayName(it.section || it.category) || '평가 항목',
           requiresRationale: !!it.requiresRationale,
           score: type === 'rating',
           description: it.description ?? null,

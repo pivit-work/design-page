@@ -96,6 +96,8 @@ import {
   questionItems,
   scaleMaxOf,
   sectionColor,
+  sectionDisplayName,
+  SECTION_WORK,
 } from './evalTemplateItemModel.js';
 import Switch from '../shared/Switch.jsx';
 import Skeleton from '../shared/Skeleton.jsx';
@@ -1590,7 +1592,8 @@ function StepBar({
  * [PW-602 ④] 「설명」은 **다섯 번째 응답 유형이 아니다.** 다른 축(`itemKind`)이고,
  * 같은 셀렉트에 두는 이유는 설계자가 «항목을 추가할 때» 한자리에서 고르기 때문뿐이다.
  */
-const ADD_ROW_INITIAL_SECTION = '성과 (What)';
+// PW-2683 — 새 항목 칸의 처음 분류는 한국어 이름만(예전 «성과 (What)»은 칸에서 «성과 (What» 처럼 잘렸다).
+const ADD_ROW_INITIAL_SECTION = SECTION_WORK;
 /** [PW-1831 J-13] 최종 등급 섹션 이름 — 프리셋(`evalTemplatePresets.js`)의 섹션 문자열과 같다. */
 const FINAL_GRADE_SECTION = '최종 등급 결정';
 const ADD_ROW_INITIAL_TYPE = 'textarea';
@@ -1708,9 +1711,11 @@ function TemplatePreviewModal({ questions, grades, focus, onClose, labels: L }) 
 function TemplateBriefPreview({ tpl, labels: L }) {
   const groups = [];
   (tpl.questions || []).forEach((q) => {
-    let g = groups.find((x) => x.sec === q.section);
+    // PW-2683 — 옛 이름(«성과 (What)»)은 한국어로 묶어 그린다.
+    const sec = sectionDisplayName(q.section);
+    let g = groups.find((x) => x.sec === sec);
     if (!g) {
-      g = { sec: q.section, items: [] };
+      g = { sec, items: [] };
       groups.push(g);
     }
     g.items.push(q);
@@ -8019,6 +8024,15 @@ export default function EvalCycleWizard({
    * [PW-441] 3단계·6단계에서 2단계로 되돌려 보낼 때. **단계만 옮기고 유형을 안 맞추면
    * 도착해서 또 찾아야 한다** — 편집 대상 유형까지 함께 맞춘다 (policy §5.2.4).
    */
+  /* PW-2683 — 단계를 옮기면 본문을 맨 위로 올린다. 제목·단계 줄은 서 있고 본문(.evc-wiz-body)만
+     스크롤하므로, 그대로 두면 2단계 끝에서 [다음]을 눌렀을 때 3단계가 중간부터 보였다(11-11 dev).
+     그리기 직후(useLayoutEffect)에 올려 중간 화면이 깜빡이지 않게 한다. 6단계 → 4단계 하향 평가자
+     섹션 이동은 이 뒤(setTimeout)에 그 섹션까지 내리므로 그대로 동작한다. */
+  const wizBodyRef = useRef(null);
+  useLayoutEffect(() => {
+    if (wizBodyRef.current) wizBodyRef.current.scrollTop = 0;
+  }, [step]);
+
   /** [PW-1594] 6단계 → 4단계 ④ 하향 평가자 섹션. 단계를 옮긴 뒤 그 섹션까지 내려 준다. */
   const leaderSectionRef = useRef(null);
   const goToLeaderSection = () => {
@@ -8811,7 +8825,7 @@ export default function EvalCycleWizard({
           />
         )}
 
-        <div className="evc-wiz-body">
+        <div className="evc-wiz-body" ref={wizBodyRef} data-testid="evc-wiz-body">
           {step === 0 && (
             <div className="evc-wiz-panel is-form">
               {/* TC-028 저장된 설정 프리셋 불러오기 — 관리 모드에서는 숨긴다
