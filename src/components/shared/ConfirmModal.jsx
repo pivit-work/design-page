@@ -14,7 +14,7 @@ import { createPortal } from 'react-dom';
  * Esc 와 처음 초점은 창이 갖는다 (pivit-work PW-2705). 전에는 «호스트가 갖는다»였는데, 이 창을 쓰는
  * 쉰 곳 가까이 중 Esc 를 단 곳은 열몇 곳뿐이라 평가 사이클 단계 넘김·연차 정책 삭제·직군 차단 창이
  * Esc 로 안 닫혔고 초점도 화면 바탕에 남았다. 이제 Esc = 닫기 X = 막 누르기 = onCancel 이고,
- * 처음 초점은 [취소](없으면 확인)다 — 읽지 않고 Enter 로 넘기지 않게. 창 안의 칸이 autoFocus 로
+ * 처음 초점은 [취소](없으면 확인)다 — 읽지 않고 Enter 로 넘기지 않게. Tab 은 창 안에서 돈다. 창 안의 칸이 autoFocus 로
  * 이미 초점을 가져갔으면 건드리지 않는다. 약속(promise) 같은 나머지 동작은 호스트가 갖는다.
  * `document.body` 직속 포털로 그린다: 본문 칸(`.content-area`)이 `position: fixed`
  * 라 자기 스태킹 컨텍스트를 만들어, 그 안에서 그리면 막이 왼쪽 메뉴를 못 덮는다.
@@ -86,9 +86,22 @@ export default function ConfirmModal({
   // (둘 다 닫히거나 onCancel 이 두 번 불리지 않게). 확인 창이 겹쳐 있으면 맨 위(나중에 붙은) 것만 닫는다.
   useEffect(() => {
     const onKey = (e) => {
-      if (e.key !== 'Escape') return;
+      if (e.key !== 'Escape' && e.key !== 'Tab') return;
       const all = document.querySelectorAll('.pw-confirm-overlay');
       if (all[all.length - 1] !== overlayRef.current) return;
+      if (e.key === 'Tab') {
+        // Tab 은 창 안에서 돈다 — 창 밖(막 밑의 화면)으로 초점이 나가지 않게 (aria-modal).
+        const items = [...overlayRef.current.querySelectorAll('button, input, textarea, select, a[href], [tabindex]:not([tabindex="-1"])')]
+          .filter((el) => !el.disabled);
+        if (items.length === 0) return;
+        const first = items[0];
+        const last = items[items.length - 1];
+        const at = document.activeElement;
+        const inside = overlayRef.current.contains(at);
+        if (e.shiftKey && (at === first || !inside)) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && (at === last || !inside)) { e.preventDefault(); first.focus(); }
+        return;
+      }
       e.stopImmediatePropagation();
       e.preventDefault();
       const { onCancel: cancel, busy: isBusy, closeOnEscape: canClose } = live.current;
