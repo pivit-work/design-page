@@ -12306,6 +12306,11 @@ button.evm-ai-source {
   height: auto;
   max-height: calc(100vh - 48px);
 }
+/* 본문은 승인 창(evc-shell)과 같게 — 아래 여백 24 로 글자 수가 버튼 줄 선에 붙지 않고, 길면 가운데만 스크롤 */
+.tl-group-modal.evc-fit-shell .tl-group-modal-content {
+  overflow-y: auto;
+  padding-bottom: var(--spacing-3xl);
+}
 .tl-group-modal.evc-shell.is-wide {
   width: 640px;
 }
