@@ -31,6 +31,8 @@ import { createPortal } from 'react-dom';
  *   onConfirm, onCancel    막을 눌러도, 닫기 X 를 눌러도 onCancel
  *   closeLabel             닫기 X 의 읽어 주는 이름 (기본 '닫기')
  *   cancelRef, confirmRef  호스트가 초점을 줄 버튼 ref
+ *   hideClose              닫기 X 를 그리지 않는다 — 닫을 수 없는 안내(새 버전 안내처럼 onCancel 이 아무것도 안 하는 창).
+ *                          눌러도 아무 일이 없는 X 를 두지 않는다 (pivit-work PW-2705)
  *   closeOnEscape          false 면 Esc 로 닫지 않는다(기본 true) — 이름을 쳐야 지우는 창처럼 실수로 닫히면 안 되는 창.
  *                          false 여도 Esc 는 이 창에서 멈춘다(밑의 창·메뉴가 대신 닫히지 않게)
  *   extraLabel, onExtra    취소와 확인 사이의 보조 버튼 하나 — 같은 자리에서 다른 길로 가는 창 (pivit-work PW-2576 «재입사로 진행»).
@@ -59,6 +61,7 @@ export default function ConfirmModal({
   cancelRef,
   confirmRef,
   closeOnEscape = true,
+  hideClose = false,
   zIndex,
   testId = 'confirm-dialog',
   cancelTestId = 'confirm-dialog-cancel',
@@ -111,16 +114,18 @@ export default function ConfirmModal({
         data-testid={testId}
         onClick={(e) => e.stopPropagation()}
       >
-        <button
-          type="button"
-          className="tl-group-modal-close"
-          aria-label={closeLabel}
-          data-testid={`${testId}-close`}
-          onClick={onCancel}
-          disabled={busy}
-        >
-          <CloseGlyph size={20} />
-        </button>
+        {!hideClose && (
+          <button
+            type="button"
+            className="tl-group-modal-close"
+            aria-label={closeLabel}
+            data-testid={`${testId}-close`}
+            onClick={onCancel}
+            disabled={busy}
+          >
+            <CloseGlyph size={20} />
+          </button>
+        )}
         <div className="pw-confirm-header">
           <h3 className="pw-confirm-title">{title}</h3>
           {body !== undefined && body !== null && (
