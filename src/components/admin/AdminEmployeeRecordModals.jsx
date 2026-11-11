@@ -2103,8 +2103,9 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
         <div className="admin-emp-sal-totals" data-testid="comp-totals">
           {totals.map((t) => (
             <div key={t.currency} className="admin-emp-sal-total">
-              <span>{L.salaryHistTotal || '합계'} · {t.currency}</span>
-              <span className="admin-emp-sal-total-amount">{fmtAmount(t.sum)}</span>
+              {/* 원화 하나라 통화 이름을 붙이지 않고 줄과 같은 «₩» 표기로 적는다(pivit-work PW-2624 2회차). */}
+              <span>{L.salaryHistTotal || '합계'}</span>
+              <span className="admin-emp-sal-total-amount">{fmtSalaryWithCurrency(t.sum, t.currency)}</span>
             </div>
           ))}
         </div>

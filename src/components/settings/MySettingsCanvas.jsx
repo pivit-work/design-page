@@ -1503,7 +1503,12 @@ function CompensationTab({ compensation, isAdmin, labels }) {
         <span className="admin-notif-banner-icon" aria-hidden="true"><LockIcon size={16} /></span>
         <p className="admin-notif-banner-text">{L.banner}</p>
       </div>
-      {!hasAny ? (
+      {comp.error ? (
+        /* 못 읽었을 때 — «등록된 보상 정보가 없습니다»로 읽히지 않게 따로 알린다(복리후생 카드와 같은 모양 · pivit-work PW-2624). */
+        <Card testId="compensation-error-card">
+          <div className="msc-empty-state" data-testid="compensation-error">{L.loadError || '보상 정보를 불러오지 못했습니다.'}</div>
+        </Card>
+      ) : !hasAny ? (
         <Card testId="compensation-empty-card">
           <div className="msc-empty-state" data-testid="compensation-empty">{L.empty}</div>
         </Card>
@@ -1529,11 +1534,7 @@ function CompensationTab({ compensation, isAdmin, labels }) {
                   <div className="msc-pair-label">{L.effectiveDate}</div>
                   <div className="msc-pair-value">{comp.current.effectiveDate || '-'}</div>
                 </div>
-                {/* 통화는 가리지 않는다 — 기획서 §4-E.1 「통화 항상 표시」 (PW-1477) */}
-                <div>
-                  <div className="msc-pair-label">{L.currency}</div>
-                  <div className="msc-pair-value" data-testid="compensation-current-currency">{comp.current.currency || 'KRW'}</div>
-                </div>
+                {/* «통화» 칸은 없앴다 — 보상은 원화 하나라 금액의 «원»으로 충분하다(pivit-work PW-2624 · 커트 11-10). */}
               </div>
             </Card>
           )}
