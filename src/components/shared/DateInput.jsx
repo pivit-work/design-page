@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import DatePicker from './DatePicker.jsx';
 import { resolveUiLocale } from './uiLocale.js';
 import { useFieldControl } from './formField.js';
+import { isIsoDate, normalize } from './dateText.js';
 
 /**
  * DateInput — 브라우저 기본 날짜 칸(`<input type="date">`)을 대신하는 날짜 칸 (PW-793).
@@ -35,14 +36,6 @@ import { useFieldControl } from './formField.js';
  *              알릴 때 쓴다 (PW-1698)
  *   ...rest    aria-label·data-testid·disabled·id·name 등은 칸에 그대로 붙는다
  */
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
-
-function isIsoDate(v) {
-  if (!ISO_DATE.test(v)) return false;
-  const [y, m, d] = v.split('-').map(Number);
-  const probe = new Date(y, m - 1, d);
-  return probe.getFullYear() === y && probe.getMonth() === m - 1 && probe.getDate() === d;
-}
 
 const toDate = (iso) => {
   const [y, m, d] = iso.split('-').map(Number);
@@ -51,12 +44,6 @@ const toDate = (iso) => {
 const toIso = (d) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-/** `20260929` 처럼 줄표 없이 친 것도 받아 준다. */
-function normalize(raw) {
-  const v = String(raw ?? '').trim();
-  if (/^\d{8}$/.test(v)) return `${v.slice(0, 4)}-${v.slice(4, 6)}-${v.slice(6)}`;
-  return v.replace(/[./]/g, '-');
-}
 
 export default function DateInput({
   value,

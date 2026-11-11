@@ -26,6 +26,7 @@ import {
 import { buildExportItems } from './employeeExportItems.js';
 import AdminInviteModal from './AdminInviteModal.jsx';
 import DateInput from '../shared/DateInput.jsx';
+import { isUnreadableDate } from '../shared/dateText.js';
 import FormField from '../shared/FormField.jsx';
 import ToneBadge from '../shared/StatusBadge.jsx';
 import Chip from '../shared/Chip.jsx';
@@ -2440,9 +2441,10 @@ function BulkDeactivateModal({ selectedRows, labels, onClose, onApply }) {
 function HeadMenu({ colId, title, filter, fill: spec, te, selectedIds, searchLabels }) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState('');
+  const [reverted, setReverted] = useState(null); // 날짜로 못 읽어 되돌린 친 글 — 표 칸과 같은 안내
   const triggerRef = useRef(null);
   const panelRef = useRef(null);
-  const close = () => { setOpen(false); setValue(''); };
+  const close = () => { setOpen(false); setValue(''); setReverted(null); };
   // 값 고르기 목록 · 달력은 body 직속 창이라 «바깥»에서 뺀다 — 안 빼면 값을 고르는 순간 이 창이 닫힌다.
   useDismissLayer(close, panelRef, [triggerRef, '.dp-search-select-menu', '.dp-datepicker'], open);
   const count = selectedIds.size;
@@ -2506,13 +2508,22 @@ function HeadMenu({ colId, title, filter, fill: spec, te, selectedIds, searchLab
                       onChange={(ev) => setValue(ev.target.value)}
                     />
                   ) : spec.kind === 'date' ? (
-                    <DateInput
-                      className="dp-input admin-emp-edit-fill-input"
-                      data-testid={`employees-fill-value-${colId}`}
-                      aria-label={title}
-                      value={value}
-                      onChange={setValue}
-                    />
+                    <div>
+                      <DateInput
+                        className="dp-input admin-emp-edit-fill-input"
+                        data-testid={`employees-fill-value-${colId}`}
+                        aria-label={title}
+                        value={value}
+                        onChange={setValue}
+                        onFocus={() => setReverted(null)}
+                        onRevert={setReverted}
+                      />
+                      {reverted !== null && (
+                        <span className="admin-emp-edit-note" role="status" data-testid={`employees-fill-reverted-${colId}`}>
+                          {fill(L.dateReverted, { typed: reverted })}
+                        </span>
+                      )}
+                    </div>
                   ) : (
                     <TextInput
                       className="dp-input admin-emp-edit-fill-input"
@@ -3317,6 +3328,9 @@ function EmployeesListView({
    */
   const te = tableEdit;
   const [editing, setEditing] = useState(null); // { id, colId, start } — 지금 입력이 열린 칸 하나
+  /* 날짜 칸에 날짜로 못 읽는 글을 치고 닫으면 직전 값으로 돌아간다 — 말없이 돌지 않게 그 칸 아래에 알린다(PW-1333 4회차 ·
+     «여러 칸 한 번에 고치기» 창의 dateReverted 와 같다). 그 칸을 다시 열면 지운다. { id, colId, typed } */
+  const [dateNote, setDateNote] = useState(null);
   const editingRef = useRef(null);
   const editColIds = te ? cols.filter((c) => te.columns[c.id]).map((c) => c.id) : [];
   /* 키보드로 고를 칸 (PW-1333 2회차 · «여러 칸 한 번에 고치기» 창 PW-2642 와 같은 손버릇).
@@ -3370,10 +3384,18 @@ function EmployeesListView({
     const spec = te.columns[colId];
     if (!te.onStart(m, spec.key)) return;
     const start = te.value(m, spec.key);
+    if (dateNote && dateNote.id === m.id && dateNote.colId === colId) setDateNote(null);
     setEditing({ id: m.id, colId, start, m });
     if (typed !== undefined && spec.kind !== 'select') te.onChange(m, spec.key, typed);
   }
   const closeKeep = (m, colId) => { setEditing(null); selectCell(m.id, colId); };
+  /* Esc 가 아닌 길(Enter · Tab · ↑↓ · ⌘Z · 칸 밖 누르기)로 닫을 때 부른다. 입력이 blur 없이 사라지는 길이 있어
+     DateInput 의 onRevert 를 기다리지 않고 닫기 직전 칸의 친 글을 읽는다. */
+  function noteUnreadableDate() {
+    if (!editing || te.columns[editing.colId]?.kind !== 'date') return;
+    const typed = editingRef.current?.querySelector('input')?.value ?? '';
+    if (isUnreadableDate(typed)) setDateNote({ id: editing.id, colId: editing.colId, typed: typed.trim() });
+  }
   const revert = (m, colId, start) => {
     const { key } = te.columns[colId];
     if (te.onRevert) te.onRevert(m, key, start);
@@ -3388,6 +3410,7 @@ function EmployeesListView({
     if (isEnterKey(e)) {
       e.preventDefault();
       const below = kind === 'select' ? null : stepFrom(m, colId, 1, 0, false);
+      noteUnreadableDate();
       setEditing(null);
       if (below) selectCell(below.m.id, below.colId);
       else selectCell(m.id, colId);
@@ -3398,9 +3421,13 @@ function EmployeesListView({
       closeKeep(m, colId);
     } else if (e.key === 'Tab') {
       e.preventDefault();
-      const next = editColIds[editColIds.indexOf(colId) + (e.shiftKey ? -1 : 1)];
+      // 줄 끝이면 다음 줄로(고른 칸의 Tab 과 같다 · 잠긴 칸은 건너뛴다). 더 갈 칸이 없으면 그 칸을 고른 채 남긴다 —
+      // 그냥 닫으면 커서가 표 밖(페이지)으로 빠졌다(PW-1333 4회차 로컬 확인).
+      const next = stepFrom(m, colId, 0, e.shiftKey ? -1 : 1, true);
+      noteUnreadableDate();
       setEditing(null);
-      if (next) openCell(m, next);
+      if (next) openCell(next.m, next.colId);
+      else selectCell(m.id, colId);
     }
   }
   /* 글자 · 날짜 칸을 고치는 중 ↑↓ 는 칸을 옮기고(날짜 칸이 ↓ 로 달력을 펴기 전에 받는다 · Alt+↓ 는 달력),
@@ -3410,6 +3437,7 @@ function EmployeesListView({
     if (isUndoKey(e)) {
       e.preventDefault();
       e.stopPropagation();
+      noteUnreadableDate();
       setEditing(null);
       te.onUndo?.();
       selectCell(m.id, colId);
@@ -3417,6 +3445,7 @@ function EmployeesListView({
       e.preventDefault();
       e.stopPropagation();
       const next = stepFrom(m, colId, e.key === 'ArrowDown' ? 1 : -1, 0, false);
+      noteUnreadableDate();
       setEditing(null);
       selectCell(next ? next.m.id : m.id, next ? next.colId : colId);
     }
@@ -3457,7 +3486,7 @@ function EmployeesListView({
   /* 입력 밖을 누르면 닫는다 — 날짜 칸은 달력이 body 직속 창이라 입력의 blur 로는 닫을 수 없다(달력을 누르는 순간 닫힌다).
      Esc 는 그 칸 입력을 처음 값으로 되돌리고 닫는다(목록 · 달력이 위에 열려 있으면 그쪽이 먼저 닫힌다). */
   useDismissLayer(
-    () => setEditing(null),
+    () => { noteUnreadableDate(); setEditing(null); },
     editingRef,
     ['.dp-datepicker', '.dp-search-select-menu'],
     !!editing,
@@ -3601,6 +3630,11 @@ function EmployeesListView({
         {body}
         {err && (
           <span className="admin-emp-edit-error" role="alert" data-testid={`employees-cell-error-${colId}-${m.id}`}>{err}</span>
+        )}
+        {!isEditing && dateNote && dateNote.id === m.id && dateNote.colId === colId && (
+          <span className="admin-emp-edit-note" role="status" data-testid={`employees-cell-reverted-${colId}-${m.id}`}>
+            {fill(te.labels.dateReverted, { typed: dateNote.typed })}
+          </span>
         )}
       </div>
     );
