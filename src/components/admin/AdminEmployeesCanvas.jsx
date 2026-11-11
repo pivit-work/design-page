@@ -228,7 +228,7 @@ const DEFAULT_LABELS = {
     leaveSkipSuffix: '{list}은(는) 건너뜁니다',
     leaveApply: '휴직으로 바꾸기',
     // 「상태 일괄 변경 → 재직 · 수습」 사유 창 (pivit-work PW-1333)
-    statusReasonTitle: '{count}명의 재직상태를 {status}으로 바꿉니다',
+    statusReasonTitle: '{count}명의 재직상태를 {status}(으)로 바꿉니다',
     statusReasonNote: '그중 재직 ↔ 수습 {count}명은 개인정보 변경 이력에 남아요',
     statusReasonLabel: '변경 사유',
     statusReasonApply: '바꾸기',
