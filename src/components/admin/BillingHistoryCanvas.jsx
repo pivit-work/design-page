@@ -392,7 +392,7 @@ export default function BillingHistoryCanvas({
         <Card style={{ padding: 0, overflow: 'hidden' }}>
           {invoices.length === 0 ? (
             <div style={{ padding: 64, textAlign: 'center' }}>
-              <div style={{ marginBottom: 'var(--spacing-lg)', color: 'var(--text-tertiary)' }}><FileTextGlyph size={36} /></div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--spacing-lg)', color: 'var(--text-tertiary)' }}><FileTextGlyph size={36} /></div>
               <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>
                 {labels.emptyTitle}
               </div>

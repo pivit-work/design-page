@@ -232,7 +232,7 @@ export default function BillingMethodsCanvas({
         ) : cards.length === 0 ? (
           /* 빈 상태 */
           <Card style={{ textAlign: 'center', padding: '48px 24px' }}>
-            <div style={{ marginBottom: 'var(--spacing-xl)', color: 'var(--text-tertiary)' }}><CreditCardGlyph size={40} /></div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--spacing-xl)', color: 'var(--text-tertiary)' }}><CreditCardGlyph size={40} /></div>
             <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{labels.emptyTitle}</div>
             <div style={{ fontSize: 13, color: T.sub, marginBottom: 20 }}>{labels.emptyDesc}</div>
             <Btn onClick={onAddCard} disabled={addBusy}>{labels.emptyAddCard}</Btn>
