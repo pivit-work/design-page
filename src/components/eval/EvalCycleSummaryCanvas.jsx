@@ -682,8 +682,8 @@ const DEFAULT_LABELS = {
   submitPending: '미제출 {n}명 · 클릭 → 리마인드',
   submitPendingCount: '미제출 {n}명',
   // [PW-2692] 정책 §4.A.2-A — 미제출(N, 평가가 끝나지 않은 피평가자)과 리마인드 받을 사람(M, 작성자)이 다를 때.
-  submitPendingRemind: '미제출 {n}명 · 리마인드 {m}명 · 클릭 →',
-  submitTargetsDoneRemind: '대상 전원 완료 · 리마인드 {m}명 · 클릭 →',
+  submitPendingRemind: '미제출 {n}명 · 리마인드 {m}명 · 클릭',
+  submitTargetsDoneRemind: '대상 전원 완료 · 리마인드 {m}명 · 클릭',
   submitTargetsDone: '대상 전원 완료',
   kpiSubmitRateInfo: '평가 대상 가운데, 그 사람에 대해 써야 할 리뷰(셀프·동료·상향·하향 중 이 사이클에 든 것)가 모두 제출된 사람의 비율입니다. 리마인드는 아직 안 쓴 사람이 받으므로 평가 대상이 아닌 리더도 받을 수 있습니다.',
   remindTitle: '미제출자 리마인드',
@@ -3465,11 +3465,14 @@ export default function EvalCycleSummaryCanvas({
                 </span>
                 {canRemind ? (
                   <span className="evs-kpi-sub evs-kpi-hint" data-testid="evs-kpi-submit-hint">
-                    {unfinishedCount === 0
-                      ? fmt(L.submitTargetsDoneRemind, { m: pendingCount })
-                      : unfinishedCount === pendingCount
-                        ? fmt(L.submitPending, { n: unfinishedCount })
-                        : fmt(L.submitPendingRemind, { n: unfinishedCount, m: pendingCount })}
+                    {/* 번역 값 끝에 화살표 글자를 두지 않는다(PW-315) — «클릭 →»의 화살표는 아이콘으로 */}
+                    {unfinishedCount === 0 ? (
+                      <>{fmt(L.submitTargetsDoneRemind, { m: pendingCount })} <ArrowRightIcon size={12} /></>
+                    ) : unfinishedCount === pendingCount ? (
+                      fmt(L.submitPending, { n: unfinishedCount })
+                    ) : (
+                      <>{fmt(L.submitPendingRemind, { n: unfinishedCount, m: pendingCount })} <ArrowRightIcon size={12} /></>
+                    )}
                   </span>
                 ) : unfinishedCount > 0 ? (
                   <span className="evs-kpi-sub" data-testid="evs-kpi-submit-hint">{fmt(L.submitPendingCount, { n: unfinishedCount })}</span>
