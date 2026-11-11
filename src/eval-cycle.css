@@ -6431,6 +6431,16 @@ button.evm-ai-source {
   background: var(--bg-brand-solid);
   opacity: 1;
 }
+/* 채움 칸은 글자 줄 안의 칸(span)이라 블록으로 세워야 폭(%)·높이를 받는다 — 안 그러면 0px 로 비어 보였다(11-11 dev 확인) */
+.evs-rank-fill,
+.evs-leader-track,
+.evs-leader-track > .evs-dist-fill {
+  display: block;
+}
+.evs-rank-fill,
+.evs-leader-track > .evs-dist-fill {
+  height: 100%;
+}
 .evs-rank-badge {
   min-width: 22px;
   justify-content: center;
