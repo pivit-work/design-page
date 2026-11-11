@@ -14,6 +14,7 @@ import Chip from '../shared/Chip.jsx';
 import Select from '../shared/Select.jsx';
 import Button from '../shared/Button.jsx';
 import DateInput from '../shared/DateInput.jsx';
+import { clampToToday } from './squadEffectiveDate.js';
 import { LeadStarIcon, PlusIcon } from './squadIcons.jsx';
 import { useOrgLabels, rich } from './orgchart-labels.jsx';
 import { isEnterKey } from '../shared/enterKey.js';
@@ -227,7 +228,7 @@ export default function SquadFormCard({
             <DateInput readOnly={readOnly}
               value={form.effectiveDate} max={today} aria-label={L('squad.effectiveDate.label')}
               className="sq-field"
-              onChange={(v) => setForm((f) => ({ ...f, effectiveDate: v || today }))}
+              onChange={(v) => setForm((f) => ({ ...f, effectiveDate: clampToToday(v, today) }))}
             />
           </div>
         )}

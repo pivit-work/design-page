@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import DatePicker from '../shared/DatePicker.jsx';
 import { resolveUiLocale } from '../shared/uiLocale.js';
 import { CalendarGlyph } from '../shared/lineIcons.jsx';
@@ -20,7 +21,10 @@ export default function AsOfButton({ asOf, L }) {
 
   const openPicker = () => {
     if (!btnRef.current) return;
-    setPicker({ rect: btnRef.current.getBoundingClientRect(), el: btnRef.current });
+    // 창(전체 화면 등) 안이 아니면 달력을 body 로 띄운다 — 버튼을 품은 화면(스쿼드 캔버스 고정 틀)이 낮은 겹침 층을 만들면
+    // 위로 뒤집혀 열린 달력이 맨 위 머리띠에 가려 [이전 달]을 못 누른다(pivit-work PW-2697). 창 안에서는 그 창 층 위에 그대로 둔다.
+    const inDialog = !!btnRef.current.closest('[role="dialog"]');
+    setPicker({ rect: btnRef.current.getBoundingClientRect(), el: btnRef.current, portal: !inDialog });
   };
   const valid = !!asOf.value && ISO.test(asOf.value);
   const maxDate = asOf.max && ISO.test(asOf.max) ? toDate(asOf.max) : undefined;
@@ -41,7 +45,8 @@ export default function AsOfButton({ asOf, L }) {
         <CalendarGlyph size={20} />
         <span>{formatAsOf(asOf, locale)}</span>
       </button>
-      {picker && (
+      {picker && (() => {
+        const cal = (
         <DatePicker
           anchorRect={picker.rect}
           anchorEl={picker.el}
@@ -55,7 +60,9 @@ export default function AsOfButton({ asOf, L }) {
           onClose={() => setPicker(null)}
           data-testid="org-asof-picker"
         />
-      )}
+        );
+        return picker.portal && typeof document !== 'undefined' ? createPortal(cal, document.body) : cal;
+      })()}
     </>
   );
 }

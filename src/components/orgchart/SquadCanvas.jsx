@@ -78,6 +78,7 @@ import { MEMBER_STATUSES } from './constants.js';
 import { OrgLabelsContext, makeOrgLabels, rich, squadStatusText } from './orgchart-labels.jsx';
 
 import { todayIsoInZone } from '../shared/calendarDate.js';
+import { clampToToday } from './squadEffectiveDate.js';
 import LoadingState from '../shared/LoadingState.jsx';
 import Skeleton from '../shared/Skeleton.jsx';
 
@@ -1099,7 +1100,7 @@ export default function SquadCanvas({
                     value={effectiveDate} max={todayIsoInZone(timeZone)}
                     aria-label={L('squad.effectiveDate.label')} title={L('squad.effectiveDate.editHint')}
                     className="sq-field"
-                    onChange={(v) => setEffectiveDate(v || todayIsoInZone(timeZone))}
+                    onChange={(v) => setEffectiveDate(clampToToday(v, todayIsoInZone(timeZone)))}
                   />
                 </div>
               </div>
@@ -2064,7 +2065,7 @@ export default function SquadCanvas({
                     value={delAsk.effectiveDate} max={todayIsoInZone(timeZone)}
                     aria-label={L('squad.effectiveDate.label')}
                     className="sq-field"
-                    onChange={(v) => setDelAsk((d) => ({ ...d, effectiveDate: v || todayIsoInZone(timeZone) }))}
+                    onChange={(v) => setDelAsk((d) => ({ ...d, effectiveDate: clampToToday(v, todayIsoInZone(timeZone)) }))}
                   />
                 </div>
               </>

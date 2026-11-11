@@ -24,6 +24,7 @@ import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Button from '../shared/Button.jsx';
 import Select from '../shared/Select.jsx';
 import DateInput from '../shared/DateInput.jsx';
+import { clampToToday } from './squadEffectiveDate.js';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
 import { SQUAD_MODAL_Z } from './squad-constants.js';
 import { PersonPickField } from './SquadFormCard.jsx';
@@ -248,7 +249,7 @@ export default function SquadGroupPanel({
             <DateInput
               value={effectiveDate} max={today} aria-label={L('squad.effectiveDate.label')}
               className="sq-field"
-              onChange={(v) => setEffectiveDate(v || today)}
+              onChange={(v) => setEffectiveDate(clampToToday(v, today))}
             />
           </div>
           <span className="sq-form-note">{L('squad.groups.effectiveDateNote')}</span>
