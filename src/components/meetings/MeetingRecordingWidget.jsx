@@ -13,7 +13,9 @@ import ChipFold from '../shared/ChipFold.jsx';
  * 실시간 마이크 파형 + [종료]. 우상단 maximize 아이콘으로 모달 복귀.
  *
  * 데이터/라벨은 caller 주입: meeting { title, participants }, labels
- * { title, tag, stop, expand, participantsMore?, participantsLess? }. participantsMore(n) 를 주면
+ * { title, tag, stop, expand, participantsMore?, participantsLess? }. participants 의 한 사람은 글자이거나
+ * { name, mark } — mark(«(퇴사)» 등)를 따로 주면 긴 이름은 이름만 «…»로 줄고 mark 는 늘 보인다(pivit-work PW-2501
+ * 7회차 · 회의록 액션 아이템 담당자 칸과 같은 방식). participantsMore(n) 를 주면
  * 이름 줄이 두 줄을 넘을 때 «외 N명»으로 접힌다(PW-2570) — 안 주면 접지 않고 줄바꿈만 한다. elapsed 는 "04:29" 포맷 문자열.
  *
  * ## 1on1 이 함께 쓴다 (PW-578)
@@ -50,6 +52,16 @@ export default function MeetingRecordingWidget({
     ? meeting.participants
     : String(meeting?.participants ?? '').split(/[·,]/).map((s) => s.trim()).filter(Boolean);
 
+  const personKey = (p) => (typeof p === 'string' ? p : `${p.name}${p.mark ?? ''}`);
+  const renderPerson = (p, i) => (typeof p === 'string' ? (
+    <span key={p}>{i > 0 && '• '}{p}</span>
+  ) : (
+    <span key={personKey(p)} className="mtg-rec-widget-person">
+      <span className="mtg-rec-widget-person-name">{i > 0 && '• '}{p.name}</span>
+      {p.mark && <span className="mtg-rec-widget-person-mark">{p.mark}</span>}
+    </span>
+  ));
+
   return createPortal(
     <div className="mtg-rec-widget">
       <button type="button" className="mtg-rec-widget-expand" aria-label={labels.expand} onClick={onExpand}>
@@ -60,7 +72,7 @@ export default function MeetingRecordingWidget({
         <p className="mtg-rec-widget-title">{labels.title}</p>
         <div className="mtg-rec-widget-meta">
           <div className="mtg-rec-widget-name-row">
-            <span>{meeting?.title}</span>
+            <span className="mtg-rec-widget-name">{meeting?.title}</span>
             <StatusBadge className="mtg-rec-widget-tag">{labels.tag}</StatusBadge>
           </div>
           {labels.participantsMore ? (
@@ -70,18 +82,14 @@ export default function MeetingRecordingWidget({
               className="mtg-rec-widget-people"
               testId="mtg-rec-widget-people"
               items={participants}
-              getKey={(p) => p}
-              renderItem={(p, i) => (
-                <span key={p}>{i > 0 && '• '}{p}</span>
-              )}
+              getKey={personKey}
+              renderItem={renderPerson}
               moreLabel={labels.participantsMore}
               lessLabel={labels.participantsLess}
             />
           ) : (
             <div className="mtg-rec-widget-people">
-              {participants.map((p, i) => (
-                <span key={p}>{i > 0 && '• '}{p}</span>
-              ))}
+              {participants.map(renderPerson)}
             </div>
           )}
         </div>
