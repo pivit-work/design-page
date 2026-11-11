@@ -1116,6 +1116,29 @@
   cursor: pointer;
 }
 .admin-emp-edit-fill-trigger:hover { background: var(--bg-secondary); color: var(--text-secondary); }
+/* 걸린 머리 필터의 ▾ — 필터 줄의 걸린 버튼 화살표와 같은 브랜드색 (PW-1545 · admin-spec §3.1 «필터 자리») */
+.admin-emp-edit-fill-trigger.is-active { color: var(--text-brand-tertiary); }
+/* 열 머리 ▾ 메뉴 — 필터 목록 아래 «한 번에 넣기» 앞 구분선 (§3.1-G 권고 4 «필터 아래 구분선 밑») */
+.admin-emp-head-menu-divider {
+  height: 1px;
+  margin: var(--spacing-xs) 0;
+  background: var(--border-secondary);
+}
+/* 열 머리 정렬 — 글자 자체가 버튼이다. 조직 현황 목록 머리(`org_list.css` `.ol-sort`)와 같은 모양 (PW-1545 · §3.1 «정렬 트리거») */
+.admin-emp-sort {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xxs);
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+}
+.admin-emp-sort.is-active { color: var(--text-secondary); }
 .admin-emp-edit-fill-body {
   display: flex;
   flex-direction: column;

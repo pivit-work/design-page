@@ -8,6 +8,7 @@ import { narrowByParent, applyJobAxisChange, jobAxisNoticeText, isValidPair, par
 import JobAxisSelect from './JobAxisSelect.jsx';
 import OrgTreePicker, { OrgPathLabel } from './OrgTreePicker.jsx';
 import AnchoredLayer from '../shared/AnchoredLayer.jsx';
+import { LIST_NO_SORT_COLS, nextListSort, sortListMembers } from './employeesListSort.js';
 import ModalShell from '../shared/ModalShell.jsx';
 import SidePanelShell from '../shared/SidePanelShell.jsx';
 import Tabs from '../shared/Tabs.jsx';
@@ -47,7 +48,7 @@ import {
 } from './employeesIcons.jsx';
 import useDismissLayer from '../shared/useDismissLayer.js';
 import { isEnterKey } from '../shared/enterKey.js';
-import { CalendarGlyph } from '../shared/lineIcons.jsx';
+import { CalendarGlyph, ChevronDownGlyph, ChevronUpGlyph } from '../shared/lineIcons.jsx';
 import { filterSearchOptions } from '../shared/searchOptions.js';
 import Pagination from '../shared/Pagination.jsx';
 import { SkeletonList } from '../shared/Skeleton.jsx';
@@ -136,6 +137,8 @@ const DEFAULT_LABELS = {
     addedAt: '추가된 날',
     all: '전체',
     reset: '필터 초기화',
+    /** 걸린 열 필터 칩의 ✕ 이름 (PW-1545) — `{label}` 은 열 이름. */
+    chipRemove: '{label} 필터 풀기',
   },
   addedAtFilter: {
     start: '시작일',
@@ -1320,18 +1323,11 @@ function UnassignedTab({
  * ------------------------------------------------------------ */
 function FilterDropdown({ testId, label, value, options, onChange, searchable = false, searchLabels }) {
   const [open, setOpen] = useState(false);
-  const [q, setQ] = useState('');
   const ref = useRef(null);
-  const close = () => { setOpen(false); setQ(''); };
+  const close = () => setOpen(false);
   useDismissLayer(close, ref, null, open);
 
   const opts = options.map((o) => (typeof o === 'object' ? o : { id: o, label: o }));
-  /* [PW-1879] 값이 수백 개인 회사도 이름 일부로 찾는다. 검색칸·「결과 없음」은 같은 화면 매니저 고르기의
-     `admin-emp-select-search`·`-empty` 그대로. 「전체」 줄은 검색과 상관없이 남긴다. */
-  const shown = searchable
-    ? filterSearchOptions(opts.map((o) => (o.id === ALL || o.id === '전체' ? { ...o, keep: true } : o)), q)
-    : opts;
-  const noResult = searchable && q.trim() !== '' && !shown.some((o) => !o.group && !o.keep);
   const selected = opts.find((o) => o.id === value) || null;
   const isDefault = value === 'all' || value === '전체';
   const triggerText = isDefault ? label : (selected ? selected.label : label);
@@ -1351,50 +1347,85 @@ function FilterDropdown({ testId, label, value, options, onChange, searchable = 
       </button>
       {open && (
         <div className="admin-emp-select-menu" role="listbox">
-          {searchable && (
-            <input
-              type="text"
-              className="admin-emp-select-search"
-              value={q}
-              autoFocus
-              placeholder={searchLabels?.placeholder}
-              aria-label={searchLabels?.placeholder}
-              onChange={(e) => setQ(e.target.value)}
-              data-testid={testId ? `${testId}-search` : undefined}
-            />
-          )}
-          {noResult && <div className="admin-emp-select-empty" role="status">{searchLabels?.noResult}</div>}
-          {shown.map((o, i) => {
-            /* 묶음 머리(직군 미선택 때 직렬 선택지의 직군 이름 · admin-spec §3.1) — 고를 수 없다. */
-            if (o.group) {
-              return (
-                <div key={`group-${o.label}-${i}`} role="presentation" className="admin-emp-select-group">
-                  {o.label}
-                </div>
-              );
-            }
-            const isSel = o.id === value;
-            return (
-              <button
-                key={o.groupKey ? `${o.groupKey}:${o.id}` : o.id}
-                type="button"
-                role="option"
-                aria-selected={isSel}
-                className={`admin-emp-select-item${isSel ? ' is-selected' : ''}`}
-                // 계층 옵션(소속)은 depth 당 12px 들여쓴다 — 공백문자로 들여쓰지
-                // 않는다(시트의 같은 목록과 같은 규칙, §5-A P1).
-                style={o.depth ? { paddingLeft: 10 + o.depth * 12 } : undefined}
-                onClick={() => { onChange(o.id); close(); }}
-              >
-                <span className="admin-emp-select-item-label">{o.label}</span>
-                {isSel && <span className="admin-emp-select-item-check"><IconCheckmark size={15} /></span>}
-              </button>
-            );
-          })}
+          <FilterOptionList
+            testId={testId}
+            options={options}
+            value={value}
+            onPick={(v) => { onChange(v); close(); }}
+            searchable={searchable}
+            searchLabels={searchLabels}
+          />
         </div>
       )}
     </div>
   );
+}
+
+/* 필터 선택지 목록 — 필터 줄 버튼(`FilterDropdown`)과 열 머리 ▾(`HeadMenu`)가 **같은 목록**을 연다
+ * (PW-1545 · admin-spec §3.1 «필터 자리» — «같은 선택 목록»). 둘이 따로 그리면 검색칸 · 묶음 머리 · 들여쓰기가 한쪽만 바뀐다. */
+function FilterOptionList({ testId, options, value, onPick, searchable = false, searchLabels }) {
+  const [q, setQ] = useState('');
+  const opts = options.map((o) => (typeof o === 'object' ? o : { id: o, label: o }));
+  /* [PW-1879] 값이 수백 개인 회사도 이름 일부로 찾는다. 검색칸·「결과 없음」은 같은 화면 매니저 고르기의
+     `admin-emp-select-search`·`-empty` 그대로. 「전체」 줄은 검색과 상관없이 남긴다. */
+  const shown = searchable
+    ? filterSearchOptions(opts.map((o) => (o.id === ALL || o.id === '전체' ? { ...o, keep: true } : o)), q)
+    : opts;
+  const noResult = searchable && q.trim() !== '' && !shown.some((o) => !o.group && !o.keep);
+  return (
+    <>
+      {searchable && (
+        <input
+          type="text"
+          className="admin-emp-select-search"
+          value={q}
+          autoFocus
+          placeholder={searchLabels?.placeholder}
+          aria-label={searchLabels?.placeholder}
+          onChange={(e) => setQ(e.target.value)}
+          data-testid={testId ? `${testId}-search` : undefined}
+        />
+      )}
+      {noResult && <div className="admin-emp-select-empty" role="status">{searchLabels?.noResult}</div>}
+      {shown.map((o, i) => {
+        /* 묶음 머리(직군 미선택 때 직렬 선택지의 직군 이름 · admin-spec §3.1) — 고를 수 없다. */
+        if (o.group) {
+          return (
+            <div key={`group-${o.label}-${i}`} role="presentation" className="admin-emp-select-group">
+              {o.label}
+            </div>
+          );
+        }
+        const isSel = o.id === value;
+        return (
+          <button
+            key={o.groupKey ? `${o.groupKey}:${o.id}` : o.id}
+            type="button"
+            role="option"
+            aria-selected={isSel}
+            className={`admin-emp-select-item${isSel ? ' is-selected' : ''}`}
+            // 계층 옵션(소속)은 depth 당 12px 들여쓴다 — 공백문자로 들여쓰지
+            // 않는다(시트의 같은 목록과 같은 규칙, §5-A P1).
+            style={o.depth ? { paddingLeft: 10 + o.depth * 12 } : undefined}
+            onClick={() => onPick(o.id)}
+          >
+            <span className="admin-emp-select-item-label">{o.label}</span>
+            {isSel && <span className="admin-emp-select-item-check"><IconCheckmark size={15} /></span>}
+          </button>
+        );
+      })}
+    </>
+  );
+}
+
+/** 필터 값의 화면 글 — 칩 «{열}: {값}» 에 쓴다. 못 찾으면 값 그대로. */
+function filterOptionLabel(options, value) {
+  for (const o of options) {
+    if (typeof o === 'object') {
+      if (!o.group && o.id === value) return o.label;
+    } else if (o === value) return o;
+  }
+  return value;
 }
 
 /* ── 추가된 날 필터 ──────────────────────────────────────────
@@ -2389,13 +2420,16 @@ function BulkDeactivateModal({ selectedRows, labels, onClose, onApply }) {
 }
 
 /**
- * 열 머리 ▾ «체크한 N명에게 한 번에 넣기» (PW-1333 · admin-spec §3.1-G 권고 4).
+ * 열 머리 ▾ — 그 열의 필터와 «체크한 N명에게 한 번에 넣기»를 한 메뉴에 (PW-1545 · PW-1333 · admin-spec §3.1 «필터 자리» · §3.1-G 권고 4).
  *
- * 값을 고르고 [넣기]를 누르면 **체크한 사람에게만** 저장 전 칸으로 들어간다 — 저장이 아니다.
- * 체크가 없으면 항목을 끈다: «보이는 사람 전부»에 넣는 동작은 두지 않는다(필터를 잘못 건 채 누르면
- * 의도하지 않은 사람 전원이 바뀐다). 창은 body 직속(AnchoredLayer)이라 표 틀의 넘침에 잘리지 않는다.
+ * - 필터(`filter`) — 필터 줄 버튼과 같은 선택 목록. 고르면 바로 걸리고 닫힌다. 걸려 있으면 ▾ 가 브랜드색.
+ *   머리 글자를 누르면 정렬이고 ▾ 를 누르면 이 메뉴다 — 서로 막지 않는다.
+ * - 한 번에 넣기(`fill`) — 필터가 있는 열은 필터 아래 구분선 밑. 값을 고르고 [넣기]를 누르면 **체크한 사람에게만**
+ *   저장 전 칸으로 들어간다 — 저장이 아니다. 체크가 없으면 항목을 끈다: «보이는 사람 전부»에 넣는 동작은 두지 않는다
+ *   (필터를 잘못 건 채 누르면 의도하지 않은 사람 전원이 바뀐다).
+ * 창은 body 직속(AnchoredLayer)이라 표 틀의 넘침에 잘리지 않는다.
  */
-function FillMenu({ colId, spec, te, selectedIds, title }) {
+function HeadMenu({ colId, title, filter, fill: spec, te, selectedIds, searchLabels }) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState('');
   const triggerRef = useRef(null);
@@ -2404,71 +2438,93 @@ function FillMenu({ colId, spec, te, selectedIds, title }) {
   // 값 고르기 목록 · 달력은 body 직속 창이라 «바깥»에서 뺀다 — 안 빼면 값을 고르는 순간 이 창이 닫힌다.
   useDismissLayer(close, panelRef, [triggerRef, '.dp-search-select-menu', '.dp-datepicker'], open);
   const count = selectedIds.size;
-  const opts = spec.kind === 'select' ? te.options(null, spec.key) : [];
-  const L = te.labels;
+  const L = te?.labels;
+  const opts = spec && spec.kind === 'select' ? te.options(null, spec.key) : [];
+  const filterOn = !!filter && filter.value !== filter.all;
+  const ariaLabel = filter
+    ? (spec ? `${title} — ${filter.menuLabel} · ${fill(L.fillTitle, { count })}` : `${title} — ${filter.menuLabel}`)
+    : `${title} — ${fill(L.fillTitle, { count })}`;
   return (
     <>
-      <button
+      <Button
         ref={triggerRef}
-        type="button"
-        className="admin-emp-edit-fill-trigger"
+        className={`admin-emp-edit-fill-trigger${filterOn ? ' is-active' : ''}`}
         aria-haspopup="dialog"
         aria-expanded={open}
-        aria-label={`${title} — ${fill(L.fillTitle, { count })}`}
-        data-testid={`employees-fill-trigger-${colId}`}
-        onClick={(e) => { e.stopPropagation(); setOpen((o) => !o); }}
+        aria-label={ariaLabel}
+        data-testid={filter ? filter.testId : `employees-fill-trigger-${colId}`}
+        data-filter-on={filterOn ? 'true' : undefined}
+        data-filter-label={filter ? filter.menuLabel : undefined}
+        onClick={(e) => { e.stopPropagation(); if (open) close(); else setOpen(true); }}
       >
         <IconChevronDown size={12} />
-      </button>
+      </Button>
       {open && (
         <AnchoredLayer
           anchorRef={triggerRef}
           panelRef={panelRef}
           width={240}
           className="admin-emp-select-menu"
-          data-testid={`employees-fill-menu-${colId}`}
+          data-testid={`list-head-menu-${colId}`}
         >
-          <div className="admin-emp-select-title">{fill(L.fillTitle, { count })}</div>
-          {count === 0 ? (
-            <div className="admin-emp-select-item-sub" data-testid={`employees-fill-needs-check-${colId}`}>{L.fillNeedsCheck}</div>
-          ) : (
-            <div className="admin-emp-edit-fill-body">
-              {spec.kind === 'select' ? (
-                <Select
-                  className="dp-input dp-select admin-emp-edit-fill-input"
-                  data-testid={`employees-fill-value-${colId}`}
-                  aria-label={title}
-                  value={value}
-                  placeholder={L.fillPlaceholder}
-                  options={[{ value: '', label: L.noValue }, ...(opts ?? [])]}
-                  onChange={(ev) => setValue(ev.target.value)}
-                />
-              ) : spec.kind === 'date' ? (
-                <DateInput
-                  className="dp-input admin-emp-edit-fill-input"
-                  data-testid={`employees-fill-value-${colId}`}
-                  aria-label={title}
-                  value={value}
-                  onChange={setValue}
-                />
+          {filter && (
+            <div role="listbox" aria-label={filter.menuLabel} data-testid={`${filter.testId}-menu`}>
+              <FilterOptionList
+                testId={filter.testId}
+                options={filter.options}
+                value={filter.value}
+                onPick={(v) => { filter.onChange(v); close(); }}
+                searchable={filter.searchable}
+                searchLabels={searchLabels}
+              />
+            </div>
+          )}
+          {filter && spec && <div className="admin-emp-head-menu-divider" role="separator" />}
+          {spec && (
+            <div data-testid={`employees-fill-menu-${colId}`}>
+              <div className="admin-emp-select-title">{fill(L.fillTitle, { count })}</div>
+              {count === 0 ? (
+                <div className="admin-emp-select-item-sub" data-testid={`employees-fill-needs-check-${colId}`}>{L.fillNeedsCheck}</div>
               ) : (
-                <TextInput
-                  className="dp-input admin-emp-edit-fill-input"
-                  data-testid={`employees-fill-value-${colId}`}
-                  aria-label={title}
-                  inputMode={spec.kind === 'number' ? 'numeric' : undefined}
-                  value={value}
-                  onChange={(e) => setValue(e.target.value)}
-                />
+                <div className="admin-emp-edit-fill-body">
+                  {spec.kind === 'select' ? (
+                    <Select
+                      className="dp-input dp-select admin-emp-edit-fill-input"
+                      data-testid={`employees-fill-value-${colId}`}
+                      aria-label={title}
+                      value={value}
+                      placeholder={L.fillPlaceholder}
+                      options={[{ value: '', label: L.noValue }, ...(opts ?? [])]}
+                      onChange={(ev) => setValue(ev.target.value)}
+                    />
+                  ) : spec.kind === 'date' ? (
+                    <DateInput
+                      className="dp-input admin-emp-edit-fill-input"
+                      data-testid={`employees-fill-value-${colId}`}
+                      aria-label={title}
+                      value={value}
+                      onChange={setValue}
+                    />
+                  ) : (
+                    <TextInput
+                      className="dp-input admin-emp-edit-fill-input"
+                      data-testid={`employees-fill-value-${colId}`}
+                      aria-label={title}
+                      inputMode={spec.kind === 'number' ? 'numeric' : undefined}
+                      value={value}
+                      onChange={(e) => setValue(e.target.value)}
+                    />
+                  )}
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    data-testid={`employees-fill-apply-${colId}`}
+                    onClick={() => { te.onFill(spec.key, value, [...selectedIds]); close(); }}
+                  >
+                    {L.fillAction}
+                  </Button>
+                </div>
               )}
-              <Button
-                size="sm"
-                variant="primary"
-                data-testid={`employees-fill-apply-${colId}`}
-                onClick={() => { te.onFill(spec.key, value, [...selectedIds]); close(); }}
-              >
-                {L.fillAction}
-              </Button>
             </div>
           )}
         </AnchoredLayer>
@@ -2586,6 +2642,10 @@ function EmployeesListView({
   /* 고른 사람 id 집합과 그 변경 통지 (PW-608). 캔버스가 들고 있어야 새로고침을
      넘어 살아남는다 — 위 `ownSelectedIds` 주석 참고. */
   selectedIds: providedSelectedIds, onSelectedIdsChange,
+  /* 열 머리 정렬 (PW-1545 · admin-spec §3.1 «정렬 · 고정 열») — `{ col, dir: 'asc'|'desc' } | null` 와 그 변경 통지.
+     고른 사람과 같은 까닭으로 캔버스가 든다(새로고침에 살아남는다). 미주입이면 자기 상태로 폴백.
+     `sortOrders` — `{ jobLevel, jobPosition }` 값 배열: 직급 · 직책은 라벨이 아니라 이 순서로 줄 세운다. */
+  sort: providedSort, onSortChange, sortOrders = EMPTY_OBJECT,
   /* 일괄 «소속 추가» (PW-608 · §3.1 「일괄 처리」 드롭다운). 폐기된 스프레드시트의
      일괄 편집 바가 갖고 있던 계약을 그대로 승계한다 — `(memberIds, unitIds)` 를 받아
      **추가 전용** 서버 경로를 탄다. 미주입이면 드롭다운 항목이 없고, 항목이 하나도
@@ -2682,6 +2742,9 @@ function EmployeesListView({
      **말없이 풀린다**(브라우저 검증에서 잡았다: 일괄 추가를 적용한 직후 선택이 0 이 됐다).
      미주입일 때만 자기 상태로 폴백한다 — ⚙ 열 설정과 같은 규칙이다. */
   const [ownSelectedIds, setOwnSelectedIds] = useState(() => new Set());
+  const [ownSort, setOwnSort] = useState(null);
+  const sort = providedSort === undefined ? ownSort : providedSort;
+  const setSort = onSortChange ?? setOwnSort;
   const selectedIds = providedSelectedIds ?? ownSelectedIds;
   const setSelectedIds = onSelectedIdsChange ?? setOwnSelectedIds;
 
@@ -2934,12 +2997,29 @@ function EmployeesListView({
 
   // 대표 행은 필터·정렬과 무관하게 최상단 고정 (§3.1).
   // [실패 행만 보기]는 다른 필터와 무관하게 실패한 사람만 보인다 — 필터에 가려 실패 행이 안 보이면 안 된다.
+  /* 열 머리 정렬 (PW-1545 · admin-spec §3.1 «정렬 · 고정 열») — 필터 · 검색 결과 **전체**를 줄 세운 뒤 쪽을 나눈다.
+     값은 저장된 값이다 — 표에서 고친 저장 전 칸으로 줄이 움직이지 않는다(§3.1-G «쪽 · 필터 · 정렬» · E1).
+     소속은 주 소속 경로(소속 칸 맨 위 칩과 같은 경로). 규칙은 `employeesListSort.js`. */
+  const deptPathOf = useCallback((m) => {
+    const legacy = legacyDeptOf(m);
+    const list = Array.isArray(m.depts) && m.depts.length > 0 ? m.depts : legacy ? [{ name: legacy, isPrimary: true }] : [];
+    if (list.length === 0) return null;
+    const primary = list.find((d) => d.isPrimary) || list[0];
+    const entry = primary.orgUnitId ? findOrgEntry(orgTree, primary.orgUnitId) : primaryOrgEntry(orgTree, m.orgUnitIds);
+    return entry?.pathLabel || primary.name || null;
+  }, [orgTree]);
   const ordered = useMemo(
-    () =>
-      [...(failedOnly && failedIds.size > 0 ? members.filter((m) => failedIds.has(String(m.id))) : filtered)]
-        .sort((a, b) => (b.isCeo ? 1 : 0) - (a.isCeo ? 1 : 0)),
-    [filtered, failedOnly, failedIds, members],
+    () => sortListMembers(
+      failedOnly && failedIds.size > 0 ? members.filter((m) => failedIds.has(String(m.id))) : filtered,
+      sort,
+      { orders: sortOrders, deptPathOf },
+    ),
+    [filtered, failedOnly, failedIds, members, sort, sortOrders, deptPathOf],
   );
+  function toggleSort(colId) {
+    setSort(nextListSort(sort, colId));
+    setPage(1);
+  }
 
   const totalPages = Math.max(1, Math.ceil(ordered.length / pageSize));
   const safePage = Math.min(page, totalPages);
@@ -3181,6 +3261,34 @@ function EmployeesListView({
   // 열이 스물 가까이 늘면 고정 minWidth 로는 칸이 눌려 글자가 세로로 쪼개진다.
   // **보이는 열 폭의 합**으로 잡고, 넘치는 만큼은 가로 스크롤로 읽는다.
   const minWidth = cols.reduce((n, c) => n + c.width, 0);
+
+  /* 열 머리 ▾ 로 가는 필터 (PW-1545 · admin-spec §3.1 «필터 자리» · David «권고대로» 2026-10-14).
+     열 id → 필터. 그 열이 표에 보이면 머리 ▾ 에서 고르고, ⚙ 로 끈 열이면 필터 줄 버튼으로 돌아온다.
+     걸린 머리 필터는 필터 줄에 «{열}: {값} ✕» 칩으로도 보인다 — 표를 가로로 밀면 머리가 화면 밖으로 나간다.
+     소속 · 재직상태 · 권한 · 추가된 날은 늘 필터 줄이다(권한 · 추가된 날은 표에 열이 없다).
+     직함 · 국가 · 빌딩은 기획서 목록이 이 필터들보다 먼저 쓰였다 — «필터 줄에 남는 것»(검색 · 소속 · 재직상태 ·
+     열이 안 보이는 필터)에 들지 않으므로 같은 규칙으로 머리로 간다. 값 · 판정 · 1쪽 이동은 그대로다. */
+  const headFilters = {
+    squads: { testId: 'list-filter-squads', menuLabel: labels.filters.squad, value: squad, all: LIST_ALL, options: squads, searchable: true, onChange: (v) => { setSquad(v); setPage(1); } },
+    ...(optionalFields.job_category === true
+      ? { jobCategory: { testId: 'list-filter-jobCategory', menuLabel: labels.filters.jobCategory, value: category, all: LIST_ALL, options: categories, searchable: true, onChange: (v) => { setCategory(v); setPage(1); } } }
+      : {}),
+    jobFamily: { testId: 'list-filter-jobFamily', menuLabel: labels.filters.family, value: family, all: LIST_ALL, options: families, searchable: true, onChange: changeFamily },
+    jobTitle: { testId: 'list-filter-jobTitle', menuLabel: labels.filters.ladder, value: ladder, all: LIST_ALL, options: ladders, searchable: true, onChange: (v) => { setLadderCleared(false); changeLadder(v); } },
+    jobDuty: { testId: 'list-filter-jobDuty', menuLabel: labels.filters.duty, value: duty, all: LIST_ALL, options: duties, searchable: true, onChange: (v) => { setDuty(v); setPage(1); } },
+    jobPosition: { testId: 'list-filter-jobPosition', menuLabel: labels.filters.position, value: position, all: LIST_ALL, options: positions, searchable: true, onChange: (v) => { setPosition(v); setPage(1); } },
+    jobLevel: { testId: 'list-filter-jobLevel', menuLabel: labels.filters.level, value: level, all: LIST_ALL, options: levels, searchable: true, onChange: (v) => { setLevel(v); setPage(1); } },
+    ...(optionalFields.business_title === true
+      ? { businessTitle: { testId: 'list-filter-businessTitle', menuLabel: labels.filters.businessTitle, value: bizTitle, all: LIST_ALL, options: bizTitles, searchable: true, onChange: (v) => { setBizTitle(v); setPage(1); } } }
+      : {}),
+    workCountry: { testId: 'list-filter-workCountry', menuLabel: labels.filters.workCountry, value: country, all: LIST_ALL, options: countries, searchable: true, onChange: (v) => { setCountry(v); setPage(1); } },
+    workLocation: { testId: 'list-filter-workLocation', menuLabel: labels.filters.workLocation, value: location, all: LIST_ALL, options: locations, searchable: true, onChange: (v) => { setLocation(v); setPage(1); } },
+    workBuilding: { testId: 'list-filter-workBuilding', menuLabel: labels.filters.workBuilding, value: building, all: LIST_ALL, options: buildings, searchable: true, onChange: (v) => { setBuilding(v); setPage(1); } },
+    employmentType: { testId: 'list-filter-employmentType', menuLabel: labels.filters.employmentType, value: empType, all: LIST_ALL, options: empTypes, searchable: true, onChange: (v) => { setEmpType(v); setPage(1); } },
+    manager: { testId: 'list-filter-managerId', menuLabel: labels.filters.manager, value: mgrFilter, all: 'all', options: mgrOpts, searchable: true, onChange: (v) => { setMgrFilter(v); setPage(1); } },
+  };
+  const shownColIds = new Set(cols.map((c) => c.id));
+  const headFilterEntries = Object.entries(headFilters);
 
   /* ── 표에서 바로 고치기 (PW-1333 · admin-spec §3.1-G) ──────────────────────────────────────
    * `tableEdit`(TableEdit) — 부르는 쪽이 저장 전 칸과 판정을 들고, 이 뷰는 칸을 그리고 입력을 연다.
@@ -3491,28 +3599,56 @@ function EmployeesListView({
     return why ? <Tooltip content={why}>{inner}</Tooltip> : inner;
   }
 
-  /* 열 머리 — 발령 칸 표시 · 소속/스쿼드 말풍선 · «체크한 N명에게 한 번에 넣기» ▾ (§3.1-G «칸 모양» · 권고 3 · 권고 4) */
-  function editHead(c) {
+  /* 열 머리 — 글자를 누르면 정렬(PW-1545 · §3.1 «정렬 · 고정 열»), ▾ 는 그 열의 필터 · «체크한 N명에게 한 번에 넣기»
+     (§3.1 «필터 자리» · §3.1-G 권고 4). 발령 칸 표시 · 소속/스쿼드 말풍선(§3.1-G «칸 모양» · 권고 3) · 직함 자물쇠는 글자 옆에 그대로. */
+  function headCell(c) {
     const spec = te?.columns[c.id];
     const tip = te?.headTips?.[c.id];
-    if (!spec && !tip) return null;
-    const label = (
-      <span className="admin-emp-edit-head">
-        {c.label}
-        {spec?.appointment && <span className="admin-emp-edit-head-mark">{te.labels.appointmentMark}</span>}
-      </span>
-    );
-    if (tip) return <Tooltip content={tip}>{label}</Tooltip>;
-    if (!spec.fill) return label;
+    let text = c.label;
+    if (c.id === 'businessTitle') {
+      /* 직함은 목록에서 못 고친다는 표시 (admin-spec §3.1 ⚙ 정본표 「직함 🔒」). */
+      text = (
+        <span className="admin-emp-head-locked" title={labels.businessTitleLocked}>
+          {c.label}
+          <IconLock size={11} />
+        </span>
+      );
+    } else if (spec?.appointment) {
+      text = (
+        <span className="admin-emp-edit-head">
+          {c.label}
+          <span className="admin-emp-edit-head-mark">{te.labels.appointmentMark}</span>
+        </span>
+      );
+    }
+    const sortable = !LIST_NO_SORT_COLS.has(c.id);
+    const active = sortable && sort?.col === c.id;
+    const Arrow = sort?.dir === 'desc' ? ChevronDownGlyph : ChevronUpGlyph;
+    let labelEl = sortable ? (
+      <Button
+        className={`admin-emp-sort${active ? ' is-active' : ''}`}
+        onClick={() => toggleSort(c.id)}
+        data-testid={`list-sort-${c.id}`}
+      >
+        {text}
+        {active && <Arrow size={12} aria-hidden data-testid={`list-sort-arrow-${c.id}`} data-dir={sort.dir} />}
+      </Button>
+    ) : text;
+    if (tip) labelEl = <Tooltip content={tip}>{labelEl}</Tooltip>;
+    const filter = shownColIds.has(c.id) ? headFilters[c.id] : undefined;
+    const fillSpec = spec?.fill ? spec : null;
+    if (!filter && !fillSpec) return labelEl;
     return (
       <span className="admin-emp-edit-head">
-        {label}
-        <FillMenu
+        {labelEl}
+        <HeadMenu
           colId={c.id}
-          spec={spec}
+          title={c.label}
+          filter={filter}
+          fill={fillSpec}
           te={te}
           selectedIds={selectedIds}
-          title={c.label}
+          searchLabels={filterSearch}
         />
       </span>
     );
@@ -3585,7 +3721,8 @@ function EmployeesListView({
      값이 같으면 부르지 않는다 — 소비자가 이 콜백으로 주소를 쓰기 때문에 매번 부르면
      쓰기 → 렌더 → 다시 쓰기의 되먹임이 된다. 콜백은 ref 로 들고 있어서 소비자가
      인라인 함수를 넘겨도 효과가 다시 돌지 않는다.
-     목록 뷰에는 사람이 고르는 정렬이 없다(대표 최상단 고정뿐) — `sortCol` 은 늘 null 이다. */
+     열 머리 정렬(PW-1545)은 여기로 알리지 않는다 — `sortCol` 은 늘 null 이다. 소비자는 이 값을 주소 · 세션에
+     쓰는데, 정렬은 «저장하지 않는다. 화면에 다시 들어오면 해제»다(admin-spec §3.1 «기억»). */
   const onViewStateChangeRef = useRef(onViewStateChange);
   useEffect(() => { onViewStateChangeRef.current = onViewStateChange; }, [onViewStateChange]);
   const viewStateKey = JSON.stringify([q, exportFilters]);
@@ -3609,7 +3746,7 @@ function EmployeesListView({
     if (scope === 'full' || scope === 'upload_form') {
       onExportRoster({
         scope, columns: [], ids: [], search: q.trim(), filters: { ...exportFilters },
-        rowCount: ordered.length, includeSalary,
+        rowCount: ordered.length, includeSalary, sort,
       });
       return;
     }
@@ -3634,6 +3771,8 @@ function EmployeesListView({
       // ② 만 필터 결과가 아니라 «고른 사람 수»를 센다.
       rowCount: scope === 'selected' ? selectedCount : ordered.length,
       includeSalary: includeSalary && salaryVisible,
+      /* 파일 줄 순서 = 화면 정렬 순서(admin-spec §3.1 «내보내기»). 서버가 같은 규칙으로 줄 세운다. */
+      sort,
     });
   }
 
@@ -3941,30 +4080,11 @@ function EmployeesListView({
 
       <div className="admin-emp-filterbar">
         <FilterDropdown testId="list-filter-dept" searchable searchLabels={filterSearch} label={labels.filters.dept} value={dept} options={depts} onChange={(v) => { setDept(v); setPage(1); }} />
-        <FilterDropdown testId="list-filter-squads" searchable searchLabels={filterSearch} label={labels.filters.squad} value={squad} options={squads} onChange={(v) => { setSquad(v); setPage(1); }} />
-        {/* 🔴 필터 칩도 표 열과 같은 «두 덩어리» 순서다 (PW-547). 칩과 열의 순서가
-            어긋나면 「직군으로 좁혀 놓고 표에서 직군 열을 찾는」 동작이 매번 어긋난다. */}
-        {optionalFields.job_category === true && (
-          <FilterDropdown testId="list-filter-jobCategory" searchable searchLabels={filterSearch} label={labels.filters.jobCategory} value={category} options={categories} onChange={(v) => { setCategory(v); setPage(1); }} />
-        )}
-        <FilterDropdown testId="list-filter-jobFamily" searchable searchLabels={filterSearch} label={labels.filters.family} value={family} options={families} onChange={changeFamily} />
-        <FilterDropdown testId="list-filter-jobTitle" searchable searchLabels={filterSearch} label={labels.filters.ladder} value={ladder} options={ladders} onChange={(v) => { setLadderCleared(false); changeLadder(v); }} />
-        {ladderCleared && (
-          <span className="admin-emp-filter-notice" role="status" data-testid="list-filter-ladder-cleared">
-            {labels.ladderFilterCleared}
-          </span>
-        )}
-        <FilterDropdown testId="list-filter-jobDuty" searchable searchLabels={filterSearch} label={labels.filters.duty} value={duty} options={duties} onChange={(v) => { setDuty(v); setPage(1); }} />
-        <FilterDropdown testId="list-filter-jobPosition" searchable searchLabels={filterSearch} label={labels.filters.position} value={position} options={positions} onChange={(v) => { setPosition(v); setPage(1); }} />
-        <FilterDropdown testId="list-filter-jobLevel" searchable searchLabels={filterSearch} label={labels.filters.level} value={level} options={levels} onChange={(v) => { setLevel(v); setPage(1); }} />
-        {optionalFields.business_title === true && (
-          <FilterDropdown testId="list-filter-businessTitle" searchable searchLabels={filterSearch} label={labels.filters.businessTitle} value={bizTitle} options={bizTitles} onChange={(v) => { setBizTitle(v); setPage(1); }} />
-        )}
-        <FilterDropdown testId="list-filter-workCountry" searchable searchLabels={filterSearch} label={labels.filters.workCountry} value={country} options={countries} onChange={(v) => { setCountry(v); setPage(1); }} />
-        <FilterDropdown testId="list-filter-workLocation" searchable searchLabels={filterSearch} label={labels.filters.workLocation} value={location} options={locations} onChange={(v) => { setLocation(v); setPage(1); }} />
-        <FilterDropdown testId="list-filter-workBuilding" searchable searchLabels={filterSearch} label={labels.filters.workBuilding} value={building} options={buildings} onChange={(v) => { setBuilding(v); setPage(1); }} />
-        <FilterDropdown testId="list-filter-employmentType" searchable searchLabels={filterSearch} label={labels.filters.employmentType} value={empType} options={empTypes} onChange={(v) => { setEmpType(v); setPage(1); }} />
-        <FilterDropdown testId="list-filter-managerId" searchable searchLabels={filterSearch} label={labels.filters.manager} value={mgrFilter} options={mgrOpts} onChange={(v) => { setMgrFilter(v); setPage(1); }} />
+        {/* 열이 안 보이는 머리 필터만 여기 버튼으로 선다 (PW-1545 · admin-spec §3.1 «필터 자리»). 열이 보이면 그 머리 ▾ 다.
+            🔴 순서는 표 열과 같은 «두 덩어리» 순서다 (PW-547) — `headFilters` 를 그 순서로 적었다. */}
+        {headFilterEntries.filter(([colId]) => !shownColIds.has(colId)).map(([colId, f]) => (
+          <FilterDropdown key={colId} testId={f.testId} searchable={f.searchable} searchLabels={filterSearch} label={f.menuLabel} value={f.value} options={f.options} onChange={f.onChange} />
+        ))}
         {/* 바로 왼쪽 「매니저」와 재는 것이 다르다 — 매니저는 「이 사람에게 상급자가
             정해져 있나」, 권한은 「이 사람이 무엇인가」다(PW-693 · PW-884 ③). */}
         <FilterDropdown testId="list-filter-orgRole" label={labels.filters.role} value={roleFilter} options={roleOpts} onChange={(v) => { setRoleFilter(v); setPage(1); }} />
@@ -3976,6 +4096,27 @@ function EmployeesListView({
           value={addedRange ? addedAt : null}
           onChange={(v) => { setAddedAt(v ?? LIST_ALL); setPage(1); }}
         />
+        {/* 걸린 머리 필터 — 표를 가로로 밀어 그 머리가 화면 밖이어도 무엇이 걸렸는지 보인다. ✕ 는 그 필터만 푼다 (§3.1 «걸린 열 필터»). */}
+        {headFilterEntries.filter(([colId, f]) => shownColIds.has(colId) && f.value !== f.all).map(([colId, f]) => {
+          const colLabel = cols.find((c) => c.id === colId)?.label ?? f.menuLabel;
+          return (
+            <Chip
+              key={`on-${colId}`}
+              selected
+              data-testid={`list-filter-chip-${colId}`}
+              onRemove={() => f.onChange(f.all)}
+              removeLabel={fill(labels.filters.chipRemove, { label: colLabel })}
+              removeProps={{ 'data-testid': `list-filter-chip-${colId}-remove` }}
+            >
+              {colLabel}: {filterOptionLabel(f.options, f.value)}
+            </Chip>
+          );
+        })}
+        {ladderCleared && (
+          <span className="admin-emp-filter-notice" role="status" data-testid="list-filter-ladder-cleared">
+            {labels.ladderFilterCleared}
+          </span>
+        )}
         {hasFilter && (
           <button type="button" className="admin-emp-filter-reset" onClick={resetFilters}>{labels.filters.reset}</button>
         )}
@@ -4030,7 +4171,11 @@ function EmployeesListView({
           sticky: c.id === 'select' || c.id === 'name',
           /* 열 id 를 DOM 에 남긴다 — 두 보기의 열 묶음을 견주는 테스트가 여기서
              읽는다(PW-463). 라벨로 견주면 i18n 을 바꿀 때마다 테스트가 깨진다. */
-          headerProps: { 'data-testid': `list-head-${c.id}` },
+          headerProps: {
+            'data-testid': `list-head-${c.id}`,
+            // 정렬 상태는 머리 칸(th)이 알린다 — 화면 읽기 프로그램은 버튼이 아니라 칸에서 읽는다(조직 현황 목록과 같다).
+            'aria-sort': sort?.col === c.id ? (sort.dir === 'desc' ? 'descending' : 'ascending') : undefined,
+          },
           cellProps: { 'data-col': c.id },
           header: c.id === 'select' ? (
             /* 지금 보고 있는 «쪽»만 켜고 끈다 — 안 보이는 쪽까지 켜면 화면이
@@ -4042,15 +4187,7 @@ function EmployeesListView({
               data-testid="employees-list-check-all"
               aria-label={labels.listBulk.selectPage}
             />
-          ) : editHead(c) ? (
-            editHead(c)
-          ) : c.id === 'businessTitle' ? (
-            /* 직함은 목록에서 못 고친다는 표시 (admin-spec §3.1 ⚙ 정본표 「직함 🔒」). */
-            <span className="admin-emp-head-locked" title={labels.businessTitleLocked}>
-              {c.label}
-              <IconLock size={11} />
-            </span>
-          ) : c.label,
+          ) : c.id === 'actions' ? c.label : headCell(c),
         }))}
         rows={pageRows}
         rowKey={(m) => m.id}
@@ -6545,6 +6682,9 @@ export default function AdminEmployeesCanvas({
   canViewSalary = false,
   gradeOptions,
   positionOptions,
+  /** 목록 표 열 머리 정렬의 직급 · 직책 순서 — `{ jobLevel, jobPosition }` 각 값 배열(꺼 둔 값 포함 · 조직 설정 순서).
+      PW-1545 · admin-spec §3.1 «직급 · 직책» — 라벨이 아니라 순번으로 줄 세운다. 안 주면 `gradeOptions` · `positionOptions`. */
+  listSortOrders,
   /** 직위·고용형태 카탈로그 — 시트의 두 열로 그대로 내려간다(PW-463).
       빠뜨리면 두 열이 자유 텍스트로 폴백해 목록 뷰와 고를 수 있는 값이 갈린다. */
   rankOptions,
@@ -6697,6 +6837,10 @@ export default function AdminEmployeesCanvas({
      문구로 갈아 끼우므로, 뷰 안에 두면 새로고침 한 번에 체크가 말없이 풀린다 —
      소속·매니저를 한 번 고치기만 해도 그 새로고침이 돈다. */
   const [listSelectedIds, setListSelectedIds] = useState(() => new Set());
+  /* 목록 표 열 머리 정렬 (PW-1545 · admin-spec §3.1 «정렬 · 고정 열»). 고른 사람과 같은 까닭으로 여기 든다 —
+     목록 뷰는 새로고침마다 다시 생기는데, 저장 뒤 «정렬이 새 값으로 다시 적용»되어야 한다(§3.1-G «저장»).
+     주소 · 세션에는 쓰지 않는다 — «정렬 상태는 저장하지 않는다. 화면에 다시 들어오면 해제»(§3.1 «기억»). */
+  const [listSort, setListSort] = useState(null);
   // 일괄 처리 부분 실패가 새로 오면 고른 사람을 실패한 사람으로 갈아 끼운다(§3.1 · 목록 뷰 `bulkFailure` 주석).
   const [seenBulkFailure, setSeenBulkFailure] = useState(null);
   if (seenBulkFailure !== (bulkFailure ?? null)) {
@@ -6910,6 +7054,9 @@ export default function AdminEmployeesCanvas({
             /* 고른 사람 (PW-608) — 새로고침으로 이 뷰가 사라졌다 다시 생겨도 남는다. */
             selectedIds={listSelectedIds}
             onSelectedIdsChange={setListSelectedIds}
+            sort={listSort}
+            onSortChange={setListSort}
+            sortOrders={listSortOrders ?? { jobLevel: gradeOptions ?? EMPTY_ARRAY, jobPosition: positionOptions ?? EMPTY_ARRAY }}
             /* 일괄 «소속 추가» (PW-608) — 미주입이면 「일괄 처리」 드롭다운에 항목이
                없고, 항목이 하나도 없으면 드롭다운 자체가 뜨지 않는다. */
             onAppendAffiliations={canEdit ? onAppendAffiliations : undefined}
