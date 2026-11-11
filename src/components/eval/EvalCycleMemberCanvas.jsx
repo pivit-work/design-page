@@ -349,7 +349,11 @@ function ReviewProgress({ fields, isUnanswered, isIncomplete, tried, onJump, L }
   const total = fields.length;
   const filled = fields.filter((f) => !isUnanswered(f)).length;
   const done = filled === total;
+  // 상자 바로 앞의 덮개 — 상자보다 24px 위에 멈춰, 상자가 위에 붙었을 때만 그 위 빈 줄을 바탕색으로 덮는다.
+  // 멈추기 전에는 상자 뒤에 숨어 위 본문(«마감이 지났습니다» 띠 등)을 덮지 않는다(PW-2685).
   return (
+    <>
+    <div className="evc-sticky-cover evm-review-progress-cover" aria-hidden data-testid="evm-review-progress-cover" />
     <section className="evm-review-progress" data-testid="evm-review-progress">
       <div className="evm-review-progress-head">
         <span className="evm-review-progress-title">{L.progressTitle}</span>
@@ -388,6 +392,7 @@ function ReviewProgress({ fields, isUnanswered, isIncomplete, tried, onJump, L }
         })}
       </div>
     </section>
+    </>
   );
 }
 

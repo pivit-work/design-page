@@ -1387,6 +1387,8 @@ export default function EvalCycleLeaderCanvas({
   );
   const gradeCard = isFreeze ? (
     <>
+      {/* 상단고정 띠 앞 덮개 — 띠가 위에 붙었을 때만 그 위 빈 줄을 덮는다(PW-2685, .evc-sticky-cover). */}
+      <div className="evc-sticky-cover evl-grade-freeze-cover" aria-hidden data-testid="evl-grade-freeze-cover" />
       <section
         className={gradeCardClass}
         ref={gradeRef}
