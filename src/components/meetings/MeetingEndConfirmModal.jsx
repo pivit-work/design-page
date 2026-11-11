@@ -8,7 +8,7 @@ import ConfirmModal from '../shared/ConfirmModal.jsx';
  *
  * 공용 확인 창(`ConfirmModal`)으로 그린다 (PW-836). 막을 누르거나 Esc 를 누르면 취소다.
  * pivit-work 의 1on1 미니 위젯·업로드 재시도 가드·1on1 화면도 이 창을 쓰므로 props 는
- * 종전 그대로 받는다 — `labels.close` 는 공용 확인 창에 닫기 X 가 없어 더는 그리지 않는다.
+ * 종전 그대로 받는다 — `labels.close` 는 공용 확인 창 닫기 X 의 이름이다(PW-2705 에서 X 가 돌아옴).
  *
  * labels: { title, descLine1, descLine2?, cancel, confirm, close? }
  */
@@ -36,6 +36,7 @@ export default function MeetingEndConfirmModal({ onCancel, onConfirm, labels }) 
       danger
       onCancel={onCancel}
       onConfirm={onConfirm}
+      closeLabel={labels.close}
       testId="mtg-end-confirm"
       cancelTestId="mtg-end-confirm-cancel"
       confirmTestId="mtg-end-confirm-confirm"
