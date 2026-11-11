@@ -15,4 +15,13 @@ export const KR_UPDATE_DEFAULT_LABELS = {
   aiDraft: 'AI 초안',
   aiCaption: '집계결과',
   apply: '적용',
+  // 팀원 기여도 배분 칸 (PW-2529 · okr-policy §4.4.4)
+  contribTitle: '팀원 기여도 배분 (선택 · 합계 100%)',
+  contribUnassigned: '미배분',
+  contribEmpty: '아직 기여도가 배분되지 않았습니다. 아래에서 기여 팀원을 추가하세요.',
+  contribAdd: '+ 기여 팀원 추가…',
+  contribEven: '균등 배분',
+  contribSumWarn: (n) => `기여도 합계가 100%가 되어야 저장됩니다 (현재 ${n}%).`,
+  contribPctLabel: (name) => `${name} 기여도 (%)`,
+  contribRemove: (name) => `${name} 빼기`,
 };

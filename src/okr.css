@@ -419,6 +419,18 @@ body:has(.okr-tab-header.is-actions-below) :is(.okr-header-actions, .okr-write-b
 .okr-kru-total { font-size: 16px; font-weight: 400; line-height: 24px; color: var(--text-primary); white-space: nowrap; }
 .okr-kru-percent { padding: 10px 16px; font-size: 16px; font-weight: 600; line-height: 24px; color: var(--text-brand-tertiary); white-space: nowrap; }
 
+/* 팀원 기여도 배분 칸 (PW-2529 · 개발 — 디자이너 원본 PW-2528 전). 줄은 OKR 작성 창 가중치 줄(.okr-cf-kr-meta ·
+   .okr-cf-input.is-sm · .okr-cf-unit · .okr-cf-x)을 그대로 쓰고, 여기는 이름 칸·고정 숫자·자리만 더한다. */
+.okr-kru-contrib-head { display: flex; align-items: center; gap: var(--spacing-md); }
+.okr-kru-contrib-rows { display: flex; flex-direction: column; gap: var(--spacing-sm); }
+.okr-kru-contrib-row { flex-wrap: nowrap; }
+.okr-kru-contrib-name { flex: 1; min-width: 0; font-size: 14px; font-weight: 500; line-height: 20px; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.okr-kru-contrib-name.is-departed { color: var(--text-tertiary); }
+.okr-kru-contrib-input { text-align: center; -moz-appearance: textfield; appearance: textfield; }
+.okr-kru-contrib-input::-webkit-outer-spin-button, .okr-kru-contrib-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.okr-kru-contrib-fixed { flex: none; width: 84px; box-sizing: border-box; padding: var(--spacing-md) var(--spacing-lg); font-size: 14px; line-height: 20px; color: var(--text-tertiary); text-align: center; }
+.okr-kru-contrib-x-slot { flex: none; width: 24px; height: 24px; }
+
 .okr-krfb-eyebrow { display: block; margin-bottom: 8px; font-size: 18px; font-weight: 700; line-height: 28px; color: var(--text-primary); }
 
 .okr-krfb-comment { display: flex; flex-direction: column; gap: 12px; }

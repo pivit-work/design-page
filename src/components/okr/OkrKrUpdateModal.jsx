@@ -8,6 +8,8 @@ import LoadingState from '../shared/LoadingState.jsx';
 import { ModalDescription, NoteText, NoticeCard } from '../shared/SharedText.jsx';
 import { BellIcon, ChevronIcon } from './okrIcons.jsx';
 import { KR_UPDATE_DEFAULT_LABELS } from './okrKrUpdateLabels.js';
+import OkrKrContribution from './OkrKrContribution.jsx';
+import { contribValid, sameAllocation } from './okrKrContribution.js';
 
 
 /** 기획서의 코멘트 상한(okr-policy §4.1.2). 앱은 서버와 같은 값을 `detail.commentMaxLength` 로 넘긴다. */
@@ -37,6 +39,13 @@ const DEFAULT_COMMENT_MAX = 500;
  *   이미 글자로 만든 줄(`{ id, head, comment }`)이다. 0건이면 이력 줄을 그리지 않고, 실패하면
  *   «없음»이 아니라 불러오지 못했다고 보인다.
  * - 문구는 detail.labels 로 바꿔 끼운다(KR_UPDATE_DEFAULT_LABELS).
+ *
+ * detail.contribution(선택) — 팀원 기여도 배분 칸 (PW-2529 · okr-policy §4.4). `{ rows, candidates }`
+ * (rows: [{ id, name, pct, departed }] · candidates: [{ id, name }]). 팀·본부·부문 KR 에만 소비처가 싣는다.
+ * - 합계가 100 도 미배분(0줄)도 아니면 [확정]이 비활성이다 — 그동안 달성률·코멘트도 저장되지 않는다(§4.4.4).
+ * - [확정]은 `onConfirm(value, { comment, contributions })` 한 번이다. `contributions` 는 창을 열 때와
+ *   배분이 달라졌을 때만 `[{ id, pct }]`(빈 배열 = 미배분으로 되돌림), 같으면 `undefined` 다(§4.4.5).
+ * - 입력이 멈춰도 저장하지 않는다. [취소]로 닫으면 고친 것을 모두 버린다.
  * - 이력 줄은 KR 드릴다운 줄 모양(`manager.css` 의 `.mgr-krd-*`)을 쓴다 — 소비처가 그 CSS 를 싣는다.
  *
  * 🔴 확정은 **onConfirm 이 끝나기를 기다린 뒤에만 닫는다.** 예전에는 부르자마자
@@ -55,6 +64,9 @@ export default function OkrKrUpdateModal({ detail, icons, baseUrl = '', onClose,
   const L = { ...KR_UPDATE_DEFAULT_LABELS, ...(detail.labels ?? {}) };
   const commentMax = detail.commentMaxLength ?? DEFAULT_COMMENT_MAX;
   const loadHistory = detail.loadHistory;
+  const contribution = detail.contribution;
+  const [contribRows, setContribRows] = useState(() => contribution?.rows ?? []);
+  const canSubmit = !contribution || contribValid(contribRows);
 
   useEffect(() => {
     if (!loadHistory) return undefined;
@@ -78,10 +90,14 @@ export default function OkrKrUpdateModal({ detail, icons, baseUrl = '', onClose,
     : Math.min(Math.round((numeric / detail.total) * 100), 100);
 
   const confirm = async () => {
-    if (saving) return;
+    if (saving || !canSubmit) return;
     setSaving(true);
+    const changed = contribution && !sameAllocation(contribution.rows ?? [], contribRows);
     try {
-      await onConfirm?.(numeric, { comment: comment.trim() });
+      await onConfirm?.(numeric, {
+        comment: comment.trim(),
+        contributions: changed ? contribRows.map((r) => ({ id: r.id, pct: r.pct })) : undefined,
+      });
       onClose();
     } catch {
       // 실패했으면 닫지 않는다 — 입력값을 남겨 다시 누를 수 있게 한다.
@@ -104,7 +120,7 @@ export default function OkrKrUpdateModal({ detail, icons, baseUrl = '', onClose,
       closeLabel={L.close}
       cancelLabel={L.cancel}
       submitLabel={L.submit}
-      canSubmit
+      canSubmit={canSubmit}
       busy={saving}
       onClose={onClose}
       onSubmit={confirm}
@@ -155,6 +171,18 @@ export default function OkrKrUpdateModal({ detail, icons, baseUrl = '', onClose,
       </FormField>
 
       {detail.extra ?? null}
+
+      {contribution ? (
+        <OkrKrContribution
+          rows={contribRows}
+          candidates={contribution.candidates ?? []}
+          onChange={setContribRows}
+          labels={L}
+          icons={icons}
+          baseUrl={baseUrl}
+          disabled={saving}
+        />
+      ) : null}
 
       {detail.notifyManagerName ? (
         <NoticeCard data-testid="okr-kru-notify">
