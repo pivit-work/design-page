@@ -333,6 +333,10 @@ export default function TimelineCanvas({
     participants: ev.participants,
     typeLabel: ev.typeLabel,
     minutesLabel: ev.minutesLabel,
+    // 회의실 이름 · 반복 줄 (pivit-work PW-2637 · 정책서 §7.6 B · §7.8 C) — 넘기지 않아 호버 카드에 안 나왔다
+    roomHoverLabel: ev.roomHoverLabel,
+    roomGone: ev.roomGone === true,
+    recurrenceLabel: ev.recurrenceLabel,
   });
   const handleCalendarEventHover = (ev, rect) => {
     clearTimeout(hoverTimerRef.current);
@@ -349,6 +353,10 @@ export default function TimelineCanvas({
       participants: busy ? [] : meeting.participants,
       typeLabel: busy ? undefined : meeting.typeLabel,
       minutesLabel: busy ? undefined : meeting.minutesLabel,
+      // 간트 호버 카드도 캘린더와 같은 회의실 이름 · 반복 줄 (pivit-work PW-2637 · 정책서 §7.6 B · §7.8 C)
+      roomHoverLabel: busy ? undefined : meeting.roomHoverLabel,
+      roomGone: !busy && meeting.roomGone === true,
+      recurrenceLabel: busy ? undefined : meeting.repeatLabel || undefined,
     };
   };
   const handleMeetingHover = (meeting, rect) => {
