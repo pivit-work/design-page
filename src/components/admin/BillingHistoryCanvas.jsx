@@ -4,6 +4,7 @@ import ModalShell from '../shared/ModalShell.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
 import Stack from '../shared/Stack.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
+import { FileTextGlyph } from '../shared/lineIcons.jsx';
 import { BillingCard as Card, BillingBadge as Badge } from './kit/BillingSurface.jsx';
 
 // ─────────────────────────────────────────────────────────────
@@ -391,7 +392,7 @@ export default function BillingHistoryCanvas({
         <Card style={{ padding: 0, overflow: 'hidden' }}>
           {invoices.length === 0 ? (
             <div style={{ padding: 64, textAlign: 'center' }}>
-              <div style={{ fontSize: 36, marginBottom: 12 }}>🧾</div>
+              <div style={{ marginBottom: 'var(--spacing-lg)', color: 'var(--text-tertiary)' }}><FileTextGlyph size={36} /></div>
               <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>
                 {labels.emptyTitle}
               </div>

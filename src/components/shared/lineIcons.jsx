@@ -470,6 +470,16 @@ export function ChatGlyph(props) {
   );
 }
 
+/** 카드 — 결제수단(카드)이 없을 때의 빈 화면 (pivit-work PW-2735 · 이모지 «💳» 를 걷어냄). */
+export function CreditCardGlyph(props) {
+  return (
+    <LineSvg {...props}>
+      <rect x="2" y="5" width="20" height="14" rx="2" />
+      <path d="M2 10h20M6 15h4" />
+    </LineSvg>
+  );
+}
+
 /** 봉투 — 메일. */
 export function MailGlyph(props) {
   return (

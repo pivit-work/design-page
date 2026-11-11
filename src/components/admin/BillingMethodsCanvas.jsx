@@ -4,6 +4,7 @@ import Tooltip from '../shared/Tooltip.jsx';
 import { BillingCard as Card, BillingBadge as Badge } from './kit/BillingSurface.jsx';
 import Skeleton from '../shared/Skeleton.jsx';
 import Spinner from '../shared/Spinner.jsx';
+import { CreditCardGlyph } from '../shared/lineIcons.jsx';
 
 // ─────────────────────────────────────────────────────────────
 // 결제·구독 — 결제수단 관리 (BillingMethodsCanvas)  /admin/billing/methods
@@ -231,7 +232,7 @@ export default function BillingMethodsCanvas({
         ) : cards.length === 0 ? (
           /* 빈 상태 */
           <Card style={{ textAlign: 'center', padding: '48px 24px' }}>
-            <div style={{ fontSize: 40, marginBottom: 16 }}>💳</div>
+            <div style={{ marginBottom: 'var(--spacing-xl)', color: 'var(--text-tertiary)' }}><CreditCardGlyph size={40} /></div>
             <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{labels.emptyTitle}</div>
             <div style={{ fontSize: 13, color: T.sub, marginBottom: 20 }}>{labels.emptyDesc}</div>
             <Btn onClick={onAddCard} disabled={addBusy}>{labels.emptyAddCard}</Btn>
