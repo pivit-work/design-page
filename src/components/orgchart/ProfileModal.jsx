@@ -447,10 +447,12 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
             )}
             {/* 자리 — 회사가 정한 자리 한 줄(빌딩 · 층 · 책상 · 자리 유형). 이메일 바로 다음 · 본인 공개 «위치»보다 먼저 ·
                 전 역할 항상 공개 · 값이 없으면 줄 없음(PW-2600 · 조직도 screen-member.policy v1.25 §2-3 «자리 한 줄»).
-                모양은 아래 «위치» 줄과 같은 modal-location 줄이고 아이콘만 의자로 가른다(한 카드에 같은 아이콘 두 줄 금지). */}
+                모양은 아래 «위치» 줄과 같은 modal-location 줄이고 아이콘만 의자로 가른다(한 카드에 같은 아이콘 두 줄 금지).
+                누를 수 없는 글자이고, 마우스를 올리면 «자리» 툴팁만(screen-member.policy §4). 선 아이콘은 기본이
+                aria-hidden 이라 aria-label 만 주면 읽히지 않는다 — 이 아이콘은 줄의 이름이라 그림으로 드러낸다. */}
             {profile.seat && (
-              <div className="modal-location" data-testid="profile-seat">
-                <ChairGlyph size={16} aria-label={L('profile.seat')} />
+              <div className="modal-location" data-testid="profile-seat" title={L('profile.seat')}>
+                <ChairGlyph size={16} role="img" aria-hidden={false} aria-label={L('profile.seat')} />
                 <span>{profile.seat}</span>
               </div>
             )}
