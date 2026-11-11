@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef, Fragment } from 'react';
+import { useState, useMemo, useEffect, useLayoutEffect, useRef, Fragment } from 'react';
 import RetiringTag from './RetiringTag.jsx';
 import ChipFold from '../shared/ChipFold.jsx';
 import Chip from '../shared/Chip.jsx';
@@ -6,6 +6,7 @@ import StatusBadge from '../shared/StatusBadge.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import useDismissLayer from '../shared/useDismissLayer.js';
+import AnchoredLayer from '../shared/AnchoredLayer.jsx';
 import MeetingSyncToast from '../meetings/MeetingSyncToast.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Tabs from '../shared/Tabs.jsx';
@@ -2117,25 +2118,25 @@ function NineBoxAsideHead({ aside, L }) {
 }
 /** PW-1877 — 펼친 칸에 바로 보이는 이름 수. 넘는 사람은 「외 N명」으로 접힌다. */
 const NINE_BOX_NAME_PREVIEW = 5;
+/** PW-2691 — «외 N명» 작은 창 폭·목록 높이(커트 11-11 시안). */
+const NINE_BOX_POP_WIDTH = 280;
 /**
  * summary policy §9.F.4 9블록 한 칸 — 인원 수를 보이고, 누르면 이름 목록이 펼쳐진다.
- * 이름을 그리는 법(누를 수 있는 버튼인지)은 부르는 쪽이 `renderName` 으로 정한다.
+ * 칸 안 이름을 그리는 법(누를 수 있는 버튼인지)은 부르는 쪽이 `renderName` 으로 정한다.
  * PW-1877 — 한 칸에 수백 명이 들어와도 칸(과 같은 줄의 다른 칸)이 끝없이 늘지 않게,
- * 앞 NINE_BOX_NAME_PREVIEW 명만 보이고 나머지는 「외 N명」으로 접는다. 그걸 누르면
- * 위원 후보 고르기와 같은 모양의 검색 + 높이 제한 스크롤 목록으로 전원을 보인다.
+ * 앞 NINE_BOX_NAME_PREVIEW 명만 보이고 나머지는 「외 N명」으로 접는다.
+ * PW-2691(커트 11-11 시안) — 「외 N명」을 누르면 칸 안이 아니라 칸 아래 작은 창(`NineBoxCellPop`)에 전원이 뜬다.
+ * 칸 안에 검색칸·240px 목록을 펼치면 같은 줄 칸까지 빈 상자로 늘고, 좁은 칸에서 검색 안내가 잘렸다.
  */
-function NineBoxCellBody({ members, L, renderName, testId }) {
+function NineBoxCellBody({ members, L, renderName, onPick, title, testId }) {
   const [open, setOpen] = useState(false);
   const [showAll, setShowAll] = useState(false);
-  const [search, setSearch] = useState('');
+  const moreRef = useRef(null);
   if (members.length === 0) return <span className="evs-nb-empty-cell">—</span>;
-  const q = search.trim().toLowerCase();
-  const listed = q ? members.filter((m) => committeeCandidateMatches(m, q)) : members;
   const hidden = members.length - NINE_BOX_NAME_PREVIEW;
   const toggle = () => {
     setOpen((v) => !v);
     setShowAll(false);
-    setSearch('');
   };
   return (
     <>
@@ -2149,37 +2150,109 @@ function NineBoxCellBody({ members, L, renderName, testId }) {
         {fmt(L.nbCount, { n: members.length })}
         {open ? <ChevronUpIcon size={12} /> : <ChevronDownIcon size={12} />}
       </button>
-      {open && !showAll && members.slice(0, NINE_BOX_NAME_PREVIEW).map(renderName)}
-      {open && !showAll && hidden > 0 && (
+      {open && members.slice(0, NINE_BOX_NAME_PREVIEW).map(renderName)}
+      {open && hidden > 0 && (
         <button
           type="button"
+          ref={moreRef}
           className="evs-pr-showall evs-nb-more"
-          onClick={() => setShowAll(true)}
+          aria-expanded={showAll}
+          aria-haspopup="true"
+          onClick={() => setShowAll((v) => !v)}
           data-testid={testId ? `${testId}-more` : undefined}
         >
           {fmt(L.nbMore, { n: hidden })}
         </button>
       )}
       {open && showAll && (
-        <>
-          <input
-            className="evs-cw-create-input evs-cw-create-search evs-nb-search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={L.nbSearch}
-            aria-label={L.nbSearch}
-            data-testid={testId ? `${testId}-search` : undefined}
-          />
-          <div className="evs-nb-list" data-testid={testId ? `${testId}-list` : undefined}>
-            {listed.length === 0 ? (
-              <span className="evs-nb-empty-cell">{L.nbSearchEmpty}</span>
-            ) : (
-              listed.map(renderName)
-            )}
-          </div>
-        </>
+        <NineBoxCellPop
+          members={members}
+          L={L}
+          title={title}
+          anchorRef={moreRef}
+          onPick={onPick}
+          onClose={() => setShowAll(false)}
+          testId={testId}
+        />
       )}
     </>
+  );
+}
+
+/**
+ * PW-2691 — 9블록 한 칸의 전원 목록 작은 창. 칸 아래(모자라면 위)에 body 포털로 떠서 표 높이를 밀지 않는다.
+ * 면·줄은 디자이너 사람 고르기 펼친 목록(timeline.css `.tl-emp-search-menu`·`-item`·`-title`, stesslee 005d80ab),
+ * 검색칸은 같은 화면 승진 요청 목록과 같은 `SearchInput`. 바깥 누르기·Esc 로 닫힌다(`useDismissLayer`).
+ * `onPick` 이 있으면 줄을 눌러 그 사람을 고르고 창을 닫는다(경영진 대시보드 — 오른쪽 승진 요청을 그 사람으로 거름).
+ * 없으면 줄은 글만이다(캘리브레이션 워크스페이스 9블록 — 칸 안 이름도 누를 수 없는 글).
+ */
+function NineBoxCellPop({ members, L, title, anchorRef, onPick, onClose, testId }) {
+  const [search, setSearch] = useState('');
+  // 처음 열린 목록 높이를 붙들어 둔다 — 검색으로 줄이 줄어 창이 낮아지면 AnchoredLayer 가 다시 재며
+  // 위↔아래로 건너뛰고, 아래로 옮긴 뒤엔 남은 자리만큼 목록이 줄어든 채 남았다(PW-2691 로컬 확인 17).
+  const [listMinH, setListMinH] = useState(null);
+  const panelRef = useRef(null);
+  const listRef = useRef(null);
+  useDismissLayer(onClose, panelRef, anchorRef, true);
+  useLayoutEffect(() => {
+    if (listRef.current) setListMinH(listRef.current.offsetHeight);
+  }, []);
+  const q = search.trim().toLowerCase();
+  const listed = q ? members.filter((m) => committeeCandidateMatches(m, q)) : members;
+  const tid = (s) => (testId ? `${testId}-${s}` : undefined);
+  const rowBody = (m) => (
+    <>
+      <span className="evs-nb-pop-name">{m.name || m.memberId}</span>
+      {m.dept && <span className="tl-emp-search-title evs-nb-pop-dept">{m.dept}</span>}
+    </>
+  );
+  return (
+    <AnchoredLayer
+      anchorRef={anchorRef}
+      panelRef={panelRef}
+      width={NINE_BOX_POP_WIDTH}
+      className="evs-nb-pop"
+      role="group"
+      aria-label={title}
+      data-testid={tid('pop')}
+    >
+      <div className="evs-nb-pop-head">
+        <span className="evs-nb-pop-title" data-testid={tid('pop-title')}>{title}</span>
+        <span className="evs-nb-pop-count">{fmt(L.nbCount, { n: members.length })}</span>
+      </div>
+      <SearchInput
+        className="dp-search evs-nb-pop-search"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder={L.nbSearch}
+        aria-label={L.nbSearch}
+        autoFocus
+        data-testid={tid('search')}
+      />
+      <div
+        className="evs-nb-pop-list"
+        ref={listRef}
+        style={listMinH ? { minHeight: listMinH } : undefined}
+        data-testid={tid('list')}
+      >
+        {listed.length === 0 ? (
+          <span className="evs-nb-pop-empty">{L.nbSearchEmpty}</span>
+        ) : (
+          listed.map((m) => (onPick ? (
+            <button
+              type="button"
+              className="tl-emp-search-item"
+              key={m.memberId}
+              onClick={() => { onPick(m); onClose(); }}
+            >
+              {rowBody(m)}
+            </button>
+          ) : (
+            <div className="evs-nb-pop-row" key={m.memberId}>{rowBody(m)}</div>
+          )))
+        )}
+      </div>
+    </AnchoredLayer>
   );
 }
 
@@ -4169,6 +4242,8 @@ export default function EvalCycleSummaryCanvas({
                                         members={members}
                                         L={L}
                                         testId={`evs-nb-count-${y}-${x}`}
+                                        title={`${yLabel[y]} × ${xLabel[x]}`}
+                                        onPick={(m) => { setNbSelectedMember(m.memberId); if (onNineBoxNameClick) onNineBoxNameClick(m.memberId); }}
                                         renderName={(m) => (
                                           <button type="button" className="evs-nb-name" key={m.memberId} onClick={() => { setNbSelectedMember(m.memberId); if (onNineBoxNameClick) onNineBoxNameClick(m.memberId); }}>{m.name || m.memberId}</button>
                                         )}
@@ -4183,6 +4258,8 @@ export default function EvalCycleSummaryCanvas({
                                       members={nineBox.aside.rows[y] ?? []}
                                       L={L}
                                       testId={`evs-nb-count-aside-${y}`}
+                                      title={`${yLabel[y]} × ${nineBox.aside.kind === 'company_off' ? L.nbAsideCompanyOff : L.nbAsideLocked}`}
+                                      onPick={(m) => { setNbSelectedMember(m.memberId); if (onNineBoxNameClick) onNineBoxNameClick(m.memberId); }}
                                       renderName={(m) => (
                                         <button type="button" className="evs-nb-name" key={m.memberId} onClick={() => { setNbSelectedMember(m.memberId); if (onNineBoxNameClick) onNineBoxNameClick(m.memberId); }}>{m.name || m.memberId}</button>
                                       )}
@@ -4577,6 +4654,8 @@ export default function EvalCycleSummaryCanvas({
                                   <NineBoxCellBody
                                     members={members}
                                     L={L}
+                                    title={`${yLabel[y]} × ${xLabel[x]}`}
+                                    testId={`evs-cw-nb-count-${y}-${x}`}
                                     renderName={(m) => (
                                       <span
                                         className="evs-nb-name"
@@ -4594,6 +4673,7 @@ export default function EvalCycleSummaryCanvas({
                                 <NineBoxCellBody
                                   members={nineBox.aside.rows[y] ?? []}
                                   L={L}
+                                  title={`${yLabel[y]} × ${nineBox.aside.kind === 'company_off' ? L.nbAsideCompanyOff : L.nbAsideLocked}`}
                                   renderName={(m) => (
                                     <span className="evs-nb-name" key={m.memberId}>
                                       {m.name || m.memberId}
