@@ -1644,7 +1644,7 @@ input.mtg-record-action-title::placeholder {
 .mtg-rec-widget-name-row { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-primary); }
 /* 회의 이름이 길면 이름이 줄바꿈하고 «회의» 딱지는 한 줄로 남는다 — 둘이 폭을 나눠 가지면 딱지가 «회 / 의»로
    세로로 쪼개졌다(pivit-work PW-2501 7회차). */
-.mtg-rec-widget-name { flex: 1 1 auto; min-width: 0; }
+.mtg-rec-widget-name { flex: 0 1 auto; min-width: 0; }
 .mtg-rec-widget-name-row .mtg-rec-widget-tag { flex: none; white-space: nowrap; }
 .mtg-rec-widget-people { display: flex; flex-wrap: wrap; gap: var(--spacing-xs); font-size: 14px; font-weight: 400; line-height: 20px; color: var(--text-primary); }
 /* 참석자가 많으면(6명 등) 줄이 241px 폭을 넘는다. 줄바꿈 없이 두면 칸마다 줄어들어 한글 이름이 한 글자씩
