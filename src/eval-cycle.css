@@ -18319,3 +18319,15 @@ button.evmh-phase:focus-visible {
   max-width: 320px;
   field-sizing: content;
 }
+
+/* PW-2654 (11-11 dev 되돌림) — 평가 시안(eval-density-2026-11-08) «바꾼 뒤» 간격·줄 높이에 맞춘다.
+   카드 안쪽 24px·카드 사이 16px(.evc-card·.evc-list)은 OKR 화면 카드 언어라 그대로 둔다. */
+/* 하향 리뷰 최종 등급 버튼 사이 — 시안 .row gap 12 */
+.evlr-root .evl-grade-row { gap: var(--spacing-lg); }
+/* 하향 리뷰 안내 줄 — 줄 높이 1.6(RULES 3). 다른 평가 화면은 건드리지 않게 하향 리뷰 뿌리 아래로만. */
+.evlr-root .evl-self-pending { line-height: 1.6; }
+.evlr-root .evl-grade-caption { line-height: 1.6; }
+.evlr-root .evl-sec-note { line-height: 1.6; }
+/* 동료 리뷰어 확정 — 제목 아래 단계 문장(시안 margin-top 8 · 줄 높이 1.6), [전체 펼치기]·[전체 접기] 사이(시안 gap 8) */
+.evp-title + .evc-summary { margin-top: var(--spacing-md); line-height: 1.6; }
+.evp-toolbar { gap: var(--spacing-md); }
