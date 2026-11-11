@@ -6778,6 +6778,16 @@ button.evm-ai-source {
   line-height: var(--line-height-text-md);
   white-space: pre-wrap;
 }
+/* [PW-2686] «AI 요약으로만 공개» 항목 줄 머리 — 항목 이름 · AI 딱지(.ons-ai-tag) · 실명 작성자를 한 줄에. 만들지 못한 항목 글은 보조 회색. */
+.evr-peer-ai-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+.evr-answer-text.is-muted {
+  color: var(--text-tertiary);
+}
 
 /* [PW-1846] 성과 하이라이트 — 번호 원 + 답 글 + 출처 딱지 */
 .evr-highlights {
@@ -12686,6 +12696,26 @@ button.evm-ai-source {
 .evrr-refine-failed {
   flex: 1;
   min-width: 0;
+}
+/* [PW-2686] «AI 요약으로만 공개» 칸 — 톤 정제 칸(.evrr-refine)과 같은 판·카드. 머리 줄은 제목 + [요약 만들기] 오른쪽 끝.
+   요약 글 상자는 원온원 AI 읽기 상자(.ono-my-readbox.is-ai)이고, 미확인은 경고 노랑 · 확인은 성공 초록 바탕으로 가른다
+   (hr 정책 §9.2-A-1 «블록 상태» — 노랑·초록·빨강은 톤 정제 배지와 같은 뜻의 토큰). */
+.evrr-ais-head {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+.evrr-ais-head > .evrr-refine-who {
+  flex: 1;
+  min-width: 0;
+}
+.ono-my-readbox.evrr-refine-text.is-ai-draft {
+  background: var(--utility-warning-50);
+  border: 1px solid var(--utility-warning-200);
+}
+.ono-my-readbox.evrr-refine-text.is-ai-confirmed {
+  background: var(--utility-success-50);
+  border: 1px solid var(--utility-success-200);
 }
 .evrr-refine-edit {
   display: flex;

@@ -3,6 +3,7 @@ import Checkbox from '../shared/Checkbox.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Button from '../shared/Button.jsx';
 import AiMark from '../shared/AiMark.jsx';
+import MemberAiButton from '../oneonone/MemberAiButton.jsx';
 import Toast from '../shared/Toast.jsx';
 import EvalSendChannelModal from './EvalSendChannelModal.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
@@ -149,6 +150,30 @@ const DEFAULT_LABELS = {
   refineLoadError: '검수 목록을 불러오지 못했습니다.',
   /** 일괄 발송에서 막힌 사람이 빠졌을 때. §8.6 의 「미승인 N건은 제외됩니다」와 같은 꼴. */
   refineExcluded: '검수 미완 {count}명은 제외됩니다',
+  // PW-2686 — «AI 요약으로만 공개» 동료 항목 요약 (hr 정책 §9.2-A-1). 인사담당자만 만들고 확인한다.
+  /** PW-2686 — «AI 요약으로만 공개» 항목 답. 검수 잔여로 세지 않는다(hr §8.5 엣지). */
+  refineSummaryOnlyNote: '원문 비공개 — 요약으로만 실림',
+  aisMenu: 'AI 요약으로만 공개',
+  aisTitle: 'AI 요약으로만 공개',
+  aisMake: '요약 만들기',
+  aisNothingToMake: '만들 요약이 없습니다',
+  aisRemake: '다시 만들기',
+  aisConfirm: '확인',
+  aisTag: 'AI 요약 · 응답 {count}건',
+  aisDraftBadge: '미확인',
+  aisConfirmedBadge: '확인',
+  aisNone: '아직 요약을 만들지 않았습니다',
+  aisGenerating: '요약을 만드는 중입니다',
+  aisChanged: '동료 답이 바뀌어 요약을 다시 만들어야 합니다',
+  aisFailed: '요약을 만들지 못했습니다',
+  aisFailedNote: '이대로 보내면 피평가자에게 "요약을 생성하지 못해 이 항목은 공개되지 않았습니다"가 보입니다',
+  aisConfirmError: '확인하지 못했습니다. 다시 시도해 주세요.',
+  aisMakeError: '요약을 만들지 못했습니다. 다시 시도해 주세요.',
+  aisLoadError: 'AI 요약을 불러오지 못했습니다.',
+  /** 🔴 발송 버튼을 감추지 않고 그 자리에 띄운다(§9.2-A-1 «발송» · §8.5-B 와 같은 꼴). 누르면 그 칸이 열린다. */
+  aisBlocked: 'AI 요약 {count}건의 확인이 남았습니다',
+  aisExcluded: 'AI 요약 확인 미완 {count}명은 제외됩니다',
+  toastSkippedAiSummary: 'AI 요약 확인 미완 {count}명',
   // PW-978 — 대상자 탭에서 「제외됨」인 사람 (정책 §5.3.6 「발송하지 않는다 · `제외됨` 으로 표시」)
   statusExcluded: '제외됨',
   excludedNote: '대상자에서 제외된 {count}명은 발송하지 않습니다',
@@ -265,6 +290,221 @@ const REFINE_META = {
   needs_hr_review: { key: 'refineNeedsReview', cls: 'is-review' },
   failed: { key: 'refineFailed', cls: 'is-failed' },
 };
+
+/**
+ * PW-2686 — «AI 요약으로만 공개» 동료 항목 요약 칸 (hr 정책 §9.2-A-1).
+ *
+ * 피평가자에게는 그 항목 원문 대신 여기서 확인한 요약만 간다. 블록은 항목마다 하나 —
+ * 만들기 전 · 만드는 중 · 미확인(노랑) · 확인(초록) · 만들지 못함(빨강) · 답이 바뀜. 직접 고치기는 없다.
+ * 생김새는 톤 정제 칸(`RefinementPanel`)과 같은 판·카드이고, 요약 글은 원온원 AI 읽기 상자다.
+ * [요약 만들기]는 디자이너 1on1 AI 버튼(`MemberAiButton`)을 «AI» 글자 없이 쓴다 — 버튼 글은 기획서 그대로.
+ */
+function AiSummaryPanel({ memberId, L, load, onGenerate, onConfirm }) {
+  const [review, setReview] = useState(null);
+  const [error, setError] = useState(null);
+  const [notice, setNotice] = useState(null);
+  /** 지금 만드는 블록 — 서버 답이 올 때까지 «만드는 중»으로 그린다. */
+  const [making, setMaking] = useState(() => new Set());
+  const [confirming, setConfirming] = useState(null);
+
+  useEffect(() => {
+    let alive = true;
+    Promise.resolve(load(memberId))
+      .then((r) => {
+        if (alive) setReview(r);
+      })
+      .catch(() => {
+        if (alive) setError(L.aisLoadError);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [memberId, load, L.aisLoadError]);
+
+  const errorLine = (text) => (
+    <p className="evl-lcp-line is-error evrr-refine-error" role="alert">
+      <AlertIcon size={16} />
+      <span className="evl-lcp-line-text">{text}</span>
+    </p>
+  );
+  if (error && !review) {
+    return (
+      <div className="evrr-refine" data-testid={`evrr-ais-${memberId}`}>
+        {errorLine(error)}
+      </div>
+    );
+  }
+  if (!review) return null;
+  const locked = review.reportSent === true;
+  const stateOf = (b) => (making.has(b.templateItemId) ? 'generating' : b.state);
+  const toMake = review.blocks
+    .filter((b) => b.state === 'none' || b.state === 'changed')
+    .map((b) => b.templateItemId);
+  const busy = making.size > 0 || confirming != null;
+
+  const generate = async (itemIds) => {
+    const ids = itemIds ?? toMake;
+    setMaking(new Set(ids));
+    setError(null);
+    setNotice(null);
+    try {
+      const next = await onGenerate(memberId, itemIds);
+      // 체험·유료 AI 한도 — AI 를 부르지 않았다. 블록은 그대로 두고 결제 안내만 띄운다(§9.4).
+      if (next?.notice) setNotice(next.notice);
+      else if (next) {
+        setReview(next);
+        // 미확인·확인 블록을 다시 만들다 실패하면 직전 글이 그대로 와서 블록만으로는 실패가 안 보인다(§9.2-A-1).
+        const failed = new Set(next.failedItemIds ?? []);
+        if (next.blocks.some((b) => failed.has(b.templateItemId) && b.state !== 'failed')) {
+          setError(L.aisMakeError);
+        }
+      }
+    } catch {
+      setError(L.aisMakeError);
+    } finally {
+      setMaking(new Set());
+    }
+  };
+  const confirm = async (itemId) => {
+    setConfirming(itemId);
+    setError(null);
+    try {
+      const next = await onConfirm(memberId, itemId);
+      if (next) setReview(next);
+    } catch {
+      setError(L.aisConfirmError);
+    } finally {
+      setConfirming(null);
+    }
+  };
+
+  return (
+    <div className="evrr-refine" data-testid={`evrr-ais-${memberId}`}>
+      <div className="evrr-ais-head">
+        <span className="evrr-refine-who">{L.aisTitle}</span>
+        <span title={toMake.length === 0 || locked ? L.aisNothingToMake : undefined}>
+          <MemberAiButton
+            label={L.aisMake}
+            aiWord={false}
+            disabled={toMake.length === 0 || locked || busy}
+            pending={making.size > 0 && toMake.every((id) => making.has(id)) && toMake.length > 0}
+            onClick={() => generate(undefined)}
+            testId={`evrr-ais-make-${memberId}`}
+          />
+        </span>
+      </div>
+      {locked && (
+        <p className="evrr-refine-note" data-testid={`evrr-ais-sent-${memberId}`}>
+          {L.refineSentLocked}
+        </p>
+      )}
+      {error && errorLine(error)}
+      {notice && <div data-testid={`evrr-ais-notice-${memberId}`}>{notice}</div>}
+      {review.blocks.map((b) => {
+        const st = stateOf(b);
+        const shown = st === 'draft' || st === 'confirmed';
+        const rowBusy = locked || busy;
+        return (
+          <section
+            className="evrr-refine-item"
+            key={b.templateItemId}
+            data-testid={`evrr-ais-block-${b.templateItemId}`}
+            data-state={st}
+          >
+            <header className="evrr-refine-head">
+              <span className="evrr-refine-who">{b.itemLabel}</span>
+              {shown && (
+                <StatusBadge className="ons-ai-tag evr-my-ai-tag" data-testid={`evrr-ais-tag-${b.templateItemId}`}>
+                  <AiMark size={12} />
+                  <span>{L.aisTag.replace('{count}', String(b.responseCount))}</span>
+                </StatusBadge>
+              )}
+              {shown && b.authorNames.length > 0 && (
+                <span className="evrr-refine-q" data-testid={`evrr-ais-authors-${b.templateItemId}`}>
+                  {b.authorNames.join(' · ')}
+                </span>
+              )}
+              {st === 'draft' && (
+                <StatusBadge tone="warning" data-testid={`evrr-ais-draft-${b.templateItemId}`}>
+                  {L.aisDraftBadge}
+                </StatusBadge>
+              )}
+              {st === 'confirmed' && (
+                <StatusBadge tone="success" data-testid={`evrr-ais-confirmed-${b.templateItemId}`}>
+                  {L.aisConfirmedBadge}
+                </StatusBadge>
+              )}
+            </header>
+
+            {shown && (
+              <p
+                className={`ono-my-readbox evrr-refine-text ${st === 'draft' ? 'is-ai-draft' : 'is-ai-confirmed'}`}
+                data-testid={`evrr-ais-text-${b.templateItemId}`}
+              >
+                {b.summary}
+              </p>
+            )}
+            {st === 'none' && (
+              <p className="evl-lcp-line is-muted">
+                <InfoIcon size={16} />
+                <span className="evl-lcp-line-text">{L.aisNone}</span>
+              </p>
+            )}
+            {st === 'generating' && (
+              <p className="evl-lcp-line is-muted" aria-busy="true" data-testid={`evrr-ais-generating-${b.templateItemId}`}>
+                <Spinner size={16} />
+                <span className="evl-lcp-line-text">{L.aisGenerating}</span>
+              </p>
+            )}
+            {st === 'changed' && (
+              <p className="evl-lcp-line is-warn" data-testid={`evrr-ais-changed-${b.templateItemId}`}>
+                <AlertIcon size={16} />
+                <span className="evl-lcp-line-text">{L.aisChanged}</span>
+              </p>
+            )}
+            {st === 'failed' && (
+              <>
+                <p className="evl-lcp-line is-error" data-testid={`evrr-ais-failed-${b.templateItemId}`}>
+                  <AlertIcon size={16} />
+                  <span className="evl-lcp-line-text">{L.aisFailed}</span>
+                </p>
+                <p className="evrr-refine-note">{L.aisFailedNote}</p>
+              </>
+            )}
+
+            {(st === 'draft' || st === 'confirmed' || st === 'failed' || st === 'changed') && (
+              <div className="evl-lcp-foot">
+                <div className="evl-lcp-actions">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={rowBusy}
+                    onClick={() => generate([b.templateItemId])}
+                    data-testid={`evrr-ais-remake-${b.templateItemId}`}
+                  >
+                    {L.aisRemake}
+                  </Button>
+                  {st === 'draft' && (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      disabled={rowBusy}
+                      pending={confirming === b.templateItemId}
+                      onClick={() => confirm(b.templateItemId)}
+                      data-testid={`evrr-ais-confirm-${b.templateItemId}`}
+                    >
+                      {L.aisConfirm}
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+          </section>
+        );
+      })}
+    </div>
+  );
+}
 
 /**
  * PW-863 — 그 사람 줄을 펼쳐 «이 사람 리포트에만» 들어갈 항목을 켜고 끈다 (정책 §8.3).
@@ -478,6 +718,14 @@ function RefinementPanel({ memberId, L, load, onDecide, onRetry }) {
                 </div>
               </div>
 
+              {item.summaryOnly && (
+                <p
+                  className="evrr-refine-note"
+                  data-testid={`evrr-refine-summary-only-${item.answerId}`}
+                >
+                  {L.refineSummaryOnlyNote}
+                </p>
+              )}
               {item.hiddenFromEvaluatee && (
                 <p
                   className="evrr-refine-note"
@@ -913,6 +1161,7 @@ function ReviewRow({
   canEditSections,
   onToggleSection,
   refinement,
+  aiSummaries,
   canReject,
   onAskReject,
   onRegenerate,
@@ -934,6 +1183,7 @@ function ReviewRow({
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
   const [refineOpen, setRefineOpen] = useState(false);
+  const [aisOpen, setAisOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [approveAsk, setApproveAsk] = useState(false);
   const [approveError, setApproveError] = useState(false);
@@ -990,7 +1240,10 @@ function ReviewRow({
       setRegenBusy(false);
     }
   };
-  const blocked = unresolved > 0;
+  // PW-2686 — «AI 요약으로만 공개» 블록 확인이 남아도 «보내기»가 막힌다. 수는 서버가 센 값 그대로(§9.2-A-1).
+  const aiPending = row.pendingAiSummaries ?? 0;
+  const aiTargets = row.aiSummaryTargets ?? 0;
+  const blocked = unresolved > 0 || aiPending > 0;
 
   const goalLines = parseGoals(goalsText);
   const goalsInvalid =
@@ -1050,6 +1303,12 @@ function ReviewRow({
       label: L.refineMenu,
       onClick: () => setRefineOpen((v) => !v),
       testId: `evrr-refine-toggle-${row.memberId}`,
+    },
+    aiSummaries && aiTargets > 0 && !excluded && {
+      key: 'ais',
+      label: L.aisMenu,
+      onClick: () => setAisOpen((v) => !v),
+      testId: `evrr-ais-toggle-${row.memberId}`,
     },
     goalsMode && {
       key: 'goals',
@@ -1147,7 +1406,7 @@ function ReviewRow({
               data-testid={`evrr-refine-badge-${row.memberId}`}>
               {refineText}
             </StatusBadge>
-            {blocked && refinement && (
+            {unresolved > 0 && refinement && (
               <button
                 type="button"
                 className="evrr-refine-link"
@@ -1158,8 +1417,18 @@ function ReviewRow({
               </button>
             )}
           </>
-        ) : (
+        ) : aiPending === 0 || !aiSummaries ? (
           <span className="evrr-muted">—</span>
+        ) : null}
+        {aiPending > 0 && aiSummaries && !excluded && (
+          <button
+            type="button"
+            className="evrr-refine-link"
+            onClick={() => setAisOpen(true)}
+            data-testid={`evrr-ais-blocked-${row.memberId}`}
+          >
+            {L.aisBlocked.replace('{count}', String(aiPending))}
+          </button>
         )}
       </div>
       <div className="evrr-cell evrr-status-cell">
@@ -1311,6 +1580,15 @@ function ReviewRow({
         onToggleSection={onToggleSection}
       />
     )}
+    {aisOpen && aiSummaries && (
+      <AiSummaryPanel
+        memberId={row.memberId}
+        L={L}
+        load={aiSummaries.load}
+        onGenerate={aiSummaries.generate}
+        onConfirm={aiSummaries.confirm}
+      />
+    )}
     {refineOpen && refinement && (
       <RefinementPanel
         memberId={row.memberId}
@@ -1378,6 +1656,12 @@ export default function EvalReportReviewCanvas({
    * 안 주면 검수 칸을 그리지 않으므로 기존 시각은 그대로다.
    */
   refinement = null,
+  /**
+   * PW-2686 — «AI 요약으로만 공개» 항목 요약 `{ load(memberId), generate(memberId, itemIds?), confirm(memberId, itemId) }`.
+   * 인사담당자만 넘긴다(hr §9.2-A-1 — 조직장 리포트 검수에는 이 칸이 없다). 안 넘기면 칸·메뉴·막힘 링크를 그리지 않는다.
+   * `generate` 가 `{ notice }` 를 돌려주면 AI 를 부르지 않은 까닭(체험·유료 AI 소진) 안내를 칸 안에 띄운다.
+   */
+  aiSummaries = null,
   /**
    * PW-1228 — 발송 채널 선택 (정책 §8.3·§8.4). `{ options: [{ id, label, locked? }], defaults }`.
    * 주면 [발송]을 누를 때 채널 창을 먼저 띄우고 `onSend(ids, channels)` 로 넘긴다.
@@ -1479,10 +1763,13 @@ export default function EvalReportReviewCanvas({
   const approvedRows = q.rows.filter(
     (r) => r.status === 'hr_approved' && !excludedIds.has(r.memberId),
   );
-  const approvedIds = approvedRows
-    .filter((r) => (r.unresolvedPeerRefinements ?? 0) === 0)
+  const refinedRows = approvedRows.filter((r) => (r.unresolvedPeerRefinements ?? 0) === 0);
+  const excludedCount = approvedRows.length - refinedRows.length;
+  // PW-2686 — «AI 요약으로만 공개» 블록 확인이 남은 사람은 따로 센다(서버 `aiSummaryBlocked` 와 같은 순서 · §9.2-A-1).
+  const approvedIds = refinedRows
+    .filter((r) => (r.pendingAiSummaries ?? 0) === 0)
     .map((r) => r.memberId);
-  const excludedCount = approvedRows.length - approvedIds.length;
+  const aiExcludedCount = refinedRows.length - approvedIds.length;
   // PW-1839 — HR 승인 전인 줄 전부(리더 작성 중·본부장 승인 대기·HR 검수 대기). 발송에서 빠진다.
   const c = q.counts ?? {};
   const notYetApproved =
@@ -1615,7 +1902,9 @@ export default function EvalReportReviewCanvas({
     // 「보냈다」 토스트가 실제로 나간 사람 수와 맞는다.
     const blockedIds = new Set(
       q.rows
-        .filter((r) => (r.unresolvedPeerRefinements ?? 0) > 0)
+        .filter(
+          (r) => (r.unresolvedPeerRefinements ?? 0) > 0 || (r.pendingAiSummaries ?? 0) > 0,
+        )
         .map((r) => r.memberId),
     );
     const ids = rawIds.filter((id) => !blockedIds.has(id) && !excludedIds.has(id));
@@ -1642,6 +1931,9 @@ export default function EvalReportReviewCanvas({
         // PW-1458 — 그 사이 반려되는 등 승인이 풀린 사람은 서버가 뺀다(§8.6 「미승인 N건은 제외됩니다」).
         if (result.notApproved > 0) {
           parts.push(L.toastSkippedNotApproved.replace('{count}', String(result.notApproved)));
+        }
+        if (result.aiSummaryBlocked > 0) {
+          parts.push(L.toastSkippedAiSummary.replace('{count}', String(result.aiSummaryBlocked)));
         }
         showToast(parts.join(' · '));
         setFailedIds(Array.isArray(result.failedMemberIds) ? result.failedMemberIds : []);
@@ -1834,6 +2126,13 @@ export default function EvalReportReviewCanvas({
           </p>
         )}
 
+        {q.canSend && aiExcludedCount > 0 && (
+          <p className="evrr-alert" data-testid="evrr-ais-excluded">
+            <AlertGlyph />
+            <span className="evrr-alert-text">{L.aisExcluded.replace('{count}', String(aiExcludedCount))}</span>
+          </p>
+        )}
+
         {q.canSend && excludedIds.size > 0 && (
           <p className="evc-empty-sub" data-testid="evrr-excluded-note">
             {L.excludedNote.replace('{count}', String(excludedIds.size))}
@@ -1928,6 +2227,7 @@ export default function EvalReportReviewCanvas({
                 canEditSections={q.canEditSections === true}
                 onToggleSection={onToggleSection}
                 refinement={refinement}
+                aiSummaries={aiSummaries}
                 canReject={canReject}
                 onAskReject={onReject ? askReject : null}
                 onRegenerate={onRegenerate ? handleRegenerate : null}

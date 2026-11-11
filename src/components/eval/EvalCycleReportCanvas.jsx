@@ -75,6 +75,9 @@ const DEFAULT_LABELS = {
   peerAuthorAnon: '동료 (익명)',
   /** PW-1458 — 응답 인원이 공개 기준 미만이라 뺀 동료 항목이 있을 때 (정책 §12). */
   peerBelowMin: '응답 인원이 공개 기준 미만입니다',
+  // PW-2686 — «AI 요약으로만 공개» 항목 블록(member §7.5-A). 딱지 문구는 hr §9.2-A «데이터 소스 배지» 그대로(✨ 대신 AI 표시).
+  peerAiSummaryTag: 'AI 요약 · 응답 {count}건',
+  peerAiSummaryFailed: '요약을 생성하지 못해 이 항목은 공개되지 않았습니다',
   growthTitle: '성장 영역 & 개선',
   nextGoalsTitle: '다음 분기 목표 제안',
   highlightsTitle: '성과 하이라이트',
@@ -160,7 +163,7 @@ function groupLeaderRounds(answers) {
     .map(([round, list]) => ({ round, answers: list }));
 }
 
-function AnswerList({ answers, L }) {
+function AnswerList({ answers, L, after = null }) {
   return (
     <div className="evr-answers evr-my-qa">
       {answers.map((a) => (
@@ -182,8 +185,40 @@ function AnswerList({ answers, L }) {
           {a.textAnswer ? <p className="evr-answer-text">{a.textAnswer}</p> : null}
         </div>
       ))}
+      {after}
     </div>
   );
+}
+
+/**
+ * PW-2686 — «AI 요약으로만 공개» 동료 항목은 원문 대신 인사담당자가 확인한 요약 한 편(member §7.5-A).
+ * 원문 답 목록 아래에 같은 줄 모양으로 잇는다. 머리: 항목 이름 · AI 딱지(«AI 요약 · 응답 N건») · 실명이면 작성자 이름.
+ * 만들지 못한 항목은 딱지 없이 «요약을 생성하지 못해 이 항목은 공개되지 않았습니다». 확인된 것만 오므로 노랑·초록 바탕은 없다.
+ */
+function PeerAiSummaryRows({ items, L }) {
+  return items.map((s, i) => (
+    <div className="evr-answer" key={`${s.itemLabel}-${i}`} data-testid="evr-peer-ai-summary">
+      <span className="evc-field-label evr-peer-ai-head">
+        <span>{s.itemLabel}</span>
+        {s.summary != null && (
+          <StatusBadge className="ons-ai-tag evr-my-ai-tag" data-testid="evr-peer-ai-tag">
+            <AiMark size={12} />
+            <span>{L.peerAiSummaryTag.replace('{count}', String(s.responseCount))}</span>
+          </StatusBadge>
+        )}
+        {s.summary != null && (s.authorNames ?? []).length > 0 && (
+          <span data-testid="evr-peer-ai-authors">{s.authorNames.join(' · ')}</span>
+        )}
+      </span>
+      {s.summary != null ? (
+        <p className="evr-answer-text">{s.summary}</p>
+      ) : (
+        <p className="evr-answer-text is-muted" data-testid="evr-peer-ai-failed">
+          {L.peerAiSummaryFailed}
+        </p>
+      )}
+    </div>
+  ));
 }
 
 // ── 자기평가 갭: 셀프 vs 평가 점수 카테고리 비교 ──
@@ -447,6 +482,11 @@ export default function EvalCycleReportCanvas({
    * 「응답 인원이 공개 기준 미만입니다」를 띄운다 — 답이 하나도 안 남아도 칸을 그린다.
    */
   peerBelowDisclosureMin = false,
+  /**
+   * PW-2686 — «AI 요약으로만 공개» 동료 항목 블록(평가지 차례) — `{ itemLabel, summary, responseCount, authorNames }`.
+   * `summary` 가 null 이면 «만들지 못함» 안내. 원문 답 목록 아래에 잇는다(member §7.5-A).
+   */
+  peerAiSummaries = [],
   selfGap = [],
   insight = null,
   highlights = [],
@@ -564,7 +604,7 @@ export default function EvalCycleReportCanvas({
 
         <SelfGap rows={selfGap} L={L} />
 
-        {on('peer') && (peerAnswers.length > 0 || peerBelowDisclosureMin) && (
+        {on('peer') && (peerAnswers.length > 0 || peerAiSummaries.length > 0 || peerBelowDisclosureMin) && (
           <section className="evc-card">
             <h3 className="evc-card-name">{L.peerTitle}</h3>
             {peerBelowDisclosureMin && (
@@ -572,7 +612,13 @@ export default function EvalCycleReportCanvas({
                 {L.peerBelowMin}
               </p>
             )}
-            {peerAnswers.length > 0 && <AnswerList answers={peerAnswers} L={L} />}
+            {(peerAnswers.length > 0 || peerAiSummaries.length > 0) && (
+              <AnswerList
+                answers={peerAnswers}
+                L={L}
+                after={peerAiSummaries.length > 0 ? <PeerAiSummaryRows items={peerAiSummaries} L={L} /> : null}
+              />
+            )}
           </section>
         )}
 
