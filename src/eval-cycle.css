@@ -15168,9 +15168,19 @@ button.evmh-phase:focus-visible {
   flex: none;
   white-space: nowrap;
 }
+/* 아이콘을 글 줄 안에 두어 둘째 줄이 아이콘 밑부터 시작한다 — 남는 폭 130 에 «✓ 다듬은 문구를 썼습니다»(128) ·
+   «· 이어서 고칠 수 있습니다»(119) 두 줄로 들어간다(11-12 앱 글꼴로 잼). */
 .evrr-approve-field .ono-my-field-done {
+  display: block;
   min-width: 0;
   white-space: normal;
+}
+.evrr-approve-field .ono-my-field-done > svg {
+  vertical-align: middle;
+  margin-right: var(--spacing-xs);
+}
+.evl-lc-used-part {
+  white-space: nowrap;
 }
 .evrr-approve-field .ono-my-field-head > .dp-tip-wrap,
 .evrr-approve-field .ono-my-field-head > .ono-my-ai-btn,

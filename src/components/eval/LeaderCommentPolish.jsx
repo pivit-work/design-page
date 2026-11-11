@@ -43,10 +43,18 @@ export function LeaderCommentPolishButton({ polish, L, testId }) {
 
 /** 이름표 바로 옆 «✓ 다듬은 문구를 썼습니다 · 이어서 고칠 수 있습니다». 칸을 다시 고치면 부르는 쪽이 끈다. */
 export function LeaderCommentPolishUsed({ L, testId }) {
+  // 좁은 칸(승인 창)에서는 «·» 앞뒤에서만 줄을 바꾼다 — 덩이마다 줄바꿈하지 않는다(eval-cycle.css .evl-lc-used-part).
+  const [head, ...rest] = L.polishUsed.split(' · ');
   return (
     <span className="ono-my-field-done" data-testid={`${testId}-polish-used`}>
       <CheckCircleIcon size={14} />
-      {L.polishUsed}
+      <span className="evl-lc-used-part">{head}</span>
+      {rest.length > 0 && (
+        <>
+          {' '}
+          <span className="evl-lc-used-part">· {rest.join(' · ')}</span>
+        </>
+      )}
     </span>
   );
 }
