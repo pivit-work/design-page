@@ -10200,7 +10200,7 @@ button.evm-ai-source {
 .evs-cw-pick-trigger.dp-btn .dp-btn__label { justify-content: space-between; gap: var(--spacing-md); width: 100%; min-width: 0; }
 .evs-cw-pick-trigger.is-open { border-color: var(--border-brand); }
 .evs-cw-pick-count { flex: 0 0 auto; font-size: var(--font-size-text-xs); color: var(--text-tertiary); }
-.evs-cw-pick-menu .evc-pick-list { max-height: 240px; }
+.evs-cw-pick-menu .evs-cw-pick-list { max-height: 240px; }
 .evs-cw-pick-n { flex: 0 0 auto; font-size: var(--font-size-text-xs); font-weight: 400; color: var(--text-tertiary); }
 /* PW-1874 — 저장한 필터가 늘어나도 그 줄 안에서만 스크롤한다(높이는 대상자 칩 묶음과 같은 값). */
 .evs-cw-filter-presets {

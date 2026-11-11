@@ -1031,7 +1031,7 @@ function ChipDropdown({ items, keyOf, textOf, isOn, onToggle, onClear, name, ton
               data-testid="evs-cw-chip-search"
             />
           </label>
-          <div className="evc-pick-list" role="listbox" aria-multiselectable="true" aria-label={name}>
+          <div className="evc-pick-list evs-cw-pick-list" role="listbox" aria-multiselectable="true" aria-label={name}>
             {shownPicked.length > 0 && (
               <>
                 <div className="dp-search-select-group" role="presentation">
