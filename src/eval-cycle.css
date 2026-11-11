@@ -201,22 +201,15 @@
   box-shadow:
     0 1px 3px rgba(10, 13, 18, 0.1),
     0 1px 2px rgba(10, 13, 18, 0.06);
-  transition:
-    box-shadow 0.2s ease,
-    border-color 0.2s ease;
 }
+/* 올렸을 때 모양은 두지 않는다 — 평가 카드는 눌러도 아무 일 없는 덩어리라, 테두리·그림자가 생기면 누를 수 있는 것처럼
+   보였다(PW-2700 사이클 관리 «전체 완료율»). 카드 자체를 누르게 만들 때는 그 카드 클래스에 hover 를 따로 둔다. */
 /* 목록 칸(.evc-list) 없이 화면에 바로 쌓인 덩어리끼리도 목록 안과 같은 간격을 둔다 —
    팀 캘리브레이션 화면은 안내 카드와 결과 카드가 0px 로 맞닿아 있었고, 동료 리뷰어 확정은
    안내 줄과 빈 상태가, 사이클 관리는 잠금 안내와 본문이 맞닿아 있었다 (PW-1652). */
 .evc-root > :is(.evc-card, .evx-notice, .evc-list, .evc-empty, .evc-loading)
   + :is(.evc-card, .evx-notice, .evc-list, .evc-empty, .evc-loading) {
   margin-top: var(--spacing-xl);
-}
-.evc-card:hover {
-  border-color: var(--border-primary);
-  box-shadow:
-    0 4px 12px rgba(10, 13, 18, 0.1),
-    0 2px 4px rgba(10, 13, 18, 0.06);
 }
 .evc-card-top {
   display: flex;
@@ -5471,9 +5464,6 @@ button.evm-ai-source {
   border-radius: var(--radius-lg);
   box-shadow: none;
 }
-.evc-card.evs-ov-card:hover {
-  box-shadow: none;
-}
 .evs-ov-card .evc-card-name {
   line-height: var(--line-height-text-md);
   color: var(--fg-primary);
@@ -6055,9 +6045,6 @@ button.evm-ai-source {
 .evs-re .evc-card {
   background: var(--bg-quaternary);
   border-radius: var(--radius-lg);
-  box-shadow: none;
-}
-.evs-re .evc-card:hover {
   box-shadow: none;
 }
 .evs-re .evc-card-name {
@@ -14656,8 +14643,7 @@ button.evmh-phase:focus-visible {
   color: var(--text-subtle);
 }
 /* 사이클 카드 — 떠 있는 그림자 없이 평평한 흰 카드(디자이너 카드 언어: 테두리만 · 매니저 대시보드 카드). */
-.evc-card.evmh-cycle,
-.evc-card.evmh-cycle:hover {
+.evc-card.evmh-cycle {
   box-shadow: none;
   border-color: var(--border-secondary);
   gap: var(--spacing-xl);
@@ -15515,7 +15501,6 @@ button.evmh-phase:focus-visible {
   padding: var(--spacing-2xl) var(--spacing-3xl);
   box-shadow: none;
 }
-.evr-my .evc-card:hover { border-color: var(--border-secondary); box-shadow: none; }
 .evr-my .evc-card-name {
   font-size: var(--font-size-text-md);
   line-height: var(--line-height-text-md);
@@ -15952,7 +15937,6 @@ button.evmh-phase:focus-visible {
   padding: var(--spacing-2xl) var(--spacing-3xl);
   box-shadow: none;
 }
-.evpn-my .evc-card.evpn-pick-card:hover { border-color: var(--border-secondary); box-shadow: none; }
 .evpn-my .evpn-pick-card .evc-card-name { color: var(--fg-primary); }
 .evpn-my .evpn-counter { margin: 0; }
 .evpn-my .evpn-count { font-size: 13px; }
@@ -17976,10 +17960,6 @@ button.evmh-phase:focus-visible {
   background: var(--bg-quaternary);
   box-shadow: none;
 }
-.evc-card.evc-cycle-card:hover {
-  border-color: var(--border-primary);
-  box-shadow: none;
-}
 .evc-cycle-card .evc-card-top {
   gap: var(--spacing-xxs);
 }
@@ -18111,9 +18091,6 @@ button.evmh-phase:focus-visible {
   background: var(--bg-quaternary);
   box-shadow: none;
   padding: var(--spacing-2xl) var(--spacing-3xl);
-}
-.evmg-root .evc-card:hover {
-  box-shadow: none;
 }
 /* 진행 현황 버튼 줄 — «회수할 수 없습니다» 안내가 왼쪽에서 남은 폭을 쓰고, 버튼은 오른쪽 끝 */
 .evmg-root .evmon-embedded-actions.has-note {
