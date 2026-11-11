@@ -227,9 +227,10 @@ export default function SquadFormCard({
             <div className="sq-field-label">{L('squad.effectiveDate.label')}</div>
             <DateInput readOnly={readOnly}
               value={form.effectiveDate} max={today} aria-label={L('squad.effectiveDate.label')}
-              className="sq-field"
+              className={`sq-field${errors.effectiveDate ? ' is-invalid' : ''}`}
               onChange={(v) => setForm((f) => ({ ...f, effectiveDate: clampToToday(v, today) }))}
             />
+            {errors.effectiveDate && <div className="sq-field-error">{errors.effectiveDate}</div>}
           </div>
         )}
       </div>

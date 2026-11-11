@@ -7,7 +7,7 @@
  *
  * 콜백은 저장 결과를 돌려준다 — `{ ok: true }` 또는 `{ ok: false, field?, message? }`.
  * `field` 가 있으면 그 칸 아래에 문구를 단다(입력은 그대로 둔다). 토스트·다시 불러오기는 호스트 몫이다.
- *   field: 'levels'(층 수) · 'levelNames.{0|1}'(층 이름) · 'name' · 'color' · 'headUserId' · 'parentId'
+ *   field: 'levels'(층 수) · 'levelNames.{0|1}'(층 이름) · 'name' · 'color' · 'headUserId' · 'parentId' · 'effectiveDate'(적용일 칸 아래 — 어느 저장이든)
  *   `fields` 에 층 이름 칸이 둘이면(겹친 이름) 두 칸 모두에 문구를 달고, 어느 한 칸을 고치면 둘 다 지운다.
  *
  * 층 번호는 아래에서부터 센다 — `levelNames[0]` = 아래 층(스쿼드가 속함) · `[1]` = 위 층. 화면은 위 층부터 적는다.
@@ -70,6 +70,8 @@ export default function SquadGroupPanel({
   const [edit, setEdit] = useState(null); // { mode, id?, level, name, color, headUserId, parentId }
   const [editErr, setEditErr] = useState({});
   const [delAsk, setDelAsk] = useState(null);
+  // 적용일 칸 아래 문구(pivit-work PW-2697) — 그날 아직 없던 계층·트라이브를 가리키는 등 적용일이 틀린 저장은 어느 자리에서 눌렀든 여기 단다
+  const [dateErr, setDateErr] = useState('');
   // 층 이름 칸은 저장된 이름에서 시작한다 — 저장된 이름이 바뀌면 여는 쪽이 `key` 로 패널을 새로 그린다
 
   const lv = (i) => levelNames[i] || '';
@@ -79,9 +81,12 @@ export default function SquadGroupPanel({
 
   const run = async (key, fn, onFail) => {
     setBusy(key);
+    setDateErr('');
     try {
       const res = (await fn()) || { ok: true };
-      if (!res.ok) onFail?.(res);
+      const onDate = !res.ok && (res.field === 'effectiveDate' || (res.fields || []).includes('effectiveDate'));
+      if (onDate) setDateErr(res.message || '');
+      else if (!res.ok) onFail?.(res);
       return res;
     } finally {
       setBusy(null);
@@ -248,13 +253,14 @@ export default function SquadGroupPanel({
           <div className="sq-group-level-input">
             <DateInput
               value={effectiveDate} max={today} aria-label={L('squad.effectiveDate.label')}
-              className="sq-field"
-              onChange={(v) => setEffectiveDate(clampToToday(v, today))}
+              className={`sq-field${dateErr ? ' is-invalid' : ''}`}
+              onChange={(v) => { setDateErr(''); setEffectiveDate(clampToToday(v, today)); }}
             />
           </div>
           <span className="sq-form-note">{L('squad.groups.effectiveDateNote')}</span>
         </div>
       )}
+      {dateErr && <div className="sq-field-error" role="alert" data-testid="squad-group-effective-date-error">{dateErr}</div>}
 
       <div className="sq-group-levels">
         <span className="sq-field-label">{L('squad.groups.levels')}</span>
