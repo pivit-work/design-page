@@ -24,6 +24,7 @@ import LoadingState from '../shared/LoadingState.jsx';
 import Spinner from '../shared/Spinner.jsx';
 import { readCsvFileText } from '../shared/csvFileText.js';
 import Select from '../shared/Select.jsx';
+import Button from '../shared/Button.jsx';
 
 /**
  * AdminInviteModal — 구성원 초대 발송 모달.
@@ -71,6 +72,8 @@ const DEFAULT_LABELS = {
   seatsActiveOf: '활성 좌석 {n}/{limit}',
   seatsActiveUnknown: '활성 좌석 —',
   seatsUnknown: '좌석 정보를 불러오지 못했어요',
+  // 좌석 조회가 아직 안 끝났을 때 — «못 불러왔어요»와 가른다(pivit-work PW-2695)
+  seatsLoading: '활성 좌석 확인 중',
   // 좌석은 수락 시점에 증가한다 — 반드시 미래형(§4-4).
   seatsWillGrow: '초대 시 {n}명 증가',
   seatShort: '남은 좌석 {left}석 — {need}명을 초대하려면 플랜을 변경해야 합니다.',
@@ -114,7 +117,10 @@ const DEFAULT_LABELS = {
   jobCategory: '직종',
   employmentType: '고용형태',
   unset: '미지정',
-  optionsEmpty: '옵션 없음 — 조직 설정에서 추가',
+  // 빈 칸 글은 짧게, 어느 칸이 비었는지·어디서 추가하는지는 창 위 안내 한 줄에 한 번만 (pivit-work PW-2695 —
+  // 칸마다 긴 글이 잘리고 [조직 설정] 이 여섯 번 반복됐다)
+  optionsEmptyShort: '옵션 없음',
+  optionsEmptyNotice: '{fields} 칸은 옵션이 없습니다 — 조직 설정에서 추가',
   // 선택지 조회가 실패했을 때 — 「옵션 없음」과 가른다. 그 칸만 막고 창은 그대로 쓴다(§3)
   optionsLoadFailed: '옵션을 불러오지 못했어요',
   goFieldOptions: '조직 설정',
@@ -355,7 +361,7 @@ const EXTRA_KEYS = ['jobRank', 'jobCategory', 'nickname', 'employeeCode', 'manag
  */
 function OptionSelect({
   id, label, value, onChange, options, labels, disabled, placeholder,
-  loadFailed = false, onRetry, onGoSettings,
+  loadFailed = false, onRetry,
 }) {
   const list = Array.isArray(options) ? options.filter(Boolean) : [];
   /* 비어 있는 것과 못 불러온 것을 가른다(§3) — 둘 다 「옵션 없음」이면 어드민이 조직 설정에 가서
@@ -364,7 +370,7 @@ function OptionSelect({
   // 고정 4종 고용형태도 앱이 같은 조회로 받는다 — 못 받았으면 «미지정»만 남기지 않고 실패를 말한다
   const failed = (!placeholder || placeholder === labels.unset) && list.length === 0 && loadFailed;
   const empty = !placeholder && list.length === 0 && !loadFailed;
-  const blankText = failed ? labels.optionsLoadFailed : placeholder || (empty ? labels.optionsEmpty : labels.unset);
+  const blankText = failed ? labels.optionsLoadFailed : placeholder || (empty ? labels.optionsEmptyShort : labels.unset);
   return (
     <label className="admin-inv-field">
       <span className="admin-inv-label" id={`${id}-label`}>{label}</span>
@@ -387,12 +393,6 @@ function OptionSelect({
       {failed && onRetry && (
         <button type="button" className="admin-emp-btn is-ghost is-sm" data-testid={`${id}-retry`} onClick={onRetry}>
           {labels.retry}
-        </button>
-      )}
-      {empty && onGoSettings && (
-        <button type="button" className="admin-emp-btn is-ghost is-sm" data-testid={`${id}-go-settings`} onClick={onGoSettings}>
-          {labels.goFieldOptions}
-          <IconChevronRight size={14} />
         </button>
       )}
     </label>
@@ -649,6 +649,12 @@ export default function AdminInviteModal({
    * `active`(활성 좌석)가 있으면 머리글이 `활성 좌석 N/상한`, 없으면(옛 호스트) `남은 좌석 N석`.
    */
   seats = null,
+  /**
+   * 좌석 조회가 아직 끝나지 않았나 — true 이고 `seats === null` 이면 머리글을 «활성 좌석 확인 중»으로 쓴다.
+   * 주지 않으면 `seats === null` 은 종전대로 «못 불러왔어요»다(pivit-work PW-2695 — 조회 전에 창을 열면
+   * 실패로 보였다).
+   */
+  seatsLoading = false,
   /**
    * true 면 좌석 상한이 있을 때만 머리글 좌석 요약을 그린다 — 상한이 없거나(`seats.limit === null`)
    * 못 불러왔으면(`seats === null`) 요약 줄을 빼고 그리지 않는다. 회원가입 «구성원 초대» CSV 창이 켠다
@@ -1268,7 +1274,9 @@ export default function AdminInviteModal({
   const showSeatSummary = !seatSummaryLimitedOnly || (seats !== null && seats.limit !== null);
   const seatSummary =
     seats === null
-      ? `${labels.seatsActiveUnknown} · ${labels.seatsUnknown}`
+      ? seatsLoading
+        ? labels.seatsLoading
+        : `${labels.seatsActiveUnknown} · ${labels.seatsUnknown}`
       : typeof seats.active === 'number'
         ? seats.limit === null
           ? fmt(labels.seatsActive, { n: seats.active })
@@ -1277,12 +1285,35 @@ export default function AdminInviteModal({
           ? labels.seatsUnlimited
           : fmt(labels.seatsLeft, { n: seats.remaining });
 
-  /* 선택 칸 공통 — 못 불러왔으면 [다시 시도], 비었으면 [조직 설정 →] (§2-2 · §3). */
+  /* 선택 칸 공통 — 못 불러왔으면 [다시 시도] (§3). 비었으면 칸은 «옵션 없음»만 쓰고 [조직 설정 →] 은
+     아래 `emptyFieldNames` 안내 줄에 한 번만 둔다(§2-2 · pivit-work PW-2695). */
   const optionState = {
     loadFailed: fieldOptionsFailed,
     onRetry: onRetryFieldOptions,
-    onGoSettings: onOpenFieldOptions,
   };
+
+  /* 옵션이 0개인 칸 이름 — 칸마다 [조직 설정 →] 을 붙이지 않고 창 위 안내 한 줄에 모은다(§2-2 · E20 ·
+     pivit-work PW-2695). 직렬·직무는 위 칸이 고른 값에 따라 비므로 사람 카드·일괄 지정 바마다 본다 —
+     잠긴 칸(위 칸을 아직 안 고름)은 «먼저 선택하세요»를 말하므로 세지 않는다. 못 불러왔으면 [다시 시도] 가
+     말하므로 빈 칸으로 세지 않는다. */
+  const emptyFieldNames = (() => {
+    if (isCsv || fieldOptionsFailed) return [];
+    const blank = (list) => !Array.isArray(list) || list.filter(Boolean).length === 0;
+    const people = rows.length >= 2 ? [...rows, bulk] : rows;
+    const keys = [];
+    const add = (k, isEmpty) => { if (isEmpty) keys.push(k); };
+    add('jobLevel', blank(fieldOptions.jobLevel));
+    add('jobPosition', blank(fieldOptions.jobPosition));
+    add('jobFamily', blank(fieldOptions.jobFamily));
+    add('jobTitle', people.some((v) => !ladderLocked(laddersByFamily, v.jobFamily)
+      && blank(laddersForFamily(laddersByFamily, v.jobFamily, fieldOptions.jobTitle))));
+    add('jobDuty', people.some((v) => !ladderLocked(dutiesByLadder, v.jobTitle)
+      && blank(laddersForFamily(dutiesByLadder, v.jobTitle, fieldOptions.jobDuty))));
+    add('workLocation', blank(fieldOptions.workLocation));
+    add('jobRank', blank(fieldOptions.jobRank));
+    if (jobCategoryEnabled) add('jobCategory', blank(fieldOptions.jobCategory));
+    return keys.map((k) => labels[k]);
+  })();
 
   /* 직군 › 직렬 › 직무 3단 — 직렬은 직군에, 직무는 직렬에 매달린다(INV-3 · INV-8).
      위 칸을 고르기 전에는 아래 칸을 잠그고 그 칸에서 이유를 말한다. */
@@ -1459,7 +1490,7 @@ export default function AdminInviteModal({
         </div>
         )}
 
-        {(seatShort || seatNone || contractOverMax || banner) && (
+        {(seatShort || seatNone || contractOverMax || banner || emptyFieldNames.length > 0) && (
           <div className="admin-inv-banners">
             {seatNone && (
               <div className="admin-inv-banner is-error" role="alert" data-testid="admin-invite-seat-none">
@@ -1498,6 +1529,17 @@ export default function AdminInviteModal({
               <div className="admin-inv-banner is-error" role="alert">
                 <IconAlert size={16} />
                 <span>{banner}</span>
+              </div>
+            )}
+            {emptyFieldNames.length > 0 && (
+              <div className="admin-inv-banner is-neutral" role="status" data-testid="admin-invite-options-empty">
+                <span>{fmt(labels.optionsEmptyNotice, { fields: emptyFieldNames.join('·') })}</span>
+                {onOpenFieldOptions && (
+                  <Button variant="ghost" size="sm" data-testid="admin-invite-go-settings" onClick={onOpenFieldOptions}>
+                    {labels.goFieldOptions}
+                    <IconChevronRight size={14} />
+                  </Button>
+                )}
               </div>
             )}
           </div>

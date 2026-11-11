@@ -6477,6 +6477,8 @@ export default function AdminEmployeesCanvas({
   onSendInvites,
   /** `{ limit, remaining }` — null 이면 좌석 조회 실패(발송은 허용, 서버가 최종 방어) */
   seats = null,
+  /** 좌석 조회가 아직 안 끝났나 — 초대 창 머리글이 «확인 중»과 «못 불러왔어요»를 가른다(pivit-work PW-2695) */
+  seatsLoading = false,
   /** `{ jobLevel: [], jobFamily: [], jobTitle: [], workLocation: [] }` — `jobTitle` 은 **직렬** */
   fieldOptions,
   /**
@@ -7101,6 +7103,7 @@ export default function AdminEmployeesCanvas({
             return inv ? onResendInvite(inv.id) : Promise.reject(new Error('no pending invite'));
           } : undefined}
           seats={seats}
+          seatsLoading={seatsLoading}
           contract={contract}
           fieldOptions={{
             jobLevel: gradeOptions ?? [],

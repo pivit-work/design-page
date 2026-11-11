@@ -3574,6 +3574,11 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
   color: var(--text-error-primary);
 }
 .admin-inv-banner > span { flex: 1; min-width: 0; }
+/* 중립 안내 — 경고가 아닌 알림(옵션이 빈 칸 · pivit-work PW-2695). 디자이너 `.login-notice` 의 옅은 회색 바탕·보조 글 짝 */
+.admin-inv-banner.is-neutral {
+  background: var(--componentColors-alpha-alphaBlack3);
+  color: var(--text-secondary);
+}
 
 /* ── 일괄 지정 바 ── */
 .admin-inv-bulk {
