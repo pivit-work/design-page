@@ -2071,7 +2071,7 @@ function AppointmentHistoryView({
                     onClick={() => { setRevision(null); setSelected(rec); }}
                   >
                     <RosterTable.Cell className="admin-snap-hist-date">
-                      {rec.date ?? '-'}
+                      {rec.date ?? '—'}
                       {rec.scheduled && (
                         <StatusBadge className="admin-snap-type-badge is-gray admin-snap-sched-badge">{labels.historyScheduled}</StatusBadge>
                       )}
@@ -2093,11 +2093,16 @@ function AppointmentHistoryView({
                         </StatusBadge>
                       )}
                     </RosterTable.Cell>
-                    <RosterTable.Cell className="admin-snap-hist-name">{rec.name ?? '-'}</RosterTable.Cell>
+                    <RosterTable.Cell className="admin-snap-hist-name">{rec.name ?? '—'}</RosterTable.Cell>
                     <RosterTable.Cell>
-                      <StatusBadge className={`admin-snap-type-badge is-${TYPE_TONE[rec.typeKey] ?? 'gray'}`}>
-                        {rec.typeKey ? (labels.typeLabels[rec.typeKey] ?? rec.typeKey) : '-'}
-                      </StatusBadge>
+                      {/* «수정» 줄(유형 없음)은 발령 유형 자리가 배지 없는 «—» 하나다 (org-snapshot-spec §6-3 R6 · 시안 admin-app.jsx «r.kind === "correction"») */}
+                      {rec.typeKey ? (
+                        <StatusBadge className={`admin-snap-type-badge is-${TYPE_TONE[rec.typeKey] ?? 'gray'}`}>
+                          {labels.typeLabels[rec.typeKey] ?? rec.typeKey}
+                        </StatusBadge>
+                      ) : (
+                        <span className="admin-snap-hist-type-empty" data-testid={`snap-hist-type-empty-${rec.id}`}>—</span>
+                      )}
                       {/* 승인이 끝난 상태 — «거절» · «승인 없이 확정» · «취소»(회색 · 정책 §3) */}
                       {rec.approvalOutcome && (
                         <StatusBadge
@@ -2111,7 +2116,7 @@ function AppointmentHistoryView({
                     <RosterTable.Cell className={`admin-snap-hist-mode${rec.mode === 'bulk' ? ' is-bulk' : ''}`}>
                       {modeLabel(rec.mode)}
                     </RosterTable.Cell>
-                    <RosterTable.Cell className="admin-snap-hist-mode">{rec.by ?? '-'}</RosterTable.Cell>
+                    <RosterTable.Cell className="admin-snap-hist-mode">{rec.by ?? '—'}</RosterTable.Cell>
                     <RosterTable.Cell>
                       {rec.scheduled && rec.reservation && onOpenReservation && (
                         <>
@@ -2159,7 +2164,7 @@ function AppointmentHistoryView({
                   <span className="admin-snap-mono">{selected.date}</span>
                   {selected.scheduled && <> {labels.historyScheduled}</>}
                   {' · '}
-                  {selected.typeKey ? (labels.typeLabels[selected.typeKey] ?? selected.typeKey) : '-'}
+                  {selected.typeKey ? (labels.typeLabels[selected.typeKey] ?? selected.typeKey) : '—'}
                 </div>
               </div>
               <button type="button" className="admin-snap-hist-panel-close" onClick={() => setSelected(null)}>×</button>
@@ -2287,8 +2292,8 @@ function AppointmentHistoryView({
                     {revision.changes.map((ch, i) => (
                       <RosterTable.Row key={i}>
                         <RosterTable.Cell className="admin-snap-ba-field">{ch.unit}</RosterTable.Cell>
-                        <RosterTable.Cell className="admin-snap-ba-before">{ch.before || '-'}</RosterTable.Cell>
-                        <RosterTable.Cell className="admin-snap-ba-after">{ch.after || '-'}</RosterTable.Cell>
+                        <RosterTable.Cell className="admin-snap-ba-before">{ch.before || '—'}</RosterTable.Cell>
+                        <RosterTable.Cell className="admin-snap-ba-after">{ch.after || '—'}</RosterTable.Cell>
                       </RosterTable.Row>
                     ))}
                   </RosterTable.Body>
@@ -2330,8 +2335,8 @@ function StructureRevisionTable({ revisions, error, selectedVersion, labels, onO
               data-testid={`snap-revision-row-${rev.version}`}
             >
               <RosterTable.Cell className="admin-snap-hist-name">#{rev.version}</RosterTable.Cell>
-              <RosterTable.Cell className="admin-snap-hist-date">{rev.savedAt ?? '-'}</RosterTable.Cell>
-              <RosterTable.Cell className="admin-snap-hist-mode">{rev.savedBy ?? '-'}</RosterTable.Cell>
+              <RosterTable.Cell className="admin-snap-hist-date">{rev.savedAt ?? '—'}</RosterTable.Cell>
+              <RosterTable.Cell className="admin-snap-hist-mode">{rev.savedBy ?? '—'}</RosterTable.Cell>
               <RosterTable.Cell className="admin-snap-hist-mode">{rev.changedUnits}</RosterTable.Cell>
               <RosterTable.Cell><span className="admin-snap-hist-detaillink">{labels.historyDetail} ▸</span></RosterTable.Cell>
             </RosterTable.Row>

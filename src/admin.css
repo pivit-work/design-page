@@ -3037,6 +3037,8 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
 .admin-snap-hist-date { font-family: var(--font-family-body); color: var(--text-secondary); }
 .admin-snap-hist-name { font-weight: 700; color: var(--text-primary); }
 .admin-snap-hist-mode { color: var(--text-secondary); }
+/* «수정» 줄의 발령 유형 자리 — 배지 없는 «—» (시안 admin-app.jsx: fontSize 12 · muted 글자) */
+.admin-snap-hist-type-empty { color: var(--text-secondary); }
 .admin-snap-hist-mode.is-bulk { color: var(--colors-warning-600, #dc6803); }
 .admin-snap-hist-detaillink {
   display: inline-flex; align-items: center; gap: 2px;
