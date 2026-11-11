@@ -18294,8 +18294,15 @@ button.evmh-phase:focus-visible {
 /* PW-2683-W3-END */
 
 /* PW-2683 (11-11 dev 되돌림) — 2단계 새 항목 줄 첫 칸(분류 이름)이 100px 라 «성과 (What)»이 «성과 (What» 로
-   잘렸다. 기본 이름은 한국어 두 글자로 줄였고, 사람이 지은 이름(한글 8자 안팎)도 다 보이게 160px 로 넓힌다.
+   잘렸다. 기본 이름은 한국어 두 글자로 줄였고, 첫 칸은 160px 부터 글자 폭에 맞춰 늘린다.
    만들기 창 2단계에만 건다 — 칸 순서(분류 · 질문 · 유형 · 추가)는 그대로. */
 .evc-wiz-panel.is-tpl-form .evc-tpl-additem {
-  grid-template-columns: 160px 1fr 96px auto;
+  grid-template-columns: auto 1fr 96px auto;
+}
+/* 글자 폭에 맞춰 늘어난다(160~320px) — 한글 10자 «리더십·커뮤니케이션»도 다 보인다. field-sizing 을 모르는
+   브라우저는 160px 그대로(질문 칸은 남은 폭을 가진다). */
+.evc-wiz-panel.is-tpl-form .evc-tpl-additem > .evc-input:first-child {
+  min-width: 160px;
+  max-width: 320px;
+  field-sizing: content;
 }
