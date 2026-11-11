@@ -12301,6 +12301,11 @@ button.evm-ai-source {
   max-width: calc(100vw - 48px);
   max-height: calc(100vh - 48px);
 }
+/* [PW-2698] 반려·대상 제외 창 — 틀(폭 520·[취소]/[확인] 반반)은 그대로, 높이만 칸에 맞춰 늘린다 */
+.tl-group-modal.evc-fit-shell {
+  height: auto;
+  max-height: calc(100vh - 48px);
+}
 .tl-group-modal.evc-shell.is-wide {
   width: 640px;
 }

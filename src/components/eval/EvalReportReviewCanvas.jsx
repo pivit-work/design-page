@@ -1689,8 +1689,8 @@ export default function EvalReportReviewCanvas({
             rejectAsk.name || rejectAsk.memberId,
           )}
           titleId="evrr-reject-modal-title"
-          // [PW-2698] 승인 창과 같은 틀 — 높이를 칸에 맞춰 늘린다(.tl-group-modal 고정 428 이면 원온원 칸 146 이 버튼 줄과 겹친다)
-          className="evc-shell"
+          // [PW-2698] 높이만 칸에 맞춰 늘린다(.tl-group-modal 고정 428 이면 원온원 칸 146 이 버튼 줄과 겹친다). [취소]/[확인] 폭은 틀 그대로
+          className="evc-fit-shell"
           submitLabel={rejectKind === 'exec' ? L.execReject : L.rejectSubmit}
           cancelLabel={L.rejectCancel}
           closeLabel={L.rejectClose}
