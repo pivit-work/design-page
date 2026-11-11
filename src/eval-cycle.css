@@ -1792,7 +1792,11 @@
   padding: var(--spacing-2xl) var(--spacing-3xl);
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-3xl);
+  gap: calc(var(--spacing-2xl) + var(--spacing-xxs));
+}
+/* «언제 · 어느 채널로» 제목 → 칸 8(RULES 3) — JSX 의 Stack gap-sm(6) 을 이 창에서만 덮는다. */
+.evc-rm-panel-body > .dp-stack.evc-rm-dsec {
+  gap: var(--spacing-md);
 }
 .evc-rm-panel-body .evc-rm-dsec-title {
   font-size: var(--font-size-text-sm);
@@ -1883,7 +1887,7 @@
   border-radius: var(--radius-sm);
   font-size: var(--font-size-text-xs);
   color: var(--text-primary);
-  line-height: 1.7;
+  line-height: 1.6;
 }
 .evc-rm-preview-cta {
   margin-top: var(--spacing-xs);
@@ -11413,7 +11417,7 @@ button.evm-ai-source {
 .evc-rm-sample {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-md);
   margin-top: var(--spacing-md);
 }
 .evc-rm-sample-head {
@@ -13797,19 +13801,20 @@ button.evmh-phase:focus-visible {
   font-weight: 400;
 }
 /* 3단계 단계 카드 안 — 시작·종료 일시, 리마인더, 적용 템플릿도 같은 간격(이름표–칸 12px, 칸–칸 24px). */
+/* PW-2646: 제목 줄→일시 10 · 이름표→칸 8 · 칸↔화살표 8 · 카드 안 줄 사이 16(시안 hr-wiz-schedule). */
 .evc-wiz-panel.is-form .evc-sched-fields {
-  column-gap: 17px;
-  margin-top: var(--spacing-lg);
+  column-gap: var(--spacing-md);
+  margin-top: calc(var(--spacing-md) + var(--spacing-xxs));
 }
 .evc-wiz-panel.is-form .evc-sched-field {
-  gap: var(--spacing-lg);
+  gap: var(--spacing-md);
 }
 .evc-wiz-panel.is-form .evc-rm-block {
-  margin-top: var(--spacing-lg);
-  padding-top: var(--spacing-lg);
+  margin-top: var(--spacing-xl);
+  padding-top: var(--spacing-xl);
 }
 .evc-wiz-panel.is-form .evc-rm-head {
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: calc(var(--spacing-md) + var(--spacing-xxs));
 }
 .evc-wiz-panel.is-form .evc-sched-tpl > * {
   margin-top: 0;
@@ -13817,9 +13822,9 @@ button.evmh-phase:focus-visible {
 .evc-wiz-panel.is-form .evc-sched-tpl {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-lg);
-  margin-top: var(--spacing-lg);
-  padding-top: var(--spacing-lg);
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-xl);
+  padding-top: var(--spacing-xl);
 }
 .evc-wiz-panel.is-form > .evc-input:focus,
 .evc-wiz-panel.is-form .evc-field-grid .evc-input:focus,
@@ -16467,7 +16472,7 @@ button.evmh-phase:focus-visible {
 .tl-group-modal.evc-wiz-shell > .tl-group-modal-top {
   position: absolute;
   top: var(--spacing-3xl);
-  right: var(--spacing-4xl);
+  right: var(--spacing-3xl);
   z-index: 2;
   padding: 0;
 }
@@ -16479,7 +16484,7 @@ button.evmh-phase:focus-visible {
 }
 .tl-group-modal.evc-wiz-shell .evc-wiz-shell-content > .tl-group-modal-header {
   flex-shrink: 0;
-  padding: var(--spacing-3xl) calc(var(--spacing-4xl) * 2 + var(--spacing-3xl)) 0 var(--spacing-4xl);
+  padding: var(--spacing-3xl) calc(var(--spacing-4xl) * 2 + var(--spacing-3xl)) 0 var(--spacing-3xl);
 }
 .tl-group-modal.evc-wiz-shell .evc-wiz-shell-content .tl-group-modal-title {
   display: flex;
@@ -16500,7 +16505,7 @@ button.evmh-phase:focus-visible {
 /* 이어서 작성 안내 — 제목 바로 아래 회색 한 줄(시안 .m-draft). 실패 띠는 빨간 글씨 그대로. */
 .tl-group-modal.evc-shell.evc-wiz-shell .evc-wiz-shell-frame > .evc-wiz-draft-banner {
   flex-shrink: 0;
-  margin: var(--spacing-sm) var(--spacing-4xl) 0;
+  margin: var(--spacing-sm) var(--spacing-3xl) 0;
   font-size: 13px;
   line-height: var(--line-height-text-xs);
 }
@@ -16516,7 +16521,7 @@ button.evmh-phase:focus-visible {
   align-items: stretch;
   gap: var(--spacing-xs);
   margin-top: var(--spacing-2xl);
-  padding: 0 var(--spacing-4xl);
+  padding: 0 var(--spacing-3xl);
   border-bottom: 1px solid var(--border-secondary);
 }
 .tl-group-modal.evc-wiz-shell .evc-wiz-steps > .evc-wiz-step,
@@ -16583,12 +16588,12 @@ button.evmh-phase:focus-visible {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: var(--spacing-2xl) var(--spacing-4xl) var(--spacing-3xl);
+  padding: var(--spacing-2xl) var(--spacing-3xl);
 }
 /* 바닥 줄 — 이전 · (막힌 이유) · 저장 상태 · 임시저장 · 다음 */
 .tl-group-modal.evc-shell.evc-wiz-shell .evc-wiz-footer {
   align-items: center;
-  padding: var(--spacing-lg) var(--spacing-4xl);
+  padding: var(--spacing-lg) var(--spacing-3xl);
   border-top: 1px solid var(--border-secondary);
 }
 .tl-group-modal.evc-wiz-shell .evc-wiz-footer .evc-wiz-draft-state:not(.is-error) {
@@ -16609,13 +16614,14 @@ button.evmh-phase:focus-visible {
   flex-direction: column;
   gap: var(--spacing-xl);
   min-width: 0;
-  padding: var(--spacing-lg) var(--spacing-xl) var(--spacing-xl);
+  padding: var(--spacing-xl) var(--spacing-2xl) var(--spacing-2xl);
   border: 1px solid var(--border-secondary);
   border-radius: var(--radius-lg);
   background: var(--bg-quaternary);
 }
+/* 제목 → 내용 10px — 카드 줄 사이(16)보다 붙인다(RULES 3 제목→내용 8~10). */
 .evc-wiz-card-title {
-  margin: 0;
+  margin: 0 0 calc(-1 * var(--spacing-sm));
   font-size: 15px;
   font-weight: 700;
   line-height: 22px;
@@ -16628,10 +16634,10 @@ button.evmh-phase:focus-visible {
   gap: var(--spacing-md);
   min-width: 0;
 }
-/* 카드가 놓이는 단계는 카드 사이 20px(시안 .m-body gap). */
+/* 카드가 놓이는 단계는 카드 사이 22px(RULES 3 덩어리 사이). */
 .evc-wiz-panel.is-form:has(> .evc-wiz-card),
 .evc-wiz-panel.is-tpl-form {
-  gap: var(--spacing-2xl);
+  gap: calc(var(--spacing-2xl) + var(--spacing-xxs));
 }
 /* 카드 안 이름표 — 12px 굵게, 이름표 ↔ 칸 8px(시안 .lbl · .fld). */
 .evc-wiz-panel .evc-wiz-card .evc-field-label {
@@ -16667,6 +16673,20 @@ button.evmh-phase:focus-visible {
   display: flex;
   margin: 0 0 var(--spacing-md);
 }
+/* 카드에 바로 놓인 이름표(«템플릿 이름»·«버전 프리셋»·«저장된 템플릿에서 시작») → 칸 8px — 카드 줄 사이(16)를 그만큼 당긴다. */
+.evc-wiz-panel .evc-wiz-card > .evc-field-label,
+.evc-wiz-panel .evc-wiz-card > .evc-tpl-start-head {
+  margin-bottom: calc(-1 * var(--spacing-md));
+}
+/* 카드 제목 줄(2단계 «이 템플릿의 평가 유형»·«등급 체계»·«평가 항목») → 내용 10px. */
+.evc-wiz-panel .evc-wiz-card > .evc-wiz-card-head:first-child,
+.evc-wiz-panel .evc-wiz-card > .evc-tpl-items-head:first-child {
+  margin-bottom: calc(-1 * var(--spacing-sm));
+}
+/* 1단계 «협업 기록이 적을 때» 아래 안내 — 위 칸에 붙여 10px. */
+.evc-wiz-panel .evc-wiz-card > .evc-field-note {
+  margin-top: calc(-1 * var(--spacing-sm));
+}
 /* 1단계 이름 칸 — 패널 바로 아래가 아니게 되어 회색 칸 규칙을 다시 건다(날짜 칸과 같은 값). */
 .evc-wiz-panel.is-form .evc-wiz-field > .evc-input {
   min-height: 40px;
@@ -16692,7 +16712,7 @@ button.evmh-phase:focus-visible {
 }
 /* AI 로 초안 만들기 · 불러오기 — 카드 위 오른쪽(시안 .start). 종전의 점선·아래 여백은 걷는다. */
 .evc-wiz-panel .evc-wiz-start-actions {
-  margin: 0 0 calc(-1 * var(--spacing-md));
+  margin: 0;
   padding: 0;
   border: 0;
 }
@@ -16750,8 +16770,8 @@ button.evmh-phase:focus-visible {
 /* ── 2단계 «지금 편집 중» 줄 — 창 폭 끝까지, 본문 맨 위에 붙는다(시안 .editing). 관리 탭은 종전 상자 그대로. ── */
 .tl-group-modal.evc-shell.evc-wiz-shell .evc-wiz-panel.is-tpl-form > .evc-tpl-ctxbar {
   top: calc(-1 * var(--spacing-2xl));
-  margin: calc(-1 * var(--spacing-2xl)) calc(-1 * var(--spacing-4xl)) 0;
-  padding: var(--spacing-lg) var(--spacing-4xl);
+  margin: calc(-1 * var(--spacing-2xl)) calc(-1 * var(--spacing-3xl)) 0;
+  padding: var(--spacing-lg) var(--spacing-3xl);
   border: 0;
   border-bottom: 1px solid var(--border-secondary);
   border-radius: 0;
@@ -16773,13 +16793,13 @@ button.evmh-phase:focus-visible {
 
 /* ── 2단계 «이 사이클에 적용할 템플릿» 카드 ── */
 .evc-wiz-panel .evc-tpl-confirm.evc-wiz-card {
-  gap: var(--spacing-sm);
+  gap: var(--spacing-md);
   margin: 0;
-  padding: var(--spacing-lg) var(--spacing-xl) var(--spacing-xl);
+  padding: var(--spacing-xl) var(--spacing-2xl) var(--spacing-2xl);
   background: var(--bg-quaternary);
 }
 .evc-wiz-panel .evc-tpl-confirm.evc-wiz-card > .evc-tpl-confirm-head {
-  margin-bottom: var(--spacing-sm);
+  margin-bottom: var(--spacing-xxs);
 }
 .evc-wiz-panel .evc-wiz-card .evc-tpl-confirm-row {
   gap: var(--spacing-md);
@@ -16829,6 +16849,7 @@ button.evmh-phase:focus-visible {
 }
 .evc-wiz-panel.is-tpl-form .evc-tpl-start-card {
   gap: var(--spacing-xs);
+  padding: var(--spacing-xl) var(--spacing-2xl);
   background: var(--bg-quaternary);
 }
 .evc-wiz-panel.is-tpl-form .evc-tpl-start-card-actions {
@@ -16862,14 +16883,21 @@ button.evmh-phase:focus-visible {
 .evc-wiz-panel.is-tpl-form .evc-tpl-preset-desc {
   color: var(--text-subtle);
 }
-/* 평가 항목 카드 머리 · 저장 줄 — 카드 안이라 위 여백을 걷는다. */
+/* 카드 안 줄은 카드 gap(16) 하나로 띄운다 — 위아래 여백을 걷는다. */
 .evc-wiz-panel .evc-wiz-card > .evc-tpl-items-head,
 .evc-wiz-panel .evc-wiz-card > .evc-tpl-start-head,
-.evc-wiz-panel .evc-wiz-card > .evc-tpl-lib {
+.evc-wiz-panel .evc-wiz-card > .evc-tpl-lib,
+.evc-wiz-panel .evc-wiz-card > .evc-tpl-grades,
+.evc-wiz-panel .evc-wiz-card > .evc-tpl-grade-foot,
+.evc-wiz-panel .evc-wiz-card > .evc-tpl-role-head {
   margin-top: 0;
 }
+.evc-wiz-panel .evc-wiz-card > .evc-tpl-items,
+.evc-wiz-panel .evc-wiz-card > .evc-tpl-additem {
+  margin-bottom: 0;
+}
 .evc-wiz-panel .evc-wiz-card > .evc-tpl-lib {
-  padding-top: var(--spacing-lg);
+  padding-top: var(--spacing-xl);
 }
 /* PW-2683-W1-END */
 
@@ -16878,9 +16906,9 @@ button.evmh-phase:focus-visible {
    시안 admin_wizard-3 · admin_manage-peer-schedule — 겹친 회색 상자 단계 → 흰 카드. 한꺼번에 배치 칸도 흰 카드.
    시작 → 종료 일시 한 줄, 리마인더는 옅은 회색 줄, «템플릿 미확정»은 주황 띠 + 버튼. */
 .evc-sched-panel .evc-sched-anchor {
-  gap: var(--spacing-lg);
-  margin: 0; /* 창 본문 칸 사이(gap 12)가 띄운다 */
-  padding: var(--spacing-xl);
+  gap: calc(var(--spacing-md) + var(--spacing-xxs));
+  margin: 0; /* 창 본문 칸 사이(gap 22)가 띄운다 */
+  padding: var(--spacing-xl) var(--spacing-2xl) var(--spacing-2xl);
   border: 1px solid var(--border-secondary);
   border-radius: var(--radius-lg);
   background: var(--bg-quaternary);
@@ -16899,10 +16927,14 @@ button.evmh-phase:focus-visible {
   line-height: 18px;
   color: var(--text-primary);
 }
+/* 단계 카드 사이 22(RULES 3 덩어리 사이) — 만들기 창 3단계 · 사이클 관리 › 단계별 일정 탭. */
+.evc-wiz-panel.evc-sched-panel {
+  gap: calc(var(--spacing-2xl) + var(--spacing-xxs));
+}
 .evc-sched-panel .evc-sched-card,
 .evc-sched-panel .evc-sched-card.is-required {
   margin-bottom: 0;
-  padding: var(--spacing-lg) var(--spacing-xl) var(--spacing-xl);
+  padding: var(--spacing-xl) var(--spacing-2xl) var(--spacing-2xl);
   background: var(--bg-quaternary);
 }
 .evc-sched-panel .evc-sched-head {
@@ -16929,7 +16961,8 @@ button.evmh-phase:focus-visible {
 .evc-sched-panel .evc-sched-fields {
   grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr);
   align-items: start;
-  margin-top: var(--spacing-lg);
+  column-gap: var(--spacing-md);
+  margin-top: calc(var(--spacing-md) + var(--spacing-xxs));
 }
 .evc-sched-panel .evc-sched-field > .evc-field-label {
   margin-top: 0;
@@ -16946,8 +16979,8 @@ button.evmh-phase:focus-visible {
 }
 .evc-sched-panel .evc-rm-block,
 .evc-sched-panel .evc-sched-tpl {
-  margin-top: var(--spacing-lg);
-  padding-top: var(--spacing-lg);
+  margin-top: var(--spacing-xl);
+  padding-top: var(--spacing-xl);
   border-top: 1px solid var(--border-secondary);
 }
 .evc-sched-panel .evc-rm-head .evc-field-label {
@@ -16959,9 +16992,9 @@ button.evmh-phase:focus-visible {
   color: var(--fg-primary);
 }
 .evc-sched-panel .evc-rm-head .evc-field-label svg { color: var(--text-tertiary); }
-.evc-sched-panel .evc-rm-list { gap: var(--spacing-sm); }
+.evc-sched-panel .evc-rm-list { gap: var(--spacing-md); }
 .evc-sched-panel .evc-rm-row {
-  padding: var(--spacing-md) var(--spacing-md) var(--spacing-md) var(--spacing-lg);
+  padding: calc(var(--spacing-md) + var(--spacing-xxs)) var(--spacing-lg);
   background: var(--bg-secondary);
   font-size: var(--font-size-text-xs);
   color: var(--text-subtle);
@@ -16989,7 +17022,16 @@ button.evmh-phase:focus-visible {
   font-weight: 600;
 }
 .evc-sched-panel .evc-rm-add:hover { background: var(--bg-field); }
-.evc-sched-panel .evc-sched-tpl.is-unset { padding-top: var(--spacing-lg); }
+.evc-sched-panel .evc-sched-tpl.is-unset { padding-top: var(--spacing-xl); }
+/* 일시 칸 바로 아래 안내(«이미 시작된 단계라…»·«시작 일시가 이미 지났습니다…») — 칸에 붙여 8. */
+.evc-sched-panel .evc-sched-card > .evc-sched-modal-locked,
+.evc-sched-panel .evc-sched-card > .evx-notice {
+  margin-top: var(--spacing-md);
+}
+/* 겹침 안내 → 첫 단계 카드 — 패널 gap 22 하나로. */
+.evc-sched-panel > .evc-sched-overlap-note {
+  margin-bottom: 0;
+}
 .evc-sched-panel .evc-sched-tpl-unset {
   margin-top: 0;
   gap: var(--spacing-md);
@@ -17019,12 +17061,15 @@ button.evmh-phase:focus-visible {
 .evc-tgt-panel .evc-excl-block,
 .evc-tgt-panel:not(.is-manage) .evc-review-block {
   margin-top: 0;
-  padding: var(--spacing-xl);
+  padding: var(--spacing-xl) var(--spacing-2xl) var(--spacing-2xl);
   border: 1px solid var(--border-secondary);
   border-radius: var(--radius-lg);
   background: var(--bg-quaternary);
 }
 .evc-tgt-panel .evc-review-block { margin-top: var(--spacing-md); } /* + 창 본문 gap 12 = 카드 사이 20 (시안) */
+/* 만들기 창 4단계 — 제외 조건 · 리뷰 & 조정 · 하향 평가자 사이 22(RULES 3 덩어리 사이). */
+.evc-wiz-panel.evc-tgt-panel:not(.is-manage) { gap: calc(var(--spacing-2xl) + var(--spacing-xxs)); }
+.evc-tgt-panel:not(.is-manage) .evc-la { margin-top: 0; }
 .evc-tgt-panel.is-manage .evc-review-block {
   margin-top: var(--spacing-3xl);
   padding-top: 0;
@@ -17165,7 +17210,7 @@ button.evmh-phase:focus-visible {
 .evc-tgt-panel .evc-org-name { font-size: 13px; }
 .evc-tgt-panel .evc-org-n { color: var(--text-subtle); }
 /* 명단 — 흰 줄. 가상 스크롤 줄 높이(52px)는 그대로 둔다. */
-.evc-tgt-panel .evc-roster-row { background: var(--bg-quaternary); border-bottom-color: var(--border-secondary); }
+.evc-tgt-panel .evc-roster-row { padding: calc(var(--spacing-md) + var(--spacing-xxs)) var(--spacing-lg); background: var(--bg-quaternary); border-bottom-color: var(--border-secondary); }
 .evc-tgt-panel .evc-roster-group-head { background: var(--bg-secondary); border-bottom-color: var(--border-secondary); }
 /* «제외 →» · «←» — 작은 회색 버튼, 올리면 뜻 색 */
 .evc-tgt-panel .evc-roster-move {
@@ -17177,7 +17222,7 @@ button.evmh-phase:focus-visible {
 }
 .evc-tgt-panel .evc-roster-move.is-out:hover { background: var(--bg-error-primary); color: var(--text-error-primary); }
 .evc-tgt-panel .evc-roster-move.is-in:hover { background: var(--bg-brand-secondary); color: var(--text-brand-secondary); }
-.evc-tgt-panel .evc-excluded-row { align-items: center; padding: var(--spacing-md); border-bottom: 1px solid var(--border-secondary); border-radius: 0; }
+.evc-tgt-panel .evc-excluded-row { align-items: center; padding: calc(var(--spacing-md) + var(--spacing-xxs)) var(--spacing-lg); border-bottom: 1px solid var(--border-secondary); border-radius: 0; }
 .evc-tgt-panel .evc-excluded-row:last-child { border-bottom: 0; }
 .evc-tgt-panel .evc-excluded-row .evc-roster-move.is-in { grid-row: span 2; align-self: center; }
 /* «직급 없음» · «입사일 없음» — 주황 딱지 */
@@ -17269,7 +17314,7 @@ button.evmh-phase:focus-visible {
 }
 .evc-la-order-step.is-first { background: var(--bg-brand-secondary); color: var(--text-brand-secondary); }
 .evc-tgt-panel .evc-la-vacant {
-  padding: var(--spacing-lg) var(--spacing-xl);
+  padding: var(--spacing-xl) var(--spacing-2xl);
   border-radius: var(--radius-md);
   background: var(--bg-secondary);
 }
@@ -17413,7 +17458,7 @@ button.evmh-phase:focus-visible {
    카드는 흰 바탕 · 회색 테두리 · 12 모서리, 카드 안 칸 사이 12. */
 .evc-wiz-panel.evc-wiz-calibstep,
 .evc-wiz-calibstep .evc-wiz-committee-fieldset {
-  gap: var(--spacing-xl);
+  gap: calc(var(--spacing-2xl) + var(--spacing-xxs));
 }
 .evc-wiz-calibstep .evc-wiz-calib-alert {
   margin: 0;
@@ -17466,13 +17511,13 @@ button.evmh-phase:focus-visible {
 .evc-wiz-calibstep .evc-wiz-calib-alert.is-done svg {
   color: var(--text-brand-tertiary);
 }
-/* 카드 — 머리(번호 · 제목 · 미완성 딱지) 아래로 칸 사이 12 */
+/* 카드 — 안쪽 16/20, 머리 → 내용 10, 칸 사이 16(시안 hr-wiz-committee .card · .lbl) */
 .evc-wiz-calibstep .evc-wiz-calibcard {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-lg);
+  gap: var(--spacing-xl);
   margin: 0;
-  padding: 0 var(--spacing-xl) var(--spacing-xl);
+  padding: var(--spacing-xl) var(--spacing-2xl) var(--spacing-2xl);
   border: 1px solid var(--border-secondary);
   border-radius: var(--radius-lg);
   background: var(--bg-quaternary);
@@ -17482,8 +17527,12 @@ button.evmh-phase:focus-visible {
 }
 .evc-wiz-calibstep .evc-wiz-calibcard-head {
   gap: var(--spacing-md);
-  margin: 0;
-  padding-top: var(--spacing-lg);
+  margin: 0 0 calc(-1 * var(--spacing-sm));
+  padding-top: 0;
+}
+/* «조직»·«직급» 이름표 → 체크 상자 8 — 고르기 칸(.evc-pick) gap 8 하나로. */
+.evc-wiz-calibstep .evc-wiz-chippicker-head {
+  margin-bottom: 0;
 }
 .evc-wiz-calibstep .evc-wiz-calibcard-num {
   min-width: 22px;
@@ -17525,17 +17574,21 @@ button.evmh-phase:focus-visible {
 }
 /* ① 대상 · ② 참여 위원 — 위에 구분선, 번호는 연초록 동그라미 */
 .evc-wiz-calibstep .evc-wiz-calibscope {
-  gap: var(--spacing-lg);
+  gap: var(--spacing-xl);
   margin: 0;
-  padding-top: var(--spacing-lg);
+  padding-top: var(--spacing-xl);
   border-top: 1px solid var(--border-secondary);
+}
+/* «1 대상 · 조직»·«2 참여 위원» 머리 → 내용 10 */
+.evc-wiz-calibstep .evc-wiz-calibscope > .evc-wiz-calibscope-head {
+  margin-bottom: calc(-1 * var(--spacing-sm));
 }
 .evc-wiz-calibstep .evc-wiz-calibscope-head {
   gap: var(--spacing-md);
 }
 .evc-wiz-calibstep .evc-wiz-calibscope-head.is-committee {
-  margin: 0;
-  padding-top: var(--spacing-lg);
+  margin: 0 0 calc(-1 * var(--spacing-sm));
+  padding-top: var(--spacing-xl);
   border-top: 1px solid var(--border-secondary);
 }
 /* 번호 동그라미 — 상태 딱지가 아니라 순서 표시라 딱지 부품을 쓰지 않는다(옛 파랑·분홍 → 연초록 하나). */
@@ -17811,7 +17864,7 @@ button.evmh-phase:focus-visible {
    «오픈할 수 없음» 빨간 띠가 맨 위, 요약은 이름표 | 값 두 칸 표(줄마다 구분선), 미확정은 주황 딱지,
    진행 단계는 › 로 이은 회색 칩, 팀 3명 미만 안내는 주황 띠, 프리셋 저장은 아래 흰 카드. */
 .evc-wiz-panel.evc-wiz-review {
-  gap: var(--spacing-xl);
+  gap: calc(var(--spacing-2xl) + var(--spacing-xxs));
 }
 .evc-wiz-review .evc-wiz-open-block {
   gap: var(--spacing-md);
@@ -17834,9 +17887,10 @@ button.evmh-phase:focus-visible {
 .evc-wiz-review .evc-wiz-open-block-go {
   flex-shrink: 0;
 }
+/* 요약 상자 — 안쪽 16/20, 줄 사이 8(시안 hr-wiz-review .sum · .sr — 줄 사이 가는 선 없음). */
 .evc-wiz-review .evc-summary-card {
-  gap: 0;
-  padding: var(--spacing-xs) var(--spacing-xl);
+  gap: var(--spacing-md);
+  padding: var(--spacing-xl) var(--spacing-2xl);
   border: 1px solid var(--border-secondary);
   border-radius: var(--radius-lg);
   background: var(--bg-quaternary);
@@ -17845,8 +17899,8 @@ button.evmh-phase:focus-visible {
   justify-content: flex-start;
   align-items: flex-start;
   gap: var(--spacing-xl);
-  padding: var(--spacing-lg) 0;
-  border-bottom: 1px solid var(--border-secondary);
+  padding: 0;
+  border-bottom: 0;
   font-size: 13px;
   line-height: 20px;
 }
@@ -18308,3 +18362,59 @@ button.evmh-phase:focus-visible {
 /* 동료 리뷰어 확정 — 제목 아래 단계 문장(시안 margin-top 8 · 줄 높이 1.6), [전체 펼치기]·[전체 접기] 사이(시안 gap 8) */
 .evp-title + .evc-summary { margin-top: var(--spacing-md); line-height: 1.6; }
 .evp-toolbar { gap: var(--spacing-md); }
+
+/* ══ PW-2646 설명 글 줄 높이 1.6 (RULES 3) — 만들기 창 1~6단계 · 사이클 관리 › 단계별 일정 탭 ══
+   같은 클래스가 다른 화면(셀프 리뷰·리더 리뷰 등)에도 쓰여 이 자리로만 좁힌다. 이름·숫자·이름표·딱지·버튼 글자는 그대로. */
+.tl-group-modal.evc-wiz-shell .evc-field-note,
+.tl-group-modal.evc-wiz-shell .evx-notice,
+.tl-group-modal.evc-wiz-shell .evc-sched-guide,
+.tl-group-modal.evc-wiz-shell .evc-wiz-hint,
+.tl-group-modal.evc-wiz-shell .evc-tpl-set-note,
+.tl-group-modal.evc-wiz-shell .evc-tpl-preset-desc,
+.tl-group-modal.evc-wiz-shell .evc-wiz-calib-alert-text,
+.tl-group-modal.evc-wiz-shell .evc-wiz-calib-alert-sub,
+.tl-group-modal.evc-wiz-shell .evc-wiz-committee-meta,
+.tl-group-modal.evc-wiz-shell .evc-sched-overlap-note,
+.tl-group-modal.evc-wiz-shell .evc-sched-modal-locked,
+.tl-group-modal.evc-wiz-shell .evc-la-hint,
+.tl-group-modal.evc-wiz-shell .evc-la-sum-note,
+.evc-wiz.is-inline .evc-sched-panel .evc-field-note,
+.evc-wiz.is-inline .evc-sched-panel .evx-notice,
+.evc-wiz.is-inline .evc-sched-panel .evc-sched-guide,
+.evc-wiz.is-inline .evc-sched-panel .evc-wiz-hint,
+.evc-wiz.is-inline .evc-sched-panel .evc-sched-overlap-note,
+.evc-wiz.is-inline .evc-sched-panel .evc-sched-modal-locked {
+  line-height: 1.6;
+}
+
+/* 5단계 캘리브레이션 경고 띠 — 상자 안쪽 16/20 (RULES 3 «카드 안쪽 16~20», 4단계 빈 조직 안내 상자와 같은 값). */
+.tl-group-modal.evc-wiz-shell .evc-wiz-calib-alert {
+  padding: var(--spacing-xl) var(--spacing-2xl);
+}
+
+/* ══ PW-2646 사이클 관리 › 리포트 탭 간격 (RULES 3 · 시안 hr-cycle-report) ══
+   .evc-list · .evc-card 는 사이클 목록 등 다른 화면도 써서 리포트 카드(.evrs-card-name)가 든 목록으로만 좁힌다.
+   바깥 여백(.evc-root)·카드 안쪽 20/24 는 전 화면 공통이라 그대로. 이어 붙은 표(.evrs-timeline) 줄 사이 0 도 그대로. */
+.evc-list:has(> .evc-card > .evrs-card-name) {
+  gap: calc(var(--spacing-2xl) + var(--spacing-xxs));
+}
+/* 카드 제목 → 내용 10 — 카드 줄 사이(16)를 당기고, 제목 바로 아래 칸의 위 여백은 걷는다. */
+.evc-card > .evrs-card-name {
+  margin-bottom: calc(-1 * var(--spacing-sm));
+}
+.evc-card:has(> .evrs-card-name) > .evrs-chips,
+.evc-card:has(> .evrs-card-name) > .evrs-timeline {
+  margin-top: 0;
+}
+/* «접수 기간»·«답변 기한» 이름표 → 칸 8 */
+.evc-card:has(> .evrs-card-name) .dp-field {
+  gap: var(--spacing-md);
+}
+.evc-list:has(> .evc-card > .evrs-card-name) .evc-manage-lock {
+  padding: var(--spacing-xl) var(--spacing-2xl);
+}
+.evc-list:has(> .evc-card > .evrs-card-name) .evc-wiz-hint,
+.evc-list:has(> .evc-card > .evrs-card-name) .evc-manage-lock,
+.evc-list:has(> .evc-card > .evrs-card-name) .evx-notice {
+  line-height: 1.6;
+}
