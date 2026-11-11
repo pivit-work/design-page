@@ -669,7 +669,9 @@ const DEFAULT_LABELS = {
   // §4.A 리더별 제출 현황
   leaderTitle: '리더별 제출 현황',
   leaderColLeader: '리더',
-  leaderColDept: '부서',
+  // [PW-2692] 정책 §4.A.2-B — 리더 본인의 소속 조직. 피평가자 소속(부서별 분석 탭의 «부서»)과 섞이지 않게.
+  leaderColDept: '리더 소속',
+  leaderNone: '담당 리더 없음',
   leaderColDone: '완료',
   leaderColIncomplete: '미완료',
   leaderColDelayed: '지연',
@@ -679,8 +681,13 @@ const DEFAULT_LABELS = {
   submitAllDone: '전원 제출 완료',
   submitPending: '미제출 {n}명 · 클릭 → 리마인드',
   submitPendingCount: '미제출 {n}명',
+  // [PW-2692] 정책 §4.A.2-A — 미제출(N, 평가가 끝나지 않은 피평가자)과 리마인드 받을 사람(M, 작성자)이 다를 때.
+  submitPendingRemind: '미제출 {n}명 · 리마인드 {m}명 · 클릭 →',
+  submitTargetsDoneRemind: '대상 전원 완료 · 리마인드 {m}명 · 클릭 →',
+  kpiSubmitRateInfo: '평가 대상 가운데, 그 사람에 대해 써야 할 리뷰(셀프·동료·상향·하향 중 이 사이클에 든 것)가 모두 제출된 사람의 비율입니다. 리마인드는 아직 안 쓴 사람이 받으므로 평가 대상이 아닌 리더도 받을 수 있습니다.',
   remindTitle: '미제출자 리마인드',
-  remindSubtitle: '제출 완료율 {pct}% · 미제출 {n}명',
+  remindSubtitle: '제출 완료율 {pct}% · 미제출 {n}명 · 리마인드 받을 사람 {m}명',
+  remindDiffNote: '하향·동료 리뷰를 아직 안 쓴 리더·동료도 받습니다 — 평가 대상이 아니어도 목록에 있습니다.',
   remindSelectAll: '전체 선택',
   remindSelectedOf: '선택 {sel}명 / 대상 {total}명',
   remindLeaderDept: '{dept}',
@@ -2340,6 +2347,8 @@ export default function EvalCycleSummaryCanvas({
   noPeriodData = false,
   totalParticipants = 0,
   selfSubmittedCount = 0,
+  // [PW-2692] 정책 §4.A.2-A — 제출 완료(써야 할 리뷰가 모두 제출된) 대상자 수. 안 넘기면 옛 셈(셀프 제출)으로.
+  completedCount,
   gradedCount = 0,
   gradeDistribution = [],
   excellentCount = 0,
@@ -2991,7 +3000,10 @@ export default function EvalCycleSummaryCanvas({
     seededSessionRef.current = null;
   };
   const maxCount = Math.max(1, ...gradeDistribution.map((d) => d.count));
-  const submitPct = totalParticipants > 0 ? Math.round((100 * selfSubmittedCount) / totalParticipants) : 0;
+  const doneCount = completedCount ?? selfSubmittedCount;
+  const submitPct = totalParticipants > 0 ? Math.round((100 * doneCount) / totalParticipants) : 0;
+  // [PW-2692] 정책 §4.A.2-A — N = 평가가 끝나지 않은 피평가자(대상 − 완료). 리마인드 받을 사람(M)은 아래 목록 줄 수.
+  const unfinishedCount = Math.max(0, totalParticipants - doneCount);
   const prevPctByKey = new Map((previousCycle?.gradeDistribution ?? []).map((d) => [d.gradeKey, d.pct]));
   // PW-1047 ③ 막대 길이는 «전체 대비 %» — 가이드 점선·지난 평가 눈금과 같은 자로 잰다.
   const distTotal = gradeDistribution.reduce((n, d) => n + (d.count ?? 0), 0);
@@ -3052,7 +3064,7 @@ export default function EvalCycleSummaryCanvas({
         .filter((m) => m && Math.abs(m.delta) >= 5)
     : [];
 
-  // §4.A 미제출자 리마인드 모달
+  // §4.A 미제출자 리마인드 모달 — pendingCount = 리마인드 받을 사람(M, 작성자 줄 수)
   const pendingCount = nonSubmitters.length;
   // PW-1809 — 독촉 손잡이가 없으면(끝난 평가 등) 카드를 누를 수 없다. 창이 열리고 [발송]이 거절되는 일을 막는다.
   const canRemind = pendingCount > 0 && Boolean(onSendReminders);
@@ -3288,7 +3300,7 @@ export default function EvalCycleSummaryCanvas({
   // PW-2684 — 리더별 제출 현황 검색(이름·부서).
   const leaderQ = leaderQuery.trim().toLowerCase();
   const shownLeaders = leaderQ
-    ? leaderStats.filter((s) => `${s.name || ''} ${s.dept || ''}`.toLowerCase().includes(leaderQ))
+    ? leaderStats.filter((s) => `${s.noLeader ? L.leaderNone : s.name || ''} ${s.dept || ''}`.toLowerCase().includes(leaderQ))
     : leaderStats;
   // PW-2684 — 피평가자 목록 검색(이름·부서).
   const revieweeQ = revieweeQuery.trim().toLowerCase();
@@ -3445,15 +3457,25 @@ export default function EvalCycleSummaryCanvas({
                 <span className="evs-kpi-value">
                   {submitPct}%{canRemind && <span className="evs-kpi-chevron"> ›</span>}
                 </span>
-                <span className="evs-kpi-label">{L.kpiSubmitRate}</span>
+                <span className="evs-kpi-label">
+                  {L.kpiSubmitRate}
+                  {/* [PW-2692] 정책 §4.A.2-A — 완료의 정의는 제목 옆 ⓘ */}
+                  {' '}<span data-testid="evs-kpi-submit-info" onClick={(e) => e.stopPropagation()}><FieldInfo description={L.kpiSubmitRateInfo} /></span>
+                </span>
                 {canRemind ? (
-                  <span className="evs-kpi-sub evs-kpi-hint">{fmt(L.submitPending, { n: pendingCount })}</span>
-                ) : pendingCount > 0 ? (
-                  <span className="evs-kpi-sub">{fmt(L.submitPendingCount, { n: pendingCount })}</span>
-                ) : selfSubmittedCount >= totalParticipants && totalParticipants > 0 ? (
+                  <span className="evs-kpi-sub evs-kpi-hint" data-testid="evs-kpi-submit-hint">
+                    {unfinishedCount === 0
+                      ? fmt(L.submitTargetsDoneRemind, { m: pendingCount })
+                      : unfinishedCount === pendingCount
+                        ? fmt(L.submitPending, { n: unfinishedCount })
+                        : fmt(L.submitPendingRemind, { n: unfinishedCount, m: pendingCount })}
+                  </span>
+                ) : unfinishedCount > 0 ? (
+                  <span className="evs-kpi-sub">{fmt(L.submitPendingCount, { n: unfinishedCount })}</span>
+                ) : totalParticipants > 0 && pendingCount === 0 ? (
                   <span className="evs-kpi-sub">{L.submitAllDone}</span>
                 ) : (
-                  <span className="evs-kpi-sub">{selfSubmittedCount}{L.unit} / {totalParticipants}{L.unit}</span>
+                  <span className="evs-kpi-sub">{doneCount}{L.unit} / {totalParticipants}{L.unit}</span>
                 )}
               </div>
               {/* [PW-1466] 정책 §4.A.4 — 주황 경고는 가이드의 2배를 넘을 때만. 늘 주황이면 경고가 아니다. */}
@@ -3610,12 +3632,19 @@ export default function EvalCycleSummaryCanvas({
                     const incomplete = s.total - s.done;
                     const pct = s.total > 0 ? Math.round((100 * s.done) / s.total) : 0;
                     return (
-                      <div className="evs-leader-row" role="row" key={s.leaderId} data-testid="evs-leader-row">
-                        <span className="evs-leader-lead">
-                          <span className="evs-leader-avatar" style={{ position: 'relative' }}>{(s.name || '?').slice(0, 1)}<AvatarPhoto photo={s.avatar} name={s.name} /></span>
-                          <span className="evs-leader-name">{s.name || s.leaderId}</span>
-                        </span>
-                        <span className="evs-leader-dept">{s.dept}</span>
+                      <div className="evs-leader-row" role="row" key={s.noLeader ? '__no-leader' : s.leaderId} data-testid="evs-leader-row">
+                        {/* [PW-2692] 정책 §4.A.2-B — 담당 리더가 없는 피평가자는 «담당 리더 없음» 한 행 */}
+                        {s.noLeader ? (
+                          <span className="evs-leader-lead">
+                            <span className="evs-leader-name is-muted" data-testid="evs-leader-none">{L.leaderNone}</span>
+                          </span>
+                        ) : (
+                          <span className="evs-leader-lead">
+                            <span className="evs-leader-avatar" style={{ position: 'relative' }}>{(s.name || '?').slice(0, 1)}<AvatarPhoto photo={s.avatar} name={s.name} /></span>
+                            <span className="evs-leader-name">{s.name || s.leaderId}</span>
+                          </span>
+                        )}
+                        <span className="evs-leader-dept">{s.noLeader ? '—' : s.dept}</span>
                         <span className="evs-leader-num evs-leader-done">{s.done}{L.unit}</span>
                         <span className={`evs-leader-num${incomplete > 0 ? ' evs-leader-bad' : ' is-muted'}`}>{incomplete}{L.unit}</span>
                         <span className="evs-leader-num">
@@ -7532,7 +7561,19 @@ export default function EvalCycleSummaryCanvas({
       {showRemind && (
         <ModalShell
           title={L.remindTitle}
-          description={<>{fmt(L.remindSubtitle, { pct: submitPct, n: pendingCount })}{cycle?.name && <> · {cycle.name}</>}</>}
+          description={
+            <>
+              {fmt(L.remindSubtitle, { pct: submitPct, n: unfinishedCount, m: pendingCount })}
+              {cycle?.name && <> · {cycle.name}</>}
+              {/* [PW-2692] 정책 §4.A.2.1 덧붙임 — N ≠ M 이면 왜 다른지 회색 한 줄 */}
+              {unfinishedCount !== pendingCount && (
+                <>
+                  <br />
+                  <span className="evs-remind-note" data-testid="evs-remind-diff-note">{L.remindDiffNote}</span>
+                </>
+              )}
+            </>
+          }
           titleId="evs-remind-title"
           closeLabel={L.remindClose}
           onClose={() => setShowRemind(false)}
