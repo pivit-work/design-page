@@ -3996,9 +3996,10 @@
   border-color: var(--utility-error-500) !important;
   box-shadow: 0 0 0 1px var(--utility-error-500);
 }
-/* 상단고정 띠에서도 빨간 고리가 보이게 — 띠 그림자(.evl-grade-freeze, 뒤에 선언)가 고리를 덮었다(PW-2685 11-11). */
+/* 상단고정 띠에서도 빨간 고리가 보이게 — 띠 그림자(.evl-grade-freeze, 뒤에 선언)가 고리를 덮었다(PW-2685 11-11).
+   그림자는 띠 것을 그대로 두고 고리는 바깥선으로 그린다. */
 .evl-grade-freeze.evl-grade-missing {
-  box-shadow: 0 0 0 1px var(--utility-error-500), 0 6px 16px rgba(15, 23, 42, 0.12);
+  outline: 1px solid var(--utility-error-500);
 }
 .evm-textarea:disabled {
   background: var(--bg-secondary);
@@ -16274,6 +16275,10 @@ button.evmh-phase:focus-visible {
 }
 .evnav-shell .evc-root .evl-grade-freeze::before {
   bottom: calc(100% + 1.5px);
+}
+/* 등급 미선택 빨간 바깥선(1px)은 덮개 바로 밑이라 덮개를 그만큼 더 올린다. */
+.evnav-shell .evc-root .evl-grade-freeze.evl-grade-missing::before {
+  bottom: calc(100% + 2.5px);
 }
 
 /* 제출 완료 — 아이콘 판, 다음 단계 표의 지금 단계는 초록 */
