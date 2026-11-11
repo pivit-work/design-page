@@ -91,6 +91,8 @@ export default function SquadGraphView({
   companyName = '',
   // [이미지로 다운] — ({ element, branch: 'tree' | 'link' }) => void | Promise. 안 주면 여기서 JPG 로 뜬다(useSquadGraphImage).
   onDownloadImage,
+  // 기준일(pivit-work PW-2697) — «구조» 갈래에만 내려 준다. «연결»로 바꾸면 오늘로 돌린다(연결 그림은 지난 값이 없다).
+  structureAsOf,
 }) {
   const L = useOrgLabels();
   const G = GRAPH_GEOM;
@@ -376,7 +378,11 @@ export default function SquadGraphView({
               { value: 'link', label: L('squad.graph.branch.link'), testId: 'squad-graph-branch-link' },
             ]}
             value={branch}
-            onChange={(v) => { setBranch(v); setFocus(null); }}
+            onChange={(v) => {
+              if (v !== 'tree' && structureAsOf && structureAsOf.value !== structureAsOf.max) structureAsOf.onChange?.(structureAsOf.max);
+              setBranch(v);
+              setFocus(null);
+            }}
           />
           {GRAPH_STATUS_ORDER.map((st) => {
             const meta = squadStatusMeta(st);
@@ -419,6 +425,7 @@ export default function SquadGraphView({
           renderAvatar={renderAvatar}
           onMemberClick={onMemberClick}
           onDownloadImage={onDownloadImage}
+          asOf={structureAsOf}
         />
       ) : (<>
       <div className="sq-panel">

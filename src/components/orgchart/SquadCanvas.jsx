@@ -26,6 +26,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import Icon from '../shared/Icon.jsx';
 import Button from '../shared/Button.jsx';
+import DateInput from '../shared/DateInput.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import ChipFold from '../shared/ChipFold.jsx';
 import OrgTabNav from './OrgTabNav.jsx';
@@ -241,6 +242,9 @@ export default function SquadCanvas({
    * 조직도 트리 탭과 같은 받기를 쓰게 호스트가 넘긴다. 안 주면 캔버스가 JPG 로 뜬다.
    */
   onDownloadGraphImage,
+  /* 기준일(pivit-work PW-2697) — 그림 보기 «구조» 툴바의 [기준일]. { value, min, max, onChange, label?, locale?, note?, outOfRange? }.
+     지난 날짜는 «구조»에서만 그린다 — 카드·한눈에 보기로 가면 오늘로 돌린다(onChange(max)). 안 주면 버튼이 없다. */
+  structureAsOf,
   onSubTabChange,
   /**
    * ── 담당 프로젝트 칸 (PW-1428) ──
@@ -556,7 +560,12 @@ export default function SquadCanvas({
   const [justAddedEditing, setJustAddedEditing] = useState(isEditing);
   if (justAddedEditing !== isEditing) { setJustAddedEditing(isEditing); setJustAddedBySquad({}); }
   /* 편집 토글 — 켜고 끌 때 열려 있던 팝오버·추가 대상은 접는다(모드가 바뀌면 그 맥락이 사라진다). */
-  const toggleEditMode = () => { setEditMode((v) => !v); setPopover(null); setAddTarget(null); setProjTarget(null); };
+  /* 적용일(pivit-work PW-2697) — 편집 중 넣기·빼기·리드 지정이 이 날짜부터 적용된 것으로 남는다. 편집을 켤 때마다 오늘로. */
+  const [effectiveDate, setEffectiveDate] = useState(() => todayIsoInZone(timeZone));
+  const toggleEditMode = () => {
+    if (!editMode) setEffectiveDate(todayIsoInZone(timeZone));
+    setEditMode((v) => !v); setPopover(null); setAddTarget(null); setProjTarget(null);
+  };
   /** 프로젝트 칸 편집 — 「할당 편집」 이 켜져 있고, 이 스쿼드에 대해 자격이 있을 때 (PW-1428). */
   const canLinkProjectsOf = (squadId) => isEditing
     && (typeof canLinkProjects === 'function' ? !!canLinkProjects(squadId) : !!canLinkProjects);
@@ -711,6 +720,7 @@ export default function SquadCanvas({
       color: SQUAD_PALETTE.find((c) => !used.has(c)) || SQUAD_PALETTE[0],
       leadUserId: null,
       groupId: null,
+      effectiveDate: todayIsoInZone(timeZone),
     });
     setLocalErr({});
   };
@@ -721,6 +731,7 @@ export default function SquadCanvas({
       name: sq.name, mission: sq.mission || '',
       startDate: sq.startDate, endDate: sq.endDate || '', color: sq.color,
       groupId: sq.groupId || null,
+      effectiveDate: todayIsoInZone(timeZone),
     });
     setLocalErr({});
     setMoreMenu(null);
@@ -733,8 +744,12 @@ export default function SquadCanvas({
     setEditMode(false); setPopover(null); setProjTarget(null);
     closeAddMember(); closeSquadForm();
   };
+  const resetAsOf = () => {
+    if (structureAsOf && structureAsOf.value !== structureAsOf.max) structureAsOf.onChange?.(structureAsOf.max);
+  };
   const changeView = (next) => {
     if (next !== 'card') closeEditing();
+    if (next !== 'graph') resetAsOf();
     setStagePlay(false);
     setView(next);
   };
@@ -771,6 +786,7 @@ export default function SquadCanvas({
       color: f.color,
       startDate: f.startDate,
       endDate: f.endDate || null,
+      effectiveDate: f.effectiveDate,
       // 소속 묶음 — 층이 있을 때만 보낸다(없으면 서버가 그대로 둔다 · §7-2·§7-3)
       ...(groupLevelNames.length
         ? { groupId: squadGroups.some((g) => g.level === 0 && g.id === f.groupId) ? f.groupId : null }
@@ -828,7 +844,7 @@ export default function SquadCanvas({
   // 만든다(§5-3.7). 여기서 기본 캐파를 채우면 관리자가 남의 시간에 숫자를 적는 것이 된다.
   const assign = (squadId, userId) => {
     setJustAddedBySquad((prev) => (prev[squadId] === userId ? prev : { ...prev, [squadId]: userId }));
-    return onUpsertMember?.(squadId, userId, {});
+    return onUpsertMember?.(squadId, userId, { effectiveDate });
   };
   // 🔴 두 축은 각각 **자기 필드만** 보낸다. 한 호출에 둘을 같이 실으면 슬라이더 하나를
   // 움직였을 때 다른 값이 함께 저장되고, 그 순간 두 축이 다시 묶인다(§10-A17).
@@ -851,10 +867,10 @@ export default function SquadCanvas({
 
   const unassign = (squadId, userId) => {
     setPopover(null);
-    return onRemoveMember?.(squadId, userId);
+    return onRemoveMember?.(squadId, userId, { effectiveDate });
   };
   // 리드는 스쿼드당 1명 — 지정 시 기존 리드는 서버가 같은 트랜잭션으로 강등한다
-  const toggleLead = (squadId, userId, isLead) => onSetLead?.(squadId, isLead ? null : userId);
+  const toggleLead = (squadId, userId, isLead) => onSetLead?.(squadId, isLead ? null : userId, { effectiveDate });
 
   // ── 매트릭스 행: 읽기 = 배정 1건 이상 / 편집 = 조직 전체 ──
   const assignedIds = useMemo(
@@ -1061,13 +1077,32 @@ export default function SquadCanvas({
               <b>{L('squad.title')}</b>
               <span className="dot">&#8729;</span>
               <span className="brand-count">{L('squad.count', { count: squads.length })}</span>
+              {/* 지난 날짜를 보는 중이면 그 사실을 인원 줄에 잇는다 — 조직도 트리 탭 기준일과 같은 자리(OrgChartCanvas) */}
+              {showGraph && structureAsOf?.note && (
+                <>
+                  <span className="dot">&#8729;</span>
+                  <b data-testid="squad-asof-note">{structureAsOf.note}</b>
+                </>
+              )}
             </div>
           </div>
           {/* 오른쪽 단추(17764:36828) — 「스쿼드 만들기」 + 「편집」. 머리 줄이 sticky 라 스크롤해도 편집
               토글이 늘 보인다. 편집 중에는 「편집 완료」 하나만 남긴다 — 만들기까지 보이면 배치 편집과
               스쿼드 만들기 두 흐름이 한 줄에 섞인다. */}
           <div className="sq-header-actions">
-            {viewOnly ? null : isEditing ? (
+            {viewOnly ? null : isEditing ? (<>
+              {/* 적용일(PW-2697) — 계층 관리 패널의 «계층 수» 줄과 같은 이름표 + 칸 */}
+              <div className="sq-group-levels" data-testid="squad-edit-effective-date">
+                <span className="sq-field-label">{L('squad.effectiveDate.label')}</span>
+                <div className="sq-group-level-input">
+                  <DateInput
+                    value={effectiveDate} max={todayIsoInZone(timeZone)}
+                    aria-label={L('squad.effectiveDate.label')} title={L('squad.effectiveDate.editHint')}
+                    className="sq-field"
+                    onChange={(v) => setEffectiveDate(v || todayIsoInZone(timeZone))}
+                  />
+                </div>
+              </div>
               <button
                 type="button" data-testid="squad-edit-toggle"
                 className="sq-btn sq-btn-primary sq-btn-lg"
@@ -1075,7 +1110,7 @@ export default function SquadCanvas({
               >
                 <CheckIcon size={20} /> {L('squad.editDone')}
               </button>
-            ) : (
+            </>) : (
               <>
                 {/* [묶음 관리] — p013 · 카드 보기 · 편집 모드와 무관 · [+ 스쿼드 만들기] 왼쪽(§4 · 엣지 86) */}
                 {canManageLedger && onSaveGroupLevels && (
@@ -1200,6 +1235,7 @@ export default function SquadCanvas({
               onCreateGroup={onCreateGroup}
               onUpdateGroup={onUpdateGroup}
               onDeleteGroup={onDeleteGroup}
+              today={todayIsoInZone(timeZone)}
               onClose={() => setGroupPanel(false)}
             />
           )}
@@ -1295,6 +1331,7 @@ export default function SquadCanvas({
                   squads={squads} personOf={personOf} renderAvatar={personAvatar} onMemberClick={onMemberClick}
                   levelNames={groupLevelNames} groups={squadGroups} people={people} units={orgUnits} companyName={companyName}
                   onDownloadImage={onDownloadGraphImage}
+                  structureAsOf={structureAsOf}
                 />
               )}
               {!viewOnly && (<>
@@ -1306,6 +1343,7 @@ export default function SquadCanvas({
                     palette={SQUAD_PALETTE} onSubmit={submitSquadForm} onCancel={closeSquadForm}
                     leadCandidates={leadCandidates} submitting={submitting} readOnly={squadFormLocked}
                     groupLevelName={groupLevelNames[0] || null} groupOptions={groupOptions}
+                    today={todayIsoInZone(timeZone)}
                   />
                 )}
 
@@ -1318,6 +1356,7 @@ export default function SquadCanvas({
                         palette={SQUAD_PALETTE} onSubmit={submitSquadForm} onCancel={closeSquadForm}
                         leadCandidates={leadCandidates} submitting={submitting} readOnly={squadFormLocked}
                     groupLevelName={groupLevelNames[0] || null} groupOptions={groupOptions}
+                    today={todayIsoInZone(timeZone)}
                       />
                     );
                   }
@@ -1406,7 +1445,7 @@ export default function SquadCanvas({
                                       data-testid={`squad-more-delete-${sq.id}`}
                                       aria-disabled={delBlocked ? 'true' : undefined}
                                       onClick={() => {
-                                        if (!delBlocked) { setDelAsk({ squadId: sq.id, typed: '' }); setMoreMenu(null); }
+                                        if (!delBlocked) { setDelAsk({ squadId: sq.id, typed: '', effectiveDate: todayIsoInZone(timeZone) }); setMoreMenu(null); }
                                       }}
                                       className={`sq-menu-item sq-menu-item-danger${delBlocked ? ' is-disabled' : ''}`}
                                     >
@@ -2018,13 +2057,23 @@ export default function SquadCanvas({
                   onChange={(e) => setDelAsk((d) => ({ ...d, typed: e.target.value }))}
                   placeholder={sq.name}
                 />
+                {/* 적용일(PW-2697) — 지운 날부터 지난 날짜 구조에서 빠진다. 폼 칸과 같은 이름표 + 칸 */}
+                <div className="sq-form-field" data-testid="squad-delete-effective-date">
+                  <div className="sq-field-label">{L('squad.effectiveDate.label')}</div>
+                  <DateInput
+                    value={delAsk.effectiveDate} max={todayIsoInZone(timeZone)}
+                    aria-label={L('squad.effectiveDate.label')}
+                    className="sq-field"
+                    onChange={(v) => setDelAsk((d) => ({ ...d, effectiveDate: v || todayIsoInZone(timeZone) }))}
+                  />
+                </div>
               </>
             }
             danger
             confirmDisabled={!nameOk}
             confirmLabel={L('squad.del.confirm')}
             cancelLabel={L('squad.del.cancel')}
-            onConfirm={() => { if (nameOk) { onDeleteSquad?.(sq.id); setDelAsk(null); setMoreMenu(null); } }}
+            onConfirm={() => { if (nameOk) { onDeleteSquad?.(sq.id, { effectiveDate: delAsk.effectiveDate }); setDelAsk(null); setMoreMenu(null); } }}
             onCancel={() => setDelAsk(null)}
             zIndex={SQUAD_MODAL_Z}
             testId="squad-delete-modal"

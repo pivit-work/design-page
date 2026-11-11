@@ -91,6 +91,8 @@ export default function SquadFormCard({
    * 폼은 닫지 않고 적던 글을 남겨 복사할 수 있게 한다. 값은 바뀌지 않고 [저장]·[만들기]는 꺼진다.
    */
   readOnly = false,
+  // 적용일 칸의 마지막 날(오늘) — pivit-work PW-2697. `form.effectiveDate` 가 있을 때만 칸을 그린다.
+  today,
 }) {
   const setForm = readOnly ? () => {} : setFormRaw;
   const onSubmit = readOnly ? () => {} : submitRaw;
@@ -214,6 +216,18 @@ export default function SquadFormCard({
               }}
               testId="sq-lead"
               disabled={readOnly}
+            />
+          </div>
+        )}
+
+        {/* 적용일(pivit-work PW-2697) — 만들기·이름·소속 바꾸기가 이 날짜부터 적용된 것으로 남는다. 시작일 칸과 같은 이름표 + 칸 */}
+        {form.effectiveDate !== undefined && (
+          <div className="sq-form-field" data-testid="sq-form-effective-date">
+            <div className="sq-field-label">{L('squad.effectiveDate.label')}</div>
+            <DateInput readOnly={readOnly}
+              value={form.effectiveDate} max={today} aria-label={L('squad.effectiveDate.label')}
+              className="sq-field"
+              onChange={(v) => setForm((f) => ({ ...f, effectiveDate: v || today }))}
             />
           </div>
         )}

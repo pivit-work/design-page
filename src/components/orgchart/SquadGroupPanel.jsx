@@ -23,6 +23,7 @@ import { useState } from 'react';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Button from '../shared/Button.jsx';
 import Select from '../shared/Select.jsx';
+import DateInput from '../shared/DateInput.jsx';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
 import { SQUAD_MODAL_Z } from './squad-constants.js';
 import { PersonPickField } from './SquadFormCard.jsx';
@@ -53,8 +54,12 @@ export default function SquadGroupPanel({
   onUpdateGroup,
   onDeleteGroup,
   onClose,
+  // 적용일(pivit-work PW-2697) — 이 창에서 바꾸는 계층·이름·위 그룹·헤드가 이 날짜부터 적용된 것으로 남는다. 오늘이 기본·마지막 날.
+  today,
 }) {
   const L = useOrgLabels();
+  const [effectiveDate, setEffectiveDate] = useState(today);
+  const dated = { effectiveDate: effectiveDate || today };
   const levels = levelNames.length;
   const [busy, setBusy] = useState(null); // 저장 중인 자리 — 'levels' · 'name0' · 'name1' · 'edit' · `del:{id}`
   const [levelErr, setLevelErr] = useState('');
@@ -86,12 +91,12 @@ export default function SquadGroupPanel({
     setLevelErr('');
     const next = nextLevelNames(levelNames, Number(to), { bottom: L('squad.groups.defaultBottom'), top: L('squad.groups.defaultTop') });
     if (next === levelNames) return;
-    run('levels', () => onSaveLevels(next), (res) => setLevelErr(res.message || ''));
+    run('levels', () => onSaveLevels(next, dated), (res) => setLevelErr(res.message || ''));
   };
   const saveName = (i) => {
     const next = levelNames.map((x, j) => (j === i ? (names[i] || '').trim() : x));
     clearNameErr(i);
-    run(`name${i}`, () => onSaveLevels(next), (res) => {
+    run(`name${i}`, () => onSaveLevels(next, dated), (res) => {
       const named = (res.fields || (res.field ? [res.field] : [])).filter((f) => f.startsWith('levelNames.'));
       const at = named.length ? named.map((f) => Number(f.split('.')[1])) : [i];
       setNameErr((e) => ({ ...e, ...Object.fromEntries(at.map((k) => [k, res.message || ''])) }));
@@ -130,12 +135,12 @@ export default function SquadGroupPanel({
       parentId: levels === 2 && f.level === 0 ? (f.parentId || null) : null,
     };
     const res = await run('edit', () => (f.mode === 'create'
-      ? onCreateGroup({ level: f.level, ...payload })
-      : onUpdateGroup(f.id, payload)), (r) => setEditErr({ [r.field || 'name']: r.message || '' }));
+      ? onCreateGroup({ level: f.level, ...payload, ...dated })
+      : onUpdateGroup(f.id, { ...payload, ...dated })), (r) => setEditErr({ [r.field || 'name']: r.message || '' }));
     if (res.ok) setEdit(null);
   };
   const remove = async (g) => {
-    const res = await run(`del:${g.id}`, () => onDeleteGroup(g.id));
+    const res = await run(`del:${g.id}`, () => onDeleteGroup(g.id, dated));
     // 실패해도 창은 닫는다 — 무엇이 잘못됐는지는 호스트가 토스트로 알리고 패널을 다시 불러온다(§7-17)
     setDelAsk(null);
     return res;
@@ -235,6 +240,20 @@ export default function SquadGroupPanel({
         </div>
         <Button type="button" className="sq-btn sq-btn-outline sq-btn-sm" onClick={onClose} data-testid="squad-group-close">{L('squad.groups.close')}</Button>
       </div>
+
+      {today && (
+        <div className="sq-group-levels" data-testid="squad-group-effective-date">
+          <span className="sq-field-label">{L('squad.effectiveDate.label')}</span>
+          <div className="sq-group-level-input">
+            <DateInput
+              value={effectiveDate} max={today} aria-label={L('squad.effectiveDate.label')}
+              className="sq-field"
+              onChange={(v) => setEffectiveDate(v || today)}
+            />
+          </div>
+          <span className="sq-form-note">{L('squad.groups.effectiveDateNote')}</span>
+        </div>
+      )}
 
       <div className="sq-group-levels">
         <span className="sq-field-label">{L('squad.groups.levels')}</span>

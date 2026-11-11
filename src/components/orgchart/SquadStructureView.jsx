@@ -28,6 +28,8 @@ import { DownloadSolidGlyph, ExpandScreenGlyph, MinusGlyph, PlusGlyph } from '..
 import { OrgExpandAllToggle, OrgLineStyleToggle, OrgToolButton, OrgToolbarGroup } from './OrgCanvasFrame.jsx';
 import useSquadGraphImage from './useSquadGraphImage.js';
 import { squadStatusText, useOrgLabels } from './orgchart-labels.jsx';
+import AsOfButton from './AsOfButton.jsx';
+import Button from '../shared/Button.jsx';
 import { LeadTag } from './squadIcons.jsx';
 import { squadStatusMeta } from './squad-constants.js';
 import { MEMBER_STATUSES } from './constants.js';
@@ -75,6 +77,10 @@ export default function SquadStructureView({
   onMemberClick,
   // [이미지로 다운] — ({ element, branch: 'tree' }) => void | Promise. 안 주면 여기서 JPG 로 뜬다(useSquadGraphImage).
   onDownloadImage,
+  /* 기준일(pivit-work PW-2697) — 조직도 트리 탭과 같은 AsOfButton 을 «스쿼드 조직» 쪽 왼쪽 툴바(보이는 정보 양 다음)에 단다.
+     { value, min, max, onChange, label?, locale?, outOfRange?: { title, body, backLabel } }. 안 주면 버튼이 없다(구성원).
+     지난 날짜는 «스쿼드 조직» 쪽만 그린다 — «기능 조직»으로 바꾸면 오늘로 돌린다(onChange(max)). */
+  asOf,
 }) {
   const L = useOrgLabels();
   // 기본·탭을 다시 열 때 = 스쿼드 조직(§5-6-C «트리거»)
@@ -101,6 +107,7 @@ export default function SquadStructureView({
   // 쪽을 바꾸면 바로 그린다 · 접힘과 더 보기는 처음 모습으로 · 배율은 그대로(§5-6-B ⑤)
   const changeSide = (to) => {
     if (to === side) return;
+    if (to !== 'squad' && asOf && asOf.value !== asOf.max) asOf.onChange?.(asOf.max);
     setFolded(new Set());
     setMore(new Set());
     setSide(to);
@@ -143,7 +150,9 @@ export default function SquadStructureView({
     onDensityChange: setDensity,
     onLineStyleChange: setLineStyle,
     onDownload: (el) => download(el, 'tree'),
+    asOf: side === 'squad' ? asOf : undefined,
   };
+  const outOfRange = side === 'squad' && asOf?.outOfRange;
 
   const levels = levelNames.length;
   const pathDesc = levels
@@ -157,7 +166,18 @@ export default function SquadStructureView({
         <p className="pj-table-subtitle" data-testid="squad-struct-desc">{side === 'squad' ? pathDesc : L('squad.struct.descOrg')}</p>
       </div>
 
-      <StructureCanvas {...canvas} onExpandView={() => setExpanded(true)} />
+      {outOfRange ? (
+        /* 기록 시작 전 날짜 — 조직도 트리 탭 기준일의 «기록 밖» 안내와 같은 문구(PW-2697) · 그림 빈 상태와 같은 칸 */
+        <div className="sq-empty sq-graph-empty" data-testid="squad-struct-asof-out-of-range">
+          <p className="sq-empty-title">{outOfRange.title}</p>
+          <p className="sq-empty-desc">{outOfRange.body}</p>
+          <Button type="button" className="sq-btn sq-btn-secondary" onClick={() => asOf.onChange?.(asOf.max)} data-testid="squad-struct-asof-back">
+            {outOfRange.backLabel}
+          </Button>
+        </div>
+      ) : (
+        <StructureCanvas {...canvas} onExpandView={() => setExpanded(true)} />
+      )}
 
       <div className="sq-graph-legend" data-testid="squad-struct-legend">
         <p className="pj-table-subtitle">
@@ -169,7 +189,7 @@ export default function SquadStructureView({
       </div>
 
       {/* 전체 화면 — 조직도 트리 탭 «전체 화면»과 같은 창(ModalShell .org-expand-shell). 보는 쪽 고르기는 창 툴바 맨 앞에 */}
-      {expanded && (
+      {expanded && !outOfRange && (
         <ModalShell
           ariaLabel={L('squad.graph.treeTitle')}
           closeLabel={L('org.closeExpandView')}
@@ -216,6 +236,7 @@ function StructureCanvas({
   onExpandView,
   expanded = false,
   toolbarLeading,
+  asOf,
 }) {
   // 마우스를 올린 것 { kind: 'p' | 'sq' | 'g', id, ids? } — 올린 쪽(side)과 함께 둔다. 쪽을 바꾸면 강조가 풀린다(쪽마다 카드가 다르다).
   const [focusAt, setFocusAt] = useState(null);
@@ -567,6 +588,8 @@ function StructureCanvas({
           onChange={onDensityChange}
           ariaLabel={L('org.density')}
         />
+        {/* 기준일 — 조직도 트리 탭 왼쪽 툴바와 같은 자리(보이는 정보 양 다음 · OrgChartViewport) */}
+        {asOf && <AsOfButton asOf={asOf} L={L} />}
       </div>
       {/* 오른쪽 툴바 — 확대 · 축소 · 맞춤 · 연결선 · 펼치기/접기 · 이미지 + 30 띄운 전체 화면(조직도 Figma 17755:26881) */}
       <div className="org-toolbar org-toolbar-right sq-struct-tools" data-testid="squad-struct-tools">

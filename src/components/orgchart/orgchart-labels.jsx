@@ -187,6 +187,9 @@ export const ORGCHART_LABELS = {
   'squad.create': '스쿼드 만들기',
   'squad.editAssign': '편집',
   'squad.editDone': '편집 완료',
+  // 적용일(pivit-work PW-2697) — 스쿼드 배정·계층 발령 이력
+  'squad.effectiveDate.label': '적용일',
+  'squad.effectiveDate.editHint': '편집 중 넣기·빼기·리드 지정은 이 날짜부터 적용된 것으로 남습니다',
   'squad.dismiss': '닫기',
   'squad.loading': '스쿼드 정보를 불러오는 중…',
   'squad.loadFailed': '스쿼드 정보를 불러오지 못했습니다',
@@ -434,6 +437,7 @@ export const ORGCHART_LABELS = {
   'squad.groups.single': '층',
   'squad.groups.levelName': '{{tag}} 이름',
   'squad.groups.saving': '저장 중…',
+  'squad.groups.effectiveDateNote': '이 창에서 바꾸는 계층·이름·위 그룹·헤드는 이 날짜부터 적용된 것으로 남습니다',
   'squad.groups.emptyLevel': '아직 {{level}}이(가) 없습니다',
   'squad.groups.add': '+ {{level}} 추가',
   'squad.groups.edit': '수정',
