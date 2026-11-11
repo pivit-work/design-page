@@ -23,7 +23,8 @@ export default function AsOfButton({ asOf, L }) {
     if (!btnRef.current) return;
     // 창(전체 화면 등) 안이 아니면 달력을 body 로 띄운다 — 버튼을 품은 화면(스쿼드 캔버스 고정 틀)이 낮은 겹침 층을 만들면
     // 위로 뒤집혀 열린 달력이 맨 위 머리띠에 가려 [이전 달]을 못 누른다(pivit-work PW-2697). 창 안에서는 그 창 층 위에 그대로 둔다.
-    const inDialog = !!btnRef.current.closest('[role="dialog"]');
+    // 공용 창(ModalLayer)의 막 안이면 창 안 — 막의 클래스로 가른다.
+    const inDialog = !!btnRef.current.closest('.tl-modal-overlay');
     setPicker({ rect: btnRef.current.getBoundingClientRect(), el: btnRef.current, portal: !inDialog });
   };
   const valid = !!asOf.value && ISO.test(asOf.value);
