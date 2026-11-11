@@ -10189,6 +10189,19 @@ button.evm-ai-source {
   max-height: 160px;
   overflow-y: auto;
 }
+/* PW-2716 — 값이 많은 칸: 고른 값 칩 + 고르기 칸(공용 SearchSelect 칸 · dp-input) → 펼치면 .evc-pick-* 목록.
+   칩 사이 6px(--spacing-sm)는 옆 값 버튼 묶음(.evs-cw-filter-chips gap 6)과 같고, 칩 줄 아래 8px 는 시안 (다) v3-picked 값이다. */
+.evs-cw-pick { display: flex; flex-direction: column; gap: var(--spacing-md); min-width: 0; }
+.evs-cw-pick-chips { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-sm); min-width: 0; }
+.evs-cw-pick-chip { max-width: 100%; }
+.evs-cw-pick-chip .dp-chip__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.evs-cw-pick-chips .evc-pick-more.dp-btn { height: 24px; }
+.evs-cw-pick-trigger { width: 100%; }
+.evs-cw-pick-trigger.dp-btn .dp-btn__label { justify-content: space-between; gap: var(--spacing-md); width: 100%; min-width: 0; }
+.evs-cw-pick-trigger.is-open { border-color: var(--border-brand); }
+.evs-cw-pick-count { flex: 0 0 auto; font-size: var(--font-size-text-xs); color: var(--text-tertiary); }
+.evs-cw-pick-menu .evc-pick-list { max-height: 240px; }
+.evs-cw-pick-n { flex: 0 0 auto; font-size: var(--font-size-text-xs); font-weight: 400; color: var(--text-tertiary); }
 /* PW-1874 — 저장한 필터가 늘어나도 그 줄 안에서만 스크롤한다(높이는 대상자 칩 묶음과 같은 값). */
 .evs-cw-filter-presets {
   max-height: 160px;
@@ -17347,34 +17360,28 @@ button.evmh-phase:focus-visible {
   gap: var(--spacing-sm);
 }
 .evc-tgt-missing-text > svg { flex: 0 0 auto; margin-top: var(--spacing-xxs); }
-.evc-tgt-missing-more.dp-btn {
-  display: inline;
-  padding: 0;
-  border: 0;
-  background: none;
+/* PW-2716 — 문장 끝 [N명만 보기]. 켜고 끄는 거르기 단추라 안내 줄과 같은 주황으로 테두리만(꺼짐) / 바탕까지(켜짐).
+   안내 줄 높이를 바꾸지 않게 글줄 높이(18px) 안에 든다(시안 eval-wizard-missing-names-demo (다) .only-chip). */
+.evc-tgt-missing-only.dp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  height: 20px;
+  margin-left: var(--spacing-sm);
+  padding: 0 var(--spacing-md);
+  border: 1px solid var(--colors-orange-600);
+  border-radius: var(--radius-full);
+  background: var(--bg-primary);
   font: inherit;
   font-weight: 600;
+  line-height: 18px;
   color: var(--colors-orange-600);
-  text-decoration: underline;
+  vertical-align: middle;
+  white-space: nowrap;
   cursor: pointer;
 }
-.evc-tgt-missing-names {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-xs);
-  max-height: 96px;
-  overflow: auto;
-  padding: var(--spacing-sm);
-  border-radius: var(--radius-sm);
-  background: var(--bg-quaternary);
-}
-.evc-tgt-missing-names > span {
-  padding: 0 var(--spacing-sm);
-  border: 1px solid var(--border-secondary);
-  border-radius: var(--radius-xs);
-  font-weight: 600;
-  color: var(--text-secondary);
-}
+.evc-tgt-missing-only.dp-btn .dp-btn__label { display: inline-flex; align-items: center; gap: var(--spacing-xs); }
+.evc-tgt-missing-only.dp-btn.is-on { background: var(--colors-orange-600); color: var(--text-white); }
 
 /* ── 4단계 하향 평가자 (시안 worklog/eval-leader-assign-designer-2026-11-08/demo.html · 커트 승인) ── */
 .evc-tgt-panel .evc-la { margin-top: var(--spacing-3xl); gap: var(--spacing-lg); }

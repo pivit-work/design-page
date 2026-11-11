@@ -12,7 +12,8 @@ import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Tabs from '../shared/Tabs.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
 import { AlertIcon, ArrowDownIcon, ArrowRightIcon, ArrowUpIcon, ChevronDownIcon, ChevronRightIcon, ChevronUpIcon, DownloadIcon, EyeIcon, InfoIcon, LockIcon, RefreshIcon, ZapIcon } from './evalIcons.jsx';
-import { ClockGlyph, CloseGlyph } from '../shared/lineIcons.jsx';
+import { CheckGlyph, ChevronDownGlyph, ClockGlyph, CloseGlyph, SearchGlyph } from '../shared/lineIcons.jsx';
+import AnchoredLayer from '../shared/AnchoredLayer.jsx';
 import { autoCommitteeIdsOf } from './calibrationAutoCommittee.js';
 import AvatarPhoto from './AvatarPhoto';
 import Avatar from '../shared/Avatar.jsx';
@@ -440,6 +441,20 @@ const DEFAULT_LABELS = {
   // PW-1874 — 값이 많은 칸(팀·부서·대상자…) 위에 붙는 이름 검색
   cwChipSearch: '이름으로 찾기',
   cwChipSearchEmpty: '찾는 이름이 없습니다.',
+  cwPickButton: '{label} 고르기',
+  cwPickOrgName: '조직',
+  cwPickCount: '{total}개 중 {count}개',
+  cwPickCountPeople: '{total}명 중 {count}명',
+  cwPickSearch: '{label} 찾기',
+  cwPickGroupSelected: '선택됨 {count}',
+  cwPickGroupAll: '전체 {count}',
+  cwPickFoot: '{total}개 중 {count}개 선택',
+  cwPickFootPeople: '{total}명 중 {count}명 선택',
+  cwPickClear: '선택 해제',
+  cwPickMore: '외 {count}개',
+  cwPickMorePeople: '외 {count}명',
+  cwPickRemove: '{name} 빼기',
+  cwPickRowCount: '{count}명',
   cwKindLead: '조직장',
   cwKindSeniorIc: '시니어 IC',
   cwChair: '위원장',
@@ -840,45 +855,216 @@ function committeeCandidateMatches(c, q) {
 }
 /** PW-1874 — 이 개수를 넘는 값 칸에만 이름 검색을 단다. 이하는 예전 화면 그대로다. */
 const CHIP_SEARCH_MIN = 12;
+/** PW-2716 — 고른 값이 이보다 많으면 칩 줄을 앞 N개 + «외 N개»로 접는다. */
+const PICK_CHIP_MAX = 20;
 /**
  * PW-1874 — 값 버튼 묶음(필터 칸·대상자·위원회 부서/직급). 회사마다 값 개수가 달라 200개도 온다.
- * 칸 높이는 CSS 로 묶어 그 안에서만 스크롤하고, 값이 많으면 이름 검색을 단다.
- * 값이 많을 때 고른 값은 맨 앞에 두고 검색에 안 걸려도 남긴다 — 스크롤 아래로 숨지 않게(§3.3 위원 검색과 같은 원칙).
- * 값이 적을 때는 순서를 그대로 둔다 — 누를 때마다 버튼이 자리를 옮기지 않게.
+ * 값이 적으면(12개 이하) 예전 버튼 묶음 그대로다 — 한 번에 누르는 버튼이 더 빠르고, 누를 때마다 자리를 옮기지 않는다.
+ * PW-2716 — 값이 많으면 버튼을 다 깔지 않고 «고른 값 칩 + [○○ 고르기 · 60개 중 2개] 칸»으로 바꾼다
+ * (60개 버튼이 들쭉날쭉 쌓여 160px 에서 잘리고 칸이 210px 를 차지했다 · 커트 11-11 시안 calib-chip-picker-search-demo (다)).
+ * 고르는 규칙은 그대로다 — 같은 isOn·onToggle 을 쓴다.
  */
-function ChipPicker({ items, keyOf = (v) => v, textOf = (v) => v, isOn, renderChip, listClassName, searchLabel, L, testId }) {
-  const [query, setQuery] = useState('');
-  const many = items.length > CHIP_SEARCH_MIN;
-  const q = query.trim().toLowerCase();
-  const shown = many
-    ? [
-        ...items.filter((v) => isOn(v)),
-        ...items.filter((v) => !isOn(v) && (!q || String(textOf(v) ?? '').toLowerCase().includes(q))),
-      ]
-    : items;
+function ChipPicker({
+  items,
+  keyOf = (v) => v,
+  textOf = (v) => v,
+  isOn,
+  renderChip,
+  listClassName,
+  searchLabel,
+  L,
+  testId,
+  onToggle,
+  onClear,
+  pickName,
+  tone = 'accent',
+  countOf,
+  people = false,
+}) {
+  if (items.length > CHIP_SEARCH_MIN && onToggle) {
+    return (
+      <ChipDropdown
+        items={items}
+        keyOf={keyOf}
+        textOf={textOf}
+        isOn={isOn}
+        onToggle={onToggle}
+        onClear={onClear}
+        name={pickName ?? searchLabel}
+        tone={tone}
+        countOf={countOf}
+        people={people}
+        L={L}
+        testId={testId}
+      />
+    );
+  }
   return (
     <div data-testid={testId}>
-      {many && (
-        <input
-          className="evs-cw-create-input evs-cw-create-search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder={L.cwChipSearch}
-          aria-label={searchLabel ? `${searchLabel} ${L.cwChipSearch}` : L.cwChipSearch}
-          data-testid="evs-cw-chip-search"
-        />
-      )}
-      {/* 결과 없음은 검색어를 쳤을 때만 — 값이 하나도 없는 칸(등급 미확정 등)은 예전처럼 빈 칸이다. */}
-      {q && shown.length === 0 ? (
-        <div className="evs-cw-create-muted" data-testid="evs-cw-chip-search-empty">
-          {L.cwChipSearchEmpty}
-        </div>
-      ) : (
-        <div className={`${listClassName} evs-cw-chip-picker-list`}>
-          {shown.map((v) => (
-            <Fragment key={keyOf(v)}>{renderChip(v, isOn(v))}</Fragment>
+      <div className={`${listClassName} evs-cw-chip-picker-list`}>
+        {items.map((v) => (
+          <Fragment key={keyOf(v)}>{renderChip(v, isOn(v))}</Fragment>
+        ))}
+      </div>
+    </div>
+  );
+}
+/**
+ * PW-2716 — 값이 많은 칸. 닫혀 있으면 고른 값 칩(X 로 빼기)과 고르기 칸만 보인다 — 칸 높이가 값 개수와 상관없다.
+ * 펼친 목록은 같은 평가 화면의 «선택» 드롭다운(EvalWizardChipPicker · .evc-pick-*) 값 그대로이고, 칸은 공용 고르기 칸
+ * (SearchSelect 칸 모양)이다. 목록은 포털로 칸 밑에 띄운다 — 필터 창 본문 스크롤에 잘리지 않는다.
+ * 창 밖을 누르거나 Esc 면 목록만 닫힌다(useDismissLayer — 맨 위 층만 닫는다).
+ */
+function ChipDropdown({ items, keyOf, textOf, isOn, onToggle, onClear, name, tone, countOf, people, L, testId }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const wrapRef = useRef(null);
+  const btnRef = useRef(null);
+  const menuRef = useRef(null);
+  const searchRef = useRef(null);
+  const close = () => {
+    setOpen(false);
+    setQuery('');
+  };
+  useDismissLayer(close, menuRef, wrapRef, open);
+  useEffect(() => {
+    if (open) searchRef.current?.focus();
+  }, [open]);
+
+  const picked = items.filter((v) => isOn(v));
+  const total = items.length;
+  const q = query.trim().toLowerCase();
+  const hit = (v) => !q || String(textOf(v) ?? '').toLowerCase().includes(q);
+  const shownPicked = picked.filter(hit);
+  const shownRest = items.filter((v) => !isOn(v) && hit(v));
+  const chips = picked.slice(0, PICK_CHIP_MAX);
+  const hidden = picked.length - chips.length;
+  const nums = { total, count: picked.length };
+  const countText = fmt(people ? L.cwPickCountPeople : L.cwPickCount, nums);
+
+  const row = (v) => {
+    const on = isOn(v);
+    const n = countOf ? countOf(v) : null;
+    return (
+      <Button
+        key={keyOf(v)}
+        role="option"
+        aria-selected={on}
+        className={`evc-pick-item${on ? ' is-on' : ''}`}
+        onClick={() => onToggle(v)}
+        data-testid="evs-cw-pick-item"
+      >
+        <span className="evc-pick-box" aria-hidden="true">
+          {on && <CheckGlyph size={11} />}
+        </span>
+        <span className="evc-pick-name" title={textOf(v)}>
+          {textOf(v)}
+        </span>
+        {n != null && <span className="evs-cw-pick-n">{fmt(L.cwPickRowCount, { count: n })}</span>}
+      </Button>
+    );
+  };
+
+  return (
+    <div className="evs-cw-pick" ref={wrapRef} data-testid={testId}>
+      {picked.length > 0 && (
+        <div className="evs-cw-pick-chips" data-testid="evs-cw-pick-chips">
+          {chips.map((v) => (
+            <Chip
+              key={keyOf(v)}
+              selected={tone !== 'red'}
+              tone={tone === 'red' ? 'danger' : undefined}
+              className="evs-cw-pick-chip"
+              onRemove={() => onToggle(v)}
+              removeLabel={fmt(L.cwPickRemove, { name: textOf(v) })}
+              removeProps={{ 'data-testid': 'evs-cw-pick-chip-remove' }}
+              data-testid="evs-cw-pick-chip"
+            >
+              <span title={textOf(v)}>{textOf(v)}</span>
+            </Chip>
           ))}
+          {hidden > 0 && (
+            <Button
+              className="evc-pick-more"
+              aria-haspopup="listbox"
+              onClick={() => setOpen(true)}
+              data-testid="evs-cw-pick-more"
+            >
+              {fmt(people ? L.cwPickMorePeople : L.cwPickMore, { count: hidden })}
+            </Button>
+          )}
         </div>
+      )}
+      {/* 목록은 이 칸 폭에 맞춰 칸 밑에 뜬다 — 공용 Button 은 ref 를 넘기지 않아 감싼 칸을 잰다. */}
+      <div ref={btnRef}>
+      <Button
+        className={`dp-input dp-select dp-search-select-trigger evs-cw-pick-trigger${open ? ' is-open' : ''}`}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => (open ? close() : setOpen(true))}
+        data-testid="evs-cw-pick-trigger"
+      >
+        <span className="dp-search-select-value is-placeholder">{fmt(L.cwPickButton, { label: name })}</span>
+        <span className="evs-cw-pick-count">{countText}</span>
+        <span className="dp-search-select-chevron" aria-hidden="true">
+          <ChevronDownGlyph size={16} />
+        </span>
+      </Button>
+      </div>
+      {open && (
+        <AnchoredLayer
+          anchorRef={btnRef}
+          panelRef={menuRef}
+          matchAnchorWidth
+          maxHeight={360}
+          className="evc-pick-menu evs-cw-pick-menu"
+          data-testid="evs-cw-pick-menu"
+        >
+          <label className="evc-pick-search">
+            <SearchGlyph size={16} aria-hidden="true" />
+            <input
+              ref={searchRef}
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={fmt(L.cwPickSearch, { label: name })}
+              aria-label={fmt(L.cwPickSearch, { label: name })}
+              data-testid="evs-cw-chip-search"
+            />
+          </label>
+          <div className="evc-pick-list" role="listbox" aria-multiselectable="true" aria-label={name}>
+            {shownPicked.length > 0 && (
+              <>
+                <div className="dp-search-select-group" role="presentation">
+                  {fmt(L.cwPickGroupSelected, { count: picked.length })}
+                </div>
+                {shownPicked.map(row)}
+              </>
+            )}
+            {shownRest.length > 0 && (
+              <>
+                <div className="dp-search-select-group" role="presentation">
+                  {fmt(L.cwPickGroupAll, { count: total })}
+                </div>
+                {shownRest.map(row)}
+              </>
+            )}
+            {q && shownPicked.length + shownRest.length === 0 && (
+              <span className="evc-pick-empty" data-testid="evs-cw-chip-search-empty">
+                {L.cwChipSearchEmpty}
+              </span>
+            )}
+          </div>
+          <div className="evc-pick-foot">
+            <span data-testid="evs-cw-pick-foot-count">
+              {fmt(people ? L.cwPickFootPeople : L.cwPickFoot, nums)}
+            </span>
+            {picked.length > 0 && onClear && (
+              <Button className="evc-pick-more" onClick={onClear} data-testid="evs-cw-pick-clear">
+                {L.cwPickClear}
+              </Button>
+            )}
+          </div>
+        </AnchoredLayer>
       )}
     </div>
   );
@@ -6660,6 +6846,18 @@ export default function EvalCycleSummaryCanvas({
             else conds[key] = next;
             return { ...prev, [which]: conds };
           });
+        /* PW-2716 — 값이 많은 칸의 «선택 해제»·줄마다 인원 수. 인원은 표 전체에서 그 값을 가진 사람 수다. */
+        const clearCond = (which, key) =>
+          setCalibFilter((prev) => {
+            const conds = { ...(prev[which] || {}) };
+            delete conds[key];
+            return { ...prev, [which]: conds };
+          });
+        const valueCount = (f, v) =>
+          calibTable.rows.filter((r) => {
+            const got = f.get(r);
+            return Array.isArray(got) ? got.includes(v) : got === v;
+          }).length;
         const palette = (which, tone) => (
           <div>
             {fields.map((f) => (
@@ -6668,6 +6866,10 @@ export default function EvalCycleSummaryCanvas({
                 <ChipPicker
                   items={f.values}
                   isOn={(v) => (calibFilter[which]?.[f.key] || []).includes(v)}
+                  onToggle={(v) => toggleCond(which, f.key, v)}
+                  onClear={() => clearCond(which, f.key)}
+                  tone={tone}
+                  countOf={(v) => valueCount(f, v)}
                   listClassName="evs-cw-filter-chips"
                   searchLabel={f.label}
                   L={L}
@@ -6847,6 +7049,10 @@ export default function EvalCycleSummaryCanvas({
                   keyOf={(r) => r.memberId}
                   textOf={(r) => r.name}
                   isOn={(r) => !!calibFilter.excludeIds?.includes(r.memberId)}
+                  onToggle={(r) => toggleMember(r.memberId)}
+                  onClear={() => setCalibFilter((fs) => ({ ...fs, excludeIds: [] }))}
+                  tone="red"
+                  people
                   listClassName="evs-cw-filter-excluded-list evs-cw-filter-members-list"
                   searchLabel={L.cwFilterMembersTitle}
                   L={L}
@@ -7076,6 +7282,11 @@ export default function EvalCycleSummaryCanvas({
                 <ChipPicker
                   items={sessionDeptOptions}
                   isOn={(d) => createDepts.includes(d)}
+                  onToggle={(d) =>
+                    setCreateDepts((prev) => (prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d]))
+                  }
+                  onClear={() => setCreateDepts([])}
+                  pickName={L.cwPickOrgName}
                   listClassName="evs-cw-create-chips"
                   searchLabel={L.cwCreateTargetLabel}
                   L={L}
@@ -7107,6 +7318,10 @@ export default function EvalCycleSummaryCanvas({
                   <ChipPicker
                     items={sessionLevelOptions}
                     isOn={(lv) => createLevels.includes(lv)}
+                    onToggle={(lv) =>
+                      setCreateLevels((prev) => (prev.includes(lv) ? prev.filter((x) => x !== lv) : [...prev, lv]))
+                    }
+                    onClear={() => setCreateLevels([])}
                     listClassName="evs-cw-create-chips"
                     searchLabel={L.cwCreateLevelLabel}
                     L={L}

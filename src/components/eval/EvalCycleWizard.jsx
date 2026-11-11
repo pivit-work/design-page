@@ -1108,8 +1108,6 @@ const EMPTY_IDS = [];
 
 /** 소속이 없는 구성원을 모으는 트리 노드 id. 노드가 없으면 그 사람은 고를 방법이 없다(E7). */
 const UNASSIGNED_ORG_ID = '__unassigned__';
-/** [PW-1591 J-3] 정보가 빈 대상자 요약 줄에 이름을 몇 명까지 적나 — 나머지는 「외 N명」. */
-const MISSING_NAMES_MAX = 5;
 
 /* PW-2683 — 4단계 조직 트리 «부서 찾기». 부서 이름이 맞으면 그 팀 전부, 아니면 이름이 맞는 팀만 남긴다.
    부서 객체는 그대로 넘긴다 — 체크·인원 수는 거른 팀이 아니라 원래 부서 전체 기준이다. */
@@ -1123,45 +1121,29 @@ function filterOrgTree(tree, query) {
   });
 }
 
-/* PW-2683 — 직급·입사일이 빈 대상자 문장. 이름은 앞 max 명 + «외 N명» 버튼 — 누르면 나머지 이름이 문장 밑
-   칸 안에서 스크롤되는 명단으로 펼쳐진다(시안 admin_wizard-4 〔많아질 때〕). 문장 글은 라벨 그대로다. */
-function MissingTargetsNote({ list, max, summary, moreLabel }) {
-  const [open, setOpen] = useState(false);
-  const rest = list.length - max;
-  const [pre, post = ''] = fill(summary, { count: list.length }).split('{{names}}');
+/* PW-2716 — 직급·입사일이 빈 대상자 문장 + 끝의 [N명만 보기]. 이름을 펼치면 안내 줄이 커져 명단을 밀었고
+   (52 → 154px), 작은 창은 명단 줄 [제외]를 가렸다. 그래서 이름은 문장에서 빼고, 가운데 명단을 그 N명으로
+   거르는 켜고 끄는 단추 하나만 둔다(커트 11-11 시안 eval-wizard-missing-names-demo (다)). 문장 글은 라벨 그대로다. */
+function MissingTargetsNote({ count, summary, onlyLabel, on, onToggle }) {
   return (
     <div className="evc-wiz-soft-warn is-flat evc-tgt-missing" data-testid="evc-wiz-missing-summary">
       <span className="evc-tgt-missing-text">
         <AlertIcon size={13} />
         <span>
-          {pre}
-          {list
-            .slice(0, max)
-            .map((c) => c.name)
-            .join(', ')}
-          {rest > 0 && (
-            <>
-              {' '}
-              <Button
-                className="evc-tgt-missing-more"
-                aria-expanded={open}
-                onClick={() => setOpen((o) => !o)}
-                data-testid="evc-wiz-missing-more"
-              >
-                {fill(moreLabel, { count: rest })}
-              </Button>
-            </>
+          {fill(summary, { count })}
+          {onlyLabel && (
+            <Button
+              className={`evc-tgt-missing-only${on ? ' is-on' : ''}`}
+              aria-pressed={on}
+              onClick={onToggle}
+              data-testid="evc-wiz-missing-only"
+            >
+              {on && <CheckGlyph size={12} aria-hidden="true" />}
+              {fill(onlyLabel, { count })}
+            </Button>
           )}
-          {post}
         </span>
       </span>
-      {open && rest > 0 && (
-        <span className="evc-tgt-missing-names" data-testid="evc-wiz-missing-names">
-          {list.slice(max).map((c) => (
-            <span key={c.id}>{c.name}</span>
-          ))}
-        </span>
-      )}
     </div>
   );
 }
@@ -3618,6 +3600,8 @@ export default function EvalCycleWizard({
   const [reviewFilters, setReviewFilters] = useState(emptyAxisSel);
   const [filterOpen, setFilterOpen] = useState(false);
   const [reviewQuery, setReviewQuery] = useState('');
+  /** PW-2716 — 안내 줄 [N명만 보기]. 켜면 가운데 명단이 직급·입사일이 빈 사람만 남는다(표시만 거른다). */
+  const [missingOnly, setMissingOnly] = useState(false);
   /** 직전 수동 조정 스냅샷 — 「모두 제외」·그룹 제외를 1회 되돌린다. */
   const [undoSnapshot, setUndoSnapshot] = useState(null);
   // §4.1.1 제외 조건 필터(자동 탐지). 데이터 근거가 있는 두 축만 노출한다.
@@ -7427,8 +7411,12 @@ export default function EvalCycleWizard({
      문구를 가른다 — 원인이 다르고, 처방도 다르다(초기화 vs 대상에 포함). */
   const focusOffTarget =
     !!orgFocus && !!focusUnitIds && ![...focusUnitIds].some((id) => orgSel.has(id));
+  /* PW-2716 — [N명만 보기]는 가운데 명단에만 건다. 빈 사람이 다 빠지면(안내 줄이 사라지면) 저절로 풀린 셈이다 —
+     켜진 채 남으면 끌 단추 없이 명단이 비어 버린다. 제외 칸은 거르지 않는다(시안 (다) — 뺀 사람이 그대로 보인다). */
+  const missingOnlyOn = missingOnly && missingTargets.length > 0;
+  const missingHit = (c) => !missingOnlyOn || !c.jobLevel || !c.hireDate;
   const visibleTargets = targetMembers.filter(
-    (c) => axisHit(c) && nameHit(c) && focusHit(c),
+    (c) => axisHit(c) && nameHit(c) && focusHit(c) && missingHit(c),
   );
   /* 규칙 12 (v2.46) — **같은 필터가 제외 패널에도 걸린다.** 규칙으로 뺀 사람(예: 고용유형
      조건의 인턴)은 중앙 명단에 아예 없어서, 패널에 필터가 안 걸리면 「인턴만 골라
@@ -7469,11 +7457,12 @@ export default function EvalCycleWizard({
   /* 「지금 무언가로 좁혀져 있나」 — 일괄 버튼의 라벨(규칙 4)과 `초기화` 노출을 가른다.
      초점은 축이 아니라서 필터 버튼의 개수 배지에는 세지 않는다. */
   const anyReviewFilter =
-    activeFilterCount > 0 || reviewQuery.trim().length > 0 || !!orgFocus;
+    activeFilterCount > 0 || reviewQuery.trim().length > 0 || !!orgFocus || missingOnlyOn;
   const clearReviewFilters = () => {
     setReviewFilters(emptyAxisSel());
     setReviewQuery('');
     setOrgFocus(null);
+    setMissingOnly(false);
   };
   /** 트리 행 이름 클릭 — 같은 이름을 다시 누르면 풀린다. */
   const toggleOrgFocus = (unitId) =>
@@ -7543,6 +7532,7 @@ export default function EvalCycleWizard({
         id: unitId,
         label: team ? `${d.name} · ${team.name}` : d.name,
         members,
+        total: targetMembers.filter((c) => bucketOf(c) === unitId).length,
       });
     });
   });
@@ -7555,6 +7545,7 @@ export default function EvalCycleWizard({
         id: UNASSIGNED_ORG_ID,
         label: L.targetOrgUnassigned,
         members,
+        total: targetMembers.filter((c) => bucketOf(c) === UNASSIGNED_ORG_ID).length,
       });
     }
   }
@@ -11426,6 +11417,10 @@ export default function EvalCycleWizard({
                     <div className="evc-review-pane-head">
                       <span className="evc-review-pane-title">
                         {fill(L.targetReviewIncluded, { count: targetCount })}
+                        {/* PW-2716 — 빈 사람만 볼 때는 몇 명이 보이는지 머리에 적는다(시안 «118명 · 40명 표시 중»). */}
+                        {missingOnlyOn &&
+                          L.targetReviewShowing &&
+                          ` · ${fill(L.targetReviewShowing, { count: visibleTargets.length })}`}
                       </span>
                       {/* 규칙 4 (v2.46) — 일괄은 원래 «보이는 것»에만 걸렸는데 버튼이 그
                           사실을 말하지 않았다. 좁혀져 있으면 몇 명에게 걸리는지를 라벨에
@@ -11437,21 +11432,24 @@ export default function EvalCycleWizard({
                           onClick={() => moveMany(visibleTargets, true)}
                           data-testid="evc-wiz-exclude-all"
                         >
-                          {anyReviewFilter
-                            ? fill(L.targetExcludeVisible, {
-                                count: visibleTargets.length,
-                              })
-                            : L.targetExcludeAll}
+                          {/* PW-2716 (커트 11-11) — 빈 사람만 볼 때는 «N명 모두 제외». 보이는 사람만 빠진다. */}
+                          {missingOnlyOn && L.targetExcludeShownAll
+                            ? fill(L.targetExcludeShownAll, { count: visibleTargets.length })
+                            : anyReviewFilter
+                              ? fill(L.targetExcludeVisible, {
+                                  count: visibleTargets.length,
+                                })
+                              : L.targetExcludeAll}
                         </button>
                       )}
                     </div>
-                    {/* PW-2683 — 이름은 앞 5명 + «외 N명», 누르면 나머지가 칸 안에서 스크롤되는 명단으로 펼쳐진다. */}
                     {missingTargets.length > 0 && L.targetMissingSummary && (
                       <MissingTargetsNote
-                        list={missingTargets}
-                        max={MISSING_NAMES_MAX}
+                        count={missingTargets.length}
                         summary={L.targetMissingSummary}
-                        moreLabel={L.targetMissingMore ?? ''}
+                        onlyLabel={L.targetMissingOnly}
+                        on={missingOnlyOn}
+                        onToggle={() => setMissingOnly(!missingOnlyOn)}
                       />
                     )}
                     <div
@@ -11563,7 +11561,10 @@ export default function EvalCycleWizard({
                                 </button>
                                 <span className="evc-roster-group-name">{g.label}</span>
                                 <span className="evc-org-n">
-                                  {fill(L.targetGroupCount, { count: g.members.length })}
+                                  {/* PW-2716 — 빈 사람만 볼 때는 «보이는 수 / 그 부서 대상 수»(시안 «8명 / 48명»). */}
+                                  {missingOnlyOn && L.targetGroupCountOf
+                                    ? fill(L.targetGroupCountOf, { shown: g.members.length, count: g.total })
+                                    : fill(L.targetGroupCount, { count: g.members.length })}
                                 </span>
                                 <button
                                   type="button"
