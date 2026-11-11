@@ -5,7 +5,7 @@ import EmptyState from '../shared/EmptyState.jsx';
 import AiMark from '../shared/AiMark.jsx';
 import assetUrl from '../shared/assetUrl.js';
 import { ArrowRightIcon, DownloadIcon, InfoIcon } from './evalIcons.jsx';
-import { scaleMaxOf, categoryKind, storedCategoryName, answerScoreText, checkedAnswerText } from './evalTemplateItemModel.js';
+import { scaleMaxOf, categoryKind, storedCategoryName, answerScoreText, checkedAnswerText, peerAuthorLabel } from './evalTemplateItemModel.js';
 import { ObjectionHeaderAction, ObjectionPanel } from './EvalReportObjection.jsx';
 import { OBJECTION_DEFAULT_LABELS } from './evalObjectionLabels.js';
 
@@ -70,6 +70,9 @@ const DEFAULT_LABELS = {
   leaderRoundTitle: '하향 리뷰 · {round}차',
   // PW-2580 — 실명 항목 답에는 작성자 이름이 붙으므로 «(익명)»을 떼었다(member §7.5 · spec §4.5.1).
   peerTitle: '동료 피드백 요약',
+  // PW-2580 3회차 — 관계만·익명 동료 답 앞 작성자 표시(실명은 이름)
+  peerAuthorRoleOnly: '동료',
+  peerAuthorAnon: '동료 (익명)',
   /** PW-1458 — 응답 인원이 공개 기준 미만이라 뺀 동료 항목이 있을 때 (정책 §12). */
   peerBelowMin: '응답 인원이 공개 기준 미만입니다',
   growthTitle: '성장 영역 & 개선',
@@ -165,10 +168,10 @@ function AnswerList({ answers, L }) {
           <span className="evc-field-label">
             {/* 분류 이름이 빈 답(평가지 항목에 분류가 없는 동료 답)에서 줄이 «·»로 시작하지 않게 빈 칸은 뺀다 */}
             {[catLabel(a, L), answerScoreText(a)].filter(Boolean).join(' · ')}
-            {/* PW-2580 — 실명 항목 동료 답만 서버가 `authorName` 을 싣는다. 익명·관계만 답에는 없다. */}
-            {a.authorName ? (
+            {/* PW-2580 — 동료 답은 그 항목의 작성자 표기대로: 실명 이름 · 관계만 «동료» · 익명 «동료 (익명)» */}
+            {peerAuthorLabel(a, L) ? (
               <span data-testid="evr-answer-author">
-                {catLabel(a, L) || answerScoreText(a) ? ` · ${a.authorName}` : a.authorName}
+                {catLabel(a, L) || answerScoreText(a) ? ` · ${peerAuthorLabel(a, L)}` : peerAuthorLabel(a, L)}
               </span>
             ) : null}
           </span>

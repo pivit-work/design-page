@@ -18,7 +18,7 @@ import Avatar from '../shared/Avatar.jsx';
 import LoadingState from '../shared/LoadingState.jsx';
 import DateInput from '../shared/DateInput.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
-import { scaleMaxOf, answerScoreText, checkedAnswerText, answerLineText, categoryKind, storedCategoryName } from './evalTemplateItemModel.js';
+import { scaleMaxOf, answerScoreText, checkedAnswerText, answerLineText, categoryKind, storedCategoryName, peerAuthorLabel } from './evalTemplateItemModel.js';
 import { leaderGradeMarks } from './evalLeaderLive.js';
 import { pickParticle } from '../shared/koreanParticle.js';
 import Select from '../shared/Select.jsx';
@@ -785,6 +785,9 @@ const DEFAULT_LABELS = {
   reNoneChecked: '고른 항목이 없습니다.',
   // [PW-2426] 상향 리뷰 칸 — 익명 항목 답 앞에 붙는 이름 대신 말(HR 정책 §5.12.3).
   cwDetailUpwardAnonAuthor: '팀원 (익명)',
+  // PW-2580 3회차 — 관계만·익명 동료 답 앞 작성자 표시(실명은 이름)
+  peerAuthorRoleOnly: '동료',
+  peerAuthorAnon: '동료 (익명)',
   // report control
   reportNotGenerated: '리포트 미생성',
   reportGenerated: '검수 대기',
@@ -1220,11 +1223,12 @@ function leaderRoundsOf(manager) {
  * [PW-2021] 한 줄 = 한 답 — 척도 점수(만점과 함께)·체크 답의 고른 이름도 싣는다.
  */
 function AnswerLines({ answers, empty, testId, L = DEFAULT_LABELS }) {
-  // PW-2580 — 실명 항목 동료 답은 서버가 `authorName` 을 싣는다. 익명·관계만 답에는 없다.
+  // PW-2580 — 동료 답은 그 항목의 작성자 표기대로: 실명 이름 · 관계만 «동료» · 익명 «동료 (익명)».
   const texts = (answers ?? [])
     .map((a) => {
       const text = answerLineText(a, { scoreLabel: L.reScore, noneLabel: L.reNoneChecked });
-      return text && a.authorName ? `${a.authorName} · ${text}` : text;
+      const who = peerAuthorLabel(a, L);
+      return text && who ? `${who} · ${text}` : text;
     })
     .filter(Boolean);
   if (!texts.length) return <div className="evs-cw-detail-body">{empty}</div>;
@@ -4395,7 +4399,7 @@ export default function EvalCycleSummaryCanvas({
                       <div className="evs-re-answers">
                         {memberDetail.peer.answers.map((a) => (
                           <div className="evs-re-answer" key={a.id}>
-                            {a.authorName && <span className="evc-field-label" data-testid="evs-re-peer-author">{a.authorName}</span>}
+                            {peerAuthorLabel(a, L) && <span className="evc-field-label" data-testid="evs-re-peer-author">{peerAuthorLabel(a, L)}</span>}
                             {answerScoreText(a) && <span className="evs-re-score">{L.reScore} <b className="evs-re-score-v">{answerScoreText(a)}</b></span>}
                             {checkedAnswerText(a, L.reNoneChecked) && <span className="evs-re-atext" data-testid="evs-re-checked">{checkedAnswerText(a, L.reNoneChecked)}</span>}
                             {a.textAnswer && <span className="evs-re-atext">{a.textAnswer}</span>}
@@ -5975,6 +5979,7 @@ export default function EvalCycleSummaryCanvas({
                                                 empty={detail.peer?.afterCalibration ? L.cwDetailUpwardEmpty : L.cwDetailEmpty}
                                                 testId="evs-cw-peer-answers"
                                                 L={L}
+                                                authorOf={(a) => peerAuthorLabel(a, L)}
                                               />
                                             )}
                                           </div>

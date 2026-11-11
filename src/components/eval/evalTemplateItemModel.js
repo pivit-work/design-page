@@ -273,3 +273,15 @@ export function groupBySection(items) {
   });
   return groups;
 }
+
+/**
+ * PW-2580 — 동료 답 앞에 붙는 작성자 표시. 그 답을 쓴 항목의 작성자 표기를 따른다(David 2026-11-04):
+ * 실명 = 서버가 실은 이름(`authorName`) · 관계만 = «동료» · 익명 = «동료 (익명)». 공개 대상 모두에게 같다.
+ * 표기를 싣지 않은 답(동료 답이 아니거나 옛 서버)은 null — 아무것도 붙이지 않는다.
+ */
+export const peerAuthorLabel = (a, L) => {
+  if (a?.authorName) return a.authorName;
+  if (a?.authorIdentity === 'role_only') return L.peerAuthorRoleOnly ?? '동료';
+  if (a?.authorIdentity === 'anonymous') return L.peerAuthorAnon ?? '동료 (익명)';
+  return null;
+};
