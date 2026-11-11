@@ -98,7 +98,8 @@
   border: 1px solid transparent;
   font-family: var(--font-family-body);
   font-size: var(--font-size-text-md, 16px);
-  line-height: 24px;
+  /* 20 — 버튼 셋 창(«재입사로 진행»)에서 글이 두 줄로 꺾여도 44 안에 든다(24 면 50 이 됐다). 한 줄이면 높이는 min-height 44 그대로. */
+  line-height: 20px;
   font-weight: 600;
   text-align: center;
   cursor: pointer;
