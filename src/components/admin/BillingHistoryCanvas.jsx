@@ -33,7 +33,7 @@ const DEFAULT_LABELS = {
   viewOnly: '조회 전용',
   pageTitle: '청구 내역',
   pageSubtitle:
-    '워크스페이스의 청구서와 영수증(카드매출전표)을 확인하고 다운로드합니다. 세금계산서는 발행하지 않습니다.',
+    '회사의 청구서와 영수증(카드매출전표)을 확인하고 다운로드합니다. 세금계산서는 발행하지 않습니다.',
 
   summaryTotalPaid: '총 결제 금액',
   summaryPaidCount: '결제 완료',

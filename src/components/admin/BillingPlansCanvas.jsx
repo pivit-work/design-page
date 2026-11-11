@@ -38,7 +38,7 @@ const DEFAULT_LABELS = {
   back: '← 구독 현황으로',
   pageTitle: '플랜 선택',
   readOnlyBadge: '조회 전용',
-  pageSubtitle: '워크스페이스에 적용할 플랜을 선택합니다. 상위 플랜은 하위 기능을 모두 포함합니다.',
+  pageSubtitle: '회사에 적용할 플랜을 선택합니다. 상위 플랜은 하위 기능을 모두 포함합니다.',
   cancelReservedTitle: '해지 예약 중',
   cancelReservedBodyPre: '청구 기간 종료 후 Free 플랜으로 전환될 예정입니다. 플랜을 유지하려면 ',
   cancelReservedBodyStrong: '구독 현황',

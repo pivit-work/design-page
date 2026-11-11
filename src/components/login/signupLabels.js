@@ -51,7 +51,7 @@ export const SIGNUP_LABELS = {
   consentTerms: '[필수] 서비스 이용약관에 동의합니다.',
   // 4 회사 정보
   companyTitle: '회사 정보',
-  companyDescription: '워크스페이스의 기본 정보를 입력해주세요.',
+  companyDescription: '회사의 기본 정보를 입력해주세요.',
   companyName: '회사명',
   companyNamePlaceholder: '예: Pivit',
   companyDomain: '회사 이메일 도메인',
@@ -71,7 +71,7 @@ export const SIGNUP_LABELS = {
   planUndecided: '아직 모르겠어요',
   consentDpa: '[필수] {{company}}을(를) 대표하여 개인정보 처리위탁계약에 동의합니다.',
   dpaCompanyFallback: '회사',
-  approvalNotice: '신청하면 워크스페이스가 바로 열립니다. 운영팀 확인이 필요한 신청도 확인을 기다리는 동안 본인은 먼저 쓸 수 있어요.',
+  approvalNotice: '신청하면 회사가 바로 열립니다. 운영팀 확인이 필요한 신청도 확인을 기다리는 동안 본인은 먼저 쓸 수 있어요.',
   submitRequest: '신청하기',
   // 5 승인 대기
   requestPendingTitle: '접수되었습니다',
@@ -83,7 +83,7 @@ export const SIGNUP_LABELS = {
   requestCancel: '신청 취소',
   demoAdvance: '다음 단계 미리 보기 (데모)',
   // 6 결과(승인)
-  resultApprovedTitle: '워크스페이스가 준비됐습니다',
+  resultApprovedTitle: '회사가 준비됐습니다',
   resultApprovedDesc: '비밀번호를 설정하면 바로 시작할 수 있어요.',
   resultAccountEmailLabel: '계정 이메일',
   resultAccountEmailHint: '이 이메일로 로그인하게 됩니다. 신청하신 주소예요.',
@@ -93,7 +93,7 @@ export const SIGNUP_LABELS = {
   confirmPwLabel: '비밀번호 확인',
   confirmPwPlaceholder: '비밀번호를 다시 입력해주세요',
   resultAllowedDomain: '{{domain}} 계정으로 구성원을 초대할 수 있습니다.',
-  resultStart: '워크스페이스 시작하기',
+  resultStart: '시작하기',
   resultNextSteps: '다음 단계 — 구성원 초대 → 연동 설정 → 완료',
   // 7 구성원 초대
   inviteTitle: '구성원 초대',

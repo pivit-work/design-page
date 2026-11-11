@@ -543,7 +543,7 @@ const DEFAULT_LABELS = {
   exclusionEmploymentTypeSuffix: '에 해당하면 제외',
   targetIncludedToast: '{{count}}명을 포함했습니다',
   targetManualKeptNotice: '수동 조정 {{count}}건은 유지했습니다',
-  exclusionUnsupported: '이 조건은 현재 워크스페이스에서 지원하지 않습니다',
+  exclusionUnsupported: '이 조건은 이 회사에서 지원하지 않습니다',
   exclusionUnsupportedLabel: '지원하지 않는 조건',
   presetEmpty: '이전 사이클이 없습니다. 새로 작성하세요.',
   pastCycleSection: '완료된 이전 사이클',

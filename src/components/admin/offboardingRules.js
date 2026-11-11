@@ -42,7 +42,7 @@ export const ADMIN_OFFBOARDING_DEFAULT_LABELS = {
   sections: {
     target: '대상자',
     data: '데이터 처리',
-    dataDesc: '영역마다 처리 방식은 이미 정해져 있습니다. 이 화면은 그것을 보여 주고, 고를 수 있는 항목에서만 선택을 받습니다. 기본값은 워크스페이스 설정 > 퇴사 처리 기본값에서 옵니다.',
+    dataDesc: '영역마다 처리 방식은 이미 정해져 있습니다. 이 화면은 그것을 보여 주고, 고를 수 있는 항목에서만 선택을 받습니다. 기본값은 회사 설정 > 퇴사 처리 기본값에서 옵니다.',
     effectsDue: '실행하면 즉시 일어나는 일',
     effectsScheduled: '퇴사일({date})에 일어나는 일',
     confirm: '확인',

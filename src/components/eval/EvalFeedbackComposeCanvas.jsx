@@ -171,7 +171,7 @@ const DEFAULT_LABELS = {
   // 연결 대상이 지금 기간 OKR 에 없을 때 칩 끝 (§3.4-A)
   inboxNotInPeriod: '· 현재 기간 OKR 에 없음',
   emptyTeam: '관리 중인 팀원이 없습니다.',
-  emptyTeamHint: '팀원 배정은 관리자가 합니다. 워크스페이스 관리자에게 요청하세요.',
+  emptyTeamHint: '팀원 배정은 관리자가 합니다. 회사 관리자에게 요청하세요.',
 };
 
 function isObj(v) {

@@ -68,7 +68,7 @@ const DEFAULT_LABELS = {
     '100인+ 조직·엔터프라이즈 요건(SSO·고급 권한·전용 AI 한도·약정 할인)에 맞춰 커스텀 견적을 제공합니다. 아래 정보를 남겨주시면 영업팀이 연락드립니다.',
 
   wsContext: (name, seats) => (
-    <>워크스페이스 <b style={{ color: T.text }}>{name}</b> · 현재 활성 좌석 <b style={{ color: T.text }}>{seats}명</b></>
+    <>회사 <b style={{ color: T.text }}>{name}</b> · 현재 활성 좌석 <b style={{ color: T.text }}>{seats}명</b></>
   ),
 
   contactNameLabel: '담당자명',

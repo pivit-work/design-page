@@ -99,7 +99,7 @@ const DEFAULT_START_LABELS = {
   failTitle: '{{target}} 생성에 실패했습니다',
   failTimeout: '생성이 30초를 넘겨 중단됐습니다. 잠시 후 다시 시도해 주세요.',
   failModelError: 'AI 응답을 받지 못했습니다. 잠시 후 다시 시도해 주세요.',
-  failQuotaExceeded: '이번 달 조직 AI 사용 한도를 모두 썼습니다. 워크스페이스 관리자에게 문의해 주세요.',
+  failQuotaExceeded: '이번 달 조직 AI 사용 한도를 모두 썼습니다. 회사 관리자에게 문의해 주세요.',
   failExhausted: '여러 번 시도했지만 생성하지 못했습니다. 직접 입력해 주세요.',
   failHint: '직접 입력해도 됩니다 — AI 없이 저장·제출할 수 있습니다.',
   failQuotaTooltip: 'AI 사용 한도가 복구되면 다시 시도할 수 있습니다',

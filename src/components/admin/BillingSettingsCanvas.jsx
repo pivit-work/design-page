@@ -87,7 +87,7 @@ const DEFAULT_LABELS = {
   openingCardLabel: '카드 인증 창을 여는 중...',
 
   noPermTitle: '접근 권한이 없습니다.',
-  noPermDesc: '청구 정보는 워크스페이스 Owner 또는 billing_admin만 조회·수정할 수 있습니다. 담당자에게 요청하세요.',
+  noPermDesc: '청구 정보는 회사 Owner 또는 billing_admin만 조회·수정할 수 있습니다. 담당자에게 요청하세요.',
 
   bizSectionTitle: '사업자 정보',
   contactSectionTitle: '청구 담당자',

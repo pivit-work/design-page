@@ -44,7 +44,7 @@ const STATUS_META = {
 const DEFAULT_LABELS = {
   viewOnly: '조회 전용',
   pageTitle: '결제·구독',
-  pageSubtitle: '워크스페이스 구독 현황과 청구 정보를 관리합니다.',
+  pageSubtitle: '회사 구독 현황과 청구 정보를 관리합니다.',
 
   statusLabels: {
     free: '무료 플랜',
