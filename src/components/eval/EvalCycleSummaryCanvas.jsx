@@ -684,6 +684,7 @@ const DEFAULT_LABELS = {
   // [PW-2692] 정책 §4.A.2-A — 미제출(N, 평가가 끝나지 않은 피평가자)과 리마인드 받을 사람(M, 작성자)이 다를 때.
   submitPendingRemind: '미제출 {n}명 · 리마인드 {m}명 · 클릭 →',
   submitTargetsDoneRemind: '대상 전원 완료 · 리마인드 {m}명 · 클릭 →',
+  submitTargetsDone: '대상 전원 완료',
   kpiSubmitRateInfo: '평가 대상 가운데, 그 사람에 대해 써야 할 리뷰(셀프·동료·상향·하향 중 이 사이클에 든 것)가 모두 제출된 사람의 비율입니다. 리마인드는 아직 안 쓴 사람이 받으므로 평가 대상이 아닌 리더도 받을 수 있습니다.',
   remindTitle: '미제출자 리마인드',
   remindSubtitle: '제출 완료율 {pct}% · 미제출 {n}명 · 리마인드 받을 사람 {m}명',
@@ -3471,9 +3472,11 @@ export default function EvalCycleSummaryCanvas({
                         : fmt(L.submitPendingRemind, { n: unfinishedCount, m: pendingCount })}
                   </span>
                 ) : unfinishedCount > 0 ? (
-                  <span className="evs-kpi-sub">{fmt(L.submitPendingCount, { n: unfinishedCount })}</span>
-                ) : totalParticipants > 0 && pendingCount === 0 ? (
-                  <span className="evs-kpi-sub">{L.submitAllDone}</span>
+                  <span className="evs-kpi-sub" data-testid="evs-kpi-submit-hint">{fmt(L.submitPendingCount, { n: unfinishedCount })}</span>
+                ) : totalParticipants > 0 ? (
+                  /* [PW-2692] 리마인드를 못 보내는 단계(끝난 평가 · PW-1809)엔 «클릭»을 빼고, 대상이 다 끝났으면
+                     대상 밖 리뷰가 남았어도 «대상 전원 완료» — «6명 / 6명»으로 떨어지지 않게 */
+                  <span className="evs-kpi-sub" data-testid="evs-kpi-submit-hint">{pendingCount === 0 ? L.submitAllDone : L.submitTargetsDone}</span>
                 ) : (
                   <span className="evs-kpi-sub">{doneCount}{L.unit} / {totalParticipants}{L.unit}</span>
                 )}
@@ -3636,6 +3639,8 @@ export default function EvalCycleSummaryCanvas({
                         {/* [PW-2692] 정책 §4.A.2-B — 담당 리더가 없는 피평가자는 «담당 리더 없음» 한 행 */}
                         {s.noLeader ? (
                           <span className="evs-leader-lead">
+                            {/* 얼굴 자리를 비워 두어 다른 리더 행과 높이를 맞춘다 */}
+                            <span className="evs-leader-avatar" aria-hidden="true" />
                             <span className="evs-leader-name is-muted" data-testid="evs-leader-none">{L.leaderNone}</span>
                           </span>
                         ) : (
