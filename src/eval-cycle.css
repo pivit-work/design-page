@@ -7035,21 +7035,6 @@ button.evm-ai-source {
   justify-content: space-between;
   gap: var(--spacing-md);
 }
-.evrr-reject-field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
-}
-.evrr-reject-label {
-  font-size: var(--font-size-text-sm);
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-.evrr-reject-count {
-  align-self: flex-end;
-  font-size: var(--font-size-text-xs);
-  color: var(--text-tertiary);
-}
 .evrr-toolbar {
   display: flex;
   align-items: center;
@@ -12520,6 +12505,25 @@ button.evm-ai-source {
 .evc-shell-thread-list > .fbmgr-summarize-tip {
   align-self: flex-end;
 }
+/* [PW-2698 ⑨] 대화 요약 결과 — AI 딱지 + 원온원 AI 읽기 상자(.ono-my-readbox.is-ai), 글은 14 */
+.fbm-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+}
+.ono-my-readbox.fbm-summary-text {
+  align-self: stretch;
+  font-size: var(--font-size-text-sm);
+  line-height: 22px;
+}
+.fbm-summary-stale {
+  margin: 0;
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
 /* 공용 창 틀 안 본문 — 칸 사이 간격만 준다(바깥 여백은 틀이 갖는다). */
 .evc-shell-body {
   display: flex;
@@ -12593,96 +12597,99 @@ button.evm-ai-source {
   text-decoration: underline;
   cursor: pointer;
 }
+/* [PW-2698 ⑥⑦] 펼친 칸은 흰 바탕 그대로(회색 판 없음) · 리뷰마다 흰 카드. 원문/다듬은 글 상자는 원온원 읽기 상자
+   (.ono-my-readbox · 다듬은 글은 .is-ai 연보라 + AI 딱지), 안내·실패는 .evl-lcp-line, 버튼은 .evl-lcp-foot 오른쪽 끝. */
 .evrr-refine {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
-  padding: var(--spacing-lg) var(--spacing-xl);
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--bg-active);
+  gap: var(--spacing-xl);
+  padding: var(--spacing-2xl) var(--spacing-3xl) var(--spacing-3xl);
+  border-bottom: 1px solid var(--border-secondary);
 }
-.evrr-refine-hint,
-.evrr-refine-note {
+.evrr-refine > .evl-lcp-line,
+.evrr-refine-item .evl-lcp-line {
   margin: 0;
-  font-size: var(--font-size-text-xs);
-  color: var(--text-secondary);
 }
+/* 창·판 안 실패 글(승인 창 저장 실패 등). 검수 판에서는 .evl-lcp-line 과 함께 아이콘 줄로 쓴다. */
 .evrr-refine-error {
   margin: 0;
   font-size: var(--font-size-text-xs);
-  color: var(--utility-error-700);
+  color: var(--text-error-primary);
+}
+.evrr-refine-note {
+  margin: 0;
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  font-weight: 500;
+  color: var(--text-tertiary);
 }
 .evrr-refine-item {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-md);
-  padding: var(--spacing-lg);
-  border: 1px solid var(--bg-active);
+  gap: var(--spacing-lg);
+  padding: var(--spacing-2xl);
+  border: 1px solid var(--border-secondary);
   border-radius: var(--radius-lg);
-  background: var(--bg-primary);
+  background: var(--bg-quaternary);
 }
 .evrr-refine-head {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-md);
 }
 .evrr-refine-who {
-  font-size: var(--font-size-text-xs);
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
   font-weight: 700;
   color: var(--text-primary);
 }
 .evrr-refine-q {
   font-size: var(--font-size-text-xs);
-  color: var(--text-secondary);
+  line-height: var(--line-height-text-xs);
+  color: var(--text-tertiary);
 }
-/* PW-2190 간격 — 이름표–글 6 · 상자 사이 12 · 상자 안쪽 12 16 */
 .evrr-refine-compare {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--spacing-lg);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--spacing-xl);
 }
 .evrr-refine-col {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: var(--spacing-sm);
   min-width: 0;
 }
 .evrr-refine-col-label {
+  display: flex;
+  align-items: center;
+  min-height: 20px;
   font-size: var(--font-size-text-xs);
-  font-weight: 700;
+  line-height: var(--line-height-text-xs);
+  font-weight: 600;
   color: var(--text-secondary);
 }
 .evrr-refine-text {
-  margin: 0;
-  padding: var(--spacing-lg) var(--spacing-xl);
-  border-radius: var(--radius-md);
-  background: var(--bg-secondary);
-  font-size: var(--font-size-text-sm);
-  line-height: 1.6;
-  color: var(--text-primary);
-  /* 고정 폭 칸에 들어오는 글의 길이는 정해져 있지 않다 — 붙여 쓴 긴 낱말도 칸을 안 민다. */
-  overflow-wrap: anywhere;
-  white-space: pre-wrap;
+  align-self: stretch;
 }
-.evrr-refine-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-sm);
+.ono-my-readbox.evrr-refine-text.is-original {
+  color: var(--text-secondary);
+}
+/* 실패 줄은 버튼 줄 왼쪽에서 남는 폭을 다 쓰고 길면 접힌다 — 버튼은 오른쪽 끝 */
+.evrr-refine-failed {
+  flex: 1;
+  min-width: 0;
 }
 .evrr-refine-edit {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-lg);
 }
-.evrr-refine-editor {
-  min-height: 90px;
-  padding: var(--spacing-md);
-  border: 1px solid var(--bg-active);
-  border-radius: var(--radius-md);
-  font-family: inherit;
-  font-size: var(--font-size-text-sm);
-  resize: vertical;
+/* 펼친 칸이 흰 바탕이라 칸도 흰색 + 테두리(시안 ⑦) */
+.ono-my-textarea.evrr-refine-editor {
+  min-height: 120px;
+  background: var(--bg-quaternary);
 }
 
 /* W35 — 요약 정책 §10.G.3·§10.G.4·§10.G.6·§10.G.7·§10.G.9 · §7.5 */
@@ -15134,6 +15141,18 @@ button.evmh-phase:focus-visible {
   font-weight: 500;
   color: var(--text-tertiary);
 }
+/* [PW-2698 ⑧] 대상 제외 창 — 필수 «*» 는 빨강 · 거절되면 칸 테두리 빨강(.evc-input.is-invalid 와 같은 뜻) */
+.evx-reason-required {
+  margin-left: var(--spacing-xxs);
+  color: var(--text-error-primary);
+}
+.ono-my-textarea.is-invalid,
+.ono-my-textarea.is-invalid:focus {
+  border-color: var(--utility-error-500);
+}
+.evx-reason-field > .evl-lcp-line {
+  margin: 0;
+}
 /* 다듬은 문구를 쓴 칸 = 확인(초록) — 하향 리뷰 칸 .evm-textarea.is-ai-confirmed 와 같은 뜻 */
 .ono-my-textarea.evrr-approve-textarea.is-ai-confirmed,
 .dp-textarea.is-ai-confirmed {
@@ -15160,6 +15179,11 @@ button.evmh-phase:focus-visible {
 .evl-lcp-line.is-error {
   align-items: center;
   color: var(--text-error-primary);
+}
+/* [PW-2698] 정보 안내 — 같은 모양, 옅은 글(검수 판 맨 위 안내) */
+.evl-lcp-line.is-muted {
+  align-items: center;
+  color: var(--text-tertiary);
 }
 .evl-lcp-line-text {
   flex: 1;

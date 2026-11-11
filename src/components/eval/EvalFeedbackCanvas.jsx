@@ -5,8 +5,10 @@ import TextArea from '../shared/TextArea.jsx';
 import Select from '../shared/Select.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
-import { ChatIcon, ClockIcon, MailIcon, SparkleIcon } from './evalIcons';
-import Spinner from '../shared/Spinner.jsx';
+import StatusBadge from '../shared/StatusBadge.jsx';
+import AiMark from '../shared/AiMark.jsx';
+import MemberAiButton from '../oneonone/MemberAiButton.jsx';
+import { ChatIcon, ClockIcon, MailIcon } from './evalIcons';
 import { ArrowRightGlyph } from '../shared/lineIcons.jsx';
 import Avatar from '../shared/Avatar.jsx';
 import Chip from '../shared/Chip.jsx';
@@ -422,23 +424,26 @@ function ThreadModal({ block, L, isPastPeriod, recipients, recipientsFailed, lin
         {/* 「기타」는 한 대상의 스레드가 아니라 요약할 대화 흐름이 없다. */}
         {onSummarize && !isEtc && (
           <Tooltip content={canSummarize ? '' : L.summarizeTooFew} className="fbm-summarize-tip">
-          <button
-            type="button"
-            disabled={!canSummarize || summaryState === 'loading'}
-            onClick={summarize}
-            data-testid="fbm-summarize"
-            style={{ alignSelf: 'flex-end', display: 'inline-flex', alignItems: 'center', gap: 4, border: `1px solid ${canSummarize ? C.tealBd : C.border}`, background: canSummarize ? C.tealBg : C.borderL, color: canSummarize ? C.teal : C.muted, borderRadius: 8, padding: '5px 10px', fontSize: 'var(--font-size-text-xs)', fontWeight: 600, cursor: canSummarize ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap' }}
-          >
-            {summaryState === 'loading' ? <><Spinner size={12} /> {L.summarizing}</> : <><SparkleIcon size={12} /> {L.summarize}</>}
-          </button>
+            {/* [PW-2698 ⑨] 디자이너 AI 버튼(원온원 «AI 생성» · 매니저 쪽 PW-2696 과 같다). 글은 기획 그대로라 «AI» 를 덧붙이지 않는다. */}
+            <MemberAiButton
+              label={summaryState === 'loading' ? L.summarizing : L.summarize}
+              disabled={!canSummarize}
+              pending={summaryState === 'loading'}
+              onClick={summarize}
+              aiWord={false}
+              testId="fbm-summarize"
+            />
           </Tooltip>
         )}
         {summary && (
-          <div data-testid="fbm-summary" style={{ background: C.tealBg, border: `1px solid ${C.tealBd}`, borderRadius: 10, padding: 12 }}>
-            <div style={{ fontSize: 'var(--font-size-text-xs)', fontWeight: 700, color: C.teal, marginBottom: 4 }}><SparkleIcon size={12} /> {L.summaryBadge}</div>
-            <p style={{ fontSize: 13, color: C.text, margin: 0, whiteSpace: 'pre-wrap' }}>{summary.summaryText}</p>
+          <div className="fbm-summary" data-testid="fbm-summary">
+            <StatusBadge className="ons-ai-tag evr-my-ai-tag" data-testid="fbm-summary-ai-tag">
+              <AiMark size={12} />
+              <span>{L.summaryBadge}</span>
+            </StatusBadge>
+            <p className="ono-my-readbox is-ai fbm-summary-text">{summary.summaryText}</p>
             {threadCount > summaryCount && (
-              <p data-testid="fbm-summary-stale" style={{ fontSize: 12, color: C.sub, margin: '6px 0 0' }}>{L.summaryStale}</p>
+              <p className="fbm-summary-stale" data-testid="fbm-summary-stale">{L.summaryStale}</p>
             )}
           </div>
         )}

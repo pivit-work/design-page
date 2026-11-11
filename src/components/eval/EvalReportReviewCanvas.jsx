@@ -1,6 +1,8 @@
 import { Fragment, useState, useMemo, useRef, useCallback, useEffect, useId } from 'react';
 import Checkbox from '../shared/Checkbox.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import Button from '../shared/Button.jsx';
+import AiMark from '../shared/AiMark.jsx';
 import Toast from '../shared/Toast.jsx';
 import EvalSendChannelModal from './EvalSendChannelModal.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
@@ -10,7 +12,7 @@ import Tabs from '../shared/Tabs.jsx';
 import SearchInput from '../shared/SearchInput.jsx';
 import AnchoredLayer from '../shared/AnchoredLayer.jsx';
 import useDismissLayer from '../shared/useDismissLayer.js';
-import { AlertIcon, ArrowRightIcon, MoreIcon, svgProps } from './evalIcons.jsx';
+import { AlertIcon, ArrowRightIcon, InfoIcon, MoreIcon, svgProps } from './evalIcons.jsx';
 import useLeaderCommentPolish from './useLeaderCommentPolish.js';
 import {
   LeaderCommentPolishButton,
@@ -398,10 +400,18 @@ function RefinementPanel({ memberId, L, load, onDecide, onRetry }) {
     }
   };
 
+  // [PW-2698 ⑥⑦] 생김새는 리포트 승인 창(PW-2591)과 같은 원온원 칸 모양 — 흰 판 · 흰 카드 · 원문 회색 읽기 상자 /
+  // 다듬은 글 연보라 AI 읽기 상자 + AI 딱지 · 버튼은 오른쪽 끝 «보조 → 주» · 안내·실패는 아이콘 + 12px 줄.
+  const errorLine = (text) => (
+    <p className="evl-lcp-line is-error evrr-refine-error" role="alert">
+      <AlertIcon size={16} />
+      <span className="evl-lcp-line-text">{text}</span>
+    </p>
+  );
   if (error && !review) {
     return (
       <div className="evrr-refine" data-testid={`evrr-refine-${memberId}`}>
-        <p className="evrr-refine-error" role="alert">{error}</p>
+        {errorLine(error)}
       </div>
     );
   }
@@ -412,18 +422,19 @@ function RefinementPanel({ memberId, L, load, onDecide, onRetry }) {
 
   return (
     <div className="evrr-refine" data-testid={`evrr-refine-${memberId}`}>
-      <p className="evrr-refine-hint">{L.refineHint}</p>
+      <p className="evl-lcp-line is-muted">
+        <InfoIcon size={16} />
+        <span className="evl-lcp-line-text">{L.refineHint}</span>
+      </p>
       {locked && (
         <p className="evrr-refine-note" data-testid={`evrr-refine-sent-${memberId}`}>
           {L.refineSentLocked}
         </p>
       )}
-      {error && (
-        <p className="evrr-refine-error" role="alert">{error}</p>
-      )}
+      {error && errorLine(error)}
       {notice && <div data-testid={`evrr-refine-notice-${memberId}`}>{notice}</div>}
       {review.items.length === 0 ? (
-        <p className="evrr-refine-hint" data-testid={`evrr-refine-empty-${memberId}`}>
+        <p className="evrr-refine-note" data-testid={`evrr-refine-empty-${memberId}`}>
           {L.refineNone}
         </p>
       ) : (
@@ -431,6 +442,7 @@ function RefinementPanel({ memberId, L, load, onDecide, onRetry }) {
           const meta = REFINE_META[item.status] ?? REFINE_META.pending;
           const busy = locked || busyId === item.answerId;
           const isEditing = editing === item.answerId;
+          const hasRefined = item.refinedText != null && item.refinedText !== '';
           return (
             <section
               className="evrr-refine-item"
@@ -448,11 +460,21 @@ function RefinementPanel({ memberId, L, load, onDecide, onRetry }) {
               <div className="evrr-refine-compare">
                 <div className="evrr-refine-col">
                   <span className="evrr-refine-col-label">{L.refineOriginal}</span>
-                  <p className="evrr-refine-text">{item.originalText}</p>
+                  <p className="ono-my-readbox evrr-refine-text is-original">{item.originalText}</p>
                 </div>
                 <div className="evrr-refine-col">
-                  <span className="evrr-refine-col-label">{L.refineRefined}</span>
-                  <p className="evrr-refine-text">{item.refinedText ?? '—'}</p>
+                  <span className="evrr-refine-col-label">
+                    <StatusBadge className="ons-ai-tag evr-my-ai-tag" data-testid={`evrr-refine-ai-tag-${item.answerId}`}>
+                      <AiMark size={12} />
+                      <span>{L.refineRefined}</span>
+                    </StatusBadge>
+                  </span>
+                  <p
+                    className={`ono-my-readbox evrr-refine-text ${hasRefined ? 'is-ai' : 'is-empty'}`}
+                    data-testid={`evrr-refine-refined-${item.answerId}`}
+                  >
+                    {hasRefined ? item.refinedText : '—'}
+                  </p>
                 </div>
               </div>
 
@@ -463,9 +485,6 @@ function RefinementPanel({ memberId, L, load, onDecide, onRetry }) {
                 >
                   {L.refineHiddenNote}
                 </p>
-              )}
-              {item.status === 'failed' && (
-                <p className="evrr-refine-note">{L.refineFailedNote}</p>
               )}
               {item.status === 'pending' && !item.trialSkipped && (
                 <p className="evrr-refine-note">{L.refinePendingNote}</p>
@@ -481,125 +500,136 @@ function RefinementPanel({ memberId, L, load, onDecide, onRetry }) {
 
               {isEditing ? (
                 <div className="evrr-refine-edit">
-                  <textarea
-                    className="evrr-refine-editor"
+                  <TextArea
+                    className="ono-my-textarea evrr-refine-editor"
                     value={draft}
                     placeholder={L.refineEditPh}
                     onChange={(e) => setDraft(e.target.value)}
                     data-testid={`evrr-refine-editor-${item.answerId}`}
                   />
-                  <span className="evrr-refine-actions">
-                    <button
-                      type="button"
-                      className="evc-btn"
-                      onClick={() => setEditing(null)}
-                    >
-                      {L.refineEditCancel}
-                    </button>
-                    <button
-                      type="button"
-                      className="evc-btn is-primary"
-                      disabled={busy || !draft.trim()}
-                      onClick={() =>
-                        run(item.answerId, () =>
-                          onDecide(item.answerId, 'edit', draft.trim()),
-                        )
-                      }
-                      data-testid={`evrr-refine-edit-save-${item.answerId}`}
-                    >
-                      {L.refineEditSave}
-                    </button>
-                  </span>
+                  <div className="evl-lcp-foot">
+                    <div className="evl-lcp-actions">
+                      <Button variant="secondary" size="sm" onClick={() => setEditing(null)}>
+                        {L.refineEditCancel}
+                      </Button>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        disabled={busy || !draft.trim()}
+                        onClick={() =>
+                          run(item.answerId, () =>
+                            onDecide(item.answerId, 'edit', draft.trim()),
+                          )
+                        }
+                        data-testid={`evrr-refine-edit-save-${item.answerId}`}
+                      >
+                        {L.refineEditSave}
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               ) : item.status === 'refined' ? (
                 <span className="evrr-muted" data-testid={`evrr-refine-done-${item.answerId}`}>
                   {L.refineDecided}
                 </span>
               ) : item.status === 'pending' && item.trialSkipped ? (
-                <span className="evrr-refine-actions">
-                  <button
-                    type="button"
-                    className="evc-btn"
-                    disabled={busy}
-                    onClick={() => run(item.answerId, () => onRetry(item.answerId))}
-                    data-testid={`evrr-refine-retry-${item.answerId}`}
-                  >
-                    {L.refineRetry}
-                  </button>
-                  <button
-                    type="button"
-                    className="evc-btn"
-                    disabled={busy}
-                    onClick={() =>
-                      run(item.answerId, () =>
-                        onDecide(item.answerId, 'keep_original'),
-                      )
-                    }
-                    data-testid={`evrr-refine-keep-${item.answerId}`}
-                  >
-                    {L.refineSendOriginal}
-                  </button>
-                  <button
-                    type="button"
-                    className="evc-btn"
-                    disabled={busy || held.has(item.answerId)}
-                    onClick={() => setHeld((prev) => new Set(prev).add(item.answerId))}
-                    data-testid={`evrr-refine-hold-${item.answerId}`}
-                  >
-                    {L.refineHold}
-                  </button>
-                </span>
-              ) : (
-                <span className="evrr-refine-actions">
-                  {item.status === 'failed' ? (
-                    <button
-                      type="button"
-                      className="evc-btn"
+                <div className="evl-lcp-foot">
+                  <div className="evl-lcp-actions">
+                    <Button
+                      variant="secondary"
+                      size="sm"
                       disabled={busy}
                       onClick={() => run(item.answerId, () => onRetry(item.answerId))}
                       data-testid={`evrr-refine-retry-${item.answerId}`}
                     >
                       {L.refineRetry}
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      className="evc-btn is-primary"
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
                       disabled={busy}
                       onClick={() =>
-                        run(item.answerId, () => onDecide(item.answerId, 'approve'))
+                        run(item.answerId, () =>
+                          onDecide(item.answerId, 'keep_original'),
+                        )
                       }
-                      data-testid={`evrr-refine-approve-${item.answerId}`}
+                      data-testid={`evrr-refine-keep-${item.answerId}`}
                     >
-                      {L.refineApprove}
-                    </button>
+                      {L.refineSendOriginal}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={busy || held.has(item.answerId)}
+                      onClick={() => setHeld((prev) => new Set(prev).add(item.answerId))}
+                      data-testid={`evrr-refine-hold-${item.answerId}`}
+                    >
+                      {L.refineHold}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="evl-lcp-foot">
+                  {item.status === 'failed' && (
+                    <span
+                      className="evl-lcp-line is-error evrr-refine-failed"
+                      data-testid={`evrr-refine-failed-${item.answerId}`}
+                    >
+                      <AlertIcon size={16} />
+                      <span className="evl-lcp-line-text">{L.refineFailedNote}</span>
+                    </span>
                   )}
-                  <button
-                    type="button"
-                    className="evc-btn"
-                    disabled={busy}
-                    onClick={() =>
-                      run(item.answerId, () =>
-                        onDecide(item.answerId, 'keep_original'),
-                      )
-                    }
-                    data-testid={`evrr-refine-keep-${item.answerId}`}
-                  >
-                    {L.refineKeepOriginal}
-                  </button>
-                  <button
-                    type="button"
-                    className="evc-btn"
-                    disabled={busy}
-                    onClick={() => {
-                      setDraft(item.refinedText ?? item.originalText);
-                      setEditing(item.answerId);
-                    }}
-                    data-testid={`evrr-refine-edit-${item.answerId}`}
-                  >
-                    {L.refineEdit}
-                  </button>
-                </span>
+                  <div className="evl-lcp-actions">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={busy}
+                      onClick={() => {
+                        setDraft(item.refinedText ?? item.originalText);
+                        setEditing(item.answerId);
+                      }}
+                      data-testid={`evrr-refine-edit-${item.answerId}`}
+                    >
+                      {L.refineEdit}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={busy}
+                      onClick={() =>
+                        run(item.answerId, () =>
+                          onDecide(item.answerId, 'keep_original'),
+                        )
+                      }
+                      data-testid={`evrr-refine-keep-${item.answerId}`}
+                    >
+                      {L.refineKeepOriginal}
+                    </Button>
+                    {item.status === 'failed' ? (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled={busy}
+                        onClick={() => run(item.answerId, () => onRetry(item.answerId))}
+                        data-testid={`evrr-refine-retry-${item.answerId}`}
+                      >
+                        {L.refineRetry}
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        disabled={busy}
+                        onClick={() =>
+                          run(item.answerId, () => onDecide(item.answerId, 'approve'))
+                        }
+                        data-testid={`evrr-refine-approve-${item.answerId}`}
+                      >
+                        {L.refineApprove}
+                      </Button>
+                    )}
+                  </div>
+                </div>
               )}
             </section>
           );
@@ -1668,26 +1698,38 @@ export default function EvalReportReviewCanvas({
           onClose={() => setRejectAsk(null)}
           onSubmit={submitReject}
         >
-          <label className="evrr-reject-field" htmlFor="evrr-reject-reason">
-            <span className="evrr-reject-label">{L.rejectReasonLabel}</span>
+          {/* [PW-2698 ⑤] 승인 창 «최종 코멘트»(PW-2591)와 같은 칸 묶음 — 18px 이름표 · 원온원 «내 작성» 칸 · 칸 아래 오른쪽 글자 수 */}
+          <div className="evrr-approve-field" data-testid="evrr-reject-field">
+            <div className="ono-my-field-head">
+              <div className="ono-my-field-label-row">
+                <label className="evrr-approve-label" htmlFor="evrr-reject-reason">
+                  {L.rejectReasonLabel}
+                </label>
+              </div>
+            </div>
             <TextArea
               id="evrr-reject-reason"
-              rows={4}
+              rows={5}
               value={rejectReason}
               placeholder={rejectKind === 'exec' ? L.execRejectReasonPh : L.rejectReasonPh}
               maxLength={REJECT_REASON_MAX}
+              className="ono-my-textarea"
               onChange={(e) => setRejectReason(e.target.value.slice(0, REJECT_REASON_MAX))}
               data-testid="evrr-reject-reason"
             />
-            <span className="evrr-reject-count">
-              {rejectReason.length} / {REJECT_REASON_MAX}
-            </span>
-          </label>
-          {rejectError && (
-            <p className="evrr-refine-error" role="alert" data-testid="evrr-reject-error">
-              {rejectError}
-            </p>
-          )}
+            <div className="evl-lc-aux">
+              <span />
+              <span className="ono-my-field-aux" data-testid="evrr-reject-count">
+                {rejectReason.length} / {REJECT_REASON_MAX}
+              </span>
+            </div>
+            {rejectError && (
+              <p className="evl-lcp-line is-error" role="alert" data-testid="evrr-reject-error">
+                <AlertIcon size={16} />
+                <span className="evl-lcp-line-text">{rejectError}</span>
+              </p>
+            )}
+          </div>
         </ModalShell>
       )}
       {/* PW-978 — 공용 Toast 로 그린다(<body> 바로 아래). 전에는 `.evc-root` 안에 그려서, 뿌리가
