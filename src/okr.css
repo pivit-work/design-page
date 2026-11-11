@@ -209,6 +209,10 @@ body:has(.okr-tab-header.is-actions-below) :is(.okr-header-actions, .okr-write-b
 .okr-p-linked { border: 2px solid var(--utility-purple-100); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
 .okr-p-linked-head { display: flex; align-items: center; gap: 12px; }
 .okr-p-linked-title { font-size: 16px; font-weight: 600; line-height: 24px; color: var(--text-primary); }
+/* PW-2717: 위 단계 칩이 많아 머리줄이 넘치면 칩을 다음 줄로 내린다(기획 시안 머리줄 flexWrap wrap).
+   제목은 줄지 않는다 — 줄면 한글이 한 글자씩 세로로 쌓였다(dev 폭 14px·높이 192px). 줄 사이는 위 gap 그대로. */
+.okr-p-linked-head { flex-wrap: wrap; }
+.okr-p-linked-title { flex-shrink: 0; white-space: nowrap; }
 /* 상위 OKR 태그 — 버튼이 아닌 표시용 태그 */
 .okr-p-linked-link { padding: 2px 12px; border-radius: 6px; font-size: 16px; font-weight: 500; line-height: 24px; white-space: nowrap; }
 .okr-p-linked-link.is-blue { color: var(--utility-blue-500); background: var(--utility-blue-dark-50); }
