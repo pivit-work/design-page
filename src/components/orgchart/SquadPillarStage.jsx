@@ -329,6 +329,8 @@ export default function SquadPillarStage({
   const drag = useRef(null);
   const flyRef = useRef(0);
   const recenter = useRef(true);
+  // 카메라가 그림 끝까지 다가가도록 그림 둘레에 붙이는 빈 여백(px) — 없으면 null(가운데 맞춤 그대로)
+  const [slack, setSlack] = useState(null);
   const runRef = useRef({ raf: 0, timers: [] });
   const onDoneRef = useRef(onDone);
   useLayoutEffect(() => { onDoneRef.current = onDone; });
@@ -342,6 +344,9 @@ export default function SquadPillarStage({
   const z = zoom == null ? fitZoom : zoom;
   const k = Math.min(PILLAR_TAG_SCALE_MAX, Math.max(1, 0.95 / z));
   const far = z * k * 10 < PILLAR_MIN_NAME_PX;
+  // 고르거나 마우스 올린 사람의 이름표는 상한(1.45) 없이 같은 공식으로 — 겸임 기둥 둘을 함께 넣는 먼 배율에서도
+  // 화면 글자가 9.5px 로 읽힌다(PW-2764 dev 힘펠 0.26 배율에서 4.5px 이하)
+  const litK = Math.max(1, 0.95 / z);
 
   const nameOf = useCallback((x) => x?.person?.name || L('squad.unknownMember'), [L]);
   const isMine = useCallback((tk) => !!currentUserId && tk.x.id === currentUserId && !!tk.a, [currentUserId]);
@@ -367,7 +372,7 @@ export default function SquadPillarStage({
     el.scrollLeft = (el.scrollWidth - el.clientWidth) / 2;
     el.scrollTop = (el.scrollHeight - el.clientHeight) / 2;
   });
-  const setZoomCentered = (v) => { flyRef.current++; recenter.current = true; setZoom(v); };
+  const setZoomCentered = (v) => { flyRef.current++; recenter.current = true; setSlack(null); setZoom(v); };
 
   // ── 재생: 기둥이 떠올라 포물선으로 날아 도착 판에 내려앉는다 ──
   const finish = useCallback(() => {
@@ -381,6 +386,7 @@ export default function SquadPillarStage({
       if (tk) { const p = at(tk, side); el.setAttribute('transform', translate(p.x, p.y, p.z)); }
     });
     recenter.current = true;
+    setSlack(null);
     setView(side); setPlatesUp(side); setPlaying(false);
     onDoneRef.current?.();
   }, [tokens, side]);
@@ -440,15 +446,38 @@ export default function SquadPillarStage({
     const T = prefersReducedMotion() ? 1 : 460;
     const t0 = performance.now();
     recenter.current = false;
+    const cw = el.clientWidth; const ch = el.clientHeight;
+    // 그림 왼쪽 위 = 스크롤 0 일 때 카메라가 원하는 스크롤
+    const want = (e) => {
+      const zz = z0 + (target - z0) * e;
+      return [(c0x + (cx - c0x) * e - VB.x) * zz - (cw + pad) / 2, (c0y + (cy - c0y) * e - VB.y) * zz - ch / 2, zz];
+    };
+    // 배율이 맞춤 가까이에 머물면 그림이 무대와 거의 같은 크기라 스크롤이 그림 끝에 걸려, 끝에 선 기둥이
+    // 오른쪽 위 확대 단추 밑으로 밀렸다(PW-2764 dev 힘펠 이재관). 가는 길 내내 모자란 만큼 빈 여백을 둘레에 붙인다
+    const sl = { l: 0, t: 0, r: 0, b: 0 };
+    for (let i = 0; i <= 10; i++) {
+      const [sx, sy, zz] = want(i / 10);
+      sl.l = Math.max(sl.l, -sx); sl.t = Math.max(sl.t, -sy);
+      sl.r = Math.max(sl.r, sx + cw - VB.w * zz); sl.b = Math.max(sl.b, sy + ch - VB.h * zz);
+    }
+    Object.keys(sl).forEach((k2) => { sl[k2] = Math.ceil(sl[k2]); });
+    const useSl = sl.l || sl.t || sl.r || sl.b ? sl : null;
+    const ox = useSl ? useSl.l : 0; const oy = useSl ? useSl.t : 0;
+    // 여백을 지금 바로 붙이고 같은 만큼 스크롤해 첫 그림에서 무대가 튀지 않게 한다(다음 그림은 state 가 같은 값을 그린다)
+    const offX = a.left - b.left + el.scrollLeft; const offY = a.top - b.top + el.scrollTop;
+    svg.style.margin = useSl ? `${sl.t}px ${sl.r}px ${sl.b}px ${sl.l}px` : '';
+    el.scrollLeft += ox - offX; el.scrollTop += oy - offY;
+    setSlack(useSl);
     const frame = (now) => {
       if (id !== flyRef.current) return;
-      const u = Math.min(1, (now - t0) / T); const e = 1 - (1 - u) ** 3; const zz = z0 + (target - z0) * e;
+      const u = Math.min(1, (now - t0) / T); const e = 1 - (1 - u) ** 3;
+      const [sx, sy, zz] = want(e);
       setZoom(zz);
       // 배율을 바꾼 그림이 그려진 다음에 옮긴다
       requestAnimationFrame(() => {
         if (id !== flyRef.current && u < 1) return;
-        el.scrollLeft = (c0x + (cx - c0x) * e - VB.x) * zz - (el.clientWidth + pad) / 2;
-        el.scrollTop = (c0y + (cy - c0y) * e - VB.y) * zz - el.clientHeight / 2;
+        el.scrollLeft = ox + sx;
+        el.scrollTop = oy + sy;
         if (u >= 1) then?.();
       });
       if (u < 1) requestAnimationFrame(frame);
@@ -675,6 +704,7 @@ export default function SquadPillarStage({
   const lifts = useMemo(() => layoutTags(tagList, view, k, tagNameOf, (t) => view === 'squad' && isMine(t)), [tagList, view, k, tagNameOf, isMine]);
   const tagsSorted = useMemo(() => [...tagList].sort((a, b) => (at(a, view).x + at(a, view).y) - (at(b, view).x + at(b, view).y)), [tagList, view]);
 
+  const litPid = hov || (sel?.type === 'person' ? sel.id : null);
   const links = (() => {
     const pid = hov || (sel?.type === 'person' ? sel.id : null);
     if (!pid || view !== 'squad' || playing) return [];
@@ -810,6 +840,8 @@ export default function SquadPillarStage({
             viewBox={`${VB.x.toFixed(0)} ${VB.y.toFixed(0)} ${VB.w.toFixed(0)} ${VB.h.toFixed(0)}`}
             width={Math.round(VB.w * z)}
             height={Math.round(VB.h * z)}
+            style={slack ? { margin: `${slack.t}px ${slack.r}px ${slack.b}px ${slack.l}px` } : undefined}
+            data-slack={slack ? 'on' : undefined}
             onMouseOver={onOver}
             onMouseMove={(e) => { if (cardRef.current?.style.display === 'block') moveCard(e); }}
             onMouseLeave={onLeave}
@@ -877,12 +909,13 @@ export default function SquadPillarStage({
                 const lead = view === 'squad' ? t.lead : t.head;
                 const mine = view === 'squad' && isMine(t);
                 const on = matcher ? matcher(t) : false;
+                const tagK = on && litPid ? litK : k;
                 return (
                   <g key={t.key} transform={`translate(${sx.toFixed(1)} ${sy.toFixed(1)})`}>
                     <g
                       className={`sq-pillar-tag${lead || mine ? '' : ' is-name'}${on ? ' is-lit' : ''}`}
                       data-pillar-tag={t.key}
-                      transform={`translate(0 ${(-(lifts.get(t.key) || 0)).toFixed(1)}) scale(${k.toFixed(3)})`}
+                      transform={`translate(0 ${(-(lifts.get(t.key) || 0)).toFixed(1)}) scale(${tagK.toFixed(3)})`}
                       style={{ opacity: matcher ? (on ? 1 : 0.1) : 1 }}
                     >
                       <Tag tk={t} side={view} name={nameOf(t.x)} mine={mine} L={L} />
