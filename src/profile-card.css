@@ -884,6 +884,8 @@
 }
 /* 글자와 삼각형 사이 — 카드 점 줄 칸 사이와 같은 xs. */
 .profile-snippet-log-toggle > .dp-btn__label { gap: var(--spacing-xs); }
+/* 접힘 ▾ / 펼침 ▴ 삼각형 — 글자 줄이 좁아져도 찌그러지지 않는다. */
+.profile-snippet-log-caret { flex-shrink: 0; }
 .profile-snippet-log-toggle:disabled {
   color: var(--text-tertiary);
   cursor: default;
