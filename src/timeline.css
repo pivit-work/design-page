@@ -3665,7 +3665,8 @@
   font-size: 14px;
   font-weight: 400;
   line-height: 20px;
-  color: var(--colors-error-700);
+  /* 기획서 작성 화면 정책 §5-A.3 · §6 «(주황)» — 실패가 아니라 «확인할 칸이 남음» 경고 (pivit-work PW-2734) */
+  color: var(--colors-warning-700);
 }
 
 /* AI 버튼 자리 안내(체험 AI 소진 등) — 같은 창 AI 안내 띠 .tl-snippet-info 값 */
