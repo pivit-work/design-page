@@ -909,11 +909,41 @@
   text-align: left;
   cursor: pointer;
 }
-/* 공용 Button 이 글을 `.dp-btn__label` 로 감싼다 — 줄의 칸들을 그 안에서 왼쪽부터 접어 놓는다. */
+/* 펼친 칸 — 버튼 아래 카드 아래 선과 같은 색 구분선을 두고 그 밑에 목록·실패 문구 (기획 매니저 뷰 §6-4-B «트리거 → 결과»). */
+.profile-snippet-log-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  width: 100%;
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--colors-border-borderSecondary);
+}
+/* 공용 Button 이 글을 `.dp-btn__label` 로 감싼다 — 왼쪽 칸 묶음과 오른쪽 끝 알림 칩을 양 끝에 둔다. */
 .profile-snippet-log-head > .dp-btn__label {
+  width: 100%;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+/* 줄의 칸들(날짜 시각 · 고친 사람 · 바뀐 섹션) — 좁으면 왼쪽부터 접힌다. */
+.profile-snippet-log-parts {
+  display: flex;
   flex-wrap: wrap;
-  justify-content: flex-start;
+  align-items: center;
   gap: var(--spacing-xs);
+  min-width: 0;
+}
+/* 알림 칩 — 카드 태그 칩 틀 그대로, 줄어들지 않고 오른쪽 끝에 붙는다. */
+.profile-snippet-log-chip {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+/* «알림 보냄»은 초록 — 카드 태그 회색 바탕(`status-badge.css` `.manager-modal-snippet-tag`)이 tone 색을 덮어
+   클래스 둘을 겹쳐 되살린다. 테두리는 끝난 일 알약(`.mgr-krd-pill.is-done`)과 같은 success-200. */
+.profile-snippet-log-chip.dp-badge--tone-success {
+  background: var(--dp-badge-success-bg);
+  border-color: var(--utility-success-200);
+  color: var(--dp-badge-success-fg);
 }
 .profile-snippet-log-changes {
   display: flex;

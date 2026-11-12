@@ -98,6 +98,8 @@ export default function ManagerCanvas({
   onOneOnOneRetry,
   onHrProfileRetry,
   onSnippetsMore,
+  /** 팀원 상세 창에서 탭을 옮길 때 그 탭 키 (pivit-work PW-2702 — 펼친 «수정 기록»을 접는다). */
+  onProfileTabChange,
   onActionItemsMore,
   // 팀원 상세 「AI 브리핑」 탭 — 생성·새로고침, 불러오기 다시 시도, 카드 아래 안내 칸 (pivit-work PW-1531)
   onAiBriefingGenerate,
@@ -317,6 +319,7 @@ export default function ManagerCanvas({
         onHrProfileRetry={onHrProfileRetry}
         onOneOnOneRetry={onOneOnOneRetry}
         onSnippetsMore={onSnippetsMore}
+        onTabChange={onProfileTabChange}
         onActionItemsMore={onActionItemsMore}
         onAiBriefingGenerate={onAiBriefingGenerate}
         onAiBriefingReload={onAiBriefingReload}

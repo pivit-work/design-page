@@ -47,6 +47,9 @@ export default function ProfileModal({
   onAiBriefingReload,
   // 「AI 브리핑」 탭 브리핑 카드 바로 아래 칸 — 호스트의 체험 AI 소진 안내 등 (PW-1531)
   aiBriefingNotice,
+  // 탭을 옮기면 그 탭 키를 알린다 — 호스트가 펼쳐 둔 것을 접는다
+  // (pivit-work PW-2702 · 기획 매니저 뷰 §6-4-B «상태 유지» «탭을 옮기면 모두 접힌다»)
+  onTabChange,
   // 화면 문구 묶음 — 키는 `DEFAULT_PROFILE_TAB_LABELS`. 빠진 키는 기본 한국어 (PW-2216).
   labels,
 }) {
@@ -135,7 +138,10 @@ export default function ProfileModal({
           ariaLabel={L.tabsAriaLabel}
           items={tabs}
           value={tab}
-          onChange={setActiveTab}
+          onChange={(key) => {
+            setActiveTab(key);
+            onTabChange?.(key);
+          }}
         />
         </div>
       )}

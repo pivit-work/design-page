@@ -1,4 +1,5 @@
 import Button from '../shared/Button.jsx';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import ProfileFailure from './ProfileFailure.jsx';
 
 /**
@@ -7,9 +8,12 @@ import ProfileFailure from './ProfileFailure.jsx';
  * 호스트가 버튼을 그릴 카드에만 `snippet.editLog` 를 넣는다 — 기록 0건·작성자 본인·어려움을 볼 수
  * 없는 사람이면 넣지 않아 버튼이 없다. 문구·날짜는 호스트가 만든다.
  *  - `{ label, onToggle, open, loading }` — 텍스트 버튼. 불러오는 동안 누를 수 없고 `label` 이 바뀐다
+ *    (접힘 ▾ / 펼침 ▴ 도 호스트가 `label` 에 넣는다 · 기획 매니저 뷰 §6-4-B «위치»)
+ *  - 펼친 칸(실패 문구 또는 목록)은 버튼 아래 구분선 밑에 놓는다(§6-4-B «트리거 → 결과»)
  *  - `error: { message, retryLabel }` + `onRetry` — 펼친 자리에 실패 문구와 [다시 시도](이 창의 실패 모양)
- *  - `rows: [{ key, summary: string[], open, onToggle, changes?: [{ key, label, inline?, before, after }] }]`
- *    `summary` 는 한 줄 칸(날짜·시각·고친 사람·바뀐 섹션·알림)을 카드의 점(•)으로 잇는다.
+ *  - `rows: [{ key, summary: string[], chip?: { label, tone }, open, onToggle, changes?: [{ key, label, inline?, before, after }] }]`
+ *    `summary` 는 한 줄 칸(날짜 시각·고친 사람·바뀐 섹션)을 카드의 점(•)으로 잇는다.
+ *    `chip` 은 줄 오른쪽 끝 알림 칩 — 카드 태그와 같은 둥근 칩 틀, `tone` 은 `success`(알림 보냄) · `neutral`(알림 대기).
  *    열린 줄은 `changes` 를 섹션마다 보인다 — `inline` 이면 «3 → 4» 한 줄, 아니면 수정 전·후를 위아래로.
  *    `beforeLabel`·`afterLabel` 은 위아래 칸 이름표다.
  */
@@ -24,10 +28,12 @@ export default function SnippetEditLog({ log }) {
       >
         {log.label}
       </Button>
-      {log.open && log.error && (
+      {log.open && (log.error || log.rows) && (
+        <div className="profile-snippet-log-body">
+      {log.error && (
         <ProfileFailure notice={log.error} onRetry={log.onRetry} />
       )}
-      {log.open && !log.error && log.rows && (
+      {!log.error && log.rows && (
         <ul className="profile-snippet-log-list">
           {log.rows.map((row) => (
             <li key={row.key} className="profile-snippet-log-row">
@@ -36,12 +42,19 @@ export default function SnippetEditLog({ log }) {
                 aria-expanded={!!row.open}
                 onClick={() => row.onToggle?.()}
               >
-                {row.summary.map((part, i) => (
-                  <span key={i} className="profile-snippet-point">
-                    <span>{part}</span>
-                    <span className="profile-snippet-dot">•</span>
-                  </span>
-                ))}
+                <span className="profile-snippet-log-parts">
+                  {row.summary.map((part, i) => (
+                    <span key={i} className="profile-snippet-point">
+                      <span>{part}</span>
+                      <span className="profile-snippet-dot">•</span>
+                    </span>
+                  ))}
+                </span>
+                {row.chip && (
+                  <StatusBadge tone={row.chip.tone} className="manager-modal-snippet-tag profile-snippet-log-chip">
+                    {row.chip.label}
+                  </StatusBadge>
+                )}
               </Button>
               {row.open && row.changes && (
                 <div className="profile-snippet-log-changes">
@@ -65,6 +78,8 @@ export default function SnippetEditLog({ log }) {
             </li>
           ))}
         </ul>
+      )}
+        </div>
       )}
     </div>
   );
