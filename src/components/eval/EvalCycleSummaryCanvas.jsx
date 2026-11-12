@@ -13,7 +13,6 @@ import Tabs from '../shared/Tabs.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
 import { AlertIcon, ArrowDownIcon, ArrowRightIcon, ArrowUpIcon, ChevronDownIcon, ChevronRightIcon, ChevronUpIcon, DownloadIcon, EyeIcon, InfoIcon, LockIcon, RefreshIcon, ZapIcon } from './evalIcons.jsx';
 import { CheckGlyph, ChevronDownGlyph, ClockGlyph, CloseGlyph, SearchGlyph } from '../shared/lineIcons.jsx';
-import AnchoredLayer from '../shared/AnchoredLayer.jsx';
 import { autoCommitteeIdsOf } from './calibrationAutoCommittee.js';
 import AvatarPhoto from './AvatarPhoto';
 import Avatar from '../shared/Avatar.jsx';
