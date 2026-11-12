@@ -143,11 +143,13 @@ const DEFAULT_SNIPPET_MODAL_LABELS = {
   // 점수 이름표 낱말 — snippetHealth.js 의 healthLabel 에 넘긴다. 안 주면 한국어
   healthWords: undefined,
   healthReasonPlaceholder: '무엇이 영향을 주었나요? (선택)',
-  summaryHint: '버튼을 누르면 AI가 초안을 씁니다',
+  summaryHint: '버튼을 누르면 AI 초안이 채워집니다',
   summaryGenerate: '요약 생성',
   summaryGenerating: '생성 중…',
-  summaryPlaceholder: '관련 내용 입력하면 AI 요약이 활성화됩니다',
-  summaryInfo: 'What·Why·Values 항목을 채운 뒤 AI 요약 버튼을 누르면 자동으로 작성됩니다.',
+  // 자리표시 글 둘 — 버튼을 못 누를 때(본문 20자 이하) / 누를 수 있을 때 (PW-2762)
+  summaryPlaceholder: '본문(What/Why 등)을 먼저 입력하면 AI 요약 생성 버튼을 누를 수 있습니다',
+  summaryReadyPlaceholder: 'AI 요약 생성 버튼을 누르거나 직접 입력하세요',
+  summaryInfo: 'What·Why·Values 항목을 채운 뒤 AI 요약 생성 버튼을 누르면 요약 초안이 채워집니다.',
   summaryFailed: 'AI 요약 생성에 실패했습니다.',
   tagsHint: '버튼을 누르면 AI가 태그를 추천합니다',
   tagsExtract: '태그 추출',
@@ -1089,7 +1091,7 @@ export default function SnippetModal({
               {noticeAt('summary')}
               <textarea
                 className={`tl-snippet-textarea ${summary.trim() ? 'is-ai-filled' : ''}${markClass('summary')}`}
-                placeholder={readOnly ? undefined : T.summaryPlaceholder}
+                placeholder={readOnly ? undefined : summaryReady ? T.summaryReadyPlaceholder : T.summaryPlaceholder}
                 readOnly={readOnly}
                 value={summary}
                 onChange={(e) => {
@@ -1100,7 +1102,8 @@ export default function SnippetModal({
                 onCompositionEnd={handleCompositionEnd}
                 onBlur={handleFieldBlur}
               />
-              {!readOnly && (
+              {/* 안내 상자는 버튼을 못 누르고 칸이 빈 동안만 보인다 — 실패 문구도 이 상자에 뜨므로 실패하면 보인다 (PW-2762) */}
+              {!readOnly && (summaryError || (!summaryReady && !summary.trim())) && (
               <div className="tl-snippet-info">
                 <img
                   src={assetUrl(baseUrl, 'icons-solid/ai-sparkle.png')}
