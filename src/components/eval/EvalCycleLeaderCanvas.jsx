@@ -1980,21 +1980,21 @@ export default function EvalCycleLeaderCanvas({
               </h4>
               {/* PW-2654 — 같은 빨간 문장은 첫 상자에만. 이 상자는 꼬리표가 «누구에게»를 말한다. */}
 
-              <div className="evm-field" role="radiogroup" aria-label={L.promotionStatusLabel}>
+              <div className="evm-field">
                 <span className="evc-field-label">{L.promotionStatusLabel}</span>
+                {/* PW-2685 — 시안(manager_leader-review)의 판 모양 버튼 3개. 공용 SegmentedControl, 아직 안 골랐으면 선택된 칸 없음. */}
                 <div className="evl-choice-row">
-                  {PROMOTION_CHOICES.map(([value, key]) => (
-                    <Radio
-                      key={value}
-                      name="evl-promotion-status"
-                      value={value}
-                      checked={promotionStatus === value}
-                      disabled={assessmentLocked}
-                      onChange={() => setPromotionStatus(value)}
-                      label={L[key]}
-                      data-testid={`evl-promotion-${value}`}
-                    />
-                  ))}
+                  <SegmentedControl
+                    ariaLabel={L.promotionStatusLabel}
+                    value={promotionStatus}
+                    onChange={setPromotionStatus}
+                    items={PROMOTION_CHOICES.map(([value, key]) => ({
+                      value,
+                      label: L[key],
+                      disabled: assessmentLocked,
+                      testId: `evl-promotion-${value}`,
+                    }))}
+                  />
                 </div>
                 {promotionStatus && (
                   <textarea
@@ -2075,21 +2075,20 @@ export default function EvalCycleLeaderCanvas({
                   </div>
                 </div>
               ) : compensationMask === 'hidden' ? null : (
-                <div className="evm-field" role="radiogroup" aria-label={L.compensationStatusLabel}>
+                <div className="evm-field">
                   <span className="evc-field-label">{L.compensationStatusLabel}</span>
                   <div className="evl-choice-row">
-                    {COMPENSATION_CHOICES.map(([value, key]) => (
-                      <Radio
-                        key={value}
-                        name="evl-compensation-status"
-                        value={value}
-                        checked={compensationStatus === value}
-                        disabled={assessmentLocked}
-                        onChange={() => setCompensationStatus(value)}
-                        label={L[key]}
-                        data-testid={`evl-compensation-${value}`}
-                      />
-                    ))}
+                    <SegmentedControl
+                      ariaLabel={L.compensationStatusLabel}
+                      value={compensationStatus}
+                      onChange={setCompensationStatus}
+                      items={COMPENSATION_CHOICES.map(([value, key]) => ({
+                        value,
+                        label: L[key],
+                        disabled: assessmentLocked,
+                        testId: `evl-compensation-${value}`,
+                      }))}
+                    />
                   </div>
                   {compensationStatus && (
                     <textarea
