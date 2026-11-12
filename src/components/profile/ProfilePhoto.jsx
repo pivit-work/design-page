@@ -14,5 +14,5 @@ export default function ProfilePhoto({ photo, size = 130, className = '' }) {
   const [failedSrc, setFailedSrc] = useState(null);
   const showPhoto = !!photo && failedSrc !== photo;
   if (!showPhoto) return <ProfilePhotoPlaceholder size={size} className={className} />;
-  return <img className={className} src={photo} alt="" draggable={false} onError={() => setFailedSrc(photo)} />;
+  return <img className={className} src={photo} alt="" loading="lazy" draggable={false} onError={() => setFailedSrc(photo)} />;
 }
