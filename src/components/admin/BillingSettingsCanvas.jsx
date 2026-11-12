@@ -106,10 +106,15 @@ const DEFAULT_LABELS = {
   savedLabel: '저장됨 ✓',
 
   fields: {
-    company_name: { label: '사업자명', required: true, placeholder: '예) (주)피빗' },
-    biz_reg_no: { label: '사업자등록번호', required: true, placeholder: '000-00-00000' },
-    ceo_name: { label: '대표자', required: false, placeholder: '예) 홍길동' },
-    biz_address: { label: '주소', required: false, placeholder: '사업장 주소를 입력하세요' },
+    // note = 칸 안내(앱 PW-2711 · 결제 정책 §2) — 회사 설정과 같은 값인지 따로인지 알린다. 항상 보인다.
+    company_name: { label: '사업자명', required: true, placeholder: '예) (주)피빗',
+      note: '사업자등록증의 상호입니다. 회사 설정의 회사명과 따로 적습니다.' },
+    biz_reg_no: { label: '사업자등록번호', required: true, placeholder: '000-00-00000',
+      note: '회사 설정 › 회사 정보의 사업자 등록번호와 같은 번호입니다. 여기서 고치면 회사 설정에도 바뀝니다.' },
+    ceo_name: { label: '대표자', required: false, placeholder: '예) 홍길동',
+      note: '사업자등록증의 대표자입니다. 회사 설정의 대표자(구성원 관리에서 지정)와 따로입니다.' },
+    biz_address: { label: '사업장 주소', required: false, placeholder: '사업장 주소를 입력하세요',
+      note: '사업자등록증의 사업장 주소입니다. 회사 설정의 본점 주소와 따로 적습니다.' },
     biz_type: { label: '업태 / 종목', required: false, placeholder: '예) 정보통신업 / 소프트웨어 개발' },
     billing_contact_name: { label: '청구 담당자 이름', required: false, placeholder: '예) 이담당' },
     billing_contact_email: { label: '청구 담당자 이메일', required: false, placeholder: 'billing@example.com' },
@@ -204,6 +209,11 @@ function FormField({ meta, value, error, disabled, onChange, onBlur, hint, style
       )}
       {error && (
         <div style={{ fontSize: 12, color: T.red, marginTop: 5 }}>{error}</div>
+      )}
+      {/* 칸 안내 (앱 PW-2711 · 결제 정책 §2 「칸 안내」) — 항상 보인다. 오류가 떠도 남는다(형식 안내 hint 와 다르다).
+          모양은 위 hint 와 같다(위 간격만 토큰 4px) — 기획 시안 billing-app.jsx FormField 의 meta.note 와 같은 자리·글씨. */}
+      {meta.note && (
+        <div style={{ fontSize: 12, color: T.muted, marginTop: 'var(--spacing-xs)' }}>{meta.note}</div>
       )}
     </div>
   );
@@ -459,7 +469,9 @@ export default function BillingSettingsCanvas({
           </Card>
         )}
 
-        {canEdit && !profile && !flowMode && (
+        {/* 사업자명이 없으면 아직 청구 정보가 없다 — 회사 설정에서 적은 사업자등록번호만 채워져 올 수 있다
+            (앱 PW-2711 · 결제 정책 §3 빈 상태 «사업자등록번호 칸은 그 번호로 채워져 열린다»). */}
+        {canEdit && !profile?.company_name && !flowMode && (
           <Card style={{ marginBottom: 16, background: T.bl, border: `1px solid ${T.border}` }}>
             <div data-testid="billing-settings-empty" style={{ fontSize: 13, color: T.text }}>
               {labels.emptyNotice}
