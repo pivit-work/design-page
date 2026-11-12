@@ -144,6 +144,8 @@ const DEFAULT_LABELS = {
   // PW-1594 하향 차수(리더 정책 §5.13). `{name}`·`{round}`·`{next}`·`{at}`·`{date}` 자리를 채운다.
   roundTitle: '{name} — 하향 리뷰 · {round}차',
   gradeRoundNote: '이 등급은 {next}차가 제출되면 참고 등급이 됩니다',
+  // PW-2737 leader §5.3 「고른 최종 등급을 비우는 길」 — 고른 등급을 다시 누르면 비워진다는 안내.
+  gradeClearHint: '고른 등급을 다시 누르면 선택이 풀립니다',
   // PW-1840 평가 정합성 검토 (leader.policy §5.3 · spec §17.3-B) — 「AI」·✦ 를 붙이지 않는다(AI 가 아니다)
   alignButton: '정합성 검토',
   alignHint: '고른 등급의 기대 키워드가 글에 들어 있는지 봅니다 · 참고용',
@@ -1262,6 +1264,12 @@ export default function EvalCycleLeaderCanvas({
       </p>
     ),
   ];
+  /*
+   * PW-2737 leader §5.3 「고른 최종 등급을 비우는 길」 — 고른 등급을 다시 누르면 «고르지 않음»(null)으로 돌아간다.
+   * 비우는 버튼은 따로 두지 않는다. 다시 누르는 동작은 화면만 봐서는 모르므로 고른 뒤에만 알린다 —
+   * 하단·상단 카드는 버튼 줄 아래 한 줄, 상단고정 띠는 줄을 더하지 않고 고른 칩의 title.
+   */
+  const gradeEditable = !formLocked && !gradeLocked;
   const gradeButtons = (
     <div className="evl-grade-row">
       {gradeOptions.map((g) => (
@@ -1269,14 +1277,21 @@ export default function EvalCycleLeaderCanvas({
           type="button"
           key={g.key}
           className={`evl-grade-btn${grade === g.key ? ' is-on' : ''}`}
-          disabled={formLocked || gradeLocked}
-          onClick={() => setGrade(g.key)}
+          disabled={!gradeEditable}
+          aria-pressed={grade === g.key}
+          title={isFreeze && gradeEditable && grade === g.key ? L.gradeClearHint || undefined : undefined}
+          onClick={() => setGrade(grade === g.key ? null : g.key)}
           data-testid={`evl-grade-${g.key}`}
         >
           {g.label}
         </button>
       ))}
     </div>
+  );
+  const gradeClearHint = !isFreeze && gradeEditable && grade && L.gradeClearHint && (
+    <p className="evl-grade-round-note" data-testid="evl-grade-clear-hint">
+      {L.gradeClearHint}
+    </p>
   );
   /* PW-1594 §5.13.4 — 하향 등급은 «제출된 가장 높은 차수»의 값이다(위 차수가 배정된 경우에만). */
   const gradeRoundNote = higherRoundAssigned && L.gradeRoundNote && (
@@ -1432,6 +1447,7 @@ export default function EvalCycleLeaderCanvas({
       {gradeCaptions}
       {gradeWarnings}
       {gradeButtons}
+      {gradeClearHint}
       {gradeRoundNote}
     </section>
   );
