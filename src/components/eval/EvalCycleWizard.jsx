@@ -12786,7 +12786,8 @@ export default function EvalCycleWizard({
                   onClick={() => setPresetDialogOpen(false)}
                   data-testid="evc-wiz-preset-empty-close"
                 >
-                  {L.close ?? L.cancel}
+                  {/* X 가 «닫기»라 이 버튼은 [취소] — 같은 이름이 둘이면 화면 읽기 프로그램이 못 가른다(pivit-work PW-2744) */}
+                  {L.cancel}
                 </button>
               </div>
             )}
