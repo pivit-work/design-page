@@ -17451,6 +17451,14 @@ button.evmh-phase:focus-visible {
   top: 37px;
   z-index: 1;
 }
+/* PW-2683 — 공용 표는 테두리를 합치는(collapse) 표라, 위에 붙은 머리 칸의 아래 선이 함께 붙지 않고
+   머리 칸 높이도 36.5px 이 된다. 그 1.5px 틈으로 밑에 지나가는 줄 글자가 비쳤다(dev 1,500명 회사 11-13).
+   이 표만 칸 테두리를 따로 그려(separate · 간격 0) 머리 칸이 선까지 37px 로 붙고, 조직 줄이 그 바로 밑에 맞닿는다.
+   칸 테두리는 아래 선뿐이라 겉모양은 같다. */
+.evc-la-scroll .rt-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
 
 /* ── «선택» 드롭다운 (EvalWizardChipPicker mode="dropdown" · 4단계 배정 규칙 · 5단계도 같은 부품) ──
    원온원 만들기 창 메뉴(one_on_one.css .ono-add-modal-menu · stesslee) 값 — 버튼 밑 4px · 흰 바탕 · 테두리 · 그림자 ·
