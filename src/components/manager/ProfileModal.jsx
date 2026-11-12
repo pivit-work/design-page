@@ -535,6 +535,76 @@ function SnippetItem({ snippet }) {
           </div>
         )}
       </div>
+      {snippet.editLog && <SnippetEditLog log={snippet.editLog} />}
+    </div>
+  );
+}
+
+/**
+ * 카드 맨 아래 「수정 기록」(pivit-work PW-2702 · 기획 스니핏 정책서 §7-A.6).
+ *
+ * 호스트가 버튼을 그릴 카드에만 `snippet.editLog` 를 넣는다 — 기록 0건·작성자 본인·어려움을 볼 수
+ * 없는 사람이면 넣지 않아 버튼이 없다. 문구·날짜는 호스트가 만든다.
+ *  - `{ label, onToggle, open, loading }` — 텍스트 버튼. 불러오는 동안 누를 수 없고 `label` 이 바뀐다
+ *  - `error: { message, retryLabel }` + `onRetry` — 펼친 자리에 실패 문구와 [다시 시도](이 창의 실패 모양)
+ *  - `rows: [{ key, summary: string[], open, onToggle, changes?: [{ key, label, inline?, before, after }] }]`
+ *    `summary` 는 한 줄 칸(날짜·시각·고친 사람·바뀐 섹션·알림)을 카드의 점(•)으로 잇는다.
+ *    열린 줄은 `changes` 를 섹션마다 보인다 — `inline` 이면 «3 → 4» 한 줄, 아니면 수정 전·후를 위아래로.
+ *    `beforeLabel`·`afterLabel` 은 위아래 칸 이름표다.
+ */
+function SnippetEditLog({ log }) {
+  return (
+    <div className="manager-modal-snippet-log">
+      <Button
+        className="manager-modal-snippet-log-toggle"
+        aria-expanded={!!log.open}
+        disabled={!!log.loading}
+        onClick={() => log.onToggle?.()}
+      >
+        {log.label}
+      </Button>
+      {log.open && log.error && (
+        <HrProfileFailure notice={log.error} onRetry={log.onRetry} />
+      )}
+      {log.open && !log.error && log.rows && (
+        <ul className="manager-modal-snippet-log-list">
+          {log.rows.map((row) => (
+            <li key={row.key} className="manager-modal-snippet-log-row">
+              <Button
+                className="manager-modal-snippet-log-head"
+                aria-expanded={!!row.open}
+                onClick={() => row.onToggle?.()}
+              >
+                {row.summary.map((part, i) => (
+                  <span key={i} className="manager-modal-snippet-point">
+                    <span>{part}</span>
+                    <span className="manager-modal-snippet-dot">•</span>
+                  </span>
+                ))}
+              </Button>
+              {row.open && row.changes && (
+                <div className="manager-modal-snippet-log-changes">
+                  {row.changes.map((c) => (
+                    <div key={c.key} className="manager-modal-snippet-log-change">
+                      <p className="manager-modal-snippet-log-section">{c.label}</p>
+                      {c.inline ? (
+                        <p className="manager-modal-snippet-log-text">{`${c.before} → ${c.after}`}</p>
+                      ) : (
+                        <>
+                          <p className="manager-modal-snippet-log-caption">{log.beforeLabel}</p>
+                          <p className="manager-modal-snippet-log-text is-before">{c.before}</p>
+                          <p className="manager-modal-snippet-log-caption">{log.afterLabel}</p>
+                          <p className="manager-modal-snippet-log-text">{c.after}</p>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
