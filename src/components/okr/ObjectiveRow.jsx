@@ -1,7 +1,6 @@
 import OkrProgressBar from './OkrProgressBar.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import OkrUnalignedBadge from './OkrUnalignedBadge.jsx';
-import { useOkrDrag } from './hooks.js';
 import { useOkrLabels } from './okr-labels.jsx';
 
 /**
@@ -10,10 +9,11 @@ import { useOkrLabels } from './okr-labels.jsx';
  * 제목은 160px 에서 말줄임되므로 전체 제목을 마우스 올림 글(title)로 단다.
  * 개인 칸도 같은 한 줄 카드를 쓴다 — 개발이 덧칠한 두 줄 카드(is-stacked, PW-2086)는
  * 디자이너 원래 모양으로 되돌렸다(PW-2219).
- * 드래그로 자유 배치, 제자리 클릭이면 onClick(상세 모달).
+ * 행은 노드의 일부라 따로 끌어 옮기지 않는다 — 누르면 노드의 끌기(onMouseDown)를 그대로 받아
+ * 노드 블록 전체가 움직이고, 제자리 클릭이면 상세 창이 열린다 (okr-policy §3.4-B L5 · PW-2772).
+ * 종전엔 행마다 따로 끌려 하위 조직 선이 옮긴 행을 따라갔다.
  */
-export default function ObjectiveRow({ objective, dragId, onClick }) {
-  const { isDragging, onDown, style } = useOkrDrag(dragId, onClick);
+export default function ObjectiveRow({ objective, onMouseDown }) {
   const L = useOkrLabels();
   const badge = <StatusBadge className={`okr-q-badge is-${objective.badge || 'gray'}`}>{objective.q}</StatusBadge>;
   const title = (
@@ -39,11 +39,7 @@ export default function ObjectiveRow({ objective, dragId, onClick }) {
   );
   const percent = <span className="okr-objective-percent">{objective.progress}%</span>;
   return (
-    <div
-      className={`okr-objective-row${isDragging ? ' okr-block-dragging' : ''}`}
-      style={style}
-      onMouseDown={onDown}
-    >
+    <div className="okr-objective-row" onMouseDown={onMouseDown}>
       {badge}{title}{unaligned}{progress}{percent}
     </div>
   );

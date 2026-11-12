@@ -1,22 +1,42 @@
 import { useContext, useLayoutEffect, useRef, useState } from 'react';
 import { OkrPositionsContext } from './contexts.js';
 
-const POSITIONS_STORAGE_KEY = 'pivit_okr_positions';
+/**
+ * 옮긴 위치는 노드(조직 · 개인) 단위로, 고른 계층 보기마다 따로 기억한다 (okr-policy §3.4-B L6 · PW-2772).
+ * 같은 조직도 `본부` 보기와 `팀` 보기에서 트리 자리가 달라, 한 보기에서 옮긴 거리를 다른 보기에 얹으면
+ * 노드가 엉뚱한 곳으로 간다. 종전 키(`pivit_okr_positions` — 요약 행 단위 · 보기 구분 없음)는 읽지 않는다:
+ * PW-2726 으로 트리 모양이 바뀌어 그 위치는 맞는 자리가 아니다. 그래서 접두어가 겹치지 않는 새 이름을 쓴다.
+ */
+const POSITIONS_STORAGE_PREFIX = 'pivit_okr_node_positions:';
+const LEGACY_POSITIONS_STORAGE_KEY = 'pivit_okr_positions';
+const storageKey = (viewKey) => `${POSITIONS_STORAGE_PREFIX}${viewKey || 'default'}`;
 
-export function loadOkrPositions() {
+export function loadOkrPositions(viewKey) {
   try {
-    const raw = localStorage.getItem(POSITIONS_STORAGE_KEY);
+    const raw = localStorage.getItem(storageKey(viewKey));
     return raw ? JSON.parse(raw) : {};
   } catch { return {}; }
 }
 
-export function saveOkrPositions(positions) {
+export function saveOkrPositions(viewKey, positions) {
   // 저장소가 막힌 브라우저(사파리 개인 모드·쿠키 차단·용량 초과)에서는 여기서 예외가 난다 —
   // 끌 때마다 부르므로 그대로 두면 카드를 끄는 순간 오류가 된다(PW-1637). 위치는 이번
   // 화면에서만 기억하면 충분하다.
   try {
-    localStorage.setItem(POSITIONS_STORAGE_KEY, JSON.stringify(positions));
+    localStorage.setItem(storageKey(viewKey), JSON.stringify(positions));
   } catch { /* 저장 못 함 — 이번 화면에서만 기억한다 */ }
+}
+
+/** ⟳ 초기화 — 모든 계층 보기의 기억(과 남아 있던 종전 기억)을 지운다 (L6). */
+export function clearOkrPositions() {
+  try {
+    const keys = [];
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const k = localStorage.key(i);
+      if (k && (k.startsWith(POSITIONS_STORAGE_PREFIX) || k === LEGACY_POSITIONS_STORAGE_KEY)) keys.push(k);
+    }
+    keys.forEach((k) => localStorage.removeItem(k));
+  } catch { /* 저장소가 막힌 브라우저 — 지울 것도 없다 */ }
 }
 
 export function useOkrPositions() {
@@ -32,6 +52,9 @@ const CLICK_THRESHOLD = 5;
  * mousedown 부터 window 단위로 이동을 추적해 블록을 자유 배치하고,
  * 총 이동 거리가 임계값 미만이면 드래그가 아닌 클릭으로 보고 onClick 을
  * 호출한다(상세 모달 열기). 오프셋은 컨텍스트를 통해 저장·복원된다.
+ *
+ * onDown(e, { clickSlop }) — 작은 글자 버튼(«외 N개 …», PW-2214)처럼 손이 떨려도 누름으로 볼
+ * 거리를 넓힐 때 준다. 누름으로 본 떨림은 자리에 남기지 않고 되돌린다.
  */
 export function useOkrDrag(blockId, onClick) {
   // scale 은 캔버스 배율. 블록의 translate 는 `scale(s)` 가 걸린
@@ -56,7 +79,7 @@ export function useOkrDrag(blockId, onClick) {
     scaleRef.current = scale;
   });
 
-  const onDown = (e) => {
+  const onDown = (e, { clickSlop = CLICK_THRESHOLD } = {}) => {
     e.stopPropagation();
     startMouse.current = { x: e.clientX, y: e.clientY };
     startPos.current = { ...current };
@@ -74,7 +97,10 @@ export function useOkrDrag(blockId, onClick) {
     const onUp = (ev) => {
       setDragPos(null);
       const moved = Math.hypot(ev.clientX - startMouse.current.x, ev.clientY - startMouse.current.y);
-      if (moved < CLICK_THRESHOLD && onClickRef.current) onClickRef.current();
+      if (moved < clickSlop) {
+        updatePosition(blockId, startPos.current);
+        if (onClickRef.current) onClickRef.current();
+      }
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
     };

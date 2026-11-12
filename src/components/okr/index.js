@@ -35,7 +35,7 @@ export { default as OkrComposeFullModal } from './OkrComposeFullModal.jsx';
 export { default as OkrSetupWizardModal } from './OkrSetupWizardModal.jsx';
 export { default as OkrWizardEntryButton } from './OkrWizardEntryButton.jsx';
 export { OkrPositionsContext } from './contexts.js';
-export { loadOkrPositions, saveOkrPositions, useOkrPositions, useOkrDrag } from './hooks.js';
+export { loadOkrPositions, saveOkrPositions, clearOkrPositions, useOkrPositions, useOkrDrag } from './hooks.js';
 export {
   OkrHeaderActions,
   OkrReadOnlyBadge,

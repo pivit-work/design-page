@@ -5,14 +5,14 @@ import usePanZoom from '../shared/usePanZoom.js';
 import OkrConnectors from './OkrConnectors.jsx';
 import OkrGroupNode from './OkrGroupNode.jsx';
 import { OkrPositionsContext } from './contexts.js';
-import { loadOkrPositions, saveOkrPositions } from './hooks.js';
+import { clearOkrPositions, loadOkrPositions, saveOkrPositions } from './hooks.js';
 import { OkrLabelsContext, makeOkrLabels } from './okr-labels.jsx';
 
 /**
  * OkrDashboardCanvas — OKR 대시보드 pan/zoom 캔버스.
  *
- * data(회사 → (사이 조직) → 팀 트리)는 props 로만 받는다. 블록은 조직도처럼 드래그로
- * 자유 배치(오프셋은 localStorage 저장), 제자리 클릭이면
+ * data(회사 → (사이 조직) → 팀 트리)는 props 로만 받는다. 노드 블록은 조직도처럼 드래그로
+ * 자유 배치(오프셋은 노드 단위 · positionsKey 보기마다 localStorage 저장), 제자리 클릭이면
  * onBlockClick(groupId) 로 wrapper 가 상세 모달을 연다. 리셋 버튼은
  * 뷰와 블록 배치를 함께 초기화한다.
  */
@@ -36,6 +36,8 @@ export default function OkrDashboardCanvas({
   loading = false,
   // 화면 문구 — 소비자가 번역을 넘긴다(PW-2415). 안 넘기면 종전 한국어.
   labels,
+  // 옮긴 위치를 따로 기억할 보기 — 고른 계층 id 를 넘긴다(okr-policy §3.4-B L6 · PW-2772).
+  positionsKey = 'default',
 }) {
   const L = useMemo(() => makeOkrLabels(labels), [labels]);
   const { canvasRef, scale, translate, isDragging, canvasProps, zoomIn, zoomOut, resetView, setView } = usePanZoom({
@@ -93,17 +95,20 @@ export default function OkrDashboardCanvas({
     return () => { clearTimeout(timer); cancelAnimationFrame(raf); };
   }, [data, fitNonce, setView, canvasRef]);
 
-  const [positions, setPositions] = useState(loadOkrPositions);
+  // 보기를 바꾸면 그 보기의 기억을 다시 읽는다 — 렌더 중에 맞춰 옛 보기 위치가 한 번도 그려지지 않게 한다.
+  const [store, setStore] = useState(() => ({ key: positionsKey, positions: loadOkrPositions(positionsKey) }));
+  if (store.key !== positionsKey) setStore({ key: positionsKey, positions: loadOkrPositions(positionsKey) });
+  const positions = store.key === positionsKey ? store.positions : {};
   const updatePosition = useCallback((id, pos) => {
-    setPositions(prev => {
-      const next = { ...prev, [id]: pos };
-      saveOkrPositions(next);
-      return next;
+    setStore(prev => {
+      const next = { ...prev.positions, [id]: pos };
+      saveOkrPositions(prev.key, next);
+      return { key: prev.key, positions: next };
     });
   }, []);
   const resetPositions = useCallback(() => {
-    setPositions({});
-    saveOkrPositions({});
+    clearOkrPositions();
+    setStore(prev => ({ key: prev.key, positions: {} }));
   }, []);
 
   const openGroup = (groupId) => onBlockClick && onBlockClick(groupId);

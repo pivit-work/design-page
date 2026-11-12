@@ -6,8 +6,8 @@ import rowKey from './rowKey.js';
 
 /**
  * «외 N개» 를 누른 채 이만큼 안에서 놓으면 누름으로 본다(PW-2214). 버튼 글자가 작아(기본 배율 26×9px)
- * 손이 조금만 떨려도 놓는 자리가 글자 밖이 되고, 그러면 브라우저가 click 을 안 낸다. 이 버튼은 아무것도
- * 끌지 않으므로(캔버스 끌기 제외) 카드 끌기 문턱(5px)보다 넉넉히 둔다.
+ * 손이 조금만 떨려도 놓는 자리가 글자 밖이 되고, 그러면 브라우저가 click 을 안 낸다. 그래서 카드 끌기
+ * 문턱(5px)보다 넉넉히 둔다. 그보다 멀리 끌면 노드 블록을 끈다(§3.4-B L5).
  */
 const MORE_CLICK_SLOP = 10;
 
@@ -41,16 +41,11 @@ export default function OkrGroupNode({
   const isPerson = group.type === 'person';
   const shown = objectives.slice(0, isPerson ? 2 : 3);
   const hiddenCount = objectives.length - shown.length;
-  // 마우스는 누른 자리와 놓은 자리의 거리로 가르고, 키보드(Enter·Space — click.detail 0)는 onClick 으로 연다.
+  // 마우스는 노드 끌기를 그대로 받는다 — 끌면 노드 블록이 움직이고 제자리면 연다(§3.4-B L5 · PW-2772).
+  // 키보드(Enter·Space — click.detail 0)는 onClick 으로 연다.
   const onMoreDown = (e) => {
     if (e.button !== 0) return;
-    const sx = e.clientX;
-    const sy = e.clientY;
-    const up = (ev) => {
-      window.removeEventListener('mouseup', up);
-      if (Math.hypot(ev.clientX - sx, ev.clientY - sy) < MORE_CLICK_SLOP) onOpen(group.id);
-    };
-    window.addEventListener('mouseup', up);
+    onDown(e, { clickSlop: MORE_CLICK_SLOP });
   };
 
   return (
@@ -65,8 +60,7 @@ export default function OkrGroupNode({
             <ObjectiveRow
               key={rowKey(objective, i, 'title')}
               objective={objective}
-              dragId={`${group.id}:obj:${i}`}
-              onClick={() => onOpen(group.id)}
+              onMouseDown={onDown}
             />
           ))}
           {/* 나머지는 상세 창에서 본다 — 요약 줄을 누른 것과 같은 창이다. */}
