@@ -11,7 +11,7 @@ import { OkrLabelsContext, makeOkrLabels } from './okr-labels.jsx';
 /**
  * OkrDashboardCanvas — OKR 대시보드 pan/zoom 캔버스.
  *
- * data(회사 → 팀 트리)는 props 로만 받는다. 블록은 조직도처럼 드래그로
+ * data(회사 → (사이 조직) → 팀 트리)는 props 로만 받는다. 블록은 조직도처럼 드래그로
  * 자유 배치(오프셋은 localStorage 저장), 제자리 클릭이면
  * onBlockClick(groupId) 로 wrapper 가 상세 모달을 연다. 리셋 버튼은
  * 뷰와 블록 배치를 함께 초기화한다.
@@ -28,6 +28,9 @@ export default function OkrDashboardCanvas({
   emptyPersonsLabel = '개인 OKR 없음',
   // false 면 모든 노드의 Objective 요약을 숨긴다 — 툴바의 전체 펼치기/접기(PW-1641).
   objectivesExpanded = true,
+  // 주면 이 id 의 노드만 요약을 펼친다 — 일반 멤버의 «내 조직 줄기»(okr-policy §3.4 「처음 펼침」 · PW-2726).
+  // 접힌 노드도 카드는 그대로 그린다. 안 주면 objectivesExpanded 하나로 모든 노드를 정한다.
+  expandedGroupIds,
   moreObjectivesLabel,
   // 처음 불러오는 동안 노드 골격을 깐다(okr-policy §3.4 「노드 골격 스켈레톤」 · PW-1503). 이때 data 는 없어도 된다.
   loading = false,
@@ -104,6 +107,48 @@ export default function OkrDashboardCanvas({
   }, []);
 
   const openGroup = (groupId) => onBlockClick && onBlockClick(groupId);
+  const expandedSet = useMemo(() => (expandedGroupIds ? new Set(expandedGroupIds) : null), [expandedGroupIds]);
+  const isExpanded = (id) => (expandedSet ? expandedSet.has(id) : objectivesExpanded);
+
+  /**
+   * 조직 노드 하나와 그 아래 — 고른 계층까지 잇는 사이 조직은 `teams` 를 다시 갖는다(PW-2726 ·
+   * okr-policy §3.4-A T3). 같은 계층 노드를 한 줄에 맞추지 않는다 — 가지마다 높이가 다르다.
+   */
+  const renderTeam = (team) => (
+    <OkrGroupNode
+      key={team.id}
+      group={team}
+      onOpen={openGroup}
+      emptyObjectivesLabel={emptyObjectivesLabel}
+      moreObjectivesLabel={moreObjectivesLabel}
+      objectivesExpanded={isExpanded(team.id)}
+    >
+      {team.teams && team.teams.length > 0 && (
+        <div className="okr-teams-row">{team.teams.map(renderTeam)}</div>
+      )}
+      {/* 개인 계층 — `persons` 가 배열이면(빈 배열 포함) 운영 중이라는 뜻이다.
+          `undefined` 는 개인 OKR 미운영이라 계층 자체를 그리지 않는다
+          (okr-policy.md §3.4-A T3-b, PW-413). */}
+      {team.persons && (
+        <div className="okr-persons-row">
+          {team.persons.length > 0 ? (
+            team.persons.map((person) => (
+              <OkrGroupNode
+                key={person.id}
+                group={{ ...person, type: 'person' }}
+                onOpen={openGroup}
+                emptyObjectivesLabel={emptyObjectivesLabel}
+                moreObjectivesLabel={moreObjectivesLabel}
+                objectivesExpanded={isExpanded(person.id)}
+              />
+            ))
+          ) : (
+            <div className="okr-persons-empty">{emptyPersonsLabel}</div>
+          )}
+        </div>
+      )}
+    </OkrGroupNode>
+  );
 
   return (
     // scale 은 블록 드래그가 화면 좌표를 캔버스 로컬 좌표로 되돌릴 때 쓴다(PW-248).
@@ -145,41 +190,8 @@ export default function OkrDashboardCanvas({
             </div>
           ) : (
           <div className="okr-tree">
-            <OkrGroupNode group={data} isRoot onOpen={openGroup} emptyObjectivesLabel={emptyObjectivesLabel} moreObjectivesLabel={moreObjectivesLabel} objectivesExpanded={objectivesExpanded}>
-              <div className="okr-teams-row">
-                {data.teams.map((team) => (
-                  <OkrGroupNode
-                    key={team.id}
-                    group={team}
-                    onOpen={openGroup}
-                    emptyObjectivesLabel={emptyObjectivesLabel}
-                    moreObjectivesLabel={moreObjectivesLabel}
-                    objectivesExpanded={objectivesExpanded}
-                  >
-                    {/* 개인 계층 — `persons` 가 배열이면(빈 배열 포함) 운영 중이라는 뜻이다.
-                        `undefined` 는 개인 OKR 미운영이라 계층 자체를 그리지 않는다
-                        (okr-policy.md §3.4-A T3-b, PW-413). */}
-                    {team.persons && (
-                      <div className="okr-persons-row">
-                        {team.persons.length > 0 ? (
-                          team.persons.map((person) => (
-                            <OkrGroupNode
-                              key={person.id}
-                              group={{ ...person, type: 'person' }}
-                              onOpen={openGroup}
-                              emptyObjectivesLabel={emptyObjectivesLabel}
-                              moreObjectivesLabel={moreObjectivesLabel}
-                              objectivesExpanded={objectivesExpanded}
-                            />
-                          ))
-                        ) : (
-                          <div className="okr-persons-empty">{emptyPersonsLabel}</div>
-                        )}
-                      </div>
-                    )}
-                  </OkrGroupNode>
-                ))}
-              </div>
+            <OkrGroupNode group={data} isRoot onOpen={openGroup} emptyObjectivesLabel={emptyObjectivesLabel} moreObjectivesLabel={moreObjectivesLabel} objectivesExpanded={isExpanded(data.id)}>
+              <div className="okr-teams-row">{data.teams.map(renderTeam)}</div>
             </OkrGroupNode>
           </div>
           )}

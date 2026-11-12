@@ -7,7 +7,8 @@ import { useRef, useEffect } from 'react';
  * 그린다. 좌표는 scale 로 나눠 canvas-inner 의 transform 과 무관하게 유지.
  *
  * 앵커는 드래그 가능한 블록 요소 자체를 측정한다(블록을 끌면 선이 따라옴).
- * - 루트 마지막 objective 행 하단 중앙 → 각 팀 그룹 카드 상단 중앙: 베지어
+ * - 루트 마지막 objective 행 하단 중앙 → 바로 아래 팀 그룹 카드 상단 중앙: 베지어
+ * - 사이 조직 → 그 아래 조직 카드: 베지어 (PW-2726)
  * - 팀 마지막 objective 행 하단 → 첫 구성원 칩 상단: 수직선
  */
 export default function OkrConnectors({ containerRef, scale }) {
@@ -34,7 +35,8 @@ export default function OkrConnectors({ containerRef, scale }) {
         const px = centerX(rootRect);
         const py = (rootRect.bottom - containerRect.top) / s;
 
-        container.querySelectorAll('.okr-team-col').forEach(col => {
+        // 회사 바로 아래 조직만 — 사이 조직 아래 조직은 그 사이 조직에서 잇는다(아래 · PW-2726).
+        container.querySelectorAll('.okr-group-root > .okr-teams-row > .okr-team-col').forEach(col => {
           const card = col.querySelector(':scope > .okr-group-card');
           if (!card) return;
           const cardRect = card.getBoundingClientRect();
@@ -57,6 +59,27 @@ export default function OkrConnectors({ containerRef, scale }) {
         const y2 = (chipRect.top - containerRect.top) / s;
         const midY = (y1 + y2) / 2;
         pathData += `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2} `;
+      });
+
+      // 사이 조직 → 그 아래 조직 (PW-2726 · okr-policy §3.4-A T3). 선은 조직 소속대로 잇는다(T1).
+      // 앵커는 개인 노드와 같다 — 마지막 Objective 행, 없으면 빈 자리, 접혔으면 카드.
+      container.querySelectorAll('.okr-team-col').forEach(col => {
+        const children = col.querySelectorAll(':scope > .okr-teams-row > .okr-team-col > .okr-group-card');
+        if (!children.length) return;
+        const anchor = col.querySelector(':scope > .okr-objective-list > .okr-objective-row:last-child')
+          || col.querySelector(':scope > .okr-objective-empty')
+          || col.querySelector(':scope > .okr-group-card');
+        if (!anchor) return;
+        const anchorRect = anchor.getBoundingClientRect();
+        const ax = centerX(anchorRect);
+        const ay = (anchorRect.bottom - containerRect.top) / s;
+        children.forEach(card => {
+          const cardRect = card.getBoundingClientRect();
+          const cx = centerX(cardRect);
+          const cy = (cardRect.top - containerRect.top) / s;
+          const midY = (ay + cy) / 2;
+          pathData += `M ${ax} ${ay} C ${ax} ${midY}, ${cx} ${midY}, ${cx} ${cy} `;
+        });
       });
 
       // 팀 → 개인 노드 (PW-413). 팀 컬럼의 마지막 Objective 행(없으면 빈 자리
