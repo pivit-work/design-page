@@ -164,6 +164,8 @@ const DEFAULT_LABELS = {
   // PW-2684 — 많아지면 접는다. {count} 는 접어 둔 건수.
   incomingMore: '나머지 {count}건 더 보기',
   earlierFeedback: '이전 피드백 {count}건 보기',
+  // 펼친 뒤 같은 자리 버튼 — 누르면 다시 앞 3건·최근 2건으로 (시안 manager_feedback·member_feedback).
+  foldLess: '접기',
 };
 
 /** 받은 요청은 앞 몇 건만 펼쳐 둔다 — 나머지는 «나머지 N건 더 보기» (PW-2684). */
@@ -224,6 +226,7 @@ function BlockCard({ block, L, onOpen, cardRef }) {
   const sorted = [...items].sort((a, b) => new Date(a.sentAt) - new Date(b.sentAt));
   // PW-2684 — 최근 2건만 미리 보이고, 이전 것은 «이전 피드백 N건 보기»를 누르면 카드 안에 다 펼친다.
   const hiddenCount = showAll ? 0 : Math.max(0, sorted.length - BLOCK_PREVIEW);
+  const canFold = showAll && sorted.length > BLOCK_PREVIEW;
   const latest = sorted.slice(hiddenCount);
   const last = items[items.length - 1];
   // 턴: 마지막이 받은 피드백이고 미응답이면 내 차례. 마지막이 내 요청이면 대기.
@@ -281,6 +284,16 @@ function BlockCard({ block, L, onOpen, cardRef }) {
               onClick={(e) => { e.stopPropagation(); setShowAll(true); }}
             >
               {fill(L.earlierFeedback, { count: hiddenCount })}
+            </Button>
+          )}
+          {canFold && (
+            <Button
+              type="button"
+              className="evf-fold-btn"
+              data-testid={`fbm-block-fold-${block.key}`}
+              onClick={(e) => { e.stopPropagation(); setShowAll(false); }}
+            >
+              {L.foldLess}
             </Button>
           )}
           {latest.map((it) => (
@@ -937,6 +950,8 @@ function IncomingRequestSection({ requests, L, isPastPeriod, onSend }) {
   const visibleCount = showAll || openIdx >= INCOMING_VISIBLE ? requests.length : INCOMING_VISIBLE;
   const visible = requests.slice(0, visibleCount);
   const restCount = requests.length - visible.length;
+  // 쓰던 칸이 앞 3건 밖에 있으면 접을 수 없으니 «접기»도 두지 않는다.
+  const canFold = showAll && requests.length > INCOMING_VISIBLE && openIdx < INCOMING_VISIBLE;
 
   const submit = async (req) => {
     const body = text.trim();
@@ -1031,6 +1046,13 @@ function IncomingRequestSection({ requests, L, isPastPeriod, onSend }) {
           className="evf-incoming-more"
           label={fill(L.incomingMore, { count: restCount })}
           onClick={() => setShowAll(true)}
+        />
+      )}
+      {canFold && (
+        <LoadMoreButton
+          className="evf-incoming-more"
+          label={L.foldLess}
+          onClick={() => setShowAll(false)}
         />
       )}
     </div>

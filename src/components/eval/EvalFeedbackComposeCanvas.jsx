@@ -143,6 +143,8 @@ const DEFAULT_LABELS = {
   teamSection: '팀원 {count}명',
   // PW-2684 — 받은 요청 앞 3건만 펼치고 나머지는 이 버튼으로. {count} 는 접어 둔 건수.
   incomingMore: '나머지 {count}건 더 보기',
+  // 펼친 뒤 같은 자리 버튼 — 누르면 다시 앞 3건으로 (시안 manager_feedback).
+  foldLess: '접기',
   answerRequest: '이 요청에 답변 작성',
   linkedKrFallback: 'KR',
   linkedInitFallback: '이니셔티브',
@@ -1040,6 +1042,13 @@ function IncomingRequestsSection({ requests, krBlocks, initBlocks, orphans = [],
             className="evf-incoming-more"
             label={fill(L.incomingMore, { count: restCount })}
             onClick={() => setShowAll(true)}
+          />
+        )}
+        {showAll && sorted.length > INCOMING_VISIBLE && (
+          <LoadMoreButton
+            className="evf-incoming-more"
+            label={L.foldLess}
+            onClick={() => setShowAll(false)}
           />
         )}
       </div>
