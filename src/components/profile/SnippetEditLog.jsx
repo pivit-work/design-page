@@ -8,7 +8,8 @@ import ProfileFailure from './ProfileFailure.jsx';
  * 호스트가 버튼을 그릴 카드에만 `snippet.editLog` 를 넣는다 — 기록 0건·작성자 본인·어려움을 볼 수
  * 없는 사람이면 넣지 않아 버튼이 없다. 문구·날짜는 호스트가 만든다.
  *  - `{ label, onToggle, open, loading }` — 텍스트 버튼. 불러오는 동안 누를 수 없고 `label` 이 바뀐다
- *    (접힘 ▾ / 펼침 ▴ 도 호스트가 `label` 에 넣는다 · 기획 매니저 뷰 §6-4-B «위치»)
+ *    글자 뒤에 접힘 ▾ / 펼침 ▴ 삼각형을 그린다(불러오는 동안은 없음 · 기획 매니저 뷰 §6-4-B «위치»).
+ *    번역 글자에 기호를 넣지 않는 규칙이라 글자가 아니라 그림이다.
  *  - 펼친 칸(실패 문구 또는 목록)은 버튼 아래 구분선 밑에 놓는다(§6-4-B «트리거 → 결과»)
  *  - `error: { message, retryLabel }` + `onRetry` — 펼친 자리에 실패 문구와 [다시 시도](이 창의 실패 모양)
  *  - `rows: [{ key, summary: string[], chip?: { label, tone }, open, onToggle, changes?: [{ key, label, inline?, before, after }] }]`
@@ -27,6 +28,7 @@ export default function SnippetEditLog({ log }) {
         onClick={() => log.onToggle?.()}
       >
         {log.label}
+        {!log.loading && <Caret up={!!log.open} />}
       </Button>
       {log.open && (log.error || log.rows) && (
         <div className="profile-snippet-log-body">
@@ -82,5 +84,21 @@ export default function SnippetEditLog({ log }) {
         </div>
       )}
     </div>
+  );
+}
+
+/** 접힘 ▾ / 펼침 ▴ — 글자 색을 따른다. */
+function Caret({ up }) {
+  return (
+    <svg
+      className="profile-snippet-log-caret"
+      data-open={up ? 'true' : 'false'}
+      width="8"
+      height="8"
+      viewBox="0 0 8 8"
+      aria-hidden="true"
+    >
+      <path d={up ? 'M4 1.5 7.5 6.5H.5z' : 'M4 6.5 .5 1.5h7z'} fill="currentColor" />
+    </svg>
   );
 }
