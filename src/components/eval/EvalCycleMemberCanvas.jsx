@@ -204,7 +204,9 @@ const DEFAULT_FIELDS = [
 // [PW-1072] 항목 제목(섹션 머리)은 `it.section` 이 있으면 그것을 쓴다. `category` 는 저장값
 // (`work_achievement` 등)이라 답을 저장할 때 그대로 되돌려 보내야 하고, 화면에 옮긴 말은
 // 앱이 `section` 으로 따로 싣는다. 없으면 종전대로 `category` 를 그린다.
-function buildFields(template, L) {
+// [pivit-work PW-2750] noScore — 동료 리뷰처럼 점수를 받지 않는 화면. 평가지가 있으면 서버가 이미 점수 항목을
+// 글 칸으로 바꿔 보내지만(F1), 평가지 없는 기본 폼은 역량 점수 칸을 그려 서버가 버리는 값을 다시 고르게 했다.
+function buildFields(template, L, noScore = false) {
   if (template && Array.isArray(template.items) && template.items.length) {
     return template.items
       .filter((it) => it.category !== '최종 등급 결정')
@@ -268,12 +270,12 @@ function buildFields(template, L) {
     templateItemId: null,
     category: f.category,
     growthType: f.growthType,
-    type: f.score ? 'rating' : 'textarea',
+    type: f.score && !noScore ? 'rating' : 'textarea',
     label: L[f.labelKey],
     placeholder: L[f.phKey],
     section: L[f.sectionKey],
     requiresRationale: false,
-    score: f.score,
+    score: f.score && !noScore,
     description: null,
     descriptionDisplay: 'tooltip',
     visibleToRoles: null,
@@ -524,6 +526,8 @@ export default function EvalCycleMemberCanvas({
   onSubmit,
   // [pivit-work PW-2750] 사용자가 칸을 처음 고치면 true 로 부른다(안 주면 지금과 같다).
   onDirtyChange,
+  // [pivit-work PW-2750] 점수를 받지 않는 화면(동료 리뷰). 평가지 없는 기본 폼의 역량 점수 칸을 글 칸으로 그린다.
+  noScore = false,
   onAiPolish,
   onAiDraft,
   aiDraftFeature = 'eval_self_draft',
@@ -592,7 +596,7 @@ export default function EvalCycleMemberCanvas({
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   // 평가지에 놓인 순서 그대로의 «항목» 전부 — 질문과 설명이 섞여 있다.
-  const entries = useMemo(() => buildFields(template, L), [template, L]);
+  const entries = useMemo(() => buildFields(template, L, noScore), [template, L, noScore]);
   /**
    * [PW-602 ④ 불변식 ②] 답을 받는 항목만. 아래의 상태 시드·진행률·미입력·필수 검증은
    * 전부 이것을 본다 — 계수 자리를 하나씩 고치는 대신 **들어오는 자리에서 한 번** 가른다.
