@@ -2612,6 +2612,8 @@ export default function EvalCycleSummaryCanvas({
   selfSubmittedCount = 0,
   // [PW-2692] 정책 §4.A.2-A — 제출 완료(써야 할 리뷰가 모두 제출된) 대상자 수. 안 넘기면 옛 셈(셀프 제출)으로.
   completedCount,
+  /** [PW-2692] 안 낸 리뷰 수(R · 정책 v2.24 §4.A.2-A) — 끝난 평가 칸 글을 가른다. 없으면 리마인드 받을 사람 수로 */
+  unsubmittedReviewCount,
   gradedCount = 0,
   gradeDistribution = [],
   excellentCount = 0,
@@ -3740,8 +3742,9 @@ export default function EvalCycleSummaryCanvas({
                   <span className="evs-kpi-sub" data-testid="evs-kpi-submit-hint">{fmt(L.submitPendingCount, { n: unfinishedCount })}</span>
                 ) : totalParticipants > 0 ? (
                   /* [PW-2692] 리마인드를 못 보내는 단계(끝난 평가 · PW-1809)엔 «클릭»을 빼고, 대상이 다 끝났으면
-                     대상 밖 리뷰가 남았어도 «대상 전원 완료» — «6명 / 6명»으로 떨어지지 않게 */
-                  <span className="evs-kpi-sub" data-testid="evs-kpi-submit-hint">{pendingCount === 0 ? L.submitAllDone : L.submitTargetsDone}</span>
+                     안 낸 리뷰(R)가 남았는지로 가른다 — 대상 밖 리더가 받을 상향 리뷰는 리마인드 명단에 없어 M 으로는 못 가린다
+                     (정책 v2.24 §4.A.2-A «3차 덧붙임»). «6명 / 6명»으로 떨어지지 않게 */
+                  <span className="evs-kpi-sub" data-testid="evs-kpi-submit-hint">{(unsubmittedReviewCount ?? pendingCount) === 0 ? L.submitAllDone : L.submitTargetsDone}</span>
                 ) : (
                   <span className="evs-kpi-sub">{doneCount}{L.unit} / {totalParticipants}{L.unit}</span>
                 )}
