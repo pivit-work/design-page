@@ -31,6 +31,7 @@ export { default as OkrHistoryQuarter } from './OkrHistoryQuarter.jsx';
 export { default as OkrHistoryList } from './OkrHistoryList.jsx';
 export { default as OkrBoard } from './OkrBoard.jsx';
 export { default as OkrTeamCanvas } from './OkrTeamCanvas.jsx';
+export { default as OkrMemberReadonlyView } from './OkrMemberReadonlyView.jsx';
 export { default as OkrComposeFullModal } from './OkrComposeFullModal.jsx';
 export { default as OkrSetupWizardModal } from './OkrSetupWizardModal.jsx';
 export { default as OkrWizardEntryButton } from './OkrWizardEntryButton.jsx';

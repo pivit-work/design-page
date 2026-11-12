@@ -354,6 +354,25 @@ body:has(.okr-tab-header.is-actions-below) :is(.okr-header-actions, .okr-write-b
 .okr-team-tabs-scroll .tl-tabs { height: 100%; width: max-content; }
 .okr-team-tabs-scroll .tl-tab { flex-shrink: 0; white-space: nowrap; }
 
+/* 경로 줄 · 폴더 목록 · 내 소속 · 구성원 줄 (pivit-work PW-2763 · okr-policy §3.2-B). 디자이너 원본이 없어 기획 시안 값과 기존 토큰만 쓴다.
+   글자 14/20(§9-L 서브탭 글자) · 앞 마디 = 링크 글자(이 파일 .okr-subtitle-quarter 와 같은 brand-secondary) · 구분자 회색 · 지금 위치 700. */
+.okr-org-path { display: flex; align-items: center; flex-wrap: wrap; gap: var(--spacing-md); margin-bottom: var(--spacing-xl); font-size: 14px; line-height: 20px; }
+.okr-org-path-item { display: inline-flex; align-items: center; gap: var(--spacing-md); min-width: 0; }
+.okr-org-path-sep { font-weight: 400; color: var(--text-quaternary); }
+.okr-org-path-link { padding: 0; border: none; background: none; cursor: pointer; font: inherit; font-weight: 600; color: var(--text-brand-secondary); }
+.okr-org-path-link:hover { text-decoration: underline; }
+.okr-org-path-text { font-weight: 600; color: var(--text-secondary); }
+.okr-org-path-text.is-current { font-weight: 700; color: var(--text-primary); }
+/* 서브탭 항목 — 폴더 항목은 이름 뒤 «/». 내 소속은 굵게·진한 글자(배지·아이콘 없음 · B1). */
+.okr-team-tab-label { display: inline-flex; align-items: center; gap: var(--spacing-xs); }
+.okr-team-tab-label.is-mine { font-weight: 700; color: var(--text-primary); }
+.okr-team-tab-slash { font-weight: 400; color: var(--text-quaternary); }
+/* 구성원 줄 — 서브탭 줄 바로 아래, 같은 Tabs. 앞 «구성원» 글자는 12/500 보조 회색(시안 §3.2-B M3). */
+.tl-tabs-row.okr-s-tabs-row.okr-team-members { gap: var(--spacing-2xl); margin-top: var(--spacing-lg); }
+.okr-team-members-label { flex: 0 0 auto; font-size: 12px; font-weight: 500; line-height: 18px; color: var(--text-tertiary); }
+/* 구성원 개인 OKR 조회 전용 한 줄 (M4) */
+.okr-member-readonly-note { margin-bottom: var(--spacing-lg); font-size: 12px; font-weight: 500; line-height: 18px; color: var(--text-tertiary); }
+
 /* 「팀 고르기」 — 모양은 디자이너 드롭다운 .okr-select-btn / .okr-select-menu / .okr-select-item-inner
    (PW-2219). 여기는 긴 팀 이름 말줄임과 검색칸을 메뉴 맨 위에 두는 자리만. */
 .okr-team-picker-trigger { flex: 0 0 auto; max-width: 220px; }

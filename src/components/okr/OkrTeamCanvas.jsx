@@ -6,6 +6,7 @@ import Tabs from '../shared/Tabs.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import OkrTeamPicker, { TEAM_PICKER_MIN } from './OkrTeamPicker.jsx';
 import { OkrLabelsContext, makeOkrLabels } from './okr-labels.jsx';
+import OkrOrgPath from './OkrOrgPath.jsx';
 
 /**
  * OkrTeamCanvas — 팀 OKR 탭 콘텐츠.
@@ -26,8 +27,20 @@ import { OkrLabelsContext, makeOkrLabels } from './okr-labels.jsx';
  * periodAside: 기간 칩 줄 오른쪽 끝에 놓는 것 — 고른 팀에 쓸 수 있는지(「작성 가능」·「읽기 전용」). 권한은 팀마다
  *   달라서 팀 서브탭 아래 이 줄이 자리다(기획 시안 팀 화면 «모드 세그먼트 + 권한 배지»). 줄은 개인 캔버스와 같은
  *   `.okr-p-actions` 다. 안 주면 칩만 종전 그대로 선다.
+ *
+ * ## 경로 줄 · 폴더 목록 · 구성원 줄 (pivit-work PW-2763 · okr-policy §3.2-B)
+ * 모두 선택 prop 이다. 안 주면 종전 화면 그대로다.
+ * path: [{ key, label, onClick? }] — 서브탭 줄 바로 위 «전사 / … / 지금 조직». onClick 이 없는 마디가 지금 위치(굵게).
+ *   pathLabel: 경로 줄의 화면 읽기용 이름.
+ * teamItems: [{ value, label, mine?, folder? }] — 주면 `teams` 대신 이것으로 서브탭을 세운다.
+ *   folder = 폴더 항목(이름 뒤 «/» · 앞에 모은다 · 밑줄을 받지 않는다 — 누르면 onFolderOpen(value)).
+ *   mine = 내 소속(굵게 · 진한 글자). 값은 activeTeam 과 같은 열쇠(소비자가 고른다 — 이름이 겹쳐도 된다).
+ * members: { label, items: [{ value, label, mine? }], value, onChange } — 서브탭 줄 바로 아래 «구성원» 줄.
+ *   같은 공용 Tabs 를 한 번 더 쓴다(새 부품 없음).
+ * tabsFallback: 서브탭 줄 자리에 대신 놓는 것 — 조직 목록을 못 불러왔을 때의 실패 안내.
+ * body: 주면 기간 칩 줄과 보드 대신 그린다 — 폴더만 있는 폴더의 안내, 구성원 개인 OKR 조회 전용 보기.
  */
-export default function OkrTeamCanvas({ data, icons, baseUrl = '', activeTeam, onTeamChange, onKrUpdate, onSubmitFeedback, onViewAllFeedback, onWriteFeedback, onRefreshInsights, onInsightAction, onCloseInsights, showInsights = true, onToggleInitiative, canEditInitiative = false, teamPickerLabels, notice = null, periodAside = null, focusKrId = null, focusObjectiveId = null, historyEmptyLabel, labels }) {
+export default function OkrTeamCanvas({ data, icons, baseUrl = '', activeTeam, onTeamChange, onKrUpdate, onSubmitFeedback, onViewAllFeedback, onWriteFeedback, onRefreshInsights, onInsightAction, onCloseInsights, showInsights = true, onToggleInitiative, canEditInitiative = false, teamPickerLabels, notice = null, periodAside = null, focusKrId = null, focusObjectiveId = null, historyEmptyLabel, labels, path = null, pathLabel, teamItems = null, onFolderOpen, members = null, tabsFallback = null, body = null }) {
   // 화면 문구 — 소비자가 번역을 넘긴다(PW-2415). 안 넘기면 종전 한국어.
   const L = useMemo(() => makeOkrLabels(labels), [labels]);
   const { teams, periodLabel, links, parents, board, history } = data;
@@ -36,6 +49,36 @@ export default function OkrTeamCanvas({ data, icons, baseUrl = '', activeTeam, o
   const selectTeam = (name) => {
     if (onTeamChange) onTeamChange(name);
     else setInternalTeam(name);
+  };
+  // 서브탭 항목 — teamItems 가 있으면 폴더 항목(앞)·조직 항목(뒤)으로, 없으면 종전 이름 목록 (PW-2763).
+  const folderValues = useMemo(
+    () => new Set((teamItems ?? []).filter((it) => it.folder).map((it) => it.value)),
+    [teamItems],
+  );
+  const tabItems = teamItems
+    ? [...teamItems.filter((it) => it.folder), ...teamItems.filter((it) => !it.folder)].map((it) => ({
+        value: it.value,
+        label: (
+          <span className={`okr-team-tab-label${it.mine ? ' is-mine' : ''}`}>
+            {it.label}
+            {it.folder && <span className="okr-team-tab-slash" aria-hidden="true">/</span>}
+          </span>
+        ),
+      }))
+    : teams.map((name) => ({ value: name, label: name }));
+  const onTabChange = (value) => {
+    if (folderValues.has(value)) onFolderOpen?.(value);
+    else selectTeam(value);
+  };
+  // 「팀 고르기」는 조직 항목만 — 이름으로 고르므로 값으로 되돌린다.
+  const pickerItems = teamItems ? teamItems.filter((it) => !it.folder) : null;
+  const pickerTeams = pickerItems ? pickerItems.map((it) => it.label) : teams;
+  const pickerValue = pickerItems ? (pickerItems.find((it) => it.value === team)?.label ?? '') : team;
+  const onPickerChange = (label) => {
+    if (!pickerItems) return selectTeam(label);
+    const hit = pickerItems.find((it) => it.label === label);
+    if (hit) selectTeam(hit.value);
+    return undefined;
   };
   const [periodTab, setPeriodTab] = useState('current');
 
@@ -48,7 +91,7 @@ export default function OkrTeamCanvas({ data, icons, baseUrl = '', activeTeam, o
 
   // 팀 수가 적어도 화면이 좁으면 넘친다 — 넘치는 동안에도 「팀 고르기」를 단다.
   const [tabsOverflow, setTabsOverflow] = useState(false);
-  const teamsKey = teams.join('\u0000');
+  const teamsKey = (teamItems ? teamItems.map((it) => it.value) : teams).join('\u0000');
   useEffect(() => {
     const el = tabsScrollRef.current;
     if (!el || typeof ResizeObserver === 'undefined') return undefined;
@@ -75,22 +118,40 @@ export default function OkrTeamCanvas({ data, icons, baseUrl = '', activeTeam, o
   return (
     <OkrLabelsContext.Provider value={L}>
     <div className="okr-personal-area">
+      {path && <OkrOrgPath path={path} ariaLabel={pathLabel} />}
+
       {/* 팀 서브탭 — 공용 Tabs, 기간 칩 — 공용 SegmentedControl (PW-836). */}
-      <div className="tl-tabs-row okr-s-tabs-row">
-        <div className="okr-team-tabs-scroll" ref={tabsScrollRef}>
-          <Tabs
-            items={teams.map((name) => ({ value: name, label: name }))}
-            value={team}
-            onChange={selectTeam}
-          />
+      {tabsFallback ?? (
+        <div className="tl-tabs-row okr-s-tabs-row">
+          <div className="okr-team-tabs-scroll" ref={tabsScrollRef}>
+            <Tabs items={tabItems} value={team} onChange={onTabChange} />
+          </div>
+          {(pickerTeams.length >= TEAM_PICKER_MIN || tabsOverflow) && (
+            <OkrTeamPicker teams={pickerTeams} value={pickerValue} onChange={onPickerChange} labels={teamPickerLabels} />
+          )}
         </div>
-        {(teams.length >= TEAM_PICKER_MIN || tabsOverflow) && (
-          <OkrTeamPicker teams={teams} value={team} onChange={selectTeam} labels={teamPickerLabels} />
-        )}
-      </div>
+      )}
+
+      {/* 구성원 줄 — 서브탭과 같은 Tabs (PW-2763 · okr-policy §3.2-B M3). */}
+      {members && members.items.length > 0 && (
+        <div className="tl-tabs-row okr-s-tabs-row okr-team-members">
+          <span className="okr-team-members-label">{members.label}</span>
+          <div className="okr-team-tabs-scroll">
+            <Tabs
+              items={members.items.map((it) => ({
+                value: it.value,
+                label: <span className={`okr-team-tab-label${it.mine ? ' is-mine' : ''}`}>{it.label}</span>,
+              }))}
+              value={members.value ?? ''}
+              onChange={members.onChange}
+            />
+          </div>
+        </div>
+      )}
 
       {notice}
 
+      {body ?? (<>
       {periodAside ? (
         <div className="okr-p-actions">
           {periodChip}
@@ -106,6 +167,7 @@ export default function OkrTeamCanvas({ data, icons, baseUrl = '', activeTeam, o
           <OkrBoard board={{ ...board, theme: board.theme.replace('{team}', team) }} icons={icons} baseUrl={baseUrl} onKrUpdate={onKrUpdate} onSubmitFeedback={onSubmitFeedback} onViewAllFeedback={onViewAllFeedback} onWriteFeedback={onWriteFeedback} onRefreshInsights={onRefreshInsights} onInsightAction={onInsightAction} onCloseInsights={onCloseInsights} showInsights={showInsights} onToggleInitiative={onToggleInitiative} canEditInitiative={canEditInitiative} focusKrId={focusKrId} focusObjectiveId={focusObjectiveId} />
         </>
       )}
+      </>)}
     </div>
     </OkrLabelsContext.Provider>
   );

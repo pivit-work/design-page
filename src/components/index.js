@@ -286,6 +286,7 @@ export {
   OkrHistoryList,
   OkrBoard,
   OkrTeamCanvas,
+  OkrMemberReadonlyView,
   OkrComposeFullModal,
   OkrSetupWizardModal,
   OkrWizardEntryButton,

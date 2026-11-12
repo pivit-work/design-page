@@ -9,6 +9,7 @@ import OkrHistoryList from './OkrHistoryList.jsx';
 import OkrSelectMenu from './OkrSelectMenu.jsx';
 import useDismissLayer from '../shared/useDismissLayer.js';
 import { OkrLabelsContext, makeOkrLabels } from './okr-labels.jsx';
+import OkrOrgPath from './OkrOrgPath.jsx';
 
 /**
  * OkrPersonalCanvas — 개인 OKR 탭 콘텐츠 (스크롤 페이지).
@@ -43,6 +44,11 @@ import { OkrLabelsContext, makeOkrLabels } from './okr-labels.jsx';
  * 문구는 호출부가 소유한다(i18n). 주지 않으면 종전대로 상위 OKR + 보드를 그린다.
  * 칸은 같은 캔버스 히스토리 탭의 빈 칸과 같은 공용 `EmptyState`(점선 칸)다. `onEmptyWrite` 를 주면
  * 그 안에 [`emptyWriteLabel`] 버튼을 단다 — 기획서 okr-spec §6.8 「✦ 지금 작성하기」(pivit-work PW-1509).
+ *
+ * ## 경로 줄 (pivit-work PW-2763 · okr-policy §3.3 헤더)
+ *
+ * `path` 를 주면 프로필 줄 바로 위에 «전사 / {내 소속 줄기} / {나}» 를 그린다(`OkrOrgPath`). 이 화면은 본인 전용이고
+ * 조직 목록이 없어 조직 마디는 누를 수 없다 — 소비자가 onClick 없이 넘긴다. 안 주면 종전 그대로.
  */
 export default function OkrPersonalCanvas({
   data,
@@ -70,6 +76,8 @@ export default function OkrPersonalCanvas({
   emptyWriteLabel = '지금 작성하기',
   historyEmptyLabel,
   labels,
+  path = null,
+  pathLabel,
 }) {
   // 화면 문구 — 소비자가 번역을 넘긴다(PW-2415). 안 넘기면 종전 한국어.
   const L = useMemo(() => makeOkrLabels(labels), [labels]);
@@ -92,6 +100,7 @@ export default function OkrPersonalCanvas({
   return (
     <OkrLabelsContext.Provider value={L}>
     <div className="okr-personal-area">
+      {path && <OkrOrgPath path={path} ariaLabel={pathLabel} />}
       <div className="okr-p-profile">
         <img className="okr-p-avatar" src={person.avatar} alt={person.name} draggable={false} />
         <div>
