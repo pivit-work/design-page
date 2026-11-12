@@ -524,7 +524,7 @@ export default function EvalCycleMemberCanvas({
   labels: providedLabels,
   onSave,
   onSubmit,
-  // [pivit-work PW-2750] 사용자가 칸을 처음 고치면 true 로 부른다(안 주면 지금과 같다).
+  // [pivit-work PW-2750] 보낼 답이 받은 답과 다르면 true, 같아지면 false 로 부른다(안 주면 지금과 같다).
   onDirtyChange,
   // [pivit-work PW-2750] 점수를 받지 않는 화면(동료 리뷰). 평가지 없는 기본 폼의 역량 점수 칸을 글 칸으로 그린다.
   noScore = false,
@@ -732,6 +732,17 @@ export default function EvalCycleMemberCanvas({
       );
   }
 
+  // [pivit-work PW-2750] «고친 채 나가기» 물음 — 보낼 답이 받은 답과 다를 때만 true. 고쳤다가 원래 글로
+  // 되돌리면 false 로 돌아간다(«고친 것이 없으면 창 없이 나간다»). 한 번 건드렸는지로 세면 되돌려도 물었다.
+  const seededItemsKey = useMemo(
+    () => JSON.stringify(answerItems(fields, seedState(seededFor.answers, fields), trackAiDraft)),
+    [fields, seededFor.answers, trackAiDraft],
+  );
+  const answersChanged = JSON.stringify(answerItems(fields, state, trackAiDraft)) !== seededItemsKey;
+  useEffect(() => {
+    onDirtyChange?.(answersChanged);
+  }, [onDirtyChange, answersChanged]);
+
   const aiLifecycle = useAiDraftLifecycle(aiDraftFeature, fields.map((f) => ({
     key: f.key, revision: draftRevisions[f.key],
     original: pendingDraft[f.key] ?? state[f.key]?.aiDraft,
@@ -771,8 +782,6 @@ export default function EvalCycleMemberCanvas({
 
   const setField = (key, patch) => {
     dirtyRef.current = true; // TC-135 사용자 편집 표시 → 자동저장 트리거
-    // [pivit-work PW-2750] 소비자가 «고친 채 나가기» 물음을 걸 수 있게 처음 고칠 때 알린다.
-    onDirtyChange?.(true);
     setState((prev) => ({ ...prev, [key]: { ...prev[key], ...patch } }));
   };
 
