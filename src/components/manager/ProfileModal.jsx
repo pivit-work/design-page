@@ -103,6 +103,8 @@ export default function ProfileModal({
         <ProfileCardHeader
           name={displayMember?.name}
           photo={photoSrc}
+          photoLabel={L.photoView}
+          closeLabel={L.close}
           title={displayMember?.role}
           note={profile?.aiRecommendation}
           noteTone="ai"

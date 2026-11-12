@@ -106,6 +106,55 @@
   border-radius: 45px;
   object-fit: cover;
 }
+/* 사진이 있으면 버튼 — 누르면 가운데로 날아가 크게 보인다(아래 .profile-photo-viewer). 날아가는 동안은 자리만 남긴다 */
+.profile-photo-btn {
+  padding: 0;
+  background: none;
+  cursor: zoom-in;
+  font: inherit;
+}
+.profile-photo-btn:focus-visible { outline: 2px solid var(--fg-brand-primary); outline-offset: 2px; }
+.profile-photo.is-viewing .profile-photo-img { visibility: hidden; }
+
+/* ── 사진 크게 보기 (Figma 17876:34463) — 막은 bg-overlay 50%, 사진은 가운데 585 정사각, 오른쪽 위 흰 X ── */
+.tl-modal-overlay.profile-photo-viewer {
+  padding: 0;
+  background: color-mix(in srgb, var(--bg-overlay) 50%, transparent);
+  cursor: zoom-out;
+}
+.tl-modal-overlay.profile-photo-viewer.is-leaving { animation: profilePhotoViewerOut 0.3s ease forwards; }
+@keyframes profilePhotoViewerOut { to { opacity: 0; } }
+/* 사진 — 작은 자리(translate + scale · 모서리 46)에서 가운데(원래 크기 · 네모)로 0.3초 */
+.profile-photo-viewer-img {
+  position: fixed;
+  display: block;
+  object-fit: cover;
+  transform-origin: 0 0;
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), border-radius 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: transform;
+  cursor: default;
+  user-select: none;
+}
+/* 닫기 X — 오른쪽 위 20 · 44 칸(안쪽 8) · 모서리 14 · 24px 흰 아이콘 (17876:34464) */
+.profile-photo-viewer-close {
+  position: fixed;
+  top: var(--spacing-2xl);
+  right: var(--spacing-2xl);
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-md);
+  border: none;
+  border-radius: var(--radius-xl);
+  background: none;
+  color: var(--fg-light);
+  cursor: pointer;
+  transition: background 0.15s;
+  z-index: 1;
+}
+.profile-photo-viewer-close:hover { background: var(--alpha-white-20); }
 
 .profile-head-text {
   display: flex;

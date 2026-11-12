@@ -241,6 +241,8 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
       name={displayMember?.name}
       photo={photoSrc}
       renderPhoto={renderAvatar ? () => renderAvatar(displayMember) : undefined}
+      photoLabel={TL.photoView}
+      closeLabel={TL.close}
       // 둘 중 하나가 비어도 ' · ' 만 남지 않게 조립한다 — 직급·직책이 없거나
       // 비공개인 사람의 카드에서 구분자가 매달려 보였다.
       title={[profile.title, profile.affiliations ? '' : profile.dept].filter(Boolean).join(' · ')}

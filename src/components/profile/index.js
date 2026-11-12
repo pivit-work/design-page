@@ -10,4 +10,5 @@ export { default as ProfileActionItemsTab } from './ActionItemsTab.jsx';
 export { default as ProfileMetricTile } from './MetricTile.jsx';
 export { default as ProfilePhotoPlaceholder } from './ProfilePhotoPlaceholder.jsx';
 export { default as ProfilePhoto } from './ProfilePhoto.jsx';
+export { default as ProfilePhotoViewer } from './ProfilePhotoViewer.jsx';
 export { PROFILE_PHOTO_SIZE, PROFILE_PHOTO_RADIUS, PROFILE_TABS, DEFAULT_PROFILE_TAB_LABELS } from './constants.js';

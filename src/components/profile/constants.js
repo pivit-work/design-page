@@ -26,6 +26,7 @@ export const DEFAULT_PROFILE_TAB_LABELS = {
   basicInfo: '기본정보',
   tabsAriaLabel: '구성원 상세',
   close: '닫기',
+  photoView: '사진 크게 보기',
   message: '메시지',
   oneOnOneSchedule: '1on1 일정 잡기',
   briefingTitle: '종합 브리핑',

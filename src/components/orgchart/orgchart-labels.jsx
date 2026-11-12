@@ -164,6 +164,7 @@ export const ORGCHART_LABELS = {
   'profile.basicInfo': '기본정보',
   'profile.tabsAriaLabel': '구성원 상세',
   'profile.close': '닫기',
+  'profile.photoView': '사진 크게 보기',
   'profile.message': '메시지',
   'profile.oneOnOneSchedule': '1on1 일정 잡기',
   'profile.briefingTitle': '종합 브리핑',

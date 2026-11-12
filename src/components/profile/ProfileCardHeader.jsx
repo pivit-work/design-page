@@ -1,4 +1,6 @@
+import { useRef, useState } from 'react';
 import ProfilePhoto from './ProfilePhoto.jsx';
+import ProfilePhotoViewer from './ProfilePhotoViewer.jsx';
 import { PROFILE_PHOTO_SIZE } from './constants.js';
 
 /**
@@ -12,6 +14,8 @@ import { PROFILE_PHOTO_SIZE } from './constants.js';
  * @param {string} name
  * @param {string|null} [photo]  사진 주소. 없거나 못 불러오면 회색 실루엣 자리(ProfilePhotoPlaceholder)
  * @param {(name) => React.ReactNode} [renderPhoto]  사진 자리를 소비자가 통째로 그릴 때
+ * @param {string} [photoLabel]  사진 버튼의 화면 읽기 이름(«사진 크게 보기»). 사진이 있으면 누를 수 있고, 누르면 가운데로 날아가 크게 보인다(Figma 17876:34463)
+ * @param {string} [closeLabel]  큰 사진 창의 닫기 X 이름
  * @param {React.ReactNode} [title]  직책 ∙ 소속 한 줄
  * @param {React.ReactNode} [afterTitle]  직책 줄 아래 더 붙일 것(소속 목록 등)
  * @param {React.ReactNode} [note]  소개 한 줄
@@ -27,6 +31,8 @@ export default function ProfileCardHeader({
   name,
   photo,
   renderPhoto,
+  photoLabel = '사진 크게 보기',
+  closeLabel = '닫기',
   title,
   afterTitle,
   note,
@@ -38,12 +44,33 @@ export default function ProfileCardHeader({
   actions,
   actionsClassName = '',
 }) {
+  // 큰 사진 창 — 작은 사진의 지금 화면 좌표를 재 주는 함수를 들고 연다(열 때 출발, 닫을 때 귀환). 날아가는 동안 작은 사진은 자리만 남기고 숨긴다.
+  const photoRef = useRef(null);
+  const [viewing, setViewing] = useState(false);
+  const getOrigin = () => photoRef.current?.getBoundingClientRect() || null;
+  const openViewer = () => { if (photoRef.current) setViewing(true); };
+  const photoNode = <ProfilePhoto photo={photo} size={PROFILE_PHOTO_SIZE} className="profile-photo-img" />;
   return (
     <aside className="profile-head" data-testid="profile-head">
-      {renderPhoto ? renderPhoto(name) : (
-        <div className="profile-photo" data-testid="profile-photo" data-placeholder={photo ? undefined : 'true'}>
-          <ProfilePhoto photo={photo} size={PROFILE_PHOTO_SIZE} className="profile-photo-img" />
+      {renderPhoto ? renderPhoto(name) : photo ? (
+        <button
+          type="button"
+          ref={photoRef}
+          className={`profile-photo profile-photo-btn ${viewing ? 'is-viewing' : ''}`.trim()}
+          onClick={openViewer}
+          aria-label={photoLabel}
+          title={photoLabel}
+          data-testid="profile-photo"
+        >
+          {photoNode}
+        </button>
+      ) : (
+        <div className="profile-photo" data-testid="profile-photo" data-placeholder="true">
+          {photoNode}
         </div>
+      )}
+      {viewing && (
+        <ProfilePhotoViewer photo={photo} getOrigin={getOrigin} closeLabel={closeLabel} onClose={() => setViewing(false)} />
       )}
       <div className="profile-head-text">
         <div className="profile-name-block">
