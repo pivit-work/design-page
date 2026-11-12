@@ -1188,7 +1188,9 @@ export function HrProfileModal({
               items={org.education ?? []}
               fields={[
                 { key: 'school', label: L.hrEduSchool || '학교명', required: true },
-                { key: 'major', label: L.hrEduMajor || '전공' },
+                // 고졸이 아니면 전공이 필요하다 — 서버도 같은 규칙으로 거절한다(PW-1302). 학교명만 있는 줄을 고칠 때
+                // 표시가 없으면 이유 모를 «저장하지 못했습니다»만 남았다(pivit-work PW-2714).
+                { key: 'major', label: L.hrEduMajor || '전공', required: (form) => form.degree !== 'high_school' },
                 { key: 'degree', label: L.hrEduDegree || '학위', required: true, options: optionsOf(L.hrDegreeOptions) },
                 { key: 'from', label: L.hrEduFrom || '입학', required: true, placeholder: 'YYYY-MM' },
                 { key: 'to', label: L.hrEduTo || '졸업(예정)', placeholder: 'YYYY-MM' },
@@ -1397,6 +1399,10 @@ function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelet
 // 물었다가 취소하면 onSave 가 거절로 끝나고, 그때도 적던 값은 남는다.
 
 
+/** 필수 칸 — `required` 가 함수면 지금 폼 값으로 정한다(학위가 고졸이면 전공은 비워도 된다 · pivit-work PW-2714). */
+const isRequired = (field, form) =>
+  typeof field.required === 'function' ? !!field.required(form) : !!field.required;
+
 /** 칸 정의의 빈 값으로 폼을 만든다. */
 const emptyForm = (fields) => Object.fromEntries(fields.map((f) => [f.key, '']));
 
@@ -1417,7 +1423,7 @@ const bodyOf = (fields, form, editing) => {
     const raw = typeof form[f.key] === 'string' ? form[f.key].trim() : form[f.key];
     if (raw === '' || raw == null) {
       // 고칠 때 비운 선택 칸은 null 로 보내 지운다. 넣을 때는 아예 싣지 않는다.
-      if (editing && !f.required) body[f.key] = null;
+      if (editing && !isRequired(f, form)) body[f.key] = null;
       continue;
     }
     body[f.key] = f.kind === 'boolean' ? raw === 'true' : raw;
@@ -1430,7 +1436,7 @@ const bodyOf = (fields, form, editing) => {
  * @param {string} props.title 묶음 제목(건수는 여기서 붙인다)
  * @param {string} props.testId `data-testid` 접두
  * @param {Array} props.items 서버가 준 줄
- * @param {Array<{key:string,label:string,required?:boolean,kind?:'boolean'|'date',options?:Array,placeholder?:string}>} props.fields
+ * @param {Array<{key:string,label:string,required?:boolean|((form:Object)=>boolean),kind?:'boolean'|'date',options?:Array,placeholder?:string}>} props.fields
  * @param {(row:object)=>string} props.render 줄 한 줄 글
  * @param {(row:object)=>string} props.nameOf 지우기 확인·버튼 이름에 쓰는 이름
  * @param {string} props.emptyText
@@ -1483,7 +1489,7 @@ function HrRecordListSection({
     }
   };
 
-  const missing = fields.some((f) => f.required && !String(form[f.key] ?? '').trim());
+  const missing = fields.some((f) => isRequired(f, form) && !String(form[f.key] ?? '').trim());
   // periodError — 기간 칸이 거꾸로일 때 «종료» 칸 아래 띄울 문구. 주면 그때 저장을 막는다(PW-2218).
   const periodUntouched = editingPeriod
     && String(form.from ?? '') === editingPeriod.from && String(form.to ?? '') === editingPeriod.to;
@@ -1560,7 +1566,7 @@ function HrRecordListSection({
               <HrEditPair
                 card
                 key={f.key}
-                k={f.required ? `${f.label} *` : f.label}
+                k={isRequired(f, form) ? `${f.label} *` : f.label}
                 value={form[f.key]}
                 onChange={set(f.key)}
                 date={f.kind === 'date'}
