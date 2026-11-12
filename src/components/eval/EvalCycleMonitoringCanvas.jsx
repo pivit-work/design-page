@@ -125,6 +125,8 @@ const DEFAULT_LABELS = {
   exportReasonPlaceholder: '예) 2026 상반기 평가 이력 보관 — 인사팀 아카이브',
   exportReasonRequired: '사유를 입력해 주세요 (200자 이내).',
   exportCancel: '취소',
+  /* 창 오른쪽 위 닫기 X 의 이름 — [취소]와 같은 이름이면 화면 읽기 프로그램이 둘을 못 가른다(pivit-work PW-2744) */
+  close: '닫기',
   exportConfirm: '내려받기',
   historyTitle: '내보내기 이력',
   historyEmpty: '아직 내보낸 적이 없습니다.',
@@ -1342,7 +1344,7 @@ export default function EvalCycleMonitoringCanvas({
           titleId="evmon-export-modal-title"
           submitLabel={L.exportConfirm}
           cancelLabel={L.exportCancel}
-          closeLabel={L.exportCancel}
+          closeLabel={L.close}
           canSubmit={!(exportKind === 'answers' && onOpenExport && answersRowCount === undefined)}
           onClose={closeExport}
           onSubmit={submitExport}

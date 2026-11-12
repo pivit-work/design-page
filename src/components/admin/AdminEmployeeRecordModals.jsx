@@ -189,7 +189,7 @@ export function CeoConfirmModal({ row, mode, currentCeoName, labels, positionOpt
       // [PW-2042] 첫 줄은 창 부제로 — 지정 창만. 해제 창 설명은 길어 본문에 둔다.
       description={assigning ? (L.ceoAssignBody || '이 구성원이 조직도의 최상위가 됩니다.') : undefined}
       titleId="ceo-confirm-title"
-      closeLabel={L.cancel || '취소'}
+      closeLabel={L.close || '닫기'}
       onClose={onClose}
       busy={busy}
       zIndex={9999}

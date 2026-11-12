@@ -31,6 +31,8 @@ export const OKR_LABELS = {
   'board.viewAllFeedback': '전체 보기',
   'board.feedbackSubmit': '완료',
   'board.cancel': '취소',
+  /* 창 오른쪽 위 닫기 X 의 이름 — [취소]와 같은 이름이면 화면 읽기 프로그램이 둘을 못 가른다(pivit-work PW-2744) */
+  'board.close': '닫기',
 
   // ── 미정렬 딱지 ──
   'unaligned.label': '미정렬',

@@ -31,6 +31,8 @@ const DEFAULT_LABELS = {
   topLevel: '최상위',
   parentTeam: '상위 팀',
   cancel: '취소',
+  /* 창 오른쪽 위 닫기 X 의 이름 — [취소]와 같은 이름이면 화면 읽기 프로그램이 둘을 못 가른다(pivit-work PW-2744) */
+  close: '닫기',
   confirm: '확인',
   deleteTeam: '팀 삭제',
   editTeam: '팀 편집',
@@ -266,7 +268,7 @@ function MoveTeamModal({ tree, movingId, currentParentId, labels, onConfirm, onC
       titleId="tm-move-title"
       submitLabel={labels.confirm}
       cancelLabel={labels.cancel}
-      closeLabel={labels.cancel}
+      closeLabel={labels.close}
       canSubmit={selectedParentId !== undefined}
       onSubmit={() => onConfirm(selectedParentId ?? null)}
       onClose={onCancel}

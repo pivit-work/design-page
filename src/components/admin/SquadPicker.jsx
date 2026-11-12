@@ -92,6 +92,8 @@ const DEFAULT_LABELS = {
   selectedCount: '선택 {count}개 (종료·보관 제외)',
   apply: '적용',
   cancel: '취소',
+  /* 창 오른쪽 위 닫기 X 의 이름 — [취소]와 같은 이름이면 화면 읽기 프로그램이 둘을 못 가른다(pivit-work PW-2744) */
+  close: '닫기',
   // 리드 확인 모달(SQ10)
   leadAssignTitle: '스쿼드 리드 지정',
   leadReleaseTitle: '스쿼드 리드 해제',
@@ -251,7 +253,7 @@ export default function SquadPicker({
         </>
       }
       titleId="squad-picker-title"
-      closeLabel={L.cancel}
+      closeLabel={L.close}
       onClose={() => onClose?.()}
       zIndex={9999}
       className="adm-shell has-own-footer"

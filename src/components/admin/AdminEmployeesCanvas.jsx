@@ -257,6 +257,8 @@ const DEFAULT_LABELS = {
     deactivateBody: '{count}명을 퇴사 처리합니다. 목록에서 사라지지는 않습니다.',
     apply: '적용',
     cancel: '취소',
+    /* 창 오른쪽 위 닫기 X 의 이름 — [취소]와 같은 이름이면 화면 읽기 프로그램이 둘을 못 가른다(pivit-work PW-2744) */
+    close: '닫기',
   },
   /* 목록 뷰 표의 열 이름과 ⚙ 컬럼 표시 설정 (PW-400).
      🔴 `dept` 는 「부서」 가 아니라 「소속(기능조직)」 이다 — 스쿼드 열과 나란히 두면
@@ -497,6 +499,8 @@ const DEFAULT_LABELS = {
     masked: '****',
     placeholder: '본인 요청 · 서류 대조 후 정정 등',
     cancel: '취소',
+    /* 창 오른쪽 위 닫기 X 의 이름 — [취소]와 같은 이름이면 화면 읽기 프로그램이 둘을 못 가른다(pivit-work PW-2744) */
+    close: '닫기',
     submit: '변경 저장',
   },
   loading: '불러오는 중…',
@@ -2181,7 +2185,7 @@ function BulkManagerModal({ selectedRows, candidates, labels, onClose, onApply }
       title={L.managerAssign}
       subtitle={fill(L.orgAppendSubtitle, { count: selectedRows.length })}
       onClose={onClose}
-      closeLabel={L.cancel}
+      closeLabel={L.close}
       footer={(
         <button type="button" className="tl-group-modal-btn tl-group-modal-btn-secondary" onClick={onClose}
           data-testid="employees-list-bulk-manager-cancel">{L.cancel}</button>
@@ -2257,7 +2261,7 @@ function BulkStatusModal({ selectedRows, labels, onClose, onApply }) {
       title={L.statusChange}
       subtitle={fill(L.orgAppendSubtitle, { count: selectedRows.length })}
       onClose={onClose}
-      closeLabel={L.cancel}
+      closeLabel={L.close}
       footer={(
         <>
           <button type="button" className="tl-group-modal-btn tl-group-modal-btn-secondary" onClick={onClose}
@@ -2333,7 +2337,7 @@ function BulkLeaveModal({ split, labels, leaveAddon, today, onClose, onApply }) 
       title={fill(L.leaveTitle, { count: split.targets })}
       subtitle={skips.length > 0 ? fill(L.leaveSkipSuffix, { list: skips.join(' · ') }) : undefined}
       onClose={onClose}
-      closeLabel={L.cancel}
+      closeLabel={L.close}
       footer={(
         <>
           <button type="button" className="tl-group-modal-btn tl-group-modal-btn-secondary" onClick={onClose}
@@ -2393,7 +2397,7 @@ function BulkDeactivateModal({ selectedRows, labels, onClose, onApply }) {
       testId="employees-list-bulk-deactivate-modal"
       title={L.deactivate}
       onClose={onClose}
-      closeLabel={L.cancel}
+      closeLabel={L.close}
       footer={(
         <>
           <button type="button" className="tl-group-modal-btn tl-group-modal-btn-secondary" onClick={onClose}
@@ -4775,7 +4779,7 @@ function ChangeReasonModal({ prompt, labels }) {
     <ModalShell
       title={L.title}
       titleId="change-reason-title"
-      closeLabel={L.cancel}
+      closeLabel={L.close}
       onClose={prompt.onCancel}
       zIndex={1000}
       className="adm-shell"

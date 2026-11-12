@@ -121,6 +121,8 @@ const DEFAULT_LABELS = {
   seatOverLimitConfirm: '위 내용을 확인했습니다.',
   downgradeDataNotice: '상위 티어 기능으로 생성된 데이터(OKR·평가·AI Chat 등)는 보존되며 읽기 전용으로 유지됩니다. 신규 생성만 차단됩니다.',
   cancelButton: '취소',
+  /* 창 오른쪽 위 닫기 X 의 이름 — [취소]와 같은 이름이면 화면 읽기 프로그램이 둘을 못 가른다(pivit-work PW-2744) */
+  close: '닫기',
   confirmDowngradeCta: '다운그레이드 확인',
   confirmChangeCta: '변경 확인',
   // 변경 요청이 실패하면 창을 닫지 않고 확인 버튼이 다시 시도가 된다(screen-billing-plans §3).
@@ -1151,7 +1153,7 @@ export default function BillingPlansCanvas({
               ? labels.confirmDowngradeTitle(confirmTarget.label)
               : labels.confirmChangeTitle(confirmTarget.label)}
             titleId="billing-plan-confirm-title"
-            closeLabel={labels.cancelButton}
+            closeLabel={labels.close}
             onClose={() => setConfirmTarget(null)}
             zIndex={1000}
             className="adm-shell"

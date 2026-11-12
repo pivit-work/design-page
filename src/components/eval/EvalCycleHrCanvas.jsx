@@ -195,6 +195,8 @@ const DEFAULT_LABELS = {
   endDate: '종료일',
   reviewTypes: '리뷰 종류',
   cancel: '취소',
+  /* 창 오른쪽 위 닫기 X 의 이름 — [취소]와 같은 이름이면 화면 읽기 프로그램이 둘을 못 가른다(pivit-work PW-2744) */
+  close: '닫기',
   create: '생성',
   // PW-531 — 저장이 끝날 때까지 버튼이 「생성 중…」으로 잠긴다. 눌렀는지 안 눌렸는지를
   // 화면이 말해 주지 않으면 사용자는 «아무 일도 안 일어났다» 로 읽는다.
@@ -739,7 +741,7 @@ function OpenConfirmModal({ cycle, labels: L, onCancel, onConfirm, onLoadImpact 
         </>
       }
       titleId="evc-open-confirm-title"
-      closeLabel={L.cancel}
+      closeLabel={L.close}
       onClose={cancel}
       busy={submitting}
       zIndex={1000}
@@ -1041,7 +1043,7 @@ function ScheduleEditModal({
         title={L.editScheduleTitle}
         description={cycle.name}
         titleId="evc-schedule-modal-title"
-        closeLabel={L.cancel}
+        closeLabel={L.close}
         onClose={onCancel}
         busy={saving || confirming || !!overlapAlert}
         zIndex={1000}

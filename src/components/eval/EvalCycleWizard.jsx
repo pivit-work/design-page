@@ -1662,7 +1662,7 @@ function TemplatePreviewModal({ questions, grades, focus, onClose, labels: L }) 
     <ModalShell
       title={focusQ ? L.previewItemTitle : L.previewTitle}
       titleId="evc-tpl-preview-title"
-      closeLabel={L.cancel}
+      closeLabel={L.close}
       onClose={onClose}
       zIndex={1000}
       className="evc-shell is-wide"
@@ -1813,7 +1813,7 @@ function TemplatePickerModal({
       title={L.tplPickerTitle}
       description={<>{fill(L.tplPickerSub, { type: currentTypeName })}</>}
       titleId="evc-tpl-picker-title"
-      closeLabel={L.cancel}
+      closeLabel={L.close}
       onClose={onClose}
       zIndex={1000}
       className="evc-shell is-wide evc-tpl-picker"
@@ -12499,7 +12499,7 @@ export default function EvalCycleWizard({
         <ModalShell
           title={L.draftConflictTitle}
           titleId="evc-wiz-conflict-title"
-          closeLabel={L.cancel}
+          closeLabel={L.close}
           onClose={() => setDraftConflict(null)}
           busy={conflictBusy}
           zIndex={1000}
@@ -12576,7 +12576,7 @@ export default function EvalCycleWizard({
                 : L.draftLeaveTitle
           }
           titleId="evc-wiz-leave-title"
-          closeLabel={L.cancel}
+          closeLabel={L.close}
           onClose={() => setLeaveAsk(false)}
           busy={draftSaving}
           zIndex={1000}
@@ -12653,7 +12653,7 @@ export default function EvalCycleWizard({
           title={L.aiSetupTitle}
           description={L.aiSetupSub}
           titleId="evc-wiz-ai-setup-title"
-          closeLabel={L.cancel}
+          closeLabel={L.close}
           onClose={() => !aiSetupBusy && setAiSetupOpen(false)}
           busy={aiSetupBusy}
           zIndex={1000}
@@ -12770,7 +12770,7 @@ export default function EvalCycleWizard({
           title={L.presetDialogTitle}
           description={L.presetDialogSub}
           titleId="evc-wiz-preset-title"
-          closeLabel={L.cancel}
+          closeLabel={L.close}
           onClose={() => setPresetDialogOpen(false)}
           zIndex={1000}
           className="evc-shell"
@@ -13257,7 +13257,7 @@ export default function EvalCycleWizard({
         }
         titleAside={titleHelp}
         titleId="evc-wiz-title"
-        closeLabel={L.cancel}
+        closeLabel={L.close}
         onClose={requestClose}
         zIndex={1000}
         className="evc-shell is-xwide has-own-footer evc-wiz-shell"

@@ -97,6 +97,8 @@ const DEFAULT_LABELS = {
   channelEmailOnly: '협업툴 미연동 — 이메일로만 발송됩니다',
   channelHint: '선택한 채널로 동시 발송됩니다. 24시간 내 동일 알림 재발송 불가.',
   cancel: '취소',
+  /* 창 오른쪽 위 닫기 X 의 이름 — [취소]와 같은 이름이면 화면 읽기 프로그램이 둘을 못 가른다(pivit-work PW-2744) */
+  close: '닫기',
   send: '발송',
   toastSentRequest: '{manager} 매니저에게 {member} 님 피드백 요청 알림을 보냈습니다 ({channels})',
   toastSentEncourage: '{manager} 매니저에게 독려 알림을 보냈습니다 ({channels})',
@@ -379,7 +381,7 @@ function NudgeModal({ target, channels, L, onConfirm, onClose }) {
       titleId="fbhr-nudge-title"
       submitLabel={L.send}
       cancelLabel={L.cancel}
-      closeLabel={L.cancel}
+      closeLabel={L.close}
       canSubmit={canSend}
       busy={busy}
       onClose={onClose}

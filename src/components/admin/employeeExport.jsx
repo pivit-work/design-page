@@ -182,7 +182,7 @@ export function SalaryExportModal({ count, columnCount, labels, riskyLast = true
     <ModalShell
       title={L.salaryTitle || '연봉이 포함된 명부를 내보냅니다'}
       titleId="export-salary-title"
-      closeLabel={L.cancel || '취소'}
+      closeLabel={L.close || '닫기'}
       onClose={onClose}
       zIndex={9999}
       className="adm-shell"

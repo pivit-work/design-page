@@ -129,6 +129,8 @@ const DEFAULT_LABELS = {
   leaveSave: '임시저장 후 나가기',
   leaveDiscard: '저장 없이 나가기',
   leaveStay: '계속 작성',
+  /* 창 오른쪽 위 닫기 X 의 이름 — [취소]와 같은 이름이면 화면 읽기 프로그램이 둘을 못 가른다(pivit-work PW-2744) */
+  close: '닫기',
   // [PW-2041] 버튼 셋의 차이를 풀어 준다
   leaveWarn: '저장 없이 나가면 이번에 쓴 내용이 사라집니다.',
   leaveHint: '임시저장하면 나중에 이 화면에서 이어서 쓸 수 있습니다.',
@@ -2201,7 +2203,7 @@ export default function EvalCycleLeaderCanvas({
         <ModalShell
           title={L.leaveTitle}
           titleId="evl-leave-title"
-          closeLabel={L.leaveStay}
+          closeLabel={L.close}
           onClose={() => onLeaveStay?.()}
           onSubmit={(e) => e?.preventDefault?.()}
           className="evc-shell"

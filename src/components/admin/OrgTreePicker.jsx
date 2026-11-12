@@ -87,6 +87,8 @@ const DEFAULT_LABELS = {
   none: '선택 없음 — 저장하면 미배정이 됩니다',
   apply: '적용',
   cancel: '취소',
+  /* 창 오른쪽 위 닫기 X 의 이름 — [취소]와 같은 이름이면 화면 읽기 프로그램이 둘을 못 가른다(pivit-work PW-2744) */
+  close: '닫기',
   expand: '펼치기',
   collapse: '접기',
   // 겸직(다중 선택) 전용 — PW-368
@@ -405,7 +407,7 @@ export default function OrgTreePicker({
         </>
       }
       titleId="org-tree-picker-title"
-      closeLabel={labels.cancel}
+      closeLabel={labels.close}
       onClose={() => onClose?.()}
       zIndex={9999}
       className="adm-shell has-own-footer"

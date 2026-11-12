@@ -36,7 +36,7 @@ export default function OkrFeedbackComposeModal({ title, placeholder, submitLabe
     <ModalShell
       title={title}
       titleId="okr-fb-compose-title"
-      closeLabel={L('board.cancel')}
+      closeLabel={L('board.close')}
       cancelLabel={L('board.cancel')}
       submitLabel={submitLabel}
       canSubmit
