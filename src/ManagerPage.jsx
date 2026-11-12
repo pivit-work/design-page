@@ -289,8 +289,9 @@ const ACTION_QUEUE_MEMBERS = [
 ];
 
 const TEAM_STATUS_MEMBERS = [
+  // 사진이 없는 사람의 예 — 카드는 이름 글자 원, 팀원 창 머리는 회색 실루엣 자리(ProfilePhotoPlaceholder)
   { id: 'team-1', name: 'Chris', role: '이사 ∙ 프로덕트본부', status: 'good',
-    avatar: DEMO_PHOTO,
+    avatar: null,
     comment: 'pgvector 최적화로 응답시간 3배 개선. 5일 연속 스니핏, 성과·컨디션 모두 안정적.',
     profile: GOOD_PROFILE },
 ];

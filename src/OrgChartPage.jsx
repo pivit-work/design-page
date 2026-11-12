@@ -92,7 +92,8 @@ const INITIAL_ORG = {
       ],
       children: [
         { id: 'people', name: 'People팀', type: '팀', level: 'team', members: [
-          { name: '신예은', avatar: AVATARS.신예은, status: 'working', workHours: '9 → 6', attendance: 25, hcScore: 3.2, grade: '사원', profile: DEFAULT_PROFILE },
+          // 사진이 없는 사람의 예 — 카드는 이름 글자 원, 프로필 창 머리는 회색 실루엣 자리(ProfilePhotoPlaceholder · Figma 17873:33575)
+          { name: '신예은', avatar: null, status: 'working', workHours: '9 → 6', attendance: 25, hcScore: 3.2, grade: '사원', profile: DEFAULT_PROFILE },
           { name: '이서현', avatar: AVATARS.이서현, status: 'working', workHours: '9 → 6', attendance: 76, hcScore: 7.9, grade: '대리', profile: DEFAULT_PROFILE },
           { name: '김서윤', avatar: AVATARS.김서윤, status: 'resigned', workHours: '9 → 6', attendance: 22, hcScore: 8.7, grade: '사원', profile: DEFAULT_PROFILE },
         ]},

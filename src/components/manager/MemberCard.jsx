@@ -1,5 +1,5 @@
 import Icon from '../shared/Icon.jsx';
-import Avatar from '../shared/Avatar.jsx';
+import ProfilePhoto from '../profile/ProfilePhoto.jsx';
 import StatusBadge from './StatusBadge.jsx';
 import { STATUS_COLORS } from './constants.js';
 
@@ -10,7 +10,7 @@ const PHOTO_SIZE = 130;
  * 매니저 페이지의 멤버 카드 — Figma 17873:32483 «manager main» (2026-11-12).
  * 상단 130px 둥근 사진 + 이름/직급 + 코멘트 + 상태 배지 + 원온원/메시지 버튼.
  *
- * 사진이 없거나 못 불러오면 같은 틀의 이름 글자 원(공용 Avatar). 예전엔 금색 육각(`MemberHex`),
+ * 사진이 없거나 못 불러오면 프로필 창과 같은 회색 실루엣 자리(ProfilePhotoPlaceholder · Figma 17876:34266). 예전엔 금색 육각(`MemberHex`),
  * 그 전엔 카드마다 Spline 3D 장면이었다 — 디자이너가 사진 한 장으로 바꿨다. 상세 창(ProfileModal)도 같다.
  */
 export default function MemberCard({
@@ -43,7 +43,7 @@ export default function MemberCard({
   return (
     <div className="manager-member-card" onClick={onCardClick}>
       <div className="manager-member-photo">
-        <Avatar name={name} photo={avatar} size={PHOTO_SIZE} className="manager-member-photo-img" />
+        <ProfilePhoto photo={avatar} size={PHOTO_SIZE} className="manager-member-photo-img" />
       </div>
       <div className="manager-member-body">
         <div className="manager-member-name-block">

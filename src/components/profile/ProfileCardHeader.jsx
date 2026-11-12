@@ -1,16 +1,16 @@
-import Avatar from '../shared/Avatar.jsx';
+import ProfilePhoto from './ProfilePhoto.jsx';
 import { PROFILE_PHOTO_SIZE } from './constants.js';
 
 /**
  * 프로필 창 왼쪽 머리 칸 (Figma 17873:33574) — 410 폭, 옆 20 · 아래 20.
  *
- *   사진 130(모서리 46) → 20 → [이름 24 · 직책 ∙ 소속 12] → 18 → 소개 → 18 → 근무 상태 알약
+ *   사진 130(모서리 46 · 1px 검정 3% 테두리 · shadow-2xl) → 20 → [이름 24 · 직책 ∙ 소속 12] → 18 → 소개 → 18 → 근무 상태 알약
  *   → 20 → 통계 세 칸(24px 아이콘 · 이름표 · 값) → 27 → 버튼 둘
  *
  * 모든 칸은 props 로 받는다. 없는 칸은 자리도 남기지 않는다 — 매니저 창은 통계·알약 없이 AI 한 줄을 소개 자리에 둔다.
  *
  * @param {string} name
- * @param {string|null} [photo]  사진 주소. 없거나 못 불러오면 이름 글자 원(Avatar)
+ * @param {string|null} [photo]  사진 주소. 없거나 못 불러오면 회색 실루엣 자리(ProfilePhotoPlaceholder)
  * @param {(name) => React.ReactNode} [renderPhoto]  사진 자리를 소비자가 통째로 그릴 때
  * @param {React.ReactNode} [title]  직책 ∙ 소속 한 줄
  * @param {React.ReactNode} [afterTitle]  직책 줄 아래 더 붙일 것(소속 목록 등)
@@ -41,8 +41,8 @@ export default function ProfileCardHeader({
   return (
     <aside className="profile-head" data-testid="profile-head">
       {renderPhoto ? renderPhoto(name) : (
-        <div className="profile-photo" data-testid="profile-photo">
-          <Avatar name={name} photo={photo || null} size={PROFILE_PHOTO_SIZE} className="profile-photo-img" />
+        <div className="profile-photo" data-testid="profile-photo" data-placeholder={photo ? undefined : 'true'}>
+          <ProfilePhoto photo={photo} size={PROFILE_PHOTO_SIZE} className="profile-photo-img" />
         </div>
       )}
       <div className="profile-head-text">
