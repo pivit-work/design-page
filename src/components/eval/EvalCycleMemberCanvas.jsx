@@ -522,6 +522,8 @@ export default function EvalCycleMemberCanvas({
   labels: providedLabels,
   onSave,
   onSubmit,
+  // [pivit-work PW-2750] 사용자가 칸을 처음 고치면 true 로 부른다(안 주면 지금과 같다).
+  onDirtyChange,
   onAiPolish,
   onAiDraft,
   aiDraftFeature = 'eval_self_draft',
@@ -765,6 +767,8 @@ export default function EvalCycleMemberCanvas({
 
   const setField = (key, patch) => {
     dirtyRef.current = true; // TC-135 사용자 편집 표시 → 자동저장 트리거
+    // [pivit-work PW-2750] 소비자가 «고친 채 나가기» 물음을 걸 수 있게 처음 고칠 때 알린다.
+    onDirtyChange?.(true);
     setState((prev) => ({ ...prev, [key]: { ...prev[key], ...patch } }));
   };
 
@@ -1590,11 +1594,14 @@ export default function EvalCycleMemberCanvas({
                   />
                 </span>
               )}
+              {/* [pivit-work PW-2750] 저장 콜백이 없으면 [임시저장]을 그리지 않는다 — 제출한 동료 리뷰를 고칠
+                  때는 임시저장이 없다(구성원 정책 §5.8-A). 지금 소비자는 모두 넘기므로 모양은 그대로다. */}
+              {onSave && (
               <button
                 type="button"
                 className="evc-btn is-ghost"
                 onClick={() =>
-                  Promise.resolve(onSave?.(toItems()))
+                  Promise.resolve(onSave(toItems()))
                     .then(() => {
                       dirtyRef.current = false;
                       setAutoSavedAt(new Date());
@@ -1611,6 +1618,7 @@ export default function EvalCycleMemberCanvas({
               >
                 {L.save}
               </button>
+              )}
               <Button
                 className="evc-btn is-primary"
                 onClick={handleSubmitClick}
