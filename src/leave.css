@@ -251,17 +251,20 @@
 }
 
 /* ── 고른 날짜 — 달마다 한 줄(PW-2688 ⑥). ── */
+/* 달 줄들이 열을 함께 쓴다(subgrid) — 달 이름 칸은 가장 긴 이름(«2027년 1월»)에 맞춰 넓어지고 줄마다 날짜 시작 자리가 같다.
+   전에는 줄마다 56px 로 박아 해가 붙은 달 이름이 «2027년 / 1월» 두 줄로 접혔다(pivit-work PW-2688 11-12). */
 .leave-months {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: minmax(56px, max-content) minmax(0, 1fr) auto;
   border: 1px solid var(--border-secondary);
   border-radius: var(--radius-lg);
   min-width: 0;
 }
 
 .leave-month {
+  grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: 56px minmax(0, 1fr) auto;
+  grid-template-columns: subgrid;
   align-items: center;
   gap: var(--spacing-lg);
   padding: var(--spacing-md) var(--spacing-lg);
@@ -272,6 +275,7 @@
 }
 
 .leave-month-label {
+  white-space: nowrap;
   font-size: var(--font-size-text-sm);
   line-height: var(--line-height-text-sm);
   font-weight: 700;
