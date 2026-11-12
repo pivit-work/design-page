@@ -5875,13 +5875,19 @@ export default function EvalCycleSummaryCanvas({
                                       (빨간 테두리 입력칸은 «입력이 틀렸다»로 읽힌다). */}
                                   {(() => {
                                     const dir = adjustDirection(row, og);
+                                    /* PW-2738 — «바뀐 줄»은 서버 `adjusted` 와 같은 판정(adjustedKey)이다. 1차 등급이 비어
+                                       위원회가 직접 정한 줄(spec-calibration §20.1)은 위·아래를 가를 수 없어 ▲/▼ 만 뺀다.
+                                       예전엔 방향으로 «바뀐 줄»을 갈라, 조회 전용 칸이 «—»로 비고 조정자만 남았다. */
+                                    const changed = !!adjustedKey(row);
                                     // §15 「조정 셀 — 변경 시 로그 아이콘」. 기록 자체는 펼친 상세의 변경 이력에 있다.
-                                    const dirTag = dir && (
+                                    const dirTag = changed && (
                                       <>
+                                        {dir && (
                                         <span className={`evs-cw-adjust-dir is-${dir}`} data-testid="evs-cw-adjust-dir">
                                           {dir === 'up' ? <ChevronUpIcon size={12} /> : <ChevronDownIcon size={12} />}
                                           {dir === 'up' ? L.cwAdjustUp : L.cwAdjustDown}
                                         </span>
+                                        )}
                                         <span
                                           className="evs-cw-adjust-log"
                                           role="img"
@@ -5910,7 +5916,7 @@ export default function EvalCycleSummaryCanvas({
                                     return (
                                       <div className="evs-cw-adjust">
                                         {calibTable.readOnly ? (
-                                          dir ? (
+                                          changed ? (
                                             <>
                                               <span className="evs-cw-adjust-value is-changed" data-testid="evs-cw-adjust-value">
                                                 {row.calibratedGradeLabel}
@@ -5928,7 +5934,7 @@ export default function EvalCycleSummaryCanvas({
                                                 — 1차 등급으로 되돌리는 것은 호출부가 한다. 1차 등급이 없는 줄은
                                                 되돌아갈 등급이 없어 해제를 막는다. */}
                                             <Select
-                                              className={`evs-cw-adjust-select${dir ? ' is-changed' : ''}`}
+                                              className={`evs-cw-adjust-select${changed ? ' is-changed' : ''}`}
                                               data-testid="evs-cw-adjust-select"
                                               aria-label={`${row.name} ${L.cwColAdjust}`}
                                               value={adjustedKey(row)}
