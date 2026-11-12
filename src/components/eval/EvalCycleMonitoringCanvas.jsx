@@ -968,7 +968,9 @@ export default function EvalCycleMonitoringCanvas({
         return (
         <section className="evc-card">
           <h3 className="evc-card-name">{L.membersTitle}</h3>
-          <div className="evmon-table" role="table">
+          {/* PW-2683 — 대상자 1,500명이면 줄을 다 그려 화면이 71,813px 로 늘었다(dev 11-13).
+              만들기 창 4단계 하향 평가자 표와 같은 높이 560 칸 안에서 스크롤하고 머리줄은 위에 붙는다. */}
+          <div className="evmon-table is-members" role="table" data-testid="evmon-members-table">
             <div className="evmon-row evmon-head" role="row" style={{ gridTemplateColumns: cols }}>
               <span className="evmon-c-name">{L.colMember}</span>
               {dynamic ? (

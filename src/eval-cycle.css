@@ -7425,6 +7425,18 @@ button.evm-ai-source {
   font-weight: 700;
   font-size: var(--font-size-text-xs);
 }
+/* PW-2683 — 진행 현황 구성원 표: 대상자가 많아도 화면이 늘지 않게 칸 안 스크롤(4단계 하향 평가자 표와 같은 560),
+   머리줄은 칸 위에 붙고 카드와 같은 바탕(--bg-quaternary 흰색)을 칠해 밑으로 지나가는 줄이 비치지 않는다. */
+.evmon-table.is-members {
+  max-height: 560px;
+  overflow-y: auto;
+}
+.evmon-table.is-members > .evmon-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg-quaternary);
+}
 .evmon-c-name {
   text-align: left;
   font-weight: 600;
