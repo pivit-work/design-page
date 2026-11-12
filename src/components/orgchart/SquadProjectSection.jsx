@@ -25,13 +25,15 @@ import { useOrgLabels, rich } from './orgchart-labels.jsx';
 import { SQUAD_MODAL_Z } from './squad-constants.js';
 import { projectStatusText, projectStatusTone } from './project-constants.js';
 import { isEnterKey } from '../shared/enterKey.js';
+import { failureText } from '../shared/notifiedFailure.js';
 
 const NAME_MAX = 50;
 
 
 /** 실패 사유를 사람이 읽을 문구로. Error 가 아니면 호출부가 준 기본 문구. */
 function messageOf(err, fallback) {
-  return (err && typeof err.message === 'string' && err.message) || fallback;
+  // 앱이 이미 알린 실패(이용 정지 토스트)면 빈 글 — 창 안에 또 쓰지 않는다 (pivit-work PW-2549).
+  return failureText(err, fallback);
 }
 
 /**

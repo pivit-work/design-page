@@ -51,6 +51,7 @@ import { projectStatusCode, projectStatusText, projectStatusTone } from './proje
 import { SQUAD_MENU_Z, SQUAD_MODAL_Z, SQUAD_PALETTE } from './squad-constants.js';
 import { RsStatCard } from '../okr/OkrResourcePieces.jsx';
 import ProjectResourceTab from './ProjectResourceTab.jsx';
+import { failureText } from '../shared/notifiedFailure.js';
 
 /** 허용 전이 (§6-1). `→ planned` · `planned → done` 은 없다 — 메뉴에 비활성으로도 그리지 않는다. */
 const PROJECT_TRANSITIONS = {
@@ -80,7 +81,8 @@ const TAB_KEYS = ['overview', 'resource', 'history'];
 const clampProgress = (v) => Math.max(0, Math.min(100, Math.round(Number(v) || 0)));
 
 function messageOf(err, fallback) {
-  return (err && typeof err.message === 'string' && err.message) || fallback;
+  // 앱이 이미 알린 실패(이용 정지 토스트)면 빈 글 — 창 안에 또 쓰지 않는다 (pivit-work PW-2549).
+  return failureText(err, fallback);
 }
 
 /** 머리 둘째 줄의 연결 스쿼드 — 主 를 맨 앞에 `(主)` 로 (§4-0). */

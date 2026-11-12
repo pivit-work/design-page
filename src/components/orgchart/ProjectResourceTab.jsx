@@ -26,6 +26,7 @@ import { RsStackBar, RsStatCard } from '../okr/OkrResourcePieces.jsx';
 import { CheckIcon, CloseIcon, PlusIcon, SearchIcon, WarningIcon } from './squadIcons.jsx';
 import { avatarLabelLayout } from './squad-constants.js';
 import { ArrowRightGlyph } from '../shared/lineIcons.jsx';
+import { failureText } from '../shared/notifiedFailure.js';
 
 const clampPct = (v) => Math.max(0, Math.min(100, Math.round(Number(v) || 0)));
 const TOAST_MS = 3000;
@@ -244,7 +245,8 @@ export default function ProjectResourceTab({
         showToast(L('projectDetail.resource.conflict'), 'error');
         onReload?.();
       } else {
-        showToast(err?.message || L('projectDetail.resource.saveFailed'), 'error');
+        const text = failureText(err, L('projectDetail.resource.saveFailed'));
+        if (text) showToast(text, 'error');
       }
     } finally {
       setSaving(false);

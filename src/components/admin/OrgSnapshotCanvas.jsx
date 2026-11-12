@@ -21,6 +21,7 @@ import Skeleton, { SkeletonList } from '../shared/Skeleton.jsx';
 import Select from '../shared/Select.jsx';
 import OrgChartTreeView from '../orgchart/OrgChartTreeView.jsx';
 import { isEnterKey } from '../shared/enterKey.js';
+import { failureText } from '../shared/notifiedFailure.js';
 
 /**
  * OrgSnapshotCanvas — 어드민 "조직 스냅샷" 화면 Pure 컴포넌트.
@@ -997,7 +998,7 @@ function AppointmentSingleView({
         return;
       }
       // 실패를 삼키고 '발령 완료' 를 띄우면 어드민은 반영된 줄 알고 화면을 닫는다.
-      setSubmitError(err?.message || String(err));
+      setSubmitError(failureText(err, String(err)));
     } finally {
       setSubmitting(false);
     }
@@ -1449,7 +1450,7 @@ function AppointmentBulkView({
       if (outcome !== false) setDone(true);
     } catch (err) {
       // 실패를 삼키고 '발령 완료' 를 띄우면 어드민은 반영된 줄 알고 화면을 닫는다.
-      setSubmitError(err?.message || String(err));
+      setSubmitError(failureText(err, String(err)));
     } finally {
       setSubmitting(false);
     }
@@ -1758,7 +1759,7 @@ function AppointmentBulkView({
                           fields, rows: confirmRows, previewRows, date, reason, affiliationMode, fileName: file?.name ?? null,
                         });
                       } catch (err) {
-                        setSubmitError(err?.message || String(err));
+                        setSubmitError(failureText(err, String(err)));
                       } finally {
                         setDraftSaving(false);
                       }
@@ -1939,7 +1940,7 @@ function AppointmentHistoryView({
       if (selected?.id === rec.id) setSelected(null);
     } catch (err) {
       // 실패하면 배지가 그대로 남고, 왜 안 됐는지를 이 화면 안에 띄운다.
-      setCancelError(err?.message || String(err));
+      setCancelError(failureText(err, String(err)));
     } finally {
       setCancellingId(null);
     }

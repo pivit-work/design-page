@@ -9,6 +9,7 @@ import TextArea from '../shared/TextArea.jsx';
 import Radio from '../shared/Radio.jsx';
 import Button from '../shared/Button.jsx';
 import { fill } from './sessionHelpers.js';
+import { failureText } from '../shared/notifiedFailure.js';
 
 /**
  * "1on1 일정 추가 / 1on1 잡기" 모달.
@@ -339,8 +340,9 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
         scope: scope ? scope.value : undefined,
       });
     } catch (err) {
-      /* 칸 바로 아래에 이미 알린 실패(회의실 «방금 예약됨» 등 · pivit-work PW-2638)는 창 아래에 다시 적지 않는다. */
-      if (!(err && err.handled)) setSubmitError((err && err.message) || L.submitFailed);
+      /* 칸 바로 아래에 이미 알린 실패(회의실 «방금 예약됨» 등 · pivit-work PW-2638)는 창 아래에 다시 적지 않는다.
+         앱이 토스트로 이미 알린 거절(이용 정지 · PW-2549)은 빈 글이 된다. */
+      if (!(err && err.handled)) setSubmitError(failureText(err, L.submitFailed));
       return;
     } finally {
       setSaving(false);

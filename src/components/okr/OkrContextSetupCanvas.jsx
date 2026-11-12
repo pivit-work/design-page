@@ -9,6 +9,7 @@ import OkrContextAnalysisResult from './OkrContextAnalysisResult.jsx';
 import OkrTermSection from './OkrTermSection.jsx';
 import { isEnterKey } from '../shared/enterKey.js';
 import Spinner from '../shared/Spinner.jsx';
+import { failureText } from '../shared/notifiedFailure.js';
 
 /**
  * OkrContextSetupCanvas — OKR 컨텍스트 설정(관리자 전용) 지식 소스 단일 페이지.
@@ -337,7 +338,7 @@ function SourceAdder({ labels, onAddUrl, onAddText, onAddFile, busy, maxFileSize
       }
       reset();
     } catch (e) {
-      setError(e?.message || labels.errorGeneric);
+      setError(failureText(e, labels.errorGeneric));
     }
   };
 

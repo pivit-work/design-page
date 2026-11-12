@@ -9,6 +9,7 @@ import {
 } from './teamIcons.jsx';
 import Select from '../shared/Select.jsx';
 import { isEnterKey } from '../shared/enterKey.js';
+import { failureText } from '../shared/notifiedFailure.js';
 
 const PRESET_COLORS = ['#3B5BDB', '#2F9E44', '#E03131', '#F08C00', '#7950F2', '#1098AD', '#D6336C', '#495057'];
 
@@ -74,7 +75,7 @@ export default function AdminTeamDetailPanel({
     } catch (err) {
       // 직전 값(= 서버가 아직 들고 있는 값)으로 되돌리고, 사유는 Select 바로 아래에
       // 남긴다. 토스트로 흘리면 3초 뒤 사라져 「왜 안 됐는지」가 남지 않는다.
-      setLevelEdit({ key: levelKey, value: teamLevelId, err: err?.message || labels.toastError });
+      setLevelEdit({ key: levelKey, value: teamLevelId, err: failureText(err, labels.toastError) });
     }
   };
 

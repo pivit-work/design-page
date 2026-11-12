@@ -27,6 +27,7 @@ import LoadingState from '../shared/LoadingState.jsx';
 import Select from '../shared/Select.jsx';
 import { isMoneyCellText } from './inviteCsv.js';
 import { resolveKoreanParticles } from '../shared/koreanParticle.js';
+import { failureText } from '../shared/notifiedFailure.js';
 
 /* 시트에서 함께 옮겨 온 토큰 — 이 폴더의 다른 캔버스와 같은 값이다. */
 const T = {
@@ -152,7 +153,7 @@ export function CeoConfirmModal({ row, mode, currentCeoName, labels, positionOpt
       await onConfirm({ alsoSetJobPosition: alsoSetJobPosition && positionAvailable });
       onClose();
     } catch (e) {
-      setError((e && e.message) || L.ceoErrorGeneric || '처리하지 못했습니다. 다시 시도해 주세요.');
+      setError(failureText(e, L.ceoErrorGeneric || '처리하지 못했습니다. 다시 시도해 주세요.'));
     } finally {
       setBusy(false);
     }

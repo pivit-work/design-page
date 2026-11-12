@@ -8,6 +8,7 @@ import Toast from '../shared/Toast.jsx';
 import LoadingState from '../shared/LoadingState.jsx';
 import { resolveKoreanParticles } from '../shared/koreanParticle.js';
 import { isEnterKey } from '../shared/enterKey.js';
+import { failureText } from '../shared/notifiedFailure.js';
 
 /**
  * AdminTeamCanvas — 팀 관리 화면(좌: 트리 / 우: 상세) 정본 컴포넌트.
@@ -358,7 +359,8 @@ export default function AdminTeamCanvas({
       await fn();
       if (successMsg) showToast(successMsg);
     } catch (err) {
-      showToast(err?.message || L.toastError, 'error');
+      const text = failureText(err, L.toastError);
+      if (text) showToast(text, 'error');
     }
   }, [showToast, L.toastError]);
 

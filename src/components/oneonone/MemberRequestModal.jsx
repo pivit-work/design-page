@@ -8,6 +8,7 @@ import Radio from '../shared/Radio.jsx';
 import Icon from '../shared/Icon.jsx';
 import { DatePickerPopover, TIME_SLOTS } from './AddOneOnOneModal.jsx';
 import { fill } from './sessionHelpers.js';
+import { failureText } from '../shared/notifiedFailure.js';
 
 /**
  * 팀원의 1on1 신청 창 (pivit-work PW-2639 · 기획 oneonone-spec §13-10 «신청 창» · policy §6.8).
@@ -115,7 +116,7 @@ export default function MemberRequestModal({
         durationMin: duration === 'custom' ? customMinutes(custom) : Number(duration),
       });
     } catch (err) {
-      setError((err && err.message) || L.submitFailed);
+      setError(failureText(err, L.submitFailed));
     } finally {
       setSaving(false);
     }

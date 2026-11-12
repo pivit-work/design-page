@@ -36,6 +36,7 @@ import EmptyState from '../shared/EmptyState.jsx';
 import assetUrl from '../shared/assetUrl.js';
 import { isEnterKey } from '../shared/enterKey.js';
 import { FieldInfo } from './evalFieldMeta.jsx';
+import { failureText } from '../shared/notifiedFailure.js';
 
 /**
  * 탭이 열리는 사이클 단계 (요약 정책 §3). 통합 요약·캘리브레이션 워크스페이스는 캘리브레이션부터,
@@ -5077,7 +5078,7 @@ export default function EvalCycleSummaryCanvas({
                     },
                     (err) => {
                       setReviewSaving(false);
-                      setReviewError(err?.message || L.cwReviewFailed);
+                      setReviewError(failureText(err, L.cwReviewFailed));
                     },
                   );
                 };
@@ -7431,7 +7432,7 @@ export default function EvalCycleSummaryCanvas({
                       () => closeCreateModal(),
                       (err) => {
                         setCommitteeSaving(false);
-                        setCommitteeError(err?.message || L.cwManageSaveFailed);
+                        setCommitteeError(failureText(err, L.cwManageSaveFailed));
                       },
                     );
                   }}
@@ -7478,7 +7479,7 @@ export default function EvalCycleSummaryCanvas({
                       () => closeCreateModal(),
                       (err) => {
                         setCommitteeSaving(false);
-                        setCommitteeError(err?.message || L.cwCreateFailed);
+                        setCommitteeError(failureText(err, L.cwCreateFailed));
                       },
                     );
                   }}
@@ -8037,7 +8038,7 @@ export default function EvalCycleSummaryCanvas({
                               (err) => {
                                 setCommitteeSaving(false);
                                 setCommitteeError(
-                                  err?.message || L.cwDirectTransferFailed,
+                                  failureText(err, L.cwDirectTransferFailed),
                                 );
                               },
                             );
