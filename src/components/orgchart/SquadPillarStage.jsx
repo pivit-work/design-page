@@ -325,7 +325,6 @@ export default function SquadPillarStage({
   const svgRef = useRef(null);
   const scrollRef = useRef(null);
   const cardRef = useRef(null);
-  const dockRef = useRef(null);
   const qRef = useRef(null);
   const drag = useRef(null);
   const flyRef = useRef(0);
@@ -425,12 +424,14 @@ export default function SquadPillarStage({
   }, []);
 
   // ── 찍은 곳으로 카메라가 다가간다. 휠·끌기를 하면 바로 멈춘다 ──
-  const flyTo = useCallback((wx0, wy0, wx1, wy1, maxZ, then) => {
+  // withDock = 고르면서 왼쪽 위 고정 카드를 띄우는 때. 카드는 다음 그림에서야 뜨므로 지금 DOM 이 아니라 이 값으로
+  // 카드 폭만큼 비킨다 — 찾기 칸은 고르기 전에 고정을 풀어, DOM 으로 보면 늘 «카드 없음»이라 고른 사람이 카드 밑에 갔다(PW-2764)
+  const flyTo = useCallback((wx0, wy0, wx1, wy1, maxZ, then, withDock = false) => {
     const el = scrollRef.current; const svg = svgRef.current;
     if (!el || !svg) { then?.(); return; }
     const id = ++flyRef.current;
     const m = 90;
-    const pad = dockRef.current && !dockRef.current.hidden ? 364 : 0;
+    const pad = withDock ? 364 : 0;
     const target = Math.max(PILLAR_ZOOM_MIN, Math.min(maxZ, (el.clientWidth - pad - m * 2) / Math.max(1, wx1 - wx0), (el.clientHeight - m * 2) / Math.max(1, wy1 - wy0)));
     const z0 = z; const cx = (wx0 + wx1) / 2; const cy = (wy0 + wy1) / 2;
     const a = svg.getBoundingClientRect(); const b = el.getBoundingClientRect();
@@ -461,7 +462,7 @@ export default function SquadPillarStage({
     const ts = tokens.filter((t) => t.x.id === pid && (view === 'squad' || t.top)).map(tokenTopOnScreen);
     if (!ts.length) return;
     const X = ts.map((v) => v[0]); const Y = ts.map((v) => v[1]);
-    flyTo(Math.min(...X) - 60, Math.min(...Y) - 80, Math.max(...X) + 60, Math.max(...Y) + 60, 1.6);
+    flyTo(Math.min(...X) - 60, Math.min(...Y) - 80, Math.max(...X) + 60, Math.max(...Y) + 60, 1.6, undefined, true);
   };
   const selectNode = (id) => {
     const n = nodes.find((x) => x.id === id);
@@ -469,7 +470,7 @@ export default function SquadPillarStage({
     setSel({ type: 'node', id }); setHov(null); hideCard();
     const c = [[n.ax, n.ay, n.top + 70], [n.ax + n.w, n.ay, n.top], [n.ax, n.ay + n.d + PILLAR.lane, n.z], [n.ax + n.w, n.ay + n.d + PILLAR.lane, n.z]].map((v) => pillarIso(...v));
     const X = c.map((v) => v[0]); const Y = c.map((v) => v[1]);
-    flyTo(Math.min(...X), Math.min(...Y), Math.max(...X), Math.max(...Y), 2);
+    flyTo(Math.min(...X), Math.min(...Y), Math.max(...X), Math.max(...Y), 2, undefined, true);
   };
   const clearAll = () => {
     setSel(null); setQ(''); setChip(null); setFam(null); setHov(null); setResultsOpen(false); hideCard();
@@ -562,12 +563,21 @@ export default function SquadPillarStage({
       const typing = ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable);
       if (e.key === 'Escape' && (ae === qRef.current || !typing)) { clearAll(); qRef.current?.blur(); return; }
       if (typing || playing) return;
-      if (e.key === '/') { e.preventDefault(); qRef.current?.focus(); } else if (e.key === '+' || e.key === '=') setZoomCentered(Math.min(z + 0.1, PILLAR_ZOOM_MAX));
+      if (e.key === '+' || e.key === '=') setZoomCentered(Math.min(z + 0.1, PILLAR_ZOOM_MAX));
       else if (e.key === '-') setZoomCentered(Math.max(z - 0.1, PILLAR_ZOOM_MIN));
       else if (e.key === '0') setZoomCentered(null);
     };
+    // «/» 만 캡처 단계에서 받는다 — 앱이 document 에 단 «/» 전체 검색보다 먼저 받아 무대 찾기 칸으로 보낸다
+    // (정본 «/ 로 들어감» · PW-2764). Esc 등은 그대로 거품 단계 — 위에 뜬 창이 먼저 받게 둔다
+    const onSlash = (e) => {
+      const ae = document.activeElement;
+      const typing = ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable);
+      if (e.key !== '/' || typing || playing || e.metaKey || e.ctrlKey) return;
+      e.preventDefault(); e.stopPropagation(); qRef.current?.focus();
+    };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    window.addEventListener('keydown', onSlash, true);
+    return () => { window.removeEventListener('keydown', onKey); window.removeEventListener('keydown', onSlash, true); };
   });
 
   // ── 휠 = 확대·축소 — 마우스가 가리키는 자리가 그대로 남는다 ──
@@ -781,7 +791,7 @@ export default function SquadPillarStage({
             <Button type="button" className="org-tool-btn has-label" onClick={() => setZoomCentered(null)} title={L('squad.iso.zoomFitTip')} data-action="zoom-fit"><span>{L('squad.graph.zoomFit')}</span></Button>
           </div>
         </div>
-        <div className="sq-pillar-dock" ref={dockRef} hidden={!dock} data-testid="squad-pillar-dock">
+        <div className="sq-pillar-dock" hidden={!dock} data-testid="squad-pillar-dock">
           <Button type="button" className="sq-pillar-dock-x" aria-label={L('squad.pillar.close')} onClick={() => setSel(null)}><CloseGlyph size={14} /></Button>
           {dock}
         </div>
