@@ -98,6 +98,73 @@ function mergeLabels(base, provided) {
   return out;
 }
 
+/**
+ * 제외 사유 카드 — 이 화면의 사유 카드를 그대로 떼어 쓴다.
+ *
+ * PW-2739 — 대상자가 아니어도 맡은 일이 있는 사람의 «내 평가» 홈 카드에서 «제외 사유 보기»를 누르면 이 카드가
+ * 그 아래 펼쳐진다(구성원 정책 §3.2-B). 홈에서는 [홈으로]·[매니저에게 문의]를 넘기지 않아 버튼 줄이 비고,
+ * 버튼이 하나도 없으면 줄을 그리지 않는다.
+ */
+export function ExclusionReasonCard({
+  exclusion,
+  labels: providedLabels,
+  onHome,
+  onContactManager,
+  testId = 'evx-reason',
+}) {
+  const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
+  const reason = resolveReason(exclusion, L);
+  const contact = exclusion.exclusionType === 'manual' && onContactManager;
+  return (
+    <section className="evc-card" data-testid={testId}>
+      <div className="evx-reason-head">
+        <span className="evx-emoji" aria-hidden="true"><reason.Icon size={20} /></span>
+        <h3 className="evc-card-name">{reason.title}</h3>
+      </div>
+      <p className="evx-reason-msg">{reason.msg}</p>
+      {/* 기준일은 날짜 피커 유형에만 존재 — 개별/커스텀 등 비-날짜 제외는 행 자체를 숨김 */}
+      {exclusion.referenceDate && (
+        <div className="evx-detail-row">
+          <span>{L.referenceDate}</span>
+          <b>
+            {exclusion.referenceDate}
+            {exclusion.referenceDateDirection
+              ? exclusion.referenceDateDirection === 'before'
+                ? ' 이전'
+                : ' 이후'
+              : ''}
+            {exclusion.dateMode === 'range' && exclusion.referenceDateEnd
+              ? ` ~ ${exclusion.referenceDateEnd}`
+              : ''}
+          </b>
+        </div>
+      )}
+      {exclusion.reason && (
+        <div className="evx-detail-row">
+          <span>{L.reasonNote}</span>
+          <b>{exclusion.reason}</b>
+        </div>
+      )}
+      {(onHome || contact) && (
+        <div className="evc-card-actions">
+          <div className="evc-card-buttons">
+            {onHome && (
+              <button type="button" className="evc-btn is-ghost" onClick={onHome} data-testid="evx-home">
+                {L.home}
+              </button>
+            )}
+            {contact && (
+              <button type="button" className="evc-btn is-primary" onClick={onContactManager} data-testid="evx-contact">
+                {L.contactManager}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default function EvalCycleExcludedCanvas({
   member,
   cycle,
@@ -124,8 +191,6 @@ export default function EvalCycleExcludedCanvas({
     );
   }
 
-  const reason = resolveReason(exclusion, L);
-
   return (
     <div className="evc-root">
       <header className="evc-header">
@@ -150,50 +215,12 @@ export default function EvalCycleExcludedCanvas({
         </section>
 
         {/* 제외 사유 */}
-        <section className="evc-card" data-testid="evx-reason">
-          <div className="evx-reason-head">
-            <span className="evx-emoji" aria-hidden="true"><reason.Icon size={20} /></span>
-            <h3 className="evc-card-name">{reason.title}</h3>
-          </div>
-          <p className="evx-reason-msg">{reason.msg}</p>
-          {/* 기준일은 날짜 피커 유형에만 존재 — 개별/커스텀 등 비-날짜 제외는 행 자체를 숨김 */}
-          {exclusion.referenceDate && (
-            <div className="evx-detail-row">
-              <span>{L.referenceDate}</span>
-              <b>
-                {exclusion.referenceDate}
-                {exclusion.referenceDateDirection
-                  ? exclusion.referenceDateDirection === 'before'
-                    ? ' 이전'
-                    : ' 이후'
-                  : ''}
-                {exclusion.dateMode === 'range' && exclusion.referenceDateEnd
-                  ? ` ~ ${exclusion.referenceDateEnd}`
-                  : ''}
-              </b>
-            </div>
-          )}
-          {exclusion.reason && (
-            <div className="evx-detail-row">
-              <span>{L.reasonNote}</span>
-              <b>{exclusion.reason}</b>
-            </div>
-          )}
-          <div className="evc-card-actions">
-            <div className="evc-card-buttons">
-              {onHome && (
-                <button type="button" className="evc-btn is-ghost" onClick={onHome} data-testid="evx-home">
-                  {L.home}
-                </button>
-              )}
-              {exclusion.exclusionType === 'manual' && onContactManager && (
-                <button type="button" className="evc-btn is-primary" onClick={onContactManager} data-testid="evx-contact">
-                  {L.contactManager}
-                </button>
-              )}
-            </div>
-          </div>
-        </section>
+        <ExclusionReasonCard
+          exclusion={exclusion}
+          labels={L}
+          onHome={onHome}
+          onContactManager={onContactManager}
+        />
       </div>
     </div>
   );

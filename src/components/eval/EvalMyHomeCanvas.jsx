@@ -1,7 +1,9 @@
-import { Fragment, useMemo } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import Button from '../shared/Button.jsx';
 import Avatar from '../shared/Avatar.jsx';
 import EmptyState from '../shared/EmptyState.jsx';
+import { ExclusionReasonCard } from './EvalCycleExcludedCanvas.jsx';
 import { ArrowRightIcon, CheckCircleIcon, ChevronRightIcon, PauseIcon } from './evalIcons.jsx';
 import { FileTextGlyph, PencilGlyph, PieChartGlyph, UserGlyph, UsersGlyph } from '../shared/lineIcons.jsx';
 
@@ -44,6 +46,10 @@ const DEFAULT_LABELS = {
   inProgress: '진행 중',
   paused: '일시 중단',
   pausedNotice: '현재 평가가 일시 중단되었습니다. 재개 안내를 기다려주세요.',
+  // PW-2739 — 대상자가 아닌 사람의 카드 맨 위 안내 줄(구성원 정책 §3.2-B «화면»).
+  notTargetNotice: '이번 사이클 평가 대상자가 아닙니다 · 평가자·위원으로 맡은 일만 보입니다',
+  showReason: '제외 사유 보기',
+  hideReason: '제외 사유 접기',
   period: '대상 기간: {period}',
   due: '마감 {due}',
   status: {
@@ -217,6 +223,8 @@ export default function EvalMyHomeCanvas({
    * 리뷰 목록은 막지 않고 카드 머리에 안내만 붙인다. 판정은 오픈 때 서버가 내렸다.
    */
   peerReceiveOff = false,
+  /** PW-2739 — 펼친 제외 사유 카드의 글(제외 안내 화면 `EvalCycleExcludedCanvas` 의 labels 와 같다). */
+  reasonLabels,
   labels: providedLabels,
   onRetry,
   onPhaseClick,
@@ -224,6 +232,15 @@ export default function EvalMyHomeCanvas({
   onWritePeer,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
+  // 제외 사유를 펼친 카드(사이클 id). 처음에는 모두 접혀 있다.
+  const [openReasons, setOpenReasons] = useState(() => new Set());
+  const toggleReason = (id) =>
+    setOpenReasons((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   if (state === 'loading') {
     return (
@@ -290,61 +307,86 @@ export default function EvalMyHomeCanvas({
       ) : (
         cycles.map((c) => {
           const present = new Set(c.phases.map((p) => p.id));
+          const reasonOpen = !!c.notTarget && openReasons.has(c.id);
           return (
-            <section className="evc-card evmh-cycle" key={c.id} data-testid={`evmh-cycle-${c.id}`}>
-              <div className="evmh-cycle-head">
-                <div>
-                  <h2 className="evc-card-name">{c.name}</h2>
-                  {c.period && <p className="evmh-cycle-period">{fill(L.period, { period: c.period })}</p>}
+            <Fragment key={c.id}>
+              <section className="evc-card evmh-cycle" data-testid={`evmh-cycle-${c.id}`}>
+                <div className="evmh-cycle-head">
+                  <div>
+                    <h2 className="evc-card-name">{c.name}</h2>
+                    {c.period && <p className="evmh-cycle-period">{fill(L.period, { period: c.period })}</p>}
+                  </div>
+                  <StatusBadge
+                    tone={c.paused ? 'warning' : 'progress'}
+                    className="evc-status-badge"
+                    data-testid={`evmh-cycle-${c.id}-status`}
+                  >
+                    {c.paused ? L.paused : L.inProgress}
+                  </StatusBadge>
                 </div>
-                <StatusBadge
-                  tone={c.paused ? 'warning' : 'progress'}
-                  className="evc-status-badge"
-                  data-testid={`evmh-cycle-${c.id}-status`}
-                >
-                  {c.paused ? L.paused : L.inProgress}
-                </StatusBadge>
-              </div>
-              {/* HR 정책 §6.6 — 멈춘 동안 구성원 화면에 중단 안내. 모양은 관리자 화면의 중단 줄(재개 버튼 없이). */}
-              {c.paused && (
-                <div className="evc-onhold-banner" role="status" data-testid={`evmh-paused-${c.id}`}>
-                  <span className="evc-onhold-icon" aria-hidden>
-                    <PauseIcon size={14} />
-                  </span>
-                  <span className="evc-onhold-text">{L.pausedNotice}</span>
-                </div>
-              )}
-              <div className="evmh-chips">
-                {/* member §10.1 M2 — 캘리브레이션을 끈 평가는 그 칩을 회색으로도 남기지 않는다. */}
-                {CHIP_ORDER.filter((id) => id !== 'calibration' || c.calibrationEnabled !== false).map((id) => {
-                  const on = present.has(id);
-                  return (
-                    <StatusBadge
-                      key={id}
-                      tone={on ? 'accent' : 'neutral'}
-                      className="evc-status-badge"
-                      title={on ? undefined : L.chipNote[id]}
-                      data-testid={`evmh-chip-${c.id}-${id}`}
-                      data-on={on ? 'true' : 'false'}
+                {/* HR 정책 §6.6 — 멈춘 동안 구성원 화면에 중단 안내. 모양은 관리자 화면의 중단 줄(재개 버튼 없이). */}
+                {c.paused && (
+                  <div className="evc-onhold-banner" role="status" data-testid={`evmh-paused-${c.id}`}>
+                    <span className="evc-onhold-icon" aria-hidden>
+                      <PauseIcon size={14} />
+                    </span>
+                    <span className="evc-onhold-text">{L.pausedNotice}</span>
+                  </div>
+                )}
+                {/* PW-2739 — 대상자가 아니어도 맡은 일이 있으면 그 상자만 선다. 셀프·리포트 상자가 왜 없는지 화면이
+                    스스로 말하지 못하므로 늘 보이는 회색 한 줄로 둔다(구성원 정책 §3.2-B «화면»). */}
+                {c.notTarget && (
+                  <div className="evx-notice evmh-not-target" data-testid={`evmh-not-target-${c.id}`}>
+                    <span>{L.notTargetNotice}</span>
+                    <Button
+                      className="evc-link-btn evmh-not-target-toggle"
+                      aria-expanded={reasonOpen}
+                      onClick={() => toggleReason(c.id)}
+                      data-testid={`evmh-not-target-toggle-${c.id}`}
                     >
-                      {L.chips[id]}
-                    </StatusBadge>
-                  );
-                })}
-              </div>
-              <div className="evmh-flow">
-                {c.phases.map((ph, idx) => (
-                  <Fragment key={ph.id}>
-                    <PhaseBox cycleId={c.id} phase={ph} L={L} onPhaseClick={onPhaseClick} />
-                    {idx < c.phases.length - 1 && (
-                      <span className="evmh-flow-arrow" aria-hidden>
-                        <ArrowRightIcon size={16} />
-                      </span>
-                    )}
-                  </Fragment>
-                ))}
-              </div>
-            </section>
+                      {reasonOpen ? L.hideReason : L.showReason}
+                    </Button>
+                  </div>
+                )}
+                <div className="evmh-chips">
+                  {/* member §10.1 M2 — 캘리브레이션을 끈 평가는 그 칩을 회색으로도 남기지 않는다. */}
+                  {CHIP_ORDER.filter((id) => id !== 'calibration' || c.calibrationEnabled !== false).map((id) => {
+                    const on = present.has(id);
+                    return (
+                      <StatusBadge
+                        key={id}
+                        tone={on ? 'accent' : 'neutral'}
+                        className="evc-status-badge"
+                        title={on ? undefined : L.chipNote[id]}
+                        data-testid={`evmh-chip-${c.id}-${id}`}
+                        data-on={on ? 'true' : 'false'}
+                      >
+                        {L.chips[id]}
+                      </StatusBadge>
+                    );
+                  })}
+                </div>
+                <div className="evmh-flow">
+                  {c.phases.map((ph, idx) => (
+                    <Fragment key={ph.id}>
+                      <PhaseBox cycleId={c.id} phase={ph} L={L} onPhaseClick={onPhaseClick} />
+                      {idx < c.phases.length - 1 && (
+                        <span className="evmh-flow-arrow" aria-hidden>
+                          <ArrowRightIcon size={16} />
+                        </span>
+                      )}
+                    </Fragment>
+                  ))}
+                </div>
+              </section>
+              {reasonOpen && (
+                <ExclusionReasonCard
+                  exclusion={c.notTarget.exclusion}
+                  labels={reasonLabels}
+                  testId={`evmh-not-target-reason-${c.id}`}
+                />
+              )}
+            </Fragment>
           );
         })
       )}

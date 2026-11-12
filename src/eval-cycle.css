@@ -13564,6 +13564,16 @@ button.evm-ai-source {
 .evc-card > .evc-onhold-banner {
   margin-bottom: 0;
 }
+/* PW-2739 — 대상자가 아닌 사람 카드의 안내 줄. 모양은 .evx-notice(상자 없는 14px 회색 한 줄 · PW-2104)이고,
+   «제외 사유 보기» 글자 버튼은 줄 끝에 둔다(시안 MyDutiesCard). 좁으면 버튼이 다음 줄로 내려간다. */
+.evmh-not-target {
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+.evmh-not-target-toggle {
+  flex: none;
+  font-weight: 600;
+}
 .evmh-chips {
   display: flex;
   flex-wrap: wrap;
