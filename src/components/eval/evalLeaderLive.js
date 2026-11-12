@@ -106,6 +106,7 @@ export function liveRoundCount(rounds, rows) {
  *   round     값이 나온 차수(배지 `2차`) — 위 차수 미제출이면 대신 `missing` 배지
  *   missing   `{ higher, round }` → `3차 미제출 · 2차 등급`
  *   changed   `원안 변경됨`
+ *   pending   배정 차수 중 아무도 안 냈다(`submitted === false`) → `미제출` (pivit-work PW-2737)
  */
 export function leaderGradeMarks(leaderGrade) {
   if (!leaderGrade || typeof leaderGrade !== 'object') return null;
@@ -119,5 +120,7 @@ export function leaderGradeMarks(leaderGrade) {
     round: !none && value && higher == null ? round : null,
     missing: !none && higher != null && round != null ? { higher, round } : null,
     changed: !!leaderGrade.originChanged,
+    // `submitted` 를 싣지 않는 옛 응답은 종전처럼 «—».
+    pending: !none && !value && leaderGrade.submitted === false,
   };
 }

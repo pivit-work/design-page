@@ -122,6 +122,7 @@ const DEFAULT_LABELS = {
   cwLeaderGradeRound: '{round}차',
   cwLeaderGradeMissing: '{higher}차 미제출 · {round}차 등급',
   cwLeaderGradeNone: '하향 없음',
+  cwLeaderGradePending: '미제출',
   cwLeaderGradeOriginChanged: '원안 변경됨',
   cwColTrend: '성과 추이',
   cwColAdjust: '1차→위원회 조정',
@@ -1742,6 +1743,11 @@ function LeaderGradeMarks({ leaderGrade, multiRound, L }) {
       {m.none && (
         <StatusBadge className="evs-cw-badge tone-muted" data-testid="evs-cw-leader-none">
           {L.cwLeaderGradeNone}
+        </StatusBadge>
+      )}
+      {m.pending && (
+        <StatusBadge className="evs-cw-badge tone-muted" data-testid="evs-cw-leader-pending">
+          {L.cwLeaderGradePending}
         </StatusBadge>
       )}
       {m.missing ? (
@@ -5861,7 +5867,8 @@ export default function EvalCycleSummaryCanvas({
                                         className={`evs-cw-badge tone-${gradeTone(row.currentGradeKey, og)}`}>
                                         {row.currentGradeLabel}
                                       </StatusBadge>
-                                    ) : leaderGradeMarks(row.leaderGrade)?.none ? null : (
+                                    ) : leaderGradeMarks(row.leaderGrade)?.none ||
+                                      leaderGradeMarks(row.leaderGrade)?.pending ? null : (
                                       <span className="evs-cw-muted">—</span>
                                     )}
                                     <LeaderGradeMarks leaderGrade={row.leaderGrade} multiRound={multiLeaderRound} L={L} />
