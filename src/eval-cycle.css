@@ -18530,3 +18530,57 @@ button.evmh-phase:focus-visible {
 .evc-list:has(> .evc-card > .evrs-card-name) .evx-notice {
   line-height: 1.6;
 }
+
+/* PW-2654 (11-12 dev 되돌림) — 리뷰 작성 화면의 카드 안쪽 16px 20px · 카드 사이 22px.
+   커트 간격 규칙(평가 시안 eval-density-2026-11-08 RULES.md 3 «카드 안쪽 16~20px · 덩어리 사이 22px»)과
+   시안 셀프 리뷰 «바꾼 뒤» 카드(16px 20px), 디자이너 1on1 카드 안쪽(16px)에 맞춘다.
+   공용 .evc-card 24px · .evc-list 16px 는 개발이 09-22 에 정한 값이라 다른 평가 화면(사이클 관리 등)은 그대로 두고,
+   셀프·동료·상향(.evm-root)과 하향(.evlr-root) 작성 화면 안에서만 바꾼다. AI 초안 상자(16px 24px)는 RULES 5 상자 값이라 그대로. */
+.evm-root,
+.evlr-root {
+  --evx-review-card-gap: calc(var(--spacing-2xl) + var(--spacing-xxs));
+}
+.evm-root .evc-card:not(.evm-ai-card):not(.evm-done),
+.evlr-root .evc-card:not(.evm-ai-card) {
+  padding: var(--spacing-xl) var(--spacing-2xl);
+}
+/* 카드 사이 — 목록 안, 목록끼리, 2단 오른쪽 칸 */
+.evm-root .evc-list,
+.evm-2pane .evl-form,
+.evlr-root .evl-form {
+  gap: var(--evx-review-card-gap);
+}
+.evm-root > .evc-list + .evc-list,
+.evm-root > .evc-list + .evm-review-progress,
+.evm-root > .evm-review-progress + .evc-list,
+.evm-root > .evc-list + .evc-sticky-cover {
+  margin-top: var(--evx-review-card-gap);
+}
+/* 붙어 멈추는 덮개는 «덮개 높이 + 칸 사이»만큼 자리를 돌려준다 — 칸 사이가 바뀌었으니 같이 바꾼다. */
+.evnav-shell .evm-root .evl-form > .evc-sticky-cover,
+.evnav-shell .evlr-root .evl-form > .evc-sticky-cover {
+  margin-bottom: calc(-1 * (var(--spacing-3xl) + var(--evx-review-card-gap)));
+}
+/* 하향 리뷰 성과·역량·성장과 부가 평가 — 머리 줄이 카드 끝에서 끝까지 닿게 좌우를 같은 20px 로. */
+.evlr-root .evc-card.evlr-sec,
+.evlr-root .evc-card.evlr-assess {
+  padding: 0 var(--spacing-2xl) var(--spacing-2xl);
+}
+.evlr-sec > .evl-sec-head {
+  margin: 0 calc(-1 * var(--spacing-2xl)) var(--spacing-xl);
+  padding: var(--spacing-xl) var(--spacing-2xl);
+}
+.evlr-assess > .evlr-assess-title {
+  margin: 0 calc(-1 * var(--spacing-2xl));
+  padding: var(--spacing-xl) var(--spacing-2xl);
+}
+.evlr-root .evc-card.evlr-sec.is-folded { padding-bottom: 0; }
+.evlr-sec.is-folded > .evl-sec-head { margin-bottom: 0; }
+/* 셀프 리뷰(셀프·동료·상향 공용) 안내 한 줄 — 줄 높이 1.6(RULES 3). 지금 14px 글자에 20px(1.43배).
+   맨 위 «데이터가 부족…»·«마감이 지났습니다…» 띠(.evm-band)는 클래스 셋이라 따로 적어야 이긴다. */
+.evm-root .evx-notice,
+.evm-root .evx-notice.evm-band,
+.evm-root .evm-ai-draft-pending,
+.evm-root .evc-field-note {
+  line-height: 1.6;
+}
