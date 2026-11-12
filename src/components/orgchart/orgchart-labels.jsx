@@ -437,6 +437,7 @@ export const ORGCHART_LABELS = {
   'squad.struct.companyType': '회사',
   'squad.struct.squadPeople': '{{count}}명',
   'squad.struct.squadPeopleNoLead': '{{count}}명 · 리드 미지정',
+  'squad.struct.squadTip': '{{name}} · 리드 {{lead}}',
   'squad.struct.multi': '겸임 {{count}}',
   'squad.struct.more': '+{{count}}명 더 보기',
   'squad.struct.moreClose': '접기',

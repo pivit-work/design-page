@@ -143,12 +143,17 @@ export default function SquadGroupPanel({
     const res = await run('edit', () => (f.mode === 'create'
       ? onCreateGroup({ level: f.level, ...payload, ...dated })
       : onUpdateGroup(f.id, { ...payload, ...dated })), (r) => setEditErr({ [r.field || 'name']: r.message || '' }));
-    if (res.ok) setEdit(null);
+    if (res.ok) {
+      setEdit(null);
+      // 묶음 수가 바뀌면 층 줄이기 막힘 안내의 «N개»가 틀려진다 — 걷고, 다시 누르면 새 수로 뜬다
+      if (f.mode === 'create') setLevelErr('');
+    }
   };
   const remove = async (g) => {
     const res = await run(`del:${g.id}`, () => onDeleteGroup(g.id, dated));
     // 실패해도 창은 닫는다 — 무엇이 잘못됐는지는 호스트가 토스트로 알리고 패널을 다시 불러온다(§7-17)
     setDelAsk(null);
+    if (res.ok) setLevelErr('');
     return res;
   };
 

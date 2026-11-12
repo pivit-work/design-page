@@ -400,8 +400,12 @@ function StructureCanvas({
       const sq = n.data;
       const st = squadStatusMeta(sq.status);
       const count = (sq.members || []).length;
-      const hasLead = (sq.members || []).some((m) => m.role === 'lead');
+      const lead = (sq.members || []).find((m) => m.role === 'lead');
+      const hasLead = !!lead;
       // 리드 이름은 쓰지 않는다 — 바로 아래 첫 사람 카드가 리드다(3회차 · 커트 결정). 없을 때만 «리드 미지정».
+      // 말풍선에는 리드 이름을 둔다 — 노드를 접어 리드 카드가 숨어도 찾을 수 있게(기획 v3.49 §5-6-B «스쿼드 노드»).
+      // 이름 값은 연결 갈래 노드(SquadGraphView)의 «리드 {이름|미지정}»과 같다.
+      const leadName = lead ? (personOf(lead.userId)?.name || '') : L('squad.card.leadUnset');
       return (
         <DeptCard
           node={{
@@ -429,7 +433,7 @@ function StructureCanvas({
             'data-testid': `squad-struct-squad-${sq.id}`,
             style: { background: 'var(--bg-quaternary)', opacity: sq.status === 'archived' ? 0.6 : 1 },
             onMouseEnter: () => setFocus({ kind: 'sq', id: sq.id }),
-            title: sq.name,
+            title: L('squad.struct.squadTip', { name: sq.name, lead: leadName }),
           }}
           {...foldProps(n, sq.name)}
         />
