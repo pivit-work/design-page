@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import ModalLayer from '../shared/ModalLayer.jsx';
+import ConfirmModal from '../shared/ConfirmModal.jsx';
 import Icon from '../shared/Icon.jsx';
 import Spinner from '../shared/Spinner.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
@@ -98,6 +99,10 @@ const DEFAULT_DRAFT_LABELS = {
   confirm: '확인',
   markConfirmed: '확인함',
   blocked: (n, names) => `확인하지 않은 AI 초안 ${n}칸: ${names}`,
+  // 노란 칸이 남은 채 닫으려 할 때 묻는 확인 창 (기획서 작성 화면 정책 §5-A.3 · pivit-work PW-2734)
+  closeConfirm: (n) => `확인하지 않은 AI 초안 ${n}칸은 저장되지 않습니다. 닫을까요?`,
+  closeConfirmKeep: '계속 쓰기',
+  closeConfirmDiscard: '닫기',
   saving: '저장 중...',
   saved: (time) => `자동저장됨 ${time}`,
   saveFailed: '저장 실패',
@@ -208,6 +213,7 @@ const DEFAULT_SNIPPET_MODAL_LABELS = {
 //   draftLabels?: 위 문구들 — 호스트가 번역해 넘긴다. 없는 키는 한국어 기본값.
 //     tagLimit 은 태그가 8개 찼을 때 Tags 칸 아래 안내 (PW-2392).
 //     summaryTeamVisible 은 노란 요약 + Lowlights 에 글이 있을 때 Summary 노란 표시 줄 아래 안내 (PW-2441).
+//     closeConfirm(n)·closeConfirmKeep·closeConfirmDiscard 는 노란 칸이 남은 채 닫으려 할 때 확인 창 (PW-2734).
 //   aiUsageNotice?: string | null — 아래 바 저장 상태 문구 밑에 같은 글씨로 한 줄 (PW-1515 · 기획서
 //     screen-daily-snippet-write §6 「AI 사용 안내」 · D21). 제출하면 AI 표시가 사라진다는 안내라
 //     호스트가 «AI 초안 칸이나 AI 추천 태그가 남아 있는 동안»만 넘긴다. 닫기 없음 · 제출을 막지 않는다.
@@ -436,14 +442,25 @@ export default function SnippetModal({
 
   const confirmMark = (key) => setAiMarks((prev) => ({ ...prev, [key]: 'confirmed' }));
 
-  // 노란(확인 안 한) 칸이 남으면 창을 닫지 않는다 — 닫기(✕)·Esc·바깥 누르기 모두 (PW-1154 커트 결정 2026-09-29).
-  // 자동 저장 화면이라 「등록」 대신 닫기에서 막는다. 호스트는 노란 칸의 글을 저장하지 않는다.
+  // 노란(확인 안 한) 칸이 남은 채 닫으려 하면(✕·Esc·바깥 누르기) 바로 닫지 않고 확인 창을 띄운다
+  // (pivit-work PW-2734 David 결정 2026-11-12 · 종전 PW-1154 «닫지 않는다»). [닫기] 만 글을 버린다 —
+  // 호스트는 노란 칸의 글을 저장하지 않으므로 닫으면 그 AI 글은 남지 않는다.
+  const [closeAsk, setCloseAsk] = useState(false);
   const requestClose = () => {
     if (unconfirmedKeys.length > 0) {
-      setBlocked(true);
-      focusField(unconfirmedKeys[0]);
+      setCloseAsk(true);
       return;
     }
+    onClose();
+  };
+  // [계속 쓰기] · 확인 창의 Esc · 확인 창 바깥 누르기 — 창은 그대로, 노란 칸 이름을 알리고 첫 노란 칸으로.
+  const keepWriting = () => {
+    setCloseAsk(false);
+    setBlocked(true);
+    if (unconfirmedKeys.length > 0) focusField(unconfirmedKeys[0]);
+  };
+  const discardAndClose = () => {
+    setCloseAsk(false);
     onClose();
   };
   const blockedShown = blocked && unconfirmedKeys.length > 0;
@@ -1157,6 +1174,21 @@ export default function SnippetModal({
         </div>
         )}
       </form>
+      {closeAsk && (
+        <ConfirmModal
+          title={L.closeConfirm(unconfirmedKeys.length)}
+          confirmLabel={L.closeConfirmDiscard}
+          cancelLabel={L.closeConfirmKeep}
+          closeLabel={T.close}
+          onConfirm={discardAndClose}
+          onCancel={keepWriting}
+          // 작성 창 막(.tl-modal-overlay · modal-shell.css 2147483000) 위에 떠야 누를 수 있다.
+          zIndex={2147483001}
+          testId="snippet-close-confirm"
+          cancelTestId="snippet-close-confirm-keep"
+          confirmTestId="snippet-close-confirm-discard"
+        />
+      )}
     </ModalLayer>
   );
 }
