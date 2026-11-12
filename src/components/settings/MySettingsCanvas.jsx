@@ -470,10 +470,10 @@ const DEFAULT_LABELS = {
     banner:
       '개인 연동은 나만의 데이터 흐름을 설정합니다. 회사 전체 연동은 어드민 설정에서 관리합니다.',
     connected: '연결됨',
-    // 계정 잇기 카드 (pivit-work PW-1153) — `accountLink` 인 카드만 이 네 문구를 쓴다.
-    linked: '이어짐',
-    linkAccount: '계정 잇기',
-    unlinkAccount: '잇기 해제',
+    // 내 계정 연결 카드 (pivit-work PW-1153 · 낱말 PW-2732) — `accountLink` 인 카드만 이 네 문구를 쓴다.
+    linked: '연결됨',
+    linkAccount: '내 계정 연결',
+    unlinkAccount: '연결 해제',
     autoLinked: '자동',
     comingSoon: '준비 중',
     managedByOrg: '어드민에서 관리',
@@ -1861,8 +1861,8 @@ export default function MySettingsCanvas({
   onConnectIntegration,
   onDisconnectIntegration,
   /**
-   * 계정 잇기 카드(`accountLink: true` · pivit-work PW-1153). 「계정 잇기」는 `onLinkAccount(intg.id)`,
-   * 이어진 계정 줄의 「잇기 해제」는 `onUnlinkAccount(intg.id, account.id)`.
+   * 내 계정 연결 카드(`accountLink: true` · pivit-work PW-1153). 「내 계정 연결」은 `onLinkAccount(intg.id)`,
+   * 연결된 계정 줄의 「연결 해제」는 `onUnlinkAccount(intg.id, account.id)`.
    * 카드 모양: `linkedAccounts: [{ id, label, sub?, auto?, busy? }]` · `unavailableReason`(있으면 버튼을 잠그고 그 문장을 보인다).
    */
   onLinkAccount,

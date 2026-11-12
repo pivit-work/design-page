@@ -89,7 +89,7 @@ const AI_SUMMARY_MIN_CHARS = 20;
 const DEFAULT_DRAFT_LABELS = {
   fill: '오늘 활동으로 초안 채우기',
   filling: '초안 만드는 중…',
-  linkNotice: '내 설정 > 개인 연동에서 Jira·GitHub 계정을 이어 주세요',
+  linkNotice: '내 설정 > 개인 연동에서 Jira·GitHub 계정을 연결해 주세요',
   linkAction: '내 설정으로',
   empty: '가져올 활동이 없습니다',
   fail: '초안을 만들지 못했습니다. 다시 시도해 주세요.',
