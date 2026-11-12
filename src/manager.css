@@ -270,9 +270,8 @@
   color: var(--text-tertiary);
 }
 
-/* ── Member grid ──
-   한 줄에 5명. 리스팅은 팀 전체를 훑는 화면이라 카드가 클수록 스크롤만 길어진다.
-   (팀원 45명 기준 3열 → 15줄, 5열 → 9줄)
+/* ── Member grid ── Figma 17873:32482 «manager main» (2026-11-12) — 한 줄에 3장, 사이 33.
+   (예전 육각 아바타 시절엔 5열이었다. 사진이 130 으로 커지고 버튼 글자가 16 이 되어 3열로 돌아갔다.)
 
    `align-items: stretch` — 코멘트 길이가 카드마다 달라(1줄 ~ 6줄) 카드 높이가 제각각이면
    배지·버튼 줄이 한 줄 안에서 들쭉날쭉해진다. 카드를 줄 높이에 맞춰 늘리고, 카드 안에서
@@ -280,11 +279,12 @@
    코멘트를 줄 수로 자르는 방식은 쓰지 않는다 — 매니저가 읽는 문장이라 잘리면 정보가 사라진다. */
 .manager-member-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 36px 24px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 33px;
   align-items: stretch;
 }
 
+/* 카드 (17873:32483) — 사진 → 12 → 본문 */
 .manager-member-card {
   display: flex;
   flex-direction: column;
@@ -293,7 +293,31 @@
   cursor: pointer;
 }
 
-/* ── 2D 헥사 아바타 ──
+/* 카드 사진 (17873:32484) — 130 정사각 · 모서리 46 · 1px 검정 10% 테두리 · Shadows/shadow-xl 세 겹.
+   사진이 없으면 같은 틀의 이름 글자 원(Avatar). */
+.manager-member-photo {
+  position: relative;
+  width: 130px;
+  height: 130px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  border: 1px solid var(--alpha-black-10);
+  border-radius: 46px;
+  overflow: hidden;
+  box-shadow:
+    0 20px 24px -4px var(--colors-effects-shadows-shadowXl01),
+    0 8px 8px -4px var(--colors-effects-shadows-shadowXl02),
+    0 3px 3px -1.5px var(--colors-effects-shadows-shadowXl03);
+}
+.manager-member-photo-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 45px;
+  object-fit: cover;
+}
+
+/* ── 2D 헥사 아바타 (MemberHex — 리스팅 카드는 더 쓰지 않고, 내보내는 부품으로만 남아 있다) ──
    예전의 Spline 3D 장면(카드마다 WebGL 컨텍스트 1개) 을 CSS clip-path 로 대체.
    모양·색은 그 장면이 렌더한 픽셀에서 실측해 옮긴 값이다 (MemberHex 주석 참조):
    pointy-top 정육각형(폭:높이 = √3:2), 금색 면 + 메탈 링.
@@ -358,13 +382,14 @@
   color: var(--text-primary);
 }
 
-/* ── 카드 본문 ── */
+/* ── 카드 본문 (17873:32485) ── 옆 32, 줄 사이 18 */
 .manager-member-body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 0 4px;
+  gap: 18px;
+  padding: 0 var(--spacing-4xl);
+  box-sizing: border-box;
   width: 100%;
   /* 헥사를 뺀 카드의 남는 높이를 본문이 받는다. 이게 없으면 본문이 자기 내용 높이에서
      멈춰, 늘어난 카드 아래쪽에 빈 공간만 남고 배지·버튼은 그대로 위에 붙는다. */
@@ -382,8 +407,9 @@
   font-weight: 600;
 }
 
+/* 이름 24 · 직책 ∙ 소속 12 — Semibold, 자간 -2% (17873:32486) */
 .manager-member-name {
-  font-size: var(--font-size-text-lg, 18px);
+  font-size: 24px;
   letter-spacing: -0.02em;
 }
 
@@ -424,27 +450,28 @@
   color: var(--text-secondary);
 }
 
-/* ── 액션 버튼 ── */
+/* ── 액션 버튼 (17873:32491) ── 사이 8, 한 개는 위아래 10 · 옆 16 · 20px 아이콘 · 16/24 Semibold */
 .manager-member-actions {
   display: flex;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-md);
   width: 100%;
 }
 
 .manager-member-action-btn {
   flex: 1 0 0;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--spacing-xs);
-  padding: 8px 6px;
+  gap: var(--spacing-sm);
+  padding: 10px var(--spacing-xl);
   background: var(--componentColors-alpha-alphaBlack3);
   border: none;
   border-radius: var(--radius-md);
   font-family: var(--font-family-body);
   font-weight: 600;
-  font-size: var(--font-size-text-sm);
-  line-height: var(--line-height-text-sm);
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
   white-space: nowrap;
   color: var(--text-secondary);
   cursor: pointer;
@@ -455,915 +482,7 @@
   background: var(--componentColors-alpha-alphaBlack5);
 }
 
-/* ────────────────────────────────────────────────
-   Manager 멤버 카드 클릭 시 노출되는 ProfileModal v2.
-   Figma node 16952:13855.
-   ──────────────────────────────────────────────── */
-
-/* 조직도 ProfileModal 과 동일한 overlay + scroll-wrap + 정중앙 카드 패턴. */
-.manager-modal-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(17, 25, 39, 0.3);
-  z-index: 1000;
-  animation: managerModalOverlayIn 0.2s ease-out;
-}
-
-.manager-modal-scroll-wrap {
-  position: fixed;
-  inset: 0;
-  z-index: 1001;
-  overflow-y: auto;
-}
-
-.manager-modal-scroll-wrap::-webkit-scrollbar { width: 6px; }
-.manager-modal-scroll-wrap::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.3); }
-.manager-modal-scroll-wrap::-webkit-scrollbar-thumb { background: var(--border-primary); border-radius: 3px; }
-.manager-modal-scroll-wrap::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
-
-.manager-modal-card {
-  position: relative;
-  margin: 60px auto;
-  width: 432px;
-  background: var(--bg-quaternary);
-  border-radius: var(--radius-4xl);
-  overflow: hidden;
-  box-shadow:
-    0 32px 64px -12px rgba(10, 13, 18, 0.14),
-    0 5px 5px -2.5px rgba(10, 13, 18, 0.04);
-  animation: managerModalCardIn 0.25s ease-out;
-}
-
-@keyframes managerModalOverlayIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes managerModalCardIn {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* ── Header (yellow→white gradient) ──
-   조직도 modal-header 와 동일한 padding/radius. spline 432x432 가 헤더를 가득 채움. */
-.manager-modal-header {
-  background: linear-gradient(
-    197.5deg,
-    rgb(182, 125, 42) 0%,
-    rgb(225, 193, 80) 28.5%,
-    rgb(252, 236, 112) 44.7%,
-    rgb(254, 254, 246) 61.6%,
-    var(--bg-quaternary) 100%
-  );
-  padding: 30px 20px 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  position: relative;
-  border-radius: 24px 24px 0 0;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-.manager-modal-close {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px;
-  background: none;
-  border: none;
-  border-radius: 8px;
-  color: white;
-  cursor: pointer;
-  transition: background 0.15s;
-  z-index: 10;
-}
-
-.manager-modal-close:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-/* spline 영역 — 조직도 modal-spline-wrap 와 완전히 동일 (432x432 + stage 600 scale 0.5).
-   iframe 시절엔 spline-profile.html 을 띄웠지만, react-spline 단일 공유 런타임으로 교체
-   (조직도 ProfileModal 과 동일 패턴). nginx .html rewrite 가 query 를 날려 React index 로 fallback
-   되던 dev 배포 버그가 사라진다. 시각 동일. */
-.manager-modal-spline-wrap {
-  width: 432px;
-  height: 432px;
-  margin-bottom: -30px;
-  overflow: hidden;
-  position: relative;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-.manager-modal-spline-stage {
-  width: 600px;
-  height: 600px;
-  display: block;
-  transform: scale(0.5);
-  transform-origin: center center;
-  margin-left: -84px;
-  margin-top: -104px;
-  pointer-events: none;
-  background: transparent;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.manager-modal-spline-stage.is-ready {
-  opacity: 1;
-}
-
-.manager-modal-spline-stage canvas {
-  width: 100% !important;
-  height: 100% !important;
-  display: block;
-  background: transparent;
-}
-
-/* 클릭 시 spline 인터랙션 활성화 (조직도 ProfileModal 과 동일 패턴). */
-.manager-modal-spline-wrap.spline-active .manager-modal-spline-stage {
-  pointer-events: auto;
-}
-
-.manager-modal-name {
-  margin-top: 12px;
-  font-family: var(--font-family-body);
-  font-weight: 600;
-  font-size: 24px;
-  line-height: 32px;
-  letter-spacing: -0.02em;
-  color: var(--text-primary);
-  text-align: center;
-}
-
-.manager-modal-role {
-  margin-top: 4px;
-  font-family: var(--font-family-body);
-  font-weight: 600;
-  font-size: var(--font-size-text-xs);
-  line-height: var(--line-height-text-xs);
-  letter-spacing: -0.02em;
-  color: var(--text-primary);
-  text-align: center;
-}
-
-.manager-modal-ai-rec {
-  margin-top: 18px;
-  font-family: var(--font-family-body);
-  font-weight: 500;
-  font-size: var(--font-size-text-xs);
-  line-height: var(--line-height-text-xs);
-  color: var(--utility-purple-500);
-  text-align: center;
-  width: 100%;
-}
-
-.manager-modal-actions {
-  margin-top: 18px;
-  display: flex;
-  gap: var(--spacing-md);
-  width: 100%;
-  padding: 0 12px;
-}
-
-.manager-modal-btn-primary,
-.manager-modal-btn-secondary {
-  flex: 1 0 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-sm);
-  padding: 10px var(--spacing-lg);
-  border: none;
-  border-radius: var(--radius-md);
-  font-family: var(--font-family-body);
-  font-weight: 600;
-  font-size: var(--font-size-text-md);
-  line-height: var(--line-height-text-md);
-  cursor: pointer;
-  transition: filter 0.15s;
-}
-
-.manager-modal-btn-primary {
-  background: var(--bg-brand-solid);
-  color: var(--text-white);
-}
-
-.manager-modal-btn-secondary {
-  background: var(--bg-brand-secondary);
-  color: var(--text-brand-tertiary);
-}
-
-.manager-modal-btn-primary:hover,
-.manager-modal-btn-secondary:hover {
-  filter: brightness(0.96);
-}
-
-/* ── Body — Figma contents 영역 (padding 20 32 0, gap 27) ── */
-.manager-modal-body {
-  padding: 20px 32px 0;
-  display: flex;
-  flex-direction: column;
-  gap: 27px;
-  align-items: stretch;
-}
-
-.manager-modal-content-section {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  width: 100%;
-}
-
-/* 상세 탭 — 공용 SegmentedControl(PW-836) 의 size="lg"·equal 이 디자이너가 이 창에 그린 탭 줄이다.
-   디자이너는 탭 4개를 그렸다. 5개 이상(액션 아이템·인사 정보, PW-182·452)은 14px 로 한 줄에 서지 않아
-   그때만 글자·칸 여백을 줄인다. 디자이너 원본 없는 칸(design-review). */
-.seg-control.manager-modal-seg.is-compact .seg-item {
-  padding-left: var(--spacing-xxs, 2px);
-  padding-right: var(--spacing-xxs, 2px);
-  font-size: var(--font-size-text-xs);
-  line-height: var(--line-height-text-xs);
-}
-
-/* ── AI Brief card ──
-   height fixed 대신 min-height 로 두어 텍스트가 카드 밖으로 흘러나오는 것 방지. */
-.manager-modal-brief-card {
-  background: var(--utility-purple-50);
-  border-radius: var(--radius-2xl);
-  padding: var(--spacing-xl) var(--spacing-3xl);
-  min-height: 100px;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
-  overflow: hidden;
-}
-
-.manager-modal-brief-label-row {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-}
-
-.manager-modal-brief-label {
-  font-family: var(--font-family-body);
-  font-weight: 600;
-  font-size: var(--font-size-text-xs);
-  line-height: var(--line-height-text-xs);
-  letter-spacing: -0.01em;
-  background: linear-gradient(95deg, #7a5af8 0%, #a07cf8 60%, #c4b3fd 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-.manager-modal-brief-text {
-  font-family: var(--font-family-body);
-  font-weight: 500;
-  font-size: var(--font-size-text-sm);
-  line-height: var(--line-height-text-md);
-  color: var(--utility-purple-500);
-}
-
-/* AI 브리핑을 버튼으로 만드는 자리 (pivit-work PW-1531). 새 칸은 같은 카드의 글씨·공용 버튼·딱지만 쓴다.
-   「마지막 업데이트」 는 라벨과 같은 크기, 색만 회색 — 카드 본문보다 앞서 읽히지 않게. */
-.manager-modal-brief-updated {
-  font-family: var(--font-family-body);
-  font-weight: 500;
-  font-size: var(--font-size-text-xs);
-  line-height: var(--line-height-text-xs);
-  color: var(--text-tertiary);
-}
-
-/* 오른쪽 위 새로고침 — 라벨 줄 끝으로 민다. 모양은 디자이너가 그린 AI 띠의 새로고침
-   (okr OkrDetailModal·OkrAiInsights 의 16px 보라 refresh-cw, 바탕·테두리 없음) 그대로. */
-.manager-modal-brief-refresh {
-  margin-left: auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--utility-purple-500);
-  cursor: pointer;
-}
-
-.manager-modal-brief-generate {
-  align-self: flex-start;
-}
-
-.manager-modal-brief-sources {
-  flex-wrap: wrap;
-}
-
-/* ── Agenda list ──
-   각 agenda item: padding-y 24, border-bottom. 첫 item 안에 list title 포함. */
-.manager-modal-agenda-item {
-  padding: var(--spacing-3xl) 0;
-  border-bottom: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-lg);
-  width: 100%;
-}
-
-.manager-modal-agenda-list-title {
-  font-family: var(--font-family-body);
-  font-weight: 700;
-  font-size: var(--font-size-text-xs);
-  line-height: var(--line-height-text-xs);
-  color: var(--text-primary);
-}
-
-.manager-modal-agenda-content {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-  color: var(--text-secondary);
-}
-
-.manager-modal-agenda-heading {
-  font-family: var(--font-family-body);
-  font-weight: 600;
-  font-size: var(--font-size-text-md);
-  line-height: var(--line-height-text-md);
-}
-
-.manager-modal-agenda-question {
-  font-family: var(--font-family-body);
-  font-weight: 400;
-  font-size: var(--font-size-text-sm);
-  line-height: var(--line-height-text-sm);
-}
-
-/* ── Metrics 4-grid ── */
-.manager-modal-metrics-section {
-  padding: var(--spacing-3xl) 0;
-  width: 100%;
-}
-
-.manager-modal-metrics-grid {
-  width: 100%;
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--spacing-md);
-}
-
-.manager-modal-metric-tile {
-  background: var(--colors-foreground-fgQuaternaryHover, #f3f4f6);
-  border-radius: var(--radius-2xl);
-  padding: var(--spacing-xl) var(--spacing-lg);
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-lg);
-  overflow: hidden;
-  min-width: 0;
-}
-
-.manager-modal-metric-label {
-  font-family: var(--font-family-body);
-  font-weight: 600;
-  font-size: var(--font-size-text-xs);
-  line-height: var(--line-height-text-xs);
-  letter-spacing: -0.01em;
-  color: var(--text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.manager-modal-metric-value {
-  font-family: var(--font-family-body);
-  font-weight: 500;
-  font-size: var(--font-size-text-xl, 20px);
-  line-height: var(--line-height-text-xl, 30px);
-  color: var(--text-primary);
-  white-space: nowrap;
-}
-
-/* ── Snippet tab ── */
-/* 목록 끝 「더 보기」(PW-925·PW-1941) — 모양은 공용 LoadMoreButton(조직도 구성원 표 .pj-btn-more,
-   stesslee) 이 정한다. `.manager-modal-snippet-more` 는 자리 표시용 이름만 남는다. */
-
-.manager-modal-snippet-item {
-  padding: var(--spacing-3xl) 0;
-  border-bottom: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-lg);
-  width: 100%;
-}
-
-.manager-modal-snippet-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-}
-
-.manager-modal-snippet-date {
-  font-family: var(--font-family-body);
-  font-weight: 700;
-  font-size: var(--font-size-text-xs);
-  line-height: var(--line-height-text-xs);
-  color: var(--text-primary);
-}
-
-.manager-modal-snippet-tags {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-}
-
-.manager-modal-snippet-health {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-family: var(--font-family-body);
-  font-weight: 500;
-  font-size: var(--font-size-text-sm);
-  line-height: var(--line-height-text-md);
-  color: var(--colors-text-textWarningPrimary, #dc6803);
-}
-
-.manager-modal-snippet-body {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-  width: 100%;
-}
-
-.manager-modal-snippet-title {
-  font-family: var(--font-family-body);
-  font-weight: 600;
-  font-size: var(--font-size-text-md);
-  line-height: var(--line-height-text-md);
-  color: var(--text-secondary);
-}
-
-.manager-modal-snippet-points {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--spacing-xs);
-  color: var(--text-primary);
-}
-
-.manager-modal-snippet-point {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-  font-family: var(--font-family-body);
-  font-weight: 400;
-  font-size: var(--font-size-text-sm);
-  line-height: var(--line-height-text-sm);
-  color: var(--text-primary);
-}
-
-.manager-modal-snippet-dot {
-  color: var(--text-primary);
-}
-
-.manager-modal-snippet-point:last-child .manager-modal-snippet-dot {
-  display: none;
-}
-
-/* 카드 맨 아래 「수정 기록」 (pivit-work PW-2702 · 기획 스니핏 정책서 §7-A.6).
-   텍스트 버튼은 디자이너의 글자 버튼(회의 동기화 알림 [다시 시도] `.meeting-sync-toast-retry`, stesslee)
-   값을 토큰으로 옮겼다. 줄은 카드의 점(•) 줄(`.manager-modal-snippet-point`)을 그대로 쓰고, 펼친 칸의
-   이름표·글은 카드 날짜(`-date`)·본문(`-point`) 글씨를 따른다. 수정 전 글은 취소선 없이 톤만 낮춘다
-   (어드민 변경 이력 `.admin-emp-hist-before` 와 같은 뜻 — 지워진 값으로 읽히지 않게). */
-.manager-modal-snippet-log {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--spacing-md);
-  width: 100%;
-}
-
-.manager-modal-snippet-log-toggle {
-  padding: 0;
-  background: none;
-  border: none;
-  font-family: var(--font-family-body);
-  font-size: var(--font-size-text-xs);
-  font-weight: 600;
-  line-height: var(--line-height-text-xs);
-  color: var(--text-brand-tertiary);
-  cursor: pointer;
-}
-
-.manager-modal-snippet-log-toggle:disabled {
-  color: var(--text-tertiary);
-  cursor: default;
-}
-
-.manager-modal-snippet-log-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
-  width: 100%;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.manager-modal-snippet-log-row {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
-  width: 100%;
-}
-
-.manager-modal-snippet-log-head {
-  width: 100%;
-  padding: 0;
-  background: none;
-  border: none;
-  text-align: left;
-  cursor: pointer;
-}
-
-/* 공용 Button 이 글을 `.dp-btn__label` 로 감싼다 — 줄의 칸들을 그 안에서 왼쪽부터 접어 놓는다. */
-.manager-modal-snippet-log-head > .dp-btn__label {
-  flex-wrap: wrap;
-  justify-content: flex-start;
-  gap: var(--spacing-xs);
-}
-
-.manager-modal-snippet-log-changes {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-lg);
-  width: 100%;
-  padding-left: var(--spacing-lg);
-  border-left: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
-}
-
-.manager-modal-snippet-log-change {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
-}
-
-.manager-modal-snippet-log-section {
-  font-family: var(--font-family-body);
-  font-weight: 700;
-  font-size: var(--font-size-text-xs);
-  line-height: var(--line-height-text-xs);
-  color: var(--text-primary);
-}
-
-.manager-modal-snippet-log-caption {
-  font-family: var(--font-family-body);
-  font-weight: 500;
-  font-size: var(--font-size-text-xs);
-  line-height: var(--line-height-text-xs);
-  color: var(--text-tertiary);
-}
-
-.manager-modal-snippet-log-text {
-  font-family: var(--font-family-body);
-  font-weight: 400;
-  font-size: var(--font-size-text-sm);
-  line-height: var(--line-height-text-sm);
-  color: var(--text-primary);
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-
-.manager-modal-snippet-log-text.is-before {
-  color: var(--text-secondary);
-}
-
-/* ── Health trend tab ── */
-.manager-modal-trend-grid {
-  width: 100%;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--spacing-md);
-  padding-bottom: var(--spacing-2xl);
-}
-
-.manager-modal-chart {
-  width: 100%;
-  position: relative;
-  padding-top: 17px;
-  padding-bottom: 8px;
-  margin-bottom: var(--spacing-2xl);
-}
-
-.manager-modal-chart-x-labels {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 4px;
-  font-family: var(--font-family-body);
-  font-weight: 500;
-  font-size: var(--font-size-text-xs);
-  line-height: var(--line-height-text-xs);
-  color: var(--text-tertiary);
-}
-
-.manager-modal-chart-legend {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 8px;
-  font-family: var(--font-family-body);
-  font-weight: 500;
-  font-size: var(--font-size-text-xs);
-  line-height: var(--line-height-text-xs);
-  color: var(--text-tertiary);
-}
-
-.manager-modal-chart-legend-line {
-  display: inline-block;
-  width: 17px;
-  height: 0;
-  border-top: 1px dashed var(--text-tertiary);
-}
-
-/* ── Detected flags ── */
-.manager-modal-flags {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-  width: 100%;
-}
-
-.manager-modal-flag {
-  font-family: var(--font-family-body);
-  font-weight: 600;
-  font-size: var(--font-size-text-md);
-  line-height: var(--line-height-text-md);
-}
-
-.manager-modal-flag-critical {
-  color: var(--text-error-primary);
-}
-
-.manager-modal-flag-warning {
-  color: var(--colors-text-textWarningPrimary, #dc6803);
-}
-
-/* ── 1on1 tab ── */
-.manager-modal-oneonone-grid {
-  grid-template-columns: minmax(0, 1fr);
-  padding-bottom: 0;
-}
-
-.manager-modal-oneonone-item {
-  padding: var(--spacing-3xl) 0;
-  border-bottom: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-lg);
-  width: 100%;
-}
-
-.manager-modal-oneonone-date {
-  font-family: var(--font-family-body);
-  font-weight: 700;
-  font-size: var(--font-size-text-xs);
-  line-height: var(--line-height-text-xs);
-  color: var(--text-primary);
-}
-
-.manager-modal-oneonone-meta {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--spacing-md);
-}
-
-.manager-modal-oneonone-host {
-  font-family: var(--font-family-body);
-  font-size: var(--font-size-text-xs);
-  line-height: var(--line-height-text-xs);
-  color: var(--text-tertiary);
-}
-
-.manager-modal-oneonone-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--spacing-lg);
-}
-
-.manager-modal-oneonone-title {
-  font-family: var(--font-family-body);
-  font-weight: 600;
-  font-size: var(--font-size-text-md);
-  line-height: var(--line-height-text-md);
-  color: var(--text-secondary);
-}
-
-/* ── 액션 아이템 탭 (PW-182) ──
-   팀원 1명분 · 읽기 전용. 목록·행·체크·제목·출처/마감 글씨는 디자이너가 그린 1on1 상세 창
-   「액션 아이템」 탭(one_on_one.css .ood-actions / .ood-action-*, stesslee 247aa088) 값 그대로다.
-   그 창은 이 창과 css 를 같이 싣지 않아 값을 옮겨 둔다. */
-.manager-modal-action-list {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.manager-modal-action-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 4px 12px;
-  min-height: 44px;
-  box-sizing: border-box;
-  border: 1px solid var(--border-secondary);
-  border-radius: 8px;
-  width: 100%;
-}
-
-.manager-modal-action-check {
-  flex: none;
-  width: 20px;
-  height: 20px;
-  box-sizing: border-box;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--border-primary);
-  border-radius: 6px;
-}
-
-.manager-modal-action-row.is-done .manager-modal-action-check {
-  background: var(--bg-brand-solid);
-  border: none;
-}
-
-.manager-modal-action-title {
-  flex: 1;
-  min-width: 0;
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 20px;
-  color: var(--text-primary);
-  overflow-wrap: anywhere;
-}
-
-.manager-modal-action-row.is-done .manager-modal-action-title {
-  color: var(--text-tertiary);
-  text-decoration: line-through;
-}
-
-.manager-modal-action-source,
-.manager-modal-action-deadline {
-  flex: none;
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 20px;
-  color: var(--text-tertiary);
-  white-space: nowrap;
-}
-
-.manager-modal-action-deadline.is-overdue {
-  color: var(--colors-text-textErrorPrimary, #d92d20);
-}
-
-/* ── 인사 정보 탭 (PW-452) ──
-   조직장이 팀원의 인사 항목을 읽는 자리. 값은 전부 호스트가 만들어 넘긴 문자열이라
-   여기서는 라벨/값 두 칸만 그린다. 값이 길어질 수 있어(주소·학교명·자격증명)
-   `overflow-wrap: anywhere` 로 칸 밖으로 나가지 않게 막는다. */
-.manager-modal-hr-section {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-lg);
-  padding-bottom: var(--spacing-3xl);
-}
-
-/* 같은 창 1on1 탭 제목(.manager-modal-oneonone-title)과 같은 값 — PW-1902 */
-.manager-modal-hr-section-title {
-  font-family: var(--font-family-body);
-  font-weight: 600;
-  font-size: var(--font-size-text-md);
-  line-height: var(--line-height-text-md);
-  color: var(--text-secondary);
-}
-
-.manager-modal-hr-list {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  margin: 0;
-}
-
-/* 항목 한 줄 — 디자이너가 그린 조직도 프로필 창의 사번·입사일·전화번호 칸
-   (org_chart.css .modal-info-section / -label / -content, stesslee b6cdc19b) 값 그대로:
-   라벨이 위, 값이 아래. 그 창의 css 는 매니저 화면에 실리지 않아 값을 옮겨 둔다.
-   [고치기] 가 있는 줄만 값 오른쪽에 버튼이 선다. */
-.manager-modal-hr-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  column-gap: var(--spacing-lg);
-  padding: 24px 0;
-  border-bottom: 1px solid var(--colors-border-borderSecondary);
-  width: 100%;
-}
-
-.manager-modal-hr-label {
-  grid-column: 1 / -1;
-  margin: 0 0 12px;
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 18px;
-  color: var(--text-primary);
-  overflow-wrap: anywhere;
-}
-
-.manager-modal-hr-value {
-  min-width: 0;
-  margin: 0;
-  font-size: 16px;
-  font-weight: 500;
-  line-height: 24px;
-  color: var(--text-secondary);
-  overflow-wrap: anywhere;
-}
-
-/* 줄 옆 작은 버튼 (PW-1094 — 직함 줄의 [고치기]). 디자이너가 그린 1on1 준비 화면의 [수정]
-   (one_on_one.css .ono-start-edit-btn, stesslee fc27cec8) 값 그대로. */
-.manager-modal-hr-action {
-  padding: 4px 8px;
-  border: 1px solid var(--colors-border-borderSecondary);
-  border-radius: 6px;
-  background: var(--colors-base-white);
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 18px;
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-
-.manager-modal-hr-failure {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--spacing-lg);
-  padding: var(--spacing-3xl) 0;
-}
-
-.manager-modal-hr-failure-text {
-  font-family: var(--font-family-body);
-  font-weight: 500;
-  font-size: var(--font-size-text-sm);
-  color: var(--text-tertiary);
-  text-align: center;
-}
-
-/* ── Empty placeholder ── */
-.manager-modal-empty {
-  width: 100%;
-  padding: 60px 0;
-  text-align: center;
-  font-family: var(--font-family-body);
-  font-weight: 500;
-  font-size: var(--font-size-text-sm);
-  color: var(--text-tertiary);
-}
-
-/* ── Footer ── */
-.manager-modal-footer {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-  padding: 60px 32px;
-  opacity: 0.6;
-}
-
-.manager-modal-footer-text {
-  font-family: var(--font-family-body);
-  font-weight: 600;
-  font-size: var(--font-size-text-xs);
-  line-height: var(--line-height-text-xs);
-  letter-spacing: -0.01em;
-  color: var(--colors-foreground-fgPrimary, #2c3744);
-}
-
-.manager-modal-footer-logo {
-  height: 22px;
-  width: auto;
-}
+/* 팀원 상세 창은 2026-11-12 시안부터 조직도 프로필 창과 같은 공용 틀(profile-card.css · components/profile)을 쓴다. */
 
 /* ══ KR 드릴다운 탭 (Figma 17026:23299 / 17026:24830) ══ */
 .manager-tab { cursor: pointer; }

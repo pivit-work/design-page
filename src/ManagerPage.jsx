@@ -3,9 +3,10 @@ import { ManagerCanvas } from './components/manager/index.js';
 import StateSwitcher from './devtools/StateSwitcher.jsx';
 import { LABEL_KNOB, VOLUME_KNOB, knobKey, resize, useKnobs } from './devtools/knobs.js';
 import { stressList, stressListMixed } from './devtools/stress.js';
+import { SAMPLE_HEALTH_TREND, SAMPLE_HR_SECTIONS, SAMPLE_ONEONONE, SAMPLE_SNIPPETS } from './profile-demo-data.js';
 
-const SPLINE_SCENE = 'https://prod.spline.design/FGsE64DYYNKU7gP7/scene.splinecode';
-const SPLINE_IMAGE = 'https://pivit-work.github.io/design-page/man.png';
+// 데모 팀원 사진 — 카드·상세 창 머리의 130px 둥근 사진에 쓴다.
+const DEMO_PHOTO = 'https://pivit-work.github.io/design-page/man.png';
 
 const TABS = [
   { key: 'today', label: '오늘 현황' },
@@ -209,43 +210,7 @@ const KPIS = [
   { label: '평균 1on1', value: '12일 전' },
 ];
 
-/* 모달용 프로필 데모 데이터 — 멤버별로 다르게 줄 수 있지만 시안에 맞춰 동일 사용. */
-const SAMPLE_SNIPPETS = [
-  { date: '3/11', tags: ['개발', '협업'], healthScore: '6.5',
-    title: 'Auth 플로우 리팩토링 완료, PR 올림',
-    ups: ['코드 커버리지 82% 달성'], downs: ['번들 사이즈 예상보다 커짐'] },
-  { date: '3/10', tags: ['개발', '협업'], healthScore: '5.8',
-    title: 'pgvector 응답시간 최적화',
-    ups: ['p99 280ms → 95ms'], downs: ['인덱스 빌드 시간 증가'] },
-  { date: '3/9', tags: ['개발'], healthScore: '4.2',
-    title: '번들 splitting 시도, 야근 지속',
-    ups: ['초기 번들 -180KB'], downs: ['lazy chunk hydration 이슈'] },
-  { date: '3/8', tags: ['협업'], healthScore: '5.0',
-    title: '주간 회고 + 다음 스프린트 정리',
-    ups: ['우선순위 정렬'], downs: ['리소스 부족 이슈'] },
-];
-
-const SAMPLE_HEALTH_TREND = {
-  current: '4.2',
-  change: '-2.8',
-  teamAvg: '7.4',
-  teamAverage: 7.4,
-  points: [{ value: 7 }, { value: 8 }, { value: 6 }, { value: 4.2 }],
-  dates: ['2/17', '2/24', '3/3', '3/10'],
-  flags: [
-    { severity: 'critical', label: '헬스 급락' },
-    { severity: 'warning', label: '연속 미작성' },
-  ],
-};
-
-const SAMPLE_ONEONONE = {
-  lastDate: '24일전',
-  items: [
-    { date: '3/11', title: '번아웃 징후 논의, 업무 조정 합의' },
-    { date: '2/23', title: '커리어 방향성, 시니어 전환 로드맵' },
-    { date: '1/22', title: '작년 회고, 올해 목표 설정' },
-  ],
-};
+/* 모달용 프로필 데모 데이터 — 조직도 창과 같은 샘플(profile-demo-data.js). 멤버별로 다르게 줄 수 있지만 시안에 맞춰 동일 사용. */
 
 const URGENT_PROFILE = {
   aiBrief: '헬스 4.2로 급락, 연속 2일 스니핏 미작성. 번아웃 징후 감지 — 즉각 1on1 필요.',
@@ -260,6 +225,7 @@ const URGENT_PROFILE = {
   snippets: SAMPLE_SNIPPETS,
   healthTrend: SAMPLE_HEALTH_TREND,
   oneOnOne: SAMPLE_ONEONONE,
+  hrProfile: { sections: SAMPLE_HR_SECTIONS },
 };
 
 const WARNING_PROFILE = {
@@ -274,6 +240,7 @@ const WARNING_PROFILE = {
   snippets: SAMPLE_SNIPPETS,
   healthTrend: SAMPLE_HEALTH_TREND,
   oneOnOne: SAMPLE_ONEONONE,
+  hrProfile: { sections: SAMPLE_HR_SECTIONS },
 };
 
 const EXCELLENT_PROFILE = {
@@ -288,6 +255,7 @@ const EXCELLENT_PROFILE = {
   snippets: SAMPLE_SNIPPETS,
   healthTrend: SAMPLE_HEALTH_TREND,
   oneOnOne: SAMPLE_ONEONONE,
+  hrProfile: { sections: SAMPLE_HR_SECTIONS },
 };
 
 const GOOD_PROFILE = {
@@ -302,26 +270,27 @@ const GOOD_PROFILE = {
   snippets: SAMPLE_SNIPPETS,
   healthTrend: SAMPLE_HEALTH_TREND,
   oneOnOne: SAMPLE_ONEONONE,
+  hrProfile: { sections: SAMPLE_HR_SECTIONS },
 };
 
 const ACTION_QUEUE_MEMBERS = [
   { id: 'action-1', name: 'Chris', role: '이사 ∙ 프로덕트본부', status: 'urgent',
-    avatar: SPLINE_IMAGE,
+    avatar: DEMO_PHOTO,
     comment: '헬스 4.2로 급락, 연속 2일 스니핏 미작성. 번아웃 징후 감지 — 즉각 1on1 필요.',
     profile: URGENT_PROFILE },
   { id: 'action-2', name: 'Chris', role: '이사 ∙ 프로덕트본부', status: 'warning',
-    avatar: SPLINE_IMAGE,
+    avatar: DEMO_PHOTO,
     comment: '현재 휴가 중, 스니핏 3일 공백. 헬스 9.1 안정 — 복귀 후 채용·온보딩 점검 1on1 권장.',
     profile: WARNING_PROFILE },
   { id: 'action-3', name: 'Chris', role: '이사 ∙ 프로덕트본부', status: 'excellent',
-    avatar: SPLINE_IMAGE,
+    avatar: DEMO_PHOTO,
     comment: '12일 연속 스니핏, 헬스 8.8 팀 최고. 알고리즘 정확도 94% 달성 — 성장 목표 다음 스텝 논의 적기.',
     profile: EXCELLENT_PROFILE },
 ];
 
 const TEAM_STATUS_MEMBERS = [
   { id: 'team-1', name: 'Chris', role: '이사 ∙ 프로덕트본부', status: 'good',
-    avatar: SPLINE_IMAGE,
+    avatar: DEMO_PHOTO,
     comment: 'pgvector 최적화로 응답시간 3배 개선. 5일 연속 스니핏, 성과·컨디션 모두 안정적.',
     profile: GOOD_PROFILE },
 ];
@@ -393,8 +362,6 @@ export default function ManagerPage({ icons, baseUrl }) {
           subtitle: '나머지는 괜찮습니다',
           members: statusMembers,
         }}
-        splineScene={SPLINE_SCENE}
-        splineImage={SPLINE_IMAGE}
         icons={icons}
         baseUrl={baseUrl}
       />

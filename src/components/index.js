@@ -340,6 +340,8 @@ export {
   ManagerTeamSnippetFeed,
   MANAGER_STATUS_COLORS,
 } from './manager/index.js';
+// 구성원 프로필 창 공용 부품 — 조직도 ProfileModal · 매니저 ManagerProfileModal 이 같이 쓴다 (Figma 17873:33194)
+export * from './profile/index.js';
 export {
   LeaveAnnualCard,
   LeaveTiles,

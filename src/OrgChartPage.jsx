@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { OrgChartCanvas, OrgMemberListCanvas, ProfileModal, ProjectCanvas, SquadCanvas } from './components';
 import { PROJECT_OPTIONS, SQUADS, SQUAD_PEOPLE } from './squad-demo-data.js';
+import { CHRIS_PROFILE_TABS } from './profile-demo-data.js';
 import StateSwitcher from './devtools/StateSwitcher.jsx';
 import { LABEL_KNOB, VOLUME_KNOB, knobKey, useKnobs } from './devtools/knobs.js';
 import { stress, stressText } from './devtools/stress.js';
@@ -40,6 +41,8 @@ const DEFAULT_PROFILE = {
   contacts: '@user • user@pivit.com',
   links: ['https://pivit.com'],
   teamMembers: [],
+  // 오른쪽 탭(AI 브리핑 · 스니핏 · 헬스 트렌드 · 원온원 · 인사정보 하위 탭) — 데모는 누구를 열어도 시안의 탭이 다 보이게 같은 샘플을 준다.
+  ...CHRIS_PROFILE_TABS,
 };
 
 const CHRIS_PROFILE = {
@@ -56,6 +59,14 @@ const CHRIS_PROFILE = {
     { name: '박소연', role: '대리', avatar: AVATARS.박은서, online: false },
     { name: '박지호', role: '사원', avatar: AVATARS.오민준, online: true },
   ],
+  // 사번·입사일·전화번호(어드민 칸)와 오른쪽 탭(AI 브리핑 · 스니핏 · 헬스 트렌드 · 원온원 · 인사정보 하위 탭) — Figma 17873:33191~34118
+  employeeId: 'PVT-008',
+  hireDate: '2026-05-02',
+  phone: '010-1234-5678',
+  employmentType: '정규직',
+  rank: 'L3',
+  workHours: '10-7',
+  ...CHRIS_PROFILE_TABS,
 };
 
 /* ── Demo Org Data ── */
@@ -184,8 +195,19 @@ function findSubordinates(orgData, member) {
 const NODE_TYPE_ALT = { long: '전략기획총괄본부', latin: 'Division', raw: 'division' };
 const ROLE_ALT = { long: '디비전 리드 (본부장)', latin: 'Division Lead', raw: 'division_lead' };
 
-const KNOBS = [VOLUME_KNOB, LABEL_KNOB];
-const SWITCHER_NOTE = '항목 수: 노드별 멤버·하위 조직 (0개면 회사 노드만 남는다) / 라벨: 조직 이름·직급·구성원 이름';
+/* 보는 사람 — 프로필 창의 사번·입사일·전화번호·고용형태·직급은 어드민만 본다(pivit-work PW-1064 · 공개 카드 정책).
+   시안(Figma 17873:33191)은 어드민이 보는 창이라 기본을 어드민으로 둔다. 구성원이 보면 업무시간 한 칸만 남는다. */
+const VIEWER_KNOB = {
+  key: 'viewer',
+  label: '보는 사람',
+  options: [
+    { value: 'default', label: '어드민' },
+    { value: 'member', label: '구성원' },
+  ],
+};
+
+const KNOBS = [VOLUME_KNOB, LABEL_KNOB, VIEWER_KNOB];
+const SWITCHER_NOTE = '항목 수: 노드별 멤버·하위 조직 (0개면 회사 노드만 남는다) / 라벨: 조직 이름·직급·구성원 이름 / 보는 사람: 프로필 창의 어드민 칸(사번·입사일·전화·고용형태·직급)';
 
 /**
  * 조직 트리 전체에 knob 을 적용한다. volume 은 노드마다 멤버·자식 수를 바꾸고,
@@ -324,7 +346,7 @@ function useSquadLedger() {
 
 export default function OrgChartPage({ icons, statIcons, baseUrl, subTab, onSubTabChange }) {
   const { values: knobs, set: setKnob, reset: resetKnobs } = useKnobs(KNOBS);
-  const [adminMode, setAdminMode] = useState(false);
+  const adminMode = knobs.viewer !== 'member';
   const [asOfValue, setAsOfValue] = useState('2026-04-10');
   const ledger = useSquadLedger();
   // 스쿼드 표에서 이름을 누르면 조직도 카드와 같은 프로필 창 — 명부 한 줄을 카드 모양으로 옮긴다.
@@ -412,7 +434,7 @@ export default function OrgChartPage({ icons, statIcons, baseUrl, subTab, onSubT
         onSubTabChange={onSubTabChange}
         findSubordinates={subordinates}
         adminMode={adminMode}
-        onAdminModeChange={setAdminMode}
+        onAdminModeChange={(on) => setKnob('viewer', on ? 'default' : 'member')}
         asOf={{ value: asOfValue, min: ASOF_MIN, max: ASOF_MAX, label: '기준일', onChange: setAsOfValue }}
       />
       {switcher}

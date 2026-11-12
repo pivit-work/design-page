@@ -1,0 +1,1092 @@
+/* ══════════════════════════════════════════════════════════════════════════
+ * 구성원 프로필 창 — 조직도 ProfileModal · 매니저 ManagerProfileModal 이 같이 쓰는 넓은 창
+ * Figma 17873:33194 «profile_card modal 2» (2026-11-12) · 부품은 components/profile/
+ *
+ *   카드 1297 × (내용만큼) · 모서리 24 · 위아래 48 · 오른쪽 32
+ *   ┌ 왼쪽 410: 사진 130 → 20 → 이름 24 / 직책 12 → 18 → 소개 → 18 → 알약 → 20+20 → 통계 → 27 → 버튼
+ *   └ 오른쪽(남는 폭): 세그먼트 탭 → 32 → 탭 내용
+ *
+ * 예전 432 폭 세로 창(금색 그라데이션 + Spline 3D 육각 아바타, 「Get Communication with pivit」 발)은 사라졌다.
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 틀 ────────────────────────────────────────────────────────────────── */
+.profile-card-wrap {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 1001;
+  overflow-y: auto;
+}
+.profile-card-wrap::-webkit-scrollbar { width: 6px; }
+.profile-card-wrap::-webkit-scrollbar-track { background: var(--alpha-black-40); }
+.profile-card-wrap::-webkit-scrollbar-thumb { background: var(--border-primary); border-radius: 3px; }
+.profile-card-wrap::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
+
+@keyframes profileCardIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 카드 — 1440×1024 화면에서 양옆·위아래 71 (17873:33194). 위아래 48 · 오른쪽 32, 왼쪽 0(머리 칸이 제 여백 20을 갖는다).
+   높이는 브라우저 높이를 따른다(위아래 71 을 뺀 만큼 — 시안 다섯 장 모두 내용 길이와 상관없이 882 로 같다).
+   내용이 길면 창이 커지지 않고 오른쪽 탭 칸 안에서 내린다. */
+.profile-card {
+  position: relative;
+  box-sizing: border-box;
+  width: 1297px;
+  max-width: calc(100vw - 48px);
+  height: calc(100vh - 142px);
+  margin: 71px auto;
+  padding: 48px var(--spacing-4xl) 48px 0; /* TODO: token 없음 — 시안 spacing-6xl(48) */
+  display: flex;
+  align-items: flex-start;
+  overflow: hidden;
+  background: var(--bg-quaternary);
+  border-radius: var(--radius-4xl);
+  box-shadow: var(--shadows-shadow3xl);
+  animation: profileCardIn 0.25s ease-out;
+}
+
+/* 닫기 X — 오른쪽 위 8 · 44 칸(안쪽 12) · 모서리 10 · 20px 회색 아이콘 (17873:33306 · text-secondary) */
+.profile-close {
+  position: absolute;
+  top: var(--spacing-md);
+  right: var(--spacing-md);
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-lg);
+  background: none;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.15s;
+  z-index: 2;
+}
+.profile-close:hover { background: var(--alpha-black-5); }
+/* 본인 카드의 «공개 범위 설정» 톱니 — 닫기 X 와 같은 모양으로 왼쪽 위 */
+.profile-visibility { left: var(--spacing-md); right: auto; }
+
+/* ── 왼쪽 머리 칸 (17873:33574) ──────────────────────────────────────── */
+.profile-head {
+  flex: 0 0 410px;
+  width: 410px;
+  max-height: 100%;
+  box-sizing: border-box;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-2xl);
+  padding: 0 var(--spacing-2xl) var(--spacing-2xl);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* 사진 — 130 정사각 · 모서리 46 (17873:33575). 사진이 없으면 같은 틀의 이름 글자 원(Avatar). */
+.profile-photo {
+  width: 130px;
+  height: 130px;
+  flex-shrink: 0;
+  border-radius: 46px;
+  overflow: hidden;
+}
+.profile-photo-img {
+  display: block;
+  width: 130px;
+  height: 130px;
+  border-radius: 46px;
+  object-fit: cover;
+}
+
+.profile-head-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  width: 100%;
+}
+.profile-name-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xs);
+  text-align: center;
+  max-width: 100%;
+}
+/* 이름 24 · 직책 ∙ 소속 12 — 둘 다 Semibold, 자간 -2%, 줄 간격 기본 (17873:33577) */
+.profile-name {
+  font-size: 24px;
+  font-weight: 600;
+  line-height: normal;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.profile-title {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: normal;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+/* 소개 12/18 Medium (17873:33580). 매니저 창의 AI 한 줄은 같은 자리에 보라 글씨 */
+.profile-bio {
+  width: 100%;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--text-secondary);
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+.profile-bio.is-ai { color: var(--utility-purple-500); }
+
+/* 소속 목록 (PW-1480) — 직책 줄 아래 */
+.profile-affiliations {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xs);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-width: 100%;
+  font-size: 12px;
+  line-height: 18px;
+  text-align: center;
+}
+.profile-affiliation-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+/* 가운데 목록의 상속이 기존 배지의 text-align까지 바꾸지 않게 원래 값을 유지한다. */
+.profile-affiliation-row .modal-team-chip { text-align: start; }
+
+/* 근무 상태 배지와 헬스체크 점수 칩을 한 줄에 (pivit-work PW-2226). 칩이 없으면 이 줄 없이 배지만 그린다. */
+.profile-badge-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+/* 현지 시간 (PW-1217) */
+.profile-local-time {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--text-tertiary);
+}
+.profile-local-time-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+/* 통계·버튼 칸 (17873:33582) — 위 20 · 옆 65 · 줄 사이 27 */
+.profile-head-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 27px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--spacing-2xl) 65px 0;
+}
+/* 통계 세 칸 (17873:33583) — 칸 사이 24, 칸 안은 24px 선 아이콘 → 13 → 이름표(14 Semibold) → 2 → 값(14 Regular) */
+.profile-stats {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--spacing-3xl);
+}
+.profile-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xxs);
+}
+.profile-stat-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  margin-bottom: 11px; /* 아이콘→이름표 13 = 2(gap) + 11 */
+}
+.profile-stat-label {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+.profile-stat-value {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+.profile-stat-value.is-absent { color: var(--text-tertiary); }
+/* 통계 값 아래 보조 한 줄 — 직급 «본인이 비공개로 설정함». 칸을 넓히지 않게 폭을 묶고 낱말 단위로 꺾는다. */
+.profile-stat-note {
+  max-width: 88px;
+  font-size: 12px;
+  line-height: 15px;
+  color: var(--text-tertiary);
+  text-align: center;
+  word-break: keep-all;
+}
+
+/* 버튼 둘 (17873:33606) — 사이 8, 각각 남는 폭을 반씩 */
+.profile-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  width: 100%;
+}
+.profile-btn-primary,
+.profile-btn-secondary {
+  flex: 1 1 50%; /* 바깥 폭을 반씩 — basis 0 이면 안쪽 여백(12·16) 차이만큼 폭이 어긋난다 */
+  box-sizing: border-box;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-family-body);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+/* 피드백주기 · 1on1 — 초록 바탕 흰 글씨, 옆 12 */
+.profile-btn-primary {
+  padding: 10px var(--spacing-lg);
+  background: var(--bg-brand-solid);
+  color: var(--text-white);
+}
+.profile-btn-primary:hover { background: var(--colors-background-bgBrandSolidHover); }
+/* 미팅잡기 · 메시지 — 옅은 초록 바탕 초록 글씨, 옆 16 */
+.profile-btn-secondary {
+  padding: 10px var(--spacing-xl);
+  background: var(--bg-brand-secondary);
+  color: var(--text-brand-tertiary);
+}
+.profile-btn-secondary:hover { background: var(--colors-background-bgBrandPrimary); }
+/* 본인·퇴사·휴직 — 둘 다 흐리고 눌리지 않는다 (PW-28) */
+.profile-actions.is-disabled .profile-btn-primary,
+.profile-actions.is-disabled .profile-btn-secondary {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* 카드 칸을 받는 중·못 받았을 때 (pivit-work PW-2665) — 머리 칸 자리에 사진·이름·직책·줄 세 개 크기의 뼈대 */
+.profile-card-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+  width: 100%;
+  padding: 0 var(--spacing-2xl);
+  box-sizing: border-box;
+}
+.profile-card-status-avatar { margin-bottom: var(--spacing-lg); }
+.profile-card-status-name { margin-bottom: var(--spacing-xxs); }
+.profile-card-status-rows { width: 100%; max-width: 480px; margin-top: var(--spacing-3xl); }
+.profile-card-status-error { width: 100%; padding-top: var(--spacing-3xl); }
+/* 받는 중·실패일 때는 머리 칸이 없다 — 오른쪽 칸이 창 전체를 쓰고 왼쪽 여백만 남긴다 */
+.profile-card.is-status { padding-left: var(--spacing-4xl); }
+
+/* ── 오른쪽 탭 칸 (17873:33230) ──────────────────────────────────────── */
+/* 오른쪽 칸이 창 안에서 내리는 자리다 — 머리 칸은 그대로 두고 탭 내용만 흐른다 */
+.profile-main {
+  flex: 1 1 0;
+  min-width: 0;
+  max-height: 100%;
+  box-sizing: border-box;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4xl);
+}
+/* 세그먼트 탭 줄 — 공용 SegmentedControl(block) 그대로. 디자이너는 칸을 글자 폭만큼 두고 왼쪽부터 세웠다(17873:33231).
+   내용이 내려가도 탭 줄은 위에 붙어 있다 — 붙는 것은 흰 받침(.profile-seg-dock)이고, 컨트롤의 회색 띠는 손대지 않는다
+   (띠는 반투명 alpha-black-3 라 받침이 없으면 밑을 지나는 글이 비친다). */
+.profile-seg-dock {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  flex-shrink: 0;
+  background: var(--bg-quaternary);
+}
+.profile-seg { width: 100%; }
+
+.profile-tab-body {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+}
+
+/* ── 「인사정보」 탭 (17873:33232) — 옆 8 · 하위 탭 줄 → 24 → 줄들 ── */
+.profile-hr {
+  box-sizing: border-box;
+  padding: 0 var(--spacing-md);
+  gap: var(--spacing-3xl);
+}
+/* 하위 탭 줄 — 공용 Tabs(밑줄) 위에 이 창의 값만 덮는다: 높이 32 · 글자 14/24 · 사이 20 (17873:33235) */
+.profile-subnav {
+  margin: 0;
+  height: 32px;
+}
+.profile-subnav .tl-tabs { gap: var(--spacing-2xl); }
+.profile-subnav .tl-tab {
+  height: 32px;
+  font-size: 14px;
+  line-height: 24px;
+}
+.profile-rows {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+/* 한 줄 (17873:33240) — 이름표 80 · 사이 16 · 값(남는 폭) · 아래 선. 값이 여러 줄이어도 이름표는 첫 줄에 맞춰 선다 */
+.profile-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-xl);
+  width: 100%;
+  border-bottom: 1px solid var(--colors-border-borderSecondary);
+}
+.profile-row-label {
+  flex: 0 0 80px;
+  width: 80px;
+  box-sizing: border-box;
+  padding: 15px 0 var(--spacing-lg); /* 18 높이 이름표의 가운데를 값 첫 줄(24)의 가운데에 — 12 + 3 */
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.profile-row-count {
+  margin-left: 7px;
+  font-weight: 600;
+  color: var(--text-brand-tertiary);
+}
+.profile-row-value {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-lg) 0;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  color: var(--text-secondary);
+}
+.profile-row-content {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+/* 줄 옆 작은 버튼 (PW-1094 — 직함 줄의 [고치기]). 디자이너가 그린 1on1 준비 화면의 [수정]
+   (one_on_one.css .ono-start-edit-btn, stesslee fc27cec8) 값 그대로. */
+.profile-row-action {
+  flex: none;
+  padding: var(--spacing-xs) var(--spacing-md);
+  border: 1px solid var(--colors-border-borderSecondary);
+  border-radius: var(--radius-xs);
+  background: var(--colors-base-white);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+/* 구획 제목 12/700 — 아젠다·플래그·개인 정보 실패 칸 위 */
+.profile-section-title {
+  margin: 0;
+  font-family: var(--font-family-body);
+  font-weight: 700;
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  color: var(--text-primary);
+}
+
+/* 연락처 두 줄 · 링크들 — 값 글씨 그대로 위아래로 */
+.profile-contacts,
+.profile-links {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+/* 링크 한 개 (17873:33272) — 14/20 Regular 회색 + 작은 바깥 화살표 */
+.profile-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xxs);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.profile-link:hover { text-decoration: underline; }
+/* 자리 · 근무지 줄 (PW-2600 · PW-1217) */
+.profile-location {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+/* 담당 프로젝트 · 매니저 이력 · 날짜별 소속 줄 */
+.profile-project-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+.profile-project-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+.profile-project-name { font-weight: 600; }
+.profile-project-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--text-tertiary);
+}
+.profile-history-dot-current { background: var(--colors-success-500); }
+.profile-history-period {
+  margin-left: auto;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.profile-history-note { color: var(--text-tertiary); }
+.profile-history-key {
+  min-width: 40px;
+  color: var(--text-tertiary);
+}
+.profile-history-date { max-width: 240px; }
+/* 날짜 칸 — 내 설정 날짜 칸(admin.css `.admin-emp-input`) 값 그대로. 조직도 화면은 admin.css 를 안 불러서 여기 둔다. */
+.profile-history-date-input {
+  min-height: 40px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid transparent;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-sm, 14px);
+  line-height: 20px;
+  color: var(--text-primary);
+  background: var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
+  outline: none;
+  transition: border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.profile-history-date-input::placeholder { color: var(--text-placeholder, #b1b6be); }
+.profile-history-date-input:focus {
+  border-color: var(--colors-foreground-fgBrandPrimary, #2dbd82);
+  box-shadow: inset 0 0 0 1px var(--colors-foreground-fgBrandPrimary, #2dbd82);
+}
+/* 성과 정보 줄 (PW-2531) — 이름표·숫자는 okr.css 값, 안내 글은 통계 보조 줄을 따른다. */
+.profile-perf-head,
+.profile-perf-inline {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+.profile-perf-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+.profile-perf-head { justify-content: space-between; }
+.profile-perf-note {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-tertiary);
+}
+
+/* 직속팀원 칸들 (17873:33280) — 144 폭 칸이 줄 바꿈, 사이 8. 칸 안은 위아래 20 · 사진 48 → 13 → 이름 16/24 · 역할 12/18 */
+.profile-team-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+  width: 100%;
+}
+.profile-team-member {
+  width: 144px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--spacing-2xl) var(--spacing-md);
+  background: var(--colors-foreground-fgQuaternaryHover);
+  border-radius: var(--radius-sm);
+  text-align: center;
+}
+.profile-team-avatar-wrap {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 13px;
+}
+.profile-team-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 9999px;
+  object-fit: cover;
+  border: 1px solid var(--border-secondary-alt);
+}
+.profile-team-dot {
+  position: absolute;
+  bottom: 1px;
+  right: 1px;
+  width: 12px;
+  height: 12px;
+  border-radius: 9999px;
+  border: 2px solid var(--bg-quaternary);
+}
+.profile-team-dot.online { background: var(--colors-success-500); }
+.profile-team-dot.offline { background: var(--border-primary); }
+.profile-team-name {
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.profile-team-role {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+/* ── AI 브리핑 · 스니핏 탭의 보라 카드 (17873:33533) — 옆 24 · 위아래 16 · 모서리 16 ── */
+.profile-brief-card {
+  background: var(--utility-purple-50);
+  border-radius: var(--radius-2xl);
+  padding: var(--spacing-xl) var(--spacing-3xl);
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+  overflow: hidden;
+}
+.profile-brief-label-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+.profile-brief-label {
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  letter-spacing: -0.01em;
+  background: linear-gradient(95deg, #7a5af8 0%, #a07cf8 60%, #c4b3fd 100%); /* TODO: token 없음 — 시안 Gradient/Linear/61 */
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.profile-brief-text {
+  margin: 0;
+  font-family: var(--font-family-body);
+  font-weight: 500;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-md);
+  color: var(--utility-purple-500);
+}
+/* AI 브리핑을 버튼으로 만드는 자리 (pivit-work PW-1531). 「마지막 업데이트」 는 라벨과 같은 크기, 색만 회색 */
+.profile-brief-updated {
+  font-family: var(--font-family-body);
+  font-weight: 500;
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  color: var(--text-tertiary);
+}
+/* 오른쪽 위 새로고침 — 디자이너가 그린 AI 띠의 새로고침(okr OkrDetailModal·OkrAiInsights 의 16px 보라 refresh-cw) 그대로 */
+.profile-brief-refresh {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--utility-purple-500);
+  cursor: pointer;
+}
+.profile-brief-generate { align-self: flex-start; }
+.profile-brief-sources { flex-wrap: wrap; }
+
+/* 아젠다 한 줄 (17873:33539) — 위아래 24 · 아래 선 · 제목(첫 줄에만) → 12 → 질문 */
+.profile-agenda-item {
+  padding: var(--spacing-3xl) 0;
+  border-bottom: 1px solid var(--colors-border-borderSecondary);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  width: 100%;
+}
+.profile-agenda-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  color: var(--text-secondary);
+}
+.profile-agenda-heading {
+  margin: 0;
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
+}
+.profile-agenda-question {
+  margin: 0;
+  font-family: var(--font-family-body);
+  font-weight: 400;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+}
+
+/* 지표 칸들 (17873:33552) — 위아래 24, 네 칸 사이 8 */
+.profile-metrics-section {
+  padding: var(--spacing-3xl) 0;
+  width: 100%;
+}
+.profile-metrics-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--spacing-md);
+}
+/* 지표 칸 하나 (17873:33554) — 회색 바탕 · 모서리 16 · 옆 12 위아래 16 · 이름표 → 16 → 값 */
+.profile-metric-tile {
+  background: var(--colors-foreground-fgQuaternaryHover);
+  border-radius: var(--radius-2xl);
+  padding: var(--spacing-xl) var(--spacing-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+  overflow: hidden;
+  min-width: 0;
+}
+.profile-metric-label {
+  margin: 0;
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  letter-spacing: -0.01em;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.profile-metric-value {
+  margin: 0;
+  font-family: var(--font-family-body);
+  font-weight: 500;
+  font-size: var(--font-size-text-xl, 20px);
+  line-height: var(--line-height-text-xl, 30px);
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+/* ── 스니핏 탭 (17873:33786) ── */
+.profile-snippet-item {
+  padding: var(--spacing-3xl) 0;
+  border-bottom: 1px solid var(--colors-border-borderSecondary);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  width: 100%;
+}
+.profile-snippet-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+.profile-snippet-date {
+  margin: 0;
+  font-family: var(--font-family-body);
+  font-weight: 700;
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  color: var(--text-primary);
+}
+.profile-snippet-tags {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+.profile-snippet-health {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-family: var(--font-family-body);
+  font-weight: 500;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-md);
+  color: var(--colors-text-textWarningPrimary);
+}
+.profile-snippet-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  width: 100%;
+}
+.profile-snippet-title {
+  margin: 0;
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
+  color: var(--text-secondary);
+}
+.profile-snippet-points {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-xs);
+  color: var(--text-primary);
+}
+.profile-snippet-point {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-family: var(--font-family-body);
+  font-weight: 400;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  color: var(--text-primary);
+}
+.profile-snippet-dot { color: var(--text-primary); }
+.profile-snippet-point:last-child .profile-snippet-dot { display: none; }
+
+/* 카드 맨 아래 「수정 기록」 (pivit-work PW-2702 · 기획 스니핏 정책서 §7-A.6).
+   텍스트 버튼은 디자이너의 글자 버튼(회의 동기화 알림 [다시 시도] `.meeting-sync-toast-retry`, stesslee)
+   값을 토큰으로 옮겼다. 줄은 카드의 점(•) 줄(`.profile-snippet-point`)을 그대로 쓰고, 펼친 칸의
+   이름표·글은 카드 날짜(`-date`)·본문(`-point`) 글씨를 따른다. 수정 전 글은 취소선 없이 톤만 낮춘다
+   (어드민 변경 이력 `.admin-emp-hist-before` 와 같은 뜻 — 지워진 값으로 읽히지 않게). */
+.profile-snippet-log {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  width: 100%;
+}
+.profile-snippet-log-toggle {
+  padding: 0;
+  background: none;
+  border: none;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+  line-height: var(--line-height-text-xs);
+  color: var(--text-brand-tertiary);
+  cursor: pointer;
+}
+.profile-snippet-log-toggle:disabled {
+  color: var(--text-tertiary);
+  cursor: default;
+}
+.profile-snippet-log-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.profile-snippet-log-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  width: 100%;
+}
+.profile-snippet-log-head {
+  width: 100%;
+  padding: 0;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+}
+/* 공용 Button 이 글을 `.dp-btn__label` 로 감싼다 — 줄의 칸들을 그 안에서 왼쪽부터 접어 놓는다. */
+.profile-snippet-log-head > .dp-btn__label {
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: var(--spacing-xs);
+}
+.profile-snippet-log-changes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  width: 100%;
+  padding-left: var(--spacing-lg);
+  border-left: 1px solid var(--colors-border-borderSecondary);
+}
+.profile-snippet-log-change {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+.profile-snippet-log-section {
+  margin: 0;
+  font-family: var(--font-family-body);
+  font-weight: 700;
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  color: var(--text-primary);
+}
+.profile-snippet-log-caption {
+  margin: 0;
+  font-family: var(--font-family-body);
+  font-weight: 500;
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  color: var(--text-tertiary);
+}
+.profile-snippet-log-text {
+  margin: 0;
+  font-family: var(--font-family-body);
+  font-weight: 400;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.profile-snippet-log-text.is-before { color: var(--text-secondary); }
+
+/* ── 헬스 트렌드 탭 (17873:34062) — 지표 세 칸 → 200 높이 선 그래프 → 플래그 ── */
+.profile-trend-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--spacing-md);
+}
+.profile-chart {
+  width: 100%;
+  position: relative;
+  padding-top: 17px;
+  padding-bottom: var(--spacing-md);
+}
+.profile-chart-x-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--spacing-xs);
+  font-family: var(--font-family-body);
+  font-weight: 500;
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  color: var(--text-tertiary);
+}
+.profile-chart-legend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: var(--spacing-md);
+  font-family: var(--font-family-body);
+  font-weight: 500;
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  color: var(--text-tertiary);
+}
+.profile-chart-legend-line {
+  display: inline-block;
+  width: 17px;
+  height: 0;
+  border-top: 1px dashed var(--text-tertiary);
+}
+/* 감지된 플래그 (17873:34110) — 16/600, 심각은 빨강 · 주의는 주황 */
+.profile-flags {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  width: 100%;
+}
+.profile-flag {
+  margin: 0;
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
+}
+.profile-flag-critical { color: var(--text-error-primary); }
+.profile-flag-warning { color: var(--colors-text-textWarningPrimary); }
+
+/* ── 원온원 탭 (17873:34244) — 지표 한 칸 → 기록 줄들 ── */
+.profile-oneonone-grid { grid-template-columns: minmax(0, 1fr); }
+.profile-oneonone-item {
+  padding: var(--spacing-3xl) 0;
+  border-bottom: 1px solid var(--colors-border-borderSecondary);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  width: 100%;
+}
+.profile-oneonone-date {
+  margin: 0;
+  font-family: var(--font-family-body);
+  font-weight: 700;
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  color: var(--text-primary);
+}
+.profile-oneonone-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+}
+.profile-oneonone-host {
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  color: var(--text-tertiary);
+}
+.profile-oneonone-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-lg);
+}
+.profile-oneonone-title {
+  margin: 0;
+  font-family: var(--font-family-body);
+  font-weight: 600;
+  font-size: var(--font-size-text-md);
+  line-height: var(--line-height-text-md);
+  color: var(--text-secondary);
+}
+
+/* ── 액션 아이템 탭 (PW-182) — 디자이너가 그린 1on1 상세 창 「액션 아이템」 탭(one_on_one.css .ood-action-*) 값 그대로.
+   그 창은 이 창과 css 를 같이 싣지 않아 값을 옮겨 둔다. ── */
+.profile-action-list {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-2xl);
+}
+.profile-action-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-xs) var(--spacing-lg);
+  min-height: 44px;
+  box-sizing: border-box;
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-sm);
+  width: 100%;
+}
+.profile-action-check {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-xs);
+}
+.profile-action-row.is-done .profile-action-check {
+  background: var(--bg-brand-solid);
+  border: none;
+}
+.profile-action-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.profile-action-row.is-done .profile-action-title {
+  color: var(--text-tertiary);
+  text-decoration: line-through;
+}
+.profile-action-source,
+.profile-action-deadline {
+  flex: none;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+.profile-action-deadline.is-overdue { color: var(--colors-text-textErrorPrimary); }
+
+/* ── 탭 안 안내 — 빈 목록 · 못 받았다 ── */
+.profile-empty {
+  width: 100%;
+  margin: 0;
+  padding: 60px 0;
+  text-align: center;
+  font-family: var(--font-family-body);
+  font-weight: 500;
+  font-size: var(--font-size-text-sm);
+  color: var(--text-tertiary);
+}
+.profile-failure {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-3xl) 0;
+}
+.profile-failure-text {
+  margin: 0;
+  font-family: var(--font-family-body);
+  font-weight: 500;
+  font-size: var(--font-size-text-sm);
+  color: var(--text-tertiary);
+  text-align: center;
+}

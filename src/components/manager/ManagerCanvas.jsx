@@ -17,8 +17,8 @@ import Icon from '../shared/Icon.jsx';
  *
  * 멤버 카드 클릭 시 ProfileModal v2 가 열린다 (선택된 멤버 정보 + AI 브리핑/아젠다/지표).
  *
- * 리스팅 카드의 헥사는 2D(CSS clip-path) 다 — `MemberHex` 주석 참조. 3D 는 한 번에
- * 하나만 뜨는 ProfileModal 에만 남아 있다.
+ * 리스팅 카드와 ProfileModal 머리는 130px 둥근 사진이다(Figma 17873:32424 · 2026-11-12).
+ * 예전 육각 아바타(`MemberHex`)·3D 는 쓰지 않는다.
  */
 export default function ManagerCanvas({
   /** 제목 바로 오른쪽 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2430). 안 주면 지금과 같다. */

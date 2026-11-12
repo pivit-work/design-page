@@ -1,128 +1,34 @@
-import { Component, useState, useEffect, useRef, useCallback } from 'react';
-import StatusBadge from '../shared/StatusBadge.jsx';
-import Tooltip from '../shared/Tooltip.jsx';
-import ModalLayer from '../shared/ModalLayer.jsx';
-import Spline from '@splinetool/react-spline';
+import { useState, useEffect, useRef } from 'react';
 import Icon from '../shared/Icon.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
-import assetUrl from '../shared/assetUrl.js';
-import { CloseGlyph } from '../shared/lineIcons.jsx';
-import AiFailBox from '../shared/AiFailBox.jsx';
-import Button from '../shared/Button.jsx';
-import LoadMoreButton from '../shared/LoadMoreButton.jsx';
-import MemberAiButton from '../oneonone/MemberAiButton.jsx';
-import { isEnterKey } from '../shared/enterKey.js';
-
-// member 가 자기 splineImage / avatar 를 갖고 있지 않을 때만 사용되는 데모 폴백.
-const FALLBACK_IMAGE = 'https://pivit-work.github.io/design-page/man.png';
-
-const PROFILE_SCENE = 'https://prod.spline.design/zcv5m26Zb2Qxpqcc/scene.splinecode';
+import ProfileCardFrame from '../profile/ProfileCardFrame.jsx';
+import ProfileCardHeader from '../profile/ProfileCardHeader.jsx';
+import HrInfoTab from '../profile/HrInfoTab.jsx';
+import AiBriefingTab from '../profile/AiBriefingTab.jsx';
+import SnippetTab from '../profile/SnippetTab.jsx';
+import HealthTrendTab from '../profile/HealthTrendTab.jsx';
+import OneOnOneTab from '../profile/OneOnOneTab.jsx';
+import ActionItemsTab from '../profile/ActionItemsTab.jsx';
+import { DEFAULT_PROFILE_TAB_LABELS, PROFILE_TABS } from '../profile/constants.js';
 
 /**
- * `<Spline>` 격리용 Error Boundary — 조직도 ProfileModal 과 동일 패턴.
- * WebGL 컨텍스트 생성 실패 시 Spline 내부에서 throw 되면 부모 트리가 통째로 언마운트
- * 되므로 boundary 로 격리해 헥사 영역만 비운다.
- */
-class SplineBoundary extends Component {
-  constructor(props) { super(props); this.state = { failed: false }; }
-  static getDerivedStateFromError() { return { failed: true }; }
-  componentDidCatch() { this.props.onFail?.(); }
-  render() { return this.state.failed ? null : this.props.children; }
-}
-
-/**
- * Spline scene 의 'profileImage' 오브젝트 텍스처를 멤버 아바타로 교체.
- * 조직도 ProfileModal 과 동일 패턴 — iframe 시절 spline-profile.html 의 applyTexture 를 동일 구현.
- */
-function applyTexture(app, objectName, imageSrc) {
-  return new Promise((resolve) => {
-    const obj = app.findObjectByName(objectName);
-    if (!obj) { resolve(); return; }
-    const layers = obj.material?.layers;
-    if (!layers) { resolve(); return; }
-    const texLayer = [...Array(layers.length)]
-      .map((_, i) => layers[i])
-      .find((l) => l.type === 'texture');
-    if (!texLayer) { resolve(); return; }
-
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.src = imageSrc;
-    img.onload = () => {
-      try {
-        texLayer.updateTexture(img);
-        const c = document.createElement('canvas');
-        c.width = img.width;
-        c.height = img.height;
-        c.getContext('2d').drawImage(img, 0, 0);
-        texLayer.updateTexture(c.toDataURL('image/png'));
-        const tex = texLayer.texture;
-        tex.image = img;
-        texLayer.texture = tex;
-      } catch (e) { /* texture swap 실패 — baked 텍스처 유지 */ }
-      resolve();
-    };
-    img.onerror = () => resolve();
-  });
-}
-
-/**
- * 매니저 페이지 멤버 카드 클릭 시 노출되는 직원 프로필 모달 (v2).
- * Figma node 16952:13855.
+ * 매니저 페이지 멤버 카드 클릭 시 노출되는 팀원 상세 창.
  *
- * 구조/노출 로직/Spline 사이즈는 조직도 ProfileModal 과 완전히 동일:
- *  - 공용 창 바탕(`ModalLayer`)으로 document.body 에 렌더 (사이드바/헤더 위로 막이 올라가도록 · PW-1013)
- *  - overlay + scroll-wrap + 정중앙 modal-card (width 432)
- *  - spline-wrap 432x432 + react-spline stage 600 scale 0.5 + margin offset (조직도와 동일)
- *  - 닫힘 동안 마지막 멤버 콘텐츠 유지 (`displayMember`)
- *
- * Spline 은 조직도 ProfileModal 과 동일하게 `@splinetool/react-spline` 단일 공유 런타임을 쓴다.
- * iframe 시절엔 `spline-profile.html` 을 src 로 띄웠는데, nginx 의 `.html` rewrite 가
- * query string 을 날려 React index.html 로 fallback 되는 버그가 있었다 (dev 배포에서만 재현).
- *
- * 컨텐츠는 매니저 v2 디자인 — segment control + 종합 브리핑 + 1on1 아젠다 + KPI 4 grid.
+ * 2026-11-12 시안(Figma 17873:33191~34118 «profile_card modal 2»)부터 조직도 프로필 창과 같은 넓은 틀을 쓴다 —
+ * 왼쪽 머리 칸(사진 · 이름 · 직책 · AI 한 줄 · [1on1]·[메시지]) + 오른쪽 세그먼트 탭. 틀·머리·탭 내용은
+ * `components/profile/` 의 공용 부품이고, 이 파일은 팀원 데이터를 그 부품에 꽂는 일만 한다.
  *
  * 헤더의 [1on1]·[메시지] 는 `MemberCard` 의 같은 이름 버튼과 동일한 콜백 이름을 받는다
  * (`onOneOnOneClick` / `onMessageClick`) — 소비자가 카드와 모달에 같은 핸들러를 물릴 수
  * 있게 하기 위함이다. 콜백을 안 넘기면(데모) 눌러도 아무 일도 일어나지 않는다.
  *
- * 「인사 정보」 탭의 줄은 오른쪽 끝에 작은 버튼(`row.action`)을 둘 수 있다 — 직함 줄의
+ * 「인사정보」 탭의 줄은 오른쪽 끝에 작은 버튼(`row.action`)을 둘 수 있다 — 직함 줄의
  * [고치기](PW-1094)가 그렇다. 누르면 `onHrRowAction(member, row.key)` 를 부른다. 1on1·메시지와
  * 달리 **이 모달을 닫지 않는다** — 소비자가 띄우는 창은 이 패널 위에 뜨고 패널은 그대로 둔다.
- * (PW-924 때는 헤더 버튼 줄에 있었는데, 주요 버튼 둘과 같은 크기로 서서 튀어 옮겼다.)
+ *
+ * 탭은 데이터가 있을 때만 낸다 — 아직 안 실어 보내는 화면에서 빈 탭이 늘어나지 않게 (PW-182·452).
+ * AI 브리핑만은 늘 있다(이 창의 첫 탭이자 기본 탭).
  */
-/**
- * 화면 문구 기본값(한국어) — 소비자가 `labels` 로 덮는다. 이 패키지는 i18n 을 모른다
- * (pivit-work PW-2216 · 영어 화면에서도 「종합 브리핑」「1on1 추천 아젠다」 등이 한국어로 남았다).
- * 미주입 시 시안 그대로다.
- */
-const DEFAULT_PROFILE_LABELS = {
-  oneOnOneSchedule: '1on1 일정 잡기',
-  close: '닫기',
-  message: '메시지',
-  tabAi: 'AI 브리핑',
-  tabSnippet: '스니핏',
-  tabHealth: '헬스 트렌드',
-  tabOneOnOne: '1on1',
-  tabAction: '액션 아이템',
-  tabHr: '인사 정보',
-  briefingTitle: '종합 브리핑',
-  agendaTitle: '1on1 추천 아젠다',
-  metricHealthAvg: '헬스 평균',
-  metricSnippetStreak: '스니핏 연속',
-  metricLastOneOnOne: '마지막 1on1',
-  metricKrProgress: 'KR 달성률',
-  aiSummaryWeek: 'AI 요약 · 이번 주',
-  snippetEmpty: '최근 스니핏이 없습니다.',
-  actionTotal: '전체',
-  actionOpen: '미완료',
-  actionDone: '완료',
-  healthCurrent: '현재',
-  healthChange: '변화',
-  teamAverage: '팀 평균',
-  detectedFlags: '감지된 플래그',
-};
-
 export default function ProfileModal({
   member,
   onClose,
@@ -141,41 +47,19 @@ export default function ProfileModal({
   onAiBriefingReload,
   // 「AI 브리핑」 탭 브리핑 카드 바로 아래 칸 — 호스트의 체험 AI 소진 안내 등 (PW-1531)
   aiBriefingNotice,
-  // 화면 문구 묶음 — 키는 `DEFAULT_PROFILE_LABELS`. 빠진 키는 기본 한국어 (PW-2216).
+  // 화면 문구 묶음 — 키는 `DEFAULT_PROFILE_TAB_LABELS`. 빠진 키는 기본 한국어 (PW-2216).
   labels,
 }) {
-  const L = { ...DEFAULT_PROFILE_LABELS, ...(labels ?? {}) };
-  // splineReady/Failed 를 boolean 으로 두면 새 멤버 모달 진입 시 useEffect 로 reset 해야
-  // 하는데, react-hooks/set-state-in-effect 룰을 깬다. 대신 "현재 로드 완료된 멤버 id" 와
-  // "실패한 멤버 id" 를 저장하고, displayMember?.id 와 비교해 derived 로 쓴다.
-  // 새 멤버 모달이 열리면 자동으로 false 처리되어 fade-in 이 다시 트리거된다.
-  const [splineReadyId, setSplineReadyId] = useState(null);
-  const [splineFailedId, setSplineFailedId] = useState(null);
-  const [splineActive, setSplineActive] = useState(false);
+  const L = { ...DEFAULT_PROFILE_TAB_LABELS, ...(labels ?? {}) };
   const [activeTab, setActiveTab] = useState('ai');
   const scrollWrapRef = useRef(null);
 
   const [displayMember, setDisplayMember] = useState(member);
   if (member && member !== displayMember) setDisplayMember(member);
-  // 모달이 닫히면 spline 인터랙션 상태도 리셋 (조직도 ProfileModal 과 동일).
-  if (!member && splineActive) setSplineActive(false);
 
-  const splineImage = displayMember?.splineImage || displayMember?.avatar || FALLBACK_IMAGE;
-  const splineReady = displayMember?.id != null && splineReadyId === displayMember.id;
-  const splineFailed = displayMember?.id != null && splineFailedId === displayMember.id;
-
-  const handleSplineLoad = useCallback(async (app) => {
-    const targetId = displayMember?.id ?? null;
-    if (splineImage) {
-      await applyTexture(app, 'profileImage', splineImage);
-      await applyTexture(app, 'profileImage-2', splineImage);
-    }
-    setSplineReadyId(targetId);
-  }, [splineImage, displayMember?.id]);
-
-  const handleSplineFail = useCallback(() => {
-    setSplineFailedId(displayMember?.id ?? null);
-  }, [displayMember?.id]);
+  // 머리 사진 — 팀원의 avatar. 예전 3D 텍스처용 `splineImage` 를 넘기던 호출도 그대로 사진으로 쓴다.
+  // 둘 다 없거나 못 불러오면 이름 글자 원(Avatar) — 남의 기본 얼굴을 빌리지 않는다.
+  const photoSrc = displayMember?.avatar || displayMember?.splineImage || null;
 
   // 다른 팀원으로 열릴 때만 맨 위로 — 호스트는 탭 상태(「AI 브리핑」 생성 중 등)가 바뀔 때마다 팀원 값을 새로
   // 만들어 넘긴다. 값 자체를 보면 버튼을 누를 때마다 창이 맨 위로 튄다 (pivit-work PW-1531).
@@ -190,838 +74,107 @@ export default function ProfileModal({
   const canOneOnOne = displayMember?.canOneOnOne !== false;
   const agendas = profile?.agendas ?? [];
 
-  // 「액션 아이템」 탭은 액션 아이템 전체 화면이 본인 담당분으로 고정되면서
-  // 매니저가 팀원 이행을 볼 경로가 사라진 것을 팀원 1명 단위로 되살린 자리다
-  // (PW-182). 데이터가 없으면 탭 자체를 내지 않는다 — 호스트가 아직 안 실어
-  // 보내는 화면에서 빈 탭이 늘어나지 않게.
-  const TABS = [
-    { key: 'ai', label: L.tabAi },
-    { key: 'snippet', label: L.tabSnippet },
-    { key: 'health', label: L.tabHealth },
-    { key: 'oneonone', label: L.tabOneOnOne },
-    ...(profile?.actionItems ? [{ key: 'action', label: L.tabAction }] : []),
-    // 「인사 정보」 탭 (PW-452) — 조직장이 팀원의 인사 항목을 여기서 본다.
-    // 액션 아이템 탭과 같은 규칙으로 **데이터가 없으면 탭 자체를 내지 않는다**:
-    // 아직 안 실어 보내는 화면에서 빈 탭이 늘어나지 않게.
-    ...(profile?.hrProfile ? [{ key: 'hr', label: L.tabHr }] : []),
-  ];
+  const available = {
+    hr: !!profile?.hrProfile,
+    ai: true,
+    snippet: !!profile?.snippets,
+    health: !!profile?.healthTrend,
+    oneonone: !!profile?.oneOnOne,
+    action: !!profile?.actionItems,
+  };
+  const tabLabel = { hr: L.tabHr, ai: L.tabAi, snippet: L.tabSnippet, health: L.tabHealth, oneonone: L.tabOneOnOne, action: L.tabAction };
+  const tabs = PROFILE_TABS.filter((key) => available[key]).map((key) => ({ value: key, label: tabLabel[key] }));
+  const tab = available[activeTab] ? activeTab : 'ai';
 
-  // 막·Esc·바깥 누르기·body 포털은 공용 창 바탕이 갖는다(PW-1013). 닫혀 있어도 3D 씬을 미리
-  // 받아 두려고 그려 둔다(keepMounted).
+  const hr = profile?.hrProfile;
+  const hrSections = (hr?.sections ?? []).map((s) => ({
+    key: s.key,
+    label: s.title,
+    rows: (s.rows ?? []).map((r) => ({ key: r.key, label: r.label, content: r.value, action: r.action })),
+  }));
+
   return (
-    <ModalLayer open={isOpen} keepMounted onClose={() => onClose?.()}>
-      <div
-        className="manager-modal-scroll-wrap"
-        ref={scrollWrapRef}
-        onClick={onClose}
-      >
-        <div className="manager-modal-card" onClick={(e) => e.stopPropagation()}>
-          {/* Header (yellow→white gradient + spline + name + ai-rec + buttons) */}
-          <div className="manager-modal-header">
-            <button type="button" className="manager-modal-close" onClick={onClose} aria-label={L.close}>
-              <CloseGlyph size={20} strokeWidth={2.4} />
-            </button>
-
-            <div
-              className={`manager-modal-spline-wrap ${splineActive ? 'spline-active' : ''}`}
-              onClick={() => setSplineActive(true)}
-              onMouseLeave={() => setSplineActive(false)}
-            >
-              {isOpen && !splineFailed && (
-                <div
-                  className={`manager-modal-spline-stage ${splineReady ? 'is-ready' : ''}`}
-                >
-                  <SplineBoundary onFail={handleSplineFail}>
-                    <Spline
-                      key={member?.id}
-                      scene={PROFILE_SCENE}
-                      onLoad={handleSplineLoad}
-                    />
-                  </SplineBoundary>
-                </div>
-              )}
-            </div>
-
-            <div className="manager-modal-name">{displayMember?.name}</div>
-            <div className="manager-modal-role">{displayMember?.role}</div>
-
-            {profile?.aiRecommendation && (
-              <p className="manager-modal-ai-rec">{profile.aiRecommendation}</p>
-            )}
-
-            <div className="manager-modal-actions">
+    <ProfileCardFrame
+      open={isOpen}
+      onClose={() => onClose?.()}
+      closeLabel={L.close}
+      scrollRef={scrollWrapRef}
+      aside={(
+        <ProfileCardHeader
+          name={displayMember?.name}
+          photo={photoSrc}
+          title={displayMember?.role}
+          note={profile?.aiRecommendation}
+          noteTone="ai"
+          actions={(
+            <>
               {canOneOnOne && (
-                <button type="button" className="manager-modal-btn-primary" onClick={onOneOnOneClick}>
+                <button type="button" className="profile-btn-primary" onClick={onOneOnOneClick}>
                   <Icon src={icons?.userOutline} size={20} color="var(--text-white)" baseUrl={baseUrl} />
                   <span>1on1</span>
                 </button>
               )}
-              <button type="button" className="manager-modal-btn-secondary" onClick={onMessageClick}>
+              <button type="button" className="profile-btn-secondary" onClick={onMessageClick}>
                 <Icon src={icons?.messageText} size={20} color="var(--text-brand-tertiary)" baseUrl={baseUrl} />
                 <span>{L.message}</span>
               </button>
-            </div>
-          </div>
-
-          {/* Body */}
-          <div className="manager-modal-body">
-            {/* 공용 SegmentedControl(PW-836). 크기 lg·칸 똑같이 나눔이 디자이너가 이 창에 그린 탭 줄이다. */}
-            <SegmentedControl
-              block
-              equal
-              size="lg"
-              className={`manager-modal-seg ${TABS.length > 4 ? 'is-compact' : ''}`.trim()}
-              items={TABS.map((t) => ({ value: t.key, label: t.label }))}
-              value={activeTab}
-              onChange={setActiveTab}
-            />
-
-
-            {activeTab === 'ai' && profile && (
-              <AiBriefingTab
-                profile={profile}
-                agendas={agendas}
-                icons={icons}
-                baseUrl={baseUrl}
-                onGenerate={onAiBriefingGenerate}
-                onReload={onAiBriefingReload}
-                notice={aiBriefingNotice}
-                labels={L}
-              />
-            )}
-            {activeTab === 'snippet' && profile?.snippets && (
-              <SnippetTab profile={profile} icons={icons} baseUrl={baseUrl} onMore={onSnippetsMore} labels={L} />
-            )}
-            {activeTab === 'health' && profile?.healthTrend && (
-              <HealthTrendTab trend={profile.healthTrend} labels={L} />
-            )}
-            {activeTab === 'oneonone' && profile?.oneOnOne && (
-              <OneOnOneTab
-                data={profile.oneOnOne}
-                onSchedule={canOneOnOne ? onOneOnOneClick : undefined}
-                onRetry={onOneOnOneRetry}
-                labels={L}
-              />
-            )}
-            {activeTab === 'action' && profile?.actionItems && (
-              <ActionItemsTab data={profile.actionItems} onMore={onActionItemsMore} labels={L} baseUrl={baseUrl} />
-            )}
-            {activeTab === 'hr' && profile?.hrProfile && (
-              <HrProfileTab
-                data={profile.hrProfile}
-                onRetry={onHrProfileRetry}
-                onRowAction={(key) => onHrRowAction?.(displayMember, key)}
-              />
-            )}
-          </div>
-
-          {/* Footer */}
-          <div className="manager-modal-footer">
-            <span className="manager-modal-footer-text">Get Communication with</span>
-            <img src={assetUrl(baseUrl, 'logo.svg')} alt="Pivit" className="manager-modal-footer-logo" />
-          </div>
-        </div>
-      </div>
-    </ModalLayer>
-  );
-}
-
-function MetricTile({ label, value }) {
-  return (
-    <div className="manager-modal-metric-tile">
-      <p className="manager-modal-metric-label">{label}</p>
-      <p className="manager-modal-metric-value">{value}</p>
-    </div>
-  );
-}
-
-/* ────────────────────────────────────────────────
-   탭 별 컨텐츠
-   ──────────────────────────────────────────────── */
-
-/**
- * 「AI 브리핑」 탭 — 종합 브리핑 카드 · 1on1 추천 아젠다 · 지표 칸.
- *
- * `profile.aiBriefing` 이 없으면 예전처럼 `profile.aiBrief` 문장을 그대로 그린다(옛 호출 그대로).
- * 있으면 AI 브리핑을 버튼으로만 만드는 화면이 된다 (pivit-work PW-1531 · 기획 policy §6-3). 문구는
- * 호스트가 전부 만들어 넘긴다 — 캔버스는 i18n 도, 보관 기간도 모른다.
- *  - `{ status: 'loading', loadingLabel }` — 보관본을 불러오는 중
- *  - `{ status: 'loadError', loadError: { message, retryLabel } }` — 불러오지 못했다. 다시 시도는 `onReload`
- *  - `{ status: 'empty', emptyText, generateLabel }` — 보관본이 없다. 버튼이 `onGenerate`
- *  - `{ status: 'ready', content, updatedLabel?, sources?, refreshLabel, agendaEmptyText }` — 오른쪽 위
- *    새로고침이 `onGenerate`. `updatedLabel` 은 「마지막 업데이트: N시간 전」처럼 이전 브리핑을 보일 때만
- *  - 공통 `generating` — 생성 중(버튼 잠금 + 도는 표시), `error: { title, message, retryLabel }` — AI 실패.
- *    재생성도 `onGenerate`
- * `notice` 는 카드 바로 아래에 그대로 놓는다(체험 AI 소진 안내).
- */
-function AiBriefingTab({ profile, agendas, icons, baseUrl, onGenerate, onReload, notice, labels: L }) {
-  const ai = profile.aiBriefing;
-  const ready = !ai || ai.status === 'ready';
-  return (
-    <div className="manager-modal-content-section">
-      <div className="manager-modal-brief-card" data-testid="manager-ai-briefing">
-        <div className="manager-modal-brief-label-row">
-          <Icon src={icons?.summarySparkle} size={12} color="var(--utility-purple-500)" baseUrl={baseUrl} />
-          <span className="manager-modal-brief-label">{L.briefingTitle}</span>
-          {ai?.status === 'ready' && ai.updatedLabel && (
-            <span className="manager-modal-brief-updated">{ai.updatedLabel}</span>
+            </>
           )}
-          {ai?.status === 'ready' && (
-            // 디자이너가 그린 AI 띠의 새로고침 — 바탕 없는 16px 보라 refresh-cw 하나
-            // (okr OkrDetailModal·OkrAiInsights, stesslee). 공용 버튼은 잠금만 얹는다.
-            <Button
-              className="manager-modal-brief-refresh"
-              aria-label={ai.refreshLabel}
-              title={ai.refreshLabel}
-              pending={!!ai.generating}
-              onClick={() => onGenerate?.()}
-            >
-              <Icon src="/icons-solid/refresh-cw-01.svg" size={16} color="var(--utility-purple-500)" baseUrl={baseUrl} />
-            </Button>
-          )}
-        </div>
-
-        {ai?.status === 'loading' && <p className="manager-modal-brief-text">{ai.loadingLabel}</p>}
-        {ai?.status === 'loadError' && <HrProfileFailure notice={ai.loadError} onRetry={onReload} />}
-        {ai?.status === 'empty' && (
-          <>
-            <p className="manager-modal-brief-text">{ai.emptyText}</p>
-            {/* 디자이너가 그린 AI 실행 버튼 「✦ AI ○○」 (oneonone MemberAiButton, stesslee). 호스트는 동작 낱말만 넘긴다. */}
-            <MemberAiButton
-              className="manager-modal-brief-generate"
-              label={ai.generateLabel}
-              ariaLabel={`AI ${ai.generateLabel}`}
-              pending={!!ai.generating}
-              onClick={() => onGenerate?.()}
-              baseUrl={baseUrl}
-            />
-          </>
-        )}
-        {ready && <p className="manager-modal-brief-text">{ai ? ai.content : profile.aiBrief}</p>}
-        {ready && ai?.sources?.length > 0 && (
-          <div className="manager-modal-snippet-tags manager-modal-brief-sources">
-            {ai.sources.map((label) => (
-              <StatusBadge key={label} className="manager-modal-snippet-tag">{label}</StatusBadge>
-            ))}
-          </div>
-        )}
-        {ai?.error && (
-          <AiFailBox
-            title={ai.error.title}
-            message={ai.error.message}
-            retryLabel={ai.error.retryLabel}
-            retryDisabled={!!ai.generating}
-            onRetry={() => onGenerate?.()}
-            testId="manager-ai-briefing-failed"
-          />
-        )}
-      </div>
-
-      {notice}
-
-      {ready && agendas.map((a, i) => (
-        <div key={i} className="manager-modal-agenda-item">
-          {i === 0 && <p className="manager-modal-agenda-list-title">{L.agendaTitle}</p>}
-          <div className="manager-modal-agenda-content">
-            <p className="manager-modal-agenda-heading">{i + 1}. {a.title}</p>
-            <p className="manager-modal-agenda-question">{a.question}</p>
-          </div>
-        </div>
-      ))}
-      {ai?.status === 'ready' && agendas.length === 0 && ai.agendaEmptyText && (
-        <p className="manager-modal-empty">{ai.agendaEmptyText}</p>
+        />
       )}
-
-      {profile.metrics && (
-        <div className="manager-modal-metrics-section">
-          <div className="manager-modal-metrics-grid">
-            <MetricTile label={L.metricHealthAvg} value={profile.metrics.healthAvg} />
-            <MetricTile label={L.metricSnippetStreak} value={profile.metrics.snippetStreak} />
-            <MetricTile label={L.metricLastOneOnOne} value={profile.metrics.lastOneOnOne} />
-            <MetricTile label={L.metricKrProgress} value={profile.metrics.krProgress} />
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/**
- * 스니핏 탭 — 최근 스니핏 카드 + 목록 끝의 「더 보기」(PW-925).
- *
- * `profile.snippetsMore` 가 있을 때만 목록 아래에 한 줄을 더 그린다. 호스트가 표시 문자열까지
- * 만들어 넘긴다 — 캔버스는 i18n 도, 더 남았는지도 모른다.
- *  - `{ label, loadingLabel, loading }` — 버튼. 불러오는 동안 누를 수 없고 라벨이 바뀐다
- *  - `{ error: { message, retryLabel } }` — 버튼 자리에 실패 문구와 [다시 시도]. 이미 보이던
- *    카드는 그대로 둔다. 다시 시도도 `onMore` 로 간다
- * 더 남은 것이 없으면 호스트가 `snippetsMore` 를 빼서 버튼이 사라진다.
- */
-function SnippetTab({ profile, icons, baseUrl, onMore, labels: L }) {
-  // 볼 수 있는 스니핏이 0건이면 AI 요약·[더 보기] 없이 빈 안내만 — 같은 창 액션 아이템 탭의 빈 목록과
-  // 같은 모양(.manager-modal-empty). 요약 자리를 카드 브리핑 문장으로 채우지 않는다 (PW-2512 · 매니저 뷰 §10-2).
-  if (profile.snippets.length === 0 && !profile.snippetsMore) {
-    return (
-      <div className="manager-modal-content-section">
-        <p className="manager-modal-empty">{L.snippetEmpty}</p>
-      </div>
-    );
-  }
-  return (
-    <div className="manager-modal-content-section">
-      {/* AI 요약 카드 (이번 주) */}
-      <div className="manager-modal-brief-card">
-        <div className="manager-modal-brief-label-row">
-          <Icon src={icons?.summarySparkle} size={12} color="var(--utility-purple-500)" baseUrl={baseUrl} />
-          <span className="manager-modal-brief-label">{L.aiSummaryWeek}</span>
-        </div>
-        <p className="manager-modal-brief-text">{profile.snippetsSummary || profile.aiBrief}</p>
-      </div>
-
-      {/* 스니핏 항목들 */}
-      {profile.snippets.map((s, i) => (
-        <SnippetItem key={i} snippet={s} />
-      ))}
-
-      {profile.snippetsMore && (
-        profile.snippetsMore.error ? (
-          <HrProfileFailure notice={profile.snippetsMore.error} onRetry={onMore} />
-        ) : (
-          // 디자이너가 그린 목록 끝 [더 보기](조직도 구성원 표 .pj-btn-more) 값 그대로인 공용 부품
-          <LoadMoreButton
-            label={profile.snippetsMore.label}
-            loadingLabel={profile.snippetsMore.loadingLabel}
-            loading={!!profile.snippetsMore.loading}
-            onClick={onMore}
-          />
-        )
-      )}
-    </div>
-  );
-}
-
-function SnippetItem({ snippet }) {
-  return (
-    <div className="manager-modal-snippet-item">
-      <div className="manager-modal-snippet-meta">
-        <p className="manager-modal-snippet-date">{snippet.date}</p>
-        <div className="manager-modal-snippet-tags">
-          {snippet.tags?.map((t) => (
-            <StatusBadge key={t} className="manager-modal-snippet-tag">{t}</StatusBadge>
-          ))}
-          <span className="manager-modal-snippet-health">
-            <CheckHeartIcon size={14} />
-            <span>{snippet.healthScore}</span>
-          </span>
-        </div>
-      </div>
-      <div className="manager-modal-snippet-body">
-        <p className="manager-modal-snippet-title">{snippet.title}</p>
-        {(snippet.ups?.length || snippet.downs?.length) && (
-          <div className="manager-modal-snippet-points">
-            {snippet.ups?.map((u, i) => (
-              <span key={`u${i}`} className="manager-modal-snippet-point">
-                <ArrowUpIcon size={16} />
-                <span>{u}</span>
-                <span className="manager-modal-snippet-dot">•</span>
-              </span>
-            ))}
-            {snippet.downs?.map((d, i) => (
-              <span key={`d${i}`} className="manager-modal-snippet-point">
-                <ArrowUpIcon size={16} down />
-                <span>{d}</span>
-                <span className="manager-modal-snippet-dot">•</span>
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-      {snippet.editLog && <SnippetEditLog log={snippet.editLog} />}
-    </div>
-  );
-}
-
-/**
- * 카드 맨 아래 「수정 기록」(pivit-work PW-2702 · 기획 스니핏 정책서 §7-A.6).
- *
- * 호스트가 버튼을 그릴 카드에만 `snippet.editLog` 를 넣는다 — 기록 0건·작성자 본인·어려움을 볼 수
- * 없는 사람이면 넣지 않아 버튼이 없다. 문구·날짜는 호스트가 만든다.
- *  - `{ label, onToggle, open, loading }` — 텍스트 버튼. 불러오는 동안 누를 수 없고 `label` 이 바뀐다
- *  - `error: { message, retryLabel }` + `onRetry` — 펼친 자리에 실패 문구와 [다시 시도](이 창의 실패 모양)
- *  - `rows: [{ key, summary: string[], open, onToggle, changes?: [{ key, label, inline?, before, after }] }]`
- *    `summary` 는 한 줄 칸(날짜·시각·고친 사람·바뀐 섹션·알림)을 카드의 점(•)으로 잇는다.
- *    열린 줄은 `changes` 를 섹션마다 보인다 — `inline` 이면 «3 → 4» 한 줄, 아니면 수정 전·후를 위아래로.
- *    `beforeLabel`·`afterLabel` 은 위아래 칸 이름표다.
- */
-function SnippetEditLog({ log }) {
-  return (
-    <div className="manager-modal-snippet-log">
-      <Button
-        className="manager-modal-snippet-log-toggle"
-        aria-expanded={!!log.open}
-        disabled={!!log.loading}
-        onClick={() => log.onToggle?.()}
-      >
-        {log.label}
-      </Button>
-      {log.open && log.error && (
-        <HrProfileFailure notice={log.error} onRetry={log.onRetry} />
-      )}
-      {log.open && !log.error && log.rows && (
-        <ul className="manager-modal-snippet-log-list">
-          {log.rows.map((row) => (
-            <li key={row.key} className="manager-modal-snippet-log-row">
-              <Button
-                className="manager-modal-snippet-log-head"
-                aria-expanded={!!row.open}
-                onClick={() => row.onToggle?.()}
-              >
-                {row.summary.map((part, i) => (
-                  <span key={i} className="manager-modal-snippet-point">
-                    <span>{part}</span>
-                    <span className="manager-modal-snippet-dot">•</span>
-                  </span>
-                ))}
-              </Button>
-              {row.open && row.changes && (
-                <div className="manager-modal-snippet-log-changes">
-                  {row.changes.map((c) => (
-                    <div key={c.key} className="manager-modal-snippet-log-change">
-                      <p className="manager-modal-snippet-log-section">{c.label}</p>
-                      {c.inline ? (
-                        <p className="manager-modal-snippet-log-text">{`${c.before} → ${c.after}`}</p>
-                      ) : (
-                        <>
-                          <p className="manager-modal-snippet-log-caption">{log.beforeLabel}</p>
-                          <p className="manager-modal-snippet-log-text is-before">{c.before}</p>
-                          <p className="manager-modal-snippet-log-caption">{log.afterLabel}</p>
-                          <p className="manager-modal-snippet-log-text">{c.after}</p>
-                        </>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
-function CheckHeartIcon({ size = 14 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 14 14" fill="none">
-      <path
-        d="M11.6667 4.66667C11.6667 3.376 10.6573 2.33333 9.41667 2.33333C8.49 2.33333 7.69333 2.91667 7.34833 3.74C7.00333 2.91667 6.20667 2.33333 5.28 2.33333C4.03933 2.33333 3.03 3.376 3.03 4.66667C3.03 8.43367 7.34833 11 7.34833 11M9.91667 8.16667L11.0833 9.33333L13.4167 7"
-        stroke="var(--colors-text-textWarningPrimary, #dc6803)"
-        strokeWidth="1.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-/** `down` — 위 화살표를 뒤집어 아래 화살표로 그린다(아쉬운 점 줄). */
-function ArrowUpIcon({ size = 16, down = false }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 16 16"
-      fill="none"
-      style={down ? { transform: 'rotate(180deg)' } : undefined}
     >
-      <path
-        d="M8 13.333V2.667M8 2.667L3.333 7.333M8 2.667L12.667 7.333"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-/**
- * 팀원 상세 패널 「액션 아이템」 탭 (PW-182).
- *
- * **읽기 전용이다.** 체크 표시는 상태를 보여줄 뿐이고 클릭에 반응하지 않는다 —
- * 상태는 담당자 본인만 바꾼다. 매니저가 팀원 할 일을 대신 관리하는 도구가 되면
- * 위임이 깨진다는 것이 이 화면의 전제다.
- *
- * 시안: `pivit-specs/기획서-UX-UI-UserFlow/I. 매니저-뷰/manager-view.jsx`
- * `DetailActionTab` — 3-그리드 요약 + 항목 행(체크·제목·우선순위·마감).
- *
- * 목록 끝 「더 보기」(pivit-work PW-1941) — 같은 창 스니핏 탭의 「더 보기」와 같은 모양·같은 약속이다.
- * `data.more` 가 `{ label, loadingLabel, loading }` 이면 버튼, `{ error: { message, retryLabel } }` 이면
- * 실패 문구와 [다시 시도]. 둘 다 `onMore` 로 간다. 더 남은 것이 없으면 호스트가 `more` 를 뺀다.
- */
-function ActionItemsTab({ data, onMore, labels: L, baseUrl }) {
-  const items = data.items ?? [];
-  const summary = data.summary ?? {};
-
-  return (
-    <div className="manager-modal-content-section">
-      <div className="manager-modal-trend-grid">
-        <MetricTile label={L.actionTotal} value={summary.total ?? 0} />
-        <MetricTile label={L.actionOpen} value={summary.open ?? 0} />
-        <MetricTile label={L.actionDone} value={summary.done ?? 0} />
-      </div>
-
-      {items.length === 0 ? (
-        <p className="manager-modal-empty">{data.emptyLabel}</p>
-      ) : (
-        <div className="manager-modal-action-list">
-          {/* 진행자가 아닌 1on1 출처 행 (pivit-work PW-2486) — 눌리지 않고 마우스를 올리면 이유를 보인다. */}
-          {items.map((item) => withLockedHint(item, (
-            <div
-              key={item.id}
-              className={`manager-modal-action-row ${item.done ? 'is-done' : ''}`.trim()}
-              // 출처(회의·1on1)로 갈 수 있는 항목만 소비자가 `onOpen` 을 준다 — 행을 누르면 그리로 간다(기획 §6-7).
-              {...(item.onOpen
-                ? {
-                    role: 'link',
-                    tabIndex: 0,
-                    style: { cursor: 'pointer' },
-                    onClick: item.onOpen,
-                    onKeyDown: (e) => { if (isEnterKey(e)) item.onOpen(); },
-                  }
-                : item.lockedHint
-                  ? { tabIndex: 0, style: { cursor: 'default' } }
-                  : {})}
-            >
-              {/* 체크박스가 아니라 상태 표시다 — button 이 아니므로 눌러도 반응하지 않는다. */}
-              <span
-                className="manager-modal-action-check"
-                role="img"
-                aria-label={item.done ? L.actionDone : L.actionOpen}
-              >
-                {/* 디자이너가 그린 1on1 상세 창 액션 아이템 체크(.ood-action-check)와 같은 흰 체크 14px */}
-                {item.done && (
-                  <Icon src="/icons-solid/check.svg" size={14} color="var(--text-white)" baseUrl={baseUrl} />
-                )}
-              </span>
-              <span className="manager-modal-action-title">{item.title}</span>
-              {item.sourceLabel && (
-                <span className="manager-modal-action-source">{item.sourceLabel}</span>
-              )}
-              {item.deadlineLabel && (
-                <span
-                  className={`manager-modal-action-deadline ${
-                    item.overdue ? 'is-overdue' : ''
-                  }`.trim()}
-                >
-                  {item.deadlineLabel}
-                </span>
-              )}
-            </div>
-          )))}
+      {/* 공용 SegmentedControl(PW-836) — 디자이너가 이 창에 그린 탭 줄(17873:33231): 줄 폭 가득, 칸은 글자 폭만큼.
+          데이터가 있는 탭이 하나뿐이면 고를 것이 없으니 줄을 그리지 않고 내용만 놓는다. */}
+      {tabs.length > 1 && (
+        <div className="profile-seg-dock">
+        <SegmentedControl
+          block
+          className="profile-seg"
+          ariaLabel={L.tabsAriaLabel}
+          items={tabs}
+          value={tab}
+          onChange={setActiveTab}
+        />
         </div>
       )}
 
-      {items.length > 0 && data.more && (
-        data.more.error ? (
-          <HrProfileFailure notice={data.more.error} onRetry={onMore} />
-        ) : (
-          <LoadMoreButton
-            label={data.more.label}
-            loadingLabel={data.more.loadingLabel}
-            loading={!!data.more.loading}
-            onClick={onMore}
-          />
-        )
+      {tab === 'hr' && hr && (
+        <HrInfoTab
+          sections={hrSections}
+          status={{ loading: hr.loading, loadingLabel: hr.loadingLabel, error: hr.error, personalError: hr.personalError }}
+          onRetry={onHrProfileRetry}
+          onRowAction={(sectionKey, rowKey) => onHrRowAction?.(displayMember, rowKey)}
+        />
       )}
-    </div>
-  );
-}
-
-/**
- * 「인사 정보」 탭 (PW-452).
- *
- * 이 컴포넌트는 **아무것도 판정하지 않는다.** 어떤 항목을 보여줄지·값이 비었을 때
- * 무엇을 적을지는 전부 호스트가 정해 문자열로 넘긴다 — 무엇을 볼 수 있는가는
- * 서버가 정하는 것이고, 화면이 그 자리를 되메우면 그 판정이 무효가 되기 때문이다.
- * 그래서 여기서 「값이 없으면 이렇게 대신 그린다」를 하지 않는다.
- *
- * 실패가 두 층이다:
- *  - `error` — 인사 정보를 통째로 못 받았다. 탭 안에서만 말한다.
- *  - `personalError` — 나머지는 받았는데 **개인 정보 자리만** 못 받았다.
- *    그 자리에만 문구를 두고 위쪽 항목은 정상으로 그린다.
- *
- * 줄 옆 버튼(`row.action: { label, ariaLabel? }`)도 호스트가 넣은 줄에만 그린다 — 누가
- * 고칠 수 있는가를 여기서 정하지 않는다. 누르면 `onRowAction(row.key)`.
- */
-function HrProfileTab({ data, onRetry, onRowAction }) {
-  if (data.loading) {
-    return (
-      <div className="manager-modal-content-section">
-        <p className="manager-modal-empty">{data.loadingLabel}</p>
-      </div>
-    );
-  }
-
-  if (data.error) {
-    return (
-      <div className="manager-modal-content-section">
-        <HrProfileFailure notice={data.error} onRetry={onRetry} />
-      </div>
-    );
-  }
-
-  const sections = data.sections ?? [];
-
-  return (
-    <div className="manager-modal-content-section">
-      {sections.map((section) => (
-        <div className="manager-modal-hr-section" key={section.key}>
-          <p className="manager-modal-hr-section-title">{section.title}</p>
-          <dl className="manager-modal-hr-list">
-            {(section.rows ?? []).map((row) => (
-              <div className="manager-modal-hr-row" key={row.key}>
-                <dt className="manager-modal-hr-label">{row.label}</dt>
-                <dd className="manager-modal-hr-value">{row.value}</dd>
-                {row.action?.label && (
-                  <Button
-                    className="manager-modal-hr-action"
-                    aria-label={row.action.ariaLabel}
-                    onClick={() => onRowAction?.(row.key)}
-                  >
-                    {row.action.label}
-                  </Button>
-                )}
-              </div>
-            ))}
-          </dl>
-        </div>
-      ))}
-
-      {data.personalError && (
-        <div className="manager-modal-hr-section">
-          <p className="manager-modal-hr-section-title">
-            {data.personalError.title}
-          </p>
-          <HrProfileFailure notice={data.personalError} onRetry={onRetry} />
-        </div>
+      {tab === 'ai' && profile && (
+        <AiBriefingTab
+          profile={profile}
+          agendas={agendas}
+          icons={icons}
+          baseUrl={baseUrl}
+          onGenerate={onAiBriefingGenerate}
+          onReload={onAiBriefingReload}
+          notice={aiBriefingNotice}
+          labels={L}
+        />
       )}
-    </div>
-  );
-}
-
-function HrProfileFailure({ notice, onRetry }) {
-  return (
-    <div className="manager-modal-hr-failure">
-      <p className="manager-modal-hr-failure-text">{notice.message}</p>
-      {notice.retryLabel && (
-        <Button variant="ghost" size="sm" onClick={() => onRetry?.()}>
-          {notice.retryLabel}
-        </Button>
+      {tab === 'snippet' && profile?.snippets && (
+        <SnippetTab profile={profile} icons={icons} baseUrl={baseUrl} onMore={onSnippetsMore} labels={L} />
       )}
-    </div>
-  );
-}
-
-/**
- * 「1on1」 탭 (pivit-work PW-2486). 문구·날짜는 호스트가 만들어 넘긴다.
- *  - `data.loading` + `loadingLabel` · `data.error: { message, retryLabel }` — 인사 정보 탭과 같은 모양
- *  - `items: [{ id, date, hostLabel, statusLabel, statusTone, title?, onOpen?, lockedHint? }]`
- *    `onOpen` 이 있는 행만 눌린다. `lockedHint` 가 있으면 눌리지 않고 마우스를 올리면 그 글을 보인다.
- *  - 항목이 없으면 `emptyLabel`, 그 아래 [일정 잡기]는 `onSchedule` 이 있을 때만.
- */
-function OneOnOneTab({ data, onSchedule, onRetry, labels: L }) {
-  if (data.loading) {
-    return (
-      <div className="manager-modal-content-section">
-        <p className="manager-modal-empty">{data.loadingLabel}</p>
-      </div>
-    );
-  }
-  if (data.error) {
-    return (
-      <div className="manager-modal-content-section">
-        <HrProfileFailure notice={data.error} onRetry={onRetry} />
-      </div>
-    );
-  }
-  const items = data.items ?? [];
-  return (
-    <div className="manager-modal-content-section">
-      {/* 마지막 1on1 1-grid */}
-      <div className="manager-modal-trend-grid manager-modal-oneonone-grid">
-        <MetricTile label={L.metricLastOneOnOne} value={data.lastDate} />
-      </div>
-
-      {/* 1on1 기록 항목들 */}
-      {items.map((item, i) => (
-        <OneOnOneRow key={item.id ?? i} item={item} />
-      ))}
-
-      {items.length === 0 && data.emptyLabel && (
-        <div className="manager-modal-oneonone-empty">
-          <p className="manager-modal-empty">{data.emptyLabel}</p>
-          {onSchedule && (
-            <Button variant="ghost" size="sm" onClick={onSchedule}>
-              {L.oneOnOneSchedule}
-            </Button>
-          )}
-        </div>
+      {tab === 'health' && profile?.healthTrend && (
+        <HealthTrendTab trend={profile.healthTrend} labels={L} />
       )}
-    </div>
-  );
-}
-
-function OneOnOneRow({ item }) {
-  const row = (
-    <div
-      className="manager-modal-oneonone-item"
-      {...(item.onOpen
-        ? {
-            role: 'link',
-            tabIndex: 0,
-            style: { cursor: 'pointer' },
-            onClick: item.onOpen,
-            onKeyDown: (e) => { if (isEnterKey(e)) item.onOpen(); },
-          }
-        : { ...(item.lockedHint ? { tabIndex: 0 } : {}), style: { cursor: 'default' } })}
-    >
-      <p className="manager-modal-oneonone-date">{item.date}</p>
-      {(item.hostLabel || item.statusLabel) && (
-        <div className="manager-modal-oneonone-meta">
-          {item.hostLabel && <span className="manager-modal-oneonone-host">{item.hostLabel}</span>}
-          {item.statusLabel && <StatusBadge tone={item.statusTone} className="ono-done-badge">{item.statusLabel}</StatusBadge>}
-        </div>
+      {tab === 'oneonone' && profile?.oneOnOne && (
+        <OneOnOneTab
+          data={profile.oneOnOne}
+          onSchedule={canOneOnOne ? onOneOnOneClick : undefined}
+          onRetry={onOneOnOneRetry}
+          labels={L}
+        />
       )}
-      {item.title && <p className="manager-modal-oneonone-title">{item.title}</p>}
-    </div>
-  );
-  return withLockedHint(item, row);
-}
-
-function withLockedHint(item, row) {
-  return item.lockedHint ? <Tooltip key={item.id} content={item.lockedHint}>{row}</Tooltip> : row;
-}
-
-function HealthTrendTab({ trend, labels: L }) {
-  return (
-    <div className="manager-modal-content-section">
-      {/* 3-grid KPI */}
-      <div className="manager-modal-trend-grid">
-        <MetricTile label={L.healthCurrent} value={trend.current} />
-        <MetricTile label={L.healthChange} value={trend.change} />
-        <MetricTile label={L.teamAverage} value={trend.teamAvg} />
-      </div>
-
-      {/* Chart */}
-      <HealthChart points={trend.points || []} teamAverage={trend.teamAverage} dates={trend.dates || []} teamAverageLabel={L.teamAverage} />
-
-      {/* 감지된 플래그 */}
-      {trend.flags?.length > 0 && (
-        <div className="manager-modal-agenda-item">
-          <p className="manager-modal-agenda-list-title">{L.detectedFlags}</p>
-          <div className="manager-modal-flags">
-            {trend.flags.map((f, i) => (
-              <p key={i} className={`manager-modal-flag manager-modal-flag-${f.severity}`}>
-                {f.label}
-              </p>
-            ))}
-          </div>
-        </div>
+      {tab === 'action' && profile?.actionItems && (
+        <ActionItemsTab data={profile.actionItems} onMore={onActionItemsMore} labels={L} baseUrl={baseUrl} />
       )}
-    </div>
-  );
-}
-
-/**
- * 헬스 트렌드 line chart (SVG).
- * y축 0~10, x축 dates 4개, line + dots + 팀 평균 dashed line.
- */
-function HealthChart({ points, teamAverage, dates, teamAverageLabel = '팀 평균' }) {
-  const W = 336;
-  const H = 150;
-  const PAD_LEFT = 24;
-  const PAD_RIGHT = 12;
-  const Y_MAX = 10;
-
-  const xFor = (i, n) =>
-    PAD_LEFT + ((W - PAD_LEFT - PAD_RIGHT) / Math.max(1, n - 1)) * i;
-  const yFor = (v) => (H - (v / Y_MAX) * H);
-
-  // 값이 없는 주(null)는 0 으로 그리지 않고 비워 두며, 앞뒤 주를 잇지 않는다(기획 §6-5).
-  // 바로 앞 주에 값이 있으면 잇고(L), 없으면 새 토막을 연다(M).
-  const linePath = points
-    .map((p, i) => {
-      if (p.value == null) return '';
-      const joined = i > 0 && points[i - 1].value != null;
-      return `${joined ? 'L' : 'M'} ${xFor(i, points.length)} ${yFor(p.value)}`;
-    })
-    .filter(Boolean)
-    .join(' ');
-  const teamY = teamAverage != null ? yFor(teamAverage) : null;
-
-  return (
-    <div className="manager-modal-chart">
-      <svg
-        viewBox={`0 0 ${W} ${H}`}
-        width="100%"
-        height={H}
-        preserveAspectRatio="none"
-        style={{ display: 'block' }}
-      >
-        {/* y 축 grid lines */}
-        {[10, 8, 6, 4, 2, 0].map((v) => (
-          <g key={v}>
-            <text x={0} y={yFor(v) + 4} fontSize="12" fill="var(--text-tertiary)">{v}</text>
-            <line
-              x1={PAD_LEFT}
-              x2={W - PAD_RIGHT / 2}
-              y1={yFor(v)}
-              y2={yFor(v)}
-              stroke="var(--border-secondary-alt, #e6e8ea)"
-              strokeWidth="1"
-            />
-          </g>
-        ))}
-        {/* 팀 평균 dashed */}
-        {teamY != null && (
-          <line
-            x1={PAD_LEFT}
-            x2={W - PAD_RIGHT / 2}
-            y1={teamY}
-            y2={teamY}
-            stroke="var(--text-tertiary)"
-            strokeDasharray="4 4"
-            strokeWidth="1"
-          />
-        )}
-        {/* 라인 그래프 */}
-        {linePath && (
-          <path d={linePath} stroke="var(--utility-purple-500)" strokeWidth="2" fill="none" />
-        )}
-        {/* 데이터 포인트 dots */}
-        {points.map((p, i) => p.value == null ? null : (
-          <circle
-            key={i}
-            cx={xFor(i, points.length)}
-            cy={yFor(p.value)}
-            r="4"
-            fill="var(--utility-purple-500)"
-          />
-        ))}
-      </svg>
-      {/* x축 라벨 */}
-      <div
-        className="manager-modal-chart-x-labels"
-        style={{ paddingLeft: PAD_LEFT, paddingRight: PAD_RIGHT }}
-      >
-        {dates.map((d, i) => <span key={i}>{d}</span>)}
-      </div>
-      {teamAverage != null && (
-        <div className="manager-modal-chart-legend">
-          <span className="manager-modal-chart-legend-line" />
-          <span>{teamAverageLabel} {teamAverage}</span>
-        </div>
-      )}
-    </div>
+    </ProfileCardFrame>
   );
 }

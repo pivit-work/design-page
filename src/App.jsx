@@ -24,6 +24,7 @@ import './recording-player.css';
 import './timeline.css';
 import './meetings.css';
 import './manager.css';
+import './profile-card.css';
 import './report.css';
 import './snippet.css';
 import './okr.css';

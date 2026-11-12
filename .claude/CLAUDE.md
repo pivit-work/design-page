@@ -62,6 +62,10 @@ pivit-work(실 프로덕트) 는 이 wrapper 를 import 하지 않고, 자신의
 | 1on1 | `src/OneOnOnePage.jsx` | `OneOnOneDashboardCanvas` |
 | 공지 바 (주소 `/broadcast`) | `src/BroadcastPage.jsx` | `BroadcastBar` |
 
+구성원 프로필 창은 조직도 `ProfileModal` 과 매니저 `ManagerProfileModal` 이 같은 공용 부품(`src/components/profile/` ·
+`src/profile-card.css`)으로 그린다 — 왼쪽 머리 칸 + 오른쪽 세그먼트 탭(인사정보 · AI 브리핑 · 스니핏 · 헬스 트렌드 · 원온원 · 액션 아이템).
+데모 탭 데이터는 `src/profile-demo-data.js`.
+
 ### ❌ 절대 하지 않는 것
 
 **컴포넌트 내부에 demo fallback 을 넣지 마라.** 과거 `TimelineDataProvider`
