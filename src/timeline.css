@@ -3540,11 +3540,221 @@
    - 확인한 칸                    → 보통 칸 그대로 (머리의 「확인함」 표시만 남는다)
    - 닫기 막힘 문구               → 아래 줄 상태 글씨 .tl-snippet-autosave (14/20) · 오류 색
    =========================== */
-.tl-snippet-draft {
+/* 활동 초안 띠 (PW-2733) — 날짜 줄 바로 아래. 디자이너 원본이 없어 같은 창·같은 용도의 디자이너 값을 옮긴다:
+   - 띠 바탕          → AI 안내 띠 .tl-snippet-info 의 그라데이션 위에 AI 버튼 바탕 보라 50 (stesslee 005d80ab)
+   - 띠 모서리·여백    → 글 칸 .tl-snippet-textarea 모서리 10 (stesslee) · 여백은 간격 토큰 lg·xl
+   - 위아래 간격       → 창 칸 사이 48 을 칸 사이 .tl-snippet-body 24 로 줄인다(종전 활동 초안 영역과 같다)
+   - 출처 칸           → 매니저 KR 카드 셈 칸 .mgr-krm-stats (stesslee f738c039 — 같은 폭 · 칸 사이 선 · 12/600)
+   - ⌄                → OKR 접기 화살표 .okr-p-caret (stesslee af41cac3 — 펼치면 180° · 0.15s)
+   - 진행 셈 글자       → 1on1 준비도 «1/4» .ono-my-readiness-count (stesslee 1d9b5e5b — 12/600)
+   - AI 쓰는 중 두 줄   → 회의록 «생성 중» .mtg-row-generating 글씨(stesslee 98766251) + 공용 Spinner */
+.tl-snippet-band {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-top: -24px;
+  gap: var(--spacing-lg);
+  margin-block: calc(var(--spacing-3xl) * -1);
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(45deg, var(--tl-band-tint-a), var(--tl-band-tint-b)),
+    var(--colors-purple-50);
+}
+
+.tl-snippet-band {
+  /* .tl-snippet-info 와 같은 두 빛깔 — 토큰이 없어 이 띠의 이름으로 묶는다 */
+  --tl-band-tint-a: rgb(255 164 246 / 0.11);
+  --tl-band-tint-b: rgb(183 220 255 / 0.11);
+}
+
+.tl-snippet-band-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+  min-width: 0;
+}
+
+.tl-snippet-band-top > .tl-snippet-ai-btn {
+  flex-shrink: 0;
+}
+
+.tl-snippet-band-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-md);
+  /* 글만큼만 차지한다 — 줄 전체로 늘리면 마우스를 올릴 때 줄 전체가 칠해진다. 길면 요약 글이 줄어든다 */
+  flex: 0 1 auto;
+  min-width: 0;
+  margin-left: auto;
+  padding: var(--spacing-xs) var(--spacing-xxs) var(--spacing-xs) var(--spacing-md);
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: none;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+
+.tl-snippet-band-toggle:hover:not(:disabled) {
+  background: var(--colors-purple-100);
+}
+
+.tl-snippet-band-toggle:disabled {
+  cursor: default;
+}
+
+.tl-snippet-band-sum,
+.tl-snippet-band-when {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tl-snippet-band-sum b {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.tl-snippet-band-sum .is-warning {
+  color: var(--text-warning-primary);
+}
+
+.tl-snippet-band-sum-left {
+  flex-shrink: 0;
+  padding-inline: var(--spacing-md);
+  border-left: 1px solid var(--border-secondary);
+  font-weight: 600;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.tl-snippet-band-chev {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  transition: transform 0.15s;
+}
+
+.tl-snippet-band-chev.is-open {
+  transform: rotate(180deg);
+}
+
+.tl-snippet-band-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  row-gap: var(--spacing-lg);
+  padding-block: var(--spacing-lg);
+  border-radius: var(--radius-sm);
+  background: var(--bg-primary);
+}
+
+.tl-snippet-band-stats.is-cols-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.tl-snippet-band-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  padding-inline: var(--spacing-md);
+  text-align: center;
+}
+
+.tl-snippet-band-stat {
+  border-right: 1px solid var(--border-secondary);
+}
+
+.tl-snippet-band-stats.is-cols-2 .tl-snippet-band-stat:nth-child(2n),
+.tl-snippet-band-stats.is-cols-3 .tl-snippet-band-stat:nth-child(3n),
+.tl-snippet-band-stat:last-child {
+  border-right: 0;
+}
+
+.tl-snippet-band-stat-name {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 18px;
+  color: var(--text-secondary);
+}
+
+.tl-snippet-band-stat-val {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--spacing-xxs);
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.tl-snippet-band-stat-val b {
+  font-weight: 600;
+}
+
+.tl-snippet-band-stat-val small {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.tl-snippet-band-stat-val.is-muted {
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-weight: 400;
+  color: var(--text-tertiary);
+}
+
+.tl-snippet-band-stat.is-fail .tl-snippet-band-stat-val {
+  color: var(--text-warning-primary);
+}
+
+.tl-snippet-band-stat-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xxs);
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--colors-purple-500);
+  cursor: pointer;
+}
+
+.tl-snippet-band-writing {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+}
+
+.tl-snippet-band-writing-main {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--text-secondary);
+}
+
+.tl-snippet-band-writing-detail {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .tl-snippet-draft-link {

@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import ModalLayer from '../shared/ModalLayer.jsx';
+import Button from '../shared/Button.jsx';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
 import Icon from '../shared/Icon.jsx';
 import Spinner from '../shared/Spinner.jsx';
-import StatusBadge from '../shared/StatusBadge.jsx';
-import { CloseGlyph } from '../shared/lineIcons.jsx';
+import Stack from '../shared/Stack.jsx';
+import { ArrowRightGlyph, ChevronDownGlyph, CloseGlyph } from '../shared/lineIcons.jsx';
 import StepNavButton from '../shared/StepNav.jsx';
 import Toast from '../shared/Toast.jsx';
 import assetUrl from '../shared/assetUrl.js';
@@ -95,6 +96,8 @@ const DEFAULT_DRAFT_LABELS = {
   empty: '가져올 활동이 없습니다',
   fail: '초안을 만들지 못했습니다. 다시 시도해 주세요.',
   left: '직접 써야 할 칸:',
+  // 띠를 접은 한 줄의 «직접 쓸 칸 N» — 컨디션 + AI 가 비워 둔 칸 수 (PW-2733)
+  leftCount: (n) => `직접 쓸 칸 ${n}`,
   markUnconfirmed: 'AI 초안',
   confirm: '확인',
   markConfirmed: '확인함',
@@ -107,16 +110,12 @@ const DEFAULT_DRAFT_LABELS = {
   saved: (time) => `자동저장됨 ${time}`,
   saveFailed: '저장 실패',
   progressLoading: '가져오는 중',
-  progressDone: '완료',
-  progressFail: '못 가져옴',
   // 태그가 TAG_LIMIT 개 찼을 때 칸 아래 안내 (기획서 작성 화면 정책 §3.2 · §9 오류 표 문구 · PW-2392)
   tagLimit: '태그는 최대 8개까지 추가할 수 있습니다.',
   // Summary 가 노란(확인 전)이고 Lowlights 에 글이 있을 때 노란 표시 줄 바로 아래 안내 (기획서 작성 화면 정책 §3.1
   // «열람 범위 안내 한 줄» · PW-2441). 요약은 같은 회사 재직 동료도 보지만(타임라인 그룹 · PW-2495) Lowlights 칸은 본인·조직장·어드민만 본다.
   summaryTeamVisible: '요약은 같은 회사 동료도 봅니다 — 아쉬운 점(Lowlights)에서 옮겨진 내용이 있으면 확인 전에 고쳐 주세요.',
 };
-
-const PROGRESS_TONE = { loading: 'progress', done: 'success', fail: 'warning' };
 
 /** 그 칸이 비었나 — 태그는 개수, 나머지는 공백을 뺀 글. */
 function isFieldEmpty(key, texts, sum, tg) {
@@ -205,11 +204,20 @@ const DEFAULT_SNIPPET_MODAL_LABELS = {
 //   onOpenAccountLinks?: () => void — 안내의 「내 설정으로 →」.
 //   aiNotice?: { at: 'draft' | 'summary' | 'tags', content: ReactNode } | null
 //     호스트가 그 AI 버튼 자리에 띄우는 안내(체험 AI 소진 등). 한 번에 하나.
-//   draftProgress?: { rows?: Array<{ key, name, state: 'loading'|'done'|'fail', text }>, note?: string } | null
-//     버튼 아래 「어디서 무엇을 가져오는 중인가」(PW-1649). 창을 열면 호스트가 Jira·GitHub 활동을 미리
-//     가져오며 rows 로 한 줄씩(이름 · 문구 · 상태 딱지) 넘기고, 다 끝나면 rows 대신 note 한 줄
-//     (「Jira·GitHub 23:01에 가져옴」)로 접는다. 계정 연결 안내가 떠 있을 때는 그리지 않는다.
-//     딱지 문구는 draftLabels 의 progressLoading·progressDone·progressFail.
+//   draftBand?: 띠 안의 «어디서 무엇을 가져왔나 · AI 가 쓰는 중» (PW-1649 · PW-2733) — 없으면 버튼만 있는 띠.
+//     {
+//       sources: Array<{ key, name, state: 'loading'|'done'|'fail'|'off', value?, unit?, text? }>
+//         출처마다 같은 폭 칸 하나 — 출처가 늘어도 칸만 는다(둘이면 2열, 셋부터 3열). loading 은 도는 표시 + text
+//         (없으면 progressLoading) · done 은 굵은 value + unit · fail 은 주황 text(«못 가져옴 · 아까 것 23») ·
+//         off 는 보라 text 단추(«연결해 주세요») — 누르면 onOpenAccountLinks.
+//       status?: string        펼친 띠 머리 오른쪽 한 줄(«오늘 활동 찾는 중 · 1/2곳» · «07:14에 가져옴»)
+//       fetching?: boolean     가져오는 중 — 접기 단추를 끄고 ⌄ 를 숨긴다
+//       summary?: { total: string, failed?: string|null }  접힌 한 줄의 «활동 95건» · 주황 «1곳 못 가져옴»
+//       writing?: { main: string, detail?: string|null } | null  AI 가 쓰는 동안 칸 아래 두 줄(굵게 · 회색)
+//       collapsed?: boolean    한 줄로 접는다 — 접힌 줄엔 버튼 · summary · «직접 쓸 칸 N»(leftCount) · ⌄
+//       onToggle?: () => void  접힌 줄·⌄ 를 누를 때 — 호스트가 collapsed 를 뒤집는다
+//     }
+//     계정 연결 안내가 떠 있을 때는 sources 를 그리지 않는다.
 //   draftLabels?: 위 문구들 — 호스트가 번역해 넘긴다. 없는 키는 한국어 기본값.
 //     tagLimit 은 태그가 8개 찼을 때 Tags 칸 아래 안내 (PW-2392).
 //     summaryTeamVisible 은 노란 요약 + Lowlights 에 글이 있을 때 Summary 노란 표시 줄 아래 안내 (PW-2441).
@@ -274,7 +282,7 @@ export default function SnippetModal({
   sectionMaxLength = DEFAULT_SECTION_MAX_LENGTH,
   onAiDraft,
   aiDraftLinked,
-  draftProgress,
+  draftBand,
   onOpenAccountLinks,
   aiNotice,
   draftLabels,
@@ -364,6 +372,16 @@ export default function SnippetModal({
   const unconfirmedKeys = DRAFT_FIELD_KEYS.filter((k) => aiMarks[k] === 'unconfirmed');
   const showDraftArea = !readOnly && typeof onAiDraft === 'function';
   const draftLinked = linkedFromDraft ?? aiDraftLinked;
+  const bandSources = draftLinked !== false ? (draftBand?.sources ?? []) : [];
+  const bandHasBody =
+    bandSources.length > 0 ||
+    !!draftBand?.writing ||
+    !!draftLeft ||
+    draftNote != null ||
+    aiNotice?.at === 'draft';
+  // 접어도 실패·안내 줄은 숨기지 않는다 — 접힌 줄에 «못 만들었다»가 안 보이면 버튼이 그냥 멈춘 것으로 읽힌다.
+  const bandCollapsed =
+    !!draftBand?.collapsed && bandHasBody && draftNote == null && aiNotice?.at !== 'draft';
   const noticeAt = (at) =>
     aiNotice && aiNotice.at === at ? (
       <div className="tl-snippet-ai-notice">{aiNotice.content}</div>
@@ -750,6 +768,152 @@ export default function SnippetModal({
           ) : (
           <>
 
+          {/* 활동 초안 띠 (PW-1154 · PW-1649 · PW-2733) — 버튼·출처별 건수·직접 써야 할 칸을 한 띠로 묶어
+              날짜 줄 바로 아래에 둔다. 진척 막대는 칸 목차라 그 바로 밑에 What 이 온다.
+              띠는 창 전체를 채우는 도구라 맨 위다(카드 본문 ①). */}
+          {showDraftArea && (
+            <section
+              className={`tl-snippet-band${bandCollapsed ? ' is-collapsed' : ''}`}
+              aria-label={L.fill}
+              data-testid="tl-snippet-band"
+            >
+              <div className="tl-snippet-band-top">
+                {draftLinked === false ? (
+                  <div className="tl-snippet-draft-link" role="note">
+                    <span>{L.linkNotice}</span>
+                    {onOpenAccountLinks && (
+                      <button type="button" className="tl-snippet-draft-link-btn" onClick={onOpenAccountLinks}>
+                        {L.linkAction}
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <line x1="5" y1="12" x2="19" y2="12" />
+                          <polyline points="12 5 19 12 12 19" />
+                        </svg>
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="tl-snippet-ai-btn"
+                    onClick={handleAiDraft}
+                    disabled={draftLoading}
+                    aria-busy={draftLoading || undefined}
+                  >
+                    {/* 기다리는 동안 반짝이 자리에 공용 도는 표시 — 오늘 활동을 바로 가져오느라 길어질 수 있다 (PW-1191) */}
+                    {draftLoading ? (
+                      <Spinner size={14} />
+                    ) : (
+                      <img
+                        src={assetUrl(baseUrl, 'icons-solid/ai-sparkle.png')}
+                        alt=""
+                        width="14"
+                        height="14"
+                        aria-hidden="true"
+                      />
+                    )}
+                    <span>{draftLoading ? L.filling : L.fill}</span>
+                  </button>
+                )}
+                {bandHasBody && (
+                  <Button
+                    className="tl-snippet-band-toggle"
+                    onClick={draftBand?.onToggle}
+                    disabled={!draftBand?.onToggle || draftBand?.fetching}
+                    aria-expanded={!bandCollapsed}
+                    data-testid="tl-snippet-band-toggle"
+                  >
+                    {bandCollapsed ? (
+                      <>
+                        {draftBand?.summary && (
+                          <span className="tl-snippet-band-sum">
+                            <b>{draftBand.summary.total}</b>
+                            {draftBand.summary.failed && (
+                              <span className="is-warning"> · {draftBand.summary.failed}</span>
+                            )}
+                          </span>
+                        )}
+                        {draftLeft && (
+                          <span className="tl-snippet-band-sum-left">{L.leftCount(draftLeft.length + 1)}</span>
+                        )}
+                      </>
+                    ) : (
+                      draftBand?.status && <span className="tl-snippet-band-when">{draftBand.status}</span>
+                    )}
+                    {!draftBand?.fetching && (
+                      <span className={`tl-snippet-band-chev${bandCollapsed ? '' : ' is-open'}`} aria-hidden="true">
+                        <ChevronDownGlyph size={16} />
+                      </span>
+                    )}
+                  </Button>
+                )}
+              </div>
+              {!bandCollapsed && bandHasBody && (
+                <Stack gap="lg" testId="tl-snippet-band-body">
+                  {bandSources.length > 0 && (
+                    <div
+                      className={`tl-snippet-band-stats is-cols-${bandSources.length <= 2 ? 2 : 3}`}
+                      data-testid="tl-snippet-band-stats"
+                    >
+                      {bandSources.map((src) => (
+                        <div
+                          key={src.key}
+                          className={`tl-snippet-band-stat is-${src.state}`}
+                          role="status"
+                          data-testid={`tl-snippet-band-stat-${src.key}`}
+                        >
+                          <span className="tl-snippet-band-stat-name">{src.name}</span>
+                          {src.state === 'loading' ? (
+                            <span className="tl-snippet-band-stat-val is-muted">
+                              <Spinner size={10} /> {src.text ?? L.progressLoading}
+                            </span>
+                          ) : src.state === 'off' ? (
+                            <Button
+                              className="tl-snippet-band-stat-link"
+                              onClick={onOpenAccountLinks}
+                              disabled={!onOpenAccountLinks}
+                            >
+                              {src.text}
+                              <ArrowRightGlyph size={12} />
+                            </Button>
+                          ) : (
+                            <span className="tl-snippet-band-stat-val">
+                              {src.value != null && <b>{src.value}</b>}
+                              {src.unit && <small>{src.unit}</small>}
+                              {src.text && <span>{src.text}</span>}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {draftBand?.writing && (
+                    <div className="tl-snippet-band-writing" role="status" aria-live="polite" data-testid="tl-snippet-band-writing">
+                      <span className="tl-snippet-band-writing-main">{draftBand.writing.main}</span>
+                      {draftBand.writing.detail && (
+                        <span className="tl-snippet-band-writing-detail">{draftBand.writing.detail}</span>
+                      )}
+                    </div>
+                  )}
+                  {noticeAt('draft')}
+                  {draftNote === 'empty' && <div className="tl-snippet-draft-note">{L.empty}</div>}
+                  {draftNote === 'fail' && (
+                    <div className="tl-snippet-draft-note is-error" role="alert">{L.fail}</div>
+                  )}
+                  {draftLeft && (
+                    <div className="tl-snippet-draft-left">
+                      <span className="tl-snippet-draft-left-title">{L.left}</span>
+                      {['health', ...draftLeft].map((k) => (
+                        <button key={k} type="button" className="tl-snippet-tag" onClick={() => focusField(k)}>
+                          {fieldLabel(k)}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </Stack>
+              )}
+            </section>
+          )}
+
           {/* Progress bar — 섹션 채움 수만큼 active bar 가 그라디언트로 확장.
               Figma Frame 205, r=6, active bar r=6, 5등분. */}
           <div
@@ -776,78 +940,6 @@ export default function SnippetModal({
               );
             })}
           </div>
-
-          {showDraftArea && (
-            <div className="tl-snippet-draft">
-              {draftLinked === false ? (
-                <div className="tl-snippet-draft-link" role="note">
-                  <span>{L.linkNotice}</span>
-                  {onOpenAccountLinks && (
-                    <button type="button" className="tl-snippet-draft-link-btn" onClick={onOpenAccountLinks}>
-                      {L.linkAction}
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <line x1="5" y1="12" x2="19" y2="12" />
-                        <polyline points="12 5 19 12 12 19" />
-                      </svg>
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <div>
-                  <button
-                    type="button"
-                    className="tl-snippet-ai-btn"
-                    onClick={handleAiDraft}
-                    disabled={draftLoading}
-                    aria-busy={draftLoading || undefined}
-                  >
-                    {/* 기다리는 동안 반짝이 자리에 공용 도는 표시 — 오늘 활동을 바로 가져오느라 길어질 수 있다 (PW-1191) */}
-                    {draftLoading ? (
-                      <Spinner size={14} />
-                    ) : (
-                      <img
-                        src={assetUrl(baseUrl, 'icons-solid/ai-sparkle.png')}
-                        alt=""
-                        width="14"
-                        height="14"
-                        aria-hidden="true"
-                      />
-                    )}
-                    <span>{draftLoading ? L.filling : L.fill}</span>
-                  </button>
-                </div>
-              )}
-              {draftLinked !== false && draftProgress?.rows?.length > 0 && draftProgress.rows.map((row) => (
-                <div key={row.key ?? row.name} className="tl-snippet-draft-link" role="status">
-                  <span>
-                    <strong>{row.name}</strong> · {row.text}
-                  </span>
-                  <StatusBadge tone={PROGRESS_TONE[row.state] ?? 'neutral'}>
-                    {row.state === 'loading' && <Spinner size={10} />}
-                    {row.state === 'loading' ? ` ${L.progressLoading}` : row.state === 'done' ? L.progressDone : L.progressFail}
-                  </StatusBadge>
-                </div>
-              ))}
-              {draftLinked !== false && !draftProgress?.rows?.length && draftProgress?.note && (
-                <div className="tl-snippet-draft-note">{draftProgress.note}</div>
-              )}
-              {noticeAt('draft')}
-              {draftNote === 'empty' && <div className="tl-snippet-draft-note">{L.empty}</div>}
-              {draftNote === 'fail' && (
-                <div className="tl-snippet-draft-note is-error" role="alert">{L.fail}</div>
-              )}
-              {draftLeft && (
-                <div className="tl-snippet-draft-left">
-                  <span className="tl-snippet-draft-left-title">{L.left}</span>
-                  {['health', ...draftLeft].map((k) => (
-                    <button key={k} type="button" className="tl-snippet-tag" onClick={() => focusField(k)}>
-                      {fieldLabel(k)}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
 
           <div className="tl-snippet-body">
             {/* Figma 순서: 5 섹션 (What/Why/Value/Highlights/Lowlights) → Summary → Tags */}
