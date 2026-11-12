@@ -382,6 +382,10 @@ const DEFAULT_LABELS = {
     tagUnapproved: '미승인',
     recordSection: '기록',
     education: '학력',
+    // 학력 한 줄은 학력 목록에서 만든다 — 칸 아래 안내 세 갈래(admin-spec §3.2.4 «구성원 창 «학력» 칸» · pivit-work PW-2714)
+    educationNoteDesignated: '학력 목록의 «최종 학력» 줄을 보여요 — 아래 학력 [관리 →]에서 고쳐요',
+    educationNoteLatest: '최종 학력으로 지정한 줄이 없어 졸업이 가장 늦은 줄을 보여요',
+    educationNoteEmpty: '학력 목록이 비어 있어요 — 아래 학력 [관리 →]에서 더해요',
     hrProfile: 'HR 기록',
     hrProfileHint: '학력·경력·자격증·부양가족·서류·신원 정보',
     orgAssign: '소속',
@@ -4490,7 +4494,7 @@ const PANEL_PATCH_FIELDS = [
   'jobLevel', 'jobRank', 'jobPosition', 'jobCategory',
   'jobFamily', 'jobTitle', 'jobDuty', 'businessTitle', 'employmentType',
   'workCountry', 'workLocation', 'workBuilding', 'ftePercent',
-  'orgRole', 'education',
+  'orgRole',
   'hireDate', 'employmentStatus', 'terminationDate',
   // PW-1345 — 중간 이름·영문명·책상·사무실 전화·담당 HRBP
   'middleName', 'nameEn', 'workDesk', 'officePhone', 'hrbpId',
@@ -6216,13 +6220,30 @@ function EmployeesEditPanel({
               {archivedNow ? (
                 <ArchivedNote text={archivedLabels.note} testId="employees-panel-archived-education" />
               ) : (
-                <TextInput
-                  className="admin-emp-input"
-                  value={draft.education ?? ''}
-                  disabled={!canEdit}
-                  data-testid="employees-panel-education"
-                  onChange={(e) => set('education', e.target.value)}
-                />
+                /* 읽기 전용 — 학력 한 줄은 학력 목록의 «최종 학력» 줄에서 만들고, 고치는 길은 학력 [관리 →] 하나다
+                   (admin-spec §3.2.4 · pivit-work PW-2714). 줄 모양은 같은 창 «매니저» 읽기 전용 줄 그대로 —
+                   값 다음에 안내가 이어지고 넘치면 다음 줄로 간다. 긴 값은 말줄임, 전체는 title 로. */
+                <div className="admin-emp-manager-readonly is-wrap is-manager">
+                  {/* 고칠 수 없는 값이라 draft 가 아니라 명단 값을 읽는다 — 학력 창에서 줄을 고치면 앱이 명단을 바꾸고,
+                      이 창을 닫았다 열지 않아도 바로 바뀐다. */}
+                  <span
+                    className={member.education ? 'admin-emp-manager-name' : 'admin-emp-manager-note'}
+                    title={member.education || undefined}
+                    data-testid="employees-panel-education"
+                  >
+                    {member.education || '—'}
+                  </span>
+                  {/* 안내 갈래가 없으면(열람이 막힌 칸) 안내를 달지 않는다 */}
+                  {member.educationLineSource && (
+                    <span className="admin-emp-manager-note" data-testid="employees-panel-education-note">
+                      {member.educationLineSource === 'empty' || !member.education
+                        ? labels.panel.educationNoteEmpty
+                        : member.educationLineSource === 'designated'
+                          ? labels.panel.educationNoteDesignated
+                          : labels.panel.educationNoteLatest}
+                    </span>
+                  )}
+                </div>
               )}
             </FormField>
             {onLoadHrProfile && (

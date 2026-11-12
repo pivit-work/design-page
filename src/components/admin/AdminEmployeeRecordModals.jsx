@@ -1195,7 +1195,7 @@ export function HrProfileModal({
                 { key: 'status', label: L.hrEduStatus || '상태', required: true, options: optionsOf(L.hrEduStatusOptions) },
                 { key: 'isFinal', label: L.hrEduFinal || '최종학력', kind: 'boolean', options: [{ value: 'true', label: L.hrYes || '예' }, { value: 'false', label: L.hrNo || '아니오' }] },
               ]}
-              render={(e) => [e.school, e.major, codeLabel(L.hrDegreeOptions, e.degree), `${e.from ?? ''}~${e.to ?? ''}`, codeLabel(L.hrEduStatusOptions, e.status), e.isFinal ? (L.hrEduFinal || '최종학력') : null].filter(Boolean).join(' · ')}
+              render={(e) => [e.school, e.major, codeLabel(L.hrDegreeOptions, e.degree), (e.from || e.to) ? `${e.from ?? ''}~${e.to ?? ''}` : null, codeLabel(L.hrEduStatusOptions, e.status), e.isFinal ? (L.hrEduFinal || '최종학력') : null].filter(Boolean).join(' · ')}
               nameOf={(e) => e.school}
               emptyText={L.hrEducationEmpty || '등록된 학력이 없습니다.'}
               addLabel={L.hrEduAdd || '학력 추가'}

@@ -413,6 +413,8 @@ export const INVITE_CSV_DEFAULT_LABELS = {
   // 층 · 자리 유형 (pivit-work PW-2600 · 서버 `hr-cell.util.ts` 와 같은 문구)
   csvErrSeatType: '자리 유형은 책상·개인실·자유석·원격 중 하나로 적어 주세요',
   csvErrWorkFloorTooLong: '층은 {max}자까지 적어 주세요',
+  // 학력 — 학교명 한도(120자)를 넘으면 그 칸만 넣지 않고 초대는 보낸다(admin-spec §3.1-B ⑬ · pivit-work PW-2714)
+  csvNoteEducationTooLong: '학력은 {max}자까지 적어 주세요',
   csvErrSeatDeskNotAccepted: '자유석 · 원격이면 책상 칸을 비워 주세요',
   csvColContractStartDate: '계약 시작일',
   csvColContractEndDate: '계약 종료일',
@@ -1247,6 +1249,9 @@ export function inviteCsvIssues(row, ctx) {
   return issues;
 }
 
+/** 학력 칸 한도 — 서버 `EDUCATION_LINE_MAX_LENGTH`(학력 목록 학교명 칸 한도)와 같다 (pivit-work PW-2714). */
+const EDUCATION_MAX_LENGTH = 120;
+
 /**
  * 행 하나의 안내 — 오류는 아니지만 보낸 사람이 알아야 하는 것.
  *
@@ -1268,6 +1273,13 @@ export function inviteCsvNotes(row, ctx) {
   for (const teamId of leaderTeamIds) {
     const head = ctx.teamHeads?.get(teamId);
     if (head?.name) notes.push({ key: 'leader', message: fmtCsv(ctx.labels.csvNoteLeaderReplace, { name: head.name }) });
+  }
+  // [PW-2714 · admin-spec §3.1-B ⑬] 학력이 학교명 한도를 넘으면 그 칸만 빼고 보낸다 — 오류가 아니라 안내
+  // 앱이 넘기는 칸 한도(요청 검사 200자)를 넘는 글자는 위 `inviteCsvIssues` 가 오류로 막는다 — 그 아래 120자 초과만 안내.
+  const education = normalize(row.values.education);
+  const requestMax = ctx.fieldLimits?.education?.maxLength;
+  if (education.length > EDUCATION_MAX_LENGTH && !(requestMax && education.length > requestMax)) {
+    notes.push({ key: 'education', message: fmtCsv(ctx.labels.csvNoteEducationTooLong, { max: EDUCATION_MAX_LENGTH }) });
   }
   if (!normEmail(row.values.managerEmail)) return notes;
   if (primaryTeamId && (ctx.headTeamIds.has(primaryTeamId) || ctx.reservedLeaderTeamIds.has(primaryTeamId))) {
