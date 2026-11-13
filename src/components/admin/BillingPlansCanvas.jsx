@@ -204,6 +204,7 @@ const DEFAULT_LABELS = {
   addonBlockSuspended: '요금제를 결제한 뒤 구매할 수 있습니다.',
   addonBlockPlanCancel: (date) => `요금제 해지가 예약돼 있습니다 — 애드온도 ${date}에 함께 끝납니다.`,
   addonBlockSubscriptionTrial: '요금제를 결제한 뒤 이 카드에서 살 수 있습니다 — 체험 중에는 이미 켜져 있습니다.',
+  addonBlockDeletion: (date) => `회사 삭제가 예정돼 있습니다 · ${date}에 닫힙니다 — 다시 구독하시려면 회사 설정에서 삭제 요청을 먼저 취소해 주세요`,
   addonLoadFailed: '애드온 정보를 불러오지 못했습니다',
   addonRetry: '다시 시도',
   addonBuyTitle: '전자결재 · 휴가 패키지 구매',
@@ -550,6 +551,7 @@ function addonBlockMessage(addon, labels) {
     case 'suspended': return labels.addonBlockSuspended;
     case 'plan_cancel_scheduled': return labels.addonBlockPlanCancel(addon.periodLastDay ?? '');
     case 'subscription_trial': return labels.addonBlockSubscriptionTrial;
+    case 'workspace_deletion': return labels.addonBlockDeletion(addon.deletionCloseDate ?? '');
     default: return null;
   }
 }
