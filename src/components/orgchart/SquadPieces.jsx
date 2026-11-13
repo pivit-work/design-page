@@ -9,7 +9,7 @@
  * 구성비 스택 바의 트랙은 프로젝트 카드의 진행 바(`pj-progress-bar`)를 그대로 쓴다.
  */
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useDismissLayer, useViewportTick } from './hooks.js';
 import Tooltip from '../shared/Tooltip.jsx';
 import {
@@ -300,6 +300,11 @@ export function SquadAssignPopover({
 
   const isLead = assignment.role === 'lead';
 
+  // ② 숫자 칸을 모두 지운 상태 (pivit-work PW-2777 · 정책 v3.54 §5-3.7 «빈 칸은 0 이 아니다»).
+  // 빈 칸은 값이 아니라 저장하지 않는다 — 전에는 `clampPct('')` 가 0 이 되어 그대로 0% 로 저장됐다.
+  // 칸을 떠나면 이 표시를 지워 칸이 마지막 저장 값(미설정이면 미설정)으로 돌아간다. 창을 닫아도 저장된 것이 없다.
+  const [capacityDraftEmpty, setCapacityDraftEmpty] = useState(false);
+
   // 앵커(셀·칩)가 열 때 자리에서 얼마나 움직였는지를 재서 팝오버도 같은 만큼 옮긴다.
   // 따라가지 않으면 배경 스크롤이 팝오버를 엉뚱한 행 위에 남긴다 — 배경을 잠그던
   // 종전 방식(§5-3.8)이 막으려던 것이 바로 이것이다(PW-109).
@@ -471,14 +476,27 @@ export function SquadAssignPopover({
             </div>
             <div className="rsx-entry-input">
               <input
-                type="number" min={0} max={100} value={assignment.allocationPct}
+                type="number" min={0} max={100}
+                value={capacityDraftEmpty ? '' : assignment.allocationPct}
                 disabled={!canEditCapacity}
                 aria-label={L('squad.pop.capacityInputDirect')}
-                onChange={(e) => onSetPct?.(clampPct(e.target.value))}
+                aria-invalid={capacityDraftEmpty || undefined}
+                onChange={(e) => {
+                  // 빈 칸은 저장하지 않는다 — 0 은 본인이 0 을 넣었을 때만(§5-3.7)
+                  if (e.target.value.trim() === '') { setCapacityDraftEmpty(true); return; }
+                  setCapacityDraftEmpty(false);
+                  onSetPct?.(clampPct(e.target.value));
+                }}
+                onBlur={() => setCapacityDraftEmpty(false)}
               />
               <span>%</span>
             </div>
           </div>
+          {capacityDraftEmpty && (
+            <p className="dp-field-error sq-pop-cap-empty" role="alert" data-testid="squad-pop-capacity-empty">
+              {L('squad.pop.capacityEmpty')}
+            </p>
+          )}
 
           {/* 캐파 영향 미리보기 — 이 값이 그 사람의 100 중 어디에 놓이는지 즉시 보여준다 */}
           <div

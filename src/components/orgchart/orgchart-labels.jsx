@@ -561,6 +561,7 @@ export const ORGCHART_LABELS = {
   'squad.pop.capacityLocked': '이 값은 본인만 정할 수 있습니다. 바꿔야 하면 「캐파 설정 요청 보내기」를 누르세요.',
   'squad.pop.capacityInput': '개인 캐파 사용',
   'squad.pop.capacityInputDirect': '개인 캐파 사용 직접 입력',
+  'squad.pop.capacityEmpty': '0~100 사이 숫자를 넣어 주세요 — 이 스쿼드에 시간을 쓰지 않으면 0 입니다',
   'squad.pop.capacityPreview': '캐파 사용',
   'squad.pop.stateUnassigned': '미배정',
   'squad.pop.stateOver': '초과 {{diff}}%p',

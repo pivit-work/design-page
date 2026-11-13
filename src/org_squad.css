@@ -1263,6 +1263,9 @@
   justify-content: center;
 }
 .sq-pop-cap-request:disabled { opacity: 0.55; }
+/* ② 숫자 칸을 비웠을 때 안내 (pivit-work PW-2777) — 공용 칸 오류 문구(form-field.css p.dp-field-error) 모양 그대로,
+   자리만 다른 안내 줄(.sq-pop-note)과 같게 — 왼쪽 32 · 위는 축 안 간격(12) 그대로. */
+.sq-pop p.sq-pop-cap-empty { margin: 0 0 0 var(--spacing-4xl); }
 /* 계획 합계보다 낮춘 캐파 경고 (§5-3.3 · PW-2325) — 디자이너 «종료일 지남» 띠(.sq-banner-warn)를 팝오버 안에 맞춰
    안쪽만 줄이고 아래 여백을 없앤다. 색·모서리·글씨는 띠 그대로. 팝오버 안 경고 상자 원본이 없어 디자이너 검수 대상 */
 .sq-pop-plan-warn {
