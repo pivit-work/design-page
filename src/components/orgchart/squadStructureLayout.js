@@ -249,6 +249,42 @@ export function buildOrgSide({ units = [], people = [] }) {
 }
 
 /**
+ * 구조 갈래 «근무지» 쪽 — 회사 → 근무지 → 사람(screen-org-chart-squad.policy.md v3.49 §5-6-D · 엣지 96~98 · PW-2599 7회차).
+ * 근무지 = 구성원 정보 «근무지(도시)» 값 하나라 한 사람 한 장이다(겸임·조직장·리드 딱지 없음 · 대표도 근무지 아래 한 장).
+ * 순서 = `placeOrder`(필드 옵션 «근무지» 순번 · «사용 중»을 끈 값도 포함 — 엣지 97). 순번에 없는 값(CSV 로 들어온 값 등)은
+ * 그 뒤에 가나다로, `근무지 미지정`(값 없음 · 엣지 96)은 맨 뒤. 사람이 0명인 근무지는 그리지 않는다.
+ * 그리는 사람 = 재직 중 전원(기능 조직 쪽과 같다 · 스쿼드 상태 필터와 무관).
+ */
+export function buildPlaceSide({ people = [], placeOrder = [] }) {
+  const roster = people.filter((p) => p.employmentStatus !== 'terminated');
+  const valueOf = (p) => (typeof p.workLocation === 'string' ? p.workLocation.trim() : '');
+  const card = (p) => ({ key: `${p.id}#place`, userId: p.id, squadId: null, lead: false, multi: 0, dim: 1 });
+  const byPlace = new Map();
+  roster.forEach((p) => {
+    const v = valueOf(p);
+    if (!byPlace.has(v)) byPlace.set(v, []);
+    byPlace.get(v).push(p);
+  });
+  const known = placeOrder.filter((v, i) => v && placeOrder.indexOf(v) === i);
+  const others = [...byPlace.keys()].filter((v) => v && !known.includes(v)).sort(byKo);
+  const peopleOf = (v) => (byPlace.get(v) || []).sort((a, b) => byKo(a.name || '', b.name || '')).map(card);
+  const places = [...known, ...others]
+    .filter((v) => byPlace.has(v))
+    .map((v) => ({ key: `pl:${v}`, kind: 'unit', data: { id: `place:${v}`, name: v, place: true }, children: [], people: peopleOf(v) }));
+  const unset = byPlace.has('')
+    ? [{ key: 'pl:none', kind: 'unit', data: { id: null, name: null, place: true, virtual: true }, children: [], people: peopleOf('') }]
+    : [];
+  return {
+    key: 'root',
+    kind: 'root',
+    // 근무지 K곳(미지정 뺌) · N명(그린 사람 수 = 노드 인원의 합 · 미지정 포함 — §5-6-D «회사 노드» · §5-6-F)
+    data: { side: 'place', places: places.length, people: roster.length, placed: roster.length - (byPlace.get('') || []).length },
+    children: [...places, ...unset],
+    people: [],
+  };
+}
+
+/**
  * 연결 갈래의 스쿼드 줄 순서 — 묶음 층이 있으면 묶음 트리 순서(위 묶음 → 아래 묶음 → 스쿼드 · `미분류` 는 맨 뒤 ·
  * §5-6 «묶음 (연결 갈래)»). 묶음 안 스쿼드는 받은 순서(카드 보기 순서) 그대로. 층이 없으면 그대로 돌려준다.
  */

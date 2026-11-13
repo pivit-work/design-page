@@ -311,6 +311,8 @@ export default function SquadCanvas({
   /** 그림 보기 구조 갈래의 기능 조직 쪽 — 조직도 순서(깊이 우선)의 조직 단위 `{ id, name, depth }` · 회사 이름 */
   orgUnits = [],
   companyName = '',
+  /** 그림 보기 구조 갈래의 근무지 쪽 — 필드 옵션 «근무지» 값을 순번 순으로(«사용 중»을 끈 값 포함 · PW-2599 7회차) */
+  placeOrder = [],
 }) {
   const [editMode, setEditMode] = useState(false);
   // 보기 — 화면 안 상태라 탭을 다시 열면 처음 보기로 돌아온다(주소·저장 없음)
@@ -1330,7 +1332,7 @@ export default function SquadCanvas({
               {showGraph && (
                 <SquadGraphView
                   squads={squads} personOf={personOf} renderAvatar={personAvatar} onMemberClick={onMemberClick}
-                  levelNames={groupLevelNames} groups={squadGroups} people={people} units={orgUnits} companyName={companyName}
+                  levelNames={groupLevelNames} groups={squadGroups} people={people} units={orgUnits} placeOrder={placeOrder} companyName={companyName}
                   onDownloadImage={onDownloadGraphImage}
                   structureAsOf={structureAsOf}
                 />
