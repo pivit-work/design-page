@@ -66,8 +66,22 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     const src = readFileSync(file, 'utf8').replace(/\/\*[\s\S]*?\*\//g, (c) => c.replace(/[^\n]/g, ' ')).replace(/\/\/[^\n]*/g, (c) => ' '.repeat(c.length));
     for (const b of badCloseLabels(src)) fails.push(`${relative(root, file)}:${b.line} closeLabel={${b.expr}}`);
   }
+  // 공용 창 둘은 아래 버튼 글자가 X 이름(«닫기»)과 같으면 X 를 «창 닫기»로 읽힌다(PW-2744 2회차 —
+  // «저장하지 않고 닫을까요?»의 확인 · «퇴사 예약을 취소할까요?»의 [닫기]). 이 고리가 풀리면 막는다.
+  const { closeButtonLabel, WINDOW_CLOSE_LABEL } = await import('../src/components/shared/closeButtonLabel.js');
+  if (closeButtonLabel('닫기', ['취소', '닫기']) !== WINDOW_CLOSE_LABEL) fails.push('closeButtonLabel: 아래 «닫기»와 겹쳐도 X 가 «닫기»');
+  if (closeButtonLabel('닫기', ['취소', '저장']) !== '닫기') fails.push('closeButtonLabel: 겹치지 않는데 X 이름을 바꿈');
+  for (const f of ['src/components/shared/ConfirmModal.jsx', 'src/components/shared/ModalShell.jsx']) {
+    if (!/aria-label=\{[^}\n]*closeButtonLabel\(closeLabel/.test(readFileSync(join(root, f), 'utf8'))) {
+      fails.push(`${f}: 닫기 X 의 aria-label 이 closeButtonLabel(…) 을 거치지 않는다 — 아래 «닫기» 버튼과 같은 이름으로 읽힌다`);
+    }
+  }
+  // 부르는 쪽이 footer·본문에 [닫기]를 직접 그린 창(OKR 마법사 막힘 · 결제 창 · 평가 리마인드 …)은 ModalShell 이 그려진 버튼을 보고 가른다.
+  if (!/useDistinctCloseName\(formRef, closeRef, closeLabel\)/.test(readFileSync(join(root, 'src/components/shared/ModalShell.jsx'), 'utf8'))) {
+    fails.push('src/components/shared/ModalShell.jsx: useDistinctCloseName(formRef, closeRef, closeLabel) 이 빠졌다 — 아래 [닫기]를 직접 그린 창의 X 가 같은 이름으로 읽힌다');
+  }
   if (fails.length) {
-    console.error('✗ 닫기 X 의 이름에 취소 · 계속 작성 문구를 넘겼습니다 — X 와 아래 버튼이 같은 이름으로 읽힙니다.');
+    console.error('✗ 닫기 X 가 아래 버튼과 같은 이름으로 읽힙니다(취소 · 계속 작성 문구를 넘겼거나, 겹침을 가르는 고리가 빠짐).');
     console.error('  «닫기» 문구(L.close 등)로 넘기세요 (pivit-work PW-2744):');
     for (const f of fails) console.error('  ' + f);
     process.exit(1);

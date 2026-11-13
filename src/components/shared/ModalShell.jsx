@@ -1,5 +1,7 @@
 import ModalLayer from './ModalLayer.jsx';
 import { CloseGlyph } from './lineIcons.jsx';
+import { useRef } from 'react';
+import { closeButtonLabel, useDistinctCloseName } from './closeButtonLabel.js';
 
 /**
  * ModalShell — 공용 모달 껍데기.
@@ -94,6 +96,11 @@ export default function ModalShell({
 
   const hasHeader = (title !== undefined && title !== null) || !!description;
 
+  const formRef = useRef(null);
+  const closeRef = useRef(null);
+  // 부르는 쪽이 footer·본문에 [닫기]를 직접 그린 창도 X 와 이름이 갈리게 (pivit-work PW-2744)
+  useDistinctCloseName(formRef, closeRef, closeLabel);
+
   const handleSubmit = (e) => {
     e.preventDefault();
     // 창 안에서 연 창(포털이라 화면에선 밖이지만 React 에선 안쪽)의 제출이 바깥 창의 제출까지
@@ -112,6 +119,7 @@ export default function ModalShell({
       testId={overlayTestId}
     >
       <form
+        ref={formRef}
         className={`tl-group-modal ${className}`.trim()}
         role="dialog"
         aria-modal="true"
@@ -139,8 +147,9 @@ export default function ModalShell({
           {closable ? (
             <button
               type="button"
+              ref={closeRef}
               className="tl-group-modal-close"
-              aria-label={closeLabel}
+              aria-label={footer === undefined ? closeButtonLabel(closeLabel, [cancelLabel, submitLabel]) : closeLabel}
               onClick={requestClose}
               disabled={busy || undefined}
               data-testid={closeTestId}

@@ -1,5 +1,6 @@
 import Button from './Button.jsx';
 import { CloseGlyph } from './lineIcons.jsx';
+import { closeButtonLabel } from './closeButtonLabel.js';
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -131,7 +132,7 @@ export default function ConfirmModal({
           <button
             type="button"
             className="tl-group-modal-close"
-            aria-label={closeLabel}
+            aria-label={closeButtonLabel(closeLabel, [hideCancel ? undefined : cancelLabel, extraLabel, confirmLabel])}
             data-testid={`${testId}-close`}
             onClick={onCancel}
             disabled={busy}
