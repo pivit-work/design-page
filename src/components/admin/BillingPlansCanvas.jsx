@@ -192,7 +192,7 @@ const DEFAULT_LABELS = {
   addonBadgeLapsed: '꺼짐 · 읽기 전용',
   addonBadgeLocked: '결제 실패로 잠김',
   addonLapsedNote: '결재 문서·휴가 기록은 지우지 않고 읽기 전용으로 남아 있습니다. 다시 사면 바로 켜집니다.',
-  addonTrialCta: '30일 무료로 써 보기',
+  addonTrialCta: (days) => `${days ?? 30}일 무료로 써 보기`,
   addonBuyNowCta: '바로 구매',
   addonBuyCta: '애드온 구매',
   addonCancelCta: '애드온 해지',
@@ -583,7 +583,7 @@ function AddonCard({ addon, interval, canEdit, highlight, labels, onTrial, onBuy
   } else if (addon.canStartTrial) {
     action = (
       <div style={{ display: 'flex', gap: 'var(--spacing-md)', flexWrap: 'wrap' }}>
-        <Btn onClick={onTrial} disabled={disabled}>{labels.addonTrialCta}</Btn>
+        <Btn onClick={onTrial} disabled={disabled}>{labels.addonTrialCta(addon.trialDays)}</Btn>
         <Btn kind="secondary" onClick={onBuy} disabled={disabled}>{labels.addonBuyNowCta}</Btn>
       </div>
     );
