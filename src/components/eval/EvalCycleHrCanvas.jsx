@@ -1291,9 +1291,10 @@ function stepsOf(cycle) {
 }
 
 /**
- * [pivit-work PW-2583 · 정책 §5.2.1 · §4.1-B] 카드 단계 칸 — 서버가 준 저장 순서의 단계 줄(`stageSteps`)이 있으면 그 순서로,
- * 이웃한 리뷰 단계는 한 칸으로 묶는다. 상향을 동료 리뷰어 확정 앞에 · 동료를 캘리브레이션 뒤에 둔 사이클은 리뷰 칸이 둘
- * 이상 선다. 칸마다 `{ status, phases, from, to }` — `from~to` 는 단계 줄의 자리(지금 칸은 `stageIndex` 로 찾는다).
+ * [pivit-work PW-2583 · 정책 §4.1-B] 카드 단계 칸 — 서버가 준 저장 순서의 단계 줄(`stageSteps`)이 있으면 그 순서로,
+ * 리뷰 단계(동료·상향·하향)마다 칸이 하나씩 선다. 셋 다 서버 상태값이 `peer_review` 라 상태값만으로 합치면
+ * 붙어 있는 «동료 리뷰 · 하향 리뷰»가 한 칸이 되어 하나가 안 보였다(11-13 dev 확인). 리뷰 이름이 없는 옛 줄만 합친다.
+ * 칸마다 `{ status, phases, from, to }` — `from~to` 는 단계 줄의 자리(지금 칸은 `stageIndex` 로 찾는다).
  */
 function stepItemsOf(cycle) {
   const line = Array.isArray(cycle?.stageSteps) ? cycle.stageSteps : null;
@@ -1302,7 +1303,7 @@ function stepItemsOf(cycle) {
   line.forEach((st, i) => {
     if (st.status === 'draft') return;
     const last = items[items.length - 1];
-    if (last && last.status === st.status) {
+    if (last && last.status === st.status && !st.reviewPhase && !last.phases.length) {
       if (st.reviewPhase) last.phases.push(st.reviewPhase);
       last.to = i;
     } else {
@@ -2459,7 +2460,7 @@ export default function EvalCycleHrCanvas({
               onEditSchedule={(c) => setScheduleModal(c)}
               onResumeDraft={onSaveDraft ? handleResumeDraft : undefined}
               onDeleteDraft={requestDeleteDraft}
-              onOpenStage={onOpenCycleStage ? (c, st) => onOpenCycleStage(c.id, st) : undefined}
+              onOpenStage={onOpenCycleStage ? (c, st) => onOpenCycleStage(c.id, st, c.reviewPhase) : undefined}
             />
           ))}
           {freshLeft > 0 && (
@@ -2498,7 +2499,7 @@ export default function EvalCycleHrCanvas({
                 onEditSchedule={(c) => setScheduleModal(c)}
                 onResumeDraft={onSaveDraft ? handleResumeDraft : undefined}
                 onDeleteDraft={requestDeleteDraft}
-                onOpenStage={onOpenCycleStage ? (c, st) => onOpenCycleStage(c.id, st) : undefined}
+                onOpenStage={onOpenCycleStage ? (c, st) => onOpenCycleStage(c.id, st, c.reviewPhase) : undefined}
               />
             ))}
         </div>
