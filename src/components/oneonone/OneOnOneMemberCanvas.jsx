@@ -1338,7 +1338,8 @@ function PrepScreen({ session, manager, avatar, okrStatus, readinessPct, healthH
            날짜만 쓰던 종전 호스트는 이 값을 무시하므로 종전 화면 그대로다. */
         date={
           session.scheduledAt
-            ? formatDate(session.scheduledAt, 'scheduled')
+            ? /* 잡아 둔 회의실 — 머리 «{날짜 시각} · {회의실}» (pivit-work PW-2638 · oneonone-spec §13-9 ⓘ). 글자는 호스트가 만든다. */
+              [formatDate(session.scheduledAt, 'scheduled'), session.roomLabel].filter(Boolean).join(' · ')
             : formatDate(heldAtOf(session))
         }
         avatar={avatar}

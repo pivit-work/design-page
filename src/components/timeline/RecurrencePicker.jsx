@@ -22,7 +22,7 @@ import CustomSelect from './CustomSelect.jsx';
  *   interval, onIntervalChange, unit, unitOptions, onUnitChange
  *   weekdayItems [{ index, label, on }], onToggleWeekday(index)   unit === 'week' 일 때
  *   monthMode, monthModeOptions, onMonthModeChange                unit === 'month' 일 때
- *   notices      [{ text, tone?: 'warning', actions?: [{ label, onClick, testId }], detail?, testId }] — 팝업이 바닥에 띄울 안내
+ *   notices      [{ text, tone?: 'warning' | 'error', actions?: [{ label, onClick, testId }], detail?, testId }] — 팝업이 바닥에 띄울 안내
  *                (끝없는 반복 · 겹치는 회차). 반복 고르기 바로 아래에 놓인다
  *   testId
  */
@@ -146,6 +146,10 @@ export default function RecurrencePicker({
       )}
 
       {notices.map((n, i) => (
+        /* tone 'error' — 막는 안내(끝없는 반복과 회의실 · pivit-work PW-2638 TC-1ON1-216 «빨간 한 줄»)는 공용 칸 오류 글씨. */
+        n.tone === 'error' ? (
+          <p key={i} className="dp-field-error" role="status" data-testid={n.testId}>{n.text}</p>
+        ) : (
         <span key={i} className={`tl-event-helper${n.tone === 'warning' ? ' is-warning' : ''}`} role="status" data-testid={n.testId}>
           {n.text}
           {(n.actions || []).map((a) => (
@@ -155,6 +159,7 @@ export default function RecurrencePicker({
           ))}
           {n.detail && <span className="tl-recurrence-detail">{n.detail}</span>}
         </span>
+        )
       ))}
     </div>
   );

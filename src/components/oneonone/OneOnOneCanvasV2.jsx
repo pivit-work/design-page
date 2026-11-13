@@ -120,6 +120,7 @@ export default function OneOnOneCanvasV2({
   baseUrl = '',
   onAddClick,
   onScheduleSubmit,
+  bookingModal,
   members,
   locale = 'ko',
   scheduleLabels,
@@ -198,6 +199,8 @@ export default function OneOnOneCanvasV2({
   const L = { ...DEFAULT_LABELS, ...labels };
   const [addOpen, setAddOpen] = useState(false);
   // "1on1 잡기" 버튼이 눌린 멤버 — null 이면 예약 모달 닫힘.
+  /* 앱이 «일시 · 회의실» 칸 상태를 쥔 감싸개를 넘기면 그것으로 그린다 (pivit-work PW-2638). 속성은 같다. */
+  const BookingModal = bookingModal || AddOneOnOneModal;
   const [scheduleMember, setScheduleMember] = useState(null);
   // 그 창의 «언제» 처음 값 — 카드 [바로 시작]만 'now' 로 연다 (PW-2593).
   const [scheduleWhen, setScheduleWhen] = useState('later');
@@ -301,7 +304,7 @@ export default function OneOnOneCanvasV2({
         <>
           {/* `key` 에 열림 상태를 실어 «열 때마다» 새 폼으로 마운트한다 — 날짜
               기본값(내일)이 지난번에 연 값으로 굳지 않게 한다. */}
-          <AddOneOnOneModal
+          <BookingModal
             key={`add-${addOpen}`}
             open={addOpen}
             onClose={() => setAddOpen(false)}
@@ -321,7 +324,7 @@ export default function OneOnOneCanvasV2({
           />
 
           {/* 멤버 카드 "1on1 잡기"·"바로 시작" → 멤버 고정 예약 모달 */}
-          <AddOneOnOneModal
+          <BookingModal
             key={`book-${scheduleMember ? scheduleMember.name : ''}-${scheduleWhen}`}
             open={!!scheduleMember}
             initialWhen={scheduleWhen}
@@ -638,6 +641,13 @@ function MemberCard({ member, tone, icons, baseUrl, onAction, onCardClick, rende
             <span>{member.schedule.time}</span>
             <span>•</span>
             <span>{member.schedule.duration}</span>
+            {/* 잡아 둔 회의실 — 줄 끝 «· {방}» (pivit-work PW-2638 · oneonone-spec §13-9 ⓘ). 같은 줄 글자 그대로 잇는다. */}
+            {member.schedule.room && (
+              <>
+                <span>·</span>
+                <span data-testid="ono-member-schedule-room">{member.schedule.room}</span>
+              </>
+            )}
           </div>
         )}
         {/* 「일정변경」 — 눌러서 그 회차의 시각을 다시 정하는 자리 (PW-825).

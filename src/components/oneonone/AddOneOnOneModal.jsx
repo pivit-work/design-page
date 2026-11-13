@@ -7,6 +7,7 @@ import FormField, { FieldError } from '../shared/FormField.jsx';
 import TextInput from '../shared/TextInput.jsx';
 import TextArea from '../shared/TextArea.jsx';
 import Radio from '../shared/Radio.jsx';
+import Button from '../shared/Button.jsx';
 import { fill } from './sessionHelpers.js';
 
 /**
@@ -230,7 +231,7 @@ function weekdayLabels(locale) {
 // 상세(열람모드) 모달도 같은 시간 옵션·데이트피커를 쓴다 — export 해 공유.
 export const TIME_OPTIONS = TIME_SLOTS.map((slot) => formatTime(slot));
 
-export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, member, icons, baseUrl = '', members, defaultDate, defaultTime, locale = 'ko', labels, startNow, initialWhen = 'later', isPastStart = isPastLocal, keepPrefilledPast = false, defaultDuration }) {
+export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, member, icons, baseUrl = '', members, defaultDate, defaultTime, locale = 'ko', labels, startNow, initialWhen = 'later', isPastStart = isPastLocal, keepPrefilledPast = false, defaultDuration, schedule, scope, onWhenChange, onMemberPick }) {
   const L = { ...DEFAULT_LABELS, ...(labels || {}) };
   const memberList = useMemo(
     () => (Array.isArray(members) ? members : DEMO_MEMBERS).map(toMemberOption),
@@ -305,18 +306,20 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
   /* 누를 때 지난 것으로 잰 값 — 날짜·시각을 바꾸면 그 값이 아니게 되어 다시 렌더 때 판정으로 돌아간다. */
   const pickedKey = `${dayKey(date)} ${time}`;
   const [pastAtClickKey, setPastAtClickKey] = useState(null);
-  const isPast = checkPast() || (!isNow && pastAtClickKey === pickedKey);
+  /* «일시 · 회의실» 칸(pivit-work PW-2638)을 받으면 날짜 · 시간 · 미팅 시간 칸을 걷고, 길이 · 잠금 · 지난 시각 판정은 그 칸이 정한다. */
+  const minutesShown = schedule ? (schedule.minutes > 0 ? String(schedule.minutes) : '') : nowMinutes;
+  const isPast = !schedule && (checkPast() || (!isNow && pastAtClickKey === pickedKey));
   const submitLabel = !isNow
-    ? fill(L.submit, { minutes: Number(nowMinutes) > 0 ? nowMinutes : '?' })
+    ? fill(L.submit, { minutes: Number(minutesShown) > 0 ? minutesShown : '?' })
     : startable
       ? L.inWindowSubmit
-      : nowMinutes
-        ? fill(L.startNowSubmit, { minutes: nowMinutes })
+      : minutesShown
+        ? fill(L.startNowSubmit, { minutes: minutesShown })
         : L.startNowSubmitPlain;
 
   const submit = async () => {
-    if (saving || !canSubmit || needsUpcomingChoice) return;
-    if (checkPast()) {
+    if (saving || !canSubmit || needsUpcomingChoice || (schedule && schedule.blocked && !startable)) return;
+    if (!schedule && checkPast()) {
       setPastAtClickKey(pickedKey);
       return;
     }
@@ -332,9 +335,12 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
         when: isNow ? 'now' : 'later',
         upcomingAction: isNow ? upcomingAction : null,
         upcomingId: isNow && upcoming ? upcoming.id : null,
+        schedule: schedule ? schedule.payload : undefined,
+        scope: scope ? scope.value : undefined,
       });
     } catch (err) {
-      setSubmitError((err && err.message) || L.submitFailed);
+      /* 칸 바로 아래에 이미 알린 실패(회의실 «방금 예약됨» 등 · pivit-work PW-2638)는 창 아래에 다시 적지 않는다. */
+      if (!(err && err.handled)) setSubmitError((err && err.message) || L.submitFailed);
       return;
     } finally {
       setSaving(false);
@@ -395,7 +401,7 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
             className="tl-group-modal-btn tl-group-modal-btn-primary"
             data-testid="ono-add-modal-submit"
             onClick={() => void submit()}
-            disabled={!canSubmit || saving || isPast || needsUpcomingChoice}
+            disabled={!canSubmit || saving || isPast || needsUpcomingChoice || (!!schedule && !!schedule.blocked && !startable)}
           >
             {submitLabel}
           </button>
@@ -448,7 +454,7 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
                         type="button"
                         className="ono-add-modal-menu-item"
                         data-testid="ono-add-modal-member-option"
-                        onClick={() => { setSearch(m.name); setPickedId(m.id); setMemberOpen(false); }}
+                        onClick={() => { setSearch(m.name); setPickedId(m.id); setMemberOpen(false); onMemberPick?.(m.id); }}
                       >
                         {m.name}
                       </button>
@@ -471,7 +477,7 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
                   name="ono-add-when"
                   value={key}
                   checked={when === key}
-                  onChange={() => setWhen(key)}
+                  onChange={() => { setWhen(key); onWhenChange?.(key); }}
                   label={label}
                   data-testid={`ono-add-when-${key}`}
                 />
@@ -482,7 +488,7 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
 
         {/* 미팅 시간 — 공용 라디오(PW-1012). 전에는 동그라미를 버튼으로 직접 그려 키보드 화살표로
             옮겨 다닐 수 없었고, 화면 읽기 프로그램은 「버튼」으로 읽었다. */}
-        {!startable && (
+        {!startable && !schedule && (
         <Field label={L.duration} group>
           <div className="ono-add-modal-radio-group">
             {durationOptions(L).map((opt) => (
@@ -551,8 +557,38 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
           </p>
         )}
 
+        {/* «일시 · 회의실» 한 칸 (pivit-work PW-2638 · oneonone-spec §13-3) — 날짜 · 시간 · 미팅 시간 세 칸 자리에 둔다.
+            칸 모양은 이 창의 날짜 칸(.ono-add-modal-input · 누르면 고르기 창이 열리는 칸), 칸 안 글자 버튼은 공용 Button ghost sm,
+            칸 아래 안내는 이 창의 다른 안내 줄(.tl-event-helper.ono-add-modal-hint), 잠금 문구는 공용 FieldError. */}
+        {schedule && !startable && (
+          <Field label={schedule.label}>
+            <div
+              className="ono-add-modal-input"
+              data-testid="ono-add-schedule"
+              onClick={(e) => { e.stopPropagation(); schedule.onOpen?.(); }}
+            >
+              <span className="ono-add-modal-input-text" data-testid="ono-add-schedule-line">{schedule.line}</span>
+              <Button type="button" variant="ghost" size="sm" data-testid="ono-add-schedule-change" onClick={(e) => { e.stopPropagation(); schedule.onOpen?.(); }}>
+                {schedule.changeLabel}
+              </Button>
+              {schedule.onRemoveRoom && (
+                <Button type="button" variant="ghost" size="sm" data-testid="ono-add-schedule-remove-room" onClick={(e) => { e.stopPropagation(); schedule.onRemoveRoom(); }}>
+                  {schedule.removeRoomLabel}
+                </Button>
+              )}
+            </div>
+            {schedule.extra}
+            {(schedule.notices || []).map((n) => (
+              <p key={n.testId || n.text} className={`tl-event-helper ono-add-modal-hint${n.tone === 'warning' ? ' is-warning' : ''}`} data-testid={n.testId}>
+                {n.text}
+              </p>
+            ))}
+            {schedule.error && <FieldError data-testid="ono-add-schedule-error">{schedule.error}</FieldError>}
+          </Field>
+        )}
+
         {/* 날짜 + 시간 — «지금 바로»면 서버가 시각을 정하므로 뺀다 (PW-2592). */}
-        {!isNow && (
+        {!isNow && !schedule && (
         <div>
         <div className="ono-add-modal-row">
           {/* 날짜 */}
@@ -627,6 +663,29 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
           <p className="tl-event-helper ono-add-modal-hint" data-testid="ono-add-modal-now-notice">
             {fill(L.startNowNotice, { name: targetName })}
           </p>
+        )}
+        {/* 반복 회차의 [일정 변경] — 어디까지 바꿀까요? (pivit-work PW-2638 · oneonone-spec §13-3 «일정 변경 — 어디까지»).
+            고르는 칸은 위 «잡아 둔 1on1» 과 같은 라디오 칸 목록, 회색 안내는 이 창의 안내 줄. */}
+        {scope && (
+          <Field label={scope.title} group>
+            <div className="ono-add-modal-choice-list">
+              {scope.options.map(([key, label]) => (
+                <Radio
+                  key={key}
+                  variant="card"
+                  name="ono-add-scope"
+                  value={key}
+                  checked={scope.value === key}
+                  onChange={() => scope.onChange(key)}
+                  label={label}
+                  data-testid={`ono-add-scope-${key}`}
+                />
+              ))}
+            </div>
+            {scope.note && (
+              <p className="tl-event-helper ono-add-modal-hint" data-testid="ono-add-scope-note">{scope.note}</p>
+            )}
+          </Field>
         )}
         {/* 저장 실패 사유 (PW-987) — 1on1 화면의 다른 인라인 실패 줄과 같은 모양이다. */}
         {submitError && (

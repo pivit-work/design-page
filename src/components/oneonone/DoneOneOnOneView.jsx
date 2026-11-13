@@ -289,8 +289,9 @@ const DEFAULT_LABELS = {
   nextMemoSaving: '저장 중…',
   nextMemoSaved: '저장됨',
   nextMemoError: '사전 메모를 저장하지 못했습니다.',
-  bookNext: '다음 원온원 예약하기',
-  bookNextDone: '다음 원온원 예약 완료',
+  bookNext: '다음 1on1 예약하기',
+  bookNextDone: '다음 1on1 예약 완료',
+  bookNextSeparate: '다음 1on1 따로 잡기',
 
   /* ── 액션아이템 Slack 알림 (oneonone-spec §4-4 「다음 단계」) ── */
   notifySlack: 'Slack 알림 발송',
@@ -1644,7 +1645,7 @@ export default function DoneOneOnOneView({
   actions,
   /** `{ saving, saved, error, onChange(text) }` */
   memo,
-  /** `{ done, onBook() }` — 다음 1on1 예약 */
+  /** `{ done, onBook(), nextLine? }` — 다음 1on1 예약. `nextLine` 이 있으면(반복으로 다음 회차가 잡혀 있음) 버튼이 «따로 잡기»가 되고 아래 한 줄 */
   booking,
   /**
    * `{ busy, done, error, onSend() }` — 액션아이템 Slack 알림 (oneonone-spec §4-4).
@@ -2005,9 +2006,14 @@ export default function DoneOneOnOneView({
             booking?.onBook?.();
           }}
         >
-          {booking?.done && <Icon src={I.check} size={16} color="currentColor" baseUrl={baseUrl} />}
-          {booking?.done ? L.bookNextDone : L.bookNext}
+          {/* 기획 «📅 다음 1on1 …»의 달력 표시 — 이모지 대신 같은 화면 아이콘 묶음의 달력(pivit-work PW-2638). */}
+          <Icon src={booking?.done ? I.check : I.calendar} size={16} color="currentColor" baseUrl={baseUrl} />
+          {booking?.done ? L.bookNextDone : booking?.nextLine ? L.bookNextSeparate : L.bookNext}
         </button>
+        {/* 반복으로 다음 회차가 이미 잡혀 있으면 버튼 아래 회색 한 줄 (pivit-work PW-2638 · oneonone-spec §13-3 «DONE 다음 단계»). */}
+        {booking?.nextLine && !booking?.done && (
+          <p className="tl-event-helper" data-testid="ono-done-book-next-line">{booking.nextLine}</p>
+        )}
 
         {slack && (
           <>
