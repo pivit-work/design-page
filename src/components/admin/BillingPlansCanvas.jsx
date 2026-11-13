@@ -1,7 +1,8 @@
 import { ArrowRightGlyph } from '../shared/lineIcons.jsx';
-import { useState, useId } from 'react';
+import { useState, useId, useEffect, useRef } from 'react';
 import Checkbox from '../shared/Checkbox.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
+import Button from '../shared/Button.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
@@ -178,6 +179,57 @@ const DEFAULT_LABELS = {
   suspendedBody:
     '유료 요금제를 정가로 결제하시면 그 순간 다시 이용하실 수 있고, 결제한 날이 새 청구일이 됩니다. Free 로 바꾸거나 해지하시려면 구독 현황에서 [해지 신청]을 눌러 주세요.',
   suspendedBackToOverview: '구독 현황으로',
+  // ── «전자결재 · 휴가 패키지» 카드 (pivit-work PW-2782 · spec-billing §2.4-A·§2.4-C · plans «애드온» 행) ──
+  addonSectionTitle: '애드온',
+  addonName: '전자결재 · 휴가 패키지',
+  addonDesc: '전자결재 · 워크플로우 + 휴가 · 연차 — 함께 켜고 함께 끕니다',
+  addonPrice: (price) => `좌석당 ${won(price)} / 월`,
+  addonAnnualDiscount: '연 30% 할인',
+  addonSeatsNote: (n) => `좌석 수는 요금제와 같습니다 · 지금 ${n}좌석`,
+  addonBadgeTrial: (date) => `체험 중 · ${date}까지`,
+  addonBadgeActive: '사용 중',
+  addonBadgeCancelScheduled: (date) => `해지 예정 · ${date}까지`,
+  addonBadgeLapsed: '꺼짐 · 읽기 전용',
+  addonBadgeLocked: '결제 실패로 잠김',
+  addonLapsedNote: '결재 문서·휴가 기록은 지우지 않고 읽기 전용으로 남아 있습니다. 다시 사면 바로 켜집니다.',
+  addonTrialCta: '30일 무료로 써 보기',
+  addonBuyNowCta: '바로 구매',
+  addonBuyCta: '애드온 구매',
+  addonCancelCta: '애드온 해지',
+  addonUndoCancelCta: '해지 취소',
+  addonViewPlansCta: '플랜 보기',
+  addonManageMethodsCta: '결제수단 관리 →',
+  addonBlockFree: '유료 요금제로 바꾼 뒤 구매할 수 있습니다.',
+  addonBlockPastDue: '결제를 복구한 뒤 구매할 수 있습니다.',
+  addonBlockSuspended: '요금제를 결제한 뒤 구매할 수 있습니다.',
+  addonBlockPlanCancel: (date) => `요금제 해지가 예약돼 있습니다 — 애드온도 ${date}에 함께 끝납니다.`,
+  addonBlockSubscriptionTrial: '요금제를 결제한 뒤 이 카드에서 살 수 있습니다 — 체험 중에는 이미 켜져 있습니다.',
+  addonLoadFailed: '애드온 정보를 불러오지 못했습니다',
+  addonRetry: '다시 시도',
+  addonBuyTitle: '전자결재 · 휴가 패키지 구매',
+  addonBuyLoading: '결제 금액을 계산하고 있습니다',
+  addonBuyLoadFailed: '결제 금액을 불러오지 못했습니다',
+  addonBuyTodayLabel: '오늘 결제',
+  addonBuyTodayDetail: (lastDay, days, periodDays, seats, unit, months = 1) =>
+    `오늘 ~ ${lastDay} ${days}일분 · ${seats}좌석 × ${won(unit)}${months > 1 ? ` × ${months}개월` : ''} × ${days}/${periodDays}일`,
+  addonBuyVat: (vat) => `부가세 ${won(vat)}`,
+  addonBuyCarry: '다음 청구일에 함께 청구됩니다',
+  addonBuyNextLabel: (date) => `${date}부터 매 주기`,
+  addonBuyNextDetail: (seats, unit, months = 1) =>
+    `${seats}좌석 × ${won(unit)}${months > 1 ? ` × ${months}개월` : ''} · 지금 좌석 기준 예상 · 부가세 별도`,
+  addonBuyCardLabel: '결제 카드',
+  addonBuyCard: (brand, last4) => `${brand ?? ''} ···· ${last4}`,
+  addonBuyCancelNote: '언제든 해지할 수 있고, 해지하면 이번 청구 기간 끝까지 쓸 수 있습니다',
+  addonBuyAgree: '위 금액과 정기결제에 동의합니다',
+  addonBuySubmit: '결제하고 켜기',
+  addonBuyBusy: '결제 중…',
+  addonBuyFailed: (reason) => `결제하지 못했습니다 — ${reason}`,
+  addonBuyRetry: '다시 시도',
+  addonCancelTitle: '전자결재 · 휴가 패키지 해지',
+  addonCancelBody: (date) =>
+    `${date}까지 쓸 수 있고, 그 뒤 결재 문서·양식과 휴가 기록은 읽기 전용이 되고 휴가 메뉴가 사라집니다. 진행 중인 결재(휴가 신청 포함)는 끝까지 할 수 있고, 업무 자동화는 멈춥니다.`,
+  addonCancelSubmit: '해지 예약',
+  addonBusy: '처리 중…',
 };
 
 function mergeLabels(provided) {
@@ -463,6 +515,266 @@ function PlanCard({ plan, isCurrent, interval, onAction, canEdit, isCustomCta, f
 }
 
 // ── 기능 비교 테이블 ─────────────────────────────────────────
+// ── «전자결재 · 휴가 패키지» 카드 (pivit-work PW-2782 · spec-billing §2.4-A ⑤ · §2.4-C) ──
+//
+// 새 시각 언어를 만들지 않는다 — 이 파일의 Card/Badge/Btn 을 그대로 조합한다(협의 단가 카드와 같은 방식).
+// 배지 색: 사용 중 = 초록(성공) · 체험 = 브랜드(14일 이하 주황) · 해지 예정 = 주황(경고) · 꺼짐 = 회색 · 잠김 = 빨강.
+// 상태·버튼은 서버가 판정한 값(`addon.phase` · `purchaseBlock` · `canStartTrial`)만 읽는다.
+function addonBadgeOf(addon, labels) {
+  switch (addon.phase) {
+    case 'trial': {
+      const soon = addon.trialDaysLeft != null && addon.trialDaysLeft <= 14;
+      return {
+        text: labels.addonBadgeTrial(addon.trialEndDate),
+        color: soon ? T.amber : T.accentText,
+        bg: soon ? T.amberBg : T.bl,
+      };
+    }
+    case 'active':
+      return { text: labels.addonBadgeActive, color: T.green, bg: T.greenBg };
+    case 'cancel_scheduled':
+      return { text: labels.addonBadgeCancelScheduled(addon.lastDay), color: T.amber, bg: T.amberBg };
+    case 'lapsed':
+      return { text: labels.addonBadgeLapsed, color: T.sub, bg: T.bl };
+    case 'locked':
+      return { text: labels.addonBadgeLocked, color: T.red, bg: T.redBg };
+    default:
+      return null;
+  }
+}
+
+function addonBlockMessage(addon, labels) {
+  switch (addon.purchaseBlock) {
+    case 'free_plan': return labels.addonBlockFree;
+    case 'past_due': return labels.addonBlockPastDue;
+    case 'suspended': return labels.addonBlockSuspended;
+    case 'plan_cancel_scheduled': return labels.addonBlockPlanCancel(addon.periodLastDay ?? '');
+    case 'subscription_trial': return labels.addonBlockSubscriptionTrial;
+    default: return null;
+  }
+}
+
+function AddonCard({ addon, interval, canEdit, highlight, labels, onTrial, onBuy, onCancel, onUndoCancel,
+  onViewPlans, onManageMethods, busy }) {
+  const ref = useRef(null);
+  const [flash, setFlash] = useState(Boolean(highlight));
+  useEffect(() => {
+    if (!highlight || !ref.current) return undefined;
+    ref.current.scrollIntoView?.({ block: 'center' });
+    setFlash(true);
+    const t = setTimeout(() => setFlash(false), 2400);
+    return () => clearTimeout(t);
+  }, [highlight]);
+
+  const badge = addonBadgeOf(addon, labels);
+  const block = addonBlockMessage(addon, labels);
+  const price = interval === 'annual' ? addon.priceAnnual : addon.priceMonthly;
+  const disabled = !canEdit || busy;
+
+  let action = null;
+  if (addon.purchaseBlock === 'free_plan') {
+    action = <Btn kind="secondary" onClick={onViewPlans}>{labels.addonViewPlansCta}</Btn>;
+  } else if (addon.purchaseBlock === 'past_due') {
+    action = <Btn kind="secondary" onClick={onManageMethods}>{labels.addonManageMethodsCta}</Btn>;
+  } else if (addon.phase === 'active') {
+    action = <Btn kind="danger" onClick={onCancel} disabled={disabled}>{labels.addonCancelCta}</Btn>;
+  } else if (addon.phase === 'cancel_scheduled' && addon.cancelScheduledByAddon) {
+    action = <Btn kind="secondary" onClick={onUndoCancel} disabled={disabled}>{labels.addonUndoCancelCta}</Btn>;
+  } else if (addon.canStartTrial) {
+    action = (
+      <div style={{ display: 'flex', gap: 'var(--spacing-md)', flexWrap: 'wrap' }}>
+        <Btn onClick={onTrial} disabled={disabled}>{labels.addonTrialCta}</Btn>
+        <Btn kind="secondary" onClick={onBuy} disabled={disabled}>{labels.addonBuyNowCta}</Btn>
+      </div>
+    );
+  } else if (addon.phase !== 'cancel_scheduled') {
+    action = (
+      <Btn kind={addon.phase === 'trial' ? 'secondary' : 'primary'} onClick={onBuy}
+        disabled={disabled || Boolean(addon.purchaseBlock)}>
+        {labels.addonBuyCta}
+      </Btn>
+    );
+  }
+
+  return (
+    <div ref={ref} id="addon-approval_leave" data-testid="billing-addon-card" style={{ marginBottom: 'var(--spacing-3xl)' }}>
+      <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 'var(--spacing-lg)' }}>{labels.addonSectionTitle}</div>
+      <Card style={{ border: `1px solid ${flash ? T.accent : T.border}`, transition: 'border-color .4s' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--spacing-xl)', flexWrap: 'wrap' }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)', flexWrap: 'wrap', marginBottom: 'var(--spacing-sm)' }}>
+              <span style={{ fontSize: 16, fontWeight: 800 }}>{labels.addonName}</span>
+              {badge && <Badge color={badge.color} bg={badge.bg}>{badge.text}</Badge>}
+            </div>
+            <div style={{ fontSize: 13, color: T.sub, marginBottom: 'var(--spacing-md)' }}>{labels.addonDesc}</div>
+            <div style={{ fontSize: 14, fontWeight: 700 }}>
+              {labels.addonPrice(price)}
+              {interval === 'annual' && (
+                <span style={{ fontSize: 12, color: T.green, fontWeight: 700, marginLeft: 'var(--spacing-md)' }}>{labels.addonAnnualDiscount}</span>
+              )}
+            </div>
+            <div style={{ fontSize: 12, color: T.sub, marginTop: 'var(--spacing-xs)' }}>{labels.addonSeatsNote(addon.seats)}</div>
+            {addon.state === 'lapsed' && (
+              <div style={{ fontSize: 12, color: T.sub, marginTop: 'var(--spacing-md)' }}>{labels.addonLapsedNote}</div>
+            )}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 'var(--spacing-sm)' }}>
+            {action}
+            {block && (
+              <div data-testid="billing-addon-block" style={{ fontSize: 12, color: T.sub, maxWidth: 320, textAlign: 'right' }}>{block}</div>
+            )}
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+function AddonLoadFailed({ labels, onRetry }) {
+  return (
+    <div style={{ marginBottom: 'var(--spacing-3xl)' }}>
+      <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 'var(--spacing-lg)' }}>{labels.addonSectionTitle}</div>
+      <Card>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--spacing-lg)', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 13, color: T.sub }}>{labels.addonLoadFailed}</span>
+          <Btn kind="secondary" onClick={onRetry}>{labels.addonRetry}</Btn>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+const ADDON_ROW = { display: 'flex', justifyContent: 'space-between', gap: 'var(--spacing-lg)', fontSize: 13 };
+
+function AddonBuyModal({ preview, previewFailed, labels, onClose, onSubmit, onRetryPreview, onManageMethods }) {
+  const agreeId = useId();
+  const [agreed, setAgreed] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [failure, setFailure] = useState(null);
+  const submit = async () => {
+    setBusy(true);
+    setFailure(null);
+    try {
+      await onSubmit(preview.today.total);
+    } catch (err) {
+      setFailure(err?.message || '');
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <ModalShell
+      title={labels.addonBuyTitle}
+      titleId="billing-addon-buy-title"
+      closeLabel={labels.close}
+      onClose={onClose}
+      zIndex={1000}
+      className="adm-shell"
+      testId="billing-addon-buy"
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>{labels.cancelButton}</Button>
+          <Button variant="primary" data-testid="billing-addon-buy-submit" pending={busy}
+            pendingLabel={labels.addonBuyBusy}
+            onClick={() => void submit()} disabled={!preview || !agreed}>
+            {failure != null ? labels.addonBuyRetry : labels.addonBuySubmit}
+          </Button>
+        </>
+      }
+    >
+      <div style={{ fontFamily: T.font, display: 'flex', flexDirection: 'column', gap: 'var(--spacing-lg)' }}>
+        {!preview && !previewFailed && <div style={{ fontSize: 13, color: T.sub }}>{labels.addonBuyLoading}</div>}
+        {previewFailed && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--spacing-lg)' }}>
+            <span style={{ fontSize: 13, color: T.red }}>{labels.addonBuyLoadFailed}</span>
+            <Btn kind="secondary" onClick={onRetryPreview}>{labels.addonRetry}</Btn>
+          </div>
+        )}
+        {preview && (
+          <>
+            <div>
+              <div style={ADDON_ROW}>
+                <span style={{ fontWeight: 700 }}>{labels.addonBuyTodayLabel}</span>
+                <span style={{ fontWeight: 800 }}>{won(preview.today.total)}</span>
+              </div>
+              <div style={{ fontSize: 12, color: T.sub, marginTop: 'var(--spacing-xs)' }}>{labels.addonBuyTodayDetail(preview.lastDay, preview.remainingDays, preview.periodDays, preview.seats, preview.unitPrice, preview.months)}</div>
+              {preview.kind === 'charge' ? (
+                <div style={{ fontSize: 12, color: T.sub, marginTop: 'var(--spacing-xxs)' }}>{labels.addonBuyVat(preview.today.vat)}</div>
+              ) : (
+                <div style={{ fontSize: 12, color: T.amber, marginTop: 'var(--spacing-xxs)' }}>{labels.addonBuyCarry}</div>
+              )}
+            </div>
+            <div>
+              <div style={ADDON_ROW}>
+                <span style={{ fontWeight: 700 }}>{labels.addonBuyNextLabel(preview.nextBillingDate)}</span>
+                <span style={{ fontWeight: 700 }}>{won(preview.perPeriod)}</span>
+              </div>
+              <div style={{ fontSize: 12, color: T.sub, marginTop: 'var(--spacing-xs)' }}>{labels.addonBuyNextDetail(preview.seats, preview.unitPrice, preview.months)}</div>
+            </div>
+            {preview.cardLast4 && (
+              <div style={ADDON_ROW}>
+                <span style={{ fontWeight: 700 }}>{labels.addonBuyCardLabel}</span>
+                <span>{labels.addonBuyCard(preview.cardBrand, preview.cardLast4)}</span>
+              </div>
+            )}
+            <div style={{ padding: 'var(--spacing-md) var(--spacing-lg)', background: T.bl, borderRadius: 10, fontSize: 13, color: T.sub }}>
+              {labels.addonBuyCancelNote}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--spacing-md)', fontSize: 13 }}>
+              <Checkbox id={agreeId} checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
+              <label htmlFor={agreeId} style={{ cursor: 'pointer' }}>{labels.addonBuyAgree}</label>
+            </div>
+          </>
+        )}
+        {failure != null && (
+          <div data-testid="billing-addon-buy-failed" style={{ padding: 'var(--spacing-md) var(--spacing-lg)', background: T.redBg, borderRadius: 10 }}>
+            <div style={{ fontSize: 13, color: T.red, fontWeight: 700, marginBottom: 'var(--spacing-md)' }}>{labels.addonBuyFailed(failure)}</div>
+            <Btn kind="secondary" onClick={onManageMethods}>{labels.addonManageMethodsCta}</Btn>
+          </div>
+        )}
+      </div>
+    </ModalShell>
+  );
+}
+
+function AddonCancelModal({ addon, labels, onClose, onSubmit }) {
+  const [busy, setBusy] = useState(false);
+  const submit = async () => {
+    setBusy(true);
+    try {
+      await onSubmit();
+    } catch {
+      // 창을 연 채 둔다 — 실패 안내(토스트)는 앱이 한다(plans §5 «창 유지 + 에러 토스트»).
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <ModalShell
+      title={labels.addonCancelTitle}
+      titleId="billing-addon-cancel-title"
+      closeLabel={labels.close}
+      onClose={onClose}
+      zIndex={1000}
+      className="adm-shell"
+      testId="billing-addon-cancel"
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>{labels.cancelButton}</Button>
+          <Button variant="danger-ghost" data-testid="billing-addon-cancel-submit" pending={busy}
+            pendingLabel={labels.addonBusy} onClick={() => void submit()}>
+            {labels.addonCancelSubmit}
+          </Button>
+        </>
+      }
+    >
+      <div style={{ fontFamily: T.font, fontSize: 14, color: T.sub }}>
+        {labels.addonCancelBody(addon.periodLastDay ?? '')}
+      </div>
+    </ModalShell>
+  );
+}
+
 function FeatureCompareTable({ plans, featureKeys, featureLabelMap, currentPlanCode, labels }) {
   return (
     <Card style={{ marginBottom: 24 }}>
@@ -604,6 +916,22 @@ export default function BillingPlansCanvas({
    */
   payBlock = null,
   onPayBlockAction,
+  /**
+   * «전자결재 · 휴가 패키지» (pivit-work PW-2782 · plans «애드온» 행) — 서버 `GET billing/addons` 응답.
+   * `null` 이면(판매 전) 카드도 제목도 없다. `addonLoadFailed` 면 카드 자리에 «불러오지 못했습니다».
+   * 사고·해지하는 함수는 Promise — 거부되면 창을 연 채 실패를 보인다. 금액은 서버가 다시 센다.
+   */
+  addon = null,
+  addonLoadFailed = false,
+  addonHighlight = false,
+  addonBusy = false,
+  onAddonRetry = () => {},
+  onAddonTrial = () => {},
+  onAddonPreview = () => Promise.resolve(null),
+  onAddonPurchase = () => Promise.resolve(),
+  onAddonCancel = () => Promise.resolve(),
+  onAddonUndoCancel = () => {},
+  onNavigateMethods = () => {},
 }) {
   const seatConfirmId = useId();
   const labels = mergeLabels(providedLabels);
@@ -619,6 +947,21 @@ export default function BillingPlansCanvas({
   };
   const [downgradeChecked, setDowngradeChecked] = useState(false);
   const [previewPlanCode, setPreviewPlanCode] = useState(null);
+  const [addonModal, setAddonModal] = useState(null); // null | 'buy' | 'cancel'
+  const [addonPreview, setAddonPreview] = useState(null);
+  const [addonPreviewFailed, setAddonPreviewFailed] = useState(false);
+  const plansTopRef = useRef(null);
+  const loadAddonPreview = () => {
+    setAddonPreview(null);
+    setAddonPreviewFailed(false);
+    Promise.resolve(onAddonPreview())
+      .then((p) => (p ? setAddonPreview(p) : setAddonPreviewFailed(true)))
+      .catch(() => setAddonPreviewFailed(true));
+  };
+  const openAddonBuy = () => {
+    setAddonModal('buy');
+    loadAddonPreview();
+  };
 
   // 청구 주기·좌석 수는 onIntervalChange/onSeatsChange 주입 시 controlled(위임),
   // 아니면 내부 state.
@@ -900,7 +1243,8 @@ export default function BillingPlansCanvas({
           />
         )}
 
-        {/* 4티어 플랜 카드 */}
+        {/* 4티어 플랜 카드 — [플랜 보기](패키지 카드 · Free)가 여기로 스크롤한다 */}
+        <div ref={plansTopRef} />
         <div style={{ display: 'flex', gap: 14, marginBottom: 24, flexWrap: 'wrap' }}>
           {plans.map((plan) => (
             <PlanCard
@@ -944,6 +1288,26 @@ export default function BillingPlansCanvas({
                 fontSize: 13, cursor: 'pointer', padding: 0 }}>{labels.commitmentContactCta}</button>
           </div>
         )}
+
+        {/* «전자결재 · 휴가 패키지» — 기능 비교표 위 (pivit-work PW-2782 · plans «애드온 카드» 행). 판매 전이면 없다. */}
+        {addonLoadFailed ? (
+          <AddonLoadFailed labels={labels} onRetry={onAddonRetry} />
+        ) : addon?.onSale ? (
+          <AddonCard
+            addon={addon}
+            interval={interval}
+            canEdit={canEdit}
+            highlight={addonHighlight}
+            busy={addonBusy}
+            labels={labels}
+            onTrial={onAddonTrial}
+            onBuy={openAddonBuy}
+            onCancel={() => setAddonModal('cancel')}
+            onUndoCancel={onAddonUndoCancel}
+            onViewPlans={() => plansTopRef.current?.scrollIntoView?.({ block: 'start' })}
+            onManageMethods={onNavigateMethods}
+          />
+        ) : null}
 
         {/* 기능 비교 테이블 */}
         <FeatureCompareTable
@@ -1214,6 +1578,32 @@ export default function BillingPlansCanvas({
               )}
             </div>
           </ModalShell>
+        )}
+
+        {addonModal === 'buy' && addon && (
+          <AddonBuyModal
+            preview={addonPreview}
+            previewFailed={addonPreviewFailed}
+            labels={labels}
+            onClose={() => setAddonModal(null)}
+            onRetryPreview={loadAddonPreview}
+            onManageMethods={onNavigateMethods}
+            onSubmit={async (expectedTotal) => {
+              await onAddonPurchase(expectedTotal);
+              setAddonModal(null);
+            }}
+          />
+        )}
+        {addonModal === 'cancel' && addon && (
+          <AddonCancelModal
+            addon={addon}
+            labels={labels}
+            onClose={() => setAddonModal(null)}
+            onSubmit={async () => {
+              await onAddonCancel();
+              setAddonModal(null);
+            }}
+          />
         )}
 
       </div>

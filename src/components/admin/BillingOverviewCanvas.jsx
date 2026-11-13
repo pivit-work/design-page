@@ -168,6 +168,18 @@ const DEFAULT_LABELS = {
   // 날짜를 모르면(첫 결제 전 등) 날짜 없이 — «null ·»이 찍히지 않게 (pivit-work PW-2476).
   nextBillingSub: (date, seats, price, months = 1) =>
     `${date ? `${date} · ` : ''}${seats}좌석 × ${won(price)}${months > 1 ? ` × ${months}개월` : ''}`,
+  // ── «전자결재 · 휴가 패키지» 줄 (pivit-work PW-2782 · screen-billing-overview «애드온 줄» 행) ──
+  addonName: '전자결재 · 휴가 패키지',
+  addonOff: '사용 안 함',
+  addonTrial: (date) => `체험 중 · ${date}까지`,
+  addonTrialDday: (n) => `D-${n}`,
+  addonActive: (price) => `사용 중 · 좌석당 ${won(price)}`,
+  addonCancelScheduled: (date) => `해지 예정 · ${date}까지`,
+  addonLapsed: '꺼짐 · 결재 문서·휴가 기록은 읽기 전용',
+  addonLocked: '결제 실패로 잠김',
+  addonManage: '관리 →',
+  addonNextLine: (seats, price, months = 1) =>
+    `+ 전자결재 · 휴가 패키지 ${seats}좌석 × ${won(price)}${months > 1 ? ` × ${months}개월` : ''}`,
   methodLabel: '기본 결제수단',
   methodDisplay: (brand, last4) => `${brand} ···· ${last4}`,
   methodExp: (exp) => `유효기간 ${exp}`,
@@ -361,6 +373,44 @@ function UsageBanner({ banner, canEdit, testId }) {
   );
 }
 
+// 구독 현황 «전자결재 · 휴가 패키지» 한 줄 (pivit-work PW-2782 · overview «애드온 줄» 행). 사고 해지하는 곳은 플랜 화면 카드다 —
+// 여기서는 상태만 보이고 [관리 →]로 보낸다. 색: 체험 14일 이하·해지 예정 = 주황, 꺼짐 = 회색, 잠김 = 빨강.
+function AddonRow({ addon, labels, onManage }) {
+  let text = labels.addonOff;
+  let color = T.text;
+  if (addon.phase === 'trial') {
+    const left = addon.trialDaysLeft;
+    text = labels.addonTrial(addon.trialEndDate) + (left != null && left <= 3 ? ` · ${labels.addonTrialDday(left)}` : '');
+    color = left != null && left <= 14 ? T.amber : T.text;
+  } else if (addon.phase === 'active') {
+    text = labels.addonActive(addon.interval === 'annual' ? addon.priceAnnual : addon.priceMonthly);
+  } else if (addon.phase === 'cancel_scheduled') {
+    text = labels.addonCancelScheduled(addon.lastDay);
+    color = T.amber;
+  } else if (addon.phase === 'lapsed') {
+    text = labels.addonLapsed;
+    color = T.sub;
+  } else if (addon.phase === 'locked') {
+    text = labels.addonLocked;
+    color = T.red;
+  }
+  return (
+    <Card style={{ marginBottom: 'var(--spacing-xl)', padding: 'var(--spacing-lg) var(--spacing-3xl)' }}>
+      <div data-testid="billing-addon-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--spacing-lg)', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-lg)', flexWrap: 'wrap', minWidth: 0 }}>
+          <span style={{ fontSize: 14, fontWeight: 700 }}>{labels.addonName}</span>
+          <span data-testid="billing-addon-row-status" style={{ fontSize: 13, color, fontWeight: 600 }}>{text}</span>
+        </div>
+        <button type="button" onClick={onManage}
+          style={{ background: 'none', border: 'none', color: T.accentText, fontWeight: 700,
+            fontSize: 13, cursor: 'pointer', padding: 0, whiteSpace: 'nowrap' }}>
+          {labels.addonManage}
+        </button>
+      </div>
+    </Card>
+  );
+}
+
 export default function BillingOverviewCanvas({
   /** 제목 바로 오른쪽 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2567). 안 주면 지금과 같다. */
   titleHelp,
@@ -510,6 +560,13 @@ export default function BillingOverviewCanvas({
   onRequestCancellation,
   /** 신청 취소 창의 [신청 취소] `() => Promise` — 위와 같다. */
   onWithdrawCancellationRequest,
+  /**
+   * «전자결재 · 휴가 패키지» (pivit-work PW-2782) — 서버 `GET billing/addons`. `null`(판매 전 · 못 불러옴)이면 줄을 그리지 않는다.
+   * `addonNextCharge` 는 구독 응답의 다음 청구 패키지 라인 — 있으면 「다음 청구」 금액에 이미 더해져 있다.
+   */
+  addon = null,
+  addonNextCharge = null,
+  onManageAddon = () => {},
 }) {
   const labels = mergeLabels(providedLabels);
   const [cancelOpen, setCancelOpen] = useState(false); // 해지 방식 선택 모달
@@ -1067,6 +1124,10 @@ export default function BillingOverviewCanvas({
           </div>
         </Card>
 
+        {addon?.onSale && (
+          <AddonRow addon={addon} labels={labels} onManage={onManageAddon} />
+        )}
+
         {/* 청구 정보 (active/past_due) — 이용 정지면 결제수단 요약만 남고 「다음 청구」는 없다(청구가 없다 · PW-2549) */}
         {((sub.status === 'active' || sub.status === 'past_due') && !isFree || suspended) && (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
@@ -1087,6 +1148,12 @@ export default function BillingOverviewCanvas({
                     sub.interval === 'annual' ? 12 : 1,
                   )}
               </div>
+              {/* 산 패키지 라인 — 같은 청구서에 붙어 함께 결제된다 (위 금액에 이미 더해져 있다 · PW-2782) */}
+              {addonNextCharge && (
+                <div data-testid="billing-addon-next-line" style={{ fontSize: 13, color: T.sub, marginTop: 'var(--spacing-xxs)' }}>
+                  {labels.addonNextLine(addonNextCharge.seats, addonNextCharge.unitPrice, addonNextCharge.months)}
+                </div>
+              )}
               {/* 넘어간 요금제 변경 차액 — 같은 청구서에 붙어 함께 결제된다 (위 금액에 이미 더해져 있다) */}
               {carriedDiff && (
                 <div data-testid="billing-carried-diff" style={{ fontSize: 13, color: T.sub, marginTop: 'var(--spacing-xxs)' }}>

@@ -54,6 +54,8 @@ const DEFAULT_LABELS = {
     rebill: '정기결제',
     seat_increment: '좌석 추가(일할)',
     plan_change: '요금제 변경(차액)',
+    // «전자결재 · 휴가 패키지»를 산 날의 일할 결제 (pivit-work PW-2782 · history «청구 사유 «애드온 구매»» 행)
+    addon_purchase: '애드온 구매(일할)',
   },
   seatIncrementTooltip: '첫 청구 주기 안에 추가된 좌석의 남은 기간분입니다',
   // 요금제 변경 차액 줄 hover (pivit-work PW-2475 · screen-billing-history §4)
@@ -164,6 +166,8 @@ const REASON_META = {
   seat_increment: { color: T.amber, bg: T.amberBg },
   // 이용 중 상위 요금제로 올린 남은 기간 차액 (pivit-work PW-2475) — 좌석 추가 일할과 같은 «주기 중간 일할 청구»라 같은 배지 색
   plan_change: { color: T.amber, bg: T.amberBg },
+  // 패키지를 산 날의 일할 (pivit-work PW-2782) — 좌석 추가와 같은 앰버(history «애드온 구매» 행)
+  addon_purchase: { color: T.amber, bg: T.amberBg },
 };
 const reasonKey = (inv) => (REASON_META[inv.billing_reason] ? inv.billing_reason : 'rebill');
 
@@ -435,6 +439,11 @@ export default function BillingHistoryCanvas({
                               style={{ fontSize: 11, color: T.muted, cursor: 'help' }}>{inv.plan_diff_line}</span>
                           </Tooltip>
                         )}
+                        {/* «전자결재 · 휴가 패키지» 라인 (pivit-work PW-2782 · history «애드온 라인 상세») — 좌석 라인과 합치지 않는 별도 줄 */}
+                        {(inv.addon_lines ?? []).map((line, idx) => (
+                          <span key={idx} data-testid="billing-history-addon-line"
+                            style={{ fontSize: 11, color: T.muted }}>{line}</span>
+                        ))}
                         {inv.cycle_change_line && (
                           <span data-testid="billing-history-cycle-change-line"
                             style={{ fontSize: 11, color: T.muted }}>{inv.cycle_change_line}</span>
