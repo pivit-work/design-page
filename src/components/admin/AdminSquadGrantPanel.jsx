@@ -1,13 +1,17 @@
 import Button from '../shared/Button.jsx';
 import SearchSelect from '../shared/SearchSelect.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import Switch from '../shared/Switch.jsx';
 import { SkeletonList } from '../shared/Skeleton.jsx';
+import { UsersGlyph } from '../shared/lineIcons.jsx';
+import { LeadStarIcon } from '../orgchart/squadIcons.jsx';
 import { CardFoot, CardHead, CardNote, GrantRow } from './AdminOkrGrantPanel.jsx';
 
 // 색·카드 바탕은 «OKR 작성 권한» 탭(`AdminOkrGrantPanel`)과 같은 값이다.
 const DP = {
   textP: 'var(--text-primary, #596069)',
   textS: 'var(--text-secondary, #687079)',
+  borderT: 'var(--colors-border-borderSecondary, #e6e8ea)',
 };
 const cardStyle = {
   background: 'var(--bg-quaternary, #ffffff)',
@@ -44,6 +48,13 @@ const DEFAULT_LABELS = {
   toggle: '{{name}} 권한',
   noPerson: '찾는 사람이 없습니다.',
   searchPerson: '이름 · 소속으로 찾기',
+  manager: {
+    title: '스쿼드 장에게 매니저 일 맡기기',
+    description:
+      '켜면 맡은 진행중 스쿼드 사람에 대해 조직장과 같은 매니저 일(매니저 대시보드 · 1on1 · 팀 피드백 · 팀 평가 관리)을 합니다.',
+    footer: '저장된 매니저(상급자)는 바뀌지 않습니다. 평가의 1차 평가자 추천도 그대로입니다.',
+    loadFailed: '설정을 불러오지 못했습니다.',
+  },
   create: {
     title: '스쿼드 만들기 권한',
     description: '새 스쿼드를 만들 수 있는 사람을 고릅니다. 만든 스쿼드는 그 사람이 편성할 수 있습니다.',
@@ -106,6 +117,82 @@ function Row({ row, scope, L, onToggle }) {
 }
 
 /**
+ * «스쿼드 장에게 매니저 일 맡기기» 설정 한 줄 (pivit-work PW-2778 · 스쿼드 정책 v3.55 §5-8-A).
+ * 사람 줄이 아니라 «자리» 설정이라 아바타 대신 같은 크기의 둥근 네모 아이콘을 둔다.
+ */
+function ManagerSettingRow({ row, onToggle }) {
+  return (
+    <div
+      data-testid={`squad-grant-manager-row-${row.key}`}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 'var(--spacing-lg)',
+        // 같은 카드의 사람 줄(GrantRow 10px 18px)과 왼쪽 끝을 맞춘다.
+        padding: 'calc(var(--spacing-md) + var(--spacing-xxs)) calc(var(--spacing-xl) + var(--spacing-xxs))',
+        borderBottom: `1px solid ${DP.borderT}`,
+      }}
+    >
+      <span
+        aria-hidden
+        style={{
+          width: 28,
+          height: 28,
+          borderRadius: 8,
+          flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'var(--utility-brand-50, #f1fffa)',
+          color: 'var(--utility-brand-600, #079455)',
+        }}
+      >
+        {row.key === 'lead' ? <LeadStarIcon size={14} /> : <UsersGlyph size={14} />}
+      </span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: DP.textP, overflowWrap: 'anywhere' }}>{row.name}</div>
+        <div style={{ fontSize: 11, color: DP.textS, overflowWrap: 'anywhere' }}>{row.sub}</div>
+      </div>
+      <Switch
+        checked={!!row.on}
+        label={row.name}
+        data-testid={`squad-grant-manager-toggle-${row.key}`}
+        onChange={(next) => onToggle?.(row.key, next)}
+      />
+    </div>
+  );
+}
+
+function ManagerCard({ card, L, retryLabel }) {
+  const M = L.manager;
+  return (
+    <div style={{ ...cardStyle, marginBottom: 'var(--spacing-lg)' }} data-testid="squad-grant-manager">
+      <CardHead title={M.title} description={M.description} />
+      {card.status === 'loading' ? (
+        <CardNote>
+          <SkeletonList count={2} height={40} />
+        </CardNote>
+      ) : card.status === 'failed' ? (
+        <CardNote testId="squad-grant-manager-load-failed">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-lg)' }}>
+            <div style={{ flex: 1, fontSize: 13, color: DP.textP }}>{M.loadFailed}</div>
+            <Button variant="secondary" size="sm" onClick={card.onRetry}>
+              {retryLabel}
+            </Button>
+          </div>
+        </CardNote>
+      ) : (
+        (card.rows ?? []).map((row) => <ManagerSettingRow key={row.key} row={row} onToggle={card.onToggle} />)
+      )}
+      <CardFoot>{M.footer}</CardFoot>
+    </div>
+  );
+}
+
+/**
+ * @param props.managerCard «스쿼드 장에게 매니저 일 맡기기» 전폭 카드(PW-2778) — 머리 아래 · 2단 카드 위.
+ *   `{ status: 'loading'|'failed'|'ready', rows: [{ key: 'lead'|'head', name, sub, on }], onToggle(key, next), onRetry }`.
+ *   없으면 그리지 않는다. 2단 카드와 따로 불러오고 따로 실패한다.
  * @param props.createRows 만들기 권한 줄 — 지금 권한이 있는 사람(+ 이번에 켰다 끈 사람).
  * @param props.createOptions «사람 찾기» 후보 — 줄에 없는 사람만. 고르면 켜진 채 목록 끝에 붙는다.
  * @param props.squadOptions 스쿼드 고르기 — `{ value, label, subLabel(상태) }`. 비면 «아직 스쿼드가 없습니다».
@@ -131,6 +218,7 @@ export default function AdminSquadGrantPanel({
   changeCount = 0,
   saving = false,
   onSave,
+  managerCard = null,
 }) {
   const L = mergeLabels(DEFAULT_LABELS, labels);
   const loading = status === 'loading';
@@ -182,6 +270,8 @@ export default function AdminSquadGrantPanel({
           </>
         )}
       </div>
+
+      {managerCard ? <ManagerCard card={managerCard} L={L} retryLabel={L.retry} /> : null}
 
       <div
         style={{
