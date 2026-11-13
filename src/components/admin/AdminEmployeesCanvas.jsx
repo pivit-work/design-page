@@ -22,6 +22,7 @@ import { ExportMenu, SalaryExportModal, IconLock } from './employeeExport.jsx';
 /* 구성원 기록 창 3종 — 폐기된 스프레드시트에서 옮겨 왔다(PW-576). 코드는 그대로다. */
 import {
   HrProfileModal, SalaryHistoryModal, CeoConfirmModal, CeoBadge, IconSalary, IconCrown, fmtSalaryWithCurrency,
+  serviceStartHintText, isoDay,
 } from './AdminEmployeeRecordModals.jsx';
 import { buildExportItems } from './employeeExportItems.js';
 import AdminInviteModal from './AdminInviteModal.jsx';
@@ -327,6 +328,7 @@ const DEFAULT_LABELS = {
     level: '직급',
     position: '직책',
     joined: '입사일',
+    serviceStart: '기산일',
     none: '— 미지정 —',
     /* PW-576 — 폐기된 스프레드시트에서만 고칠 수 있던 칸들이 여기로 왔다.
        라벨은 그 화면의 열 이름을 그대로 쓴다(같은 값을 다른 이름으로 부르지 않는다). */
@@ -4564,6 +4566,13 @@ const IDENTITY_DATE_FIELDS = ['probationEndDate', 'leaveStartDate', 'leaveEndDat
 /** 신원 저장 경로로 나가는 글자 칸 — 휴직 사유(pivit-work PW-2520). 날짜처럼 다듬지 않고 그대로 싣는다. */
 const IDENTITY_TEXT_FIELDS = ['leaveOfAbsenceReason'];
 
+/**
+ * 기산일 (pivit-work PW-2418 · admin-spec §3.2.10 «PW-2418» ①④) — 값은 HR 정보에서 읽고(구성원 목록 응답에 없다),
+ * 저장은 입사일과 같은 구성원 patch 에 싣는다. 둘을 함께 고쳐도 사유 창·«휴가에 미치는 영향»이 한 번만 뜨고
+ * 두 값으로 함께 계산한다(같은 절 ⑤ «창 두 개를 잇달아 띄우지 않는다»).
+ */
+const SERVICE_START_FIELD = 'serviceStartDate';
+
 /** 구성원 저장 patch 로 나가는 날짜 칸 — 비우면 `''` 이 아니라 `null` 이다. */
 const DATE_PATCH_FIELDS = new Set(['hireDate', 'terminationDate']);
 
@@ -4632,6 +4641,8 @@ const PANEL_FIELD_GROUPS = [
       { key: 'phone', labelKey: 'phone', kind: 'text' },
       { key: 'employeeCode', labelKey: 'employeeCode', kind: 'text' },
       { key: 'hireDate', labelKey: 'joined', kind: 'date' },
+      // 기산일 — 입사일 바로 아래(pivit-work PW-2418 · 11-01 커트 결정 (가) · David ④). HR 기록 창에는 두지 않는다.
+      { key: SERVICE_START_FIELD, labelKey: 'serviceStart', kind: 'date', via: 'identity' },
     ],
   },
   {
@@ -5169,6 +5180,7 @@ function EmployeesEditPanel({
         const loaded = {};
         for (const f of IDENTITY_DATE_FIELDS) loaded[f] = toDateInput(src[f]);
         for (const f of IDENTITY_TEXT_FIELDS) loaded[f] = src[f] ?? '';
+        loaded[SERVICE_START_FIELD] = toDateInput(src[SERVICE_START_FIELD]);
         setIdentity(loaded);
         setIdentityDraft(loaded);
         setIdentityState('ready');
@@ -5397,6 +5409,10 @@ function EmployeesEditPanel({
          들어가면 저장이 통째로 실패한다. `null` 은 「지웠다」 는 뜻이라 서버도 그렇게
          읽는다(퇴사일은 명시값이 있으면 자동 채움을 건너뛴다). */
       patch[f] = DATE_PATCH_FIELDS.has(f) ? (draft[f] || null) : (draft[f] ?? '');
+    }
+    // 기산일은 HR 정보를 받은 뒤에만 비교한다 — 못 받았으면 칸이 잠겨 있고, 모르는 값을 «비움»으로 보내지 않는다.
+    if (identity && identityDraft && (identityDraft[SERVICE_START_FIELD] ?? '') !== (identity[SERVICE_START_FIELD] ?? '')) {
+      patch[SERVICE_START_FIELD] = identityDraft[SERVICE_START_FIELD] || null;
     }
     return patch;
   }
@@ -5719,6 +5735,41 @@ function EmployeesEditPanel({
                           onOpenSeat={memberAssets?.onOpenSeat}
                         />
                       ) : null;
+                    }
+                    if (f.key === SERVICE_START_FIELD) {
+                      /* 기산일 (pivit-work PW-2418) — 값은 HR 정보에서 온다. HR 정보를 부를 수 없는 화면이면 칸을 두지 않고,
+                         불러오는 중·실패면 잠근다(모르는 값을 빈 칸으로 보여 «비우기»로 저장되지 않게). */
+                      if (!onLoadHrProfile) return null;
+                      const own = identityDraft?.[SERVICE_START_FIELD] ?? '';
+                      const recordLabels = labels.records || {};
+                      return (
+                        <FormField key={f.key} className="admin-emp-field" labelClassName="admin-emp-field-label" label={labels.panel[f.labelKey]}>
+                          <DateInput
+                            className="admin-emp-input"
+                            value={own}
+                            disabled={!canEdit || identityState !== 'ready'}
+                            data-testid={`employees-panel-${f.key}`}
+                            onChange={(v) => setIdentityDraft((d) => ({ ...(d || {}), [SERVICE_START_FIELD]: v }))}
+                          />
+                          {identityState === 'ready' && (
+                            <span className="admin-emp-manager-note" data-testid="employees-panel-serviceStartDate-hint">
+                              {serviceStartHintText(recordLabels, own, draft.hireDate)}
+                            </span>
+                          )}
+                          {identityState === 'ready' && canEdit && isoDay(own) && (
+                            <div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                data-testid="employees-panel-serviceStartDate-clear"
+                                onClick={() => setIdentityDraft((d) => ({ ...(d || {}), [SERVICE_START_FIELD]: '' }))}
+                              >
+                                {recordLabels.hrServiceStartClear || '비우기 — 입사일 따르기'}
+                              </Button>
+                            </div>
+                          )}
+                        </FormField>
+                      );
                     }
                     if (archivedNow && f.key === 'employmentType') {
                       return (
