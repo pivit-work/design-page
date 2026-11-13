@@ -3270,7 +3270,6 @@ export default function EvalCycleSummaryCanvas({
     setCommitteeSaving(false);
     seededSessionRef.current = null;
   };
-  const maxCount = Math.max(1, ...gradeDistribution.map((d) => d.count));
   const doneCount = completedCount ?? selfSubmittedCount;
   const submitPct = totalParticipants > 0 ? Math.round((100 * doneCount) / totalParticipants) : 0;
   // [PW-2692] 정책 §4.A.2-A — N = 평가가 끝나지 않은 피평가자(대상 − 완료). 리마인드 받을 사람(M)은 아래 목록 줄 수.
@@ -4305,9 +4304,10 @@ export default function EvalCycleSummaryCanvas({
                             <span className="evs-dist-label">{d.label ?? d.gradeKey}</span>
                             <div className="evs-dist-body">
                               <div className="evs-dist-track">
-                                <div className={`evs-dist-fill ${segClass(gi, gradeDistribution.length)}`} style={{ width: `${(d.count / maxCount) * 100}%` }} />
+                                {/* PW-1034 — 점선이 «전체 대비» 자리라 막대도 전체 대비 비율로 맞춘다(최다 인원 대비면 가이드와 같은 등급도 넘친 것처럼 보인다). */}
+                                <div className={`evs-dist-fill ${segClass(gi, gradeDistribution.length)}`} style={{ width: `${Math.min(100, distPct(d))}%` }} data-testid="evs-j1-dist-fill" />
                                 {d.guidelinePct != null && (
-                                  <div className="evs-dist-guide" style={{ left: `${Math.min(100, d.guidelinePct)}%` }} />
+                                  <div className="evs-dist-guide" style={{ left: `${Math.min(100, d.guidelinePct)}%` }} data-testid="evs-j1-dist-guide" />
                                 )}
                               </div>
                               {d.guidelinePct != null && (
