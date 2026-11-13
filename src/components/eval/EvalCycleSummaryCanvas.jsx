@@ -12,7 +12,7 @@ import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Tabs from '../shared/Tabs.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
 import { AlertIcon, ArrowDownIcon, ArrowRightIcon, ArrowUpIcon, ChevronDownIcon, ChevronRightIcon, ChevronUpIcon, DownloadIcon, EyeIcon, InfoIcon, LockIcon, RefreshIcon, ZapIcon } from './evalIcons.jsx';
-import { CheckGlyph, ChevronDownGlyph, ClockGlyph, CloseGlyph, SearchGlyph } from '../shared/lineIcons.jsx';
+import { CheckGlyph, ChevronDownGlyph, ChevronLeftGlyph, ClockGlyph, CloseGlyph, SearchGlyph } from '../shared/lineIcons.jsx';
 import { autoCommitteeIdsOf } from './calibrationAutoCommittee.js';
 import AvatarPhoto from './AvatarPhoto';
 import Avatar from '../shared/Avatar.jsx';
@@ -579,6 +579,14 @@ const DEFAULT_LABELS = {
   nbAxisY: '세로: 승진 고려 여부',
   distGuideBadgeOver: '{delta}%p 높음',
   distGuideBadgeUnder: '{delta}%p 낮음',
+  // PW-2786 — 대시보드 등급 칸(쌓은 막대 아래 등급마다 한 칸)
+  gdCount: '{n}명',
+  gdGuide: '가이드라인 {pct}%',
+  // 칸이 좁으면(경영진 반쪽 카드 · 1280) 앞말 «가이드라인보다»를 감춘다 — 바로 위 줄이 «가이드라인 N%»다.
+  gdDevPrefix: '가이드라인보다',
+  gdOver: '{delta}%p 높음',
+  gdUnder: '{delta}%p 낮음',
+  gdSame: '가이드라인과 같음',
   prCount: '{n}건',
   prFilterLabel: '승진 요청 상태',
   prFilterAll: '전체',
@@ -1844,7 +1852,8 @@ function RankLevel({ row }) {
       {row.jobRank}
       {row.jobRank && row.jobLevel ? ' ' : null}
       {row.jobLevel ? (
-        <StatusBadge className="evs-cw-roster-tag" data-testid="evs-cw-level-badge">
+        /* PW-2786 — 직급은 뜻 없는 분류라 회색 딱지(파랑은 «충족» 등급 칩과 섞였다). */
+        <StatusBadge tone="neutral" data-testid="evs-cw-level-badge">
           {row.jobLevel}
         </StatusBadge>
       ) : null}
@@ -1978,6 +1987,81 @@ function SortTh({ sortKey, label, sort, onSort }) {
 // §4.1 실시간 등급 분포 바 — 유효등급(위원회조정 우선) 집계 + 권장비율 편차(±10%p).
 // PW-1116 막대는 비율, 아래 칸은 인원 — 같은 비율을 두 번 싣지 않는다. 등급이 아직 없는 사람은
 // 막대 끝 회색 빗금과 마지막 칸 「등급 없음 N」으로 센다. 안내문은 제목 줄 ⓘ 에 올렸을 때만.
+/**
+ * PW-2786 — 성과평가 대시보드의 등급 분포: 쌓은 막대 하나 + 그 아래 등급마다 칸 하나.
+ * 막대는 리소스 쌓은 막대(.rsx-stackbar, stesslee b7eb7caa — 높이 12 · 조각 사이 10 · 모서리 4)에
+ * 옅은 등급 색(200), 칸은 리소스 숫자 칸(.rsx-stat — 이름 위 · 큰 숫자 · 바탕 없음)을 따른다.
+ * 가이드라인 경계는 앞 등급부터 가이드라인을 더해 간 자리에 점선. 등급이 늘어도 칸이 늘 뿐 꺾이지 않는다.
+ *
+ * @param {Array<{ gradeKey: string, label: string, count: number, pct: number, guidelinePct?: number|null, extra?: any }>} grades
+ * @param {boolean} [showDeviation] 칸 맨 아래 «가이드라인보다 N%p 낮음» — 10%p 이상이면 빨간 글
+ */
+const GD_ALERT_PP = 10;
+function GradeDistCells({ grades, L, showDeviation = false, testId }) {
+  const n = grades.length;
+  const tone = (i) => (i === 0 ? 'seg-top' : i === n - 1 ? 'seg-bottom' : 'seg-mid');
+  // 가이드라인 경계 — 앞에서부터 가이드라인이 이어지는 동안만 더한다(맨 끝 등급 뒤는 100% 라 긋지 않는다).
+  const bounds = [];
+  let acc = 0;
+  for (let i = 0; i < n - 1; i += 1) {
+    if (grades[i].guidelinePct == null) break;
+    acc += grades[i].guidelinePct;
+    if (acc > 0 && acc < 100) bounds.push(acc);
+  }
+  return (
+    <div className="evs-gd" data-testid={testId}>
+      <div
+        className="evs-gd-bar"
+        role="img"
+        aria-label={grades.map((g) => `${g.label} ${fmt(L.gdCount, { n: g.count })} ${g.pct}%`).join(', ')}
+      >
+        {grades.map((g, i) => (g.count > 0 && g.pct > 0 ? (
+          <span
+            key={g.gradeKey}
+            className={`evs-gd-seg ${tone(i)}`}
+            style={{ flexGrow: g.pct }}
+            data-testid="evs-gd-seg"
+          />
+        ) : null))}
+        {bounds.map((b) => (
+          <span key={b} className="evs-gd-bound" style={{ left: `${b}%` }} aria-hidden data-testid="evs-gd-bound" />
+        ))}
+      </div>
+      <div className="evs-gd-cells">
+        {grades.map((g, i) => {
+          const d = g.guidelinePct != null ? g.pct - g.guidelinePct : null;
+          return (
+            <div className="evs-gd-cell" key={g.gradeKey} data-testid="evs-gd-cell">
+              <span className={`evs-gd-name ${tone(i)}`}>{g.label}</span>
+              <span className="evs-gd-value">
+                {fmt(L.gdCount, { n: g.count })}
+                <small>{g.pct}%</small>
+              </span>
+              {g.guidelinePct != null && (
+                <span className="evs-gd-guide">{fmt(L.gdGuide, { pct: g.guidelinePct })}</span>
+              )}
+              {showDeviation && d != null && (
+                <span
+                  className={`evs-gd-dev${Math.abs(d) >= GD_ALERT_PP ? ' is-off' : ''}`}
+                  data-testid="evs-gd-dev"
+                >
+                  {d === 0 ? L.gdSame : (
+                    <>
+                      <span className="evs-gd-dev-pre">{L.gdDevPrefix} </span>
+                      {fmt(d > 0 ? L.gdOver : L.gdUnder, { delta: Math.abs(d) })}
+                    </>
+                  )}
+                </span>
+              )}
+              {g.extra}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 const DIST_MIDDLE_HUES = {
   1: ['blue'],
   2: ['blue', 'orange'],
@@ -3295,21 +3379,7 @@ export default function EvalCycleSummaryCanvas({
       }),
     );
   }
-  // PW-2691 — 가이드라인 결론 문장 앞에 «15%p 낮음» 같은 주황 딱지(시안). 같으면 딱지 없음.
-  const distGuideNoteIdx = distNote.length;
-  const distGuideBadge = topGrade && excellentGuidelinePct != null && excellentPct !== excellentGuidelinePct
-    ? fmt(excellentPct > excellentGuidelinePct ? L.distGuideBadgeOver : L.distGuideBadgeUnder, { delta: Math.abs(excellentPct - excellentGuidelinePct) })
-    : null;
-  if (topGrade && excellentGuidelinePct != null) {
-    const d = excellentPct - excellentGuidelinePct;
-    distNote.push(
-      fmt(d > 0 ? L.distNoteGuideOver : d < 0 ? L.distNoteGuideUnder : L.distNoteGuideSame, {
-        guideName: L.distNoteGuideName,
-        guide: excellentGuidelinePct,
-        delta: Math.abs(d),
-      }),
-    );
-  }
+  // PW-2786 — 가이드 대비 차이(§15.2 S4)는 등급 칸 «가이드라인보다 N%p 낮음»이 말한다. 여기엔 직전 대비만 남는다.
   // [PW-1466] 정책 §7.D.3 — 조정 내역(전→후 쌍별 건수)의 순변화가 조정 전후 분포 차이와 같아야 그린다.
   const calibMismatch = (() => {
     if (!calibResult || !Array.isArray(calibResult.adjustments)) return false;
@@ -3455,17 +3525,6 @@ export default function EvalCycleSummaryCanvas({
   ) : (
     <span className="evs-lp-tag-none" data-testid="evs-lp-tag-none">—</span>
   ));
-  // PW-2691 — 등급 범례는 카드 제목 줄 오른쪽에 한 번(탁월 초록 · 충족 파랑 · 미흡 빨강, 모든 탭 같은 색).
-  const renderGradeLegend = (grades) => grades.length > 0 && (
-    <span className="evs-chart-legend evs-head-legend" data-testid="evs-grade-legend">
-      {grades.map((g, i) => (
-        <span className="evs-chart-legend-item" key={g.gradeKey}>
-          <span className={`evs-lp-dot ${segClass(i, grades.length)}`} aria-hidden />
-          {g.label}
-        </span>
-      ))}
-    </span>
-  );
   // PW-2691 — 관대화·엄격화·균형: 색 칠한 큰 칸 대신 다른 숫자 칸과 같은 흰 칸 + 이름 상태 딱지.
   const renderPatternBanner = (testId) => (
     <div className="evs-kpis evs-lp-banner" data-testid={testId}>
@@ -3500,8 +3559,9 @@ export default function EvalCycleSummaryCanvas({
             ))}
           </div>
           <div className="evs-lp-legend">
-            {p.gradeDistribution.map((g) => (
-              <span className="evs-lp-legend-item" key={g.gradeKey}>{g.label} {g.pct}%</span>
+            {/* PW-2786 — 위쪽 색 점 범례 대신 숫자를 그 등급 색 글자로(글자 색이 범례다). */}
+            {p.gradeDistribution.map((g, i) => (
+              <span className={`evs-lp-legend-item ${segClass(i, p.gradeDistribution.length)}`} key={g.gradeKey} data-testid={withTestId ? 'evs-lp-legend-item' : undefined}>{g.label} {g.pct}%</span>
             ))}
           </div>
         </div>
@@ -3625,18 +3685,29 @@ export default function EvalCycleSummaryCanvas({
               </p>
             )
           )}
-          <PeriodSelector
-            periods={periods}
-            selectedCycleId={selectedCycleId}
-            onChange={onPeriodChange}
-            L={L}
-          />
+          {/* PW-2786 — 캘리브레이션 워크스페이스는 조회 기간을 제목 줄 오른쪽으로 */}
+          {!workspaceOnly && (
+            <PeriodSelector
+              periods={periods}
+              selectedCycleId={selectedCycleId}
+              onChange={onPeriodChange}
+              L={L}
+            />
+          )}
           {!workspaceOnly && selfExcluded && (
             <p className="evc-summary" role="status" data-testid="evs-self-excluded">
               {L.selfExcludedNotice}
             </p>
           )}
         </div>
+        {workspaceOnly && (
+          <PeriodSelector
+            periods={periods}
+            selectedCycleId={selectedCycleId}
+            onChange={onPeriodChange}
+            L={L}
+          />
+        )}
         {!workspaceOnly && (
           <div className="evmon-controls">
             <StatusBadge
@@ -3789,14 +3860,8 @@ export default function EvalCycleSummaryCanvas({
                 <h3 className="evc-card-name">{L.distributionTitle}</h3>
                 {gradeDistribution.length > 0 && (
                   <>
-                    {(previousCycle || hasDistGuide) && (
+                    {(hasDistGuide || distMovers.length > 0) && (
                       <p className="evs-chart-legend evs-head-legend" data-testid="evs-dist-legend">
-                        {previousCycle && (
-                          <span className="evs-chart-legend-item">
-                            <span className="evs-legend-tick" aria-hidden />
-                            {L.distPrevLegend}{previousCycle.name ? ` (${previousCycle.name})` : ''}
-                          </span>
-                        )}
                         {hasDistGuide && (
                           <span className="evs-chart-legend-item">
                             <span className="evs-legend-guide" aria-hidden />
@@ -3818,60 +3883,36 @@ export default function EvalCycleSummaryCanvas({
                 <p className="evc-empty-sub">{L.empty}</p>
               ) : (
                 <>
-                  <div className="evs-dist">
-                    {gradeDistribution.map((d, gi) => {
-                      const pct = distPct(d);
+                  {/* PW-2786 — 등급마다 따로 긋던 막대 세 줄을 쌓은 막대 하나 + 등급 칸으로. 가이드라인 결론 문장·딱지는
+                      탁월 칸의 «가이드라인보다 N%p 낮음»과 같은 말이라 칸으로 옮기고, 지난 평가 눈금은 칸 안 «지난 평가 N%» 줄로. */}
+                  <GradeDistCells
+                    L={L}
+                    showDeviation
+                    testId="evs-dist-cells"
+                    grades={gradeDistribution.map((d) => {
                       const prev = previousCycle ? prevPctByKey.get(d.gradeKey) : undefined;
-                      return (
-                        <div className="evs-dist-row" key={d.gradeKey} data-testid="evs-dist-row">
-                          <span className="evs-dist-label">{d.label ?? gradeLabels[d.gradeKey] ?? d.gradeKey}</span>
-                          <div className="evs-dist-body">
-                            <div className="evs-dist-track">
-                              <div className={`evs-dist-fill ${segClass(gi, gradeDistribution.length)}`} style={{ width: `${Math.min(100, pct)}%` }} data-testid="evs-dist-fill" />
-                              {d.guidelinePct != null && (
-                                <Tooltip content={`${L.guidelineLabel} ${d.guidelinePct}%`}>
-                                  <div
-                                    className="evs-dist-guide"
-                                    style={{ left: `${Math.min(100, d.guidelinePct)}%` }}
-                                    data-testid="evs-dist-guide"
-                                  />
-                                </Tooltip>
-                              )}
-                              {prev != null && (
-                                <Tooltip content={`${L.distPrevLegend} ${prev}%`}>
-                                  <div
-                                    className="evs-dist-tick"
-                                    style={{ left: `${Math.min(100, prev)}%` }}
-                                    data-testid="evs-dist-prev-tick"
-                                  />
-                                </Tooltip>
-                              )}
-                            </div>
-                          </div>
-                          <span className="evs-dist-count">{d.count}{d.pct != null && <span className="evs-dist-pct"> ({d.pct}%)</span>}</span>
-                        </div>
-                      );
+                      return {
+                        gradeKey: d.gradeKey,
+                        label: d.label ?? gradeLabels[d.gradeKey] ?? d.gradeKey,
+                        count: d.count ?? 0,
+                        pct: distPct(d),
+                        guidelinePct: d.guidelinePct,
+                        extra: prev != null ? (
+                          <span className="evs-gd-guide" data-testid="evs-dist-prev">{L.distPrevLegend} {prev}%</span>
+                        ) : null,
+                      };
                     })}
-                  </div>
+                  />
                   {distNote.length > 0 && (
-                  <div className="evs-dist-foot">
-                  {distNote.length > 0 && (
-                    <p className="evs-dist-note" data-testid="evs-dist-note">
-                      {distNote.map((line, i) => (
-                        <Fragment key={i}>
-                          {i > 0 && ' '}
-                          {i === distGuideNoteIdx && distGuideBadge && (
-                            <StatusBadge tone="warning" className="evs-dist-note-badge" data-testid="evs-dist-guide-badge">{distGuideBadge}</StatusBadge>
-                          )}
-                          {line}
-                        </Fragment>
-                      ))}
-                    </p>
-                  )}
-                  </div>
+                    <div className="evs-dist-foot">
+                      <p className="evs-dist-note" data-testid="evs-dist-note">
+                        {distNote.join(' ')}
+                      </p>
+                    </div>
                   )}
                 </>
               )}
+
             </section>
 
             {/* §4.A 리더별 제출 현황 */}
@@ -4083,7 +4124,6 @@ export default function EvalCycleSummaryCanvas({
               <section className="evc-card evs-ov-card">
                 <div className="evs-ov-head">
                   <h3 className="evc-card-name">{L.lpDistTitle}</h3>
-                  {renderGradeLegend(leaderPatterns[0]?.gradeDistribution ?? [])}
                 </div>
                 {renderPatternRows(true)}
               </section>
@@ -4160,18 +4200,14 @@ export default function EvalCycleSummaryCanvas({
             <section className="evc-card evs-ov-card">
               <div className="evs-ov-head">
                 <h3 className="evc-card-name">{L.cdDistTitle}</h3>
-                <span className="evs-chart-legend evs-head-legend" data-testid="evs-cd-legend">
-                  <span className="evs-chart-legend-item">
-                    <span className="evs-legend-tick" aria-hidden />
-                    {L.cdBeforeLegend}
-                  </span>
-                  {calibResult.afterExcellentGuidelinePct != null && (
+                {calibResult.afterExcellentGuidelinePct != null && (
+                  <span className="evs-chart-legend evs-head-legend" data-testid="evs-cd-legend">
                     <span className="evs-chart-legend-item">
                       <span className="evs-legend-guide" aria-hidden />
                       {L.guidelineLabel}
                     </span>
-                  )}
-                </span>
+                  </span>
+                )}
               </div>
               {/* PW-1047 ① 등급마다 막대 한 줄 — 조정 후를 칠하고, 조정 전은 눈금으로 겹친다.
                   늘었다·줄었다를 초록·빨강으로 칠하지 않는다(최하가 늘어도 초록이 되던 문제). */}
@@ -4180,50 +4216,37 @@ export default function EvalCycleSummaryCanvas({
                   <AlertIcon size={14} /> {L.cdMismatch}
                 </p>
               ) : (
-              <div className="evs-dist" data-testid="evs-cd-dist">
-                {calibResult.before.map((b, i) => {
+              /* PW-2786 — 쌓은 막대(조정 후) + 등급 칸(인원 · 비율 · 탁월만 가이드라인). 조정 전은 칸 안 줄로 옮긴다.
+                 지금 화면에 없던 «벗어난 정도»는 넣지 않는다(11-13 커트). */
+              <GradeDistCells
+                L={L}
+                testId="evs-cd-dist"
+                grades={calibResult.before.map((b, i) => {
                   const a = calibResult.after[i] ?? { count: 0, pct: 0 };
                   const changed = a.count !== b.count;
                   const deltaPct = a.pct - b.pct;
                   const guide = i === 0 ? calibResult.afterExcellentGuidelinePct : null;
-                  return (
-                    <div className="evs-dist-row" key={b.gradeKey} data-testid="evs-cd-grade">
-                      <span className="evs-dist-label">{b.label}</span>
-                      <div className="evs-dist-body">
-                        <div className="evs-dist-track">
-                          <div className={`evs-dist-fill ${segClass(i, calibResult.before.length)}`} style={{ width: `${Math.min(100, a.pct)}%` }} data-testid="evs-cd-fill" />
-                          {guide != null && (
-                            <Tooltip content={`${L.guidelineLabel} ${guide}%`}>
-                              <div className="evs-dist-guide" style={{ left: `${Math.min(100, guide)}%` }} />
-                            </Tooltip>
-                          )}
-                          {/* 조정 전이 0명이면 왼쪽 끝에 붙어 깨진 선처럼 보여서 그리지 않는다 — 숫자 줄에는 나온다 */}
-                          {changed && b.count > 0 && (
-                            <Tooltip content={`${L.cdBefore} ${b.count}${L.unit} (${b.pct}%)`}>
-                              <div
-                                className="evs-dist-tick"
-                                style={{ left: `${Math.min(100, b.pct)}%` }}
-                                data-testid="evs-cd-before-tick"
-                              />
-                            </Tooltip>
-                          )}
-                        </div>
+                  return {
+                    gradeKey: b.gradeKey,
+                    label: b.label,
+                    count: a.count,
+                    pct: a.pct,
+                    guidelinePct: guide,
+                    extra: (
+                      <>
                         {changed && (
                           <span className="evs-cd-change" data-testid="evs-cd-change">
                             {fmt(L.cdChangeLine, { before: b.count, after: a.count, unit: L.unit })} ({deltaPct > 0 ? `+${deltaPct}` : deltaPct}%p)
                           </span>
                         )}
-                      </div>
-                      <span className="evs-dist-count">
-                        {a.count}{L.unit}<span className="evs-dist-pct"> ({a.pct}%)</span>
                         {guide != null && a.pct > guide && (
                           <span className="evs-cd-over" data-testid="evs-cd-guide-over">{L.cdGuideExceed}</span>
                         )}
-                      </span>
-                    </div>
-                  );
+                      </>
+                    ),
+                  };
                 })}
-              </div>
+              />
               )}
               {/* PW-2691 — 조정 0건이면 같은 문장이 아래 «등급 조정 상세» 카드에 있어 여기선 뺀다 */}
               {calibResult.summary && calibResult.adjustedCount > 0 && (
@@ -4298,26 +4321,19 @@ export default function EvalCycleSummaryCanvas({
                     {gradeDistribution.length === 0 ? (
                       <p className="evc-empty-sub">{L.empty}</p>
                     ) : (
-                      <div className="evs-dist">
-                        {gradeDistribution.map((d, gi) => (
-                          <div className="evs-dist-row" key={d.gradeKey}>
-                            <span className="evs-dist-label">{d.label ?? d.gradeKey}</span>
-                            <div className="evs-dist-body">
-                              <div className="evs-dist-track">
-                                {/* PW-1034 — 점선이 «전체 대비» 자리라 막대도 전체 대비 비율로 맞춘다(최다 인원 대비면 가이드와 같은 등급도 넘친 것처럼 보인다). */}
-                                <div className={`evs-dist-fill ${segClass(gi, gradeDistribution.length)}`} style={{ width: `${Math.min(100, distPct(d))}%` }} data-testid="evs-j1-dist-fill" />
-                                {d.guidelinePct != null && (
-                                  <div className="evs-dist-guide" style={{ left: `${Math.min(100, d.guidelinePct)}%` }} data-testid="evs-j1-dist-guide" />
-                                )}
-                              </div>
-                              {d.guidelinePct != null && (
-                                <span className="evs-dist-guide-cap">{L.guidelineLabel} {d.guidelinePct}%</span>
-                              )}
-                            </div>
-                            <span className="evs-dist-count">{d.count}{d.pct != null && <span className="evs-dist-pct"> ({d.pct}%)</span>}</span>
-                          </div>
-                        ))}
-                      </div>
+                      /* PW-2786 — 전사 요약과 같은 쌓은 막대 + 등급 칸. 막대 길이도 최다 인원 대비가 아니라 «전체 대비 %». */
+                      <GradeDistCells
+                        L={L}
+                        showDeviation
+                        testId="evs-j1-dist-cells"
+                        grades={gradeDistribution.map((d) => ({
+                          gradeKey: d.gradeKey,
+                          label: d.label ?? d.gradeKey,
+                          count: d.count ?? 0,
+                          pct: distPct(d),
+                          guidelinePct: d.guidelinePct,
+                        }))}
+                      />
                     )}
                   </section>
                   <section className="evc-card evs-ov-card" data-testid="evs-j1-ratio">
@@ -4383,7 +4399,6 @@ export default function EvalCycleSummaryCanvas({
               <section className="evc-card evs-ov-card" data-testid="evs-exec-j2">
                 <div className="evs-ov-head">
                   <h3 className="evc-card-name">{L.execJ2Title}</h3>
-                  {renderGradeLegend(leaderPatterns[0]?.gradeDistribution ?? [])}
                 </div>
                 {leaderPatterns.length === 0 ? (
                   <p className="evs-ov-search-empty">{L.lpEmpty}</p>
@@ -5398,17 +5413,19 @@ export default function EvalCycleSummaryCanvas({
             ) : (
               /* G2 — 세션 9칼럼 테이블 (read-only) */
               <div className="evs-cw-table-view">
-                {/* PW-1928 — 표 위를 «뜻 하나에 부품 하나»로 줄인다. 「목록」은 제목 위 한 줄. */}
+                {/* PW-2786 — «목록»은 카드 위 «‹ 목록» 돌아가기 글자 — 원온원 «‹ 목록으로»(.ono-my-back, stesslee 41a7f3d1) 값을 옮긴 .evs-cw-back. */}
                 <div className="evs-cw-back-row">
-                  <button
-                    type="button"
-                    className="evc-btn is-ghost"
+                  <Button
+                    className="evs-cw-back"
                     onClick={() => onSelectCalibSession?.(null)}
                     data-testid="evs-cw-back"
                   >
+                    <ChevronLeftGlyph size={16} />
                     {L.cwBack}
-                  </button>
+                  </Button>
                 </div>
+                {/* PW-2786 — 위원회 하나에 속한 것(이름·버튼·분포·승진 마킹·표)을 흰 카드 하나로 묶는다. 카드 안은 가는 선 세 구역. */}
+                <div className="evc-card evs-cw-session-card" data-testid="evs-cw-session-card">
                 {/* PW-1927 · PW-1928 — 제목 줄: 이름 · 범위 · 상태 딱지 · 내가 고칠 수 있나.
                     모양은 1on1 상세 창 머리(제목 + 완료 딱지 + 「열람모드」 회색 글)를 따른다. */}
                 <div className="evs-cw-table-head" data-testid="evs-cw-table-head">
@@ -5461,15 +5478,16 @@ export default function EvalCycleSummaryCanvas({
                 {/* 버튼 줄 — 자주 쓰는 것은 밖에, 가끔 쓰는 것은 「관리 ▾」 안에, 마지막 한 번은 오른쪽 끝.
                     회색 버튼은 팀 스니핏 버튼 줄(.mgr-ts-chip), 내림 메뉴는 OKR 「고르기」 메뉴 값을 따른다. */}
                 <div className="evs-cw-table-actions" data-testid="evs-cw-table-actions">
-                  <button
-                    type="button"
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     className={`evs-cw-tool evs-cw-filter-btn${isCalibFilterActive(calibFilter) ? ' is-active' : ''}`}
                     onClick={() => setShowCalibFilter(true)}
                     data-testid="evs-cw-filter-btn"
                   >
                     {L.cwFilterBtn}
                     {isCalibFilterActive(calibFilter) ? ' ●' : ''}
-                  </button>
+                  </Button>
                   {/* §8 · §10.G.7 — 이해상충으로 빠진 사람. 위원 겸 대상자(서버가 뺀다)는 되돌릴 수 없고,
                       나와 직급이 같은 사람(화면이 숨긴다)만 눌러서 다시 보인다. */}
                   {calibTable && (calibTable.excludedCount > 0 || conflictIds.length > 0) && (
@@ -5487,8 +5505,9 @@ export default function EvalCycleSummaryCanvas({
                         .filter(Boolean)
                         .join(' ')}
                     >
-                      <button
-                        type="button"
+                      <Button
+                        variant="secondary"
+                        size="sm"
                         className={`evs-cw-tool${conflictExcludedCount > 0 ? ' is-active' : ''}`}
                         aria-pressed={conflictExcludedCount > 0}
                         aria-disabled={conflictIds.length === 0}
@@ -5502,7 +5521,7 @@ export default function EvalCycleSummaryCanvas({
                         {conflictExcludedCount > 0 && (
                           <b data-testid="evs-cw-conflict-count">{conflictExcludedCount}</b>
                         )}
-                      </button>
+                      </Button>
                     </Tooltip>
                   )}
                   {/* §6.3 — 저장한 프리셋은 창을 열지 않고 표 위에서 한 번에 적용한다. */}
@@ -5528,8 +5547,9 @@ export default function EvalCycleSummaryCanvas({
                   {/* PW-520 표시 항목 — 필터(행 고르기)와 별개 버튼·별개 창이다. 위원도 열어 볼 수는 있다. */}
                   {calibDisplay && (
                     <Tooltip content={canEditDisplay ? L.cwDisplayBtnHintEdit : L.cwDisplayBtnHintView}>
-                      <button
-                        type="button"
+                      <Button
+                        variant="secondary"
+                        size="sm"
                         className="evs-cw-tool"
                         onClick={() => {
                           setDisplayDraft(null);
@@ -5539,14 +5559,15 @@ export default function EvalCycleSummaryCanvas({
                         data-testid="evs-cw-display-btn"
                       >
                         {L.cwDisplayBtn}
-                      </button>
+                      </Button>
                     </Tooltip>
                   )}
                   <span className="evs-cw-actions-spacer" />
                   {manageItems.length > 0 && (
                     <div className="evs-cw-manage-wrap" ref={manageMenuRef}>
-                      <button
-                        type="button"
+                      <Button
+                        variant="secondary"
+                        size="sm"
                         className={`evs-cw-tool${manageMenuOpen ? ' is-open' : ''}`}
                         aria-haspopup="menu"
                         aria-expanded={manageMenuOpen}
@@ -5555,7 +5576,7 @@ export default function EvalCycleSummaryCanvas({
                       >
                         {L.cwManageMenu}
                         <ChevronDownIcon size={16} />
-                      </button>
+                      </Button>
                       {manageMenuOpen && (
                         <div className="evs-cw-manage-menu" role="menu" data-testid="evs-cw-manage-menu">
                           {manageItems.map((item) => (
@@ -5695,21 +5716,22 @@ export default function EvalCycleSummaryCanvas({
                           )}
                           {/* 데이터가 없으면 빈 칸만 뜨는 창이라 버튼을 두지 않는다. */}
                           {colOn('promo') && nineBox && nineBox.assessedCount > 0 && (
-                            <button
-                              type="button"
-                              className="evc-btn is-ghost evs-cw-ninebox-btn"
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              className="evs-cw-ninebox-btn"
                               onClick={() => setShowNineBox(true)}
                               data-testid="evs-cw-ninebox-open"
                             >
                               {L.nbWorkspaceOpen}
-                            </button>
+                            </Button>
                           )}
                           {/* §4.5 Collapse All / Unfold All — 보이는 행 전부를 한꺼번에. */}
                           {colOn('detail') && (
                             <span className="evs-cw-expand-all">
-                              <button
-                                type="button"
-                                className="evc-btn is-ghost"
+                              <Button
+                                variant="secondary"
+                                size="sm"
                                 onClick={() => {
                                   // §10.G.9 최대 50행 — 넘으면 앞 50행만 펼치고 알린다.
                                   setExpandedRows(visibleRows.slice(0, EXPAND_ALL_MAX).map((r) => r.memberId));
@@ -5720,10 +5742,10 @@ export default function EvalCycleSummaryCanvas({
                                 data-testid="evs-cw-expand-all"
                               >
                                 {L.cwExpandAll}
-                              </button>
-                              <button
-                                type="button"
-                                className="evc-btn is-ghost"
+                              </Button>
+                              <Button
+                                variant="secondary"
+                                size="sm"
                                 onClick={() => {
                                   setExpandedRows([]);
                                   setExpandCappedSession(null);
@@ -5732,7 +5754,7 @@ export default function EvalCycleSummaryCanvas({
                                 data-testid="evs-cw-collapse-all"
                               >
                                 {L.cwCollapseAll}
-                              </button>
+                              </Button>
                               {expandCapped && (
                                 <span className="evs-cw-expand-capped" role="status" data-testid="evs-cw-expand-capped">
                                   {L.cwExpandAllCapped}
@@ -5744,7 +5766,8 @@ export default function EvalCycleSummaryCanvas({
                       )}
                       {/* §15 헤더 고정 — 머리 행은 세로로 스크롤하는 틀 안에서만 붙는다(roster-table.css). */}
                       <RosterTable
-                        className="evc-card evs-cw-table-wrap"
+                        className="evs-cw-table-wrap"
+                        framed
                         minWidth={900}
                         scroll="both"
                         maxHeight="calc(100vh - 220px)"
@@ -5851,9 +5874,9 @@ export default function EvalCycleSummaryCanvas({
                                 <RosterTable.Cell className="evs-cw-muted" data-testid="evs-cw-level-cell">
                                   <RankLevel row={row} />
                                 </RosterTable.Cell>
-                                {colOn('lead') && <RosterTable.Cell className="evs-cw-muted">{row.leaderName ?? '—'}</RosterTable.Cell>}
+                                {colOn('lead') && <RosterTable.Cell className="evs-cw-muted evs-cw-nowrap">{row.leaderName ?? '—'}</RosterTable.Cell>}
                                 {colOn('joined') && (
-                                <RosterTable.Cell>
+                                <RosterTable.Cell className="evs-cw-nowrap">
                                   <div className="evs-cw-date">{row.hireDate ?? '—'}</div>
                                   <div className="evs-cw-date is-sub">
                                     {row.promotedAt ?? L.cwNoPromotion}
@@ -5875,7 +5898,7 @@ export default function EvalCycleSummaryCanvas({
                                   </span>
                                 </RosterTable.Cell>
                                 {colOn('trend') && (
-                                <RosterTable.Cell>
+                                <RosterTable.Cell className="evs-cw-nowrap">
                                   <MiniSparkline trend={row.gradeTrend} domain={domain} emptyLabel={L.cwTrendEmpty} archivedPrior={row.priorTenureArchived} archivedLabel={L.cwTrendPriorArchived} />
                                 </RosterTable.Cell>
                                 )}
@@ -6531,6 +6554,7 @@ export default function EvalCycleSummaryCanvas({
                     );
                   })()
                 )}
+                </div>
               </div>
             )}
           </div>

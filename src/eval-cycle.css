@@ -5944,7 +5944,7 @@ button.evm-ai-source {
 
 .evs-dept-drow { grid-template-columns: 1.3fr 0.6fr repeat(var(--gcols, 3), 1fr) 1fr 1.2fr; }
 .evs-dept-drow .seg-top-text { color: var(--utility-green-600); font-variant-numeric: tabular-nums; }
-.evs-dept-drow .seg-mid-text { color: var(--utility-brand-600); font-variant-numeric: tabular-nums; }
+.evs-dept-drow .seg-mid-text { color: var(--utility-blue-600); font-variant-numeric: tabular-nums; }
 .evs-dept-drow .seg-bottom-text { color: var(--utility-error-600); font-variant-numeric: tabular-nums; }
 .evs-dept-vsguide { font-variant-numeric: tabular-nums; font-weight: 700; }
 .evs-dept-vsguide { font-weight: 400; }
@@ -6410,14 +6410,19 @@ button.evm-ai-source {
 }
 .evs-ov-card .evs-leader-track { height: 8px; }
 .evs-ov-card .evs-dist-fill.seg-top,
-.evs-lp-seg.seg-top,
 .evs-lp-dot.seg-top { background: var(--utility-green-400); }
 .evs-ov-card .evs-dist-fill.seg-mid,
-.evs-lp-seg.seg-mid,
 .evs-lp-dot.seg-mid { background: var(--utility-blue-400); }
 .evs-ov-card .evs-dist-fill.seg-bottom,
-.evs-lp-seg.seg-bottom,
 .evs-lp-dot.seg-bottom { background: var(--utility-error-400); }
+/* PW-2786 — 리더별 막대는 옅은 색(200), 아래 숫자는 같은 계열 진한 글자(600)가 범례를 맡는다.
+   가운데 등급은 파랑 — 초록 둘을 옅게 낮추면 눈으로 가를 수 없고, 캘리브레이션도 가운데를 파랑으로 칠한다. */
+.evs-lp-seg.seg-top { background: var(--utility-success-200); }
+.evs-lp-seg.seg-mid { background: var(--utility-blue-200); }
+.evs-lp-seg.seg-bottom { background: var(--utility-error-200); }
+.evs-lp-legend-item.seg-top { color: var(--utility-success-600); }
+.evs-lp-legend-item.seg-mid { color: var(--utility-blue-600); }
+.evs-lp-legend-item.seg-bottom { color: var(--utility-error-600); }
 .evs-ov-card .evs-dist-body { gap: var(--spacing-xs); }
 .evs-ov-card .evs-dist-guide-cap {
   font-size: var(--font-size-text-xs);
@@ -8061,7 +8066,8 @@ button.evm-ai-source {
   color: var(--text-secondary);
 }
 /* 회색 버튼 — 팀 스니핏 레드 플래그 버튼(.mgr-ts-chip.is-redflag) 값. 숫자 알약도 같은 것. */
-.evs-cw-tool {
+/* PW-2786 — 위원회 화면 버튼은 공용 흰 보조 버튼(Button secondary sm)으로 바꿨다. 아래 회색 값은 공용 버튼이 아닌 곳에만. */
+.evs-cw-tool:not(.dp-btn) {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -8076,11 +8082,11 @@ button.evm-ai-source {
   color: var(--text-secondary);
   cursor: pointer;
 }
-.evs-cw-tool:hover,
-.evs-cw-tool.is-open {
+.evs-cw-tool:not(.dp-btn):hover,
+.evs-cw-tool.is-open:not(.dp-btn) {
   background: var(--bg-active);
 }
-.evs-cw-tool.is-active {
+.evs-cw-tool.is-active:not(.dp-btn) {
   background: var(--bg-tertiary);
 }
 .evs-cw-tool[aria-disabled='true'] {
@@ -8941,32 +8947,48 @@ button.evm-ai-source {
   height: 12px;
   border-radius: 4px;
 }
-/* PW-1116 분포 카드 색 — 등급마다 다른 색(가운데 등급끼리 같은 파랑이 되지 않게) */
-.evs-cw-dist-seg.hue-green,
+/* PW-1116 분포 카드 색 — 등급마다 다른 색(가운데 등급끼리 같은 파랑이 되지 않게).
+   PW-2786 — 막대 칸은 같은 계열 옅은 색(200), 범례 점은 진한 색 그대로. 리소스 쌓은 막대(.rsx-stackbar,
+   stesslee b7eb7caa)의 «막대 200 · 점·글자 진한 색» 규칙. */
+.evs-cw-dist-seg.hue-green {
+  background: var(--utility-success-200);
+}
+.evs-cw-dist-seg.hue-sky {
+  background: var(--componentColors-utility-blueLight-utilityBlueLight200);
+}
+.evs-cw-dist-seg.hue-blue {
+  background: var(--utility-blue-200);
+}
+.evs-cw-dist-seg.hue-indigo {
+  background: var(--utility-indigo-200);
+}
+.evs-cw-dist-seg.hue-purple {
+  background: var(--utility-purple-200);
+}
+.evs-cw-dist-seg.hue-orange {
+  background: var(--utility-orange-200);
+}
+.evs-cw-dist-seg.hue-red {
+  background: var(--utility-error-200);
+}
 .evs-cw-dist-dot.hue-green {
   background: var(--utility-green-500);
 }
-.evs-cw-dist-seg.hue-sky,
 .evs-cw-dist-dot.hue-sky {
   background: var(--utility-blue-light-400);
 }
-.evs-cw-dist-seg.hue-blue,
 .evs-cw-dist-dot.hue-blue {
   background: var(--utility-blue-500);
 }
-.evs-cw-dist-seg.hue-indigo,
 .evs-cw-dist-dot.hue-indigo {
   background: var(--utility-indigo-500);
 }
-.evs-cw-dist-seg.hue-purple,
 .evs-cw-dist-dot.hue-purple {
   background: var(--utility-purple-500);
 }
-.evs-cw-dist-seg.hue-orange,
 .evs-cw-dist-dot.hue-orange {
   background: var(--utility-orange-500);
 }
-.evs-cw-dist-seg.hue-red,
 .evs-cw-dist-dot.hue-red {
   background: var(--utility-error-500);
 }
@@ -18611,3 +18633,158 @@ button.evmh-phase:focus-visible {
 .evm-root .evc-field-note {
   line-height: 1.6;
 }
+
+/* PW-2786 — 성과평가 대시보드 등급 분포: 쌓은 막대 하나 + 등급마다 칸.
+   막대 = 리소스 쌓은 막대(okr_resource.css .rsx-stackbar, stesslee b7eb7caa): 높이 12 · 조각 사이 10 · 모서리 4 · 옅은 바탕, 조각은 등급 색 200.
+   칸 = 리소스 숫자 칸(.rsx-stat): 이름 위 · 큰 숫자 · 바탕 없음 · 테두리. 칸이 3~5개라 여백만 줄였다. */
+.evs-gd {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+.evs-gd-bar {
+  position: relative;
+  display: flex;
+  height: 12px;
+  gap: calc(var(--spacing-md) + var(--spacing-xxs));
+  border-radius: var(--radius-xxs);
+  background: var(--bg-secondary);
+}
+.evs-gd-seg {
+  flex-basis: 0;
+  min-width: 4px;
+  height: 12px;
+  border-radius: var(--radius-xxs);
+}
+.evs-gd-seg.seg-top { background: var(--utility-success-200); }
+.evs-gd-seg.seg-mid { background: var(--utility-blue-200); }
+.evs-gd-seg.seg-bottom { background: var(--utility-error-200); }
+/* 가이드라인 경계 — 제목 줄 범례의 점선(.evs-legend-guide)과 같은 점선 */
+.evs-gd-bound {
+  position: absolute;
+  top: calc(-1 * var(--spacing-xs));
+  bottom: calc(-1 * var(--spacing-xs));
+  width: 0;
+  border-left: 1.5px dashed var(--text-tertiary);
+}
+.evs-gd-cells {
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-md);
+}
+.evs-gd-cell {
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+  min-width: 0;
+  padding: var(--spacing-md) var(--spacing-lg);
+}
+.evs-gd-cell + .evs-gd-cell { border-left: 1px solid var(--border-secondary); }
+.evs-gd-name {
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+  line-height: 18px;
+}
+.evs-gd-name.seg-top { color: var(--utility-success-600); }
+.evs-gd-name.seg-mid { color: var(--utility-blue-600); }
+.evs-gd-name.seg-bottom { color: var(--utility-error-600); }
+.evs-gd-value {
+  font-size: var(--font-size-text-lg);
+  font-weight: 700;
+  line-height: 28px;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.evs-gd-value small {
+  margin-left: var(--spacing-xs);
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+.evs-gd-guide,
+.evs-gd-cell .evs-cd-change {
+  font-size: var(--font-size-text-xs);
+  line-height: 18px;
+  color: var(--text-tertiary);
+}
+.evs-gd-dev {
+  font-size: var(--font-size-text-xs);
+  line-height: 18px;
+  color: var(--text-tertiary);
+}
+/* 10%p 이상 벗어난 칸만 빨간 글 — 기획서 «±10%p 이상» 경고 기준 */
+.evs-gd-dev.is-off {
+  font-weight: 600;
+  color: var(--text-error-primary);
+}
+.evs-gd-cell .evs-cd-over { align-self: flex-start; }
+.evs-gd-dev { white-space: nowrap; }
+/* 칸 글자 폭(여백 뺀 폭)이 140 이하면 «가이드라인보다»를 감춰 «10%p 낮음»만 — 꺾이지 않게(바로 위 줄이 «가이드라인 N%») */
+@container (max-width: 140px) {
+  .evs-gd-dev-pre { display: none; }
+}
+
+/* PW-2786 — 캘리브레이션 위원회 화면: 위원회 하나를 흰 카드(.evc-card) 하나로 묶고 안을 가는 선 세 구역으로.
+   리소스 «팀 현황» 사람 카드(okr_resource.css .rsx-member, stesslee b7eb7caa)처럼 한 묶음 = 한 칸. */
+.evs-cw-session-card .evs-cw-dist {
+  /* 스크롤 틀(.evc-root) 위 여백 24 만큼 비던 틈 — 8 위로 붙이고(위 여백 16 안쪽이라 글은 안 가림),
+     그 위 16(카드 안 줄 간격과 같은 높이)을 흰 띠로 덮어 탭 줄 바로 밑에 붙는다. 안 붙었을 땐 띠가 빈 간격과 겹친다. */
+  top: calc(var(--spacing-xl) - var(--spacing-3xl));
+  background: var(--bg-quaternary);
+  padding: var(--spacing-xl) 0 var(--spacing-md);
+  border-top: 1px solid var(--border-secondary);
+}
+.evs-cw-session-card .evs-cw-dist::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: var(--spacing-xl);
+  background: var(--bg-quaternary);
+}
+.evs-cw-session-card .evs-cw-promo-summary {
+  margin: 0;
+  padding-top: var(--spacing-xl);
+  border-top: 1px solid var(--border-secondary);
+}
+.evs-cw-session-card .evs-cw-table-actions { gap: var(--spacing-md); }
+.dp-btn.evs-cw-tool.is-active,
+.dp-btn.evs-cw-tool.is-open {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+/* 칸이 좁아도 꺾이지 않는 칸 — 날짜·팀장·등급·«이력 없음» (직무·소속 팀 합치기는 PW-2787 답 대기) */
+.evs-cw-nowrap,
+.evs-cw-session-card .evs-cw-date { white-space: nowrap; }
+.evs-cw-session-card .evs-cw-leader-grade {
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+/* «‹ 목록» — 원온원 «‹ 목록으로»(one_on_one.css .ono-my-back, stesslee 41a7f3d1 · Figma 17733:20287) 값.
+   평가 화면은 one_on_one.css 를 싣지 않아 옮겨 적었다. */
+.dp-btn.evs-cw-back {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) 0;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: none;
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-xs);
+  font-weight: 600;
+  line-height: var(--line-height-text-xs);
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.dp-btn.evs-cw-back svg { color: var(--fg-tertiary); }
+.dp-btn.evs-cw-back:hover { color: var(--text-secondary); }
+/* 워크스페이스 머리 — 조회 기간이 제목 줄 오른쪽(.evc-header 는 양끝 맞춤 · 아래 맞춤) */
+.evc-header > .evs-period { margin: 0; }

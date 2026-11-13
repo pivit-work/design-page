@@ -4206,9 +4206,10 @@ button.ono-add-modal-input { cursor: pointer; }
   overflow: hidden;
   background: var(--bg-secondary);
 }
-.ono-done-sentiment-seg.is-ok { background: var(--utility-green-600); }
+/* PW-2786 — 막대는 옅은 색(200). 숫자는 아래 글자와 점수 원이 진한 색으로 든다(리소스 막대 규칙). */
+.ono-done-sentiment-seg.is-ok { background: var(--utility-success-200); }
 .ono-done-sentiment-seg.is-mute { background: var(--border-secondary); }
-.ono-done-sentiment-seg.is-bad { background: var(--colors-text-textErrorPrimary); }
+.ono-done-sentiment-seg.is-bad { background: var(--utility-error-200); }
 .ono-done-sentiment-legend {
   display: flex;
   flex-wrap: wrap;
