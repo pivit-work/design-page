@@ -661,8 +661,10 @@ export default function SquadPillarStage({
     c.style.left = `${Math.min(e.clientX + 16, window.innerWidth - w - 12)}px`;
     c.style.top = `${Math.min(e.clientY + 14, window.innerHeight - c.offsetHeight - 12)}px`;
   };
+  // 이름표도 그 기둥과 같다 — 이름표 글자를 누르면 뒤의 판이 아니라 그 사람(내 이름표면 내 캐파 창)을 연다
   const tokenAt = (target) => {
-    const key = target?.closest?.('[data-pillar-key]')?.getAttribute('data-pillar-key');
+    const key = target?.closest?.('[data-pillar-key]')?.getAttribute('data-pillar-key')
+      || target?.closest?.('[data-pillar-tag]')?.getAttribute('data-pillar-tag');
     return key ? tokens.find((t) => t.key === key) : null;
   };
   const onOver = (e) => {
@@ -916,7 +918,7 @@ export default function SquadPillarStage({
                       className={`sq-pillar-tag${lead || mine ? '' : ' is-name'}${on ? ' is-lit' : ''}`}
                       data-pillar-tag={t.key}
                       transform={`translate(0 ${(-(lifts.get(t.key) || 0)).toFixed(1)}) scale(${tagK.toFixed(3)})`}
-                      style={{ opacity: matcher ? (on ? 1 : 0.1) : 1 }}
+                      style={{ opacity: matcher ? (on ? 1 : 0.1) : 1, pointerEvents: 'auto', cursor: 'pointer' }}
                     >
                       <Tag tk={t} side={view} name={nameOf(t.x)} mine={mine} L={L} />
                     </g>
