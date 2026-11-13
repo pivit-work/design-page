@@ -198,7 +198,7 @@ const DEFAULT_LABELS = {
   addonCancelCta: '애드온 해지',
   addonUndoCancelCta: '해지 취소',
   addonViewPlansCta: '플랜 보기',
-  addonManageMethodsCta: '결제수단 관리 →',
+  addonManageMethodsCta: '결제수단 관리',
   addonBlockFree: '유료 요금제로 바꾼 뒤 구매할 수 있습니다.',
   addonBlockPastDue: '결제를 복구한 뒤 구매할 수 있습니다.',
   addonBlockSuspended: '요금제를 결제한 뒤 구매할 수 있습니다.',
@@ -579,7 +579,7 @@ function AddonCard({ addon, interval, canEdit, highlight, labels, onTrial, onBuy
   if (addon.purchaseBlock === 'free_plan') {
     action = <Btn kind="secondary" onClick={onViewPlans}>{labels.addonViewPlansCta}</Btn>;
   } else if (addon.purchaseBlock === 'past_due') {
-    action = <Btn kind="secondary" onClick={onManageMethods}>{labels.addonManageMethodsCta}</Btn>;
+    action = <Btn kind="secondary" onClick={onManageMethods}>{labels.addonManageMethodsCta} <ArrowRightGlyph size={13} /></Btn>;
   } else if (addon.phase === 'active') {
     action = <Btn kind="danger" onClick={onCancel} disabled={disabled}>{labels.addonCancelCta}</Btn>;
   } else if (addon.phase === 'cancel_scheduled' && addon.cancelScheduledByAddon) {
@@ -733,7 +733,7 @@ function AddonBuyModal({ preview, previewFailed, labels, onClose, onSubmit, onRe
         {failure != null && (
           <div data-testid="billing-addon-buy-failed" style={{ padding: 'var(--spacing-md) var(--spacing-lg)', background: T.redBg, borderRadius: 10 }}>
             <div style={{ fontSize: 13, color: T.red, fontWeight: 700, marginBottom: 'var(--spacing-md)' }}>{labels.addonBuyFailed(failure)}</div>
-            <Btn kind="secondary" onClick={onManageMethods}>{labels.addonManageMethodsCta}</Btn>
+            <Btn kind="secondary" onClick={onManageMethods}>{labels.addonManageMethodsCta} <ArrowRightGlyph size={13} /></Btn>
           </div>
         )}
       </div>

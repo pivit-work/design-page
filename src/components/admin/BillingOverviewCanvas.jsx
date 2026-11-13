@@ -179,7 +179,7 @@ const DEFAULT_LABELS = {
   addonCancelScheduled: (date) => `해지 예정 · ${date}까지`,
   addonLapsed: '꺼짐 · 결재 문서·휴가 기록은 읽기 전용',
   addonLocked: '결제 실패로 잠김',
-  addonManage: '관리 →',
+  addonManage: '관리',
   addonNextLine: (seats, price, months = 1) =>
     `+ 전자결재 · 휴가 패키지 ${seats}좌석 × ${won(price)}${months > 1 ? ` × ${months}개월` : ''}`,
   methodLabel: '기본 결제수단',
@@ -406,7 +406,7 @@ function AddonRow({ addon, labels, onManage }) {
         <button type="button" onClick={onManage}
           style={{ background: 'none', border: 'none', color: T.accentText, fontWeight: 700,
             fontSize: 13, cursor: 'pointer', padding: 0, whiteSpace: 'nowrap' }}>
-          {labels.addonManage}
+          {labels.addonManage} <ArrowRightGlyph size={13} />
         </button>
       </div>
     </Card>
