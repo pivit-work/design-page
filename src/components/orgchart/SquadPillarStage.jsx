@@ -325,12 +325,11 @@ export default function SquadPillarStage({
   const svgRef = useRef(null);
   const scrollRef = useRef(null);
   const cardRef = useRef(null);
+  const dockRef = useRef(null);
   const qRef = useRef(null);
   const drag = useRef(null);
   const flyRef = useRef(0);
   const recenter = useRef(true);
-  // 카메라가 그림 끝까지 다가가도록 그림 둘레에 붙이는 빈 여백(px) — 없으면 null(가운데 맞춤 그대로)
-  const [slack, setSlack] = useState(null);
   const runRef = useRef({ raf: 0, timers: [] });
   const onDoneRef = useRef(onDone);
   useLayoutEffect(() => { onDoneRef.current = onDone; });
@@ -344,9 +343,6 @@ export default function SquadPillarStage({
   const z = zoom == null ? fitZoom : zoom;
   const k = Math.min(PILLAR_TAG_SCALE_MAX, Math.max(1, 0.95 / z));
   const far = z * k * 10 < PILLAR_MIN_NAME_PX;
-  // 고르거나 마우스 올린 사람의 이름표는 상한(1.45) 없이 같은 공식으로 — 겸임 기둥 둘을 함께 넣는 먼 배율에서도
-  // 화면 글자가 9.5px 로 읽힌다(PW-2764 dev 힘펠 0.26 배율에서 4.5px 이하)
-  const litK = Math.max(1, 0.95 / z);
 
   const nameOf = useCallback((x) => x?.person?.name || L('squad.unknownMember'), [L]);
   const isMine = useCallback((tk) => !!currentUserId && tk.x.id === currentUserId && !!tk.a, [currentUserId]);
@@ -372,7 +368,7 @@ export default function SquadPillarStage({
     el.scrollLeft = (el.scrollWidth - el.clientWidth) / 2;
     el.scrollTop = (el.scrollHeight - el.clientHeight) / 2;
   });
-  const setZoomCentered = (v) => { flyRef.current++; recenter.current = true; setSlack(null); setZoom(v); };
+  const setZoomCentered = (v) => { flyRef.current++; recenter.current = true; setZoom(v); };
 
   // ── 재생: 기둥이 떠올라 포물선으로 날아 도착 판에 내려앉는다 ──
   const finish = useCallback(() => {
@@ -386,7 +382,6 @@ export default function SquadPillarStage({
       if (tk) { const p = at(tk, side); el.setAttribute('transform', translate(p.x, p.y, p.z)); }
     });
     recenter.current = true;
-    setSlack(null);
     setView(side); setPlatesUp(side); setPlaying(false);
     onDoneRef.current?.();
   }, [tokens, side]);
@@ -430,14 +425,12 @@ export default function SquadPillarStage({
   }, []);
 
   // ── 찍은 곳으로 카메라가 다가간다. 휠·끌기를 하면 바로 멈춘다 ──
-  // withDock = 고르면서 왼쪽 위 고정 카드를 띄우는 때. 카드는 다음 그림에서야 뜨므로 지금 DOM 이 아니라 이 값으로
-  // 카드 폭만큼 비킨다 — 찾기 칸은 고르기 전에 고정을 풀어, DOM 으로 보면 늘 «카드 없음»이라 고른 사람이 카드 밑에 갔다(PW-2764)
-  const flyTo = useCallback((wx0, wy0, wx1, wy1, maxZ, then, withDock = false) => {
+  const flyTo = useCallback((wx0, wy0, wx1, wy1, maxZ, then) => {
     const el = scrollRef.current; const svg = svgRef.current;
     if (!el || !svg) { then?.(); return; }
     const id = ++flyRef.current;
     const m = 90;
-    const pad = withDock ? 364 : 0;
+    const pad = dockRef.current && !dockRef.current.hidden ? 364 : 0;
     const target = Math.max(PILLAR_ZOOM_MIN, Math.min(maxZ, (el.clientWidth - pad - m * 2) / Math.max(1, wx1 - wx0), (el.clientHeight - m * 2) / Math.max(1, wy1 - wy0)));
     const z0 = z; const cx = (wx0 + wx1) / 2; const cy = (wy0 + wy1) / 2;
     const a = svg.getBoundingClientRect(); const b = el.getBoundingClientRect();
@@ -446,38 +439,15 @@ export default function SquadPillarStage({
     const T = prefersReducedMotion() ? 1 : 460;
     const t0 = performance.now();
     recenter.current = false;
-    const cw = el.clientWidth; const ch = el.clientHeight;
-    // 그림 왼쪽 위 = 스크롤 0 일 때 카메라가 원하는 스크롤
-    const want = (e) => {
-      const zz = z0 + (target - z0) * e;
-      return [(c0x + (cx - c0x) * e - VB.x) * zz - (cw + pad) / 2, (c0y + (cy - c0y) * e - VB.y) * zz - ch / 2, zz];
-    };
-    // 배율이 맞춤 가까이에 머물면 그림이 무대와 거의 같은 크기라 스크롤이 그림 끝에 걸려, 끝에 선 기둥이
-    // 오른쪽 위 확대 단추 밑으로 밀렸다(PW-2764 dev 힘펠 이재관). 가는 길 내내 모자란 만큼 빈 여백을 둘레에 붙인다
-    const sl = { l: 0, t: 0, r: 0, b: 0 };
-    for (let i = 0; i <= 10; i++) {
-      const [sx, sy, zz] = want(i / 10);
-      sl.l = Math.max(sl.l, -sx); sl.t = Math.max(sl.t, -sy);
-      sl.r = Math.max(sl.r, sx + cw - VB.w * zz); sl.b = Math.max(sl.b, sy + ch - VB.h * zz);
-    }
-    Object.keys(sl).forEach((k2) => { sl[k2] = Math.ceil(sl[k2]); });
-    const useSl = sl.l || sl.t || sl.r || sl.b ? sl : null;
-    const ox = useSl ? useSl.l : 0; const oy = useSl ? useSl.t : 0;
-    // 여백을 지금 바로 붙이고 같은 만큼 스크롤해 첫 그림에서 무대가 튀지 않게 한다(다음 그림은 state 가 같은 값을 그린다)
-    const offX = a.left - b.left + el.scrollLeft; const offY = a.top - b.top + el.scrollTop;
-    svg.style.margin = useSl ? `${sl.t}px ${sl.r}px ${sl.b}px ${sl.l}px` : '';
-    el.scrollLeft += ox - offX; el.scrollTop += oy - offY;
-    setSlack(useSl);
     const frame = (now) => {
       if (id !== flyRef.current) return;
-      const u = Math.min(1, (now - t0) / T); const e = 1 - (1 - u) ** 3;
-      const [sx, sy, zz] = want(e);
+      const u = Math.min(1, (now - t0) / T); const e = 1 - (1 - u) ** 3; const zz = z0 + (target - z0) * e;
       setZoom(zz);
       // 배율을 바꾼 그림이 그려진 다음에 옮긴다
       requestAnimationFrame(() => {
         if (id !== flyRef.current && u < 1) return;
-        el.scrollLeft = ox + sx;
-        el.scrollTop = oy + sy;
+        el.scrollLeft = (c0x + (cx - c0x) * e - VB.x) * zz - (el.clientWidth + pad) / 2;
+        el.scrollTop = (c0y + (cy - c0y) * e - VB.y) * zz - el.clientHeight / 2;
         if (u >= 1) then?.();
       });
       if (u < 1) requestAnimationFrame(frame);
@@ -491,7 +461,7 @@ export default function SquadPillarStage({
     const ts = tokens.filter((t) => t.x.id === pid && (view === 'squad' || t.top)).map(tokenTopOnScreen);
     if (!ts.length) return;
     const X = ts.map((v) => v[0]); const Y = ts.map((v) => v[1]);
-    flyTo(Math.min(...X) - 60, Math.min(...Y) - 80, Math.max(...X) + 60, Math.max(...Y) + 60, 1.6, undefined, true);
+    flyTo(Math.min(...X) - 60, Math.min(...Y) - 80, Math.max(...X) + 60, Math.max(...Y) + 60, 1.6);
   };
   const selectNode = (id) => {
     const n = nodes.find((x) => x.id === id);
@@ -499,7 +469,7 @@ export default function SquadPillarStage({
     setSel({ type: 'node', id }); setHov(null); hideCard();
     const c = [[n.ax, n.ay, n.top + 70], [n.ax + n.w, n.ay, n.top], [n.ax, n.ay + n.d + PILLAR.lane, n.z], [n.ax + n.w, n.ay + n.d + PILLAR.lane, n.z]].map((v) => pillarIso(...v));
     const X = c.map((v) => v[0]); const Y = c.map((v) => v[1]);
-    flyTo(Math.min(...X), Math.min(...Y), Math.max(...X), Math.max(...Y), 2, undefined, true);
+    flyTo(Math.min(...X), Math.min(...Y), Math.max(...X), Math.max(...Y), 2);
   };
   const clearAll = () => {
     setSel(null); setQ(''); setChip(null); setFam(null); setHov(null); setResultsOpen(false); hideCard();
@@ -592,21 +562,12 @@ export default function SquadPillarStage({
       const typing = ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable);
       if (e.key === 'Escape' && (ae === qRef.current || !typing)) { clearAll(); qRef.current?.blur(); return; }
       if (typing || playing) return;
-      if (e.key === '+' || e.key === '=') setZoomCentered(Math.min(z + 0.1, PILLAR_ZOOM_MAX));
+      if (e.key === '/') { e.preventDefault(); qRef.current?.focus(); } else if (e.key === '+' || e.key === '=') setZoomCentered(Math.min(z + 0.1, PILLAR_ZOOM_MAX));
       else if (e.key === '-') setZoomCentered(Math.max(z - 0.1, PILLAR_ZOOM_MIN));
       else if (e.key === '0') setZoomCentered(null);
     };
-    // «/» 만 캡처 단계에서 받는다 — 앱이 document 에 단 «/» 전체 검색보다 먼저 받아 무대 찾기 칸으로 보낸다
-    // (정본 «/ 로 들어감» · PW-2764). Esc 등은 그대로 거품 단계 — 위에 뜬 창이 먼저 받게 둔다
-    const onSlash = (e) => {
-      const ae = document.activeElement;
-      const typing = ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.isContentEditable);
-      if (e.key !== '/' || typing || playing || e.metaKey || e.ctrlKey) return;
-      e.preventDefault(); e.stopPropagation(); qRef.current?.focus();
-    };
     window.addEventListener('keydown', onKey);
-    window.addEventListener('keydown', onSlash, true);
-    return () => { window.removeEventListener('keydown', onKey); window.removeEventListener('keydown', onSlash, true); };
+    return () => window.removeEventListener('keydown', onKey);
   });
 
   // ── 휠 = 확대·축소 — 마우스가 가리키는 자리가 그대로 남는다 ──
@@ -661,10 +622,8 @@ export default function SquadPillarStage({
     c.style.left = `${Math.min(e.clientX + 16, window.innerWidth - w - 12)}px`;
     c.style.top = `${Math.min(e.clientY + 14, window.innerHeight - c.offsetHeight - 12)}px`;
   };
-  // 이름표도 그 기둥과 같다 — 이름표 글자를 누르면 뒤의 판이 아니라 그 사람(내 이름표면 내 캐파 창)을 연다
   const tokenAt = (target) => {
-    const key = target?.closest?.('[data-pillar-key]')?.getAttribute('data-pillar-key')
-      || target?.closest?.('[data-pillar-tag]')?.getAttribute('data-pillar-tag');
+    const key = target?.closest?.('[data-pillar-key]')?.getAttribute('data-pillar-key');
     return key ? tokens.find((t) => t.key === key) : null;
   };
   const onOver = (e) => {
@@ -706,7 +665,6 @@ export default function SquadPillarStage({
   const lifts = useMemo(() => layoutTags(tagList, view, k, tagNameOf, (t) => view === 'squad' && isMine(t)), [tagList, view, k, tagNameOf, isMine]);
   const tagsSorted = useMemo(() => [...tagList].sort((a, b) => (at(a, view).x + at(a, view).y) - (at(b, view).x + at(b, view).y)), [tagList, view]);
 
-  const litPid = hov || (sel?.type === 'person' ? sel.id : null);
   const links = (() => {
     const pid = hov || (sel?.type === 'person' ? sel.id : null);
     if (!pid || view !== 'squad' || playing) return [];
@@ -823,7 +781,7 @@ export default function SquadPillarStage({
             <Button type="button" className="org-tool-btn has-label" onClick={() => setZoomCentered(null)} title={L('squad.iso.zoomFitTip')} data-action="zoom-fit"><span>{L('squad.graph.zoomFit')}</span></Button>
           </div>
         </div>
-        <div className="sq-pillar-dock" hidden={!dock} data-testid="squad-pillar-dock">
+        <div className="sq-pillar-dock" ref={dockRef} hidden={!dock} data-testid="squad-pillar-dock">
           <Button type="button" className="sq-pillar-dock-x" aria-label={L('squad.pillar.close')} onClick={() => setSel(null)}><CloseGlyph size={14} /></Button>
           {dock}
         </div>
@@ -842,8 +800,6 @@ export default function SquadPillarStage({
             viewBox={`${VB.x.toFixed(0)} ${VB.y.toFixed(0)} ${VB.w.toFixed(0)} ${VB.h.toFixed(0)}`}
             width={Math.round(VB.w * z)}
             height={Math.round(VB.h * z)}
-            style={slack ? { margin: `${slack.t}px ${slack.r}px ${slack.b}px ${slack.l}px` } : undefined}
-            data-slack={slack ? 'on' : undefined}
             onMouseOver={onOver}
             onMouseMove={(e) => { if (cardRef.current?.style.display === 'block') moveCard(e); }}
             onMouseLeave={onLeave}
@@ -911,14 +867,13 @@ export default function SquadPillarStage({
                 const lead = view === 'squad' ? t.lead : t.head;
                 const mine = view === 'squad' && isMine(t);
                 const on = matcher ? matcher(t) : false;
-                const tagK = on && litPid ? litK : k;
                 return (
                   <g key={t.key} transform={`translate(${sx.toFixed(1)} ${sy.toFixed(1)})`}>
                     <g
                       className={`sq-pillar-tag${lead || mine ? '' : ' is-name'}${on ? ' is-lit' : ''}`}
                       data-pillar-tag={t.key}
-                      transform={`translate(0 ${(-(lifts.get(t.key) || 0)).toFixed(1)}) scale(${tagK.toFixed(3)})`}
-                      style={{ opacity: matcher ? (on ? 1 : 0.1) : 1, pointerEvents: 'auto', cursor: 'pointer' }}
+                      transform={`translate(0 ${(-(lifts.get(t.key) || 0)).toFixed(1)}) scale(${k.toFixed(3)})`}
+                      style={{ opacity: matcher ? (on ? 1 : 0.1) : 1 }}
                     >
                       <Tag tk={t} side={view} name={nameOf(t.x)} mine={mine} L={L} />
                     </g>
