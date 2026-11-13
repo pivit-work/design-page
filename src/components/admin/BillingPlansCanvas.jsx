@@ -799,7 +799,7 @@ function AddonCancelModal({ addon, labels, onClose, onSubmit, onRefundQuote, onR
       {refundQuote?.eligible && refundQuote.amount > 0 && (
         /* 보조 선택 — 구독 현황 해지 창의 «즉시 해지 + 환불» 칸과 같은 초록 테두리 */
         <div data-testid="billing-addon-refund"
-          style={{ border: `1px solid ${T.green}`, borderRadius: 12, padding: 16, marginTop: 16, background: T.greenBg }}>
+          style={{ border: `1px solid ${T.green}`, borderRadius: 'var(--radius-lg)', padding: 'var(--spacing-xl)', marginTop: 'var(--spacing-xl)', background: T.greenBg }}>
           <Button variant="secondary" data-testid="billing-addon-refund-submit" pending={refundBusy}
             pendingLabel={labels.addonBusy} disabled={busy} onClick={() => void refund()}>
             {labels.addonRefundCta(refundQuote.amount)}
