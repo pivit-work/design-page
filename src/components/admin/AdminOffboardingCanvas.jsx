@@ -5,6 +5,7 @@ import Button from '../shared/Button.jsx';
 import DateInput from '../shared/DateInput.jsx';
 import FormField from '../shared/FormField.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
+import Select from '../shared/Select.jsx';
 import TextArea from '../shared/TextArea.jsx';
 import TextInput from '../shared/TextInput.jsx';
 import { NoteText } from '../shared/SharedText.jsx';
@@ -114,6 +115,61 @@ function Notice({ tone, title, children, testId, role, action }) {
  */
 
 /* 섹션 1 끝 «휴가 정산» 칸 — 값은 휴가 모듈이, 문장은 소비자가 채운다. 여기서는 배치만 한다 (정책 v1.27 §2-B). */
+/**
+ * @typedef {object} FolderHandoffView
+ * @property {string} title 머리 «맡은 폴더 N개»
+ * @property {string} badge 배지 «전자결재»
+ * @property {string} description 언제 빠지고 비워도 된다는 한 줄
+ * @property {string|null} [error] 불러오기 실패 문구 — 있으면 줄 대신 오류 상자
+ * @property {string} placeholder 새 관리자 칸의 첫 항목 «새 관리자 (선택)»
+ * @property {Array<{ id: string, name: string, remaining: string, remainingMuted?: boolean, note?: string|null,
+ *   lockedText?: string|null, value: string|null, options: Array<{ value: string, label: string }>,
+ *   onChange: (v: string|null) => void }>} rows — `lockedText` 가 있으면 고르기 칸 대신 그 한 줄(admin 이 아닌 사람)
+ */
+function FolderHandoff({ view }) {
+  return (
+    <div className="admin-offb-leave" data-testid="offboarding-folders">
+      <div className="admin-offb-leave-head">
+        <span className="admin-offb-leave-title">{view.title}</span>
+        <DpStatusBadge tone="neutral">{view.badge}</DpStatusBadge>
+      </div>
+      <NoteText data-testid="offboarding-folders-desc">{view.description}</NoteText>
+      {view.error ? (
+        <Notice tone="error" testId="offboarding-folders-error" role="alert">{view.error}</Notice>
+      ) : (
+        <dl className="admin-offb-leave-rows">
+          {view.rows.map((r) => (
+            <div key={r.id} className="admin-offb-leave-row" data-testid={`offboarding-folder-${r.id}`}>
+              <dt className="admin-offb-leave-key admin-offb-folder-name">{r.name}</dt>
+              <dd className="admin-offb-leave-val admin-offb-folder-val">
+                <span className="admin-offb-folder-left">
+                  <span className={r.remainingMuted ? 'admin-offb-leave-note' : 'admin-offb-leave-value'}>{r.remaining}</span>
+                  {r.note && <span className="admin-offb-leave-note" data-testid={`offboarding-folder-note-${r.id}`}>{r.note}</span>}
+                </span>
+                {r.lockedText ? (
+                  <span className="admin-offb-leave-note" data-testid={`offboarding-folder-locked-${r.id}`}>{r.lockedText}</span>
+                ) : (
+                <div className="admin-offb-folder-select">
+                  <Select
+                    aria-label={`${r.name} ${view.placeholder}`}
+                    value={r.value ?? ''}
+                    placeholder={view.placeholder}
+                    searchable
+                    options={[{ value: '', label: view.placeholder }, ...r.options]}
+                    onChange={(e) => r.onChange(e.target.value || null)}
+                    data-testid={`offboarding-folder-pick-${r.id}`}
+                  />
+                </div>
+                )}
+              </dd>
+            </div>
+          ))}
+        </dl>
+      )}
+    </div>
+  );
+}
+
 function LeaveSettlement({ view, labels }) {
   const rows = view.rows || [];
   const notices = view.notices || [];
@@ -295,6 +351,9 @@ function AreaCard({
  *   값은 휴가 모듈이 계산하고 문장은 소비자가 채운다 — 캔버스는 더하거나 곱하지 않는다 (pivit-work PW-2375 · 정책 v1.27 §2-B · §5-J)
  * @param {Array<{ id: string, text: string }>} [props.extraEffects] 섹션 3 «실행하면 일어나는 일» 목록 끝에 더할 줄. 문장과
  *   보일지 말지는 소비자가 정한다 — 예: «걸어 둔 예정 발령 N건은 반영되지 않고 적용일에 취소됩니다.» (pivit-work PW-2349 · 퇴사 정책 §2 머리)
+ * @param {FolderHandoffView|null} [props.folderHandoff] 섹션 3 보존 안내 상자 아래 «맡은 폴더 N개» 블록(전자결재 폴더 관리자일 때만).
+ *   폴더마다 남는 관리자 문구와 새 관리자 고르기 — 문장 · 후보 · 고른 값은 소비자가 갖고, 캔버스는 «휴가 정산» 블록과 같은 부품으로 그린다
+ *   (pivit-work PW-2676 · 퇴사 정책 §2-C · §5-K). 고르지 않아도 실행은 막지 않는다
  * @param {(dates: { resignationDate: string, lastDay: string }) => void} [props.onDatesChange] 퇴사일·마지막 출근일이
  *   바뀔 때(처음 그릴 때 포함) 부른다 — 휴가 정산을 다시 계산하라는 신호다
  */
@@ -317,6 +376,7 @@ export default function AdminOffboardingCanvas({
   leaveSettlement = null,
   onDatesChange,
   extraEffects = [],
+  folderHandoff = null,
   /* 섹션 1 «회수하지 않은 자산 N건» 한 줄 (pivit-work PW-2600 · 퇴사 정책 §2-D) — `{ items: [{ id, assetNo, kindName }], onView }`.
      대상자가 «사용 중»으로 지급받은 자산(책상에 둔 것 제외)을 소비자가 넘긴다. 없거나 0건이거나 못 불러왔으면 줄이 없다.
      실행 조건(§5-A)에 들지 않는다 — 막지 않고 알린다. */
@@ -623,6 +683,7 @@ export default function AdminOffboardingCanvas({
             ))}
           </ul>
           <Notice tone="neutral">{fill(labels.effects.retention, dateVars)}</Notice>
+          {folderHandoff && <FolderHandoff view={folderHandoff} />}
         </div>
       </Section>
 
