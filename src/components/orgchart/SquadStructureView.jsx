@@ -2,9 +2,8 @@
  * 그림 보기 «구조» 갈래 — 스쿼드 조직 트리 · 기능 조직 트리 (pivit-work PW-2599 ·
  * 기획 screen-org-chart-squad.policy.md §5-6-A · §5-6-B · §5-6-C 절 머리 · v3.44 · 엣지 86~105).
  *
- * 같은 사람들을 세 축으로 다시 묶어 본다 — `스쿼드 조직`(회사 → 트라이브·그룹 → 스쿼드 → 사람) · `기능 조직`(회사 → 조직 단위 → 사람) ·
- * `근무지`(회사 → 근무지 → 사람 · §5-6-D · 7회차 2026-11-13 — 근무지 노드는 기능 조직 쪽 단위 노드와 같은 부품).
- * 세 쪽은 누르면 **움직임 없이 바로** 그린다. 같은 사람이 옮겨 가는 연출은 맨 위 탭 «한눈에» 하나다(§5-6-C 절 머리).
+ * 같은 사람들을 두 축으로 다시 묶어 본다 — `스쿼드 조직`(회사 → 트라이브·그룹 → 스쿼드 → 사람)과 `기능 조직`(회사 → 조직 단위 → 사람).
+ * 두 쪽은 누르면 **움직임 없이 바로** 그린다. 같은 사람이 옮겨 가는 연출은 맨 위 탭 «한눈에» 하나다(§5-6-C 절 머리).
  * 보기 전용 — 값을 고치지 않는다. 숫자(캐파·비중)는 그리지 않는다(연결 갈래·카드 보기가 보인다).
  *
  * 디자이너 원본은 없다. 3회차(2026-11-09 커트 결정 · 카드 «3회차로 더합니다» A~F)부터 조직도 «트리» 화면의 부품을 그대로 쓴다:
@@ -47,7 +46,6 @@ import {
   STRUCT_ZOOM_MIN,
   STRUCT_ZOOM_STEP,
   buildOrgSide,
-  buildPlaceSide,
   buildSquadSide,
   structFitScale,
   structureView,
@@ -74,8 +72,6 @@ export default function SquadStructureView({
   groups = [],
   people = [],
   units = [],
-  // 근무지 쪽(7회차 · §5-6-D) — 필드 옵션 «근무지» 값을 순번 순으로(«사용 중»을 끈 값 포함). 사람의 `workLocation` 으로 묶는다
-  placeOrder = [],
   companyName = '',
   personOf,
   onMemberClick,
@@ -100,11 +96,9 @@ export default function SquadStructureView({
 
   // «스쿼드 없음» 재료 — 조직도 명부의 재직 중 사람(스쿼드에만 남은 퇴사자 이름은 빼고)
   const roster = useMemo(() => people.filter((p) => p.employmentStatus !== 'terminated'), [people]);
-  const tree = useMemo(() => {
-    if (side === 'squad') return buildSquadSide({ shown, all, levelNames, groups, roster, personOf, noneOpen });
-    if (side === 'place') return buildPlaceSide({ people, placeOrder });
-    return buildOrgSide({ units, people });
-  }, [side, shown, all, levelNames, groups, roster, personOf, noneOpen, units, people, placeOrder]);
+  const tree = useMemo(() => (side === 'squad'
+    ? buildSquadSide({ shown, all, levelNames, groups, roster, personOf, noneOpen })
+    : buildOrgSide({ units, people })), [side, shown, all, levelNames, groups, roster, personOf, noneOpen, units, people]);
   const view = useMemo(() => structureView(tree, { folded, more, density }), [tree, folded, more, density]);
   const foldable = useMemo(() => structureView(tree, STRUCT_VIEW_ALL).foldable, [tree]);
   // 펼치기/접기 토글 — 접을 수 있는 노드가 모두 접혀 있으면 «접힘»(누르면 펼친다). 조직도 트리 탭과 같은 판정.
@@ -129,7 +123,6 @@ export default function SquadStructureView({
       items={[
         { value: 'org', label: L('squad.struct.side.org'), testId: 'squad-struct-side-org' },
         { value: 'squad', label: L('squad.struct.side.squad'), testId: 'squad-struct-side-squad' },
-        { value: 'place', label: L('squad.struct.side.place'), testId: 'squad-struct-side-place' },
       ]}
       value={side}
       onChange={changeSide}
@@ -170,9 +163,7 @@ export default function SquadStructureView({
     <div data-testid="squad-struct" data-side={side}>
       <div className="sq-struct-bar">
         {sideControl}
-        <p className="pj-table-subtitle" data-testid="squad-struct-desc">{side === 'squad' ? pathDesc
-          : side === 'place' ? L(tree.data.placed ? 'squad.struct.descPlace' : 'squad.struct.descPlaceEmpty')
-            : L('squad.struct.descOrg')}</p>
+        <p className="pj-table-subtitle" data-testid="squad-struct-desc">{side === 'squad' ? pathDesc : L('squad.struct.descOrg')}</p>
       </div>
 
       {outOfRange ? (
@@ -192,7 +183,7 @@ export default function SquadStructureView({
         <p className="pj-table-subtitle">
           {side === 'squad'
             ? `${L('squad.struct.legendSquad')}${levels ? L('squad.struct.legendGroups', { level: levelNames[0] }) : ''}`
-            : side === 'place' ? L('squad.struct.legendPlace') : L('squad.struct.legendOrg')}
+            : L('squad.struct.legendOrg')}
         </p>
         <p className="pj-table-subtitle">{L('squad.struct.legendNote')}</p>
       </div>
@@ -384,9 +375,7 @@ function StructureCanvas({
       const d = n.data;
       const line = d.side === 'squad'
         ? L('squad.struct.rootSquad', { squads: d.squads, people: d.people })
-        : d.side === 'place'
-          ? L('squad.struct.rootPlace', { places: d.places, people: d.people })
-          : d.ceo
+        : d.ceo
           ? L('squad.struct.rootOrgCeo', { name: d.ceo.name, people: d.people })
           : L('squad.struct.rootOrg', { people: d.people });
       return (
@@ -398,12 +387,10 @@ function StructureCanvas({
     }
     if (n.kind === 'unit') {
       const u = n.data;
-      // 근무지 노드 — 2줄 «근무지 n명»(§5-6-D «근무지 노드») · 값 없음은 «근무지 미지정»(미배정과 같은 점선)
-      const name = u.virtual ? L(u.place ? 'squad.struct.placeUnset' : 'squad.struct.unassigned') : u.name;
-      const count = L('squad.struct.unitCount', { count: n.ownCount });
+      const name = u.virtual ? L('squad.struct.unassigned') : u.name;
       return (
         <DeptCard
-          node={u.place ? { name, type: L('squad.struct.placeType'), count } : { name, type: count }}
+          node={{ name, type: L('squad.struct.unitCount', { count: n.ownCount }) }}
           cardProps={{ className: `sq-struct-dept${u.virtual ? ' is-virtual' : ''}`, 'data-testid': `squad-struct-unit-${u.id || 'none'}`, title: name }}
           {...foldProps(n, name)}
         />

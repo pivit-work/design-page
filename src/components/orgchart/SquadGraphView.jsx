@@ -88,7 +88,6 @@ export default function SquadGraphView({
   groups = [],
   people = [],
   units = [],
-  placeOrder = [],
   companyName = '',
   // [이미지로 다운] — ({ element, branch: 'tree' | 'link' }) => void | Promise. 안 주면 여기서 JPG 로 뜬다(useSquadGraphImage).
   onDownloadImage,
@@ -421,7 +420,6 @@ export default function SquadGraphView({
           groups={groups}
           people={people}
           units={units}
-          placeOrder={placeOrder}
           companyName={companyName}
           personOf={personOf}
           renderAvatar={renderAvatar}
