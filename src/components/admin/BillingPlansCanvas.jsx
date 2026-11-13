@@ -230,6 +230,8 @@ const DEFAULT_LABELS = {
   addonCancelBody: (date) =>
     `${date}까지 쓸 수 있고, 그 뒤 결재 문서·양식과 휴가 기록은 읽기 전용이 되고 휴가 메뉴가 사라집니다. 진행 중인 결재(휴가 신청 포함)는 끝까지 할 수 있고, 업무 자동화는 멈춥니다.`,
   addonCancelSubmit: '해지 예약',
+  // 창을 열 때 불러온 환불 견적이 «환불 대상»일 때만 — 보조 선택 (pivit-work PW-2782 · plans 정책 92행)
+  addonRefundCta: (amount) => `지금 해지하고 ${won(amount)} 환불받기`,
   addonBusy: '처리 중…',
 };
 
@@ -739,8 +741,18 @@ function AddonBuyModal({ preview, previewFailed, labels, onClose, onSubmit, onRe
   );
 }
 
-function AddonCancelModal({ addon, labels, onClose, onSubmit }) {
+function AddonCancelModal({ addon, labels, onClose, onSubmit, onRefundQuote, onRefund }) {
   const [busy, setBusy] = useState(false);
+  const [refundBusy, setRefundBusy] = useState(false);
+  const [refundQuote, setRefundQuote] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    // 못 불러오면 보조 선택 없이 기간말 해지만 — 환불 대상이 아닌 것과 같다.
+    Promise.resolve(onRefundQuote?.())
+      .then((q) => { if (alive) setRefundQuote(q ?? null); })
+      .catch(() => { if (alive) setRefundQuote(null); });
+    return () => { alive = false; };
+  }, [onRefundQuote]);
   const submit = async () => {
     setBusy(true);
     try {
@@ -749,6 +761,17 @@ function AddonCancelModal({ addon, labels, onClose, onSubmit }) {
       // 창을 연 채 둔다 — 실패 안내(토스트)는 앱이 한다(plans §5 «창 유지 + 에러 토스트»).
     } finally {
       setBusy(false);
+    }
+  };
+  const refund = async () => {
+    setRefundBusy(true);
+    try {
+      await onRefund?.(refundQuote.amount);
+    } catch {
+      // 창을 연 채 둔다 — 금액이 바뀌었으면 앱이 견적을 다시 준다.
+      Promise.resolve(onRefundQuote?.()).then((q) => setRefundQuote(q ?? null)).catch(() => setRefundQuote(null));
+    } finally {
+      setRefundBusy(false);
     }
   };
   return (
@@ -773,6 +796,16 @@ function AddonCancelModal({ addon, labels, onClose, onSubmit }) {
       <div style={{ fontFamily: T.font, fontSize: 14, color: T.sub }}>
         {labels.addonCancelBody(addon.periodLastDay ?? '')}
       </div>
+      {refundQuote?.eligible && refundQuote.amount > 0 && (
+        /* 보조 선택 — 구독 현황 해지 창의 «즉시 해지 + 환불» 칸과 같은 초록 테두리 */
+        <div data-testid="billing-addon-refund"
+          style={{ border: `1px solid ${T.green}`, borderRadius: 12, padding: 16, marginTop: 16, background: T.greenBg }}>
+          <Button variant="secondary" data-testid="billing-addon-refund-submit" pending={refundBusy}
+            pendingLabel={labels.addonBusy} disabled={busy} onClick={() => void refund()}>
+            {labels.addonRefundCta(refundQuote.amount)}
+          </Button>
+        </div>
+      )}
     </ModalShell>
   );
 }
@@ -932,6 +965,9 @@ export default function BillingPlansCanvas({
   onAddonPreview = () => Promise.resolve(null),
   onAddonPurchase = () => Promise.resolve(),
   onAddonCancel = () => Promise.resolve(),
+  // 해지 창을 열 때 환불 견적 — { eligible, amount } 또는 null (pivit-work PW-2782)
+  onAddonRefundQuote = () => Promise.resolve(null),
+  onAddonRefund = () => Promise.resolve(),
   onAddonUndoCancel = () => {},
   onNavigateMethods = () => {},
 }) {
@@ -1603,6 +1639,11 @@ export default function BillingPlansCanvas({
             onClose={() => setAddonModal(null)}
             onSubmit={async () => {
               await onAddonCancel();
+              setAddonModal(null);
+            }}
+            onRefundQuote={onAddonRefundQuote}
+            onRefund={async (amount) => {
+              await onAddonRefund(amount);
               setAddonModal(null);
             }}
           />

@@ -164,6 +164,8 @@ const DEFAULT_LABELS = {
   refundBusy: '처리하는 중...',
   refundLineSubscription: '구독 결제',
   refundLinePlanChange: '요금제 변경 차액 결제',
+  // 함께 돌려주는 «전자결재 · 휴가 패키지» 결제분 (pivit-work PW-2782 · 해지·환불 정책 §2-A «기본 구독 해지» 행)
+  refundLineAddon: '전자결재 · 휴가 패키지',
   // 연간은 다음 갱신 때 1년분이 나간다 — 금액이 1년분이니 줄도 개월 수를 말한다 (PW-757).
   // 날짜를 모르면(첫 결제 전 등) 날짜 없이 — «null ·»이 찍히지 않게 (pivit-work PW-2476).
   nextBillingSub: (date, seats, price, months = 1) =>
@@ -1324,7 +1326,7 @@ export default function BillingOverviewCanvas({
                     <div data-testid="billing-refund-lines" style={{ fontSize: 13, color: T.sub, marginBottom: 'var(--spacing-md)' }}>
                       {quote.lines.map((line) => (
                         <div key={line.invoiceId} style={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <span>{line.kind === 'plan_change' ? labels.refundLinePlanChange : labels.refundLineSubscription}</span>
+                          <span>{line.kind === 'plan_change' ? labels.refundLinePlanChange : line.kind === 'addon' ? labels.refundLineAddon : labels.refundLineSubscription}</span>
                           <span>{won(line.amount)}</span>
                         </div>
                       ))}
