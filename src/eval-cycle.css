@@ -16522,6 +16522,13 @@ button.evmh-phase:focus-visible {
   flex-shrink: 0;
   margin-left: auto;
 }
+/* [PW-2761] 동료 리뷰가 닫힌 뒤 안 낸 행 — 버튼 자리에 누를 수 없는 회색 글. 글씨는 같은 화면 보조 글(.evc-summary). */
+.evpt-closed {
+  flex-shrink: 0;
+  margin-left: auto;
+  font-size: var(--font-size-text-sm);
+  color: var(--text-secondary);
+}
 
 /* 상향 리뷰 — 대상 카드는 흰 카드(AI 딱지 오른쪽), 익명 안내는 흰 카드, «1명입니다» 경고는 카드 밑 주황 띠. */
 .evc-card.evu-target {
