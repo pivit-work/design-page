@@ -326,6 +326,11 @@ export default function TimelineCanvas({
       window.open(ev.externalUrl, '_blank', 'noopener,noreferrer');
       return;
     }
+    setOpenMeeting(calendarEventToMeeting(ev));
+    setOpenMeetingAnchor(rect);
+    setMeetingVariant('calendar');
+  };
+  const calendarEventToMeeting = (ev) => {
     const d = parseIsoDate(ev.date);
     const hasRealPeople = Array.isArray(ev.participants);
     // 이벤트 색(팔레트 key)을 모달 색 태그용 hex 로 변환 — 하드코딩 teal 대신.
@@ -353,9 +358,7 @@ export default function TimelineCanvas({
       // 퇴사 참석자를 못 불러온 일정의 안내 (pivit-work PW-2501) — 상세 창만 그린다. 호버 카드는 안내 없이 불러온 사람만.
       attendeesNotice: ev.attendeesNotice,
     };
-    setOpenMeeting(meetingShape);
-    setOpenMeetingAnchor(rect);
-    setMeetingVariant('calendar');
+    return meetingShape;
   };
   const handleCloseMeeting = () => {
     setOpenMeeting(null);
@@ -452,6 +455,18 @@ export default function TimelineCanvas({
         (ev) => ev.category == null || filterSet.has(ev.category),
       );
   }, [getEventsForDate, filterSet, hasViewFilters]);
+
+  // 열린 상세 창·호버 카드는 누른 순간의 일정이 아니라 같은 일정의 «지금» 자료를 그린다 (pivit-work PW-2501 A30).
+  // 앱은 퇴사 참석자를 늦게 불러와 같은 일정에 더하고(실패면 안내를 싣고) 다시 넘긴다. 누른 순간의 일정을
+  // 붙들고 있으면 간트 막대는 4명인데 열린 창은 3명으로 남았다. 목록에서 사라진 일정(지움·보기 거름)은 연 모습 그대로.
+  const findLiveEvent = (ev) =>
+    (getEventsForDate?.(ev.date) ?? []).find((e) => e.id === ev.id) ?? ev;
+  const liveOpenMeeting = !openMeeting
+    ? null
+    : meetingVariant === 'calendar' && openMeeting.calendarEvent
+      ? calendarEventToMeeting(findLiveEvent(openMeeting.calendarEvent))
+      : (meetings ?? []).find((m) => m.id === openMeeting.id) ?? openMeeting;
+  const liveHoverEv = hoverEvent ? findLiveEvent(hoverEvent.ev) : null;
 
   // ── 그룹 / 내부·외부 직원 / 이벤트 모달 — parent callback 없을 때 내부 fallback
   const [groupAddOpen, setGroupAddOpen] = useState(false);
@@ -783,12 +798,12 @@ export default function TimelineCanvas({
       {/* Meeting detail modal */}
       {openMeeting && (
         <MeetingModal
-          meeting={openMeeting}
+          meeting={liveOpenMeeting}
           anchorRect={openMeetingAnchor}
           onClose={handleCloseMeeting}
           variant={meetingVariant}
           onEdit={
-            openMeeting.canManage && onCalendarEventEdit
+            liveOpenMeeting.canManage && onCalendarEventEdit
               ? (m) => {
                   handleCloseMeeting();
                   onCalendarEventEdit(m.calendarEvent);
@@ -796,7 +811,7 @@ export default function TimelineCanvas({
               : undefined
           }
           onDelete={
-            openMeeting.canManage && onCalendarEventDelete
+            liveOpenMeeting.canManage && onCalendarEventDelete
               ? (m) => {
                   handleCloseMeeting();
                   onCalendarEventDelete(m.calendarEvent);
@@ -811,18 +826,18 @@ export default function TimelineCanvas({
       {hoverEvent && (
         <EventHoverCard
           event={{
-            title: hoverEvent.ev.title,
-            color: (SNIPPET_COLORS[hoverEvent.ev.color] || SNIPPET_COLORS.gray).solid,
-            timeRangeLabel: hoverEvent.ev.timeRangeLabel ?? hoverEvent.ev.time,
-            participants: hoverEvent.ev.participants,
-            typeLabel: hoverEvent.ev.typeLabel,
-            minutesLabel: hoverEvent.ev.minutesLabel,
+            title: liveHoverEv.title,
+            color: (SNIPPET_COLORS[liveHoverEv.color] || SNIPPET_COLORS.gray).solid,
+            timeRangeLabel: liveHoverEv.timeRangeLabel ?? liveHoverEv.time,
+            participants: liveHoverEv.participants,
+            typeLabel: liveHoverEv.typeLabel,
+            minutesLabel: liveHoverEv.minutesLabel,
           }}
           anchorRect={hoverEvent.rect}
           attendeesLabel={
             calendarEventLabels?.attendees
-              ? calendarEventLabels.attendees((hoverEvent.ev.participants || []).length)
-              : `참석자 ${(hoverEvent.ev.participants || []).length}명`
+              ? calendarEventLabels.attendees((liveHoverEv.participants || []).length)
+              : `참석자 ${(liveHoverEv.participants || []).length}명`
           }
         />
       )}
