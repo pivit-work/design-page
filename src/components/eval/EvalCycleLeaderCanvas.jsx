@@ -28,6 +28,7 @@ import {
 } from './LeaderCommentPolish.jsx';
 import MemberAiButton from '../oneonone/MemberAiButton.jsx';
 import { LEADER_COMMENT_POLISH_LABELS } from './leaderCommentPolishLabels.js';
+import EvalLeaderObjectionBlock, { LeaderObjectionGradeNote } from './EvalLeaderObjectionBlock.jsx';
 
 /**
  * EvalCycleLeaderCanvas — 매니저 하향 리뷰 (근거↔작성 2단 패널).
@@ -781,6 +782,13 @@ export default function EvalCycleLeaderCanvas({
    * 넘기지 않으면 버튼을 그리지 않는다. 누를 때만 부른다(절대규칙 5).
    */
   onPolishLeaderComment,
+  /**
+   * pivit-work PW-2636 · leader.policy §7.0-A — «구성원 이의» 블록(머리 바로 아래 · 2단 패널 위). 모양은
+   * `EvalLeaderObjectionBlock` 의 `objection` — { state: 'loading'|'failed'|'ready', view, labels, fmtDate,
+   * onRetry, onOpinion, onDecide, onDownload, gradeChangedFrom }. null 이면 아무것도 그리지 않는다.
+   * `gradeChangedFrom` 이 있으면 등급 칸 옆에 «이의 결정으로 바뀐 등급 · 처음 {전}».
+   */
+  objection = null,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const formLocked = locked ?? submitted;
@@ -1263,6 +1271,7 @@ export default function EvalCycleLeaderCanvas({
         <AlertIcon size={14} /> {L.gradeLockedNote}
       </p>
     ),
+    <LeaderObjectionGradeNote objection={objection} key="objection" />,
   ];
   /*
    * PW-2737 leader §5.3 「고른 최종 등급을 비우는 길」 — 고른 등급을 다시 누르면 «고르지 않음»(null)으로 돌아간다.
@@ -1546,6 +1555,7 @@ export default function EvalCycleLeaderCanvas({
   return (
     <div className="evc-root evlr-root">
       {header}
+      <EvalLeaderObjectionBlock objection={objection} />
 
       {/* 안내 줄 사이·아래는 Stack 이 띄운다(12px). 줄마다 손으로 적던 여백을 걷었다. 자동저장 표시와 본문
           사이만 8px 이라 안쪽 Stack 으로 묶는다 — 저장됨·실패는 함께 뜨지 않는다. */}

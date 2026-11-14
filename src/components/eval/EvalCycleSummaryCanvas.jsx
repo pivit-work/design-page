@@ -3,6 +3,12 @@ import RetiringTag from './RetiringTag.jsx';
 import ChipFold from '../shared/ChipFold.jsx';
 import Chip from '../shared/Chip.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import {
+  ObjectionContent,
+  ObjectionDecisionForm,
+  ObjectionDecisionResult,
+  ObjectionOpinionInput,
+} from './EvalObjectionShared.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import useDismissLayer from '../shared/useDismissLayer.js';
@@ -345,7 +351,15 @@ const DEFAULT_LABELS = {
   // pivit-work PW-2636 · spec-calibration §7.5.1 — 인박스 출처 딱지. 구성원 이의는 제출 매니저 자리에 «피평가자 본인 · HR 전달».
   cwAppealSourceManager: '매니저 어필',
   cwAppealSourceMember: '구성원 이의',
-  cwAppealMemberRaisedBy: '피평가자 본인 · HR 전달',
+  // PW-2636 · 2026-11-14 David 결정(spec-calibration §7.5.5) — 인사 담당자가 올리지 않는다: «피평가자 본인» + 접수 시각 + 답변 기한.
+  cwAppealMemberRaisedBy: '피평가자 본인',
+  /** `{date}` 답변 기한. */
+  cwAppealObjectionDue: '답변 기한 {date}',
+  cwObjectionInputterChair: '결정 입력: 위원장(회사 설정)',
+  cwObjectionInputterHr: '결정 입력: 인사 담당자(회사 설정)',
+  cwObjectionWithdrawn: '본인이 철회했습니다',
+  // 구성원 이의 결정은 수용 / 거부로 적는다(매니저 어필의 수용 / 반려와 같은 자리).
+  cwStatusObjectionRejected: '거부 완료',
   cwAppealNoSession: '—',
   cwAppealOriginalNote: '원 조정 사유',
   cwAppealContextTitle: '재검토 판단 자료',
@@ -1111,6 +1125,12 @@ function AppealSourceBadge({ source, L }) {
 /** 이의를 올린 사람 글자 — 구성원 이의면 HR 이름 대신 «피평가자 본인 · HR 전달». */
 function appealRaiserText(a, L) {
   return a.source === 'member_objection' ? L.cwAppealMemberRaisedBy : a.raisedByName;
+}
+
+/** 결정된 어필 딱지 글자 — 구성원 이의의 반려 자리는 «거부»(§7.5.3 PW-2636 줄). */
+function appealDecidedText(a, L) {
+  if (a.status === 'accepted') return L.cwStatusAccepted;
+  return a.source === 'member_objection' ? L.cwStatusObjectionRejected : L.cwStatusRejected;
 }
 
 function appealWaitingText(status, L) {
@@ -2878,6 +2898,16 @@ export default function EvalCycleSummaryCanvas({
   /** §7.5 재검토 판단 자료 — 고른 어필 대상자의 상세(셀프·매니저 답변). 없으면 그 칸을 그리지 않는다. */
   appealMemberDetail = null,
   onReviewAppeal,
+  /**
+   * pivit-work PW-2636 · spec-calibration §7.5.5 — 출처 «구성원 이의» 건(`appeal.objection`)의 의견·결정·증빙.
+   * onObjectionDecide(appeal, input) · onObjectionOpinion(appeal, body) → Promise · onObjectionDownload(appeal, file).
+   * `objectionLabels` 는 공용 칸(`EvalObjectionShared`) 문구, `objectionFmtDate(iso)` 는 날짜 글자. 매니저 어필 건은 상관없다.
+   */
+  onObjectionDecide,
+  onObjectionOpinion,
+  onObjectionDownload,
+  objectionLabels,
+  objectionFmtDate,
   selectedMemberId = null,
   memberDetail = null,
   memberDetailLoading = false,
@@ -2944,6 +2974,8 @@ export default function EvalCycleSummaryCanvas({
   showCalibWorkTab = true,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
+  // pivit-work PW-2636 — 구성원 이의 날짜 글자(접수 · 답변 기한 · 의견 · 결정). 앱이 보는 사람 시간대로 넘긴다.
+  const objDate = objectionFmtDate ?? ((iso) => String(iso ?? '').slice(0, 10));
   // [PW-1594 · spec-calibration §20.1] 하향 차수 2 이상 — 머리 「하향 등급」 · 칸에 출처 차수 배지.
   const multiLeaderRound = useMemo(
     () =>
@@ -5009,10 +5041,10 @@ export default function EvalCycleSummaryCanvas({
                     : 'red'
                   : 'accent';
                 const statusText = decided
-                  ? appeal.status === 'accepted'
-                    ? L.cwStatusAccepted
-                    : L.cwStatusRejected
+                  ? appealDecidedText(appeal, L)
                   : appealWaitingText(appeal.status, L);
+                // pivit-work PW-2636 · §7.5.5 — 출처 «구성원 이의» 건은 어필 내용·결정 칸을 공용 칸으로 바꾼다.
+                const obj = appeal.source === 'member_objection' ? appeal.objection : null;
                 return (
                   <div className="evs-cw-review" data-testid="evs-cw-review">
                     <div className="evs-cw-review-head">
@@ -5073,12 +5105,33 @@ export default function EvalCycleSummaryCanvas({
                           </div>
                         </div>
                       </div>
-                      <div className="evs-cw-review-reason">
-                        <div className="evs-cw-review-k">
-                          {appeal.source === 'member_objection' ? L.cwAppealMemberReasonLabel : L.cwAppealReasonLabel}
+                      {obj ? (
+                        /* 대상 · 사유 원문 · 증빙 · 공개 시작 단계(평가 라인 차수별 «보는지») · 의견(시각순) + 입력칸 */
+                        <div data-testid="evs-cw-review-objection">
+                          <ObjectionContent
+                            item={obj}
+                            showLine
+                            fmtDate={objDate}
+                            onDownload={(f) => onObjectionDownload?.(appeal, f)}
+                            labels={objectionLabels}
+                            opinionSlot={
+                              obj.canOpinion && !obj.decision && !obj.withdrawnAt && obj.status !== 'withdrawn' ? (
+                                <ObjectionOpinionInput
+                                  onSubmit={(body) => Promise.resolve(onObjectionOpinion?.(appeal, body))}
+                                  labels={objectionLabels}
+                                />
+                              ) : null
+                            }
+                          />
                         </div>
-                        <div className="evs-cw-review-reason-body">{appeal.reason}</div>
-                      </div>
+                      ) : (
+                        <div className="evs-cw-review-reason">
+                          <div className="evs-cw-review-k">
+                            {appeal.source === 'member_objection' ? L.cwAppealMemberReasonLabel : L.cwAppealReasonLabel}
+                          </div>
+                          <div className="evs-cw-review-reason-body">{appeal.reason}</div>
+                        </div>
+                      )}
                       {appeal.originalNote ? (
                         <div className="evs-cw-review-reason" data-testid="evs-cw-review-original-note">
                           <div className="evs-cw-review-k">{L.cwAppealOriginalNote}</div>
@@ -5132,7 +5185,28 @@ export default function EvalCycleSummaryCanvas({
                         )}
                       </div>
 
-                      {decided ? (
+                      {obj ? (
+                        obj.status === 'withdrawn' || obj.withdrawnAt ? (
+                          <div className="evs-cw-review-readonly" data-testid="evs-cw-objection-withdrawn">
+                            {L.cwObjectionWithdrawn}
+                          </div>
+                        ) : obj.decision ? (
+                          <ObjectionDecisionResult decision={obj.decision} fmtDate={objDate} labels={objectionLabels} />
+                        ) : obj.canDecide ? (
+                          <ObjectionDecisionForm
+                            item={obj}
+                            grades={gradeOpts}
+                            shareCandidates={obj.shareCandidates ?? []}
+                            aiSummary={obj.aiSummary ?? null}
+                            onSubmit={(input) => Promise.resolve(onObjectionDecide?.(appeal, input))}
+                            labels={objectionLabels}
+                          />
+                        ) : (
+                          <div className="evs-cw-review-readonly" data-testid="evs-cw-objection-inputter">
+                            {obj.inputter === 'hr' ? L.cwObjectionInputterHr : L.cwObjectionInputterChair}
+                          </div>
+                        )
+                      ) : decided ? (
                         <div className="evs-cw-review-decided">
                           <div className="evs-cw-review-k">
                             {L.cwReviewedByLabel}
@@ -5268,6 +5342,10 @@ export default function EvalCycleSummaryCanvas({
                                 ? appealRaiserText(a, L)
                                 : `${a.raisedByName ? `${a.raisedByName} ` : ''}${L.cwAppealRaisedSuffix}`}
                               {a.createdAt ? ` · ${fmtDateTime(a.createdAt)}` : ''}
+                              {/* pivit-work PW-2636 · §7.5.5 — 구성원 이의는 답변 기한을 목록에서 보인다(결정 입력자가 지키는 값). */}
+                              {a.source === 'member_objection' && a.objection?.dueAt
+                                ? ` · ${fmt(L.cwAppealObjectionDue, { date: objDate(a.objection.dueAt) })}`
+                                : ''}
                             </div>
                           </div>
                           <span className="evs-cw-appeal-cta">{L.cwAppealReviewCta}<ChevronRightIcon size={14} /></span>
@@ -5298,7 +5376,7 @@ export default function EvalCycleSummaryCanvas({
                               className="evs-cw-badge"
                               data-testid="evs-cw-decided-badge"
                             >
-                              {a.status === 'accepted' ? L.cwStatusAccepted : L.cwStatusRejected}
+                              {appealDecidedText(a, L)}
                             </StatusBadge>
                             <AppealSourceBadge source={a.source} L={L} />
                             <div className="evs-cw-appeal-main">

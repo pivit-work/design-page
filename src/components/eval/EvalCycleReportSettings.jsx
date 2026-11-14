@@ -5,6 +5,8 @@ import Switch from '../shared/Switch.jsx';
 import Stack from '../shared/Stack.jsx';
 import FormField from '../shared/FormField.jsx';
 import TextInput from '../shared/TextInput.jsx';
+import Radio from '../shared/Radio.jsx';
+import { NoteText } from '../shared/SharedText.jsx';
 import EvalHintTip from './EvalHintTip.jsx';
 import { joinHintSentences } from './joinHintSentences.js';
 
@@ -39,7 +41,7 @@ const DEFAULT_LABELS = {
   // pivit-work PW-2636 · hr.policy §8.7 — 구성원 본인 이의 기간·기한(사이클마다).
   objectionTitle: '구성원 이의',
   objectionHint:
-    '구성원이 내 평가 리포트에서 이의를 낼 수 있는 기간과 인사 담당자가 답해야 하는 기한입니다. 이미 받은 이의의 기한은 바뀌지 않습니다.',
+    '구성원이 내 평가 리포트에서 이의를 낼 수 있는 기간과 답변 기한입니다. 이미 받은 이의의 기한과 결정 입력자는 바뀌지 않습니다.',
   objectionWindowLabel: '접수 기간',
   objectionWindowNote: '리포트 첫 발송부터 · 7~30일',
   objectionReplyLabel: '답변 기한',
@@ -47,6 +49,15 @@ const DEFAULT_LABELS = {
   objectionDayUnit: '일',
   objectionWindowRange: '접수 기간은 7~30일로 정해 주십시오.',
   objectionReplyRange: '답변 기한은 1~10일로 정해 주십시오.',
+  // PW-2636 · hr.policy §8.7-A — 위원회 경로 결정 입력(위원장 기본 / 인사 담당자) · 끌 수 없는 알림 안내.
+  objectionDeciderLabel: '위원회 경로 결정 입력',
+  objectionDeciderChair: '위원장',
+  objectionDeciderHr: '인사 담당자',
+  objectionDeciderHint:
+    '캘리브레이션 위원회가 판단한 이의의 결정을 누가 입력할지 정합니다. 인사 담당자가 캘리브레이션에 참석해 최종 등급을 입력하는 회사는 «인사 담당자»를 고르십시오.',
+  objectionDeciderNoCalibration:
+    '이 사이클은 캘리브레이션이 꺼져 있어 모든 이의를 최종 차수 평가자가 판단합니다',
+  objectionGradeChangeNotice: '공개 뒤 등급이 바뀌면 인사 담당자에게 늘 알림이 갑니다(끌 수 없음)',
   channelsTitle: '발송 채널 기본값',
   channelsHint:
     '발송은 「리포트 검수」에서 하고, 여기서 정한 값이 그 화면의 기본 선택이 됩니다.',
@@ -151,6 +162,13 @@ export default function EvalCycleReportSettings({
    */
   objectionDays = null,
   onChangeObjectionDays,
+  /**
+   * PW-2636 · hr §8.7-A — 위원회 경로 결정 입력 `'chair'|'hr'`. 안 주면(옛 서버) 라디오를 그리지 않는다.
+   * `calibrationEnabled` 가 false 면 라디오를 끄고 «캘리브레이션이 꺼져 있어…» 안내를 붙인다.
+   */
+  objectionDecider = null,
+  onChangeObjectionDecider,
+  calibrationEnabled = true,
   labels: providedLabels,
 }) {
   const L = { ...DEFAULT_LABELS, ...(providedLabels || {}) };
@@ -285,6 +303,35 @@ export default function EvalCycleReportSettings({
                 </FormField>
               );
             })}
+            {objectionDecider ? (
+              <FormField
+                label={L.objectionDeciderLabel}
+                group
+                hint={L.objectionDeciderHint}
+              >
+                <Stack gap="md">
+                  {calibrationEnabled ? null : (
+                    <NoteText data-testid="evrs-objection-decider-off">{L.objectionDeciderNoCalibration}</NoteText>
+                  )}
+                  {[
+                    { value: 'chair', label: L.objectionDeciderChair },
+                    { value: 'hr', label: L.objectionDeciderHr },
+                  ].map((o) => (
+                    <Radio
+                      key={o.value}
+                      name="evrs-objection-decider"
+                      value={o.value}
+                      checked={objectionDecider === o.value}
+                      disabled={readOnly || !calibrationEnabled}
+                      onChange={() => onChangeObjectionDecider?.(o.value)}
+                      label={o.label}
+                      data-testid={`evrs-objection-decider-${o.value}`}
+                    />
+                  ))}
+                </Stack>
+              </FormField>
+            ) : null}
+            <NoteText data-testid="evrs-objection-grade-notice">{L.objectionGradeChangeNotice}</NoteText>
           </Stack>
         </section>
       )}

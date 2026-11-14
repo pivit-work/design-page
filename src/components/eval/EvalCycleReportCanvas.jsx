@@ -6,7 +6,12 @@ import AiMark from '../shared/AiMark.jsx';
 import assetUrl from '../shared/assetUrl.js';
 import { ArrowRightIcon, DownloadIcon, InfoIcon } from './evalIcons.jsx';
 import { scaleMaxOf, categoryKind, storedCategoryName, answerScoreText, checkedAnswerText, peerAuthorLabel } from './evalTemplateItemModel.js';
-import { ObjectionHeaderAction, ObjectionPanel } from './EvalReportObjection.jsx';
+import {
+  ObjectionHeaderAction,
+  ObjectionPanel,
+  ObjectionGradeTag,
+  ObjectionDecisionNote,
+} from './EvalReportObjection.jsx';
 import { OBJECTION_DEFAULT_LABELS } from './evalObjectionLabels.js';
 
 /**
@@ -32,10 +37,12 @@ import { OBJECTION_DEFAULT_LABELS } from './evalObjectionLabels.js';
  * `onPrint`(선택) — [PW-1846] 머리 오른쪽 [PDF 저장]. 넘기면 버튼을 그린다(소비 측은 `window.print`).
  * 인쇄 때는 버튼·셸 메뉴를 빼고 본문만 찍는다(`eval-cycle.css` 의 `@media print`).
  *
- * `objection`(선택) — [pivit-work PW-2636] 구성원 본인 이의. 넘기면 [PDF 저장] 왼쪽에 [이의 제기]
- * (또는 상태 딱지)를, 머리 아래에 접수 칸·진행 안내·답변을 그린다(`EvalReportObjection.jsx`).
- * `onObjectionSubmit({ targets, reason })` · `onObjectionWithdraw()` 는 Promise 를 돌려준다 —
- * 성공하면 접수 칸을 닫는다. `objectionBusy`·`objectionError` 는 호스트가 정한다.
+ * `objection`(선택) — [pivit-work PW-2636 · member.policy §7.6-A] 구성원 본인 이의. 넘기면 [PDF 저장] 왼쪽에
+ * [이의 제기](또는 상태 딱지)를, 머리 아래에 접수 칸·접수 뒤 블록·결정 완료 블록을 그린다(`EvalReportObjection.jsx`).
+ * `onObjectionSubmit({ targets, reason, disclosureRound, fileIds })` · `onObjectionUploadFile(file)` ·
+ * `onObjectionWiden(round)` · `onObjectionWithdraw()` 는 Promise 를 돌려준다 — 접수가 성공하면 접수 칸을 닫는다.
+ * `objectionBusy`·`objectionError` 는 호스트가 정한다. 결정 완료 · 수용이면 리포트 본문에도 남는다 —
+ * 등급이 바뀌었으면 등급 카드에 «이의 결정으로 바뀐 등급», 평가 내용 수용이면 «리더 코멘트» 칸 아래 «이의 결정»(둘 다 인쇄에 실린다).
  */
 
 const DEFAULT_LABELS = {
@@ -496,6 +503,8 @@ export default function EvalCycleReportCanvas({
   sections,
   objection = null,
   onObjectionSubmit,
+  onObjectionUploadFile,
+  onObjectionWiden,
   onObjectionWithdraw,
   objectionBusy = false,
   objectionError = null,
@@ -508,6 +517,10 @@ export default function EvalCycleReportCanvas({
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const [showAnchor, setShowAnchor] = useState(false);
   const [objectionFormOpen, setObjectionFormOpen] = useState(false);
+  // [PW-2636 · §7.6-A] 평가 내용 수용 결정이 있으면 «리더 코멘트» 칸을 그 블록 자리로 연다.
+  const objectionItem = objection?.state === 'decided' ? objection.item : null;
+  const objectionContentAccepted =
+    objectionItem?.decision?.result === 'accepted' && (objectionItem.targets ?? []).includes('content');
 
   // 리포트 항목 켜짐/꺼짐(서버가 사람마다 내려준다). 맵에 없는 항목은 켜진 것으로 본다.
   const on = (key) => sections?.[key] !== false;
@@ -566,7 +579,10 @@ export default function EvalCycleReportCanvas({
           onSubmit={async (input) => {
             const ok = await onObjectionSubmit?.(input);
             if (ok !== false) setObjectionFormOpen(false);
+            return ok;
           }}
+          onUploadFile={onObjectionUploadFile}
+          onWiden={onObjectionWiden}
           onWithdraw={onObjectionWithdraw}
           busy={objectionBusy}
           error={objectionError}
@@ -577,6 +593,8 @@ export default function EvalCycleReportCanvas({
           <section className="evr-grade-hero" data-testid="evr-grade">
             <span className="evr-grade-label">{L.gradeLabel}</span>
             <span className="evr-grade-value">{gradeLabel ?? gradeKey}</span>
+            {/* [PW-2636 · §7.6-A «리포트 본문에 붙는 것»] 최종 등급 수용으로 바뀐 등급 — 리포트를 다시 보내지는 않는다 */}
+            <ObjectionGradeTag objection={objection} L={L} />
             {gradeDescription && (
               <span className="evr-grade-anchor">
                 <button
@@ -629,7 +647,7 @@ export default function EvalCycleReportCanvas({
         {on('nextGoals') && <NextGoals goals={nextGoals} L={L} />}
 
         {/* [PW-1520] 기획 §7.3 — 리더 코멘트는 기획서 일곱 칸의 맨 끝(7)이다. */}
-        {on('leader') && (leaderComment || leaderAnswers.length > 0) && (
+        {on('leader') && (leaderComment || leaderAnswers.length > 0 || objectionContentAccepted) && (
           <section className="evc-card">
             <h3 className="evc-card-name">{L.leaderTitle}</h3>
             {leaderComment && (
@@ -656,6 +674,8 @@ export default function EvalCycleReportCanvas({
               ) : (
                 <AnswerList answers={leaderAnswers} L={L} />
               ))}
+            {/* [PW-2636 · §7.6-A] 평가 내용 수용 — 원 서술은 고치지 않고 그 아래에 «이의 결정» 블록 */}
+            <ObjectionDecisionNote objection={objection} L={L} />
           </section>
         )}
 
