@@ -88,6 +88,11 @@ const EMPTY_PROFILE = { title: '', dept: '', bio: '', skills: '', contacts: '', 
 //   모양·약속은 매니저 팀원 창과 같다(`components/profile/*Tab.jsx` 주석). 콜백도 같은 이름이다:
 //   onAiBriefingGenerate · onAiBriefingReload · aiBriefingNotice · onSnippetsMore · onActionItemsMore · onOneOnOneRetry ·
 //   onHrProfileRetry · onHrRowAction(member, rowKey) · icons(summarySparkle 등).
+// 오른쪽 탭 선택 값(pivit-work PW-2775 · 조직도 정책 §2-3-A «보는 사람마다 다르다») — 안 주면 지금까지 그대로다.
+//   initialTab — 다른 사람으로 열릴 때 처음 고를 탭 키(PROFILE_TABS). 기본 'hr'. 매니저 줄은 매니저 창과 같은 'ai'.
+//   showSingleTab — 탭이 하나뿐이어도 탭 줄을 그린다(어드민 모드 «인사 정보» 하나). 기본은 하나면 안 그린다.
+//   onTabChange(key) — 탭을 옮기면 알린다(매니저 창 onTabChange 와 같은 약속 · 펼친 «수정 기록» 접기).
+//   onOneOnOneSchedule(member) — 「1on1」 탭이 비었을 때 [일정 잡기](매니저 창 onSchedule 과 같은 자리). 안 주면 버튼 없음.
 /** «성과 정보» 한 줄. 문구는 소비자가 번역해서 준다 — 막대 · 알약 · 안내 글 셋 중 하나. */
 function PerformanceRow({ row }) {
   const testId = `profile-performance-${row.key}`;
@@ -113,7 +118,7 @@ function PerformanceRow({ row }) {
   );
 }
 
-export default function ProfileModal({ member, onClose, statIcons, baseUrl = '', renderAvatar, resolvePhoto, adminMode = false, findSubordinates, showSubordinates = true, subordinatesTitle, directReportChipLabel, onFeedbackClick, onMeetingClick, isSelf = false, labels, actions, hideFeedback = false, slackDmUrl, managerHistory, asOf, onEditVisibility, editVisibilityLabel, workHours, cardStatus, cardError, icons, onAiBriefingGenerate, onAiBriefingReload, aiBriefingNotice, onSnippetsMore, onActionItemsMore, onOneOnOneRetry, onHrProfileRetry, onHrRowAction }) {
+export default function ProfileModal({ member, onClose, statIcons, baseUrl = '', renderAvatar, resolvePhoto, adminMode = false, findSubordinates, showSubordinates = true, subordinatesTitle, directReportChipLabel, onFeedbackClick, onMeetingClick, isSelf = false, labels, actions, hideFeedback = false, slackDmUrl, managerHistory, asOf, onEditVisibility, editVisibilityLabel, workHours, cardStatus, cardError, icons, onAiBriefingGenerate, onAiBriefingReload, aiBriefingNotice, onSnippetsMore, onActionItemsMore, onOneOnOneRetry, onHrProfileRetry, onHrRowAction, initialTab = 'hr', showSingleTab = false, onTabChange, onOneOnOneSchedule }) {
   // 화면 문구 — 조직도 캔버스 안에서 열리면 캔버스가 받은 번역을 쓰고, 캔버스 밖(소비자가
   // 따로 띄우는 카드)에서는 `labels` 로 받는다(PW-705). 둘 다 없으면 한국어 기본값.
   // `subordinatesTitle`·`directReportChipLabel`(PW-546)은 주면 그것이 이긴다.
@@ -126,7 +131,14 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
     [L],
   );
   const scrollWrapRef = useRef(null);
-  const [activeTab, setActiveTab] = useState('hr');
+  const [activeTab, setActiveTab] = useState(initialTab);
+  // 다른 사람으로 열리면 처음 탭으로 — 앞사람에서 고른 탭을 끌고 오지 않는다(렌더 중 갱신 · 아래 displayMember 와 같은 방식).
+  const openId = member?.id ?? null;
+  const [tabFor, setTabFor] = useState(openId);
+  if (openId != null && openId !== tabFor) {
+    setTabFor(openId);
+    setActiveTab(initialTab);
+  }
   // 닫힘 애니메이션 중에도 마지막 멤버 콘텐츠가 계속 보이도록 state 로 유지.
   // "Adjusting state while rendering" 패턴으로 member prop 변화에 맞춰 갱신.
   const [displayMember, setDisplayMember] = useState(member);
@@ -448,7 +460,7 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
   };
   const tabLabel = { hr: TL.tabHr, ai: TL.tabAi, snippet: TL.tabSnippet, health: TL.tabHealth, oneonone: TL.tabOneOnOne, action: TL.tabAction };
   const tabs = PROFILE_TABS.filter((key) => available[key]).map((key) => ({ value: key, label: tabLabel[key] }));
-  const tab = available[activeTab] ? activeTab : 'hr';
+  const tab = available[activeTab] ? activeTab : (available[initialTab] ? initialTab : 'hr');
 
   return (
     <ProfileCardFrame
@@ -472,7 +484,7 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
         <>
           {/* 공용 SegmentedControl(PW-836) — 디자이너가 이 창에 그린 탭 줄(17873:33231): 줄 폭 가득, 칸은 글자 폭만큼.
               데이터가 있는 탭이 하나뿐이면 고를 것이 없으니 줄을 그리지 않고 내용만 놓는다. */}
-          {tabs.length > 1 && (
+          {(tabs.length > 1 || (showSingleTab && tabs.length === 1)) && (
             <div className="profile-seg-dock">
             <SegmentedControl
               block
@@ -480,7 +492,10 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
               ariaLabel={TL.tabsAriaLabel}
               items={tabs}
               value={tab}
-              onChange={setActiveTab}
+              onChange={(key) => {
+                setActiveTab(key);
+                onTabChange?.(key);
+              }}
             />
             </div>
           )}
@@ -509,7 +524,7 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
           )}
           {tab === 'health' && <HealthTrendTab trend={profile.healthTrend} labels={TL} />}
           {tab === 'oneonone' && (
-            <OneOnOneTab data={profile.oneOnOne} onRetry={onOneOnOneRetry} labels={TL} />
+            <OneOnOneTab data={profile.oneOnOne} onSchedule={onOneOnOneSchedule ? () => onOneOnOneSchedule(displayMember) : undefined} onRetry={onOneOnOneRetry} labels={TL} />
           )}
           {tab === 'action' && (
             <ActionItemsTab data={profile.actionItems} onMore={onActionItemsMore} labels={TL} baseUrl={baseUrl} />
