@@ -8189,6 +8189,32 @@ button.evm-ai-source {
 .evs-cw-th-arrow {
   font-size: 12px;
 }
+/*
+ * PW-2786 — 이름 칸 머리의 정렬 낱말(«이름» / 작은 «직무 · 소속 팀»). 칸 머리 글자 모양을 그대로 잇고
+ * 버튼 바탕·테두리는 지운다. 작은 줄은 아래 이름 칸의 작은 글(.evs-cw-name-sub)과 같은 크기.
+ */
+.evs-cw-th-name { white-space: nowrap; }
+.evs-cw-th-word {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.evs-cw-th-word:hover { color: var(--text-secondary); }
+.evs-cw-th-word.is-active { color: var(--text-primary); }
+.evs-cw-th-name-sub {
+  font-size: 12px;
+  font-weight: 400;
+}
+/* PW-2786 — 이름 아래 «직무 · 소속 팀»(커트 11-13 시안: 12px 회색, 꺾이지 않음). */
+.evs-cw-name-sub {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
 .evs-cw-num {
   font-size: 12px;
   color: var(--text-secondary);

@@ -1962,6 +1962,64 @@ function DeptSortHead({ sortKey, label, sort, onSort, className = 'evs-leader-nu
 }
 
 // TC-076/166 정렬 가능한 테이블 헤더 — 클릭 시 asc↔desc 토글, 현재 정렬 방향 표시.
+/**
+ * PW-2786 — 위원회 표의 직무·소속 팀은 이름 아래 작은 글 한 줄(«Backend · 백엔드»).
+ * 표시 항목에서 끈 값과 빈 값은 빼고, 둘 다 없으면 줄을 두지 않는다(null).
+ */
+function nameSubLine(row, showJob, showTeam) {
+  const parts = [showJob && row.job, showTeam && row.team].filter(Boolean);
+  return parts.length ? parts.join(' · ') : null;
+}
+
+/** 정렬 낱말 하나 — 칸 머리 안의 단추. 누르면 오름 → 내림을 오간다. */
+function sortToggle(prev, sortKey) {
+  return prev.key === sortKey
+    ? { key: sortKey, dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+    : { key: sortKey, dir: 'asc' };
+}
+
+/**
+ * PW-2786 — 이름 칸 머리: «이름» 아래 작은 «직무 · 소속 팀». 직무·소속 팀 칸을 이름 칸에 합친 뒤에도
+ * 세 값 모두 머리에서 정렬한다(PW-2787 물음 3 — 정렬 자리를 함께 정함). 필터는 지금처럼 [필터] 창.
+ */
+function NameSortTh({ L, showJob, showTeam, sort, onSort }) {
+  const keys = ['name', showJob && 'job', showTeam && 'team'].filter(Boolean);
+  const activeKey = keys.includes(sort.key) ? sort.key : null;
+  const word = (sortKey, label) => {
+    const active = activeKey === sortKey;
+    return (
+      <Button
+        className={`evs-cw-th-word${active ? ' is-active' : ''}`}
+        aria-pressed={active}
+        onClick={() => onSort((prev) => sortToggle(prev, sortKey))}
+        data-testid={`evs-cw-th-${sortKey}`}
+      >
+        {label}
+        <span className="evs-cw-th-arrow">{active ? (sort.dir === 'asc' ? ' ▲' : ' ▼') : ''}</span>
+      </Button>
+    );
+  };
+  const subs = [showJob && word('job', L.cwColJob), showTeam && word('team', L.cwColTeam)].filter(Boolean);
+  return (
+    <RosterTable.HeadCell
+      className="evs-cw-th-name"
+      aria-sort={activeKey ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
+    >
+      {word('name', L.cwColName)}
+      {subs.length > 0 && (
+        <div className="evs-cw-th-name-sub">
+          {subs.map((el, i) => (
+            <Fragment key={i}>
+              {i > 0 && <span aria-hidden="true"> · </span>}
+              {el}
+            </Fragment>
+          ))}
+        </div>
+      )}
+    </RosterTable.HeadCell>
+  );
+}
+
 function SortTh({ sortKey, label, sort, onSort }) {
   const active = sort.key === sortKey;
   const arrow = active ? (sort.dir === 'asc' ? ' ▲' : ' ▼') : '';
@@ -2950,10 +3008,13 @@ export default function EvalCycleSummaryCanvas({
     calibSort.key && SORT_KEY_COLUMN[calibSort.key] && !colOn(SORT_KEY_COLUMN[calibSort.key])
       ? { key: null, dir: 'asc' }
       : calibSort;
-  /** 고정 5열(순번·이름·직급/레벨·현재 등급·조정 등급) + 켜진 선택 열. 빈 상태·펼친 칸이 따라 준다. */
+  /**
+   * 고정 5열(순번·이름·직급/레벨·현재 등급·조정 등급) + 켜진 선택 열. 빈 상태·펼친 칸이 따라 준다.
+   * 직무·소속 팀은 PW-2786 부터 이름 칸 아래 글이라 열로 세지 않는다.
+   */
   const calibColCount =
     5 +
-    ['job', 'team', 'lead', 'joined', 'trend', 'promo', 'detail'].filter(colOn).length +
+    ['lead', 'joined', 'trend', 'promo', 'detail'].filter(colOn).length +
     (showCompCol ? 1 : 0);
   const [showDisplay, setShowDisplay] = useState(false);
   const [displayDraft, setDisplayDraft] = useState(null);
@@ -5775,9 +5836,13 @@ export default function EvalCycleSummaryCanvas({
                       >
                           <RosterTable.Head>
                               <RosterTable.HeadCell>{L.cwColNo}</RosterTable.HeadCell>
-                              <SortTh sortKey="name" label={L.cwColName} sort={effectiveCalibSort} onSort={setCalibSort} />
-                              {colOn('job') && <SortTh sortKey="job" label={L.cwColJob} sort={effectiveCalibSort} onSort={setCalibSort} />}
-                              {colOn('team') && <SortTh sortKey="team" label={L.cwColTeam} sort={effectiveCalibSort} onSort={setCalibSort} />}
+                              <NameSortTh
+                                L={L}
+                                showJob={colOn('job')}
+                                showTeam={colOn('team')}
+                                sort={effectiveCalibSort}
+                                onSort={setCalibSort}
+                              />
                               <SortTh sortKey="level" label={L.cwColLevel} sort={effectiveCalibSort} onSort={setCalibSort} />
                               {colOn('lead') && <SortTh sortKey="leader" label={L.cwColLeader} sort={effectiveCalibSort} onSort={setCalibSort} />}
                               {colOn('joined') && <SortTh sortKey="hireDate" label={L.cwColDates} sort={effectiveCalibSort} onSort={setCalibSort} />}
@@ -5868,9 +5933,12 @@ export default function EvalCycleSummaryCanvas({
                                       {L.cwAppealInProgress}
                                     </StatusBadge>
                                   )}
+                                  {nameSubLine(row, colOn('job'), colOn('team')) && (
+                                    <div className="evs-cw-name-sub" data-testid="evs-cw-name-sub">
+                                      {nameSubLine(row, colOn('job'), colOn('team'))}
+                                    </div>
+                                  )}
                                 </RosterTable.Cell>
-                                {colOn('job') && <RosterTable.Cell className="evs-cw-muted">{row.job || '—'}</RosterTable.Cell>}
-                                {colOn('team') && <RosterTable.Cell className="evs-cw-muted">{row.team}</RosterTable.Cell>}
                                 <RosterTable.Cell className="evs-cw-muted" data-testid="evs-cw-level-cell">
                                   <RankLevel row={row} />
                                 </RosterTable.Cell>
