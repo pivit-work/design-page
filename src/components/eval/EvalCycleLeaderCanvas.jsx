@@ -1555,11 +1555,11 @@ export default function EvalCycleLeaderCanvas({
   return (
     <div className="evc-root evlr-root">
       {header}
-      <EvalLeaderObjectionBlock objection={objection} />
-
       {/* 안내 줄 사이·아래는 Stack 이 띄운다(12px). 줄마다 손으로 적던 여백을 걷었다. 자동저장 표시와 본문
-          사이만 8px 이라 안쪽 Stack 으로 묶는다 — 저장됨·실패는 함께 뜨지 않는다. */}
+          사이만 8px 이라 안쪽 Stack 으로 묶는다 — 저장됨·실패는 함께 뜨지 않는다.
+          PW-2636 — «구성원 이의» 블록도 이 줄 맨 위에 둔다(머리 바로 아래 · 2단 패널 위). 밖에 두면 아래 안내 줄과 0px 로 붙었다. */}
       <Stack gap="lg" testId="evl-notices">
+      <EvalLeaderObjectionBlock objection={objection} />
       {/* PW-2440 — 위원의 읽기 전용 화면은 «잠긴 이유»가 없다(처음부터 쓰는 화면이 아니다) — 딱지가 말한다. */}
       {formLocked && locked && !readOnlyView && L.lockedNotice && (
         /* PW-2685 — 시안 manager_leader-review: «더 이상 수정할 수 없습니다»는 자물쇠 붙은 회색 안내 줄. */

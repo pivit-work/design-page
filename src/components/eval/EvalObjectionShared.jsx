@@ -165,6 +165,7 @@ export function ObjectionOpinionInput({ onSubmit, maxLength, labels }) {
         value={text}
         maxLength={maxLength}
         placeholder={L.opinionPlaceholder}
+        aria-label={L.opinionsTitle}
         onChange={(e) => setText(e.target.value)}
         data-testid="evobj-opinion-input"
       />
@@ -285,6 +286,7 @@ export function ObjectionDecisionForm({
             rows={4}
             value={reason}
             maxLength={maxLength}
+            aria-label={L.decisionReasonLabel}
             onChange={(e) => setReason(e.target.value)}
             data-testid="evobj-reason-input"
           />
@@ -295,6 +297,7 @@ export function ObjectionDecisionForm({
               rows={5}
               value={aiText}
               maxLength={maxLength}
+              aria-label={L.aiExplanationLabel}
               onChange={(e) => setAiEdited(e.target.value)}
               data-testid="evobj-ai-input"
             />
