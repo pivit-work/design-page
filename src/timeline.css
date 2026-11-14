@@ -2345,6 +2345,14 @@
   display: block;
 }
 
+/* 회의록이 이어진 구글 일정 막대의 «회의록» 딱지 (pivit-work PW-2798 · 기획서 §5-C) — 참석자 수 오른쪽.
+   모양은 호버 카드 «회의록 있음»과 같은 Weekly 태그 그대로 — 이 클래스는 참석자 수와의 사이와 손가락 커서만 더한다. */
+.tl-meeting-minutes-badge {
+  margin-inline-start: var(--spacing-md);
+  font-family: inherit;
+  cursor: pointer;
+}
+
 /* NOW dashed vertical line — rendered inside the body. Starts at body local
    y = 0 (= top of first group sub-header row) and extends through totalBodyH. */
 .tl-now-line {

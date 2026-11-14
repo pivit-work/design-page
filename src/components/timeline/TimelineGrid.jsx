@@ -26,6 +26,10 @@ const TimelineGrid = forwardRef(function TimelineGrid(
     onMouseDown,
     groups,
     onMeetingClick,
+    // 간트 막대 제목에 마우스 — (meeting, rect) / () · 회의록 딱지 — (meeting) (pivit-work PW-2798)
+    onMeetingHover,
+    onMeetingHoverEnd,
+    onMinutesClick,
     spacerH = BOTTOM_H,
     targetDate = TODAY_STR,
     // 빈 셀 클릭 — 본인(currentUserId) 행에서만 활성. (pos{x,y}, hour, date) 인자.
@@ -261,6 +265,9 @@ const TimelineGrid = forwardRef(function TimelineGrid(
                     titleY={titleY}
                     participants={sorted}
                     onTitleClick={onMeetingClick}
+                    onTitleHover={onMeetingHover}
+                    onTitleHoverEnd={onMeetingHoverEnd}
+                    onMinutesClick={onMinutesClick}
                   />
                 );
               }).filter(Boolean);

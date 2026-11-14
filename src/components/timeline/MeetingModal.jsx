@@ -2,7 +2,8 @@ import { useLayoutEffect, useRef, useState } from 'react';
 import ModalLayer from '../shared/ModalLayer.jsx';
 import { FieldError } from '../shared/FormField.jsx';
 import useDismissLayer from '../shared/useDismissLayer.js';
-import { CloseGlyph, MoreGlyph, PencilGlyph, TrashGlyph } from '../shared/lineIcons.jsx';
+import Button from '../shared/Button.jsx';
+import { CloseGlyph, FileTextGlyph, MoreGlyph, PencilGlyph, TrashGlyph } from '../shared/lineIcons.jsx';
 import useTimelineData from './useTimelineData.js';
 import { useTimelineLabels } from './timelineLabels.js';
 
@@ -19,6 +20,9 @@ import { useTimelineLabels } from './timelineLabels.js';
  * 두 콜백을 넘기지 않는다. 메뉴의 면·항목은 같은 타임라인의 셀 피커 메뉴(`.tl-cell-picker*`)이고,
  * 그 모양은 디자이너 필터 메뉴(`.tl-filter-menu`)다.
  * `actionLabels` = { more, edit, delete } (없으면 한국어 기본값).
+ * `meeting.minutes` = { id, heading, open, nameLine? } 가 있고 `onMinutesOpen` 을 주면 참석자·알림 칸 아래 «회의록» 칸을 그린다 —
+ * 회의록이 이어진 구글 일정을 그 회의 참석자가 열 때 (pivit-work PW-2798 · 기획서 §5-C). nameLine 은 회의록 제목이 일정 제목과
+ * 다를 때만 호스트가 싣는다(«회의록 이름 · …»). 칸 모양은 같은 창의 참석자·알림 칸과 같다.
  */
 export default function MeetingModal({
   meeting,
@@ -28,6 +32,7 @@ export default function MeetingModal({
   onEdit,
   onDelete,
   actionLabels,
+  onMinutesOpen,
 }) {
   const { members } = useTimelineData();
   const modalRef = useRef(null);
@@ -232,6 +237,23 @@ export default function MeetingModal({
                     />
                   </svg>
                   <span>{meeting.notification}</span>
+                </div>
+              </section>
+            )}
+
+            {meeting.minutes && onMinutesOpen && (
+              <section className="tl-meeting-modal-section" data-testid="meeting-modal-minutes">
+                <div className="tl-meeting-modal-section-header">
+                  <FileTextGlyph size={20} color="var(--colors-text-textSecondary)" />
+                  <span>{meeting.minutes.heading}</span>
+                </div>
+                {meeting.minutes.nameLine && (
+                  <span className="tl-meeting-modal-attendee-role">{meeting.minutes.nameLine}</span>
+                )}
+                <div>
+                  <Button variant="secondary" size="sm" onClick={() => onMinutesOpen(meeting)}>
+                    {meeting.minutes.open}
+                  </Button>
                 </div>
               </section>
             )}

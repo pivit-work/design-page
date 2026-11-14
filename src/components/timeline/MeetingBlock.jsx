@@ -1,5 +1,6 @@
 import { Fragment } from 'react';
 import { memberPalette } from './constants.js';
+import StatusBadge from '../shared/StatusBadge.jsx';
 
 /**
  * MeetingBlock
@@ -25,6 +26,9 @@ import { memberPalette } from './constants.js';
  *   gradientHeight gradient block height (px)
  *   titleY        absolute Y of the title pill center (grid body coordinate)
  *   participants  [{ member, rowCenterY }, ...] — sorted by rowCenterY
+ *   onTitleHover / onTitleHoverEnd  제목 알약에 마우스가 들어오고 나갈 때 — (meeting, rect) / () (pivit-work PW-2798 · 기획서 §13.3)
+ *   onMinutesClick  meeting.minutes 가 있을 때 참석자 수 옆 «회의록» 딱지를 누르면 (meeting) (pivit-work PW-2798 · 기획서 §5-C)
+ *                   meeting.minutes = { id, badge } — badge 는 딱지 글자(호스트가 준다)
  */
 const MARKER = 12;       // chevron pill size
 const MARKER_INSET = 4;  // 4 px padding from gradient block edges to markers
@@ -46,6 +50,9 @@ export default function MeetingBlock({
   titleY,
   participants,
   onTitleClick,
+  onTitleHover,
+  onTitleHoverEnd,
+  onMinutesClick,
 }) {
   const localTitleY = titleY - gradientTop;
   const centerX = width / 2;
@@ -170,6 +177,8 @@ export default function MeetingBlock({
             className="tl-meeting-title-pill"
             style={{ cursor: 'default' }}
             onClick={(e) => e.stopPropagation()}
+            onMouseEnter={(e) => onTitleHover?.(meeting, e.currentTarget.getBoundingClientRect())}
+            onMouseLeave={() => onTitleHoverEnd?.()}
           >
             {meeting.title}
           </span>
@@ -182,6 +191,8 @@ export default function MeetingBlock({
               const rect = e.currentTarget.getBoundingClientRect();
               onTitleClick?.(meeting, rect);
             }}
+            onMouseEnter={(e) => onTitleHover?.(meeting, e.currentTarget.getBoundingClientRect())}
+            onMouseLeave={() => onTitleHoverEnd?.()}
           >
             {meeting.title}
           </button>
@@ -191,6 +202,22 @@ export default function MeetingBlock({
             <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm0 1.333c-2.21 0-6 1.11-6 3.334V14h12v-1.333c0-2.224-3.79-3.334-6-3.334z" />
           </svg>
           <span>{meeting.participants.length}</span>
+          {/* 회의록이 이어진 구글 일정 막대 — 그 회의 참석자에게만 호스트가 minutes 를 싣는다 (pivit-work PW-2798 · 기획서 §5-C).
+              딱지 모양은 같은 일정의 호버 카드 «회의록 있음»과 같은 Weekly 태그(.tl-weekly-entry-tag). */}
+          {meeting.minutes && (
+            <StatusBadge
+              as="button"
+              type="button"
+              className="tl-weekly-entry-tag tl-meeting-minutes-badge"
+              data-testid="gantt-meeting-minutes-badge"
+              onClick={(e) => {
+                e.stopPropagation();
+                onMinutesClick?.(meeting);
+              }}
+            >
+              {meeting.minutes.badge}
+            </StatusBadge>
+          )}
         </div>
       </div>
     </div>

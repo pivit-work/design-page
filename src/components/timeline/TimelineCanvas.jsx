@@ -144,6 +144,12 @@ export default function TimelineCanvas({
   onCalendarEventDelete,
   // { more, edit, delete, attendees(count) } — 「···」 버튼 이름·메뉴 문구·호버 카드 참석자 머리
   calendarEventLabels,
+  // 간트 막대·일정 창의 회의록을 열 때 — (minutesId). 막대에 meeting.minutes 가 있을 때만 불린다 (pivit-work PW-2798 · 기획서 §5-C).
+  // 간트 막대(meeting)에 아래 칸이 있으면 쓴다:
+  //   externalUrl   있으면 제목을 누를 때 일정 창 대신 그 주소를 새 탭으로 연다 (구글에서 불러온 내 일정 · 기획서 §8.2)
+  //   minutes       { id, badge, heading, open, nameLine? } — 참석자 수 옆 딱지와 일정 창의 회의록 칸
+  //   typeLabel · minutesLabel  호버 카드의 유형 딱지 · 「회의록 있음」 (캘린더 보기와 같다)
+  onMinutesOpen,
   // 셀 피커 「Google Calendar」 줄 — 미연동일 때 설명 (기획서 §8.4 「내 설정에서 연동하세요」)
   gcalDisconnectedLabel,
   // 셀 피커 메뉴 문구 묶음과 시각 표기 — `CellPicker` 의 `labels`·`formatHour` 로 그대로 넘긴다 (PW-2216)
@@ -287,6 +293,12 @@ export default function TimelineCanvas({
   const [meetingVariant, setMeetingVariant] = useState(null); // 'calendar' | null
 
   const handleMeetingClick = (meeting, rect) => {
+    endCalendarEventHover();
+    // 구글에서 불러온 내 일정 — 간트에서도 구글 캘린더의 그 일정을 연다 (기획서 §8.2 「클릭 동작」 · pivit-work PW-2798).
+    if (meeting.externalUrl) {
+      window.open(meeting.externalUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
     setOpenMeeting(meeting);
     setOpenMeetingAnchor(rect);
     setMeetingVariant(null);
@@ -306,16 +318,46 @@ export default function TimelineCanvas({
   // 프리뷰의 mock 이벤트) mock 멤버로 폴백한다.
   // ── 캘린더 일정 호버 카드 (PW-1515 · 기획서 §13.3) ─────────────────────────
   // 칸에 0.3초 머물면 뜨고, 칸을 벗어나면 바로 닫힌다. 누르면 카드는 닫고 누른 동작을 한다.
-  const [hoverEvent, setHoverEvent] = useState(null); // { ev, rect } | null
+  const [hoverEvent, setHoverEvent] = useState(null); // { ev, rect } | { meeting, rect } | null
   const hoverTimerRef = useRef(null);
   const endCalendarEventHover = () => {
     clearTimeout(hoverTimerRef.current);
     hoverTimerRef.current = null;
     setHoverEvent(null);
   };
+  // 호버 카드에 싣는 칸 — 그리는 순간의 «지금» 일정으로 만든다(아래 liveHoverCard · PW-2501 A30).
+  const toEventCard = (ev) => ({
+    title: ev.title,
+    color: (SNIPPET_COLORS[ev.color] || SNIPPET_COLORS.gray).solid,
+    timeRangeLabel: ev.timeRangeLabel ?? ev.time,
+    participants: ev.participants,
+    typeLabel: ev.typeLabel,
+    minutesLabel: ev.minutesLabel,
+  });
   const handleCalendarEventHover = (ev, rect) => {
     clearTimeout(hoverTimerRef.current);
     hoverTimerRef.current = setTimeout(() => setHoverEvent({ ev, rect }), 300);
+  };
+  // 간트 막대 제목에 0.3초 머물면 같은 호버 카드 (기획서 §13.3 · pivit-work PW-2798). 동료의 «비공개» 일정(«바쁨»)은
+  // 시각과 «바쁨»만 — 참석자·딱지를 싣지 않는다 (기획서 §13.10).
+  const toMeetingCard = (meeting) => {
+    const busy = meeting.noOpen === true;
+    return {
+      title: meeting.title,
+      color: meeting.color,
+      timeRangeLabel: meeting.timeRangeLabel ?? meeting.timeLabel,
+      participants: busy ? [] : meeting.participants,
+      typeLabel: busy ? undefined : meeting.typeLabel,
+      minutesLabel: busy ? undefined : meeting.minutesLabel,
+    };
+  };
+  const handleMeetingHover = (meeting, rect) => {
+    clearTimeout(hoverTimerRef.current);
+    hoverTimerRef.current = setTimeout(() => setHoverEvent({ meeting, rect }), 300);
+  };
+  const handleMinutesClick = (meeting) => {
+    endCalendarEventHover();
+    if (meeting.minutes) onMinutesOpen?.(meeting.minutes.id);
   };
   useEffect(() => () => clearTimeout(hoverTimerRef.current), []);
 
@@ -466,7 +508,11 @@ export default function TimelineCanvas({
     : meetingVariant === 'calendar' && openMeeting.calendarEvent
       ? calendarEventToMeeting(findLiveEvent(openMeeting.calendarEvent))
       : (meetings ?? []).find((m) => m.id === openMeeting.id) ?? openMeeting;
-  const liveHoverEv = hoverEvent ? findLiveEvent(hoverEvent.ev) : null;
+  const liveHoverCard = !hoverEvent
+    ? null
+    : hoverEvent.ev
+      ? toEventCard(findLiveEvent(hoverEvent.ev))
+      : toMeetingCard((meetings ?? []).find((m) => m.id === hoverEvent.meeting.id) ?? hoverEvent.meeting);
 
   // ── 그룹 / 내부·외부 직원 / 이벤트 모달 — parent callback 없을 때 내부 fallback
   const [groupAddOpen, setGroupAddOpen] = useState(false);
@@ -770,6 +816,9 @@ export default function TimelineCanvas({
             onMouseDown={handleHorizontalDragMouseDown}
             groups={groups}
             onMeetingClick={handleMeetingClick}
+            onMeetingHover={handleMeetingHover}
+            onMeetingHoverEnd={endCalendarEventHover}
+            onMinutesClick={handleMinutesClick}
             onSnippetClick={handleSnippetBlockClick}
             spacerH={spacerH}
             targetDate={ganttDayDate ?? formatIsoDate(selectedDate)}
@@ -819,25 +868,26 @@ export default function TimelineCanvas({
               : undefined
           }
           actionLabels={calendarEventLabels}
+          onMinutesOpen={
+            openMeeting.minutes && onMinutesOpen
+              ? (m) => {
+                  handleCloseMeeting();
+                  onMinutesOpen(m.minutes.id);
+                }
+              : undefined
+          }
         />
       )}
 
       {/* 캘린더 일정 호버 카드 (PW-1515) */}
       {hoverEvent && (
         <EventHoverCard
-          event={{
-            title: liveHoverEv.title,
-            color: (SNIPPET_COLORS[liveHoverEv.color] || SNIPPET_COLORS.gray).solid,
-            timeRangeLabel: liveHoverEv.timeRangeLabel ?? liveHoverEv.time,
-            participants: liveHoverEv.participants,
-            typeLabel: liveHoverEv.typeLabel,
-            minutesLabel: liveHoverEv.minutesLabel,
-          }}
+          event={liveHoverCard}
           anchorRect={hoverEvent.rect}
           attendeesLabel={
             calendarEventLabels?.attendees
-              ? calendarEventLabels.attendees((liveHoverEv.participants || []).length)
-              : `참석자 ${(liveHoverEv.participants || []).length}명`
+              ? calendarEventLabels.attendees((liveHoverCard.participants || []).length)
+              : `참석자 ${(liveHoverCard.participants || []).length}명`
           }
         />
       )}
