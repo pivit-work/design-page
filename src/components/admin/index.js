@@ -7,7 +7,7 @@ export { ADMIN_OFFBOARDING_DEFAULT_LABELS, offboardingCanRun } from './offboardi
    정했고, 기획서 `admin-spec.md` §3.8 이 묘비다. 그 파일 안에 있던 HR 기록·연봉 이력·
    대표 확인 창 셋은 `AdminEmployeeRecordModals.jsx` 로 옮겨 목록 편집 패널이 쓴다. */
 export {
-  HrProfileModal, SalaryHistoryModal, CeoConfirmModal,
+  HrProfileModal, HrProfileInline, SalaryHistoryModal, flushSalaryPending, CeoConfirmModal,
 } from './AdminEmployeeRecordModals.jsx';
 export { default as AdminRbacCanvas } from './AdminRbacCanvas.jsx';
 export { default as AdminOkrGrantPanel } from './AdminOkrGrantPanel.jsx';

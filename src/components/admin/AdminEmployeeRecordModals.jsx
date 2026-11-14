@@ -660,10 +660,28 @@ function HrNationalIdRow({ memberId, present, onReveal, labels }) {
  * 기록되었습니다.»가 뜬다(누를 때마다 서버에 열람 기록이 남는다). [가리기]·저장·창 닫기로 다시 가려진다.
  * 계좌가 없으면 빈 입력칸과 «등록된 계좌가 없습니다.» — 새 번호를 넣는다. 실패는 이 줄 안에 알린다.
  */
-function HrBankAccountRow({ name, bankAccount, revealed, state, value, onChange, onReveal, onHide, labels }) {
+function HrBankAccountRow({ name, bankAccount, revealed, state, value, onChange, onReveal, onHide, labels, readOnly = false }) {
   const L = labels || {};
   const label = L.hrBankAccount || '계좌번호';
   const hint = { fontSize: 11, color: T.muted, padding: '2px 0 0 96px' };
+  /* 읽기 (pivit-work PW-2797 구성원 상세 기본 모드) — 칸 없이 값만. [보기]로 연 번호도 글자로만 보인다. */
+  if (readOnly && !bankAccount?.present) return <HrPair k={label} v="" />;
+  if (readOnly && revealed) {
+    return (
+      <>
+        <div style={{ display: 'flex', gap: 8, fontSize: 12, padding: '3px 0', alignItems: 'center' }} data-testid="hr-bank-account">
+          <span className="adm-hr-pair-k">{label}</span>
+          <span style={{ color: T.text, fontVariantNumeric: 'tabular-nums' }}>{value || '—'}</span>
+          <button type="button" className="admin-emp-btn" onClick={onHide} data-testid="hr-bank-account-hide">
+            {L.hrBankAccountHide || '가리기'}
+          </button>
+        </div>
+        <div style={hint} role="status" data-testid="hr-bank-account-audit">
+          {(L.hrBankAccountRevealed || '{name}의 계좌번호 열람이 감사 로그에 기록되었습니다.').replace('{name}', name || '')}
+        </div>
+      </>
+    );
+  }
   if (!bankAccount?.present || revealed) {
     return (
       <>
@@ -719,6 +737,179 @@ const MILITARY_OPTIONS = [
   { value: 'serving', label: '복무중' },
   { value: 'not_applicable', label: '해당없음' },
 ];
+
+// ── 미뤄 보내기 버퍼 (pivit-work PW-2797 · 구성원 상세 [수정] → 페이지 [저장]) ──────────────
+// 여러 줄 목록(학력·경력·자격증·부양가족·교육·서류·보상 이력)의 «아직 안 보낸» 바뀜.
+// 모양 `{ adds: [{ id: 'pending-N', body }], updates: { [id]: body }, deletes: [id] }`.
+// 보이는 목록 = 불러온 줄 + 고친 줄 − 지운 줄 + 더한 줄. 안 보낸 줄은 `__pending: true` 로 표시한다.
+const PENDING_PREFIX = 'pending-';
+let pendingSeq = 0;
+function emptyPending() {
+  return { adds: [], updates: {}, deletes: [] };
+}
+function pendingOf(p) {
+  return {
+    adds: Array.isArray(p?.adds) ? p.adds : [],
+    updates: p?.updates && typeof p.updates === 'object' ? p.updates : {},
+    deletes: Array.isArray(p?.deletes) ? p.deletes : [],
+  };
+}
+function isPendingId(id) {
+  return typeof id === 'string' && id.startsWith(PENDING_PREFIX);
+}
+function pendingSize(p) {
+  const q = pendingOf(p);
+  return q.adds.length + Object.keys(q.updates).length + q.deletes.length;
+}
+function mergePending(rows, p) {
+  const q = pendingOf(p);
+  const gone = new Set(q.deletes);
+  return (rows ?? [])
+    .filter((r) => !gone.has(r.id))
+    .map((r) => (q.updates[r.id] ? { ...r, ...q.updates[r.id] } : r))
+    .concat(q.adds.map((a) => ({ ...a.body, id: a.id, __pending: true })));
+}
+/** 더하기(`id` 없음)·안 보낸 줄 고치기·있던 줄 고치기를 버퍼에 담는다. */
+function pendingSave(p, id, body) {
+  const q = pendingOf(p);
+  if (!id) {
+    pendingSeq += 1;
+    return { ...q, adds: [...q.adds, { id: `${PENDING_PREFIX}${pendingSeq}`, body }] };
+  }
+  if (isPendingId(id)) return { ...q, adds: q.adds.map((a) => (a.id === id ? { ...a, body } : a)) };
+  return { ...q, updates: { ...q.updates, [id]: body } };
+}
+/** 안 보낸 줄은 버퍼에서 빼고, 있던 줄은 지울 줄로 담는다(그 줄을 고친 것은 버린다). */
+function pendingDelete(p, id) {
+  const q = pendingOf(p);
+  if (isPendingId(id)) return { ...q, adds: q.adds.filter((a) => a.id !== id) };
+  const updates = Object.fromEntries(Object.entries(q.updates).filter(([k]) => k !== id));
+  return { ...q, updates, deletes: q.deletes.includes(id) ? q.deletes : [...q.deletes, id] };
+}
+/**
+ * 버퍼를 고치기 → 더하기 → 지우기 순서로 보낸다. 하나 보낼 때마다 남은 버퍼를 `onProgress` 로 알리고,
+ * 처음 실패에서 멈춰 던진다(오류의 `remaining` 에 남은 버퍼) — 다시 누르면 안 보낸 것만 다시 간다.
+ */
+async function flushPending(p, { add, update, remove }, onProgress) {
+  const q = pendingOf(p);
+  let left = { adds: [...q.adds], updates: { ...q.updates }, deletes: [...q.deletes] };
+  const step = (next) => { left = next; onProgress?.(left); };
+  try {
+    for (const [id, body] of Object.entries(q.updates)) {
+      await update(id, body);
+      step({ ...left, updates: Object.fromEntries(Object.entries(left.updates).filter(([k]) => k !== id)) });
+    }
+    for (const a of q.adds) {
+      await add(a.body);
+      step({ ...left, adds: left.adds.filter((x) => x.id !== a.id) });
+    }
+    for (const id of q.deletes) {
+      await remove(id);
+      step({ ...left, deletes: left.deletes.filter((x) => x !== id) });
+    }
+  } catch (err) {
+    if (err && typeof err === 'object') err.remaining = left;
+    throw err;
+  }
+  return left;
+}
+
+/**
+ * 보상 이력 창을 `pending`·`onPendingChange` 로 열었을 때 모은 바뀜을 보낸다 (pivit-work PW-2797).
+ * 고치기 → 더하기 → 지우기 순서, 처음 실패에서 던진다(오류의 `remaining` 에 남은 버퍼).
+ * `onProgress(left)` 를 주면 하나 보낼 때마다 남은 버퍼를 알린다 — 부모가 그것으로 `pending` 을 바꿔 두면
+ * 다시 보낼 때 안 보낸 것만 간다.
+ */
+export async function flushSalaryPending(memberId, pending, { onAdd, onUpdate, onDelete, onProgress } = {}) {
+  return flushPending(
+    pending,
+    {
+      add: (body) => onAdd(memberId, body),
+      update: (id, body) => onUpdate(memberId, id, body),
+      remove: (id) => onDelete(memberId, id),
+    },
+    onProgress,
+  );
+}
+
+
+/**
+ * 학력·경력·자격증·부양가족 목록의 칸·표시 규칙 — HR 기록 창과 구성원 상세(PW-2797)가 같은 정의를 쓴다.
+ */
+function hrRecordDefs(L, todayIso) {
+  const relLabel = (r) => (L.hrRelation && L.hrRelation[r]) || r;
+  return {
+    dependents: {
+      kind: 'dependents',
+      testId: 'hr-dependents',
+      title: L.hrDependents || '부양가족',
+      fields: [
+        { key: 'name', label: L.hrDepName || '성명', required: true },
+        { key: 'relation', label: L.hrDepRelation || '관계', required: true, options: optionsOf(L.hrRelation) },
+        { key: 'dateOfBirth', label: L.hrDepBirth || '생년월일', kind: 'date', startView: 'year', max: todayIso, today: todayIso },
+        { key: 'isDependent', label: L.hrDepIsDependent || '부양 여부', kind: 'boolean', options: [{ value: 'true', label: L.hrDep || '부양중' }, { value: 'false', label: L.hrNotDep || '비부양' }] },
+      ],
+      render: (d) => `${d.name} · ${relLabel(d.relation)}${d.dateOfBirth ? ` · ${d.dateOfBirth}` : ''} · ${d.isDependent ? (L.hrDep || '부양중') : (L.hrNotDep || '비부양')}`,
+      nameOf: (d) => d.name,
+      emptyText: L.hrDependentsEmpty || '등록된 부양가족이 없습니다.',
+      addLabel: L.hrDepAdd || '부양가족 추가',
+    },
+    education: {
+      kind: 'education',
+      testId: 'hr-education',
+      title: L.hrEducation || '학력',
+      fields: [
+        { key: 'school', label: L.hrEduSchool || '학교명', required: true },
+        // 고졸이 아니면 전공이 필요하다 — 서버도 같은 규칙으로 거절한다(PW-1302). 학교명만 있는 줄을 고칠 때
+        // 표시가 없으면 이유 모를 «저장하지 못했습니다»만 남았다(pivit-work PW-2714).
+        { key: 'major', label: L.hrEduMajor || '전공', required: (form) => form.degree !== 'high_school' },
+        { key: 'degree', label: L.hrEduDegree || '학위', required: true, options: optionsOf(L.hrDegreeOptions) },
+        { key: 'from', label: L.hrEduFrom || '입학', required: true, placeholder: 'YYYY-MM' },
+        { key: 'to', label: L.hrEduTo || '졸업(예정)', placeholder: 'YYYY-MM' },
+        { key: 'status', label: L.hrEduStatus || '상태', required: true, options: optionsOf(L.hrEduStatusOptions) },
+        { key: 'isFinal', label: L.hrEduFinal || '최종학력', kind: 'boolean', options: [{ value: 'true', label: L.hrYes || '예' }, { value: 'false', label: L.hrNo || '아니오' }] },
+      ],
+      render: (e) => [e.school, e.major, codeLabel(L.hrDegreeOptions, e.degree), (e.from || e.to) ? `${e.from ?? ''}~${e.to ?? ''}` : null, codeLabel(L.hrEduStatusOptions, e.status), e.isFinal ? (L.hrEduFinal || '최종학력') : null].filter(Boolean).join(' · '),
+      nameOf: (e) => e.school,
+      emptyText: L.hrEducationEmpty || '등록된 학력이 없습니다.',
+      addLabel: L.hrEduAdd || '학력 추가',
+      periodError: L.hrEduEndBeforeStart || '졸업이 입학보다 빠릅니다. 날짜를 고쳐야 저장할 수 있습니다.',
+    },
+    career: {
+      kind: 'career',
+      testId: 'hr-career',
+      title: L.hrCareer || '경력',
+      fields: [
+        { key: 'company', label: L.hrCareerCompany || '회사명', required: true },
+        { key: 'department', label: L.hrCareerDept || '부서' },
+        { key: 'role', label: L.hrCareerRole || '직함' },
+        { key: 'from', label: L.hrCareerFrom || '입사', required: true, placeholder: 'YYYY-MM' },
+        { key: 'to', label: L.hrCareerTo || '퇴사', placeholder: 'YYYY-MM' },
+      ],
+      render: (c) => [c.company, c.department, c.role, `${c.from ?? ''}~${c.to ?? ''}`].filter(Boolean).join(' · '),
+      nameOf: (c) => c.company,
+      emptyText: L.hrCareerEmpty || '등록된 경력이 없습니다.',
+      addLabel: L.hrCareerAdd || '경력 추가',
+      periodError: L.hrCareerEndBeforeStart || '퇴사가 입사보다 빠릅니다. 날짜를 고쳐야 저장할 수 있습니다.',
+    },
+    certifications: {
+      kind: 'certifications',
+      testId: 'hr-certifications',
+      title: L.hrCert || '자격증',
+      fields: [
+        { key: 'name', label: L.hrCertName || '자격증명', required: true },
+        { key: 'issuer', label: L.hrCertIssuer || '발급기관' },
+        { key: 'credentialNo', label: L.hrCertNo || '자격번호' },
+        { key: 'issuedDate', label: L.hrCertIssued || '발급일', kind: 'date' },
+        { key: 'expiryDate', label: L.hrCertExpiry || '만료일', kind: 'date' },
+      ],
+      render: (c) => [c.name, c.issuer, c.issuedDate && `${L.hrCertIssuedPrefix || '발급'} ${c.issuedDate}`, c.expiryDate && `${L.hrCertExpiryPrefix || '만료'} ${c.expiryDate}`].filter(Boolean).join(' · '),
+      nameOf: (c) => c.name,
+      emptyText: L.hrCertEmpty || '등록된 자격증이 없습니다.',
+      addLabel: L.hrCertAdd || '자격증 추가',
+    },
+  };
+}
 
 export function HrProfileModal({
   row, labels, onLoad, onSaveIdentity, onClose,
@@ -844,7 +1035,7 @@ export function HrProfileModal({
   const org = data?.org ?? {};
   const ec = family.emergencyContact ?? {};
   const deps = family.dependents ?? [];
-  const relLabel = (r) => (L.hrRelation && L.hrRelation[r]) || r;
+  const recordDefs = hrRecordDefs(L, todayIso);
   // 저장·지우기 뒤에는 창 전체를 다시 읽는다 — 다섯 목록이 한 응답(hr-profile)에 실려 온다.
   const reload = () => Promise.resolve(onLoad(row?.id)).then((d) => { if (d) setData(d); });
   const recordHandlers = (kind) => ({
@@ -1141,20 +1332,8 @@ export function HrProfileModal({
               <HrPair k={L.hrEmergency || '비상연락처'} v={[ec.name, ec.relation, ec.phone].filter(Boolean).join(' · ')} />
             </HrSection>
             <HrRecordListSection
-              kind="dependents"
-              testId="hr-dependents"
-              title={L.hrDependents || '부양가족'}
+              {...recordDefs.dependents}
               items={deps}
-              fields={[
-                { key: 'name', label: L.hrDepName || '성명', required: true },
-                { key: 'relation', label: L.hrDepRelation || '관계', required: true, options: optionsOf(L.hrRelation) },
-                { key: 'dateOfBirth', label: L.hrDepBirth || '생년월일', kind: 'date', startView: 'year', max: todayIso, today: todayIso },
-                { key: 'isDependent', label: L.hrDepIsDependent || '부양 여부', kind: 'boolean', options: [{ value: 'true', label: L.hrDep || '부양중' }, { value: 'false', label: L.hrNotDep || '비부양' }] },
-              ]}
-              render={(d) => `${d.name} · ${relLabel(d.relation)}${d.dateOfBirth ? ` · ${d.dateOfBirth}` : ''} · ${d.isDependent ? (L.hrDep || '부양중') : (L.hrNotDep || '비부양')}`}
-              nameOf={(d) => d.name}
-              emptyText={L.hrDependentsEmpty || '등록된 부양가족이 없습니다.'}
-              addLabel={L.hrDepAdd || '부양가족 추가'}
               {...recordHandlers('dependents')}
             />
             {archived ? (
@@ -1163,64 +1342,19 @@ export function HrProfileModal({
             </HrSection>
             ) : (
               <HrRecordListSection
-              kind="education"
-              testId="hr-education"
-              title={L.hrEducation || '학력'}
-              items={org.education ?? []}
-              fields={[
-                { key: 'school', label: L.hrEduSchool || '학교명', required: true },
-                // 고졸이 아니면 전공이 필요하다 — 서버도 같은 규칙으로 거절한다(PW-1302). 학교명만 있는 줄을 고칠 때
-                // 표시가 없으면 이유 모를 «저장하지 못했습니다»만 남았다(pivit-work PW-2714).
-                { key: 'major', label: L.hrEduMajor || '전공', required: (form) => form.degree !== 'high_school' },
-                { key: 'degree', label: L.hrEduDegree || '학위', required: true, options: optionsOf(L.hrDegreeOptions) },
-                { key: 'from', label: L.hrEduFrom || '입학', required: true, placeholder: 'YYYY-MM' },
-                { key: 'to', label: L.hrEduTo || '졸업(예정)', placeholder: 'YYYY-MM' },
-                { key: 'status', label: L.hrEduStatus || '상태', required: true, options: optionsOf(L.hrEduStatusOptions) },
-                { key: 'isFinal', label: L.hrEduFinal || '최종학력', kind: 'boolean', options: [{ value: 'true', label: L.hrYes || '예' }, { value: 'false', label: L.hrNo || '아니오' }] },
-              ]}
-              render={(e) => [e.school, e.major, codeLabel(L.hrDegreeOptions, e.degree), (e.from || e.to) ? `${e.from ?? ''}~${e.to ?? ''}` : null, codeLabel(L.hrEduStatusOptions, e.status), e.isFinal ? (L.hrEduFinal || '최종학력') : null].filter(Boolean).join(' · ')}
-              nameOf={(e) => e.school}
-              emptyText={L.hrEducationEmpty || '등록된 학력이 없습니다.'}
-              addLabel={L.hrEduAdd || '학력 추가'}
-              periodError={L.hrEduEndBeforeStart || '졸업이 입학보다 빠릅니다. 날짜를 고쳐야 저장할 수 있습니다.'}
+                {...recordDefs.education}
+                items={org.education ?? []}
               {...recordHandlers('education')}
             />
             )}
             <HrRecordListSection
-              kind="career"
-              testId="hr-career"
-              title={L.hrCareer || '경력'}
+              {...recordDefs.career}
               items={org.career ?? []}
-              fields={[
-                { key: 'company', label: L.hrCareerCompany || '회사명', required: true },
-                { key: 'department', label: L.hrCareerDept || '부서' },
-                { key: 'role', label: L.hrCareerRole || '직함' },
-                { key: 'from', label: L.hrCareerFrom || '입사', required: true, placeholder: 'YYYY-MM' },
-                { key: 'to', label: L.hrCareerTo || '퇴사', placeholder: 'YYYY-MM' },
-              ]}
-              render={(c) => [c.company, c.department, c.role, `${c.from ?? ''}~${c.to ?? ''}`].filter(Boolean).join(' · ')}
-              nameOf={(c) => c.company}
-              emptyText={L.hrCareerEmpty || '등록된 경력이 없습니다.'}
-              addLabel={L.hrCareerAdd || '경력 추가'}
-              periodError={L.hrCareerEndBeforeStart || '퇴사가 입사보다 빠릅니다. 날짜를 고쳐야 저장할 수 있습니다.'}
               {...recordHandlers('career')}
             />
             <HrRecordListSection
-              kind="certifications"
-              testId="hr-certifications"
-              title={L.hrCert || '자격증'}
+              {...recordDefs.certifications}
               items={org.certifications ?? []}
-              fields={[
-                { key: 'name', label: L.hrCertName || '자격증명', required: true },
-                { key: 'issuer', label: L.hrCertIssuer || '발급기관' },
-                { key: 'credentialNo', label: L.hrCertNo || '자격번호' },
-                { key: 'issuedDate', label: L.hrCertIssued || '발급일', kind: 'date' },
-                { key: 'expiryDate', label: L.hrCertExpiry || '만료일', kind: 'date' },
-              ]}
-              render={(c) => [c.name, c.issuer, c.issuedDate && `${L.hrCertIssuedPrefix || '발급'} ${c.issuedDate}`, c.expiryDate && `${L.hrCertExpiryPrefix || '만료'} ${c.expiryDate}`].filter(Boolean).join(' · ')}
-              nameOf={(c) => c.name}
-              emptyText={L.hrCertEmpty || '등록된 자격증이 없습니다.'}
-              addLabel={L.hrCertAdd || '자격증 추가'}
               {...recordHandlers('certifications')}
             />
             <HrDocumentsSection
@@ -1241,12 +1375,433 @@ export function HrProfileModal({
   );
   }
 
+// ── 구성원 상세 탭 안의 HR 기록 (pivit-work PW-2797) ──────────────────────────────
+/**
+ * 구성원 상세 페이지 탭이 이 창의 칸을 나눠 싣는다 — 창 틀·제목 없이 `part` 한 묶음만.
+ * 페이지 화면이 이미 그리고 저장하는 칸(수습 종료일·휴직 기간·휴직 사유·기산일)은 여기서 그리지도 보내지도 않는다.
+ */
+const INLINE_PARTS = {
+  person: [
+    'lastName', 'personalEmail', 'birthDate', 'gender', 'nationality',
+    'addressPostalCode', 'addressRegion', 'addressDistrict', 'addressDetail', 'addressCountry',
+    'militaryService', 'hasDisability', 'disabilityInfo', 'isVeteranFamily',
+  ],
+  work: [
+    'firstHireDate', 'isRehire', 'employmentTypeStartDate', 'lastWorkingDate', 'workSchedule',
+    'contractOvertime', 'contractHoliday', 'contractNight',
+  ],
+  comp: ['payType', 'payCycle', 'targetBonus', 'targetBonusStart', 'targetBonusEnd', 'bankName', 'bankAccount'],
+  records: [],
+};
+const ADDRESS_KEYS = ['addressPostalCode', 'addressRegion', 'addressDistrict', 'addressDetail', 'addressCountry'];
+const CONTRACT_KEYS = ['contractOvertime', 'contractHoliday', 'contractNight'];
+const RECORD_KINDS = ['dependents', 'education', 'career', 'certifications', 'documents'];
+const optionText = (options, v) => (options || []).find((o) => o.value === v)?.label ?? v;
+
+/**
+ * 고친 칸만 담은 신원 패치. 주소·포괄 계약 시간은 묶음째, 장애 여부를 끄면 장애 정보도 비운다.
+ * 손대지 않은 계좌번호·[보기]로 연 번호를 그대로 둔 것은 보내지 않는다. 바뀐 것이 없으면 null.
+ */
+function identityPatchOf(draft, base, keys, bankRevealed) {
+  const changed = keys.filter((k) => (draft[k] ?? '') !== (base[k] ?? ''));
+  if (changed.length === 0) return null;
+  const toSave = bankRevealed != null && draft.bankAccount === bankRevealed ? { ...draft, bankAccount: '' } : draft;
+  const full = shapeIdentityForSave(toSave);
+  const patch = {};
+  for (const k of changed) {
+    if (ADDRESS_KEYS.includes(k)) patch.address = full.address;
+    else if (CONTRACT_KEYS.includes(k)) patch.contractHours = full.contractHours;
+    else if (k === 'bankAccount') { if (full.bankAccount !== undefined) patch.bankAccount = full.bankAccount; }
+    else if (k === 'hasDisability') {
+      patch.hasDisability = !!draft.hasDisability;
+      if (!draft.hasDisability) patch.disabilityInfo = null;
+    } else if (k === 'disabilityInfo') { if (draft.hasDisability) patch.disabilityInfo = full.disabilityInfo; }
+    else patch[k] = full[k];
+  }
+  return Object.keys(patch).length ? patch : null;
+}
+
+/**
+ * @param {object} props HrProfileModal 과 같은 손잡이(onClose 제외) +
+ * @param {'person'|'work'|'comp'|'records'} props.part 그릴 묶음
+ * @param {boolean} [props.editable] false = 읽기(값만 · 빈 값 «—»), true = 칸. 칸에서 바꾼 것은 바로 보내지 않는다.
+ * @param {(fn: (() => Promise<void>) | null) => void} [props.registerFlush] 수정 모드로 붙을 때 «모은 바뀜 보내기»를 넘기고, 떨어질 때 null.
+ *   보내기는 처음 실패에서 던지고 안 보낸 것은 남긴다 — 다시 부르면 남은 것만 보낸다.
+ * @param {(dirty: boolean) => void} [props.onDirtyChange] 모은 바뀜이 생기거나 다 없어질 때.
+ * 버리기는 부모가 key 를 바꿔 다시 붙인다.
+ */
+export function HrProfileInline({
+  part, editable = false, registerFlush, onDirtyChange,
+  row, labels, onLoad, onSaveIdentity, today,
+  onLoadTrainings, onAddTraining, onUpdateTraining, onDeleteTraining,
+  onLoadBenefits, onSaveBenefits, confirmDelete,
+  onRevealNationalId, nationalIdEnabled = true, onRevealBankAccount,
+  onSaveRecord, onDeleteRecord, onUploadDocument, onDownloadDocument,
+  archived = false,
+}) {
+  const L = labels || {};
+  const memberId = row?.id;
+  const todayIso = today || todayIsoInZone();
+  const archivedText = L.hrArchivedNote || '퇴사가 확정되어 따로 보관 중입니다';
+  const kept = (k, node) => (archived ? <HrArchivedPair k={k} text={archivedText} /> : node);
+  const yesNo = L.hrYesNoOptions || [{ value: 'no', label: '아니오' }, { value: 'yes', label: '예' }];
+  const genderOptions = L.hrGenderOptions || [{ value: 'male', label: '남성' }, { value: 'female', label: '여성' }, { value: 'other', label: '기타' }];
+
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [identityDraft, setIdentityDraft] = useState(null);
+  const [seededId, setSeededId] = useState(null);
+  const [bankRevealed, setBankRevealed] = useState(null);
+  const [bankRevealState, setBankRevealState] = useState('idle');
+  const [recPending, setRecPending] = useState({});
+  const [trPending, setTrPending] = useState(emptyPending);
+  const [trEpoch, setTrEpoch] = useState(0);
+  const [benefits, setBenefits] = useState(null);
+  const [bnEpoch, setBnEpoch] = useState(0);
+
+  useEffect(() => {
+    let alive = true;
+    Promise.resolve(onLoad(memberId))
+      .then((d) => { if (alive) setData(d); })
+      .catch(() => { if (alive) setError(true); })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [memberId, onLoad]);
+  const reload = () => Promise.resolve(onLoad(memberId)).then((d) => { if (d) setData(d); }).catch(() => {});
+
+  const identity = data?.identity ?? {};
+  if (data && seededId !== memberId) {
+    setSeededId(memberId ?? null);
+    setIdentityDraft(flattenIdentity(identity));
+  }
+  const flat = flattenIdentity(identity);
+  const idDraft = identityDraft ?? flat;
+  const setIdField = (key) => (v) => setIdentityDraft((p) => ({ ...(p ?? flat), [key]: v }));
+  const setIdDigits = (key) => (v) => setIdField(key)(String(v ?? '').replace(/[^0-9]/g, ''));
+
+  const partKeys = INLINE_PARTS[part] || [];
+  const identityBase = { ...flat, bankAccount: bankRevealed ?? '' };
+  const identityPatch = editable && identityDraft ? identityPatchOf(identityDraft, identityBase, partKeys, bankRevealed) : null;
+  const lastDayAfterResign = part === 'work' && lastWorkingDateAfterTermination(idDraft.lastWorkingDate, row?.terminationDate);
+  const rehireDateBad = part === 'work' && rehireFirstHireNotBefore(idDraft.isRehire, idDraft.firstHireDate, row?.hireDate);
+  const targetBonusText = String(idDraft.targetBonus ?? '').replace(/[\s₩]|원$/g, '');
+  const targetBonusBad = part === 'comp' && editable && targetBonusText !== '' && !isMoneyCellText(targetBonusText);
+
+  const dirty = Boolean(identityPatch)
+    || RECORD_KINDS.some((k) => pendingSize(recPending[k]) > 0)
+    || pendingSize(trPending) > 0
+    || Boolean(benefits);
+  useEffect(() => { onDirtyChange?.(dirty); }, [dirty, onDirtyChange]);
+
+  const flush = async () => {
+    if (identityPatch && (lastDayAfterResign || rehireDateBad || targetBonusBad)) {
+      throw new Error(L.hrInlineInvalid || '고쳐야 할 칸이 있어 저장하지 못했습니다.');
+    }
+    if (benefits?.invalid) throw new Error(L.hrPensionContributionInvalid || '금액은 소수점·단위 없는 정수로 적어 주세요.');
+    const trainingsTouched = pendingSize(trPending) > 0;
+    try {
+      if (identityPatch) {
+        const saved = await onSaveIdentity(memberId, identityPatch);
+        setData((d) => ({ ...(d ?? {}), identity: saved || { ...(d?.identity ?? {}), ...identityPatch } }));
+        setIdentityDraft(null);
+        setSeededId(null);
+        setBankRevealed(null);
+      }
+      for (const kind of RECORD_KINDS) {
+        const p = recPending[kind];
+        if (!pendingSize(p)) continue;
+        const progress = (left) => setRecPending((prev) => ({ ...prev, [kind]: left }));
+        if (kind === 'documents') {
+          await flushPending(p, {
+            add: (body) => onUploadDocument(memberId, body),
+            update: () => Promise.resolve(),
+            remove: (id) => onDeleteRecord(memberId, 'documents', id),
+          }, progress);
+        } else {
+          await flushPending(p, {
+            add: (body) => onSaveRecord(memberId, kind, null, body),
+            update: (id, body) => onSaveRecord(memberId, kind, id, body),
+            remove: (id) => onDeleteRecord(memberId, kind, id),
+          }, progress);
+        }
+      }
+      if (trainingsTouched) {
+        await flushPending(trPending, {
+          add: (body) => onAddTraining(memberId, body),
+          update: (id, body) => onUpdateTraining(memberId, id, body),
+          remove: (id) => onDeleteTraining(memberId, id),
+        }, setTrPending);
+      }
+      if (benefits) {
+        await onSaveBenefits(memberId, benefits.body);
+        setBenefits(null);
+        setBnEpoch((e) => e + 1);
+      }
+    } finally {
+      /* 보낸 만큼은 서버 값으로 다시 그린다 — 실패해도 이미 간 줄이 화면에서 사라지지 않게 */
+      if (RECORD_KINDS.some((k) => pendingSize(recPending[k]) > 0)) reload();
+      if (trainingsTouched) setTrEpoch((e) => e + 1);
+    }
+  };
+  const flushRef = useRef(flush);
+  useEffect(() => { flushRef.current = flush; });
+  useEffect(() => {
+    if (!editable || !registerFlush) return undefined;
+    registerFlush(() => flushRef.current());
+    return () => registerFlush(null);
+  }, [editable, registerFlush]);
+
+  const revealBankAccount = () => {
+    setBankRevealState('loading');
+    Promise.resolve(onRevealBankAccount(memberId))
+      .then((r) => {
+        const full = r?.bankAccount ?? '';
+        setBankRevealed(full);
+        setIdentityDraft((p) => ({ ...(p ?? flat), bankAccount: full }));
+        setBankRevealState('idle');
+      })
+      .catch(() => setBankRevealState('error'));
+  };
+  const hideBankAccount = () => {
+    setBankRevealed(null);
+    setIdentityDraft((p) => ({ ...(p ?? flat), bankAccount: '' }));
+  };
+
+  /* 칸 하나 — 수정이면 입력칸, 읽기면 값(빈 값은 «—»). `show` 는 읽기 값 바꾸기, `edit` 은 입력칸에 더 줄 것. */
+  const field = (key, label, { show, edit, digits } = {}) => (editable ? (
+    <HrEditPair key={key} k={label} value={idDraft[key]} onChange={digits ? setIdDigits(key) : setIdField(key)} {...edit} />
+  ) : (
+    <HrPair key={key} k={label} v={show ? show(flat[key]) : flat[key]} />
+  ));
+  const yesNoField = (key, label) => (editable ? (
+    <HrEditPair key={key} k={label} value={idDraft[key] ? 'yes' : 'no'} onChange={(v) => setIdField(key)(v === 'yes')} options={yesNo} />
+  ) : (
+    <HrPair key={key} k={label} v={flat[key] ? (L.hrYes || '예') : (L.hrNo || '아니오')} />
+  ));
+
+  const family = data?.family ?? {};
+  const ec = family.emergencyContact ?? {};
+  const org = data?.org ?? {};
+  const recordDefs = hrRecordDefs(L, todayIso);
+  const recordProps = (kind) => {
+    if (!editable) return { confirmDelete, labels: L };
+    const set = (fn) => setRecPending((prev) => ({ ...prev, [kind]: fn(prev[kind]) }));
+    return {
+      onSave: onSaveRecord ? (recordId, body) => { set((p) => pendingSave(p, recordId, body)); return Promise.resolve(); } : undefined,
+      onDelete: onDeleteRecord ? (recordId) => { set((p) => pendingDelete(p, recordId)); return Promise.resolve(); } : undefined,
+      confirmDelete,
+      labels: L,
+    };
+  };
+  const shownRows = (kind, rows) => (editable ? mergePending(rows, recPending[kind]) : rows);
+
+  const renderPerson = () => (
+    <>
+      <HrSection title={L.hrIdentity || '개인 신원'}>
+        {field('lastName', L.hrLastName || '성')}
+        <HrPair k={L.hrNicknameEn || '영어 닉네임'} v={row?.nicknameEn} />
+        {field('personalEmail', L.hrPersonalEmail || '개인 이메일', { edit: { type: 'email' } })}
+        {kept(L.hrBirthDate || '생년월일', field('birthDate', L.hrBirthDate || '생년월일', { edit: { date: true, startView: 'year', max: todayIso, today: todayIso } }))}
+        {kept(L.hrGender || '성별', field('gender', L.hrGender || '성별', { show: (v) => optionText(genderOptions, v), edit: { options: genderOptions } }))}
+        {kept(L.hrNationality || '국적', field('nationality', L.hrNationality || '국적'))}
+        {archived ? (
+          <HrArchivedPair k={L.hrAddress || '주소'} text={archivedText} />
+        ) : editable ? (
+          <>
+            {field('addressPostalCode', L.hrAddressPostalCode || '우편번호')}
+            {field('addressRegion', L.hrAddressRegion || '시 · 도')}
+            {field('addressDistrict', L.hrAddressDistrict || '시군구 · 동')}
+            {field('addressDetail', L.hrAddressDetail || '상세 주소')}
+            {field('addressCountry', L.hrAddressCountry || '국가')}
+          </>
+        ) : (
+          <HrPair k={L.hrAddress || '주소'} v={joinAddressLine(identity.address)} />
+        )}
+        <HrPair k={L.hrMarital || '혼인 여부'} v={codeLabel(L.hrMaritalOptions, family.maritalStatus)} />
+        <HrPair k={L.hrEmergency || '비상연락처'} v={[ec.name, ec.relation, ec.phone].filter(Boolean).join(' · ')} />
+        <HrPair k={L.hrTshirtSize || '티셔츠 사이즈'} v={identity.tshirtSize} />
+        {nationalIdEnabled && kept(L.hrNationalId || '주민등록번호', (
+          <HrNationalIdRow memberId={memberId} present={!!identity.nationalId?.present} onReveal={onRevealNationalId} labels={L} />
+        ))}
+        {archived ? (
+          <>
+            <HrArchivedPair k={L.hrMilitaryService || '병역'} text={archivedText} />
+            <HrArchivedPair k={L.hrHasDisability || '장애 여부'} text={archivedText} />
+            <HrArchivedPair k={L.hrIsVeteranFamily || '보훈 대상 여부'} text={archivedText} />
+          </>
+        ) : (
+          <>
+            {field('militaryService', L.hrMilitaryService || '병역', {
+              show: (v) => militaryLabel(v, L.hrMilitaryOptions),
+              edit: { options: L.hrMilitaryOptions || MILITARY_OPTIONS },
+            })}
+            {yesNoField('hasDisability', L.hrHasDisability || '장애 여부')}
+            {editable ? (
+              <HrEditPair
+                k={L.hrDisabilityInfo || '장애 정보'}
+                value={idDraft.hasDisability ? idDraft.disabilityInfo : ''}
+                onChange={setIdField('disabilityInfo')}
+                disabled={!idDraft.hasDisability}
+              />
+            ) : (
+              <HrPair k={L.hrDisabilityInfo || '장애 정보'} v={flat.hasDisability ? flat.disabilityInfo : null} />
+            )}
+            {yesNoField('isVeteranFamily', L.hrIsVeteranFamily || '보훈 대상 여부')}
+          </>
+        )}
+      </HrSection>
+    </>
+  );
+
+  const renderWork = () => (
+    <>
+      <HrSection title={L.hrEmploymentSection || '고용 정보'}>
+        {field('firstHireDate', L.hrFirstHireDate || '최초 입사일', { edit: { date: true } })}
+        {yesNoField('isRehire', L.hrIsRehire || '재입사 여부')}
+        {rehireDateBad && (
+          <HrEditPairError><span data-testid="hr-rehire-date-error">{L.hrRehireDateOrder || '재입사자의 최초 입사일은 입사일보다 앞이어야 합니다. 날짜를 고쳐야 저장할 수 있습니다.'}</span></HrEditPairError>
+        )}
+        {kept(L.hrEmploymentTypeStartDate || '현 고용형태 시작일', field('employmentTypeStartDate', L.hrEmploymentTypeStartDate || '현 고용형태 시작일', { edit: { date: true } }))}
+        {field('lastWorkingDate', L.hrLastWorkingDate || '마지막 출근일', { edit: { date: true } })}
+        {lastDayAfterResign && (
+          <HrEditPairError><span data-testid="hr-last-working-date-error">{L.hrLastWorkingDateAfterResign || '마지막 출근일은 퇴사일보다 늦을 수 없습니다. 날짜를 고쳐야 저장할 수 있습니다.'}</span></HrEditPairError>
+        )}
+        {kept(L.hrWorkSchedule || '근무 일정', field('workSchedule', L.hrWorkSchedule || '근무 일정', {
+          show: (v) => optionText(L.hrWorkScheduleOptions, v),
+          edit: { options: L.hrWorkScheduleOptions || [] },
+        }))}
+        {/* 포괄 계약 시간 — HR 기록 창에서 급여 · 계좌 묶음과 함께 «따로 보관» 대상이다 */}
+        {archived ? (
+          <HrArchivedPair k={L.hrContractOvertime || '포괄 계약 시간 · 초과'} text={archivedText} />
+        ) : (
+          <>
+            {field('contractOvertime', L.hrContractOvertime || '포괄 계약 시간 · 초과', { digits: true, edit: { inputMode: 'numeric' } })}
+            {field('contractHoliday', L.hrContractHoliday || '포괄 계약 시간 · 휴일', { digits: true, edit: { inputMode: 'numeric' } })}
+            {field('contractNight', L.hrContractNight || '포괄 계약 시간 · 야간', { digits: true, edit: { inputMode: 'numeric' } })}
+          </>
+        )}
+      </HrSection>
+    </>
+  );
+
+  const renderComp = () => (
+    <>
+      <HrSection title={L.hrPaySection || '급여 · 계좌'}>
+        {archived ? (
+          <HrArchivedPair k={L.hrPaySection || '급여 · 계좌'} text={archivedText} />
+        ) : (
+          <>
+            {field('payType', L.hrPayType || '급여 유형', { show: (v) => optionText(L.hrPayTypeOptions, v), edit: { options: L.hrPayTypeOptions || [] } })}
+            {field('payCycle', L.hrPayCycle || '급여 지급 주기', { show: (v) => optionText(L.hrPayCycleOptions, v), edit: { options: L.hrPayCycleOptions || [] } })}
+            <div>
+              {field('targetBonus', L.hrTargetBonus || '타겟 보너스', {})}
+              {targetBonusBad && (
+                <HrEditPairError>{L.hrPensionContributionInvalid || '금액은 소수점·단위 없는 정수로 적어 주세요.'}</HrEditPairError>
+              )}
+            </div>
+            {field('targetBonusStart', L.hrTargetBonusStart || '타겟 보너스 시작', { edit: { date: true } })}
+            {field('targetBonusEnd', L.hrTargetBonusEnd || '타겟 보너스 종료', { edit: { date: true } })}
+            {field('bankName', L.hrBankName || '은행명')}
+            <HrBankAccountRow
+              name={row?.name}
+              bankAccount={identity.bankAccount}
+              revealed={bankRevealed != null}
+              state={bankRevealState}
+              value={editable ? idDraft.bankAccount : bankRevealed ?? ''}
+              onChange={setIdField('bankAccount')}
+              onReveal={onRevealBankAccount ? revealBankAccount : undefined}
+              onHide={hideBankAccount}
+              labels={L}
+              readOnly={!editable}
+            />
+          </>
+        )}
+      </HrSection>
+      {onLoadBenefits && (
+        <HrBenefitsSection
+          key={`benefits-${bnEpoch}`}
+          memberId={memberId}
+          labels={L}
+          onLoad={onLoadBenefits}
+          onSave={editable ? onSaveBenefits : undefined}
+          onDraftChange={editable && onSaveBenefits ? setBenefits : undefined}
+        />
+      )}
+    </>
+  );
+
+  const docs = (org.documents ?? []);
+  const renderRecords = () => (
+    <>
+      {!editable && (
+        <p className="adm-hr-empty" data-testid="hr-inline-records-hint">
+          {L.recordsEditHint || '추가 · 삭제는 [수정]에서 할 수 있어요'}
+        </p>
+      )}
+      {archived ? (
+        <HrSection title={L.hrEducation || '학력'}>
+          <HrArchivedPair k={L.hrEducation || '학력'} text={archivedText} />
+        </HrSection>
+      ) : (
+        <HrRecordListSection {...recordDefs.education} items={shownRows('education', org.education ?? [])} {...recordProps('education')} />
+      )}
+      <HrRecordListSection {...recordDefs.career} items={shownRows('career', org.career ?? [])} {...recordProps('career')} />
+      <HrRecordListSection {...recordDefs.certifications} items={shownRows('certifications', org.certifications ?? [])} {...recordProps('certifications')} />
+      {onLoadTrainings && (
+        <HrTrainingsSection
+          key={`trainings-${trEpoch}`}
+          memberId={memberId}
+          labels={L}
+          onLoad={onLoadTrainings}
+          onAdd={editable ? onAddTraining : undefined}
+          onUpdate={editable ? onUpdateTraining : undefined}
+          onDelete={editable ? onDeleteTraining : undefined}
+          confirmDelete={confirmDelete}
+          pending={editable ? trPending : undefined}
+          onPendingChange={editable ? setTrPending : undefined}
+        />
+      )}
+      <HrRecordListSection {...recordDefs.dependents} items={shownRows('dependents', family.dependents ?? [])} {...recordProps('dependents')} />
+      <HrDocumentsSection
+        title={L.hrDocuments || '증빙서류'}
+        items={editable ? shownRows('documents', docs).map((d) => (d.__pending ? { ...d, fileName: d.file?.name ?? '' } : d)) : docs}
+        docTypeOptions={optionsOf(L.hrDocTypeOptions)}
+        emptyText={L.hrDocumentsEmpty || '첨부된 서류가 없습니다.'}
+        labels={L}
+        onUpload={editable && onUploadDocument
+          ? (arg) => { setRecPending((prev) => ({ ...prev, documents: pendingSave(prev.documents, null, arg) })); return Promise.resolve(); }
+          : undefined}
+        onDownload={onDownloadDocument ? (doc) => onDownloadDocument(memberId, doc) : undefined}
+        onDelete={recordProps('documents').onDelete}
+        confirmDelete={confirmDelete}
+      />
+    </>
+  );
+
+  const body = { person: renderPerson, work: renderWork, comp: renderComp, records: renderRecords }[part];
+  return (
+    <div className="adm-hr-body" data-testid={`hr-inline-${part}`}>
+      {loading ? (
+        <LoadingState>{L.loading || '불러오는 중…'}</LoadingState>
+      ) : error ? (
+        <div style={{ padding: 24, textAlign: 'center', color: T.muted, fontSize: 13 }}>{L.hrProfileError || 'HR 기록을 불러오지 못했습니다.'}</div>
+      ) : body ? body() : null}
+    </div>
+  );
+}
+
 // ── 수료한 교육 과정 (PW-920 재작업 · 코어 §1-3-g 81번) ─────────────────────
 // 한 사람에 여러 건이 쌓인다. 줄마다 고치기·지우기, 아래 한 줄로 추가한다.
 // 실패는 전역 오류 화면으로 튕기지 않고 이 묶음 안에 알린다 — 적던 값이 날아가지 않게.
 const EMPTY_TRAINING = { courseName: '', provider: '', completedAt: '', note: '' };
 
-function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelete, confirmDelete }) {
+/**
+ * `pending`·`onPendingChange` 를 주면(pivit-work PW-2797 구성원 상세 [수정]) 더하기·고치기·지우기를 보내지 않고
+ * 그 버퍼에만 담는다 — 보이는 목록은 불러온 줄 + 버퍼. 보내기는 부모가 페이지 [저장] 때 한다.
+ */
+function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelete, confirmDelete, pending, onPendingChange }) {
+  const deferred = typeof onPendingChange === 'function';
   const L = labels || {};
   const [rows, setRows] = useState(null);
   const [loadError, setLoadError] = useState(false);
@@ -1285,6 +1840,12 @@ function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelet
       completedAt: form.completedAt || null,
       note: form.note.trim() || null,
     };
+    if (deferred) {
+      onPendingChange(pendingSave(pending, editingId, body));
+      setForm(EMPTY_TRAINING);
+      setEditingId(null);
+      return;
+    }
     const ok = await run(() => (editingId ? onUpdate(memberId, editingId, body) : onAdd(memberId, body)));
     if (ok) { setForm(EMPTY_TRAINING); setEditingId(null); }
   };
@@ -1296,7 +1857,7 @@ function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelet
   const cancelEdit = () => { setEditingId(null); setForm(EMPTY_TRAINING); };
 
   const canEdit = Boolean(onAdd);
-  const list = rows ?? [];
+  const list = deferred ? mergePending(rows ?? [], pending) : (rows ?? []);
   return (
     <HrSection title={L.hrTrainings || '수료한 교육 과정'} count={list.length}>
       <div data-testid="hr-trainings">
@@ -1326,7 +1887,12 @@ function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelet
                 )}
                 {canEdit && onDelete && (
                   <button type="button" className="admin-emp-btn is-danger-ghost is-sm" onClick={async () => {
-                    if (confirmDelete && !(await confirmDelete({ kind: 'training', label: r.courseName }))) return;
+                    if (!r.__pending && confirmDelete && !(await confirmDelete({ kind: 'training', label: r.courseName }))) return;
+                    if (deferred) {
+                      onPendingChange(pendingDelete(pending, r.id));
+                      if (editingId === r.id) cancelEdit();
+                      return;
+                    }
                     await run(() => onDelete(memberId, r.id));
                   }} disabled={busy} aria-label={`${L.hrRecordDelete || '지우기'} ${r.courseName}`}>
                     {L.hrRecordDelete || '지우기'}
@@ -1511,7 +2077,8 @@ function HrRecordListSection({
                 )}
                 {onDelete && (
                   <button type="button" className="admin-emp-btn is-danger-ghost is-sm" onClick={async () => {
-                    if (confirmDelete && !(await confirmDelete({ kind, label: nameOf(r) }))) return;
+                    // 아직 안 보낸 줄(PW-2797 수정 중 더한 줄)은 묻지 않고 바로 뺀다
+                    if (!r.__pending && confirmDelete && !(await confirmDelete({ kind, label: nameOf(r) }))) return;
                     await run(() => onDelete(r.id));
                   }} disabled={busy} aria-label={`${L.hrRecordDelete || '지우기'} ${nameOf(r)}`}>
                     {L.hrRecordDelete || '지우기'}
@@ -1620,7 +2187,7 @@ function HrDocumentsSection({
             {list.map((d) => (
               <div key={d.id} data-testid="hr-documents-row" className="adm-hr-card">
                 <span className="adm-hr-card-text">
-                  {onDownload ? (
+                  {onDownload && !d.__pending ? (
                     <button type="button" className="admin-emp-btn" onClick={() => onDownload(d)} style={{ fontSize: 12, padding: 0, border: 'none', background: 'none', color: '#4F46E5', textDecoration: 'underline' }}>
                       {d.fileName}
                     </button>
@@ -1629,7 +2196,7 @@ function HrDocumentsSection({
                 </span>
                 {onDelete && (
                   <button type="button" className="admin-emp-btn is-danger-ghost is-sm" onClick={async () => {
-                    if (confirmDelete && !(await confirmDelete({ kind: 'documents', label: d.fileName }))) return;
+                    if (!d.__pending && confirmDelete && !(await confirmDelete({ kind: 'documents', label: d.fileName }))) return;
                     await run(() => onDelete(d.id));
                   }} disabled={busy} aria-label={`${L.hrRecordDelete || '지우기'} ${d.fileName}`}>
                     {L.hrRecordDelete || '지우기'}
@@ -1696,7 +2263,23 @@ const benefitDraftOf = (b) => ({
   otherBenefits: Array.isArray(b?.otherBenefits) ? b.otherBenefits.map((o) => ({ name: o.name ?? '', value: o.value ?? '' })) : [],
 });
 
-function HrBenefitsSection({ memberId, labels, onLoad, onSave }) {
+/** 저장 본문 — 비운 칸은 null, 이름 없는 기타 줄은 뺀다. */
+const benefitBodyOf = (d) => ({
+  healthInsuranceProvider: d.healthInsuranceProvider.trim() || null,
+  planType: d.planType.trim() || null,
+  pensionContribution: String(d.pensionContribution).replace(/,/g, '').trim() || null,
+  stockOptions: d.stockOptions.trim() || null,
+  otherBenefits: d.otherBenefits
+    .map((o) => ({ name: o.name.trim(), value: o.value.trim() }))
+    .filter((o) => o.name)
+    .map((o) => (o.value ? o : { name: o.name })),
+});
+
+/**
+ * `onDraftChange` 를 주면(pivit-work PW-2797) [복리후생 저장] 버튼 없이, 고친 내용을
+ * `{ body, invalid }`(안 고쳤으면 null)로 부모에게 알리기만 한다 — 보내기는 페이지 [저장] 때.
+ */
+function HrBenefitsSection({ memberId, labels, onLoad, onSave, onDraftChange }) {
   const L = labels || {};
   const [draft, setDraft] = useState(null);
   const [base, setBase] = useState(null);
@@ -1723,18 +2306,15 @@ function HrBenefitsSection({ memberId, labels, onLoad, onSave }) {
   const dirty = draft !== null && JSON.stringify(draft) !== JSON.stringify(base);
   const pensionBad = d.pensionContribution !== '' && !isMoneyCellText(d.pensionContribution);
 
+  /* 미뤄 보내기 — 고친 내용을 글자로 견줘 바뀔 때만 알린다(같은 값으로 부모를 거듭 깨우지 않게) */
+  const reportJson = JSON.stringify(dirty ? { body: benefitBodyOf(d), invalid: pensionBad } : null);
+  useEffect(() => {
+    if (onDraftChange) onDraftChange(JSON.parse(reportJson));
+  }, [onDraftChange, reportJson]);
+
   const save = () => {
     setState('saving');
-    const body = {
-      healthInsuranceProvider: d.healthInsuranceProvider.trim() || null,
-      planType: d.planType.trim() || null,
-      pensionContribution: String(d.pensionContribution).replace(/,/g, '').trim() || null,
-      stockOptions: d.stockOptions.trim() || null,
-      otherBenefits: d.otherBenefits
-        .map((o) => ({ name: o.name.trim(), value: o.value.trim() }))
-        .filter((o) => o.name)
-        .map((o) => (o.value ? o : { name: o.name })),
-    };
+    const body = benefitBodyOf(d);
     Promise.resolve(onSave(memberId, body))
       .then((saved) => {
         const next = benefitDraftOf(saved ?? body);
@@ -1764,8 +2344,8 @@ function HrBenefitsSection({ memberId, labels, onLoad, onSave }) {
         ) : (
           <HrAddCard
             error={state === 'error' ? (L.hrRecordSaveError || '저장하지 못했습니다. 잠시 후 다시 시도해 주세요.') : null}
-            status={state === 'saved' ? <span className="adm-hr-add-saved" role="status">{L.hrIdentitySaved || '저장됐습니다'}</span> : null}
-            actions={
+            status={!onDraftChange && state === 'saved' ? <span className="adm-hr-add-saved" role="status">{L.hrIdentitySaved || '저장됐습니다'}</span> : null}
+            actions={onDraftChange ? null : (
               <Button
                 variant="primary"
                 data-testid="hr-benefits-save"
@@ -1774,7 +2354,7 @@ function HrBenefitsSection({ memberId, labels, onLoad, onSave }) {
               >
                 {state === 'saving' ? (L.hrIdentitySaving || '저장 중…') : (L.hrBenefitsSave || '복리후생 저장')}
               </Button>
-            }
+            )}
           >
             <HrEditPair card k={L.hrHealthInsuranceProvider || '건강 보험 제공사'} value={d.healthInsuranceProvider} onChange={set('healthInsuranceProvider')} />
             <HrEditPair card k={L.hrInsurancePlanType || '보험 플랜 유형'} value={d.planType} onChange={set('planType')} />
@@ -1869,8 +2449,15 @@ const localToday = () => {
  * 보상은 원화 하나다(pivit-work PW-2624 · 커트 11-10) — 통화 고르기 칸과 통화 열이 없다. 새 줄은
  * `defaultCurrency`(안 주면 KRW)로 저장하고, 통화가 비어 있는 옛 줄도 이 통화로 센다.
  */
-export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDelete, onClose, onSalarySynced, confirmDelete, defaultCurrency = 'KRW' }) {
+/**
+ * 구성원 상세 페이지(pivit-work PW-2797)용 선택 손잡이:
+ * - `readOnly` — 고치기·지우기·추가 칸 없이 보기만 하고, «추가 · 삭제는 [수정]에서» 한 줄을 둔다.
+ * - `pending` + `onPendingChange(next)` — 더하기·고치기·지우기를 보내지 않고 `{ adds, updates, deletes }` 버퍼에만 담는다
+ *   (보이는 표 = 불러온 줄 + 버퍼). 보내기는 `flushSalaryPending`. 표가 바뀌면 오늘의 현재 연봉을 `onSalarySynced` 로 알린다.
+ */
+export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDelete, onClose, onSalarySynced, confirmDelete, defaultCurrency = 'KRW', readOnly = false, pending, onPendingChange }) {
   const L = labels || {};
+  const deferred = typeof onPendingChange === 'function';
   const EMPTY_COMP_FORM = emptyCompForm(defaultCurrency);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -1913,7 +2500,8 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
 
   const typeOf = (h) => h.compensationType || 'salary';
   const typeLabel = (t) => (L.compTypeLabels && L.compTypeLabels[t]) || COMP_TYPE_DEFAULT_LABEL[t] || t;
-  const sorted = [...history].sort((a, b) => String(a.effectiveDate).localeCompare(String(b.effectiveDate)));
+  const shown = deferred ? mergePending(history, pending) : history;
+  const sorted = [...shown].sort((a, b) => String(a.effectiveDate).localeCompare(String(b.effectiveDate)));
   // 「현재」는 연봉 줄에만 붙는다 — 수당·계약이 뒤에 쌓여도 현재 연봉은 연봉 줄이다.
   // 그리고 **오늘까지 적용된** 줄에만 붙는다 (W69) — 다음 달 인상분을 미리 넣어도 오늘의
   // 현재 연봉은 그대로다(서버의 현재 연봉 계산과 같다 · W51).
@@ -1936,7 +2524,20 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
     if (t) t.sum += n;
     else totals.push({ currency: c, sum: n });
   }
-  const canEditRow = (h) => typeOf(h) !== 'salary' && h.id;
+  // 안 보낸 줄은 연봉이어도 고치고 뺄 수 있다 — 아직 서버에 쌓이지 않았다(PW-2797)
+  const canEditRow = (h) => !readOnly && (h.__pending || (typeOf(h) !== 'salary' && h.id));
+
+  /* 미뤄 보내기 — 표가 바뀌어 오늘의 현재 연봉이 달라지면 부모(페이지 초안)에 알린다. 처음 불러온 값은 기준으로만 둔다. */
+  const syncKey = loading || !deferred ? null : JSON.stringify([currentSalary?.amount ?? null, currentSalary?.currency ?? null]);
+  const syncedRef = useRef(null);
+  useEffect(() => {
+    if (syncKey == null) return;
+    if (syncedRef.current == null) { syncedRef.current = syncKey; return; }
+    if (syncedRef.current === syncKey) return;
+    syncedRef.current = syncKey;
+    const [amount, currency] = JSON.parse(syncKey);
+    onSalarySynced?.(amount, currency);
+  }, [syncKey, onSalarySynced]);
 
   async function submit() {
     if (!canSubmit) return;
@@ -1950,6 +2551,13 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
       currency: form.currency || defaultCurrency,
       ...(form.reason ? { reason: form.reason } : {}),
     };
+    if (deferred) {
+      onPendingChange(pendingSave(pending, editingId, body));
+      setForm(EMPTY_COMP_FORM);
+      setEditingId(null);
+      setBusy(false);
+      return;
+    }
     try {
       const res = editingId ? await onUpdate(row.id, editingId, body) : await onAdd(row.id, body);
       if (res?.history) setHistory(res.history);
@@ -1968,7 +2576,12 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
 
   async function remove(h) {
     // 지우기 전에 묻는다 (PW-942) — 보상 기록은 되돌릴 길이 없다.
-    if (confirmDelete && !(await confirmDelete({ kind: 'salary', label: typeLabel(typeOf(h)) }))) return;
+    if (!h.__pending && confirmDelete && !(await confirmDelete({ kind: 'salary', label: typeLabel(typeOf(h)) }))) return;
+    if (deferred) {
+      onPendingChange(pendingDelete(pending, h.id));
+      if (editingId === h.id) { setEditingId(null); setForm(EMPTY_COMP_FORM); }
+      return;
+    }
     setBusy(true);
     setAddError(false);
     try {
@@ -1998,7 +2611,8 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
     });
   }
 
-  const withActions = Boolean(onUpdate || onDelete);
+  const withActions = !readOnly && Boolean(deferred || onUpdate || onDelete);
+  const canAdd = !readOnly && Boolean(deferred || onAdd);
   // 금액 칸은 칸을 떠난 뒤 천 단위 쉼표로 보인다 — 적는 동안은 적은 그대로라 커서가 튀지 않는다.
   // 값(form.amount)은 적은 그대로 두므로 보내는 값·판정은 바뀌지 않는다 (pivit-work PW-2693).
   const amountShown = amountGrouped ? groupThousands(form.amount) : form.amount;
@@ -2110,12 +2724,12 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
                   render: (h) =>
                     canEditRow(h) ? (
                       <span className="admin-emp-sal-row-actions">
-                        {onUpdate && (
+                        {(deferred || onUpdate) && (
                           <Button variant="ghost" size="sm" data-testid="comp-row-edit" onClick={() => startEdit(h)} disabled={busy}>
                             {L.hrRecordEdit || '고치기'}
                           </Button>
                         )}
-                        {onDelete && (
+                        {(deferred || onDelete) && (
                           <Button variant="ghost" size="sm" data-testid="comp-row-delete" onClick={() => remove(h)} disabled={busy}>
                             {L.hrRecordDelete || '지우기'}
                           </Button>
@@ -2139,7 +2753,12 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
         </div>
       )}
 
-      {onAdd && (
+      {readOnly && (
+        <div className="admin-emp-sal-note" data-testid="salary-history-readonly-hint">
+          {L.recordsEditHint || '추가 · 삭제는 [수정]에서 할 수 있어요'}
+        </div>
+      )}
+      {canAdd && (
         <section className="admin-emp-sal-add" aria-labelledby="sal-hist-add-title">
           <h3 className="admin-emp-sal-add-title" id="sal-hist-add-title">
             {editingId ? (L.salaryHistEditTitle || '보상 이력 고치기') : (L.salaryHistAdd || '보상 이력 추가')}

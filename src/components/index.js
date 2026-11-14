@@ -365,7 +365,7 @@ export {
   offboardingCanRun,
 } from './admin/index.js';
 /* ⛔ `AdminEmployeeSheetCanvas` 폐기 (PW-576). 기록 창 셋만 살아남았다 — 아래. */
-export { HrProfileModal, SalaryHistoryModal, CeoConfirmModal } from './admin/index.js';
+export { HrProfileModal, HrProfileInline, SalaryHistoryModal, flushSalaryPending, CeoConfirmModal } from './admin/index.js';
 export { OrgTreePicker, OrgPathLabel } from './admin/index.js';
 export { SquadPicker, SquadCell, SQUAD_GROUPS, isVisibleSquadStatus } from './admin/index.js';
 export {
