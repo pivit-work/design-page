@@ -3,7 +3,7 @@
  *
  * 칸 = 서버 `GET /eval-cycles/:id/leader-assignments` 의 `rows[].cells[]` 한 칸
  *   `{ id, round, evaluatorId, evaluatorName, recommendedEvaluatorId, recommendedName, origin, skipped,
- *      state: 'waiting_prev'|'open'|'in_progress'|'submitted'|'skipped', submittedAt, resigned }`
+ *      state: 'not_started'|'waiting_prev'|'open'|'in_progress'|'submitted'|'skipped', submittedAt, resigned }`
  *
  * 🔴 열림(state)은 서버만 정한다 — 화면이 아래 차수 제출 여부로 다시 재지 않는다(§5.13.6 「서버 판정」).
  */
@@ -34,6 +34,8 @@ export function liveCellBadge(cell) {
   if (!cell || isLiveCellSkipped(cell)) return null;
   if (cell.state === 'submitted') return { key: 'liveSubmitted', tone: 'tone-success' };
   if (cell.resigned) return { key: 'liveResigned', tone: 'tone-error' };
+  // PW-2802 · 정책 §5.13.6 — 그 차수 작성 기간 전. 판정 순서 건너뜀 → 퇴사 → 시작 전 → 나머지.
+  if (cell.state === 'not_started') return { key: 'liveNotStarted', tone: 'tone-neutral' };
   if (cell.state === 'waiting_prev') return { key: 'liveWaiting', tone: 'tone-neutral' };
   if (cell.state === 'in_progress') return { key: 'liveInProgress', tone: 'tone-warn' };
   return { key: 'liveOpen', tone: 'tone-info' };
@@ -44,7 +46,7 @@ export function liveCellBadge(cell) {
  *   locked       제출된 칸 — 아무것도 못 한다(툴팁으로 이유)
  *   canEdit      팝오버를 연다(교체·건너뛰기 · 건너뜀 칸은 사람 지정 = 되살리기)
  *   canSkip      이미 건너뛴 칸은 다시 건너뛰지 않는다
- *   canForceOpen 앞 차수 대기 칸만 `앞 차수 없이 열기`
+ *   canForceOpen 앞 차수 대기 칸만 `앞 차수 없이 열기` (시작 전 칸은 아님 — PW-2802)
  *   confirmReplace 작성 중 칸 교체는 임시저장이 넘어가지 않는다는 확인을 거친다
  */
 export function liveCellActions(cell, readOnly = false) {
@@ -67,6 +69,15 @@ export function formatMonthDay(iso) {
   if (Number.isNaN(d.getTime())) return '';
   const p = (n) => String(n).padStart(2, '0');
   return `${p(d.getMonth() + 1)}/${p(d.getDate())}`;
+}
+
+/** `2026-12-01T00:00Z` → `12/01 09:00`(로컬). 못 읽으면 ''. */
+export function formatMonthDayTime(iso) {
+  const md = formatMonthDay(iso);
+  if (!md) return '';
+  const d = new Date(iso);
+  const p = (n) => String(n).padStart(2, '0');
+  return `${md} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
 /** 칸 하나를 id 로 갈아 끼운 새 rows. 바뀐 것이 없으면 같은 배열. */

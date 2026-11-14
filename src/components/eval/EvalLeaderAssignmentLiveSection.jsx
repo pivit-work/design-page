@@ -14,6 +14,7 @@ import { fill } from './evalTemplateItemModel.js';
 import { LEADER_LOAD_LIMIT_DEFAULT, leaderRuleText } from './evalLeaderRounds.js';
 import {
   formatMonthDay,
+  formatMonthDayTime,
   isLiveCellSkipped,
   liveCellActions,
   liveCellBadge,
@@ -47,6 +48,8 @@ const DEFAULT_LABELS = {
   liveColTarget: '대상자',
   liveColRound: '{{round}}차',
   liveSkipped: '건너뜀',
+  liveNotStarted: '시작 전 {{date}}',
+  liveNotStartedTip: '하향 리뷰 {{round}}차가 {{at}}에 시작됩니다. 그 전에는 평가자가 쓸 수 없습니다.',
   liveWaiting: '앞 차수 대기',
   liveOpen: '작성 가능',
   liveInProgress: '작성 중',
@@ -247,6 +250,12 @@ export default function EvalLeaderAssignmentLiveSection({
       setBulkBusy(false);
     }
   };
+  // 배지 글자 — 제출일·시작일을 채우는 배지만 날짜가 붙는다(PW-2802 «시작 전 MM/DD»).
+  const badgeText = (badge, c) => {
+    if (badge.key === 'liveSubmitted') return fill(L.liveSubmitted, { date: formatMonthDay(c.submittedAt) }).trim();
+    if (badge.key === 'liveNotStarted') return fill(L.liveNotStarted, { date: formatMonthDay(c.opensAt) }).trim();
+    return L[badge.key];
+  };
   const evaluatorCellLabel = (c) => {
     const badge = liveCellBadge(c);
     const row = rows.find((r) => r.evaluateeId === c.evaluateeId);
@@ -255,11 +264,7 @@ export default function EvalLeaderAssignmentLiveSection({
         <span className="evc-la-name">{row?.evaluateeName ?? ''}</span>
         <StatusBadge className="evc-type-badge">{fill(L.leaderEvCellRound, { round: c.round })}</StatusBadge>
         {badge && (
-          <StatusBadge className={`evc-status-badge ${badge.tone}`}>
-            {badge.key === 'liveSubmitted'
-              ? fill(L.liveSubmitted, { date: formatMonthDay(c.submittedAt) }).trim()
-              : L[badge.key]}
-          </StatusBadge>
+          <StatusBadge className={`evc-status-badge ${badge.tone}`}>{badgeText(badge, c)}</StatusBadge>
         )}
       </span>
     );
@@ -307,15 +312,22 @@ export default function EvalLeaderAssignmentLiveSection({
           {c.evaluatorName || '—'}
         </span>
         {badge && (
-          <StatusBadge
-            className={`evc-status-badge ${badge.tone}`}
-            data-testid={`evmon-la-badge-${c.id}`}
-            data-state={badge.key}
+          <Tooltip
+            content={
+              badge.key === 'liveNotStarted'
+                ? fill(L.liveNotStartedTip, { round: c.round, at: formatMonthDayTime(c.opensAt) })
+                : undefined
+            }
           >
-            {badge.key === 'liveSubmitted'
-              ? fill(L.liveSubmitted, { date: formatMonthDay(c.submittedAt) }).trim()
-              : L[badge.key]}
-          </StatusBadge>
+            <StatusBadge
+              className={`evc-status-badge ${badge.tone}`}
+              data-testid={`evmon-la-badge-${c.id}`}
+              data-state={badge.key}
+              tabIndex={badge.key === 'liveNotStarted' && !acts.canEdit ? 0 : undefined}
+            >
+              {badgeText(badge, c)}
+            </StatusBadge>
+          </Tooltip>
         )}
         {acts.locked && !readOnly && (
           <span className="evc-la-hint" aria-hidden="true">
