@@ -348,7 +348,7 @@ const DEFAULT_LABELS = {
   cwAppealFromTo: '근거 확정 등급',
   cwAppealRaisedBy: '제출 매니저',
   cwAppealRaisedSuffix: '어필',
-  // pivit-work PW-2636 · spec-calibration §7.5.1 — 인박스 출처 딱지. 구성원 이의는 제출 매니저 자리에 «피평가자 본인 · HR 전달».
+  // pivit-work PW-2636 · spec-calibration §7.5.1 — 인박스 출처 딱지. 구성원 이의는 제출 매니저 자리에 «피평가자 본인»(§7.5.5 · 2026-11-14).
   cwAppealSourceManager: '매니저 어필',
   cwAppealSourceMember: '구성원 이의',
   // PW-2636 · 2026-11-14 David 결정(spec-calibration §7.5.5) — 인사 담당자가 올리지 않는다: «피평가자 본인» + 접수 시각 + 답변 기한.
@@ -1122,7 +1122,7 @@ function AppealSourceBadge({ source, L }) {
   );
 }
 
-/** 이의를 올린 사람 글자 — 구성원 이의면 HR 이름 대신 «피평가자 본인 · HR 전달». */
+/** 이의를 올린 사람 글자 — 구성원 이의면 «피평가자 본인»(§7.5.5 · 2026-11-14). */
 function appealRaiserText(a, L) {
   return a.source === 'member_objection' ? L.cwAppealMemberRaisedBy : a.raisedByName;
 }
