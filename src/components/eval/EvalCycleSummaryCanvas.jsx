@@ -274,8 +274,9 @@ const DEFAULT_LABELS = {
   cwLogRoles: { leader: '조직장', calibration_chair: '위원장', committee: '위원', hr: 'HR' },
   cwDistRec: '권장 {pct}%',
   cwDistNote: '권장 비율은 정규분포 근사 참고 가이드이며 상대평가를 강제하지 않습니다.',
-  cwDistNoGrade: '등급 없음',
-  cwDistNoGradeBar: '등급 없음 {n}명 ({pct}%)',
+  cwDistNoGradeBar: '미제출 {n}명 · 비율에 넣지 않음',
+  cwDistBasis: '등급이 정해진 {m}명 기준',
+  cwDistBasisPending: '미제출 {n}명 제외',
   cwFilterBtn: '필터',
   cwFilterTitle: '대상자 선별 필터',
   cwFilterDesc: '메타데이터(조직·등급·직무·승진)를 조합해 대상자를 선별합니다. 같은 항목의 여러 값은 OR, 특정 조건은 제외할 수 있습니다.',
@@ -504,10 +505,11 @@ const DEFAULT_LABELS = {
   cwCompToastTitle: '보상 열람 권한을 가진 사람이 없습니다',
   cwCompToastDetail: '지정하기 전까지 모든 위원에게 보상 정보가 가려집니다.',
   cwDistSegTip: '{label} {n}명 · {pct}%',
-  cwDistRatio: '{pct}% · 권장 {rec}%',
   cwDistPct: '{pct}%',
   cwDistOverRec: '권장보다 {p}%p 많음',
   cwDistUnderRec: '권장보다 {p}%p 적음',
+  cwDistSameRec: '권장과 같음',
+  distBasisInfo: '등급 분포의 미제출은 아직 최종 등급이 없는 사람입니다. 제출 완료율의 미제출은 써야 할 리뷰가 하나라도 남은 사람이라 수가 다를 수 있습니다.',
   cwLevelMixShort: '직급 {n}개 섞임',
   // summary policy §10.G.2-D — 위원 관리 창 안의 위원장 부재 배너(이름 포함).
   cwManageChairAutoNamed: '위원장이 자동 지정되었습니다({name}). 변경하려면 이양하세요',
@@ -2166,11 +2168,10 @@ function distributionHue(index, total) {
 }
 
 /**
- * §4.1 등급 분포 · §4.5 레벨 구성 (PW-1928) — 테두리 상자 없이 머리 한 줄 + 높이 12 쌓은 막대 + 한 줄 범례.
- * 막대는 OKR 내 리소스의 쌓은 막대(.rsx-stackbar), 빨간 알약은 같은 화면의 「초과」 알약(.rsx-total-warn),
- * 직급 경고 세모는 팀 스니핏 KR별 탭의 경고 세모를 따른다.
- * 비율·권장(%)과 직급별 인원은 기획서가 «늘 보이게» 정해 두어 회색 글로 남긴다 — 말풍선으로 옮길지는
- * PW-1929 에서 기획 답을 기다린다.
+ * §4.1 등급 분포 · §4.5 레벨 구성 (PW-1928) — 테두리 상자 없이 머리 한 줄 + 높이 12 쌓은 막대 + 등급 칸.
+ * 막대는 OKR 내 리소스의 쌓은 막대(.rsx-stackbar), 직급 경고 세모는 팀 스니핏 KR별 탭의 경고 세모를 따른다.
+ * PW-2787(David 2026-11-14) — 칸은 대시보드 등급 칸(GradeDistCells)과 같은 모양, 인원·비율·권장·차이를 늘 보인다
+ * (위원회는 화면 공유로 진행해 말풍선 숫자는 참석자가 못 본다 · PW-1929 의 «말풍선으로만»은 이 결정으로 바뀜).
  */
 function CalibDistributionBar({ rows, orderedGrades, L, total = rows.length, filterActive = false, levelMix = null }) {
   const n = rows.length;
@@ -2181,9 +2182,11 @@ function CalibDistributionBar({ rows, orderedGrades, L, total = rows.length, fil
       (r) => (r.calibratedGradeKey ?? r.currentGradeKey) === g.gradeKey,
     ).length,
   }));
+  // PW-2787 — 비율·권장 대비 차이의 분모는 등급이 정해진 사람(M). 미제출(N)은 머리 문구와 막대 끝 회색 조각으로만 센다
+  // (미제출을 넣으면 모든 등급이 함께 내려가 «권장보다 적음»이 거짓으로 뜬다 · spec-calibration §4.1 PW-2787 덧붙임).
   const graded = seg.reduce((sum, g) => sum + g.count, 0);
   const noGrade = n - graded;
-  const pct = (c) => (n ? Math.round((c / n) * 1000) / 10 : 0);
+  const pct = (c) => (graded ? Math.round((c / graded) * 1000) / 10 : null);
   const levels = (levelMix?.entries ?? []).filter((e) => e.key != null);
   return (
     <div className="evs-cw-dist" data-testid="evs-cw-dist">
@@ -2192,6 +2195,13 @@ function CalibDistributionBar({ rows, orderedGrades, L, total = rows.length, fil
         <span className="evs-cw-dist-count" data-testid="evs-cw-dist-count">
           {filterActive ? fmt(L.cwDistFiltered, { n, total }) : fmt(L.cwDistAll, { n })}
         </span>
+        {n > 0 && (
+          <span className="evs-cw-dist-basis" data-testid="evs-cw-dist-basis">
+            {'· '}
+            {fmt(L.cwDistBasis, { m: graded })}
+            {noGrade > 0 && <>{' · '}{fmt(L.cwDistBasisPending, { n: noGrade })}</>}
+          </span>
+        )}
         <Tooltip content={L.cwDistNote}>
           <span
             className="evs-cw-dist-info"
@@ -2244,7 +2254,7 @@ function CalibDistributionBar({ rows, orderedGrades, L, total = rows.length, fil
             ) : null,
           )}
           {noGrade > 0 && (
-            <Tooltip content={fmt(L.cwDistNoGradeBar, { n: noGrade, pct: pct(noGrade) })}>
+            <Tooltip content={fmt(L.cwDistNoGradeBar, { n: noGrade })}>
               <div
                 className="evs-cw-dist-seg is-nograde"
                 style={{ flexGrow: noGrade }}
@@ -2254,50 +2264,35 @@ function CalibDistributionBar({ rows, orderedGrades, L, total = rows.length, fil
           )}
         </div>
       )}
-      <div className="evs-cw-dist-legend">
+      {/* PW-2787 — 칩·빨간 알약 대신 등급마다 칸 하나(대시보드 등급 칸 .evs-gd-cell 과 같은 모양). 인원·비율·권장·차이를
+          늘 보이고 ±10%p 이상 벗어난 칸만 차이 줄이 빨간 글자. 등급이 정해진 사람이 0명이면 비율·차이는 «—». */}
+      <div className="evs-gd-cells" data-testid="evs-cw-dist-cells">
         {seg.map((g) => {
           const p = pct(g.count);
           const rec = g.recommendedPct;
-          const delta = rec == null ? 0 : Math.round((p - rec) * 10) / 10;
-          const off = Math.abs(delta) >= 10;
+          const delta = rec == null || p == null ? null : Math.round((p - rec) * 10) / 10;
+          const off = delta != null && Math.abs(delta) >= 10;
+          const gap = delta == null ? null : Math.round(Math.abs(delta));
           return (
-            <span
-              key={g.gradeKey}
-              className={`evs-cw-dist-item${g.count === 0 ? ' is-zero' : ''}`}
-              data-testid="evs-cw-dist-chip"
-            >
-              <span className={`evs-cw-dist-dot hue-${g.hue}`} />
-              <span className="evs-cw-dist-item-label">{g.label}</span>
-              <b className="evs-cw-dist-item-count">{g.count}</b>
-              {/* §4.1 — 비율은 늘 보인다. 권장이 있는 템플릿이면 권장과 차이를 붙인다. */}
-              <span className="evs-cw-dist-ratio">
-                {rec != null ? fmt(L.cwDistRatio, { pct: p, rec }) : fmt(L.cwDistPct, { pct: p })}
-                {rec != null && (
-                  <>
-                    {!off && delta !== 0 && (
-                      <span className="evs-cw-dist-delta">
-                        {delta > 0 ? ' ▲' : ' ▼'}
-                        {Math.abs(delta)}p
-                      </span>
-                    )}
-                  </>
-                )}
+            <div className="evs-gd-cell" key={g.gradeKey} data-testid="evs-cw-dist-cell">
+              <span className={`evs-gd-name evs-cw-dist-name hue-${g.hue}`}>{g.label}</span>
+              <span className="evs-gd-value">
+                {fmt(L.gdCount, { n: g.count })}
+                <small>{p == null ? '—' : fmt(L.cwDistPct, { pct: p })}</small>
               </span>
-              {off && (
-                <span className="evs-cw-dist-off" data-testid="evs-cw-dist-off">
-                  {fmt(delta > 0 ? L.cwDistOverRec : L.cwDistUnderRec, { p: Math.round(Math.abs(delta)) })}
+              {rec != null && <span className="evs-gd-guide">{fmt(L.cwDistRec, { pct: rec })}</span>}
+              {rec != null && (
+                <span className={`evs-gd-dev${off ? ' is-off' : ''}`} data-testid="evs-cw-dist-dev">
+                  {gap == null
+                    ? '—'
+                    : gap === 0
+                      ? L.cwDistSameRec
+                      : fmt(delta > 0 ? L.cwDistOverRec : L.cwDistUnderRec, { p: gap })}
                 </span>
               )}
-            </span>
+            </div>
           );
         })}
-        {noGrade > 0 && (
-          <span className="evs-cw-dist-item is-nograde" data-testid="evs-cw-dist-chip-nograde">
-            <span className="evs-cw-dist-dot is-nograde" />
-            <span className="evs-cw-dist-item-label">{L.cwDistNoGrade}</span>
-            <b className="evs-cw-dist-item-count">{noGrade}</b>
-          </span>
-        )}
       </div>
     </div>
   );
@@ -3463,6 +3458,8 @@ export default function EvalCycleSummaryCanvas({
   const prevPctByKey = new Map((previousCycle?.gradeDistribution ?? []).map((d) => [d.gradeKey, d.pct]));
   // PW-1047 ③ 막대 길이는 «전체 대비 %» — 가이드 점선·지난 평가 눈금과 같은 자로 잰다.
   const distTotal = gradeDistribution.reduce((n, d) => n + (d.count ?? 0), 0);
+  // PW-2787 — 등급 분포의 미제출 = 평가 대상 − 최종 등급이 정해진 사람(본인 제외 규칙은 서버가 두 수에 똑같이 건다).
+  const distPendingN = Math.max(0, totalParticipants - distTotal);
   const distPct = (d) => (d.pct != null ? d.pct : distTotal > 0 ? Math.round((100 * (d.count ?? 0)) / distTotal) : 0);
   const hasDistGuide = gradeDistribution.some((d) => d.guidelinePct != null);
   // 지난 평가보다 5%p 이상 움직인 등급만 범례에 적는다 — 전부 적으면 눈금을 보는 이유가 없어진다.
@@ -3959,7 +3956,20 @@ export default function EvalCycleSummaryCanvas({
             <section className="evc-card evs-ov-card" data-testid="evs-dist-card">
               {/* PW-2691 — 범례(지난 평가 눈금·가이드라인)는 제목 줄 오른쪽, 결론 문장만 아래 구분선 밑 */}
               <div className="evs-ov-head">
-                <h3 className="evc-card-name">{L.distributionTitle}</h3>
+                <div className="evs-ov-title-stack">
+                  <h3 className="evc-card-name">{L.distributionTitle}</h3>
+                  {/* PW-2787 — 비율은 최종 등급이 정해진 M명으로 나눈다(서버 pct). 몇 명 기준인지·미제출 몇 명을 뺐는지 제목 아래에.
+                      이 미제출(최종 등급 없음)이 제출 완료율 카드의 미제출(리뷰가 남은 사람)과 다르면 ⓘ 로 왜 다른지 말한다. */}
+                  {gradeDistribution.length > 0 && totalParticipants > 0 && (
+                    <p className="evs-dist-basis" data-testid="evs-dist-basis">
+                      {fmt(L.cwDistBasis, { m: distTotal })}
+                      {distPendingN > 0 && <>{' · '}{fmt(L.cwDistBasisPending, { n: distPendingN })}</>}
+                      {distPendingN > 0 && distPendingN !== unfinishedCount && (
+                        <>{' '}<span data-testid="evs-dist-basis-info"><FieldInfo description={L.distBasisInfo} /></span></>
+                      )}
+                    </p>
+                  )}
+                </div>
                 {gradeDistribution.length > 0 && (
                   <>
                     {(hasDistGuide || distMovers.length > 0) && (

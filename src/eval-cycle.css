@@ -5481,6 +5481,20 @@ button.evm-ai-source {
   flex: 1;
   min-width: 0;
 }
+/* PW-2787 — 제목 아래 «등급이 정해진 M명 기준» 한 줄. 줄 사이는 칸 안 줄 간격(.evs-gd-cell gap xxs)과 같게. */
+.evs-ov-title-stack {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+}
+.evs-dist-basis {
+  margin: 0;
+  font-size: var(--font-size-text-xs);
+  line-height: 18px;
+  color: var(--text-tertiary);
+}
 .evs-ov-search {
   width: 240px;
   flex-shrink: 0;
@@ -8997,67 +9011,17 @@ button.evm-ai-source {
 .evs-cw-dist-seg.hue-red {
   background: var(--utility-error-200);
 }
-.evs-cw-dist-dot.hue-green {
-  background: var(--utility-green-500);
-}
-.evs-cw-dist-dot.hue-sky {
-  background: var(--utility-blue-light-400);
-}
-.evs-cw-dist-dot.hue-blue {
-  background: var(--utility-blue-500);
-}
-.evs-cw-dist-dot.hue-indigo {
-  background: var(--utility-indigo-500);
-}
-.evs-cw-dist-dot.hue-purple {
-  background: var(--utility-purple-500);
-}
-.evs-cw-dist-dot.hue-orange {
-  background: var(--utility-orange-500);
-}
-.evs-cw-dist-dot.hue-red {
-  background: var(--utility-error-500);
-}
-/* 등급 없는 사람 — 회색 빗금 */
+/* PW-2787 — 등급 칸 이름은 막대 조각과 같은 계열 진한 색(대시보드 칸 .evs-gd-name 의 «막대 200 · 글자 600» 규칙). */
+.evs-cw-dist-name.hue-green { color: var(--utility-success-600); }
+.evs-cw-dist-name.hue-sky { color: var(--utility-blue-light-600); }
+.evs-cw-dist-name.hue-blue { color: var(--utility-blue-600); }
+.evs-cw-dist-name.hue-indigo { color: var(--componentColors-utility-indigo-utilityIndigo600); }
+.evs-cw-dist-name.hue-purple { color: var(--utility-purple-600); }
+.evs-cw-dist-name.hue-orange { color: var(--utility-orange-600); }
+.evs-cw-dist-name.hue-red { color: var(--utility-error-600); }
+/* 미제출 — 회색 조각(비율에 넣지 않음 · PW-2787) */
 .evs-cw-dist-seg.is-nograde {
   background: var(--utility-gray-200);
-}
-/* PW-1928 — 칩 대신 한 줄 범례. */
-.evs-cw-dist-legend {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-.evs-cw-dist-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  line-height: 18px;
-}
-.evs-cw-dist-item-label {
-  font-weight: 500;
-  color: var(--text-secondary);
-}
-.evs-cw-dist-item-count {
-  font-weight: 700;
-  color: var(--text-primary);
-}
-/* 비율·권장은 기획서가 늘 보이게 정해 두어 한 단계 약한 회색 글로 남긴다(PW-1929 답 대기). */
-.evs-cw-dist-ratio {
-  font-weight: 400;
-  color: var(--text-tertiary);
-}
-/* 권장에서 10%p 넘게 벗어난 등급 — OKR 내 리소스의 「초과」 알약(.rsx-total-warn) 값 그대로. */
-.evs-cw-dist-off {
-  padding: 2px 8px;
-  border-radius: 6px;
-  background: var(--utility-error-50);
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 18px;
-  color: var(--text-error-primary);
 }
 /* 직급 섞임 경고 — 팀 스니핏 KR별 탭의 빨간 경고 세모. */
 .evs-cw-dist-levelwarn {
@@ -9073,24 +9037,12 @@ button.evm-ai-source {
 .evs-cw-dist-levelwarn svg {
   color: var(--utility-error-500);
 }
-.evs-cw-dist-levels {
+.evs-cw-dist-levels,
+.evs-cw-dist-basis {
   font-size: 12px;
   font-weight: 400;
   line-height: 18px;
   color: var(--text-tertiary);
-}
-.evs-cw-dist-dot {
-  width: 9px;
-  height: 9px;
-  border-radius: 3px;
-  flex-shrink: 0;
-}
-.evs-cw-dist-dot.is-nograde {
-  background: var(--utility-gray-200);
-}
-.evs-cw-dist-delta {
-  margin-left: 3px;
-  font-weight: 700;
 }
 
 /* §6.3 R4 대상자 선별 필터 */
