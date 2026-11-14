@@ -17,6 +17,7 @@ import ConfirmModal from '../shared/ConfirmModal.jsx';
  * 값은 호스트가 준다: `state = { isAdmin, enabled, account, calendarId, calendarName, status, calendars, busy }`
  *   calendars = `{ state: 'idle'|'loading'|'error'|'ready', items: [{ id, name, primary }] }`
  *   busy = 'connect' | 'change' | 'reconnect' | 'save' | null — 구글 창이 떠 있거나 저장 중
+ *   draftOn = 켜기 칸의 저장 전 값(선택) — 주면 `onDraftChange` 로 바꾼다
  */
 export default function AdminIntegrationsLeaveCalendar({
   state,
@@ -26,12 +27,17 @@ export default function AdminIntegrationsLeaveCalendar({
   onSave = () => {},
   onDisconnect = () => {},
   onLoadCalendars = () => {},
+  /** 켜기 칸(저장 전 값)을 호스트가 들고 있을 때 — 구글 창을 다녀와도 켠 채로 남는다. 안 주면 이 칸이 든다. */
+  onDraftChange,
 }) {
   const L = labels;
   const { isAdmin, enabled, account, status, calendars, busy } = state;
   // 켜기 칸은 저장값에서 시작한다 — 켜기는 [저장] 전까지 이 화면에만 있다. 저장값 · 계정이 바뀌면 호스트(캔버스)가
   // key 로 다시 그려 처음 값으로 돌아온다.
-  const [on, setOn] = useState(enabled);
+  const [ownOn, setOwnOn] = useState(enabled);
+  const controlled = typeof state.draftOn === 'boolean';
+  const on = controlled ? state.draftOn : ownOn;
+  const setOn = (next) => (controlled ? onDraftChange?.(next) : setOwnOn(next));
   const [picked, setPicked] = useState(state.calendarId ?? '');
   const [confirmOff, setConfirmOff] = useState(false);
 
@@ -123,9 +129,9 @@ export default function AdminIntegrationsLeaveCalendar({
               aria-label={L.calendar}
               disabled={calendars.state !== 'ready'}
               onChange={(e) => setPicked(e.target.value)}
+              placeholder={calendars.state === 'ready' ? L.pickCalendar : L.loading}
               data-testid="intg-leave-calendar-select"
             >
-              <option value="">{calendars.state === 'ready' ? L.pickCalendar : L.loading}</option>
               {(calendars.items ?? []).map((c) => (
                 <option key={c.id} value={c.id}>{calendarLabel(c)}</option>
               ))}
