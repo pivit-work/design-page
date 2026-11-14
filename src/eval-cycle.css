@@ -18749,9 +18749,17 @@ button.evmh-phase:focus-visible {
 }
 .evs-gd-cell .evs-cd-over { align-self: flex-start; }
 .evs-gd-dev { white-space: nowrap; }
-/* 칸 글자 폭(여백 뺀 폭)이 140 이하면 «가이드라인보다»를 감춰 «10%p 낮음»만 — 꺾이지 않게(바로 위 줄이 «가이드라인 N%») */
+/* 칸 글자 폭(여백 뺀 폭)이 140 이하면 «가이드라인보다»·«가이드라인과»를 감춰 «10%p 낮음»·«같음»만 — 꺾이지 않게(바로 위 줄이 «가이드라인 N%») */
 @container (max-width: 140px) {
   .evs-gd-dev-pre { display: none; }
+}
+/*
+ * 칸 줄 전체가 좁으면(경영진 반쪽 카드에 등급 5개 — 1440 에서 칸 폭 100) 칸 옆 여백을 12 → 8 로 줄여
+ * «가이드라인 10%»(78px)가 한 줄에 들게 한다. 더 좁으면 «가이드라인» / «10%» 두 줄로 나뉜다(칸끼리 같은 높이).
+ */
+.evs-gd-cells { container: gd-cells / inline-size; }
+@container gd-cells (max-width: 600px) {
+  .evs-gd-cell { padding-left: var(--spacing-md); padding-right: var(--spacing-md); }
 }
 
 /* PW-2786 — 캘리브레이션 위원회 화면: 위원회 하나를 흰 카드(.evc-card) 하나로 묶고 안을 가는 선 세 구역으로.

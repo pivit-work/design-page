@@ -586,7 +586,8 @@ const DEFAULT_LABELS = {
   gdDevPrefix: '가이드라인보다',
   gdOver: '{delta}%p 높음',
   gdUnder: '{delta}%p 낮음',
-  gdSame: '가이드라인과 같음',
+  gdSamePrefix: '가이드라인과',
+  gdSame: '같음',
   prCount: '{n}건',
   prFilterLabel: '승진 요청 상태',
   prFilterAll: '전체',
@@ -2103,7 +2104,12 @@ function GradeDistCells({ grades, L, showDeviation = false, testId }) {
                   className={`evs-gd-dev${Math.abs(d) >= GD_ALERT_PP ? ' is-off' : ''}`}
                   data-testid="evs-gd-dev"
                 >
-                  {d === 0 ? L.gdSame : (
+                  {d === 0 ? (
+                    <>
+                      <span className="evs-gd-dev-pre">{L.gdSamePrefix} </span>
+                      {L.gdSame}
+                    </>
+                  ) : (
                     <>
                       <span className="evs-gd-dev-pre">{L.gdDevPrefix} </span>
                       {fmt(d > 0 ? L.gdOver : L.gdUnder, { delta: Math.abs(d) })}
