@@ -2902,12 +2902,15 @@ export default function EvalCycleSummaryCanvas({
    * pivit-work PW-2636 · spec-calibration §7.5.5 — 출처 «구성원 이의» 건(`appeal.objection`)의 의견·결정·증빙.
    * onObjectionDecide(appeal, input) · onObjectionOpinion(appeal, body) → Promise · onObjectionDownload(appeal, file).
    * `objectionLabels` 는 공용 칸(`EvalObjectionShared`) 문구, `objectionFmtDate(iso)` 는 날짜 글자. 매니저 어필 건은 상관없다.
+   * `objectionOpinionMaxLength` · `objectionDecisionMaxLength` 는 의견 칸 · 결정 사유/AI 관여 설명 칸 글자 한도(앱이 서버 정본을 넘긴다).
    */
   onObjectionDecide,
   onObjectionOpinion,
   onObjectionDownload,
   objectionLabels,
   objectionFmtDate,
+  objectionOpinionMaxLength,
+  objectionDecisionMaxLength,
   selectedMemberId = null,
   memberDetail = null,
   memberDetailLoading = false,
@@ -5118,6 +5121,7 @@ export default function EvalCycleSummaryCanvas({
                               obj.canOpinion && !obj.decision && !obj.withdrawnAt && obj.status !== 'withdrawn' ? (
                                 <ObjectionOpinionInput
                                   onSubmit={(body) => Promise.resolve(onObjectionOpinion?.(appeal, body))}
+                                  maxLength={objectionOpinionMaxLength}
                                   labels={objectionLabels}
                                 />
                               ) : null
@@ -5199,6 +5203,7 @@ export default function EvalCycleSummaryCanvas({
                             shareCandidates={obj.shareCandidates ?? []}
                             aiSummary={obj.aiSummary ?? null}
                             onSubmit={(input) => Promise.resolve(onObjectionDecide?.(appeal, input))}
+                            maxLength={objectionDecisionMaxLength}
                             labels={objectionLabels}
                           />
                         ) : (

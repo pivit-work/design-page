@@ -25,6 +25,7 @@ import { LEADER_OBJECTION_LABELS, fillObjectionText as fill } from './evalObject
  *   labels     이 블록 문구(`LEADER_OBJECTION_LABELS` 덮기) + `judge`(공용 부품 문구 · `OBJECTION_JUDGE_LABELS` 덮기)
  *   fmtDate(iso)  날짜 글자
  *   onRetry · onOpinion(body)→Promise · onDecide(input)→Promise · onDownload(file)
+ *   opinionMaxLength · decisionMaxLength  의견 칸 · 결정 사유/AI 관여 설명 칸 글자 한도(앱이 서버 정본을 넘긴다)
  */
 
 const PATH_KEY = {
@@ -49,7 +50,7 @@ function DueLine({ view, L, fmtDate }) {
 
 export default function EvalLeaderObjectionBlock({ objection }) {
   if (!objection) return null;
-  const { state, view, onRetry, onOpinion, onDecide, onDownload } = objection;
+  const { state, view, onRetry, onOpinion, onDecide, onDownload, opinionMaxLength, decisionMaxLength } = objection;
   const fmtDate = objection.fmtDate ?? ((iso) => String(iso ?? '').slice(0, 10));
   const { judge: judgeLabels, ...own } = objection.labels ?? {};
   const L = { ...LEADER_OBJECTION_LABELS, ...own };
@@ -123,7 +124,7 @@ export default function EvalLeaderObjectionBlock({ objection }) {
           labels={judgeLabels}
           opinionSlot={
             open && view.canOpinion && onOpinion ? (
-              <ObjectionOpinionInput onSubmit={onOpinion} labels={judgeLabels} />
+              <ObjectionOpinionInput onSubmit={onOpinion} maxLength={opinionMaxLength} labels={judgeLabels} />
             ) : null
           }
         />
@@ -136,6 +137,7 @@ export default function EvalLeaderObjectionBlock({ objection }) {
             shareCandidates={view.shareCandidates}
             aiSummary={view.aiSummary}
             onSubmit={onDecide}
+            maxLength={decisionMaxLength}
             labels={judgeLabels}
           />
         ) : null}
