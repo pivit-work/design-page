@@ -16,6 +16,8 @@ import ProfileFailure from './ProfileFailure.jsx';
  *    `summary` 는 한 줄 칸(날짜 시각·고친 사람·바뀐 섹션)을 카드의 점(•)으로 잇는다.
  *    `chip` 은 줄 오른쪽 끝 알림 칩 — 카드 태그와 같은 둥근 칩 틀, `tone` 은 `success`(알림 보냄) · `neutral`(알림 대기).
  *    열린 줄은 `changes` 를 섹션마다 보인다 — `inline` 이면 «3 → 4» 한 줄, 아니면 수정 전·후를 위아래로.
+ *    `noChangeLabel` 이 있는 줄(그날 고친 섹션을 모두 되돌림)은 바뀐 섹션 자리에 그 글자를 연한 회색으로 두고,
+ *    누를 수 없는 줄로 그린다 — 펼칠 섹션이 없다(기획 매니저 뷰 §6-4-B «기록 한 줄»·«줄을 누르면»).
  *    `beforeLabel`·`afterLabel` 은 위아래 칸 이름표다.
  */
 export default function SnippetEditLog({ log }) {
@@ -39,25 +41,20 @@ export default function SnippetEditLog({ log }) {
         <ul className="profile-snippet-log-list">
           {log.rows.map((row) => (
             <li key={row.key} className="profile-snippet-log-row">
-              <Button
-                className="profile-snippet-log-head"
-                aria-expanded={!!row.open}
-                onClick={() => row.onToggle?.()}
-              >
-                <span className="profile-snippet-log-parts">
-                  {row.summary.map((part, i) => (
-                    <span key={i} className="profile-snippet-point">
-                      <span>{part}</span>
-                      <span className="profile-snippet-dot">•</span>
-                    </span>
-                  ))}
-                </span>
-                {row.chip && (
-                  <StatusBadge tone={row.chip.tone} className="manager-modal-snippet-tag profile-snippet-log-chip">
-                    {row.chip.label}
-                  </StatusBadge>
-                )}
-              </Button>
+              {row.noChangeLabel ? (
+                // 바뀐 섹션이 없는 날(모두 되돌림) — 펼칠 것이 없어 누르는 단추가 아니다(손 모양·펼침 표시 없음)
+                <div className="profile-snippet-log-head is-static">
+                  <RowHead row={row} />
+                </div>
+              ) : (
+                <Button
+                  className="profile-snippet-log-head"
+                  aria-expanded={!!row.open}
+                  onClick={() => row.onToggle?.()}
+                >
+                  <RowHead row={row} />
+                </Button>
+              )}
               {row.open && row.changes && (
                 <div className="profile-snippet-log-changes">
                   {row.changes.map((c) => (
@@ -84,6 +81,33 @@ export default function SnippetEditLog({ log }) {
         </div>
       )}
     </div>
+  );
+}
+
+/** 줄 머리 — 왼쪽 칸(점으로 잇는다) · 오른쪽 끝 알림 칩. */
+function RowHead({ row }) {
+  return (
+    <>
+      <span className="profile-snippet-log-parts">
+        {row.summary.map((part, i) => (
+          <span key={i} className="profile-snippet-point">
+            <span>{part}</span>
+            <span className="profile-snippet-dot">•</span>
+          </span>
+        ))}
+        {row.noChangeLabel && (
+          <span className="profile-snippet-point">
+            <span className="profile-snippet-log-none">{row.noChangeLabel}</span>
+            <span className="profile-snippet-dot">•</span>
+          </span>
+        )}
+      </span>
+      {row.chip && (
+        <StatusBadge tone={row.chip.tone} className="manager-modal-snippet-tag profile-snippet-log-chip">
+          {row.chip.label}
+        </StatusBadge>
+      )}
+    </>
   );
 }
 

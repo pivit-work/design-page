@@ -930,6 +930,16 @@
   gap: var(--spacing-md);
 }
 /* 줄의 칸들(날짜 시각 · 고친 사람 · 바뀐 섹션) — 좁으면 왼쪽부터 접힌다. */
+/* 바뀐 섹션이 없는 줄 — 단추가 아니라 줄이라 단추 글자 칸(.dp-btn__label)의 배치를 직접 둔다 */
+.profile-snippet-log-head.is-static {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-md);
+  cursor: default;
+}
+/* «바뀐 내용 없음» — 같은 창의 «값 없음» 글자(.profile-stat-value.is-absent)와 같은 연한 회색 */
+.profile-snippet-log-none { color: var(--text-tertiary); }
 .profile-snippet-log-parts {
   display: flex;
   flex-wrap: wrap;
