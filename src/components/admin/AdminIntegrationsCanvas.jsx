@@ -21,6 +21,8 @@ import {
 } from './AdminIntegrationsCatalog.jsx';
 import Select from '../shared/Select.jsx';
 import Button from '../shared/Button.jsx';
+import AdminIntegrationsLeaveCalendar from './AdminIntegrationsLeaveCalendar.jsx';
+import { LEAVE_CALENDAR_DEFAULT_LABELS } from './adminIntegrationsLeaveCalendarLabels.js';
 
 /**
  * AdminIntegrationsCanvas — 어드민 "연동(Integrations)" 탭 Pure 컴포넌트.
@@ -819,7 +821,7 @@ function SyncLogTable({ logs, labels, onRetrySyncLog }) {
           header: null,
           align: 'center',
           headerProps: { 'aria-hidden': true },
-          render: (log) => log.status === 'failed' && onRetrySyncLog && (
+          render: (log) => log.status === 'failed' && log.retryable !== false && onRetrySyncLog && (
             <Button
               variant="secondary"
               size="sm"
@@ -1219,6 +1221,12 @@ export default function AdminIntegrationsCanvas({
   showEmptyBanner = false,
   /** 하단 데이터 수집 현황 행(integrations-spec §5). `null` 이면 구역을 그리지 않는다. */
   collectionStatus = null,
+  /**
+   * «휴가 캘린더 기록» 칸(pivit-work PW-2791 · 연동 정책 §4-C-2) — 서비스 카드 아래. `null` 이면 그리지 않는다
+   * (휴가 패키지가 꺼졌거나 Google Calendar 가 꺼진 회사). `{ state, onTurnOff, onConnect, onSave, onDisconnect, onLoadCalendars }`
+   * — 모양은 AdminIntegrationsLeaveCalendar.jsx 머리 주석. 문구는 `labels.leaveCalendar`.
+   */
+  leaveCalendar = null,
   labels: providedLabels,
   baseUrl = '',
   onTabChange,
@@ -1387,6 +1395,14 @@ export default function AdminIntegrationsCanvas({
               />
             ))}
           </div>
+
+          {leaveCalendar && (
+            <AdminIntegrationsLeaveCalendar
+              key={`${leaveCalendar.state.enabled}:${leaveCalendar.state.account ?? ''}:${leaveCalendar.state.calendarId ?? ''}`}
+              {...leaveCalendar}
+              labels={{ ...LEAVE_CALENDAR_DEFAULT_LABELS, ...labels.leaveCalendar }}
+            />
+          )}
 
           {transfer && (
             <SlackTransferPanel

@@ -1,0 +1,25 @@
+/** 기본 문구 — 시안 `LeaveCalendarBlock` 그대로. 앱은 ko.json 값으로 덮는다. */
+export const LEAVE_CALENDAR_DEFAULT_LABELS = {
+  title: '휴가 캘린더 기록',
+  description: '승인된 휴가는 구글 캘린더를 연결한 본인 캘린더에 기록됩니다',
+  sharedToggle: '회사 공용 휴가 캘린더에도 기록',
+  adminOnly: '관리자만 바꿀 수 있습니다',
+  accountToUse: '공용 캘린더에 쓸 Google 계정',
+  connect: 'Google 계정 연결',
+  account: '연결 계정',
+  change: '연결 바꾸기',
+  disconnect: '연결 해제',
+  calendar: '기록할 캘린더',
+  pickCalendar: '캘린더를 고르세요',
+  primarySuffix: '(기본 캘린더)',
+  loading: '불러오는 중...',
+  listFailed: '캘린더 목록을 불러오지 못했습니다',
+  retry: '다시 시도',
+  error: '공용 휴가 캘린더에 기록하지 못하고 있습니다',
+  reconnect: '다시 연결',
+  save: '저장',
+  cancel: '취소',
+  disconnectTitle: '공용 휴가 캘린더 연결을 해제할까요?',
+  disconnectBody:
+    '연결을 해제하면 승인된 휴가를 공용 캘린더에 더 기록하지 않고\n그 뒤 취소된 휴가의 공용 일정도 지우지 못해요.\n이미 기록한 공용 일정은 구글 캘린더에 남아요.',
+};
