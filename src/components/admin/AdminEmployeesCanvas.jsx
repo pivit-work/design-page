@@ -21,7 +21,7 @@ import SquadPicker, { SquadCell, isVisibleSquadStatus } from './SquadPicker.jsx'
 import { ExportMenu, SalaryExportModal, IconLock } from './employeeExport.jsx';
 /* 구성원 기록 창 3종 — 폐기된 스프레드시트에서 옮겨 왔다(PW-576). 코드는 그대로다. */
 import {
-  HrProfileModal, SalaryHistoryModal, CeoConfirmModal, CeoBadge, IconSalary, IconCrown, fmtSalaryWithCurrency,
+  HrProfileModal, HrProfileInline, flushSalaryPending, SalaryHistoryModal, CeoConfirmModal, CeoBadge, IconSalary, IconCrown, fmtSalaryWithCurrency,
   serviceStartHintText, isoDay,
 } from './AdminEmployeeRecordModals.jsx';
 import { buildExportItems } from './employeeExportItems.js';
@@ -314,6 +314,18 @@ const DEFAULT_LABELS = {
       nameEn: '영문명',
       finalGrade: '확정등급',
     },
+  },
+  /* 구성원 상세 페이지 (pivit-work PW-2797) — 앱이 ko.json 으로 덮는다 */
+  detail: {
+    prev: '‹ 이전',
+    next: '다음 ›',
+    edit: '수정',
+    back: '목록으로',
+    employSection: '고용 정보',
+    loadFailed: '구성원 정보를 불러오지 못했어요',
+    retry: '다시 시도',
+    saveFailed: '저장하지 못했어요. 다시 시도해 주세요.',
+    tabs: { person: '인사 정보', org: '조직 정보', work: '근무·고용', comp: '보상', records: 'HR 기록', history: '변경 이력' },
   },
   panel: {
     /* 직군 → 직렬 → 직무 3단 연동 안내·빈 목록 사유 (§3.5-A · PW-748) */
@@ -2698,7 +2710,7 @@ function EmployeesListView({
   members, orgUnits, labels, canEdit, pageSize, renderAvatar, jobAxis, valueLabels,
   canViewSalary, managerCandidates, optCols: providedOptCols, onOptColsChange,
   leaderUnitIdsByMember, onToggleOrgLeader, onChangeAffiliations,
-  onOpenEdit, onDeactivate, onCancelOffboarding, onAssignManager, onCsvUpload,
+  onOpenEdit: onOpenEditWithOrder, onDeactivate, onCancelOffboarding, onAssignManager, onCsvUpload,
   /* 스쿼드 원장(§1-5-b). **배정 값에는 이름이 없다**(`{ squadId, isLead }`) — 원장을
      못 받으면 스쿼드 열도 필터 목록도 통째로 빈다(PW-411 에서 발견). */
   squadOptions = [],
@@ -3092,6 +3104,8 @@ function EmployeesListView({
     ),
     [filtered, failedOnly, failedIds, members, sort, sortOrders, deptPathOf],
   );
+  /* 상세 페이지의 이전/다음 순서(PW-2797) — 누른 순간의 필터 · 정렬 결과 전체(쪽 무관)를 함께 넘긴다 */
+  const onOpenEdit = (m) => onOpenEditWithOrder(m, ordered);
   function toggleSort(colId) {
     setSort(nextListSort(sort, colId));
     setPage(1);
@@ -4946,7 +4960,87 @@ function ChangeReasonModal({ prompt, labels }) {
   );
 }
 
+/* ── 구성원 상세 페이지 (pivit-work PW-2797 · admin-spec §3.2-D · screen-admin-employees-detail.policy.md) ──
+   종전 오른쪽 420px 창(`SidePanelShell`)을 어드민 셸 안의 페이지로 바꾼다. 같은 `EmployeesEditPanel` 이 `page` 를 받으면
+   페이지로 그리고, 안 받으면 종전 창 그대로다(창을 쓰는 시험·미리보기).
+   탭 6개 — 칸이 어느 탭에 서는지는 §3.2-D «탭별 칸» 표가 정한다. 칸 묶음(`PANEL_FIELD_GROUPS`)은 저장 판정이 함께 보므로
+   그대로 두고, 페이지에서만 묶음을 탭에 맞게 다시 나눈다(`PAGE_FIELD_GROUPS`). */
+const DETAIL_TABS = ['person', 'org', 'work', 'comp', 'records', 'history'];
+const PAGE_EMPLOY_KEYS = ['hireDate', SERVICE_START_FIELD, 'employeeCode', 'employmentType'];
+const PAGE_FIELD_GROUPS = (() => {
+  const byId = Object.fromEntries(PANEL_FIELD_GROUPS.map((g) => [g.id, g]));
+  const all = PANEL_FIELD_GROUPS.flatMap((g) => g.fields);
+  const strip = (g) => ({ ...g, fields: g.fields.filter((f) => !PAGE_EMPLOY_KEYS.includes(f.key)) });
+  return [
+    { ...strip(byId.basic), tab: 'person' },
+    { ...strip(byId.classify), tab: 'org' },
+    /* «고용 정보» — 입사일 · 기산일 · 사번 · 고용형태(§3.2-D «근무·고용» · §3.2 «고용 정보» 행) */
+    { id: 'employ', labelKey: 'employSection', tab: 'work', fields: PAGE_EMPLOY_KEYS.map((k) => all.find((f) => f.key === k)).filter(Boolean) },
+    { ...byId.work, tab: 'work' },
+  ];
+})();
+
+/** 읽기 상태의 칸 한 개 — 라벨 위 · 값 아래(§3.2-D «읽기»). 빈 값은 «—». */
+function DetailReadField({ label, value, testId, children }) {
+  const empty = value == null || value === '';
+  return (
+    <div className="admin-emp-field" data-testid={testId}>
+      <span className="admin-emp-field-label">{label}</span>
+      <span className="msc-pair-value">{children || (empty ? '—' : value)}</span>
+    </div>
+  );
+}
+
+/** 상세 페이지 머리 — 왼쪽 사람(내 설정 히어로 `.msc-hero` 모양) · 오른쪽 이전/다음 · 위치 · [수정] · [목록으로](§3.2-D «머리»). */
+function DetailPageHead({ member, labels, renderAvatar, deptText, dutyText, page, busy, onMove, canEdit }) {
+  const L = labels.detail || {};
+  return (
+    <div className="admin-emp-detail-head" data-testid="employees-detail-head">
+      <div className="msc-hero">
+        {renderAvatar ? renderAvatar(member, 56) : <AvatarFallback row={member} size={56} />}
+        <div className="admin-emp-detail-id">
+          <div className="admin-emp-detail-name-row">
+            <span className="msc-hero-name" data-testid="employees-detail-name">{member.displayName || member.name}</span>
+            <StatusBadge status={member.employmentStatus} labels={labels} />
+            {member.retirementNotice && <RetirementBadge notice={member.retirementNotice} />}
+            {member.isRehire && (
+              <DpStatusBadge tone="neutral" className="admin-emp-role-pill" title={member.rehireNote || undefined} data-testid="employees-detail-rehire">
+                {labels.menu.rehireBadge}
+              </DpStatusBadge>
+            )}
+          </div>
+          <div className="msc-hero-sub" data-testid="employees-detail-sub">{[deptText, dutyText].filter(Boolean).join(' · ')}</div>
+          {member.employmentPeriodsNote && (
+            <div className="msc-hero-meta" data-testid="employees-panel-periods">{member.employmentPeriodsNote}</div>
+          )}
+        </div>
+      </div>
+      <div className="admin-emp-detail-nav">
+        <Button className="admin-emp-btn is-ghost is-sm" disabled={busy || !page.canPrev} onClick={() => onMove(page.onPrev)} data-testid="employees-detail-prev">
+          {L.prev || '‹ 이전'}
+        </Button>
+        <span className="msc-hero-meta" data-testid="employees-detail-position">{page.pos} / {page.total}</span>
+        <Button className="admin-emp-btn is-ghost is-sm" disabled={busy || !page.canNext} onClick={() => onMove(page.onNext)} data-testid="employees-detail-next">
+          {L.next || '다음 ›'}
+        </Button>
+        {canEdit && !page.editing && page.tab !== 'history' && !page.loadFailed && (
+          <Button className="admin-emp-btn is-ghost is-sm" onClick={page.onEdit} data-testid="employees-detail-edit">
+            {L.edit || '수정'}
+          </Button>
+        )}
+        <Button className="admin-emp-btn is-ghost is-sm" disabled={busy} onClick={() => onMove(page.onBack)} data-testid="employees-detail-back">
+          {L.back || '목록으로'}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function EmployeesEditPanel({
+  /* 상세 페이지로 그릴 때(pivit-work PW-2797) — `{ tab, onTab(tab), editing, onEdit(), onCancel(), onSaved({ draft }), pos, total,
+     canPrev, canNext, onPrev(), onNext(), onBack(), canViewComp, confirmLeave() => Promise<boolean>, onDirtyChange(bool), loadFailed, onRetry }`.
+     미주입이면 종전 오른쪽 창이다. */
+  page,
   onRehireMember,
   member, orgUnits, labels, renderAvatar, canEdit,
   gradeOptions, positionOptions, onClose, onSave, onChangeAffiliations,
@@ -5242,6 +5336,24 @@ function EmployeesEditPanel({
   const [hrOpen, setHrOpen] = useState(false);
   const [salaryOpen, setSalaryOpen] = useState(false);
 
+  /* 상세 페이지(PW-2797) — 훅은 아래 `return null` 보다 위에 둔다. 바꾼 값이 있는지는 렌더 끝에 `pageDirtyRef` 로 채우고
+     그 뒤 효과가 바뀐 때만 부모에게 알린다(왼쪽 메뉴 이동이 먼저 묻게 · §3.2-D «저장 안 한 변경»). */
+  const inlineFlushes = useRef({});
+  const [inlineDirtyParts, setInlineDirtyParts] = useState({});
+  const registerInline = useCallback((part) => (fn) => {
+    if (fn) inlineFlushes.current[part] = fn;
+    else delete inlineFlushes.current[part];
+  }, []);
+  const inlineDirtyOf = useCallback((part) => (v) => setInlineDirtyParts((p) => (Boolean(p[part]) === Boolean(v) ? p : { ...p, [part]: Boolean(v) })), []);
+  /* 보상 이력 창에서 수정 중 더하고 고치고 지운 줄 — 페이지 [저장] 때 보낸다(§3.2-D «보상 탭» · 정책서 §5) */
+  const [salaryPending, setSalaryPending] = useState(null);
+  const [reportedDirty, setReportedDirty] = useState(false);
+  const onPageDirtyChange = page?.onDirtyChange;
+  useEffect(() => {
+    if (!onPageDirtyChange) return undefined;
+    onPageDirtyChange(reportedDirty);
+    return () => { if (reportedDirty) onPageDirtyChange(false); };
+  }, [reportedDirty, onPageDirtyChange]);
   if (!member) return null;
   const set = (k, v) => {
     setDraft((d) => ({ ...d, [k]: v }));
@@ -5268,6 +5380,9 @@ function EmployeesEditPanel({
     jobDuty: [axis.duties, axis.dutiesByLadder],
   };
   /** 회사가 끈 선택 적용 항목은 칸 자체를 그리지 않는다 — 켤 수 없는 칸을 보여주지 않는다. */
+  /* 상세 페이지 (pivit-work PW-2797) — 지금 탭에 서는 칸만 · 읽기면 값만 */
+  const reading = Boolean(page) && !page.editing;
+  const inTab = (t) => !page || page.tab === t;
   const fieldOn = (f) =>
     (!f.needsSeat || Boolean(seatFields)) && (!f.optionalKey || (optionalFields || {})[f.optionalKey] === true);
   /* 자유석 · 원격이면 책상 칸을 받지 않는다 — 칸이 잠기고 값이 빈다(spec-company-assets §1-1) */
@@ -5281,12 +5396,28 @@ function EmployeesEditPanel({
   };
   /** 지금 이 패널에 서 있는 칸 키 — 거절 사유를 칸 아래에 붙일 수 있는지 가른다(PW-727). */
   const shownFieldKeys = new Set(
-    PANEL_FIELD_GROUPS.flatMap((g) => g.fields.filter(fieldOn).map((f) => f.key)),
+    page
+      ? PAGE_FIELD_GROUPS.filter((g) => inTab(g.tab)).flatMap((g) => g.fields.filter(fieldOn).map((f) => f.key))
+      : PANEL_FIELD_GROUPS.flatMap((g) => g.fields.filter(fieldOn).map((f) => f.key)),
   );
+
   const optionsFor = (f) => {
     if (!f.narrowBy) return catalogs[f.catalog] || [];
     const [all, byParent] = narrowMaps[f.key] || [];
     return narrowByParent(all || [], byParent || {}, draft[f.narrowBy]);
+  };
+  /** 상세 페이지 «읽기»의 칸 값 — 고른 값은 화면 글자로(코드값을 내보내지 않는다) · 비면 '' → «—» (PW-2797) */
+  const readValueOf = (f) => {
+    const v = f.key === SERVICE_START_FIELD ? identityDraft?.[SERVICE_START_FIELD] : draft[f.key];
+    if (archivedNow && f.key === 'employmentType') return archivedLabels.note;
+    if (v == null || v === '') return '';
+    if (f.kind === 'select' || f.kind === 'choice' || f.kind === 'person') {
+      const mapped = axisValueLabel(valueLabels, f.key, v);
+      if (mapped !== v) return mapped;
+      const hit = (optionsFor(f) || []).find((o) => (o && typeof o === 'object' ? o.value : o) === v);
+      return hit && typeof hit === 'object' ? hit.label : String(v);
+    }
+    return String(v);
   };
   /* 직군·직렬·직무 세 칸은 `JobAxisSelect` 가 그리고, 고른 결과는 세 칸을 한꺼번에 고친다
      (§3.5-A · PW-748). 직렬 칸 키가 아직 `jobTitle` 이라 여기서 이름을 맞춘다. */
@@ -5429,6 +5560,52 @@ function EmployeesEditPanel({
   const identityPatch = buildIdentityPatch();
   const identityDirty = Object.keys(identityPatch).length > 0;
   const dirty = Object.keys(patch).length > 1 || identityDirty || affilChanged;
+  /* 탭 안에 펼친 HR 기록 · 신원 · 보상 칸(`HrProfileInline`)은 바꾼 것을 들고 있다가 페이지 [저장] 때 보낸다(§3.2-D «HR 기록 탭»).
+     부품마다 보내는 함수를 여기에 걸어 두고, 바꾼 것이 있는지만 따로 센다. */
+  const salaryPendingCount = salaryPending
+    ? salaryPending.adds.length + salaryPending.deletes.length + Object.keys(salaryPending.updates || {}).length
+    : 0;
+  const inlineDirty = Object.values(inlineDirtyParts).some(Boolean) || salaryPendingCount > 0;
+  const pageDirty = dirty || inlineDirty;
+  const wantDirty = Boolean(page?.editing) && pageDirty;
+  if (wantDirty !== reportedDirty) setReportedDirty(wantDirty);
+
+  /** 저장이 끝난 자리 — 페이지는 같은 탭 읽기로 돌아가고(§3.2-D «수정»), 창은 닫힌다(종전). */
+  async function finishSave(opts) {
+    if (!page) { onClose(); return; }
+    const flushes = Object.values(inlineFlushes.current);
+    if (salaryPendingCount > 0) {
+      flushes.unshift(() => flushSalaryPending(member.id, salaryPending, {
+        onAdd: onAddSalaryHistory,
+        onUpdate: hrRecordHandlers?.onUpdateSalaryHistory,
+        onDelete: hrRecordHandlers?.onDeleteSalaryHistory,
+        onProgress: setSalaryPending,
+      }));
+    }
+    for (const fn of flushes) {
+
+      try {
+        await fn();
+      } catch (e) {
+        setSaveError(panelErrorOf(e) || { message: (labels.detail || {}).saveFailed || '저장하지 못했어요. 다시 시도해 주세요.', fields: [] });
+        return;
+      }
+    }
+    page.onSaved(opts || {});
+  }
+  /** 탭 · 이전/다음 · [목록으로] — 수정 중 바꾼 값이 있으면 먼저 묻는다(§3.2-D «저장 안 한 변경»). */
+  const guardMove = (go) => {
+    if (!page) { go(); return; }
+    if (page.editing && pageDirty && page.confirmLeave) {
+      void page.confirmLeave().then((ok) => { if (ok) go(); });
+      return;
+    }
+    go();
+  };
+  if (page && page.tab === 'history' && onLoadPersonalHistory && historyState.status === 'idle') {
+    setHistoryState({ status: 'loading', page: null });
+  }
+
 
   /* 「발령으로 남습니다」 묶음 (PW-2034) — 발령 칸이 저장값과 다를 때만 뜬다. */
   const fieldLabelKey = (key) =>
@@ -5507,7 +5684,7 @@ function EmployeesEditPanel({
       setPendingAffil(null);
     }
     if (Object.keys(patch).length > 1) await onSave([patch], payload);
-    onClose();
+    await finishSave();
   }
 
   async function handleCorrect() {
@@ -5543,7 +5720,8 @@ function EmployeesEditPanel({
         reason: apptReason.trim() || undefined,
         patch,
       });
-      onClose();
+      if (page) page.onSaved({ draft: true });
+      else onClose();
     } catch (e) {
       setSaveError(panelErrorOf(e));
     } finally {
@@ -5552,7 +5730,7 @@ function EmployeesEditPanel({
   }
 
   async function handleSave() {
-    if (!dirty) { onClose(); return; }
+    if (!dirty && !(page && inlineDirty)) { if (page) page.onCancel(); else onClose(); return; }
     if (terminationProblem || terminationRuleError || leaveStartMissing || leaveReasonMissing) return;
     if (apptTypeMissing || (showAppointment && !apptDate)) return;
     setSaving(true);
@@ -5610,9 +5788,11 @@ function EmployeesEditPanel({
              닫으면 재직 상태가 «퇴사» 그대로 보여야 한다). */
           /* 경고 창 [재입사로 진행] — 바꾼 값은 저장하지 않고 패널을 닫은 뒤 초대 창 재입사 모드를 연다 (pivit-work PW-2576 · 퇴사 정책 §5-L ① · E98) */
           if (e?.closePanel) {
-            onClose();
+            if (page) page.onCancel();
+            else onClose();
             return;
           }
+
           if (e?.openRehire) {
             onClose();
             onRehireMember?.(member);
@@ -5639,14 +5819,43 @@ function EmployeesEditPanel({
           return;
         }
       }
-      onClose();
+      await finishSave();
     } finally {
       setSaving(false);
     }
   }
 
-  return (
-    <SidePanelShell ref={panelRef} className="admin-emp-panel" onClose={onClose} closeOnEscape testId="employees-edit-panel">
+  /* 페이지면 캔버스 자리를 차지하는 틀, 아니면 종전 오른쪽 창 */
+  const frame = (children) => (page ? (
+    <div className={`admin-emp-detail${page.editing ? ' is-editing' : ''}`} data-testid="employees-detail-page">{children}</div>
+  ) : (
+    <SidePanelShell ref={panelRef} className="admin-emp-panel" onClose={onClose} closeOnEscape testId="employees-edit-panel">{children}</SidePanelShell>
+  ));
+  const detailL = labels.detail || {};
+  const pageTabs = page ? DETAIL_TABS.filter((t) => t !== 'comp' || page.canViewComp) : [];
+  const deptText = page
+    ? `${primaryEntry?.name || legacyDeptOf(member) || labels.panel.orgNone}${selectedIds.length > 1 ? ` ${String(labels.concurrentCount).split('{count}').join(String(selectedIds.length - 1))}` : ''}`
+    : '';
+  const dutyText = page && member.jobDuty ? axisValueLabel(valueLabels, 'jobDuty', member.jobDuty) : '';
+  const pageLoadFailed = Boolean(page) && identityState === 'error';
+  const pageLoading = Boolean(page) && identityState === 'loading';
+  const savebar = (node) => (page ? (page.editing ? <div className="admin-emp-detail-savebar" data-testid="employees-detail-savebar">{node}</div> : null) : node);
+
+  return frame(
+    <>
+        {page ? (
+          <DetailPageHead
+            member={member}
+            labels={labels}
+            renderAvatar={renderAvatar}
+            deptText={deptText}
+            dutyText={dutyText}
+            page={{ ...page, loadFailed: pageLoadFailed || pageLoading }}
+            busy={saving}
+            canEdit={canEdit}
+            onMove={guardMove}
+          />
+        ) : (
         <div className="admin-emp-panel-header">
           <div className="admin-emp-panel-id">
             {renderAvatar ? renderAvatar(draft, 36) : <AvatarFallback row={draft} size={36} />}
@@ -5671,13 +5880,29 @@ function EmployeesEditPanel({
           </div>
           <button type="button" className="admin-emp-panel-close" onClick={onClose} aria-label={labels.panel.close}><IconX size={16} /></button>
         </div>
+        )}
         {/* «임시저장한 발령안이 있어요» 줄 (PW-2349 · §6-4) — 호출부가 그린다. */}
         {draftNotice && <div data-testid="employees-panel-draft-notice">{draftNotice}</div>}
 
         {/* 탭 바 — 본문 스크롤 «밖» 이라 아래로 내려도 고정이다.
             건수 배지를 달지 않는다: 이력이 많은 것은 문제 신호가 아니라 오래 다닌
             사람이라는 뜻이라 주의를 끌 이유가 없다. */}
-        {onLoadPersonalHistory && (
+        {page && (
+          /* 탭 6개 — 구성원 설정 탭 줄과 같은 부품 · 건수 배지 없음(§3.2-D «탭 6개»). 저장 중에는 옮기지 않는다(정책서 §6). */
+          <div className="tl-tabs-row adm-tabs-row admin-emp-detail-tabs" data-testid="employees-detail-tabs">
+            <Tabs
+              items={pageTabs.map((t) => ({
+                value: t,
+                label: (detailL.tabs || {})[t] || t,
+                testId: `employees-detail-tab-${t}`,
+                disabled: saving,
+              }))}
+              value={page.tab}
+              onChange={(t) => { if (t !== page.tab && !saving) guardMove(() => page.onTab(t)); }}
+            />
+          </div>
+        )}
+        {!page && onLoadPersonalHistory && (
           <div className="tl-tabs-row adm-tabs-row is-panel" data-testid="employees-panel-tabs">
             {/* 줄이 양 끝으로 벌리므로 «?»는 탭과 한 묶음에 넣어 «변경 이력» 바로 뒤에 붙인다(목록 탭 줄과 같다).
                 «?»가 없으면 묶음 상자가 줄 배치에 끼지 않게 contents 로 둔다 — 지금과 같다. */}
@@ -5700,8 +5925,18 @@ function EmployeesEditPanel({
           </div>
         )}
 
-        <div className="admin-emp-panel-body">
-          {panelTab === 'history' ? (
+        <div className={page ? 'admin-emp-detail-body' : 'admin-emp-panel-body'}>
+          {pageLoadFailed ? (
+            /* 불러오지 못하면 본문 자리에 문구 + [다시 시도] — 머리의 이전/다음 · [목록으로]는 그대로 쓴다(§3.2-D «늦거나 실패할 때») */
+            <div className="admin-emp-manager-readonly is-wrap" role="alert" data-testid="employees-detail-load-failed">
+              <span className="admin-emp-manager-note">{detailL.loadFailed || '구성원 정보를 불러오지 못했어요'}</span>
+              <Button className="admin-emp-btn is-ghost is-sm" onClick={() => setIdentityState('loading')} data-testid="employees-detail-retry">
+                {detailL.retry || '다시 시도'}
+              </Button>
+            </div>
+          ) : pageLoading && page.tab !== 'history' ? (
+            <div data-testid="employees-detail-loading"><SkeletonList count={4} height={52} /></div>
+          ) : (page ? page.tab === 'history' : panelTab === 'history') ? (
             <PersonalHistoryList
               state={historyState}
               labels={labels}
@@ -5715,14 +5950,20 @@ function EmployeesEditPanel({
           <>
           {/* 칸은 `PANEL_FIELD_GROUPS` 한 곳에서 온다 — 렌더와 저장 판정이 같은
               목록을 봐야 「화면엔 있는데 저장이 안 되는 칸」이 안 생긴다(PW-576). */}
-          {PANEL_FIELD_GROUPS.map((g) => {
+          {(page ? PAGE_FIELD_GROUPS.filter((g) => inTab(g.tab)) : PANEL_FIELD_GROUPS).map((g) => {
             const shown = g.fields.filter(fieldOn);
             if (shown.length === 0) return null;
             return (
               <div key={g.id}>
-                <SectionLabel>{labels.panel[g.labelKey]}</SectionLabel>
-                <div className="admin-emp-field-group">
+                <SectionLabel>{labels.panel[g.labelKey] || (g.id === 'employ' ? detailL.employSection : '')}</SectionLabel>
+                <div className={reading ? 'admin-emp-detail-read-grid' : 'admin-emp-field-group'}>
                   {shown.map((f) => {
+                    if (reading && !(seatedAt && SEAT_FIELD_KEYS.has(f.key))) {
+                      if (f.key === SERVICE_START_FIELD && !onLoadHrProfile) return null;
+                      return (
+                        <DetailReadField key={f.key} label={labels.panel[f.labelKey]} value={readValueOf(f)} testId={`employees-detail-read-${f.key}`} />
+                      );
+                    }
                     /* 책상 배치에 앉은 사람 — 자리 네 칸 자리에 읽기 전용 상자 하나(§3.2.5 · spec-company-assets §13-A-5) */
                     if (seatedAt && SEAT_FIELD_KEYS.has(f.key)) {
                       return f.key === 'workBuilding' ? (
@@ -5952,7 +6193,7 @@ function EmployeesEditPanel({
           })}
 
           {/* «지급된 자산» — 근무지 묶음 바로 아래(자리와 함께 보는 정보 · admin-spec §3.2.13 · pivit-work PW-2600) */}
-          {memberAssets && (
+          {inTab('work') && memberAssets && (
             <MemberAssetsSection
               state={assetsState}
               labels={labels.panel.assets}
@@ -5965,7 +6206,14 @@ function EmployeesEditPanel({
 
           {/* 권한 — 시트의 «권한» 열이 여기로 왔다(PW-576). 조직장 지정에 따른 자동
               승격은 서버가 하고(L10), 이 칸은 그 값을 직접 고치는 자리다. */}
+          {inTab('person') && (<>
           <SectionLabel>{labels.panel.roleSection}</SectionLabel>
+          {reading ? (
+            /* 권한 칸은 §3.2-D «탭별 칸» 표에 없어 «인사 정보»에 둔다 — 행 ⋯ › 권한 변경이 이 탭으로 연다(정책서 §5) */
+            <div className="admin-emp-detail-read-grid">
+              <DetailReadField label={labels.panel.role} value={draft.orgRole ? labels.panel.roles?.[draft.orgRole] || '' : ''} testId="employees-detail-read-orgRole" />
+            </div>
+          ) : (
           <div className="admin-emp-field-group">
             {/* 본인 · 마지막 어드민이면 잠그고 사유 한 줄(admin-spec §3.2-C · pivit-work PW-2492). */}
             <FormField
@@ -5988,13 +6236,16 @@ function EmployeesEditPanel({
               </Select>
             </FormField>
           </div>
+          )}
+          </>)}
 
+          {inTab('org') && (<>
           <SectionLabel>{labels.panel.orgAssign}</SectionLabel>
           <div className="admin-emp-org-assign">
             <button
               type="button"
               className={`admin-emp-org-current${primaryEntry || legacyDeptOf(member) ? '' : ' is-empty'}`}
-              disabled={!canEdit || !onChangeAffiliations}
+              disabled={reading || !canEdit || !onChangeAffiliations}
               onClick={() => setPickerOpen(true)}
               data-testid="employees-panel-org"
             >
@@ -6006,7 +6257,7 @@ function EmployeesEditPanel({
                   </span>
                 )}
               </span>
-              <span className="admin-emp-org-current-arrow">{labels.panel.orgChange}<IconChevronDown size={13} /></span>
+              {!reading && <span className="admin-emp-org-current-arrow">{labels.panel.orgChange}<IconChevronDown size={13} /></span>}
             </button>
             {pickerOpen && onChangeAffiliations && (
               <OrgTreePicker
@@ -6114,11 +6365,13 @@ function EmployeesEditPanel({
               </>
             )}
           </div>
+          </>)}
 
           {/* 로그인 잠김 — 잠긴 동안에만 그린다. 잠기지 않았으면 섹션째 없다(«잠기지 않음»도 쓰지 않는다).
               해제 버튼은 두지 않는다(admin-spec §3.2.12 · §3.9-G-5 · pivit-work PW-2286). 2단계 인증 줄이 생기면
               이 섹션의 위 줄로 들어온다(PW-2320). 줄 모양은 바로 위 «매니저» 읽기 전용 줄을 그대로 쓴다. */}
-          {member.loginLock && (
+          {inTab('person') && member.loginLock && (
+
             <>
               <SectionLabel>{labels.panel.loginSecuritySection || '로그인 보안'}</SectionLabel>
               {member.loginLock.state === 'locked' ? (
@@ -6137,7 +6390,24 @@ function EmployeesEditPanel({
             </>
           )}
 
+          {inTab('work') && (<>
           <SectionLabel>{labels.panel.statusSection}</SectionLabel>
+          {reading ? (
+            <div className="admin-emp-detail-read-grid" data-testid="employees-detail-read-status">
+              <DetailReadField label={labels.panel.statusSection} value={labels.status[draft.employmentStatus] || ''} testId="employees-detail-read-employmentStatus" />
+              {dateFields.map((f) => (
+                <DetailReadField key={f.field} label={labels.panel[f.label]} value={dateValue(f)} testId={`employees-detail-read-${f.field}`} />
+              ))}
+              {showLeaveReason && (
+                <DetailReadField
+                  label={labels.panel.leaveReason}
+                  value={identityDraft?.leaveOfAbsenceReason ? labels.panel.leaveReasons?.[identityDraft.leaveOfAbsenceReason] || '' : ''}
+                  testId="employees-detail-read-leaveReason"
+                />
+              )}
+              <DetailReadField label={labels.panel.resignedAt} value={dateValue(TERMINATION_DATE_FIELD)} testId="employees-detail-read-terminationDate" />
+            </div>
+          ) : (<>
           <StatusRadios
             order={statusOrder}
             value={draft.employmentStatus}
@@ -6249,6 +6519,7 @@ function EmployeesEditPanel({
                 <span className="admin-emp-status-date-note is-error" role="alert">{dateError}</span>
               )}
           </div>
+          </>)}
 
           {offboardingReason && member.employmentStatus === 'terminated' && (
             <OffboardingReasonSection
@@ -6279,10 +6550,11 @@ function EmployeesEditPanel({
               }
             />
           )}
+          </>)}
 
           {/* 보상 — 연봉 열람 권한이 없으면 칸도 이력 버튼도 그리지 않는다(T3).
               값을 «—» 로 가려 두면 「비어 있다」로 읽혀 덮어쓰는 사고가 난다. */}
-          {canViewSalary && (
+          {inTab('comp') && canViewSalary && (
             <>
               <SectionLabel>{labels.panel.paySection}</SectionLabel>
               <div className="admin-emp-field-group">
@@ -6320,6 +6592,7 @@ function EmployeesEditPanel({
           {/* 전문 분야·스킬 — 읽기 전용 (admin-spec §3.2.7). 본인이 내 설정에서만 넣는 값이라 입력 칸이
               없다(어드민이 대신 채우면 담당자 조회 값의 신뢰가 떨어진다). 조직장 승인은 2차(OPEN-10)라
               지금은 모든 값에 「미승인」이 붙고, 비어 있으면 종류마다 「미입력」. 입력 유도 문구는 없다. */}
+          {inTab('person') && (<>
           <SectionLabel>{labels.panel.skillsSection}</SectionLabel>
           <div className="admin-emp-field-group" data-testid="employees-panel-personal-tags">
             {[
@@ -6351,9 +6624,11 @@ function EmployeesEditPanel({
               );
             })}
           </div>
+          </>)}
 
           {/* 기록 — HR 기록 창은 조회 경로가 있을 때만 연다(어드민 전용).
               폐기된 시트의 행 버튼이 여기로 왔다(PW-576). */}
+          {inTab('records') && (<>
           <SectionLabel>{labels.panel.recordSection}</SectionLabel>
           <div className="admin-emp-field-group">
             <FormField className="admin-emp-field" labelClassName="admin-emp-field-label" label={labels.panel.education}>
@@ -6386,7 +6661,7 @@ function EmployeesEditPanel({
                 </div>
               )}
             </FormField>
-            {onLoadHrProfile && (
+            {!page && onLoadHrProfile && (
               <button
                 type="button"
                 className="admin-emp-btn is-ghost admin-emp-btn-block"
@@ -6398,8 +6673,40 @@ function EmployeesEditPanel({
               </button>
             )}
           </div>
+          </>)}
+          {/* HR 기록 창에 있던 칸을 탭 안에 펼친다(§3.2-D «탭별 칸» · «HR 기록 탭») — 수정 중 바꾼 것은 페이지 [저장] 때 보낸다 */}
+          {page && onLoadHrProfile && ['person', 'work', 'comp', 'records'].includes(page.tab) && (page.tab !== 'comp' || canViewSalary) && (
+            <HrProfileInline
+              key={`${member.id}-${page.tab}-${page.editKey || 0}`}
+              part={page.tab}
+              row={draft}
+              labels={labels.records}
+              archived={archivedNow}
+              onLoad={onLoadHrProfile}
+              today={today}
+              editable={Boolean(page.editing) && canEdit}
+              registerFlush={registerInline(page.tab)}
+              onDirtyChange={inlineDirtyOf(page.tab)}
+              onSaveIdentity={canEdit ? onSaveIdentity : undefined}
+              onLoadTrainings={hrRecordHandlers?.onLoadTrainings}
+              onAddTraining={canEdit ? hrRecordHandlers?.onAddTraining : undefined}
+              onUpdateTraining={canEdit ? hrRecordHandlers?.onUpdateTraining : undefined}
+              onDeleteTraining={canEdit ? hrRecordHandlers?.onDeleteTraining : undefined}
+              onLoadBenefits={hrRecordHandlers?.onLoadBenefits}
+              onSaveBenefits={canEdit ? hrRecordHandlers?.onSaveBenefits : undefined}
+              confirmDelete={hrRecordHandlers?.confirmDelete}
+              onRevealNationalId={hrRecordHandlers?.onRevealNationalId}
+              nationalIdEnabled={nationalIdEnabled}
+              onRevealBankAccount={hrRecordHandlers?.onRevealBankAccount}
+              onSaveRecord={canEdit ? hrRecordHandlers?.onSaveRecord : undefined}
+              onDeleteRecord={canEdit ? hrRecordHandlers?.onDeleteRecord : undefined}
+              onUploadDocument={canEdit ? hrRecordHandlers?.onUploadDocument : undefined}
+              onDownloadDocument={hrRecordHandlers?.onDownloadDocument}
+            />
+          )}
           </>
           )}
+
         </div>
 
         {/* 기록 창 둘 — 패널 «안» 이 아니라 패널과 나란히 그린다. 패널 본문은 스크롤
@@ -6441,19 +6748,25 @@ function EmployeesEditPanel({
             defaultCurrency={defaultCurrency || undefined}
             onClose={() => setSalaryOpen(false)}
             onSalarySynced={(v, currency) => { set('salary', v); set('salaryCurrency', currency); }}
+            /* 상세 페이지(PW-2797) — 읽기면 보기만, 수정 중이면 줄을 들고 있다가 페이지 [저장] 때 보낸다 */
+            readOnly={reading || undefined}
+            pending={page && !reading ? salaryPending || { adds: [], updates: {}, deletes: [] } : undefined}
+            onPendingChange={page && !reading ? setSalaryPending : undefined}
           />
+
         )}
 
+        {savebar(<>
         {/* 이력 탭은 읽기 전용이라 저장 줄을 그리지 않는다 — 누를 수 없는 버튼을 두면
             「여기서도 고칠 수 있나」로 읽힌다. */}
         {/* 칸을 짚지 못한 거절 사유(PW-727) — 저장 버튼 바로 위. 칸을 짚었어도 그 칸이
             이 패널에 안 서 있으면(선택 적용 필드가 꺼짐 등) 여기로 온다. */}
-        {panelTab === 'info' && saveError && !saveError.fields.some((k) => shownFieldKeys.has(k)) && (
+        {(page ? true : panelTab === 'info') && saveError && !saveError.fields.some((k) => shownFieldKeys.has(k)) && (
           <div className="admin-emp-panel-save-error" role="alert" data-testid="employees-panel-save-error">
             {saveError.message}
           </div>
         )}
-        {panelTab === 'info' && showAppointment && (
+        {(page ? true : panelTab === 'info') && showAppointment && (
           <div className="admin-emp-panel-appointment" data-testid="employees-panel-appointment">
             <SectionLabel>{labels.panel.appointment.title}</SectionLabel>
             <div className="admin-emp-hist-values" data-testid="employees-panel-appointment-changes">
@@ -6564,12 +6877,13 @@ function EmployeesEditPanel({
           </div>
         )}
         {/* «[저장]을 눌러야 반영됩니다» 안내는 [저장]이 있을 때만 — 발령 칸이 바뀌어 [임시저장]·[수정]·[발령]이 되면 뺀다(PW-2349) */}
-        {panelTab === 'info' && manualSaveNotice && !flowWired && (
+        {!page && panelTab === 'info' && manualSaveNotice && !flowWired && (
           <div className="admin-emp-panel-save-mode" data-testid="employees-panel-save-mode">{manualSaveNotice}</div>
         )}
-        {panelTab === 'info' && (
+        {(page ? true : panelTab === 'info') && (
           <div className="admin-emp-panel-footer">
-            <button type="button" className="admin-emp-btn is-secondary admin-emp-btn-block" onClick={onClose}>{labels.panel.cancel}</button>
+            <Button className="admin-emp-btn is-secondary admin-emp-btn-block" onClick={page ? page.onCancel : onClose} disabled={Boolean(page) && saving} data-testid="employees-panel-cancel">{labels.panel.cancel}</Button>
+
             {/* 발령 칸이 바뀐 창은 [임시저장] · [수정] · [발령] (PW-2349 · §6-2). 확정 없이 저장하는 길은 없다. */}
             {flowWired && appointmentFlow.onSaveDraft && (
               <Button
@@ -6595,18 +6909,23 @@ function EmployeesEditPanel({
               type="button"
               className="admin-emp-btn is-primary admin-emp-btn-block"
               onClick={handleSave}
-              disabled={saving || !canEdit || !dirty || Boolean(terminationProblem) || Boolean(terminationRuleError) || leaveStartMissing || leaveReasonMissing || axisIncomplete || apptTypeMissing || (showAppointment && !apptDate)}
+              disabled={saving || !canEdit || !(dirty || (page && inlineDirty)) || Boolean(terminationProblem) || Boolean(terminationRuleError) || leaveStartMissing || leaveReasonMissing || axisIncomplete || apptTypeMissing || (showAppointment && !apptDate)}
               data-testid="employees-panel-save"
             >
               {saving ? labels.panel.saving : flowWired ? labels.panel.appoint : labels.panel.save}
             </button>
           </div>
         )}
-    </SidePanelShell>
+        </>)}
+    </>,
   );
 }
 
 export default function AdminEmployeesCanvas({
+  /** 구성원 상세 페이지(pivit-work PW-2797 · admin-spec §3.2-D) — 주어지면 이름 · [수정] · 행 ⋯ 메뉴가 오른쪽 창 대신 페이지를 연다.
+      주소는 부르는 쪽이 든다: `{ memberId, tab, editToken?, onNavigate({ memberId, tab, replace }), onBack(), onNotFound(),
+      onSkipped(), onDraftSaved(), confirmLeave() => Promise<boolean>, onDirtyChange(bool) }`. 미주입이면 종전 오른쪽 창이다. */
+  detailRoute,
   /** 제목 바로 오른쪽 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2430). 안 주면 지금과 같다. */
   positionHelp,
   /** 구성원 상세 «정보 · 변경 이력» 탭 줄 끝 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2567). 안 주면 지금과 같다. */
@@ -6991,6 +7310,46 @@ export default function AdminEmployeesCanvas({
   // 편집 패널이 열린 구성원 id. 패널은 표 **바깥**에 그린다 — 표 안에 두면 탭을
   // 옮길 때 패널까지 함께 묻힌다.
   const [editMemberId, setEditMemberId] = useState(null);
+  /* 상세 페이지 (PW-2797). 이전/다음 순서는 들어온 순간 목록의 필터 · 정렬 결과로 고정한다 — 저장해 그 사람이 필터에서
+     빠져도 순서와 분모가 그대로다(§3.2-D «이전 / 다음» · 정책서 E1). 목록을 거치지 않고 들어오면 전체 구성원 기본 순서. */
+  const detailId = detailRoute?.memberId || null;
+  const [detailSeq, setDetailSeq] = useState(null);
+  const [detailEdit, setDetailEdit] = useState(false);
+  const [detailEditKey, setDetailEditKey] = useState(0);
+  const detailSyncKey = detailId ? `${detailId}|${detailRoute.tab || ''}|${detailRoute.editToken || ''}` : null;
+  const [detailSynced, setDetailSynced] = useState(null);
+  if (detailSyncKey !== detailSynced) {
+    setDetailSynced(detailSyncKey);
+    /* 탭 · 사람을 옮기면 수정이 끝난다 — 바꾼 값은 버린다(확인 창 [저장하지 않고 이동] · 정책서 §4) */
+    if (detailEdit) setDetailEditKey((k) => k + 1);
+    setDetailEdit(Boolean(detailId && detailRoute.editToken));
+  }
+  const defaultSeq = useMemo(() => sortListMembers(members, null).map((m) => m.id), [members]);
+  const detailOrder = detailId && detailSeq && detailSeq.includes(detailId) ? detailSeq : defaultSeq;
+  const detailFound = Boolean(detailId) && members.some((m) => m.id === detailId);
+  const onDetailNotFound = detailRoute?.onNotFound;
+  useEffect(() => {
+    if (detailId && !loading && members.length > 0 && !detailFound) onDetailNotFound?.();
+  }, [detailId, loading, members.length, detailFound, onDetailNotFound]);
+  const detailTab = (() => {
+    const t = detailRoute?.tab;
+    if (!t || !DETAIL_TABS.includes(t)) return 'person';
+    return t === 'comp' && !canViewSalary ? 'person' : t;
+  })();
+  const openDetail = (m, rows) => {
+    setDetailSeq(Array.isArray(rows) ? rows.map((r) => r.id) : null);
+    detailRoute.onNavigate({ memberId: m.id, tab: 'person', replace: false });
+  };
+  /** 순서의 앞/뒤 사람 — 그 사이 등록 취소돼 없는 사람은 건너뛰고 알린다(정책서 E2) */
+  const stepDetail = (dir) => {
+    const ids = new Set(members.map((m) => m.id));
+    let i = detailOrder.indexOf(detailId) + dir;
+    let skipped = false;
+    while (i >= 0 && i < detailOrder.length && !ids.has(detailOrder[i])) { i += dir; skipped = true; }
+    if (i < 0 || i >= detailOrder.length) return;
+    detailRoute.onNavigate({ memberId: detailOrder[i], tab: detailTab, replace: true });
+    if (skipped) detailRoute.onSkipped?.();
+  };
   /* 호출부가 구성원 창을 여는 요청 (pivit-work PW-2349 · «임시저장» 묶음의 [이어서]) — `{ memberId, token }`.
      토큰이 바뀔 때 한 번 «구성원» 탭으로 옮겨 그 사람의 창을 연다. */
   const [openedToken, setOpenedToken] = useState(null);
@@ -7096,7 +7455,7 @@ export default function AdminEmployeesCanvas({
       : []),
   ];
 
-  if (appointmentsTab?.takeover && tab === 'appointments') {
+  if (appointmentsTab?.takeover && tab === 'appointments' && !detailId) {
     return <div className="admin-emp-canvas">{appointmentsTab.render()}</div>;
   }
 
@@ -7121,8 +7480,82 @@ export default function AdminEmployeesCanvas({
     />
   );
 
+  /* 구성원 한 명의 창 — 종전 오른쪽 창과 상세 페이지(PW-2797)가 같은 칸 · 저장 경로를 쓴다 */
+  const panelFor = (target, extra) => (
+          <EmployeesEditPanel
+            key={extra.key}
+            page={extra.page}
+            member={target}
+            positionHelp={positionHelp}
+            historyHelp={historyHelp}
+            leaderUnitIds={(leaderUnitIdsByMember || {})[target.id] || EMPTY_ARRAY}
+            onGoOrgUnit={canEdit ? onGoAssignLeader : undefined}
+            goOrgUnitsBlockedTip={goOrgUnitsBlockedTip}
+            squadOptions={squadOptions}
+            squadLabels={labels.squadPicker}
+            onGoSquadView={onGoSquadView}
+            onOpenCeo={
+              canEdit && onAssignCeo && onReleaseCeo && target.employmentStatus !== 'terminated'
+                ? (mode) => setCeoConfirm({ row: target, mode })
+                : undefined
+            }
+            orgUnits={orgUnits}
+            labels={labels}
+            canEdit={canEdit}
+            renderAvatar={renderAvatar}
+            gradeOptions={gradeOptions ?? EMPTY_ARRAY}
+            positionOptions={positionOptions ?? EMPTY_ARRAY}
+            onClose={extra.onClose}
+            onSave={onSaveMembers}
+            onRehireMember={canEdit && canInvite ? openRehire : undefined}
+            onChangeAffiliations={onChangeAffiliations}
+            appointmentTypeOptions={canEdit ? appointmentTypeOptions : undefined}
+            inferAppointmentType={inferAppointmentType}
+            onBeforeAppoint={onBeforeAppoint}
+            appointmentFlow={canEdit ? appointmentFlow : undefined}
+            seatFields={seatFields}
+            memberAssets={memberAssets}
+            /* 재직 상태별 날짜 칸(§3.2.1) — HR 기록 모달과 **같은** 조회·저장 경로다.
+               미주입이면(어드민 아님) 그 칸을 아예 그리지 않는다. */
+            onLoadHrProfile={onLoadHrProfile}
+            leaveAddon={leaveAddon}
+            today={today}
+            onSaveIdentity={onSaveIdentity}
+            onLoadPersonalHistory={onLoadPersonalHistory}
+            instantSaveNotice={instantSaveNotice}
+            manualSaveNotice={manualSaveNotice}
+            /* PW-576 — 폐기된 시트가 받던 카탈로그·기록 콜백이 그대로 패널로 간다.
+               같은 값을 두 화면이 다른 목록으로 고르던 상태가 없어졌으므로, 여기가
+               그 값들을 고치는 유일한 자리다. */
+            rankOptions={rankOptions ?? EMPTY_ARRAY}
+            categoryOptions={categoryOptions ?? EMPTY_ARRAY}
+            businessTitleOptions={businessTitleOptions ?? EMPTY_ARRAY}
+            employmentTypeOptions={employmentTypeOptions ?? EMPTY_ARRAY}
+            countryOptions={countryOptions ?? EMPTY_ARRAY}
+            buildingOptions={buildingOptions ?? EMPTY_ARRAY}
+            workLocationOptions={fieldOptions?.workLocation ?? EMPTY_ARRAY}
+            hrbpOptions={hrbpOptions ?? EMPTY_ARRAY}
+            jobAxis={jobAxis}
+            onOpenFieldOptions={onOpenFieldOptions}
+            inactiveFieldValues={inactiveFieldValues}
+            valueLabels={valueLabels}
+            optionalFields={optionalFields ?? NO_OPTIONAL_FIELDS}
+            canViewSalary={canViewSalary}
+            onLoadSalaryHistory={onLoadSalaryHistory}
+            onAddSalaryHistory={onAddSalaryHistory}
+            defaultCurrency={defaultCurrency}
+            hrRecordHandlers={hrRecordHandlers}
+            nationalIdEnabled={nationalIdEnabled}
+            onLoadArchivedRecords={onLoadArchivedRecords}
+            onDownloadArchivedRecords={onDownloadArchivedRecords}
+            offboardingReason={offboardingReason}
+          />
+  );
+
   return (
     <div className="admin-emp-canvas">
+      {/* 상세 페이지가 열리면 목록은 숨기기만 한다 — [목록으로] 때 필터 · 정렬 · 쪽 · 켠 열이 그대로다(§3.2-D «주소») */}
+      <div className="admin-emp-canvas-list" hidden={Boolean(detailRoute && detailId) || undefined}>
       {billingSummary && (
         <BillingSummaryBanner summary={billingSummary} labels={labels.billingSummary} onGoBilling={onGoBilling} />
       )}
@@ -7197,7 +7630,11 @@ export default function AdminEmployeesCanvas({
             onToggleOrgLeader={canEdit ? onToggleOrgLeader : undefined}
             onChangeAffiliations={onChangeAffiliations}
             /* 같은 사람을 다른 길로 고칠 때(PW-1333 · §3.1-G 권고 2) — 저장 전 칸이 있는 사람만 막는다 */
-            onOpenEdit={(m) => guardMember(m, () => { setEditMemberId(m.id); onOpenMember?.(m.id); })}
+            onOpenEdit={(m, rows) => guardMember(m, () => {
+              if (detailRoute) openDetail(m, rows);
+              else setEditMemberId(m.id);
+              onOpenMember?.(m.id);
+            })}
             onDeactivate={canEdit && onDeactivateMember ? (m) => guardMember(m, () => onDeactivateMember(m)) : undefined}
             onCancelOffboarding={canEdit ? onCancelOffboarding : undefined}
             onAssignManager={onAssignManager}
@@ -7279,81 +7716,48 @@ export default function AdminEmployeesCanvas({
         />
       )}
 
+      </div>
+      {detailRoute && detailId && (() => {
+        const target = members.find((m) => m.id === detailId);
+        if (!target) return loading ? <LoadingState>{labels.loading}</LoadingState> : null;
+        const pos = detailOrder.indexOf(detailId) + 1;
+        return panelFor(target, {
+          key: `${target.id}:${detailEditKey}`,
+          onClose: detailRoute.onBack,
+          page: {
+            tab: detailTab,
+            onTab: (t) => detailRoute.onNavigate({ memberId: detailId, tab: t, replace: true }),
+            editing: detailEdit,
+            editKey: detailEditKey,
+            onEdit: () => setDetailEdit(true),
+            onCancel: () => { setDetailEdit(false); setDetailEditKey((k) => k + 1); },
+            onSaved: (o) => {
+              setDetailEdit(false);
+              setDetailEditKey((k) => k + 1);
+              if (o?.draft) detailRoute.onDraftSaved?.();
+            },
+            pos: Math.max(pos, 1),
+            total: detailOrder.length,
+            canPrev: pos > 1,
+            canNext: pos > 0 && pos < detailOrder.length,
+            onPrev: () => stepDetail(-1),
+            onNext: () => stepDetail(1),
+            onBack: detailRoute.onBack,
+            canViewComp: canViewSalary,
+            confirmLeave: detailRoute.confirmLeave,
+            onDirtyChange: detailRoute.onDirtyChange,
+          },
+        });
+      })()}
+
       {/* 목록 뷰의 단건 편집 패널 — 두 뷰 바깥에 그린다(위 hidden 주석 참조).
           `members` 가 갱신되면 그 최신 행으로 다시 찾는다 — 저장 직후 부모가
           재조회하면 옛 객체를 붙들고 있던 패널이 방금 저장한 값을 안 보여준다.
           탭을 옮기면 감춘다 — 미배정·초대 탭 위에 남의 화면의 패널이 떠 있으면 안 된다. */}
-      {editMemberId && tab === 'members' && (() => {
+      {!detailRoute && editMemberId && tab === 'members' && (() => {
         const target = members.find((m) => m.id === editMemberId);
         if (!target) return null;
-        return (
-          <EmployeesEditPanel
-            member={target}
-            positionHelp={positionHelp}
-            historyHelp={historyHelp}
-            leaderUnitIds={(leaderUnitIdsByMember || {})[target.id] || EMPTY_ARRAY}
-            onGoOrgUnit={canEdit ? onGoAssignLeader : undefined}
-            goOrgUnitsBlockedTip={goOrgUnitsBlockedTip}
-            squadOptions={squadOptions}
-            squadLabels={labels.squadPicker}
-            onGoSquadView={onGoSquadView}
-            onOpenCeo={
-              canEdit && onAssignCeo && onReleaseCeo && target.employmentStatus !== 'terminated'
-                ? (mode) => setCeoConfirm({ row: target, mode })
-                : undefined
-            }
-            orgUnits={orgUnits}
-            labels={labels}
-            canEdit={canEdit}
-            renderAvatar={renderAvatar}
-            gradeOptions={gradeOptions ?? EMPTY_ARRAY}
-            positionOptions={positionOptions ?? EMPTY_ARRAY}
-            onClose={() => setEditMemberId(null)}
-            onSave={onSaveMembers}
-            onRehireMember={canEdit && canInvite ? openRehire : undefined}
-            onChangeAffiliations={onChangeAffiliations}
-            appointmentTypeOptions={canEdit ? appointmentTypeOptions : undefined}
-            inferAppointmentType={inferAppointmentType}
-            onBeforeAppoint={onBeforeAppoint}
-            appointmentFlow={canEdit ? appointmentFlow : undefined}
-            seatFields={seatFields}
-            memberAssets={memberAssets}
-            /* 재직 상태별 날짜 칸(§3.2.1) — HR 기록 모달과 **같은** 조회·저장 경로다.
-               미주입이면(어드민 아님) 그 칸을 아예 그리지 않는다. */
-            onLoadHrProfile={onLoadHrProfile}
-            leaveAddon={leaveAddon}
-            today={today}
-            onSaveIdentity={onSaveIdentity}
-            onLoadPersonalHistory={onLoadPersonalHistory}
-            instantSaveNotice={instantSaveNotice}
-            manualSaveNotice={manualSaveNotice}
-            /* PW-576 — 폐기된 시트가 받던 카탈로그·기록 콜백이 그대로 패널로 간다.
-               같은 값을 두 화면이 다른 목록으로 고르던 상태가 없어졌으므로, 여기가
-               그 값들을 고치는 유일한 자리다. */
-            rankOptions={rankOptions ?? EMPTY_ARRAY}
-            categoryOptions={categoryOptions ?? EMPTY_ARRAY}
-            businessTitleOptions={businessTitleOptions ?? EMPTY_ARRAY}
-            employmentTypeOptions={employmentTypeOptions ?? EMPTY_ARRAY}
-            countryOptions={countryOptions ?? EMPTY_ARRAY}
-            buildingOptions={buildingOptions ?? EMPTY_ARRAY}
-            workLocationOptions={fieldOptions?.workLocation ?? EMPTY_ARRAY}
-            hrbpOptions={hrbpOptions ?? EMPTY_ARRAY}
-            jobAxis={jobAxis}
-            onOpenFieldOptions={onOpenFieldOptions}
-            inactiveFieldValues={inactiveFieldValues}
-            valueLabels={valueLabels}
-            optionalFields={optionalFields ?? NO_OPTIONAL_FIELDS}
-            canViewSalary={canViewSalary}
-            onLoadSalaryHistory={onLoadSalaryHistory}
-            onAddSalaryHistory={onAddSalaryHistory}
-            defaultCurrency={defaultCurrency}
-            hrRecordHandlers={hrRecordHandlers}
-            nationalIdEnabled={nationalIdEnabled}
-            onLoadArchivedRecords={onLoadArchivedRecords}
-            onDownloadArchivedRecords={onDownloadArchivedRecords}
-            offboardingReason={offboardingReason}
-          />
-        );
+        return panelFor(target, { onClose: () => setEditMemberId(null) });
       })()}
 
       {/* 변경 사유 모달 — 서버가 「사유가 필요하다」고 답했을 때만 뜬다(§2-D-4). */}

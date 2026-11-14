@@ -1549,6 +1549,38 @@
 .admin-emp-panel-body .admin-section-label:first-child { margin-top: 0; }
 /* 칸 묶음은 div 로 한 번 감싸여 패널 gap 이 제목과 칸 사이에 닿지 않는다(PW-1706). */
 .admin-emp-panel-body > div > .admin-section-label { margin-bottom: var(--spacing-md); }
+
+/* ── 구성원 상세 페이지 (pivit-work PW-2797 · admin-spec §3.2-D) ──
+   새 모양을 만들지 않는다 — 틀은 구성원 설정 캔버스(.admin-emp-canvas: 세로 16), 머리는 내 설정 히어로(.msc-hero),
+   본문 칸 · 묶음 제목은 종전 오른쪽 창 규칙(위 .admin-emp-panel-body 와 같은 선택자), 저장 줄은 종전 창 푸터를 화면 아래에 붙인다. */
+.admin-emp-detail { display: flex; flex-direction: column; gap: var(--spacing-xl); font-family: var(--font-family-body); min-width: 0; }
+.admin-emp-detail-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--spacing-xl); flex-wrap: wrap; }
+.admin-emp-detail-id { min-width: 0; }
+.admin-emp-detail-name-row { display: flex; align-items: center; gap: var(--spacing-md); flex-wrap: wrap; }
+.admin-emp-detail-nav { display: flex; align-items: center; gap: var(--spacing-md); flex-wrap: wrap; }
+.admin-emp-detail-body { display: flex; flex-direction: column; gap: var(--spacing-md); min-width: 0; }
+/* 묶음 제목 위 · 아래 — 종전 창(.admin-emp-panel-body)의 묶음 간격을 토큰으로 */
+.admin-emp-detail-body .admin-section-label { margin-top: var(--spacing-3xl); }
+.admin-emp-detail-body .admin-section-label:first-child { margin-top: 0; }
+.admin-emp-detail-body > div > .admin-section-label { margin-bottom: var(--spacing-md); }
+/* 읽기 — 라벨 위 · 값 아래, 두 칸씩 한 줄(§3.2-D «읽기» · 내 설정 필드 그리드 .msc-grid-2col 열 간격) */
+.admin-emp-detail-read-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--spacing-xl); }
+.admin-emp-detail-read-grid .msc-pair-value { overflow-wrap: anywhere; }
+@media (max-width: 720px) {
+  .admin-emp-detail-read-grid { grid-template-columns: minmax(0, 1fr); }
+}
+/* 수정 중 저장 줄 — 화면 아래 고정(§3.2-D «수정»). 안의 버튼 · 사유 · 발령 묶음은 종전 창 푸터 그대로다 */
+.admin-emp-detail-savebar {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  background: var(--bg-primary);
+  border-top: 1px solid var(--colors-border-borderTertiary);
+}
+.admin-emp-detail-savebar .admin-emp-panel-footer { border-top: none; }
+/* 상세 페이지가 열리면 목록 묶음을 숨긴다 — 숨기기만 해서 필터 · 정렬 · 쪽이 남는다. 열려 있지 않으면 묶음 상자가 배치에 끼지 않는다 */
+.admin-emp-canvas-list { display: contents; }
+.admin-emp-canvas-list[hidden] { display: none; }
 .admin-emp-panel-footer {
   display: flex;
   gap: 12px;
