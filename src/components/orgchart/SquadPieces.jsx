@@ -348,6 +348,9 @@ export function SquadAssignPopover({
   const shareOver = allotted > SQUAD_BASE;
 
   const capacityUnset = assignment.capacitySetBy == null;
+  // [캐파 설정 요청 보내기] — 미설정일 때만 보인다(§7-15). 요청한 뒤엔 «요청됨»으로 잠긴다.
+  const showCapacityRequest = canRequestCapacity && capacityUnset;
+  const canPressCapacityRequest = showCapacityRequest && !capacityRequested;
   // ② 캐파 합계는 완료·보관 스쿼드를 뺀다 — 분모가 "지금 이 사람의 시간" 이라서다.
   const total = othersPct + (counted ? assignment.allocationPct : 0);
   const cst = capacityState(total);
@@ -455,10 +458,11 @@ export function SquadAssignPopover({
               {L('squad.pop.capacityUnsetNote')}
             </p>
           )}
-          {/* 잠긴 이유를 문장으로 말한다 — 자격이 무엇이든 결론은 하나로 끝난다(§5-3.9 6) */}
+          {/* 잠긴 이유를 문장으로 말한다 — 자격이 무엇이든 결론은 하나로 끝난다(§5-3.9 6).
+              «요청 보내기를 누르세요»는 그 버튼을 누를 수 있을 때만 — 이미 정한 값(0% 포함)엔 버튼이 없다(PW-2777). */}
           {!canEditCapacity && (
             <p className="sq-pop-note" data-testid="squad-pop-capacity-locked">
-              {L('squad.pop.capacityLocked')}
+              {L(canPressCapacityRequest ? 'squad.pop.capacityLocked' : 'squad.pop.capacityLockedNoRequest')}
             </p>
           )}
           <div className={`sq-pop-row${canEditCapacity ? '' : ' is-readonly'}`}>
@@ -486,6 +490,14 @@ export function SquadAssignPopover({
                   if (e.target.value.trim() === '') { setCapacityDraftEmpty(true); return; }
                   setCapacityDraftEmpty(false);
                   onSetPct?.(clampPct(e.target.value));
+                }}
+                onInput={(e) => {
+                  // 미설정 배정은 칸에 0 이 미리 차 있다. 그 0 위에 0 을 다시 치면 값이 같아 onChange 가
+                  // 불리지 않아 미설정으로 남았다 — 본인이 숫자를 쳤으면 같은 값이어도 저장한다(§5-3.7 · PW-2777).
+                  const v = e.currentTarget.value;
+                  if (!capacityUnset || v.trim() === '') return;
+                  const pct = clampPct(v);
+                  if (pct === assignment.allocationPct) onSetPct?.(pct);
                 }}
                 onBlur={() => setCapacityDraftEmpty(false)}
               />
@@ -557,7 +569,7 @@ export function SquadAssignPopover({
 
           {/* 🔴 값을 대신 넣는 버튼은 두지 않는다 — 남는 조치는 이 요청 하나다(§5-3.9 4).
               미설정이 아닌 배정에는 요청할 이유가 없어 버튼도 뜨지 않는다. */}
-          {canRequestCapacity && capacityUnset && (
+          {showCapacityRequest && (
             <button
               type="button"
               className="sq-btn sq-btn-sm sq-btn-outline sq-pop-cap-request"
