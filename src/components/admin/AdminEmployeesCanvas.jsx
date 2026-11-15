@@ -5892,7 +5892,7 @@ function EmployeesEditPanel({
             사람이라는 뜻이라 주의를 끌 이유가 없다. */}
         {page && (
           /* 탭 6개 — 구성원 설정 탭 줄과 같은 부품 · 건수 배지 없음(§3.2-D «탭 6개»). 저장 중에는 옮기지 않는다(정책서 §6). */
-          <div className="tl-tabs-row adm-tabs-row admin-emp-detail-tabs" data-testid="employees-detail-tabs">
+          <div className="tl-tabs-row adm-tabs-row" data-testid="employees-detail-tabs">
             <Tabs
               items={pageTabs.map((t) => ({
                 value: t,
