@@ -48,6 +48,20 @@
   max-width: 560px;
 }
 
+/* 표가 든 창은 닫기 X 자리(오른쪽 64)를 제목 줄에만 둔다 — 머리 전체에 두면 본문 표가 X 아래 빈자리만큼
+   좁아져(560 창에서 512 → 472) 이름·[반영|값만 기록]·변경 줄이 그대로 꺾였다(pivit-work PW-2835 2회차).
+   글만 있는 창은 위 규칙 그대로라 본문 폭이 바뀌지 않는다. */
+/* 대신 본문이 X 아래(위 12 + 높이 44 = 56) 밑에서 시작하도록 제목과 본문 사이를 줄 간격 12 로 띄운다 — 24 + 제목 24 + 12 = 60.
+   2 그대로면 본문 첫 줄(«영향 구성원 N명 …»)이 X 왼쪽 아래 귀퉁이에 닿았다. */
+.pw-confirm-modal:has(table) .pw-confirm-header {
+  padding-right: var(--spacing-3xl);
+  gap: var(--spacing-lg);
+}
+
+.pw-confirm-modal:has(table) .pw-confirm-title {
+  padding-right: calc(var(--spacing-4xl) * 2 - var(--spacing-3xl));
+}
+
 .pw-confirm-modal > .tl-group-modal-close {
   position: absolute;
   top: var(--spacing-lg);
