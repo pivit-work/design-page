@@ -280,12 +280,14 @@ const codeLabel = (map, code) => (code && map && map[code]) || code;
 function HrSection({ title, count, children }) {
   return (
     <section className="adm-hr-section">
-      <h3 className="adm-hr-section-title">
-        {title}
-        {count != null && (
-          <StatusBadge className={count > 0 ? 'adm-count-chip' : 'adm-meta-pill'} data-testid="hr-section-count">{count}</StatusBadge>
-        )}
-      </h3>
+      {(title || count != null) && (
+        <h3 className="adm-hr-section-title">
+          {title}
+          {count != null && (
+            <StatusBadge className={count > 0 ? 'adm-count-chip' : 'adm-meta-pill'} data-testid="hr-section-count">{count}</StatusBadge>
+          )}
+        </h3>
+      )}
       {children}
     </section>
   );
@@ -1388,9 +1390,9 @@ const INLINE_PARTS = {
   ],
   work: [
     'firstHireDate', 'isRehire', 'employmentTypeStartDate', 'lastWorkingDate', 'workSchedule',
-    'contractOvertime', 'contractHoliday', 'contractNight',
   ],
-  comp: ['payType', 'payCycle', 'targetBonus', 'targetBonusStart', 'targetBonusEnd', 'bankName', 'bankAccount'],
+  /* 포괄 계약 시간은 §3.2.2 «보상 정보» 칸이라 보상 탭(§3.2-D «탭별 칸») */
+  comp: ['payType', 'payCycle', 'contractOvertime', 'contractHoliday', 'contractNight', 'targetBonus', 'targetBonusStart', 'targetBonusEnd', 'bankName', 'bankAccount'],
   records: [],
 };
 const ADDRESS_KEYS = ['addressPostalCode', 'addressRegion', 'addressDistrict', 'addressDetail', 'addressCountry'];
@@ -1629,6 +1631,9 @@ export function HrProfileInline({
         {nationalIdEnabled && kept(L.hrNationalId || '주민등록번호', (
           <HrNationalIdRow memberId={memberId} present={!!identity.nationalId?.present} onReveal={onRevealNationalId} labels={L} />
         ))}
+      </HrSection>
+      {/* 병역·장애 정보 — 개인 신원과 다른 묶음(§3.2-D «탭별 칸» «개인 신원 정보 / 병역·장애 정보(🔒)» · §3.2.2 표) */}
+      <HrSection title={L.hrMilitarySection || '병역·장애 정보'}>
         {archived ? (
           <>
             <HrArchivedPair k={L.hrMilitaryService || '병역'} text={archivedText} />
@@ -1659,9 +1664,10 @@ export function HrProfileInline({
     </>
   );
 
+  /* «근무·고용» 고용 정보의 뒷부분 — 부르는 쪽 «고용 정보» 묶음(기산일 · 사번 · 고용형태 · 담당 HRBP) 바로 아래에 제목 없이 이어 붙는다 */
   const renderWork = () => (
     <>
-      <HrSection title={L.hrEmploymentSection || '고용 정보'}>
+      <HrSection>
         {field('firstHireDate', L.hrFirstHireDate || '최초 입사일', { edit: { date: true } })}
         {yesNoField('isRehire', L.hrIsRehire || '재입사 여부')}
         {rehireDateBad && (
@@ -1676,16 +1682,6 @@ export function HrProfileInline({
           show: (v) => optionText(L.hrWorkScheduleOptions, v),
           edit: { options: L.hrWorkScheduleOptions || [] },
         }))}
-        {/* 포괄 계약 시간 — HR 기록 창에서 급여 · 계좌 묶음과 함께 «따로 보관» 대상이다 */}
-        {archived ? (
-          <HrArchivedPair k={L.hrContractOvertime || '포괄 계약 시간 · 초과'} text={archivedText} />
-        ) : (
-          <>
-            {field('contractOvertime', L.hrContractOvertime || '포괄 계약 시간 · 초과', { digits: true, edit: { inputMode: 'numeric' } })}
-            {field('contractHoliday', L.hrContractHoliday || '포괄 계약 시간 · 휴일', { digits: true, edit: { inputMode: 'numeric' } })}
-            {field('contractNight', L.hrContractNight || '포괄 계약 시간 · 야간', { digits: true, edit: { inputMode: 'numeric' } })}
-          </>
-        )}
       </HrSection>
     </>
   );
@@ -1699,6 +1695,10 @@ export function HrProfileInline({
           <>
             {field('payType', L.hrPayType || '급여 유형', { show: (v) => optionText(L.hrPayTypeOptions, v), edit: { options: L.hrPayTypeOptions || [] } })}
             {field('payCycle', L.hrPayCycle || '급여 지급 주기', { show: (v) => optionText(L.hrPayCycleOptions, v), edit: { options: L.hrPayCycleOptions || [] } })}
+            {/* 포괄 계약 시간 — §3.2.2 «보상 정보» 표에서 급여 지급 주기 다음 칸 */}
+            {field('contractOvertime', L.hrContractOvertime || '포괄 계약 시간 · 초과', { digits: true, edit: { inputMode: 'numeric' } })}
+            {field('contractHoliday', L.hrContractHoliday || '포괄 계약 시간 · 휴일', { digits: true, edit: { inputMode: 'numeric' } })}
+            {field('contractNight', L.hrContractNight || '포괄 계약 시간 · 야간', { digits: true, edit: { inputMode: 'numeric' } })}
             <div>
               {field('targetBonus', L.hrTargetBonus || '타겟 보너스', {})}
               {targetBonusBad && (

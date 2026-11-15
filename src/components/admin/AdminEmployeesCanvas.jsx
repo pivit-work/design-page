@@ -4985,11 +4985,15 @@ const PAGE_FIELD_GROUPS = (() => {
   return [
     { ...byId.basic, tab: 'person', fields: PAGE_PERSON_KEYS.map((k) => all.find((f) => f.key === k)).filter(Boolean) },
     { ...strip(byId.classify), tab: 'org' },
-    /* «고용 정보» — 입사일 · 기산일 · 사번 · 고용형태 · 담당 HRBP(§3.2-D «근무·고용» · §3.2.2 «고용 정보») */
-    { id: 'employ', labelKey: 'employSection', tab: 'work', fields: PAGE_EMPLOY_KEYS.map((k) => all.find((f) => f.key === k)).filter(Boolean) },
+    /* «근무·고용» 차례 — §3.2-D «탭별 칸» «입사일 / 근무지 · 근무 위치 · 사무실 전화번호 / 지급된 자산 / 재직 상태 … / 고용 정보».
+       입사일은 표에서 혼자 한 자리라 묶음 제목 없이 맨 위에 선다. «고용 정보»는 재직 상태 뒤라 렌더에서 따로 부른다(PAGE_EMPLOY_GROUP). */
+    { id: 'hire', tab: 'work', noLabel: true, fields: [all.find((f) => f.key === 'hireDate')].filter(Boolean) },
     { ...byId.work, tab: 'work' },
+    /* «고용 정보» — 기산일 · 사번 · 고용형태 · 담당 HRBP(§3.2.2 «고용 정보») · 뒤에 HR 칸(최초 입사일 · 근무 일정 …)이 이어 붙는다 */
+    { id: 'employ', labelKey: 'employSection', tab: 'work', fields: PAGE_EMPLOY_KEYS.filter((k) => k !== 'hireDate').map((k) => all.find((f) => f.key === k)).filter(Boolean) },
   ];
 })();
+const PAGE_EMPLOY_GROUP = PAGE_FIELD_GROUPS.find((g) => g.id === 'employ');
 
 /** 읽기 상태의 칸 한 개 — 라벨 위 · 값 아래(§3.2-D «읽기»). 빈 값은 «—». */
 function DetailReadField({ label, value, testId, children }) {
@@ -6239,7 +6243,7 @@ function EmployeesEditPanel({
     if (shown.length === 0) return null;
     return (
       <div key={g.id}>
-        <SectionLabel>{labels.panel[g.labelKey] || (g.id === 'employ' ? detailL.employSection : '')}</SectionLabel>
+        {!g.noLabel && <SectionLabel>{labels.panel[g.labelKey] || (g.id === 'employ' ? detailL.employSection : '')}</SectionLabel>}
         <div className={reading ? 'admin-emp-detail-read-grid' : 'admin-emp-field-group'}>
           {shown.flatMap((f) => [fieldNode(f), after[f.key] ? <Fragment key={`${f.key}-after`}>{after[f.key]}</Fragment> : null])}
         </div>
@@ -6385,7 +6389,7 @@ function EmployeesEditPanel({
           )}
           {/* 조직 정보 — 표 순서 «소속(겸직) · 스쿼드 / 인사 분류 / 조직 위치 / 매니저»(§3.2-D «탭별 칸») */}
           {page && inTab('org') && (<>{orgAssignBlock}{squadBlock}</>)}
-          {(page ? PAGE_FIELD_GROUPS.filter((g) => inTab(g.tab) && !(inlineNames && g.id === 'basic')) : PANEL_FIELD_GROUPS).map((g) => renderGroup(g))}
+          {(page ? PAGE_FIELD_GROUPS.filter((g) => inTab(g.tab) && g !== PAGE_EMPLOY_GROUP && !(inlineNames && g.id === 'basic')) : PANEL_FIELD_GROUPS).map((g) => renderGroup(g))}
 
           {/* «지급된 자산» — 근무지 묶음 바로 아래(자리와 함께 보는 정보 · admin-spec §3.2.13 · pivit-work PW-2600) */}
           {inTab('work') && memberAssets && (
@@ -6745,6 +6749,8 @@ function EmployeesEditPanel({
             )}
           </div>
           </>)}
+          {/* «근무·고용» 고용 정보 — 재직 상태 · 따로 보관한 기록 다음, HR 칸(최초 입사일 · 근무 일정 …) 바로 위(§3.2-D «탭별 칸») */}
+          {page && inTab('work') && renderGroup(PAGE_EMPLOY_GROUP)}
           {/* HR 기록 창에 있던 칸을 탭 안에 펼친다(§3.2-D «탭별 칸» · «HR 기록 탭») — 수정 중 바꾼 것은 페이지 [저장] 때 보낸다 */}
           {page && onLoadHrProfile && ['person', 'work', 'comp', 'records'].includes(page.tab) && (page.tab !== 'comp' || canViewSalary) && (
             <HrProfileInline
