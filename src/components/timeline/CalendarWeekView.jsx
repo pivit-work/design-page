@@ -221,17 +221,30 @@ export default function CalendarWeekView({
                 {/* 이벤트 블록 */}
                 {events.map((ev) => {
                   // 넘친 줄의 «+N» — 월 보기와 같이 그날 전체 일정을 날짜별 일정 창으로 연다.
+                  // 옆 일정 막대와 같은 상자(회색)로 숨긴 첫 일정 높이만큼 그린다 — 글자만 두면 못 알아본다 (PW-2827).
                   if (ev._more) {
+                    const head = ev._hidden[0];
+                    const moreTop = (ev._start / 60) * HOUR_H;
+                    const moreH = Math.min(
+                      Math.max(((head._end - head._start) / 60) * HOUR_H, MIN_EVENT_H),
+                      GRID_H - moreTop,
+                    );
+                    const gray = SNIPPET_COLORS.gray;
                     return (
                       <button
                         key={ev.id}
                         type="button"
-                        className="tl-cal-more tl-week-cal-more"
+                        className="tl-cal-event tl-week-cal-event tl-week-cal-more"
                         style={{
-                          top: (ev._start / 60) * HOUR_H,
+                          top: moreTop,
+                          height: moreH,
                           left: ev._left,
                           width: ev._width,
                           zIndex: ev._z,
+                          '--event-bg': gray.bg,
+                          '--event-bg-hover': gray.bgHover,
+                          borderColor: gray.border,
+                          color: gray.titleText,
                         }}
                         onClick={(e) => {
                           e.stopPropagation();
@@ -242,7 +255,9 @@ export default function CalendarWeekView({
                           );
                         }}
                       >
-                        +{ev._hidden.length}
+                        <span className="tl-cal-event-title">
+                          {L.weekMore(ev._hidden.length)}
+                        </span>
                       </button>
                     );
                   }

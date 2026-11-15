@@ -5,7 +5,7 @@ import {
   formatIsoDate,
 } from './constants.js';
 import useTimelineData from './useTimelineData.js';
-import { weekdayShortLabels, formatMonthDay } from './timelineLabels.js';
+import { weekdayShortLabels, formatMonthDay, useTimelineLabels } from './timelineLabels.js';
 import { layoutAllDayWeek } from './allDayLayout.js';
 
 // 주말(일/토) 컬럼은 그대로 보여주되 이벤트만 비움.
@@ -79,6 +79,7 @@ export default function CalendarMonthView({
   onVisibleRangeChange,
 }) {
   const { getEventsForDate } = useTimelineData();
+  const L = useTimelineLabels();
 
   // 주 목록의 창 — 선택한 달의 첫 주부터 `weeks` 주. 날짜(달)가 바뀌면 처음으로 돌아간다.
   const monthKey = `${selectedDate.getFullYear()}-${selectedDate.getMonth()}`;
@@ -313,7 +314,7 @@ export default function CalendarMonthView({
                         );
                       }}
                     >
-                      +{moreCount} more...
+                      {L.monthMore(moreCount)}
                     </button>
                   )}
                 </div>

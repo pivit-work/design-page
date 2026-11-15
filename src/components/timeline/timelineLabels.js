@@ -42,6 +42,9 @@ export const DEFAULT_TIMELINE_LABELS = {
   snippetBlock: (name, time) => `${name} 스니핏 ${time} 작성`,
   // 창
   dayEvents: (date) => `${date} 일정`,
+  // 캘린더 칸에 다 못 그린 일정 수 — 월 보기 칸 아래 · 주 보기 겹친 줄 셋째 자리 (pivit-work PW-2827)
+  monthMore: (n) => `+${n}개 더 보기`,
+  weekMore: (n) => `+${n}개`,
   close: '닫기',
   // 캘린더 주 보기 «종일» 줄 이름 (pivit-work PW-2462)
   allDay: '종일',

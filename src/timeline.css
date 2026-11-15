@@ -1859,6 +1859,15 @@
   position: absolute;
 }
 
+/* 주 보기 겹친 줄 셋째 자리 «+N개» — 옆 일정 막대(.tl-cal-event 회색)와 같은 상자로 그린다.
+   글자만 두면(.tl-cal-more) 막대 사이에서 못 알아봤다 (pivit-work PW-2827). 버튼 기본 모양만 걷는다. */
+.tl-cal-event.tl-week-cal-more {
+  appearance: none;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
 /* ===========================
    Day events popover — 캘린더 월 그리드 "+N more" 클릭 시 뜨는 해당 날짜의 전체 이벤트 목록.
    디자이너 원본은 없다. 창은 stesslee 회의 창 캘린더판(.tl-meeting-modal.is-calendar)을 값 그대로 따른다:
