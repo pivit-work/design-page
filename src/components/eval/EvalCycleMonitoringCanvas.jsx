@@ -150,6 +150,7 @@ const DEFAULT_LABELS = {
   stageCalibration: '캘리브레이션',
   // [PW-1461] 결과 발송 단계 (정책 §6.8 · §5.2.1-C)
   stageResultShare: '결과 발송',
+  stageReportReview: '리포트 검수',
   // [PW-1461] 단계 카드의 기간 바로 고치기 (정책 §6.5)
   stageDateStart: '시작일 바꾸기',
   stageDateEnd: '종료일 바꾸기',
@@ -172,6 +173,7 @@ const STAGE_KEY = {
   upward_review: 'stageUpwardReview',
   leader_review: 'stageLeaderReview',
   calibration: 'stageCalibration',
+  report_review: 'stageReportReview',
   result_share: 'stageResultShare',
 };
 
@@ -186,7 +188,9 @@ const OPEN_STATUS_OF_STAGE = {
   upward_review: ['peer_review'],
   leader_review: ['peer_review'],
   calibration: ['calibration'],
-  result_share: ['report_review', 'hr_review'],
+  // pivit-work PW-2807 — 리포트 검수 줄이 따로 서므로 결과 발송은 리포트 검수가 끝난 뒤(hr_review)에만 «진행 중».
+  report_review: ['report_review'],
+  result_share: ['hr_review'],
 };
 
 /** 리뷰 작성 구간의 줄 → 그 줄의 단계. 서버가 `reviewPhase` 를 주면 열린 단계의 줄에만 «진행 중»을 단다 (pivit-work PW-2583). */
