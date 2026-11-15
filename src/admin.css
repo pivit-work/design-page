@@ -1583,6 +1583,10 @@
    읽기의 칸은 위 읽기 2열(라벨 위 · 값 아래 · 라벨은 .admin-emp-field-label 값)과 같게 */
 /* 창 본문 여백(.adm-hr-body 의 좌우 48)은 창 안에서만 — 페이지 본문 칸과 왼쪽 끝을 맞춘다 */
 .admin-emp-detail-body .adm-hr-body { padding: 0; overflow: visible; gap: var(--spacing-3xl); }
+/* 위 묶음과의 간격 · 제목 아래 간격을 페이지 묶음(.admin-section-label 위 24 · 아래 8)과 같게 */
+.admin-emp-detail-body > .adm-hr-body:not(:first-child) { margin-top: var(--spacing-3xl); }
+.admin-emp-detail-body .adm-hr-section { gap: var(--spacing-md); }
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-section:has(> .adm-hr-pair) > .adm-hr-section-title { margin-bottom: calc(var(--spacing-md) - var(--spacing-xl)); }
 .admin-emp-detail-body .adm-hr-section-title { font-size: 14px; letter-spacing: -0.01em; color: var(--text-primary); }
 .admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-section:has(> .adm-hr-pair) {
   display: grid;
