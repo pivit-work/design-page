@@ -17233,6 +17233,8 @@ button.evmh-phase:focus-visible {
 /* 만들기 창 4단계 — 제외 조건 · 리뷰 & 조정 · 하향 평가자 사이 22(RULES 3 덩어리 사이). */
 .evc-wiz-panel.evc-tgt-panel:not(.is-manage) { gap: calc(var(--spacing-2xl) + var(--spacing-xxs)); }
 .evc-tgt-panel:not(.is-manage) .evc-la { margin-top: 0; }
+/* [PW-2831] 관리 탭(연 사이클) — 리뷰 & 조정 아래 하향 평가자 표. 덩어리 사이는 리뷰 & 조정 위와 같은 24. */
+.evc-tgt-panel.is-manage .evc-tgt-live-la { margin-top: var(--spacing-3xl); }
 .evc-tgt-panel.is-manage .evc-review-block {
   margin-top: var(--spacing-3xl);
   padding-top: 0;

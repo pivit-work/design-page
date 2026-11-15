@@ -3326,6 +3326,12 @@ export default function EvalCycleWizard({
    * 확정 상태가 있으면 그쪽이 먼저다. 관리 모드는 `cycle.leaderAssignmentConfirmedAt` 를 읽는다.
    */
   leaderConfirmInitial = null,
+  /**
+   * PW-2831 · 정책 §5.13.6 «위치» — 오픈 뒤(관리 모드의 연 사이클) 4단계 ④ 자리에 놓을 하향 평가자 표.
+   * 진행 현황과 같은 표를 앱이 만들어 넘긴다(`EvalLeaderAssignmentLiveSection` 을 감싼 앱 블록). 하향 리뷰가
+   * 있는 연 사이클에서만 «리뷰 & 조정» 아래에 그린다. 안 넘기면 지금처럼 아무것도 그리지 않는다.
+   */
+  openedLeaderAssignments,
 }) {
   const isManage = !!cycle;
   /** 이미 연 사이클을 사이클 관리 탭에서 고치는 중인가(초안 이어쓰기는 아니다). */
@@ -11793,6 +11799,13 @@ export default function EvalCycleWizard({
                     }
                     formatStamp={stampMonthDayTime}
                   />
+                </div>
+              )}
+
+              {/* [PW-2831 · 정책 §5.13.6 «위치»] 오픈 뒤 ④ 하향 평가자 — 진행 현황과 같은 표를 같은 자리(리뷰 & 조정 아래)에. */}
+              {hasLeader && openedManage && openedLeaderAssignments && (
+                <div className="evc-tgt-live-la" data-testid="evc-wiz-opened-leader">
+                  {openedLeaderAssignments}
                 </div>
               )}
 
