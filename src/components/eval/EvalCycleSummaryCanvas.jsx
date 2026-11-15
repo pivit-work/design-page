@@ -1990,7 +1990,8 @@ function DeptSortHead({ sortKey, label, sort, onSort, className = 'evs-leader-nu
  * 표시 항목에서 끈 값과 빈 값은 빼고, 둘 다 없으면 줄을 두지 않는다(null).
  */
 function nameSubLine(row, showJob, showTeam) {
-  const parts = [showJob && row.job, showTeam && row.team].filter(Boolean);
+  // 소속이 없는 사람의 team 은 페이지가 붙인 «미지정» 라벨이다(필터·정렬용) — 이 줄에는 넣지 않는다.
+  const parts = [showJob && row.job, showTeam && !row.teamUnassigned && row.team].filter(Boolean);
   return parts.length ? parts.join(' · ') : null;
 }
 
