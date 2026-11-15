@@ -3528,9 +3528,10 @@ function EmployeesListView({
         .filter(Boolean)
         .join(' | ');
     }
-    // 스쿼드 — 이름 · «준비중» 배지 · «종료 N» 은 따로 그린 조각이라 화면에서는 사이가 띄어 보인다. 떼어 놓은 복제본의
-    // innerText 는 칸 배치를 모르니 조각마다 글자를 띄어 잇는다(«PW-1155 추천 확인 준비중» — 붙으면 «확인준비중»)
-    if (colId === 'squads') {
+    // 배지를 따로 그린 칸 — 스쿼드(이름 · «준비중» · «종료 N») · 재직상태(상태 · «마지막 출근» 배지)는 조각 사이가 화면에서
+    // 띄어 보인다. 떼어 놓은 복제본의 innerText 는 칸 배치를 모르니 조각마다 글자를 띄어 잇는다
+    // («PW-1155 추천 확인 준비중» — 붙으면 «확인준비중» · pivit-work PW-2814 11-16 dev)
+    if (colId === 'squads' || colId === 'employmentStatus') {
       const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
       const parts = [];
       for (let n = walker.nextNode(); n; n = walker.nextNode()) {
