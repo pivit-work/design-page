@@ -10,15 +10,17 @@
 // - 한 줄에 나란히 놓는 칸은 MAX_LANES 개까지. 넘치면 앞의 MAX_LANES-1 개만 두고 마지막 칸에
 //   «+N»(_more)을 둔다 — 4개부터는 칸이 37px 아래로 좁아져 제목이 안 읽힌다.
 //   월 보기 «+N more» 와 같은 규칙(기획서 타임라인 §13.2, 2026-10-26 커트 결정).
-//   숨긴 일정은 시작 시각마다 «+N» 을 따로 둔다 — 15:30 줄에 16:00 회의가 얹혀도 15:30 칸은
-//   15:30 에 숨은 수만, 16:00 칸은 16:00 에 숨은 수를 센다(PW-2827). 앞 «+N» 은 다음 «+N» 이
-//   시작하는 곳에서 끊는다.
+//   숨긴 일정은 시작이 MORE_GROUP_MIN 분 이상 벌어지면 «+N» 을 따로 둔다 — 15:30 줄에 16:00 회의가
+//   얹혀도 15:30 칸은 15:30 에 숨은 수만, 16:00 칸은 16:00 에 숨은 수를 센다(PW-2827). 그보다 가까우면
+//   상자가 글자 한 줄 높이도 안 돼 한 «+N» 으로 묶는다. 앞 «+N» 은 다음 «+N» 이 시작하는 곳에서 끊는다.
 
 export const SIDE_BY_SIDE_MIN = 45;
 export const STACK_INDENT = 14;
 export const SHORT_EVENT_MAX = 60;
 export const LANE_GAP = 2;
 export const MAX_LANES = 3;
+// «+N» 을 나누는 시작 간격(분) — 30분 높이(28px)면 «+N개» 한 줄이 들어간다.
+export const MORE_GROUP_MIN = 30;
 // 짧은 일정을 긴 일정 위로 올리는 폭 — 단계 수가 이만큼 깊어질 일은 없다.
 const SHORT_Z_BOOST = 50;
 
@@ -60,11 +62,11 @@ export function layoutDayEvents(events) {
     if (r.items.length > MAX_LANES) {
       const hidden = r.items.splice(MAX_LANES - 1);
       for (const h of hidden) placed.splice(placed.indexOf(h), 1);
-      // hidden 은 시작 순으로 정렬돼 있다 — 같은 시작끼리 한 «+N».
+      // hidden 은 시작 순으로 정렬돼 있다 — 묶음 첫 일정과 MORE_GROUP_MIN 분 안에 시작하면 한 «+N».
       const groups = [];
       for (const h of hidden) {
         const g = groups[groups.length - 1];
-        if (g && g[0]._start === h._start) g.push(h);
+        if (g && h._start - g[0]._start < MORE_GROUP_MIN) g.push(h);
         else groups.push([h]);
       }
       groups.forEach((g, gi) => {
