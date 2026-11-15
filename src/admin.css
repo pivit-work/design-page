@@ -1063,6 +1063,22 @@
   cursor: default;
 }
 .admin-emp-edit-cell:focus-visible { outline: none; }
+/* 칸 범위 (PW-2814 · admin-spec §3.1-G-1 ① «범위 고르기») — 고른 칸은 옅은 브랜드색 바탕 + 브랜드색 테두리.
+   칸 위에 덮는 층으로 그린다 — 고친 칸(옅은 초록 바탕)도 고른 칸이 될 수 있어 바탕을 갈아 끼우면 «바뀜»이 안 보인다.
+   곱하기 섞기라 흰 칸은 옅은 브랜드색, 고친 칸은 한 단 짙게 보인다. 누르면 아래 칸이 받는다(pointer-events: none). */
+.admin-emp-table.is-range-select tbody td { user-select: none; }
+.admin-emp-table.is-range-select tbody td input,
+.admin-emp-table.is-range-select tbody td textarea { user-select: text; }
+.admin-emp-table td[data-range='true']:not(.is-sticky) { position: relative; }
+.admin-emp-table td[data-range='true']::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--utility-brand-50);
+  box-shadow: inset 0 0 0 1px var(--colors-foreground-fgBrandPrimary);
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
 .admin-emp-edit-value { font-weight: 600; color: var(--text-primary); }
 /* 칸 안 입력 · 선택 칸 버튼은 맨 글 — 테두리 · 바탕 · 여백 없이 칸 글과 같은 글씨 */
 .admin-emp-edit-input {

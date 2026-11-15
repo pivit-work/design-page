@@ -211,6 +211,10 @@ const DEFAULT_LABELS = {
        한 번에 사라진다(PW-326). 서버 계약에도 교체 파라미터가 없다. */
     orgAppend: '소속 일괄 추가',
     orgAppendSubtitle: '선택 {count}명',
+    // «소속 일괄 이동» (pivit-work PW-2814 · admin-spec §3.1-G-1 ③)
+    orgMove: '소속 일괄 이동',
+    orgMoveOverMax: '소속 일괄 이동 (50명까지)',
+    orgMoveOverMaxHint: '한 번에 50명까지 옮길 수 있어요. 더 많으면 «발령 이력 › 대량 발령»이나 조직단위 설정의 개편을 쓰세요',
     /* 나머지 3종 (PW-610 · 기획 §3.1). 드롭다운의 나열 순서도 그 절 그대로다 —
        매니저 일괄 배정 / 소속 일괄 추가 / 상태 일괄 변경 / 일괄 비활성화. */
     managerAssign: '매니저 일괄 배정',
@@ -2512,7 +2516,7 @@ function BulkDeactivateModal({ selectedRows, labels, onClose, onApply }) {
  *   (필터를 잘못 건 채 누르면 의도하지 않은 사람 전원이 바뀐다).
  * 창은 body 직속(AnchoredLayer)이라 표 틀의 넘침에 잘리지 않는다.
  */
-function HeadMenu({ colId, title, filter, fill: spec, te, selectedIds, searchLabels }) {
+function HeadMenu({ colId, title, filter, fill: spec, te, selectedIds, hiddenCount = 0, searchLabels }) {
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState('');
   const [reverted, setReverted] = useState(null); // 날짜로 못 읽어 되돌린 친 글 — 표 칸과 같은 안내
@@ -2566,7 +2570,12 @@ function HeadMenu({ colId, title, filter, fill: spec, te, selectedIds, searchLab
           {filter && spec && <div className="admin-emp-head-menu-divider" role="separator" />}
           {spec && (
             <div data-testid={`employees-fill-menu-${colId}`}>
-              <div className="admin-emp-select-title">{fill(L.fillTitle, { count })}</div>
+              {/* 체크는 필터를 바꿔도 남는다 — 가려진 사람이 있으면 수를 함께(PW-2814 · §3.1-G-1 ② · 앞서 체크한 사람을 잊고 넣지 않게) */}
+              <div className="admin-emp-select-title" data-testid={`employees-fill-title-${colId}`}>
+                {hiddenCount > 0 && L.fillTitleHidden
+                  ? fill(L.fillTitleHidden, { count, hidden: hiddenCount })
+                  : fill(L.fillTitle, { count })}
+              </div>
               {count === 0 ? (
                 <div className="admin-emp-select-item-sub" data-testid={`employees-fill-needs-check-${colId}`}>{L.fillNeedsCheck}</div>
               ) : (
@@ -2756,6 +2765,7 @@ function EmployeesListView({
        · `bulkEditFieldsMax` — 그 창이 한 번에 받는 인원 상한(PW-1330). 넘게 고르면 항목이
          막히고 안내가 붙는다. 미주입이면 상한이 없다. */
   onAssignManagerBulk, onBulkChangeStatus, onBulkDeactivate, onBulkEditFields, bulkEditFieldsMax,
+  onBulkMoveAffiliations, orgMoveMax,
   onInviteMembers,
   /* 「등록 취소」 (PW-1351) — `onCancelRegistration(memberIds)`. 일괄은 고른 사람 전부, 행 메뉴는
      미가입(`unjoined`) 행 한 명을 넘긴다. 미주입이면 두 자리 모두 없다. */
@@ -3148,6 +3158,10 @@ function EmployeesListView({
     [selectable, members, selectedIds],
   );
   const selectedCount = selectedRows.length;
+  /* 체크한 사람 가운데 지금 필터 · 검색에 가려진 사람 (PW-2814 · §3.1-G-1 ② 안전장치) — 체크는 필터를 바꿔도 남으므로
+     열 머리 ▾ «한 번에 넣기» · «소속 일괄 이동»이 «지금 안 보이는 {k}명 포함»을 말한다. */
+  const shownIdSet = useMemo(() => new Set(ordered.map((m) => m.id)), [ordered]);
+  const hiddenChecked = selectedRows.filter((m) => !shownIdSet.has(m.id)).length;
   /* 헤더 체크박스는 **지금 보고 있는 쪽**만 켜고 끈다. 안 보이는 쪽까지 켜면 「몇 명을
      골랐나」를 화면이 말해 주지 않은 채 숫자만 뛴다. */
   const pageAllChecked = pageRows.length > 0 && pageRows.every((m) => selectedIds.has(m.id));
@@ -3202,6 +3216,18 @@ function EmployeesListView({
       id: 'org-append',
       label: labels.listBulk.orgAppend,
       onPick: () => setBulkOrgOpen(true),
+    });
+  }
+  /* «소속 일괄 이동» (PW-2814 · §3.1-G-1 ③) — «소속 일괄 추가» 바로 아래. 체크한 사람 전부(필터에 가려진 사람 포함)가 대상이고,
+     창은 부르는 쪽이 그린다(주 소속만 옮기는 계산은 서버가 한다 — 여기서 소속을 합성하지 않는다). */
+  if (selectable && onBulkMoveAffiliations && orgUnits.length > 0) {
+    const overMax = orgMoveMax != null && selectedRows.length > orgMoveMax;
+    bulkItems.push({
+      id: 'org-move',
+      label: overMax ? labels.listBulk.orgMoveOverMax : labels.listBulk.orgMove,
+      disabled: overMax,
+      hint: overMax ? labels.listBulk.orgMoveOverMaxHint : undefined,
+      onPick: () => onBulkMoveAffiliations(selectedRows.map((m) => m.id), hiddenChecked),
     });
   }
   if (selectable && onBulkChangeStatus) {
@@ -3409,6 +3435,132 @@ function EmployeesListView({
   const [dateNote, setDateNote] = useState(null);
   const editingRef = useRef(null);
   const editColIds = te ? cols.filter((c) => te.columns[c.id]).map((c) => c.id) : [];
+
+  /* ── 칸 범위 고르기 · 복사 · 붙여넣기 (PW-2814 · admin-spec §3.1-G-1 ①) ──────────────────────────────
+   * 범위는 «지금 쪽에 보이는 줄 × 표에 보이는 열»뿐이다 — 필터에 가려진 사람 · 다른 쪽 · ⚙ 로 끈 열은 들 수 없다
+   * (2026-11-09 «보이는 사람 전부에 넣지 않는다»와 같은 사유). 체크박스 · 행 액션 열은 범위에 들지 않고, 열 전체 고르기는
+   * 두지 않는다(머리 클릭 = 정렬). 끌지 않고 한 칸을 누르면 종전대로 그 칸 입력이 열린다.
+   * 붙여넣기의 크기 규칙 · 이름 맞춤 · 50명은 저장 전 칸을 든 쪽(`te.onPaste`)이 정한다 — 여기서는 고른 칸과 글자만 넘긴다. */
+  const rangeCols = te ? cols.filter((c) => c.id !== 'select' && c.id !== 'actions').map((c) => c.id) : [];
+  const [rangeSel, setRangeSel] = useState(null); // { a: { r, c }, b: { r, c } } — r = 지금 쪽 줄 번호 · c = rangeCols 번호
+  const rangeDragRef = useRef(false);
+  const rangeBox = rangeSel
+    ? {
+        r0: Math.min(rangeSel.a.r, rangeSel.b.r), r1: Math.max(rangeSel.a.r, rangeSel.b.r),
+        c0: Math.min(rangeSel.a.c, rangeSel.b.c), c1: Math.max(rangeSel.a.c, rangeSel.b.c),
+      }
+    : null;
+  function inRange(ri, colId) {
+    if (!rangeBox) return false;
+    const ci = rangeCols.indexOf(colId);
+    return ci >= rangeBox.c0 && ci <= rangeBox.c1 && ri >= rangeBox.r0 && ri <= rangeBox.r1;
+  }
+  function rangeDown(e, ri, colId) {
+    if (!te || te.disabled || e.button !== 0) return;
+    // 열린 입력 안에서 글자를 고르는 끌기는 범위가 아니다
+    if (e.target instanceof Element && e.target.closest('input, textarea, .is-editing')) return;
+    const c = rangeCols.indexOf(colId);
+    if (c < 0) return;
+    if (e.shiftKey && rangeSel) {
+      e.preventDefault(); // 글자 선택이 아니라 범위 넓히기
+      setRangeSel((sel) => ({ a: sel.a, b: { r: ri, c } }));
+      return;
+    }
+    rangeDragRef.current = true;
+    setRangeSel({ a: { r: ri, c }, b: { r: ri, c } });
+  }
+  function rangeEnter(ri, colId) {
+    if (!rangeDragRef.current) return;
+    const c = rangeCols.indexOf(colId);
+    if (c < 0) return;
+    setRangeSel((sel) => (sel && (sel.b.r !== ri || sel.b.c !== c) ? { a: sel.a, b: { r: ri, c } } : sel));
+  }
+  // 쪽 · 필터 · 검색 · 정렬 · 열을 바꾸면 고른 칸이 풀린다(저장 전 칸은 남는다 — §3.1-G 권고 1)
+  // 목록은 렌더마다 새 배열일 수 있어 «사람 순서»를 글자로 견준다 — 같은 순서면 풀지 않는다.
+  // 효과 안에서 지우면 한 번 더 그리게 되어, 그리는 중에 이전 열쇠와 견줘 바로 푼다(OrgTreePicker 의 syncKey 와 같은 꼴).
+  const orderedKey = ordered.map((m) => m.id).join('|');
+  const rangeResetKey = [safePage, orderedKey, sort ? `${sort.col}|${sort.dir}` : '', rangeCols.join('|')].join('#');
+  const [rangeKeySeen, setRangeKeySeen] = useState(rangeResetKey);
+  if (rangeKeySeen !== rangeResetKey) {
+    setRangeKeySeen(rangeResetKey);
+    if (rangeSel) setRangeSel(null);
+  }
+  /* 부르는 쪽에 «지금 필터를 지난 사람»을 알린다 — 저장 바 «지금 필터에 가려진 {k}명 포함»(§3.1-G-1 ② 안전장치 ②) */
+  const shownReportRef = useRef(null);
+  shownReportRef.current = te?.onShownChange ?? null;
+  useEffect(() => { shownReportRef.current?.(orderedKey ? orderedKey.split('|') : []); }, [orderedKey]);
+  /** 복사할 칸 글자 — 화면에 보이는 글자(저장 전 칸이면 저장 전 값). 빈 칸 «—» 은 빈 글자. 연봉은 null(비운다). */
+  function copyTextOf(m, colId) {
+    if (colId === 'salary') return null;
+    if (colId === 'name') return m.displayName || m.name || '';
+    const el = document.querySelector(`[data-testid="employees-list-row-${m.id}"] td[data-col="${colId}"]`);
+    if (!el) return '';
+    // 칸 글자만 — 칸 아래 사유 · 안내 줄과 «주» · 배지 같은 표시는 빼고(붙여 되돌렸을 때 값이 되게)
+    const copy = el.cloneNode(true);
+    copy.querySelectorAll('.admin-emp-edit-error, .admin-emp-edit-note, [aria-hidden="true"], [class*="pill"], [class*="badge"], [class*="primary-mark"]').forEach((x) => x.remove());
+    const text = String(copy.innerText ?? copy.textContent ?? '').replace(/\s+/g, ' ').trim();
+    return text === '—' ? '' : text;
+  }
+  const rangeKeysRef = useRef(null);
+  rangeKeysRef.current = { rangeBox, pageRows, rangeCols, editing, te, copyTextOf };
+  // 표에서 고칠 수 있을 때만 듣는다. 최신 상태는 rangeKeysRef 로 읽어, 렌더마다 듣기를 다시 걸지 않는다.
+  const rangeListening = !!te;
+  useEffect(() => {
+    if (!rangeListening) return undefined;
+    /* 입력칸 · 떠 있는 창 안의 복사 · 붙여넣기 · Esc 는 그쪽 몫이다 */
+    const elsewhere = () => {
+      const el = document.activeElement;
+      if (!el || el === document.body) return false;
+      return !!el.closest('input, textarea, select, [contenteditable="true"], [role="dialog"], [role="alertdialog"]');
+    };
+    const onUp = () => { rangeDragRef.current = false; };
+    const onCopy = (e) => {
+      const st = rangeKeysRef.current;
+      if (!st.rangeBox || st.editing || elsewhere()) return;
+      if (String(window.getSelection?.() ?? '').length > 0) return; // 글자를 골라 복사하는 것은 브라우저 몫
+      let salarySkipped = false;
+      const lines = [];
+      for (let r = st.rangeBox.r0; r <= st.rangeBox.r1 && r < st.pageRows.length; r++) {
+        const cells = [];
+        for (let c = st.rangeBox.c0; c <= st.rangeBox.c1; c++) {
+          const text = st.copyTextOf(st.pageRows[r], st.rangeCols[c]);
+          if (text === null) salarySkipped = true;
+          cells.push(String(text ?? '').replace(/[\t\n]/g, ' '));
+        }
+        lines.push(cells.join('\t'));
+      }
+      if (!e.clipboardData) return;
+      e.clipboardData.setData('text/plain', lines.join('\n'));
+      e.preventDefault();
+      st.te.onCopied?.({ salarySkipped });
+    };
+    const onPaste = (e) => {
+      const st = rangeKeysRef.current;
+      if (!st.rangeBox || st.editing || elsewhere() || !st.te.onPaste || st.te.disabled) return;
+      e.preventDefault();
+      st.te.onPaste({
+        text: e.clipboardData ? e.clipboardData.getData('text/plain') : '',
+        rows: st.pageRows.slice(st.rangeBox.r0).map((m) => ({ id: m.id })),
+        columnIds: st.rangeCols.slice(st.rangeBox.c0),
+        height: st.rangeBox.r1 - st.rangeBox.r0 + 1,
+        width: st.rangeBox.c1 - st.rangeBox.c0 + 1,
+      });
+    };
+    const onKey = (e) => {
+      const st = rangeKeysRef.current;
+      if (e.key === 'Escape' && st.rangeBox && !st.editing && !elsewhere()) setRangeSel(null);
+    };
+    document.addEventListener('mouseup', onUp);
+    document.addEventListener('copy', onCopy);
+    document.addEventListener('paste', onPaste);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mouseup', onUp);
+      document.removeEventListener('copy', onCopy);
+      document.removeEventListener('paste', onPaste);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [rangeListening]);
   /* 키보드로 고를 칸 (PW-1333 2회차 · «여러 칸 한 번에 고치기» 창 PW-2642 와 같은 손버릇).
      입력을 닫거나 쪽을 옮긴 «뒤» 그려진 칸에 초점을 줘야 해서, 칸이 그려질 때까지 들고 있다. */
   const pendingFocusRef = useRef(null);
@@ -3766,6 +3918,7 @@ function EmployeesListView({
           fill={fillSpec}
           te={te}
           selectedIds={selectedIds}
+          hiddenCount={hiddenChecked}
           searchLabels={filterSearch}
         />
       </span>
@@ -4277,7 +4430,7 @@ function EmployeesListView({
         scroll="both"
         scrollClassName="admin-emp-table-wrap"
         scrollTestId="employees-list-table-wrap"
-        tableClassName="admin-emp-table"
+        tableClassName={te ? 'admin-emp-table is-range-select' : 'admin-emp-table'}
         fixed
         nowrap
         minWidth={minWidth}
@@ -4294,7 +4447,17 @@ function EmployeesListView({
             // 정렬 상태는 머리 칸(th)이 알린다 — 화면 읽기 프로그램은 버튼이 아니라 칸에서 읽는다(조직 현황 목록과 같다).
             'aria-sort': sort?.col === c.id ? (sort.dir === 'desc' ? 'descending' : 'ascending') : undefined,
           },
-          cellProps: { 'data-col': c.id },
+          cellProps: te && rangeCols.includes(c.id)
+            ? (m, ri) => ({
+                'data-col': c.id,
+                /* 고른 칸 (PW-2814 · §3.1-G-1 ① «범위 고르기») — 입력이 열린 칸은 표시하지 않는다(입력 글자를 덮지 않게) */
+                'data-range': inRange(ri, c.id) && !(editing && editing.id === m.id && editing.colId === c.id) ? 'true' : undefined,
+                onMouseDown: (e) => rangeDown(e, ri, c.id),
+                // Shift+클릭은 범위 넓히기 — 칸 입력 · 구성원 창 · 소속 팝업을 열지 않게 칸에서 먼저 받는다
+                onClickCapture: (e) => { if (e.shiftKey) e.stopPropagation(); },
+                onMouseEnter: () => rangeEnter(ri, c.id),
+              })
+            : { 'data-col': c.id },
           header: c.id === 'select' ? (
             /* 지금 보고 있는 «쪽»만 켜고 끈다 — 안 보이는 쪽까지 켜면 화면이
                몇 명을 골랐는지 말해 주지 않은 채 숫자만 뛴다. */
@@ -7170,6 +7333,10 @@ export default function AdminEmployeesCanvas({
   onDismissBulkFailure,
   /* 그 창이 한 번에 받는 인원 상한 (PW-1330). 넘게 고르면 항목이 막히고 안내가 붙는다. */
   bulkEditFieldsMax,
+  /* 일괄 처리 «소속 일괄 이동» (PW-2814 · admin-spec §3.1-G-1 ③) — `(memberIds, hiddenCount)`. 창은 부르는 쪽이 그린다.
+     미주입이면 항목이 없다. `orgMoveMax` 를 넘게 체크하면 항목이 막히고 안내가 붙는다. */
+  onBulkMoveAffiliations,
+  orgMoveMax,
   /**
    * 매니저 후보 `[{ id, label, leadLabel? }]`. 후보 규칙은 소비자가 서버와 맞춰 만든다.
    * `leadLabel` 은 그 후보가 조직장인 조직 경로 — 배정 판단 근거로 후보 행에 병기된다.
@@ -7790,6 +7957,8 @@ export default function AdminEmployeesCanvas({
             onDismissBulkFailure={onDismissBulkFailure}
             onRehireMember={canEdit && canInvite ? openRehire : undefined}
             bulkEditFieldsMax={bulkEditFieldsMax}
+            onBulkMoveAffiliations={canEdit ? onBulkMoveAffiliations : undefined}
+            orgMoveMax={orgMoveMax}
             /* 대표 지정 — 두 콜백이 다 있어야 행 메뉴에 항목이 선다(§3.6-A). */
             onOpenCeo={
               canEdit && onAssignCeo && onReleaseCeo

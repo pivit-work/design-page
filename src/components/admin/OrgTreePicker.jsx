@@ -193,6 +193,22 @@ export default function OrgTreePicker({
   footerNote,
   /** 헤더 부제 — 대상 구성원 이름 등 */
   subtitle,
+  /*
+   * 여러 명 판(pivit-work PW-2814 «소속 일괄 이동» · admin-spec §3.1-G-1 ③) — 소속 팝업과 같은 트리에서 한 곳을 고르고,
+   * 부르는 쪽이 고른 조직에 따라 바뀌는 안내 · «어떻게 남길까요?»를 트리 아래에 그린다. 모두 미주입이면 종전과 같다.
+   *   onSelectChange(unitId) — 단일 선택이 바뀔 때마다 · extra — 트리 아래 영역 · summary — 발 왼쪽 선택 요약 대신
+   *   footerStart — 발의 버튼 앞(왼쪽) · applyDisabled — [적용] 끄기 · keepOpenOnApply — [적용] 뒤 닫지 않는다(부르는 쪽이 닫는다)
+   *   hideUnassigned — «— 미배정 —» 줄을 두지 않는다(옮길 곳은 조직이다)
+   */
+  onSelectChange,
+  extra,
+  summary,
+  footerStart,
+  applyDisabled = false,
+  keepOpenOnApply = false,
+  hideUnassigned = false,
+  /** 안내 줄 아래 한 줄 더 — 여러 명 판의 대상 이름들 */
+  descriptionExtra,
 }) {
   const labels = useMemo(() => ({ ...DEFAULT_LABELS, ...(providedLabels || {}) }), [providedLabels]);
   const tree = useMemo(() => buildOrgTree(units), [units]);
@@ -210,6 +226,8 @@ export default function OrgTreePicker({
 
   const [syncedValue, setSyncedValue] = useState(syncKey);
   const [sel, setSel] = useState(initial);
+  // 사람이 고른 조직을 부르는 쪽에 알린다(여러 명 판 — 트리 아래 안내가 고른 조직에 따라 바뀐다).
+  const pickSingle = (id) => { setSel(id); onSelectChange?.(id); };
   // multi: 고른 조직 id 배열. **선택 순서를 보존**한다 — 주 소속이 빠졌을 때
   // "남은 첫 조직" 이 무엇인지가 이 순서로 정해진다(B1).
   const [picked, setPicked] = useState(initialMulti);
@@ -344,7 +362,7 @@ export default function OrgTreePicker({
         if (cur) togglePick(cur);
         else clearAll();
       } else {
-        setSel(cur ?? '');
+        pickSingle(cur ?? '');
       }
     }
     // Esc 는 공용 창 틀(ModalShell)이 받아 onClose 를 부른다 — 여기서 또 부르면 두 번 닫힌다.
@@ -394,6 +412,12 @@ export default function OrgTreePicker({
               </span>
             </>
           )}
+          {descriptionExtra && (
+            <>
+              <br />
+              {descriptionExtra}
+            </>
+          )}
           {leaderHint && (
             <>
               <br />
@@ -417,7 +441,7 @@ export default function OrgTreePicker({
         <>
           {/* 선택 요약 — 전체 경로로 보여준다(동명이팀 구분, P4) */}
           <div className="adm-shell-summary" style={{ fontFamily: T.font }}>
-            {multi ? (
+            {summary !== undefined ? summary : multi ? (
               picked.length === 0 ? (
                 // B2 — 적용 버튼을 누르기 **전에** 미배정이 된다고 말한다.
                 // 추가 전용에서는 아무것도 비우지 않으므로 «미배정» 이라고 말하면 거짓말이다.
@@ -499,6 +523,7 @@ export default function OrgTreePicker({
             )}
           </div>
           <div className="adm-shell-foot-actions">
+            {footerStart}
             {saveNotice && <span className="adm-shell-save-notice">{saveNotice}</span>}
             <button
               type="button"
@@ -510,6 +535,8 @@ export default function OrgTreePicker({
             <button
               type="button"
               className="tl-group-modal-btn tl-group-modal-btn-primary"
+              disabled={applyDisabled}
+              data-testid="org-tree-picker-apply"
               onClick={() => {
                 // multi 는 배열과 주 소속을 **한 번에** 넘긴다 — 따로 쓰면 주 소속이
                 // 배열 밖을 가리키는 중간 상태가 생긴다(§3.8.3-B 「적용」).
@@ -521,7 +548,7 @@ export default function OrgTreePicker({
                   });
                 }
                 else onApply?.(sel);
-                onClose?.();
+                if (!keepOpenOnApply) onClose?.();
               }}
             >
               {labels.apply}
@@ -608,7 +635,7 @@ export default function OrgTreePicker({
                   // 유지되는 상위 경로는 토글 대상이 아니다 — 체크박스와 같은 규칙(PW-404).
                   if (multi && retainedActive.has(e.id)) return;
                   if (multi) togglePick(e.id);
-                  else setSel(e.id);
+                  else pickSingle(e.id);
                   if (navIdx >= 0) setActiveIdx(navIdx);
                 }}
                 title={e.pathLabel}
@@ -714,13 +741,14 @@ export default function OrgTreePicker({
         {/* P7 — 미배정은 항상 최하단, 들여쓰기 0.
             multi 에서는 「미배정을 고른다」가 아니라 **모두 해제**다 — 선택을 비우는
             것이 곧 미배정이므로 같은 뜻을 두 조작으로 두지 않는다. */}
+        {!hideUnassigned && (
         <div role="treeitem" aria-level={1} aria-selected={multi ? picked.length === 0 : sel === ''}>
           <button
             type="button"
             data-testid={multi ? 'org-tree-clear-all' : undefined}
             onClick={() => {
               if (multi) clearAll();
-              else setSel('');
+              else pickSingle('');
               setActiveIdx(navRows.length - 1);
             }}
             style={{
@@ -736,7 +764,9 @@ export default function OrgTreePicker({
             {multi ? labels.clearAll : labels.unassigned}
           </button>
         </div>
+        )}
       </div>
+      {extra}
 
     </ModalShell>
   );
