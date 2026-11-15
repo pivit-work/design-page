@@ -3521,7 +3521,8 @@ function EmployeesListView({
     const elsewhere = () => {
       const el = document.activeElement;
       if (!el || el === document.body) return false;
-      return !!el.closest('input, textarea, select, [contenteditable="true"], [role="dialog"], [role="alertdialog"]');
+      // 떠 있는 창 안(공용 창 틀 .tl-group-modal · 막 .tl-modal-overlay)은 그 창 몫이다
+      return !!el.closest('input, textarea, select, [contenteditable="true"], .tl-group-modal, .tl-modal-overlay');
     };
     const onUp = () => { rangeDragRef.current = false; };
     const onCopy = (e) => {
