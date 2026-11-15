@@ -1789,9 +1789,14 @@ export function HrProfileInline({
     <div className="adm-hr-body" data-testid={`hr-inline-${part}`}>
       {/* 구성원 상세 «인사 정보» 이름 칸 — 성 · 영어 닉네임을 부르는 쪽 이름 묶음 안에 끼운다(§3.2-D «탭별 칸» · PW-2797).
           이름 칸은 HR 정보를 불러오는 동안 · 못 불러와도 보여야 해서 아래 불러오기 갈래 밖에 둔다. */}
+      {/* 값 · 바꾸기만 넘기고 칸 모양은 부르는 쪽 이름 칸 모양(라벨 위 · 같은 폭 입력칸)으로 그린다 */}
       {part === 'person' && renderNames && renderNames({
-        lastName: data && !error ? field('lastName', L.hrLastName || '성') : <HrPair key="lastName" k={L.hrLastName || '성'} v={null} />,
-        nicknameEn: <HrPair key="nicknameEn" k={L.hrNicknameEn || '영어 닉네임'} v={row?.nicknameEn} />,
+        lastName: {
+          label: L.hrLastName || '성',
+          value: data && !error ? (editable ? idDraft.lastName : flat.lastName) ?? '' : '',
+          onChange: editable && data && !error ? setIdField('lastName') : undefined,
+        },
+        nicknameEn: { label: L.hrNicknameEn || '영어 닉네임', value: row?.nicknameEn ?? '' },
       })}
       {part === 'person' && renderNames && namesTail}
       {loading ? (

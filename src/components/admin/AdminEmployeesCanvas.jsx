@@ -6759,7 +6759,17 @@ function EmployeesEditPanel({
               registerFlush={registerInline(page.tab)}
               onDirtyChange={inlineDirtyOf(page.tab)}
               onSaveIdentity={canEdit ? onSaveIdentity : undefined}
-              renderNames={inlineNames ? (extra) => renderGroup(PAGE_FIELD_GROUPS[0], { nickname: extra.lastName, nameEn: extra.nicknameEn }) : undefined}
+              renderNames={inlineNames ? ({ lastName, nicknameEn }) => renderGroup(PAGE_FIELD_GROUPS[0], {
+                nickname: lastName.onChange ? (
+                  <FormField key="lastName" className="admin-emp-field" labelClassName="admin-emp-field-label" label={lastName.label}>
+                    <TextInput className="admin-emp-input" value={lastName.value} data-testid="employees-panel-lastName" onChange={(e) => lastName.onChange(e.target.value)} />
+                  </FormField>
+                ) : (
+                  <DetailReadField key="lastName" label={lastName.label} value={lastName.value} testId="employees-detail-read-lastName" />
+                ),
+                /* 영어 닉네임은 본인이 넣는 칸 — 수정 중에도 값만(§3.2.2 `nicknameEn`) */
+                nameEn: <DetailReadField key="nicknameEn" label={nicknameEn.label} value={nicknameEn.value} testId="employees-detail-read-nicknameEn" />,
+              }) : undefined}
               namesTail={inlineNames ? loginLockBlock : undefined}
               phone={inlineNames ? {
                 label: labels.records?.hrPhone || '휴대폰',
