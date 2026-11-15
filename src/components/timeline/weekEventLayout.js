@@ -8,16 +8,17 @@
 //   STACK_INDENT px 비우고 오른쪽 끝까지 쓴다 — 앞 일정의 시각·제목은 위쪽에 그대로 보인다.
 // - SHORT_EVENT_MAX 분 이하 짧은 일정(점심·싱크)은 긴 일정보다 늘 위에 그린다.
 // - 한 줄에 나란히 놓는 칸은 MAX_LANES 개까지. 넘치면 앞의 MAX_LANES-1 개만 두고 마지막 칸에
-//   «+N» 하나(_more)를 둔다 — 4개부터는 칸이 37px 아래로 좁아져 제목이 안 읽힌다.
+//   «+N»(_more)을 둔다 — 4개부터는 칸이 37px 아래로 좁아져 제목이 안 읽힌다.
 //   월 보기 «+N more» 와 같은 규칙(기획서 타임라인 §13.2, 2026-10-26 커트 결정).
+//   숨긴 일정은 시작 시각마다 «+N» 을 따로 둔다 — 15:30 줄에 16:00 회의가 얹혀도 15:30 칸은
+//   15:30 에 숨은 수만, 16:00 칸은 16:00 에 숨은 수를 센다(PW-2827). 앞 «+N» 은 다음 «+N» 이
+//   시작하는 곳에서 끊는다.
 
 export const SIDE_BY_SIDE_MIN = 45;
 export const STACK_INDENT = 14;
 export const SHORT_EVENT_MAX = 60;
 export const LANE_GAP = 2;
 export const MAX_LANES = 3;
-// «+N» 칸의 높이(분). 숨긴 첫 일정이 이보다 짧으면 그 길이.
-const MORE_SLOT_MIN = 30;
 // 짧은 일정을 긴 일정 위로 올리는 폭 — 단계 수가 이만큼 깊어질 일은 없다.
 const SHORT_Z_BOOST = 50;
 
@@ -26,8 +27,8 @@ const overlaps = (a, b) => a._start < b._end && b._start < a._end;
 /**
  * @param {Array<{_start:number,_end:number}>} events 자정 기준 분으로 정규화된 일정
  * @returns 각 일정에 _left·_width(CSS 값), _z(쌓임 순서), _depth(얹힌 단계),
- *          _overlapped(다른 일정과 겹치나) 를 붙인 새 배열. 넘친 줄마다 끝에
- *          { id, _more: true, _hidden: 숨긴 일정들, ... } 칸이 하나씩 붙는다.
+ *          _overlapped(다른 일정과 겹치나) 를 붙인 새 배열. 넘친 줄마다 끝에 숨긴 일정의
+ *          시작 시각마다 { id, _more: true, _hidden: 그 시각에 숨긴 일정들, ... } 칸이 붙는다.
  */
 export function layoutDayEvents(events) {
   // 같은 시각이면 긴 일정을 먼저 — 긴 일정이 왼쪽·아래에 깔린다.
@@ -55,33 +56,52 @@ export function layoutDayEvents(events) {
 
   const more = [];
   for (const r of rows) {
+    const chips = [];
     if (r.items.length > MAX_LANES) {
       const hidden = r.items.splice(MAX_LANES - 1);
       for (const h of hidden) placed.splice(placed.indexOf(h), 1);
-      const head = hidden[0];
-      const chip = {
-        id: `more-${head.id}`,
-        _more: true,
-        _hidden: hidden,
-        _start: head._start,
-        _end: Math.min(head._end, head._start + MORE_SLOT_MIN),
-        _depth: r.depth,
-      };
-      r.items.push(chip);
-      more.push(chip);
+      // hidden 은 시작 순으로 정렬돼 있다 — 같은 시작끼리 한 «+N».
+      const groups = [];
+      for (const h of hidden) {
+        const g = groups[groups.length - 1];
+        if (g && g[0]._start === h._start) g.push(h);
+        else groups.push([h]);
+      }
+      groups.forEach((g, gi) => {
+        const head = g[0];
+        const next = groups[gi + 1];
+        chips.push({
+          id: `more-${head.id}`,
+          _more: true,
+          _hidden: g,
+          _start: head._start,
+          _end: next ? Math.min(head._end, next[0]._start) : head._end,
+          _depth: r.depth,
+        });
+      });
+      more.push(...chips);
     }
-    const n = r.items.length;
+    // «+N» 은 모두 마지막 칸 — 시각만 다르고 같은 자리에 위아래로 놓인다.
+    const n = r.items.length + (chips.length ? 1 : 0);
     const off = r.depth * STACK_INDENT;
-    r.items.forEach((ev, i) => {
+    const place = (ev, i) => {
       ev._left = off === 0 ? `${(i / n) * 100}%` : `calc(${off}px + (100% - ${off}px) * ${i / n})`;
       ev._width = off === 0
         ? `calc(${100 / n}% - ${LANE_GAP}px)`
         : `calc((100% - ${off}px) / ${n} - ${LANE_GAP}px)`;
       ev._z = 1 + ev._depth + (ev._end - ev._start <= SHORT_EVENT_MAX ? SHORT_Z_BOOST : 0);
-    });
+    };
+    r.items.forEach(place);
+    chips.forEach((c) => place(c, n - 1));
   }
   for (const ev of placed) {
     ev._overlapped = placed.some((o) => o !== ev && overlaps(o, ev));
+  }
+  // «+N» 이 뒤에 시작하는 보이는 일정(얹힌 단계)의 시각·제목을 덮지 않게 그 시작에서 끊는다.
+  for (const c of more) {
+    for (const p of placed) {
+      if (p._start > c._start && p._start < c._end) c._end = p._start;
+    }
   }
   return [...placed, ...more];
 }

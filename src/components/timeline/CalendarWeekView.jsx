@@ -222,11 +222,11 @@ export default function CalendarWeekView({
                 {events.map((ev) => {
                   // 넘친 줄의 «+N» — 월 보기와 같이 그날 전체 일정을 날짜별 일정 창으로 연다.
                   // 옆 일정 막대와 같은 상자(회색)로 숨긴 첫 일정 높이만큼 그린다 — 글자만 두면 못 알아본다 (PW-2827).
+                  // 뒤 시각에 숨은 «+N» 이 이어지면 그 시작에서 끊는다(_end, weekEventLayout).
                   if (ev._more) {
-                    const head = ev._hidden[0];
                     const moreTop = (ev._start / 60) * HOUR_H;
                     const moreH = Math.min(
-                      Math.max(((head._end - head._start) / 60) * HOUR_H, MIN_EVENT_H),
+                      Math.max(((ev._end - ev._start) / 60) * HOUR_H, MIN_EVENT_H),
                       GRID_H - moreTop,
                     );
                     const gray = SNIPPET_COLORS.gray;
