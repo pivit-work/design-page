@@ -326,6 +326,10 @@ const DEFAULT_LABELS = {
     retry: '다시 시도',
     saveFailed: '저장하지 못했어요. 다시 시도해 주세요.',
     ceoOn: '대표로 지정됨',
+    concurrentMore: '외 {count}',
+    salaryHistory: '이력 →',
+    photoBio: '프로필 사진 · 자기소개',
+    bioEmpty: '자기소개 미입력',
     tabs: { person: '인사 정보', org: '조직 정보', work: '근무·고용', comp: '보상', records: 'HR 기록', history: '변경 이력' },
   },
   panel: {
@@ -542,7 +546,7 @@ const DEFAULT_LABELS = {
     /* 퇴사자 행(PW-1355 · admin-spec §3.1 `⋯` 행 · 초대 §9 E8). 초대 창을 재입사 모드로 연다.
        정정 기간(퇴사일 + 14일) 안에도 뜨고, 그때는 «퇴사 취소»를 먼저 떠올리게 풍선을 단다. */
     rehire: '재입사 초대',
-    rehireRevertHint: '퇴사를 없던 일로 하려면 상세 패널에서 «퇴사 취소»를 쓰세요 — 재입사는 새 재직 구간을 엽니다.',
+    rehireRevertHint: '퇴사를 없던 일로 하려면 구성원 상세 «근무·고용» 탭에서 «퇴사 취소»를 쓰세요 — 재입사는 새 재직 구간을 엽니다.',
     /* 재입사자 보조 배지(PW-1355 · offboarding §5-G 「화면 표시」). 풍선은 부르는 쪽이 만든다(`member.rehireNote`). */
     rehireBadge: '재입사',
     cancelOffboardingTip: '퇴사일 {date}(으)로 예약되어 있습니다',
@@ -5263,6 +5267,13 @@ function EmployeesEditPanel({
     archive.status === 'ready' &&
     member?.employmentStatus === 'terminated' &&
     (archive.view?.segments ?? []).some((seg) => seg.terminationDate === member?.terminationDate);
+  /* 자기소개 — 본인이 내 프로필에서만 쓰는 값이라 고칠 칸이 없다(상세 «인사 정보» 탭 · admin-spec §3.2-D) */
+  const [bioText, setBioText] = useState('');
+  const onGoneRef = useRef(null);
+  const pageOnGone = page?.onGone || null;
+  useEffect(() => {
+    onGoneRef.current = pageOnGone;
+  }, [pageOnGone]);
   useEffect(() => {
     if (identityState !== 'loading' || !memberId || !onLoadHrProfile) {
       return undefined;
@@ -5278,10 +5289,13 @@ function EmployeesEditPanel({
         loaded[SERVICE_START_FIELD] = toDateInput(src[SERVICE_START_FIELD]);
         setIdentity(loaded);
         setIdentityDraft(loaded);
+        setBioText(src.bio ?? '');
         setIdentityState('ready');
       })
-      .catch(() => {
+      .catch((err) => {
         if (!alive) return;
+        /* 그 사이 등록 취소된 사람(호출부가 `notFound` 를 단다) — 상세 페이지면 다음 사람으로 넘긴다(PW-2797 E2) */
+        if (err?.notFound && onGoneRef.current) { onGoneRef.current(); return; }
         // 전역 오류 화면으로 튕기지 않는다 — 편집 중이던 다른 칸까지 날아간다.
         setIdentityState('error');
       });
@@ -5837,7 +5851,7 @@ function EmployeesEditPanel({
   const detailL = labels.detail || {};
   const pageTabs = page ? DETAIL_TABS.filter((t) => t !== 'comp' || page.canViewComp) : [];
   const deptText = page
-    ? `${primaryEntry?.name || legacyDeptOf(member) || labels.panel.orgNone}${selectedIds.length > 1 ? ` ${String(labels.concurrentCount).split('{count}').join(String(selectedIds.length - 1))}` : ''}`
+    ? `${primaryEntry?.name || legacyDeptOf(member) || labels.panel.orgNone}${selectedIds.length > 1 ? ` ${String(detailL.concurrentMore || '외 {count}').split('{count}').join(String(selectedIds.length - 1))}` : ''}`
     : '';
   const dutyText = page && member.jobDuty ? axisValueLabel(valueLabels, 'jobDuty', member.jobDuty) : '';
   const pageLoadFailed = Boolean(page) && identityState === 'error';
@@ -5953,6 +5967,18 @@ function EmployeesEditPanel({
           <>
           {/* 칸은 `PANEL_FIELD_GROUPS` 한 곳에서 온다 — 렌더와 저장 판정이 같은
               목록을 봐야 「화면엔 있는데 저장이 안 되는 칸」이 안 생긴다(PW-576). */}
+          {/* 프로필 사진 · 자기소개 — 본인이 내 프로필에서 넣는 값이라 읽기 · 수정 모두 보기만 한다
+              (admin-spec §3.2-D «탭별 칸» 인사 정보 첫 칸 · 화면 admin-app.jsx «프로필 사진 · 자기소개» · PW-2797) */}
+          {page && inTab('person') && (
+            <DetailReadField label={detailL.photoBio || '프로필 사진 · 자기소개'} testId="employees-detail-photo-bio">
+              <span className="admin-emp-manager-readonly is-wrap">
+                {renderAvatar ? renderAvatar(member, 44) : <AvatarFallback row={member} size={44} />}
+                {bioText
+                  ? <span className="msc-pair-value" data-testid="employees-detail-bio">{bioText}</span>
+                  : <span className="admin-emp-manager-note" data-testid="employees-detail-bio">{detailL.bioEmpty || '자기소개 미입력'}</span>}
+              </span>
+            </DetailReadField>
+          )}
           {(page ? PAGE_FIELD_GROUPS.filter((g) => inTab(g.tab)) : PANEL_FIELD_GROUPS).map((g) => {
             const shown = g.fields.filter(fieldOn);
             if (shown.length === 0) return null;
@@ -6374,7 +6400,8 @@ function EmployeesEditPanel({
               <>
                 <span className="admin-emp-manager-name">{draft.managerName || '—'}</span>
                 {/* 매니저(개인 상급자) 배정 자리는 미배정 탭이다 — 두 곳에 두면 규칙이 갈린다. */}
-                <span className="admin-emp-manager-note">{labels.panel.managerWhere}</span>
+                {/* 상세 페이지 읽기에서는 안내를 감춘다 — 읽기는 값만(§3.2-D «읽기» · PW-2797) */}
+                {!reading && <span className="admin-emp-manager-note">{labels.panel.managerWhere}</span>}
               </>
             )}
           </div>
@@ -6595,7 +6622,7 @@ function EmployeesEditPanel({
                     onClick={() => setSalaryOpen(true)}
                     data-testid="employees-panel-salary-history"
                   >
-                    <IconSalary size={14} />{labels.panel.salaryHistory}
+                    {page ? (labels.detail?.salaryHistory || '이력 →') : (<><IconSalary size={14} />{labels.panel.salaryHistory}</>)}
                   </button>
                 )}
               </div>
@@ -7356,14 +7383,29 @@ export default function AdminEmployeesCanvas({
     detailRoute.onNavigate({ memberId: m.id, tab: 'person', replace: false });
   };
   /** 순서의 앞/뒤 사람 — 그 사이 등록 취소돼 없는 사람은 건너뛰고 알린다(정책서 E2) */
-  const stepDetail = (dir) => {
+  /* 목록에는 아직 있는데 열어 보니 서버에 없던 사람(다른 창에서 등록 취소 · 404) — 다시 넘길 때도 건너뛴다 */
+  const [goneIds, setGoneIds] = useState(() => new Set());
+  const [lastStepDir, setLastStepDir] = useState(0);
+  const stepDetail = (dir, alsoGone) => {
     const ids = new Set(members.map((m) => m.id));
+    const gone = alsoGone ? new Set([...goneIds, alsoGone]) : goneIds;
     let i = detailOrder.indexOf(detailId) + dir;
-    let skipped = false;
-    while (i >= 0 && i < detailOrder.length && !ids.has(detailOrder[i])) { i += dir; skipped = true; }
-    if (i < 0 || i >= detailOrder.length) return;
+    let skipped = Boolean(alsoGone);
+    while (i >= 0 && i < detailOrder.length && (!ids.has(detailOrder[i]) || gone.has(detailOrder[i]))) { i += dir; skipped = true; }
+    if (i < 0 || i >= detailOrder.length) return false;
+    setLastStepDir(dir);
     detailRoute.onNavigate({ memberId: detailOrder[i], tab: detailTab, replace: true });
     if (skipped) detailRoute.onSkipped?.();
+    return true;
+  };
+  /** 연 사람이 서버에 없다(404) — 넘겨 온 길이면 같은 쪽으로 한 칸 더 넘기고 알린다(정책서 E2 · 분모 그대로).
+      주소로 바로 왔거나 그쪽에 더 없으면 목록 + «찾을 수 없어» 토스트(A7). */
+  const onDetailGone = () => {
+    const id = detailId;
+    setGoneIds((prev) => new Set([...prev, id]));
+    const dir = lastStepDir;
+    if (dir && stepDetail(dir, id)) return;
+    onDetailNotFound?.();
   };
   /* 호출부가 구성원 창을 여는 요청 (pivit-work PW-2349 · «임시저장» 묶음의 [이어서]) — `{ memberId, token }`.
      토큰이 바뀔 때 한 번 «구성원» 탭으로 옮겨 그 사람의 창을 연다. */
@@ -7745,7 +7787,7 @@ export default function AdminEmployeesCanvas({
             editing: detailEdit,
             editKey: detailEditKey,
             onEdit: () => setDetailEdit(true),
-            onCancel: () => { setDetailEdit(false); setDetailEditKey((k) => k + 1); },
+            onCancel: () => { setDetailEdit(false); setDetailEditKey((k) => k + 1); detailRoute.onEditCanceled?.(detailId); },
             onSaved: (o) => {
               setDetailEdit(false);
               setDetailEditKey((k) => k + 1);
@@ -7757,6 +7799,7 @@ export default function AdminEmployeesCanvas({
             canNext: pos > 0 && pos < detailOrder.length,
             onPrev: () => stepDetail(-1),
             onNext: () => stepDetail(1),
+            onGone: onDetailGone,
             onBack: detailRoute.onBack,
             canViewComp: canViewSalary,
             confirmLeave: detailRoute.confirmLeave,
