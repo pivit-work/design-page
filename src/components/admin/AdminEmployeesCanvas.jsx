@@ -3495,10 +3495,20 @@ function EmployeesListView({
     if (colId === 'name') return m.displayName || m.name || '';
     const el = document.querySelector(`[data-testid="employees-list-row-${m.id}"] td[data-col="${colId}"]`);
     if (!el) return '';
-    // 칸 글자만 — 칸 아래 사유 · 안내 줄과 «주» · 배지 같은 표시는 빼고(붙여 되돌렸을 때 값이 되게)
-    const copy = el.cloneNode(true);
-    copy.querySelectorAll('.admin-emp-edit-error, .admin-emp-edit-note, [aria-hidden="true"], [class*="pill"], [class*="badge"], [class*="primary-mark"]').forEach((x) => x.remove());
-    const text = String(copy.innerText ?? copy.textContent ?? '').replace(/\s+/g, ' ').trim();
+    const textOf = (node, drop) => {
+      const copy = node.cloneNode(true);
+      copy.querySelectorAll(drop).forEach((x) => x.remove());
+      return String(copy.innerText ?? copy.textContent ?? '').replace(/\s+/g, ' ').trim();
+    };
+    // 소속 — 경로마다 « | »(CSV «조직경로»와 같은 글자). «주» 표시 · 조직장 표시 · «겸직 N» 접힘 글자는 값이 아니라 뺀다
+    if (colId === 'dept') {
+      return [...el.querySelectorAll('.admin-emp-row-dept')]
+        .map((d) => textOf(d, '.admin-inv-primary-badge, .admin-emp-row-dept-leader'))
+        .filter(Boolean)
+        .join(' | ');
+    }
+    // 그 밖은 칸 글자 그대로 — 칸 아래 사유 · 안내 줄만 뺀다(재직상태처럼 배지로 그린 값은 남긴다)
+    const text = textOf(el, '.admin-emp-edit-error, .admin-emp-edit-note, [aria-hidden="true"]');
     return text === '—' ? '' : text;
   }
   const rangeKeysRef = useRef(null);
