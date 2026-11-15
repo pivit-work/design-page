@@ -2348,6 +2348,9 @@
   font-size: 14px;
   font-weight: 700;
   line-height: 20px;
+  /* 보이기만 한다 — 붙은 다음 막대의 제목 위에 놓여도 그 제목이 눌리고 호버 카드가 뜨게 (pivit-work PW-2830).
+     누르는 «회의록» 딱지만 아래 .tl-meeting-minutes-badge 에서 다시 받는다. */
+  pointer-events: none;
 }
 
 .tl-meeting-count svg {
@@ -2360,6 +2363,7 @@
   margin-inline-start: var(--spacing-md);
   font-family: inherit;
   cursor: pointer;
+  pointer-events: auto;
 }
 
 /* NOW dashed vertical line — rendered inside the body. Starts at body local
