@@ -474,6 +474,7 @@ const DEFAULT_LABELS = {
     linked: '연결됨',
     linkAccount: '내 계정 연결',
     linkAnotherAccount: '+ 다른 계정 연결',
+    notLinked: '연결되지 않음',
     unlinkAccount: '연결 해제',
     autoLinked: '자동',
     comingSoon: '준비 중',
@@ -2775,9 +2776,15 @@ export default function MySettingsCanvas({
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
                           <span className="msc-intg-name">{intg.name}</span>
+                          {/* 계정 0개는 회색 「연결되지 않음」 — 경고색 없이(screen-my-settings.policy §3 · pivit-work PW-2795).
+                              회사 연결 여부를 모르는 조회 전·실패와 회사 미연결 카드는 넘기는 쪽이 notLinked 를 끈다 */}
                           {intg.accountLink
-                            ? (intg.linkedAccounts || []).length > 0 && (
+                            ? (intg.linkedAccounts || []).length > 0 ? (
                                 <StatusBadge className="msc-intg-badge">{labels.integrations.linked}</StatusBadge>
+                              ) : intg.notLinked && (
+                                <StatusBadge className="msc-intg-badge is-muted" data-testid={`integration-not-linked-${intg.id}`}>
+                                  {labels.integrations.notLinked}
+                                </StatusBadge>
                               )
                             : intg.connected && intg.reconnectRequired ? (
                                 <StatusBadge tone="danger" className="msc-intg-badge is-danger" data-testid={`integration-status-error-${intg.id}`}>
