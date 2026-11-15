@@ -3528,6 +3528,18 @@ function EmployeesListView({
         .filter(Boolean)
         .join(' | ');
     }
+    // 스쿼드 — 이름 · «준비중» 배지 · «종료 N» 은 따로 그린 조각이라 화면에서는 사이가 띄어 보인다. 떼어 놓은 복제본의
+    // innerText 는 칸 배치를 모르니 조각마다 글자를 띄어 잇는다(«PW-1155 추천 확인 준비중» — 붙으면 «확인준비중»)
+    if (colId === 'squads') {
+      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      const parts = [];
+      for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+        const s = String(n.nodeValue ?? '').replace(/\s+/g, ' ').trim();
+        if (s) parts.push(s);
+      }
+      const text = parts.join(' ');
+      return text === '—' ? '' : text;
+    }
     // 그 밖은 칸 글자 그대로 — 칸 아래 사유 · 안내 줄만 뺀다(재직상태처럼 배지로 그린 값은 남긴다)
     const text = textOf(el, '.admin-emp-edit-error, .admin-emp-edit-note, [aria-hidden="true"]');
     return text === '—' ? '' : text;

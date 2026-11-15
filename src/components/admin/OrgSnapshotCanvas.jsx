@@ -2114,7 +2114,8 @@ function AppointmentHistoryView({
                       )}
                     </RosterTable.Cell>
                     <RosterTable.Cell className={`admin-snap-hist-mode${rec.mode === 'bulk' ? ' is-bulk' : ''}`}>
-                      {modeLabel(rec.mode)}
+                      {/* 처리 유형 — `processMode` 가 있으면 그 경로(«수정» 줄을 남긴 «소속 일괄 이동»은 «일괄 처리» · pivit-work PW-2814) */}
+                      {modeLabel(rec.processMode ?? rec.mode)}
                     </RosterTable.Cell>
                     <RosterTable.Cell className="admin-snap-hist-mode">{rec.by ?? '—'}</RosterTable.Cell>
                     <RosterTable.Cell>
