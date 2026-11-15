@@ -37,6 +37,7 @@ const DEFAULT_LABELS = {
   countApproved: '승인됨',
   countSent: '발송됨',
   colName: '피평가자',
+  selectAll: '전체 선택',
   colGrade: '등급',
   colLeader: '담당 리더',
   colStatus: '상태',
@@ -269,6 +270,25 @@ const STATUS_META = {
  * 발송 완료」) 앞에 «전체»를 둔다 — 없으면 모든 줄을 한눈에 보던 길이 사라진다. 단계 탭의 수와 줄은
  * 제외된 사람을 넣지 않는다(서버 셈과 같다 · PW-978). 제외된 사람은 «전체»에만 보인다.
  */
+/**
+ * PW-1839 · PW-2684 — 줄 네모 판정. 줄(`ReviewRow`)과 머리줄 «전체 선택»이 같은 판정을 쓴다 —
+ * 따로 세우면 머리 네모가 줄에 없는 네모까지 켠다.
+ * 네모는 «보낼 수 있는 줄»(인사담당자 · 승인 완료)과 «내가 승인할 줄» 둘 다에 단다.
+ * 동료 리뷰 검수·AI 요약 확인이 남아 막히는 것은 «보내기»다 — 승인할 줄은 막지 않는다.
+ */
+function rowCheckState(row, canSend, myUserId) {
+  const excluded = row.excluded === true;
+  const canApprove =
+    typeof row.canApprove === 'boolean'
+      ? row.canApprove
+      : row.leaderId === myUserId &&
+        (row.status === 'pending' || row.status === 'leader_rejected') &&
+        !excluded;
+  const blocked = (row.unresolvedPeerRefinements ?? 0) > 0 || (row.pendingAiSummaries ?? 0) > 0;
+  const sendable = canSend && row.status === 'hr_approved' && !excluded;
+  return { selectable: sendable || canApprove, locked: sendable && blocked && !canApprove };
+}
+
 const STAGE_TABS = [
   { key: 'all', label: 'tabAll', statuses: null },
   { key: 'leader', label: 'tabLeader', statuses: ['pending', 'leader_rejected'], count: (c) => (c.pending ?? 0) + (c.leaderRejected ?? 0) },
@@ -1289,11 +1309,7 @@ function ReviewRow({
       setBusy(false);
     }
   };
-  // PW-1839 — 체크는 «보낼 수 있는 줄»(인사담당자 · 승인 완료)과 «내가 승인할 줄» 둘 다에 단다.
-  const sendable = canSend && row.status === 'hr_approved' && !excluded;
-  const selectable = sendable || canApprove;
-  // 동료 리뷰 검수가 남아 막히는 것은 «보내기»다 — 승인할 줄은 막지 않는다.
-  const lockedForSend = sendable && blocked && !canApprove;
+  const { selectable, locked: lockedForSend } = rowCheckState(row, canSend, myUserId);
 
   // PW-1922 — 줄 오른쪽에는 [승인]과 [⋯]만 둔다. 나머지 동작은 이 메뉴에 모으고, 돌려보내는 동작은
   // 예외라 맨 아래 빨간 글씨로 둔다. 항목마다 보이는 조건은 종전 버튼 그대로다.
@@ -1746,6 +1762,32 @@ export default function EvalReportReviewCanvas({
   }, []);
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
+  /**
+   * PW-2684 — 머리줄 «전체 선택»은 지금 보이는 줄(단계 탭·검색에 걸린 줄) 중 네모가 켜질 수 있는 줄만
+   * 켜고 끈다. 안 보이는 줄까지 켜면 몇 명을 골랐는지 화면이 말해 주지 않은 채 숫자만 뛴다
+   * (직원 목록 «이 쪽 전체 선택»과 같다).
+   */
+  const pickableIds = visibleRows
+    .filter((r) => {
+      const st = rowCheckState(r, q.canSend, myUserId);
+      return st.selectable && !st.locked;
+    })
+    .map((r) => r.memberId);
+  const pickedCount = pickableIds.filter((id) => selected.has(id)).length;
+  const allPicked = pickableIds.length > 0 && pickedCount === pickableIds.length;
+  const somePicked = pickedCount > 0 && !allPicked;
+  const selectAllRef = useRef(null);
+  useEffect(() => {
+    if (selectAllRef.current) selectAllRef.current.indeterminate = somePicked;
+  });
+  const toggleAll = () =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allPicked) pickableIds.forEach((id) => next.delete(id));
+      else pickableIds.forEach((id) => next.add(id));
+      return next;
+    });
+
   const toggle = (memberId) =>
     setSelected((prev) => {
       const next = new Set(prev);
@@ -2196,7 +2238,17 @@ export default function EvalReportReviewCanvas({
 
         <section className="evc-card evrr-table">
           <div className="evrr-row evrr-head">
-            <span className="evrr-cell" />
+            <span className="evrr-cell">
+              {pickableIds.length > 0 && (
+                <Checkbox
+                  ref={selectAllRef}
+                  checked={allPicked}
+                  onChange={toggleAll}
+                  data-testid="evrr-check-all"
+                  aria-label={L.selectAll}
+                />
+              )}
+            </span>
             <span className="evrr-cell evrr-name">{L.colName}</span>
             <span className="evrr-cell evrr-grade">{L.colGrade}</span>
             <span className="evrr-cell evrr-leader">{L.colLeader}</span>

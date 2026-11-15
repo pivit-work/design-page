@@ -131,6 +131,19 @@ p.dp-field-error {
 }
 :where(.dp-check-input:checked) { background: var(--bg-brand-solid); border-color: var(--bg-brand-solid); }
 :where(.dp-check-input:checked)::after { opacity: 1; }
+/* 일부만 고름(`indeterminate`) — 표 머리줄 «전체 선택»에서 줄 일부만 켜졌을 때(PW-2684 · 커트가 고른 시안 `.cb.part`).
+   켜짐과 같은 브랜드 바탕에 흰 가로줄. 체크 ㄴ자를 눕혀 쓰지 않고 막대로 바꾼다 */
+:where(.dp-check-input:indeterminate) { background: var(--bg-brand-solid); border-color: var(--bg-brand-solid); }
+:where(.dp-check-input:indeterminate)::after {
+  width: 8px;
+  height: 2px;
+  margin-top: 0;
+  border: none;
+  border-radius: 1px;
+  background: var(--text-white);
+  transform: none;
+  opacity: 1;
+}
 :where(.dp-check-input:focus-visible) { outline: 2px solid var(--border-brand); outline-offset: 2px; }
 :where(.dp-check-input:disabled) { cursor: default; opacity: 0.5; }
 input.dp-control[type='checkbox'][aria-invalid='true'] { outline: 1px solid var(--colors-border-borderError, #f04438); outline-offset: 1px; }
