@@ -88,9 +88,85 @@ export function flattenNodes(n, out = []) {
   return out;
 }
 
-function rootOf(tops, maxW, gap, lane) {
-  const p = pack(tops, maxW, gap, lane);
-  const root = { kind: 'root', id: 'root', children: tops, w: p.w, d: p.d };
+/**
+ * 판 배치 «가로 줄 세우기» (pivit-work PW-2718 · 기획 스쿼드 §5-7 v3.62 · 시안 org-chart-app.jsx plRoot 와 같은 계산).
+ * 바닥 가로로 고정 폭을 채우면 30° 등각에서 화면 왼쪽 아래로 흐르는 띠가 되어, 큰 회사 «맞춤»에서 판이 무대의 15% 남짓만 덮었다.
+ * ① 맨 위(받침 · 받침 없는 판 · «스쿼드 없음» 판)는 화면 가로 줄로 세우고, 각 판은 앞 줄 판 사이 틈에 닿기 직전까지 위로 붙인다(dropRow).
+ * ② 받침 안은 바닥 줄 채우기 그대로 두고, 모든 받침이 같은 가로세로 비가 되게 줄 폭만 다시 고른다(repackBox).
+ * ③ 그 비와 맨 위 줄 폭은 1440×900 무대(안쪽 1101×592)의 «맞춤»이 가장 크게 되는 짝 — 창 크기와 상관없이 한 번 정한다.
+ */
+const STAGE_RATIO = 1101 / 592;
+const BOX_RATIOS = [0.6, 0.8, 1, 1.3, 1.7, 2.2, 3, 4, 6, 9];
+
+/** 받침 안 줄 폭 — 받침의 가로세로 비가 rho 에 가장 가까운 폭 */
+function aspectWidth(items, gapX, lane, rho) {
+  const minW = Math.max(...items.map((it) => it.w));
+  const total = items.reduce((s, it) => s + it.w + gapX, 0);
+  let best = minW; let bestErr = Infinity;
+  for (let k = 0; k <= 24; k++) {
+    const maxW = minW + ((total - minW) * k) / 24;
+    const p = pack(items.map((it) => ({ w: it.w, d: it.d })), maxW, gapX, lane);
+    const err = Math.abs(Math.log((p.w + PILLAR.pad * 2 + 6) / (p.d + PILLAR.pad + 6 + PILLAR.lane) / rho));
+    if (err < bestErr - 1e-6) { bestErr = err; best = maxW; }
+  }
+  return best;
+}
+
+function repackBox(n, rho) {
+  if (n.kind === 'plate') return;
+  n.children.forEach((c) => repackBox(c, rho));
+  const lane = n.rowLane || PILLAR.lane;
+  const p = pack(n.children, aspectWidth(n.children, 26, lane, rho), 26, lane);
+  n.w = p.w + PILLAR.pad * 2 + 6; n.d = p.d + PILLAR.pad + 6 + PILLAR.lane; // box() 와 같은 식
+}
+
+/** 화면 가로 줄 — 왼쪽에서 반 칸씩 놓고, 이미 놓인 판과 겹치지 않는 가장 위 자리로 */
+function dropRow(items, rowW, gapX, laneY) {
+  const placed = []; let u = 0;
+  items.forEach((it) => {
+    const sw = (it.w + it.d) * COS;
+    if (u > 0 && u + sw > rowW) u = 0;
+    const q = u / COS + it.d; // X − Y — 판 왼쪽 꼭지(X, Y + d)가 화면 x = u 에 선다
+    const bad = placed
+      .map((p) => [Math.max(2 * (p.x - it.w - gapX) - q, 2 * (p.y - it.d - laneY) + q), Math.min(2 * (p.x + p.w + gapX) - q, 2 * (p.y + p.d + laneY) + q)])
+      .filter(([b, a]) => a > b).sort((m, n) => m[0] - n[0]);
+    let v = 0; // v = X + Y — 가장 위에서 시작해 겹치는 구간을 건너뛴다
+    for (const [b, a] of bad) { if (v <= b) break; if (v < a) v = a; }
+    it.x = (q + v) / 2; it.y = (v - q) / 2; placed.push(it);
+    u += sw / 2;
+  });
+}
+
+function fitScore(tops) {
+  const X = []; const Y = [];
+  tops.forEach((n) => [[n.x, n.y], [n.x + n.w, n.y], [n.x, n.y + n.d + PILLAR.lane], [n.x + n.w, n.y + n.d + PILLAR.lane]].forEach(([x, y]) => {
+    const [a, b] = pillarIso(x, y); X.push(a); Y.push(b);
+  }));
+  // pillarViewBox 와 같은 둘레(가로 48 · 세로 112)
+  return Math.min(STAGE_RATIO / (Math.max(...X) - Math.min(...X) + 48), 1 / (Math.max(...Y) - Math.min(...Y) + 112));
+}
+
+function rootOf(tops, gap, lane) {
+  const hasBox = tops.some((n) => n.kind !== 'plate');
+  let best = -1; let pick = null;
+  if (tops.length > 0) {
+    (hasBox ? BOX_RATIOS : [1]).forEach((rho) => {
+      if (hasBox) tops.forEach((n) => repackBox(n, rho));
+      const sws = tops.map((it) => (it.w + it.d) * COS);
+      const maxSw = Math.max(...sws); const sumSw = sws.reduce((s, v) => s + v, 0);
+      for (let k = 0; k <= 30; k++) {
+        const rowW = maxSw + ((sumSw - maxSw) * k) / 30;
+        dropRow(tops, rowW, gap, lane);
+        const s = fitScore(tops);
+        if (s > best + 1e-9) { best = s; pick = { rho, rowW }; }
+      }
+    });
+  }
+  if (pick) {
+    if (hasBox) tops.forEach((n) => repackBox(n, pick.rho));
+    dropRow(tops, pick.rowW, gap, lane);
+  }
+  const root = { kind: 'root', id: 'root', children: tops, w: 0, d: 0 };
   place(root, 0, 0, 0);
   return root;
 }
@@ -233,7 +309,7 @@ export function pillarModel({ squads = [], people = [], orgUnits = [], groupLeve
   shown.forEach((sq) => { if (!used.has(sq.id)) tops.push(plateOf.get(sq.id)); });
   const nonePlate = NONE.length ? plate('none', '', NONE, { dashed: true, wide: true, cell: noneCell(NONE) }) : null;
   if (nonePlate) tops.push(nonePlate);
-  const sTree = rootOf(tops, layers === 0 ? 800 : 1020, 34, 124);
+  const sTree = rootOf(tops, 34, 124);
 
   // ── 조직도 쪽 ──
   const teamMap = new Map();
@@ -287,7 +363,7 @@ export function pillarModel({ squads = [], people = [], orgUnits = [], groupLeve
   } else {
     orgTops = teamPlates;
   }
-  const oTree = rootOf(orgTops, 1020, 60, 136);
+  const oTree = rootOf(orgTops, 60, 136);
 
   // ── 기둥(조각) ──
   const sPlates = new Map(flattenNodes(sTree).filter((n) => n.kind === 'plate').map((n) => [n.id, n]));
