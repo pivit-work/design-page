@@ -1745,6 +1745,9 @@
   background: var(--bg-secondary);
 }
 .admin-emp-ceo-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+/* 구성원 상세 «HR 기록» «성과» 평가 이력 줄 — 왼쪽 두 줄 글이 남은 폭을 갖고 오른쪽 «공개 날짜»·«공개 전»은 줄지 않는다 (pivit-work PW-2818) */
+.admin-emp-perf-text { flex: 1; }
+.admin-emp-perf-side { flex-shrink: 0; }
 /* 조직 위치 — 이 사람이 조직장인 조직(읽기 전용, admin-spec §3.6-B-2) */
 .admin-emp-leader-of {
   display: flex;

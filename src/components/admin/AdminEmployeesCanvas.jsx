@@ -34,6 +34,7 @@ import Chip from '../shared/Chip.jsx';
 import TextInput from '../shared/TextInput.jsx';
 import ArchivedRecordsSection, { ArchivedNote } from './ArchivedRecordsSection.jsx';
 import MemberAssetsSection, { SeatLockedBox } from './MemberAssetsSection.jsx';
+import MemberPerformanceSection from './MemberPerformanceSection.jsx';
 import OffboardingReasonSection from './OffboardingReasonSection.jsx';
 import { ARCHIVED_RECORDS_DEFAULT_LABELS } from './archivedRecordsLabels.js';
 import Select from '../shared/Select.jsx';
@@ -395,6 +396,26 @@ const DEFAULT_LABELS = {
       issue: '자산 지급',
       issuedOn: '지급 {date}',
       resignedNote: '퇴사한 구성원이 가진 자산은 회사 자산 목록에 «퇴사자 보유»로 보입니다. 회수는 회사 자산에서 합니다.',
+    },
+    /* 상세 «HR 기록» 탭 «성과» 묶음 (pivit-work PW-2818 · admin-spec §3.2-D «PW-2818») */
+    performance: {
+      section: '성과',
+      sourceTag: '평가·OKR 참조',
+      evalHistory: '평가 이력',
+      rowMeta: '평가자 {evaluator} · 확정 {date}',
+      released: '공개 {date}',
+      unreleased: '공개 전',
+      empty: '확정된 평가 결과가 없어요',
+      openDashboard: '성과평가 대시보드 열기 →',
+      promotion: '승진 이력',
+      promotionCount: '{count}회',
+      okrLabel: '개인 OKR ({period})',
+      okrValue: '달성률 {progress}% · 목표 {count}개',
+      okrEmpty: '이번 분기 개인 OKR 이 없어요',
+      note: '등급은 평가 사이클, 달성률은 OKR, 승진 이력은 발령 이력에서 옵니다. 여기서는 고치지 않습니다.',
+      loadError: '평가 · OKR 정보를 불러오지 못했어요',
+      retry: '다시 시도',
+      loading: '불러오는 중',
     },
     roleSection: '권한',
     role: '권한',
@@ -5316,6 +5337,9 @@ function EmployeesEditPanel({
      - `onIssue(member, done)` [자산 지급] — 창은 소비자가 띄우고, 지급하면 `done()` 을 불러 목록을 다시 받는다.
        패널 [저장]과 따로 바로 저장된다. 미주입이거나 퇴사자면 버튼이 없다. */
   memberAssets,
+  /* 상세 페이지 «HR 기록» 탭 맨 위 «성과» 묶음 (pivit-work PW-2818 · admin-spec §3.2-D «PW-2818») —
+     `{ onLoad(memberId) => Promise<{ evalHistory, promotionCount, individualOkr }>, onOpenDashboard() }`. 미주입이면 묶음이 없다. */
+  memberPerformance,
 }) {
   const [draft, setDraft] = useState(member);
   const appointmentWired = Array.isArray(appointmentTypeOptions);
@@ -5385,6 +5409,9 @@ function EmployeesEditPanel({
   /* 책상 배치 자리 · 지급된 자산 (PW-2600) — `archive` 와 같이 사람이 바뀌는 자리·[다시 시도]·지급 뒤에만 'loading' 으로 세운다 */
   const assetsLoader = memberAssets?.onLoad;
   const [assetsState, setAssetsState] = useState({ status: assetsLoader ? 'loading' : 'idle', view: null });
+  /* «성과» 묶음 (PW-2818) — 자산과 같이 사람이 바뀌는 자리 · [다시 시도]에서만 'loading' 으로 세운다 */
+  const perfLoader = memberPerformance?.onLoad;
+  const [perfState, setPerfState] = useState({ status: perfLoader ? 'loading' : 'idle', view: null });
   const [panelTab, setPanelTab] = useState('info');
   const [historyState, setHistoryState] = useState({ status: 'idle', page: null });
   /* 고른 항목(`all` = 전체)과 「더 보기」 진행 중 여부 (정책서 §2-3·§2-4) */
@@ -5414,6 +5441,7 @@ function EmployeesEditPanel({
     setHistoryMoreLoading(false);
     setArchive({ status: onLoadArchivedRecords ? 'loading' : 'idle', view: null });
     setAssetsState({ status: assetsLoader ? 'loading' : 'idle', view: null });
+    setPerfState({ status: perfLoader ? 'loading' : 'idle', view: null });
   }
 
   const memberId = member?.id;
@@ -5427,6 +5455,16 @@ function EmployeesEditPanel({
     return () => { alive = false; };
   }, [assetsState.status, memberId, assetsLoader]);
   const reloadAssets = useCallback(() => setAssetsState((s) => ({ status: 'loading', view: s.view })), []);
+  useEffect(() => {
+    if (perfState.status !== 'loading' || !memberId || !perfLoader) return undefined;
+    let alive = true;
+    Promise.resolve(perfLoader(memberId))
+      .then((view) => { if (alive) setPerfState({ status: 'ready', view: view || null }); })
+      // 빈 목록으로 보이면 «확정된 평가가 없다»로 읽힌다 — 실패는 실패로 보인다(§3.2-D «PW-2818» ⑩)
+      .catch(() => { if (alive) setPerfState({ status: 'error', view: null }); });
+    return () => { alive = false; };
+  }, [perfState.status, memberId, perfLoader]);
+  const reloadPerf = useCallback(() => setPerfState({ status: 'loading', view: null }), []);
   /* 책상 배치에 앉은 사람 — 자리 네 칸은 배치도가 정한다(§13-A-5). 못 불러왔으면 입력 그대로다(서버가 막는다). */
   const seatedAt = assetsState.view?.seat || null;
   useEffect(() => {
@@ -6875,6 +6913,20 @@ function EmployeesEditPanel({
 
           {/* 기록 — HR 기록 창은 조회 경로가 있을 때만 연다(어드민 전용).
               폐기된 시트의 행 버튼이 여기로 왔다(PW-576). */}
+          {/* «성과» 묶음 — «HR 기록» 탭 맨 위 · 읽기 · 수정 모두 같은 모습(§3.2-D «PW-2818» · pivit-work PW-2818).
+              퇴직 처리가 끝난 사람은 평가 이력을 옮겼으니 그 자리에 옮긴 칸 한 줄(파기면 파기 문구) · 대시보드 링크도 없다.
+              보관 여부를 아직 모르는 동안(퇴직자의 보관 기록을 불러오는 중)은 줄을 먼저 보였다 바꾸지 않게 자리 표시로 둔다. */}
+          {page && inTab('records') && memberPerformance && (
+            <MemberPerformanceSection
+              state={member.employmentStatus === 'terminated' && archive.status === 'loading' ? { status: 'loading', view: null } : perfState}
+              labels={labels.panel.performance}
+              archivedNote={archivedNow ? archivedLabels.note : null}
+              onRetry={reloadPerf}
+              onOpenDashboard={memberPerformance.onOpenDashboard && !archivedNow
+                ? () => guardMove(() => memberPerformance.onOpenDashboard())
+                : undefined}
+            />
+          )}
           {inTab('records') && (<>
           <SectionLabel>{labels.panel.recordSection}</SectionLabel>
           <div className="admin-emp-field-group">
@@ -7227,6 +7279,8 @@ export default function AdminEmployeesCanvas({
   /* 층 · 자리 유형 칸 · 책상 배치 자리 · «지급된 자산» (pivit-work PW-2600) — `EmployeesEditPanel` 의 같은 이름 주석 참조 */
   seatFields,
   memberAssets,
+  /* 상세 «HR 기록» «성과» 묶음 (pivit-work PW-2818) — `EmployeesEditPanel` 의 같은 이름 주석 참조 */
+  memberPerformance,
   /* 구성원 창을 여는 요청 `{ memberId, token }` (PW-2349 · «임시저장» 묶음 [이어서]) */
   openMemberRequest,
   inferAppointmentType,
@@ -7805,6 +7859,7 @@ export default function AdminEmployeesCanvas({
             appointmentFlow={canEdit ? appointmentFlow : undefined}
             seatFields={seatFields}
             memberAssets={memberAssets}
+            memberPerformance={memberPerformance}
             /* 재직 상태별 날짜 칸(§3.2.1) — HR 기록 모달과 **같은** 조회·저장 경로다.
                미주입이면(어드민 아님) 그 칸을 아예 그리지 않는다. */
             onLoadHrProfile={onLoadHrProfile}
