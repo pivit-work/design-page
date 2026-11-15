@@ -396,7 +396,9 @@ export default function TimelineCanvas({
               ? ` ~ ${formatEventDate(parseIsoDate(ev.allDayEnd))}`
               : ''
           } · ${ev.time}`
-        : `${formatEventDate(d)} · ${ev.time}`,
+        // 자정을 넘는 일정의 이어지는 날 조각을 눌러도 실제 시작 날짜 · 시각 (pivit-work PW-2637 · 정책서 §13.8)
+        // — 조각의 date · time 은 그 칸의 0시라, 없으면 누른 칸 값 그대로.
+        : `${formatEventDate(ev.startDate ? parseIsoDate(ev.startDate) : d)} · ${ev.startTime ?? ev.time}`,
       // 반복 회차면 «반복 · {반복 이름}{ · 종료}» (pivit-work PW-2637 · 정책서 §7.8 C). 반복이 없는 실데이터는 비운다.
       repeatLabel: hasRealPeople ? (ev.recurrenceLabel || '') : '매주 일요일, 수요일',
       // 회의실 «회의실 {목록 한 줄}» · 없어진 방은 흐린 «회의실 정보 없음» (pivit-work PW-2637 · 정책서 §7.6 B)
