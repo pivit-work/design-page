@@ -717,6 +717,8 @@ export default function AdminInviteModal({
    * (정책 §7: 스위치 하나 때문에 초대를 막지 않는다). 선택지는 `fieldOptions.jobCategory`.
    */
   jobCategoryEnabled = false,
+  /** 층 · 자리 유형 열 — 앱이 회사 자산을 끈 곳(pivit-work prod)은 `false` 로 넘겨 양식 · 표 · 검사에서 뺀다(PW-2834). */
+  seatFieldsEnabled = true,
   onGoBilling,
   maxRows = INVITE_MAX_ROWS,
   /*
@@ -964,12 +966,12 @@ export default function AdminInviteModal({
   /* CSV 탭 — 칸마다 사유를 만든다. 두 초대 화면이 같은 판정(`inviteCsvIssues`)을 쓴다(PW-902).
      파싱 때 굳혀 두지 않고 매 렌더 다시 만든다 — 표에서 고친 칸의 사유가 바로 사라져야 한다. */
   // 미리보기 열 — 양식 열 + 양식에서 뺀 열(상급자·조직장 …)은 파일에 값이 있을 때만 (PW-2163).
-  const csvColumns = inviteStagingColumns(csvRows, { jobCategoryEnabled });
+  const csvColumns = inviteStagingColumns(csvRows, { jobCategoryEnabled, seatFieldsEnabled });
   const csvPrepared = prepareCsvOptions ? prepareCsvOptions(csvRows, fieldOptions) : null;
   const csvFieldOptions = csvPrepared?.fieldOptions ?? fieldOptions;
   const csvPreparedNotices = csvPrepared?.notices ?? [];
   const csvCtx = buildInviteCsvContext(csvRows, {
-    orgTree: tree, fieldOptions: csvFieldOptions, laddersByFamily, dutiesByLadder, jobCategoryEnabled,
+    orgTree: tree, fieldOptions: csvFieldOptions, laddersByFamily, dutiesByLadder, jobCategoryEnabled, seatFieldsEnabled,
     squadNames, memberEmails: existingEmails, supervisorEmails, pendingEmails, resendEmails, terminatedEmails, rehireEmails: rehireMembers.map((m) => m.email), headTeamIds, teamHeads, labels,
     emailValid, nameMaxLength, fieldLimits: csvFieldLimits, resolveOrgPath,
     blockedEmploymentStatuses: csvBlockedEmploymentStatuses, employeeCodeOwners: csvEmployeeCodeOwners,
@@ -1076,7 +1078,7 @@ export default function AdminInviteModal({
   /* ── CSV 업로드(§2-4) ────────────────────────────────────────────────── */
 
   const downloadTemplate = () => {
-    const blob = new Blob([buildInviteTemplateCsv(labels, { jobCategoryEnabled })], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([buildInviteTemplateCsv(labels, { jobCategoryEnabled, seatFieldsEnabled })], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -1113,7 +1115,7 @@ export default function AdminInviteModal({
        머리줄은 세지 않는다. */
     setCsvReading(Math.max(0, String(text).split(/\r\n|\n|\r/).filter((l) => l.trim() !== '').length - 1));
     await new Promise((resolve) => { setTimeout(resolve, 0); });
-    const res = parseInviteCsv(text, { labels, jobCategoryEnabled, maxRows: csvMaxRows });
+    const res = parseInviteCsv(text, { labels, jobCategoryEnabled, seatFieldsEnabled, maxRows: csvMaxRows });
     setCsvReading(null);
     if (!res.ok) {
       // 상한 초과·필수 열 누락은 **스테이징을 만들지 않는다.** 앞 500행만 남기는

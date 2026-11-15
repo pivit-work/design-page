@@ -130,9 +130,9 @@ export const INVITE_CSV_COLUMNS = [
   { key: 'workLocation', labelKey: 'csvColWorkLocation', option: 'workLocation', width: 110, aliases: ['근무지'] },
   { key: 'workBuilding', labelKey: 'csvColWorkBuilding', option: 'workBuilding', width: 130 },
   // 층 · 자리 유형 — 83열 양식의 자리 묶음 «빌딩 · 층 · 책상 · 자리 유형» 순(pivit-work PW-2600 · 서버 `csv-upload-form.ts`).
-  { key: 'workFloor', labelKey: 'csvColWorkFloor', kind: 'floor', width: 90 },
+  { key: 'workFloor', labelKey: 'csvColWorkFloor', kind: 'floor', width: 90, conditional: 'seat' },
   { key: 'workDesk', labelKey: 'csvColWorkDesk', width: 110 },
-  { key: 'seatType', labelKey: 'csvColSeatType', kind: 'seatType', width: 100 },
+  { key: 'seatType', labelKey: 'csvColSeatType', kind: 'seatType', width: 100, conditional: 'seat' },
   { key: 'officePhone', labelKey: 'csvColOfficePhone', width: 120 },
   // 권한
   { key: 'role', labelKey: 'csvColRole', kind: 'role', width: 90, legacyHeaders: ['역할', 'Role'] },
@@ -178,10 +178,15 @@ export const INVITE_CSV_COLUMNS = [
   { key: 'trainings', labelKey: 'csvColTrainings', kind: 'list', width: 160 },
 ];
 
-/** 이 회사가 받는 열 — 직종을 끈 회사는 직종 열이 없다(PW-644). */
-export function inviteCsvColumns({ jobCategoryEnabled = false } = {}) {
+/**
+ * 이 회사가 받는 열 — 직종을 끈 회사는 직종 열이 없다(PW-644).
+ * 층 · 자리 유형은 앱이 회사 자산을 켠 곳에서만 받는다(`seatFieldsEnabled` · pivit-work PW-2834). 기본은 받는다.
+ */
+export function inviteCsvColumns({ jobCategoryEnabled = false, seatFieldsEnabled = true } = {}) {
   return INVITE_CSV_COLUMNS.filter(
-    (c) => c.conditional !== 'jobCategory' || jobCategoryEnabled,
+    (c) =>
+      (c.conditional !== 'jobCategory' || jobCategoryEnabled) &&
+      (c.conditional !== 'seat' || seatFieldsEnabled),
   );
 }
 
@@ -870,13 +875,13 @@ export const INVITE_CSV_ORG_LEVEL_HEADERS = ['본부', '부서', '파트'];
  * 렌더 때 한다 — 표에서 고치면 사유가 바로 사라져야 하기 때문이다.
  */
 export function parseInviteCsv(
-  text, { labels = {}, jobCategoryEnabled = false, maxRows = INVITE_CSV_MAX_ROWS } = {},
+  text, { labels = {}, jobCategoryEnabled = false, seatFieldsEnabled = true, maxRows = INVITE_CSV_MAX_ROWS } = {},
 ) {
   const l = withDefaults(labels);
   const table = parseCsv(text);
   if (table.length === 0) return { ok: false, error: l.csvErrEmpty };
 
-  const columns = inviteCsvColumns({ jobCategoryEnabled });
+  const columns = inviteCsvColumns({ jobCategoryEnabled, seatFieldsEnabled });
   const dateKeys = new Set(columns.filter((c) => c.kind === 'date').map((c) => c.key));
   const namesOf = (c) => [
     l[c.labelKey], INVITE_CSV_DEFAULT_LABELS[c.labelKey], c.key, ...(c.aliases || []), ...(c.legacyHeaders || []),
@@ -969,7 +974,7 @@ export function parseInviteCsv(
  */
 export function buildInviteCsvContext(rows, {
   orgTree = [], fieldOptions = {}, laddersByFamily = {}, dutiesByLadder = {},
-  jobCategoryEnabled = false, squadNames = null, memberEmails = [], supervisorEmails = null,
+  jobCategoryEnabled = false, seatFieldsEnabled = true, squadNames = null, memberEmails = [], supervisorEmails = null,
   pendingEmails = [], resendEmails = [], terminatedEmails = [], rehireEmails = [], headTeamIds = [], teamHeads = {}, labels = {},
   emailValid = emailOk, nameMaxLength = null, fieldLimits = {}, resolveOrgPath = null,
   blockedEmploymentStatuses = [], employeeCodeOwners = null,
@@ -988,6 +993,7 @@ export function buildInviteCsvContext(rows, {
     laddersByFamily,
     dutiesByLadder,
     jobCategoryEnabled,
+    seatFieldsEnabled,
     squadNames: squadNames ? new Set(squadNames.map(fold)) : null,
     memberEmails: new Set(memberEmails.map(normEmail)),
     supervisorEmails: new Set((supervisorEmails ?? memberEmails).map(normEmail)),
@@ -1092,7 +1098,7 @@ export function inviteCsvIssues(row, ctx) {
       : fmtCsv(l.csvErrUnknownRole, { value: v.role }));
   }
 
-  for (const col of inviteCsvColumns({ jobCategoryEnabled: ctx.jobCategoryEnabled })) {
+  for (const col of inviteCsvColumns({ jobCategoryEnabled: ctx.jobCategoryEnabled, seatFieldsEnabled: ctx.seatFieldsEnabled })) {
     // 글자 수·개수 상한(PW-1057) — 앱이 넘긴 칸만 본다. 여러 값 칸은 `|` 로 나눈 값마다 본다.
     const limit = ctx.fieldLimits?.[col.key];
     // 층은 글자 수 문구가 따로다(아래) — 같은 칸에 두 줄을 세우지 않는다.
@@ -1167,7 +1173,7 @@ export function inviteCsvIssues(row, ctx) {
   }
 
   // ⑨ 자유석 · 원격이면 책상 칸을 받지 않는다 — 책상 칸에 붙는다(admin-spec §3.1-B · spec-company-assets §1-1).
-  if (seatTypeRefusesDesk(parseSeatTypeCell(v.seatType)) && normalize(v.workDesk)) {
+  if (ctx.seatFieldsEnabled !== false && seatTypeRefusesDesk(parseSeatTypeCell(v.seatType)) && normalize(v.workDesk)) {
     add('workDesk', l.csvErrSeatDeskNotAccepted);
   }
 
@@ -1307,7 +1313,7 @@ export function inviteCsvPayload(row, ctx) {
   const out = { email: normalize(v.email), name: normalize(v.name), role: r.role || 'member' };
   const put = (key, value) => { if (value !== undefined && value !== null && value !== '') out[key] = value; };
 
-  for (const col of inviteCsvColumns({ jobCategoryEnabled: ctx.jobCategoryEnabled })) {
+  for (const col of inviteCsvColumns({ jobCategoryEnabled: ctx.jobCategoryEnabled, seatFieldsEnabled: ctx.seatFieldsEnabled })) {
     const raw = normalize(v[col.key]);
     if (!raw) continue;
     if (col.codes) { put(col.key, resolveCodeCell(col.codes, raw, ctx.labels)); continue; }
