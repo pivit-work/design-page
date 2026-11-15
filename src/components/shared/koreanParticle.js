@@ -89,6 +89,8 @@ function wordEnd(text, at) {
     } else if (ch === ')') {
       const open = text.lastIndexOf('(', i - 1);
       if (open <= 0) return i;
+      // 띄어 쓴 괄호(«휴가 취소 (사본)»)는 앞 이름에 덧붙인 설명이 아니라 이름의 끝 낱말이다 — 괄호 안 끝 글자로 읽는다(PW-2674).
+      if (/\s/.test(text[open - 1])) return i - 1;
       i = open;
     } else if (CLOSERS.has(ch)) {
       i -= 1;
