@@ -325,6 +325,7 @@ const DEFAULT_LABELS = {
     loadFailed: '구성원 정보를 불러오지 못했어요',
     retry: '다시 시도',
     saveFailed: '저장하지 못했어요. 다시 시도해 주세요.',
+    ceoOn: '대표로 지정됨',
     tabs: { person: '인사 정보', org: '조직 정보', work: '근무·고용', comp: '보상', records: 'HR 기록', history: '변경 이력' },
   },
   panel: {
@@ -5411,6 +5412,8 @@ function EmployeesEditPanel({
     const v = f.key === SERVICE_START_FIELD ? identityDraft?.[SERVICE_START_FIELD] : draft[f.key];
     if (archivedNow && f.key === 'employmentType') return archivedLabels.note;
     if (v == null || v === '') return '';
+    /* 목록 칸과 같게 «100%» (FTE) */
+    if (f.key === 'ftePercent') return `${v}%`;
     if (f.kind === 'select' || f.kind === 'choice' || f.kind === 'person') {
       const mapped = axisValueLabel(valueLabels, f.key, v);
       if (mapped !== v) return mapped;
@@ -6287,7 +6290,17 @@ function EmployeesEditPanel({
                 {labels.panel.orgPosition}
                 {positionHelp}
               </SectionLabel>
-              {onOpenCeo && (
+              {onOpenCeo && reading && (
+                /* 읽기에서는 지정 여부만 — 켜고 끄는 스위치는 [수정] 중에만(§3.2-D «읽기») */
+                <div className="admin-emp-detail-read-grid">
+                  <DetailReadField
+                    label={labels.panel.ceoToggle}
+                    value={member.isCeo ? (labels.detail || {}).ceoOn || '대표로 지정됨' : ''}
+                    testId="employees-detail-read-ceo"
+                  />
+                </div>
+              )}
+              {onOpenCeo && !reading && (
               <div className="admin-emp-ceo-row">
                 <div className="admin-emp-ceo-text">
                   <span className="admin-emp-manager-name">{labels.panel.ceoToggle}</span>
@@ -6649,7 +6662,9 @@ function EmployeesEditPanel({
                     {member.education || '—'}
                   </span>
                   {/* 안내 갈래가 없으면(열람이 막힌 칸) 안내를 달지 않는다 */}
-                  {member.educationLineSource && (
+                  {/* 상세 페이지에는 [관리 →] 가 없어 그것을 가리키는 안내를 달지 않는다 — 학력 목록이 같은 탭 바로 아래다 */}
+                  {member.educationLineSource && !page && (
+
                     <span className="admin-emp-manager-note" data-testid="employees-panel-education-note">
                       {member.educationLineSource === 'empty' || !member.education
                         ? labels.panel.educationNoteEmpty

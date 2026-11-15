@@ -1578,6 +1578,23 @@
   border-top: 1px solid var(--colors-border-borderTertiary);
 }
 .admin-emp-detail-savebar .admin-emp-panel-footer { border-top: none; }
+.admin-emp-detail-body > div:not(:first-child):has(> .admin-section-label:first-child) { margin-top: var(--spacing-xl); }
+/* 탭 안에 펼친 HR 기록 · 신원 · 보상 칸(HrProfileInline) — 묶음 제목은 위 묶음 제목(.admin-section-label)과 같은 값,
+   읽기의 칸은 위 읽기 2열(라벨 위 · 값 아래 · 라벨은 .admin-emp-field-label 값)과 같게 */
+/* 창 본문 여백(.adm-hr-body 의 좌우 48)은 창 안에서만 — 페이지 본문 칸과 왼쪽 끝을 맞춘다 */
+.admin-emp-detail-body .adm-hr-body { padding: 0; overflow: visible; gap: var(--spacing-3xl); }
+.admin-emp-detail-body .adm-hr-section-title { font-size: 14px; letter-spacing: -0.01em; color: var(--text-primary); }
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-section:has(> .adm-hr-pair) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--spacing-xl);
+}
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-section:has(> .adm-hr-pair) > :not(.adm-hr-pair) { grid-column: 1 / -1; }
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-pair { flex-direction: column; gap: var(--spacing-xs); padding: 0; font-size: 13px; font-weight: 400; }
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-pair-k { flex: none; font-size: 13px; font-weight: 600; line-height: 18px; color: var(--text-secondary); }
+@media (max-width: 720px) {
+  .admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-section:has(> .adm-hr-pair) { grid-template-columns: minmax(0, 1fr); }
+}
 /* 상세 페이지가 열리면 목록 묶음을 숨긴다 — 숨기기만 해서 필터 · 정렬 · 쪽이 남는다. 열려 있지 않으면 묶음 상자가 배치에 끼지 않는다 */
 .admin-emp-canvas-list { display: contents; }
 .admin-emp-canvas-list[hidden] { display: none; }

@@ -12,13 +12,16 @@ import { avatarLabelLayout } from '../orgchart/squad-constants.js';
 export default function AvatarFallback({ row, size = 26 }) {
   const [fail, setFail] = useState(false);
   const color = row.avatarColor || 'var(--text-brand-tertiary)';
+  /* 옅은 바탕 = 글자색 12.5%(«#RRGGBB20»). 색이 토큰(var(...))이면 «…20» 이 CSS 로 성립하지 않아 바탕이 사라졌다 —
+     같은 비율을 color-mix 로 만든다(pivit-work PW-2797 — 상세 페이지 머리에서 찾음 · 목록 칸도 같은 부품) */
+  const tint = color.startsWith('var(') ? `color-mix(in srgb, ${color} 12.5%, transparent)` : `${color}20`;
   // 한글 이름은 전체를 보인다(PW-24). 호스트가 avatarText 를 주면 그대로 존중.
   const text = row.avatarText || nameInitials(row.name);
   // 8px 로도 한 줄에 안 들어가는 이름(26px 칸의 네 글자)은 스쿼드 칩처럼 두 줄로 나눈다(PW-303).
   const fit = avatarLabelLayout(text, size);
   const boxStyle = size !== 26
-    ? { width: size, height: size, background: `${color}20` }
-    : { background: `${color}20` };
+    ? { width: size, height: size, background: tint }
+    : { background: tint };
   return (
     <div className="admin-avatar" style={boxStyle}>
       {row.avatarPhoto && !fail

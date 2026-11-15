@@ -2655,7 +2655,7 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
       {loading ? (
         <div className="admin-emp-sal-status">{L.loading || '불러오는 중…'}</div>
       ) : sorted.length === 0 ? (
-        <div className="admin-emp-sal-status is-empty">{L.salaryHistoryEmpty || '등록된 보상 이력이 없습니다. 아래에서 추가하세요. (보상은 비필수 항목입니다)'}</div>
+        <div className="admin-emp-sal-status is-empty">{readOnly ? L.salaryHistoryEmptyReadOnly || '등록된 보상 이력이 없습니다.' : L.salaryHistoryEmpty || '등록된 보상 이력이 없습니다. 아래에서 추가하세요. (보상은 비필수 항목입니다)'}</div>
       ) : (
         <RosterTable
           framed
