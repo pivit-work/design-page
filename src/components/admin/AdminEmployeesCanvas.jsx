@@ -4971,15 +4971,21 @@ function ChangeReasonModal({ prompt, labels }) {
    탭 6개 — 칸이 어느 탭에 서는지는 §3.2-D «탭별 칸» 표가 정한다. 칸 묶음(`PANEL_FIELD_GROUPS`)은 저장 판정이 함께 보므로
    그대로 두고, 페이지에서만 묶음을 탭에 맞게 다시 나눈다(`PAGE_FIELD_GROUPS`). */
 const DETAIL_TABS = ['person', 'org', 'work', 'comp', 'records', 'history'];
-const PAGE_EMPLOY_KEYS = ['hireDate', SERVICE_START_FIELD, 'employeeCode', 'employmentType'];
+/* 담당 HRBP 는 §3.2.2 «고용 정보» 표의 칸이라 «근무·고용» 탭 «고용 정보» 묶음에 둔다(§3.2-D «탭별 칸» 근무·고용 «고용 정보»). */
+const PAGE_EMPLOY_KEYS = ['hireDate', SERVICE_START_FIELD, 'employeeCode', 'employmentType', 'hrbpId'];
+/* «인사 정보» 이름 칸 — §3.2-D 표 «이름 · 닉네임 · 성 · 중간 이름 · 영문명 · 영어 닉네임 · 이메일» 순서.
+   성 · 영어 닉네임은 HR 정보 칸이라 HrProfileInline 이 닉네임 · 영문명 바로 뒤에 끼운다.
+   표시 이름은 표에 없지만 이름 표기 칸(admin-spec «이름 표기 4필드»)이라 이름 칸 끝(이메일 앞)에 둔다.
+   휴대폰(`phone`)은 §3.2.2 «개인 신원 정보» 칸이라 그 묶음(HrProfileInline)으로 간다. */
+const PAGE_PERSON_KEYS = ['name', 'nickname', 'middleName', 'nameEn', 'displayName', 'email'];
 const PAGE_FIELD_GROUPS = (() => {
   const byId = Object.fromEntries(PANEL_FIELD_GROUPS.map((g) => [g.id, g]));
   const all = PANEL_FIELD_GROUPS.flatMap((g) => g.fields);
   const strip = (g) => ({ ...g, fields: g.fields.filter((f) => !PAGE_EMPLOY_KEYS.includes(f.key)) });
   return [
-    { ...strip(byId.basic), tab: 'person' },
+    { ...byId.basic, tab: 'person', fields: PAGE_PERSON_KEYS.map((k) => all.find((f) => f.key === k)).filter(Boolean) },
     { ...strip(byId.classify), tab: 'org' },
-    /* «고용 정보» — 입사일 · 기산일 · 사번 · 고용형태(§3.2-D «근무·고용» · §3.2 «고용 정보» 행) */
+    /* «고용 정보» — 입사일 · 기산일 · 사번 · 고용형태 · 담당 HRBP(§3.2-D «근무·고용» · §3.2.2 «고용 정보») */
     { id: 'employ', labelKey: 'employSection', tab: 'work', fields: PAGE_EMPLOY_KEYS.map((k) => all.find((f) => f.key === k)).filter(Boolean) },
     { ...byId.work, tab: 'work' },
   ];
@@ -5398,6 +5404,9 @@ function EmployeesEditPanel({
   /* 상세 페이지 (pivit-work PW-2797) — 지금 탭에 서는 칸만 · 읽기면 값만 */
   const reading = Boolean(page) && !page.editing;
   const inTab = (t) => !page || page.tab === t;
+  /* «인사 정보» 이름 칸을 HR 정보와 한 묶음으로 — 성 · 영어 닉네임이 HR 정보에서 와서 HrProfileInline 이 이름 칸을 함께 그린다
+     (§3.2-D «탭별 칸» 인사 정보 «이름 · 닉네임 · 성 · …» · PW-2797). HR 정보를 부를 수 없는 화면이면 종전처럼 묶음 목록에서 그린다. */
+  const inlineNames = Boolean(page && onLoadHrProfile && page.tab === 'person');
   const fieldOn = (f) =>
     (!f.needsSeat || Boolean(seatFields)) && (!f.optionalKey || (optionalFields || {})[f.optionalKey] === true);
   /* 자유석 · 원격이면 책상 칸을 받지 않는다 — 칸이 잠기고 값이 빈다(spec-company-assets §1-1) */
@@ -5843,6 +5852,401 @@ function EmployeesEditPanel({
   }
 
   /* 페이지면 캔버스 자리를 차지하는 틀, 아니면 종전 오른쪽 창 */
+  /* 페이지에서는 «탭별 칸» 표 순서로 다시 놓는 묶음 — 창(page 없음)에서는 종전 자리 그대로 그린다(PW-2797). */
+  const roleBlock = inTab('person') && (<>
+  <SectionLabel>{labels.panel.roleSection}</SectionLabel>
+  {reading ? (
+    /* 권한 칸은 §3.2-D «탭별 칸» 표에 없어 «인사 정보»에 둔다 — 행 ⋯ › 권한 변경이 이 탭으로 연다(정책서 §5) */
+    <div className="admin-emp-detail-read-grid">
+      <DetailReadField label={labels.panel.role} value={draft.orgRole ? labels.panel.roles?.[draft.orgRole] || '' : ''} testId="employees-detail-read-orgRole" />
+    </div>
+  ) : (
+  <div className="admin-emp-field-group">
+    {/* 본인 · 마지막 어드민이면 잠그고 사유 한 줄(admin-spec §3.2-C · pivit-work PW-2492). */}
+    <FormField
+      className="admin-emp-field"
+      labelClassName="admin-emp-field-label"
+      label={labels.panel.role}
+      hint={member.adminGuard?.role || undefined}
+    >
+      <Select
+        className="admin-emp-input"
+        value={draft.orgRole || ''}
+        disabled={!canEdit || !!member.adminGuard?.role}
+        data-testid="employees-panel-orgRole"
+        onChange={(e) => set('orgRole', e.target.value)}
+      >
+        <option value="">{labels.panel.none}</option>
+        {PANEL_ROLE_OPTIONS.map((r) => (
+          <option key={r} value={r}>{labels.panel.roles?.[r] || r}</option>
+        ))}
+      </Select>
+    </FormField>
+  </div>
+  )}
+  </>);
+
+  const orgAssignBlock = (<>
+  <SectionLabel>{labels.panel.orgAssign}</SectionLabel>
+  <div className="admin-emp-org-assign">
+    <button
+      type="button"
+      className={`admin-emp-org-current${primaryEntry || legacyDeptOf(member) ? '' : ' is-empty'}`}
+      disabled={reading || !canEdit || !onChangeAffiliations}
+      onClick={() => setPickerOpen(true)}
+      data-testid="employees-panel-org"
+    >
+      <span className="admin-emp-org-current-name">
+        <OrgPathLabel entry={primaryEntry} fallback={legacyDeptOf(member) || labels.panel.orgNone} />
+        {selectedIds.length > 1 && (
+          <span className="admin-emp-row-dept-more">
+            {String(labels.concurrentCount).split('{count}').join(String(selectedIds.length - 1))}
+          </span>
+        )}
+      </span>
+      {!reading && <span className="admin-emp-org-current-arrow">{labels.panel.orgChange}<IconChevronDown size={13} /></span>}
+    </button>
+    {pickerOpen && onChangeAffiliations && (
+      <OrgTreePicker
+        open
+        units={orgUnits}
+        multi
+        selectedIds={selectedIds}
+        primaryId={primaryUnitId}
+        retainedIds={retainedIds}
+        subtitle={draft.name}
+        labels={labels.orgPicker}
+        onApply={(payload) => (appointmentWired
+          ? setPendingAffil(payload)
+          : onChangeAffiliations(member.id, payload))}
+        onClose={() => setPickerOpen(false)}
+        // 묶음이 없으면 소속은 [적용] 즉시 저장된다 — 패널의 [취소]로 안 되돌아간다.
+        // 묶음이 있으면 [저장]에 함께 나가므로 그 안내를 띄우지 않는다(PW-2034).
+        saveNotice={appointmentWired ? undefined : instantSaveNotice}
+        footerNote={labels.panel.orgPickerFooter}
+      />
+    )}
+  </div>
+  </>);
+
+  const squadBlock = Array.isArray(squadOptions) && squadOptions.length > 0 && (
+    <>
+      <SectionLabel>{labels.panel.squadSection}</SectionLabel>
+      <div className="admin-emp-leader-of" data-testid="employees-panel-squads">
+        <SquadCell
+          squads={squadOptions}
+          assignments={Array.isArray(member.squads) ? member.squads : []}
+          statusLabels={squadLabels || {}}
+          closedLabel={(squadLabels || {}).closedCount}
+        />
+        {onGoSquadView && (
+          <button type="button" className="admin-emp-btn is-secondary is-sm"
+            onClick={onGoSquadView}
+            data-testid="employees-panel-squads-go">{labels.panel.squadGoView}<IconChevronRight size={14} /></button>
+        )}
+      </div>
+    </>
+  );
+
+  const loginLockBlock = inTab('person') && member.loginLock && (
+
+    <>
+      <SectionLabel>{labels.panel.loginSecuritySection || '로그인 보안'}</SectionLabel>
+      {member.loginLock.state === 'locked' ? (
+        <div className="admin-emp-manager-readonly is-wrap" data-testid="employees-panel-login-lock">
+          <span className="admin-emp-manager-name">{labels.panel.loginLockRow || '로그인 잠금'}</span>
+          <DpStatusBadge tone="danger" className="admin-emp-status" data-testid="employees-panel-login-lock-badge">
+            {member.loginLock.badge}
+          </DpStatusBadge>
+          <span className="admin-emp-manager-note">{member.loginLock.hint}</span>
+        </div>
+      ) : (
+        <span className="admin-emp-status-date-note is-error" role="alert" data-testid="employees-panel-login-lock-error">
+          {member.loginLock.message}
+        </span>
+      )}
+    </>
+  );
+
+  const skillsBlock = inTab('person') && (<>
+  <SectionLabel>{labels.panel.skillsSection}</SectionLabel>
+  <div className="admin-emp-field-group" data-testid="employees-panel-personal-tags">
+    {[
+      ['expertise', 'expertise'],
+      ['skillSet', 'skills'],
+      ['currentWorks', 'currentWorks'],
+    ].map(([labelKey, field]) => {
+      const tags = Array.isArray(draft[field]) ? draft[field] : [];
+      return (
+        <div key={field} className="admin-emp-field">
+          <div className="admin-emp-field-label">{labels.panel[labelKey]}</div>
+          {tags.length === 0 ? (
+            <div className="admin-emp-manager-note" data-testid={`employees-panel-${field}-empty`}>
+              {labels.panel.tagsEmpty}
+            </div>
+          ) : (
+            <div className="admin-emp-tags" data-testid={`employees-panel-${field}`}>
+              {tags.map((tag) => (
+                <Chip key={tag}>
+                  {tag}
+                  <ToneBadge tone="warning" className="admin-emp-tag-unapproved">
+                    {labels.panel.tagUnapproved}
+                  </ToneBadge>
+                </Chip>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    })}
+  </div>
+  </>);
+
+  /* 칸 묶음 하나 — 목록 렌더와 «인사 정보» 이름 칸(HrProfileInline 이 성 · 영어 닉네임을 끼움)이 함께 쓴다.
+     `after[key]` 는 그 칸 바로 뒤에 붙일 칸(§3.2-D «탭별 칸» 인사 정보 순서 · PW-2797). */
+  const renderGroup = (g, after = {}) => {
+    const fieldNode = (f) => {
+      if (reading && !(seatedAt && SEAT_FIELD_KEYS.has(f.key))) {
+        if (f.key === SERVICE_START_FIELD && !onLoadHrProfile) return null;
+        return (
+          <DetailReadField key={f.key} label={labels.panel[f.labelKey]} value={readValueOf(f)} testId={`employees-detail-read-${f.key}`} />
+        );
+      }
+      /* 책상 배치에 앉은 사람 — 자리 네 칸 자리에 읽기 전용 상자 하나(§3.2.5 · spec-company-assets §13-A-5) */
+      if (seatedAt && SEAT_FIELD_KEYS.has(f.key)) {
+        return f.key === 'workBuilding' ? (
+          <SeatLockedBox
+            key="seat-locked"
+            member={member}
+            seat={seatedAt}
+            labels={labels.panel}
+            typeOptions={seatFields?.typeOptions || []}
+            onOpenSeat={memberAssets?.onOpenSeat}
+          />
+        ) : null;
+      }
+      if (f.key === SERVICE_START_FIELD) {
+        /* 기산일 (pivit-work PW-2418) — 값은 HR 정보에서 온다. HR 정보를 부를 수 없는 화면이면 칸을 두지 않고,
+           불러오는 중·실패면 잠근다(모르는 값을 빈 칸으로 보여 «비우기»로 저장되지 않게). */
+        if (!onLoadHrProfile) return null;
+        const own = identityDraft?.[SERVICE_START_FIELD] ?? '';
+        const recordLabels = labels.records || {};
+        return (
+          <FormField key={f.key} className="admin-emp-field" labelClassName="admin-emp-field-label" label={labels.panel[f.labelKey]}>
+            <DateInput
+              className="admin-emp-input"
+              value={own}
+              disabled={!canEdit || identityState !== 'ready'}
+              data-testid={`employees-panel-${f.key}`}
+              onChange={(v) => setIdentityDraft((d) => ({ ...(d || {}), [SERVICE_START_FIELD]: v }))}
+            />
+            {identityState === 'ready' && (
+              <span className="admin-emp-manager-note" data-testid="employees-panel-serviceStartDate-hint">
+                {serviceStartHintText(recordLabels, own, draft.hireDate)}
+              </span>
+            )}
+            {identityState === 'ready' && canEdit && isoDay(own) && (
+              <div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  data-testid="employees-panel-serviceStartDate-clear"
+                  onClick={() => setIdentityDraft((d) => ({ ...(d || {}), [SERVICE_START_FIELD]: '' }))}
+                >
+                  {recordLabels.hrServiceStartClear || '비우기 — 입사일 따르기'}
+                </Button>
+              </div>
+            )}
+          </FormField>
+        );
+      }
+      if (archivedNow && f.key === 'employmentType') {
+        return (
+          <FormField key={f.key} className="admin-emp-field" labelClassName="admin-emp-field-label" label={labels.panel[f.labelKey]}>
+            <ArchivedNote text={archivedLabels.note} testId="employees-panel-archived-employmentType" />
+          </FormField>
+        );
+      }
+      const opts = f.kind === 'select' && !AXIS_LEVEL_OF[f.key] ? optionsFor(f) : null;
+      const axisLevel = AXIS_LEVEL_OF[f.key];
+      return (
+        <FormField
+          key={f.key}
+          className="admin-emp-field"
+          labelClassName="admin-emp-field-label"
+          label={labels.panel[f.labelKey]}
+          /* 서버가 이 칸을 짚어 거절한 사유 (PW-727) — 칸 바로 아래에 뜨고 칸과 이어진다
+             (PW-1012). 스크롤은 위 효과가 이 testid 로 찾아간다. */
+          error={saveError && saveError.fields.includes(f.key) ? saveError.message : null}
+          errorTestId={`employees-panel-error-${f.key}`}
+        >
+          {axisLevel === 'family' && unregisteredPair && (
+            <span
+              className="admin-emp-manager-note admin-emp-axis-notice is-warn"
+              role="status"
+              data-testid="employees-panel-axis-unregistered"
+            >
+              {fill(labels.panel.axisUnregisteredPair, { pair: unregisteredPair })}
+            </span>
+          )}
+          {axisLevel ? (
+            /* 🔴 고를 값이 0개여도 자유 입력 칸으로 바꾸지 않는다 — 적어 넣은 값은
+               저장에서 거절된다(PW-748). 사유 + [조직 설정 →] 를 그린다. */
+            <JobAxisSelect
+              candidates={axisCandidates(axisLevel)}
+              inactive={inactiveOf(f.key)}
+              familyLabel={familyLabel}
+              level={axisLevel}
+              values={axisValues}
+              jobAxis={axis}
+              labels={labels.panel}
+              onPick={pickAxis}
+              onOpenFieldOptions={onOpenFieldOptions}
+              className="admin-emp-input"
+              disabled={!canEdit}
+              testId={`employees-panel-${f.key}`}
+            />
+          ) : f.kind === 'choice' ? (
+            /* 고정 선택지 `{ value, label }` — 자리 유형 4종(PW-2600). 화면엔 라벨만, 코드값은 내보내지 않는다 */
+            <Select
+              className="admin-emp-input"
+              value={draft[f.key] || ''}
+              disabled={!canEdit}
+              data-testid={`employees-panel-${f.key}`}
+              onChange={(e) => (f.key === 'seatType' ? pickSeatType(e.target.value) : set(f.key, e.target.value))}
+            >
+              <option value="">{labels.panel.none}</option>
+              {optionsFor(f).map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </Select>
+          ) : f.kind === 'person' ? (
+            <Select
+              className="admin-emp-input"
+              value={draft[f.key] || ''}
+              disabled={!canEdit}
+              data-testid={`employees-panel-${f.key}`}
+              onChange={(e) => set(f.key, e.target.value)}
+            >
+              <option value="">{labels.panel.none}</option>
+              {optionsFor(f).map((o) => (
+                <option key={o.value} value={o.value} disabled={!!o.disabled}>{o.label}</option>
+              ))}
+            </Select>
+          ) : f.kind === 'select' && opts.length > 0 ? (
+            <Select
+              className="admin-emp-input"
+              value={draft[f.key] || ''}
+              disabled={!canEdit}
+              data-testid={`employees-panel-${f.key}`}
+              onChange={(e) => set(f.key, e.target.value)}
+            >
+              <option value="">{labels.panel.none}</option>
+              {/* 저장된 값이 카탈로그에서 사라졌어도 선택지에 남긴다 —
+                  없으면 select 가 «미지정» 으로 보여, 다른 칸만 고쳐
+                  저장해도 멀쩡한 값이 지워진다. */}
+              {(opts.includes(draft[f.key]) || !draft[f.key]
+                ? opts
+                : [draft[f.key], ...opts]
+              ).map((o) => (
+                <option key={o} value={o}>
+                  {!opts.includes(o) && inactiveOf(f.key).includes(o) ? `${o} ${labels.panel.inactiveSuffix}` : o}
+                </option>
+              ))}
+            </Select>
+          ) : f.kind === 'select' ? (
+            /* 🔴 고를 값이 0개여도 자유 입력 칸으로 바꾸지 않는다(§3.5 「빈 드롭다운 금지」) —
+               적어 넣은 값은 회사가 등록한 값이 아니다. 지금 값이 있으면 그 값만 남기고,
+               사유 + [조직 설정 →] 를 보인다. 고정 4종 고용형태는 조직 설정에서 늘릴 수 없어 버튼이 없다. */
+            <span className="admin-emp-axis-empty" data-testid={`employees-panel-${f.key}-empty`}>
+              {draft[f.key] && (
+                <Select
+                  className="admin-emp-input"
+                  value={draft[f.key]}
+                  disabled={!canEdit}
+                  data-testid={`employees-panel-${f.key}`}
+                  onChange={(e) => set(f.key, e.target.value)}
+                >
+                  <option value="">{labels.panel.none}</option>
+                  <option value={draft[f.key]}>
+                    {inactiveOf(f.key).includes(draft[f.key]) ? `${draft[f.key]} ${labels.panel.inactiveSuffix}` : draft[f.key]}
+                  </option>
+                </Select>
+              )}
+              <span className="admin-emp-manager-note">{labels.panel.optionsEmpty}</span>
+              {onOpenFieldOptions && f.key !== 'employmentType' && (
+                <button
+                  type="button"
+                  className="admin-emp-btn is-ghost is-sm"
+                  onClick={onOpenFieldOptions}
+                  data-testid={`employees-panel-${f.key}-go-field-options`}
+                >
+                  {labels.panel.axisGoFieldOptions}
+                  <IconChevronRight size={14} />
+                </button>
+              )}
+            </span>
+          ) : f.kind === 'date' ? (
+            /* 🔴 날짜는 브라우저 기본 날짜 칸(`type="date"`)으로 그리지 않는다 —
+               그 칸의 표시 형식은 브라우저 언어가 정해서, 앱이 한국어여도 영어
+               크롬에서 「mm/dd/yyyy」 로 보인다. 같은 창의 재직 상태 날짜 칸과
+               같은 `DateInput` 을 쓴다 (PW-793). */
+            <DateInput
+              className="admin-emp-input"
+              value={(draft[f.key] || '').slice(0, 10)}
+              disabled={!canEdit}
+              data-testid={`employees-panel-${f.key}`}
+              onChange={(v) => set(f.key, v)}
+            />
+          ) : (
+            <TextInput
+              className="admin-emp-input"
+              type={f.kind === 'number' ? 'number' : 'text'}
+              value={draft[f.key] ?? ''}
+              /* 자유석 · 원격이면 책상 칸을 잠근다 — 값은 유형을 고르는 순간 비웠다(PW-2600 · §3.2.5) */
+              disabled={!canEdit || (f.key === 'workDesk' && deskRefused)}
+              maxLength={f.maxLength}
+              placeholder={f.placeholderKey ? labels.panel[f.placeholderKey] : undefined}
+              data-testid={`employees-panel-${f.key}`}
+              onChange={(e) => set(f.key, f.maxLength ? e.target.value.slice(0, f.maxLength) : e.target.value)}
+            />
+          )}
+          {f.note && <span className="admin-emp-manager-note">{labels.panel[f.note]}</span>}
+          {f.key === 'workDesk' && seatFields && (deskRefused || seatFields.isRoom?.(draft.seatType)) && (
+            <span className="admin-emp-manager-note" data-testid="employees-panel-workDesk-hint">
+              {deskRefused ? labels.panel.seatDeskRefused : labels.panel.seatRoomHint}
+            </span>
+          )}
+          {/* 표시 한 줄 미리 보기 — 조직도 퍼블릭 카드에 늘 보인다. 한 줄이 없으면 그리지 않는다(spec-company-assets §1-2) */}
+          {f.key === 'workDesk' && seatPreview && (
+            <span className="admin-emp-manager-note" data-testid="employees-panel-seat-preview">
+              {fill(labels.panel.seatPreview, { line: seatPreview })}
+            </span>
+          )}
+          {axisLevel && axisNotice && axisNotice.field === axisLevel && (
+            <span
+              className={`admin-emp-manager-note admin-emp-axis-notice${/Reset|Ambiguous/.test(axisNotice.kind) ? ' is-warn' : ''}`}
+              role="status"
+              data-testid="employees-panel-axis-notice"
+            >
+              {jobAxisNoticeText(axisNotice, labels.panel)}
+            </span>
+          )}
+        </FormField>
+      );
+    };
+    const shown = g.fields.filter(fieldOn);
+    if (shown.length === 0) return null;
+    return (
+      <div key={g.id}>
+        <SectionLabel>{labels.panel[g.labelKey] || (g.id === 'employ' ? detailL.employSection : '')}</SectionLabel>
+        <div className={reading ? 'admin-emp-detail-read-grid' : 'admin-emp-field-group'}>
+          {shown.flatMap((f) => [fieldNode(f), after[f.key] ? <Fragment key={`${f.key}-after`}>{after[f.key]}</Fragment> : null])}
+        </div>
+      </div>
+    );
+  };
+
   const frame = (children) => (page ? (
     <div className={`admin-emp-detail${page.editing ? ' is-editing' : ''}`} data-testid="employees-detail-page">{children}</div>
   ) : (
@@ -5979,247 +6383,9 @@ function EmployeesEditPanel({
               </span>
             </DetailReadField>
           )}
-          {(page ? PAGE_FIELD_GROUPS.filter((g) => inTab(g.tab)) : PANEL_FIELD_GROUPS).map((g) => {
-            const shown = g.fields.filter(fieldOn);
-            if (shown.length === 0) return null;
-            return (
-              <div key={g.id}>
-                <SectionLabel>{labels.panel[g.labelKey] || (g.id === 'employ' ? detailL.employSection : '')}</SectionLabel>
-                <div className={reading ? 'admin-emp-detail-read-grid' : 'admin-emp-field-group'}>
-                  {shown.map((f) => {
-                    if (reading && !(seatedAt && SEAT_FIELD_KEYS.has(f.key))) {
-                      if (f.key === SERVICE_START_FIELD && !onLoadHrProfile) return null;
-                      return (
-                        <DetailReadField key={f.key} label={labels.panel[f.labelKey]} value={readValueOf(f)} testId={`employees-detail-read-${f.key}`} />
-                      );
-                    }
-                    /* 책상 배치에 앉은 사람 — 자리 네 칸 자리에 읽기 전용 상자 하나(§3.2.5 · spec-company-assets §13-A-5) */
-                    if (seatedAt && SEAT_FIELD_KEYS.has(f.key)) {
-                      return f.key === 'workBuilding' ? (
-                        <SeatLockedBox
-                          key="seat-locked"
-                          member={member}
-                          seat={seatedAt}
-                          labels={labels.panel}
-                          typeOptions={seatFields?.typeOptions || []}
-                          onOpenSeat={memberAssets?.onOpenSeat}
-                        />
-                      ) : null;
-                    }
-                    if (f.key === SERVICE_START_FIELD) {
-                      /* 기산일 (pivit-work PW-2418) — 값은 HR 정보에서 온다. HR 정보를 부를 수 없는 화면이면 칸을 두지 않고,
-                         불러오는 중·실패면 잠근다(모르는 값을 빈 칸으로 보여 «비우기»로 저장되지 않게). */
-                      if (!onLoadHrProfile) return null;
-                      const own = identityDraft?.[SERVICE_START_FIELD] ?? '';
-                      const recordLabels = labels.records || {};
-                      return (
-                        <FormField key={f.key} className="admin-emp-field" labelClassName="admin-emp-field-label" label={labels.panel[f.labelKey]}>
-                          <DateInput
-                            className="admin-emp-input"
-                            value={own}
-                            disabled={!canEdit || identityState !== 'ready'}
-                            data-testid={`employees-panel-${f.key}`}
-                            onChange={(v) => setIdentityDraft((d) => ({ ...(d || {}), [SERVICE_START_FIELD]: v }))}
-                          />
-                          {identityState === 'ready' && (
-                            <span className="admin-emp-manager-note" data-testid="employees-panel-serviceStartDate-hint">
-                              {serviceStartHintText(recordLabels, own, draft.hireDate)}
-                            </span>
-                          )}
-                          {identityState === 'ready' && canEdit && isoDay(own) && (
-                            <div>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                data-testid="employees-panel-serviceStartDate-clear"
-                                onClick={() => setIdentityDraft((d) => ({ ...(d || {}), [SERVICE_START_FIELD]: '' }))}
-                              >
-                                {recordLabels.hrServiceStartClear || '비우기 — 입사일 따르기'}
-                              </Button>
-                            </div>
-                          )}
-                        </FormField>
-                      );
-                    }
-                    if (archivedNow && f.key === 'employmentType') {
-                      return (
-                        <FormField key={f.key} className="admin-emp-field" labelClassName="admin-emp-field-label" label={labels.panel[f.labelKey]}>
-                          <ArchivedNote text={archivedLabels.note} testId="employees-panel-archived-employmentType" />
-                        </FormField>
-                      );
-                    }
-                    const opts = f.kind === 'select' && !AXIS_LEVEL_OF[f.key] ? optionsFor(f) : null;
-                    const axisLevel = AXIS_LEVEL_OF[f.key];
-                    return (
-                      <FormField
-                        key={f.key}
-                        className="admin-emp-field"
-                        labelClassName="admin-emp-field-label"
-                        label={labels.panel[f.labelKey]}
-                        /* 서버가 이 칸을 짚어 거절한 사유 (PW-727) — 칸 바로 아래에 뜨고 칸과 이어진다
-                           (PW-1012). 스크롤은 위 효과가 이 testid 로 찾아간다. */
-                        error={saveError && saveError.fields.includes(f.key) ? saveError.message : null}
-                        errorTestId={`employees-panel-error-${f.key}`}
-                      >
-                        {axisLevel === 'family' && unregisteredPair && (
-                          <span
-                            className="admin-emp-manager-note admin-emp-axis-notice is-warn"
-                            role="status"
-                            data-testid="employees-panel-axis-unregistered"
-                          >
-                            {fill(labels.panel.axisUnregisteredPair, { pair: unregisteredPair })}
-                          </span>
-                        )}
-                        {axisLevel ? (
-                          /* 🔴 고를 값이 0개여도 자유 입력 칸으로 바꾸지 않는다 — 적어 넣은 값은
-                             저장에서 거절된다(PW-748). 사유 + [조직 설정 →] 를 그린다. */
-                          <JobAxisSelect
-                            candidates={axisCandidates(axisLevel)}
-                            inactive={inactiveOf(f.key)}
-                            familyLabel={familyLabel}
-                            level={axisLevel}
-                            values={axisValues}
-                            jobAxis={axis}
-                            labels={labels.panel}
-                            onPick={pickAxis}
-                            onOpenFieldOptions={onOpenFieldOptions}
-                            className="admin-emp-input"
-                            disabled={!canEdit}
-                            testId={`employees-panel-${f.key}`}
-                          />
-                        ) : f.kind === 'choice' ? (
-                          /* 고정 선택지 `{ value, label }` — 자리 유형 4종(PW-2600). 화면엔 라벨만, 코드값은 내보내지 않는다 */
-                          <Select
-                            className="admin-emp-input"
-                            value={draft[f.key] || ''}
-                            disabled={!canEdit}
-                            data-testid={`employees-panel-${f.key}`}
-                            onChange={(e) => (f.key === 'seatType' ? pickSeatType(e.target.value) : set(f.key, e.target.value))}
-                          >
-                            <option value="">{labels.panel.none}</option>
-                            {optionsFor(f).map((o) => (
-                              <option key={o.value} value={o.value}>{o.label}</option>
-                            ))}
-                          </Select>
-                        ) : f.kind === 'person' ? (
-                          <Select
-                            className="admin-emp-input"
-                            value={draft[f.key] || ''}
-                            disabled={!canEdit}
-                            data-testid={`employees-panel-${f.key}`}
-                            onChange={(e) => set(f.key, e.target.value)}
-                          >
-                            <option value="">{labels.panel.none}</option>
-                            {optionsFor(f).map((o) => (
-                              <option key={o.value} value={o.value} disabled={!!o.disabled}>{o.label}</option>
-                            ))}
-                          </Select>
-                        ) : f.kind === 'select' && opts.length > 0 ? (
-                          <Select
-                            className="admin-emp-input"
-                            value={draft[f.key] || ''}
-                            disabled={!canEdit}
-                            data-testid={`employees-panel-${f.key}`}
-                            onChange={(e) => set(f.key, e.target.value)}
-                          >
-                            <option value="">{labels.panel.none}</option>
-                            {/* 저장된 값이 카탈로그에서 사라졌어도 선택지에 남긴다 —
-                                없으면 select 가 «미지정» 으로 보여, 다른 칸만 고쳐
-                                저장해도 멀쩡한 값이 지워진다. */}
-                            {(opts.includes(draft[f.key]) || !draft[f.key]
-                              ? opts
-                              : [draft[f.key], ...opts]
-                            ).map((o) => (
-                              <option key={o} value={o}>
-                                {!opts.includes(o) && inactiveOf(f.key).includes(o) ? `${o} ${labels.panel.inactiveSuffix}` : o}
-                              </option>
-                            ))}
-                          </Select>
-                        ) : f.kind === 'select' ? (
-                          /* 🔴 고를 값이 0개여도 자유 입력 칸으로 바꾸지 않는다(§3.5 「빈 드롭다운 금지」) —
-                             적어 넣은 값은 회사가 등록한 값이 아니다. 지금 값이 있으면 그 값만 남기고,
-                             사유 + [조직 설정 →] 를 보인다. 고정 4종 고용형태는 조직 설정에서 늘릴 수 없어 버튼이 없다. */
-                          <span className="admin-emp-axis-empty" data-testid={`employees-panel-${f.key}-empty`}>
-                            {draft[f.key] && (
-                              <Select
-                                className="admin-emp-input"
-                                value={draft[f.key]}
-                                disabled={!canEdit}
-                                data-testid={`employees-panel-${f.key}`}
-                                onChange={(e) => set(f.key, e.target.value)}
-                              >
-                                <option value="">{labels.panel.none}</option>
-                                <option value={draft[f.key]}>
-                                  {inactiveOf(f.key).includes(draft[f.key]) ? `${draft[f.key]} ${labels.panel.inactiveSuffix}` : draft[f.key]}
-                                </option>
-                              </Select>
-                            )}
-                            <span className="admin-emp-manager-note">{labels.panel.optionsEmpty}</span>
-                            {onOpenFieldOptions && f.key !== 'employmentType' && (
-                              <button
-                                type="button"
-                                className="admin-emp-btn is-ghost is-sm"
-                                onClick={onOpenFieldOptions}
-                                data-testid={`employees-panel-${f.key}-go-field-options`}
-                              >
-                                {labels.panel.axisGoFieldOptions}
-                                <IconChevronRight size={14} />
-                              </button>
-                            )}
-                          </span>
-                        ) : f.kind === 'date' ? (
-                          /* 🔴 날짜는 브라우저 기본 날짜 칸(`type="date"`)으로 그리지 않는다 —
-                             그 칸의 표시 형식은 브라우저 언어가 정해서, 앱이 한국어여도 영어
-                             크롬에서 「mm/dd/yyyy」 로 보인다. 같은 창의 재직 상태 날짜 칸과
-                             같은 `DateInput` 을 쓴다 (PW-793). */
-                          <DateInput
-                            className="admin-emp-input"
-                            value={(draft[f.key] || '').slice(0, 10)}
-                            disabled={!canEdit}
-                            data-testid={`employees-panel-${f.key}`}
-                            onChange={(v) => set(f.key, v)}
-                          />
-                        ) : (
-                          <TextInput
-                            className="admin-emp-input"
-                            type={f.kind === 'number' ? 'number' : 'text'}
-                            value={draft[f.key] ?? ''}
-                            /* 자유석 · 원격이면 책상 칸을 잠근다 — 값은 유형을 고르는 순간 비웠다(PW-2600 · §3.2.5) */
-                            disabled={!canEdit || (f.key === 'workDesk' && deskRefused)}
-                            maxLength={f.maxLength}
-                            placeholder={f.placeholderKey ? labels.panel[f.placeholderKey] : undefined}
-                            data-testid={`employees-panel-${f.key}`}
-                            onChange={(e) => set(f.key, f.maxLength ? e.target.value.slice(0, f.maxLength) : e.target.value)}
-                          />
-                        )}
-                        {f.note && <span className="admin-emp-manager-note">{labels.panel[f.note]}</span>}
-                        {f.key === 'workDesk' && seatFields && (deskRefused || seatFields.isRoom?.(draft.seatType)) && (
-                          <span className="admin-emp-manager-note" data-testid="employees-panel-workDesk-hint">
-                            {deskRefused ? labels.panel.seatDeskRefused : labels.panel.seatRoomHint}
-                          </span>
-                        )}
-                        {/* 표시 한 줄 미리 보기 — 조직도 퍼블릭 카드에 늘 보인다. 한 줄이 없으면 그리지 않는다(spec-company-assets §1-2) */}
-                        {f.key === 'workDesk' && seatPreview && (
-                          <span className="admin-emp-manager-note" data-testid="employees-panel-seat-preview">
-                            {fill(labels.panel.seatPreview, { line: seatPreview })}
-                          </span>
-                        )}
-                        {axisLevel && axisNotice && axisNotice.field === axisLevel && (
-                          <span
-                            className={`admin-emp-manager-note admin-emp-axis-notice${/Reset|Ambiguous/.test(axisNotice.kind) ? ' is-warn' : ''}`}
-                            role="status"
-                            data-testid="employees-panel-axis-notice"
-                          >
-                            {jobAxisNoticeText(axisNotice, labels.panel)}
-                          </span>
-                        )}
-                      </FormField>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
+          {/* 조직 정보 — 표 순서 «소속(겸직) · 스쿼드 / 인사 분류 / 조직 위치 / 매니저»(§3.2-D «탭별 칸») */}
+          {page && inTab('org') && (<>{orgAssignBlock}{squadBlock}</>)}
+          {(page ? PAGE_FIELD_GROUPS.filter((g) => inTab(g.tab) && !(inlineNames && g.id === 'basic')) : PANEL_FIELD_GROUPS).map((g) => renderGroup(g))}
 
           {/* «지급된 자산» — 근무지 묶음 바로 아래(자리와 함께 보는 정보 · admin-spec §3.2.13 · pivit-work PW-2600) */}
           {inTab('work') && memberAssets && (
@@ -6235,80 +6401,10 @@ function EmployeesEditPanel({
 
           {/* 권한 — 시트의 «권한» 열이 여기로 왔다(PW-576). 조직장 지정에 따른 자동
               승격은 서버가 하고(L10), 이 칸은 그 값을 직접 고치는 자리다. */}
-          {inTab('person') && (<>
-          <SectionLabel>{labels.panel.roleSection}</SectionLabel>
-          {reading ? (
-            /* 권한 칸은 §3.2-D «탭별 칸» 표에 없어 «인사 정보»에 둔다 — 행 ⋯ › 권한 변경이 이 탭으로 연다(정책서 §5) */
-            <div className="admin-emp-detail-read-grid">
-              <DetailReadField label={labels.panel.role} value={draft.orgRole ? labels.panel.roles?.[draft.orgRole] || '' : ''} testId="employees-detail-read-orgRole" />
-            </div>
-          ) : (
-          <div className="admin-emp-field-group">
-            {/* 본인 · 마지막 어드민이면 잠그고 사유 한 줄(admin-spec §3.2-C · pivit-work PW-2492). */}
-            <FormField
-              className="admin-emp-field"
-              labelClassName="admin-emp-field-label"
-              label={labels.panel.role}
-              hint={member.adminGuard?.role || undefined}
-            >
-              <Select
-                className="admin-emp-input"
-                value={draft.orgRole || ''}
-                disabled={!canEdit || !!member.adminGuard?.role}
-                data-testid="employees-panel-orgRole"
-                onChange={(e) => set('orgRole', e.target.value)}
-              >
-                <option value="">{labels.panel.none}</option>
-                {PANEL_ROLE_OPTIONS.map((r) => (
-                  <option key={r} value={r}>{labels.panel.roles?.[r] || r}</option>
-                ))}
-              </Select>
-            </FormField>
-          </div>
-          )}
-          </>)}
+          {!inlineNames && roleBlock}
 
           {inTab('org') && (<>
-          <SectionLabel>{labels.panel.orgAssign}</SectionLabel>
-          <div className="admin-emp-org-assign">
-            <button
-              type="button"
-              className={`admin-emp-org-current${primaryEntry || legacyDeptOf(member) ? '' : ' is-empty'}`}
-              disabled={reading || !canEdit || !onChangeAffiliations}
-              onClick={() => setPickerOpen(true)}
-              data-testid="employees-panel-org"
-            >
-              <span className="admin-emp-org-current-name">
-                <OrgPathLabel entry={primaryEntry} fallback={legacyDeptOf(member) || labels.panel.orgNone} />
-                {selectedIds.length > 1 && (
-                  <span className="admin-emp-row-dept-more">
-                    {String(labels.concurrentCount).split('{count}').join(String(selectedIds.length - 1))}
-                  </span>
-                )}
-              </span>
-              {!reading && <span className="admin-emp-org-current-arrow">{labels.panel.orgChange}<IconChevronDown size={13} /></span>}
-            </button>
-            {pickerOpen && onChangeAffiliations && (
-              <OrgTreePicker
-                open
-                units={orgUnits}
-                multi
-                selectedIds={selectedIds}
-                primaryId={primaryUnitId}
-                retainedIds={retainedIds}
-                subtitle={draft.name}
-                labels={labels.orgPicker}
-                onApply={(payload) => (appointmentWired
-                  ? setPendingAffil(payload)
-                  : onChangeAffiliations(member.id, payload))}
-                onClose={() => setPickerOpen(false)}
-                // 묶음이 없으면 소속은 [적용] 즉시 저장된다 — 패널의 [취소]로 안 되돌아간다.
-                // 묶음이 있으면 [저장]에 함께 나가므로 그 안내를 띄우지 않는다(PW-2034).
-                saveNotice={appointmentWired ? undefined : instantSaveNotice}
-                footerNote={labels.panel.orgPickerFooter}
-              />
-            )}
-          </div>
+          {!page && orgAssignBlock}
 
           {(onOpenCeo || (leaderUnitIds && leaderUnitIds.length > 0)) && (
             <>
@@ -6369,24 +6465,7 @@ function EmployeesEditPanel({
             </>
           )}
 
-          {Array.isArray(squadOptions) && squadOptions.length > 0 && (
-            <>
-              <SectionLabel>{labels.panel.squadSection}</SectionLabel>
-              <div className="admin-emp-leader-of" data-testid="employees-panel-squads">
-                <SquadCell
-                  squads={squadOptions}
-                  assignments={Array.isArray(member.squads) ? member.squads : []}
-                  statusLabels={squadLabels || {}}
-                  closedLabel={(squadLabels || {}).closedCount}
-                />
-                {onGoSquadView && (
-                  <button type="button" className="admin-emp-btn is-secondary is-sm"
-                    onClick={onGoSquadView}
-                    data-testid="employees-panel-squads-go">{labels.panel.squadGoView}<IconChevronRight size={14} /></button>
-                )}
-              </div>
-            </>
-          )}
+          {!page && squadBlock}
 
           <SectionLabel>{labels.panel.managerSection}</SectionLabel>
           {/* 안내문이 길어 이름 자리를 밀면 이름이 한 글자씩 세로로 꺾였다 — 줄을 넘기게 두고 이름은 줄지 않는다 (pivit-work PW-2693). */}
@@ -6410,25 +6489,7 @@ function EmployeesEditPanel({
           {/* 로그인 잠김 — 잠긴 동안에만 그린다. 잠기지 않았으면 섹션째 없다(«잠기지 않음»도 쓰지 않는다).
               해제 버튼은 두지 않는다(admin-spec §3.2.12 · §3.9-G-5 · pivit-work PW-2286). 2단계 인증 줄이 생기면
               이 섹션의 위 줄로 들어온다(PW-2320). 줄 모양은 바로 위 «매니저» 읽기 전용 줄을 그대로 쓴다. */}
-          {inTab('person') && member.loginLock && (
-
-            <>
-              <SectionLabel>{labels.panel.loginSecuritySection || '로그인 보안'}</SectionLabel>
-              {member.loginLock.state === 'locked' ? (
-                <div className="admin-emp-manager-readonly is-wrap" data-testid="employees-panel-login-lock">
-                  <span className="admin-emp-manager-name">{labels.panel.loginLockRow || '로그인 잠금'}</span>
-                  <DpStatusBadge tone="danger" className="admin-emp-status" data-testid="employees-panel-login-lock-badge">
-                    {member.loginLock.badge}
-                  </DpStatusBadge>
-                  <span className="admin-emp-manager-note">{member.loginLock.hint}</span>
-                </div>
-              ) : (
-                <span className="admin-emp-status-date-note is-error" role="alert" data-testid="employees-panel-login-lock-error">
-                  {member.loginLock.message}
-                </span>
-              )}
-            </>
-          )}
+          {!inlineNames && loginLockBlock}
 
           {inTab('work') && (<>
           <SectionLabel>{labels.panel.statusSection}</SectionLabel>
@@ -6632,39 +6693,7 @@ function EmployeesEditPanel({
           {/* 전문 분야·스킬 — 읽기 전용 (admin-spec §3.2.7). 본인이 내 설정에서만 넣는 값이라 입력 칸이
               없다(어드민이 대신 채우면 담당자 조회 값의 신뢰가 떨어진다). 조직장 승인은 2차(OPEN-10)라
               지금은 모든 값에 「미승인」이 붙고, 비어 있으면 종류마다 「미입력」. 입력 유도 문구는 없다. */}
-          {inTab('person') && (<>
-          <SectionLabel>{labels.panel.skillsSection}</SectionLabel>
-          <div className="admin-emp-field-group" data-testid="employees-panel-personal-tags">
-            {[
-              ['expertise', 'expertise'],
-              ['skillSet', 'skills'],
-              ['currentWorks', 'currentWorks'],
-            ].map(([labelKey, field]) => {
-              const tags = Array.isArray(draft[field]) ? draft[field] : [];
-              return (
-                <div key={field} className="admin-emp-field">
-                  <div className="admin-emp-field-label">{labels.panel[labelKey]}</div>
-                  {tags.length === 0 ? (
-                    <div className="admin-emp-manager-note" data-testid={`employees-panel-${field}-empty`}>
-                      {labels.panel.tagsEmpty}
-                    </div>
-                  ) : (
-                    <div className="admin-emp-tags" data-testid={`employees-panel-${field}`}>
-                      {tags.map((tag) => (
-                        <Chip key={tag}>
-                          {tag}
-                          <ToneBadge tone="warning" className="admin-emp-tag-unapproved">
-                            {labels.panel.tagUnapproved}
-                          </ToneBadge>
-                        </Chip>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-          </>)}
+          {!inlineNames && skillsBlock}
 
           {/* 기록 — HR 기록 창은 조회 경로가 있을 때만 연다(어드민 전용).
               폐기된 시트의 행 버튼이 여기로 왔다(PW-576). */}
@@ -6730,6 +6759,13 @@ function EmployeesEditPanel({
               registerFlush={registerInline(page.tab)}
               onDirtyChange={inlineDirtyOf(page.tab)}
               onSaveIdentity={canEdit ? onSaveIdentity : undefined}
+              renderNames={inlineNames ? (extra) => renderGroup(PAGE_FIELD_GROUPS[0], { nickname: extra.lastName, nameEn: extra.nicknameEn }) : undefined}
+              namesTail={inlineNames ? loginLockBlock : undefined}
+              phone={inlineNames ? {
+                label: labels.records?.hrPhone || '휴대폰',
+                value: draft.phone,
+                onChange: page.editing && canEdit ? (v) => set('phone', v) : undefined,
+              } : undefined}
               onLoadTrainings={hrRecordHandlers?.onLoadTrainings}
               onAddTraining={canEdit ? hrRecordHandlers?.onAddTraining : undefined}
               onUpdateTraining={canEdit ? hrRecordHandlers?.onUpdateTraining : undefined}
@@ -6746,6 +6782,9 @@ function EmployeesEditPanel({
               onDownloadDocument={hrRecordHandlers?.onDownloadDocument}
             />
           )}
+          {/* 인사 정보 — 표 끝 «전문 분야·스킬»은 HR 정보(개인 신원 · 병역·장애) 뒤, 표에 없는 «권한»은 맨 끝 */}
+          {inlineNames && skillsBlock}
+          {inlineNames && roleBlock}
           </>
           )}
 

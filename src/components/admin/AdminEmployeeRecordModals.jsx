@@ -1438,6 +1438,7 @@ export function HrProfileInline({
   onRevealNationalId, nationalIdEnabled = true, onRevealBankAccount,
   onSaveRecord, onDeleteRecord, onUploadDocument, onDownloadDocument,
   archived = false,
+  renderNames, namesTail, phone,
 }) {
   const L = labels || {};
   const memberId = row?.id;
@@ -1599,8 +1600,12 @@ export function HrProfileInline({
   const renderPerson = () => (
     <>
       <HrSection title={L.hrIdentity || '개인 신원'}>
-        {field('lastName', L.hrLastName || '성')}
-        <HrPair k={L.hrNicknameEn || '영어 닉네임'} v={row?.nicknameEn} />
+        {!renderNames && field('lastName', L.hrLastName || '성')}
+        {!renderNames && <HrPair k={L.hrNicknameEn || '영어 닉네임'} v={row?.nicknameEn} />}
+        {/* 휴대폰 — 구성원 칸(member)이라 값과 바꾸기는 부르는 쪽이 준다(§3.2.2 «개인 신원 정보» 첫 칸) */}
+        {phone && (editable && phone.onChange
+          ? <HrEditPair key="phone" k={phone.label} value={phone.value ?? ''} onChange={phone.onChange} />
+          : <HrPair key="phone" k={phone.label} v={phone.value} />)}
         {field('personalEmail', L.hrPersonalEmail || '개인 이메일', { edit: { type: 'email' } })}
         {kept(L.hrBirthDate || '생년월일', field('birthDate', L.hrBirthDate || '생년월일', { edit: { date: true, startView: 'year', max: todayIso, today: todayIso } }))}
         {kept(L.hrGender || '성별', field('gender', L.hrGender || '성별', { show: (v) => optionText(genderOptions, v), edit: { options: genderOptions } }))}
@@ -1782,6 +1787,13 @@ export function HrProfileInline({
   const body = { person: renderPerson, work: renderWork, comp: renderComp, records: renderRecords }[part];
   return (
     <div className="adm-hr-body" data-testid={`hr-inline-${part}`}>
+      {/* 구성원 상세 «인사 정보» 이름 칸 — 성 · 영어 닉네임을 부르는 쪽 이름 묶음 안에 끼운다(§3.2-D «탭별 칸» · PW-2797).
+          이름 칸은 HR 정보를 불러오는 동안 · 못 불러와도 보여야 해서 아래 불러오기 갈래 밖에 둔다. */}
+      {part === 'person' && renderNames && renderNames({
+        lastName: data && !error ? field('lastName', L.hrLastName || '성') : <HrPair key="lastName" k={L.hrLastName || '성'} v={null} />,
+        nicknameEn: <HrPair key="nicknameEn" k={L.hrNicknameEn || '영어 닉네임'} v={row?.nicknameEn} />,
+      })}
+      {part === 'person' && renderNames && namesTail}
       {loading ? (
         <LoadingState>{L.loading || '불러오는 중…'}</LoadingState>
       ) : error ? (
