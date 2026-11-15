@@ -530,6 +530,25 @@
   gap: 8px;
 }
 
+.msc-intg-add-account {
+  /* 계정 줄 아래 «+ 다른 계정 연결» 글자 버튼(PW-2795) — 같은 화면 글자 버튼 .msc-link-btn 의 크기·브랜드 글자색,
+     밑줄 대신 600 굵기(«추가» 동작 글자 버튼 .intg-picker-all 과 같은 문법) */
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--font-family-body);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  color: var(--text-brand-secondary);
+  cursor: pointer;
+}
+.msc-intg-add-account:disabled {
+  color: var(--text-disabled);
+  cursor: not-allowed;
+}
+
 .msc-intg-account-text {
   flex: 1;
   min-width: 0;

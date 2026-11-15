@@ -473,6 +473,7 @@ const DEFAULT_LABELS = {
     // 내 계정 연결 카드 (pivit-work PW-1153 · 낱말 PW-2732) — `accountLink` 인 카드만 이 네 문구를 쓴다.
     linked: '연결됨',
     linkAccount: '내 계정 연결',
+    linkAnotherAccount: '+ 다른 계정 연결',
     unlinkAccount: '연결 해제',
     autoLinked: '자동',
     comingSoon: '준비 중',
@@ -2837,7 +2838,9 @@ export default function MySettingsCanvas({
                             {intg.syncing ? labels.integrations.syncing : labels.integrations.sync}
                           </Button>
                         )}
-                        {intg.accountLink && !intg.comingSoon && (
+                        {/* 계정을 하나 이상 이으면 오른쪽 위를 비우고 계정 줄 아래 «+ 다른 계정 연결»로 옮긴다 — 연결된 카드가
+                            연결 안 된 것처럼 읽히지 않게(내 설정 기획서 §7.1-A «새 계정을 연결하는 버튼» · pivit-work PW-2795) */}
+                        {intg.accountLink && !intg.comingSoon && (intg.linkedAccounts || []).length === 0 && (
                           <Button
                             variant="secondary"
                             size="sm"
@@ -2906,6 +2909,17 @@ export default function MySettingsCanvas({
                             </Button>
                           </div>
                         ))}
+                        {!intg.comingSoon && (
+                          <Button
+                            className="msc-intg-add-account"
+                            // 회사가 해제한 카드면 보이되 잠근다 — «새로 연결만 누를 수 없다»(§7.1-A)
+                            disabled={Boolean(intg.busy || intg.unavailableReason)}
+                            onClick={() => onLinkAccount && onLinkAccount(intg.id)}
+                            data-testid={`integration-link-more-${intg.id}`}
+                          >
+                            {labels.integrations.linkAnotherAccount}
+                          </Button>
+                        )}
                       </div>
                     )}
 
