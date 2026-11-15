@@ -8222,12 +8222,17 @@ button.evm-ai-source {
   font-size: 12px;
   font-weight: 400;
 }
-/* PW-2786 — 이름 아래 «직무 · 소속 팀»(커트 11-13 시안: 12px 회색, 꺾이지 않음). */
+/* PW-2786 — 이름 아래 «직무 · 소속 팀»(커트 11-13 시안: 12px 회색, 꺾이지 않음).
+   PW-2684 — 꺾지 않은 채 160px 를 넘으면 «…»로 줄인다(전체 글은 title). 긴 직무명 하나가 이름 칸을 넓혀
+   1280 창에서 표가 칸보다 넓어지던 것(«[verify-2786] 5등급 위원회» 23px)을 막는다. */
 .evs-cw-name-sub {
   font-size: 12px;
   font-weight: 400;
   color: var(--text-tertiary);
   white-space: nowrap;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .evs-cw-num {
   font-size: 12px;
@@ -8252,10 +8257,14 @@ button.evm-ai-source {
 .evs-cw-date.is-sub {
   color: var(--text-secondary);
 }
+/* PW-2684 — 칸이 좁으면 «조정자 …»를 다음 줄로 내린다(낱말 안에서는 꺾지 않음). 한 줄로 고정하면 1280 창에서
+   이 칸이 199px 까지 늘어 표가 가로로 넘쳤다. 넓은 창에서는 그대로 한 줄. */
 .evs-cw-adjust {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
+  row-gap: var(--spacing-xs);
   white-space: nowrap;
 }
 .evs-cw-arrow {

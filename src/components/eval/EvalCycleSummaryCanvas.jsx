@@ -5961,7 +5961,9 @@ export default function EvalCycleSummaryCanvas({
                       <RosterTable
                         className="evs-cw-table-wrap"
                         framed
-                        minWidth={900}
+                        /* PW-2684 — 1280 창에서 표를 담는 칸이 898px 이라 900 이면 2px 가로 스크롤이 생겼다.
+                           칸이 이보다 좁을 때만 가로로 민다(1280 이상에서는 칸 폭에 맞춘다). */
+                        minWidth={860}
                         scroll="both"
                         maxHeight="calc(100vh - 220px)"
                         scrollTestId="evs-cw-table-scroll"
@@ -6066,7 +6068,12 @@ export default function EvalCycleSummaryCanvas({
                                     </StatusBadge>
                                   )}
                                   {nameSubLine(row, colOn('job'), colOn('team')) && (
-                                    <div className="evs-cw-name-sub" data-testid="evs-cw-name-sub">
+                                    /* PW-2684 — 긴 직무·소속 팀은 «…»로 줄이므로 전체 글을 마우스를 올리면 보이게 둔다. */
+                                    <div
+                                      className="evs-cw-name-sub"
+                                      data-testid="evs-cw-name-sub"
+                                      title={nameSubLine(row, colOn('job'), colOn('team'))}
+                                    >
                                       {nameSubLine(row, colOn('job'), colOn('team'))}
                                     </div>
                                   )}
