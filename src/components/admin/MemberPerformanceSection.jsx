@@ -5,6 +5,7 @@ import StatusBadge from '../shared/StatusBadge.jsx';
 import GradeBadge from '../shared/GradeBadge.jsx';
 import { SkeletonList } from '../shared/Skeleton.jsx';
 import { ArchivedNote } from './ArchivedRecordsSection.jsx';
+import { IconChevronRight } from './employeesIcons.jsx';
 
 const fill = (tpl, map) =>
   Object.entries(map).reduce((acc, [k, v]) => acc.split(`{${k}}`).join(v ?? ''), String(tpl ?? ''));
@@ -94,6 +95,7 @@ export default function MemberPerformanceSection({ state, labels, archivedNote =
             <div>
               <Button variant="secondary" size="sm" onClick={onOpenDashboard} data-testid="employees-detail-performance-dashboard">
                 {L.openDashboard}
+                <IconChevronRight size={14} />
               </Button>
             </div>
           )}

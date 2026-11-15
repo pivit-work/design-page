@@ -406,7 +406,7 @@ const DEFAULT_LABELS = {
       released: '공개 {date}',
       unreleased: '공개 전',
       empty: '확정된 평가 결과가 없어요',
-      openDashboard: '성과평가 대시보드 열기 →',
+      openDashboard: '성과평가 대시보드 열기',
       promotion: '승진 이력',
       promotionCount: '{count}회',
       okrLabel: '개인 OKR ({period})',
