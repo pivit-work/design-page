@@ -11106,6 +11106,23 @@ button.evm-ai-source {
   padding-left: var(--evnav-pad-left);
   padding-right: 68px;
 }
+/* 내리면 스크롤 칸의 위 여백(24)도 함께 올라가, 본문 줄이 탭 줄 바로 밑에서 반쯤 잘린 채 걸쳐 보였다
+   (PW-2804 — 성과평가 대시보드 «조회 기간» 줄 · 사이클 목록 «평가 사이클 N개» 줄). 탭 줄에 그 여백만큼
+   바탕색 띠를 달아 본문이 탭 줄 24 아래에서 사라지게 한다. 스크롤 칸 안이 아니라 탭 줄에 다는 이유 —
+   칸 안 첫 줄로 넣으면 세로 묶음(gap)으로 쌓는 캔버스에서 간격이 하나 더 붙어 첫 화면 자리가 바뀐다.
+   첫 화면에서 띠는 빈 위 여백 위에만 놓인다. z-index -1 은 탭 줄 안의 탭보다 아래(탭 줄 묶음 안)라
+   탭 줄과 겹치는 아래 4px 에서도 탭 판을 가리지 않는다. */
+.evnav-shell .evnav-nav::after {
+  content: '';
+  position: absolute;
+  top: var(--evnav-h);
+  left: 0;
+  right: 0;
+  z-index: -1;
+  height: var(--spacing-3xl);
+  background: var(--bg-primary);
+  pointer-events: none;
+}
 /* 1행 — 모양은 `.tab-nav`(OKR·조직도)가 준다. 키보드로도 고를 수 있게 버튼으로 두고
    버튼 기본 모양만 걷는다. 좁아지면 줄바꿈 대신 가로 스크롤. */
 .evnav-domains {
