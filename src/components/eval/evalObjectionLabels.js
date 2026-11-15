@@ -205,6 +205,7 @@ export const OBJECTION_JUDGE_LABELS = {
   /** `{round}` 차수. */
   seatRound: '{round}차 평가자',
   seatCommittee: '위원',
+  seatChair: '위원장',
   seatJudge: '판단자',
   opinionPlaceholder: '이 이의에 대한 의견을 남겨 주십시오',
   opinionInputHint: '의견은 판단하는 쪽과 인사 담당자만 봅니다. 구성원에게는 보이지 않습니다.',
@@ -276,8 +277,9 @@ export function fillObjectionText(s, vars) {
   );
 }
 
-/** 의견 자리 이름표 — «2차 평가자» · «위원» · «판단자». */
+/** 의견 자리 이름표 — «2차 평가자» · «위원장» · «위원» · «판단자». */
 export function seatLabel(op, L) {
+  if (op.seat === 'chair') return L.seatChair ?? L.seatCommittee;
   if (op.seat === 'committee') return L.seatCommittee;
   if (op.seat === 'judge') return L.seatJudge;
   return fillObjectionText(L.seatRound, { round: op.round ?? '' });
