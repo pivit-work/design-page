@@ -41,6 +41,13 @@
   overflow: hidden;
 }
 
+/* 창 안에 표가 있으면 앱 창 폭(.mtg-shell 560)으로 넓힌다 — 400 에 3~4칸 표를 넣으면 이름·날짜·버튼 글자가
+   두 줄로 꺾였다(pivit-work PW-2835 · 연차 정책 · 조건 채우기 창). 창마다 넘기는 값으로 두면 새 창에서 또 빠뜨린다.
+   width: 100% 는 위 규칙 그대로라 좁은 화면에선 막 여백 안으로 줄어든다. */
+.pw-confirm-modal:has(table) {
+  max-width: 560px;
+}
+
 .pw-confirm-modal > .tl-group-modal-close {
   position: absolute;
   top: var(--spacing-lg);
