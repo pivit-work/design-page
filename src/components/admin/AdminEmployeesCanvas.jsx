@@ -35,6 +35,7 @@ import TextInput from '../shared/TextInput.jsx';
 import ArchivedRecordsSection, { ArchivedNote } from './ArchivedRecordsSection.jsx';
 import MemberAssetsSection, { SeatLockedBox } from './MemberAssetsSection.jsx';
 import MemberPerformanceSection from './MemberPerformanceSection.jsx';
+import MemberLeaveSection from './MemberLeaveSection.jsx';
 import OffboardingReasonSection from './OffboardingReasonSection.jsx';
 import { ARCHIVED_RECORDS_DEFAULT_LABELS } from './archivedRecordsLabels.js';
 import Select from '../shared/Select.jsx';
@@ -416,6 +417,29 @@ const DEFAULT_LABELS = {
       loadError: '평가 · OKR 정보를 불러오지 못했어요',
       retry: '다시 시도',
       loading: '불러오는 중',
+    },
+    /* 상세 «근무·고용» 탭 «근태·휴가» 묶음 (pivit-work PW-2817 · admin-spec §3.2.10 «PW-2817») */
+    leave: {
+      section: '근태·휴가',
+      readOnlyTag: '조회 전용',
+      used: '휴가 사용일수',
+      remaining: '남은 연차',
+      available: '사용 가능 휴가',
+      history: '휴가 이력 ({count})',
+      note: '휴가 사용 · 남은 연차 · 사용 가능은 연차 기준입니다. 다른 휴가는 휴가 이력에서 봅니다. 신청·승인은 휴가 모듈에서 처리합니다.',
+      loadError: '휴가 잔여를 불러오지 못했어요',
+      retry: '다시 시도',
+      loading: '불러오는 중',
+      modalTitle: '휴가 이력 (조회 전용)',
+      empty: '휴가 사용 이력이 없습니다.',
+      modalNote: '신청·승인은 휴가 모듈에서 처리합니다',
+      openOverview: '휴가 현황 열기',
+      close: '닫기',
+      colType: '휴가 유형',
+      colPeriod: '기간',
+      colAmount: '일수',
+      colStatus: '승인 상태',
+      colApprover: '승인자',
     },
     roleSection: '권한',
     role: '권한',
@@ -5353,6 +5377,10 @@ function EmployeesEditPanel({
   /* 상세 페이지 «HR 기록» 탭 맨 위 «성과» 묶음 (pivit-work PW-2818 · admin-spec §3.2-D «PW-2818») —
      `{ onLoad(memberId) => Promise<{ evalHistory, promotionCount, individualOkr }>, onOpenDashboard() }`. 미주입이면 묶음이 없다. */
   memberPerformance,
+  /* 상세 페이지 «근무·고용» 탭 끝 «근태·휴가» 묶음 (pivit-work PW-2817 · admin-spec §3.2.10 «PW-2817») — 휴가 애드온이 켜진 회사만 넘긴다.
+     `{ onLoad(memberId) => Promise<{ used, remaining, available, requests }>, onOpenOverview() }` — 글자(«N일 N시간» · 상태 이름)는 호스트가 만든다.
+     미주입이면 묶음이 없다. */
+  memberLeave,
 }) {
   const [draft, setDraft] = useState(member);
   const appointmentWired = Array.isArray(appointmentTypeOptions);
@@ -5425,6 +5453,9 @@ function EmployeesEditPanel({
   /* «성과» 묶음 (PW-2818) — 자산과 같이 사람이 바뀌는 자리 · [다시 시도]에서만 'loading' 으로 세운다 */
   const perfLoader = memberPerformance?.onLoad;
   const [perfState, setPerfState] = useState({ status: perfLoader ? 'loading' : 'idle', view: null });
+  /* «근태·휴가» 묶음 (PW-2817) — 성과 묶음과 같은 불러오기 · [다시 시도]는 이 묶음만 */
+  const leaveLoader = memberLeave?.onLoad;
+  const [leaveState, setLeaveState] = useState({ status: leaveLoader ? 'loading' : 'idle', view: null });
   const [panelTab, setPanelTab] = useState('info');
   const [historyState, setHistoryState] = useState({ status: 'idle', page: null });
   /* 고른 항목(`all` = 전체)과 「더 보기」 진행 중 여부 (정책서 §2-3·§2-4) */
@@ -5455,6 +5486,7 @@ function EmployeesEditPanel({
     setArchive({ status: onLoadArchivedRecords ? 'loading' : 'idle', view: null });
     setAssetsState({ status: assetsLoader ? 'loading' : 'idle', view: null });
     setPerfState({ status: perfLoader ? 'loading' : 'idle', view: null });
+    setLeaveState({ status: leaveLoader ? 'loading' : 'idle', view: null });
   }
 
   const memberId = member?.id;
@@ -5478,6 +5510,16 @@ function EmployeesEditPanel({
     return () => { alive = false; };
   }, [perfState.status, memberId, perfLoader]);
   const reloadPerf = useCallback(() => setPerfState({ status: 'loading', view: null }), []);
+  useEffect(() => {
+    if (leaveState.status !== 'loading' || !memberId || !leaveLoader) return undefined;
+    let alive = true;
+    Promise.resolve(leaveLoader(memberId))
+      .then((view) => { if (alive) setLeaveState({ status: 'ready', view: view || null }); })
+      // 실패를 «0일»로 보이면 «연차가 없다»로 읽힌다 — 세 칸 «—» + 안내(§3.2.10 «PW-2817» «늦거나 실패할 때»)
+      .catch(() => { if (alive) setLeaveState({ status: 'error', view: null }); });
+    return () => { alive = false; };
+  }, [leaveState.status, memberId, leaveLoader]);
+  const reloadLeave = useCallback(() => setLeaveState({ status: 'loading', view: null }), []);
   /* 책상 배치에 앉은 사람 — 자리 네 칸은 배치도가 정한다(§13-A-5). 못 불러왔으면 입력 그대로다(서버가 막는다). */
   const seatedAt = assetsState.view?.seat || null;
   useEffect(() => {
@@ -7037,6 +7079,17 @@ function EmployeesEditPanel({
               onDownloadDocument={hrRecordHandlers?.onDownloadDocument}
             />
           )}
+          {/* «근태·휴가» 묶음 — «근무·고용» 탭 맨 끝(§3.2-D «탭별 칸») · 휴가 애드온이 켜진 회사에서만 호스트가 넘긴다(pivit-work PW-2817 ·
+              admin-spec §3.2.10 «PW-2817»). 읽기 · 수정 모두 같은 모습 · [휴가 현황 열기]는 수정 중 바꾼 값이 있으면 확인 창을 거친다. */}
+          {page && inTab('work') && memberLeave && (
+            <MemberLeaveSection
+              state={leaveState}
+              labels={labels.panel.leave}
+              onRetry={reloadLeave}
+              onOpenOverview={memberLeave.onOpenOverview}
+              guardMove={guardMove}
+            />
+          )}
           {/* 인사 정보 — 표 끝 «전문 분야·스킬»은 HR 정보(개인 신원 · 병역·장애) 뒤, 표에 없는 «권한»은 맨 끝 */}
           {inlineNames && skillsBlock}
           {inlineNames && roleBlock}
@@ -7294,6 +7347,8 @@ export default function AdminEmployeesCanvas({
   memberAssets,
   /* 상세 «HR 기록» «성과» 묶음 (pivit-work PW-2818) — `EmployeesEditPanel` 의 같은 이름 주석 참조 */
   memberPerformance,
+  /* 상세 «근무·고용» «근태·휴가» 묶음 (pivit-work PW-2817) — `EmployeesEditPanel` 의 같은 이름 주석 참조 */
+  memberLeave,
   /* 구성원 창을 여는 요청 `{ memberId, token }` (PW-2349 · «임시저장» 묶음 [이어서]) */
   openMemberRequest,
   inferAppointmentType,
@@ -7873,6 +7928,7 @@ export default function AdminEmployeesCanvas({
             seatFields={seatFields}
             memberAssets={memberAssets}
             memberPerformance={memberPerformance}
+            memberLeave={memberLeave}
             /* 재직 상태별 날짜 칸(§3.2.1) — HR 기록 모달과 **같은** 조회·저장 경로다.
                미주입이면(어드민 아님) 그 칸을 아예 그리지 않는다. */
             onLoadHrProfile={onLoadHrProfile}
