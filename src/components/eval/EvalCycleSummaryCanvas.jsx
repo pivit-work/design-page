@@ -2069,6 +2069,45 @@ function SortTh({ sortKey, label, sort, onSort }) {
 // PW-1116 막대는 비율, 아래 칸은 인원 — 같은 비율을 두 번 싣지 않는다. 등급이 아직 없는 사람은
 // 막대 끝 회색 빗금과 마지막 칸 「등급 없음 N」으로 센다. 안내문은 제목 줄 ⓘ 에 올렸을 때만.
 /**
+ * 쌓은 막대의 가이드라인 경계 점선 자리.
+ * 앞에서부터 가이드라인이 이어지는 동안만 더한다(맨 끝 등급 뒤는 100% 라 긋지 않는다).
+ *
+ * PW-1034 — 조각 사이에 틈(--evs-gd-gap)이 있어 조각 길이의 합은 «막대 폭 − 틈 수 × 틈»이다.
+ * 점선을 막대 폭의 누적 % 에 그으면 비율이 가이드라인과 같아도 틈 가운데에서 최대 틈 하나만큼 비켜나고,
+ * 가이드라인이 한쪽으로 쏠리면(60·30·10%) 조각 위에 떨어진다. 그래서 점선도 조각과 같은 자(폭 − 틈)로 재고
+ * 그 앞에 놓인 조각 수만큼 틈을 더한다. 경계가 조각 끝과 같으면(0.5%p 안) 그 틈 가운데에 긋는다.
+ * @returns {Array<{ at: number, left: string }>} at = 누적 가이드라인 %, left = CSS left 값
+ */
+export function gradeDistBounds(grades) {
+  const segs = grades.filter((g) => g.count > 0 && g.pct > 0).map((g) => g.pct);
+  const total = segs.reduce((a, b) => a + b, 0);
+  const gaps = Math.max(segs.length - 1, 0);
+  const r = (x) => Math.round(x * 10000) / 10000;
+  const left = (pct, gapsBefore) => (gaps === 0
+    ? `${r(pct)}%`
+    : `calc((100% - ${gaps} * var(--evs-gd-gap)) * ${r(pct / 100)} + ${gapsBefore} * var(--evs-gd-gap))`);
+  const out = [];
+  let acc = 0;
+  for (let i = 0; i < grades.length - 1; i += 1) {
+    if (grades[i].guidelinePct == null) break;
+    acc += grades[i].guidelinePct;
+    if (!(acc > 0 && acc < 100)) continue;
+    let cum = 0;
+    let before = 0;
+    let edge = null;
+    for (let k = 0; k < segs.length - 1; k += 1) {
+      const end = ((cum + segs[k]) / total) * 100;
+      if (Math.abs(end - acc) < 0.5) { edge = { end, gapsBefore: k + 0.5 }; break; }
+      if (end > acc) break;
+      cum += segs[k];
+      before = k + 1;
+    }
+    out.push({ at: acc, left: edge ? left(edge.end, edge.gapsBefore) : left(acc, before) });
+  }
+  return out;
+}
+
+/**
  * PW-2786 — 성과평가 대시보드의 등급 분포: 쌓은 막대 하나 + 그 아래 등급마다 칸 하나.
  * 막대는 리소스 쌓은 막대(.rsx-stackbar, stesslee b7eb7caa — 높이 12 · 조각 사이 10 · 모서리 4)에
  * 옅은 등급 색(200), 칸은 리소스 숫자 칸(.rsx-stat — 이름 위 · 큰 숫자 · 바탕 없음)을 따른다.
@@ -2081,14 +2120,7 @@ const GD_ALERT_PP = 10;
 function GradeDistCells({ grades, L, showDeviation = false, testId }) {
   const n = grades.length;
   const tone = (i) => (i === 0 ? 'seg-top' : i === n - 1 ? 'seg-bottom' : 'seg-mid');
-  // 가이드라인 경계 — 앞에서부터 가이드라인이 이어지는 동안만 더한다(맨 끝 등급 뒤는 100% 라 긋지 않는다).
-  const bounds = [];
-  let acc = 0;
-  for (let i = 0; i < n - 1; i += 1) {
-    if (grades[i].guidelinePct == null) break;
-    acc += grades[i].guidelinePct;
-    if (acc > 0 && acc < 100) bounds.push(acc);
-  }
+  const bounds = gradeDistBounds(grades);
   return (
     <div className="evs-gd" data-testid={testId}>
       <div
@@ -2105,7 +2137,7 @@ function GradeDistCells({ grades, L, showDeviation = false, testId }) {
           />
         ) : null))}
         {bounds.map((b) => (
-          <span key={b} className="evs-gd-bound" style={{ left: `${b}%` }} aria-hidden data-testid="evs-gd-bound" />
+          <span key={b.at} className="evs-gd-bound" style={{ left: b.left }} data-at={b.at} aria-hidden data-testid="evs-gd-bound" />
         ))}
       </div>
       <div className="evs-gd-cells">

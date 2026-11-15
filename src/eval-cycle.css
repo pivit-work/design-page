@@ -18624,7 +18624,9 @@ button.evmh-phase:focus-visible {
   position: relative;
   display: flex;
   height: 12px;
-  gap: calc(var(--spacing-md) + var(--spacing-xxs));
+  /* 점선 자리도 이 틈으로 잰다(EvalCycleSummaryCanvas gradeDistBounds · PW-1034) */
+  --evs-gd-gap: calc(var(--spacing-md) + var(--spacing-xxs));
+  gap: var(--evs-gd-gap);
   border-radius: var(--radius-xxs);
   background: var(--bg-secondary);
 }
@@ -18644,6 +18646,7 @@ button.evmh-phase:focus-visible {
   bottom: calc(-1 * var(--spacing-xs));
   width: 0;
   border-left: 1.5px dashed var(--text-tertiary);
+  transform: translateX(-50%);
 }
 .evs-gd-cells {
   display: grid;
