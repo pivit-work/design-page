@@ -334,6 +334,10 @@ export default function SquadPillarStage({
   const runRef = useRef({ raf: 0, timers: [] });
   const onDoneRef = useRef(onDone);
   useLayoutEffect(() => { onDoneRef.current = onDone; });
+  // 재생은 첫 그림 때 한 번 시작하지만, 그 사이 데이터(묶음·스쿼드)가 늦게 오면 배치가 바뀐다.
+  // 날아가는 목표·화면 범위는 매 걸음 최신 모델에서 읽어, 끝나는 순간 튀지 않게 한다
+  const liveRef = useRef(model);
+  useLayoutEffect(() => { liveRef.current = model; });
   const today = useMemo(localToday, []);
 
   const { tokens, personById } = model;
@@ -381,15 +385,16 @@ export default function SquadPillarStage({
     r.timers.forEach(clearTimeout);
     r.timers = [];
     const svg = svgRef.current;
+    const byKey = new Map(liveRef.current.tokens.map((t) => [t.key, t]));
     svg?.querySelectorAll('[data-pillar-key]').forEach((el) => {
-      const tk = tokens.find((t) => t.key === el.getAttribute('data-pillar-key'));
+      const tk = byKey.get(el.getAttribute('data-pillar-key'));
       if (tk) { const p = at(tk, side); el.setAttribute('transform', translate(p.x, p.y, p.z)); }
     });
     recenter.current = true;
     setSlack(null);
     setView(side); setPlatesUp(side); setPlaying(false);
     onDoneRef.current?.();
-  }, [tokens, side]);
+  }, [side]);
 
   useLayoutEffect(() => {
     if (!canPlay) return undefined;
@@ -398,10 +403,14 @@ export default function SquadPillarStage({
     const from = playFrom;
     const ord = [...tokens].sort((a, b) => (at(a, side).x + at(a, side).y) - (at(b, side).x + at(b, side).y) || at(a, side).z - at(b, side).z);
     const n = ord.length || 1;
-    const els = new Map([...(svg?.querySelectorAll('[data-pillar-key]') ?? [])].map((el) => [el.getAttribute('data-pillar-key'), el]));
-    const items = ord.map((t, i) => ({ t, a: at(t, from), b: at(t, side), s1: i * (260 / n), s2: 640 + i * (380 / n) }));
+    const items = ord.map((t, i) => ({ key: t.key, a: at(t, from), s1: i * (260 / n), s2: 640 + i * (380 / n) }));
     const vb0 = pillarViewBox(from === 'squad' ? model.sTree : model.oTree);
-    const vb1 = pillarViewBox(side === 'squad' ? model.sTree : model.oTree);
+    const scroller = scrollRef.current;
+    const fitOf = (vb) => {
+      const bw = scroller?.clientWidth || 1000; const bh = scroller?.clientHeight || 640;
+      return Math.min(1.5, Math.max(PILLAR_ZOOM_MIN, Math.min((bw - 8) / vb.w, (bh - 8) / vb.h)));
+    };
+    let seen = null; let byKey = null; let vb1 = null;
     const lift = 26;
     r.timers.push(setTimeout(() => setPlatesUp(side), 620));
     let t0 = 0;
@@ -409,9 +418,32 @@ export default function SquadPillarStage({
       if (!t0) t0 = now;
       const el = now - t0;
       let busy = false;
+      const live = liveRef.current;
+      if (live !== seen) {
+        seen = live;
+        byKey = new Map(live.tokens.map((t) => [t.key, t]));
+        // 재생 도중 새로 생긴 기둥(새 배정)도 출발 자리에서 함께 날린다 — 빼 두면 끝나는 순간 제자리로 튄다
+        const have = new Set(items.map((it) => it.key));
+        live.tokens.forEach((t) => {
+          if (!have.has(t.key)) items.push({ key: t.key, a: at(t, from), s1: (n - 1) * (260 / n), s2: 640 + (n - 1) * (380 / n) });
+        });
+        vb1 = pillarViewBox(side === 'squad' ? live.sTree : live.oTree);
+      }
+      const els = new Map([...(svg?.querySelectorAll('[data-pillar-key]') ?? [])].map((g) => [g.getAttribute('data-pillar-key'), g]));
       const ve = easeInOut(clamp01(el / 1500));
-      svg?.setAttribute('viewBox', [vb0.x + (vb1.x - vb0.x) * ve, vb0.y + (vb1.y - vb0.y) * ve, vb0.w + (vb1.w - vb0.w) * ve, vb0.h + (vb1.h - vb0.h) * ve].map((v) => v.toFixed(0)).join(' '));
-      items.forEach(({ t, a, b, s1, s2 }) => {
+      // 기둥이 적어 먼저 다 내려앉아도 그림 범위 옮김(1.5초)을 마저 끝낸다 — 덜 끝난 채 멈추면 끝나는 순간 틀이 움직인다
+      if (ve < 1) busy = true;
+      const vw = vb0.w + (vb1.w - vb0.w) * ve; const vh = vb0.h + (vb1.h - vb0.h) * ve;
+      svg?.setAttribute('viewBox', [vb0.x + (vb1.x - vb0.x) * ve, vb0.y + (vb1.y - vb0.y) * ve, vw, vh].map((v) => v.toFixed(0)).join(' '));
+      // 틀(가로·세로)은 걸음마다 지금 범위의 «맞춤» 배율로 — 처음·끝은 출발·도착 맞춤과 같아 끝나는 순간 틀이 튀지 않고,
+      // 폭·배율을 따로 섞으면 곱이 무대보다 커져 재생 중 스크롤바가 생겼다(PW-2892 1440·1280 실측)
+      const zz0 = fitOf({ w: vw, h: vh });
+      svg?.setAttribute('width', String(Math.round(vw * zz0)));
+      svg?.setAttribute('height', String(Math.round(vh * zz0)));
+      items.forEach(({ key, a, s1, s2 }) => {
+        const tk = byKey.get(key);
+        if (!tk) return;
+        const b = at(tk, side);
         let x = a.x; let y = a.y; let zz;
         if (el < s2) { zz = a.z + lift * easeOut(clamp01((el - s1) / 340)); busy = true; } else {
           const e = easeInOut(clamp01((el - s2) / 760));
@@ -419,7 +451,7 @@ export default function SquadPillarStage({
           x = a.x + (b.x - a.x) * e; y = a.y + (b.y - a.y) * e;
           zz = (a.z + lift) * (1 - e) + b.z * e + Math.sin(Math.PI * e) * (22 + Math.hypot(b.x - a.x, b.y - a.y) * 0.08);
         }
-        els.get(t.key)?.setAttribute('transform', translate(x, y, zz));
+        els.get(key)?.setAttribute('transform', translate(x, y, zz));
       });
       if (busy) r.raf = requestAnimationFrame(step);
       else finish();
