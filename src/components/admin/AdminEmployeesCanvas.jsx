@@ -6822,7 +6822,7 @@ function EmployeesEditPanel({
             <MemberAssetsSection
               state={assetsState}
               labels={labels.panel.assets}
-              resigned={member.employmentStatus === 'resigned'}
+              resigned={member.employmentStatus === 'terminated'}
               onRetry={reloadAssets}
               onOpenAsset={memberAssets.onOpenAsset}
               onIssue={memberAssets.onIssue ? () => memberAssets.onIssue(member, reloadAssets) : undefined}
