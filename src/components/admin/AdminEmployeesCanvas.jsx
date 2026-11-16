@@ -1297,10 +1297,10 @@ function UnassignedTab({
                           selectedIds={selected}
                           retainedIds={retainedOrgIds(m, selected)}
                           labels={labels.orgPicker}
-                          onApply={({ unitIds, primaryUnitId }) => {
-                            if (unitIds && unitIds.length > 0) onChangeAffiliations(m.id, { unitIds, primaryUnitId });
-                            setPickerFor(null);
-                          }}
+                          // 저장을 기다린다 — 거절되면 팝업이 남는다(PW-2909). 닫기는 피커가 onClose 로.
+                          onApply={({ unitIds, primaryUnitId }) => (unitIds && unitIds.length > 0
+                            ? onChangeAffiliations(m.id, { unitIds, primaryUnitId })
+                            : undefined)}
                           onClose={() => setPickerFor(null)}
                         />
                       );
@@ -1311,7 +1311,7 @@ function UnassignedTab({
                       value=""
                       subtitle={m.name}
                       labels={labels.orgPicker}
-                      onApply={(unitId) => { if (unitId) onAssignOrgUnit(m.id, unitId); }}
+                      onApply={(unitId) => (unitId ? onAssignOrgUnit(m.id, unitId) : undefined)}
                       onClose={() => setPickerFor(null)}
                     />
                     )
@@ -4573,10 +4573,8 @@ function EmployeesListView({
           // L6 — 퇴사자는 조직장이 될 수 없다. 감추지 않고 이유를 남긴다.
           canBeLeader={deptPicker.employmentStatus !== 'terminated'}
           saveNotice={instantSaveNotice}
-          onApply={({ unitIds, primaryUnitId }) => {
-            onChangeAffiliations(deptPicker.id, { unitIds, primaryUnitId });
-            setDeptPickerFor(null);
-          }}
+          // 저장을 기다린다 — 거절되면(발령 충돌 등) 팝업이 고른 값 그대로 남는다(PW-2909). 닫기는 피커가 onClose 로.
+          onApply={({ unitIds, primaryUnitId }) => onChangeAffiliations(deptPicker.id, { unitIds, primaryUnitId })}
           onClose={() => setDeptPickerFor(null)}
           labels={labels.orgPicker}
         />

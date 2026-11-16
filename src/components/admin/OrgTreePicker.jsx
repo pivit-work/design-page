@@ -199,6 +199,8 @@ export default function OrgTreePicker({
    *   onSelectChange(unitId) — 단일 선택이 바뀔 때마다 · extra — 트리 아래 영역 · summary — 발 왼쪽 선택 요약 대신
    *   emptyAction — 트리가 비었을 때 글 바로 아래(예: 목록을 못 불러왔을 때 [다시 불러오기])
    *   footerStart — 발의 버튼 앞(왼쪽) · applyDisabled — [적용] 끄기 · keepOpenOnApply — [적용] 뒤 닫지 않는다(부르는 쪽이 닫는다)
+   *   onApply 가 Promise 를 돌려주면 끝날 때까지 [적용]을 끄고 기다린다 — `false` 로 끝나거나 거절되면 닫지 않는다
+   *   (저장이 거절됐는데 창이 닫혀 저장된 줄 아는 일 · PW-2909)
    *   hideUnassigned — «— 미배정 —» 줄을 두지 않는다(옮길 곳은 조직이다)
    */
   onSelectChange,
@@ -228,6 +230,7 @@ export default function OrgTreePicker({
 
   const [syncedValue, setSyncedValue] = useState(syncKey);
   const [sel, setSel] = useState(initial);
+  const [applying, setApplying] = useState(false);
   // 사람이 고른 조직을 부르는 쪽에 알린다(여러 명 판 — 트리 아래 안내가 고른 조직에 따라 바뀐다).
   const pickSingle = (id) => { setSel(id); onSelectChange?.(id); };
   // multi: 고른 조직 id 배열. **선택 순서를 보존**한다 — 주 소속이 빠졌을 때
@@ -537,19 +540,25 @@ export default function OrgTreePicker({
             <button
               type="button"
               className="tl-group-modal-btn tl-group-modal-btn-primary"
-              disabled={applyDisabled}
+              disabled={applyDisabled || applying}
               data-testid="org-tree-picker-apply"
-              onClick={() => {
+              onClick={async () => {
                 // multi 는 배열과 주 소속을 **한 번에** 넘긴다 — 따로 쓰면 주 소속이
                 // 배열 밖을 가리키는 중간 상태가 생긴다(§3.8.3-B 「적용」).
-                if (multi) {
-                  onApply?.({
+                const result = multi
+                  ? onApply?.({
                     unitIds: picked,
                     // 추가 전용은 주 소속을 고르지 않는다 — 서버가 사람마다 유지한다.
                     primaryUnitId: primarySelectable && picked.length ? primary : null,
-                  });
+                  })
+                  : onApply?.(sel);
+                if (result && typeof result.then === 'function') {
+                  setApplying(true);
+                  let ok;
+                  try { ok = (await result) !== false; } catch { ok = false; }
+                  setApplying(false);
+                  if (!ok) return;
                 }
-                else onApply?.(sel);
                 if (!keepOpenOnApply) onClose?.();
               }}
             >
