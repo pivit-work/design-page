@@ -13451,9 +13451,9 @@ button.evm-ai-source {
 }
 .evmon-la-chev {
   display: inline-flex;
-  color: var(--text-quaternary);
+  color: var(--text-tertiary);
 }
-.evmon-la .evc-la-cell:hover .evmon-la-chev { color: var(--text-tertiary); }
+.evmon-la .evc-la-cell:hover .evmon-la-chev { color: var(--text-secondary); }
 .evmon-la .evc-la-cell.is-open .evmon-la-chev { color: var(--text-brand-tertiary); }
 /* 앞 차수 대기·시작 전 — 가장 흔한 «기다림»이라 가장 옅게(디자이너 상태 딱지의 «없음·기다림» 회색). 이 표 안에서만. */
 .evmon-la .evc-status-badge.tone-neutral {
