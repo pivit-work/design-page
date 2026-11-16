@@ -418,18 +418,23 @@ export default function EvalLeaderAssignmentSection({
 
   /* PW-2066 · §5.13.10 — 일괄 조정 · 평가자 기준 보기. */
   const T = { ...LEADER_TOOL_LABELS, ...L };
-  /* pivit-work PW-2784 — «겸직 조직장» 열은 겸직한 대상자가 있을 때만. 사람마다 첫 겸직 칸을 그린다. */
+  /* pivit-work PW-2784 — «겸직 조직장» 열은 겸직한 대상자가 있을 때만. 겸직 쪽 조직장 한 사람마다 칸 하나 —
+     열을 늘리지 않고 한 칸 안에 조직마다 한 줄(둘째 답 4). */
   const concurrentOn = concurrentCells.length > 0;
-  const concurrentOf = (id) => concurrentCells.find((c) => c.evaluateeId === id) ?? null;
+  const concurrentsOf = (id) => concurrentCells.filter((c) => c.evaluateeId === id);
   const cols = rounds + 1 + (bulkOn ? 1 : 0) + (concurrentOn ? 1 : 0);
   const renderConcurrentCell = (row) => {
-    const c = concurrentOf(row.id);
-    if (!c) return <span className="evc-la-muted">—</span>;
-    const key = `${row.id}:c`;
+    const list = concurrentsOf(row.id);
+    if (list.length === 0) return <span className="evc-la-muted">—</span>;
+    return <span className="evc-la-person">{list.map((c) => renderConcurrentLine(row, c))}</span>;
+  };
+  const renderConcurrentLine = (row, c) => {
+    const key = `${row.id}:c:${c.concurrentUnitId}`;
     const ev = !c.skipped && c.evaluatorId ? personOf(c.evaluatorId) : null;
     return (
       <button
         type="button"
+        key={key}
         className={`evc-la-cell${openCell?.key === key ? ' is-open' : ''}`}
         data-leader-cell={key}
         aria-haspopup="true"
@@ -439,12 +444,15 @@ export default function EvalLeaderAssignmentSection({
           if (openCell?.key === key) closePick();
           else setOpenCell({ key, evaluateeId: row.id, round: 0, unitId: c.concurrentUnitId });
         }}
-        data-testid={`evc-la-concurrent-${row.id}`}
+        data-testid={`evc-la-concurrent-${row.id}-${c.concurrentUnitId}`}
         data-state={c.skipped ? 'skipped' : 'recommended'}
       >
         {c.skipped ? (
           <span className="evc-la-name-row">
             <span className="evc-la-muted">{L.leaderAsgConcurrentRemoved}</span>
+            <span className="evc-la-hint">
+              {fill(L.leaderAsgConcurrentUnit, { unit: c.concurrentUnitName ?? '' })}
+            </span>
           </span>
         ) : (
           <span className="evc-la-name-row">
@@ -457,7 +465,10 @@ export default function EvalLeaderAssignmentSection({
       </button>
     );
   };
-  const openConcurrent = openCell?.round === 0 ? concurrentOf(openCell.evaluateeId) : null;
+  const openConcurrent =
+    openCell?.round === 0
+      ? concurrentsOf(openCell.evaluateeId).find((c) => c.concurrentUnitId === openCell.unitId) ?? null
+      : null;
   const visibleIds = visibleRows.map((r) => r.id);
   const filtered = hasLeaderFilter(tools.filter) || !!query.trim();
   const rowName = useMemo(() => new Map(rows.map((r) => [r.id, r.name])), [rows]);

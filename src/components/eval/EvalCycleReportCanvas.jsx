@@ -75,6 +75,8 @@ const DEFAULT_LABELS = {
   leaderCommentLabel: '최종 코멘트',
   // PW-1594 — 하향 리뷰가 여러 차수일 때 묶음 머리. `{round}` 자리에 차수.
   leaderRoundTitle: '하향 리뷰 · {round}차',
+  // pivit-work PW-2784 — «겸직 조직장» 칸(차수 0)의 하향 리뷰 묶음.
+  leaderConcurrentTitle: '하향 리뷰 · 겸직 조직장',
   // PW-2580 — 실명 항목 답에는 작성자 이름이 붙으므로 «(익명)»을 떼었다(member §7.5 · spec §4.5.1).
   peerTitle: '동료 피드백 요약',
   // PW-2580 3회차 — 관계만·익명 동료 답 앞 작성자 표시(실명은 이름)
@@ -165,8 +167,10 @@ function groupLeaderRounds(answers) {
     byRound.get(r).push(a);
   }
   if (byRound.size < 2) return null;
+  // pivit-work PW-2784 — «겸직 조직장» 칸(0)은 차수가 아니라 차수 묶음들 뒤에 둔다.
+  const order = (r) => (r === 0 ? Number.MAX_SAFE_INTEGER : r);
   return [...byRound.entries()]
-    .sort(([x], [y]) => x - y)
+    .sort(([x], [y]) => order(x) - order(y))
     .map(([round, list]) => ({ round, answers: list }));
 }
 
@@ -666,7 +670,9 @@ export default function EvalCycleReportCanvas({
                 leaderRoundGroups.map(({ round, answers }) => (
                   <div className="evr-leader-round" key={round} data-testid={`evr-leader-round-${round}`}>
                     <h4 className="evr-leader-round-title">
-                      {String(L.leaderRoundTitle || '').replace('{round}', String(round))}
+                      {round === 0
+                        ? L.leaderConcurrentTitle
+                        : String(L.leaderRoundTitle || '').replace('{round}', String(round))}
                     </h4>
                     <AnswerList answers={answers} L={L} />
                   </div>

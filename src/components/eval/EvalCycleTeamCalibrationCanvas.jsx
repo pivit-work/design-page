@@ -32,6 +32,9 @@ const DEFAULT_LABELS = {
   // PW-2684 — 팀원 줄을 표로: 머리줄 «팀원 | 1차 제출 | → | 위원회 확정 | 조정»
   colMember: '팀원',
   colFirst: '1차 제출',
+  // [pivit-work PW-2784 물음 6] 내가 «겸직 조직장» 칸으로 평가한 팀원 — 내 등급 → 위원회 확정. 꼬리표는 «내 평가» 홈의
+  // «겸직» 꼬리표(EvalMyHomeCanvas · 무채색 evc-status-badge)와 같은 모양.
+  concurrentTag: '겸직',
   colCommittee: '위원회 확정',
   colAdjust: '조정',
   moreRows: '{n}건 더 보기',
@@ -262,7 +265,17 @@ export default function EvalCycleTeamCalibrationCanvas({
                         <AvatarPhoto photo={r.avatar} name={r.name} />
                       </span>
                       <div className="evtcal-who">
-                        <span className="evtcal-name">{r.name}</span>
+                        <span className="evtcal-name">
+                          {r.name}
+                          {r.concurrent && (
+                            <>
+                              {' '}
+                              <StatusBadge tone="neutral" className="evc-status-badge" data-testid="evtcal-concurrent-tag">
+                                {L.concurrentTag}
+                              </StatusBadge>
+                            </>
+                          )}
+                        </span>
                         <span className="evtcal-meta">
                           {[r.team, r.job].filter(Boolean).join(' · ')}
                         </span>

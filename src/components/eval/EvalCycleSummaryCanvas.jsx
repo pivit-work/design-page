@@ -413,6 +413,10 @@ const DEFAULT_LABELS = {
     submittedOn: '{date} 제출',
     confidentialTitle: '위원회 전용 — 구성원 비공개',
     promoStatusLabel: '승진 의견',
+    // [pivit-work PW-2784 · summary §8.3.C · spec-calibration §20.2] «겸직 조직장» 칸 묶음의 딱지(차수 딱지 자리)
+    concurrent: '겸직 {unit}',
+    concurrentNoUnit: '겸직',
+    concurrentPending: '{badge} — 미제출',
   },
   cwDetailLoading: '불러오는 중…',
   cwDetailFinal: '최종 확정',
@@ -1444,6 +1448,23 @@ function leaderRoundsOf(manager) {
 }
 
 /**
+ * [pivit-work PW-2784] 서버 `manager.concurrent`(«겸직 조직장» 칸마다 한 묶음)를 차수 묶음 모양으로 — 딱지만
+ * `{k}차` 대신 «겸직 B팀». 주 소속 쪽 묶음 아래에 나란히 그린다(summary §8.3.C · spec-calibration §20.2). 없으면 null.
+ */
+function concurrentRoundsOf(manager, L) {
+  const list = manager?.concurrent;
+  if (!list?.length) return null;
+  const R = L.leaderRoundDetail || {};
+  return list.map((c) => ({
+    ...c,
+    round: 0,
+    key: `concurrent-${c.unitId}`,
+    skipped: false,
+    badge: c.unitName ? fmt(R.concurrent, { unit: c.unitName }) : R.concurrentNoUnit,
+  }));
+}
+
+/**
  * 답변 글 — 「·」로 잇지 않고 한 줄에 하나씩(PW-1882). 글이 하나도 없으면 `empty` 한 줄.
  * [PW-2021] 한 줄 = 한 답 — 척도 점수(만점과 함께)·체크 답의 고른 이름도 싣는다.
  */
@@ -1577,7 +1598,9 @@ function LeaderRoundGap({ r, R, className = 'evs-cw-detail-body' }) {
       className={className}
       data-testid={r.skipped ? 'evs-leader-round-skipped' : 'evs-leader-round-pending'}
     >
-      {fmt(r.skipped ? R.skipped : R.pending, { k: r.round })}
+      {r.badge
+        ? fmt(R.concurrentPending, { badge: r.badge })
+        : fmt(r.skipped ? R.skipped : R.pending, { k: r.round })}
     </div>
   );
 }
@@ -1594,14 +1617,16 @@ function LeaderRoundGap({ r, R, className = 'evs-cw-detail-body' }) {
  */
 function LeaderRoundsDetail({ rounds, L, grades, showCompensation = false, questionNames = false }) {
   const R = L.leaderRoundDetail || {};
-  const sorted = [...rounds].sort((a, b) => a.round - b.round);
+  // [pivit-work PW-2784] «겸직 조직장» 묶음(round 0)은 차수 묶음 뒤에 — 들어온 순서를 지킨다.
+  const rank = (r) => (r.round >= 1 ? r.round : Number.MAX_SAFE_INTEGER);
+  const sorted = [...rounds].sort((a, b) => rank(a) - rank(b));
   return (
     <div className="evs-round-comments" data-testid="evs-leader-rounds">
       {sorted.map((r) => {
         const k = r.round;
-        if (r.skipped || !r.submittedAt) return <LeaderRoundGap key={k} r={r} R={R} />;
+        if (r.skipped || !r.submittedAt) return <LeaderRoundGap key={r.key ?? k} r={r} R={R} />;
         return (
-          <div key={k} className="evs-round-comment" data-testid="evs-leader-round" data-round={k}>
+          <div key={r.key ?? k} className="evs-round-comment" data-testid="evs-leader-round" data-round={k}>
             <div className="evs-round-comment-head" data-testid="evs-leader-round-head">
               <div className="evs-round-comment-author">
                 <Avatar name={r.evaluatorName} size={24} className="evs-round-comment-avatar" />
@@ -1610,7 +1635,7 @@ function LeaderRoundsDetail({ rounds, L, grades, showCompensation = false, quest
                   className={`okr-role-badge ${k === 1 ? 'is-blue' : 'is-gray'}`}
                   data-testid="evs-leader-round-badge"
                 >
-                  {fmt(R.round, { k })}
+                  {r.badge ?? fmt(R.round, { k })}
                 </StatusBadge>
               </div>
               <div className="evs-round-comment-meta">
@@ -4855,8 +4880,14 @@ export default function EvalCycleSummaryCanvas({
                   <section className="evc-card evs-re-sec">
                     <h3 className="evc-card-name evs-re-sec-manager">{L.reManagerTitle}</h3>
                     <AiSummaryText L={L} text={memberDetail.integratedSummary?.managerSummary} status={memberDetail.integratedSummary?.status} testId="evs-re-ai-manager" />
+                    {/* [pivit-work PW-2784 · summary §8.3.C] «겸직 조직장» 칸 묶음은 아래 주 소속 쪽 묶음 다음에 나란히. */}
                     {leaderRoundsOf(memberDetail.manager) ? (
-                      <LeaderRoundsDetail rounds={leaderRoundsOf(memberDetail.manager)} L={L} grades={roundGrades} showCompensation />
+                      <LeaderRoundsDetail
+                        rounds={[...leaderRoundsOf(memberDetail.manager), ...(concurrentRoundsOf(memberDetail.manager, L) ?? [])]}
+                        L={L}
+                        grades={roundGrades}
+                        showCompensation
+                      />
                     ) : memberDetail.manager?.submitted ? (
                       <>
                         {memberDetail.manager.gradeLabel && (
@@ -4882,6 +4913,9 @@ export default function EvalCycleSummaryCanvas({
                       </>
                     ) : (
                       <p className="evc-empty-sub">{L.reManagerEmpty}</p>
+                    )}
+                    {!leaderRoundsOf(memberDetail.manager) && concurrentRoundsOf(memberDetail.manager, L) && (
+                      <LeaderRoundsDetail rounds={concurrentRoundsOf(memberDetail.manager, L)} L={L} grades={roundGrades} />
                     )}
                   </section>
 
@@ -6514,8 +6548,14 @@ export default function EvalCycleSummaryCanvas({
                                             <DetailSectionHead open={secOpen('manager')} onToggle={() => toggleSec('manager')} testId="evs-cw-sec-manager">
                                               {L.cwDetailManager}
                                             </DetailSectionHead>
+                                            {/* [pivit-work PW-2784 · §20.2] «겸직 조직장» 칸 묶음은 주 소속 쪽 묶음 뒤에 나란히. */}
                                             {secOpen('manager') && leaderRoundsOf(detail.manager) ? (
-                                              <LeaderRoundsDetail rounds={leaderRoundsOf(detail.manager)} L={L} grades={roundGrades} questionNames />
+                                              <LeaderRoundsDetail
+                                                rounds={[...leaderRoundsOf(detail.manager), ...(concurrentRoundsOf(detail.manager, L) ?? [])]}
+                                                L={L}
+                                                grades={roundGrades}
+                                                questionNames
+                                              />
                                             ) : secOpen('manager') && (
                                               <>
                                                 {/* 위원회에 공개된 답이 없어도 위원회 전용 코멘트가 있으면 이 상자만 보인다(§4.5-A-2 4번). */}
@@ -6530,6 +6570,9 @@ export default function EvalCycleSummaryCanvas({
                                                     <div className="evs-cw-detail-body">{row.confidentialComment}</div>
                                                   </div>
                                                 ) : null}
+                                                {concurrentRoundsOf(detail.manager, L) && (
+                                                  <LeaderRoundsDetail rounds={concurrentRoundsOf(detail.manager, L)} L={L} grades={roundGrades} questionNames />
+                                                )}
                                               </>
                                             )}
                                           </div>

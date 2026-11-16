@@ -111,7 +111,8 @@ function SheetBadges({ sheet, L }) {
   return (
     <span className="evu-sheet-badges">
       <StatusBadge tone="neutral" className="evc-status-badge" data-testid={`evu-sheet-kind-${sheet.leaderId}`}>
-        {L.sheetKind[sheet.kind] ?? ''}
+        {/* [PW-2784] 앱이 꼬리표를 조립해 주면(«겸직 · B팀») 그것을, 아니면 종류 이름만. */}
+        {sheet.tag ?? L.sheetKind[sheet.kind] ?? ''}
       </StatusBadge>
       <StatusBadge tone={tone} className="evc-status-badge" data-testid={`evu-sheet-status-${sheet.leaderId}`}>
         {L.sheetStatus[state]}
