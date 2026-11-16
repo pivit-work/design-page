@@ -7,6 +7,7 @@ import Tooltip from '../shared/Tooltip.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
 import { BillingCard as Card, BillingBadge as Badge } from './kit/BillingSurface.jsx';
+import { failureText, isNotifiedFailure } from '../shared/notifiedFailure.js';
 
 // ─────────────────────────────────────────────────────────────
 // BillingPlansCanvas — 결제·구독 "플랜 선택" Pure 컴포넌트.
@@ -661,7 +662,8 @@ function AddonBuyModal({ preview, previewFailed, labels, onClose, onSubmit, onRe
     try {
       await onSubmit(preview.today.total);
     } catch (err) {
-      setFailure(err?.message || '');
+      // 앱이 이미 알린 거절(이용 정지 토스트)이면 창 안 «결제하지 못했습니다»를 또 쓰지 않는다 (pivit-work PW-2549).
+      if (!isNotifiedFailure(err)) setFailure(failureText(err, ''));
     } finally {
       setBusy(false);
     }
