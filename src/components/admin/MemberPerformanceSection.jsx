@@ -1,3 +1,4 @@
+import DetailNoteLines from './DetailNoteLines.jsx';
 import SectionLabel from './SectionLabel.jsx';
 import Button from '../shared/Button.jsx';
 import Stack from '../shared/Stack.jsx';
@@ -11,11 +12,11 @@ const fill = (tpl, map) =>
   Object.entries(map).reduce((acc, [k, v]) => acc.split(`{${k}}`).join(v ?? ''), String(tpl ?? ''));
 
 /** 읽기 칸 한 개 — 같은 페이지 읽기 칸(`DetailReadField`)과 같은 모양: 라벨 위 · 값 아래. */
-function ReadField({ label, value, testId }) {
+function ReadField({ label, value, testId, empty = value === '—', full = false }) {
   return (
-    <div className="admin-emp-field" data-testid={testId}>
+    <div className={`admin-emp-field${full ? ' is-full' : ''}`} data-testid={testId}>
       <span className="admin-emp-field-label">{label}</span>
-      <span className="msc-pair-value">{value}</span>
+      <span className={`msc-pair-value${empty ? ' is-empty' : ''}`}>{value}</span>
     </div>
   );
 }
@@ -105,11 +106,12 @@ export default function MemberPerformanceSection({ state, labels, archivedNote =
     const promo = view.promotionCount ? fill(L.promotionCount, { count: view.promotionCount }) : '—';
     body = (
       <Stack gap="lg">
-        <Stack gap="sm">
-          <span className="admin-emp-field-label">{L.evalHistory}</span>
-          {history}
-        </Stack>
         <div className="admin-emp-detail-read-grid">
+          {/* 평가 이력도 같은 한 줄 칸(PW-2895 시안) — 줄이 여럿이면 값 칸 안에 쌓인다 */}
+          <div className="admin-emp-field is-full">
+            <span className="admin-emp-field-label">{L.evalHistory}</span>
+            <span className="msc-pair-value">{history}</span>
+          </div>
           <ReadField label={L.promotion} value={promo} testId="employees-detail-performance-promotion" />
           {okr && (
             <ReadField
@@ -117,11 +119,12 @@ export default function MemberPerformanceSection({ state, labels, archivedNote =
               value={okr.objectives > 0
                 ? fill(L.okrValue, { progress: okr.progress ?? 0, count: okr.objectives })
                 : L.okrEmpty}
+              empty={!(okr.objectives > 0)}
               testId="employees-detail-performance-okr"
             />
           )}
         </div>
-        <span className="admin-emp-manager-note" data-testid="employees-detail-performance-note">{L.note}</span>
+        <DetailNoteLines text={L.note} testId="employees-detail-performance-note" />
       </Stack>
     );
   }
@@ -129,7 +132,7 @@ export default function MemberPerformanceSection({ state, labels, archivedNote =
     <div data-testid="employees-detail-performance">
       <div className="admin-emp-section-head">
         <SectionLabel>{L.section}</SectionLabel>
-        <StatusBadge tone="neutral" data-testid="employees-detail-performance-tag">{L.sourceTag}</StatusBadge>
+        <StatusBadge tone="neutral" className="admin-emp-role-pill" data-testid="employees-detail-performance-tag">{L.sourceTag}</StatusBadge>
       </div>
       {body}
     </div>

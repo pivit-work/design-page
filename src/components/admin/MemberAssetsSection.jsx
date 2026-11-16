@@ -63,16 +63,16 @@ export function SeatLockedBox({ member, seat, labels, typeOptions = [], onOpenSe
  * @param {{ status: 'idle'|'loading'|'ready'|'error', view: { assets?: Array<{ id: string, assetNo: string,
  *   kindName: string|null, name: string, issuedOn: string|null }> } | null }} props.state
  */
-export default function MemberAssetsSection({ state, labels, resigned = false, onRetry, onOpenAsset, onIssue }) {
+/* `buttonInHead` — 구성원 상세 페이지 읽기에서는 [자산 지급]을 묶음 제목 줄 오른쪽에 둔다(PW-2895 시안). 창에서는 종전대로 목록 아래 */
+export default function MemberAssetsSection({ state, labels, resigned = false, onRetry, onOpenAsset, onIssue, buttonInHead = false }) {
   const L = labels || {};
   const assets = state?.view?.assets || [];
-  const issueButton = onIssue && !resigned && (
-    <div>
-      <Button variant="secondary" size="sm" onClick={onIssue} data-testid="employees-panel-assets-issue">
-        {L.issue}
-      </Button>
-    </div>
+  const issueNode = onIssue && !resigned && (
+    <Button variant="secondary" size="sm" onClick={onIssue} data-testid="employees-panel-assets-issue">
+      {L.issue}
+    </Button>
   );
+  const issueButton = !buttonInHead && issueNode && <div>{issueNode}</div>;
   let body;
   if (state?.status === 'error') {
     body = (
@@ -88,7 +88,9 @@ export default function MemberAssetsSection({ state, labels, resigned = false, o
   } else if (state?.status === 'loading' && !state?.view) {
     body = <div className="admin-emp-status-date-note" data-testid="employees-panel-assets-loading">{L.loading}</div>;
   } else if (assets.length === 0) {
-    body = (
+    body = buttonInHead ? (
+      <div className="admin-emp-detail-empty" data-testid="employees-panel-assets-empty">{L.empty}</div>
+    ) : (
       <Stack gap="sm">
         <span className="admin-emp-manager-note" data-testid="employees-panel-assets-empty">{L.empty}</span>
         {issueButton}
@@ -127,7 +129,12 @@ export default function MemberAssetsSection({ state, labels, resigned = false, o
   }
   return (
     <div data-testid="employees-panel-assets-section">
-      <SectionLabel>{L.section}</SectionLabel>
+      {buttonInHead ? (
+        <div className="admin-emp-section-head">
+          <SectionLabel>{L.section}</SectionLabel>
+          {issueNode && <div className="admin-emp-section-head-actions">{issueNode}</div>}
+        </div>
+      ) : <SectionLabel>{L.section}</SectionLabel>}
       {body}
     </div>
   );

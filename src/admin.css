@@ -1602,18 +1602,234 @@
 /* 위 묶음과의 간격 · 제목 아래 간격을 페이지 묶음(.admin-section-label 위 24 · 아래 8)과 같게 */
 .admin-emp-detail-body > .adm-hr-body:not(:first-child) { margin-top: var(--spacing-3xl); }
 .admin-emp-detail-body .adm-hr-section { gap: var(--spacing-md); }
-.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-section:has(> .adm-hr-pair) > .adm-hr-section-title { margin-bottom: calc(var(--spacing-md) - var(--spacing-xl)); }
 .admin-emp-detail-body .adm-hr-section-title { font-size: 14px; letter-spacing: -0.01em; color: var(--text-primary); }
-.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-section:has(> .adm-hr-pair) {
+
+/* ── 구성원 상세 읽기 — 디자이너 «구성원 프로필 창» 모양으로 (pivit-work PW-2895 · 시안 employee-detail-designer-2026-11-16) ──
+   줄: 디자이너 프로필 창 인사정보 탭 줄(profile-card.css .profile-row, stesslee 0a742bbf) — 이름표 12/700 왼쪽 · 값 16 오른쪽 · 아래 가는 선.
+   이름표 칸만 80 → 120(이 화면 이름표 «수행 중인 주요 업무» · «현 고용형태 시작일»이 길다). 이름표 줄 높이를 값 첫 줄(24)과 같게 두어
+   위 여백을 값과 같은 12 로 맞춘다(프로필 창은 18 높이 + 위 15 — 보이는 자리는 같다).
+   본문: 흰 카드 하나 · 묶음 사이 가는 선(리소스 «팀 현황» 사람 카드 .rsx-member 구역 나눔). 수정 중(.is-editing)은 종전 그대로다. */
+.admin-emp-detail-top { display: flex; flex-direction: column; gap: var(--spacing-lg); }
+.admin-emp-detail-back.dp-btn {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 20px;
+  color: var(--text-subtle);
+}
+.admin-emp-detail-back.dp-btn:hover:not(:disabled) { color: var(--text-primary); }
+.admin-emp-detail-head { align-items: center; }
+.admin-emp-detail-pager { display: inline-flex; align-items: center; gap: var(--spacing-xs); }
+.admin-emp-detail-pos {
+  min-width: 44px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-subtle);
+  font-variant-numeric: tabular-nums;
+}
+.admin-emp-detail-nav { gap: var(--spacing-md); }
+
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body {
+  gap: 0;
+  padding: var(--spacing-xs) calc(var(--spacing-3xl) + var(--spacing-xs)) var(--spacing-lg);
+  border: 1px solid var(--colors-border-borderSecondary);
+  border-radius: var(--radius-lg);
+  background: var(--bg-quaternary);
+}
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-body,
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body > .adm-hr-body:not(:first-child),
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body > div:not(:first-child):not(.admin-emp-section-head):has(> .admin-section-label:first-child) { gap: 0; margin-top: 0; }
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-section { gap: 0; }
+
+/* 묶음 제목 — 16 진하게 · 위에 가는 선. 카드 맨 위 제목만 선이 없다 */
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .admin-section-label,
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-section-title,
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .admin-emp-section-head {
+  margin: var(--spacing-xl) 0 var(--spacing-xs);
+  padding-top: var(--spacing-2xl);
+  border-top: 1px solid var(--colors-border-borderSecondary);
+}
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .admin-section-label,
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-section-title {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 24px;
+  letter-spacing: 0;
+  color: var(--fg-primary);
+}
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .admin-emp-section-head { justify-content: flex-start; gap: var(--spacing-md); }
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .admin-emp-section-head > .admin-section-label { margin: 0; padding: 0; border: 0; }
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .admin-emp-section-head-actions { margin-left: auto; }
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body > .admin-section-label:first-child,
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body > div:first-child > .admin-section-label:first-child,
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body > div:first-child > .admin-emp-section-head:first-child,
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body > .admin-emp-section-head:first-child,
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body > .adm-hr-body:first-child > div:first-child > .admin-section-label:first-child { border-top: 0; margin-top: 0; }
+/* 제목 없이 앞 묶음에 이어 붙는 칸(근무·고용 «고용 정보» 뒤 HR 칸) — 사이에 선 · 간격을 두지 않는다 */
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-section:not(:has(> .adm-hr-section-title)) { margin-top: 0; }
+
+/* 칸 2열 — 줄마다 가는 선 · 열 사이 48. 맨 아래 줄 선은 묶음 선과 겹치지 않게 잘라 낸다(clip-path) */
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .admin-emp-detail-read-grid,
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-section:has(> .adm-hr-pair, > div > .adm-hr-pair) {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: var(--spacing-xl);
+  column-gap: calc(var(--spacing-3xl) * 2);
+  row-gap: 0;
+  clip-path: inset(0 0 1px 0);
 }
-.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-section:has(> .adm-hr-pair) > :not(.adm-hr-pair) { grid-column: 1 / -1; }
-.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-pair { flex-direction: column; gap: var(--spacing-xs); padding: 0; font-size: 13px; font-weight: 400; }
-.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-pair-k { flex: none; font-size: 13px; font-weight: 600; line-height: 18px; color: var(--text-secondary); }
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-section:has(> .adm-hr-pair, > div > .adm-hr-pair) > :not(.adm-hr-pair) { grid-column: 1 / -1; }
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-section:has(> .adm-hr-pair, > div > .adm-hr-pair) > div:not([class]) { display: contents; }
+/* 제목 없이 이어 붙는 HR 칸(«고용 정보» 뒤)은 위에 줄 선 하나 — 앞 칸 묶음의 잘린 맨 아래 선 자리를 메워 한 표처럼 이어진다 */
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-section:not(:has(> .adm-hr-section-title)) { border-top: 1px solid var(--colors-border-borderSecondary); }
+/* 조직장인 조직(«조직장: …» + [조직단위 설정에서 변경]) — 회색 상자 대신 같은 줄 모양 */
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .admin-emp-leader-of {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  flex-direction: row;
+  justify-content: flex-start;
+  margin-top: 0;
+  gap: var(--spacing-md) var(--spacing-xl);
+  padding: var(--spacing-lg) 0;
+  border-radius: 0;
+  background: none;
+  border-top: 1px solid var(--colors-border-borderSecondary);
+}
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .admin-emp-leader-of-row { font-size: 16px; line-height: 24px; color: var(--text-secondary); }
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .admin-emp-leader-of-row > .admin-emp-manager-note { font-size: 12px; font-weight: 700; color: var(--text-primary); }
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .admin-emp-leader-of > :last-child:not(.admin-emp-leader-of-row) { margin-left: auto; }
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .admin-emp-field-group { display: flex; flex-direction: column; gap: 0; clip-path: inset(0 0 1px 0); }
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .is-full { grid-column: 1 / -1; }
+
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .admin-emp-field,
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-pair {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: var(--spacing-xl);
+  min-width: 0;
+  padding: 0;
+  border-bottom: 1px solid var(--colors-border-borderSecondary);
+}
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .admin-emp-field > .admin-emp-field-label,
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-pair-k {
+  flex: 0 0 120px;
+  width: 120px;
+  padding: var(--spacing-lg) 0;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 24px;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .admin-emp-field > .admin-emp-field-label + *,
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-pair-v {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-lg) 0;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+/* 빈 값 «—» · «미입력»은 옅게 — 채워진 값만 눈에 든다 */
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .admin-emp-field > .admin-emp-field-label + .is-empty,
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-pair-v.is-empty,
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .admin-emp-field .is-empty,
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .admin-emp-field .admin-emp-manager-note,
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-pair-v .admin-emp-manager-note { font-size: 16px; line-height: 24px; color: var(--text-tertiary); }
+/* 값 칸 안의 종전 회색 상자(사진 · 자기소개 · 평가 이력 · 로그인 잠김)는 바탕 없이 글만 */
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .admin-emp-field .admin-emp-manager-readonly { min-height: 0; padding: 0; background: none; }
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .admin-emp-field .msc-pair-value .msc-pair-value { font-size: 16px; line-height: 24px; color: var(--text-secondary); }
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .admin-emp-field .admin-emp-manager-name { font-size: 16px; font-weight: 400; color: var(--text-secondary); }
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .admin-emp-detail-value-row { flex: 1 1 auto; display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-lg); min-width: 0; }
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .admin-emp-detail-person { display: inline-flex; align-items: center; gap: var(--spacing-md); }
+/* 소속 경로 — 위 조직은 옅게, 마지막 조직만 진하게 */
+.admin-emp-detail-crumb { color: var(--text-tertiary); }
+.admin-emp-detail-crumb b { font-weight: 600; color: var(--fg-primary); }
+/* «스쿼드» 제목 옆 [조직도 스쿼드 뷰 ›] — 초록 글자 링크(designer-look .link · 프로필 창 개수 글자와 같은 브랜드 글자) */
+.admin-emp-detail-link.dp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-brand-tertiary);
+}
+.admin-emp-detail-link.dp-btn:hover:not(:disabled) { color: var(--text-brand-secondary); }
+.admin-emp-detail-hint { margin-left: auto; font-size: 12px; font-weight: 500; color: var(--text-subtle); }
+/* 묶음 아래 안내 — 문장마다 한 줄 */
+.admin-emp-detail-notes { display: flex; flex-direction: column; gap: var(--spacing-xxs); margin-top: var(--spacing-md); font-size: 12px; line-height: 18px; color: var(--text-subtle); }
+.admin-emp-detail-notes > span { display: block; }
+/* 빈 묶음 안내(«지급된 자산이 없습니다») — 매니저 화면 표 안 빈 안내(manager.css .manager-modal-empty) 모양 */
+.admin-emp-detail-empty { padding: calc(var(--spacing-3xl) + var(--spacing-xs)) 0; text-align: center; font-size: 14px; font-weight: 500; color: var(--text-tertiary); }
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .dp-stack:has(> .admin-emp-detail-read-grid) { gap: 0; }
+
+/* HR 기록 목록(학력 · 경력 · 자격증 · 수료한 교육 과정 · 부양가족 · 증빙서류)도 같은 한 줄 칸 —
+   이름표 «학력 2»(개수는 프로필 창 .profile-row-count 브랜드 글자 · 0 은 옅게) · 오른쪽에 항목(이름 진하게 + 아래 작은 설명) 또는 빈 안내 */
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-section.is-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: var(--spacing-xl);
+  border-top: 1px solid var(--colors-border-borderSecondary);
+}
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-section.is-row > .adm-hr-section-title {
+  flex: 0 0 120px;
+  width: 120px;
+  display: block;
+  margin: 0;
+  padding: var(--spacing-lg) 0;
+  border: 0;
+  font-size: 12px;
+  line-height: 24px;
+  color: var(--text-primary);
+}
+.adm-hr-row-count { margin-left: var(--spacing-sm); font-weight: 600; color: var(--text-brand-tertiary); }
+.adm-hr-row-count.is-zero { color: var(--text-tertiary); }
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-section.is-row > :not(.adm-hr-section-title) { flex: 1 1 0; min-width: 0; }
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-section .adm-hr-empty { padding: var(--spacing-lg) 0; font-size: 16px; line-height: 24px; color: var(--text-tertiary); }
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-list { gap: 0; }
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-card { padding: var(--spacing-lg) 0; border: 0; border-radius: 0; background: none; }
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-card + .adm-hr-card { border-top: 1px dashed var(--colors-border-borderSecondary); }
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-card-sep { display: none; }
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-card-title { display: block; font-size: 16px; font-weight: 600; line-height: 24px; color: var(--fg-primary); }
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-card-sub { display: block; margin-top: var(--spacing-xxs); font-size: 13px; font-weight: 400; line-height: 20px; color: var(--text-subtle); }
+
+/* 변경 이력 — 명단 표 한 줄씩(roster-table.css 명단 표 값) · 거르기는 작은 드롭다운 + 오른쪽 «N건» */
+.admin-emp-hist-bar { display: flex; align-items: center; gap: var(--spacing-lg); margin: var(--spacing-xl) 0 var(--spacing-lg); }
+.admin-emp-hist-bar .admin-emp-hist-filter { margin: 0; }
+.admin-emp-hist-bar .admin-emp-hist-filter .admin-emp-input { flex: none; width: auto; min-width: 160px; }
+.admin-emp-hist-count { margin-left: auto; font-size: 13px; color: var(--text-subtle); font-variant-numeric: tabular-nums; }
+.admin-emp-hist-table { margin-bottom: var(--spacing-xl); }
+.admin-emp-hist-table .admin-emp-hist-when { white-space: nowrap; color: var(--text-subtle); }
+.admin-emp-hist-table .admin-emp-hist-field { font-weight: 600; color: var(--fg-primary); }
+.admin-emp-hist-table .admin-emp-hist-head { display: flex; align-items: center; gap: var(--spacing-sm); flex-wrap: wrap; }
+.admin-emp-hist-table .admin-emp-hist-values { margin: 0; }
+.admin-emp-hist-table .admin-emp-hist-before { color: var(--text-tertiary); }
+.admin-emp-hist-table .admin-emp-hist-after { color: var(--fg-primary); }
+.admin-emp-hist-table .admin-emp-hist-who { margin: 0; white-space: nowrap; font-size: 13px; color: var(--text-primary); }
+.admin-emp-hist-table .admin-emp-hist-reason { margin-top: var(--spacing-xxs); font-size: 12px; color: var(--text-subtle); }
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .admin-emp-hist-empty { padding: calc(var(--spacing-5xl) + var(--spacing-2xl)) 0; text-align: center; border: 0; background: none; font-size: 14px; color: var(--text-subtle); }
+.admin-emp-detail:not(.is-editing) .admin-emp-detail-body .admin-emp-hist-empty > div:first-child { font-size: 15px; font-weight: 600; color: var(--fg-primary); }
 @media (max-width: 720px) {
-  .admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-section:has(> .adm-hr-pair) { grid-template-columns: minmax(0, 1fr); }
+  .admin-emp-detail:not(.is-editing) .admin-emp-detail-body .admin-emp-detail-read-grid,
+  .admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-section:has(> .adm-hr-pair, > div > .adm-hr-pair) { grid-template-columns: minmax(0, 1fr); }
 }
 /* 상세 페이지가 열리면 목록 묶음을 숨긴다 — 숨기기만 해서 필터 · 정렬 · 쪽이 남는다. 열려 있지 않으면 묶음 상자가 배치에 끼지 않는다 */
 .admin-emp-canvas-list { display: contents; }

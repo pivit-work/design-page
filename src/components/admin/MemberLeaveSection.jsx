@@ -1,3 +1,4 @@
+import DetailNoteLines from './DetailNoteLines.jsx';
 import { useState } from 'react';
 import SectionLabel from './SectionLabel.jsx';
 import Button from '../shared/Button.jsx';
@@ -12,11 +13,11 @@ const fill = (tpl, map) =>
   Object.entries(map).reduce((acc, [k, v]) => acc.split(`{${k}}`).join(v ?? ''), String(tpl ?? ''));
 
 /** 읽기 칸 한 개 — 같은 페이지 읽기 칸(«성과» 묶음 `ReadField`)과 같은 모양: 라벨 위 · 값 아래. */
-function ReadField({ label, value, testId }) {
+function ReadField({ label, value, testId, empty = value === '—', full = false }) {
   return (
-    <div className="admin-emp-field" data-testid={testId}>
+    <div className={`admin-emp-field${full ? ' is-full' : ''}`} data-testid={testId}>
       <span className="admin-emp-field-label">{label}</span>
-      <span className="msc-pair-value">{value}</span>
+      <span className={`msc-pair-value${empty ? ' is-empty' : ''}`}>{value}</span>
     </div>
   );
 }
@@ -96,11 +97,11 @@ export default function MemberLeaveSection({ state, labels, onRetry, onOpenOverv
   const view = state?.status === 'ready' ? state.view : null;
   const failed = state?.status === 'error';
   const dash = '—';
+  const requests = view?.requests || [];
   let body;
   if (!view && !failed) {
     body = <SkeletonList count={2} height={44} aria-label={L.loading} data-testid="employees-detail-leave-loading" />;
   } else {
-    const requests = view?.requests || [];
     body = (
       <Stack gap="lg">
         <div className="admin-emp-detail-read-grid">
@@ -108,7 +109,7 @@ export default function MemberLeaveSection({ state, labels, onRetry, onOpenOverv
           <ReadField label={L.remaining} value={view ? view.remaining : dash} testId="employees-detail-leave-remaining" />
           <ReadField label={L.available} value={view ? view.available : dash} testId="employees-detail-leave-available" />
         </div>
-        {failed ? (
+        {failed && (
           <Stack gap="sm" testId="employees-detail-leave-error">
             <span className="admin-emp-status-date-note is-error" role="alert">{L.loadError}</span>
             {onRetry && (
@@ -117,15 +118,8 @@ export default function MemberLeaveSection({ state, labels, onRetry, onOpenOverv
               </div>
             )}
           </Stack>
-        ) : (
-          <div>
-            <Button variant="secondary" size="sm" onClick={() => setHistoryOpen(true)} data-testid="employees-detail-leave-history">
-              {fill(L.history, { count: requests.length })}
-              <IconChevronRight size={14} />
-            </Button>
-          </div>
         )}
-        <span className="admin-emp-manager-note" data-testid="employees-detail-leave-note">{L.note}</span>
+        <DetailNoteLines text={L.note} testId="employees-detail-leave-note" />
       </Stack>
     );
   }
@@ -133,7 +127,16 @@ export default function MemberLeaveSection({ state, labels, onRetry, onOpenOverv
     <div data-testid="employees-detail-leave">
       <div className="admin-emp-section-head">
         <SectionLabel>{L.section}</SectionLabel>
-        <StatusBadge tone="neutral" data-testid="employees-detail-leave-tag">{L.readOnlyTag}</StatusBadge>
+        <StatusBadge tone="neutral" className="admin-emp-role-pill" data-testid="employees-detail-leave-tag">{L.readOnlyTag}</StatusBadge>
+        {/* [휴가 이력 (N) ›]은 묶음 제목 줄 오른쪽(PW-2895 시안) — 불러온 뒤에만 */}
+        {view && !failed && (
+          <div className="admin-emp-section-head-actions">
+            <Button variant="secondary" size="sm" onClick={() => setHistoryOpen(true)} data-testid="employees-detail-leave-history">
+              {fill(L.history, { count: requests.length })}
+              <IconChevronRight size={14} />
+            </Button>
+          </div>
+        )}
       </div>
       {body}
       {historyOpen && view && (

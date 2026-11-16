@@ -11,7 +11,7 @@
  * 그래서 시트를 걷어내기 전에 여기로 **옮겨** 두고, 목록 뷰가 그대로 쓴다.
  * 코드는 옮긴 것이고 동작은 바뀌지 않았다 — 시트에서 열든 패널에서 열든 같은 창이다.
  */
-import { useState, useEffect, useLayoutEffect, useMemo, useId, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, useLayoutEffect, useMemo, useId, useRef } from 'react';
 import Checkbox from '../shared/Checkbox.jsx';
 import DateInput from '../shared/DateInput.jsx';
 import { todayIsoInZone } from '../shared/calendarDate.js';
@@ -277,15 +277,21 @@ const optionsOf = (map) => Object.entries(map || {}).map(([value, label]) => ({ 
 const codeLabel = (map, code) => (code && map && map[code]) || code;
 /* [PW-2042] 섹션 이름은 1on1·매니저 섹션 제목 18px 굵게, 개수는 초록 딱지(0이면 회색 알약).
    클래스는 admin.css 「PW-2042」. `count` 를 안 넘기면 딱지 없이 이름만. */
+/* 구성원 상세 페이지 읽기(HrProfileInline · 고칠 수 없을 때)는 목록 묶음을 «이름표 · 값» 한 줄 칸으로 그린다 —
+   개수는 딱지가 아니라 이름표 옆 글자(디자이너 프로필 창 .profile-row-count · PW-2895). 창과 수정 중에는 종전 딱지. */
+const HrRowLook = createContext(false);
 function HrSection({ title, count, children }) {
+  const rowLook = useContext(HrRowLook);
   return (
-    <section className="adm-hr-section">
+    <section className={`adm-hr-section${rowLook && count != null ? ' is-row' : ''}`}>
       {(title || count != null) && (
         <h3 className="adm-hr-section-title">
           {title}
-          {count != null && (
+          {count != null && (rowLook ? (
+            <span className={`adm-hr-row-count${count > 0 ? '' : ' is-zero'}`} data-testid="hr-section-count">{count}</span>
+          ) : (
             <StatusBadge className={count > 0 ? 'adm-count-chip' : 'adm-meta-pill'} data-testid="hr-section-count">{count}</StatusBadge>
-          )}
+          ))}
         </h3>
       )}
       {children}
@@ -293,11 +299,27 @@ function HrSection({ title, count, children }) {
   );
 }
 function HrPair({ k, v }) {
+  const empty = v == null || v === '' || v === '—';
   return (
     <div className="adm-hr-pair">
       <span className="adm-hr-pair-k">{k}</span>
-      <span className="adm-hr-pair-v">{v == null || v === '' ? '—' : v}</span>
+      <span className={`adm-hr-pair-v${empty ? ' is-empty' : ''}`}>{empty ? '—' : v}</span>
     </div>
+  );
+}
+/**
+ * 기록 한 줄의 글 — 첫 토막(학교 · 회사 · 과정 이름)과 나머지(« · »로 이은 설명)를 나눠 둔다.
+ * 창에서는 그대로 한 줄로 이어 보이고(사이 « · » 도 글자로 남는다), 구성원 상세 페이지 읽기에서는
+ * 이름 진하게 + 아래 작은 설명 두 줄로 보인다(PW-2895 시안 · admin.css «상세 페이지 기록 목록»).
+ */
+function HrCardText({ text }) {
+  const [head, ...rest] = String(text ?? '').split(' · ');
+  return (
+    <span className="adm-hr-card-text">
+      <span className="adm-hr-card-title">{head}</span>
+      {rest.length > 0 && <span className="adm-hr-card-sep"> · </span>}
+      {rest.length > 0 && <span className="adm-hr-card-sub">{rest.join(' · ')}</span>}
+    </span>
   );
 }
 /**
@@ -1739,11 +1761,7 @@ export function HrProfileInline({
   const docs = (org.documents ?? []);
   const renderRecords = () => (
     <>
-      {!editable && (
-        <p className="adm-hr-empty" data-testid="hr-inline-records-hint">
-          {L.recordsEditHint || '추가 · 삭제는 [수정]에서 할 수 있어요'}
-        </p>
-      )}
+      {/* «추가 · 삭제는 [수정]에서 할 수 있어요»는 페이지가 «기록» 제목 줄 오른쪽에 그린다(PW-2895) */}
       {archived ? (
         <HrSection title={L.hrEducation || '학력'}>
           <HrArchivedPair k={L.hrEducation || '학력'} text={archivedText} />
@@ -1786,6 +1804,7 @@ export function HrProfileInline({
 
   const body = { person: renderPerson, work: renderWork, comp: renderComp, records: renderRecords }[part];
   return (
+    <HrRowLook.Provider value={!editable}>
     <div className="adm-hr-body" data-testid={`hr-inline-${part}`}>
       {/* 구성원 상세 «인사 정보» 이름 칸 — 성 · 영어 닉네임을 부르는 쪽 이름 묶음 안에 끼운다(§3.2-D «탭별 칸» · PW-2797).
           이름 칸은 HR 정보를 불러오는 동안 · 못 불러와도 보여야 해서 아래 불러오기 갈래 밖에 둔다. */}
@@ -1805,6 +1824,7 @@ export function HrProfileInline({
         <div style={{ padding: 24, textAlign: 'center', color: T.muted, fontSize: 13 }}>{L.hrProfileError || 'HR 기록을 불러오지 못했습니다.'}</div>
       ) : body ? body() : null}
     </div>
+    </HrRowLook.Provider>
   );
 }
 
@@ -1892,11 +1912,9 @@ function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelet
                 data-testid="hr-training-row"
                 className={`adm-hr-card${editingId === r.id ? ' is-editing' : ''}`}
               >
-                <span className="adm-hr-card-text">
-                  {/* 수료일이 없으면 날짜 자리를 비운다 (PW-942). 「이수 중」으로 적으면 초대 CSV 처럼
-                      과정명만 받은 기록이 수료하지 않은 것처럼 읽힌다 — 칸 이름이 「수료한 교육 과정」이다. */}
-                  {[r.courseName, r.provider, r.completedAt ? `${L.hrTrainingCompletedPrefix || '수료'} ${r.completedAt}` : null, r.note].filter(Boolean).join(' · ')}
-                </span>
+                {/* 수료일이 없으면 날짜 자리를 비운다 (PW-942). 「이수 중」으로 적으면 초대 CSV 처럼
+                    과정명만 받은 기록이 수료하지 않은 것처럼 읽힌다 — 칸 이름이 「수료한 교육 과정」이다. */}
+                <HrCardText text={[r.courseName, r.provider, r.completedAt ? `${L.hrTrainingCompletedPrefix || '수료'} ${r.completedAt}` : null, r.note].filter(Boolean).join(' · ')} />
                 {canEdit && onUpdate && (
                   <button type="button" className="admin-emp-btn is-secondary is-sm" onClick={() => startEdit(r)} disabled={busy}>
                     {L.hrRecordEdit || '고치기'}
@@ -2086,7 +2104,7 @@ function HrRecordListSection({
                 data-testid={`${testId}-row`}
                 className={`adm-hr-card${editingId === r.id ? ' is-editing' : ''}`}
               >
-                <span className="adm-hr-card-text">{render(r)}</span>
+                <HrCardText text={render(r)} />
                 {onSave && (
                   <button type="button" className="admin-emp-btn is-secondary is-sm" onClick={() => startEdit(r)} disabled={busy} aria-label={`${L.hrRecordEdit || '고치기'} ${nameOf(r)}`}>
                     {L.hrRecordEdit || '고치기'}
@@ -2204,12 +2222,15 @@ function HrDocumentsSection({
             {list.map((d) => (
               <div key={d.id} data-testid="hr-documents-row" className="adm-hr-card">
                 <span className="adm-hr-card-text">
-                  {onDownload && !d.__pending ? (
-                    <button type="button" className="admin-emp-btn" onClick={() => onDownload(d)} style={{ fontSize: 12, padding: 0, border: 'none', background: 'none', color: '#4F46E5', textDecoration: 'underline' }}>
-                      {d.fileName}
-                    </button>
-                  ) : d.fileName}
-                  {[typeLabel(d.docType), d.uploadedAt].filter(Boolean).map((x) => ` · ${x}`).join('')}
+                  <span className="adm-hr-card-title">
+                    {onDownload && !d.__pending ? (
+                      <button type="button" className="admin-emp-btn" onClick={() => onDownload(d)} style={{ fontSize: 12, padding: 0, border: 'none', background: 'none', color: '#4F46E5', textDecoration: 'underline' }}>
+                        {d.fileName}
+                      </button>
+                    ) : d.fileName}
+                  </span>
+                  {[typeLabel(d.docType), d.uploadedAt].some(Boolean) && <span className="adm-hr-card-sep"> · </span>}
+                  <span className="adm-hr-card-sub">{[typeLabel(d.docType), d.uploadedAt].filter(Boolean).join(' · ')}</span>
                 </span>
                 {onDelete && (
                   <button type="button" className="admin-emp-btn is-danger-ghost is-sm" onClick={async () => {

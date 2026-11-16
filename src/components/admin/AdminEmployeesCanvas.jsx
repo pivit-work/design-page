@@ -15,7 +15,7 @@ import Tabs from '../shared/Tabs.jsx';
 import Button from '../shared/Button.jsx';
 import Switch from '../shared/Switch.jsx';
 import {
-  buildOrgTree, findOrgEntry, primaryOrgEntry, matchesOrgSubtree, ORG_FILTER_UNASSIGNED,
+  buildOrgTree, findOrgEntry, primaryOrgEntry, matchesOrgSubtree, ORG_FILTER_UNASSIGNED, ORG_PATH_SEP,
 } from './orgTree.js';
 import SquadPicker, { SquadCell, isVisibleSquadStatus } from './SquadPicker.jsx';
 import { ExportMenu, SalaryExportModal, IconLock } from './employeeExport.jsx';
@@ -47,12 +47,12 @@ import {
 } from './addedAtFilter.js';
 import RosterTable from '../shared/RosterTable.jsx';
 import {
-  IconAlert, IconCheck, IconCheckmark, IconChevronDown, IconChevronRight,
+  IconAlert, IconCheck, IconCheckmark, IconChevronDown, IconChevronLeft, IconChevronRight,
   IconMore, IconPlus, IconSettings, IconUser, IconX,
 } from './employeesIcons.jsx';
 import useDismissLayer from '../shared/useDismissLayer.js';
 import { isEnterKey } from '../shared/enterKey.js';
-import { CalendarGlyph, ChevronDownGlyph, ChevronUpGlyph } from '../shared/lineIcons.jsx';
+import { CalendarGlyph, ChevronDownGlyph, ChevronUpGlyph, PencilGlyph } from '../shared/lineIcons.jsx';
 import { filterSearchOptions } from '../shared/searchOptions.js';
 import Pagination from '../shared/Pagination.jsx';
 import { SkeletonList } from '../shared/Skeleton.jsx';
@@ -4981,7 +4981,7 @@ function panelErrorOf(e) {
  * 적었다」(변경됨)는 원인이 달라서, 보는 사람이 다음에 할 수 있는 일도 다르다.
  */
 function PersonalHistoryList({
-  state, labels, onRetry, field = 'all', onFieldChange, onLoadMore, moreLoading = false,
+  state, labels, onRetry, field = 'all', onFieldChange, onLoadMore, moreLoading = false, asTable = false,
 }) {
   const L = labels.panel;
   const fields = (state.page && state.page.fields) || [];
@@ -5031,7 +5031,92 @@ function PersonalHistoryList({
     );
   } else {
     const { items, nextCursor } = state.page;
-    body = (
+    /* 한 건을 이루는 조각 — 창은 상자 3줄, 상세 페이지는 표 한 줄(PW-2895 시안)이 같은 조각을 놓는다 */
+    const partsOf = (h) => {
+      const cleared = h.changeKind === 'update' && !h.after && Boolean(h.before);
+      const afterText = h.after
+        || (h.changeKind === 'remove' ? L.historyDeletedValue : L.historyNone);
+      const field = (
+        <span className="admin-emp-hist-field">
+          {h.itemLabel ? `${h.label} · ${h.itemLabel}` : h.label}
+        </span>
+      );
+      const kindChips = (
+        <>
+          {h.changeKind === 'add' && <DpStatusBadge className="admin-emp-hist-chip">{L.historyAdded}</DpStatusBadge>}
+          {h.changeKind === 'remove' && <DpStatusBadge className="admin-emp-hist-chip">{L.historyRemoved}</DpStatusBadge>}
+          {cleared && h.state === 'normal' && (
+            <DpStatusBadge className="admin-emp-hist-chip" data-testid={`employees-history-deleted-${h.id}`}>
+              {L.historyDeleted}
+            </DpStatusBadge>
+          )}
+        </>
+      );
+      const source = h.sourceLabel && (
+        <DpStatusBadge className="admin-emp-hist-chip" data-testid={`employees-history-source-${h.id}`}>
+          {h.sourceLabel}
+        </DpStatusBadge>
+      );
+      const values = (
+        <div className="admin-emp-hist-values">
+          {h.state === 'purged' ? L.historyPurged
+            : h.state === 'separated' ? <>{L.historySeparated} · {L.historyWithheld}</>
+            : h.state === 'purge_pending' ? fill(L.historyPurgePending, { date: h.purgeDueOn || '' })
+            : h.state === 'withheld' ? L.historyWithheld
+              : (
+                <>
+                  <span className="admin-emp-hist-before">{h.before || L.historyNone}</span>
+                  {' → '}
+                  <span className="admin-emp-hist-after">{afterText}</span>
+                </>
+              )}
+        </div>
+      );
+      const who = (
+        <div className={`admin-emp-hist-who${h.actor && h.actor.resigned ? ' is-resigned' : ''}`}
+          data-testid={`employees-history-who-${h.id}`}>
+          {h.actor && h.actor.name ? h.actor.name : L.historyNone}
+          {h.actor && h.actor.resigned && <span className="admin-emp-hist-resigned">{L.historyResigned}</span>}
+          {h.actor && h.actor.isSelf && <DpStatusBadge className="admin-emp-hist-chip is-self">{L.historyBySelf}</DpStatusBadge>}
+        </div>
+      );
+      const reason = h.reason && <div className="admin-emp-hist-reason">{h.reason}</div>;
+      return { field, kindChips, source, values, who, reason };
+    };
+    if (asTable) {
+      body = (
+        <>
+          <RosterTable
+            framed
+            className="admin-emp-hist-table"
+            testId="employees-history-list"
+            columns={[
+              { key: 'when', header: L.historyColWhen || '바뀐 때' },
+              { key: 'field', header: L.historyColField || '항목' },
+              { key: 'value', header: L.historyColValue || '바뀐 값' },
+              { key: 'who', header: L.historyColWho || '바꾼 사람' },
+              { key: 'source', header: L.historyColSource || '바꾼 곳' },
+            ]}
+            rows={items}
+            rowKey={(h) => h.id}
+            rowProps={(h) => ({ 'data-testid': `employees-history-row-${h.id}` })}
+            renderCell={(h, col) => {
+              const p = partsOf(h);
+              if (col.key === 'when') return <span className="admin-emp-hist-when">{h.changedAt}</span>;
+              if (col.key === 'field') return <span className="admin-emp-hist-head">{p.field}{p.kindChips}</span>;
+              if (col.key === 'value') return <>{p.values}{p.reason}</>;
+              if (col.key === 'who') return p.who;
+              return p.source;
+            }}
+          />
+          {nextCursor && onLoadMore && (
+            <button type="button" className="admin-emp-btn is-secondary admin-emp-hist-more"
+              disabled={moreLoading} onClick={onLoadMore}
+              data-testid="employees-history-more">{L.historyMore}</button>
+          )}
+        </>
+      );
+    } else body = (
       <>
         <div className="admin-emp-hist-list" data-testid="employees-history-list">
           {items.map((h) => {
@@ -5102,9 +5187,21 @@ function PersonalHistoryList({
     );
   }
 
+  /* 0건이면 건수를 달지 않는다 — 빈 안내가 이미 말한다(시안 빈 화면에도 건수가 없다) */
+  const total = state.status === 'ready' && state.page && typeof state.page.total === 'number' && (state.page.total > 0 || isFiltered) ? state.page.total : null;
   return (
     <>
-      {filter}
+      {asTable && (filter || total != null) ? (
+        /* 거르기는 작은 드롭다운 + 오른쪽 «N건»(PW-2895 시안 · 기획서 «8건») */
+        <div className="admin-emp-hist-bar">
+          {filter}
+          {total != null && (
+            <span className="admin-emp-hist-count" data-testid="employees-history-count">
+              {fill(L.historyCount || '{count}건', { count: total })}
+            </span>
+          )}
+        </div>
+      ) : filter}
       {body}
     </>
   );
@@ -5227,57 +5324,65 @@ const PAGE_FIELD_GROUPS = (() => {
 })();
 const PAGE_EMPLOY_GROUP = PAGE_FIELD_GROUPS.find((g) => g.id === 'employ');
 
-/** 읽기 상태의 칸 한 개 — 라벨 위 · 값 아래(§3.2-D «읽기»). 빈 값은 «—». */
-function DetailReadField({ label, value, testId, children }) {
-  const empty = value == null || value === '';
+/** 읽기 상태의 칸 한 개 — 이름표 왼쪽 · 값 오른쪽 한 줄(PW-2895 · 디자이너 «구성원 프로필 창» 줄 모양). 빈 값은 옅은 «—».
+    `full` 이면 2열 칸에서 한 줄을 다 쓴다(소속 · 연봉 · 목록처럼 값이 긴 칸). */
+function DetailReadField({ label, value, testId, children, full = false }) {
+  const empty = !children && (value == null || value === '');
   return (
-    <div className="admin-emp-field" data-testid={testId}>
+    <div className={`admin-emp-field${full ? ' is-full' : ''}`} data-testid={testId}>
       <span className="admin-emp-field-label">{label}</span>
-      <span className="msc-pair-value">{children || (empty ? '—' : value)}</span>
+      <span className={`msc-pair-value${empty ? ' is-empty' : ''}`}>{children || (empty ? '—' : value)}</span>
     </div>
   );
 }
 
-/** 상세 페이지 머리 — 왼쪽 사람(내 설정 히어로 `.msc-hero` 모양) · 오른쪽 이전/다음 · 위치 · [수정] · [목록으로](§3.2-D «머리»). */
+/** 상세 페이지 머리 — 왼쪽 사람(내 설정 히어로 `.msc-hero` 모양) · 오른쪽 이전/다음 · 위치 · [수정] · [목록으로](§3.2-D «머리»).
+    생김새는 PW-2895 시안 — [목록으로]는 이름 위 «‹ 목록으로» 글자, 이전 · 위치 · 다음은 한 묶음, 버튼은 흰 보조 버튼 작게. */
 function DetailPageHead({ member, labels, renderAvatar, deptText, dutyText, page, busy, onMove, canEdit }) {
   const L = labels.detail || {};
   return (
-    <div className="admin-emp-detail-head" data-testid="employees-detail-head">
-      <div className="msc-hero">
-        {renderAvatar ? renderAvatar(member, 56) : <AvatarFallback row={member} size={56} />}
-        <div className="admin-emp-detail-id">
-          <div className="admin-emp-detail-name-row">
-            <span className="msc-hero-name" data-testid="employees-detail-name">{member.displayName || member.name}</span>
-            <StatusBadge status={member.employmentStatus} labels={labels} />
-            {member.retirementNotice && <RetirementBadge notice={member.retirementNotice} />}
-            {member.isRehire && (
-              <DpStatusBadge tone="neutral" className="admin-emp-role-pill" title={member.rehireNote || undefined} data-testid="employees-detail-rehire">
-                {labels.menu.rehireBadge}
-              </DpStatusBadge>
+    <div className="admin-emp-detail-top">
+      <Button className="admin-emp-detail-back" disabled={busy} onClick={() => onMove(page.onBack)} data-testid="employees-detail-back">
+        <IconChevronLeft size={14} />
+        {L.back || '목록으로'}
+      </Button>
+      <div className="admin-emp-detail-head" data-testid="employees-detail-head">
+        <div className="msc-hero">
+          {renderAvatar ? renderAvatar(member, 56) : <AvatarFallback row={member} size={56} />}
+          <div className="admin-emp-detail-id">
+            <div className="admin-emp-detail-name-row">
+              <span className="msc-hero-name" data-testid="employees-detail-name">{member.displayName || member.name}</span>
+              <StatusBadge status={member.employmentStatus} labels={labels} />
+              {member.retirementNotice && <RetirementBadge notice={member.retirementNotice} />}
+              {member.isRehire && (
+                <DpStatusBadge tone="neutral" className="admin-emp-role-pill" title={member.rehireNote || undefined} data-testid="employees-detail-rehire">
+                  {labels.menu.rehireBadge}
+                </DpStatusBadge>
+              )}
+            </div>
+            <div className="msc-hero-sub" data-testid="employees-detail-sub">{[deptText, dutyText].filter(Boolean).join(' · ')}</div>
+            {member.employmentPeriodsNote && (
+              <div className="msc-hero-meta" data-testid="employees-panel-periods">{member.employmentPeriodsNote}</div>
             )}
           </div>
-          <div className="msc-hero-sub" data-testid="employees-detail-sub">{[deptText, dutyText].filter(Boolean).join(' · ')}</div>
-          {member.employmentPeriodsNote && (
-            <div className="msc-hero-meta" data-testid="employees-panel-periods">{member.employmentPeriodsNote}</div>
+        </div>
+        <div className="admin-emp-detail-nav">
+          <div className="admin-emp-detail-pager">
+            <Button variant="secondary" size="sm" disabled={busy || !page.canPrev} onClick={() => onMove(page.onPrev)} data-testid="employees-detail-prev">
+              {L.prev || '‹ 이전'}
+            </Button>
+            <span className="admin-emp-detail-pos" data-testid="employees-detail-position">{page.pos} / {page.total}</span>
+            <Button variant="secondary" size="sm" disabled={busy || !page.canNext} onClick={() => onMove(page.onNext)} data-testid="employees-detail-next">
+              {L.next || '다음 ›'}
+            </Button>
+          </div>
+          {canEdit && !page.editing && page.tab !== 'history' && !page.loadFailed && (
+            <Button variant="secondary" size="sm" onClick={page.onEdit} data-testid="employees-detail-edit">
+              <PencilGlyph size={14} aria-hidden="true" />
+              {L.edit || '수정'}
+            </Button>
           )}
         </div>
-      </div>
-      <div className="admin-emp-detail-nav">
-        <Button className="admin-emp-btn is-ghost is-sm" disabled={busy || !page.canPrev} onClick={() => onMove(page.onPrev)} data-testid="employees-detail-prev">
-          {L.prev || '‹ 이전'}
-        </Button>
-        <span className="msc-hero-meta" data-testid="employees-detail-position">{page.pos} / {page.total}</span>
-        <Button className="admin-emp-btn is-ghost is-sm" disabled={busy || !page.canNext} onClick={() => onMove(page.onNext)} data-testid="employees-detail-next">
-          {L.next || '다음 ›'}
-        </Button>
-        {canEdit && !page.editing && page.tab !== 'history' && !page.loadFailed && (
-          <Button className="admin-emp-btn is-ghost is-sm" onClick={page.onEdit} data-testid="employees-detail-edit">
-            {L.edit || '수정'}
-          </Button>
-        )}
-        <Button className="admin-emp-btn is-ghost is-sm" disabled={busy} onClick={() => onMove(page.onBack)} data-testid="employees-detail-back">
-          {L.back || '목록으로'}
-        </Button>
       </div>
     </div>
   );
@@ -6129,7 +6234,11 @@ function EmployeesEditPanel({
   {reading ? (
     /* 권한 칸은 §3.2-D «탭별 칸» 표에 없어 «인사 정보»에 둔다 — 행 ⋯ › 권한 변경이 이 탭으로 연다(정책서 §5) */
     <div className="admin-emp-detail-read-grid">
-      <DetailReadField label={labels.panel.role} value={draft.orgRole ? labels.panel.roles?.[draft.orgRole] || '' : ''} testId="employees-detail-read-orgRole" />
+      <DetailReadField label={labels.panel.role} full testId="employees-detail-read-orgRole">
+        {draft.orgRole && labels.panel.roles?.[draft.orgRole]
+          ? <DpStatusBadge tone="neutral" className="admin-emp-role-pill">{labels.panel.roles[draft.orgRole]}</DpStatusBadge>
+          : null}
+      </DetailReadField>
     </div>
   ) : (
   <div className="admin-emp-field-group">
@@ -6157,7 +6266,26 @@ function EmployeesEditPanel({
   )}
   </>);
 
-  const orgAssignBlock = (<>
+  /* 읽기 — «소속» 한 줄: 위 조직 경로는 옅게, 마지막 조직만 진하게(PW-2895 시안). 고르는 버튼은 수정 중에만 */
+  const orgCrumb = primaryEntry ? (
+    <span className="admin-emp-detail-crumb" title={primaryEntry.pathLabel}>
+      {primaryEntry.pathNames.slice(0, -1).map((n) => `${n}${ORG_PATH_SEP}`).join('')}
+      <b>{primaryEntry.pathNames[primaryEntry.pathNames.length - 1]}</b>
+    </span>
+  ) : (legacyDeptOf(member) || null);
+  const orgAssignBlock = reading ? (<>
+  <SectionLabel>{labels.panel.orgAssign}</SectionLabel>
+  <div className="admin-emp-detail-read-grid" data-testid="employees-panel-org">
+    <DetailReadField label={labels.panel.orgAssign} full>
+      {orgCrumb}
+      {orgCrumb && selectedIds.length > 1 && (
+        <span className="admin-emp-row-dept-more">
+          {String(labels.concurrentCount).split('{count}').join(String(selectedIds.length - 1))}
+        </span>
+      )}
+    </DetailReadField>
+  </div>
+  </>) : (<>
   <SectionLabel>{labels.panel.orgAssign}</SectionLabel>
   <div className="admin-emp-org-assign">
     <button
@@ -6200,7 +6328,30 @@ function EmployeesEditPanel({
   </div>
   </>);
 
-  const squadBlock = Array.isArray(squadOptions) && squadOptions.length > 0 && (
+  const squadCell = Array.isArray(squadOptions) && (
+    <SquadCell
+      squads={squadOptions}
+      assignments={Array.isArray(member.squads) ? member.squads : []}
+      statusLabels={squadLabels || {}}
+      closedLabel={(squadLabels || {}).closedCount}
+    />
+  );
+  /* 읽기 — «스쿼드» 한 줄 · [조직도 스쿼드 뷰 ›]는 제목 옆 초록 글자 링크(PW-2895 시안 · 기획서도 링크) */
+  const squadBlock = Array.isArray(squadOptions) && squadOptions.length > 0 && (reading ? (
+    <>
+      <div className="admin-emp-section-head">
+        <SectionLabel>{labels.panel.squadSection}</SectionLabel>
+        {onGoSquadView && (
+          <Button className="admin-emp-detail-link" onClick={onGoSquadView} data-testid="employees-panel-squads-go">
+            {labels.panel.squadGoView}<IconChevronRight size={14} />
+          </Button>
+        )}
+      </div>
+      <div className="admin-emp-detail-read-grid" data-testid="employees-panel-squads">
+        <DetailReadField label={labels.panel.squadSection} full>{squadCell}</DetailReadField>
+      </div>
+    </>
+  ) : (
     <>
       <SectionLabel>{labels.panel.squadSection}</SectionLabel>
       <div className="admin-emp-leader-of" data-testid="employees-panel-squads">
@@ -6217,7 +6368,7 @@ function EmployeesEditPanel({
         )}
       </div>
     </>
-  );
+  ));
 
   const loginLockBlock = inTab('person') && member.loginLock && (
 
@@ -6275,7 +6426,8 @@ function EmployeesEditPanel({
 
   /* 칸 묶음 하나 — 목록 렌더와 «인사 정보» 이름 칸(HrProfileInline 이 성 · 영어 닉네임을 끼움)이 함께 쓴다.
      `after[key]` 는 그 칸 바로 뒤에 붙일 칸(§3.2-D «탭별 칸» 인사 정보 순서 · PW-2797). */
-  const renderGroup = (g, after = {}) => {
+  /* `lead` — 묶음 칸 맨 앞에 끼우는 칸(인사 정보 «기본 정보» 첫 줄 «프로필 사진 · 자기소개» · PW-2895 시안) */
+  const renderGroup = (g, after = {}, lead = null) => {
     const fieldNode = (f) => {
       if (reading && !(seatedAt && SEAT_FIELD_KEYS.has(f.key))) {
         if (f.key === SERVICE_START_FIELD && !onLoadHrProfile) return null;
@@ -6512,6 +6664,7 @@ function EmployeesEditPanel({
       <div key={g.id}>
         {!g.noLabel && <SectionLabel>{labels.panel[g.labelKey] || (g.id === 'employ' ? detailL.employSection : '')}</SectionLabel>}
         <div className={reading ? 'admin-emp-detail-read-grid' : 'admin-emp-field-group'}>
+          {lead}
           {shown.flatMap((f) => [fieldNode(f), after[f.key] ? <Fragment key={`${f.key}-after`}>{after[f.key]}</Fragment> : null])}
         </div>
       </div>
@@ -6524,6 +6677,18 @@ function EmployeesEditPanel({
     <SidePanelShell ref={panelRef} className="admin-emp-panel" onClose={onClose} closeOnEscape testId="employees-edit-panel">{children}</SidePanelShell>
   ));
   const detailL = labels.detail || {};
+  /* 프로필 사진 · 자기소개 — 본인이 내 프로필에서 넣는 값이라 읽기 · 수정 모두 보기만 한다
+     (admin-spec §3.2-D «탭별 칸» 인사 정보 첫 칸 · PW-2797). 이름 칸 묶음이 있으면 그 첫 줄(PW-2895 시안) */
+  const bioField = page && (
+            <DetailReadField label={detailL.photoBio || '프로필 사진 · 자기소개'} full testId="employees-detail-photo-bio">
+              <span className="admin-emp-manager-readonly is-wrap">
+                {renderAvatar ? renderAvatar(member, 44) : <AvatarFallback row={member} size={44} />}
+                {bioText
+                  ? <span className="msc-pair-value" data-testid="employees-detail-bio">{bioText}</span>
+                  : <span className="admin-emp-manager-note" data-testid="employees-detail-bio">{detailL.bioEmpty || '자기소개 미입력'}</span>}
+              </span>
+            </DetailReadField>
+  );
   const pageTabs = page ? DETAIL_TABS.filter((t) => t !== 'comp' || page.canViewComp) : [];
   const deptText = page
     ? `${primaryEntry?.name || legacyDeptOf(member) || labels.panel.orgNone}${selectedIds.length > 1 ? ` ${String(detailL.concurrentMore || '외 {count}').split('{count}').join(String(selectedIds.length - 1))}` : ''}`
@@ -6630,6 +6795,7 @@ function EmployeesEditPanel({
             <div data-testid="employees-detail-loading"><SkeletonList count={4} height={52} /></div>
           ) : (page ? page.tab === 'history' : panelTab === 'history') ? (
             <PersonalHistoryList
+              asTable={Boolean(page)}
               state={historyState}
               labels={labels}
               onRetry={() => setHistoryState({ status: 'loading', page: null })}
@@ -6644,16 +6810,7 @@ function EmployeesEditPanel({
               목록을 봐야 「화면엔 있는데 저장이 안 되는 칸」이 안 생긴다(PW-576). */}
           {/* 프로필 사진 · 자기소개 — 본인이 내 프로필에서 넣는 값이라 읽기 · 수정 모두 보기만 한다
               (admin-spec §3.2-D «탭별 칸» 인사 정보 첫 칸 · 화면 admin-app.jsx «프로필 사진 · 자기소개» · PW-2797) */}
-          {page && inTab('person') && (
-            <DetailReadField label={detailL.photoBio || '프로필 사진 · 자기소개'} testId="employees-detail-photo-bio">
-              <span className="admin-emp-manager-readonly is-wrap">
-                {renderAvatar ? renderAvatar(member, 44) : <AvatarFallback row={member} size={44} />}
-                {bioText
-                  ? <span className="msc-pair-value" data-testid="employees-detail-bio">{bioText}</span>
-                  : <span className="admin-emp-manager-note" data-testid="employees-detail-bio">{detailL.bioEmpty || '자기소개 미입력'}</span>}
-              </span>
-            </DetailReadField>
-          )}
+          {page && inTab('person') && !inlineNames && bioField}
           {/* 조직 정보 — 표 순서 «소속(겸직) · 스쿼드 / 인사 분류 / 조직 위치 / 매니저»(§3.2-D «탭별 칸») */}
           {page && inTab('org') && (<>{orgAssignBlock}{squadBlock}</>)}
           {(page ? PAGE_FIELD_GROUPS.filter((g) => inTab(g.tab) && g !== PAGE_EMPLOY_GROUP && !(inlineNames && g.id === 'basic')) : PANEL_FIELD_GROUPS).map((g) => renderGroup(g))}
@@ -6667,6 +6824,7 @@ function EmployeesEditPanel({
               onRetry={reloadAssets}
               onOpenAsset={memberAssets.onOpenAsset}
               onIssue={memberAssets.onIssue ? () => memberAssets.onIssue(member, reloadAssets) : undefined}
+              buttonInHead={reading}
             />
           )}
 
@@ -6739,6 +6897,21 @@ function EmployeesEditPanel({
           {!page && squadBlock}
 
           <SectionLabel>{labels.panel.managerSection}</SectionLabel>
+          {reading ? (
+            /* 읽기 — «매니저» 한 줄: 사진 동그라미 + 이름(PW-2895 시안 · 앱 공용 Avatar) */
+            <div className="admin-emp-detail-read-grid" data-testid="employees-panel-manager">
+              <DetailReadField label={labels.panel.managerSection} full>
+                {member.isCeo ? (
+                  <span className="admin-emp-manager-note" data-testid="employees-panel-manager-ceo">{labels.listManagerFilter.ceoTop}</span>
+                ) : draft.managerName ? (
+                  <span className="admin-emp-detail-person">
+                    <AvatarFallback row={{ name: draft.managerName }} size={28} />
+                    <span className="admin-emp-manager-name">{draft.managerName}</span>
+                  </span>
+                ) : null}
+              </DetailReadField>
+            </div>
+          ) : (<>
           {/* 안내문이 길어 이름 자리를 밀면 이름이 한 글자씩 세로로 꺾였다 — 줄을 넘기게 두고 이름은 줄지 않는다 (pivit-work PW-2693). */}
           <div className="admin-emp-manager-readonly is-wrap is-manager" data-testid="employees-panel-manager">
             {member.isCeo ? (
@@ -6755,6 +6928,7 @@ function EmployeesEditPanel({
               </>
             )}
           </div>
+          </>)}
           </>)}
 
           {/* 로그인 잠김 — 잠긴 동안에만 그린다. 잠기지 않았으면 섹션째 없다(«잠기지 않음»도 쓰지 않는다).
@@ -6929,6 +7103,30 @@ function EmployeesEditPanel({
           {inTab('comp') && canViewSalary && (
             <>
               <SectionLabel>{labels.panel.paySection}</SectionLabel>
+              {reading ? (
+                /* 읽기 — «연봉» 한 줄 · [이력 →]은 그 줄 오른쪽 작은 흰 버튼(PW-2895 시안 · 기획서도 연봉 옆 버튼) */
+                <div className="admin-emp-detail-read-grid">
+                  <DetailReadField label={labels.panel.salary} full testId="employees-detail-read-salary">
+                    {archivedNow ? (
+                      <ArchivedNote text={archivedLabels.note} testId="employees-panel-archived-salary" />
+                    ) : (
+                      <span className="admin-emp-detail-value-row">
+                        <span
+                          className={draft.salary == null || draft.salary === '' ? 'admin-emp-manager-note' : undefined}
+                          data-testid="employees-panel-salary"
+                        >
+                          {fmtSalaryWithCurrency(draft.salary, draft.salaryCurrency, defaultCurrency || undefined)}
+                        </span>
+                        {onLoadSalaryHistory && (
+                          <Button variant="secondary" size="sm" onClick={() => setSalaryOpen(true)} data-testid="employees-panel-salary-history">
+                            {labels.detail?.salaryHistory || '이력 →'}
+                          </Button>
+                        )}
+                      </span>
+                    )}
+                  </DetailReadField>
+                </div>
+              ) : (
               <div className="admin-emp-field-group">
                 <FormField className="admin-emp-field" labelClassName="admin-emp-field-label" label={labels.panel.salary}>
                   {archivedNow ? (
@@ -6958,6 +7156,7 @@ function EmployeesEditPanel({
                   </button>
                 )}
               </div>
+              )}
             </>
           )}
 
@@ -6983,7 +7182,28 @@ function EmployeesEditPanel({
             />
           )}
           {inTab('records') && (<>
-          <SectionLabel>{labels.panel.recordSection}</SectionLabel>
+          {reading ? (
+            /* 읽기 — «추가 · 삭제는 [수정]에서 할 수 있어요»는 «기록» 제목 줄 오른쪽(PW-2895 시안) */
+            <div className="admin-emp-section-head">
+              <SectionLabel>{labels.panel.recordSection}</SectionLabel>
+              {onLoadHrProfile && (
+                <span className="admin-emp-detail-hint" data-testid="hr-inline-records-hint">
+                  {labels.records?.recordsEditHint || '추가 · 삭제는 [수정]에서 할 수 있어요'}
+                </span>
+              )}
+            </div>
+          ) : <SectionLabel>{labels.panel.recordSection}</SectionLabel>}
+          {reading ? (
+            <div className="admin-emp-detail-read-grid">
+              <DetailReadField label={labels.panel.education} full testId="employees-detail-read-education">
+                {archivedNow ? <ArchivedNote text={archivedLabels.note} testId="employees-panel-archived-education" /> : (
+                  member.education ? (
+                    <span title={member.education} data-testid="employees-panel-education">{member.education}</span>
+                  ) : null
+                )}
+              </DetailReadField>
+            </div>
+          ) : (
           <div className="admin-emp-field-group">
             <FormField className="admin-emp-field" labelClassName="admin-emp-field-label" label={labels.panel.education}>
               {archivedNow ? (
@@ -7029,6 +7249,7 @@ function EmployeesEditPanel({
               </button>
             )}
           </div>
+          )}
           </>)}
           {/* «근무·고용» 고용 정보 — 재직 상태 · 따로 보관한 기록 다음, HR 칸(최초 입사일 · 근무 일정 …) 바로 위(§3.2-D «탭별 칸») */}
           {page && inTab('work') && renderGroup(PAGE_EMPLOY_GROUP)}
@@ -7056,7 +7277,7 @@ function EmployeesEditPanel({
                 ),
                 /* 영어 닉네임은 본인이 넣는 칸 — 수정 중에도 값만(§3.2.2 `nicknameEn`) */
                 nameEn: <DetailReadField key="nicknameEn" label={nicknameEn.label} value={nicknameEn.value} testId="employees-detail-read-nicknameEn" />,
-              }) : undefined}
+              }, bioField) : undefined}
               namesTail={inlineNames ? loginLockBlock : undefined}
               phone={inlineNames ? {
                 label: labels.records?.hrPhone || '휴대폰',
