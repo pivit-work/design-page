@@ -660,7 +660,7 @@ export default function EvalLeaderAssignmentLiveSection({
                   data-testid={`evmon-la-pick-${p.id}`}
                 >
                   <span className="evc-la-pop-name">{p.name}</span>
-                  {p.org && <span className="evc-la-pop-org">{p.org}</span>}
+                  {p.org && <span className="evc-la-pop-org" title={p.org}>{p.org}</span>}
                   <RetiringTag label={p.retiringLabel} testId={`evmon-la-pick-retiring-${p.id}`} />
                 </button>
               ))

@@ -329,7 +329,7 @@ export function LeaderBulkBar({
                   data-testid={`${testPrefix}-bulk-pick-${p.id}`}
                 >
                   <span className="evc-la-name">{p.name}</span>
-                  {p.org && <span className="evc-la-hint">{p.org}</span>}
+                  {p.org && <span className="evc-la-hint" title={p.org}>{p.org}</span>}
                   <span className="evc-la-hint">
                     {fill(T.leaderBulkPickLoad, { count: loadBy.get(p.id) ?? 0 })}
                   </span>

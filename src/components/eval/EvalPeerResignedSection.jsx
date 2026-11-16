@@ -224,7 +224,7 @@ export default function EvalPeerResignedSection({
                   data-testid={`evmon-pr-pick-${p.id}`}
                 >
                   <span className="evc-la-name">{p.name}</span>
-                  {p.org && <span className="evc-la-hint">{p.org}</span>}
+                  {p.org && <span className="evc-la-hint" title={p.org}>{p.org}</span>}
                   {/* PW-2029 — 동료 리뷰 마감 전에 떠나는 사람은 앱이 이미 뺐다. 남은 사람에 «퇴사 예정 D-N». */}
                   <RetiringTag label={p.retiringLabel} testId={`evmon-pr-pick-retiring-${p.id}`} />
                 </button>

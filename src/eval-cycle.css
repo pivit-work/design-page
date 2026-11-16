@@ -13345,6 +13345,24 @@ button.evm-ai-source {
   cursor: pointer;
 }
 .evc-la-pop-item:hover { background: var(--bg-secondary); }
+/* 메뉴 줄은 한 줄 — 판 폭이 260·280 으로 고정이라 소속이 길면 이름이 «기태 / 오»로 꺾였다(PW-2884).
+   이름·딱지는 줄이지 않고, 이름 바로 뒤 소속만 «…»로 줄인다. 이름이 판보다 길 때만 이름도 줄인다. */
+.evc-la-pop-item > * {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.evc-la-pop-item > :first-child {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.evc-la-pop-item > .evc-la-pop-org,
+.evc-la-pop-item > .evc-la-name + .evc-la-hint {
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .evc-la-pop-actions {
   display: flex;
   gap: 6px;
