@@ -197,6 +197,7 @@ export default function OrgTreePicker({
    * 여러 명 판(pivit-work PW-2814 «소속 일괄 이동» · admin-spec §3.1-G-1 ③) — 소속 팝업과 같은 트리에서 한 곳을 고르고,
    * 부르는 쪽이 고른 조직에 따라 바뀌는 안내 · «어떻게 남길까요?»를 트리 아래에 그린다. 모두 미주입이면 종전과 같다.
    *   onSelectChange(unitId) — 단일 선택이 바뀔 때마다 · extra — 트리 아래 영역 · summary — 발 왼쪽 선택 요약 대신
+   *   emptyAction — 트리가 비었을 때 글 바로 아래(예: 목록을 못 불러왔을 때 [다시 불러오기])
    *   footerStart — 발의 버튼 앞(왼쪽) · applyDisabled — [적용] 끄기 · keepOpenOnApply — [적용] 뒤 닫지 않는다(부르는 쪽이 닫는다)
    *   hideUnassigned — «— 미배정 —» 줄을 두지 않는다(옮길 곳은 조직이다)
    */
@@ -204,6 +205,7 @@ export default function OrgTreePicker({
   extra,
   summary,
   footerStart,
+  emptyAction,
   applyDisabled = false,
   keepOpenOnApply = false,
   hideUnassigned = false,
@@ -735,7 +737,10 @@ export default function OrgTreePicker({
         })}
 
         {rows.length === 0 && (
-          <p style={{ margin: '20px 0', textAlign: 'center', fontSize: 12, color: T.muted }}>{labels.empty}</p>
+          <p style={{ margin: 'var(--spacing-2xl) 0', textAlign: 'center', fontSize: 12, color: T.muted }}>
+            {labels.empty}
+            {emptyAction && <span style={{ display: 'block', marginTop: 'var(--spacing-xs)' }}>{emptyAction}</span>}
+          </p>
         )}
 
         {/* P7 — 미배정은 항상 최하단, 들여쓰기 0.
