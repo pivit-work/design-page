@@ -24,7 +24,10 @@ function ReadField({ label, value, testId, empty = value === '—', full = false
 
 /**
  * 휴가 이력 창 — 그 사람의 휴가 신청(조회 전용 · 추가 · 삭제 없음 · admin-spec §3.2.10 표 «휴가 이력»).
- * 틀은 같은 페이지 «보상 이력» 창(`adm-shell` + `RosterTable framed`)과 같다. 아래 줄에 안내 + [휴가 현황 열기].
+ * 틀은 같은 페이지 «보상 이력» 창(`adm-shell` + `RosterTable framed`)과 같고 폭만 880 이다(`admin-emp-leave-shell`) —
+ * 720 에서는 긴 유형 이름 · 승인자 줄에 밀려 «기간»이 세 줄 · «일수»가 두 줄로 꺾였다(pivit-work PW-2817 11-16 되돌림 · 커트 ② 안).
+ * 열 폭을 고정하고 기간 날짜 · 일수는 줄바꿈 없이, 반차 · 시간 단위 표시(`periodUnit`)만 날짜 아래 작은 글로 둔다.
+ * 아래 줄은 안내 문장 «아래»에 [휴가 현황 열기](admin-spec §3.2.10 · 기획 시안 marginTop 8 = Stack md).
  */
 function LeaveHistoryModal({ requests, labels, onClose, onOpenOverview }) {
   const L = labels || {};
@@ -35,11 +38,11 @@ function LeaveHistoryModal({ requests, labels, onClose, onOpenOverview }) {
       closeLabel={L.close}
       onClose={onClose}
       zIndex={1000}
-      className="adm-shell admin-emp-sal-shell"
+      className="adm-shell admin-emp-sal-shell admin-emp-leave-shell"
       bodyClassName="adm-shell-body admin-emp-sal-body"
       testId="member-leave-history-modal"
       footer={
-        <div className="admin-emp-section-head" data-testid="member-leave-history-footer">
+        <Stack gap="md" className="admin-emp-leave-foot" testId="member-leave-history-footer">
           <span className="admin-emp-manager-note">{L.modalNote}</span>
           {onOpenOverview && (
             <Button variant="secondary" size="sm" onClick={onOpenOverview} data-testid="member-leave-history-open-overview">
@@ -47,7 +50,7 @@ function LeaveHistoryModal({ requests, labels, onClose, onOpenOverview }) {
               <IconChevronRight size={14} />
             </Button>
           )}
-        </div>
+        </Stack>
       }
     >
       {requests.length === 0 ? (
@@ -55,19 +58,38 @@ function LeaveHistoryModal({ requests, labels, onClose, onOpenOverview }) {
       ) : (
         <RosterTable
           framed
+          fixed
           rows={requests}
           rowKey={(r) => r.id}
           testId="member-leave-history-table"
           columns={[
             { key: 'type', header: L.colType, render: (r) => r.typeName },
-            { key: 'period', header: L.colPeriod, render: (r) => r.period },
-            { key: 'amount', header: L.colAmount, align: 'right', render: (r) => r.amount },
+            {
+              key: 'period',
+              header: L.colPeriod,
+              width: 180,
+              render: (r) => (
+                <>
+                  <span className="admin-emp-leave-period">{r.period}</span>
+                  {r.periodUnit && <span className="admin-emp-leave-period-unit">{r.periodUnit}</span>}
+                </>
+              ),
+            },
+            {
+              key: 'amount',
+              header: L.colAmount,
+              align: 'right',
+              width: 84,
+              cellProps: { className: 'admin-emp-leave-amount' },
+              render: (r) => r.amount,
+            },
             {
               key: 'status',
               header: L.colStatus,
+              width: 124,
               render: (r) => <StatusBadge tone={r.statusTone || 'neutral'}>{r.statusLabel}</StatusBadge>,
             },
-            { key: 'approver', header: L.colApprover, render: (r) => r.approver || '—' },
+            { key: 'approver', header: L.colApprover, width: 220, render: (r) => r.approver || '—' },
           ]}
         />
       )}
@@ -87,7 +109,7 @@ function LeaveHistoryModal({ requests, labels, onClose, onOpenOverview }) {
  * 모양 — «HR 기록» 탭 «성과» 묶음(MemberPerformanceSection)과 같은 머리 · 읽기 칸 · 실패 줄 · 회색 줄.
  *
  * @param {{ status: 'idle'|'loading'|'ready'|'error', view: { used: string, remaining: string, available: string,
- *   requests: Array<{ id: string, typeName: string, period: string, amount: string, statusLabel: string,
+ *   requests: Array<{ id: string, typeName: string, period: string, periodUnit?: string|null, amount: string, statusLabel: string,
  *   statusTone?: 'warning'|'success'|'neutral', approver: string|null }> } | null }} props.state
  * @param {(go: () => void) => void} [props.guardMove] 수정 중 바꾼 값이 있으면 확인 창을 거쳐 이동한다
  */

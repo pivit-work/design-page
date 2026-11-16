@@ -2329,6 +2329,21 @@
   line-height: 18px;
   color: var(--text-secondary);
 }
+/* 휴가 이력 창(MemberLeaveSection) — 보상 이력 창 틀에서 폭만 880 · 다섯 칸 한 줄(pivit-work PW-2817 11-16 되돌림 · 커트 ② 안).
+   기간 날짜 · 일수는 줄바꿈 없음, 반차 · 시간 단위만 날짜 아래 보조 글(표 머리 글과 같은 12px · tertiary). */
+.tl-group-modal.adm-shell.admin-emp-sal-shell.admin-emp-leave-shell { width: 880px; }
+.admin-emp-leave-period,
+.admin-emp-leave-amount { white-space: nowrap; }
+.admin-emp-leave-period-unit {
+  display: block;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+/* 아래 줄 — 안내 문장 아래 [휴가 현황 열기](Stack md 8). 발 줄 틀을 가로로 다 쓰고 버튼은 왼쪽 */
+.admin-emp-leave-foot { flex: 1 1 auto; align-items: flex-start; }
+
 .admin-emp-sal-body {
   min-height: 0;
   overflow-y: auto;
