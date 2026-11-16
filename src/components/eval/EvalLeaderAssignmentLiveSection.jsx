@@ -351,7 +351,11 @@ export default function EvalLeaderAssignmentLiveSection({
           <Tooltip
             content={
               badge.key === 'liveNotStarted'
-                ? fill(L.liveNotStartedTip, { round: c.round, at: formatMonthDayTime(c.opensAt) })
+                ? fill(L.liveNotStartedTip, {
+                    // pivit-work PW-2784 — «겸직 조직장» 칸(0)은 1차 단계 기간을 쓴다 — «0차»로 적지 않는다.
+                    round: concurrentCell ? 1 : c.round,
+                    at: formatMonthDayTime(c.opensAt),
+                  })
                 : undefined
             }
           >
