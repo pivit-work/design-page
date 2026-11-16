@@ -6,6 +6,7 @@ import Checkbox from '../shared/Checkbox.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import Skeleton from '../shared/Skeleton.jsx';
 import AnchoredLayer from '../shared/AnchoredLayer.jsx';
+import Button from '../shared/Button.jsx';
 import useDismissLayer from '../shared/useDismissLayer.js';
 import { leavesBeforeDate } from './evalRetiring.js';
 import RetiringTag from './RetiringTag.jsx';
@@ -304,8 +305,17 @@ export default function EvalLeaderAssignmentLiveSection({
     const skipped = isLiveCellSkipped(c);
     const badge = liveCellBadge(c);
     const busy = pending.has(c.id);
+    // PW-2884 — 누를 수 있는 칸은 끝에 꺾쇠(드롭다운 열림 표시). 제출 칸은 자물쇠, 읽기 전용은 아무것도.
+    const chev = acts.canEdit ? (
+      <span className="evmon-la-chev" aria-hidden="true">
+        <ChevronDownIcon size={14} />
+      </span>
+    ) : null;
     const body = skipped ? (
-      <span className="evc-la-muted">{L.liveSkipped}</span>
+      <span className="evc-la-name-row">
+        <span className="evc-la-muted">{L.liveSkipped}</span>
+        {chev}
+      </span>
     ) : (
       <span className="evc-la-name-row">
         <span className={`evc-la-name${c.resigned && c.state !== 'submitted' ? ' is-resigned' : ''}`}>
@@ -334,6 +344,7 @@ export default function EvalLeaderAssignmentLiveSection({
             <LockIcon size={11} />
           </span>
         )}
+        {chev}
       </span>
     );
     const cellNode = acts.canEdit ? (
@@ -369,21 +380,23 @@ export default function EvalLeaderAssignmentLiveSection({
         </span>
       </Tooltip>
     );
+    // PW-2884 — «앞 차수 없이 열기»는 칸 아래 둘째 줄이 아니라 같은 줄 오른쪽 작은 보조 버튼(줄 높이를 맞춘다).
     return (
-      <>
+      <span className="evmon-la-cellw">
         {cellNode}
         {acts.canForceOpen && (
-          <button
-            type="button"
-            className="evc-link-btn evmon-la-force"
+          <Button
+            variant="secondary"
+            size="sm"
+            className="evmon-la-force"
             disabled={busy}
             onClick={() => onForceOpen?.(row, c)}
             data-testid={`evmon-la-force-${c.id}`}
           >
             {L.liveForceOpen}
-          </button>
+          </Button>
         )}
-      </>
+      </span>
     );
   };
 
@@ -516,9 +529,7 @@ export default function EvalLeaderAssignmentLiveSection({
                 )}
                 <RosterTable.HeadCell width={200}>{L.liveColTarget}</RosterTable.HeadCell>
                 {roundList.map((k) => (
-                  <RosterTable.HeadCell key={k}>
-                    <StatusBadge className="evc-type-badge">{fill(L.liveColRound, { round: k })}</StatusBadge>
-                  </RosterTable.HeadCell>
+                  <RosterTable.HeadCell key={k}>{fill(L.liveColRound, { round: k })}</RosterTable.HeadCell>
                 ))}
               </RosterTable.Head>
               <RosterTable.Body>
@@ -614,16 +625,16 @@ export default function EvalLeaderAssignmentLiveSection({
         <AnchoredLayer
           anchorSelector={`[data-leader-live-cell="${openCell.id}"]`}
           panelRef={panelRef}
-          width={260}
+          width={280}
           maxHeight={320}
-          className="evc-la-pop"
+          className="evc-la-pop is-live"
           role="group"
           aria-label={L.livePickSearch}
           data-testid="evmon-la-pop"
         >
-          {isLiveCellSkipped(openCell) && <span className="evc-la-hint">{L.liveRestoreHint}</span>}
+          {isLiveCellSkipped(openCell) && <span className="evc-la-pop-head">{L.liveRestoreHint}</span>}
           <TextInput
-            className="evc-input"
+            className="evc-input evc-la-pop-search"
             value={pickQuery}
             placeholder={L.livePickSearch}
             aria-label={L.livePickSearch}
@@ -633,7 +644,7 @@ export default function EvalLeaderAssignmentLiveSection({
           />
           <div className="evc-la-pop-list">
             {pickList.length === 0 ? (
-              <span className="evc-la-hint">{L.livePickEmpty}</span>
+              <span className="evc-la-pop-empty">{L.livePickEmpty}</span>
             ) : (
               pickList.map((p) => (
                 <button
@@ -648,8 +659,8 @@ export default function EvalLeaderAssignmentLiveSection({
                   }}
                   data-testid={`evmon-la-pick-${p.id}`}
                 >
-                  <span className="evc-la-name">{p.name}</span>
-                  {p.org && <span className="evc-la-hint">{p.org}</span>}
+                  <span className="evc-la-pop-name">{p.name}</span>
+                  {p.org && <span className="evc-la-pop-org">{p.org}</span>}
                   <RetiringTag label={p.retiringLabel} testId={`evmon-la-pick-retiring-${p.id}`} />
                 </button>
               ))
@@ -657,9 +668,9 @@ export default function EvalLeaderAssignmentLiveSection({
           </div>
           {openActs.canSkip && (
             <div className="evc-la-pop-actions">
-              <button
-                type="button"
-                className="evc-btn is-ghost"
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => {
                   const row = openRow;
                   const cell = openCell;
@@ -669,7 +680,7 @@ export default function EvalLeaderAssignmentLiveSection({
                 data-testid="evmon-la-skip"
               >
                 {L.liveSkip}
-              </button>
+              </Button>
             </div>
           )}
         </AnchoredLayer>

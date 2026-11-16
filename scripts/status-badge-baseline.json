@@ -2500,6 +2500,10 @@
    "background": "#e1fef2 / 어두운 화면 #10774d",
    "color": "#10774d / 어두운 화면 #2dbd82",
    "white-space": "nowrap"
+  },
+  "eval-cycle.css|.evmon-la .evc-status-badge.tone-neutral": {
+   "background": "rgba(0, 0, 0, 0.03) / 어두운 화면 rgba(255, 255, 255, 0.03)",
+   "color": "#858b95"
   }
  }
 }
