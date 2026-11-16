@@ -2890,9 +2890,11 @@
 .tl-emp-input.tl-recurrence-number {
   width: 72px;
 }
-/* 맞춤 «반복 간격 [N] [일·주·개월·년] 마다» 한 줄 — 고르기 칸(.tl-select · 폼 기본 100%)을 툴바 드롭다운처럼 글자 폭만 (pivit-work PW-2637) */
+/* 맞춤 «반복 간격 [N] [일·주·개월·년] 마다» 한 줄 — 고르기 칸(.tl-select · 폼 기본 100%)을 툴바 드롭다운(.tl-toolbar .tl-select · width auto)처럼 글자 폭만.
+   최소 120 — «맞춤 — 매주 화요일»처럼 긴 고른 값이 «…»로 잘리지 않게 120 고정을 풀었다 (pivit-work PW-2637 11-16 검토) */
 .tl-recurrence-row > .tl-select {
-  width: 120px;
+  width: auto;
+  min-width: 120px;
   flex: 0 0 auto;
 }
 .tl-emp-input.tl-recurrence-date {
