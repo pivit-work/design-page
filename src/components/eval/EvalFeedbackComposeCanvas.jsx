@@ -422,7 +422,7 @@ function BlockCard({ block, member, L, onOpen }) {
   /* [PW-1054] 답하지 않은 요청이 있을 때만 「내 차례」. 같은 화면 팀 목록의 「요청 N」은 서버가
      답 안 된 것만 센다 — 요청이 하나라도 있으면 띄우던 종전 판정은 답을 보낸 뒤에도 남았다.
      `resolvedAt` 이 없는(모르는) 요청은 종전대로 답 안 된 것으로 본다. */
-  const hasMyTurn = incoming.some((i) => !i.resolvedAt);
+  const hasMyTurn = incoming.some(isOpenRequest);
   /* [PW-1538] 「대기」는 마지막으로 보낸 피드백에 팀원이 아직 답하지 않았을 때만 (screen-feedback-manager
      §3.5 「피드백 전송 후 응답 대기」). 피드백이 있기만 하면 띄우던 종전 판정은 답이 온 뒤에도 남았다. */
   const lastFeedback = [...items]
@@ -743,6 +743,14 @@ function FeedbackBubble({ item, member, L, canModify, onEdit, onDelete, targetLa
   );
 }
 /**
+ * 아직 처리할 요청인가 — 답이 없고 닫히지 않았다. 매니저가 바뀌어 닫힌 요청(`closedAt`)은 미처리 수·「내 차례」에
+ * 들지 않는다(arch-feedback-data-model «요청 닫힘 시각» · PW-2784). `resolvedAt` 을 모르는 요청은 종전대로 열린 것으로 본다.
+ */
+function isOpenRequest(item) {
+  return !item.resolvedAt && !item.closedAt;
+}
+
+/**
  * 팀원이 보낸 요청. 나에게 온 것은 「받은 피드백 요청」, 동료에게 간 것은 받는 사람을 붙인 「요청」이다.
  * 답했는지는 팀원 본인 화면의 보낸 요청 말풍선과 같은 「대기중 / 응답됨」 칩으로 보인다 (PW-1736).
  * 이 말풍선에는 버튼이 없다 — 나에게 온 열린 요청의 답은 「받은 피드백 요청」 칸과 아래 작성칸이 맡는다.
@@ -750,6 +758,8 @@ function FeedbackBubble({ item, member, L, canModify, onEdit, onDelete, targetLa
 function RequestBubble({ item, L, targetLabel = null }) {
   const toMe = isToMe(item);
   const resolved = !!item.resolvedAt;
+  // 매니저가 바뀌어 닫힌 요청 — 미처리가 아니라 «대기중» 칩을 달지 않는다 (PW-2784).
+  const closed = !!item.closedAt;
   // 요청 글은 원온원 읽기 상자(.ono-my-readbox) — 내 답과 갈려 «무엇에 대한 답»인지 보이게(PW-2696).
   return (
     <div className="fbmgr-cm" data-testid={`fbmgr-request-${item.id}`}>
@@ -762,7 +772,7 @@ function RequestBubble({ item, L, targetLabel = null }) {
           </span>
         )}
         <Chip tone="accent" icon={<MailIcon size={11} />}>{toMe ? L.incomingReq : L.requestChip}</Chip>
-        {(resolved || !toMe) && (
+        {!closed && (resolved || !toMe) && (
           <Chip tone={resolved ? 'success' : 'warning'}>{resolved ? L.requestAnswered : L.requestPending}</Chip>
         )}
         {targetLabel && <Chip tone="info" title={targetLabel} style={LONG_CHIP}>{targetLabel}</Chip>}
@@ -1080,10 +1090,10 @@ function ThreadScreen({ member, thread, krs, initiatives, okrGroups, snippets, L
   // 목록 밖 대상 중 나에게 온 열린 요청이 걸린 것만 창을 열 수 있다(§3.4-A). 그 밖의 목록 밖 대상은
   // 예전처럼 «기타»에서 읽기만 하고, 딥링크도 «찾을 수 없음»으로 둔다(§3.1.1).
   const answerable = useMemo(
-    () => orphans.filter((b) => b.items.some((i) => isToMe(i) && !i.resolvedAt)),
+    () => orphans.filter((b) => b.items.some((i) => isToMe(i) && isOpenRequest(i))),
     [orphans],
   );
-  const openRequests = useMemo(() => items.filter((i) => isToMe(i) && !i.resolvedAt), [items]);
+  const openRequests = useMemo(() => items.filter((i) => isToMe(i) && isOpenRequest(i)), [items]);
 
   // 딥링크 진입(OKR 타인 KR 「전체 보기」 → `/feedback/team?member=…&kr=…`).
   // 멤버 뷰와 같은 규칙 — 열 블록은 **파생값**이고 state 로 복사하지 않는다.

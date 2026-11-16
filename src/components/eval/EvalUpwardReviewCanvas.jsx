@@ -5,6 +5,7 @@ import { AlertIcon, LockIcon, RefreshIcon } from './evalIcons.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import AiMark from '../shared/AiMark.jsx';
 import LoadingState from '../shared/LoadingState.jsx';
+import Button from '../shared/Button.jsx';
 
 /**
  * EvalUpwardReviewCanvas — 상향 리뷰 작성 (팀원 → 직속 리더). [PW-586]
@@ -30,6 +31,8 @@ import LoadingState from '../shared/LoadingState.jsx';
  * - doneSteps: [PW-1520] 제출 완료 화면의 「다음 단계」(제목·본문은 labels.form 의 doneTitle·doneBody)
  * - onSaveSuccess(): [임시저장] 단추로 저장이 끝났을 때(PW-1966 · 토스트는 소비자가 띄운다)
  * - aiDraftDisabledReason: AI 초안 근거가 없을 때의 이유(있으면 버튼이 꺼진다)
+ * - onSelectSheet(leaderId): [PW-2784] 평가지가 둘 이상(data.sheets — 겸직한 사람의 주 소속 조직장 · 겸직 쪽 조직장)일 때
+ *   다른 장의 [평가지 열기]를 눌렀다. 장마다 따로 제출한다. 대상 카드를 장마다 한 장씩 세우고, 지금 쓰는 장만 아래에 폼을 연다.
  */
 
 const DEFAULT_LABELS = {
@@ -64,6 +67,10 @@ const DEFAULT_LABELS = {
   leaderChangedSub:
     '{{name}}님 앞으로 쓰던 내용은 새 리더에 대한 글이 아니므로 옮기지 않습니다. 확인하면 쓰던 내용을 지우고 새 리더를 평가합니다.',
   leaderChangedConfirm: '확인하고 새로 쓰기',
+  // [PW-2784] 평가지가 둘일 때 카드마다의 꼬리표 · 그 장의 상태 · 다른 장으로 옮기는 버튼.
+  sheetKind: { primary: '주 소속', concurrent: '겸직' },
+  sheetStatus: { submitted: '제출 완료', saved: '작성 중', empty: '작성 전' },
+  sheetOpen: '평가지 열기',
   form: {},
 };
 
@@ -96,10 +103,76 @@ function mmdd(iso) {
   return `${get('month')}/${get('day')}`;
 }
 
-function TargetCard({ target, L }) {
+/** [PW-2784] 장의 상태 딱지 — 홈 상자와 같은 뜻의 색(제출 완료 초록 · 작성 중 파랑 · 작성 전 회색). */
+function SheetBadges({ sheet, L }) {
+  if (!sheet) return null;
+  const state = sheet.submitted ? 'submitted' : sheet.saved ? 'saved' : 'empty';
+  const tone = { submitted: 'success', saved: 'progress', empty: 'neutral' }[state];
+  return (
+    <span className="evu-sheet-badges">
+      <StatusBadge tone="neutral" className="evc-status-badge" data-testid={`evu-sheet-kind-${sheet.leaderId}`}>
+        {L.sheetKind[sheet.kind] ?? ''}
+      </StatusBadge>
+      <StatusBadge tone={tone} className="evc-status-badge" data-testid={`evu-sheet-status-${sheet.leaderId}`}>
+        {L.sheetStatus[state]}
+      </StatusBadge>
+    </span>
+  );
+}
+
+/** [PW-2784] 지금 쓰지 않는 장 — 같은 대상 카드 틀에 이름 · 꼬리표 · 상태와 [평가지 열기]. */
+function OtherSheetCard({ sheet, L, onSelectSheet }) {
+  return (
+    <section className="evc-card evu-target" data-testid={`evu-sheet-${sheet.leaderId}`}>
+      <span
+        className="evu-avatar"
+        style={sheet.color ? { background: sheet.color } : undefined}
+        aria-hidden
+      >
+        {(sheet.name || '?').slice(0, 1)}
+        <AvatarPhoto photo={sheet.avatar} name={sheet.name} />
+      </span>
+      <div className="evu-target-body">
+        <span className="evc-card-name">{sheet.name}</span>
+        <SheetBadges sheet={sheet} L={L} />
+      </div>
+      <Button
+        variant="secondary"
+        size="sm"
+        className="evu-sheet-open"
+        onClick={() => onSelectSheet && onSelectSheet(sheet.leaderId)}
+        data-testid={`evu-sheet-open-${sheet.leaderId}`}
+      >
+        {L.sheetOpen}
+      </Button>
+    </section>
+  );
+}
+
+/**
+ * 대상 카드 자리. 평가지가 한 장이면 종전 카드 하나, 둘 이상이면 장마다 한 장(서버가 준 순서 — 주 소속 먼저).
+ */
+function TargetCards({ data, L, onSelectSheet }) {
+  const sheets = Array.isArray(data?.sheets) ? data.sheets : [];
+  if (!data?.target) return null;
+  if (sheets.length < 2) return <TargetCard target={data.target} L={L} />;
+  return sheets.map((sheet) =>
+    sheet.leaderId === data.target.id ? (
+      <TargetCard key={sheet.leaderId} target={data.target} sheet={sheet} L={L} />
+    ) : (
+      <OtherSheetCard key={sheet.leaderId} sheet={sheet} L={L} onSelectSheet={onSelectSheet} />
+    ),
+  );
+}
+
+function TargetCard({ target, sheet = null, L }) {
   const meta = [target.jobPosition, target.department].filter(Boolean).join(' · ');
   return (
-    <section className="evc-card evu-target" data-testid="evu-target">
+    <section
+      className="evc-card evu-target"
+      data-testid="evu-target"
+      aria-current={sheet ? 'true' : undefined}
+    >
       <span
         className="evu-avatar"
         style={target.color ? { background: target.color } : undefined}
@@ -112,6 +185,7 @@ function TargetCard({ target, L }) {
         <span className="evc-card-name">{target.name}</span>
         {meta && <span className="evc-card-meta">{meta}</span>}
         <span className="evu-target-relation">{L.targetRelation}</span>
+        <SheetBadges sheet={sheet} L={L} />
       </div>
       {/* [PW-2685] AI 표시는 디자이너 AI 딱지(.ons-ai-tag — 연보라·옅은 테두리·AI 아이콘), 카드 오른쪽. */}
       <StatusBadge className="ons-ai-tag evu-ai-tag" data-testid="evu-target-ai-badge">
@@ -175,6 +249,7 @@ export default function EvalUpwardReviewCanvas({
   onConfirmLeaderChange,
   onSaveError,
   onSaveSuccess,
+  onSelectSheet,
   aiDraftDisabledReason = null,
   // [PW-1520] §6 제출 완료 화면의 「다음 단계」 — [{ key, label, done }]. 없으면 «제출 완료» 띠만.
   doneSteps = null,
@@ -199,7 +274,7 @@ export default function EvalUpwardReviewCanvas({
       </header>
       {withNotice && (
         <div className="evc-list">
-          {data?.target && <TargetCard target={data.target} L={L} />}
+          <TargetCards data={data} L={L} onSelectSheet={onSelectSheet} />
           <AnonymityNotice
             target={data?.target ?? null}
             reviewerCount={data?.reviewerCount ?? 0}
@@ -299,6 +374,8 @@ export default function EvalUpwardReviewCanvas({
 
   return (
     <EvalCycleMemberCanvas
+      // [PW-2784] 다른 평가지로 옮기면 폼을 새로 연다 — 앞 장에 쓰던 칸이 다음 장에 남지 않게.
+      key={data.target.id}
       cycle={cycleLine ? { ...data.cycle, name: cycleLine } : data.cycle}
       status={data.submitted ? 'submitted' : 'in_progress'}
       answers={data.answers}
@@ -324,7 +401,7 @@ export default function EvalUpwardReviewCanvas({
       showVisibility={!!data.template?.items?.some((it) => it.visibilityNote?.text)}
       headerSlot={
         <div className="evc-list">
-          <TargetCard target={data.target} L={L} />
+          <TargetCards data={data} L={L} onSelectSheet={onSelectSheet} />
           <AnonymityNotice
             target={data.target}
             reviewerCount={data.reviewerCount}

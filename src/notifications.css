@@ -1,3 +1,4 @@
+@import './status-badge.css';
 /* ══════════════════════════════════════════════════════════
    알림 센터 (NotificationCenterCanvas) — prefix: ncc-
    무엇을 보여 주나: pivit-specs K. 내-설정/settings-app.jsx 의 NotificationCenterViewScreen

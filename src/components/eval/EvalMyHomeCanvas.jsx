@@ -14,7 +14,9 @@ import { FileTextGlyph, PencilGlyph, PieChartGlyph, UserGlyph, UsersGlyph } from
  * 셀프 + 동료(주는 리뷰) + 팀원 하향 + 캘리브레이션 + 결과를 «내가 해야 할 일» 한 장에 모은다.
  * 무엇을 그릴지(어느 단계가 있나·상태·마감)는 앱이 정해 넘기고, 이 캔버스는 그리기만 한다.
  *
- *   cycles[{ id, name, period, calibrationEnabled?, paused?, phases[{ id, label, due, status, actionable, evaluator }] }]
+ *   cycles[{ id, name, period, calibrationEnabled?, paused?, phases[{ id, label, due, status, actionable, evaluator, countLabel?, lines? }] }]
+ *     countLabel·lines — [PW-2784] 상향 리뷰 평가지가 둘인 겸직한 사람: «2건» 딱지와 리더마다 한 줄
+ *       lines[{ key, name, tag, status }] — 이름 · «주 소속»/«겸직» 꼬리표 · 그 장의 상태 딱지(같은 라벨 사전·색).
  *     paused === true 면 관리자가 일시 중단한 평가다(PW-2423) — 배지를 「일시 중단」(warning)으로, 카드에 중단 안내 줄.
  *     calibrationEnabled === false 면 캘리브레이션 칩을 그리지 않는다 (member §10.1 M2).
  *     status: 라벨 사전(member §3.2-A · PW-1970) — 모양은 §3.2 세 가지 중 하나다
@@ -166,7 +168,32 @@ function PhaseBox({ cycleId, phase, L, onPhaseClick }) {
           {waitsForSelf && (
             <span className="evmh-phase-due">{L.peerWaitsSelf}</span>
           )}
+          {/* [PW-2784] 평가지 수 — 상자 상태 딱지 옆, 알려 주기만 하는 회색 딱지(statusBadgeTones «neutral»). */}
+          {phase.countLabel && (
+            <StatusBadge tone="neutral" className="evc-status-badge" data-testid={`evmh-phase-${cycleId}-${phase.id}-count`}>
+              {phase.countLabel}
+            </StatusBadge>
+          )}
         </span>
+        {/* [PW-2784] 리더마다 한 줄 — 같은 상자의 아래 줄(.evmh-phase-bottom)과 같은 줄 모양·딱지를 쓴다. */}
+        {(phase.lines || []).map((line) => (
+          <span
+            key={line.key}
+            className="evmh-phase-bottom"
+            data-testid={`evmh-phase-${cycleId}-${phase.id}-line-${line.key}`}
+          >
+            <span className="evmh-phase-due">{line.name}</span>
+            <StatusBadge tone="neutral" className="evc-status-badge">
+              {line.tag}
+            </StatusBadge>
+            <StatusBadge
+              tone={STATUS_TONE[line.status] || SHAPE_TONE[STATUS_SHAPE[line.status] || 'idle']}
+              className="evc-status-badge"
+            >
+              {L.status[line.status] || line.status}
+            </StatusBadge>
+          </span>
+        ))}
       </span>
       {done && (
         <span className="evmh-phase-check" aria-hidden>

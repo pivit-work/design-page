@@ -80,14 +80,24 @@ export function formatMonthDayTime(iso) {
   return `${md} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
-/** 칸 하나를 id 로 갈아 끼운 새 rows. 바뀐 것이 없으면 같은 배열. */
+/**
+ * 칸 하나를 id 로 갈아 끼운 새 rows. 바뀐 것이 없으면 같은 배열.
+ * pivit-work PW-2784 — 겸직한 사람의 «겸직 조직장» 칸(`concurrentCells`)도 같은 길로 찾는다.
+ */
 export function replaceLiveCell(rows, next) {
   if (!next?.id) return rows;
   let changed = false;
+  const swap = (list) => list.map((c) => (c.id === next.id ? { ...c, ...next } : c));
   const out = (rows ?? []).map((r) => {
-    if (!r.cells?.some((c) => c.id === next.id)) return r;
-    changed = true;
-    return { ...r, cells: r.cells.map((c) => (c.id === next.id ? { ...c, ...next } : c)) };
+    if (r.cells?.some((c) => c.id === next.id)) {
+      changed = true;
+      return { ...r, cells: swap(r.cells) };
+    }
+    if (r.concurrentCells?.some((c) => c.id === next.id)) {
+      changed = true;
+      return { ...r, concurrentCells: swap(r.concurrentCells) };
+    }
+    return r;
   });
   return changed ? out : rows;
 }

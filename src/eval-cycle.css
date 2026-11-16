@@ -16704,6 +16704,17 @@ button.evmh-phase:focus-visible {
 .evu-target .evu-ai-tag {
   margin-left: auto;
 }
+/* [PW-2784] 평가지가 둘(겸직한 사람)일 때 — 카드의 «주 소속»/«겸직» 꼬리표와 상태 딱지 줄, 다른 장의 [평가지 열기]는 AI 딱지 자리(오른쪽 끝). */
+.evu-sheet-badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+.evu-target .evu-sheet-open {
+  margin-left: auto;
+  flex-shrink: 0;
+}
 .evc-card.evu-target .evu-avatar {
   background: var(--bg-active);
   color: var(--text-secondary);

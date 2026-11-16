@@ -37,9 +37,19 @@ export const REQUEST_DEFAULT_LABELS = {
 /**
  * 팀원 1on1 화면 제목 줄 오른쪽 끝 — 대기 신청이 없으면 [1on1 신청], 있으면 칩 + [신청 취소].
  * «내 매니저»가 없으면 호출부가 그리지 않는다.
+ *
+ * `pendings` 를 주면 매니저마다 대기 신청을 따로 그린다(pivit-work PW-2784 · 기획 §13-10 «한 번에 하나» U1 덧붙임 —
+ * 겸직한 팀원은 두 조직장에게 각각 대기 1건씩 둘 수 있다): 대기 신청마다 칩(`label` — 받는 사람 이름이 든 글) +
+ * 그 신청만 취소하는 [신청 취소], 그 아래 그 신청의 실패 줄. `canRequest` 면 옆에 [1on1 신청]도 그린다(아직 대기가
+ * 없는 매니저가 있을 때). 칩 · 버튼 · 줄은 한 사람일 때와 같은 부품 · 클래스다 — 새 모양이 없다.
+ *   pendings   [{ id, label, cancelling?, error? }]
+ *   canRequest [1on1 신청]을 함께 그리나
+ *   onCancel(id)
  */
 export function MemberRequestHeaderSlot({
   pending,
+  pendings,
+  canRequest = false,
   onOpen,
   onCancel,
   cancelling = false,
@@ -49,6 +59,45 @@ export function MemberRequestHeaderSlot({
   baseUrl = '',
 }) {
   const L = { ...REQUEST_DEFAULT_LABELS, ...(labels || {}) };
+  if (Array.isArray(pendings)) {
+    return (
+      <>
+        {pendings.length > 0 && (
+          <div className="ono-request-pending" data-testid="ono-request-pending">
+            {pendings.map((p) => (
+              <div key={p.id} data-testid="ono-request-pending-item" data-request-id={p.id}>
+                <div className="ono-request-pending-row">
+                  <StatusBadge tone="neutral" className="ono-mem-chip" data-testid="ono-request-pending-chip">
+                    {p.label}
+                  </StatusBadge>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    pending={!!p.cancelling}
+                    onClick={() => onCancel?.(p.id)}
+                    data-testid="ono-request-cancel"
+                  >
+                    {L.cancel}
+                  </Button>
+                </div>
+                {p.error && (
+                  <p className="ono-done-inline-error" role="alert" data-testid="ono-request-cancel-error">
+                    {p.error}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+        {canRequest && (
+          <button type="button" className="ono-add-btn" onClick={onOpen} data-testid="ono-request-open">
+            <Icon src={icons?.plus} size={20} color="var(--text-white)" baseUrl={baseUrl} />
+            <span>{L.requestButton}</span>
+          </button>
+        )}
+      </>
+    );
+  }
   if (!pending) {
     return (
       <button type="button" className="ono-add-btn" onClick={onOpen} data-testid="ono-request-open">

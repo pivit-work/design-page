@@ -582,6 +582,8 @@ function MemberCard({ member, tone, icons, baseUrl, onAction, onCardClick, rende
     <div
       className={`ono-member-card${tone === 'brand' ? ' is-brand' : ''}${onCardClick ? ' is-clickable' : ''}`}
       onClick={onCardClick}
+      // 알림을 눌러 온 매니저를 그 팀원 카드로 내린다 — 겸직 팀원 신청을 고르지 않은 조직장(pivit-work PW-2784 · §3-0-A U1)
+      data-member-id={member.userId ?? undefined}
     >
       <div className="ono-member-top">
         <div className="ono-member-identity">

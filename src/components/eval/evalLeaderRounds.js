@@ -552,3 +552,48 @@ export function leaderRuleText(L, r, unitNameOf, personNameOf) {
         });
   return `${conds.join(` ${L.leaderRuleAnd} `) || L.leaderRuleAll} → ${action}`;
 }
+
+/* ── pivit-work PW-2784 — 겸직한 대상자의 «겸직 조직장» 칸 ──────────────────────────────────────────
+   서버 칸 중 `round === 0` 이 그 칸이다(겸직 단위마다). 차수가 아니라 차수 칸들과 따로 선 칸이라 위자드는 차수 칸
+   (`cells`)과 따로 든다 — 경고·부담·묶음 지문·일괄 조정은 차수 칸만 본다. 평가자는 서버가 겸직 쪽 조직장으로
+   다시 정하고, HR 은 빼거나 다시 넣기만 한다(뺀 칸 = `origin: 'adjusted'` · `skipped`). */
+export const CONCURRENT_ROUND = 0;
+
+/** 서버 칸에서 «겸직 조직장» 칸만 — 위자드가 들 모양으로. */
+export function concurrentCellsOf(serverCells) {
+  return (serverCells ?? [])
+    .filter((c) => c && c.round === CONCURRENT_ROUND && c.concurrentUnitId)
+    .map((c) => ({
+      evaluateeId: c.evaluateeId,
+      round: CONCURRENT_ROUND,
+      concurrentUnitId: c.concurrentUnitId,
+      concurrentUnitName: c.concurrentUnitName ?? null,
+      evaluatorId: c.skipped ? null : c.evaluatorId ?? null,
+      recommendedEvaluatorId: c.recommendedEvaluatorId ?? null,
+      origin: c.origin === 'adjusted' ? 'adjusted' : 'recommended',
+      skipped: !!c.skipped,
+    }));
+}
+
+/** 추천·확정 요청에 실을 «겸직 조직장» 칸 — 서버는 «뺐나»만 읽는다. */
+export function concurrentCellsForRequest(cells) {
+  return (cells ?? []).map((c) => ({
+    evaluateeId: c.evaluateeId,
+    round: CONCURRENT_ROUND,
+    concurrentUnitId: c.concurrentUnitId,
+    evaluatorId: c.skipped ? null : c.evaluatorId ?? null,
+    origin: c.skipped ? 'adjusted' : 'recommended',
+    skipped: !!c.skipped,
+  }));
+}
+
+/** 칸 하나를 뺀다(`remove`)·다시 넣는다. 다시 넣으면 추천(겸직 쪽 조직장)으로 돌아간다. */
+export function toggleConcurrentCell(cells, evaluateeId, unitId, remove) {
+  return (cells ?? []).map((c) =>
+    c.evaluateeId === evaluateeId && c.concurrentUnitId === unitId
+      ? remove
+        ? { ...c, evaluatorId: null, skipped: true, origin: 'adjusted' }
+        : { ...c, evaluatorId: c.recommendedEvaluatorId ?? null, skipped: false, origin: 'recommended' }
+      : c,
+  );
+}

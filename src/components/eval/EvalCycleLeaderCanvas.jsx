@@ -145,6 +145,7 @@ const DEFAULT_LABELS = {
   gradeLockedNote: '',
   // PW-1594 하향 차수(리더 정책 §5.13). `{name}`·`{round}`·`{next}`·`{at}`·`{date}` 자리를 채운다.
   roundTitle: '{name} — 하향 리뷰 · {round}차',
+  concurrentTitle: '{name} — 하향 리뷰 · 겸직 조직장',
   gradeRoundNote: '이 등급은 {next}차가 제출되면 참고 등급이 됩니다',
   // PW-2737 leader §5.3 「고른 최종 등급을 비우는 길」 — 고른 등급을 다시 누르면 비워진다는 안내.
   gradeClearHint: '고른 등급을 다시 누르면 선택이 풀립니다',
@@ -704,6 +705,12 @@ export default function EvalCycleLeaderCanvas({
    */
   round = 1,
   rounds = 1,
+  /**
+   * pivit-work PW-2784 — «겸직 조직장» 칸(차수가 아니라 1차와 함께 열리는 따로 선 칸). 머리를
+   * `labels.concurrentTitle`(`{name}`)로 쓰고, 승진·보상 어세스먼트(부가 평가 카드)를 그리지 않는다 — 9블록은
+   * 주 소속 쪽 하향 등급에서만 나온다.
+   */
+  concurrentSlot = false,
   /** 위 차수가 배정됐으면 등급 카드 아래 `labels.gradeRoundNote`(`{next}`). */
   higherRoundAssigned = false,
   /**
@@ -793,7 +800,7 @@ export default function EvalCycleLeaderCanvas({
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const formLocked = locked ?? submitted;
-  const assessmentLocked = assessmentLockedProp || (locked ?? false);
+  const assessmentLocked = assessmentLockedProp || (locked ?? false) || concurrentSlot;
   // 평가지에 놓인 순서 그대로의 항목 전부 — 질문과 설명이 섞여 있다.
   const entries = useMemo(() => buildFields(template, L), [template, L]);
   /** [PW-602 ④ 불변식 ②] 답을 받는 항목만. 진행률·필수 검증은 전부 이것을 본다. */
@@ -1481,7 +1488,9 @@ export default function EvalCycleLeaderCanvas({
 
   // PW-1594 §5.13.3 — 차수가 둘 이상인 사이클은 `{이름} — 하향 리뷰 · {k}차`.
   const titleText =
-    rounds >= 2 && L.roundTitle
+    concurrentSlot && L.concurrentTitle
+      ? fillLabel(L.concurrentTitle, { name: evaluateeName || '' }).replace(/^\s*—\s*/, '')
+      : rounds >= 2 && L.roundTitle
       ? fillLabel(L.roundTitle, { name: evaluateeName || '', round }).replace(/^\s*—\s*/, '')
       : `${L.title}${evaluateeName ? ` — ${evaluateeName}` : ''}`;
   const header = (
@@ -1967,6 +1976,7 @@ export default function EvalCycleLeaderCanvas({
           {/* F5 위원회 전용 코멘트 + 승진·보상 — leader §5.7·§5.8 비공개 영역.
               PW-2685 — 시안 manager_leader-review: 두 상자를 «부가 평가» 제목 흰 카드 하나로 묶고, 비공개는
               자물쇠 딱지·안내 줄이 말한다. [부가 평가 저장]은 카드 맨 아래 오른쪽. */}
+          {!concurrentSlot && (
           <section className="evc-card evlr-assess" data-testid="evl-assessment">
             <h3 className="evc-card-name evlr-assess-title">{L.assessmentGroupTitle}</h3>
             <div className="evlr-assess-q" data-testid="evl-confidential-card">
@@ -2134,6 +2144,7 @@ export default function EvalCycleLeaderCanvas({
             </div>
             )}
           </section>
+          )}
 
           {!formLocked && (
             <div className="evm-submit-bar">

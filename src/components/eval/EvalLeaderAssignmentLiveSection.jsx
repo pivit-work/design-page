@@ -66,6 +66,13 @@ const DEFAULT_LABELS = {
   liveRetry: '다시 시도',
   liveEmpty: '하향 평가 대상자가 없습니다.',
   liveCellAria: '{{name}} {{round}}차 평가자 바꾸기',
+  // pivit-work PW-2784 — 겸직 조직장 칸 · 주 소속 변경 이관.
+  liveColConcurrent: '겸직 조직장',
+  liveConcurrentUnit: '겸직 {{unit}}',
+  liveConcurrentCellAria: '{{name}} 겸직 조직장 평가자 바꾸기',
+  liveTransferred: '이관됨 · {{from}} → {{to}} · {{date}}',
+  liveFormerLeader: '제출 · {{name}}(이전 조직장)',
+  liveNewLeader: '새 조직장 {{name}}이(가) 지정됐습니다 — 평가자 바꾸기',
 };
 
 /**
@@ -167,9 +174,17 @@ export default function EvalLeaderAssignmentLiveSection({
       (a, b) => a.rank - b.rank || String(a.name).localeCompare(String(b.name), 'ko'),
     );
   }, [rows, L.leaderToolGroupNone, L.leaderToolGroupRootDirect]);
+  /* pivit-work PW-2784 — 겸직한 사람의 «겸직 조직장» 칸(차수 칸 옆 한 칸). 있는 사람이 하나라도 있으면 열이 선다. */
+  const allCellsOf = (r) => [...(r.cells ?? []), ...(r.concurrentCells ?? [])];
+  const concurrentOn = rows.some((r) => (r.concurrentCells ?? []).length > 0);
   /** 오픈 뒤 «경고» = 퇴사한 평가자가 아직 안 낸 칸(재배정 대상 · §5.13.6). */
   const warned = useMemo(
-    () => new Set(rows.filter((r) => r.cells?.some((c) => c.resigned && c.state !== 'submitted')).map((r) => r.evaluateeId)),
+    () =>
+      new Set(
+        rows
+          .filter((r) => allCellsOf(r).some((c) => c.resigned && c.state !== 'submitted'))
+          .map((r) => r.evaluateeId),
+      ),
     [rows],
   );
   const liveCells = useMemo(
@@ -213,8 +228,14 @@ export default function EvalLeaderAssignmentLiveSection({
   const loadBy = useMemo(() => {
     const m = new Map();
     liveCells.forEach((c) => !c.skipped && c.evaluatorId && m.set(c.evaluatorId, (m.get(c.evaluatorId) ?? 0) + 1));
+    // pivit-work PW-2784 — «겸직 조직장» 칸도 그 사람이 쓸 리뷰다.
+    rows.forEach((r) =>
+      (r.concurrentCells ?? []).forEach(
+        (c) => !isLiveCellSkipped(c) && c.evaluatorId && m.set(c.evaluatorId, (m.get(c.evaluatorId) ?? 0) + 1),
+      ),
+    );
     return m;
-  }, [liveCells]);
+  }, [liveCells, rows]);
   const evaluatorView = tools.view === 'evaluator';
   const evQuery = tools.query.trim().toLowerCase();
   const evaluatorRows = evaluatorView
@@ -225,7 +246,7 @@ export default function EvalLeaderAssignmentLiveSection({
   const liveLoadLimit = loadLimit ?? LEADER_LOAD_LIMIT_DEFAULT;
   const filtered = hasLeaderFilter(tools.filter) || !!tools.query.trim();
   const visibleIds = visibleRows.map((r) => r.id);
-  const cols = n + 1 + (bulkOn ? 1 : 0);
+  const cols = n + 1 + (bulkOn ? 1 : 0) + (concurrentOn ? 1 : 0);
   const cellAt = (evaluateeId, round) => cellsByRow.get(evaluateeId)?.find((c) => c.round === round) ?? null;
   const applyBulk = async (action, personId) => {
     // 지난 결과 줄은 지운다 — 이번이 실패했는데 앞의 «적용했습니다»가 남으면 성공으로 읽힌다.
@@ -253,6 +274,9 @@ export default function EvalLeaderAssignmentLiveSection({
   };
   // 배지 글자 — 제출일·시작일을 채우는 배지만 날짜가 붙는다(PW-2802 «시작 전 MM/DD»).
   const badgeText = (badge, c) => {
+    // pivit-work PW-2784 — 주 소속이 바뀌기 전에 낸 칸 «제출 · 박A(이전 조직장)».
+    if (badge.key === 'liveSubmitted' && c.formerLeader)
+      return fill(L.liveFormerLeader, { name: c.evaluatorName ?? '' }).trim();
     if (badge.key === 'liveSubmitted') return fill(L.liveSubmitted, { date: formatMonthDay(c.submittedAt) }).trim();
     if (badge.key === 'liveNotStarted') return fill(L.liveNotStarted, { date: formatMonthDay(c.opensAt) }).trim();
     return L[badge.key];
@@ -275,7 +299,7 @@ export default function EvalLeaderAssignmentLiveSection({
   let openCell = null;
   if (openCellId) {
     for (const r of rows) {
-      const c = r.cells?.find((x) => x.id === openCellId);
+      const c = allCellsOf(r).find((x) => x.id === openCellId);
       if (c) {
         openRow = r;
         openCell = c;
@@ -298,8 +322,8 @@ export default function EvalLeaderAssignmentLiveSection({
     : [];
   const openActs = openCell ? liveCellActions(openCell, readOnly) : null;
 
-  const renderCell = (row, k) => {
-    const c = row.cells?.find((x) => x.round === k);
+  const renderCell = (row, k, concurrentCell = null) => {
+    const c = concurrentCell ?? row.cells?.find((x) => x.round === k);
     if (!c) return <span className="evc-la-muted">—</span>;
     const acts = liveCellActions(c, readOnly);
     const skipped = isLiveCellSkipped(c);
@@ -318,9 +342,11 @@ export default function EvalLeaderAssignmentLiveSection({
       </span>
     ) : (
       <span className="evc-la-name-row">
-        <span className={`evc-la-name${c.resigned && c.state !== 'submitted' ? ' is-resigned' : ''}`}>
-          {c.evaluatorName || '—'}
-        </span>
+        {!c.formerLeader && (
+          <span className={`evc-la-name${c.resigned && c.state !== 'submitted' ? ' is-resigned' : ''}`}>
+            {c.evaluatorName || '—'}
+          </span>
+        )}
         {badge && (
           <Tooltip
             content={
@@ -354,7 +380,11 @@ export default function EvalLeaderAssignmentLiveSection({
         data-leader-live-cell={c.id}
         aria-haspopup="true"
         aria-expanded={openCellId === c.id}
-        aria-label={fill(L.liveCellAria, { name: row.evaluateeName, round: k })}
+        aria-label={
+          concurrentCell
+            ? fill(L.liveConcurrentCellAria, { name: row.evaluateeName })
+            : fill(L.liveCellAria, { name: row.evaluateeName, round: k })
+        }
         disabled={busy}
         onClick={() => {
           if (openCellId === c.id) closePick();
@@ -395,6 +425,35 @@ export default function EvalLeaderAssignmentLiveSection({
           >
             {L.liveForceOpen}
           </Button>
+        )}
+        {/* pivit-work PW-2784 — 주 소속이 바뀌어 넘어온 칸. «앞 차수 없이 열기»와 같은 자리(같은 줄 오른쪽). */}
+        {c.transferredFrom && (
+          <StatusBadge className="evc-status-badge tone-neutral" data-testid={`evmon-la-transferred-${c.id}`}>
+            {fill(L.liveTransferred, {
+              from: c.transferredFrom.name ?? '',
+              to: c.evaluatorName ?? '',
+              date: formatMonthDay(c.transferredFrom.at),
+            })}
+          </StatusBadge>
+        )}
+        {/* 같은 줄 오른쪽 작은 보조 버튼 — «앞 차수 없이 열기»(PW-2884)와 같은 부품. 누르면 그 칸의 평가자 고르기가 열린다. */}
+        {c.newLeader && acts.canEdit && (
+          <Button
+            variant="secondary"
+            size="sm"
+            className="evmon-la-force"
+            disabled={busy}
+            onClick={() => {
+              setOpenCellId(c.id);
+              setPickQuery(c.newLeader.name ?? '');
+            }}
+            data-testid={`evmon-la-new-leader-${c.id}`}
+          >
+            {fill(L.liveNewLeader, { name: c.newLeader.name ?? '' })}
+          </Button>
+        )}
+        {concurrentCell && c.concurrentUnitName && (
+          <span className="evc-la-hint">{fill(L.liveConcurrentUnit, { unit: c.concurrentUnitName })}</span>
         )}
       </span>
     );
@@ -531,6 +590,9 @@ export default function EvalLeaderAssignmentLiveSection({
                 {roundList.map((k) => (
                   <RosterTable.HeadCell key={k}>{fill(L.liveColRound, { round: k })}</RosterTable.HeadCell>
                 ))}
+                {concurrentOn && (
+                  <RosterTable.HeadCell data-testid="evmon-la-col-concurrent">{L.liveColConcurrent}</RosterTable.HeadCell>
+                )}
               </RosterTable.Head>
               <RosterTable.Body>
                 {visibleRows.length === 0 ? (
@@ -609,6 +671,19 @@ export default function EvalLeaderAssignmentLiveSection({
                             {roundList.map((k) => (
                               <RosterTable.Cell key={k}>{renderCell(r, k)}</RosterTable.Cell>
                             ))}
+                            {concurrentOn && (
+                              <RosterTable.Cell>
+                                {(r.concurrentCells ?? []).length === 0 ? (
+                                  <span className="evc-la-muted">—</span>
+                                ) : (
+                                  <span className="evc-la-person">
+                                    {r.concurrentCells.map((c) => (
+                                      <Fragment key={c.id}>{renderCell(r, 0, c)}</Fragment>
+                                    ))}
+                                  </span>
+                                )}
+                              </RosterTable.Cell>
+                            )}
                           </RosterTable.Row>
                         ))}
                       </Fragment>

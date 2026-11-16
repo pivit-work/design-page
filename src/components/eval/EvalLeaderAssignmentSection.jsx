@@ -122,6 +122,14 @@ export default function EvalLeaderAssignmentSection({
   /* ── PW-2066 · HR §5.13.10 ─────────────────────────────────────────────── */
   /** 일괄 조정 `(refs, action, personId) → { applied, skippedSelf }`. 없으면 체크·일괄 바를 그리지 않는다. */
   onBulk,
+  /* ── pivit-work PW-2784 ─────────────────────────────────────────────────── */
+  /**
+   * 겸직한 대상자의 «겸직 조직장» 칸 `[{ evaluateeId, concurrentUnitId, concurrentUnitName, evaluatorId, skipped }]`.
+   * 차수 칸 옆에 한 칸 더 선다 — 비면 열도 서지 않는다. 평가자는 겸직 쪽 조직장(추천)뿐이고 HR 은 빼거나 다시 넣기만 한다.
+   */
+  concurrentCells = [],
+  /** `(evaluateeId, concurrentUnitId, remove)` — 칸을 뺀다(true) · 다시 넣는다(false). */
+  onConcurrentToggle,
 }) {
   const [warnOnly, setWarnOnly] = useState(false);
   const tools = useLeaderTableTools(rounds);
@@ -410,7 +418,46 @@ export default function EvalLeaderAssignmentSection({
 
   /* PW-2066 · §5.13.10 — 일괄 조정 · 평가자 기준 보기. */
   const T = { ...LEADER_TOOL_LABELS, ...L };
-  const cols = rounds + 1 + (bulkOn ? 1 : 0);
+  /* pivit-work PW-2784 — «겸직 조직장» 열은 겸직한 대상자가 있을 때만. 사람마다 첫 겸직 칸을 그린다. */
+  const concurrentOn = concurrentCells.length > 0;
+  const concurrentOf = (id) => concurrentCells.find((c) => c.evaluateeId === id) ?? null;
+  const cols = rounds + 1 + (bulkOn ? 1 : 0) + (concurrentOn ? 1 : 0);
+  const renderConcurrentCell = (row) => {
+    const c = concurrentOf(row.id);
+    if (!c) return <span className="evc-la-muted">—</span>;
+    const key = `${row.id}:c`;
+    const ev = !c.skipped && c.evaluatorId ? personOf(c.evaluatorId) : null;
+    return (
+      <button
+        type="button"
+        className={`evc-la-cell${openCell?.key === key ? ' is-open' : ''}`}
+        data-leader-cell={key}
+        aria-haspopup="true"
+        aria-expanded={openCell?.key === key}
+        aria-label={fill(L.leaderAsgConcurrentAria, { name: row.name })}
+        onClick={() => {
+          if (openCell?.key === key) closePick();
+          else setOpenCell({ key, evaluateeId: row.id, round: 0, unitId: c.concurrentUnitId });
+        }}
+        data-testid={`evc-la-concurrent-${row.id}`}
+        data-state={c.skipped ? 'skipped' : 'recommended'}
+      >
+        {c.skipped ? (
+          <span className="evc-la-name-row">
+            <span className="evc-la-muted">{L.leaderAsgConcurrentRemoved}</span>
+          </span>
+        ) : (
+          <span className="evc-la-name-row">
+            <span className="evc-la-name">{ev?.name ?? c.evaluatorName ?? c.evaluatorId}</span>
+            <StatusBadge className="evc-status-badge tone-neutral">
+              {fill(L.leaderAsgConcurrentUnit, { unit: c.concurrentUnitName ?? '' })}
+            </StatusBadge>
+          </span>
+        )}
+      </button>
+    );
+  };
+  const openConcurrent = openCell?.round === 0 ? concurrentOf(openCell.evaluateeId) : null;
   const visibleIds = visibleRows.map((r) => r.id);
   const filtered = hasLeaderFilter(tools.filter) || !!query.trim();
   const rowName = useMemo(() => new Map(rows.map((r) => [r.id, r.name])), [rows]);
@@ -969,6 +1016,13 @@ export default function EvalLeaderAssignmentSection({
                 <StatusBadge className="evc-type-badge">{fill(L.leaderAsgColRound, { round: k })}</StatusBadge>
               </RosterTable.HeadCell>
             ))}
+            {concurrentOn && (
+              <RosterTable.HeadCell>
+                <StatusBadge className="evc-type-badge" data-testid="evc-la-col-concurrent">
+                  {L.leaderAsgColConcurrent}
+                </StatusBadge>
+              </RosterTable.HeadCell>
+            )}
           </RosterTable.Head>
           <RosterTable.Body>
             {visibleRows.length === 0 ? (
@@ -1099,12 +1153,43 @@ export default function EvalLeaderAssignmentSection({
                     {roundList.map((k) => (
                       <RosterTable.Cell key={k}>{renderCell(r, k)}</RosterTable.Cell>
                     ))}
+                    {concurrentOn && <RosterTable.Cell>{renderConcurrentCell(r)}</RosterTable.Cell>}
                   </RosterTable.Row>
                 );
               })
             )}
           </RosterTable.Body>
         </RosterTable>
+      )}
+
+      {openCell && openConcurrent && (
+        <AnchoredLayer
+          anchorSelector={`[data-leader-cell="${openCell.key}"]`}
+          panelRef={panelRef}
+          width={260}
+          maxHeight={320}
+          className="evc-la-pop"
+          role="group"
+          aria-label={L.leaderAsgColConcurrent}
+          data-testid="evc-la-concurrent-pop"
+        >
+          <span className="evc-la-hint">
+            {fill(L.leaderAsgConcurrentHint, { unit: openConcurrent.concurrentUnitName ?? '' })}
+          </span>
+          <div className="evc-la-pop-actions">
+            <button
+              type="button"
+              className="evc-btn is-ghost"
+              onClick={() => {
+                onConcurrentToggle?.(openConcurrent.evaluateeId, openConcurrent.concurrentUnitId, !openConcurrent.skipped);
+                closePick();
+              }}
+              data-testid="evc-la-concurrent-toggle"
+            >
+              {openConcurrent.skipped ? L.leaderAsgConcurrentRestore : L.leaderAsgConcurrentRemove}
+            </button>
+          </div>
+        </AnchoredLayer>
       )}
 
       {openCell && openCellObj && (

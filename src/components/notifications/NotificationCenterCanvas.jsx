@@ -1,6 +1,7 @@
 import Icon from '../shared/Icon.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import LoadMoreButton from '../shared/LoadMoreButton.jsx';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import { isEnterKey } from '../shared/enterKey.js';
 
 // 분류 아이콘 — design-page 아이콘 모음(public/icons-solid). 색은 감싸는 요소의 color 로 준다.
@@ -26,11 +27,14 @@ const CATEGORY_ICONS = {
  *
  * Props:
  *   baseUrl      정적 에셋 base path (아이콘). 생략하면 사이트 루트
- *   items        [{ id, category, title, body, timeLabel, unread, actionable, actionLabel? }]
+ *   items        [{ id, category, title, body, timeLabel, unread, actionable, actionLabel?, statusLabel? }]
  *                category ∈ eval | feedback | oneonone | okr | snippet | system
  *                actionable=false 면 바로가기 버튼을 그리지 않는다(연결된 화면 없음)
  *                actionLabel 이 있으면 분류 이름 대신 그 버튼 이름을 쓴다 — 한 분류 안에 가는 곳이
  *                다른 알림이 섞일 때(1on1 탭의 회의록 알림 → 「회의 보기」) (PW-975)
+ *                statusLabel 이 있으면 시각 아래 딱지로 «처리 상태»를 보인다 — 같이 받은 알림을 다른 사람이 처리했거나
+ *                그 일이 취소 · 닫혔을 때(「처리됨 · 박A」 · 「취소됨」 · 「닫힘」 · pivit-work PW-2784 · 알림 정본 §1
+ *                «처리됨 표시»). 문구는 호출부가 만든다. 모양은 디자이너 Figma Tag(`.tl-weekly-entry-tag` · 테두리만 · 보조 글자)
  *   loading      true 면 목록·빈 상태를 그리지 않는다
  *   filters      [{ value, label }] — 'all' 은 전체
  *   activeFilter 현재 탭 value
@@ -190,6 +194,11 @@ export default function NotificationCenterCanvas({
                       )}
                       <time>{n.timeLabel}</time>
                     </span>
+                    {n.statusLabel && (
+                      <StatusBadge className="tl-weekly-entry-tag" data-testid="notif-status">
+                        {n.statusLabel}
+                      </StatusBadge>
+                    )}
                     {n.actionable && (
                       <button
                         type="button"

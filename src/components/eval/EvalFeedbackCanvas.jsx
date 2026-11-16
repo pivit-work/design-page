@@ -115,15 +115,15 @@ const DEFAULT_LABELS = {
   requestDeleteError: '취소에 실패했습니다. 잠시 후 다시 시도해 주세요.',
   // 고치거나 지우려는 사이 상대가 답했다 (screen-feedback-member §5 · pivit-work PW-2482)
   requestAlreadyAnswered: '상대가 이미 답해 요청을 고치거나 지울 수 없습니다.',
+  // 그 사이 다른 탭에서 같은 항목에 요청했다 — KR·이니셔티브 하나에 요청은 한 번 (§3.3 · pivit-work PW-2784)
+  requestAlreadySent: '이 항목에는 이미 피드백을 요청했어요.',
+  // 요청한 사람이 받는 조직장의 범위를 벗어나 닫힌 요청 — 버블 아래 보조 글씨 줄 (§5 «매니저가 바뀌어 닫힘»)
+  requestClosedNote: '매니저가 바뀌어 닫힌 요청입니다. 새 매니저에게 다시 요청할 수 있습니다.',
   // KR·이니셔티브 블록 자리의 불러오기 실패 (§8) — «피드백 없음»과 다른 상태다
   blocksLoadFailed: 'OKR 정보를 불러오지 못했습니다',
   initiativesLoadFailed: '이니셔티브 정보를 불러오지 못했습니다',
   blocksRetry: '다시 시도',
   requestCompose: '+ 피드백 요청',
-  requestAlreadySuffix: '요청 대기중',
-  requestAlreadyHint: '이미 요청한 사람은 응답이 오기 전까지 다시 선택할 수 없어요.',
-  requestAllRequestedHint:
-    '이 항목의 모든 대상에게 요청했어요. 응답이 오면 다시 요청할 수 있어요.',
   requestTextPlaceholder: '어떤 부분에 대한 피드백이 필요한지 작성해 주세요 (선택 사항)',
   requestCancel: '취소',
   // 매니저도 동료도 없을 때 — 버튼은 두고 누르면 안내한다 (§10-9)
@@ -233,7 +233,8 @@ function BlockCard({ block, L, onOpen, cardRef }) {
   // 턴: 마지막이 받은 피드백이고 미응답이면 내 차례. 마지막이 내 요청이면 대기.
   const isMyTurn =
     last && last.itemType === 'feedback' && !last.myReply;
-  const isWaiting = last && last.itemType === 'request';
+  // 매니저가 바뀌어 닫힌 요청은 기다리는 요청이 아니다 (arch-feedback-data-model «요청 닫힘 시각» · PW-2784).
+  const isWaiting = last && last.itemType === 'request' && !last.closedAt;
   const progress = block.progress ?? 0;
 
   // 카드 아무 곳이나 누르면 스레드 창이 열린다(예전 모양 그대로). 안에 «이전 피드백 보기»·«스레드 열기» 버튼이
@@ -360,18 +361,11 @@ function ThreadModal({ block, L, isPastPeriod, recipients, recipientsFailed, lin
     (a, b) => new Date(a.sentAt) - new Date(b.sentAt),
   );
   const hasItems = items.length > 0;
-  // 중복 요청 차단의 단위는 '스레드' 가 아니라 '수신자' 다(PW-153). 같은 KR 이라도
-  // 동료 A·B 에게 각각 요청할 수 있어야 하고, 받은 피드백이 있다고 해서 요청 자체를
-  // 막으면 안 된다. 아직 답이 오지 않은(resolvedAt 없음) 요청의 수신자만 잠근다.
-  const pendingRecipientIds = useMemo(
-    () =>
-      new Set(
-        items
-          .filter((it) => it.itemType === 'request' && !it.resolvedAt)
-          .map((it) => it.person?.id)
-          .filter(Boolean),
-      ),
-    [items],
+  // KR·이니셔티브 하나에 요청은 한 번 · 받는 사람 한 명이다(§3.3 · §6.2 PW-2784 ③). 보낸 요청이 있으면 답이
+  // 왔든 안 왔든 [+ 피드백 요청]을 감춘다. 매니저가 바뀌어 닫힌 요청만 남았으면 다시 보인다(§3.3 예외 행).
+  // 받은 피드백만 있는 것은 막지 않는다(PW-153 — 받은 피드백이 하나 와도 요청을 못 하던 버그).
+  const hasLiveRequest = items.some(
+    (it) => it.itemType === 'request' && !it.closedAt,
   );
   // 대화 요약 — 저장하지 않는 일회성 뷰(ai-spec §11.4). 요약을 만들 때의 대화 수를 기억해
   // 그 뒤 늘면 요약은 그대로 두고 안내만 붙인다. 활성 조건: 피드백+요청+답변 ≥ 5 (§11.2).
@@ -418,7 +412,7 @@ function ThreadModal({ block, L, isPastPeriod, recipients, recipientsFailed, lin
       footer={
         // 「기타」는 한 대상의 스레드가 아니라 요청을 걸 곳이 없다. undefined 면 창 틀이 기본 취소·확인
         // 버튼을 그려 글자 없는 네모 둘이 남는다(팀 피드백 쪽은 pivit-work PW-1651 에서 같은 일).
-        isEtc ? null : isPastPeriod ? (
+        isEtc || (!isPastPeriod && hasLiveRequest) ? null : isPastPeriod ? (
           <div style={{ padding: 16, background: C.pastBg, color: C.sub, fontSize: 'var(--font-size-text-xs)', textAlign: 'center' }}>
             {L.pastReadonly}
           </div>
@@ -428,7 +422,6 @@ function ThreadModal({ block, L, isPastPeriod, recipients, recipientsFailed, lin
             L={L}
             recipients={recipients}
             recipientsFailed={recipientsFailed}
-            lockedRecipientIds={pendingRecipientIds}
             onRequest={onRequest}
           />
         )
@@ -629,8 +622,10 @@ function RequestBubble({ item, L, onEdit, onDelete }) {
   const editTooLong = useFeedbackTextTooLong(editText);
 
   const resolved = !!item.resolvedAt;
-  const canEdit = !!onEdit && !resolved;
-  const canDelete = !!onDelete && !resolved;
+  // 매니저가 바뀌어 닫힌 요청 — 버블은 남고 안내 줄이 붙는다. 받을 사람이 없어 고치거나 지울 수 없다 (§5 · PW-2784).
+  const closed = !!item.closedAt;
+  const canEdit = !!onEdit && !resolved && !closed;
+  const canDelete = !!onDelete && !resolved && !closed;
 
   const cancelEdit = () => {
     setEditing(false);
@@ -677,9 +672,12 @@ function RequestBubble({ item, L, onEdit, onDelete }) {
             {' '}({item.recipientKind === 'peer' ? L.kindPeer : L.kindManager})
           </span>
           <span>{fmtDate(item.sentAt)}</span>
-          <Chip tone={resolved ? 'success' : 'warning'}>
-            {resolved ? L.requestAnswered : L.requestPending}
-          </Chip>
+          {/* 닫힌 요청은 «대기중»이 아니다 — 상태는 아래 안내 줄이 말한다. */}
+          {!closed && (
+            <Chip tone={resolved ? 'success' : 'warning'}>
+              {resolved ? L.requestAnswered : L.requestPending}
+            </Chip>
+          )}
         </div>
 
         {editing ? (
@@ -722,6 +720,12 @@ function RequestBubble({ item, L, onEdit, onDelete }) {
         ) : null}
       </div>
 
+      {closed && (
+        <p className="evc-empty-sub" data-testid="fbm-request-closed-note" style={{ margin: 0 }}>
+          {L.requestClosedNote}
+        </p>
+      )}
+
       {!editing && (canEdit || canDelete) && (
         <div style={{ display: 'flex', gap: 10 }}>
           {canEdit && (
@@ -754,23 +758,28 @@ function RequestBubble({ item, L, onEdit, onDelete }) {
 /**
  * 피드백 요청 작성 — 정책 §6(screen-feedback-member.policy.md).
  *
- * 중복 요청은 **수신자 단위**로만 막는다(PW-153). 스레드에 아이템이 있다고 입력부를
- * 통째로 감추면 같은 KR 에서 두 번째 동료에게 요청할 수 없고, 받은 피드백이 하나만
- * 있어도 요청 자체가 불가능해진다. 이미 요청한 사람은 **목록에서 빼지 않고 비활성 +
- * 사유 안내**로 남긴다 — 사라지면 "왜 이 사람이 안 보이지" 가 된다.
+ * KR·이니셔티브 하나에 요청은 한 번이라(§3.3 · PW-2784) 보낸 요청이 있으면 창이 이 칸을 그리지 않는다.
+ * 매니저가 둘(주 소속 쪽 · 겸직 쪽 조직장)이면 칩 둘 중 하나를 고르고, 기본은 그 KR 이 속한 조직 쪽 매니저다
+ * (§6.2 PW-2784 «David 지시 11-16» — 같은 조직 매니저가 없으면 주 소속 쪽).
  */
 /** 요청 전송 버튼 끝의 화살표 (§6.4 「… 요청 전송 →」). */
 function SendArrow() {
   return <ArrowRightGlyph size={13} style={{ verticalAlign: 'middle', marginLeft: 4 }} aria-hidden />;
 }
 
-function RequestCompose({ block, L, recipients, recipientsFailed = false, lockedRecipientIds, onRequest }) {
-  const locked = lockedRecipientIds || new Set();
-  const isLocked = (r) => locked.has(r.id);
-  const firstSelectable =
-    recipients.find((r) => r.kind === 'manager' && !isLocked(r)) ||
-    recipients.find((r) => !isLocked(r)) ||
-    null;
+function defaultRecipient(recipients, block) {
+  const managers = recipients.filter((r) => r.kind === 'manager');
+  return (
+    (block.orgUnitId && managers.find((r) => r.orgUnitId === block.orgUnitId)) ||
+    managers.find((r) => !r.orgUnitId) ||
+    managers[0] ||
+    recipients[0] ||
+    null
+  );
+}
+
+function RequestCompose({ block, L, recipients, recipientsFailed = false, onRequest }) {
+  const firstSelectable = defaultRecipient(recipients, block);
 
   const [open, setOpen] = useState(false);
   const [text, setText] = useState('');
@@ -779,13 +788,11 @@ function RequestCompose({ block, L, recipients, recipientsFailed = false, locked
   const maxLen = useFeedbackTextLimit();
   const tooLong = useFeedbackTextTooLong(text);
 
-  // 고른 사람이 그 사이 잠기면(다른 탭에서 요청 전송 등) 자동으로 놓는다.
-  const recipient = picked && !isLocked(picked) ? picked : firstSelectable;
-  const lockedCount = recipients.filter(isLocked).length;
+  const recipient = picked || firstSelectable;
   const noManager =
     recipients.length > 0 && !recipients.some((r) => r.kind === 'manager');
 
-  // 취소 — 폼을 닫고 본문을 비우고 받는 사람을 기본(매니저)으로 되돌린다 (§6.4).
+  // 취소 — 폼을 닫고 본문을 비우고 받는 사람을 기본(그 KR 조직 쪽 매니저)으로 되돌린다 (§6.4).
   const cancel = () => {
     setOpen(false);
     setText('');
@@ -859,48 +866,36 @@ function RequestCompose({ block, L, recipients, recipientsFailed = false, locked
     <div style={{ padding: 14, borderTop: `1px solid ${C.border}`, display: 'flex', flexDirection: 'column', gap: 8 }}>
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', maxHeight: 96, overflowY: 'auto' }}>
         {recipients.map((r) => {
-          const lockedR = isLocked(r);
-          const on = !lockedR && recipient?.id === r.id;
+          const on = recipient?.id === r.id;
           const col = r.kind === 'peer' ? C.teal : C.blue;
           const bg = r.kind === 'peer' ? C.tealBg : C.blueBg;
           const kindLabel = r.kind === 'peer' ? L.kindPeer : L.kindManager;
           return (
-            <Tooltip key={r.id} content={lockedR ? L.requestAlreadyHint : undefined}>
             <button
+              key={r.id}
               type="button"
-              disabled={lockedR}
               onClick={() => setPicked(r)}
               data-testid={`fbm-recipient-${r.id}`}
-              data-locked={lockedR ? 'true' : undefined}
+              aria-pressed={on}
               style={{
-                border: `1px solid ${on ? col : lockedR ? C.borderL : C.border}`,
-                background: on ? bg : lockedR ? C.borderL : 'var(--text-white)',
-                color: on ? col : lockedR ? C.muted : C.sub,
+                border: `1px solid ${on ? col : C.border}`,
+                background: on ? bg : 'var(--text-white)',
+                color: on ? col : C.sub,
                 borderRadius: 16,
                 padding: '4px 12px',
                 fontSize: 'var(--font-size-text-xs)',
                 fontWeight: 600,
-                cursor: lockedR ? 'not-allowed' : 'pointer',
+                cursor: 'pointer',
               }}
             >
               {r.name} ({kindLabel})
-              {lockedR ? ` · ${L.requestAlreadySuffix}` : ''}
             </button>
-            </Tooltip>
           );
         })}
       </div>
       {noManager && (
         <p data-testid="fbm-request-no-manager" style={{ margin: 0, fontSize: 12, color: C.sub, lineHeight: 1.6 }}>
           {L.requestNoManager}
-        </p>
-      )}
-      {lockedCount > 0 && (
-        <p
-          data-testid="fbm-recipient-locked-hint"
-          style={{ margin: 0, fontSize: 12, color: C.sub, lineHeight: 1.6 }}
-        >
-          {lockedCount === recipients.length ? L.requestAllRequestedHint : L.requestAlreadyHint}
         </p>
       )}
       <TextArea
@@ -1116,6 +1111,8 @@ function groupBlocks(items, krs, initiatives) {
     badge: kr.badge || `KR${i + 1}`,
     title: kr.title,
     progress: kr.progress ?? 0,
+    // 그 KR 이 속한 조직 — 매니저가 둘인 사람의 요청 창 기본 매니저를 고른다 (§6.2 · PW-2784)
+    orgUnitId: kr.orgUnitId ?? null,
     items: byKey.get(`kr:${kr.id}`) || [],
   }));
   const initBlocks = initiatives.map((it) => ({
@@ -1123,6 +1120,7 @@ function groupBlocks(items, krs, initiatives) {
     id: it.id,
     key: `init:${it.id}`,
     title: it.title,
+    orgUnitId: it.orgUnitId ?? null,
     items: byKey.get(`init:${it.id}`) || [],
   }));
   // 「기타」 — 연결 대상이 없거나, 연결된 KR·이니셔티브가 내 목록에 없는 것 전부(§10-3).
@@ -1283,7 +1281,8 @@ export default function EvalFeedbackCanvas({
       showToast(L.toastSent);
     } catch (e) {
       // 앱이 이미 알린 실패(이용 정지 등)는 토스트를 겹쳐 띄우지 않는다(PW-2907).
-      if (!isNotifiedFailure(e)) showToast(L.toastError, 'error');
+      // 앱이 `reason: 'alreadySent'` 로 거절하면 «이미 요청함» 안내 — 앱이 대화를 다시 불러와 칸이 사라진다(PW-2784).
+      if (!isNotifiedFailure(e)) showToast(e?.reason === 'alreadySent' ? L.requestAlreadySent : L.toastError, 'error');
       throw e;
     }
   };

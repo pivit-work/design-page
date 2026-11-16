@@ -27,6 +27,7 @@ import DateInput from '../shared/DateInput.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
 import { scaleMaxOf, answerScoreText, checkedAnswerText, answerLineText, categoryKind, storedCategoryName, peerAuthorLabel } from './evalTemplateItemModel.js';
 import { leaderGradeMarks } from './evalLeaderLive.js';
+import { concurrentLeaderLines } from './calibrationConcurrentGrade.js';
 import { pickParticle } from '../shared/koreanParticle.js';
 import Select from '../shared/Select.jsx';
 import Button from '../shared/Button.jsx';
@@ -131,6 +132,11 @@ const DEFAULT_LABELS = {
   cwLeaderGradeNone: '하향 없음',
   cwLeaderGradePending: '미제출',
   cwLeaderGradeOriginChanged: '원안 변경됨',
+  // [pivit-work PW-2784 · spec-calibration §20.1 «겸직한 대상자»] 하향 등급 칸 아래 한 줄 · 펼친 상세의 두 등급.
+  cwConcurrentLeaderHead: '겸직 {unit} · {leader}',
+  cwConcurrentLeaderHeadNoUnit: '겸직 · {leader}',
+  cwConcurrentLeaderLine: '{head}: {grade}',
+  cwConcurrentPrimaryGrade: '주 소속 등급',
   cwColTrend: '성과 추이',
   cwColAdjust: '1차→위원회 조정',
   cwAdjustUp: '올림',
@@ -6106,6 +6112,18 @@ export default function EvalCycleSummaryCanvas({
                                     )}
                                     <LeaderGradeMarks leaderGrade={row.leaderGrade} multiRound={multiLeaderRound} L={L} />
                                   </span>
+                                  {/* [pivit-work PW-2784 · §20.1 «겸직한 대상자»] 열은 늘리지 않고 칸 아래 작은 글씨 한 줄 — 이름 칸의
+                                      작은 줄(.evs-cw-name-sub, 12px 회색 · 넘치면 «…» · 전체 글은 title)과 같은 모양. */}
+                                  {concurrentLeaderLines(row.concurrentLeaderGrades, L).map((x) => (
+                                    <div
+                                      key={x.key}
+                                      className="evs-cw-name-sub"
+                                      data-testid="evs-cw-concurrent-grade"
+                                      title={x.text}
+                                    >
+                                      {x.text}
+                                    </div>
+                                  ))}
                                 </RosterTable.Cell>
                                 {colOn('trend') && (
                                 <RosterTable.Cell className="evs-cw-nowrap">
@@ -6376,6 +6394,39 @@ export default function EvalCycleSummaryCanvas({
                                                 <dt>{L.cwColTrend}</dt>
                                                 <dd><MiniSparkline trend={row.gradeTrend} domain={domain} emptyLabel={L.cwTrendEmpty} archivedPrior={row.priorTenureArchived} archivedLabel={L.cwTrendPriorArchived} /></dd>
                                               </div>
+                                            )}
+                                            {/* [pivit-work PW-2784 · §4.5 · §20.2] 겸직한 대상자 — 주 소속 등급과 겸직 등급을 나란히. */}
+                                            {concurrentLeaderLines(row.concurrentLeaderGrades, L).length > 0 && (
+                                              <>
+                                                <div data-testid="evs-cw-detail-fact-primary-grade">
+                                                  <dt>{L.cwConcurrentPrimaryGrade}</dt>
+                                                  <dd>
+                                                    {row.currentGradeKey ? (
+                                                      <StatusBadge className={`evs-cw-badge tone-${gradeTone(row.currentGradeKey, og)}`}>
+                                                        {row.currentGradeLabel}
+                                                      </StatusBadge>
+                                                    ) : leaderGradeMarks(row.leaderGrade)?.pending ? (
+                                                      L.cwLeaderGradePending
+                                                    ) : (
+                                                      '—'
+                                                    )}
+                                                  </dd>
+                                                </div>
+                                                {concurrentLeaderLines(row.concurrentLeaderGrades, L).map((x) => (
+                                                  <div key={x.key} data-testid="evs-cw-detail-fact-concurrent-grade">
+                                                    <dt>{x.head}</dt>
+                                                    <dd>
+                                                      {x.pending ? (
+                                                        x.grade
+                                                      ) : (
+                                                        <StatusBadge className={`evs-cw-badge tone-${gradeTone(x.gradeKey, og)}`}>
+                                                          {x.grade}
+                                                        </StatusBadge>
+                                                      )}
+                                                    </dd>
+                                                  </div>
+                                                ))}
+                                              </>
                                             )}
                                             <div data-testid="evs-cw-detail-chip-okr">
                                               <dt>{L.cwOkrLabel}</dt>

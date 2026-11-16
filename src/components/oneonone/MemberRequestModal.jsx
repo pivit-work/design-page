@@ -24,6 +24,9 @@ export const DEFAULT_LABELS = {
   close: '닫기',
   to: '받는 사람',
   toValue: '{name} 매니저',
+  // 겸직한 팀원이 고르는 겸직 쪽 조직장 (pivit-work PW-2784 · 기획 §3-0-A U1 · U2)
+  toValueConcurrent: '{name} 매니저 (겸직)',
+  noManager: '지금 신청을 받을 매니저가 없습니다',
   upcomingNotice:
     '{when}에 잡힌 1on1 이 있습니다. 그때 이야기해도 된다면 그 1on1 준비 화면의 논의 주제에 적어 주세요.',
   text: '나누고 싶은 이야기',
@@ -68,13 +71,20 @@ function customMinutes(raw) {
 /**
  * @param {object} props
  * @param {boolean} props.open
- * @param {string} props.managerName 받는 사람 — «내 매니저»
+ * @param {string} props.managerName 받는 사람 — «내 매니저»(받는 사람이 한 사람일 때)
+ * @param {Array<{id: string, name: string, concurrent?: boolean, disabled?: boolean}>} [props.recipients]
+ *   받는 사람 후보 — 겸직한 팀원은 주 소속 조직장 · 겸직 쪽 조직장(«겸직») 순서로 둘 이상(pivit-work PW-2784 · §3-0-A U1 · U2).
+ *   둘 이상이면 고르는 칸(라디오 카드 — 아래 «희망 시기»와 같은 부품)이 되고 처음엔 고를 수 있는 첫 사람이다.
+ *   `disabled` = 그 매니저에게 대기 신청이 있어 고를 수 없다(대기는 매니저마다 1건). 빈 배열이면 «지금 신청을 받을
+ *   매니저가 없습니다»를 보이고 보낼 수 없다(U6). 주지 않으면 `managerName` 한 사람 그대로다.
  * @param {string|null} [props.upcomingLabel] 잡아 둔 1on1 일시 글자 — 있으면 안내 한 줄(신청은 막지 않는다)
- * @param {(data: {text: string, wish: 'manager'|'week'|'pick', date: Date|null, time24: string|null, durationMin: number|null}) => Promise<void>|void} props.onSubmit
+ * @param {(data: {text: string, wish: 'manager'|'week'|'pick', date: Date|null, time24: string|null, durationMin: number|null, managerId: string|null}) => Promise<void>|void} props.onSubmit
+ *   `managerId` 는 고른 받는 사람(`recipients` 를 줬을 때만 · 아니면 null).
  */
 export default function MemberRequestModal({
   open,
   managerName,
+  recipients,
   upcomingLabel = null,
   onClose,
   onSubmit,
@@ -95,16 +105,20 @@ export default function MemberRequestModal({
   const [custom, setCustom] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [recipientId, setRecipientId] = useState(
+    () => (recipients || []).find((r) => !r.disabled)?.id ?? null,
+  );
 
   if (typeof document === 'undefined' || !open) return null;
 
   const empty = !text.trim();
+  const noRecipient = Array.isArray(recipients) && !recipientId;
   const isPast = wish === 'pick' && !!isPastStart(date, time);
   const atMax = text.length >= REQUEST_TEXT_MAX;
   const dateLabel = new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'long', day: 'numeric' }).format(date);
 
   const submit = async () => {
-    if (saving || empty || isPast) return;
+    if (saving || empty || isPast || noRecipient) return;
     setError('');
     setSaving(true);
     try {
@@ -114,6 +128,7 @@ export default function MemberRequestModal({
         date: wish === 'pick' ? date : null,
         time24: wish === 'pick' ? time : null,
         durationMin: duration === 'custom' ? customMinutes(custom) : Number(duration),
+        managerId: Array.isArray(recipients) ? recipientId : null,
       });
     } catch (err) {
       setError(failureText(err, L.submitFailed));
@@ -148,7 +163,7 @@ export default function MemberRequestModal({
             className="tl-group-modal-btn tl-group-modal-btn-primary"
             data-testid="ono-request-modal-submit"
             onClick={() => void submit()}
-            disabled={empty || saving || isPast}
+            disabled={empty || saving || isPast || noRecipient}
           >
             {saving ? L.submitting : L.submit}
           </Button>
@@ -156,11 +171,36 @@ export default function MemberRequestModal({
       }
     >
       <div className="ono-add-modal-form" onClick={closePopovers}>
-        <Field label={L.to}>
-          <p className="ono-add-modal-member-name" data-testid="ono-request-modal-to">
-            {fill(L.toValue, { name: managerName })}
-          </p>
-        </Field>
+        {Array.isArray(recipients) && recipients.length > 1 ? (
+          <Field label={L.to} group>
+            <div className="ono-add-modal-radio-group" data-testid="ono-request-modal-to">
+              {recipients.map((r) => (
+                <Radio
+                  key={r.id}
+                  variant="card"
+                  name="ono-request-to"
+                  value={r.id}
+                  checked={recipientId === r.id}
+                  disabled={!!r.disabled}
+                  onChange={() => setRecipientId(r.id)}
+                  label={fill(r.concurrent ? L.toValueConcurrent : L.toValue, { name: r.name })}
+                  data-testid={`ono-request-to-${r.id}`}
+                />
+              ))}
+            </div>
+          </Field>
+        ) : (
+          <Field label={L.to}>
+            <p className="ono-add-modal-member-name" data-testid="ono-request-modal-to">
+              {Array.isArray(recipients) && recipients.length === 0
+                ? L.noManager
+                : fill(
+                    recipients?.[0]?.concurrent ? L.toValueConcurrent : L.toValue,
+                    { name: recipients?.[0]?.name ?? managerName },
+                  )}
+            </p>
+          </Field>
+        )}
 
         {upcomingLabel && (
           <p className="tl-event-helper ono-add-modal-hint" data-testid="ono-request-modal-upcoming">

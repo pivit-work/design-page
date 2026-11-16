@@ -109,6 +109,9 @@ import {
   assignLeaderCell,
   cellKey as leaderCellKey,
   cellsForConfirm,
+  concurrentCellsForRequest,
+  concurrentCellsOf,
+  toggleConcurrentCell,
   clampLeaderRounds,
   computeLeaderWarnings,
   dropAllLeaderKeys,
@@ -5546,6 +5549,7 @@ export default function EvalCycleWizard({
       setTplRoundStarted([1]);
       setConfirmSnapshot((m) => dropRoundsAbove(m, 1));
       setLeaderCells([]);
+      setLeaderConcurrent([]);
       dropLeaderConfirm('rounds');
     }
     setPendingTypeOff(null);
@@ -6752,6 +6756,13 @@ export default function EvalCycleWizard({
   const leaderCells = leaderSectionOn
     ? alignLeaderCells(leaderCellsState, targetIds, roundsInUse)
     : [];
+  /* [pivit-work PW-2784] 겸직한 대상자의 «겸직 조직장» 칸 — 차수 칸과 따로 든다(초안 `leaderConcurrentAssignments`). */
+  const [leaderConcurrentState, setLeaderConcurrent] = useState(() =>
+    Array.isArray(D?.leaderConcurrentAssignments) ? D.leaderConcurrentAssignments : [],
+  );
+  const leaderConcurrent = leaderSectionOn
+    ? leaderConcurrentState.filter((c) => targetIds.includes(c.evaluateeId))
+    : [];
   const [leaderConfirm, setLeaderConfirm] = useState(() =>
     leaderConfirmFrom(D?.leaderConfirm) ??
     leaderConfirmFrom(leaderConfirmInitial) ??
@@ -6795,6 +6806,7 @@ export default function EvalCycleWizard({
   useLayoutEffect(() => {
     leaderLatest.current = {
       cells: leaderCellsState,
+      concurrent: leaderConcurrentState,
       confirm: leaderConfirm,
       confirmShape: leaderConfirmShape,
       recommend: onRecommendLeaderAssignments,
@@ -6877,7 +6889,11 @@ export default function EvalCycleWizard({
         latest.recommend?.({
           evaluateeIds,
           rounds,
-          cells: cellsForConfirm(adjusted),
+          // [pivit-work PW-2784] 뺀 «겸직 조직장» 칸도 싣는다 — 서버가 다시 추천해도 빠진 채로 둔다.
+          cells: [
+            ...cellsForConfirm(adjusted),
+            ...concurrentCellsForRequest((latest.concurrent ?? []).filter((c) => c.skipped)),
+          ],
           rules: latest.rules,
         }),
       )
@@ -6888,6 +6904,7 @@ export default function EvalCycleWizard({
           const { cells, changed } = mergeRecommendedCells(prev, res?.cells ?? []);
           const aligned = alignLeaderCells(cells, evaluateeIds, rounds);
           setLeaderCells(aligned);
+          setLeaderConcurrent(concurrentCellsOf(res?.cells));
           setLeaderRecommendDone({ key: recommendKey, failed: false });
           if (now.confirm && now.confirmShape === null) {
             setLeaderConfirmShape(shape);
@@ -7035,6 +7052,12 @@ export default function EvalCycleWizard({
     setLeaderLoadLimitState(n);
     dropLeaderConfirm('loadLimit');
   };
+  /** [pivit-work PW-2784] «겸직 조직장» 칸 빼기·다시 넣기 — 칸을 바꾼 것과 같이 확정을 푼다. */
+  const toggleLeaderConcurrent = (evaluateeId, unitId, remove) => {
+    setLeaderConcurrent(toggleConcurrentCell(leaderConcurrentState, evaluateeId, unitId, remove));
+    setLeaderChangeKind(remove ? 'skipped' : 'cellChanged');
+    dropLeaderConfirm(remove ? 'skipped' : 'cellChanged');
+  };
   const assignLeader = (evaluateeId, round, personId) =>
     editLeaderCell(evaluateeId, round, (c) => assignLeaderCell(c, personId), 'cellChanged');
   const skipLeader = (evaluateeId, round) =>
@@ -7075,7 +7098,7 @@ export default function EvalCycleWizard({
       }
       const res = await onConfirmLeaderAssignments({
         cycleId: knownCycleIdRef.current ?? undefined,
-        cells: cellsForConfirm(leaderCells),
+        cells: [...cellsForConfirm(leaderCells), ...concurrentCellsForRequest(leaderConcurrent)],
         baseSavedAt,
         rules: leaderRules,
         loadLimit: leaderLoadLimit,
@@ -7088,6 +7111,7 @@ export default function EvalCycleWizard({
             roundsInUse,
           ),
         );
+        setLeaderConcurrent(concurrentCellsOf(res.cells));
       }
       setLeaderConfirm(leaderConfirmFrom(res) ?? { confirmedAt: new Date().toISOString(), confirmedBy: null });
       setLeaderConfirmShape(leaderShapeKey);
@@ -7826,6 +7850,8 @@ export default function EvalCycleWizard({
     tplRoundStarted: tplRoundStarted.some((k) => k > 1) ? tplRoundStarted : undefined,
     leaderAssignments:
       leaderCells.length > 0 ? leaderCells.map(({ warnings: _w, ...rest }) => rest) : undefined,
+    leaderConcurrentAssignments:
+      leaderConcurrent.length > 0 ? leaderConcurrent.map(({ warnings: _w, ...rest }) => rest) : undefined,
     leaderConfirm: leaderConfirmed ? leaderConfirm : undefined,
     // [PW-2065] 배정 규칙 · 부담 기준 · 조직별 확정 — 기본값이면 싣지 않는다(위 주석과 같은 이유).
     leaderRules: leaderRules.length > 0 ? leaderRules : undefined,
@@ -7886,6 +7912,7 @@ export default function EvalCycleWizard({
       orgIds: _org,
       manualExclude: _manual,
       leaderAssignments: _la,
+      leaderConcurrentAssignments: _lca,
       leaderConfirm: _lc,
       leaderConfirmShape: _ls,
       ...rest
@@ -8494,6 +8521,7 @@ export default function EvalCycleWizard({
       setTplRoundBuffers({});
       setTplRoundStarted([1]);
       setLeaderCells([]);
+      setLeaderConcurrent([]);
     }
     /* [PW-2065 · spec R-8] 이전 사이클의 배정 규칙·부담 기준도 가져온다. 조직별 확정은 이 사이클 것이 아니다. */
     if (Array.isArray(preset?.leaderRules)) setLeaderRulesState(normalizeLeaderRules(preset.leaderRules));
@@ -11786,6 +11814,8 @@ export default function EvalCycleWizard({
                       subOrg: m.department || '',
                     }))}
                     cells={leaderCells}
+                    concurrentCells={leaderConcurrent}
+                    onConcurrentToggle={toggleLeaderConcurrent}
                     warningsByCell={leaderWarningsAll}
                     groups={onConfirmLeaderAssignments ? leaderGroups : []}
                     groupStates={leaderGroupStates}
