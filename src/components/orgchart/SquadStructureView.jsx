@@ -10,7 +10,7 @@
  * 디자이너 원본은 없다. 3회차(2026-11-09 커트 결정 · 카드 «3회차로 더합니다» A~F)부터 조직도 «트리» 화면의 부품을 그대로 쓴다:
  *   바탕            = 조직도 트리 캔버스의 흰 판 + 점 격자(.canvas-inner::before 와 같은 값)
  *   회사·묶음·스쿼드 = 조직도 부서 카드(DeptCard · 회사는 company 바탕 · 묶음은 고른 색을 옅게 · 미분류는 «직속» 칸처럼 점선)
- *   사람 카드       = 조직도 구성원 카드(.member-node — 사진 + 상태 점 · 이름 · 아래 줄 주 소속) · 리드 = 카드 보기의 LEAD 딱지
+ *   사람 카드       = 조직도 구성원 카드(.member-node — 사진 + 상태 점 · 이름 · 아래 줄 주 소속) · 리드 = 카드 보기의 LEAD 딱지 부품(글자만 «리드» · v3.66)
  *   선              = 조직도 BezierConnectors(직각) — 사람 카드 줄 아래에서 하위 노드로 나간다. 카드를 꿰뚫는 선이 없다
  *   도구 단추·접기  = 조직도 트리 캔버스 툴바(.org-tool-btn) · 부서 카드 접기 단추(.dept-toggle)
  * 4회차(2026-11-10 커트 결정 · 카드 11-10 21:01·21:13 댓글) — 조직도 «트리» 탭 툴바에 있는데 여기 없던 것을 같은 부품으로 더한다:
@@ -527,7 +527,7 @@ function StructureCanvas({
                 <span className="online-dot" style={{ background: status.dotColor }} />
               </div>
               <span className="member-name">{name}</span>
-              {c.lead && <LeadTag />}
+              {c.lead && <LeadTag label={L('squad.struct.leadBadge')} />}
               {c.headOf && <StatusBadge tone="neutral" className="role-badge modal-team-chip">{L('squad.struct.headBadge')}</StatusBadge>}
               {c.unitHead && <StatusBadge tone="neutral" className="role-badge modal-team-chip">{L('squad.struct.unitHeadBadge')}</StatusBadge>}
               {mine && (

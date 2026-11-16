@@ -151,7 +151,9 @@ export function FileIcon({ size = 14 }) {
 /**
  * LEAD 태그 — 스쿼드당 1명인 리드를 글자로 말한다 (Figma 17757:32453 · 17757:34947).
  * 카드 기간 줄에서는 테두리만(outline), 배정 칸 안에서는 채운(filled) 모양이다.
+ * label — 딱지 글자. 비우면 «LEAD»(카드 보기·한눈에). 스쿼드 그림 «구조»는 «리드»를 넘긴다
+ * (pivit-work PW-2599 · 기획 v3.66 §5-6-B — 바꾼 것은 구조 갈래 글자뿐, 카드 보기 글자는 그 결정 밖).
  */
-export function LeadTag({ filled = false }) {
-  return <StatusBadge className={`sq-lead-tag${filled ? ' is-filled' : ''}`} aria-label="lead">LEAD</StatusBadge>;
+export function LeadTag({ filled = false, label }) {
+  return <StatusBadge className={`sq-lead-tag${filled ? ' is-filled' : ''}`} aria-label={label ?? 'lead'}>{label ?? 'LEAD'}</StatusBadge>;
 }
