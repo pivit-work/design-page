@@ -369,6 +369,12 @@ export default function EvalLeaderAssignmentLiveSection({
             </StatusBadge>
           </Tooltip>
         )}
+        {/* pivit-work PW-2784 — «겸직 조직장» 칸은 낸 등급까지(평가자 · 상태 · 등급 · HR §5.7.4 O2 덧붙임 ⑤). */}
+        {concurrentCell && c.gradeLabel && (
+          <StatusBadge className="evc-status-badge tone-neutral" data-testid={`evmon-la-grade-${c.id}`}>
+            {c.gradeLabel}
+          </StatusBadge>
+        )}
         {acts.locked && !readOnly && (
           <span className="evc-la-hint" aria-hidden="true">
             <LockIcon size={11} />

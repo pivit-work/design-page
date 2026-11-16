@@ -77,6 +77,7 @@ const DEFAULT_LABELS = {
   leaderRoundTitle: '하향 리뷰 · {round}차',
   // pivit-work PW-2784 — «겸직 조직장» 칸(차수 0)의 하향 리뷰 묶음.
   leaderConcurrentTitle: '하향 리뷰 · 겸직 조직장',
+  leaderConcurrentUnitTitle: '하향 리뷰 · 겸직 조직장 · {unit}',
   // PW-2580 — 실명 항목 답에는 작성자 이름이 붙으므로 «(익명)»을 떼었다(member §7.5 · spec §4.5.1).
   peerTitle: '동료 피드백 요약',
   // PW-2580 3회차 — 관계만·익명 동료 답 앞 작성자 표시(실명은 이름)
@@ -163,15 +164,24 @@ function groupLeaderRounds(answers) {
   const byRound = new Map();
   for (const a of answers ?? []) {
     const r = Number.isInteger(a?.leaderRound) ? a.leaderRound : 1;
-    if (!byRound.has(r)) byRound.set(r, []);
-    byRound.get(r).push(a);
+    // pivit-work PW-2784 — «겸직 조직장» 답(0)은 겸직 조직장마다(`leaderSlot`) 따로 묶는다.
+    const key = r === 0 ? `0:${a?.leaderSlot ?? 1}` : String(r);
+    if (!byRound.has(key)) byRound.set(key, { round: r, slot: a?.leaderSlot ?? 1, unitName: a?.leaderSlotUnitName || null, answers: [] });
+    byRound.get(key).answers.push(a);
   }
-  if (byRound.size < 2) return null;
-  // pivit-work PW-2784 — «겸직 조직장» 칸(0)은 차수가 아니라 차수 묶음들 뒤에 둔다.
-  const order = (r) => (r === 0 ? Number.MAX_SAFE_INTEGER : r);
-  return [...byRound.entries()]
-    .sort(([x], [y]) => order(x) - order(y))
-    .map(([round, list]) => ({ round, answers: list }));
+  const groups = [...byRound.values()];
+  // 겸직 조직장 답이 있으면 차수가 하나뿐이어도 묶는다 — 1차 답과 섞이면 누가 쓴 글인지 모른다.
+  if (groups.length < 2 && !groups.some((g) => g.round === 0)) return null;
+  // «겸직 조직장» 묶음은 차수가 아니라 차수 묶음들 뒤에 둔다.
+  const order = (g) => (g.round === 0 ? 10000 + g.slot : g.round);
+  return groups.sort((x, y) => order(x) - order(y));
+}
+
+function leaderGroupTitle({ round, unitName }, L) {
+  if (round !== 0) return String(L.leaderRoundTitle || '').replace('{round}', String(round));
+  return unitName
+    ? String(L.leaderConcurrentUnitTitle || '').replace('{unit}', unitName)
+    : L.leaderConcurrentTitle;
 }
 
 function AnswerList({ answers, L, after = null }) {
@@ -667,14 +677,14 @@ export default function EvalCycleReportCanvas({
                 // PW-1594 — 하향 리뷰가 여러 차수면 차수마다 묶는다. 하나면 종전 그대로.
                 // PW-2190 — 차수 제목이 그 아래 질문 이름과 같은 12px 회색이라 묶음이 안 보였다.
                 // 제목을 카드 제목(evc-card-name) 굵기로 한 단계 올리고 차수 사이에 선을 긋는다.
-                leaderRoundGroups.map(({ round, answers }) => (
-                  <div className="evr-leader-round" key={round} data-testid={`evr-leader-round-${round}`}>
-                    <h4 className="evr-leader-round-title">
-                      {round === 0
-                        ? L.leaderConcurrentTitle
-                        : String(L.leaderRoundTitle || '').replace('{round}', String(round))}
-                    </h4>
-                    <AnswerList answers={answers} L={L} />
+                leaderRoundGroups.map((g) => (
+                  <div
+                    className="evr-leader-round"
+                    key={g.round === 0 ? `0-${g.slot}` : g.round}
+                    data-testid={g.round === 0 ? `evr-leader-round-0-${g.slot}` : `evr-leader-round-${g.round}`}
+                  >
+                    <h4 className="evr-leader-round-title">{leaderGroupTitle(g, L)}</h4>
+                    <AnswerList answers={g.answers} L={L} />
                   </div>
                 ))
               ) : (
