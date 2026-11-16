@@ -87,7 +87,7 @@ function LeaveHistoryModal({ requests, labels, onClose, onOpenOverview }) {
               key: 'status',
               header: L.colStatus,
               width: 124,
-              render: (r) => <StatusBadge tone={r.statusTone || 'neutral'}>{r.statusLabel}</StatusBadge>,
+              render: (r) => <StatusBadge className="admin-pill" tone={r.statusTone || 'neutral'}>{r.statusLabel}</StatusBadge>,
             },
             { key: 'approver', header: L.colApprover, width: 220, render: (r) => r.approver || '—' },
           ]}
@@ -149,7 +149,7 @@ export default function MemberLeaveSection({ state, labels, onRetry, onOpenOverv
     <div data-testid="employees-detail-leave">
       <div className="admin-emp-section-head">
         <SectionLabel>{L.section}</SectionLabel>
-        <StatusBadge tone="neutral" className="admin-emp-role-pill" data-testid="employees-detail-leave-tag">{L.readOnlyTag}</StatusBadge>
+        <StatusBadge tone="neutral" className="admin-pill" data-testid="employees-detail-leave-tag">{L.readOnlyTag}</StatusBadge>
         {/* [휴가 이력 (N) ›]은 묶음 제목 줄 오른쪽(PW-2895 시안) — 불러온 뒤에만 */}
         {view && !failed && (
           <div className="admin-emp-section-head-actions">
