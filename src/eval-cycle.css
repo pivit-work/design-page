@@ -13406,6 +13406,10 @@ button.evm-ai-source {
 .evmon-la .evc-la-table td {
   vertical-align: middle;
 }
+/* 대상자 칸의 소속·직책도 한 줄 — 좁은 창에서 꺾이면 그 줄만 높아진다(1280 · 3차 52명 표에서 7줄). 넘치면 표가 가로로 밀린다. */
+.evmon-la .evc-la-person {
+  white-space: nowrap;
+}
 .evmon-la-cellw {
   display: flex;
   align-items: center;
