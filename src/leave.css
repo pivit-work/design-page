@@ -39,6 +39,41 @@
   min-width: 0;
 }
 
+/* 누를 수 있는 칸(PW-2816 «다른 휴가») — <button> 기본 글씨 · 가운데 정렬을 칸 모양으로 되돌린다. 바탕 · 테두리 · 여백은 칸 그대로. */
+.leave-tile.is-openable {
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+}
+
+.leave-tile.is-openable:hover {
+  border-color: var(--border-primary);
+}
+
+.leave-tile.is-openable:focus-visible {
+  outline: 2px solid var(--border-brand);
+  outline-offset: 2px;
+}
+
+/* 칸 줄 끝 점선 묶음(PW-2816 «그 밖에 신청할 수 있는 휴가» · 기획 시안 점선 상자) — 칸 두 개 폭 · 칸(manager-kpi-card)과 같은 둥근 모서리 · 안쪽 16 · 24. */
+.leave-tiles-more {
+  grid-column: span 2;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding: var(--spacing-xl) var(--spacing-3xl);
+  border-radius: var(--radius-2xl);
+  border: 1px dashed var(--border-secondary);
+  min-width: 0;
+}
+
+.leave-tiles-more-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+
 .leave-tile.is-brand {
   background: var(--bg-brand-primary);
   border-color: var(--border-brand);

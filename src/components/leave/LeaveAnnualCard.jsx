@@ -16,11 +16,13 @@ import LeaveTiles from './LeaveTiles.jsx';
  *
  * `bar` 를 비우면(부여 0) 막대 · 범례 대신 `children` 만 그 자리에 놓는다(정책서 §3 «부여 0 — 이유별 안내»).
  * `tone` — 'brand'(사용 가능 강조) · 'warning'(소멸 30일 이하 숫자).
+ * «다른 휴가»(PW-2816)도 이 틀을 쓴다 — 칸마다 `onClick`, 칸 줄 끝 `tilesMore`(LeaveTiles `more`), `bar` 없음.
  */
 export default function LeaveAnnualCard({
   title,
   aside,
   tiles = [],
+  tilesMore = null,
   bar = null,
   legend = [],
   legendEnd = null,
@@ -41,7 +43,7 @@ export default function LeaveAnnualCard({
           </NoteText>
         )}
       </div>
-      <LeaveTiles tiles={tiles} />
+      <LeaveTiles tiles={tiles} more={tilesMore} />
       <div className="leave-card-foot">
         {bar && bar.length > 0 && (
           <>
