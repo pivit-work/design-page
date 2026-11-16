@@ -2080,18 +2080,21 @@ function TextCell({ value, className }) {
   const ref = useRef(null);
   const report = useContext(ClipReportContext);
   const [cut, setCut] = useState(false);
-  useLayoutEffect(() => {
+  const measure = () => {
     const el = ref.current;
     const next = !!el && el.scrollWidth > el.clientWidth + 1;
     setCut(next);
     if (report) report(next ? String(value) : null);
-  }, [value, report]);
+  };
+  // 마우스를 올릴 때도 다시 잰다 — 칸에 값을 넣고 Enter 친 순간은 칸이 아직 열린 모양(가로로 늘어나는 상자)이라
+  // 그때 잰 «안 잘림»이 남는다. 말풍선은 늘 달아 두고 안 잘렸으면 열지 않는다(open=false).
+  useLayoutEffect(measure, [value, report]);
   if (!value) return <Dash />;
   const text = (
-    <span ref={ref} className={['admin-emp-cell-text', 'admin-emp-cell-clip', className].filter(Boolean).join(' ')}>{value}</span>
+    <span ref={ref} onMouseEnter={measure} className={['admin-emp-cell-text', 'admin-emp-cell-clip', className].filter(Boolean).join(' ')}>{value}</span>
   );
   if (report) return text;
-  return <Tooltip content={cut ? String(value) : null}>{text}</Tooltip>;
+  return <Tooltip content={String(value)} open={cut ? undefined : false}>{text}</Tooltip>;
 }
 
 /** 말풍선이 이미 있는 칸 — 안의 글이 잘렸으면 전체 글자를 첫 줄에, 칸 말풍선을 다음 줄에 둔다. */
