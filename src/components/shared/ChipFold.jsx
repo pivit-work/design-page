@@ -65,7 +65,11 @@ export default function ChipFold({
       row.clientWidth - (parseFloat(style.paddingLeft) || 0) - (parseFloat(style.paddingRight) || 0);
     const gap = parseFloat(style.columnGap) || parseFloat(style.gap) || 0;
     const kids = Array.from(row.children);
-    const width = (el) => (el ? el.getBoundingClientRect().width : 0);
+    // 창이 열리며 커지는 동안(tl-modal-pop scale 0.96 → 1) 재면 칩 폭이 작게 잡혀, 실제로는 마지막 버튼이
+    // 셋째 줄로 내려간다(PW-2570 dev 11-17). 칸의 배율(보이는 폭 ÷ 변형 전 폭)로 나눠 변형 전 폭으로 잰다.
+    const rowWidth = row.getBoundingClientRect().width;
+    const scale = row.offsetWidth > 0 && rowWidth > 0 ? rowWidth / row.offsetWidth : 1;
+    const width = (el) => (el ? el.getBoundingClientRect().width / scale : 0);
     const widths = kids.slice(0, items.length).map(width);
     const buttonWidth = width(kids[items.length]);
     const trailingWidths = kids.slice(items.length + 1).map(width);
