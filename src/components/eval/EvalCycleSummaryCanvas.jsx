@@ -4880,6 +4880,22 @@ export default function EvalCycleSummaryCanvas({
                   <section className="evc-card evs-re-sec">
                     <h3 className="evc-card-name evs-re-sec-manager">{L.reManagerTitle}</h3>
                     <AiSummaryText L={L} text={memberDetail.integratedSummary?.managerSummary} status={memberDetail.integratedSummary?.status} testId="evs-re-ai-manager" />
+                    {/* [pivit-work PW-2784 · summary §8.3.C] 겸직 조직장마다의 AI 요약 — 주 소속 쪽 요약과 나란히, 머리는 그 칸의 «겸직 B팀» 꼬리표. */}
+                    {(concurrentRoundsOf(memberDetail.manager, L) ?? []).map((c) => {
+                      const text = memberDetail.integratedSummary?.managerConcurrentSummaries?.find(
+                        (x) => x.evaluatorId === c.evaluatorId,
+                      )?.summary;
+                      return text ? (
+                        <AiSummaryText
+                          key={`ai-${c.key}`}
+                          L={L}
+                          text={text}
+                          status={memberDetail.integratedSummary?.status}
+                          kicker={`${L.reAiSummary} · ${c.badge}${c.evaluatorName ? ` · ${c.evaluatorName}` : ''}`}
+                          testId={`evs-re-ai-manager-concurrent-${c.evaluatorId}`}
+                        />
+                      ) : null;
+                    })}
                     {/* [pivit-work PW-2784 · summary §8.3.C] «겸직 조직장» 칸 묶음은 아래 주 소속 쪽 묶음 다음에 나란히. */}
                     {leaderRoundsOf(memberDetail.manager) ? (
                       <LeaderRoundsDetail
