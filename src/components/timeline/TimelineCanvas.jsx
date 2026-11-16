@@ -427,7 +427,11 @@ export default function TimelineCanvas({
   const handleMoreClick = (dateIso, events, anchorRect) => {
     setDayPopover({ dateIso, events, anchorRect });
   };
-  const handleCloseDayPopover = () => setDayPopover(null);
+  // 목록 안 일정에 띄운 호버 카드도 함께 내린다 — 목록이 사라지면 마우스가 떠날 곳이 없어 카드가 남는다 (pivit-work PW-2888).
+  const handleCloseDayPopover = () => {
+    endCalendarEventHover();
+    setDayPopover(null);
+  };
   // 팝오버 안의 이벤트를 클릭하면 팝오버를 닫고 미팅 모달을 연다.
   const handleDayPopoverEventClick = (ev, rect) => {
     setDayPopover(null);
@@ -854,6 +858,8 @@ export default function TimelineCanvas({
           anchorRect={dayPopover.anchorRect}
           onClose={handleCloseDayPopover}
           onEventClick={handleDayPopoverEventClick}
+          onEventHover={handleCalendarEventHover}
+          onEventHoverEnd={endCalendarEventHover}
         />
       )}
 
@@ -897,6 +903,7 @@ export default function TimelineCanvas({
         <EventHoverCard
           event={liveHoverCard}
           anchorRect={hoverEvent.rect}
+          aboveDayPopover={!!dayPopover}
           attendeesLabel={
             calendarEventLabels?.attendees
               ? calendarEventLabels.attendees((liveHoverCard.participants || []).length)

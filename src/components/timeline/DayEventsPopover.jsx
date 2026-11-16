@@ -18,6 +18,8 @@ const parseIsoDate = (s) => {
  * - 헤더: 요일 라벨 + 날짜 숫자 + 닫기 버튼.
  * - 본문: 해당 날짜의 모든 이벤트를 .tl-cal-event pill 로 나열 (월 그리드와 동일 스타일).
  * - 이벤트 클릭 시 onEventClick 으로 위임 — 상위에서 미팅 모달을 연다.
+ * - 이벤트에 마우스를 올리고 뗄 때 onEventHover(ev, rect)·onEventHoverEnd 로 위임 — 날짜 칸 일정과
+ *   같은 호버 카드를 상위가 띄운다(pivit-work PW-2888).
  * - ESC / 바깥 클릭으로 닫힘.
  */
 export default function DayEventsPopover({
@@ -26,6 +28,8 @@ export default function DayEventsPopover({
   anchorRect,
   onClose,
   onEventClick,
+  onEventHover,
+  onEventHoverEnd,
 }) {
   const L = useTimelineLabels();
   const popoverRef = useRef(null);
@@ -106,6 +110,10 @@ export default function DayEventsPopover({
                   borderColor: palette.border,
                   cursor: ev.noOpen ? 'default' : 'pointer',
                 }}
+                onMouseEnter={(e) =>
+                  onEventHover?.(ev, e.currentTarget.getBoundingClientRect())
+                }
+                onMouseLeave={() => onEventHoverEnd?.()}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (!ev.noOpen) onEventClick?.(ev, e.currentTarget.getBoundingClientRect());

@@ -845,6 +845,11 @@
   z-index: 70;
   pointer-events: none;
 }
+/* 날짜 일정 목록 창(.tl-day-popover-overlay 9000) 안의 일정에 띄울 때만 그 막 위로 (pivit-work PW-2888).
+   평소 층(70)은 그대로 둬 위쪽 바·다른 창과의 겹침 순서를 바꾸지 않는다. */
+.tl-event-hover-card.is-above-day-popover {
+  z-index: 9001;
+}
 /* 호버 카드의 긴 제목은 카드 폭에서 «…»로 줄인다 (PW-2212). 예전엔 줄이 카드 밖으로 넘쳐 카드의 overflow 에
    글자째 잘렸다. 전체 제목은 일정을 눌러 여는 창이 보여 준다 — 그 창 제목은 그대로 둔다. */
 .tl-event-hover-card .tl-meeting-modal-title-row {

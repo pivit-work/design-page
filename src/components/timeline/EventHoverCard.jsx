@@ -22,8 +22,9 @@ import useTimelineData from './useTimelineData.js';
  *                minutesLabel 이 있을 때만 «회의록 있음» 딱지를 그린다
  *   anchorRect   일정 칸의 getBoundingClientRect()
  *   attendeesLabel  참석자 줄 머리 문구 (예: 「참석자 3명」)
+ *   aboveDayPopover 날짜 일정 목록 창(DayEventsPopover)이 떠 있을 때 true — 그 창의 막보다 위 층에 뜬다(pivit-work PW-2888)
  */
-export default function EventHoverCard({ event, anchorRect, attendeesLabel }) {
+export default function EventHoverCard({ event, anchorRect, attendeesLabel, aboveDayPopover = false }) {
   const { members } = useTimelineData();
   const cardRef = useRef(null);
   const [pos, setPos] = useState({ left: 0, top: 0, opacity: 0 });
@@ -53,7 +54,7 @@ export default function EventHoverCard({ event, anchorRect, attendeesLabel }) {
   return createPortal(
     <div
       ref={cardRef}
-      className="tl-meeting-modal is-calendar tl-event-hover-card"
+      className={`tl-meeting-modal is-calendar tl-event-hover-card${aboveDayPopover ? ' is-above-day-popover' : ''}`}
       style={{ left: pos.left, top: pos.top, opacity: pos.opacity }}
       role="tooltip"
       data-testid="calendar-event-hover-card"
