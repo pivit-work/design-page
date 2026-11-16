@@ -591,7 +591,8 @@ function MemberCard({ member, tone, icons, baseUrl, onAction, onCardClick, rende
               : member.avatar && <img src={member.avatar} alt="" />}
           </div>
           <div className="ono-member-name-block">
-            <p className="ono-member-name">{member.name}</p>
+            {/* 긴 이름은 한 줄 말줄임 — 전체 이름은 말풍선(title)으로 (pivit-work PW-2885 · 1280 에서 두세 줄로 꺾였다). */}
+            <p className="ono-member-name" title={member.name}>{member.name}</p>
             {/* 팀원이 보낸 «대기» 1on1 신청이 있다는 표시만 — 신청 줄과 응답은 대시보드 맨 앞 묶음에 있다
                 (pivit-work PW-2639 · 기획 v3.16 §13-10 «신청 묶음» ③ ⑧). 누르는 동작이 없다(카드를 누른 것과 같다).
                 직급 줄 안 옆자리에 둔다 — 아래 줄로 쌓으면 카드 높이가 신청 때문에 18px 늘어난다(11-11 로컬 확인).

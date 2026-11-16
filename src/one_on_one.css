@@ -907,6 +907,23 @@
   color: var(--text-primary);
 }
 
+/* 팀원 카드의 긴 이름은 꺾지 않고 한 줄 말줄임 — 오른쪽 상태 딱지에 밀려 1280 에서 두세 줄로 꺾여
+   카드 높이가 들쭉날쭉했다(pivit-work PW-2885). 전체 이름은 title 말풍선. 말줄임이 먹으려면 이름 묶음까지 줄 수 있어야 한다.
+   대시보드 맨 앞 «1on1 신청» 줄(.ono-request-row)은 그대로 둔다. */
+.ono-member-card .ono-member-identity,
+.ono-member-card .ono-member-name-block {
+  min-width: 0;
+}
+/* 말줄임된 이름이 상태 딱지에 붙지 않게 — 짧은 이름 카드는 space-between 이라 그대로다. */
+.ono-member-card .ono-member-top {
+  gap: var(--spacing-md);
+}
+.ono-member-card .ono-member-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .ono-member-role {
   font-family: var(--font-family-body);
   font-weight: 600;
