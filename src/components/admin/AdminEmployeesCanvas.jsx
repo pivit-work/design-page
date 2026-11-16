@@ -5106,7 +5106,7 @@ function PersonalHistoryList({
               if (col.key === 'field') return <span className="admin-emp-hist-head">{p.field}{p.kindChips}</span>;
               if (col.key === 'value') return <>{p.values}{p.reason}</>;
               if (col.key === 'who') return p.who;
-              return p.source;
+              return <span className="admin-emp-hist-src">{p.source}</span>;
             }}
           />
           {nextCursor && onLoadMore && (

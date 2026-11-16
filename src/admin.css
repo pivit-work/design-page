@@ -1819,7 +1819,10 @@
 .admin-emp-hist-table { margin-bottom: var(--spacing-xl); }
 .admin-emp-hist-table .admin-emp-hist-when { white-space: nowrap; color: var(--text-subtle); }
 .admin-emp-hist-table .admin-emp-hist-field { font-weight: 600; color: var(--fg-primary); }
-.admin-emp-hist-table .admin-emp-hist-head { display: flex; align-items: center; gap: var(--spacing-sm); flex-wrap: wrap; }
+.admin-emp-hist-table .admin-emp-hist-head { display: flex; align-items: center; gap: var(--spacing-sm); white-space: nowrap; }
+/* 항목 · 바꾼 사람 · 바꾼 곳은 한 줄 — 좁은 폭(1280)에서 «휴대/폰» · «본/인»으로 꺾이지 않게 긴 값 칸이 폭을 양보한다 */
+.admin-emp-hist-table .admin-emp-hist-src { display: inline-block; width: max-content; white-space: nowrap; }
+.admin-emp-hist-table .admin-emp-hist-who { width: max-content; }
 .admin-emp-hist-table .admin-emp-hist-values { margin: 0; }
 .admin-emp-hist-table .admin-emp-hist-before { color: var(--text-tertiary); }
 .admin-emp-hist-table .admin-emp-hist-after { color: var(--fg-primary); }
