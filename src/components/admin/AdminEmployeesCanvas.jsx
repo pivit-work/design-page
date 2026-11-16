@@ -1,4 +1,4 @@
-import { Fragment, useState, useMemo, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
+import { Fragment, createContext, useContext, useState, useMemo, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import DpStatusBadge from '../shared/StatusBadge.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import AvatarFallback from './AvatarFallback.jsx';
@@ -1933,10 +1933,10 @@ const LIST_OPTIONAL_COLS = [
   /** 직함 — 명함용 대외 명칭(전무). 직급·직위와 세 축 모두 별개다(PW-502). */
   { id: 'businessTitle', width: 110, optionalField: 'business_title' },
   /** FTE — 풀타임 환산 비율 %. 고용형태와 다른 축이다(PW-481 · §1-3-g 32번). */
-  { id: 'ftePercent', width: 80 },
+  { id: 'ftePercent', width: 96 },
   /** 근무 위치 3층 — 국가 > 도시 > 빌딩(PW-503). 시트 뷰와 같은 세 열이다. */
-  { id: 'workCountry', width: 110 },
-  { id: 'workLocation', width: 110 },
+  { id: 'workCountry', width: 136 },
+  { id: 'workLocation', width: 136 },
   { id: 'workBuilding', width: 120 },
   /** 근무 일정 — 고용형태 뒤(13종 정본표). */
   { id: 'workSchedule', width: 110 },
@@ -2067,8 +2067,41 @@ function Dash() {
   return <span className="admin-emp-cell-dash" aria-hidden="true">—</span>;
 }
 
-function TextCell({ value }) {
-  return value ? <span className="admin-emp-cell-text">{value}</span> : <Dash />;
+/* 잘린 글을 위로 알리는 자리 — 칸에 이미 말풍선(«고치는 곳» 등)이 있으면 글 칸이 제 말풍선을 따로 달지 않고
+   그 말풍선에 전체 글자를 함께 싣는다. 둘이 겹쳐 뜨지 않게. */
+const ClipReportContext = createContext(null);
+
+/**
+ * 표 칸 글 — 한 줄로 두고 넘치면 «…», 잘렸을 때만 마우스를 올리면 전체 글자 (PW-2917).
+ * 명단 표 칸(td)의 «…» 규칙은 칸 바로 안의 글에만 닿는다. 표에서 고칠 수 있는 칸은 글을 상자로 한 번 더
+ * 싸므로 글 자체가 자기 폭에서 줄인다(`.admin-emp-cell-clip`). 열 폭은 고정이라 값이 바뀔 때만 다시 잰다.
+ */
+function TextCell({ value, className }) {
+  const ref = useRef(null);
+  const report = useContext(ClipReportContext);
+  const [cut, setCut] = useState(false);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    const next = !!el && el.scrollWidth > el.clientWidth + 1;
+    setCut(next);
+    if (report) report(next ? String(value) : null);
+  }, [value, report]);
+  if (!value) return <Dash />;
+  const text = (
+    <span ref={ref} className={['admin-emp-cell-text', 'admin-emp-cell-clip', className].filter(Boolean).join(' ')}>{value}</span>
+  );
+  if (report) return text;
+  return <Tooltip content={cut ? String(value) : null}>{text}</Tooltip>;
+}
+
+/** 말풍선이 이미 있는 칸 — 안의 글이 잘렸으면 전체 글자를 첫 줄에, 칸 말풍선을 다음 줄에 둔다. */
+function CellTip({ tip, children }) {
+  const [clipped, setClipped] = useState(null);
+  return (
+    <ClipReportContext.Provider value={setClipped}>
+      <Tooltip content={[clipped, tip].filter(Boolean).join('\n')}>{children}</Tooltip>
+    </ClipReportContext.Provider>
+  );
 }
 
 /**
@@ -3404,15 +3437,17 @@ function EmployeesListView({
     ...(optOn('jobRank') ? [{ id: 'jobRank', label: cl.jobRank, width: 90 }] : []),
     /* 직함 — ② 덩어리의 맨 뒤(대외 명칭). 근무 위치 앞이라는 자리는 그대로다. */
     ...(optOn('businessTitle') ? [{ id: 'businessTitle', label: cl.businessTitle, width: 110 }] : []),
-    { id: 'employmentType', label: cl.employmentType, width: 100 },
+    /* 고용형태·근무지·FTE 는 머리에 «발령» 표시와 ▾ 가 함께 선다 — 머리 칸 안쪽 폭(열 폭 − 여백 24)이 그 합보다 넓어야
+       ▾ 가 칸 선 밖으로 나가지 않는다(PW-2917 실측: 근무지 106 · 고용형태 87 · FTE 66px). */
+    { id: 'employmentType', label: cl.employmentType, width: 116 },
     ...(optOn('workSchedule') ? [{ id: 'workSchedule', label: cl.workSchedule, width: 110 }] : []),
     /* 140 — 상태 배지 밑에 「퇴직 예정 D-n」·「Past last day」가 쌓인다(PW-939). 표가 고정 폭이라
        100 이면 「퇴직 예정 D-」 에서 숫자가 잘렸다(브라우저 실측: 칸 76px · 배지 92px, 「퇴직 예정 D-365」 108px). */
     { id: 'employmentStatus', label: cl.employmentStatus, width: 140 },
-    ...(optOn('workCountry') ? [{ id: 'workCountry', label: cl.workCountry, width: 110 }] : []),
-    ...(optOn('workLocation') ? [{ id: 'workLocation', label: cl.workLocation, width: 110 }] : []),
+    ...(optOn('workCountry') ? [{ id: 'workCountry', label: cl.workCountry, width: 136 }] : []),
+    ...(optOn('workLocation') ? [{ id: 'workLocation', label: cl.workLocation, width: 136 }] : []),
     /* FTE — 도시 뒤 (admin-spec §3.1 ⚙ 정본표). */
-    ...(optOn('ftePercent') ? [{ id: 'ftePercent', label: cl.ftePercent, width: 80 }] : []),
+    ...(optOn('ftePercent') ? [{ id: 'ftePercent', label: cl.ftePercent, width: 96 }] : []),
     ...(optOn('workBuilding') ? [{ id: 'workBuilding', label: cl.workBuilding, width: 120 }] : []),
     { id: 'manager', label: cl.manager, width: 150 },
     ...(optOn('squadLead') ? [{ id: 'squadLead', label: cl.squadLead, width: 130 }] : []),
@@ -3824,9 +3859,9 @@ function EmployeesListView({
     const lockTip = te.lockTips?.[colId];
     if (lockTip) {
       return (
-        <Tooltip content={lockTip}>
+        <CellTip tip={lockTip}>
           <span className="admin-emp-edit-readonly" data-testid={`employees-cell-lock-${colId}-${m.id}`}>{cell(m, colId)}</span>
-        </Tooltip>
+        </CellTip>
       );
     }
     const spec = te.columns[colId];
@@ -3900,7 +3935,7 @@ function EmployeesListView({
     } else if (changed) {
       body = value === ''
         ? <span className="admin-emp-cell-dash">—</span>
-        : <span className="admin-emp-cell-text admin-emp-edit-value">{te.label(key, value)}</span>;
+        : <TextCell value={te.label(key, value)} className="admin-emp-edit-value" />;
     } else {
       body = cell(m, colId);
     }
@@ -3937,7 +3972,7 @@ function EmployeesListView({
         )}
       </div>
     );
-    return why ? <Tooltip content={why}>{inner}</Tooltip> : inner;
+    return why ? <CellTip tip={why}>{inner}</CellTip> : inner;
   }
 
   /* 열 머리 — 글자를 누르면 정렬(PW-1545 · §3.1 «정렬 · 고정 열»), ▾ 는 그 열의 필터 · «체크한 N명에게 한 번에 넣기»

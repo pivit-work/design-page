@@ -1180,6 +1180,14 @@
   line-height: 20px;
   color: var(--text-secondary);
 }
+/* 표 칸 글 — 명단 표 칸(.rt-table.is-nowrap td)과 같은 한 줄 «…». 표에서 고칠 수 있는 칸은 글을 상자로
+   한 번 더 싸서 칸의 «…» 가 안쪽 글에 닿지 않는다 — 글이 자기 폭에서 줄인다 (PW-2917). */
+.admin-emp-cell-clip {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 /* 결측 — 빈칸으로 두면 「열이 잘못 붙었다」 와 구분되지 않는다. */
 .admin-emp-cell-dash { font-size: 13px; color: var(--text-tertiary); }
 
