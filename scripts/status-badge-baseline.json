@@ -88,7 +88,8 @@
    "color": "#b1b6be / 어두운 화면 #85888e",
    "border": "1px solid var(--border-primary)",
    "box-sizing": "border-box",
-   "overflow-wrap": "anywhere"
+   "overflow-wrap": "anywhere",
+   "white-space": "normal"
   },
   "admin.css|.admin-emp-invite-badge": {
    "border-radius": "8px",
@@ -156,7 +157,8 @@
    "gap": "4px",
    "max-width": "100%",
    "box-sizing": "border-box",
-   "overflow-wrap": "anywhere"
+   "overflow-wrap": "anywhere",
+   "white-space": "normal"
   },
   "admin.css|.admin-inv-primary-badge": {
    "border-radius": "pill",
@@ -925,7 +927,8 @@
    "flex-shrink": "0",
    "box-sizing": "border-box",
    "overflow": "hidden",
-   "overflow-wrap": "anywhere"
+   "overflow-wrap": "anywhere",
+   "white-space": "normal"
   },
   "okr.css|.okr-unaligned-badge.is-pill": {
    "border-radius": "pill",
@@ -990,7 +993,9 @@
    "gap": "6px",
    "border": "1px solid var(--onb-brand-pill-border)",
    "min-width": "0",
-   "overflow-wrap": "anywhere"
+   "overflow-wrap": "anywhere",
+   "white-space": "normal",
+   "flex-shrink": "1"
   },
   "one_on_one.css|.omn-message-chip": {
    "border-radius": "8px",
@@ -1283,7 +1288,8 @@
    "color": "#b1b6be / 어두운 화면 #85888e",
    "border": "1px solid var(--border-primary)",
    "box-sizing": "border-box",
-   "overflow-wrap": "anywhere"
+   "overflow-wrap": "anywhere",
+   "white-space": "normal"
   },
   "settings.css|.msc-intg-badge": {
    "border-radius": "pill",
@@ -1304,7 +1310,8 @@
    "border": "1px solid var(--border-primary)",
    "flex-shrink": "0",
    "box-sizing": "border-box",
-   "overflow-wrap": "anywhere"
+   "overflow-wrap": "anywhere",
+   "white-space": "normal"
   },
   "settings.css|.msc-reason-chip": {
    "border-radius": "pill",
@@ -1335,7 +1342,8 @@
    "height": "24px",
    "max-width": "100%",
    "box-sizing": "border-box",
-   "vertical-align": "middle"
+   "vertical-align": "middle",
+   "flex-shrink": "1"
   },
   "team-management.css|.tm-subteam-chip": {
    "border-radius": "pill",

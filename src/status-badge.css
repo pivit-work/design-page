@@ -63,6 +63,16 @@
   /* 비어 있는 것이 맞다 — 위 주석 참고 */
 }
 
+/* 한 줄 · 제 폭 — 딱지가 긴 글과 한 줄에 놓이면 글에 밀려 좁아지고, body 의 `overflow-wrap: anywhere`
+ * 때문에 «고 / 칠 / 곳»처럼 한 글자씩 세로로 쌓였다(pivit-work PW-2872 · 양식 편집 «점검»).
+ * 줄바꿈은 옆 글만 한다. `:where` 라 특이도가 0 — 딱지마다 자기 클래스가 줄바꿈·줄어듦을 정했으면
+ * CSS 파일 순서와 상관없이 그 값이 이긴다(관리자가 정한 이름을 담는 칩은 아래에서 `white-space: normal` 로 푼다).
+ * 모양 값(모서리·여백·글씨·색)은 여기 두지 않는다 — 위 주석 그대로. */
+:where(.dp-badge) {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 /* ── 뜻 ───────────────────────────────────────────────────────────────────
  * 화면은 색을 직접 고르지 않고 이 중 하나를 고른다. */
 .dp-badge--tone-neutral {
@@ -531,6 +541,8 @@
   font-size: var(--font-size-text-xs);
   color: var(--text-secondary);
   overflow-wrap: anywhere;
+  /* 이름 길이를 가정하지 않고 흘려 줄바꿈 — 공용 딱지의 «한 줄» 기본값을 푼다 (PW-2872) */
+  white-space: normal;
 }
 
 /* 칩에 들어오는 값은 관리자·사용자가 정한 항목 이름이라 길이를 가정하지 않는다.
@@ -545,6 +557,8 @@
   color: var(--text-tertiary);
   box-sizing: border-box;
   overflow-wrap: anywhere;
+  /* 이름 길이를 가정하지 않고 흘려 줄바꿈 — 공용 딱지의 «한 줄» 기본값을 푼다 (PW-2872) */
+  white-space: normal;
 }
 
 .admin-emp-hist-chip.is-self {
@@ -1028,7 +1042,7 @@
   color: var(--utility-warning-600, #dc6803);
   background: var(--utility-warning-50, #fffaeb);
   border: 1px solid var(--utility-warning-200, #fedf89);
-  overflow: hidden; overflow-wrap: anywhere;
+  overflow: hidden; overflow-wrap: anywhere; white-space: normal; /* 줄바꿈 허용 — 공용 딱지 «한 줄» 기본값을 푼다 (PW-2872) */
 }
 
 /* 좁은 요약 행(대시보드 트리)용 — 색·글자 규격은 같고 모서리·패딩만 줄인다. */
@@ -1095,7 +1109,7 @@
 /* ── 태그 (시안 Tag) ── */
 .onb-tag {
   display: inline-flex; align-items: center; gap: 6px; min-width: 0; padding: 4px 10px; border-radius: 20px;
-  font-size: 13px; font-weight: 500; overflow-wrap: anywhere;
+  font-size: 13px; font-weight: 500; overflow-wrap: anywhere; white-space: normal; flex-shrink: 1; /* 흘러 줄바꿈·줄어듦 — 공용 딱지 기본값을 푼다 (PW-2872) */
   background: var(--onb-brand-light); color: var(--onb-brand); border: 1px solid var(--onb-brand-pill-border);
 }
 
@@ -1503,6 +1517,8 @@
   color: var(--dp-badge-neutral-fg);
   box-sizing: border-box;
   overflow-wrap: anywhere;
+  /* 이름 길이를 가정하지 않고 흘려 줄바꿈 — 공용 딱지의 «한 줄» 기본값을 푼다 (PW-2872) */
+  white-space: normal;
 }
 
 .msc-pair-badge.is-on {
@@ -1560,6 +1576,8 @@
   color: var(--dp-badge-neutral-fg);
   box-sizing: border-box;
   overflow-wrap: anywhere;
+  /* 이름 길이를 가정하지 않고 흘려 줄바꿈 — 공용 딱지의 «한 줄» 기본값을 푼다 (PW-2872) */
+  white-space: normal;
 }
 
 .msc-hist-badge.is-self {
@@ -1749,6 +1767,8 @@
   white-space: nowrap;
   max-width: 100%;
   vertical-align: middle;
+  /* 좁은 줄에서 칩이 줄어 글이 «…»가 된다 — 공용 딱지의 «줄지 않음» 기본값을 푼다 (PW-1535 · PW-2872) */
+  flex-shrink: 1;
 }
 /* 필터 · 사람 칩 — 흰 바탕에 테두리. 상태 칩(.is-tone)은 뜻 → 색 표가 칠한다. */
 .dp-chip:not(.is-tone) {
