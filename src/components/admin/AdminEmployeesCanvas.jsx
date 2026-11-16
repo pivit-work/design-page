@@ -5393,6 +5393,8 @@ function EmployeesEditPanel({
      canPrev, canNext, onPrev(), onNext(), onBack(), canViewComp, confirmLeave() => Promise<boolean>, onDirtyChange(bool), loadFailed, onRetry }`.
      미주입이면 종전 오른쪽 창이다. */
   page,
+  /* 상세 페이지 «매니저» 줄의 사진 — 매니저의 명단 행(호스트 사진 · PW-2895). 없으면 이름 글자 동그라미 */
+  managerRow,
   onRehireMember,
   member, orgUnits, labels, renderAvatar, canEdit,
   gradeOptions, positionOptions, onClose, onSave, onChangeAffiliations,
@@ -6905,7 +6907,9 @@ function EmployeesEditPanel({
                   <span className="admin-emp-manager-note" data-testid="employees-panel-manager-ceo">{labels.listManagerFilter.ceoTop}</span>
                 ) : draft.managerName ? (
                   <span className="admin-emp-detail-person">
-                    <AvatarFallback row={{ name: draft.managerName }} size={28} />
+                    <span className="admin-emp-detail-avatar">
+                      {managerRow && renderAvatar ? renderAvatar(managerRow, 28) : <AvatarFallback row={managerRow || { name: draft.managerName }} size={28} />}
+                    </span>
                     <span className="admin-emp-manager-name">{draft.managerName}</span>
                   </span>
                 ) : null}
@@ -8119,6 +8123,7 @@ export default function AdminEmployeesCanvas({
             key={extra.key}
             page={extra.page}
             member={target}
+            managerRow={extra.page && target.managerId ? members.find((m) => m.id === target.managerId) : undefined}
             positionHelp={positionHelp}
             historyHelp={historyHelp}
             leaderUnitIds={(leaderUnitIdsByMember || {})[target.id] || EMPTY_ARRAY}

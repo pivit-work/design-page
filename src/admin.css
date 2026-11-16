@@ -1756,6 +1756,9 @@
 .admin-emp-detail:not(.is-editing) .admin-emp-detail-body .admin-emp-field .admin-emp-manager-name { font-size: 16px; font-weight: 400; color: var(--text-secondary); }
 .admin-emp-detail:not(.is-editing) .admin-emp-detail-body .admin-emp-detail-value-row { flex: 1 1 auto; display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-lg); min-width: 0; }
 .admin-emp-detail:not(.is-editing) .admin-emp-detail-body .admin-emp-detail-person { display: inline-flex; align-items: center; gap: var(--spacing-md); }
+/* 매니저 사진은 동그라미(시안 «사진 동그라미 + 이름» · 앱 공용 Avatar PW-1014 처럼 원 안에 맞춤) — 목록 칸의 둥근 네모(.admin-avatar 7)는 그대로 */
+.admin-emp-detail-avatar { display: inline-flex; flex: none; border-radius: var(--radius-full); overflow: hidden; }
+.admin-emp-detail-avatar > *, .admin-emp-detail-avatar img { border-radius: var(--radius-full); }
 /* 소속 경로 — 위 조직은 옅게, 마지막 조직만 진하게 */
 .admin-emp-detail-crumb { color: var(--text-tertiary); }
 .admin-emp-detail-crumb b { font-weight: 600; color: var(--fg-primary); }
