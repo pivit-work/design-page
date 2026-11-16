@@ -13916,6 +13916,17 @@ button.evmh-phase:focus-visible {
   font-size: var(--font-size-text-sm);
   font-weight: 400;
 }
+/* PW-2891 — ⓘ 말풍선 안 문장 덩어리. 사이 6px · 보충 줄은 같은 글자색을 옅게(커트 11-16 시안 .tip p + p · .dim) */
+.evp-tip-block {
+  display: block;
+}
+.evp-tip-block + .evp-tip-block {
+  margin-top: var(--spacing-sm);
+}
+.evp-tip-note {
+  display: block;
+  opacity: 0.72;
+}
 /* 대상 패널 머리 바로 아래 — 패널 안 줄이라 바깥 여백·모서리를 뺀다 */
 .evc-wiz-soft-warn.is-flat {
   margin-top: 0;

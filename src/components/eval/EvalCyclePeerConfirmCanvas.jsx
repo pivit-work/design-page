@@ -43,6 +43,7 @@ const DEFAULT_LABELS = {
   // PW-2654 — 제목 아래는 지금 할 일에 걸리는 한 문장(앱은 단계 안내를 넘긴다). 비면 그리지 않는다.
   subtitle: '',
   // PW-2654 — 추천 출처·제외 규칙은 제목 옆 ⓘ (커트 11-09 시안).
+  // PW-2891 — 빈 줄로 덩어리를 나누고, 덩어리 안 둘째 줄부터는 그 문장 아래 옅은 보충 줄이다(TitleTip).
   titleTip: 'AI·본인·HR이 추천한 동료 리뷰어를 검토하고, 가감 후 최종 확정하세요.',
   // 리더 정책 §6.0 — 동료 리뷰 = 피드백 전용. PW-2654 — 늘 보이는 배너가 아니라 제목 옆 ⓘ (leader.policy §6.0 덧붙임 · David 11-09).
   feedbackOnlyNotice: '',
@@ -525,6 +526,39 @@ function UnsolicitedSection({ items, L, onAdopt, onReject }) {
   );
 }
 
+
+/**
+ * PW-2891 — 제목 옆 ⓘ 말풍선. 여러 문장을 띄어쓰기로 이어 붙이면 280px 말풍선에 한 문단으로 흘러
+ * 어디서 끊어 읽을지 안 보였다. 문장마다 덩어리로 나누고(기획서 eval-app.jsx 동료 리뷰어 확정 툴팁의 줄바꿈),
+ * 덩어리 안 둘째 줄부터는 옅은 보충 줄로 그린다(커트 11-16 시안).
+ * 글은 «빈 줄 = 덩어리 사이 · 줄바꿈 = 보충 줄»로 받는다 — 옛 판 캔버스가 받아도 말풍선이 줄바꿈을 그대로
+ * 보여 주므로 앱과 판이 어긋나도 글이 깨지지 않는다. 읽기 프로그램에는 보충 줄을 괄호로 묶어 한 문장으로 읽힌다.
+ */
+function TitleTip({ texts }) {
+  const blocks = texts
+    .filter(Boolean)
+    .flatMap((t) => String(t).split(/\n[ \t]*\n/))
+    .map((b) => b.split('\n').map((l) => l.trim()).filter(Boolean))
+    .filter((lines) => lines.length > 0);
+  if (blocks.length === 0) return null;
+  const label = blocks
+    .map(([lead, ...notes]) => (notes.length ? `${lead} (${notes.join(' ')})` : lead))
+    .join(' ');
+  const content = (
+    <span data-testid="evp-tip-body">
+      {blocks.map(([lead, ...notes], i) => (
+        <span key={i} className="evp-tip-block">
+          {lead}
+          {notes.map((n, j) => (
+            <span key={j} className="evp-tip-note">{n}</span>
+          ))}
+        </span>
+      ))}
+    </span>
+  );
+  return <FieldInfo description={label} content={content} />;
+}
+
 export default function EvalCyclePeerConfirmCanvas({
   groups = [],
   candidates = [],
@@ -582,7 +616,7 @@ export default function EvalCyclePeerConfirmCanvas({
             <h1 className="evc-title evp-title">
               {L.title}
               <span className="evp-title-tip" data-testid="evp-title-tip">
-                <FieldInfo description={[L.titleTip, L.feedbackOnlyNotice].filter(Boolean).join(' ') || null} />
+                <TitleTip texts={[L.titleTip, L.feedbackOnlyNotice]} />
               </span>
             </h1>
             {L.subtitle && <p className="evc-summary" data-testid="evp-subtitle">{L.subtitle}</p>}

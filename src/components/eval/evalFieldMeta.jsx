@@ -17,11 +17,15 @@ function isVisibleToEvaluatee(visibleToRoles) {
   );
 }
 
-/** 라벨 옆 설명 툴팁(ⓘ). description 없으면 아무것도 렌더하지 않음. */
-export function FieldInfo({ description }) {
+/**
+ * 라벨 옆 설명 툴팁(ⓘ). description 없으면 아무것도 렌더하지 않음.
+ * [PW-2891] content 를 주면 말풍선에는 그것을 그리고, description 은 읽기 프로그램용 이름(aria-label)으로만 쓴다 —
+ * 여러 문장을 덩어리로 나눠 보일 때.
+ */
+export function FieldInfo({ description, content = null }) {
   if (!description) return null;
   return (
-    <Tooltip content={description}>
+    <Tooltip content={content || description}>
       <span
         className="evx-field-info"
         data-testid="evx-field-info"
