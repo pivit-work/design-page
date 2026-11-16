@@ -3264,8 +3264,10 @@ function EmployeesListView({
     });
   }
   /* «소속 일괄 이동» (PW-2814 · §3.1-G-1 ③) — «소속 일괄 추가» 바로 아래. 체크한 사람 전부(필터에 가려진 사람 포함)가 대상이고,
-     창은 부르는 쪽이 그린다(주 소속만 옮기는 계산은 서버가 한다 — 여기서 소속을 합성하지 않는다). */
-  if (selectable && onBulkMoveAffiliations && orgUnits.length > 0) {
+     창은 부르는 쪽이 그린다(주 소속만 옮기는 계산은 서버가 한다 — 여기서 소속을 합성하지 않는다).
+     조직 목록이 비어도(못 불러왔어도) 메뉴는 남긴다 — 창의 트리 자리가 «조직 목록을 불러오지 못했어요» + [다시 불러오기]를
+     보인다(§3.1-G-1 ③ «늦거나 실패할 때»). */
+  if (selectable && onBulkMoveAffiliations) {
     const overMax = orgMoveMax != null && selectedRows.length > orgMoveMax;
     bulkItems.push({
       id: 'org-move',
