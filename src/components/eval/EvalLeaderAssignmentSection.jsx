@@ -1143,7 +1143,7 @@ export default function EvalLeaderAssignmentSection({
                   data-testid={`evc-la-pick-${p.id}`}
                 >
                   <span className={p.resigned ? 'evc-la-name is-resigned' : 'evc-la-name'}>{p.name}</span>
-                  {p.org && <span className="evc-la-hint" title={p.org}>{p.org}</span>}
+                  {p.org && <span className="evc-la-hint evc-la-pop-org" title={p.org}>{p.org}</span>}
                   {loadLimit > 0 && (loadBy.get(p.id) ?? 0) >= loadLimit && (
                     <span className="evc-la-hint is-warn" data-testid={`evc-la-pick-load-${p.id}`}>
                       {fill(L.leaderAsgPickLoad, { count: loadBy.get(p.id) })}
