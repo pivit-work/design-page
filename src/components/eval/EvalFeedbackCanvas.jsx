@@ -119,6 +119,8 @@ const DEFAULT_LABELS = {
   requestAlreadySent: '이 항목에는 이미 피드백을 요청했어요.',
   // 요청한 사람이 받는 조직장의 범위를 벗어나 닫힌 요청 — 버블 아래 보조 글씨 줄 (§5 «매니저가 바뀌어 닫힘»)
   requestClosedNote: '매니저가 바뀌어 닫힌 요청입니다. 새 매니저에게 다시 요청할 수 있습니다.',
+  // 고치거나 지우려는 사이 매니저가 바뀌어 닫혔다 — 앱이 `reason: 'closed'` 로 거절한다 (§5 · PW-2784)
+  requestClosedError: '매니저가 바뀌어 닫힌 요청은 수정·취소할 수 없습니다.',
   // KR·이니셔티브 블록 자리의 불러오기 실패 (§8) — «피드백 없음»과 다른 상태다
   blocksLoadFailed: 'OKR 정보를 불러오지 못했습니다',
   initiativesLoadFailed: '이니셔티브 정보를 불러오지 못했습니다',
@@ -639,7 +641,7 @@ function RequestBubble({ item, L, onEdit, onDelete }) {
       await onEdit(item.id, editText.trim());
       setEditing(false);
     } catch (e) {
-      if (e?.reason === 'alreadyAnswered') {
+      if (e?.reason === 'alreadyAnswered' || e?.reason === 'closed') {
         // 상대가 이미 답했다 — 고친 글을 버리고 원문으로 되돌린다(받은 답은 앱이 다시 불러온다).
         setEditing(false);
         setEditText(item.text || '');
@@ -771,6 +773,8 @@ function defaultRecipient(recipients, block) {
   const managers = recipients.filter((r) => r.kind === 'manager');
   return (
     (block.orgUnitId && managers.find((r) => r.orgUnitId === block.orgUnitId)) ||
+    (block.okrOwnerId &&
+      managers.find((r) => r.orgUnitId && (r.unitPrimaryMemberIds || []).includes(block.okrOwnerId))) ||
     managers.find((r) => !r.orgUnitId) ||
     managers[0] ||
     recipients[0] ||
@@ -1113,6 +1117,8 @@ function groupBlocks(items, krs, initiatives) {
     progress: kr.progress ?? 0,
     // 그 KR 이 속한 조직 — 매니저가 둘인 사람의 요청 창 기본 매니저를 고른다 (§6.2 · PW-2784)
     orgUnitId: kr.orgUnitId ?? null,
+    // 단위가 안 적힌 옛 팀 OKR 이면 그 소유자 — 소유자의 주 소속 조직의 KR 이다 (PW-598)
+    okrOwnerId: kr.okrOwnerId ?? null,
     items: byKey.get(`kr:${kr.id}`) || [],
   }));
   const initBlocks = initiatives.map((it) => ({
@@ -1121,6 +1127,7 @@ function groupBlocks(items, krs, initiatives) {
     key: `init:${it.id}`,
     title: it.title,
     orgUnitId: it.orgUnitId ?? null,
+    okrOwnerId: it.okrOwnerId ?? null,
     items: byKey.get(`init:${it.id}`) || [],
   }));
   // 「기타」 — 연결 대상이 없거나, 연결된 KR·이니셔티브가 내 목록에 없는 것 전부(§10-3).
@@ -1299,9 +1306,17 @@ export default function EvalFeedbackCanvas({
   // 실패는 토스트로 알리고 다시 던진다 — 버블이 수정 칸·버블을 그대로 둘지 정한다(§5).
   // 앱이 `reason: 'alreadyAnswered'` 로 거절하면 «상대가 이미 답함» 안내를 띄운다.
   // 앱이 이미 알린 실패(이용 정지 등)는 띄우지 않는다(PW-2907).
+  // 고치거나 지우려는 사이 매니저가 바뀌어 닫히면 `reason: 'closed'` — 닫힌 요청 안내(PW-2784).
   const failToast = (e, fallback) => {
     if (isNotifiedFailure(e)) return;
-    showToast(e?.reason === 'alreadyAnswered' ? L.requestAlreadyAnswered : fallback, 'error');
+    showToast(
+      e?.reason === 'alreadyAnswered'
+        ? L.requestAlreadyAnswered
+        : e?.reason === 'closed'
+          ? L.requestClosedError
+          : fallback,
+      'error',
+    );
   };
   const handleEditRequest = onEditRequest
     ? async (itemId, text) => {
