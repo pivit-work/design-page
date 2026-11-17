@@ -29,7 +29,7 @@ export const educationSentValue = (key, value) => {
   const s = String(value ?? '').trim();
   if (key !== 'from' && key !== 'to') return s;
   const n = yearMonthOf(s);
-  return n === null ? s : `${Math.floor(n / 12)}-${String((n % 12) + 1).padStart(2, '0')}`;
+  return n === null ? s : `${String(Math.floor(n / 12)).padStart(4, '0')}-${String((n % 12) + 1).padStart(2, '0')}`;
 };
 
 const fill = (text, vars) => String(text).replace(/\{(\w+)\}/g, (_, k) => (vars[k] ?? `{${k}}`));
@@ -76,6 +76,19 @@ export function educationRuleError(form, todayIso, L = {}) {
 }
 
 /** 상태를 재학으로 바꾸면 넣어 둔 졸업(예정)을 비운다 — 서버는 재학에 졸업일이 있으면 거절한다(§4-C-1 「재학으로 바꾸면 이미 넣은 종료 값을 비운다」) */
-// changedKey 를 주면 «상태»를 바꿀 때만 비운다 — 옛 줄에서 학교명만 고칠 때 남은 졸업일을 몰래 지우지 않게
-export const normalizeEducationForm = (form, changedKey) =>
-  (form.status === 'enrolled' && form.to && (changedKey === undefined || changedKey === 'status') ? { ...form, to: '' } : form);
+// 고치기로 연 옛 줄(재학인데 졸업일이 남음)도 열 때 비운다 — §4-C-1 «재학 | 종료 없음 — 칸 비활성». 잠긴 칸에 값이 보이거나
+// 그 값으로 «졸업이 입학보다 빠릅니다»에 막히면 고칠 길이 없다(적대적 리뷰 2회차). 저장하면 졸업일 없이 가고 서버도 받는다.
+export const normalizeEducationForm = (form) => (form.status === 'enrolled' && form.to ? { ...form, to: '' } : form);
+
+/** 서버가 «안 건드림»과 상관없이 늘 보는 모양 검사 — 입학·졸업(예정)은 늘 실려 가 DTO 가 YYYY-MM 인지 본다 */
+export function educationFormatError(form, L = {}) {
+  const fromRaw = String(form.from ?? '').trim();
+  if (fromRaw && yearMonthOf(fromRaw) === null) {
+    return { key: 'from', message: L.hrEduFromInvalid || '입학은 1950-01부터 이번 달까지 YYYY-MM 으로 넣어 주세요.' };
+  }
+  const toRaw = String(form.to ?? '').trim();
+  if (toRaw && form.status !== 'enrolled' && yearMonthOf(toRaw) === null) {
+    return { key: 'to', message: L.hrEduEndFormat || '졸업(예정)은 YYYY-MM 으로 넣어 주세요.' };
+  }
+  return null;
+}

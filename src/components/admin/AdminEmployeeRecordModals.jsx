@@ -15,7 +15,7 @@ import { createContext, useContext, useState, useEffect, useLayoutEffect, useMem
 import Checkbox from '../shared/Checkbox.jsx';
 import DateInput from '../shared/DateInput.jsx';
 import { todayIsoInZone } from '../shared/calendarDate.js';
-import { educationRuleError, normalizeEducationForm, educationSentValue, EDUCATION_RULE_KEYS } from './educationRecordRules.js';
+import { educationRuleError, educationFormatError, normalizeEducationForm, educationSentValue, EDUCATION_RULE_KEYS } from './educationRecordRules.js';
 import { IconLock } from './employeeExport.jsx';
 import { IconChevronRight } from './employeesIcons.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
@@ -912,6 +912,7 @@ function hrRecordDefs(L, todayIso) {
       periodError: L.hrEduEndBeforeStart || '졸업이 입학보다 빠릅니다. 날짜를 고쳐야 저장할 수 있습니다.',
       // 서버 학력 규칙을 [학력 추가] 전에 — [저장하기] 때서야 어느 줄인지 모를 거절이 나오지 않게(pivit-work PW-2942)
       ruleError: (form) => educationRuleError(form, todayIso, L),
+      formatError: (form) => educationFormatError(form, L),
       ruleKeys: EDUCATION_RULE_KEYS,
       ruleValueOf: educationSentValue,
       normalize: normalizeEducationForm,
@@ -2148,7 +2149,8 @@ function HrRecordListSection({
   // ruleKeys — 고치기로 연 줄에서 이 칸을 안 건드리면 ruleError 를 보지 않는다(서버도 그때는 안 본다).
   // normalize(form) → form — 칸을 바꿀 때마다 거친다(재학이면 졸업일 비우기).
   // ruleValueOf(key, value) — 서버에 실려 갈 모양. «안 건드림»은 이 값이 연 때의 서버 값과 같은지로 본다.
-  ruleError, ruleKeys, ruleValueOf, normalize,
+  // formatError(form) — 안 건드린 옛 줄이라도 서버가 늘 보는 모양 검사(입학·졸업 YYYY-MM)
+  ruleError, ruleKeys, ruleValueOf, normalize, formatError,
 }) {
   const L = labels || {};
   const [form, setForm] = useState(() => emptyForm(fields));
@@ -2183,13 +2185,11 @@ function HrRecordListSection({
   const periodUntouched = ruleKeys ? ruleUntouched : editingPeriod
     && String(form.from ?? '') === editingPeriod.from && String(form.to ?? '') === editingPeriod.to;
   const reversed = Boolean(periodError) && !periodUntouched && periodReversed(form);
-  const rule = ruleError && !ruleUntouched ? ruleError(form) : null;
+  const rule = ruleError && !ruleUntouched ? ruleError(form) : (formatError ? formatError(form) : null);
   // 거꾸로 안내가 졸업(예정) 아래 있으면 같은 칸 안내는 하나만 — 범위 안내는 날짜를 고친 뒤에 나온다
   const ruleShown = rule && !(reversed && rule.key === 'to') ? rule : null;
   const submit = async () => {
-    // 안 건드린 옛 줄(재학인데 졸업일이 남은 줄)은 그대로 둔다 — 서버도 그때는 받는다
-    const sent = normalize && !ruleUntouched ? normalize(form) : form;
-    const ok = await run(() => onSave(editingId, bodyOf(fields, sent, Boolean(editingId))));
+    const ok = await run(() => onSave(editingId, bodyOf(fields, normalize ? normalize(form) : form, Boolean(editingId))));
     if (ok) { setForm(emptyForm(fields)); setEditingId(null); setEditingPeriod(null); setEditingRule(null); }
   };
   const startEdit = (r) => {
@@ -2197,13 +2197,13 @@ function HrRecordListSection({
     setEditingId(r.id);
     setEditingPeriod({ from: String(next.from ?? ''), to: String(next.to ?? '') });
     setEditingRule(ruleKeys ? Object.fromEntries(ruleKeys.map((k) => [k, String(next[k] ?? '')])) : null);
-    setForm(next);
+    setForm(normalize ? normalize(next) : next);
     setError(false);
   };
   const cancelEdit = () => { setEditingId(null); setEditingPeriod(null); setEditingRule(null); setForm(emptyForm(fields)); };
   const set = (key) => (v) => setForm((f) => {
     const next = { ...f, [key]: v };
-    return normalize ? normalize(next, key) : next;
+    return normalize ? normalize(next) : next;
   });
 
   const list = items ?? [];
