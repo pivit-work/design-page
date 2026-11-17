@@ -323,6 +323,9 @@ export default function StartOneOnOneView({
   titleHelp = null,
   /** 팀원 이름 줄 끝 단계 딱지(진행 중 «미팅 중» — 앱이 그려 넘긴다 · pivit-work PW-2937 · TC-1ON1-011). 없으면 종전 그대로. */
   stageBadge = null,
+  /** 팀원 자가진단 역량 점수 `{ expertise: 3, … }` — «차이 표시»(policy §4.1.5)에만 쓴다. 매니저 점수의 처음 값으로는
+      쓰지 않는다(PW-2517 비워서 시작 · pivit-work PW-2937). 없으면 차이를 그리지 않는다. */
+  memberSelfCaps = null,
   aiDrafts,
   aiDraftRevisions = {},
   onGenerateDrafts,
@@ -1068,7 +1071,7 @@ export default function StartOneOnOneView({
                                   setCaps((prev) => ({ ...prev, [c.key]: v }))
                                 }
                               />
-                              <CapSelfDelta manager={caps[c.key]} member={c.value} />
+                              <CapSelfDelta manager={caps[c.key]} member={memberSelfCaps?.[c.key]} />
                             </div>
                           ))}
                         </div>
