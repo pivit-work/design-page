@@ -1453,8 +1453,8 @@ function identityPatchOf(draft, base, keys, bankRevealed) {
  * @param {(fn: (() => Promise<void>) | null) => void} [props.registerFlush] 수정 모드로 붙을 때 «모은 바뀜 보내기»를 넘기고, 떨어질 때 null.
  *   보내기는 처음 실패에서 던지고 안 보낸 것은 남긴다 — 다시 부르면 남은 것만 보낸다.
  * @param {(dirty: boolean) => void} [props.onDirtyChange] 모은 바뀜이 생기거나 다 없어질 때.
- * @param {(memberId: string, records: Array<{kind: string, op: 'add'|'update'|'delete', before: string|null, after: string|null}>, send: () => Promise<void>) => Promise<void>} [props.onSaveSession]
- *   [저장] 한 번을 통째로 맡긴다 — 보내기 «전에» 이번 저장에 실릴 기록 줄 목록(목록에 보이는 그 줄 글)을 넘기고, `send` 로 보낸다.
+ * @param {(memberId: string, records: Array<{kind: string, op: 'add'|'update'|'delete', name: string|null, before: string|null, after: string|null}>, send: () => Promise<void>) => Promise<void>} [props.onSaveSession]
+ *   [저장] 한 번을 통째로 맡긴다 — 보내기 «전에» 이번 저장에 실릴 기록 줄 목록(표시 이름 · 앞 값 · 뒤 값)을 넘기고, `send` 로 보낸다.
  *   부르는 쪽이 사유 창을 저장 1회에 한 번만 띄우고 받은 사유를 모든 요청에 싣는다(pivit-work PW-2924 · 개인정보 변경 이력 정책서 §2-5).
  *   없으면 종전처럼 바로 보낸다.
  * 버리기는 부모가 key 를 바꿔 다시 붙인다.
@@ -1577,20 +1577,53 @@ export function HrProfileInline({
     };
     return onSaveSession ? onSaveSession(memberId, pendingRecordLines(), send) : send();
   };
-  /* 이번 저장에 실릴 기록 줄 — 목록에 보이는 그 줄 글로(추가는 «— → 줄», 지움은 «줄 → 없음», 고침은 «전 줄 → 뒤 줄»). */
+  /*
+    이번 저장에 실릴 기록 줄 — 개인정보 변경 이력 정책서 §3-C-2 · §3-D-2 모양으로.
+    `name` = 그 기록의 표시 이름(학교명 · 회사명 · 자격증명 · «이름(관계)» · 파일명) — 창 이름표가 «학력 · {name}».
+    추가 «— → 요약» · 지움 «요약 → (삭제됨)» · 고침은 바뀐 칸마다 한 줄 «앞 값 → 뒤 값»(서버 이력도 칸마다 한 줄).
+    요약 = 목록 줄 글에서 표시 이름을 뺀 나머지.
+  */
   const pendingRecordLines = () => {
     const defs = hrRecordDefs(L, todayIso);
     const docTypes = optionsOf(L.hrDocTypeOptions);
-    const docText = (d) => [optionText(docTypes, d?.docType), d?.fileName ?? d?.file?.name].filter(Boolean).join(' · ');
+    const relText = (r) => (L.hrRelation && L.hrRelation[r]) || r;
+    const nameOf = {
+      education: (r) => r.school,
+      career: (r) => r.company,
+      certifications: (r) => r.name,
+      dependents: (r) => (r.name ? `${r.name}${r.relation ? `(${relText(r.relation)})` : ''}` : null),
+      documents: (r) => r.fileName ?? r.file?.name ?? optionText(docTypes, r.docType),
+    };
+    const summaryOf = (kind, r) => {
+      if (kind === 'documents') return optionText(docTypes, r.docType) || null;
+      const head = kind === 'dependents' ? [r.name, relText(r.relation)] : [nameOf[kind](r)];
+      const parts = defs[kind].render(r).split(' · ');
+      const rest = parts.slice(0, head.length).join(' · ') === head.filter(Boolean).join(' · ') ? parts.slice(head.length) : parts;
+      return rest.filter(Boolean).join(' · ') || null;
+    };
+    const cellText = (f, v) => {
+      if (v === undefined || v === null || v === '') return null;
+      if (f.options) return optionText(f.options, String(v));
+      return String(v);
+    };
     const rowsOf = (kind) => (kind === 'dependents' ? data?.family?.dependents : data?.org?.[kind]) ?? [];
-    return RECORD_KINDS.flatMap((kind) => {
+    /* 창 줄은 보내는 순서가 아니라 화면에 보이는 묶음 순서로(학력 → 경력 → 자격증 → 부양가족 → 증빙서류) */
+    return ['education', 'career', 'certifications', 'dependents', 'documents'].flatMap((kind) => {
       const q = pendingOf(recPending[kind]);
-      const text = kind === 'documents' ? docText : (r) => defs[kind].render(r);
       const byId = new Map(rowsOf(kind).map((r) => [r.id, r]));
+      const fields = defs[kind]?.fields ?? [];
       return [
-        ...Object.entries(q.updates).map(([id, body]) => ({ kind, op: 'update', before: text(byId.get(id) ?? {}), after: text({ ...(byId.get(id) ?? {}), ...body }) })),
-        ...q.adds.map((a) => ({ kind, op: 'add', before: null, after: text(a.body) })),
-        ...q.deletes.map((id) => ({ kind, op: 'delete', before: text(byId.get(id) ?? {}), after: null })),
+        ...Object.entries(q.updates).flatMap(([id, body]) => {
+          const was = byId.get(id) ?? {};
+          return fields
+            .filter((f) => cellText(f, was[f.key]) !== cellText(f, ({ ...was, ...body })[f.key]))
+            .map((f) => ({ kind, op: 'update', name: nameOf[kind](was) ?? null, before: cellText(f, was[f.key]), after: cellText(f, ({ ...was, ...body })[f.key]) }));
+        }),
+        ...q.adds.map((a) => ({ kind, op: 'add', name: nameOf[kind](a.body) ?? null, before: null, after: summaryOf(kind, a.body) })),
+        ...q.deletes.map((id) => {
+          const was = byId.get(id) ?? {};
+          return { kind, op: 'delete', name: nameOf[kind](was) ?? null, before: summaryOf(kind, was), after: null };
+        }),
       ];
     });
   };
