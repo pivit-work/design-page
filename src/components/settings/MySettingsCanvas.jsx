@@ -1697,6 +1697,7 @@ function HistoryTab({
             loadingLabel={more && more.loadingLabel}
             loading={!!(more && more.loading)}
             onClick={onLoadMore}
+            className="msc-hist-more"
             testId="history-more"
           />
         )}

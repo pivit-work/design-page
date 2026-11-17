@@ -1128,6 +1128,15 @@
   overflow-wrap: anywhere;
 }
 
+/* 변경 이력 목록 끝 [더 보기] (pivit-work PW-2946) — 공용 LoadMoreButton 은 회색 화면 바탕 위 흰 덩어리로 그려졌다.
+   이 탭은 흰 카드 안이라 흰 바탕이면 글자만 뜬다. 같은 대비가 나오게 바탕만 화면 바탕 회색으로 뒤집는다(디자이너 원본 없음 · design-review). */
+.msc-hist-more .dp-load-more__btn {
+  background: var(--bg-primary);
+}
+.msc-hist-more .dp-load-more__btn:hover {
+  background: var(--bg-primary-hover);
+}
+
 .msc-hist-note {
   font-size: 12px;
   color: var(--text-tertiary);
