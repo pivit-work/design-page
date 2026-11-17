@@ -817,7 +817,9 @@
   cursor: pointer;
 }
 .admin-kit-link.is-warning { color: var(--text-warning-primary); }
-.admin-kit-link.is-plain { color: inherit; text-underline-offset: 2px; }
+/* is-plain: 밑줄은 안에 든 글(빨간 12px FieldError)에 긋는다 — 버튼에 그으면 둘레 글 색·크기로 검은 밑줄이 따로 논다 */
+.admin-kit-link.is-plain { color: inherit; text-decoration: none; }
+.admin-kit-link.is-plain > * { text-decoration: underline; text-underline-offset: 2px; }
 .admin-kit-link:disabled { color: var(--text-disabled, var(--text-tertiary)); cursor: not-allowed; }
 .admin-kit-link.is-gap { margin-left: var(--spacing-sm, 6px); }
 
