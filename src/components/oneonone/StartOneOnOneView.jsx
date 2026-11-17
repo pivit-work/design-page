@@ -309,7 +309,8 @@ function CapSelfDelta({ manager, member, reserve = false }) {
   const self = Number(member) || 0;
   if (!m || !self || m === self) {
     // 차이가 없는 줄도 칸 자리를 비워 둬 다섯 줄의 막대 끝·줄 높이를 맞춘다.
-    return reserve ? <span className="ono-done-cap-delta" aria-hidden="true" /> : null;
+    // 빈 칸도 숫자 칸과 같은 줄 높이가 되게 보이지 않는 글자 하나를 둔다.
+    return reserve ? <span className="ono-done-cap-delta" aria-hidden="true">{'\u00a0'}</span> : null;
   }
   const d = m - self;
   return (
