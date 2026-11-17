@@ -1930,10 +1930,10 @@
    "background": "--componentColors-alpha-alphaBlack6"
   },
   "admin.css|.admin-emp-status-option.is-checked.is-probation .dp-radio-circle": {
-   "background": "#dc6803 / 어두운 화면 #fdb022"
+   "background": "#5925dc / 어두운 화면 #fafaff"
   },
   "admin.css|.admin-emp-status-option.is-checked.is-probation .dp-radio-label": {
-   "color": "#dc6803 / 어두운 화면 #fdb022"
+   "color": "#5925dc / 어두운 화면 #fafaff"
   },
   "admin.css|.admin-emp-status-option.is-checked.is-terminated": {
    "background": "#f9fafb / 어두운 화면 #22262f"
@@ -1961,8 +1961,8 @@
    "color": "#dc6803 / 어두운 화면 #fdb022"
   },
   "admin.css|.admin-emp-status.is-probation": {
-   "background": "#f9fafb / 어두운 화면 #22262f",
-   "color": "#dc6803 / 어두운 화면 #fdb022"
+   "background": "#f4f3ff / 어두운 화면 #27115f",
+   "color": "#5925dc / 어두운 화면 #fafaff"
   },
   "admin.css|.admin-emp-status.is-terminated": {
    "background": "#f9fafb / 어두운 화면 #22262f",

@@ -2722,7 +2722,7 @@
 /* 개발 추가(pivit-work PW-2932) — 이름 아래 설명이 한 줄 더 붙는 알약(구성원 CSV ③ «어떻게 남길까요?»).
    모양은 위 알약 그대로, 글을 왼쪽 위에 맞추고 점을 첫 줄 가운데에 둔다. 설명은 옅게 한 단계 작게. */
 .tl-event-radio-pill.is-two-line { align-items: flex-start; text-align: left; }
-.tl-event-radio-pill.is-two-line .tl-event-radio-dot { margin-top: var(--spacing-xxs, 2px); }
+.tl-event-radio-pill.is-two-line .tl-event-radio-dot { margin-top: var(--spacing-xxs); }
 .tl-event-radio-pill-text { display: flex; flex-direction: column; }
 .tl-event-radio-pill-desc { font-size: 12px; line-height: 18px; font-weight: 400; opacity: 0.8; }
 

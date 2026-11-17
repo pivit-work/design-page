@@ -821,7 +821,7 @@
 .admin-kit-link.is-plain { color: inherit; text-decoration: none; }
 .admin-kit-link.is-plain > * { text-decoration: underline; text-underline-offset: 2px; }
 .admin-kit-link:disabled { color: var(--text-disabled, var(--text-tertiary)); cursor: not-allowed; }
-.admin-kit-link.is-gap { margin-left: var(--spacing-sm, 6px); }
+.admin-kit-link.is-gap { margin-left: var(--spacing-sm); }
 
 /* CSV 올리기 ② 표 열 머리 — 누르면 열 메뉴가 열리는 머리 칸 전체(열 이름 + «넣을 항목·값으로» 줄). 머리 칸 글 모양을 그대로 두고 버튼 틀만 걷는다 */
 .admin-kit-csv-head-btn {
@@ -829,7 +829,7 @@
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-xxs, 2px);
+  gap: var(--spacing-xxs);
   cursor: pointer;
 }
-.admin-kit-csv-head-btn:focus-visible { outline: 2px solid var(--border-brand, var(--text-brand-tertiary)); outline-offset: 2px; border-radius: var(--radius-xxs, 4px); }
+.admin-kit-csv-head-btn:focus-visible { outline: 2px solid var(--border-brand, var(--text-brand-tertiary)); outline-offset: 2px; border-radius: var(--radius-xxs); }
