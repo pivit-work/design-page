@@ -81,14 +81,15 @@
   grid-auto-flow: column;
   grid-auto-columns: minmax(0, 1fr);
   border: 1px solid var(--border-secondary);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-2xl);
   overflow: hidden;
 }
 
 .leave-tiles.is-band > .leave-tile.manager-kpi-card {
   border: none;
   border-radius: 0;
-  padding: var(--spacing-xl) var(--spacing-2xl);
+  /* 안쪽 16/24 · 띠 모서리 16 — .manager-kpi-card(stesslee 2026-05-09) 값. */
+  padding: var(--spacing-xl) var(--spacing-3xl);
 }
 
 .leave-tiles.is-band > .leave-tile + .leave-tile {
@@ -125,7 +126,8 @@
 
 .leave-bar {
   display: flex;
-  gap: var(--spacing-xs);
+  /* 조각 사이 10 — .rsx-stackbar gap 10px(stesslee 09bc893f2). 간격 토큰에 10 이 없어 4 + 6 으로 더한다. */
+  gap: calc(var(--spacing-xs) + var(--spacing-sm));
   height: 12px;
   border-radius: var(--radius-xxs);
   background: var(--bg-secondary);
