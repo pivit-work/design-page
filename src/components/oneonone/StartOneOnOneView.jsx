@@ -304,10 +304,13 @@ export function RatingBar({ value, ai = false, self = false, onChange, labelOf =
 
 /* «차이 표시» — 매니저 점수 − 멤버 자가진단 (policy §4.1.5 · pivit-work PW-2937).
    매니저 점수가 비었거나(0) 멤버 자가가 없거나 같으면 그리지 않는다. 모양은 끝난 화면 «역량 평가 비교» «변화» 칸과 같다. */
-function CapSelfDelta({ manager, member }) {
+function CapSelfDelta({ manager, member, reserve = false }) {
   const m = Number(manager) || 0;
   const self = Number(member) || 0;
-  if (!m || !self || m === self) return null;
+  if (!m || !self || m === self) {
+    // 차이가 없는 줄도 칸 자리를 비워 둬 다섯 줄의 막대 끝·줄 높이를 맞춘다.
+    return reserve ? <span className="ono-done-cap-delta" aria-hidden="true" /> : null;
+  }
   const d = m - self;
   return (
     <span className={`ono-done-cap-delta ${d > 0 ? 'is-up' : 'is-down'}`} data-testid="ono-start-cap-delta">
@@ -1071,7 +1074,7 @@ export default function StartOneOnOneView({
                                   setCaps((prev) => ({ ...prev, [c.key]: v }))
                                 }
                               />
-                              <CapSelfDelta manager={caps[c.key]} member={memberSelfCaps?.[c.key]} />
+                              <CapSelfDelta manager={caps[c.key]} member={memberSelfCaps?.[c.key]} reserve={memberSelfCaps != null} />
                             </div>
                           ))}
                         </div>
