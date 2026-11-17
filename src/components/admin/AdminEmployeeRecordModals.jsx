@@ -1669,13 +1669,15 @@ export function HrProfileInline({
   const ec = family.emergencyContact ?? {};
   const org = data?.org ?? {};
   const recordDefs = hrRecordDefs(L, todayIso);
+  /* [수정] 중 지우기는 페이지 [저장하기] 때 간다 — 확인 창이 «되살릴 수 없다» 대신 그 사실을 말하게 알린다(pivit-work PW-2924) */
+  const confirmDeferred = confirmDelete ? (arg) => confirmDelete({ ...arg, deferred: true }) : undefined;
   const recordProps = (kind) => {
     if (!editable) return { confirmDelete, labels: L };
     const set = (fn) => setRecPending((prev) => ({ ...prev, [kind]: fn(prev[kind]) }));
     return {
       onSave: onSaveRecord ? (recordId, body) => { set((p) => pendingSave(p, recordId, body)); return Promise.resolve(); } : undefined,
       onDelete: onDeleteRecord ? (recordId) => { set((p) => pendingDelete(p, recordId)); return Promise.resolve(); } : undefined,
-      confirmDelete,
+      confirmDelete: confirmDeferred,
       labels: L,
     };
   };
@@ -1857,7 +1859,7 @@ export function HrProfileInline({
           : undefined}
         onDownload={onDownloadDocument ? (doc) => onDownloadDocument(memberId, doc) : undefined}
         onDelete={recordProps('documents').onDelete}
-        confirmDelete={confirmDelete}
+        confirmDelete={recordProps('documents').confirmDelete}
       />
     </>
   );
@@ -1982,7 +1984,7 @@ function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelet
                 )}
                 {canEdit && onDelete && (
                   <button type="button" className="admin-emp-btn is-danger-ghost is-sm" onClick={async () => {
-                    if (!r.__pending && confirmDelete && !(await confirmDelete({ kind: 'training', label: r.courseName }))) return;
+                    if (!r.__pending && confirmDelete && !(await confirmDelete({ kind: 'training', label: r.courseName, ...(deferred ? { deferred: true } : {}) }))) return;
                     if (deferred) {
                       onPendingChange(pendingDelete(pending, r.id));
                       if (editingId === r.id) cancelEdit();
@@ -2085,7 +2087,7 @@ const bodyOf = (fields, form, editing) => {
  * @param {string} props.addLabel
  * @param {(recordId:string|null, body:object)=>Promise} [props.onSave] 없으면 읽기 전용
  * @param {(recordId:string)=>Promise} [props.onDelete]
- * @param {(arg:{kind:string,label:string})=>Promise<boolean>} [props.confirmDelete]
+ * @param {(arg:{kind:string,label:string,deferred?:boolean})=>Promise<boolean>} [props.confirmDelete] `deferred`: 저장 때 지워짐(pivit-work PW-2924)
  * @param {string} props.kind confirmDelete 에 넘기는 종류
  * @param {object} props.labels
  */
@@ -2675,7 +2677,7 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
 
   async function remove(h) {
     // 지우기 전에 묻는다 (PW-942) — 보상 기록은 되돌릴 길이 없다.
-    if (!h.__pending && confirmDelete && !(await confirmDelete({ kind: 'salary', label: typeLabel(typeOf(h)) }))) return;
+    if (!h.__pending && confirmDelete && !(await confirmDelete({ kind: 'salary', label: typeLabel(typeOf(h)), ...(deferred ? { deferred: true } : {}) }))) return;
     if (deferred) {
       onPendingChange(pendingDelete(pending, h.id));
       if (editingId === h.id) { setEditingId(null); setForm(EMPTY_COMP_FORM); }

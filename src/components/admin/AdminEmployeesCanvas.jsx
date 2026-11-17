@@ -5265,7 +5265,12 @@ function ChangeReasonModal({ prompt, labels }) {
   const [reason, setReason] = useState('');
   /* pivit-work PW-2460 — `optional`: 본인이 고친 기록이라 사유가 선택이지만 창은 띄울 때(휴가 영향을 먼저 보이려고 ·
      admin-spec §3.2.10 «PW-2418» E-d). `submitBlocked`: 창 안 덩어리가 아직 계산 중이라 저장을 잠근다(같은 블록 «불러오는 중»). */
-  const canSubmit = !prompt.submitBlocked && (prompt.optional || reason.trim().length > 0);
+  /* pivit-work PW-2924 — `pending`: 앱이 이 사유로 저장을 보내는 중(창을 닫지 않고 잠근다 · 저장이 된 채 «취소»로 읽히지 않게).
+     `error`: 그 저장이 실패한 안내 — 창을 열어 둔 채 보여, 적은 사유를 그대로 두고 다시 올리게 한다.
+     보내는 중 [취소]는 앱이 받지 않는다(onCancel) · Esc·닫기 X 는 ModalShell `busy` 가 막는다. */
+  const pending = !!prompt.pending;
+  const canSubmit = !pending && !prompt.submitBlocked && (prompt.optional || reason.trim().length > 0);
+  const cancel = () => { if (!pending) prompt.onCancel(); };
   return (
     /* 공용 창 틀(ModalShell · PW-836) — body 직속 포털이라 앱 크롬(사이드바 z:100) 위에 뜨고
        조상의 `overflow: hidden` 에 잘리지 않는다. 편집 패널(z:101) 위에 서는 것도 막의
@@ -5274,7 +5279,8 @@ function ChangeReasonModal({ prompt, labels }) {
       title={L.title}
       titleId="change-reason-title"
       closeLabel={L.close}
-      onClose={prompt.onCancel}
+      onClose={cancel}
+      busy={pending}
       zIndex={1000}
       className="adm-shell"
       testId="change-reason-modal"
@@ -5283,6 +5289,7 @@ function ChangeReasonModal({ prompt, labels }) {
           <button type="button" className="tl-group-modal-btn tl-group-modal-btn-secondary" onClick={prompt.onCancel}
             data-testid="change-reason-cancel">{L.cancel}</button>
           <button type="button" className="tl-group-modal-btn tl-group-modal-btn-primary" disabled={!canSubmit}
+            aria-busy={pending || undefined}
             onClick={() => canSubmit && prompt.onSubmit(reason.trim())}
             data-testid="change-reason-submit">{L.submit}</button>
         </>
@@ -5332,6 +5339,8 @@ function ChangeReasonModal({ prompt, labels }) {
           data-testid="change-reason-input"
         />
       </label>
+      {/* 저장 실패 안내 — 창 안 오류는 디자이너 마이크 선택 창의 오류 상자(`.mtg-mic-error` · MicSelectModal)와 같은 용도 (pivit-work PW-2924) */}
+      {prompt.error && <p className="mtg-mic-error" role="alert" data-testid="change-reason-error">{prompt.error}</p>}
       <p className="admin-emp-reason-lead">{prompt.optional && L.leadOptional ? L.leadOptional : L.lead}</p>
     </ModalShell>
   );
