@@ -6136,7 +6136,38 @@ function EmployeesEditPanel({
   ];
 
   /* «수정» — 소속을 먼저, 그다음 칸. 거절은 되던져 확인 창이 사유를 보인다(정책 §4 «수정 실패»). */
+  /*
+    [저장하기] 한 번을 앱에 알린다(pivit-work PW-2924 · 개인정보 변경 이력 §2-5 «저장 1회 = 사유 1건»).
+    구성원 칸 · 패널 날짜 칸 · 탭 안 HR 칸 · 기록이 따로 나가므로, 보내기 전에 몫마다 무엇을 보낼지 넘긴다 —
+    앱이 첫 사유 창에 나머지 몫이 바꿀 칸까지 보이고, 받은 사유로 나머지를 창 없이 보낸다. 끝나면 onPageSaveEnd.
+  */
+  function beginPageSave() {
+    if (!page || !hrRecordHandlers?.onPageSaveStart) return null;
+    const parts = Object.values(inlineFlushes.current);
+    hrRecordHandlers.onPageSaveStart(
+      member.id,
+      parts.flatMap((f) => (typeof f.lines === 'function' ? f.lines() : [])),
+      {
+        member: Object.keys(patch).length > 1 ? patch : null,
+        identities: [
+          identityDirty ? identityPatch : null,
+          ...parts.map((f) => (typeof f.identityPatch === 'function' ? f.identityPatch() : null)),
+        ].filter(Boolean),
+      },
+    );
+    return hrRecordHandlers;
+  }
+
   async function submitCorrection(reason) {
+    const pageSave = beginPageSave();
+    try {
+      await submitCorrectionInner(reason);
+    } finally {
+      pageSave?.onPageSaveEnd?.(member.id);
+    }
+  }
+
+  async function submitCorrectionInner(reason) {
     const payload = { correction: { reason }, changes: apptChanges };
     if (identityDirty && onSaveIdentity) {
       await onSaveIdentity(member.id, identityPatch);
@@ -6201,8 +6232,7 @@ function EmployeesEditPanel({
     setSaveError(null);
     /* [저장하기] 한 번을 앱에 알린다(pivit-work PW-2924 · 개인정보 변경 이력 §2-5 «저장 1회 = 사유 1건»).
        구성원 칸과 탭 안 HR 칸은 따로 나가므로, 보내기 전에 HR 쪽 줄을 넘겨 첫 사유 창이 다 보이고 나머지는 같은 사유로 간다. */
-    const pageSave = page && hrRecordHandlers?.onPageSaveStart ? hrRecordHandlers : null;
-    pageSave?.onPageSaveStart(member.id, Object.values(inlineFlushes.current).flatMap((f) => (typeof f.lines === 'function' ? f.lines() : [])));
+    const pageSave = beginPageSave();
     try {
       /* 날짜를 **먼저** 보낸다. 상태 저장이 성공한 뒤 날짜가 실패하면 「수습으로 바뀌었는데
          종료일은 안 들어간」 반쪽 상태가 남는데, 순서를 뒤집으면 그 조합이 안 생긴다.

@@ -1640,35 +1640,19 @@ export function HrProfileInline({
       ];
     });
   };
-  /*
-    이번 저장에 실릴 신원 칸 줄(pivit-work PW-2924) — 페이지 [저장하기] 한 번의 사유 창이 구성원 칸 줄과 함께 보이도록 미리 넘긴다.
-    값은 화면 글이 아니라 보내는 값 그대로(앱이 서버 이력과 같은 말로 바꾼다). 주소·계약 시간처럼 여러 칸이 한 항목인 것은 한 줄로.
-  */
-  const pendingIdentityLines = () => {
-    if (!identityPatch || !identityDraft) return [];
-    const changed = partKeys.filter((k) => (identityDraft[k] ?? '') !== (identityBase[k] ?? ''));
-    const groupOf = (k) => (ADDRESS_KEYS.includes(k) ? 'address' : CONTRACT_KEYS.includes(k) ? 'contractHours' : k);
-    const join = (src, keys) => keys.map((k) => src[k]).filter((v) => v !== undefined && v !== null && v !== '').join(' ') || null;
-    const seen = new Set();
-    return changed.flatMap((k) => {
-      const field = groupOf(k);
-      if (seen.has(field)) return [];
-      seen.add(field);
-      const keys = field === 'address' ? ADDRESS_KEYS : field === 'contractHours' ? CONTRACT_KEYS : [k];
-      return [{ kind: 'identity', op: 'update', name: null, field, before: join(identityBase, keys), after: join(identityDraft, keys) }];
-    });
-  };
   const flushRef = useRef(flush);
-  const linesRef = useRef(() => []);
+  const pendingRef = useRef({ lines: () => [], identityPatch: null });
   useEffect(() => {
     flushRef.current = flush;
-    linesRef.current = () => [...pendingIdentityLines(), ...pendingRecordLines()];
+    pendingRef.current = { lines: pendingRecordLines, identityPatch };
   });
   useEffect(() => {
     if (!editable || !registerFlush) return undefined;
     const fn = () => flushRef.current();
-    /* 페이지가 [저장하기]를 시작할 때 읽는다 — 보내기 전에 이 부품이 실을 줄 */
-    fn.lines = () => linesRef.current();
+    /* 페이지가 [저장하기]를 시작할 때 읽는다(pivit-work PW-2924) — 이 부품이 실을 기록 줄과 보낼 신원 고침.
+       신원 칸의 «이전 → 이후»는 화면이 짓지 않는다 — 앱이 서버에 «저장하지 않고 알리기»로 물어 이력과 같은 말로 받는다. */
+    fn.lines = () => pendingRef.current.lines();
+    fn.identityPatch = () => pendingRef.current.identityPatch;
     registerFlush(fn);
     return () => registerFlush(null);
   }, [editable, registerFlush]);
