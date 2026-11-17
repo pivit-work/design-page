@@ -1,4 +1,4 @@
-import { forwardRef } from 'react';
+import { forwardRef, useLayoutEffect, useRef, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import { OnbCloseIcon, OnbGoogleLogo, OnbSpinner } from './onboardingIcons.jsx';
 import Select from '../shared/Select.jsx';
@@ -404,13 +404,26 @@ export function OnbChip({ selected = false, children, type = 'button', ...rest }
 
 /**
  * 태그 (시안 Tag) — 초대 이메일.
- * Props: grow(남는 폭을 채운다) · title(올리면 뜨는 전체 글) · onRemove · removeLabel
+ * Props: grow(남는 폭을 채운다) · title(글이 «…»로 잘렸을 때 올리면 뜨는 전체 글) · onRemove · removeLabel
  */
 export function OnbTag({ children, grow = false, title, onRemove, removeLabel, testId }) {
-  // 한 줄로 두고 넘치면 글만 «…»로 준다 — 전체 글은 `title`(공용 말풍선)로 (pivit-work PW-2918)
+  // 한 줄로 두고 넘치면 글만 «…»로 준다 — 전체 글은 `title`(공용 말풍선)로, 잘렸을 때만 연다.
+  // 안 잘린 글에 말풍선을 달면 같은 글이 한 번 더 뜬다(pivit-work PW-2918 · 앱 ClipCell 과 같은 판정).
+  const labelRef = useRef(null);
+  const [cut, setCut] = useState(false);
+  useLayoutEffect(() => {
+    const el = labelRef.current;
+    if (!el || !title) return undefined;
+    const measure = () => setCut(el.scrollWidth > el.clientWidth + 1);
+    measure();
+    if (typeof ResizeObserver === 'undefined') return undefined;
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [title, children]);
   return (
-    <StatusBadge className={cx('onb-tag', grow && 'is-grow')} title={title} data-testid={testId}>
-      <span className="onb-tag-label">{children}</span>
+    <StatusBadge className={cx('onb-tag', grow && 'is-grow')} title={cut ? title : undefined} data-testid={testId}>
+      <span ref={labelRef} className="onb-tag-label">{children}</span>
       {onRemove && (
         <button type="button" onClick={onRemove} aria-label={removeLabel}>
           <OnbCloseIcon size={12} />
