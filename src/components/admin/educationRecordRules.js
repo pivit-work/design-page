@@ -20,6 +20,18 @@ export const yearMonthOf = (value) => {
   return Number(m[1]) * 12 + Number(m[2]) - 1;
 };
 
+/**
+ * 서버에 실려 갈 모양 — 창이 보내기 전 기간을 `YYYY-MM` 으로 바꾸고(pivit-work hrRecordPeriod.toYearMonth) 글자를 다듬는다.
+ * «안 건드린 줄»은 이 값을 서버에 있던 값과 견준다: 서버도 바뀐 값을 DB 값과 견주므로, 옛 `2000.03` 줄은 손대지 않아도
+ * `2000-03` 으로 실려 «바뀜»이 된다(적대적 리뷰 PW-2942).
+ */
+export const educationSentValue = (key, value) => {
+  const s = String(value ?? '').trim();
+  if (key !== 'from' && key !== 'to') return s;
+  const n = yearMonthOf(s);
+  return n === null ? s : `${Math.floor(n / 12)}-${String((n % 12) + 1).padStart(2, '0')}`;
+};
+
 const fill = (text, vars) => String(text).replace(/\{(\w+)\}/g, (_, k) => (vars[k] ?? `{${k}}`));
 
 /**
@@ -64,4 +76,6 @@ export function educationRuleError(form, todayIso, L = {}) {
 }
 
 /** 상태를 재학으로 바꾸면 넣어 둔 졸업(예정)을 비운다 — 서버는 재학에 졸업일이 있으면 거절한다(§4-C-1 「재학으로 바꾸면 이미 넣은 종료 값을 비운다」) */
-export const normalizeEducationForm = (form) => (form.status === 'enrolled' && form.to ? { ...form, to: '' } : form);
+// changedKey 를 주면 «상태»를 바꿀 때만 비운다 — 옛 줄에서 학교명만 고칠 때 남은 졸업일을 몰래 지우지 않게
+export const normalizeEducationForm = (form, changedKey) =>
+  (form.status === 'enrolled' && form.to && (changedKey === undefined || changedKey === 'status') ? { ...form, to: '' } : form);
