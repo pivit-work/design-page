@@ -5335,6 +5335,8 @@ function ChangeReasonModal({ prompt, labels }) {
           value={reason}
           autoFocus
           placeholder={L.placeholder}
+          /* 같은 저장의 앞 요청이 이 사유로 이미 저장됐다 — 고치면 사유가 둘이 된다(pivit-work PW-2924) */
+          readOnly={!!prompt.reasonLocked}
           onChange={(e) => setReason(e.target.value)}
           data-testid="change-reason-input"
         />
