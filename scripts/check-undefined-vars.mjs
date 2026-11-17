@@ -32,7 +32,9 @@ export function stripComments(src) {
 export function definedNames(src) {
   const s = stripComments(src);
   const out = new Set();
-  for (const m of s.matchAll(/(?:^|[\s{;'"])(--[A-Za-z0-9_-]+)['"]?\s*:/g)) out.add(m[1]);
+  for (const m of s.matchAll(/(?:^|[\s{;'"`\[])(--[A-Za-z0-9_-]+)['"`]?\]?\s*:/g)) out.add(m[1]);
+  // style.setProperty('--x', …) 로 정의한 이름 (BroadcastPage 처럼)
+  for (const m of s.matchAll(/setProperty\(\s*['"`](--[A-Za-z0-9_-]+)['"`]/g)) out.add(m[1]);
   return out;
 }
 
@@ -40,16 +42,33 @@ export function bareUses(src) {
   const s = stripComments(src);
   const out = [];
   for (const m of s.matchAll(/var\(\s*(--[A-Za-z0-9_-]+)\s*\)/g)) {
-    out.push({ name: m[1], line: s.slice(0, m.index).split('\n').length });
+    out.push({ name: m[1], line: s.slice(0, m.index).split('\n').length, outer: outerFallbackName(s, m.index) });
   }
   return out;
+}
+
+// var(--a, var(--b)) 의 --b 처럼 다른 이름의 대체값 안에 든 경우, 바깥 이름(--a)을 돌려준다.
+// 바깥 이름이 정의돼 있으면 안쪽은 쓰이지 않으므로 막지 않는다.
+function outerFallbackName(s, at) {
+  let depth = 0;
+  for (let i = at - 1; i >= 0; i -= 1) {
+    const c = s[i];
+    if (c === ')') depth += 1;
+    else if (c === '(') {
+      if (depth > 0) { depth -= 1; continue; }
+      if (s.slice(i - 3, i) !== 'var') return null;
+      const head = /^\s*(--[A-Za-z0-9_-]+)\s*,/.exec(s.slice(i + 1, at));
+      return head ? head[1] : null;
+    } else if (c === ';' || c === '{' || c === '}') return null;
+  }
+  return null;
 }
 
 export function findUndefined(files) {
   const defs = new Set();
   for (const f of files) for (const n of definedNames(f.src)) defs.add(n);
   const bad = [];
-  for (const f of files) for (const u of bareUses(f.src)) if (!defs.has(u.name)) bad.push({ file: f.path, ...u });
+  for (const f of files) for (const u of bareUses(f.src)) if (!defs.has(u.name) && !(u.outer && defs.has(u.outer))) bad.push({ file: f.path, ...u });
   return bad;
 }
 

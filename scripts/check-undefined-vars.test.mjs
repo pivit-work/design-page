@@ -17,3 +17,16 @@ test('정의된 이름·대체값 있는 이름·주석 속 이름·JSX 인라�
   ];
   assert.deepEqual(findUndefined(files), []);
 });
+
+test('정의된 이름의 대체값 안에 든 이름·setProperty·[`--x`] 로 정의한 이름은 막지 않는다', () => {
+  const files = [
+    { path: 'a.css', src: '.x { --a: 1px; width: var(--a, var(--b)); }' },
+    { path: 'b.jsx', src: "el.style.setProperty('--h', '3px');\nconst s = { [`--w`]: 1, height: 'var(--h)', width: 'var(--w)' };" },
+  ];
+  assert.deepEqual(findUndefined(files), []);
+});
+
+test('바깥 이름도 정의돼 있지 않으면 안쪽 이름을 막는다', () => {
+  const files = [{ path: 'a.css', src: '.x { width: var(--none, var(--gone)); }' }];
+  assert.deepEqual(findUndefined(files).map((b) => b.name), ['--gone']);
+});
