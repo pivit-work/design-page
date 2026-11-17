@@ -87,6 +87,9 @@
 .dp-search-select-item.is-active { background: var(--bg-secondary); }
 .dp-search-select-item:disabled { color: var(--text-disabled); cursor: not-allowed; background: transparent; }
 .dp-search-select-item.is-selected { color: var(--text-brand-tertiary); }
+/* 되돌리는 줄([연결 해제]) — 줄 메뉴 위험 줄(.admin-emp-row-menu-item.is-danger, admin.css)과 같은 글자색 (pivit-work PW-2935) */
+.dp-search-select-item.is-danger { color: var(--text-error-primary); }
+.dp-search-select-item.is-danger:hover { background: var(--utility-error-50); }
 .dp-search-select-item-label { flex: 1; }
 /* 이름 옆 보조 글 — 타임라인 드롭다운 항목(.tl-select-item-sub, timeline.css)의 값 그대로 (PW-1954). */
 .dp-search-select-item-sub { color: var(--text-tertiary); font-weight: 400; }

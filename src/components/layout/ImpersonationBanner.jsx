@@ -12,7 +12,9 @@ import Button from '../shared/Button.jsx';
  * 자기 높이를 `ref` 로 잴 수 있게 겉 상자에 ref 를 붙일 뿐이다.
  *
  * Props:
- *   message       띠 문구 (호스트가 번역해 넘긴다)
+ *   message       띠 문구 (호스트가 번역해 넘긴다). 배열이면 토막마다 나눠 그린다 — 첫 토막(누구로 로그인 중)은 굵게,
+ *                 나머지(무엇을 할 수 있나 · 범위 · 기록)는 보통 굵기로 띄워 둔다. « — » 로 이어 한 줄로 쓰면
+ *                 세 토막이 한눈에 안 갈렸다(pivit-work PW-2935 · 전자결재 양식 편집 «점검» 줄과 같은 방식)
  *   returnLabel   돌아가기 버튼 문구
  *   onReturn      돌아가기 클릭
  *   busy          true 면 버튼을 잠근다
@@ -44,16 +46,23 @@ export default function ImpersonationBanner({
     tone === 'danger' ? 'is-danger' : '',
     detail ? 'is-stacked' : '',
   ].filter(Boolean).join(' ');
+  const text = Array.isArray(message)
+    ? message.map((part, i) => (
+      <span key={i} className={i ? 'pw-impersonation-banner__part is-sub' : 'pw-impersonation-banner__part'}>
+        {part}
+      </span>
+    ))
+    : message;
   return (
     <div ref={ref} role="status" className={className} {...rest}>
       {icon && <span className="pw-impersonation-banner__icon">{icon}</span>}
       {detail ? (
         <span className="pw-impersonation-banner__text">
-          {message}
+          {text}
           <span className="pw-impersonation-banner__detail">{detail}</span>
         </span>
       ) : (
-        <span className="pw-impersonation-banner__text">{message}</span>
+        <span className="pw-impersonation-banner__text">{text}</span>
       )}
       {actions ? (
         actions.length > 0 && (

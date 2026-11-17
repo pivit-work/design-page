@@ -333,6 +333,15 @@
   font-weight: 500;
 }
 
+/* 띠 문구를 토막으로 나눠 넘길 때 (pivit-work PW-2935) — « — » 대신 띄움과 굵기로 가른다.
+   첫 토막(누구로 로그인 중)은 띠 글씨 그대로 굵게, 나머지는 둘째 줄(__detail)과 같은 보통 굵기. */
+.pw-impersonation-banner__part + .pw-impersonation-banner__part {
+  margin-left: var(--spacing-lg);
+}
+.pw-impersonation-banner__part.is-sub {
+  font-weight: 500;
+}
+
 .pw-impersonation-banner__actions {
   margin-left: auto;
   flex-shrink: 0;
