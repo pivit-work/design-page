@@ -249,6 +249,10 @@ function mergeLabels(base, provided) {
   return out;
 }
 /* ── 공통 조각 ─────────────────────────────────────────── */
+/** 단계 딱지 — 앱이 팀원·매니저 화면 머리에 그대로 붙여 쓴다(pivit-work PW-2937). `L` 은 badgeReady·badgeLive·badgeDone. */
+export function StageBadge({ status, L }) {
+  return <StatusBadge status={status} L={L} />;
+}
 function StatusBadge({ status, L }) {
   // 표에 없는 단계 코드값이면 딱지를 그리지 않는다 — 예전엔 «준비 중»으로 메웠다 (PW-2937 · policy §3.4).
   const label = status === 'live' ? L.badgeLive : status === 'done' ? L.badgeDone : status === 'ready' ? L.badgeReady : null;

@@ -116,6 +116,8 @@ export default function MemberOneOnOneView({
   meetingTitle,
   meetingTime,
   manager,
+  /** 매니저 이름 줄 끝 단계 딱지(«준비 중»·«미팅 중» — 앱이 그려 넘긴다 · pivit-work PW-2937 · policy §3.4). 없으면 종전 그대로. */
+  stageBadge = null,
   notice = null,
   readiness = { done: 0, total: 4 },
   prevSession,
@@ -307,6 +309,7 @@ export default function MemberOneOnOneView({
                   <div className="ono-add-modal-member-name-row">
                     <span className="ono-add-modal-member-name">{manager?.name ?? ''}</span>
                     {manager?.badge && <StatusBadge className="ono-add-modal-member-badge">{manager.badge}</StatusBadge>}
+                    {stageBadge}
                   </div>
                   {meetingTime && <span className="ono-add-modal-member-role">{meetingTime}</span>}
                 </div>

@@ -302,11 +302,27 @@ export function RatingBar({ value, ai = false, self = false, onChange, labelOf =
   );
 }
 
+/* «차이 표시» — 매니저 점수 − 멤버 자가진단 (policy §4.1.5 · pivit-work PW-2937).
+   매니저 점수가 비었거나(0) 멤버 자가가 없거나 같으면 그리지 않는다. 모양은 끝난 화면 «역량 평가 비교» «변화» 칸과 같다. */
+function CapSelfDelta({ manager, member }) {
+  const m = Number(manager) || 0;
+  const self = Number(member) || 0;
+  if (!m || !self || m === self) return null;
+  const d = m - self;
+  return (
+    <span className={`ono-done-cap-delta ${d > 0 ? 'is-up' : 'is-down'}`} data-testid="ono-start-cap-delta">
+      {d > 0 ? `+${d}` : d}
+    </span>
+  );
+}
+
 export default function StartOneOnOneView({
   member,
   data,
   /** 회차 제목 «1on1 • 날짜» 바로 뒤 «?» 도움말(앱이 그려 넘긴다 · pivit-work PW-2430). 없으면 제목만. */
   titleHelp = null,
+  /** 팀원 이름 줄 끝 단계 딱지(진행 중 «미팅 중» — 앱이 그려 넘긴다 · pivit-work PW-2937 · TC-1ON1-011). 없으면 종전 그대로. */
+  stageBadge = null,
   aiDrafts,
   aiDraftRevisions = {},
   onGenerateDrafts,
@@ -701,6 +717,7 @@ export default function StartOneOnOneView({
                 {member?.badge && (
                   <StatusBadge className="ono-add-modal-member-badge">{member.badge}</StatusBadge>
                 )}
+                {stageBadge}
               </div>
               {meetingTime && (
                 <span className="ono-add-modal-member-role">{meetingTime}</span>
@@ -1051,6 +1068,7 @@ export default function StartOneOnOneView({
                                   setCaps((prev) => ({ ...prev, [c.key]: v }))
                                 }
                               />
+                              <CapSelfDelta manager={caps[c.key]} member={c.value} />
                             </div>
                           ))}
                         </div>
