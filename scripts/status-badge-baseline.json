@@ -993,8 +993,7 @@
    "gap": "6px",
    "border": "1px solid var(--onb-brand-pill-border)",
    "min-width": "0",
-   "overflow-wrap": "anywhere",
-   "white-space": "normal",
+   "white-space": "nowrap",
    "flex-shrink": "1"
   },
   "one_on_one.css|.omn-message-chip": {

@@ -1109,11 +1109,12 @@
 /* ── 태그 (시안 Tag) ── */
 .onb-tag {
   display: inline-flex; align-items: center; gap: 6px; min-width: 0; padding: 4px 10px; border-radius: 20px;
-  font-size: 13px; font-weight: 500; overflow-wrap: anywhere; white-space: normal; flex-shrink: 1; /* 흘러 줄바꿈·줄어듦 — 공용 딱지 기본값을 푼다 (PW-2872) */
+  font-size: 13px; font-weight: 500; white-space: nowrap; flex-shrink: 1; /* 한 줄 · 줄어듦 — 길면 글(.onb-tag-label)이 «…»로 준다. 흘러 줄바꿈하면 30자 메일도 두 줄로 꺾였다 (pivit-work PW-2918) */
   background: var(--onb-brand-light); color: var(--onb-brand); border: 1px solid var(--onb-brand-pill-border);
 }
 
 .onb-tag.is-grow { flex: 1; }
+.onb-tag-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ══ one_on_one.css 에서 옮겨 온 딱지 ══════════════════════════════════════════════ */
 

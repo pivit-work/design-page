@@ -404,12 +404,13 @@ export function OnbChip({ selected = false, children, type = 'button', ...rest }
 
 /**
  * 태그 (시안 Tag) — 초대 이메일.
- * Props: grow(남는 폭을 채운다) · onRemove · removeLabel
+ * Props: grow(남는 폭을 채운다) · title(올리면 뜨는 전체 글) · onRemove · removeLabel
  */
-export function OnbTag({ children, grow = false, onRemove, removeLabel, testId }) {
+export function OnbTag({ children, grow = false, title, onRemove, removeLabel, testId }) {
+  // 한 줄로 두고 넘치면 글만 «…»로 준다 — 전체 글은 `title`(공용 말풍선)로 (pivit-work PW-2918)
   return (
-    <StatusBadge className={cx('onb-tag', grow && 'is-grow')} data-testid={testId}>
-      {children}
+    <StatusBadge className={cx('onb-tag', grow && 'is-grow')} title={title} data-testid={testId}>
+      <span className="onb-tag-label">{children}</span>
       {onRemove && (
         <button type="button" onClick={onRemove} aria-label={removeLabel}>
           <OnbCloseIcon size={12} />
