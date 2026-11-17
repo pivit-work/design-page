@@ -62,7 +62,7 @@ const NO_CLOCK = '--:--';
  */
 const DEFAULT_LABELS = {
   title: 'AI 대화 내비게이터',
-  liveOnly: 'LIVE 전용',
+  liveOnly: '미팅 중 전용',
   fallbackBadge: '기본 템플릿',
   regen: (left) => `재생성 (${left}회 남음)`,
   regenExhausted: '재생성 (한도 초과)',
@@ -82,7 +82,7 @@ const DEFAULT_LABELS = {
   retryExhausted:
     '여러 번 시도했지만 생성하지 못했습니다. 가이드 없이 진행하거나 잠시 후 다시 시도해 주세요.',
   intro: (name) =>
-    `아이스브레이킹부터 랩업까지, ${name} 님 데이터 기반의 단계별 진행 스크립트를 생성합니다. READY 산출물을 재구성하며 실시간 대화는 분석하지 않습니다.`,
+    `아이스브레이킹부터 랩업까지, ${name} 님 데이터 기반의 단계별 진행 스크립트를 생성합니다. 준비 단계에서 모은 내용을 재구성하며 실시간 대화는 분석하지 않습니다.`,
   generate: (min, count) => `진행 스크립트 생성 - ${min}분 · ${count}단계`,
   generating: '진행 스크립트를 구성하는 중...',
   // 단계 머리줄 (Figma 17557:26838) — 왼쪽 「권장 0~5분」, 오른쪽 「경과 4분」.
@@ -102,7 +102,7 @@ const DEFAULT_LABELS = {
   allDone: '전체 단계 완료',
   inputsChanged: '생성 이후 준비 내용이 바뀌었습니다',
   footnote:
-    '가이드는 참고용입니다 — 대화 흐름에 따라 자유롭게 건너뛰세요. 이 내용은 DONE 요약·피드백에 포함되지 않으며 멤버에게 보이지 않습니다.',
+    '가이드는 참고용입니다 — 대화 흐름에 따라 자유롭게 건너뛰세요. 이 내용은 1on1 완료 후 요약·피드백에 포함되지 않으며 멤버에게 보이지 않습니다.',
 };
 
 const REASON_KEY = {

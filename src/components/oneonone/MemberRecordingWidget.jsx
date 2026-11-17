@@ -40,7 +40,7 @@ const DEFAULT_LABELS = {
   savedTitle: '녹음 저장 완료 - AI 분석 중',
   finishingSub: '매니저가 미팅을 완료 처리 중입니다',
   recordedNote: '완료 처리 후 AI가 녹음을 분석해 요약을 생성합니다.',
-  savedNote: '잠시 후 AI 요약 및 액션아이템이 생성되어 DONE 화면에 표시됩니다.',
+  savedNote: '잠시 후 AI 요약 및 액션아이템이 생성되어 완료 화면에 표시됩니다.',
   noClock: '--:--',
   expand: '내 원온원으로 돌아가기',
 };

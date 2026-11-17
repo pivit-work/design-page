@@ -157,7 +157,7 @@ const DEFAULT_LABELS = {
   evidenceJump: '전문에서 보기',
   evidenceJumpMissing: '해당 구간을 찾을 수 없습니다',
   badgeReady: '준비 중',
-  badgeLive: '진행 중',
+  badgeLive: '미팅 중',
   badgeDone: '완료',
 };
 

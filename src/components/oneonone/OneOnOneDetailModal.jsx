@@ -155,7 +155,9 @@ export default function OneOnOneDetailModal({
       }
       description={
         <span className="ood-head-meta">
-          <StatusBadge className="ood-done-badge">{detail.status ?? 'DONE'}</StatusBadge>
+          {/* 단계 이름은 화면이 한글로 넘긴다 — 없으면 딱지를 그리지 않는다 (PW-2937 · policy §3.4).
+              예전 기본값 'DONE' 은 영어 코드값을 그대로 내보냈다. */}
+          {detail.status ? <StatusBadge className="ood-done-badge">{detail.status}</StatusBadge> : null}
           <span className="ood-mode">{L.viewMode}</span>
         </span>
       }

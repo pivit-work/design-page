@@ -85,7 +85,7 @@ const DEFAULT_LABELS = {
   tabMeeting: '미팅', tabMeetingDesc: '진행 중',
   tabResult: '결과', tabResultDesc: '완료',
   tabHistory: '히스토리', tabHistoryDesc: '지난 기록',
-  badgeReady: '준비 중', badgeLive: '진행 중', badgeDone: '완료',
+  badgeReady: '준비 중', badgeLive: '미팅 중', badgeDone: '완료',
   myReadiness: '내 준비도',
   readinessComplete: '준비 완료', readinessInProgress: '준비 중', readinessNeeded: '준비 필요',
   sessionWith: '{name}님과의 1on1', liveWith: '{name}님과 1on1 진행 중', doneWith: '{name}님과의 1on1 완료',
@@ -191,7 +191,7 @@ const DEFAULT_LABELS = {
      「본문을 다듬었습니다」(evidenceEdited)와 다른 사실이다 — 그쪽은 «발췌를 뽑은 뒤»,
      이쪽은 «팀원에게 공개한 뒤»다. */
   feedbackEditedAfterShare: '공개 후 수정됨',
-  feedbackDoneShared: 'DONE 공개',
+  feedbackDoneShared: '공개됨',
   feedbackNotShared: '공유된 피드백 없음',
   /* 끝난 1on1 을 30일 동안 고치는 자리 (PW-1046) — 결과 탭의 개인 메모. */
   edit: '편집',
@@ -250,7 +250,9 @@ function mergeLabels(base, provided) {
 }
 /* ── 공통 조각 ─────────────────────────────────────────── */
 function StatusBadge({ status, L }) {
-  const label = status === 'live' ? L.badgeLive : status === 'done' ? L.badgeDone : L.badgeReady;
+  // 표에 없는 단계 코드값이면 딱지를 그리지 않는다 — 예전엔 «준비 중»으로 메웠다 (PW-2937 · policy §3.4).
+  const label = status === 'live' ? L.badgeLive : status === 'done' ? L.badgeDone : status === 'ready' ? L.badgeReady : null;
+  if (!label) return null;
   return (
     <DpStatusBadge className={`ono-mem-badge is-${status}`}>
       {status === 'live' && <span className="ono-mem-badge-dot" />}

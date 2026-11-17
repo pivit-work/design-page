@@ -156,7 +156,7 @@ const MANAGER = { name: '김지수 매니저', avatar: P0 };
 const makeDetail = (name, avatar) => ({
   member: { name, avatar },
   manager: MANAGER,
-  status: 'DONE',
+  status: '완료',
   summary: {
     text: `이번 1on1에서 Q2 OKR 달성률(72%)과 블로커 2건을 논의했습니다. 커리어 성장 목표로 시니어 레벨 이동을 위한 리더십 역량 강화 방향을 합의했습니다. 전반적으로 긍정적인 분위기에서 대화가 진행되었으며, 다음 미팅 전 블로커 해결 방안을 문서화하기로 했습니다.`,
     decisions: [
@@ -380,7 +380,7 @@ const MEMBER_VIEWS = {
 };
 /* 「내 원온원」 지난 회차가 하나도 없을 때 (Figma 17733:20292) — ?knobs=view:member-empty */
 const MEMBER_EMPTY_VIEW = 'member-empty';
-const MY_PAST_EMPTY = { title: '아직 완료된 1on1이 없습니다', text: '1on1 세션이 DONE 처리되면 회의록이\n회차별로 정리되어 이곳에 쌓입니다.' };
+const MY_PAST_EMPTY = { title: '아직 완료된 1on1이 없습니다', text: '1on1 이 완료되면 회의록이\n회차별로 정리되어 이곳에 쌓입니다.' };
 const MEMBER_RECORDING_NOTICE = '녹음 시작과 종료는 매니저 화면에서 진행됩니다';
 const MEMBER_REC_START_SEC = 12 * 60 + 45;
 const MEMBER_ANALYZING_DELAY_MS = 1500;

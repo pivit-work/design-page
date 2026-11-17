@@ -165,12 +165,12 @@ const DEFAULT_LABELS = {
   /* ── 역량 평가 비교 (Figma 16954:15284) ── */
   capTitle: '역량 평가 비교',
   capMemberSelf: '멤버 자가',
-  capReadyManager: 'READY 매니저',
-  capDoneFinal: 'DONE 최종',
+  capReadyManager: '준비 때 매니저',
+  capDoneFinal: '완료 후 매니저',
   capDelta: '변화',
-  capHint: '멤버 자가진단 대비 차이가 표시됩니다.',
-  capHintEditable: '멤버 자가진단 대비 차이가 표시됩니다. 클릭해서 수정 가능합니다.',
-  capAiDraft: 'AI 초안 — 반드시 검토 후 확정해주세요. 미확정 내용은 DONE 피드백에 반영되지 않습니다.',
+  capHint: '준비 때 매니저 점수에서 완료 후 바뀐 만큼이 표시됩니다.',
+  capHintEditable: '준비 때 매니저 점수에서 완료 후 바뀐 만큼이 표시됩니다. 클릭해서 수정 가능합니다.',
+  capAiDraft: 'AI 초안 — 반드시 검토 후 확정해주세요. 미확정 내용은 1on1 완료 후 피드백에 반영되지 않습니다.',
 
   /* ── 대화 분위기 ── */
   sentimentTitle: '대화 분위기',
@@ -743,7 +743,7 @@ const CAP_MAX = 5;
 
 /**
  * 역량 평가 비교 (Figma 16954:15284) — 역량마다 멤버 자가 · READY 매니저 · DONE 최종 세
- * 5칸 막대와 「변화」(DONE − 멤버 자가).
+ * 5칸 막대와 「변화」(완료 후 매니저 − 준비 때 매니저 · PW-2937).
  *
  * `onChange(key, value)` 를 넘기면 DONE 칸이 눌려 1~5 를 고친다 — 안 넘기면 읽기 전용이고
  * 안내 문구도 「클릭해서 수정」을 말하지 않는다. 항목에 `draft` 가 하나라도 있으면 아래에
@@ -753,10 +753,12 @@ const CAP_MAX = 5;
  * 역량 평가 비교. 매니저 완료 화면이 기본 열 셋(자가진단 · READY 매니저 · 최종)으로 쓰고,
  * 팀원 화면(`OneOnOneMemberCanvas` 결과 · 회의록 상세)이 열을 줄여 쓴다 (PW-2189 · policy §6.5.2) —
  * 공개 전에는 자가평가 한 열만, 공개 뒤에는 자가평가 · 매니저 최종 · 차이.
+ * 「변화」는 `doneFinal − r[deltaFrom]`. 팀원 화면 «차이»는 기본값(멤버 자가)을, 매니저 완료 화면은
+ * `readyManager`(준비 때 매니저)를 쓴다 (PW-2937 · policy §3.4 «변화 열은 무엇과 무엇의 차이인가»).
  * `hint` 를 `null` 로 주면 하단 안내를 그리지 않는다. `bare` 면 제목 머리 없이 표만 그린다 — 팀원 화면은
  * 옆 카드들과 같은 카드 틀(`OneOnOneMemberCanvas` 의 `Section`)에 넣는다.
  */
-export function CapabilityCard({ rows, onChange, L, icons, baseUrl, cols = CAP_COLS, showDelta = true, hint, bare = false }) {
+export function CapabilityCard({ rows, onChange, L, icons, baseUrl, cols = CAP_COLS, showDelta = true, deltaFrom = 'memberSelf', hint, bare = false }) {
   if (!has(rows)) return null;
   const editable = typeof onChange === 'function';
   const hasDraft = rows.some((r) => r.draft);
@@ -789,9 +791,9 @@ export function CapabilityCard({ rows, onChange, L, icons, baseUrl, cols = CAP_C
         ))}
         {showDelta && <span className="ono-done-cap-delta-head">{L.capDelta}</span>}
         {rows.map((r, i) => {
-          const delta = r.doneFinal == null || r.memberSelf == null
+          const delta = r.doneFinal == null || r[deltaFrom] == null
             ? 0
-            : Number(r.doneFinal) - Number(r.memberSelf);
+            : Number(r.doneFinal) - Number(r[deltaFrom]);
           return (
             <div className="ono-done-cap-row" key={r.key ?? i} data-testid="ono-done-cap-row">
               <span className="ono-done-cap-label">{r.label}</span>
@@ -1854,6 +1856,7 @@ export default function DoneOneOnOneView({
 
       <CapabilityCard
         rows={capabilities}
+        deltaFrom="readyManager"
         onChange={onCapabilityChange}
         L={L}
         icons={I}

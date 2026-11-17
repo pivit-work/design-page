@@ -13,7 +13,7 @@ const DEFAULT_LABELS = {
   memoPlaceholder: '',
   messagesTitle: '상시 전달 메시지',
   messagesDesc:
-    '자주 전달하고 싶은 메시지나 컨텍스트를 저장하세요. 1on1 READY 단계에서 참조됩니다.',
+    '자주 전달하고 싶은 메시지나 컨텍스트를 저장하세요. 1on1 준비 단계에서 참조됩니다.',
   messagesEmpty: '',
   addPlaceholder: '전달하고 싶은 메시지 입력..',
   addButton: '추가',

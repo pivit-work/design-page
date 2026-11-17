@@ -104,7 +104,7 @@ const DEFAULT_START_LABELS = {
   failHint: '직접 입력해도 됩니다 — AI 없이 저장·제출할 수 있습니다.',
   failQuotaTooltip: 'AI 사용 한도가 복구되면 다시 시도할 수 있습니다',
   retry: '다시 시도',
-  aiWarn: 'AI 초안 — 반드시 검토 후 확정해주세요. 미확정 내용은 DONE 피드백에 반영되지 않습니다.',
+  aiWarn: 'AI 초안 — 반드시 검토 후 확정해주세요. 미확정 내용은 1on1 완료 후 피드백에 반영되지 않습니다.',
   emptyHint: '아직 수집된 데이터가 없습니다.',
   capExpertise: '업무 전문성',
   capCommunication: '커뮤니케이션',
@@ -137,7 +137,7 @@ const DEFAULT_START_LABELS = {
   okrSelfBar: '자가 평가',
   // 매니저 관점
   perspective: '매니저 관점',
-  perspectivePrivate: ' (DONE 전까지 멤버 비공개)',
+  perspectivePrivate: ' (1on1 완료 전까지 멤버 비공개)',
   edit: '수정',
   generatingShort: '생성 중',
   aiDraft: 'AI 초안',
