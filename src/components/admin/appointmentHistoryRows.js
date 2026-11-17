@@ -30,6 +30,8 @@ export function groupHistoryRows(records, labels) {
       scheduled: members.some((m) => m.scheduled),
       // 묶음 안에 승인 대기 사람이 있으면 «승인 대기 N» 칩이 이 줄을 남긴다(PW-2597)
       approvalPending: members.some((m) => m.approvalPending),
+      // «승인» 블록은 사람마다다 — 묶음 줄이 첫 사람 것을 물려받으면 버튼이 묶음 번호(batch:…)로 서버에 간다(pivit-work PW-2597)
+      approvalBlock: undefined,
     });
   }
   return out;

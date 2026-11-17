@@ -1890,7 +1890,12 @@ function AppointmentHistoryView({
   const [syncedRows, setSyncedRows] = useState(rows);
   if (syncedRows !== rows) {
     setSyncedRows(rows);
-    const fresh = selected ? rows.find((r) => r.id === selected.id) : undefined;
+    // 묶음에서 사람이 빠져 줄 번호가 바뀌었으면(1명이 되면 사람 줄) 그 사람들이 든 줄로 이어 연다
+    const ids = selected ? new Set([selected.id, ...(selected.members ?? []).map((m) => m.id)]) : null;
+    const fresh = selected
+      ? rows.find((r) => r.id === selected.id)
+        ?? rows.find((r) => ids.has(r.id) || (r.members ?? []).some((m) => ids.has(m.id)))
+      : undefined;
     if (fresh && fresh !== selected) setSelected(fresh);
   }
 
@@ -2201,6 +2206,7 @@ function AppointmentHistoryView({
                       )}
                     </div>
                     <HistoryChangesTable changes={m.changes} labels={labels} />
+                    <HistoryApprovalBlock rec={m} onApprovalAction={onApprovalAction} />
                   </div>
                 ))
               ) : (
@@ -2221,39 +2227,7 @@ function AppointmentHistoryView({
                   <div className="admin-snap-hist-reason">{selected.reason}</div>
                 </>
               )}
-              {/* 상세 «승인» 블록(PW-2597 · 정책 §3) — 승인자마다 한 줄 · 요청 · 마지막 알림 · 처리. 글은 앱이 짓는다.
-                  버튼(다시 알림 · 승인 없이 확정)은 앱이 넘긴 것만 — 조직 스냅샷 서브탭(읽기 전용)은 넘기지 않는다. */}
-              {selected.approvalBlock && (
-                <div data-testid="snap-hist-approval-block">
-                  <div className="admin-snap-hist-reason-label">{selected.approvalBlock.title}</div>
-                  <div className="admin-snap-hist-reason">
-                    {selected.approvalBlock.lines.map((line) => (
-                      <div key={line}>{line}</div>
-                    ))}
-                  </div>
-                  {selected.approvalBlock.hint && (
-                    <div className="admin-snap-hist-processed">{selected.approvalBlock.hint}</div>
-                  )}
-                  {onApprovalAction && (selected.approvalBlock.actions ?? []).length > 0 && (
-                    <div className="admin-snap-approval-actions">
-                      {selected.approvalBlock.actions.map((a) => (
-                        <Button
-                          key={a.key}
-                          variant="secondary"
-                          size="sm"
-                          disabled={a.disabled}
-                          title={a.title}
-                          // 앱이 약속을 돌려주면 Button 이 그동안 스스로 잠근다 — 두 번 보내지 않게(pivit-work PW-2597)
-                          onClick={() => onApprovalAction(selected, a.key)}
-                          data-testid={`snap-hist-approval-${a.key}`}
-                        >
-                          {a.label}
-                        </Button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
+              <HistoryApprovalBlock rec={selected} onApprovalAction={onApprovalAction} />
               {/* «퇴직» 상세: 퇴사 유형 한 줄 + 세부 사유는 구성원 상세에서 — 앱이 `offboardTypeLabel` 을 실어 줄 때만
                   (p003 어드민). 위 «사유»에는 퇴사 사유를 싣지 않는다 (pivit-work PW-1693 · org-snapshot-spec §4) */}
               {selected.typeKey === 'retire' && selected.offboardTypeLabel && (
@@ -2979,6 +2953,46 @@ export default function OrgSnapshotCanvas({
             />
           )}
         </>
+      )}
+    </div>
+  );
+}
+
+/**
+ * 상세 «승인» 블록(PW-2597 · 정책 §3) — 승인자마다 한 줄 · 요청 · 마지막 알림 · 처리. 글은 앱이 짓는다.
+ * 버튼(다시 알림 · 승인 없이 확정)은 앱이 넘긴 것만 — 조직 스냅샷 서브탭(읽기 전용)은 넘기지 않는다.
+ * 대량 발령 묶음 상세는 사람마다 그린다 — 버튼은 그 사람의 발령으로 간다(묶음 줄 번호로 보내면 서버가 못 찾는다).
+ */
+function HistoryApprovalBlock({ rec, onApprovalAction }) {
+  if (!rec.approvalBlock) return null;
+  return (
+    <div data-testid="snap-hist-approval-block">
+      <div className="admin-snap-hist-reason-label">{rec.approvalBlock.title}</div>
+      <div className="admin-snap-hist-reason">
+        {rec.approvalBlock.lines.map((line) => (
+          <div key={line}>{line}</div>
+        ))}
+      </div>
+      {rec.approvalBlock.hint && (
+        <div className="admin-snap-hist-processed">{rec.approvalBlock.hint}</div>
+      )}
+      {onApprovalAction && (rec.approvalBlock.actions ?? []).length > 0 && (
+        <div className="admin-snap-approval-actions">
+          {rec.approvalBlock.actions.map((a) => (
+            <Button
+              key={a.key}
+              variant="secondary"
+              size="sm"
+              disabled={a.disabled}
+              title={a.title}
+              // 앱이 약속을 돌려주면 Button 이 그동안 스스로 잠근다 — 두 번 보내지 않게(pivit-work PW-2597)
+              onClick={() => onApprovalAction(rec, a.key)}
+              data-testid={`snap-hist-approval-${a.key}`}
+            >
+              {a.label}
+            </Button>
+          ))}
+        </div>
       )}
     </div>
   );
