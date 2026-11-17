@@ -24,6 +24,7 @@ import PreferenceTab from './PreferenceTab.jsx';
 import PersonalTagsField from './PersonalTagsField.jsx';
 import { formatEduPeriod, formatYm, fromRange, nowYm, ymNum, isYm } from './educationForm.js';
 import Button from '../shared/Button.jsx';
+import LoadMoreButton from '../shared/LoadMoreButton.jsx';
 import Stack from '../shared/Stack.jsx';
 
 /**
@@ -1584,6 +1585,7 @@ function HistoryTab({
   onPeriodChange,
   onRetry,
   onLoadMore,
+  more,
 }) {
   const L = labels.history;
   const items = (history && history.items) || [];
@@ -1687,9 +1689,16 @@ function HistoryTab({
           </div>
         )}
 
-        {hasMore && !loading && !error && (
-          <Button variant="secondary" size="sm" className="admin-notif-btn msc-hist-more"
-            onClick={onLoadMore} data-testid="history-more">{L.more}</Button>
+        {/* 목록 끝 [더 보기]는 다른 목록과 같은 LoadMoreButton (pivit-work PW-2946).
+            불러오는 중·실패 뒤 «다시 시도» 문구는 호스트가 more 로 넘긴다 — 안 넘기면 «더 보기»만. */}
+        {!loading && !error && (more || hasMore) && (
+          <LoadMoreButton
+            label={more ? more.label : L.more}
+            loadingLabel={more && more.loadingLabel}
+            loading={!!(more && more.loading)}
+            onClick={onLoadMore}
+            testId="history-more"
+          />
         )}
 
         <div className="msc-hist-note">{L.readOnly}</div>
@@ -1764,6 +1773,7 @@ export default function MySettingsCanvas({
   onHistoryPeriodChange,
   onHistoryRetry,
   onHistoryLoadMore,
+  historyMore,
   /* 보상 정보 */
   compensation = null,
   /* 프로필 */
@@ -2192,6 +2202,7 @@ export default function MySettingsCanvas({
               onPeriodChange={onHistoryPeriodChange}
               onRetry={onHistoryRetry}
               onLoadMore={onHistoryLoadMore}
+              more={historyMore}
             />
           )}
 

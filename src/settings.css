@@ -1128,11 +1128,6 @@
   overflow-wrap: anywhere;
 }
 
-.msc-hist-more {
-  margin-top: 10px;
-  width: 100%;
-}
-
 .msc-hist-note {
   font-size: 12px;
   color: var(--text-tertiary);
