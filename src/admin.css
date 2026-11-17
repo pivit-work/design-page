@@ -2027,9 +2027,10 @@
 .admin-emp-status-option.is-checked.is-active { background: var(--colors-brand-100, #e1fef2); }
 .admin-emp-status-option.is-checked.is-active .dp-radio-circle { background: var(--text-brand-tertiary); }
 .admin-emp-status-option.is-checked.is-active .dp-radio-label { color: var(--colors-brand-700, #10774d); }
+/* 수습 라디오도 표의 수습 딱지와 같은 보라 (PW-2932) */
 .admin-emp-status-option.is-checked.is-probation { background: var(--componentColors-alpha-alphaBlack6, rgba(0, 0, 0, 0.06)); }
-.admin-emp-status-option.is-checked.is-probation .dp-radio-circle { background: var(--colors-text-textWarningPrimary, #dc6803); }
-.admin-emp-status-option.is-checked.is-probation .dp-radio-label { color: var(--colors-text-textWarningPrimary, #dc6803); }
+.admin-emp-status-option.is-checked.is-probation .dp-radio-circle { background: var(--utility-purple-700); }
+.admin-emp-status-option.is-checked.is-probation .dp-radio-label { color: var(--utility-purple-700); }
 .admin-emp-status-option.is-checked.is-pending { background: var(--componentColors-alpha-alphaBlack6, rgba(0, 0, 0, 0.06)); }
 .admin-emp-status-option.is-checked.is-pending .dp-radio-circle { background: var(--colors-text-textWarningPrimary, #dc6803); }
 .admin-emp-status-option.is-checked.is-pending .dp-radio-label { color: var(--colors-text-textWarningPrimary, #dc6803); }
@@ -4316,7 +4317,6 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
 }
 .admin-emp-hist-filter-label { font-size: 12px; color: var(--text-secondary); flex: none; }
 .admin-emp-hist-filter .admin-emp-input { flex: 1; min-width: 0; }
-.admin-emp-hist-more { display: block; margin: 10px auto 0; }
 /* 바꾼 사람이 퇴사·삭제됨(E7) — 이름은 남기고 흐리게 */
 .admin-emp-hist-who.is-resigned { color: var(--text-disabled, var(--text-tertiary)); }
 .admin-emp-hist-resigned { margin-left: 4px; }

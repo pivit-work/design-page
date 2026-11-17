@@ -13,6 +13,8 @@ import ModalShell from '../shared/ModalShell.jsx';
 import SidePanelShell from '../shared/SidePanelShell.jsx';
 import Tabs from '../shared/Tabs.jsx';
 import Button from '../shared/Button.jsx';
+import LoadMoreButton from '../shared/LoadMoreButton.jsx';
+import { AdminButton } from './kit/CsvImportParts.jsx';
 import Switch from '../shared/Switch.jsx';
 import {
   buildOrgTree, findOrgEntry, primaryOrgEntry, matchesOrgSubtree, ORG_FILTER_UNASSIGNED, ORG_PATH_SEP,
@@ -554,6 +556,8 @@ const DEFAULT_LABELS = {
     historyEmptyFiltered: '{field} 변경 이력이 없습니다.',
     historyClearFilter: '필터 해제',
     historyMore: '더 보기',
+    historyMoreLoading: '불러오는 중…',
+    historyMoreRetry: '다시 시도',
     /* 바꾼 사람이 퇴사·삭제됨(E7) · 값을 지움(E3) · 다건 행 삭제(E18) */
     historyResigned: '(퇴사)',
     historyDeleted: '삭제됨',
@@ -4446,11 +4450,11 @@ function EmployeesListView({
             />
           )}
           {canEdit && onCsvUpload && (
-            /* 표에서 고친 칸이 저장 전이면 끈다 (PW-1333 · §3.1-G) — 업로드가 같은 칸을 덮어쓴다. 모양은 종전 버튼 그대로(공용 Button 에 className). */
+            /* 표에서 고친 칸이 저장 전이면 끈다 (PW-1333 · §3.1-G) — 업로드가 같은 칸을 덮어쓴다. 모양은 옆 [컬럼]·[명부 내보내기]와 같은 어드민 버튼(회색 · 작게) — 공용 Button 에 얹어 혼자 36px 였다 (PW-2932). */
             <Tooltip content={te?.blockedReason ?? null}>
-              <Button className="admin-emp-btn is-ghost" disabled={!!te?.blockedReason} onClick={onCsvUpload} data-testid="employees-list-csv-upload">
+              <AdminButton tone="ghost" size="sm" disabled={!!te?.blockedReason} onClick={onCsvUpload} data-testid="employees-list-csv-upload">
                 {labels.csvUpload}
-              </Button>
+              </AdminButton>
             </Tooltip>
           )}
           {/* [PW-1331] 「+ 구성원 초대」는 두지 않는다 — 새 사람 초대는 초대 관리 탭의 「새 초대 발송」 한 곳이다
@@ -5019,7 +5023,7 @@ function panelErrorOf(e) {
  * 적었다」(변경됨)는 원인이 달라서, 보는 사람이 다음에 할 수 있는 일도 다르다.
  */
 function PersonalHistoryList({
-  state, labels, onRetry, field = 'all', onFieldChange, onLoadMore, moreLoading = false, asTable = false,
+  state, labels, onRetry, field = 'all', onFieldChange, onLoadMore, moreLoading = false, moreFailed = false, asTable = false,
 }) {
   const L = labels.panel;
   const fields = (state.page && state.page.fields) || [];
@@ -5148,9 +5152,9 @@ function PersonalHistoryList({
             }}
           />
           {nextCursor && onLoadMore && (
-            <button type="button" className="admin-emp-btn is-secondary admin-emp-hist-more"
-              disabled={moreLoading} onClick={onLoadMore}
-              data-testid="employees-history-more">{L.historyMore}</button>
+            <LoadMoreButton label={moreFailed ? (L.historyMoreRetry || '다시 시도') : L.historyMore}
+                loadingLabel={L.historyMoreLoading || '불러오는 중…'} loading={moreLoading} onClick={onLoadMore}
+                testId="employees-history-more" />
           )}
         </>
       );
@@ -5217,9 +5221,9 @@ function PersonalHistoryList({
         </div>
         {/* 무한 스크롤을 쓰지 않는다 — 패널 본문이 이미 스크롤 칸이라 겹친다(§2-4). */}
         {nextCursor && onLoadMore && (
-          <button type="button" className="admin-emp-btn is-secondary admin-emp-hist-more"
-            disabled={moreLoading} onClick={onLoadMore}
-            data-testid="employees-history-more">{L.historyMore}</button>
+          <LoadMoreButton label={moreFailed ? (L.historyMoreRetry || '다시 시도') : L.historyMore}
+              loadingLabel={L.historyMoreLoading || '불러오는 중…'} loading={moreLoading} onClick={onLoadMore}
+              testId="employees-history-more" />
         )}
       </>
     );
@@ -5607,6 +5611,8 @@ function EmployeesEditPanel({
   /* 고른 항목(`all` = 전체)과 「더 보기」 진행 중 여부 (정책서 §2-3·§2-4) */
   const [historyField, setHistoryField] = useState('all');
   const [historyMoreLoading, setHistoryMoreLoading] = useState(false);
+  /* 「더 보기」가 실패했나 — 같은 버튼이 «다시 시도» 글로 남는다(LoadMoreButton 규칙 · PW-2932). 알림은 호스트가 띄운다 */
+  const [historyMoreFailed, setHistoryMoreFailed] = useState(false);
 
   // 다른 사람을 열면 draft 를 그 사람으로 갈아끼운다. 같은 사람이면 편집 중인 값을
   // 유지한다 — members 가 재조회될 때마다 입력이 되돌아가면 타이핑을 못 한다.
@@ -5629,6 +5635,7 @@ function EmployeesEditPanel({
     setHistoryState({ status: 'idle', page: null });
     setHistoryField('all');
     setHistoryMoreLoading(false);
+    setHistoryMoreFailed(false);
     setArchive({ status: onLoadArchivedRecords ? 'loading' : 'idle', view: null });
     setAssetsState({ status: assetsLoader ? 'loading' : 'idle', view: null });
     setPerfState({ status: perfLoader ? 'loading' : 'idle', view: null });
@@ -5749,6 +5756,7 @@ function EmployeesEditPanel({
     if (!page || !page.nextCursor || historyMoreLoading || !onLoadPersonalHistory) return;
     const req = ++historyReqRef.current;
     setHistoryMoreLoading(true);
+    setHistoryMoreFailed(false);
     const query = { cursor: page.nextCursor, ...(historyField === 'all' ? {} : { field: historyField }) };
     Promise.resolve(onLoadPersonalHistory(memberId, query))
       .then((next) => {
@@ -5758,12 +5766,13 @@ function EmployeesEditPanel({
           page: { ...prev.page, items: [...prev.page.items, ...(next.items || [])], nextCursor: next.nextCursor ?? null },
         } : prev));
       })
-      .catch(() => {})
+      .catch(() => { if (req === historyReqRef.current) setHistoryMoreFailed(true); })
       .finally(() => { if (req === historyReqRef.current) setHistoryMoreLoading(false); });
   };
   const changeHistoryField = (next) => {
     historyReqRef.current += 1;
     setHistoryMoreLoading(false);
+    setHistoryMoreFailed(false);
     setHistoryField(next);
     setHistoryState((prev) => ({ status: 'loading', page: prev.page ? { ...prev.page, items: [] } : null }));
   };
@@ -6844,6 +6853,7 @@ function EmployeesEditPanel({
               onFieldChange={changeHistoryField}
               onLoadMore={loadMoreHistory}
               moreLoading={historyMoreLoading}
+              moreFailed={historyMoreFailed}
             />
           ) : (
           <>

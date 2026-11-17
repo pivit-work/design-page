@@ -96,12 +96,8 @@ export function ExportMenu({ items, disabled, busy, labels, onPick }) {
         data-testid="export-roster-button"
         disabled={blocked}
         onClick={() => setOpen((v) => !v)}
-        style={{
-          display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 13px', borderRadius: 9,
-          border: `1px solid ${T.border}`, background: T.card, fontSize: 12, fontWeight: 700,
-          color: blocked ? T.muted : T.text, fontFamily: T.font,
-          cursor: blocked ? 'not-allowed' : 'pointer', opacity: blocked ? 0.6 : 1,
-        }}
+        /* 표 위 버튼 줄의 [컬럼]·[CSV 업로드]와 같은 어드민 버튼(회색 · 작게) — 혼자 흰 테두리로 칠해 높이·바탕이 갈렸다 (pivit-work PW-2932) */
+        className="admin-emp-btn is-ghost is-sm"
       >
         <IconDownload size={14} />
         {busy ? (L.preparing || '생성 중…') : (L.button || '명부 내보내기')}

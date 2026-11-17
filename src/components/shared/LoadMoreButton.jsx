@@ -13,8 +13,9 @@
  * @param {boolean} [loading]
  * @param {() => void} [onClick]
  * @param {string} [className]     자리 잡기용 클래스를 덧붙인다
+ * @param {string} [testId]        버튼의 `data-testid` (pivit-work PW-2932 — 따로 그리던 [더 보기]를 옮기며 시험이 버튼을 그대로 찾게)
  */
-export default function LoadMoreButton({ label, loadingLabel, loading = false, onClick, className = '' }) {
+export default function LoadMoreButton({ label, loadingLabel, loading = false, onClick, className = '', testId }) {
   return (
     <div className={['dp-load-more', className].filter(Boolean).join(' ')}>
       <button
@@ -23,6 +24,7 @@ export default function LoadMoreButton({ label, loadingLabel, loading = false, o
         disabled={loading}
         aria-busy={loading || undefined}
         onClick={() => onClick?.()}
+        data-testid={testId}
       >
         {loading && loadingLabel ? loadingLabel : label}
       </button>
