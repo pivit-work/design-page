@@ -3221,8 +3221,11 @@ function EmployeesListView({
   const focusToken = tableEdit?.focus?.token ?? null;
   const focusRef = useRef({ tableEdit, ordered, pageSize });
   useLayoutEffect(() => { focusRef.current = { tableEdit, ordered, pageSize }; });
+  /* 토큰은 앱이 지우지 않으므로 표를 다시 열 때 처음 그릴 때의 토큰은 건너뛴다(아래 «틀린 칸»과 같다 · PW-2954). */
+  const seenFocusToken = useRef(focusToken);
   useEffect(() => {
-    if (focusToken == null) return;
+    if (focusToken == null || focusToken === seenFocusToken.current) return;
+    seenFocusToken.current = focusToken;
     const { tableEdit: te0, ordered: rows, pageSize: size } = focusRef.current;
     const at = rows.findIndex((r) => String(r.id) === String(te0?.focus?.id));
     if (at < 0) te0?.onFocusHidden?.();
