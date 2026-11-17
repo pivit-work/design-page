@@ -88,6 +88,11 @@
 }
 .admin-kit-csv-footer-end { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 .admin-kit-csv-footer-start:empty { display: none; }
+/* 전체 화면 모양은 pivit-work 가 어드민 흰 카드(.admin-card)로 감싼다 — 머리·본문·발 옆 여백을 카드 안쪽 여백 24 로 맞추고
+   머리 아랫줄·발 윗줄은 카드 끝까지 닿게 둔다 (pivit-work PW-2967 · 기획서 SHELL.cardPad 22·24) */
+.admin-kit-csv.is-inline .admin-kit-csv-head,
+.admin-kit-csv.is-inline .admin-kit-csv-body,
+.admin-kit-csv.is-inline .admin-kit-csv-footer { padding-left: var(--spacing-3xl); padding-right: var(--spacing-3xl); }
 
 /* 되돌리기 어려운 확정(빨간 채움) — .admin-emp-btn 과 함께 쓴다 */
 .admin-emp-btn.admin-kit-btn-danger {
