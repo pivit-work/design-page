@@ -1111,7 +1111,10 @@
 .onb-tag {
   display: inline-flex; align-items: center; gap: 6px; min-width: 0; padding: 4px 10px; border-radius: 20px;
   font-size: 13px; font-weight: 500; white-space: nowrap; flex-shrink: 1; /* 한 줄 · 줄어듦 — 길면 글(.onb-tag-label)이 «…»로 준다. 흘러 줄바꿈하면 30자 메일도 두 줄로 꺾였다 (pivit-work PW-2918) */
-  background: var(--onb-brand-light); color: var(--onb-brand); border: 1px solid var(--onb-brand-pill-border);
+  background: var(--onb-brand-light); color: var(--onb-brand);
+  /* 둘레 선은 가입 화면 초록 딱지(.onb-badge-brand)와 같은 브랜드 초록 20%. 예전엔 지워진 색 이름(--onb-brand-pill-border)을 가리켜
+   * 선이 통째로 빠졌다. border 로 그리면 칩이 2px 커지므로 높이를 그대로 두려고 안쪽 선으로 그린다 (pivit-work PW-2943) */
+  border: none; box-shadow: inset 0 0 0 1px var(--onb-brand-border);
 }
 
 .onb-tag.is-grow { flex: 1; }

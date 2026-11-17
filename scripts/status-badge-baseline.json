@@ -991,7 +991,8 @@
    "display": "inline-flex",
    "align-items": "center",
    "gap": "6px",
-   "border": "1px solid var(--onb-brand-pill-border)",
+   "border": "none",
+   "box-shadow": "inset 0 0 0 1px var(--onb-brand-border)",
    "min-width": "0",
    "white-space": "nowrap",
    "flex-shrink": "1"
