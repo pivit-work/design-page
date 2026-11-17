@@ -1532,19 +1532,29 @@ export function HrProfileInline({
     }
     if (benefits?.invalid) throw new Error(L.hrPensionContributionInvalid || '금액은 소수점·단위 없는 정수로 적어 주세요.');
     const trainingsTouched = pendingSize(trPending) > 0;
+    /* `send` 는 다시 불릴 수 있다 — 앱이 사유 창을 연 채 뒤 요청의 실패를 보이고 [변경 저장]으로 다시 보낼 때(pivit-work PW-2924).
+       그래서 보낸 것을 이 저장 안에서 따로 세고(화면 상태는 다음 렌더에야 바뀐다) 남은 것만 보낸다. */
+    const left = Object.fromEntries(RECORD_KINDS.map((k) => [k, recPending[k]]));
+    let trLeft = trPending;
+    let identityDone = !identityPatch;
+    let benefitsDone = !benefits;
     const send = async () => {
       try {
-        if (identityPatch) {
+        if (!identityDone) {
           const saved = await onSaveIdentity(memberId, identityPatch);
+          identityDone = true;
           setData((d) => ({ ...(d ?? {}), identity: saved || { ...(d?.identity ?? {}), ...identityPatch } }));
           setIdentityDraft(null);
           setSeededId(null);
           setBankRevealed(null);
         }
         for (const kind of RECORD_KINDS) {
-          const p = recPending[kind];
+          const p = left[kind];
           if (!pendingSize(p)) continue;
-          const progress = (left) => setRecPending((prev) => ({ ...prev, [kind]: left }));
+          const progress = (rest) => {
+            left[kind] = rest;
+            setRecPending((prev) => ({ ...prev, [kind]: rest }));
+          };
           if (kind === 'documents') {
             await flushPending(p, {
               add: (body) => onUploadDocument(memberId, body),
@@ -1559,15 +1569,16 @@ export function HrProfileInline({
             }, progress);
           }
         }
-        if (trainingsTouched) {
-          await flushPending(trPending, {
+        if (pendingSize(trLeft) > 0) {
+          await flushPending(trLeft, {
             add: (body) => onAddTraining(memberId, body),
             update: (id, body) => onUpdateTraining(memberId, id, body),
             remove: (id) => onDeleteTraining(memberId, id),
-          }, setTrPending);
+          }, (rest) => { trLeft = rest; setTrPending(rest); });
         }
-        if (benefits) {
+        if (!benefitsDone) {
           await onSaveBenefits(memberId, benefits.body);
+          benefitsDone = true;
           setBenefits(null);
           setBnEpoch((e) => e + 1);
         }
