@@ -80,13 +80,15 @@ export default function EvalShellNav({
 
   return (
     <nav className="evnav-nav" aria-label={title}>
-      <div className="tab-nav evnav-domains">
+      <div className="tab-nav evnav-domains" role="tablist" aria-label={title}>
         {domains.map((d) => {
           const on = d.id === activeDomain;
           return (
             <Tooltip key={d.id} content={d.desc || undefined}>
             <button
               type="button"
+              role="tab"
+              aria-selected={on}
               aria-current={on ? 'true' : undefined}
               className={on ? 'tab-active' : 'tab-inactive'}
               onClick={() => !on && onDomainChange?.(d.id)}

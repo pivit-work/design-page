@@ -77,11 +77,13 @@ export default function OneOnOnePageHeader({
     <header className={`ono-page-header${contained ? ' is-contained' : ''}`}>
       <div className="ono-title-block">
         {titleTabs?.length ? (
-          <div className="ono-title-switch">
+          <div className="ono-title-switch" role="tablist">
             {titleTabs.map((t) => (
               <button
                 key={t.key ?? t.label}
                 type="button"
+                role="tab"
+                aria-selected={Boolean(t.active)}
                 className={`ono-title-switch-btn${t.active ? ' is-active' : ''}`}
                 aria-current={t.active ? 'page' : undefined}
                 onClick={t.active ? undefined : t.onClick}

@@ -1,4 +1,5 @@
 import React from 'react';
+import { spanTabProps } from '../shared/tabRole.js';
 
 /**
  * 조직도 화면 머리의 탭 줄 — 「조직도 · (프로젝트) · 스쿼드」 (Figma 17788:33051 · 2026-10-28).
@@ -23,16 +24,16 @@ export default function OrgTabNav({ active, onSubTabChange, showProjectTab = fal
     'squad',
   ];
   return (
-    <div className="tab-nav">
+    <div className="tab-nav" role="tablist">
       {tabs.map((tab) =>
         tab === active ? (
-          <span key={tab} className="tab-active">{L(`tab.${tab}`)}</span>
+          <span key={tab} className="tab-active" {...spanTabProps(true)}>{L(`tab.${tab}`)}</span>
         ) : (
           <span
             key={tab}
             className="tab-inactive"
             data-testid={`org-tab-${tab}`}
-            onClick={() => onSubTabChange && onSubTabChange(tab)}
+            {...spanTabProps(false, () => onSubTabChange && onSubTabChange(tab))}
           >
             {L(`tab.${tab}`)}
           </span>

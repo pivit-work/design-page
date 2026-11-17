@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { measureHeaderLayout } from './okrTabHeaderWidth.js';
 import StepNavButton, { StepNav } from '../shared/StepNav.jsx';
+import { spanTabProps } from '../shared/tabRole.js';
 
 const DEFAULT_LABELS = { prevTabs: '이전 탭 보기', nextTabs: '다음 탭 보기' };
 
@@ -161,12 +162,12 @@ export default function OkrTabNav({ tabs, activeTab, onTabChange, year, quarter,
       style={hasActions ? { '--okr-tab-header-max': `${maxWidth}px` } : undefined}
     >
       <div ref={rowRef} className="okr-tab-row">
-        <div ref={navRef} className="tab-nav" onScroll={measureEdge}>
+        <div ref={navRef} className="tab-nav" role="tablist" onScroll={measureEdge}>
           {tabs.map((tab) => (
             <span
               key={tab.id}
               className={tab.id === activeTab ? 'tab-active' : 'tab-inactive'}
-              onClick={() => tab.id !== activeTab && onTabChange(tab.id)}
+              {...spanTabProps(tab.id === activeTab, () => tab.id !== activeTab && onTabChange(tab.id))}
             >
               {tab.label}
             </span>

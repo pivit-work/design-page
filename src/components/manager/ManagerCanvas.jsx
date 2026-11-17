@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import SummaryCard from './SummaryCard.jsx';
+import { spanTabProps } from '../shared/tabRole.js';
 import StatTile from './StatTile.jsx';
 import SectionHeading from './SectionHeading.jsx';
 import MemberCard from './MemberCard.jsx';
@@ -159,12 +160,12 @@ export default function ManagerCanvas({
   return (
     <main className="manager-page">
       <header className="manager-page-header">
-        <div className="manager-tabs">
+        <div className="manager-tabs" role="tablist">
           {tabs.map((tab) => (
             <span
               key={tab.label}
               className={`manager-tab ${(activeTab ? activeTab === tab.key : tab.active) ? 'active' : ''}`}
-              onClick={() => onTabChange?.(tab.key)}
+              {...spanTabProps(Boolean(activeTab ? activeTab === tab.key : tab.active), () => onTabChange?.(tab.key))}
             >
               {tab.label}
             </span>
