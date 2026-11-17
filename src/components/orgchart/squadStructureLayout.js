@@ -13,6 +13,16 @@
  * 노드의 인원 숫자는 접어도 그대로다(접힘은 «보이는 것»만 줄인다).
  */
 
+import { isCountedStatus } from './squad-constants.js';
+
+/**
+ * 완료·보관 스쿼드의 노드와 그 아래 사람 카드(배정) 불투명도 — 연결 갈래가 같은 스쿼드의 선·칩에 쓰는 값(`SquadGraphView` FADED)과 같다
+ * (pivit-work PW-2957 · TC-ORG-168 5번 «S4 가 T1 아래 흐리게» · TC-ORG-145 3번). «스쿼드 없음» 카드 .45 와는 뜻이 달라 값도 따로 둔다.
+ */
+export const STRUCT_FADED = 0.6;
+/** 캐파 합계 밖(완료·보관) 스쿼드면 `STRUCT_FADED`, 아니면 1. */
+export const structSquadOpacity = (sq) => (isCountedStatus(sq?.status) ? 1 : STRUCT_FADED);
+
 /** 이만큼 넘으면(11명부터) 처음엔 `STRUCT_MORE_SHOW` 장 + «더 보기» 한 칸 — 묶음 없는 회사에서 최대 높이 760 안에 위아래가 다 드는 칸 수가 10 */
 export const STRUCT_MORE_AT = 11;
 export const STRUCT_MORE_SHOW = 9;
@@ -127,7 +137,7 @@ export function buildSquadSide({ shown, all, levelNames = [], groups = [], roste
       squadId: sq.id,
       lead: m.role === 'lead',
       multi: counts.get(m.userId) || 0,
-      dim: 1,
+      dim: structSquadOpacity(sq),
     })),
   });
 

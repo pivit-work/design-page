@@ -50,6 +50,7 @@ import {
   buildPlaceSide,
   buildSquadSide,
   structFitScale,
+  structSquadOpacity,
   structureView,
 } from './squadStructureLayout.js';
 
@@ -444,7 +445,7 @@ function StructureCanvas({
           cardProps={{
             className: 'sq-struct-dept is-squad',
             'data-testid': `squad-struct-squad-${sq.id}`,
-            style: { background: 'var(--bg-quaternary)', opacity: sq.status === 'archived' ? 0.6 : 1 },
+            style: { background: 'var(--bg-quaternary)', opacity: structSquadOpacity(sq) },
             onMouseEnter: () => setFocus({ kind: 'sq', id: sq.id }),
             title: L('squad.struct.squadTip', { name: sq.name, lead: leadName }),
           }}
