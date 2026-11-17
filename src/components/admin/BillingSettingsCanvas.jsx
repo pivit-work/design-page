@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import Button from '../shared/Button.jsx';
+import { ArrowRightGlyph } from '../shared/lineIcons.jsx';
 import {
   BillingCard as Card,
   BillingBadge as Badge,
@@ -590,6 +591,8 @@ export default function BillingSettingsCanvas({
                         : cardMode
                           ? isDirty ? labels.cardContinueSaveLabel : labels.cardContinueLabel
                           : isDirty ? labels.continueSaveLabel : labels.continueLabel}
+                    {/* 기획서 settings §51·§53 이름 «[… 계속 →]» — 기다리는 글자일 때는 붙이지 않는다 (PW-2938) */}
+                    {!saving && !openingCard && <ArrowRightGlyph size={13} />}
                   </Btn>
                 </>
               ) : (
