@@ -298,6 +298,12 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
     setSeenUpcoming({ target: targetId, id: upcomingId });
   }
   const upcomingAction = !upcoming ? null : startable ? 'start' : upcomingChoice;
+  /* 고른 갈래를 «일시 · 회의실» 칸(schedule)에 알린다 — 당기기와 따로 잡기는 회의실 거절이 달라, 거절로 잠근 뒤
+     갈래를 바꾸면 칸 주인이 잠금을 풀 수 있어야 한다 (pivit-work PW-2638). */
+  const onUpcomingAction = schedule ? schedule.onUpcomingAction : undefined;
+  useEffect(() => {
+    if (onUpcomingAction) onUpcomingAction(isNow ? upcomingAction : null);
+  }, [onUpcomingAction, isNow, upcomingAction]);
   /* 회차가 바뀌어 고른 것이 풀렸으면 다시 고를 때까지 누를 수 없다. */
   const needsUpcomingChoice = isNow && !!upcoming && !startable && upcomingChoice == null;
   const nowMinutes = duration === 'custom' ? (customDuration.match(/\d+/)?.[0] ?? '') : duration;
