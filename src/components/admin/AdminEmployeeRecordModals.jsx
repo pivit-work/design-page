@@ -431,7 +431,7 @@ export function serviceStartHintText(L, serviceStartDate, hireDate) {
  * `card` — 추가 칸(.adm-hr-add) 안의 줄. 칸 높이·글씨는 그 카드의 클래스가 정한다(36px 흰 칸 · pivit-work PW-2693).
  * 안 주면 지금 그대로(신원·인사 편집 줄).
  */
-function HrEditPair({ k, value, onChange, type = 'text', date = false, options, inputMode, startView, max, today, disabled = false, placeholder, card = false }) {
+function HrEditPair({ k, value, onChange, type = 'text', date = false, options, clearable = true, inputMode, startView, max, today, disabled = false, placeholder, card = false }) {
   const fieldStyle = card ? undefined : { flex: 1, height: 30, fontSize: 12 };
   const parts = (
     <>
@@ -445,7 +445,7 @@ function HrEditPair({ k, value, onChange, type = 'text', date = false, options, 
           disabled={disabled}
           style={fieldStyle}
         >
-          <option value="">—</option>
+          {clearable && <option value="">—</option>}
           {options.map((o) => (
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
@@ -872,9 +872,11 @@ function hrRecordDefs(L, todayIso) {
         { key: 'name', label: L.hrDepName || '성명', required: true },
         { key: 'relation', label: L.hrDepRelation || '관계', required: true, options: optionsOf(L.hrRelation) },
         { key: 'dateOfBirth', label: L.hrDepBirth || '생년월일', kind: 'date', startView: 'year', max: todayIso, today: todayIso },
-        { key: 'isDependent', label: L.hrDepIsDependent || '부양 여부', kind: 'boolean', options: [{ value: 'true', label: L.hrDep || '부양중' }, { value: 'false', label: L.hrNotDep || '비부양' }] },
+        // 처음부터 «부양중» — 서버도 값이 없으면 부양중으로 저장하고, 내 설정 부양가족 추가도 부양중으로 연다.
+        // 비우는 «—»를 두면 화면은 «비부양», 저장은 «부양중»으로 갈렸다(pivit-work PW-2941).
+        { key: 'isDependent', label: L.hrDepIsDependent || '부양 여부', kind: 'boolean', defaultValue: 'true', options: [{ value: 'true', label: L.hrDep || '부양중' }, { value: 'false', label: L.hrNotDep || '비부양' }] },
       ],
-      render: (d) => `${d.name} · ${relLabel(d.relation)}${d.dateOfBirth ? ` · ${d.dateOfBirth}` : ''} · ${d.isDependent ? (L.hrDep || '부양중') : (L.hrNotDep || '비부양')}`,
+      render: (d) => `${d.name} · ${relLabel(d.relation)}${d.dateOfBirth ? ` · ${d.dateOfBirth}` : ''} · ${d.isDependent === false ? (L.hrNotDep || '비부양') : (L.hrDep || '부양중')}`,
       nameOf: (d) => d.name,
       emptyText: L.hrDependentsEmpty || '등록된 부양가족이 없습니다.',
       addLabel: L.hrDepAdd || '부양가족 추가',
@@ -2043,8 +2045,8 @@ function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelet
 const isRequired = (field, form) =>
   typeof field.required === 'function' ? !!field.required(form) : !!field.required;
 
-/** 칸 정의의 빈 값으로 폼을 만든다. */
-const emptyForm = (fields) => Object.fromEntries(fields.map((f) => [f.key, '']));
+/** 칸 정의의 빈 값으로 폼을 만든다 — `defaultValue` 가 있는 칸은 그 값으로 연다. */
+const emptyForm = (fields) => Object.fromEntries(fields.map((f) => [f.key, f.defaultValue ?? '']));
 
 /** 서버가 준 줄을 폼 값으로 — 논리값은 'true'/'false' 글자로 담는다(select 칸). */
 const formOf = (fields, row) =>
@@ -2215,6 +2217,7 @@ function HrRecordListSection({
                 max={f.max}
                 today={f.today}
                 options={f.options}
+                clearable={f.defaultValue == null}
                 placeholder={f.placeholder}
               />
             )).flatMap((pair, i) => (
