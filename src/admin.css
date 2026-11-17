@@ -4349,6 +4349,9 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
 .admin-emp-reason-change { display: flex; gap: 12px; font-size: 12px; min-width: 0; }
 .admin-emp-reason-change-label { flex: 0 0 96px; color: var(--text-secondary); overflow-wrap: anywhere; }
 .admin-emp-reason-change-values { flex: 1; min-width: 0; color: var(--text-primary); overflow-wrap: anywhere; }
+/* 다건 기록 줄(pivit-work PW-2924) — 이름표 «자격증 · 정보처리기사»가 96 칸에서 꺾이지 않게 위아래로 쌓는다 */
+.admin-emp-reason-change.is-stacked { flex-direction: column; gap: var(--spacing-xxs); }
+.admin-emp-reason-change.is-stacked .admin-emp-reason-change-label { flex: none; }
 
 .admin-emp-reason-lead {
   font-size: 11px;

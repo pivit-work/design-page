@@ -5295,7 +5295,8 @@ function ChangeReasonModal({ prompt, labels }) {
       {prompt.changes && prompt.changes.length > 0 ? (
         <div className="admin-emp-reason-changes" data-testid="change-reason-changes">
           {prompt.changes.map((c) => (
-            <div key={c.field} className="admin-emp-reason-change" data-testid={`change-reason-change-${c.field}`}>
+            /* `stacked`: 다건 기록 줄(«자격증 · 정보처리기사») — 이름표가 길어 96 칸에서 꺾이므로 이름표 윗줄 · 값 아랫줄(pivit-work PW-2924) */
+            <div key={c.field} className={`admin-emp-reason-change${c.stacked ? ' is-stacked' : ''}`} data-testid={`change-reason-change-${c.field}`}>
               <span className="admin-emp-reason-change-label">{c.label}</span>
               <span className="admin-emp-reason-change-values">
                 {c.masked ? L.masked : (c.before || labels.panel.historyNone)}
