@@ -1885,6 +1885,15 @@ function AppointmentHistoryView({
     }
   }
 
+  // 목록을 다시 받으면 열린 상세도 새 줄로 바꾼다 — 처음 연 줄을 붙들면 [다시 알림] 뒤 «마지막 알림»·꺼진 버튼이
+  // 새로고침 전까지 안 보인다(pivit-work PW-2597). 목록이 바뀐 때만 맞춘다(렌더 중 상태 맞추기 · 효과 없이).
+  const [syncedRows, setSyncedRows] = useState(rows);
+  if (syncedRows !== rows) {
+    setSyncedRows(rows);
+    const fresh = selected ? rows.find((r) => r.id === selected.id) : undefined;
+    if (fresh && fresh !== selected) setSelected(fresh);
+  }
+
   // 구조 개정 필터를 배선하지 않은 호스트는 종전처럼 발령만 본다.
   const revisionsWired = Array.isArray(structureRevisions) || !!structureRevisionsError;
   // 못 불러온 것을 «발령 이력이 없습니다»로 보이면 어드민은 이력이 지워진 줄 안다.
@@ -2234,6 +2243,7 @@ function AppointmentHistoryView({
                           size="sm"
                           disabled={a.disabled}
                           title={a.title}
+                          // 앱이 약속을 돌려주면 Button 이 그동안 스스로 잠근다 — 두 번 보내지 않게(pivit-work PW-2597)
                           onClick={() => onApprovalAction(selected, a.key)}
                           data-testid={`snap-hist-approval-${a.key}`}
                         >
