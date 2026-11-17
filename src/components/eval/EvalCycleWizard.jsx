@@ -3033,6 +3033,7 @@ export default function EvalCycleWizard({
   /**
    * [PW-1540] 라이브러리 템플릿 `(id, 템플릿)` 의 항목을 바꿔 저장한다 — 같은 양식을 쓰는 다른 리뷰 종류에 함께 반영할 때.
    * 저장된 템플릿을 돌려주면 성공, falsy 면 그 종류는 그대로 둔다. 라이브러리 모드에서 안 넘기면 묻지 않는다.
+   * 앱이 이미 알린 거절(이용 정지 등 · `notified: true`)은 던진다 — 그 종류는 «못 바꾼 항목»에 세지 않는다(pivit-work PW-2907).
    */
   onUpdateTemplateItems,
   /**
@@ -3171,7 +3172,7 @@ export default function EvalCycleWizard({
    * 번역과 한 몸이다). design-page 는 그 줄을 그 자리에 그대로 그린다.
    *
    * 🔴 **실패는 `null` 로 돌려준다** — 던져서 전역 오류 화면으로 튕기면 작성 중이던 문구가
-   * 통째로 날아간다. 안 넘기면 버튼을 숨긴다.
+   * 통째로 날아간다. 안 넘기면 버튼을 숨긴다. 앱이 이미 알린 거절(이용 정지 등)만 던진다 — 결과 줄을 그리지 않는다(pivit-work PW-2907).
    */
   onTestSendMessage,
   /**
