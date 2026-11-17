@@ -6,7 +6,6 @@ import Tooltip from '../shared/Tooltip.jsx';
 import Stack from '../shared/Stack.jsx';
 import FormField from '../shared/FormField.jsx';
 import TextArea from '../shared/TextArea.jsx';
-import { ArrowRightGlyph } from '../shared/lineIcons.jsx';
 import { BillingCard as Card, BillingBadge as Badge } from './kit/BillingSurface.jsx';
 
 // ─────────────────────────────────────────────────────────────
@@ -397,11 +396,7 @@ function AddonRow({ addon, labels, onManage }) {
           <span style={{ fontSize: 14, fontWeight: 700 }}>{labels.addonName}</span>
           <span data-testid="billing-addon-row-status" style={{ fontSize: 13, color, fontWeight: 600 }}>{text}</span>
         </div>
-        <button type="button" onClick={onManage}
-          style={{ background: 'none', border: 'none', color: T.accentText, fontWeight: 700,
-            fontSize: 13, cursor: 'pointer', padding: 0, whiteSpace: 'nowrap' }}>
-          {labels.addonManage} <ArrowRightGlyph size={13} />
-        </button>
+        <LinkButton onClick={onManage}>{labels.addonManage}</LinkButton>
       </div>
     </Card>
   );
@@ -778,13 +773,11 @@ export default function BillingOverviewCanvas({
                 {sub.locked ? labels.lockedDesc : labels.dunningDesc(sub.graceUntil)}
               </div>
               {sub.locked && onNavigateExport && (
-                <button type="button" data-testid="billing-locked-export" onClick={onNavigateExport}
-                  style={{ background: 'none', border: 'none', color: T.accentText, fontWeight: 700,
-                    fontSize: 13, cursor: 'pointer', padding: 0, marginTop: 6,
-                    display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                  {labels.lockedExportLink}
-                  <ArrowRightGlyph size={13} />
-                </button>
+                <div style={{ marginTop: 'var(--spacing-sm)' }}>
+                  <LinkButton data-testid="billing-locked-export" onClick={onNavigateExport}>
+                    {labels.lockedExportLink}
+                  </LinkButton>
+                </div>
               )}
               {!canEdit && (
                 <div style={{ fontSize: 12, color: T.sub, marginTop: 6 }}>
@@ -1100,11 +1093,9 @@ export default function BillingOverviewCanvas({
               <span>
                 {labels.contractRenewSoonNotice(Math.max(0, contract.daysUntilContractEnd))}
               </span>
-              <button type="button" onClick={onNavigateContactSales} disabled={!canEdit}
-                style={{ background: 'none', border: 'none', color: T.accentText, fontWeight: 700,
-                  fontSize: 12, cursor: canEdit ? 'pointer' : 'not-allowed', padding: 0, whiteSpace: 'nowrap' }}>
+              <LinkButton onClick={onNavigateContactSales} disabled={!canEdit}>
                 {labels.contractContactSales}
-              </button>
+              </LinkButton>
             </div>
           )}
 
