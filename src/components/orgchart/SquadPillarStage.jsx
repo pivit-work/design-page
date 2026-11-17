@@ -338,6 +338,13 @@ export default function SquadPillarStage({
   // 날아가는 목표·화면 범위는 매 걸음 최신 모델에서 읽어, 끝나는 순간 튀지 않게 한다
   const liveRef = useRef(model);
   useLayoutEffect(() => { liveRef.current = model; });
+  // 재생 중 React 가 그리는 기둥 자리는 처음 그린 값으로 묶는다 — 데이터가 바뀌어 출발 자리가 달라지면 React 가
+  // 그 자리를 다시 써 날던 기둥이 한 프레임 튀었다(PW-2892 2회차 로컬 묶음 1.5초 늦춤 143~255px). 자리는 재생 루프가 쓴다
+  const playStart = useRef(new Map());
+  const playStartOf = (key, p) => {
+    if (!playStart.current.has(key)) playStart.current.set(key, translate(p.x, p.y, p.z));
+    return playStart.current.get(key);
+  };
   const today = useMemo(localToday, []);
 
   const { tokens, personById } = model;
@@ -410,8 +417,23 @@ export default function SquadPillarStage({
       const bw = scroller?.clientWidth || 1000; const bh = scroller?.clientHeight || 640;
       return Math.min(1.5, Math.max(PILLAR_ZOOM_MIN, Math.min((bw - 8) / vb.w, (bh - 8) / vb.h)));
     };
-    let seen = null; let byKey = null; let vb1 = null;
+    let seen = null; let byKey = null;
     const lift = 26;
+    // 재생 도중 데이터가 늦게 와 목표(자리·범위)가 바뀌면 한 프레임에 옮기지 않고 RETARGET 동안 새 목표로 미끄러진다 —
+    // 이미 내려앉은 기둥이 한꺼번에 튀었다(PW-2892 dev 힘펠 묶음 1.5초 늦춤 · 재생 1.44초에 323/324개 912px)
+    const RETARGET = 480;
+    const glide = (g, now, mixFn) => (g.t === -Infinity ? g.to : mixFn(g.from, g.to, easeInOut(clamp01((now - g.t) / RETARGET))));
+    const retarget = (g, next, now, mixFn, same) => {
+      if (!g.to) { g.from = next; g.to = next; g.t = -Infinity; return; }
+      if (same(g.to, next)) return;
+      g.from = glide(g, now, mixFn); g.to = next; g.t = now;
+    };
+    const mixP = (p, q, e) => ({ x: p.x + (q.x - p.x) * e, y: p.y + (q.y - p.y) * e, z: p.z + (q.z - p.z) * e });
+    const sameP = (p, q) => p.x === q.x && p.y === q.y && p.z === q.z;
+    const mixV = (p, q, e) => ({ x: p.x + (q.x - p.x) * e, y: p.y + (q.y - p.y) * e, w: p.w + (q.w - p.w) * e, h: p.h + (q.h - p.h) * e });
+    const sameV = (p, q) => p.x === q.x && p.y === q.y && p.w === q.w && p.h === q.h;
+    const vbG = {};
+    const gliding = (g, now) => g.t !== -Infinity && now - g.t < RETARGET;
     r.timers.push(setTimeout(() => setPlatesUp(side), 620));
     let t0 = 0;
     const step = (now) => {
@@ -427,8 +449,14 @@ export default function SquadPillarStage({
         live.tokens.forEach((t) => {
           if (!have.has(t.key)) items.push({ key: t.key, a: at(t, from), s1: (n - 1) * (260 / n), s2: 640 + (n - 1) * (380 / n) });
         });
-        vb1 = pillarViewBox(side === 'squad' ? live.sTree : live.oTree);
+        items.forEach((it) => {
+          const tk = byKey.get(it.key);
+          if (tk) { it.g = it.g || {}; retarget(it.g, at(tk, side), el, mixP, sameP); }
+        });
+        retarget(vbG, pillarViewBox(side === 'squad' ? live.sTree : live.oTree), el, mixV, sameV);
       }
+      const vb1 = glide(vbG, el, mixV);
+      if (gliding(vbG, el)) busy = true;
       const els = new Map([...(svg?.querySelectorAll('[data-pillar-key]') ?? [])].map((g) => [g.getAttribute('data-pillar-key'), g]));
       const ve = easeInOut(clamp01(el / 1500));
       // 기둥이 적어 먼저 다 내려앉아도 그림 범위 옮김(1.5초)을 마저 끝낸다 — 덜 끝난 채 멈추면 끝나는 순간 틀이 움직인다
@@ -440,10 +468,10 @@ export default function SquadPillarStage({
       const zz0 = fitOf({ w: vw, h: vh });
       svg?.setAttribute('width', String(Math.round(vw * zz0)));
       svg?.setAttribute('height', String(Math.round(vh * zz0)));
-      items.forEach(({ key, a, s1, s2 }) => {
-        const tk = byKey.get(key);
-        if (!tk) return;
-        const b = at(tk, side);
+      items.forEach(({ key, a, s1, s2, g }) => {
+        if (!g?.to || !byKey.get(key)) return;
+        const b = glide(g, el, mixP);
+        if (gliding(g, el)) busy = true;
         let x = a.x; let y = a.y; let zz;
         if (el < s2) { zz = a.z + lift * easeOut(clamp01((el - s1) / 340)); busy = true; } else {
           const e = easeInOut(clamp01((el - s2) / 760));
@@ -787,10 +815,11 @@ export default function SquadPillarStage({
           <span className="sq-iso-off"> {side === 'squad' ? '→' : '←'} </span>
           <span className={atSquad ? undefined : 'sq-iso-off'}>{L('squad.iso.summarySquads', { count: model.squadInfo.length })}</span>
         </p>
-        {playing ? (
-          <Button variant="secondary" size="sm" onClick={finish} data-testid="squad-iso-skip">{L('squad.iso.skip')}</Button>
-        ) : (
-          <div className="sq-pillar-search">
+        {/* 재생 중에도 찾기 칸 자리를 숨긴 채 잡아 둔다 — [건너뛰기 ›]만 두면 머리줄이 8px 낮아,
+            끝나는 순간 아래 무대가 통째로 내려갔다(PW-2892 dev 힘펠 60px → 68px) */}
+        <div className="sq-pillar-head-slot">
+          {playing && <Button variant="secondary" size="sm" onClick={finish} data-testid="squad-iso-skip">{L('squad.iso.skip')}</Button>}
+          <div className="sq-pillar-search" style={playing ? { visibility: 'hidden' } : undefined} aria-hidden={playing || undefined}>
             <SearchInput
               ref={qRef}
               value={q}
@@ -820,7 +849,7 @@ export default function SquadPillarStage({
               </div>
             )}
           </div>
-        )}
+        </div>
       </div>
 
       <div className="sq-pillar-tools" data-testid="squad-pillar-chips">
@@ -917,7 +946,7 @@ export default function SquadPillarStage({
                     data-person={t.x.id}
                     data-mine={mine ? 'true' : undefined}
                     className={`sq-pillar-token${mine ? ' is-mine' : ''}`}
-                    transform={translate(p.x, p.y, p.z)}
+                    transform={playing ? playStartOf(t.key, p) : translate(p.x, p.y, p.z)}
                     style={{ opacity: playing ? 1 : matcher ? (on ? 1 : 0.13) : (t.a ? 1 : 0.6) }}
                     role="button"
                     tabIndex={playing ? -1 : 0}
