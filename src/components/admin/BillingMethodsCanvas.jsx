@@ -77,13 +77,16 @@ function mergeLabels(provided) {
   return { ...DEFAULT_LABELS, ...provided };
 }
 
+// onClick 이 돌려주는 약속(Promise)은 Button 에 넘기지 않는다 — 넘기면 Button 이 글자를 감추고 도는 표시만 띄워,
+// 화면이 직접 바꾸는 «다운로드 중…»·«카드 인증 창을 여는 중...» 같은 진행 글자가 안 보인다(기획서가 글자로 정함).
+const fireOnly = (onClick) => (onClick ? (e) => { onClick(e); } : undefined);
 // 버튼은 공용 Button(디자이너 어드민 버튼과 같은 값)으로 그린다 (pivit-work PW-2938). 손으로 칠한 값을 두지 않는다.
 // 설명(꺼진 이유)은 공용 말풍선으로 — 꺼진 버튼이면 부품이 바깥을 둘러 거기서 받는다 (PW-1123)
 // [삭제](danger)는 확인 창을 먼저 여는 자리라 흰 바탕 빨간 테두리(danger-ghost) — 전과 같은 생김새.
 function Btn({ children, onClick, kind = 'primary', disabled, title }) {
   return (
     <Tooltip content={title}>
-      <Button variant={kind === 'danger' ? 'danger-ghost' : kind} onClick={onClick} disabled={disabled}>
+      <Button variant={kind === 'danger' ? 'danger-ghost' : kind} onClick={fireOnly(onClick)} disabled={disabled}>
         {children}
       </Button>
     </Tooltip>

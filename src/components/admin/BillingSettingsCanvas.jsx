@@ -152,12 +152,16 @@ function formatBizRegNo(raw) {
 
 // ── 유틸리티 컴포넌트 ──────────────────────────────────────
 
+// onClick 이 돌려주는 약속(Promise)은 Button 에 넘기지 않는다 — 넘기면 Button 이 글자를 감추고 도는 표시만 띄워,
+// 화면이 직접 바꾸는 «다운로드 중…»·«카드 인증 창을 여는 중...» 같은 진행 글자가 안 보인다(기획서가 글자로 정함).
+const fireOnly = (onClick) => (onClick ? (e) => { onClick(e); } : undefined);
 // 버튼은 공용 Button(디자이너 어드민 버튼과 같은 값)으로 그린다 (pivit-work PW-2938). 손으로 칠한 값을 두지 않는다.
-// «저장됨»(success)은 글자가 상태를 말하므로 주 버튼 모양 그대로. 위험(danger)은 danger-ghost.
+// «저장됨»(success)은 주 버튼 모양에 성공 초록 바탕(기획서 settings §81 «버튼 초록 전환 2초»). 위험(danger)은 danger-ghost.
 function Btn({ children, onClick, kind = 'primary', disabled }) {
   const variant = kind === 'success' ? 'primary' : kind === 'danger' ? 'danger-ghost' : kind;
   return (
-    <Button variant={variant} onClick={onClick} disabled={disabled}>
+    <Button variant={variant} onClick={fireOnly(onClick)} disabled={disabled}
+      style={kind === 'success' ? { background: 'var(--colors-success-500)' } : undefined}>
       {children}
     </Button>
   );

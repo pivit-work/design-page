@@ -244,11 +244,14 @@ function mergeLabels(provided) {
 
 // ── 공통 헬퍼 컴포넌트 ──────────────────────────────────────
 
+// onClick 이 돌려주는 약속(Promise)은 Button 에 넘기지 않는다 — 넘기면 Button 이 글자를 감추고 도는 표시만 띄워,
+// 화면이 직접 바꾸는 «다운로드 중…»·«카드 인증 창을 여는 중...» 같은 진행 글자가 안 보인다(기획서가 글자로 정함).
+const fireOnly = (onClick) => (onClick ? (e) => { onClick(e); } : undefined);
 // 버튼은 공용 Button(디자이너 어드민 버튼과 같은 값)으로 그린다 (pivit-work PW-2938). 손으로 칠한 값을 두지 않는다.
 // 위험(danger)은 되돌릴 수 있는 자리라 흰 바탕 빨간 테두리(danger-ghost) — 전과 같은 생김새.
 function Btn({ children, onClick, kind = 'primary', disabled, fullWidth }) {
   return (
-    <Button variant={kind === 'danger' ? 'danger-ghost' : kind} onClick={onClick} disabled={disabled}
+    <Button variant={kind === 'danger' ? 'danger-ghost' : kind} onClick={fireOnly(onClick)} disabled={disabled}
       style={fullWidth ? { width: '100%' } : undefined}>
       {children}
     </Button>
@@ -574,7 +577,7 @@ function AddonCard({ addon, interval, canEdit, highlight, labels, onTrial, onBuy
   if (addon.purchaseBlock === 'free_plan') {
     action = <Btn kind="secondary" onClick={onViewPlans}>{labels.addonViewPlansCta}</Btn>;
   } else if (addon.purchaseBlock === 'past_due') {
-    action = <Btn kind="secondary" onClick={onManageMethods}>{labels.addonManageMethodsCta} <ArrowRightGlyph size={13} /></Btn>;
+    action = <Btn kind="secondary" onClick={onManageMethods}>{labels.addonManageMethodsCta}<ArrowRightGlyph size={13} /></Btn>;
   } else if (addon.phase === 'active') {
     action = <Btn kind="danger" onClick={onCancel} disabled={disabled}>{labels.addonCancelCta}</Btn>;
   } else if (addon.phase === 'cancel_scheduled' && addon.cancelScheduledByAddon) {
@@ -729,7 +732,7 @@ function AddonBuyModal({ preview, previewFailed, labels, onClose, onSubmit, onRe
         {failure != null && (
           <div data-testid="billing-addon-buy-failed" style={{ padding: 'var(--spacing-md) var(--spacing-lg)', background: T.redBg, borderRadius: 10 }}>
             <div style={{ fontSize: 13, color: T.red, fontWeight: 700, marginBottom: 'var(--spacing-md)' }}>{labels.addonBuyFailed(failure)}</div>
-            <Btn kind="secondary" onClick={onManageMethods}>{labels.addonManageMethodsCta} <ArrowRightGlyph size={13} /></Btn>
+            <Btn kind="secondary" onClick={onManageMethods}>{labels.addonManageMethodsCta}<ArrowRightGlyph size={13} /></Btn>
           </div>
         )}
       </div>
@@ -1223,7 +1226,6 @@ export default function BillingPlansCanvas({
             <div style={{ flex: 'none', whiteSpace: 'nowrap' }}>
               <Btn kind="secondary" onClick={onPayBlockAction} disabled={!canEdit}>
                 {payBlock.action}
-                {payBlock.arrow && ' '}
                 {payBlock.arrow && <ArrowRightGlyph size={13} />}
               </Btn>
             </div>

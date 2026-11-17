@@ -240,6 +240,9 @@ const FILTER_TABS = [
   { key: 'failed', statuses: ['void', 'uncollectible'], labelKey: 'failed' },
 ];
 
+// onClick 이 돌려주는 약속(Promise)은 Button 에 넘기지 않는다 — 넘기면 Button 이 글자를 감추고 도는 표시만 띄워,
+// 화면이 직접 바꾸는 «다운로드 중…»·«카드 인증 창을 여는 중...» 같은 진행 글자가 안 보인다(기획서가 글자로 정함).
+const fireOnly = (onClick) => (onClick ? (e) => { onClick(e); } : undefined);
 // 버튼은 공용 Button(디자이너 어드민 버튼과 같은 값)으로 그린다 (pivit-work PW-2938). 손으로 칠한 값을 두지 않는다.
 // 결제사가 준 바깥 문서(href)는 같은 모양의 링크로 새 탭에서 연다 (pivit-work PW-2182) — 부품 클래스만 붙인다.
 function Btn({ children, onClick, kind = 'primary', disabled, size = 'md', href }) {
@@ -253,7 +256,7 @@ function Btn({ children, onClick, kind = 'primary', disabled, size = 'md', href 
     );
   }
   return (
-    <Button variant={variant} size={size} onClick={onClick} disabled={disabled}>
+    <Button variant={variant} size={size} onClick={fireOnly(onClick)} disabled={disabled}>
       {children}
     </Button>
   );

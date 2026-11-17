@@ -327,11 +327,14 @@ function mergeLabels(provided) {
   };
 }
 
+// onClick 이 돌려주는 약속(Promise)은 Button 에 넘기지 않는다 — 넘기면 Button 이 글자를 감추고 도는 표시만 띄워,
+// 화면이 직접 바꾸는 «다운로드 중…»·«카드 인증 창을 여는 중...» 같은 진행 글자가 안 보인다(기획서가 글자로 정함).
+const fireOnly = (onClick) => (onClick ? (e) => { onClick(e); } : undefined);
 // 이 화면의 버튼은 모두 공용 Button(디자이너 어드민 버튼과 같은 값)으로 그린다 (pivit-work PW-2938).
 // kind 가 곧 variant — 되돌릴 수 있는 위험 자리는 'danger-ghost', 확인 창의 마지막 단추만 'danger'.
 function Btn({ children, onClick, kind = 'primary', disabled }) {
   return (
-    <Button variant={kind} onClick={onClick} disabled={disabled}>
+    <Button variant={kind} onClick={fireOnly(onClick)} disabled={disabled}>
       {children}
     </Button>
   );
