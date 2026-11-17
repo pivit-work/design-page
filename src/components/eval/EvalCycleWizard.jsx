@@ -4455,6 +4455,7 @@ export default function EvalCycleWizard({
     markSet(setTestBusy, key, true);
     clearTestResult(key);
     let out = null;
+    let quiet = false;
     try {
       out = await onTestSendMessage({
         phaseId: phaseBaseId(ph.id),
@@ -4463,12 +4464,15 @@ export default function EvalCycleWizard({
         schedule: scheduleOf(ph.id),
         reminder: normalizeReminder(rm),
       });
-    } catch {
+    } catch (e) {
       // 🔴 보조 기능 실패가 위자드를 넘어뜨리지 않는다 — 그 자리에서만 말한다.
+      // 앱이 이미 알린 실패(이용 정지 등)는 «보내지 못했다» 줄을 겹쳐 쓰지 않는다(pivit-work PW-2907).
+      quiet = isNotifiedFailure(e);
       out = null;
     } finally {
       markSet(setTestBusy, key, false);
     }
+    if (quiet) return;
     setTestResult((prev) => ({
       ...prev,
       [key]: out && Array.isArray(out.lines) ? { lines: out.lines } : { failed: true },
