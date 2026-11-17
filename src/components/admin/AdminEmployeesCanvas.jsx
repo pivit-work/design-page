@@ -6199,6 +6199,10 @@ function EmployeesEditPanel({
     setSaving(true);
     setDateError('');
     setSaveError(null);
+    /* [저장하기] 한 번을 앱에 알린다(pivit-work PW-2924 · 개인정보 변경 이력 §2-5 «저장 1회 = 사유 1건»).
+       구성원 칸과 탭 안 HR 칸은 따로 나가므로, 보내기 전에 HR 쪽 줄을 넘겨 첫 사유 창이 다 보이고 나머지는 같은 사유로 간다. */
+    const pageSave = page && hrRecordHandlers?.onPageSaveStart ? hrRecordHandlers : null;
+    pageSave?.onPageSaveStart(member.id, Object.values(inlineFlushes.current).flatMap((f) => (typeof f.lines === 'function' ? f.lines() : [])));
     try {
       /* 날짜를 **먼저** 보낸다. 상태 저장이 성공한 뒤 날짜가 실패하면 「수습으로 바뀌었는데
          종료일은 안 들어간」 반쪽 상태가 남는데, 순서를 뒤집으면 그 조합이 안 생긴다.
@@ -6284,6 +6288,7 @@ function EmployeesEditPanel({
       }
       await finishSave();
     } finally {
+      pageSave?.onPageSaveEnd?.(member.id);
       setSaving(false);
     }
   }
