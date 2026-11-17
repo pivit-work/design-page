@@ -2227,6 +2227,9 @@ export default function EvalCycleHrCanvas({
       return saved;
     } catch (err) {
       if (err?.draftConflict) return { conflict: err.draftConflict };
+      // 앱이 이미 알린 거절(이용 정지 등)은 그대로 던진다 — null 로 바꾸면 마법사가 알린 실패인지 몰라
+      // 창 아래에 «저장 실패»를 겹쳐 그린다(PW-2976 · 마법사 saveDraft 의 isNotifiedFailure 갈래).
+      if (isNotifiedFailure(err)) throw err;
       return null;
     }
   };
