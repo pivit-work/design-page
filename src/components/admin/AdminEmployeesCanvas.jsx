@@ -3850,8 +3850,12 @@ function EmployeesListView({
   const errorToken = te?.errorFocus?.token ?? null;
   const errorRef = useRef({ te, ordered, pageSize, editColIds });
   useLayoutEffect(() => { errorRef.current = { te, ordered, pageSize, editColIds }; });
+  /* 토큰은 앱이 지우지 않으므로, 표를 다시 열 때(탭을 갔다 오기 · 목록 다시 불러오기) 처음 그릴 때의 토큰은 건너뛴다 —
+     누르지 않았는데 커서가 틀린 칸으로 가지 않게(PW-2954 리뷰). */
+  const seenErrorToken = useRef(errorToken);
   useEffect(() => {
-    if (errorToken == null) return;
+    if (errorToken == null || errorToken === seenErrorToken.current) return;
+    seenErrorToken.current = errorToken;
     const { te: te0, ordered: rows, pageSize: size, editColIds: colIds } = errorRef.current;
     for (let i = 0; i < rows.length; i += 1) {
       const colId = colIds.find((id) => te0.error(rows[i], te0.columns[id].key));
