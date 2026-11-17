@@ -79,6 +79,8 @@ export function CsvImportPanel({
       data-testid={testId}
       onClick={isModal ? (e) => e.stopPropagation() : undefined}
     >
+      {/* 머리는 창 제목이나 단계 줄이 있을 때만 — 전체 화면 모양에서 단계 줄을 화면 제목 줄에 두면 빈 머리 줄이 남지 않게 (pivit-work PW-2967) */}
+      {(isModal || steps.length > 0) && (
       <div className="admin-kit-csv-head">
         {isModal && (
           <div className="admin-kit-csv-titlebar">
@@ -92,6 +94,7 @@ export function CsvImportPanel({
         )}
         <CsvImportSteps steps={steps} current={current} />
       </div>
+      )}
       <div className="admin-kit-csv-body">{children}</div>
       {footer && <div className="admin-kit-csv-footer">{footer}</div>}
     </div>
