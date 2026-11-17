@@ -411,16 +411,20 @@ export function OnbTag({ children, grow = false, title, onRemove, removeLabel, t
   // 안 잘린 글에 말풍선을 달면 같은 글이 한 번 더 뜬다(pivit-work PW-2918 · 앱 ClipCell 과 같은 판정).
   const labelRef = useRef(null);
   const [cut, setCut] = useState(false);
+  // 의존 목록 없이 매번 다시 건다 — 말풍선이 켜지고 꺼질 때 공용 Tooltip 이 칩 요소를 새로 그려서,
+  // 처음 건 관찰은 떨어져 나간 옛 요소(폭 0)를 재고 «안 잘림»으로 되돌렸다(브라우저에서 확인).
   useLayoutEffect(() => {
     const el = labelRef.current;
     if (!el || !title) return undefined;
-    const measure = () => setCut(el.scrollWidth > el.clientWidth + 1);
+    const measure = () => {
+      if (el.isConnected) setCut(el.scrollWidth > el.clientWidth + 1);
+    };
     measure();
     if (typeof ResizeObserver === 'undefined') return undefined;
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [title, children]);
+  });
   return (
     <StatusBadge className={cx('onb-tag', grow && 'is-grow')} title={cut ? title : undefined} data-testid={testId}>
       <span ref={labelRef} className="onb-tag-label">{children}</span>
