@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import Icon from '../shared/Icon.jsx';
+import { isNotifiedFailure } from '../shared/notifiedFailure.js';
 import Select from '../shared/Select.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import { ChevronLeftGlyph, CloseGlyph } from '../shared/lineIcons.jsx';
@@ -172,8 +173,9 @@ export default function MemberOneOnOneView({
     try {
       await (ready ? onReady?.(draft()) : onSave?.(draft()));
       setSaveState(editRevision.current === submittedRevision ? 'saved' : null);
-    } catch {
-      setSaveState(ready ? 'readyFailed' : 'saveFailed');
+    } catch (e) {
+      // 앱이 이미 알린 실패(이용 정지 등)는 실패 글을 겹쳐 쓰지 않는다(PW-2907).
+      if (!isNotifiedFailure(e)) setSaveState(ready ? 'readyFailed' : 'saveFailed');
     } finally {
       setSaving(false);
       saveLock.current = false;

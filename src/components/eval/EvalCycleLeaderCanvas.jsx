@@ -11,6 +11,7 @@ import Checkbox from '../shared/Checkbox.jsx';
 import { FieldVisibility } from './evalFieldMeta.jsx';
 import EvalHintTip from './EvalHintTip.jsx';
 import Button from '../shared/Button.jsx';
+import { isNotifiedFailure } from '../shared/notifiedFailure.js';
 import EvalNoteBlock, { EvalMarkdownLite } from './EvalNoteBlock.jsx';
 import { isNoteItem, categoryKind, storedCategoryName, sectionDisplayName, answerScoreText, checkedAnswerText } from './evalTemplateItemModel.js';
 import { AlertIcon, LockIcon, SparkleIcon, EyeIcon } from './evalIcons.jsx';
@@ -942,8 +943,9 @@ export default function EvalCycleLeaderCanvas({
       setLcBaseline(sentLc);
       setSaveStatus({ kind: 'saved', at: new Date() });
       return true;
-    } catch {
-      setSaveStatus({ kind: 'failed' });
+    } catch (e) {
+      // 앱이 이미 알린 실패(이용 정지 등)는 «저장 실패» 글을 겹쳐 쓰지 않는다(PW-2907).
+      setSaveStatus(isNotifiedFailure(e) ? null : { kind: 'failed' });
       return false;
     } finally {
       savingRef.current = false;
@@ -1046,8 +1048,9 @@ export default function EvalCycleLeaderCanvas({
       });
       setAiHint(out?.gradeSuggestion ?? { status: 'failed' });
       setAiDrafted(true);
-    } catch {
-      setAiFailed(true);
+    } catch (e) {
+      // 앱이 이미 알린 실패(이용 정지 등)는 글을 겹쳐 쓰지 않는다(PW-2907).
+      if (!isNotifiedFailure(e)) setAiFailed(true);
     } finally {
       setAiBusy(false);
     }
@@ -1330,8 +1333,9 @@ export default function EvalCycleLeaderCanvas({
     try {
       const result = await onAlignmentCheck(sent.grade, sent.text);
       setAlign({ status: 'done', result, ...sent });
-    } catch {
-      setAlign({ status: 'failed' });
+    } catch (e) {
+      // 앱이 이미 알린 실패(이용 정지 등)는 글을 겹쳐 쓰지 않는다(PW-2907).
+      setAlign(isNotifiedFailure(e) ? null : { status: 'failed' });
     }
   };
   const alignStale = align?.status === 'done' && (align.grade !== grade || align.text !== alignText);

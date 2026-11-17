@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Button from '../shared/Button.jsx';
+import { isNotifiedFailure } from '../shared/notifiedFailure.js';
 import Chip from '../shared/Chip.jsx';
 import FormField, { FieldError } from '../shared/FormField.jsx';
 import Radio from '../shared/Radio.jsx';
@@ -181,8 +182,9 @@ export function ObjectionOpinionInput({ onSubmit, maxLength, labels }) {
             try {
               await onSubmit?.(text.trim());
               setText('');
-            } catch {
-              setFailed(true);
+            } catch (e) {
+              // 앱이 이미 알린 실패(이용 정지 등)는 글을 겹쳐 쓰지 않는다(PW-2907).
+              if (!isNotifiedFailure(e)) setFailed(true);
             } finally {
               setBusy(false);
             }
@@ -374,7 +376,8 @@ export function ObjectionDecisionForm({
               });
               setConfirming(false);
             } catch (err) {
-              setFailed(err?.objectionMessage || L.decideFailed);
+              // 앱이 이미 알린 실패(이용 정지 등)는 글을 겹쳐 쓰지 않는다(PW-2907).
+              if (!isNotifiedFailure(err)) setFailed(err?.objectionMessage || L.decideFailed);
             } finally {
               setBusy(false);
             }

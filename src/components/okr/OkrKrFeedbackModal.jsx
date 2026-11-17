@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import Button from '../shared/Button.jsx';
+import { isNotifiedFailure } from '../shared/notifiedFailure.js';
 import { makeOkrLabels } from './okr-labels.jsx';
 
 /**
@@ -52,8 +53,9 @@ export default function OkrKrFeedbackModal({ detail, onClose, onSubmitReply, onR
       await onSubmitReply(comment.id, text);
       setReplyText((prev) => ({ ...prev, [i]: '' }));
       setReplyOpen((prev) => ({ ...prev, [i]: false }));
-    } catch {
-      setReplyError((prev) => ({ ...prev, [i]: L('krFeedback.replyFailed') }));
+    } catch (e) {
+      // 앱이 이미 알린 실패(이용 정지 등)는 칸 아래 글을 겹쳐 쓰지 않는다(PW-2907).
+      if (!isNotifiedFailure(e)) setReplyError((prev) => ({ ...prev, [i]: L('krFeedback.replyFailed') }));
     } finally {
       setReplyBusy((prev) => ({ ...prev, [i]: false }));
     }

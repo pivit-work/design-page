@@ -83,7 +83,8 @@ function ProjectPicker({
     } catch (err) {
       const message = messageOf(err, L('squad.project.linkFailed'));
       // 그사이 편집을 끄거나 다른 카드로 옮겨 이 창이 없다 — 창 안에 쓸 수 없으니 화면이 알린다
-      if (!mounted.current) { onDetachedError?.(message); return; }
+      // 앱이 이미 알린 실패(이용 정지 등)는 빈 글이라 화면에도 넘기지 않는다(PW-2907).
+      if (!mounted.current) { if (message) onDetachedError?.(message); return; }
       setLinking(false);
       refocus(dialogRef.current);
       setLinkError(message);

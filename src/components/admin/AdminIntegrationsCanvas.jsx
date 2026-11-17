@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import DpStatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
+import { isNotifiedFailure } from '../shared/notifiedFailure.js';
 import assetUrl from '../shared/assetUrl.js';
 import ModalShell from '../shared/ModalShell.jsx';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
@@ -1065,8 +1066,9 @@ function SlackTransferPanel({ transfer, labels, baseUrl, onExpireToken, onReauth
       setExpireError(false);
       await onExpireToken(app);
       setShowExpireModal(false);
-    } catch {
-      setExpireError(true);
+    } catch (e) {
+      // 앱이 이미 알린 실패(이용 정지 등)는 창 안 글을 겹쳐 쓰지 않는다(PW-2907).
+      if (!isNotifiedFailure(e)) setExpireError(true);
     }
   };
 

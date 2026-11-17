@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Button from '../shared/Button.jsx';
+import { isNotifiedFailure } from '../shared/notifiedFailure.js';
 import DueBadge from '../shared/DueBadge.jsx';
 import Avatar from '../shared/Avatar.jsx';
 import { FieldError } from '../shared/FormField.jsx';
@@ -105,8 +106,9 @@ function useSend() {
     try {
       await fn();
       return true;
-    } catch {
-      setFailed(true);
+    } catch (e) {
+      // 앱이 이미 알린 실패(이용 정지 등)는 글을 겹쳐 쓰지 않는다(PW-2907).
+      if (!isNotifiedFailure(e)) setFailed(true);
       return false;
     } finally {
       setBusy(false);
@@ -482,6 +484,8 @@ function Panel({
                       await onDecide?.(item.id, input);
                       onToast(L.decidedToast);
                     } catch (err) {
+                      // 앱이 이미 알린 실패(이용 정지 등)는 그대로 넘겨 창이 글을 겹쳐 쓰지 않게 한다(PW-2907).
+                      if (isNotifiedFailure(err)) throw err;
                       const kind = err?.objectionConflict ?? null;
                       setConflict(kind);
                       if (kind === 'decided') {

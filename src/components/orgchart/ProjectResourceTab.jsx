@@ -26,7 +26,7 @@ import { RsStackBar, RsStatCard } from '../okr/OkrResourcePieces.jsx';
 import { CheckIcon, CloseIcon, PlusIcon, SearchIcon, WarningIcon } from './squadIcons.jsx';
 import { avatarLabelLayout } from './squad-constants.js';
 import { ArrowRightGlyph } from '../shared/lineIcons.jsx';
-import { failureText } from '../shared/notifiedFailure.js';
+import { failureText, isNotifiedFailure } from '../shared/notifiedFailure.js';
 
 const clampPct = (v) => Math.max(0, Math.min(100, Math.round(Number(v) || 0)));
 const TOAST_MS = 3000;
@@ -260,6 +260,8 @@ export default function ProjectResourceTab({
       await onRequestCapacity(row);
       setRequested((m) => ({ ...m, [requestKey(row)]: true }));
     } catch (err) {
+      // 앱이 이미 알린 실패(이용 정지 등)는 토스트를 겹쳐 띄우지 않는다(PW-2907).
+      if (isNotifiedFailure(err)) return;
       if (err?.status === 409) {
         setRequested((m) => ({ ...m, [requestKey(row)]: true }));
       } else if (err?.status === 403) {

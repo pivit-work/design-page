@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import { isNotifiedFailure } from '../shared/notifiedFailure.js';
 import GradeBadge from '../shared/GradeBadge.jsx';
 import assetUrl from '../shared/assetUrl.js';
 import DateInput from '../shared/DateInput.jsx';
@@ -940,10 +941,11 @@ function FamilyTab({ family, today, labels, saveState, onSave, onAddDependent, o
     setDepError('');
     try {
       await save(dep);
-    } catch {
+    } catch (e) {
       // 서버 문구는 영문 검증 문구일 수 있어 그대로 옮기지 않는다 — 화면 문구로 알린다.
       setDepSaving(false);
-      setDepError(editingId ? L.editFailed : L.addFailed);
+      // 앱이 이미 알린 실패(이용 정지 등)는 글을 겹쳐 쓰지 않는다(PW-2907).
+      if (!isNotifiedFailure(e)) setDepError(editingId ? L.editFailed : L.addFailed);
       return;
     }
     setDepSaving(false);

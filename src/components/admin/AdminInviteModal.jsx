@@ -874,8 +874,9 @@ export default function AdminInviteModal({
         const rest = rs.filter((x) => x.key !== row.key);
         return rest.length > 0 ? rest : [blankRow(EMPTY_BULK)];
       });
-    } catch {
-      setResendErrorKey(row.key);
+    } catch (e) {
+      // 앱이 이미 알린 실패(이용 정지 등)는 줄 옆 글을 겹쳐 쓰지 않는다(PW-2907).
+      if (!sendFailureNotified(e)) setResendErrorKey(row.key);
     } finally {
       setResendingKey(null);
     }

@@ -7,6 +7,7 @@ import { AlertTriangleGlyph } from '../shared/lineIcons.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import SearchSelect from '../shared/SearchSelect.jsx';
 import Button from '../shared/Button.jsx';
+import { isNotifiedFailure } from '../shared/notifiedFailure.js';
 import TextInput from '../shared/TextInput.jsx';
 import OkrMemberPicker from './OkrMemberPicker.jsx';
 
@@ -327,7 +328,8 @@ export default function OkrSetupWizardModal({
       setKrs(list); setKrsConfirmed(false);
       setKrsContextApplied(res?.contextApplied === true);
     } catch (err) {
-      if (!onAiError?.('krs', err)) setError(L.krsFailed);
+      // 앱이 이미 알린 실패(이용 정지 등)는 창 안 글을 겹쳐 쓰지 않는다(PW-2907).
+      if (!isNotifiedFailure(err) && !onAiError?.('krs', err)) setError(L.krsFailed);
     } finally { setKrsLoading(false); }
   };
 
@@ -348,7 +350,8 @@ export default function OkrSetupWizardModal({
       setAiObjective(res?.objective?.title || null);
       changeObjective(res?.objective?.title ?? '');
     } catch (err) {
-      if (!onAiError?.('objective', err)) setError(L.objectiveFailed);
+      // 앱이 이미 알린 실패(이용 정지 등)는 창 안 글을 겹쳐 쓰지 않는다(PW-2907).
+      if (!isNotifiedFailure(err) && !onAiError?.('objective', err)) setError(L.objectiveFailed);
     } finally { setObjLoading(false); }
   };
 
@@ -395,7 +398,8 @@ export default function OkrSetupWizardModal({
       onClose();
     } catch (error) {
       // 권한 거절(403)은 소비자가 토스트로 알리고 창을 readOnly 로 내린다 — 실패 문구를 겹치지 않는다(pivit-work PW-1508).
-      if (error?.response?.status !== 403) setError(L.saveFailed);
+      // 앱이 이미 알린 실패(이용 정지 등 · `notified`)도 겹치지 않는다(PW-2907).
+      if (!isNotifiedFailure(error) && error?.response?.status !== 403) setError(L.saveFailed);
       setSaving(false);
     }
   };
@@ -432,7 +436,8 @@ export default function OkrSetupWizardModal({
       const res = await onGenerateVision(scope, narrative);
       setVisionImage(res?.imageUrl ?? null);
     } catch (err) {
-      if (!onAiError?.('vision', err)) setError(L.visionFailed);
+      // 앱이 이미 알린 실패(이용 정지 등)는 창 안 글을 겹쳐 쓰지 않는다(PW-2907).
+      if (!isNotifiedFailure(err) && !onAiError?.('vision', err)) setError(L.visionFailed);
     } finally { setVisionLoading(false); }
   };
 

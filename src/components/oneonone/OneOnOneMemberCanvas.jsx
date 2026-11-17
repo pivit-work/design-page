@@ -1,5 +1,6 @@
 import { useAiDraftLifecycle } from '../shared/useAiDraftLifecycle.js';
 import Button from '../shared/Button.jsx';
+import { isNotifiedFailure } from '../shared/notifiedFailure.js';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import DpStatusBadge from '../shared/StatusBadge.jsx';
 import DueBadge from '../shared/DueBadge.jsx';
@@ -1038,9 +1039,10 @@ function SelfAssessmentSection({ value, L, icons, baseUrl }) {
         capabilities: caps,
         upwardFeedback: upward,
       });
-    } catch {
+    } catch (e) {
       setSaving(false);
-      setFailed(true);
+      // 앱이 이미 알린 실패(이용 정지 등)는 실패 글을 겹쳐 쓰지 않는다(PW-2907).
+      if (!isNotifiedFailure(e)) setFailed(true);
       return;
     }
     setSaving(false);
@@ -1199,9 +1201,10 @@ export function AiReportSection({ value, L, icons, baseUrl, readOnly = false }) 
     setSaveFailed(false);
     try {
       await onSave?.(draft);
-    } catch {
+    } catch (e) {
       setSaving(false);
-      setSaveFailed(true);
+      // 앱이 이미 알린 실패(이용 정지 등)는 실패 글을 겹쳐 쓰지 않는다(PW-2907).
+      if (!isNotifiedFailure(e)) setSaveFailed(true);
       return;
     }
     setSaving(false);

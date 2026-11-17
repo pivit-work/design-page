@@ -28,7 +28,7 @@ import LoadingState from '../shared/LoadingState.jsx';
 import Select from '../shared/Select.jsx';
 import { isMoneyCellText } from './inviteCsv.js';
 import { resolveKoreanParticles } from '../shared/koreanParticle.js';
-import { failureText } from '../shared/notifiedFailure.js';
+import { failureText, isNotifiedFailure } from '../shared/notifiedFailure.js';
 
 /* 시트에서 함께 옮겨 온 토큰 — 이 폴더의 다른 캔버스와 같은 값이다. */
 const T = {
@@ -1959,8 +1959,9 @@ function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelet
       const next = await fn();
       if (Array.isArray(next)) setRows(next);
       return true;
-    } catch {
-      setError(true);
+    } catch (e) {
+      // 앱이 이미 알린 실패(이용 정지 등)는 창 안 글을 겹쳐 쓰지 않는다(PW-2907).
+      if (!isNotifiedFailure(e)) setError(true);
       return false;
     } finally {
       setBusy(false);
@@ -2168,8 +2169,9 @@ function HrRecordListSection({
     try {
       await fn();
       return true;
-    } catch {
-      setError(true);
+    } catch (e) {
+      // 앱이 이미 알린 실패(이용 정지 등)는 창 안 글을 겹쳐 쓰지 않는다(PW-2907).
+      if (!isNotifiedFailure(e)) setError(true);
       return false;
     } finally {
       setBusy(false);
@@ -2328,8 +2330,9 @@ function HrDocumentsSection({
     try {
       await fn();
       return true;
-    } catch {
-      setError(true);
+    } catch (e) {
+      // 앱이 이미 알린 실패(이용 정지 등)는 창 안 글을 겹쳐 쓰지 않는다(PW-2907).
+      if (!isNotifiedFailure(e)) setError(true);
       return false;
     } finally {
       setBusy(false);
@@ -2489,7 +2492,8 @@ function HrBenefitsSection({ memberId, labels, onLoad, onSave, onDraftChange }) 
         setBase(next);
         setState('saved');
       })
-      .catch(() => setState('error'));
+      // 앱이 이미 알린 실패(이용 정지 등)는 옆 글을 겹쳐 쓰지 않는다 — 고친 값은 남아 다시 누를 수 있다(PW-2907).
+      .catch((e) => setState(isNotifiedFailure(e) ? 'idle' : 'error'));
   };
 
   const readOnly = !onSave;
@@ -2732,10 +2736,11 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
       if (res && 'salary' in res) onSalarySynced?.(res.salary, res.salaryCurrency ?? null);
       setForm(EMPTY_COMP_FORM);
       setEditingId(null);
-    } catch {
+    } catch (e) {
       // 저장 실패를 삼키면 "눌렀는데 아무 일도 안 난다"가 된다. 전역 에러 화면으로
       // 튕기지 않고(입력이 날아간다) 폼 안에서 알린다 — 입력값은 그대로 남긴다.
-      setAddError(true);
+      // 앱이 이미 알린 실패(이용 정지 등)는 글을 겹쳐 쓰지 않는다(PW-2907).
+      if (!isNotifiedFailure(e)) setAddError(true);
     } finally {
       setBusy(false);
     }
@@ -2757,8 +2762,8 @@ export function SalaryHistoryModal({ row, labels, onLoad, onAdd, onUpdate, onDel
       else setHistory((prev) => prev.filter((x) => x.id !== h.id));
       if (res && 'salary' in res) onSalarySynced?.(res.salary, res.salaryCurrency ?? null);
       if (editingId === h.id) { setEditingId(null); setForm(EMPTY_COMP_FORM); }
-    } catch {
-      setAddError(true);
+    } catch (e) {
+      if (!isNotifiedFailure(e)) setAddError(true);
     } finally {
       setBusy(false);
     }

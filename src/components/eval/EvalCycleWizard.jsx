@@ -1,5 +1,6 @@
 import { useAiDraftLifecycle } from '../shared/useAiDraftLifecycle.js';
 import Button from '../shared/Button.jsx';
+import { isNotifiedFailure } from '../shared/notifiedFailure.js';
 import { Fragment, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import ChipFold from '../shared/ChipFold.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
@@ -4421,9 +4422,10 @@ export default function EvalCycleWizard({
         `${conf.hasSubject ? out.subject ?? '' : ''} ${out.body ?? ''}`,
       );
       setAiDraft((prev) => ({ ...prev, [key]: { ...out, slot, varsOk } }));
-    } catch {
+    } catch (e) {
       // 🔴 AI 실패가 리마인더 저장·사이클 진행을 막지 않는다(§9 절대규칙).
-      markSet(setAiError, key, true);
+      // 앱이 이미 알린 실패(이용 정지 등)는 글을 겹쳐 쓰지 않는다(PW-2907).
+      if (!isNotifiedFailure(e)) markSet(setAiError, key, true);
     } finally {
       markSet(setAiBusy, key, false);
     }
@@ -6291,8 +6293,13 @@ export default function EvalCycleWizard({
         questions: keepItemSettings(p.questions, cur.questions, r.baseType === p.sourceType),
       };
       let saved = null;
+      let quiet = false;
       if (next && libraryMode) {
-        saved = await Promise.resolve(onUpdateTemplateItems(cur.id, next)).catch(() => null);
+        saved = await Promise.resolve(onUpdateTemplateItems(cur.id, next)).catch((e) => {
+          // 앱이 이미 알린 실패(이용 정지 등)는 «못 바꾼 항목» 글에 세지 않는다(PW-2907).
+          quiet = isNotifiedFailure(e);
+          return null;
+        });
       } else if (next) {
         setLocalTemplates((prev) => prev.map((x) => (x.id === cur.id ? next : x)));
         saved = next;
@@ -6300,12 +6307,13 @@ export default function EvalCycleWizard({
       if (saved) {
         confirmTemplateFor(r.type, saved, undefined, next.questions, next.grades);
         ok.push(r);
-      } else {
+      } else if (!quiet) {
         failed.push(r);
       }
     }
     dropParkedBuffers(ok.map((r) => r.type));
     setPendingItemShare(null);
+    if (ok.length === 0 && failed.length === 0) return;
     setItemShareResult({ ok: ok.map((r) => r.label), failed: failed.map((r) => r.label) });
   };
   const saveTemplate = () => {
@@ -7083,7 +7091,8 @@ export default function EvalCycleWizard({
       if (err?.status === 409 || err?.response?.status === 409) {
         setLeaderToast('conflict');
         setLeaderReloadTick((n) => n + 1);
-      } else {
+      } else if (!isNotifiedFailure(err)) {
+        // 앱이 이미 알린 실패(이용 정지 등)는 토스트를 겹쳐 띄우지 않는다(PW-2907).
         setLeaderToast('confirmFailed');
       }
     } finally {
@@ -7928,9 +7937,11 @@ export default function EvalCycleWizard({
       setDraftFailStreak(0);
       setDraftConflict(null);
       return result;
-    } catch {
+    } catch (e) {
       // 저장 실패가 위자드를 닫으면 작성 중이던 설정이 통째로 날아간다 — 이 카드가
       // 없애려는 바로 그 일이다. 사유만 푸터에 남기고 화면은 유지한다.
+      // 앱이 이미 알린 실패(이용 정지 등)는 푸터 글을 겹쳐 쓰지 않는다(PW-2907).
+      if (isNotifiedFailure(e)) return null;
       return failed();
     } finally {
       setDraftSaving(false);
@@ -8330,9 +8341,10 @@ export default function EvalCycleWizard({
     try {
       await onSubmit(payload);
       if (isScheduleTab) showWizToast({ kind: 'scheduleSaved' });
-    } catch {
+    } catch (e) {
       // 소비 측이 실패를 던지면 창을 닫지 않는다 — 입력이 그대로 남아 다시 누를 수 있다.
-      setSubmitFailed(true);
+      // 앱이 이미 알린 실패(이용 정지 등)는 창 안 글을 겹쳐 쓰지 않는다(PW-2907).
+      if (!isNotifiedFailure(e)) setSubmitFailed(true);
     } finally {
       setSubmitting(false);
     }
@@ -8430,8 +8442,9 @@ export default function EvalCycleWizard({
       });
       setPresetSavedName(trimmed);
       setPresetName('');
-    } catch {
-      setPresetSaveFailed(true);
+    } catch (e) {
+      // 앱이 이미 알린 실패(이용 정지 등)는 글을 겹쳐 쓰지 않는다(PW-2907).
+      if (!isNotifiedFailure(e)) setPresetSaveFailed(true);
     } finally {
       setPresetSaving(false);
     }
@@ -8554,8 +8567,8 @@ export default function EvalCycleWizard({
       if (selectedPresetId === target.id) setSelectedPresetId('');
       /* 마지막 하나를 지워도 창을 닫지 않는다(PW-1459 §5.9) — 창이 「이전 사이클이 없습니다…」
          안내로 바뀐다. 예전에는 빈 창을 숨긴 채 열려 있어 다음 저장 때 저절로 떴다. */
-    } catch {
-      setPresetDeleteFailedId(target.id);
+    } catch (e) {
+      if (!isNotifiedFailure(e)) setPresetDeleteFailedId(target.id);
     } finally {
       setPresetDeleting(false);
       setPendingDeletePreset(null);
@@ -8714,8 +8727,9 @@ export default function EvalCycleWizard({
       } else {
         setAiSetupError(true);
       }
-    } catch {
-      setAiSetupError(true);
+    } catch (e) {
+      // 앱이 이미 알린 실패(이용 정지 등)는 글을 겹쳐 쓰지 않는다(PW-2907).
+      if (!isNotifiedFailure(e)) setAiSetupError(true);
     } finally {
       setAiSetupBusy(false);
     }

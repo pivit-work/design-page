@@ -5,6 +5,7 @@ import Button from '../shared/Button.jsx';
 import AiMark from '../shared/AiMark.jsx';
 import MemberAiButton from '../oneonone/MemberAiButton.jsx';
 import Toast from '../shared/Toast.jsx';
+import { isNotifiedFailure } from '../shared/notifiedFailure.js';
 import EvalSendChannelModal from './EvalSendChannelModal.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import TextArea from '../shared/TextArea.jsx';
@@ -237,6 +238,8 @@ const DEFAULT_LABELS = {
 
 /** PW-1458 — 반려 사유 최대 글자 수. 서버(`REJECTION_REASON_MAX`)와 같은 값이다. */
 const REJECT_REASON_MAX = 500;
+// 승인 처리기가 «앱이 이미 알린 실패(이용 정지 등)»를 돌려줄 때 — 창은 열어 두고 창 안 글은 쓰지 않는다(PW-2907).
+const APPROVE_NOTIFIED = 'notified';
 
 function isObj(v) {
   return v && typeof v === 'object' && !Array.isArray(v);
@@ -379,8 +382,9 @@ function AiSummaryPanel({ memberId, L, load, onGenerate, onConfirm }) {
           setError(L.aisMakeError);
         }
       }
-    } catch {
-      setError(L.aisMakeError);
+    } catch (e) {
+      // 앱이 이미 알린 실패(이용 정지 등)는 창 안에 글을 겹쳐 쓰지 않는다(PW-2907).
+      if (!isNotifiedFailure(e)) setError(L.aisMakeError);
     } finally {
       setMaking(new Set());
     }
@@ -391,8 +395,8 @@ function AiSummaryPanel({ memberId, L, load, onGenerate, onConfirm }) {
     try {
       const next = await onConfirm(memberId, itemId);
       if (next) setReview(next);
-    } catch {
-      setError(L.aisConfirmError);
+    } catch (e) {
+      if (!isNotifiedFailure(e)) setError(L.aisConfirmError);
     } finally {
       setConfirming(null);
     }
@@ -544,9 +548,10 @@ function SectionPanel({ row, L, sectionOrder, requiredSections, canEdit, onToggl
     setError(false);
     try {
       await onToggleSection(row.memberId, key, !(row.sections?.[key] !== false));
-    } catch {
+    } catch (e) {
       // 전역 오류 화면으로 튕기지 않는다 — 펼쳐 둔 목록이 통째로 사라진다.
-      setError(true);
+      // 앱이 이미 알린 실패(이용 정지 등)는 글을 겹쳐 쓰지 않는다(PW-2907).
+      if (!isNotifiedFailure(e)) setError(true);
     } finally {
       setBusyKey(null);
     }
@@ -653,8 +658,8 @@ function RefinementPanel({ memberId, L, load, onDecide, onRetry }) {
       }
       if (next) setReview(next);
       setEditing(null);
-    } catch {
-      setError(L.refineError);
+    } catch (e) {
+      if (!isNotifiedFailure(e)) setError(L.refineError);
     } finally {
       setBusyId(null);
     }
@@ -942,9 +947,10 @@ function NextGoalsPanel({ row, L, text, onText, mode, onSave }) {
     setError(false);
     try {
       await onSave(lines);
-    } catch {
+    } catch (e) {
       // 전역 오류 화면으로 튕기지 않는다 — 고치던 글이 사라진다.
-      setError(true);
+      // 앱이 이미 알린 실패(이용 정지 등)는 글을 겹쳐 쓰지 않는다(PW-2907).
+      if (!isNotifiedFailure(e)) setError(true);
     } finally {
       setBusy(false);
     }
@@ -1296,7 +1302,7 @@ function ReviewRow({
         { inline: approveAsk },
       );
       if (ok === false) setApproveError(true);
-      else setApproveAsk(false);
+      else if (ok !== APPROVE_NOTIFIED) setApproveAsk(false);
     } finally {
       setBusy(false);
     }
@@ -1822,7 +1828,9 @@ export default function EvalReportReviewCanvas({
       await onApprove?.(memberId, comment, seenStatus, nextGoals);
       showToast(L.toastApproved);
       return true;
-    } catch {
+    } catch (e) {
+      // 앱이 이미 알린 실패(이용 정지 등) — 창은 열어 두되 창 안 글·토스트를 겹쳐 띄우지 않는다(PW-2907).
+      if (isNotifiedFailure(e)) return APPROVE_NOTIFIED;
       // PW-1922 — 승인 창에서 실패하면 창이 닫히지 않고 창 안에 알린다. 토스트는 창 뒤 막에 깔려 흐리게 보였다.
       if (!inline) showToast(L.toastError, 'error');
       return false;
@@ -1857,6 +1865,7 @@ export default function EvalReportReviewCanvas({
     let ok = 0;
     const failedIds = [];
     const heldIds = [];
+    const quietIds = [];
     for (const id of selectedApprovable) {
       const row = q.rows.find((r) => r.memberId === id);
       if (leaderHeldBack(row)) {
@@ -1868,13 +1877,15 @@ export default function EvalReportReviewCanvas({
       try {
         await onApprove?.(id, comment, row?.status);
         ok += 1;
-      } catch {
-        failedIds.push(id);
+      } catch (e) {
+        // 앱이 이미 알린 실패(이용 정지 등)는 체크만 남기고 «N건 승인하지 못했습니다»에 세지 않는다(PW-2907).
+        if (isNotifiedFailure(e)) quietIds.push(id);
+        else failedIds.push(id);
       }
     }
     setBulkBusy(false);
     // 남긴 사람·실패한 사람의 체크는 남긴다 — 다시 누르거나 하나씩 열 수 있게.
-    setSelected(new Set([...heldIds, ...failedIds]));
+    setSelected(new Set([...heldIds, ...failedIds, ...quietIds]));
     const nameOf = (id) => q.rows.find((r) => r.memberId === id)?.name || id;
     const parts = [];
     if (heldIds.length > 0) {
@@ -1891,6 +1902,8 @@ export default function EvalReportReviewCanvas({
       );
     }
     if (parts.length === 0 && ok > 0) parts.push(L.toastApprovedCount.replace('{count}', String(ok)));
+    // 전부 앱이 이미 알린 실패면 더할 글이 없다(PW-2907).
+    if (parts.length === 0) return;
     showToast(parts.join(' · '), failedIds.length > 0 ? 'error' : heldIds.length > 0 ? 'warning' : 'success');
   };
 
@@ -1898,8 +1911,8 @@ export default function EvalReportReviewCanvas({
     try {
       await onPromote?.(memberId, seenStatus);
       showToast(L.toastPromoted);
-    } catch {
-      showToast(L.toastError, 'error');
+    } catch (e) {
+      if (!isNotifiedFailure(e)) showToast(L.toastError, 'error');
     }
   };
 
@@ -1921,9 +1934,10 @@ export default function EvalReportReviewCanvas({
       await onReject?.(rejectAsk.memberId, reason);
       setRejectAsk(null);
       showToast(rejectKind === 'exec' ? L.toastExecRejected : L.toastRejected);
-    } catch {
+    } catch (e) {
       // 창을 닫지 않는다 — 쓰던 사유가 남아야 다시 누를 수 있다.
-      setRejectError(L.rejectError);
+      // 앱이 이미 알린 실패(이용 정지 등)는 창 안 글을 겹쳐 쓰지 않는다(PW-2907).
+      if (!isNotifiedFailure(e)) setRejectError(L.rejectError);
     } finally {
       setRejectBusy(false);
     }
@@ -1932,8 +1946,8 @@ export default function EvalReportReviewCanvas({
   const handleRegenerate = async (memberId) => {
     try {
       return await onRegenerate?.(memberId);
-    } catch {
-      showToast(L.aiRegenerateError, 'error');
+    } catch (e) {
+      if (!isNotifiedFailure(e)) showToast(L.aiRegenerateError, 'error');
       return null;
     }
   };
@@ -1982,8 +1996,8 @@ export default function EvalReportReviewCanvas({
       } else {
         showToast(L.toastSent);
       }
-    } catch {
-      showToast(L.toastError, 'error');
+    } catch (e) {
+      if (!isNotifiedFailure(e)) showToast(L.toastError, 'error');
     }
   };
 

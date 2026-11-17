@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import Toast from '../shared/Toast.jsx';
+import { isNotifiedFailure } from '../shared/notifiedFailure.js';
 import DpStatusBadge from '../shared/StatusBadge.jsx';
 import EvalCycleWizard from './EvalCycleWizard.jsx';
 // 앱 공용 확인 창·공용 창 틀. 평가 화면은 창을 따로 그리지 않는다(PW-832).
@@ -722,7 +723,8 @@ function OpenConfirmModal({ cycle, labels: L, onCancel, onConfirm, onLoadImpact 
         typeof err?.userMessage === 'string' && err.userMessage.trim()
           ? err.userMessage.trim()
           : null;
-      setFailure({ reason });
+      // 앱이 이미 알린 실패(이용 정지 등)는 창 안 실패 글을 겹쳐 쓰지 않는다(PW-2907).
+      if (!isNotifiedFailure(err)) setFailure({ reason });
       setSubmitting(false);
       inFlight.current = false;
     }
@@ -1019,13 +1021,14 @@ function ScheduleEditModal({
     setSaveFailed(false);
     try {
       await onSave(cycle.id, schedule);
-    } catch {
+    } catch (e) {
       // 사유는 «누른 자리 옆»에 적는다 — 토스트는 스쳐 지나가고, 그때 창은 이미 닫힌 뒤였다.
       // [PW-1461 · 정책 §6.5] 화면의 날짜는 원래 값으로 되돌린다 — 저장되지 않은 날짜가 남아
       // 있으면 그것이 저장된 일정인 줄 안다. 확인 창은 걷는다.
       setRows(initialRows);
       setConfirming(false);
-      setSaveFailed(true);
+      // 앱이 이미 알린 실패(이용 정지 등)는 옆 글을 겹쳐 쓰지 않는다(PW-2907).
+      if (!isNotifiedFailure(e)) setSaveFailed(true);
       setSaving(false);
       inFlight.current = false;
     }
@@ -1879,8 +1882,9 @@ export default function EvalCycleHrCanvas({
       try {
         await fn();
         if (successMsg) showToast(successMsg);
-      } catch {
-        showToast(errorMsg ?? L.toastError, 'error');
+      } catch (e) {
+        // 앱이 이미 알린 실패(이용 정지 등)는 토스트를 겹쳐 띄우지 않는다(PW-2907).
+        if (!isNotifiedFailure(e)) showToast(errorMsg ?? L.toastError, 'error');
       }
     },
     [showToast, L.toastError],
@@ -1914,7 +1918,7 @@ export default function EvalCycleHrCanvas({
         await onCreateCycle?.(payload);
       }
     } catch (err) {
-      showToast(L.toastError, 'error');
+      if (!isNotifiedFailure(err)) showToast(L.toastError, 'error');
       throw err;
     }
     closeWizard();
@@ -2134,7 +2138,7 @@ export default function EvalCycleHrCanvas({
     try {
       await onPatchSchedule?.(cycleId, schedule);
     } catch (err) {
-      showToast(L.toastError, 'error');
+      if (!isNotifiedFailure(err)) showToast(L.toastError, 'error');
       throw err;
     }
     setScheduleModal(null);
@@ -2179,7 +2183,7 @@ export default function EvalCycleHrCanvas({
     try {
       await onUpdateCycle?.(id, payload);
     } catch (err) {
-      showToast(L.toastError, 'error');
+      if (!isNotifiedFailure(err)) showToast(L.toastError, 'error');
       throw err;
     }
     setManageTarget(null);

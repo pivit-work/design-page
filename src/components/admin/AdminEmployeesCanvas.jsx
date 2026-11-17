@@ -1,6 +1,7 @@
 import { Fragment, createContext, useContext, useState, useMemo, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import DpStatusBadge from '../shared/StatusBadge.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
+import { isNotifiedFailure } from '../shared/notifiedFailure.js';
 import AvatarFallback from './AvatarFallback.jsx';
 import Card from './Card.jsx';
 import SectionLabel from './SectionLabel.jsx';
@@ -6060,7 +6061,8 @@ function EmployeesEditPanel({
       try {
         await fn();
       } catch (e) {
-        setSaveError(panelErrorOf(e) || { message: (labels.detail || {}).saveFailed || '저장하지 못했어요. 다시 시도해 주세요.', fields: [] });
+        // 앱이 이미 알린 실패(이용 정지 등)는 패널 안 글을 겹쳐 쓰지 않는다(PW-2907).
+        setSaveError(isNotifiedFailure(e) ? null : panelErrorOf(e) || { message: (labels.detail || {}).saveFailed || '저장하지 못했어요. 다시 시도해 주세요.', fields: [] });
         return;
       }
     }
@@ -6252,8 +6254,9 @@ function EmployeesEditPanel({
       if (!revertingResignation && identityDirty && onSaveIdentity) {
         try {
           await onSaveIdentity(member.id, identityPatch);
-        } catch {
-          setDateError(labels.panel.statusDateSaveError);
+        } catch (e) {
+          // 앱이 이미 알린 실패(이용 정지 등)는 날짜 옆 글을 겹쳐 쓰지 않는다(PW-2907).
+          if (!isNotifiedFailure(e)) setDateError(labels.panel.statusDateSaveError);
           return;
         }
         setIdentity((prev) => ({ ...(prev || {}), ...identityDraft }));
@@ -6321,8 +6324,9 @@ function EmployeesEditPanel({
       if (revertingResignation && identityDirty && onSaveIdentity) {
         try {
           await onSaveIdentity(member.id, identityPatch);
-        } catch {
-          setDateError(labels.panel.statusDateSaveError);
+        } catch (e) {
+          // 앱이 이미 알린 실패(이용 정지 등)는 날짜 옆 글을 겹쳐 쓰지 않는다(PW-2907).
+          if (!isNotifiedFailure(e)) setDateError(labels.panel.statusDateSaveError);
           return;
         }
       }

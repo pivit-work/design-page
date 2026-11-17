@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { isNotifiedFailure } from '../shared/notifiedFailure.js';
 
 /**
  * [PW-2591] 리더 코멘트 «개선 방향으로 다듬기»의 상태 — `LeaderCommentPolish.jsx` 의 세 조각(버튼·썼음 표시·결과)이 함께 본다.
@@ -23,9 +24,10 @@ export default function useLeaderCommentPolish({ comment, disabled = false, onPo
       if (!out) setState({ status: 'error', original });
       else if (out.notice) setState({ status: 'notice', original, notice: out.notice });
       else setState({ status: 'done', original, ...out });
-    } catch {
+    } catch (e) {
       // AI 실패가 임시저장·제출·승인을 막지 않는다(R-8) — 칸은 그대로, 인라인 안내만.
-      setState({ status: 'error', original });
+      // 앱이 이미 알린 실패(이용 정지 등)는 안내를 겹쳐 쓰지 않는다(PW-2907).
+      setState(isNotifiedFailure(e) ? null : { status: 'error', original });
     }
   };
 

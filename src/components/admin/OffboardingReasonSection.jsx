@@ -3,6 +3,7 @@ import SectionLabel from './SectionLabel.jsx';
 import ToneBadge from '../shared/StatusBadge.jsx';
 import TextArea from '../shared/TextArea.jsx';
 import Button from '../shared/Button.jsx';
+import { isNotifiedFailure } from '../shared/notifiedFailure.js';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import { NoteText, ReadonlyBox } from '../shared/SharedText.jsx';
 import { OFFBOARDING_TYPE_IDS } from './offboardingRules.js';
@@ -136,9 +137,10 @@ export default function OffboardingReasonSection({ state, typeOnly = false, onRe
       if (next) setOverride(next);
       setNote(trimmed);
       setEditing(false);
-    } catch {
+    } catch (e) {
       // 입력값은 그대로 둔다 — 다시 누르기만 하면 된다(정책 §6-A)
-      setSaveFailed(true);
+      // 앱이 이미 알린 실패(이용 정지 등)는 글을 겹쳐 쓰지 않는다(PW-2907).
+      if (!isNotifiedFailure(e)) setSaveFailed(true);
     } finally {
       setSaving(false);
     }

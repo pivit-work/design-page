@@ -3,6 +3,7 @@ import Icon from '../shared/Icon.jsx';
 import { CloseGlyph } from '../shared/lineIcons.jsx';
 import Tabs from '../shared/Tabs.jsx';
 import Button from '../shared/Button.jsx';
+import { isNotifiedFailure } from '../shared/notifiedFailure.js';
 import OkrBoard from './OkrBoard.jsx';
 import OkrHistoryList from './OkrHistoryList.jsx';
 import rowKey from './rowKey.js';
@@ -91,7 +92,8 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
     } catch (err) {
       // 편집 모드를 유지해 입력한 내용을 보존한다. 권한 거절(403)은 소비자가 토스트로 알리고
       // canEdit 을 내린다 — «잠시 후 다시 시도» 를 겹치지 않는다 (pivit-work PW-1508).
-      if (err?.response?.status !== 403) {
+      // 앱이 이미 알린 실패(이용 정지 등 · `notified`)도 겹치지 않는다(PW-2907).
+      if (!isNotifiedFailure(err) && err?.response?.status !== 403) {
         setError({ rowId: null, message: L('strategy.saveFailed') });
       }
     } finally {
@@ -135,7 +137,8 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
       );
       setEditing(true);
     } catch (err) {
-      if (err?.response?.status !== 403) {
+      // 앱이 이미 알린 실패(이용 정지 등 · `notified`)도 겹치지 않는다(PW-2907).
+      if (!isNotifiedFailure(err) && err?.response?.status !== 403) {
         setError({ rowId: null, message: L('strategy.aiFailed') });
       }
     } finally {

@@ -1,6 +1,7 @@
 import { useAiDraftLifecycle } from '../shared/useAiDraftLifecycle.js';
 import { useState, useMemo, useRef, useEffect } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import { isNotifiedFailure } from '../shared/notifiedFailure.js';
 import Button from '../shared/Button.jsx';
 import AnchoredLayer from '../shared/AnchoredLayer.jsx';
 import useDismissLayer from '../shared/useDismissLayer.js';
@@ -694,10 +695,11 @@ export default function EvalCycleMemberCanvas({
           setAutoSavedAt(new Date());
           setSaveError(false);
         })
-        .catch(() => {
+        .catch((e) => {
           // TC-136 자동저장 실패 → 배너로 알리고 다음 주기에 다시 보낸다
           dirtyRef.current = true;
-          setSaveError(true);
+          // 앱이 이미 알린 실패(이용 정지 등)는 띠를 겹쳐 띄우지 않는다(PW-2907).
+          if (!isNotifiedFailure(e)) setSaveError(true);
         })
         .finally(() => setAutoSaving(false));
     }, AUTOSAVE_INTERVAL_MS);
@@ -838,8 +840,9 @@ export default function EvalCycleMemberCanvas({
         }
         return next;
       });
-    } catch {
-      setAiError(true);
+    } catch (e) {
+      // 앱이 이미 알린 실패(이용 정지 등)는 글을 겹쳐 쓰지 않는다(PW-2907).
+      if (!isNotifiedFailure(e)) setAiError(true);
     } finally {
       setAiBusy(false);
     }
@@ -929,8 +932,8 @@ export default function EvalCycleMemberCanvas({
         }
         return next;
       });
-    } catch {
-      setDraftError(where);
+    } catch (e) {
+      if (!isNotifiedFailure(e)) setDraftError(where);
     } finally {
       setDraftBusy(null);
     }
@@ -1023,7 +1026,8 @@ export default function EvalCycleMemberCanvas({
   const submitNow = () =>
     onSubmit
       ? Promise.resolve(onSubmit(toItems())).catch((err) => {
-          setTriedSubmit(true);
+          // 앱이 이미 알린 실패(이용 정지 등)는 빈 칸 탓이 아니다 — 빨강을 칠하지 않는다(PW-2907).
+          if (!isNotifiedFailure(err)) setTriedSubmit(true);
           throw err;
         })
       : undefined;
@@ -1622,7 +1626,9 @@ export default function EvalCycleMemberCanvas({
                       // [PW-1966] 직접 누른 저장만 알린다 — 자동 저장(30초)마다 알리면 시끄럽다.
                       onSaveSuccess?.();
                     })
-                    .catch(() => {
+                    .catch((e) => {
+                      // 앱이 이미 알린 실패(이용 정지 등)는 띠·저장 실패 알림을 겹쳐 띄우지 않는다(PW-2907).
+                      if (isNotifiedFailure(e)) return;
                       setSaveError(true);
                       onSaveError?.();
                     })

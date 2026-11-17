@@ -1105,8 +1105,9 @@ export default function BillingPlansCanvas({
     try {
       await onConfirmChange(target.code, interval, seats);
       setConfirmTarget(null);
-    } catch {
-      setConfirmFailed(true);
+    } catch (e) {
+      // 앱이 이미 알린 실패(이용 정지 등)는 버튼을 «다시 시도»로 바꾸지 않는다(PW-2907).
+      if (!isNotifiedFailure(e)) setConfirmFailed(true);
     } finally {
       setConfirmBusy(false);
     }

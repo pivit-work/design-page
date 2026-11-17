@@ -36,7 +36,7 @@ import EmptyState from '../shared/EmptyState.jsx';
 import assetUrl from '../shared/assetUrl.js';
 import { isEnterKey } from '../shared/enterKey.js';
 import { FieldInfo } from './evalFieldMeta.jsx';
-import { failureText } from '../shared/notifiedFailure.js';
+import { failureText, isNotifiedFailure } from '../shared/notifiedFailure.js';
 
 /**
  * 탭이 열리는 사이클 단계 (요약 정책 §3). 통합 요약·캘리브레이션 워크스페이스는 캘리브레이션부터,
@@ -3604,9 +3604,10 @@ export default function EvalCycleSummaryCanvas({
       if (!result?.notified) {
         setRemindToast({ sent: sentCount, skipped: skippedCount, optedOut: optedOutCount });
       }
-    } catch {
+    } catch (e) {
       // TC-202 실패 시 전역 에러 대신 에러 토스트(선택 유지 → 재시도 가능).
-      setRemindError(true);
+      // 앱이 이미 알린 실패(이용 정지 등)는 토스트를 겹쳐 띄우지 않는다(PW-2907).
+      if (!isNotifiedFailure(e)) setRemindError(true);
     } finally {
       setRemindBusy(false);
     }
@@ -3734,8 +3735,9 @@ export default function EvalCycleSummaryCanvas({
     markSet(setSummaryFailed, memberId, false);
     try {
       await onGenerateSummary(memberId, { regenerate });
-    } catch {
-      markSet(setSummaryFailed, memberId, true);
+    } catch (e) {
+      // 앱이 이미 알린 실패(이용 정지 등)는 글을 겹쳐 쓰지 않는다(PW-2907).
+      if (!isNotifiedFailure(e)) markSet(setSummaryFailed, memberId, true);
     } finally {
       markSet(setSummaryBusy, memberId, false);
     }
@@ -6877,8 +6879,9 @@ export default function EvalCycleSummaryCanvas({
                           sections: draft.sections,
                         });
                         setShowDisplay(false);
-                      } catch {
-                        setDisplaySaveError(true);
+                      } catch (e) {
+                        // 앱이 이미 알린 실패(이용 정지 등)는 글을 겹쳐 쓰지 않는다(PW-2907).
+                        if (!isNotifiedFailure(e)) setDisplaySaveError(true);
                       } finally {
                         setDisplaySaving(false);
                       }
@@ -6943,8 +6946,9 @@ export default function EvalCycleSummaryCanvas({
                     await onSaveCompensationAccess?.(next);
                     setShowCompAccess(false);
                     setCompBannerClosed(false);
-                  } catch {
-                    setCompSaveError(true);
+                  } catch (e) {
+                    // 앱이 이미 알린 실패(이용 정지 등)는 글을 겹쳐 쓰지 않는다(PW-2907).
+                    if (!isNotifiedFailure(e)) setCompSaveError(true);
                   } finally {
                     setCompSaving(false);
                   }

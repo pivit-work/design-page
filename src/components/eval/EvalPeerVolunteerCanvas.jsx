@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import { isNotifiedFailure } from '../shared/notifiedFailure.js';
 import Radio from '../shared/Radio.jsx';
 import EmptyState from '../shared/EmptyState.jsx';
 import assetUrl from '../shared/assetUrl.js';
@@ -203,7 +204,8 @@ export default function EvalPeerVolunteerCanvas({
       setDone(true);
     } catch (err) {
       // 담은 목록은 그대로 둔다 — 다시 누르면 같은 것이 간다.
-      setError(err?.inlineMessage || L.submitError);
+      // 앱이 이미 알린 실패(이용 정지 등)는 글을 겹쳐 쓰지 않는다(PW-2907).
+      if (!isNotifiedFailure(err)) setError(err?.inlineMessage || L.submitError);
     } finally {
       setBusy(false);
     }

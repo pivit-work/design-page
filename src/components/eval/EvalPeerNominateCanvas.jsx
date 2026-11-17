@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import Toast from '../shared/Toast.jsx';
+import { isNotifiedFailure } from '../shared/notifiedFailure.js';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Button from '../shared/Button.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
@@ -175,7 +176,8 @@ export default function EvalPeerNominateCanvas({
       await onSubmit?.([...picked]);
       showToast(submitted ? L.toastUpdated : L.toastSent);
     } catch (err) {
-      showToast(err?.toastMessage || L.toastError, 'error');
+      // 앱이 이미 알린 실패(이용 정지 등)는 글을 겹쳐 쓰지 않는다(PW-2907).
+      if (!isNotifiedFailure(err)) showToast(err?.toastMessage || L.toastError, 'error');
     } finally {
       setBusy(false);
     }

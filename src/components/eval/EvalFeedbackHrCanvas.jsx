@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import Toast from '../shared/Toast.jsx';
+import { isNotifiedFailure } from '../shared/notifiedFailure.js';
 import Button from '../shared/Button.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
@@ -507,8 +508,9 @@ export default function EvalFeedbackHrCanvas({
         const tpl = target.type === 'request' ? L.toastSentRequest : L.toastSentEncourage;
         showToast(fmtLabel(tpl, { manager: target.targetManagerName, member: target.memberName, channels: chLabel }));
       }
-    } catch {
-      showToast(L.toastError, 'error');
+    } catch (e) {
+      // 앱이 이미 알린 실패(이용 정지 등)는 토스트를 겹쳐 띄우지 않는다(PW-2907).
+      if (!isNotifiedFailure(e)) showToast(L.toastError, 'error');
     } finally {
       setNudgeTarget(null);
     }

@@ -1,6 +1,7 @@
 import { Fragment, useMemo, useState } from 'react';
 import EvalProgressBar from './EvalProgressBar.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import { isNotifiedFailure } from '../shared/notifiedFailure.js';
 import DatePicker from '../shared/DatePicker.jsx';
 import { ChevronLeftIcon, InfoIcon, PauseIcon, StopIcon, TrashIcon, UndoIcon } from './evalIcons.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
@@ -552,8 +553,9 @@ export default function EvalCycleMonitoringCanvas({
     setPendingDates((p) => ({ ...p, [stageKey]: { ...(p[stageKey] ?? {}), [field]: iso } }));
     try {
       await onChangeStageDate(stageKey, field, iso);
-    } catch {
-      setDateFailed(true);
+    } catch (e) {
+      // 앱이 이미 알린 실패(이용 정지 등)는 글을 겹쳐 쓰지 않는다(PW-2907).
+      if (!isNotifiedFailure(e)) setDateFailed(true);
     } finally {
       // 성공하면 부르는 쪽이 새 기간을 내려준다. 실패하면 원래 날짜로 돌아간다 — 둘 다 지운다.
       setPendingDates((p) => {

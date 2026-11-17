@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import ModalLayer from '../shared/ModalLayer.jsx';
 import Button from '../shared/Button.jsx';
+import { isNotifiedFailure } from '../shared/notifiedFailure.js';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
 import Icon from '../shared/Icon.jsx';
 import Spinner from '../shared/Spinner.jsx';
@@ -453,8 +454,9 @@ export default function SnippetModal({
       setDraftLeft(
         DRAFT_FIELD_KEYS.filter((k) => isFieldEmpty(k, nextTexts, nextSummary, nextTags)),
       );
-    } catch {
-      setDraftNote('fail');
+    } catch (e) {
+      // 앱이 이미 알린 실패(이용 정지 등)는 창 안 글을 겹쳐 쓰지 않는다(PW-2907).
+      if (!isNotifiedFailure(e)) setDraftNote('fail');
     } finally {
       setDraftLoading(false);
     }
@@ -608,7 +610,7 @@ export default function SnippetModal({
         setAiMarks((prev) => ({ ...prev, summary: 'unconfirmed' }));
       }
     } catch (err) {
-      setSummaryError({ message: err?.message });
+      if (!isNotifiedFailure(err)) setSummaryError({ message: err?.message });
     } finally {
       setSummaryLoading(false);
     }
@@ -628,7 +630,7 @@ export default function SnippetModal({
         ]);
       }
     } catch (err) {
-      setTagsError({ message: err?.message });
+      if (!isNotifiedFailure(err)) setTagsError({ message: err?.message });
     } finally {
       setTagsLoading(false);
     }

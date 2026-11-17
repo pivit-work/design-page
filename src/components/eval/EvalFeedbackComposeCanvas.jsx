@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import Toast from '../shared/Toast.jsx';
+import { isNotifiedFailure } from '../shared/notifiedFailure.js';
 import Button from '../shared/Button.jsx';
 import TextArea from '../shared/TextArea.jsx';
 import Select from '../shared/Select.jsx';
@@ -661,8 +662,9 @@ function FeedbackBubble({ item, member, L, canModify, onEdit, onDelete, targetLa
     try {
       await onEdit(item, editText.trim());
       setEditing(false);
-    } catch {
-      setError(L.feedbackEditError);
+    } catch (e) {
+      // 앱이 이미 알린 실패(이용 정지 등)는 고치는 칸만 남긴다 — 안내가 둘이 되지 않게(PW-2907).
+      if (!isNotifiedFailure(e)) setError(L.feedbackEditError);
     } finally {
       setBusy(false);
     }
@@ -1214,9 +1216,9 @@ export default function EvalFeedbackComposeCanvas({
     try {
       await onSendFeedback?.(payload);
       showToast(L.toastSent);
-    } catch {
-      showToast(L.toastError, 'error');
-      throw new Error('send failed');
+    } catch (e) {
+      if (!isNotifiedFailure(e)) showToast(L.toastError, 'error');
+      throw e;
     }
   };
 
@@ -1225,7 +1227,7 @@ export default function EvalFeedbackComposeCanvas({
         try {
           await onDeleteFeedback(item);
         } catch (e) {
-          showToast(L.feedbackDeleteError, 'error');
+          if (!isNotifiedFailure(e)) showToast(L.feedbackDeleteError, 'error');
           throw e;
         }
       }

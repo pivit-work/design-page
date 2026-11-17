@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import AnchoredLayer from '../shared/AnchoredLayer.jsx';
 import Icon from '../shared/Icon.jsx';
+import { isNotifiedFailure } from '../shared/notifiedFailure.js';
 import ModalShell from '../shared/ModalShell.jsx';
 import SearchSelect from '../shared/SearchSelect.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
@@ -366,8 +367,9 @@ function ParentKrAdd({ label, groups, onPick }) {
   );
 }
 
-/** 저장·AI 요청이 권한 없음(403)으로 거절됐나 — 그때는 소비자가 토스트·readOnly 로 알린다 (pivit-work PW-1508). */
-const isForbidden = (error) => error?.response?.status === 403;
+/** 저장·AI 요청이 권한 없음(403)으로 거절됐나 — 그때는 소비자가 토스트·readOnly 로 알린다 (pivit-work PW-1508).
+ *  앱이 이미 알린 실패(이용 정지 등 · `notified`)도 같다 — 앱이 감싸 넘겨 `response` 가 없어도 거른다(PW-2907). */
+const isForbidden = (error) => isNotifiedFailure(error) || error?.response?.status === 403;
 
 export default function OkrComposeFullModal({
   minimap,

@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import Toast from '../shared/Toast.jsx';
+import { isNotifiedFailure } from '../shared/notifiedFailure.js';
 import Button from '../shared/Button.jsx';
 import TextArea from '../shared/TextArea.jsx';
 import Select from '../shared/Select.jsx';
@@ -1270,18 +1271,20 @@ export default function EvalFeedbackCanvas({
     try {
       await onReply?.(itemId, text);
       showToast(L.toastSent);
-    } catch {
-      showToast(L.toastError, 'error');
-      throw new Error('reply failed');
+    } catch (e) {
+      // 앱이 이미 알린 실패(이용 정지 등)는 토스트를 겹쳐 띄우지 않는다(PW-2907).
+      if (!isNotifiedFailure(e)) showToast(L.toastError, 'error');
+      throw e;
     }
   };
   const handleRequest = async (payload) => {
     try {
       await onRequest?.(payload);
       showToast(L.toastSent);
-    } catch {
-      showToast(L.toastError, 'error');
-      throw new Error('request failed');
+    } catch (e) {
+      // 앱이 이미 알린 실패(이용 정지 등)는 토스트를 겹쳐 띄우지 않는다(PW-2907).
+      if (!isNotifiedFailure(e)) showToast(L.toastError, 'error');
+      throw e;
     }
   };
   const handleSendIncoming = async (req, text) => {
@@ -1289,15 +1292,18 @@ export default function EvalFeedbackCanvas({
       await onSendIncoming?.(req, text);
       showToast(L.toastSent);
     } catch (e) {
-      showToast(L.toastError, 'error');
+      if (!isNotifiedFailure(e)) showToast(L.toastError, 'error');
       throw e;
     }
   };
   // 수정·취소는 핸들러가 넘어온 화면에서만 노출한다(undefined 면 버블이 버튼을 숨김).
   // 실패는 토스트로 알리고 다시 던진다 — 버블이 수정 칸·버블을 그대로 둘지 정한다(§5).
   // 앱이 `reason: 'alreadyAnswered'` 로 거절하면 «상대가 이미 답함» 안내를 띄운다.
-  const failToast = (e, fallback) =>
+  // 앱이 이미 알린 실패(이용 정지 등)는 띄우지 않는다(PW-2907).
+  const failToast = (e, fallback) => {
+    if (isNotifiedFailure(e)) return;
     showToast(e?.reason === 'alreadyAnswered' ? L.requestAlreadyAnswered : fallback, 'error');
+  };
   const handleEditRequest = onEditRequest
     ? async (itemId, text) => {
         try {
