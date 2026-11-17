@@ -15,6 +15,7 @@ import { createContext, useContext, useState, useEffect, useLayoutEffect, useMem
 import Checkbox from '../shared/Checkbox.jsx';
 import DateInput from '../shared/DateInput.jsx';
 import { todayIsoInZone } from '../shared/calendarDate.js';
+import { educationRuleError, normalizeEducationForm, EDUCATION_RULE_KEYS } from './educationRecordRules.js';
 import { IconLock } from './employeeExport.jsx';
 import { IconChevronRight } from './employeesIcons.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
@@ -892,7 +893,15 @@ function hrRecordDefs(L, todayIso) {
         { key: 'major', label: L.hrEduMajor || '전공', required: (form) => form.degree !== 'high_school' },
         { key: 'degree', label: L.hrEduDegree || '학위', required: true, options: optionsOf(L.hrDegreeOptions) },
         { key: 'from', label: L.hrEduFrom || '입학', required: true, placeholder: 'YYYY-MM' },
-        { key: 'to', label: L.hrEduTo || '졸업(예정)', placeholder: 'YYYY-MM' },
+        // 재학이면 잠그고 비운다 — 서버는 재학에 졸업일이 있으면 거절한다(pivit-work PW-2942)
+        {
+          key: 'to', label: L.hrEduTo || '졸업(예정)', placeholder: 'YYYY-MM',
+          required: (form) => Boolean(form.status) && form.status !== 'enrolled',
+          // 서버 규칙에서 온 필수 — 고치기로 연 옛 줄에서 규칙 칸을 안 건드리면 비어 있어도 막지 않는다(ruleKeys)
+          ruleRequired: true,
+          disabled: (form) => form.status === 'enrolled',
+          disabledPlaceholder: L.hrEduEnrolledNoEnd || '재학 중 — 비워 둡니다',
+        },
         { key: 'status', label: L.hrEduStatus || '상태', required: true, options: optionsOf(L.hrEduStatusOptions) },
         { key: 'isFinal', label: L.hrEduFinal || '최종학력', kind: 'boolean', options: [{ value: 'true', label: L.hrYes || '예' }, { value: 'false', label: L.hrNo || '아니오' }] },
       ],
@@ -901,6 +910,10 @@ function hrRecordDefs(L, todayIso) {
       emptyText: L.hrEducationEmpty || '등록된 학력이 없습니다.',
       addLabel: L.hrEduAdd || '학력 추가',
       periodError: L.hrEduEndBeforeStart || '졸업이 입학보다 빠릅니다. 날짜를 고쳐야 저장할 수 있습니다.',
+      // 서버 학력 규칙을 [학력 추가] 전에 — [저장하기] 때서야 어느 줄인지 모를 거절이 나오지 않게(pivit-work PW-2942)
+      ruleError: (form) => educationRuleError(form, todayIso, L),
+      ruleKeys: EDUCATION_RULE_KEYS,
+      normalize: normalizeEducationForm,
     },
     career: {
       kind: 'career',
@@ -2130,12 +2143,18 @@ const periodReversed = (form) => {
 function HrRecordListSection({
   title, testId, items, fields, render, nameOf, emptyText, addLabel,
   onSave, onDelete, confirmDelete, kind, labels, periodError,
+  // ruleError(form) → { key, message } | null — 서버가 거절할 칸 값. 주면 그 칸 아래 띄우고 저장을 막는다(PW-2942).
+  // ruleKeys — 고치기로 연 줄에서 이 칸을 안 건드리면 ruleError 를 보지 않는다(서버도 그때는 안 본다).
+  // normalize(form) → form — 칸을 바꿀 때마다 거친다(재학이면 졸업일 비우기).
+  ruleError, ruleKeys, normalize,
 }) {
   const L = labels || {};
   const [form, setForm] = useState(() => emptyForm(fields));
   const [editingId, setEditingId] = useState(null);
   // 고치기 시작할 때의 기간 — 규칙 전에 거꾸로 저장된 줄은 기간을 안 건드린 저장(회사명만 고침)까지 막지 않는다
   const [editingPeriod, setEditingPeriod] = useState(null);
+  // 고치기 시작할 때의 규칙 칸 값 — 안 건드린 줄은 ruleError 로 막지 않는다
+  const [editingRule, setEditingRule] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
 
@@ -2153,24 +2172,33 @@ function HrRecordListSection({
     }
   };
 
-  const missing = fields.some((f) => isRequired(f, form) && !String(form[f.key] ?? '').trim());
+  const ruleUntouched = editingRule && (ruleKeys ?? []).every((k) => String(form[k] ?? '') === editingRule[k]);
+  const missing = fields.some((f) => isRequired(f, form) && !(f.ruleRequired && ruleUntouched) && !String(form[f.key] ?? '').trim());
   // periodError — 기간 칸이 거꾸로일 때 «종료» 칸 아래 띄울 문구. 주면 그때 저장을 막는다(PW-2218).
   const periodUntouched = editingPeriod
     && String(form.from ?? '') === editingPeriod.from && String(form.to ?? '') === editingPeriod.to;
   const reversed = Boolean(periodError) && !periodUntouched && periodReversed(form);
+  const rule = ruleError && !ruleUntouched ? ruleError(form) : null;
+  // 거꾸로 안내가 졸업(예정) 아래 있으면 같은 칸 안내는 하나만 — 범위 안내는 날짜를 고친 뒤에 나온다
+  const ruleShown = rule && !(reversed && rule.key === 'to') ? rule : null;
   const submit = async () => {
-    const ok = await run(() => onSave(editingId, bodyOf(fields, form, Boolean(editingId))));
-    if (ok) { setForm(emptyForm(fields)); setEditingId(null); setEditingPeriod(null); }
+    const ok = await run(() => onSave(editingId, bodyOf(fields, normalize ? normalize(form) : form, Boolean(editingId))));
+    if (ok) { setForm(emptyForm(fields)); setEditingId(null); setEditingPeriod(null); setEditingRule(null); }
   };
   const startEdit = (r) => {
     const next = formOf(fields, r);
     setEditingId(r.id);
     setEditingPeriod({ from: String(next.from ?? ''), to: String(next.to ?? '') });
-    setForm(next);
+    setEditingRule(ruleKeys ? Object.fromEntries(ruleKeys.map((k) => [k, String(next[k] ?? '')])) : null);
+    // 규칙 전에 «재학»에 졸업일이 남은 줄은 잠긴 칸에 값이 보이지 않게 연 때 비운다 — 저장하면 서버도 받는다
+    setForm(normalize ? normalize(next) : next);
     setError(false);
   };
-  const cancelEdit = () => { setEditingId(null); setEditingPeriod(null); setForm(emptyForm(fields)); };
-  const set = (key) => (v) => setForm((f) => ({ ...f, [key]: v }));
+  const cancelEdit = () => { setEditingId(null); setEditingPeriod(null); setEditingRule(null); setForm(emptyForm(fields)); };
+  const set = (key) => (v) => setForm((f) => {
+    const next = { ...f, [key]: v };
+    return normalize ? normalize(next) : next;
+  });
 
   const list = items ?? [];
   return (
@@ -2220,7 +2248,7 @@ function HrRecordListSection({
                   variant="primary"
                   data-testid={`${testId}-submit`}
                   onClick={submit}
-                  disabled={busy || missing || reversed}
+                  disabled={busy || missing || reversed || Boolean(rule)}
                 >
                   {editingId ? (L.hrRecordSave || '저장') : addLabel}
                 </Button>
@@ -2240,19 +2268,31 @@ function HrRecordListSection({
                 today={f.today}
                 options={f.options}
                 clearable={f.defaultValue == null}
-                placeholder={f.placeholder}
+                placeholder={typeof f.disabled === 'function' && f.disabled(form) ? (f.disabledPlaceholder ?? f.placeholder) : f.placeholder}
+                disabled={typeof f.disabled === 'function' ? f.disabled(form) : false}
               />
-            )).flatMap((pair, i) => (
+            )).flatMap((pair, i) => {
               // 마지막 출근일 안내(hr-last-working-date-error)와 같은 자리 — 고칠 칸 바로 아래, 칸 왼쪽 끝에서
-              reversed && fields[i].key === 'to'
-                ? [pair, (
+              const key = fields[i].key;
+              const out = [pair];
+              if (reversed && key === 'to') {
+                out.push(
                   <div key="period-error" className="adm-hr-add-pair" role="alert" data-testid={`${testId}-period-error`}>
                     <span className="adm-hr-pair-k" aria-hidden="true" />
                     <span className="adm-hr-add-error"><AlertCircleGlyph size={14} />{periodError}</span>
-                  </div>
-                )]
-                : [pair]
-            ))}
+                  </div>,
+                );
+              }
+              if (ruleShown && ruleShown.key === key) {
+                out.push(
+                  <div key="rule-error" className="adm-hr-add-pair" role="alert" data-testid={`${testId}-rule-error`}>
+                    <span className="adm-hr-pair-k" aria-hidden="true" />
+                    <span className="adm-hr-add-error"><AlertCircleGlyph size={14} />{ruleShown.message}</span>
+                  </div>,
+                );
+              }
+              return out;
+            })}
           </HrAddCard>
         )}
       </div>
