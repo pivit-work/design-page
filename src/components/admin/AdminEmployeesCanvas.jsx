@@ -7340,6 +7340,7 @@ function EmployeesEditPanel({
               onDeleteRecord={canEdit ? hrRecordHandlers?.onDeleteRecord : undefined}
               onUploadDocument={canEdit ? hrRecordHandlers?.onUploadDocument : undefined}
               onDownloadDocument={hrRecordHandlers?.onDownloadDocument}
+              onSaveSession={canEdit ? hrRecordHandlers?.onSaveSession : undefined}
             />
           )}
           {/* «근태·휴가» 묶음 — «근무·고용» 탭 맨 끝(§3.2-D «탭별 칸») · 휴가 애드온이 켜진 회사에서만 호스트가 넘긴다(pivit-work PW-2817 ·

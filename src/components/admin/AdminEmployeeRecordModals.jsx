@@ -1453,6 +1453,10 @@ function identityPatchOf(draft, base, keys, bankRevealed) {
  * @param {(fn: (() => Promise<void>) | null) => void} [props.registerFlush] 수정 모드로 붙을 때 «모은 바뀜 보내기»를 넘기고, 떨어질 때 null.
  *   보내기는 처음 실패에서 던지고 안 보낸 것은 남긴다 — 다시 부르면 남은 것만 보낸다.
  * @param {(dirty: boolean) => void} [props.onDirtyChange] 모은 바뀜이 생기거나 다 없어질 때.
+ * @param {(memberId: string, records: Array<{kind: string, op: 'add'|'update'|'delete', before: string|null, after: string|null}>, send: () => Promise<void>) => Promise<void>} [props.onSaveSession]
+ *   [저장] 한 번을 통째로 맡긴다 — 보내기 «전에» 이번 저장에 실릴 기록 줄 목록(목록에 보이는 그 줄 글)을 넘기고, `send` 로 보낸다.
+ *   부르는 쪽이 사유 창을 저장 1회에 한 번만 띄우고 받은 사유를 모든 요청에 싣는다(pivit-work PW-2924 · 개인정보 변경 이력 정책서 §2-5).
+ *   없으면 종전처럼 바로 보낸다.
  * 버리기는 부모가 key 를 바꿔 다시 붙인다.
  */
 export function HrProfileInline({
@@ -1461,7 +1465,7 @@ export function HrProfileInline({
   onLoadTrainings, onAddTraining, onUpdateTraining, onDeleteTraining,
   onLoadBenefits, onSaveBenefits, confirmDelete,
   onRevealNationalId, nationalIdEnabled = true, onRevealBankAccount,
-  onSaveRecord, onDeleteRecord, onUploadDocument, onDownloadDocument,
+  onSaveRecord, onDeleteRecord, onUploadDocument, onDownloadDocument, onSaveSession,
   archived = false,
   renderNames, namesTail, phone,
 }) {
@@ -1526,49 +1530,69 @@ export function HrProfileInline({
     }
     if (benefits?.invalid) throw new Error(L.hrPensionContributionInvalid || '금액은 소수점·단위 없는 정수로 적어 주세요.');
     const trainingsTouched = pendingSize(trPending) > 0;
-    try {
-      if (identityPatch) {
-        const saved = await onSaveIdentity(memberId, identityPatch);
-        setData((d) => ({ ...(d ?? {}), identity: saved || { ...(d?.identity ?? {}), ...identityPatch } }));
-        setIdentityDraft(null);
-        setSeededId(null);
-        setBankRevealed(null);
-      }
-      for (const kind of RECORD_KINDS) {
-        const p = recPending[kind];
-        if (!pendingSize(p)) continue;
-        const progress = (left) => setRecPending((prev) => ({ ...prev, [kind]: left }));
-        if (kind === 'documents') {
-          await flushPending(p, {
-            add: (body) => onUploadDocument(memberId, body),
-            update: () => Promise.resolve(),
-            remove: (id) => onDeleteRecord(memberId, 'documents', id),
-          }, progress);
-        } else {
-          await flushPending(p, {
-            add: (body) => onSaveRecord(memberId, kind, null, body),
-            update: (id, body) => onSaveRecord(memberId, kind, id, body),
-            remove: (id) => onDeleteRecord(memberId, kind, id),
-          }, progress);
+    const send = async () => {
+      try {
+        if (identityPatch) {
+          const saved = await onSaveIdentity(memberId, identityPatch);
+          setData((d) => ({ ...(d ?? {}), identity: saved || { ...(d?.identity ?? {}), ...identityPatch } }));
+          setIdentityDraft(null);
+          setSeededId(null);
+          setBankRevealed(null);
         }
+        for (const kind of RECORD_KINDS) {
+          const p = recPending[kind];
+          if (!pendingSize(p)) continue;
+          const progress = (left) => setRecPending((prev) => ({ ...prev, [kind]: left }));
+          if (kind === 'documents') {
+            await flushPending(p, {
+              add: (body) => onUploadDocument(memberId, body),
+              update: () => Promise.resolve(),
+              remove: (id) => onDeleteRecord(memberId, 'documents', id),
+            }, progress);
+          } else {
+            await flushPending(p, {
+              add: (body) => onSaveRecord(memberId, kind, null, body),
+              update: (id, body) => onSaveRecord(memberId, kind, id, body),
+              remove: (id) => onDeleteRecord(memberId, kind, id),
+            }, progress);
+          }
+        }
+        if (trainingsTouched) {
+          await flushPending(trPending, {
+            add: (body) => onAddTraining(memberId, body),
+            update: (id, body) => onUpdateTraining(memberId, id, body),
+            remove: (id) => onDeleteTraining(memberId, id),
+          }, setTrPending);
+        }
+        if (benefits) {
+          await onSaveBenefits(memberId, benefits.body);
+          setBenefits(null);
+          setBnEpoch((e) => e + 1);
+        }
+      } finally {
+        /* 보낸 만큼은 서버 값으로 다시 그린다 — 실패해도 이미 간 줄이 화면에서 사라지지 않게 */
+        if (RECORD_KINDS.some((k) => pendingSize(recPending[k]) > 0)) reload();
+        if (trainingsTouched) setTrEpoch((e) => e + 1);
       }
-      if (trainingsTouched) {
-        await flushPending(trPending, {
-          add: (body) => onAddTraining(memberId, body),
-          update: (id, body) => onUpdateTraining(memberId, id, body),
-          remove: (id) => onDeleteTraining(memberId, id),
-        }, setTrPending);
-      }
-      if (benefits) {
-        await onSaveBenefits(memberId, benefits.body);
-        setBenefits(null);
-        setBnEpoch((e) => e + 1);
-      }
-    } finally {
-      /* 보낸 만큼은 서버 값으로 다시 그린다 — 실패해도 이미 간 줄이 화면에서 사라지지 않게 */
-      if (RECORD_KINDS.some((k) => pendingSize(recPending[k]) > 0)) reload();
-      if (trainingsTouched) setTrEpoch((e) => e + 1);
-    }
+    };
+    return onSaveSession ? onSaveSession(memberId, pendingRecordLines(), send) : send();
+  };
+  /* 이번 저장에 실릴 기록 줄 — 목록에 보이는 그 줄 글로(추가는 «— → 줄», 지움은 «줄 → 없음», 고침은 «전 줄 → 뒤 줄»). */
+  const pendingRecordLines = () => {
+    const defs = hrRecordDefs(L, todayIso);
+    const docTypes = optionsOf(L.hrDocTypeOptions);
+    const docText = (d) => [optionText(docTypes, d?.docType), d?.fileName ?? d?.file?.name].filter(Boolean).join(' · ');
+    const rowsOf = (kind) => (kind === 'dependents' ? data?.family?.dependents : data?.org?.[kind]) ?? [];
+    return RECORD_KINDS.flatMap((kind) => {
+      const q = pendingOf(recPending[kind]);
+      const text = kind === 'documents' ? docText : (r) => defs[kind].render(r);
+      const byId = new Map(rowsOf(kind).map((r) => [r.id, r]));
+      return [
+        ...Object.entries(q.updates).map(([id, body]) => ({ kind, op: 'update', before: text(byId.get(id) ?? {}), after: text({ ...(byId.get(id) ?? {}), ...body }) })),
+        ...q.adds.map((a) => ({ kind, op: 'add', before: null, after: text(a.body) })),
+        ...q.deletes.map((id) => ({ kind, op: 'delete', before: text(byId.get(id) ?? {}), after: null })),
+      ];
+    });
   };
   const flushRef = useRef(flush);
   useEffect(() => { flushRef.current = flush; });
