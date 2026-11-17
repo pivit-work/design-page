@@ -20,6 +20,7 @@ import { fitChips } from './chipFoldLayout.js';
  * - 이 부품이 줄 자체를 그린다 — 칸의 줄 모양(간격·줄바꿈)은 `className` 이 맡고, 줄바꿈(wrap)은 여기서 켠다.
  * - `renderItem` 은 칩 하나에 요소 하나를 돌려준다(폭을 그 요소로 잰다).
  * - 폭을 잴 수 없을 때(숨은 칸·시험 환경)는 앞 `fallbackCount` 개로 자른다.
+ * - `maxItems` 를 주면 줄에 더 들어가도 접힌 동안 그 개수까지만 보인다(`keep` 칩은 세지 않는다 · pivit-work PW-2930 «앞 8개»).
  *
  * 생김새 값은 `src/status-badge.css` 「칩 줄 접기」 절.
  */
@@ -34,6 +35,7 @@ export default function ChipFold({
   onMore,
   trailing,
   fallbackCount = 8,
+  maxItems,
   className = '',
   buttonClassName = '',
   testId,
@@ -46,18 +48,18 @@ export default function ChipFold({
 
   const keys = items.map(getKey);
   const kept = items.map((it) => !!keep?.(it));
-  const sig = `${keys.join('\u0001')}|${kept.map((k) => (k ? 1 : 0)).join('')}|${maxRows}`;
+  const sig = `${keys.join('\u0001')}|${kept.map((k) => (k ? 1 : 0)).join('')}|${maxRows}|${maxItems ?? ''}`;
   const measuring = !layout || layout.sig !== sig;
   // 재는 함수는 sig 가 바뀔 때만 다시 돈다 — 그때의 값은 ref 로 읽는다.
   const latest = useRef(null);
   useLayoutEffect(() => {
-    latest.current = { items, keys, kept, sig, maxRows, fallbackCount };
+    latest.current = { items, keys, kept, sig, maxRows, fallbackCount, maxItems };
   });
 
   const measure = useCallback(() => {
     const row = rowRef.current;
     if (!row) return;
-    const { items, keys, kept, sig, maxRows, fallbackCount } = latest.current;
+    const { items, keys, kept, sig, maxRows, fallbackCount, maxItems } = latest.current;
     // 회의 미니 창(문서 PiP)처럼 다른 창의 문서에 그려질 수 있다 — 그 창의 함수로 잰다.
     const win = row.ownerDocument?.defaultView || window;
     const style = win.getComputedStyle(row);
@@ -87,6 +89,17 @@ export default function ChipFold({
       });
       const hiddenCount = visible.filter((v) => !v).length;
       fit = { visible, hiddenCount, folds: hiddenCount > 0 };
+    }
+    if (maxItems != null) {
+      let shownFree = 0;
+      const visible = fit.visible.map((v, i) => {
+        if (kept[i]) return true;
+        if (!v) return false;
+        shownFree += 1;
+        return shownFree <= maxItems;
+      });
+      const hiddenCount = visible.filter((v) => !v).length;
+      fit = { ...fit, visible, hiddenCount, folds: hiddenCount > 0 };
     }
     setLayout({
       sig,

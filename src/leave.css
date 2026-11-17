@@ -24,11 +24,12 @@
   margin-left: auto;
 }
 
-/* 네 칸 — 칸 사이 16(시안 gap 16) · 좁으면 줄을 바꾼다. */
+/* 숫자 칸 줄 — 두 모양(PW-2930).
+   band: 칸들을 테두리 하나 안 세로선으로 나눈 한 띠(«연차» 네 칸 · 촉진 세 칸) — 상자 안 상자를 걷었다.
+   row : 칸마다 테두리 · 한 줄 다섯 칸 · 높이는 내용만큼(«다른 휴가» — 옆 칸 높이에 맞춰 늘지 않는다). */
 .leave-tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: var(--spacing-xl);
+  min-width: 0;
 }
 
 .leave-tile.manager-kpi-card {
@@ -63,24 +64,6 @@
   outline-offset: 2px;
 }
 
-/* 칸 줄 끝 점선 묶음(PW-2816 «그 밖에 신청할 수 있는 휴가» · 기획 시안 점선 상자) — 칸 두 개 폭 · 칸(manager-kpi-card)과 같은 둥근 모서리 · 안쪽 16 · 24. */
-.leave-tiles-more {
-  grid-column: span 2;
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
-  padding: var(--spacing-xl) var(--spacing-3xl);
-  border-radius: var(--radius-2xl);
-  border: 1px dashed var(--border-secondary);
-  min-width: 0;
-}
-
-.leave-tiles-more-items {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-xs);
-}
-
 .leave-tile.is-brand {
   background: var(--bg-brand-primary);
   border-color: var(--border-brand);
@@ -92,6 +75,40 @@
 
 .leave-tile.is-warning .manager-stat-value {
   color: var(--text-warning-primary);
+}
+
+.leave-tiles.is-band {
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.leave-tiles.is-band > .leave-tile.manager-kpi-card {
+  border: none;
+  border-radius: 0;
+  padding: var(--spacing-xl) var(--spacing-2xl);
+}
+
+.leave-tiles.is-band > .leave-tile + .leave-tile {
+  border-left: 1px solid var(--border-secondary);
+}
+
+.leave-tiles.is-row {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--spacing-lg);
+  align-items: start;
+}
+
+.leave-tiles.is-row > .leave-tile.manager-kpi-card {
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg) var(--spacing-xl);
+}
+
+.leave-tiles.is-row .manager-stat-value {
+  font-size: var(--font-size-display-xs);
+  line-height: var(--line-height-display-xs);
 }
 
 /* 막대 → 범례 → 회색 줄 — 8 씩(시안 marginTop 8). */
@@ -108,24 +125,30 @@
 
 .leave-bar {
   display: flex;
-  height: 10px;
-  border-radius: var(--radius-xs);
+  gap: var(--spacing-xs);
+  height: 12px;
+  border-radius: var(--radius-xxs);
   background: var(--bg-secondary);
-  overflow: hidden;
 }
 
-.leave-bar-part.is-used,
-.leave-legend-swatch.is-used {
+.leave-bar-part {
+  border-radius: var(--radius-xxs);
+  min-width: 0;
+}
+
+.leave-bar-part.is-zero {
+  display: none;
+}
+
+.leave-bar-part.is-used {
   background: var(--fg-disabled-subtle);
 }
 
-.leave-bar-part.is-planned,
-.leave-legend-swatch.is-planned {
+.leave-bar-part.is-planned {
   background: var(--bg-brand-secondary);
 }
 
-.leave-bar-part.is-available,
-.leave-legend-swatch.is-available {
+.leave-bar-part.is-available {
   background: var(--bg-brand-solid);
 }
 
@@ -150,11 +173,100 @@
   margin-left: auto;
 }
 
-.leave-legend-swatch {
-  width: 8px;
-  height: 8px;
-  border-radius: var(--radius-xxs);
-  flex: none;
+.leave-legend-item.is-used {
+  color: var(--text-tertiary);
+}
+
+.leave-legend-item.is-planned {
+  color: var(--text-brand-tertiary);
+}
+
+.leave-legend-item.is-available {
+  color: var(--text-brand-secondary);
+}
+
+.leave-legend-label {
+  font-weight: 600;
+}
+
+/* ── 흰 카드 한 장(PW-2930 · LeaveSheet) — 바로 아래 자식이 묶음 하나, 묶음 사이 가는 선(시안 Divider 20). ── */
+.leave-sheet {
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-2xl) var(--spacing-3xl);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-lg);
+  background: var(--bg-quaternary);
+  min-width: 0;
+}
+
+.leave-sheet > * + * {
+  margin-top: var(--spacing-2xl);
+  padding-top: var(--spacing-2xl);
+  border-top: 1px solid var(--border-secondary);
+}
+
+.leave-sheet-part {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  min-width: 0;
+}
+
+/* 카드 안 묶음 — 상자를 걷는다(바탕 · 테두리 · 안쪽 여백은 LeaveSheet 가 맡는다). */
+.leave-card.is-plain {
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+}
+
+/* 이름 묶음 «그 밖에 신청할 수 있는 휴가» — 제목 · 개수 · 옅은 안내 한 줄 + 회색 딱지 접기. */
+.leave-name-fold {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  min-width: 0;
+}
+
+.leave-name-fold-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+}
+
+.leave-name-fold-title {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.leave-name-fold-count {
+  font-weight: 600;
+  color: var(--text-brand-tertiary);
+}
+
+.leave-name-fold-note {
+  color: var(--text-tertiary);
+}
+
+.leave-name-fold-items {
+  gap: var(--spacing-xs);
+}
+
+/* 빈 안내 — 상자 없이 가운데 옅은 14px(매니저 빈 안내 .manager-modal-empty, stesslee c4d2e402 · .mgr-kr-empty 와 같은 값). */
+.dp-empty.leave-empty {
+  padding: var(--spacing-3xl) 0 var(--spacing-2xl);
+  border: none;
+  background: none;
+}
+
+.dp-empty.leave-empty .dp-empty__desc {
+  font-size: var(--font-size-text-sm);
+  font-weight: 500;
+  color: var(--text-tertiary);
 }
 
 /* ── 칸으로 나뉜 휴가 카드 — 연차 사용 촉진 카드(pivit-work PW-2688). 상자는 위 .leave-card 그대로, 안을 칸으로 나눈다. ── */

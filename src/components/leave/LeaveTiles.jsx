@@ -1,5 +1,4 @@
 import { NoteText } from '../shared/SharedText.jsx';
-import StatusBadge from '../shared/StatusBadge.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 
 /**
@@ -15,12 +14,12 @@ import Tooltip from '../shared/Tooltip.jsx';
  * `labelTitle` — 칸 이름 전체(길면 칸에서 «…»로 줄고 공용 말풍선으로 보인다).
  * `onClick` — 칸을 누를 수 있다(pivit-work PW-2816 «다른 휴가» 카드 → 부여 내역 그 종류). 생김새는 같고 `<button>` 으로 그린다.
  *
- * `more` — 칸 줄 끝 점선 묶음(PW-2816 «그 밖에 신청할 수 있는 휴가» · 기획 시안 leave-app.jsx 점선 상자):
- *   { title, items: [{ key, label }], testId } — 칸 두 개 폭 · 회색 안내 한 줄 + 회색 딱지 목록.
+ * `layout` — 'band'(기본 · PW-2930): 칸들을 테두리 하나 안에 세로선으로 나눈 한 띠(«연차» 네 칸 · 촉진 세 칸).
+ *   'row': 칸마다 테두리 · 한 줄 다섯 칸 · 높이는 내용만큼(«다른 휴가»). 글씨는 둘 다 매니저 KPI 칸 그대로.
  */
-export default function LeaveTiles({ tiles = [], more = null, testId }) {
+export default function LeaveTiles({ tiles = [], layout = 'band', testId }) {
   return (
-    <div className="leave-tiles" data-testid={testId}>
+    <div className={`leave-tiles is-${layout}`} data-testid={testId}>
       {tiles.map((x) => {
         const Tag = x.onClick ? 'button' : 'div';
         return (
@@ -49,18 +48,6 @@ export default function LeaveTiles({ tiles = [], more = null, testId }) {
           </Tag>
         );
       })}
-      {more && (
-        <div className="leave-tiles-more" data-testid={more.testId}>
-          <NoteText>{more.title}</NoteText>
-          <div className="leave-tiles-more-items">
-            {more.items.map((i) => (
-              <StatusBadge key={i.key} tone="neutral" className="evc-status-badge">
-                {i.label}
-              </StatusBadge>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

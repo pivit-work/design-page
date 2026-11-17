@@ -346,6 +346,9 @@ export * from './profile/index.js';
 export {
   LeaveAnnualCard,
   LeaveTiles,
+  LeaveSheet,
+  LeaveSheetPart,
+  LeaveNameFold,
   LeaveDateMonths,
   LeaveSectionCard,
   LeaveCardSection,
