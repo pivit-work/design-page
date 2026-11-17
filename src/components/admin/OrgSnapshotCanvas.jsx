@@ -2193,7 +2193,8 @@ function AppointmentHistoryView({
                     <div className="admin-snap-hist-member-name">
                       {m.name || '—'}
                       {m.scheduled && <> · {labels.historyScheduled}</>}
-                      {m.scheduled && onCancelScheduled && (
+                      {/* 승인 대기 사람도 발효 전 취소할 수 있다 — 사람 줄(scheduled || approvalPending)과 같게(pivit-work PW-2597) */}
+                      {(m.scheduled || m.approvalPending) && onCancelScheduled && (
                         <button
                           type="button"
                           className="admin-snap-hist-detaillink admin-snap-hist-cancel"

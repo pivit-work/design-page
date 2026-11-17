@@ -32,6 +32,12 @@ export function groupHistoryRows(records, labels) {
       approvalPending: members.some((m) => m.approvalPending),
       // «승인» 블록은 사람마다다 — 묶음 줄이 첫 사람 것을 물려받으면 버튼이 묶음 번호(batch:…)로 서버에 간다(pivit-work PW-2597)
       approvalBlock: undefined,
+      // 배지도 첫 사람 것을 물려받지 않는다 — 기다리는 사람이 있으면 그 사람의 «승인 대기»·«승인자 없음»,
+      // 끝난 표시(«거절»·«승인 없이 확정»·«취소»)는 모두 같을 때만 묶음 줄에 싣는다(사람마다 다르면 상세에서 본다)
+      approvalBadge: members.find((m) => m.approvalPending && m.approvalBadge)?.approvalBadge,
+      approvalOutcome: members.every((m) => m.approvalOutcome && m.approvalOutcome === members[0].approvalOutcome)
+        ? members[0].approvalOutcome
+        : undefined,
     });
   }
   return out;
