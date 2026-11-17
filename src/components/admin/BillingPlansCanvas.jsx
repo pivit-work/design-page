@@ -3,6 +3,7 @@ import { useState, useId, useEffect, useRef } from 'react';
 import Checkbox from '../shared/Checkbox.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import Button from '../shared/Button.jsx';
+import LinkButton from './LinkButton.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
@@ -83,7 +84,7 @@ const DEFAULT_LABELS = {
   prorationMid: '입니다. 실제 청구는 ',
   prorationStrong2: '청구일의 재직(활성) 구성원 좌석',
   prorationPost: '으로 확정됩니다(Proration A). 좌석 증감은 구성원 초대·비활성으로.',
-  manageMembers: '구성원 관리 →',
+  manageMembers: '구성원 관리',
   estimateTitle: '예상 청구액',
   estimateTitleUpgrade: (label) => `${label} 업그레이드 시 예상 청구액`,
   estimateSubnote: (seats) => `(선택 ${seats}명 기준 미리보기 · 실제 청구는 재직 좌석 · 확정 단가)`,
@@ -144,7 +145,7 @@ const DEFAULT_LABELS = {
   // 약정 기간 중 하향 차단 안내 (spec-billing.md §2.6.4 · 시안 billing-app.jsx PW-344)
   commitmentNotice: (contractEnd) =>
     `약정 기간(~${contractEnd}) 중에는 하위 플랜으로 변경할 수 없습니다.`,
-  commitmentContactCta: '영업팀 문의 →',
+  commitmentContactCta: '영업팀 문의',
   quoteCardTitle: '협의 단가 적용됨 — Pro · Enterprise',
   quoteCardTitleRenewal: '갱신 견적 — 다음 계약 기간 조건',
   quoteValidBadge: (days) => `유효기간 D-${days}`,
@@ -1323,9 +1324,7 @@ export default function BillingPlansCanvas({
         {commitment && canEdit && (commitment.lockedPlanCodes ?? []).length > 0 && (
           <div data-testid="billing-commitment-notice" style={{ fontSize: 13, color: T.sub, marginBottom: 16 }}>
             {labels.commitmentNotice(commitment.contractEnd)}{' '}
-            <button type="button" onClick={onNavigateContactSales}
-              style={{ background: 'none', border: 'none', color: T.accentText, fontWeight: 700,
-                fontSize: 13, cursor: 'pointer', padding: 0 }}>{labels.commitmentContactCta}</button>
+            <LinkButton onClick={onNavigateContactSales}>{labels.commitmentContactCta}</LinkButton>
           </div>
         )}
 
@@ -1431,11 +1430,7 @@ export default function BillingPlansCanvas({
               <b>{labels.prorationStrong2}</b>
               {labels.prorationPost}
             </span>
-            <button type="button" onClick={onNavigateMembers}
-              style={{ background: 'none', border: 'none', color: T.accentText, fontWeight: 700,
-                fontSize: 13, cursor: 'pointer', padding: 0, whiteSpace: 'nowrap' }}>
-              {labels.manageMembers}
-            </button>
+            <LinkButton onClick={onNavigateMembers}>{labels.manageMembers}</LinkButton>
           </div>
         </Card>
 

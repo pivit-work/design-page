@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import ModalShell from '../shared/ModalShell.jsx';
 import Button from '../shared/Button.jsx';
+import LinkButton from './LinkButton.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import Stack from '../shared/Stack.jsx';
 import FormField from '../shared/FormField.jsx';
@@ -98,7 +99,7 @@ const DEFAULT_LABELS = {
   seatCapOverDesc: (seats, limit) => `현재 ${seats}명으로 Free 한도(${limit}명)를 넘었습니다. 기존 구성원은 그대로 쓰실 수 있고, 새 구성원을 추가하려면 업그레이드가 필요합니다.`,
   // 수습도 좌석으로 센다(PW-1348) — 「재직」만 쓰면 수습이 빠지는 것처럼 읽힌다 (PW-1949).
   seatAutoNote: '좌석은 재직·수습 구성원 수로 자동 산정됩니다. 구성원 초대·비활성으로 조정 → 다음 청구일 반영.',
-  manageMembers: '구성원 관리 →',
+  manageMembers: '구성원 관리',
 
   nextBillingLabel: '다음 청구',
   // ── 요금제 변경 뒤의 다음 청구 · 업그레이드 철회 (pivit-work PW-2475 · screen-billing-overview §2·§4 ⓒ) ──
@@ -198,7 +199,7 @@ const DEFAULT_LABELS = {
       ? `매월 ${anchorDay}일(해당 일자가 없는 달은 말일)`
       : `매월 ${anchorDay}일`,
 
-  viewHistory: '청구 내역·영수증 보기 →',
+  viewHistory: '청구 내역·영수증 보기',
   cancelSubscription: '구독 해지',
 
   cancelModalTitle: '구독 해지 방식 선택',
@@ -327,20 +328,13 @@ function mergeLabels(provided) {
   };
 }
 
+// 이 화면의 버튼은 모두 공용 Button(디자이너 어드민 버튼과 같은 값)으로 그린다 (pivit-work PW-2938).
+// kind 가 곧 variant — 되돌릴 수 있는 위험 자리는 'danger-ghost', 확인 창의 마지막 단추만 'danger'.
 function Btn({ children, onClick, kind = 'primary', disabled }) {
-  const styles = {
-    primary: { bg: T.accent, color: '#fff', border: 'transparent' },
-    secondary: { bg: '#fff', color: T.text, border: T.border },
-    danger: { bg: '#fff', color: T.red, border: '#FCA5A5' },
-  }[kind];
   return (
-    <button type="button" onClick={disabled ? undefined : onClick} disabled={disabled}
-      style={{ fontFamily: T.font, fontSize: 14, fontWeight: 700,
-        padding: '10px 18px', borderRadius: 10, cursor: disabled ? 'not-allowed' : 'pointer',
-        background: styles.bg, color: styles.color, border: `1px solid ${styles.border}`,
-        opacity: disabled ? 0.5 : 1 }}>
+    <Button variant={kind} onClick={onClick} disabled={disabled}>
       {children}
-    </button>
+    </Button>
   );
 }
 
@@ -733,7 +727,7 @@ export default function BillingOverviewCanvas({
                   {labels.suspendedRequestCancel}
                 </Btn>
               )}
-              <Btn kind="danger" onClick={onNavigatePlans} disabled={!canEdit}>{labels.suspendedPay}</Btn>
+              <Btn kind="danger-ghost" onClick={onNavigatePlans} disabled={!canEdit}>{labels.suspendedPay}</Btn>
             </div>
           </Card>
         )}
@@ -799,7 +793,7 @@ export default function BillingOverviewCanvas({
               )}
             </div>
             <div style={{ flex: 'none', whiteSpace: 'nowrap' }}>
-              <Btn kind="danger" onClick={onNavigateMethods} disabled={!canEdit}>{labels.dunningAction}</Btn>
+              <Btn kind="danger-ghost" onClick={onNavigateMethods} disabled={!canEdit}>{labels.dunningAction}</Btn>
             </div>
           </Card>
         )}
@@ -816,7 +810,7 @@ export default function BillingOverviewCanvas({
               )}
             </div>
             <div style={{ flex: 'none', whiteSpace: 'nowrap' }}>
-              <Btn kind="danger" onClick={onNavigateMethods} disabled={!canEdit}>{labels.arrearsAction}</Btn>
+              <Btn kind="danger-ghost" onClick={onNavigateMethods} disabled={!canEdit}>{labels.arrearsAction}</Btn>
             </div>
           </Card>
         )}
@@ -1118,11 +1112,7 @@ export default function BillingOverviewCanvas({
           <div style={{ fontSize: 12, color: T.muted, marginTop: 10, display: 'flex',
             justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <span>{labels.seatAutoNote}</span>
-            <button type="button" onClick={onNavigateMembers}
-              style={{ background: 'none', border: 'none', color: T.accentText, fontWeight: 700,
-                fontSize: 12, cursor: 'pointer', padding: 0, whiteSpace: 'nowrap' }}>
-              {labels.manageMembers}
-            </button>
+            <LinkButton onClick={onNavigateMembers}>{labels.manageMembers}</LinkButton>
           </div>
         </Card>
 
@@ -1247,13 +1237,9 @@ export default function BillingOverviewCanvas({
 
         {/* 하단 액션 */}
         <Card style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <button type="button" onClick={onNavigateHistory}
-            style={{ background: 'none', border: 'none', color: T.accentText, fontWeight: 700,
-              fontSize: 14, cursor: 'pointer', padding: 0 }}>
-            {labels.viewHistory}
-          </button>
+          <LinkButton onClick={onNavigateHistory}>{labels.viewHistory}</LinkButton>
           {showCancel && (
-            <Btn kind="danger" onClick={openCancel} disabled={!canEdit}>{labels.cancelSubscription}</Btn>
+            <Btn kind="danger-ghost" onClick={openCancel} disabled={!canEdit}>{labels.cancelSubscription}</Btn>
           )}
         </Card>
 
