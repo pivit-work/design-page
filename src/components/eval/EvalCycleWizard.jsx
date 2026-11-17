@@ -5446,12 +5446,17 @@ export default function EvalCycleWizard({
     /* [PW-1461 · 정책 §5.2.2 · §12] 초안이면 옮긴 순서를 바로 저장한다. 실패하면 옮기기 전
        순서로 되돌리고 그 자리에 알린다 — 화면에 남은 순서가 저장된 순서인 줄 알게 두지 않는다. */
     if (draftEnabled) {
-      void saveDraft({ phaseOrder: arr }).then((saved) => {
-        if (saved) return;
-        // 그 사이 또 옮겼으면 그 순서를 덮지 않는다 — 실패한 «그 순서»일 때만 되돌린다.
-        setPhaseOrder((cur) => (cur.join('|') === arr.join('|') ? prev : cur));
-        setOrderNotice('saveFailed');
-      });
+      // 그 사이 또 옮겼으면 그 순서를 덮지 않는다 — 실패한 «그 순서»일 때만 되돌린다.
+      const revert = () => setPhaseOrder((cur) => (cur.join('|') === arr.join('|') ? prev : cur));
+      void saveDraft({ phaseOrder: arr }, undefined, { throwNotified: true }).then(
+        (saved) => {
+          if (saved) return;
+          revert();
+          setOrderNotice('saveFailed');
+        },
+        // 앱이 이미 알린 거절(이용 정지 등)은 순서만 되돌리고 문구는 겹쳐 띄우지 않는다(PW-2976).
+        () => revert(),
+      );
     }
     return arr;
   };
@@ -7091,7 +7096,7 @@ export default function EvalCycleWizard({
     try {
       let baseSavedAt = draftSavedAt ?? undefined;
       if (draftEnabled) {
-        const saved = await saveDraft();
+        const saved = await saveDraft(undefined, undefined, { throwNotified: true });
         if (!saved) throw new Error('draft save failed');
         if (saved.cycleId) knownCycleIdRef.current = saved.cycleId;
         baseSavedAt = saved.savedAt ?? baseSavedAt;
@@ -7939,7 +7944,11 @@ export default function EvalCycleWizard({
    * `lock` — PW-1459 충돌 창의 두 선택이 쓴다. `{ baseSavedAt }` 은 상대가 저장한 시각을
    * 잠금 키로 보내 «알고 덮어쓴다», `{ asNew: true }` 는 이 초안과 떼어 새 초안으로 만든다.
    */
-  const saveDraft = async (overrides, lock) => {
+  /**
+   * `opts.throwNotified` — 앱이 이미 알린 거절(이용 정지 등)을 null 대신 그대로 던진다. 결과가 null 이면 자기 실패 글을
+   * 띄우는 호출부(하향 확정 · 단계 순서 옮기기)가 «알린 실패»를 가려 글을 겹쳐 띄우지 않게 한다(PW-2976).
+   */
+  const saveDraft = async (overrides, lock, opts) => {
     if (!draftEnabled) return null;
     const payload = { ...collectDraft(), ...(overrides ?? {}) };
     const snapshot = JSON.stringify(payload);
@@ -7973,7 +7982,10 @@ export default function EvalCycleWizard({
       // 저장 실패가 위자드를 닫으면 작성 중이던 설정이 통째로 날아간다 — 이 카드가
       // 없애려는 바로 그 일이다. 사유만 푸터에 남기고 화면은 유지한다.
       // 앱이 이미 알린 실패(이용 정지 등)는 푸터 글을 겹쳐 쓰지 않는다(PW-2907).
-      if (isNotifiedFailure(e)) return null;
+      if (isNotifiedFailure(e)) {
+        if (opts?.throwNotified) throw e;
+        return null;
+      }
       return failed();
     } finally {
       setDraftSaving(false);
