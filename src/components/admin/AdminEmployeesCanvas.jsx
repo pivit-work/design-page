@@ -8501,7 +8501,8 @@ export default function AdminEmployeesCanvas({
 
       {/* 변경 사유 모달 — 서버가 「사유가 필요하다」고 답했을 때만 뜬다(§2-D-4). */}
       {changeReasonPrompt && (
-        <ChangeReasonModal prompt={changeReasonPrompt} labels={labels} />
+        /* `seq`: 앱이 창을 새로 띄울 때마다 바뀐다 — 잠가 둔 창 위에 새로 물을 때 사유 칸이 앞 글을 들지 않게(pivit-work PW-2924) */
+        <ChangeReasonModal key={changeReasonPrompt.seq ?? 0} prompt={changeReasonPrompt} labels={labels} />
       )}
 
       {/* 초대 발송 모달 — 탭 A·탭 C 두 진입점이 **공유**한다(§1).
