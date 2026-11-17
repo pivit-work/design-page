@@ -2086,7 +2086,8 @@ export default function EvalReportReviewCanvas({
           position: fixed 인 탓에 z-index 가 앱 위쪽 바를 넘지 못해 알림이 한 번도 보이지 않았다. */}
       <Toast
         message={toast?.msg}
-        tone={toast?.type === 'success' ? 'success' : 'error'}
+        // PW-2591 — 일괄 승인에서 하나씩 승인할 사람을 남긴 안내는 주의(주황)다. 오류(빨강)로 바꾸지 않는다.
+        tone={toast?.type === 'success' || toast?.type === 'warning' ? toast.type : 'error'}
         data-testid="evrr-toast"
       />
       <header className="evc-header">
