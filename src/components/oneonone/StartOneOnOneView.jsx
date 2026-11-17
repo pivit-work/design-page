@@ -953,7 +953,9 @@ export default function StartOneOnOneView({
           {/* 매니저 관점 */}
           <div className="ono-start-section">
             <span className="ono-start-section-title">
-              {L.perspective}{anyAiGenerated ? L.perspectivePrivate : ''}
+              {/* 비공개 안내는 늘 보인다 — 기획 §4.1.4 · TC-1ON1-005 2단계 (PW-2937). 예전엔 AI 초안을
+                  받은 뒤에만 붙어, 손으로 쓰는 매니저는 멤버에게 안 보인다는 것을 몰랐다. */}
+              {L.perspective}{L.perspectivePrivate}
             </span>
             <div className="ono-start-mgr">
               {MGR_SECTIONS.map((sec) => {
