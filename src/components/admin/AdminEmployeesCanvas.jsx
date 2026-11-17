@@ -3687,7 +3687,10 @@ function EmployeesListView({
     el.focus();
     el.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
   });
-  const selectCell = (id, colId) => { pendingFocusRef.current = { id, colId }; };
+  /* 고를 칸만 적어 두면, 쪽·입력이 그대로일 때(저장 바 «틀린 칸 N개» 를 같은 쪽에서 누름) 다시 그려지지 않아 초점이 안 간다(PW-2954).
+     한 번 더 그리게 해 위 useLayoutEffect 가 돌게 한다. */
+  const [, bumpFocus] = useState(0);
+  const selectCell = (id, colId) => { pendingFocusRef.current = { id, colId }; bumpFocus((n) => n + 1); };
   /** 눌러서 열 수 있는 칸인가 — 키보드로 옮길 때 잠긴 칸은 건너뛴다(잠겼는데 고쳐지나 의심하지 않게). */
   function canOpen(m, colId) {
     const spec = te?.columns[colId];
