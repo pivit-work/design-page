@@ -1106,6 +1106,10 @@
   display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 99px;
   font-size: 12px; font-weight: 700; border: 1px solid transparent;
 }
+/* 초록·노랑 딱지의 둘레 선. onboarding.css 에 두면 이 파일을 다시 불러오는 회의·타임라인·1on1 CSS 가 그 뒤에
+ * 위 «투명 선»을 또 실어 선 색을 덮었다 — 같은 파일에서 바로 뒤에 둬야 어떤 순서로 실려도 이긴다 (pivit-work PW-2953) */
+.onb-badge-brand { background: var(--onb-brand-light); color: var(--onb-brand); border-color: var(--onb-brand-border); }
+.onb-badge-warning { background: var(--onb-warn-bg); color: var(--onb-warn); border-color: var(--onb-warn-border); }
 
 /* ── 태그 (시안 Tag) ── */
 .onb-tag {

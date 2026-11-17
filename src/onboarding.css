@@ -348,8 +348,7 @@
 .onb-notice-neutral { background: var(--onb-surface); border-color: var(--onb-border); color: var(--onb-sub); font-size: 12px; }
 .onb-notice-subtle { background: var(--onb-bg); border-color: var(--onb-border); color: var(--onb-sub); font-size: 13px; }
 .onb-notice-hero { padding: 32px 24px; border-radius: var(--onb-radius); border-width: 1.5px; text-align: center; }
-.onb-badge-brand { background: var(--onb-brand-light); color: var(--onb-brand); border-color: var(--onb-brand-border); }
-.onb-badge-warning { background: var(--onb-warn-bg); color: var(--onb-warn); border-color: var(--onb-warn-border); }
+/* 초록·노랑 딱지(.onb-badge-brand·-warning)는 status-badge.css 의 .onb-badge 바로 뒤에 있다 (pivit-work PW-2953) */
 
 /* ── 선택 버튼 격자 (시안 팀 규모·요청 플랜) ── */
 .onb-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
