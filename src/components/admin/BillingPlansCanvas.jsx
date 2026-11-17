@@ -244,21 +244,14 @@ function mergeLabels(provided) {
 
 // ── 공통 헬퍼 컴포넌트 ──────────────────────────────────────
 
+// 버튼은 공용 Button(디자이너 어드민 버튼과 같은 값)으로 그린다 (pivit-work PW-2938). 손으로 칠한 값을 두지 않는다.
+// 위험(danger)은 되돌릴 수 있는 자리라 흰 바탕 빨간 테두리(danger-ghost) — 전과 같은 생김새.
 function Btn({ children, onClick, kind = 'primary', disabled, fullWidth }) {
-  const styles = {
-    primary: { bg: T.accent, color: '#fff', border: 'transparent' },
-    secondary: { bg: '#fff', color: T.text, border: T.border },
-    danger: { bg: '#fff', color: T.red, border: '#FCA5A5' },
-    ghost: { bg: 'transparent', color: T.sub, border: 'transparent' },
-  }[kind];
   return (
-    <button type="button" onClick={disabled ? undefined : onClick} disabled={disabled}
-      style={{ fontFamily: T.font, fontSize: 14, fontWeight: 700,
-        padding: '10px 18px', borderRadius: 10, cursor: disabled ? 'not-allowed' : 'pointer',
-        background: styles.bg, color: styles.color, border: `1px solid ${styles.border}`,
-        opacity: disabled ? 0.5 : 1, width: fullWidth ? '100%' : undefined }}>
+    <Button variant={kind === 'danger' ? 'danger-ghost' : kind} onClick={onClick} disabled={disabled}
+      style={fullWidth ? { width: '100%' } : undefined}>
       {children}
-    </button>
+    </Button>
   );
 }
 

@@ -240,36 +240,22 @@ const FILTER_TABS = [
   { key: 'failed', statuses: ['void', 'uncollectible'], labelKey: 'failed' },
 ];
 
+// 버튼은 공용 Button(디자이너 어드민 버튼과 같은 값)으로 그린다 (pivit-work PW-2938). 손으로 칠한 값을 두지 않는다.
+// 결제사가 준 바깥 문서(href)는 같은 모양의 링크로 새 탭에서 연다 (pivit-work PW-2182) — 부품 클래스만 붙인다.
 function Btn({ children, onClick, kind = 'primary', disabled, size = 'md', href }) {
-  const styles = {
-    primary: { bg: T.accent, color: '#fff', border: 'transparent' },
-    secondary: { bg: '#fff', color: T.text, border: T.border },
-    ghost: { bg: 'transparent', color: T.accentText, border: 'transparent' },
-    danger: { bg: '#fff', color: T.red, border: '#FCA5A5' },
-  }[kind];
-  const pad = size === 'sm' ? '6px 12px' : '10px 18px';
-  const fz = size === 'sm' ? 13 : 14;
-  // 결제사가 준 바깥 문서는 같은 모양의 링크로 새 탭에서 연다 (pivit-work PW-2182)
+  const variant = kind === 'danger' ? 'danger-ghost' : kind;
   if (href) {
     return (
       <a href={href} target="_blank" rel="noopener noreferrer"
-        style={{ fontFamily: T.font, fontSize: fz, fontWeight: 700, display: 'inline-block',
-          // 옆 <button> 과 같은 높이가 되게 줄 높이를 버튼 기본값(normal)으로, 영어 문구가 꺾이지 않게 한 줄로
-          lineHeight: 'normal', whiteSpace: 'nowrap',
-          padding: pad, borderRadius: 10, textDecoration: 'none',
-          background: styles.bg, color: styles.color, border: `1px solid ${styles.border}` }}>
-        {children}
+        className={`dp-btn dp-btn--${variant} dp-btn--${size}`} style={{ textDecoration: 'none' }}>
+        <span className="dp-btn__label">{children}</span>
       </a>
     );
   }
   return (
-    <button type="button" onClick={disabled ? undefined : onClick} disabled={disabled}
-      style={{ fontFamily: T.font, fontSize: fz, fontWeight: 700,
-        padding: pad, borderRadius: 10, cursor: disabled ? 'not-allowed' : 'pointer',
-        background: styles.bg, color: styles.color, border: `1px solid ${styles.border}`,
-        opacity: disabled ? 0.45 : 1 }}>
+    <Button variant={variant} size={size} onClick={onClick} disabled={disabled}>
       {children}
-    </button>
+    </Button>
   );
 }
 

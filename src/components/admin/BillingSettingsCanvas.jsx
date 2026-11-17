@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import Button from '../shared/Button.jsx';
 import {
   BillingCard as Card,
   BillingBadge as Badge,
@@ -151,21 +152,14 @@ function formatBizRegNo(raw) {
 
 // ── 유틸리티 컴포넌트 ──────────────────────────────────────
 
+// 버튼은 공용 Button(디자이너 어드민 버튼과 같은 값)으로 그린다 (pivit-work PW-2938). 손으로 칠한 값을 두지 않는다.
+// «저장됨»(success)은 글자가 상태를 말하므로 주 버튼 모양 그대로. 위험(danger)은 danger-ghost.
 function Btn({ children, onClick, kind = 'primary', disabled }) {
-  const styles = {
-    primary: { bg: T.accent, color: '#fff', border: 'transparent' },
-    secondary: { bg: '#fff', color: T.text, border: T.border },
-    success: { bg: T.green, color: '#fff', border: 'transparent' },
-    danger: { bg: '#fff', color: T.red, border: '#FCA5A5' },
-  }[kind];
+  const variant = kind === 'success' ? 'primary' : kind === 'danger' ? 'danger-ghost' : kind;
   return (
-    <button type="button" onClick={disabled ? undefined : onClick} disabled={disabled}
-      style={{ fontFamily: T.font, fontSize: 14, fontWeight: 700,
-        padding: '10px 18px', borderRadius: 10, cursor: disabled ? 'not-allowed' : 'pointer',
-        background: styles.bg, color: styles.color, border: `1px solid ${styles.border}`,
-        opacity: disabled ? 0.5 : 1 }}>
+    <Button variant={variant} onClick={onClick} disabled={disabled}>
       {children}
-    </button>
+    </Button>
   );
 }
 

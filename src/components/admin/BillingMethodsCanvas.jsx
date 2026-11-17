@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
+import Button from '../shared/Button.jsx';
 import { BillingCard as Card, BillingBadge as Badge } from './kit/BillingSurface.jsx';
 import Skeleton from '../shared/Skeleton.jsx';
 import Spinner from '../shared/Spinner.jsx';
@@ -76,22 +77,15 @@ function mergeLabels(provided) {
   return { ...DEFAULT_LABELS, ...provided };
 }
 
+// 버튼은 공용 Button(디자이너 어드민 버튼과 같은 값)으로 그린다 (pivit-work PW-2938). 손으로 칠한 값을 두지 않는다.
+// 설명(꺼진 이유)은 공용 말풍선으로 — 꺼진 버튼이면 부품이 바깥을 둘러 거기서 받는다 (PW-1123)
+// [삭제](danger)는 확인 창을 먼저 여는 자리라 흰 바탕 빨간 테두리(danger-ghost) — 전과 같은 생김새.
 function Btn({ children, onClick, kind = 'primary', disabled, title }) {
-  const styles = {
-    primary: { bg: T.accent, color: '#fff', border: 'transparent' },
-    secondary: { bg: '#fff', color: T.text, border: T.border },
-    danger: { bg: '#fff', color: T.red, border: '#FCA5A5' },
-  }[kind];
-  // 설명(꺼진 이유)은 공용 말풍선으로 — 꺼진 버튼이면 부품이 바깥을 둘러 거기서 받는다 (PW-1123)
   return (
     <Tooltip content={title}>
-    <button type="button" onClick={disabled ? undefined : onClick} disabled={disabled}
-      style={{ fontFamily: T.font, fontSize: 14, fontWeight: 700,
-        padding: '10px 18px', borderRadius: 10, cursor: disabled ? 'not-allowed' : 'pointer',
-        background: styles.bg, color: styles.color, border: `1px solid ${styles.border}`,
-        opacity: disabled ? 0.5 : 1 }}>
-      {children}
-    </button>
+      <Button variant={kind === 'danger' ? 'danger-ghost' : kind} onClick={onClick} disabled={disabled}>
+        {children}
+      </Button>
     </Tooltip>
   );
 }
