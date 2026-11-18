@@ -5033,6 +5033,31 @@ function panelErrorOf(e) {
  * 값 자리의 세 상태를 회색으로 뭉개지 않는다. 「아무도 못 본다」(파기됨)와 「애초에 안
  * 적었다」(변경됨)는 원인이 달라서, 보는 사람이 다음에 할 수 있는 일도 다르다.
  */
+/* «이전 → 이후» 한 줄 — 이전 값의 끝 낱말 · 화살표 · 이후 값의 첫 낱말을 한 묶음(.admin-emp-hist-joint, 꺾지 않음)으로 둔다.
+   전화번호처럼 띄어쓰기 없는 값은 줄 전체가 한 묶음이라 칸이 그만큼 넓어지고, 긴 주소는 묶음 밖 띄어쓰기에서만 꺾인다.
+   화살표가 줄 끝·줄 처음에 혼자 남지 않는다(PW-3001 — 1280 에서 «010-… / → 010-…»). 글자는 그대로다. */
+function HistChange({ before, after }) {
+  const b = String(before);
+  const bi = b.lastIndexOf(' ');
+  const bHead = bi >= 0 ? b.slice(0, bi + 1) : '';
+  const bLast = bi >= 0 ? b.slice(bi + 1) : b;
+  const a = String(after);
+  const ai = a.indexOf(' ');
+  const aFirst = ai >= 0 ? a.slice(0, ai) : a;
+  const aTail = ai >= 0 ? a.slice(ai) : '';
+  return (
+    <>
+      {bHead && <span className="admin-emp-hist-before">{bHead}</span>}
+      <span className="admin-emp-hist-joint">
+        <span className="admin-emp-hist-before">{bLast}</span>
+        {' '}<span className="admin-emp-hist-arrow">→</span>{' '}
+        <span className="admin-emp-hist-after">{aFirst}</span>
+      </span>
+      {aTail && <span className="admin-emp-hist-after">{aTail}</span>}
+    </>
+  );
+}
+
 function PersonalHistoryList({
   state, labels, onRetry, field = 'all', onFieldChange, onLoadMore, moreLoading = false, moreFailed = false, asTable = false,
 }) {
@@ -5120,9 +5145,7 @@ function PersonalHistoryList({
             : h.state === 'withheld' ? L.historyWithheld
               : (
                 <>
-                  <span className="admin-emp-hist-before">{h.before || L.historyNone}</span>
-                  {' '}<span className="admin-emp-hist-arrow">→</span>{' '}
-                  <span className="admin-emp-hist-after">{afterText}</span>
+                  <HistChange before={h.before || L.historyNone} after={afterText} />
                 </>
               )}
         </div>

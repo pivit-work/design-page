@@ -1830,7 +1830,7 @@
 .admin-emp-hist-table { margin-bottom: var(--spacing-xl); }
 .admin-emp-hist-table .admin-emp-hist-when { white-space: nowrap; color: var(--text-subtle); }
 .admin-emp-hist-table .admin-emp-hist-field { font-weight: 600; color: var(--fg-primary); }
-.admin-emp-hist-table .admin-emp-hist-head { display: flex; align-items: center; gap: var(--spacing-sm); white-space: nowrap; }
+.admin-emp-hist-table .admin-emp-hist-head { display: flex; flex-wrap: nowrap; align-items: center; gap: var(--spacing-sm); white-space: nowrap; }
 /* 항목 · 바꾼 사람 · 바꾼 곳은 한 줄 — 좁은 폭(1280)에서 «휴대/폰» · «본/인»으로 꺾이지 않게 긴 값 칸이 폭을 양보한다 */
 .admin-emp-hist-table .admin-emp-hist-src { display: inline-block; width: max-content; white-space: nowrap; }
 .admin-emp-hist-table .admin-emp-hist-who { width: max-content; }
@@ -1838,6 +1838,10 @@
 /* 바뀐 값 — «이전 → 이후» 한 줄 14px · 이전 옅게 · 화살표 더 옅게 · 이후 진하게(정책서 §2-2 · PW-3001 시안 ①).
    보관·파기 같은 값 자리 글(is-change 없음)은 종전 크기 그대로 */
 .admin-emp-hist-table .admin-emp-hist-values.is-change { font-size: 14px; line-height: 20px; }
+/* «이전 끝 낱말 → 이후 첫 낱말»은 한 묶음 — 화살표 앞뒤에서 꺾지 않는다(PW-3001 리뷰 · 1280 휴대폰 줄).
+   긴 주소는 묶음 밖 띄어쓰기에서만 꺾는다(낱말은 쪼개지 않는다) */
+.admin-emp-hist-table .admin-emp-hist-values.is-change { word-break: keep-all; }
+.admin-emp-hist-table .admin-emp-hist-values.is-change .admin-emp-hist-joint { white-space: nowrap; }
 .admin-emp-hist-table .admin-emp-hist-before { color: var(--text-subtle); }
 .admin-emp-hist-table .admin-emp-hist-arrow { color: var(--text-quaternary); }
 .admin-emp-hist-table .admin-emp-hist-after { color: var(--fg-primary); font-weight: 600; }
