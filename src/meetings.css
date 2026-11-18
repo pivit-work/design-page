@@ -1867,7 +1867,7 @@ input.mtg-record-action-title::placeholder {
 /* 칸 오른쪽 아이콘 — 칸 안쪽 오른쪽 12, 흐린 회색 */
 .mtg-import-icon-input { position: relative; }
 /* 칸은 원온원 «1on1 추가» 창 칸(.ono-add-modal-input 높이 40 · r10 · 안쪽 8/12 — 칸 테두리 1 을 빼 위아래 7, 글자 .ono-add-modal-input-el 16/24) */
-.mtg-import-icon-input > input { box-sizing: border-box; min-height: 40px; height: 40px; padding: calc(var(--spacing-md) - var(--spacing-xxs) / 2) var(--spacing-5xl) calc(var(--spacing-md) - var(--spacing-xxs) / 2) var(--spacing-lg); border-radius: var(--radius-md); font-size: var(--font-size-text-md); line-height: var(--line-height-text-md); }
+.mtg-import-icon-input > input, .mtg-import-icon-input > .dp-date-anchor > input { box-sizing: border-box; min-height: 40px; height: 40px; padding: calc(var(--spacing-md) - var(--spacing-xxs) / 2) var(--spacing-5xl) calc(var(--spacing-md) - var(--spacing-xxs) / 2) var(--spacing-lg); border-radius: var(--radius-md); font-size: var(--font-size-text-md); line-height: var(--line-height-text-md); }
 .mtg-import-icon-input-glyph { position: absolute; right: var(--spacing-lg); top: 50%; transform: translateY(-50%); color: var(--text-tertiary); pointer-events: none; }
 /* 칸 아래 한 줄 — 12/18. 경고는 .login-warning 의 경고 토큰, 오류는 칸 오류 글(p.dp-field-error)과 같은 오류 토큰 */
 .mtg-import-hint { margin: 0; display: flex; align-items: flex-start; gap: var(--spacing-sm); font-size: 12px; line-height: 18px; color: var(--text-subtle); }

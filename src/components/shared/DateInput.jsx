@@ -34,6 +34,9 @@ import { isIsoDate, normalize } from './dateText.js';
  *   onRevert   (typed: string) => void — 칸을 떠날 때 친 값이 날짜가 아니어서 마지막 값으로
  *              되돌렸을 때 부른다. 되돌림은 말없이 일어나므로, 부르는 쪽이 그 사실을 칸 옆에
  *              알릴 때 쓴다 (PW-1698)
+ *   pickerPlacement  'auto'(기본) | 'below' — 달력을 늘 칸 아래에 연다(DatePicker placement). 'below' 면 칸과 달력을
+ *              위치 기준 상자(span.dp-date-anchor · block · relative)로 감싼다 — 달력이 그 상자 기준으로 붙어 창 안쪽
+ *              스크롤 칸과 함께 움직인다. 부르는 쪽이 `> input` 으로 칸을 칠했다면 `> .dp-date-anchor > input` 도 함께 (pivit-work PW-2992)
  *   ...rest    aria-label·data-testid·disabled·id·name 등은 칸에 그대로 붙는다
  */
 
@@ -44,6 +47,11 @@ const toDate = (iso) => {
 const toIso = (d) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
+
+/** placement="below" 달력이 칸 기준으로 붙을 위치 기준 상자. 'auto' 는 종전대로 감싸지 않는다(호출부의 `> input` 선택자가 그대로 맞게). */
+function Anchor({ below, children }) {
+  return below ? <span className="dp-date-anchor">{children}</span> : <>{children}</>;
+}
 
 export default function DateInput({
   value,
@@ -62,6 +70,7 @@ export default function DateInput({
   invalid,
   startView = 'day',
   onRevert,
+  pickerPlacement = 'auto',
   ...rest
 }) {
   // 이름표·오류 문구 틀(FormField) 안에 있으면 그 id·설명·틀림 표시를 받는다 (PW-1012).
@@ -121,7 +130,7 @@ export default function DateInput({
       : (todayDate ?? new Date());
 
   return (
-    <>
+    <Anchor below={pickerPlacement === 'below'}>
       <input
         {...rest}
         {...a11y}
@@ -155,6 +164,7 @@ export default function DateInput({
           labels={labels}
           today={todayDate}
           startView={startView}
+          placement={pickerPlacement}
           onSelect={(d) => {
             const iso = toIso(d);
             setDraft(iso);
@@ -164,6 +174,6 @@ export default function DateInput({
           onClose={() => setPicker(null)}
         />
       )}
-    </>
+    </Anchor>
   );
 }

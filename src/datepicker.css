@@ -22,6 +22,17 @@
   position: relative;
   z-index: auto;
 }
+/* 칸 바로 아래에 붙여 그린다(placement="below" · pivit-work PW-2992) — 모양은 그대로, 자리만 앵커 기준.
+   스크롤 칸 안에서 위로 뒤집혀 창 제목을 덮지 않게 한다. left·top 은 DatePicker 가 앵커 offset 으로 넣는다. */
+.dp-datepicker.is-below {
+  position: absolute;
+}
+/* DateInput pickerPlacement="below" 가 칸·달력을 감싸는 위치 기준 상자 — 없으면 칸을 감싼 상자에 position 이 없을 때
+   달력이 창 틀 기준으로 붙어 창 안쪽 스크롤 칸과 따로 논다 (pivit-work PW-2992 · 녹음 파일 올리기 창) */
+.dp-date-anchor {
+  display: block;
+  position: relative;
+}
 .dp-datepicker-content {
   display: flex;
   flex-direction: column;
