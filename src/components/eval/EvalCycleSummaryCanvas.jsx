@@ -2119,9 +2119,9 @@ export function gradeDistBounds(grades, { tail = 0 } = {}) {
   const graded = grades.filter((g) => g.count > 0 && g.pct > 0).map((g) => g.pct);
   const segs = tail > 0 ? [...graded, tail] : graded;
   const gradedTotal = graded.reduce((a, b) => a + b, 0);
-  if (gradedTotal === 0) return [];
   const total = segs.reduce((a, b) => a + b, 0);
-  const span = gradedTotal / total;
+  // 아무도 등급이 없는 빈 막대(대시보드)는 막대 폭 그대로 긋는다 — 위원회는 그때 부르지 않는다.
+  const span = gradedTotal > 0 ? gradedTotal / total : 1;
   const gaps = Math.max(segs.length - 1, 0);
   const r = (x) => Math.round(x * 10000) / 10000;
   const left = (pct, gapsBefore) => (gaps === 0
@@ -2139,7 +2139,8 @@ export function gradeDistBounds(grades, { tail = 0 } = {}) {
     let edge = null;
     for (let k = 0; k < graded.length - 1; k += 1) {
       const end = ((cum + segs[k]) / total) * 100;
-      if (Math.abs(end - pos) < 0.5) { edge = { end, gapsBefore: k + 0.5 }; break; }
+      // «같은 비율»은 등급 비율(분모 = 등급이 정해진 사람)로 0.5%p 안 — 미제출이 많아도 판정 폭이 넓어지지 않게
+      if (Math.abs(end / span - acc) < 0.5) { edge = { end, gapsBefore: k + 0.5 }; break; }
       if (end > pos) break;
       cum += segs[k];
       before = k + 1;
@@ -2178,8 +2179,8 @@ function GradeDistCells({ grades, L, showDeviation = false, testId }) {
             data-testid="evs-gd-seg"
           />
         ) : null))}
-        {bounds.map((b) => (
-          <span key={b.at} className="evs-gd-bound" style={{ left: b.left }} data-at={b.at} aria-hidden data-testid="evs-gd-bound" />
+        {bounds.map((b, i) => (
+          <span key={`${i}-${b.at}`} className="evs-gd-bound" style={{ left: b.left }} data-at={b.at} aria-hidden data-testid="evs-gd-bound" />
         ))}
       </div>
       <div className="evs-gd-cells">
@@ -2337,11 +2338,14 @@ function CalibDistributionBar({ rows, orderedGrades, L, total = rows.length, fil
             </Tooltip>
           )}
           {/* PW-1034 (09-25 (가)안 · 11-13 커트) — 대시보드 막대와 같은 권장 경계 점선. 회색 조각은 권장 분모 밖이라 그 앞에서 잰다. */}
-          {gradeDistBounds(
-            seg.map((g) => ({ count: g.count, pct: g.count, guidelinePct: g.recommendedPct ?? null })),
-            { tail: noGrade },
-          ).map((b) => (
-            <span key={b.at} className="evs-gd-bound" style={{ left: b.left }} data-at={b.at} aria-hidden data-testid="evs-gd-bound" />
+          {(graded > 0
+            ? gradeDistBounds(
+              seg.map((g) => ({ count: g.count, pct: g.count, guidelinePct: g.recommendedPct ?? null })),
+              { tail: noGrade },
+            )
+            : []
+          ).map((b, i) => (
+            <span key={`${i}-${b.at}`} className="evs-gd-bound" style={{ left: b.left }} data-at={b.at} aria-hidden data-testid="evs-gd-bound" />
           ))}
         </div>
       )}
