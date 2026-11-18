@@ -1841,7 +1841,7 @@
 /* «이전 끝 낱말 → 이후 첫 낱말»은 한 묶음 — 화살표 앞뒤에서 꺾지 않는다(PW-3001 리뷰 · 1280 휴대폰 줄).
    긴 주소는 묶음 밖 띄어쓰기에서만 꺾는다(낱말은 쪼개지 않는다) */
 /* 칸 폭은 휴대폰 한 줄(약 245px)까지만 넓힌다 — 긴 주소가 칸을 287px 로 넓혀 옆 «사유» 칸의 짧은 사유까지 꺾이던 것(PW-3001 리뷰) */
-.admin-emp-hist-table .admin-emp-hist-values.is-change { word-break: keep-all; overflow-wrap: anywhere; max-width: 18em; }
+.admin-emp-hist-table .admin-emp-hist-values.is-change { word-break: keep-all; max-width: 18em; }
 .admin-emp-hist-table .admin-emp-hist-values.is-change .admin-emp-hist-joint { white-space: nowrap; }
 .admin-emp-hist-table .admin-emp-hist-before { color: var(--text-subtle); }
 .admin-emp-hist-table .admin-emp-hist-arrow { color: var(--text-quaternary); }

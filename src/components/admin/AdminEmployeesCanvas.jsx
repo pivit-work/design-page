@@ -5036,6 +5036,16 @@ function panelErrorOf(e) {
 /* «이전 → 이후» 한 줄 — 이전 값의 끝 낱말 · 화살표 · 이후 값의 첫 낱말을 한 묶음(.admin-emp-hist-joint, 꺾지 않음)으로 둔다.
    전화번호처럼 띄어쓰기 없는 값은 줄 전체가 한 묶음이라 칸이 그만큼 넓어지고, 긴 주소는 묶음 밖 띄어쓰기에서만 꺾인다.
    화살표가 줄 끝·줄 처음에 혼자 남지 않는다(PW-3001 — 1280 에서 «010-… / → 010-…»). 글자는 그대로다. */
+function histEm(text) {
+  let em = 0;
+  for (const ch of text) {
+    if (/[\u1100-\u11ff\u3000-\u9fff\uac00-\ud7af\uff00-\uffef]/.test(ch)) em += 1;
+    else if (/[A-Z@mw%]/.test(ch)) em += 0.8;
+    else em += 0.55;
+  }
+  return em;
+}
+
 function HistChange({ before, after }) {
   const b = String(before).trim();
   const bi = b.lastIndexOf(' ');
@@ -5045,9 +5055,10 @@ function HistChange({ before, after }) {
   const ai = a.indexOf(' ');
   const aFirst = ai >= 0 ? a.slice(0, ai) : a;
   const aTail = ai >= 0 ? a.slice(ai) : '';
-  /* 묶음이 길면(이메일·슬랙 아이디처럼 띄어쓰기 없는 긴 값) 꺾지 않으면 칸을 넘어 옆 «사유» 글 위로 겹친다 —
-     그때는 묶지 않고 칸 안에서 꺾는다(.is-change overflow-wrap). 30자 = 휴대폰 «010-0000-0000 → 010-0000-0000» 29자가 드는 길이 */
-  const short = bLast.length + aFirst.length + 3 <= 30;
+  /* 묶음이 칸(.is-change max-width 18em)보다 넓으면(이메일·한글 주소처럼 띄어쓰기 없는 긴 값) 꺾지 않으면 옆 «사유» 글 위로
+     겹친다 — 그때는 묶지 않아 칸 안에서 꺾이게 둔다(.admin-emp-hist-values 의 overflow-wrap). 글자 폭을 넉넉히 어림해
+     17em 이하만 묶는다 — 한글·넓은 글자 1em·0.8em, 나머지 0.55em. 휴대폰 «010-0000-0000 → 010-0000-0000» ≈ 15.6em */
+  const short = histEm(`${bLast} → ${aFirst}`) <= 17;
   return (
     <>
       {bHead && <span className="admin-emp-hist-before">{bHead}</span>}
@@ -5148,7 +5159,7 @@ function PersonalHistoryList({
             : h.state === 'withheld' ? L.historyWithheld
               : (
                 <>
-                  <HistChange before={h.before || L.historyNone} after={afterText} />
+                  <HistChange before={h.before && h.before.trim() ? h.before : L.historyNone} after={afterText} />
                 </>
               )}
         </div>
