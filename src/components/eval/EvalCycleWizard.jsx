@@ -7178,27 +7178,32 @@ export default function EvalCycleWizard({
   /**
    * PW-2065 — 조직 확정. 고른 조직을 지금 칸 지문으로 확정하고, 그 결과 모든 조직이 확정되면 종전
    * 「확정」(전체 칸 · 서버)을 보낸다. 서버가 거절하면 조직 확정은 남기고 요약 바에서 다시 보낼 수 있다.
-   * [pivit-work PW-2976] 단 앱이 이미 알린 거절(이용 정지)이면 누르기 전으로 되돌린다 — 정지 안내는
-   * «버튼 하나만 막힐 때 — 화면을 바꾸지 않고 토스트»다(tier-gating §6.10). 그새 다른 조직을 확정했으면 두지 않는다.
+   * [pivit-work PW-2976] 전체 확정을 보내는 경우엔 조직 확정 표시를 서버 응답 뒤에 그린다(§5.13.11 «저장 뒤 조직별 확정
+   * 상태를 다시 그린다») — 먼저 그리면 기다리는 동안 «N / N»·막대 가득·«✓ 확정»이 거짓으로 보인다. 앱이 이미 알린 거절
+   * (이용 정지)이면 그리지 않는다 — «버튼 하나만 막힐 때 — 화면을 바꾸지 않고 토스트»(tier-gating §6.10). 기다리는 동안은
+   * 칸·규칙·기준이 잠겨 지문이 바뀌지 않는다.
    */
   const confirmLeaderGroups = (gids) => {
     // [pivit-work PW-2569] 부담 경고 기준 칸이 틀린 동안은 조직 확정도 하지 않는다 — 전체 확정이 말없이 멈췄다.
     if (!leaderLoadLimitOk(leaderLoadLimit)) return;
+    if (leaderConfirming) return;
     const at = new Date().toISOString();
-    const prev = leaderGroupConfirms;
-    const prevChangeKind = leaderChangeKind;
-    const next = { ...prev };
+    const next = { ...leaderGroupConfirms };
     gids.forEach((gid) => {
       next[gid] = { at, sig: leaderGroupSigOf(gid) };
     });
-    setLeaderGroupConfirms(next);
-    setLeaderChangeKind(null);
+    const draw = () => {
+      setLeaderGroupConfirms(next);
+      setLeaderChangeKind(null);
+    };
     const all = leaderGroups.every((g) => next[g.id]?.sig === leaderGroupSigOf(g.id));
-    if (!all || leaderConfirmed) return;
+    if (!all || leaderConfirmed) {
+      draw();
+      return;
+    }
+    // 일반 서버 실패는 종전대로 조직 확정을 남겨 요약 바에서 다시 보내게 한다(PW-2065).
     void confirmLeader().then((outcome) => {
-      if (outcome !== 'notified') return;
-      setLeaderGroupConfirms((cur) => (cur === next ? prev : cur));
-      setLeaderChangeKind((cur) => (cur === null ? prevChangeKind : cur));
+      if (outcome !== 'notified') draw();
     });
   };
   const confirmRemainingLeaderGroups = () => {
