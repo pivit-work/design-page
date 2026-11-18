@@ -560,8 +560,10 @@ a.onb-rc-link:hover { background: none; text-decoration: underline; }
 .onb-rc-fold-head { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-md); }
 .onb-rc-fold-title { font-size: 13px; font-weight: 700; color: var(--colors-foreground-fgPrimary); }
 .onb-rc-fold-note { margin-left: var(--spacing-xs); font-size: 12px; font-weight: 400; color: var(--text-subtle); }
-.onb-rc-fold .onb-rc-link { margin-left: 0; font-size: 12px; }
-.onb-rc-fold .onb-rc-links > .onb-rc-link + .onb-rc-link { margin-left: calc(var(--spacing-md) + var(--spacing-xxs)); }
+/* 칸 머리줄 [접기]/[펼치기]와 칸 글 아래 링크 줄만 12 · 왼쪽 0 — 칸 안 동의 줄의 문장 끝 링크([보기])는 그대로 6 띄운다 */
+.onb-rc-fold-head .onb-rc-link,
+.onb-rc-fold > .onb-rc-links > .onb-rc-link { margin-left: 0; font-size: 12px; }
+.onb-rc-fold > .onb-rc-links > .onb-rc-link + .onb-rc-link { margin-left: calc(var(--spacing-md) + var(--spacing-xxs)); }
 .onb-rc-box { margin: 0; padding: calc(var(--spacing-md) + var(--spacing-xxs)) calc(var(--spacing-lg) + var(--spacing-xxs)); border: 1px solid var(--border-secondary); border-radius: var(--radius-md); background: var(--bg-secondary); font-size: 12px; line-height: 19px; color: var(--text-secondary); overflow-wrap: anywhere; }
 /* 아래 버튼 줄 — [로그아웃]은 글자만큼, [동의하고 계속]이 남은 폭(.okr-cf-shell 의 [취소] flex none 선례) */
 .tl-group-modal-btn.onb-rc-shrink { flex: none; white-space: nowrap; }
