@@ -344,3 +344,10 @@
 .tl-slot-cross:not(:disabled):hover {
   background: var(--alpha-black-3);
 }
+/* 팝업 제목 옆 ‹ › — 옅은 판 안 바탕 없는 화살표, 올리면 흰 바탕 (DatePicker 달 넘김 화살표 · PW-2989 시안 D-1) */
+.dp-btn.tl-slot-daynav {
+  background: transparent;
+}
+.dp-btn.tl-slot-daynav:not(:disabled):hover {
+  background: var(--bg-quaternary);
+}
