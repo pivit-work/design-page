@@ -171,6 +171,16 @@ function blocksOf(n) {
   return n.blocks || (n.lines || []).map((l) => ({ text: [l] }));
 }
 
+/* 제목 없는 앰버 — 첫 조각이 제목이 되고, 그 묶음의 나머지 조각은 본문에 남긴다 */
+function titleFromFirst(blocks) {
+  const [first, ...others] = blocks;
+  if (!first) return { title: undefined, blocks: [] };
+  const title = first.lead ?? first.text?.[0];
+  const rest = first.lead ? { ...first, lead: undefined } : { ...first, text: (first.text || []).slice(1) };
+  const filled = (b) => b.lead || b.text?.length || b.muted?.length || b.items?.length;
+  return { title, blocks: [rest, ...others].filter(filled) };
+}
+
 /* 앰버는 하나씩, 이어 나오는 회색 안내는 한 상자에 — 순서는 그대로 둔다 */
 function groupNotices(notices) {
   const out = [];
@@ -184,8 +194,9 @@ function groupNotices(notices) {
 
 /* 섹션 3 보존 안내 — 일곱 문장을 «파기 · 분리 보관과 받는 법 · 급여 장부 · 설정 없음» 네 줄로.
    문장 수가 다르면(문구가 바뀌면) 문장마다 한 줄. */
-function retentionGroups(text) {
-  const s = splitSentences(text);
+function retentionGroups(text, vars) {
+  // 채우기 전 문구에서 나눈다 — 날짜 표기가 «2026. 11. 18.»로 바뀌어도 묶음이 갈리지 않게
+  const s = splitSentences(text).map((x) => fill(x, vars));
   if (s.length !== 7) return s.map((x) => ({ text: [x] }));
   const [taxLead, taxRest] = splitDash(s[4]);
   return [
@@ -196,10 +207,10 @@ function retentionGroups(text) {
   ];
 }
 
-function RetentionBox({ text }) {
+function RetentionBox({ text, vars }) {
   return (
     <div className="admin-offb-retain" data-testid="offboarding-retention">
-      {retentionGroups(text).map((g, i) => (
+      {retentionGroups(text, vars).map((g, i) => (
         <div key={i} className="admin-offb-retain-line">
           {g.lead && <span className="admin-offb-split-lead">{g.lead}</span>}
           {g.lead && g.text?.length ? ' ' : null}
@@ -354,14 +365,12 @@ function LeaveSettlement({ view, labels }) {
         </div>
       ) : (
         g.items.map((n) => {
-          const blocks = blocksOf(n);
-          // 제목 없는 한 줄 앰버는 그 줄이 제목이다
-          const title = n.title ?? blocks[0]?.text?.[0];
+          const { title, blocks } = n.title ? { title: n.title, blocks: blocksOf(n) } : titleFromFirst(blocksOf(n));
           return (
             <SplitWarn
               key={n.id}
               title={title}
-              blocks={n.title ? blocks : blocks.slice(1)}
+              blocks={blocks}
               testId={`offboarding-leave-notice-${n.id}`}
             />
           );
@@ -580,10 +589,11 @@ export default function AdminOffboardingCanvas({
 
   const areaLabel = (a) => labels.areas[a.id]?.label ?? a.id;
   // 경고 글 나누기(PW-2998) — 재확인: 첫 문장이 주황 제목 · 나머지 옅게 / 조직장: «… 의 리드입니다.» 진하게 · 후임 안내 보통
-  const [recheckHead, ...recheckRest] = splitSentences(
-    fill(labels.recheckNotice, { areas: recheckAreas.map(areaLabel).join(sep) }),
-  );
-  const [leaderLead, ...leaderRest] = splitSentences(fill(labels.effects.leaderOf, { names: leaderOf.join(sep) }));
+  // 문장은 채우기 «전» 문구에서 나눈다 — 조직 이름 · 영역 이름 안의 «. »에서 끊기지 않게
+  const [recheckHead, ...recheckRest] = splitSentences(labels.recheckNotice)
+    .map((x) => fill(x, { areas: recheckAreas.map(areaLabel).join(sep) }));
+  const [leaderLead, ...leaderRest] = splitSentences(labels.effects.leaderOf)
+    .map((x) => fill(x, { names: leaderOf.join(sep) }));
 
   const run = () => {
     if (!canRun || running) return;
@@ -836,7 +846,7 @@ export default function AdminOffboardingCanvas({
               <li key={e.id} data-testid={`offboarding-extra-effect-${e.id}`}>{e.text}</li>
             ))}
           </ul>
-          <RetentionBox text={fill(labels.effects.retention, dateVars)} />
+          <RetentionBox text={labels.effects.retention} vars={dateVars} />
           {folderHandoff && <FolderHandoff view={folderHandoff} />}
         </div>
       </Section>

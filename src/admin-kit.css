@@ -759,6 +759,10 @@
 .admin-kit-notice-title + .admin-offb-split-line { margin-top: 0; }
 .admin-offb-split-line:last-child { padding-bottom: 0; }
 .admin-offb-split-line.is-fix { gap: 0; line-height: 1.7; }
+/* 앰버 바탕(warning-50)은 어두운 화면에서도 밝은 크림이라, 상자 안 글은 모드에 따라 바뀌지 않는 회색 단계로 둔다 — 밝은 화면 값은 위와 같다 (PW-2998 적대적 리뷰) */
+.admin-offb-split .admin-offb-split-lead { color: var(--colors-grayNeutral-800); }
+.admin-offb-split .admin-offb-split-text { color: var(--colors-grayNeutral-600); }
+.admin-offb-split .admin-offb-split-muted { color: var(--colors-grayNeutral-400); }
 /* 제목 바로 아래 옅은 한 줄(«지금은 표시된 대로 실행됩니다.»)은 선 없이 붙인다 */
 .admin-kit-notice-title + .admin-offb-split-line.is-fix:last-child { margin-top: 0; padding-top: var(--spacing-xxs); border-top: 0; }
 /* 진한 첫 조각 = 시안 «text-strong»(#2c3744) — 앱 토큰은 fgPrimary */
