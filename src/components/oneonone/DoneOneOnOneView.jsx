@@ -1516,7 +1516,7 @@ function ShareControl({ shared, memberName, L, share, confirmedCount = null, unc
         </div>
         {share?.error && (
           <p className="ono-done-inline-error" role="alert" data-testid="ono-done-share-error">
-            {L.unshareFailed}
+            {typeof share.error === 'string' ? share.error : L.unshareFailed}
           </p>
         )}
       </div>
@@ -1577,7 +1577,7 @@ function ShareControl({ shared, memberName, L, share, confirmedCount = null, unc
         </div>
         {share?.error && (
           <p className="ono-done-inline-error" role="alert" data-testid="ono-done-share-error">
-            {L.shareFailed}
+            {typeof share.error === 'string' ? share.error : L.shareFailed}
           </p>
         )}
       </div>
