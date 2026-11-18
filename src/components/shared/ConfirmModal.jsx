@@ -39,6 +39,9 @@ import { createPortal } from 'react-dom';
  *   extraLabel, onExtra    취소와 확인 사이의 보조 버튼 하나 — 같은 자리에서 다른 길로 가는 창 (pivit-work PW-2576 «재입사로 진행»).
  *                          없으면 그리지 않는다. busy 일 때 함께 잠긴다
  *   extraTestId            보조 버튼의 data-testid
+ *   choices                본문이 고르기(라디오 칸 무리 + 안내 한 줄)인 창 — 제목 아래 16 을 띄우고 본문은 창 폭 전체를 쓴다
+ *                          (닫기 X 자리는 제목 줄에만). 기본 창은 본문을 «제목 아래 설명 한 줄»로 여겨 제목 바로 밑(2)에
+ *                          붙이고 X 자리 64 를 비워, 고르기 세 줄이 제목에 붙고 안내가 좁게 꺾였다 (pivit-work PW-2997 · 반복 일정 수정)
  *   zIndex                 막의 겹침 순서 (기본은 CSS 값)
  *   testId                 창의 data-testid (기본 'confirm-dialog')
  *   cancelTestId, confirmTestId  두 버튼의 data-testid (기본 'confirm-dialog-cancel' · 'confirm-dialog-confirm').
@@ -63,6 +66,7 @@ export default function ConfirmModal({
   confirmRef,
   closeOnEscape = true,
   hideClose = false,
+  choices = false,
   zIndex,
   testId = 'confirm-dialog',
   cancelTestId = 'confirm-dialog-cancel',
@@ -121,7 +125,7 @@ export default function ConfirmModal({
       data-testid="confirm-dialog-overlay"
     >
       <div
-        className="pw-confirm-modal"
+        className={choices ? 'pw-confirm-modal is-choices' : 'pw-confirm-modal'}
         role="dialog"
         aria-modal="true"
         aria-label={typeof title === 'string' ? title : undefined}

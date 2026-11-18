@@ -62,6 +62,25 @@
   padding-right: calc(var(--spacing-4xl) * 2 - var(--spacing-3xl));
 }
 
+/* 고르기 창(choices) — 본문이 라디오 칸 무리 + 안내 한 줄이다(pivit-work PW-2997 · 반복 일정 수정·삭제).
+   표 든 창과 같은 방식으로 닫기 X 자리는 제목 줄에만 두고 본문은 창 폭 전체를 쓴다 — 안내가 «…에서도 / 바뀌지»로 꺾이지 않는다.
+   제목과 고르기 사이는 16: 24 + 제목 24 + 16 = 64 라 첫 칸이 X(위 12 + 44 = 56) 밑에서 시작한다.
+   칸 무리·안내 사이 간격은 본문 쪽 Stack 이 띄운다. 폭 400 · 버튼 44 는 기본 창 그대로. */
+.pw-confirm-modal.is-choices .pw-confirm-header {
+  padding-right: var(--spacing-3xl);
+  gap: var(--spacing-xl);
+}
+
+.pw-confirm-modal.is-choices .pw-confirm-title {
+  padding-right: calc(var(--spacing-4xl) * 2 - var(--spacing-3xl));
+}
+
+/* 고를 수 없는 칸은 흐리게 — Radio 는 잠가도 모양이 그대로라 «반복 규칙을 바꾸면 «이 일정»은 흐려 고를 수 없다»
+   (타임라인 정책서 §7.8 D)가 화면에 안 드러났다. 체크박스 잠김(form-field.css .dp-check-input:disabled)과 같은 0.5. */
+.pw-confirm-modal.is-choices .dp-radio.is-disabled {
+  opacity: 0.5;
+}
+
 .pw-confirm-modal > .tl-group-modal-close {
   position: absolute;
   top: var(--spacing-lg);
