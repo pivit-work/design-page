@@ -49,6 +49,8 @@ const DEFAULT_LABELS = {
   liveColTarget: '대상자',
   liveColRound: '{{round}}차',
   liveSkipped: '건너뜀',
+  // PW-2784 A11 — 주 소속이 바뀌어 새 보고선에 사람이 없어 비운 칸(`cell.vacant`). «건너뜀»과 다르다.
+  liveVacant: '공석',
   liveNotStarted: '시작 전 {{date}}',
   liveNotStartedTip: '하향 리뷰 {{round}}차가 {{at}}에 시작됩니다. 그 전에는 평가자가 쓸 수 없습니다.',
   liveWaiting: '앞 차수 대기',
@@ -62,6 +64,7 @@ const DEFAULT_LABELS = {
   livePickEmpty: '검색 결과가 없습니다',
   liveSkip: '이 차수 건너뛰기',
   liveRestoreHint: '사람을 지정하면 이 차수를 되살립니다',
+  liveVacantHint: '사람을 지정하면 그 사람이 이 칸을 씁니다',
   liveLoadFailed: '하향 평가자를 불러오지 못했습니다',
   liveRetry: '다시 시도',
   liveEmpty: '하향 평가 대상자가 없습니다.',
@@ -337,7 +340,7 @@ export default function EvalLeaderAssignmentLiveSection({
     ) : null;
     const body = skipped ? (
       <span className="evc-la-name-row">
-        <span className="evc-la-muted">{L.liveSkipped}</span>
+        <span className="evc-la-muted">{c.vacant ? L.liveVacant : L.liveSkipped}</span>
         {chev}
       </span>
     ) : (
@@ -717,7 +720,9 @@ export default function EvalLeaderAssignmentLiveSection({
           aria-label={L.livePickSearch}
           data-testid="evmon-la-pop"
         >
-          {isLiveCellSkipped(openCell) && <span className="evc-la-pop-head">{L.liveRestoreHint}</span>}
+          {isLiveCellSkipped(openCell) && (
+            <span className="evc-la-pop-head">{openCell.vacant ? L.liveVacantHint : L.liveRestoreHint}</span>
+          )}
           <TextInput
             className="evc-input evc-la-pop-search"
             value={pickQuery}
