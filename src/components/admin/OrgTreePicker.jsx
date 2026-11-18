@@ -213,6 +213,12 @@ export default function OrgTreePicker({
   hideUnassigned = false,
   /** 안내 줄 아래 한 줄 더 — 여러 명 판의 대상 이름들 */
   descriptionExtra,
+  /**
+   * 부르는 쪽 요청이 도는 중(pivit-work PW-2959 «소속 일괄 이동»의 «옮기는 중…») — [취소]를 잠그고
+   * 닫기 X · Esc · 막 클릭을 받지 않는다(공용 창 틀 ModalShell `busy` 그대로). 기다리는 사이 창을 닫으면
+   * 서버가 거절한 사람과 사유를 보여 줄 자리가 없어진다(admin-spec §3.1-G-1 ③ E10 «창에 남는다»).
+   */
+  busy = false,
 }) {
   const labels = useMemo(() => ({ ...DEFAULT_LABELS, ...(providedLabels || {}) }), [providedLabels]);
   const tree = useMemo(() => buildOrgTree(units), [units]);
@@ -438,6 +444,7 @@ export default function OrgTreePicker({
       titleId="org-tree-picker-title"
       closeLabel={labels.close}
       onClose={() => onClose?.()}
+      busy={busy}
       zIndex={9999}
       className="adm-shell has-own-footer"
       bodyClassName="adm-shell-body"
@@ -533,6 +540,8 @@ export default function OrgTreePicker({
             <button
               type="button"
               className="tl-group-modal-btn tl-group-modal-btn-secondary"
+              disabled={busy || undefined}
+              data-testid="org-tree-picker-cancel"
               onClick={onClose}
             >
               {labels.cancel}
