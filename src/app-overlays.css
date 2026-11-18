@@ -87,6 +87,10 @@
   color: var(--colors-text-textBrandSecondary);
   font-weight: 500;
 }
+/* 다크 판에서는 textBrandSecondary(#2dbd82)가 고른 칸 바탕(#10774d)에 묻혀(약 2.3:1) 공용 칸 글자(textBrandPrimary #5af3b4) 그대로 둔다 — 시안 ①은 밝은 판만 정했다. */
+[data-theme="dark"] .pw-confirm-modal.is-choices .dp-radio--card.is-checked {
+  color: var(--colors-text-textBrandPrimary);
+}
 
 .pw-confirm-modal > .tl-group-modal-close {
   position: absolute;
