@@ -280,6 +280,7 @@
   color: var(--text-quaternary);
 }
 .dp-datepicker.is-flat[data-view='day'] .dp-datepicker-cell.is-selected {
+  color: var(--text-white);
   font-weight: 600;
 }
 .dp-datepicker.is-flat .dp-datepicker-cell.is-marked::after {
