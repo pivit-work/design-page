@@ -133,8 +133,9 @@ export default function MemberReportCard({
 
   const s = report.summary ?? {};
   const n = report.needs ?? {};
+  // 근거가 없어 AI 가 비운 칸은 «—» 로 보인다 (기획 시안 1on1-app.jsx «앞으로 필요한 것» placeholder · TC-1ON1-232 4 · PW-3074).
   const aiField = (title, value, key) => (
-    <MemberField key={key} title={title} size="sm" badge="ai" badgeLabels={L} ai inCard value={value} testId={`ono-my-report-${key}`} />
+    <MemberField key={key} title={title} size="sm" badge="ai" badgeLabels={L} ai inCard value={value} placeholder="—" testId={`ono-my-report-${key}`} />
   );
   return (
     <>
