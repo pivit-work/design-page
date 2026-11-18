@@ -18,6 +18,7 @@ import { IconDownload, IconUpload, IconX } from '../employeesIcons.jsx';
 import SearchSelect from '../../shared/SearchSelect.jsx';
 import StatusBadge from '../../shared/StatusBadge.jsx';
 import Tooltip from '../../shared/Tooltip.jsx';
+import { FileTextGlyph } from '../../shared/lineIcons.jsx';
 import RosterTable from '../../shared/RosterTable.jsx';
 
 const cx = (...xs) => xs.filter(Boolean).join(' ');
@@ -189,7 +190,11 @@ export function AdminNotice({ tone = 'neutral', icon, title, children, testId, r
 /**
  * 파일 끌어놓기 영역 — 초대 창 CSV 탭 모양. label 로 감싸 클릭·끌어놓기가 같은 input 을 쓴다.
  * testId(바깥 label) · inputTestId(파일 input) · disabled(분석 중 등 — input 을 끈다)는 선택.
+ * 개발 추가(pivit-work PW-2992) — className(창 전용 모양) · error(형식 오류 — 빨간 점선) · picked(파일을 고른 뒤 —
+ * 문서 아이콘 · 이름 · 바꾸기 글자를 한 줄로). 셋 다 안 주면 지금 모양 그대로다.
  */
+const PICKED_GLYPH = { focusable: false, 'aria-hidden': true };
+
 export function CsvDropZone({
   dragging = false,
   title,
@@ -203,10 +208,13 @@ export function CsvDropZone({
   disabled = false,
   testId,
   inputTestId,
+  className,
+  error = false,
+  picked = false,
 }) {
   return (
     <label
-      className={cx('admin-inv-drop', 'admin-kit-drop', dragging && 'is-over')}
+      className={cx('admin-inv-drop', 'admin-kit-drop', dragging && 'is-over', error && 'is-error', picked && 'is-picked', className)}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
@@ -223,7 +231,7 @@ export function CsvDropZone({
         data-testid={inputTestId}
         onChange={onFileChange}
       />
-      <IconUpload size={22} />
+      {picked ? <FileTextGlyph size={18} {...PICKED_GLYPH} /> : <IconUpload size={22} />}
       <span className="admin-inv-drop-title">{title}</span>
       {hint && <span className="admin-inv-hint">{hint}</span>}
     </label>

@@ -1851,3 +1851,51 @@ input.mtg-record-action-title::placeholder {
   text-align: center;
   overflow-wrap: anywhere;
 }
+
+/* ══ 외부 전사 가져오기 창 안쪽 (개발 추가 · pivit-work PW-2992 · design-review) ══
+   창 틀은 디자이너 «그룹 추가» 창(.tl-group-modal) 그대로. 안쪽 칸은 커트가 11-18 검토한 시안을 따르고,
+   값은 이미 있는 디자이너 부품에서 가져왔다 — 부품마다 출처를 적는다. 부품은 components/meetings/TranscriptImportParts.jsx */
+/* 이름표 옆 작은 글 — 칸 안내 글(.dp-field-hint)의 흐린 회색, 이름표와 한 줄 */
+.mtg-import-label-note { margin-left: var(--spacing-sm); font-size: 13px; font-weight: 400; line-height: 20px; color: var(--text-tertiary); }
+/* 칩 — 32 높이 · r8 · 옅은 테두리, 고른 칩은 브랜드 연초록(상태 칩 .dp-chip.is-selected 의 바탕·글자 토큰) */
+.mtg-import-chips { display: flex; flex-wrap: wrap; gap: var(--spacing-sm); }
+.mtg-import-chip.dp-btn { height: 32px; min-height: 32px; padding: 0 var(--spacing-lg); border-radius: var(--radius-sm); border: 1px solid var(--border-secondary); background: var(--bg-quaternary); color: var(--text-secondary); font-size: 13px; font-weight: 600; line-height: 18px; box-shadow: none; }
+.mtg-import-chip.dp-btn:hover:not(:disabled):not(.is-on) { background: var(--bg-secondary); }
+.mtg-import-chip.dp-btn.is-on { background: var(--bg-brand-secondary); border-color: transparent; color: var(--text-brand-secondary); }
+/* 두 칸 한 줄 — 뒤 칸(시작 시각)은 150 */
+.mtg-import-row > :last-child { flex: 0 0 150px; }
+/* 칸 오른쪽 아이콘 — 칸 안쪽 오른쪽 12, 흐린 회색 */
+.mtg-import-icon-input { position: relative; }
+/* 글자는 원온원 «1on1 추가» 창 칸 글자(.ono-add-modal-input-el 16/24) */
+.mtg-import-icon-input > input { padding-right: var(--spacing-5xl); font-size: var(--font-size-text-md); line-height: var(--line-height-text-md); }
+.mtg-import-icon-input-glyph { position: absolute; right: var(--spacing-lg); top: 50%; transform: translateY(-50%); color: var(--text-tertiary); pointer-events: none; }
+/* 칸 아래 한 줄 — 12/18. 경고는 .login-warning 의 경고 토큰, 오류는 칸 오류 글(p.dp-field-error)과 같은 오류 토큰 */
+.mtg-import-hint { margin: 0; display: flex; align-items: flex-start; gap: var(--spacing-sm); font-size: 12px; line-height: 18px; color: var(--text-subtle); }
+.mtg-import-hint > svg { margin-top: var(--spacing-xxs); flex-shrink: 0; }
+.mtg-import-hint.is-warning { color: var(--text-warning-primary); font-weight: 500; }
+.mtg-import-hint.is-error { color: var(--text-error-primary); font-weight: 500; }
+/* 끌어 놓기 칸 — 이 창에서는 안쪽 28/16 · 제목 14/600 · 안내 12 */
+.mtg-import-drop.admin-kit-drop { padding: calc(var(--spacing-3xl) + var(--spacing-xs)) var(--spacing-xl); }
+.mtg-import-drop .admin-inv-drop-title { color: var(--text-primary); overflow-wrap: anywhere; }
+.mtg-import-drop .admin-inv-hint { font-size: 12px; color: var(--text-subtle); }
+/* 형식 오류 — 빨간 점선 + 옅은 오류 바탕 */
+.mtg-import-drop.is-error { border-color: var(--colors-border-borderError); background: var(--bg-error-primary); }
+/* 파일을 고른 뒤 — 문서 아이콘 · 이름 · [다른 파일 고르기] 한 줄, 바꾸기 글자는 브랜드 글자 링크(.login-link.is-legal 굵기) */
+.mtg-import-drop.is-picked { flex-direction: row; justify-content: center; gap: var(--spacing-md); padding: calc(var(--spacing-xl) + var(--spacing-xxs)) var(--spacing-xl); }
+.mtg-import-drop.is-picked .admin-inv-drop-title { min-width: 0; }
+.mtg-import-drop.is-picked .admin-inv-hint { flex-shrink: 0; font-size: 13px; font-weight: 600; color: var(--text-brand-tertiary); white-space: nowrap; }
+/* 20px 체크 — 회의록 공유 창 체크(.mtg-share-checkbox) 값 */
+.mtg-modal-check { position: relative; display: inline-grid; place-items: center; width: 20px; height: 20px; flex-shrink: 0; margin-top: calc(var(--spacing-xxs) / 2); }
+.mtg-modal-check-input { appearance: none; -webkit-appearance: none; margin: 0; width: 20px; height: 20px; border: 1.5px solid var(--colors-border-borderSecondary); border-radius: var(--radius-xs); background: var(--bg-quaternary); cursor: pointer; transition: background 0.15s ease, border-color 0.15s ease; }
+.mtg-modal-check-input:checked { background: var(--colors-foreground-fgBrandPrimary); border-color: var(--colors-foreground-fgBrandPrimary); }
+.mtg-modal-check-input:focus-visible { outline: 2px solid var(--bg-brand-solid); outline-offset: 2px; }
+.mtg-modal-check-input:disabled { cursor: not-allowed; opacity: 0.5; }
+.mtg-modal-check-mark { position: absolute; color: var(--text-white); pointer-events: none; }
+/* 회색 동의 칸 — 안내 상자(.login-notice)의 alpha-black-3 · r10, 굵은 첫 줄 14/20 + 둘째 줄 12/18 */
+.mtg-import-agree { display: flex; align-items: flex-start; gap: calc(var(--spacing-md) + var(--spacing-xxs)); padding: calc(var(--spacing-lg) + var(--spacing-xxs)) var(--spacing-xl); border-radius: var(--radius-md); background: var(--alpha-black-3); }
+.mtg-import-agree-text { display: flex; flex-direction: column; gap: var(--spacing-xxs); min-width: 0; cursor: pointer; }
+.mtg-import-agree-title { font-size: 14px; line-height: 20px; font-weight: 600; color: var(--colors-foreground-fgPrimary); }
+.mtg-import-agree-sub { font-size: 12px; line-height: 18px; color: var(--text-subtle); }
+/* 창 높이는 내용만큼(최대 화면−48) — «그룹 추가» 창(.tl-group-modal)의 고정 높이 428 대신. 본문만 스크롤, 아래 버튼 줄은 제자리 */
+.tl-group-modal.mtg-import-shell { height: auto; max-height: calc(100vh - 48px); }
+.tl-group-modal.mtg-import-shell .tl-group-modal-content { overflow-y: auto; padding-bottom: var(--spacing-3xl); }

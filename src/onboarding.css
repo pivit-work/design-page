@@ -530,3 +530,40 @@
   .tl-group-modal.mtg-shell.bnda-owner-shell .tl-group-modal-content { padding: 0 24px 32px; }
   .tl-group-modal.mtg-shell.bnda-owner-shell .tl-group-modal-actions { padding: 24px; }
 }
+
+/* ══ 약관 재동의 창 안쪽 (개발 추가 · pivit-work PW-2992 · design-review) ══
+   창 틀은 디자이너 «그룹 추가» 창 그대로. 안쪽은 커트가 11-18 검토한 시안 B1~B3 값 — 체크는 .mtg-share-checkbox(ModalCheck),
+   링크는 가입 약관 링크(.login-link.is-legal)의 brand 600, 접는 칸은 안내 상자(.login-notice)처럼 머리줄 오른쪽 링크.
+   부품은 components/onboarding/ReconsentParts.jsx · 가입 화면은 쓰지 않는다 */
+.onb-rc-row { display: flex; align-items: flex-start; gap: calc(var(--spacing-md) + var(--spacing-xxs)); font-size: 14px; line-height: 22px; color: var(--text-primary); }
+.onb-rc-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--spacing-xxs); }
+/* 아래 단계 줄(광고성 정보 └ 이메일)은 줄 사이 12 */
+.onb-rc-text > .onb-rc-row { margin-top: calc(var(--spacing-lg) - var(--spacing-xxs)); }
+.onb-rc-label { cursor: pointer; overflow-wrap: anywhere; }
+.onb-rc-label b { font-weight: 700; color: var(--colors-foreground-fgPrimary); }
+.onb-rc-links { display: inline; }
+.onb-rc-link.dp-btn,
+a.onb-rc-link { display: inline; min-height: 0; height: auto; padding: 0; margin-left: var(--spacing-sm); border: none; background: none; box-shadow: none; font-family: inherit; font-size: 13px; font-weight: 600; line-height: inherit; color: var(--text-brand-tertiary); text-decoration: none; white-space: nowrap; cursor: pointer; vertical-align: baseline; }
+.onb-rc-links > .onb-rc-link + .onb-rc-link { margin-left: var(--spacing-md); }
+.onb-rc-link.dp-btn:hover:not(:disabled),
+a.onb-rc-link:hover { background: none; text-decoration: underline; }
+.onb-rc-text-line { margin: 0; font-size: 12px; line-height: 18px; color: var(--text-subtle); overflow-wrap: anywhere; }
+.onb-rc-text-line .onb-rc-link { font-size: 12px; margin-left: var(--spacing-xxs); }
+.onb-rc-text-line.is-error { color: var(--text-error-primary); }
+/* 고지 칸 안 글 — 칸 글자(12/19 text-secondary) */
+.onb-rc-text-line.is-note { line-height: 19px; color: var(--text-secondary); }
+.onb-rc-text-line.is-body { font-size: 13px; line-height: 20px; color: var(--text-secondary); }
+.onb-rc-text-line.is-body .onb-rc-link { font-size: 13px; margin-left: var(--spacing-xs); }
+.onb-rc-section { display: flex; flex-direction: column; gap: var(--spacing-lg); padding-top: var(--spacing-2xl); border-top: 1px solid var(--border-secondary); }
+.onb-rc-divider { margin: 0; border: none; border-top: 1px solid var(--border-secondary); }
+.onb-rc-fold { display: flex; flex-direction: column; gap: var(--spacing-sm); padding: var(--spacing-lg) var(--spacing-xl); border: 1px solid var(--border-secondary); border-radius: var(--radius-md); background: var(--bg-secondary); font-size: 12px; line-height: 19px; color: var(--text-secondary); }
+.onb-rc-fold-head { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-md); }
+.onb-rc-fold-title { font-size: 13px; font-weight: 700; color: var(--colors-foreground-fgPrimary); }
+.onb-rc-fold-note { margin-left: var(--spacing-xs); font-size: 12px; font-weight: 400; color: var(--text-subtle); }
+.onb-rc-fold .onb-rc-link { margin-left: 0; font-size: 12px; }
+.onb-rc-fold .onb-rc-links > .onb-rc-link + .onb-rc-link { margin-left: calc(var(--spacing-md) + var(--spacing-xxs)); }
+.onb-rc-box { margin: 0; padding: calc(var(--spacing-md) + var(--spacing-xxs)) calc(var(--spacing-lg) + var(--spacing-xxs)); border: 1px solid var(--border-secondary); border-radius: var(--radius-md); background: var(--bg-secondary); font-size: 12px; line-height: 19px; color: var(--text-secondary); overflow-wrap: anywhere; }
+/* 아래 버튼 줄 — [로그아웃]은 글자만큼, [동의하고 계속]이 남은 폭(.okr-cf-shell 의 [취소] flex none 선례) */
+.tl-group-modal-btn.onb-rc-shrink { flex: none; white-space: nowrap; }
+/* 창 — 앱 창 틀(.mtg-shell 560)에 «그룹 추가» 창의 머리↔본문 48 을 되살리고 본문 아래 24 */
+.tl-group-modal.mtg-shell.onb-rc-shell .tl-group-modal-content { gap: calc(var(--spacing-4xl) + var(--spacing-xl)); padding-bottom: var(--spacing-3xl); }
