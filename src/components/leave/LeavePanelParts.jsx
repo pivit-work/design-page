@@ -179,7 +179,7 @@ export function LeaveCalendarGuide({ guide, legend, empty, testId, legendTestId,
     <div className="lv-cal-guide">
       {guide && (
         <span className="lv-cal-guide" data-testid={testId}>
-          <span className="lv-cal-guide-t">{head}</span>
+          <span>{head}</span>
           {split && (
             <span className="lv-cal-legend" data-testid={legendTestId}>
               <span className="lv-cal-legend-chip" aria-hidden="true" />

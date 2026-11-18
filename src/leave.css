@@ -759,9 +759,9 @@ div.dp-field.lv-bal-fr > .dp-field-hint { font-size: 12px; line-height: 18px; co
 .lv-set-mbody { display: flex; flex-direction: column; }
 
 /* 갈래 고르기 가로 알약 — 디자이너 «이벤트 추가» 창 .tl-event-radio-pill 값(36 높이 · 모서리 8 · 고르면 브랜드 옅은 바탕) */
-.lv-set-pills { display: flex; flex-wrap: wrap; gap: var(--spacing-md); }
-.lv-set-pills.is-col { flex-direction: column; align-items: flex-start; }
-.dp-radio.lv-set-pill {
+.lv-set-opts { display: flex; flex-wrap: wrap; gap: var(--spacing-md); }
+.lv-set-opts.is-col { flex-direction: column; align-items: flex-start; }
+.dp-radio.lv-set-opt {
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-md);
@@ -775,8 +775,8 @@ div.dp-field.lv-bal-fr > .dp-field-hint { font-size: 12px; line-height: 18px; co
   color: var(--text-secondary);
   white-space: nowrap;
 }
-.dp-radio.lv-set-pill.is-checked { background: var(--bg-brand-secondary); color: var(--text-brand-secondary); font-weight: 600; }
-.dp-radio.lv-set-pill.is-disabled { opacity: 0.5; }
+.dp-radio.lv-set-opt.is-checked { background: var(--bg-brand-secondary); color: var(--text-brand-secondary); font-weight: 600; }
+.dp-radio.lv-set-opt.is-disabled { opacity: 0.5; }
 /* 고른 칸 아래 설명 — 동그라미 + 간격만큼 들여 쓴다(시안 .opt-h) */
 .lv-set-opt-h { margin: calc(-1 * var(--spacing-xxs)) 0 var(--spacing-xxs) calc(var(--spacing-3xl) + var(--spacing-lg)); font-size: 12px; line-height: 18px; color: var(--text-subtle); }
 
@@ -960,7 +960,7 @@ div.dp-field.lv-bal-fr > .dp-field-hint { font-size: 12px; line-height: 18px; co
 /* 맨 위 안내 줄(lv-tip 등 묶음 아닌 줄) 바로 다음 묶음 — 선이 안내 글에 붙지 않게 위 여백(시안 .ms 선 위 여백 8 이상) */
 .lv-set-mbody > :not(.adm-hr-section) + .adm-hr-section { margin-top: var(--spacing-lg); }
 /* 알약 줄 사이에 끼는 «N개월 안» 문장 줄 · 설명은 한 줄을 다 쓴다 */
-.lv-set-pills:not(.is-col) > :not(.dp-radio):not(.dp-tip-wrap) { flex-basis: 100%; }
+.lv-set-opts:not(.is-col) > :not(.dp-radio):not(.dp-tip-wrap) { flex-basis: 100%; }
 /* 정산 창 기준 라디오 — 읽기 상태(누를 수 없음)는 옅게, 바꾸기 상태는 보통 진하기(시안 A2 ④ · design-page Radio is-disabled) */
 .lv-ms .dp-radio.is-disabled .dp-radio-label { font-weight: 500; color: var(--text-tertiary); }
 /* 칸 줄 안 날짜 · 글 칸 — 디자이너 창 입력 칸(.tl-group-modal-input: 40 · r10 · 3% 회색 필 · 테두리 없음 · 14) · 라디오 글 14 */
