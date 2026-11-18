@@ -5037,18 +5037,21 @@ function panelErrorOf(e) {
    전화번호처럼 띄어쓰기 없는 값은 줄 전체가 한 묶음이라 칸이 그만큼 넓어지고, 긴 주소는 묶음 밖 띄어쓰기에서만 꺾인다.
    화살표가 줄 끝·줄 처음에 혼자 남지 않는다(PW-3001 — 1280 에서 «010-… / → 010-…»). 글자는 그대로다. */
 function HistChange({ before, after }) {
-  const b = String(before);
+  const b = String(before).trim();
   const bi = b.lastIndexOf(' ');
   const bHead = bi >= 0 ? b.slice(0, bi + 1) : '';
   const bLast = bi >= 0 ? b.slice(bi + 1) : b;
-  const a = String(after);
+  const a = String(after).trim();
   const ai = a.indexOf(' ');
   const aFirst = ai >= 0 ? a.slice(0, ai) : a;
   const aTail = ai >= 0 ? a.slice(ai) : '';
+  /* 묶음이 길면(이메일·슬랙 아이디처럼 띄어쓰기 없는 긴 값) 꺾지 않으면 칸을 넘어 옆 «사유» 글 위로 겹친다 —
+     그때는 묶지 않고 칸 안에서 꺾는다(.is-change overflow-wrap). 30자 = 휴대폰 «010-0000-0000 → 010-0000-0000» 29자가 드는 길이 */
+  const short = bLast.length + aFirst.length + 3 <= 30;
   return (
     <>
       {bHead && <span className="admin-emp-hist-before">{bHead}</span>}
-      <span className="admin-emp-hist-joint">
+      <span className={short ? 'admin-emp-hist-joint' : undefined}>
         <span className="admin-emp-hist-before">{bLast}</span>
         {' '}<span className="admin-emp-hist-arrow">→</span>{' '}
         <span className="admin-emp-hist-after">{aFirst}</span>
@@ -5186,7 +5189,7 @@ function PersonalHistoryList({
               if (col.key === 'when') return <span className="admin-emp-hist-when">{h.changedAt}</span>;
               if (col.key === 'field') return <span className="admin-emp-hist-head">{p.field}{p.kindChips}</span>;
               if (col.key === 'value') return p.values;
-              if (col.key === 'reason') return h.reason ? <span className="admin-emp-hist-reason-cell">{h.reason}</span> : null;
+              if (col.key === 'reason') return h.reason && h.reason.trim() ? <span className="admin-emp-hist-reason-cell">{h.reason.trim()}</span> : null;
               if (col.key === 'who') return p.who;
               return <span className="admin-emp-hist-src">{p.source}</span>;
             }}
