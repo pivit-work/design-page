@@ -676,7 +676,7 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
             고르는 칸은 위 «잡아 둔 1on1» 과 같은 라디오 칸 목록, 회색 안내는 이 창의 안내 줄. */}
         {scope && (
           <Field label={scope.title} group>
-            <div className="ono-add-modal-choice-list">
+            <div className="ono-add-modal-choice-list is-scope">
               {scope.options.map(([key, label]) => (
                 <Radio
                   key={key}

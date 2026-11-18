@@ -1295,6 +1295,15 @@
   flex-direction: column;
   gap: var(--spacing-lg);
 }
+/* 반복 회차 «어디까지 바꿀까요?» — 타임라인 반복 일정 고르기 창(app-overlays.css .is-choices)과 같은 칸:
+   줄 사이 8 · 고른 칸 글자 브랜드 초록 500 (pivit-work PW-2997 시안 ①). «잡아 둔 1on1» 목록은 그대로 12. */
+.ono-add-modal-choice-list.is-scope {
+  gap: var(--spacing-md);
+}
+.ono-add-modal-choice-list.is-scope .dp-radio--card.is-checked {
+  color: var(--colors-text-textBrandSecondary);
+  font-weight: 500;
+}
 .ono-add-modal-choice {
   display: flex;
   flex-direction: column;

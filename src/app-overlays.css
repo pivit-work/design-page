@@ -81,6 +81,13 @@
   opacity: 0.5;
 }
 
+/* 고른 칸 글자 — 시안 ①(pivit-work PW-2997)은 일정 수정 창 «회의 · 집중작업» 칩처럼 브랜드 초록(textBrandSecondary) · 굵기 500.
+   공용 Radio 칸(form-field.css)의 고른 글자는 더 어두운 textBrandPrimary · 400 이라, 다른 화면은 두고 이 고르기 창에서만 맞춘다. */
+.pw-confirm-modal.is-choices .dp-radio--card.is-checked {
+  color: var(--colors-text-textBrandSecondary);
+  font-weight: 500;
+}
+
 .pw-confirm-modal > .tl-group-modal-close {
   position: absolute;
   top: var(--spacing-lg);
