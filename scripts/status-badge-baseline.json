@@ -2542,6 +2542,10 @@
    "font-weight": "600",
    "background": "#f1fffa / 어두운 화면 #2dbd82",
    "color": "#10774d / 어두운 화면 #2dbd82"
+  },
+  "admin-kit.css|.admin-offb-graybox .admin-pill.dp-badge--tone-neutral": {
+   "background": "rgba(0, 0, 0, 0.03) / 어두운 화면 rgba(255, 255, 255, 0.03)",
+   "color": "#858b95"
   }
  }
 }

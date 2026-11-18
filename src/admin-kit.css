@@ -793,8 +793,8 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
-  /* 칸 안 딱지(.admin-pill 22px)가 줄을 키우므로 위아래를 줄여 시안 줄 높이 35 에 맞춘다 */
-  padding: var(--spacing-xs) 0;
+  /* 딱지 22 + 위아래 6 + 점선 1 = 시안 줄 높이 35 */
+  padding: var(--spacing-sm) 0;
   border-top: 1px dashed var(--border-secondary);
   line-height: var(--line-height-text-xs);
   white-space: nowrap;
@@ -803,6 +803,13 @@
 .admin-offb-split-cell.is-name { font-weight: 600; color: var(--colors-foreground-fgPrimary); white-space: normal; overflow-wrap: anywhere; }
 .admin-offb-split-cell.is-range { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
 .admin-offb-split-cell.is-days { justify-content: flex-end; color: var(--colors-foreground-fgPrimary); font-variant-numeric: tabular-nums; }
+/* 딱지는 둘레 글의 줄 높이를 물려받지 않고 한 높이(22 — 디자이너 팀 관리 «활성» 딱지와 같음)로 (PW-2998 리뷰) */
+.admin-offb .admin-pill { line-height: normal; }
+/* 회색 상자 위 회색 딱지는 바탕이 상자와 같아 사라진다 — 시안 회색 딱지(옅은 검정 바탕 · text-subtle)로 */
+.admin-offb-graybox .admin-pill.dp-badge--tone-neutral {
+  background: var(--componentColors-alpha-alphaBlack3);
+  color: var(--text-subtle);
+}
 /* 섹션 2 설명 세 줄 — 첫 줄 진하게 · 끝 줄 옅게 */
 .admin-offb-section-desc.is-split { display: flex; flex-direction: column; gap: var(--spacing-xxs); }
 .admin-offb-section-desc.is-split .is-lead { font-weight: 600; color: var(--text-primary); }
