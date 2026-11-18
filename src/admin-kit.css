@@ -696,12 +696,13 @@
   gap: var(--spacing-lg);
 }
 .admin-offb-leave-head { display: flex; align-items: center; gap: var(--spacing-md); flex-wrap: wrap; }
+/* «휴가 정산» · «맡은 폴더» 머리 — 13px 진한 글(PW-2998 시안 · 아래 진한 조각과 같은 색) */
 .admin-offb-leave-title {
   font-family: var(--font-family-body);
   font-weight: 700;
-  font-size: var(--font-size-text-sm);
+  font-size: 13px;
   line-height: var(--line-height-text-sm);
-  color: var(--text-secondary);
+  color: var(--colors-foreground-fgPrimary);
 }
 .admin-offb-leave-basis {
   margin-left: auto;
@@ -744,23 +745,24 @@
 .admin-offb-leave-note.is-warning { color: var(--colors-warning-600); }
 /* 글 나누기 (PW-2998 · 커트 11-18 시안 worklog/offboarding-designer-2026-11-17) — 글은 그대로, 마침표 · « — » 자리에서 줄만 나눈다.
    진한 첫 조각 · 보통 글 · 옅은 «고치는 법» · 줄 사이 가는 선. 상자는 같은 창 admin-kit-notice 앰버/회색 값 그대로 */
-.admin-offb-split { color: var(--text-primary); }
-.admin-offb-split .admin-kit-notice-title { font-size: 13px; color: var(--colors-warning-700); }
+.admin-kit-notice.admin-offb-split { color: var(--text-primary); gap: var(--spacing-md); }
+.admin-offb-split .admin-kit-notice-title { font-size: 13px; line-height: 1.6; color: var(--colors-warning-600); }
 .admin-offb-split-line {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-xxs);
   padding: var(--spacing-md) 0;
-  border-top: 1px solid var(--colors-warning-200);
+  border-top: 1px solid var(--colors-warning-100);
   font-size: 12px;
   line-height: 1.6;
 }
-.admin-kit-notice-title + .admin-offb-split-line { margin-top: var(--spacing-sm); }
+.admin-kit-notice-title + .admin-offb-split-line { margin-top: 0; }
 .admin-offb-split-line:last-child { padding-bottom: 0; }
 .admin-offb-split-line.is-fix { gap: 0; line-height: 1.7; }
 /* 제목 바로 아래 옅은 한 줄(«지금은 표시된 대로 실행됩니다.»)은 선 없이 붙인다 */
 .admin-kit-notice-title + .admin-offb-split-line.is-fix:last-child { margin-top: 0; padding-top: var(--spacing-xxs); border-top: 0; }
-.admin-offb-split-lead { font-weight: 600; color: var(--text-primary); overflow-wrap: anywhere; }
+/* 진한 첫 조각 = 시안 «text-strong»(#2c3744) — 앱 토큰은 fgPrimary */
+.admin-offb-split-lead { font-weight: 600; color: var(--colors-foreground-fgPrimary); overflow-wrap: anywhere; }
 .admin-offb-split-text { color: var(--text-secondary); overflow-wrap: anywhere; }
 .admin-offb-split-muted { color: var(--text-tertiary); overflow-wrap: anywhere; }
 .admin-offb-graybox {
@@ -778,7 +780,7 @@
   line-height: 1.6;
 }
 .admin-offb-graybox-blk + .admin-offb-graybox-blk { border-top: 1px solid var(--border-secondary); }
-.admin-offb-graybox-blk .admin-offb-split-lead { font-size: 13px; font-weight: 700; }
+.admin-offb-graybox-blk .admin-offb-split-lead { font-size: 13px; font-weight: 700; line-height: normal; }
 /* 퇴사일 이후 휴가 건별 표 — 종류 | 기간 | 일수 | 상태 딱지, 줄 사이 점선(위 «휴가 정산» 값 줄과 같은 점선) */
 .admin-offb-split-table {
   margin-top: var(--spacing-md);
@@ -791,14 +793,16 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
-  padding: var(--spacing-md) 0;
+  /* 칸 안 딱지(.admin-pill 22px)가 줄을 키우므로 위아래를 줄여 시안 줄 높이 35 에 맞춘다 */
+  padding: var(--spacing-xs) 0;
   border-top: 1px dashed var(--border-secondary);
+  line-height: var(--line-height-text-xs);
   white-space: nowrap;
 }
 .admin-offb-split-cell:not(.is-state) { padding-right: var(--spacing-xl); }
-.admin-offb-split-cell.is-name { font-weight: 600; color: var(--text-primary); white-space: normal; overflow-wrap: anywhere; }
+.admin-offb-split-cell.is-name { font-weight: 600; color: var(--colors-foreground-fgPrimary); white-space: normal; overflow-wrap: anywhere; }
 .admin-offb-split-cell.is-range { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
-.admin-offb-split-cell.is-days { justify-content: flex-end; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.admin-offb-split-cell.is-days { justify-content: flex-end; color: var(--colors-foreground-fgPrimary); font-variant-numeric: tabular-nums; }
 /* 섹션 2 설명 세 줄 — 첫 줄 진하게 · 끝 줄 옅게 */
 .admin-offb-section-desc.is-split { display: flex; flex-direction: column; gap: var(--spacing-xxs); }
 .admin-offb-section-desc.is-split .is-lead { font-weight: 600; color: var(--text-primary); }
@@ -814,9 +818,8 @@
   line-height: 1.7;
   color: var(--text-secondary);
 }
-.admin-offb-retain-line { padding: var(--spacing-md) 0; overflow-wrap: anywhere; }
+.admin-offb-retain-line { padding: var(--spacing-md) 0; line-height: 1.7; overflow-wrap: anywhere; }
 .admin-offb-retain-line + .admin-offb-retain-line { border-top: 1px solid var(--border-secondary); }
-.admin-offb-retain-line .admin-offb-split-muted { display: block; }
 .admin-offb-effects {
   margin: 0;
   padding-left: 18px;

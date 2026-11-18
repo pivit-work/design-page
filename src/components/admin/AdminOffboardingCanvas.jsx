@@ -204,7 +204,13 @@ function RetentionBox({ text }) {
           {g.lead && <span className="admin-offb-split-lead">{g.lead}</span>}
           {g.lead && g.text?.length ? ' ' : null}
           {(g.text || []).join(' ')}
-          {(g.muted || []).map((m, j) => <span className="admin-offb-split-muted" key={j}>{m}</span>)}
+          {/* 옅은 조각은 다음 줄 — 앞에 글이 있을 때만 줄을 바꾼다(시안 <br>) */}
+          {(g.muted || []).map((m, j) => (
+            <span key={j}>
+              {(g.lead || g.text?.length || j > 0) && <br />}
+              <span className="admin-offb-split-muted">{m}</span>
+            </span>
+          ))}
         </div>
       ))}
     </div>
