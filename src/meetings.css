@@ -1879,7 +1879,9 @@ input.mtg-record-action-title::placeholder {
 .mtg-import-drop .admin-inv-drop-title { color: var(--text-primary); overflow-wrap: anywhere; }
 .mtg-import-drop .admin-inv-hint { font-size: 12px; color: var(--text-subtle); }
 /* 형식 오류 — 빨간 점선 + 옅은 오류 바탕 */
-.mtg-import-drop.is-error { border-color: var(--colors-border-borderError); background: var(--bg-error-primary); }
+/* admin.css .admin-inv-drop:hover·.is-over(같은 명시도)가 실리는 순서에 따라 초록으로 덮지 않게 한 단계 높인다 · 새 파일을 끌어 오는 중(is-over)에는 초록 */
+.mtg-import-drop.admin-inv-drop.is-error:not(.is-over),
+.mtg-import-drop.admin-inv-drop.is-error:not(.is-over):hover { border-color: var(--colors-border-borderError); background: var(--bg-error-primary); }
 /* 파일을 고른 뒤 — 문서 아이콘 · 이름 · [다른 파일 고르기] 한 줄, 바꾸기 글자는 브랜드 글자 링크(.login-link.is-legal 굵기) */
 .mtg-import-drop.is-picked { flex-direction: row; justify-content: center; gap: var(--spacing-md); padding: calc(var(--spacing-xl) + var(--spacing-xxs)) var(--spacing-xl); }
 .mtg-import-drop.is-picked .admin-inv-drop-title { min-width: 0; }
