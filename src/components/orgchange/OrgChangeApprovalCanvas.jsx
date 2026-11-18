@@ -3,6 +3,10 @@ import Button from '../shared/Button.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
 import TextArea from '../shared/TextArea.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
+
+/** 배지 생김새 — 발령 이력 배지 그대로(screen-org-change-approval.policy.md §9 · pivit-work PW-2597 11-19 리뷰) */
+const BADGE_LOOK = { success: 'is-green', warning: 'is-amber', danger: 'is-red', neutral: 'is-gray' };
+const badgeClass = (tone) => `admin-snap-type-badge ${BADGE_LOOK[tone] ?? 'is-gray'}`;
 import { SkeletonList } from '../shared/Skeleton.jsx';
 import EmptyState from '../shared/EmptyState.jsx';
 
@@ -127,12 +131,12 @@ function RequestCard({ card, labels, onToggle, onAction, onReasonChange, onToggl
         {card.meta && <span className="oca-card-meta">{card.meta}</span>}
         {card.badges?.length ? (
           card.badges.map((b) => (
-            <StatusBadge key={b.text} tone={b.tone}>{b.text}</StatusBadge>
+            <StatusBadge key={b.text} tone={b.tone} className={badgeClass(b.tone)}>{b.text}</StatusBadge>
           ))
         ) : (
           <>
             {card.badge && (
-              <StatusBadge tone={card.badge.tone}>{card.badge.text}</StatusBadge>
+              <StatusBadge tone={card.badge.tone} className={badgeClass(card.badge.tone)}>{card.badge.text}</StatusBadge>
             )}
             {card.count && <span className="oca-card-meta">{card.count}</span>}
           </>
@@ -163,7 +167,8 @@ function RequestCard({ card, labels, onToggle, onAction, onReasonChange, onToggl
                   {line.closedText && <div className="oca-line-note">{line.closedText}</div>}
                 </div>
                 {line.closedBadge && (
-                  <StatusBadge tone={line.closedBadge.tone} data-testid={`oca-line-closed-${line.id}`}>
+                  <StatusBadge tone={line.closedBadge.tone} className={badgeClass(line.closedBadge.tone)}
+                    data-testid={`oca-line-closed-${line.id}`}>
                     {line.closedBadge.text}
                   </StatusBadge>
                 )}
