@@ -2029,6 +2029,9 @@
    "background": "#f9fafb / 어두운 화면 #22262f",
    "color": "#687079 / 어두운 화면 #cecfd2"
   },
+  "org-change-approval.css|.oca-card-head .admin-snap-type-badge.is-gray": {
+   "background": "#f3f4f6 / 어두운 화면 #0c0e12"
+  },
   "admin.css|.admin-snap-type-badge.is-green": {
    "background": "#d3f8df / 어두운 화면 #084c2e",
    "color": "#099250 / 어두운 화면 #3ccb7f"
