@@ -7038,6 +7038,8 @@ export default function EvalCycleWizard({
 
   /** 칸 하나를 바꾼다 — 확정 상태였으면 푼다(§5.13.4 「버튼 — 트리거 → 결과」). */
   const editLeaderCell = (evaluateeId, round, fn, kind) => {
+    // [pivit-work PW-2976] 확정 응답을 기다리는 동안 바꾼 칸은 응답이 돌려준 칸에 덮여 말없이 사라진다 — 받지 않는다.
+    if (leaderConfirming) return;
     const base = alignLeaderCells(leaderCellsState, targetIds, roundsInUse);
     setLeaderCells(
       base.map((c) => (c.evaluateeId === evaluateeId && c.round === round ? fn(c) : c)),
@@ -7059,6 +7061,7 @@ export default function EvalCycleWizard({
   };
   /** [pivit-work PW-2784] «겸직 조직장» 칸 빼기·다시 넣기 — 칸을 바꾼 것과 같이 확정을 푼다. */
   const toggleLeaderConcurrent = (evaluateeId, unitId, remove) => {
+    if (leaderConfirming) return;
     setLeaderConcurrent(toggleConcurrentCell(leaderConcurrentState, evaluateeId, unitId, remove));
     setLeaderChangeKind(remove ? 'skipped' : 'cellChanged');
     dropLeaderConfirm(remove ? 'skipped' : 'cellChanged');
@@ -12457,7 +12460,7 @@ export default function EvalCycleWizard({
                     <button
                       type="button"
                       className="evc-link-btn"
-                      disabled={draftSaving}
+                      disabled={draftSaving || leaderConfirming}
                       onClick={() => void saveDraft()}
                       data-testid="evc-wiz-draft-retry"
                     >
@@ -12487,7 +12490,8 @@ export default function EvalCycleWizard({
                 type="button"
                 className="evc-btn is-ghost"
                 onClick={() => void saveDraft()}
-                disabled={draftSaving}
+                // [pivit-work PW-2976] 확정 응답을 기다리는 동안 임시 저장을 또 보내면 확정의 잠금 키가 어긋나 거짓 충돌이 뜬다.
+                disabled={draftSaving || leaderConfirming}
                 data-testid="evc-wiz-draft-save"
               >
                 {L.draftSaveNow}
@@ -12700,7 +12704,7 @@ export default function EvalCycleWizard({
                 <button
                   type="button"
                   className="tl-group-modal-btn tl-group-modal-btn-primary"
-                  disabled={draftSaving}
+                  disabled={draftSaving || leaderConfirming}
                   onClick={() => void leaveWithSave()}
                   data-testid="evc-wiz-leave-save"
                 >
