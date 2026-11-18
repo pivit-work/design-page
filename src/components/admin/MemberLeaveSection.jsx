@@ -54,7 +54,8 @@ function LeaveHistoryModal({ requests, labels, onClose, onOpenOverview }) {
       }
     >
       {requests.length === 0 ? (
-        <div className="admin-emp-sal-status is-empty" data-testid="member-leave-history-empty">{L.empty}</div>
+        // 빈 안내는 바탕 없이 가운데 옅은 글 — 같은 페이지 «지급된 자산이 없습니다»와 같은 모양(pivit-work PW-2983 ⑤ 시안 F)
+        <div className="admin-emp-detail-empty" data-testid="member-leave-history-empty">{L.empty}</div>
       ) : (
         <RosterTable
           framed
@@ -131,22 +132,22 @@ export default function MemberLeaveSection({ state, labels, onRetry, onOpenOverv
           <ReadField label={L.remaining} value={view ? view.remaining : dash} testId="employees-detail-leave-remaining" />
           <ReadField label={L.available} value={view ? view.available : dash} testId="employees-detail-leave-available" />
         </div>
+        {/* 실패 줄 — «불러오지 못했어요 [다시 시도]» 한 줄 · 흰 보조 버튼(같은 페이지 [자산 지급]) · 아래 안내와 띄움(pivit-work PW-2983 ⑤ 시안 C) */}
         {failed && (
-          <Stack gap="sm" testId="employees-detail-leave-error">
+          <div className="lv-mls-err" data-testid="employees-detail-leave-error">
             <span className="admin-emp-status-date-note is-error" role="alert">{L.loadError}</span>
             {onRetry && (
-              <div>
-                <Button variant="ghost" size="sm" onClick={onRetry} data-testid="employees-detail-leave-retry">{L.retry}</Button>
-              </div>
+              <Button variant="secondary" size="sm" onClick={onRetry} data-testid="employees-detail-leave-retry">{L.retry}</Button>
             )}
-          </Stack>
+          </div>
         )}
         <DetailNoteLines text={L.note} testId="employees-detail-leave-note" />
       </Stack>
     );
   }
   return (
-    <div data-testid="employees-detail-leave">
+    // lv-mls — [수정] 중에도 읽기와 같은 모습(흰 카드 · 이름표 옆 값 · 제목 옆 «조회 전용»)을 지키는 이름표(leave.css · pivit-work PW-2983 ⑤ 시안 B)
+    <div className="lv-mls" data-testid="employees-detail-leave">
       <div className="admin-emp-section-head">
         <SectionLabel>{L.section}</SectionLabel>
         <StatusBadge tone="neutral" className="admin-pill" data-testid="employees-detail-leave-tag">{L.readOnlyTag}</StatusBadge>

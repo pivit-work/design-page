@@ -507,3 +507,462 @@
 .leave-day.has-remove:focus-within .leave-day-remove {
   display: inline-flex;
 }
+
+/* ──────────────────────────────────────────────────────────────────────────
+ * 휴가 어드민 창·설정 탭 공용 모양 (pivit-work PW-2983)
+ * 휴가 설정·잔여 관리·휴가 현황 창은 디자이너 원본이 없다. 커트가 11-18 검토한 시안
+ * (worklog/*-designer-2026-11-18 의 leave-look.css)의 값을 옮긴다 — 값의 출처:
+ *   창 안 묶음 이름 18 · 칸 이름 = 디자이너 «이벤트 추가» 창 .tl-group-modal-label(18) 단계
+ *   안내 줄(바탕 없음 · 아이콘 + 글) = 원온원 «보는 범위» 안내 .ono-filter-notice 모양, 색만 회색
+ *   숫자 칸 = okr.css .okr-kru-input(옅은 회색 바탕 · 화살표 숨김)
+ *   설정 줄 220~260 | 값 · 창 안 줄 180 | 값 = 기획서 leave-app.jsx row · MRow 자리
+ * ────────────────────────────────────────────────────────────────────────── */
+
+/* 설정 줄 — 왼쪽 이름·설명, 오른쪽 값. 줄 사이 가는 선 */
+.lv-srow {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: var(--spacing-3xl);
+  padding: calc(var(--spacing-xl) + var(--spacing-xxs)) 0;
+  border-top: 1px solid var(--border-secondary);
+  align-items: start;
+}
+.lv-srow:first-child { border-top: 0; }
+.lv-srow-k { font-size: 15px; line-height: 22px; font-weight: 600; color: var(--text-primary); }
+.lv-srow-h { margin-top: var(--spacing-xs); font-size: 13px; line-height: 20px; color: var(--text-secondary); }
+.lv-srow-hl { margin-top: var(--spacing-xxs); font-size: 12px; line-height: 18px; color: var(--text-subtle); }
+.lv-srow-v { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: calc(var(--spacing-md) + var(--spacing-xxs)); }
+.lv-srow-v > .lv-fill { align-self: stretch; }
+
+/* 값 안 작은 묶음 — 작은 이름 13 + 점선 위 */
+.lv-sub {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-md);
+  padding-top: calc(var(--spacing-lg) + var(--spacing-xxs));
+  border-top: 1px dashed var(--border-secondary);
+}
+.lv-sub-t { font-size: 13px; line-height: 20px; font-weight: 600; color: var(--text-secondary); }
+.lv-sub-d { font-size: 12px; line-height: 18px; color: var(--text-subtle); }
+
+/* 창 안 묶음 — 묶음마다 이름 18 + 위 가는 선 */
+.lv-ms { padding: var(--spacing-3xl) 0 var(--spacing-md); border-top: 1px solid var(--border-secondary); }
+.lv-ms:first-child { border-top: 0; padding-top: 0; }
+.lv-ms-head { display: flex; align-items: baseline; gap: calc(var(--spacing-md) + var(--spacing-xxs)); margin-bottom: var(--spacing-sm); }
+.lv-ms-title { margin: 0; font-size: 18px; line-height: 26px; font-weight: 700; color: var(--text-primary); white-space: nowrap; }
+.lv-ms-sum { min-width: 0; font-size: 13px; line-height: 20px; color: var(--text-subtle); }
+.lv-ms-sp { flex: 1; }
+.lv-ms-lead { font-size: 13px; line-height: 20px; color: var(--text-secondary); margin-bottom: var(--spacing-xs); }
+.lv-ms-lead-sub { font-size: 12px; line-height: 18px; color: var(--text-subtle); }
+
+/* 창 안 줄 — 왼쪽 180 이름(+짧은 설명), 오른쪽 값 */
+.lv-mrow {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: var(--spacing-3xl);
+  padding: var(--spacing-lg) 0;
+  align-items: start;
+}
+.lv-mrow-k { font-size: 14px; line-height: 22px; font-weight: 600; color: var(--text-primary); }
+.lv-mrow-h { margin-top: var(--spacing-xxs); font-size: 12px; line-height: 18px; color: var(--text-subtle); }
+.lv-mrow-v { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-md); }
+
+/* 안내 줄 — 바탕 없음 · 아이콘 + 글. 첫 조각 진하게, 다음 줄 옅게 */
+.lv-tip { display: flex; gap: var(--spacing-md); align-items: flex-start; font-size: 13px; line-height: 20px; color: var(--text-secondary); }
+.lv-tip > svg { flex-shrink: 0; margin-top: var(--spacing-xxs); color: var(--text-tertiary); }
+.lv-tip-b { color: var(--text-primary); font-weight: 600; }
+.lv-tip-sub { display: block; font-size: 12px; line-height: 18px; color: var(--text-subtle); }
+.lv-tip.is-warn > svg,
+.lv-tip.is-warn .lv-tip-b { color: var(--text-warning-primary); }
+
+/* 숫자 칸 — 화살표 없는 옅은 회색 (okr.css .okr-kru-input 값) */
+.lv-num {
+  width: 88px;
+  height: 36px;
+  padding: 0 var(--spacing-lg);
+  border: 0;
+  border-radius: 10px;
+  background: var(--alpha-black-3);
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text-primary);
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.lv-num.is-narrow { width: 64px; }
+.lv-num::-webkit-outer-spin-button,
+.lv-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.lv-num:focus { outline: 2px solid var(--border-brand, var(--bg-brand-solid)); outline-offset: -2px; }
+.lv-num:disabled { color: var(--text-tertiary); }
+
+/* 글자 줄 — 숫자 칸 앞뒤 글자 */
+.lv-line { display: flex; align-items: center; gap: var(--spacing-md); flex-wrap: wrap; font-size: 14px; line-height: 20px; color: var(--text-secondary); }
+
+/* 숫자 요약 줄 — 숫자만 진하게 */
+.lv-cnt { display: flex; align-items: center; gap: calc(var(--spacing-md) + var(--spacing-xxs)); flex-wrap: wrap; font-size: 13px; line-height: 20px; color: var(--text-secondary); }
+.lv-cnt b { color: var(--text-primary); font-weight: 600; }
+
+/* 이름 + 작은 둘째 줄(소속) — 넘치면 «…» */
+.lv-who2 { min-width: 0; display: flex; flex-direction: column; }
+.lv-who2-name,
+.lv-who2-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lv-who2-name { font-size: 14px; line-height: 20px; font-weight: 600; color: var(--text-primary); }
+.lv-who2-sub { font-size: 12px; line-height: 18px; color: var(--text-tertiary); }
+
+/* 옅은 둘째 줄 — 마침표·« — »에서 나눈 뒷 문장 */
+.lv-soft { display: block; font-size: 12px; line-height: 18px; color: var(--text-subtle); }
+
+/* ── 휴가 현황 창 · 구성원 휴가 (PW-2983 ③⑤⑥) ──
+ * 커트가 11-18 검토한 시안(worklog/leave-overview-modals-designer-2026-11-18 · admin-member-leave-designer-2026-11-18 ·
+ * member-leave-designer-2026-11-18)의 값을 옮긴다. 창 틀(ModalShell .tl-group-modal)은 손대지 않고 창 안 묶음만.
+ *   묶음 이름 18 = .tl-group-modal-label 단계(위 .lv-ms) · 숫자 칸 = 캘리브레이션 «등급 분포» 칸 모양
+ *   고른 칩 = 디자이너 «고른 칩»(바탕 brand-secondary · 글 brand-secondary) · 입력 칸 = .tl-group-modal-input(옅은 회색 필) */
+
+/* 창 머리 둘째 줄 — 이름 줄(굵은 회색) 아래, 창이 하는 일 한 줄(옅게) */
+.lv-mdesc2 { display: block; margin-top: var(--spacing-xs); font-size: 13px; line-height: 20px; font-weight: 400; color: var(--text-subtle); }
+.lv-mdesc2.is-first { margin-top: 0; }
+
+/* 안내 줄 — 점 없이 한 줄 한 사실 */
+.lv-facts { display: flex; flex-direction: column; gap: var(--spacing-xs); font-size: 13px; line-height: 20px; color: var(--text-secondary); }
+
+/* 보낼 글 미리보기 — 흰 칸 + 가는 테두리, 머리(제목 진하게 · 어디에 실리나 옅게) 아래 본문 보통 글색 */
+.lv-pvs { display: flex; flex-direction: column; gap: var(--spacing-lg); }
+.lv-pv { border: 1px solid var(--border-secondary); border-radius: var(--radius-lg, 12px); overflow: hidden; }
+.lv-pv-h { display: flex; align-items: baseline; flex-wrap: wrap; column-gap: var(--spacing-md); padding: var(--spacing-lg) var(--spacing-xl); border-bottom: 1px solid var(--border-secondary); }
+.lv-pv-t { font-size: 14px; line-height: 20px; font-weight: 700; color: var(--text-primary); }
+.lv-pv-s { font-size: 12px; line-height: 18px; color: var(--text-subtle); }
+.lv-pv-b { padding: var(--spacing-lg) var(--spacing-xl) calc(var(--spacing-lg) + var(--spacing-xxs)); font-size: 14px; line-height: 22px; color: var(--text-secondary); overflow-wrap: anywhere; }
+
+/* 칸 줄 — 이름 칸 왼쪽 + 값(기획서 ConfirmBox Line 자리) */
+.lv-frows { display: flex; flex-direction: column; gap: var(--spacing-xl); }
+.lv-frow { display: grid; grid-template-columns: 116px minmax(0, 1fr); gap: var(--spacing-lg); align-items: start; }
+.lv-frow-k { font-size: 14px; line-height: 40px; font-weight: 600; color: var(--text-primary); white-space: nowrap; }
+.lv-frow-k.is-text { line-height: 24px; }
+.lv-frow-req { margin-left: var(--spacing-xxs); color: var(--text-error-primary); }
+.lv-frow-v { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-sm); }
+.lv-frow-line { display: flex; align-items: center; flex-wrap: wrap; gap: var(--spacing-md); min-height: 40px; }
+.lv-frow-line.is-text { min-height: 24px; font-size: 14px; line-height: 24px; font-weight: 600; color: var(--text-primary); }
+.lv-frow-col { display: flex; flex-direction: column; gap: calc(var(--spacing-md) + var(--spacing-xxs)); padding-top: var(--spacing-lg); }
+.lv-frow-col.is-top { padding-top: var(--spacing-xxs); }
+.lv-frow-v .dp-date-input,
+.lv-frow-v .lv-date { width: 180px; }
+.lv-hint { font-size: 12px; line-height: 18px; color: var(--text-subtle); }
+
+/* [저장] 위 회색 한 줄 — 저장할 수 없는 까닭(기획서 S89 ②) */
+.lv-why { font-size: 12px; line-height: 18px; color: var(--text-subtle); }
+
+/* 숫자 칸 줄 — 총 부여 · 사용 · 소멸 · 잔여 */
+.lv-gg { display: grid; grid-auto-columns: minmax(0, 1fr); grid-auto-flow: column; border: 1px solid var(--border-secondary); border-radius: var(--radius-md, 10px); }
+.lv-gg > div { display: flex; flex-direction: column; gap: var(--spacing-xxs); min-width: 0; padding: calc(var(--spacing-md) + var(--spacing-xxs)) calc(var(--spacing-lg) + var(--spacing-xxs)); }
+.lv-gg > div + div { border-left: 1px solid var(--border-secondary); }
+.lv-gg-k,
+.lv-gg-r { font-size: 12px; line-height: 18px; color: var(--text-subtle); }
+.lv-gg-v { font-size: 20px; line-height: 28px; font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+
+/* 확정 이력 — 한 건 한 줄 · 언제 · 누가만 진하게 */
+.lv-hist { display: flex; flex-direction: column; }
+.lv-hist > div { padding: var(--spacing-md) 0; border-top: 1px solid var(--border-secondary); font-size: 13px; line-height: 20px; color: var(--text-secondary); }
+.lv-hist > div:first-child { padding-top: 0; border-top: 0; }
+.lv-hist b { font-weight: 600; color: var(--text-primary); }
+
+/* 창 안 본문 글 — 묶음 안 14 보통 글 · 꼬리만 옅게 */
+.lv-mtext { font-size: 14px; line-height: 20px; color: var(--text-secondary); }
+.lv-mtext-soft { font-size: 13px; color: var(--text-subtle); }
+
+/* 고르기 줄 — 한 칸 안 갈래마다 줄, 고른 갈래만 연초록 */
+.lv-opts { display: flex; flex-direction: column; border: 1px solid var(--border-secondary); border-radius: var(--radius-lg, 12px); overflow: hidden; }
+.lv-opt { display: flex; flex-direction: column; gap: var(--spacing-sm); padding: calc(var(--spacing-lg) + var(--spacing-xxs)) var(--spacing-xl); }
+.lv-opt + .lv-opt { border-top: 1px solid var(--border-secondary); }
+.lv-opt.is-on { background: var(--bg-brand-primary); }
+.lv-opt .dp-radio-label { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+.lv-opt-ds { display: flex; flex-direction: column; gap: var(--spacing-xxs); margin-left: var(--spacing-3xl); font-size: 13px; line-height: 20px; color: var(--text-subtle); }
+
+/* 2차 날짜 칩 — 안 고른 날 흰 칩, 고른 날 연초록, 다 고르면 안 고른 칩만 흐리게 */
+.lv-dchips { display: flex; flex-wrap: wrap; gap: var(--spacing-sm); }
+.lv-dchip.dp-btn { height: 32px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.lv-dchip.dp-btn.is-on { background: var(--bg-brand-secondary); border-color: transparent; color: var(--text-brand-secondary); }
+.lv-dchip.dp-btn:disabled { opacity: 0.4; }
+.lv-seg-n { margin-left: var(--spacing-xs); color: var(--text-brand-tertiary); }
+
+/* ── 잔여 관리 창 (PW-2983 ①②) ──
+ * 잔여 관리 화면의 원장 · 앱 밖 사용 기록 · 보정 부여 · CSV 업로드 · 저장 이력 · 이전 사용 기록 없음 창.
+ * 값의 출처 — 커트 11-18 검토 시안(worklog/leave-balances-modals-designer-2026-11-18 bal.css):
+ *   큰 숫자 28 = 매니저 대시보드 숫자 칸(.kpi) · 칸 줄 왼쪽 이름 = 기획서 ConfirmBox 줄 자리
+ *   고정 칸 폭 표 = roster-table 명단 표 · 이름 + 작은 둘째 줄 = .lv-who2 와 같은 글자 */
+
+/* 창 안 큰 숫자 줄 — 왼쪽 이름 · 숫자, 오른쪽 그 숫자를 바꾸는 버튼 */
+.lv-bal-big { display: flex; align-items: center; gap: var(--spacing-lg); }
+.lv-bal-big-k { font-size: 13px; line-height: 20px; font-weight: 600; color: var(--text-secondary); }
+.lv-bal-big-v { font-size: 28px; line-height: 36px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.lv-bal-big-acts { margin-left: auto; display: flex; align-items: center; gap: var(--spacing-md); flex-shrink: 0; }
+.lv-bal-others { display: flex; align-items: center; flex-wrap: wrap; gap: var(--spacing-md); margin-top: var(--spacing-lg); font-size: 13px; line-height: 20px; color: var(--text-subtle); }
+.lv-bal-others b { margin-left: var(--spacing-xs); color: var(--text-primary); }
+
+/* 칸 줄 — 왼쪽 이름, 오른쪽 칸 · 칸 아래 안내 · 오류. FormField 바깥 상자에 붙인다(className="dp-field lv-bal-fr") */
+div.dp-field.lv-bal-fr {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  grid-auto-flow: row dense;
+  column-gap: var(--spacing-lg);
+  row-gap: var(--spacing-sm);
+  align-items: start;
+  padding: calc(var(--spacing-md) + var(--spacing-xxs)) 0;
+}
+div.dp-field.lv-bal-fr.is-k120 { grid-template-columns: 120px minmax(0, 1fr); column-gap: var(--spacing-xl); }
+div.dp-field.lv-bal-fr.is-k140 { grid-template-columns: 140px minmax(0, 1fr); column-gap: var(--spacing-xl); }
+div.dp-field.lv-bal-fr > .dp-field-label,
+div.dp-field.lv-bal-fr > .dp-field-label-row { grid-column: 1; grid-row: 1; line-height: 40px; white-space: nowrap; }
+div.dp-field.lv-bal-fr > :not(.dp-field-label):not(.dp-field-label-row) { grid-column: 2; min-width: 0; }
+div.dp-field.lv-bal-fr > .dp-field-hint { font-size: 12px; line-height: 18px; color: var(--text-subtle); }
+.lv-bal-fr-line { display: flex; align-items: center; gap: var(--spacing-md); font-size: 14px; line-height: 20px; color: var(--text-secondary); }
+.lv-bal-fr-line > .lv-fill { flex: 1; min-width: 0; }
+/* 한 줄에 칸 둘(시작 ~ 끝) — 칸이 나눠 가지는 폭에 «시작 YYYY-MM-DD»가 다 들게 글자 14(시안 창 칸 .tin 14) */
+.lv-bal-fr-line input.dp-input { font-size: 14px; }
+/* 칸 줄 안에서 폭을 내용만큼만 쓰는 것(세그먼트 등) */
+.lv-bal-fit { display: flex; }
+.lv-bal-w120,
+.dp-control.lv-bal-w120 { width: 120px; max-width: 100%; }
+.lv-bal-w180,
+.dp-control.lv-bal-w180 { width: 180px; max-width: 100%; }
+
+/* 넣기 칸 — 묶음 안 흰 칸 하나(출근율 조정) */
+.lv-bal-fc { display: flex; flex-direction: column; gap: var(--spacing-xs); margin-bottom: var(--spacing-lg); border: 1px solid var(--border-secondary); border-radius: var(--radius-lg); padding: var(--spacing-md) var(--spacing-2xl) var(--spacing-xl); }
+.lv-bal-fbtns { display: flex; justify-content: flex-end; gap: var(--spacing-md); padding-top: var(--spacing-md); }
+
+/* 원장 «출근율 조정» 표 — 고정 칸 폭. [반영] · [지우기] 가 늘 창 안 오른쪽 끝에 든다 */
+.lv-bal-att-kind { width: 196px; }
+.lv-bal-att-per { width: 112px; }
+.lv-bal-att-calc { width: 132px; }
+.lv-bal-att-by { width: 104px; }
+.lv-bal-att-act { width: 128px; }
+.lv-bal-two { display: flex; flex-direction: column; min-width: 0; font-size: 13px; line-height: 18px; }
+.lv-bal-two-b { font-weight: 600; color: var(--text-primary); }
+.lv-bal-two-s { font-size: 12px; line-height: 18px; color: var(--text-subtle); }
+.lv-bal-two-b,
+.lv-bal-two-s { overflow: hidden; text-overflow: ellipsis; }
+.lv-bal-acts { display: flex; justify-content: flex-end; gap: var(--spacing-sm); white-space: nowrap; }
+.lv-bal-clip2 { font-size: 13px; line-height: 18px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: keep-all; overflow-wrap: anywhere; }
+
+/* ── 휴가 설정 (PW-2983 ④) ──
+ * 공통 설정 탭 · 연차 정책 / 회사 휴가 / 법정 휴가 편집 창 · 대상 명단 창. 위 공용 모양(lv-srow · lv-ms · lv-mrow · lv-tip · lv-num)에
+ * 더해 이 화면들만 쓰는 것 — 값의 출처는 줄마다 적는다(커트 11-18 검토 시안 worklog/leave-settings-designer-2026-11-18). */
+
+/* 공통 설정 흰 판 머리 — 제목 왼쪽 · «회사 전체에 하나» 오른쪽(시안 .card-h) */
+.lv-set-head { display: flex; align-items: baseline; gap: var(--spacing-md); padding: var(--spacing-xs) 0 var(--spacing-xl); border-bottom: 1px solid var(--border-secondary); }
+.lv-set-head > :last-child { margin-left: auto; }
+
+/* 창 본문 — 묶음끼리는 선으로 나누니 틀의 칸 간격(16)을 걷는다 */
+.lv-set-mbody { display: flex; flex-direction: column; }
+
+/* 갈래 고르기 가로 알약 — 디자이너 «이벤트 추가» 창 .tl-event-radio-pill 값(36 높이 · 모서리 8 · 고르면 브랜드 옅은 바탕) */
+.lv-set-pills { display: flex; flex-wrap: wrap; gap: var(--spacing-md); }
+.lv-set-pills.is-col { flex-direction: column; align-items: flex-start; }
+.dp-radio.lv-set-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  min-height: 36px;
+  padding: 0 var(--spacing-lg);
+  border-radius: var(--radius-sm);
+  background: var(--alpha-black-3);
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.dp-radio.lv-set-pill.is-checked { background: var(--bg-brand-secondary); color: var(--text-brand-secondary); font-weight: 600; }
+.dp-radio.lv-set-pill.is-disabled { opacity: 0.5; }
+/* 고른 칸 아래 설명 — 동그라미 + 간격만큼 들여 쓴다(시안 .opt-h) */
+.lv-set-opt-h { margin: calc(-1 * var(--spacing-xxs)) 0 var(--spacing-xxs) calc(var(--spacing-3xl) + var(--spacing-lg)); font-size: 12px; line-height: 18px; color: var(--text-subtle); }
+
+/* 값 아래 옅은 글(MRow note) — p 기본 여백을 걷는다 */
+.lv-set-note { margin: 0; font-size: 12px; line-height: 18px; color: var(--text-subtle); }
+.lv-set-law { font-size: 12px; line-height: 18px; color: var(--text-subtle); }
+.lv-set-strong { color: var(--text-primary); }
+
+/* 값 칸 폭 — 고르기 칸 160 · 찾기 칸 320(시안 .sel.w · .search 320 = 조직도 명단 검색칸) · 이름 칸 320 */
+.lv-set-w160 { width: 160px; max-width: 100%; }
+.lv-set-w320 { width: 320px; max-width: 100%; }
+.lv-set-fill { align-self: stretch; }
+
+/* 1차 시작일 표 — 디자이너 명단 표(.ol-table) 머리 12 · 줄마다 선, 틀만 가는 테두리(시안 .rt .mini) */
+.lv-set-table { align-self: stretch; border: 1px solid var(--border-secondary); border-radius: var(--radius-lg); overflow: hidden; }
+.lv-set-table table { width: 100%; border-collapse: collapse; }
+.lv-set-table th { padding: var(--spacing-md) var(--spacing-lg); text-align: left; font-size: 12px; line-height: 18px; font-weight: 600; color: var(--text-secondary); border-bottom: 1px solid var(--border-secondary); }
+.lv-set-table td { padding: var(--spacing-md) var(--spacing-lg); font-size: 13px; line-height: 20px; color: var(--text-secondary); border-bottom: 1px solid var(--border-secondary); vertical-align: top; }
+.lv-set-table tr:last-child td { border-bottom: 0; }
+.lv-set-table td b { color: var(--text-primary); font-weight: 600; }
+
+/* 대상 규칙 일곱 줄 — 두 단(시안 «높이를 반으로») */
+.lv-set-cols2 { columns: 2; column-gap: var(--spacing-3xl); max-width: 640px; }
+
+/* 인원 줄 · 위쪽 정책 경고 — 값 칸 시작선(180 + 24)에 맞춰 들여 쓴다 */
+.lv-set-indent { padding-left: calc(var(--spacing-5xl) * 4 + var(--spacing-2xl) + var(--spacing-3xl)); }
+
+/* 접힌 묶음 요약 — 넘치면 «…» */
+.lv-set-ellipsis { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* 빈 안내 — 매니저 창 빈 안내 .manager-modal-empty(가운데 14/500 옅게) */
+.lv-set-empty { padding: var(--spacing-4xl) 0; text-align: center; font-size: 14px; line-height: 20px; font-weight: 500; color: var(--text-tertiary); }
+.lv-set-empty-sub { display: block; margin-top: var(--spacing-xs); font-size: 13px; font-weight: 400; }
+
+/* 잠긴 값 딱지 — 옅은 회색 26 높이(시안 .lock) */
+.lv-set-lock { display: inline-flex; align-items: center; gap: var(--spacing-xs); min-height: 26px; padding: 0 var(--spacing-md); border-radius: var(--radius-xs); background: var(--alpha-black-3); font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+
+/* ⑤ 구성원 상세 «근태·휴가» 묶음(MemberLeaveSection · 개발이 짠 것) — 시안 admin-member-leave-designer-2026-11-18.
+ * [수정] 중(.admin-emp-detail.is-editing)에도 읽기와 같은 모습: 읽기 화면 규칙(admin.css «.admin-emp-detail:not(.is-editing)» ·
+ * 디자이너 프로필 창 줄 profile-card.css .profile-row)의 값을 이 묶음에만 옮긴다 — 고칠 수 없는 칸이 입력칸 사이에 섞이지 않게. */
+.admin-emp-detail.is-editing .lv-mls {
+  margin-top: var(--spacing-xl);
+  padding: var(--spacing-xs) calc(var(--spacing-3xl) + var(--spacing-xs)) var(--spacing-lg);
+  border: 1px solid var(--colors-border-borderSecondary);
+  border-radius: var(--radius-lg);
+  background: var(--bg-quaternary);
+}
+.admin-emp-detail.is-editing .lv-mls > .admin-emp-section-head {
+  justify-content: flex-start;
+  gap: var(--spacing-md);
+  margin: 0 0 var(--spacing-xs);
+  padding-top: var(--spacing-2xl);
+}
+.admin-emp-detail.is-editing .lv-mls > .admin-emp-section-head > .admin-section-label { font-size: 16px; line-height: 24px; letter-spacing: 0; color: var(--fg-primary); }
+.admin-emp-detail.is-editing .lv-mls .admin-emp-section-head-actions { margin-left: auto; }
+.admin-emp-detail.is-editing .lv-mls .dp-stack:has(> .admin-emp-detail-read-grid) { gap: 0; }
+.admin-emp-detail.is-editing .lv-mls .admin-emp-detail-read-grid {
+  column-gap: calc(var(--spacing-3xl) * 2);
+  row-gap: 0;
+  clip-path: inset(0 0 1px 0);
+}
+.admin-emp-detail.is-editing .lv-mls .admin-emp-field {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: var(--spacing-xl);
+  min-width: 0;
+  border-bottom: 1px solid var(--colors-border-borderSecondary);
+}
+.admin-emp-detail.is-editing .lv-mls .admin-emp-field > .admin-emp-field-label {
+  flex: 0 0 120px;
+  width: 120px;
+  padding: var(--spacing-lg) 0;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 24px;
+  color: var(--text-primary);
+}
+.admin-emp-detail.is-editing .lv-mls .admin-emp-field > .admin-emp-field-label + * {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: var(--spacing-lg) 0;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--text-secondary);
+}
+.admin-emp-detail.is-editing .lv-mls .admin-emp-field > .admin-emp-field-label + .is-empty { color: var(--text-tertiary); }
+
+/* 불러오기 실패 — 빨간 글 옆 흰 보조 버튼 한 줄, 아래 안내와 띄운다(시안 C) */
+.lv-mls-err { display: flex; align-items: center; flex-wrap: wrap; gap: var(--spacing-lg); margin: var(--spacing-3xl) 0 var(--spacing-lg); }
+
+/* 휴가 이력 창 — 많을 때 표 머리 줄이 따라 내려온다(시안 E · roster-table.css 머리 고정). 창 본문(.admin-emp-sal-body)이 스크롤 틀이다 */
+/* 틀(rt-framed)의 overflow: hidden 은 스크롤 틀을 만들어 머리 고정을 막는다 — clip 은 모서리는 자르되 스크롤 틀이 아니다 */
+.admin-emp-leave-shell .admin-emp-sal-body .rt-framed { overflow: clip; }
+.admin-emp-leave-shell .admin-emp-sal-body .rt-scroll { overflow: visible; }
+.admin-emp-leave-shell .admin-emp-sal-body .rt-table th { position: sticky; top: calc(var(--spacing-2xl) * -1); z-index: 1; }
+
+/* ⑥ 구성원 › 휴가 — 시안 member-leave-designer-2026-11-18. 달력 칸(.tl-cal-*)은 디자이너 타임라인 월 달력 그대로 둔다. */
+/* 안내 줄 — 범위 문장 13 · «점선 = 결재 중» 범례(점선 칸 보기) · 빈 달 안내는 같은 줄 오른쪽 */
+.lv-cal-guide { display: flex; align-items: center; flex-wrap: wrap; gap: var(--spacing-xs) var(--spacing-xl); font-size: 13px; line-height: 20px; color: var(--text-subtle); }
+.lv-cal-legend { display: inline-flex; align-items: center; gap: var(--spacing-sm); font-size: 12px; line-height: 18px; color: var(--text-tertiary); }
+.lv-cal-legend-chip { width: 18px; height: 12px; border: 1px dashed var(--colors-warning-300); border-radius: var(--radius-xs, 4px); background: var(--bg-quaternary); }
+.lv-cal-empty { margin-left: auto; font-size: 13px; color: var(--text-tertiary); }
+
+/* 오른쪽 패널 — 폭 440(기획서 RequestDetail · PlanConfirmPanel) · 제목 18 · 오른쪽 위 닫기(✕) */
+.pw-side-panel.lv-pnl { width: 440px; }
+.lv-pnl-head { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-md); padding-right: calc(var(--spacing-5xl) + var(--spacing-md)); }
+.lv-pnl-title { margin: 0; font-size: 18px; line-height: 28px; font-weight: 700; color: var(--text-primary); overflow-wrap: anywhere; }
+.lv-pnl-badges { display: flex; flex-wrap: wrap; gap: var(--spacing-sm); }
+/* 두 단 줄 — 칸 이름 옅게 · 값 진하게 */
+.lv-kv { margin: 0; display: grid; grid-template-columns: 96px minmax(0, 1fr); column-gap: var(--spacing-xl); row-gap: var(--spacing-md); align-items: baseline; }
+.lv-kv-k { font-size: 13px; line-height: 20px; color: var(--text-subtle); }
+.lv-kv-v { margin: 0; min-width: 0; font-size: 14px; line-height: 20px; color: var(--text-primary); overflow-wrap: anywhere; }
+.lv-kv.is-box { padding: var(--spacing-xl) var(--spacing-2xl); border: 1px solid var(--border-secondary); border-radius: var(--radius-lg); grid-template-columns: 140px minmax(0, 1fr); row-gap: var(--spacing-md); }
+/* 패널 안 묶음 — 가는 선 아래 14/700 머리 */
+.lv-pnl-sec { display: flex; flex-direction: column; gap: var(--spacing-md); padding-top: var(--spacing-xl); border-top: 1px solid var(--border-secondary); }
+.lv-pnl-sec-t { margin: 0; font-size: 14px; line-height: 20px; font-weight: 700; color: var(--text-primary); }
+.lv-pnl-line { font-size: 14px; line-height: 20px; color: var(--text-secondary); }
+.lv-pnl-reject { padding: var(--spacing-md) var(--spacing-lg); border-radius: var(--radius-md); background: var(--bg-error-primary); font-size: 13px; line-height: 20px; color: var(--text-error-primary); overflow-wrap: anywhere; }
+.lv-pnl-note { display: flex; flex-direction: column; font-size: 12px; line-height: 18px; color: var(--text-secondary); }
+
+/* 계획 한 사람 = 흰 카드 하나 — 이름 + 오른쪽 확인 상태 · 계획일 딱지 · 맨 아래 제출 + [확인했습니다] */
+.lv-plans { display: flex; flex-direction: column; gap: var(--spacing-md); }
+.lv-plan { display: flex; flex-direction: column; gap: var(--spacing-md); padding: var(--spacing-xl); border: 1px solid var(--border-secondary); border-radius: var(--radius-lg); background: var(--bg-quaternary); }
+.lv-plan-head { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-md); min-width: 0; }
+.lv-plan-name { min-width: 0; font-size: 14px; line-height: 20px; font-weight: 600; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lv-plan-k { font-size: 12px; line-height: 18px; color: var(--text-subtle); }
+.lv-plan-dates { display: flex; flex-wrap: wrap; gap: var(--spacing-xs) var(--spacing-sm); }
+.lv-plan-foot { display: flex; align-items: center; flex-wrap: wrap; gap: var(--spacing-md); font-size: 12px; line-height: 18px; color: var(--text-subtle); }
+.lv-plan-foot > .dp-btn { margin-left: auto; }
+
+/* [통보 내용 보기] 창 — 본문 14 보통 글(마침표에서 줄만 나눔) · 아래 오른쪽 [닫기] */
+.lv-nv-body { display: flex; flex-direction: column; gap: var(--spacing-xxs); font-size: 14px; line-height: 26px; color: var(--text-secondary); }
+.lv-nv-foot { display: flex; justify-content: flex-end; width: 100%; }
+
+/* 파일 칸(PW-2983 ①② 계속) — 읽은 파일 · 올린 파일 줄을 테두리 칸 하나에, 줄 사이 가는 선(시안 B2 ③ · B4 ⑥) */
+.lv-bal-files { border: 1px solid var(--border-secondary); border-radius: var(--radius-lg); }
+.lv-bal-files-row { display: flex; align-items: center; flex-wrap: wrap; gap: var(--spacing-md) calc(var(--spacing-md) + var(--spacing-xxs)); padding: calc(var(--spacing-md) + var(--spacing-xxs)) var(--spacing-xl); }
+.lv-bal-files-row + .lv-bal-files-row { border-top: 1px solid var(--border-secondary); }
+.lv-bal-files-row.is-col { flex-direction: column; align-items: flex-start; gap: var(--spacing-xxs); }
+.lv-bal-files-name { font-size: 14px; line-height: 20px; font-weight: 600; color: var(--text-primary); }
+.lv-bal-files-meta { font-size: 13px; line-height: 20px; color: var(--text-subtle); }
+.lv-bal-files-meta b { color: var(--text-primary); font-weight: 700; font-variant-numeric: tabular-nums; }
+.lv-bal-files-sp { flex: 1; }
+/* 두 줄 설명 — 첫 줄 13 · 둘째 줄 12 옅게(시안 B1 ②) */
+.lv-bal-lead { font-size: 13px; line-height: 20px; color: var(--text-secondary); }
+
+/* 과거 이력 창 머리 · 기준일 줄(PW-2983 ①② 계속 · 시안 B3 ① ②) */
+.lv-bal-hist-head { display: flex; align-items: center; gap: var(--spacing-xl); padding-bottom: var(--spacing-xl); border-bottom: 1px solid var(--border-secondary); }
+.lv-bal-steps { margin-left: auto; display: inline-flex; align-items: center; gap: var(--spacing-md); font-size: 13px; line-height: 20px; font-weight: 500; color: var(--text-tertiary); white-space: nowrap; }
+.lv-bal-steps > svg { color: var(--text-quaternary); }
+.lv-bal-steps > .is-on { font-weight: 700; color: var(--text-primary); }
+.lv-bal-hist-row { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: var(--spacing-xl); align-items: start; padding: var(--spacing-md) 0; }
+.lv-bal-hist-k { font-size: 14px; line-height: 40px; font-weight: 600; color: var(--text-primary); white-space: nowrap; }
+/* 한 줄 안내 — 기획이 «한 줄»로 정한 자리. 꺾지 않는다(TC-LV-372 · 377) · 뒤 조각은 옅게 */
+.lv-bal-oneline { margin-top: var(--spacing-sm); font-size: 12px; line-height: 18px; color: var(--text-secondary); white-space: nowrap; }
+.lv-bal-oneline-soft { color: var(--text-subtle); }
+/* 글 줄 묶음 — 점 없이 한 줄씩, 머리 글자만 진하게(시안 B5 ③ .lines) */
+.lv-bal-lines { display: flex; flex-direction: column; font-size: 12px; line-height: 18px; color: var(--text-subtle); }
+.lv-bal-lines b { color: var(--text-secondary); font-weight: 600; }
+/* 창 아래 줄 — 왼쪽 글 두 줄 · 오른쪽 버튼(시안 B5 ⑤) */
+.lv-bal-foot { display: flex; align-items: center; gap: var(--spacing-lg); padding-top: var(--spacing-xl); border-top: 1px solid var(--border-secondary); }
+.lv-plan-group { display: flex; flex-direction: column; gap: var(--spacing-md); }
+.lv-plan-sub { display: flex; flex-direction: column; gap: var(--spacing-xs); }
+/* 머리 오른쪽 버튼 묶음 — 제목 탭 줄 오른쪽 끝 */
+.lv-head-actions { margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-md); }
+
+/* 대상 명단 창 폭 — 이름 + 작은 소속 · 걸린 조건 딱지가 한 줄에 들어가는 폭(시안 E 860 · E-2 720). 틀(.tl-group-modal.adm-shell.is-wide 640)보다 한 단계 앞선다 */
+.tl-group-modal.adm-shell.is-wide.lv-set-modal-860 { width: 860px; }
+.tl-group-modal.adm-shell.is-wide.lv-set-modal-720 { width: 720px; }
+/* 체크 목록 — 테두리 칸 안 스크롤 · 줄마다 이름 진하게 + 오른쪽 숫자 옅게(시안 D1 ② · 조직도 명단 칸) */
+.lv-bal-cklist { max-height: 420px; overflow: auto; border: 1px solid var(--border-secondary); border-radius: var(--radius-lg); }
+.lv-bal-cklist > * + * { border-top: 1px solid var(--border-secondary); }
+.dp-check.lv-bal-ck { display: flex; align-items: center; gap: calc(var(--spacing-md) + var(--spacing-xxs)); padding: var(--spacing-md) calc(var(--spacing-lg) + var(--spacing-xxs)); }
+.lv-bal-ck-row { flex: 1; min-width: 0; display: flex; align-items: center; gap: var(--spacing-md); }
+.lv-bal-ck-row b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; line-height: 20px; font-weight: 600; color: var(--text-primary); }
+.lv-bal-ck-row .lv-bal-ck-sub { margin-left: auto; flex-shrink: 0; font-size: 12px; line-height: 18px; color: var(--text-subtle); white-space: nowrap; }
+
+/* 창 안 묶음(기존 .adm-hr-section) — 묶음마다 위 가는 선(lv-ms 와 같은 값) */
+.lv-set-mbody > .adm-hr-section { padding: var(--spacing-3xl) 0 var(--spacing-md); border-top: 1px solid var(--border-secondary); }
+.lv-set-mbody > .adm-hr-section:first-child { border-top: 0; padding-top: 0; }
+/* 알약 줄 사이에 끼는 «N개월 안» 문장 줄 · 설명은 한 줄을 다 쓴다 */
+.lv-set-pills:not(.is-col) > :not(.dp-radio):not(.dp-tip-wrap) { flex-basis: 100%; }
+/* 정산 창 기준 라디오 — 읽기 상태(누를 수 없음)는 옅게, 바꾸기 상태는 보통 진하기(시안 A2 ④ · design-page Radio is-disabled) */
+.lv-ms .dp-radio.is-disabled .dp-radio-label { font-weight: 500; color: var(--text-tertiary); }
+/* 칸 줄 안 날짜 · 글 칸 — 디자이너 창 입력 칸(.tl-group-modal-input: 40 · r10 · 3% 회색 필 · 테두리 없음 · 14) · 라디오 글 14 */
+.leave-look .lv-frow-v .dp-input { min-height: 40px; border-color: transparent; border-radius: var(--radius-md); background: var(--alpha-black-3); font-size: 14px; }
+.lv-frow-v .dp-radio-label { font-size: 14px; }
+/* 줄을 나눈 자리의 « · »·« — » — 화면에서는 줄이 바뀌어 빼고, 글(복사 · 읽기)에는 남긴다 */
+.lv-set-sep { display: none; }
+/* 한 줄 한 사실 목록 — 점 없이 줄만(시안 «점 없이 12px») */
+.lv-set-list { margin: 0; padding: 0; list-style: none; }

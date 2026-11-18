@@ -357,6 +357,20 @@ export {
   LeaveCardFoot,
   LeaveToolbar,
   LeaveCount,
+  LeavePanelClose,
+  LeavePanelHead,
+  LeaveKeyValues,
+  LeavePanelSection,
+  LeavePanelLine,
+  LeaveRejectNote,
+  LeaveNoteLines,
+  LeaveModalFootEnd,
+  LeavePlanCard,
+  LeavePlanGroup,
+  LeaveHeadActions,
+  LeaveScopeNotice,
+  LeaveCalendarGuide,
+  LeaveWho,
 } from './leave/index.js';
 
 // Admin
