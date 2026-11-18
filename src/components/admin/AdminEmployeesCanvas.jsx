@@ -1,6 +1,7 @@
 import { Fragment, createContext, useContext, useState, useMemo, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import DpStatusBadge from '../shared/StatusBadge.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
+import { TOOLTIP_MARGIN } from '../shared/tooltipPlacement.js';
 import { isNotifiedFailure } from '../shared/notifiedFailure.js';
 import AvatarFallback from './AvatarFallback.jsx';
 import Card from './Card.jsx';
@@ -2077,6 +2078,20 @@ function Dash() {
 const ClipReportContext = createContext(null);
 
 /**
+ * 잘린 칸 말풍선의 최대 폭 — 전체 글자가 한 줄에 들게 칸 글 폭 + 말풍선 좌우 안쪽 여백(8+8)까지 넓힌다.
+ * 기본 280px 에 두면 긴 이메일이 «example- / company.co.kr» 처럼 «-» 에서 두 줄로 꺾였다(PW-2917 11-18).
+ * 칸 글(13px)이 말풍선 글(12px)보다 커서 이 폭이면 남는다. 화면보다 길면 화면 폭(양옆 8px)에서 꺾는다.
+ */
+const CLIP_TIP_PAD = 16;
+const CLIP_TIP_BASE = 280;
+function clipTipWidth(textWidth) {
+  const want = Math.ceil(textWidth) + CLIP_TIP_PAD + 2;
+  const room = typeof window === 'undefined' ? want : window.innerWidth - 2 * TOOLTIP_MARGIN;
+  const width = Math.min(want, room);
+  return width > CLIP_TIP_BASE ? width : undefined;
+}
+
+/**
  * 표 칸 글 — 한 줄로 두고 넘치면 «…», 잘렸을 때만 마우스를 올리면 전체 글자 (PW-2917).
  * 명단 표 칸(td)의 «…» 규칙은 칸 바로 안의 글에만 닿는다. 표에서 고칠 수 있는 칸은 글을 상자로 한 번 더
  * 싸므로 글 자체가 자기 폭에서 줄인다(`.admin-emp-cell-clip`). 열 폭은 고정이라 값이 바뀔 때만 다시 잰다.
@@ -2085,11 +2100,14 @@ function TextCell({ value, className }) {
   const ref = useRef(null);
   const report = useContext(ClipReportContext);
   const [cut, setCut] = useState(false);
+  const [tipWidth, setTipWidth] = useState(undefined);
   const measure = () => {
     const el = ref.current;
     const next = !!el && el.scrollWidth > el.clientWidth + 1;
+    const width = next ? clipTipWidth(el.scrollWidth) : undefined;
     setCut(next);
-    if (report) report(next ? String(value) : null);
+    setTipWidth(width);
+    if (report) report(next ? { text: String(value), width } : null);
   };
   // 마우스를 올릴 때도 다시 잰다 — 칸에 값을 넣고 Enter 친 순간은 칸이 아직 열린 모양(가로로 늘어나는 상자)이라
   // 그때 잰 «안 잘림»이 남는다. 말풍선은 늘 달아 두고 안 잘렸으면 열지 않는다(open=false).
@@ -2099,7 +2117,7 @@ function TextCell({ value, className }) {
     <span ref={ref} onMouseEnter={measure} className={['admin-emp-cell-text', 'admin-emp-cell-clip', className].filter(Boolean).join(' ')}>{value}</span>
   );
   if (report) return text;
-  return <Tooltip content={String(value)} open={cut ? undefined : false}>{text}</Tooltip>;
+  return <Tooltip content={String(value)} open={cut ? undefined : false} maxWidth={tipWidth}>{text}</Tooltip>;
 }
 
 /** 말풍선이 이미 있는 칸 — 안의 글이 잘렸으면 전체 글자를 첫 줄에, 칸 말풍선을 다음 줄에 둔다. */
@@ -2107,7 +2125,7 @@ function CellTip({ tip, children }) {
   const [clipped, setClipped] = useState(null);
   return (
     <ClipReportContext.Provider value={setClipped}>
-      <Tooltip content={[clipped, tip].filter(Boolean).join('\n')}>{children}</Tooltip>
+      <Tooltip content={[clipped?.text, tip].filter(Boolean).join('\n')} maxWidth={clipped?.width}>{children}</Tooltip>
     </ClipReportContext.Provider>
   );
 }
