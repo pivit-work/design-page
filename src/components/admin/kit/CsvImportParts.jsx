@@ -232,7 +232,7 @@ export function CsvDropZone({
         onChange={onFileChange}
       />
       {picked ? <FileTextGlyph size={18} {...PICKED_GLYPH} /> : <IconUpload size={22} />}
-      <span className="admin-inv-drop-title">{title}</span>
+      <span className="admin-inv-drop-title" title={picked ? title : undefined}>{title}</span>
       {hint && <span className="admin-inv-hint">{hint}</span>}
     </label>
   );

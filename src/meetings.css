@@ -1881,10 +1881,12 @@ input.mtg-record-action-title::placeholder {
 /* 형식 오류 — 빨간 점선 + 옅은 오류 바탕 */
 /* admin.css .admin-inv-drop:hover·.is-over(같은 명시도)가 실리는 순서에 따라 초록으로 덮지 않게 한 단계 높인다 · 새 파일을 끌어 오는 중(is-over)에는 초록 */
 .mtg-import-drop.admin-inv-drop.is-error:not(.is-over),
-.mtg-import-drop.admin-inv-drop.is-error:not(.is-over):hover { border-color: var(--colors-border-borderError); background: var(--bg-error-primary); }
+.mtg-import-drop.admin-inv-drop.is-error:not(.is-over):hover { border-color: var(--colors-border-borderError); background: var(--bg-error-primary); color: var(--text-secondary); }
 /* 파일을 고른 뒤 — 문서 아이콘 · 이름 · [다른 파일 고르기] 한 줄, 바꾸기 글자는 브랜드 글자 링크(.login-link.is-legal 굵기) */
 .mtg-import-drop.is-picked { flex-direction: row; justify-content: center; gap: var(--spacing-md); padding: calc(var(--spacing-xl) + var(--spacing-xxs)) var(--spacing-xl); }
-.mtg-import-drop.is-picked .admin-inv-drop-title { min-width: 0; }
+.mtg-import-drop.is-picked > svg { flex-shrink: 0; }
+/* 긴 파일 이름은 한 줄 말줄임 — 아이콘·[다른 파일 고르기]는 그대로 보인다 */
+.mtg-import-drop.is-picked .admin-inv-drop-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; overflow-wrap: normal; }
 .mtg-import-drop.is-picked .admin-inv-hint { flex-shrink: 0; font-size: 13px; font-weight: 600; color: var(--text-brand-tertiary); white-space: nowrap; }
 /* 20px 체크 — 회의록 공유 창 체크(.mtg-share-checkbox) 값 */
 .mtg-modal-check { position: relative; display: inline-grid; place-items: center; width: 20px; height: 20px; flex-shrink: 0; margin-top: calc(var(--spacing-xxs) / 2); }
