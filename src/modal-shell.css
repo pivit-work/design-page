@@ -264,10 +264,10 @@
 
 /* 회의실 고르기 창(pivit-work SchedulePicker)의 30분 시간 칸 — 디자이너 원본이 없어(design-review) 앱이 칠하던 값을 옮겼다
    (pivit-work PW-2935). 빈 칸은 간트 칸과 같은 흰 바탕·테두리, 고른 칸은 DatePicker 고른 날 채움색,
-   찬 칸·지난 칸은 화면 바탕 회색으로 흐리게. 폭은 앱의 칸 줄 계산(22 + 간격 2)과 짝이다. */
+   찬 칸·지난 칸은 화면 바탕 회색으로 흐리게. 폭은 앱의 칸 줄 계산(26 + 간격 2 · PW-2989 기획서 칸 26×28)과 짝이다. */
 .tl-slot-cell {
   flex-shrink: 0;
-  width: 22px;
+  width: 26px;
   height: 28px;
   padding: 0;
   border-radius: 6px;
@@ -283,4 +283,50 @@
   background: var(--bg-primary);
   opacity: 0.6;
   cursor: not-allowed;
+}
+.tl-slot-cell:not(:disabled):not(.is-on):hover {
+  border-color: var(--border-brand);
+}
+/* 찬 칸 · 지난 칸 (pivit-work PW-2989) — 예약 있는 칸이 아주 옅은 회색이라 빈 칸(흰 + 테두리) · 지난 칸과 갈리지 않던 것을
+   찬 칸은 중립 회색 빗금, 지난 칸은 옅은 회색 채움으로 가른다. 뜻은 아래 범례(.tl-slot-legend)가 글로 적는다. */
+.tl-slot-cell.is-busy,
+.tl-slot-legend-swatch.is-busy {
+  background: repeating-linear-gradient(135deg, var(--colors-border-borderPrimary) 0 2px, var(--utility-gray-200) 2px 6px);
+  border-color: transparent;
+  opacity: 1;
+}
+.tl-slot-cell.is-past,
+.tl-slot-legend-swatch.is-past {
+  background: var(--alpha-black-3);
+  border-color: transparent;
+  opacity: 1;
+}
+/* 칸 뜻 범례 한 줄 — 칸 줄 판 아래, 판 테두리 안. 글씨는 막대 범례 모양(12 · 흐린 회색) */
+.tl-slot-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs) calc(var(--spacing-lg) + var(--spacing-xxs));
+  padding: calc(var(--spacing-md) + var(--spacing-xxs)) calc(var(--spacing-lg) + var(--spacing-xxs));
+  border-top: 1px solid var(--border-secondary);
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-subtle);
+}
+.tl-slot-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+.tl-slot-legend-swatch {
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  box-sizing: border-box;
+  border-radius: 3px;
+  border: 1px solid var(--border-secondary);
+  background: var(--bg-quaternary);
+}
+.tl-slot-legend-swatch.is-on {
+  background: var(--bg-brand-solid);
+  border-color: transparent;
 }

@@ -212,3 +212,76 @@
 .dp-datepicker-grid.is-months .dp-datepicker-cell {
   width: 88px;
 }
+
+/* ── 창 안 납작한 달력 (flat prop · pivit-work PW-2989) ─────────────────
+   «일시 · 회의실» 팝업 왼쪽에 늘 펼쳐 둔 달력. 떠 있는 그림자 카드가 창 안에 둥 떠 보이고(줄 44) 오른쪽 칸 줄 아래가
+   비던 것을, 옆 칸 줄과 같은 테두리 칸(roster-table 1px · r12)과 줄 30 으로 맞춘다. 숫자 · 고른 날 원 · 회차 점은 위 규칙 그대로.
+   머리는 한 줄 — ‹ 달 [오늘] › (머리 두 줄을 grid 한 줄로 펼친다: display contents + order). */
+.dp-datepicker.is-flat {
+  width: 252px;
+  box-shadow: none;
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-lg);
+}
+.dp-datepicker.is-flat .dp-datepicker-content {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  column-gap: var(--spacing-xs);
+  row-gap: var(--spacing-md);
+  padding: calc(var(--spacing-lg) + var(--spacing-xxs)) var(--spacing-lg);
+}
+.dp-datepicker.is-flat .dp-datepicker-month,
+.dp-datepicker.is-flat .dp-datepicker-today-row {
+  display: contents;
+}
+.dp-datepicker.is-flat .dp-datepicker-month > :first-child { order: 1; }
+.dp-datepicker.is-flat .dp-datepicker-label { order: 2; justify-self: start; color: var(--colors-foreground-fgPrimary); }
+.dp-datepicker.is-flat .dp-datepicker-today { order: 3; }
+.dp-datepicker.is-flat .dp-datepicker-month > :last-child { order: 4; }
+.dp-datepicker.is-flat .dp-datepicker-nav {
+  width: 28px;
+  height: 28px;
+  color: var(--text-subtle);
+}
+.dp-datepicker.is-flat .dp-datepicker-today {
+  height: 24px;
+  padding: 0 var(--spacing-md);
+  font-size: 12px;
+  line-height: 18px;
+}
+.dp-datepicker.is-flat .dp-datepicker-grid {
+  order: 5;
+  grid-column: 1 / -1;
+  width: 100%;
+}
+.dp-datepicker.is-flat[data-view='day'] .dp-datepicker-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  justify-items: center;
+  row-gap: var(--spacing-xxs);
+}
+.dp-datepicker.is-flat[data-view='day'] .dp-datepicker-cell {
+  width: 28px;
+  height: 28px;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--text-primary);
+}
+.dp-datepicker.is-flat[data-view='day'] .dp-datepicker-cell.is-head {
+  height: 26px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+}
+.dp-datepicker.is-flat[data-view='day'] .dp-datepicker-cell.is-outside,
+.dp-datepicker.is-flat[data-view='day'] .dp-datepicker-cell.is-muted,
+.dp-datepicker.is-flat[data-view='day'] .dp-datepicker-cell.is-disabled {
+  color: var(--text-quaternary);
+}
+.dp-datepicker.is-flat[data-view='day'] .dp-datepicker-cell.is-selected {
+  font-weight: 600;
+}
+.dp-datepicker.is-flat .dp-datepicker-cell.is-marked::after {
+  bottom: calc(-1 * var(--spacing-xxs));
+}

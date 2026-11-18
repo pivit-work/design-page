@@ -1967,3 +1967,19 @@ button.dp-chip {
   vertical-align: middle;
   cursor: help;
 }
+
+/* 회의실 방 화면 딱지 (pivit-work PW-2989 · 커트 11-18 시안 room.html .bd) — 요청 줄의 종류 · 상태 · «내 요청»과 둔 자산 종류.
+   흐린 테두리(admin-pill)를 걷고 바탕 색만 · 12/600 · r6. 종류(중립)는 옅은 회색 바탕에 흐린 글을 한 단계 진하게 — 칸 안 다른 글과 위계가 갈리게. */
+.mtg-room-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--spacing-md);
+  border-radius: var(--radius-xs);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 20px;
+}
+.mtg-room-badge.dp-badge--tone-neutral {
+  background: var(--alpha-black-3);
+  color: var(--text-subtle);
+}

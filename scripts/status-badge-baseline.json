@@ -1750,6 +1750,25 @@
    "line-height": "18px",
    "box-shadow": "var(--shadows-shadow-md)",
    "width": "252px"
+  },
+  "status-badge.css|.mtg-room-badge": {
+   "border-radius": "6px",
+   "padding": "0 8px",
+   "font-size": "12px",
+   "font-weight": "600",
+   "display": "inline-flex",
+   "align-items": "center",
+   "line-height": "20px"
+  },
+  "timeline.css|.tl-recurrence-weekdays .tl-event-radio-pill": {
+   "border-radius": "pill",
+   "padding": "0",
+   "background": "#ffffff / 어두운 화면 #18191b",
+   "color": "#687079 / 어두운 화면 #cecfd2",
+   "justify-content": "center",
+   "border": "1px solid var(--border-secondary)",
+   "height": "34px",
+   "width": "34px"
   }
  },
  "variants": {
@@ -2504,6 +2523,25 @@
   "eval-cycle.css|.evmon-la .evc-status-badge.tone-neutral": {
    "background": "rgba(0, 0, 0, 0.03) / 어두운 화면 rgba(255, 255, 255, 0.03)",
    "color": "#858b95"
+  },
+  "status-badge.css|.mtg-room-badge.dp-badge--tone-neutral": {
+   "background": "rgba(0, 0, 0, 0.03) / 어두운 화면 rgba(255, 255, 255, 0.03)",
+   "color": "#858b95"
+  },
+  "timeline.css|.tl-recurrence-weekdays .tl-event-radio-pill": {
+   "border-radius": "pill",
+   "padding": "0",
+   "background": "#ffffff / 어두운 화면 #18191b",
+   "color": "#687079 / 어두운 화면 #cecfd2",
+   "justify-content": "center",
+   "border": "1px solid var(--border-secondary)",
+   "height": "34px",
+   "width": "34px"
+  },
+  "timeline.css|.tl-recurrence-weekdays .tl-event-radio-pill.is-selected": {
+   "font-weight": "600",
+   "background": "#f1fffa / 어두운 화면 #2dbd82",
+   "color": "#10774d / 어두운 화면 #2dbd82"
   }
  }
 }

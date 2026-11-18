@@ -46,6 +46,8 @@ export const HOME_CSS = 'status-badge.css';
  * 🔴 이 목록은 **줄어들기만 한다.** 새 딱지를 여기 올려 검사를 피하지 않는다.
  */
 export const NOT_A_BADGE = {
+  'timeline.css|.tl-recurrence-weekdays .tl-event-radio-pill': '누르는 것 — 맞춤 반복 요일 고르기 버튼 (pivit-work PW-2989)',
+  'timeline.css|.tl-recurrence-weekdays .tl-event-radio-pill.is-selected': '누르는 것 — 맞춤 반복 요일 고르기 버튼의 고른 모양 (pivit-work PW-2989)',
   'admin.css|.admin-snap-chip': '누르는 것 — 조직 시점 고르기 버튼',
   'admin.css|.admin-notif-filter-chip': '쓰는 곳이 없다 — 화면에서 안 그린다',
   'eval-cycle.css|.evs-cw-chip': '누르는 것 — 캘리브레이션 필터 버튼',

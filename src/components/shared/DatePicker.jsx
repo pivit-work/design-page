@@ -20,6 +20,8 @@ import { ChevronDownGlyph, ChevronLeftGlyph, ChevronRightGlyph } from './lineIco
  *   anchorEl     클릭한 버튼 element (outside-click 판정에서 제외)
  *   inline       boolean — true 면 띄우지 않고 놓인 자리(문서 흐름)에 그린다. 모양은 같다. 연 채 여러 날을 고르는 곳에서
  *                아래 줄(고른 날 · 안내)을 덮지 않고 밀어내며, 스크롤하면 자리와 함께 움직인다 (PW-2663 · 연차 사용 계획)
+ *   flat         boolean — inline 과 함께. 창 안에 늘 펼쳐 둔 달력을 그림자 카드 대신 테두리 칸(1px · r12 · 폭 252)으로, 줄 30 ·
+ *                머리 한 줄(‹ 달 [오늘] ›)로 줄인다. 숫자 · 고른 날 원은 그대로 (pivit-work PW-2989 «일시 · 회의실» 팝업)
  *   selectedDate Date | null — 현재 선택일. null 이면 어느 보기에도 선택 표시가 없다
  *   onSelect     (Date) => void
  *   onClose      () => void
@@ -103,6 +105,7 @@ export default function DatePicker({
   disabledTitle,
   selectedDates,
   inline = false,
+  flat = false,
   isDateMuted,
   isDateMarked,
   dismissible = true,
@@ -269,7 +272,7 @@ export default function DatePicker({
     <div
       {...rest}
       ref={popoverRef}
-      className={inline ? 'dp-datepicker is-inline' : 'dp-datepicker'}
+      className={['dp-datepicker', inline && 'is-inline', inline && flat && 'is-flat'].filter(Boolean).join(' ')}
       style={{ left: 0, top: 0, opacity: 0 }}
       role="dialog"
       data-view={view}

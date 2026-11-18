@@ -2888,14 +2888,24 @@
 .tl-recurrence-label {
   font-size: 14px;
   line-height: 20px;
+  font-weight: 600;
 }
 .tl-recurrence-inline {
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-sm);
 }
+/* 숫자 칸 «종료: [N] 회» · «반복 간격 [N]» — 64 가운데 숫자, 브라우저 위아래 화살표는 지운다(okr.css .okr-kru-input 방식 · pivit-work PW-2989) */
 .tl-emp-input.tl-recurrence-number {
-  width: 72px;
+  width: 64px;
+  text-align: center;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+.tl-emp-input.tl-recurrence-number::-webkit-outer-spin-button,
+.tl-emp-input.tl-recurrence-number::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 /* 맞춤 «반복 간격 [N] [일·주·개월·년] 마다» 한 줄 — 고르기 칸(.tl-select · 폼 기본 100%)을 툴바 드롭다운(.tl-toolbar .tl-select · width auto)처럼 글자 폭만.
    최소 120 — «맞춤 — 매주 화요일»처럼 긴 고른 값이 «…»로 잘리지 않게 120 고정을 풀었다 (pivit-work PW-2637 11-16 검토) */
@@ -2907,14 +2917,63 @@
 .tl-emp-input.tl-recurrence-date {
   width: 160px;
 }
+/* 맞춤 칸 (pivit-work PW-2989) — 회색 상자 안 흐린 이름표 대신 흰 칸 + 가는 테두리(roster-table 1px · r12), 이름표 열 72 */
 .tl-recurrence-panel {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-md);
-  padding: var(--spacing-lg) var(--spacing-xl);
-  border-radius: var(--radius-md);
-  background: var(--bg-secondary);
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  align-items: center;
+  gap: calc(var(--spacing-md) + var(--spacing-xxs)) var(--spacing-lg);
+  padding: calc(var(--spacing-lg) + var(--spacing-xxs)) var(--spacing-xl);
   border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-lg);
+  background: var(--bg-quaternary);
+}
+.tl-recurrence-panel-head {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-md);
+}
+.tl-recurrence-key {
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+.tl-recurrence-value {
+  grid-column: 2;
+}
+/* 요일 7개 — 고르기 알약(.tl-event-radio-pill)을 34 동그라미로, 고르지 않은 것도 테두리로 누를 곳이 보이게 */
+.tl-recurrence-weekdays {
+  gap: var(--spacing-sm);
+}
+.tl-recurrence-weekdays .tl-event-radio-pill {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  justify-content: center;
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-full);
+  background: var(--bg-quaternary);
+  color: var(--text-secondary);
+}
+.tl-recurrence-weekdays .tl-event-radio-pill.is-selected {
+  border-color: var(--border-brand);
+  background: var(--bg-brand-primary);
+  color: var(--text-brand-secondary);
+  font-weight: 600;
+}
+/* 반복 + 회의실 겹침 안내 줄 — 글 · [회차 보기] · [다른 회의실 고르기] 사이를 바닥 버튼 묶음 간격(12)으로 */
+.tl-recurrence-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--spacing-lg);
+  row-gap: var(--spacing-xs);
+}
+.tl-recurrence-notice > .tl-recurrence-detail {
+  flex-basis: 100%;
 }
 .tl-recurrence-detail {
   display: block;

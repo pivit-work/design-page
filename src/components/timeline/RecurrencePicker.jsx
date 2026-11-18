@@ -99,10 +99,16 @@ export default function RecurrencePicker({
       </div>
 
       {kind === 'custom' && customOpen && (
+        /* 맞춤 칸 (pivit-work PW-2989) — 흰 칸 + 가는 테두리, 왼쪽 이름표 열 · 오른쪽 값. 머리 줄 오른쪽에 [완료]. */
         <div className="tl-recurrence-panel" data-testid={`${testId}-custom`}>
-          <span className="tl-event-label tl-recurrence-label">{labels.customTitle}</span>
+          <div className="tl-recurrence-panel-head">
+            <span className="tl-event-label tl-recurrence-label">{labels.customTitle}</span>
+            <Button type="button" variant="secondary" size="sm" data-testid={`${testId}-custom-done`} onClick={onCustomDone}>
+              {labels.done}
+            </Button>
+          </div>
+          <span className="tl-recurrence-key">{labels.interval}</span>
           <div className="tl-recurrence-row">
-            <span className="tl-event-helper">{labels.interval}</span>
             <input
               type="number"
               min={1}
@@ -116,32 +122,29 @@ export default function RecurrencePicker({
             <span className="tl-event-helper">{labels.every}</span>
           </div>
           {unit === 'week' && (
-            <div className="tl-recurrence-row" role="group" aria-label={labels.weekdays}>
-              <span className="tl-event-helper">{labels.weekdays}</span>
-              {weekdayItems.map((w) => (
-                <button
-                  key={w.index}
-                  type="button"
-                  aria-pressed={w.on}
-                  data-testid={`${testId}-weekday-${w.index}`}
-                  className={`tl-event-radio-pill${w.on ? ' is-selected' : ''}`}
-                  onClick={() => onToggleWeekday(w.index)}
-                >
-                  {w.label}
-                </button>
-              ))}
-            </div>
+            <>
+              <span className="tl-recurrence-key">{labels.weekdays}</span>
+              <div className="tl-recurrence-row tl-recurrence-weekdays" role="group" aria-label={labels.weekdays}>
+                {weekdayItems.map((w) => (
+                  <button
+                    key={w.index}
+                    type="button"
+                    aria-pressed={w.on}
+                    data-testid={`${testId}-weekday-${w.index}`}
+                    className={`tl-event-radio-pill${w.on ? ' is-selected' : ''}`}
+                    onClick={() => onToggleWeekday(w.index)}
+                  >
+                    {w.label}
+                  </button>
+                ))}
+              </div>
+            </>
           )}
           {unit === 'month' && (
-            <div className="tl-recurrence-row">
+            <div className="tl-recurrence-row tl-recurrence-value">
               <CustomSelect id={`${testId}-month-mode`} size="md" ariaLabel={labels.customTitle} value={monthMode} onChange={onMonthModeChange} options={monthModeOptions} />
             </div>
           )}
-          <div className="tl-recurrence-row tl-recurrence-end">
-            <Button type="button" variant="ghost" size="sm" data-testid={`${testId}-custom-done`} onClick={onCustomDone}>
-              {labels.done}
-            </Button>
-          </div>
         </div>
       )}
 
@@ -150,15 +153,16 @@ export default function RecurrencePicker({
         n.tone === 'error' ? (
           <p key={i} className="dp-field-error" role="status" data-testid={n.testId}>{n.text}</p>
         ) : (
-        <span key={i} className={`tl-event-helper${n.tone === 'warning' ? ' is-warning' : ''}`} role="status" data-testid={n.testId}>
-          {n.text}
+        /* 글과 버튼 · 버튼과 버튼 사이를 바닥 버튼 묶음과 같은 간격으로 띄운다 — 글이 길어 줄이 넘어가도 붙지 않는다(pivit-work PW-2989 · 11-18 커트). */
+        <div key={i} className={`tl-event-helper tl-recurrence-notice${n.tone === 'warning' ? ' is-warning' : ''}`} role="status" data-testid={n.testId}>
+          <span>{n.text}</span>
           {(n.actions || []).map((a) => (
             <Button key={a.testId || a.label} type="button" variant="ghost" size="sm" data-testid={a.testId} onClick={a.onClick}>
               {a.label}
             </Button>
           ))}
           {n.detail && <span className="tl-recurrence-detail">{n.detail}</span>}
-        </span>
+        </div>
         )
       ))}
     </div>
