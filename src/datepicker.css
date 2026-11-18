@@ -285,3 +285,6 @@
 .dp-datepicker.is-flat .dp-datepicker-cell.is-marked::after {
   bottom: calc(-1 * var(--spacing-xxs));
 }
+.dp-datepicker.is-flat .dp-datepicker-label.is-button {
+  height: 28px;
+}
