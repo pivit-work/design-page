@@ -7125,13 +7125,17 @@ export default function EvalCycleWizard({
       if (err?.status === 409 || err?.response?.status === 409) {
         setLeaderToast('conflict');
         setLeaderReloadTick((n) => n + 1);
-      } else if (!isNotifiedFailure(err)) {
-        // 앱이 이미 알린 실패(이용 정지 등)는 토스트를 겹쳐 띄우지 않는다(PW-2907).
+      } else if (isNotifiedFailure(err)) {
+        // 앱이 이미 알린 실패(이용 정지 등)는 토스트를 겹쳐 띄우지 않는다(PW-2907). 부른 쪽이 누르기 전
+        // 화면으로 되돌리도록 알린다(PW-2976).
+        return 'notified';
+      } else {
         setLeaderToast('confirmFailed');
       }
     } finally {
       setLeaderConfirming(false);
     }
+    return undefined;
   };
   /** 확정 해제 사유 한 줄. */
   const leaderUnconfirmKind = leaderStale
@@ -7163,19 +7167,28 @@ export default function EvalCycleWizard({
   /**
    * PW-2065 — 조직 확정. 고른 조직을 지금 칸 지문으로 확정하고, 그 결과 모든 조직이 확정되면 종전
    * 「확정」(전체 칸 · 서버)을 보낸다. 서버가 거절하면 조직 확정은 남기고 요약 바에서 다시 보낼 수 있다.
+   * [pivit-work PW-2976] 단 앱이 이미 알린 거절(이용 정지)이면 누르기 전으로 되돌린다 — 정지 안내는
+   * «버튼 하나만 막힐 때 — 화면을 바꾸지 않고 토스트»다(tier-gating §6.10). 그새 다른 조직을 확정했으면 두지 않는다.
    */
   const confirmLeaderGroups = (gids) => {
     // [pivit-work PW-2569] 부담 경고 기준 칸이 틀린 동안은 조직 확정도 하지 않는다 — 전체 확정이 말없이 멈췄다.
     if (!leaderLoadLimitOk(leaderLoadLimit)) return;
     const at = new Date().toISOString();
-    const next = { ...leaderGroupConfirms };
+    const prev = leaderGroupConfirms;
+    const prevChangeKind = leaderChangeKind;
+    const next = { ...prev };
     gids.forEach((gid) => {
       next[gid] = { at, sig: leaderGroupSigOf(gid) };
     });
     setLeaderGroupConfirms(next);
     setLeaderChangeKind(null);
     const all = leaderGroups.every((g) => next[g.id]?.sig === leaderGroupSigOf(g.id));
-    if (all && !leaderConfirmed) void confirmLeader();
+    if (!all || leaderConfirmed) return;
+    void confirmLeader().then((outcome) => {
+      if (outcome !== 'notified') return;
+      setLeaderGroupConfirms((cur) => (cur === next ? prev : cur));
+      setLeaderChangeKind((cur) => (cur === null ? prevChangeKind : cur));
+    });
   };
   const confirmRemainingLeaderGroups = () => {
     const gids = leaderGroups
