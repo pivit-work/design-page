@@ -875,7 +875,7 @@ div.dp-field.lv-bal-fr > .dp-field-hint { font-size: 12px; line-height: 18px; co
 /* 안내 줄 — 범위 문장 13 · «점선 = 결재 중» 범례(점선 칸 보기) · 빈 달 안내는 같은 줄 오른쪽 */
 .lv-cal-guide { display: flex; align-items: center; flex-wrap: wrap; gap: var(--spacing-xs) var(--spacing-xl); font-size: 13px; line-height: 20px; color: var(--text-subtle); }
 .lv-cal-legend { display: inline-flex; align-items: center; gap: var(--spacing-sm); font-size: 12px; line-height: 18px; color: var(--text-tertiary); }
-.lv-cal-legend-chip { width: 18px; height: 12px; border: 1px dashed var(--colors-warning-300); border-radius: var(--radius-xs, 4px); background: var(--bg-quaternary); }
+.lv-cal-legend-chip { width: 18px; height: 12px; border: 1px dashed var(--colors-warning-400); border-radius: var(--radius-xs, 4px); background: var(--bg-quaternary); }
 .lv-cal-empty { margin-left: auto; font-size: 13px; color: var(--text-tertiary); }
 
 /* 오른쪽 패널 — 폭 440(기획서 RequestDetail · PlanConfirmPanel) · 제목 18 · 오른쪽 위 닫기(✕) */
@@ -955,6 +955,8 @@ div.dp-field.lv-bal-fr > .dp-field-hint { font-size: 12px; line-height: 18px; co
 /* 창 안 묶음(기존 .adm-hr-section) — 묶음마다 위 가는 선(lv-ms 와 같은 값) */
 .lv-set-mbody > .adm-hr-section { padding: var(--spacing-3xl) 0 var(--spacing-md); border-top: 1px solid var(--border-secondary); }
 .lv-set-mbody > .adm-hr-section:first-child { border-top: 0; padding-top: 0; }
+/* 맨 위 안내 줄(lv-tip 등 묶음 아닌 줄) 바로 다음 묶음 — 선이 안내 글에 붙지 않게 위 여백(시안 .ms 선 위 여백 8 이상) */
+.lv-set-mbody > :not(.adm-hr-section) + .adm-hr-section { margin-top: var(--spacing-lg); }
 /* 알약 줄 사이에 끼는 «N개월 안» 문장 줄 · 설명은 한 줄을 다 쓴다 */
 .lv-set-pills:not(.is-col) > :not(.dp-radio):not(.dp-tip-wrap) { flex-basis: 100%; }
 /* 정산 창 기준 라디오 — 읽기 상태(누를 수 없음)는 옅게, 바꾸기 상태는 보통 진하기(시안 A2 ④ · design-page Radio is-disabled) */
@@ -962,7 +964,7 @@ div.dp-field.lv-bal-fr > .dp-field-hint { font-size: 12px; line-height: 18px; co
 /* 칸 줄 안 날짜 · 글 칸 — 디자이너 창 입력 칸(.tl-group-modal-input: 40 · r10 · 3% 회색 필 · 테두리 없음 · 14) · 라디오 글 14 */
 .leave-look .lv-frow-v .dp-input { min-height: 40px; border-color: transparent; border-radius: var(--radius-md); background: var(--alpha-black-3); font-size: 14px; }
 .lv-frow-v .dp-radio-label { font-size: 14px; }
-/* 줄을 나눈 자리의 « · »·« — » — 화면에서는 줄이 바뀌어 빼고, 글(복사 · 읽기)에는 남긴다 */
-.lv-set-sep { display: none; }
+/* 줄을 나눈 자리의 « · »·« — » — 화면에서만 안 보이고(시각적 숨김), 글(복사 · 화면 읽기)에는 남긴다. display:none 은 읽기·복사에서도 빠져 쓰지 않는다 */
+.lv-set-sep { position: absolute; width: 1px; height: 1px; padding: 0; margin: 0; overflow: hidden; clip: rect(0, 0, 0, 0); clip-path: inset(50%); white-space: pre; border: 0; }
 /* 한 줄 한 사실 목록 — 점 없이 줄만(시안 «점 없이 12px») */
 .lv-set-list { margin: 0; padding: 0; list-style: none; }
