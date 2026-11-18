@@ -659,7 +659,9 @@
 .admin-offb-area.is-overridden { border-color: var(--colors-warning-200, #fedf89); }
 .admin-offb-area-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .admin-offb-area-name { font-size: 13px; font-weight: 700; color: var(--text-primary); }
-.admin-offb-area-why { margin-left: auto; }
+/* «왜 이렇게 되나» — 여덟 영역에 반복되는 글 버튼이라 강조색 대신 옅은 회색, 올리면 진해진다 (PW-2998 · 커트 11-18 시안) */
+.admin-offb-area-why { margin-left: auto; color: var(--text-subtle); }
+.admin-offb-area-why:hover:not(:disabled) { color: var(--text-primary); }
 .admin-offb-area-rule { margin: 0; font-size: 12px; line-height: 1.6; color: var(--text-secondary); }
 .admin-offb-area-detail {
   display: flex;
@@ -740,7 +742,81 @@
 .admin-offb-folder-select { flex: 0 0 200px; min-width: 0; }
 .admin-offb-folder-left { display: flex; flex-direction: column; gap: var(--spacing-xxs); min-width: 0; }
 .admin-offb-leave-note.is-warning { color: var(--colors-warning-600); }
-.admin-offb-leave-line { display: block; }
+/* 글 나누기 (PW-2998 · 커트 11-18 시안 worklog/offboarding-designer-2026-11-17) — 글은 그대로, 마침표 · « — » 자리에서 줄만 나눈다.
+   진한 첫 조각 · 보통 글 · 옅은 «고치는 법» · 줄 사이 가는 선. 상자는 같은 창 admin-kit-notice 앰버/회색 값 그대로 */
+.admin-offb-split { color: var(--text-primary); }
+.admin-offb-split .admin-kit-notice-title { font-size: 13px; color: var(--colors-warning-700); }
+.admin-offb-split-line {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+  padding: var(--spacing-md) 0;
+  border-top: 1px solid var(--colors-warning-200);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.admin-kit-notice-title + .admin-offb-split-line { margin-top: var(--spacing-sm); }
+.admin-offb-split-line:last-child { padding-bottom: 0; }
+.admin-offb-split-line.is-fix { gap: 0; line-height: 1.7; }
+/* 제목 바로 아래 옅은 한 줄(«지금은 표시된 대로 실행됩니다.»)은 선 없이 붙인다 */
+.admin-kit-notice-title + .admin-offb-split-line.is-fix:last-child { margin-top: 0; padding-top: var(--spacing-xxs); border-top: 0; }
+.admin-offb-split-lead { font-weight: 600; color: var(--text-primary); overflow-wrap: anywhere; }
+.admin-offb-split-text { color: var(--text-secondary); overflow-wrap: anywhere; }
+.admin-offb-split-muted { color: var(--text-tertiary); overflow-wrap: anywhere; }
+.admin-offb-graybox {
+  border: 1px solid var(--border-secondary);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+}
+.admin-offb-graybox-item + .admin-offb-graybox-item { border-top: 1px solid var(--border-secondary); }
+.admin-offb-graybox-blk {
+  padding: var(--spacing-lg) calc(var(--spacing-lg) + var(--spacing-xxs));
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+  font-size: 12px;
+  line-height: 1.6;
+}
+.admin-offb-graybox-blk + .admin-offb-graybox-blk { border-top: 1px solid var(--border-secondary); }
+.admin-offb-graybox-blk .admin-offb-split-lead { font-size: 13px; font-weight: 700; }
+/* 퇴사일 이후 휴가 건별 표 — 종류 | 기간 | 일수 | 상태 딱지, 줄 사이 점선(위 «휴가 정산» 값 줄과 같은 점선) */
+.admin-offb-split-table {
+  margin-top: var(--spacing-md);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  font-size: 12px;
+}
+.admin-offb-split-row { display: contents; }
+.admin-offb-split-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md) 0;
+  border-top: 1px dashed var(--border-secondary);
+  white-space: nowrap;
+}
+.admin-offb-split-cell:not(.is-state) { padding-right: var(--spacing-xl); }
+.admin-offb-split-cell.is-name { font-weight: 600; color: var(--text-primary); white-space: normal; overflow-wrap: anywhere; }
+.admin-offb-split-cell.is-range { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.admin-offb-split-cell.is-days { justify-content: flex-end; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+/* 섹션 2 설명 세 줄 — 첫 줄 진하게 · 끝 줄 옅게 */
+.admin-offb-section-desc.is-split { display: flex; flex-direction: column; gap: var(--spacing-xxs); }
+.admin-offb-section-desc.is-split .is-lead { font-weight: 600; color: var(--text-primary); }
+.admin-offb-section-desc.is-split .is-muted { color: var(--text-tertiary); }
+/* 섹션 3 보존 안내 — 네 줄, 줄 사이 가는 선 */
+.admin-offb-retain {
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-xs) calc(var(--spacing-lg) + var(--spacing-xxs));
+  border: 1px solid var(--border-secondary);
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text-secondary);
+}
+.admin-offb-retain-line { padding: var(--spacing-md) 0; overflow-wrap: anywhere; }
+.admin-offb-retain-line + .admin-offb-retain-line { border-top: 1px solid var(--border-secondary); }
+.admin-offb-retain-line .admin-offb-split-muted { display: block; }
 .admin-offb-effects {
   margin: 0;
   padding-left: 18px;

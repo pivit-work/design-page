@@ -70,7 +70,21 @@ function Section({ n, title, desc, children, testId }) {
           <span className="admin-offb-section-num" aria-hidden="true">{n}</span>
           <h2 className="admin-offb-section-title">{title}</h2>
         </div>
-        {desc && <p className="admin-offb-section-desc">{desc}</p>}
+        {/* 여러 문장이면 줄로 — 첫 줄 진하게 · 끝 줄 옅게 (PW-2998) */}
+        {Array.isArray(desc) ? (
+          <div className="admin-offb-section-desc is-split">
+            {desc.map((line, i) => (
+              <span
+                key={i}
+                className={i === 0 ? 'is-lead' : i === desc.length - 1 && desc.length > 2 ? 'is-muted' : undefined}
+              >
+                {line}
+              </span>
+            ))}
+          </div>
+        ) : (
+          desc && <p className="admin-offb-section-desc">{desc}</p>
+        )}
       </div>
       {children}
     </Card>
@@ -93,6 +107,110 @@ function Notice({ tone, title, children, testId, role, action }) {
   );
 }
 
+/*
+ * 글 나누기 (PW-2998 · 커트 11-18 시안) — 안내 글은 기획서 문구 그대로 두고 마침표 · « — » 자리에서만 줄로 나눈다.
+ * 첫 조각은 진하게(lead), 이어지는 것은 보통(text), 고치는 법 · 끝 문장은 옅게(muted). 앱(pivit-work
+ * `offboardingLeaveSettlement.ts`)도 같은 규칙으로 «휴가 정산» 안내를 조각으로 넘긴다.
+ */
+function splitSentences(text) {
+  return String(text ?? '').split(/(?<=\.)\s+/).filter(Boolean);
+}
+
+function splitDash(text) {
+  const s = String(text ?? '');
+  const i = s.indexOf(' — ');
+  return i < 0 ? [s, undefined] : [s.slice(0, i), s.slice(i + 3)];
+}
+
+/** 조각 한 묶음 — lead · text · muted · items(건별 표: 종류 · 기간 · 일수 · 상태 딱지) */
+function SplitBlock({ block, className, testId }) {
+  const text = block.text || [];
+  const muted = block.muted || [];
+  const fix = !block.lead && text.length === 0 && !block.items?.length;
+  return (
+    <div className={`${className}${fix ? ' is-fix' : ''}`} data-testid={testId}>
+      {block.lead && <span className="admin-offb-split-lead">{block.lead}</span>}
+      {text.map((t, i) => <span className="admin-offb-split-text" key={`t${i}`}>{t}</span>)}
+      {muted.map((t, i) => <span className="admin-offb-split-muted" key={`m${i}`}>{t}</span>)}
+      {block.items?.length > 0 && (
+        <div className="admin-offb-split-table">
+          {block.items.map((it) => (
+            <div className="admin-offb-split-row" key={it.id} data-testid={`offboarding-leave-item-${it.id}`}>
+              <span className="admin-offb-split-cell is-name">{it.label}</span>
+              <span className="admin-offb-split-cell is-range">{it.range}</span>
+              <span className="admin-offb-split-cell is-days">{it.days}</span>
+              <span className="admin-offb-split-cell is-state">
+                {it.badges.map((b) => (
+                  <DpStatusBadge key={b.text} tone={b.tone} className="admin-pill">{b.text}</DpStatusBadge>
+                ))}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** 앰버 경고 — 제목만 주황, 아래 조각은 가는 선으로 나눈 줄 */
+function SplitWarn({ title, blocks = [], testId, children }) {
+  return (
+    <div className="admin-kit-notice is-warn has-title admin-offb-split" data-testid={testId}>
+      <span className="admin-kit-notice-icon"><IconAlert size={14} /></span>
+      <div className="admin-kit-notice-text">
+        <p className="admin-kit-notice-title">{title}</p>
+        {blocks.map((b, i) => <SplitBlock key={i} block={b} className="admin-offb-split-line" />)}
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/* 옛 모양(lines: 문자열 배열)도 받는다 — 줄마다 보통 글 한 조각 */
+function blocksOf(n) {
+  return n.blocks || (n.lines || []).map((l) => ({ text: [l] }));
+}
+
+/* 앰버는 하나씩, 이어 나오는 회색 안내는 한 상자에 — 순서는 그대로 둔다 */
+function groupNotices(notices) {
+  const out = [];
+  for (const n of notices) {
+    const last = out[out.length - 1];
+    if (n.tone === 'neutral' && last && last.tone === 'neutral') last.items.push(n);
+    else out.push({ tone: n.tone, items: [n] });
+  }
+  return out;
+}
+
+/* 섹션 3 보존 안내 — 일곱 문장을 «파기 · 분리 보관과 받는 법 · 급여 장부 · 설정 없음» 네 줄로.
+   문장 수가 다르면(문구가 바뀌면) 문장마다 한 줄. */
+function retentionGroups(text) {
+  const s = splitSentences(text);
+  if (s.length !== 7) return s.map((x) => ({ text: [x] }));
+  const [taxLead, taxRest] = splitDash(s[4]);
+  return [
+    { lead: s[0], text: [s[1]] },
+    { text: [s[2]], muted: [s[3]] },
+    taxRest ? { lead: taxLead, muted: [taxRest] } : { text: [s[4]] },
+    { muted: [`${s[5]} ${s[6]}`] },
+  ];
+}
+
+function RetentionBox({ text }) {
+  return (
+    <div className="admin-offb-retain" data-testid="offboarding-retention">
+      {retentionGroups(text).map((g, i) => (
+        <div key={i} className="admin-offb-retain-line">
+          {g.lead && <span className="admin-offb-split-lead">{g.lead}</span>}
+          {g.lead && g.text?.length ? ' ' : null}
+          {(g.text || []).join(' ')}
+          {(g.muted || []).map((m, j) => <span className="admin-offb-split-muted" key={j}>{m}</span>)}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /**
  * @typedef {object} LeaveSettlementRow
  * @property {string} id
@@ -111,7 +229,9 @@ function Notice({ tone, title, children, testId, role, action }) {
  * @property {string} [message] idle·loading 일 때 칸 안 한 줄
  * @property {{ title: string, desc?: string, retryLabel: string, onRetry: () => void }} [error]
  * @property {LeaveSettlementRow[]} [rows]
- * @property {{ id: string, tone: 'warn'|'neutral', title?: string, lines: string[] }[]} [notices]
+ * @property {{ id: string, tone: 'warn'|'neutral', title?: string, blocks: { lead?: string, text?: string[], muted?: string[],
+ *   items?: { id: string, label: string, range: string, days: string, badges: { tone: string, text: string }[] }[] }[] }[]} [notices]
+ *   앰버는 하나씩, 이어 나오는 회색은 한 상자에 가는 선으로(PW-2998). 옛 모양 `lines: string[]` 도 받는다
  */
 
 /* 섹션 1 끝 «휴가 정산» 칸 — 값은 휴가 모듈이, 문장은 소비자가 채운다. 여기서는 배치만 한다 (정책 v1.27 §2-B). */
@@ -131,7 +251,7 @@ function FolderHandoff({ view }) {
     <div className="admin-offb-leave" data-testid="offboarding-folders">
       <div className="admin-offb-leave-head">
         <span className="admin-offb-leave-title">{view.title}</span>
-        <DpStatusBadge tone="neutral">{view.badge}</DpStatusBadge>
+        <DpStatusBadge tone="neutral" className="admin-pill">{view.badge}</DpStatusBadge>
       </div>
       <NoteText data-testid="offboarding-folders-desc">{view.description}</NoteText>
       {view.error ? (
@@ -177,7 +297,7 @@ function LeaveSettlement({ view, labels }) {
     <div className="admin-offb-leave" data-testid="offboarding-leave">
       <div className="admin-offb-leave-head">
         <span className="admin-offb-leave-title">{labels.leave.title}</span>
-        <DpStatusBadge tone="neutral">{labels.leave.badge}</DpStatusBadge>
+        <DpStatusBadge tone="neutral" className="admin-pill">{labels.leave.badge}</DpStatusBadge>
         {view.basis && (
           <span className="admin-offb-leave-basis" data-testid="offboarding-leave-basis">{view.basis}</span>
         )}
@@ -208,7 +328,7 @@ function LeaveSettlement({ view, labels }) {
                   {r.valueSuffix && (
                     <NoteText as="span" data-testid={`offboarding-leave-suffix-${r.id}`}>{r.valueSuffix}</NoteText>
                   )}
-                  {r.badge && <DpStatusBadge tone={r.badge.tone}>{r.badge.text}</DpStatusBadge>}
+                  {r.badge && <DpStatusBadge tone={r.badge.tone} className="admin-pill">{r.badge.text}</DpStatusBadge>}
                 </span>
                 {r.note && (
                   <span className={`admin-offb-leave-note${r.noteTone === 'warning' ? ' is-warning' : ''}`}>{r.note}</span>
@@ -218,11 +338,29 @@ function LeaveSettlement({ view, labels }) {
           ))}
         </dl>
       )}
-      {notices.map((n) => (
-        <Notice key={n.id} tone={n.tone} title={n.title} testId={`offboarding-leave-notice-${n.id}`}>
-          {n.lines.map((l, i) => <span className="admin-offb-leave-line" key={i}>{l}</span>)}
-        </Notice>
-      ))}
+      {groupNotices(notices).map((g) => (g.tone === 'neutral' ? (
+        <div className="admin-offb-graybox" key={g.items[0].id}>
+          {g.items.map((n) => (
+            <div className="admin-offb-graybox-item" key={n.id} data-testid={`offboarding-leave-notice-${n.id}`}>
+              {blocksOf(n).map((b, i) => <SplitBlock key={i} block={b} className="admin-offb-graybox-blk" />)}
+            </div>
+          ))}
+        </div>
+      ) : (
+        g.items.map((n) => {
+          const blocks = blocksOf(n);
+          // 제목 없는 한 줄 앰버는 그 줄이 제목이다
+          const title = n.title ?? blocks[0]?.text?.[0];
+          return (
+            <SplitWarn
+              key={n.id}
+              title={title}
+              blocks={n.title ? blocks : blocks.slice(1)}
+              testId={`offboarding-leave-notice-${n.id}`}
+            />
+          );
+        })
+      )))}
     </div>
   );
 }
@@ -243,12 +381,12 @@ function AreaCard({
     >
       <div className="admin-offb-area-head">
         <span className="admin-offb-area-name">{text.label}</span>
-        <DpStatusBadge tone={area.state === 'choice' ? 'accent' : 'neutral'}>
+        <DpStatusBadge tone={area.state === 'choice' ? 'accent' : 'neutral'} className="admin-pill">
           {labels.states[area.state]}
         </DpStatusBadge>
-        {overridden && <DpStatusBadge tone="warning">{labels.states.overridden}</DpStatusBadge>}
+        {overridden && <DpStatusBadge tone="warning" className="admin-pill">{labels.states.overridden}</DpStatusBadge>}
         {/* 정본은 있으나 재확인 전(§3-A) — 「정해짐」과 같게 그리면 재확인이 필요하다는 사실이 사라진다 */}
-        {area.recheck && <DpStatusBadge tone="warning">{labels.states.recheck}</DpStatusBadge>}
+        {area.recheck && <DpStatusBadge tone="warning" className="admin-pill">{labels.states.recheck}</DpStatusBadge>}
         <button
           type="button"
           className="admin-offb-textbtn admin-offb-area-why"
@@ -435,6 +573,11 @@ export default function AdminOffboardingCanvas({
   const dateVars = { confirmDate: confirmDateText, deadline: deadlineText };
 
   const areaLabel = (a) => labels.areas[a.id]?.label ?? a.id;
+  // 경고 글 나누기(PW-2998) — 재확인: 첫 문장이 주황 제목 · 나머지 옅게 / 조직장: «… 의 리드입니다.» 진하게 · 후임 안내 보통
+  const [recheckHead, ...recheckRest] = splitSentences(
+    fill(labels.recheckNotice, { areas: recheckAreas.map(areaLabel).join(sep) }),
+  );
+  const [leaderLead, ...leaderRest] = splitSentences(fill(labels.effects.leaderOf, { names: leaderOf.join(sep) }));
 
   const run = () => {
     if (!canRun || running) return;
@@ -595,11 +738,13 @@ export default function AdminOffboardingCanvas({
       </Section>
 
       {/* 2 — 데이터 처리 */}
-      <Section n="2" title={labels.sections.data} desc={labels.sections.dataDesc}>
+      <Section n="2" title={labels.sections.data} desc={splitSentences(labels.sections.dataDesc)}>
         {recheckAreas.length > 0 && (
-          <Notice tone="warn" testId="offboarding-recheck-notice">
-            {fill(labels.recheckNotice, { areas: recheckAreas.map(areaLabel).join(sep) })}
-          </Notice>
+          <SplitWarn
+            title={recheckHead}
+            blocks={recheckRest.length ? [{ muted: recheckRest }] : []}
+            testId="offboarding-recheck-notice"
+          />
         )}
         <div className="admin-offb-areas">
           {OFFBOARDING_AREAS.map((area) => {
@@ -639,17 +784,20 @@ export default function AdminOffboardingCanvas({
         <div className="admin-offb-stack">
           {/* E3 — 조직장·스쿼드 리드면 자리가 빈다는 것을 먼저 말한다. 실행은 막지 않고 자동 승계도 없다 */}
           {leaderOf.length > 0 && (
-            <Notice tone="warn" title={labels.effects.leaderWarning} testId="offboarding-leader-warning">
-              {fill(labels.effects.leaderOf, { names: leaderOf.join(sep) })}
-              {/* pivit-work PW-2597 · E3 · E113 — «매니저가 바뀌는 {N}명에게 퇴사 처리가 실행될 때 알립니다.»(앱이 짓는다 · 없으면 줄 없음) */}
-              {/* 경고 본문은 <p> 라 블록을 넣지 않는다 — 줄바꿈 + 글 조각으로 둘째 줄 */}
+            <SplitWarn
+              title={labels.effects.leaderWarning}
+              blocks={[{ lead: leaderLead, text: leaderRest }]}
+              testId="offboarding-leader-warning"
+            >
+              {/* pivit-work PW-2597 · E3 · E113 — «매니저가 바뀌는 {N}명에게 퇴사 처리가 실행될 때 알립니다.»(앱이 짓는다 · 없으면 줄 없음) · 맨 아래 옅게 */}
               {member.leaderManagerNotice && (
-                <>
-                  <br />
-                  <span data-testid="offboarding-leader-manager-notice">{member.leaderManagerNotice}</span>
-                </>
+                <div className="admin-offb-split-line is-fix">
+                  <span className="admin-offb-split-muted" data-testid="offboarding-leader-manager-notice">
+                    {member.leaderManagerNotice}
+                  </span>
+                </div>
               )}
-            </Notice>
+            </SplitWarn>
           )}
           {!due && resignationDate && (
             <Notice tone="neutral" testId="offboarding-schedule-notice">
@@ -682,7 +830,7 @@ export default function AdminOffboardingCanvas({
               <li key={e.id} data-testid={`offboarding-extra-effect-${e.id}`}>{e.text}</li>
             ))}
           </ul>
-          <Notice tone="neutral">{fill(labels.effects.retention, dateVars)}</Notice>
+          <RetentionBox text={fill(labels.effects.retention, dateVars)} />
           {folderHandoff && <FolderHandoff view={folderHandoff} />}
         </div>
       </Section>
