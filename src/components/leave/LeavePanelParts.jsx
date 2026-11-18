@@ -1,4 +1,4 @@
-import { Fragment } from 'react';
+import { Children, Fragment } from 'react';
 import { CloseGlyph, EyeGlyph } from '../shared/lineIcons.jsx';
 
 /**
@@ -113,13 +113,20 @@ export function LeavePlanCard({ name, status, datesLabel, dates, foot, action, t
   return (
     <div className="lv-plan" data-testid={testId}>
       <div className="lv-plan-head">
-        <span className="lv-plan-name">{name}</span>
+        {/* 긴 이름은 «…» — 마우스를 올리면 전체(오른쪽 확인 딱지가 길 때 · pivit-work PW-2983 적대적 리뷰) */}
+        <span className="lv-plan-name" title={name}>{name}</span>
         {status}
       </div>
       <div className="lv-plan-sub">
         <span className="lv-plan-k">{datesLabel}</span>
         <div className="lv-plan-dates" data-testid={datesTestId}>
-          {dates}
+          {/* 딱지 사이 « · »는 화면에서만 숨긴다 — 복사 · 화면 읽기에서 날짜가 붙지 않게(pivit-work PW-2983 적대적 리뷰) */}
+          {Children.toArray(dates).map((d, i) => (
+            <Fragment key={i}>
+              {i > 0 && <span className="lv-set-sep"> · </span>}
+              {d}
+            </Fragment>
+          ))}
         </div>
       </div>
       <div className="lv-plan-foot">
