@@ -2109,11 +2109,19 @@ function SortTh({ sortKey, label, sort, onSort }) {
  * 점선을 막대 폭의 누적 % 에 그으면 비율이 가이드라인과 같아도 틈 가운데에서 최대 틈 하나만큼 비켜나고,
  * 가이드라인이 한쪽으로 쏠리면(60·30·10%) 조각 위에 떨어진다. 그래서 점선도 조각과 같은 자(폭 − 틈)로 재고
  * 그 앞에 놓인 조각 수만큼 틈을 더한다. 경계가 조각 끝과 같으면(0.5%p 안) 그 틈 가운데에 긋는다.
+ *
+ * 위원회 막대(CalibDistributionBar)는 등급 조각 뒤에 «등급 없음» 회색 조각이 붙고 권장의 분모는 등급이 정해진
+ * 사람이다(PW-2787). `tail` 에 회색 조각 무게(pct 와 같은 단위)를 주면 점선은 회색 조각을 뺀 앞부분 안에서 잰다.
+ * @param {{ tail?: number }} [opts]
  * @returns {Array<{ at: number, left: string }>} at = 누적 가이드라인 %, left = CSS left 값
  */
-export function gradeDistBounds(grades) {
-  const segs = grades.filter((g) => g.count > 0 && g.pct > 0).map((g) => g.pct);
+export function gradeDistBounds(grades, { tail = 0 } = {}) {
+  const graded = grades.filter((g) => g.count > 0 && g.pct > 0).map((g) => g.pct);
+  const segs = tail > 0 ? [...graded, tail] : graded;
+  const gradedTotal = graded.reduce((a, b) => a + b, 0);
+  if (gradedTotal === 0) return [];
   const total = segs.reduce((a, b) => a + b, 0);
+  const span = gradedTotal / total;
   const gaps = Math.max(segs.length - 1, 0);
   const r = (x) => Math.round(x * 10000) / 10000;
   const left = (pct, gapsBefore) => (gaps === 0
@@ -2125,17 +2133,18 @@ export function gradeDistBounds(grades) {
     if (grades[i].guidelinePct == null) break;
     acc += grades[i].guidelinePct;
     if (!(acc > 0 && acc < 100)) continue;
+    const pos = acc * span;
     let cum = 0;
     let before = 0;
     let edge = null;
-    for (let k = 0; k < segs.length - 1; k += 1) {
+    for (let k = 0; k < graded.length - 1; k += 1) {
       const end = ((cum + segs[k]) / total) * 100;
-      if (Math.abs(end - acc) < 0.5) { edge = { end, gapsBefore: k + 0.5 }; break; }
-      if (end > acc) break;
+      if (Math.abs(end - pos) < 0.5) { edge = { end, gapsBefore: k + 0.5 }; break; }
+      if (end > pos) break;
       cum += segs[k];
       before = k + 1;
     }
-    out.push({ at: acc, left: edge ? left(edge.end, edge.gapsBefore) : left(acc, before) });
+    out.push({ at: acc, left: edge ? left(edge.end, edge.gapsBefore) : left(pos, before) });
   }
   return out;
 }
@@ -2327,6 +2336,13 @@ function CalibDistributionBar({ rows, orderedGrades, L, total = rows.length, fil
               />
             </Tooltip>
           )}
+          {/* PW-1034 (09-25 (가)안 · 11-13 커트) — 대시보드 막대와 같은 권장 경계 점선. 회색 조각은 권장 분모 밖이라 그 앞에서 잰다. */}
+          {gradeDistBounds(
+            seg.map((g) => ({ count: g.count, pct: g.count, guidelinePct: g.recommendedPct ?? null })),
+            { tail: noGrade },
+          ).map((b) => (
+            <span key={b.at} className="evs-gd-bound" style={{ left: b.left }} data-at={b.at} aria-hidden data-testid="evs-gd-bound" />
+          ))}
         </div>
       )}
       {/* PW-2787 — 칩·빨간 알약 대신 등급마다 칸 하나(대시보드 등급 칸 .evs-gd-cell 과 같은 모양). 인원·비율·권장·차이를

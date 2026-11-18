@@ -8975,10 +8975,13 @@ button.evm-ai-source {
 }
 /* PW-1928 — OKR 내 리소스의 쌓은 막대(.rsx-stackbar) 값 그대로: 높이 12 · 조각 사이 10 · 모서리 4. */
 .evs-cw-dist-bar {
+  position: relative;
   display: flex;
   width: 100%;
   height: 12px;
-  gap: 10px;
+  /* 권장 경계 점선(.evs-gd-bound) 자리도 이 틈으로 잰다(EvalCycleSummaryCanvas gradeDistBounds · PW-1034) */
+  --evs-gd-gap: 10px;
+  gap: var(--evs-gd-gap);
   border-radius: 4px;
   background: var(--bg-secondary);
 }
