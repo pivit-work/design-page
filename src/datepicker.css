@@ -289,3 +289,18 @@
 .dp-datepicker.is-flat .dp-datepicker-label.is-button {
   height: 28px;
 }
+/* 납작한 달력의 월 · 연도 보기 — 폭 252 안에 3열 · 4열이 들어가게 칸 폭을 열에 맞춘다(고정 88 · 64 는 280 격자용). */
+.dp-datepicker.is-flat .dp-datepicker-grid.is-months {
+  grid-template-columns: repeat(3, 1fr);
+  row-gap: var(--spacing-xl);
+  column-gap: var(--spacing-xs);
+}
+.dp-datepicker.is-flat .dp-datepicker-grid.is-years {
+  grid-template-columns: repeat(4, 1fr);
+  row-gap: var(--spacing-md);
+  column-gap: var(--spacing-xs);
+}
+.dp-datepicker.is-flat .dp-datepicker-grid.is-months .dp-datepicker-cell,
+.dp-datepicker.is-flat .dp-datepicker-grid.is-years .dp-datepicker-cell {
+  width: 100%;
+}
