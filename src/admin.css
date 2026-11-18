@@ -1844,7 +1844,7 @@
 .admin-emp-hist-table .admin-emp-hist-values.is-change { word-break: keep-all; max-width: 18em; }
 .admin-emp-hist-table .admin-emp-hist-values.is-change .admin-emp-hist-joint { white-space: nowrap; }
 .admin-emp-hist-table .admin-emp-hist-before { color: var(--text-subtle); }
-.admin-emp-hist-table .admin-emp-hist-arrow { color: var(--text-quaternary); }
+.admin-emp-hist-table .admin-emp-hist-arrow { color: var(--text-tertiary); }
 .admin-emp-hist-table .admin-emp-hist-after { color: var(--fg-primary); font-weight: 600; }
 .admin-emp-hist-table .admin-emp-hist-who { margin: 0; white-space: nowrap; font-size: 13px; color: var(--text-primary); }
 /* 사유 칸 — 명단 표 일반 칸 크기(13px)의 보조 회색 글. 창 모양의 인용 줄(.admin-emp-hist-reason · 왼쪽 선)은 쓰지 않는다 */
