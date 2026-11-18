@@ -90,6 +90,15 @@ function buildGrid(year, month) {
   return cells;
 }
 
+/** 가장 가까운 세로 스크롤 칸 (placement="below" 가 칸을 보이게 둘 때) */
+function scrollBoxOf(node) {
+  for (let n = node?.parentElement; n; n = n.parentElement) {
+    const oy = getComputedStyle(n).overflowY;
+    if (oy === 'auto' || oy === 'scroll') return n;
+  }
+  return null;
+}
+
 export default function DatePicker({
   anchorRect,
   anchorEl,
@@ -130,6 +139,7 @@ export default function DatePicker({
     pageStartOf(initialView === 'year' ? today.getFullYear() - BIRTH_YEAR_OFFSET : openAt.getFullYear()),
   );
 
+  const scrolledRef = useRef(false);
   useLayoutEffect(() => {
     const el = popoverRef.current;
     if (!el) return;
@@ -142,7 +152,16 @@ export default function DatePicker({
       el.style.left = `${anchorEl.offsetLeft}px`;
       el.style.top = `${anchorEl.offsetTop + anchorEl.offsetHeight + 4}px`;
       el.style.opacity = '1';
-      el.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+      // 처음 열 때만 굴린다 — 달을 넘길 때마다 다시 굴리면 위로 올려 본 창이 도로 끌려 내려간다.
+      if (!scrolledRef.current) {
+        scrolledRef.current = true;
+        el.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+        // 스크롤 칸이 칸+달력보다 낮으면(낮은 화면) 달력 머리에 맞춰 칸이 위로 사라진다 — 그때는 칸을 위 끝에 둔다.
+        const box = scrollBoxOf(anchorEl);
+        if (box && anchorEl.getBoundingClientRect().top < box.getBoundingClientRect().top) {
+          anchorEl.scrollIntoView?.({ block: 'start', inline: 'nearest' });
+        }
+      }
       return;
     }
     if (!anchorRect) return;
