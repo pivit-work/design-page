@@ -7159,7 +7159,11 @@ export default function EvalCycleWizard({
     .filter((g) => leaderGroupStates[g.id].stale)
     .map((g) => g.name);
   const leaderReconfirmReason =
-    leaderStaleGroupNames.length > 0
+    // [pivit-work PW-2976] 확정 응답을 기다리는 동안은 조직 확정 표시가 먼저 바뀌어 «전체 확정만 남음»처럼 보인다 —
+    // 풀린 것도 없고 그 버튼은 잠겨 있으니 «다시 확정 필요»를 띄우지 않는다(§5.13.11 ④ «풀린 사유가 있으면»).
+    leaderConfirming
+      ? null
+      : leaderStaleGroupNames.length > 0
       ? `${leaderStaleGroupNames.join('·')} — ${leaderReasonText}`
       : leaderAllGroupsConfirmed && !leaderConfirmed && (leaderConfirm || leaderUnconfirmed || leaderStale)
         ? leaderReasonText
