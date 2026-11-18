@@ -314,7 +314,7 @@ function CapSelfDelta({ manager, member, reserve = false }) {
   }
   const d = m - self;
   return (
-    <span className={`ono-done-cap-delta ${d > 0 ? 'is-up' : 'is-down'}`} data-testid="ono-start-cap-delta">
+    <span className={`ono-done-cap-delta is-prep ${d > 0 ? 'is-up' : 'is-down'}`} data-testid="ono-start-cap-delta">
       {d > 0 ? `+${d}` : d}
     </span>
   );

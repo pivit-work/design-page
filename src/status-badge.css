@@ -1930,6 +1930,9 @@ button.dp-chip {
   line-height: var(--line-height-text-xs);
   white-space: nowrap;
 }
+/* 1on1 머리 단계 딱지 «미팅 중» 점 — 같은 화면 옛 딱지 점(.ono-mem-badge-dot 6px 원)과 같은 크기, 색은 글자 색 (pivit-work PW-2937). */
+.ono-stage-badge { gap: var(--spacing-xs); }
+.ono-stage-badge-dot { width: 6px; height: 6px; border-radius: var(--radius-full); background: currentColor; flex: none; }
 .ono-done-badge.is-pill { padding: var(--spacing-xxs) var(--spacing-md); border-radius: var(--radius-full); }
 
 /* ══ 마감 표시 — DueBadge (PW-2471) ═══════════════════════════════════════════════════

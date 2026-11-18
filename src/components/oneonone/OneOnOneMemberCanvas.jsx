@@ -251,15 +251,17 @@ function mergeLabels(base, provided) {
 }
 /* ── 공통 조각 ─────────────────────────────────────────── */
 /** 단계 딱지 — 앱이 팀원·매니저 화면 머리(디자이너 MemberOneOnOneView·StartOneOnOneView 이름 줄)에 붙여 쓴다(pivit-work PW-2937).
-    모양은 같은 화면 디자이너 딱지 `.ono-done-badge`, 색은 뜻→색 표(preparing·meeting = info · done = success).
+    모양은 같은 화면 디자이너 딱지 `.ono-done-badge`. 색은 기획 시안 1on1-app.jsx statusBadge(준비 중 주황 · 미팅 중 빨강 · 완료 초록)를
+    뜻→색 표의 warning·danger·success 로 옮긴다. «미팅 중»은 지금 진행 중임을 점 하나로 더 알린다(점 색 = 글자 색).
     표에 없는 단계 코드값이면 그리지 않는다(policy §3.4). `L` 은 badgeReady·badgeLive·badgeDone. */
-const STAGE_BADGE = { ready: ['preparing', 'badgeReady'], live: ['meeting', 'badgeLive'], done: ['done', 'badgeDone'] };
+const STAGE_BADGE = { ready: ['warning', 'badgeReady'], live: ['danger', 'badgeLive'], done: ['success', 'badgeDone'] };
 export function StageBadge({ status, L }) {
   const hit = STAGE_BADGE[status];
   const label = hit ? L?.[hit[1]] : null;
   if (!label) return null;
   return (
-    <DpStatusBadge status={hit[0]} className={`ono-done-badge is-${status}`} data-testid="ono-stage-badge">
+    <DpStatusBadge tone={hit[0]} className={`ono-done-badge ono-stage-badge is-${status}`} data-testid="ono-stage-badge">
+      {status === 'live' && <span className="ono-stage-badge-dot" aria-hidden="true" />}
       {label}
     </DpStatusBadge>
   );

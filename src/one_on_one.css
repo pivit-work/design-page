@@ -4704,6 +4704,8 @@ button.ono-add-modal-input { cursor: pointer; }
 }
 .ono-done-cap-delta.is-up { color: var(--utility-green-400); }
 .ono-done-cap-delta.is-down { color: var(--text-error-primary); }
+/* 준비 화면 «차이 표시»(매니저 − 멤버 자가)의 내림은 주황 — policy §4.1.5 «`-N` (주황)». 끝난 화면 «변화» 내림 빨강은 그대로 (pivit-work PW-2937). */
+.ono-done-cap-delta.is-prep.is-down { color: var(--text-warning-primary); }
 .ono-done-cap-hint {
   margin: 0;
   font-size: var(--font-size-text-xs);
