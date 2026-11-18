@@ -7050,12 +7050,15 @@ export default function EvalCycleWizard({
   /* PW-2065 — 규칙·부담 기준을 바꾼다. 칸은 다음 추천이 다시 채운다(값이 바뀐 칸의 조직만 풀린다).
      서버의 전체 확정은 그때의 규칙·기준을 함께 남겼으므로 풀고, 마지막 확정을 다시 받는다. */
   const setLeaderRules = (next) => {
+    // [pivit-work PW-2976] 확정 응답을 기다리는 동안 규칙·기준을 바꾸면 서버는 옛 값으로 확정하고 화면은 «확정»이 된다 — 받지 않는다.
+    if (leaderConfirming) return;
     setLeaderRulesState(normalizeLeaderRules(next));
     dropLeaderConfirm('rules');
   };
   /* [pivit-work PW-2569] 칸에 적은 값을 그대로 둔다 — 음수·빈 칸을 말없이 0(기본값)으로 바꾸지 않고 칸 아래 안내로
      알리며 [다음]·[확정]·[평가 오픈하기]를 막는다. 0 은 «끔»이라 받는다(정책 §5.13 R5). 상한은 서버만의 기술 한도. */
   const setLeaderLoadLimit = (n) => {
+    if (leaderConfirming) return;
     setLeaderLoadLimitState(n);
     dropLeaderConfirm('loadLimit');
   };
@@ -7074,6 +7077,7 @@ export default function EvalCycleWizard({
     editLeaderCell(evaluateeId, round, revertLeaderCell, 'reverted');
   /** PW-2066 · §5.13.10 — 고른 칸 전부에 한 동작. 바뀐 칸의 조직만 풀린다(조직 지문이 그 칸으로 갈린다). */
   const bulkLeader = (refs, action, personId) => {
+    if (leaderConfirming) return { applied: 0, skippedSelf: 0 };
     const base = alignLeaderCells(leaderCellsState, targetIds, roundsInUse);
     const res = applyLeaderBulk(base, refs, action, personId);
     if (res.changedIds.size > 0) {

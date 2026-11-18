@@ -440,6 +440,7 @@ export default function EvalLeaderAssignmentSection({
         data-leader-cell={key}
         aria-haspopup="true"
         aria-expanded={openCell?.key === key}
+        disabled={confirming}
         aria-label={fill(L.leaderAsgConcurrentAria, { name: row.name })}
         onClick={() => {
           if (openCell?.key === key) closePick();

@@ -13272,6 +13272,14 @@ button.evm-ai-source {
   border-color: var(--bg-active);
   background: var(--bg-secondary);
 }
+/* 확정 응답을 기다리는 동안 — 눌리는 칸처럼 보이지 않게 손가락·테두리를 거둔다(pivit-work PW-2976). */
+.evc-la-cell:disabled {
+  cursor: default;
+}
+.evc-la-cell:disabled:hover {
+  border-color: transparent;
+  background: none;
+}
 .evc-la-name-row {
   display: inline-flex;
   align-items: center;
