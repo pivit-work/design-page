@@ -593,7 +593,7 @@
 }
 .lv-num.is-narrow { width: 64px; }
 /* 틀린 값 — 칸 둘레를 오류 빨강으로(FormField 가 준 aria-invalid · PW-2983 적대적 리뷰) */
-.lv-num[aria-invalid='true'] { box-shadow: inset 0 0 0 1px var(--text-error-primary); }
+.lv-num[aria-invalid='true'] { box-shadow: inset 0 0 0 1px var(--colors-border-borderError); }
 .lv-num::-webkit-outer-spin-button,
 .lv-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .lv-num:focus { outline: 2px solid var(--border-brand, var(--bg-brand-solid)); outline-offset: -2px; }
