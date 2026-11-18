@@ -11,6 +11,7 @@
  */
 import { useId } from 'react';
 import Button from '../shared/Button.jsx';
+import Checkbox from '../shared/Checkbox.jsx';
 import {
   AlertCircleGlyph,
   AlertTriangleGlyph,
@@ -81,24 +82,24 @@ export function ImportHint({ tone = 'muted', role, testId, children }) {
 }
 
 /**
- * 20px 체크 네모 — 회의록 공유 창 체크(.mtg-share-checkbox)와 같은 값. 진짜 checkbox 라 글(label)을 눌러도 켜진다.
+ * 20px 체크 네모 — 회의록 공유 창 체크(.mtg-share-checkbox)와 같은 값. 공용 Checkbox(진짜 checkbox)에 모양만 입혀
+ * 글(label htmlFor)을 눌러도 켜진다.
  * 재동의 창 동의 줄도 이것을 쓴다.
  */
 export function ModalCheck({ id, checked, onChange, disabled = false, testId, ariaLabel }) {
   return (
-    <span className="mtg-modal-check">
-      <input
-        id={id}
-        type="checkbox"
-        className="mtg-modal-check-input"
-        checked={!!checked}
-        disabled={disabled}
-        aria-label={ariaLabel}
-        onChange={(e) => onChange?.(e.target.checked)}
-        data-testid={testId}
-      />
+    <Checkbox
+      id={id}
+      className="mtg-modal-check"
+      inputClassName="mtg-modal-check-input"
+      checked={!!checked}
+      disabled={disabled}
+      aria-label={ariaLabel}
+      onChange={(e) => onChange?.(e.target.checked)}
+      data-testid={testId}
+    >
       {checked && <CheckGlyph size={12} strokeWidth={3.5} {...GLYPH} className="mtg-modal-check-mark" />}
-    </span>
+    </Checkbox>
   );
 }
 
