@@ -20,6 +20,8 @@
 .oca-card { border: 1px solid var(--bg-active); border-radius: var(--radius-md); overflow: hidden; }
 .oca-card + .oca-card { margin-top: var(--spacing-md); }
 .oca-card-head { width: 100%; display: flex; align-items: center; gap: var(--spacing-md); padding: var(--spacing-md) var(--spacing-lg); background: var(--bg-secondary, transparent); border: none; font: inherit; text-align: left; cursor: pointer; }
+/* 머리 바탕(bg-secondary) 위 회색 배지는 바탕이 같아 알약이 안 보인다 — 발령 이력처럼 흰 바탕 위 모양으로(pivit-work PW-2597 11-19 리뷰) */
+.oca-card-head .admin-snap-type-badge.is-gray { background: var(--bg-primary, #fff); }
 .oca-card-title { font-size: var(--font-size-text-sm); font-weight: 700; color: var(--text-secondary); min-width: 0; }
 .oca-card-meta { font-size: var(--font-size-text-xs); color: var(--text-tertiary); }
 .oca-card-chevron { margin-left: auto; color: var(--text-tertiary); transition: transform 0.12s; }
