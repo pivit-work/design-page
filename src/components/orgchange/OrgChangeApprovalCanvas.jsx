@@ -20,6 +20,7 @@ import EmptyState from '../shared/EmptyState.jsx';
  * Card: { id, open, title, meta, badge: { text, tone }, count?, badges?, lines: Line[], reason?, result?, error?,
  *         rejecting, reasonValue, reasonInvalid, actions: [{ key, label, variant, disabled, pending, testId }] }
  * Line: { id, title, notes: string[], people?: string[], moreLabel?, rejectLabel?, rejectChecked?, rejected?, closedText? }
+ * closedBadge?: { text, tone } — 묶음 안에서 그 줄만 닫혔을 때 줄 머리 오른쪽 배지(«취소됨» — 흐림만으로는 까닭을 못 읽는다 · pivit-work PW-2597)
  * badges: [{ text, tone }] — 있으면 badge · count 대신 이 배지들을 나란히(처리함의 일부 승인 · 일부 거절 묶음 «승인 {A}명» · «거절 {R}명»)
  * 핸들러: onToggle(cardId) · onAction(cardId, key) · onReasonChange(cardId, text) · onToggleReject(cardId, lineId) ·
  *        onMore(cardId, lineId) · onRetry()
@@ -161,6 +162,11 @@ function RequestCard({ card, labels, onToggle, onAction, onReasonChange, onToggl
                   )}
                   {line.closedText && <div className="oca-line-note">{line.closedText}</div>}
                 </div>
+                {line.closedBadge && (
+                  <StatusBadge tone={line.closedBadge.tone} data-testid={`oca-line-closed-${line.id}`}>
+                    {line.closedBadge.text}
+                  </StatusBadge>
+                )}
                 {line.rejectLabel && (
                   <Checkbox label={line.rejectLabel} checked={!!line.rejectChecked}
                     onChange={() => onToggleReject?.(card.id, line.id)}

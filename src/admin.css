@@ -3397,6 +3397,8 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
   transition: color 0.15s ease;
 }
 .admin-snap-hist-row:hover .admin-snap-hist-detaillink { color: var(--text-brand-secondary, #10774d); }
+/* 행 끝 칸 — 글자 링크 두세 개를 한 줄로(상세 창이 열려 표가 좁아져도 · PW-2597) */
+.admin-snap-hist-actions { white-space: nowrap; }
 
 /* 예약 발령 (PW-1422 · org-snapshot-spec §2 · §4) */
 .admin-snap-sched-badge { margin-left: 6px; }

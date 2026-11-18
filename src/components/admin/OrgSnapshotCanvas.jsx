@@ -2133,7 +2133,8 @@ function AppointmentHistoryView({
                       {modeLabel(rec.processMode ?? rec.mode)}
                     </RosterTable.Cell>
                     <RosterTable.Cell className="admin-snap-hist-mode">{rec.by ?? '—'}</RosterTable.Cell>
-                    <RosterTable.Cell>
+                    {/* 행 끝 «발효 전 취소 · 상세 ▸» — 상세 창이 열려 표가 좁아져도 꺾지 않는다(pivit-work PW-2597 11-19 dev) */}
+                    <RosterTable.Cell className="admin-snap-hist-actions">
                       {rec.scheduled && rec.reservation && onOpenReservation && (
                         <>
                           <Button
