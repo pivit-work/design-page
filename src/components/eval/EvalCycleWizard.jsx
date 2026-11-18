@@ -8064,6 +8064,9 @@ export default function EvalCycleWizard({
    * 건너뛴다.
    */
   const goStep = (next, { exact = false } = {}) => {
+    // [pivit-work PW-2976] 하향 평가자 확정(임시 저장 → 서버 확정)을 기다리는 동안은 단계를 옮기지 않는다 —
+    // 옮기면 임시 저장이 한 번 더 가고, 확정 결과가 떠난 단계에 늦게 붙는다.
+    if (leaderConfirming) return;
     /* 위원회 검색어는 카드 안 상태라 단계를 떠나면 카드와 함께 비워지고, 선택·대상은
        위자드 상태에 남는다(§7.A-2). 돌아왔을 때 예전 검색어가 남아 있으면 후보가·대상자가
        몇 명뿐인 것처럼 보인다. */
@@ -12401,7 +12404,9 @@ export default function EvalCycleWizard({
             <button
               type="button"
               className="evc-btn is-ghost"
+              disabled={step > 0 && leaderConfirming}
               onClick={step === 0 ? requestClose : () => goStep(step - 1)}
+              data-testid="evc-wiz-prev"
             >
               {step === 0 ? L.cancel : L.prev}
             </button>
@@ -12492,7 +12497,7 @@ export default function EvalCycleWizard({
               <button
                 type="button"
                 className="evc-btn is-primary"
-                disabled={!canAdvance}
+                disabled={!canAdvance || leaderConfirming}
                 onClick={() => goStep(step + 1)}
                 data-testid="evc-wiz-next"
               >
