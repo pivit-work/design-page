@@ -5110,8 +5110,10 @@ function PersonalHistoryList({
           {h.sourceLabel}
         </DpStatusBadge>
       );
+      const isChange = !['purged', 'separated', 'purge_pending', 'withheld'].includes(h.state);
+      /* is-change — «이전 → 이후» 한 줄에만 붙는다. 표는 이 줄만 14px 로 키우고(PW-3001), 보관·파기 같은 값 자리 글은 그대로 둔다 */
       const values = (
-        <div className="admin-emp-hist-values">
+        <div className={`admin-emp-hist-values${isChange ? ' is-change' : ''}`}>
           {h.state === 'purged' ? L.historyPurged
             : h.state === 'separated' ? <>{L.historySeparated} · {L.historyWithheld}</>
             : h.state === 'purge_pending' ? fill(L.historyPurgePending, { date: h.purgeDueOn || '' })
@@ -5119,7 +5121,7 @@ function PersonalHistoryList({
               : (
                 <>
                   <span className="admin-emp-hist-before">{h.before || L.historyNone}</span>
-                  {' → '}
+                  {' '}<span className="admin-emp-hist-arrow">→</span>{' '}
                   <span className="admin-emp-hist-after">{afterText}</span>
                 </>
               )}
@@ -5147,6 +5149,9 @@ function PersonalHistoryList({
               { key: 'when', header: L.historyColWhen || '바뀐 때' },
               { key: 'field', header: L.historyColField || '항목' },
               { key: 'value', header: L.historyColValue || '바뀐 값' },
+              /* 사유는 바뀐 값 아래 인용 줄이 아니라 옆 칸 — 넓은 표에서 값이 먼저 읽히게(PW-3001 · 커트 11-18 시안 ①).
+                 없으면 칸을 비운다(«사유 없음»을 줄마다 되풀이하지 않는다 — 정책서 §2-2) */
+              { key: 'reason', header: L.historyColReason || '사유' },
               { key: 'who', header: L.historyColWho || '바꾼 사람' },
               { key: 'source', header: L.historyColSource || '바꾼 곳' },
             ]}
@@ -5157,7 +5162,8 @@ function PersonalHistoryList({
               const p = partsOf(h);
               if (col.key === 'when') return <span className="admin-emp-hist-when">{h.changedAt}</span>;
               if (col.key === 'field') return <span className="admin-emp-hist-head">{p.field}{p.kindChips}</span>;
-              if (col.key === 'value') return <>{p.values}{p.reason}</>;
+              if (col.key === 'value') return p.values;
+              if (col.key === 'reason') return h.reason ? <span className="admin-emp-hist-reason-cell">{h.reason}</span> : null;
               if (col.key === 'who') return p.who;
               return <span className="admin-emp-hist-src">{p.source}</span>;
             }}

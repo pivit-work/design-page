@@ -1835,10 +1835,15 @@
 .admin-emp-hist-table .admin-emp-hist-src { display: inline-block; width: max-content; white-space: nowrap; }
 .admin-emp-hist-table .admin-emp-hist-who { width: max-content; }
 .admin-emp-hist-table .admin-emp-hist-values { margin: 0; }
-.admin-emp-hist-table .admin-emp-hist-before { color: var(--text-tertiary); }
-.admin-emp-hist-table .admin-emp-hist-after { color: var(--fg-primary); }
+/* 바뀐 값 — «이전 → 이후» 한 줄 14px · 이전 옅게 · 화살표 더 옅게 · 이후 진하게(정책서 §2-2 · PW-3001 시안 ①).
+   보관·파기 같은 값 자리 글(is-change 없음)은 종전 크기 그대로 */
+.admin-emp-hist-table .admin-emp-hist-values.is-change { font-size: 14px; line-height: 20px; }
+.admin-emp-hist-table .admin-emp-hist-before { color: var(--text-subtle); }
+.admin-emp-hist-table .admin-emp-hist-arrow { color: var(--text-quaternary); }
+.admin-emp-hist-table .admin-emp-hist-after { color: var(--fg-primary); font-weight: 600; }
 .admin-emp-hist-table .admin-emp-hist-who { margin: 0; white-space: nowrap; font-size: 13px; color: var(--text-primary); }
-.admin-emp-hist-table .admin-emp-hist-reason { margin-top: var(--spacing-xxs); font-size: 12px; color: var(--text-subtle); }
+/* 사유 칸 — 명단 표 일반 칸 크기(13px)의 보조 회색 글. 창 모양의 인용 줄(.admin-emp-hist-reason · 왼쪽 선)은 쓰지 않는다 */
+.admin-emp-hist-table .admin-emp-hist-reason-cell { font-size: 13px; line-height: 20px; color: var(--text-secondary); }
 .admin-emp-detail:not(.is-editing) .admin-emp-detail-body .admin-emp-hist-empty { padding: calc(var(--spacing-5xl) + var(--spacing-2xl)) 0; text-align: center; border: 0; background: none; font-size: 14px; color: var(--text-subtle); }
 .admin-emp-detail:not(.is-editing) .admin-emp-detail-body .admin-emp-hist-empty > div:first-child { font-size: 15px; font-weight: 600; color: var(--fg-primary); }
 @media (max-width: 720px) {
