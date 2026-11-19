@@ -914,7 +914,7 @@ export default function SquadPillarStage({
             onKeyDown={onKeyDown}
           >
             <defs>
-              <pattern id={hatchId} patternUnits="userSpaceOnUse" width="4" height="4" patternTransform="rotate(45)"><rect width="4" height="4" style={{ fill: C.paper }} /><rect width="2" height="4" style={{ fill: C.errLine }} /></pattern>
+              <pattern id={hatchId} patternUnits="userSpaceOnUse" width="4" height="4" patternTransform="rotate(45)"><rect width="4" height="4" style={{ fill: 'var(--bg-quaternary)' }} /><rect width="2" height="4" style={{ fill: C.errLine }} /></pattern>
               {[...PILLAR_FAMILIES, 'none'].map((f) => {
                 const c = PILLAR_FAMILY_COLOR[f];
                 return (

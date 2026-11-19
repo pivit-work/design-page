@@ -292,7 +292,8 @@ export function cumulativePct(segments) {
 export const GAUGE_SCALE = 125;
 
 /** 100 넘은 몫의 빨간 빗금 — 135° · 빨강 2px + 흰 2px (§5-3.2-A · dev 매트릭스 게이지 무늬 그대로). */
-export const OVER_HATCH = 'repeating-linear-gradient(135deg, var(--utility-error-500) 0 2px, var(--bg-primary) 2px 4px)';
+// 흰 줄은 `--bg-quaternary`(#fff) — `--bg-primary` 는 이 앱에서 회색 바탕(#f3f4f6)이라 흰색이 아니다(PW-3067 브라우저 확인)
+export const OVER_HATCH = 'repeating-linear-gradient(135deg, var(--utility-error-500) 0 2px, var(--bg-quaternary) 2px 4px)';
 
 /**
  * 조각을 0 ~ 125 트랙에 놓는다 — 조각마다 기준(base) 아래 몫(fill) · 위 몫(over) · 폭(w).

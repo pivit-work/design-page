@@ -740,8 +740,8 @@
   display: flex;
   gap: 2px;
   overflow: visible;
-  /* 트랙 125 고정 — 100 자리(80%) 오른쪽 여유 칸은 흰 바탕 (pivit-work PW-3067 · 정책 §5-3.2-A) */
-  background: linear-gradient(90deg, var(--alpha-black-3) 80%, var(--bg-primary) 80%);
+  /* 트랙 125 고정 — 100 자리(80%) 오른쪽 여유 칸은 흰 바탕(--bg-quaternary #fff · --bg-primary 는 회색) (pivit-work PW-3067 · 정책 §5-3.2-A) */
+  background: linear-gradient(90deg, var(--alpha-black-3) 80%, var(--bg-quaternary) 80%);
   border-radius: var(--radius-xxs);
 }
 .sq-share-seg {
@@ -755,7 +755,7 @@
 .sq-share-over { height: 100%; }
 .sq-share-rest { height: 100%; background: transparent; }
 /* `.pj-progress-bar` 와 같이 붙어 특이도가 같다 — CSS 가 붙는 순서에 따라 진행 바 바탕이 이겨 흰 여유 칸이 사라지지 않게 한 단계 올린다 */
-.sq-share .sq-share-track { background: linear-gradient(90deg, var(--alpha-black-3) 80%, var(--bg-primary) 80%); }
+.sq-share .sq-share-track { background: linear-gradient(90deg, var(--alpha-black-3) 80%, var(--bg-quaternary) 80%); }
 .sq-share-mark {
   position: absolute;
   top: -5px;
@@ -815,8 +815,8 @@
   gap: 2px;
   border-radius: 2px;
   overflow: hidden;
-  /* 트랙 125 고정 — 100 자리(80%) 오른쪽 여유 칸은 흰 바탕 (pivit-work PW-3067 · 정책 §5-3.2-A) */
-  background: linear-gradient(90deg, var(--alpha-black-3) 80%, var(--bg-primary) 80%);
+  /* 트랙 125 고정 — 100 자리(80%) 오른쪽 여유 칸은 흰 바탕(--bg-quaternary #fff · --bg-primary 는 회색) (pivit-work PW-3067 · 정책 §5-3.2-A) */
+  background: linear-gradient(90deg, var(--alpha-black-3) 80%, var(--bg-quaternary) 80%);
 }
 .sq-gauge-seg { display: flex; overflow: hidden; border-radius: 2px; }
 /* 토막은 시안의 200 단계 톤 — 스쿼드 색을 흐리게 */
@@ -2072,7 +2072,7 @@
 .sq-pillar-person-name { font-size: 14px; line-height: 20px; font-weight: 700; color: var(--text-primary); }
 .sq-pillar-dock .sq-pillar-person-name { font-size: 20px; line-height: 30px; padding-right: var(--spacing-3xl); }
 .sq-pillar-gwrap { position: relative; margin: var(--spacing-md) 0 var(--spacing-md); }
-.sq-pillar-gauge { display: flex; gap: var(--spacing-xxs); height: 8px; border-radius: 4px; overflow: hidden; background: linear-gradient(90deg, var(--bg-secondary) 80%, var(--bg-primary) 80%); }
+.sq-pillar-gauge { display: flex; gap: var(--spacing-xxs); height: 8px; border-radius: 4px; overflow: hidden; background: linear-gradient(90deg, var(--bg-secondary) 80%, var(--bg-quaternary) 80%); }
 .sq-pillar-gauge i { display: block; height: 100%; }
 .sq-pillar-gauge i.sq-pillar-gseg { display: flex; overflow: hidden; }
 .sq-pillar-gmark { position: absolute; top: -3px; bottom: -3px; width: 2px; border-radius: 2px; background: var(--utility-error-500); }
