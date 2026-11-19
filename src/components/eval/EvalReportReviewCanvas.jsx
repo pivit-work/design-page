@@ -1724,7 +1724,7 @@ export default function EvalReportReviewCanvas({
    */
   onApprove,
   /**
-   * `(memberId)` — 승인 창이 거절을 보인 채 닫혔을 때. PW-3024 — 앱이 목록을 다시 읽어 지금 상태를 보인다.
+   * `(memberId)` — 승인 창이 거절을 보인 채 닫혔을 때, 또는 창 없는 바로 승인이 거절됐을 때. PW-3024 — 앱이 목록을 다시 읽어 지금 상태를 보인다.
    */
   onApproveErrorClose = null,
   onSend,
@@ -1842,7 +1842,11 @@ export default function EvalReportReviewCanvas({
       // 앱이 이미 알린 실패(이용 정지 등) — 창은 열어 두되 창 안 글·토스트를 겹쳐 띄우지 않는다(PW-2907).
       if (isNotifiedFailure(e)) return APPROVE_NOTIFIED;
       // PW-1922 — 승인 창에서 실패하면 창이 닫히지 않고 창 안에 알린다. 토스트는 창 뒤 막에 깔려 흐리게 보였다.
-      if (!inline) showToast(L.toastError, 'error');
+      // PW-3024 — 창 없는 바로 승인(본부장·인사담당자 단계)도 서버 이유를 알리고 목록을 다시 읽게 한다.
+      if (!inline) {
+        showToast(failureText(e, L.toastError) || L.toastError, 'error');
+        onApproveErrorClose?.(memberId);
+      }
       // PW-3024 — 서버가 준 이유를 창 안에 쓴다(«다른 사람이 먼저 처리한 리포트입니다» 등). 앱이 `message` 에 담아 던진다.
       return { failed: failureText(e, L.approveError) || L.approveError };
     }
