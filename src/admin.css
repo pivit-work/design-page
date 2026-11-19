@@ -281,6 +281,9 @@
   font-size: 14px;
   font-weight: 700;
   color: var(--text-primary);
+  /* 띄어쓰기 없는 긴 이름(«남궁가나다라마바사아자차»)은 글자 사이에서 끊는다. 앱 전체가 break-word 가 된 뒤
+     (PW-3085) 이 칸만 이름 한 덩어리 폭으로 넓어져 1280 폭에서 표에 가로 스크롤이 생겼다. */
+  overflow-wrap: anywhere;
 }
 .admin-team-title {
   font-family: var(--font-family-body);
