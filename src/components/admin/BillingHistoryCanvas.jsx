@@ -213,7 +213,8 @@ function RefundStatusLines({ refund, labels }) {
   return (
     <>
       <Badge color={rm.color} bg={rm.bg}>
-        {rl} · {labels.refundReasons[refund.reason] || refund.reason}
+        {/* 사유 문구 표에 없는 값(DB 에 손으로 넣은 줄 등)은 코드값을 보이지 않고 상태만 — «환불 승인» 딱지와 같다 (pivit-work PW-3131) */}
+        {[rl, labels.refundReasons[refund.reason]].filter(Boolean).join(' · ')}
       </Badge>
       {/* 부분취소 전표는 환불이 끝난 뒤에 나온다(policy §7 「완료 후 노출」) */}
       {refund.type === 'partial' && refund.status === 'completed' && !refund.offPg && (
