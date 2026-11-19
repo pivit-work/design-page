@@ -4924,7 +4924,7 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
 .rbac-col-role { display: inline-flex; flex-direction: column; align-items: center; }
 .rbac-col-role small { font-size: 12px; font-weight: 500; color: var(--text-tertiary); }
 .rbac-mark { display: inline-flex; color: var(--text-brand-tertiary); }
-.rbac-mark.is-off { color: var(--text-quaternary); font-size: 14px; line-height: 1; }
+.rbac-mark.is-off { color: var(--text-tertiary); font-size: 14px; line-height: 1; }
 .rbac-fixed { display: inline-flex; flex-direction: column; align-items: center; gap: var(--spacing-xs); }
 .rbac-fixed small { font-size: 12px; line-height: 18px; color: var(--text-subtle); white-space: nowrap; }
 
