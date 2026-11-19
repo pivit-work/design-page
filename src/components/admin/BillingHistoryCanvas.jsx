@@ -135,6 +135,10 @@ const DEFAULT_LABELS = {
   emptyDesc: '유료 플랜(Starter 이상)으로 전환하면 첫 청구서가 발행됩니다.',
   emptyCta: '플랜 보기',
   noFilterResult: '선택한 조건에 해당하는 청구 내역이 없습니다.',
+  // 청구서 목록을 못 받았을 때 표 자리 카드 (history policy §3 «청구 내역을 불러오지 못함» · §5 · pivit-work PW-3131)
+  loadFailedTitle: '청구 내역을 불러오지 못했습니다',
+  loadFailedDesc: '잠시 후 다시 시도해 주세요.',
+  loadFailedRetry: '다시 시도',
 };
 
 function mergeLabels(provided) {
@@ -277,6 +281,9 @@ export default function BillingHistoryCanvas({
   onDownloadReceipt,
   onViewPlans,
   onReceiveRefund,
+  // 청구서 목록을 못 받음 — 갖고 있던 목록이 없을 때만 빈 안내 대신 실패 카드 + [다시 시도]
+  loadFailed = false,
+  onRetry,
 }) {
   const labels = mergeLabels(providedLabels);
   const [filterKey, setFilterKey] = useState('all');
@@ -391,7 +398,18 @@ export default function BillingHistoryCanvas({
 
         {/* 청구 내역 테이블 / 빈 상태 */}
         <Card style={{ padding: 0, overflow: 'hidden' }}>
-          {invoices.length === 0 ? (
+          {invoices.length === 0 && loadFailed ? (
+            <div data-testid="billing-history-load-failed" role="alert"
+              style={{ padding: 'calc(var(--spacing-4xl) * 2)', textAlign: 'center' }}>
+              <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 'var(--spacing-md)' }}>
+                {labels.loadFailedTitle}
+              </div>
+              <div style={{ fontSize: 14, color: T.sub, marginBottom: 'var(--spacing-2xl)' }}>
+                {labels.loadFailedDesc}
+              </div>
+              <Btn size="sm" kind="secondary" onClick={onRetry}>{labels.loadFailedRetry}</Btn>
+            </div>
+          ) : invoices.length === 0 ? (
             <div style={{ padding: 64, textAlign: 'center' }}>
               <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--spacing-lg)', color: 'var(--text-tertiary)' }}><FileTextGlyph size={36} /></div>
               <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>
