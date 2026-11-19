@@ -4905,6 +4905,9 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
 .rbac-sum-bar { margin-top: var(--spacing-md); height: 12px; background: var(--alpha-black-3); border-radius: 4px; overflow: hidden; }
 .rbac-sum-bar > span { display: block; height: 100%; border-radius: 4px; background: var(--utility-brand-500); }
 
+/* 상태 딱지 모양 — 디자이너 딱지(.bd · 12/600/18 · 안쪽 1/8 · 모서리 6). 색은 StatusBadge tone(status-badge.css 뜻→색 표)이 칠한다 */
+.rbac-badge { display: inline-flex; align-items: center; flex-shrink: 0; padding: calc(var(--spacing-xxs) / 2) var(--spacing-md); border-radius: 6px; font-size: 12px; font-weight: 600; line-height: 18px; white-space: nowrap; }
+
 /* 흰 판 — 머리 없는 판은 본문 위도 옆과 같은 28 */
 .rbac-panel { min-width: 0; overflow: visible; }
 .rbac-panel > .okr-h-head { cursor: default; flex-wrap: wrap; row-gap: var(--spacing-xl); }

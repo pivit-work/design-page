@@ -23,7 +23,7 @@ export const LONG_LIST_ROWS = 8;
 
 const DEFAULT_LABELS = {
   title: 'OKR 작성 권한 위임',
-  description: '어드민이 특정 사람에게 전사·조직 OKR 을 쓸 수 있게 넘겨줍니다.',
+  description: '전사 OKR 과 조직(본부·부문·팀) OKR 의 작성 권한을 맡길 사람을 고릅니다.',
   save: '저장',
   saving: '저장 중…',
   reset: '되돌리기',
@@ -128,11 +128,11 @@ export function GrantRow({ row, scope, L, today, onToggle, onExpiryChange, testI
         {row.subLabel ? <small title={row.subLabel}>{row.subLabel}</small> : null}
       </div>
       {row.isHead ? (
-        <StatusBadge tone="neutral">{L.headDefault}</StatusBadge>
+        <StatusBadge className="rbac-badge" tone="neutral">{L.headDefault}</StatusBadge>
       ) : (
         <>
           {chips}
-          {row.delegated ? <StatusBadge tone="success">{L.delegated}</StatusBadge> : null}
+          {row.delegated ? <StatusBadge className="rbac-badge" tone="success">{L.delegated}</StatusBadge> : null}
           {row.on && onExpiryChange ? (
             <DateInput
               className="admin-emp-input is-sm"

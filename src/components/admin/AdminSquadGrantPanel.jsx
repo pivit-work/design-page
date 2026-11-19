@@ -79,10 +79,10 @@ function fill(str, vars) {
 function Chips({ row, L }) {
   return (
     <>
-      {row.isLead ? <StatusBadge tone="neutral">{L.lead}</StatusBadge> : null}
-      {row.onLeave ? <StatusBadge tone="neutral">{L.onLeave}</StatusBadge> : null}
+      {row.isLead ? <StatusBadge className="rbac-badge" tone="neutral">{L.lead}</StatusBadge> : null}
+      {row.onLeave ? <StatusBadge className="rbac-badge" tone="neutral">{L.onLeave}</StatusBadge> : null}
       {/* 만들어서 받은 사람은 «위임됨» 대신 «만든 사람»(§5-8-A «만든 사람 행»). 끄면 둘 다 없다. */}
-      {row.on && row.isCreator ? <StatusBadge tone="success">{L.creator}</StatusBadge> : null}
+      {row.on && row.isCreator ? <StatusBadge className="rbac-badge" tone="success">{L.creator}</StatusBadge> : null}
     </>
   );
 }

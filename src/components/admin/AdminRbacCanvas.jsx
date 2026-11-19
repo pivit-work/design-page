@@ -142,7 +142,7 @@ function PermText({ pid, L }) {
       <div className="rbac-cell-name">
         {L.perms[pid]}
         {locked ? (
-          <StatusBadge tone="warning" data-testid={`rbac-locked-${pid}`}>
+          <StatusBadge className="rbac-badge" tone="warning" data-testid={`rbac-locked-${pid}`}>
             {L.locked}
           </StatusBadge>
         ) : null}
@@ -269,7 +269,7 @@ export default function AdminRbacCanvas({
                   </div>
                   {/* 「차단」과 「잠금」을 가른다 — 차단은 어드민이 되돌릴 수 있고 잠금은 못 한다(기획 RolesTab) */}
                   {locked ? (
-                    <StatusBadge tone="warning" data-testid={`rbac-locked-${pid}`}>
+                    <StatusBadge className="rbac-badge" tone="warning" data-testid={`rbac-locked-${pid}`}>
                       {L.locked}
                     </StatusBadge>
                   ) : (
@@ -306,7 +306,7 @@ export default function AdminRbacCanvas({
               <RosterTable.Cell>
                 <div className="rbac-cell-name">
                   {L.visItems[item.id]}
-                  {item.sensitive ? <StatusBadge tone="danger">{L.visibility.sensitive}</StatusBadge> : null}
+                  {item.sensitive ? <StatusBadge className="rbac-badge" tone="danger">{L.visibility.sensitive}</StatusBadge> : null}
                 </div>
                 {L.visDescs[item.id] ? <div className="rbac-cell-desc">{L.visDescs[item.id]}</div> : null}
               </RosterTable.Cell>
@@ -316,7 +316,7 @@ export default function AdminRbacCanvas({
                   return (
                     <RosterTable.Cell key={rid} align="center" title={L.visibility.fixedHints?.[item.id] || undefined}>
                       <span className="rbac-fixed">
-                        <StatusBadge tone="neutral">
+                        <StatusBadge className="rbac-badge" tone="neutral">
                           {L.visibility.fixed}
                         </StatusBadge>
                         {L.visibility.fixedCaption ? <small>{L.visibility.fixedCaption}</small> : null}
@@ -326,7 +326,7 @@ export default function AdminRbacCanvas({
                 }
                 return (
                   <RosterTable.Cell key={rid} align="center">
-                    <StatusBadge tone={on ? 'success' : 'neutral'}>{on ? L.visibility.public : L.visibility.private}</StatusBadge>
+                    <StatusBadge className="rbac-badge" tone={on ? 'success' : 'neutral'}>{on ? L.visibility.public : L.visibility.private}</StatusBadge>
                   </RosterTable.Cell>
                 );
               })}
@@ -373,7 +373,7 @@ export default function AdminRbacCanvas({
         </div>
         {/* 덧붙인 위임 탭은 저장하는 탭이라 «읽기 전용»을 달지 않는다 */}
         {shownExtra ? null : (
-          <StatusBadge tone="neutral" data-testid="rbac-read-only">
+          <StatusBadge className="rbac-badge" tone="neutral" data-testid="rbac-read-only">
             {L.readOnly}
           </StatusBadge>
         )}

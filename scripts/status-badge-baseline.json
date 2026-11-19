@@ -1759,6 +1759,17 @@
    "border": "1px solid var(--border-secondary)",
    "height": "34px",
    "width": "34px"
+  },
+  "admin.css|.rbac-badge": {
+   "border-radius": "6px",
+   "padding": "calc(2px / 2) 8px",
+   "font-size": "12px",
+   "font-weight": "600",
+   "display": "inline-flex",
+   "align-items": "center",
+   "line-height": "18px",
+   "white-space": "nowrap",
+   "flex-shrink": "0"
   }
  },
  "variants": {
