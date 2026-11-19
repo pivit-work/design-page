@@ -206,6 +206,13 @@ function RefundAmountLine({ refund, labels }) {
   );
 }
 
+/** 환불 사유 문구 — 표에 없는 값(DB 에 손으로 넣은 줄 · `constructor` 같은 이름)은 '' (pivit-work PW-3131). */
+function refundReasonText(labels, reason) {
+  const map = labels.refundReasons || {};
+  const text = Object.prototype.hasOwnProperty.call(map, reason) ? map[reason] : '';
+  return typeof text === 'string' ? text : '';
+}
+
 /** 상태 칸의 환불 한 건 — 배지와 그 밑 안내(부분취소 전표 · 운영팀 연락 · 결제사 밖 환불). */
 function RefundStatusLines({ refund, labels }) {
   const rm = REFUND_META[refundMetaKey(refund)] || REFUND_META.processing;
@@ -214,7 +221,7 @@ function RefundStatusLines({ refund, labels }) {
     <>
       <Badge color={rm.color} bg={rm.bg}>
         {/* 사유 문구 표에 없는 값(DB 에 손으로 넣은 줄 등)은 코드값을 보이지 않고 상태만 — «환불 승인» 딱지와 같다 (pivit-work PW-3131) */}
-        {[rl, labels.refundReasons[refund.reason]].filter(Boolean).join(' · ')}
+        {[rl, refundReasonText(labels, refund.reason)].filter(Boolean).join(' · ')}
       </Badge>
       {/* 부분취소 전표는 환불이 끝난 뒤에 나온다(policy §7 「완료 후 노출」) */}
       {refund.type === 'partial' && refund.status === 'completed' && !refund.offPg && (
@@ -503,7 +510,7 @@ export default function BillingHistoryCanvas({
                         {approval && (
                           <>
                             <Badge color={APPROVAL_META.color} bg={APPROVAL_META.bg}>
-                              {[labels.refundApprovalLabel, labels.refundReasons[approval.reason]].filter(Boolean).join(' · ')}
+                              {[labels.refundApprovalLabel, refundReasonText(labels, approval.reason)].filter(Boolean).join(' · ')}
                             </Badge>
                             <span data-testid="billing-history-approval-note"
                               style={{ fontSize: 11, color: T.muted, maxWidth: 220, lineHeight: 1.5 }}>
@@ -599,7 +606,7 @@ export default function BillingHistoryCanvas({
                     [labels.receiveModal.invoiceNo, receiveTarget.inv.invoice_no],
                     [labels.receiveModal.paidAt, receiveTarget.inv.paid_at || '—'],
                     [labels.receiveModal.total, won(receiveTarget.inv.total)],
-                    [labels.receiveModal.reason, labels.refundReasons[receiveTarget.approval.reason] || ''],
+                    [labels.receiveModal.reason, refundReasonText(labels, receiveTarget.approval.reason)],
                   ].map(([label, value]) => (
                     <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--spacing-xl)',
                       fontSize: 14, padding: 'var(--spacing-sm) 0' }}>
