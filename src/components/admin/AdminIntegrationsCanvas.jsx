@@ -164,6 +164,9 @@ const BASE_LABELS = {
     actionExpire: '만료',
     actionReauth: '재인증',
     noLogs: '토큰 이력이 없습니다.',
+    // 이력을 못 읽었을 때 — 빈 이력 문구 대신 그 자리에(pivit-work PW-3128)
+    logsLoadFailed: '토큰 이력을 불러오지 못했습니다.',
+    logsRetry: '다시 시도',
     expiredBanner: {
       message: '관리자 토큰이 만료되었습니다. 데이터 수집이 제한됩니다.',
       reauthLink: '재인증',
@@ -810,9 +813,10 @@ function SyncLogTable({ logs, labels, onRetrySyncLog }) {
           align: 'center',
           render: (log) => {
             const ok = log.status === 'success';
+            // 실패 줄은 «실패: {사유}»(admin-app.jsx 동기화 로그 · pivit-work PW-3128). 사유는 호스트가 문장으로 준다.
             return (
               <DpStatusBadge className={`intg-status ${ok ? 'is-connected' : 'is-error'}`}>
-                {ok ? labels.syncLog.success : labels.syncLog.failed}
+                {ok ? labels.syncLog.success : log.error ? `${labels.syncLog.failed}: ${log.error}` : labels.syncLog.failed}
               </DpStatusBadge>
             );
           },
@@ -1052,7 +1056,7 @@ function ReauthModal({ owner, me, labels, onClose, onConfirm }) {
   );
 }
 
-function SlackTransferPanel({ transfer, labels, baseUrl, onExpireToken, onReauth }) {
+function SlackTransferPanel({ transfer, labels, baseUrl, onExpireToken, onReauth, onRetryTokenLogs }) {
   const [showExpireModal, setShowExpireModal] = useState(false);
   const [showReauthModal, setShowReauthModal] = useState(false);
   const [expireError, setExpireError] = useState(false);
@@ -1164,7 +1168,18 @@ function SlackTransferPanel({ transfer, labels, baseUrl, onExpireToken, onReauth
 
       <div>
         <h4 className="intg-loglist-title">{labels.transfer.tokenHistory}</h4>
-        {(transfer.tokenLogs ?? []).length === 0 ? (
+        {transfer.tokenLogsFailed ? (
+          // 못 읽음 — 빈 이력처럼 보이지 않게 이 자리에서 말한다(pivit-work PW-3128). 오류 줄 + [다시 시도]는
+          // 같은 화면 «받지 못하는 구성원» 창의 `.intg-note.is-error.has-action`(PW-2054)과 같은 짝.
+          <div className="intg-note is-error has-action" role="alert" data-testid="intg-token-logs-failed">
+            <span>{labels.transfer.logsLoadFailed}</span>
+            {onRetryTokenLogs && (
+              <Button variant="secondary" size="sm" className="intg-btn" onClick={onRetryTokenLogs}>
+                {labels.transfer.logsRetry}
+              </Button>
+            )}
+          </div>
+        ) : (transfer.tokenLogs ?? []).length === 0 ? (
           <div style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '8px 0' }}>
             {labels.transfer.noLogs}
           </div>
@@ -1245,6 +1260,8 @@ export default function AdminIntegrationsCanvas({
   onExpireToken = () => {},
   onReauth = () => {},
   onRetrySyncLog = () => {},
+  /** 토큰 이력 [다시 시도] — `transfer.tokenLogsFailed` 일 때 이력 자리에 뜬다 */
+  onRetryTokenLogs,
   onRetryLoad = () => {},
   /**
    * 「어드민 관리」 탭(policy §2-9). `null` 이면 탭을 그리지 않는다.
@@ -1413,6 +1430,7 @@ export default function AdminIntegrationsCanvas({
               baseUrl={baseUrl}
               onExpireToken={onExpireToken}
               onReauth={onReauth}
+              onRetryTokenLogs={onRetryTokenLogs}
             />
           )}
 
