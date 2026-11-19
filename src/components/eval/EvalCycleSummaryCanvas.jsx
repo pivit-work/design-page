@@ -2112,10 +2112,14 @@ function SortTh({ sortKey, label, sort, onSort }) {
  *
  * 위원회 막대(CalibDistributionBar)는 등급 조각 뒤에 «등급 없음» 회색 조각이 붙고 권장의 분모는 등급이 정해진
  * 사람이다(PW-2787). `tail` 에 회색 조각 무게(pct 와 같은 단위)를 주면 점선은 회색 조각을 뺀 앞부분 안에서 잰다.
- * @param {{ tail?: number }} [opts]
+ *
+ * `inset` — 막대가 flex 틈 없이 조각 양쪽을 틈 절반씩 깎아 틈을 만들면(위원회 막대 · .evs-cw-dist-seg) 조각 경계가
+ * 비율 % 에 그대로 놓인다. 그때 점선은 권장 % 그대로 — 조각 수와 상관없는 자라, 한 등급이 0명이 되어 조각이
+ * 하나 줄어도 점선이 움직이지 않는다(PW-1034 11-19 되돌림: flex 틈이면 «폭 − 틈 수 × 틈» 자가 바뀌어 0.9~6.3px 움직였다).
+ * @param {{ tail?: number, inset?: boolean }} [opts]
  * @returns {Array<{ at: number, left: string }>} at = 누적 가이드라인 %, left = CSS left 값
  */
-export function gradeDistBounds(grades, { tail = 0 } = {}) {
+export function gradeDistBounds(grades, { tail = 0, inset = false } = {}) {
   const graded = grades.filter((g) => g.count > 0 && g.pct > 0).map((g) => g.pct);
   const segs = tail > 0 ? [...graded, tail] : graded;
   const gradedTotal = graded.reduce((a, b) => a + b, 0);
@@ -2134,6 +2138,7 @@ export function gradeDistBounds(grades, { tail = 0 } = {}) {
     acc += grades[i].guidelinePct;
     if (!(acc > 0 && acc < 100)) continue;
     const pos = acc * span;
+    if (inset) { out.push({ at: acc, left: `${r(pos)}%` }); continue; }
     let cum = 0;
     let before = 0;
     let edge = null;
@@ -2263,6 +2268,10 @@ function CalibDistributionBar({ rows, orderedGrades, L, total = rows.length, fil
   const noGrade = n - graded;
   const pct = (c) => (graded ? Math.round((c / graded) * 1000) / 10 : null);
   const levels = (levelMix?.entries ?? []).filter((e) => e.key != null);
+  // 막대의 바깥 끝 조각 — 틈은 조각 양쪽을 깎아 만들므로(eval-cycle.css .evs-cw-dist-seg) 막대 끝 쪽은 깎지 않는다.
+  const shown = [...seg.filter((g) => g.count > 0).map((g) => g.gradeKey), ...(noGrade > 0 ? ['__nograde'] : [])];
+  const edgeClass = (key) =>
+    `${key === shown[0] ? ' is-first' : ''}${key === shown[shown.length - 1] ? ' is-last' : ''}`;
   return (
     <div className="evs-cw-dist" data-testid="evs-cw-dist">
       <div className="evs-cw-dist-head">
@@ -2321,7 +2330,7 @@ function CalibDistributionBar({ rows, orderedGrades, L, total = rows.length, fil
                 content={fmt(L.cwDistSegTip, { label: g.label, n: g.count, pct: pct(g.count) })}
               >
                 <div
-                  className={`evs-cw-dist-seg hue-${g.hue}`}
+                  className={`evs-cw-dist-seg hue-${g.hue}${edgeClass(g.gradeKey)}`}
                   style={{ flexGrow: g.count }}
                   data-testid="evs-cw-dist-seg"
                 />
@@ -2331,7 +2340,7 @@ function CalibDistributionBar({ rows, orderedGrades, L, total = rows.length, fil
           {noGrade > 0 && (
             <Tooltip content={fmt(L.cwDistNoGradeBar, { n: noGrade })}>
               <div
-                className="evs-cw-dist-seg is-nograde"
+                className={`evs-cw-dist-seg is-nograde${edgeClass('__nograde')}`}
                 style={{ flexGrow: noGrade }}
                 data-testid="evs-cw-dist-seg-nograde"
               />
@@ -2341,7 +2350,7 @@ function CalibDistributionBar({ rows, orderedGrades, L, total = rows.length, fil
           {(graded > 0
             ? gradeDistBounds(
               seg.map((g) => ({ count: g.count, pct: g.count, guidelinePct: g.recommendedPct ?? null })),
-              { tail: noGrade },
+              { tail: noGrade, inset: true },
             )
             : []
           ).map((b, i) => (

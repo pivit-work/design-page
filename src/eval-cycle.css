@@ -8979,9 +8979,10 @@ button.evm-ai-source {
   display: flex;
   width: 100%;
   height: 12px;
-  /* 권장 경계 점선(.evs-gd-bound) 자리도 이 틈으로 잰다(EvalCycleSummaryCanvas gradeDistBounds · PW-1034) */
+  /* 조각 사이 틈 10px — flex gap 이 아니라 조각 양쪽을 절반씩 깎아 만든다(.evs-cw-dist-seg clip-path).
+     flex gap 이면 한 등급이 0명이 되어 조각이 줄 때 막대 자(폭 − 틈 수 × 틈)가 바뀌어 권장 점선이 움직였다
+     (PW-1034 11-19 되돌림). 이렇게 하면 조각 경계가 비율 % 에 그대로 놓이고 점선은 권장 % 에 고정된다. */
   --evs-gd-gap: 10px;
-  gap: var(--evs-gd-gap);
   border-radius: 4px;
   background: var(--bg-secondary);
 }
@@ -8994,11 +8995,17 @@ button.evm-ai-source {
   color: var(--text-secondary);
 }
 .evs-cw-dist-seg {
+  /* 양쪽을 틈 절반씩 깎는다. 아주 좁은 조각(10px 안쪽)도 가운데 2px 는 남긴다. 막대 끝 쪽(.is-first 왼쪽·.is-last 오른쪽)은 깎지 않는다. */
+  --evs-cw-seg-cut: min(calc(var(--evs-gd-gap) / 2), calc(50% - 1px));
+  --evs-cw-seg-cut-l: var(--evs-cw-seg-cut);
+  --evs-cw-seg-cut-r: var(--evs-cw-seg-cut);
   flex-basis: 0;
-  min-width: 4px;
+  min-width: 0;
   height: 12px;
-  border-radius: 4px;
+  clip-path: inset(0 var(--evs-cw-seg-cut-r) 0 var(--evs-cw-seg-cut-l) round 4px);
 }
+.evs-cw-dist-seg.is-first { --evs-cw-seg-cut-l: 0px; }
+.evs-cw-dist-seg.is-last { --evs-cw-seg-cut-r: 0px; }
 /* PW-1116 분포 카드 색 — 등급마다 다른 색(가운데 등급끼리 같은 파랑이 되지 않게).
    PW-2786 — 막대 칸은 같은 계열 옅은 색(200), 범례 점은 진한 색 그대로. 리소스 쌓은 막대(.rsx-stackbar,
    stesslee b7eb7caa)의 «막대 200 · 점·글자 진한 색» 규칙. */
