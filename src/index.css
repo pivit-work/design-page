@@ -252,10 +252,14 @@ body {
   background: var(--bg-primary);
   -webkit-font-smoothing: antialiased;
   /* 한국어를 낱말 단위로 끊는다. 기본값은 글자마다 끊어서 「주세 / 요.」처럼 마지막 줄에
-     한두 글자만 남는다. 공백 없는 긴 주소·영문은 칸을 넘지 않게 아무 곳에서나 끊고,
-     pretty 로 마지막 줄이 지나치게 짧아지지 않게 줄을 고른다. 셋 다 상속된다. */
+     한두 글자만 남는다. 공백 없는 긴 주소·영문은 칸을 넘지 않게 넘칠 때만 아무 곳에서나 끊고,
+     pretty 로 마지막 줄이 지나치게 짧아지지 않게 줄을 고른다. 셋 다 상속된다.
+     anywhere 가 아니라 break-word 인 까닭(PW-3085): anywhere 는 «아무 데서나 끊을 수 있다»를
+     칸의 최소 폭 셈에 넣어서, 옆 칸과 폭을 나눠 갖는 딱지·탭·표 칸이 한 글자 폭까지 눌려
+     «고 / 칠 / 곳»처럼 세로로 꺾였다(PW-2872·2933). break-word 는 넘칠 때만 끊고 최소 폭은 그대로 둔다.
+     flex 자식 안 긴 주소가 칸을 밀면 그 칸에 min-width: 0 이나 anywhere 를 따로 붙인다. */
   word-break: keep-all;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
   text-wrap: pretty;
   overflow: hidden;
   width: 100vw;
