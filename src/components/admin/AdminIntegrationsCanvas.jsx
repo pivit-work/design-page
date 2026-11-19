@@ -48,6 +48,9 @@ import { LEAVE_CALENDAR_DEFAULT_LABELS } from './adminIntegrationsLeaveCalendarL
 
 const ICON_INFO = '/icons-solid/asterisk-01.svg';
 const ICON_ALERT = '/icons-solid/alert-triangle.svg';
+/* 동기화 로그 상태 칸 기호 ✓ · ⚠ · ✗ (screen-integrations.policy §2-5 «상태 칸은 셋» · pivit-work PW-3128) — 글리프 대신 아이콘 */
+const ICON_SYNC_OK = '/icons-solid/check.svg';
+const ICON_SYNC_FAILED = '/icons-solid/x-close.svg';
 
 const BASE_LABELS = {
   summary: {
@@ -106,6 +109,7 @@ const BASE_LABELS = {
     retry: '재시도',
     noLogs: '동기화 로그가 없습니다.',
     success: '성공',
+    partial: '일부 수집',
     failed: '실패',
   },
   personalBanner: {
@@ -777,7 +781,7 @@ function SettingsModal({ modal, labels, baseUrl, onClose, onSave, onDisconnect, 
 
 /* ── 동기화 로그 테이블 ─────────────────────────────────────────────── */
 
-function SyncLogTable({ logs, labels, onRetrySyncLog }) {
+function SyncLogTable({ logs, labels, baseUrl, onRetrySyncLog }) {
   if (!logs || logs.length === 0) {
     return <div className="intg-table-empty">{labels.syncLog.noLogs}</div>;
   }
@@ -812,20 +816,26 @@ function SyncLogTable({ logs, labels, onRetrySyncLog }) {
           header: labels.syncLog.status,
           align: 'center',
           render: (log) => {
-            const ok = log.status === 'success';
-            // 실패 줄은 «실패: {사유}»(admin-app.jsx 동기화 로그 · pivit-work PW-3128). 사유는 호스트가 문장으로 준다.
-            // 사유는 휴가 캘린더 제목처럼 길 수 있어 배지 폭을 묶고 꼬리를 «…»로 — 전체 문장은 말풍선으로.
-            if (!ok && log.error) {
-              const text = `${labels.syncLog.failed}: ${log.error}`;
+            // 상태 칸은 셋 — 성공 · 일부 수집 · 실패(screen-integrations.policy §2-5 · pivit-work PW-3128).
+            // 사유는 일부 수집·실패 줄에. 휴가 캘린더 제목처럼 길 수 있어 폭을 묶고 꼬리를 «…»로 — 전체 문장은 말풍선으로.
+            if (log.status === 'success') {
               return (
-                <DpStatusBadge className="intg-status is-error has-reason" title={text}>
-                  <span className="intg-status-text">{text}</span>
+                <DpStatusBadge className="intg-status is-connected">
+                  <Icon src={ICON_SYNC_OK} size={12} baseUrl={baseUrl} />
+                  {labels.syncLog.success}
                 </DpStatusBadge>
               );
             }
+            const partial = log.status === 'partial';
+            const head = partial ? labels.syncLog.partial : labels.syncLog.failed;
+            const text = log.error ? `${head}: ${log.error}` : head;
             return (
-              <DpStatusBadge className={`intg-status ${ok ? 'is-connected' : 'is-error'}`}>
-                {ok ? labels.syncLog.success : labels.syncLog.failed}
+              <DpStatusBadge
+                className={`intg-status ${partial ? 'is-partial' : 'is-error'}${log.error ? ' has-reason' : ''}`}
+                title={log.error ? text : undefined}
+              >
+                <Icon src={partial ? ICON_ALERT : ICON_SYNC_FAILED} size={12} baseUrl={baseUrl} />
+                <span className="intg-status-text">{text}</span>
               </DpStatusBadge>
             );
           },
@@ -1503,7 +1513,7 @@ export default function AdminIntegrationsCanvas({
         <section className="admin-card">
           {syncLogsLoading
             ? <div className="intg-table-empty">{labels.loading}</div>
-            : <SyncLogTable logs={syncLogs} labels={labels} onRetrySyncLog={onRetrySyncLog} />}
+            : <SyncLogTable logs={syncLogs} labels={labels} baseUrl={baseUrl} onRetrySyncLog={onRetrySyncLog} />}
         </section>
       )}
     </div>

@@ -179,6 +179,8 @@
 .intg-status.is-disconnected { background: var(--dp-badge-neutral-bg); color: var(--text-secondary); } /* PW-1439 — «미연결» 은 읽어야 하는 글자 */
 
 .intg-status.is-connecting { background: var(--bg-secondary); color: var(--colors-text-textWarningPrimary, #dc6803); }
+/* 동기화 로그 «일부 수집» — 연결 중과 같은 경고 글자색(screen-integrations.policy §2-5 주황 · pivit-work PW-3128) */
+.intg-status.is-partial { background: var(--bg-secondary); color: var(--colors-text-textWarningPrimary, #dc6803); }
 
 .intg-status.is-error { background: var(--bg-secondary); color: var(--colors-text-textErrorPrimary, #d92d20); }
 
