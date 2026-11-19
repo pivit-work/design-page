@@ -1805,6 +1805,10 @@
    "background": "#f9fafb / 어두운 화면 #22262f",
    "color": "#dc6803 / 어두운 화면 #fdb022"
   },
+  "admin-integrations.css|.intg-status.is-partial": {
+   "background": "#f9fafb / 어두운 화면 #22262f",
+   "color": "#dc6803 / 어두운 화면 #fdb022"
+  },
   "admin-integrations.css|.intg-status.is-disconnected": {
    "background": "#f9fafb / 어두운 화면 #22262f",
    "color": "#687079 / 어두운 화면 #cecfd2"
