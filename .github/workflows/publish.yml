@@ -19,14 +19,25 @@ permissions:
   contents: write
   packages: write
 
+# 맥 두 대가 각자 design-page 를 낸다(2026-11-20). 두 발행이 겹치면 같은 버전 번호를 두 번 올리다
+# E409 또는 package.json 충돌로 둘째가 깨진다 → 한 번에 하나만 돌게 줄 세운다.
+# 줄에서 기다리던 발행이 더 뒤의 발행에 밀려 취소돼도, 뒤의 발행이 main 끝(앞선 커밋 포함)을 낸다
+# (pivit-work scripts/dp-publish-wait.sh 가 그 발행을 따라간다).
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
 jobs:
   publish:
     runs-on: ubuntu-latest
     # 멈춘 실행이 시간을 계속 깎지 않게. 평소 3분 안에 끝난다.
     timeout-minutes: 10
     steps:
+      # 밀어 올린 그 커밋이 아니라 «지금의 main 끝»을 받는다 — 줄을 기다리는 사이 앞 발행이 버전을 올려
+      # push 했으므로, 옛 커밋에서 버전을 올리면 같은 번호를 다시 쓰고 package.json 이 부딪힌다.
       - uses: actions/checkout@v4
         with:
+          ref: main
           # check:direct-paint 가 줄마다 쓴 사람(git blame)을 본다 — 얕은 clone 이면 모든 줄이 마지막 작성자로 잡힌다.
           fetch-depth: 0
 
