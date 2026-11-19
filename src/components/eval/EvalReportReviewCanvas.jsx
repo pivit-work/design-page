@@ -1576,8 +1576,10 @@ function ReviewRow({
           L={L}
         />
         {approveError && (
-          <p className="evrr-refine-error" role="alert" data-testid={`evrr-approve-error-${row.memberId}`}>
-            {approveError}
+          // PW-3024 — 같은 창의 [다듬기]·반려 실패 글과 같은 모양(경고 아이콘 16 + 12 Medium · 오류 색).
+          <p className="evl-lcp-line is-error evrr-refine-error" role="alert" data-testid={`evrr-approve-error-${row.memberId}`}>
+            <AlertIcon size={16} />
+            <span className="evl-lcp-line-text">{approveError}</span>
           </p>
         )}
       </ModalShell>
