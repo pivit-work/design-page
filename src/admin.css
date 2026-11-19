@@ -289,6 +289,8 @@
   font-family: var(--font-family-body);
   font-size: var(--font-size-text-xs, 12px);
   color: var(--text-secondary);
+  /* 이름 줄과 같은 칸 — 띄어쓰기 없는 긴 직함도 칸 안에서 끊는다(PW-3085) */
+  overflow-wrap: anywhere;
 }
 .admin-team-dept {
   font-family: var(--font-family-body);
