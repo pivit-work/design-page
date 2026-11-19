@@ -6,7 +6,7 @@
  * «화면 폴더에서 상대 경로로 부른다 → 묶인다 → 그려진다»가 깨지지 않아야 다시 칠하기 카드들(PW-3125 …)이 틀을 쓴다.
  * 이 저장소에는 화면 단위 시험 틀이 없어, 미리보기 서버(vite)로 실제 변환 · 경로 풀이를 거쳐 서버 쪽에서 그려 본다.
  *
- * 실행: npm run check:frames-import  (lefthook pre-push · publish CI)
+ * 실행: npm run check:frames-import  (publish CI — push 전 검사에는 안 넣었다: vite 서버를 띄워 push 마다 몇 초 늘어난다)
  */
 import { test, after, before } from 'node:test';
 import assert from 'node:assert/strict';
