@@ -24,6 +24,7 @@
     "./styles/recording-limit-notice.css": "./src/recording-limit-notice.css",
     "./styles/shared-text.css": "./src/shared-text.css",
     "./styles/stack.css": "./src/stack.css",
+    "./styles/frames.css": "./src/frames.css",
     "./styles/modal-shell.css": "./src/modal-shell.css",
     "./styles/side-panel-shell.css": "./src/side-panel-shell.css",
     "./styles/timeline.css": "./src/timeline.css",
@@ -89,6 +90,7 @@
     "check:close-labels": "node scripts/check-close-labels.mjs",
     "check:direct-paint": "node scripts/check-direct-paint.mjs",
     "check:direct-paint:test": "node --test scripts/check-direct-paint.test.mjs",
+    "check:frames-import": "node --test scripts/check-frames-import.test.mjs",
     "preview": "vite preview",
     "prepare": "lefthook install || true"
   },
