@@ -37,6 +37,7 @@ const TIME_MENU_HEIGHT = 258;
  *    여는지는 호스트가 안다 — 공용 `RecordingPlayerRow` 에 `<audio>` 와 재생 상태를
  *    넣어 완성한 노드를 넘긴다. 안 넘기면 그 행 자체를 그리지 않고, 「녹음이 없습니다」
  *    류의 안내도 두지 않는다 — 녹음이 있다는 사실이 새지 않게(§9-B INV-P5).
+ *  - detail.dateLabel: 머리의 회차 날짜 글자(호스트가 시간대·언어로 만든다). 없으면 그리지 않는다.
  *  - onOpenPastMeetings: 탭 줄 오른쪽 끝 [지난 회의] (PW-3069 · policy §10.9.2). 그 팀원의 지난 1on1
  *    리스트로 가는 길이다 — 창을 닫고 어디로 갈지는 호스트가 정한다. 모양은 대시보드 카드 보조 버튼
  *    `.ono-member-btn` 그대로(기획 «종전 카드 보조 버튼 그대로»). 안 넘기면 버튼을 그리지 않는다.
@@ -162,6 +163,9 @@ export default function OneOnOneDetailModal({
         <span className="ood-head-meta">
           {/* 단계 이름은 화면이 한글로 넘긴다 — 없으면 딱지를 그리지 않는다 (PW-2937 · policy §3.4).
               예전 기본값 'DONE' 은 영어 코드값을 그대로 내보냈다. */}
+          {/* 회차 날짜 — 호스트가 사용자 시간대로 만든 글자 (PW-3069 · policy §10.9.2 «머리: 팀원 × 매니저 · 회차 날짜 · 완료 · 열람모드»).
+              안 넘기면 그리지 않는다. 글씨는 옆 «열람모드»와 같은 보조 글자. */}
+          {detail.dateLabel ? <span className="ood-mode" data-testid="ood-date">{detail.dateLabel}</span> : null}
           {detail.status ? <StatusBadge className="ood-done-badge">{detail.status}</StatusBadge> : null}
           <span className="ood-mode">{L.viewMode}</span>
         </span>
