@@ -3,7 +3,7 @@ import StatusBadge from '../shared/StatusBadge.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import rowKey from './rowKey.js';
 import { OKR_RESOURCE_DEFAULT_LABELS, statusLabel } from './okrResourceLabels.js';
-import { RS_BAR_CAP, RS_OVER_HATCH, rsBarPct, rsBarSegs, rsSegWidth } from './okrResourceBar.js';
+import { RS_BAR_CAP, RS_OVER_HATCH, rsBarPct, rsBarSegs, rsFillWidth, rsSegLeft, rsSegWidth } from './okrResourceBar.js';
 
 /**
  * OkrResourcePieces — 내 리소스(리소스 투입) 탭의 작은 공용 조각들.
@@ -93,9 +93,11 @@ export function RsStackBar({ segments, total }) {
           color={seg.tipColor || undefined}
           tone={seg.tipColor ? undefined : 'brand'}
         >
-          <span className="rsx-stackbar-seg is-split" style={{ width: rsSegWidth(seg.w, i < segs.length - 1) }}>
-            {seg.fill > 0 && <i className="rsx-stackbar-fill" style={{ width: `${(seg.fill / seg.w) * 100}%`, background: seg.color }} />}
-            {seg.over > 0 && <i className="rsx-stackbar-over" style={{ width: `${(seg.over / seg.w) * 100}%`, background: RS_OVER_HATCH }} />}
+          <span className="rsx-stackbar-seg is-split" style={{ left: rsSegLeft(seg.s), width: rsSegWidth(seg.w, i < segs.length - 1) }}>
+            {seg.fill > 0 && (
+              <i className="rsx-stackbar-fill" style={{ width: rsFillWidth(seg.fill, seg.w, i < segs.length - 1), background: seg.color }} />
+            )}
+            {seg.over > 0 && <i className="rsx-stackbar-over" style={{ background: RS_OVER_HATCH }} />}
           </span>
         </Tooltip>
       ))}

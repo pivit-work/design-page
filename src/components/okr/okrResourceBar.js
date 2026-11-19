@@ -30,18 +30,31 @@ export function rsBarSegs(segments, total) {
     start += seg.pct;
     if (e <= s) continue;
     const hatch = over ? Math.max(0, e - Math.max(s, RS_BAR_CAP)) : 0;
-    out.push({ ...seg, w: e - s, fill: e - s - hatch, over: hatch });
+    out.push({ ...seg, s, w: e - s, fill: e - s - hatch, over: hatch });
   }
   return out;
 }
 
 /**
- * 조각 폭 — `.rsx-stackbar` 의 조각 사이 간격 10px 은 % 폭 밖에서 더해진다. 그대로 두면 조각이 n 개일 때 막대 끝이
- * 제 값 자리를 (n−1)×10px 넘어 흰 여유 칸으로 들어가 «100 초과»로 읽힌다. 뒤에 조각이 오는 조각만 그 간격만큼 줄인다.
+ * 조각 폭 — 조각은 트랙 안에 제 시작 값 자리(`rsSegLeft`)로 놓이고(absolute), 뒤에 조각이 오는 조각만 디자이너 조각 사이
+ * 간격 10px 만큼 줄인다. flex 로 줄 세우면 간격이 % 폭 밖에서 더해져 막대 끝이 제 값 자리를 (n−1)×10px 넘는다.
+ * 아주 작은 조각(트랙 700px 에서 약 1.8 이하)은 calc 가 0 이하가 되는데, CSS `.rsx-stackbar-seg.is-split` 의 min-width 2px 로
+ * 남겨 막대와 말풍선에서 사라지지 않게 한다 — 자리가 absolute 라 뒤 조각이 밀리지 않는다.
  */
 export const RS_SEG_GAP = '10px';
+export const rsSegLeft = (s) => `${(s / RS_BAR_SCALE) * 100}%`;
 export function rsSegWidth(w, followed) {
   const p = `${(w / RS_BAR_SCALE) * 100}%`;
   // 아주 작은 조각에서 calc 가 음수가 되면 브라우저가 폭을 0 으로 둔다(CSS 폭은 음수를 받지 않는다)
   return followed ? `calc(${p} - ${RS_SEG_GAP})` : p;
+}
+
+/**
+ * 조각 안 100 아래 몫(항목 색)의 폭. 뒤에 조각이 오는 조각은 제 폭이 간격 10px 만큼 줄어 있으므로, 그 안에서 비율로만
+ * 나누면 100 경계가 «줄어든 폭 × 비율»만큼 왼쪽으로 밀린다(60·50·10 이면 약 8px). 줄기 전 폭(= 조각 폭 + 10px)의 비율로
+ * 잡아 빗금이 늘 트랙의 100 자리(80%)에서 시작하게 한다. 넘친 만큼은 조각의 overflow 가 자른다.
+ */
+export function rsFillWidth(fill, w, followed) {
+  const f = (fill / w) * 100;
+  return followed ? `calc(${f}% + ${(f * parseFloat(RS_SEG_GAP)) / 100}px)` : `${f}%`;
 }
