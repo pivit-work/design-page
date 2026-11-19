@@ -24,6 +24,7 @@ import {
   clampPct,
   GAUGE_SCALE,
   OVER_HATCH,
+  gaugeSegWidth,
   gaugeSegs,
   squadComposition,
 } from './squad-constants.js';
@@ -45,9 +46,9 @@ export function CapacityBar({ segments, total, width = 132, height = 8 }) {
   return (
     <div className="sq-gauge" style={{ width }} data-testid="squad-capacity-bar">
       <div className="sq-gauge-track" style={{ height }}>
-        {segs.map((s) => (
+        {segs.map((s, i) => (
           <Tooltip key={s.id} content={`${s.name} ${s.pct}%`}>
-            <div className="sq-gauge-seg" style={{ width: `${pc(s.w)}%` }}>
+            <div className="sq-gauge-seg" style={{ width: gaugeSegWidth(s.w, i < segs.length - 1) }}>
               <div className="sq-gauge-fill" style={{ width: `${(s.fill / s.w) * 100}%`, background: s.color }} />
               {s.over > 0 && (
                 <div className="sq-gauge-over" style={{ width: `${(s.over / s.w) * 100}%`, background: OVER_HATCH }} />
@@ -80,7 +81,7 @@ export function ShareBar({ rows, allotted, colorOf, height = 12 }) {
   return (
     <div className="sq-share" data-testid="squad-share-bar">
       <div className="sq-share-track pj-progress-bar" style={{ height }}>
-        {segs.map((r) => {
+        {segs.map((r, i) => {
           const c = colorOf(r.userId);
           return (
             <Tooltip
@@ -100,7 +101,8 @@ export function ShareBar({ rows, allotted, colorOf, height = 12 }) {
             >
             <div
               className="sq-share-seg"
-              style={{ width: `${pc(r.w)}%` }}
+              // 미배분 잔여 칸이 뒤에 오면 마지막 조각 뒤에도 간격이 있다
+              style={{ width: gaugeSegWidth(r.w, i < segs.length - 1 || allotted < SQUAD_BASE) }}
             >
               <div
                 className="sq-share-fill"

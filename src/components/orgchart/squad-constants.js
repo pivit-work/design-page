@@ -314,6 +314,16 @@ export function gaugeSegs(items, base) {
 }
 
 /**
+ * 조각 폭 — 트랙의 조각 사이 간격(`--spacing-xxs` 2px)은 % 폭 밖에서 더해진다. 그대로 두면 조각이 n개일 때
+ * 막대 끝이 100 자리(80%)를 (n−1)×2px 넘어 흰 여유 칸으로 들어가 «100 초과»로 읽힌다(PW-3067 리뷰).
+ * 그래서 뒤에 간격이 오는 조각은 그 간격만큼 줄이고, 마지막 조각은 그대로 둔다 — 조각마다 시작 자리가 제 누적 값에 맞는다.
+ */
+export function gaugeSegWidth(w, followed) {
+  const p = `${(w / GAUGE_SCALE) * 100}%`;
+  return followed ? `calc(${p} - var(--spacing-xxs))` : p;
+}
+
+/**
  * 캐파 대비 상태 — 100을 기준으로 남는지/딱 맞는지/넘는지 (§5-3.2).
  * 색은 디자인 토큰으로만 말한다(`ProjectCardGrid` 가 상태색을 `var(--…)` 문자열로
  * 넘기는 것과 같은 방식) — 리터럴 hex 를 박으면 이 탭만 다른 팔레트로 보인다.

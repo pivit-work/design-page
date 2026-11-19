@@ -17,7 +17,8 @@ import { CloseGlyph, MinusGlyph, PlusGlyph } from '../shared/lineIcons.jsx';
 import { isEnterKey } from '../shared/enterKey.js';
 import { useOrgLabels } from './orgchart-labels.jsx';
 import { LeadTag, WarningIcon } from './squadIcons.jsx';
-import { GAUGE_SCALE, OVER_HATCH, gaugeSegs } from './squad-constants.js';
+import { GAUGE_SCALE, OVER_HATCH, gaugeSegWidth, gaugeSegs } from './squad-constants.js';
+import Tooltip from '../shared/Tooltip.jsx';
 import {
   PILLAR,
   PILLAR_CHIPS,
@@ -1036,14 +1037,18 @@ function PersonCard({ x, L, nameOf, unitName, famName, mineHint }) {
         <>
           <div className="sq-pillar-gwrap">
             <div className="sq-pillar-gauge">
-              {segs.map(({ a, w, fill, over: ov }) => (
-                <i key={a.squadId} className="sq-pillar-gseg" style={{ width: `${(w / GAUGE_SCALE) * 100}%` }}>
+              {segs.map(({ a, w, fill, over: ov }, i) => (
+                <i key={a.squadId} className="sq-pillar-gseg" style={{ width: gaugeSegWidth(w, i < segs.length - 1) }}>
                   <i style={{ width: `${(fill / w) * 100}%`, background: a.squad.color }} />
                   {ov > 0 && <i style={{ width: `${(ov / w) * 100}%`, background: OVER_HATCH }} />}
                 </i>
               ))}
             </div>
-            {over && <i className="sq-pillar-gmark" style={{ left: `${(100 / GAUGE_SCALE) * 100}%` }} />}
+            {over && (
+              <Tooltip content={L('squad.gauge.capacity100')}>
+                <i className="sq-pillar-gmark" style={{ left: `${(100 / GAUGE_SCALE) * 100}%` }} />
+              </Tooltip>
+            )}
           </div>
           <div className={`sq-pillar-capline${over ? ' is-over' : ''}`} data-testid="squad-pillar-capline">
             {over && <WarningIcon size={14} />}
