@@ -1,18 +1,8 @@
 import { useRef, useEffect } from 'react';
+import { connectorPath } from './connectorPath.js';
 
 // 대표 직속 곁가지가 부서 카드에 닿는 높이 — 카드 제목 줄의 가운데(padding 20 + 줄 높이 28 / 2).
 const STAFF_STUB_Y = 34;
-
-/**
- * 부모-자식 연결선 한 가닥. 직각(기본)은 수직-수평-수직, 곡선은 베지어.
- * pivit-specs org-chart-public-card-spec.md §5.1 — 세 화면이 같은 모양을 쓴다.
- */
-function connectorPath(x1, y1, x2, y2, lineStyle = 'ortho') {
-  const midY = (y1 + y2) / 2;
-  return lineStyle === 'ortho'
-    ? `M ${x1} ${y1} V ${midY} H ${x2} V ${y2} `
-    : `M ${x1} ${y1} C ${x1} ${midY}, ${x2} ${midY}, ${x2} ${y2} `;
-}
 
 /**
  * highlightIds — 강조할 조직 단위 id 를 회사 루트부터 차례로 (§5.4-B 내 소속 연결선 강조). 안 주면 강조가 없다.
