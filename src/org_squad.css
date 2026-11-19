@@ -740,7 +740,7 @@
   display: flex;
   gap: 2px;
   overflow: visible;
-  /* 트랙 125 고정 — 100 자리(80%) 오른쪽 여유 칸은 흰 바탕(--bg-quaternary #fff · --bg-primary 는 회색) (pivit-work PW-3067 · 정책 §5-3.2-A) */
+  /* 트랙 125 고정 — 100 자리(80%) 오른쪽 여유 칸은 흰 바탕(--bg-quaternary · --bg-primary 는 이 앱에서 회색) (pivit-work PW-3067 · 정책 §5-3.2-A) */
   background: linear-gradient(90deg, var(--alpha-black-3) 80%, var(--bg-quaternary) 80%);
   border-radius: var(--radius-xxs);
 }
@@ -815,7 +815,7 @@
   gap: 2px;
   border-radius: 2px;
   overflow: hidden;
-  /* 트랙 125 고정 — 100 자리(80%) 오른쪽 여유 칸은 흰 바탕(--bg-quaternary #fff · --bg-primary 는 회색) (pivit-work PW-3067 · 정책 §5-3.2-A) */
+  /* 트랙 125 고정 — 100 자리(80%) 오른쪽 여유 칸은 흰 바탕(--bg-quaternary · --bg-primary 는 이 앱에서 회색) (pivit-work PW-3067 · 정책 §5-3.2-A) */
   background: linear-gradient(90deg, var(--alpha-black-3) 80%, var(--bg-quaternary) 80%);
 }
 .sq-gauge-seg { display: flex; overflow: hidden; border-radius: 2px; }
