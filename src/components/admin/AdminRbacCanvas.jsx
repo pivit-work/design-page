@@ -1,37 +1,21 @@
 import { useState, useMemo } from 'react';
 import Tabs from '../shared/Tabs.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
+import StatusBadge from '../shared/StatusBadge.jsx';
+import { isEnterKey } from '../shared/enterKey.js';
 
 /**
- * AdminRbacCanvas — 권한 관리(RBAC) 읽기 전용 뷰어 (design-page 정본)
+ * AdminRbacCanvas — 권한 기준정보(RBAC) 읽기 전용 뷰어.
  *
  * 순수 표현 컴포넌트: 데이터(matrix·visibility)와 라벨(labels)을 props 로 받아
- * 역할별 기능 접근 범위 + 정보 공개 범위를 "조회만" 한다. 편집·저장·커스텀 역할은
- * 다음 phase. i18n / 데이터 패칭은 소비 측(consumer) 책임이다.
+ * 역할별 기능 접근 범위 + 정보 공개 범위를 «조회만» 한다. i18n / 데이터 패칭은 소비 측 책임이다.
  *
- * 정본 정합 원칙: 역할을 색으로 분류하지 않는다(조직도 role badge 외 역할색 체계 없음).
- * 허용/공개 등 active 상태만 화면 단일 액센트(brand emerald)로 표시한다.
+ * 디자이너 원본이 없는 화면이라 pivit-work PW-3121 에서 디자이너 화면 값으로 다시 칠했다 — 클래스와 따른 디자이너 화면은
+ * admin.css «권한 기준정보 (pivit-work PW-3121)» 절. 흰 판 · 표 · 안내 줄은 앱 공용 틀(PW-2994)과 같은 디자이너 클래스다.
+ * 역할을 색으로 가르지 않는다 — 뜻 있는 색(허용 · 공개 초록, 민감 빨강, 잠금 주황)만 쓴다.
  */
 
-// ── design-page 토큰 (admin.css / index.css 정본) ───────────────────
-const DP = {
-  font: 'var(--font-family-body)',
-  surface: 'var(--bg-quaternary, #ffffff)',
-  inset: 'var(--bg-secondary, #f9fafb)',
-  borderT: '#e6e8ea',
-  textP: 'var(--text-primary, #596069)',
-  textS: 'var(--text-secondary, #687079)',
-  textT: 'var(--text-tertiary, #b1b6be)',
-  accent: 'var(--text-brand-tertiary, #21a67a)',
-  accentBg: 'var(--utility-brand-50, #f1fffa)',
-  accentBd: 'var(--utility-brand-200, #bbf0dd)',
-  accentTc: 'var(--text-brand-secondary, #10774d)',
-  shadow: '0 1px 2px 0 rgba(10,13,18,0.1), 0 1px 3px 0 rgba(10,13,18,0.1)',
-  radius: { md: 10, lg: 12, xl: 16 },
-};
-
-// 역할 3종 — 실제 인증 role 문자열(org_admin/manager/employee)을
-// 컬럼 키로 사용해야 권한 판정과 정합한다. (CEO/superuser 는 이번 버전에서 미노출)
+// 역할 3종 — 실제 인증 role 문자열을 칸 키로 쓴다(권한 판정과 같게).
 const ROLES = ['org_admin', 'manager', 'employee'];
 
 const PERM_CATEGORIES = [
@@ -46,7 +30,12 @@ const PERM_CATEGORIES = [
 ];
 const ALL_PERM_IDS = PERM_CATEGORIES.flatMap((c) => c.ids);
 
-// 정보 공개 범위 탭 아래 「공개 범위 설계 원칙」 줄 번호 — 라벨이 있는 번호만 그린다.
+/**
+ * 어느 역할에도 켤 수 없는 권한 — 기획 admin-app.jsx PERMS 의 `locked:true`(p032 전사 1on1 열람 · 1on1 기획 §9-A-3).
+ * «꺼 둔 것(차단)»과 «켤 수 없는 것»을 가르려고 «잠금» 딱지와 잠긴 이유 줄을 단다.
+ */
+const LOCKED_PERMS = new Set(['p032']);
+
 const PRINCIPLE_NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8];
 
 const VIS_ITEMS = [
@@ -58,7 +47,6 @@ const VIS_ITEMS = [
   { id: 'oneononone', sensitive: false },
 ];
 
-// 라벨 기본값(한국어) — 소비 측 labels 와 deep-merge 되어 누락 키를 메운다.
 const DEFAULT_LABELS = {
   title: '권한 관리',
   description: '역할별 기능 접근 범위와 정보 공개 범위를 설정합니다',
@@ -70,6 +58,8 @@ const DEFAULT_LABELS = {
   permOf: '/ {{total}}개',
   grantedPerms: '부여된 권한',
   allowed: '허용',
+  locked: '잠금',
+  lockedReasons: {},
   blocked: '차단',
   tabs: { matrix: '전체 매트릭스', roles: '역할별 권한', visibility: '정보 공개 범위' },
   roles: { org_admin: '어드민', manager: '매니저', employee: '멤버' },
@@ -97,6 +87,7 @@ const DEFAULT_LABELS = {
 function isObj(v) {
   return v && typeof v === 'object' && !Array.isArray(v);
 }
+
 function mergeLabels(base, provided) {
   if (!provided) return base;
   const out = { ...base };
@@ -106,190 +97,112 @@ function mergeLabels(base, provided) {
   }
   return out;
 }
-// i18next 스타일 {{key}} 플레이스홀더 치환
+
 function fill(str, vars) {
   let s = str == null ? '' : String(str);
   for (const k of Object.keys(vars)) s = s.replace(`{{${k}}}`, vars[k]);
   return s;
 }
 
-// 읽기 전용 인디케이터 — 허용: 단일 액센트 체크 / 차단: 옅은 대시
-function ReadMark({ on, color }) {
+/** 허용은 초록 체크 선, 아니면 옅은 «–». */
+function ReadMark({ on }) {
   if (on) {
     return (
-      <svg width="14" height="11" viewBox="0 0 11 9" aria-hidden>
-        <polyline
-          points="1,5 4,8 10,1"
-          fill="none"
-          stroke={color}
-          strokeWidth="1.8"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
+      <span className="rbac-mark" data-mark="on">
+        <svg width="14" height="11" viewBox="0 0 11 9" aria-hidden>
+          <polyline points="1,5 4,8 10,1" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </span>
     );
   }
-  return <span style={{ color: DP.textT, fontSize: 14, lineHeight: 1 }}>–</span>;
+  return <span className="rbac-mark is-off" data-mark="off">–</span>;
 }
 
-// 탭 아이콘 — 앱 라인 아이콘 스타일 인라인 SVG (currentColor · 2px stroke)
-const svgBase = {
-  width: 15,
-  height: 15,
-  viewBox: '0 0 24 24',
-  fill: 'none',
-  stroke: 'currentColor',
-  strokeWidth: 2,
-  strokeLinecap: 'round',
-  strokeLinejoin: 'round',
-  'aria-hidden': true,
-};
-function GridIcon() {
+/** 흰 판 — 공용 틀 Panel 과 같은 디자이너 클래스(.okr-h-list · .okr-h-head · .okr-h-label · .okr-h-body). */
+export function RbacPanel({ title, actions, testId, className = '', bodyClassName = '', children }) {
+  const hasHead = !!title || !!actions;
   return (
-    <svg {...svgBase}>
-      <rect x="3" y="3" width="18" height="18" rx="2" />
-      <path d="M3 9h18M3 15h18M9 3v18M15 3v18" />
-    </svg>
+    <section className={`okr-h-list rbac-panel ${className}`.trim()} data-testid={testId}>
+      {hasHead ? (
+        <div className="okr-h-head">
+          {title ? <h3 className="okr-h-label" title={title}>{title}</h3> : <span />}
+          {actions}
+        </div>
+      ) : null}
+      <div className={`okr-h-body ${hasHead ? '' : 'is-nohead'} ${bodyClassName}`.trim()}>{children}</div>
+    </section>
   );
 }
-function ShieldIcon() {
+
+/** 권한 이름 칸 — 이름(+ 잠금 딱지) · 설명 · 잠긴 이유 */
+function PermText({ pid, L }) {
+  const locked = LOCKED_PERMS.has(pid);
   return (
-    <svg {...svgBase}>
-      <path d="M12 3l7 2.5v6c0 4-3 6.9-7 8.5-4-1.6-7-4.5-7-8.5v-6L12 3z" />
-    </svg>
-  );
-}
-function EyeIcon() {
-  return (
-    <svg {...svgBase}>
-      <path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z" />
-      <circle cx="12" cy="12" r="2.6" />
-    </svg>
+    <>
+      <div className="rbac-cell-name">
+        {L.perms[pid]}
+        {locked ? (
+          <StatusBadge tone="warning" data-testid={`rbac-locked-${pid}`}>
+            {L.locked}
+          </StatusBadge>
+        ) : null}
+      </div>
+      {L.permDescs[pid] ? <div className="rbac-cell-desc">{L.permDescs[pid]}</div> : null}
+      {locked && L.lockedReasons?.[pid] ? <div className="rbac-cell-lock">{L.lockedReasons[pid]}</div> : null}
+    </>
   );
 }
 
 export default function AdminRbacCanvas({
-  /** 제목 바로 오른쪽 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2430). 안 주면 지금과 같다. */
   titleHelp,
   matrix = {},
   visibility = {},
   labels: providedLabels,
   initialTab = 'matrix',
-  // 소비 측이 덧붙이는 탭 하나 — { key, label, Icon?, content }. 편집하는 탭이라 그 탭에서는
-  // 머리의 「읽기 전용」 표시와 역할 요약 카드를 그리지 않는다 (pivit-work PW-1501 «OKR 작성 권한»).
   extraTab = null,
-  // 덧붙이는 탭 여럿 — 같은 모양 { key, label, Icon?, content }[]. `extraTab` 뒤에 차례로 붙는다
-  // (pivit-work PW-2635 «스쿼드 조직 권한» — OKR 작성 권한 오른쪽 다섯째 탭).
   extraTabs = [],
-  // 탭을 옮기기 전에 묻는다 — (지금 탭, 갈 탭) => boolean | Promise<boolean>. 거짓이면 머문다.
-  // 덧붙인 탭에 저장하지 않은 변경이 있을 때 소비 측이 확인 창을 띄운다(PW-2635 · 스쿼드 정책 §5-8-A «저장»).
   onBeforeTabChange,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const [tab, setTabNow] = useState(initialTab);
-  const setTab = async (next) => {
-    if (next === tab) return;
-    if (onBeforeTabChange && !(await onBeforeTabChange(tab, next))) return;
+  // 덧붙인 탭(OKR·스쿼드 위임)에 저장 안 한 변경이 있으면 소비 측이 묻는다 — 거짓이면 머문다(PW-2635).
+  const goTab = async (next) => {
+    if (next === tab) return true;
+    if (onBeforeTabChange && !(await onBeforeTabChange(tab, next))) return false;
     setTabNow(next);
+    return true;
   };
   const [selectedRole, setSelectedRole] = useState('org_admin');
 
-  const getMatrix = (roleId, permId) => matrix[roleId]?.[permId] ?? false;
-  // 분자는 «이 화면이 나열하는 27개» 안에서만 센다. 분모가 ALL_PERM_IDS.length 이므로
-  // 목록 밖 권한까지 세면 「28 / 27개」처럼 분자가 분모를 넘는다.
-  // 소비 측 매트릭스에는 이 화면에 없는 권한이 정상적으로 들어온다 — pivit-work 서버는
-  // p013(스쿼드 원장 관리)을 실제로 판정하지만, 이 화면의 권한 목록에서는 빠져 있다.
-  const countPerms = (roleId) =>
-    ALL_PERM_IDS.filter((permId) => matrix[roleId]?.[permId]).length;
+  const getMatrix = (roleId, permId) => !LOCKED_PERMS.has(permId) && (matrix[roleId]?.[permId] ?? false);
+  const countPerms = (roleId) => ALL_PERM_IDS.filter((permId) => getMatrix(roleId, permId)).length;
+  const permOf = fill(L.permOf, { total: ALL_PERM_IDS.length });
 
-  const cardStyle = {
-    background: DP.surface,
-    borderRadius: DP.radius.xl,
-    boxShadow: DP.shadow,
-    overflow: 'hidden',
-  };
-  const catHeaderStyle = {
-    padding: '9px 16px 4px',
-    fontSize: 10,
-    fontWeight: 700,
-    color: DP.textS,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    background: DP.inset,
-    borderBottom: `1px solid ${DP.borderT}`,
-  };
-
-  // ── 전체 매트릭스 탭 ──────────────────────────────────────────────
   const matrixContent = (
-    <div style={{ ...cardStyle }}>
-      <RosterTable minWidth={720}>
+    <RbacPanel testId="rbac-matrix">
+      <RosterTable minWidth={720} tableClassName="ol-table rbac-table">
         <RosterTable.Head>
-          <RosterTable.HeadCell style={{ minWidth: 230 }}>{L.permItem}</RosterTable.HeadCell>
+          <RosterTable.HeadCell style={{ minWidth: 260 }}>{L.permItem}</RosterTable.HeadCell>
           {ROLES.map((rid) => (
-            <RosterTable.HeadCell key={rid} align="center" style={{ minWidth: 112 }}>
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: 4,
-                }}
-              >
-                <span style={{ fontSize: 12, fontWeight: 700, color: DP.textP }}>
-                  {L.roles[rid]}
-                </span>
-                <span
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 700,
-                    padding: '2px 7px',
-                    borderRadius: 99,
-                    background: DP.inset,
-                    border: `1px solid ${DP.borderT}`,
-                    color: DP.textS,
-                    fontVariantNumeric: 'tabular-nums',
-                  }}
-                >
-                  {fill(L.countUnit, { count: countPerms(rid) })}
-                </span>
-              </div>
+            <RosterTable.HeadCell key={rid} align="center" width={160}>
+              <span className="rbac-col-role">
+                {L.roles[rid]}
+                <small>{fill(L.countUnit, { count: countPerms(rid) })}</small>
+              </span>
             </RosterTable.HeadCell>
           ))}
         </RosterTable.Head>
         {PERM_CATEGORIES.map((cat) => (
           <RosterTable.Body key={cat.catKey}>
-            <RosterTable.GroupRow colSpan={ROLES.length + 1}>
-              {L.permCategories[cat.catKey]}
-            </RosterTable.GroupRow>
+            <RosterTable.GroupRow colSpan={ROLES.length + 1}>{L.permCategories[cat.catKey]}</RosterTable.GroupRow>
             {cat.ids.map((pid) => (
-              <RosterTable.Row key={pid}>
+              <RosterTable.Row key={pid} data-testid={`rbac-matrix-row-${pid}`}>
                 <RosterTable.Cell>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 500,
-                      color: DP.textP,
-                      marginBottom: 2,
-                    }}
-                  >
-                    {L.perms[pid]}
-                  </div>
-                  <div style={{ fontSize: 11, color: DP.textS }}>
-                    {L.permDescs[pid]}
-                  </div>
+                  <PermText pid={pid} L={L} />
                 </RosterTable.Cell>
                 {ROLES.map((rid) => (
                   <RosterTable.Cell key={rid} align="center">
-                    <div
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        height: 20,
-                      }}
-                    >
-                      <ReadMark on={getMatrix(rid, pid)} color={DP.accent} />
-                    </div>
+                    <ReadMark on={getMatrix(rid, pid)} />
                   </RosterTable.Cell>
                 ))}
               </RosterTable.Row>
@@ -297,458 +210,216 @@ export default function AdminRbacCanvas({
           </RosterTable.Body>
         ))}
       </RosterTable>
-    </div>
+    </RbacPanel>
   );
 
-  // ── 역할별 권한 탭 ────────────────────────────────────────────────
   const rolesContent = (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: '210px 1fr',
-        gap: 14,
-        alignItems: 'start',
-      }}
-    >
-      <div style={{ ...cardStyle, position: 'sticky', top: 12 }}>
-        <div
-          style={{
-            padding: '12px 14px',
-            borderBottom: `1px solid ${DP.borderT}`,
-            fontSize: 12,
-            fontWeight: 700,
-            color: DP.textP,
-          }}
-        >
-          {L.selectRole}
-        </div>
-        <div style={{ padding: 6 }}>
-          {ROLES.map((rid) => {
-            const active = selectedRole === rid;
-            return (
-              <div
-                key={rid}
-                onClick={() => setSelectedRole(rid)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 9,
-                  padding: '12px',
-                  borderRadius: DP.radius.md,
-                  cursor: 'pointer',
-                  background: active ? DP.accentBg : 'transparent',
-                  border: `1px solid ${active ? DP.accentBd : 'transparent'}`,
-                  marginBottom: 2,
-                  transition: 'all .15s',
-                }}
-              >
-                <div style={{ flex: 1 }}>
-                  <div
-                    style={{
-                      fontSize: 12,
-                      fontWeight: active ? 700 : 500,
-                      color: active ? DP.accentTc : DP.textP,
-                    }}
-                  >
-                    {L.roles[rid]}
-                  </div>
-                  <div style={{ fontSize: 10, color: DP.textS }}>
-                    {fill(L.permCount, { count: countPerms(rid) })}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      <div>
-        <div style={{ ...cardStyle, marginBottom: 12 }}>
+    <div className="rbac-split">
+      <section className="okr-h-list rbac-panel rbac-roles" data-testid="rbac-role-list">
+        <div className="rbac-roles-head">{L.selectRole}</div>
+        {ROLES.map((rid) => (
           <div
-            style={{
-              padding: '14px 18px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
+            key={rid}
+            role="button"
+            tabIndex={0}
+            className={`rbac-role ${selectedRole === rid ? 'is-on' : ''}`.trim()}
+            aria-pressed={selectedRole === rid}
+            data-testid={`rbac-role-${rid}`}
+            onClick={() => setSelectedRole(rid)}
+            onKeyDown={(e) => {
+              if (!isEnterKey(e) && e.key !== ' ') return;
+              e.preventDefault();
+              setSelectedRole(rid);
             }}
           >
-            <div style={{ flex: 1 }}>
-              <div
-                style={{
-                  fontSize: 15,
-                  fontWeight: 800,
-                  color: DP.textP,
-                  marginBottom: 3,
-                }}
-              >
-                {L.roles[selectedRole]}
-              </div>
-              <div style={{ fontSize: 12, color: DP.textS }}>
-                {L.roleDescs[selectedRole]}
-              </div>
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 10, color: DP.textS, marginBottom: 2 }}>
-                {L.grantedPerms}
-              </div>
-              <div
-                style={{
-                  fontSize: 22,
-                  fontWeight: 800,
-                  color: DP.textP,
-                  fontVariantNumeric: 'tabular-nums',
-                }}
-              >
-                {countPerms(selectedRole)}
-                <span style={{ fontSize: 14, color: DP.textS }}>
-                  {fill(L.permOf, { total: ALL_PERM_IDS.length })}
-                </span>
-              </div>
-            </div>
+            <b>{L.roles[rid]}</b>
+            <small>{fill(L.permCount, { count: countPerms(rid) })}</small>
+          </div>
+        ))}
+      </section>
+      <section className="okr-h-list rbac-panel rbac-detail" data-testid="rbac-role-detail">
+        <div className="rbac-detail-head">
+          <div>
+            <h3>{L.roles[selectedRole]}</h3>
+            {L.roleDescs[selectedRole] ? <p>{L.roleDescs[selectedRole]}</p> : null}
+          </div>
+          <div className="rbac-detail-count">
+            <span>{L.grantedPerms}</span>
+            <b>
+              {countPerms(selectedRole)}
+              <small>{permOf}</small>
+            </b>
           </div>
         </div>
-
-        <div style={{ ...cardStyle }}>
-          {PERM_CATEGORIES.map((cat) => (
-            <div key={cat.catKey}>
-              <div style={catHeaderStyle}>{L.permCategories[cat.catKey]}</div>
-              {cat.ids.map((pid) => {
-                const checked = getMatrix(selectedRole, pid);
-                return (
-                  <div
-                    key={pid}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 12,
-                      padding: '10px 16px',
-                      borderBottom: `1px solid ${DP.borderT}`,
-                    }}
-                  >
-                    <div
-                      style={{ width: 20, display: 'flex', justifyContent: 'center' }}
-                    >
-                      <ReadMark on={checked} color={DP.accent} />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 12, fontWeight: 500, color: DP.textP }}>
-                        {L.perms[pid]}
-                      </div>
-                      <div style={{ fontSize: 11, color: DP.textS }}>
-                        {L.permDescs[pid]}
-                      </div>
-                    </div>
-                    <span
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 700,
-                        padding: '2px 8px',
-                        borderRadius: 99,
-                        background: checked ? DP.accentBg : DP.inset,
-                        color: checked ? DP.accentTc : DP.textS,
-                        border: `1px solid ${checked ? DP.accentBd : DP.borderT}`,
-                      }}
-                    >
-                      {checked ? L.allowed : L.blocked}
-                    </span>
+        {PERM_CATEGORIES.map((cat) => (
+          <div key={cat.catKey}>
+            <div className="rbac-group">{L.permCategories[cat.catKey]}</div>
+            {cat.ids.map((pid) => {
+              const checked = getMatrix(selectedRole, pid);
+              const locked = LOCKED_PERMS.has(pid);
+              return (
+                <div key={pid} className="rbac-perm" data-testid={`rbac-role-perm-${pid}`}>
+                  <span className="rbac-perm-mark">
+                    <ReadMark on={checked} />
+                  </span>
+                  <div className="rbac-perm-text">
+                    <div className="rbac-cell-name">{L.perms[pid]}</div>
+                    {L.permDescs[pid] ? <div className="rbac-cell-desc">{L.permDescs[pid]}</div> : null}
+                    {locked && L.lockedReasons?.[pid] ? <div className="rbac-cell-lock">{L.lockedReasons[pid]}</div> : null}
                   </div>
-                );
-              })}
-            </div>
-          ))}
-        </div>
-      </div>
+                  {/* 「차단」과 「잠금」을 가른다 — 차단은 어드민이 되돌릴 수 있고 잠금은 못 한다(기획 RolesTab) */}
+                  {locked ? (
+                    <StatusBadge tone="warning" data-testid={`rbac-locked-${pid}`}>
+                      {L.locked}
+                    </StatusBadge>
+                  ) : (
+                    <span className={`rbac-state ${checked ? 'is-on' : ''}`.trim()}>{checked ? L.allowed : L.blocked}</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </section>
     </div>
   );
 
-  // ── 정보 공개 범위 탭 ─────────────────────────────────────────────
+  const principles = PRINCIPLE_NUMBERS.filter((n) => L.visibility[`principle${n}Title`]);
   const visibilityContent = (
-    <div>
-      <div style={{ marginBottom: 14 }}>
-        <div
-          className="admin-section-label"
-          style={{ fontSize: 14, fontWeight: 700, color: DP.textP, marginBottom: 3 }}
-        >
-          {L.visibility.title}
-        </div>
-        <div style={{ fontSize: 12, color: DP.textS }}>
-          {L.visibility.description}
-        </div>
-      </div>
-
-      <div style={{ ...cardStyle, marginBottom: 14 }}>
-        <RosterTable>
-          <RosterTable.Head>
-            <RosterTable.HeadCell style={{ minWidth: 200 }}>{L.visibility.infoItem}</RosterTable.HeadCell>
-            {ROLES.map((rid) => (
-              <RosterTable.HeadCell key={rid} align="center" style={{ minWidth: 100 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: DP.textP }}>
-                  {L.roles[rid]}
+    <RbacPanel title={L.visibility.title} testId="rbac-visibility">
+      {L.visibility.description ? <p className="rbac-note">{L.visibility.description}</p> : null}
+      <RosterTable minWidth={720} tableClassName="ol-table rbac-table">
+        <RosterTable.Head>
+          <RosterTable.HeadCell style={{ minWidth: 240 }}>{L.visibility.infoItem}</RosterTable.HeadCell>
+          {ROLES.map((rid) => (
+            <RosterTable.HeadCell key={rid} align="center" width={160}>
+              <span className="rbac-col-role">
+                {L.roles[rid]}
+                {L.roleDescs[rid] ? <small>{L.roleDescs[rid]}</small> : null}
+              </span>
+            </RosterTable.HeadCell>
+          ))}
+        </RosterTable.Head>
+        <RosterTable.Body>
+          {VIS_ITEMS.map((item) => (
+            <RosterTable.Row key={item.id} data-testid={`rbac-vis-row-${item.id}`}>
+              <RosterTable.Cell>
+                <div className="rbac-cell-name">
+                  {L.visItems[item.id]}
+                  {item.sensitive ? <StatusBadge tone="danger">{L.visibility.sensitive}</StatusBadge> : null}
                 </div>
-                <div style={{ fontSize: 10, color: DP.textS, marginTop: 2 }}>
-                  {L.roleDescs[rid]}
-                </div>
-              </RosterTable.HeadCell>
-            ))}
-          </RosterTable.Head>
-          <RosterTable.Body>
-            {VIS_ITEMS.map((item) => (
-              <RosterTable.Row key={item.id}>
-                <RosterTable.Cell>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                    <span style={{ fontSize: 12, fontWeight: 500, color: DP.textP }}>
-                      {L.visItems[item.id]}
-                    </span>
-                    {item.sensitive && (
-                      <span
-                        style={{
-                          fontSize: 9,
-                          fontWeight: 700,
-                          padding: '1px 6px',
-                          borderRadius: 99,
-                          background: 'var(--utility-error-50, #fef3f2)',
-                          border: '1px solid #fecdca',
-                          color: 'var(--text-error-primary, #d92d20)',
-                        }}
-                      >
-                        {L.visibility.sensitive}
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ fontSize: 11, color: DP.textS, marginTop: 2 }}>
-                    {L.visDescs[item.id]}
-                  </div>
-                </RosterTable.Cell>
-                {ROLES.map((rid) => {
-                  const on = visibility[rid]?.[item.id] ?? false;
-                  // 'fixed' — 어드민이 고르는 값이 아닌 칸. 소비 측이 정해 넘긴다(pivit-work PW-2575).
-                  // 누를 것 없이 «고정» 딱지와 그 아래 한 줄, 마우스를 올리면 설명 한 문장.
-                  if (on === 'fixed') return (
-                    <RosterTable.Cell key={rid} align="center" title={L.visibility.fixedHints?.[item.id] || undefined}>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--spacing-xs)' }}>
-                        <span
-                          style={{
-                            display: 'inline-block',
-                            fontSize: 10,
-                            fontWeight: 700,
-                            padding: 'var(--spacing-xxs) var(--spacing-md)',
-                            borderRadius: 99,
-                            background: DP.inset,
-                            color: DP.textS,
-                            border: `1px solid ${DP.borderT}`,
-                          }}
-                        >
-                          {L.visibility.fixed}
-                        </span>
-                        {L.visibility.fixedCaption && (
-                          <span style={{ fontSize: 10, color: DP.textS }}>{L.visibility.fixedCaption}</span>
-                        )}
-                      </div>
-                    </RosterTable.Cell>
-                  );
+                {L.visDescs[item.id] ? <div className="rbac-cell-desc">{L.visDescs[item.id]}</div> : null}
+              </RosterTable.Cell>
+              {ROLES.map((rid) => {
+                const on = visibility[rid]?.[item.id] ?? false;
+                if (on === 'fixed') {
                   return (
-                    <RosterTable.Cell key={rid} align="center">
-                      <span
-                        style={{
-                          display: 'inline-block',
-                          fontSize: 10,
-                          fontWeight: 700,
-                          padding: '3px 10px',
-                          borderRadius: 99,
-                          background: on ? DP.accentBg : DP.inset,
-                          color: on ? DP.accentTc : DP.textS,
-                          border: `1px solid ${on ? DP.accentBd : DP.borderT}`,
-                        }}
-                      >
-                        {on ? L.visibility.public : L.visibility.private}
+                    <RosterTable.Cell key={rid} align="center" title={L.visibility.fixedHints?.[item.id] || undefined}>
+                      <span className="rbac-fixed">
+                        <StatusBadge tone="neutral">
+                          {L.visibility.fixed}
+                        </StatusBadge>
+                        {L.visibility.fixedCaption ? <small>{L.visibility.fixedCaption}</small> : null}
                       </span>
                     </RosterTable.Cell>
                   );
-                })}
-              </RosterTable.Row>
+                }
+                return (
+                  <RosterTable.Cell key={rid} align="center">
+                    <StatusBadge tone={on ? 'success' : 'neutral'}>{on ? L.visibility.public : L.visibility.private}</StatusBadge>
+                  </RosterTable.Cell>
+                );
+              })}
+            </RosterTable.Row>
+          ))}
+        </RosterTable.Body>
+      </RosterTable>
+      {/* 원칙 줄은 소비 측이 준 principleN 라벨 수만큼 그린다(admin-spec §4.4). 라벨이 없는 번호에서 멈춘다. */}
+      {principles.length > 0 ? (
+        <div className="rbac-rules" data-testid="rbac-principles">
+          {L.visibility.principlesTitle ? <h4>{L.visibility.principlesTitle}</h4> : null}
+          <ul>
+            {principles.map((n) => (
+              <li key={n}>
+                <b>{L.visibility[`principle${n}Title`]}</b>
+                <span>{L.visibility[`principle${n}Desc`]}</span>
+              </li>
             ))}
-          </RosterTable.Body>
-        </RosterTable>
-      </div>
-
-      <div
-        style={{
-          padding: '12px 16px',
-          background: DP.accentBg,
-          border: `1px solid ${DP.accentBd}`,
-          borderRadius: DP.radius.lg,
-        }}
-      >
-        <div
-          style={{
-            fontSize: 10,
-            fontWeight: 700,
-            color: DP.accentTc,
-            marginBottom: 8,
-          }}
-        >
-          {L.visibility.principlesTitle}
+          </ul>
         </div>
-        {/* 원칙 줄은 소비 측이 준 principleN 라벨 수만큼 그린다 (admin-spec §4.4 — 1on1 녹음 원본을
-            «당사자 전용(어드민 제외)» 줄로 갈라 다섯 줄이 됐다). 라벨이 없는 번호에서 멈춘다. */}
-        {PRINCIPLE_NUMBERS.filter((n) => L.visibility[`principle${n}Title`]).map((n) => (
-          <div key={n} style={{ display: 'flex', gap: 8, marginBottom: 5 }}>
-            <span
-              style={{
-                fontSize: 11,
-                fontWeight: 700,
-                color: DP.accentTc,
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {L.visibility[`principle${n}Title`]}
-            </span>
-            <span style={{ fontSize: 11, color: DP.accentTc, opacity: 0.82 }}>
-              {L.visibility[`principle${n}Desc`]}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
+      ) : null}
+    </RbacPanel>
   );
 
   const added = [...(extraTab ? [extraTab] : []), ...(extraTabs ?? [])];
+  // 디자이너 밑줄 탭에는 아이콘이 없다 — 이름만 둔다(PW-3121).
   const TABS = [
-    { key: 'matrix', label: L.tabs.matrix, Icon: GridIcon },
-    { key: 'roles', label: L.tabs.roles, Icon: ShieldIcon },
-    { key: 'visibility', label: L.tabs.visibility, Icon: EyeIcon },
-    ...added.map((x) => ({ key: x.key, label: x.label, Icon: x.Icon ?? ShieldIcon })),
+    { value: 'matrix', label: L.tabs.matrix },
+    { value: 'roles', label: L.tabs.roles },
+    { value: 'visibility', label: L.tabs.visibility },
+    ...added.map((x) => ({ value: x.key, label: x.label })),
   ];
   const shownExtra = added.find((x) => x.key === tab) ?? null;
-  const onExtraTab = !!shownExtra;
 
   return (
-    <div style={{ fontFamily: DP.font }}>
-      {/* 헤더 — 제목 + 읽기 전용 표시 */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          justifyContent: 'space-between',
-          gap: 12,
-          marginBottom: 16,
-        }}
-      >
-        <div>
-          <h2
-            style={{
-              margin: 0,
-              fontSize: 18,
-              fontWeight: 800,
-              color: DP.textP,
-              letterSpacing: -0.3,
-            }}
-          >
+    <div className="rbac-page">
+      <div className="rbac-head">
+        <div className="rbac-head-text">
+          <h2 className="rbac-title">
             {L.title}
             {titleHelp}
           </h2>
-          <p style={{ margin: '4px 0 0', fontSize: 13, color: DP.textS }}>
-            {L.description}
-          </p>
+          <p className="rbac-desc">{L.description}</p>
         </div>
-        {onExtraTab ? null : (
-          <span
-            style={{
-              flexShrink: 0,
-              fontSize: 11,
-              fontWeight: 700,
-              padding: '4px 10px',
-              borderRadius: 99,
-              background: DP.inset,
-              color: DP.textS,
-              border: `1px solid ${DP.borderT}`,
-            }}
-          >
+        {/* 덧붙인 위임 탭은 저장하는 탭이라 «읽기 전용»을 달지 않는다 */}
+        {shownExtra ? null : (
+          <StatusBadge tone="neutral" data-testid="rbac-read-only">
             {L.readOnly}
-          </span>
+          </StatusBadge>
         )}
       </div>
 
-      {/* 탭 바 — 공용 Tabs (PW-836) */}
       <div className="tl-tabs-row adm-tabs-row is-spaced">
-        <Tabs
-          items={TABS.map(({ key, label, Icon }) => ({
-            value: key,
-            label: (
-              <span className="adm-tab-label">
-                <Icon />
-                {label}
-              </span>
-            ),
-          }))}
-          value={tab}
-          onChange={setTab}
-        />
+        <Tabs items={TABS} value={tab} onChange={(v) => void goTab(v)} />
       </div>
 
-      {/* 역할 요약 카드 (정본 admin-stat-tile + admin-eval-bar) */}
-      {onExtraTab ? null : (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: `repeat(${ROLES.length}, 1fr)`,
-            gap: 10,
-            marginBottom: 18,
-          }}
-        >
-          {ROLES.map((rid) => {
-            const cnt = countPerms(rid);
-            const pct = Math.min(100, Math.round((cnt / ALL_PERM_IDS.length) * 100));
-            const selected = tab === 'roles' && selectedRole === rid;
-            return (
-              <div
-                key={rid}
-                data-testid={`role-summary-card-${rid}`}
-                className="admin-stat-tile"
-                onClick={() => {
-                  setTab('roles');
-                  setSelectedRole(rid);
-                }}
-                style={{
-                  padding: '14px 16px',
-                  cursor: 'pointer',
-                  boxShadow: selected
-                    ? `0 0 0 1.5px ${DP.accent}, var(--admin-card-shadow)`
-                    : undefined,
-                  transition: 'box-shadow .15s',
-                }}
-              >
-                <div className="admin-stat-label" style={{ margin: '0 0 2px' }}>
-                  {L.roles[rid]}
-                </div>
-                <div style={{ fontSize: 10, color: DP.textS, marginBottom: 10 }}>
-                  {L.roleDescs[rid]}
-                </div>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'baseline',
-                    justifyContent: 'space-between',
-                    marginBottom: 8,
-                  }}
-                >
-                  <span className="admin-stat-value" style={{ fontSize: 24 }}>
-                    {cnt}
-                  </span>
-                  <span className="admin-stat-sub">
-                    {fill(L.permOf, { total: ALL_PERM_IDS.length })}
-                  </span>
-                </div>
-                <div className="admin-eval-bar" style={{ height: 6 }}>
-                  <div className="admin-eval-bar-fill" style={{ width: `${pct}%` }} />
-                </div>
+      {/* 역할 요약 — 기획서는 탭과 상관없이 탭 줄 아래에 늘 둔다(admin-app.jsx «역할 요약 카드»). 누르면 «역할별 권한»으로 */}
+      <div className="rbac-sum" data-testid="rbac-role-summary">
+        {ROLES.map((rid) => {
+          const cnt = countPerms(rid);
+          const pct = Math.min(100, Math.round((cnt / ALL_PERM_IDS.length) * 100));
+          const selected = tab === 'roles' && selectedRole === rid;
+          return (
+            <section
+              key={rid}
+              role="button"
+              tabIndex={0}
+              aria-pressed={selected}
+              data-testid={`role-summary-card-${rid}`}
+              className={`okr-h-list rbac-sum-card ${selected ? 'is-on' : ''}`.trim()}
+              onClick={async () => {
+                if (await goTab('roles')) setSelectedRole(rid);
+              }}
+              onKeyDown={async (e) => {
+                if (!isEnterKey(e) && e.key !== ' ') return;
+                e.preventDefault();
+                if (await goTab('roles')) setSelectedRole(rid);
+              }}
+            >
+              <div className="rbac-sum-name">{L.roles[rid]}</div>
+              {L.roleDescs[rid] ? <div className="rbac-sum-sub" title={L.roleDescs[rid]}>{L.roleDescs[rid]}</div> : null}
+              <div className="rbac-sum-value">
+                {cnt}
+                <small>{permOf}</small>
               </div>
-            );
-          })}
-        </div>
-      )}
+              <div className="rbac-sum-bar" aria-hidden>
+                <span style={{ width: `${pct}%` }} />
+              </div>
+            </section>
+          );
+        })}
+      </div>
 
-      {/* 콘텐츠 */}
       {tab === 'matrix' && matrixContent}
       {tab === 'roles' && rolesContent}
       {tab === 'visibility' && visibilityContent}

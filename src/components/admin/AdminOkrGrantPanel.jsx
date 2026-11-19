@@ -6,30 +6,23 @@ import SearchSelect from '../shared/SearchSelect.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Switch from '../shared/Switch.jsx';
 import { SkeletonList } from '../shared/Skeleton.jsx';
+import { RbacPanel } from './AdminRbacCanvas.jsx';
 
 /**
- * AdminOkrGrantPanel — 권한 관리 «OKR 작성 권한» 탭 본문 (pivit-work PW-1501 · 기획 okr-policy §2A.4).
+ * AdminOkrGrantPanel — 권한 기준정보 «OKR 작성 권한» 탭 본문 (pivit-work PW-1501 · 기획 okr-policy §2A.4).
  *
  * 순수 표현 컴포넌트다. 목록·켬/끔·만료일·저장 중 여부는 전부 소비 측이 들고 props 로 넘긴다 —
  * 서버 판정(누가 후보인가·누가 조직장인가)을 여기서 다시 하지 않는다.
  *
- * 디자이너 원본이 없는 화면이라 같은 화면(AdminRbacCanvas «역할별 권한» 탭)의 카드·머리·줄 모양을
- * 그대로 따른다 — 흰 카드(그림자·16 둥근 모서리) · 카드 머리(15/800 제목 + 12 회색 설명) · 줄 사이
- * 회색 선. 켬/끔·딱지·검색 칸·날짜 칸·버튼은 공용 부품이고, 딱지·날짜 칸 생김새는 같은 어드민 화면의
- * 것을 쓴다(딱지 `admin-pill` — 팀 관리 상태 딱지 · 날짜 칸 `admin-emp-input` — 직원 관리 입력 칸). (design-review)
+ * 생김새는 pivit-work PW-3121 에서 디자이너 화면 값으로 다시 칠했다 — 흰 판(RbacPanel) · 사람 줄 · 안내 줄 · 빈/실패 안내는
+ * admin.css «권한 기준정보 (pivit-work PW-3121)» 절. «스쿼드 조직 권한» 탭도 같은 조각을 쓴다(두 탭이 한 화면에서 같은 모양).
  */
 
-const DP = {
-  surface: 'var(--bg-quaternary, #ffffff)',
-  inset: 'var(--bg-secondary, #f9fafb)',
-  borderT: 'var(--colors-border-borderSecondary, #e6e8ea)',
-  textP: 'var(--text-primary, #596069)',
-  textS: 'var(--text-secondary, #687079)',
-  shadow: 'var(--admin-card-shadow, 0 1px 2px 0 var(--colors-effects-shadows-shadowSm01), 0 1px 3px 0 var(--colors-effects-shadows-shadowSm02))',
-  radius: { xl: 16 },
-};
+/** 이 줄 수를 넘으면 판 안에서 넘긴다(약 8줄 · admin.css .rbac-list.is-long) */
+export const LONG_LIST_ROWS = 8;
 
 const DEFAULT_LABELS = {
+  title: 'OKR 작성 권한 위임',
   description: '어드민이 특정 사람에게 전사·조직 OKR 을 쓸 수 있게 넘겨줍니다.',
   save: '저장',
   saving: '저장 중…',
@@ -40,6 +33,8 @@ const DEFAULT_LABELS = {
   headDefault: '조직장 (기본)',
   expiresPlaceholder: '만료일 (선택)',
   toggle: '{{name}} 위임',
+  count: '{{count}}명',
+  countDelegated: '{{count}}명 · 위임 {{delegated}}명',
   company: {
     title: '전사 OKR 작성 권한',
     description: '조직장이나 대표에게 전사 OKR·전략 캔버스를 쓸 수 있게 합니다.',
@@ -76,46 +71,45 @@ function fill(str, vars) {
   return String(str ?? '').replace(/\{\{(\w+)\}\}/g, (_, k) => (vars[k] ?? ''));
 }
 
-const cardStyle = {
-  background: DP.surface,
-  borderRadius: DP.radius.xl,
-  boxShadow: DP.shadow,
-  overflow: 'hidden',
-  display: 'flex',
-  flexDirection: 'column',
-};
+/** 판 안 설명 · 발 안내 — 바탕 없는 흐린 안내 줄(공용 틀 NoticeLines muted 와 같은 값) */
+export function CardNote({ children }) {
+  return children ? <p className="rbac-note">{children}</p> : null;
+}
 
-export function CardHead({ title, description, children }) {
+/** 빈 · 찾는 사람 없음 — 판 가운데 옅은 글 */
+export function CardEmpty({ children, testId }) {
   return (
-    <div style={{ padding: '14px 18px', borderBottom: `1px solid ${DP.borderT}` }}>
-      <div style={{ fontSize: 15, fontWeight: 800, color: DP.textP, marginBottom: 3 }}>{title}</div>
-      <div style={{ fontSize: 12, color: DP.textS }}>{description}</div>
-      {children ? <div style={{ marginTop: 10 }}>{children}</div> : null}
+    <p className="rbac-empty" data-testid={testId}>
+      {children}
+    </p>
+  );
+}
+
+/** 불러오지 못함 — 가운데 글 + [다시 시도] 흰 보조 버튼 */
+export function CardFailed({ message, retryLabel, onRetry, testId }) {
+  return (
+    <div className="rbac-failed" data-testid={testId}>
+      <span>{message}</span>
+      <Button variant="secondary" size="sm" onClick={onRetry}>
+        {retryLabel}
+      </Button>
     </div>
   );
 }
 
-export function CardNote({ children, testId }) {
+/** 사람 줄 목록 — 많으면 위에 인원 수를 두고 판 안 약 8줄 높이에서 넘긴다 */
+export function GrantList({ rows, countLabel, testId, children }) {
+  const long = rows.length > LONG_LIST_ROWS;
   return (
-    <div data-testid={testId} style={{ padding: '18px', fontSize: 12, color: DP.textS }}>
-      {children}
-    </div>
-  );
-}
-
-export function CardFoot({ children }) {
-  return (
-    <div
-      style={{
-        marginTop: 'auto',
-        padding: '10px 18px',
-        fontSize: 11,
-        color: DP.textS,
-        background: DP.inset,
-        borderTop: `1px solid ${DP.borderT}`,
-      }}
-    >
-      {children}
+    <div>
+      {long && countLabel ? (
+        <div className="rbac-count" data-testid={testId ? `${testId}-count` : undefined}>
+          {countLabel}
+        </div>
+      ) : null}
+      <div className={`rbac-list ${long ? 'is-long' : ''}`.trim()} data-testid={testId}>
+        {children}
+      </div>
     </div>
   );
 }
@@ -123,59 +117,26 @@ export function CardFoot({ children }) {
 /**
  * 위임 한 줄 — «스쿼드 조직 권한» 탭도 같은 줄을 쓴다(pivit-work PW-2635). 그 탭은 `testIdPrefix` 로
  * 시험 이름을 바꾸고, 만료일 칸 없이(`onExpiryChange` 없음) 리드·휴직·만든 사람 딱지를 `chips` 로 넣는다.
+ * 딱지 뜻 → 색: 위임됨·만든 사람 = 초록(success) · 조직장 (기본)·리드·휴직 = 회색(neutral).
  */
 export function GrantRow({ row, scope, L, today, onToggle, onExpiryChange, testIdPrefix = 'okr-grant', chips = null }) {
   return (
-    <div
-      data-testid={`${testIdPrefix}-row-${scope}-${row.userId}`}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        // 좌우는 같은 카드의 머리·안내·검색 칸(18)과 맞춘다 — 아바타와 제목의 왼쪽 끝이 한 줄에 선다.
-        padding: '10px 18px',
-        borderBottom: `1px solid ${DP.borderT}`,
-      }}
-    >
+    <div className="rbac-row" data-testid={`${testIdPrefix}-row-${scope}-${row.userId}`}>
       <Avatar name={row.name} size={28} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div
-          style={{
-            fontSize: 13,
-            fontWeight: 600,
-            color: DP.textP,
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {row.name}
-        </div>
-        {row.subLabel ? (
-          <div
-            style={{
-              fontSize: 11,
-              color: DP.textS,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-            title={row.subLabel}
-          >
-            {row.subLabel}
-          </div>
-        ) : null}
+      <div className="rbac-row-text">
+        <b title={row.name}>{row.name}</b>
+        {row.subLabel ? <small title={row.subLabel}>{row.subLabel}</small> : null}
       </div>
       {row.isHead ? (
-        <StatusBadge className="admin-pill is-inactive">{L.headDefault}</StatusBadge>
+        <StatusBadge tone="neutral">{L.headDefault}</StatusBadge>
       ) : (
         <>
           {chips}
-          {row.delegated ? <StatusBadge className="admin-pill is-active">{L.delegated}</StatusBadge> : null}
+          {row.delegated ? <StatusBadge tone="success">{L.delegated}</StatusBadge> : null}
           {row.on && onExpiryChange ? (
             <DateInput
               className="admin-emp-input is-sm"
-              // 안내 글이 칸보다 길면 잘린다(영어 «Expires (optional)») — 글 길이만큼 넓힌다.
+              // 안내 글이 칸보다 길면 잘린다 — 글 길이만큼 넓힌다.
               size={Math.max(13, String(L.expiresPlaceholder).length + 1)}
               value={row.expiresOn ?? ''}
               min={today}
@@ -219,30 +180,21 @@ export default function AdminOkrGrantPanel({
   today,
 }) {
   const L = mergeLabels(DEFAULT_LABELS, labels);
-
-  if (status === 'failed') {
-    return (
-      <div style={cardStyle} data-testid="okr-grant-load-failed">
-        <div style={{ padding: 24, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ flex: 1, fontSize: 13, color: DP.textP }}>{L.loadFailed}</div>
-          <Button variant="secondary" size="sm" onClick={onRetry}>
-            {L.retry}
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
   const loading = status === 'loading';
+  const failed = status === 'failed';
   const rowProps = { L, today, onToggle, onExpiryChange };
+  const skeleton = <SkeletonList count={3} height={40} />;
+  const countOf = (rows) => fill(L.countDelegated, { count: rows.length, delegated: rows.filter((r) => r.delegated).length });
 
   return (
-    <div data-testid="okr-grant-panel">
-      {/* 버튼을 안 그리는 동안에도 sm 버튼 높이(32)를 잡아 두어, 다 받은 뒤 카드가 밀려 내려가지 않게 한다. */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, minHeight: 32 }}>
-        <div style={{ flex: 1, fontSize: 13, color: DP.textS }}>{L.description}</div>
-        {/* 목록을 받기 전에는 저장할 것이 없다 — 버튼도 그리지 않는다(§2F.6 fail-closed). */}
-        {loading ? null : (
+    <div className="rbac-grant" data-testid="okr-grant-panel">
+      <div className="rbac-grant-head">
+        <div className="rbac-grant-head-text">
+          <h2>{L.title}</h2>
+          <p>{L.description}</p>
+        </div>
+        {/* 목록을 받기 전·못 받았을 때는 저장할 것이 없다 — 버튼도 그리지 않는다(§2F.6 fail-closed). */}
+        {loading || failed ? null : (
           <>
             <Button variant="secondary" size="sm" disabled={!dirty || saving} onClick={onReset}>
               {L.reset}
@@ -262,17 +214,15 @@ export default function AdminOkrGrantPanel({
         )}
       </div>
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-          gap: 14,
-          alignItems: 'start',
-        }}
-      >
-        <div style={cardStyle} data-testid="okr-grant-company">
-          {/* 거르기는 소비 측이 한다 — 여기는 칸만 그리고, 받은 줄을 그대로 보여 준다. 후보가 아예 없으면 칸도 없다. */}
-          <CardHead title={L.company.title} description={L.company.description}>
+      {failed ? (
+        <RbacPanel>
+          <CardFailed message={L.loadFailed} retryLabel={L.retry} onRetry={onRetry} testId="okr-grant-load-failed" />
+        </RbacPanel>
+      ) : (
+        <div className="rbac-grant-cols">
+          <RbacPanel title={L.company.title} testId="okr-grant-company">
+            <CardNote>{L.company.description}</CardNote>
+            {/* 거르기는 소비 측이 한다 — 여기는 칸만 그리고, 받은 줄을 그대로 보여 준다. 후보가 아예 없으면 칸도 없다. */}
             {loading || (companyRows.length === 0 && !companyQuery) ? null : (
               <SearchInput
                 value={companyQuery}
@@ -281,25 +231,24 @@ export default function AdminOkrGrantPanel({
                 data-testid="okr-grant-company-search"
               />
             )}
-          </CardHead>
-          {loading ? (
-            <div style={{ padding: 18 }}>
-              <SkeletonList count={3} height={40} />
-            </div>
-          ) : companyRows.length === 0 ? (
-            <CardNote testId={companyQuery ? 'okr-grant-company-no-match' : 'okr-grant-company-empty'}>
-              {companyQuery ? L.company.noMatch : L.company.empty}
-            </CardNote>
-          ) : (
-            companyRows.map((row) => (
-              <GrantRow key={row.userId} row={row} scope="company" {...rowProps} />
-            ))
-          )}
-          <CardFoot>{L.company.footer}</CardFoot>
-        </div>
+            {loading ? (
+              skeleton
+            ) : companyRows.length === 0 ? (
+              <CardEmpty testId={companyQuery ? 'okr-grant-company-no-match' : 'okr-grant-company-empty'}>
+                {companyQuery ? L.company.noMatch : L.company.empty}
+              </CardEmpty>
+            ) : (
+              <GrantList rows={companyRows} testId="okr-grant-company-list" countLabel={countOf(companyRows)}>
+                {companyRows.map((row) => (
+                  <GrantRow key={row.userId} row={row} scope="company" {...rowProps} />
+                ))}
+              </GrantList>
+            )}
+            <CardNote>{L.company.footer}</CardNote>
+          </RbacPanel>
 
-        <div style={cardStyle} data-testid="okr-grant-unit">
-          <CardHead title={L.unit.title} description={L.unit.description}>
+          <RbacPanel title={L.unit.title} testId="okr-grant-unit">
+            <CardNote>{L.unit.description}</CardNote>
             {loading ? null : (
               <SearchSelect
                 value={selectedUnitId ?? ''}
@@ -312,21 +261,19 @@ export default function AdminOkrGrantPanel({
                 data-testid="okr-grant-unit-select"
               />
             )}
-          </CardHead>
-          {loading ? (
-            <div style={{ padding: 18 }}>
-              <SkeletonList count={3} height={40} />
-            </div>
-          ) : selectedUnitId ? (
-            <>
-              {unitRows.length === 0 ? (
-                <CardNote testId="okr-grant-unit-empty">{L.unit.empty}</CardNote>
-              ) : (
-                unitRows.map((row) => (
-                  <GrantRow key={row.userId} row={row} scope="unit" {...rowProps} />
-                ))
-              )}
-              <div style={{ padding: '12px 18px' }}>
+            {loading ? (
+              skeleton
+            ) : selectedUnitId ? (
+              <>
+                {unitRows.length === 0 ? (
+                  <CardEmpty testId="okr-grant-unit-empty">{L.unit.empty}</CardEmpty>
+                ) : (
+                  <GrantList rows={unitRows} testId="okr-grant-unit-list" countLabel={countOf(unitRows)}>
+                    {unitRows.map((row) => (
+                      <GrantRow key={row.userId} row={row} scope="unit" {...rowProps} />
+                    ))}
+                  </GrantList>
+                )}
                 <SearchSelect
                   value=""
                   options={outsideOptions}
@@ -337,12 +284,12 @@ export default function AdminOkrGrantPanel({
                   aria-label={L.unit.outside}
                   data-testid="okr-grant-outside"
                 />
-              </div>
-            </>
-          ) : null}
-          <CardFoot>{L.unit.footer}</CardFoot>
+              </>
+            ) : null}
+            <CardNote>{L.unit.footer}</CardNote>
+          </RbacPanel>
         </div>
-      </div>
+      )}
     </div>
   );
 }
