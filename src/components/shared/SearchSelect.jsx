@@ -27,7 +27,8 @@ const WORDS = {
  *   <SearchSelect value={v} onChange={setV} options={[{ value, label }]} />
  *
  * Props
- *  - options: [{ value, label, subLabel?, depth?, pathLabel?, group?, disabled?, keep? }]
+ *  - options: [{ value, label, subLabel?, depth?, pathLabel?, searchText?, group?, disabled?, keep? }]
+ *      searchText — 보이지 않고 찾기에만 쓰는 글(searchOptions.js).
  *      subLabel — 이름 옆에 옅게 붙는 보조 글(타임라인 드롭다운에서 왔다).
  *      depth — 계층 들여쓰기(한 단계 12px). 검색 중에는 들여쓰지 않고 `pathLabel`(있으면)을 보인다.
  *      group — 고를 수 없는 묶음 머리. 검색 중엔 아래 남은 것이 있을 때만 남는다.

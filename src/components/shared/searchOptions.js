@@ -2,6 +2,8 @@
  * 펼침 목록 선택지를 검색어로 거른다 (PW-1879). `SearchSelect` 와 직원 관리 위쪽 필터가 함께 쓴다.
  *
  * - 이름(`label`)이나 경로(`pathLabel` — 동명 조직을 가르는 「본부 › 팀」)에 검색어가 들어 있으면 남긴다.
+ *   `searchText` 는 화면에 안 보이고 찾기에만 쓰는 글이다 — 소속을 `subLabel` 로 이미 보이는 사람 후보가
+ *   «이름 · 소속»으로 찾히게 하되, 검색 중 `pathLabel` 로 소속이 한 번 더 붙지 않게(pivit-work PW-3121).
  *   대소문자는 가리지 않는다.
  * - 묶음 머리(`group: true` — 고를 수 없는 줄)는 그 아래 남은 선택지가 하나라도 있을 때만 남긴다.
  *   머리만 덩그러니 남으면 「결과 없음」인데도 목록이 있는 것처럼 보인다.
@@ -12,7 +14,7 @@ export function filterSearchOptions(options, query) {
   const needle = String(query ?? '').trim().toLowerCase();
   if (!needle) return options;
   const hit = (o) =>
-    [o.label, o.pathLabel].some((v) => v != null && String(v).toLowerCase().includes(needle));
+    [o.label, o.pathLabel, o.searchText].some((v) => v != null && String(v).toLowerCase().includes(needle));
   const out = [];
   let header = null;
   for (const o of options) {
