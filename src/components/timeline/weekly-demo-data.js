@@ -93,6 +93,8 @@ export const DEMO_WEEKLY_REPORT = {
     '커트 As-of DB 구조 검토 미완 — 다음 주 공유 예정',
     'SH PPT 슬라이드 공유 대기 중',
   ],
+  // 같은 주 뒤 날짜에 풀렸다고 적힌 블로커 — ✓·흐린 글자·취소선 (pivit-work PW-3029)
+  resolvedBlockers: ['결제 PG 계약서 회신 대기'],
   nextFocus: [
     '회의록 화면 UI 기획 및 구현 착수',
     'Weekly Digest 화면 완성',

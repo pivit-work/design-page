@@ -60,6 +60,8 @@ export default function TimelineWeeklyView({
   showInfoBanner = true,
   // «OKR 달성도 변화» 절 제목 — 회사가 정한 목표 체계 이름이 들어가게 소비처가 i18n 문구를 넘긴다 (PW-2587). 안 넘기면 시안 그대로.
   okrChangesLabel = 'OKR 달성도 변화',
+  // «블로커» 상자에 올릴 것이 없을 때 상자 안 한 줄 (pivit-work PW-3029 · timeline 정책서 §17.3). 소비처가 i18n 문구를 넘긴다.
+  blockersEmptyLabel = '이번 주 막힌 일이 없습니다.',
 }) {
   const cardInnerRef = useRef(null);
   const prevReportIdRef = useRef(null);
@@ -326,11 +328,23 @@ export default function TimelineWeeklyView({
             <div className="tl-weekly-box">
               <div className="tl-weekly-box-title">
                 블로커
-                <span className="tl-weekly-blocker-count">{(report.blockers ?? []).length}개 미해결</span>
+                {/* 배지는 빈 상태일 때만 숨긴다 — 모두 풀린 주는 «0개 미해결»(기획 시안·정책서 §17.3) */}
+                {(report.blockers ?? []).length + (report.resolvedBlockers ?? []).length > 0 && (
+                  <span className="tl-weekly-blocker-count">{(report.blockers ?? []).length}개 미해결</span>
+                )}
               </div>
-              <ul className="tl-weekly-note-list">
-                {(report.blockers ?? []).map((b, i) => (<li key={i}>{b}</li>))}
-              </ul>
+              {/* 미해결(blockers)은 디자이너 목록 그대로, 같은 주에 풀린 것(resolvedBlockers)은 ✓·흐린 글자·취소선,
+                  둘 다 없으면 빈 상태 한 줄 (pivit-work PW-3029 · timeline 정책서 §17.3) */}
+              {(report.blockers ?? []).length + (report.resolvedBlockers ?? []).length === 0 ? (
+                <p className="tl-weekly-note-empty">{blockersEmptyLabel}</p>
+              ) : (
+                <ul className="tl-weekly-note-list">
+                  {(report.blockers ?? []).map((b, i) => (<li key={`u${i}`}>{b}</li>))}
+                  {(report.resolvedBlockers ?? []).map((b, i) => (
+                    <li key={`r${i}`} className="tl-weekly-note-resolved">{b}</li>
+                  ))}
+                </ul>
+              )}
             </div>
           </div>
         </section>

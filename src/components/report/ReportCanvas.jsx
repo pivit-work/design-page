@@ -76,6 +76,7 @@ export default function ReportCanvas({
   closeLabel,
   // 주간 리포트 «OKR 달성도 변화» 절 제목 — 목표 체계 이름(PW-2587). 안 넘기면 시안 그대로.
   okrChangesLabel,
+  blockersEmptyLabel,
   // 생성 중 — TimelineWeeklyView 의 로딩 비디오를 띄울지 여부.
   // 생성 버튼 클릭 직후 selectedReport 가 세팅되고 isGenerating=true 면
   // weeklyReport 가 도착할 때까지 로딩이 보이고, 도착하면 자연스럽게 리포트로 전환.
@@ -137,6 +138,7 @@ export default function ReportCanvas({
           generatingLabel={generatingLabel}
           closeLabel={closeLabel}
           okrChangesLabel={okrChangesLabel}
+          blockersEmptyLabel={blockersEmptyLabel}
           ariaLabel={selectedReport.dateRange ?? selectedReport.periodLabel}
           periodReport={selectedReport.periodReport}
           onClose={onCloseReport}
