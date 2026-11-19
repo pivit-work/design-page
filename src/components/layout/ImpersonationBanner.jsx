@@ -26,6 +26,8 @@ import Button from '../shared/Button.jsx';
  * 안 넘기면 종전 마크업 그대로다.
  *   tone          'danger' 면 빨강 띠(결제 문제로 막힘). 없으면 종전 보라→브랜드색
  *   detail        문구 아래 둘째 줄(굵지 않은 글). 있으면 띠가 두 줄로 늘어난다
+ *   aside         돌아가기 버튼 바로 왼쪽에 붙는 짧은 글(굵지 않은 글 · 줄어들지 않음). 대신 로그인 띠의
+ *                 «모든 작업 기록» 줄 — 기획서 전역 배너 자리(pivit-work PW-3133)
  *   actions       `[{ key, label, onClick, testId }]` — 돌아가기 버튼 하나 대신 넘긴 순서대로 같은 모양의 버튼들.
  *                 빈 배열이면 버튼 없이 글만
  */
@@ -37,6 +39,7 @@ export default function ImpersonationBanner({
   icon,
   tone,
   detail,
+  aside,
   actions,
   ref,
   ...rest
@@ -64,6 +67,7 @@ export default function ImpersonationBanner({
       ) : (
         <span className="pw-impersonation-banner__text">{text}</span>
       )}
+      {aside && <span className="pw-impersonation-banner__aside">{aside}</span>}
       {actions ? (
         actions.length > 0 && (
           <span className="pw-impersonation-banner__actions">
