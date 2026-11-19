@@ -5,7 +5,7 @@ import Button from '../shared/Button.jsx';
 import AiMark from '../shared/AiMark.jsx';
 import MemberAiButton from '../oneonone/MemberAiButton.jsx';
 import Toast from '../shared/Toast.jsx';
-import { isNotifiedFailure } from '../shared/notifiedFailure.js';
+import { failureText, isNotifiedFailure } from '../shared/notifiedFailure.js';
 import EvalSendChannelModal from './EvalSendChannelModal.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import TextArea from '../shared/TextArea.jsx';
@@ -1195,6 +1195,7 @@ function ReviewRow({
   onPromote,
   onSaveNextGoals,
   onPolishComment,
+  onApproveErrorClose = null,
   commentMax = 500,
 }) {
   const [comment, setComment] = useState('');
@@ -1212,7 +1213,8 @@ function ReviewRow({
   const [aisOpen, setAisOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [approveAsk, setApproveAsk] = useState(false);
-  const [approveError, setApproveError] = useState(false);
+  // 승인 창 안 실패 글 — 서버가 준 이유(없으면 고정 문구). 빈 글이면 그리지 않는다 (pivit-work PW-3024).
+  const [approveError, setApproveError] = useState('');
   const isMyReport = row.leaderId === myUserId;
   const excluded = row.excluded === true;
   // PW-1053 — 누를 수 있나는 서버가 줄마다 준 값(`canApprove`)을 쓴다. 담당 리더 id 로 따로
@@ -1290,7 +1292,7 @@ function ReviewRow({
   const leaderStep = isLeaderStep(row.status);
   const approve = async () => {
     setBusy(true);
-    setApproveError(false);
+    setApproveError('');
     try {
       // PW-1839 — 화면이 본 상태를 함께 넘긴다. 그 사이 다른 사람이 처리했으면 서버가 거절한다.
       // PW-1860 — 화면에 보인(고친) 제안을 함께 보낸다. 승인한 순간의 값으로 굳는다.
@@ -1301,7 +1303,7 @@ function ReviewRow({
         goalLines,
         { inline: approveAsk },
       );
-      if (ok === false) setApproveError(true);
+      if (ok && typeof ok === 'object') setApproveError(ok.failed);
       else if (ok !== APPROVE_NOTIFIED) setApproveAsk(false);
     } finally {
       setBusy(false);
@@ -1552,7 +1554,9 @@ function ReviewRow({
         onOverlayClick={null}
         onClose={() => {
           setApproveAsk(false);
-          setApproveError(false);
+          setApproveError('');
+          // PW-3024 — 거절을 본 창을 닫으면 앱이 목록을 다시 읽는다(다른 사람이 먼저 처리했으면 지금 상태로).
+          if (approveError) onApproveErrorClose?.(row.memberId);
         }}
         onSubmit={approve}
         testId={`evrr-approve-modal-${row.memberId}`}
@@ -1571,7 +1575,7 @@ function ReviewRow({
         />
         {approveError && (
           <p className="evrr-refine-error" role="alert" data-testid={`evrr-approve-error-${row.memberId}`}>
-            {L.approveError}
+            {approveError}
           </p>
         )}
       </ModalShell>
@@ -1717,6 +1721,10 @@ export default function EvalReportReviewCanvas({
    * `seenStatus` 는 화면이 본 그 줄의 상태다(다른 사람이 먼저 처리했으면 서버가 거절한다).
    */
   onApprove,
+  /**
+   * `(memberId)` — 승인 창이 거절을 보인 채 닫혔을 때. PW-3024 — 앱이 목록을 다시 읽어 지금 상태를 보인다.
+   */
+  onApproveErrorClose = null,
   onSend,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
@@ -1833,7 +1841,8 @@ export default function EvalReportReviewCanvas({
       if (isNotifiedFailure(e)) return APPROVE_NOTIFIED;
       // PW-1922 — 승인 창에서 실패하면 창이 닫히지 않고 창 안에 알린다. 토스트는 창 뒤 막에 깔려 흐리게 보였다.
       if (!inline) showToast(L.toastError, 'error');
-      return false;
+      // PW-3024 — 서버가 준 이유를 창 안에 쓴다(«다른 사람이 먼저 처리한 리포트입니다» 등). 앱이 `message` 에 담아 던진다.
+      return { failed: failureText(e, L.approveError) || L.approveError };
     }
   };
 
@@ -2302,6 +2311,7 @@ export default function EvalReportReviewCanvas({
                 onPromote={onPromote ? handlePromote : null}
                 onSaveNextGoals={q.canEditSections === true ? onSaveNextGoals : null}
                 onPolishComment={onPolishComment}
+                onApproveErrorClose={onApproveErrorClose}
                 commentMax={commentMax}
               />
             ))
