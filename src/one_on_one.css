@@ -4781,6 +4781,9 @@ button.ono-add-modal-input { cursor: pointer; }
 }
 .tl-group-modal.ood-shell .tl-tab.is-active { color: var(--fg-primary); }
 .tl-group-modal.ood-shell .tl-tabs-indicator { display: none; }
+/* 탭 줄 오른쪽 끝 [지난 회의] (PW-3069 · policy §10.9.2) — 대시보드 카드 보조 버튼(.ono-member-btn) 그대로.
+   카드에서는 버튼들이 줄을 나눠 갖지만(flex: 1 0 0) 여기서는 혼자라 제 폭만 쓴다. 높이 36 은 탭 줄 38 안에 든다. */
+.tl-group-modal.ood-shell .tl-tabs-row > .ono-member-btn { flex: none; }
 
 /* AI 미팅 요약 — 보라 틴트 카드 + 흰 내부 블록 */
 /* 카드 배경 — Figma Gradient/Linear/61 실측(17413:26487 렌더 픽셀 샘플):

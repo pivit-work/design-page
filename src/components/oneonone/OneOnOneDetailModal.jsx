@@ -37,6 +37,9 @@ const TIME_MENU_HEIGHT = 258;
  *    여는지는 호스트가 안다 — 공용 `RecordingPlayerRow` 에 `<audio>` 와 재생 상태를
  *    넣어 완성한 노드를 넘긴다. 안 넘기면 그 행 자체를 그리지 않고, 「녹음이 없습니다」
  *    류의 안내도 두지 않는다 — 녹음이 있다는 사실이 새지 않게(§9-B INV-P5).
+ *  - onOpenPastMeetings: 탭 줄 오른쪽 끝 [지난 회의] (PW-3069 · policy §10.9.2). 그 팀원의 지난 1on1
+ *    리스트로 가는 길이다 — 창을 닫고 어디로 갈지는 호스트가 정한다. 모양은 대시보드 카드 보조 버튼
+ *    `.ono-member-btn` 그대로(기획 «종전 카드 보조 버튼 그대로»). 안 넘기면 버튼을 그리지 않는다.
  *    🔴 접기(fold) 와 무관하게 항상 보인다 — 접는 것은 요약 «글» 이다.
  *
  * 창은 공용 창 틀(ModalShell), 네 탭은 공용 Tabs 로 그린다 (PW-836). 틀의 제목 자리에는
@@ -50,6 +53,7 @@ export const DETAIL_DEFAULT_LABELS = {
   tabActions: '액션 아이템',
   tabAnalysis: '대화 분석',
   tabFeedback: '피드백',
+  pastMeetings: '지난 회의',
   aiSummary: 'AI 미팅 요약',
   fold: '접기',
   unfold: '펼치기',
@@ -107,6 +111,7 @@ export default function OneOnOneDetailModal({
   renderAvatar,
   scheduling = false,
   recordingPlayer = null,
+  onOpenPastMeetings,
 }) {
   const L = { ...DETAIL_DEFAULT_LABELS, ...(labels || {}) };
   const [tab, setTab] = useState('summary');
@@ -173,6 +178,16 @@ export default function OneOnOneDetailModal({
       <div className="ood-shell-inner" onClick={closePopovers}>
         <div className="tl-tabs-row">
           <Tabs items={tabs} value={tab} onChange={setTab} />
+          {onOpenPastMeetings && (
+            <button
+              type="button"
+              className="ono-member-btn"
+              data-testid="ood-past-meetings"
+              onClick={() => onOpenPastMeetings()}
+            >
+              {L.pastMeetings}
+            </button>
+          )}
         </div>
 
         {tab === 'summary' && (
