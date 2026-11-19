@@ -4884,13 +4884,11 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
    흰 판 · 표 · 안내 줄은 pivit-work 공용 틀(PW-2994 frames — Panel · FrameTable · NoticeLines)과 같은 디자이너 값을 쓴다:
      흰 판 = 개인 OKR «히스토리» .okr-h-list(흰 바탕 · 모서리 16) · 머리 .okr-h-head(여백 32/28) · 제목 .okr-h-label 24/32 · 본문 .okr-h-body(0/28/28 · 사이 24)
      표 = 조직도 명단 .ol-table(머리 40 · 줄 48) · 안내 줄 = 일정 창 부제 .tl-event-modal-subtitle 14/20/500 · text-tertiary
-   캔버스가 디자인 페이지 안이라 앱 틀을 부를 수 없어, 같은 클래스를 붙이거나(.okr-h-* · .ol-table) 그 값을 이름 붙여 둔다(design-review). */
+   캔버스가 디자인 페이지 안이라 앱 틀을 부를 수 없어, 같은 클래스를 붙이거나(.okr-h-* · .ol-table) 그 값을 이름 붙여 둔다(design-review).
+   PW-3139 에서 틀이 design-page 로 와 페이지 머리(PageHead) · 흰 판(Panel) · 안내 줄(NoticeLines)은 틀로 바꿨다 — 그 몫의 규칙은 지웠다.
+   표(명단 표 — 묶음 줄 · 세 줄 칸) · 역할 요약 칸(누르는 칸 · 막대) · 역할별 권한 판 · 위임 탭 머리는 틀이 못 담아 아래 규칙 그대로. */
 
 .rbac-page { display: flex; flex-direction: column; gap: var(--spacing-2xl); }
-.rbac-head { display: flex; align-items: flex-start; gap: var(--spacing-lg); }
-.rbac-head-text { flex: 1; min-width: 0; }
-.rbac-title { margin: 0; display: flex; align-items: center; gap: var(--spacing-md); font-size: 24px; line-height: 32px; font-weight: 700; color: var(--fg-primary); }
-.rbac-desc { margin: var(--spacing-xs) 0 0; font-size: 14px; line-height: 20px; font-weight: 500; color: var(--text-tertiary); }
 .rbac-page .tl-tabs-row { margin: 0; }
 
 /* 역할 요약 — 숫자 칸(이름 → 설명 → 큰 숫자 + «/ 27개» → 막대) */
@@ -4908,12 +4906,8 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
 /* 상태 딱지 모양 — 디자이너 딱지(.bd · 12/600/18 · 안쪽 1/8 · 모서리 6). 색은 StatusBadge tone(status-badge.css 뜻→색 표)이 칠한다 */
 .rbac-badge { display: inline-flex; align-items: center; flex-shrink: 0; padding: calc(var(--spacing-xxs) / 2) var(--spacing-md); border-radius: 6px; font-size: 12px; font-weight: 600; line-height: 18px; white-space: nowrap; }
 
-/* 흰 판 — 머리 없는 판은 본문 위도 옆과 같은 28 */
+/* 역할별 권한의 두 판(역할 선택 · 권한 목록) — 머리 · 본문 없이 흰 판 모양만 빌린다 */
 .rbac-panel { min-width: 0; overflow: visible; }
-.rbac-panel > .okr-h-head { cursor: default; flex-wrap: wrap; row-gap: var(--spacing-xl); }
-.rbac-panel > .okr-h-head > .okr-h-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; margin: 0; }
-.rbac-panel > .okr-h-body.is-nohead { padding-top: calc(var(--spacing-3xl) + var(--spacing-xs)); }
-.rbac-panel > .okr-h-body > * { min-width: 0; }
 
 /* 표 칸 — 이름 + 설명 두 줄 · 역할 머리 «n개» */
 .rbac-cell-name { display: flex; align-items: center; flex-wrap: wrap; gap: var(--spacing-sm); font-size: 14px; line-height: 20px; font-weight: 500; color: var(--fg-primary); }
@@ -4970,9 +4964,8 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
 .rbac-grant-changes { font-size: 13px; line-height: 20px; color: var(--text-subtle); white-space: nowrap; }
 .rbac-grant-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--spacing-xl); align-items: stretch; }
 /* 나란한 두 판은 같은 높이 — 짧은 판 아래가 비지 않게, 발 안내 줄은 판 맨 아래로 */
-.rbac-grant-cols > .rbac-panel > .okr-h-body { flex: 1 1 auto; }
-.rbac-grant-cols > .rbac-panel > .okr-h-body > .rbac-note:last-child { margin-top: auto; }
-.rbac-note { margin: 0; font-size: 14px; line-height: 20px; font-weight: 500; color: var(--text-tertiary); word-break: keep-all; }
+.rbac-grant-cols > .okr-h-list > .okr-h-body { flex: 1 1 auto; }
+.rbac-grant-cols > .okr-h-list > .okr-h-body > .rbac-note-foot:last-child { margin-top: auto; }
 .rbac-count { font-size: 12px; line-height: 18px; color: var(--text-subtle); }
 /* 많을 때 — 약 8줄(줄 57 × 8) 높이에서 판 안 스크롤 (디자이너 조직도 명단 .ol-table-scroll 의 «많은 항목») */
 .rbac-list { display: flex; flex-direction: column; }

@@ -6,7 +6,7 @@ import { SkeletonList } from '../shared/Skeleton.jsx';
 import { UsersGlyph } from '../shared/lineIcons.jsx';
 import { LeadStarIcon } from '../orgchart/squadIcons.jsx';
 import { CardEmpty, CardFailed, CardNote, GrantList, GrantRow } from './AdminOkrGrantPanel.jsx';
-import { RbacPanel } from './AdminRbacCanvas.jsx';
+import { Panel } from '../frames/index.js';
 
 /**
  * AdminSquadGrantPanel — 권한 관리 «스쿼드 조직 권한» 탭 본문 (pivit-work PW-2635 · 기획 스쿼드 정책 §5-8-A).
@@ -127,7 +127,7 @@ function ManagerSettingRow({ row, onToggle }) {
 function ManagerCard({ card, L, retryLabel }) {
   const M = L.manager;
   return (
-    <RbacPanel title={M.title} testId="squad-grant-manager">
+    <Panel title={M.title} testId="squad-grant-manager">
       <CardNote>{M.description}</CardNote>
       {card.status === 'loading' ? (
         <SkeletonList count={2} height={40} />
@@ -145,8 +145,8 @@ function ManagerCard({ card, L, retryLabel }) {
           ))}
         </div>
       )}
-      <CardNote>{M.footer}</CardNote>
-    </RbacPanel>
+      <CardNote foot>{M.footer}</CardNote>
+    </Panel>
   );
 }
 
@@ -223,7 +223,7 @@ export default function AdminSquadGrantPanel({
       {managerCard ? <ManagerCard card={managerCard} L={L} retryLabel={L.retry} /> : null}
 
       <div className="rbac-grant-cols">
-        <RbacPanel title={L.create.title} testId="squad-grant-create">
+        <Panel title={L.create.title} testId="squad-grant-create">
           <CardNote>{L.create.description}</CardNote>
           {loading ? (
             skeleton
@@ -252,10 +252,10 @@ export default function AdminSquadGrantPanel({
               />
             </>
           )}
-          <CardNote>{L.create.footer}</CardNote>
-        </RbacPanel>
+          <CardNote foot>{L.create.footer}</CardNote>
+        </Panel>
 
-        <RbacPanel title={L.squad.title} testId="squad-grant-squad">
+        <Panel title={L.squad.title} testId="squad-grant-squad">
           <CardNote>{L.squad.description}</CardNote>
           {loading || failed || squadOptions.length === 0 ? null : (
             <SearchSelect
@@ -297,8 +297,8 @@ export default function AdminSquadGrantPanel({
               />
             </>
           )}
-          <CardNote>{L.squad.footer}</CardNote>
-        </RbacPanel>
+          <CardNote foot>{L.squad.footer}</CardNote>
+        </Panel>
       </div>
     </div>
   );

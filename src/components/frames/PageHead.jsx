@@ -16,16 +16,27 @@ import { NoticeLines } from './NoticeLines.jsx';
  * @param {object} props
  * @param {string} props.title
  * @param {import('react').ReactNode[]} [props.description] 설명 문장 — 한 줄에 한 문장
+ * @param {import('react').ReactNode} [props.titleAside] 제목 바로 옆 작은 것(도움말 단추 하나) — 제목과 사이 8 · 줄어들지 않는다
  * @param {import('react').ReactNode} [props.actions] 오른쪽 버튼 자리
  * @param {string} [props.testId]
  */
-export function PageHead({ title, description, actions, testId }) {
+export function PageHead({ title, titleAside, description, actions, testId }) {
+  const heading = (
+    <h1 className="okr-h-label" style={TITLE_STYLE} title={title}>
+      {title}
+    </h1>
+  );
   return (
     <header style={HEAD_STYLE} data-testid={testId}>
       <div style={TEXT_STYLE}>
-        <h1 className="okr-h-label" style={TITLE_STYLE} title={title}>
-          {title}
-        </h1>
+        {titleAside ? (
+          <div style={TITLE_ROW_STYLE}>
+            {heading}
+            <span style={TITLE_ASIDE_STYLE}>{titleAside}</span>
+          </div>
+        ) : (
+          heading
+        )}
         {description && <NoticeLines lines={description} tone="muted" />}
       </div>
       {actions && <div style={ACTIONS_STYLE}>{actions}</div>}
@@ -50,6 +61,13 @@ const TEXT_STYLE = {
 };
 /** `.okr-h-label` 은 원래 머리 줄 안 글이라 바깥 여백이 없다 — h1 기본 여백을 지운다. */
 const TITLE_STYLE = { ...FRAME_ONE_LINE, margin: 0 };
+/**
+ * 제목 + 옆 도움말 — 사이 8(`--spacing-md`) · 세로 가운데. 권한 기준정보(PW-3121) 제목 옆 도움말 단추 자리와 같은 값.
+ * 제목이 길면 제목만 «…»로 줄고 도움말은 제목 바로 옆에 남는다.
+ */
+const TITLE_ROW_STYLE = { display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)', minWidth: 0 };
+/** 옆 것의 높이를 그대로 — 글 줄 높이(32)로 늘지 않게 flex 로 감싼다. */
+const TITLE_ASIDE_STYLE = { display: 'flex', flex: 'none' };
 const ACTIONS_STYLE = {
   ...FRAME_NO_SHRINK,
   display: 'flex',

@@ -3,6 +3,7 @@ import Tabs from '../shared/Tabs.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import { isEnterKey } from '../shared/enterKey.js';
+import { NoticeLines, PageHead, Panel } from '../frames/index.js';
 
 /**
  * AdminRbacCanvas — 권한 기준정보(RBAC) 읽기 전용 뷰어.
@@ -118,22 +119,6 @@ function ReadMark({ on }) {
   return <span className="rbac-mark is-off" data-mark="off">–</span>;
 }
 
-/** 흰 판 — 공용 틀 Panel 과 같은 디자이너 클래스(.okr-h-list · .okr-h-head · .okr-h-label · .okr-h-body). */
-export function RbacPanel({ title, actions, testId, className = '', bodyClassName = '', children }) {
-  const hasHead = !!title || !!actions;
-  return (
-    <section className={`okr-h-list rbac-panel ${className}`.trim()} data-testid={testId}>
-      {hasHead ? (
-        <div className="okr-h-head">
-          {title ? <h3 className="okr-h-label" title={title}>{title}</h3> : <span />}
-          {actions}
-        </div>
-      ) : null}
-      <div className={`okr-h-body ${hasHead ? '' : 'is-nohead'} ${bodyClassName}`.trim()}>{children}</div>
-    </section>
-  );
-}
-
 /** 권한 이름 칸 — 이름(+ 잠금 딱지) · 설명 · 잠긴 이유 */
 function PermText({ pid, L }) {
   const locked = LOCKED_PERMS.has(pid);
@@ -179,7 +164,7 @@ export default function AdminRbacCanvas({
   const permOf = fill(L.permOf, { total: ALL_PERM_IDS.length });
 
   const matrixContent = (
-    <RbacPanel testId="rbac-matrix">
+    <Panel testId="rbac-matrix">
       <RosterTable minWidth={720} tableClassName="ol-table rbac-table">
         <RosterTable.Head>
           <RosterTable.HeadCell style={{ minWidth: 260 }}>{L.permItem}</RosterTable.HeadCell>
@@ -210,7 +195,7 @@ export default function AdminRbacCanvas({
           </RosterTable.Body>
         ))}
       </RosterTable>
-    </RbacPanel>
+    </Panel>
   );
 
   const rolesContent = (
@@ -286,8 +271,8 @@ export default function AdminRbacCanvas({
 
   const principles = PRINCIPLE_NUMBERS.filter((n) => L.visibility[`principle${n}Title`]);
   const visibilityContent = (
-    <RbacPanel title={L.visibility.title} testId="rbac-visibility">
-      {L.visibility.description ? <p className="rbac-note">{L.visibility.description}</p> : null}
+    <Panel title={L.visibility.title} testId="rbac-visibility">
+      <NoticeLines lines={[L.visibility.description]} tone="muted" />
       <RosterTable minWidth={720} tableClassName="ol-table rbac-table">
         <RosterTable.Head>
           <RosterTable.HeadCell style={{ minWidth: 240 }}>{L.visibility.infoItem}</RosterTable.HeadCell>
@@ -348,7 +333,7 @@ export default function AdminRbacCanvas({
           </ul>
         </div>
       ) : null}
-    </RbacPanel>
+    </Panel>
   );
 
   const added = [...(extraTab ? [extraTab] : []), ...(extraTabs ?? [])];
@@ -363,21 +348,19 @@ export default function AdminRbacCanvas({
 
   return (
     <div className="rbac-page">
-      <div className="rbac-head">
-        <div className="rbac-head-text">
-          <h2 className="rbac-title">
-            {L.title}
-            {titleHelp}
-          </h2>
-          <p className="rbac-desc">{L.description}</p>
-        </div>
-        {/* 덧붙인 위임 탭은 저장하는 탭이라 «읽기 전용»을 달지 않는다 */}
-        {shownExtra ? null : (
-          <StatusBadge className="rbac-badge" tone="neutral" data-testid="rbac-read-only">
-            {L.readOnly}
-          </StatusBadge>
-        )}
-      </div>
+      {/* 덧붙인 위임 탭은 저장하는 탭이라 «읽기 전용»을 달지 않는다 */}
+      <PageHead
+        title={L.title}
+        titleAside={titleHelp}
+        description={[L.description]}
+        actions={
+          shownExtra ? null : (
+            <StatusBadge className="rbac-badge" tone="neutral" data-testid="rbac-read-only">
+              {L.readOnly}
+            </StatusBadge>
+          )
+        }
+      />
 
       <div className="tl-tabs-row adm-tabs-row is-spaced">
         <Tabs items={TABS} value={tab} onChange={(v) => void goTab(v)} />

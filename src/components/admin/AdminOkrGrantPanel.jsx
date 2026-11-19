@@ -6,7 +6,7 @@ import SearchSelect from '../shared/SearchSelect.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Switch from '../shared/Switch.jsx';
 import { SkeletonList } from '../shared/Skeleton.jsx';
-import { RbacPanel } from './AdminRbacCanvas.jsx';
+import { NoticeLines, Panel } from '../frames/index.js';
 
 /**
  * AdminOkrGrantPanel — 권한 기준정보 «OKR 작성 권한» 탭 본문 (pivit-work PW-1501 · 기획 okr-policy §2A.4).
@@ -14,7 +14,7 @@ import { RbacPanel } from './AdminRbacCanvas.jsx';
  * 순수 표현 컴포넌트다. 목록·켬/끔·만료일·저장 중 여부는 전부 소비 측이 들고 props 로 넘긴다 —
  * 서버 판정(누가 후보인가·누가 조직장인가)을 여기서 다시 하지 않는다.
  *
- * 생김새는 pivit-work PW-3121 에서 디자이너 화면 값으로 다시 칠했다 — 흰 판(RbacPanel) · 사람 줄 · 안내 줄 · 빈/실패 안내는
+ * 생김새는 pivit-work PW-3121 에서 디자이너 화면 값으로 다시 칠했다 — 흰 판 · 안내 줄은 공용 틀(Panel · NoticeLines · PW-3139), 사람 줄 · 빈/실패 안내는
  * admin.css «권한 기준정보 (pivit-work PW-3121)» 절. «스쿼드 조직 권한» 탭도 같은 조각을 쓴다(두 탭이 한 화면에서 같은 모양).
  */
 
@@ -71,9 +71,14 @@ function fill(str, vars) {
   return String(str ?? '').replace(/\{\{(\w+)\}\}/g, (_, k) => (vars[k] ?? ''));
 }
 
-/** 판 안 설명 · 발 안내 — 바탕 없는 흐린 안내 줄(공용 틀 NoticeLines muted 와 같은 값) */
-export function CardNote({ children }) {
-  return children ? <p className="rbac-note">{children}</p> : null;
+/**
+ * 판 안 설명 · 발 안내 — 바탕 없는 흐린 안내 줄(공용 틀 NoticeLines muted · PW-3139).
+ * 발 안내(`foot`)는 나란한 두 판에서 판 맨 아래로 내린다 — 틀이 제 바깥 여백을 0 으로 박아 두어 감싸는 칸이 내린다.
+ */
+export function CardNote({ foot = false, children }) {
+  if (!children) return null;
+  const note = <NoticeLines lines={[children]} tone="muted" />;
+  return foot ? <div className="rbac-note-foot">{note}</div> : note;
 }
 
 /** 빈 · 찾는 사람 없음 — 판 가운데 옅은 글 */
@@ -215,12 +220,12 @@ export default function AdminOkrGrantPanel({
       </div>
 
       {failed ? (
-        <RbacPanel>
+        <Panel>
           <CardFailed message={L.loadFailed} retryLabel={L.retry} onRetry={onRetry} testId="okr-grant-load-failed" />
-        </RbacPanel>
+        </Panel>
       ) : (
         <div className="rbac-grant-cols">
-          <RbacPanel title={L.company.title} testId="okr-grant-company">
+          <Panel title={L.company.title} testId="okr-grant-company">
             <CardNote>{L.company.description}</CardNote>
             {/* 거르기는 소비 측이 한다 — 여기는 칸만 그리고, 받은 줄을 그대로 보여 준다. 후보가 아예 없으면 칸도 없다. */}
             {loading || (companyRows.length === 0 && !companyQuery) ? null : (
@@ -244,10 +249,10 @@ export default function AdminOkrGrantPanel({
                 ))}
               </GrantList>
             )}
-            <CardNote>{L.company.footer}</CardNote>
-          </RbacPanel>
+            <CardNote foot>{L.company.footer}</CardNote>
+          </Panel>
 
-          <RbacPanel title={L.unit.title} testId="okr-grant-unit">
+          <Panel title={L.unit.title} testId="okr-grant-unit">
             <CardNote>{L.unit.description}</CardNote>
             {loading ? null : (
               <SearchSelect
@@ -286,8 +291,8 @@ export default function AdminOkrGrantPanel({
                 />
               </>
             ) : null}
-            <CardNote>{L.unit.footer}</CardNote>
-          </RbacPanel>
+            <CardNote foot>{L.unit.footer}</CardNote>
+          </Panel>
         </div>
       )}
     </div>

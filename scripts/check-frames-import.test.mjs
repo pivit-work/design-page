@@ -56,6 +56,16 @@ test('페이지 머리 — 제목 · 설명 문장마다 한 줄 · 오른쪽 �
   assert.match(html, /<h1 class="okr-h-label"[^>]*title="권한 기준정보"/);
   assert.equal((html.match(/class="tl-event-modal-subtitle"/g) || []).length, 2);
   assert.match(html, /내보내기/);
+  const withAside = renderToStaticMarkup(h(frames.PageHead, { title: '권한 기준정보', titleAside: h('button', { type: 'button' }, '?') }));
+  assert.match(withAside, /<div style="display:flex;align-items:center;gap:var\(--spacing-md\);min-width:0"><h1 class="okr-h-label"/);
+});
+
+test('권한 기준정보 화면이 틀로 그려진다 — 페이지 머리 · 흰 판 · 안내 줄 (PW-3139 ③)', async () => {
+  const { default: AdminRbacCanvas } = await server.ssrLoadModule('/src/components/admin/AdminRbacCanvas.jsx');
+  const html = renderToStaticMarkup(h(AdminRbacCanvas, {}));
+  assert.match(html, /<header[^>]*><div[^>]*><h1 class="okr-h-label"/);
+  assert.match(html, /<section class="okr-h-list"/);
+  assert.doesNotMatch(html, /rbac-head|rbac-title|rbac-desc|is-nohead|rbac-note"/);
 });
 
 test('저장 줄 — 안내가 없으면 버튼만, 있으면 디자이너 발 줄 안내 클래스', () => {
