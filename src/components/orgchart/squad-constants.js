@@ -286,6 +286,34 @@ export function cumulativePct(segments) {
 }
 
 /**
+ * 막대 트랙 전체 — **늘 125 고정**, 100 은 트랙 폭 80% 자리 (pivit-work PW-3067 · 정책 v3.70 §5-3.2-A).
+ * 종전 `max(100, 합계)` 트랙은 150 · 140 · 100 이 같은 길이로 보였다(2026-11-18 정기미팅).
+ */
+export const GAUGE_SCALE = 125;
+
+/** 100 넘은 몫의 빨간 빗금 — 135° · 빨강 2px + 흰 2px (§5-3.2-A · dev 매트릭스 게이지 무늬 그대로). */
+export const OVER_HATCH = 'repeating-linear-gradient(135deg, var(--utility-error-500) 0 2px, var(--bg-primary) 2px 4px)';
+
+/**
+ * 조각을 0 ~ 125 트랙에 놓는다 — 조각마다 기준(base) 아래 몫(fill) · 위 몫(over) · 폭(w).
+ * 125 를 넘는 몫은 잘린다(막대는 트랙 끝에서 멈추고 숫자가 실제 값을 말한다).
+ * 누산을 컴포넌트 밖 순수 함수로 둔다 — 렌더 중 변수 재할당 금지(`cumulativePct` 와 같은 이유).
+ */
+export function gaugeSegs(items, base) {
+  const ends = cumulativePct((items || []).map((it) => ({ pct: it.v })));
+  return (items || []).map((it, i) => {
+    const s = Math.min(ends[i] - it.v, GAUGE_SCALE);
+    const e = Math.min(ends[i], GAUGE_SCALE);
+    return {
+      ...it,
+      fill: Math.max(0, Math.min(e, base) - s),
+      over: Math.max(0, e - Math.max(s, base)),
+      w: e - s,
+    };
+  });
+}
+
+/**
  * 캐파 대비 상태 — 100을 기준으로 남는지/딱 맞는지/넘는지 (§5-3.2).
  * 색은 디자인 토큰으로만 말한다(`ProjectCardGrid` 가 상태색을 `var(--…)` 문자열로
  * 넘기는 것과 같은 방식) — 리터럴 hex 를 박으면 이 탭만 다른 팔레트로 보인다.

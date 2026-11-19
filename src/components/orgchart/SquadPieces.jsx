@@ -22,47 +22,39 @@ import {
   assignPopoverVertical,
   capacityState,
   clampPct,
-  cumulativePct,
+  GAUGE_SCALE,
+  OVER_HATCH,
+  gaugeSegs,
   squadComposition,
 } from './squad-constants.js';
 import { PieChartIcon, UserIcon, WarningIcon } from './squadIcons.jsx';
 import AnchoredLayer from '../shared/AnchoredLayer.jsx';
 import { useOrgLabels, squadStatusText } from './orgchart-labels.jsx';
 
+const pc = (v) => (v / GAUGE_SCALE) * 100;
+
 /**
- * 캐파 게이지 — 트랙 전체 = max(100, 합계).
- * 100 지점에 눈금을 그어 초과분을 시각적으로 분리하고, 초과분은 빗금을 덧대
- * "캐파 밖" 임을 색만으로 말하지 않는다(§5-3.2).
+ * 캐파 게이지 — 트랙 전체 = 125 고정 · 100 = 트랙 80% 자리 (pivit-work PW-3067 · §5-3.2-A).
+ * 100 을 넘으면 그 자리에 빨간 눈금을 긋고, 넘은 몫은 스쿼드 색 없이 빨간 빗금으로 칠해
+ * "캐파 밖" 임을 색만으로 말하지 않는다. 125 를 넘는 몫은 트랙 끝에서 멈추고 숫자가 실제 값을 말한다.
+ * 100 ~ 125 여유 칸의 흰 바탕은 `.sq-gauge-track` 이 쥔다.
  */
 export function CapacityBar({ segments, total, width = 132, height = 8 }) {
   const L = useOrgLabels();
-  const scale = Math.max(CAPACITY, total);
-  const pc = (v) => (v / scale) * 100;
-  // 각 세그먼트가 100을 넘긴 몫(빗금 구간)을 알려면 "끝나는 지점"이 필요하다.
-  const cumulative = cumulativePct(segments);
+  const segs = gaugeSegs(segments.map((s) => ({ ...s, v: s.pct })), CAPACITY).filter((s) => s.w > 0);
   return (
     <div className="sq-gauge" style={{ width }} data-testid="squad-capacity-bar">
       <div className="sq-gauge-track" style={{ height }}>
-        {segments.map((s, i) => {
-          const overStart = Math.max(0, Math.min(s.pct, cumulative[i] - CAPACITY)); // 이 세그먼트 중 100을 넘은 몫
-          return (
-            <Tooltip key={s.id} content={`${s.name} ${s.pct}%`}>
-            <div className="sq-gauge-seg" style={{ width: `${pc(s.pct)}%` }}>
-              <div
-                className="sq-gauge-fill"
-                style={{ width: `${s.pct ? ((s.pct - overStart) / s.pct) * 100 : 0}%`, background: s.color }}
-              />
-              <div
-                className="sq-gauge-over"
-                style={{
-                  width: `${s.pct ? (overStart / s.pct) * 100 : 0}%`,
-                  background: 'repeating-linear-gradient(135deg, var(--utility-error-500) 0 2px, var(--bg-primary) 2px 4px)',
-                }}
-              />
+        {segs.map((s) => (
+          <Tooltip key={s.id} content={`${s.name} ${s.pct}%`}>
+            <div className="sq-gauge-seg" style={{ width: `${pc(s.w)}%` }}>
+              <div className="sq-gauge-fill" style={{ width: `${(s.fill / s.w) * 100}%`, background: s.color }} />
+              {s.over > 0 && (
+                <div className="sq-gauge-over" style={{ width: `${(s.over / s.w) * 100}%`, background: OVER_HATCH }} />
+              )}
             </div>
-            </Tooltip>
-          );
-        })}
+          </Tooltip>
+        ))}
       </div>
       {total > CAPACITY && (
         <Tooltip content={L('squad.gauge.capacity100')}>
@@ -74,7 +66,7 @@ export function CapacityBar({ segments, total, width = 132, height = 8 }) {
 }
 
 /**
- * 배분 바 — 트랙 전체 = `max(100, 배분 합계)` (§5-3.4).
+ * 배분 바 — 트랙 전체 = 125 고정 · 100 = 트랙 80% 자리 (§5-3.4 · pivit-work PW-3067 §5-3.2-A).
  *
  * 캐파 게이지(`CapacityBar`)와 **같은 규칙**으로 초과분에 빗금을 치고 100 지점에 눈금을
  * 긋는다. 다른 점은 분모다 — 여기는 **이 스쿼드의 볼륨 100**, 저기는 **그 사람의 캐파
@@ -82,17 +74,13 @@ export function CapacityBar({ segments, total, width = 132, height = 8 }) {
  */
 export function ShareBar({ rows, allotted, colorOf, height = 12 }) {
   const L = useOrgLabels();
-  const scale = Math.max(SQUAD_BASE, allotted);
-  const pc = (v) => (v / scale) * 100;
-  const filled = (rows || []).filter((r) => r.share > 0);
-  // 각 세그먼트가 100을 넘긴 몫(빗금 구간)을 알려면 "끝나는 지점"이 필요하다.
-  const cumulative = cumulativePct(filled.map((r) => ({ pct: r.share })));
+  const segs = gaugeSegs((rows || []).filter((r) => r.share > 0).map((r) => ({ ...r, v: r.share })), SQUAD_BASE)
+    .filter((r) => r.w > 0);
 
   return (
     <div className="sq-share" data-testid="squad-share-bar">
       <div className="sq-share-track pj-progress-bar" style={{ height }}>
-        {filled.map((r, i) => {
-          const over = Math.max(0, Math.min(r.share, cumulative[i] - SQUAD_BASE));
+        {segs.map((r) => {
           const c = colorOf(r.userId);
           return (
             <Tooltip
@@ -112,19 +100,15 @@ export function ShareBar({ rows, allotted, colorOf, height = 12 }) {
             >
             <div
               className="sq-share-seg"
-              style={{ width: `${pc(r.share)}%` }}
+              style={{ width: `${pc(r.w)}%` }}
             >
               <div
                 className="sq-share-fill"
-                style={{ width: `${((r.share - over) / r.share) * 100}%`, background: c }}
+                style={{ width: `${(r.fill / r.w) * 100}%`, background: c }}
               />
-              <div
-                className="sq-share-over"
-                style={{
-                  width: `${(over / r.share) * 100}%`,
-                  background: 'repeating-linear-gradient(135deg, var(--utility-error-500) 0 2px, var(--bg-primary) 2px 4px)',
-                }}
-              />
+              {r.over > 0 && (
+                <div className="sq-share-over" style={{ width: `${(r.over / r.w) * 100}%`, background: OVER_HATCH }} />
+              )}
             </div>
             </Tooltip>
           );

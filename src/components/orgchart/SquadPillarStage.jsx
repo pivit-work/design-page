@@ -17,6 +17,7 @@ import { CloseGlyph, MinusGlyph, PlusGlyph } from '../shared/lineIcons.jsx';
 import { isEnterKey } from '../shared/enterKey.js';
 import { useOrgLabels } from './orgchart-labels.jsx';
 import { LeadTag, WarningIcon } from './squadIcons.jsx';
+import { GAUGE_SCALE, OVER_HATCH, gaugeSegs } from './squad-constants.js';
 import {
   PILLAR,
   PILLAR_CHIPS,
@@ -47,7 +48,7 @@ const ALERT_D = 'M12.8126 1.66837C12.2953 1.43834 11.7047 1.43834 11.1874 1.6683
 /** 무대 색 — 토큰만 쓴다. SVG 속성은 var() 를 풀지 못해 모두 style 로 칠한다. */
 const C = {
   ink: 'var(--text-primary)', sub: 'var(--text-tertiary)', muted: 'var(--text-quaternary)', paper: 'var(--bg-primary)',
-  line: 'var(--border-primary)', err: 'var(--text-error-primary)', errLine: 'var(--utility-error-500)', hatch: 'var(--utility-error-200)',
+  line: 'var(--border-primary)', err: 'var(--text-error-primary)', errLine: 'var(--utility-error-500)',
   brand: 'var(--utility-brand-700)', brandSoft: 'var(--bg-brand-primary)', warn: 'var(--utility-warning-600)',
   side: 'var(--utility-gray-200)', sideDark: 'var(--utility-gray-400)', groupTop: 'var(--bg-secondary)', gray: 'var(--utility-gray-500)',
 };
@@ -912,7 +913,7 @@ export default function SquadPillarStage({
             onKeyDown={onKeyDown}
           >
             <defs>
-              <pattern id={hatchId} patternUnits="userSpaceOnUse" width="4" height="4" patternTransform="rotate(45)"><rect width="2" height="4" style={{ fill: C.hatch }} /></pattern>
+              <pattern id={hatchId} patternUnits="userSpaceOnUse" width="4" height="4" patternTransform="rotate(45)"><rect width="4" height="4" style={{ fill: C.paper }} /><rect width="2" height="4" style={{ fill: C.errLine }} /></pattern>
               {[...PILLAR_FAMILIES, 'none'].map((f) => {
                 const c = PILLAR_FAMILY_COLOR[f];
                 return (
@@ -1024,13 +1025,8 @@ export default function SquadPillarStage({
 /** 사람 정보 — 마우스 올림 카드와 고정 카드가 같이 쓴다 */
 function PersonCard({ x, L, nameOf, unitName, famName, mineHint }) {
   const p = x.person;
-  const scale = Math.max(100, x.total);
-  // 앞 조각까지 쌓인 몫에서 100을 넘은 만큼이 그 조각의 빗금이다
-  const set = x.as.filter((a) => !a.unset);
-  const segs = set.map((a, i) => {
-    const end = set.slice(0, i + 1).reduce((t, v) => t + v.capa, 0);
-    return { a, ov: Math.max(0, Math.min(a.capa, end - 100)) };
-  });
+  // 캐파 게이지와 같은 규칙 — 트랙 125 고정 · 100 넘은 몫은 빨간 빗금 (pivit-work PW-3067 · §5-3.2-A)
+  const segs = gaugeSegs(x.as.filter((a) => !a.unset).map((a) => ({ a, v: a.capa })), 100).filter((s) => s.w > 0);
   const over = x.total > PILLAR_OVER;
   return (
     <div data-testid="squad-pillar-person">
@@ -1040,14 +1036,14 @@ function PersonCard({ x, L, nameOf, unitName, famName, mineHint }) {
         <>
           <div className="sq-pillar-gwrap">
             <div className="sq-pillar-gauge">
-              {segs.map(({ a, ov }) => (
-                <i key={a.squadId} className="sq-pillar-gseg" style={{ width: `${(a.capa / scale) * 100}%` }}>
-                  <i style={{ width: `${a.capa ? ((a.capa - ov) / a.capa) * 100 : 0}%`, background: a.squad.color }} />
-                  {ov > 0 && <i style={{ width: `${(ov / a.capa) * 100}%`, background: `repeating-linear-gradient(45deg,${a.squad.color},${a.squad.color} 2px,${C.hatch} 2px,${C.hatch} 4px)` }} />}
+              {segs.map(({ a, w, fill, over: ov }) => (
+                <i key={a.squadId} className="sq-pillar-gseg" style={{ width: `${(w / GAUGE_SCALE) * 100}%` }}>
+                  <i style={{ width: `${(fill / w) * 100}%`, background: a.squad.color }} />
+                  {ov > 0 && <i style={{ width: `${(ov / w) * 100}%`, background: OVER_HATCH }} />}
                 </i>
               ))}
             </div>
-            {over && <i className="sq-pillar-gmark" style={{ left: `${(100 / scale) * 100}%` }} />}
+            {over && <i className="sq-pillar-gmark" style={{ left: `${(100 / GAUGE_SCALE) * 100}%` }} />}
           </div>
           <div className={`sq-pillar-capline${over ? ' is-over' : ''}`} data-testid="squad-pillar-capline">
             {over && <WarningIcon size={14} />}
