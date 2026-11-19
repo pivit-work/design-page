@@ -814,9 +814,18 @@ function SyncLogTable({ logs, labels, onRetrySyncLog }) {
           render: (log) => {
             const ok = log.status === 'success';
             // 실패 줄은 «실패: {사유}»(admin-app.jsx 동기화 로그 · pivit-work PW-3128). 사유는 호스트가 문장으로 준다.
+            // 사유는 휴가 캘린더 제목처럼 길 수 있어 배지 폭을 묶고 꼬리를 «…»로 — 전체 문장은 말풍선으로.
+            if (!ok && log.error) {
+              const text = `${labels.syncLog.failed}: ${log.error}`;
+              return (
+                <DpStatusBadge className="intg-status is-error has-reason" title={text}>
+                  <span className="intg-status-text">{text}</span>
+                </DpStatusBadge>
+              );
+            }
             return (
               <DpStatusBadge className={`intg-status ${ok ? 'is-connected' : 'is-error'}`}>
-                {ok ? labels.syncLog.success : log.error ? `${labels.syncLog.failed}: ${log.error}` : labels.syncLog.failed}
+                {ok ? labels.syncLog.success : labels.syncLog.failed}
               </DpStatusBadge>
             );
           },

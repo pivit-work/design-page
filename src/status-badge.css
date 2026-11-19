@@ -171,6 +171,9 @@
   flex-shrink: 0;
 }
 
+/* 동기화 로그 실패 사유 배지 — 긴 사유(휴가 캘린더 제목)가 표를 넓혀 [재시도]를 밀어내지 않게 (pivit-work PW-3128) */
+.intg-status.has-reason { max-width: 320px; }
+.intg-status.has-reason > .intg-status-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .intg-status.is-connected { background: var(--colors-brand-100, #e1fef2); color: var(--colors-brand-700, #10774d); }
 
 .intg-status.is-disconnected { background: var(--dp-badge-neutral-bg); color: var(--text-secondary); } /* PW-1439 — «미연결» 은 읽어야 하는 글자 */
