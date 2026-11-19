@@ -833,6 +833,8 @@ function SyncLogTable({ logs, labels, baseUrl, onRetrySyncLog }) {
               <DpStatusBadge
                 className={`intg-status ${partial ? 'is-partial' : 'is-error'}${log.error ? ' has-reason' : ''}`}
                 title={log.error ? text : undefined}
+                // 줄인 사유의 전체 문장을 키보드로도 보게 — 초점을 받으면 말풍선이 뜬다
+                tabIndex={log.error ? 0 : undefined}
               >
                 <Icon src={partial ? ICON_ALERT : ICON_SYNC_FAILED} size={12} baseUrl={baseUrl} />
                 <span className="intg-status-text">{text}</span>
