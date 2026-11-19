@@ -8995,7 +8995,7 @@ button.evm-ai-source {
   color: var(--text-secondary);
 }
 .evs-cw-dist-seg {
-  /* 양쪽을 틈 절반씩 깎는다. 아주 좁은 조각(10px 안쪽)도 가운데 2px 는 남긴다. 막대 끝 쪽(.is-first 왼쪽·.is-last 오른쪽)은 깎지 않는다. */
+  /* 양쪽을 틈 절반씩 깎는다. 아주 좁은 조각(10px 안쪽)은 덜 깎아 2px 를 남기고, 2px 보다 좁으면 깎지 않는다. 막대 끝 쪽(.is-first 왼쪽·.is-last 오른쪽)은 깎지 않는다. */
   --evs-cw-seg-cut: min(calc(var(--evs-gd-gap) / 2), calc(50% - 1px));
   --evs-cw-seg-cut-l: var(--evs-cw-seg-cut);
   --evs-cw-seg-cut-r: var(--evs-cw-seg-cut);
