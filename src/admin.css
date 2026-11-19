@@ -4965,7 +4965,10 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
 .rbac-grant-head h2 { margin: 0; font-size: 16px; line-height: 24px; font-weight: 700; color: var(--fg-primary); }
 .rbac-grant-head p { margin: var(--spacing-xxs) 0 0; font-size: 13px; line-height: 20px; color: var(--text-subtle); }
 .rbac-grant-changes { font-size: 13px; line-height: 20px; color: var(--text-subtle); white-space: nowrap; }
-.rbac-grant-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--spacing-xl); align-items: start; }
+.rbac-grant-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--spacing-xl); align-items: stretch; }
+/* 나란한 두 판은 같은 높이 — 짧은 판 아래가 비지 않게, 발 안내 줄은 판 맨 아래로 */
+.rbac-grant-cols > .rbac-panel > .okr-h-body { flex: 1 1 auto; }
+.rbac-grant-cols > .rbac-panel > .okr-h-body > .rbac-note:last-child { margin-top: auto; }
 .rbac-note { margin: 0; font-size: 14px; line-height: 20px; font-weight: 500; color: var(--text-tertiary); word-break: keep-all; }
 .rbac-count { font-size: 12px; line-height: 18px; color: var(--text-subtle); }
 /* 많을 때 — 약 8줄(줄 57 × 8) 높이에서 판 안 스크롤 (디자이너 조직도 명단 .ol-table-scroll 의 «많은 항목») */
