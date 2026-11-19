@@ -81,7 +81,7 @@ export default function OkrResourceTeam({ data, icons, baseUrl = '', onComment, 
                 <span className="rsx-member-pct">{member.pct}%</span>
               </div>
               <div className="rsx-member-bar-row">
-                <RsStackBar segments={member.segments} />
+                <RsStackBar segments={member.segments} total={member.pct} />
                 <div className="rsx-member-meta">
                   <p>{T.items(member.items.length)}</p>
                   <p>{T.comments(commentsOf(member, i).length)}</p>

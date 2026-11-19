@@ -38,7 +38,7 @@ export default function OkrResourceOrg({ data, icons, baseUrl = '', onOpenTeam, 
               <span className="rsx-member-pct">{team.pct}%</span>
             </div>
             <div className="rsx-member-bar-row">
-              <RsStackBar segments={team.segments} />
+              <RsStackBar segments={team.segments} total={team.pct} />
               <div className="rsx-member-meta">
                 <p>{O.size(team.size)}</p>
                 <p>{O.entered(team.entered)}</p>
@@ -76,7 +76,7 @@ export default function OkrResourceOrg({ data, icons, baseUrl = '', onOpenTeam, 
                   <span className="rsx-member-pct">{member.pct}%</span>
                 </div>
                 <div className="rsx-member-bar-row">
-                  <RsStackBar segments={member.segments} />
+                  <RsStackBar segments={member.segments} total={member.pct} />
                 </div>
               </div>
             </div>

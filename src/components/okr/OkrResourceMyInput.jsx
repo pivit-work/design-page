@@ -208,7 +208,7 @@ export default function OkrResourceMyInput({
     <div className="rsx-my">
       {readOnly && <p className="rsx-add-note" role="note">{M.readOnlyNotice(monthLabel)}</p>}
       <div className="rsx-stats">
-        <RsStatCard label={M.total} value={`${data.stats.total}%`} tone="brand" bar={data.stats.total} />
+        <RsStatCard label={M.total} value={`${data.stats.total}%`} tone="brand" bar={data.stats.total} barScaled />
         <RsStatCard label={M.items} value={data.stats.items} />
         <RsStatCard label={M.kr} value={<>{data.stats.kr[0]} <small>/ {data.stats.kr[1]}</small></>} />
         <RsStatCard label={M.status} value={statusLabel(data.stats.status, L)} tone={data.stats.status === '과부하' ? 'bad' : ''} />

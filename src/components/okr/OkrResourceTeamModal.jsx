@@ -57,7 +57,7 @@ export default function OkrResourceTeamModal({ team, onClose, labels: L = OKR_RE
                   <span className="rsx-member-pct">{member.pct}%</span>
                 </div>
                 <div className="rsx-member-bar-row">
-                  <RsStackBar segments={member.segments} />
+                  <RsStackBar segments={member.segments} total={member.pct} />
                 </div>
               </div>
             </div>

@@ -41,6 +41,10 @@
 .rsx-stat-sub { font-size: 12px; font-weight: 400; line-height: 18px; color: var(--text-brand-secondary); white-space: nowrap; }
 .rsx-stat-bar { width: 96px; height: 8px; border-radius: 999px; background: var(--bg-quaternary); overflow: hidden; margin-bottom: 8px; }
 .rsx-stat-bar i { display: block; height: 8px; border-radius: 999px; background: var(--utility-success-200); }
+/* 125 고정 눈금 (pivit-work PW-3068 · §5-9) — 100 을 넘은 몫만 빨간 빗금. 트랙 바탕은 카드 그대로 · 100 눈금 없음 */
+.rsx-stat-bar.is-scaled { position: relative; }
+.rsx-stat-bar.is-over i { border-radius: 999px 0 0 999px; }
+.rsx-stat-bar-over { position: absolute; top: 0; bottom: 0; display: block; }
 
 /* ── AI 스니핏 기반 추정 배너 (Figma 17478:21846) —
    블록 전체가 purple-100 단일 fill (p12·radius 8), 안쪽 바는 색 구분 없음. ── */
@@ -141,6 +145,14 @@
 /* 세그먼트가 각자 radius 를 가진다. 말풍선은 공용 Tooltip(body 포털)이 띄운다 (PW-1123). */
 .rsx-stackbar { position: relative; flex: 1; min-width: 0; height: 12px; display: flex; gap: 10px; background: var(--bg-secondary); border-radius: 4px; }
 .rsx-stackbar-seg { position: relative; height: 12px; border-radius: 4px; }
+/* 125 고정 눈금 (pivit-work PW-3068 · 기획 §5-9) — 100 자리(80%) 오른쪽 여유 칸은 흰 바탕(--bg-quaternary #fff).
+   조각은 100 아래 몫(.rsx-stackbar-fill · 항목 색)과 위 몫(.rsx-stackbar-over · 빨간 빗금)으로 나뉜다.
+   100 눈금은 조직도 캐파 게이지 눈금(.sq-gauge-mark)과 같은 모양. */
+.rsx-stackbar.is-scaled { background: linear-gradient(90deg, var(--bg-secondary) 80%, var(--bg-quaternary) 80%); }
+.rsx-stackbar-seg.is-split { display: flex; overflow: hidden; }
+.rsx-stackbar-fill,
+.rsx-stackbar-over { display: block; height: 100%; }
+.rsx-stackbar-mark { position: absolute; top: -3px; bottom: -3px; width: 2px; transform: translateX(-50%); border-radius: 2px; background: var(--fg-error-secondary); pointer-events: none; }
 .rsx-member-meta { flex: none; display: flex; flex-direction: column; gap: 4px; text-align: right; font-size: 12px; font-weight: 600; line-height: 18px; letter-spacing: -0.01em; color: var(--text-tertiary); }
 .rsx-bullets { margin: 0; padding: 8px 0 0 21px; display: flex; flex-direction: column; gap: 4px; }
 .rsx-bullets li { font-size: 14px; font-weight: 600; line-height: 20px; }

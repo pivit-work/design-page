@@ -3,6 +3,7 @@ import StatusBadge from '../shared/StatusBadge.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import rowKey from './rowKey.js';
 import { OKR_RESOURCE_DEFAULT_LABELS, statusLabel } from './okrResourceLabels.js';
+import { RS_BAR_CAP, RS_OVER_HATCH, rsBarPct, rsBarSegs, rsSegWidth } from './okrResourceBar.js';
 
 /**
  * OkrResourcePieces — 내 리소스(리소스 투입) 탭의 작은 공용 조각들.
@@ -29,16 +30,29 @@ export function RsStatusBadge({ status, labels = OKR_RESOURCE_DEFAULT_LABELS }) 
 
 /* 스탯 카드 — 라벨(12 Semibold) + 값(30 Display Medium). Figma 17478:24237.
    tone: 'brand'(그린 값) | 'bad'(에러 값) | 기본. empty=값 0 카드(밝은 배경+테두리).
-   sub: 값 우측 하단 보조 텍스트(예: '투입인력 : 12/12명'), bar: 값 우측 미니 진행바. */
-export function RsStatCard({ label, value, tone = '', sub, bar, empty = false }) {
+   sub: 값 우측 하단 보조 텍스트(예: '투입인력 : 12/12명'), bar: 값 우측 미니 진행바.
+   barScaled: 진행바를 투입 막대와 같은 125 눈금으로 — 100 = 바 80% 자리, 100 을 넘은 몫만 빨간 빗금.
+   트랙 바탕은 카드 그대로이고 100 눈금은 긋지 않는다(큰 % 숫자가 값을 말한다 · pivit-work PW-3068 §5-9). */
+export function RsStatCard({ label, value, tone = '', sub, bar, barScaled = false, empty = false }) {
   return (
     <div className={`rsx-stat${empty ? ' is-empty' : ''}`}>
       <p className="rsx-stat-label">{label}</p>
       <div className="rsx-stat-row">
         <p className={`rsx-stat-value${tone ? ` is-${tone}` : ''}`}>{value}</p>
         {sub && <p className="rsx-stat-sub">{sub}</p>}
-        {bar != null && (
+        {bar != null && !barScaled && (
           <span className="rsx-stat-bar"><i style={{ width: `${bar}%` }} /></span>
+        )}
+        {bar != null && barScaled && (
+          <span className={`rsx-stat-bar is-scaled${bar > RS_BAR_CAP ? ' is-over' : ''}`} data-testid="rsx-stat-bar">
+            <i style={{ width: `${rsBarPct(Math.min(bar, RS_BAR_CAP))}%` }} />
+            {bar > RS_BAR_CAP && (
+              <b
+                className="rsx-stat-bar-over"
+                style={{ left: `${rsBarPct(RS_BAR_CAP)}%`, width: `${rsBarPct(bar) - rsBarPct(RS_BAR_CAP)}%`, background: RS_OVER_HATCH }}
+              />
+            )}
+          </span>
         )}
       </div>
     </div>
@@ -48,20 +62,44 @@ export function RsStatCard({ label, value, tone = '', sub, bar, empty = false })
 /* 스택 투입 바 — 회색 트랙(h12 radius4) 위 색 세그먼트(gap 10). Figma 17478:24216.
    seg.label 이 있으면 마우스를 올린 세그먼트 위에 공용 말풍선(Tooltip)으로 띄운다
    (Figma 17486:22303 · PW-1123). 말풍선 색은 seg.tipColor(막대 색 계열의 -500 톤) —
-   없으면 브랜드 그린. */
-export function RsStackBar({ segments }) {
+   없으면 브랜드 그린.
+   total 을 주면 125 고정 눈금(pivit-work PW-3068 · §5-9): 100 = 트랙 80% 자리 · 100 ~ 125 여유 칸은 흰 바탕 ·
+   누적 100 을 넘은 몫은 항목 색 대신 빨간 빗금 · total 이 100 을 넘으면 100 자리에 빨간 눈금 · 125 에서 멈춘다.
+   seg.pct 는 그 항목의 값(%p) 그대로 받는다. total 이 없으면 종전대로 seg.pct 를 트랙 폭 % 로 그린다. */
+export function RsStackBar({ segments, total }) {
+  if (total == null) {
+    return (
+      <div className="rsx-stackbar">
+        {segments.map((seg, i) => (
+          <Tooltip
+            key={i}
+            content={seg.label}
+            color={seg.tipColor || undefined}
+            tone={seg.tipColor ? undefined : 'brand'}
+          >
+            <span className="rsx-stackbar-seg" style={{ width: `${seg.pct}%`, background: seg.color }} />
+          </Tooltip>
+        ))}
+      </div>
+    );
+  }
+  const segs = rsBarSegs(segments, total);
   return (
-    <div className="rsx-stackbar">
-      {segments.map((seg, i) => (
+    <div className="rsx-stackbar is-scaled" data-testid="rsx-stackbar">
+      {segs.map((seg, i) => (
         <Tooltip
           key={i}
           content={seg.label}
           color={seg.tipColor || undefined}
           tone={seg.tipColor ? undefined : 'brand'}
         >
-          <span className="rsx-stackbar-seg" style={{ width: `${seg.pct}%`, background: seg.color }} />
+          <span className="rsx-stackbar-seg is-split" style={{ width: rsSegWidth(seg.w, i < segs.length - 1) }}>
+            {seg.fill > 0 && <i className="rsx-stackbar-fill" style={{ width: `${(seg.fill / seg.w) * 100}%`, background: seg.color }} />}
+            {seg.over > 0 && <i className="rsx-stackbar-over" style={{ width: `${(seg.over / seg.w) * 100}%`, background: RS_OVER_HATCH }} />}
+          </span>
         </Tooltip>
       ))}
+      {total > RS_BAR_CAP && <span className="rsx-stackbar-mark" style={{ left: `${rsBarPct(RS_BAR_CAP)}%` }} aria-hidden="true" />}
     </div>
   );
 }
