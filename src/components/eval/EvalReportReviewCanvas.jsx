@@ -1506,6 +1506,8 @@ function ReviewRow({
                     // [PW-2591 · R-11] 창을 열 때마다 시작값으로 — 닫으면 고친 글과 다듬기 카드가 사라진다(§8.4).
                     setComment(row.commentStart?.text ?? '');
                     setCommentPolished(false);
+                    // PW-3024 — 앞서 창 없이(다른 단계) 실패한 글이 새 창에 남지 않게.
+                    setApproveError('');
                     setApproveAsk(true);
                   }
                 : approve
