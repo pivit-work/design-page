@@ -1046,16 +1046,6 @@
    "align-items": "center",
    "white-space": "nowrap"
   },
-  "one_on_one.css|.ono-mem-badge": {
-   "border-radius": "8px",
-   "padding": "3px 10px",
-   "font-size": "12px",
-   "font-weight": "600",
-   "display": "inline-flex",
-   "align-items": "center",
-   "gap": "4px",
-   "line-height": "18px"
-  },
   "one_on_one.css|.ono-mem-chip": {
    "border-radius": "8px",
    "padding": "2px 8px",
@@ -2297,18 +2287,6 @@
   "one_on_one.css|.ono-done-share-badge.is-on": {
    "background": "#ecfdf3 / 어두운 화면 #053321",
    "color": "#067647 / 어두운 화면 #75e0a7"
-  },
-  "one_on_one.css|.ono-mem-badge.is-done": {
-   "background": "#f9fafb / 어두운 화면 #22262f",
-   "color": "#687079 / 어두운 화면 #cecfd2"
-  },
-  "one_on_one.css|.ono-mem-badge.is-live": {
-   "background": "#edfcf2 / 어두운 화면 #052e1c",
-   "color": "#099250 / 어두운 화면 #3ccb7f"
-  },
-  "one_on_one.css|.ono-mem-badge.is-ready": {
-   "background": "#eff8ff / 어두운 화면 #102a56",
-   "color": "#1570ef / 어두운 화면 #53b1fd"
   },
   "org_squad.css|.pj-card-status.sq-status.is-clickable:hover": {
    "background": "#f9fafb / 어두운 화면 #22262f"

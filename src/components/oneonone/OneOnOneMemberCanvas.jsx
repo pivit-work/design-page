@@ -266,17 +266,6 @@ export function StageBadge({ status, L }) {
     </DpStatusBadge>
   );
 }
-function StatusBadge({ status, L }) {
-  // 표에 없는 단계 코드값이면 딱지를 그리지 않는다 — 예전엔 «준비 중»으로 메웠다 (PW-2937 · policy §3.4).
-  const label = status === 'live' ? L.badgeLive : status === 'done' ? L.badgeDone : status === 'ready' ? L.badgeReady : null;
-  if (!label) return null;
-  return (
-    <DpStatusBadge className={`ono-mem-badge is-${status}`}>
-      {status === 'live' && <span className="ono-mem-badge-dot" />}
-      {label}
-    </DpStatusBadge>
-  );
-}
 
 function Readiness({ value, L }) {
   return (
@@ -990,7 +979,9 @@ export function SessionHeader({ title, status, date, duration, avatar, L, icons,
       <div className="ono-mem-head-row">
         {avatar}
         <h1 className="ono-mem-head-title">{title}</h1>
-        <StatusBadge status={status} L={L} />
+        {/* 머리 단계 딱지는 다른 1on1 머리와 같은 StageBadge — 옛 .ono-mem-badge 는 «완료»가 회색이라
+            지난 원온원 [기록보기] 머리만 매니저 창 초록과 갈렸다 (pivit-work PW-2937). */}
+        <StageBadge status={status} L={L} />
         {duration && (
           <DpStatusBadge className="ono-mem-chip">
             <Icon src={icons.clock} size={12} color="currentColor" baseUrl={baseUrl} />

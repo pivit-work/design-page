@@ -2775,13 +2775,6 @@ button.ono-add-modal-input { cursor: pointer; }
   font-weight: 700;
   color: var(--utility-green-500);
 }
-.ono-mem-badge-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--utility-green-500);
-  animation: ono-mem-pulse 1.5s infinite;
-}
 @keyframes ono-mem-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
 
 /* ── 접히는 섹션 카드 ── */

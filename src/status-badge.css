@@ -1226,33 +1226,6 @@
   color: var(--componentColors-utility-gray-utilityGray700);
 }
 
-/* 상태 배지 — .status-badge 는 카드 안 absolute 라 인라인용을 따로 둔다. */
-.ono-mem-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 10px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 18px;
-}
-
-.ono-mem-badge.is-ready {
-  background: var(--dp-badge-info-bg);
-  color: var(--dp-badge-info-fg);
-}
-
-.ono-mem-badge.is-live {
-  background: var(--dp-badge-success-bg);
-  color: var(--dp-badge-success-fg);
-}
-
-.ono-mem-badge.is-done {
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
-}
-
 .ono-mem-chip {
   display: inline-flex;
   align-items: center;
@@ -1930,8 +1903,10 @@ button.dp-chip {
   line-height: var(--line-height-text-xs);
   white-space: nowrap;
 }
-/* 1on1 머리 단계 딱지 «미팅 중» 점 — 같은 화면 옛 딱지 점(.ono-mem-badge-dot 6px 원)과 같은 크기, 색은 글자 색 (pivit-work PW-2937). */
+/* 1on1 머리 단계 딱지 «미팅 중» 점 — 옛 팀원 머리 딱지 점(6px 원)과 같은 크기, 색은 글자 색 (pivit-work PW-2937). */
 .ono-stage-badge { gap: var(--spacing-xs); }
+/* «완료»는 매니저 1on1 상세 창 딱지(.ood-done-badge)와 같은 초록 글자·바탕 — 팀원 머리만 다른 초록이 되지 않게 (pivit-work PW-2937). */
+.ono-stage-badge.is-done { background: var(--utility-success-50); color: var(--utility-success-700); }
 .ono-stage-badge-dot { width: 6px; height: 6px; border-radius: var(--radius-full); background: currentColor; flex: none; animation: ono-mem-pulse 1.5s infinite; }
 .ono-done-badge.is-pill { padding: var(--spacing-xxs) var(--spacing-md); border-radius: var(--radius-full); }
 
