@@ -31,6 +31,7 @@ import { concurrentLeaderLines } from './calibrationConcurrentGrade.js';
 import { pickParticle } from '../shared/koreanParticle.js';
 import Select from '../shared/Select.jsx';
 import Button from '../shared/Button.jsx';
+import Spinner from '../shared/Spinner.jsx';
 import MemberAiButton from '../oneonone/MemberAiButton.jsx';
 import SearchInput from '../shared/SearchInput.jsx';
 import EmptyState from '../shared/EmptyState.jsx';
@@ -5893,7 +5894,14 @@ export default function EvalCycleSummaryCanvas({
                       aria-busy={calibCommitPending || undefined}
                       data-testid="evs-cw-commit"
                     >
-                      {calibCommitPending ? (L.cwCommitPending ?? L.cwCommitBtn) : L.cwCommitBtn}
+                      {calibCommitPending ? (
+                        <span className="dp-busy-inline">
+                          <Spinner size={14} />
+                          {L.cwCommitPending ?? L.cwCommitBtn}
+                        </span>
+                      ) : (
+                        L.cwCommitBtn
+                      )}
                     </button>
                   )}
                 </div>
