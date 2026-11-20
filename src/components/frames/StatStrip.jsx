@@ -47,7 +47,8 @@ export function StatStrip({ items, ariaLabel, testId }) {
             <span
               className="manager-stat-value"
               style={item.tone ? { ...FRAME_ONE_LINE, color: TONE_COLOR[item.tone] } : empty ? EMPTY_VALUE_STYLE : FRAME_ONE_LINE}
-              title={String(item.value)}
+              // 불러오는 중 자리(부품)는 말풍선 글이 없다 — «[object Object]»가 뜨지 않게
+              title={typeof item.value === 'object' ? undefined : String(item.value)}
               data-tone={item.tone}
             >
               {item.value}
