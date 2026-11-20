@@ -1432,6 +1432,9 @@ export default function AdminIntegrationsCanvas({
   };
   // Slack 소유자 권한 관리 — 따로 화면(PW-3126). 설정 창 [소유자 권한 관리 →] · 오류 카드 [권한 관리] 로 연다.
   const [ownerOpen, setOwnerOpen] = useState(false);
+  // 소유자 정보가 사라지면(해제 · 다시 읽기 실패) 닫힌 것으로 돌린다 — 정보가 다시 오면 누르지 않았는데 저절로 다시 뜨지 않게
+  // (그리는 중에 고친다 — React «props 가 바뀔 때 state 맞추기» 방식)
+  if (!transfer && ownerOpen) setOwnerOpen(false);
   const openOwner = transfer
     ? () => {
         onCloseSettings();
@@ -1443,6 +1446,7 @@ export default function AdminIntegrationsCanvas({
       key={n.key}
       tone={n.tone ?? 'warning'}
       lines={sentences(n.text)}
+      role="status"
       actions={n.actionLabel && n.onAction ? (
         <Button
           variant="secondary"
@@ -1526,6 +1530,8 @@ export default function AdminIntegrationsCanvas({
     return (
       <div className="admin-canvas" data-testid="intg-canvas">
         <Toast message={toast} tone={toastTone} data-testid="intg-toast" />
+        {/* 구성원 못 읽음 같은 띠는 이 화면에도 — 소유자 이름이 «—»로 남는 바로 그 화면이다 (PW-217) */}
+        {noticeBands}
         <SlackOwnerView
           transfer={transfer}
           card={slackCard}
@@ -1624,6 +1630,7 @@ export default function AdminIntegrationsCanvas({
         </div>
       )}
 
+      {tab === 'admin' && adminTab && noticeBands}
       {tab === 'admin' && adminTab && (
         <AdminCatalogPanel
           {...adminTab}
