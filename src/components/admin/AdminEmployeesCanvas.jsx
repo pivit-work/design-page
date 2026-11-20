@@ -27,6 +27,7 @@ import { ExportMenu, SalaryExportModal, IconLock } from './employeeExport.jsx';
 import {
   HrProfileModal, HrProfileInline, flushSalaryPending, SalaryHistoryModal, CeoConfirmModal, CeoBadge, IconSalary, IconCrown, fmtSalaryWithCurrency,
   serviceStartHintText, isoDay,
+  peekHrProfile, keepHrProfile, forgetLoad as forgetHrProfile,
 } from './AdminEmployeeRecordModals.jsx';
 import { buildExportItems } from './employeeExportItems.js';
 import AdminInviteModal from './AdminInviteModal.jsx';
@@ -5637,17 +5638,24 @@ function EmployeesEditPanel({
    * 불러와 «지금 값» 을 보여준다. 안 불러오면 이미 채워 둔 날짜가 빈칸으로 보이고,
    * 저장을 누르는 순간 멀쩡한 값을 지우게 된다.
    */
-  const [identity, setIdentity] = useState(null);
-  const [identityDraft, setIdentityDraft] = useState(null);
+  /* 상세 페이지를 읽기로 다시 붙일 때([취소] 뒤)는 1분 안에 불러온 HR 값으로 먼저 그리고 뒤에서 다시 불러온다 —
+     다시 불러오는 몇 초 동안 본문이 통째로 비어, [수정] 중 지운 줄이 빠진 채 보였다(pivit-work PW-2924) */
+  const cachedHr = page && !page.editing && onLoadHrProfile ? peekHrProfile(onLoadHrProfile, member?.id) : null;
+  const cachedIdentity = cachedHr ? identityFromProfile(cachedHr) : null;
+  const [identity, setIdentity] = useState(cachedIdentity);
+  const [identityDraft, setIdentityDraft] = useState(cachedIdentity);
   /**
    * 🔴 `loading` 으로 «바꾸는» 것은 효과 밖에서 한다 — 효과 본문에서 setState 를 부르면
    * 렌더가 연쇄한다. 패널이 열리는 순간과 다른 사람으로 갈아끼우는 순간이 곧 조회
    * 시점이므로, 그 두 자리에서 `loading` 을 세우고 효과는 조회만 한다.
    * 조회 경로가 없으면(어드민 아님) 처음부터 `idle` 이라 영영 「불러오는 중」이 되지 않는다.
    */
+  const cachedIdentityRef = useRef(cachedIdentity);
   const [identityState, setIdentityState] = useState(
-    onLoadHrProfile ? 'loading' : 'idle',
+    cachedIdentity ? 'refreshing' : onLoadHrProfile ? 'loading' : 'idle',
   );
+  /* «먼저 그린 값으로 다시 불러오는 중»은 칸을 다루는 데 «준비됨»과 같다 */
+  const identityReady = identityState === 'ready' || identityState === 'refreshing';
   const [dateError, setDateError] = useState('');
   /**
    * 서버가 구성원 저장을 거절한 사유(PW-727) — `{ message, fields }` 또는 `null`.
@@ -5782,32 +5790,33 @@ function EmployeesEditPanel({
     member?.employmentStatus === 'terminated' &&
     (archive.view?.segments ?? []).some((seg) => seg.terminationDate === member?.terminationDate);
   /* 자기소개 — 본인이 내 프로필에서만 쓰는 값이라 고칠 칸이 없다(상세 «인사 정보» 탭 · admin-spec §3.2-D) */
-  const [bioText, setBioText] = useState('');
+  const [bioText, setBioText] = useState(() => cachedHr?.identity?.bio ?? '');
   const onGoneRef = useRef(null);
   const pageOnGone = page?.onGone || null;
   useEffect(() => {
     onGoneRef.current = pageOnGone;
   }, [pageOnGone]);
   useEffect(() => {
-    if (identityState !== 'loading' || !memberId || !onLoadHrProfile) {
+    if ((identityState !== 'loading' && identityState !== 'refreshing') || !memberId || !onLoadHrProfile) {
       return undefined;
     }
     let alive = true;
+    const refreshing = identityState === 'refreshing';
     Promise.resolve(onLoadHrProfile(memberId))
       .then((profile) => {
+        keepHrProfile(onLoadHrProfile, memberId, profile);
         if (!alive) return;
-        const src = profile?.identity || {};
-        const loaded = {};
-        for (const f of IDENTITY_DATE_FIELDS) loaded[f] = toDateInput(src[f]);
-        for (const f of IDENTITY_TEXT_FIELDS) loaded[f] = src[f] ?? '';
-        loaded[SERVICE_START_FIELD] = toDateInput(src[SERVICE_START_FIELD]);
+        const loaded = identityFromProfile(profile);
         setIdentity(loaded);
-        setIdentityDraft(loaded);
-        setBioText(src.bio ?? '');
+        // 먼저 그린 값에서 그 사이 손댄 칸은 덮지 않는다
+        setIdentityDraft((d) => (refreshing && d !== cachedIdentityRef.current ? d : loaded));
+        setBioText(profile?.identity?.bio ?? '');
         setIdentityState('ready');
       })
       .catch((err) => {
         if (!alive) return;
+        // 먼저 그린 값이 있으면 그대로 둔다 — 다음 [수정]·이동 때 다시 불러온다
+        if (refreshing) { setIdentityState('ready'); return; }
         /* 그 사이 등록 취소된 사람(호출부가 `notFound` 를 단다) — 상세 페이지면 다음 사람으로 넘긴다(PW-2797 E2) */
         if (err?.notFound && onGoneRef.current) { onGoneRef.current(); return; }
         // 전역 오류 화면으로 튕기지 않는다 — 편집 중이던 다른 칸까지 날아간다.
@@ -6045,7 +6054,7 @@ function EmployeesEditPanel({
      비면 저장을 막는다 — 사유 없이 저장돼 있던 기존 휴직자도 같다(다른 칸을 고쳐 저장하려면 사유부터). */
   const showLeaveReason = dateFields.some((f) => f.field === 'leaveStartDate');
   const leaveReasonMissing =
-    showLeaveReason && Boolean(leaveAddon) && identityState === 'ready' && !identityDraft?.leaveOfAbsenceReason;
+    showLeaveReason && Boolean(leaveAddon) && identityReady && !identityDraft?.leaveOfAbsenceReason;
   /* 퇴사는 퇴사 처리 화면(목록 ⋯ › 비활성화)에서만 한다(PW-1081) — 여기서 라디오로 바꾸면
      데이터 처분 없이 퇴사자가 생긴다. 이미 퇴사인 사람은 그 값이 그대로 보여야 하므로 연다. */
   const terminatedLocked = member.employmentStatus !== 'terminated';
@@ -6298,6 +6307,7 @@ function EmployeesEditPanel({
   }
 
   async function handleSave() {
+    forgetHrProfile(onLoadHrProfile, member?.id);
     if (!dirty && !(page && inlineDirty)) { if (page) page.onCancel(); else onClose(); return; }
     if (terminationProblem || terminationRuleError || leaveStartMissing || leaveReasonMissing) return;
     if (apptTypeMissing || (showAppointment && !apptDate)) return;
@@ -6631,16 +6641,16 @@ function EmployeesEditPanel({
             <DateInput
               className="admin-emp-input"
               value={own}
-              disabled={!canEdit || identityState !== 'ready'}
+              disabled={!canEdit || !identityReady}
               data-testid={`employees-panel-${f.key}`}
               onChange={(v) => setIdentityDraft((d) => ({ ...(d || {}), [SERVICE_START_FIELD]: v }))}
             />
-            {identityState === 'ready' && (
+            {identityReady && (
               <span className="admin-emp-manager-note" data-testid="employees-panel-serviceStartDate-hint">
                 {serviceStartHintText(recordLabels, own, draft.hireDate)}
               </span>
             )}
-            {identityState === 'ready' && canEdit && isoDay(own) && (
+            {identityReady && canEdit && isoDay(own) && (
               <div>
                 <Button
                   variant="ghost"
@@ -7163,7 +7173,7 @@ function EmployeesEditPanel({
                   label={labels.panel[f.label]}
                   required={f.field === 'leaveStartDate'}
                   error={
-                    f.field === 'leaveStartDate' && leaveStartMissing && identityState === 'ready'
+                    f.field === 'leaveStartDate' && leaveStartMissing && identityReady
                       ? labels.panel.leaveStartRequired
                       : undefined
                   }
@@ -8711,4 +8721,14 @@ function PanelApprovalNotice({ load }) {
       {text}
     </div>
   );
+}
+
+/** 상세 패널이 쓰는 신원 칸 — HR 프로필 응답에서 꺼낸다(처음 불러오기 · 먼저 그리기가 같은 모양) */
+function identityFromProfile(profile) {
+  const src = profile?.identity || {};
+  const loaded = {};
+  for (const f of IDENTITY_DATE_FIELDS) loaded[f] = toDateInput(src[f]);
+  for (const f of IDENTITY_TEXT_FIELDS) loaded[f] = src[f] ?? '';
+  loaded[SERVICE_START_FIELD] = toDateInput(src[SERVICE_START_FIELD]);
+  return loaded;
 }

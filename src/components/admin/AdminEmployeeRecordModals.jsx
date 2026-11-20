@@ -764,6 +764,36 @@ const MILITARY_OPTIONS = [
   { value: 'not_applicable', label: '해당없음' },
 ];
 
+// ── 방금 불러온 값 (pivit-work PW-2924 4회차) ──────────────────────────────────────
+// 페이지 [취소]·[저장하기]는 key 를 바꿔 HR 칸을 새로 붙인다. 새로 붙은 읽기 화면이 다시 불러올 때까지
+// 아무것도 못 보이면, [수정] 중 지운 줄이 몇 초 동안 «빠진 채»로 남아 보였다. 읽기로 붙을 때는 1분 안에
+// 불러온 값으로 먼저 그리고, 다시 불러온 값으로 바꾼다. 수정 칸은 늘 새로 불러온 값에서 시작한다
+// (오래된 값을 칸에 채우면 남이 바꾼 값을 덮어쓸 수 있다).
+const RECENT_LOAD_MS = 60 * 1000;
+// 칸은 «불러오는 함수»(scope · 호스트의 onLoadHrProfile)마다 따로 둔다 — 다른 화면·다른 시험이 같은 구성원 id 로 섞이지 않게
+const recentLoads = new WeakMap();
+function scopeOf(scope) {
+  if (typeof scope !== 'function') return null;
+  if (!recentLoads.has(scope)) recentLoads.set(scope, { profile: new Map(), trainings: new Map() });
+  return recentLoads.get(scope);
+}
+function recentLoad(scope, kind, memberId) {
+  const hit = memberId ? scopeOf(scope)?.[kind].get(memberId) : null;
+  return hit && Date.now() - hit.at < RECENT_LOAD_MS ? hit.value : null;
+}
+function rememberLoad(scope, kind, memberId, value) {
+  if (memberId && value) scopeOf(scope)?.[kind].set(memberId, { at: Date.now(), value });
+}
+/** 구성원 상세 페이지 패널도 같은 값을 쓴다 — 읽기로 다시 붙을 때 먼저 그릴 값 / 불러온 값 */
+export const peekHrProfile = (scope, memberId) => recentLoad(scope, 'profile', memberId);
+export const keepHrProfile = (scope, memberId, value) => rememberLoad(scope, 'profile', memberId, value);
+/** 보내기 시작하면 잊는다 — 저장 뒤 새로 붙은 화면이 저장 전 값을 잠깐이라도 보이지 않게 */
+export function forgetLoad(scope, memberId) {
+  const c = scopeOf(scope);
+  c?.profile.delete(memberId);
+  c?.trainings.delete(memberId);
+}
+
 // ── 미뤄 보내기 버퍼 (pivit-work PW-2797 · 구성원 상세 [수정] → 페이지 [저장]) ──────────────
 // 여러 줄 목록(학력·경력·자격증·부양가족·교육·서류·보상 이력)의 «아직 안 보낸» 바뀜.
 // 모양 `{ adds: [{ id: 'pending-N', body }], updates: { [id]: body }, deletes: [id] }`.
@@ -1496,8 +1526,10 @@ export function HrProfileInline({
   const yesNo = L.hrYesNoOptions || [{ value: 'no', label: '아니오' }, { value: 'yes', label: '예' }];
   const genderOptions = L.hrGenderOptions || [{ value: 'male', label: '남성' }, { value: 'female', label: '여성' }, { value: 'other', label: '기타' }];
 
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  // 읽기로 붙을 때만 방금 불러온 값으로 먼저 그린다 — 칸에 채우는 것(seed)은 새로 불러온 값으로만
+  const [data, setData] = useState(() => (editable ? null : recentLoad(onLoad, 'profile', memberId)));
+  const [fresh, setFresh] = useState(false);
+  const [loading, setLoading] = useState(() => data === null);
   const [error, setError] = useState(false);
   const [identityDraft, setIdentityDraft] = useState(null);
   const [seededId, setSeededId] = useState(null);
@@ -1512,15 +1544,15 @@ export function HrProfileInline({
   useEffect(() => {
     let alive = true;
     Promise.resolve(onLoad(memberId))
-      .then((d) => { if (alive) setData(d); })
+      .then((d) => { rememberLoad(onLoad, 'profile', memberId, d); if (alive) { setData(d); setFresh(true); } })
       .catch(() => { if (alive) setError(true); })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
   }, [memberId, onLoad]);
-  const reload = () => Promise.resolve(onLoad(memberId)).then((d) => { if (d) setData(d); }).catch(() => {});
+  const reload = () => Promise.resolve(onLoad(memberId)).then((d) => { if (d) { rememberLoad(onLoad, 'profile', memberId, d); setData(d); setFresh(true); } }).catch(() => {});
 
   const identity = data?.identity ?? {};
-  if (data && seededId !== memberId) {
+  if (data && fresh && seededId !== memberId) {
     setSeededId(memberId ?? null);
     setIdentityDraft(flattenIdentity(identity));
   }
@@ -1556,6 +1588,7 @@ export function HrProfileInline({
     let identityDone = !identityPatch;
     let benefitsDone = !benefits;
     const send = async () => {
+      forgetLoad(onLoad, memberId);
       try {
         if (!identityDone) {
           const saved = await onSaveIdentity(memberId, identityPatch);
@@ -1873,6 +1906,7 @@ export function HrProfileInline({
       {onLoadTrainings && (
         <HrTrainingsSection
           key={`trainings-${trEpoch}`}
+          cacheScope={onLoad}
           memberId={memberId}
           labels={L}
           onLoad={onLoadTrainings}
@@ -1936,10 +1970,11 @@ const EMPTY_TRAINING = { courseName: '', provider: '', completedAt: '', note: ''
  * `pending`·`onPendingChange` 를 주면(pivit-work PW-2797 구성원 상세 [수정]) 더하기·고치기·지우기를 보내지 않고
  * 그 버퍼에만 담는다 — 보이는 목록은 불러온 줄 + 버퍼. 보내기는 부모가 페이지 [저장] 때 한다.
  */
-function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelete, confirmDelete, pending, onPendingChange }) {
+function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelete, confirmDelete, pending, onPendingChange, cacheScope }) {
   const deferred = typeof onPendingChange === 'function';
   const L = labels || {};
-  const [rows, setRows] = useState(null);
+  // 읽기로 붙을 때는 방금 불러온 줄로 먼저 그린다(위 recentLoad · pivit-work PW-2924)
+  const [rows, setRows] = useState(() => (deferred ? null : recentLoad(cacheScope, 'trainings', memberId)));
   const [loadError, setLoadError] = useState(false);
   const [form, setForm] = useState(EMPTY_TRAINING);
   const [editingId, setEditingId] = useState(null);
@@ -1949,7 +1984,7 @@ function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelet
   useEffect(() => {
     let alive = true;
     Promise.resolve(onLoad(memberId))
-      .then((r) => { if (alive) setRows(Array.isArray(r) ? r : []); })
+      .then((r) => { const list = Array.isArray(r) ? r : []; rememberLoad(cacheScope, 'trainings', memberId, list); if (alive) setRows(list); })
       .catch(() => { if (alive) { setRows([]); setLoadError(true); } });
     return () => { alive = false; };
   }, [memberId, onLoad]);
@@ -1958,6 +1993,7 @@ function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelet
     setBusy(true);
     setError(false);
     try {
+      forgetLoad(cacheScope, memberId);
       const next = await fn();
       if (Array.isArray(next)) setRows(next);
       return true;
