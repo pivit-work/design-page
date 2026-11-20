@@ -890,7 +890,9 @@ function hrRecordDefs(L, todayIso) {
         { key: 'school', label: L.hrEduSchool || '학교명', required: true },
         // 고졸이 아니면 전공이 필요하다 — 서버도 같은 규칙으로 거절한다(PW-1302). 학교명만 있는 줄을 고칠 때
         // 표시가 없으면 이유 모를 «저장하지 못했습니다»만 남았다(pivit-work PW-2714).
-        { key: 'major', label: L.hrEduMajor || '전공', required: (form) => form.degree !== 'high_school' },
+        // 서버 규칙에서 온 필수라 고치기로 연 옛 줄에서 규칙 칸을 안 건드리면 막지 않는다 — 서버(updateEducation)도
+        // 그때는 규칙을 보지 않는다. 전공이 빈 옛 학사 줄의 최종학력만 바꾸는 저장이 막혔다(pivit-work PW-2942).
+        { key: 'major', label: L.hrEduMajor || '전공', required: (form) => form.degree !== 'high_school', ruleRequired: true },
         { key: 'degree', label: L.hrEduDegree || '학위', required: true, options: optionsOf(L.hrDegreeOptions) },
         { key: 'from', label: L.hrEduFrom || '입학', required: true, placeholder: 'YYYY-MM' },
         // 재학이면 잠그고 비운다 — 서버는 재학에 졸업일이 있으면 거절한다(pivit-work PW-2942)
