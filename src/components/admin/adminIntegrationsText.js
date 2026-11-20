@@ -11,6 +11,8 @@ export function sentences(text) {
   return s
     .split(/(?<=\.)\s+|\s+(?=—\s)/)
     .map((part) => part.trim())
+    // « — » 에서 나눈 뒷줄은 줄 첫머리의 줄표를 뗀다 — 줄을 나눈 것으로 이음표 몫을 한다(시안 «이음표에서 줄만 나눔»)
+    .map((part, i) => (i > 0 ? part.replace(/^—\s+/, '') : part))
     .filter(Boolean);
 }
 

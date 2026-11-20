@@ -9,7 +9,7 @@ import TextArea from '../shared/TextArea.jsx';
 import assetUrl from '../shared/assetUrl.js';
 import { ArrowRightGlyph, InfoGlyph, LockGlyph, SettingsGlyph } from '../shared/lineIcons.jsx';
 import { FormModal, NoticeLines, Panel } from '../frames/index.js';
-import { IntgBand } from './adminIntegrationsParts.jsx';
+import { DescLines, IntgBand } from './adminIntegrationsParts.jsx';
 import { sentences } from './adminIntegrationsText.js';
 import { resolveKoreanParticles } from '../shared/koreanParticle.js';
 import Button from '../shared/Button.jsx';
@@ -346,7 +346,7 @@ export function RequestToolModal({ modal, labels, onClose, onSubmit }) {
   return (
     <FormModal
       title={L.title}
-      description={<NoticeLines lines={sentences(L.description)} />}
+      description={<DescLines text={L.description} />}
       titleId="intg-request-title"
       closeLabel={L.close}
       cancelLabel={L.cancel}

@@ -24,7 +24,7 @@ import Button from '../shared/Button.jsx';
 import AdminIntegrationsLeaveCalendar from './AdminIntegrationsLeaveCalendar.jsx';
 import { LEAVE_CALENDAR_DEFAULT_LABELS } from './adminIntegrationsLeaveCalendarLabels.js';
 import { FormModal, FrameTable, NoticeLines, Panel, StatStrip } from '../frames/index.js';
-import { IntgBand } from './adminIntegrationsParts.jsx';
+import { DescLines, IntgBand } from './adminIntegrationsParts.jsx';
 import { sentences } from './adminIntegrationsText.js';
 import { ArrowLeftGlyph, ArrowRightGlyph, UserGlyph } from '../shared/lineIcons.jsx';
 
@@ -996,7 +996,7 @@ function SlackUnmatchedModal({ modal, labels, onClose, onRetry }) {
   return (
     <ModalShell
       title={L.modalTitle}
-      description={<NoticeLines lines={sentences(L.modalDescription)} />}
+      description={<DescLines text={L.modalDescription} />}
       titleId="intg-slack-unmatched-title"
       closeLabel={L.close}
       onClose={onClose}

@@ -1,4 +1,6 @@
+import { Fragment } from 'react';
 import { AlertTriangleGlyph, InfoGlyph } from '../shared/lineIcons.jsx';
+import { sentences } from './adminIntegrationsText.js';
 
 /**
  * 연동 화면 조각 (pivit-work PW-3126) — 공용 틀(components/frames)이 못 담는 색 띠.
@@ -34,4 +36,17 @@ export function IntgBand({ tone = 'error', lines, actions, role, testId }) {
       {actions && <span className="intg-band-actions">{actions}</span>}
     </div>
   );
+}
+
+/**
+ * 창 머리 설명 — 창 틀이 설명을 `<p>` 에 담아 목록을 못 넣으므로 문장 사이를 줄바꿈으로 나눈다(PW-3126).
+ * @param {{ text: string }} props
+ */
+export function DescLines({ text }) {
+  return sentences(text).map((line, i) => (
+    <Fragment key={i}>
+      {i > 0 && <br />}
+      {line}
+    </Fragment>
+  ));
 }
