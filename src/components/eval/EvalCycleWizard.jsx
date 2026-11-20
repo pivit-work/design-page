@@ -3795,6 +3795,12 @@ export default function EvalCycleWizard({
    * 여기서 원본을 다시 건드리지 않는다 (policy §5.10.1).
    */
   const [tplLoadedFrom, setTplLoadedFrom] = useState(null);
+  /**
+   * [pivit-work PW-3076 · spec §4.2.2-I S-6 · hr §5.1-D W1 덧붙임] 지금 편집 중인 평가지를 1단계 [초안 만들기]가 채웠나.
+   * 채웠으면 버전 라벨은 프리셋과 비교하지 않고 «AI 초안» — HR 이 고쳐도 그대로다. 프리셋을 다시 고르거나
+   * 저장본을 불러오면 꺼진다. 차수·유형 버퍼에 함께 실려 다닌다.
+   */
+  const [tplAiDrafted, setTplAiDrafted] = useState(false);
   // 직급별 템플릿 버전 (시안 eval_role_template_map). 직급은 멤버 position 에서 도출.
   // PW-1875 직급별 템플릿 행 검색 — 보이는 행만 거른다. 고른 버전(roleVersions)은 건드리지 않는다.
   const [roleQuery, setRoleQuery] = useState('');
@@ -5645,11 +5651,13 @@ export default function EvalCycleWizard({
   const applyTplPreset = (id) => {
     setTplVersion(id);
     setTplQuestions(presetFor(id, tplType));
+    setTplAiDrafted(false);
   };
   /* PW-1459 §5.10 — 손본 항목이 있으면 다른 버전으로 바꾸기 전에 묻는다. 말없이 바꾸면 고친 것이 사라진다. */
   const [pendingTplVersion, setPendingTplVersion] = useState(null);
   const selectTplPreset = (id) => {
-    if (id !== tplVersion && tplIsCustomized) {
+    // [pivit-work PW-3076] AI 초안이 채운 평가지는 어느 프리셋을 눌러도 먼저 묻는다 — 같은 버전을 눌러도 초안이 지워진다.
+    if (tplAiDrafted || (id !== tplVersion && tplIsCustomized)) {
       setPendingTplVersion(id);
       return;
     }
@@ -5855,6 +5863,7 @@ export default function EvalCycleWizard({
     absolute: tplAbsolute,
     ratioScope: tplRatioScope,
     loadedFrom: tplLoadedFrom,
+    aiDrafted: tplAiDrafted,
   });
   const applyTplBuffer = (b) => {
     setTplName(b.name ?? '');
@@ -5864,6 +5873,7 @@ export default function EvalCycleWizard({
     setTplAbsolute(!!b.absolute);
     setTplRatioScope(b.ratioScope || 'div');
     setTplLoadedFrom(b.loadedFrom ?? null);
+    setTplAiDrafted(!!b.aiDrafted);
     setTplEditingId(null);
   };
   /** 템플릿 → 버퍼(불러오기와 같은 프리필). */
@@ -6430,6 +6440,7 @@ export default function EvalCycleWizard({
       setTplGrades(tpl.grades);
       setTplAbsolute(!!tpl.absolute);
       setTplRatioScope(tpl.ratioScope || 'div');
+      setTplAiDrafted(false);
       // PW-434 ③ 고정 바가 읽는 출처. 스냅샷을 함께 들고 있어야 «그 뒤에 고쳤는지» 를 말할 수 있다.
       setTplLoadedFrom({
         name: tpl.name,
@@ -8757,6 +8768,7 @@ export default function EvalCycleWizard({
         name: tpl?.name ?? '',
         questions: tpl?.items ?? [],
         grades: tpl?.grades?.length ? tpl.grades : DEFAULT_GRADES,
+        aiDrafted: true,
       };
     };
     const rounds = types.includes('leader') ? clampLeaderRounds(draft.leaderRounds) : 1;
@@ -9275,9 +9287,12 @@ export default function EvalCycleWizard({
                     })}
                   </span>
                   <span className="evc-tpl-ctxbar-version" data-testid="evc-tpl-ctxbar-version">
-                    {L[TEMPLATE_VERSIONS.find((v) => v.id === tplVersion)?.labelKey] || tplVersion}
+                    {/* [pivit-work PW-3076 S-6] AI 초안이 채운 평가지는 프리셋과 견주지 않는다 — 고쳐도 «AI 초안». */}
+                    {tplAiDrafted
+                      ? L.tplVersionAiDraft
+                      : L[TEMPLATE_VERSIONS.find((v) => v.id === tplVersion)?.labelKey] || tplVersion}
                     {/* [PW-2076 W1] 불러왔으면 비교 기준은 저장본이라 여기엔 붙이지 않는다 — 📎 칩이 말한다. */}
-                    {!tplLoadedFrom && tplIsCustomized ? ` · ${L.tplCustomized}` : ''}
+                    {!tplLoadedFrom && !tplAiDrafted && tplIsCustomized ? ` · ${L.tplCustomized}` : ''}
                     {roleMode === 'by_role' && !hideRoleVersions ? ` · ${L.roleModeByRole}` : ''}
                   </span>
                   <span className="evc-tpl-ctxbar-meta">
@@ -9707,7 +9722,7 @@ export default function EvalCycleWizard({
                   <button
                     type="button"
                     key={p.id}
-                    className={`evc-tpl-preset${tplVersion === p.id ? ' is-on' : ''}`}
+                    className={`evc-tpl-preset${tplVersion === p.id && !tplAiDrafted ? ' is-on' : ''}`}
                     onClick={() => selectTplPreset(p.id)}
                     data-testid={`evc-tpl-version-${p.id}`}
                   >
@@ -9715,7 +9730,7 @@ export default function EvalCycleWizard({
                     <span className="evc-tpl-preset-head">
                       <span className="evc-tpl-preset-label">
                         {L[p.labelKey]}
-                        {!tplLoadedFrom && tplVersion === p.id && tplIsCustomized ? ` · ${L.tplCustomized}` : ''}
+                        {!tplLoadedFrom && !tplAiDrafted && tplVersion === p.id && tplIsCustomized ? ` · ${L.tplCustomized}` : ''}
                       </span>
                       {p.recommended && <StatusBadge className="evc-mode-badge">{L.recommendedBadge}</StatusBadge>}
                     </span>

@@ -29,6 +29,8 @@ import {
 } from './evalIcons.jsx';
 import { fieldsShape, reseedKeepingEdits } from './reseedAnswers.js';
 import MemberAiButton from '../oneonone/MemberAiButton.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
+import { LeaderCommentPolishResult, LeaderCommentPolishUsed } from './LeaderCommentPolish.jsx';
 
 /**
  * EvalCycleMemberCanvas — 멤버 셀프 리뷰 작성 화면.
@@ -146,7 +148,20 @@ const DEFAULT_LABELS = {
   // PW-2654 — 디자이너 AI 버튼(MemberAiButton)이 «AI» 를 그리고 문구는 동작 낱말만.
   aiPolish: '다듬기',
   aiPolishing: '다듬는 중…',
-  aiError: 'AI 다듬기에 실패했습니다.',
+  aiError: '글을 다듬지 못했습니다. 잠시 후 다시 시도해 주세요',
+  // [pivit-work PW-3076 · member §4.3.3 · spec §4.3.6] 다듬기는 바로 넣지 않고 칸마다 노란 카드로 고르게 한다.
+  // 카드 모양·문구는 리더 코멘트 다듬기(leader §5.6-A)와 같은 틀이다.
+  aiPolishRetry: '다시 시도',
+  aiPolishEmptyHint: '다듬을 글을 먼저 써 주세요',
+  aiPolishNoChange: '고칠 표현이 없습니다',
+  polishCardTitle: '다듬은 문구',
+  polishUnconfirmed: '미확인',
+  polishStale: '원문이 바뀌었습니다 — 다시 다듬어 주세요',
+  polishOriginal: '원문',
+  polishPolished: '다듬은 문구',
+  polishUse: '다듬은 문구 쓰기',
+  polishKeep: '원문 그대로 두기',
+  polishUsed: '다듬은 문구를 썼습니다 · 이어서 고칠 수 있습니다',
   // §4.3 AI 초안 생성 — 빈 칸이 아니라 근거가 붙은 초안에서 시작한다.
   aiDraft: '전체 생성',
   // spec-eval-cycle §4.3.4 E3 — 전체 생성과 함께 서술형 항목마다 그 항목만 만드는 단추.
@@ -607,6 +622,11 @@ export default function EvalCycleMemberCanvas({
   const [state, setState] = useState(() => seedState(answers, fields));
   const [aiBusy, setAiBusy] = useState(false);
   const [aiError, setAiError] = useState(false);
+  /** [PW-3076] 고르기 전 다듬은 문구 — `{칸키:부분 → {key, part, original, text}}`. 저장하지 않는다(P-7). */
+  const [polishCards, setPolishCards] = useState({});
+  /** [PW-3076] [다듬은 문구 쓰기]로 넣은 글 — 칸이 이 글 그대로인 동안 «✓ 다듬은 문구를 썼습니다» 를 단다. */
+  const [polishUsed, setPolishUsed] = useState({});
+  const [polishNoChange, setPolishNoChange] = useState(false);
   /* [PW-1460] AI 초안 진행·실패는 «어디서 눌렀나»를 담는다 — 'all'(전체) 또는 항목 key.
      항목별 단추의 실패는 그 항목 아래에서 말한다. */
   const [draftBusy, setDraftBusy] = useState(null);
@@ -784,6 +804,7 @@ export default function EvalCycleMemberCanvas({
 
   const setField = (key, patch) => {
     dirtyRef.current = true; // TC-135 사용자 편집 표시 → 자동저장 트리거
+    setPolishNoChange(false); // [PW-3076] «고칠 표현이 없습니다» 는 다음 입력 때 사라진다
     setState((prev) => ({ ...prev, [key]: { ...prev[key], ...patch } }));
   };
 
@@ -817,35 +838,101 @@ export default function EvalCycleMemberCanvas({
 
   const toItems = () => answerItems(fields, state, trackAiDraft);
 
+  /**
+   * [PW-3076 · spec §4.3.6 P-1] 다듬을 글 — 서술형 답과 척도 항목의 사유 글. 점수·체크박스는 대상이 아니다.
+   */
+  const polishTargets = () =>
+    fields.flatMap((f) => {
+      if (f.type === 'checkbox') return [];
+      const part = f.type === 'rating' ? 'rationale' : 'textAnswer';
+      const text = state[f.key]?.[part] ?? '';
+      return text.trim() ? [{ f, part, text }] : [];
+    });
+  const polishKeyOf = (key, part) => `${key}:${part}`;
+  const dropPolishCard = (ck) =>
+    setPolishCards((prev) => {
+      const next = { ...prev };
+      delete next[ck];
+      return next;
+    });
+
+  /**
+   * [PW-3076 · P-2 · P-6] 글이 있는 칸을 한꺼번에 다듬고, 바뀐 칸마다 노란 카드를 띄운다 — 칸은 바꾸지 않는다.
+   * 다시 누르면 떠 있던 카드를 닫고 지금 글로 다시 다듬는다.
+   */
   const handleAiPolish = async () => {
-    if (!onAiPolish) return;
-    const items = fields
-      .map((f, i) => ({
-        index: i,
-        itemCategory: f.category,
-        growthType: f.growthType,
-        textAnswer: state[f.key].textAnswer,
-      }))
-      .filter((it) => it.textAnswer.trim());
-    if (items.length === 0) return;
+    if (!onAiPolish || aiBusy) return;
+    const targets = polishTargets();
+    if (targets.length === 0) return;
     setAiError(false);
+    setPolishNoChange(false);
+    setPolishCards({});
     setAiBusy(true);
     try {
-      const polished = await onAiPolish(items);
-      setState((prev) => {
-        const next = { ...prev };
-        for (const p of polished) {
-          const f = fields[p.index];
-          if (f) next[f.key] = { ...next[f.key], textAnswer: p.textAnswer };
-        }
-        return next;
-      });
+      const polished = await onAiPolish(
+        targets.map((t, index) => ({
+          index,
+          itemCategory: t.f.category,
+          growthType: t.f.growthType,
+          textAnswer: t.text,
+        })),
+      );
+      const cards = {};
+      for (const p of polished ?? []) {
+        const t = targets[p.index];
+        const text = p.textAnswer ?? '';
+        if (!t || !text.trim() || text.trim() === t.text.trim()) continue;
+        cards[polishKeyOf(t.f.key, t.part)] = { key: t.f.key, part: t.part, original: t.text, text };
+      }
+      setPolishCards(cards);
+      setPolishNoChange(Object.keys(cards).length === 0);
     } catch (e) {
-      // 앱이 이미 알린 실패(이용 정지 등)는 글을 겹쳐 쓰지 않는다(PW-2907).
+      // 앱이 이미 알린 실패(이용 정지 · 글이 너무 김 등)는 글을 겹쳐 쓰지 않는다(PW-2907).
       if (!isNotifiedFailure(e)) setAiError(true);
     } finally {
       setAiBusy(false);
     }
+  };
+
+  /**
+   * [PW-3076 · P-6 · member §4.4.1 덧붙임] [다듬은 문구 쓰기] — 칸을 바꾸고 확인(초록)으로 둔다.
+   * 확인 전 AI 초안 글(노랑) 칸이면 글을 읽고 고른 것이라 확인으로 친다.
+   */
+  const applyPolished = (c) => {
+    const st = state[c.key];
+    const patch = { [c.part]: c.text };
+    if (c.part === 'textAnswer' && st?.aiDraft != null && !st.isConfirmed) patch.isConfirmed = true;
+    setField(c.key, patch);
+    setPolishUsed((prev) => ({ ...prev, [polishKeyOf(c.key, c.part)]: c.text }));
+  };
+  const isPolishUsed = (f, part) => {
+    const used = polishUsed[polishKeyOf(f.key, part)];
+    return used != null && state[f.key]?.[part] === used;
+  };
+  const polishLabels = { ...L, polishFailed: L.aiError, polishRetry: L.aiPolishRetry };
+  /** 칸 바로 아래 — «✓ 다듬은 문구를 썼습니다» 와 노란 카드. */
+  const renderPolish = (f, part) => {
+    const ck = polishKeyOf(f.key, part);
+    const card = polishCards[ck];
+    const testId = `evm-${part === 'rationale' ? 'rationale' : 'text'}-${f.key}`;
+    return (
+      <>
+        {isPolishUsed(f, part) && <LeaderCommentPolishUsed L={polishLabels} testId={testId} />}
+        {card && !readOnly && (
+          <LeaderCommentPolishResult
+            polish={{
+              state: { status: 'done', changed: true, original: card.original, text: card.text },
+              setState: () => dropPolishCard(ck),
+              run: handleAiPolish,
+              stale: (state[f.key]?.[part] ?? '') !== card.original,
+            }}
+            onUse={() => applyPolished(card)}
+            L={polishLabels}
+            testId={testId}
+          />
+        )}
+      </>
+    );
   };
 
   // §4.3 AI 초안 생성 — 다듬기와 달리 **빈 칸**을 근거로 채운다.
@@ -1339,6 +1426,7 @@ export default function EvalCycleMemberCanvas({
                         onChange={(e) => setField(f.key, { rationale: e.target.value })}
                         data-testid={`evm-rationale-${f.key}`}
                       />
+                      {renderPolish(f, 'rationale')}
                       {triedSubmit && f.requiresRationale && !state[f.key].rationale.trim() && (
                         <p className="evm-field-error" data-testid={`evm-rationale-error-${f.key}`}>
                           {L.rationaleRequired}
@@ -1387,7 +1475,7 @@ export default function EvalCycleMemberCanvas({
                   ) : (
                     <>
                       <textarea
-                        className={`evm-textarea${triedSubmit && (isIncomplete(f) || isAiPending(f)) ? ' is-invalid' : ''}${aiStateOf(f) ? ` is-ai-${aiStateOf(f).tone}` : ''}${inputStateClass(f)}`}
+                        className={`evm-textarea${triedSubmit && (isIncomplete(f) || isAiPending(f)) ? ' is-invalid' : ''}${aiStateOf(f) ? ` is-ai-${aiStateOf(f).tone}` : isPolishUsed(f, 'textAnswer') ? ' is-ai-confirmed' : ''}${inputStateClass(f)}`}
                         rows={4}
                         value={state[f.key].textAnswer}
                         placeholder={f.placeholder}
@@ -1489,6 +1577,7 @@ export default function EvalCycleMemberCanvas({
                           <AiDraftSources sources={draftSources[f.key]} L={L} testId={`evm-ai-sources-${f.key}`} />
                         </div>
                       )}
+                      {renderPolish(f, 'textAnswer')}
                     </>
                   )}
                   {showVisibility && (
@@ -1507,10 +1596,13 @@ export default function EvalCycleMemberCanvas({
         </div>
 
         {!submitted && aiError && (
-          <div className="evc-list">
-            <p className="evx-notice is-error" data-testid="evm-ai-error">
-              {L.aiError}
-            </p>
+          <div className="evc-list" data-testid="evm-ai-error">
+            {/* [PW-3076 · P-9] 칸은 그대로 · [다시 시도] — 리더 코멘트 다듬기 실패 줄과 같은 틀. */}
+            <LeaderCommentPolishResult
+              polish={{ state: { status: 'error' }, run: handleAiPolish }}
+              L={polishLabels}
+              testId="evm-ai"
+            />
           </div>
         )}
 
@@ -1602,13 +1694,22 @@ export default function EvalCycleMemberCanvas({
                   />
                 </span>
               )}
+              {onAiPolish && polishNoChange && (
+                <span className="evm-autosave" data-testid="evm-ai-polish-nochange">
+                  {L.aiPolishNoChange}
+                </span>
+              )}
               {onAiPolish && (
                 <span data-testid="evm-ai-polish">
-                  <MemberAiButton
-                    label={aiBusy ? L.aiPolishing : L.aiPolish}
-                    pending={aiBusy}
-                    onClick={handleAiPolish}
-                  />
+                  {/* [PW-3076 · member §4.3.3] 다듬을 글이 없으면 꺼지고 툴팁이 이유를 말한다. */}
+                  <Tooltip content={polishTargets().length === 0 ? L.aiPolishEmptyHint : null}>
+                    <MemberAiButton
+                      label={aiBusy ? L.aiPolishing : L.aiPolish}
+                      pending={aiBusy}
+                      disabled={aiBusy || polishTargets().length === 0}
+                      onClick={handleAiPolish}
+                    />
+                  </Tooltip>
                 </span>
               )}
               {/* [pivit-work PW-2750] 저장 콜백이 없으면 [임시저장]을 그리지 않는다 — 제출한 동료 리뷰를 고칠
