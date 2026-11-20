@@ -2,6 +2,7 @@ import { CloseGlyph } from '../shared/lineIcons.jsx';
 import EvalTemplateItemSettings from './EvalTemplateItemSettings.jsx';
 import Select from '../shared/Select.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import AiMark from '../shared/AiMark.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import { FieldInfo } from './evalFieldMeta.jsx';
 import { useHandleReorder } from './useHandleReorder.js';
@@ -14,8 +15,7 @@ import {
   isNoteItem,
   scaleMaxOf,
   sectionDisplayName,
-  shownIdentity,
-} from './evalTemplateItemModel.js';
+  shownIdentity, isAiDraftOn } from './evalTemplateItemModel.js';
 
 /**
  * [PW-602 ④] 설명 항목의 행 제목. 제목은 «선택»이라 비어 있을 수 있는데, 그때 행이
@@ -477,6 +477,14 @@ export function EvalTemplateItemRow({
       {q.description && !isNoteItem(q) && (q.descriptionDisplay || 'tooltip') !== 'hidden' && (
         <StatusBadge className="evc-tpl-item-badge" data-testid={`evc-tpl-badge-guide-${q.id}`}>
           {L.guideBadge}
+        </StatusBadge>
+      )}
+      {/* [PW-3076 · hr §5.11-C] 항목 설정 «AI 초안»이 켜진 서술형 — 패널을 열지 않아도 읽히게.
+          마법사·평가 템플릿 같은 행. 디자이너 AI 딱지(.ons-ai-tag)의 작은 판 .okr-ai-tag(PW-2683). */}
+      {L.templateAiBadge && isAiDraftOn(q) && (
+        <StatusBadge className="okr-ai-tag" data-testid={`evc-tpl-badge-ai-${q.id}`}>
+          <AiMark />
+          <span>{L.templateAiBadge}</span>
         </StatusBadge>
       )}
       {trailing}

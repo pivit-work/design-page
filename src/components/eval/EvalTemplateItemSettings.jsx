@@ -21,8 +21,7 @@ import {
   isNoteItem,
   scaleMaxOf,
   supportsGrowthType,
-  supportsPeerVisible,
-} from './evalTemplateItemModel.js';
+  supportsPeerVisible, isAiDraftOn } from './evalTemplateItemModel.js';
 
 /** 가이드 문구가 이보다 길면 「툴팁을 권합니다」 힌트를 띄운다 — 차단하지 않는다(§5.11-D). */
 const GUIDE_LONG_AT = 200;
@@ -268,7 +267,7 @@ export default function EvalTemplateItemSettings({
         <div className="evc-tpl-set-block" data-testid={`evc-tpl-ai-draft-block-${q.id}`}>
           <div className="evc-tpl-set-title">{L.aiDraftTitle}</div>
           <Checkbox
-            checked={!!q.ai}
+            checked={isAiDraftOn(q)}
             onChange={(e) => onPatch(q.id, { ai: e.target.checked })}
             data-testid={`evc-tpl-ai-draft-${q.id}`}
             label={L.aiDraftLabel}

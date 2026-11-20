@@ -23,7 +23,6 @@ import Stack from '../shared/Stack.jsx';
 import EvalHintTip from './EvalHintTip.jsx';
 import { joinHintSentences } from './joinHintSentences.js';
 import MemberAiButton from '../oneonone/MemberAiButton.jsx';
-import AiMark from '../shared/AiMark.jsx';
 import {
   ArrowLeftGlyph,
   ArrowRightGlyph,
@@ -93,6 +92,7 @@ import {
   QUESTION_TYPES,
   fill,
   filledOptions,
+  isAiDraftOn,
   isNoteItem,
   questionItems,
   scaleMaxOf,
@@ -1746,7 +1746,7 @@ function TemplateBriefPreview({ tpl, labels: L }) {
                         ? L.qKindNote
                         : L[QUESTION_TYPES.find((t) => t.id === q.type)?.labelKey] || q.type}
                     </span>
-                    {q.ai && <span className="evc-tpl-peek-item-ai">{L.tplPeekAi}</span>}
+                    {isAiDraftOn(q) && <span className="evc-tpl-peek-item-ai">{L.tplPeekAi}</span>}
                   </div>
                 ))}
               </div>
@@ -8359,7 +8359,7 @@ export default function EvalCycleWizard({
             // 실어, 버튼과 공개 범위가 서로 다른 말을 했다.
             disclosure: q.disclosure ?? null,
             // [PW-3076] 항목 설정 «AI 초안» — 서버가 서술형만 받아 둔다.
-            ai: !!q.ai,
+            ai: isAiDraftOn(q),
           })),
           grades: t.grades.map((g) => ({
             label: g.label,
@@ -10031,13 +10031,7 @@ export default function EvalCycleWizard({
                     }
                     trailing={
                       <>
-                        {/* PW-2683 — 디자이너 AI 딱지(.ons-ai-tag)의 작은 판 .okr-ai-tag — 연보라·옅은 테두리·AI 아이콘. */}
-                        {q.ai && (
-                          <StatusBadge className="okr-ai-tag">
-                            <AiMark />
-                            <span>{L.templateAiBadge}</span>
-                          </StatusBadge>
-                        )}
+                        {/* PW-2683 «AI 초안» 딱지는 행 부품(EvalTemplateItemRow)이 그린다 — 평가 템플릿 화면과 한 곳(PW-3076). */}
                         {q.type === 'rating' && (
                           <button
                             type="button"
