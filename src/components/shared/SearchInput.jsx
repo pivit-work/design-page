@@ -55,7 +55,7 @@ export default function SearchInput({
         type="text"
         role="searchbox"
         autoComplete="off"
-        className={`${controlClass('dp-input dp-search-input', inputClassName, isInvalid)}${size === 'sm' ? ' is-sm' : ''}`}
+        className={`${controlClass('dp-input dp-search-input', inputClassName, isInvalid)}${size === 'sm' && !inputClassName ? ' is-sm' : ''}`}
         placeholder={placeholder}
         aria-label={ariaLabel ?? placeholder}
         {...a11y}

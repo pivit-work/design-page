@@ -180,7 +180,7 @@ export default function SearchSelect({
       <button
         ref={setTriggerRef}
         type="button"
-        className={`${controlClass('dp-input dp-select', className, isInvalid)} dp-search-select-trigger${size === 'sm' ? ' is-sm' : ''}`}
+        className={`${controlClass('dp-input dp-select', className, isInvalid)} dp-search-select-trigger${size === 'sm' && !className ? ' is-sm' : ''}`}
         disabled={disabled}
         role="combobox"
         aria-haspopup="listbox"
