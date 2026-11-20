@@ -6,7 +6,6 @@ import assetUrl from '../shared/assetUrl.js';
 import ModalShell from '../shared/ModalShell.jsx';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
 import Tabs from '../shared/Tabs.jsx';
-import RosterTable from '../shared/RosterTable.jsx';
 import Switch from '../shared/Switch.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
 import Toast from '../shared/Toast.jsx';
@@ -24,6 +23,10 @@ import Select from '../shared/Select.jsx';
 import Button from '../shared/Button.jsx';
 import AdminIntegrationsLeaveCalendar from './AdminIntegrationsLeaveCalendar.jsx';
 import { LEAVE_CALENDAR_DEFAULT_LABELS } from './adminIntegrationsLeaveCalendarLabels.js';
+import { FormModal, FrameTable, NoticeLines, Panel, StatStrip } from '../frames/index.js';
+import { IntgBand } from './adminIntegrationsParts.jsx';
+import { sentences } from './adminIntegrationsText.js';
+import { ArrowLeftGlyph, ArrowRightGlyph, UserGlyph } from '../shared/lineIcons.jsx';
 
 /**
  * AdminIntegrationsCanvas — 어드민 "연동(Integrations)" 탭 Pure 컴포넌트.
@@ -46,7 +49,6 @@ import { LEAVE_CALENDAR_DEFAULT_LABELS } from './adminIntegrationsLeaveCalendarL
  * 호스트 앱은 두 스타일시트를 모두 import 해야 한다.
  */
 
-const ICON_INFO = '/icons-solid/asterisk-01.svg';
 const ICON_ALERT = '/icons-solid/alert-triangle.svg';
 /* 동기화 로그 상태 칸 기호 ✓ · ⚠ · ✗ (screen-integrations.policy §2-5 «상태 칸은 셋» · pivit-work PW-3128) — 글리프 대신 아이콘 */
 const ICON_SYNC_OK = '/icons-solid/check.svg';
@@ -79,6 +81,7 @@ const BASE_LABELS = {
   },
   sync: {
     noSyncHistory: '동기화 기록 없음',
+    lastSyncRow: '마지막 동기화',
     count: '건',
     collect: '수집',
     collectingShort: '수집 중...',
@@ -90,6 +93,17 @@ const BASE_LABELS = {
     expiredWarning:
       '관리자 토큰이 만료되었습니다. 봇 토큰으로 수집 중입니다(채널 참여 필요). 재연결하여 관리자 액세스를 복원하세요.',
     reconnectAdmin: '관리자 재연결',
+    label: '관리자 토큰',
+    activeShort: '활성',
+    expiredShort: '만료됨',
+  },
+  /* Slack 소유자 권한 관리 — 따로 화면 (기획서 admin-app.jsx SlackTransferView · SettingsPanel · PW-3126) */
+  owner: {
+    title: 'Slack 소유자 권한 관리',
+    back: '연동 설정',
+    settingsRow: '설치 · 수집 자격',
+    open: '소유자 권한 관리',
+    openFromCard: '권한 관리',
   },
   settingsPanel: { title: '{{name}} 수집 범위 설정', saved: '저장됨' },
   saveSettings: '설정 저장',
@@ -149,6 +163,9 @@ const BASE_LABELS = {
     loadFailed: '목록을 불러오지 못했습니다',
     retry: '다시 시도',
     empty: 'Slack 으로 받지 못하는 구성원이 없습니다.',
+    searchPlaceholder: '이름 · 소속 · 메일 검색',
+    countLabel: '{{count}}명',
+    noMatch: '검색에 맞는 구성원이 없습니다.',
     close: '닫기',
   },
   transfer: {
@@ -227,14 +244,25 @@ function fmt(tpl, vars) {
 
 /* ── 공통 UI 프리미티브 ─────────────────────────────────────────────── */
 
+/* 상태 딱지 — 앞 색 점 없이 뜻대로 색(PW-3126 · status-badge.css 뜻→색). 연결 중은 «기다림»이라 주황. */
+const STATUS_TONE = { connected: 'success', connecting: 'warning', error: 'danger', disconnected: 'neutral' };
+
 function StatusBadge({ status, labels }) {
-  const known = ['connected', 'disconnected', 'connecting', 'error'].includes(status);
-  const cls = known ? status : 'disconnected';
   return (
-    <DpStatusBadge className={`intg-status is-${cls}`}>
-      <span className="intg-status-dot" />
+    <DpStatusBadge tone={STATUS_TONE[status] ?? 'neutral'} data-status={status}>
       {labels.status[status] ?? status}
     </DpStatusBadge>
+  );
+}
+
+/** 카드 안 정보 칸 한 줄 — 이름 왼쪽 · 값 오른쪽. `tone` 은 muted(0 · 없음) · error(실패 1 이상) · ok */
+function KvRow({ label, value, tone, testId, children }) {
+  return (
+    <div className="intg-kv-row" data-testid={testId}>
+      <span className="intg-kv-label">{label}</span>
+      {value !== undefined && <span className={`intg-kv-value${tone ? ` is-${tone}` : ''}`}>{value}</span>}
+      {children}
+    </div>
   );
 }
 
@@ -278,7 +306,7 @@ function OwnerAvatar({ name, avatar, size = 40 }) {
 
 /* ── 앱 카드 ────────────────────────────────────────────────────────── */
 
-function AppCard({ card, labels, baseUrl, onConnect, onDisconnect, onReconnect, onCancelConnecting, onTriggerSync, onOpenSettings, onOpenSlackUnmatched }) {
+function AppCard({ card, labels, baseUrl, onConnect, onDisconnect, onReconnect, onCancelConnecting, onTriggerSync, onOpenSettings, onOpenSlackUnmatched, onOpenOwner }) {
   const { app, brandName, logo, description, usage, status } = card;
   const usageText = (usage ?? []).join(' · ');
 
@@ -294,7 +322,7 @@ function AppCard({ card, labels, baseUrl, onConnect, onDisconnect, onReconnect, 
             <span className="intg-app-name">{brandName}</span>
             <span className="intg-app-desc">{description}</span>
           </div>
-          <DpStatusBadge className="intg-status is-disconnected">{labels.status.comingSoon}</DpStatusBadge>
+          <DpStatusBadge tone="neutral">{labels.status.comingSoon}</DpStatusBadge>
         </div>
         {usageText && <div className="intg-usage">{usageText}</div>}
         <div className="intg-actions">
@@ -310,6 +338,77 @@ function AppCard({ card, labels, baseUrl, onConnect, onDisconnect, onReconnect, 
   const isError = status === 'error';
   const isConnecting = status === 'connecting';
   const showRecords = typeof card.recordsLast7Days === 'number' && card.recordsLast7Days > 0;
+  const dual = isConnected && app === 'slack' && card.tokenMode === 'dual';
+  const delivery = card.slackDelivery;
+
+  // 정보 칸 — 한 칸 안 «이름 왼쪽 · 값 오른쪽» 줄(PW-3126 · 리소스 팀 현황 사람 카드 칸). 글은 그대로, «:» 만 뺀다.
+  const kvRows = [];
+  if (isConnected) {
+    kvRows.push(
+      <KvRow
+        key="sync"
+        label={labels.sync.lastSyncRow}
+        value={
+          <>
+            {card.lastSyncLabel ?? labels.sync.noSyncHistory}
+            {showRecords && ` · ${card.recordsLast7Days.toLocaleString()}${labels.sync.count}`}
+          </>
+        }
+        tone={card.lastSyncLabel ? undefined : 'muted'}
+        testId={`intg-last-sync-${app}`}
+      />,
+    );
+  }
+  if (dual) {
+    kvRows.push(
+      <KvRow
+        key="admin-token"
+        label={labels.adminToken.label}
+        value={card.adminTokenStatus === 'active' ? labels.adminToken.activeShort : labels.adminToken.expiredShort}
+        tone={card.adminTokenStatus === 'active' ? 'ok' : 'error'}
+        testId="intg-admin-token"
+      />,
+    );
+  }
+  // Admin 에게만 — 호스트가 값을 받았을 때만 `slackDelivery` 를 싣는다(못 받으면 숨김). 알림은 회사의 앱 설치로 나가
+  // 수집 상태와 따로라, 카드 상태(연결 중·오류)와 관계없이 보인다 (pivit-work PW-2054 · 협업툴 연동 §4-B ⑦ ⑧).
+  if (delivery) {
+    kvRows.push(
+      <KvRow
+        key="last-success"
+        label={labels.slackDelivery.lastSuccess}
+        value={delivery.lastSuccessLabel ?? labels.slackDelivery.lastSuccessNone}
+        tone={delivery.lastSuccessLabel ? undefined : 'muted'}
+        testId="intg-slack-last-success"
+      />,
+      <KvRow
+        key="failed"
+        label={labels.slackDelivery.failed7d}
+        value={fmt(labels.slackDelivery.failedCount, { count: delivery.failedLast7Days })}
+        tone={delivery.failedLast7Days > 0 ? 'error' : 'muted'}
+        testId="intg-slack-failed-7d"
+      />,
+    );
+    if (delivery.unmatchedCount > 0) {
+      kvRows.push(
+        <KvRow
+          key="unmatched"
+          label={fmt(labels.slackDelivery.unmatched, { count: delivery.unmatchedCount })}
+          testId="intg-slack-unmatched"
+        >
+          <Button
+            variant="secondary"
+            size="sm"
+            className="intg-btn"
+            data-testid="intg-slack-unmatched-view"
+            onClick={() => onOpenSlackUnmatched(app)}
+          >
+            {labels.slackDelivery.unmatchedView}
+          </Button>
+        </KvRow>,
+      );
+    }
+  }
 
   return (
     <section className="admin-card intg-app-card" data-testid={`intg-card-${app}`}>
@@ -326,120 +425,57 @@ function AppCard({ card, labels, baseUrl, onConnect, onDisconnect, onReconnect, 
 
       {usageText && <div className="intg-usage">{usageText}</div>}
 
-      {isConnected && (
-        <div className="intg-meta">
-          {card.lastSyncLabel ?? labels.sync.noSyncHistory}
-          {showRecords && (
-            <span className="intg-meta-accent">
-              · {card.recordsLast7Days.toLocaleString()}{labels.sync.count}
-            </span>
-          )}
-        </div>
-      )}
-
-      {isConnected && app === 'slack' && card.tokenMode === 'dual' && (
-        <div className="intg-meta">
-          <span
-            style={{
-              color: card.adminTokenStatus === 'active' ? 'var(--utility-green-600)' : 'var(--colors-warning-600)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 5,
-            }}
-          >
-            <span className="intg-status-dot" />
-            {card.adminTokenStatus === 'active' ? labels.adminToken.active : labels.adminToken.expired}
-          </span>
-        </div>
-      )}
+      {kvRows.length > 0 && <div className="intg-kv">{kvRows}</div>}
 
       {isConnected && app === 'slack' && card.adminTokenStatus === 'expired' && (
-        <div className="intg-note is-warning">
-          <span>{labels.adminToken.expiredWarning}</span>
-          <Button
-            variant="secondary"
-            size="sm"
-            className="intg-btn"
-            onClick={() => onReconnect(app)}
-          >
-            {labels.adminToken.reconnectAdmin}
-          </Button>
-        </div>
+        <IntgBand
+          tone="warning"
+          lines={sentences(labels.adminToken.expiredWarning)}
+          actions={
+            <Button variant="secondary" size="sm" className="intg-btn" onClick={() => onReconnect(app)}>
+              {labels.adminToken.reconnectAdmin}
+            </Button>
+          }
+          testId="intg-admin-token-expired"
+        />
       )}
 
       {/* 상태는 그대로 «연동됨»이고 덧붙이는 안내 한 줄 — 누르면 [재연결]과 같은 연결 창 (pivit-work PW-1671 · 협업툴 연동 §5-A). */}
       {isConnected && card.notice && (
-        <div className="intg-note is-info" data-testid={`intg-notice-${app}`}>
-          <span>{card.notice.text}</span>
-          <Button
-            variant="secondary"
-            size="sm"
-            className="intg-btn"
-            onClick={() => onReconnect(app)}
-          >
-            {card.notice.actionLabel}
-          </Button>
-        </div>
-      )}
-
-      {/* Admin 에게만 — 호스트가 값을 받았을 때만 `slackDelivery` 를 싣는다(못 받으면 아래 둘 다 숨김).
-          알림은 회사의 앱 설치로 나가 수집 상태와 따로라, 카드 상태(연결 중·오류)와 관계없이 보인다
-          (pivit-work PW-2054 · 협업툴 연동 §4-B ⑦ ⑧). 줄 모양은 위 «마지막 동기화» 줄과 «다시 연결» 안내 줄 그대로다. */}
-      {card.slackDelivery && (
-        <>
-          <div className="intg-meta" data-testid="intg-slack-last-success">
-            {labels.slackDelivery.lastSuccess}{' '}
-            <span className="intg-meta-accent">
-              {card.slackDelivery.lastSuccessLabel ?? labels.slackDelivery.lastSuccessNone}
-            </span>
-          </div>
-          <div className="intg-meta" data-testid="intg-slack-failed-7d">
-            {labels.slackDelivery.failed7d}{' '}
-            <span className="intg-meta-accent">
-              {fmt(labels.slackDelivery.failedCount, { count: card.slackDelivery.failedLast7Days })}
-            </span>
-          </div>
-          {card.slackDelivery.unmatchedCount > 0 && (
-            <div className="intg-note is-info" data-testid="intg-slack-unmatched">
-              <span>{fmt(labels.slackDelivery.unmatched, { count: card.slackDelivery.unmatchedCount })}</span>
-              <Button
-                variant="secondary"
-                size="sm"
-                className="intg-btn"
-                data-testid="intg-slack-unmatched-view"
-                onClick={() => onOpenSlackUnmatched(app)}
-              >
-                {labels.slackDelivery.unmatchedView}
-              </Button>
-            </div>
-          )}
-        </>
+        <IntgBand
+          tone="info"
+          lines={[card.notice.text]}
+          actions={
+            <Button variant="secondary" size="sm" className="intg-btn" onClick={() => onReconnect(app)}>
+              {card.notice.actionLabel}
+            </Button>
+          }
+          testId={`intg-notice-${app}`}
+        />
       )}
 
       {isError && card.errorMessage && (
-        <div className="intg-note is-error">{card.errorMessage}</div>
+        <IntgBand tone="error" lines={sentences(card.errorMessage)} testId={`intg-error-${app}`} />
       )}
 
       {/* 방금 [연결하기]가 거절됐다 — 카드는 가기 전 상태 그대로 두고 사유만 보인다 (pivit-work PW-2509).
-          연결 기록의 오류(위 상자)와 달리 화면에만 있는 값이라 호스트가 다음 [연결하기]·새로 열기에 비운다. */}
+          연결 기록의 오류(위 띠)와 달리 화면에만 있는 값이라 호스트가 다음 [연결하기]·새로 열기에 비운다. */}
       {card.connectError && (
-        <div className="intg-note is-error" role="alert" data-testid={`intg-connect-error-${app}`}>
-          {card.connectError}
-        </div>
+        <IntgBand tone="error" role="alert" lines={sentences(card.connectError)} testId={`intg-connect-error-${app}`} />
       )}
 
       {card.syncInProgress && card.syncProgress && (
-        <div>
-          <div className="intg-meta" style={{ marginBottom: 6 }}>
+        <div className="intg-progress">
+          <span className="intg-progress-label">
             {fmt(labels.sync.collecting, {
               completed: card.syncProgress.completed,
               total: card.syncProgress.total,
               messages: card.syncProgress.messages,
             })}
-          </div>
-          <div className="intg-progress-track">
+          </span>
+          <div className="ono-start-progress-track">
             <div
-              className="intg-progress-fill"
+              className="ono-start-progress-fill"
               style={{
                 width: card.syncProgress.total > 0
                   ? `${(card.syncProgress.completed / card.syncProgress.total) * 100}%`
@@ -480,12 +516,19 @@ function AppCard({ card, labels, baseUrl, onConnect, onDisconnect, onReconnect, 
             {labels.actions.reconnect}
           </Button>
         )}
+        {/* 기획서 AppCard 오류 상태 Slack [권한 관리] — 설정 창이 없는 상태에서도 소유자 화면으로 간다 (admin-app.jsx 20992) */}
+        {isError && app === 'slack' && onOpenOwner && (
+          <Button variant="secondary" size="sm" className="intg-btn" onClick={onOpenOwner} data-testid="intg-open-owner-from-card">
+            {labels.owner.openFromCard}
+          </Button>
+        )}
         {isConnecting && (
           <>
             <Button variant="secondary" size="sm" className="intg-btn" onClick={() => onReconnect(app)}>
               {labels.actions.retry}
             </Button>
-            <Button variant="danger-ghost" size="sm" className="intg-btn" onClick={() => onCancelConnecting(app)}>
+            {/* 연결 창만 닫는다 — 연결을 끊는 일이 아니라 흰 보조 버튼(PW-3126) */}
+            <Button variant="secondary" size="sm" className="intg-btn" onClick={() => onCancelConnecting(app)}>
               {labels.actions.cancel}
             </Button>
           </>
@@ -497,12 +540,12 @@ function AppCard({ card, labels, baseUrl, onConnect, onDisconnect, onReconnect, 
 
 /* ── 설정 모달 (일반화된 fields view-model) ─────────────────────────── */
 
-function SettingRow({ label, children }) {
+/* 설정 창 칸 하나 — 디자이너 창 칸(FormModal.Field · 칸 이름 18/28 굵게 위 · 칸 전체 폭 · PW-3126) */
+function SettingRow({ label, hint, group, testId, children }) {
   return (
-    <div className="intg-setting-row">
-      <span className="intg-setting-label">{label}</span>
-      <div>{children}</div>
-    </div>
+    <FormModal.Field label={label} hint={hint} group={group} testId={testId}>
+      {children}
+    </FormModal.Field>
   );
 }
 
@@ -533,7 +576,10 @@ function CheckboxListPicker({ field, selected, onToggle, onSetMany }) {
   return (
     <div role="group" aria-label={field.label} data-testid={`intg-picker-${field.key}`}>
       <div className="intg-picker">
-        {list.message ? (
+        {list.message && list.messageTone === 'error' ? (
+          // 못 읽음 — «빈 목록»과 구별되게 빨간 오류 띠(PW-3126). [다시 시도]는 앱에 없어 넣지 않는다(카드 본문).
+          <IntgBand tone="error" role="alert" lines={sentences(list.message)} testId={`intg-picker-message-${field.key}`} />
+        ) : list.message ? (
           <div className="intg-picker-message" data-testid={`intg-picker-message-${field.key}`}>{list.message}</div>
         ) : (
           <>
@@ -564,7 +610,7 @@ function CheckboxListPicker({ field, selected, onToggle, onSetMany }) {
               )}
               {visible.map((o) => (
                 // 네모는 공용 Checkbox (PW-1897). 줄 모양은 이 목록의 것을 그대로 쓴다.
-                <div key={o.value} className="intg-picker-item">
+                <div key={o.value} className={`intg-picker-item${o.dim ? ' is-dim' : ''}`}>
                   <Checkbox
                     className="intg-picker-item-main"
                     inputClassName="dp-check-input"
@@ -579,7 +625,11 @@ function CheckboxListPicker({ field, selected, onToggle, onSetMany }) {
           </>
         )}
       </div>
-      {list.hint && <div className="intg-picker-hint">{list.hint}</div>}
+      {list.hint && (
+        <div className="intg-picker-hint">
+          <NoticeLines tone="muted" lines={sentences(list.hint)} />
+        </div>
+      )}
     </div>
   );
 }
@@ -607,7 +657,7 @@ const SAVED_FLASH_MS = 2000;
  *   불러 앱이 안내를 띄운다(기획 §11 「최소 1개 이상의 권한이 필요해요」).
  * - `onDisconnect(app)` 이 있으면 [연결 해제]를 그린다. 확인 창은 앱이 띄운다(기획 §7·§8).
  */
-function SettingsModal({ modal, labels, baseUrl, onClose, onSave, onDisconnect, onMinSelectedBlocked }) {
+function SettingsModal({ modal, labels, baseUrl, onClose, onSave, onDisconnect, onMinSelectedBlocked, onOpenOwner }) {
   const initialOf = () => {
     const d = {};
     (modal.fields ?? []).forEach((f) => { d[f.key] = f.value; });
@@ -668,6 +718,7 @@ function SettingsModal({ modal, labels, baseUrl, onClose, onSave, onDisconnect, 
       onClose={onClose}
       zIndex={10000}
       className="adm-shell"
+      bodyClassName="tl-emp-modal-body intg-settings-body"
       testId="intg-settings-modal"
       overlayTestId="intg-settings-overlay"
       footer={
@@ -714,18 +765,18 @@ function SettingsModal({ modal, labels, baseUrl, onClose, onSave, onDisconnect, 
         if (field.showWhen && draft[field.showWhen.key] !== field.showWhen.value) return null;
         if (field.kind === 'checkboxGroup' && field.list) {
           return (
-            <div key={field.key} className="intg-setting-row intg-setting-row-list">
+            <SettingRow key={field.key} label={field.label} group testId={`intg-setting-${field.key}`}>
               <CheckboxListPicker
                 field={field}
                 selected={Array.isArray(draft[field.key]) ? draft[field.key] : []}
                 onToggle={(v) => toggleInGroup(field, v)}
                 onSetMany={(next) => setField(field.key, next)}
               />
-            </div>
+            </SettingRow>
           );
         }
         return (
-        <SettingRow key={field.key} label={field.label}>
+        <SettingRow key={field.key} label={field.label} group={field.kind === 'checkboxGroup'} testId={`intg-setting-${field.key}`}>
           {field.kind === 'select' && (
             <SelectInput
               value={draft[field.key]}
@@ -775,86 +826,85 @@ function SettingsModal({ modal, labels, baseUrl, onClose, onSave, onDisconnect, 
         </SettingRow>
         );
       })}
+      {/* 기획서 SettingsPanel «설치 · 수집 자격» 줄 — Slack 토큰 관리는 이 버튼으로 여는 따로 화면이다 (PW-3126 · admin-app.jsx 20640) */}
+      {modal.app === 'slack' && onOpenOwner && (
+        <SettingRow label={labels.owner.settingsRow} testId="intg-setting-owner">
+          <span>
+            <Button variant="secondary" size="sm" className="intg-btn" onClick={onOpenOwner} data-testid="intg-open-owner">
+              {labels.owner.open}
+              <ArrowRightGlyph size={14} aria-hidden />
+            </Button>
+          </span>
+        </SettingRow>
+      )}
     </ModalShell>
   );
 }
 
 /* ── 동기화 로그 테이블 ─────────────────────────────────────────────── */
 
+/* 상태 칸 — 딱지 대신 작은 상태 글자(매니저 KR `.mgr-kr-status` · PW-3126). 셋 — 성공 · 일부 수집 · 실패
+   (screen-integrations.policy §2-5 · pivit-work PW-3128). 사유는 아래 줄에 옅게 · 길면 «…»(말풍선으로 전부). */
+function SyncState({ log, labels, baseUrl }) {
+  if (log.status === 'success') {
+    return (
+      <span className="mgr-kr-status is-success" data-status="success">
+        <Icon src={ICON_SYNC_OK} size={12} baseUrl={baseUrl} />
+        {labels.syncLog.success}
+      </span>
+    );
+  }
+  const partial = log.status === 'partial';
+  return (
+    <span className="intg-state" data-status={log.status}>
+      <span className={`mgr-kr-status ${partial ? 'is-warning' : 'is-error'}`}>
+        <Icon src={partial ? ICON_ALERT : ICON_SYNC_FAILED} size={12} baseUrl={baseUrl} />
+        {partial ? labels.syncLog.partial : labels.syncLog.failed}
+      </span>
+      {log.error && (
+        <span className="intg-state-reason" title={log.error}>
+          {log.error}
+        </span>
+      )}
+    </span>
+  );
+}
+
+function ServiceName({ icon, name }) {
+  return (
+    <span className="intg-svc">
+      {icon && icon.startsWith('/')
+        ? <img src={icon} alt="" />
+        : icon ? <span aria-hidden>{icon}</span> : null}
+      {name}
+    </span>
+  );
+}
+
 function SyncLogTable({ logs, labels, baseUrl, onRetrySyncLog }) {
   if (!logs || logs.length === 0) {
-    return <div className="intg-table-empty">{labels.syncLog.noLogs}</div>;
+    return <div className="intg-empty" data-testid="intg-sync-log-empty">{labels.syncLog.noLogs}</div>;
   }
   return (
-    <RosterTable
-      tableClassName="intg-table"
+    <FrameTable
+      testId="intg-sync-log-table"
       rows={logs}
       rowKey={(log) => log.id}
+      empty={labels.syncLog.noLogs}
       columns={[
-        {
-          key: 'service',
-          header: labels.syncLog.service,
-          render: (log) => (
-            <span className="svc">
-              {log.serviceIcon && log.serviceIcon.startsWith('/')
-                ? <img src={log.serviceIcon} alt={log.service} />
-                : <span aria-hidden>{log.serviceIcon}</span>}
-              {log.service}
-            </span>
-          ),
-        },
-        { key: 'time', header: labels.syncLog.time, cellProps: { className: 'time' }, render: (log) => log.timeLabel },
-        {
-          key: 'count',
-          header: labels.syncLog.count,
-          align: 'right',
-          cellProps: { className: 'num' },
-          render: (log) => log.count.toLocaleString(),
-        },
-        {
-          key: 'status',
-          header: labels.syncLog.status,
-          align: 'center',
-          render: (log) => {
-            // 상태 칸은 셋 — 성공 · 일부 수집 · 실패(screen-integrations.policy §2-5 · pivit-work PW-3128).
-            // 사유는 일부 수집·실패 줄에. 휴가 캘린더 제목처럼 길 수 있어 폭을 묶고 꼬리를 «…»로 — 전체 문장은 말풍선으로.
-            if (log.status === 'success') {
-              return (
-                <DpStatusBadge className="intg-status is-connected">
-                  <Icon src={ICON_SYNC_OK} size={12} baseUrl={baseUrl} />
-                  {labels.syncLog.success}
-                </DpStatusBadge>
-              );
-            }
-            const partial = log.status === 'partial';
-            const head = partial ? labels.syncLog.partial : labels.syncLog.failed;
-            const text = log.error ? `${head}: ${log.error}` : head;
-            return (
-              <DpStatusBadge
-                className={`intg-status ${partial ? 'is-partial' : 'is-error'}${log.error ? ' has-reason' : ''}`}
-                title={log.error ? text : undefined}
-              >
-                <Icon src={partial ? ICON_ALERT : ICON_SYNC_FAILED} size={12} baseUrl={baseUrl} />
-                <span className="intg-status-text">{text}</span>
-              </DpStatusBadge>
-            );
-          },
-        },
+        { key: 'service', header: labels.syncLog.service, render: (log) => <ServiceName icon={log.serviceIcon} name={log.service} /> },
+        { key: 'time', header: labels.syncLog.time, render: (log) => log.timeLabel },
+        { key: 'count', header: labels.syncLog.count, align: 'right', render: (log) => log.count.toLocaleString() },
+        { key: 'status', header: labels.syncLog.status, lines: 2, render: (log) => <SyncState log={log} labels={labels} baseUrl={baseUrl} /> },
         {
           key: 'retry',
-          header: null,
+          header: '',
           align: 'center',
-          headerProps: { 'aria-hidden': true },
-          render: (log) => log.status === 'failed' && log.retryable !== false && onRetrySyncLog && (
-            <Button
-              variant="secondary"
-              size="sm"
-              className="intg-btn"
-              onClick={() => onRetrySyncLog(log.service)}
-            >
+          render: (log) => log.status === 'failed' && log.retryable !== false && onRetrySyncLog ? (
+            <Button variant="secondary" size="sm" className="intg-btn" onClick={() => onRetrySyncLog(log.service)}>
               {labels.syncLog.retry}
             </Button>
-          ),
+          ) : null,
         },
       ]}
     />
@@ -865,45 +915,34 @@ function SyncLogTable({ logs, labels, baseUrl, onRetrySyncLog }) {
  * 데이터 수집 현황 (integrations-spec §5) — 앱마다 마지막 성공 시각 · 지난 7일 수집 건수 · 실패와 [재시도].
  * 행은 호스트가 만든다: `{ app, service, serviceIcon, lastSuccessLabel, records7d, failedCount }`.
  * [재시도] 는 동기화 로그의 [재시도] 와 같은 콜백 — 그 앱을 다시 연결한다(policy §7).
+ * 흰 판 · 표는 공용 틀(Panel · FrameTable · PW-3126). 표 내용은 그대로, «없음»만 옅게.
  */
 function CollectionStatus({ rows, labels, onRetrySyncLog }) {
   const l = labels.collection;
   return (
-    <section className="admin-card" data-testid="intg-collection-status">
-      <h2 className="intg-section-title">{l.title}</h2>
+    <Panel title={l.title} testId="intg-collection-status">
       {rows.length === 0 ? (
-        <div className="intg-table-empty">{l.empty}</div>
+        <div className="intg-empty">{l.empty}</div>
       ) : (
-        <RosterTable
-          tableClassName="intg-table"
+        <FrameTable
           rows={rows}
           rowKey={(r) => r.app}
+          empty={l.empty}
           columns={[
-            {
-              key: 'service',
-              header: l.service,
-              render: (r) => (
-                <span className="svc">
-                  {r.serviceIcon && <img src={r.serviceIcon} alt="" />}
-                  {r.service}
-                </span>
-              ),
-            },
-            { key: 'lastSuccess', header: l.lastSuccess, cellProps: { className: 'time' }, render: (r) => r.lastSuccessLabel || l.never },
+            { key: 'service', header: l.service, render: (r) => <ServiceName icon={r.serviceIcon} name={r.service} /> },
+            { key: 'lastSuccess', header: l.lastSuccess, render: (r) => r.lastSuccessLabel || <span className="intg-muted">{l.never}</span> },
             {
               key: 'records7d',
               header: l.records7d,
               align: 'right',
-              cellProps: { className: 'num' },
-              render: (r) => (typeof r.records7d === 'number' ? r.records7d.toLocaleString() : l.never),
+              render: (r) => (typeof r.records7d === 'number' ? r.records7d.toLocaleString() : <span className="intg-muted">{l.never}</span>),
             },
             {
               key: 'failures',
               header: l.failures,
-              align: 'center',
               render: (r) => (r.failedCount > 0 ? (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                  <DpStatusBadge className="intg-status is-error">{fmt(l.failedCount, { count: r.failedCount })}</DpStatusBadge>
+                <span className="intg-row-value">
+                  <DpStatusBadge tone="danger">{fmt(l.failedCount, { count: r.failedCount })}</DpStatusBadge>
                   {onRetrySyncLog && (
                     <Button
                       variant="secondary"
@@ -916,42 +955,48 @@ function CollectionStatus({ rows, labels, onRetrySyncLog }) {
                     </Button>
                   )}
                 </span>
-              ) : l.noFailures),
+              ) : <span className="intg-muted" data-testid={`intg-collection-none-${r.app}`}>{l.noFailures}</span>),
             },
           ]}
         />
       )}
-    </section>
+    </Panel>
   );
 }
 
-/* ── Slack 토큰 양도 패널 ───────────────────────────────────────────── */
+/* ── Slack 소유자 권한 관리 ─────────────────────────────────────────── */
 
 function TokenLogItem({ entry, labels }) {
   const isExpire = entry.action === 'expire';
   return (
-    <div className="intg-logrow">
-      <div className="intg-logrow-info">
-        <span className="intg-logrow-date">{entry.dateLabel}</span>
-        <span className="intg-logrow-desc">{entry.description}</span>
-      </div>
-      <DpStatusBadge className={`intg-pill ${isExpire ? 'is-bad' : 'is-good'}`}>
+    <div className="intg-token-log" data-testid={`intg-token-log-${entry.id}`}>
+      <span className="intg-token-log-date">{entry.dateLabel}</span>
+      <span className="intg-token-log-text">{entry.description}</span>
+      <span className={`mgr-kr-status ${isExpire ? 'is-error' : 'is-success'}`}>
         {isExpire ? labels.transfer.actionExpire : labels.transfer.actionReauth}
-      </DpStatusBadge>
+      </span>
     </div>
   );
 }
 
-/* 「Slack 으로 받지 못하는 구성원」 창 (PW-2054 · policy §4-B ⑧) — 공용 창 틀(ModalShell)에 명단 표(RosterTable)를
-   담는다. 사유는 하나뿐이다(메일로 Slack 멤버를 못 찾음). 읽기만 하는 창이라 확인 버튼 없이 [닫기] 하나짜리
-   버튼 줄로 끝내고, 표는 창 안 다른 표(CSV 미리보기)처럼 테두리 틀을 두른다 — 디자이너 창 모양에 맞춘다(PW-2092).
+/* 「Slack 으로 받지 못하는 구성원」 창 (PW-2054 · policy §4-B ⑧) — 공용 창 틀(ModalShell)에 공용 표 틀(FrameTable)을 담는다.
+   사유는 하나뿐이다(메일로 Slack 멤버를 못 찾음). 읽기만 하는 창이라 [닫기] 하나짜리 버튼 줄.
+   많아도 한 화면(PW-3126) — 표만 8줄 높이 안에서 넘기고 머리 줄은 고정, 위에 검색칸과 «N명».
    불러오기 실패는 창 안에 그대로 두고 [다시 시도] — 「없습니다」로 보이지 않게 빈 목록과 따로 그린다. */
+const UNMATCHED_MAX_ROWS = 8;
+
 function SlackUnmatchedModal({ modal, labels, onClose, onRetry }) {
   const L = labels.slackDelivery;
+  const [query, setQuery] = useState('');
+  const rows = modal.rows ?? [];
+  const q = query.trim().toLowerCase();
+  const shown = q
+    ? rows.filter((r) => [r.name, r.orgPath, r.email].some((v) => String(v ?? '').toLowerCase().includes(q)))
+    : rows;
   return (
     <ModalShell
       title={L.modalTitle}
-      description={L.modalDescription}
+      description={<NoticeLines lines={sentences(L.modalDescription)} />}
       titleId="intg-slack-unmatched-title"
       closeLabel={L.close}
       onClose={onClose}
@@ -966,52 +1011,74 @@ function SlackUnmatchedModal({ modal, labels, onClose, onRetry }) {
         </button>
       }
       className="adm-shell is-xwide"
+      bodyClassName="tl-emp-modal-body"
       testId="intg-slack-unmatched-modal"
     >
-      {modal.state === 'loading' && <div className="intg-table-empty">{labels.loading}</div>}
+      {modal.state === 'loading' && <div className="intg-empty">{labels.loading}</div>}
       {modal.state === 'error' && (
-        <div className="intg-note is-error has-action" data-testid="intg-slack-unmatched-error">
-          <span>{L.loadFailed}</span>
-          <Button variant="secondary" size="sm" className="intg-btn" onClick={onRetry}>
-            {L.retry}
-          </Button>
-        </div>
+        <IntgBand
+          tone="error"
+          role="alert"
+          lines={[L.loadFailed]}
+          actions={
+            <Button variant="secondary" size="sm" className="intg-btn" onClick={onRetry}>
+              {L.retry}
+            </Button>
+          }
+          testId="intg-slack-unmatched-error"
+        />
       )}
       {modal.state === 'ready' && (
-        <RosterTable
-          columns={[
-            { key: 'name', header: L.colName },
-            { key: 'orgPath', header: L.colOrg },
-            { key: 'email', header: L.colEmail },
-            { key: 'reason', header: L.colReason },
-          ]}
-          rows={modal.rows ?? []}
-          rowKey={(r) => r.id}
-          renderCell={(row, col) => (col.key === 'reason' ? L.reasonNoEmailMatch : row[col.key] || '—')}
-          empty={L.empty}
-          framed
-        />
+        <>
+          {rows.length > 0 && (
+            <div className="intg-unmatched-head">
+              <SearchInput
+                className="dp-search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={L.searchPlaceholder}
+                aria-label={L.searchPlaceholder}
+                iconSize={14}
+                data-testid="intg-slack-unmatched-search"
+              />
+              <span className="intg-unmatched-count" data-testid="intg-slack-unmatched-count">
+                {fmt(L.countLabel, { count: rows.length })}
+              </span>
+            </div>
+          )}
+          <FrameTable
+            testId="intg-slack-unmatched-table"
+            columns={[
+              { key: 'name', header: L.colName, render: (r) => r.name || '—' },
+              { key: 'orgPath', header: L.colOrg, render: (r) => r.orgPath || '—' },
+              { key: 'email', header: L.colEmail, render: (r) => r.email || '—' },
+              { key: 'reason', header: L.colReason, render: () => L.reasonNoEmailMatch },
+            ]}
+            rows={shown}
+            rowKey={(r) => r.id}
+            empty={rows.length === 0 ? L.empty : L.noMatch}
+            maxRows={UNMATCHED_MAX_ROWS}
+          />
+        </>
       )}
     </ModalShell>
   );
 }
 
-/* 토큰 만료·재인증 확인 창 — 공용 확인 창(ConfirmModal · PW-836). 창 이름표(testId)는
-   종전 막에서 창 카드로 옮겨 붙는다. */
+/* 토큰 만료·재인증 확인 창 — 공용 확인 창(ConfirmModal · PW-836). 본문은 문장마다 줄(PW-3126). */
 function ExpireModal({ labels, onClose, onConfirm, error }) {
   const L = labels.transfer.expireModal;
+  const warning = sentences(L.warning);
   return (
     <ConfirmModal
       testId="intg-expire-modal"
       title={L.title}
       body={
-        <>
-          <p className="intg-confirm-p">{L.description}</p>
-          <div className="intg-note is-error">{L.warning}</div>
-          {error && (
-            <div className="intg-note is-error" style={{ marginTop: 12 }}>{L.error}</div>
-          )}
-        </>
+        <div className="intg-owner-view">
+          <NoticeLines lines={sentences(L.description)} />
+          <IntgBand tone="error" lines={warning} />
+          {error && <IntgBand tone="error" role="alert" lines={sentences(L.error)} testId="intg-expire-error" />}
+        </div>
       }
       cancelLabel={L.cancel}
       confirmLabel={L.confirm}
@@ -1036,34 +1103,35 @@ function ReauthModal({ owner, me, labels, onClose, onConfirm }) {
       testId="intg-reauth-modal"
       title={L.title}
       body={
-        <>
+        <div className="intg-owner-view">
           {L.guide && (
-            <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7, margin: '0 0 12px' }} data-testid="intg-reauth-guide">
-              {L.guide}
-            </p>
+            <div data-testid="intg-reauth-guide">
+              <NoticeLines lines={sentences(L.guide)} />
+            </div>
           )}
-          <div className="intg-modal-usercard">
+          {/* 사람 칸 — 회색 상자 대신 흰 테두리 칸(PW-3126) */}
+          <div className="intg-modal-usercard is-outline">
             <OwnerAvatar name={owner.name} avatar={owner.avatar} size={44} />
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{owner.name}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+            <div className="intg-person-main">
+              <div className="intg-owner-name">{owner.name}</div>
+              <div className="intg-owner-sub">
                 {L.titleLabel}: {owner.title}
               </div>
             </div>
           </div>
 
           {isDifferentOwner && (
-            <div className="intg-note is-warning" style={{ marginTop: 12 }} data-testid="intg-reauth-diff-owner-warning">
-              {owner.name}{L.differentOwnerWarning}
-            </div>
+            <IntgBand
+              tone="warning"
+              lines={sentences(`${owner.name}${L.differentOwnerWarning}`)}
+              testId="intg-reauth-diff-owner-warning"
+            />
           )}
 
           {notSlackAdmin && (
-            <div className="intg-note is-error" style={{ marginTop: 12 }} data-testid="intg-reauth-not-slack-admin">
-              {L.notSlackAdmin}
-            </div>
+            <IntgBand tone="error" lines={sentences(L.notSlackAdmin)} testId="intg-reauth-not-slack-admin" />
           )}
-        </>
+        </div>
       }
       confirmDisabled={notSlackAdmin}
       cancelLabel={L.cancel}
@@ -1075,7 +1143,12 @@ function ReauthModal({ owner, me, labels, onClose, onConfirm }) {
   );
 }
 
-function SlackTransferPanel({ transfer, labels, baseUrl, onExpireToken, onReauth, onRetryTokenLogs }) {
+/**
+ * Slack 소유자 권한 관리 — 따로 화면 (기획서 admin-app.jsx SlackTransferView · PW-3126).
+ * 연동 설정 Slack 설정 창의 [소유자 권한 관리 →] · 오류 카드 [권한 관리] 로 열고 [← 연동 설정] 으로 돌아간다.
+ * 순서: 토큰 만료 띠 → Slack 머리(로고 · 이름 · 설명 · 상태) · 설치 · 수집 자격 · 숫자 셋 → 토큰 이력.
+ */
+function SlackOwnerView({ transfer, card, labels, baseUrl, onBack, onExpireToken, onReauth, onRetryTokenLogs }) {
   const [showExpireModal, setShowExpireModal] = useState(false);
   const [showReauthModal, setShowReauthModal] = useState(false);
   const [expireError, setExpireError] = useState(false);
@@ -1101,112 +1174,134 @@ function SlackTransferPanel({ transfer, labels, baseUrl, onExpireToken, onReauth
   };
 
   return (
-    <section className="admin-card" data-testid="intg-transfer-panel">
+    <div className="intg-owner-view" data-testid="intg-transfer-panel">
+      <Button variant="secondary" size="sm" className="intg-btn intg-owner-back" onClick={onBack} data-testid="intg-owner-back">
+        <ArrowLeftGlyph size={14} aria-hidden />
+        {labels.owner.back}
+      </Button>
+      <h1 className="admin-page-title" data-testid="intg-owner-title">{labels.owner.title}</h1>
+
       {transfer.isExpired && (
-        <div className="intg-note is-warning" style={{ marginBottom: 16 }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Icon src={ICON_ALERT} size={16} color="var(--colors-warning-600)" baseUrl={baseUrl} />
-            {labels.transfer.expiredBanner.message}
-          </span>
-          <Button variant="secondary" size="sm" className="intg-btn" onClick={() => setShowReauthModal(true)}>
-            {labels.transfer.expiredBanner.reauthLink} &rarr;
-          </Button>
-        </div>
+        <IntgBand
+          tone="warning"
+          lines={sentences(labels.transfer.expiredBanner.message)}
+          actions={
+            <Button variant="secondary" size="sm" className="intg-btn" onClick={() => setShowReauthModal(true)}>
+              {labels.transfer.expiredBanner.reauthLink}
+              <ArrowRightGlyph size={14} aria-hidden />
+            </Button>
+          }
+          testId="intg-owner-expired"
+        />
       )}
 
-      {/* 설치 — 회사의 앱 설치를 누가 언제 했나. 기록일 뿐이라 버튼이 없다 */}
-      <div className="intg-loglist-title intg-owner-section-first">{labels.transfer.installSection}</div>
-      <div className="intg-owner-head" data-testid="intg-install-section">
-        <div className="intg-owner-id">
-          <OwnerAvatar name={installer.name} avatar={installer.avatar} />
-          <div>
-            <div className="intg-owner-name">
-              {installer.name}
-              <DpStatusBadge className="intg-pill is-brand">{labels.transfer.installerBadge}</DpStatusBadge>
+      <Panel testId="intg-owner-panel">
+        {card && (
+          <div className="intg-app-head">
+            <span className="intg-app-logo">
+              <img src={assetUrl(baseUrl, card.logo)} alt={card.brandName} loading="lazy" />
+            </span>
+            <div className="intg-app-titles">
+              <span className="intg-app-name">{card.brandName}</span>
+              <span className="intg-app-desc">{card.description}</span>
             </div>
-            <div className="intg-owner-sub">
-              {installer.title ? `${installer.title} \u00b7 ` : ''}
-              {transfer.installedLabel}
+            <StatusBadge status={card.status} labels={labels} />
+          </div>
+        )}
+
+        {/* 설치 — 회사의 앱 설치를 누가 언제 했나. 기록일 뿐이라 버튼이 없다 */}
+        <Panel.Section title={labels.transfer.installSection} testId="intg-install-section">
+          <div className="intg-person">
+            <OwnerAvatar name={installer.name} avatar={installer.avatar} />
+            <div className="intg-person-main">
+              <div className="intg-owner-name">
+                {installer.name}
+                <DpStatusBadge tone="neutral">{labels.transfer.installerBadge}</DpStatusBadge>
+              </div>
+              <div className="intg-owner-sub">
+                {installer.title ? `${installer.title} · ` : ''}
+                {transfer.installedLabel}
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        </Panel.Section>
 
-      {/* 수집 자격 — 수집에 쓰는 개인 자격. [토큰 만료]·[재인증]은 이것만 바꾸고 Slack 알림은 계속 나간다 */}
-      <div className="intg-loglist-title">{labels.transfer.credentialSection}</div>
-      <div className="intg-owner-head" data-testid="intg-credential-section">
-        <div className="intg-owner-id">
-          <OwnerAvatar name={owner.name} avatar={owner.avatar} />
-          <div>
-            <div className="intg-owner-name">
-              {fmt(labels.transfer.credentialAccount, { name: owner.name })}
-              {transfer.isExpired && (
-                <DpStatusBadge className="intg-pill is-bad" data-testid="intg-credential-expired">
-                  {labels.transfer.expiredBadge}
-                </DpStatusBadge>
-              )}
-              {owner.isSlackAdmin && (
-                <DpStatusBadge className="intg-pill is-good" data-testid="intg-owner-slack-admin">
-                  {labels.transfer.slackAdminLabel}
-                </DpStatusBadge>
-              )}
+        {/* 수집 자격 — 수집에 쓰는 개인 자격. [토큰 만료]·[재인증]은 이것만 바꾸고 Slack 알림은 계속 나간다 */}
+        <Panel.Section title={labels.transfer.credentialSection} testId="intg-credential-section">
+          <div className="intg-person">
+            <OwnerAvatar name={owner.name} avatar={owner.avatar} />
+            <div className="intg-person-main">
+              <div className="intg-owner-name">
+                {fmt(labels.transfer.credentialAccount, { name: owner.name })}
+                {transfer.isExpired && (
+                  <DpStatusBadge tone="danger" data-testid="intg-credential-expired">
+                    {labels.transfer.expiredBadge}
+                  </DpStatusBadge>
+                )}
+                {owner.isSlackAdmin && (
+                  <DpStatusBadge tone="success" data-testid="intg-owner-slack-admin">
+                    {labels.transfer.slackAdminLabel}
+                  </DpStatusBadge>
+                )}
+              </div>
+              <div className="intg-owner-sub">
+                {owner.title ? `${owner.title} · ` : ''}
+                {transfer.connectedLabel}
+              </div>
             </div>
-            <div className="intg-owner-sub">
-              {owner.title ? `${owner.title} \u00b7 ` : ''}
-              {transfer.connectedLabel}
+            <div className="intg-actions">
+              {/* 누를 수 있는지는 앱이 정해 넘긴다(PW-1058) — 서버는 연결됨일 때만 만료를 받는다.
+                  넘기지 않으면 예전처럼 늘 눌린다. */}
+              <Button
+                variant="danger-ghost"
+                size="sm"
+                className="intg-btn"
+                onClick={() => setShowExpireModal(true)}
+                disabled={transfer.canExpireToken === false}
+                data-testid="intg-expire-token"
+              >
+                {labels.transfer.expireToken}
+              </Button>
+              <Button variant="primary" size="sm" className="intg-btn" onClick={() => setShowReauthModal(true)} data-testid="intg-reauth">
+                {labels.transfer.reauth}
+              </Button>
             </div>
           </div>
-        </div>
-        <div className="intg-actions">
-          {/* 누를 수 있는지는 앱이 정해 넘긴다(PW-1058) — 서버는 연결됨일 때만 만료를 받는다.
-              넘기지 않으면 예전처럼 늘 눌린다. */}
-          <Button
-            variant="danger-ghost"
-            size="sm"
-            className="intg-btn"
-            onClick={() => setShowExpireModal(true)}
-            disabled={transfer.canExpireToken === false}
-            data-testid="intg-expire-token"
-          >
-            {labels.transfer.expireToken}
-          </Button>
-          <Button variant="primary" size="sm" className="intg-btn" onClick={() => setShowReauthModal(true)}>
-            {labels.transfer.reauth}
-          </Button>
-        </div>
-      </div>
 
-      <div className="intg-stat-row">
-        {(transfer.stats ?? []).map((stat) => (
-          <div key={stat.label}>
-            <div className="label">{stat.label}</div>
-            <div className="value">{stat.value}</div>
+          <div className="intg-tri" data-testid="intg-owner-stats">
+            {(transfer.stats ?? []).map((stat) => (
+              <div key={stat.label}>
+                <span className="intg-tri-label">{stat.label}</span>
+                <span className={`intg-tri-value${stat.muted ? ' is-muted' : ''}`}>{stat.value}</span>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </Panel.Section>
+      </Panel>
 
-      <div>
-        <h4 className="intg-loglist-title">{labels.transfer.tokenHistory}</h4>
+      <Panel title={labels.transfer.tokenHistory} testId="intg-token-history">
         {transfer.tokenLogsFailed ? (
-          // 못 읽음 — 빈 이력처럼 보이지 않게 이 자리에서 말한다(pivit-work PW-3128). 오류 줄 + [다시 시도]는
-          // 같은 화면 «받지 못하는 구성원» 창의 `.intg-note.is-error.has-action`(PW-2054)과 같은 짝.
-          <div className="intg-note is-error has-action" role="alert" data-testid="intg-token-logs-failed">
-            <span>{labels.transfer.logsLoadFailed}</span>
-            {onRetryTokenLogs && (
+          // 못 읽음 — 빈 이력처럼 보이지 않게 이 자리에서 말한다(pivit-work PW-3128).
+          <IntgBand
+            tone="error"
+            role="alert"
+            lines={[labels.transfer.logsLoadFailed]}
+            actions={onRetryTokenLogs && (
               <Button variant="secondary" size="sm" className="intg-btn" onClick={onRetryTokenLogs}>
                 {labels.transfer.logsRetry}
               </Button>
             )}
-          </div>
+            testId="intg-token-logs-failed"
+          />
         ) : (transfer.tokenLogs ?? []).length === 0 ? (
-          <div style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '8px 0' }}>
-            {labels.transfer.noLogs}
-          </div>
+          <div className="intg-muted" data-testid="intg-token-logs-empty">{labels.transfer.noLogs}</div>
         ) : (
-          transfer.tokenLogs.map((entry) => <TokenLogItem key={entry.id} entry={entry} labels={labels} />)
+          <div>
+            {transfer.tokenLogs.map((entry) => <TokenLogItem key={entry.id} entry={entry} labels={labels} />)}
+          </div>
         )}
-        <div className="intg-loglist-footer">{labels.transfer.tokenHistoryFooter}</div>
-      </div>
+        <NoticeLines tone="muted" lines={[labels.transfer.tokenHistoryFooter]} />
+      </Panel>
 
       {showExpireModal && (
         <ExpireModal labels={labels} onClose={() => setShowExpireModal(false)} onConfirm={handleExpireConfirm} error={expireError} />
@@ -1214,7 +1309,7 @@ function SlackTransferPanel({ transfer, labels, baseUrl, onExpireToken, onReauth
       {showReauthModal && (
         <ReauthModal owner={owner} me={transfer.me} labels={labels} onClose={() => setShowReauthModal(false)} onConfirm={handleReauthConfirm} />
       )}
-    </section>
+    </div>
   );
 }
 
@@ -1263,6 +1358,13 @@ export default function AdminIntegrationsCanvas({
    * — 모양은 AdminIntegrationsLeaveCalendar.jsx 머리 주석. 문구는 `labels.leaveCalendar`.
    */
   leaveCalendar = null,
+  /**
+   * 숫자 칸 바로 위 경고 띠(PW-3126) — 일부 못 읽음 · 구성원 못 읽음처럼 호스트가 아는 실패.
+   * `[{ key, tone: 'error'|'warning', text, actionLabel?, onAction?, testId? }]` — 글은 마침표에서 줄만 나눈다.
+   */
+  notices = [],
+  /** 「회의실 불러오기」 블록 — 호스트가 그린 것을 앱 카드 바로 아래(기획서 순서)에 끼운다. 없으면 그리지 않는다 */
+  roomImport = null,
   labels: providedLabels,
   baseUrl = '',
   onTabChange,
@@ -1322,6 +1424,33 @@ export default function AdminIntegrationsCanvas({
     setInternalTab(next);
     if (onTabChange) onTabChange(next);
   };
+  // Slack 소유자 권한 관리 — 따로 화면(PW-3126). 설정 창 [소유자 권한 관리 →] · 오류 카드 [권한 관리] 로 연다.
+  const [ownerOpen, setOwnerOpen] = useState(false);
+  const openOwner = transfer
+    ? () => {
+        onCloseSettings();
+        setOwnerOpen(true);
+      }
+    : undefined;
+  const noticeBands = notices.map((n) => (
+    <IntgBand
+      key={n.key}
+      tone={n.tone ?? 'warning'}
+      lines={sentences(n.text)}
+      actions={n.actionLabel && n.onAction ? (
+        <Button
+          variant="secondary"
+          size="sm"
+          className="intg-btn"
+          onClick={n.onAction}
+          data-testid={n.testId ? `${n.testId}-retry` : undefined}
+        >
+          {n.actionLabel}
+        </Button>
+      ) : null}
+      testId={n.testId}
+    />
+  ));
 
   // ── 전체화면 상태: 로딩 ──────────────────────────────────────────
   if (loading) {
@@ -1335,20 +1464,22 @@ export default function AdminIntegrationsCanvas({
   }
 
   // 개인 연동 안내는 «항상» 보인다 (기획 screen-integrations.policy.md §2-6 · PW-2474) —
-  // 회사 연동 목록을 못 불러온 화면에서도 [개인 설정으로 →] 로 내 설정 › 연동에 갈 수 있어야 한다.
+  // 회사 연동 목록을 못 불러온 화면에서도 [내 설정으로 이동] 으로 내 설정 › 연동에 갈 수 있어야 한다.
+  // 바탕 없는 흰 줄 + 흰 보조 버튼(PW-3126 · «다른 화면으로 가는 길»).
   const personalBanner = (
-    <div className="intg-banner" data-testid="intg-personal-banner">
-      <div className="intg-banner-msg">
-        <Icon src={ICON_INFO} size={16} color="var(--text-brand-tertiary)" baseUrl={baseUrl} />
-        <span>
-          {labels.personalBanner.message}
+    <Panel testId="intg-personal-banner">
+      <div className="intg-line">
+        <UserGlyph size={20} aria-hidden />
+        <div className="intg-line-text">
+          <NoticeLines lines={[<strong key="m">{labels.personalBanner.message}</strong>]} />
           <PersonalChips tools={personalChips} labels={labels} />
-        </span>
+        </div>
+        <Button variant="secondary" size="sm" className="intg-btn" onClick={onPersonalIntegrationClick}>
+          {labels.personalBanner.button}
+          <ArrowRightGlyph size={14} aria-hidden />
+        </Button>
       </div>
-      <Button variant="primary" size="sm" className="intg-btn" onClick={onPersonalIntegrationClick}>
-        {labels.personalBanner.button}
-      </Button>
-    </div>
+    </Panel>
   );
 
   // ── 전체화면 상태: 권한없음(403) / 조회실패 ──────────────────────
@@ -1362,22 +1493,43 @@ export default function AdminIntegrationsCanvas({
             <p className="admin-page-subtitle">{labels.summary.description}</p>
           </div>
         </header>
-        <section className="admin-card" style={{ textAlign: 'center', padding: '48px 24px' }}>
-          <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>
-            {forbidden ? labels.error.forbiddenTitle : labels.error.loadFailedTitle}
-          </p>
-          <p style={{ margin: '8px 0 0', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-            {forbidden ? labels.error.forbiddenDesc : labels.error.loadFailedDesc}
-          </p>
-          {!forbidden && (
-            <div style={{ marginTop: 16 }}>
-              <Button variant="secondary" size="sm" className="intg-btn" onClick={() => onRetryLoad()}>
-                {labels.error.retry}
-              </Button>
+        <div className="intg-apps">
+          <Panel testId="intg-error-panel">
+            <div className="intg-empty">
+              <span className="intg-empty-title">
+                {forbidden ? labels.error.forbiddenTitle : labels.error.loadFailedTitle}
+              </span>
+              <NoticeLines tone="muted" lines={sentences(forbidden ? labels.error.forbiddenDesc : labels.error.loadFailedDesc)} />
+              {!forbidden && (
+                <Button variant="secondary" size="sm" className="intg-btn" onClick={() => onRetryLoad()}>
+                  {labels.error.retry}
+                </Button>
+              )}
             </div>
-          )}
-        </section>
-        {personalBanner}
+          </Panel>
+          {personalBanner}
+        </div>
+      </div>
+    );
+  }
+
+  const slackCard = cards.find((c) => c.app === 'slack');
+
+  // ── Slack 소유자 권한 관리 — 따로 화면 ────────────────────────────
+  if (ownerOpen && transfer) {
+    return (
+      <div className="admin-canvas" data-testid="intg-canvas">
+        <Toast message={toast} tone={toastTone} data-testid="intg-toast" />
+        <SlackOwnerView
+          transfer={transfer}
+          card={slackCard}
+          labels={labels}
+          baseUrl={baseUrl}
+          onBack={() => setOwnerOpen(false)}
+          onExpireToken={onExpireToken}
+          onReauth={onReauth}
+          onRetryTokenLogs={onRetryTokenLogs}
+        />
       </div>
     );
   }
@@ -1397,23 +1549,17 @@ export default function AdminIntegrationsCanvas({
       <TabSwitcher active={tab} labels={labels} onChange={changeTab} showAdminTab={!!adminTab} />
 
       {tab === 'apps' && (
-        <>
-          <div className="intg-stats-grid">
-            {stats.map((s) => (
-              <div key={s.key ?? s.label} className="admin-stat-tile">
-                <p className="admin-stat-label">{s.label}</p>
-                <p className="admin-stat-value">{s.value}</p>
-              </div>
-            ))}
-          </div>
+        <div className="intg-apps">
+          {noticeBands}
+
+          <StatStrip
+            testId="intg-stats"
+            ariaLabel={labels.summary.title}
+            items={stats.map((s) => ({ key: s.key ?? s.label, label: s.label, value: s.value, tone: s.tone }))}
+          />
 
           {showEmptyBanner && (
-            <div className="intg-banner" data-testid="intg-empty-banner">
-              <div className="intg-banner-msg">
-                <Icon src={ICON_INFO} size={16} color="var(--text-brand-tertiary)" baseUrl={baseUrl} />
-                {labels.emptyBanner}
-              </div>
-            </div>
+            <IntgBand tone="info" lines={[labels.emptyBanner]} testId="intg-empty-banner" />
           )}
 
           <div className="intg-app-grid">
@@ -1430,26 +1576,19 @@ export default function AdminIntegrationsCanvas({
                 onTriggerSync={onTriggerSync}
                 onOpenSettings={onOpenSettings}
                 onOpenSlackUnmatched={onOpenSlackUnmatched}
+                onOpenOwner={openOwner}
               />
             ))}
           </div>
+
+          {/* 기획서 순서 — 앱 카드 바로 아래 회의실 불러오기(policy §4-E · admin-app.jsx IntegrationsView) */}
+          {roomImport}
 
           {leaveCalendar && (
             <AdminIntegrationsLeaveCalendar
               key={`${leaveCalendar.state.enabled}:${leaveCalendar.state.account ?? ''}:${leaveCalendar.state.calendarId ?? ''}`}
               {...leaveCalendar}
               labels={{ ...LEAVE_CALENDAR_DEFAULT_LABELS, ...labels.leaveCalendar }}
-            />
-          )}
-
-          {transfer && (
-            <SlackTransferPanel
-              transfer={transfer}
-              labels={labels}
-              baseUrl={baseUrl}
-              onExpireToken={onExpireToken}
-              onReauth={onReauth}
-              onRetryTokenLogs={onRetryTokenLogs}
             />
           )}
 
@@ -1463,6 +1602,7 @@ export default function AdminIntegrationsCanvas({
               onSave={onSaveSettings}
               onDisconnect={onDisconnect}
               onMinSelectedBlocked={onSettingsMinSelectedBlocked}
+              onOpenOwner={openOwner}
             />
           )}
 
@@ -1475,7 +1615,7 @@ export default function AdminIntegrationsCanvas({
           {showRequestBanner && <RequestBanner labels={labels} onOpen={onOpenRequestModal} />}
 
           {personalBanner}
-        </>
+        </div>
       )}
 
       {tab === 'admin' && adminTab && (
@@ -1510,11 +1650,14 @@ export default function AdminIntegrationsCanvas({
       )}
 
       {tab === 'syncLog' && (
-        <section className="admin-card">
-          {syncLogsLoading
-            ? <div className="intg-table-empty">{labels.loading}</div>
-            : <SyncLogTable logs={syncLogs} labels={labels} baseUrl={baseUrl} onRetrySyncLog={onRetrySyncLog} />}
-        </section>
+        <div className="intg-apps">
+          {noticeBands}
+          <Panel testId="intg-sync-log">
+            {syncLogsLoading
+              ? <div className="intg-empty">{labels.loading}</div>
+              : <SyncLogTable logs={syncLogs} labels={labels} baseUrl={baseUrl} onRetrySyncLog={onRetrySyncLog} />}
+          </Panel>
+        </div>
       )}
     </div>
   );

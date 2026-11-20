@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import Switch from '../shared/Switch.jsx';
 import Button from '../shared/Button.jsx';
 import Select from '../shared/Select.jsx';
+import { NoticeLines, Panel } from '../frames/index.js';
+import { IntgBand } from './adminIntegrationsParts.jsx';
+import { sentences } from './adminIntegrationsText.js';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
 
 /**
@@ -55,111 +58,123 @@ export default function AdminIntegrationsLeaveCalendar({
   const calendarLabel = (c) => (c.primary ? `${c.name} ${L.primarySuffix}` : c.name);
   const savedName = state.calendarName;
 
+  // 흰 판 + 줄(이름 왼쪽 · 값과 버튼 오른쪽 · 가운데 맞춤) — 아래 «회의실 불러오기»와 같은 줄 모양(PW-3126)
   return (
-    <section className="admin-card" data-testid="intg-leave-calendar">
-      <h2 className="intg-section-title">{L.title}</h2>
-      <p className="intg-section-desc">{L.description}</p>
-
-      <div className="intg-setting-row">
-        <span className="intg-setting-label">{L.sharedToggle}</span>
-        <Switch
-          checked={on}
-          disabled={!isAdmin}
-          label={L.sharedToggle}
-          title={isAdmin ? undefined : L.adminOnly}
-          onChange={toggle}
-          data-testid="intg-leave-calendar-toggle"
-        />
-      </div>
-
-      {isAdmin && on && !account && (
-        <div className="intg-setting-row">
-          <span className="intg-setting-label">{L.accountToUse}</span>
-          <Button
-            variant="secondary"
-            size="sm"
-            className="intg-btn"
-            pending={busy === 'connect'}
-            disabled={!!busy}
-            onClick={() => onConnect('connect')}
-          >
-            {L.connect}
-          </Button>
+    <Panel title={L.title} testId="intg-leave-calendar">
+      <NoticeLines tone="muted" lines={sentences(L.description)} />
+      <div className="intg-rows">
+        <div className="intg-row">
+          <span className="intg-row-label">{L.sharedToggle}</span>
+          <span className="intg-row-value">
+            <Switch
+              checked={on}
+              disabled={!isAdmin}
+              label={L.sharedToggle}
+              title={isAdmin ? undefined : L.adminOnly}
+              onChange={toggle}
+              data-testid="intg-leave-calendar-toggle"
+            />
+          </span>
         </div>
-      )}
 
-      {isAdmin && account && (
-        <div className="intg-setting-row">
-          <span className="intg-setting-label">{L.account}</span>
-          <div className="intg-actions">
-            <span className="intg-setting-label" data-testid="intg-leave-calendar-account">{account}</span>
-            {on && (
+        {isAdmin && on && !account && (
+          <div className="intg-row">
+            <span className="intg-row-label">{L.accountToUse}</span>
+            <span className="intg-row-value">
               <Button
                 variant="secondary"
                 size="sm"
                 className="intg-btn"
-                pending={busy === 'change'}
+                pending={busy === 'connect'}
                 disabled={!!busy}
-                onClick={() => onConnect('change')}
+                onClick={() => onConnect('connect')}
               >
-                {L.change}
+                {L.connect}
               </Button>
-            )}
-            <Button variant="danger-ghost" size="sm" className="intg-btn" onClick={() => setConfirmOff(true)}>
-              {L.disconnect}
-            </Button>
+            </span>
           </div>
-        </div>
-      )}
+        )}
 
-      {showPicker && (
-        <div className="intg-setting-row">
-          <span className="intg-setting-label">{L.calendar}</span>
-          {calendars.state === 'error' ? (
-            <div className="intg-note is-error has-action" data-testid="intg-leave-calendar-list-error">
-              <span>{L.listFailed}</span>
-              <Button variant="secondary" size="sm" className="intg-btn" onClick={onLoadCalendars}>
-                {L.retry}
+        {isAdmin && account && (
+          <div className="intg-row">
+            <span className="intg-row-label">{L.account}</span>
+            <span className="intg-row-value">
+              <span className="intg-row-account" data-testid="intg-leave-calendar-account">{account}</span>
+              {on && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="intg-btn"
+                  pending={busy === 'change'}
+                  disabled={!!busy}
+                  onClick={() => onConnect('change')}
+                >
+                  {L.change}
+                </Button>
+              )}
+              <Button variant="danger-ghost" size="sm" className="intg-btn" onClick={() => setConfirmOff(true)}>
+                {L.disconnect}
               </Button>
-            </div>
-          ) : (
-            <Select
-              className="intg-select"
-              value={picked}
-              aria-label={L.calendar}
-              disabled={calendars.state !== 'ready'}
-              onChange={(e) => setPicked(e.target.value)}
-              placeholder={calendars.state === 'ready' ? L.pickCalendar : L.loading}
-              data-testid="intg-leave-calendar-select"
-            >
-              {(calendars.items ?? []).map((c) => (
-                <option key={c.id} value={c.id}>{calendarLabel(c)}</option>
-              ))}
-            </Select>
-          )}
-        </div>
-      )}
+            </span>
+          </div>
+        )}
 
-      {account && status === 'error' && (
-        <div className="intg-note is-error has-action intg-leave-cal-error" data-testid="intg-leave-calendar-error">
-          <span>{savedName ? `${L.error} · ${savedName}` : L.error}</span>
-          {isAdmin && (
-            <Button
-              variant="secondary"
-              size="sm"
-              className="intg-btn"
-              pending={busy === 'reconnect'}
-              disabled={!!busy}
-              onClick={() => onConnect('reconnect')}
-            >
-              {L.reconnect}
-            </Button>
-          )}
-        </div>
-      )}
+        {showPicker && (
+          <div className="intg-row">
+            <span className="intg-row-label">{L.calendar}</span>
+            <span className="intg-row-value">
+              {calendars.state === 'error' ? (
+                // 목록 못 읽음 — 칸 자리에 작은 빨간 글 + [다시 시도](PW-3126 · 분홍 상자가 칸 오른쪽을 차지하지 않게)
+                <span className="intg-row-value" data-testid="intg-leave-calendar-list-error" role="alert">
+                  <span className="intg-row-error">{L.listFailed}</span>
+                  <Button variant="secondary" size="sm" className="intg-btn" onClick={onLoadCalendars}>
+                    {L.retry}
+                  </Button>
+                </span>
+              ) : (
+                <Select
+                  className="intg-select"
+                  value={picked}
+                  aria-label={L.calendar}
+                  disabled={calendars.state !== 'ready'}
+                  onChange={(e) => setPicked(e.target.value)}
+                  placeholder={calendars.state === 'ready' ? L.pickCalendar : L.loading}
+                  data-testid="intg-leave-calendar-select"
+                >
+                  {(calendars.items ?? []).map((c) => (
+                    <option key={c.id} value={c.id}>{calendarLabel(c)}</option>
+                  ))}
+                </Select>
+              )}
+            </span>
+          </div>
+        )}
+
+        {account && status === 'error' && (
+          <div className="intg-row">
+            <IntgBand
+              tone="error"
+              lines={[savedName ? `${L.error} · ${savedName}` : L.error]}
+              actions={isAdmin && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="intg-btn"
+                  pending={busy === 'reconnect'}
+                  disabled={!!busy}
+                  onClick={() => onConnect('reconnect')}
+                >
+                  {L.reconnect}
+                </Button>
+              )}
+              testId="intg-leave-calendar-error"
+            />
+          </div>
+        )}
+      </div>
 
       {showPicker && (
-        <div className="intg-actions intg-leave-cal-foot">
+        <div className="intg-rows-foot">
           <Button
             variant="primary"
             size="sm"
@@ -177,7 +192,7 @@ export default function AdminIntegrationsLeaveCalendar({
       {confirmOff && (
         <ConfirmModal
           title={L.disconnectTitle}
-          body={L.disconnectBody.split('\n').map((line) => <div key={line}>{line}</div>)}
+          body={<NoticeLines lines={L.disconnectBody.split('\n')} />}
           confirmLabel={L.disconnect}
           cancelLabel={L.cancel}
           danger
@@ -190,6 +205,6 @@ export default function AdminIntegrationsLeaveCalendar({
           testId="intg-leave-calendar-disconnect"
         />
       )}
-    </section>
+    </Panel>
   );
 }

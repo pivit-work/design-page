@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import DpStatusBadge from '../shared/StatusBadge.jsx';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
-import ModalShell from '../shared/ModalShell.jsx';
 import RosterTable from '../shared/RosterTable.jsx';
 import Switch from '../shared/Switch.jsx';
 import Chip from '../shared/Chip.jsx';
-import FormField from '../shared/FormField.jsx';
 import TextInput from '../shared/TextInput.jsx';
 import TextArea from '../shared/TextArea.jsx';
 import assetUrl from '../shared/assetUrl.js';
-import { AlertTriangleGlyph, ArrowRightGlyph, LockGlyph, SettingsGlyph } from '../shared/lineIcons.jsx';
+import { ArrowRightGlyph, InfoGlyph, LockGlyph, SettingsGlyph } from '../shared/lineIcons.jsx';
+import { FormModal, NoticeLines, Panel } from '../frames/index.js';
+import { IntgBand } from './adminIntegrationsParts.jsx';
+import { sentences } from './adminIntegrationsText.js';
 import { resolveKoreanParticles } from '../shared/koreanParticle.js';
 import Button from '../shared/Button.jsx';
 
@@ -34,6 +35,8 @@ function fmt(tpl, vars) {
 }
 
 const GROUP_ORDER = ['tool', 'send', 'hr'];
+/* 요청 상태 딱지 — 대기 파랑 · 검토 중 주황 · 승인됨 초록 · 반려됨 빨강(PW-3126 · 대기가 초록이면 승인된 것처럼 보인다) */
+const REQUEST_TONE = { pending: 'info', reviewing: 'warning', approved: 'success', rejected: 'danger' };
 
 /* 요청 창 글자 수 — 서버 입력 한도(input-limits `toolRequestName`·`toolRequestPurpose`)와 같은 값 */
 const TOOL_NAME_MIN = 2;
@@ -95,18 +98,14 @@ export function AdminCatalogPanel({
 
   return (
     <div className="intg-admin-tab" data-testid="intg-admin-tab">
-      <section className="admin-card" data-testid="intg-catalog">
-        <h2 className="intg-section-title">{L.title}</h2>
-        <p className="intg-section-desc">{L.description}</p>
+      <Panel title={L.title} testId="intg-catalog">
+        <NoticeLines tone="muted" lines={sentences(L.description)} />
         {requiredOff && (
-          <div className="intg-note is-warning intg-catalog-warning" data-testid="intg-catalog-required-off">
-            <AlertTriangleGlyph size={14} />
-            {L.requiredOff}
-          </div>
+          <IntgBand tone="warning" lines={sentences(L.requiredOff)} testId="intg-catalog-required-off" />
         )}
-        {catalogState === 'loading' && <div className="intg-table-empty">{L.loading}</div>}
+        {catalogState === 'loading' && <div className="intg-empty">{L.loading}</div>}
         {catalogState === 'error' && (
-          <div className="intg-table-empty" data-testid="intg-catalog-error">
+          <div className="intg-empty" data-testid="intg-catalog-error">
             {L.loadFailed}
             {onRetryCatalog && (
               <Button variant="secondary" size="sm" className="intg-btn" onClick={onRetryCatalog}>
@@ -116,7 +115,8 @@ export function AdminCatalogPanel({
           </div>
         )}
         {catalogState === 'ready' && (
-          <RosterTable tableClassName="intg-table" testId="intg-catalog-table">
+          // 표 모양은 공용 표 틀과 같은 `ol-table`. 묶음 머리 줄(세 묶음)은 표 틀이 못 담아 명단 표를 그대로 쓴다(PW-3126 카드 메모).
+          <RosterTable tableClassName="ol-table intg-catalog-table" testId="intg-catalog-table">
             <RosterTable.Head>
               <RosterTable.HeadCell>{L.columns.tool}</RosterTable.HeadCell>
               <RosterTable.HeadCell>{L.columns.category}</RosterTable.HeadCell>
@@ -147,7 +147,7 @@ export function AdminCatalogPanel({
                         </RosterTable.Cell>
                         <RosterTable.Cell className="time">{t.categoryLabel}</RosterTable.Cell>
                         <RosterTable.Cell>
-                          <DpStatusBadge className={`intg-status ${active ? 'is-connected' : 'is-disconnected'}`}>
+                          <DpStatusBadge tone={active ? 'success' : 'neutral'}>
                             {active ? L.active : L.inactive}
                           </DpStatusBadge>
                         </RosterTable.Cell>
@@ -167,8 +167,9 @@ export function AdminCatalogPanel({
                           )}
                         </RosterTable.Cell>
                         <RosterTable.Cell>
+                          {/* 켜기 · 끄기 같은 무게 — 주 동작이 없는 표라 모두 흰 보조 버튼(PW-3126) */}
                           <Button
-                            variant={active ? 'secondary' : 'primary'}
+                            variant="secondary"
                             size="sm"
                             className="intg-btn"
                             disabled={busy}
@@ -186,17 +187,16 @@ export function AdminCatalogPanel({
             </RosterTable.Body>
           </RosterTable>
         )}
-      </section>
+      </Panel>
 
-      <section className="admin-card" data-testid="intg-requests">
-        <h2 className="intg-section-title">
-          {R.title}
-          {openCount > 0 && <span className="intg-meta-accent"> · {fmt(R.pending, { count: openCount })}</span>}
-        </h2>
-        <p className="intg-section-desc">{R.description}</p>
-        {requestsState === 'loading' && <div className="intg-table-empty">{L.loading}</div>}
+      <Panel
+        title={openCount > 0 ? `${R.title} · ${fmt(R.pending, { count: openCount })}` : R.title}
+        testId="intg-requests"
+      >
+        <NoticeLines tone="muted" lines={sentences(R.description)} />
+        {requestsState === 'loading' && <div className="intg-empty">{L.loading}</div>}
         {requestsState === 'error' && (
-          <div className="intg-table-empty" data-testid="intg-requests-error">
+          <div className="intg-empty" data-testid="intg-requests-error">
             {R.loadFailed}
             {onRetryRequests && (
               <Button variant="secondary" size="sm" className="intg-btn" onClick={onRetryRequests}>
@@ -206,7 +206,7 @@ export function AdminCatalogPanel({
           </div>
         )}
         {requestsState === 'ready' && (requests.length === 0 ? (
-          <div className="intg-table-empty" data-testid="intg-requests-empty">{R.empty}</div>
+          <div className="intg-empty" data-testid="intg-requests-empty">{R.empty}</div>
         ) : (
           <div className="intg-request-list">
             {requests.map((r) => {
@@ -221,7 +221,7 @@ export function AdminCatalogPanel({
                   </div>
                   <span className="intg-request-actions">
                     <DpStatusBadge
-                      tone={r.status === 'approved' ? 'success' : r.status === 'rejected' ? 'danger' : r.status === 'reviewing' ? 'warning' : 'accent'}>
+                      tone={REQUEST_TONE[r.status] ?? 'info'}>
                       {R.status[r.status] ?? R.status.pending}
                     </DpStatusBadge>
                     {open && (
@@ -242,7 +242,7 @@ export function AdminCatalogPanel({
             })}
           </div>
         ))}
-      </section>
+      </Panel>
 
       {offConfirm && (
         <ConfirmModal
@@ -250,10 +250,8 @@ export function AdminCatalogPanel({
           title={fmt(offConfirm.kind === 'status' ? L.confirmStatusTitle : L.confirmPersonalTitle, { name: offConfirm.tool.name })}
           body={
             <>
-              <p className="intg-confirm-p">
-                {fmt(offConfirm.kind === 'status' ? L.confirmStatusBody : L.confirmPersonalBody, { n: offConfirm.tool.personalLinkCount })}
-              </p>
-              <p className="intg-confirm-p">{offConfirm.kind === 'status' ? L.confirmStatusNote : L.confirmPersonalNote}</p>
+              <NoticeLines lines={sentences(fmt(offConfirm.kind === 'status' ? L.confirmStatusBody : L.confirmPersonalBody, { n: offConfirm.tool.personalLinkCount }))} />
+              <NoticeLines tone="muted" lines={sentences(offConfirm.kind === 'status' ? L.confirmStatusNote : L.confirmPersonalNote)} />
             </>
           }
           confirmLabel={L.confirm}
@@ -303,7 +301,7 @@ export function PersonalChips({ tools = [], labels }) {
         return (
           <Chip
             key={t.id}
-            tone={ok ? 'success' : 'neutral'}
+            tone={ok || t.status === 'active' ? 'neutral' : 'warning'}
             icon={ok ? null : <LockGlyph size={12} />}
             data-testid={`intg-personal-chip-${t.id}`}
           >
@@ -320,21 +318,21 @@ export function PersonalChips({ tools = [], labels }) {
 
 export function RequestBanner({ labels, onOpen }) {
   const L = labels.requestBanner;
+  // «다른 곳으로 가는 길» 안내 — 바탕 없는 흰 줄 · 굵은 첫 줄 + 옅은 설명 · 흰 보조 버튼(PW-3126)
   return (
-    <div className="intg-banner is-warning" data-testid="intg-request-banner">
-      <div className="intg-banner-msg">
-        <AlertTriangleGlyph size={16} />
-        <span>
-          <strong>{L.title}</strong>
-          <br />
-          {L.message}
-        </span>
+    <Panel testId="intg-request-banner">
+      <div className="intg-line">
+        <InfoGlyph size={20} aria-hidden />
+        <div className="intg-line-text">
+          <NoticeLines lines={[<strong key="t">{L.title}</strong>]} />
+          <NoticeLines tone="muted" lines={sentences(L.message)} />
+        </div>
+        <Button variant="secondary" size="sm" className="intg-btn" data-testid="intg-request-open" onClick={onOpen}>
+          {L.button}
+          <ArrowRightGlyph size={14} aria-hidden />
+        </Button>
       </div>
-      <Button variant="primary" size="sm" className="intg-btn" data-testid="intg-request-open" onClick={onOpen}>
-        {L.button}
-        <ArrowRightGlyph size={14} />
-      </Button>
-    </div>
+    </Panel>
   );
 }
 
@@ -344,10 +342,11 @@ export function RequestToolModal({ modal, labels, onClose, onSubmit }) {
   const [purpose, setPurpose] = useState('');
   const valid = toolName.trim().length >= TOOL_NAME_MIN && purpose.trim().length >= PURPOSE_MIN;
   const submitting = !!modal.submitting;
+  // 공용 입력 창 틀(FormModal · 칸 이름 18/28 굵게 · 입력칸 40 · PW-3126). 설명 두 문장은 줄을 나눈다.
   return (
-    <ModalShell
+    <FormModal
       title={L.title}
-      description={L.description}
+      description={<NoticeLines lines={sentences(L.description)} />}
       titleId="intg-request-title"
       closeLabel={L.close}
       cancelLabel={L.cancel}
@@ -357,22 +356,22 @@ export function RequestToolModal({ modal, labels, onClose, onSubmit }) {
       onClose={onClose}
       onSubmit={() => valid && onSubmit({ toolName: toolName.trim(), purpose: purpose.trim() })}
       testId="intg-request-modal"
-      className="adm-shell"
-      bodyClassName="adm-shell-body"
     >
-      <FormField label={L.toolName} required hint={L.toolNameHint} id="intg-request-tool">
+      <FormModal.Field label={L.toolName} required hint={L.toolNameHint}>
         <TextInput
           id="intg-request-tool"
+          aria-label={L.toolName}
           value={toolName}
           placeholder={L.toolNamePlaceholder}
           maxLength={TOOL_NAME_MAX}
           data-testid="intg-request-tool"
           onChange={(e) => setToolName(e.target.value)}
         />
-      </FormField>
-      <FormField label={L.purpose} required hint={L.purposeHint} id="intg-request-purpose">
+      </FormModal.Field>
+      <FormModal.Field label={L.purpose} required hint={L.purposeHint}>
         <TextArea
           id="intg-request-purpose"
+          aria-label={L.purpose}
           rows={3}
           value={purpose}
           placeholder={L.purposePlaceholder}
@@ -380,11 +379,11 @@ export function RequestToolModal({ modal, labels, onClose, onSubmit }) {
           data-testid="intg-request-purpose"
           onChange={(e) => setPurpose(e.target.value)}
         />
-      </FormField>
-      <FormField label={L.email} id="intg-request-email">
-        <TextInput id="intg-request-email" value={modal.email ?? ''} readOnly data-testid="intg-request-email" />
-      </FormField>
-      {modal.error && <div className="intg-note is-error" data-testid="intg-request-error">{modal.error}</div>}
-    </ModalShell>
+      </FormModal.Field>
+      <FormModal.Field label={L.email}>
+        <TextInput id="intg-request-email" aria-label={L.email} value={modal.email ?? ''} readOnly data-testid="intg-request-email" />
+      </FormModal.Field>
+      {modal.error && <IntgBand tone="error" role="alert" lines={sentences(modal.error)} testId="intg-request-error" />}
+    </FormModal>
   );
 }

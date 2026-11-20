@@ -209,7 +209,7 @@
 .intg-modal-usercard { margin: 0; padding: 16px; background: var(--bg-secondary); border-radius: var(--radius-md, 10px); display: flex; align-items: center; gap: 12px; }
 
 /* ── 툴 카탈로그 · 연동 요청 (W73 · screen-integrations.policy §2-6~§2-10) ── */
-.intg-admin-tab { display: flex; flex-direction: column; gap: 18px; }
+.intg-admin-tab { display: flex; flex-direction: column; gap: var(--spacing-xl); }
 .intg-section-desc { margin: -8px 0 12px; font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
 .intg-catalog-warning { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-weight: 600; }
 .intg-catalog-logo { width: 28px; height: 28px; color: var(--text-tertiary); }
@@ -218,8 +218,8 @@
 .intg-catalog-group-desc { margin-left: 8px; font-size: 11px; color: var(--text-secondary); }
 .intg-catalog-muted { font-size: 11px; font-weight: 600; color: var(--text-secondary); }
 /* 꺼진 줄은 흐리게 — 단 «활성화» 버튼 칸은 그대로(잠긴 버튼처럼 보이면 안 된다) */
-.intg-table .rt-row.intg-row-off td:not(:last-child) { opacity: 0.6; }
-.intg-table-empty .intg-btn { margin-left: 12px; }
+.intg-catalog-table .rt-row.intg-row-off td:not(:last-child) { opacity: 0.6; }
+.intg-empty .intg-btn { margin-top: var(--spacing-xs); }
 .intg-request-list { display: flex; flex-direction: column; }
 .intg-request-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .intg-request-actions { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; }
@@ -236,3 +236,118 @@
 /* 휴가 캘린더 기록 칸 (pivit-work PW-2791) — 줄은 설정 창 줄(.intg-setting-row), 오류 줄과 [저장] 줄은 설정 창 발 줄과 같은 12px 위 여백 */
 .intg-leave-cal-error { margin-top: var(--spacing-lg); }
 .intg-leave-cal-foot { justify-content: flex-end; margin-top: var(--spacing-lg); }
+
+/* ══ PW-3126 다시 칠하기 — 디자이너 화면 모양 ══════════════════════════════════════════════
+   흰 판 · 안내 줄 · 표 · 창 칸 · 숫자 칸은 공용 틀(components/frames)이 그린다. 여기는 틀이 못 담는 것만.
+   값은 디자이너 클래스에서: 판 사이 16 · 카드 안 줄 사이 12(`.intg-app-card`) · 정보 칸 = 리소스 팀 현황 사람 카드 칸 ·
+   색 띠 = 1on1 `.ono-done-banner` · 상태 글자 = 매니저 KR `.mgr-kr-status`. */
+
+/* 앱 연동 탭 — 판 사이 16 (시안 · 지금 카드 사이 값) */
+.intg-apps { display: flex; flex-direction: column; gap: var(--spacing-xl); }
+
+/* 앱 카드 — 버튼 줄을 카드 바닥에 붙여 옆 카드와 같은 높이 */
+.intg-app-card .intg-actions { margin-top: auto; }
+.intg-app-card .intg-app-name { font-size: var(--font-size-text-md); line-height: var(--line-height-text-md); }
+
+/* 카드 안 정보 칸 — 한 테두리 칸 안 «이름 왼쪽 · 값 오른쪽» 줄, 줄 사이 가는 선 */
+.intg-kv { border: 1px solid var(--border-secondary); border-radius: var(--radius-md); }
+.intg-kv-row {
+  display: flex; align-items: center; gap: var(--spacing-lg);
+  min-height: var(--spacing-5xl); padding: var(--spacing-md) var(--spacing-xl);
+  font-size: var(--font-size-text-sm); line-height: var(--line-height-text-sm);
+}
+.intg-kv-row + .intg-kv-row { border-top: 1px solid var(--border-secondary); }
+.intg-kv-label { flex: 1; min-width: 0; color: var(--text-secondary); }
+.intg-kv-value { flex: none; white-space: nowrap; font-weight: 600; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.intg-kv-value.is-muted { font-weight: 500; color: var(--text-tertiary); }
+.intg-kv-value.is-error { color: var(--text-error-primary); }
+.intg-kv-value.is-ok { color: var(--text-success-primary); }
+
+/* 수집 진행 막대 — 1on1 시작 진행 막대(.ono-start-progress-track 12) 를 쓰고 위 글만 */
+.intg-progress { display: flex; flex-direction: column; gap: var(--spacing-sm); }
+.intg-progress-label { font-size: var(--font-size-text-sm); line-height: var(--line-height-text-sm); color: var(--text-secondary); }
+
+/* 색 띠 — 1on1 `.ono-done-banner` 위에 아이콘 · 첫 문장 진하게 · 뒤 문장 작게 · 오른쪽 버튼 */
+.ono-done-banner.intg-band { flex-wrap: nowrap; align-items: center; }
+.intg-band > svg, .intg-band > .intg-band-icon { flex: none; }
+.intg-band-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--spacing-xxs); }
+.intg-band-head { font-weight: 700; }
+.intg-band-rest { font-size: var(--font-size-text-xs); line-height: var(--line-height-text-xs); font-weight: 500; }
+.intg-band-actions { flex: none; display: flex; align-items: center; gap: var(--spacing-md); }
+.ono-done-banner.intg-band.is-warning {
+  border-color: var(--utility-warning-200);
+  background: var(--utility-warning-50);
+  color: var(--text-warning-primary);
+}
+/* 안내 띠(정보) — 바탕 없는 흰 줄(1on1 띠 짜임 · 테두리만) */
+.ono-done-banner.intg-band.is-info { background: transparent; }
+
+/* 판 안 줄 — 이름 왼쪽 · 값과 버튼 오른쪽 · 가운데 맞춤 · 줄 위 가는 선 (회의실 불러오기 · 휴가 캘린더) */
+.intg-rows { display: flex; flex-direction: column; }
+.intg-row {
+  display: flex; align-items: center; gap: var(--spacing-lg);
+  min-height: var(--spacing-5xl); padding: var(--spacing-md) 0;
+  border-top: 1px solid var(--border-secondary);
+}
+.intg-row:first-child { border-top: 0; }
+.intg-row-label { flex: 1; min-width: 0; font-size: var(--font-size-text-sm); line-height: var(--line-height-text-sm); font-weight: 500; color: var(--text-primary); }
+.intg-row-label.is-muted { color: var(--text-tertiary); }
+.intg-row-sub { display: block; font-weight: 400; color: var(--text-tertiary); }
+.intg-row-value { flex: none; display: flex; align-items: center; gap: var(--spacing-md); }
+.intg-row-account { font-weight: 600; color: var(--text-primary); }
+.intg-row-error { font-size: var(--font-size-text-xs); line-height: var(--line-height-text-xs); color: var(--text-error-primary); }
+.intg-row > .intg-band { flex: 1; }
+.intg-row-value .intg-select { min-width: 200px; }
+.intg-rows-foot { display: flex; justify-content: flex-end; padding-top: var(--spacing-lg); border-top: 1px solid var(--border-secondary); }
+
+/* 바탕 없는 안내 줄 판(요청 · 개인 연동) — 아이콘 · 굵은 첫 줄 + 옅은 설명 · 오른쪽 흰 보조 버튼 */
+.intg-line { display: flex; align-items: center; gap: var(--spacing-lg); }
+.intg-line > svg { flex: none; color: var(--text-tertiary); }
+.intg-line-text { flex: 1; min-width: 0; }
+
+/* 상태 글자(동기화 로그 · 토큰 이력) — 매니저 KR `.mgr-kr-status` 12/18 · 사유는 아래 줄 */
+.intg-state { display: flex; flex-direction: column; gap: var(--spacing-xxs); min-width: 0; }
+.intg-state-reason {
+  font-size: var(--font-size-text-xs); line-height: var(--line-height-text-xs); color: var(--text-tertiary);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.intg-muted { color: var(--text-tertiary); }
+
+/* 빈 · 실패 안내 — 매니저 화면군 빈 안내(.manager-modal-empty) 48 위아래 */
+.intg-empty {
+  display: flex; flex-direction: column; align-items: center; gap: var(--spacing-md);
+  padding: var(--spacing-5xl) 0; text-align: center;
+  font-size: var(--font-size-text-sm); color: var(--text-tertiary);
+}
+.intg-empty-title { font-size: var(--font-size-text-md); font-weight: 700; color: var(--text-primary); }
+
+/* Slack 소유자 권한 관리 — 따로 화면 */
+.intg-owner-view { display: flex; flex-direction: column; gap: var(--spacing-xl); }
+.intg-owner-back { align-self: flex-start; }
+.intg-person { display: flex; align-items: center; gap: var(--spacing-lg); }
+.intg-person-main { flex: 1; min-width: 0; }
+.intg-tri { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--border-secondary); border-radius: var(--radius-md); }
+.intg-tri > div { display: flex; flex-direction: column; gap: var(--spacing-xxs); padding: var(--spacing-md) var(--spacing-xl); min-width: 0; }
+.intg-tri > div + div { border-left: 1px solid var(--border-secondary); }
+.intg-tri-label { font-size: var(--font-size-text-xs); line-height: var(--line-height-text-xs); color: var(--text-tertiary); }
+.intg-tri-value { font-size: var(--font-size-text-md); line-height: var(--line-height-text-md); font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+.intg-tri-value.is-muted { color: var(--text-tertiary); }
+.intg-token-log { display: flex; align-items: center; gap: var(--spacing-xl); min-height: var(--spacing-5xl); border-bottom: 1px solid var(--border-secondary); font-size: var(--font-size-text-sm); }
+.intg-token-log-date { flex: none; min-width: 96px; color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+.intg-token-log-text { flex: 1; min-width: 0; color: var(--text-primary); }
+
+/* 설정 창 칸 — 고르기 칸은 칸 전체 폭 */
+.intg-settings-body .intg-select { width: 100%; }
+
+/* 받지 못하는 구성원 창 — 표 위 검색칸 · 명 수 */
+.intg-unmatched-head { display: flex; align-items: center; gap: var(--spacing-lg); }
+.intg-unmatched-head .dp-search { flex: 1; min-width: 0; }
+.intg-unmatched-count { flex: none; font-size: var(--font-size-text-sm); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+
+/* 재인증 창 사람 칸 — 회색 상자 대신 흰 테두리 칸 */
+.intg-modal-usercard.is-outline { background: transparent; border: 1px solid var(--border-secondary); }
+/* 표 안 서비스 이름 — 로고 16 + 이름 */
+.intg-svc { display: inline-flex; align-items: center; gap: var(--spacing-md); font-weight: 600; color: var(--text-primary); }
+.intg-svc img { width: 16px; height: 16px; object-fit: contain; }
+.intg-picker-item.is-dim .intg-picker-item-name { color: var(--text-tertiary); }
+.intg-row-sub.is-warning { color: var(--text-warning-primary); }
