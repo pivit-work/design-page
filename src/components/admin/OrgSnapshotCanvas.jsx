@@ -715,6 +715,8 @@ function OrgSnapshotStatusView({
     roster = [],
     // 연령 탭 분모(PW-3129) — 막대 머리 옆 회색 «· 생년월일이 있는 K명 기준» · 막대 너비의 분모(K) · 맨 아래 회색 «생년월일 없음 N명»
     ageHeadingNote = null, ageBarMax = null, ageNoBirthLabel = null,
+    // 서버가 나이를 셌나 — false 면 «연령 데이터 없음»(기록이 얕은 지난 사본). 생년월일이 있는 사람이 0명이어도 센 것이다(재직 0명 포함)
+    ageCounted = null,
     // 주 소속 없는 재직자 수(MC8) · 기록 시작 전 날짜인가(§1 — As Of 와 같은 C1 빈 상태)
     unassignedCount = 0, noRecord = false,
   } = data;
@@ -885,7 +887,7 @@ function OrgSnapshotStatusView({
         )}
 
         {activeTab === 'age' && (
-          ageDist.length === 0 && !ageNoBirthLabel
+          (ageCounted == null ? ageDist.length === 0 && !ageNoBirthLabel : !ageCounted)
             ? <EmptyState size="lg" description={labels.ageNotAvailable} />
             : (
               <div className="admin-snap-bars" data-testid="status-age">
