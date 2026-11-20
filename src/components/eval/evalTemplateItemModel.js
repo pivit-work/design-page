@@ -120,10 +120,6 @@ export function supportsGrowthType(q, reviewType) {
 }
 
 /**
- * [PW-1262 ③] 이 질문의 셀프 답을 동료 리뷰 작성자에게 참고로 보일지 고를 수 있나 —
- * 셀프(또는 유형 미정) 평가지의 질문. 설명 항목은 답이 없어 고를 것이 없다.
- */
-/**
  * [PW-3076] 항목 설정 «AI 초안»이 켜졌나. 서술형만 켤 수 있다. 값이 없는 서술형(옛 임시저장·
  * 프리셋에서 척도를 서술로 바꾼 동료 항목)은 켬 — 서버 저장 규칙(`normalizeAiDraftEnabled`)과 같다.
  * 손으로 더한 항목은 `ai:false` 를 들고 태어난다.
@@ -133,6 +129,10 @@ export function isAiDraftOn(q) {
   return q.ai !== false;
 }
 
+/**
+ * [PW-1262 ③] 이 질문의 셀프 답을 동료 리뷰 작성자에게 참고로 보일지 고를 수 있나 —
+ * 셀프(또는 유형 미정) 평가지의 질문. 설명 항목은 답이 없어 고를 것이 없다.
+ */
 export function supportsPeerVisible(q, reviewType) {
   if (isNoteItem(q)) return false;
   return !reviewType || reviewType === 'self';
