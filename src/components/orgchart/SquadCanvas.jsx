@@ -914,6 +914,8 @@ export default function SquadCanvas({
   /** 무대의 내 기둥을 눌렀다 — 그 기둥 바로 아래 배정 편집 창(본인 모드 · §5-7 «내 블록» v3.48) */
   const openMineFromStage = ({ squadId, userId, rect, selector }) => setPopover({
     squadId, userId, x: rect.left + 8, y: rect.bottom + 8, anchorSelector: selector, anchorRect: rect,
+    // 흰 판 안에만 — 판 아래 범례 줄을 덮지 않게(PW-3003)
+    boundsSelector: '[data-testid="squad-pillar-stage"] .sq-pillar-wrap',
   });
   /** 카드 보기 — 표의 본인 칸으로 옮겨 가 그 칸 아래 창을 연다. 칸이 없으면 가운데 */
   const openCellPopover = (squadId, userId) => {
@@ -1992,6 +1994,7 @@ export default function SquadCanvas({
           pos={popover}
           anchorSelector={popover.anchorSelector || null}
           anchorRect={popover.anchorRect || null}
+          boundsSelector={popover.boundsSelector || null}
           squad={popSquad}
           assignment={popAssign}
           personName={nameOf(popover.userId)}

@@ -58,6 +58,8 @@ const C = {
  * 들어가지 않고, 창(약 560px)이 기둥 아래에 들어갈 만큼 위다 — 200 이면 이름표 윗줄이 머리글에 가렸다(브라우저 확인 12).
  */
 const MINE_TOP = 250;
+/** 내 기둥으로 옮길 때 그 이름표 위에 남길 판 안쪽 여백(px) — 판 위 끝에 이름표가 잘리지 않게(PW-3003) */
+const MINE_LABEL_ROOM = 16;
 /** 이보다 기둥이 많으면 재생하지 않는다 — 움직임이 끊긴다(PW-2607 과 같은 값 · 개발이 정함). */
 const PLAY_MAX = 500;
 
@@ -586,6 +588,27 @@ export default function SquadPillarStage({
       }
     }
     if (need < 0) window.scrollBy?.(0, need);
+    // 위 scrollIntoView 가 페이지까지 올려 흰 판 아래 끝이 화면 아래 끝보다 위에 남으면, 페이지를 그만큼 되돌리고
+    // 무대 안 스크롤을 같은 만큼 내린다 — 기둥은 그 자리에 있고 판 아래 남는 높이만 는다. 창은 판 안에만 뜨므로(PW-3003)
+    // 판이 짧게 남으면 창이 잘려 ② 개인 캐파 칸이 첫 화면에서 안 보였다(배너 [조정 →] · 1440×900 판 아래 228px 빔).
+    const wrap = el.closest?.('.sq-pillar-wrap');
+    const sc = el.closest?.('.sq-pillar-scroll');
+    if (wrap && sc) {
+      let page = wrap.parentElement;
+      while (page && !(page.scrollTop > 0 && /auto|scroll/.test(getComputedStyle(page).overflowY))) page = page.parentElement;
+      const pageTop = page ? page.scrollTop : (window.scrollY || 0);
+      const wr = wrap.getBoundingClientRect();
+      const gap = window.innerHeight - wr.bottom;
+      const room = sc.scrollHeight - sc.clientHeight - sc.scrollTop;
+      // 판 위 끝이 내려오는 만큼 기둥 위 이름표(«이름 · 나»)가 판에 잘리지 않게 — 이름표 위 끝이 판 위 끝 + MINE_LABEL_ROOM 아래에 남는 데까지만
+      const tag = svgRef.current?.querySelector(`[data-pillar-tag="${tk.key}"]`) || el;
+      const head = tag.getBoundingClientRect().top - wr.top - MINE_LABEL_ROOM;
+      const d = Math.floor(Math.min(gap, pageTop, room, head));
+      if (d > 0) {
+        if (page) page.scrollTop -= d; else window.scrollBy?.(0, -d);
+        sc.scrollTop += d;
+      }
+    }
     requestAnimationFrame(() => {
       onOpenMine({ squadId: tk.a.squadId, userId: tk.x.id, rect: el.getBoundingClientRect(), selector });
     });

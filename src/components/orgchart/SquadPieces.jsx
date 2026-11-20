@@ -20,6 +20,7 @@ import {
   SQUAD_MENU_Z,
   SQUAD_ANCHOR_ASSIGN,
   assignPopoverVertical,
+  assignPopoverVerticalIn,
   capacityState,
   clampPct,
   GAUGE_SCALE,
@@ -275,6 +276,11 @@ export function SquadAssignPopover({
   planSumPct = null,
   /** 위쪽 경계가 되는 요소의 셀렉터 — sticky 머리 줄. 그 아랫변 위로는 팝오버가 올라가지 않는다. */
   topBoundarySelector = null,
+  /**
+   * 창이 벗어나지 않을 판(셀렉터) — 그 판의 위·아래 끝 안에만 창을 둔다. «한눈에» 무대에서 연 창은 흰 판
+   * (`.sq-pillar-wrap`)을 준다: 판 아래 범례 줄을 덮지 않게(PW-3003). 없으면 종전대로 뷰포트 기준.
+   */
+  boundsSelector = null,
   onSetShare, onSetPct, onToggleLead, onRemove, onClose,
 }) {
   const L = useOrgLabels();
@@ -314,10 +320,18 @@ export function SquadAssignPopover({
   // 위쪽 경계 — sticky 머리 줄(제목·탭)의 아랫변. 머리 줄도 셀렉터로 매번 다시 찾는다(앵커와 같은 이유).
   const boundaryEl = topBoundarySelector ? document.querySelector(topBoundarySelector) : null;
   const topLimit = boundaryEl ? Math.max(0, boundaryEl.getBoundingClientRect().bottom) : 0;
+  // 창이 벗어나지 않을 판 — 높이 0(아직 안 그려짐·숨김)이면 없는 것으로 친다
+  const boundsEl = boundsSelector ? document.querySelector(boundsSelector) : null;
+  const boundsRect = boundsEl ? boundsEl.getBoundingClientRect() : null;
+  const bounds = boundsRect && boundsRect.height > 0 ? boundsRect : null;
 
   // 앵커가 보이는 영역(머리 줄 아래 ~ 뷰포트 끝)을 완전히 벗어나면 닫는다 — 보이지 않는 셀의
   // 값을 고치고 있는 상태를 만들지 않는다. 값은 조작 즉시 저장되므로 닫혀도 잃는 것이 없다.
-  const anchorGone = !!live && (live.bottom <= topLimit || live.top >= window.innerHeight);
+  // 판이 있으면 판 밖으로(판은 넘친 그림을 잘라 숨긴다) 나간 기둥도 사라진 것이다
+  const anchorGone = !!live && (
+    live.bottom <= Math.max(topLimit, bounds ? bounds.top : 0)
+    || live.top >= (bounds ? Math.min(window.innerHeight, bounds.bottom) : window.innerHeight)
+  );
   const closeRef = useRef(onClose);
   useEffect(() => { closeRef.current = onClose; });
   useEffect(() => { if (anchorGone) closeRef.current(); }, [anchorGone]);
@@ -326,7 +340,9 @@ export function SquadAssignPopover({
   // 세로 배치는 **가용 공간을 재서** 고른다 — 높이를 상수로 가정하면 뷰포트 하단에서
   // ②·액션이 화면 밖으로 밀려나고 스크롤도 걸리지 않는다(§5-3.8 · PW-109).
   // 따라가는 중에도 매번 다시 계산해야 한다 — 안 그러면 따라가다 화면 밖으로 나간다.
-  const vert = assignPopoverVertical(origin.y, window.innerHeight, topLimit);
+  const vert = bounds
+    ? assignPopoverVerticalIn(origin.y, window.innerHeight, topLimit, bounds, live ? live.top : origin.y)
+    : assignPopoverVertical(origin.y, window.innerHeight, topLimit);
 
   const sharePct = assignment.sharePct || 0;
   // ① 배분 합계는 **스쿼드 상태와 무관**하다 — 그 스쿼드 안의 사실이기 때문(§5-3.3).

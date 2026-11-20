@@ -462,20 +462,49 @@ export const POP_MIN_H = 240; // 이 높이도 안 나오는 쪽에는 붙이지
  *
  * 🔴 어느 배치든 `maxHeight` 를 **반드시 함께** 돌려준다. 위치만 옮기고 높이를 열어
  * 두면 같은 버그가 다른 좌표에서 재발한다. 넘치는 만큼은 본문만 스크롤한다.
+ *
+ * `bottomLimit` — 그 아래로는 내려가지 않는 선(뷰포트 좌표 · 기본 = 뷰포트 아래 끝). «한눈에» 무대는 흰 판
+ * 아래에 범례 줄이 있어 판 아래 끝을 준다 — 뷰포트 끝까지 쓰면 창이 판 밖으로 삐져나와 범례를 덮었다(PW-3003).
+ * 위로 뒤집을 때의 `bottom` 은 CSS 값이라 실제 뷰포트 높이(`viewportH`)로 잰다.
+ *
+ * `anchorTop` — 위로 뒤집을 때 창 아래 끝을 붙일 선(기본 = `anchorY`). 무대의 기둥은 그 위 끝을 준다 — 기준점(기둥 아래 끝 + 8)에
+ * 붙이면 누른 기둥을 덮는다(PW-3003 리뷰).
  */
-export function assignPopoverVertical(anchorY, viewportH, topLimit = 0) {
+export function assignPopoverVertical(anchorY, viewportH, topLimit = 0, bottomLimit = viewportH, anchorTop = anchorY) {
   // `topLimit` — 그 위로는 올라가지 않는 선(뷰포트 좌표). 스쿼드 탭은 sticky 머리 줄의 아랫변을 준다:
   // 팝오버가 따라 올라가다 제목·탭을 덮으면 화면의 「어디」가 사라진다.
   const topMin = topLimit + POP_GUTTER;
   const top = Math.max(anchorY, topMin);
-  const spaceBelow = viewportH - top - POP_GUTTER;
-  const spaceAbove = anchorY - POP_ANCHOR_GAP - topMin;
+  const bottomMax = Math.min(viewportH, bottomLimit) - POP_GUTTER;
+  const spaceBelow = bottomMax - top;
+  const spaceAbove = anchorTop - POP_ANCHOR_GAP - topMin;
   if (Math.max(spaceBelow, spaceAbove) < POP_MIN_H) {
     // 초단신 뷰포트 — 앵커를 포기한다. 앵커에 붙이는 것보다 조작 가능한 것이 먼저다.
-    return { top: topMin, maxHeight: Math.max(0, viewportH - topMin - POP_GUTTER) };
+    return { top: topMin, maxHeight: Math.max(0, bottomMax - topMin) };
   }
   if (spaceBelow >= POP_MIN_H) return { top, maxHeight: spaceBelow };
-  return { bottom: viewportH - anchorY + POP_ANCHOR_GAP, maxHeight: spaceAbove };
+  return { bottom: viewportH - anchorTop + POP_ANCHOR_GAP, maxHeight: spaceAbove };
+}
+
+/**
+ * 판(`board` — 뷰포트 좌표 rect) 안에 창을 둔다 (PW-3003 · «한눈에» 무대의 흰 판).
+ *
+ * - 판 안에 위·아래 어느 쪽에도 `POP_MIN_H` 가 안 나오면(판이 화면 위로 굴러가 조금만 보일 때 · 판 높이 0)
+ *   판을 버리고 종전 화면 기준으로 둔다 — 판 안에 넣느라 ②·[배정 해제]에 못 닿게 하지 않는다(정책서 §10-A A26).
+ * - 위로 뒤집을 때는 누른 기둥의 **위 끝**(`anchorTop`) 위에 붙인다 — 기둥 아래 끝에 붙이면 누른 기둥을 덮는다.
+ */
+export function assignPopoverVerticalIn(anchorY, viewportH, topLimit = 0, board = null, anchorTop = anchorY) {
+  if (board && board.height > 0) {
+    const tl = Math.max(topLimit, board.top);
+    const bl = Math.min(viewportH, board.bottom);
+    const topMin = tl + POP_GUTTER;
+    const below = bl - POP_GUTTER - Math.max(anchorY, topMin);
+    const above = anchorTop - POP_ANCHOR_GAP - topMin;
+    if (Math.max(below, above) >= POP_MIN_H) {
+      return assignPopoverVertical(anchorY, viewportH, tl, bl, anchorTop);
+    }
+  }
+  return assignPopoverVertical(anchorY, viewportH, topLimit, viewportH, anchorTop);
 }
 
 /** 상태 이력 팝오버 목록의 최대 높이 — append-only 감사 로그라 행이 쌓이기만 한다(§5-3.8). */
