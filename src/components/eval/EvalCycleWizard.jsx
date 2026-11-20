@@ -2005,6 +2005,10 @@ function TemplatePickerModal({
    정보의 소속 «컬럼 원값» 을 본다. 둘이 다른 조직에서 `department` 로 자르면
    화면은 N명을 보여 주는데 서버는 아무도 못 잡는다(실측으로 확인했다). */
 const committeeDeptOf = (m) => m.hrDepartment;
+/* PW-3109 — 명단 줄에 적는 소속. 칩과 견주는 값(`committeeDeptOf`)과 다를 수 있다: 조직 없이 조직장에게 직접 보고하는
+   사람은 그 조직장의 조직 칩으로 들지만 줄에는 명부처럼 «{조직장} 직속»으로 적는다(그 조직 소속이 아니다).
+   앱이 `hrDepartmentLabel` 을 안 넘기면 칩 값 그대로. */
+const committeeDeptLabelOf = (m) => m.hrDepartmentLabel ?? committeeDeptOf(m);
 
 let committeeCardSeq = 0;
 /** 카드 한 장. `key` 는 화면용이라 초안·요청에 싣지 않는다. */
@@ -2164,7 +2168,7 @@ function CommitteeCard({
   /* 명단 검색은 **표시만** 바꾼다 — 제외·추가 상태도 인원 수도 검색어와 무관하다. */
   const visibleCommitteeRoster = committeeRosterQuery
     ? committeeRoster.filter((m) =>
-        [m.name, committeeDeptOf(m), m.jobLevel, m.jobPosition].some((v) =>
+        [m.name, committeeDeptLabelOf(m), m.jobLevel, m.jobPosition].some((v) =>
           String(v ?? '')
             .toLowerCase()
             .includes(committeeRosterQuery),
@@ -2179,7 +2183,7 @@ function CommitteeCard({
           (m) =>
             !committeeRosterIds.has(m.id) &&
             !committeeSelectedIds.has(m.id) &&
-            [m.name, committeeDeptOf(m), m.jobLevel, m.jobPosition].some((v) =>
+            [m.name, committeeDeptLabelOf(m), m.jobLevel, m.jobPosition].some((v) =>
               String(v ?? '')
                 .toLowerCase()
                 .includes(committeeAddQuery),
@@ -2442,7 +2446,7 @@ function CommitteeCard({
                       {m.name}
                     </span>
                     <span className="evc-wiz-calibscope-row-meta">
-                      {[committeeDeptOf(m), m.jobLevel]
+                      {[committeeDeptLabelOf(m), m.jobLevel]
                         .filter(Boolean)
                         .join(' · ')}
                     </span>
@@ -2525,7 +2529,7 @@ function CommitteeCard({
                     {m.name}
                   </span>
                   <span className="evc-wiz-calibscope-row-meta">
-                    {[committeeDeptOf(m), m.jobLevel]
+                    {[committeeDeptLabelOf(m), m.jobLevel]
                       .filter(Boolean)
                       .join(' · ')}
                   </span>
@@ -13304,7 +13308,7 @@ export default function EvalCycleWizard({
                   <li key={m.id} data-testid="evc-wiz-calib-dup-row">
                     <b>{m.name}</b>{' '}
                     <span className="evc-wiz-calib-dup-meta">
-                      {[committeeDeptOf(m), m.jobLevel].filter(Boolean).join(' · ')}
+                      {[committeeDeptLabelOf(m), m.jobLevel].filter(Boolean).join(' · ')}
                     </span>{' '}
                     <span className="evc-wiz-calib-dup-titles">{titles.join(' · ')}</span>
                   </li>

@@ -3306,7 +3306,7 @@ export default function EvalCycleSummaryCanvas({
   /* 명단 검색은 표시만 바꾼다 — 제외·추가 상태도 인원 수도 검색어와 무관하다. */
   const visibleCreateRoster = createRosterQuery
     ? createRoster.filter((m) =>
-        [m.name, m.dept, m.level].some((v) =>
+        [m.name, m.deptLabel ?? m.dept, m.level].some((v) =>
           String(v ?? '')
             .toLowerCase()
             .includes(createRosterQuery),
@@ -3320,7 +3320,7 @@ export default function EvalCycleSummaryCanvas({
           (m) =>
             !createRosterIds.has(m.memberId) &&
             !createCommitteeSet.has(m.memberId) &&
-            [m.name, m.dept, m.level].some((v) =>
+            [m.name, m.deptLabel ?? m.dept, m.level].some((v) =>
               String(v ?? '')
                 .toLowerCase()
                 .includes(createAddQuery),
@@ -7778,7 +7778,7 @@ export default function EvalCycleSummaryCanvas({
                               {m.name || m.memberId}
                             </span>
                             <span className="evs-cw-roster-meta">
-                              {[m.dept, m.level].filter(Boolean).join(' · ')}
+                              {[m.deptLabel ?? m.dept, m.level].filter(Boolean).join(' · ')}
                             </span>
                             <span className="evs-cw-roster-cta">
                               {L.cwCreateAddCta}
@@ -7830,7 +7830,7 @@ export default function EvalCycleSummaryCanvas({
                             {m.name || m.memberId}
                           </span>
                           <span className="evs-cw-roster-meta">
-                            {[m.dept, m.level].filter(Boolean).join(' · ')}
+                            {[m.deptLabel ?? m.dept, m.level].filter(Boolean).join(' · ')}
                           </span>
                           {createAddedSet.has(m.memberId) && (
                             <StatusBadge className="evs-cw-roster-tag">
