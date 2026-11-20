@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import SearchInput from '../shared/SearchInput.jsx';
 import Switch from '../shared/Switch.jsx';
@@ -190,7 +190,7 @@ function Section({ title, aside, children, testId }) {
   );
 }
 
-function PromptEditor({ value, onChange, textareaRef, known, placeholder, disabled, override, invalid }) {
+function PromptEditor({ value, onChange, textareaRef, selectionRef, known, placeholder, disabled, override, invalid }) {
   const backRef = useRef(null);
   const parts = splitPromptVariables(value, known);
   return (
@@ -211,6 +211,10 @@ function PromptEditor({ value, onChange, textareaRef, known, placeholder, disabl
         ref={textareaRef}
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        // 칩을 누르면 초점이 칩으로 옮겨 가므로, 마지막 커서 자리를 들고 있다가 그 자리에 넣는다(spec §5-3).
+        onSelect={(e) => {
+          selectionRef.current = { start: e.currentTarget.selectionStart, end: e.currentTarget.selectionEnd };
+        }}
         onScroll={(e) => {
           if (backRef.current) backRef.current.scrollTop = e.currentTarget.scrollTop;
         }}
@@ -257,6 +261,11 @@ export default function AdminAiPromptsCanvas({
 }) {
   const labels = merge(DEFAULT_LABELS, providedLabels);
   const textareaRef = useRef(null);
+  // 입력칸의 마지막 커서 자리 — 한 번도 안 눌렀으면 null(끝에 붙인다). 기능을 바꾸면 비운다.
+  const selectionRef = useRef(null);
+  useEffect(() => {
+    selectionRef.current = null;
+  }, [selectedKey]);
 
   const [search, setSearch] = useState('');
   const [closedCats, setClosedCats] = useState(() => new Set());
@@ -280,9 +289,10 @@ export default function AdminAiPromptsCanvas({
   const insertVariable = (varName) => {
     const insertText = `{{${varName}}}`;
     const textarea = textareaRef.current;
-    const focused = textarea && typeof document !== 'undefined' && document.activeElement === textarea;
-    const start = focused ? textarea.selectionStart : customPrompt.length;
-    const end = focused ? textarea.selectionEnd : customPrompt.length;
+    const sel = selectionRef.current;
+    const start = sel ? Math.min(sel.start, customPrompt.length) : customPrompt.length;
+    const end = sel ? Math.min(sel.end, customPrompt.length) : customPrompt.length;
+    selectionRef.current = { start: start + insertText.length, end: start + insertText.length };
     onCustomPromptChange?.(customPrompt.slice(0, start) + insertText + customPrompt.slice(end));
     requestAnimationFrame(() => {
       if (!textarea) return;
@@ -510,6 +520,7 @@ export default function AdminAiPromptsCanvas({
             value={customPrompt}
             onChange={(v) => onCustomPromptChange?.(v)}
             textareaRef={textareaRef}
+            selectionRef={selectionRef}
             known={known}
             placeholder={mode === 'override' ? labels.placeholderOverride : labels.placeholderAppend}
             disabled={locked}
