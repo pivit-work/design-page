@@ -1609,6 +1609,8 @@ function ReviewRow({
         closeLabel={L.approveClose}
         canSubmit={!busy && !goalsInvalid && comment.length <= commentMax}
         busy={busy}
+        // PW-3024 — 응답을 기다리는 동안 [승인] 안에 도는 표시(같은 카드 하향 리뷰 [다시 제출]과 같은 dp-busy-inline).
+        submitSpinner
         onOverlayClick={null}
         onClose={() => {
           setApproveAsk(false);

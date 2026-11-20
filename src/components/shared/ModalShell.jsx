@@ -1,4 +1,5 @@
 import ModalLayer from './ModalLayer.jsx';
+import Spinner from './Spinner.jsx';
 import { CloseGlyph } from './lineIcons.jsx';
 import { useRef } from 'react';
 import { closeButtonLabel, useDistinctCloseName } from './closeButtonLabel.js';
@@ -40,6 +41,9 @@ import { closeButtonLabel, useDistinctCloseName } from './closeButtonLabel.js';
  *                        null·false 면 푸터 줄 자체를 그리지 않는다(읽기만 하는 창)
  *   busy                 요청이 도는 중 — Esc·막 클릭·닫기 X 를 받지 않고 기본 두 버튼을 잠근다.
  *                        닫혀도 요청은 이미 나갔으므로 「아무것도 안 바뀌었다」로 읽히면 거짓이 된다
+ *   submitSpinner        `busy` 인 동안 기본 확인 버튼 안 글자 앞에 도는 표시(`.dp-busy-inline`)를 두고 `aria-busy` 를
+ *                        단다 — 그 버튼은 흐려지지 않는다(`modal-shell.css` `:disabled:not([aria-busy])`). 기본 false 라
+ *                        안 주는 창은 종전 그대로(잠겨 흐려질 뿐)다 (pivit-work PW-3024 리포트 승인 창)
  *   zIndex               막의 겹침 순서 (기본은 CSS 값). 창 안에서 날짜 고르기처럼 위에 떠야
  *                        하는 것이 있는 화면은 그보다 낮게 준다
  *   onOverlayClick       막을 눌렀을 때 (PW-836). undefined 면 닫기(종전 그대로), null 이면 아무 일도
@@ -76,6 +80,7 @@ export default function ModalShell({
   children,
   footer,
   busy = false,
+  submitSpinner = false,
   zIndex,
   onOverlayClick,
   ariaLabel,
@@ -193,8 +198,16 @@ export default function ModalShell({
               type="submit"
               className="tl-group-modal-btn tl-group-modal-btn-primary"
               disabled={!canSubmit || busy}
+              aria-busy={(submitSpinner && busy) || undefined}
             >
-              {submitLabel}
+              {submitSpinner && busy ? (
+                <span className="dp-busy-inline">
+                  <Spinner size={14} />
+                  {submitLabel}
+                </span>
+              ) : (
+                submitLabel
+              )}
             </button>
           </div>
         ) : null) : footer ? (
