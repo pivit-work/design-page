@@ -90,6 +90,10 @@ p.dp-field-error {
   border-radius: var(--radius-md, 10px);
 }
 
+/* 작은 칸(`size="sm"` · 36) — 작은 버튼(`Button size="md"` 36)과 한 줄에 설 때. 높이로 맞추고 위아래 여백은 뺀다
+   (PW-3122 조직단위 설정 편집 바: 고르기 42 · 검색 40 이 옆 버튼 36 과 어긋났다). 기본 모양에만 — 점수 0. */
+:where(.dp-input.is-sm) { min-height: 36px; height: 36px; padding-top: 0; padding-bottom: 0; }
+
 /* ── 체크박스 ── */
 :where(.dp-check) {
   display: inline-flex;

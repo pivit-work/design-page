@@ -39,6 +39,8 @@ const WORDS = {
  *      검색칸이 뜨면 어색해서다. 이때 키보드는 목록이 받는다(↑↓ · Enter · Esc), 처음엔 지금 값에 서 있다.
  *  - emptyLabel — 고를 것이 하나도 없을 때 목록에 보일 글(비우면 화면 언어 기본 문구)
  *  - className — 칸 모양 클래스. 주면 공용 기본 모양 대신 그것만 쓴다(`Select` 와 같은 규칙)
+ *  - size — 'md'(기본 · 높이 42) | 'sm'(36). 'sm' 은 작은 버튼(`Button size="md"` 36)과 한 줄에 설 때 —
+ *      조직단위 설정 편집 바처럼 칸과 버튼 높이가 어긋나면 한 묶음으로 안 보인다(PW-3122). 기본 모양에만 걸린다.
  *  - valueClassName · chevronClassName · chevron — 닫힌 칸 안 글·꺾쇠에 화면 고유 모양을 그대로 두고 싶을 때.
  *      `chevron={false}` 는 꺾쇠를 안 그린다 — 화면이 칸 배경이나 옆 아이콘으로 이미 화살표를 그릴 때
  *  - onOpenChange(open) — 펼침/닫힘을 바깥(칸을 감싼 요소의 `is-open` 등)이 알아야 할 때
@@ -60,6 +62,7 @@ export default function SearchSelect({
   searchable = true,
   emptyLabel,
   className,
+  size = 'md',
   valueClassName,
   chevronClassName,
   chevron,
@@ -177,7 +180,7 @@ export default function SearchSelect({
       <button
         ref={setTriggerRef}
         type="button"
-        className={`${controlClass('dp-input dp-select', className, isInvalid)} dp-search-select-trigger`}
+        className={`${controlClass('dp-input dp-select', className, isInvalid)} dp-search-select-trigger${size === 'sm' ? ' is-sm' : ''}`}
         disabled={disabled}
         role="combobox"
         aria-haspopup="listbox"

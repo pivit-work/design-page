@@ -37,6 +37,7 @@ export default function SearchInput({
   iconClassName,
   inputClassName,
   iconSize = 16,
+  size = 'md',
   invalid,
   id,
   placeholder,
@@ -54,7 +55,7 @@ export default function SearchInput({
         type="text"
         role="searchbox"
         autoComplete="off"
-        className={controlClass('dp-input dp-search-input', inputClassName, isInvalid)}
+        className={`${controlClass('dp-input dp-search-input', inputClassName, isInvalid)}${size === 'sm' ? ' is-sm' : ''}`}
         placeholder={placeholder}
         aria-label={ariaLabel ?? placeholder}
         {...a11y}
