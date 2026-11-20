@@ -2179,9 +2179,12 @@ export default function EvalCycleLeaderCanvas({
               <Button
                 variant="secondary"
                 disabled={assessmentLocked}
-                onClick={() => {
-                  setAssessBaseline(assessSnap);
-                  onSaveAssessment?.(assessmentPayload());
+                onClick={async () => {
+                  // PW-3024 — 저장이 끝난 뒤에 «고친 것 없음» 기준을 옮긴다. 호출부가 false 를 돌려주면(저장 실패)
+                  // 기준을 두어, 고친 채 나갈 때 확인 창이 그대로 묻는다. 결과를 안 주는 호출부는 종전처럼 옮긴다.
+                  const snap = assessSnap;
+                  const saved = await onSaveAssessment?.(assessmentPayload());
+                  if (saved !== false) setAssessBaseline(snap);
                 }}
                 data-testid="evl-save-assessment"
               >
@@ -2227,18 +2230,19 @@ export default function EvalCycleLeaderCanvas({
                 )}
                 <button
                   type="button"
-                  className="evc-btn is-primary"
+                  className={`evc-btn is-primary${submitting ? ' dp-busy-center' : ''}`}
                   onClick={handleSubmitClick}
                   disabled={lcOver || submitting}
                   aria-busy={submitting || undefined}
                   data-testid="evl-submit"
                 >
-                  {/* PW-3024 — 기다리는 동안 버튼 안에 도는 표시(디자이너 규칙 · EvalCycleWizard dp-busy-inline) */}
+                  {/* PW-3024 — 기다리는 동안 글자는 자리만 남기고 가운데서 돈다(공용 Button pending 과 같은 모양 ·
+                      글자 옆에 붙는 dp-busy-inline 은 AI 버튼 몫) */}
                   {submitting ? (
-                    <span className="dp-busy-inline">
-                      <Spinner size={14} />
-                      {submitted ? L.resubmit : L.submit}
-                    </span>
+                    <>
+                      <span className="dp-busy-center__label">{submitted ? L.resubmit : L.submit}</span>
+                      <Spinner className="dp-busy-center__spinner" />
+                    </>
                   ) : submitted ? L.resubmit : L.submit}
                 </button>
               </div>

@@ -25,6 +25,24 @@
   gap: 6px;
 }
 
+/* 요청을 기다리는 버튼(AI 아님) — 공용 `Button pending`(button.css `.dp-btn.is-pending`)과 같은 모양.
+   글자는 자리만 남기고(opacity — 화면 읽기는 이름을 계속 읽는다) 가운데서 돈다. 폭이 그대로라 옆 버튼이 밀리지 않는다.
+   `Button` 을 못 쓰는 디자이너 버튼(창 아래 `.tl-group-modal-btn` · 평가 `.evc-btn`)에 붙인다 (pivit-work PW-3024). */
+.dp-busy-center {
+  position: relative;
+  cursor: progress;
+}
+.dp-busy-center > .dp-busy-center__label {
+  opacity: 0;
+}
+.dp-busy-center > .dp-busy-center__spinner {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 1.15em;
+  height: 1.15em;
+}
+
 /* ── 자리 표시 ─────────────────────────────────────────────── */
 .dp-skeleton {
   display: block;
