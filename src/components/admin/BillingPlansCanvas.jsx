@@ -887,6 +887,8 @@ function FeatureCompareTable({ plans, featureKeys, featureLabelMap, currentPlanC
     {
       key: 'feature',
       header: labels.compareFeatureHeader,
+      // 긴 기능 이름(«고급 권한 · 가시성 · SSO (출시 예정)»)은 두 줄까지 보인다 — 한 줄이면 «…»로 잘렸다(PW-3132 브라우저 확인).
+      lines: 2,
       render: (row) =>
         row.kind === 'feature'
           ? featureLabelMap[row.key]

@@ -292,7 +292,16 @@ const FILTER_COUNT_STYLE = {
 const CENTER_STYLE = { display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 'var(--spacing-md)' };
 const CENTER_TITLE_STYLE = { fontSize: 'var(--font-size-text-md)', lineHeight: 'var(--line-height-text-md)', fontWeight: 700, color: 'var(--text-primary)' };
 const CENTER_DESC_STYLE = { fontSize: 'var(--font-size-text-sm)', lineHeight: 'var(--line-height-text-sm)', color: 'var(--text-tertiary)', marginBottom: 'var(--spacing-lg)' };
-const NO_NUM_STYLE = { fontWeight: 600, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' };
+// 청구번호는 «INV-2026-00001»(14자)라 칸에 들어가지만, 그보다 긴 번호(옛 시드 «INV-SEED-…»)는 옆 칸으로 넘치지 않고 칸 안에서 꺾는다.
+const NO_NUM_STYLE = {
+  fontWeight: 600,
+  color: 'var(--text-primary)',
+  fontVariantNumeric: 'tabular-nums',
+  maxWidth: '100%',
+  // 표 칸은 한 줄(nowrap)이 기본이라 꺾기를 따로 푼다.
+  whiteSpace: 'normal',
+  overflowWrap: 'anywhere',
+};
 
 /** [환불 받기] 창의 금액 줄 — 이름 왼쪽(14 보조) / 값 오른쪽(굵게). 돌려받을 금액 줄만 위에 선 · 16 굵게. 시안 ㊴. */
 const KV_LIST_STYLE = { display: 'flex', flexDirection: 'column', gap: 'var(--spacing-lg)' };
@@ -426,6 +435,8 @@ export default function BillingHistoryCanvas({
     {
       key: 'period',
       header: labels.tableHeaders.period,
+      // 날짜 두 개(«2026-11-01 ~ 2026-11-30» 14px ≈ 160)가 한 줄에 다 보이게 폭을 준다 — 틀이 나누면 160 이라 «…»로 잘렸다(PW-3132 브라우저 확인).
+      width: 200,
       render: (inv) => <>{inv.period_start} ~ {inv.period_end}</>,
     },
     {
