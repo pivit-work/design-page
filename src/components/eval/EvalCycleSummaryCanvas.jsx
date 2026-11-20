@@ -2929,6 +2929,8 @@ export default function EvalCycleSummaryCanvas({
   // §7.4 최종 확정 — 위원장(session.canCalibrate)에게만 버튼이 뜬다.
   // 확정 여부는 서버가 판정하므로 여기서는 콜백 유무가 아니라 canCalibrate 로 가른다.
   onCommitCalibSession,
+  /* PW-3109 — [최종 확정] 응답을 기다리는 동안 true. 버튼을 잠그고 «확정 중…»(L.cwCommitPending)으로 적는다. */
+  calibCommitPending = false,
   onExportCalibCsv,
   /**
    * PW-519 보상·연봉 열람 권한 창 — `{ memberIds, people }`(HR Admin 에게만 온다).
@@ -5887,9 +5889,11 @@ export default function EvalCycleSummaryCanvas({
                       type="button"
                       className="evc-btn is-primary"
                       onClick={() => onCommitCalibSession?.()}
+                      disabled={calibCommitPending}
+                      aria-busy={calibCommitPending || undefined}
                       data-testid="evs-cw-commit"
                     >
-                      {L.cwCommitBtn}
+                      {calibCommitPending ? (L.cwCommitPending ?? L.cwCommitBtn) : L.cwCommitBtn}
                     </button>
                   )}
                 </div>
