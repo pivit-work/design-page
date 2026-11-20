@@ -181,6 +181,12 @@ function titleFromFirst(blocks) {
   return { title, blocks: [rest, ...others].filter(filled) };
 }
 
+/* 줄 아래 주황 글 한 줄 — blocks 조각을 잇고, 없으면 옛 모양 lines */
+function anchorText(n) {
+  const fromBlocks = (n.blocks || []).flatMap((b) => [b.lead, ...(b.text || []), ...(b.muted || [])]).filter(Boolean);
+  return (fromBlocks.length > 0 ? fromBlocks : n.lines || []).join(' ');
+}
+
 /* 앰버는 하나씩, 이어 나오는 회색 안내는 한 상자에 — 순서는 그대로 둔다 */
 function groupNotices(notices) {
   const out = [];
@@ -362,7 +368,7 @@ function LeaveSettlement({ view, labels }) {
                     className="admin-offb-leave-note is-warning"
                     data-testid={`offboarding-leave-notice-${n.id}`}
                   >
-                    {(n.lines || []).join(' ')}
+                    {anchorText(n)}
                   </span>
                 ))}
               </dd>
