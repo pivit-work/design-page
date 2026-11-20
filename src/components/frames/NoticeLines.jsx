@@ -15,9 +15,12 @@ import { FRAME_TEXT_WRAP } from './frameValues.js';
  * @param {import('react').ReactNode[]} props.lines 한 줄에 한 문장 — 빈 값(false · null · 0 · 공백뿐인 글)은 건너뛴다
  *   — `count && '…'` 처럼 넘겨도 «0» 줄이 안 생긴다
  * @param {'default' | 'muted'} [props.tone]
+ * @param {boolean} [props.divided] 줄 사이에 가는 선 — 경고처럼 따로 읽어야 하는 문장이 여러 줄 쌓일 때만 켠다(PW-3111).
+ *   선은 디자이너 OKR 히스토리 판의 분기 사이 선(`.okr-h-quarter + .okr-h-quarter` 1px `--border-secondary`)과 같고,
+ *   선 위 · 아래는 8(`--spacing-md`). 첫 줄 위 · 끝 줄 아래에는 선이 없어 바깥 간격은 끈 때와 같다. 끄면(기본) 종전 모양 그대로.
  * @param {string} [props.testId]
  */
-export function NoticeLines({ lines, tone = 'default', testId }) {
+export function NoticeLines({ lines, tone = 'default', divided = false, testId }) {
   const shown = lines.filter(
     (line) =>
       line !== null && line !== undefined && line !== false && line !== 0 && !(typeof line === 'string' && line.trim() === ''),
@@ -25,9 +28,9 @@ export function NoticeLines({ lines, tone = 'default', testId }) {
   if (shown.length === 0) return null;
   const lineClass = tone === 'muted' ? 'tl-event-modal-subtitle' : 'tl-group-modal-desc';
   return (
-    <ul style={LIST_STYLE} data-testid={testId} data-tone={tone}>
+    <ul style={divided ? DIVIDED_LIST_STYLE : LIST_STYLE} data-testid={testId} data-tone={tone} data-divided={divided || undefined}>
       {shown.map((line, i) => (
-        <li key={i} className={lineClass} style={FRAME_TEXT_WRAP}>
+        <li key={i} className={divided ? `${lineClass} dp-frame-notice-divided` : lineClass} style={FRAME_TEXT_WRAP}>
           {line}
         </li>
       ))}
@@ -48,3 +51,6 @@ const LIST_STYLE = {
   gap: 'var(--spacing-xs)',
   minWidth: 0,
 };
+
+/** 줄 사이 선을 켜면 간격은 선 위 · 아래 여백(frames.css `.dp-frame-notice-divided`)이 맡는다. */
+const DIVIDED_LIST_STYLE = { ...LIST_STYLE, gap: 0 };
