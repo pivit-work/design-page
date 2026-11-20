@@ -5382,9 +5382,10 @@ function ChangeReasonModal({ prompt, labels }) {
             <div key={c.field} className={`admin-emp-reason-change${c.stacked ? ' is-stacked' : ''}`} data-testid={`change-reason-change-${c.field}`}>
               <span className="admin-emp-reason-change-label">{c.label}</span>
               <span className="admin-emp-reason-change-values">
-                {c.masked ? L.masked : (c.before || labels.panel.historyNone)}
+                {/* 가린 칸(계좌번호)도 비어 있던 쪽은 «—» — 처음 넣는 번호가 «**** → ****»로 «있던 번호를 바꾼다»처럼 읽혔다(pivit-work PW-2924) */}
+                {c.masked && !c.beforeEmpty ? L.masked : ((!c.masked && c.before) || labels.panel.historyNone)}
                 {' → '}
-                {c.masked ? L.masked : (c.after || labels.panel.historyNone)}
+                {c.masked && !c.afterEmpty ? L.masked : ((!c.masked && c.after) || labels.panel.historyNone)}
               </span>
             </div>
           ))}
