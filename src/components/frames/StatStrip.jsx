@@ -14,7 +14,8 @@ import { isEnterKey } from '../shared/enterKey.js';
  * 값(오류 1 이상)을 빨강(`--text-error-primary`)으로. 디자이너 원온원 «주의 필요» 빨강 숫자와 같은 뜻이다. 안 주면 지금 그대로.
  *   - 값 아래 작은 줄(`sub`, PW-3134) 12/18 · 400 `--text-secondary` — 같은 KR 셈 줄의 칸 아래 글(`.mgr-krm-stat span`)
  *   - 값이 «—»(모름 · 기록 없음)면 회색 `--text-tertiary`(PW-3134) — 0 이 아니라 «값 없음»이 숫자처럼 진하게 보이지 않게
- * 칸은 같은 너비로 나눈다. 이름 · 값 · 작은 줄 모두 짧은 글이라 한 줄이고 넘치면 «…»(마우스를 올리면 전부).
+ * 칸은 같은 너비로 나눈다. 이름 · 값은 짧은 글이라 한 줄이고 넘치면 «…»(마우스를 올리면 전부). 작은 줄은 낱말 단위로 꺾인다.
+ * 작은 줄이 있는 줄은 칸 안을 위에서부터 쌓는다 — 한 칸의 작은 줄이 두 줄로 꺾여 줄 높이가 늘어도 큰 숫자가 같은 높이에 선다.
  * 모양을 덮어쓰는 길(className · style)은 두지 않는다.
  *
  * @param {object} props
@@ -42,7 +43,13 @@ export function StatStrip({ items, ariaLabel, testId }) {
           : {};
         const empty = item.value === '—';
         return (
-          <div key={item.key} className="dp-frame-stat" data-testid={item.testId} {...press}>
+          <div
+            key={item.key}
+            className="dp-frame-stat"
+            data-testid={item.testId}
+            {...press}
+            style={anySub ? { ...STACK_TOP_STYLE, ...press.style } : press.style}
+          >
             <span className="manager-stat-label" style={FRAME_ONE_LINE} title={item.label}>
               {item.label}
             </span>
@@ -85,5 +92,7 @@ const SUB_STYLE = {
   fontWeight: 400,
   color: 'var(--text-secondary)',
 };
+/** 작은 줄이 있는 줄 — 칸을 위아래로 벌려 채우지 않고 위에서부터 쌓는다(간격은 칸 기본 gap). */
+const STACK_TOP_STYLE = { justifyContent: 'flex-start' };
 /** 누르는 칸 — 손가락 모양만. 모양은 그대로다. */
 const PRESS_STYLE = { cursor: 'pointer' };
