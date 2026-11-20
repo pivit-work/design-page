@@ -5076,14 +5076,16 @@ function HistChange({ before, after }) {
   const aTail = ai >= 0 ? a.slice(ai) : '';
   /* 묶음이 칸(.is-change max-width 18em)보다 넓으면(이메일·한글 주소처럼 띄어쓰기 없는 긴 값) 꺾지 않으면 옆 «사유» 글 위로
      겹친다 — 그때는 묶지 않아 칸 안에서 꺾이게 둔다(.admin-emp-hist-values 의 overflow-wrap). 글자 폭을 넉넉히 어림해
-     17em 이하만 묶는다 — 한글·넓은 글자 1em·0.8em, 나머지 0.55em. 휴대폰 «010-0000-0000 → 010-0000-0000» ≈ 15.6em */
+     17em 이하만 묶는다 — 한글·넓은 글자 1em·0.8em, 나머지 0.55em. 휴대폰 «010-0000-0000 → 010-0000-0000» ≈ 15.6em
+     묶지 않을 때도 «→» 뒤는 꺾이지 않는 띄어쓰기라 «→»는 이후 값 첫 낱말과 같은 줄에 남는다 — 앞 띄어쓰기에서만 꺾여
+     «→»가 첫 줄 끝에 혼자 남지 않는다(PW-3001 되돌림 11-19 · 1280 긴 주소·이메일). */
   const short = histEm(`${bLast} → ${aFirst}`) <= 17;
   return (
     <>
       {bHead && <span className="admin-emp-hist-before">{bHead}</span>}
       <span className={short ? 'admin-emp-hist-joint' : undefined}>
         <span className="admin-emp-hist-before">{bLast}</span>
-        {' '}<span className="admin-emp-hist-arrow">→</span>{' '}
+        {' '}<span className="admin-emp-hist-arrow">→</span>{short ? ' ' : '\u00a0'}
         <span className="admin-emp-hist-after">{aFirst}</span>
       </span>
       {aTail && <span className="admin-emp-hist-after">{aTail}</span>}
