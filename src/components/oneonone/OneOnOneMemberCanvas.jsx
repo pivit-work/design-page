@@ -1,3 +1,4 @@
+import AiFailBox from '../shared/AiFailBox.jsx';
 import { useAiDraftLifecycle } from '../shared/useAiDraftLifecycle.js';
 import Button from '../shared/Button.jsx';
 import { isNotifiedFailure } from '../shared/notifiedFailure.js';
@@ -1245,24 +1246,15 @@ export function AiReportSection({ value, L, icons, baseUrl, readOnly = false }) 
   return (
     <Section title={L.aiReportTitle} icon={icons.aiSummary} icons={icons} baseUrl={baseUrl} badge={regenerate} collapsible={false}>
       {failure && !busy && (
-        <div className="ono-start-failbox" role="alert" data-testid="ono-ai-report-error" data-reason={reason}>
-          <span className="ono-start-failbox-title">{L.aiReportFailed}</span>
-          <p className="ono-start-failbox-msg">
-            {exhausted
-              ? L.aiReportFailExhausted
-              : `${rejectedMessage ?? L[AI_REPORT_FAIL_LABEL[reason]]} ${L.aiReportFailManual}`}
-          </p>
-          <div className="ono-start-failbox-actions">
-            <button
-              type="button"
-              className="ono-start-failbox-retry"
-              onClick={generate}
-              disabled={quota || exhausted || !!rejectedMessage}
-            >
-              {L.aiReportRetry}
-            </button>
-          </div>
-        </div>
+        // 디자이너 공용 실패 상자 — 편집 밖 보고서 상자·«AI 제안» 상자와 같은 모양 (PW-3087).
+        <AiFailBox
+          title={L.aiReportFailed}
+          message={exhausted ? L.aiReportFailExhausted : `${rejectedMessage ?? L[AI_REPORT_FAIL_LABEL[reason]]} ${L.aiReportFailManual}`}
+          retryLabel={L.aiReportRetry}
+          onRetry={generate}
+          retryDisabled={quota || exhausted || !!rejectedMessage}
+          testId="ono-ai-report-error"
+        />
       )}
 
       {confirming && (
