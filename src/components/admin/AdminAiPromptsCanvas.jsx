@@ -87,7 +87,7 @@ const DEFAULT_LABELS = {
   versionHistory: '변경 이력',
   versionsEmpty: '변경 이력이 없습니다.',
   restore: '이 버전으로 복구',
-  historyColumns: { at: '날짜 · 수정자', type: '변경 유형', mode: '적용 방식', content: '내용' },
+  historyColumns: { at: '날짜 · 수정자', type: '변경 유형 · 적용 방식', content: '내용' },
   changeTypes: {
     edit: '수정',
     activate: '활성화',
@@ -642,39 +642,32 @@ export default function AdminAiPromptsCanvas({
                   key: 'at',
                   header: labels.historyColumns.at,
                   width: 160,
-                  lines: 2,
                   render: (v) => (
-                    <>
-                      {v.changedAt}
-                      {v.changedByName && (
-                        <>
-                          <br />
-                          <span className="aip-by">{v.changedByName}</span>
-                        </>
-                      )}
-                    </>
+                    <span className="aip-type-cell">
+                      <span>{v.changedAt}</span>
+                      {v.changedByName && <span className="aip-by">{v.changedByName}</span>}
+                    </span>
                   ),
                 },
+                // 변경 유형 딱지 + 적용 방식(딱지가 아닌 따로 보이는 글 · policy §5-2-A) — 한 칸 두 줄. 1280 에서도 [이 버전으로 복구]가 판 안에 들게.
                 {
                   key: 'type',
                   header: labels.historyColumns.type,
-                  width: 110,
-                  render: (v) =>
-                    v.changeType && labels.changeTypes[v.changeType] ? (
-                      <StatusBadge tone="neutral" className="aip-badge" data-testid={`change-type-${v.id}`}>
-                        {labels.changeTypes[v.changeType]}
-                      </StatusBadge>
-                    ) : (
-                      ''
-                    ),
+                  width: 100,
+                  render: (v) => (
+                    <span className="aip-type-cell">
+                      {v.changeType && labels.changeTypes[v.changeType] && (
+                        <StatusBadge tone="neutral" className="aip-badge" data-testid={`change-type-${v.id}`}>
+                          {labels.changeTypes[v.changeType]}
+                        </StatusBadge>
+                      )}
+                      <span className="aip-by" data-testid={`change-mode-${v.id}`}>
+                        {v.mode === 'override' ? labels.modeOverride : labels.modeAppend}
+                      </span>
+                    </span>
+                  ),
                 },
-                {
-                  key: 'mode',
-                  header: labels.historyColumns.mode,
-                  width: 110,
-                  render: (v) => (v.mode === 'override' ? labels.modeOverride : labels.modeAppend),
-                },
-                { key: 'content', header: labels.historyColumns.content, lines: 2, render: (v) => v.customPrompt },
+                { key: 'content', header: labels.historyColumns.content, lines: 2, width: 190, render: (v) => v.customPrompt },
                 {
                   key: 'restore',
                   header: '',

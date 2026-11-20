@@ -5070,3 +5070,5 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
 .aip-retry { display: flex; flex-direction: column; align-items: center; gap: var(--spacing-lg); }
 .aip-retry.is-left { align-items: flex-start; }
 .aip-by { color: var(--text-secondary); }
+.aip-type-cell { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-xxs); padding: var(--spacing-sm) 0; }
+.aip-type-cell > span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
