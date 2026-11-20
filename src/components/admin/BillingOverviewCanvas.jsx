@@ -409,6 +409,7 @@ const TWO_COL = { display: 'grid', gridTemplateColumns: '1fr 1fr', minWidth: 0 }
 const COL = { display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xxs)', minWidth: 0 };
 const COL_RIGHT = { ...COL, borderLeft: '1px solid var(--border-secondary)', paddingLeft: 'var(--spacing-3xl)' };
 const COL_LEFT = { ...COL, paddingRight: 'var(--spacing-3xl)' };
+const ONE_COL = { display: 'block', minWidth: 0 };
 const AMOUNT = {
   margin: 'var(--spacing-xs) 0 0', fontSize: 'var(--font-size-display-xs)', lineHeight: 'var(--line-height-display-xs)',
   fontWeight: 700, color: 'var(--text-primary)',
@@ -874,16 +875,17 @@ export default function BillingOverviewCanvas({
           tone="bad"
           icon={<AlertTriangleGlyph size={ICON} />}
           title={<span data-testid="billing-dunning-title">{sub.locked ? labels.lockedTitle : labels.dunningTitle}</span>}
-          lines={sentences(sub.locked ? labels.lockedDesc : labels.dunningDesc(sub.graceUntil))}
-          fix={[!canEdit && labels.dunningNoPerm]}
-          actions={<>
-            {sub.locked && onNavigateExport && (
+          lines={[
+            ...sentences(sub.locked ? labels.lockedDesc : labels.dunningDesc(sub.graceUntil)),
+            // 명부 내보내기는 전처럼 설명 아래 링크 자리 — 오른쪽 버튼 줄에는 [지금 갱신] 하나만(버튼 순서 그대로)
+            sub.locked && onNavigateExport && (
               <LinkButton data-testid="billing-locked-export" onClick={onNavigateExport}>
                 {labels.lockedExportLink}
               </LinkButton>
-            )}
-            <Btn kind="danger-ghost" onClick={onNavigateMethods} disabled={!canEdit}>{labels.dunningAction}</Btn>
-          </>}
+            ),
+          ]}
+          fix={[!canEdit && labels.dunningNoPerm]}
+          actions={<Btn kind="danger-ghost" onClick={onNavigateMethods} disabled={!canEdit}>{labels.dunningAction}</Btn>}
         />
       )}
 
@@ -1161,8 +1163,9 @@ export default function BillingOverviewCanvas({
         {/* ④ 다음 청구 · 기본 결제수단 (active/past_due) — 이용 정지면 결제수단 칸만 남고 「다음 청구」는 없다(청구가 없다 · PW-2549) */}
         {showMoney && (
           <Panel.Section testId="billing-money-section">
-            <div style={TWO_COL}>
-              {suspended ? <div style={COL_LEFT} /> : (
+            {/* 이용 정지면 «다음 청구» 칸이 없어 결제수단 칸 하나만 판 폭 그대로(빈 왼쪽 칸 · 세로선 없음) */}
+            <div style={suspended ? ONE_COL : TWO_COL}>
+              {suspended ? null : (
                 <div style={COL_LEFT}>
                   <span style={{ ...ROW_KEY }}>{labels.nextBillingLabel}</span>
                   <p style={AMOUNT}>{won(sub.periodAmount)}</p>
@@ -1241,7 +1244,7 @@ export default function BillingOverviewCanvas({
                   )}
                 </div>
               )}
-              <div style={COL_RIGHT}>
+              <div style={suspended ? COL : COL_RIGHT}>
                 <span style={ROW_KEY}>{labels.methodLabel}</span>
                 {sub.method ? (
                   <>

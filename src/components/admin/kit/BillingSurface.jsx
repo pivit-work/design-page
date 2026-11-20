@@ -206,9 +206,9 @@ const NOTICE_ACTIONS_STYLE = { flex: 'none', display: 'flex', alignItems: 'cente
  * 바탕 없는 안내 한 줄 («결제 준비 중» 등) — 원온원 «보는 범위» 안내(`.ono-filter-notice`)처럼 바탕 · 선 없이
  * 아이콘 14 + 12/18 흐린 글. 시안 `.bl-ready`.
  */
-export function BillingInlineNote({ icon, children, testId }) {
+export function BillingInlineNote({ icon, children, testId, role }) {
   return (
-    <p style={INLINE_NOTE_STYLE} data-testid={testId}>
+    <p style={INLINE_NOTE_STYLE} data-testid={testId} role={role}>
       {icon && <span aria-hidden="true" style={INLINE_NOTE_ICON_STYLE}>{icon}</span>}
       <span style={{ minWidth: 0 }}>{children}</span>
     </p>
