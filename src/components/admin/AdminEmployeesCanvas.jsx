@@ -7390,17 +7390,9 @@ function EmployeesEditPanel({
             />
           )}
           {inTab('records') && (<>
-          {reading ? (
-            /* 읽기 — «추가 · 삭제는 [수정]에서 할 수 있어요»는 «기록» 제목 줄 오른쪽(PW-2895 시안) */
-            <div className="admin-emp-section-head">
-              <SectionLabel>{labels.panel.recordSection}</SectionLabel>
-              {onLoadHrProfile && (
-                <span className="admin-emp-detail-hint" data-testid="hr-inline-records-hint">
-                  {labels.records?.recordsEditHint || '추가 · 삭제는 [수정]에서 할 수 있어요'}
-                </span>
-              )}
-            </div>
-          ) : <SectionLabel>{labels.panel.recordSection}</SectionLabel>}
+          {/* «추가 · 삭제는 [수정]에서 할 수 있어요»는 읽기에서 묶음마다 줄 아래에 둔다(TC-ADM-553 ⑥ · pivit-work PW-3012) —
+              PW-2895 때 «기록» 제목 줄 오른쪽 한 줄이었다. */}
+          <SectionLabel>{labels.panel.recordSection}</SectionLabel>
           {reading ? (
             <div className="admin-emp-detail-read-grid">
               <DetailReadField label={labels.panel.education} full testId="employees-detail-read-education">

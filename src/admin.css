@@ -1788,7 +1788,6 @@
   color: var(--text-brand-tertiary);
 }
 .admin-emp-detail-link.dp-btn:hover:not(:disabled) { color: var(--text-brand-secondary); }
-.admin-emp-detail-hint { margin-left: auto; font-size: 12px; font-weight: 500; color: var(--text-subtle); }
 /* 묶음 아래 안내 — 문장마다 한 줄 */
 .admin-emp-detail-notes { display: flex; flex-direction: column; gap: var(--spacing-xxs); margin-top: var(--spacing-md); font-size: 12px; line-height: 18px; color: var(--text-subtle); }
 .admin-emp-detail-notes > span { display: block; }
@@ -1819,6 +1818,9 @@
 .adm-hr-row-count { margin-left: var(--spacing-sm); font-weight: 600; color: var(--text-brand-tertiary); }
 .adm-hr-row-count.is-zero { color: var(--text-tertiary); }
 .admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-section.is-row > :not(.adm-hr-section-title) { flex: 1 1 0; min-width: 0; }
+/* 묶음마다 줄 아래 «추가 · 삭제는 [수정]에서 할 수 있어요»(PW-3012) — 같은 페이지 «묶음 아래 안내»(.admin-emp-detail-notes) 글자 */
+.adm-hr-row-body { display: flex; flex-direction: column; }
+.adm-hr-read-hint { margin: 0; padding-bottom: var(--spacing-lg); font-size: 12px; line-height: 18px; color: var(--text-subtle); }
 .admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-section .adm-hr-empty { padding: var(--spacing-lg) 0; font-size: 16px; line-height: 24px; color: var(--text-tertiary); }
 .admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-list { gap: 0; }
 .admin-emp-detail:not(.is-editing) .admin-emp-detail-body .adm-hr-card { padding: var(--spacing-lg) 0; border: 0; border-radius: 0; background: none; }

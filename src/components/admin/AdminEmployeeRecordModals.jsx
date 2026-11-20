@@ -282,10 +282,16 @@ const codeLabel = (map, code) => (code && map && map[code]) || code;
 /* 구성원 상세 페이지 읽기(HrProfileInline · 고칠 수 없을 때)는 목록 묶음을 «이름표 · 값» 한 줄 칸으로 그린다 —
    개수는 딱지가 아니라 이름표 옆 글자(디자이너 프로필 창 .profile-row-count · PW-2895). 창과 수정 중에는 종전 딱지. */
 const HrRowLook = createContext(false);
+/* 구성원 상세 «HR 기록» 탭 읽기에서 목록 묶음(학력 · 경력 · 자격증 · 교육 이수 · 부양가족 · 증빙서류)마다
+   줄 아래에 두는 «추가 · 삭제는 [수정]에서 할 수 있어요» — 수정 중의 `×` · 추가 칸 자리(TC-ADM-553 ⑥ ·
+   기획 시안 admin-app.jsx 기록 목록 · pivit-work PW-3012). 값이 없으면(창 · 수정 중 · 다른 탭) 그리지 않는다. */
+const HrReadHint = createContext(null);
 function HrSection({ title, count, children }) {
   const rowLook = useContext(HrRowLook);
+  const readHint = useContext(HrReadHint);
+  const isRow = rowLook && count != null;
   return (
-    <section className={`adm-hr-section${rowLook && count != null ? ' is-row' : ''}`}>
+    <section className={`adm-hr-section${isRow ? ' is-row' : ''}`}>
       {(title || count != null) && (
         <h3 className="adm-hr-section-title">
           {title}
@@ -296,7 +302,12 @@ function HrSection({ title, count, children }) {
           ))}
         </h3>
       )}
-      {children}
+      {isRow && readHint ? (
+        <div className="adm-hr-row-body">
+          {children}
+          <p className="adm-hr-read-hint" data-testid="hr-section-read-hint">{readHint}</p>
+        </div>
+      ) : children}
     </section>
   );
 }
@@ -1917,7 +1928,7 @@ export function HrProfileInline({
   const docs = (org.documents ?? []);
   const renderRecords = () => (
     <>
-      {/* «추가 · 삭제는 [수정]에서 할 수 있어요»는 페이지가 «기록» 제목 줄 오른쪽에 그린다(PW-2895) */}
+      {/* «추가 · 삭제는 [수정]에서 할 수 있어요»는 읽기에서 묶음마다 줄 아래(HrSection · PW-3012) */}
       {archived ? (
         <HrSection title={L.hrEducation || '학력'}>
           <HrArchivedPair k={L.hrEducation || '학력'} text={archivedText} />
@@ -1962,6 +1973,7 @@ export function HrProfileInline({
   const body = { person: renderPerson, work: renderWork, comp: renderComp, records: renderRecords }[part];
   return (
     <HrRowLook.Provider value={!editable}>
+    <HrReadHint.Provider value={part === 'records' && !editable ? (L.recordsEditHint || '추가 · 삭제는 [수정]에서 할 수 있어요') : null}>
     <div className="adm-hr-body" data-testid={`hr-inline-${part}`}>
       {/* 구성원 상세 «인사 정보» 이름 칸 — 성 · 영어 닉네임을 부르는 쪽 이름 묶음 안에 끼운다(§3.2-D «탭별 칸» · PW-2797).
           이름 칸은 HR 정보를 불러오는 동안 · 못 불러와도 보여야 해서 아래 불러오기 갈래 밖에 둔다. */}
@@ -1981,6 +1993,7 @@ export function HrProfileInline({
         <div style={{ padding: 24, textAlign: 'center', color: T.muted, fontSize: 13 }}>{L.hrProfileError || 'HR 기록을 불러오지 못했습니다.'}</div>
       ) : body ? body() : null}
     </div>
+    </HrReadHint.Provider>
     </HrRowLook.Provider>
   );
 }
