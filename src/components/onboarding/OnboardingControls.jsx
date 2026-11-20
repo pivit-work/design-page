@@ -436,7 +436,10 @@ export function OnbTag({ children, grow = false, title, onRemove, removeLabel, t
       data-testid={testId}
     >
       {onClick ? (
-        <button type="button" ref={labelRef} className="onb-tag-label" onClick={onClick}>{children}</button>
+        // 공용 칩의 기존 버튼 바탕(.onb-tag button)을 그대로 쓴다 — 글 자리만 눌리게 감싼다(새 버튼 모양 없음)
+        <button type="button" onClick={onClick}>
+          <span ref={labelRef} className="onb-tag-label">{children}</span>
+        </button>
       ) : (
         <span ref={labelRef} className="onb-tag-label">{children}</span>
       )}

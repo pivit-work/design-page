@@ -2542,6 +2542,16 @@
   "admin-kit.css|.admin-offb-graybox .admin-pill.dp-badge--tone-neutral": {
    "background": "rgba(0, 0, 0, 0.03) / 어두운 화면 rgba(255, 255, 255, 0.03)",
    "color": "#858b95"
+  },
+  "onboarding.css|.onb-tag.is-error": {
+   "background": "--onb-error-bg",
+   "color": "--onb-error",
+   "box-shadow": "inset 0 0 0 1px var(--onb-error-border)"
+  },
+  "onboarding.css|.onb-tag.is-warn": {
+   "background": "--onb-warn-bg",
+   "color": "--onb-warn",
+   "box-shadow": "inset 0 0 0 1px var(--onb-warn-border)"
   }
  }
 }

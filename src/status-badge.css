@@ -1134,8 +1134,8 @@
 
 .onb-tag.is-grow { flex: 1; }
 .onb-tag-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* 글 자리가 버튼일 때(빨강·노랑 칩을 눌러 입력 칸으로 되돌림) — 위 «.onb-tag button» 의 inline-flex 를 풀어야 «…»가 산다 (pivit-work PW-2984) */
-.onb-tag button.onb-tag-label { display: block; font: inherit; text-align: left; cursor: pointer; }
+/* 글 자리를 감싼 버튼(빨강·노랑 칩을 눌러 입력 칸으로 되돌림) — 칩 폭 안에서 줄어들어야 안쪽 글이 «…»로 준다 (pivit-work PW-2984) */
+.onb-tag button:has(> .onb-tag-label) { min-width: 0; flex: 0 1 auto; font: inherit; }
 
 /* 형식 오류(빨강)·이미 멤버(노랑) 칩 — 시안 Tag 의 error·warn. 색은 가입 화면 오류 글씨·노란 딱지와 같은 토큰 (pivit-work PW-2984) */
 .onb-tag.is-error { background: var(--onb-error-bg); color: var(--onb-error); box-shadow: inset 0 0 0 1px var(--onb-error-border); }
