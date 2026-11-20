@@ -8,7 +8,11 @@ import { applyJobAxisChange, jobAxisNoticeText, JOB_AXIS_DEFAULT_LABELS } from '
 import JobAxisSelect from './JobAxisSelect.jsx';
 import { IconUpload } from './employeesIcons.jsx';
 import DateInput from '../shared/DateInput.jsx';
-import { LockGlyph, ArrowLeftGlyph, ArrowRightGlyph } from '../shared/lineIcons.jsx';
+import {
+  LockGlyph, ArrowLeftGlyph, ArrowRightGlyph, ChevronDownGlyph, ChevronRightGlyph, ChevronUpGlyph,
+  ClockGlyph, DownloadGlyph, InfoGlyph,
+} from '../shared/lineIcons.jsx';
+import { Panel, StatStrip, NoticeLines, FrameTable } from '../frames/index.js';
 import { groupHistoryRows } from './appointmentHistoryRows.js';
 import Tabs from '../shared/Tabs.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
@@ -52,6 +56,14 @@ const DEFAULT_LABELS = {
   loading: '불러오는 중…',
   // 현황 스냅샷
   statusTitle: '조직 현황',
+  /** 숫자 칸 줄 · 인원 나무 머리 · 연령 요약(PW-3134) */
+  statusSummaryLabel: '요약',
+  treeOrg: '조직',
+  treeCount: '인원',
+  treePct: '비율',
+  treeExpand: '펼치기',
+  treeCollapse: '접기',
+  ageSummaryLabel: '관공서 기준 집계',
   statusSubtitle: '인사 정보 기준 스냅샷',
   queryDate: '조회일',
   applyDate: '적용',
@@ -461,7 +473,9 @@ function SnapshotRoster({ rows, labels, showSalary, changedHint, onMemberClick, 
                     {r.name}
                   </button>
                 ) : (
-                  (r[c] ?? null) === null || r[c] === '' ? '—' : r[c]
+                  (r[c] ?? null) === null || r[c] === ''
+                    ? <span className="admin-snap-roster-dash">—</span>
+                    : r[c]
                 )}
                 {c === 'name' && rowBadge && (
                   <StatusBadge className="admin-snap-roster-badge" title={rowBadge.title}>
@@ -482,6 +496,8 @@ function SnapshotRoster({ rows, labels, showSalary, changedHint, onMemberClick, 
         totalPages={totalPages}
         pageSize={ROSTER_PAGE_SIZE}
         total={rows.length}
+        // «1–50 / 504명»의 «/ 504명»은 명단 머리 «{날짜} · 504명»과 같은 숫자라 걷는다(PW-3134)
+        showTotal={false}
         onPageChange={goTo}
         labels={pager}
         countSuffix={labels.countSuffix}
@@ -496,15 +512,17 @@ function ExportMenu({ labels, onExportRoster, onExportSummary }) {
   const [open, setOpen] = useState(false);
   return (
     <div className="admin-snap-export-wrap">
-      <button
-        type="button"
-        className="admin-snap-export-btn"
+      <Button
+        variant="secondary"
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
+        data-testid="snap-export-trigger"
       >
-        ↓ {labels.export}
-      </button>
+        <DownloadGlyph size={16} />
+        {labels.export}
+        <ChevronDownGlyph size={16} />
+      </Button>
       {open && (
         <>
           <div className="admin-snap-export-backdrop" onClick={() => setOpen(false)} />
@@ -527,59 +545,155 @@ function ExportMenu({ labels, onExportRoster, onExportSummary }) {
 /* ════════════════════════════════════════════════════════════
  * 1. 조직 현황 스냅샷
  * ════════════════════════════════════════════════════════════ */
-function OrgTreeRow({ node, depth, total, defaultOpen, onDrilldown, hint, concurrentSuffix }) {
-  const [open, setOpen] = useState(defaultOpen);
-  const hasChildren = node.children && node.children.length > 0;
-  const pct = total > 0 ? Math.round((node.count / total) * 100) : 0;
-  // `unitId` 는 같은 이름 조직을 가르고 겸직자를 찾는 데 쓴다(없으면 이름으로 거른다 — 지난 날짜 되감기).
-  // `unassigned` 행은 조직이 아니라 «주 소속 없음» 묶음이다(MC8).
-  const drill = (e) => {
-    e.stopPropagation();
-    onDrilldown?.(node.unassigned
-      ? { unassigned: true, label: node.name }
-      : { unit: node.name, unitId: node.id, label: node.name });
-  };
+
+/** 칸 안 글자 단추 — 모양 없이 글만 누르게(이름 · 펼침). 색 · 글꼴은 놓인 칸을 따른다. */
+const PLAIN_BUTTON = {
+  background: 'none',
+  border: 0,
+  padding: 0,
+  font: 'inherit',
+  color: 'inherit',
+  cursor: 'pointer',
+  textAlign: 'left',
+  minWidth: 0,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+};
+const TOGGLE_BUTTON = { ...PLAIN_BUTTON, display: 'inline-flex', flexShrink: 0, color: 'var(--text-tertiary)' };
+/** 인원 나무 — 칸 안에 보이는 줄 수. 넘치면 표 안에서 스크롤하고 머리 줄은 붙어 있다(PW-3134 · 60줄이 페이지를 2,900px 밀던 것). */
+const TREE_MAX_ROWS = 10;
+
+/** 막대 — 디자이너 매니저 KR 진행 막대(manager.css `.mgr-kr-progress-track` · `-fill` 12px · 모서리 4). `muted` 면 회색(값 없음 · 강조 밖). */
+function ShareBar({ value, max, muted }) {
+  const width = max > 0 ? Math.min(100, (value / max) * 100) : 0;
   return (
-    <>
-      <div
-        className={`admin-snap-tree-row${depth === 0 ? ' is-root' : ''}${hasChildren ? ' has-children' : ''}${hasChildren && open ? ' is-open' : ''}`}
-        style={{ padding: `9px 12px 9px ${12 + depth * 20}px` }}
-        onClick={() => hasChildren && setOpen((o) => !o)}
-      >
-        <span className="admin-snap-tree-toggle">{hasChildren ? (open ? '▾' : '▸') : ''}</span>
-        <Tooltip content={onDrilldown ? hint : undefined}>
-          <button
-            type="button"
-            className="admin-snap-tree-name"
-            onClick={onDrilldown ? drill : undefined}
-            style={onDrilldown ? { background: 'none', border: 'none', padding: 0, font: 'inherit', color: 'inherit', cursor: 'pointer', textAlign: 'left' } : undefined}
-          >
-            {node.name}
-          </button>
-        </Tooltip>
-        <span className="admin-snap-tree-count">
-          {node.count}
-          {/* 「12명 +2 겸직」 — 겸직은 합계에 섞지 않고 따로 보인다(MC2) */}
-          {node.concurrentCount > 0 && (
-            <span className="admin-snap-tree-count-concurrent" data-testid="snap-tree-concurrent">
-              +{node.concurrentCount} {concurrentSuffix}
+    <div className="mgr-kr-progress-track admin-snap-bar" aria-hidden="true">
+      <div className={`mgr-kr-progress-fill${muted ? ' admin-snap-bar-fill-muted' : ''}`} style={{ width: `${width}%` }} />
+    </div>
+  );
+}
+
+const treeKey = (parent, node) => `${parent}/${node.id ?? node.name}`;
+
+/**
+ * 인원 현황 나무 — 펼친 줄만 한 목록으로 펴서 표 틀(FrameTable)에 싣는다. 머리 줄 고정 · 칸 안 스크롤은 틀이 맡는다.
+ * 맨 위 줄(회사)은 처음부터 펼친다. 조직 이름을 누르면 그 조직 구성원 창(onDrilldown) — 종전 그대로.
+ */
+function OrgTreeTable({ tree, unassignedCount, total, labels, onDrilldown }) {
+  const rootKeys = useMemo(() => new Set(tree.map((n) => treeKey('', n))), [tree]);
+  const [state, setState] = useState({ tree, open: rootKeys });
+  const open = state.tree === tree ? state.open : rootKeys;
+  const toggle = (key) => {
+    const next = new Set(open);
+    if (next.has(key)) next.delete(key); else next.add(key);
+    setState({ tree, open: next });
+  };
+  const rows = [];
+  const walk = (nodes, depth, parent) => nodes.forEach((node) => {
+    const key = treeKey(parent, node);
+    const hasChildren = !!(node.children && node.children.length);
+    rows.push({ key, node, depth, hasChildren, isOpen: open.has(key) });
+    if (hasChildren && open.has(key)) walk(node.children, depth + 1, key);
+  });
+  walk(tree, 0, '');
+  if (unassignedCount > 0) {
+    // 주 소속이 없는 재직자 — 어느 조직에도 세지 않고 따로(MC8)
+    rows.push({ key: '__unassigned', node: { name: labels.unassigned, count: unassignedCount, unassigned: true }, depth: 0 });
+  }
+  const drill = (node) => onDrilldown?.(node.unassigned
+    ? { unassigned: true, label: node.name }
+    : { unit: node.name, unitId: node.id, label: node.name });
+  return (
+    <FrameTable
+      testId="snap-org-tree"
+      ariaLabel={labels.tabs.summary}
+      maxRows={TREE_MAX_ROWS}
+      rows={rows}
+      rowKey={(r) => r.key}
+      empty={labels.noOrgStructure}
+      columns={[
+        {
+          key: 'name',
+          header: labels.treeOrg,
+          render: (r) => (
+            <span
+              className={`admin-snap-tree-cell${r.depth === 0 && !r.node.unassigned ? ' is-root' : ''}${r.node.unassigned ? ' is-unassigned' : ''}`}
+              style={{ paddingLeft: `calc(var(--spacing-2xl) * ${r.depth})` }}
+              data-testid="snap-tree-row"
+            >
+              <span className="admin-snap-tree-toggle-slot">
+                {r.hasChildren && (
+                  <button
+                    type="button"
+                    style={TOGGLE_BUTTON}
+                    aria-expanded={r.isOpen}
+                    aria-label={r.isOpen ? labels.treeCollapse : labels.treeExpand}
+                    onClick={() => toggle(r.key)}
+                    data-testid="snap-tree-toggle"
+                  >
+                    {r.isOpen ? <ChevronDownGlyph size={16} /> : <ChevronRightGlyph size={16} />}
+                  </button>
+                )}
+              </span>
+              {onDrilldown ? (
+                <button type="button" style={PLAIN_BUTTON} title={labels.drilldownHint} onClick={() => drill(r.node)}>
+                  {r.node.name}
+                </button>
+              ) : (
+                <span className="admin-snap-tree-name">{r.node.name}</span>
+              )}
             </span>
-          )}
-        </span>
-        <div className="admin-snap-tree-bar-wrap">
-          <div className="admin-snap-tree-bar">
-            <div
-              className="admin-snap-tree-bar-fill"
-              style={{ width: `${pct}%`, opacity: depth === 0 ? 1 : 0.5 }}
-            />
-          </div>
-          <span className="admin-snap-tree-pct">{pct}%</span>
-        </div>
-      </div>
-      {hasChildren && open && node.children.map((child) => (
-        <OrgTreeRow key={child.id ?? child.name} node={child} depth={depth + 1} total={total} defaultOpen={false} onDrilldown={onDrilldown} hint={hint} concurrentSuffix={concurrentSuffix} />
-      ))}
-    </>
+          ),
+        },
+        {
+          key: 'count',
+          header: labels.treeCount,
+          align: 'right',
+          width: 160,
+          render: (r) => (
+            <span className={`admin-snap-num${r.node.count === 0 ? ' is-zero' : ''}`}>
+              {r.node.count}
+              {/* 「12 +2 겸직」 — 겸직은 합계에 섞지 않고 따로 보인다(MC2) */}
+              {r.node.concurrentCount > 0 && (
+                <span className="admin-snap-num-aside" data-testid="snap-tree-concurrent">
+                  +{r.node.concurrentCount} {labels.concurrentSuffix}
+                </span>
+              )}
+            </span>
+          ),
+        },
+        {
+          key: 'bar',
+          header: '',
+          render: (r) => <ShareBar value={r.node.count} max={total} muted={!!r.node.unassigned} />,
+        },
+        {
+          key: 'pct',
+          header: labels.treePct,
+          align: 'right',
+          width: 120,
+          render: (r) => (
+            <span className="admin-snap-pct">{total > 0 ? Math.round((r.node.count / total) * 100) : 0}%</span>
+          ),
+        },
+      ]}
+    />
+  );
+}
+
+/**
+ * 막대 목록 한 줄 — 이름 · 막대 · 인원 · 끝 칸(비율 또는 구간 딱지). 고용 유형 · 연령이 같이 쓴다.
+ * 줄 높이 36 · 칸 사이 12 — 시안(after/snapshot.html `.sn-hb`) · 막대는 디자이너 KR 진행 막대.
+ */
+function ShareBarRow({ name, count, max, muted, nameMuted, labels, tail, testId }) {
+  return (
+    <div className="admin-snap-bar-row" data-testid={testId}>
+      <span className={`admin-snap-bar-name${nameMuted ? ' is-muted' : ''}`} title={name}>{name}</span>
+      <ShareBar value={count} max={max} muted={muted} />
+      <span className="admin-snap-num">{countText(labels, count)}</span>
+      <span className="admin-snap-bar-tail">{tail}</span>
+    </div>
   );
 }
 
@@ -591,6 +705,8 @@ function OrgSnapshotStatusView({
   // 집계 조회가 실패했다(`'failed'`·`'timeout'`). 카드·명단을 빈 값으로 그리면 «조직 구조가 없습니다»처럼
   // 실패가 «없음»으로 보인다 — 날짜 줄은 두고 그 아래를 안내 하나로 바꾼다(As Of 탭의 실패와 같은 모양).
   error = null, onRetry,
+  /** 지난 날짜 안내 `{ title, body }` — 조회 줄 바로 아래 바탕 없는 안내 줄(PW-3134 · 종전엔 탭 위 주황 띠) */
+  notice = null,
 }) {
   const tabKeys = ['summary', 'employment', 'jobgroup', 'age'];
   const {
@@ -612,60 +728,57 @@ function OrgSnapshotStatusView({
   const ageMax = Math.max(1, ...ageDist.map((a) => a.count));
 
   return (
-    <div className="admin-snap-canvas">
-      <header className="admin-snap-header">
-        <div>
-          <div className="admin-snap-header-title">{labels.statusTitle}</div>
-          <div className="admin-snap-header-sub">{labels.statusSubtitle}</div>
-        </div>
-        {/* 캡션은 컨트롤 줄 아래로 뺀다 — As Of 탭과 같은 이유(PW-1438) */}
-        <div className="admin-snap-header-side">
-        <div className="admin-snap-header-actions">
-          {onShowCompChange && (
-            <Checkbox
-              className="admin-snap-comp-toggle"
-              inputClassName="dp-check-input"
-              checked={!!showComp}
-              onChange={(e) => onShowCompChange(e.target.checked)}
-              label={labels.asofShowComp}
-            />
-          )}
-          <div className="admin-snap-datepicker">
-            <span className="admin-snap-datepicker-label">{labels.queryDate}</span>
-            {/* 하한 = 기록 시작일, 상한 = 오늘 — As Of 탭과 같은 재구성 경로라 같은 범위다(§1) */}
-            <DateInput
-              min={coverageFrom || undefined}
-              max={today || undefined}
-              value={draftDate}
-              onChange={(v) => setDraftDate(v)}
-              onKeyDown={(e) => { if (isEnterKey(e) && canApply) onQueryDateChange?.(draftDate); }}
-            />
-          </div>
-          <button
-            type="button"
-            disabled={!canApply}
-            onClick={() => canApply && onQueryDateChange?.(draftDate)}
-            style={{ padding: '7px 14px', borderRadius: 8, border: 'none', fontSize: 13, fontWeight: 700, cursor: canApply ? 'pointer' : 'not-allowed', background: canApply ? 'var(--text-brand-tertiary, #4F6AF5)' : '#E2E8F0', color: canApply ? '#fff' : '#94A3B8' }}
-          >
-            {labels.applyDate}
-          </button>
-          <ExportMenu
-            labels={labels}
-            onExportRoster={() => onExportRoster?.()}
-            onExportSummary={() => onExport?.(activeTab)}
+    <div className="admin-snap-stack">
+      {/* 조회 줄 — 한 줄(PW-3134). 탭 이름과 겹치던 «조직 현황» 제목은 뺐다 */}
+      <div className="admin-snap-querybar" data-testid="status-querybar">
+        <span className="admin-snap-querybar-label">{labels.queryDate}</span>
+        {/* 하한 = 기록 시작일, 상한 = 오늘 — As Of 탭과 같은 재구성 경로라 같은 범위다(§1) */}
+        <DateInput
+          className="tl-emp-input admin-snap-querybar-date"
+          min={coverageFrom || undefined}
+          max={today || undefined}
+          value={draftDate}
+          onChange={(v) => setDraftDate(v)}
+          onKeyDown={(e) => { if (isEnterKey(e) && canApply) onQueryDateChange?.(draftDate); }}
+        />
+        <Button variant="secondary" disabled={!canApply} onClick={() => canApply && onQueryDateChange?.(draftDate)}>
+          {labels.applyDate}
+        </Button>
+        {onShowCompChange && (
+          <Checkbox
+            className="admin-snap-comp-toggle"
+            inputClassName="dp-check-input"
+            checked={!!showComp}
+            onChange={(e) => onShowCompChange(e.target.checked)}
+            label={labels.asofShowComp}
           />
-        </div>
+        )}
+        <span className="admin-snap-querybar-spacer" />
         {/* 날짜만 바꾸고 미적용이면 안내 — 결과는 직전 적용 기준 그대로다 */}
         {canApply ? (
-          <div className="admin-snap-coverage-caption" data-testid="status-apply-hint">{labels.applyHint}</div>
-        ) : labels.statusCoverageCaption && (
-          <div className="admin-snap-coverage-caption" data-testid="status-coverage-caption">{labels.statusCoverageCaption}</div>
-        )}
+          <span className="admin-snap-coverage-caption" data-testid="status-apply-hint">{labels.applyHint}</span>
+        ) : labels.statusCoverageCaption ? (
+          <span className="admin-snap-coverage-caption" data-testid="status-coverage-caption">{labels.statusCoverageCaption}</span>
+        ) : null}
+        <ExportMenu
+          labels={labels}
+          onExportRoster={() => onExportRoster?.()}
+          onExportSummary={() => onExport?.(activeTab)}
+        />
+      </div>
+
+      {notice && (
+        <div className="admin-snap-asof-note" role="status" data-testid="status-asof-note">
+          <ClockGlyph size={18} />
+          <div className="admin-snap-asof-note-text">
+            {notice.title && <strong>{notice.title}</strong>}
+            {notice.body && <span>{notice.body}</span>}
+          </div>
         </div>
-      </header>
+      )}
 
       {error ? (
-        <div className="admin-snap-content">
+        <Panel testId="status-load-error-panel">
           <EmptyState
             size="lg"
             data-testid="status-load-error"
@@ -677,40 +790,33 @@ function OrgSnapshotStatusView({
               </Button>
             ) : undefined}
           />
-        </div>
+        </Panel>
       ) : (<>
-      <div
-        className="admin-snap-summary-grid"
-        style={{ gridTemplateColumns: `repeat(${Math.max(1, summaryCards.length)}, minmax(0, 1fr))` }}
-      >
-        {summaryCards.map((c) => {
-          const clickable = c.drill && onDrilldown;
-          return (
-            <Tooltip key={c.key ?? c.label} content={clickable ? labels.drilldownHint : undefined}>
-              <div
-                className={`admin-snap-summary-card is-${c.tone || 'accent'}${clickable ? ' is-clickable' : ''}`}
-                onClick={clickable ? () => onDrilldown({ card: c.key, label: c.label }) : undefined}
-                role={clickable ? 'button' : undefined}
-                style={clickable ? { cursor: 'pointer' } : undefined}
-              >
-                <p className="admin-snap-summary-label">{c.label}</p>
-                <p className="admin-snap-summary-value">{c.value}</p>
-                {c.sub && <p className="admin-snap-summary-sub">{c.sub}</p>}
-              </div>
-            </Tooltip>
-          );
-        })}
-      </div>
-
-      {/* 집계 축 전환 — 공용 SegmentedControl(PW-836). 칸을 가로로 꽉 채운다(종전 모양). */}
-      <SegmentedControl
-        block
-        items={tabKeys.map((k) => ({ value: k, label: labels.tabs[k] }))}
-        value={activeTab}
-        onChange={onTabChange}
+      <StatStrip
+        testId="status-summary"
+        ariaLabel={labels.statusSummaryLabel}
+        items={summaryCards.map((c) => ({
+          key: c.key ?? c.label,
+          label: c.label,
+          value: c.value,
+          sub: c.sub,
+          onClick: c.drill && onDrilldown ? () => onDrilldown({ card: c.key, label: c.label }) : undefined,
+          hint: labels.drilldownHint,
+        }))}
       />
 
-      <div className="admin-snap-content">
+      {/* 탭과 내용이 한 흰 판 — 머리에 세그먼트(PW-836 공용 SegmentedControl), 오른쪽에 «인사 정보 기준 스냅샷» */}
+      <Panel testId="status-tab-panel">
+        <div className="admin-snap-tabhead">
+          <SegmentedControl
+            items={tabKeys.map((k) => ({ value: k, label: labels.tabs[k] }))}
+            value={activeTab}
+            onChange={onTabChange}
+          />
+          <span className="admin-snap-querybar-spacer" />
+          <span className="admin-snap-coverage-caption">{labels.statusSubtitle}</span>
+        </div>
+
         {activeTab === 'summary' && (
           noRecord
             // 기록 시작 전 날짜 — «조직 구조가 없다»(사실 주장)가 아니라 «기록이 없다»(C1)
@@ -718,37 +824,37 @@ function OrgSnapshotStatusView({
             : orgTree.length === 0 && unassignedCount === 0
               ? <EmptyState size="lg" description={labels.noOrgStructure} />
               : (
-                <>
-                  {orgTree.map((node) => (
-                    <OrgTreeRow key={node.id ?? node.name} node={node} depth={0} total={totalCount} defaultOpen onDrilldown={onDrilldown} hint={labels.drilldownHint} concurrentSuffix={labels.concurrentSuffix} />
-                  ))}
-                  {/* 주 소속이 없는 재직자 — 어느 조직에도 세지 않고 따로(MC8) */}
-                  {unassignedCount > 0 && (
-                    <OrgTreeRow
-                      node={{ name: labels.unassigned, count: unassignedCount, unassigned: true, children: [] }}
-                      depth={0} total={totalCount} defaultOpen={false}
-                      onDrilldown={onDrilldown} hint={labels.drilldownHint}
-                    />
-                  )}
-                </>
+                <OrgTreeTable
+                  tree={orgTree}
+                  unassignedCount={unassignedCount}
+                  total={totalCount}
+                  labels={labels}
+                  onDrilldown={onDrilldown}
+                />
               )
         )}
 
         {activeTab === 'employment' && (
-          <div>
-            <p className="admin-snap-subheading">{labels.employmentHeading}</p>
-            {employment.map((e) => (
-              <div key={e.type} className="admin-snap-emp-row">
-                <span className="admin-snap-emp-type">{e.type}</span>
-                <div className="admin-snap-emp-bar">
-                  <div className="admin-snap-emp-bar-fill" style={{ width: `${(e.count / empMax) * 100}%` }} />
-                </div>
-                <span className="admin-snap-emp-count">{countText(labels, e.count)}</span>
-                <span className="admin-snap-emp-pct">{e.pct}%</span>
-              </div>
-            ))}
+          <div className="admin-snap-bars" data-testid="status-employment">
+            <NoticeLines lines={[labels.employmentHeading]} />
+            <div>
+              {employment.map((e) => (
+                <ShareBarRow
+                  key={e.type || '—'}
+                  name={e.type || '—'}
+                  count={e.count}
+                  max={empMax}
+                  // «미지정»(값 없음)은 회색 — 정규직과 같은 초록이면 가장 큰 갈래처럼 읽힌다(PW-3134)
+                  muted={!!e.unset || !e.type}
+                  nameMuted={!!e.unset || !e.type}
+                  labels={labels}
+                  tail={<span className="admin-snap-pct">{e.pct}%</span>}
+                  testId="status-employment-row"
+                />
+              ))}
+            </div>
             {/* 빈 문자열을 넘기면 안내 줄을 숨긴다 — 안내하는 기능이 아직 없을 때 (PW-1583) */}
-            {labels.govFormatDesc ? <p className="admin-snap-footnote">{labels.govFormatDesc}</p> : null}
+            {labels.govFormatDesc ? <NoticeLines tone="muted" lines={[labels.govFormatDesc]} /> : null}
           </div>
         )}
 
@@ -756,19 +862,21 @@ function OrgSnapshotStatusView({
           jobFamilies.length === 0
             ? <EmptyState size="lg" description={labels.noJobGroups} />
             : (
-              <>
-                <p className="admin-snap-subheading">{labels.jobFamilyHeading}</p>
-                {jobFamilies.map((jg) => (
-                  <div key={jg.group} className="admin-snap-jg-row">
-                    <span className="admin-snap-jg-name">{jg.group}</span>
-                    <div className="admin-snap-jg-pills">
-                      {jg.roles.map((r) => <StatusBadge key={r} className="admin-snap-jg-pill">{r}</StatusBadge>)}
+              <div className="admin-snap-bars" data-testid="status-jobgroup">
+                <NoticeLines lines={[labels.jobFamilyHeading]} />
+                <div>
+                  {jobFamilies.map((jg) => (
+                    <div key={jg.group} className="admin-snap-jg-row">
+                      <span className="admin-snap-jg-name" title={jg.group}>{jg.group}</span>
+                      <div className="admin-snap-jg-pills">
+                        {jg.roles.map((r) => <StatusBadge key={r} tone="neutral">{r}</StatusBadge>)}
+                      </div>
+                      <span className="admin-snap-num">{countText(labels, jg.count)}</span>
+                      {jg.lead != null && <span className="admin-snap-jg-lead">{labels.leaderPrefix}: {jg.lead || '—'}</span>}
                     </div>
-                    <span className="admin-snap-jg-count">{countText(labels, jg.count)}</span>
-                    {jg.lead != null && <span className="admin-snap-jg-lead">{labels.leaderPrefix}: {jg.lead || '—'}</span>}
-                  </div>
-                ))}
-              </>
+                  ))}
+                </div>
+              </div>
             )
         )}
 
@@ -776,55 +884,60 @@ function OrgSnapshotStatusView({
           ageDist.length === 0
             ? <EmptyState size="lg" description={labels.ageNotAvailable} />
             : (
-              <div>
-                <p className="admin-snap-subheading">{labels.ageHeading}</p>
-                {ageDist.map((a) => (
-                  <div key={a.range} className="admin-snap-age-row">
-                    <span className="admin-snap-age-label">{a.range}</span>
-                    <div className="admin-snap-age-bar">
-                      <div
-                        className={`admin-snap-age-bar-fill${a.flagLabel ? ' is-flagged' : ''}`}
-                        style={{ width: `${(a.count / ageMax) * 100}%` }}
-                      />
-                    </div>
-                    <span className="admin-snap-age-count">{countText(labels, a.count)}</span>
-                    {/* 관공서 기준(청년 ~39세 / 장년 50+) 구간 강조 — 제출 서식의 핵심 축 */}
-                    {a.flagLabel && <span className="admin-snap-age-flag">{a.flagLabel}</span>}
-                  </div>
-                ))}
+              <div className="admin-snap-bars" data-testid="status-age">
+                <NoticeLines lines={[labels.ageHeading]} />
+                <div>
+                  {ageDist.map((a) => (
+                    <ShareBarRow
+                      key={a.range}
+                      name={a.range}
+                      count={a.count}
+                      max={ageMax}
+                      // 관공서 기준 구간(청년 ~39세 / 장년 50+)만 초록 막대 — 나머지는 회색(기획 «강조»)
+                      muted={!a.flagLabel}
+                      labels={labels}
+                      tail={a.flagLabel ? <StatusBadge tone="accent">{a.flagLabel}</StatusBadge> : null}
+                      testId="status-age-row"
+                    />
+                  ))}
+                </div>
                 {ageSummary.length > 0 && (
-                  <div className="admin-snap-agesummary">
-                    {ageSummary.map((s) => (
-                      <span key={s.label} className="admin-snap-agesummary-item">
-                        {s.label} <strong>{s.value}</strong>
-                      </span>
-                    ))}
-                  </div>
+                  <StatStrip
+                    testId="status-age-summary"
+                    ariaLabel={labels.ageSummaryLabel}
+                    items={ageSummary.map((s) => ({
+                      key: s.key ?? s.label,
+                      label: s.label,
+                      value: s.value,
+                      sub: s.sub,
+                      testId: s.key ? `status-age-summary-${s.key}` : undefined,
+                    }))}
+                  />
                 )}
               </div>
             )
         )}
-      </div>
+      </Panel>
 
       {/* 원본 명단 — 집계만으로는 "실제 누가 있었나"에 답할 수 없다. 화면의 표와
           내보내기 CSV 가 같은 열·같은 데이터를 쓴다(org-snapshot-spec §1). */}
-      <section className="admin-snap-roster-card">
-        <div className="admin-snap-roster-head">
-          <div className="admin-snap-roster-titlewrap">
-            <span className="admin-snap-roster-title">{labels.rosterTitle}</span>
-            <span className="admin-snap-roster-meta">
-              {queryDate} · {countText(labels, roster.length)} · {labels.rosterHint}
-            </span>
-          </div>
-          <button
-            type="button"
-            className="admin-snap-roster-toggle"
+      <Panel
+        testId="status-roster-panel"
+        title={labels.rosterTitle}
+        actions={(
+          <Button
+            variant="secondary"
+            size="sm"
             aria-expanded={rosterOpen}
             onClick={() => setRosterOpen((v) => !v)}
+            data-testid="status-roster-toggle"
           >
-            {rosterOpen ? `${labels.rosterCollapse} ▲` : `${labels.rosterExpand} ▼`}
-          </button>
-        </div>
+            {rosterOpen ? labels.rosterCollapse : labels.rosterExpand}
+            {rosterOpen ? <ChevronUpGlyph size={16} /> : <ChevronDownGlyph size={16} />}
+          </Button>
+        )}
+      >
+        <NoticeLines tone="muted" lines={[`${queryDate} · ${countText(labels, roster.length)} · ${labels.rosterHint}`]} />
         {rosterOpen && (
           <SnapshotRoster
             rows={roster}
@@ -835,7 +948,7 @@ function OrgSnapshotStatusView({
             baseColumns={rosterColumns}
           />
         )}
-      </section>
+      </Panel>
       </>)}
     </div>
   );
@@ -1810,6 +1923,15 @@ function HistoryChangesTable({ changes, labels }) {
   );
 }
 
+/** 조직 스냅샷 › 발령 이력 표 높이 — 넘치면 판 안에서 스크롤하고 머리 줄은 붙어 있다(PW-3134 · 945줄이 페이지를 4만 px 로 늘였다). 시안 `.sn-hscroll` */
+const HISTORY_TABLE_MAX_HEIGHT = 620;
+/** 앱이 넘기는 승인 딱지 뜻 → 딱지 색 클래스 */
+const APPROVAL_BADGE_TONE = { amber: 'amber', red: 'red' };
+/** 조직 스냅샷(framed)에서는 거르는 줄 · 표를 흰 판 하나에 담는다 — 아니면 종전처럼 그대로 */
+function HistoryMainFrame({ framed, children }) {
+  return framed ? <Panel testId="snap-hist-panel">{children}</Panel> : children;
+}
+
 function AppointmentHistoryView({
   records, error, labels, onExport, onCancelScheduled,
   /* 상세 «승인» 블록의 버튼(다시 알림 · 승인 없이 확정) — `(record, key) => void` (PW-2597). 읽기 전용 서브탭은 넘기지 않는다 */
@@ -1833,6 +1955,9 @@ function AppointmentHistoryView({
   /* 처음 받는 중 (pivit-work PW-2689) — 받기 전의 빈 목록을 «발령 이력이 없습니다»로 그리지 않고 표 자리에 회색 줄 5개를 둔다
      (기획 screen-admin-employees-appointments §4 「이력 로딩」). 머리 줄·검색·칩은 그대로. 다시 받을 때는 넘기지 않는다(목록·상세 유지) */
   loading = false,
+  /* 조직 스냅샷 › 발령 이력 모양(pivit-work PW-3134) — 표 흰 판 머리 한 줄 · 판 안 620 스크롤 + 머리 고정 · 결과는 상태 글자 ·
+     상세 판 폭 고정. 구성원 설정 › 발령 이력은 넘기지 않아 종전 모양 그대로다(다른 사이드바 페이지) */
+  framed = false,
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   /** 발령 유형 필터 — '' 전체 · 유형 키 · `revision` 구조 개정 (§4 · PW-1422) */
@@ -1923,7 +2048,8 @@ function AppointmentHistoryView({
     </header>
   ) : null;
 
-  if (!loading && error && records.length === 0 && !revisionsWired) {
+  // 조직 스냅샷(framed)은 실패 · 빈 목록도 흰 판 안에 그린다 — 아래 본문이 빨간 띠 · 빈 안내를 둔다(PW-3134)
+  if (!framed && !loading && error && records.length === 0 && !revisionsWired) {
     return bulkHeader ? (
       <div className="admin-snap-canvas">
         {bulkHeader}
@@ -1931,7 +2057,7 @@ function AppointmentHistoryView({
       </div>
     ) : <div className="admin-snap-warnbox" role="alert">{error}</div>;
   }
-  if (!loading && records.length === 0 && !revisionsWired) {
+  if (!framed && !loading && records.length === 0 && !revisionsWired) {
     return draftsSlot ? (
       <div className="admin-snap-canvas">
         {bulkHeader}
@@ -1945,6 +2071,27 @@ function AppointmentHistoryView({
   const modeLabel = (mode) => labels.historyModeLabels?.[mode]
     ?? (mode === 'reorg' ? labels.historyModeReorg : mode === 'bulk' ? labels.historyModeBulk : labels.historyModeSingle);
   const showRevisions = typeFilter === 'revision';
+
+  /* 승인 필터 칩(PW-2597 · 정책 §3) — 승인 대기 건이 1건 이상일 때만. 0건이면 줄째 그리지 않는다.
+     조직 스냅샷(framed)은 거르는 줄 안에 함께 둔다(PW-3134) */
+  const approvalChips = (
+            <div className="admin-snap-approval-chips" data-testid="snap-hist-approval-chips">
+              <Chip
+                selected={!approvalOnly}
+                onClick={() => { setApprovalOnly(false); setSelected(null); }}
+                data-testid="snap-hist-approval-all"
+              >
+                {labels.historyApprovalAll ?? '전체'}
+              </Chip>
+              <Chip
+                selected={approvalOnly}
+                onClick={() => { setApprovalOnly(true); setSelected(null); }}
+                data-testid="snap-hist-approval-only"
+              >
+                {String(labels.historyApprovalPending ?? '승인 대기 {n}').replace('{n}', String(approvalPendingCount))}
+              </Chip>
+            </div>
+  );
 
   const cancelScheduled = async (rec) => {
     setCancelError('');
@@ -1979,9 +2126,10 @@ function AppointmentHistoryView({
     <div className="admin-snap-canvas">
       {bulkHeader}
       {draftsSlot}
-      <div className="admin-snap-hist-layout">
+      <div className={`admin-snap-hist-layout${framed ? ' is-framed' : ''}${framed && (selected || revision) ? ' is-open' : ''}`}>
         <div className="admin-snap-hist-main">
-          <div className="admin-snap-hist-toolbar">
+          <HistoryMainFrame framed={framed}>
+          <div className="admin-snap-hist-toolbar" data-testid="snap-hist-toolbar">
             {!showRevisions && (
               <input
                 className="admin-snap-search admin-snap-hist-search"
@@ -2025,34 +2173,27 @@ function AppointmentHistoryView({
                 {revisionsWired && <option value="revision">{labels.historyTypeRevision}</option>}
               </Select>
             )}
-            {!showRevisions && (
-              <button type="button" className="admin-snap-export-btn" onClick={() => onExport?.()}>↓ {labels.export}</button>
+            {framed && approvalPendingCount > 0 && !showRevisions && approvalChips}
+            {framed && <span className="admin-snap-querybar-spacer" />}
+            {framed && !showRevisions && !loading && !(error && records.length === 0) && (
+              <span className="admin-snap-coverage-caption" data-testid="snap-hist-count">{filtered.length}{labels.historyCountSuffix ?? '건'}</span>
             )}
+            {!showRevisions && (framed ? (
+              <Button variant="secondary" size="sm" onClick={() => onExport?.()} data-testid="snap-hist-export">
+                <DownloadGlyph size={16} />
+                {labels.export}
+              </Button>
+            ) : (
+              <button type="button" className="admin-snap-export-btn" onClick={() => onExport?.()}>↓ {labels.export}</button>
+            ))}
           </div>
           {/* 승인 필터 칩(PW-2597 · 정책 §3) — 승인 대기 건이 1건 이상일 때만. 0건이면 줄째 그리지 않는다 */}
-          {approvalPendingCount > 0 && !showRevisions && (
-            <div className="admin-snap-approval-chips" data-testid="snap-hist-approval-chips">
-              <Chip
-                selected={!approvalOnly}
-                onClick={() => { setApprovalOnly(false); setSelected(null); }}
-                data-testid="snap-hist-approval-all"
-              >
-                {labels.historyApprovalAll ?? '전체'}
-              </Chip>
-              <Chip
-                selected={approvalOnly}
-                onClick={() => { setApprovalOnly(true); setSelected(null); }}
-                data-testid="snap-hist-approval-only"
-              >
-                {String(labels.historyApprovalPending ?? '승인 대기 {n}').replace('{n}', String(approvalPendingCount))}
-              </Chip>
-            </div>
-          )}
+          {!framed && approvalPendingCount > 0 && !showRevisions && approvalChips}
           {cancelError && (
             <div className="admin-snap-warnbox" role="alert">{cancelError}</div>
           )}
           {!loading && error && !showRevisions && (
-            <div className="admin-snap-warnbox" role="alert" data-testid="snap-hist-load-error">{error}</div>
+            <div className={framed ? 'mgr-krm-alert' : 'admin-snap-warnbox'} role="alert" data-testid="snap-hist-load-error">{error}</div>
           )}
           {showRevisions ? (
             <StructureRevisionTable
@@ -2067,8 +2208,8 @@ function AppointmentHistoryView({
           ) : filtered.length === 0 ? (
             error ? null : <EmptyState size="lg" description={labels.historyEmpty} />
           ) : (
-          <div className="admin-snap-hist-tablewrap">
-            <RosterTable>
+          <div className={framed ? 'admin-snap-hist-tablebox' : 'admin-snap-hist-tablewrap'}>
+            <RosterTable {...(framed ? { scroll: 'both', maxHeight: HISTORY_TABLE_MAX_HEIGHT } : {})}>
               <RosterTable.Head>
                   <RosterTable.HeadCell>{labels.historyDate}</RosterTable.HeadCell>
                   <RosterTable.HeadCell>{labels.historyTarget}</RosterTable.HeadCell>
@@ -2093,7 +2234,8 @@ function AppointmentHistoryView({
                       {/* 조직 변경 승인(PW-2597 · 정책 §3) — «승인 대기» · «승인자 없음»(앰버). 앱이 글과 톤을 넘긴다. */}
                       {rec.approvalBadge && (
                         <StatusBadge
-                          className={`admin-snap-type-badge is-${rec.approvalBadge.tone === 'amber' ? 'amber' : 'gray'} admin-snap-sched-badge`}
+                          // «승인자 없음»은 막힌 상태라 빨강(위험), «승인 대기»는 주황(주의) — status-badge.css 뜻 표(pivit-work PW-3134)
+                          className={`admin-snap-type-badge is-${APPROVAL_BADGE_TONE[rec.approvalBadge.tone] ?? 'gray'} admin-snap-sched-badge`}
                           data-testid={`snap-hist-approval-${rec.id}`}
                         >
                           {rec.approvalBadge.text}
@@ -2108,7 +2250,7 @@ function AppointmentHistoryView({
                         </StatusBadge>
                       )}
                     </RosterTable.Cell>
-                    <RosterTable.Cell className="admin-snap-hist-name">{rec.name ?? '—'}</RosterTable.Cell>
+                    <RosterTable.Cell className="admin-snap-hist-name" title={rec.name ?? undefined}>{rec.name ?? '—'}</RosterTable.Cell>
                     <RosterTable.Cell>
                       {/* «수정» 줄(유형 없음)은 발령 유형 자리가 배지 없는 «—» 하나다 (org-snapshot-spec §6-3 R6 · 시안 admin-app.jsx «r.kind === "correction"») */}
                       {rec.typeKey ? (
@@ -2119,7 +2261,16 @@ function AppointmentHistoryView({
                         <span className="admin-snap-hist-type-empty" data-testid={`snap-hist-type-empty-${rec.id}`}>—</span>
                       )}
                       {/* 승인이 끝난 상태 — «거절» · «승인 없이 확정» · «취소»(회색 · 정책 §3) */}
-                      {rec.approvalOutcome && (
+                      {rec.approvalOutcome && framed && (
+                        // 결과는 딱지 없이 상태 글자 — 유형 딱지 옆 같은 회색 딱지면 «소속이동취소» 한 유형처럼 읽혔다(PW-3134)
+                        <span
+                          className={`mgr-kr-status ${rec.approvalOutcomeTone === 'error' ? 'is-error' : 'is-muted'} admin-snap-hist-outcome`}
+                          data-testid={`snap-hist-approval-outcome-${rec.id}`}
+                        >
+                          {rec.approvalOutcome}
+                        </span>
+                      )}
+                      {rec.approvalOutcome && !framed && (
                         <StatusBadge
                           className="admin-snap-type-badge is-gray admin-snap-sched-badge"
                           data-testid={`snap-hist-approval-outcome-${rec.id}`}
@@ -2170,6 +2321,7 @@ function AppointmentHistoryView({
             </RosterTable>
           </div>
           )}
+          </HistoryMainFrame>
         </div>
 
         {selected && !showRevisions && (
@@ -2473,95 +2625,87 @@ function AsOfSnapshotView({
   ];
 
   return (
-    <div className="admin-snap-canvas">
-      <header className="admin-snap-header">
-        <div>
-          <div className="admin-snap-header-title">{labels.asofTitle}</div>
-          <div className="admin-snap-header-sub">{labels.asofSubtitle}</div>
-        </div>
-        {/* 체크박스·날짜 칸·CSV 버튼은 한 줄에 세우고, 「기록 시작」 캡션은 그 줄 아래로 뺀다 —
-            날짜 칸 밑에 붙이면 그 묶음만 키가 커져 세 요소의 높이가 어긋났다(PW-1438). */}
-        <div className="admin-snap-header-side">
-          <div className="admin-snap-header-actions">
-            {/* 보기 전환 — 조직 현황 탭의 세그먼트와 같은 부품(§9-F). 기준 시점 왼쪽 */}
-            {chart && (
-              <SegmentedControl
-                items={[
-                  { value: 'roster', label: labels.asofViewRoster, testId: 'asof-view-roster' },
-                  { value: 'chart', label: labels.asofViewChart, testId: 'asof-view-chart' },
-                ]}
-                value={asOfView}
-                onChange={(v) => onAsOfViewChange?.(v)}
-                ariaLabel={labels.asofViewLabel}
-              />
-            )}
-            <Checkbox
-              className="admin-snap-comp-toggle"
-              inputClassName="dp-check-input"
-              checked={!!showComp}
-              onChange={(e) => onShowCompChange?.(e.target.checked)}
-              label={labels.asofShowComp}
-            />
-            <div className="admin-snap-datepicker">
-              <span className="admin-snap-datepicker-label">{labels.asofPresetLabel}</span>
-              {/* 미래 시점은 재구성할 이력이 없다 — max 로 선택 자체를 막는다.
-                  min 은 커버리지 하한 — 그 이전은 어떤 소스로도 재구성할 수 없다. */}
-              <DateInput
-                min={minDate}
-                max={today}
-                value={asOfDate}
-                onChange={(v) => onAsOfDateChange?.(v)}
-              />
-            </div>
-            {/* 조직도 보기에서만 — 모양은 옆 CSV 버튼 그대로(org-snapshot-spec §5-B «큰 조직»·«조직도 이미지» 행) */}
-            {showChart && (
-              <>
-                <Tooltip content={chartDisabled ? chartBlockedHint : undefined}>
-                  <button
-                    type="button"
-                    className="admin-snap-export-btn"
-                    data-testid="asof-chart-toggle-all"
-                    disabled={chartDisabled}
-                    onClick={() => chart.onToggleAll?.()}
-                  >
-                    {chart.allExpanded ? labels.asofChartCollapseAll : labels.asofChartExpandAll}
-                  </button>
-                </Tooltip>
-                <Tooltip content={chartDisabled ? chartBlockedHint : undefined}>
-                  <button
-                    type="button"
-                    className="admin-snap-export-btn"
-                    data-testid="asof-chart-image"
-                    disabled={chartDisabled || !!chart.downloading}
-                    aria-busy={chart.downloading || undefined}
-                    onClick={() => chart.onDownloadImage?.()}
-                  >
-                    ↓ {labels.asofChartImage}
-                  </button>
-                </Tooltip>
-              </>
-            )}
-            {/* 0행 CSV 를 내보내면 "그날 아무도 없었다" 는 문서가 밖으로 나간다 */}
-            <Tooltip content={isOut ? labels.asofOutOfRangeTitle : undefined}>
-              <button
-                type="button"
-                className="admin-snap-export-btn"
-                // 다시 불러오는 중이면 직전 날짜 명단이 새 날짜 파일 이름으로 나간다 — 응답이 올 때까지 막는다(PW-1998).
-                disabled={isOut || failed || pending}
-                onClick={() => onExport?.()}
+    <div className="admin-snap-stack">
+      {/* 조회 줄 — 한 줄(PW-3134): 제목 + 설명 · 보기 전환 · 보상 표시 · 기준 시점 · 버튼 */}
+      <div className="admin-snap-querybar" data-testid="asof-querybar">
+        <span className="admin-snap-querybar-title">{labels.asofTitle}</span>
+        <span className="admin-snap-querybar-sub" title={labels.asofSubtitle}>{labels.asofSubtitle}</span>
+        <span className="admin-snap-querybar-spacer" />
+        {/* 보기 전환 — 조직 현황 탭의 세그먼트와 같은 부품(§9-F). 기준 시점 왼쪽 */}
+        {chart && (
+          <SegmentedControl
+            items={[
+              { value: 'roster', label: labels.asofViewRoster, testId: 'asof-view-roster' },
+              { value: 'chart', label: labels.asofViewChart, testId: 'asof-view-chart' },
+            ]}
+            value={asOfView}
+            onChange={(v) => onAsOfViewChange?.(v)}
+            ariaLabel={labels.asofViewLabel}
+          />
+        )}
+        <Checkbox
+          className="admin-snap-comp-toggle"
+          inputClassName="dp-check-input"
+          checked={!!showComp}
+          onChange={(e) => onShowCompChange?.(e.target.checked)}
+          label={labels.asofShowComp}
+        />
+        <span className="admin-snap-querybar-label">{labels.asofPresetLabel}</span>
+        {/* 미래 시점은 재구성할 이력이 없다 — max 로 선택 자체를 막는다.
+            min 은 커버리지 하한 — 그 이전은 어떤 소스로도 재구성할 수 없다. */}
+        <DateInput
+          className="tl-emp-input admin-snap-querybar-date"
+          min={minDate}
+          max={today}
+          value={asOfDate}
+          onChange={(v) => onAsOfDateChange?.(v)}
+        />
+        {/* 조직도 보기에서만 — 모양은 옆 CSV 버튼 그대로(org-snapshot-spec §5-B «큰 조직»·«조직도 이미지» 행) */}
+        {showChart && (
+          <>
+            <Tooltip content={chartDisabled ? chartBlockedHint : undefined}>
+              <Button
+                variant="secondary"
+                data-testid="asof-chart-toggle-all"
+                disabled={chartDisabled}
+                onClick={() => chart.onToggleAll?.()}
               >
-                ↓ {labels.asofExport}
-              </button>
+                {chart.allExpanded ? labels.asofChartCollapseAll : labels.asofChartExpandAll}
+              </Button>
             </Tooltip>
-          </div>
-          {/* 상시 캡션 — 경계를 만난 뒤 알리면 늦다(정책 §2-1) */}
-          {labels.asofCoverageCaption && (
-            <div className="admin-snap-coverage-caption" data-testid="asof-coverage-caption">
-              {labels.asofCoverageCaption}
-            </div>
-          )}
+            <Tooltip content={chartDisabled ? chartBlockedHint : undefined}>
+              <Button
+                variant="secondary"
+                data-testid="asof-chart-image"
+                disabled={chartDisabled || !!chart.downloading}
+                aria-busy={chart.downloading || undefined}
+                onClick={() => chart.onDownloadImage?.()}
+              >
+                <DownloadGlyph size={16} />
+                {labels.asofChartImage}
+              </Button>
+            </Tooltip>
+          </>
+        )}
+        {/* 0행 CSV 를 내보내면 "그날 아무도 없었다" 는 문서가 밖으로 나간다 */}
+        <Tooltip content={isOut ? labels.asofOutOfRangeTitle : undefined}>
+          <Button
+            variant="secondary"
+            data-testid="asof-export"
+            disabled={isOut || failed || pending}
+            onClick={() => onExport?.()}
+          >
+            <DownloadGlyph size={16} />
+            {labels.asofExport}
+          </Button>
+        </Tooltip>
+      </div>
+      {/* 상시 캡션 — 경계를 만난 뒤 알리면 늦다(정책 §2-1) */}
+      {labels.asofCoverageCaption && (
+        <div className="admin-snap-coverage-caption" data-testid="asof-coverage-caption">
+          {labels.asofCoverageCaption}
         </div>
-      </header>
+      )}
 
       {/* 프리셋 — 커버리지 밖 칩은 호출부에서 걸러진다. 비활성 칩을 남기면
           "누르면 되는데 왜 안 되지" 가 되므로 아예 렌더하지 않는다(§5). */}
@@ -2577,36 +2721,40 @@ function AsOfSnapshotView({
       {/* 타임머신 배너 — 앰버는 여기에만. C1 은 중립 톤이다(§5-A) */}
       {isPast && !isOut && !failed && (
         <div className="admin-snap-timemachine" role="status">
-          <span>
-            {String(labels.asofBanner).replace('{date}', asOfDate)}
+          <ClockGlyph size={18} />
+          <div className="admin-snap-timemachine-text">
+            <strong>{String(labels.asofBanner).replace('{date}', asOfDate)}</strong>
             {data?.meta?.structureRevision && (
-              <span className="admin-snap-timemachine-revision" data-testid="asof-structure-revision">
+              <span data-testid="asof-structure-revision">
                 {fill(labels.asofTreeRevision, {
                   version: data.meta.structureRevision.version,
                   date: data.meta.structureRevision.savedDate,
                 })}
               </span>
             )}
-          </span>
-          <button type="button" onClick={() => onAsOfDateChange?.(today)}>
+          </div>
+          <Button variant="secondary" size="sm" onClick={() => onAsOfDateChange?.(today)} data-testid="asof-back-to-today">
             {labels.asofBackToToday}
-          </button>
+          </Button>
         </div>
       )}
 
-      <div className="admin-snap-summary-grid" style={{ gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }} aria-busy={pending || undefined}>
-        {cards.map((c) => (
-          <div key={c.key} className="admin-snap-summary-card">
-            <p className="admin-snap-summary-label">{labels.asofCards[c.key]}</p>
-            <p className="admin-snap-summary-value" data-testid={`asof-card-${c.key}`}>
-              {pending ? <Skeleton width={56} height={24} inline /> : c.value}
-            </p>
-            {isOut && !pending && <p className="admin-snap-summary-norecord">{labels.asofNoRecord}</p>}
-          </div>
-        ))}
+      <div aria-busy={pending || undefined}>
+        <StatStrip
+          testId="asof-summary"
+          ariaLabel={labels.statusSummaryLabel}
+          items={cards.map((c) => ({
+            key: c.key,
+            label: labels.asofCards[c.key],
+            value: pending ? <Skeleton width={56} height={24} inline /> : c.value,
+            sub: isOut && !pending ? labels.asofNoRecord : undefined,
+            testId: `asof-card-${c.key}`,
+          }))}
+        />
       </div>
 
-      <div className={`admin-snap-content${pending ? ' is-pending' : ''}`} aria-busy={pending || undefined}>
+      <Panel testId="asof-content-panel">
+      <div className={`admin-snap-asof-body${pending ? ' is-pending' : ''}`} aria-busy={pending || undefined}>
         {failed ? (
           <EmptyState
             size="lg"
@@ -2692,19 +2840,29 @@ function AsOfSnapshotView({
           />
         )}
       </div>
-      {/* partial 은 명단을 가리지 않는다 — 한 줄만 붙인다(§5-A) */}
-      {meta?.state === 'partial' && !isOut && !failed && (
-        <p className="admin-snap-footnote">{labels.asofPartialNote}</p>
-      )}
-      {labels.asofRehireUnrecordedNote && !isOut && !failed && (
-        <p className="admin-snap-footnote" data-testid="asof-rehire-unrecorded-note">{labels.asofRehireUnrecordedNote}</p>
-      )}
-      {/* 그 날짜엔 아직 없던 열 — 열은 두고 값만 빈다(정책 E13·E18). 문장은 앱이 만든다(어느 열이 비는지는 서버가 안다). */}
-      {labels.asofBlankColumnsNote && !isOut && !failed && !showChart && (
-        <p className="admin-snap-footnote" data-testid="asof-blank-columns-note">{labels.asofBlankColumnsNote}</p>
-      )}
-      {labels.asofChartBlankColumnsNote && !isOut && !failed && showChart && (
-        <p className="admin-snap-footnote" data-testid="asof-chart-blank-columns-note">{labels.asofChartBlankColumnsNote}</p>
+      </Panel>
+      {/* 표 아래 각주 — 한 묶음(정보 아이콘 + 옅은 줄 · PW-3134). partial 은 명단을 가리지 않는다 — 한 줄만 붙인다(§5-A).
+          그 날짜엔 아직 없던 열 — 열은 두고 값만 빈다(정책 E13·E18). 문장은 앱이 만든다(어느 열이 비는지는 서버가 안다). */}
+      {!isOut && !failed && (meta?.state === 'partial' || labels.asofRehireUnrecordedNote
+        || (!showChart && labels.asofBlankColumnsNote) || (showChart && labels.asofChartBlankColumnsNote)) && (
+        <div className="admin-snap-footnotes" data-testid="asof-footnotes">
+          <InfoGlyph size={16} />
+          <NoticeLines
+            tone="muted"
+            lines={[
+              meta?.state === 'partial' && <span key="p">{labels.asofPartialNote}</span>,
+              labels.asofRehireUnrecordedNote && (
+                <span key="r" data-testid="asof-rehire-unrecorded-note">{labels.asofRehireUnrecordedNote}</span>
+              ),
+              !showChart && labels.asofBlankColumnsNote && (
+                <span key="b" data-testid="asof-blank-columns-note">{labels.asofBlankColumnsNote}</span>
+              ),
+              showChart && labels.asofChartBlankColumnsNote && (
+                <span key="c" data-testid="asof-chart-blank-columns-note">{labels.asofChartBlankColumnsNote}</span>
+              ),
+            ]}
+          />
+        </div>
       )}
     </div>
   );
@@ -2836,12 +2994,6 @@ export default function OrgSnapshotCanvas({
 
   return (
     <div className="admin-snap-canvas">
-      {notice && (
-        <div className="admin-snap-asof-note" role="status">
-          {notice.title && <strong>{notice.title}</strong>}
-          {notice.body && <span>{notice.body}</span>}
-        </div>
-      )}
       {/* 화면 전환 탭 — 공용 Tabs(PW-836) */}
       <div className="tl-tabs-row adm-tabs-row">
         <Tabs
@@ -2859,6 +3011,7 @@ export default function OrgSnapshotCanvas({
             <OrgSnapshotStatusView
               error={snapshotError}
               onRetry={onSnapshotRetry}
+              notice={notice}
               data={snapshot}
               labels={labels}
               queryDate={queryDate}
@@ -2943,6 +3096,7 @@ export default function OrgSnapshotCanvas({
           )}
           {view === 'history' && (
             <AppointmentHistoryView
+              framed
               records={historyRecords}
               error={historyError}
               labels={labels}
@@ -2968,7 +3122,7 @@ export default function OrgSnapshotCanvas({
 function HistoryApprovalBlock({ rec, onApprovalAction }) {
   if (!rec.approvalBlock) return null;
   return (
-    <div data-testid="snap-hist-approval-block">
+    <div className="admin-snap-hist-approval" data-testid="snap-hist-approval-block">
       <div className="admin-snap-hist-reason-label">{rec.approvalBlock.title}</div>
       <div className="admin-snap-hist-reason">
         {rec.approvalBlock.lines.map((line) => (

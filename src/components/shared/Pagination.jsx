@@ -21,6 +21,7 @@ const GLYPH_PROPS = { size: 14, focusable: false, style: { display: 'block', fle
  * @param {(page: number) => void} onPageChange
  * @param {{ of: string, prev: string, next: string }} labels
  * @param {string} [countSuffix] 전체 수 뒤에 붙는 말(「명」)
+ * @param {boolean} [showTotal=true] false 면 «1–50» 만 — 전체 수를 곁에서 이미 보일 때(PW-3134 조직 스냅샷 명단 머리)
  */
 export default function Pagination({
   page,
@@ -30,6 +31,7 @@ export default function Pagination({
   onPageChange,
   labels,
   countSuffix = '',
+  showTotal = true,
   ...rest
 }) {
   const last = Math.max(1, totalPages);
@@ -40,7 +42,7 @@ export default function Pagination({
   return (
     <nav className="dp-pager" {...rest}>
       <span className="dp-pager__range">
-        {from}–{to} {labels.of} {total}{countSuffix}
+        {showTotal ? <>{from}–{to} {labels.of} {total}{countSuffix}</> : <>{from}–{to}</>}
       </span>
       <div className="dp-pager__nav">
         <Button variant="ghost" size="sm" disabled={current === 1} onClick={() => go(current - 1)}>
