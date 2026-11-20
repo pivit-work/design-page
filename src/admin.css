@@ -3601,10 +3601,10 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
   white-space: nowrap;
 }
 .admin-notif-group-count strong { font-weight: 600; color: var(--text-primary); }
+/* 한 판 안의 줄끼리 열을 맞춘다(subgrid) — «끌 수 없음» 딱지가 스위치보다 넓어도 이름 칸이 줄마다 같은 자리 (PW-3125) */
 .admin-notif-rule-list {
-  padding: 0;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
 }
 
 /* ── 규칙 행 — 디자이너 report-row/snippet-row idiom (평평한 행) ───────
@@ -3612,7 +3612,9 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
 /* 규칙 줄 — [스위치 | 이름 / 조건 / 받는 사람·채널 | 발송 주기 | 수정] · 줄 사이 가는 선 (PW-3125) */
 .admin-notif-rule {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  justify-items: start;
   align-items: center;
   column-gap: var(--spacing-xl);
   padding: var(--spacing-xl) 0;
@@ -3626,7 +3628,7 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
 .admin-notif-rule.is-off .admin-notif-rule-condition,
 .admin-notif-rule.is-off .admin-notif-meta-text,
 .admin-notif-rule.is-off .admin-notif-channel-tag { color: var(--text-quaternary); }
-.admin-notif-rule-main { min-width: 0; display: flex; flex-direction: column; gap: var(--spacing-xs); }
+.admin-notif-rule-main { justify-self: stretch; min-width: 0; display: flex; flex-direction: column; gap: var(--spacing-xs); }
 .admin-notif-rule-head {
   display: flex;
   align-items: center;
@@ -3654,8 +3656,11 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
   color: var(--text-tertiary);
   word-break: keep-all;
 }
-/* 회색 딱지(끌 수 없음 · 조건 편집 가능 · 시스템 고정 · 역할) — 앞 아이콘과 글 사이 (PW-3125) */
-.admin-notif-tag { display: inline-flex; align-items: center; gap: var(--spacing-xs); white-space: nowrap; flex-shrink: 0; }
+/* 단계 표 첫 칸 — 단계 이름 + 아래 작은 받는 사람 줄(기획서 EditRuleModal · PW-3125) · 줄마다 넘치면 «…» */
+.admin-notif-stage-cell { display: flex; flex-direction: column; min-width: 0; }
+.admin-notif-stage-name,
+.admin-notif-stage-to { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.admin-notif-stage-to { font-size: var(--font-size-text-xs); line-height: var(--line-height-text-xs); color: var(--text-tertiary); }
 .admin-notif-rule-meta {
   display: flex;
   gap: var(--spacing-sm);
@@ -3679,6 +3684,7 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
   color: var(--text-secondary);
 }
 .admin-notif-rule-cooldown {
+  justify-self: end;
   font-size: var(--font-size-text-sm);
   color: var(--text-secondary);
   max-width: 200px;

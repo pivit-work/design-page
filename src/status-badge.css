@@ -514,6 +514,21 @@
   border: 1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
 }
 
+/* 알림 설정 회색 딱지(끌 수 없음 · 조건 편집 가능 · 시스템 고정 · 알림마다 고정 · 역할) — 앞 아이콘과 글 사이 (PW-3125) */
+.admin-notif-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  white-space: nowrap;
+  flex-shrink: 0;
+  /* 디자이너 딱지 값(통과 시안 .bd) — 12/18 600 · 모서리 6 */
+  font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
+  font-weight: 600;
+  padding: var(--spacing-xxs) var(--spacing-md);
+  border-radius: var(--radius-xs);
+}
+
 /* 역할 칩 (행 메타) — 무지개색 대신 중립 단일 톤 (팔레트 절제) */
 .admin-notif-role-chip {
   font-size: var(--font-size-text-xs);

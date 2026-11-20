@@ -47,7 +47,9 @@ import { FormModal } from '../frames/FormModal.jsx';
  *    channels: string[],                // 'push' | 'slack' | 'email'
  *    targetsFixed?: string,             // 받는 사람·채널을 다른 화면이 정할 때의 안내. 있으면 수정 창의
  *                                       // 두 칸이 체크 대신 잠금 안내로, 목록 행의 역할·채널 표시도 이 안내로 바뀐다
- *    stageChannels?: [{ key, label, channels }], // 단계마다 채널을 고르는 규칙(PW-1986 · admin-spec §6.1 «평가»).
+ *    stageChannels?: [{ key, label, channels, to? }], // 단계마다 채널을 고르는 규칙(PW-1986 · admin-spec §6.1 «평가»).
+ *                                       // to = 단계 이름 아래 작은 줄(받는 사람 · PW-3125)
+ *    stageColumnTitle?: string,         // 표 첫 칸 머리. 없으면 labels.modal.stageColumn
  *                                       // 있으면 받는 사람 칸은 targetsFixed 잠금 안내, 채널 칸은 단계별 표가 되고
  *                                       // 목록 행은 그 안내 + 표의 합집합 채널(rule.channels)을 보인다
  *    stageChannelsNote?: string,        // 단계별 표 밑 안내
@@ -439,7 +441,8 @@ function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatC
       closeLabel={labels.modal.close}
       onClose={onClose}
       zIndex={1000}
-      className="adm-shell"
+      // 단계 표가 있는 창만 어드민 넓은 창(640) — 단계 이름 · 받는 사람과 채널 열이 창 폭 안에 든다(PW-3125)
+      className={stageChannels ? 'adm-shell is-wide' : 'adm-shell'}
       bodyClassName="adm-shell-body admin-notif-edit-body"
       testId="edit-modal"
       overlayTestId="modal-backdrop"
@@ -548,9 +551,13 @@ function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatC
               columns={[
                 {
                   key: 'stage',
-                  header: labels.modal.stageColumn,
-                  lines: 2,
-                  render: (stage) => <span data-testid={`notif-stage-${stage.key}`}>{stage.label}</span>,
+                  header: rule.stageColumnTitle ?? labels.modal.stageColumn,
+                  render: (stage) => (
+                    <span className="admin-notif-stage-cell" data-testid={`notif-stage-${stage.key}`}>
+                      <span className="admin-notif-stage-name" title={stage.label}>{stage.label}</span>
+                      {stage.to && <span className="admin-notif-stage-to" title={stage.to}>{stage.to}</span>}
+                    </span>
+                  ),
                 },
                 ...stageKeys.map((key) => ({
                   key,

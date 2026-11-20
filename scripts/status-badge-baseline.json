@@ -1770,6 +1770,18 @@
    "line-height": "18px",
    "white-space": "nowrap",
    "flex-shrink": "0"
+  },
+  "admin.css|.admin-notif-tag": {
+   "border-radius": "6px",
+   "padding": "2px 8px",
+   "font-size": "12px",
+   "font-weight": "600",
+   "display": "inline-flex",
+   "align-items": "center",
+   "gap": "4px",
+   "line-height": "var(--line-height-text-xs)",
+   "white-space": "nowrap",
+   "flex-shrink": "0"
   }
  },
  "variants": {
