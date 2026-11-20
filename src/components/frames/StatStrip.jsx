@@ -1,4 +1,4 @@
-import { FRAME_ONE_LINE } from './frameValues.js';
+import { FRAME_ONE_LINE, FRAME_TEXT_WRAP } from './frameValues.js';
 import { isEnterKey } from '../shared/enterKey.js';
 
 /**
@@ -56,7 +56,7 @@ export function StatStrip({ items, ariaLabel, testId }) {
               {item.value}
             </span>
             {anySub ? (
-              <span style={SUB_STYLE} title={item.sub || undefined}>
+              <span style={SUB_STYLE}>
                 {item.sub || '\u00a0'}
               </span>
             ) : null}
@@ -74,9 +74,12 @@ const TONE_COLOR = { muted: 'var(--text-tertiary)', error: 'var(--text-error-pri
 const PANEL_STYLE = { display: 'grid', minWidth: 0 };
 /** 값이 «—» — 모르는 값은 회색(정한 값이 없을 때 쓰는 `--text-tertiary`). */
 const EMPTY_VALUE_STYLE = { ...FRAME_ONE_LINE, color: 'var(--text-tertiary)' };
-/** 값 아래 작은 줄 — 디자이너 KR 셈 줄의 칸 아래 글(`.mgr-krm-stat span` 12/18 · 400 · `--text-secondary`). */
+/**
+ * 값 아래 작은 줄 — 디자이너 KR 셈 줄의 칸 아래 글(`.mgr-krm-stat span` 12/18 · 400 · `--text-secondary`).
+ * 분모 캡션(«성별을 적은 90명 기준 · 성별 없음 · 밝히지 않음 49명»)처럼 길어질 수 있어 «…»로 자르지 않고 낱말 단위로 꺾는다(PW-3134 · 1280 폭).
+ */
 const SUB_STYLE = {
-  ...FRAME_ONE_LINE,
+  ...FRAME_TEXT_WRAP,
   fontSize: 'var(--font-size-text-xs)',
   lineHeight: 'var(--line-height-text-xs)',
   fontWeight: 400,
