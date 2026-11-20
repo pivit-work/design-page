@@ -6346,7 +6346,12 @@ function EmployeesEditPanel({
          실패는 **인라인으로만** 알리고 패널을 열어 둔다 — 닫으면 방금 친 날짜가 사라진다.
          퇴사 취소만 거꾸로다 — 확인 창·경고 창에서 [취소]하면 아무것도 저장되지 않아야 하므로 되돌린 뒤에 날짜를 보낸다 (pivit-work PW-2576 · 퇴사 정책 §5-L ①). */
       const revertingResignation = member.employmentStatus === 'terminated' && draft.employmentStatus !== 'terminated';
-      if (!revertingResignation && identityDirty && onSaveIdentity) {
+      /* 휴직에서 다른 상태로 바꾸며 휴직 시작일을 지운 저장도 상태를 먼저 보낸다 — 서버는 «지금 휴직인 사람»의 시작일
+         비우기를 막는다(pivit-work PW-3019). 날짜를 먼저 보내면 아직 휴직이라 거절되고 상태 변경까지 막힌다. */
+      const leavingLeaveClearingStart = member.employmentStatus === 'on_leave' && draft.employmentStatus !== 'on_leave'
+        && 'leaveStartDate' in identityPatch && !identityPatch.leaveStartDate;
+      const datesAfterStatus = revertingResignation || leavingLeaveClearingStart;
+      if (!datesAfterStatus && identityDirty && onSaveIdentity) {
         try {
           await onSaveIdentity(member.id, identityPatch);
         } catch (e) {
@@ -6416,7 +6421,7 @@ function EmployeesEditPanel({
           return;
         }
       }
-      if (revertingResignation && identityDirty && onSaveIdentity) {
+      if (datesAfterStatus && identityDirty && onSaveIdentity) {
         try {
           await onSaveIdentity(member.id, identityPatch);
         } catch (e) {
