@@ -432,7 +432,7 @@ export function serviceStartHintText(L, serviceStartDate, hireDate) {
  * `card` — 추가 칸(.adm-hr-add) 안의 줄. 칸 높이·글씨는 그 카드의 클래스가 정한다(36px 흰 칸 · pivit-work PW-2693).
  * 안 주면 지금 그대로(신원·인사 편집 줄).
  */
-function HrEditPair({ k, value, onChange, type = 'text', date = false, options, clearable = true, inputMode, startView, max, today, disabled = false, placeholder, card = false }) {
+function HrEditPair({ k, value, onChange, type = 'text', date = false, options, clearable = true, inputMode, startView, max, today, disabled = false, placeholder, card = false, maxLength }) {
   const fieldStyle = card ? undefined : { flex: 1, height: 30, fontSize: 12 };
   const parts = (
     <>
@@ -469,6 +469,7 @@ function HrEditPair({ k, value, onChange, type = 'text', date = false, options, 
           type={type}
           inputMode={inputMode}
           placeholder={placeholder}
+          maxLength={maxLength}
           value={value ?? ''}
           onChange={(e) => onChange(e.target.value)}
           aria-label={k}
@@ -900,7 +901,7 @@ function hrRecordDefs(L, todayIso) {
       testId: 'hr-dependents',
       title: L.hrDependents || '부양가족',
       fields: [
-        { key: 'name', label: L.hrDepName || '성명', required: true },
+        { key: 'name', label: L.hrDepName || '성명', required: true, maxLength: 100 },
         { key: 'relation', label: L.hrDepRelation || '관계', required: true, options: optionsOf(L.hrRelation) },
         { key: 'dateOfBirth', label: L.hrDepBirth || '생년월일', kind: 'date', startView: 'year', max: todayIso, today: todayIso },
         // 처음부터 «부양중» — 서버도 값이 없으면 부양중으로 저장하고, 내 설정 부양가족 추가도 부양중으로 연다.
@@ -917,12 +918,13 @@ function hrRecordDefs(L, todayIso) {
       testId: 'hr-education',
       title: L.hrEducation || '학력',
       fields: [
-        { key: 'school', label: L.hrEduSchool || '학교명', required: true },
+        // 글자 수는 서버 DTO 와 같다 — 넘치면 [저장하기] 때 영어 칸 키로 거절됐다(pivit-work PW-2942)
+        { key: 'school', label: L.hrEduSchool || '학교명', required: true, maxLength: 120 },
         // 고졸이 아니면 전공이 필요하다 — 서버도 같은 규칙으로 거절한다(PW-1302). 학교명만 있는 줄을 고칠 때
         // 표시가 없으면 이유 모를 «저장하지 못했습니다»만 남았다(pivit-work PW-2714).
         // 서버 규칙에서 온 필수라 고치기로 연 옛 줄에서 규칙 칸을 안 건드리면 막지 않는다 — 서버(updateEducation)도
         // 그때는 규칙을 보지 않는다. 전공이 빈 옛 학사 줄의 최종학력만 바꾸는 저장이 막혔다(pivit-work PW-2942).
-        { key: 'major', label: L.hrEduMajor || '전공', required: (form) => form.degree !== 'high_school', ruleRequired: true },
+        { key: 'major', label: L.hrEduMajor || '전공', required: (form) => form.degree !== 'high_school', ruleRequired: true, maxLength: 120 },
         { key: 'degree', label: L.hrEduDegree || '학위', required: true, options: optionsOf(L.hrDegreeOptions) },
         { key: 'from', label: L.hrEduFrom || '입학', required: true, placeholder: 'YYYY-MM' },
         // 재학이면 잠그고 비운다 — 서버는 재학에 졸업일이 있으면 거절한다(pivit-work PW-2942)
@@ -954,9 +956,9 @@ function hrRecordDefs(L, todayIso) {
       testId: 'hr-career',
       title: L.hrCareer || '경력',
       fields: [
-        { key: 'company', label: L.hrCareerCompany || '회사명', required: true },
-        { key: 'department', label: L.hrCareerDept || '부서' },
-        { key: 'role', label: L.hrCareerRole || '직함' },
+        { key: 'company', label: L.hrCareerCompany || '회사명', required: true, maxLength: 120 },
+        { key: 'department', label: L.hrCareerDept || '부서', maxLength: 100 },
+        { key: 'role', label: L.hrCareerRole || '직함', maxLength: 100 },
         { key: 'from', label: L.hrCareerFrom || '입사', required: true, placeholder: 'YYYY-MM' },
         { key: 'to', label: L.hrCareerTo || '퇴사', placeholder: 'YYYY-MM' },
       ],
@@ -971,9 +973,9 @@ function hrRecordDefs(L, todayIso) {
       testId: 'hr-certifications',
       title: L.hrCert || '자격증',
       fields: [
-        { key: 'name', label: L.hrCertName || '자격증명', required: true },
-        { key: 'issuer', label: L.hrCertIssuer || '발급기관' },
-        { key: 'credentialNo', label: L.hrCertNo || '자격번호' },
+        { key: 'name', label: L.hrCertName || '자격증명', required: true, maxLength: 120 },
+        { key: 'issuer', label: L.hrCertIssuer || '발급기관', maxLength: 120 },
+        { key: 'credentialNo', label: L.hrCertNo || '자격번호', maxLength: 80 },
         { key: 'issuedDate', label: L.hrCertIssued || '발급일', kind: 'date' },
         { key: 'expiryDate', label: L.hrCertExpiry || '만료일', kind: 'date' },
       ],
@@ -2338,6 +2340,7 @@ function HrRecordListSection({
                 clearable={f.defaultValue == null}
                 placeholder={typeof f.disabled === 'function' && f.disabled(form) ? (f.disabledPlaceholder ?? f.placeholder) : f.placeholder}
                 disabled={typeof f.disabled === 'function' ? f.disabled(form) : false}
+                maxLength={f.maxLength}
               />
             )).flatMap((pair, i) => {
               // 마지막 출근일 안내(hr-last-working-date-error)와 같은 자리 — 고칠 칸 바로 아래, 칸 왼쪽 끝에서
