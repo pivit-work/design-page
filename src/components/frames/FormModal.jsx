@@ -8,9 +8,9 @@ import { FRAME_ONE_LINE } from './frameValues.js';
  *
  * 겉 틀은 지금 쓰는 앱 큰 창 틀 그대로다 — `ModalShell` + 앱 창 정본 `.mtg-shell`(폭 560 · 제목 30/38 · 둘레 48 ·
  * 아래 버튼 줄 24/48 위 선). 본문 간격은 디자이너 «그룹 추가» 창으로 되살린다(`.dp-frame-form` · frames.css · pivit-work PW-2995):
- * 설명 줄 ↔ 첫 칸 48 · 본문 아래 0 · 창 최소 높이 428(«그룹 추가» 판 높이 — 칸이 늘면 창이 자란다).
+ * 설명 줄 ↔ 첫 칸 48 · 창 최소 높이 428(«그룹 추가» 판 높이 — 칸이 늘면 창이 자란다) · 본문 아래 32 는 .mtg-shell 그대로(긴 창에서 칸이 버튼 줄에 붙지 않게).
  * 창 제목 · 버튼 글자는 한 줄 «…»(좁은 창에서 긴 문구가 두 줄로 꺾이지 않게).
- * `.mtg-shell` 의 본문 간격(24 · 아래 32)은 회의 창 값이라 쓰지 않는다. 안쪽 값은 디자이너(stesslee) 타임라인 창들에서 꺼냈다:
+ * `.mtg-shell` 의 칸 사이 24 는 회의 창 값이라 쓰지 않는다. 안쪽 값은 디자이너(stesslee) 타임라인 창들에서 꺼냈다:
  *   - 칸 이름 `.tl-group-modal-label` 18/28 굵게 · 이름 ↔ 칸 12(`.tl-group-modal-field`) — «그룹 추가» 창
  *   - 칸 사이 24 — «내부 직원 추가» 창 본문(`.tl-emp-modal-body`)
  *   - 구역 제목 `.tl-meeting-modal-section-header` 18/28 굵게 · 구역 안 12(`.tl-meeting-modal-section`) — 회의 일정 창

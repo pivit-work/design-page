@@ -4,12 +4,15 @@
  */
 
 /* 입력 창 틀(FormModal) — 겉은 앱 창 정본 .mtg-shell(폭 560)이고, 본문 간격만 디자이너 «그룹 추가» 창(modal-shell.css
-   .tl-group-modal 판 높이 428 · .tl-group-modal-content gap 48 · 아래 여백 0)으로 되살린다 — .mtg-shell 의 gap 24 · 아래 32 는
-   회의 창 값이다(pivit-work PW-2995). 최소 높이라 칸이 하나면 «그룹 추가»와 같고, 칸이 늘면 창이 자란다. */
-.tl-group-modal.mtg-shell.dp-frame-form { min-height: 428px; }
+   .tl-group-modal 판 높이 428 · .tl-group-modal-content gap 48)으로 되살린다 — .mtg-shell 의 gap 24 는 회의 창 값이다(pivit-work PW-2995).
+   최소 높이는 화면 높이 − 48(.mtg-shell 최대 높이)을 넘지 않는다 — 낮은 화면에서 창이 화면 밖으로 나가지 않게.
+   최소 높이라 칸이 하나면 «그룹 추가»와 같고(마지막 칸↔버튼 75), 칸이 늘면 창이 자란다.
+   본문 아래 여백은 .mtg-shell 32 그대로 — «그룹 추가»의 0 은 고정 높이 빈 공간이 있어서다. 0 으로 두면 428 을 넘는 창에서
+   마지막 칸이 버튼 줄 위 선에 붙는다(11-21 [PIVIT에 연동 요청] 창 0px). 칸이 하나면 32 는 빈 공간 안에 들어가 75 가 그대로다. */
+.tl-group-modal.mtg-shell.dp-frame-form { min-height: min(428px, calc(100vh - 48px)); }
 /* 버튼 글자는 한 줄 «…»(FormModal oneLine) — 버튼이 글자 폭보다 줄어들 수 있어야 좁은 창에서 «…»가 된다 */
 .tl-group-modal.dp-frame-form .tl-group-modal-btn { min-width: 0; }
-.tl-group-modal.mtg-shell.dp-frame-form .tl-group-modal-content { gap: calc(var(--spacing-4xl) + var(--spacing-xl)); padding-bottom: 0; }
+.tl-group-modal.mtg-shell.dp-frame-form .tl-group-modal-content { gap: calc(var(--spacing-4xl) + var(--spacing-xl)); }
 
 /* 판 안 구역 — 디자이너 OKR 히스토리 판의 분기 사이 선(okr.css .okr-h-quarter + .okr-h-quarter: 1px --border-secondary).
    선 아래 24 는 판 본문 줄 사이(.okr-h-body gap 24)와 같게 — 선 위는 판 본문 gap 이 띄운다. */
