@@ -2934,7 +2934,7 @@
   font-weight: 600;
   cursor: pointer;
 }
-.admin-snap-roster-dash { color: var(--text-quaternary); }
+.admin-snap-roster-dash { color: var(--text-tertiary); }
 .admin-snap-roster-name:hover { text-decoration: underline; }
 /* as-of 조회에서 현재 값과 달라진 셀 — 어디가 바뀌었는지 표에서 바로 보이게 */
 .admin-snap-roster td.is-changed {
@@ -5179,7 +5179,7 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
   border-radius: var(--radius-2xl);
   min-width: 0;
 }
-.is-framed .admin-snap-hist-panel-body .admin-snap-ba-before { color: var(--text-tertiary); text-decoration: line-through; text-decoration-color: var(--text-quaternary); }
+.is-framed .admin-snap-hist-panel-body .admin-snap-ba-before { color: var(--text-tertiary); text-decoration: line-through; }
 .is-framed .admin-snap-hist-panel-body .admin-snap-ba-after { color: var(--text-primary); font-weight: 600; }
 .is-framed .admin-snap-hist-panel-body .admin-snap-ba-field { white-space: nowrap; }
 .is-framed .admin-snap-hist-approval .admin-snap-hist-reason {
