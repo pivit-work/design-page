@@ -8827,13 +8827,16 @@ export default function EvalCycleWizard({
       setAiSetupBusy(false);
     }
   };
-  /** 이미 넣은 값이 있으면 덮어쓰기 전에 묻는다(이전 설정 불러오기와 같은 판정 + 넣은 초안). */
+  /**
+   * 이미 넣은 값이 있으면 묻는 창을 열기 전에 덮어쓰기부터 묻는다(이전 설정 불러오기와 같은 판정 + 넣은 초안).
+   * [pivit-work PW-3076 · hr §5.9-A «누르면»·«덮어쓰기 확인»] 순서는 확인 창 → [덮어쓰고 만들기] → 묻는 창.
+   */
   const requestAiSetup = () => {
     if (wizardDirty || aiSetupApplied) {
       setAiSetupConfirmOpen(true);
       return;
     }
-    void runAiSetup();
+    openAiSetup();
   };
   const aiUnconfirmedBadge = (s, testId) =>
     aiUnconfirmedSteps.includes(s) ? (
@@ -8937,7 +8940,7 @@ export default function EvalCycleWizard({
                       {onAiSetupDraft && (
                         <MemberAiButton
                           label={aiSetupApplied ? L.aiSetupRegenerate : L.aiSetupOpen}
-                          onClick={openAiSetup}
+                          onClick={requestAiSetup}
                           testId="evc-wiz-ai-setup-open"
                         />
                       )}
@@ -12803,7 +12806,7 @@ export default function EvalCycleWizard({
                 className="tl-group-modal-btn tl-group-modal-btn-primary"
                 disabled={aiSetupBusy}
                 aria-busy={aiSetupBusy || undefined}
-                onClick={requestAiSetup}
+                onClick={() => void runAiSetup()}
                 data-testid="evc-wiz-ai-setup-run"
               >
                 {aiSetupBusy ? <span className="dp-busy-inline"><Spinner size={14} />{L.aiSetupRunning}</span> : L.aiSetupRun}
@@ -12885,7 +12888,10 @@ export default function EvalCycleWizard({
           confirmLabel={L.aiSetupOverwriteConfirm}
           danger
           onCancel={() => setAiSetupConfirmOpen(false)}
-          onConfirm={() => void runAiSetup()}
+          onConfirm={() => {
+            setAiSetupConfirmOpen(false);
+            openAiSetup();
+          }}
           cancelTestId="evc-wiz-ai-setup-overwrite-cancel"
           confirmTestId="evc-wiz-ai-setup-overwrite-confirm"
         />

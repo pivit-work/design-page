@@ -96,7 +96,7 @@ const DEFAULT_LABELS = {
   printButton: 'PDF 저장',
   ...OBJECTION_DEFAULT_LABELS,
   selfTitle: '나의 셀프 리뷰',
-  catWork: '업적',
+  catWork: '성과',
   catCompetency: '역량',
   catStrengths: '강점',
   catImprovements: '보완점',

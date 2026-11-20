@@ -109,7 +109,7 @@ const DEFAULT_LABELS = {
   cancel: '취소',
   // TC-140 달성률 미입력 경고(제출은 가능)
   actKrUnfilledWarn: '달성률 미입력 KR {{count}}개 — 제출 전 입력을 권장합니다(제출은 가능).',
-  workTitle: '업적',
+  workTitle: '성과',
   workPlaceholder: '이번 기간의 핵심 성과와 결과를 기록하세요.',
   competencyTitle: '역량',
   competencyPlaceholder: '업무 수행 방식·협업·리더십 등 역량을 기록하세요.',
@@ -866,6 +866,7 @@ export default function EvalCycleMemberCanvas({
     if (targets.length === 0) return;
     setAiError(false);
     setPolishNoChange(false);
+    const prevCards = polishCards;
     setPolishCards({});
     setAiBusy(true);
     try {
@@ -887,8 +888,10 @@ export default function EvalCycleMemberCanvas({
       setPolishCards(cards);
       setPolishNoChange(Object.keys(cards).length === 0);
     } catch (e) {
-      // 앱이 이미 알린 실패(이용 정지 · 글이 너무 김 등)는 글을 겹쳐 쓰지 않는다(PW-2907).
-      if (!isNotifiedFailure(e)) setAiError(true);
+      // 앱이 이미 알린 실패(이용 정지 · 글이 너무 김 등)는 글을 겹쳐 쓰지 않고, 떠 있던 카드도 그대로 둔다
+      // — «아무것도 바꾸지 않는다»(spec §4.3.6 P-9).
+      if (isNotifiedFailure(e)) setPolishCards(prevCards);
+      else setAiError(true);
     } finally {
       setAiBusy(false);
     }
@@ -1414,7 +1417,7 @@ export default function EvalCycleMemberCanvas({
                           "점수 셀렉터 + 바로 아래 사유 서술 입력칸"). requiresRationale 은
                           칸의 유무가 아니라 제출 게이팅·미입력 강조만 정한다. */}
                       <textarea
-                        className={`evm-textarea${triedSubmit && f.requiresRationale && !state[f.key].rationale.trim() ? ' is-invalid' : ''}`}
+                        className={`evm-textarea${triedSubmit && f.requiresRationale && !state[f.key].rationale.trim() ? ' is-invalid' : ''}${isPolishUsed(f, 'rationale') ? ' is-ai-confirmed' : ''}`}
                         rows={2}
                         value={state[f.key].rationale}
                         placeholder={

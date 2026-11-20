@@ -55,7 +55,7 @@ const DEFAULT_LABELS = {
   // PW-2440 — 이 사이클의 위원이 맡은 피평가자의 하향 리뷰를 읽기 전용으로 열 때(리더 정책 §2 v2.38).
   readOnlyBadge: '조회 전용',
   readOnlyNotSubmitted: '하향 리뷰가 아직 제출되지 않았습니다.',
-  workTitle: '업적',
+  workTitle: '성과',
   workPlaceholder: '업적에 대한 평가를 작성하세요.',
   competencyTitle: '역량',
   competencyPlaceholder: '역량에 대한 평가를 작성하세요.',
@@ -188,7 +188,7 @@ const DEFAULT_LABELS = {
   save: '임시저장',
   submit: '제출하기',
   // category labels for evidence
-  catWork: '업적',
+  catWork: '성과',
   catCompetency: '역량',
   catStrengths: '강점',
   catImprovements: '보완점',

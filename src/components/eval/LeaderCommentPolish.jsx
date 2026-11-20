@@ -102,7 +102,8 @@ export function LeaderCommentPolishResult({ polish, onUse, stacked = false, L, t
         )}
       </div>
       {stale && state.changed && (
-        <p className="evl-lcp-line is-error" data-testid={`${testId}-polish-stale`}>
+        // 원문이 바뀐 것은 실패가 아니라 주의 — 앰버(leader §5.6-A · member §4.3.3 · pivit-work PW-3076).
+        <p className="evl-lcp-line is-warn" data-testid={`${testId}-polish-stale`}>
           <InfoIcon size={16} />
           <span className="evl-lcp-line-text">{L.polishStale}</span>
         </p>
