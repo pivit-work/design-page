@@ -5001,9 +5001,9 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
 .aip-row.is-soon .aip-row-name { color: var(--text-tertiary); }
 .aip-row-name-wrap { flex: 1; min-width: 0; display: flex; }
 .aip-row-name { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aip-dirty::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: currentColor; margin-right: var(--spacing-xs); vertical-align: middle; }
 .aip-dirty { flex: none; font-size: 12px; line-height: 18px; font-weight: 600; color: var(--text-warning-primary); white-space: nowrap; }
-/* 딱지 모양 — 권한 기준정보 «읽기 전용» 딱지(.rbac-badge)와 같은 값 */
-.aip-badge { display: inline-flex; align-items: center; flex-shrink: 0; padding: calc(var(--spacing-xxs) / 2) var(--spacing-md); border-radius: var(--radius-xs); font-size: 12px; font-weight: 600; line-height: 18px; white-space: nowrap; }
+/* 딱지 모양은 권한 기준정보 «읽기 전용» 딱지(.rbac-badge)를 그대로 쓴다 */
 
 /* 기능 안 고름 — 판 높이를 목록에 맞추고 가운데 안내 */
 .aip-pick-empty { min-height: calc(100vh - 260px); display: grid; place-items: center; text-align: center; }
@@ -5045,8 +5045,8 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
 .aip-editor.is-disabled { opacity: .55; }
 .aip-editor-back, .aip-editor-input { font-family: var(--font-family-body); font-size: 14px; line-height: 24px; padding: var(--spacing-lg) var(--spacing-xl); white-space: pre-wrap; overflow-wrap: break-word; word-break: normal; letter-spacing: normal; }
 .aip-editor-back { position: absolute; inset: 0; overflow: hidden; color: transparent; pointer-events: none; }
-.aip-editor-back mark { color: transparent; background: var(--bg-brand-secondary); border-radius: var(--radius-xxs, 2px); }
-.aip-editor-back mark.is-unknown { background: transparent; text-decoration: underline wavy var(--text-error-primary); text-underline-offset: 4px; }
+.aip-editor-back .aip-var { color: transparent; background: var(--bg-brand-secondary); border-radius: var(--radius-xxs, 2px); }
+.aip-editor-back .aip-var.is-unknown { background: transparent; text-decoration: underline wavy var(--text-error-primary); text-underline-offset: 4px; }
 .aip-editor-input { position: relative; display: block; width: 100%; min-height: 180px; resize: vertical; border: 0; outline: none; background: transparent; color: var(--fg-primary); }
 .aip-editor-input::placeholder { color: var(--text-tertiary); }
 .aip-under { display: flex; align-items: flex-start; gap: var(--spacing-lg); }
@@ -5062,7 +5062,6 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
 /* 테스트 결과 — AI 딱지 + AI 읽기 상자(원온원 .ono-my-readbox.is-ai) */
 .aip-result { display: flex; flex-direction: column; gap: var(--spacing-md); }
 .aip-result-head { display: flex; align-items: center; gap: var(--spacing-md); font-size: 13px; line-height: 20px; font-weight: 600; color: var(--fg-primary); }
-.aip-ai-tag { font-size: 12px; line-height: 16px; padding: var(--spacing-xxs) var(--spacing-sm); }
 .aip-applied { display: block; margin-top: var(--spacing-md); padding-top: var(--spacing-md); border-top: 1px solid var(--alpha-black-5); font-size: 12px; line-height: 18px; color: var(--text-secondary); }
 .aip-applied b { font-weight: 600; color: var(--text-primary); margin-right: var(--spacing-sm); }
 
@@ -5072,3 +5071,4 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
 .aip-by { color: var(--text-secondary); }
 .aip-type-cell { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-xxs); padding: var(--spacing-sm) 0; }
 .aip-type-cell > span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aip-pick-line { display: inline-flex; align-items: center; gap: var(--spacing-md); color: var(--text-tertiary); }

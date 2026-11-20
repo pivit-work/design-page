@@ -9,6 +9,7 @@ import StatusBadge from '../shared/StatusBadge.jsx';
 import AiMark from '../shared/AiMark.jsx';
 import MemberAiButton from '../oneonone/MemberAiButton.jsx';
 import { isEnterKey } from '../shared/enterKey.js';
+import { AlertTriangleGlyph, ArrowLeftGlyph, ChevronRightGlyph, InfoGlyph as InfoLineGlyph } from '../shared/lineIcons.jsx';
 import { FrameTable, NoticeLines, PageHead, Panel } from '../frames/index.js';
 
 /**
@@ -45,8 +46,8 @@ const DEFAULT_LABELS = {
   comingSoon: '준비중',
   badgeDefault: '기본값',
   badgeCustom: '커스텀',
-  dirty: '● 변경',
-  selectFeature: '← 왼쪽에서 기능을 선택하세요',
+  dirty: '변경',
+  selectFeature: '왼쪽에서 기능을 선택하세요',
   loading: '불러오는 중...',
   loadFailed: '불러오지 못했습니다',
   retry: '다시 시도',
@@ -139,23 +140,14 @@ export function aiPromptSaveBlock(customPrompt, mode) {
   return null;
 }
 
+// 선 아이콘은 공용 한 벌(lineIcons) — 같은 그림을 두 곳에 그리지 않는다(PW-1011).
 const ChevronGlyph = ({ open }) => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className={open ? 'aip-chev is-open' : 'aip-chev'}>
-    <path d="M9 6l6 6-6 6" />
-  </svg>
+  <span className={open ? 'aip-chev is-open' : 'aip-chev'} aria-hidden>
+    <ChevronRightGlyph size={16} />
+  </span>
 );
-const InfoGlyph = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-    <circle cx="12" cy="12" r="9" />
-    <path d="M12 11v5M12 8h.01" />
-  </svg>
-);
-const WarnGlyph = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-    <path d="M12 3.5l9.5 16.5h-19z" />
-    <path d="M12 10v4M12 17h.01" />
-  </svg>
-);
+const InfoGlyph = () => <InfoLineGlyph size={16} />;
+const WarnGlyph = () => <AlertTriangleGlyph size={16} />;
 const ResetGlyph = () => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
     <path d="M4 12a8 8 0 1 0 2.3-5.7" />
@@ -330,14 +322,14 @@ export default function AdminAiPromptsCanvas({
       <span className="aip-dirty" data-testid={`dirty-${f.key}`}>{labels.dirty}</span>
     ) : f.comingSoon ? (
       <>
-        <StatusBadge tone="neutral" className="aip-badge" data-testid={`coming-soon-${f.key}`}>{labels.comingSoon}</StatusBadge>
-        {f.hasCustom && f.customIsActive && <StatusBadge tone="info" className="aip-badge">{labels.badgeCustom}</StatusBadge>}
+        <StatusBadge tone="neutral" className="rbac-badge" data-testid={`coming-soon-${f.key}`}>{labels.comingSoon}</StatusBadge>
+        {f.hasCustom && f.customIsActive && <StatusBadge tone="info" className="rbac-badge">{labels.badgeCustom}</StatusBadge>}
       </>
     ) : f.hasCustom && f.customIsActive ? (
-      <StatusBadge tone="info" className="aip-badge" data-testid={`badge-custom-${f.key}`}>{labels.badgeCustom}</StatusBadge>
+      <StatusBadge tone="info" className="rbac-badge" data-testid={`badge-custom-${f.key}`}>{labels.badgeCustom}</StatusBadge>
     ) : (
       // 기획서 §3-1 딱지는 «기본값» · «커스텀» 둘 — 꺼 둔 회사 프롬프트도 기본 프롬프트를 쓰므로 «기본값».
-      <StatusBadge tone="neutral" className="aip-badge" data-testid={`badge-default-${f.key}`}>{labels.badgeDefault}</StatusBadge>
+      <StatusBadge tone="neutral" className="rbac-badge" data-testid={`badge-default-${f.key}`}>{labels.badgeDefault}</StatusBadge>
     );
     return (
       <div
@@ -388,7 +380,7 @@ export default function AdminAiPromptsCanvas({
             groups.map((g) => {
               const open = !closedCats.has(g.category) || !!q;
               return (
-                <div key={g.category} className="aip-group">
+                <div key={g.category} data-group={g.category}>
                   <div
                     role="button"
                     tabIndex={0}
@@ -417,7 +409,11 @@ export default function AdminAiPromptsCanvas({
         {list}
         <Panel testId="aip-editor-empty">
           <div className="aip-pick-empty" data-testid="empty-state">
-            <NoticeLines lines={[labels.selectFeature]} tone="muted" />
+            {/* spec §6 «← 왼쪽에서 기능을 선택하세요» — 화살표는 글자가 아니라 아이콘 자리(번역 문구에 기호를 두지 않는다) */}
+            <span className="aip-pick-line">
+              <ArrowLeftGlyph size={16} />
+              <NoticeLines lines={[labels.selectFeature]} tone="muted" />
+            </span>
           </div>
         </Panel>
       </Shell>
@@ -497,7 +493,7 @@ export default function AdminAiPromptsCanvas({
           title={labels.defaultPrompt}
           aside={
             <>
-              <StatusBadge tone="neutral" className="aip-badge">{labels.readOnly}</StatusBadge>
+              <StatusBadge tone="neutral" className="rbac-badge">{labels.readOnly}</StatusBadge>
               <Tooltip content={labels.defaultPromptHelpText} maxWidth={320}>
                 <span className="aip-help" tabIndex={0} data-testid="default-prompt-help">
                   <InfoGlyph />
@@ -592,10 +588,10 @@ export default function AdminAiPromptsCanvas({
           {testResult && !testError && (
             <div className="aip-result" data-testid="test-result">
               <div className="aip-result-head">
-                <span className="ons-ai-tag aip-ai-tag">
+                <StatusBadge tone="ai" className="ons-ai-tag">
                   <AiMark size={12} baseUrl={baseUrl} />
                   {labels.aiTag}
-                </span>
+                </StatusBadge>
                 <span>{labels.testResult}</span>
               </div>
               <div className="ono-my-readbox is-ai aip-readbox">
@@ -657,7 +653,7 @@ export default function AdminAiPromptsCanvas({
                   render: (v) => (
                     <span className="aip-type-cell">
                       {v.changeType && labels.changeTypes[v.changeType] && (
-                        <StatusBadge tone="neutral" className="aip-badge" data-testid={`change-type-${v.id}`}>
+                        <StatusBadge tone="neutral" className="rbac-badge" data-testid={`change-type-${v.id}`}>
                           {labels.changeTypes[v.changeType]}
                         </StatusBadge>
                       )}
