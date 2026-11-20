@@ -434,7 +434,8 @@ function AddonSection({ addon, labels, onManage }) {
   if (addon.phase === 'trial') {
     const left = addon.trialDaysLeft;
     text = labels.addonTrial(addon.trialEndDate) + (left != null && left <= 3 ? ` · ${labels.addonTrialDday(left)}` : '');
-    tone = 'accent';
+    // 14일 이하로 남으면 경고 — screen-billing-overview.policy.md «애드온 줄» 행
+    tone = left != null && left <= 14 ? 'warning' : 'accent';
   } else if (addon.phase === 'active') {
     text = labels.addonActive(addon.interval === 'annual' ? addon.priceAnnual : addon.priceMonthly);
     tone = 'success';
@@ -451,7 +452,7 @@ function AddonSection({ addon, labels, onManage }) {
     <Panel.Section>
       <div data-testid="billing-addon-row" style={ROW}>
         <span style={{ ...ROW_KEY, color: 'var(--text-primary)' }}>{labels.addonName}</span>
-        <StatusBadge tone={tone} data-testid="billing-addon-row-status">{text}</StatusBadge>
+        <StatusBadge className="ono-done-badge" tone={tone} data-testid="billing-addon-row-status">{text}</StatusBadge>
         <span style={PUSH_RIGHT}>
           <LinkButton onClick={onManage}>{labels.addonManage}</LinkButton>
         </span>
@@ -809,7 +810,7 @@ export default function BillingOverviewCanvas({
         title={labels.pageTitle}
         titleAside={titleHelp}
         description={[labels.pageSubtitle]}
-        actions={!canEdit && <StatusBadge tone="neutral">{labels.viewOnly}</StatusBadge>}
+        actions={!canEdit && <StatusBadge className="ono-done-badge" tone="neutral">{labels.viewOnly}</StatusBadge>}
       />
 
       {/* 이용 정지 띠 (pivit-work PW-2549·PW-2550 · overview «이용 정지 배너» 행). 화면 맨 위 앱 공통 띠는 따로 남는다(정책서 58줄).
@@ -831,7 +832,8 @@ export default function BillingOverviewCanvas({
                 {labels.suspendedRequestCancel}
               </Btn>
             )}
-            <Btn kind="danger-ghost" onClick={onNavigatePlans} disabled={!canEdit}>{labels.suspendedPay}</Btn>
+            {/* 정지를 푸는 주 동작이라 초록(시안 A5) */}
+            <Btn kind="primary" onClick={onNavigatePlans} disabled={!canEdit}>{labels.suspendedPay}</Btn>
           </>}
         />
       )}
@@ -1018,13 +1020,13 @@ export default function BillingOverviewCanvas({
             <div style={{ ...COL, flex: '1 1 320px', gap: 'var(--spacing-xs)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)', flexWrap: 'wrap' }}>
                 <h2 className="okr-s-title" style={{ margin: 0 }}>{plan.label}</h2>
-                <StatusBadge tone={STATUS_TONE[sub.status] || 'neutral'}>{statusLabel}</StatusBadge>
+                <StatusBadge className="ono-done-badge" tone={STATUS_TONE[sub.status] || 'neutral'}>{statusLabel}</StatusBadge>
                 {/* 청구 단가가 플랜 정가와 다른 이유를 한눈에 말한다 (PW-344 ⑤). */}
-                {contract && <StatusBadge tone="accent">{labels.contractBadge}</StatusBadge>}
+                {contract && <StatusBadge className="ono-done-badge" tone="accent">{labels.contractBadge}</StatusBadge>}
                 {sub.status === 'active' && sub.firstCycle && sub.anchorDay != null
                   && sub.firstCycleDaysLeft != null && (
                   <span data-testid="billing-first-cycle-badge">
-                    <StatusBadge tone="accent">{labels.firstCycleBadge(sub.firstCycleDaysLeft, sub.anchorDay)}</StatusBadge>
+                    <StatusBadge className="ono-done-badge" tone="accent">{labels.firstCycleBadge(sub.firstCycleDaysLeft, sub.anchorDay)}</StatusBadge>
                   </span>
                 )}
               </div>

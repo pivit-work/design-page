@@ -341,7 +341,7 @@ function FeatureIcon({ status }) {
 // ── 협의 단가 카드 (PW-344) ─────────────────────────────────
 //
 // 새 시각 언어를 만들지 않는다 — 이 파일의 Card/Badge/Btn/Divider 를 그대로 조합하고,
-// 보라 계열(T.purple/T.purpleBg)은 기존 「Pro 커스텀 견적」 카드가 쓰던 색을 승계한다.
+// 색은 브랜드 — 보라는 AI 뜻이라 쓰지 않는다(pivit-work PW-3132 다시 칠하기 · 예전엔 Pro 견적 카드의 보라를 승계했다).
 //
 // 취소선은 참조 정가가 있고 **협의 단가가 그보다 쌀 때만** 쓴다. 인상 계약에 취소선·
 // 「할인」 문구를 붙이면 계약 조건을 잘못 말하는 것이 된다.
@@ -354,16 +354,16 @@ function QuoteCard({ quote, canEdit, onPay, billedSeats, seatsOverMax, labels, r
     quote.listPriceRef != null && quote.seatPrice < quote.listPriceRef;
 
   return (
-    <Card style={{ background: T.purpleBg, border: `1px solid ${T.purple}` }}>
+    <Card style={{ background: 'var(--bg-quaternary)', border: '1px solid var(--border-brand)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-        <div style={{ fontWeight: 800, color: T.purple }}>
+        <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>
           {quote.isRenewal ? labels.quoteCardTitleRenewal : labels.quoteCardTitle}
         </div>
-        <Badge color={urgent ? '#fff' : T.purple} bg={urgent ? T.amber : '#fff'}>
+        <StatusBadge tone={urgent ? 'warning' : 'accent'} className="ono-done-badge">
           {dLeft != null && dLeft > 0
             ? labels.quoteValidBadge(dLeft)
             : labels.quoteExpiredBadge}
-        </Badge>
+        </StatusBadge>
       </div>
 
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
@@ -466,7 +466,8 @@ function PlanCard({ plan, isCurrent, isUpgrade = false, interval, onAction, canE
   return (
     <div style={{
       background: T.card,
-      border: `2px solid ${markedCurrent ? T.accent : plan.recommended ? T.purple : T.border}`,
+      // 지금 플랜만 브랜드 테두리(시안 .bl-on) — «추천»은 딱지 글만 남기고 보라 테두리를 뺀다(보라는 AI 뜻)
+      border: `2px solid ${markedCurrent ? T.accent : T.border}`,
       borderRadius: 16,
       padding: 24,
       position: 'relative',
@@ -477,12 +478,12 @@ function PlanCard({ plan, isCurrent, isUpgrade = false, interval, onAction, canE
     }}>
       {markedCurrent && (
         <div style={{ position: 'absolute', top: -12, left: 16 }}>
-          <Badge color="#fff" bg={T.accent}>{labels.currentPlanBadge}</Badge>
+          <StatusBadge tone="accent" className="ono-done-badge">{labels.currentPlanBadge}</StatusBadge>
         </div>
       )}
       {plan.recommended && !markedCurrent && (
         <div style={{ position: 'absolute', top: -12, left: 16 }}>
-          <Badge color="#fff" bg={T.purple}>{labels.recommendedBadge}</Badge>
+          <StatusBadge tone="accent" className="ono-done-badge">{labels.recommendedBadge}</StatusBadge>
         </div>
       )}
 
@@ -492,7 +493,7 @@ function PlanCard({ plan, isCurrent, isUpgrade = false, interval, onAction, canE
           style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'var(--spacing-xs)', marginBottom: 'var(--spacing-md)' }}>
           {/* 색은 구독 현황의 «체험 중» 상태 배지와 같다 (BillingOverviewCanvas STATUS_META.trial).
               배지는 줄바꿈이 없어 이름만 담고, 종료일은 옆 글자로 둔다 — 카드 넷이 나란히면 글 칸이 160px 남짓이다. */}
-          <Badge color={T.accentText} bg="var(--bg-brand-secondary)">{trialNote.badge}</Badge>
+          <StatusBadge tone="accent" className="ono-done-badge">{trialNote.badge}</StatusBadge>
           <span style={{ fontSize: 12, color: T.sub }}>{trialNote.until}</span>
         </div>
       )}
@@ -506,7 +507,7 @@ function PlanCard({ plan, isCurrent, isUpgrade = false, interval, onAction, canE
             {won(negotiatedPrice)}
             <span style={{ fontSize: 13, fontWeight: 500, color: T.sub }}>{labels.perSeatMonth}</span>
           </div>
-          <div style={{ fontSize: 12, color: T.purple, fontWeight: 700, marginTop: 2 }}>
+          <div style={{ fontSize: 12, color: 'var(--text-brand-secondary)', fontWeight: 600, marginTop: 'var(--spacing-xxs)' }}>
             {labels.quoteNegotiatedTag}
           </div>
         </div>
@@ -596,7 +597,11 @@ function addonBadgeOf(addon, labels) {
   // 색은 공용 딱지 표(statusBadgeTones)가 정한다 — 구독 현황 애드온 줄과 같은 색.
   switch (addon.phase) {
     case 'trial':
-      return { text: labels.addonBadgeTrial(addon.trialEndDate), tone: 'accent' };
+      // 14일 이하로 남으면 경고 — screen-billing-plans.policy.md 애드온 카드 행
+      return {
+        text: labels.addonBadgeTrial(addon.trialEndDate),
+        tone: addon.trialDaysLeft != null && addon.trialDaysLeft <= 14 ? 'warning' : 'accent',
+      };
     case 'active':
       return { text: labels.addonBadgeActive, tone: 'success' };
     case 'cancel_scheduled':
@@ -672,7 +677,7 @@ function AddonCard({ addon, interval, canEdit, highlight, labels, onTrial, onBuy
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)', flexWrap: 'wrap', marginBottom: 'var(--spacing-sm)' }}>
               <span style={{ fontSize: 16, fontWeight: 800 }}>{labels.addonName}</span>
-              {badge && <StatusBadge tone={badge.tone} className="admin-pill">{badge.text}</StatusBadge>}
+              {badge && <StatusBadge tone={badge.tone} className="ono-done-badge">{badge.text}</StatusBadge>}
             </div>
             <div style={{ fontSize: 13, color: T.sub, marginBottom: 'var(--spacing-md)' }}>{labels.addonDesc}</div>
             <div style={{ fontSize: 14, fontWeight: 700 }}>
@@ -1250,7 +1255,7 @@ export default function BillingPlansCanvas({
         <BillingPageHead
           title={labels.pageTitle}
           description={[labels.pageSubtitle]}
-          actions={!canEdit ? <StatusBadge tone="neutral" className="admin-pill">{labels.readOnlyBadge}</StatusBadge> : null}
+          actions={!canEdit ? <StatusBadge tone="neutral" className="ono-done-badge">{labels.readOnlyBadge}</StatusBadge> : null}
         />
         {subscriptionUnavailable && (
           <div data-testid="billing-plans-current-unknown"
@@ -1348,7 +1353,7 @@ export default function BillingPlansCanvas({
             onChange={setInterval}
           />
           {interval === 'annual' && (
-            <StatusBadge tone="success" className="admin-pill" data-testid="billing-plans-annual-badge">{labels.annualToggleNote}</StatusBadge>
+            <StatusBadge tone="success" className="ono-done-badge" data-testid="billing-plans-annual-badge">{labels.annualToggleNote}</StatusBadge>
           )}
         </div>
 
@@ -1451,36 +1456,23 @@ export default function BillingPlansCanvas({
                 <Tooltip content={labels.seatTooltip}>
                   <span style={{ display: 'flex', cursor: 'help', color: 'var(--text-tertiary)' }}><InfoGlyph size={16} /></span>
                 </Tooltip>
-              <button type="button"
+              {/* 좌석 조절 — 공용 보조 버튼(작게) + «그룹 추가» 창 입력칸(tl-emp-input) 모양 */}
+              <Button variant="secondary" size="sm"
                 onClick={() => canEdit && setSeatsClamped(seats - 1)}
                 disabled={!canEdit || seats <= 1}
-                aria-label={labels.seatDecreaseAria}
-                style={{
-                  width: 36, height: 36, borderRadius: 8, border: `1px solid ${T.border}`,
-                  background: '#fff', fontSize: 20, fontWeight: 700, color: T.text,
-                  cursor: (!canEdit || seats <= 1) ? 'not-allowed' : 'pointer',
-                  opacity: (!canEdit || seats <= 1) ? 0.4 : 1,
-                }}>−</button>
+                aria-label={labels.seatDecreaseAria}>−</Button>
               <input
                 type="number" min={1} value={seats}
+                className="tl-emp-input"
+                aria-label={labels.seatCardTitle}
                 onChange={(e) => setSeatsClamped(parseInt(e.target.value, 10))}
                 disabled={!canEdit}
-                style={{
-                  width: 72, textAlign: 'center', fontSize: 20, fontWeight: 800,
-                  fontVariantNumeric: 'tabular-nums', color: T.text,
-                  border: `1px solid ${T.border}`, borderRadius: 8, padding: '6px 4px',
-                  background: canEdit ? '#fff' : T.bl,
-                }} />
-              <button type="button"
+                style={SEAT_INPUT_STYLE} />
+              <Button variant="secondary" size="sm"
                 onClick={() => canEdit && setSeatsClamped(seats + 1)}
                 disabled={!canEdit}
-                aria-label={labels.seatIncreaseAria}
-                style={{
-                  width: 36, height: 36, borderRadius: 8, border: `1px solid ${T.border}`,
-                  background: '#fff', fontSize: 20, fontWeight: 700, color: T.text,
-                  cursor: !canEdit ? 'not-allowed' : 'pointer', opacity: !canEdit ? 0.4 : 1,
-                }}>+</button>
-              <span style={{ fontSize: 14, color: T.sub, fontWeight: 600 }}>{labels.seatUnit}</span>
+                aria-label={labels.seatIncreaseAria}>+</Button>
+              <span style={SEAT_UNIT_STYLE}>{labels.seatUnit}</span>
               </div>
             )}
           >
@@ -1701,3 +1693,7 @@ export default function BillingPlansCanvas({
     </BillingPage>
   );
 }
+
+/** 좌석 수 칸 — 숫자 셋 자리 폭 · 가운데 · 숫자 폭 고정. 바탕 · 높이 · 글자는 tl-emp-input 그대로. */
+const SEAT_INPUT_STYLE = { width: 88, textAlign: 'center', fontVariantNumeric: 'tabular-nums', fontWeight: 600 };
+const SEAT_UNIT_STYLE = { fontSize: 'var(--font-size-text-sm)', color: 'var(--text-secondary)', fontWeight: 600 };
