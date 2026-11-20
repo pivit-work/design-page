@@ -840,31 +840,38 @@ function OrgSnapshotStatusView({
         )}
 
         {activeTab === 'employment' && (
-          <div className="admin-snap-bars" data-testid="status-employment">
-            <NoticeLines lines={[labels.employmentHeading]} />
-            <div>
-              {employment.map((e) => (
-                <ShareBarRow
-                  key={e.type || '—'}
-                  name={e.type || '—'}
-                  count={e.count}
-                  max={empMax}
-                  // «미지정»(값 없음)은 회색 — 정규직과 같은 초록이면 가장 큰 갈래처럼 읽힌다(PW-3134)
-                  muted={!!e.unset || !e.type}
-                  nameMuted={!!e.unset || !e.type}
-                  labels={labels}
-                  tail={<span className="admin-snap-pct">{e.pct}%</span>}
-                  testId="status-employment-row"
-                />
-              ))}
-            </div>
-            {/* 빈 문자열을 넘기면 안내 줄을 숨긴다 — 안내하는 기능이 아직 없을 때 (PW-1583) */}
-            {labels.govFormatDesc ? <NoticeLines tone="muted" lines={[labels.govFormatDesc]} /> : null}
-          </div>
+          // 기록 시작 전 날짜 — 인원 현황 탭과 같은 C1 안내(spec §1 «C1/C2 빈 상태 문구가 이 탭에도» · PW-3129)
+          noRecord
+            ? <EmptyState size="lg" data-testid="status-empty-c1" title={labels.asofOutOfRangeTitle} description={labels.asofOutOfRangeBody} />
+            : (
+              <div className="admin-snap-bars" data-testid="status-employment">
+                <NoticeLines lines={[labels.employmentHeading]} />
+                <div>
+                  {employment.map((e) => (
+                    <ShareBarRow
+                      key={e.type || '—'}
+                      name={e.type || '—'}
+                      count={e.count}
+                      max={empMax}
+                      // «미지정»(값 없음)은 회색 — 정규직과 같은 초록이면 가장 큰 갈래처럼 읽힌다(PW-3134)
+                      muted={!!e.unset || !e.type}
+                      nameMuted={!!e.unset || !e.type}
+                      labels={labels}
+                      tail={<span className="admin-snap-pct">{e.pct}%</span>}
+                      testId="status-employment-row"
+                    />
+                  ))}
+                </div>
+                {/* 빈 문자열을 넘기면 안내 줄을 숨긴다 — 안내하는 기능이 아직 없을 때 (PW-1583) */}
+                {labels.govFormatDesc ? <NoticeLines tone="muted" lines={[labels.govFormatDesc]} /> : null}
+              </div>
+            )
         )}
 
         {activeTab === 'jobgroup' && (
-          jobFamilies.length === 0
+          noRecord
+            ? <EmptyState size="lg" data-testid="status-empty-c1" title={labels.asofOutOfRangeTitle} description={labels.asofOutOfRangeBody} />
+            : jobFamilies.length === 0
             ? <EmptyState size="lg" description={labels.noJobGroups} />
             : (
               <div className="admin-snap-bars" data-testid="status-jobgroup">
@@ -887,7 +894,9 @@ function OrgSnapshotStatusView({
         )}
 
         {activeTab === 'age' && (
-          (ageCounted == null ? ageDist.length === 0 && !ageNoBirthLabel : !ageCounted)
+          noRecord
+            ? <EmptyState size="lg" data-testid="status-empty-c1" title={labels.asofOutOfRangeTitle} description={labels.asofOutOfRangeBody} />
+            : (ageCounted == null ? ageDist.length === 0 && !ageNoBirthLabel : !ageCounted)
             ? <EmptyState size="lg" description={labels.ageNotAvailable} />
             : (
               <div className="admin-snap-bars" data-testid="status-age">
