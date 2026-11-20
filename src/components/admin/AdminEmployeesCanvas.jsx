@@ -1309,6 +1309,8 @@ function UnassignedTab({
                             ? onChangeAffiliations(m.id, { unitIds, primaryUnitId })
                             : undefined)}
                           onClose={() => setPickerFor(null)}
+                          // 목록 소속 팝업과 같은 컴포넌트 · 같은 규칙(admin-spec §3.3 섹션 2) — 하단 안내도 같다(pivit-work PW-2999)
+                          footerNote={labels.panel?.orgPickerFooter}
                         />
                       );
                     })() : (
@@ -1320,6 +1322,7 @@ function UnassignedTab({
                       labels={labels.orgPicker}
                       onApply={(unitId) => (unitId ? onAssignOrgUnit(m.id, unitId) : undefined)}
                       onClose={() => setPickerFor(null)}
+                      footerNote={labels.panel?.orgPickerFooter}
                     />
                     )
                   )}
@@ -2839,6 +2842,9 @@ function EmployeesListView({
   onChangeSquads,
   // 저장 방식 안내(PW-1350) — 즉시 저장되는 스쿼드·소속 팝업에 넘긴다. 캔버스 prop 주석 참조.
   instantSaveNotice,
+  // 목록 «소속» 칸 팝업 안내 — [적용]이 매니저를 바꾸면 승인 대기로 남아 «바로 저장»이 틀린다(pivit-work PW-2999).
+  // 미주입이면 종전처럼 instantSaveNotice.
+  orgSaveNotice,
   // 명부 내보내기 — 시트와 **같은 부품**을 쓴다(PW-411). 미주입이면 버튼이 없다.
   onExportRoster, exporting = false, exportLabels, fullExport = false,
   // 「업로드 양식 그대로」(PW-2057) — `{ columnCount, compAllowed }`. 안 주면 항목이 없다.
@@ -4644,7 +4650,9 @@ function EmployeesListView({
             : undefined}
           // L6 — 퇴사자는 조직장이 될 수 없다. 감추지 않고 이유를 남긴다.
           canBeLeader={deptPicker.employmentStatus !== 'terminated'}
-          saveNotice={instantSaveNotice}
+          saveNotice={orgSaveNotice ?? instantSaveNotice}
+          // 기획서 admin-spec §3.1 PW-1838 «그 아래 한 줄 … 상시 노출» — 구성원 상세 팝업과 같은 줄(pivit-work PW-2999)
+          footerNote={labels.panel?.orgPickerFooter}
           // 저장을 기다린다 — 거절되면(발령 충돌 등) 팝업이 고른 값 그대로 남는다(PW-2909). 닫기는 피커가 onClose 로.
           onApply={({ unitIds, primaryUnitId }) => onChangeAffiliations(deptPicker.id, { unitIds, primaryUnitId })}
           onClose={() => setDeptPickerFor(null)}
@@ -8098,6 +8106,8 @@ export default function AdminEmployeesCanvas({
      방식이 갈리는 자리마다 붙인다. 안내 자체(문구·아이콘)는 소비자가 그려 넘긴다.
      미주입이면 아무것도 그리지 않는다. */
   instantSaveNotice,
+  /* 목록 «소속» 칸 팝업에만 쓰는 안내(pivit-work PW-2999) — 미주입이면 instantSaveNotice. */
+  orgSaveNotice,
   manualSaveNotice,
   onChangeSquads,
   // 명부 내보내기 — 탭 A(전체 구성원)에만 둔다. 미배정·초대 탭에는 두지 않는다(E10):
@@ -8486,6 +8496,7 @@ export default function AdminEmployeesCanvas({
             // 스쿼드 배정 편집(PW-438) — 없으면 스쿼드 칸이 죽은 자리가 된다.
             onChangeSquads={onChangeSquads}
             instantSaveNotice={instantSaveNotice}
+            orgSaveNotice={orgSaveNotice}
             // 선택 적용 항목(PW-502) — 회사가 켠 것만 열이 선다.
             optionalFields={optionalFields ?? NO_OPTIONAL_FIELDS}
             // 명부 내보내기(PW-411).
