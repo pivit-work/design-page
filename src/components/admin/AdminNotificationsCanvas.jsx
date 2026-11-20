@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
-import Card from './Card.jsx';
 import Icon from '../shared/Icon.jsx';
 import DatePicker from '../shared/DatePicker.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
@@ -9,6 +8,12 @@ import Switch from '../shared/Switch.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
 import Select from '../shared/Select.jsx';
 import Button from '../shared/Button.jsx';
+import Skeleton from '../shared/Skeleton.jsx';
+import { Panel } from '../frames/Panel.jsx';
+import { StatStrip } from '../frames/StatStrip.jsx';
+import { NoticeLines } from '../frames/NoticeLines.jsx';
+import { FrameTable } from '../frames/FrameTable.jsx';
+import { FormModal } from '../frames/FormModal.jsx';
 
 /**
  * AdminNotificationsCanvas — 어드민 "알림 설정" 화면 Pure 컴포넌트.
@@ -22,6 +27,11 @@ import Button from '../shared/Button.jsx';
  *    (formatCooldown / formatCondition 콜백). Canvas 는 한국어를 하드코딩하지 않는다.
  *  - conditionSchema 의 라벨·옵션, cooldown 편집기의 단위·요일·시각 옵션도
  *    호스트가 t() 로 미리 해소해 넘긴다.
+ *
+ * 모양(PW-3125 · 커트 11-19 시안): 공용 틀(design-page `components/frames/` · PW-3139)로 짠다 — 요약은 숫자 칸 줄,
+ * 안내는 안내 줄, 묶음은 흰 판, 단계별 채널은 표, 수정 창 칸 이름은 입력 창 칸 틀. 페이지 제목은 호스트가 그린다
+ * (불러오는 중 · 실패에도 제목이 남아야 해서). 틀은 그 틀이 따른 디자이너 스타일시트를 쓰는 쪽이 불러온다
+ * (frames.css · okr.css · modal-shell.css · timeline.css · meetings.css · org_list.css · manager.css).
  *
  * UI 상태(필터·편집 대상·모달 내부 draft)만 내부에서 관리한다.
  * 스타일은 design-page 토큰 기반 src/admin.css (.admin-notif-*) 클래스.
@@ -47,6 +57,8 @@ import Button from '../shared/Button.jsx';
  *    lockedChannels?: string[],         // 회사가 끌 수 없는 채널(pivit-work PW-2547). 수정 창에서 켠 채 잠기고 말풍선
  *                                       // labels.modal.channelLocked 가 뜬다. 저장값에 없어도 켜진 칸으로 보인다
  *    enabled: bool,
+ *    alwaysOn?: bool,                   // 회사도 끌 수 없는 규칙(PW-2597). 줄 스위치 자리와 수정 창 «이 알림 활성화» 자리에
+ *                                       // «끌 수 없음»을 둔다(기획서 admin-app.jsx RuleRow · EditRuleModal · PW-3125)
  *    recipientsFixed?: string,          // 받는 사람만 정해진 규칙의 안내(PW-2099 · spec-eval-cycle §14.4 N-2). 있으면
  *                                       // 수정 창의 받는 사람 칸은 잠금 안내, 채널은 그대로 체크로 고르고, 목록 행은
  *                                       // 역할 칩 대신 이 안내 + 채널을 보인다
@@ -68,15 +80,22 @@ const CHANNEL_ICON_SRC = {
 const ICON_LOCK = '/icons-solid/lock-keyhole-square.svg';
 const ICON_PREVIEW = '/icons-solid/eye.svg';
 const ICON_INFO = '/icons-solid/info-circle.svg';
+const ICON_EDIT = '/icons-solid/edit-05.svg';
 
 const DEFAULT_LABELS = {
   stats: { total: '전체 규칙', active: '활성', inactive: '비활성', unit: '개' },
-  infoBanner:
-    '조직 전체 알림 규칙을 관리합니다. "조건 편집 가능" 배지가 있는 규칙은 발동 임계값을 직접 수정할 수 있습니다. 팀원 개인 채널 설정은 "내 설정 → 알림" 탭에서 합니다.',
+  // 안내 — 문장마다 한 줄(첫 줄은 진하게, 나머지는 흐리게). 글 하나로 주면 한 줄로 보인다.
+  infoBanner: [
+    '조직 전체 알림 규칙을 관리합니다.',
+    '"조건 편집 가능" 배지가 있는 규칙은 발동 임계값을 직접 수정할 수 있습니다.',
+  ],
   filterLabel: '수신 대상 필터',
+  // 필터를 골랐을 때 줄 오른쪽 — 글이면 {n} 자리에 보이는 규칙 수, 함수면 (n) => 글
+  filterCount: '규칙 {n}개 보임',
   filterAll: '전체',
   groupActiveSuffix: '활성', // "N / M 활성"
   editableBadge: '조건 편집 가능',
+  alwaysOn: '끌 수 없음',
   editBtn: '수정',
   enableAll: '전체 알림 활성화',
   disableAll: '전체 알림 비활성화',
@@ -84,6 +103,10 @@ const DEFAULT_LABELS = {
   channels: { push: '푸시', slack: 'Slack', email: '이메일' },
   modal: {
     enableThis: '이 알림 활성화',
+    alwaysOn: '끌 수 없음 — 채널만 바꿀 수 있어요',
+    perRuleFixed: '알림마다 고정', // 받는 사람이 알림마다 정해진 칸의 딱지
+    stageColumn: '단계',
+    channelLockedNote: '자물쇠가 붙은 채널은 이 알림에서 끌 수 없습니다.',
     condition: '발동 조건',
     systemFixed: '시스템 고정',
     preview: '미리보기',
@@ -125,11 +148,6 @@ function merge(base, provided) {
 }
 
 /* ── 토글 스위치 ───────────────────────────────────────── */
-
-/* ── 작은 섹션 라벨 (모달 내부) ───────────────────────── */
-function SL({ children }) {
-  return <div className="admin-notif-sl">{children}</div>;
-}
 
 /* ── 세그먼트 버튼 (라디오 대체) — 공용 SegmentedControl(PW-836) ── */
 function SegBtn({ options, value, onChange }) {
@@ -340,6 +358,31 @@ function todayIso() {
   return dateToIso(new Date());
 }
 
+/* ── 고정 칸 — 옅은 회색 읽기 전용 칸 + 자물쇠 + 회색 딱지 ───── */
+function FixedValue({ text, tag, baseUrl, testId }) {
+  return (
+    <div className="admin-notif-fixed" data-testid={testId}>
+      <span className="admin-notif-fixed-lock">
+        <Icon src={ICON_LOCK} size={14} color="var(--text-tertiary)" baseUrl={baseUrl} />
+      </span>
+      <span className="admin-notif-fixed-text">{text}</span>
+      <StatusBadge tone="neutral" className="admin-notif-tag">{tag}</StatusBadge>
+    </div>
+  );
+}
+
+/* ── 미리보기 — 바탕 없는 초록 글 ───────────────────────── */
+function Preview({ label, text, baseUrl }) {
+  return (
+    <div className="admin-notif-preview">
+      <span className="admin-notif-preview-mark">
+        <Icon src={ICON_PREVIEW} size={14} color="var(--text-brand-secondary)" baseUrl={baseUrl} />
+      </span>
+      <span>{label}:&nbsp;<strong>{text}</strong></span>
+    </div>
+  );
+}
+
 /* ── 규칙 수정 모달 ───────────────────────────────────── */
 function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatCooldown, onClose, onSave, baseUrl, validateRule, busy = false }) {
   const [enabled, setEnabled] = useState(rule.enabled);
@@ -378,10 +421,17 @@ function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatC
   const savedChannels = stageChannels
     ? CHANNEL_KEYS.filter((c) => stageChannels.some((s) => s.channels.includes(c)))
     : channels;
+  // 끌 수 없는 규칙은 창에서도 켜짐이다 — 저장 값도 켜짐으로 보낸다(기획서 EditRuleModal · PW-3125).
+  const savedEnabled = rule.alwaysOn ? true : enabled;
+
+  const stageKeys = rule.stageChannelKeys ?? CHANNEL_KEYS;
+  const recipientsFixedText = stageChannels || rule.targetsFixed ? rule.targetsFixed : rule.recipientsFixed;
+  const recipientsFixedTestId = stageChannels || rule.targetsFixed ? 'notif-targets-fixed' : 'notif-recipients-fixed';
+  const hasLockedChannel = CHANNEL_KEYS.some((k) => lockedChannels.includes(k));
 
   return (
-    // 껍데기는 공용 창 틀(ModalShell · PW-836). 막 이름표(modal-backdrop)·창 이름표(edit-modal)는
-    // 종전 그대로 막·카드에 붙는다.
+    // 껍데기는 공용 창 틀(ModalShell · PW-836) 그대로. 막 이름표(modal-backdrop)·창 이름표(edit-modal)는
+    // 종전 그대로 막·카드에 붙는다. 안쪽 칸 이름은 입력 창 칸 틀(FormModal.Field · PW-3139).
     <ModalShell
       title={rule.label}
       description={rule.desc}
@@ -404,7 +454,7 @@ function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatC
             onClick={async () => {
               // [PW-2079] 부르는 쪽이 확인 창에서 취소하면 `false` 를 돌려준다 — 그때는 창을 닫지 않아
               // 고친 값이 그대로 남는다(admin-spec §6.1-B «취소하면»). 그 밖의 값이면 종전대로 닫는다.
-              const ok = await onSave({ ...rule, enabled, conditionValues, cooldown, recipients, channels: savedChannels, ...(stageChannels ? { stageChannels } : {}) });
+              const ok = await onSave({ ...rule, enabled: savedEnabled, conditionValues, cooldown, recipients, channels: savedChannels, ...(stageChannels ? { stageChannels } : {}) });
               if (ok !== false) onClose();
             }}
           >
@@ -413,15 +463,18 @@ function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatC
         </>
       }
     >
-        {/* 활성화 */}
+        {/* 활성화 — 끌 수 없는 알림이면 스위치 자리에 안내(기획서 EditRuleModal · PW-3125) */}
         <div className="admin-notif-enable-row">
           <span className="admin-notif-enable-label">{labels.modal.enableThis}</span>
-          <Switch checked={enabled} onChange={setEnabled} label={labels.modal.enableThis} />
+          {rule.alwaysOn ? (
+            <span className="admin-notif-enable-locked" data-testid="notif-enable-locked">{labels.modal.alwaysOn}</span>
+          ) : (
+            <Switch checked={enabled} onChange={setEnabled} label={labels.modal.enableThis} />
+          )}
         </div>
 
         {/* 발동 조건 */}
-        <div>
-          <SL>{labels.modal.condition}</SL>
+        <FormModal.Field label={labels.modal.condition} group>
           {rule.conditionSchema ? (
             <div className="admin-notif-param-list">
               {rule.conditionSchema.map((param) => (
@@ -437,27 +490,15 @@ function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatC
                   )}
                 </div>
               ))}
-              <div className="admin-notif-preview">
-                <span className="admin-notif-preview-mark">
-                  <Icon src={ICON_PREVIEW} size={14} color="var(--text-brand-secondary)" baseUrl={baseUrl} />
-                </span>
-                {labels.modal.preview}:&nbsp;<strong>{conditionPreview}</strong>
-              </div>
+              <Preview label={labels.modal.preview} text={conditionPreview} baseUrl={baseUrl} />
             </div>
           ) : (
-            <div className="admin-notif-fixed">
-              <span className="admin-notif-fixed-lock">
-                <Icon src={ICON_LOCK} size={14} color="var(--text-tertiary)" baseUrl={baseUrl} />
-              </span>
-              <span className="admin-notif-fixed-text">{rule.conditionFixed}</span>
-              <span className="admin-notif-fixed-tag">{labels.modal.systemFixed}</span>
-            </div>
+            <FixedValue text={rule.conditionFixed} tag={labels.modal.systemFixed} baseUrl={baseUrl} />
           )}
-        </div>
+        </FormModal.Field>
 
         {/* 발송 주기 */}
-        <div>
-          <SL>{labels.modal.cooldown}</SL>
+        <FormModal.Field label={labels.modal.cooldown} group>
           {cooldown.mode === 'custom' ? (
             <div className="admin-notif-cooldown-box">
               <CooldownEditor
@@ -469,162 +510,143 @@ function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatC
                 baseUrl={baseUrl}
                 intervalError={errors.interval}
               />
-              <div className="admin-notif-preview">
-                <span className="admin-notif-preview-mark">
-                  <Icon src={ICON_PREVIEW} size={14} color="var(--text-brand-secondary)" baseUrl={baseUrl} />
-                </span>
-                {labels.modal.preview}:&nbsp;<strong>{formatCooldown(cooldown)}</strong>
-              </div>
+              <Preview label={labels.modal.preview} text={formatCooldown(cooldown)} baseUrl={baseUrl} />
             </div>
           ) : (
-            <div className="admin-notif-fixed">
-              <span className="admin-notif-fixed-lock">
-                <Icon src={ICON_LOCK} size={14} color="var(--text-tertiary)" baseUrl={baseUrl} />
-              </span>
-              <span className="admin-notif-fixed-text">{formatCooldown(cooldown)}</span>
-              <span className="admin-notif-fixed-tag">{labels.modal.systemFixed}</span>
+            <FixedValue text={formatCooldown(cooldown)} tag={labels.modal.systemFixed} baseUrl={baseUrl} />
+          )}
+        </FormModal.Field>
+
+        {/* 수신 대상 — 알림마다 정해진 규칙은 잠금 안내, 아니면 역할 체크 (PW-1897) */}
+        <FormModal.Field label={labels.modal.recipients} group>
+          {recipientsFixedText ? (
+            <FixedValue text={recipientsFixedText} tag={labels.modal.perRuleFixed} baseUrl={baseUrl} testId={recipientsFixedTestId} />
+          ) : (
+            <div className="admin-notif-check-row">
+              {ROLE_KEYS.map((key) => (
+                <Checkbox
+                  key={key}
+                  checked={recipients.includes(key)}
+                  onChange={() => toggleRecipient(key)}
+                  label={labels.roles[key]}
+                  data-testid={`notif-recipient-${key}`}
+                />
+              ))}
             </div>
           )}
-        </div>
+        </FormModal.Field>
 
-        {/* 수신 대상 고정 · 단계별 발송 채널 표 (PW-1986 · admin-spec §6.1 «평가 단계 시작 알림») */}
-        {stageChannels ? (<>
-        <div>
-          <SL>{labels.modal.recipients}</SL>
-          <div className="admin-notif-fixed" data-testid="notif-targets-fixed">
-            <span className="admin-notif-fixed-lock">
-              <Icon src={ICON_LOCK} size={14} color="var(--text-tertiary)" baseUrl={baseUrl} />
-            </span>
-            <span className="admin-notif-fixed-text">{rule.targetsFixed}</span>
-            <span className="admin-notif-fixed-tag">{labels.modal.systemFixed}</span>
-          </div>
-        </div>
-        <div>
-          <SL>{rule.stageChannelsTitle ?? labels.modal.stageChannels}</SL>
-          <div className="admin-notif-param-list" data-testid="notif-stage-channels">
-            {stageChannels.map((stage) => (
-              <div key={stage.key} className="admin-notif-param-row admin-notif-stage-row" data-testid={`notif-stage-${stage.key}`}>
-                <span className="admin-notif-param-label">{stage.label}</span>
-                <div className="admin-notif-check-row">
-                  {(rule.stageChannelKeys ?? CHANNEL_KEYS).map((key) => (
+        {/* 단계별 발송 채널 — 머리 한 번인 표 하나 (PW-1986 · PW-2089 · admin-spec §6.1 «평가») */}
+        {stageChannels ? (
+          <FormModal.Field label={rule.stageChannelsTitle ?? labels.modal.stageChannels} hint={rule.stageChannelsNote} group>
+            <FrameTable
+              testId="notif-stage-channels"
+              ariaLabel={rule.stageChannelsTitle ?? labels.modal.stageChannels}
+              rowKey={(stage) => stage.key}
+              rows={stageChannels}
+              empty={null}
+              columns={[
+                {
+                  key: 'stage',
+                  header: labels.modal.stageColumn,
+                  lines: 2,
+                  render: (stage) => <span data-testid={`notif-stage-${stage.key}`}>{stage.label}</span>,
+                },
+                ...stageKeys.map((key) => ({
+                  key,
+                  header: labels.channels[key],
+                  width: STAGE_CHANNEL_COLUMN_WIDTH,
+                  align: 'center',
+                  render: (stage) => (
                     <Checkbox
-                      key={key}
                       checked={stage.channels.includes(key)}
                       onChange={() => toggleStageChannel(stage.key, key)}
-                      label={labels.channels[key]}
                       aria-label={`${stage.label} · ${labels.channels[key]}`}
                       data-testid={`notif-stage-${stage.key}-${key}`}
                     />
-                  ))}
-                </div>
-              </div>
-            ))}
-            {rule.stageChannelsNote && (
-              <span className="admin-notif-fixed-text" data-testid="notif-stage-note">{rule.stageChannelsNote}</span>
-            )}
-          </div>
-        </div>
-        </>) : rule.targetsFixed ? (
-        <div>
-          <SL>{labels.modal.recipients}</SL>
-          <div className="admin-notif-fixed" data-testid="notif-targets-fixed">
-            <span className="admin-notif-fixed-lock">
-              <Icon src={ICON_LOCK} size={14} color="var(--text-tertiary)" baseUrl={baseUrl} />
-            </span>
-            <span className="admin-notif-fixed-text">{rule.targetsFixed}</span>
-            <span className="admin-notif-fixed-tag">{labels.modal.systemFixed}</span>
-          </div>
-        </div>
-        ) : (<>
-        {/* 수신 대상 */}
-        {rule.recipientsFixed ? (
-        <div>
-          <SL>{labels.modal.recipients}</SL>
-          <div className="admin-notif-fixed" data-testid="notif-recipients-fixed">
-            <span className="admin-notif-fixed-lock">
-              <Icon src={ICON_LOCK} size={14} color="var(--text-tertiary)" baseUrl={baseUrl} />
-            </span>
-            <span className="admin-notif-fixed-text">{rule.recipientsFixed}</span>
-            <span className="admin-notif-fixed-tag">{labels.modal.systemFixed}</span>
-          </div>
-        </div>
-        ) : (
-        <div>
-          <SL>{labels.modal.recipients}</SL>
-          {/* 여럿 고르는 칸 — 공용 Checkbox (PW-1897). 칩·타일은 몇 개를 고를 수 있는지 말하지 않았다 */}
-          <div className="admin-notif-check-row">
-            {ROLE_KEYS.map((key) => (
-              <Checkbox
-                key={key}
-                checked={recipients.includes(key)}
-                onChange={() => toggleRecipient(key)}
-                label={labels.roles[key]}
-                data-testid={`notif-recipient-${key}`}
-              />
-            ))}
-          </div>
-        </div>
+                  ),
+                })),
+              ]}
+            />
+          </FormModal.Field>
+        ) : !rule.targetsFixed && (
+          <FormModal.Field label={labels.modal.channels} hint={hasLockedChannel ? labels.modal.channelLockedNote : undefined} group>
+            <div className="admin-notif-check-row">
+              {/* 회사가 끌 수 없는 채널(rule.lockedChannels · pivit-work PW-2547 연차 촉진 안내)은 켠 채 잠그고 자물쇠를 붙인다 */}
+              {CHANNEL_KEYS.map((key) => {
+                const locked = lockedChannels.includes(key);
+                return (
+                  <Checkbox
+                    key={key}
+                    checked={locked || channels.includes(key)}
+                    disabled={locked}
+                    title={locked ? labels.modal.channelLocked : undefined}
+                    onChange={() => toggleChannel(key)}
+                    label={locked ? (
+                      <span className="admin-notif-locked-channel">
+                        {labels.channels[key]}
+                        <Icon src={ICON_LOCK} size={12} color="var(--text-tertiary)" baseUrl={baseUrl} />
+                      </span>
+                    ) : labels.channels[key]}
+                    data-testid={`notif-channel-${key}`}
+                  />
+                );
+              })}
+            </div>
+          </FormModal.Field>
         )}
-
-        {/* 발송 채널 */}
-        <div>
-          <SL>{labels.modal.channels}</SL>
-          <div className="admin-notif-check-row">
-            {/* 회사가 끌 수 없는 채널(rule.lockedChannels · pivit-work PW-2547 연차 촉진 안내)은 켠 채 잠근다 */}
-            {CHANNEL_KEYS.map((key) => {
-              const locked = lockedChannels.includes(key);
-              return (
-                <Checkbox
-                  key={key}
-                  checked={locked || channels.includes(key)}
-                  disabled={locked}
-                  title={locked ? labels.modal.channelLocked : undefined}
-                  onChange={() => toggleChannel(key)}
-                  label={labels.channels[key]}
-                  data-testid={`notif-channel-${key}`}
-                />
-              );
-            })}
-          </div>
-        </div>
-        </>)}
     </ModalShell>
   );
 }
 
-/* ── 규칙 행 ──────────────────────────────────────────── */
+/**
+ * 단계별 채널 표의 채널 열 폭 — 체크 하나와 «이메일» 머리 글이 들어가는 폭. 단계 이름 열이 남는 폭을 다 받아
+ * 긴 단계 이름(«하향 리뷰 시작 · 하향 k차 작성 가능»)이 두 줄 안에 든다. 디자이너 표에 체크 열 폭이 없어 개발이 정했다(design-review).
+ */
+const STAGE_CHANNEL_COLUMN_WIDTH = 88;
+
+/* ── 규칙 행 — 이름 / 조건 / 받는 사람·채널 세 줄 ─────────── */
 function RuleRow({ rule, labels, formatCondition, formatCooldown, onEdit, onToggle, baseUrl, busy = false }) {
   const conditionText = formatCondition(rule.id, rule.conditionValues, rule.conditionFixed);
+  const fixedTargets = rule.stageChannels || rule.targetsFixed ? rule.targetsFixed : rule.recipientsFixed;
+  const fixedTestId = rule.stageChannels || rule.targetsFixed ? 'notif-rule-targets-fixed' : 'notif-rule-recipients-fixed';
+  const showChannels = !(rule.targetsFixed && !rule.stageChannels);
   return (
     <div className={`admin-notif-rule${rule.enabled ? '' : ' is-off'}`} data-testid="notif-rule">
-      {/* 회사도 끌 수 없는 알림(pivit-work PW-2597 · 조직 변경 승인 요청)은 켠 채 잠근다 */}
-      <Switch checked={rule.enabled} onChange={() => onToggle(rule.id)} label={rule.label} disabled={busy || !!rule.alwaysOn} />
+      {/* 회사도 끌 수 없는 알림(pivit-work PW-2597 · 조직 변경 승인 요청)은 스위치 자리에 «끌 수 없음»(기획서 RuleRow · PW-3125) */}
+      {rule.alwaysOn ? (
+        <StatusBadge tone="neutral" className="admin-notif-tag" data-testid="notif-rule-always-on">
+          <Icon src={ICON_LOCK} size={12} color="var(--text-tertiary)" baseUrl={baseUrl} />
+          {labels.alwaysOn}
+        </StatusBadge>
+      ) : (
+        <Switch checked={rule.enabled} onChange={() => onToggle(rule.id)} label={rule.label} disabled={busy} />
+      )}
       <div className="admin-notif-rule-main">
         <div className="admin-notif-rule-head">
           <span className="admin-notif-rule-label">{rule.label}</span>
-          <span className="admin-notif-rule-condition">— {conditionText}</span>
           {rule.conditionSchema && (
-            <StatusBadge className="admin-notif-editable-badge">{labels.editableBadge}</StatusBadge>
+            <StatusBadge tone="neutral" className="admin-notif-tag admin-notif-editable-badge">
+              <Icon src={ICON_EDIT} size={12} color="var(--text-tertiary)" baseUrl={baseUrl} />
+              {labels.editableBadge}
+            </StatusBadge>
           )}
         </div>
+        <div className="admin-notif-rule-condition">{conditionText}</div>
         <div className="admin-notif-rule-meta">
-          {rule.targetsFixed && !rule.stageChannels ? (
-            <span className="admin-notif-channel-tag" data-testid="notif-rule-targets-fixed">{rule.targetsFixed}</span>
-          ) : (<>
-          {rule.stageChannels ? (
-            <span className="admin-notif-channel-tag" data-testid="notif-rule-targets-fixed">{rule.targetsFixed}</span>
-          ) : rule.recipientsFixed ? (
-            <span className="admin-notif-channel-tag" data-testid="notif-rule-recipients-fixed">{rule.recipientsFixed}</span>
+          {fixedTargets ? (
+            <span className="admin-notif-meta-text" data-testid={fixedTestId}>{fixedTargets}</span>
           ) : rule.recipients.map((r) => (
-            <StatusBadge key={r} className="admin-notif-role-chip">{labels.roles[r]}</StatusBadge>
+            <StatusBadge key={r} tone="neutral" className="admin-notif-tag admin-notif-role-chip">{labels.roles[r]}</StatusBadge>
           ))}
-          <span className="admin-notif-meta-sep" aria-hidden="true" />
-          {rule.channels.map((c) => (
-            <span key={c} className="admin-notif-channel-tag">
-              <Icon src={CHANNEL_ICON_SRC[c]} size={13} color="var(--text-tertiary)" baseUrl={baseUrl} />
-              {labels.channels[c]}
-            </span>
-          ))}
+          {showChannels && rule.channels.length > 0 && (<>
+            <span className="admin-notif-meta-sep" aria-hidden="true" />
+            {rule.channels.map((c) => (
+              <span key={c} className="admin-notif-channel-tag">
+                <Icon src={CHANNEL_ICON_SRC[c]} size={13} color="var(--text-tertiary)" baseUrl={baseUrl} />
+                {labels.channels[c]}
+              </span>
+            ))}
           </>)}
         </div>
       </div>
@@ -634,6 +656,28 @@ function RuleRow({ rule, labels, formatCondition, formatCooldown, onEdit, onTogg
       </Button>
     </div>
   );
+}
+
+/* ── 불러오는 중 — 숫자 칸 · 판 자리에 옅은 회색 막대 (PW-3125) ── */
+function LoadingCanvas() {
+  return (
+    <div className="admin-notif-canvas" aria-busy="true" data-testid="admin-notif-loading">
+      <Skeleton height={100} radius="var(--radius-2xl)" />
+      {[0, 1].map((i) => (
+        <Panel key={i}>
+          <Skeleton width={180} height={24} />
+          <Skeleton height={56} />
+          <Skeleton height={56} />
+          <Skeleton height={56} />
+        </Panel>
+      ))}
+    </div>
+  );
+}
+
+function asLines(text) {
+  if (Array.isArray(text)) return text;
+  return text ? [text] : [];
 }
 
 /* ── 메인 캔버스 ──────────────────────────────────────── */
@@ -653,10 +697,14 @@ export default function AdminNotificationsCanvas({
    * 수정 창 [저장]을 잠시 잠근다(두 번 눌러 요청이 두 번 나가지 않게 · admin-spec §6.1-B «받는 중»).
    */
   busy = false,
+  /** 회사 설정을 받는 중 — 숫자 칸 · 판 자리에 회색 막대만 그린다(PW-3125). */
+  loading = false,
 }) {
   const labels = merge(DEFAULT_LABELS, providedLabels);
   const [editTarget, setEditTarget] = useState(null);
   const [filterRole, setFilterRole] = useState(null);
+
+  if (loading) return <LoadingCanvas />;
 
   const allRules = groups.flatMap((g) => g.rules);
   const activeCount = allRules.filter((r) => r.enabled).length;
@@ -665,34 +713,28 @@ export default function AdminNotificationsCanvas({
   const filtered = groups
     .map((g) => ({ ...g, rules: g.rules.filter((r) => !filterRole || r.recipients.includes(filterRole)) }))
     .filter((g) => g.rules.length > 0);
+  const shownCount = filtered.reduce((n, g) => n + g.rules.length, 0);
 
-  const statTiles = [
-    { key: 'total', label: labels.stats.total, value: `${allRules.length}${labels.stats.unit}`, tone: '' },
-    { key: 'active', label: labels.stats.active, value: `${activeCount}${labels.stats.unit}`, tone: 'is-good' },
-    { key: 'inactive', label: labels.stats.inactive, value: `${inactiveCount}${labels.stats.unit}`, tone: 'is-muted' },
+  // 셀 것이 없는 칸(0개)은 값이 회색 — 세는 숫자만 진하게(PW-3125)
+  const statItems = [
+    { key: 'total', label: labels.stats.total, value: `${allRules.length}${labels.stats.unit}`, ...(allRules.length === 0 ? { tone: 'muted' } : {}) },
+    { key: 'active', label: labels.stats.active, value: `${activeCount}${labels.stats.unit}`, ...(activeCount === 0 ? { tone: 'muted' } : {}) },
+    { key: 'inactive', label: labels.stats.inactive, value: `${inactiveCount}${labels.stats.unit}`, ...(inactiveCount === 0 ? { tone: 'muted' } : {}) },
   ];
+  const [leadLine, ...restLines] = asLines(labels.infoBanner);
 
   return (
     <div className="admin-notif-canvas">
-      {/* 요약 카드 */}
-      <div className="admin-notif-summary">
-        {statTiles.map((s) => (
-          <div key={s.key} className="admin-notif-summary-tile">
-            <div className="admin-notif-summary-label">{s.label}</div>
-            <div className={`admin-notif-summary-value ${s.tone}`}>{s.value}</div>
-          </div>
-        ))}
+      {/* 요약 — 흰 판 한 장 안 숫자 칸 셋(공용 숫자 칸 줄) */}
+      <StatStrip items={statItems} testId="admin-notif-summary" />
+
+      {/* 안내 — 바탕 없는 줄, 문장마다 한 줄(첫 줄 기본 · 나머지 흐림) */}
+      <div className="admin-notif-guide" data-testid="admin-notif-guide">
+        <NoticeLines lines={[leadLine]} />
+        <NoticeLines lines={restLines} tone="muted" />
       </div>
 
-      {/* 안내 배너 */}
-      <div className="admin-notif-banner">
-        <span className="admin-notif-banner-icon" aria-hidden="true">
-          <Icon src={ICON_INFO} size={16} color="var(--text-brand-secondary)" baseUrl={baseUrl} />
-        </span>
-        <p className="admin-notif-banner-text">{labels.infoBanner}</p>
-      </div>
-
-      {/* 역할별 필터 — 하나만 고르므로 공용 SegmentedControl (PW-1897) */}
+      {/* 역할별 필터 — 하나만 고르므로 공용 SegmentedControl (PW-1897). 고르면 보이는 규칙 수 */}
       <div className="admin-notif-filter">
         <span className="admin-notif-filter-label">{labels.filterLabel}</span>
         <SegmentedControl
@@ -705,17 +747,27 @@ export default function AdminNotificationsCanvas({
             testId: `filter-${r || 'all'}`,
           }))}
         />
+        {filterRole && (
+          <span className="admin-notif-filter-count" data-testid="notif-filter-count">
+            {typeof labels.filterCount === 'function'
+              ? labels.filterCount(shownCount)
+              : labels.filterCount.replace('{n}', String(shownCount))}
+          </span>
+        )}
       </div>
 
-      {/* 그룹별 규칙 */}
+      {/* 묶음별 규칙 — 묶음마다 흰 판(공용 흰 판) · 머리 «N / M 활성» */}
       {filtered.map((group) => (
-        <Card key={group.id} className="admin-notif-group">
-          <div className="admin-notif-group-head">
-            <span className="admin-notif-group-title">{group.group}</span>
+        <Panel
+          key={group.id}
+          title={group.group}
+          testId="notif-group"
+          actions={
             <span className="admin-notif-group-count">
-              {group.rules.filter((r) => r.enabled).length} / {group.rules.length} {labels.groupActiveSuffix}
+              <strong>{group.rules.filter((r) => r.enabled).length}</strong> / {group.rules.length} {labels.groupActiveSuffix}
             </span>
-          </div>
+          }
+        >
           <div className="admin-notif-rule-list">
             {group.rules.map((rule) => (
               <RuleRow
@@ -731,15 +783,15 @@ export default function AdminNotificationsCanvas({
               />
             ))}
           </div>
-        </Card>
+        </Panel>
       ))}
 
-      {/* 전체 on/off */}
+      {/* 전체 on/off — 목록 맨 아래(기획서 자리) · 작은 버튼 둘 오른쪽 · 끄기만 위험 모양 */}
       <div className="admin-notif-bulk">
-        <Button variant="secondary" className="admin-notif-btn is-block" disabled={busy} onClick={() => onBulkSet && onBulkSet(true)} data-testid="enable-all-btn">
+        <Button variant="secondary" size="sm" disabled={busy} onClick={() => onBulkSet && onBulkSet(true)} data-testid="enable-all-btn">
           {labels.enableAll}
         </Button>
-        <Button variant="secondary" className="admin-notif-btn is-block" disabled={busy} onClick={() => onBulkSet && onBulkSet(false)} data-testid="disable-all-btn">
+        <Button variant="danger-ghost" size="sm" disabled={busy} onClick={() => onBulkSet && onBulkSet(false)} data-testid="disable-all-btn">
           {labels.disableAll}
         </Button>
       </div>

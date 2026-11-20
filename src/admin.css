@@ -3577,32 +3577,30 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
   flex-wrap: wrap;
 }
 .admin-notif-filter-label {
-  font-size: var(--font-size-text-xs);
+  font-size: var(--font-size-text-sm);
+  font-weight: 600;
   color: var(--text-secondary);
 }
+/* 필터를 골랐을 때 줄 오른쪽 «규칙 N개 보임» (PW-3125) */
+.admin-notif-filter-count {
+  margin-left: auto;
+  font-size: var(--font-size-text-sm);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+/* 안내 — 공용 안내 줄 두 덩이(기본 · 흐림)를 한 묶음으로 (PW-3125) */
+.admin-notif-guide { display: flex; flex-direction: column; gap: var(--spacing-xs); }
 /* 필터 버튼은 공용 SegmentedControl (PW-1897) — 칩 모양은 걷었다. */
 
 /* ── 그룹 카드 ───────────────────────────────────────────── */
-.admin-notif-group { padding: 0; overflow: hidden; }
-.admin-notif-group-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 20px;
-  background: var(--bg-primary);
-  border-bottom: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
-}
-.admin-notif-group-title {
+/* 묶음 판 머리 오른쪽 «N / M 활성» — 켜진 수만 진하게 (PW-3125) */
+.admin-notif-group-count {
   font-size: var(--font-size-text-sm);
   line-height: var(--line-height-text-sm);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--text-primary);
+  color: var(--text-tertiary);
+  white-space: nowrap;
 }
-.admin-notif-group-count {
-  font-size: var(--font-size-text-xs);
-  color: var(--text-secondary);
-}
+.admin-notif-group-count strong { font-weight: 600; color: var(--text-primary); }
 .admin-notif-rule-list {
   padding: 0;
   display: flex;
@@ -3611,31 +3609,28 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
 
 /* ── 규칙 행 — 디자이너 report-row/snippet-row idiom (평평한 행) ───────
    per-row 보더·그림자·radius 제거. 행 사이는 헤어라인 구분선, hover 시 배경만. */
+/* 규칙 줄 — [스위치 | 이름 / 조건 / 받는 사람·채널 | 발송 주기 | 수정] · 줄 사이 가는 선 (PW-3125) */
 .admin-notif-rule {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: var(--spacing-lg);
-  padding: 16px 20px;
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid var(--colors-border-borderTertiary, #e6e8ea);
-  transition: background-color 0.15s ease;
+  column-gap: var(--spacing-xl);
+  padding: var(--spacing-xl) 0;
+  border-top: 1px solid var(--border-secondary);
 }
-.admin-notif-rule:last-child {
-  border-bottom: none;
-}
-.admin-notif-rule:hover {
-  background: var(--colors-grayLight-50, #fafafa);
-}
-.admin-notif-rule.is-off {
-  opacity: 0.55;
-}
-.admin-notif-rule-main { flex: 1; min-width: 0; }
+.admin-notif-rule:first-child { border-top: none; padding-top: 0; }
+.admin-notif-rule:last-child { padding-bottom: 0; }
+/* 꺼진 줄 — 글만 옅게. 스위치와 [수정]은 또렷하게 둔다 (PW-3125) */
+.admin-notif-rule.is-off .admin-notif-rule-label,
+.admin-notif-rule.is-off .admin-notif-rule-cooldown { color: var(--text-tertiary); }
+.admin-notif-rule.is-off .admin-notif-rule-condition,
+.admin-notif-rule.is-off .admin-notif-meta-text,
+.admin-notif-rule.is-off .admin-notif-channel-tag { color: var(--text-quaternary); }
+.admin-notif-rule-main { min-width: 0; display: flex; flex-direction: column; gap: var(--spacing-xs); }
 .admin-notif-rule-head {
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
-  margin-bottom: var(--spacing-sm);
   flex-wrap: wrap;
 }
 .admin-notif-rule-label {
@@ -3646,11 +3641,21 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
   color: var(--text-primary);
 }
 .admin-notif-rule-condition {
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
+  color: var(--text-tertiary);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+/* 받는 사람이 정해진 규칙의 안내(받는 사람·채널 줄) */
+.admin-notif-meta-text {
   font-size: var(--font-size-text-xs);
   line-height: var(--line-height-text-xs);
-  color: var(--text-secondary);
+  color: var(--text-tertiary);
   word-break: keep-all;
 }
+/* 회색 딱지(끌 수 없음 · 조건 편집 가능 · 시스템 고정 · 역할) — 앞 아이콘과 글 사이 (PW-3125) */
+.admin-notif-tag { display: inline-flex; align-items: center; gap: var(--spacing-xs); white-space: nowrap; flex-shrink: 0; }
 .admin-notif-rule-meta {
   display: flex;
   gap: var(--spacing-sm);
@@ -3674,22 +3679,22 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
   color: var(--text-secondary);
 }
 .admin-notif-rule-cooldown {
-  font-size: var(--font-size-text-xs);
+  font-size: var(--font-size-text-sm);
   color: var(--text-secondary);
-  flex-shrink: 0;
-  max-width: 160px;
+  max-width: 200px;
   text-align: right;
+  word-break: keep-all;
 }
 
 /* ── 전체 on/off ─────────────────────────────────────────── */
-.admin-notif-bulk { display: flex; gap: var(--spacing-lg); }
+/* 전체 켜기 · 끄기 — 목록 맨 아래 · 작은 버튼 둘 오른쪽 (기획서 자리 · PW-3125) */
+.admin-notif-bulk { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: var(--spacing-md); }
 
 /* ── 버튼 ─────────────────────────────────────────────────
    모양은 공용 Button(src/button.css)이 맡는다. 남은 것은 둘이다.
    - is-block: 전체 켜기/끄기 두 버튼이 줄을 반씩 나눠 갖는 배치
    - is-danger-soft: 로그아웃의 연한 빨강 강조 — 공용 Button 에 맞는 모양이 없어 맨 <button> 으로
      남았다. 색은 settings.css, 틀(크기·글꼴)은 여기. */
-.admin-notif-btn.is-block { flex: 1; }
 .admin-notif-btn.is-danger-soft {
   display: inline-flex;
   align-items: center;
@@ -3742,11 +3747,13 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 14px;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-lg) var(--spacing-xl);
   border-radius: var(--radius-md);
-  background: var(--bg-primary);
-  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
+  background: var(--bg-secondary);
 }
+/* 끌 수 없는 알림 — 스위치 자리의 안내(기획서 EditRuleModal · PW-3125) */
+.admin-notif-enable-locked { font-size: var(--font-size-text-xs); font-weight: 600; color: var(--text-tertiary); text-align: right; }
 .admin-notif-enable-label { font-size: var(--font-size-text-sm); font-weight: 600; color: var(--text-primary); }
 
 /* 조건 파라미터 */
@@ -3755,10 +3762,6 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
   display: flex;
   align-items: center;
   gap: var(--spacing-lg);
-  padding: 12px 14px;
-  border-radius: var(--radius-md);
-  background: var(--bg-primary);
-  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
 }
 /* 칸 아래 오류 문구 (PW-1058) — 조건 줄 안에서는 줄을 바꿔 칸 밑에 선다. */
 .admin-notif-param-row { flex-wrap: wrap; }
@@ -3806,11 +3809,8 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
 
 /* 미리보기 박스 (brand accent) */
 .admin-notif-preview {
-  padding: var(--spacing-md) 12px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-brand-secondary);
-  border: 1px solid var(--utility-brand-200);
   font-size: var(--font-size-text-xs);
+  line-height: var(--line-height-text-xs);
   color: var(--text-brand-secondary);
   display: flex;
   align-items: center;
@@ -3820,28 +3820,24 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
 
 /* 시스템 고정 박스 */
 .admin-notif-fixed {
-  padding: 12px 14px;
-  border-radius: var(--radius-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-sm);
   background: var(--bg-secondary);
-  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
 }
 .admin-notif-fixed-lock { display: inline-flex; align-items: center; flex-shrink: 0; }
 .admin-notif-fixed-text { font-size: var(--font-size-text-sm); color: var(--text-secondary); flex: 1; }
-.admin-notif-fixed-tag { font-size: var(--font-size-text-xs); color: var(--text-secondary); flex-shrink: 0; }
 
 /* cooldown 편집기 */
 .admin-notif-cooldown-box {
-  padding: var(--spacing-xl);
-  border-radius: var(--radius-lg);
-  background: var(--bg-primary);
-  border: 1px solid var(--colors-border-borderSecondary, #e6e8ea);
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
 }
+/* 끌 수 없는 채널 — 체크 이름 뒤 자물쇠 (PW-3125) */
+.admin-notif-locked-channel { display: inline-flex; align-items: center; gap: var(--spacing-xs); }
 .admin-notif-cooldown-edit { display: flex; flex-direction: column; gap: var(--spacing-lg); }
 .admin-notif-row-inline { display: flex; align-items: center; gap: var(--spacing-md); }
 .admin-notif-inline-label { font-size: var(--font-size-text-sm); color: var(--text-secondary); flex-shrink: 0; }
