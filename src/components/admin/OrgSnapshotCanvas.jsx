@@ -869,7 +869,8 @@ function OrgSnapshotStatusView({
                     <div key={jg.group} className="admin-snap-jg-row">
                       <span className="admin-snap-jg-name" title={jg.group}>{jg.group}</span>
                       <div className="admin-snap-jg-pills">
-                        {jg.roles.map((r) => <StatusBadge key={r} tone="neutral">{r}</StatusBadge>)}
+                        {/* 같은 화면 «직책변경» 딱지와 같은 생김새(.admin-snap-type-badge) · 뜻 없는 분류라 회색 */}
+                        {jg.roles.map((r) => <StatusBadge key={r} className="admin-snap-type-badge is-gray">{r}</StatusBadge>)}
                       </div>
                       <span className="admin-snap-num">{countText(labels, jg.count)}</span>
                       {jg.lead != null && <span className="admin-snap-jg-lead">{labels.leaderPrefix}: {jg.lead || '—'}</span>}
@@ -896,7 +897,7 @@ function OrgSnapshotStatusView({
                       // 관공서 기준 구간(청년 ~39세 / 장년 50+)만 초록 막대 — 나머지는 회색(기획 «강조»)
                       muted={!a.flagLabel}
                       labels={labels}
-                      tail={a.flagLabel ? <StatusBadge tone="accent">{a.flagLabel}</StatusBadge> : null}
+                      tail={a.flagLabel ? <StatusBadge className="admin-snap-type-badge is-green">{a.flagLabel}</StatusBadge> : null}
                       testId="status-age-row"
                     />
                   ))}

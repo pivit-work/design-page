@@ -5192,3 +5192,13 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
 .is-framed .admin-snap-hist-tail { margin-left: auto; }
 .is-framed .admin-snap-hist-main, .is-framed .admin-snap-hist-tablebox { min-width: 0; max-width: 100%; overflow: hidden; }
 .is-framed .admin-snap-hist-search { flex: 1 1 160px; min-width: 160px; width: auto; }
+/* 조직 스냅샷 › 발령 이력 거르는 칸 — 검색 · 기간 · 유형을 같은 회색 채움 36 으로(PW-3134 · 종전엔 검색칸만 회색) */
+.is-framed .admin-snap-hist-toolbar .admin-snap-search,
+.is-framed .admin-snap-hist-toolbar .admin-snap-input,
+.is-framed .admin-snap-hist-toolbar .admin-snap-select {
+  height: 36px;
+  border-color: transparent;
+  background: var(--alpha-black-3);
+}
+/* «대량»은 처리 경로일 뿐 — 주황이면 «승인 대기» 딱지와 같은 뜻으로 읽힌다 */
+.is-framed .admin-snap-hist-mode.is-bulk { color: var(--text-secondary); }

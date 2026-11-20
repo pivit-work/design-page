@@ -25,6 +25,8 @@ import { isEnterKey } from '../shared/enterKey.js';
  * @param {string} [props.testId]
  */
 export function StatStrip({ items, ariaLabel, testId }) {
+  // 한 칸이라도 작은 줄이 있으면 모든 칸에 작은 줄 자리를 둔다 — 칸마다 큰 숫자가 같은 높이에 선다(PW-3134 연령 요약 칸 셋)
+  const anySub = items.some((item) => !!item.sub);
   return (
     <section className="okr-h-list dp-frame-stats" style={PANEL_STYLE} aria-label={ariaLabel} data-testid={testId}>
       {items.map((item) => {
@@ -53,9 +55,9 @@ export function StatStrip({ items, ariaLabel, testId }) {
             >
               {item.value}
             </span>
-            {item.sub ? (
-              <span style={SUB_STYLE} title={item.sub}>
-                {item.sub}
+            {anySub ? (
+              <span style={SUB_STYLE} title={item.sub || undefined}>
+                {item.sub || '\u00a0'}
               </span>
             ) : null}
           </div>
