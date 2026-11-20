@@ -56,7 +56,7 @@ const DEFAULT_LABELS = {
   readOnlyBadge: '조회 전용',
   readOnlyNotSubmitted: '하향 리뷰가 아직 제출되지 않았습니다.',
   workTitle: '성과',
-  workPlaceholder: '업적에 대한 평가를 작성하세요.',
+  workPlaceholder: '성과에 대한 평가를 작성하세요.',
   competencyTitle: '역량',
   competencyPlaceholder: '역량에 대한 평가를 작성하세요.',
   scoreLabel: '평가 점수',

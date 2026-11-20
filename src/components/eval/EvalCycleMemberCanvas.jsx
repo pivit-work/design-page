@@ -867,6 +867,7 @@ export default function EvalCycleMemberCanvas({
     setAiError(false);
     setPolishNoChange(false);
     const prevCards = polishCards;
+    const prevNoChange = polishNoChange;
     setPolishCards({});
     setAiBusy(true);
     try {
@@ -890,8 +891,10 @@ export default function EvalCycleMemberCanvas({
     } catch (e) {
       // 앱이 이미 알린 실패(이용 정지 · 글이 너무 김 등)는 글을 겹쳐 쓰지 않고, 떠 있던 카드도 그대로 둔다
       // — «아무것도 바꾸지 않는다»(spec §4.3.6 P-9).
-      if (isNotifiedFailure(e)) setPolishCards(prevCards);
-      else setAiError(true);
+      if (isNotifiedFailure(e)) {
+        setPolishCards(prevCards);
+        setPolishNoChange(prevNoChange);
+      } else setAiError(true);
     } finally {
       setAiBusy(false);
     }
