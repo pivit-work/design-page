@@ -11,6 +11,7 @@ import MemberReportCard from './MemberReportCard.jsx';
 import ReadinessBadge from './ReadinessBadge.jsx';
 import { isEnterKey } from '../shared/enterKey.js';
 import Spinner from '../shared/Spinner.jsx';
+import AiFailBox from '../shared/AiFailBox.jsx';
 
 /**
  * 「내 원온원」 — 내가 1on1 **대상자(guest · 팀원)** 일 때 보는 준비 화면.
@@ -45,6 +46,8 @@ export const DEFAULT_LABELS = {
   aiFailExhausted: "여러 번 시도했지만 생성하지 못했습니다. 직접 입력해 주세요.",
   aiFailManual: "직접 입력해도 됩니다 — AI 없이 저장·제출할 수 있습니다.",
   aiRetry: "다시 시도",
+  aiFailTitleAgenda: "아젠다 추천 생성에 실패했습니다",
+  aiFailTitleComment: "코멘트 생성에 실패했습니다",
   actionIncomplete: "미완료",
   readyTitle: '준비 완료',
   readyText: '— 매니저에게 알렸습니다. 미팅 중 내용을 참고하세요.',
@@ -274,11 +277,15 @@ export default function MemberOneOnOneView({
     if (!failure || suggestionStates[key]?.busy) return null;
     const exhausted = !failure.message && failure.reason !== 'quota_exceeded' && failure.retryLeft === 0;
     const message = failure.message ? failure.message : exhausted ? L.aiFailExhausted : failure.reason === 'quota_exceeded' ? L.aiFailQuota : failure.reason === 'timeout' ? L.aiFailTimeout : L.aiFailModel;
-    return <div className="ono-start-failbox" role="alert" data-testid={`ono-my-suggestion-error-${key}`}>
-      <span className="ono-start-failbox-title">{message}</span>
-      <p className="ono-start-failbox-msg">{L.aiFailManual}</p>
-      <div className="ono-start-failbox-actions"><button type="button" className="ono-start-failbox-retry" onClick={commentId ? () => generateComment(commentId) : retry} disabled={suggestionBlocked(key)}>{L.aiRetry}</button></div>
-    </div>;
+    // 디자이너 공용 실패 상자 — 팀원 AI 보고서와 같은 모양·제목·안내 (policy §7.5.3 · PW-3087).
+    return <AiFailBox
+      title={key === 'agenda' ? L.aiFailTitleAgenda : L.aiFailTitleComment}
+      message={`${message} ${L.aiFailManual}`}
+      retryLabel={L.aiRetry}
+      onRetry={commentId ? () => generateComment(commentId) : retry}
+      retryDisabled={suggestionBlocked(key)}
+      testId={`ono-my-suggestion-error-${key}`}
+    />;
   };
 
   const growthSrc = editable ? { ...growth } : growth;

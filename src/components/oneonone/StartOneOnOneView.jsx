@@ -470,10 +470,12 @@ export default function StartOneOnOneView({
 
   // aiGenerated: 섹션별로 AI 초안이 채워졌는지. 색/버튼 분기를 섹션 단위로
   // 독립시킨다 — 한 섹션 생성해도 다른 섹션이 보라색으로 변하지 않게.
+  // 빈 글도 «받은 초안»이다 — 근거가 없어 AI 가 비운 칸도 [재생성]·검토 안내가 붙는다(역량 칸이 근거 없는
+  // 줄을 비운 채 초안 상태로 두는 것과 같다 · policy §4.1.5 PW-3065 · §7.5.2 «성공 = 결과 + 재생성» · PW-3064).
   const aiGenerated = {
-    strengths: !!aiDrafts?.strengths,
-    sbi: !!aiDrafts?.sbi,
-    support: !!aiDrafts?.support,
+    strengths: aiDrafts?.strengths != null,
+    sbi: aiDrafts?.sbi != null,
+    support: aiDrafts?.support != null,
     caps: !!aiDrafts?.capabilities,
   };
   const anyAiGenerated =
