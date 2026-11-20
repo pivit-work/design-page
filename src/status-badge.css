@@ -534,8 +534,9 @@
   font-size: var(--font-size-text-xs);
   line-height: var(--line-height-text-xs);
   font-weight: 600;
-  padding: 1px var(--spacing-sm);
-  border-radius: var(--radius-sm);
+  /* PW-3125 — 같은 줄의 다른 회색 딱지(.admin-notif-tag)와 같은 여백 · 모서리 */
+  padding: var(--spacing-xxs) var(--spacing-md);
+  border-radius: var(--radius-xs);
   background: var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
   color: var(--text-secondary);
 }
