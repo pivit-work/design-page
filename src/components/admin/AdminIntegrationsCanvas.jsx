@@ -1149,7 +1149,7 @@ function ReauthModal({ owner, me, labels, onClose, onConfirm }) {
  * 연동 설정 Slack 설정 창의 [소유자 권한 관리 →] · 오류 카드 [권한 관리] 로 열고 [← 연동 설정] 으로 돌아간다.
  * 순서: 토큰 만료 띠 → Slack 머리(로고 · 이름 · 설명 · 상태) · 설치 · 수집 자격 · 숫자 셋 → 토큰 이력.
  */
-function SlackOwnerView({ transfer, card, labels, baseUrl, onBack, onExpireToken, onReauth, onRetryTokenLogs }) {
+function SlackOwnerView({ notices, transfer, card, labels, baseUrl, onBack, onExpireToken, onReauth, onRetryTokenLogs }) {
   const [showExpireModal, setShowExpireModal] = useState(false);
   const [showReauthModal, setShowReauthModal] = useState(false);
   const [expireError, setExpireError] = useState(false);
@@ -1181,6 +1181,8 @@ function SlackOwnerView({ transfer, card, labels, baseUrl, onBack, onExpireToken
         {labels.owner.back}
       </Button>
       <h1 className="admin-page-title" data-testid="intg-owner-title">{labels.owner.title}</h1>
+      {/* 구성원 못 읽음 같은 띠 — 제목 아래(제목을 밀어내지 않게). 소유자 이름이 «—»로 남는 바로 그 화면이다 (PW-217) */}
+      {notices}
 
       {transfer.isExpired && (
         <IntgBand
@@ -1530,9 +1532,8 @@ export default function AdminIntegrationsCanvas({
     return (
       <div className="admin-canvas" data-testid="intg-canvas">
         <Toast message={toast} tone={toastTone} data-testid="intg-toast" />
-        {/* 구성원 못 읽음 같은 띠는 이 화면에도 — 소유자 이름이 «—»로 남는 바로 그 화면이다 (PW-217) */}
-        {noticeBands}
         <SlackOwnerView
+          notices={noticeBands}
           transfer={transfer}
           card={slackCard}
           labels={labels}
