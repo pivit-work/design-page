@@ -2,6 +2,7 @@ import { useAiDraftLifecycle } from '../shared/useAiDraftLifecycle.js';
 import { useState, useMemo, useRef, useEffect } from 'react';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
+import Spinner from '../shared/Spinner.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Chip from '../shared/Chip.jsx';
 import { resolveKoreanParticles } from '../shared/koreanParticle.js';
@@ -2227,7 +2228,13 @@ export default function EvalCycleLeaderCanvas({
                   aria-busy={submitting || undefined}
                   data-testid="evl-submit"
                 >
-                  {submitted ? L.resubmit : L.submit}
+                  {/* PW-3024 — 기다리는 동안 버튼 안에 도는 표시(디자이너 규칙 · EvalCycleWizard dp-busy-inline) */}
+                  {submitting ? (
+                    <span className="dp-busy-inline">
+                      <Spinner size={14} />
+                      {submitted ? L.resubmit : L.submit}
+                    </span>
+                  ) : submitted ? L.resubmit : L.submit}
                 </button>
               </div>
             </div>
