@@ -16,17 +16,28 @@ import { PanelSection } from './PanelSection.jsx';
  *
  * @param {object} props
  * @param {string} [props.title] 머리 줄 제목. 제목도 버튼도 없으면 머리 줄을 그리지 않는다
+ * @param {string} [props.eyebrow] 제목 위 작은 글(갈래 이름 등). 주면 머리가 두 단이 되고 제목은 18/28 굵게(디자이너 리소스 «팀 현황»
+ *   구역 제목 `.rsx-section-title`) · 위 글은 12/18 `.okr-s-sub` — 한 판 안에서 «무엇을 고쳐 보고 있나»를 말하는 판(PW-3127 AI 프롬프트 편집 판)
  * @param {import('react').ReactNode} [props.actions] 머리 줄 오른쪽 버튼 자리
  * @param {string} [props.testId]
  * @param {import('react').ReactNode} props.children
  */
-export function Panel({ title, actions, testId, children }) {
+export function Panel({ title, eyebrow, actions, testId, children }) {
   const hasHead = !!title || !!actions;
   return (
     <section className="okr-h-list" style={PANEL_STYLE} data-testid={testId}>
       {hasHead && (
         <div className="okr-h-head" style={HEAD_STYLE}>
-          {title ? (
+          {title && eyebrow ? (
+            <div style={STACK_STYLE}>
+              <p className="okr-s-sub" style={EYEBROW_STYLE} title={eyebrow}>
+                {eyebrow}
+              </p>
+              <h2 className="rsx-section-title" style={SUB_TITLE_STYLE} title={title}>
+                {title}
+              </h2>
+            </div>
+          ) : title ? (
             <h2 className="okr-h-label" style={TITLE_STYLE} title={title}>
               {title}
             </h2>
@@ -58,6 +69,10 @@ const PANEL_STYLE = { minWidth: 0, overflow: 'visible' };
 const HEAD_STYLE = { cursor: 'default', flexWrap: 'wrap', rowGap: 'var(--spacing-xl)' };
 /** 제목 — 제 글 폭을 바라고, 한 줄에 다 못 들어가면 혼자 한 줄을 차지한 뒤 «…»로 줄어든다. */
 const TITLE_STYLE = { ...FRAME_ONE_LINE, flex: '1 1 auto' };
+/** 두 단 머리(eyebrow) — 위 작은 글 · 아래 제목, 둘 다 한 줄에 다 못 들어가면 «…». 사이 2(시안 `.aip-eh .eyebrow`). */
+const STACK_STYLE = { display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xxs)', minWidth: 0, flex: '1 1 auto' };
+const EYEBROW_STYLE = { ...FRAME_ONE_LINE, margin: 0 };
+const SUB_TITLE_STYLE = { ...FRAME_ONE_LINE, margin: 0 };
 /**
  * 버튼 사이 8 — 디자이너 조직도 판 툴바 항목 간격(`.org-toolbar-left` · `--spacing-md`).
  * 버튼 하나하나는 줄어들지 않는다. 버튼끼리도 한 줄에 다 못 들어가면 다음 줄로 내린다(판 폭을 넘지 않음).

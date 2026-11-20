@@ -407,6 +407,7 @@ export default function AdminAiPromptsCanvas({
     return (
       <Shell labels={labels} headerAside={headerAside} toast={toast} toastTone={toastTone}>
         {list}
+        <div className="aip-pick-wrap">
         <Panel testId="aip-editor-empty">
           <div className="aip-pick-empty" data-testid="empty-state">
             {/* spec §6 «← 왼쪽에서 기능을 선택하세요» — 화살표는 글자가 아니라 아이콘 자리(번역 문구에 기호를 두지 않는다) */}
@@ -416,6 +417,7 @@ export default function AdminAiPromptsCanvas({
             </span>
           </div>
         </Panel>
+        </div>
       </Shell>
     );
   }
@@ -444,7 +446,7 @@ export default function AdminAiPromptsCanvas({
   return (
     <Shell labels={labels} headerAside={headerAside} toast={toast} toastTone={toastTone}>
       {list}
-      <Panel title={`${selected.category} / ${selected.label}`} actions={head} testId="aip-editor">
+      <Panel eyebrow={selected.category} title={selected.label} actions={head} testId="aip-editor">
         {selected.description && <NoticeLines lines={[selected.description]} tone="muted" testId="aip-description" />}
         {(selected.comingSoon || off || !selected.hasCustom) && (
           <div className="aip-notes" data-testid="aip-notes">

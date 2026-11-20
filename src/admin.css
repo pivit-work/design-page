@@ -5007,8 +5007,12 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
 .aip-dirty { flex: none; font-size: 12px; line-height: 18px; font-weight: 600; color: var(--text-warning-primary); white-space: nowrap; }
 /* 딱지 모양은 권한 기준정보 «읽기 전용» 딱지(.rbac-badge)를 그대로 쓴다 */
 
-/* 기능 안 고름 — 판 높이를 목록에 맞추고 가운데 안내 */
-.aip-pick-empty { min-height: calc(100vh - 260px); display: grid; place-items: center; text-align: center; }
+/* 기능 안 고름 — 판 높이를 목록에 맞추고 가운데 안내
+   (두 칸 줄은 위에 붙임 — 빈 판 칸만 줄 높이로 늘리고, 판 · 판 본문이 그 높이를 채운다. 판 높이 = 목록 판 높이 · PW-3127) */
+.aip-pick-wrap { align-self: stretch; display: flex; flex-direction: column; min-width: 0; }
+.aip-pick-wrap > .okr-h-list { flex: 1 1 auto; display: flex; flex-direction: column; }
+.aip-pick-wrap > .okr-h-list > .okr-h-body { flex: 1 1 auto; display: grid; }
+.aip-pick-empty { min-height: 160px; display: grid; place-items: center; text-align: center; }
 
 /* 편집 판 머리 오른쪽 — 판 번호 · 사용 스위치 */
 .aip-head-aside { display: flex; align-items: center; gap: var(--spacing-lg); }
