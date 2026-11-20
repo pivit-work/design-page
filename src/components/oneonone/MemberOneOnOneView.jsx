@@ -267,12 +267,13 @@ export default function MemberOneOnOneView({
 
   const pct = readiness?.total ? Math.round(((readiness.done ?? 0) / readiness.total) * 100) : null;
   const allDone = pct === 100;
-  const suggestionBlocked = (key) => suggestionStates[key]?.busy || suggestionStates[key]?.failure?.reason === 'quota_exceeded' || suggestionStates[key]?.failure?.retryLeft === 0;
+  // `failure.message` = 서버가 이유를 주며 거절한 문구(PW-3087) — 다시 불러도 같으니 잠근다.
+  const suggestionBlocked = (key) => suggestionStates[key]?.busy || !!suggestionStates[key]?.failure?.message || suggestionStates[key]?.failure?.reason === 'quota_exceeded' || suggestionStates[key]?.failure?.retryLeft === 0;
   const suggestionFailure = (key, retry, commentId) => {
     const failure = suggestionStates[key]?.failure;
     if (!failure || suggestionStates[key]?.busy) return null;
-    const exhausted = failure.reason !== 'quota_exceeded' && failure.retryLeft === 0;
-    const message = exhausted ? L.aiFailExhausted : failure.reason === 'quota_exceeded' ? L.aiFailQuota : failure.reason === 'timeout' ? L.aiFailTimeout : L.aiFailModel;
+    const exhausted = !failure.message && failure.reason !== 'quota_exceeded' && failure.retryLeft === 0;
+    const message = failure.message ? failure.message : exhausted ? L.aiFailExhausted : failure.reason === 'quota_exceeded' ? L.aiFailQuota : failure.reason === 'timeout' ? L.aiFailTimeout : L.aiFailModel;
     return <div className="ono-start-failbox" role="alert" data-testid={`ono-my-suggestion-error-${key}`}>
       <span className="ono-start-failbox-title">{message}</span>
       <p className="ono-start-failbox-msg">{L.aiFailManual}</p>
