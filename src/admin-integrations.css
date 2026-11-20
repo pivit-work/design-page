@@ -223,7 +223,10 @@
 .intg-request-list { display: flex; flex-direction: column; }
 .intg-request-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .intg-request-actions { display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; }
-.intg-app-card.is-inactive { opacity: 0.7; }
+/* 어드민이 꺼 둔 툴 카드 — 켜진 카드(그림자 흰 카드)와 갈라 보이게 점선 테두리 · 그림자 없음 · 로고 칸도 점선.
+   흐리게 하지 않는다 — 주황 «어드민 활성화 필요» 딱지가 옅어진다 (pivit-work PW-3126 · 11-19 커트 통과 시안 .ig-offcard) */
+.intg-app-card.is-inactive { box-shadow: none; border: 1px dashed var(--colors-border-borderSecondary); }
+.intg-app-card.is-inactive .intg-app-logo { border-style: dashed; box-shadow: none; }
 .intg-banner .intg-btn svg { vertical-align: -2px; margin-left: 4px; }
 .intg-banner.is-warning { background: var(--utility-warning-50); border-color: var(--utility-warning-200); }
 .intg-banner.is-warning .intg-banner-msg { color: var(--colors-warning-700, var(--text-secondary)); }
