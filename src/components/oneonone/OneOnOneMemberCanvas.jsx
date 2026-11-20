@@ -1176,7 +1176,9 @@ export function AiReportSection({ value, L, icons, baseUrl, readOnly = false }) 
 
   const reason = AI_REPORT_FAIL_LABEL[failure?.reason] ? failure.reason : 'model_error';
   const quota = reason === 'quota_exceeded';
-  const exhausted = !!failure && !quota && (failure.retryLeft ?? 0) <= 0;
+  // 서버가 이유를 주며 거절했다 — 그 이유를 그대로 보이고, 다시 불러도 같으니 잠근다 (PW-3087).
+  const rejectedMessage = typeof failure?.message === 'string' && failure.message.trim() !== '' ? failure.message : null;
+  const exhausted = !!failure && !quota && !rejectedMessage && (failure.retryLeft ?? 0) <= 0;
   const dirty = draft !== (text ?? '');
   // 팀원이 손댄 글이 있으면 AI 글로 덮기 전에 묻는다 — 고치지 않은 AI 글은 묻지 않고 바꾼다.
   const needsConfirm = draft.trim() !== '' && (edited || dirty);
@@ -1246,14 +1248,16 @@ export function AiReportSection({ value, L, icons, baseUrl, readOnly = false }) 
         <div className="ono-start-failbox" role="alert" data-testid="ono-ai-report-error" data-reason={reason}>
           <span className="ono-start-failbox-title">{L.aiReportFailed}</span>
           <p className="ono-start-failbox-msg">
-            {exhausted ? L.aiReportFailExhausted : `${L[AI_REPORT_FAIL_LABEL[reason]]} ${L.aiReportFailManual}`}
+            {exhausted
+              ? L.aiReportFailExhausted
+              : `${rejectedMessage ?? L[AI_REPORT_FAIL_LABEL[reason]]} ${L.aiReportFailManual}`}
           </p>
           <div className="ono-start-failbox-actions">
             <button
               type="button"
               className="ono-start-failbox-retry"
               onClick={generate}
-              disabled={quota || exhausted}
+              disabled={quota || exhausted || !!rejectedMessage}
             >
               {L.aiReportRetry}
             </button>
@@ -2291,7 +2295,8 @@ export default function OneOnOneMemberCanvas({
   /**
    * 멤버 AI 보고서 (PW-1397) — `{ text, sourceLabel, busy, failure, onGenerate }`.
    * 안 넘기면 준비 화면에 그 카드가 없다. `failure` = `{ reason: 'timeout'|'model_error'|'quota_exceeded',
-   * retryLeft }` — 있으면 카드 안에 실패 박스를 그린다. `text` 는 실패해도 직전 글을 넘긴다.
+   * retryLeft, message? }` — 있으면 카드 안에 실패 박스를 그린다. `message` 는 서버가 업무 이유로 거절하며
+   * 준 문구 — 있으면 본문을 이 문구로 쓰고 `다시 시도` 를 잠근다(PW-3087). `text` 는 실패해도 직전 글을 넘긴다.
    */
   aiReport = null,
   /**

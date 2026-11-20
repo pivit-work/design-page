@@ -24,6 +24,8 @@ import Spinner from '../shared/Spinner.jsx';
  *     `{ [key]: { reason, retryLeft } }`, key 는 'all'|'strengths'|'sbi'|'support'|'caps'.
  *     reason 은 'timeout'|'model_error'|'quota_exceeded' (판별 불가 시 'model_error').
  *     retryLeft 는 남은 `다시 시도` 횟수. 이 prop 을 주지 않으면 동작이 이전과 같다.
+ *     message(선택) 는 서버가 업무 이유로 거절하며 준 문구 — 있으면 본문을 이 문구로 쓰고
+ *     `다시 시도` 를 잠근다(다시 불러도 같은 이유로 거절된다 · PW-3087).
  *     상태 4종(idle/loading/success/failed)은 별도 prop 이 아니라 여기서 파생한다 —
  *     generatingSection → loading, aiDrafts → success, aiFailures → failed.
  *   - `initialPerspective` : 서버에 저장된 매니저 관점 (자동 저장 복원).
@@ -204,10 +206,14 @@ function AiFailBox({ targetKey, failure, onRetry, busy, labels: L = DEFAULT_STAR
     ? failure.reason
     : AI_FAIL_DEFAULT_REASON;
   const quota = reason === 'quota_exceeded';
+  // 서버가 이유를 주며 거절했다 — 그 이유를 그대로 보이고, 다시 불러도 같으니 잠근다 (PW-3087).
+  const rejected = typeof failure?.message === 'string' && failure.message.trim() !== '';
   // 한도 초과는 재시도 카운트를 쓰지 않으므로 소진 문구로 넘어가지 않는다.
-  const exhausted = !quota && (failure?.retryLeft ?? 0) <= 0;
-  const disabled = quota || exhausted || busy;
-  const message = exhausted ? L.failExhausted : L[AI_FAIL_MESSAGE_KEYS[reason]];
+  const exhausted = !quota && !rejected && (failure?.retryLeft ?? 0) <= 0;
+  const disabled = quota || rejected || exhausted || busy;
+  const message = rejected
+    ? failure.message
+    : exhausted ? L.failExhausted : L[AI_FAIL_MESSAGE_KEYS[reason]];
   return (
     <div
       className="ono-start-failbox"
