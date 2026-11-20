@@ -3399,6 +3399,19 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
 .admin-snap-hist-row:hover .admin-snap-hist-detaillink { color: var(--text-brand-secondary, #10774d); }
 /* 행 끝 칸 — 글자 링크 두세 개를 한 줄로(상세 창이 열려 표가 좁아져도 · PW-2597) */
 .admin-snap-hist-actions { white-space: nowrap; }
+/* 상세 창을 열어 표가 좁아져도 칸 글을 꺾지 않는다 — 조직 스냅샷(.is-framed, PW-3134)과 같은 규칙을 구성원 설정 › 발령 이력에도.
+   꺾이면 줄마다 높이가 달라진다(«발령일 · 승인 대기» 딱지가 아래로 내려감 · pivit-work PW-3002 1280 확인). 넘치면 표 틀 안에서 가로로 흐른다. */
+.admin-snap-hist-row td { white-space: nowrap; }
+/* «처리 유형»·«처리자» 칸 글 — 상세 창이 열려 표가 좁아져도 한 줄, 넘치면 «…»(pivit-work PW-3002).
+   명단 표 한 줄 칸(.rt-table.is-nowrap td)·구성원 목록 칸 글(.admin-emp-cell-clip)과 같은 세 값.
+   칸 폭은 글 길이로 정해지는 표라 상자에 최대 폭을 둬야 «…»가 난다. */
+.admin-snap-hist-clip {
+  display: block;
+  max-width: 120px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 /* 예약 발령 (PW-1422 · org-snapshot-spec §2 · §4) */
 .admin-snap-sched-badge { margin-left: 6px; }
