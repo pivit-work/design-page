@@ -39,8 +39,7 @@ import { FrameTable, NoticeLines, PageHead, Panel } from '../frames/index.js';
 
 const DEFAULT_LABELS = {
   title: 'AI 프롬프트 설정',
-  subtitle:
-    '기능별 AI 프롬프트를 조직에 맞게 다듬습니다. 기본 프롬프트에 가이드라인을 더하거나 전체를 대체할 수 있어요.',
+  subtitle: 'AI가 생성하는 결과물을 회사의 언어와 기준으로 맞춤 설정',
   searchPlaceholder: '기능 검색...',
   searchEmpty: '검색 결과가 없습니다',
   comingSoon: '준비중',
@@ -48,6 +47,9 @@ const DEFAULT_LABELS = {
   badgeCustom: '커스텀',
   dirty: '● 변경',
   selectFeature: '← 왼쪽에서 기능을 선택하세요',
+  loading: '불러오는 중...',
+  loadFailed: '불러오지 못했습니다',
+  retry: '다시 시도',
   version: 'v{{version}}',
   activeToggle: '사용',
   comingSoonNotice:
@@ -85,7 +87,7 @@ const DEFAULT_LABELS = {
   versionHistory: '변경 이력',
   versionsEmpty: '변경 이력이 없습니다.',
   restore: '이 버전으로 복구',
-  historyColumns: { at: '변경한 때', by: '변경한 사람', type: '변경 유형', mode: '적용 방식', content: '내용' },
+  historyColumns: { at: '날짜 · 수정자', type: '변경 유형', mode: '적용 방식', content: '내용' },
   changeTypes: {
     edit: '수정',
     activate: '활성화',
@@ -239,8 +241,14 @@ export default function AdminAiPromptsCanvas({
   selectedVersion = null,
   dirty = false,
   saving = false,
+  // 목록 불러오기 — 'loading' · 'error' · 'ready' (policy §6-1 불러오는 중 표시 · 「불러오지 못했습니다」 + [다시 시도])
+  listState = 'ready',
+  onRetryList,
   versions = [],
   showVersions = false,
+  // 변경 이력 못 불러옴 — 구역 안에 「불러오지 못했습니다」 + [다시 시도] (policy §6-2)
+  versionsError = false,
+  onRetryVersions,
   testResult = null,
   testLoading = false,
   toast = null,
@@ -361,7 +369,18 @@ export default function AdminAiPromptsCanvas({
           data-testid="aip-search"
         />
         <div className="aip-rows">
-          {groups.length === 0 ? (
+          {listState === 'loading' ? (
+            <div className="aip-list-empty" data-testid="aip-list-loading" aria-busy="true">
+              <NoticeLines lines={[labels.loading]} tone="muted" />
+            </div>
+          ) : listState === 'error' ? (
+            <div className="aip-list-empty aip-retry" data-testid="aip-list-error">
+              <NoticeLines lines={[labels.loadFailed]} tone="muted" />
+              <Button variant="secondary" size="sm" onClick={() => onRetryList?.()} data-testid="aip-list-retry">
+                {labels.retry}
+              </Button>
+            </div>
+          ) : groups.length === 0 ? (
             <div className="aip-list-empty" data-testid="aip-search-empty">
               <NoticeLines lines={[labels.searchEmpty]} tone="muted" />
             </div>
@@ -601,7 +620,15 @@ export default function AdminAiPromptsCanvas({
           aside={<FoldButton open={showVersions} labels={labels} onClick={() => onToggleVersions?.()} testId="toggle-versions" />}
           testId="version-section"
         >
-          {showVersions && (
+          {showVersions && versionsError && (
+            <div className="aip-retry is-left" data-testid="versions-error">
+              <NoticeLines lines={[labels.loadFailed]} tone="muted" />
+              <Button variant="secondary" size="sm" onClick={() => onRetryVersions?.()} data-testid="versions-retry">
+                {labels.retry}
+              </Button>
+            </div>
+          )}
+          {showVersions && !versionsError && (
             <FrameTable
               testId="version-list"
               ariaLabel={labels.versionHistory}
@@ -610,12 +637,28 @@ export default function AdminAiPromptsCanvas({
               rows={versions}
               empty={labels.versionsEmpty}
               columns={[
-                { key: 'at', header: labels.historyColumns.at, width: 160, render: (v) => v.changedAt },
-                { key: 'by', header: labels.historyColumns.by, render: (v) => v.changedByName || '' },
+                // spec §4 [E] «날짜 + 수정자 이름» 한 칸 — 두 줄(날짜 · 이름). 칸을 줄여 1440 에서 [이 버전으로 복구]가 판 안에 든다.
+                {
+                  key: 'at',
+                  header: labels.historyColumns.at,
+                  width: 160,
+                  lines: 2,
+                  render: (v) => (
+                    <>
+                      {v.changedAt}
+                      {v.changedByName && (
+                        <>
+                          <br />
+                          <span className="aip-by">{v.changedByName}</span>
+                        </>
+                      )}
+                    </>
+                  ),
+                },
                 {
                   key: 'type',
                   header: labels.historyColumns.type,
-                  width: 120,
+                  width: 110,
                   render: (v) =>
                     v.changeType && labels.changeTypes[v.changeType] ? (
                       <StatusBadge tone="neutral" className="aip-badge" data-testid={`change-type-${v.id}`}>
@@ -628,7 +671,7 @@ export default function AdminAiPromptsCanvas({
                 {
                   key: 'mode',
                   header: labels.historyColumns.mode,
-                  width: 120,
+                  width: 110,
                   render: (v) => (v.mode === 'override' ? labels.modeOverride : labels.modeAppend),
                 },
                 { key: 'content', header: labels.historyColumns.content, lines: 2, render: (v) => v.customPrompt },

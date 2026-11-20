@@ -5013,10 +5013,10 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
 .aip-ver { font-size: 13px; line-height: 20px; color: var(--text-subtle); font-variant-numeric: tabular-nums; }
 .aip-toggle { display: inline-flex; align-items: center; gap: var(--spacing-md); font-size: 13px; line-height: 20px; font-weight: 600; color: var(--text-secondary); cursor: pointer; }
 
-/* 바탕 없는 한 줄 — 안내 줄 틀(14/20)에 뜻 색만 얹는다(원온원 «보는 범위» .ono-filter-notice 와 같은 바탕 없음) */
+/* 바탕 없는 아이콘 한 줄 — 원온원 «보는 범위» .ono-filter-notice 값(12 · 500 · 아이콘 사이 8 · 바탕 없음)에 뜻 색만 */
 .aip-notes { display: flex; flex-direction: column; gap: var(--spacing-xs); }
-.aip-line { display: flex; align-items: flex-start; gap: var(--spacing-md); margin: 0; font-size: 14px; line-height: 20px; font-weight: 500; word-break: keep-all; overflow-wrap: break-word; }
-.aip-line svg { flex: none; margin-top: var(--spacing-xxs); }
+.aip-line { display: flex; align-items: flex-start; gap: var(--spacing-md); margin: 0; font-size: var(--font-size-text-xs); line-height: var(--line-height-text-xs); font-weight: 500; word-break: keep-all; overflow-wrap: break-word; }
+.aip-line svg { flex: none; margin-top: calc(var(--spacing-xxs) / 2); }
 .aip-line.is-muted { color: var(--text-secondary); }
 .aip-line.is-muted svg { color: var(--text-tertiary); }
 .aip-line.is-warning { color: var(--text-warning-primary); }
@@ -5036,12 +5036,12 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
 .aip-custom { display: flex; flex-direction: column; gap: var(--spacing-lg); min-width: 0; }
 .aip-seg { max-width: 280px; }
 
-/* 입력칸 — 타임라인 «그룹 추가» 창 입력칸 값(옅은 회색 바탕 · 테두리 없음 · 누르면 초록 테두리).
+/* 입력칸 — 디자이너 1on1 «시작» 여러 줄 칸(.ono-start-textarea: 3% 회색 · 1px 5% 테두리 · 모서리 12 · 누르면 테두리만 초록).
    {{변수}} 강조는 같은 글자 모양의 뒤 층에 그린다(spec §4 [D] «하이라이트») — 입력칸 글은 그대로 보인다. */
-.aip-editor { position: relative; border-radius: var(--radius-md); background: var(--alpha-black-3); box-shadow: inset 0 0 0 1px transparent; }
-.aip-editor:focus-within { box-shadow: inset 0 0 0 1px var(--border-brand); background: var(--bg-quaternary); }
+.aip-editor { position: relative; border: 1px solid var(--alpha-black-5); border-radius: var(--radius-lg, 12px); background: var(--alpha-black-3); }
+.aip-editor:focus-within { border-color: var(--colors-foreground-fgBrandPrimary); }
 .aip-editor.is-override { background: var(--utility-warning-50); }
-.aip-editor.is-invalid { box-shadow: inset 0 0 0 1px var(--border-error, var(--text-error-primary)); }
+.aip-editor.is-invalid { border-color: var(--text-error-primary); }
 .aip-editor.is-disabled { opacity: .55; }
 .aip-editor-back, .aip-editor-input { font-family: var(--font-family-body); font-size: 14px; line-height: 24px; padding: var(--spacing-lg) var(--spacing-xl); white-space: pre-wrap; overflow-wrap: break-word; word-break: normal; letter-spacing: normal; }
 .aip-editor-back { position: absolute; inset: 0; overflow: hidden; color: transparent; pointer-events: none; }
@@ -5065,3 +5065,8 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
 .aip-ai-tag { font-size: 12px; line-height: 16px; padding: var(--spacing-xxs) var(--spacing-sm); }
 .aip-applied { display: block; margin-top: var(--spacing-md); padding-top: var(--spacing-md); border-top: 1px solid var(--alpha-black-5); font-size: 12px; line-height: 18px; color: var(--text-secondary); }
 .aip-applied b { font-weight: 600; color: var(--text-primary); margin-right: var(--spacing-sm); }
+
+/* 불러오지 못함 · 다시 시도 — 안내 한 줄 + 보조 버튼 */
+.aip-retry { display: flex; flex-direction: column; align-items: center; gap: var(--spacing-lg); }
+.aip-retry.is-left { align-items: flex-start; }
+.aip-by { color: var(--text-secondary); }
