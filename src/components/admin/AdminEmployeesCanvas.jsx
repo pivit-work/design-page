@@ -5808,8 +5808,9 @@ function EmployeesEditPanel({
         if (!alive) return;
         const loaded = identityFromProfile(profile);
         setIdentity(loaded);
-        // 먼저 그린 값에서 그 사이 손댄 칸은 덮지 않는다
-        setIdentityDraft((d) => (refreshing && d !== cachedIdentityRef.current ? d : loaded));
+        // 먼저 그린 값에서 그 사이 손댄 칸만 남기고, 안 건드린 칸은 새로 불러온 값으로 — 옛 값이 «바꾼 값»으로 저장돼
+        // 그 사이 다른 곳(일괄 휴직 · CSV · 내 설정)이 바꾼 값을 덮지 않게(적대적 리뷰 Major)
+        setIdentityDraft((d) => (refreshing ? mergeRefreshedDraft(d, cachedIdentityRef.current, loaded) : loaded));
         setBioText(profile?.identity?.bio ?? '');
         setIdentityState('ready');
       })
@@ -8751,4 +8752,13 @@ function identityFromProfile(profile) {
   for (const f of IDENTITY_TEXT_FIELDS) loaded[f] = src[f] ?? '';
   loaded[SERVICE_START_FIELD] = toDateInput(src[SERVICE_START_FIELD]);
   return loaded;
+}
+
+/**
+ * 먼저 그린 값(`was`)으로 연 칸에 새로 불러온 값(`loaded`)이 오면 — 손댄 칸(`draft[k] !== was[k]`)만 남기고 나머지는 새 값으로
+ * (pivit-work PW-2924 4회차 · 적대적 리뷰 Major). 안 건드린 칸의 옛 값이 «바꾼 값»으로 실리면 그 사이 다른 곳이 바꾼 값을 덮는다.
+ */
+export function mergeRefreshedDraft(draft, was, loaded) {
+  if (!draft || !was || draft === was) return loaded;
+  return Object.fromEntries(Object.keys(loaded).map((k) => [k, draft[k] === was[k] ? loaded[k] : draft[k]]));
 }

@@ -2119,11 +2119,11 @@ function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelet
               </>
             }
           >
-            <HrEditPair card k={L.hrTrainingCourse || '과정명'} value={form.courseName} onChange={(v) => setForm((f) => ({ ...f, courseName: v }))} />
+            <HrEditPair card k={L.hrTrainingCourse || '과정명'} value={form.courseName} onChange={(v) => setForm((f) => ({ ...f, courseName: v }))} maxLength={200} />
             {/* 과정명·교육기관·수료일 순서 (admin-spec §3.2.10 · W69). */}
-            <HrEditPair card k={L.hrTrainingProvider || '교육기관'} value={form.provider} onChange={(v) => setForm((f) => ({ ...f, provider: v }))} />
+            <HrEditPair card k={L.hrTrainingProvider || '교육기관'} value={form.provider} onChange={(v) => setForm((f) => ({ ...f, provider: v }))} maxLength={200} />
             <HrEditPair card k={L.hrTrainingCompletedAt || '수료일'} date value={form.completedAt} onChange={(v) => setForm((f) => ({ ...f, completedAt: v }))} />
-            <HrEditPair card k={L.hrTrainingNote || '메모'} value={form.note} onChange={(v) => setForm((f) => ({ ...f, note: v }))} />
+            <HrEditPair card k={L.hrTrainingNote || '메모'} value={form.note} onChange={(v) => setForm((f) => ({ ...f, note: v }))} maxLength={200} />
           </HrAddCard>
         )}
       </div>
@@ -2260,7 +2260,8 @@ function HrRecordListSection({
     const next = formOf(fields, r);
     setEditingId(r.id);
     setEditingPeriod({ from: String(next.from ?? ''), to: String(next.to ?? '') });
-    setEditingRule(ruleKeys ? Object.fromEntries(ruleKeys.map((k) => [k, String(next[k] ?? '')])) : null);
+    // 서버는 «같은 연월이면 안 바뀜»으로 본다(옛 줄 2000.03 = 2000-03 · pivit-work PW-2942 2회차) — 연 때 값도 실려 갈 모양으로 적어 둔다
+    setEditingRule(ruleKeys ? Object.fromEntries(ruleKeys.map((k) => [k, ruleValueOf ? ruleValueOf(k, next[k]) : String(next[k] ?? '')])) : null);
     setForm(normalize ? normalize(next) : next);
     setError(false);
   };
@@ -2590,23 +2591,23 @@ function HrBenefitsSection({ memberId, labels, onLoad, onSave, onDraftChange }) 
               </Button>
             )}
           >
-            <HrEditPair card k={L.hrHealthInsuranceProvider || '건강 보험 제공사'} value={d.healthInsuranceProvider} onChange={set('healthInsuranceProvider')} />
-            <HrEditPair card k={L.hrInsurancePlanType || '보험 플랜 유형'} value={d.planType} onChange={set('planType')} />
-            <HrEditPair card k={L.hrPensionContribution || '퇴직연금 기여금'} value={d.pensionContribution} onChange={set('pensionContribution')} />
+            <HrEditPair card k={L.hrHealthInsuranceProvider || '건강 보험 제공사'} value={d.healthInsuranceProvider} onChange={set('healthInsuranceProvider')} maxLength={100} />
+            <HrEditPair card k={L.hrInsurancePlanType || '보험 플랜 유형'} value={d.planType} onChange={set('planType')} maxLength={100} />
+            <HrEditPair card k={L.hrPensionContribution || '퇴직연금 기여금'} value={d.pensionContribution} onChange={set('pensionContribution')} maxLength={20} />
             {pensionBad && (
               <div className="adm-hr-add-pair" role="alert">
                 <span className="adm-hr-pair-k" aria-hidden="true" />
                 <span className="adm-hr-add-error"><AlertCircleGlyph size={14} />{L.hrPensionContributionInvalid || '금액은 소수점·단위 없는 정수로 적어 주세요.'}</span>
               </div>
             )}
-            <HrEditPair card k={L.hrStockOptions || '주식 옵션'} value={d.stockOptions} onChange={set('stockOptions')} />
+            <HrEditPair card k={L.hrStockOptions || '주식 옵션'} value={d.stockOptions} onChange={set('stockOptions')} maxLength={100} />
             <div className="adm-hr-add-pair is-top">
               <span className="adm-hr-pair-k">{L.hrOtherBenefits || '기타 복리후생'}</span>
               <div className="adm-hr-add-stack">
                 {d.otherBenefits.map((o, i) => (
                   <div key={i} className="adm-hr-add-inline" data-testid="hr-other-benefit-row">
-                    <input className="admin-emp-input" value={o.name} onChange={(e) => setOther(i, 'name', e.target.value)} placeholder={L.hrOtherBenefitName || '항목 (예: 식대)'} aria-label={L.hrOtherBenefitName || '항목'} />
-                    <input className="admin-emp-input" value={o.value} onChange={(e) => setOther(i, 'value', e.target.value)} placeholder={L.hrOtherBenefitValue || '내용 (예: 월 20만원)'} aria-label={L.hrOtherBenefitValue || '내용'} />
+                    <input className="admin-emp-input" value={o.name} onChange={(e) => setOther(i, 'name', e.target.value)} maxLength={100} placeholder={L.hrOtherBenefitName || '항목 (예: 식대)'} aria-label={L.hrOtherBenefitName || '항목'} />
+                    <input className="admin-emp-input" value={o.value} onChange={(e) => setOther(i, 'value', e.target.value)} maxLength={200} placeholder={L.hrOtherBenefitValue || '내용 (예: 월 20만원)'} aria-label={L.hrOtherBenefitValue || '내용'} />
                     <Button variant="danger-ghost" size="sm" onClick={() => removeOther(i)}>{L.hrRecordDelete || '지우기'}</Button>
                   </div>
                 ))}
