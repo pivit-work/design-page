@@ -1690,11 +1690,32 @@ export function HrProfileInline({
       ];
     });
   };
+  /*
+    이번 저장에 «보낼 것» 목록 — `send` 와 같은 순서·같은 몸(pivit-work PW-2924 4회차). 앱이 [저장하기] 한 번을 서버에
+    한 묶음(한 트랜잭션)으로 보낼 때 쓴다: 한 몫이라도 실패하면 아무것도 저장되지 않게. 증빙서류 «올리기»는 파일이라
+    묶음에 못 싣는다 — `{ kind: 'documents', op: 'add' }` 로만 알려 앱이 묶음을 쓰지 않게 한다.
+  */
+  const pendingRequests = () => {
+    const out = [];
+    if (identityPatch) out.push({ type: 'identity', patch: identityPatch });
+    for (const kind of RECORD_KINDS) {
+      const q = pendingOf(recPending[kind]);
+      if (kind !== 'documents') for (const [id, body] of Object.entries(q.updates)) out.push({ type: 'record', kind, op: 'update', id, body });
+      for (const a of q.adds) out.push(kind === 'documents' ? { type: 'record', kind, op: 'add' } : { type: 'record', kind, op: 'add', body: a.body });
+      for (const id of q.deletes) out.push({ type: 'record', kind, op: 'delete', id });
+    }
+    const t = pendingOf(trPending);
+    for (const [id, body] of Object.entries(t.updates)) out.push({ type: 'training', op: 'update', id, body });
+    for (const a of t.adds) out.push({ type: 'training', op: 'add', body: a.body });
+    for (const id of t.deletes) out.push({ type: 'training', op: 'delete', id });
+    if (benefits) out.push({ type: 'benefits', body: benefits.body });
+    return out;
+  };
   const flushRef = useRef(flush);
-  const pendingRef = useRef({ lines: () => [], identityPatch: null });
+  const pendingRef = useRef({ lines: () => [], identityPatch: null, requests: () => [] });
   useEffect(() => {
     flushRef.current = flush;
-    pendingRef.current = { lines: pendingRecordLines, identityPatch };
+    pendingRef.current = { lines: pendingRecordLines, identityPatch, requests: pendingRequests };
   });
   useEffect(() => {
     if (!editable || !registerFlush) return undefined;
@@ -1703,6 +1724,7 @@ export function HrProfileInline({
        신원 칸의 «이전 → 이후»는 화면이 짓지 않는다 — 앱이 서버에 «저장하지 않고 알리기»로 물어 이력과 같은 말로 받는다. */
     fn.lines = () => pendingRef.current.lines();
     fn.identityPatch = () => pendingRef.current.identityPatch;
+    fn.requests = () => pendingRef.current.requests();
     registerFlush(fn);
     return () => registerFlush(null);
   }, [editable, registerFlush]);

@@ -6224,9 +6224,25 @@ function EmployeesEditPanel({
     구성원 칸 · 패널 날짜 칸 · 탭 안 HR 칸 · 기록이 따로 나가므로, 보내기 전에 몫마다 무엇을 보낼지 넘긴다 —
     앱이 첫 사유 창에 나머지 몫이 바꿀 칸까지 보이고, 받은 사유로 나머지를 창 없이 보낸다. 끝나면 onPageSaveEnd.
   */
-  function beginPageSave() {
+  function beginPageSave({ batchable = false } = {}) {
     if (!page || !hrRecordHandlers?.onPageSaveStart) return null;
     const parts = Object.values(inlineFlushes.current);
+    /*
+      이번 [저장하기]에 나갈 것 전부 — 보내는 순서(패널 날짜 → 구성원 칸 → 보상 이력 → 탭 안 칸)대로 (pivit-work PW-2924 4회차).
+      앱이 이것을 한 묶음으로 서버에 보내 «다 되거나 하나도 안 됨»으로 만든다. `batchable` 이 false 거나 파일 올리기가 끼면
+      앱은 종전처럼 몫마다 보낸다.
+    */
+    const sp = salaryPendingCount > 0 ? salaryPending : null;
+    const requests = [
+      ...(identityDirty ? [{ type: 'identity', patch: identityPatch }] : []),
+      ...(Object.keys(patch).length > 1 ? [{ type: 'member', patch }] : []),
+      ...(sp ? [
+        ...Object.entries(sp.updates || {}).map(([id, body]) => ({ type: 'salary', op: 'update', id, body })),
+        ...(sp.adds || []).map((a) => ({ type: 'salary', op: 'add', body: a.body })),
+        ...(sp.deletes || []).map((id) => ({ type: 'salary', op: 'delete', id })),
+      ] : []),
+      ...parts.flatMap((f) => (typeof f.requests === 'function' ? f.requests() : [])),
+    ];
     hrRecordHandlers.onPageSaveStart(
       member.id,
       parts.flatMap((f) => (typeof f.lines === 'function' ? f.lines() : [])),
@@ -6236,6 +6252,7 @@ function EmployeesEditPanel({
           identityDirty ? identityPatch : null,
           ...parts.map((f) => (typeof f.identityPatch === 'function' ? f.identityPatch() : null)),
         ].filter(Boolean),
+        batch: batchable ? requests : null,
       },
     );
     return hrRecordHandlers;
@@ -6307,8 +6324,8 @@ function EmployeesEditPanel({
   }
 
   async function handleSave() {
-    forgetHrProfile(onLoadHrProfile, member?.id);
     if (!dirty && !(page && inlineDirty)) { if (page) page.onCancel(); else onClose(); return; }
+    forgetHrProfile(onLoadHrProfile, member?.id);
     if (terminationProblem || terminationRuleError || leaveStartMissing || leaveReasonMissing) return;
     if (apptTypeMissing || (showAppointment && !apptDate)) return;
     setSaving(true);
@@ -6316,7 +6333,10 @@ function EmployeesEditPanel({
     setSaveError(null);
     /* [저장하기] 한 번을 앱에 알린다(pivit-work PW-2924 · 개인정보 변경 이력 §2-5 «저장 1회 = 사유 1건»).
        구성원 칸과 탭 안 HR 칸은 따로 나가므로, 보내기 전에 HR 쪽 줄을 넘겨 첫 사유 창이 다 보이고 나머지는 같은 사유로 간다. */
-    const pageSave = beginPageSave();
+    /* 소속·발령·퇴사 되돌리기는 확인 창이 끼는 따로 된 흐름이라 묶음(한 트랜잭션)에 싣지 않는다 — 앱이 종전처럼 몫마다 보낸다 */
+    const batchable = !appointmentPayload && !affilChanged
+      && !(member.employmentStatus === 'terminated' && draft.employmentStatus !== 'terminated');
+    const pageSave = beginPageSave({ batchable });
     try {
       /* 날짜를 **먼저** 보낸다. 상태 저장이 성공한 뒤 날짜가 실패하면 「수습으로 바뀌었는데
          종료일은 안 들어간」 반쪽 상태가 남는데, 순서를 뒤집으면 그 조합이 안 생긴다.
