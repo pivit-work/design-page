@@ -341,6 +341,10 @@
 }
 .admin-kit-icon-btn.is-danger { color: var(--text-error-primary, #d92d20); }
 .admin-kit-icon-btn:hover { background: var(--bg-secondary); }
+/* 개발 추가(pivit-work PW-3122) — 누를 수 없는 아이콘 버튼. 이유 말풍선이 떠야 해서 disabled 대신 aria-disabled.
+   올려도 «누를 수 있다»처럼 보이지 않게 금지 커서 · 회색 바탕 없음(커트가 고른 조직단위 설정 시안 .xb:disabled · login.css .login-tool[aria-disabled='true']). */
+.admin-kit-icon-btn[aria-disabled='true'] { cursor: not-allowed; }
+.admin-kit-icon-btn[aria-disabled='true']:hover { background: transparent; }
 .admin-kit-level-gap { display: flex; justify-content: center; padding: 2px 0; color: var(--text-tertiary); }
 .admin-kit-level-add {
   display: flex;
