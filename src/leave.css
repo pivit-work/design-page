@@ -146,8 +146,9 @@
   background: var(--fg-disabled-subtle);
 }
 
+/* «사용 예정» — 바탕(bg-secondary)과 구별되게 디자이너 막대(OKR 리소스 .rsx-stat-bar)의 한 단계 진한 조각 색(pivit-work PW-3096 · design-review). */
 .leave-bar-part.is-planned {
-  background: var(--bg-brand-secondary);
+  background: var(--utility-success-200);
 }
 
 .leave-bar-part.is-available {
