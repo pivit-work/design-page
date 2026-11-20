@@ -174,8 +174,8 @@
    "padding": "2px 9px",
    "font-size": "12px",
    "font-weight": "600",
-   "background": "#e1fef2 / 어두운 화면 #10774d",
-   "color": "#10774d / 어두운 화면 #2dbd82",
+   "background": "rgba(0, 0, 0, 0.03) / 어두운 화면 rgba(255, 255, 255, 0.03)",
+   "color": "#687079 / 어두운 화면 #cecfd2",
    "line-height": "var(--line-height-text-xs)",
    "border": "1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03))"
   },

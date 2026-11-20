@@ -508,8 +508,9 @@
   font-weight: 600;
   padding: 2px 9px;
   border-radius: var(--radius-sm);
-  background: var(--dp-badge-accent-bg);
-  color: var(--dp-badge-accent-fg);
+  /* PW-3125 — 회색 딱지 + 연필. 초록은 켜진 스위치 초록과 겹쳐 «켜짐»처럼 읽혔다(커트 11-19 시안) */
+  background: var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
+  color: var(--text-secondary); /* 옆 역할 칩(.admin-notif-role-chip)과 같은 회색 */
   border: 1px solid var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
 }
 
