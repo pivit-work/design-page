@@ -2566,7 +2566,7 @@
    "box-shadow": "inset 0 0 0 1px var(--onb-warn-border)"
   },
   "admin.css|.admin-notif-rule.is-off .admin-notif-tag": {
-   "color": "#d2d6db / 어두운 화면 #61656c"
+   "color": "#b1b6be / 어두운 화면 #85888e"
   }
  }
 }

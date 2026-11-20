@@ -530,7 +530,7 @@
 }
 
 /* 꺼진 규칙 줄 — 딱지 글도 줄 글처럼 옅게(«끌 수 없음»은 늘 켜짐이라 꺼진 줄에 없다 · PW-3125) */
-.admin-notif-rule.is-off .admin-notif-tag { color: var(--text-quaternary); }
+.admin-notif-rule.is-off .admin-notif-tag { color: var(--text-tertiary); }
 
 /* 역할 칩 (행 메타) — 무지개색 대신 중립 단일 톤 (팔레트 절제) */
 .admin-notif-role-chip {
