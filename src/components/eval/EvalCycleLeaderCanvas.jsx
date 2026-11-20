@@ -734,7 +734,11 @@ export default function EvalCycleLeaderCanvas({
   onBlocked,
   /** 자동 임시저장 간격(ms). 0 이면 끈다. 기획 §5.9 는 30초. */
   autoSaveMs = 30000,
-  /** 작성 중인(저장 안 된) 내용이 있나가 바뀔 때 — 호출부가 이탈 확인을 건다(§5.12). */
+  /**
+   * 작성 중인(저장 안 된) 내용이 있나가 바뀔 때 — 호출부가 이탈 확인을 건다(§5.12).
+   * 낸 뒤 다시 연 리뷰(`submitted` · 잠기지 않음)에서 고친 것이 있을 때도 알린다 — 그 화면엔 임시저장이 없어
+   * 호출부가 «고친 채 나갈 때» 창으로 묻는다(§5.11-A · PW-3024). `submitted` 로 두 경우를 가른다.
+   */
   onDirtyChange,
   /** 이탈 확인 창을 띄우나 + 세 갈래 답(§5.12). 창은 캔버스가 그리고, 이동은 호출부가 한다. */
   leavePrompt = false,
@@ -919,7 +923,12 @@ export default function EvalCycleLeaderCanvas({
 
   const snapshot = snapshotOf(itemsOf(fields, state), grade);
   const editable = active && !formLocked && !submitted && !showCompletion;
-  const dirty = editable && (snapshot !== baseline || (leaderCommentOn && lc !== lcBaseline));
+  const changed = snapshot !== baseline || (leaderCommentOn && lc !== lcBaseline);
+  // 자동 임시저장(§5.9)이 보는 값 — 처음 쓰는 리뷰에만. 다시 연 리뷰엔 임시저장이 없다(§5.11-A · PW-3024).
+  const dirty = editable && changed;
+  // 호출부에 알리는 값 — 다시 연 리뷰에서 고친 것도 센다(나갈 때 묻게).
+  const reopenedEditing = active && !formLocked && submitted && !showCompletion;
+  const unsaved = (editable || reopenedEditing) && changed;
 
   // 렌더 밖(타이머·버튼)에서 읽을 최신 값 — 렌더 중에는 ref 를 건드리지 않는다.
   const latest = useRef(null);
@@ -928,8 +937,8 @@ export default function EvalCycleLeaderCanvas({
   });
   // 같은 값을 다시 알려도 호출부(상태 setter)에는 아무 일이 없다.
   useEffect(() => {
-    onDirtyChange?.(dirty);
-  }, [dirty, onDirtyChange]);
+    onDirtyChange?.(unsaved);
+  }, [unsaved, onDirtyChange]);
 
   // 저장 한 번 — 수동·자동 공통. Promise 를 돌려주는 호출부만 성공/실패를 표시할 수 있다.
   const savingRef = useRef(false);
