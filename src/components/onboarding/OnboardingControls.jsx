@@ -405,8 +405,10 @@ export function OnbChip({ selected = false, children, type = 'button', ...rest }
 /**
  * 태그 (시안 Tag) — 초대 이메일.
  * Props: grow(남는 폭을 채운다) · title(글이 «…»로 잘렸을 때 올리면 뜨는 전체 글) · onRemove · removeLabel
+ *   · status('error' 빨강 | 'warn' 노랑 — 시안 Tag 의 error·warn) · reason(늘 뜨는 말풍선 첫 줄 — 잘렸으면 다음 줄에 title)
+ *   · onClick(있으면 글 자리가 눌리는 버튼이 된다 — 빨강·노랑 칩을 입력 칸으로 되돌릴 때 · pivit-work PW-2984)
  */
-export function OnbTag({ children, grow = false, title, onRemove, removeLabel, testId }) {
+export function OnbTag({ children, grow = false, title, onRemove, removeLabel, testId, status, reason, onClick }) {
   // 한 줄로 두고 넘치면 글만 «…»로 준다 — 전체 글은 `title`(공용 말풍선)로, 잘렸을 때만 연다.
   // 안 잘린 글에 말풍선을 달면 같은 글이 한 번 더 뜬다(pivit-work PW-2918 · 앱 ClipCell 과 같은 판정).
   const labelRef = useRef(null);
@@ -425,9 +427,19 @@ export function OnbTag({ children, grow = false, title, onRemove, removeLabel, t
     ro.observe(el);
     return () => ro.disconnect();
   });
+  // 사유(reason)는 늘 첫 줄 — 잘렸을 때만 다음 줄에 전체 글(말풍선은 줄바꿈을 살린다 · tooltip.css pre-line)
+  const tip = reason ? (cut && title ? `${reason}\n${title}` : reason) : (cut ? title : undefined);
   return (
-    <StatusBadge className={cx('onb-tag', grow && 'is-grow')} title={cut ? title : undefined} data-testid={testId}>
-      <span ref={labelRef} className="onb-tag-label">{children}</span>
+    <StatusBadge
+      className={cx('onb-tag', grow && 'is-grow', status === 'error' && 'is-error', status === 'warn' && 'is-warn')}
+      title={tip}
+      data-testid={testId}
+    >
+      {onClick ? (
+        <button type="button" ref={labelRef} className="onb-tag-label" onClick={onClick}>{children}</button>
+      ) : (
+        <span ref={labelRef} className="onb-tag-label">{children}</span>
+      )}
       {onRemove && (
         <button type="button" onClick={onRemove} aria-label={removeLabel}>
           <OnbCloseIcon size={12} />
