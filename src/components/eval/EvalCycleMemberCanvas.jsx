@@ -255,6 +255,9 @@ function buildFields(template, L, noScore = false) {
           category: it.category,
           // [PW-882] HR 이 고른 리포트 「성장 영역」 칸. 저장할 때 서버가 항목 설정으로 다시 찍는다.
           growthType: it.growthType ?? null,
+          // [PW-3076] HR 항목 설정 «AI 초안» — 끈 항목에는 [항목별 초안 생성]이 없고 [AI 전체 생성]도 건너뛴다.
+          // 값이 없는 옛 응답은 켬(지금까지 빈 서술형마다 뜨던 그대로).
+          aiDraftEnabled: it.aiDraftEnabled !== false,
           type,
           label: it.label,
           placeholder: it.label,
@@ -945,7 +948,11 @@ export default function EvalCycleMemberCanvas({
   // 이미 쓴 내용은 절대 덮어쓰지 않는다(초안 때문에 작성분이 날아가면 안 된다).
   // 채울 칸이 없으면 버튼 자체가 비활성 — '다듬기'로 넘어가면 되는 상태다.
   const emptyTextFields = fields.filter(
-    (f) => f.type !== 'rating' && !state[f.key].textAnswer.trim() && !pendingDraft[f.key],
+    (f) =>
+      f.type !== 'rating' &&
+      f.aiDraftEnabled !== false &&
+      !state[f.key].textAnswer.trim() &&
+      !pendingDraft[f.key],
   );
   /** `only` 를 주면 그 항목 하나만 만든다(항목별 단추). 안 주면 빈 서술형 전부. */
   const handleAiDraft = async (only = null) => {
@@ -1490,12 +1497,12 @@ export default function EvalCycleMemberCanvas({
                         data-testid={`evm-text-${f.key}`}
                       />
                       {/* [PW-1460] 항목별 AI 초안 — 빈 칸에만. 이미 쓴 칸은 덮어쓰지 않는다. */}
-                      {onAiDraft && !readOnly && aiDraftUnavailable && !state[f.key].textAnswer.trim() && (
+                      {onAiDraft && !readOnly && f.aiDraftEnabled !== false && aiDraftUnavailable && !state[f.key].textAnswer.trim() && (
                         <p className="evm-ai-draft-unavailable" data-testid={`evm-ai-draft-unavailable-${f.key}`}>
                           {aiDraftUnavailable}
                         </p>
                       )}
-                      {onAiDraft && !readOnly && !aiDraftUnavailable && !state[f.key].textAnswer.trim() && !pendingDraft[f.key] && (
+                      {onAiDraft && !readOnly && f.aiDraftEnabled !== false && !aiDraftUnavailable && !state[f.key].textAnswer.trim() && !pendingDraft[f.key] && (
                         <span className="evm-ai-item-draft" data-testid={`evm-ai-draft-item-${f.key}`}>
                           <MemberAiButton
                             label={draftBusy === f.key ? L.aiDrafting : L.aiDraftItem}

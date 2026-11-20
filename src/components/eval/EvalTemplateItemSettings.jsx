@@ -261,6 +261,22 @@ export default function EvalTemplateItemSettings({
         </div>
       )}
 
+      {/* [PW-3076] 항목 설정 «AI 초안» — 서술형 질문에만. 켜면 평가자 작성 화면에 이 항목의
+          [AI 초안 생성]이 있고, 초안은 평가자가 누를 때만 만든다(spec §4.2.2-I «David 직접 답» · J-11).
+          마법사 말로 `q.ai` — 항목 행의 «AI 초안» 배지와 같은 값이다. 라벨이 없는 호출부에는 띄우지 않는다. */}
+      {L.aiDraftLabel && q.type === 'textarea' && (
+        <div className="evc-tpl-set-block" data-testid={`evc-tpl-ai-draft-block-${q.id}`}>
+          <div className="evc-tpl-set-title">{L.aiDraftTitle}</div>
+          <Checkbox
+            checked={!!q.ai}
+            onChange={(e) => onPatch(q.id, { ai: e.target.checked })}
+            data-testid={`evc-tpl-ai-draft-${q.id}`}
+            label={L.aiDraftLabel}
+          />
+          <p className="evc-tpl-set-help">{L.aiDraftHelp}</p>
+        </div>
+      )}
+
       {/* ② 가이드 문구 — 「노출 여부」는 이 축이고 「누가 보는가」는 아래 축이다. */}
       <div className="evc-tpl-set-block">
         <div className="evc-tpl-set-title">{L.guideTitle}</div>

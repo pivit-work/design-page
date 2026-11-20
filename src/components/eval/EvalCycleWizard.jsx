@@ -6127,6 +6127,8 @@ export default function EvalCycleWizard({
         section,
         text: text.trim(),
         type,
+        // [PW-3076 · J-11] 손으로 더한 항목은 «AI 초안» 끔으로 태어난다 — 초안이 만든 서술형만 켬.
+        ai: false,
         /*
          * PW-433 ③ — 새 체크박스는 **빈 선택지 목록을 실제로 들고** 태어난다.
          * 🔴 `options` 를 비워 두면(undefined) 저장 페이로드에도 안 실려, 서버가
@@ -8356,6 +8358,8 @@ export default function EvalCycleWizard({
             // 이 값을 고친다. 종전에는 버튼 값을 «작성 화면 안내» 칸(visibleToRoles)에 따로
             // 실어, 버튼과 공개 범위가 서로 다른 말을 했다.
             disclosure: q.disclosure ?? null,
+            // [PW-3076] 항목 설정 «AI 초안» — 서버가 서술형만 받아 둔다.
+            ai: !!q.ai,
           })),
           grades: t.grades.map((g) => ({
             label: g.label,

@@ -417,6 +417,8 @@ function buildFields(template, L) {
           growthType: null,
           // 저장값(growthType)은 종전대로 비우고, 고정 정의 툴팁(§5.5.1)을 고를 때만 쓴다.
           growthKind: it.growthType ?? null,
+          // [PW-3076] HR 항목 설정 «AI 초안» — 끈 서술형은 [AI 초안 생성]이 채우지 않는다. 옛 응답(값 없음)은 켬.
+          aiDraftEnabled: it.aiDraftEnabled !== false,
           type,
           label: it.label,
           placeholder: it.label,
@@ -1032,7 +1034,10 @@ export default function EvalCycleLeaderCanvas({
    * 팀장이 쓴 글·확인한 초안은 덮지 않는다. 점수 제안은 칩(`aiSuggestedScore`)만 바꾸고 점수 칸은 그대로,
    * 등급 제안은 사유 카드만 바꾸고 고른 등급은 그대로다(§5.4 일괄 적용 금지 · spec §17.3-A R3·R7).
    */
-  const aiTargets = fields.filter((f) => aiTextKey(f));
+  // [PW-3076] HR 이 «AI 초안»을 끈 서술형은 뺀다. 척도 사유는 항목 설정과 무관하게 종전대로(점수 제안과 한 묶음).
+  const aiTargets = fields.filter(
+    (f) => aiTextKey(f) && !(f.type === 'textarea' && f.aiDraftEnabled === false),
+  );
   const aiFillable = (f) => {
     const st = state[f.key];
     const text = (st[aiTextKey(f)] || '').trim();
