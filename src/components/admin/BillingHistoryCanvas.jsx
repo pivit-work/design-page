@@ -182,9 +182,6 @@ const refundMetaKey = (r) =>
 // 하나만 주는 옛 모양(`refund`)도 그대로 받는다.
 const refundsOf = (inv) => (Array.isArray(inv.refunds) ? inv.refunds : inv.refund ? [inv.refund] : []);
 
-function Badge({ tone, children }) {
-  return <StatusBadge tone={tone} className="ono-done-badge">{children}</StatusBadge>;
-}
 
 /** 칸 안 작은 글(12/18) — 금액 밑 환불 줄 · 상태 밑 안내. 긴 안내는 낱말 단위로 꺾는다(표 칸은 한 줄이 기본이라 풀어 준다). */
 const SMALL_STYLE = {
@@ -228,10 +225,10 @@ function RefundStatusLines({ refund, labels }) {
   const rl = labels.refundLabels[refundMetaKey(refund)] || '';
   return (
     <>
-      <Badge tone={tone}>
+      <StatusBadge className="ono-done-badge" tone={tone}>
         {/* 사유 문구 표에 없는 값(DB 에 손으로 넣은 줄 등)은 코드값을 보이지 않고 상태만 — «환불 승인» 딱지와 같다 (pivit-work PW-3131) */}
         {[rl, refundReasonText(labels, refund.reason)].filter(Boolean).join(' · ')}
-      </Badge>
+      </StatusBadge>
       {/* 부분취소 전표는 환불이 끝난 뒤에 나온다(policy §7 「완료 후 노출」) */}
       {refund.type === 'partial' && refund.status === 'completed' && !refund.offPg && (
         <span style={NOTE_STYLE}>{labels.partialRefundNote}</span>
@@ -406,7 +403,7 @@ export default function BillingHistoryCanvas({
       // 청구번호(굵게) + 그 밑 한 줄 청구 사유 딱지 (무엇에 대한 청구인지 식별 — PW-324)
       render: (inv) => {
         const rk = reasonKey(inv);
-        const badge = <Badge tone={REASON_TONE[rk]}>{labels.billingReasons[rk]}</Badge>;
+        const badge = <StatusBadge className="ono-done-badge" tone={REASON_TONE[rk]}>{labels.billingReasons[rk]}</StatusBadge>;
         return (
           <div style={CELL_STACK_STYLE}>
             <span style={NO_NUM_STYLE}>{inv.invoice_no}</span>
@@ -485,7 +482,7 @@ export default function BillingHistoryCanvas({
         const approvalBlocked = approval?.receivable === false;
         return (
           <div style={CELL_STACK_STYLE}>
-            {!fullyRefunded && <Badge tone={tone}>{statusLabel}</Badge>}
+            {!fullyRefunded && <StatusBadge className="ono-done-badge" tone={tone}>{statusLabel}</StatusBadge>}
             {refunds.map((r, i) => (
               <RefundStatusLines key={i} refund={r} labels={labels} />
             ))}
@@ -493,9 +490,9 @@ export default function BillingHistoryCanvas({
                 버튼은 결제 권한자에게만, 같은 결제에 처리 중인 다른 환불이 있으면 꺼짐 + 말풍선 */}
             {approval && (
               <>
-                <Badge tone="info">
+                <StatusBadge className="ono-done-badge" tone="info">
                   {[labels.refundApprovalLabel, refundReasonText(labels, approval.reason)].filter(Boolean).join(' · ')}
-                </Badge>
+                </StatusBadge>
                 <span data-testid="billing-history-approval-note" style={NOTE_STYLE}>
                   {approval.inquiry_no
                     ? `${labels.refundApprovalNote} ${labels.refundApprovalInquiry(approval.inquiry_no)}`
@@ -555,7 +552,7 @@ export default function BillingHistoryCanvas({
     <BillingPage width={BILLING_PAGE_WIDTH.history}>
       <BillingPageHead
         title={labels.pageTitle}
-        titleAside={role === 'hr_admin' ? <Badge tone="neutral">{labels.viewOnly}</Badge> : undefined}
+        titleAside={role === 'hr_admin' ? <StatusBadge className="ono-done-badge" tone="neutral">{labels.viewOnly}</StatusBadge> : undefined}
         description={[labels.pageSubtitle]}
       />
 
