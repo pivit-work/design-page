@@ -106,6 +106,8 @@
 .admin-kit-stack.is-gap-sm { gap: 8px; }
 .admin-kit-stack.is-gap-md { gap: 12px; }
 .admin-kit-stack.is-gap-lg { gap: 16px; }
+/* 칸 바로 아래 오류 문구 — 묶음 간격(sm 8)을 지우고 디자이너 칸 오류 문구의 위 여백(p.dp-field-error 4)만 남긴다 (pivit-work PW-3019) */
+.admin-kit-stack.is-gap-sm > .admin-kit-cell-error { margin-top: calc(-1 * var(--spacing-md, 8px)); }
 .admin-kit-inline { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
 .admin-kit-inline.is-center { justify-content: center; }
 
@@ -206,6 +208,9 @@
    건드렸는지가 눈에 남게 배경으로 구분한다. 포커스 중에도 유지한다. */
 .admin-kit-cell-input.is-changed,
 .admin-kit-cell-input.is-changed:focus { background: var(--bg-brand-secondary); }
+/* 틀린 칸 — 같은 파일 .admin-kit-select.is-invalid 와 같은 오류 테두리(pivit-work PW-3019) */
+.admin-kit-cell-input.is-invalid,
+.admin-kit-cell-input.is-invalid:focus { border-color: var(--colors-error-500, #f04438); }
 
 /* ── 필드 칸 ──
    칸 이름표·이름표↔칸·칸 사이·고르기 칸 — 디자이너가 그린 1on1 「일정 추가」 창(.ono-add-modal-*) 값 그대로 (PW-1896).
