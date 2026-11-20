@@ -886,6 +886,9 @@ export default function EvalCycleLeaderCanvas({
     additionalNotes: promotionRequest?.additionalNotes ?? '',
   });
   const [promoBusy, setPromoBusy] = useState(false);
+  // PW-3024 — [제출하기]·[다시 제출] 응답을 기다리는 중(아래 submitNow).
+  const submittingRef = useRef(false);
+  const [submitting, setSubmitting] = useState(false);
   const [promoSaved, setPromoSaved] = useState(false);
 
   // 답변/템플릿 async 로드 시 재시드 — effect-setState 대신 during-render 리셋
@@ -926,9 +929,21 @@ export default function EvalCycleLeaderCanvas({
   const changed = snapshot !== baseline || (leaderCommentOn && lc !== lcBaseline);
   // 자동 임시저장(§5.9)이 보는 값 — 처음 쓰는 리뷰에만. 다시 연 리뷰엔 임시저장이 없다(§5.11-A · PW-3024).
   const dirty = editable && changed;
-  // 호출부에 알리는 값 — 다시 연 리뷰에서 고친 것도 센다(나갈 때 묻게).
+  // 호출부에 알리는 값 — 다시 연 리뷰에서 고친 것도 센다(나갈 때 묻게). 다시 연 리뷰는 [다시 제출]이
+  // 부가 평가도 함께 저장하므로 부가 평가만 고친 것도 센다([부가 평가 저장]을 누르면 그 값이 기준이 된다).
   const reopenedEditing = active && !formLocked && submitted && !showCompletion;
-  const unsaved = (editable || reopenedEditing) && changed;
+  const assessSnap = assessmentLocked
+    ? ''
+    : JSON.stringify([
+        confidentialComment,
+        promotionStatus,
+        promotionStatus ? promotionReason : null,
+        compensationStatus,
+        compensationStatus ? compensationReason : null,
+      ]);
+  const [assessBaseline, setAssessBaseline] = useState(assessSnap);
+  const unsaved =
+    (editable && changed) || (reopenedEditing && (changed || assessSnap !== assessBaseline));
 
   // 렌더 밖(타이머·버튼)에서 읽을 최신 값 — 렌더 중에는 ref 를 건드리지 않는다.
   const latest = useRef(null);
@@ -1168,18 +1183,31 @@ export default function EvalCycleLeaderCanvas({
     compensationStatus,
     compensationReason: compensationStatus ? compensationReason : null,
   });
-  const submitNow = () =>
-    onSubmit?.(toItems(), grade, {
-      ...(assessmentLocked ? {} : { assessment: assessmentPayload() }),
-      ...(leaderCommentOn && leaderCommentWritable ? { leaderComment: lc } : {}),
-    });
+  // PW-3024 — 응답을 기다리는 동안 [제출하기]·[다시 제출]을 잠근다(늦은 응답에 두 번 눌러 두 번 나가던 것).
+  // 호출부가 Promise 를 돌려줄 때만 기다린다.
+  const submitNow = async () => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
+    setSubmitting(true);
+    try {
+      await onSubmit?.(toItems(), grade, {
+        ...(assessmentLocked ? {} : { assessment: assessmentPayload() }),
+        ...(leaderCommentOn && leaderCommentWritable ? { leaderComment: lc } : {}),
+      });
+    } catch {
+      // 실패 알림은 호출부 몫이다 — 버튼만 다시 연다.
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
+    }
+  };
   // §5.8 — 승진을 골랐는데 사유가 비면 권장 경고(막지 않는다). 둘 다 안 골라도 제출된다.
   const askPromoReasonThenSubmit = () => {
     if (!assessmentLocked && promotionStatus && !promotionReason.trim() && L.promotionReasonMissing) {
       setPromoReasonAsk(true);
       return;
     }
-    submitNow();
+    void submitNow();
   };
   const rationaleAskText = rationaleAsk
     ? fillLabel(rationaleAsk.length > 1 ? L.rationaleMissingMany : L.rationaleMissingOne, {
@@ -2145,7 +2173,10 @@ export default function EvalCycleLeaderCanvas({
               <Button
                 variant="secondary"
                 disabled={assessmentLocked}
-                onClick={() => onSaveAssessment?.(assessmentPayload())}
+                onClick={() => {
+                  setAssessBaseline(assessSnap);
+                  onSaveAssessment?.(assessmentPayload());
+                }}
                 data-testid="evl-save-assessment"
               >
                 {L.saveAssessment}
@@ -2192,7 +2223,8 @@ export default function EvalCycleLeaderCanvas({
                   type="button"
                   className="evc-btn is-primary"
                   onClick={handleSubmitClick}
-                  disabled={lcOver}
+                  disabled={lcOver || submitting}
+                  aria-busy={submitting || undefined}
                   data-testid="evl-submit"
                 >
                   {submitted ? L.resubmit : L.submit}
@@ -2241,7 +2273,7 @@ export default function EvalCycleLeaderCanvas({
           onCancel={() => setPromoReasonAsk(false)}
           onConfirm={() => {
             setPromoReasonAsk(false);
-            submitNow();
+            void submitNow();
           }}
           testId="evl-promo-reason-confirm"
         />
