@@ -5139,7 +5139,8 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
 
 /* 막대 — 회색은 «값 없음 · 강조 밖» */
 .admin-snap-bar { width: 100%; min-width: 0; }
-.admin-snap-bar-fill-muted { background: var(--fg-quaternary); }
+/* 디자이너 막대 채움(manager.css .mgr-kr-progress-fill)보다 나중에 읽혀도 이기게 두 클래스로 */
+.mgr-kr-progress-fill.admin-snap-bar-fill-muted { background: var(--utility-gray-400); }
 
 /* 막대 줄(고용 유형 · 연령) */
 .admin-snap-bars { display: flex; flex-direction: column; gap: var(--spacing-lg); min-width: 0; }
@@ -5186,3 +5187,8 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
   border-radius: var(--radius-md);
   padding: var(--spacing-md) var(--spacing-lg);
 }
+/* 1280 에서 머리 줄이 꺾여도 기간 두 칸 · 건수와 [내보내기]는 같은 줄에 남는다(PW-3134) */
+.admin-snap-hist-period-group, .admin-snap-hist-tail { display: inline-flex; align-items: center; gap: var(--spacing-md); flex-shrink: 0; }
+.is-framed .admin-snap-hist-tail { margin-left: auto; }
+.is-framed .admin-snap-hist-main, .is-framed .admin-snap-hist-tablebox { min-width: 0; max-width: 100%; overflow: hidden; }
+.is-framed .admin-snap-hist-search { flex: 1 1 160px; min-width: 160px; width: auto; }

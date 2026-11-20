@@ -2140,6 +2140,7 @@ function AppointmentHistoryView({
             )}
             {!showRevisions && (
               <>
+                <span className="admin-snap-hist-period-group">
                 <DateInput
                   className="admin-snap-input admin-snap-hist-period"
                   value={periodFrom}
@@ -2157,6 +2158,7 @@ function AppointmentHistoryView({
                   aria-label={labels.historyPeriodTo}
                   data-testid="snap-hist-period-to"
                 />
+                </span>
               </>
             )}
             {(
@@ -2174,18 +2176,21 @@ function AppointmentHistoryView({
               </Select>
             )}
             {framed && approvalPendingCount > 0 && !showRevisions && approvalChips}
-            {framed && <span className="admin-snap-querybar-spacer" />}
-            {framed && !showRevisions && !loading && !(error && records.length === 0) && (
-              <span className="admin-snap-coverage-caption" data-testid="snap-hist-count">{filtered.length}{labels.historyCountSuffix ?? '건'}</span>
-            )}
-            {!showRevisions && (framed ? (
-              <Button variant="secondary" size="sm" onClick={() => onExport?.()} data-testid="snap-hist-export">
-                <DownloadGlyph size={16} />
-                {labels.export}
-              </Button>
-            ) : (
+            {framed ? (
+              <span className="admin-snap-hist-tail">
+                {!showRevisions && !loading && !(error && records.length === 0) && (
+                  <span className="admin-snap-coverage-caption" data-testid="snap-hist-count">{filtered.length}{labels.historyCountSuffix ?? '건'}</span>
+                )}
+                {!showRevisions && (
+                  <Button variant="secondary" size="sm" onClick={() => onExport?.()} data-testid="snap-hist-export">
+                    <DownloadGlyph size={16} />
+                    {labels.export}
+                  </Button>
+                )}
+              </span>
+            ) : !showRevisions && (
               <button type="button" className="admin-snap-export-btn" onClick={() => onExport?.()}>↓ {labels.export}</button>
-            ))}
+            )}
           </div>
           {/* 승인 필터 칩(PW-2597 · 정책 §3) — 승인 대기 건이 1건 이상일 때만. 0건이면 줄째 그리지 않는다 */}
           {!framed && approvalPendingCount > 0 && !showRevisions && approvalChips}
