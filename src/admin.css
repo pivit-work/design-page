@@ -5012,7 +5012,7 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
 .aip-pick-wrap { align-self: stretch; display: flex; flex-direction: column; min-width: 0; }
 .aip-pick-wrap > .okr-h-list { flex: 1 1 auto; display: flex; flex-direction: column; }
 .aip-pick-wrap > .okr-h-list > .okr-h-body { flex: 1 1 auto; display: grid; }
-.aip-pick-empty { min-height: 160px; display: grid; place-items: center; text-align: center; }
+.aip-pick-empty { display: grid; place-items: center; text-align: center; }
 
 /* 편집 판 머리 오른쪽 — 판 번호 · 사용 스위치 */
 .aip-head-aside { display: flex; align-items: center; gap: var(--spacing-lg); }

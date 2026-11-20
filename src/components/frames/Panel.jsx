@@ -16,8 +16,8 @@ import { PanelSection } from './PanelSection.jsx';
  *
  * @param {object} props
  * @param {string} [props.title] 머리 줄 제목. 제목도 버튼도 없으면 머리 줄을 그리지 않는다
- * @param {string} [props.eyebrow] 제목 위 작은 글(갈래 이름 등). 주면 머리가 두 단이 되고 제목은 18/28 굵게(디자이너 리소스 «팀 현황»
- *   구역 제목 `.rsx-section-title`) · 위 글은 12/18 `.okr-s-sub` — 한 판 안에서 «무엇을 고쳐 보고 있나»를 말하는 판(PW-3127 AI 프롬프트 편집 판)
+ * @param {string} [props.eyebrow] 제목 위 작은 글(갈래 이름 등). 주면 머리가 두 단이 되고 제목은 18/28 굵게(디자이너 OKR 묶음 이름
+ *   `.okr-group-name` — 판과 같은 okr.css 라 따로 불러올 것이 없다) · 위 글은 12/18 `.okr-s-sub` — 한 판 안에서 «무엇을 고쳐 보고 있나»를 말하는 판(PW-3127 AI 프롬프트 편집 판)
  * @param {import('react').ReactNode} [props.actions] 머리 줄 오른쪽 버튼 자리
  * @param {string} [props.testId]
  * @param {import('react').ReactNode} props.children
@@ -33,7 +33,7 @@ export function Panel({ title, eyebrow, actions, testId, children }) {
               <p className="okr-s-sub" style={EYEBROW_STYLE} title={eyebrow}>
                 {eyebrow}
               </p>
-              <h2 className="rsx-section-title" style={SUB_TITLE_STYLE} title={title}>
+              <h2 className="okr-group-name" style={SUB_TITLE_STYLE} title={title}>
                 {title}
               </h2>
             </div>
