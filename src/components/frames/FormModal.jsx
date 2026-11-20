@@ -6,8 +6,11 @@ import { FRAME_ONE_LINE } from './frameValues.js';
  * 입력 창 안쪽 틀 (PW-2994 ① · PW-3139 에서 design-page 로 옮김) — 가운데 뜨는 입력 창의 구역 제목 · 칸 이름 · 칸 사이 간격 ·
  * 아래 버튼 두 개 자리. 스타일시트: modal-shell.css · timeline.css · meetings.css(쓰는 쪽이 불러온다).
  *
- * 겉 틀은 지금 쓰는 앱 큰 창 틀 그대로다 — `ModalShell` + 앱 창 정본 `.mtg-shell`(폭 560 · 높이는 내용대로 ·
- * 제목 30/38 · 둘레 48 · 아래 버튼 줄 24/48 위 선). 안쪽 값은 디자이너(stesslee) 타임라인 창들에서 꺼냈다:
+ * 겉 틀은 지금 쓰는 앱 큰 창 틀 그대로다 — `ModalShell` + 앱 창 정본 `.mtg-shell`(폭 560 · 제목 30/38 · 둘레 48 ·
+ * 아래 버튼 줄 24/48 위 선). 본문 간격은 디자이너 «그룹 추가» 창으로 되살린다(`.dp-frame-form` · frames.css · pivit-work PW-2995):
+ * 설명 줄 ↔ 첫 칸 48 · 본문 아래 0 · 창 최소 높이 428(«그룹 추가» 판 높이 — 칸이 늘면 창이 자란다).
+ * 창 제목 · 버튼 글자는 한 줄 «…»(좁은 창에서 긴 문구가 두 줄로 꺾이지 않게).
+ * `.mtg-shell` 의 본문 간격(24 · 아래 32)은 회의 창 값이라 쓰지 않는다. 안쪽 값은 디자이너(stesslee) 타임라인 창들에서 꺼냈다:
  *   - 칸 이름 `.tl-group-modal-label` 18/28 굵게 · 이름 ↔ 칸 12(`.tl-group-modal-field`) — «그룹 추가» 창
  *   - 칸 사이 24 — «내부 직원 추가» 창 본문(`.tl-emp-modal-body`)
  *   - 구역 제목 `.tl-meeting-modal-section-header` 18/28 굵게 · 구역 안 12(`.tl-meeting-modal-section`) — 회의 일정 창
@@ -36,18 +39,18 @@ export function FormModal({
 }) {
   return (
     <ModalShell
-      title={title}
+      title={oneLine(title)}
       description={description}
       titleId={titleId}
-      submitLabel={submitLabel}
-      cancelLabel={cancelLabel}
+      submitLabel={oneLine(submitLabel)}
+      cancelLabel={oneLine(cancelLabel)}
       closeLabel={closeLabel}
       canSubmit={canSubmit}
       busy={busy}
       onSubmit={onSubmit}
       onClose={onClose}
       testId={testId}
-      className="mtg-shell"
+      className="mtg-shell dp-frame-form"
       bodyClassName="tl-emp-modal-body"
     >
       {children}
@@ -94,6 +97,19 @@ function FormModalSection({ title, testId, children }) {
       </h3>
       <div className="tl-emp-modal-body">{children}</div>
     </section>
+  );
+}
+
+/**
+ * 창 제목 · 버튼 글자 — 짧은 글이라 한 줄이고, 좁은 창(폭 400)에서 길면 «…»로 자르고 마우스를 올리면 전부 보인다(PW-2995).
+ * 버튼이 글자 폭보다 줄어들 수 있게 하는 것은 frames.css `.dp-frame-form .tl-group-modal-btn`.
+ */
+function oneLine(text) {
+  if (typeof text !== 'string' || !text) return text;
+  return (
+    <span style={FRAME_ONE_LINE} title={text}>
+      {text}
+    </span>
   );
 }
 
