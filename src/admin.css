@@ -4980,3 +4980,88 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
 .rbac-row-icon { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; flex-shrink: 0; background: var(--bg-brand-primary); color: var(--text-brand-tertiary); }
 .rbac-empty { padding: var(--spacing-5xl) 0; text-align: center; font-size: 14px; line-height: 20px; font-weight: 500; color: var(--text-tertiary); word-break: keep-all; }
 .rbac-failed { display: flex; flex-direction: column; align-items: center; gap: var(--spacing-lg); padding: var(--spacing-4xl) 0; text-align: center; font-size: 14px; line-height: 20px; color: var(--text-secondary); word-break: keep-all; }
+
+/* ══ 어드민 «AI 프롬프트 설정» (pivit-work PW-3127 · 커트 11-19 통과 시안) ══════════════════════════════
+   판 · 판 안 구역 · 안내 줄 · 이력 표 · 페이지 머리는 공용 틀(frames) — 여기는 틀이 못 담는 것만 둔다. */
+.aip-page { flex: 1; overflow-y: auto; padding: var(--spacing-4xl) var(--spacing-4xl) var(--spacing-4xl) var(--spacing-4xl); display: flex; flex-direction: column; gap: var(--spacing-3xl); }
+/* 목록 240(spec §2 «좌 240px») · 두 판 사이 16 */
+.aip-split { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: var(--spacing-xl); align-items: start; }
+
+/* 기능 목록 판 — 화면을 따라 위에 붙고, 줄은 판 안에서 내려 본다 */
+.aip-list { position: sticky; top: 0; min-width: 0; }
+.aip-rows { max-height: calc(100vh - 260px); overflow-y: auto; margin: 0 calc(-1 * var(--spacing-md)); min-width: 0; }
+.aip-list-empty { padding: var(--spacing-4xl) 0; text-align: center; }
+/* 갈래 머리 — 옅은 12 굵게 · 누르면 접고 편다(spec §3-1) */
+.aip-cat { display: flex; align-items: center; gap: var(--spacing-xs); padding: var(--spacing-lg) var(--spacing-md) var(--spacing-xs); font-size: 12px; line-height: 18px; font-weight: 600; color: var(--text-tertiary); cursor: pointer; user-select: none; }
+.aip-cat:focus-visible, .aip-row:focus-visible { outline: 2px solid var(--border-brand); outline-offset: -2px; }
+/* 기능 줄 40 — 고른 줄은 옅은 초록(브랜드 옅은 바탕) · 준비중은 옅은 글 */
+.aip-row { display: flex; align-items: center; gap: var(--spacing-md); height: 40px; padding: 0 var(--spacing-md); border-radius: var(--radius-sm, 8px); font-size: 14px; line-height: 20px; font-weight: 500; color: var(--text-primary); cursor: pointer; min-width: 0; }
+.aip-row:hover { background: var(--bg-secondary); }
+.aip-row.is-on { background: var(--bg-brand-primary); font-weight: 700; color: var(--fg-primary); }
+.aip-row.is-soon .aip-row-name { color: var(--text-tertiary); }
+.aip-row-name-wrap { flex: 1; min-width: 0; display: flex; }
+.aip-row-name { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aip-dirty { flex: none; font-size: 12px; line-height: 18px; font-weight: 600; color: var(--text-warning-primary); white-space: nowrap; }
+/* 딱지 모양 — 권한 기준정보 «읽기 전용» 딱지(.rbac-badge)와 같은 값 */
+.aip-badge { display: inline-flex; align-items: center; flex-shrink: 0; padding: calc(var(--spacing-xxs) / 2) var(--spacing-md); border-radius: var(--radius-xs); font-size: 12px; font-weight: 600; line-height: 18px; white-space: nowrap; }
+
+/* 기능 안 고름 — 판 높이를 목록에 맞추고 가운데 안내 */
+.aip-pick-empty { min-height: calc(100vh - 260px); display: grid; place-items: center; text-align: center; }
+
+/* 편집 판 머리 오른쪽 — 판 번호 · 사용 스위치 */
+.aip-head-aside { display: flex; align-items: center; gap: var(--spacing-lg); }
+.aip-ver { font-size: 13px; line-height: 20px; color: var(--text-subtle); font-variant-numeric: tabular-nums; }
+.aip-toggle { display: inline-flex; align-items: center; gap: var(--spacing-md); font-size: 13px; line-height: 20px; font-weight: 600; color: var(--text-secondary); cursor: pointer; }
+
+/* 바탕 없는 한 줄 — 안내 줄 틀(14/20)에 뜻 색만 얹는다(원온원 «보는 범위» .ono-filter-notice 와 같은 바탕 없음) */
+.aip-notes { display: flex; flex-direction: column; gap: var(--spacing-xs); }
+.aip-line { display: flex; align-items: flex-start; gap: var(--spacing-md); margin: 0; font-size: 14px; line-height: 20px; font-weight: 500; word-break: keep-all; overflow-wrap: break-word; }
+.aip-line svg { flex: none; margin-top: var(--spacing-xxs); }
+.aip-line.is-muted { color: var(--text-secondary); }
+.aip-line.is-muted svg { color: var(--text-tertiary); }
+.aip-line.is-warning { color: var(--text-warning-primary); }
+.aip-line.is-error { color: var(--text-error-primary); }
+
+/* 접기 단추 화살표 · 기본 프롬프트란? */
+.aip-chev { transition: transform .15s; color: var(--text-tertiary); }
+.aip-chev.is-open { transform: rotate(90deg); }
+.aip-help { display: inline-flex; align-items: center; gap: var(--spacing-xs); font-size: 13px; line-height: 20px; font-weight: 500; color: var(--text-tertiary); cursor: help; }
+.aip-readbox { font-size: 14px; line-height: 22px; white-space: pre-wrap; }
+
+/* 변수 칩 — 공용 보조 버튼 작은 것 · 중괄호는 브랜드 글자 */
+.aip-chips { display: flex; flex-wrap: wrap; gap: var(--spacing-sm); }
+.aip-chip-text i { font-style: normal; color: var(--text-brand-tertiary); }
+
+/* 커스텀 프롬프트 구역 — 세그먼트 · 주의 · 입력칸 · 글자 수 · 버튼 줄은 12 간격 */
+.aip-custom { display: flex; flex-direction: column; gap: var(--spacing-lg); min-width: 0; }
+.aip-seg { max-width: 280px; }
+
+/* 입력칸 — 타임라인 «그룹 추가» 창 입력칸 값(옅은 회색 바탕 · 테두리 없음 · 누르면 초록 테두리).
+   {{변수}} 강조는 같은 글자 모양의 뒤 층에 그린다(spec §4 [D] «하이라이트») — 입력칸 글은 그대로 보인다. */
+.aip-editor { position: relative; border-radius: var(--radius-md); background: var(--alpha-black-3); box-shadow: inset 0 0 0 1px transparent; }
+.aip-editor:focus-within { box-shadow: inset 0 0 0 1px var(--border-brand); background: var(--bg-quaternary); }
+.aip-editor.is-override { background: var(--utility-warning-50); }
+.aip-editor.is-invalid { box-shadow: inset 0 0 0 1px var(--border-error, var(--text-error-primary)); }
+.aip-editor.is-disabled { opacity: .55; }
+.aip-editor-back, .aip-editor-input { font-family: var(--font-family-body); font-size: 14px; line-height: 24px; padding: var(--spacing-lg) var(--spacing-xl); white-space: pre-wrap; overflow-wrap: break-word; word-break: normal; letter-spacing: normal; }
+.aip-editor-back { position: absolute; inset: 0; overflow: hidden; color: transparent; pointer-events: none; }
+.aip-editor-back mark { color: transparent; background: var(--bg-brand-secondary); border-radius: var(--radius-xxs, 2px); }
+.aip-editor-back mark.is-unknown { background: transparent; text-decoration: underline wavy var(--text-error-primary); text-underline-offset: 4px; }
+.aip-editor-input { position: relative; display: block; width: 100%; min-height: 180px; resize: vertical; border: 0; outline: none; background: transparent; color: var(--fg-primary); }
+.aip-editor-input::placeholder { color: var(--text-tertiary); }
+.aip-under { display: flex; align-items: flex-start; gap: var(--spacing-lg); }
+.aip-under-msgs { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--spacing-xs); }
+.aip-count { flex: none; font-size: 12px; line-height: 18px; color: var(--text-subtle); font-variant-numeric: tabular-nums; }
+.aip-count.is-over { color: var(--text-error-primary); font-weight: 600; }
+
+/* 버튼 줄 — 세 버튼 높이 36(공용 버튼 기본 높이) · AI 버튼만 34 라 맞춘다 */
+.aip-actions { display: flex; align-items: center; gap: var(--spacing-md); flex-wrap: wrap; }
+.aip-actions .aip-gap { flex: 1; }
+.aip-actions .aip-ai-btn { min-height: 36px; }
+
+/* 테스트 결과 — AI 딱지 + AI 읽기 상자(원온원 .ono-my-readbox.is-ai) */
+.aip-result { display: flex; flex-direction: column; gap: var(--spacing-md); }
+.aip-result-head { display: flex; align-items: center; gap: var(--spacing-md); font-size: 13px; line-height: 20px; font-weight: 600; color: var(--fg-primary); }
+.aip-ai-tag { font-size: 12px; line-height: 16px; padding: var(--spacing-xxs) var(--spacing-sm); }
+.aip-applied { display: block; margin-top: var(--spacing-md); padding-top: var(--spacing-md); border-top: 1px solid var(--alpha-black-5); font-size: 12px; line-height: 18px; color: var(--text-secondary); }
+.aip-applied b { font-weight: 600; color: var(--text-primary); margin-right: var(--spacing-sm); }

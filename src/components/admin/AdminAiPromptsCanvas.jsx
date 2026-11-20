@@ -1,81 +1,102 @@
 import { useRef, useState } from 'react';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
-import { InfoGlyph, SearchGlyph } from '../shared/lineIcons.jsx';
+import SearchInput from '../shared/SearchInput.jsx';
 import Switch from '../shared/Switch.jsx';
 import Toast from '../shared/Toast.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import Button from '../shared/Button.jsx';
-import Spinner from '../shared/Spinner.jsx';
+import StatusBadge from '../shared/StatusBadge.jsx';
+import AiMark from '../shared/AiMark.jsx';
+import MemberAiButton from '../oneonone/MemberAiButton.jsx';
+import { isEnterKey } from '../shared/enterKey.js';
+import { FrameTable, NoticeLines, PageHead, Panel } from '../frames/index.js';
 
 /**
  * AdminAiPromptsCanvas — 어드민 "AI 프롬프트 설정" 화면 Pure 컴포넌트.
- * pivit-work 의 AdminAiPromptsPage 를 design-page 정본 캔버스로 포팅.
  *
  * 정본화 원칙 (AdminNotificationsCanvas 와 동일):
- *  - 데이터 fetch·저장·테스트(api.post)·삭제/복원 confirm·버전 lazy-load·토스트
- *    타이머·orgId·i18n 해소는 전부 호스트(page wrapper)가 소유한다.
- *  - Canvas 는 모든 데이터를 props 로 받고 모든 사용자 액션을 콜백 props 로 방출한다.
+ *  - 데이터 fetch·저장·테스트·확인 창·이력 불러오기·토스트 타이머·i18n 은 호스트가 갖는다.
+ *  - Canvas 는 모든 데이터를 props 로 받고 모든 사용자 동작을 콜백으로 내보낸다.
  *  - 사용자 노출 문자열은 DEFAULT_LABELS(한국어) 위에 labels 를 deep-merge 해서 쓴다.
- *    Canvas 는 렌더 로직에 한국어를 하드코딩하지 않는다.
- *  - 카테고리/기능 라벨·변수 설명·기본 프롬프트 텍스트는 호스트가 미리 해소해
- *    features 데이터 prop 으로 넘긴다. 버전 문자열(v{n})만 labels.version 템플릿에
- *    번호를 끼워넣는다(i18next {{version}} 보간과 동일한 경량 포매팅).
  *
- * 내부 상태(순수 UI ephemeral)만 관리한다:
- *  - search(좌측 리스트 검색어), showDefaultPrompt(기본 프롬프트 펼침),
- *    VarChip hover, textareaRef(커서 보존 변수 삽입).
- * 편집 필드(customPrompt/mode/isActive)와 showVersions 는 controlled prop 이다
- * (호스트가 기능 선택·복원·삭제 시 리셋하고, 버전은 토글 시 lazy-load 하므로).
+ * 모양 (pivit-work PW-3127 · 커트 11-19 통과 시안) — 판 · 판 안 구역 · 안내 줄 · 이력 표 · 페이지 머리는 공용 틀(PW-3139)이다.
+ * 기획서: pivit-specs «Z. Backlog/AI-Prompt-Settings» spec §2~§7 · policy §5-2-A.
  *
- * 스타일은 design-page 토큰 기반 src/admin.css 클래스를 재사용한다.
- * 호스트 앱은 `@pivit-work/design-page/styles/admin.css` 를 import 해야 한다.
+ * 내부 상태(화면만의 것): 검색어 · 접은 갈래 · 변수 칸 접힘 · 기본 프롬프트 펼침 · 입력칸 커서.
+ * 편집 값(customPrompt/mode/isActive)·이력 펼침은 호스트가 정한다(기능을 고르거나 복구하면 호스트가 되돌린다).
  *
  * 데이터 형태:
- *  features: FeatureDescriptor[]
- *    FeatureDescriptor: {
- *      key, label, category,            // category/label 은 이미 해소된 라벨 문자열
- *      comingSoon,                      // AI 연동 전 기능이면 true
- *      hasCustom,                       // 저장된 커스텀 프롬프트 존재 여부
- *      customIsActive,                  // 커스텀이 활성(is_active) 상태인지 (점 색)
- *      variables: { name, desc }[],     // 컨텍스트 변수(공용+기능별, 이미 병합·해소됨)
- *      defaultPrompt,                   // 읽기전용 기본 프롬프트 텍스트
- *    }
- *  versions: { id, version, customPrompt }[]
+ *  features: {
+ *    key, label, category,          // 해소된 글
+ *    description,                    // 편집 머리 설명 한 줄(이 AI 가 언제 불리는지)
+ *    comingSoon, hasCustom, customIsActive,
+ *    variables: { name, desc }[], defaultPrompt,
+ *  }[]
+ *  versions: { id, changedAt, changedByName, changeType, mode, customPrompt }[]
+ *    changedAt 은 호스트가 사용자 시간대로 만든 글 · changeType 은 policy §5-2-A 다섯 값 또는 null(옛 줄)
  *  testResult: { success, response?, appliedGuidelines?, error? } | null
  */
-
-// design-page 정본 폰트 스택. mono 는 기술 식별자용 var(--font-family-mono) 토큰.
-const FONT = 'var(--font-family-body)';
-const FIELD_BG = 'var(--componentColors-alpha-alphaBlack3, rgba(0,0,0,0.03))';
-const DIVIDER = '1px solid var(--border-secondary, #e6e8ea)';
 
 const DEFAULT_LABELS = {
   title: 'AI 프롬프트 설정',
   subtitle:
     '기능별 AI 프롬프트를 조직에 맞게 다듬습니다. 기본 프롬프트에 가이드라인을 더하거나 전체를 대체할 수 있어요.',
   searchPlaceholder: '기능 검색...',
+  searchEmpty: '검색 결과가 없습니다',
   comingSoon: '준비중',
-  selectFeature: '왼쪽에서 기능을 선택하세요',
+  badgeDefault: '기본값',
+  badgeCustom: '커스텀',
+  dirty: '● 변경',
+  selectFeature: '← 왼쪽에서 기능을 선택하세요',
   version: 'v{{version}}',
   activeToggle: '사용',
   comingSoonNotice:
-    '이 기능은 아직 AI 연동 전입니다. 지금 저장한 프롬프트는 해당 기능이 출시되면 자동으로 적용됩니다.',
+    '이 칸을 쓰는 AI 기능이 아직 Pivit 에 없습니다. 저장해 둘 수는 있지만 지금은 어디에도 쓰이지 않습니다.',
   noCustom: '커스텀 프롬프트가 없습니다. 기본 프롬프트가 사용됩니다.',
+  usingDefault: '기본 프롬프트 사용 중',
   contextVariables: '사용 가능한 컨텍스트 변수',
   defaultPrompt: 'Pivit 기본 프롬프트',
-  readOnly: '(읽기 전용)',
+  readOnly: '읽기 전용',
+  defaultPromptHelp: '기본 프롬프트란?',
+  defaultPromptHelpText:
+    'Pivit 이 모든 회사에 똑같이 쓰는 AI 지시문입니다. 커스텀 프롬프트는 이 지시문 뒤에 덧붙거나(추가) 이 지시문을 대신합니다(전체 대체).',
+  expand: '펼치기',
+  collapse: '접기',
   customPrompt: '커스텀 프롬프트',
   modeAppend: '추가',
   modeOverride: '전체 대체',
+  overrideWarning:
+    '전체 대체 시 AI 결과 품질이 저하될 수 있습니다. 프롬프트 엔지니어링 경험이 있을 때만 사용하세요.',
+  placeholderAppend:
+    '예: 우리 회사는 성장 마인드셋을 중요시합니다. 평가 시 도전 과정을 결과와 동등하게 반영해주세요.',
+  placeholderOverride:
+    '전체 시스템 프롬프트를 작성하세요. {{변수명}} 형식으로 컨텍스트를 삽입할 수 있습니다.',
+  charCount: '{{count}} / 4,000자',
+  overLimit: '4,000자를 초과할 수 없습니다',
+  overrideEmpty: '전체 대체 모드에서는 프롬프트를 비울 수 없습니다',
+  unknownVariable: '지원하지 않는 변수입니다: {{names}}',
   save: '저장',
   test: '테스트 실행',
   testRunning: '테스트 중...',
   testResult: '테스트 결과',
   testApplied: '적용된 가이드라인',
-  delete: '기본값 복원',
-  versionHistory: '버전 이력',
-  restore: '복원',
+  aiTag: 'AI',
+  delete: '기본값으로 초기화',
+  versionHistory: '변경 이력',
+  versionsEmpty: '변경 이력이 없습니다.',
+  restore: '이 버전으로 복구',
+  historyColumns: { at: '변경한 때', by: '변경한 사람', type: '변경 유형', mode: '적용 방식', content: '내용' },
+  changeTypes: {
+    edit: '수정',
+    activate: '활성화',
+    deactivate: '비활성화',
+    reset: '초기화',
+    before_restore: '복구 직전',
+  },
 };
+
+/** 기획서 §4 [D] · policy §7 — 내용 최대 글자 수. */
+export const AI_PROMPT_MAX_LENGTH = 4000;
 
 function merge(base, provided) {
   if (!provided) return base;
@@ -90,38 +111,118 @@ function merge(base, provided) {
   return out;
 }
 
-// 버전 라벨 경량 보간 — labels.version('v{{version}}') 에 번호를 끼워넣는다.
-function fmtVersion(template, version) {
-  return String(template).replace('{{version}}', String(version));
+function fill(template, values) {
+  return Object.entries(values).reduce((s, [k, v]) => s.replace(`{{${k}}}`, String(v)), String(template));
 }
 
-// 컨텍스트 변수 칩 — design-page .admin-snap-chip(둥근 pill) 패턴을 확장.
-// 중괄호는 brand 색으로 살짝 강조(에메랄드 절제), 호버 시 설명은 공용 말풍선(Tooltip).
-function VarChip({ name, desc, onInsert }) {
-  const [hover, setHover] = useState(false);
+const VAR_RE = /\{\{\s*([^{}\s]+)\s*\}\}/g;
+
+/** 입력칸 글을 «글 / 아는 변수 / 모르는 변수» 조각으로 — 강조 층과 «지원하지 않는 변수» 줄이 함께 쓴다. */
+export function splitPromptVariables(text, known) {
+  const parts = [];
+  let last = 0;
+  for (const m of String(text).matchAll(VAR_RE)) {
+    if (m.index > last) parts.push({ kind: 'text', text: text.slice(last, m.index) });
+    parts.push({ kind: known.has(m[1]) ? 'var' : 'unknown', text: m[0], name: m[1] });
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) parts.push({ kind: 'text', text: text.slice(last) });
+  return parts;
+}
+
+/** 저장을 막는 까닭 — 기획서 §7. 없으면 null. */
+export function aiPromptSaveBlock(customPrompt, mode) {
+  if (customPrompt.length > AI_PROMPT_MAX_LENGTH) return 'overLimit';
+  if (mode === 'override' && !customPrompt.trim()) return 'overrideEmpty';
+  return null;
+}
+
+const ChevronGlyph = ({ open }) => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className={open ? 'aip-chev is-open' : 'aip-chev'}>
+    <path d="M9 6l6 6-6 6" />
+  </svg>
+);
+const InfoGlyph = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 11v5M12 8h.01" />
+  </svg>
+);
+const WarnGlyph = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M12 3.5l9.5 16.5h-19z" />
+    <path d="M12 10v4M12 17h.01" />
+  </svg>
+);
+const ResetGlyph = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <path d="M4 12a8 8 0 1 0 2.3-5.7" />
+    <path d="M4 4v4h4" />
+  </svg>
+);
+
+/** 바탕 없는 한 줄 — 공용 안내 줄 틀(NoticeLines)에 «주의»·«실패» 색이 없어 그 줄 모양(14/20)에 색만 얹는다. */
+function ToneLine({ tone, icon, children, testId }) {
   return (
-    <Tooltip content={desc}>
-      <button
-        type="button"
-        onClick={onInsert}
-        onMouseEnter={() => setHover(true)}
-        onMouseLeave={() => setHover(false)}
-        data-testid={`var-chip-${name}`}
-        style={{
-          padding: '5px 12px', borderRadius: 99,
-          border: `1px solid ${hover ? 'var(--text-tertiary)' : 'var(--border-primary)'}`,
-          background: hover ? 'var(--bg-secondary)' : 'var(--bg-primary)',
-          fontFamily: FONT, fontSize: 12, fontWeight: 500,
-          color: hover ? 'var(--text-primary)' : 'var(--text-secondary)',
-          cursor: 'pointer', whiteSpace: 'nowrap',
-          transition: 'background .15s ease, color .15s ease, border-color .15s ease',
+    <p className={`aip-line is-${tone}`} data-testid={testId}>
+      {icon}
+      <span>{children}</span>
+    </p>
+  );
+}
+
+/** 접고 펴는 단추 — 판 안 구역 머리 오른쪽 자리. */
+function FoldButton({ open, labels, onClick, testId }) {
+  return (
+    <Button variant="ghost" size="sm" onClick={onClick} aria-expanded={open} data-testid={testId}>
+      <ChevronGlyph open={open} />
+      {open ? labels.collapse : labels.expand}
+    </Button>
+  );
+}
+
+/** 판 안 구역 — 공용 틀(Panel.Section: 구역 사이 가는 선 · 제목 · 오른쪽 자리). */
+function Section({ title, aside, children, testId }) {
+  return (
+    <Panel.Section title={title} actions={aside} testId={testId}>
+      {children}
+    </Panel.Section>
+  );
+}
+
+function PromptEditor({ value, onChange, textareaRef, known, placeholder, disabled, override, invalid }) {
+  const backRef = useRef(null);
+  const parts = splitPromptVariables(value, known);
+  return (
+    <div className={['aip-editor', override ? 'is-override' : '', disabled ? 'is-disabled' : '', invalid ? 'is-invalid' : ''].filter(Boolean).join(' ')}>
+      <div className="aip-editor-back" ref={backRef} aria-hidden>
+        {parts.map((p, i) =>
+          p.kind === 'text' ? (
+            <span key={i}>{p.text}</span>
+          ) : (
+            <mark key={i} className={p.kind === 'var' ? 'aip-var' : 'aip-var is-unknown'}>
+              {p.text}
+            </mark>
+          ),
+        )}
+        {'\n'}
+      </div>
+      <textarea
+        ref={textareaRef}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onScroll={(e) => {
+          if (backRef.current) backRef.current.scrollTop = e.currentTarget.scrollTop;
         }}
-      >
-        <span style={{ color: 'var(--text-brand-tertiary)' }}>{'{{'}</span>
-        {name}
-        <span style={{ color: 'var(--text-brand-tertiary)' }}>{'}}'}</span>
-      </button>
-    </Tooltip>
+        placeholder={placeholder}
+        aria-label={placeholder}
+        aria-invalid={invalid || undefined}
+        disabled={disabled}
+        data-testid="prompt-textarea"
+        rows={7}
+        className="aip-editor-input"
+      />
+    </div>
   );
 }
 
@@ -132,6 +233,8 @@ export default function AdminAiPromptsCanvas({
   mode = 'append',
   isActive = true,
   selectedVersion = null,
+  dirty = false,
+  saving = false,
   versions = [],
   showVersions = false,
   testResult = null,
@@ -149,354 +252,413 @@ export default function AdminAiPromptsCanvas({
   onToggleVersions,
   onRestoreVersion,
   baseUrl = '/',
-  // 제목 줄 오른쪽에 둘 짧은 안내(예: 저장 방식 안내). 없으면 머리 모양은 그대로다.
+  // 제목 줄 오른쪽에 둘 짧은 안내(예: 저장 방식 안내).
   headerAside = null,
 }) {
   const labels = merge(DEFAULT_LABELS, providedLabels);
   const textareaRef = useRef(null);
 
   const [search, setSearch] = useState('');
+  const [closedCats, setClosedCats] = useState(() => new Set());
+  const [showVariables, setShowVariables] = useState(true);
   const [showDefaultPrompt, setShowDefaultPrompt] = useState(false);
 
   const selected = features.find((f) => f.key === selectedKey) || null;
 
-  const filtered = features.filter((f) => {
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return (f.label || '').toLowerCase().includes(q) || (f.key || '').toLowerCase().includes(q);
-  });
+  const q = search.trim().toLowerCase();
+  const filtered = features.filter(
+    (f) => !q || (f.label || '').toLowerCase().includes(q) || (f.key || '').toLowerCase().includes(q),
+  );
+  const groups = [];
+  for (const f of filtered) {
+    const g = groups[groups.length - 1];
+    if (g && g.category === f.category) g.items.push(f);
+    else groups.push({ category: f.category, items: [f] });
+  }
 
-  // 커서 위치를 보존하며 변수 토큰을 커스텀 프롬프트에 삽입. 실제 값 변경은 controlled
-  // 콜백(onCustomPromptChange)으로 방출한다 (textareaRef 만 내부 ephemeral).
+  // 변수 칩을 누르면 커서 자리에 넣는다. 입력칸에 커서가 없으면 끝에 붙인다(spec §5-3).
   const insertVariable = (varName) => {
     const insertText = `{{${varName}}}`;
     const textarea = textareaRef.current;
-    if (textarea) {
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const newValue = customPrompt.slice(0, start) + insertText + customPrompt.slice(end);
-      onCustomPromptChange && onCustomPromptChange(newValue);
-      requestAnimationFrame(() => {
-        textarea.focus();
-        const newPos = start + insertText.length;
-        textarea.setSelectionRange(newPos, newPos);
-      });
-    } else {
-      onCustomPromptChange && onCustomPromptChange(customPrompt + insertText);
-    }
+    const focused = textarea && typeof document !== 'undefined' && document.activeElement === textarea;
+    const start = focused ? textarea.selectionStart : customPrompt.length;
+    const end = focused ? textarea.selectionEnd : customPrompt.length;
+    onCustomPromptChange?.(customPrompt.slice(0, start) + insertText + customPrompt.slice(end));
+    requestAnimationFrame(() => {
+      if (!textarea) return;
+      textarea.focus();
+      const pos = start + insertText.length;
+      textarea.setSelectionRange(pos, pos);
+    });
   };
 
-  return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg-primary)', fontFamily: FONT, paddingLeft: 240 /* design-page 고정 사이드바(240px) 영역 회피 */ }}>
-      {/* 어드민 캔버스 — 다른 어드민 화면과 동일한 콘텐츠 영역(전체 폭) */}
-      <div className="admin-canvas" style={{ flex: 1, padding: '32px 36px', overflowY: 'auto', gap: 0 }}>
-        {/* 페이지 헤더 */}
-        <div style={{ marginBottom: 24 }}>
-          {headerAside ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-              <h1 className="admin-page-title">{labels.title}</h1>
-              <div data-testid="aip-header-aside" style={{ minWidth: 0 }}>{headerAside}</div>
+  const toggleCat = (cat) =>
+    setClosedCats((prev) => {
+      const next = new Set(prev);
+      if (next.has(cat)) next.delete(cat);
+      else next.add(cat);
+      return next;
+    });
+
+  const onRowKey = (fn) => (e) => {
+    if (!isEnterKey(e) && e.key !== ' ') return;
+    e.preventDefault();
+    fn();
+  };
+
+  const featureRow = (f) => {
+    const on = selectedKey === f.key;
+    const badge = on && dirty ? (
+      <span className="aip-dirty" data-testid={`dirty-${f.key}`}>{labels.dirty}</span>
+    ) : f.comingSoon ? (
+      <>
+        <StatusBadge tone="neutral" className="aip-badge" data-testid={`coming-soon-${f.key}`}>{labels.comingSoon}</StatusBadge>
+        {f.hasCustom && f.customIsActive && <StatusBadge tone="info" className="aip-badge">{labels.badgeCustom}</StatusBadge>}
+      </>
+    ) : f.hasCustom && f.customIsActive ? (
+      <StatusBadge tone="info" className="aip-badge" data-testid={`badge-custom-${f.key}`}>{labels.badgeCustom}</StatusBadge>
+    ) : (
+      // 기획서 §3-1 딱지는 «기본값» · «커스텀» 둘 — 꺼 둔 회사 프롬프트도 기본 프롬프트를 쓰므로 «기본값».
+      <StatusBadge tone="neutral" className="aip-badge" data-testid={`badge-default-${f.key}`}>{labels.badgeDefault}</StatusBadge>
+    );
+    return (
+      <div
+        key={f.key}
+        role="button"
+        tabIndex={0}
+        aria-pressed={on}
+        className={['aip-row', on ? 'is-on' : '', f.comingSoon ? 'is-soon' : ''].filter(Boolean).join(' ')}
+        onClick={() => onSelectFeature?.(f.key)}
+        onKeyDown={onRowKey(() => onSelectFeature?.(f.key))}
+        data-testid={`feature-key-${f.key}`}
+      >
+        <Tooltip content={f.label} wrap className="aip-row-name-wrap">
+          <span className="aip-row-name">{f.label}</span>
+        </Tooltip>
+        {badge}
+      </div>
+    );
+  };
+
+  const list = (
+    <div className="aip-list">
+      <Panel testId="aip-feature-list">
+        <SearchInput
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={labels.searchPlaceholder}
+          aria-label={labels.searchPlaceholder}
+          data-testid="aip-search"
+        />
+        <div className="aip-rows">
+          {groups.length === 0 ? (
+            <div className="aip-list-empty" data-testid="aip-search-empty">
+              <NoticeLines lines={[labels.searchEmpty]} tone="muted" />
             </div>
           ) : (
-            <h1 className="admin-page-title">{labels.title}</h1>
+            groups.map((g) => {
+              const open = !closedCats.has(g.category) || !!q;
+              return (
+                <div key={g.category} className="aip-group">
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    aria-expanded={open}
+                    className="aip-cat"
+                    onClick={() => toggleCat(g.category)}
+                    onKeyDown={onRowKey(() => toggleCat(g.category))}
+                    data-testid={`aip-cat-${g.category}`}
+                  >
+                    <ChevronGlyph open={open} />
+                    <span>{g.category}</span>
+                  </div>
+                  {open && g.items.map(featureRow)}
+                </div>
+              );
+            })
           )}
-          <p className="admin-page-subtitle" style={{ marginTop: 4 }}>{labels.subtitle}</p>
         </div>
+      </Panel>
+    </div>
+  );
 
-        {/* Master-detail */}
-        <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-          {/* Left — feature key list */}
-          <div style={{ width: 320, flexShrink: 0, background: 'var(--bg-quaternary)', borderRadius: 16, boxShadow: 'var(--admin-card-shadow)', overflow: 'hidden', alignSelf: 'flex-start' }}>
-            <div style={{ padding: '14px 16px', borderBottom: DIVIDER }}>
-              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', display: 'inline-flex', color: 'var(--text-tertiary)', pointerEvents: 'none' }}>
-                  <SearchGlyph size={16} />
-                </span>
-                <input
-                  className="admin-emp-search"
-                  type="text"
-                  placeholder={labels.searchPlaceholder}
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  aria-label={labels.searchPlaceholder}
-                />
-              </div>
-            </div>
-            <div style={{ maxHeight: 'calc(100vh - 260px)', overflowY: 'auto' }}>
-              {filtered.map((f) => {
-                const active = selectedKey === f.key;
-                return (
-                  <button
-                    key={f.key}
-                    onClick={() => onSelectFeature && onSelectFeature(f.key)}
-                    data-testid={`feature-key-${f.key}`}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '14px 16px',
-                      border: 'none', borderBottom: '1px solid var(--border-secondary, #e6e8ea)', cursor: 'pointer',
-                      background: active ? 'var(--bg-active)' : 'transparent', textAlign: 'left',
-                      fontFamily: FONT, fontSize: 14, lineHeight: '20px',
-                      color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
-                      fontWeight: active ? 700 : 600,
-                      transition: 'background .15s ease',
-                    }}
-                  >
-                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', minWidth: 44 }}>
-                      {f.category}
-                    </span>
-                    <span style={{ flex: 1, opacity: f.comingSoon ? 0.55 : 1 }}>{f.label}</span>
-                    {f.comingSoon && (
-                      <span
-                        data-testid={`coming-soon-${f.key}`}
-                        style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', background: 'var(--bg-secondary)', borderRadius: 6, padding: '1px 7px', letterSpacing: '-0.01em' }}
-                      >
-                        {labels.comingSoon}
-                      </span>
-                    )}
-                    {f.hasCustom && (
-                      <span
-                        style={{ width: 6, height: 6, borderRadius: '50%', background: f.customIsActive ? 'var(--utility-green-600)' : 'var(--text-quaternary)', flexShrink: 0 }}
-                        data-testid={`custom-indicator-${f.key}`}
-                      />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+  if (!selected) {
+    return (
+      <Shell labels={labels} headerAside={headerAside} toast={toast} toastTone={toastTone}>
+        {list}
+        <Panel testId="aip-editor-empty">
+          <div className="aip-pick-empty" data-testid="empty-state">
+            <NoticeLines lines={[labels.selectFeature]} tone="muted" />
           </div>
+        </Panel>
+      </Shell>
+    );
+  }
 
-          {/* Right — editor */}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            {!selected ? (
-              <div className="admin-card" style={{ padding: '60px 24px', textAlign: 'center' }}>
-                <div style={{ fontSize: 14, color: 'var(--text-secondary)' }} data-testid="empty-state">{labels.selectFeature}</div>
-              </div>
+  const known = new Set((selected.variables || []).map((v) => v.name));
+  const unknownNames = [
+    ...new Set(splitPromptVariables(customPrompt, known).filter((p) => p.kind === 'unknown').map((p) => `{{${p.name}}}`)),
+  ];
+  const block = aiPromptSaveBlock(customPrompt, mode);
+  const off = !isActive;
+  const locked = off || saving;
+  const testError = testResult && !testResult.success;
+
+  const head = (
+    <div className="aip-head-aside">
+      {selected.hasCustom && selectedVersion != null && (
+        <span className="aip-ver">{fill(labels.version, { version: selectedVersion })}</span>
+      )}
+      <label className="aip-toggle" data-testid="active-toggle-label">
+        <span>{labels.activeToggle}</span>
+        <Switch checked={isActive} onChange={() => onToggleActive?.()} disabled={saving} data-testid="active-toggle" />
+      </label>
+    </div>
+  );
+
+  return (
+    <Shell labels={labels} headerAside={headerAside} toast={toast} toastTone={toastTone}>
+      {list}
+      <Panel title={`${selected.category} / ${selected.label}`} actions={head} testId="aip-editor">
+        {selected.description && <NoticeLines lines={[selected.description]} tone="muted" testId="aip-description" />}
+        {(selected.comingSoon || off || !selected.hasCustom) && (
+          <div className="aip-notes" data-testid="aip-notes">
+            {selected.comingSoon && (
+              <ToneLine tone="warning" icon={<WarnGlyph />} testId="coming-soon-notice">{labels.comingSoonNotice}</ToneLine>
+            )}
+            {off ? (
+              <ToneLine tone="muted" icon={<InfoGlyph />} testId="using-default-notice">{labels.usingDefault}</ToneLine>
             ) : (
-              <div className="admin-card" style={{ padding: 0, overflow: 'visible', opacity: isActive ? 1 : 0.6, transition: 'opacity .2s' }}>
-                {/* Editor header */}
-                <div style={{ padding: '18px 22px', borderBottom: DIVIDER, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>{selected.label}</div>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexShrink: 0 }}>
-                    {selected.hasCustom && selectedVersion != null && (
-                      <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>
-                        {fmtVersion(labels.version, selectedVersion)}
-                      </span>
-                    )}
-                    {/* is_active 스위치 — 이름은 감싼 <label> 의 글이다 */}
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }} data-testid="active-toggle-label">
-                      <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 600 }}>{labels.activeToggle}</span>
-                      <Switch
-                        checked={isActive}
-                        onChange={() => onToggleActive && onToggleActive()}
-                        data-testid="active-toggle"
-                      />
-                    </label>
-                  </div>
-                </div>
-
-                {/* 섹션 간격 32px */}
-                <div style={{ padding: '24px 22px', display: 'flex', flexDirection: 'column', gap: 32 }}>
-                  {/* 아직 AI 연동 전인 기능 — 저장은 되지만 적용은 출시 후 */}
-                  {selected.comingSoon && (
-                    <div data-testid="coming-soon-notice" style={{ display: 'flex', alignItems: 'flex-start', gap: 8, padding: '12px 14px', borderRadius: 10, background: 'var(--utility-amber-50, #fffaeb)', border: '1px solid var(--utility-amber-100, #fef0c7)' }}>
-                      <span style={{ color: 'var(--utility-amber-600, #dc6803)', display: 'inline-flex', flexShrink: 0, marginTop: 1 }}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" /></svg>
-                      </span>
-                      <span style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{labels.comingSoonNotice}</span>
-                    </div>
-                  )}
-                  {/* 현재 기본 프롬프트가 적용 중임을 알리는 중립 안내 */}
-                  {!selected.hasCustom && (
-                    <div data-testid="no-custom-info" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', borderRadius: 10, background: FIELD_BG }}>
-                      <span style={{ color: 'var(--text-tertiary)', display: 'inline-flex', flexShrink: 0 }}>
-                        <InfoGlyph size={16} />
-                      </span>
-                      <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{labels.noCustom}</span>
-                    </div>
-                  )}
-
-                  {/* Context variables section */}
-                  <div data-testid="context-variables-section">
-                    <div className="admin-section-label" style={{ marginBottom: 10 }}>{labels.contextVariables}</div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                      {(selected.variables || []).map((v) => (
-                        <VarChip
-                          key={v.name}
-                          name={v.name}
-                          desc={v.desc}
-                          onInsert={() => insertVariable(v.name)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Default prompt (read-only collapsible) */}
-                  <details
-                    open={showDefaultPrompt}
-                    onToggle={(e) => setShowDefaultPrompt(e.target.open)}
-                    data-testid="default-prompt-section"
-                  >
-                    <summary className="admin-section-label" style={{ cursor: 'pointer', userSelect: 'none' }}>
-                      {labels.defaultPrompt} <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>{labels.readOnly}</span>
-                    </summary>
-                    <div
-                      style={{
-                        marginTop: 10, padding: '14px 16px', borderRadius: 10,
-                        background: FIELD_BG, fontSize: 13, fontVariantNumeric: 'tabular-nums',
-                        color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', lineHeight: 1.7,
-                      }}
-                      data-testid="default-prompt-text"
-                    >
-                      {selected.defaultPrompt || ''}
-                    </div>
-                  </details>
-
-                  {/* Custom prompt */}
-                  <div>
-                    <div className="admin-section-label" style={{ marginBottom: 10 }}>{labels.customPrompt}</div>
-                    {/* Mode segmented — 공용 SegmentedControl(PW-836) */}
-                    <div style={{ marginBottom: 12, maxWidth: 280 }}>
-                      <SegmentedControl
-                        block
-                        ariaLabel={labels.customPrompt}
-                        items={['append', 'override'].map((m) => ({
-                          value: m,
-                          label: m === 'append' ? labels.modeAppend : labels.modeOverride,
-                          testId: `mode-${m}`,
-                        }))}
-                        value={mode}
-                        onChange={(m) => onModeChange && onModeChange(m)}
-                      />
-                    </div>
-
-                    {/* Textarea — design-page admin-emp-input 정본(포커스 시 brand inset) */}
-                    <textarea
-                      ref={textareaRef}
-                      value={customPrompt}
-                      onChange={(e) => onCustomPromptChange && onCustomPromptChange(e.target.value)}
-                      placeholder={labels.customPrompt}
-                      aria-label={labels.customPrompt}
-                      data-testid="prompt-textarea"
-                      rows={7}
-                      className="admin-emp-input"
-                      style={{ width: '100%', minHeight: 150, resize: 'vertical', lineHeight: 1.7, padding: '14px 16px', borderRadius: 10, boxSizing: 'border-box' }}
-                    />
-                  </div>
-
-                  {/* Action buttons */}
-                  <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <Button onClick={() => onSave && onSave()} data-testid="save-btn" variant="primary" className="admin-invite-button">
-                      {labels.save}
-                    </Button>
-                    <Button
-                      onClick={() => onTest && onTest()}
-                      disabled={testLoading}
-                      data-testid="test-btn"
-                      variant="secondary"
-                      size="sm"
-                      className="admin-link-button"
-                      style={{ cursor: testLoading ? 'wait' : 'pointer' }}
-                    >
-                      {testLoading ? <span className="dp-busy-inline"><Spinner size={12} />{labels.testRunning}</span> : labels.test}
-                    </Button>
-                    {/* 기본값 복원(커스텀 삭제)은 커스텀 프롬프트가 있을 때만 의미가 있다 */}
-                    {selected.hasCustom && (
-                      <Button
-                        onClick={() => onDelete && onDelete()}
-                        data-testid="delete-btn"
-                        variant="secondary"
-                        size="sm"
-                        className="admin-link-button"
-                        style={{ marginLeft: 'auto', color: 'var(--text-error-primary)' }}
-                      >
-                        {labels.delete}
-                      </Button>
-                    )}
-                  </div>
-
-                  {testResult && (
-                    <div style={{ padding: '14px 16px', borderRadius: 10, background: testResult.success ? 'var(--utility-green-50)' : 'var(--utility-error-50)', border: `1px solid ${testResult.success ? 'var(--utility-green-100)' : 'var(--utility-error-100)'}` }} data-testid="test-result">
-                      <div style={{ fontSize: 12, fontWeight: 700, color: testResult.success ? 'var(--utility-green-600)' : 'var(--text-error-primary)', marginBottom: 8 }}>
-                        {labels.testResult}
-                      </div>
-                      {testResult.response && (
-                        <div style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.6, marginBottom: 8 }}>
-                          {testResult.response}
-                        </div>
-                      )}
-                      {testResult.appliedGuidelines && (
-                        <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                          <strong>{labels.testApplied}:</strong> {testResult.appliedGuidelines}
-                        </div>
-                      )}
-                      {testResult.error && (
-                        <div style={{ fontSize: 13, color: 'var(--text-error-primary)' }}>{testResult.error}</div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Version history — 저장된 커스텀 프롬프트가 있을 때만 버전이 존재한다 */}
-                  {selected.hasCustom && (
-                  <div style={{ borderTop: DIVIDER, paddingTop: 16 }}>
-                    <button
-                      onClick={() => onToggleVersions && onToggleVersions()}
-                      data-testid="toggle-versions"
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none',
-                        cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)',
-                        fontFamily: FONT, padding: 0,
-                      }}
-                    >
-                      <span style={{ transform: showVersions ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform .15s', display: 'inline-block', fontSize: 10 }}>&#9654;</span>
-                      {labels.versionHistory}
-                    </button>
-                    {showVersions && (
-                      <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }} data-testid="version-list">
-                        {versions.length === 0 ? (
-                          <div style={{ fontSize: 13, color: 'var(--text-secondary)', padding: '8px 0' }}>{labels.noCustom}</div>
-                        ) : (
-                          versions.map((v) => (
-                            <div
-                              key={v.id}
-                              aria-current={selectedVersion != null && v.version === selectedVersion ? 'true' : undefined}
-                              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 10, background: FIELD_BG }}
-                            >
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 3 }}>
-                                  {fmtVersion(labels.version, v.version)}
-                                </div>
-                                <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5, whiteSpace: 'pre-wrap', maxHeight: 60, overflow: 'hidden' }}>
-                                  {v.customPrompt}
-                                </div>
-                              </div>
-                              <Button
-                                onClick={() => onRestoreVersion && onRestoreVersion(v.id)}
-                                data-testid={`restore-${v.id}`}
-                                variant="secondary"
-                                size="sm"
-                                className="admin-link-button"
-                                style={{ flexShrink: 0 }}
-                              >
-                                {labels.restore}
-                              </Button>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    )}
-                  </div>
-                  )}
-                </div>
-              </div>
+              !selected.hasCustom && (
+                <ToneLine tone="muted" icon={<InfoGlyph />} testId="no-custom-info">{labels.noCustom}</ToneLine>
+              )
             )}
           </div>
-        </div>
-      </div>
+        )}
 
-      {/* Toast */}
+        <Section
+          title={labels.contextVariables}
+          aside={<FoldButton open={showVariables} labels={labels} onClick={() => setShowVariables((v) => !v)} testId="toggle-variables" />}
+          testId="context-variables-section"
+        >
+          {showVariables && (
+            <div className="aip-chips">
+              {(selected.variables || []).map((v) => (
+                <Tooltip key={v.name} content={v.desc}>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={locked}
+                    onClick={() => insertVariable(v.name)}
+                    data-testid={`var-chip-${v.name}`}
+                  >
+                    <span className="aip-chip-text">
+                      <i>{'{{'}</i>
+                      {v.name}
+                      <i>{'}}'}</i>
+                    </span>
+                  </Button>
+                </Tooltip>
+              ))}
+            </div>
+          )}
+        </Section>
+
+        <Section
+          title={labels.defaultPrompt}
+          aside={
+            <>
+              <StatusBadge tone="neutral" className="aip-badge">{labels.readOnly}</StatusBadge>
+              <Tooltip content={labels.defaultPromptHelpText} maxWidth={320}>
+                <span className="aip-help" tabIndex={0} data-testid="default-prompt-help">
+                  <InfoGlyph />
+                  {labels.defaultPromptHelp}
+                </span>
+              </Tooltip>
+              <FoldButton open={showDefaultPrompt} labels={labels} onClick={() => setShowDefaultPrompt((v) => !v)} testId="toggle-default-prompt" />
+            </>
+          }
+          testId="default-prompt-section"
+        >
+          {showDefaultPrompt && (
+            <p className="ono-my-readbox aip-readbox" data-testid="default-prompt-text">
+              {selected.defaultPrompt || ''}
+            </p>
+          )}
+        </Section>
+
+        <Section title={labels.customPrompt} testId="custom-prompt-section">
+          <div className="aip-custom">
+          <div className="aip-seg">
+            <SegmentedControl
+              block
+              ariaLabel={labels.customPrompt}
+              items={['append', 'override'].map((m) => ({
+                value: m,
+                label: m === 'append' ? labels.modeAppend : labels.modeOverride,
+                testId: `mode-${m}`,
+                disabled: locked,
+              }))}
+              value={mode}
+              onChange={(m) => onModeChange?.(m)}
+            />
+          </div>
+          {mode === 'override' && (
+            <ToneLine tone="warning" icon={<WarnGlyph />} testId="override-warning">{labels.overrideWarning}</ToneLine>
+          )}
+          <PromptEditor
+            value={customPrompt}
+            onChange={(v) => onCustomPromptChange?.(v)}
+            textareaRef={textareaRef}
+            known={known}
+            placeholder={mode === 'override' ? labels.placeholderOverride : labels.placeholderAppend}
+            disabled={locked}
+            override={mode === 'override'}
+            invalid={block === 'overLimit'}
+          />
+          <div className="aip-under">
+            <div className="aip-under-msgs">
+              {block && !off && (
+                <ToneLine tone="error" testId="save-block-reason">{labels[block]}</ToneLine>
+              )}
+              {unknownNames.length > 0 && (
+                <ToneLine tone="warning" testId="unknown-variable">{fill(labels.unknownVariable, { names: unknownNames.join(' ') })}</ToneLine>
+              )}
+            </div>
+            <span className={block === 'overLimit' ? 'aip-count is-over' : 'aip-count'} data-testid="char-count">
+              {fill(labels.charCount, { count: customPrompt.length.toLocaleString('ko-KR') })}
+            </span>
+          </div>
+
+          <div className="aip-actions">
+            <Button
+              variant="primary"
+              onClick={() => onSave?.()}
+              pending={saving}
+              disabled={off || !dirty || !!block}
+              data-testid="save-btn"
+            >
+              {labels.save}
+            </Button>
+            <MemberAiButton
+              label={testLoading ? labels.testRunning : labels.test}
+              aiWord={false}
+              pending={testLoading}
+              disabled={locked}
+              onClick={() => onTest?.()}
+              baseUrl={baseUrl}
+              className="aip-ai-btn"
+              testId="test-btn"
+            />
+            <span className="aip-gap" />
+            {selected.hasCustom && (
+              <Button variant="danger-ghost" onClick={() => onDelete?.()} disabled={locked} data-testid="delete-btn">
+                <ResetGlyph />
+                {labels.delete}
+              </Button>
+            )}
+          </div>
+
+          {testResult && !testError && (
+            <div className="aip-result" data-testid="test-result">
+              <div className="aip-result-head">
+                <span className="ons-ai-tag aip-ai-tag">
+                  <AiMark size={12} baseUrl={baseUrl} />
+                  {labels.aiTag}
+                </span>
+                <span>{labels.testResult}</span>
+              </div>
+              <div className="ono-my-readbox is-ai aip-readbox">
+                {testResult.response}
+                {testResult.appliedGuidelines && (
+                  <span className="aip-applied">
+                    <b>{labels.testApplied}</b>
+                    {testResult.appliedGuidelines}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+          {testError && (
+            <ToneLine tone="error" testId="test-result">{testResult.error}</ToneLine>
+          )}
+          </div>
+        </Section>
+
+        <Section
+          title={labels.versionHistory}
+          aside={<FoldButton open={showVersions} labels={labels} onClick={() => onToggleVersions?.()} testId="toggle-versions" />}
+          testId="version-section"
+        >
+          {showVersions && (
+            <FrameTable
+              testId="version-list"
+              ariaLabel={labels.versionHistory}
+              maxRows={6}
+              rowKey={(v) => v.id}
+              rows={versions}
+              empty={labels.versionsEmpty}
+              columns={[
+                { key: 'at', header: labels.historyColumns.at, width: 160, render: (v) => v.changedAt },
+                { key: 'by', header: labels.historyColumns.by, render: (v) => v.changedByName || '' },
+                {
+                  key: 'type',
+                  header: labels.historyColumns.type,
+                  width: 120,
+                  render: (v) =>
+                    v.changeType && labels.changeTypes[v.changeType] ? (
+                      <StatusBadge tone="neutral" className="aip-badge" data-testid={`change-type-${v.id}`}>
+                        {labels.changeTypes[v.changeType]}
+                      </StatusBadge>
+                    ) : (
+                      ''
+                    ),
+                },
+                {
+                  key: 'mode',
+                  header: labels.historyColumns.mode,
+                  width: 120,
+                  render: (v) => (v.mode === 'override' ? labels.modeOverride : labels.modeAppend),
+                },
+                { key: 'content', header: labels.historyColumns.content, lines: 2, render: (v) => v.customPrompt },
+                {
+                  key: 'restore',
+                  header: '',
+                  align: 'right',
+                  render: (v) => (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={saving}
+                      onClick={() => onRestoreVersion?.(v.id)}
+                      data-testid={`restore-${v.id}`}
+                    >
+                      {labels.restore}
+                    </Button>
+                  ),
+                },
+              ]}
+            />
+          )}
+        </Section>
+      </Panel>
+    </Shell>
+  );
+}
+
+/** 화면 틀 — 왼쪽 메뉴 자리를 비우고, 안쪽이 스크롤된다(다른 어드민 화면과 같은 콘텐츠 영역). */
+function Shell({ labels, headerAside, toast, toastTone, children }) {
+  return (
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: 'var(--bg-primary)', fontFamily: FONT, paddingLeft: 240 /* design-page 고정 사이드바(240px) 영역 회피 */ }}>
+      <div className="admin-canvas aip-page">
+        <PageHead title={labels.title} description={[labels.subtitle]} actions={headerAside} testId="aip-header" />
+        <div className="aip-split">{children}</div>
+      </div>
       {/* 알림 문구는 공용 Toast 한 벌 (PW-1010). 실패 문구는 toastTone="error" 로 빨강 */}
       <Toast message={toast} tone={toastTone} data-testid="toast" />
     </div>
   );
 }
+
+// design-page 정본 폰트 스택.
+const FONT = 'var(--font-family-body)';
