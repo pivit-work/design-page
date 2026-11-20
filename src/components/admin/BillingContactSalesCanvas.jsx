@@ -1,7 +1,11 @@
 import { useState } from 'react';
-import { BillingCard as Card } from './kit/BillingSurface.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Checkbox from '../shared/Checkbox.jsx';
+import Button from '../shared/Button.jsx';
+import { AlertTriangleGlyph, CheckGlyph, InfoGlyph } from '../shared/lineIcons.jsx';
+import { Panel } from '../frames/index.js';
+import { BillingInlineNote, BillingNotice, BillingPage, BillingPageHead } from './kit/BillingSurface.jsx';
+import { BILLING_PAGE_WIDTH } from './kit/billingPageWidth.js';
 
 // ─────────────────────────────────────────────────────────────
 // 결제·구독 — 영업 문의 (BillingContactSalesCanvas)  /admin/billing/contact-sales
@@ -68,7 +72,7 @@ const DEFAULT_LABELS = {
     '100인+ 조직·엔터프라이즈 요건(SSO·고급 권한·전용 AI 한도·약정 할인)에 맞춰 커스텀 견적을 제공합니다. 아래 정보를 남겨주시면 영업팀이 연락드립니다.',
 
   wsContext: (name, seats) => (
-    <>회사 <b style={{ color: T.text }}>{name}</b> · 현재 활성 좌석 <b style={{ color: T.text }}>{seats}명</b></>
+    <>회사 <b style={{ color: 'var(--text-primary)' }}>{name}</b> · 현재 활성 좌석 <b style={{ color: 'var(--text-primary)' }}>{seats}명</b></>
   ),
 
   contactNameLabel: '담당자명',
@@ -121,38 +125,63 @@ function mergeLabels(provided) {
   };
 }
 
-// 칸 이름표·입력칸 = 디자이너가 그린 1on1 「일정 추가」 창 값 그대로 (PW-1894 · one_on_one.css `.ono-add-modal-*`).
-// 이름표 14px 굵게 회색, 이름표 → 칸 12px(`.ono-add-modal-field` gap), 칸 → 다음 칸 24px(`.ono-add-modal-form` gap).
+// 칸 이름표 = 디자이너가 그린 1on1 「일정 추가」 창 값 그대로 (PW-1894 · one_on_one.css `.ono-add-modal-*`) — 14px 굵게 회색 ·
+// 이름표 → 칸 12px. 칸 → 다음 칸 24px 은 흰 판 본문의 줄 사이(`Panel` · `.okr-h-body` gap 24)가 띄운다.
 const FIELD_LABEL_STYLE = {
   display: 'block', fontFamily: 'var(--font-family-body)', fontWeight: 700,
   fontSize: 'var(--font-size-text-sm)', lineHeight: 'var(--line-height-text-sm)',
   color: 'var(--text-secondary)', marginBottom: 'var(--spacing-lg)',
 };
+const FIELD_ERROR_STYLE = {
+  fontSize: 'var(--font-size-text-xs)', lineHeight: 'var(--line-height-text-xs)',
+  color: 'var(--colors-text-textErrorPrimary)', marginTop: 'var(--spacing-xs)',
+};
 
 function Field({ label, required, error, children }) {
   return (
-    <div style={{ marginBottom: 'var(--spacing-3xl)' }}>
+    <div>
       <label style={FIELD_LABEL_STYLE}>
-        {label}{required && <span style={{ color: T.red }}> *</span>}
+        {label}{required && <span style={{ color: 'var(--colors-text-textErrorPrimary)' }}> *</span>}
       </label>
       {children}
-      {error && <div style={{ fontSize: 12, color: T.red, marginTop: 4 }}>{error}</div>}
+      {error && <div style={FIELD_ERROR_STYLE}>{error}</div>}
     </div>
   );
 }
 
-// 한 줄 입력칸 = `.ono-add-modal-input`(옅은 회색 바탕·최소 40px) + 글씨 16px, 테두리는 메모 칸
-// `.ono-add-modal-textarea` 의 아주 옅은 테두리. 틀린 칸은 1on1 창의 오류 테두리 색.
-const inputStyle = (err) => ({
-  width: '100%', boxSizing: 'border-box', minHeight: 40,
-  padding: 'var(--spacing-md) var(--spacing-lg)',
-  background: 'var(--componentColors-alpha-alphaBlack3, rgba(0,0,0,0.03))',
-  border: `1px solid ${err ? 'var(--colors-error-200)' : 'var(--componentColors-alpha-alphaBlack5, rgba(0,0,0,0.05))'}`,
-  borderRadius: 'var(--radius-md)', outline: 'none',
-  fontFamily: 'var(--font-family-body)', fontWeight: 400,
-  fontSize: 'var(--font-size-text-md)', lineHeight: 'var(--line-height-text-md)',
-  color: 'var(--text-primary)',
-});
+// 입력칸 = 타임라인 «그룹 추가» 창 입력칸(timeline.css `.tl-emp-input` · 높이 40 · 옅은 회색 · 테두리 없음) — 청구 정보 화면과 같다
+// (pivit-work PW-3132 · 시안 ㊽). 틀린 칸은 흰 바탕 + 빨간 테두리. 문의 내용 칸만 여러 줄이라 높이를 푼다.
+const INPUT_ERROR_STYLE = { borderColor: 'var(--colors-error-200)', background: 'var(--bg-primary)' };
+const inputStyle = (err) => (err ? INPUT_ERROR_STYLE : undefined);
+const TEXTAREA_STYLE = { height: 'auto', minHeight: 96, resize: 'vertical' };
+
+/** 머리 위 작은 글 «Pro · Enterprise» — 12px 브랜드 굵게(시안 ㊻ · designer.css `.eyebrow`). 제목과 사이 4. */
+const EYEBROW_STYLE = {
+  fontSize: 'var(--font-size-text-xs)',
+  lineHeight: 'var(--line-height-text-xs)',
+  fontWeight: 600,
+  color: 'var(--text-brand-secondary)',
+};
+const HEAD_WRAP_STYLE = { display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xs)', minWidth: 0 };
+
+/** 접수 완료 — 판 가운데 체크 원 + 안내 + [구독 현황으로]. 모양은 전과 같다(시안 ㊷ «그대로»). */
+const DONE_STYLE = { display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 'var(--spacing-sm)' };
+const DONE_ICON_STYLE = {
+  width: 56, height: 56, borderRadius: '50%',
+  background: 'var(--utility-success-50)', color: 'var(--utility-success-600)',
+  display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 'var(--spacing-md)',
+};
+const DONE_TITLE_STYLE = { fontSize: 'var(--font-size-text-lg)', lineHeight: 'var(--line-height-text-lg)', fontWeight: 700, color: 'var(--text-primary)' };
+const DONE_TEXT_STYLE = { fontSize: 'var(--font-size-text-sm)', lineHeight: 'var(--line-height-text-sm)', color: 'var(--text-secondary)' };
+const DONE_NOTE_STYLE = { ...DONE_TEXT_STYLE, color: 'var(--text-tertiary)' };
+
+const SUBMIT_NOTE_STYLE = {
+  textAlign: 'center',
+  fontSize: 'var(--font-size-text-xs)',
+  lineHeight: 'var(--line-height-text-xs)',
+  color: 'var(--text-tertiary)',
+  marginTop: 'var(--spacing-md)',
+};
 
 export default function BillingContactSalesCanvas({
   workspace = { name: '', seats: 0, contactName: '', contactEmail: '' },
@@ -226,145 +255,122 @@ export default function BillingContactSalesCanvas({
   };
 
   return (
-    <div style={{ fontFamily: T.font, background: T.bg, minHeight: '100vh', padding: 32, color: T.text }}>
-      <div style={{ maxWidth: 640, margin: '0 auto' }}>
-
+    <BillingPage width={BILLING_PAGE_WIDTH.contact}>
+      <div>
         <button type="button" onClick={onBack}
-          style={{ background: 'none', border: 'none', color: T.sub, fontSize: 13,
-            cursor: 'pointer', padding: 0, marginBottom: 16 }}>{labels.backToPlans}</button>
+          style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', fontSize: 'var(--font-size-text-sm)',
+            cursor: 'pointer', padding: 0 }}>{labels.backToPlans}</button>
+      </div>
 
-        {state === 'success' ? (
-          <Card style={{ textAlign: 'center', padding: 40 }}>
-            <div style={{ width: 56, height: 56, borderRadius: '50%', background: T.greenBg,
-              color: T.green, fontSize: 28, display: 'flex', alignItems: 'center',
-              justifyContent: 'center', margin: '0 auto 16px' }}>✓</div>
-            <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>{labels.successTitle}</div>
-            <div style={{ fontSize: 14, color: T.sub, marginBottom: 6 }}>
-              {labels.successDesc(f.email)}
-            </div>
-            <div style={{ fontSize: 13, color: T.muted, marginBottom: 6 }}>
-              {labels.successNote}
-            </div>
-            <div style={{ fontSize: 13, color: T.sub, marginBottom: 24 }}>
-              {labels.successNextStep}
-            </div>
-            <button type="button" onClick={onDone}
-              style={{ fontFamily: T.font, fontSize: 14, fontWeight: 700, padding: '12px 24px',
-                borderRadius: 10, border: 'none', background: T.accent, color: '#fff', cursor: 'pointer' }}>
-              {labels.successCta}
-            </button>
-          </Card>
-        ) : (
-          <>
-            {/* 헤더 */}
-            <div style={{ marginBottom: 8 }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: T.purple, background: T.purpleBg,
-                padding: '3px 10px', borderRadius: 999 }}>{labels.planBadge}</span>
-            </div>
-            <h1 style={{ fontSize: 24, fontWeight: 800, margin: '8px 0 6px' }}>{labels.pageTitle}</h1>
-            <p style={{ color: T.sub, fontSize: 14, marginTop: 0, marginBottom: 20 }}>
-              {labels.pageSubtitle}
-            </p>
+      {state === 'success' ? (
+        <Panel>
+          <div style={DONE_STYLE}>
+            <div style={DONE_ICON_STYLE}><CheckGlyph size={28} /></div>
+            <div style={DONE_TITLE_STYLE}>{labels.successTitle}</div>
+            <div style={DONE_TEXT_STYLE}>{labels.successDesc(f.email)}</div>
+            <div style={DONE_NOTE_STYLE}>{labels.successNote}</div>
+            <div style={{ ...DONE_TEXT_STYLE, marginBottom: 'var(--spacing-xl)' }}>{labels.successNextStep}</div>
+            <Button variant="primary" onClick={onDone}>{labels.successCta}</Button>
+          </div>
+        </Panel>
+      ) : (
+        <>
+          {/* 머리 — 제목 위 작은 브랜드 글 «Pro · Enterprise» (보라 딱지 대신 · 시안 ㊻) */}
+          <div style={HEAD_WRAP_STYLE}>
+            <div style={EYEBROW_STYLE}>{labels.planBadge}</div>
+            <BillingPageHead title={labels.pageTitle} description={[labels.pageSubtitle]} />
+          </div>
 
-            {/* 견적 안내 (PW-344) — 유효 견적이면 결제로 가는 길, 만료면 그 사실. 제출은 막지 않는다. */}
-            {quoteNotice === 'active' && (
-              <Card style={{ marginBottom: 16, background: T.purpleBg, border: 'none' }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: T.purple, marginBottom: onGoPlans ? 12 : 0 }}>
-                  {labels.quoteActiveNotice}
-                </div>
-                {onGoPlans && (
-                  <button type="button" onClick={onGoPlans}
-                    style={{ fontFamily: T.font, fontSize: 13, fontWeight: 700, padding: '8px 16px',
-                      borderRadius: 8, border: 'none', background: T.accent, color: '#fff', cursor: 'pointer' }}>
-                    {labels.quoteActiveCta}
-                  </button>
-                )}
-              </Card>
-            )}
-            {quoteNotice === 'expired' && (
-              <Card style={{ marginBottom: 16, background: T.bl, border: 'none' }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: T.text }}>
-                  {labels.quoteExpiredNotice}
-                </div>
-              </Card>
-            )}
-
-            {/* 워크스페이스 컨텍스트(자동) */}
-            <Card style={{ marginBottom: 16, background: T.bl, border: 'none' }}>
-              <div style={{ fontSize: 13, color: T.sub }}>
-                {labels.wsContext(workspace.name, workspace.seats)}
-              </div>
-            </Card>
-
-            <Card>
-              <Field label={labels.contactNameLabel} required error={touched.contactName ? errors.contactName : ''}>
-                <input style={inputStyle(touched.contactName && errors.contactName)} value={f.contactName}
-                  onChange={(e) => set('contactName', e.target.value)} onBlur={() => blur('contactName')} />
-              </Field>
-              <Field label={labels.emailLabel} required error={touched.email ? errors.email : ''}>
-                <input style={inputStyle(touched.email && errors.email)} value={f.email}
-                  onChange={(e) => set('email', e.target.value)} onBlur={() => blur('email')}
-                  placeholder={labels.emailPlaceholder} />
-              </Field>
-              <Field label={labels.phoneLabel}>
-                <input style={inputStyle(false)} value={f.phone}
-                  onChange={(e) => set('phone', e.target.value)} placeholder={labels.phonePlaceholder} />
-              </Field>
-              <Field label={labels.expectedSeatsLabel} required error={touched.expectedSeats ? errors.expectedSeats : ''}>
-                <input style={inputStyle(touched.expectedSeats && errors.expectedSeats)} value={f.expectedSeats}
-                  onChange={(e) => set('expectedSeats', e.target.value.replace(/[^\d]/g, ''))}
-                  onBlur={() => blur('expectedSeats')} inputMode="numeric" />
-              </Field>
-
-              <Field label={labels.interestsLabel}>
-                {/* 여럿 고르는 칸 = 공용 체크박스. 줄 사이는 1on1 창 고르기 묶음 간격(12px) */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-lg)' }}>
-                  {INTEREST_IDS.map((id) => (
-                    <Checkbox key={id} label={labels.interestOptions[id]}
-                      checked={interests.includes(id)}
-                      onChange={() => toggleInterest(id)} />
-                  ))}
-                </div>
-              </Field>
-
-              <Field label={labels.timingLabel}>
-                {/* 하나만 고르는 칸 = 공용 세그먼트 버튼 */}
-                <SegmentedControl
-                  ariaLabel={labels.timingLabel}
-                  items={TIMING_OPTS.map((o) => ({ value: o.value, label: labels.timingOptions[o.id] }))}
-                  value={f.timing}
-                  onChange={(t) => set('timing', t)}
-                />
-              </Field>
-
-              <Field label={labels.messageLabel}>
-                <textarea style={{ ...inputStyle(false), padding: 'var(--spacing-lg) 14px', minHeight: 96, resize: 'vertical' }}
-                  value={f.message} onChange={(e) => set('message', e.target.value)}
-                  placeholder={labels.messagePlaceholder} />
-              </Field>
-
-              {state === 'error' && (
-                <div style={{ fontSize: 13, color: T.red, background: T.redBg,
-                  border: '1px solid #FCA5A5', borderRadius: 10, padding: '10px 14px', marginBottom: 12 }}>
-                  {labels.submitError}
-                </div>
+          {/* 견적 안내 (PW-344) — 유효 견적이면 결제로 가는 길, 만료면 그 사실. 제출은 막지 않는다. */}
+          {quoteNotice === 'active' && (
+            <BillingNotice
+              tone="info"
+              testId="billing-contact-quote-active"
+              icon={<InfoGlyph size={16} />}
+              title={labels.quoteActiveNotice}
+              actions={onGoPlans && (
+                <Button variant="primary" size="sm" onClick={onGoPlans}>{labels.quoteActiveCta}</Button>
               )}
+            />
+          )}
+          {quoteNotice === 'expired' && (
+            <BillingNotice
+              tone="info"
+              testId="billing-contact-quote-expired"
+              icon={<InfoGlyph size={16} />}
+              title={labels.quoteExpiredNotice}
+            />
+          )}
 
-              <button type="button" onClick={handleSubmit} disabled={state === 'submitting'}
-                style={{ width: '100%', fontFamily: T.font, fontSize: 15, fontWeight: 800,
-                  padding: '14px', borderRadius: 12, border: 'none', color: '#fff',
-                  background: state === 'submitting' ? T.muted : T.accent,
-                  cursor: state === 'submitting' ? 'not-allowed' : 'pointer' }}>
+          {/* 워크스페이스 컨텍스트(자동) — 바탕 없는 한 줄 (시안 ㊼) */}
+          <BillingInlineNote testId="billing-contact-workspace">
+            {labels.wsContext(workspace.name, workspace.seats)}
+          </BillingInlineNote>
+
+          <Panel testId="billing-contact-form">
+            <Field label={labels.contactNameLabel} required error={touched.contactName ? errors.contactName : ''}>
+              <input className="tl-emp-input" style={inputStyle(touched.contactName && errors.contactName)} value={f.contactName}
+                onChange={(e) => set('contactName', e.target.value)} onBlur={() => blur('contactName')} />
+            </Field>
+            <Field label={labels.emailLabel} required error={touched.email ? errors.email : ''}>
+              <input className="tl-emp-input" style={inputStyle(touched.email && errors.email)} value={f.email}
+                onChange={(e) => set('email', e.target.value)} onBlur={() => blur('email')}
+                placeholder={labels.emailPlaceholder} />
+            </Field>
+            <Field label={labels.phoneLabel}>
+              <input className="tl-emp-input" value={f.phone}
+                onChange={(e) => set('phone', e.target.value)} placeholder={labels.phonePlaceholder} />
+            </Field>
+            <Field label={labels.expectedSeatsLabel} required error={touched.expectedSeats ? errors.expectedSeats : ''}>
+              <input className="tl-emp-input" style={inputStyle(touched.expectedSeats && errors.expectedSeats)} value={f.expectedSeats}
+                onChange={(e) => set('expectedSeats', e.target.value.replace(/[^\d]/g, ''))}
+                onBlur={() => blur('expectedSeats')} inputMode="numeric" />
+            </Field>
+
+            <Field label={labels.interestsLabel}>
+              {/* 여럿 고르는 칸 = 공용 체크박스. 줄 사이는 1on1 창 고르기 묶음 간격(12px) */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--spacing-lg)' }}>
+                {INTEREST_IDS.map((id) => (
+                  <Checkbox key={id} label={labels.interestOptions[id]}
+                    checked={interests.includes(id)}
+                    onChange={() => toggleInterest(id)} />
+                ))}
+              </div>
+            </Field>
+
+            <Field label={labels.timingLabel}>
+              {/* 하나만 고르는 칸 = 공용 세그먼트 버튼 */}
+              <SegmentedControl
+                ariaLabel={labels.timingLabel}
+                items={TIMING_OPTS.map((o) => ({ value: o.value, label: labels.timingOptions[o.id] }))}
+                value={f.timing}
+                onChange={(t) => set('timing', t)}
+              />
+            </Field>
+
+            <Field label={labels.messageLabel}>
+              <textarea className="tl-emp-input" style={TEXTAREA_STYLE}
+                value={f.message} onChange={(e) => set('message', e.target.value)}
+                placeholder={labels.messagePlaceholder} />
+            </Field>
+
+            {state === 'error' && (
+              <BillingNotice tone="bad" testId="billing-contact-submit-error" icon={<AlertTriangleGlyph size={16} />} title={labels.submitError} />
+            )}
+
+            <div>
+              {/* [문의 보내기] — 폭 전체 큰 주 버튼(시안 ㊿ «그대로 · 높이 48») */}
+              <Button variant="primary" onClick={handleSubmit} disabled={state === 'submitting'}
+                style={{ width: '100%', minHeight: 48, fontSize: 'var(--font-size-text-md)' }}>
                 {state === 'submitting' ? labels.submitting : labels.submit}
-              </button>
-              <div style={{ fontSize: 12, color: T.muted, marginTop: 10, textAlign: 'center' }}>
+              </Button>
+              <div style={SUBMIT_NOTE_STYLE}>
                 {labels.submitNote}
               </div>
-            </Card>
-          </>
-        )}
-
-      </div>
-    </div>
+            </div>
+          </Panel>
+        </>
+      )}
+    </BillingPage>
   );
 }

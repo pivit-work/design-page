@@ -1,6 +1,11 @@
 import { useId, useState } from 'react';
 import Checkbox from '../shared/Checkbox.jsx';
-import { BillingCard as Card, BillingCheckoutSteps } from './kit/BillingSurface.jsx';
+import StatusBadge from '../shared/StatusBadge.jsx';
+import Stack from '../shared/Stack.jsx';
+import { AlertCircleGlyph, AlertTriangleGlyph, CheckGlyph } from '../shared/lineIcons.jsx';
+import { NoticeLines, Panel } from '../frames/index.js';
+import { BillingCheckoutSteps, BillingNotice, BillingPage, BillingPageHead } from './kit/BillingSurface.jsx';
+import { BILLING_PAGE_WIDTH } from './kit/billingPageWidth.js';
 import Spinner from '../shared/Spinner.jsx';
 import Button from '../shared/Button.jsx';
 
@@ -201,15 +206,33 @@ function mergeLabels(provided) {
   return { ...DEFAULT_LABELS, ...provided };
 }
 
+/** 이름 / 값 한 줄 — 주문 요약 금액 줄. `strong` 은 «지금 결제» 합계 줄. */
 function Row({ label, value, strong }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0',
-      fontSize: strong ? 16 : 14, fontWeight: strong ? 800 : 500,
-      color: strong ? T.text : T.sub }}>
-      <span>{label}</span><span style={{ color: T.text }}>{value}</span>
+    <div style={strong ? ROW_STRONG_STYLE : ROW_STYLE}>
+      <span style={{ minWidth: 0 }}>{label}</span><span style={ROW_VALUE_STYLE}>{value}</span>
     </div>
   );
 }
+
+const ROW_STYLE = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'baseline',
+  gap: 'var(--spacing-lg)',
+  fontSize: 'var(--font-size-text-sm)',
+  lineHeight: 'var(--line-height-text-sm)',
+  fontWeight: 500,
+  color: 'var(--text-secondary)',
+};
+const ROW_VALUE_STYLE = { flex: 'none', color: 'var(--text-primary)' };
+const ROW_STRONG_STYLE = {
+  ...ROW_STYLE,
+  fontSize: 'var(--font-size-text-md)',
+  lineHeight: 'var(--line-height-text-md)',
+  fontWeight: 700,
+  color: 'var(--text-primary)',
+};
 
 export default function BillingCheckoutCanvas({
   /** 결제 단계 표시 줄 끝 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2567). 안 주면 지금과 같다. */
@@ -354,12 +377,10 @@ export default function BillingCheckoutCanvas({
   }
 
   return (
-    <div style={{ fontFamily: T.font, background: T.bg, minHeight: '100vh', padding: 32, color: T.text }}>
-      <div style={{ maxWidth: 560, margin: '0 auto' }}>
-
+    <BillingPage width={BILLING_PAGE_WIDTH.checkout}>
         <button type="button" onClick={onBackToPlans}
-          style={{ background: 'none', border: 'none', color: T.sub, fontSize: 13,
-            cursor: 'pointer', padding: 0, marginBottom: 16 }}>{labels.backToPlans}</button>
+          style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: 'var(--text-secondary)',
+            fontSize: 'var(--font-size-text-sm)', cursor: 'pointer', padding: 0 }}>{labels.backToPlans}</button>
 
         {/* 결제 진행 단계 표시 (PW-2110) — ③ 카드 등록·결제가 지금, 성공하면 세 단계 모두 완료.
             견적이 막힌 화면에는 두지 않는다(결제를 이어 갈 수 없다). */}
@@ -371,166 +392,144 @@ export default function BillingCheckoutCanvas({
           />
         )}
 
-        <h1 style={{ fontSize: 24, fontWeight: 800, margin: '0 0 24px' }}>{labels.pageTitle}</h1>
+        <BillingPageHead title={labels.pageTitle} />
 
         {/* 견적이 막힌 상태 (PW-344 ④) — 만료·대체. **결제 UI 를 아예 그리지 않는다.**
             옛 단가로 결제할 수 있다고 읽히면 안 된다. */}
         {unpaidBlocked ? (
-          <Card style={{ background: T.amberBg, border: '1px solid var(--utility-warning-300)' }}>
-            <div data-testid="billing-checkout-unpaid" role="status">
-              <div style={{ fontWeight: 800, color: T.amber, marginBottom: 'var(--spacing-sm)' }}>{labels.unpaidBlockedTitle}</div>
-              <div style={{ fontSize: 14, color: T.text, marginBottom: 'var(--spacing-lg)' }}>{labels.unpaidBlockedBody}</div>
-            </div>
-            <div style={{ display: 'flex', gap: 'var(--spacing-md)', flexWrap: 'wrap' }}>
-              <Button variant="primary" onClick={onPayUnpaid}>{labels.unpaidBlockedPay}</Button>
-              <Button variant="secondary" onClick={onBackToPlans}>{labels.unpaidBlockedBack}</Button>
-            </div>
-          </Card>
+          <BillingNotice
+            tone="warn"
+            icon={<AlertTriangleGlyph size={16} />}
+            testId="billing-checkout-unpaid"
+            role="status"
+            title={labels.unpaidBlockedTitle}
+            lines={[labels.unpaidBlockedBody]}
+            actions={(
+              <>
+                <Button variant="primary" onClick={onPayUnpaid}>{labels.unpaidBlockedPay}</Button>
+                <Button variant="secondary" onClick={onBackToPlans}>{labels.unpaidBlockedBack}</Button>
+              </>
+            )}
+          />
         ) : quoteBlocked && payState !== 'success' ? (
-          <Card style={{ background: T.amberBg, border: '1px solid #FDE68A' }}>
-            <div style={{ fontWeight: 800, color: T.amber, marginBottom: 6 }}>
-              {quoteBlocked !== 'superseded'
+          <>
+            <BillingNotice
+              tone="warn"
+              icon={<AlertTriangleGlyph size={16} />}
+              title={quoteBlocked !== 'superseded'
                 ? labels.quoteBlockedTitleExpired
                 : labels.quoteBlockedTitleSuperseded}
-            </div>
-            <div style={{ fontSize: 13, color: T.text, marginBottom: 14 }}>
-              {quoteBlocked !== 'superseded'
-                ? labels.quoteBlockedBodyExpired
-                : labels.quoteBlockedBodySuperseded}
-            </div>
-            {quoteBlocked === 'superseded' && quote.replacement && (
-              <div data-testid="checkout-quote-new-terms"
-                style={{ fontSize: 13, color: T.text, background: '#fff', borderRadius: 10,
-                  border: `1px solid ${T.border}`, padding: '10px 14px', marginBottom: 14 }}>
-                <div style={{ fontWeight: 700, marginBottom: 4 }}>{labels.quoteNewTermsTitle}</div>
-                {labels.quoteNewTerms(
-                  quote.replacement.seatPrice,
-                  quote.replacement.minSeats,
-                  quote.replacement.maxSeats,
-                  quote.replacement.validUntil,
-                )}
-              </div>
-            )}
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              lines={[
+                quoteBlocked !== 'superseded'
+                  ? labels.quoteBlockedBodyExpired
+                  : labels.quoteBlockedBodySuperseded,
+                quoteBlocked === 'superseded' && quote.replacement && (
+                  <span data-testid="checkout-quote-new-terms">
+                    <strong style={{ color: 'var(--text-primary)' }}>{labels.quoteNewTermsTitle}</strong>{' '}
+                    {labels.quoteNewTerms(
+                      quote.replacement.seatPrice,
+                      quote.replacement.minSeats,
+                      quote.replacement.maxSeats,
+                      quote.replacement.validUntil,
+                    )}
+                  </span>
+                ),
+              ]}
+            />
+            <div style={{ display: 'flex', gap: 'var(--spacing-md)', flexWrap: 'wrap' }}>
               {quoteBlocked === 'superseded' && quote.replacement && onRetryWithNewQuote && (
-                <button type="button" onClick={onRetryWithNewQuote}
-                  style={{ fontFamily: T.font, fontSize: 14, fontWeight: 700, padding: '10px 20px',
-                    borderRadius: 10, border: 'none', background: T.accent,
-                    color: '#fff', cursor: 'pointer' }}>
-                  {labels.quoteRetryWithNewTerms}
-                </button>
+                <Button variant="primary" onClick={onRetryWithNewQuote}>{labels.quoteRetryWithNewTerms}</Button>
               )}
               {onContactSales && (
-                <button type="button" onClick={onContactSales}
-                  style={{ fontFamily: T.font, fontSize: 14, fontWeight: 700, padding: '10px 20px',
-                    borderRadius: 10, border: `1px solid ${T.border}`, background: '#fff',
-                    color: T.text, cursor: 'pointer' }}>
-                  {labels.quoteContactSales}
-                </button>
+                <Button variant="secondary" onClick={onContactSales}>{labels.quoteContactSales}</Button>
               )}
-              <button type="button" onClick={onBackToPlans}
-                style={{ fontFamily: T.font, fontSize: 14, fontWeight: 700, padding: '10px 20px',
-                  borderRadius: 10, border: `1px solid ${T.border}`, background: '#fff',
-                  color: T.text, cursor: 'pointer' }}>
-                {labels.quoteBlockedCta}
-              </button>
+              <Button variant="secondary" onClick={onBackToPlans}>{labels.quoteBlockedCta}</Button>
             </div>
-          </Card>
+          </>
         ) : payState === 'success' ? (
-          <Card style={{ textAlign: 'center', padding: 40 }}>
-            <div style={{ width: 56, height: 56, borderRadius: '50%', background: T.greenBg,
-              color: T.green, fontSize: 28, display: 'flex', alignItems: 'center',
-              justifyContent: 'center', margin: '0 auto 16px' }}>✓</div>
-            <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 8 }}>
-              {isRenewal ? labels.successTitleRenewal
-                : planChange ? labels.successTitlePlanChange
-                : labels.successTitleNew}
-            </div>
-            <div style={{ fontSize: 14, color: T.sub, marginBottom: 6 }}>
-              {planChange ? (
-                <>
-                  {planChange.kind === 'charge'
-                    ? labels.successSummaryPlanChange(planChange.fromPlanLabel, order.planLabel, total)
-                    : planChange.kind === 'carry'
-                      ? labels.successSummaryPlanChangeCarry(planChange.fromPlanLabel, order.planLabel, planChange.diffSubtotal)
-                      : labels.successSummaryPlanChangeNone(planChange.fromPlanLabel, order.planLabel)}
-                  {nextAnnual
-                    ? labels.successAnchorKeptAnnual(nextMonth, nextDate)
-                    : labels.successAnchorKeptMonthly(planChange.anchorDay)}
-                </>
-              ) : labels.successSummary(order.planLabel, billedSeats, total)}
-              {quoteOk && labels.negotiatedSuccessNote}
-              {isRenewal && labels.successReconciled}
-              {resumedFromSuspension && !isRenewal && (
-                <div data-testid="billing-checkout-resumed"
-                  style={{ marginTop: 'var(--spacing-xs)', color: T.text, fontWeight: 700 }}>
-                  {labels.successResumed(resumedFromSuspension.date)}
-                </div>
-              )}
-            </div>
-            <div style={{ fontSize: 13, color: T.muted, marginBottom: 24 }}>
-              {labels.successReceiptNote}
-            </div>
-            <button type="button" onClick={onSuccessGoOverview}
-              style={{ fontFamily: T.font, fontSize: 14, fontWeight: 700, padding: '12px 24px',
-                borderRadius: 10, border: 'none', background: T.accent, color: '#fff', cursor: 'pointer' }}>
-              {labels.successGoOverview}
-            </button>
-          </Card>
-        ) : (
-          <>
-            {/* 주문 요약 */}
-            <Card style={{ marginBottom: 16 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                marginBottom: 12, gap: 8, flexWrap: 'wrap' }}>
-                <div style={{ fontSize: 13, color: T.sub, fontWeight: 700 }}>{labels.orderSummary}</div>
-                {quoteOk && (
-                  <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', background: T.accent,
-                    padding: '3px 10px', borderRadius: 999 }}>{labels.negotiatedTag}</span>
+          <Panel>
+            <div style={SUCCESS_STYLE}>
+              <span aria-hidden="true" style={SUCCESS_MARK_STYLE}><CheckGlyph size={28} /></span>
+              <div style={SUCCESS_TITLE_STYLE}>
+                {isRenewal ? labels.successTitleRenewal
+                  : planChange ? labels.successTitlePlanChange
+                  : labels.successTitleNew}
+              </div>
+              <div style={{ fontSize: 'var(--font-size-text-sm)', color: 'var(--text-secondary)' }}>
+                {planChange ? (
+                  <>
+                    {planChange.kind === 'charge'
+                      ? labels.successSummaryPlanChange(planChange.fromPlanLabel, order.planLabel, total)
+                      : planChange.kind === 'carry'
+                        ? labels.successSummaryPlanChangeCarry(planChange.fromPlanLabel, order.planLabel, planChange.diffSubtotal)
+                        : labels.successSummaryPlanChangeNone(planChange.fromPlanLabel, order.planLabel)}
+                    {nextAnnual
+                      ? labels.successAnchorKeptAnnual(nextMonth, nextDate)
+                      : labels.successAnchorKeptMonthly(planChange.anchorDay)}
+                  </>
+                ) : labels.successSummary(order.planLabel, billedSeats, total)}
+                {quoteOk && labels.negotiatedSuccessNote}
+                {isRenewal && labels.successReconciled}
+                {resumedFromSuspension && !isRenewal && (
+                  <div data-testid="billing-checkout-resumed"
+                    style={{ marginTop: 'var(--spacing-xs)', color: T.text, fontWeight: 700 }}>
+                    {labels.successResumed(resumedFromSuspension.date)}
+                  </div>
                 )}
               </div>
+              <div style={{ fontSize: 'var(--font-size-text-sm)', color: 'var(--text-tertiary)' }}>
+                {labels.successReceiptNote}
+              </div>
+              <Button variant="primary" onClick={onSuccessGoOverview}>{labels.successGoOverview}</Button>
+            </div>
+          </Panel>
+        ) : (
+          <>
+            {/* ① 주문 — 주문 요약 + 청구 정보 두 구역 (pivit-work PW-3132) */}
+            <Panel>
+              <Panel.Section
+                title={labels.orderSummary}
+                actions={quoteOk ? <StatusBadge tone="accent" className="admin-pill">{labels.negotiatedTag}</StatusBadge> : null}
+              >
+              <Stack gap="md">
               {/* 계약 요약 — 견적에서 확정돼 오며 화면에서 바꿀 수 없다 (PW-344 ④). */}
               {quoteOk && (
-                <div style={{ fontSize: 12, color: T.sub, marginBottom: 12, paddingBottom: 12,
-                  borderBottom: `1px solid ${T.border}`, lineHeight: 1.7 }}>
-                  {labels.negotiatedContract(
-                    quote.contractStart, quote.contractEnd,
-                    quote.minSeats, quote.maxSeats, quote.validUntil,
-                  )}
-                  {quote.recordHoursPerSeat != null && (
-                    <div>
-                      {labels.negotiatedRecording(
-                        quote.recordHoursPerSeat,
-                        quote.planRecordHoursPerSeat != null
-                          && quote.recordHoursPerSeat > quote.planRecordHoursPerSeat,
-                      )}
-                    </div>
-                  )}
-                  {quote.minSeats > 1 && (
-                    <div>{labels.negotiatedMinSeatsNote(quote.minSeats)}</div>
-                  )}
-                </div>
+                <NoticeLines
+                  tone="muted"
+                  lines={[
+                    labels.negotiatedContract(
+                      quote.contractStart, quote.contractEnd,
+                      quote.minSeats, quote.maxSeats, quote.validUntil,
+                    ),
+                    quote.recordHoursPerSeat != null && labels.negotiatedRecording(
+                      quote.recordHoursPerSeat,
+                      quote.planRecordHoursPerSeat != null
+                        && quote.recordHoursPerSeat > quote.planRecordHoursPerSeat,
+                    ),
+                    quote.minSeats > 1 && labels.negotiatedMinSeatsNote(quote.minSeats),
+                  ]}
+                />
               )}
               {/* 결제 좌석 = 등록 좌석 — 읽기 전용 (PW-1102). 계약 좌석 범위는 위 계약 요약에 있다. */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', gap: 12, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 14, color: T.sub }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--spacing-lg)', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 'var(--font-size-text-sm)', color: 'var(--text-secondary)' }}>
                   {/* 취소선은 참조 정가가 있고 **협의 단가가 그보다 쌀 때만** 쓴다 —
                       인상 계약에 「할인」을 붙이면 계약 조건을 잘못 말하는 것이다. */}
                   {showStrike && (
-                    <span style={{ color: T.muted, textDecoration: 'line-through', marginRight: 4 }}>
+                    <span style={{ color: 'var(--text-tertiary)', textDecoration: 'line-through', marginRight: 'var(--spacing-xs)' }}>
                       {won(quote.listPriceRef)}
                     </span>
                   )}
                   {labels.seatPriceLine(order.planLabel, unitPrice)}
                 </span>
                 <span data-testid="checkout-registered-seats"
-                  style={{ fontSize: 14, fontWeight: 700, color: T.text }}>
+                  style={{ fontSize: 'var(--font-size-text-sm)', fontWeight: 700, color: 'var(--text-primary)' }}>
                   {labels.registeredSeats(seatCount)}
                 </span>
               </div>
               {launchBenefit && (
                 <div data-testid="checkout-launch-benefit"
-                  style={{ fontSize: 12, color: T.accentText, fontWeight: 700, paddingBottom: 'var(--spacing-sm)' }}>
+                  style={{ fontSize: 12, color: T.accentText, fontWeight: 700 }}>
                   {labels.launchBenefitTag(launchBenefit.until)}
                   <div style={{ fontWeight: 500, color: T.muted }}>{labels.launchBenefitAfter(launchBenefit.monthlyListPrice)}</div>
                 </div>
@@ -538,13 +537,13 @@ export default function BillingCheckoutCanvas({
               {/* 요금제 변경 차액 줄 (PW-2475 · screen-billing-checkout §2) — 아래 소계·부가세와 같은 Row,
                   산식 줄은 출시 혜택 안내와 같은 12px 보조 글씨 */}
               {planChange && (
-                <div data-testid="checkout-plan-change-diff">
+                <div data-testid="checkout-plan-change-diff" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xs)' }}>
                   <Row
                     label={labels.planChangeDiffLine(planChange.fromPlanLabel, order.planLabel,
                       planChange.lastDay, planChange.remainingDays)}
                     value={won(planChange.diffSubtotal)}
                   />
-                  <div style={{ fontSize: 12, color: T.muted, paddingBottom: 'var(--spacing-sm)' }}>
+                  <div style={{ fontSize: 'var(--font-size-text-xs)', color: 'var(--text-tertiary)' }}>
                     {labels.planChangeFormula(planChange.seats, planChange.toUnitPrice,
                       planChange.fromUnitPrice, planChange.months,
                       planChange.remainingDays, planChange.periodDays)}
@@ -561,12 +560,11 @@ export default function BillingCheckoutCanvas({
               )}
               <Row label={labels.subtotal} value={won(subtotal)} />
               <Row label={labels.vat(vatRate)} value={won(vat)} />
-              <div style={{ height: 1, background: T.border, margin: '8px 0' }} />
+              <div style={{ height: 1, background: 'var(--border-secondary)' }} />
               {/* 요금제 변경에서 오늘 결제가 없으면 「지금 결제」 줄 «대신» 안내를 그린다 (screen-billing-checkout §2) —
                   같은 굵은 합계 줄 자리·모양 */}
               {planChangeNoCharge ? (
-                <div data-testid="checkout-plan-change-no-charge"
-                  style={{ padding: 'var(--spacing-md) 0', fontSize: 16, fontWeight: 800, color: T.text }}>
+                <div data-testid="checkout-plan-change-no-charge" style={ROW_STRONG_STYLE}>
                   {planChange.kind === 'carry'
                     ? labels.planChangeCarryNote(planChange.diffSubtotal)
                     : labels.planChangeNoneNote}
@@ -577,96 +575,100 @@ export default function BillingCheckoutCanvas({
               {planChange ? (
                 <>
                   {/* 다음 청구 안내 — 청구 기준일은 바뀌지 않는다. «오늘이 청구 기준일» 안내는 그리지 않는다. */}
-                  <div data-testid="checkout-plan-change-next"
-                    style={{ fontSize: 12, color: T.sub, marginTop: 10, paddingTop: 10,
-                      borderTop: `1px solid ${T.border}` }}>
-                    {nextAnnual
-                      ? labels.planChangeNextAnnual(planChange.nextBillingDate, planChange.seats,
-                        planChange.nextUnitPrice, nextMonth, nextDate)
-                      : labels.planChangeNextMonthly(planChange.nextBillingDate, planChange.seats,
-                        planChange.nextUnitPrice, planChange.anchorDay)}
-                    {planChange.intervalSwitch && (
-                      <div style={{ marginTop: 'var(--spacing-xs)' }}>{labels.planChangeIntervalSwitch(nextAnnual)}</div>
-                    )}
-                  </div>
+                  <NoticeLines
+                    testId="checkout-plan-change-next"
+                    lines={[
+                      nextAnnual
+                        ? labels.planChangeNextAnnual(planChange.nextBillingDate, planChange.seats,
+                          planChange.nextUnitPrice, nextMonth, nextDate)
+                        : labels.planChangeNextMonthly(planChange.nextBillingDate, planChange.seats,
+                          planChange.nextUnitPrice, planChange.anchorDay),
+                      planChange.intervalSwitch && labels.planChangeIntervalSwitch(nextAnnual),
+                    ]}
+                  />
                   {planChange.firstCycle && (
-                    <div style={{ fontSize: 12, color: T.sub, marginTop: 6 }}>
-                      {labels.firstCycleNote(planChange.anchorDay)}
-                    </div>
+                    <NoticeLines lines={[labels.firstCycleNote(planChange.anchorDay)]} />
                   )}
                 </>
-              ) : (<>
-              <div style={{ fontSize: 12, color: T.muted, marginTop: 8 }}>
-                {annual
-                  ? labels.intervalNoteAnnual
-                  : labels.intervalNoteMonthly}{' '}
-                {quoteOk
-                  ? labels.negotiatedSeatBasisNote(minSeats)
-                  : labels.seatBasisNote}
-              </div>
-              {/* 청구 기준일 — 첫 결제 성공일의 일자가 이후 청구 기준일이 된다 (PW-324) */}
-              {anchor && (
-                <div data-testid="checkout-anchor-note"
-                  style={{ fontSize: 12, color: T.sub, marginTop: 10, paddingTop: 10,
-                    borderTop: `1px solid ${T.border}` }}>
-                  {annual
-                    ? labels.anchorNoteAnnual(anchor.chargeDate, anchorMonth, anchorDate)
-                    : labels.anchorNoteMonthly(anchor.chargeDate, anchor.anchorDay)}
-                </div>
+              ) : (
+                <>
+                  <NoticeLines
+                    tone="muted"
+                    lines={[(
+                      <>
+                        {annual
+                          ? labels.intervalNoteAnnual
+                          : labels.intervalNoteMonthly}{' '}
+                        {quoteOk
+                          ? labels.negotiatedSeatBasisNote(minSeats)
+                          : labels.seatBasisNote}
+                      </>
+                    )]}
+                  />
+                  {/* 청구 기준일 — 첫 결제 성공일의 일자가 이후 청구 기준일이 된다 (PW-324). 바탕 없는 안내 줄 */}
+                  {anchor && (
+                    <NoticeLines
+                      testId="checkout-anchor-note"
+                      lines={[annual
+                        ? labels.anchorNoteAnnual(anchor.chargeDate, anchorMonth, anchorDate)
+                        : labels.anchorNoteMonthly(anchor.chargeDate, anchor.anchorDay)]}
+                    />
+                  )}
+                  {/* 첫 주기 좌석 추가 = 즉시 일할 추가청구 (PW-324). 2주기 이후 재진입에는 없다. */}
+                  {anchor && anchor.firstCycle && (
+                    <NoticeLines lines={[labels.firstCycleNote(anchor.anchorDay)]} />
+                  )}
+                </>
               )}
-              {/* 첫 주기 좌석 추가 = 즉시 일할 추가청구 (PW-324). 2주기 이후 재진입에는 없다. */}
-              {anchor && anchor.firstCycle && (
-                <div style={{ fontSize: 12, color: T.sub, marginTop: 6 }}>
-                  {labels.firstCycleNote(anchor.anchorDay)}
-                </div>
-              )}
-              </>)}
-            </Card>
+              </Stack>
+              </Panel.Section>
 
-            {/* 청구 정보 */}
-            {hasProfile ? (
-              <Card style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <div style={{ fontSize: 13, color: T.sub, marginBottom: 4 }}>{labels.billingInfo}</div>
-                  <div style={{ fontSize: 14, fontWeight: 700 }}>{labels.billingInfoDisplay(profile.companyName, profile.bizRegNo)}</div>
-                </div>
-                <button type="button" onClick={onEditProfile}
-                  style={{ background: 'none', border: `1px solid ${T.border}`, borderRadius: 8,
-                    padding: '6px 14px', fontSize: 13, cursor: 'pointer', color: T.text }}>{labels.editProfile}</button>
-              </Card>
-            ) : (
-              <Card style={{ marginBottom: 16, background: T.redBg, border: '1px solid #FCA5A5' }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: T.red, marginBottom: 8 }}>{labels.billingInfoNeeded}</div>
-                <button type="button" onClick={onEditProfile}
-                  style={{ background: T.red, color: '#fff', border: 'none', borderRadius: 8,
-                    padding: '8px 16px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>{labels.goInputProfile}</button>
-              </Card>
-            )}
+              {/* 청구 정보 */}
+              {hasProfile ? (
+                <Panel.Section
+                  title={labels.billingInfo}
+                  actions={<Button variant="secondary" size="sm" onClick={onEditProfile}>{labels.editProfile}</Button>}
+                >
+                  <div style={{ fontSize: 'var(--font-size-text-md)', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    {labels.billingInfoDisplay(profile.companyName, profile.bizRegNo)}
+                  </div>
+                </Panel.Section>
+              ) : (
+                <Panel.Section>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--spacing-lg)', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: 'var(--font-size-text-sm)', fontWeight: 700, color: 'var(--text-error-primary)' }}>{labels.billingInfoNeeded}</span>
+                    <Button variant="danger" size="sm" onClick={onEditProfile}>{labels.goInputProfile}</Button>
+                  </div>
+                </Panel.Section>
+              )}
+            </Panel>
 
             {/* 실패 안내 */}
             {payState === 'fail' && (
-              <Card style={{ marginBottom: 16, background: T.redBg, border: '1px solid #FCA5A5' }}>
-                <div style={{ fontSize: 14, color: T.red, fontWeight: 700 }}>{labels.payFailTitle}</div>
-                {failReason && <div style={{ fontSize: 13, color: T.text, marginTop: 4 }}>{failReason}</div>}
-              </Card>
+              <BillingNotice
+                tone="bad"
+                icon={<AlertCircleGlyph size={16} />}
+                title={labels.payFailTitle}
+                lines={[failReason]}
+              />
             )}
 
-            {/* 결제 조건 요약 (법무 D2 · D25-8) — 고지이지 동의가 아니다. 체크박스가 없고 버튼도
-                막지 않는다. 금액·결제일은 주문 요약과 같은 값에서 그린다. */}
-            <Card style={{ marginBottom: 16, padding: 16 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
-                gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{labels.termsTitle}</div>
-                {onViewTerms && (
+            {/* ② 결제 조건 요약 (법무 D2 · D25-8) + 가는 선 + 동의. 요약은 고지이지 동의가 아니다 — 체크박스가 없고
+                버튼도 막지 않는다. 금액·결제일은 주문 요약과 같은 값에서 그린다. */}
+            <Panel>
+              <Panel.Section
+                title={labels.termsTitle}
+                actions={onViewTerms ? (
                   <button type="button" onClick={onViewTerms}
                     style={{ background: 'none', border: 'none', color: T.accentText, fontWeight: 700,
                       fontSize: 12, cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
                     {labels.termsViewFull}
                   </button>
-                )}
-              </div>
-              <div style={{ fontSize: 12, color: T.muted, marginBottom: 8 }}>{labels.termsSubtitle}</div>
-              <ul data-testid="checkout-terms-summary" style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: T.sub, lineHeight: 1.7 }}>
+                ) : null}
+              >
+              <Stack gap="md">
+              <NoticeLines lines={[labels.termsSubtitle]} tone="muted" />
+              <ul data-testid="checkout-terms-summary" style={TERMS_LIST_STYLE}>
                 {planChange ? (
                   <li>
                     {nextAnnual
@@ -694,14 +696,16 @@ export default function BillingCheckoutCanvas({
                 </li>
                 <li>{annual ? labels.termsNoticeAnnual : labels.termsNoticeMonthly}</li>
               </ul>
-            </Card>
+              </Stack>
+              </Panel.Section>
 
-            {/* 해지·환불 정책 동의 (결제 전 필수) */}
+            {/* 해지·환불 정책 동의 (결제 전 필수) — 요약 아래 가는 선 다음 */}
             {hasProfile && (
-              <Card style={{ marginBottom: 16, padding: 16 }}>
+              <Panel.Section>
+              <Stack gap="lg">
                 {/* 공용 체크박스(영업 문의 「관심 기능」과 같은 네모). 글이 여러 줄이라 네모는 첫 줄에 맞추고
                     글은 htmlFor 로 이어 눌러도 켜지게 한다 */}
-                <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                <div style={AGREE_ROW_STYLE}>
                   <Checkbox id={refundId} checked={agreeRefund}
                     onChange={(e) => setAgreeRefund(e.target.checked)}
                     style={{ marginTop: 2 }} />
@@ -718,13 +722,10 @@ export default function BillingCheckoutCanvas({
                     </button>
                   </label>
                 </div>
-              </Card>
-            )}
 
             {/* 연간 협의 계약 — 약정·선결제 동의 (PW-344). 해지·환불 동의와 따로 받는다. */}
-            {hasProfile && needCommitment && (
-              <Card style={{ marginBottom: 16, padding: 16 }}>
-                <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+            {needCommitment && (
+                <div style={AGREE_ROW_STYLE}>
                   <Checkbox id={commitmentId} checked={agreeCommitment}
                     data-testid="checkout-commitment-agree"
                     onChange={(e) => setAgreeCommitment(e.target.checked)}
@@ -733,43 +734,44 @@ export default function BillingCheckoutCanvas({
                     {labels.commitmentAgree(total, quote.contractStart, quote.contractEnd)}
                   </label>
                 </div>
-              </Card>
             )}
+              </Stack>
+              </Panel.Section>
+            )}
+            </Panel>
 
-            {/* 결제 버튼 */}
-            <button type="button" onClick={() => { if (!blocked) onPay?.(); }} disabled={blocked}
-              style={{ width: '100%', fontFamily: T.font, fontSize: 16, fontWeight: 800,
-                padding: '16px', borderRadius: 12, border: 'none', color: '#fff',
-                background: blocked ? T.muted : T.accent,
-                cursor: blocked ? 'not-allowed' : 'pointer' }}>
+            {/* 결제 버튼 — 공용 주 버튼. 동의 전 꺼짐은 디자이너 꺼진 버튼(같은 초록 50%) (pivit-work PW-3132) */}
+            <Stack gap="md">
+            <Button variant="primary" onClick={() => { if (!blocked) onPay?.(); }} disabled={blocked}
+              data-testid="checkout-pay" style={{ width: '100%' }}>
               {payState === 'processing' ? (opensCardWindow ? labels.payProcessing : labels.payProcessingSavedCard)
                 : payState === 'confirming' ? labels.payConfirming
                 : payState === 'fail' ? labels.payRetry
                 : planChangeNoCharge ? labels.payCtaPlanChangeNoCharge
                 : opensCardWindow ? labels.payCta(total)
                 : labels.payCtaSavedCard(savedCard, total)}
-            </button>
+            </Button>
             {/* 다음에 무엇이 일어나는지 (PW-2110) — 카드 인증 창은 페이지를 떠났다가 돌아온다 */}
             {opensCardWindow && (payState === 'idle' || payState === 'fail') && (
-              <div data-testid="checkout-card-window-note"
-                style={{ textAlign: 'center', fontSize: 12, color: T.sub, marginTop: 8 }}>
+              <div data-testid="checkout-card-window-note" style={{ ...PAY_NOTE_STYLE, color: 'var(--text-secondary)' }}>
                 {labels.cardWindowNote}
               </div>
             )}
             {hasProfile && !agreeRefund && payState === 'idle' && (
-              <div style={{ textAlign: 'center', fontSize: 12, color: T.amber, marginTop: 8 }}>
+              <div style={PAY_HINT_STYLE}>
                 {labels.agreeRefundHint}
               </div>
             )}
             {hasProfile && agreeRefund && needCommitment && !agreeCommitment && payState === 'idle' && (
-              <div style={{ textAlign: 'center', fontSize: 12, color: T.amber, marginTop: 8 }}>
+              <div style={PAY_HINT_STYLE}>
                 {labels.agreeCommitmentHint}
               </div>
             )}
 
-            <div style={{ textAlign: 'center', fontSize: 12, color: T.muted, marginTop: 12 }}>
+            <div style={PAY_NOTE_STYLE}>
               {labels.securityNote}
             </div>
+            </Stack>
           </>
         )}
 
@@ -788,7 +790,43 @@ export default function BillingCheckoutCanvas({
             </div>
           </div>
         )}
-      </div>
-    </div>
+    </BillingPage>
   );
 }
+
+/** 결제 완료 — 판 안 가운데 세로 줄. */
+const SUCCESS_STYLE = { display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 'var(--spacing-md)' };
+/** 완료 표식 — 결제 단계 표시의 «지난 단계» 초록 원과 같은 색(BillingCheckoutSteps). */
+const SUCCESS_MARK_STYLE = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: 56,
+  height: 56,
+  borderRadius: '50%',
+  background: 'var(--utility-green-50)',
+  color: 'var(--utility-green-600)',
+};
+const SUCCESS_TITLE_STYLE = {
+  fontSize: 'var(--font-size-display-xs)',
+  fontWeight: 700,
+  color: 'var(--text-primary)',
+};
+/** 약관 요약 목록 — 점 목록 · 12 보조 글. */
+const TERMS_LIST_STYLE = {
+  margin: 0,
+  paddingLeft: 'var(--spacing-xl)',
+  fontSize: 'var(--font-size-text-xs)',
+  color: 'var(--text-secondary)',
+  lineHeight: 1.7,
+};
+/** 동의 줄 — 네모 + 글. */
+const AGREE_ROW_STYLE = { display: 'flex', gap: 'var(--spacing-md)', alignItems: 'flex-start' };
+/** 결제 버튼 아래 안내 — 가운데 12 글. */
+const PAY_NOTE_STYLE = {
+  textAlign: 'center',
+  fontSize: 'var(--font-size-text-xs)',
+  color: 'var(--text-tertiary)',
+};
+/** 동의를 아직 안 했을 때 — 주황 안내(경고 글). */
+const PAY_HINT_STYLE = { ...PAY_NOTE_STYLE, color: 'var(--text-warning-primary)' };

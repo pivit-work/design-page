@@ -2,10 +2,13 @@ import { useState } from 'react';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import Button from '../shared/Button.jsx';
-import { BillingCard as Card, BillingBadge as Badge } from './kit/BillingSurface.jsx';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import Skeleton from '../shared/Skeleton.jsx';
 import Spinner from '../shared/Spinner.jsx';
-import { CreditCardGlyph } from '../shared/lineIcons.jsx';
+import { AlertTriangleGlyph, CreditCardGlyph } from '../shared/lineIcons.jsx';
+import { Panel } from '../frames/index.js';
+import { BillingNotice, BillingPage, BillingPageHead } from './kit/BillingSurface.jsx';
+import { BILLING_PAGE_WIDTH } from './kit/billingPageWidth.js';
 
 // ─────────────────────────────────────────────────────────────
 // 결제·구독 — 결제수단 관리 (BillingMethodsCanvas)  /admin/billing/methods
@@ -83,31 +86,102 @@ const fireOnly = (onClick) => (onClick ? (e) => { onClick(e); } : undefined);
 // 버튼은 공용 Button(디자이너 어드민 버튼과 같은 값)으로 그린다 (pivit-work PW-2938). 손으로 칠한 값을 두지 않는다.
 // 설명(꺼진 이유)은 공용 말풍선으로 — 꺼진 버튼이면 부품이 바깥을 둘러 거기서 받는다 (PW-1123)
 // [삭제](danger)는 확인 창을 먼저 여는 자리라 흰 바탕 빨간 테두리(danger-ghost) — 전과 같은 생김새.
-function Btn({ children, onClick, kind = 'primary', disabled, title }) {
+// 줄 안 버튼은 작게(sm) — 디자이너 조직도 명단 줄 버튼(button.css sm) (pivit-work PW-3132).
+function Btn({ children, onClick, kind = 'primary', disabled, title, size }) {
   return (
     <Tooltip content={title}>
-      <Button variant={kind === 'danger' ? 'danger-ghost' : kind} onClick={fireOnly(onClick)} disabled={disabled}>
+      <Button variant={kind === 'danger' ? 'danger-ghost' : kind} size={size} onClick={fireOnly(onClick)} disabled={disabled}>
         {children}
       </Button>
     </Tooltip>
   );
 }
 
-function SkeletonCard() {
+/*
+ * 다시 칠하기 (pivit-work PW-3132) — 카드마다 흰 판 한 장(8장이면 1,000px)이던 목록을 흰 판(`Panel`) 하나 안 줄 목록으로.
+ * 줄 = 카드 아이콘 · 카드 이름(14/20 굵게) + 딱지 · 유효기간(12/18 흐림) · 오른쪽 작은 버튼. 줄 사이 가는 선(`--border-secondary`)은
+ * 판 안 구역 선(`Panel.Section`)과 같은 선 — 디자이너 조직도 명단 줄 모양을 따른다. 시안 worklog/admin-billing-designer-2026-11-19 ㉙.
+ */
+const LIST_STYLE = { display: 'flex', flexDirection: 'column', minWidth: 0 };
+const ROW_STYLE = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 'var(--spacing-lg)',
+  padding: 'var(--spacing-lg) 0',
+  minWidth: 0,
+};
+const ROW_LINE_STYLE = { borderTop: '1px solid var(--border-secondary)' };
+const ROW_FIRST_STYLE = { paddingTop: 0 };
+const ROW_LAST_STYLE = { paddingBottom: 0 };
+const rowStyle = (i, n) => ({
+  ...ROW_STYLE,
+  ...(i > 0 ? ROW_LINE_STYLE : ROW_FIRST_STYLE),
+  ...(i === n - 1 ? ROW_LAST_STYLE : null),
+});
+const ROW_ICON_STYLE = { display: 'flex', flex: 'none', color: 'var(--text-tertiary)' };
+const ROW_TEXT_STYLE = { flex: '1 1 auto', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xxs)' };
+const ROW_NAME_STYLE = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 'var(--spacing-md)',
+  minWidth: 0,
+  fontSize: 'var(--font-size-text-sm)',
+  lineHeight: 'var(--line-height-text-sm)',
+  fontWeight: 600,
+  color: 'var(--text-primary)',
+  whiteSpace: 'nowrap',
+};
+const ROW_SUB_STYLE = {
+  fontSize: 'var(--font-size-text-xs)',
+  lineHeight: 'var(--line-height-text-xs)',
+  color: 'var(--text-tertiary)',
+};
+const ROW_EXPIRED_HINT_STYLE = { color: 'var(--text-warning-primary)', marginLeft: 'var(--spacing-md)' };
+const ROW_ACTIONS_STYLE = { flex: 'none', display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)' };
+
+/** 빈 화면 — 판 가운데 아이콘 + 안내 + [카드 추가]. 모양은 전과 같다(시안 ㉜ «그대로»). */
+const EMPTY_STYLE = { display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 'var(--spacing-md)' };
+const EMPTY_ICON_STYLE = { display: 'flex', color: 'var(--text-tertiary)', marginBottom: 'var(--spacing-md)' };
+const EMPTY_TITLE_STYLE = { fontSize: 'var(--font-size-text-md)', lineHeight: 'var(--line-height-text-md)', fontWeight: 700, color: 'var(--text-primary)' };
+const EMPTY_DESC_STYLE = { fontSize: 'var(--font-size-text-sm)', lineHeight: 'var(--line-height-text-sm)', color: 'var(--text-tertiary)', marginBottom: 'var(--spacing-lg)' };
+
+/** 보안 안내 한 줄 — 가운데 12px 흐린 글(시안 ㉝ «그대로»). */
+const SECURITY_NOTE_STYLE = {
+  textAlign: 'center',
+  fontSize: 'var(--font-size-text-xs)',
+  lineHeight: 'var(--line-height-text-xs)',
+  color: 'var(--text-tertiary)',
+};
+
+/** 불러오는 중 — 한 판 안 줄 둘(카드 이름 · 유효기간 막대 + 버튼 자리 막대). */
+function SkeletonRows() {
   return (
-    <Card style={{ marginBottom: 12 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <Skeleton width={160} height={16} radius={6} style={{ marginBottom: 8 }} />
-          <Skeleton width={100} height={13} radius={6} />
+    <div style={LIST_STYLE}>
+      {[0, 1].map((i) => (
+        <div key={i} style={rowStyle(i, 2)}>
+          <div style={ROW_TEXT_STYLE}>
+            <Skeleton width={160} height={16} radius={6} />
+            <Skeleton width={100} height={13} radius={6} />
+          </div>
+          <div style={ROW_ACTIONS_STYLE}>
+            <Skeleton width={80} height={32} radius={8} />
+            <Skeleton width={56} height={32} radius={8} />
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <Skeleton width={80} height={36} radius={10} />
-          <Skeleton width={56} height={36} radius={10} />
-        </div>
-      </div>
-    </Card>
+      ))}
+    </div>
   );
+}
+
+/**
+ * 결제 실패 띠의 글을 «설명 / 덧붙임(흐림)»으로 나눈다 — 글은 그대로, 마지막 문장만 다음 줄(시안 ㉚
+ * «결제 미완료 시 …» 흐림). 한 문장뿐이면 나누지 않는다.
+ */
+function splitLastSentence(text) {
+  if (typeof text !== 'string') return { lines: [text], fix: [] };
+  const parts = text.split(/(?<=[.!?])\s+/).filter(Boolean);
+  if (parts.length < 2) return { lines: [text], fix: [] };
+  return { lines: [parts.slice(0, -1).join(' ')], fix: [parts[parts.length - 1]] };
 }
 
 // 결제사가 유효기간을 안 알려 주는 카드(토스 자동결제 등록)는 expMonth 가 비거나 0 이다 —
@@ -158,139 +232,116 @@ export default function BillingMethodsCanvas({
     setDeleteTarget(null);
   };
 
-  // 권한 없음
+  // 권한 없음 — 빨간 상태 띠 하나(시안 공통 «빨강 상태 상자 → 상태 띠»)
   if (!canEdit) {
     return (
-      <div style={{ fontFamily: T.font, background: T.bg, minHeight: '100vh', padding: 32 }}>
-        <div style={{ maxWidth: 560, margin: '0 auto' }}>
-          <Card style={{ textAlign: 'center', padding: 40 }}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: T.red, marginBottom: 8 }}>
-              {labels.noPermTitle}
-            </div>
-            <div style={{ fontSize: 13, color: T.sub }}>{labels.noPermDesc}</div>
-          </Card>
-        </div>
-      </div>
+      <BillingPage width={BILLING_PAGE_WIDTH.methods}>
+        <BillingNotice tone="bad" icon={<AlertTriangleGlyph size={16} />} title={labels.noPermTitle} lines={[labels.noPermDesc]} />
+      </BillingPage>
     );
   }
 
   const deleteTargetCard = deleteTarget ? cards.find((c) => c.id === deleteTarget) : null;
+  const pastDue = splitLastSentence(labels.pastDueDesc);
 
   return (
-    <div style={{ fontFamily: T.font, background: T.bg, minHeight: '100vh', padding: 32, color: T.text }}>
-      <div style={{ maxWidth: 640, margin: '0 auto' }}>
+    <>
+      <BillingPage width={BILLING_PAGE_WIDTH.methods}>
+        <BillingPageHead
+          title={labels.pageTitle}
+          description={[labels.pageSubtitle]}
+          actions={<Btn onClick={onAddCard} disabled={addBusy}>{labels.addCard}</Btn>}
+        />
 
-        {/* 헤더 */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>{labels.pageTitle}</h1>
-          <Btn onClick={onAddCard} disabled={addBusy}>{labels.addCard}</Btn>
-        </div>
-        <p style={{ color: T.sub, fontSize: 14, marginTop: 0, marginBottom: 24 }}>
-          {labels.pageSubtitle}
-        </p>
-
-        {/* past_due 경고 배너 */}
+        {/* past_due 결제 실패 띠 — 머리 / 설명 / «결제 미완료 시 …» 흐림 (시안 ㉚) */}
         {subscriptionStatus === 'past_due' && (
-          <Card style={{ marginBottom: 16, background: T.redBg, border: '1px solid #FCA5A5',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
-            <div>
-              <div style={{ fontWeight: 800, color: T.red, marginBottom: 4 }}>{labels.pastDueTitle}</div>
-              <div style={{ fontSize: 13, color: T.text }}>{labels.pastDueDesc}</div>
-            </div>
-            <button type="button" onClick={onViewHistory}
-              style={{ fontFamily: T.font, fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap',
-                padding: '8px 14px', borderRadius: 10, border: '1px solid #FCA5A5',
-                background: '#fff', color: T.red, cursor: 'pointer' }}>
-              {labels.viewHistory}
-            </button>
-          </Card>
+          <BillingNotice
+            tone="bad"
+            testId="billing-methods-past-due"
+            icon={<AlertTriangleGlyph size={16} />}
+            title={labels.pastDueTitle}
+            lines={pastDue.lines}
+            fix={pastDue.fix}
+            actions={<Btn kind="danger" size="sm" onClick={onViewHistory}>{labels.viewHistory}</Btn>}
+          />
         )}
 
-        {/* 미납 띠 (pivit-work PW-2526) — 해지됐지만 결제되지 않은 청구서가 남음. past_due 배너와 같은 모양 */}
+        {/* 미납 띠 (pivit-work PW-2526) — 해지됐지만 결제되지 않은 청구서가 남음. 결제 실패 띠와 같은 모양 */}
         {arrears && (
-          <Card style={{ marginBottom: 'var(--spacing-xl)', background: T.redBg, border: '1px solid var(--utility-error-300)',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--spacing-xl)' }}>
-            <div data-testid="billing-methods-arrears">
-              <div style={{ fontWeight: 800, color: T.red, marginBottom: 'var(--spacing-xs)' }}>{labels.arrearsTitle}</div>
-              <div style={{ fontSize: 13, color: T.text }}>{labels.arrearsDesc(arrears.billedOn, arrears.amount)}</div>
-            </div>
-            <div style={{ flex: 'none', whiteSpace: 'nowrap' }}>
-              <Btn kind="secondary" onClick={onViewHistory}>{labels.viewHistory}</Btn>
-            </div>
-          </Card>
+          <BillingNotice
+            tone="bad"
+            testId="billing-methods-arrears"
+            icon={<AlertTriangleGlyph size={16} />}
+            title={labels.arrearsTitle}
+            lines={[labels.arrearsDesc(arrears.billedOn, arrears.amount)]}
+            actions={<Btn kind="secondary" size="sm" onClick={onViewHistory}>{labels.viewHistory}</Btn>}
+          />
         )}
 
-        {/* 로딩 스켈레톤 */}
         {loading ? (
-          <>
-            <SkeletonCard />
-            <SkeletonCard />
-          </>
+          <Panel testId="billing-methods-list">
+            <SkeletonRows />
+          </Panel>
         ) : cards.length === 0 ? (
           /* 빈 상태 */
-          <Card style={{ textAlign: 'center', padding: '48px 24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--spacing-xl)', color: 'var(--text-tertiary)' }}><CreditCardGlyph size={40} /></div>
-            <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>{labels.emptyTitle}</div>
-            <div style={{ fontSize: 13, color: T.sub, marginBottom: 20 }}>{labels.emptyDesc}</div>
-            <Btn onClick={onAddCard} disabled={addBusy}>{labels.emptyAddCard}</Btn>
-          </Card>
+          <Panel testId="billing-methods-empty">
+            <div style={EMPTY_STYLE}>
+              <div style={EMPTY_ICON_STYLE}><CreditCardGlyph size={40} /></div>
+              <div style={EMPTY_TITLE_STYLE}>{labels.emptyTitle}</div>
+              <div style={EMPTY_DESC_STYLE}>{labels.emptyDesc}</div>
+              <Btn onClick={onAddCard} disabled={addBusy}>{labels.emptyAddCard}</Btn>
+            </div>
+          </Panel>
         ) : (
-          /* 카드 목록 */
-          <>
-            {cards.map((card) => {
-              const expired = isExpired(card);
-              const blockDelete = !canDelete(card);
-              return (
-                <Card key={card.id} style={{ marginBottom: 12,
-                  border: expired ? '1px solid #FDE68A' : `1px solid ${T.border}` }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                    <div style={{ flex: 1 }}>
-                      {/* 카드 브랜드·번호·배지 */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                        <span style={{ fontSize: 16, fontWeight: 800 }}>
-                          {labels.cardDisplay(card.brand, card.last4)}
-                        </span>
-                        {card.isDefault && <Badge color={T.accentText} bg="var(--bg-brand-secondary)">{labels.defaultBadge}</Badge>}
-                        {expired && <Badge color={T.amber} bg={T.amberBg}>{labels.expiredBadge}</Badge>}
+          /* 카드 목록 — 흰 판 하나 안 줄 목록 */
+          <Panel testId="billing-methods-list">
+            <ul style={{ ...LIST_STYLE, listStyle: 'none', margin: 0, padding: 0 }}>
+              {cards.map((card, i) => {
+                const expired = isExpired(card);
+                const blockDelete = !canDelete(card);
+                return (
+                  <li key={card.id} data-testid="billing-method-row" style={rowStyle(i, cards.length)}>
+                    <span aria-hidden="true" style={ROW_ICON_STYLE}><CreditCardGlyph size={20} /></span>
+                    <div style={ROW_TEXT_STYLE}>
+                      {/* 카드 브랜드·번호·딱지 */}
+                      <div style={ROW_NAME_STYLE}>
+                        <span>{labels.cardDisplay(card.brand, card.last4)}</span>
+                        {card.isDefault && <StatusBadge tone="accent" className="ono-done-badge">{labels.defaultBadge}</StatusBadge>}
+                        {expired && <StatusBadge tone="warning" className="ono-done-badge">{labels.expiredBadge}</StatusBadge>}
                       </div>
                       {/* 유효기간 — 모르면 줄째 생략 (만료 안내만 있으면 그것만) */}
                       {(hasExp(card) || expired) && (
-                      <div style={{ fontSize: 13, color: T.sub }}>
-                        {hasExp(card) && labels.expLabel(`${String(card.expMonth).padStart(2, '0')}/${expYear2(card.expYear)}`)}
-                        {expired && (
-                          <span style={{ fontSize: 12, color: T.amber, marginLeft: 10 }}>
-                            {labels.expiredHint}
-                          </span>
-                        )}
-                      </div>
+                        <div style={ROW_SUB_STYLE}>
+                          {hasExp(card) && labels.expLabel(`${String(card.expMonth).padStart(2, '0')}/${expYear2(card.expYear)}`)}
+                          {expired && <span style={hasExp(card) ? ROW_EXPIRED_HINT_STYLE : { color: 'var(--text-warning-primary)' }}>{labels.expiredHint}</span>}
+                        </div>
                       )}
                     </div>
 
-                    {/* 액션 버튼 */}
-                    <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                    {/* 줄 버튼 — 작게 */}
+                    <div style={ROW_ACTIONS_STYLE}>
                       {!card.isDefault && !expired && (
-                        <Btn kind="secondary" onClick={() => onSetDefault?.(card.id)}>{labels.setDefault}</Btn>
+                        <Btn kind="secondary" size="sm" onClick={() => onSetDefault?.(card.id)}>{labels.setDefault}</Btn>
                       )}
-                      <Btn kind="danger"
+                      <Btn kind="danger" size="sm"
                         onClick={() => setDeleteTarget(card.id)}
                         disabled={blockDelete}
                         title={blockDelete ? labels.deleteBlockedTitle : undefined}>
                         {labels.deleteCard}
                       </Btn>
                     </div>
-                  </div>
-                </Card>
-              );
-            })}
-          </>
+                  </li>
+                );
+              })}
+            </ul>
+          </Panel>
         )}
 
         {/* 보안 안내 */}
-        <div style={{ textAlign: 'center', fontSize: 12, color: T.muted, marginTop: 24 }}>
+        <div style={SECURITY_NOTE_STYLE}>
           {labels.securityNote}
         </div>
-
-      </div>
+      </BillingPage>
 
       {/* 삭제 확인 창 — 공용 확인 창(ConfirmModal · PW-836) */}
       {deleteTarget && (
@@ -301,7 +352,7 @@ export default function BillingMethodsCanvas({
             <>
               {labels.deleteModalDesc}
               {deleteTargetCard?.isDefault && (
-                <span style={{ display: 'block', marginTop: 8, color: T.amber }}>
+                <span style={{ display: 'block', marginTop: 'var(--spacing-md)', color: 'var(--text-warning-primary)' }}>
                   {labels.deleteModalDefaultWarning}
                 </span>
               )}
@@ -326,6 +377,6 @@ export default function BillingMethodsCanvas({
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

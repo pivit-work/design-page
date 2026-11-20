@@ -5,8 +5,20 @@ import Button from '../shared/Button.jsx';
 import LinkButton from './LinkButton.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
-import RosterTable from '../shared/RosterTable.jsx';
-import { BillingCard as Card, BillingBadge as Badge } from './kit/BillingSurface.jsx';
+import StatusBadge from '../shared/StatusBadge.jsx';
+import Stack from '../shared/Stack.jsx';
+import { AlertCircleGlyph, AlertTriangleGlyph, InfoGlyph } from '../shared/lineIcons.jsx';
+import { FrameTable, NoticeLines, Panel } from '../frames/index.js';
+import {
+  BillingCard as Card,
+  BillingBadge as Badge,
+  BillingInlineNote,
+  BillingNotice,
+  BillingPage,
+  BillingPageHead,
+} from './kit/BillingSurface.jsx';
+import { noticeSentences } from './kit/noticeSentences.js';
+import { BILLING_PAGE_WIDTH } from './kit/billingPageWidth.js';
 import { failureText, isNotifiedFailure } from '../shared/notifiedFailure.js';
 
 // ─────────────────────────────────────────────────────────────
@@ -69,7 +81,7 @@ const DEFAULT_LABELS = {
   compareRecommendedTag: '추천',
   recordingRowLabel: '녹음시간 한도',
   aiRunsRowLabel: 'AI 실행',
-  compareLegend: '✓ 포함  ◑ 제한적 포함  – 미포함  |  상위 티어는 하위 기능을 모두 포함합니다 (추가형). 단가·기능 범위 확정(pricing-policy.md, 2026-06-27).',
+  compareLegend: '✓ 포함  ◑ 제한적 포함  – 미포함  |  상위 티어는 하위 기능을 모두 포함합니다 (추가형).',
   seatCardTitle: '결제 좌석 수',
   seatTooltip: '예상 비용 산정용 인원입니다. 기본값은 현재 재직 구성원 수이며, 조정해 예상 청구액을 미리 볼 수 있습니다. 실제 청구는 청구일의 재직(활성) 좌석으로 확정됩니다(좌석 선구매·약정 쿼터 없음). 기간 요금은 선결제(월간 1개월분/연간 1년분).',
   seatDecreaseAria: '좌석 감소',
@@ -82,7 +94,7 @@ const DEFAULT_LABELS = {
   prorationStrong1: '예상 비용 미리보기',
   prorationMid: '입니다. 실제 청구는 ',
   prorationStrong2: '청구일의 재직(활성) 구성원 좌석',
-  prorationPost: '으로 확정됩니다(Proration A). 좌석 증감은 구성원 초대·비활성으로.',
+  prorationPost: '으로 확정됩니다. 좌석 증감은 구성원 초대·비활성으로.',
   manageMembers: '구성원 관리',
   estimateTitle: '예상 청구액',
   estimateTitleUpgrade: (label) => `${label} 업그레이드 시 예상 청구액`,
@@ -257,9 +269,67 @@ function Btn({ children, onClick, kind = 'primary', disabled, fullWidth }) {
   );
 }
 
+/** 가는 선 — 판 안 구역 사이 선(`Panel.Section`)과 같은 색. */
 function Divider() {
-  return <div style={{ height: 1, background: T.border, margin: '16px 0' }} />;
+  return <div style={{ height: 1, background: 'var(--border-secondary)', margin: 'var(--spacing-xl) 0' }} />;
 }
+
+/**
+ * 한 문단에 이어 쓴 안내를 문장마다 한 줄로 (pivit-work PW-3132) — 글은 그대로, 마침표 뒤에서만 나눈다.
+ * 글이 아니면(앱이 넘긴 React 조각) 나누지 않는다.
+ */
+function sentences(text) {
+  if (typeof text !== 'string') return [text];
+  return text.split(/(?<=[.!?])\s+/).filter(Boolean);
+}
+
+/** 이름 / 값 한 줄 — 예상 청구액 · 애드온 구매 창 금액 줄. `strong` 은 합계 줄. */
+function AmountRow({ label, value, strong, testId }) {
+  return (
+    <div data-testid={testId} style={strong ? AMOUNT_ROW_STRONG : AMOUNT_ROW}>
+      <span style={{ minWidth: 0 }}>{label}</span>
+      <span style={strong ? undefined : AMOUNT_VALUE}>{value}</span>
+    </div>
+  );
+}
+
+const AMOUNT_ROW = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'baseline',
+  gap: 'var(--spacing-lg)',
+  fontSize: 'var(--font-size-text-sm)',
+  lineHeight: 'var(--line-height-text-sm)',
+  color: 'var(--text-secondary)',
+};
+const AMOUNT_VALUE = { flex: 'none', color: 'var(--text-primary)', fontWeight: 600 };
+const AMOUNT_ROW_STRONG = {
+  ...AMOUNT_ROW,
+  fontSize: 'var(--font-size-text-lg)',
+  lineHeight: 'var(--line-height-text-lg)',
+  fontWeight: 700,
+  color: 'var(--text-primary)',
+};
+
+/** 다운그레이드 창 «좌석 한도 초과 안내» 칸 이름 — 경고 뜻 글(18 굵게), 바탕 없음. */
+const SEAT_OVER_TITLE_STYLE = {
+  fontSize: 'var(--font-size-text-lg)',
+  lineHeight: 'var(--line-height-text-lg)',
+  fontWeight: 600,
+  color: 'var(--text-warning-primary)',
+};
+
+/** 상태 띠 앞 아이콘 — 뜻 색은 띠(BillingNotice)가 칠한다. */
+const NOTICE_ICON = {
+  info: <InfoGlyph size={16} />,
+  warn: <AlertTriangleGlyph size={16} />,
+  bad: <AlertCircleGlyph size={16} />,
+};
+
+/** 창 발 줄 버튼 — 공용 창 틀 기본 버튼과 같은 모양(1:1 · 높이 44). 잠금은 공용 Button 이 한다. */
+const MODAL_BTN_SECONDARY = 'tl-group-modal-btn tl-group-modal-btn-secondary';
+const MODAL_BTN_PRIMARY = 'tl-group-modal-btn tl-group-modal-btn-primary';
+const MODAL_BTN_DANGER = 'tl-group-modal-btn adm-btn-danger-ghost';
 
 // ── 기능 아이콘 (추가형: ✓ / ◑ / –) ─────────────────────────
 function FeatureIcon({ status }) {
@@ -284,7 +354,7 @@ function QuoteCard({ quote, canEdit, onPay, billedSeats, seatsOverMax, labels, r
     quote.listPriceRef != null && quote.seatPrice < quote.listPriceRef;
 
   return (
-    <Card style={{ marginBottom: 24, background: T.purpleBg, border: `1px solid ${T.purple}` }}>
+    <Card style={{ background: T.purpleBg, border: `1px solid ${T.purple}` }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <div style={{ fontWeight: 800, color: T.purple }}>
           {quote.isRenewal ? labels.quoteCardTitleRenewal : labels.quoteCardTitle}
@@ -382,7 +452,7 @@ function launchBenefitApplies(plan, interval, launchBenefitUntil) {
     && plan != null && !plan.isCustom && plan.seatPriceAnnual != null;
 }
 
-function PlanCard({ plan, isCurrent, interval, onAction, canEdit, isCustomCta, featureKeys, featureLabelMap, labels, negotiatedPrice, launchBenefitUntil = null, trialNote = null }) {
+function PlanCard({ plan, isCurrent, isUpgrade = false, interval, onAction, canEdit, isCustomCta, featureKeys, featureLabelMap, labels, negotiatedPrice, launchBenefitUntil = null, trialNote = null }) {
   const isFree = !plan.isCustom && !plan.seatPrice;
   // 베타 출시 혜택(PW-2360) — 기간 안이면 월간도 연간 단가. 연간은 원래 연간 단가라 겹쳐 주지 않고, 커스텀(Pro)은 대상이 아니다.
   const benefit = launchBenefitApplies(plan, interval, launchBenefitUntil);
@@ -498,7 +568,8 @@ function PlanCard({ plan, isCurrent, interval, onAction, canEdit, isCustomCta, f
         <div style={{ marginTop: 'auto' }}>
           <Btn onClick={onAction} fullWidth
             disabled={!canEdit || isCurrent}
-            kind={isCurrent ? 'secondary' : 'primary'}>
+            // 주 동작만 초록(pivit-work PW-3132) — 올라가는 길(결제 · 영업팀 문의)만 primary, 내려가는 변경 · 지금 플랜은 보조
+            kind={!isCurrent && isUpgrade ? 'primary' : 'secondary'}>
             {isCurrent
               ? labels.ctaCurrentPlan
               : isCustomCta
@@ -521,23 +592,19 @@ function PlanCard({ plan, isCurrent, interval, onAction, canEdit, isCustomCta, f
 // 배지 색: 사용 중 = 초록(성공) · 체험 = 브랜드(14일 이하 주황) · 해지 예정 = 주황(경고) · 꺼짐 = 회색 · 잠김 = 빨강.
 // 상태·버튼은 서버가 판정한 값(`addon.phase` · `purchaseBlock` · `canStartTrial`)만 읽는다.
 function addonBadgeOf(addon, labels) {
+  // 딱지 뜻(pivit-work PW-3132): 체험 = 브랜드 · 사용 중 = 성공 · 해지 예정 = 경고 · 꺼짐 = 중립 · 잠김 = 위험.
+  // 색은 공용 딱지 표(statusBadgeTones)가 정한다 — 구독 현황 애드온 줄과 같은 색.
   switch (addon.phase) {
-    case 'trial': {
-      const soon = addon.trialDaysLeft != null && addon.trialDaysLeft <= 14;
-      return {
-        text: labels.addonBadgeTrial(addon.trialEndDate),
-        color: soon ? T.amber : T.accentText,
-        bg: soon ? T.amberBg : T.bl,
-      };
-    }
+    case 'trial':
+      return { text: labels.addonBadgeTrial(addon.trialEndDate), tone: 'accent' };
     case 'active':
-      return { text: labels.addonBadgeActive, color: T.green, bg: T.greenBg };
+      return { text: labels.addonBadgeActive, tone: 'success' };
     case 'cancel_scheduled':
-      return { text: labels.addonBadgeCancelScheduled(addon.lastDay), color: T.amber, bg: T.amberBg };
+      return { text: labels.addonBadgeCancelScheduled(addon.lastDay), tone: 'warning' };
     case 'lapsed':
-      return { text: labels.addonBadgeLapsed, color: T.sub, bg: T.bl };
+      return { text: labels.addonBadgeLapsed, tone: 'neutral' };
     case 'locked':
-      return { text: labels.addonBadgeLocked, color: T.red, bg: T.redBg };
+      return { text: labels.addonBadgeLocked, tone: 'danger' };
     default:
       return null;
   }
@@ -598,14 +665,14 @@ function AddonCard({ addon, interval, canEdit, highlight, labels, onTrial, onBuy
   }
 
   return (
-    <div ref={ref} id="addon-approval_leave" data-testid="billing-addon-card" style={{ marginBottom: 'var(--spacing-3xl)' }}>
+    <div ref={ref} id="addon-approval_leave" data-testid="billing-addon-card">
       <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 'var(--spacing-lg)' }}>{labels.addonSectionTitle}</div>
       <Card style={{ border: `1px solid ${flash ? T.accent : T.border}`, transition: 'border-color .4s' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--spacing-xl)', flexWrap: 'wrap' }}>
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)', flexWrap: 'wrap', marginBottom: 'var(--spacing-sm)' }}>
               <span style={{ fontSize: 16, fontWeight: 800 }}>{labels.addonName}</span>
-              {badge && <Badge color={badge.color} bg={badge.bg}>{badge.text}</Badge>}
+              {badge && <StatusBadge tone={badge.tone} className="admin-pill">{badge.text}</StatusBadge>}
             </div>
             <div style={{ fontSize: 13, color: T.sub, marginBottom: 'var(--spacing-md)' }}>{labels.addonDesc}</div>
             <div style={{ fontSize: 14, fontWeight: 700 }}>
@@ -633,7 +700,7 @@ function AddonCard({ addon, interval, canEdit, highlight, labels, onTrial, onBuy
 
 function AddonLoadFailed({ labels, onRetry }) {
   return (
-    <div style={{ marginBottom: 'var(--spacing-3xl)' }}>
+    <div>
       <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 'var(--spacing-lg)' }}>{labels.addonSectionTitle}</div>
       <Card>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--spacing-lg)', flexWrap: 'wrap' }}>
@@ -675,8 +742,8 @@ function AddonBuyModal({ preview, previewFailed, labels, onClose, onSubmit, onRe
       testId="billing-addon-buy"
       footer={
         <>
-          <Button variant="secondary" onClick={onClose}>{labels.cancelButton}</Button>
-          <Button variant="primary" data-testid="billing-addon-buy-submit" pending={busy}
+          <Button className={MODAL_BTN_SECONDARY} onClick={onClose}>{labels.cancelButton}</Button>
+          <Button className={MODAL_BTN_PRIMARY} data-testid="billing-addon-buy-submit" pending={busy}
             pendingLabel={labels.addonBuyBusy}
             onClick={() => void submit()} disabled={!preview || !agreed}>
             {failure != null ? labels.addonBuyRetry : labels.addonBuySubmit}
@@ -719,9 +786,7 @@ function AddonBuyModal({ preview, previewFailed, labels, onClose, onSubmit, onRe
                 <span>{labels.addonBuyCard(preview.cardBrand, preview.cardLast4)}</span>
               </div>
             )}
-            <div style={{ padding: 'var(--spacing-md) var(--spacing-lg)', background: T.bl, borderRadius: 10, fontSize: 13, color: T.sub }}>
-              {labels.addonBuyCancelNote}
-            </div>
+            <NoticeLines lines={[labels.addonBuyCancelNote]} tone="muted" />
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--spacing-md)', fontSize: 13 }}>
               <Checkbox id={agreeId} checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
               <label htmlFor={agreeId} style={{ cursor: 'pointer' }}>{labels.addonBuyAgree}</label>
@@ -729,8 +794,8 @@ function AddonBuyModal({ preview, previewFailed, labels, onClose, onSubmit, onRe
           </>
         )}
         {failure != null && (
-          <div data-testid="billing-addon-buy-failed" style={{ padding: 'var(--spacing-md) var(--spacing-lg)', background: T.redBg, borderRadius: 10 }}>
-            <div style={{ fontSize: 13, color: T.red, fontWeight: 700, marginBottom: 'var(--spacing-md)' }}>{labels.addonBuyFailed(failure)}</div>
+          <div data-testid="billing-addon-buy-failed" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 'var(--spacing-md)' }}>
+            <div style={{ fontSize: 'var(--font-size-text-sm)', color: 'var(--text-error-primary)', fontWeight: 700 }}>{labels.addonBuyFailed(failure)}</div>
             <LinkButton onClick={onManageMethods}>{labels.addonManageMethodsCta}</LinkButton>
           </div>
         )}
@@ -783,78 +848,82 @@ function AddonCancelModal({ addon, labels, onClose, onSubmit, onRefundQuote, onR
       testId="billing-addon-cancel"
       footer={
         <>
-          <Button variant="secondary" onClick={onClose}>{labels.cancelButton}</Button>
-          <Button variant="danger-ghost" data-testid="billing-addon-cancel-submit" pending={busy}
+          <Button className={MODAL_BTN_SECONDARY} onClick={onClose}>{labels.cancelButton}</Button>
+          <Button className={MODAL_BTN_DANGER} data-testid="billing-addon-cancel-submit" pending={busy}
             pendingLabel={labels.addonBusy} onClick={() => void submit()}>
             {labels.addonCancelSubmit}
           </Button>
         </>
       }
     >
-      <div style={{ fontFamily: T.font, fontSize: 14, color: T.sub }}>
-        {labels.addonCancelBody(addon.periodLastDay ?? '')}
-      </div>
+      <Stack gap="xl">
+      {/* 설명은 문장마다 한 줄 — 글은 그대로 (pivit-work PW-3132) */}
+      <NoticeLines lines={sentences(labels.addonCancelBody(addon.periodLastDay ?? ''))} />
       {refundQuote?.eligible && refundQuote.amount > 0 && (
-        /* 보조 선택 — 구독 현황 해지 창의 «즉시 해지 + 환불» 칸과 같은 초록 테두리 */
-        <div data-testid="billing-addon-refund"
-          style={{ border: `1px solid ${T.green}`, borderRadius: 'var(--radius-lg)', padding: 'var(--spacing-xl)', marginTop: 'var(--spacing-xl)', background: T.greenBg }}>
+        /* 보조 선택 — 바탕 · 테두리 없이 설명 아래 보조 버튼 한 줄 (pivit-work PW-3132) */
+        <div data-testid="billing-addon-refund">
           <Button variant="secondary" data-testid="billing-addon-refund-submit" pending={refundBusy}
             pendingLabel={labels.addonBusy} disabled={busy} onClick={() => void refund()}>
             {labels.addonRefundCta(refundQuote.amount)}
           </Button>
         </div>
       )}
+      </Stack>
     </ModalShell>
   );
 }
 
+/**
+ * 기능 비교 표 — 흰 판 + 공용 표 틀(FrameTable · 조직도 명단 표 값) (pivit-work PW-3132).
+ * 머리의 «추천»은 12 브랜드 글 하나. 지금 플랜 머리는 브랜드 글(체험으로 받은 요금제 포함).
+ */
 function FeatureCompareTable({ plans, featureKeys, featureLabelMap, currentPlanCode, labels }) {
+  const rows = [
+    ...featureKeys.map((key) => ({ key, kind: 'feature' })),
+    { key: '__recording', kind: 'recording' },
+    { key: '__aiRuns', kind: 'aiRuns' },
+  ];
+  const columns = [
+    {
+      key: 'feature',
+      header: labels.compareFeatureHeader,
+      render: (row) =>
+        row.kind === 'feature'
+          ? featureLabelMap[row.key]
+          : row.kind === 'recording' ? labels.recordingRowLabel : labels.aiRunsRowLabel,
+    },
+    ...plans.map((p) => ({
+      key: p.code,
+      align: 'center',
+      header: (
+        <span style={COMPARE_HEAD_STYLE}>
+          <span style={{ color: p.code === currentPlanCode ? 'var(--text-brand-secondary)' : 'var(--text-primary)' }}>{p.label}</span>
+          {p.recommended && <span style={COMPARE_RECOMMENDED_STYLE}>{labels.compareRecommendedTag}</span>}
+        </span>
+      ),
+      render: (row) => {
+        if (row.kind === 'recording') return (p.recordingNote || '').split(' (')[0];
+        if (row.kind === 'aiRuns') return p.aiRunsNote;
+        return <FeatureIcon status={p.featureStatus ? p.featureStatus[row.key] : false} />;
+      },
+    })),
+  ];
   return (
-    <Card style={{ marginBottom: 24 }}>
-      <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 14 }}>{labels.compareTitle}</div>
-      <RosterTable>
-        <RosterTable.Head>
-          <RosterTable.HeadCell>{labels.compareFeatureHeader}</RosterTable.HeadCell>
-          {plans.map((p) => (
-            <RosterTable.HeadCell key={p.code} align="center">
-              <span style={{ fontWeight: 700, color: p.code === currentPlanCode ? T.accentText : T.text }}>{p.label}</span>
-              {p.recommended && <div style={{ fontSize: 10, color: T.purple, fontWeight: 700 }}>{labels.compareRecommendedTag}</div>}
-            </RosterTable.HeadCell>
-          ))}
-        </RosterTable.Head>
-        <RosterTable.Body>
-          {featureKeys.map((key) => (
-            <RosterTable.Row key={key}>
-              <RosterTable.Cell style={{ fontWeight: 500 }}>{featureLabelMap[key]}</RosterTable.Cell>
-              {plans.map((p) => (
-                <RosterTable.Cell key={p.code} align="center">
-                  <FeatureIcon status={p.featureStatus ? p.featureStatus[key] : false} />
-                </RosterTable.Cell>
-              ))}
-            </RosterTable.Row>
-          ))}
-          <RosterTable.Row>
-            <RosterTable.Cell style={{ color: T.sub, fontSize: 12 }}>{labels.recordingRowLabel}</RosterTable.Cell>
-            {plans.map((p) => (
-              <RosterTable.Cell key={p.code} align="center" style={{ fontSize: 11, color: T.sub }}>
-                {(p.recordingNote || '').split(' (')[0]}
-              </RosterTable.Cell>
-            ))}
-          </RosterTable.Row>
-          <RosterTable.Row>
-            <RosterTable.Cell style={{ color: T.sub, fontSize: 12 }}>{labels.aiRunsRowLabel}</RosterTable.Cell>
-            {plans.map((p) => (
-              <RosterTable.Cell key={p.code} align="center" style={{ fontSize: 11, color: T.sub }}>
-                {p.aiRunsNote}
-              </RosterTable.Cell>
-            ))}
-          </RosterTable.Row>
-        </RosterTable.Body>
-      </RosterTable>
-      <div style={{ fontSize: 11, color: T.muted, marginTop: 10 }}>{labels.compareLegend}</div>
-    </Card>
+    <Panel title={labels.compareTitle}>
+      <FrameTable columns={columns} rows={rows} rowKey={(row) => row.key} empty={null} />
+      <BillingInlineNote>{labels.compareLegend}</BillingInlineNote>
+    </Panel>
   );
 }
+
+/** 머리 칸 — 요금제 이름 아래 «추천» 한 줄. */
+const COMPARE_HEAD_STYLE = { display: 'inline-flex', flexDirection: 'column', alignItems: 'center' };
+const COMPARE_RECOMMENDED_STYLE = {
+  fontSize: 'var(--font-size-text-xs)',
+  lineHeight: 'var(--line-height-text-xs)',
+  fontWeight: 600,
+  color: 'var(--text-brand-secondary)',
+};
 
 // ── 메인 컴포넌트 ────────────────────────────────────────────
 
@@ -1155,101 +1224,118 @@ export default function BillingPlansCanvas({
   const contractOverMax =
     Boolean(contract) && contract.maxSeats != null && (contract.overageSeats ?? 0) > 0;
 
-  return (
-    <div style={{ fontFamily: T.font, background: T.bg, minHeight: '100vh', padding: 32, color: T.text }}>
-      <div style={{ maxWidth: 1080, margin: '0 auto' }}>
+  // 버튼 세기(pivit-work PW-3132) — 이 카드가 «올라가는 길»인가. 판정은 누르면 가는 곳(onPlanAction)과 같다:
+  // 커스텀(Pro)은 결제 · 영업팀 문의, 지금보다 높은 단(tierRank)은 결제로 간다. 나머지는 변경 확인 창(내려가는 변경).
+  // 체험으로 받은 요금제가 있으면 세기의 기준은 그 요금제다 — 체험 중 Growth 회사에 Starter 는 «내려가는 변경»(시안 · 카드 본문).
+  // 결제 흐름(onPlanAction)은 그대로 지금 구독(체험이면 Free)을 따르고, 체험 요금제 자신은 결제로 이어 가는 길이라 초록이다.
+  const trialRank = !suspension && trialPlan ? (plans.find((p) => p.code === trialPlan.planCode)?.tierRank ?? null) : null;
+  const isUpgradePlan = (plan) =>
+    Boolean(plan.isCustom) ||
+    (trialRank != null
+      ? plan.code === trialPlan.planCode || (plan.tierRank ?? 0) > trialRank
+      : (plan.tierRank ?? 0) > currentRank);
 
+  return (
+    <BillingPage width={BILLING_PAGE_WIDTH.plans}>
         {/* 뒤로가기 */}
         <button type="button" onClick={onNavigateBillingOverview}
-          style={{ background: 'none', border: 'none', color: T.sub, fontSize: 13,
-            cursor: 'pointer', padding: 0, marginBottom: 16 }}>
+          style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: 'var(--text-secondary)',
+            fontSize: 'var(--font-size-text-sm)', cursor: 'pointer', padding: 0 }}>
           {labels.back}
         </button>
 
-        {/* 헤더 */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-          <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>{labels.pageTitle}</h1>
-          {!canEdit && <Badge color={T.sub} bg={T.bl}>{labels.readOnlyBadge}</Badge>}
-        </div>
-        <p style={{ color: T.sub, fontSize: 14, marginTop: 4, marginBottom: 24 }}>{labels.pageSubtitle}</p>
+        {/* 헤더 — 제목 · 설명 · 오른쪽에 조회 전용 딱지 */}
+        <BillingPageHead
+          title={labels.pageTitle}
+          description={[labels.pageSubtitle]}
+          actions={!canEdit ? <StatusBadge tone="neutral" className="admin-pill">{labels.readOnlyBadge}</StatusBadge> : null}
+        />
         {subscriptionUnavailable && (
           <div data-testid="billing-plans-current-unknown"
-            style={{ fontSize: 13, color: T.sub, marginTop: -16, marginBottom: 20 }}>
+            style={{ fontSize: 'var(--font-size-text-sm)', color: 'var(--text-secondary)' }}>
             {labels.currentPlanUnknown}
           </div>
         )}
 
         {contractOverMax && (
-          <Card style={{ marginBottom: 16, background: T.amberBg, border: '1px solid #FDE68A' }}>
-            <div data-testid="billing-plans-contract-over-max" style={{ fontSize: 13, color: T.text }}>
-              {labels.contractOverMaxNotice(
-                contract.maxSeats,
-                contract.overageSeatPrice ?? contract.seatPrice,
-              )}
-            </div>
-          </Card>
+          <BillingNotice
+            tone="warn"
+            icon={NOTICE_ICON.warn}
+            testId="billing-plans-contract-over-max"
+            lines={[labels.contractOverMaxNotice(
+              contract.maxSeats,
+              contract.overageSeatPrice ?? contract.seatPrice,
+            )]}
+          />
         )}
 
         {/* 견적 만료 안내 (PW-344 ④) — 만료 견적의 단가는 여기에 쓰지 않는다. */}
         {quoteExpired && (
-          <Card style={{ marginBottom: 16, background: T.amberBg, border: '1px solid #FDE68A' }}>
-            <div style={{ fontWeight: 800, color: T.amber, marginBottom: 4 }}>{labels.quoteExpiredTitle}</div>
-            <div style={{ fontSize: 13, color: T.text, marginBottom: 12 }}>{labels.quoteExpiredBody}</div>
-            <Btn kind="secondary" onClick={onNavigateContactSales} disabled={!canEdit}>
-              {labels.quoteExpiredCta}
-            </Btn>
-          </Card>
+          <BillingNotice
+            tone="warn"
+            icon={NOTICE_ICON.warn}
+            title={labels.quoteExpiredTitle}
+            lines={noticeSentences(labels.quoteExpiredBody)}
+            actions={(
+              <Btn kind="secondary" onClick={onNavigateContactSales} disabled={!canEdit}>
+                {labels.quoteExpiredCta}
+              </Btn>
+            )}
+          />
         )}
 
-        {/* 이용 정지 안내 띠 (pivit-work PW-2549·PW-2550) — 구독 현황 정지 배너와 같은 빨간 Card */}
+        {/* 이용 정지 안내 띠 (pivit-work PW-2549·PW-2550) — 상태 띠(위험) */}
         {suspension && (
-          <Card style={{ marginBottom: 'var(--spacing-xl)', background: T.redBg, border: '1px solid var(--utility-error-300)',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--spacing-xl)' }}>
-            <div data-testid="billing-plans-suspended" role="status">
-              <div style={{ fontWeight: 800, color: T.red, marginBottom: 'var(--spacing-xs)' }}>{labels.suspendedTitle}</div>
-              <div style={{ fontSize: 13, color: T.text }}>{labels.suspendedBody}</div>
-            </div>
-            <div style={{ flex: 'none', whiteSpace: 'nowrap' }}>
-              <Btn kind="secondary" onClick={onNavigateBillingOverview}>{labels.suspendedBackToOverview}</Btn>
-            </div>
-          </Card>
+          <BillingNotice
+            tone="bad"
+            icon={NOTICE_ICON.bad}
+            testId="billing-plans-suspended"
+            role="status"
+            title={labels.suspendedTitle}
+            lines={noticeSentences(labels.suspendedBody)}
+            actions={<Btn kind="secondary" onClick={onNavigateBillingOverview}>{labels.suspendedBackToOverview}</Btn>}
+          />
         )}
 
-        {/* 결제 문제 안내 띠 (pivit-work PW-2526) — 이용 정지 띠와 같은 빨간 Card */}
+        {/* 결제 문제 안내 띠 (pivit-work PW-2526) — 이용 정지 띠와 같은 상태 띠(위험) */}
         {payBlock && (
-          <Card style={{ marginBottom: 'var(--spacing-xl)', background: T.redBg, border: '1px solid var(--utility-error-300)',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--spacing-xl)' }}>
-            <div data-testid="billing-plans-pay-block" role="status">
-              <div style={{ fontWeight: 800, color: T.red, marginBottom: 'var(--spacing-xs)' }}>{payBlock.title}</div>
-              <div style={{ fontSize: 13, color: T.text }}>{payBlock.body}</div>
-            </div>
-            <div style={{ flex: 'none', whiteSpace: 'nowrap' }}>
-              {/* 다른 화면으로 가는 «→» 는 같은 화면 [구성원 관리 →] 와 같은 링크 버튼 (PW-2938) */}
-              {payBlock.arrow ? (
+          <BillingNotice
+            tone="bad"
+            icon={NOTICE_ICON.bad}
+            testId="billing-plans-pay-block"
+            role="status"
+            title={payBlock.title}
+            lines={noticeSentences(payBlock.body)}
+            actions={
+              /* 다른 화면으로 가는 «→» 는 같은 화면 [구성원 관리 →] 와 같은 링크 버튼 (PW-2938) */
+              payBlock.arrow ? (
                 <LinkButton onClick={onPayBlockAction} disabled={!canEdit}>{payBlock.action}</LinkButton>
               ) : (
                 <Btn kind="secondary" onClick={onPayBlockAction} disabled={!canEdit}>{payBlock.action}</Btn>
-              )}
-            </div>
-          </Card>
+              )
+            }
+          />
         )}
 
         {/* 해지 예약 상태 안내 */}
         {subscription.cancelAtPeriodEnd && (
-          <Card style={{ marginBottom: 16, background: T.amberBg, border: '1px solid #FDE68A' }}>
-            <div style={{ fontWeight: 800, color: T.amber, marginBottom: 4 }}>{labels.cancelReservedTitle}</div>
-            <div style={{ fontSize: 13, color: T.text }}>
-              {labels.cancelReservedBodyPre}
-              <strong>{labels.cancelReservedBodyStrong}</strong>
-              {labels.cancelReservedBodyPost}
-            </div>
-          </Card>
+          <BillingNotice
+            tone="warn"
+            icon={NOTICE_ICON.warn}
+            title={labels.cancelReservedTitle}
+            lines={[(
+              <>
+                {labels.cancelReservedBodyPre}
+                <strong>{labels.cancelReservedBodyStrong}</strong>
+                {labels.cancelReservedBodyPost}
+              </>
+            )]}
+          />
         )}
 
-        {/* 청구 주기 토글 */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-          <span style={{ fontSize: 14, color: T.sub }}>{labels.billingCycleLabel}</span>
-          {/* 하나만 고르는 칸 = 공용 세그먼트 버튼 (PW-1894) */}
+        {/* 청구 주기 — 공용 세그먼트(PW-1894) + 연간이면 옆에 할인 딱지(성공) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-lg)', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 'var(--font-size-text-sm)', color: 'var(--text-secondary)' }}>{labels.billingCycleLabel}</span>
           <SegmentedControl
             ariaLabel={labels.billingCycleLabel}
             items={[
@@ -1260,7 +1346,7 @@ export default function BillingPlansCanvas({
             onChange={setInterval}
           />
           {interval === 'annual' && (
-            <span style={{ fontSize: 12, color: T.amber }}>{labels.annualToggleNote}</span>
+            <StatusBadge tone="success" className="admin-pill" data-testid="billing-plans-annual-badge">{labels.annualToggleNote}</StatusBadge>
           )}
         </div>
 
@@ -1282,13 +1368,13 @@ export default function BillingPlansCanvas({
         )}
 
         {/* 4티어 플랜 카드 — [플랜 보기](패키지 카드 · Free)가 여기로 스크롤한다 */}
-        <div ref={plansTopRef} />
-        <div style={{ display: 'flex', gap: 14, marginBottom: 24, flexWrap: 'wrap' }}>
+        <div ref={plansTopRef} style={{ display: 'flex', gap: 'var(--spacing-lg)', flexWrap: 'wrap' }}>
           {plans.map((plan) => (
             <PlanCard
               key={plan.code}
               plan={plan}
               isCurrent={!suspension && !trialPlan && plan.code === subscription.planCode}
+              isUpgrade={isUpgradePlan(plan)}
               interval={interval}
               canEdit={
                 canEdit &&
@@ -1319,7 +1405,7 @@ export default function BillingPlansCanvas({
 
         {/* 약정 기간 중 하향 차단 안내 (PW-344) */}
         {commitment && canEdit && (commitment.lockedPlanCodes ?? []).length > 0 && (
-          <div data-testid="billing-commitment-notice" style={{ fontSize: 13, color: T.sub, marginBottom: 16 }}>
+          <div data-testid="billing-commitment-notice" style={{ fontSize: 'var(--font-size-text-sm)', color: 'var(--text-secondary)' }}>
             {labels.commitmentNotice(commitment.contractEnd)}{' '}
             <LinkButton onClick={onNavigateContactSales}>{labels.commitmentContactCta}</LinkButton>
           </div>
@@ -1354,16 +1440,15 @@ export default function BillingPlansCanvas({
           labels={labels}
         />
 
-        {/* 결제 좌석 수 선택 카드 */}
-        <Card style={{ marginBottom: 16 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, gap: 12, flexWrap: 'wrap' }}>
-            <div style={{ fontSize: 15, fontWeight: 700 }}>
-              {labels.seatCardTitle}
-              <Tooltip content={labels.seatTooltip}>
-                <span style={{ cursor: 'help', color: T.muted, fontSize: 13, marginLeft: 4 }}>ⓘ</span>
-              </Tooltip>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        {/* 결제 좌석 수 · 예상 청구액 — 같은 계산(좌석 → 금액)이라 흰 판 하나에 두 구역 (pivit-work PW-3132) */}
+        <Panel>
+          <Panel.Section
+            title={labels.seatCardTitle}
+            actions={(
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)' }}>
+                <Tooltip content={labels.seatTooltip}>
+                  <span style={{ display: 'flex', cursor: 'help', color: 'var(--text-tertiary)' }}><InfoGlyph size={16} /></span>
+                </Tooltip>
               <button type="button"
                 onClick={() => canEdit && setSeatsClamped(seats - 1)}
                 disabled={!canEdit || seats <= 1}
@@ -1394,11 +1479,12 @@ export default function BillingPlansCanvas({
                   cursor: !canEdit ? 'not-allowed' : 'pointer', opacity: !canEdit ? 0.4 : 1,
                 }}>+</button>
               <span style={{ fontSize: 14, color: T.sub, fontWeight: 600 }}>{labels.seatUnit}</span>
-            </div>
-          </div>
-
-          <div style={{ fontSize: 13, color: T.sub, display: 'flex', justifyContent: 'space-between',
-            alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              </div>
+            )}
+          >
+          <Stack gap="lg">
+          <div style={{ fontSize: 'var(--font-size-text-sm)', color: 'var(--text-secondary)', display: 'flex', justifyContent: 'space-between',
+            alignItems: 'center', gap: 'var(--spacing-md)', flexWrap: 'wrap' }}>
             <span>
               {labels.currentActiveSeats(activeSeats)}
               {seats !== activeSeats && (
@@ -1416,130 +1502,104 @@ export default function BillingPlansCanvas({
             )}
           </div>
 
-          {/* Proration A 안내 배너 + 좌석 조정 동선 */}
-          <div style={{ marginTop: 12, padding: '10px 14px', background: T.bl,
-            borderRadius: 10, fontSize: 13, color: T.sub,
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span>
-              {labels.prorationPre}
-              <b>{labels.prorationStrong1}</b>
-              {labels.prorationMid}
-              <b>{labels.prorationStrong2}</b>
-              {labels.prorationPost}
-            </span>
+          {/* 청구 좌석 안내(바탕 없는 줄) + 좌석 조정 동선 */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--spacing-md)', flexWrap: 'wrap' }}>
+            <NoticeLines lines={[(
+              <>
+                {labels.prorationPre}
+                <b>{labels.prorationStrong1}</b>
+                {labels.prorationMid}
+                <b>{labels.prorationStrong2}</b>
+                {labels.prorationPost}
+              </>
+            )]} />
             <LinkButton onClick={onNavigateMembers}>{labels.manageMembers}</LinkButton>
           </div>
-        </Card>
+          </Stack>
+          </Panel.Section>
 
         {/* 예상 청구액 */}
         {seats > 0 && billingPlan && !billingPlan.isCustom && !useQuoteEstimate && (
-          <Card style={{ marginBottom: 24 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>
-              {isCurrentFree && (billingPlan.tierRank ?? 0) > 0
-                ? labels.estimateTitleUpgrade(billingPlan.label)
-                : labels.estimateTitle}
-              <span style={{ fontSize: 12, color: T.muted, fontWeight: 400, marginLeft: 8 }}>
-                {labels.estimateSubnote(seats)}
-              </span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: T.sub, marginBottom: 6 }}>
-              <span>{labels.estimateLineItem(seats, unitPrice, periodMonths)}</span>
-              <span style={{ color: T.text, fontWeight: 600 }}>{won(subtotal)}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: T.sub, marginBottom: 8 }}>
-              <span>{labels.vatLabel}</span>
-              <span style={{ color: T.text, fontWeight: 600 }}>{won(vat)}</span>
-            </div>
-            <Divider />
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 17, fontWeight: 800 }}>
-              <span>{periodMonths > 1 ? labels.annualTotalLabel : labels.monthlyTotalLabel}</span>
-              <span>{won(total)}</span>
-            </div>
-            {interval === 'annual' && (
-              <div style={{ fontSize: 12, color: T.amber, marginTop: 8 }}>{labels.annualEstimateNote}</div>
-            )}
-            <div style={{ fontSize: 12, color: T.muted, marginTop: 8 }}>{labels.estimateFootnote}</div>
-          </Card>
+          <Panel.Section
+            title={isCurrentFree && (billingPlan.tierRank ?? 0) > 0
+              ? labels.estimateTitleUpgrade(billingPlan.label)
+              : labels.estimateTitle}
+          >
+            <Stack gap="md">
+              <NoticeLines lines={[labels.estimateSubnote(seats)]} tone="muted" />
+              <AmountRow label={labels.estimateLineItem(seats, unitPrice, periodMonths)} value={won(subtotal)} />
+              <AmountRow label={labels.vatLabel} value={won(vat)} />
+              <Divider />
+              <AmountRow strong label={periodMonths > 1 ? labels.annualTotalLabel : labels.monthlyTotalLabel} value={won(total)} />
+              <NoticeLines
+                tone="muted"
+                lines={[interval === 'annual' && labels.annualEstimateNote, labels.estimateFootnote]}
+              />
+            </Stack>
+          </Panel.Section>
         )}
 
         {/* 예상 청구액 — 유효 견적의 플랜(Pro). 금액은 서버 계산값 (PW-1620) */}
         {seats > 0 && useQuoteEstimate && (
-          <Card style={{ marginBottom: 24 }}>
-            <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 12 }}>
-              {isCurrentFree ? labels.estimateTitleUpgrade(billingPlan.label) : labels.estimateTitle}
-              <span style={{ fontSize: 12, color: T.muted, fontWeight: 400, marginLeft: 8 }}>
-                {labels.estimateSubnote(seats)}
-              </span>
-            </div>
-            {quoteEstimateFailed ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 14, color: T.sub }}>
-                <span>{labels.estimateQuoteFailed}</span>
-                <Btn kind="secondary" onClick={onRetryQuoteEstimate}>{labels.estimateQuoteRetry}</Btn>
-              </div>
-            ) : !readyQuoteEstimate ? (
-              <div style={{ fontSize: 14, color: T.muted }}>{labels.estimateQuoteLoading}</div>
-            ) : (
-              <>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: T.sub, marginBottom: 6 }}>
-                  <span>
-                    {labels.estimateQuoteLineItem(readyQuoteEstimate.baseSeats, readyQuoteEstimate.unitPrice, readyQuoteEstimate.months)}
-                  </span>
-                  <span style={{ color: T.text, fontWeight: 600 }}>{won(readyQuoteEstimate.baseAmount)}</span>
+          <Panel.Section title={isCurrentFree ? labels.estimateTitleUpgrade(billingPlan.label) : labels.estimateTitle}>
+            <Stack gap="md">
+              <NoticeLines lines={[labels.estimateSubnote(seats)]} tone="muted" />
+              {quoteEstimateFailed ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-lg)', fontSize: 'var(--font-size-text-sm)', color: 'var(--text-secondary)' }}>
+                  <span>{labels.estimateQuoteFailed}</span>
+                  <Btn kind="secondary" onClick={onRetryQuoteEstimate}>{labels.estimateQuoteRetry}</Btn>
                 </div>
-                {readyQuoteEstimate.overageSeats > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: T.sub, marginBottom: 6 }}>
-                    <span>
-                      {labels.estimateOverageLineItem(readyQuoteEstimate.overageSeats, readyQuoteEstimate.overageUnitPrice, readyQuoteEstimate.months)}
-                    </span>
-                    <span style={{ color: T.text, fontWeight: 600 }}>{won(readyQuoteEstimate.overageAmount)}</span>
-                  </div>
-                )}
-                {readyQuoteEstimate.billedSeats > seats && (
-                  <div style={{ fontSize: 12, color: T.amber, marginBottom: 6 }}>
-                    {labels.estimateMinSeatsNote(readyQuoteEstimate.minSeats)}
-                  </div>
-                )}
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, color: T.sub, marginBottom: 8 }}>
-                  <span>{labels.vatLabel}</span>
-                  <span style={{ color: T.text, fontWeight: 600 }}>{won(readyQuoteEstimate.vat)}</span>
-                </div>
-                <Divider />
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 17, fontWeight: 800 }}>
-                  <span>{readyQuoteEstimate.months > 1 ? labels.annualTotalLabel : labels.monthlyTotalLabel}</span>
-                  <span>{won(readyQuoteEstimate.total)}</span>
-                </div>
-              </>
-            )}
-            <div style={{ fontSize: 12, color: T.muted, marginTop: 8 }}>{labels.estimateFootnote}</div>
-          </Card>
+              ) : !readyQuoteEstimate ? (
+                <NoticeLines lines={[labels.estimateQuoteLoading]} tone="muted" />
+              ) : (
+                <>
+                  <AmountRow
+                    label={labels.estimateQuoteLineItem(readyQuoteEstimate.baseSeats, readyQuoteEstimate.unitPrice, readyQuoteEstimate.months)}
+                    value={won(readyQuoteEstimate.baseAmount)}
+                  />
+                  {readyQuoteEstimate.overageSeats > 0 && (
+                    <AmountRow
+                      label={labels.estimateOverageLineItem(readyQuoteEstimate.overageSeats, readyQuoteEstimate.overageUnitPrice, readyQuoteEstimate.months)}
+                      value={won(readyQuoteEstimate.overageAmount)}
+                    />
+                  )}
+                  {readyQuoteEstimate.billedSeats > seats && (
+                    <NoticeLines lines={[labels.estimateMinSeatsNote(readyQuoteEstimate.minSeats)]} />
+                  )}
+                  <AmountRow label={labels.vatLabel} value={won(readyQuoteEstimate.vat)} />
+                  <Divider />
+                  <AmountRow strong
+                    label={readyQuoteEstimate.months > 1 ? labels.annualTotalLabel : labels.monthlyTotalLabel}
+                    value={won(readyQuoteEstimate.total)}
+                  />
+                </>
+              )}
+              <NoticeLines lines={[labels.estimateFootnote]} tone="muted" />
+            </Stack>
+          </Panel.Section>
         )}
+        </Panel>
 
-        {/* Pro 커스텀 안내 */}
+        {/* Pro 커스텀 안내 — 상태 띠(안내) */}
         {showProCard && (
-          <Card style={{ marginBottom: 24, background: T.purpleBg, border: '1px solid #DDD6FE' }}>
-            <div style={{ fontWeight: 800, color: T.purple, marginBottom: 4 }}>{labels.proCardTitle}</div>
-            <div style={{ fontSize: 13, color: T.text }}>{labels.proCardBody}</div>
-            <div style={{ marginTop: 12 }}>
+          <BillingNotice
+            tone="info"
+            icon={NOTICE_ICON.info}
+            title={labels.proCardTitle}
+            lines={noticeSentences(labels.proCardBody)}
+            actions={(
               <Btn kind="secondary" onClick={onNavigateContactSales} disabled={!canEdit || !!payBlock}>
                 {labels.proCardCta}
               </Btn>
-            </div>
-          </Card>
+            )}
+          />
         )}
 
-        {/* 조회 전용 안내 */}
-        {!canEdit && (
-          <div style={{ fontSize: 13, color: T.sub, textAlign: 'center', marginTop: 8 }}>
-            {labels.readOnlyNotice}
-          </div>
-        )}
-
-        {/* 해지 예약 안내 */}
-        {subscription.cancelAtPeriodEnd && canEdit && (
-          <div style={{ fontSize: 13, color: T.sub, textAlign: 'center', marginTop: 8 }}>
-            {labels.cancelReservedNotice}
-          </div>
-        )}
+        {/* 조회 전용 안내 · 해지 예약 안내 */}
+        <NoticeLines
+          tone="muted"
+          lines={[!canEdit && labels.readOnlyNotice, subscription.cancelAtPeriodEnd && canEdit && labels.cancelReservedNotice]}
+        />
 
         {/* 다운그레이드·플랜 변경 확인 창 — 공용 창 틀(ModalShell · PW-836). body 직속 포털이라
             사이드바(App.css `.sidebar` = 100)까지 덮는다. 겹침 순서는 종전 값 1000. */}
@@ -1574,41 +1634,35 @@ export default function BillingPlansCanvas({
               </>
             }
           >
-            <div style={{ fontFamily: T.font }}>
-              <div style={{ fontSize: 14, color: T.sub, marginBottom: 16 }}>
-                {isDowngrade ? downgradeBody : labels.confirmChangeBody}
-              </div>
+            {/* 안은 바탕 없는 줄 (pivit-work PW-3132) — 설명 / 좌석 한도 초과(경고 칸 이름 + 설명 + 체크칸) / 데이터 보존 안내 */}
+            <Stack gap="xl">
+              <NoticeLines lines={[isDowngrade ? downgradeBody : labels.confirmChangeBody]} />
 
               {/* Free 다운그레이드 — 좌석 상한 초과 경고 */}
               {seatOverLimit && (
-                <div style={{ padding: '12px 16px', background: T.amberBg,
-                  border: '1px solid #FDE68A', borderRadius: 10, marginBottom: 16 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: T.amber, marginBottom: 4 }}>
-                    {labels.seatOverLimitTitle}
-                  </div>
-                  <div style={{ fontSize: 13, color: T.text }}>
-                    {labels.seatOverLimitPre(activeSeats, freeLimit)}
-                    <strong>{labels.seatOverLimitStrong}</strong>
-                    {labels.seatOverLimitPost}
-                  </div>
+                <Stack gap="md" data-testid="billing-plan-seat-over-limit">
+                  <div style={SEAT_OVER_TITLE_STYLE}>{labels.seatOverLimitTitle}</div>
+                  <NoticeLines lines={[(
+                    <>
+                      {labels.seatOverLimitPre(activeSeats, freeLimit)}
+                      <strong style={{ color: 'var(--text-primary)' }}>{labels.seatOverLimitStrong}</strong>
+                      {labels.seatOverLimitPost}
+                    </>
+                  )]} />
                   {/* 네모는 공용 `Checkbox`(제품색 16px · PW-1936), 글씨는 `htmlFor` 로 이어 눌러도 켜진다 */}
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8,
-                    marginTop: 10, fontSize: 13 }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--spacing-md)', fontSize: 'var(--font-size-text-sm)' }}>
                     <Checkbox id={seatConfirmId} checked={downgradeChecked}
                       onChange={(e) => setDowngradeChecked(e.target.checked)} />
                     <label htmlFor={seatConfirmId} style={{ cursor: 'pointer' }}>{labels.seatOverLimitConfirm}</label>
                   </div>
-                </div>
+                </Stack>
               )}
 
               {/* 상위 기능 데이터 보존 안내 (일반 다운그레이드) */}
               {isDowngrade && !seatOverLimit && (
-                <div style={{ padding: '10px 14px', background: T.bl,
-                  borderRadius: 10, fontSize: 13, color: T.sub, marginBottom: 16 }}>
-                  {labels.downgradeDataNotice}
-                </div>
+                <NoticeLines lines={[labels.downgradeDataNotice]} tone="muted" />
               )}
-            </div>
+            </Stack>
           </ModalShell>
         )}
 
@@ -1642,8 +1696,6 @@ export default function BillingPlansCanvas({
             }}
           />
         )}
-
-      </div>
-    </div>
+    </BillingPage>
   );
 }

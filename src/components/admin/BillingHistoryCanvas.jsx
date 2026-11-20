@@ -1,11 +1,14 @@
 import { useRef, useState } from 'react';
 import Button from '../shared/Button.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
-import RosterTable from '../shared/RosterTable.jsx';
+import SegmentedControl from '../shared/SegmentedControl.jsx';
 import Stack from '../shared/Stack.jsx';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import { FileTextGlyph } from '../shared/lineIcons.jsx';
-import { BillingCard as Card, BillingBadge as Badge } from './kit/BillingSurface.jsx';
+import { FrameTable, NoticeLines, Panel, StatStrip } from '../frames/index.js';
+import { BillingPage, BillingPageHead } from './kit/BillingSurface.jsx';
+import { BILLING_PAGE_WIDTH } from './kit/billingPageWidth.js';
 
 // ─────────────────────────────────────────────────────────────
 // 결제·구독 — 청구 내역·영수증(카드매출전표) (BillingHistoryCanvas)  /admin/billing/history
@@ -15,18 +18,6 @@ import { BillingCard as Card, BillingBadge as Badge } from './kit/BillingSurface
 // 데이터·라벨은 모두 props 로 받는다 (page wrapper 가 fetch·매핑·i18n·다운로드를
 // 소유). 캔버스는 인라인 스타일로 자기 완결적으로 렌더한다.
 // ─────────────────────────────────────────────────────────────
-
-const T = {
-  font: 'var(--font-family-body)',
-  bg: '#F8FAFC', card: '#fff',
-  border: '#E2E8F0', bl: '#F1F5F9',
-  text: '#0F172A', sub: '#64748B', muted: '#94A3B8',
-  // 주 버튼·고른 것은 브랜드 초록, 누르는 글자·딱지 글자는 진한 초록 — 「플랜 선택」 탭과 같다 (PW-1936)
-  accent: 'var(--bg-brand-solid)', accentText: 'var(--text-brand-secondary)',
-  green: '#22C55E', greenBg: '#F0FDF4',
-  amber: '#F59E0B', amberBg: '#FFFBEB',
-  red: '#DC2626', redBg: '#FEF2F2',
-};
 
 const won = (n) => '₩' + Number(n || 0).toLocaleString('ko-KR');
 
@@ -156,31 +147,33 @@ function mergeLabels(provided) {
   };
 }
 
-const STATUS_META = {
-  paid: { color: T.green, bg: T.greenBg },
-  open: { color: T.amber, bg: T.amberBg },
-  void: { color: T.sub, bg: T.bl },
-  uncollectible: { color: T.red, bg: T.redBg },
+// 딱지 뜻 — 색은 공용 상태 딱지 표(statusBadgeTones.js)가 정한다. 모양은 1on1 완료 화면 딱지(`.ono-done-badge` · 6/2 · 모서리 8 · 12px)
+// (pivit-work PW-3132 — 화면이 칠하던 초록·주황·빨강 hex 를 뜻으로 바꿨다).
+const STATUS_TONE = {
+  paid: 'success',
+  open: 'warning',
+  void: 'neutral',
+  uncollectible: 'danger',
 };
 
-// 청구 사유 배지 메타 — 사유가 없는 옛 청구서는 「정기결제」로 표기한다(policy §7, 필터에서 빼지 않는다)
-const REASON_META = {
-  initial: { color: T.accentText, bg: 'var(--bg-brand-secondary)' },
-  rebill: { color: T.sub, bg: T.bl },
-  seat_increment: { color: T.amber, bg: T.amberBg },
-  // 이용 중 상위 요금제로 올린 남은 기간 차액 (pivit-work PW-2475) — 좌석 추가 일할과 같은 «주기 중간 일할 청구»라 같은 배지 색
-  plan_change: { color: T.amber, bg: T.amberBg },
-  // 패키지를 산 날의 일할 (pivit-work PW-2782) — 좌석 추가와 같은 앰버(history «애드온 구매» 행)
-  addon_purchase: { color: T.amber, bg: T.amberBg },
+// 청구 사유 딱지 — 사유가 없는 옛 청구서는 「정기결제」로 표기한다(policy §7, 필터에서 빼지 않는다).
+// «첫 결제»는 «정기결제»와 같은 회색 — 뜻 없는 분류에 색을 쓰지 않는다(시안 ㊲). 주기 중간 일할 청구(좌석 추가 ·
+// 요금제 변경 차액 · 애드온 구매 · PW-2475 · PW-2782)는 전처럼 셋이 같은 주의 색.
+const REASON_TONE = {
+  initial: 'neutral',
+  rebill: 'neutral',
+  seat_increment: 'warning',
+  plan_change: 'warning',
+  addon_purchase: 'warning',
 };
-const reasonKey = (inv) => (REASON_META[inv.billing_reason] ? inv.billing_reason : 'rebill');
+const reasonKey = (inv) => (REASON_TONE[inv.billing_reason] ? inv.billing_reason : 'rebill');
 
-// 환불(Refund) 배지 메타 — cancellation-refund-policy.md §9
-const REFUND_META = {
-  completed_full: { color: T.sub, bg: T.bl },
-  completed_partial: { color: T.accentText, bg: 'var(--bg-brand-secondary)' },
-  processing: { color: T.amber, bg: T.amberBg },
-  failed: { color: T.red, bg: T.redBg },
+// 환불(Refund) 딱지 뜻 — cancellation-refund-policy.md §9
+const REFUND_TONE = {
+  completed_full: 'neutral',
+  completed_partial: 'accent',
+  processing: 'warning',
+  failed: 'danger',
 };
 const refundMetaKey = (r) =>
   r.status === 'completed' ? `completed_${r.type}` : r.status;
@@ -189,20 +182,32 @@ const refundMetaKey = (r) =>
 // 하나만 주는 옛 모양(`refund`)도 그대로 받는다.
 const refundsOf = (inv) => (Array.isArray(inv.refunds) ? inv.refunds : inv.refund ? [inv.refund] : []);
 
-// «환불 승인» 배지 — 정보 톤(공용 딱지의 info). 처리 중의 주황·실패의 빨강과 다른 색이다(history policy §2)
-const APPROVAL_META = { color: 'var(--dp-badge-info-fg)', bg: 'var(--dp-badge-info-bg)' };
+function Badge({ tone, children }) {
+  return <StatusBadge tone={tone} className="ono-done-badge">{children}</StatusBadge>;
+}
+
+/** 칸 안 작은 글(12/18) — 금액 밑 환불 줄 · 상태 밑 안내. 긴 안내는 낱말 단위로 꺾는다(표 칸은 한 줄이 기본이라 풀어 준다). */
+const SMALL_STYLE = {
+  fontSize: 'var(--font-size-text-xs)',
+  lineHeight: 'var(--line-height-text-xs)',
+  fontWeight: 500,
+  color: 'var(--text-tertiary)',
+};
+const NOTE_STYLE = { ...SMALL_STYLE, whiteSpace: 'normal', overflowWrap: 'break-word', wordBreak: 'keep-all', maxWidth: 220 };
+const CELL_STACK_STYLE = { display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xs)', alignItems: 'flex-start', minWidth: 0 };
+const CELL_STACK_RIGHT_STYLE = { ...CELL_STACK_STYLE, alignItems: 'flex-end', gap: 'var(--spacing-xxs)' };
 
 /** 금액 칸의 환불 금액 한 줄 — 끝난 환불만 강조색, 처리 중·실패는 «취소됨»과 같은 흐린 글씨(PW-1956). */
 function RefundAmountLine({ refund, labels }) {
   if (refund.status === 'completed') {
     return (
-      <div style={{ fontSize: 12, fontWeight: 600, color: T.accentText, marginTop: 'var(--spacing-xxs)' }}>
+      <div style={{ ...SMALL_STYLE, fontWeight: 600, color: 'var(--text-brand-secondary)' }}>
         {labels.refundAmount(refund.amount)}
       </div>
     );
   }
   return (
-    <div style={{ fontSize: 12, color: T.sub, marginTop: 'var(--spacing-xxs)' }}>
+    <div style={SMALL_STYLE}>
       {refund.status === 'failed'
         ? labels.refundNotDoneAmount(refund.amount)
         : labels.refundPendingAmount(refund.amount)}
@@ -217,27 +222,27 @@ function refundReasonText(labels, reason) {
   return typeof text === 'string' ? text : '';
 }
 
-/** 상태 칸의 환불 한 건 — 배지와 그 밑 안내(부분취소 전표 · 운영팀 연락 · 결제사 밖 환불). */
+/** 상태 칸의 환불 한 건 — 딱지와 그 밑 안내(부분취소 전표 · 운영팀 연락 · 결제사 밖 환불). */
 function RefundStatusLines({ refund, labels }) {
-  const rm = REFUND_META[refundMetaKey(refund)] || REFUND_META.processing;
+  const tone = REFUND_TONE[refundMetaKey(refund)] || REFUND_TONE.processing;
   const rl = labels.refundLabels[refundMetaKey(refund)] || '';
   return (
     <>
-      <Badge color={rm.color} bg={rm.bg}>
+      <Badge tone={tone}>
         {/* 사유 문구 표에 없는 값(DB 에 손으로 넣은 줄 등)은 코드값을 보이지 않고 상태만 — «환불 승인» 딱지와 같다 (pivit-work PW-3131) */}
         {[rl, refundReasonText(labels, refund.reason)].filter(Boolean).join(' · ')}
       </Badge>
       {/* 부분취소 전표는 환불이 끝난 뒤에 나온다(policy §7 「완료 후 노출」) */}
       {refund.type === 'partial' && refund.status === 'completed' && !refund.offPg && (
-        <span style={{ fontSize: 11, color: T.muted }}>{labels.partialRefundNote}</span>
+        <span style={NOTE_STYLE}>{labels.partialRefundNote}</span>
       )}
       {/* 환불 실패는 사용자가 할 일이 없다 — 운영팀이 연락한다는 안내를 같은 모양으로 붙인다 */}
       {refund.status === 'failed' && (
-        <span style={{ fontSize: 11, color: T.muted }}>{labels.refundFailedNote}</span>
+        <span style={NOTE_STYLE}>{labels.refundFailedNote}</span>
       )}
       {/* 결제사 밖에서 끝낸 환불 — 같은 자리·같은 모양(작은 회색). 결제사 취소가 아니라 취소 전표가 없다(PW-2476) */}
       {refund.offPg && refund.status === 'completed' && (
-        <span data-testid="billing-history-refund-offpg" style={{ fontSize: 11, color: T.muted, maxWidth: 220, lineHeight: 1.5 }}>
+        <span data-testid="billing-history-refund-offpg" style={NOTE_STYLE}>
           {labels.refundOffPgNote(refund.offPg.paidAt)}
         </span>
       )}
@@ -273,6 +278,43 @@ function Btn({ children, onClick, kind = 'primary', disabled, size = 'md', href 
     </Button>
   );
 }
+
+/** 필터 줄 — 디자이너 세그먼트 왼쪽 · 오른쪽 «N건»(13/20 흐림). 시안 ㉟. */
+const FILTER_ROW_STYLE = { display: 'flex', alignItems: 'center', gap: 'var(--spacing-lg)', minWidth: 0 };
+const FILTER_COUNT_STYLE = {
+  marginLeft: 'auto',
+  fontSize: 'var(--font-size-text-sm)',
+  lineHeight: 'var(--line-height-text-sm)',
+  color: 'var(--text-tertiary)',
+  whiteSpace: 'nowrap',
+};
+/** 판 가운데 안내(불러오기 실패 · 빈 내역 · 필터 결과 없음) — 모양은 전과 같다(시안 ㊵ «그대로»). */
+const CENTER_STYLE = { display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 'var(--spacing-md)' };
+const CENTER_TITLE_STYLE = { fontSize: 'var(--font-size-text-md)', lineHeight: 'var(--line-height-text-md)', fontWeight: 700, color: 'var(--text-primary)' };
+const CENTER_DESC_STYLE = { fontSize: 'var(--font-size-text-sm)', lineHeight: 'var(--line-height-text-sm)', color: 'var(--text-tertiary)', marginBottom: 'var(--spacing-lg)' };
+const NO_NUM_STYLE = { fontWeight: 600, color: 'var(--text-primary)', fontVariantNumeric: 'tabular-nums' };
+
+/** [환불 받기] 창의 금액 줄 — 이름 왼쪽(14 보조) / 값 오른쪽(굵게). 돌려받을 금액 줄만 위에 선 · 16 굵게. 시안 ㊴. */
+const KV_LIST_STYLE = { display: 'flex', flexDirection: 'column', gap: 'var(--spacing-lg)' };
+const KV_ROW_STYLE = {
+  display: 'flex',
+  alignItems: 'baseline',
+  justifyContent: 'space-between',
+  gap: 'var(--spacing-lg)',
+  fontSize: 'var(--font-size-text-sm)',
+  lineHeight: 'var(--line-height-text-sm)',
+  color: 'var(--text-secondary)',
+};
+const KV_VALUE_STYLE = { fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right' };
+const KV_TOTAL_STYLE = {
+  ...KV_ROW_STYLE,
+  paddingTop: 'var(--spacing-lg)',
+  borderTop: '1px solid var(--border-secondary)',
+  fontSize: 'var(--font-size-text-md)',
+  lineHeight: 'var(--line-height-text-md)',
+  fontWeight: 700,
+  color: 'var(--text-primary)',
+};
 
 export default function BillingHistoryCanvas({
   invoices = [],
@@ -348,318 +390,285 @@ export default function BillingHistoryCanvas({
     }
   };
 
-  return (
-    <div style={{ fontFamily: T.font, background: T.bg, minHeight: '100vh', padding: 32, color: T.text }}>
-      <div style={{ maxWidth: 960, margin: '0 auto' }}>
-
-        {/* 헤더 */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>{labels.pageTitle}</h1>
-          {role === 'hr_admin' && <Badge color={T.sub} bg={T.bl}>{labels.viewOnly}</Badge>}
-        </div>
-        <p style={{ color: T.sub, fontSize: 14, marginTop: 0, marginBottom: 24 }}>
-          {labels.pageSubtitle}
-        </p>
-
-        {/* 상단 요약 카드 — 내역 있을 때만 표시 */}
-        {invoices.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 20 }}>
-            <Card style={{ padding: 20 }}>
-              <div style={{ fontSize: 13, color: T.sub, marginBottom: 6 }}>{labels.summaryTotalPaid}</div>
-              <div style={{ fontSize: 22, fontWeight: 800 }}>{won(totalPaid)}</div>
-            </Card>
-            <Card style={{ padding: 20 }}>
-              <div style={{ fontSize: 13, color: T.sub, marginBottom: 6 }}>{labels.summaryPaidCount}</div>
-              <div style={{ fontSize: 22, fontWeight: 800 }}>{labels.countUnit(paidCount)}</div>
-            </Card>
-            <Card style={{ padding: 20 }}>
-              <div style={{ fontSize: 13, color: T.sub, marginBottom: 6 }}>{labels.summaryTotalCount}</div>
-              <div style={{ fontSize: 22, fontWeight: 800 }}>{labels.countUnit(totalCount)}</div>
-            </Card>
+  const columns = [
+    {
+      key: 'invoiceNo',
+      header: labels.tableHeaders.invoiceNo,
+      // 청구번호(굵게) + 그 밑 한 줄 청구 사유 딱지 (무엇에 대한 청구인지 식별 — PW-324)
+      render: (inv) => {
+        const rk = reasonKey(inv);
+        const badge = <Badge tone={REASON_TONE[rk]}>{labels.billingReasons[rk]}</Badge>;
+        return (
+          <div style={CELL_STACK_STYLE}>
+            <span style={NO_NUM_STYLE}>{inv.invoice_no}</span>
+            {rk === 'seat_increment' ? (
+              <Tooltip content={labels.seatIncrementTooltip}><span>{badge}</span></Tooltip>
+            ) : badge}
+            {/* 요금제 변경 차액 줄 · 청구 주기 변경 줄 (pivit-work PW-2475 · history §2) — 좌석 라인과 합치지 않는 별도 줄.
+                문구는 서버 청구서 줄 그대로다. 모양은 칸 안 작은 회색 글 */}
+            {inv.plan_diff_line && (
+              <Tooltip content={labels.planDiffTooltip}>
+                <span data-testid="billing-history-plan-diff-line"
+                  style={{ ...NOTE_STYLE, cursor: 'help' }}>{inv.plan_diff_line}</span>
+              </Tooltip>
+            )}
+            {/* «전자결재 · 휴가 패키지» 라인 (pivit-work PW-2782 · history «애드온 라인 상세») — 좌석 라인과 합치지 않는 별도 줄 */}
+            {(inv.addon_lines ?? []).map((line, idx) => (
+              <span key={idx} data-testid="billing-history-addon-line" style={NOTE_STYLE}>{line}</span>
+            ))}
+            {inv.cycle_change_line && (
+              <span data-testid="billing-history-cycle-change-line" style={NOTE_STYLE}>{inv.cycle_change_line}</span>
+            )}
           </div>
-        )}
-
-        {/* 상태 필터 탭 */}
-        <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
-          {FILTER_TABS.map((tab) => {
-            const active = filterKey === tab.key;
-            return (
-              <button type="button" key={tab.key} onClick={() => setFilterKey(tab.key)}
-                style={{ fontFamily: T.font, fontSize: 14, fontWeight: active ? 700 : 500,
-                  padding: '8px 16px', borderRadius: 10, cursor: 'pointer',
-                  border: `1px solid ${active ? T.accent : T.border}`,
-                  background: active ? T.accent : '#fff',
-                  color: active ? '#fff' : T.sub }}>
-                {labels.filterTabs[tab.labelKey]}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* 청구 내역 테이블 / 빈 상태 */}
-        <Card style={{ padding: 0, overflow: 'hidden' }}>
-          {invoices.length === 0 && loadFailed ? (
-            <div data-testid="billing-history-load-failed" role="alert"
-              style={{ padding: 'calc(var(--spacing-4xl) * 2)', textAlign: 'center' }}>
-              <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 'var(--spacing-md)' }}>
-                {labels.loadFailedTitle}
-              </div>
-              <div style={{ fontSize: 14, color: T.sub, marginBottom: 'var(--spacing-2xl)' }}>
-                {labels.loadFailedDesc}
-              </div>
-              <Btn size="sm" kind="secondary" onClick={onRetry}>{labels.loadFailedRetry}</Btn>
+        );
+      },
+    },
+    {
+      key: 'period',
+      header: labels.tableHeaders.period,
+      render: (inv) => <>{inv.period_start} ~ {inv.period_end}</>,
+    },
+    {
+      key: 'seats',
+      header: labels.tableHeaders.seats,
+      align: 'right',
+      render: (inv) => labels.seatsUnit(inv.seat_count_snapshot),
+    },
+    {
+      // 금액 (+ 환불액 라인)
+      key: 'amount',
+      header: labels.tableHeaders.amount,
+      align: 'right',
+      render: (inv) => (
+        <div style={CELL_STACK_RIGHT_STYLE}>
+          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+            {won(inv.total)}
+            {inv.status === 'void' && (
+              <span style={{ ...SMALL_STYLE, marginLeft: 'var(--spacing-sm)' }}>{labels.voidNote}</span>
+            )}
+          </span>
+          {refundsOf(inv).map((r, i) => (
+            <RefundAmountLine key={i} refund={r} labels={labels} />
+          ))}
+          {/* 받기 전 «환불 승인» — 위 «환불 예정» 줄과 같은 크기·색(history policy §2 · PW-2525) */}
+          {inv.refund_approval && (
+            <div data-testid="billing-history-approval-amount" style={SMALL_STYLE}>
+              {labels.refundApprovalAmount(inv.refund_approval.amount)}
             </div>
-          ) : invoices.length === 0 ? (
-            <div style={{ padding: 64, textAlign: 'center' }}>
-              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--spacing-lg)', color: 'var(--text-tertiary)' }}><FileTextGlyph size={36} /></div>
-              <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>
-                {labels.emptyTitle}
-              </div>
-              <div style={{ fontSize: 14, color: T.sub, marginBottom: 20 }}>
-                {labels.emptyDesc}
-              </div>
-              <Btn size="sm" onClick={onViewPlans}>{labels.emptyCta}</Btn>
-            </div>
-          ) : filteredInvoices.length === 0 ? (
-            <div style={{ padding: 48, textAlign: 'center' }}>
-              <div style={{ fontSize: 14, color: T.sub }}>{labels.noFilterResult}</div>
-            </div>
-          ) : (
-            <RosterTable
-              rows={filteredInvoices}
-              rowKey={(inv) => inv.id}
-              columns={[
-                {
-                  key: 'invoiceNo',
-                  header: labels.tableHeaders.invoiceNo,
-                  // 청구번호 + 청구 사유 배지 (무엇에 대한 청구인지 식별 — PW-324)
-                  render: (inv) => {
-                    const rk = reasonKey(inv);
-                    const badge = (
-                      <Badge color={REASON_META[rk].color} bg={REASON_META[rk].bg}>
-                        {labels.billingReasons[rk]}
-                      </Badge>
-                    );
-                    return (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
-                        <span style={{ fontVariantNumeric: 'tabular-nums', color: T.sub }}>{inv.invoice_no}</span>
-                        {rk === 'seat_increment' ? (
-                          <Tooltip content={labels.seatIncrementTooltip}><span>{badge}</span></Tooltip>
-                        ) : badge}
-                        {/* 요금제 변경 차액 줄 · 청구 주기 변경 줄 (pivit-work PW-2475 · history §2) — 좌석 라인과 합치지 않는 별도 줄.
-                            문구는 서버 청구서 줄 그대로다. 모양은 위 좌석 일할 툴팁과 같은 11px 회색 보조 글씨 */}
-                        {inv.plan_diff_line && (
-                          <Tooltip content={labels.planDiffTooltip}>
-                            <span data-testid="billing-history-plan-diff-line"
-                              style={{ fontSize: 11, color: T.muted, cursor: 'help' }}>{inv.plan_diff_line}</span>
-                          </Tooltip>
-                        )}
-                        {/* «전자결재 · 휴가 패키지» 라인 (pivit-work PW-2782 · history «애드온 라인 상세») — 좌석 라인과 합치지 않는 별도 줄 */}
-                        {(inv.addon_lines ?? []).map((line, idx) => (
-                          <span key={idx} data-testid="billing-history-addon-line"
-                            style={{ fontSize: 11, color: T.muted }}>{line}</span>
-                        ))}
-                        {inv.cycle_change_line && (
-                          <span data-testid="billing-history-cycle-change-line"
-                            style={{ fontSize: 11, color: T.muted }}>{inv.cycle_change_line}</span>
-                        )}
-                      </div>
-                    );
-                  },
-                },
-                {
-                  key: 'period',
-                  header: labels.tableHeaders.period,
-                  cellProps: { style: { whiteSpace: 'nowrap' } },
-                  render: (inv) => <>{inv.period_start} ~ {inv.period_end}</>,
-                },
-                {
-                  key: 'seats',
-                  header: labels.tableHeaders.seats,
-                  align: 'right',
-                  render: (inv) => labels.seatsUnit(inv.seat_count_snapshot),
-                },
-                {
-                  // 금액 (+ 환불액 라인)
-                  key: 'amount',
-                  header: labels.tableHeaders.amount,
-                  align: 'right',
-                  cellProps: { style: { fontWeight: 700, whiteSpace: 'nowrap' } },
-                  render: (inv) => (
-                    <>
-                      {won(inv.total)}
-                      {inv.status === 'void' && (
-                        <span style={{ fontSize: 12, color: T.sub, marginLeft: 6 }}>{labels.voidNote}</span>
-                      )}
-                      {refundsOf(inv).map((r, i) => (
-                        <RefundAmountLine key={i} refund={r} labels={labels} />
-                      ))}
-                      {/* 받기 전 «환불 승인» — 위 «환불 예정» 줄과 같은 크기·색(history policy §2 · PW-2525) */}
-                      {inv.refund_approval && (
-                        <div data-testid="billing-history-approval-amount"
-                          style={{ fontSize: 12, fontWeight: 500, color: T.sub, marginTop: 'var(--spacing-xxs)' }}>
-                          {labels.refundApprovalAmount(inv.refund_approval.amount)}
-                        </div>
-                      )}
-                    </>
-                  ),
-                },
-                {
-                  // 상태 배지 (+ 환불 배지)
-                  key: 'status',
-                  header: labels.tableHeaders.status,
-                  render: (inv) => {
-                    const sm = STATUS_META[inv.status] || STATUS_META.void;
-                    const statusLabel = labels.statusLabels[inv.status] || inv.status;
-                    // 전액 환불이 끝난 청구서는 «결제완료»를 그리지 않는다(PW-2213) — 돌려받은 돈이 결제된 것으로
-                    // 읽혔다. 부분환불·처리 중·실패는 결제완료 밑에 환불 배지(policy §2: 부분환불 상태는 결제완료 그대로).
-                    const refunds = refundsOf(inv);
-                    const fullyRefunded = refunds.some((r) => refundMetaKey(r) === 'completed_full');
-                    const approval = inv.refund_approval;
-                    const approvalBlocked = approval?.receivable === false;
-                    return (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-start' }}>
-                        {!fullyRefunded && <Badge color={sm.color} bg={sm.bg}>{statusLabel}</Badge>}
-                        {refunds.map((r, i) => (
-                          <RefundStatusLines key={i} refund={r} labels={labels} />
-                        ))}
-                        {/* 받기 전 «환불 승인» 배지 + 안내 + [환불 받기] (PW-2525 · history policy §2·§4·§6).
-                            버튼은 결제 권한자에게만, 같은 결제에 처리 중인 다른 환불이 있으면 꺼짐 + 말풍선 */}
-                        {approval && (
-                          <>
-                            <Badge color={APPROVAL_META.color} bg={APPROVAL_META.bg}>
-                              {[labels.refundApprovalLabel, refundReasonText(labels, approval.reason)].filter(Boolean).join(' · ')}
-                            </Badge>
-                            <span data-testid="billing-history-approval-note"
-                              style={{ fontSize: 11, color: T.muted, maxWidth: 220, lineHeight: 1.5 }}>
-                              {approval.inquiry_no
-                                ? `${labels.refundApprovalNote} ${labels.refundApprovalInquiry(approval.inquiry_no)}`
-                                : labels.refundApprovalNote}
-                            </span>
-                            {canReceiveRefund && (
-                              <Tooltip content={approvalBlocked ? labels.receiveRefundBlocked : null}>
-                                <Button variant="secondary" size="sm" disabled={approvalBlocked}
-                                  data-testid="billing-history-receive-refund"
-                                  onClick={() => openReceive(inv)}>
-                                  {labels.receiveRefundButton}
-                                </Button>
-                              </Tooltip>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    );
-                  },
-                },
-                {
-                  // 영수증(카드매출전표) — 세금계산서 미발행(spec §5.1)
-                  key: 'receipt',
-                  header: labels.tableHeaders.receipt,
-                  render: (inv) => {
-                    const isReceiptDownloading = !!downloading[`${inv.id}_receipt`];
-                    // 결제 뒤 전체환불로 취소된 청구서도 결제 때 받은 전표는 남긴다 — 환불 증빙도 그 전표다.
-                    // [청구서] 자리는 «—» (screen-billing-history.policy §2 · pivit-work PW-2206)
-                    const refundedVoid = inv.status === 'void' && !!inv.paid_at;
-                    return inv.status === 'paid' || refundedVoid ? (
-                      <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                        {inv.status === 'paid' ? (
-                          <Btn size="sm" kind="secondary"
-                            disabled={isReceiptDownloading}
-                            onClick={() => handleReceipt(inv)}>
-                            {isReceiptDownloading ? labels.receiptDownloading : labels.receiptButton}
-                          </Btn>
-                        ) : (
-                          <span style={{ color: T.muted }}>—</span>
-                        )}
-                        {/* 결제사(토스)가 발급한 공식 카드매출전표 — 주소가 없는 결제(개발용 가짜 결제)는 그리지 않는다 */}
-                        {inv.pg_receipt_url && (
-                          <Btn size="sm" kind="secondary" href={inv.pg_receipt_url}>
-                            {labels.pgReceiptLink}
-                          </Btn>
-                        )}
-                      </div>
-                    ) : (
-                      <span style={{ color: T.muted }}>—</span>
-                    );
-                  },
-                },
-              ]}
-            />
           )}
-        </Card>
-
-        {/* [환불 받기] 확인 창 — 공용 창 틀(ModalShell). body 직속 포털이라 왼쪽 메뉴까지 덮는다.
-            겹침 순서는 같은 «결제·구독» 화면의 요금제 변경 확인 창과 같은 1000. 금액은 서버 값 그대로다(policy §5) */}
-        {receiveTarget && (
-          <ModalShell
-            title={labels.receiveModal.title}
-            titleId="billing-receive-refund-title"
-            closeLabel={labels.receiveModal.close}
-            onClose={closeReceive}
-            busy={receiveBusy}
-            zIndex={1000}
-            className="adm-shell"
-            testId="billing-receive-refund-modal"
-            footer={
+        </div>
+      ),
+    },
+    {
+      // 상태 딱지 (+ 환불 딱지)
+      key: 'status',
+      header: labels.tableHeaders.status,
+      render: (inv) => {
+        const tone = STATUS_TONE[inv.status] || STATUS_TONE.void;
+        const statusLabel = labels.statusLabels[inv.status] || inv.status;
+        // 전액 환불이 끝난 청구서는 «결제완료»를 그리지 않는다(PW-2213) — 돌려받은 돈이 결제된 것으로
+        // 읽혔다. 부분환불·처리 중·실패는 결제완료 밑에 환불 딱지(policy §2: 부분환불 상태는 결제완료 그대로).
+        const refunds = refundsOf(inv);
+        const fullyRefunded = refunds.some((r) => refundMetaKey(r) === 'completed_full');
+        const approval = inv.refund_approval;
+        const approvalBlocked = approval?.receivable === false;
+        return (
+          <div style={CELL_STACK_STYLE}>
+            {!fullyRefunded && <Badge tone={tone}>{statusLabel}</Badge>}
+            {refunds.map((r, i) => (
+              <RefundStatusLines key={i} refund={r} labels={labels} />
+            ))}
+            {/* 받기 전 «환불 승인» 딱지 + 안내 + [환불 받기] (PW-2525 · history policy §2·§4·§6).
+                버튼은 결제 권한자에게만, 같은 결제에 처리 중인 다른 환불이 있으면 꺼짐 + 말풍선 */}
+            {approval && (
               <>
-                <Button variant="secondary" disabled={receiveBusy} onClick={closeReceive}
-                  data-testid="billing-receive-refund-cancel">
-                  {labels.receiveModal.cancel}
-                </Button>
-                <Button variant="primary" disabled={receiveBusy}
-                  onClick={() => { void confirmReceive(); }}
-                  data-testid="billing-receive-refund-submit">
-                  {receiveBusy
-                    ? labels.receiveModal.busy
-                    : receiveFailed ? labels.receiveModal.retry : labels.receiveModal.confirm}
-                </Button>
-              </>
-            }
-          >
-            <div style={{ fontFamily: T.font }}>
-              <Stack gap="xl">
-                <div style={{ borderTop: '1px solid var(--border-secondary)', borderBottom: '1px solid var(--border-secondary)',
-                  padding: 'var(--spacing-sm) 0' }}>
-                  {[
-                    [labels.receiveModal.invoiceNo, receiveTarget.inv.invoice_no],
-                    [labels.receiveModal.paidAt, receiveTarget.inv.paid_at || '—'],
-                    [labels.receiveModal.total, won(receiveTarget.inv.total)],
-                    [labels.receiveModal.reason, refundReasonText(labels, receiveTarget.approval.reason)],
-                  ].map(([label, value]) => (
-                    <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--spacing-xl)',
-                      fontSize: 14, padding: 'var(--spacing-sm) 0' }}>
-                      <span style={{ color: 'var(--text-tertiary)' }}>{label}</span>
-                      <span style={{ fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right' }}>{value}</span>
-                    </div>
-                  ))}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--spacing-xl)',
-                    fontSize: 14, padding: 'var(--spacing-sm) 0' }}>
-                    <span style={{ color: 'var(--text-tertiary)' }}>{labels.receiveModal.amount}</span>
-                    <span data-testid="billing-receive-refund-amount"
-                      style={{ fontWeight: 800, color: 'var(--text-primary)', textAlign: 'right' }}>
-                      {won(receiveTarget.approval.amount)}
-                      <span style={{ display: 'block', fontSize: 12, fontWeight: 500, color: 'var(--text-tertiary)' }}>
-                        {labels.receiveModal.vatNote(receiveTarget.approval.vat_amount)}
-                      </span>
-                    </span>
-                  </div>
-                </div>
-                <div style={{ fontSize: 13, color: 'var(--text-tertiary)', lineHeight: 1.6 }}>
-                  <div>{labels.receiveModal.pgNote}</div>
-                  <div>{labels.receiveModal.subscriptionNote}</div>
-                </div>
-                {receiveFailed && (
-                  <div role="alert" data-testid="billing-receive-refund-error"
-                    style={{ fontSize: 13, color: 'var(--text-error-primary)' }}>
-                    {labels.receiveModal.failed}
-                  </div>
+                <Badge tone="info">
+                  {[labels.refundApprovalLabel, refundReasonText(labels, approval.reason)].filter(Boolean).join(' · ')}
+                </Badge>
+                <span data-testid="billing-history-approval-note" style={NOTE_STYLE}>
+                  {approval.inquiry_no
+                    ? `${labels.refundApprovalNote} ${labels.refundApprovalInquiry(approval.inquiry_no)}`
+                    : labels.refundApprovalNote}
+                </span>
+                {canReceiveRefund && (
+                  <Tooltip content={approvalBlocked ? labels.receiveRefundBlocked : null}>
+                    <Button variant="secondary" size="sm" disabled={approvalBlocked}
+                      data-testid="billing-history-receive-refund"
+                      onClick={() => openReceive(inv)}>
+                      {labels.receiveRefundButton}
+                    </Button>
+                  </Tooltip>
                 )}
-              </Stack>
-            </div>
-          </ModalShell>
-        )}
+              </>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      // 영수증(카드매출전표) — 세금계산서 미발행(spec §5.1). 버튼은 작게 오른쪽 맞춤(시안 ㊱)
+      key: 'receipt',
+      header: labels.tableHeaders.receipt,
+      align: 'right',
+      render: (inv) => {
+        const isReceiptDownloading = !!downloading[`${inv.id}_receipt`];
+        // 결제 뒤 전체환불로 취소된 청구서도 결제 때 받은 전표는 남긴다 — 환불 증빙도 그 전표다.
+        // [청구서] 자리는 «—» (screen-billing-history.policy §2 · pivit-work PW-2206)
+        const refundedVoid = inv.status === 'void' && !!inv.paid_at;
+        return inv.status === 'paid' || refundedVoid ? (
+          <div style={{ display: 'flex', gap: 'var(--spacing-sm)', alignItems: 'center', justifyContent: 'flex-end' }}>
+            {inv.status === 'paid' ? (
+              <Btn size="sm" kind="secondary"
+                disabled={isReceiptDownloading}
+                onClick={() => handleReceipt(inv)}>
+                {isReceiptDownloading ? labels.receiptDownloading : labels.receiptButton}
+              </Btn>
+            ) : (
+              <span style={{ color: 'var(--text-tertiary)' }}>—</span>
+            )}
+            {/* 결제사(토스)가 발급한 공식 카드매출전표 — 주소가 없는 결제(개발용 가짜 결제)는 그리지 않는다 */}
+            {inv.pg_receipt_url && (
+              <Btn size="sm" kind="secondary" href={inv.pg_receipt_url}>
+                {labels.pgReceiptLink}
+              </Btn>
+            )}
+          </div>
+        ) : (
+          <span style={{ color: 'var(--text-tertiary)' }}>—</span>
+        );
+      },
+    },
+  ];
 
+  return (
+    <BillingPage width={BILLING_PAGE_WIDTH.history}>
+      <BillingPageHead
+        title={labels.pageTitle}
+        titleAside={role === 'hr_admin' ? <Badge tone="neutral">{labels.viewOnly}</Badge> : undefined}
+        description={[labels.pageSubtitle]}
+      />
+
+      {/* 상단 숫자 칸 — 흰 판 하나 안 세 칸(시안 ㉞). 내역 있을 때만 */}
+      {invoices.length > 0 && (
+        <StatStrip
+          testId="billing-history-stats"
+          items={[
+            { key: 'totalPaid', label: labels.summaryTotalPaid, value: won(totalPaid) },
+            { key: 'paidCount', label: labels.summaryPaidCount, value: labels.countUnit(paidCount) },
+            { key: 'totalCount', label: labels.summaryTotalCount, value: labels.countUnit(totalCount) },
+          ]}
+        />
+      )}
+
+      {/* 상태 필터 — 디자이너 세그먼트 + 오른쪽 «N건»(지금 보이는 줄 수) */}
+      <div style={FILTER_ROW_STYLE}>
+        <SegmentedControl
+          items={FILTER_TABS.map((tab) => ({
+            value: tab.key,
+            label: labels.filterTabs[tab.labelKey],
+            testId: `billing-history-filter-${tab.key}`,
+          }))}
+          value={filterKey}
+          onChange={setFilterKey}
+        />
+        {invoices.length > 0 && (
+          <span data-testid="billing-history-filter-count" style={FILTER_COUNT_STYLE}>
+            {labels.countUnit(filteredInvoices.length)}
+          </span>
+        )}
       </div>
-    </div>
+
+      {/* 청구 내역 표 / 빈 상태 */}
+      {invoices.length === 0 && loadFailed ? (
+        <Panel>
+          <div data-testid="billing-history-load-failed" role="alert" style={CENTER_STYLE}>
+            <div style={CENTER_TITLE_STYLE}>{labels.loadFailedTitle}</div>
+            <div style={CENTER_DESC_STYLE}>{labels.loadFailedDesc}</div>
+            <Btn size="sm" kind="secondary" onClick={onRetry}>{labels.loadFailedRetry}</Btn>
+          </div>
+        </Panel>
+      ) : invoices.length === 0 ? (
+        <Panel>
+          <div style={CENTER_STYLE}>
+            <div style={{ display: 'flex', color: 'var(--text-tertiary)' }}><FileTextGlyph size={36} /></div>
+            <div style={CENTER_TITLE_STYLE}>{labels.emptyTitle}</div>
+            <div style={CENTER_DESC_STYLE}>{labels.emptyDesc}</div>
+            <Btn size="sm" onClick={onViewPlans}>{labels.emptyCta}</Btn>
+          </div>
+        </Panel>
+      ) : (
+        <FrameTable
+          testId="billing-history-table"
+          ariaLabel={labels.pageTitle}
+          columns={columns}
+          rows={filteredInvoices}
+          rowKey={(inv) => inv.id}
+          empty={labels.noFilterResult}
+        />
+      )}
+
+      {/* [환불 받기] 확인 창 — 공용 창 틀(ModalShell). body 직속 포털이라 왼쪽 메뉴까지 덮는다.
+          겹침 순서는 같은 «결제·구독» 화면의 요금제 변경 확인 창과 같은 1000. 금액은 서버 값 그대로다(policy §5).
+          버튼 줄은 틀 기본 버튼 모양(1:1 · 높이 44 · `.tl-group-modal-btn`) — 시험이 쓰는 이름표를 남기려 공용 Button 으로 그린다 */}
+      {receiveTarget && (
+        <ModalShell
+          title={labels.receiveModal.title}
+          titleId="billing-receive-refund-title"
+          closeLabel={labels.receiveModal.close}
+          onClose={closeReceive}
+          busy={receiveBusy}
+          zIndex={1000}
+          className="adm-shell"
+          testId="billing-receive-refund-modal"
+          footer={
+            <>
+              <Button className="tl-group-modal-btn tl-group-modal-btn-secondary" disabled={receiveBusy} onClick={closeReceive}
+                data-testid="billing-receive-refund-cancel">
+                {labels.receiveModal.cancel}
+              </Button>
+              <Button className="tl-group-modal-btn tl-group-modal-btn-primary" disabled={receiveBusy}
+                onClick={() => { void confirmReceive(); }}
+                data-testid="billing-receive-refund-submit">
+                {receiveBusy
+                  ? labels.receiveModal.busy
+                  : receiveFailed ? labels.receiveModal.retry : labels.receiveModal.confirm}
+              </Button>
+            </>
+          }
+        >
+          <Stack gap="xl">
+            <div style={KV_LIST_STYLE}>
+              {[
+                [labels.receiveModal.invoiceNo, receiveTarget.inv.invoice_no],
+                [labels.receiveModal.paidAt, receiveTarget.inv.paid_at || '—'],
+                [labels.receiveModal.total, won(receiveTarget.inv.total)],
+                [labels.receiveModal.reason, refundReasonText(labels, receiveTarget.approval.reason)],
+              ].map(([label, value]) => (
+                <div key={label} style={KV_ROW_STYLE}>
+                  <span>{label}</span>
+                  <span style={KV_VALUE_STYLE}>{value}</span>
+                </div>
+              ))}
+              <div style={KV_TOTAL_STYLE}>
+                <span>{labels.receiveModal.amount}</span>
+                <span data-testid="billing-receive-refund-amount" style={{ textAlign: 'right', fontWeight: 700 }}>
+                  {won(receiveTarget.approval.amount)}
+                  <span style={{ ...SMALL_STYLE, display: 'block' }}>
+                    {labels.receiveModal.vatNote(receiveTarget.approval.vat_amount)}
+                  </span>
+                </span>
+              </div>
+            </div>
+            <NoticeLines tone="muted" lines={[labels.receiveModal.pgNote, labels.receiveModal.subscriptionNote]} />
+            {receiveFailed && (
+              <div role="alert" data-testid="billing-receive-refund-error"
+                style={{ fontSize: 'var(--font-size-text-sm)', color: 'var(--text-error-primary)' }}>
+                {labels.receiveModal.failed}
+              </div>
+            )}
+          </Stack>
+        </ModalShell>
+      )}
+    </BillingPage>
   );
 }

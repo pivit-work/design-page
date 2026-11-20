@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
 import Button from '../shared/Button.jsx';
-import { ArrowRightGlyph } from '../shared/lineIcons.jsx';
-import {
-  BillingCard as Card,
-  BillingBadge as Badge,
-  BillingCheckoutSteps,
-} from './kit/BillingSurface.jsx';
+import StatusBadge from '../shared/StatusBadge.jsx';
+import { AlertTriangleGlyph, ArrowRightGlyph, InfoGlyph } from '../shared/lineIcons.jsx';
+import { Panel, SaveBar } from '../frames/index.js';
+import { BillingCheckoutSteps, BillingNotice, BillingPage, BillingPageHead } from './kit/BillingSurface.jsx';
+import { BILLING_PAGE_WIDTH } from './kit/billingPageWidth.js';
 
 // ─────────────────────────────────────────────────────────────
 // 결제·구독 — 청구 정보 (BillingSettingsCanvas)  /admin/billing/settings
@@ -16,18 +15,6 @@ import {
 // 콜백을 호출(await)하며, 저장 상태머신(idle→saving→saved 2초→idle)은 내부.
 // 캔버스는 인라인 스타일로 자기 완결적으로 렌더한다.
 // ─────────────────────────────────────────────────────────────
-
-const T = {
-  font: 'var(--font-family-body)',
-  bg: '#F8FAFC', card: '#fff',
-  border: '#E2E8F0', bl: '#F1F5F9',
-  text: '#0F172A', sub: '#64748B', muted: '#94A3B8',
-  // 강조색은 앱 브랜드 토큰 (PW-1894) — 채움·테두리는 기본 버튼(.dp-btn--primary) 바탕, 글씨는 1on1 화면의 브랜드 글씨
-  accent: 'var(--bg-brand-solid)', accentText: 'var(--text-brand-secondary)',
-  green: '#22C55E', greenBg: '#F0FDF4',
-  amber: '#F59E0B', amberBg: '#FFFBEB',
-  red: '#DC2626', redBg: '#FEF2F2',
-};
 
 // 검증 규칙
 const BIZ_REG_PATTERN = /^\d{3}-\d{2}-\d{5}$/;
@@ -158,10 +145,10 @@ function formatBizRegNo(raw) {
 const fireOnly = (onClick) => (onClick ? (e) => { onClick(e); } : undefined);
 // 버튼은 공용 Button(디자이너 어드민 버튼과 같은 값)으로 그린다 (pivit-work PW-2938). 손으로 칠한 값을 두지 않는다.
 // «저장됨»(success)은 주 버튼 모양에 성공 초록 바탕(기획서 settings §81 «버튼 초록 전환 2초»). 위험(danger)은 danger-ghost.
-function Btn({ children, onClick, kind = 'primary', disabled }) {
+function Btn({ children, onClick, kind = 'primary', disabled, size }) {
   const variant = kind === 'success' ? 'primary' : kind === 'danger' ? 'danger-ghost' : kind;
   return (
-    <Button variant={variant} onClick={fireOnly(onClick)} disabled={disabled}
+    <Button variant={variant} size={size} onClick={fireOnly(onClick)} disabled={disabled}
       style={kind === 'success' ? { background: 'var(--colors-success-500)' } : undefined}>
       {children}
     </Button>
@@ -170,49 +157,55 @@ function Btn({ children, onClick, kind = 'primary', disabled }) {
 
 // ── 재사용 폼 필드 컴포넌트 ───────────────────────────────
 
-function FormField({ meta, value, error, disabled, onChange, onBlur, hint, style, maxLength }) {
+// 칸 이름표 = 디자이너가 그린 1on1 「일정 추가」 창 값 그대로 (PW-1894 · one_on_one.css `.ono-add-modal-*`) — 14px 굵게 회색 · 이름표 → 칸 12px.
+// 칸 → 다음 칸 24px 은 판 안 구역(`Panel.Section`)의 줄 사이가 띄운다.
+// 입력칸 = 타임라인 «그룹 추가» 창 입력칸(timeline.css `.tl-emp-input` · 높이 40 · 옅은 회색 · 테두리 없음) (pivit-work PW-3132 · 시안 ㊷).
+// 틀린 칸은 흰 바탕 + 빨간 테두리(시안 ㊺). 잠긴 칸은 디자이너 값이 없어 옅은 회색 · 흐린 글을 둔다.
+const FIELD_LABEL_STYLE = {
+  display: 'block', fontFamily: 'var(--font-family-body)', fontWeight: 700,
+  fontSize: 'var(--font-size-text-sm)', lineHeight: 'var(--line-height-text-sm)',
+  color: 'var(--text-secondary)', marginBottom: 'var(--spacing-lg)',
+};
+const FIELD_REQUIRED_STYLE = { color: 'var(--colors-text-textErrorPrimary)', marginLeft: 'var(--spacing-xxs)' };
+const FIELD_INPUT_ERROR_STYLE = { borderColor: 'var(--colors-error-200)', background: 'var(--bg-primary)' };
+const FIELD_INPUT_DISABLED_STYLE = { background: 'var(--bg-secondary)', color: 'var(--text-tertiary)', cursor: 'not-allowed' };
+/** 칸 아래 도움말 · 잘못 넣은 값 안내 — 12/18(시안 ㊸ · ㊺ «그대로»). */
+const FIELD_HELP_STYLE = {
+  fontSize: 'var(--font-size-text-xs)', lineHeight: 'var(--line-height-text-xs)',
+  color: 'var(--text-tertiary)', marginTop: 'var(--spacing-xs)',
+};
+const FIELD_ERROR_STYLE = { ...FIELD_HELP_STYLE, color: 'var(--colors-text-textErrorPrimary)' };
+
+function FormField({ meta, value, error, disabled, onChange, onBlur, hint, maxLength }) {
   return (
-    // 칸 이름표·입력칸 = 디자이너가 그린 1on1 「일정 추가」 창 값 그대로 (PW-1894 · one_on_one.css `.ono-add-modal-*`).
-    // 이름표 14px 굵게 회색 · 이름표 → 칸 12px · 칸 → 다음 칸 24px. 잠긴 칸은 1on1 창에 없어 원래 연회색을 둔다.
-    <div style={{ marginBottom: 'var(--spacing-3xl)', ...style }}>
-      <label style={{ display: 'block', fontFamily: 'var(--font-family-body)', fontWeight: 700,
-        fontSize: 'var(--font-size-text-sm)', lineHeight: 'var(--line-height-text-sm)',
-        color: 'var(--text-secondary)', marginBottom: 'var(--spacing-lg)' }}>
+    <div>
+      <label style={FIELD_LABEL_STYLE}>
         {meta.label}
         {meta.required && (
-          <span style={{ color: T.red, marginLeft: 3 }}>*</span>
+          <span style={FIELD_REQUIRED_STYLE}>*</span>
         )}
       </label>
       <input
         type="text"
+        className="tl-emp-input"
         value={value}
         placeholder={meta.placeholder}
         maxLength={maxLength}
         disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
         onBlur={onBlur}
-        style={{
-          width: '100%', boxSizing: 'border-box', minHeight: 40,
-          padding: 'var(--spacing-md) var(--spacing-lg)',
-          fontFamily: 'var(--font-family-body)', fontWeight: 400,
-          fontSize: 'var(--font-size-text-md)', lineHeight: 'var(--line-height-text-md)',
-          borderRadius: 'var(--radius-md)',
-          border: `1px solid ${error ? 'var(--colors-error-200)' : 'var(--componentColors-alpha-alphaBlack5, rgba(0,0,0,0.05))'}`,
-          background: disabled ? T.bl : 'var(--componentColors-alpha-alphaBlack3, rgba(0,0,0,0.03))',
-          color: disabled ? T.sub : 'var(--text-primary)',
-          outline: 'none', cursor: disabled ? 'not-allowed' : 'text',
-        }}
+        style={error ? FIELD_INPUT_ERROR_STYLE : disabled ? FIELD_INPUT_DISABLED_STYLE : undefined}
       />
       {hint && !error && (
-        <div style={{ fontSize: 12, color: T.muted, marginTop: 5 }}>{hint}</div>
+        <div style={FIELD_HELP_STYLE}>{hint}</div>
       )}
       {error && (
-        <div style={{ fontSize: 12, color: T.red, marginTop: 5 }}>{error}</div>
+        <div style={FIELD_ERROR_STYLE}>{error}</div>
       )}
       {/* 칸 안내 (앱 PW-2711 · 결제 정책 §2 「칸 안내」) — 항상 보인다. 오류가 떠도 남는다(형식 안내 hint 와 다르다).
-          모양은 위 hint 와 같다(위 간격만 토큰 4px) — 기획 시안 billing-app.jsx FormField 의 meta.note 와 같은 자리·글씨. */}
+          모양은 위 hint 와 같다 — 기획 시안 billing-app.jsx FormField 의 meta.note 와 같은 자리·글씨. */}
       {meta.note && (
-        <div style={{ fontSize: 12, color: T.muted, marginTop: 'var(--spacing-xs)' }}>{meta.note}</div>
+        <div style={FIELD_HELP_STYLE}>{meta.note}</div>
       )}
     </div>
   );
@@ -396,221 +389,124 @@ export default function BillingSettingsCanvas({
   const saveBtnKind = saveSuccess ? 'success' : 'primary';
   const saveBtnLabel = saving ? labels.savingLabel : saveSuccess ? labels.savedLabel : labels.saveLabel;
 
+  const field = (key, extra) => (
+    <FormField
+      meta={labels.fields[key]}
+      maxLength={fieldMaxLengths?.[key]}
+      value={fields[key]}
+      error={touched[key] ? errors[key] : ''}
+      disabled={!canEdit}
+      onChange={(v) => handleChange(key, v)}
+      onBlur={() => handleBlur(key)}
+      {...extra}
+    />
+  );
+
   return (
-    <div style={{ fontFamily: T.font, background: T.bg, minHeight: '100vh', padding: 32, color: T.text }}>
-      <div style={{ maxWidth: 680, margin: '0 auto' }}>
+    <BillingPage width={BILLING_PAGE_WIDTH.settings}>
+      {/* 결제 진행 단계 표시 (PW-2110) — 화면 제목 위. ① 플랜 선택 ✓ ② 청구 정보(지금) ③ 카드 등록·결제 */}
+      {checkoutMode && <BillingCheckoutSteps steps={labels.checkoutSteps} current={1} help={stepsHelp} />}
+      {/* 카드 등록 단계 표시 (PW-2111) — 같은 부품. ① 청구 정보(지금) ② 카드 등록 */}
+      {cardMode && <BillingCheckoutSteps steps={labels.cardSteps} current={0} />}
 
-        {/* 결제 진행 단계 표시 (PW-2110) — 화면 제목 위. ① 플랜 선택 ✓ ② 청구 정보(지금) ③ 카드 등록·결제 */}
-        {checkoutMode && <BillingCheckoutSteps steps={labels.checkoutSteps} current={1} help={stepsHelp} />}
-        {/* 카드 등록 단계 표시 (PW-2111) — 같은 부품. ① 청구 정보(지금) ② 카드 등록 */}
-        {cardMode && <BillingCheckoutSteps steps={labels.cardSteps} current={0} />}
+      <BillingPageHead
+        title={labels.pageTitle}
+        titleAside={!canEdit ? <StatusBadge tone="neutral" className="ono-done-badge">{labels.noEditBadge}</StatusBadge> : undefined}
+        description={[labels.pageSubtitle]}
+      />
 
-        {/* 헤더 */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>{labels.pageTitle}</h1>
-          {!canEdit && <Badge color={T.sub} bg={T.bl}>{labels.noEditBadge}</Badge>}
-        </div>
-        <p style={{ color: T.sub, fontSize: 14, marginTop: 0, marginBottom: 24 }}>
-          {labels.pageSubtitle}
-        </p>
+      {/* 결제 진행 안내 (PW-2110) — 고른 요금제 한 줄 + [플랜 다시 고르기]. 결제 대상이 사라졌으면 그 사실을 알린다 */}
+      {checkoutMode && (
+        <BillingNotice
+          tone="warn"
+          testId="billing-settings-checkout-banner"
+          icon={<AlertTriangleGlyph size={16} />}
+          title={checkoutTarget ? textOf(labels.checkoutBannerTitle, checkoutTarget) : labels.checkoutTargetLostTitle}
+          lines={[checkoutTarget ? textOf(labels.checkoutBannerDesc, checkoutTarget) : labels.checkoutTargetLostDesc]}
+          actions={onReselectPlan && (
+            <Btn kind="secondary" size="sm" onClick={onReselectPlan}>{labels.reselectPlan}</Btn>
+          )}
+        />
+      )}
 
-        {/* 결제 진행 안내 (PW-2110) — 고른 요금제 한 줄 + [플랜 다시 고르기]. 결제 대상이 사라졌으면 그 사실을 알린다 */}
-        {checkoutMode && (
-          <Card style={{ marginBottom: 16, background: T.amberBg, border: '1px solid #FDE68A' }}>
-            <div
-              data-testid="billing-settings-checkout-banner"
-              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}
-            >
-              <div>
-                <div style={{ fontWeight: 700, color: T.amber, marginBottom: 4 }}>
-                  {checkoutTarget
-                    ? textOf(labels.checkoutBannerTitle, checkoutTarget)
-                    : labels.checkoutTargetLostTitle}
-                </div>
-                <div style={{ fontSize: 13, color: T.text }}>
-                  {checkoutTarget
-                    ? textOf(labels.checkoutBannerDesc, checkoutTarget)
-                    : labels.checkoutTargetLostDesc}
-                </div>
-              </div>
-              {onReselectPlan && (
-                // 안내 글이 길어도 버튼 이름은 한 줄로 — 줄어들면 두세 줄로 꺾였다
-                <div style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
-                  <Btn kind="secondary" onClick={onReselectPlan}>
-                    {labels.reselectPlan}
-                  </Btn>
-                </div>
-              )}
-            </div>
-          </Card>
-        )}
+      {/* 카드 등록 안내 (PW-2111) — 왜 여기 왔는지 + 저장하면 무엇이 일어나는지 + [결제수단으로 돌아가기].
+          결제 진행 안내 띠와 같은 모양 */}
+      {cardMode && (
+        <BillingNotice
+          tone="warn"
+          testId="billing-settings-card-banner"
+          icon={<AlertTriangleGlyph size={16} />}
+          title={labels.cardBannerTitle}
+          lines={[labels.cardBannerDesc]}
+          actions={onBackToMethods && (
+            <Btn kind="secondary" size="sm" onClick={onBackToMethods}>{labels.backToMethods}</Btn>
+          )}
+        />
+      )}
 
-        {/* 카드 등록 안내 (PW-2111) — 왜 여기 왔는지 + 저장하면 무엇이 일어나는지 + [결제수단으로 돌아가기].
-            결제 진행 안내 상자와 같은 모양 */}
-        {cardMode && (
-          <Card style={{ marginBottom: 16, background: T.amberBg, border: '1px solid #FDE68A' }}>
-            <div
-              data-testid="billing-settings-card-banner"
-              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}
-            >
-              <div>
-                <div style={{ fontWeight: 700, color: T.amber, marginBottom: 4 }}>{labels.cardBannerTitle}</div>
-                <div style={{ fontSize: 13, color: T.text }}>{labels.cardBannerDesc}</div>
-              </div>
-              {onBackToMethods && (
-                <div style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
-                  <Btn kind="secondary" onClick={onBackToMethods}>
-                    {labels.backToMethods}
-                  </Btn>
-                </div>
-              )}
-            </div>
-          </Card>
-        )}
+      {/* 사업자명이 없으면 아직 청구 정보가 없다 — 회사 설정에서 적은 사업자등록번호만 채워져 올 수 있다
+          (앱 PW-2711 · 결제 정책 §3 빈 상태 «사업자등록번호 칸은 그 번호로 채워져 열린다»). */}
+      {canEdit && !profile?.company_name && !flowMode && (
+        <BillingNotice tone="info" testId="billing-settings-empty" icon={<InfoGlyph size={16} />} title={labels.emptyNotice} />
+      )}
 
-        {/* 사업자명이 없으면 아직 청구 정보가 없다 — 회사 설정에서 적은 사업자등록번호만 채워져 올 수 있다
-            (앱 PW-2711 · 결제 정책 §3 빈 상태 «사업자등록번호 칸은 그 번호로 채워져 열린다»). */}
-        {canEdit && !profile?.company_name && !flowMode && (
-          <Card style={{ marginBottom: 16, background: T.bl, border: `1px solid ${T.border}` }}>
-            <div data-testid="billing-settings-empty" style={{ fontSize: 13, color: T.text }}>
-              {labels.emptyNotice}
-            </div>
-          </Card>
-        )}
+      {/* 권한 없음 — hr_admin 등은 청구 정보를 조회조차 할 수 없음. 폼/데이터 미렌더 */}
+      {!canEdit ? (
+        <BillingNotice tone="bad" icon={<AlertTriangleGlyph size={16} />} title={labels.noPermTitle} lines={[labels.noPermDesc]} />
+      ) : (
+        <>
+          {/* 흰 판 하나에 두 구역 — 사업자 정보 · 청구 담당자 (시안 ㊶) */}
+          <Panel testId="billing-settings-form">
+            <Panel.Section title={labels.bizSectionTitle}>
+              {field('company_name')}
+              {field('biz_reg_no', { hint: labels.bizRegHint })}
+              {field('ceo_name')}
+              {field('biz_address')}
+              {field('biz_type')}
+            </Panel.Section>
+            <Panel.Section title={labels.contactSectionTitle}>
+              {field('billing_contact_name')}
+              {field('billing_contact_email')}
+            </Panel.Section>
+          </Panel>
 
-        {/* 권한 없음 — hr_admin 등은 청구 정보를 조회조차 할 수 없음. 폼/데이터 미렌더 */}
-        {!canEdit ? (
-          <Card style={{ background: T.redBg, border: '1px solid #FCA5A5' }}>
-            <div style={{ fontWeight: 700, color: T.red, marginBottom: 4 }}>{labels.noPermTitle}</div>
-            <div style={{ fontSize: 13, color: T.text }}>
-              {labels.noPermDesc}
-            </div>
-          </Card>
-        ) : (
-          <>
-            {/* 사업자 정보 카드 */}
-            <Card style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 20 }}>{labels.bizSectionTitle}</div>
-
-              <FormField
-                meta={labels.fields.company_name}
-                maxLength={fieldMaxLengths?.company_name}
-                value={fields.company_name}
-                error={touched.company_name ? errors.company_name : ''}
-                disabled={!canEdit}
-                onChange={(v) => handleChange('company_name', v)}
-                onBlur={() => handleBlur('company_name')}
-              />
-
-              <FormField
-                meta={labels.fields.biz_reg_no}
-                maxLength={fieldMaxLengths?.biz_reg_no}
-                value={fields.biz_reg_no}
-                error={touched.biz_reg_no ? errors.biz_reg_no : ''}
-                disabled={!canEdit}
-                onChange={(v) => handleChange('biz_reg_no', v)}
-                onBlur={() => handleBlur('biz_reg_no')}
-                hint={labels.bizRegHint}
-              />
-
-              <FormField
-                meta={labels.fields.ceo_name}
-                maxLength={fieldMaxLengths?.ceo_name}
-                value={fields.ceo_name}
-                error={touched.ceo_name ? errors.ceo_name : ''}
-                disabled={!canEdit}
-                onChange={(v) => handleChange('ceo_name', v)}
-                onBlur={() => handleBlur('ceo_name')}
-              />
-
-              <FormField
-                meta={labels.fields.biz_address}
-                maxLength={fieldMaxLengths?.biz_address}
-                value={fields.biz_address}
-                error={touched.biz_address ? errors.biz_address : ''}
-                disabled={!canEdit}
-                onChange={(v) => handleChange('biz_address', v)}
-                onBlur={() => handleBlur('biz_address')}
-              />
-
-              <FormField
-                meta={labels.fields.biz_type}
-                maxLength={fieldMaxLengths?.biz_type}
-                value={fields.biz_type}
-                error={touched.biz_type ? errors.biz_type : ''}
-                disabled={!canEdit}
-                onChange={(v) => handleChange('biz_type', v)}
-                onBlur={() => handleBlur('biz_type')}
-                style={{ marginBottom: 0 }}
-              />
-            </Card>
-
-            {/* 청구 담당자 카드 */}
-            <Card style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 15, fontWeight: 800, marginBottom: 20 }}>{labels.contactSectionTitle}</div>
-
-              <FormField
-                meta={labels.fields.billing_contact_name}
-                maxLength={fieldMaxLengths?.billing_contact_name}
-                value={fields.billing_contact_name}
-                error={touched.billing_contact_name ? errors.billing_contact_name : ''}
-                disabled={!canEdit}
-                onChange={(v) => handleChange('billing_contact_name', v)}
-                onBlur={() => handleBlur('billing_contact_name')}
-              />
-
-              <FormField
-                meta={labels.fields.billing_contact_email}
-                maxLength={fieldMaxLengths?.billing_contact_email}
-                value={fields.billing_contact_email}
-                error={touched.billing_contact_email ? errors.billing_contact_email : ''}
-                disabled={!canEdit}
-                onChange={(v) => handleChange('billing_contact_email', v)}
-                onBlur={() => handleBlur('billing_contact_email')}
-                style={{ marginBottom: 0 }}
-              />
-            </Card>
-
-            {/* 저장 버튼 영역 */}
-            <Card style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              {flowMode ? (
-                /* 결제 진행 모드 (PW-2110) · 카드 등록 진행 모드 (PW-2111) — 버튼 하나가 «저장 + 다음 단계»를 맡는다 */
-                <>
-                  <div style={{ fontSize: 13, color: T.sub }}>
-                    {isDirty
-                      ? cardMode ? labels.cardFlowStatusDirty : labels.flowStatusDirty
-                      : hasSavedRequired
-                        ? cardMode ? labels.cardFlowStatusSaved : labels.flowStatusSaved
-                        : labels.flowStatusEmpty}
-                  </div>
-                  <Btn kind="primary" onClick={handleSave} disabled={!canContinue}>
-                    {saving
-                      ? labels.savingLabel
-                      : openingCard
-                        ? labels.openingCardLabel
-                        : cardMode
-                          ? isDirty ? labels.cardContinueSaveLabel : labels.cardContinueLabel
-                          : isDirty ? labels.continueSaveLabel : labels.continueLabel}
-                    {/* 기획서 settings §51·§53 이름 «[… 계속 →]» — 기다리는 글자일 때는 붙이지 않는다 (PW-2938) */}
-                    {!saving && !openingCard && <ArrowRightGlyph size={13} />}
-                  </Btn>
-                </>
-              ) : (
-                <>
-                  <div style={{ fontSize: 13, color: T.sub }}>
-                    {!isDirty && !saveSuccess && labels.statusNoChanges}
-                    {isDirty && !saveSuccess && labels.statusDirty}
-                    {saveSuccess && labels.statusSaved}
-                  </div>
-                  <Btn kind={saveBtnKind} onClick={handleSave} disabled={!canSave}>
-                    {saveBtnLabel}
-                  </Btn>
-                </>
-              )}
-            </Card>
-          </>
-        )}
-      </div>
-    </div>
+          {/* 저장 줄 — 판 아래 바탕 없는 한 줄 · 버튼 오른쪽 (시안 ㊹) */}
+          {flowMode ? (
+            /* 결제 진행 모드 (PW-2110) · 카드 등록 진행 모드 (PW-2111) — 버튼 하나가 «저장 + 다음 단계»를 맡는다 */
+            <SaveBar
+              testId="billing-settings-save-bar"
+              hint={isDirty
+                ? cardMode ? labels.cardFlowStatusDirty : labels.flowStatusDirty
+                : hasSavedRequired
+                  ? cardMode ? labels.cardFlowStatusSaved : labels.flowStatusSaved
+                  : labels.flowStatusEmpty}
+              actions={
+                <Btn kind="primary" onClick={handleSave} disabled={!canContinue}>
+                  {saving
+                    ? labels.savingLabel
+                    : openingCard
+                      ? labels.openingCardLabel
+                      : cardMode
+                        ? isDirty ? labels.cardContinueSaveLabel : labels.cardContinueLabel
+                        : isDirty ? labels.continueSaveLabel : labels.continueLabel}
+                  {/* 기획서 settings §51·§53 이름 «[… 계속 →]» — 기다리는 글자일 때는 붙이지 않는다 (PW-2938) */}
+                  {!saving && !openingCard && <ArrowRightGlyph size={13} />}
+                </Btn>
+              }
+            />
+          ) : (
+            <SaveBar
+              testId="billing-settings-save-bar"
+              hint={saveSuccess ? labels.statusSaved : isDirty ? labels.statusDirty : labels.statusNoChanges}
+              actions={
+                <Btn kind={saveBtnKind} onClick={handleSave} disabled={!canSave}>
+                  {saveBtnLabel}
+                </Btn>
+              }
+            />
+          )}
+        </>
+      )}
+    </BillingPage>
   );
 }

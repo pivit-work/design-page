@@ -4,42 +4,56 @@ import Button from '../shared/Button.jsx';
 import LinkButton from './LinkButton.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
 import Stack from '../shared/Stack.jsx';
+import StatusBadge from '../shared/StatusBadge.jsx';
 import FormField from '../shared/FormField.jsx';
 import TextArea from '../shared/TextArea.jsx';
-import { BillingCard as Card, BillingBadge as Badge } from './kit/BillingSurface.jsx';
+import {
+  AlertCircleGlyph,
+  AlertTriangleGlyph,
+  CheckCircleGlyph,
+  ClockGlyph,
+  InfoGlyph,
+  LockGlyph,
+} from '../shared/lineIcons.jsx';
+import { NoticeLines, Panel } from '../frames/index.js';
+import { BillingInlineNote, BillingNotice, BillingPage, BillingPageHead } from './kit/BillingSurface.jsx';
+import { BILLING_PAGE_WIDTH } from './kit/billingPageWidth.js';
 
 // ─────────────────────────────────────────────────────────────
 // 결제·구독 — 구독 현황 (BillingOverviewCanvas)  /admin/billing
 // pivit-specs 의 billing-overview.jsx 시안을 design-page 정본으로 포팅.
 //
 // 데이터·라벨·환불견적은 모두 props 로 받는다 (page wrapper 가 fetch·매핑·i18n·
-// 서버 재계산을 소유). 캔버스는 인라인 스타일로 자기 완결적으로 렌더한다.
+// 서버 재계산을 소유).
+//
+// 모양 (pivit-work PW-3132 · 커트가 11-19 에 통과시킨 시안 admin-billing-designer-2026-11-19):
+//   - 머리 `BillingPageHead` · 폭 `BILLING_PAGE_WIDTH.overview` · 왼쪽 시작
+//   - 상태 띠는 `BillingNotice`(흰 띠 · 앞 아이콘 색으로 뜻) — 머리 / 설명 / 고치는 법 줄 나눔
+//   - 요금제 · 좌석 · 애드온 · 다음 청구 · 결제수단 · 녹음 사용량 · 버튼 줄이 흰 판 하나(`Panel`) 안의 구역
+//     (리소스 «팀 현황» — 한 대상 = 흰 판 하나). 전에는 판 다섯 장에 흩어졌고 녹음 사용량 · [결제수단 관리]는 판 밖에 있었다.
 // ─────────────────────────────────────────────────────────────
-
-const T = {
-  font: 'var(--font-family-body)',
-  bg: '#F8FAFC', card: '#fff',
-  border: '#E2E8F0', bl: '#F1F5F9',
-  text: '#0F172A', sub: '#64748B', muted: '#94A3B8',
-  // 주 버튼·고른 것은 브랜드 초록, 누르는 글자·딱지 글자는 진한 초록 — 「플랜 선택」 탭과 같다 (PW-1936)
-  accent: 'var(--bg-brand-solid)', accentText: 'var(--text-brand-secondary)',
-  green: '#22C55E', greenBg: '#F0FDF4',
-  amber: '#F59E0B', amberBg: '#FFFBEB',
-  red: '#DC2626', redBg: '#FEF2F2',
-};
 
 const won = (n) => '₩' + Number(n || 0).toLocaleString('ko-KR');
 
-const STATUS_META = {
-  free: { color: T.sub, bg: T.bl },
-  active: { color: T.green, bg: T.greenBg },
-  past_due: { color: T.red, bg: T.redBg },
-  canceled: { color: T.sub, bg: T.bl },
-  // 체험(PW-1025) — 기획서 시안 billing-app.jsx 의 `trial` 배지 그대로
-  trial: { color: T.accentText, bg: 'var(--bg-brand-secondary)' },
-  // 이용 정지(pivit-work PW-2549) — 결제 실패와 같은 «결제 문제로 막힘» 빨강 (기획 시안 billing-app.jsx 상태 배지)
-  usage_suspended: { color: T.red, bg: T.redBg },
+/** 상태 딱지의 뜻 — 색은 공용 딱지 표(statusBadgeTones.js)가 정한다. 체험은 플랜 화면과 같은 브랜드(accent). */
+const STATUS_TONE = {
+  free: 'neutral',
+  active: 'success',
+  past_due: 'danger',
+  canceled: 'neutral',
+  trial: 'accent',
+  usage_suspended: 'danger',
 };
+
+/**
+ * 한 문단 글을 문장 경계(마침표·물음표 뒤 빈칸)에서만 나눈다 — 한 줄에 한 문장. 끝 문장이 «(데이터는 보존됩니다)» 같은
+ * 괄호 덧붙임이어도 그 앞 마침표에서 나뉜다. 문장 사이 빈칸은 앞 줄 끝에 남겨 둔다 — 줄을 이어 읽으면(복사 · 화면 읽기
+ * 프로그램 · 글자 시험) 원래 문단과 한 글자도 다르지 않다.
+ */
+const sentences = (text) =>
+  typeof text === 'string'
+    ? (text.match(/[^]*?(?:[.?!]\s+|$)/g) ?? []).filter((s) => s.trim() !== '')
+    : [text];
 
 const DEFAULT_LABELS = {
   viewOnly: '조회 전용',
@@ -199,6 +213,8 @@ const DEFAULT_LABELS = {
       : `매월 ${anchorDay}일`,
 
   viewHistory: '청구 내역·영수증 보기',
+  // 판 맨 아래 버튼 줄의 [결제수단 관리 →] (pivit-work PW-3132 — 전에는 앱이 판 밖 아래에 따로 그렸다)
+  manageMethods: '결제수단 관리',
   cancelSubscription: '구독 해지',
 
   cancelModalTitle: '구독 해지 방식 선택',
@@ -332,76 +348,156 @@ function mergeLabels(provided) {
 const fireOnly = (onClick) => (onClick ? (e) => { onClick(e); } : undefined);
 // 이 화면의 버튼은 모두 공용 Button(디자이너 어드민 버튼과 같은 값)으로 그린다 (pivit-work PW-2938).
 // kind 가 곧 variant — 되돌릴 수 있는 위험 자리는 'danger-ghost', 확인 창의 마지막 단추만 'danger'.
-function Btn({ children, onClick, kind = 'primary', disabled }) {
+function Btn({ children, onClick, kind = 'primary', size, disabled }) {
   return (
-    <Button variant={kind} onClick={fireOnly(onClick)} disabled={disabled}>
+    <Button variant={kind} size={size} onClick={fireOnly(onClick)} disabled={disabled}>
       {children}
     </Button>
   );
 }
 
+/** 띠 아이콘 16 — 색은 `BillingNotice` 가 뜻(tone)으로 칠한다. */
+const ICON = 16;
+
 /**
  * 이번 달 사용량 배너 한 장 — 녹음 풀(PW-1023)과 유료 AI 실행(PW-2191)이 같은 모양을 쓴다.
- * `banner` 가 없으면 그리지 않는다.
+ * `banner` 가 없으면 그리지 않는다. 모양은 상태 띠(`BillingNotice` warn).
  */
 function UsageBanner({ banner, canEdit, testId }) {
   if (!banner) return null;
   return (
-    <Card style={{ marginBottom: 16, background: T.amberBg, border: '1px solid #FDE68A',
-      display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
-      <div data-testid={testId} role="status">
-        <div style={{ fontWeight: 800, color: '#B45309', marginBottom: 4 }}>{banner.title}</div>
-        <div style={{ fontSize: 13, color: T.text }}>{banner.body}</div>
-        {!canEdit && banner.noPermText && (
-          <div style={{ fontSize: 12, color: T.sub, marginTop: 6 }}>
-            {banner.noPermText}
-          </div>
-        )}
-      </div>
-      {banner.actionLabel && (
-        // 버튼 글자가 두 줄로 꺾이지 않게 — 띠 본문이 길어도 버튼 폭을 지킨다 (PW-2360).
-        <div style={{ flex: 'none', whiteSpace: 'nowrap' }}>
-          <Btn kind={banner.actionKind === 'secondary' ? 'secondary' : 'primary'}
-            onClick={banner.onAction} disabled={!canEdit}>
-            {banner.actionLabel}
-          </Btn>
-        </div>
+    <BillingNotice
+      tone="warn"
+      icon={<AlertTriangleGlyph size={ICON} />}
+      testId={testId}
+      role="status"
+      title={banner.title}
+      lines={sentences(banner.body)}
+      fix={[!canEdit && banner.noPermText]}
+      actions={banner.actionLabel && (
+        <Btn kind={banner.actionKind === 'secondary' ? 'secondary' : 'primary'}
+          onClick={banner.onAction} disabled={!canEdit}>
+          {banner.actionLabel}
+        </Btn>
       )}
-    </Card>
+    />
   );
 }
 
+/** 판 안 작은 글 — 13·12 크기, 뜻은 색으로만. */
+const TEXT_SM = { margin: 0, fontSize: 'var(--font-size-text-sm)', lineHeight: 'var(--line-height-text-sm)', color: 'var(--text-secondary)' };
+const TEXT_XS = { margin: 0, fontSize: 'var(--font-size-text-xs)', lineHeight: 'var(--line-height-text-xs)', color: 'var(--text-tertiary)' };
+const TONE_COLOR = {
+  warn: 'var(--text-warning-primary)',
+  bad: 'var(--text-error-primary)',
+  ok: 'var(--text-success-primary)',
+  brand: 'var(--text-brand-secondary)',
+};
+/** 구역 안 한 줄 — 왼쪽 이름 · 값, 오른쪽 끝 버튼(`marginLeft: auto`). */
+const ROW = { display: 'flex', alignItems: 'center', gap: 'var(--spacing-lg)', flexWrap: 'wrap', minWidth: 0 };
+const ROW_KEY = {
+  display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)',
+  fontSize: 'var(--font-size-text-sm)', lineHeight: 'var(--line-height-text-sm)', fontWeight: 600, color: 'var(--text-secondary)',
+};
+const ROW_VALUE = { fontSize: 'var(--font-size-text-md)', lineHeight: 'var(--line-height-text-md)', fontWeight: 700, color: 'var(--text-primary)' };
+const PUSH_RIGHT = { marginLeft: 'auto', flex: 'none' };
+/** 진행 막대 8 — 원온원 KPI 막대(.ono-kpi-bar) 바탕 · 모서리. 채움은 뜻 색. */
+const BAR = { width: '100%', height: 'var(--spacing-md)', background: 'var(--alpha-black-3)', borderRadius: 'var(--radius-xs)', overflow: 'hidden' };
+const barFill = (pct, color) => ({ width: `${pct}%`, height: '100%', background: color });
+/** 다음 청구 · 기본 결제수단 두 칸 — 칸 사이 세로선(designer.css .kpi 숫자 칸). */
+const TWO_COL = { display: 'grid', gridTemplateColumns: '1fr 1fr', minWidth: 0 };
+const COL = { display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xxs)', minWidth: 0 };
+const COL_RIGHT = { ...COL, borderLeft: '1px solid var(--border-secondary)', paddingLeft: 'var(--spacing-3xl)' };
+const COL_LEFT = { ...COL, paddingRight: 'var(--spacing-3xl)' };
+const AMOUNT = {
+  margin: 'var(--spacing-xs) 0 0', fontSize: 'var(--font-size-display-xs)', lineHeight: 'var(--line-height-display-xs)',
+  fontWeight: 700, color: 'var(--text-primary)',
+};
+const METHOD = { margin: 'var(--spacing-md) 0 0', ...ROW_VALUE };
+/** 창 안 선택지 — 칸 이름(FormModal.Field `.tl-group-modal-label` 18/28) + 설명 줄 + 버튼. 상자 없이. */
+const OPTION = { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 'var(--spacing-md)' };
+const OPTION_TAG = { marginLeft: 'var(--spacing-sm)', fontSize: 'var(--font-size-text-xs)', fontWeight: 600, color: 'var(--text-tertiary)' };
+/** 창 안 «이름 — 값» 줄 (청약철회 · 요금 변경 창). */
+const KV_ROW = {
+  display: 'flex', justifyContent: 'space-between', gap: 'var(--spacing-xl)',
+  padding: 'var(--spacing-md) 0', borderBottom: '1px solid var(--border-secondary)', ...TEXT_SM,
+};
+const KV_KEY = { flex: 'none', color: 'var(--text-tertiary)' };
+const KV_VALUE = { color: 'var(--text-primary)', fontWeight: 600, textAlign: 'right' };
+
 // 구독 현황 «전자결재 · 휴가 패키지» 한 줄 (pivit-work PW-2782 · overview «애드온 줄» 행). 사고 해지하는 곳은 플랜 화면 카드다 —
-// 여기서는 상태만 보이고 [관리 →]로 보낸다. 색: 체험 14일 이하·해지 예정 = 주황, 꺼짐 = 회색, 잠김 = 빨강.
-function AddonRow({ addon, labels, onManage }) {
+// 여기서는 상태만 보이고 [관리 →]로 보낸다. 상태는 공용 딱지 — 체험 중 = 브랜드(플랜 화면과 같은 색) · 해지 예정 = 경고 ·
+// 꺼짐 = 중립 · 잠김 = 위험. 체험이 14일 이하로 남으면 경고 딱지.
+function AddonSection({ addon, labels, onManage }) {
   let text = labels.addonOff;
-  let color = T.text;
+  let tone = 'neutral';
   if (addon.phase === 'trial') {
     const left = addon.trialDaysLeft;
     text = labels.addonTrial(addon.trialEndDate) + (left != null && left <= 3 ? ` · ${labels.addonTrialDday(left)}` : '');
-    color = left != null && left <= 14 ? T.amber : T.text;
+    tone = 'accent';
   } else if (addon.phase === 'active') {
     text = labels.addonActive(addon.interval === 'annual' ? addon.priceAnnual : addon.priceMonthly);
+    tone = 'success';
   } else if (addon.phase === 'cancel_scheduled') {
     text = labels.addonCancelScheduled(addon.lastDay);
-    color = T.amber;
+    tone = 'warning';
   } else if (addon.phase === 'lapsed') {
     text = labels.addonLapsed;
-    color = T.sub;
   } else if (addon.phase === 'locked') {
     text = labels.addonLocked;
-    color = T.red;
+    tone = 'danger';
   }
   return (
-    <Card style={{ marginBottom: 'var(--spacing-xl)', padding: 'var(--spacing-lg) var(--spacing-3xl)' }}>
-      <div data-testid="billing-addon-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--spacing-lg)', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-lg)', flexWrap: 'wrap', minWidth: 0 }}>
-          <span style={{ fontSize: 14, fontWeight: 700 }}>{labels.addonName}</span>
-          <span data-testid="billing-addon-row-status" style={{ fontSize: 13, color, fontWeight: 600 }}>{text}</span>
-        </div>
-        <LinkButton onClick={onManage}>{labels.addonManage}</LinkButton>
+    <Panel.Section>
+      <div data-testid="billing-addon-row" style={ROW}>
+        <span style={{ ...ROW_KEY, color: 'var(--text-primary)' }}>{labels.addonName}</span>
+        <StatusBadge tone={tone} data-testid="billing-addon-row-status">{text}</StatusBadge>
+        <span style={PUSH_RIGHT}>
+          <LinkButton onClick={onManage}>{labels.addonManage}</LinkButton>
+        </span>
       </div>
-    </Card>
+    </Panel.Section>
+  );
+}
+
+/**
+ * 이번 달 녹음 사용량 구역 (PW-1023 · 시안 «이름 · 숫자 · 막대 8»). 값은 앱이 문장까지 만들어 넘긴다 —
+ * `{ title, status: 'ok'|'warning'|'over', statusText, unlimitedText, summary, percent, simulate: { label, onClick } | null }`.
+ */
+function UsageSection({ usage }) {
+  const pct = Math.max(0, Math.min(100, Math.round(usage.percent ?? 0)));
+  const fill = usage.status === 'over' ? 'var(--utility-error-500)'
+    : usage.status === 'warning' ? 'var(--utility-warning-500)' : 'var(--bg-brand-solid)';
+  return (
+    <Panel.Section testId="billing-usage-section">
+      <Stack gap="md">
+        <div style={ROW}>
+          <span style={ROW_KEY}>{usage.title}</span>
+          {usage.statusText && (
+            <span style={{ ...TEXT_XS, fontWeight: 700, color: usage.status === 'over' ? TONE_COLOR.bad : TONE_COLOR.warn }}>
+              {usage.statusText}
+            </span>
+          )}
+          {!usage.unlimitedText && (
+            <span data-testid="usage-summary" style={{ ...TEXT_SM, ...PUSH_RIGHT, fontWeight: 600, color: 'var(--text-primary)' }}>
+              {usage.summary}
+            </span>
+          )}
+        </div>
+        {usage.unlimitedText ? (
+          <p style={TEXT_SM}>{usage.unlimitedText}</p>
+        ) : (
+          <div style={BAR}><div style={barFill(pct, fill)} /></div>
+        )}
+        {usage.simulate && (
+          <div>
+            <Button data-testid="simulate-usage" variant="secondary" size="sm" onClick={usage.simulate.onClick}>
+              {usage.simulate.label}
+            </Button>
+          </div>
+        )}
+      </Stack>
+    </Panel.Section>
   );
 }
 
@@ -561,6 +657,16 @@ export default function BillingOverviewCanvas({
   addon = null,
   addonNextCharge = null,
   onManageAddon = () => {},
+  /**
+   * 판 맨 아래 버튼 줄의 [결제수단 관리 →] (pivit-work PW-3132). 안 넘기면 버튼을 그리지 않는다.
+   * 결제 실패 띠의 [지금 갱신] 등이 쓰는 `onNavigateMethods` 와 같은 곳으로 보내도 된다 — 자리가 달라 따로 받는다.
+   */
+  onManageMethods,
+  /**
+   * 이번 달 녹음 사용량 구역 (PW-1023 · PW-3132 에서 판 안으로) — 앱이 문장까지 만들어 넘긴다. `null` 이면 구역을 그리지 않는다.
+   * `{ title, status: 'ok'|'warning'|'over', statusText, unlimitedText, summary, percent, simulate: { label, onClick } | null }`
+   */
+  usage = null,
 }) {
   const labels = mergeLabels(providedLabels);
   const [cancelOpen, setCancelOpen] = useState(false); // 해지 방식 선택 모달
@@ -576,7 +682,6 @@ export default function BillingOverviewCanvas({
 
   const sub = subscription;
   const quote = refundQuote;
-  const statusMeta = STATUS_META[sub.status] || STATUS_META.free;
   const statusLabel = labels.statusLabels[sub.status] || labels.statusLabels.free;
   // 이 구독이 실제로 내는 좌석당 월 단가 — 연간이면 연간 할인 단가 (PW-757).
   const planUnitPrice = sub.interval === 'annual' && plan.seatPriceAnnual != null
@@ -692,274 +797,238 @@ export default function BillingOverviewCanvas({
     }
   };
 
+  // 이용 정지 띠 글 — 첫 문장이 설명, 나머지(다시 이용하는 법 · 해지 신청)가 «고치는 법» (시안 A5).
+  const suspendedSentences = suspended ? sentences(labels.suspendedDesc(suspension.since)) : [];
+  // 다음 청구 칸 · 결제수단 칸 — 이용 정지면 결제수단 칸만 (청구가 없다 · PW-2549)
+  const showMoney = ((sub.status === 'active' || sub.status === 'past_due') && !isFree) || suspended;
+  const seatBarColor = seatPct >= 100 ? 'var(--utility-error-500)' : nearLimit ? 'var(--utility-warning-500)' : 'var(--bg-brand-solid)';
+
   return (
-    <div style={{ fontFamily: T.font, background: T.bg, minHeight: '100vh', padding: 32, color: T.text }}>
-      <div style={{ maxWidth: 880, margin: '0 auto' }}>
+    <BillingPage width={BILLING_PAGE_WIDTH.overview} testId="billing-overview">
+      <BillingPageHead
+        title={labels.pageTitle}
+        titleAside={titleHelp}
+        description={[labels.pageSubtitle]}
+        actions={!canEdit && <StatusBadge tone="neutral">{labels.viewOnly}</StatusBadge>}
+      />
 
-        {/* 헤더 */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <h1 className={titleHelp ? 'tvh-title-row' : undefined} style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>{labels.pageTitle}{titleHelp}</h1>
-          {!canEdit && <Badge color={T.sub} bg={T.bl}>{labels.viewOnly}</Badge>}
-        </div>
-        <p style={{ color: T.sub, fontSize: 14, marginTop: 0, marginBottom: 24 }}>
-          {labels.pageSubtitle}
-        </p>
-
-        {/* 이용 정지 배너 (pivit-work PW-2549·PW-2550 · overview «이용 정지 배너» 행) — Dunning 배너와 같은 빨간 Card.
-            버튼 순서는 기획 시안대로 [고객지원 문의] · [해지 신청](접수 중이면 감춤 · 결제 권한 없음·상태 모름이면 잠금) · [결제하고 다시 이용하기] */}
-        {suspended && (
-          <Card style={{ marginBottom: 'var(--spacing-xl)', background: T.redBg, border: '1px solid var(--utility-error-300)',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--spacing-xl)' }}>
-            <div data-testid="billing-suspended-banner" role="status">
-              <div style={{ fontWeight: 800, color: T.red, marginBottom: 'var(--spacing-xs)' }}>{labels.suspendedTitle}</div>
-              <div style={{ fontSize: 13, color: T.text }}>{labels.suspendedDesc(suspension.since)}</div>
-              {!canEdit && (
-                <div style={{ fontSize: 12, color: T.sub, marginTop: 'var(--spacing-sm)' }}>{labels.suspendedNoPerm}</div>
-              )}
-            </div>
-            <div style={{ display: 'flex', gap: 'var(--spacing-md)', flex: 'none', whiteSpace: 'nowrap' }}>
-              <Btn kind="secondary" onClick={onContactSupport}>{labels.suspendedContactSupport}</Btn>
-              {!cancelReqPending && (
-                <Btn kind="secondary" disabled={!canEdit || !cancelReqKnown}
-                  onClick={() => { setCancelReqReason(''); setCancelReqModal('request'); }}>
-                  {labels.suspendedRequestCancel}
-                </Btn>
-              )}
-              <Btn kind="danger-ghost" onClick={onNavigatePlans} disabled={!canEdit}>{labels.suspendedPay}</Btn>
-            </div>
-          </Card>
-        )}
-
-        {/* 해지 신청 접수 카드 (PW-2550 · overview «해지 신청 접수 Card») — 환불 처리 중 띠와 같은 Card + 앰버 */}
-        {cancelReqPending && (
-          <Card style={{ marginBottom: 'var(--spacing-xl)', background: T.amberBg, border: '1px solid var(--utility-warning-200)',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--spacing-xl)' }}>
-            <div data-testid="billing-cancel-request-pending" role="status">
-              <div style={{ fontWeight: 800, color: T.amber, marginBottom: 'var(--spacing-xs)' }}>
-                {labels.cancelRequestPendingTitle(cancellationRequest.requestedAt)}
-              </div>
-              <div style={{ fontSize: 13, color: T.text }}>{labels.cancelRequestPendingDesc}</div>
-            </div>
-            <div style={{ flex: 'none', whiteSpace: 'nowrap' }}>
-              <Btn kind="secondary" onClick={() => setCancelReqModal('withdraw')} disabled={!canEdit}>
-                {labels.cancelRequestWithdraw}
+      {/* 이용 정지 띠 (pivit-work PW-2549·PW-2550 · overview «이용 정지 배너» 행). 화면 맨 위 앱 공통 띠는 따로 남는다(정책서 58줄).
+          버튼 순서는 기획 시안대로 [고객지원 문의] · [해지 신청](접수 중이면 감춤 · 결제 권한 없음·상태 모름이면 잠금) · [결제하고 다시 이용하기] */}
+      {suspended && (
+        <BillingNotice
+          tone="bad"
+          icon={<LockGlyph size={ICON} />}
+          testId="billing-suspended-banner"
+          role="status"
+          title={labels.suspendedTitle}
+          lines={suspendedSentences.slice(0, 1)}
+          fix={[...suspendedSentences.slice(1), !canEdit && labels.suspendedNoPerm]}
+          actions={<>
+            <Btn kind="secondary" onClick={onContactSupport}>{labels.suspendedContactSupport}</Btn>
+            {!cancelReqPending && (
+              <Btn kind="secondary" disabled={!canEdit || !cancelReqKnown}
+                onClick={() => { setCancelReqReason(''); setCancelReqModal('request'); }}>
+                {labels.suspendedRequestCancel}
               </Btn>
-            </div>
-          </Card>
-        )}
-
-        {/* 해지 신청 반려 카드 (PW-2550 · overview «해지 신청 반려 Card») — 환불 실패 띠와 같은 Card + 빨간 테두리 */}
-        {cancelReqRejected && (
-          <Card style={{ marginBottom: 'var(--spacing-xl)', border: '1px solid var(--utility-error-300)',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--spacing-xl)' }}>
-            <div data-testid="billing-cancel-request-rejected" role="status">
-              <div style={{ fontWeight: 800, color: T.red, marginBottom: 'var(--spacing-xs)' }}>
-                {labels.cancelRequestRejectedTitle(cancellationRequest.rejectReason ?? '')}
-              </div>
-              <div style={{ fontSize: 13, color: T.text }}>{labels.cancelRequestRejectedDesc}</div>
-            </div>
-            <div style={{ flex: 'none', whiteSpace: 'nowrap' }}>
-              <Btn kind="secondary" onClick={onContactSupport}>{labels.suspendedContactSupport}</Btn>
-            </div>
-          </Card>
-        )}
-
-        {/* Dunning 경고 배너 */}
-        {sub.status === 'past_due' && (
-          <Card style={{ marginBottom: 16, background: T.redBg, border: '1px solid #FCA5A5',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
-            <div>
-              <div data-testid="billing-dunning-title" style={{ fontWeight: 800, color: T.red, marginBottom: 4 }}>
-                {sub.locked ? labels.lockedTitle : labels.dunningTitle}
-              </div>
-              <div style={{ fontSize: 13, color: T.text }}>
-                {sub.locked ? labels.lockedDesc : labels.dunningDesc(sub.graceUntil)}
-              </div>
-              {sub.locked && onNavigateExport && (
-                <div style={{ marginTop: 'var(--spacing-sm)' }}>
-                  <LinkButton data-testid="billing-locked-export" onClick={onNavigateExport}>
-                    {labels.lockedExportLink}
-                  </LinkButton>
-                </div>
-              )}
-              {!canEdit && (
-                <div style={{ fontSize: 12, color: T.sub, marginTop: 6 }}>
-                  {labels.dunningNoPerm}
-                </div>
-              )}
-            </div>
-            <div style={{ flex: 'none', whiteSpace: 'nowrap' }}>
-              <Btn kind="danger-ghost" onClick={onNavigateMethods} disabled={!canEdit}>{labels.dunningAction}</Btn>
-            </div>
-          </Card>
-        )}
-
-        {/* 미납 띠 (pivit-work PW-2526) — 해지됐지만 결제되지 않은 청구서가 남음. Dunning 배너와 같은 빨간 Card */}
-        {arrears && (
-          <Card style={{ marginBottom: 'var(--spacing-xl)', background: T.redBg, border: '1px solid var(--utility-error-300)',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--spacing-xl)' }}>
-            <div data-testid="billing-arrears-band">
-              <div style={{ fontWeight: 800, color: T.red, marginBottom: 'var(--spacing-xs)' }}>{labels.arrearsTitle}</div>
-              <div style={{ fontSize: 13, color: T.text }}>{labels.arrearsDesc(arrears.billedOn, arrears.amount)}</div>
-              {!canEdit && (
-                <div style={{ fontSize: 12, color: T.sub, marginTop: 'var(--spacing-xs)' }}>{labels.arrearsNoPerm}</div>
-              )}
-            </div>
-            <div style={{ flex: 'none', whiteSpace: 'nowrap' }}>
-              <Btn kind="danger-ghost" onClick={onNavigateMethods} disabled={!canEdit}>{labels.arrearsAction}</Btn>
-            </div>
-          </Card>
-        )}
-
-        {/* «청약철회를 확정해 주세요» 띠 (pivit-work PW-2532 · overview §4) — 해지 예약 배너 자리 위 · 같은 Card+앰버.
-            [확정]은 결제 권한자만 — 조회 전용은 띠만(다른 편집 버튼의 «비활성» 규칙과 다르다 · 정책 행 그대로) */}
-        {coolingOff && (
-          <Card style={{ marginBottom: 'var(--spacing-xl)', background: T.amberBg, border: '1px solid var(--colors-warning-200)',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--spacing-xl)' }}>
-            <div data-testid="billing-cooling-off-banner">
-              <div style={{ fontWeight: 800, color: T.amber, marginBottom: 'var(--spacing-xs)' }}>{labels.coolingOffTitle}</div>
-              <div style={{ fontSize: 13, color: T.text }}>
-                {labels.coolingOffDesc(coolingOff.receivedAt, coolingOff.confirmBy, coolingOff.amount, coolingOff.paidTotal)}
-              </div>
-            </div>
-            {/* 글이 길어도 버튼 글자가 세로로 접히지 않게 줄어들지 않는다. */}
-            {canEdit && (
-              <div style={{ flexShrink: 0 }}>
-                <Btn kind="secondary" onClick={() => setCoolingOffOpen(true)}>{labels.coolingOffAction}</Btn>
-              </div>
             )}
-          </Card>
-        )}
+            <Btn kind="danger-ghost" onClick={onNavigatePlans} disabled={!canEdit}>{labels.suspendedPay}</Btn>
+          </>}
+        />
+      )}
 
-        {/* 해지 예약 배너 */}
-        {sub.cancelAtPeriodEnd && sub.status === 'active' && (
-          <Card style={{ marginBottom: 16, background: T.amberBg, border: '1px solid #FDE68A',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
-            <div>
-              <div style={{ fontWeight: 800, color: T.amber, marginBottom: 4 }}>{labels.cancelReservedTitle}</div>
-              <div style={{ fontSize: 13, color: T.text }}>{labels.cancelReservedDesc(sub.nextBillingAt)}</div>
-            </div>
-            {/* 고객지원 철회로 차액을 돌려받는 동안은 [해지 취소]가 없고 돌아간 뒤에 보인다(pivit-work PW-2532 · 시안 billing-app.jsx «!withdrawOpen»). */}
-            {!withdrawal && <Btn kind="secondary" onClick={onUndoCancel} disabled={!canEdit}>{labels.undoCancel}</Btn>}
-          </Card>
-        )}
+      {/* 해지 신청 접수 띠 (PW-2550 · overview «해지 신청 접수 Card») */}
+      {cancelReqPending && (
+        <BillingNotice
+          tone="warn"
+          icon={<ClockGlyph size={ICON} />}
+          testId="billing-cancel-request-pending"
+          role="status"
+          title={labels.cancelRequestPendingTitle(cancellationRequest.requestedAt)}
+          lines={sentences(labels.cancelRequestPendingDesc)}
+          actions={
+            <Btn kind="secondary" onClick={() => setCancelReqModal('withdraw')} disabled={!canEdit}>
+              {labels.cancelRequestWithdraw}
+            </Btn>
+          }
+        />
+      )}
 
-        {/* 업그레이드 철회 처리 중·실패 띠 (pivit-work PW-2475 · overview §2) — 해지 예약 띠와 같은 Card+앰버/빨강 · 버튼 없음 */}
-        {withdrawal && (
-          <Card
-            style={{ marginBottom: 'var(--spacing-xl)',
-              background: withdrawal.status === 'failed' ? T.redBg : T.amberBg,
-              border: withdrawal.status === 'failed' ? '1px solid #FCA5A5' : '1px solid #FDE68A' }}>
-            {withdrawal.status === 'failed' ? (
-              <>
-                <div data-testid="billing-withdrawal-failed" style={{ fontWeight: 800, color: T.red, marginBottom: 'var(--spacing-xs)' }}>{labels.withdrawFailedTitle}</div>
-                <div style={{ fontSize: 13, color: T.text }}>{labels.withdrawFailedDesc(plan.label)}</div>
-              </>
-            ) : (
-              <>
-                <div data-testid="billing-withdrawal-processing" style={{ fontWeight: 800, color: T.amber, marginBottom: 'var(--spacing-xs)' }}>{labels.withdrawingTitle}</div>
-                <div style={{ fontSize: 13, color: T.text }}>
-                  {labels.withdrawingDesc(withdrawal.amount, withdrawal.fromPlanLabel, plan.label)}
-                </div>
-              </>
+      {/* 해지 신청 반려 띠 (PW-2550 · overview «해지 신청 반려 Card») */}
+      {cancelReqRejected && (
+        <BillingNotice
+          tone="bad"
+          icon={<AlertCircleGlyph size={ICON} />}
+          testId="billing-cancel-request-rejected"
+          role="status"
+          title={labels.cancelRequestRejectedTitle(cancellationRequest.rejectReason ?? '')}
+          lines={sentences(labels.cancelRequestRejectedDesc)}
+          actions={<Btn kind="secondary" onClick={onContactSupport}>{labels.suspendedContactSupport}</Btn>}
+        />
+      )}
+
+      {/* 결제 실패(Dunning) 띠 — 유예가 지나 잠겼으면 잠금 문구 + [구성원 명부 내보내기 →] */}
+      {sub.status === 'past_due' && (
+        <BillingNotice
+          tone="bad"
+          icon={<AlertTriangleGlyph size={ICON} />}
+          title={<span data-testid="billing-dunning-title">{sub.locked ? labels.lockedTitle : labels.dunningTitle}</span>}
+          lines={sentences(sub.locked ? labels.lockedDesc : labels.dunningDesc(sub.graceUntil))}
+          fix={[!canEdit && labels.dunningNoPerm]}
+          actions={<>
+            {sub.locked && onNavigateExport && (
+              <LinkButton data-testid="billing-locked-export" onClick={onNavigateExport}>
+                {labels.lockedExportLink}
+              </LinkButton>
             )}
-          </Card>
-        )}
+            <Btn kind="danger-ghost" onClick={onNavigateMethods} disabled={!canEdit}>{labels.dunningAction}</Btn>
+          </>}
+        />
+      )}
 
-        {/* 즉시 해지·환불 처리 중·실패 띠 (pivit-work PW-2476 · overview §2) — 업그레이드 철회 띠와 같은 Card+앰버/빨강 · 버튼 없음.
-            처리 중/실패는 앱이 청구 내역 환불 배지와 같은 기준으로 넘긴다 */}
-        {refundOpen && (
-          <Card
-            style={{ marginBottom: 'var(--spacing-xl)',
-              background: refundOpen.status === 'failed' ? T.redBg : T.amberBg,
-              border: refundOpen.status === 'failed' ? '1px solid #FCA5A5' : '1px solid #FDE68A' }}>
-            {refundOpen.status === 'failed' ? (
-              <>
-                <div data-testid="billing-cancel-refund-failed" style={{ fontWeight: 800, color: T.red, marginBottom: 'var(--spacing-xs)' }}>{labels.cancelRefundFailedTitle}</div>
-                <div style={{ fontSize: 13, color: T.text }}>{labels.cancelRefundFailedDesc}</div>
-              </>
-            ) : (
-              <>
-                <div data-testid="billing-cancel-refund-processing" style={{ fontWeight: 800, color: T.amber, marginBottom: 'var(--spacing-xs)' }}>{labels.cancelRefundProcessingTitle}</div>
-                <div style={{ fontSize: 13, color: T.text }}>{labels.cancelRefundProcessingDesc(refundOpen.amount)}</div>
-              </>
-            )}
-          </Card>
-        )}
+      {/* 미납 띠 (pivit-work PW-2526) — 해지됐지만 결제되지 않은 청구서가 남음 */}
+      {arrears && (
+        <BillingNotice
+          tone="bad"
+          icon={<AlertTriangleGlyph size={ICON} />}
+          testId="billing-arrears-band"
+          title={labels.arrearsTitle}
+          lines={sentences(labels.arrearsDesc(arrears.billedOn, arrears.amount))}
+          fix={[!canEdit && labels.arrearsNoPerm]}
+          actions={<Btn kind="danger-ghost" onClick={onNavigateMethods} disabled={!canEdit}>{labels.arrearsAction}</Btn>}
+        />
+      )}
 
-        {/* 체험 안내 배너 (PW-1025 §2.7.5) — 체험 중이면 항상. 베타(ops)와 기본 체험(signup)은 문구로 가른다.
-            기획서 시안 billing-app.jsx 의 배너를 옮겼다 */}
-        {trial && (
-          <Card style={{ marginBottom: 16, background: trialSoon ? T.amberBg : T.bl,
-            border: `1px solid ${trialSoon ? '#FDE68A' : T.border}`,
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
-            <div data-testid="billing-trial-banner" data-tone={trialSoon ? 'warning' : 'neutral'} role="status">
-              <div style={{ fontWeight: 800, color: trialSoon ? T.amber : T.text, marginBottom: 4 }}>
-                {labels.trialTitle(trial.source, plan.label, trial.endDate, trial.daysLeft)}
-              </div>
-              <div style={{ fontSize: 13, color: T.text }}>{labels.trialDesc}</div>
-              {trialOverCap && (
-                <div style={{ fontSize: 12, color: T.amber, marginTop: 6 }}>
-                  {labels.trialOverCap(trial.seatCap)}
-                </div>
-              )}
-              {!canEdit && (
-                <div style={{ fontSize: 12, color: T.sub, marginTop: 6 }}>{labels.trialNoPerm}</div>
-              )}
-            </div>
-            <Btn onClick={onNavigatePlans} disabled={!canEdit}>{labels.trialAction}</Btn>
-          </Card>
-        )}
+      {/* «청약철회를 확정해 주세요» 띠 (pivit-work PW-2532 · overview §4) — 해지 예약 띠 위.
+          [확정]은 결제 권한자만 — 조회 전용은 띠만(다른 편집 버튼의 «비활성» 규칙과 다르다 · 정책 행 그대로) */}
+      {coolingOff && (
+        <BillingNotice
+          tone="warn"
+          icon={<AlertCircleGlyph size={ICON} />}
+          testId="billing-cooling-off-banner"
+          title={labels.coolingOffTitle}
+          lines={sentences(labels.coolingOffDesc(coolingOff.receivedAt, coolingOff.confirmBy, coolingOff.amount, coolingOff.paidTotal))}
+          actions={canEdit && (
+            <Btn kind="secondary" onClick={() => setCoolingOffOpen(true)}>{labels.coolingOffAction}</Btn>
+          )}
+        />
+      )}
 
-        {/* 요금 변경 안내 띠 (PW-2360 · §3.2-D) — 동의 전 앰버(녹음 풀 띠와 같은 모양), 동의 뒤 초록 */}
-        {priceChange && !priceChange.consented && !holding && (
-          <UsageBanner
-            banner={{
-              title: labels.priceChangeTitle,
-              body: `${priceChange.benefitEndDate ? `${labels.priceChangeReason(priceChange.benefitEndDate)} ` : ''}${labels.priceChangeBody(
-                priceChange.planLabel, priceChange.chargeDate, priceChange.oldUnitPrice, priceChange.newUnitPrice)}`,
-              actionLabel: labels.priceChangeAction,
-              actionKind: 'primary',
-              onAction: onOpenPriceChange,
-              noPermText: labels.priceChangeNoPerm,
-            }}
-            canEdit={canEdit}
-            testId="billing-price-change-banner"
-          />
-        )}
-        {priceChange && priceChange.consented && !holding && (
-          <Card style={{ marginBottom: 'var(--spacing-xl)', background: 'var(--bg-success-primary)', border: `1px solid ${T.green}` }}>
-            <div data-testid="billing-price-change-consented" role="status"
-              style={{ fontWeight: 800, color: 'var(--text-success-primary)' }}>
-              {labels.priceChangeConsentedTitle(priceChange.chargeDate, priceChange.newUnitPrice)}
-            </div>
-          </Card>
-        )}
+      {/* 해지 예약 띠 — 고객지원 철회로 차액을 돌려받는 동안은 [해지 취소]가 없고 돌아간 뒤에 보인다(pivit-work PW-2532 · 시안 billing-app.jsx «!withdrawOpen»). */}
+      {sub.cancelAtPeriodEnd && sub.status === 'active' && (
+        <BillingNotice
+          tone="warn"
+          icon={<ClockGlyph size={ICON} />}
+          testId="billing-cancel-reserved-banner"
+          title={labels.cancelReservedTitle}
+          lines={sentences(labels.cancelReservedDesc(sub.nextBillingAt))}
+          actions={!withdrawal && <Btn kind="secondary" onClick={onUndoCancel} disabled={!canEdit}>{labels.undoCancel}</Btn>}
+        />
+      )}
 
-        {/* 녹음 풀 배너 (PW-1023) — 80%·소진. 다음 달 풀이 다시 차면 사라진다 */}
-        <UsageBanner banner={recordingBanner} canEdit={canEdit} testId="billing-recording-banner" />
-        {/* 유료 AI 실행 배너 (PW-2191) — 녹음 배너 바로 아래, 같은 모양 */}
-        <UsageBanner banner={aiRunsBanner} canEdit={canEdit} testId="billing-ai-runs-banner" />
+      {/* 업그레이드 철회 처리 중·실패 띠 (pivit-work PW-2475 · overview §2) — 버튼 없음 */}
+      {withdrawal && (withdrawal.status === 'failed' ? (
+        <BillingNotice
+          tone="bad"
+          icon={<AlertTriangleGlyph size={ICON} />}
+          title={<span data-testid="billing-withdrawal-failed">{labels.withdrawFailedTitle}</span>}
+          lines={sentences(labels.withdrawFailedDesc(plan.label))}
+        />
+      ) : (
+        <BillingNotice
+          tone="warn"
+          icon={<ClockGlyph size={ICON} />}
+          title={<span data-testid="billing-withdrawal-processing">{labels.withdrawingTitle}</span>}
+          lines={sentences(labels.withdrawingDesc(withdrawal.amount, withdrawal.fromPlanLabel, plan.label))}
+        />
+      ))}
 
-        {/* 현재 플랜 카드 */}
-        <Card style={{ marginBottom: 16 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-                <span style={{ fontSize: 22, fontWeight: 800 }}>{plan.label}</span>
-                <Badge color={statusMeta.color} bg={statusMeta.bg}>{statusLabel}</Badge>
+      {/* 즉시 해지·환불 처리 중·실패 띠 (pivit-work PW-2476 · overview §2) — 버튼 없음.
+          처리 중/실패는 앱이 청구 내역 환불 배지와 같은 기준으로 넘긴다 */}
+      {refundOpen && (refundOpen.status === 'failed' ? (
+        <BillingNotice
+          tone="bad"
+          icon={<AlertTriangleGlyph size={ICON} />}
+          title={<span data-testid="billing-cancel-refund-failed">{labels.cancelRefundFailedTitle}</span>}
+          lines={sentences(labels.cancelRefundFailedDesc)}
+        />
+      ) : (
+        <BillingNotice
+          tone="warn"
+          icon={<ClockGlyph size={ICON} />}
+          title={<span data-testid="billing-cancel-refund-processing">{labels.cancelRefundProcessingTitle}</span>}
+          lines={sentences(labels.cancelRefundProcessingDesc(refundOpen.amount))}
+        />
+      ))}
+
+      {/* 체험 안내 띠 (PW-1025 §2.7.5) — 체험 중이면 항상. 베타(ops)와 기본 체험(signup)은 문구로 가른다.
+          종료 14일 이내면 경고(정책서 «체험 만료 임박 강조» · 사전 알림 14·3·0일과 같은 기준), 그 밖에는 안내(시안 A2). */}
+      {trial && (
+        <BillingNotice
+          tone={trialSoon ? 'warn' : 'info'}
+          icon={<ClockGlyph size={ICON} />}
+          testId="billing-trial-banner"
+          role="status"
+          title={labels.trialTitle(trial.source, plan.label, trial.endDate, trial.daysLeft)}
+          lines={[
+            ...sentences(labels.trialDesc),
+            // 체험 좌석 상한 초과 — 정책서 «앰버» 한 줄
+            trialOverCap && <span style={{ color: TONE_COLOR.warn }}>{labels.trialOverCap(trial.seatCap)}</span>,
+          ]}
+          fix={[!canEdit && labels.trialNoPerm]}
+          actions={<Btn onClick={onNavigatePlans} disabled={!canEdit}>{labels.trialAction}</Btn>}
+        />
+      )}
+
+      {/* 요금 변경 안내 띠 (PW-2360 · §3.2-D) — 동의 전 경고, 동의 뒤 안내 */}
+      {priceChange && !priceChange.consented && !holding && (
+        <UsageBanner
+          banner={{
+            title: labels.priceChangeTitle,
+            body: `${priceChange.benefitEndDate ? `${labels.priceChangeReason(priceChange.benefitEndDate)} ` : ''}${labels.priceChangeBody(
+              priceChange.planLabel, priceChange.chargeDate, priceChange.oldUnitPrice, priceChange.newUnitPrice)}`,
+            actionLabel: labels.priceChangeAction,
+            actionKind: 'primary',
+            onAction: onOpenPriceChange,
+            noPermText: labels.priceChangeNoPerm,
+          }}
+          canEdit={canEdit}
+          testId="billing-price-change-banner"
+        />
+      )}
+      {priceChange && priceChange.consented && !holding && (
+        <BillingNotice
+          tone="info"
+          icon={<CheckCircleGlyph size={ICON} />}
+          testId="billing-price-change-consented"
+          role="status"
+          title={labels.priceChangeConsentedTitle(priceChange.chargeDate, priceChange.newUnitPrice)}
+        />
+      )}
+
+      {/* 녹음 풀 배너 (PW-1023) — 80%·소진. 다음 달 풀이 다시 차면 사라진다 */}
+      <UsageBanner banner={recordingBanner} canEdit={canEdit} testId="billing-recording-banner" />
+      {/* 유료 AI 실행 배너 (PW-2191) — 녹음 배너 바로 아래, 같은 모양 */}
+      <UsageBanner banner={aiRunsBanner} canEdit={canEdit} testId="billing-ai-runs-banner" />
+
+      {/* 요금제 판 — 흰 판 하나, 안은 가는 선 구역: 요금제 → 좌석 → 애드온 → 다음 청구·결제수단 → 녹음 → 버튼 줄 */}
+      <Panel testId="billing-plan-panel">
+        {/* ① 요금제 */}
+        <Panel.Section>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--spacing-lg)', flexWrap: 'wrap' }}>
+            <div style={{ ...COL, flex: '1 1 320px', gap: 'var(--spacing-xs)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)', flexWrap: 'wrap' }}>
+                <h2 className="okr-s-title" style={{ margin: 0 }}>{plan.label}</h2>
+                <StatusBadge tone={STATUS_TONE[sub.status] || 'neutral'}>{statusLabel}</StatusBadge>
                 {/* 청구 단가가 플랜 정가와 다른 이유를 한눈에 말한다 (PW-344 ⑤). */}
-                {contract && <Badge color={T.accentText} bg="var(--bg-brand-secondary)">{labels.contractBadge}</Badge>}
+                {contract && <StatusBadge tone="accent">{labels.contractBadge}</StatusBadge>}
                 {sub.status === 'active' && sub.firstCycle && sub.anchorDay != null
                   && sub.firstCycleDaysLeft != null && (
                   <span data-testid="billing-first-cycle-badge">
-                    <Badge color={T.accentText} bg="var(--bg-brand-secondary)">
-                      {labels.firstCycleBadge(sub.firstCycleDaysLeft, sub.anchorDay)}
-                    </Badge>
+                    <StatusBadge tone="accent">{labels.firstCycleBadge(sub.firstCycleDaysLeft, sub.anchorDay)}</StatusBadge>
                   </span>
                 )}
               </div>
-              <div style={{ fontSize: 13, color: T.sub }}>
+              <p style={TEXT_SM}>
                 {/* 플랜 카탈로그의 `seatPrice` 는 **시작가**이지 청구 단가가 아니다 —
                     협의 계약이면 계약 단가를 보여 준다. */}
                 {sub.planCode === 'free'
@@ -972,16 +1041,14 @@ export default function BillingOverviewCanvas({
                 {/* 베타 출시 혜택(PW-2360 · §2.7.3-A 4) — 청구 단가가 정가보다 낮은 이유와 끝난 뒤 단가 */}
                 {launchBenefit && (
                   <span data-testid="billing-launch-benefit"
-                    style={{ color: T.accentText, fontWeight: 700 }}>{labels.launchBenefitTag(launchBenefit.until)}</span>
+                    style={{ color: TONE_COLOR.brand, fontWeight: 700 }}>{labels.launchBenefitTag(launchBenefit.until)}</span>
                 )}
-              </div>
+              </p>
               {launchBenefit && (
-                <div style={{ fontSize: 12, color: T.muted, marginTop: 'var(--spacing-xs)' }}>
-                  {labels.launchBenefitAfter(launchBenefit.monthlyListPrice)}
-                </div>
+                <p style={TEXT_XS}>{labels.launchBenefitAfter(launchBenefit.monthlyListPrice)}</p>
               )}
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 'var(--spacing-md)', flex: 'none' }}>
               {/* 업그레이드 CTA: 다음 티어로 (동적 플랜명) */}
               {/* 체험 중에는 체험 배너의 [결제하고 계속 쓰기]가 대신한다 (PW-1025) */}
               {upgradeTargetLabel && !holding && !suspended && !arrears && !sub.cancelAtPeriodEnd && sub.status !== 'past_due' && sub.status !== 'trial' && (
@@ -1000,355 +1067,321 @@ export default function BillingOverviewCanvas({
               )}
             </div>
           </div>
+        </Panel.Section>
 
-          {/* 좌석 사용량 게이지 */}
-          <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-            <span style={{ color: T.sub }}>
-              {labels.activeSeats}
-              <Tooltip content={labels.seatsTooltip}>
-                <span style={{ cursor: 'help', color: T.muted }}> ⓘ</span>
-              </Tooltip>
-            </span>
-            <span style={{ fontWeight: 700 }}>
-              {/* Free: 사용/상한 표기, 유료 티어: 사용 좌석만 표기 */}
-              {plan.seatLimit
-                ? labels.seatsFreeCount(sub.seats, plan.seatLimit)
-                : labels.seatsPaidCount(sub.seats)}
-            </span>
-          </div>
-          {plan.seatLimit && (
-            <div style={{ height: 8, background: T.bl, borderRadius: 999, overflow: 'hidden' }}>
-              <div style={{ width: `${seatPct}%`, height: '100%',
-                background: seatPct >= 100 ? T.red : nearLimit ? T.amber : T.accent }} />
-            </div>
-          )}
-          {/* 좌석 한도 근접 경고: Free에서만 — 상한 미만일 때만 */}
-          {nearLimit && (
-            <div style={{ fontSize: 12, color: T.amber, marginTop: 8 }}>
-              {labels.nearLimitWarning}
-            </div>
-          )}
-          {/* 좌석 한도 도달·초과: Free에서만 — 머리 문구는 어드민 구성원 좌석 요약 줄과 같다 (PW-2561) */}
-          {(atLimit || overLimit) && (
-            <div data-testid="billing-seat-cap-notice" role="status"
-              style={{ fontSize: 12, color: 'var(--text-error-primary)', marginTop: 'var(--spacing-md)' }}>
-              <b>{labels.seatCapTitle}</b>
-              {' · '}
-              {overLimit ? labels.seatCapOverDesc(sub.seats, plan.seatLimit) : labels.seatCapReachedDesc}
-            </div>
-          )}
-          {/* 협의 단가 계약 정보 (PW-344 ⑤) — 정가 플랜에는 이 블록이 아예 없다. */}
-          {contract && (
-            <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${T.border}`,
-              display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 10, fontSize: 12 }}>
-              <div>
-                <div style={{ color: T.sub, marginBottom: 2 }}>{labels.contractSeatsLabel}</div>
-                <div style={{ fontWeight: 700 }}>
-                  {labels.contractSeatsValue(contract.minSeats, contract.maxSeats)}
-                </div>
-                <div style={{ color: T.muted }}>{labels.contractMinNote(contract.minSeats)}</div>
-              </div>
-              <div>
-                <div style={{ color: T.sub, marginBottom: 2 }}>{labels.contractPeriodLabel}</div>
-                <div style={{ fontWeight: 700 }}>{contract.contractStart} ~ {contract.contractEnd}</div>
-                <div style={{ color: T.muted }}>{labels.contractPeriodNote}</div>
-              </div>
-              <div>
-                <div style={{ color: T.sub, marginBottom: 2 }}>{labels.contractBilledSeatsLabel}</div>
-                <div style={{ fontWeight: 700 }}>
-                  {labels.contractBilledSeatsValue(contract.billedSeats)}
-                </div>
-                <div style={{ color: T.muted }}>
-                  {labels.contractBilledSeatsNote(
-                    contract.billedSeats - contractOverSeats,
-                    contractOverSeats,
-                    contractUnderMin,
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* 계약 좌석 상한 초과 — **차단하지 않는다.** 협의 계약 고객은 이미 결제 중이라
-              Free 좌석 상한 게이팅과 경로가 다르다. */}
-          {contractOverSeats > 0 && (
-            <div style={{ marginTop: 10, padding: '10px 14px', background: T.amberBg,
-              border: '1px solid #FDE68A', borderRadius: 10, fontSize: 12, color: T.text }}>
-              {labels.contractOverMaxNotice(
-                contract.maxSeats, contractOverSeats, contractOverageUnit,
-              )}
-            </div>
-          )}
-
-          {/* 약정 최소 좌석 미만 — 구성원을 줄였는데 금액이 그대로인 이유를 화면이 밝힌다.
-              없으면 그 질문이 문의로 온다. */}
-          {contractUnderMin && (
-            <div style={{ fontSize: 12, color: T.amber, marginTop: 10 }}>
-              {labels.contractUnderMinNotice(sub.seats, contract.minSeats)}
-            </div>
-          )}
-
-          {/* 계약 만료 임박 — 만료를 「종료」로 읽히게 쓰지 않는다. */}
-          {contractRenewSoon && (
-            <div style={{ marginTop: 10, padding: '10px 14px', background: 'var(--bg-secondary)',
-              border: `1px solid ${T.border}`, borderRadius: 10, fontSize: 12, color: T.text,
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span>
-                {labels.contractRenewSoonNotice(Math.max(0, contract.daysUntilContractEnd))}
+        {/* ② 활성 좌석 — «활성 좌석 · N명» 한 줄 + 아래 설명과 [구성원 관리] 한 줄 */}
+        <Panel.Section testId="billing-seat-section">
+          <Stack gap="md">
+            <div style={ROW}>
+              <span style={ROW_KEY}>
+                {labels.activeSeats}
+                <Tooltip content={labels.seatsTooltip}>
+                  <span style={{ display: 'flex', cursor: 'help', color: 'var(--text-tertiary)' }}><InfoGlyph size={14} /></span>
+                </Tooltip>
               </span>
-              <LinkButton onClick={onNavigateContactSales} disabled={!canEdit}>
-                {labels.contractContactSales}
-              </LinkButton>
+              <span style={ROW_VALUE}>
+                {/* Free: 사용/상한 표기, 유료 티어: 사용 좌석만 표기 */}
+                {plan.seatLimit
+                  ? labels.seatsFreeCount(sub.seats, plan.seatLimit)
+                  : labels.seatsPaidCount(sub.seats)}
+              </span>
             </div>
-          )}
-
-          {/* 좌석 조정 동선 안내 */}
-          <div style={{ fontSize: 12, color: T.muted, marginTop: 10, display: 'flex',
-            justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span>{labels.seatAutoNote}</span>
-            <LinkButton onClick={onNavigateMembers}>{labels.manageMembers}</LinkButton>
-          </div>
-        </Card>
-
-        {addon?.onSale && (
-          <AddonRow addon={addon} labels={labels} onManage={onManageAddon} />
-        )}
-
-        {/* 청구 정보 (active/past_due) — 이용 정지면 결제수단 요약만 남고 「다음 청구」는 없다(청구가 없다 · PW-2549) */}
-        {((sub.status === 'active' || sub.status === 'past_due') && !isFree || suspended) && (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-            {!suspended && (
-            <Card>
-              <div style={{ fontSize: 13, color: T.sub, marginBottom: 8 }}>{labels.nextBillingLabel}</div>
-              <div style={{ fontSize: 20, fontWeight: 800 }}>{won(sub.periodAmount)}</div>
-              <div style={{ fontSize: 13, color: T.sub, marginTop: 4 }}>
-                {/* 청구 주기 변경 예약이면 새 주기의 1기간분 — 그날 실제로 결제할 금액 (overview §2 · PW-2475) */}
-                {scheduled
-                  ? (scheduled.interval === 'annual'
-                    ? labels.nextBillingSubScheduledAnnual(sub.nextBillingAt, scheduled.seats ?? sub.seats, scheduled.seatPrice)
-                    : labels.nextBillingSubScheduledMonthly(sub.nextBillingAt, scheduled.seats ?? sub.seats, scheduled.seatPrice))
-                  : labels.nextBillingSub(
-                    sub.nextBillingAt,
-                    contract ? contract.billedSeats : sub.seats,
-                    contract ? contract.seatPrice : planUnitPrice,
-                    sub.interval === 'annual' ? 12 : 1,
-                  )}
-              </div>
-              {/* 산 패키지 라인 — 같은 청구서에 붙어 함께 결제된다 (위 금액에 이미 더해져 있다 · PW-2782) */}
-              {addonNextCharge && (
-                <div data-testid="billing-addon-next-line" style={{ fontSize: 13, color: T.sub, marginTop: 'var(--spacing-xxs)' }}>
-                  {labels.addonNextLine(addonNextCharge.seats, addonNextCharge.unitPrice, addonNextCharge.months)}
-                </div>
-              )}
-              {/* 넘어간 요금제 변경 차액 — 같은 청구서에 붙어 함께 결제된다 (위 금액에 이미 더해져 있다) */}
-              {carriedDiff && (
-                <div data-testid="billing-carried-diff" style={{ fontSize: 13, color: T.sub, marginTop: 'var(--spacing-xxs)' }}>
-                  {labels.carriedDiffLine(carriedDiff.from, carriedDiff.to, carriedDiff.changedOn, carriedDiff.days, carriedDiff.amount)}
-                </div>
-              )}
-              {scheduled && (
-                <div data-testid="billing-scheduled-interval" style={{ fontSize: 12, color: T.amber, marginTop: 'var(--spacing-xs)' }}>
-                  {labels.scheduledNote(scheduled.interval === 'annual')}
-                </div>
-              )}
-              {/* 출시 혜택 종료 요금 변경 — 동의해야 결제(아니면 이용 정지) / 동의함 (pivit-work PW-2647 · overview §2) */}
-              {launchBenefitNext && launchBenefitNext.consented === false && (
-                <div data-testid="billing-launch-benefit-next-pending" style={{ fontSize: 12, color: T.amber, marginTop: 'var(--spacing-xs)' }}>
-                  {labels.launchBenefitPendingNote(launchBenefitNext.chargeDate)}
-                </div>
-              )}
-              {/* 통지만 못 불러와 동의 여부를 모름 — 양쪽에 맞는 앰버 한 줄 · [다시 시도] 없음 (PW-2647 · overview §5 11-09 정정) */}
-              {launchBenefitNext && launchBenefitNext.consented == null && (
-                <div data-testid="billing-launch-benefit-next-unknown" style={{ fontSize: 12, color: T.amber, marginTop: 'var(--spacing-xs)' }}>
-                  {labels.launchBenefitUnknownNote(launchBenefitNext.chargeDate)}
-                </div>
-              )}
-              {launchBenefitNext && launchBenefitNext.consented === true && (
-                <div data-testid="billing-launch-benefit-next-agreed" style={{ fontSize: 12, color: 'var(--text-success-primary)', marginTop: 'var(--spacing-xs)' }}>
-                  {labels.launchBenefitAgreedNote(launchBenefitNext.newUnitPrice)}
-                </div>
-              )}
-              {/* 다음 청구일이 와 정기결제를 보류하는 동안만 (overview §2 «다음 청구일이 오면») */}
-              {withdrawal?.holdingRenewal && (
-                <div style={{ fontSize: 12, color: T.amber, marginTop: 'var(--spacing-xs)' }}>{labels.withdrawHoldNote}</div>
-              )}
-              {/* 즉시 해지·환불이 끝날 때까지 정기결제 보류 (overview §2 · §7 · PW-2476) — 기획 시안처럼 띠가 있는 동안 늘 */}
-              {sub.status === 'past_due' && (
-                <div data-testid="billing-past-due-anchor-note" style={{ fontSize: 12, color: T.red, marginTop: 'var(--spacing-xs)' }}>
-                  {labels.pastDueNewAnchorNote}
-                </div>
-              )}
-              {refundOpen && (
-                <div data-testid="billing-cancel-refund-hold" style={{ fontSize: 12, color: T.amber, marginTop: 'var(--spacing-xs)' }}>
-                  {labels.cancelRefundHoldNote}
-                </div>
-              )}
-              {scheduled ? (
-                <div data-testid="billing-anchor-note" style={{ fontSize: 12, color: T.muted, marginTop: 4 }}>
-                  {scheduled.interval === 'annual'
-                    ? labels.scheduledAutoPayAnnual(sub.nextBillingAt, nextMonth, nextDate)
-                    : labels.scheduledAutoPayMonthly(sub.nextBillingAt, sub.anchorDay ?? nextDate)}
-                </div>
-              ) : sub.interval !== 'annual' && sub.anchorDay != null && (
-                <div data-testid="billing-anchor-note" style={{ fontSize: 12, color: T.muted, marginTop: 4 }}>
-                  {labels.anchorNote(sub.anchorDay)}
-                </div>
-              )}
-            </Card>
+            {plan.seatLimit && (
+              <div style={BAR}><div style={barFill(seatPct, seatBarColor)} /></div>
             )}
-            <Card>
-              <div style={{ fontSize: 13, color: T.sub, marginBottom: 8 }}>{labels.methodLabel}</div>
-              {sub.method ? (
-                <>
-                  <div style={{ fontSize: 16, fontWeight: 700 }}>
-                    {labels.methodDisplay(sub.method.brand, sub.method.last4)}
+            {/* 좌석 한도 근접 경고: Free에서만 — 상한 미만일 때만 */}
+            {nearLimit && (
+              <p style={{ ...TEXT_XS, color: TONE_COLOR.warn }}>{labels.nearLimitWarning}</p>
+            )}
+            {/* 좌석 한도 도달·초과: Free에서만 — 머리 문구는 어드민 구성원 좌석 요약 줄과 같다 (PW-2561) */}
+            {(atLimit || overLimit) && (
+              <p data-testid="billing-seat-cap-notice" role="status" style={{ ...TEXT_XS, color: TONE_COLOR.bad }}>
+                <b>{labels.seatCapTitle}</b>
+                {' · '}
+                {overLimit ? labels.seatCapOverDesc(sub.seats, plan.seatLimit) : labels.seatCapReachedDesc}
+              </p>
+            )}
+            {/* 협의 단가 계약 정보 (PW-344 ⑤) — 정가 플랜에는 이 블록이 아예 없다. */}
+            {contract && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 'var(--spacing-lg)' }}>
+                {[
+                  [labels.contractSeatsLabel, labels.contractSeatsValue(contract.minSeats, contract.maxSeats), labels.contractMinNote(contract.minSeats)],
+                  [labels.contractPeriodLabel, `${contract.contractStart} ~ ${contract.contractEnd}`, labels.contractPeriodNote],
+                  [labels.contractBilledSeatsLabel, labels.contractBilledSeatsValue(contract.billedSeats),
+                    labels.contractBilledSeatsNote(contract.billedSeats - contractOverSeats, contractOverSeats, contractUnderMin)],
+                ].map(([k, v, note]) => (
+                  <div key={k} style={COL}>
+                    <span style={TEXT_XS}>{k}</span>
+                    <span style={{ ...TEXT_SM, fontWeight: 700, color: 'var(--text-primary)' }}>{v}</span>
+                    <span style={TEXT_XS}>{note}</span>
                   </div>
-                  {/* 결제사가 유효기간을 안 알려 주는 카드(토스 자동결제 등록)는 exp 가 비어 온다 — 줄째 생략 */}
-                  {sub.method.exp && (
-                    <div style={{ fontSize: 13, color: T.sub, marginTop: 4 }}>
-                      {labels.methodExp(sub.method.exp)}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <>
-                  <div style={{ fontSize: 14, color: T.red }}>{labels.noMethod}</div>
-                  {sub.status === 'active' && (
-                    <div data-testid="billing-no-method-next-fail" style={{ fontSize: 12, color: T.text, marginTop: 6 }}>
-                      {labels.noMethodNextFail}
-                    </div>
-                  )}
-                  <div style={{ marginTop: 10 }}>
-                    <Btn kind="secondary" onClick={onNavigateMethods} disabled={!canEdit}>
-                      {labels.registerMethod}
-                    </Btn>
-                  </div>
-                </>
-              )}
-            </Card>
-          </div>
+                ))}
+              </div>
+            )}
+            {/* 계약 좌석 상한 초과 — **차단하지 않는다.** 협의 계약 고객은 이미 결제 중이라
+                Free 좌석 상한 게이팅과 경로가 다르다. */}
+            {contractOverSeats > 0 && (
+              <BillingInlineNote icon={<AlertTriangleGlyph size={14} />}>
+                {labels.contractOverMaxNotice(contract.maxSeats, contractOverSeats, contractOverageUnit)}
+              </BillingInlineNote>
+            )}
+            {/* 약정 최소 좌석 미만 — 구성원을 줄였는데 금액이 그대로인 이유를 화면이 밝힌다.
+                없으면 그 질문이 문의로 온다. */}
+            {contractUnderMin && (
+              <p style={{ ...TEXT_XS, color: TONE_COLOR.warn }}>{labels.contractUnderMinNotice(sub.seats, contract.minSeats)}</p>
+            )}
+            {/* 계약 만료 임박 — 만료를 「종료」로 읽히게 쓰지 않는다. */}
+            {contractRenewSoon && (
+              <div style={ROW}>
+                <BillingInlineNote icon={<InfoGlyph size={14} />}>
+                  {labels.contractRenewSoonNotice(Math.max(0, contract.daysUntilContractEnd))}
+                </BillingInlineNote>
+                <span style={PUSH_RIGHT}>
+                  <LinkButton onClick={onNavigateContactSales} disabled={!canEdit}>{labels.contractContactSales}</LinkButton>
+                </span>
+              </div>
+            )}
+            {/* 좌석 조정 동선 안내 */}
+            <div style={ROW}>
+              <span style={{ ...TEXT_XS, flex: '1 1 240px', minWidth: 0 }}>{labels.seatAutoNote}</span>
+              <span style={PUSH_RIGHT}>
+                <LinkButton onClick={onNavigateMembers}>{labels.manageMembers}</LinkButton>
+              </span>
+            </div>
+          </Stack>
+        </Panel.Section>
+
+        {/* ③ 애드온 */}
+        {addon?.onSale && (
+          <AddonSection addon={addon} labels={labels} onManage={onManageAddon} />
         )}
 
-        {/* 하단 액션 */}
-        <Card style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <LinkButton onClick={onNavigateHistory}>{labels.viewHistory}</LinkButton>
-          {showCancel && (
-            <Btn kind="danger-ghost" onClick={openCancel} disabled={!canEdit}>{labels.cancelSubscription}</Btn>
-          )}
-        </Card>
+        {/* ④ 다음 청구 · 기본 결제수단 (active/past_due) — 이용 정지면 결제수단 칸만 남고 「다음 청구」는 없다(청구가 없다 · PW-2549) */}
+        {showMoney && (
+          <Panel.Section testId="billing-money-section">
+            <div style={TWO_COL}>
+              {suspended ? <div style={COL_LEFT} /> : (
+                <div style={COL_LEFT}>
+                  <span style={{ ...ROW_KEY }}>{labels.nextBillingLabel}</span>
+                  <p style={AMOUNT}>{won(sub.periodAmount)}</p>
+                  <p style={TEXT_SM}>
+                    {/* 청구 주기 변경 예약이면 새 주기의 1기간분 — 그날 실제로 결제할 금액 (overview §2 · PW-2475) */}
+                    {scheduled
+                      ? (scheduled.interval === 'annual'
+                        ? labels.nextBillingSubScheduledAnnual(sub.nextBillingAt, scheduled.seats ?? sub.seats, scheduled.seatPrice)
+                        : labels.nextBillingSubScheduledMonthly(sub.nextBillingAt, scheduled.seats ?? sub.seats, scheduled.seatPrice))
+                      : labels.nextBillingSub(
+                        sub.nextBillingAt,
+                        contract ? contract.billedSeats : sub.seats,
+                        contract ? contract.seatPrice : planUnitPrice,
+                        sub.interval === 'annual' ? 12 : 1,
+                      )}
+                  </p>
+                  {/* 산 패키지 라인 — 같은 청구서에 붙어 함께 결제된다 (위 금액에 이미 더해져 있다 · PW-2782) */}
+                  {addonNextCharge && (
+                    <p data-testid="billing-addon-next-line" style={TEXT_SM}>
+                      {labels.addonNextLine(addonNextCharge.seats, addonNextCharge.unitPrice, addonNextCharge.months)}
+                    </p>
+                  )}
+                  {/* 넘어간 요금제 변경 차액 — 같은 청구서에 붙어 함께 결제된다 (위 금액에 이미 더해져 있다) */}
+                  {carriedDiff && (
+                    <p data-testid="billing-carried-diff" style={TEXT_SM}>
+                      {labels.carriedDiffLine(carriedDiff.from, carriedDiff.to, carriedDiff.changedOn, carriedDiff.days, carriedDiff.amount)}
+                    </p>
+                  )}
+                  {scheduled && (
+                    <p data-testid="billing-scheduled-interval" style={{ ...TEXT_XS, color: TONE_COLOR.warn }}>
+                      {labels.scheduledNote(scheduled.interval === 'annual')}
+                    </p>
+                  )}
+                  {/* 출시 혜택 종료 요금 변경 — 동의해야 결제(아니면 이용 정지) / 동의함 (pivit-work PW-2647 · overview §2) */}
+                  {launchBenefitNext && launchBenefitNext.consented === false && (
+                    <p data-testid="billing-launch-benefit-next-pending" style={{ ...TEXT_XS, color: TONE_COLOR.warn }}>
+                      {labels.launchBenefitPendingNote(launchBenefitNext.chargeDate)}
+                    </p>
+                  )}
+                  {/* 통지만 못 불러와 동의 여부를 모름 — 양쪽에 맞는 경고 한 줄 · [다시 시도] 없음 (PW-2647 · overview §5 11-09 정정) */}
+                  {launchBenefitNext && launchBenefitNext.consented == null && (
+                    <p data-testid="billing-launch-benefit-next-unknown" style={{ ...TEXT_XS, color: TONE_COLOR.warn }}>
+                      {labels.launchBenefitUnknownNote(launchBenefitNext.chargeDate)}
+                    </p>
+                  )}
+                  {launchBenefitNext && launchBenefitNext.consented === true && (
+                    <p data-testid="billing-launch-benefit-next-agreed" style={{ ...TEXT_XS, color: TONE_COLOR.ok }}>
+                      {labels.launchBenefitAgreedNote(launchBenefitNext.newUnitPrice)}
+                    </p>
+                  )}
+                  {/* 다음 청구일이 와 정기결제를 보류하는 동안만 (overview §2 «다음 청구일이 오면») */}
+                  {withdrawal?.holdingRenewal && (
+                    <p style={{ ...TEXT_XS, color: TONE_COLOR.warn }}>{labels.withdrawHoldNote}</p>
+                  )}
+                  {sub.status === 'past_due' && (
+                    <p data-testid="billing-past-due-anchor-note" style={{ ...TEXT_XS, fontWeight: 600, color: TONE_COLOR.bad }}>
+                      {labels.pastDueNewAnchorNote}
+                    </p>
+                  )}
+                  {/* 즉시 해지·환불이 끝날 때까지 정기결제 보류 (overview §2 · §7 · PW-2476) — 기획 시안처럼 띠가 있는 동안 늘 */}
+                  {refundOpen && (
+                    <p data-testid="billing-cancel-refund-hold" style={{ ...TEXT_XS, color: TONE_COLOR.warn }}>
+                      {labels.cancelRefundHoldNote}
+                    </p>
+                  )}
+                  {scheduled ? (
+                    <p data-testid="billing-anchor-note" style={TEXT_XS}>
+                      {scheduled.interval === 'annual'
+                        ? labels.scheduledAutoPayAnnual(sub.nextBillingAt, nextMonth, nextDate)
+                        : labels.scheduledAutoPayMonthly(sub.nextBillingAt, sub.anchorDay ?? nextDate)}
+                    </p>
+                  ) : sub.interval !== 'annual' && sub.anchorDay != null && (
+                    <p data-testid="billing-anchor-note" style={TEXT_XS}>
+                      {labels.anchorNote(sub.anchorDay)}
+                    </p>
+                  )}
+                </div>
+              )}
+              <div style={COL_RIGHT}>
+                <span style={ROW_KEY}>{labels.methodLabel}</span>
+                {sub.method ? (
+                  <>
+                    <p style={METHOD}>{labels.methodDisplay(sub.method.brand, sub.method.last4)}</p>
+                    {/* 결제사가 유효기간을 안 알려 주는 카드(토스 자동결제 등록)는 exp 가 비어 온다 — 줄째 생략 */}
+                    {sub.method.exp && (
+                      <p style={TEXT_SM}>{labels.methodExp(sub.method.exp)}</p>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <p style={{ ...METHOD, fontSize: 'var(--font-size-text-sm)', lineHeight: 'var(--line-height-text-sm)', fontWeight: 600, color: TONE_COLOR.bad }}>
+                      {labels.noMethod}
+                    </p>
+                    {sub.status === 'active' && (
+                      <p data-testid="billing-no-method-next-fail" style={TEXT_XS}>{labels.noMethodNextFail}</p>
+                    )}
+                    <div style={{ marginTop: 'var(--spacing-md)' }}>
+                      <Btn kind="secondary" size="sm" onClick={onNavigateMethods} disabled={!canEdit}>
+                        {labels.registerMethod}
+                      </Btn>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </Panel.Section>
+        )}
 
-        {/* 해지 방식 선택 창 — 공용 창 틀(ModalShell · PW-836). 해지 두 방식의 버튼은 본문 카드 안에 산다. */}
-        {cancelOpen && canEdit && (
-          <ModalShell
-            title={labels.cancelModalTitle}
-            description={labels.cancelModalSub(plan.label, sub.seats, sub.interval)}
-            titleId="billing-cancel-title"
-            closeLabel={labels.close}
-            onClose={() => setCancelOpen(false)}
-            zIndex={1000}
-            className="adm-shell"
-            testId="billing-cancel-modal"
-            footer={
-              <button type="button" className="tl-group-modal-btn tl-group-modal-btn-secondary"
-                onClick={() => setCancelOpen(false)}>
-                {labels.close}
-              </button>
-            }
-          >
-            <div style={{ fontFamily: T.font }}>
-              {pastDue ? (
-                /* 미납 — 무환불 즉시 해지 하나만 (PW-1619) */
-                <div data-testid="billing-cancel-past-due"
-                  style={{ border: `1px solid ${T.border}`, borderRadius: 12, padding: 16, marginBottom: 8 }}>
-                  <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 4 }}>
-                    {labels.pastDueCancelTitle}{' '}
-                    <span style={{ fontSize: 11, color: T.muted, fontWeight: 600 }}>{labels.pastDueCancelBadge}</span>
-                  </div>
-                  <div style={{ fontSize: 13, color: T.sub, marginBottom: 12 }}>
-                    {labels.pastDueCancelDesc(plan.label)}
-                  </div>
-                  <Btn kind="danger" onClick={handlePastDue}>{labels.pastDueCancelAction}</Btn>
-                </div>
-              ) : (<>
+        {/* ⑤ 이번 달 녹음 사용량 (PW-1023) — 앱이 값을 넘길 때만 */}
+        {usage && <UsageSection usage={usage} />}
+
+        {/* ⑥ 버튼 줄 — [청구 내역·영수증 보기] · [결제수단 관리] 왼쪽, [구독 해지] 오른쪽 */}
+        <Panel.Section testId="billing-overview-actions">
+          <div style={ROW}>
+            <LinkButton onClick={onNavigateHistory}>{labels.viewHistory}</LinkButton>
+            {onManageMethods && (
+              <LinkButton data-testid="billing-manage-methods" onClick={onManageMethods}>{labels.manageMethods}</LinkButton>
+            )}
+            {showCancel && (
+              <span style={PUSH_RIGHT}>
+                <Btn kind="danger-ghost" size="sm" onClick={openCancel} disabled={!canEdit}>{labels.cancelSubscription}</Btn>
+              </span>
+            )}
+          </div>
+        </Panel.Section>
+      </Panel>
+
+      {/* 해지 방식 선택 창 — 공용 창 틀(ModalShell · PW-836). 해지 방식마다 칸 이름 + 설명 줄 + 버튼, 상자 없이. */}
+      {cancelOpen && canEdit && (
+        <ModalShell
+          title={labels.cancelModalTitle}
+          description={labels.cancelModalSub(plan.label, sub.seats, sub.interval)}
+          titleId="billing-cancel-title"
+          closeLabel={labels.close}
+          onClose={() => setCancelOpen(false)}
+          zIndex={1000}
+          className="adm-shell"
+          testId="billing-cancel-modal"
+          footer={
+            <Button className="tl-group-modal-btn tl-group-modal-btn-secondary" onClick={() => setCancelOpen(false)}>
+              {labels.close}
+            </Button>
+          }
+        >
+          {pastDue ? (
+            /* 미납 — 무환불 즉시 해지 하나만 (PW-1619) */
+            <div data-testid="billing-cancel-past-due" style={OPTION}>
+              <div className="tl-group-modal-label">
+                {labels.pastDueCancelTitle}{' '}
+                <span style={OPTION_TAG}>{labels.pastDueCancelBadge}</span>
+              </div>
+              <NoticeLines lines={sentences(labels.pastDueCancelDesc(plan.label))} />
+              <Btn kind="danger" onClick={handlePastDue}>{labels.pastDueCancelAction}</Btn>
+            </div>
+          ) : (
+            <Stack gap="3xl">
               {/* ⓐ 기간말 해지 (항상 노출, 기본·무환불) */}
-              <div style={{ border: `1px solid ${T.border}`, borderRadius: 12, padding: 16, marginBottom: 12 }}>
-                <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 4 }}>
+              <div style={OPTION}>
+                <div className="tl-group-modal-label">
                   {labels.periodEndTitle}{' '}
-                  <span style={{ fontSize: 11, color: T.muted, fontWeight: 600 }}>{labels.periodEndBadge}</span>
+                  <span style={OPTION_TAG}>{labels.periodEndBadge}</span>
                 </div>
-                <div style={{ fontSize: 13, color: T.sub, marginBottom: 12 }}>
-                  {labels.periodEndDesc(sub.nextBillingAt, plan.label)}
-                </div>
+                <NoticeLines lines={sentences(labels.periodEndDesc(sub.nextBillingAt, plan.label))} />
                 <Btn kind="secondary" onClick={handlePeriodEnd}>{labels.periodEndAction}</Btn>
               </div>
 
               {/* ⓑ 즉시 해지+환불 (환불 사유 충족 시에만 노출) — 견적을 다시 받는 동안은 옛 금액 대신 불러오는 중(ⓒ 와 같은 줄) */}
               {refundQuoteLoading ? (
-                <div data-testid="billing-refund-loading" style={{ fontSize: 12, color: T.muted, padding: 'calc(var(--spacing-md) + var(--spacing-xxs)) 0' }}>
-                  {labels.refundLoading}
-                </div>
+                <p data-testid="billing-refund-loading" style={TEXT_XS}>{labels.refundLoading}</p>
               ) : quote.eligible ? (
-                <div style={{ border: `1px solid ${T.green}`, borderRadius: 12, padding: 16, marginBottom: 8, background: T.greenBg }}>
-                  <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 4 }}>{labels.refundTitle}</div>
-                  <div style={{ fontSize: 13, color: T.sub, marginBottom: 8 }}>
-                    {quote.reason === 'cooling_off'
-                      ? labels.refundCoolingDesc
-                      : labels.refundAnnualDesc(quote.monthsUsed, quote.listMonthly)}
-                  </div>
+                <div style={OPTION}>
+                  <div className="tl-group-modal-label">{labels.refundTitle}</div>
+                  <NoticeLines lines={[quote.reason === 'cooling_off'
+                    ? labels.refundCoolingDesc
+                    : labels.refundAnnualDesc(quote.monthsUsed, quote.listMonthly)]} />
                   {quote.reason === 'cooling_off' && quote.coolingOffDaysLeft != null && (
-                    <div data-testid="billing-cooling-off-deadline"
-                      style={{ fontSize: 13, fontWeight: 700, color: T.text, marginBottom: 8 }}>
+                    <p data-testid="billing-cooling-off-deadline" style={{ ...TEXT_SM, fontWeight: 700, color: 'var(--text-primary)' }}>
                       {labels.refundCoolingDeadline(quote.coolingOffDaysLeft, quote.coolingOffLastDate)}
-                    </div>
+                    </p>
                   )}
                   {/* 구독 결제 줄과 요금제 변경 차액 결제 줄 — 환불 1건, 결제마다 돌려준다 (overview §4 ⓒ 행 · PW-2475) */}
                   {Array.isArray(quote.lines) && quote.lines.length > 1 && (
-                    <div data-testid="billing-refund-lines" style={{ fontSize: 13, color: T.sub, marginBottom: 'var(--spacing-md)' }}>
+                    <div data-testid="billing-refund-lines" style={{ ...COL, alignSelf: 'stretch' }}>
                       {quote.lines.map((line) => (
-                        <div key={line.invoiceId} style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <div key={line.invoiceId} style={{ ...TEXT_SM, display: 'flex', justifyContent: 'space-between' }}>
                           <span>{line.kind === 'plan_change' ? labels.refundLinePlanChange : line.kind === 'addon' ? labels.refundLineAddon : labels.refundLineSubscription}</span>
                           <span>{won(line.amount)}</span>
                         </div>
                       ))}
                     </div>
                   )}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    fontSize: 13, color: T.text, marginBottom: 12 }}>
+                  <div style={{ ...TEXT_SM, alignSelf: 'stretch', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-primary)' }}>
                     <span>{labels.expectedRefund}</span>
-                    <span style={{ fontSize: 20, fontWeight: 800, color: T.green }}>{won(quote.amount)}</span>
+                    <span style={{ fontSize: 'var(--font-size-text-lg)', fontWeight: 700, color: TONE_COLOR.ok }}>{won(quote.amount)}</span>
                   </div>
-                  <div style={{ fontSize: 11, color: T.muted, marginBottom: 12 }}>
-                    {labels.refundNote}
-                  </div>
+                  <NoticeLines tone="muted" lines={sentences(labels.refundNote)} />
                   <Btn kind="danger" onClick={() => void handleRefund()} disabled={refundBusy}>
                     {refundBusy ? labels.refundBusy : labels.refundAction(quote.amount)}
                   </Btn>
                 </div>
               ) : (
-                <div style={{ fontSize: 12, color: T.muted, background: T.bl,
-                  borderRadius: 10, padding: '10px 14px', marginBottom: 8 }}>
+                <BillingInlineNote icon={<InfoGlyph size={14} />}>
                   {quote.reason === 'annual_zero'
                     ? labels.annualZeroNote(quote.monthsUsed)
                     : labels.monthlyNoRefundNote}
-                </div>
+                </BillingInlineNote>
               )}
 
-              {/* ⓒ 업그레이드 철회 (pivit-work PW-2475 · overview §4 ⓒ) — ⓐ 와 같은 테두리 선택지 카드 + 기존 Btn(secondary).
+              {/* ⓒ 업그레이드 철회 (pivit-work PW-2475 · overview §4 ⓒ) — ⓐ 와 같은 선택지 모양 + secondary.
                   해지가 아니라 직전 요금제로 돌아가는 선택지다. 견적을 받는 동안은 불러오는 중 표시 */}
               {refundQuoteLoading ? (
-                <div data-testid="billing-withdraw-loading" style={{ fontSize: 12, color: T.muted, padding: 'calc(var(--spacing-md) + var(--spacing-xxs)) 0' }}>
-                  {labels.withdrawLoading}
-                </div>
+                <p data-testid="billing-withdraw-loading" style={TEXT_XS}>{labels.withdrawLoading}</p>
               ) : withdrawQuote?.eligible ? (
-                <div data-testid="billing-withdraw-option"
-                  style={{ border: `1px solid ${T.border}`, borderRadius: 12, padding: 'var(--spacing-xl)', marginTop: 'var(--spacing-xs)', marginBottom: 'var(--spacing-md)' }}>
-                  <div style={{ fontSize: 14, fontWeight: 800, marginBottom: 'var(--spacing-xs)' }}>{labels.withdrawTitle}</div>
-                  <div style={{ fontSize: 13, color: T.sub, marginBottom: 12 }}>
-                    {withdrawQuote.paid
+                <div data-testid="billing-withdraw-option" style={OPTION}>
+                  <div className="tl-group-modal-label">{labels.withdrawTitle}</div>
+                  <NoticeLines lines={[
+                    (withdrawQuote.paid
                       ? labels.withdrawDescPaid(withdrawQuote.fromPlanName, plan.label, withdrawQuote.amount)
-                      : labels.withdrawDescCarried(withdrawQuote.carriedAmount, withdrawQuote.fromPlanName)}
-                    {labels.withdrawDescTail(withdrawQuote.nextBillingDate ?? sub.nextBillingAt)}
-                  </div>
+                      : labels.withdrawDescCarried(withdrawQuote.carriedAmount, withdrawQuote.fromPlanName))
+                    + labels.withdrawDescTail(withdrawQuote.nextBillingDate ?? sub.nextBillingAt),
+                  ]} />
                   <Btn kind="secondary" onClick={() => void handleWithdraw()} disabled={withdrawBusy}>
                     {withdrawBusy
                       ? labels.withdrawBusy
@@ -1357,169 +1390,164 @@ export default function BillingOverviewCanvas({
                 </div>
               ) : null}
               {withdrawBlockedMessage && (
-                <div data-testid="billing-withdraw-blocked" style={{ fontSize: 12, color: T.red, background: T.redBg,
-                  borderRadius: 10, padding: '10px 14px', marginBottom: 8 }}>
+                <p data-testid="billing-withdraw-blocked" style={{ ...TEXT_XS, color: TONE_COLOR.bad }}>
                   {withdrawBlockedMessage}
-                </div>
+                </p>
               )}
-              </>)}
-            </div>
-          </ModalShell>
-        )}
+            </Stack>
+          )}
+        </ModalShell>
+      )}
 
-        {/* 청약철회 확정 창 (pivit-work PW-2532 · cancellation-refund-policy §4.2 ⑤) — 해지 창과 같은 공용 틀 */}
-        {coolingOff && coolingOffOpen && canEdit && (
-          <ModalShell
-            title={labels.coolingOffModalTitle}
-            description={labels.cancelModalSub(plan.label, sub.seats, sub.interval)}
-            titleId="billing-cooling-off-title"
-            closeLabel={labels.close}
-            onClose={() => setCoolingOffOpen(false)}
-            zIndex={1000}
-            className="adm-shell"
-            testId="billing-cooling-off-modal"
-            footer={<>
-              <Button variant="secondary" disabled={coolingOffBusy} onClick={() => setCoolingOffOpen(false)}>
-                {labels.close}
-              </Button>
-              <Button variant="danger" pending={coolingOffBusy} data-testid="billing-cooling-off-submit"
-                onClick={() => void handleConfirmCoolingOff()}>
-                {labels.coolingOffSubmit(coolingOff.amount)}
-              </Button>
-            </>}
-          >
-            <div style={{ fontFamily: T.font }}>
+      {/* 청약철회 확정 창 (pivit-work PW-2532 · cancellation-refund-policy §4.2 ⑤) — 해지 창과 같은 공용 틀 */}
+      {coolingOff && coolingOffOpen && canEdit && (
+        <ModalShell
+          title={labels.coolingOffModalTitle}
+          description={labels.cancelModalSub(plan.label, sub.seats, sub.interval)}
+          titleId="billing-cooling-off-title"
+          closeLabel={labels.close}
+          onClose={() => setCoolingOffOpen(false)}
+          zIndex={1000}
+          className="adm-shell"
+          testId="billing-cooling-off-modal"
+          footer={<>
+            <Button className="tl-group-modal-btn tl-group-modal-btn-secondary" disabled={coolingOffBusy}
+              onClick={() => setCoolingOffOpen(false)}>
+              {labels.close}
+            </Button>
+            <Button className="tl-group-modal-btn adm-btn-danger" pending={coolingOffBusy} data-testid="billing-cooling-off-submit"
+              onClick={() => void handleConfirmCoolingOff()}>
+              {labels.coolingOffSubmit(coolingOff.amount)}
+            </Button>
+          </>}
+        >
+          <Stack gap="lg">
+            <div>
               {[
                 [labels.coolingOffReceivedLabel, coolingOff.receivedAt],
                 [labels.coolingOffRequesterLabel, coolingOff.requesterName],
                 [labels.coolingOffAmountLabel, labels.coolingOffAmountValue(coolingOff.amount, coolingOff.paidTotal)],
                 [labels.coolingOffConfirmByLabel, labels.coolingOffConfirmByValue(coolingOff.confirmBy)],
               ].map(([k, v]) => (
-                <div key={k} style={{ display: 'flex', gap: 'var(--spacing-lg)', fontSize: 13,
-                  padding: 'var(--spacing-md) 0', borderBottom: `1px solid ${T.border}` }}>
-                  <span style={{ width: 96, flexShrink: 0, color: T.sub }}>{k}</span>
-                  <span style={{ color: T.text }}>{v}</span>
+                <div key={k} style={KV_ROW}>
+                  <span style={KV_KEY}>{k}</span>
+                  <span style={KV_VALUE}>{v}</span>
                 </div>
               ))}
-              <div style={{ fontSize: 12, color: T.sub, background: T.bl, borderRadius: 10,
-                padding: 'var(--spacing-md) var(--spacing-lg)', marginTop: 'var(--spacing-lg)' }}>
-                {labels.coolingOffNote}
-              </div>
             </div>
-          </ModalShell>
-        )}
+            <NoticeLines tone="muted" lines={sentences(labels.coolingOffNote)} />
+          </Stack>
+        </ModalShell>
+      )}
 
-        {/* 요금 변경 동의 창 (PW-2360 · «(PW-1426)» 동의 창 행) — 해지 창과 같은 공용 틀. 법이 고지하라는 넷
-            (적용 시점 · 전후 단가 · 결제 방법 · 해지 조건)과 예상 금액, 무응답이면 인상 청구일부터 이용 정지라는 문장(PW-2549) */}
-        {priceChange && priceChangeOpen && canEdit && (
-          <ModalShell
-            title={labels.priceChangeModalTitle}
-            titleId="billing-price-change-title"
-            closeLabel={labels.close}
-            onClose={onClosePriceChange}
-            zIndex={1000}
-            className="adm-shell is-wide"
-            testId="billing-price-change-modal"
-            footer={<>
-              <button type="button" className="tl-group-modal-btn tl-group-modal-btn-secondary"
-                style={{ whiteSpace: 'nowrap' }}
-                onClick={onClosePriceChange}>
-                {labels.close}
-              </button>
-              {showCancel && canEdit && (
-                <button type="button" className="tl-group-modal-btn tl-group-modal-btn-secondary"
-                  style={{ whiteSpace: 'nowrap' }}
-                  data-testid="billing-price-change-cancel"
-                  onClick={() => { onClosePriceChange?.(); openCancel(); }}>
-                  {labels.priceChangeCancelSubscription}
-                </button>
-              )}
-              <Button className="tl-group-modal-btn tl-group-modal-btn-primary"
-                style={{ whiteSpace: 'nowrap' }}
-                data-testid="billing-price-change-agree" pending={priceChangeSaving}
-                onClick={() => onConsentPriceChange?.(priceChangeBodyRef.current?.innerText ?? '')}>
-                {labels.priceChangeAgree}
+      {/* 요금 변경 동의 창 (PW-2360 · «(PW-1426)» 동의 창 행) — 해지 창과 같은 공용 틀. 법이 고지하라는 넷
+          (적용 시점 · 전후 단가 · 결제 방법 · 해지 조건)과 예상 금액, 무응답이면 인상 청구일부터 이용 정지라는 문장(PW-2549) */}
+      {priceChange && priceChangeOpen && canEdit && (
+        <ModalShell
+          title={labels.priceChangeModalTitle}
+          titleId="billing-price-change-title"
+          closeLabel={labels.close}
+          onClose={onClosePriceChange}
+          zIndex={1000}
+          className="adm-shell is-wide"
+          testId="billing-price-change-modal"
+          footer={<>
+            <Button className="tl-group-modal-btn tl-group-modal-btn-secondary" onClick={onClosePriceChange}>
+              {labels.close}
+            </Button>
+            {showCancel && canEdit && (
+              <Button className="tl-group-modal-btn tl-group-modal-btn-secondary"
+                data-testid="billing-price-change-cancel"
+                onClick={() => { onClosePriceChange?.(); openCancel(); }}>
+                {labels.priceChangeCancelSubscription}
               </Button>
-            </>}
-          >
-            <div ref={priceChangeBodyRef} style={{ fontFamily: T.font, display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
-              {priceChange.benefitEndDate && (
-                <div style={{ fontSize: 13, color: T.text, fontWeight: 700 }}>
-                  {labels.priceChangeReason(priceChange.benefitEndDate)}
-                </div>
-              )}
-              {[
-                [labels.priceChangeWhenLabel, labels.priceChangeWhenValue(priceChange.chargeDate)],
-                [labels.priceChangePriceLabel, labels.priceChangePriceValue(priceChange.oldUnitPrice, priceChange.newUnitPrice)],
-                [labels.priceChangeEstimateLabel, labels.priceChangeEstimateValue(priceChange.estimatedAmount, sub.seats),
-                  labels.priceChangeEstimateNote],
-                [labels.priceChangeMethodLabel, labels.priceChangeMethodValue(sub.method?.last4)],
-                [labels.priceChangeCancelLabel, labels.priceChangeCancelValue(priceChange.chargeDate)],
-              ].map(([label, value, note]) => (
-                <div key={label} style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--spacing-xl)', fontSize: 13 }}>
-                  <span style={{ color: T.sub, flex: 'none' }}>{label}</span>
-                  <span style={{ color: T.text, fontWeight: 600, textAlign: 'right' }}>
-                    {value}
-                    {/* 예상 금액의 단서는 그 줄 바로 아래에 (PW-2360) */}
-                    {note && <span style={{ display: 'block', fontSize: 12, fontWeight: 400, color: T.muted }}>{note}</span>}
-                  </span>
-                </div>
-              ))}
-              <div style={{ fontSize: 13, color: T.text, background: T.bl, borderRadius: 10,
-                padding: 'var(--spacing-md) var(--spacing-lg)' }}>
-                {typeof labels.priceChangeNoResponse === 'function'
-                  ? labels.priceChangeNoResponse(priceChange.chargeDate)
-                  : labels.priceChangeNoResponse}
-              </div>
-            </div>
-          </ModalShell>
-        )}
-
-        {/* 해지 신청 확인 창 · 신청 취소 확인 창 (pivit-work PW-2550 · overview «해지 신청 확인 창» 행 · §4) — 해지 방식 선택 창과 같은 공용 틀.
-            [해지 신청]·[신청 취소]는 도는 동안 진행 표시(두 번 누름 막음) */}
-        {suspended && cancelReqModal && canEdit && (
-          <ModalShell
-            title={cancelReqModal === 'request' ? labels.cancelRequestModalTitle : labels.cancelRequestWithdrawTitle}
-            titleId="billing-cancel-request-title"
-            closeLabel={labels.close}
-            onClose={() => setCancelReqModal(null)}
-            busy={cancelReqBusy}
-            zIndex={1000}
-            className="adm-shell"
-            testId={cancelReqModal === 'request' ? 'billing-cancel-request-modal' : 'billing-cancel-request-withdraw-modal'}
-            footer={<>
-              <Button variant="secondary" disabled={cancelReqBusy} onClick={() => setCancelReqModal(null)}>
-                {labels.close}
-              </Button>
-              {cancelReqModal === 'request' ? (
-                <Button variant="danger" pending={cancelReqBusy} data-testid="billing-cancel-request-submit"
-                  onClick={() => runCancelRequest(() => onRequestCancellation?.(cancelReqReason))}>
-                  {labels.cancelRequestSubmit}
-                </Button>
-              ) : (
-                <Button variant="danger" pending={cancelReqBusy} data-testid="billing-cancel-request-withdraw-submit"
-                  onClick={() => runCancelRequest(() => onWithdrawCancellationRequest?.())}>
-                  {labels.cancelRequestWithdrawSubmit}
-                </Button>
-              )}
-            </>}
-          >
-            {cancelReqModal === 'request' ? (
-              <Stack gap="lg">
-                <div style={{ fontSize: 13, color: T.sub }}>{labels.cancelRequestModalBody}</div>
-                <div style={{ fontSize: 13, color: T.sub }}>{labels.cancelRequestModalNote}</div>
-                <FormField label={labels.cancelRequestReasonLabel}>
-                  <TextArea rows={3} value={cancelReqReason} maxLength={cancellationReasonMaxLength}
-                    onChange={(e) => setCancelReqReason(e.target.value)} />
-                </FormField>
-              </Stack>
-            ) : (
-              <div style={{ fontSize: 13, color: T.sub }}>{labels.cancelRequestWithdrawBody}</div>
             )}
-          </ModalShell>
-        )}
+            <Button className="tl-group-modal-btn tl-group-modal-btn-primary"
+              data-testid="billing-price-change-agree" pending={priceChangeSaving}
+              onClick={() => onConsentPriceChange?.(priceChangeBodyRef.current?.innerText ?? '')}>
+              {labels.priceChangeAgree}
+            </Button>
+          </>}
+        >
+          <div ref={priceChangeBodyRef}>
+            <Stack gap="lg">
+              {priceChange.benefitEndDate && (
+                <p style={{ ...TEXT_SM, fontWeight: 700, color: 'var(--text-primary)' }}>
+                  {labels.priceChangeReason(priceChange.benefitEndDate)}
+                </p>
+              )}
+              <div>
+                {[
+                  [labels.priceChangeWhenLabel, labels.priceChangeWhenValue(priceChange.chargeDate)],
+                  [labels.priceChangePriceLabel, labels.priceChangePriceValue(priceChange.oldUnitPrice, priceChange.newUnitPrice)],
+                  [labels.priceChangeEstimateLabel, labels.priceChangeEstimateValue(priceChange.estimatedAmount, sub.seats),
+                    labels.priceChangeEstimateNote],
+                  [labels.priceChangeMethodLabel, labels.priceChangeMethodValue(sub.method?.last4)],
+                  [labels.priceChangeCancelLabel, labels.priceChangeCancelValue(priceChange.chargeDate)],
+                ].map(([label, value, note]) => (
+                  <div key={label} style={KV_ROW}>
+                    <span style={KV_KEY}>{label}</span>
+                    <span style={KV_VALUE}>
+                      {value}
+                      {/* 예상 금액의 단서는 그 줄 바로 아래에 (PW-2360) */}
+                      {note && <span style={{ ...TEXT_XS, display: 'block', fontWeight: 400 }}>{note}</span>}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <NoticeLines lines={[typeof labels.priceChangeNoResponse === 'function'
+                ? labels.priceChangeNoResponse(priceChange.chargeDate)
+                : labels.priceChangeNoResponse]} />
+            </Stack>
+          </div>
+        </ModalShell>
+      )}
 
-      </div>
-    </div>
+      {/* 해지 신청 확인 창 · 신청 취소 확인 창 (pivit-work PW-2550 · overview «해지 신청 확인 창» 행 · §4) — 해지 방식 선택 창과 같은 공용 틀.
+          [해지 신청]·[신청 취소]는 도는 동안 진행 표시(두 번 누름 막음) */}
+      {suspended && cancelReqModal && canEdit && (
+        <ModalShell
+          title={cancelReqModal === 'request' ? labels.cancelRequestModalTitle : labels.cancelRequestWithdrawTitle}
+          titleId="billing-cancel-request-title"
+          closeLabel={labels.close}
+          onClose={() => setCancelReqModal(null)}
+          busy={cancelReqBusy}
+          zIndex={1000}
+          className="adm-shell"
+          testId={cancelReqModal === 'request' ? 'billing-cancel-request-modal' : 'billing-cancel-request-withdraw-modal'}
+          footer={<>
+            <Button className="tl-group-modal-btn tl-group-modal-btn-secondary" disabled={cancelReqBusy}
+              onClick={() => setCancelReqModal(null)}>
+              {labels.close}
+            </Button>
+            {cancelReqModal === 'request' ? (
+              <Button className="tl-group-modal-btn adm-btn-danger" pending={cancelReqBusy} data-testid="billing-cancel-request-submit"
+                onClick={() => runCancelRequest(() => onRequestCancellation?.(cancelReqReason))}>
+                {labels.cancelRequestSubmit}
+              </Button>
+            ) : (
+              <Button className="tl-group-modal-btn adm-btn-danger" pending={cancelReqBusy} data-testid="billing-cancel-request-withdraw-submit"
+                onClick={() => runCancelRequest(() => onWithdrawCancellationRequest?.())}>
+                {labels.cancelRequestWithdrawSubmit}
+              </Button>
+            )}
+          </>}
+        >
+          {cancelReqModal === 'request' ? (
+            <Stack gap="lg">
+              <NoticeLines lines={[labels.cancelRequestModalBody]} />
+              <NoticeLines tone="muted" lines={[labels.cancelRequestModalNote]} />
+              <FormField label={labels.cancelRequestReasonLabel}
+                className="tl-group-modal-field" labelClassName="tl-group-modal-label">
+                <TextArea rows={3} value={cancelReqReason} maxLength={cancellationReasonMaxLength}
+                  onChange={(e) => setCancelReqReason(e.target.value)} />
+              </FormField>
+            </Stack>
+          ) : (
+            <NoticeLines lines={[labels.cancelRequestWithdrawBody]} />
+          )}
+        </ModalShell>
+      )}
+    </BillingPage>
   );
 }
