@@ -713,6 +713,8 @@ function OrgSnapshotStatusView({
     summaryCards = [], orgTree = [], totalCount = 0,
     employment = [], jobFamilies = [], ageDist = [], ageSummary = [],
     roster = [],
+    // 연령 탭 분모(PW-3129) — 막대 머리 옆 회색 «· 생년월일이 있는 K명 기준» · 막대 너비의 분모(K) · 맨 아래 회색 «생년월일 없음 N명»
+    ageHeadingNote = null, ageBarMax = null, ageNoBirthLabel = null,
     // 주 소속 없는 재직자 수(MC8) · 기록 시작 전 날짜인가(§1 — As Of 와 같은 C1 빈 상태)
     unassignedCount = 0, noRecord = false,
   } = data;
@@ -725,7 +727,8 @@ function OrgSnapshotStatusView({
   if (queryDate !== seenQuery) { setSeenQuery(queryDate); setDraftDate(queryDate); }
   const canApply = draftDate && draftDate !== queryDate;
   const empMax = Math.max(1, ...employment.map((e) => e.count));
-  const ageMax = Math.max(1, ...ageDist.map((a) => a.count));
+  // 막대 너비는 «생년월일이 있는 사람 가운데 몇»(org-snapshot-spec v1.46 §1 PW-3129) — 분모를 안 주면 가장 큰 막대 기준
+  const ageMax = ageBarMax > 0 ? ageBarMax : Math.max(1, ...ageDist.map((a) => a.count));
 
   return (
     <div className="admin-snap-stack">
@@ -882,11 +885,15 @@ function OrgSnapshotStatusView({
         )}
 
         {activeTab === 'age' && (
-          ageDist.length === 0
+          ageDist.length === 0 && !ageNoBirthLabel
             ? <EmptyState size="lg" description={labels.ageNotAvailable} />
             : (
               <div className="admin-snap-bars" data-testid="status-age">
-                <NoticeLines lines={[labels.ageHeading]} />
+                <NoticeLines
+                  lines={[ageHeadingNote
+                    ? <>{labels.ageHeading} <span className="admin-snap-heading-note" data-testid="status-age-basis">{ageHeadingNote}</span></>
+                    : labels.ageHeading]}
+                />
                 <div>
                   {ageDist.map((a) => (
                     <ShareBarRow
@@ -901,6 +908,8 @@ function OrgSnapshotStatusView({
                       testId="status-age-row"
                     />
                   ))}
+                  {/* 나이를 모르는 사람 — 막대 · 비율 없이 회색 줄 하나(0명이면 그리지 않는다 · PW-3129) */}
+                  {ageNoBirthLabel ? <NoticeLines tone="muted" lines={[ageNoBirthLabel]} testId="status-age-nobirth" /> : null}
                 </div>
                 {ageSummary.length > 0 && (
                   <StatStrip
