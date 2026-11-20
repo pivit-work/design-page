@@ -140,14 +140,14 @@ export function AdminCatalogPanel({
                     return (
                       <RosterTable.Row key={t.id} data-testid={`intg-catalog-row-${t.id}`} className={active ? '' : 'intg-row-off'}>
                         <RosterTable.Cell>
-                          <span className="svc">
+                          <span className="intg-svc">
                             <ToolLogo tool={t} baseUrl={baseUrl} />
                             {t.name}
                           </span>
                         </RosterTable.Cell>
                         <RosterTable.Cell className="time">{t.categoryLabel}</RosterTable.Cell>
                         <RosterTable.Cell>
-                          <DpStatusBadge tone={active ? 'success' : 'neutral'}>
+                          <DpStatusBadge className="admin-pill" tone={active ? 'success' : 'neutral'}>
                             {active ? L.active : L.inactive}
                           </DpStatusBadge>
                         </RosterTable.Cell>
@@ -221,6 +221,7 @@ export function AdminCatalogPanel({
                   </div>
                   <span className="intg-request-actions">
                     <DpStatusBadge
+                      className="admin-pill"
                       tone={REQUEST_TONE[r.status] ?? 'info'}>
                       {R.status[r.status] ?? R.status.pending}
                     </DpStatusBadge>
@@ -280,7 +281,7 @@ export function InactiveToolsArea({ tools = [], labels, baseUrl = '' }) {
               <div className="intg-app-titles">
                 <span className="intg-app-name">{t.name}</span>
               </div>
-              <DpStatusBadge tone="warning">{L.badge}</DpStatusBadge>
+              <DpStatusBadge className="admin-pill" tone="warning">{L.badge}</DpStatusBadge>
             </div>
           </section>
         ))}

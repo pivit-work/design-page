@@ -104,6 +104,7 @@ const BASE_LABELS = {
     settingsRow: '설치 · 수집 자격',
     open: '소유자 권한 관리',
     openFromCard: '권한 관리',
+    needsAuth: '인증 필요',
   },
   settingsPanel: { title: '{{name}} 수집 범위 설정', saved: '저장됨' },
   saveSettings: '설정 저장',
@@ -249,7 +250,7 @@ const STATUS_TONE = { connected: 'success', connecting: 'warning', error: 'dange
 
 function StatusBadge({ status, labels }) {
   return (
-    <DpStatusBadge tone={STATUS_TONE[status] ?? 'neutral'} data-status={status}>
+    <DpStatusBadge className="admin-pill" tone={STATUS_TONE[status] ?? 'neutral'} data-status={status}>
       {labels.status[status] ?? status}
     </DpStatusBadge>
   );
@@ -322,7 +323,7 @@ function AppCard({ card, labels, baseUrl, onConnect, onDisconnect, onReconnect, 
             <span className="intg-app-name">{brandName}</span>
             <span className="intg-app-desc">{description}</span>
           </div>
-          <DpStatusBadge tone="neutral">{labels.status.comingSoon}</DpStatusBadge>
+          <DpStatusBadge className="admin-pill" tone="neutral">{labels.status.comingSoon}</DpStatusBadge>
         </div>
         {usageText && <div className="intg-usage">{usageText}</div>}
         <div className="intg-actions">
@@ -942,7 +943,7 @@ function CollectionStatus({ rows, labels, onRetrySyncLog }) {
               header: l.failures,
               render: (r) => (r.failedCount > 0 ? (
                 <span className="intg-row-value">
-                  <DpStatusBadge tone="danger">{fmt(l.failedCount, { count: r.failedCount })}</DpStatusBadge>
+                  <DpStatusBadge className="admin-pill" tone="danger">{fmt(l.failedCount, { count: r.failedCount })}</DpStatusBadge>
                   {onRetrySyncLog && (
                     <Button
                       variant="secondary"
@@ -1205,7 +1206,12 @@ function SlackOwnerView({ transfer, card, labels, baseUrl, onBack, onExpireToken
               <span className="intg-app-name">{card.brandName}</span>
               <span className="intg-app-desc">{card.description}</span>
             </div>
-            <StatusBadge status={card.status} labels={labels} />
+            {/* 토큰을 만료한 뒤에는 «인증 필요»(기획서 SlackTransferView statusConfig.connecting · admin-app.jsx 21181) */}
+            {transfer.isExpired ? (
+              <DpStatusBadge className="admin-pill" tone="warning" data-testid="intg-owner-status">{labels.owner.needsAuth}</DpStatusBadge>
+            ) : (
+              <StatusBadge status={card.status} labels={labels} />
+            )}
           </div>
         )}
 
@@ -1216,7 +1222,7 @@ function SlackOwnerView({ transfer, card, labels, baseUrl, onBack, onExpireToken
             <div className="intg-person-main">
               <div className="intg-owner-name">
                 {installer.name}
-                <DpStatusBadge tone="neutral">{labels.transfer.installerBadge}</DpStatusBadge>
+                <DpStatusBadge className="admin-pill" tone="neutral">{labels.transfer.installerBadge}</DpStatusBadge>
               </div>
               <div className="intg-owner-sub">
                 {installer.title ? `${installer.title} · ` : ''}
@@ -1234,12 +1240,12 @@ function SlackOwnerView({ transfer, card, labels, baseUrl, onBack, onExpireToken
               <div className="intg-owner-name">
                 {fmt(labels.transfer.credentialAccount, { name: owner.name })}
                 {transfer.isExpired && (
-                  <DpStatusBadge tone="danger" data-testid="intg-credential-expired">
+                  <DpStatusBadge className="admin-pill" tone="danger" data-testid="intg-credential-expired">
                     {labels.transfer.expiredBadge}
                   </DpStatusBadge>
                 )}
                 {owner.isSlackAdmin && (
-                  <DpStatusBadge tone="success" data-testid="intg-owner-slack-admin">
+                  <DpStatusBadge className="admin-pill" tone="success" data-testid="intg-owner-slack-admin">
                     {labels.transfer.slackAdminLabel}
                   </DpStatusBadge>
                 )}
