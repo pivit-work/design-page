@@ -248,7 +248,8 @@ function RetentionBox({ text, vars }) {
  * @property {LeaveSettlementRow[]} [rows]
  * @property {{ id: string, tone: 'warn'|'neutral', title?: string, blocks: { lead?: string, text?: string[], muted?: string[],
  *   items?: { id: string, label: string, range: string, days: string, badges: { tone: string, text: string }[] }[] }[] }[]} [notices]
- *   앰버는 하나씩, 이어 나오는 회색은 한 상자에 가는 선으로(PW-2998). 옛 모양 `lines: string[]` 도 받는다
+ *   앰버는 하나씩, 이어 나오는 회색은 한 상자에 가는 선으로(PW-2998). 옛 모양 `lines: string[]` 도 받는다.
+ *   `anchor: <줄 id>` 인 안내는 상자 대신 그 줄 값 아래 주황 글(`lines` 를 이어서)로 그린다
  */
 
 /* 섹션 1 끝 «휴가 정산» 칸 — 값은 휴가 모듈이, 문장은 소비자가 채운다. 여기서는 배치만 한다 (정책 v1.27 §2-B). */
@@ -309,7 +310,12 @@ function FolderHandoff({ view }) {
 
 function LeaveSettlement({ view, labels }) {
   const rows = view.rows || [];
-  const notices = view.notices || [];
+  const all = view.notices || [];
+  /* `anchor` 가 있는 앰버는 상자 줄에 끼우지 않고 그 줄 값 바로 아래 주황 글로(퇴사 정책 E91 «미사용 연차» 아래) —
+     사이에 끼던 앰버가 빠져 회색 안내끼리 한 상자로 붙는다(PW-2998). 가리킨 줄이 없으면 상자 줄에 그대로 둔다 */
+  const rowIds = new Set(rows.map((r) => r.id));
+  const anchored = (id) => all.filter((n) => n.anchor === id);
+  const notices = all.filter((n) => !n.anchor || !rowIds.has(n.anchor));
   return (
     <div className="admin-offb-leave" data-testid="offboarding-leave">
       <div className="admin-offb-leave-head">
@@ -350,6 +356,15 @@ function LeaveSettlement({ view, labels }) {
                 {r.note && (
                   <span className={`admin-offb-leave-note${r.noteTone === 'warning' ? ' is-warning' : ''}`}>{r.note}</span>
                 )}
+                {anchored(r.id).map((n) => (
+                  <span
+                    key={n.id}
+                    className="admin-offb-leave-note is-warning"
+                    data-testid={`offboarding-leave-notice-${n.id}`}
+                  >
+                    {(n.lines || []).join(' ')}
+                  </span>
+                ))}
               </dd>
             </div>
           ))}
