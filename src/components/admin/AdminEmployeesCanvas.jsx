@@ -6232,7 +6232,10 @@ function EmployeesEditPanel({
     await keepSavedLoads();
     // 받는 동안 화면을 떠났으면(다른 사람 · 목록) 그 화면의 수정 상태를 건드리지 않는다
     if (aliveRef.current) page.onSaved(opts || {});
-    else if (savedId) dropSavedHandoffs(savedId);
+    else if (savedId) {
+      dropSavedHandoffs(savedId);
+      if (onLoadHrProfile) disarmLoad(onLoadHrProfile, savedId);
+    }
   }
   /*
     저장이 끝나면 저장 전 HR 값을 버리고, 읽기 화면이 먼저 그릴 «저장 뒤 값»을 받아 둔 다음 읽기로 넘어간다 —
@@ -7124,7 +7127,11 @@ function EmployeesEditPanel({
                 disabled: saving,
               }))}
               value={page.tab}
-              onChange={(t) => { if (t !== page.tab && !saving) guardMove(() => page.onTab(t)); }}
+              onChange={(t) => {
+                if (t === page.tab || saving) return;
+                /* [수정] 중 탭을 옮기면 패널이 새로 붙는다 — 탭 옮김은 «읽기»라(정책서 §4) [취소]처럼 지금 값을 넘긴다(pivit-work PW-2924) */
+                guardMove(() => { if (page.editing) handOffLive(); page.onTab(t); });
+              }}
             />
           </div>
         )}
