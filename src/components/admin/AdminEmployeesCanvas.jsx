@@ -6182,18 +6182,20 @@ function EmployeesEditPanel({
     받아 두지 않으면 읽기 화면이 다시 불러오는 동안 본문이 회색 빈 막대로 비었다(pivit-work PW-2924 11-21 dev 확인 밖 1 ·
     정책서 §4 저장 → «읽기»). 늦으면(SAVED_LOAD_WAIT_MS) 기다리지 않고 넘어가 종전처럼 읽기 화면이 불러온다.
     성과 · 지급 자산은 이 저장이 바꾸지 않는 값이라 [수정] 전 값을 그대로 먼저 그린다. 근태·휴가(입사일·재직 상태가 잔여를 바꾼다)와
-    따로 보관한 기록(퇴사 되돌리기)은 저장이 바꿀 수 있어 되살리지 않는다.
+    따로 보관한 기록(퇴사 되돌리기)은 저장이 바꿀 수 있어 저장 전 값을 버리고 HR 값과 함께 새로 받아 둔다.
   */
   async function keepSavedLoads() {
     const id = member?.id;
+    if (!id) return;
     if (onLoadHrProfile) forgetHrProfile(onLoadHrProfile, id, { hard: true });
+    for (const scope of [leaveLoader, onLoadArchivedRecords]) if (scope) forgetHrProfile(scope, id, { hard: true });
     for (const scope of [assetsLoader, perfLoader]) if (scope) keepLoadForCancel(scope, id);
-    if (!id || !onLoadHrProfile) return;
+    const fetchInto = (load, keep) => (load ? Promise.resolve(load(id)).then(keep) : null);
     const loads = Promise.allSettled([
-      Promise.resolve(onLoadHrProfile(id)).then((p) => keepHrProfile(onLoadHrProfile, id, p)),
-      hrRecordHandlers?.onLoadTrainings
-        ? Promise.resolve(hrRecordHandlers.onLoadTrainings(id)).then((r) => keepHrTrainings(onLoadHrProfile, id, r))
-        : null,
+      fetchInto(onLoadHrProfile, (p) => keepHrProfile(onLoadHrProfile, id, p)),
+      onLoadHrProfile ? fetchInto(hrRecordHandlers?.onLoadTrainings, (r) => keepHrTrainings(onLoadHrProfile, id, r)) : null,
+      fetchInto(leaveLoader, (v) => keepSection(leaveLoader, id, v)),
+      fetchInto(onLoadArchivedRecords, (v) => keepSection(onLoadArchivedRecords, id, v)),
     ]);
     let timer;
     await Promise.race([loads, new Promise((done) => { timer = setTimeout(done, SAVED_LOAD_WAIT_MS); })]);
