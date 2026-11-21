@@ -6354,9 +6354,10 @@ function EmployeesEditPanel({
     /* 소속·발령·퇴사 되돌리기는 확인 창이 끼는 따로 된 흐름이라 묶음(한 트랜잭션)에 싣지 않는다 — 앱이 종전처럼 몫마다 보낸다 */
     const batchable = !appointmentPayload && !affilChanged
       && !(member.employmentStatus === 'terminated' && draft.employmentStatus !== 'terminated');
-    /* 묶음(한 트랜잭션)이 아니면 앞 몫만 저장되고 뒤 몫이 실패할 수 있다 — 그 뒤 [취소]가 저장 전 값을 되살리지 않게 지운다.
-       묶음이면 다 되거나 하나도 안 되므로 만료로만 둔다(막히거나 실패한 뒤 [취소]면 [수정] 전 값이 곧 서버 값) */
-    if (!batchable) forgetHrProfile(onLoadHrProfile, member?.id, { hard: true });
+    /* 묶음(한 트랜잭션)이 아니면 앞 몫만 저장되고 뒤 몫이 실패할 수 있다 — 무엇이든 «쓰인 뒤»에 지워, 그 뒤 [취소]가 저장 전 값을 되살리지 않게 한다.
+       확인 창 [취소]·날짜 조건으로 아무것도 안 쓰인 채 막히면 만료로만 두어 [취소]가 [수정] 전 값으로 바로 그린다(기획서·디자이너 리뷰) */
+    let wrote = false;
+    const wroteOnce = () => { if (!batchable && !wrote) { wrote = true; forgetHrProfile(onLoadHrProfile, member?.id, { hard: true }); } };
     const pageSave = beginPageSave({ batchable });
     try {
       /* 날짜를 **먼저** 보낸다. 상태 저장이 성공한 뒤 날짜가 실패하면 「수습으로 바뀌었는데
@@ -6372,6 +6373,7 @@ function EmployeesEditPanel({
       if (!datesAfterStatus && identityDirty && onSaveIdentity) {
         try {
           await onSaveIdentity(member.id, identityPatch);
+          wroteOnce();
         } catch (e) {
           // 앱이 이미 알린 실패(이용 정지 등)는 날짜 옆 글을 겹쳐 쓰지 않는다(PW-2907).
           if (!isNotifiedFailure(e)) setDateError(labels.panel.statusDateSaveError);
@@ -6400,6 +6402,7 @@ function EmployeesEditPanel({
       if (affilChanged && onChangeAffiliations) {
         try {
           await onChangeAffiliations(member.id, pendingAffil, appointmentPayload);
+          wroteOnce();
         } catch (e) {
           setSaveError(panelErrorOf(e));
           return;
@@ -6411,6 +6414,7 @@ function EmployeesEditPanel({
           /* 묶음이 없는 저장은 종전과 같은 한 인자 호출이다 — 시트·목록 저장과 같은 계약. */
           if (apptChanges.length > 0 && appointmentPayload) await onSave([patch], appointmentPayload);
           else await onSave([patch]);
+          wroteOnce();
         } catch (e) {
           /* 호출부가 확인 창에서 [닫기]를 받으면 되돌릴 칸을 알려 준다(PW-1336 퇴사 취소 —
              닫으면 재직 상태가 «퇴사» 그대로 보여야 한다). */
@@ -6442,6 +6446,7 @@ function EmployeesEditPanel({
       if (datesAfterStatus && identityDirty && onSaveIdentity) {
         try {
           await onSaveIdentity(member.id, identityPatch);
+          wroteOnce();
         } catch (e) {
           // 앱이 이미 알린 실패(이용 정지 등)는 날짜 옆 글을 겹쳐 쓰지 않는다(PW-2907).
           if (!isNotifiedFailure(e)) setDateError(labels.panel.statusDateSaveError);
