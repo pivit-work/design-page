@@ -3601,8 +3601,8 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
 /* 안내 둘째 단 «보통» — 첫 줄(공용 안내 줄 기본 단 14/20 600)과 같은 크기 · 굵기 500 · 색은 한 단 옅은 --text-subtle(시안 .nt-g2) (PW-3125) */
 .admin-notif-guide-body {
   margin: 0;
-  font-size: 14px;
-  line-height: 20px;
+  font-size: var(--font-size-text-sm);
+  line-height: var(--line-height-text-sm);
   font-weight: 500;
   color: var(--text-subtle);
   word-break: keep-all;
