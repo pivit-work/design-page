@@ -28,7 +28,7 @@ import {
   HrProfileModal, HrProfileInline, flushSalaryPending, SalaryHistoryModal, CeoConfirmModal, CeoBadge, IconSalary, IconCrown, fmtSalaryWithCurrency,
   serviceStartHintText, isoDay,
   peekHrProfile, keepHrProfile, keepHrTrainings, forgetLoad as forgetHrProfile, keepLoadForCancel,
-  hasHrProfileEntry,
+  hasHrProfileEntry, armLoad, settleLoadOnEnter, disarmLoad,
 } from './AdminEmployeeRecordModals.jsx';
 import { buildExportItems } from './employeeExportItems.js';
 import AdminInviteModal from './AdminInviteModal.jsx';
@@ -5687,6 +5687,9 @@ function EmployeesEditPanel({
    */
   /* 상세 페이지를 읽기로 다시 붙일 때([취소] 뒤)는 1분 안에 불러온 HR 값으로 먼저 그리고 뒤에서 다시 불러온다 —
      다시 불러오는 몇 초 동안 본문이 통째로 비어, [수정] 중 지운 줄이 빠진 채 보였다(pivit-work PW-2924) */
+  /* 들어올 때 · 이전/다음은 «불러오는 중»부터 — [취소]·저장이 넘겨준 것만 먼저 그린다(아래 settleLoadOnEnter · 정책서 §4).
+     useState 초기화라 붙을 때 한 번만 돈다(두 번 돌아도 같은 결과) */
+  useState(() => { if (page && onLoadHrProfile) settleLoadOnEnter(onLoadHrProfile, member?.id); return null; });
   const cachedHr = page && !page.editing && onLoadHrProfile ? peekHrProfile(onLoadHrProfile, member?.id) : null;
   const cachedIdentity = cachedHr ? identityFromProfile(cachedHr) : null;
   const [identity, setIdentity] = useState(cachedIdentity);
@@ -5762,10 +5765,11 @@ function EmployeesEditPanel({
     aliveRef.current = true;
     return () => { aliveRef.current = false; };
   }, []);
-  const handoffAtMount = useRef({ id: member?.id, loaders: [assetsLoader, perfLoader, leaveLoader, onLoadArchivedRecords] });
+  const handoffAtMount = useRef({ id: member?.id, hr: onLoadHrProfile, loaders: [assetsLoader, perfLoader, leaveLoader, onLoadArchivedRecords] });
   useEffect(() => {
-    const { id, loaders } = handoffAtMount.current;
+    const { id, loaders, hr } = handoffAtMount.current;
     for (const loader of loaders) dropHandoff(loader, id);
+    disarmLoad(hr, id);
   }, []);
   const [panelTab, setPanelTab] = useState('info');
   const [historyState, setHistoryState] = useState({ status: 'idle', page: null });
@@ -5778,6 +5782,8 @@ function EmployeesEditPanel({
   // 다른 사람을 열면 draft 를 그 사람으로 갈아끼운다. 같은 사람이면 편집 중인 값을
   // 유지한다 — members 가 재조회될 때마다 입력이 되돌아가면 타이핑을 못 한다.
   if (member && syncedId !== member.id) {
+    // 이전/다음 — 그 사람의 HR 칸은 «불러오는 중»부터(넘겨받은 것 없음)
+    if (page && onLoadHrProfile) settleLoadOnEnter(onLoadHrProfile, member.id);
     setSyncedId(member.id);
     setDraft(member);
     setPickerOpen(false);
@@ -6256,6 +6262,7 @@ function EmployeesEditPanel({
     await Promise.race([loads, new Promise((done) => { timer = setTimeout(done, SAVED_LOAD_WAIT_MS); })]);
     clearTimeout(timer);
     open = false;
+    if (onLoadHrProfile) armLoad(onLoadHrProfile, id);
   }
   function dropSavedHandoffs(id) {
     for (const loader of [assetsLoader, perfLoader, leaveLoader, onLoadArchivedRecords]) dropHandoff(loader, id);
@@ -6442,7 +6449,8 @@ function EmployeesEditPanel({
         reason: apptReason.trim() || undefined,
         patch,
       });
-      if (page) page.onSaved({ draft: true });
+      // 임시 저장은 구성원 값을 바꾸지 않는다 — [취소]처럼 지금 값을 넘긴다(pivit-work PW-2924)
+      if (page) { handOffLive(); page.onSaved({ draft: true }); }
       else onClose();
     } catch (e) {
       setSaveError(panelErrorOf(e));
@@ -6453,6 +6461,11 @@ function EmployeesEditPanel({
 
   /* 페이지 [취소] — [수정]을 1분 넘게 켜 두어도 읽기 화면이 [수정] 전 값으로 바로 붙게 한다(keepLoadForCancel · pivit-work PW-2924) */
   function cancelPage() {
+    handOffLive();
+    page.onCancel();
+  }
+  /* [취소] · 경고 창 [닫기] · 발령 [임시 저장] 뒤처럼 읽기로 다시 붙을 때 — 지금 값을 넘겨준다 */
+  function handOffLive() {
     const id = member?.id;
     if (onLoadHrProfile) keepLoadForCancel(onLoadHrProfile, id);
     /* 묶음은 지금 보이는 값을 넘긴다. 이 [수정]에서 무엇이든 쓰였으면 저장이 바꿀 수 있는 묶음(성과 · 근태 · 보관 기록)은 넘기지 않는다 —
@@ -6462,7 +6475,6 @@ function EmployeesEditPanel({
     for (const [loader, st] of live) {
       if (st.status === 'ready' || st.status === 'refreshing') handOffSection(loader, id, st.view);
     }
-    page.onCancel();
   }
 
   async function handleSave() {
@@ -6544,7 +6556,7 @@ function EmployeesEditPanel({
              닫으면 재직 상태가 «퇴사» 그대로 보여야 한다). */
           /* 경고 창 [재입사로 진행] — 바꾼 값은 저장하지 않고 패널을 닫은 뒤 초대 창 재입사 모드를 연다 (pivit-work PW-2576 · 퇴사 정책 §5-L ① · E98) */
           if (e?.closePanel) {
-            if (page) page.onCancel();
+            if (page) cancelPage();
             else onClose();
             return;
           }

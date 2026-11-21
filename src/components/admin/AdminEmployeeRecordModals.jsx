@@ -806,6 +806,27 @@ function rememberLoad(scope, kind, memberId, value) {
 export const peekHrProfile = (scope, memberId) => recentLoad(scope, 'profile', memberId);
 export const keepHrProfile = (scope, memberId, value) => rememberLoad(scope, 'profile', memberId, value);
 export const keepHrTrainings = (scope, memberId, value) => rememberLoad(scope, 'trainings', memberId, Array.isArray(value) ? value : null);
+/*
+  «넘겨받기 표시» — 위 칸은 [취소]·저장 뒤 다시 붙을 때만 쓴다(pivit-work PW-2924 6회차 적대적 리뷰 · 정책서 §4
+  «불러오는 중 | 페이지에 들어올 때 · 이전/다음»). [취소]·저장이 표시를 걸고, 상세 페이지가 붙으며 표시가 없으면 칸을 비운다.
+  같은 붙음 안의 탭 바꾸기는 칸을 그대로 쓴다.
+*/
+const HANDOFF_ARM_MS = 10 * 1000;
+const armedLoads = new WeakMap();
+export function armLoad(scope, memberId) {
+  if (typeof scope !== 'function' || !memberId) return;
+  if (!armedLoads.has(scope)) armedLoads.set(scope, new Map());
+  armedLoads.get(scope).set(memberId, Date.now());
+}
+/** 상세 페이지가 붙을 때 — 넘겨받은 것이 아니면(들어올 때 · 이전/다음) 칸을 비운다. 넘겨받았으면 표시만 쓴다(한 번) */
+export function settleLoadOnEnter(scope, memberId) {
+  if (typeof scope !== 'function' || !memberId) return;
+  const at = armedLoads.get(scope)?.get(memberId);
+  if (at == null || Date.now() - at >= HANDOFF_ARM_MS) forgetLoad(scope, memberId, { hard: true });
+}
+export function disarmLoad(scope, memberId) {
+  if (typeof scope === 'function' && memberId) armedLoads.get(scope)?.delete(memberId);
+}
 /** 저장한 적이 있나 — [수정]을 열며 불러온 HR 값이 «서버에 쓰인 뒤» 지워졌으면 없다(만료와 다름 · pivit-work PW-2924) */
 export const hasHrProfileEntry = (scope, memberId) => Boolean(memberId && scopeOf(scope)?.profile?.has(memberId));
 /**
@@ -816,6 +837,7 @@ export const hasHrProfileEntry = (scope, memberId) => Boolean(memberId && scopeO
 export function keepLoadForCancel(scope, memberId) {
   const c = memberId ? scopeOf(scope) : null;
   if (!c) return;
+  armLoad(scope, memberId);
   const now = Date.now();
   for (const kind of Object.keys(c)) {
     const hit = c[kind].get(memberId);
