@@ -897,24 +897,38 @@ function mergePending(rows, p) {
     .concat(q.adds.map((a) => ({ ...a.body, id: a.id, __pending: true })));
 }
 /*
-  보낸 것 = 보내기 전 버퍼 − 남은 버퍼 (pivit-work PW-2924 7회차). 저장 중 하나 보낼 때마다 버퍼에서 빼면, 서버에서 새 목록을
-  받기 전까지 그 줄이 화면에서 사라졌다(저장 중 0.35~8초 · 11-22 dev 확인 67). 보낸 것은 새 목록을 받을 때까지 따로 들고 그린다.
+  «보낸 것» (pivit-work PW-2924 7회차). 저장 중 하나 보낼 때마다 버퍼에서 빼면, 서버에서 새 목록을 받기 전까지
+  넣은 줄은 사라지고 지운 줄은 되살아났다(저장 중 0.35~8초 · 11-22 dev 확인 67). 보낸 것은 새 목록을 받을 때까지 따로 들고 그린다.
+  하나 = `{ seq, op: 'add'|'update'|'delete', id, body, saved }` — `seq` 는 보낸 차례. 다시 불러오기는 «시작할 때까지 보낸 것»만 버린다
+  (실패 뒤 다시 보낸 줄을 그 전에 시작한 늦은 응답이 지우지 않게). 더한 줄은 서버가 돌려준 줄(id)로 그려 [고치기]·[지우기]가 그대로 된다.
 */
-function sentOf(before, after) {
+function sentOps(before, after, seq, added) {
   const b = pendingOf(before);
   const a = pendingOf(after);
   const leftAdds = new Set(a.adds.map((x) => x.id));
   const leftDeletes = new Set(a.deletes);
-  return {
-    adds: b.adds.filter((x) => !leftAdds.has(x.id)),
-    updates: Object.fromEntries(Object.entries(b.updates).filter(([id]) => !(id in a.updates))),
-    deletes: b.deletes.filter((id) => !leftDeletes.has(id)),
-  };
+  return [
+    ...Object.entries(b.updates).filter(([id]) => !(id in a.updates)).map(([id, body]) => ({ seq, op: 'update', id, body })),
+    ...b.adds.filter((x) => !leftAdds.has(x.id)).map((x) => ({ seq, op: 'add', id: x.id, body: x.body, saved: added && added.id === x.id ? added.saved : undefined })),
+    ...b.deletes.filter((id) => !leftDeletes.has(id)).map((id) => ({ seq, op: 'delete', id })),
+  ];
 }
-function joinPending(x, y) {
-  const a = pendingOf(x);
-  const b = pendingOf(y);
-  return { adds: [...a.adds, ...b.adds], updates: { ...a.updates, ...b.updates }, deletes: [...a.deletes, ...b.deletes] };
+function withSent(rows, ops) {
+  if (!ops || ops.length === 0) return rows ?? [];
+  const gone = new Set(ops.filter((o) => o.op === 'delete').map((o) => o.id));
+  const upd = {};
+  for (const o of ops) if (o.op === 'update') upd[o.id] = { ...(upd[o.id] || {}), ...o.body };
+  const have = new Set((rows ?? []).map((r) => r.id));
+  const adds = ops.filter((o) => o.op === 'add').map((o) => {
+    const sid = o.saved && typeof o.saved === 'object' ? o.saved.id : undefined;
+    return sid ? { ...o.body, ...o.saved, id: sid } : { ...o.body, id: o.id, __pending: true };
+  }).filter((r) => !have.has(r.id));
+  return (rows ?? []).concat(adds)
+    .filter((r) => !gone.has(r.id))
+    .map((r) => (upd[r.id] ? { ...r, ...upd[r.id] } : r));
+}
+function dropSent(ops, upTo) {
+  return (ops ?? []).filter((o) => o.seq > upTo);
 }
 /** 더하기(`id` 없음)·안 보낸 줄 고치기·있던 줄 고치기를 버퍼에 담는다. */
 function pendingSave(p, id, body) {
@@ -940,15 +954,15 @@ function pendingDelete(p, id) {
 async function flushPending(p, { add, update, remove }, onProgress) {
   const q = pendingOf(p);
   let left = { adds: [...q.adds], updates: { ...q.updates }, deletes: [...q.deletes] };
-  const step = (next) => { left = next; onProgress?.(left); };
+  const step = (next, added) => { left = next; onProgress?.(left, added); };
   try {
     for (const [id, body] of Object.entries(q.updates)) {
       await update(id, body);
       step({ ...left, updates: Object.fromEntries(Object.entries(left.updates).filter(([k]) => k !== id)) });
     }
     for (const a of q.adds) {
-      await add(a.body);
-      step({ ...left, adds: left.adds.filter((x) => x.id !== a.id) });
+      const saved = await add(a.body);
+      step({ ...left, adds: left.adds.filter((x) => x.id !== a.id) }, { id: a.id, saved });
     }
     for (const id of q.deletes) {
       await remove(id);
@@ -1630,18 +1644,17 @@ export function HrProfileInline({
   const [bankRevealed, setBankRevealed] = useState(null);
   const [bankRevealState, setBankRevealState] = useState('idle');
   const [recPending, setRecPending] = useState({});
-  /* 보냈지만 새 목록을 아직 못 받은 것 — 받을 때까지 화면에 그대로 그린다(sentOf · pivit-work PW-2924 7회차) */
+  /* 보냈지만 새 목록을 아직 못 받은 것 — 받을 때까지 화면에 그대로 그린다(sentOps · pivit-work PW-2924 7회차).
+     사람이 바뀌면 부르는 쪽이 이 부품을 새로 붙인다(key) */
   const [recSent, setRecSent] = useState({});
   const [trPending, setTrPending] = useState(emptyPending);
-  const [trSent, setTrSent] = useState(emptyPending);
+  const [trSent, setTrSent] = useState([]);
   const [trEpoch, setTrEpoch] = useState(0);
-  /* 다른 사람으로 바뀌면 앞 사람에게 보낸 줄을 들고 있지 않는다 */
-  const [sentFor, setSentFor] = useState(memberId);
-  if (sentFor !== memberId) {
-    setSentFor(memberId);
-    setRecSent({});
-    setTrSent(emptyPending());
-  }
+  const sendSeq = useRef(0);
+  const reloadSeq = useRef(0);
+  const reloadApplied = useRef(0);
+  const trEpochRef = useRef(0);
+  const trReloadUpTo = useRef({});
   const [benefits, setBenefits] = useState(null);
   const [benefitsSaved, setBenefitsSaved] = useState(null);
 
@@ -1653,7 +1666,20 @@ export function HrProfileInline({
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
   }, [memberId, onLoad]);
-  const reload = () => Promise.resolve(onLoad(memberId)).then((d) => { if (d) { rememberLoad(onLoad, 'profile', memberId, d); setData(d); setFresh(true); setRecSent({}); } }).catch(() => {});
+  const reload = () => {
+    const upTo = sendSeq.current;
+    reloadSeq.current += 1;
+    const tag = reloadSeq.current;
+    return Promise.resolve(onLoad(memberId)).then((d) => {
+      // 늦게 온 옛 응답은 버린다 — 뒤에 시작한 다시 불러오기가 이미 그렸다
+      if (!d || tag < reloadApplied.current) return;
+      reloadApplied.current = tag;
+      rememberLoad(onLoad, 'profile', memberId, d);
+      setData(d);
+      setFresh(true);
+      setRecSent((prev) => Object.fromEntries(Object.entries(prev).map(([k, ops]) => [k, dropSent(ops, upTo)])));
+    }).catch(() => {});
+  };
 
   const identity = data?.identity ?? {};
   if (data && fresh && seededId !== memberId) {
@@ -1709,10 +1735,11 @@ export function HrProfileInline({
         for (const kind of RECORD_KINDS) {
           const p = left[kind];
           if (!pendingSize(p)) continue;
-          const progress = (rest) => {
+          const progress = (rest, added) => {
             wrote();
-            const sent = sentOf(left[kind], rest);
-            setRecSent((prev) => ({ ...prev, [kind]: joinPending(prev[kind], sent) }));
+            sendSeq.current += 1;
+            const sent = sentOps(left[kind], rest, sendSeq.current, added);
+            setRecSent((prev) => ({ ...prev, [kind]: [...(prev[kind] ?? []), ...sent] }));
             left[kind] = rest;
             setRecPending((prev) => ({ ...prev, [kind]: rest }));
           };
@@ -1735,7 +1762,14 @@ export function HrProfileInline({
             add: (body) => onAddTraining(memberId, body),
             update: (id, body) => onUpdateTraining(memberId, id, body),
             remove: (id) => onDeleteTraining(memberId, id),
-          }, (rest) => { wrote(); const sent = sentOf(trLeft, rest); setTrSent((prev) => joinPending(prev, sent)); trLeft = rest; setTrPending(rest); });
+          }, (rest, added) => {
+            wrote();
+            sendSeq.current += 1;
+            const sent = sentOps(trLeft, rest, sendSeq.current, added);
+            setTrSent((prev) => [...prev, ...sent]);
+            trLeft = rest;
+            setTrPending(rest);
+          });
         }
         if (!benefitsDone) {
           const savedBenefits = await onSaveBenefits(memberId, benefits.body);
@@ -1748,7 +1782,11 @@ export function HrProfileInline({
       } finally {
         /* 보낸 만큼은 서버 값으로 다시 그린다 — 실패해도 이미 간 줄이 화면에서 사라지지 않게 */
         if (RECORD_KINDS.some((k) => pendingSize(recPending[k]) > 0)) reload();
-        if (trainingsTouched) setTrEpoch((e) => e + 1);
+        if (trainingsTouched) {
+          trEpochRef.current += 1;
+          trReloadUpTo.current[trEpochRef.current] = sendSeq.current;
+          setTrEpoch(trEpochRef.current);
+        }
       }
     };
     return onSaveSession ? onSaveSession(memberId, pendingRecordLines(), send) : send();
@@ -1782,7 +1820,7 @@ export function HrProfileInline({
       if (f.options) return optionText(f.options, String(v));
       return String(v);
     };
-    const rowsOf = (kind) => (kind === 'dependents' ? data?.family?.dependents : data?.org?.[kind]) ?? [];
+    const rowsOf = (kind) => withSent((kind === 'dependents' ? data?.family?.dependents : data?.org?.[kind]) ?? [], recSent[kind]);
     /* 창 줄은 보내는 순서가 아니라 화면에 보이는 묶음 순서로(학력 → 경력 → 자격증 → 부양가족 → 증빙서류) */
     return ['education', 'career', 'certifications', 'dependents', 'documents'].flatMap((kind) => {
       const q = pendingOf(recPending[kind]);
@@ -1887,7 +1925,7 @@ export function HrProfileInline({
     };
   };
   const shownRows = (kind, rows) => {
-    const sent = pendingSize(recSent[kind]) > 0 ? mergePending(rows, recSent[kind]) : rows;
+    const sent = withSent(rows, recSent[kind]);
     return editable ? mergePending(sent, recPending[kind]) : sent;
   };
 
@@ -2045,7 +2083,7 @@ export function HrProfileInline({
         <HrTrainingsSection
           reloadKey={trEpoch}
           sent={trSent}
-          onReloaded={() => setTrSent(emptyPending())}
+          onReloaded={(key) => setTrSent((prev) => dropSent(prev, trReloadUpTo.current[key] ?? -1))}
           cacheScope={onLoad}
           memberId={memberId}
           labels={L}
@@ -2131,7 +2169,7 @@ function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelet
       .then((r) => {
         const list = Array.isArray(r) ? r : [];
         rememberLoad(cacheScope, 'trainings', memberId, list);
-        if (alive) { setRows(list); setLoadError(false); if (reloadKey) onReloaded?.(); }
+        if (alive) { setRows(list); setLoadError(false); if (reloadKey) onReloaded?.(reloadKey); }
       })
       .catch(() => { if (alive) { setRows((prev) => prev ?? []); setLoadError(true); } });
     return () => { alive = false; };
@@ -2178,7 +2216,7 @@ function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelet
   const cancelEdit = () => { setEditingId(null); setForm(EMPTY_TRAINING); };
 
   const canEdit = Boolean(onAdd);
-  const base = pendingSize(sent) > 0 ? mergePending(rows ?? [], sent) : (rows ?? []);
+  const base = withSent(rows ?? [], sent);
   const list = deferred ? mergePending(base, pending) : base;
   return (
     <HrSection title={L.hrTrainings || '수료한 교육 과정'} count={list.length}>
