@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef, useState } from 'react';
 import Button from '../shared/Button.jsx';
 
 /**
@@ -49,9 +50,52 @@ export default function ImpersonationBanner({
     tone === 'danger' ? 'is-danger' : '',
     detail ? 'is-stacked' : '',
   ].filter(Boolean).join(' ');
-  const text = Array.isArray(message)
+  const textRef = useRef(null);
+  const parts = Array.isArray(message);
+  // 두 줄 띠에서 토막이 통째로 다음 줄로 넘어가면, 그 토막 앞 세로선과 띄움이 줄 머리에 남아 둘째 줄만
+  // 안쪽에서 시작했다(pivit-work PW-2935 11-22 디자이너 리뷰). 줄 머리에 선 토막에 is-line-start 를 붙여 선을 뺀다.
+  // CSS 로는 «줄 머리»를 알 수 없어 그린 뒤 위치로 잰다 — 폭이 바뀌면 다시 잰다.
+  const [lineStarts, setLineStarts] = useState('');
+  const stackedParts = parts && Boolean(detail);
+  useLayoutEffect(() => {
+    const box = textRef.current;
+    if (!box || !stackedParts) {
+      setLineStarts('');
+      return undefined;
+    }
+    const mark = () => {
+      const nodes = [...box.querySelectorAll(':scope > .pw-impersonation-banner__part')];
+      // 늘 «선이 다 있을 때» 자리로 잰다 — 선을 뺀 채 재면 좁아진 토막이 윗줄로 올라가 선이 붙었다 빠졌다 오간다.
+      nodes.forEach((n) => n.classList.remove('is-line-start'));
+      const starts = [];
+      for (let i = 1; i < nodes.length; i += 1) {
+        const prevRects = nodes[i - 1].getClientRects();
+        const prev = prevRects[prevRects.length - 1];
+        const cur = nodes[i].getBoundingClientRect();
+        if (prev && cur.top >= prev.top + prev.height / 2) starts.push(i);
+      }
+      // 잰 뒤 바로 표시를 되돌린다 — 값이 같으면 React 가 다시 그리지 않아 DOM 에서 지운 표시가 남지 않게.
+      nodes.forEach((n, i) => n.classList.toggle('is-line-start', starts.includes(i)));
+      const next = starts.join(',');
+      setLineStarts((old) => (old === next ? old : next));
+    };
+    mark();
+    if (typeof ResizeObserver === 'undefined') return undefined;
+    const ro = new ResizeObserver(mark);
+    ro.observe(box);
+    return () => ro.disconnect();
+  }, [stackedParts, message]);
+  const startSet = lineStarts ? lineStarts.split(',').map(Number) : [];
+  const text = parts
     ? message.map((part, i) => (
-      <span key={i} className={i ? 'pw-impersonation-banner__part is-sub' : 'pw-impersonation-banner__part'}>
+      <span
+        key={i}
+        className={[
+          'pw-impersonation-banner__part',
+          i ? 'is-sub' : '',
+          stackedParts && startSet.includes(i) ? 'is-line-start' : '',
+        ].filter(Boolean).join(' ')}
+      >
         {part}
       </span>
     ))
@@ -60,7 +104,7 @@ export default function ImpersonationBanner({
     <div ref={ref} role="status" className={className} {...rest}>
       {icon && <span className="pw-impersonation-banner__icon">{icon}</span>}
       {detail ? (
-        <span className="pw-impersonation-banner__text">
+        <span ref={textRef} className="pw-impersonation-banner__text">
           {text}
           <span className="pw-impersonation-banner__detail">{detail}</span>
         </span>

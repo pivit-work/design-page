@@ -386,6 +386,10 @@
   display: inline-block;
   white-space: nowrap;
 }
+/* 토막째 넘어가 줄 머리에 선 토막은 세로선·띄움을 빼 첫 줄·기록 줄과 왼쪽 끝을 맞춘다(is-line-start 는 부품이 잰다). */
+.pw-impersonation-banner.is-stacked .pw-impersonation-banner__part.is-line-start::before {
+  display: none;
+}
 
 /* «모든 작업 기록» 줄 — 기획서 전역 배너 자리대로 오른쪽 [어드민 복귀] 바로 왼쪽 (pivit-work PW-3133).
    줄어들지 않는다 — 한 줄에 다 안 들어가면 앞 토막이 «…»로 잘리고, 호스트가 이 줄을 둘째 줄(detail)로 내린다. */
