@@ -682,6 +682,13 @@
   color: var(--text-secondary);
 }
 /* 그 소속 조직의 조직장 표시(admin-spec §3.1 「👤 조직장 배지」) — 무채색, 대표 왕관(보라)과 갈린다. */
+/* 개인 직속 «{조직장} 직속» — 경고 톤이 아닌 회색 글자 · «주» 배지 없음(admin-spec §3.1 PW-2927 ③ · 시안 DeptCell). */
+.admin-emp-row-direct {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
 .admin-emp-row-dept-leader {
   display: inline-flex;
   align-self: center;

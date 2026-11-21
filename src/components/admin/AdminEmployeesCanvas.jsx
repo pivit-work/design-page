@@ -1134,6 +1134,14 @@ function legacyDeptOf(m) {
 }
 
 /**
+ * 주 소속 없이 조직장 · 대표의 «직속» 칸에 놓인 개인의 소속 칸 글자 — «{조직장} 직속» / «대표 직속»(admin-spec §3.1
+ * «PW-2927» ③). 소비자가 `directLabel` 로 준다. «미배정»과 배타라(조직도 D4) 이 값이 있으면 미배정 딱지를 그리지 않는다.
+ */
+function directLabelOf(m) {
+  return typeof m.directLabel === 'string' && m.directLabel ? m.directLabel : null;
+}
+
+/**
  * 매니저(개인 상급자) 배정 드롭다운 (PW-292).
  *
  * 검색을 붙이는 이유는 후보가 조직 인원수만큼 늘어나기 때문이다 — 200명 조직에서
@@ -1852,6 +1860,9 @@ function ListDeptLabel({ member, orgTree, labels, leaderUnitIds }) {
       ? [{ name: legacy, isPrimary: true }]
       : [];
   if (list.length === 0) {
+    const direct = directLabelOf(member);
+    // 개인 직속은 경고 톤이 아니라 회색 글자 · «주» 배지 없음(PW-2927 ③).
+    if (direct) return <span className="admin-emp-row-direct" data-testid="list-dept-direct">{direct}</span>;
     return <DpStatusBadge className="admin-emp-pill is-amber">{labels.unassignedPill}</DpStatusBadge>;
   }
   const primary = list.find((d) => d.isPrimary) || list[0];
@@ -3004,6 +3015,8 @@ function EmployeesListView({
     const list = Array.isArray(m.depts) && m.depts.length > 0 ? m.depts : [];
     const names = list.map((d) => d.name).filter(Boolean);
     if (names.length === 0 && legacyDeptOf(m)) names.push(legacyDeptOf(m));
+    // 검색은 칸에 보이는 글자와 맞춘다 — 개인 직속은 «{조직장} 직속»으로 찾아진다(PW-2927).
+    if (names.length === 0 && directLabelOf(m)) names.push(directLabelOf(m));
     return names;
   };
   /** 그 사람의 소속 조직 id 전부 — 주 소속·겸직 칩과 배정 행(계층 포함)을 합친다. */
@@ -3217,7 +3230,8 @@ function EmployeesListView({
   const deptPathOf = useCallback((m) => {
     const legacy = legacyDeptOf(m);
     const list = Array.isArray(m.depts) && m.depts.length > 0 ? m.depts : legacy ? [{ name: legacy, isPrimary: true }] : [];
-    if (list.length === 0) return null;
+    // 개인 직속은 보이는 글자로 줄 선다 · «미배정»(null)은 맨 뒤(PW-2927 · `employeesListSort.js`).
+    if (list.length === 0) return directLabelOf(m);
     const primary = list.find((d) => d.isPrimary) || list[0];
     const entry = primary.orgUnitId ? findOrgEntry(orgTree, primary.orgUnitId) : primaryOrgEntry(orgTree, m.orgUnitIds);
     return entry?.pathLabel || primary.name || null;
@@ -6506,7 +6520,7 @@ function EmployeesEditPanel({
       {primaryEntry.pathNames.slice(0, -1).map((n) => `${n}${ORG_PATH_SEP}`).join('')}
       <b>{primaryEntry.pathNames[primaryEntry.pathNames.length - 1]}</b>
     </span>
-  ) : (legacyDeptOf(member) || null);
+  ) : (legacyDeptOf(member) || directLabelOf(member) || null);
   const orgAssignBlock = reading ? (<>
   <SectionLabel>{labels.panel.orgAssign}</SectionLabel>
   <div className="admin-emp-detail-read-grid" data-testid="employees-panel-org">
@@ -6524,13 +6538,13 @@ function EmployeesEditPanel({
   <div className="admin-emp-org-assign">
     <button
       type="button"
-      className={`admin-emp-org-current${primaryEntry || legacyDeptOf(member) ? '' : ' is-empty'}`}
+      className={`admin-emp-org-current${primaryEntry || legacyDeptOf(member) || directLabelOf(member) ? '' : ' is-empty'}`}
       disabled={reading || !canEdit || !onChangeAffiliations}
       onClick={() => setPickerOpen(true)}
       data-testid="employees-panel-org"
     >
       <span className="admin-emp-org-current-name">
-        <OrgPathLabel entry={primaryEntry} fallback={legacyDeptOf(member) || labels.panel.orgNone} />
+        <OrgPathLabel entry={primaryEntry} fallback={legacyDeptOf(member) || directLabelOf(member) || labels.panel.orgNone} />
         {selectedIds.length > 1 && (
           <span className="admin-emp-row-dept-more">
             {String(labels.concurrentCount).split('{count}').join(String(selectedIds.length - 1))}
@@ -6925,7 +6939,7 @@ function EmployeesEditPanel({
   );
   const pageTabs = page ? DETAIL_TABS.filter((t) => t !== 'comp' || page.canViewComp) : [];
   const deptText = page
-    ? `${primaryEntry?.name || legacyDeptOf(member) || labels.panel.orgNone}${selectedIds.length > 1 ? ` ${String(detailL.concurrentMore || '외 {count}').split('{count}').join(String(selectedIds.length - 1))}` : ''}`
+    ? `${primaryEntry?.name || legacyDeptOf(member) || directLabelOf(member) || labels.panel.orgNone}${selectedIds.length > 1 ? ` ${String(detailL.concurrentMore || '외 {count}').split('{count}').join(String(selectedIds.length - 1))}` : ''}`
     : '';
   const dutyText = page && member.jobDuty ? axisValueLabel(valueLabels, 'jobDuty', member.jobDuty) : '';
   const pageLoadFailed = Boolean(page) && identityState === 'error';
