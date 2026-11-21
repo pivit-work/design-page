@@ -27,7 +27,8 @@ import { ExportMenu, SalaryExportModal, IconLock } from './employeeExport.jsx';
 import {
   HrProfileModal, HrProfileInline, flushSalaryPending, SalaryHistoryModal, CeoConfirmModal, CeoBadge, IconSalary, IconCrown, fmtSalaryWithCurrency,
   serviceStartHintText, isoDay,
-  peekHrProfile, keepHrProfile, forgetLoad as forgetHrProfile, keepLoadForCancel,
+  peekHrProfile, keepHrProfile, keepHrTrainings, forgetLoad as forgetHrProfile, keepLoadForCancel,
+  peekSection, keepSection,
 } from './AdminEmployeeRecordModals.jsx';
 import { buildExportItems } from './employeeExportItems.js';
 import AdminInviteModal from './AdminInviteModal.jsx';
@@ -720,6 +721,8 @@ function merge(base, provided) {
 }
 
 const PAGE_SIZE = 20;
+/* 저장 뒤 읽기 화면이 먼저 그릴 값을 받아 두는 동안 기다리는 한도 — 넘으면 종전처럼 읽기 화면이 불러온다(pivit-work PW-2924) */
+const SAVED_LOAD_WAIT_MS = 8000;
 
 // 기본값으로 쓰는 **고정 빈 배열** — 매 렌더 새 배열을 만들면 하위 memo 가 매번 깨진다.
 const EMPTY_ARRAY = [];
@@ -5711,17 +5714,25 @@ function EmployeesEditPanel({
    * 이 패널은 이미 섹션이 열 개가 넘어서, 이력을 또 하나의 섹션으로 붙이면 편집 흐름
    * 한가운데를 읽기 전용 표가 끊는다.
    */
+  /* 상세 페이지를 [취소]·저장 뒤 다시 붙일 때는 방금 불러온 값으로 먼저 그리고(`refreshing`) 뒤에서 다시 불러온다 —
+     묶음마다 «불러오는 중…»·회색 막대가 몇 초씩 보였다(pivit-work PW-2924 11-21 dev 확인 밖 2 · 정책서 §4 «불러오는 중»은 들어올 때 · 이전/다음만) */
+  const sectionFirst = (loader) => {
+    const cached = page && loader ? peekSection(loader, member?.id) : null;
+    return { status: cached ? 'refreshing' : loader ? 'loading' : 'idle', view: cached };
+  };
+  /* 묶음 부품은 «먼저 그린 값으로 다시 불러오는 중»을 «준비됨»으로 그린다 */
+  const shownSection = (st) => (st.status === 'refreshing' ? { status: 'ready', view: st.view } : st);
   /* 따로 보관한 기록 — 불러오기 상태는 효과 밖(사람이 바뀌는 자리·[다시 시도])에서만 'loading' 으로 세운다 */
-  const [archive, setArchive] = useState({ status: onLoadArchivedRecords ? 'loading' : 'idle', view: null });
+  const [archive, setArchive] = useState(() => sectionFirst(onLoadArchivedRecords));
   /* 책상 배치 자리 · 지급된 자산 (PW-2600) — `archive` 와 같이 사람이 바뀌는 자리·[다시 시도]·지급 뒤에만 'loading' 으로 세운다 */
   const assetsLoader = memberAssets?.onLoad;
-  const [assetsState, setAssetsState] = useState({ status: assetsLoader ? 'loading' : 'idle', view: null });
+  const [assetsState, setAssetsState] = useState(() => sectionFirst(assetsLoader));
   /* «성과» 묶음 (PW-2818) — 자산과 같이 사람이 바뀌는 자리 · [다시 시도]에서만 'loading' 으로 세운다 */
   const perfLoader = memberPerformance?.onLoad;
-  const [perfState, setPerfState] = useState({ status: perfLoader ? 'loading' : 'idle', view: null });
+  const [perfState, setPerfState] = useState(() => sectionFirst(perfLoader));
   /* «근태·휴가» 묶음 (PW-2817) — 성과 묶음과 같은 불러오기 · [다시 시도]는 이 묶음만 */
   const leaveLoader = memberLeave?.onLoad;
-  const [leaveState, setLeaveState] = useState({ status: leaveLoader ? 'loading' : 'idle', view: null });
+  const [leaveState, setLeaveState] = useState(() => sectionFirst(leaveLoader));
   const [panelTab, setPanelTab] = useState('info');
   const [historyState, setHistoryState] = useState({ status: 'idle', page: null });
   /* 고른 항목(`all` = 전체)과 「더 보기」 진행 중 여부 (정책서 §2-3·§2-4) */
@@ -5760,30 +5771,30 @@ function EmployeesEditPanel({
 
   const memberId = member?.id;
   useEffect(() => {
-    if (assetsState.status !== 'loading' || !memberId || !assetsLoader) return undefined;
+    if ((assetsState.status !== 'loading' && assetsState.status !== 'refreshing') || !memberId || !assetsLoader) return undefined;
     let alive = true;
     Promise.resolve(assetsLoader(memberId))
-      .then((view) => { if (alive) setAssetsState({ status: 'ready', view: view || null }); })
+      .then((view) => { keepSection(assetsLoader, memberId, view); if (alive) setAssetsState({ status: 'ready', view: view || null }); })
       // 빈 목록으로 보이면 «지급된 것이 없다»로 읽힌다 — 실패는 실패로 보인다(자리 칸은 입력 그대로 둔다)
       .catch(() => { if (alive) setAssetsState({ status: 'error', view: null }); });
     return () => { alive = false; };
   }, [assetsState.status, memberId, assetsLoader]);
   const reloadAssets = useCallback(() => setAssetsState((s) => ({ status: 'loading', view: s.view })), []);
   useEffect(() => {
-    if (perfState.status !== 'loading' || !memberId || !perfLoader) return undefined;
+    if ((perfState.status !== 'loading' && perfState.status !== 'refreshing') || !memberId || !perfLoader) return undefined;
     let alive = true;
     Promise.resolve(perfLoader(memberId))
-      .then((view) => { if (alive) setPerfState({ status: 'ready', view: view || null }); })
+      .then((view) => { keepSection(perfLoader, memberId, view); if (alive) setPerfState({ status: 'ready', view: view || null }); })
       // 빈 목록으로 보이면 «확정된 평가가 없다»로 읽힌다 — 실패는 실패로 보인다(§3.2-D «PW-2818» ⑩)
       .catch(() => { if (alive) setPerfState({ status: 'error', view: null }); });
     return () => { alive = false; };
   }, [perfState.status, memberId, perfLoader]);
   const reloadPerf = useCallback(() => setPerfState({ status: 'loading', view: null }), []);
   useEffect(() => {
-    if (leaveState.status !== 'loading' || !memberId || !leaveLoader) return undefined;
+    if ((leaveState.status !== 'loading' && leaveState.status !== 'refreshing') || !memberId || !leaveLoader) return undefined;
     let alive = true;
     Promise.resolve(leaveLoader(memberId))
-      .then((view) => { if (alive) setLeaveState({ status: 'ready', view: view || null }); })
+      .then((view) => { keepSection(leaveLoader, memberId, view); if (alive) setLeaveState({ status: 'ready', view: view || null }); })
       // 실패를 «0일»로 보이면 «연차가 없다»로 읽힌다 — 세 칸 «—» + 안내(§3.2.10 «PW-2817» «늦거나 실패할 때»)
       .catch(() => { if (alive) setLeaveState({ status: 'error', view: null }); });
     return () => { alive = false; };
@@ -5792,10 +5803,10 @@ function EmployeesEditPanel({
   /* 책상 배치에 앉은 사람 — 자리 네 칸은 배치도가 정한다(§13-A-5). 못 불러왔으면 입력 그대로다(서버가 막는다). */
   const seatedAt = assetsState.view?.seat || null;
   useEffect(() => {
-    if (archive.status !== 'loading' || !memberId || !onLoadArchivedRecords) return undefined;
+    if ((archive.status !== 'loading' && archive.status !== 'refreshing') || !memberId || !onLoadArchivedRecords) return undefined;
     let alive = true;
     Promise.resolve(onLoadArchivedRecords(memberId))
-      .then((view) => { if (alive) setArchive({ status: 'ready', view }); })
+      .then((view) => { keepSection(onLoadArchivedRecords, memberId, view); if (alive) setArchive({ status: 'ready', view }); })
       // 빈 칸으로 보이면 «보관한 것이 없다»로 읽힌다 — 실패는 실패로 보인다
       .catch(() => { if (alive) setArchive({ status: 'error', view: null }); });
     return () => { alive = false; };
@@ -5810,7 +5821,7 @@ function EmployeesEditPanel({
   /* 지금 구간의 기록이 옮겨졌나 — 그러면 옮긴 칸 자리에 «따로 보관 중»을 둔다. 재입사해 재직 중이면
      지금 구간 값은 새로 넣은 값이라 그대로 보인다(정책서 E35). */
   const archivedNow =
-    archive.status === 'ready' &&
+    (archive.status === 'ready' || archive.status === 'refreshing') &&
     member?.employmentStatus === 'terminated' &&
     (archive.view?.segments ?? []).some((seg) => seg.terminationDate === member?.terminationDate);
   /* 자기소개 — 본인이 내 프로필에서만 쓰는 값이라 고칠 칸이 없다(상세 «인사 정보» 탭 · admin-spec §3.2-D) */
@@ -6150,7 +6161,7 @@ function EmployeesEditPanel({
         onAdd: onAddSalaryHistory,
         onUpdate: hrRecordHandlers?.onUpdateSalaryHistory,
         onDelete: hrRecordHandlers?.onDeleteSalaryHistory,
-        onProgress: setSalaryPending,
+        onProgress: (rest) => { forgetHrProfile(onLoadHrProfile, member?.id, { hard: true }); setSalaryPending(rest); },
       }));
     }
     for (const fn of flushes) {
@@ -6163,7 +6174,30 @@ function EmployeesEditPanel({
         return;
       }
     }
+    await keepSavedLoads();
     page.onSaved(opts || {});
+  }
+  /*
+    저장이 끝나면 저장 전 HR 값을 버리고, 읽기 화면이 먼저 그릴 «저장 뒤 값»을 받아 둔 다음 읽기로 넘어간다 —
+    받아 두지 않으면 읽기 화면이 다시 불러오는 동안 본문이 회색 빈 막대로 비었다(pivit-work PW-2924 11-21 dev 확인 밖 1 ·
+    정책서 §4 저장 → «읽기»). 늦으면(SAVED_LOAD_WAIT_MS) 기다리지 않고 넘어가 종전처럼 읽기 화면이 불러온다.
+    성과 · 지급 자산은 이 저장이 바꾸지 않는 값이라 [수정] 전 값을 그대로 먼저 그린다. 근태·휴가(입사일·재직 상태가 잔여를 바꾼다)와
+    따로 보관한 기록(퇴사 되돌리기)은 저장이 바꿀 수 있어 되살리지 않는다.
+  */
+  async function keepSavedLoads() {
+    const id = member?.id;
+    if (onLoadHrProfile) forgetHrProfile(onLoadHrProfile, id, { hard: true });
+    for (const scope of [assetsLoader, perfLoader]) if (scope) keepLoadForCancel(scope, id);
+    if (!id || !onLoadHrProfile) return;
+    const loads = Promise.allSettled([
+      Promise.resolve(onLoadHrProfile(id)).then((p) => keepHrProfile(onLoadHrProfile, id, p)),
+      hrRecordHandlers?.onLoadTrainings
+        ? Promise.resolve(hrRecordHandlers.onLoadTrainings(id)).then((r) => keepHrTrainings(onLoadHrProfile, id, r))
+        : null,
+    ]);
+    let timer;
+    await Promise.race([loads, new Promise((done) => { timer = setTimeout(done, SAVED_LOAD_WAIT_MS); })]);
+    clearTimeout(timer);
   }
   /** 탭 · 이전/다음 · [목록으로] — 수정 중 바꾼 값이 있으면 먼저 묻는다(§3.2-D «저장 안 한 변경»). */
   const guardMove = (go) => {
@@ -6351,7 +6385,9 @@ function EmployeesEditPanel({
 
   /* 페이지 [취소] — [수정]을 1분 넘게 켜 두어도 읽기 화면이 [수정] 전 값으로 바로 붙게 한다(keepLoadForCancel · pivit-work PW-2924) */
   function cancelPage() {
-    if (onLoadHrProfile) keepLoadForCancel(onLoadHrProfile, member?.id);
+    for (const scope of [onLoadHrProfile, assetsLoader, perfLoader, leaveLoader, onLoadArchivedRecords]) {
+      if (scope) keepLoadForCancel(scope, member?.id);
+    }
     page.onCancel();
   }
 
@@ -6467,7 +6503,6 @@ function EmployeesEditPanel({
           return;
         }
       }
-      forgetHrProfile(onLoadHrProfile, member?.id, { hard: true });
       await finishSave();
     } finally {
       pageSave?.onPageSaveEnd?.(member.id);
@@ -7067,7 +7102,7 @@ function EmployeesEditPanel({
           {/* «지급된 자산» — 근무지 묶음 바로 아래(자리와 함께 보는 정보 · admin-spec §3.2.13 · pivit-work PW-2600) */}
           {inTab('work') && memberAssets && (
             <MemberAssetsSection
-              state={assetsState}
+              state={shownSection(assetsState)}
               labels={labels.panel.assets}
               resigned={member.employmentStatus === 'terminated'}
               onRetry={reloadAssets}
@@ -7333,7 +7368,7 @@ function EmployeesEditPanel({
           {onLoadArchivedRecords && (
             <ArchivedRecordsSection
               memberName={member.name}
-              state={archive}
+              state={shownSection(archive)}
               labels={archivedLabels}
               onRetry={() => setArchive({ status: 'loading', view: null })}
               onDownload={
@@ -7423,7 +7458,7 @@ function EmployeesEditPanel({
               보관 여부를 아직 모르는 동안(퇴직자의 보관 기록을 불러오는 중)은 줄을 먼저 보였다 바꾸지 않게 자리 표시로 둔다. */}
           {page && inTab('records') && memberPerformance && (
             <MemberPerformanceSection
-              state={member.employmentStatus === 'terminated' && archive.status === 'loading' ? { status: 'loading', view: null } : perfState}
+              state={member.employmentStatus === 'terminated' && archive.status === 'loading' ? { status: 'loading', view: null } : shownSection(perfState)}
               labels={labels.panel.performance}
               archivedNote={archivedNow ? archivedLabels.note : null}
               onRetry={reloadPerf}
@@ -7548,7 +7583,7 @@ function EmployeesEditPanel({
               admin-spec §3.2.10 «PW-2817»). 읽기 · 수정 모두 같은 모습 · [휴가 현황 열기]는 수정 중 바꾼 값이 있으면 확인 창을 거친다. */}
           {page && inTab('work') && memberLeave && (
             <MemberLeaveSection
-              state={leaveState}
+              state={shownSection(leaveState)}
               labels={labels.panel.leave}
               onRetry={reloadLeave}
               onOpenOverview={memberLeave.onOpenOverview}

@@ -786,19 +786,32 @@ const RECENT_LOAD_MS = 60 * 1000;
 const recentLoads = new WeakMap();
 function scopeOf(scope) {
   if (typeof scope !== 'function') return null;
-  if (!recentLoads.has(scope)) recentLoads.set(scope, { profile: new Map(), trainings: new Map() });
+  if (!recentLoads.has(scope)) recentLoads.set(scope, {});
   return recentLoads.get(scope);
 }
+function kindOf(c, kind) {
+  if (!c[kind]) c[kind] = new Map();
+  return c[kind];
+}
 function recentLoad(scope, kind, memberId) {
-  const hit = memberId ? scopeOf(scope)?.[kind].get(memberId) : null;
+  const c = memberId ? scopeOf(scope) : null;
+  const hit = c ? kindOf(c, kind).get(memberId) : null;
   return hit && Date.now() - hit.at < RECENT_LOAD_MS ? hit.value : null;
 }
 function rememberLoad(scope, kind, memberId, value) {
-  if (memberId && value) scopeOf(scope)?.[kind].set(memberId, { at: Date.now(), value });
+  const c = memberId && value ? scopeOf(scope) : null;
+  if (c) kindOf(c, kind).set(memberId, { at: Date.now(), value });
 }
 /** 구성원 상세 페이지 패널도 같은 값을 쓴다 — 읽기로 다시 붙을 때 먼저 그릴 값 / 불러온 값 */
 export const peekHrProfile = (scope, memberId) => recentLoad(scope, 'profile', memberId);
 export const keepHrProfile = (scope, memberId, value) => rememberLoad(scope, 'profile', memberId, value);
+export const keepHrTrainings = (scope, memberId, value) => rememberLoad(scope, 'trainings', memberId, Array.isArray(value) ? value : null);
+/**
+ * 상세 페이지 묶음(성과 · 지급 자산 · 근태·휴가 · 따로 보관한 기록)도 [취소]·저장 뒤 새로 붙을 때 «불러오는 중»부터 그렸다
+ * (pivit-work PW-2924 11-21 dev «확인 밖 2»). 칸은 그 묶음의 불러오는 함수(`scope`)마다 따로 둔다.
+ */
+export const peekSection = (scope, memberId) => recentLoad(scope, 'section', memberId);
+export const keepSection = (scope, memberId, value) => rememberLoad(scope, 'section', memberId, value);
 /**
  * 페이지 [취소] 때 부른다 — [수정]을 열며 불러온 값을 «지금 불러온 값»으로 다시 친다(pivit-work PW-2924 11-21 되돌림).
  * [수정]을 1분 넘게 켜 두면 그 값이 위 1분을 넘겨, [취소] 뒤 읽기 화면이 다시 불러오는 몇 초 동안 본문이 비었다.
@@ -808,7 +821,7 @@ export function keepLoadForCancel(scope, memberId) {
   const c = memberId ? scopeOf(scope) : null;
   if (!c) return;
   const now = Date.now();
-  for (const kind of ['profile', 'trainings']) {
+  for (const kind of Object.keys(c)) {
     const hit = c[kind].get(memberId);
     if (hit) c[kind].set(memberId, { at: now, value: hit.value });
   }
@@ -821,7 +834,7 @@ export function keepLoadForCancel(scope, memberId) {
 export function forgetLoad(scope, memberId, { hard = false } = {}) {
   const c = memberId ? scopeOf(scope) : null;
   if (!c) return;
-  for (const kind of ['profile', 'trainings']) {
+  for (const kind of Object.keys(c)) {
     const hit = c[kind].get(memberId);
     // hard: 서버에 무엇이든 쓰였을 수 있다(저장 성공 · 몫마다 따로 나가는 저장) — [취소]가 저장 전 값을 되살리지 않게 지운다
     if (hard) c[kind].delete(memberId);
@@ -1623,11 +1636,15 @@ export function HrProfileInline({
     let trLeft = trPending;
     let identityDone = !identityPatch;
     let benefitsDone = !benefits;
+    /* 서버에 한 건이라도 쓰인 «뒤»에만 [수정] 전 값을 지운다 — 사유 창 [취소]·첫 요청 거절처럼 아무것도 안 쓰인 채 끝나면
+       페이지 [취소]가 그 값으로 바로 그린다(pivit-work PW-2924 11-21 16:53 dev 되돌림 · 묶음 저장은 성공해야 첫 응답이 온다) */
+    const wrote = () => forgetLoad(onLoad, memberId, { hard: true });
     const send = async () => {
       forgetLoad(onLoad, memberId);
       try {
         if (!identityDone) {
           const saved = await onSaveIdentity(memberId, identityPatch);
+          wrote();
           identityDone = true;
           setData((d) => ({ ...(d ?? {}), identity: saved || { ...(d?.identity ?? {}), ...identityPatch } }));
           setIdentityDraft(null);
@@ -1638,6 +1655,7 @@ export function HrProfileInline({
           const p = left[kind];
           if (!pendingSize(p)) continue;
           const progress = (rest) => {
+            wrote();
             left[kind] = rest;
             setRecPending((prev) => ({ ...prev, [kind]: rest }));
           };
@@ -1660,10 +1678,11 @@ export function HrProfileInline({
             add: (body) => onAddTraining(memberId, body),
             update: (id, body) => onUpdateTraining(memberId, id, body),
             remove: (id) => onDeleteTraining(memberId, id),
-          }, (rest) => { trLeft = rest; setTrPending(rest); });
+          }, (rest) => { wrote(); trLeft = rest; setTrPending(rest); });
         }
         if (!benefitsDone) {
           await onSaveBenefits(memberId, benefits.body);
+          wrote();
           benefitsDone = true;
           setBenefits(null);
           setBnEpoch((e) => e + 1);
