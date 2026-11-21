@@ -455,7 +455,7 @@ export const ORGCHART_LABELS = {
   'squad.struct.collapseAllTip': '전체 접기 — 회사와 맨 위 노드만 남기고 접기',
   // 이미지로 다운 — 호스트가 받기를 안 넘길 때 쓰는 파일 이름(조직도 'org.imageFileName' 과 같은 꼴)
   'squad.struct.imageFileName': '스쿼드 구조_{{date}}_{{time}}',
-  'squad.struct.legendSquad': '카드 한 장 = 배정 하나 · 겸임 n = 켜진 스쿼드 n곳에 함께 있음 · 흐린 카드 = 켜진 스쿼드에 배정 없음 · 리드 = 스쿼드 리드',
+  'squad.struct.legendSquad': '카드 한 장 = 배정 하나 · 겸임 n = 켜진 스쿼드 n곳에 함께 있음 · 흐린 카드 = 켜진 스쿼드에 배정 없음(스쿼드 없음) 또는 완료·보관 스쿼드의 배정 · 리드 = 스쿼드 리드',
   'squad.struct.legendGroups': ' · 색 영역 = {{level}} 묶음 · 헤드는 표기만(권한 없음)',
   'squad.struct.legendOrg': '카드 한 장 = 한 사람(주 소속) · «조직장» 딱지 = 그 조직의 조직장 · 리드 딱지는 스쿼드 리드에만 씁니다',
   'squad.struct.legendPlace': '카드 한 장 = 한 사람 · 근무지 = 구성원 정보의 «근무지(도시)» · 근무지 미지정 = 값이 비어 있음',

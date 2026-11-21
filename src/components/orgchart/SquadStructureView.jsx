@@ -549,10 +549,14 @@ function StructureCanvas({
   const renderNode = (n) => {
     const region = side === 'squad' && n.kind === 'group' && !n.data.virtual;
     const hasPeople = n.people.length > 0 || n.moreTotal > 0 || n.summaryCount > 0;
+    // 완료·보관 스쿼드 가지(v3.69 §5-6-B «완료·보관 스쿼드») — 노드·사람 카드와 같은 .6 을 «더 보기» 칸·«N명» 줄에,
+    // 선은 data-faded 를 BezierConnectors 가 읽어 흐린 선으로 따로 긋는다.
+    const fade = n.kind === 'squad' ? structSquadOpacity(n.data) : 1;
     return (
       <div
         className={`org-node${n.children.length ? ' has-children' : ''}${region ? ' sq-struct-region' : ''}`}
         data-node-id={n.key}
+        data-faded={fade < 1 ? 'true' : undefined}
         data-testid={region ? `squad-struct-region-${n.key}/region` : undefined}
         style={region ? { background: `${n.data.color}0a`, boxShadow: `inset 0 0 0 1px ${n.data.color}2e` } : undefined}
       >
@@ -564,6 +568,7 @@ function StructureCanvas({
               <div
                 className="member-node sq-struct-more"
                 data-testid={`squad-struct-more-${n.key}`}
+                style={{ opacity: fade }}
                 onMouseDown={(e) => e.stopPropagation()}
                 {...asButton(() => toggleMore(n.key))}
               >
@@ -572,7 +577,7 @@ function StructureCanvas({
             )}
             {/* «리더만»·«인원수만» — 카드 대신 그 노드 사람 수 한 줄(조직도 트리 탭 .members-summary 와 같다) */}
             {n.summaryCount > 0 && (
-              <div className="members-summary" data-testid={`squad-struct-summary-${n.key}`}>
+              <div className="members-summary" data-testid={`squad-struct-summary-${n.key}`} style={{ opacity: fade }}>
                 {L('org.headcount', { count: n.summaryCount })}
               </div>
             )}

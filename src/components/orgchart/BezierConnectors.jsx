@@ -8,7 +8,12 @@ const STAFF_STUB_Y = 34;
  * highlightIds — 강조할 조직 단위 id 를 회사 루트부터 차례로 (§5.4-B 내 소속 연결선 강조). 안 주면 강조가 없다.
  * 두 id 가 모두 목록에 있는 부모→자식 선과, 그 길을 지나는 사람 카드 줄(마지막 단위에서는 본인 카드
  * `data-self` 까지)을 회색 위에 한 번 더 긋는다. 대표 직속 곁가지 아래면 트렁크는 함께 쓰는 선이라 회색으로 둔다.
+ *
+ * `.org-node[data-faded="true"]` — 그 노드로 들어오는 선 · 그 노드 안 사람 카드로 내려가는 선 · 그 아래 하위로 가는 선을
+ * 같은 회색에 불투명도 .6 으로 따로 긋는다(스쿼드 구조 그림의 완료·보관 스쿼드 · pivit-work PW-2957). 표시가 없는 화면은 그대로다.
+ * 직각 선이 형제의 진한 선과 겹치는 구간은 진한 선이 보인다(기획 v3.69 §5-6-B 가 허용).
  */
+const FADED_OPACITY = 0.6;
 export default function BezierConnectors({ containerRef, scale, lineStyle = 'ortho', highlightIds }) {
   const svgRef = useRef(null);
   const rafRef = useRef(null);
@@ -31,6 +36,8 @@ export default function BezierConnectors({ containerRef, scale, lineStyle = 'ort
       const hi = highlightKey ? new Set(highlightKey.split('\n')) : null;
       let hiPathData = '';
       let hiDashedPathData = '';
+      let fadedPathData = '';
+      const isFaded = el => !!el && el.dataset.faded === 'true';
       const isOn = el => !!(hi && el && hi.has(el.dataset.nodeId));
       // 강조 길이 이 노드에서 아래로 이어지나 — 하위 줄이나 곁가지 중 하나가 길 위에 있다.
       const childOnPath = el => isOn(el) && [...el.querySelectorAll(':scope > .children-row > .child-branch > .org-node, :scope > .staff-branches > .staff-branch > .org-node')].some(isOn);
@@ -99,7 +106,8 @@ export default function BezierConnectors({ containerRef, scale, lineStyle = 'ort
           const cx = (childRect.left + childRect.width / 2 - containerRect.left) / s;
           const cy = (childRect.top - containerRect.top) / s;
           const seg = connectorPath(px, py, cx, cy, lineStyle);
-          pathData += seg;
+          if (isFaded(parentNode) || isFaded(branch.querySelector(':scope > .org-node'))) fadedPathData += seg;
+          else pathData += seg;
           if (parentOn && isOn(branch.querySelector(':scope > .org-node'))) hiPathData += seg;
         });
       });
@@ -128,7 +136,8 @@ export default function BezierConnectors({ containerRef, scale, lineStyle = 'ort
           const targetY = (mRect.top - containerRect.top) / s;
 
           const seg = connectorPath(lastX, lastY, targetX, targetY, lineStyle);
-          pathData += seg;
+          if (isFaded(node)) fadedPathData += seg;
+          else pathData += seg;
           if (memberHi) hiPathData += seg;
           if (memberEl.dataset.self === 'true') memberHi = false;
 
@@ -138,6 +147,7 @@ export default function BezierConnectors({ containerRef, scale, lineStyle = 'ort
       });
 
       svg.innerHTML = `<path d="${pathData}" fill="none" stroke="#d2d6db" stroke-width="1" stroke-linejoin="round"/>`
+        + (fadedPathData ? `<path class="connector-faded" d="${fadedPathData}" fill="none" style="stroke: var(--colors-grayNeutral-300)" stroke-width="1" stroke-linejoin="round" opacity="${FADED_OPACITY}"/>` : '')
         + (dashedPathData ? `<path class="connector-direct" d="${dashedPathData}" fill="none" stroke="#d2d6db" stroke-width="1" stroke-dasharray="4 3"/>` : '')
         // 강조선은 회색선 위에 — 나중에 넣는 것이 위에 그려진다.
         + (hiPathData ? `<path class="connector-highlight" d="${hiPathData}" fill="none" stroke-linejoin="round"/>` : '')
