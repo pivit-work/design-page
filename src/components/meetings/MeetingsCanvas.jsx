@@ -47,9 +47,10 @@ function MeetingRow({ meeting, onStart, onRowClick, statusLabels, isStarting, st
       <div className="mtg-row-body">
         <div className="mtg-row-head">
           <span className="mtg-row-title">{meeting.title}</span>
-          {/* 외부 전사로 가져온 회의 — 회의명 오른쪽 회색 출처 배지 「파일 · 다글로」 (pivit-work PW-2602 · list.policy §3.2). */}
+          {/* 외부 전사로 가져온 회의 — 회의명 오른쪽 회색 출처 배지 「파일 · 다글로」 (pivit-work PW-2602 · list.policy §3.2).
+              모양은 옆 상태 딱지와 같은 .mtg-tag — 클래스 없이는 바탕색만 깔린 형광펜 글씨였다(pivit-work PW-2928). */}
           {meeting.originBadge && (
-            <StatusBadge tone="neutral" data-testid="mtg-row-origin-badge">{meeting.originBadge}</StatusBadge>
+            <StatusBadge className="mtg-tag" tone="neutral" data-testid="mtg-row-origin-badge">{meeting.originBadge}</StatusBadge>
           )}
           {statusTag && (
             <StatusBadge className={`mtg-tag ${statusTag.className}`}>{statusTag.label}</StatusBadge>
