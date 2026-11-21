@@ -27,7 +27,7 @@ import { ExportMenu, SalaryExportModal, IconLock } from './employeeExport.jsx';
 import {
   HrProfileModal, HrProfileInline, flushSalaryPending, SalaryHistoryModal, CeoConfirmModal, CeoBadge, IconSalary, IconCrown, fmtSalaryWithCurrency,
   serviceStartHintText, isoDay,
-  peekHrProfile, keepHrProfile, keepHrTrainings, forgetLoad as forgetHrProfile, keepLoadForCancel,
+  peekHrProfile, keepHrProfile, keepHrTrainings, keepHrBenefits, forgetLoad as forgetHrProfile, keepLoadForCancel,
   hasHrProfileEntry, armLoad, settleLoadOnEnter, disarmLoad, bumpHandoffEpoch, currentHandoffEpoch,
 } from './AdminEmployeeRecordModals.jsx';
 import { buildExportItems } from './employeeExportItems.js';
@@ -6250,6 +6250,8 @@ function EmployeesEditPanel({
     const loads = Promise.allSettled([
       fetchInto(onLoadHrProfile, (p) => keepHrProfile(onLoadHrProfile, id, p)),
       onLoadHrProfile ? fetchInto(hrRecordHandlers?.onLoadTrainings, (r) => keepHrTrainings(onLoadHrProfile, id, r)) : null,
+      // 복리후생(«보상» 탭)도 — 받아 두지 않으면 읽기 화면에서 «로딩 중...»으로 비었다(pivit-work PW-2924 7회차 브라우저 확인 77)
+      onLoadHrProfile && canViewSalary ? fetchInto(hrRecordHandlers?.onLoadBenefits, (b) => keepHrBenefits(onLoadHrProfile, id, b)) : null,
       fetchInto(perfLoader, (v) => handOffSection(perfLoader, id, v)),
       fetchInto(leaveLoader, (v) => handOffSection(leaveLoader, id, v)),
       fetchInto(onLoadArchivedRecords, (v) => handOffSection(onLoadArchivedRecords, id, v)),

@@ -806,6 +806,7 @@ function rememberLoad(scope, kind, memberId, value) {
 export const peekHrProfile = (scope, memberId) => recentLoad(scope, 'profile', memberId);
 export const keepHrProfile = (scope, memberId, value) => rememberLoad(scope, 'profile', memberId, value);
 export const keepHrTrainings = (scope, memberId, value) => rememberLoad(scope, 'trainings', memberId, Array.isArray(value) ? value : null);
+export const keepHrBenefits = (scope, memberId, value) => rememberLoad(scope, 'benefits', memberId, value && typeof value === 'object' ? value : null);
 /*
   «넘겨받기 표시» — 위 칸은 [취소]·저장 뒤 다시 붙을 때만 쓴다(pivit-work PW-2924 6회차 적대적 리뷰 · 정책서 §4
   «불러오는 중 | 페이지에 들어올 때 · 이전/다음»). [취소]·저장이 표시를 걸고, 상세 페이지가 붙으며 표시가 없으면 칸을 비운다.
@@ -2073,6 +2074,7 @@ export function HrProfileInline({
       {onLoadBenefits && (
         <HrBenefitsSection
           memberId={memberId}
+          cacheScope={onLoad}
           saved={benefitsSaved}
           labels={L}
           onLoad={onLoadBenefits}
@@ -2693,17 +2695,21 @@ const benefitBodyOf = (d) => ({
  * `onDraftChange` 를 주면(pivit-work PW-2797) [복리후생 저장] 버튼 없이, 고친 내용을
  * `{ body, invalid }`(안 고쳤으면 null)로 부모에게 알리기만 한다 — 보내기는 페이지 [저장] 때.
  */
-function HrBenefitsSection({ memberId, labels, onLoad, onSave, onDraftChange, saved }) {
+function HrBenefitsSection({ memberId, labels, onLoad, onSave, onDraftChange, saved, cacheScope }) {
   const L = labels || {};
-  const [draft, setDraft] = useState(null);
-  const [base, setBase] = useState(null);
+  // 읽기로 붙을 때는 방금 불러온(저장한) 값으로 먼저 그린다(recentLoad · pivit-work PW-2924 7회차). 수정 칸은 늘 새로 불러온 값에서
+  const [draft, setDraft] = useState(() => {
+    const hit = !onSave && !onDraftChange ? recentLoad(cacheScope, 'benefits', memberId) : null;
+    return hit ? benefitDraftOf(hit) : null;
+  });
+  const [base, setBase] = useState(() => draft);
   const [loadError, setLoadError] = useState(false);
   const [state, setState] = useState('idle');
 
   useEffect(() => {
     let alive = true;
     Promise.resolve(onLoad(memberId))
-      .then((b) => { if (alive) { const d = benefitDraftOf(b); setDraft(d); setBase(d); } })
+      .then((b) => { rememberLoad(cacheScope, 'benefits', memberId, b); if (alive) { const d = benefitDraftOf(b); setDraft(d); setBase(d); } })
       .catch(() => { if (alive) { setDraft(EMPTY_BENEFIT); setBase(EMPTY_BENEFIT); setLoadError(true); } });
     return () => { alive = false; };
   }, [memberId, onLoad]);
