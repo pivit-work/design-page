@@ -5826,11 +5826,12 @@ function EmployeesEditPanel({
       })
       .catch((err) => {
         if (!alive) return;
-        // 먼저 그린 값이 있으면 그대로 둔다 — 다음 [수정]·이동 때 다시 불러온다
-        if (refreshing) { setIdentityState('ready'); return; }
-        /* 그 사이 등록 취소된 사람(호출부가 `notFound` 를 단다) — 상세 페이지면 다음 사람으로 넘긴다(PW-2797 E2) */
+        /* 그 사이 등록 취소된 사람(호출부가 `notFound` 를 단다) — 상세 페이지면 다음 사람으로 넘긴다(PW-2797 E2).
+           먼저 그린 값이 있어도([취소] 뒤 다시 불러오기) 같다 — 없어진 사람의 옛 값을 남기지 않는다(pivit-work PW-2924 리뷰) */
         if (err?.notFound && onGoneRef.current) { onGoneRef.current(); return; }
-        // 전역 오류 화면으로 튕기지 않는다 — 편집 중이던 다른 칸까지 날아간다.
+        /* 먼저 그린 값이 있어도 실패는 알린다 — 정책서 §6 «불러오기 실패 | 문구 + [다시 시도] · [수정]은 숨는다».
+           옛 값을 최신처럼 두고 [수정]을 열면 그 값에서 고치게 된다(pivit-work PW-2924 리뷰).
+           전역 오류 화면으로 튕기지 않는다 — 편집 중이던 다른 칸까지 날아간다. */
         setIdentityState('error');
       });
     return () => { alive = false; };

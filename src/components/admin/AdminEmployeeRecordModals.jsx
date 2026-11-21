@@ -813,11 +813,18 @@ export function keepLoadForCancel(scope, memberId) {
     if (hit) c[kind].set(memberId, { at: now, value: hit.value });
   }
 }
-/** 보내기 시작하면 잊는다 — 저장 뒤 새로 붙은 화면이 저장 전 값을 잠깐이라도 보이지 않게 */
+/**
+ * 보내기 시작하면 «만료»로 둔다 — 저장 뒤 새로 붙은 화면이 저장 전 값을 잠깐이라도 보이지 않게.
+ * 지우지 않는 것은 저장이 막히거나(사유 창 [취소] · 날짜 조건 · 거절) 페이지 [취소]로 끝날 때
+ * keepLoadForCancel 이 [수정] 전 값을 되살리게 하려는 것이다(적대적 리뷰 5회차 Major).
+ */
 export function forgetLoad(scope, memberId) {
-  const c = scopeOf(scope);
-  c?.profile.delete(memberId);
-  c?.trainings.delete(memberId);
+  const c = memberId ? scopeOf(scope) : null;
+  if (!c) return;
+  for (const kind of ['profile', 'trainings']) {
+    const hit = c[kind].get(memberId);
+    if (hit) c[kind].set(memberId, { at: -Infinity, value: hit.value });
+  }
 }
 
 // ── 미뤄 보내기 버퍼 (pivit-work PW-2797 · 구성원 상세 [수정] → 페이지 [저장]) ──────────────
@@ -1557,7 +1564,6 @@ export function HrProfileInline({
   const [data, setData] = useState(() => (editable ? null : recentLoad(onLoad, 'profile', memberId)));
   const [fresh, setFresh] = useState(false);
   const [loading, setLoading] = useState(() => data === null);
-  const shownRef = useRef(data !== null);
   const [error, setError] = useState(false);
   const [identityDraft, setIdentityDraft] = useState(null);
   const [seededId, setSeededId] = useState(null);
@@ -1573,8 +1579,7 @@ export function HrProfileInline({
     let alive = true;
     Promise.resolve(onLoad(memberId))
       .then((d) => { rememberLoad(onLoad, 'profile', memberId, d); if (alive) { setData(d); setFresh(true); } })
-      // 먼저 그린 값이 있으면 그대로 둔다 — 페이지 머리와 같다(다음 [수정]·이동 때 다시 불러온다)
-      .catch(() => { if (alive && !shownRef.current) setError(true); })
+      .catch(() => { if (alive) setError(true); })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
   }, [memberId, onLoad]);
@@ -2028,7 +2033,6 @@ function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelet
   const L = labels || {};
   // 읽기로 붙을 때는 방금 불러온 줄로 먼저 그린다(위 recentLoad · pivit-work PW-2924)
   const [rows, setRows] = useState(() => (deferred ? null : recentLoad(cacheScope, 'trainings', memberId)));
-  const shownRef = useRef(rows !== null);
   const [loadError, setLoadError] = useState(false);
   const [form, setForm] = useState(EMPTY_TRAINING);
   const [editingId, setEditingId] = useState(null);
@@ -2039,7 +2043,7 @@ function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelet
     let alive = true;
     Promise.resolve(onLoad(memberId))
       .then((r) => { const list = Array.isArray(r) ? r : []; rememberLoad(cacheScope, 'trainings', memberId, list); if (alive) setRows(list); })
-      .catch(() => { if (alive && !shownRef.current) { setRows([]); setLoadError(true); } });
+      .catch(() => { if (alive) { setRows([]); setLoadError(true); } });
     return () => { alive = false; };
   }, [memberId, onLoad]);
 
