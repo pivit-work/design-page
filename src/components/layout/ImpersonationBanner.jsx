@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { Fragment, useLayoutEffect, useRef, useState } from 'react';
 import Button from '../shared/Button.jsx';
 
 /**
@@ -65,7 +65,9 @@ export default function ImpersonationBanner({
     }
     const mark = () => {
       const nodes = [...box.querySelectorAll(':scope > .pw-impersonation-banner__part')];
-      // 늘 «선이 다 있을 때» 자리로 잰다 — 선을 뺀 채 재면 좁아진 토막이 윗줄로 올라가 선이 붙었다 빠졌다 오간다.
+      // 늘 «선이 다 있고 줄을 끊지 않았을 때» 자리로 잰다 — 선을 뺀 채 재면 좁아진 토막이 윗줄로 올라가 선이 붙었다 빠졌다 오간다.
+      const breaks = [...box.querySelectorAll(':scope > .pw-impersonation-banner__br')];
+      breaks.forEach((b) => { b.style.display = 'none'; });
       nodes.forEach((n) => n.classList.remove('is-line-start'));
       const starts = [];
       for (let i = 1; i < nodes.length; i += 1) {
@@ -74,7 +76,8 @@ export default function ImpersonationBanner({
         const cur = nodes[i].getBoundingClientRect();
         if (prev && cur.top >= prev.top + prev.height / 2) starts.push(i);
       }
-      // 잰 뒤 바로 표시를 되돌린다 — 값이 같으면 React 가 다시 그리지 않아 DOM 에서 지운 표시가 남지 않게.
+      // 잰 뒤 바로 되돌린다 — 값이 같으면 React 가 다시 그리지 않아 DOM 에서 지운 표시·줄바꿈이 사라진 채 남지 않게.
+      breaks.forEach((b) => { b.style.display = ''; });
       nodes.forEach((n, i) => n.classList.toggle('is-line-start', starts.includes(i)));
       const next = starts.join(',');
       setLineStarts((old) => (old === next ? old : next));
@@ -88,16 +91,20 @@ export default function ImpersonationBanner({
   const startSet = lineStarts ? lineStarts.split(',').map(Number) : [];
   const text = parts
     ? message.map((part, i) => (
-      <span
-        key={i}
-        className={[
-          'pw-impersonation-banner__part',
-          i ? 'is-sub' : '',
-          stackedParts && startSet.includes(i) ? 'is-line-start' : '',
-        ].filter(Boolean).join(' ')}
-      >
-        {part}
-      </span>
+      // 선을 뺀 토막은 13px 좁아져 윗줄 남은 자리에 도로 들어갈 수 있다 — 그 앞에서 줄을 끊어 잰 자리에 그대로 둔다
+      // (11-22 디자이너 리뷰: 1300~1340 에서 «로그인 중실제 작업 가능»으로 붙음).
+      <Fragment key={i}>
+        {stackedParts && startSet.includes(i) && <br className="pw-impersonation-banner__br" />}
+        <span
+          className={[
+            'pw-impersonation-banner__part',
+            i ? 'is-sub' : '',
+            stackedParts && startSet.includes(i) ? 'is-line-start' : '',
+          ].filter(Boolean).join(' ')}
+        >
+          {part}
+        </span>
+      </Fragment>
     ))
     : message;
   return (
