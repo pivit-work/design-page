@@ -86,10 +86,11 @@ const ICON_EDIT = '/icons-solid/edit-05.svg';
 
 const DEFAULT_LABELS = {
   stats: { total: '전체 규칙', active: '활성', inactive: '비활성', unit: '개' },
-  // 안내 — 문장마다 한 줄(첫 줄은 진하게, 나머지는 흐리게). 글 하나로 주면 한 줄로 보인다.
+  // 안내 — 문장마다 한 줄(첫 줄 진하게 · 둘째 보통 · 셋째부터 작고 옅게). 글 하나로 주면 한 줄로 보인다.
   infoBanner: [
     '조직 전체 알림 규칙을 관리합니다.',
     '"조건 편집 가능" 배지가 있는 규칙은 발동 임계값을 직접 수정할 수 있습니다.',
+    '팀원은 평가 알림 중 사본(참조 리마인더·리포트 승인)만 끌 수 있습니다. 일정·할 일 알림은 끌 수 없습니다.',
   ],
   filterLabel: '수신 대상 필터',
   // 필터를 골랐을 때 줄 오른쪽 — 글이면 {n} 자리에 보이는 규칙 수, 함수면 (n) => 글
@@ -728,17 +729,24 @@ export default function AdminNotificationsCanvas({
     { key: 'active', label: labels.stats.active, value: `${activeCount}${labels.stats.unit}`, ...(activeCount === 0 ? { tone: 'muted' } : {}) },
     { key: 'inactive', label: labels.stats.inactive, value: `${inactiveCount}${labels.stats.unit}`, ...(inactiveCount === 0 ? { tone: 'muted' } : {}) },
   ];
-  const [leadLine, ...restLines] = asLines(labels.infoBanner);
+  // 안내 세 단(PW-3125) — 첫 문장 진하게 · 둘째 보통 · 나머지(«끌 수 있는 것») 작고 옅게
+  const [leadLine, bodyLine, ...fineLines] = asLines(labels.infoBanner);
 
   return (
     <div className="admin-notif-canvas">
       {/* 요약 — 흰 판 한 장 안 숫자 칸 셋(공용 숫자 칸 줄) */}
       <StatStrip items={statItems} testId="admin-notif-summary" />
 
-      {/* 안내 — 바탕 없는 줄, 문장마다 한 줄(첫 줄 기본 · 나머지 흐림) */}
+      {/* 안내 — 바탕 없는 줄, 문장마다 한 줄. 공용 안내 줄 틀은 두 단(기본 · 흐림)뿐이라
+          셋째 단(작고 옅게)은 디자이너 도움말 줄(.login-hint · .rsx-views-hint) 값으로 따로 그린다. */}
       <div className="admin-notif-guide" data-testid="admin-notif-guide">
         <NoticeLines lines={[leadLine]} />
-        <NoticeLines lines={restLines} tone="muted" />
+        <NoticeLines lines={[bodyLine]} tone="muted" />
+        {fineLines.filter(Boolean).map((line, i) => (
+          <p key={i} className="admin-notif-guide-fine" data-testid="admin-notif-guide-fine">
+            {line}
+          </p>
+        ))}
       </div>
 
       {/* 역할별 필터 — 하나만 고르므로 공용 SegmentedControl (PW-1897). 고르면 보이는 규칙 수 */}
