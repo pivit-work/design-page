@@ -6354,6 +6354,9 @@ function EmployeesEditPanel({
     /* 소속·발령·퇴사 되돌리기는 확인 창이 끼는 따로 된 흐름이라 묶음(한 트랜잭션)에 싣지 않는다 — 앱이 종전처럼 몫마다 보낸다 */
     const batchable = !appointmentPayload && !affilChanged
       && !(member.employmentStatus === 'terminated' && draft.employmentStatus !== 'terminated');
+    /* 묶음(한 트랜잭션)이 아니면 앞 몫만 저장되고 뒤 몫이 실패할 수 있다 — 그 뒤 [취소]가 저장 전 값을 되살리지 않게 지운다.
+       묶음이면 다 되거나 하나도 안 되므로 만료로만 둔다(막히거나 실패한 뒤 [취소]면 [수정] 전 값이 곧 서버 값) */
+    if (!batchable) forgetHrProfile(onLoadHrProfile, member?.id, { hard: true });
     const pageSave = beginPageSave({ batchable });
     try {
       /* 날짜를 **먼저** 보낸다. 상태 저장이 성공한 뒤 날짜가 실패하면 「수습으로 바뀌었는데
@@ -6445,6 +6448,7 @@ function EmployeesEditPanel({
           return;
         }
       }
+      forgetHrProfile(onLoadHrProfile, member?.id, { hard: true });
       await finishSave();
     } finally {
       pageSave?.onPageSaveEnd?.(member.id);

@@ -818,12 +818,14 @@ export function keepLoadForCancel(scope, memberId) {
  * 지우지 않는 것은 저장이 막히거나(사유 창 [취소] · 날짜 조건 · 거절) 페이지 [취소]로 끝날 때
  * keepLoadForCancel 이 [수정] 전 값을 되살리게 하려는 것이다(적대적 리뷰 5회차 Major).
  */
-export function forgetLoad(scope, memberId) {
+export function forgetLoad(scope, memberId, { hard = false } = {}) {
   const c = memberId ? scopeOf(scope) : null;
   if (!c) return;
   for (const kind of ['profile', 'trainings']) {
     const hit = c[kind].get(memberId);
-    if (hit) c[kind].set(memberId, { at: -Infinity, value: hit.value });
+    // hard: 서버에 무엇이든 쓰였을 수 있다(저장 성공 · 몫마다 따로 나가는 저장) — [취소]가 저장 전 값을 되살리지 않게 지운다
+    if (hard) c[kind].delete(memberId);
+    else if (hit) c[kind].set(memberId, { at: -Infinity, value: hit.value });
   }
 }
 
