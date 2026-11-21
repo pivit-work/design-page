@@ -5,6 +5,7 @@
  * - 직급 · 직책은 글자가 아니라 필드 옵션 순서(조직 설정에서 정한 순번).
  * - 소속은 주 소속 경로. 겸직은 순서에 끼어들지 않는다.
  * - 빈 값은 방향과 무관하게 맨 아래. 같은 값끼리는 원래 순서(안정 정렬).
+ *   단 «소속»의 빈 값(«미배정»)은 오름차순 맨 뒤 · 내림차순 맨 앞이다(admin-spec §3.1 «PW-2927»).
  * - 대표 행은 정렬과 무관하게 맨 위.
  *
  * 🔴 명부 내보내기 «현재 화면 그대로»가 서버에서 같은 순서를 만든다
@@ -97,11 +98,13 @@ export function sortListMembers(rows, sort, ctx = {}) {
   const out = [...rows];
   if (sort && !LIST_NO_SORT_COLS.has(sort.col)) {
     const dir = sort.dir === 'desc' ? -1 : 1;
+    // «미배정»은 가장 큰 값처럼 — 내림차순에서 맨 앞(PW-2927). 다른 열의 빈 값은 늘 맨 아래.
+    const nullSide = sort.col === 'dept' ? dir : 1;
     const keyed = out.map((m, i) => ({ m, i, k: listSortValue(m, sort.col, ctx) }));
     keyed.sort((a, b) => {
       if (a.k === null && b.k === null) return a.i - b.i;
-      if (a.k === null) return 1;
-      if (b.k === null) return -1;
+      if (a.k === null) return nullSide;
+      if (b.k === null) return -nullSide;
       return compareListSortValues(a.k, b.k) * dir || a.i - b.i;
     });
     out.splice(0, out.length, ...keyed.map((x) => x.m));

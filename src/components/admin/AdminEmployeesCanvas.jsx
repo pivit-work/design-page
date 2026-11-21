@@ -1862,7 +1862,7 @@ function ListDeptLabel({ member, orgTree, labels, leaderUnitIds }) {
   if (list.length === 0) {
     const direct = directLabelOf(member);
     // 개인 직속은 경고 톤이 아니라 회색 글자 · «주» 배지 없음(PW-2927 ③).
-    if (direct) return <span className="admin-emp-row-direct" data-testid="list-dept-direct">{direct}</span>;
+    if (direct) return <span className="admin-emp-row-direct" title={direct} data-testid="list-dept-direct">{direct}</span>;
     return <DpStatusBadge className="admin-emp-pill is-amber">{labels.unassignedPill}</DpStatusBadge>;
   }
   const primary = list.find((d) => d.isPrimary) || list[0];
