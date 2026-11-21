@@ -896,6 +896,26 @@ function mergePending(rows, p) {
     .map((r) => (q.updates[r.id] ? { ...r, ...q.updates[r.id] } : r))
     .concat(q.adds.map((a) => ({ ...a.body, id: a.id, __pending: true })));
 }
+/*
+  보낸 것 = 보내기 전 버퍼 − 남은 버퍼 (pivit-work PW-2924 7회차). 저장 중 하나 보낼 때마다 버퍼에서 빼면, 서버에서 새 목록을
+  받기 전까지 그 줄이 화면에서 사라졌다(저장 중 0.35~8초 · 11-22 dev 확인 67). 보낸 것은 새 목록을 받을 때까지 따로 들고 그린다.
+*/
+function sentOf(before, after) {
+  const b = pendingOf(before);
+  const a = pendingOf(after);
+  const leftAdds = new Set(a.adds.map((x) => x.id));
+  const leftDeletes = new Set(a.deletes);
+  return {
+    adds: b.adds.filter((x) => !leftAdds.has(x.id)),
+    updates: Object.fromEntries(Object.entries(b.updates).filter(([id]) => !(id in a.updates))),
+    deletes: b.deletes.filter((id) => !leftDeletes.has(id)),
+  };
+}
+function joinPending(x, y) {
+  const a = pendingOf(x);
+  const b = pendingOf(y);
+  return { adds: [...a.adds, ...b.adds], updates: { ...a.updates, ...b.updates }, deletes: [...a.deletes, ...b.deletes] };
+}
 /** 더하기(`id` 없음)·안 보낸 줄 고치기·있던 줄 고치기를 버퍼에 담는다. */
 function pendingSave(p, id, body) {
   const q = pendingOf(p);
@@ -1610,10 +1630,20 @@ export function HrProfileInline({
   const [bankRevealed, setBankRevealed] = useState(null);
   const [bankRevealState, setBankRevealState] = useState('idle');
   const [recPending, setRecPending] = useState({});
+  /* 보냈지만 새 목록을 아직 못 받은 것 — 받을 때까지 화면에 그대로 그린다(sentOf · pivit-work PW-2924 7회차) */
+  const [recSent, setRecSent] = useState({});
   const [trPending, setTrPending] = useState(emptyPending);
+  const [trSent, setTrSent] = useState(emptyPending);
   const [trEpoch, setTrEpoch] = useState(0);
+  /* 다른 사람으로 바뀌면 앞 사람에게 보낸 줄을 들고 있지 않는다 */
+  const [sentFor, setSentFor] = useState(memberId);
+  if (sentFor !== memberId) {
+    setSentFor(memberId);
+    setRecSent({});
+    setTrSent(emptyPending());
+  }
   const [benefits, setBenefits] = useState(null);
-  const [bnEpoch, setBnEpoch] = useState(0);
+  const [benefitsSaved, setBenefitsSaved] = useState(null);
 
   useEffect(() => {
     let alive = true;
@@ -1623,7 +1653,7 @@ export function HrProfileInline({
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
   }, [memberId, onLoad]);
-  const reload = () => Promise.resolve(onLoad(memberId)).then((d) => { if (d) { rememberLoad(onLoad, 'profile', memberId, d); setData(d); setFresh(true); } }).catch(() => {});
+  const reload = () => Promise.resolve(onLoad(memberId)).then((d) => { if (d) { rememberLoad(onLoad, 'profile', memberId, d); setData(d); setFresh(true); setRecSent({}); } }).catch(() => {});
 
   const identity = data?.identity ?? {};
   if (data && fresh && seededId !== memberId) {
@@ -1681,6 +1711,8 @@ export function HrProfileInline({
           if (!pendingSize(p)) continue;
           const progress = (rest) => {
             wrote();
+            const sent = sentOf(left[kind], rest);
+            setRecSent((prev) => ({ ...prev, [kind]: joinPending(prev[kind], sent) }));
             left[kind] = rest;
             setRecPending((prev) => ({ ...prev, [kind]: rest }));
           };
@@ -1703,14 +1735,15 @@ export function HrProfileInline({
             add: (body) => onAddTraining(memberId, body),
             update: (id, body) => onUpdateTraining(memberId, id, body),
             remove: (id) => onDeleteTraining(memberId, id),
-          }, (rest) => { wrote(); trLeft = rest; setTrPending(rest); });
+          }, (rest) => { wrote(); const sent = sentOf(trLeft, rest); setTrSent((prev) => joinPending(prev, sent)); trLeft = rest; setTrPending(rest); });
         }
         if (!benefitsDone) {
-          await onSaveBenefits(memberId, benefits.body);
+          const savedBenefits = await onSaveBenefits(memberId, benefits.body);
           wrote();
           benefitsDone = true;
           setBenefits(null);
-          setBnEpoch((e) => e + 1);
+          /* 다시 붙이면(«불러오는 중…») 저장 중 칸이 비었다 — 저장한 값을 그 자리에 그대로 둔다(pivit-work PW-2924 7회차) */
+          setBenefitsSaved({ value: savedBenefits ?? benefits.body });
         }
       } finally {
         /* 보낸 만큼은 서버 값으로 다시 그린다 — 실패해도 이미 간 줄이 화면에서 사라지지 않게 */
@@ -1853,7 +1886,10 @@ export function HrProfileInline({
       labels: L,
     };
   };
-  const shownRows = (kind, rows) => (editable ? mergePending(rows, recPending[kind]) : rows);
+  const shownRows = (kind, rows) => {
+    const sent = pendingSize(recSent[kind]) > 0 ? mergePending(rows, recSent[kind]) : rows;
+    return editable ? mergePending(sent, recPending[kind]) : sent;
+  };
 
   const renderPerson = () => (
     <>
@@ -1981,8 +2017,8 @@ export function HrProfileInline({
       </HrSection>
       {onLoadBenefits && (
         <HrBenefitsSection
-          key={`benefits-${bnEpoch}`}
           memberId={memberId}
+          saved={benefitsSaved}
           labels={L}
           onLoad={onLoadBenefits}
           onSave={editable ? onSaveBenefits : undefined}
@@ -2007,7 +2043,9 @@ export function HrProfileInline({
       <HrRecordListSection {...recordDefs.certifications} items={shownRows('certifications', org.certifications ?? [])} {...recordProps('certifications')} />
       {onLoadTrainings && (
         <HrTrainingsSection
-          key={`trainings-${trEpoch}`}
+          reloadKey={trEpoch}
+          sent={trSent}
+          onReloaded={() => setTrSent(emptyPending())}
           cacheScope={onLoad}
           memberId={memberId}
           labels={L}
@@ -2074,7 +2112,7 @@ const EMPTY_TRAINING = { courseName: '', provider: '', completedAt: '', note: ''
  * `pending`·`onPendingChange` 를 주면(pivit-work PW-2797 구성원 상세 [수정]) 더하기·고치기·지우기를 보내지 않고
  * 그 버퍼에만 담는다 — 보이는 목록은 불러온 줄 + 버퍼. 보내기는 부모가 페이지 [저장] 때 한다.
  */
-function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelete, confirmDelete, pending, onPendingChange, cacheScope }) {
+function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelete, confirmDelete, pending, onPendingChange, cacheScope, reloadKey = 0, sent, onReloaded }) {
   const deferred = typeof onPendingChange === 'function';
   const L = labels || {};
   // 읽기로 붙을 때는 방금 불러온 줄로 먼저 그린다(위 recentLoad · pivit-work PW-2924)
@@ -2085,13 +2123,19 @@ function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelet
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
 
+  /* 저장 뒤 다시 불러올 때(reloadKey)는 지금 줄을 둔 채 받는다 — 다시 붙이면 «불러오는 중»으로 비었다(pivit-work PW-2924 7회차).
+     받으면 «보냈지만 아직 못 받은 줄»(sent)을 부모가 비운다 — 같은 렌더에서 바뀌어 두 번 보이지 않는다 */
   useEffect(() => {
     let alive = true;
     Promise.resolve(onLoad(memberId))
-      .then((r) => { const list = Array.isArray(r) ? r : []; rememberLoad(cacheScope, 'trainings', memberId, list); if (alive) setRows(list); })
-      .catch(() => { if (alive) { setRows([]); setLoadError(true); } });
+      .then((r) => {
+        const list = Array.isArray(r) ? r : [];
+        rememberLoad(cacheScope, 'trainings', memberId, list);
+        if (alive) { setRows(list); setLoadError(false); if (reloadKey) onReloaded?.(); }
+      })
+      .catch(() => { if (alive) { setRows((prev) => prev ?? []); setLoadError(true); } });
     return () => { alive = false; };
-  }, [memberId, onLoad]);
+  }, [memberId, onLoad, reloadKey]);
 
   const run = async (fn) => {
     setBusy(true);
@@ -2134,7 +2178,8 @@ function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelet
   const cancelEdit = () => { setEditingId(null); setForm(EMPTY_TRAINING); };
 
   const canEdit = Boolean(onAdd);
-  const list = deferred ? mergePending(rows ?? [], pending) : (rows ?? []);
+  const base = pendingSize(sent) > 0 ? mergePending(rows ?? [], sent) : (rows ?? []);
+  const list = deferred ? mergePending(base, pending) : base;
   return (
     <HrSection title={L.hrTrainings || '수료한 교육 과정'} count={list.length}>
       <div data-testid="hr-trainings">
@@ -2593,7 +2638,7 @@ const benefitBodyOf = (d) => ({
  * `onDraftChange` 를 주면(pivit-work PW-2797) [복리후생 저장] 버튼 없이, 고친 내용을
  * `{ body, invalid }`(안 고쳤으면 null)로 부모에게 알리기만 한다 — 보내기는 페이지 [저장] 때.
  */
-function HrBenefitsSection({ memberId, labels, onLoad, onSave, onDraftChange }) {
+function HrBenefitsSection({ memberId, labels, onLoad, onSave, onDraftChange, saved }) {
   const L = labels || {};
   const [draft, setDraft] = useState(null);
   const [base, setBase] = useState(null);
@@ -2607,6 +2652,16 @@ function HrBenefitsSection({ memberId, labels, onLoad, onSave, onDraftChange }) 
       .catch(() => { if (alive) { setDraft(EMPTY_BENEFIT); setBase(EMPTY_BENEFIT); setLoadError(true); } });
     return () => { alive = false; };
   }, [memberId, onLoad]);
+  /* 페이지 [저장하기]가 보낸 값 — 다시 붙이지 않고 그 값을 «저장된 값»으로 삼는다(pivit-work PW-2924 7회차) */
+  const [seenSaved, setSeenSaved] = useState(saved);
+  if (saved !== seenSaved) {
+    setSeenSaved(saved);
+    if (saved) {
+      const next = benefitDraftOf(saved.value);
+      setDraft(next);
+      setBase(next);
+    }
+  }
 
   const d = draft ?? EMPTY_BENEFIT;
   const set = (key) => (v) => { setDraft((p) => ({ ...(p ?? EMPTY_BENEFIT), [key]: v })); setState('idle'); };
