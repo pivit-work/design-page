@@ -920,12 +920,29 @@ function withSent(rows, ops) {
   for (const o of ops) if (o.op === 'update') upd[o.id] = { ...(upd[o.id] || {}), ...o.body };
   const have = new Set((rows ?? []).map((r) => r.id));
   const adds = ops.filter((o) => o.op === 'add').map((o) => {
-    const sid = o.saved && typeof o.saved === 'object' ? o.saved.id : undefined;
-    return sid ? { ...o.body, ...o.saved, id: sid } : { ...o.body, id: o.id, __pending: true };
-  }).filter((r) => !have.has(r.id));
+    const saved = savedRowOf(o, have);
+    if (saved === SAVED_SHOWN) return null;
+    return saved ? { ...o.body, ...saved, id: saved.id } : { ...o.body, id: o.id, __pending: true };
+  }).filter((r) => r && !have.has(r.id));
   return (rows ?? []).concat(adds)
     .filter((r) => !gone.has(r.id))
     .map((r) => (upd[r.id] ? { ...r, ...upd[r.id] } : r));
+}
+/*
+  더한 줄의 서버 줄. 기록 저장은 그 줄 하나를, 교육 과정 추가는 그 사람의 교육 과정 목록 전체를 돌려준다 —
+  목록이면 보낸 칸이 모두 같은 줄 중 아직 화면에 없는 것을 고른다. 같은 줄이 이미 화면에 있으면 SAVED_SHOWN(두 번 그리지 않음).
+*/
+const SAVED_SHOWN = Symbol('saved-shown');
+function savedRowOf(o, have) {
+  const saved = o.saved;
+  if (Array.isArray(saved)) {
+    const same = (r) => r && typeof r === 'object' && Object.entries(o.body ?? {}).every(([k, v]) => String(r[k] ?? '') === String(v ?? ''));
+    const hits = saved.filter(same);
+    const fresh = hits.find((r) => r.id && !have.has(r.id));
+    if (fresh) return fresh;
+    return hits.length > 0 ? SAVED_SHOWN : null;
+  }
+  return saved && typeof saved === 'object' && saved.id ? saved : null;
 }
 function dropSent(ops, upTo) {
   return (ops ?? []).filter((o) => o.seq > upTo);
