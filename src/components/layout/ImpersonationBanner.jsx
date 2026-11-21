@@ -1,4 +1,3 @@
-import { Fragment, useLayoutEffect, useRef, useState } from 'react';
 import Button from '../shared/Button.jsx';
 
 /**
@@ -50,73 +49,32 @@ export default function ImpersonationBanner({
     tone === 'danger' ? 'is-danger' : '',
     detail ? 'is-stacked' : '',
   ].filter(Boolean).join(' ');
-  const textRef = useRef(null);
-  const parts = Array.isArray(message);
-  // 두 줄 띠에서 토막이 통째로 다음 줄로 넘어가면, 그 토막 앞 세로선과 띄움이 줄 머리에 남아 둘째 줄만
-  // 안쪽에서 시작했다(pivit-work PW-2935 11-22 디자이너 리뷰). 줄 머리에 선 토막에 is-line-start 를 붙여 선을 뺀다.
-  // CSS 로는 «줄 머리»를 알 수 없어 그린 뒤 위치로 잰다 — 폭이 바뀌면 다시 잰다.
-  const [lineStarts, setLineStarts] = useState('');
-  const stackedParts = parts && Boolean(detail);
-  useLayoutEffect(() => {
-    const box = textRef.current;
-    if (!box || !stackedParts) {
-      setLineStarts('');
-      return undefined;
-    }
-    const mark = () => {
-      const nodes = [...box.querySelectorAll(':scope > .pw-impersonation-banner__part')];
-      // 늘 «선이 다 있고 줄을 끊지 않았을 때» 자리로 잰다 — 선을 뺀 채 재면 좁아진 토막이 윗줄로 올라가 선이 붙었다 빠졌다 오간다.
-      const breaks = [...box.querySelectorAll(':scope > .pw-impersonation-banner__br')];
-      breaks.forEach((b) => { b.style.display = 'none'; });
-      nodes.forEach((n) => n.classList.remove('is-line-start'));
-      const starts = [];
-      for (let i = 1; i < nodes.length; i += 1) {
-        const prevRects = nodes[i - 1].getClientRects();
-        const prev = prevRects[prevRects.length - 1];
-        const cur = nodes[i].getBoundingClientRect();
-        if (prev && cur.top >= prev.top + prev.height / 2) starts.push(i);
-      }
-      // 잰 뒤 바로 되돌린다 — 값이 같으면 React 가 다시 그리지 않아 DOM 에서 지운 표시·줄바꿈이 사라진 채 남지 않게.
-      breaks.forEach((b) => { b.style.display = ''; });
-      nodes.forEach((n, i) => n.classList.toggle('is-line-start', starts.includes(i)));
-      const next = starts.join(',');
-      setLineStarts((old) => (old === next ? old : next));
-    };
-    mark();
-    if (typeof ResizeObserver === 'undefined') return undefined;
-    const ro = new ResizeObserver(mark);
-    ro.observe(box);
-    // 줄바꿈을 넣으면 글 칸이 첫 줄 길이로 줄어 창을 넓혀도 글 칸 크기는 그대로다 — 띠 겉 상자도 지켜봐야 넓힐 때 다시 잰다
-    // (11-22 디자이너 리뷰: 1280 으로 좁혔다 1440 으로 넓혀도 세 줄로 남음).
-    if (box.parentElement) ro.observe(box.parentElement);
-    return () => ro.disconnect();
-  }, [stackedParts, message]);
-  const startSet = lineStarts ? lineStarts.split(',').map(Number) : [];
-  const text = parts
+  const text = Array.isArray(message)
     ? message.map((part, i) => (
-      // 선을 뺀 토막은 13px 좁아져 윗줄 남은 자리에 도로 들어갈 수 있다 — 그 앞에서 줄을 끊어 잰 자리에 그대로 둔다
-      // (11-22 디자이너 리뷰: 1300~1340 에서 «로그인 중실제 작업 가능»으로 붙음).
-      <Fragment key={i}>
-        {stackedParts && startSet.includes(i) && <br className="pw-impersonation-banner__br" />}
-        <span
-          className={[
-            'pw-impersonation-banner__part',
-            i ? 'is-sub' : '',
-            stackedParts && startSet.includes(i) ? 'is-line-start' : '',
-          ].filter(Boolean).join(' ')}
-        >
-          {part}
-        </span>
-      </Fragment>
+      <span key={i} className={i ? 'pw-impersonation-banner__part is-sub' : 'pw-impersonation-banner__part'}>
+        {part}
+      </span>
     ))
     : message;
   return (
     <div ref={ref} role="status" className={className} {...rest}>
       {icon && <span className="pw-impersonation-banner__icon">{icon}</span>}
       {detail ? (
-        <span ref={textRef} className="pw-impersonation-banner__text">
-          {text}
-          <span className="pw-impersonation-banner__detail">{detail}</span>
+        <span className="pw-impersonation-banner__text">
+          {Array.isArray(message) ? (
+            // 두 줄 띠의 토막은 줄 흐름 대신 감싸는 줄(flex-wrap)에 놓는다 — 토막째만 다음 줄로 넘어가고,
+            // 줄 머리 토막의 세로선은 글 칸 왼쪽 밖으로 밀려 잘린다. 그린 뒤 재지 않아 폭이 바뀌어도 오가지 않는다
+            // (pivit-work PW-2935 11-22 — 재서 선을 빼던 방식은 1300~1320 에서 모양이 계속 바뀌었다).
+            <span className="pw-impersonation-banner__flow">
+              {text}
+              <span className="pw-impersonation-banner__detail">{detail}</span>
+            </span>
+          ) : (
+            <>
+              {text}
+              <span className="pw-impersonation-banner__detail">{detail}</span>
+            </>
+          )}
         </span>
       ) : (
         <span className="pw-impersonation-banner__text">{text}</span>
