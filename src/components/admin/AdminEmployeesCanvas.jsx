@@ -28,7 +28,7 @@ import {
   HrProfileModal, HrProfileInline, flushSalaryPending, SalaryHistoryModal, CeoConfirmModal, CeoBadge, IconSalary, IconCrown, fmtSalaryWithCurrency,
   serviceStartHintText, isoDay,
   peekHrProfile, keepHrProfile, keepHrTrainings, forgetLoad as forgetHrProfile, keepLoadForCancel,
-  peekSection, keepSection,
+  hasHrProfileEntry,
 } from './AdminEmployeeRecordModals.jsx';
 import { buildExportItems } from './employeeExportItems.js';
 import AdminInviteModal from './AdminInviteModal.jsx';
@@ -723,6 +723,26 @@ function merge(base, provided) {
 const PAGE_SIZE = 20;
 /* 저장 뒤 읽기 화면이 먼저 그릴 값을 받아 두는 동안 기다리는 한도 — 넘으면 종전처럼 읽기 화면이 불러온다(pivit-work PW-2924) */
 const SAVED_LOAD_WAIT_MS = 8000;
+/*
+  상세 페이지 묶음(성과 · 지급 자산 · 근태·휴가 · 따로 보관한 기록)의 «넘겨줄 값» (pivit-work PW-2924 6회차).
+  페이지 [취소]·저장은 패널을 새로 붙여 묶음마다 «불러오는 중»부터 그렸다. [취소]·저장 직전에 지금 보이는(또는 저장 뒤 새로 받은)
+  값을 한 번만 넘겨주고, 새로 붙은 읽기 화면이 그 값으로 먼저 그린 뒤 뒤에서 다시 불러온다. 들어올 때 · 이전/다음은 넘겨받지 않는다
+  (정책서 §4 «불러오는 중 | 페이지에 들어올 때 · 이전/다음»). 칸은 묶음의 불러오는 함수마다 · 구성원마다 따로 둔다.
+*/
+const SECTION_HANDOFF_MS = 10 * 1000;
+const sectionHandoffs = new WeakMap();
+function handOffSection(loader, memberId, view) {
+  if (typeof loader !== 'function' || !memberId || !view) return;
+  if (!sectionHandoffs.has(loader)) sectionHandoffs.set(loader, new Map());
+  sectionHandoffs.get(loader).set(memberId, { at: Date.now(), view });
+}
+function peekHandoff(loader, memberId) {
+  const hit = typeof loader === 'function' && memberId ? sectionHandoffs.get(loader)?.get(memberId) : null;
+  return hit && Date.now() - hit.at < SECTION_HANDOFF_MS ? hit.view : null;
+}
+function dropHandoff(loader, memberId) {
+  if (typeof loader === 'function' && memberId) sectionHandoffs.get(loader)?.delete(memberId);
+}
 
 // 기본값으로 쓰는 **고정 빈 배열** — 매 렌더 새 배열을 만들면 하위 memo 가 매번 깨진다.
 const EMPTY_ARRAY = [];
@@ -5714,10 +5734,10 @@ function EmployeesEditPanel({
    * 이 패널은 이미 섹션이 열 개가 넘어서, 이력을 또 하나의 섹션으로 붙이면 편집 흐름
    * 한가운데를 읽기 전용 표가 끊는다.
    */
-  /* 상세 페이지를 [취소]·저장 뒤 다시 붙일 때는 방금 불러온 값으로 먼저 그리고(`refreshing`) 뒤에서 다시 불러온다 —
-     묶음마다 «불러오는 중…»·회색 막대가 몇 초씩 보였다(pivit-work PW-2924 11-21 dev 확인 밖 2 · 정책서 §4 «불러오는 중»은 들어올 때 · 이전/다음만) */
+  /* 상세 페이지를 [취소]·저장 뒤 다시 붙일 때는 넘겨받은 값으로 먼저 그리고(`refreshing`) 뒤에서 다시 불러온다 —
+     묶음마다 «불러오는 중…»·회색 막대가 몇 초씩 보였다(pivit-work PW-2924 11-21 dev 확인 밖 2 · 위 sectionHandoffs) */
   const sectionFirst = (loader) => {
-    const cached = page && loader ? peekSection(loader, member?.id) : null;
+    const cached = page && !page.editing && loader ? peekHandoff(loader, member?.id) : null;
     return { status: cached ? 'refreshing' : loader ? 'loading' : 'idle', view: cached };
   };
   /* 묶음 부품은 «먼저 그린 값으로 다시 불러오는 중»을 «준비됨»으로 그린다 */
@@ -5733,6 +5753,20 @@ function EmployeesEditPanel({
   /* «근태·휴가» 묶음 (PW-2817) — 성과 묶음과 같은 불러오기 · [다시 시도]는 이 묶음만 */
   const leaveLoader = memberLeave?.onLoad;
   const [leaveState, setLeaveState] = useState(() => sectionFirst(leaveLoader));
+  /* 넘겨받은 값은 한 번만 쓴다 — 붙은 뒤 지워 다음 들어올 때 · 이전/다음이 옛 값을 쓰지 않게 */
+  /* 저장 쪽 — 아래 markWritten · endPageSave · finishSave 가 쓴다(pivit-work PW-2924) */
+  const wroteRef = useRef(false);
+  const pageSaveRef = useRef(null);
+  const aliveRef = useRef(true);
+  useEffect(() => {
+    aliveRef.current = true;
+    return () => { aliveRef.current = false; };
+  }, []);
+  const handoffAtMount = useRef({ id: member?.id, loaders: [assetsLoader, perfLoader, leaveLoader, onLoadArchivedRecords] });
+  useEffect(() => {
+    const { id, loaders } = handoffAtMount.current;
+    for (const loader of loaders) dropHandoff(loader, id);
+  }, []);
   const [panelTab, setPanelTab] = useState('info');
   const [historyState, setHistoryState] = useState({ status: 'idle', page: null });
   /* 고른 항목(`all` = 전체)과 「더 보기」 진행 중 여부 (정책서 §2-3·§2-4) */
@@ -5774,7 +5808,7 @@ function EmployeesEditPanel({
     if ((assetsState.status !== 'loading' && assetsState.status !== 'refreshing') || !memberId || !assetsLoader) return undefined;
     let alive = true;
     Promise.resolve(assetsLoader(memberId))
-      .then((view) => { keepSection(assetsLoader, memberId, view); if (alive) setAssetsState({ status: 'ready', view: view || null }); })
+      .then((view) => { if (alive) setAssetsState({ status: 'ready', view: view || null }); })
       // 빈 목록으로 보이면 «지급된 것이 없다»로 읽힌다 — 실패는 실패로 보인다(자리 칸은 입력 그대로 둔다)
       .catch(() => { if (alive) setAssetsState({ status: 'error', view: null }); });
     return () => { alive = false; };
@@ -5784,7 +5818,7 @@ function EmployeesEditPanel({
     if ((perfState.status !== 'loading' && perfState.status !== 'refreshing') || !memberId || !perfLoader) return undefined;
     let alive = true;
     Promise.resolve(perfLoader(memberId))
-      .then((view) => { keepSection(perfLoader, memberId, view); if (alive) setPerfState({ status: 'ready', view: view || null }); })
+      .then((view) => { if (alive) setPerfState({ status: 'ready', view: view || null }); })
       // 빈 목록으로 보이면 «확정된 평가가 없다»로 읽힌다 — 실패는 실패로 보인다(§3.2-D «PW-2818» ⑩)
       .catch(() => { if (alive) setPerfState({ status: 'error', view: null }); });
     return () => { alive = false; };
@@ -5794,7 +5828,7 @@ function EmployeesEditPanel({
     if ((leaveState.status !== 'loading' && leaveState.status !== 'refreshing') || !memberId || !leaveLoader) return undefined;
     let alive = true;
     Promise.resolve(leaveLoader(memberId))
-      .then((view) => { keepSection(leaveLoader, memberId, view); if (alive) setLeaveState({ status: 'ready', view: view || null }); })
+      .then((view) => { if (alive) setLeaveState({ status: 'ready', view: view || null }); })
       // 실패를 «0일»로 보이면 «연차가 없다»로 읽힌다 — 세 칸 «—» + 안내(§3.2.10 «PW-2817» «늦거나 실패할 때»)
       .catch(() => { if (alive) setLeaveState({ status: 'error', view: null }); });
     return () => { alive = false; };
@@ -5806,7 +5840,7 @@ function EmployeesEditPanel({
     if ((archive.status !== 'loading' && archive.status !== 'refreshing') || !memberId || !onLoadArchivedRecords) return undefined;
     let alive = true;
     Promise.resolve(onLoadArchivedRecords(memberId))
-      .then((view) => { keepSection(onLoadArchivedRecords, memberId, view); if (alive) setArchive({ status: 'ready', view }); })
+      .then((view) => { if (alive) setArchive({ status: 'ready', view }); })
       // 빈 칸으로 보이면 «보관한 것이 없다»로 읽힌다 — 실패는 실패로 보인다
       .catch(() => { if (alive) setArchive({ status: 'error', view: null }); });
     return () => { alive = false; };
@@ -6153,6 +6187,18 @@ function EmployeesEditPanel({
   if (wantDirty !== reportedDirty) setReportedDirty(wantDirty);
 
   /** 저장이 끝난 자리 — 페이지는 같은 탭 읽기로 돌아가고(§3.2-D «수정»), 창은 닫힌다(종전). */
+  /* 이 [수정]에서 서버에 무엇이든 쓰였나 — 쓰였으면 [취소]가 저장 전 값(HR 칸 · 근태 · 성과 · 보관 기록)을 되살리지 않는다(pivit-work PW-2924).
+     묶음 저장은 첫 요청이 성공할 때 묶음 전체가 이미 쓰인 것이라 묶음이든 아니든 성공하면 쓰인 것으로 센다. */
+  const markWritten = () => {
+    wroteRef.current = true;
+    if (onLoadHrProfile) forgetHrProfile(onLoadHrProfile, member?.id, { hard: true });
+  };
+  /* 진행 중인 [저장하기]의 사유 창 묶음 — 저장 뒤 값을 받는 동안 사유 창을 잠가 두지 않게 먼저 닫는다 */
+  const endPageSave = () => {
+    const ps = pageSaveRef.current;
+    pageSaveRef.current = null;
+    ps?.onPageSaveEnd?.(member.id);
+  };
   async function finishSave(opts) {
     if (!page) { onClose(); return; }
     const flushes = Object.values(inlineFlushes.current);
@@ -6161,7 +6207,7 @@ function EmployeesEditPanel({
         onAdd: onAddSalaryHistory,
         onUpdate: hrRecordHandlers?.onUpdateSalaryHistory,
         onDelete: hrRecordHandlers?.onDeleteSalaryHistory,
-        onProgress: (rest) => { forgetHrProfile(onLoadHrProfile, member?.id, { hard: true }); setSalaryPending(rest); },
+        onProgress: (rest) => { markWritten(); setSalaryPending(rest); },
       }));
     }
     for (const fn of flushes) {
@@ -6174,32 +6220,45 @@ function EmployeesEditPanel({
         return;
       }
     }
+    markWritten();
+    const savedId = member.id;
+    endPageSave();
     await keepSavedLoads();
-    page.onSaved(opts || {});
+    // 받는 동안 화면을 떠났으면(다른 사람 · 목록) 그 화면의 수정 상태를 건드리지 않는다
+    if (aliveRef.current) page.onSaved(opts || {});
+    else if (savedId) dropSavedHandoffs(savedId);
   }
   /*
     저장이 끝나면 저장 전 HR 값을 버리고, 읽기 화면이 먼저 그릴 «저장 뒤 값»을 받아 둔 다음 읽기로 넘어간다 —
     받아 두지 않으면 읽기 화면이 다시 불러오는 동안 본문이 회색 빈 막대로 비었다(pivit-work PW-2924 11-21 dev 확인 밖 1 ·
     정책서 §4 저장 → «읽기»). 늦으면(SAVED_LOAD_WAIT_MS) 기다리지 않고 넘어가 종전처럼 읽기 화면이 불러온다.
-    성과 · 지급 자산은 이 저장이 바꾸지 않는 값이라 [수정] 전 값을 그대로 먼저 그린다. 근태·휴가(입사일·재직 상태가 잔여를 바꾼다)와
-    따로 보관한 기록(퇴사 되돌리기)은 저장이 바꿀 수 있어 저장 전 값을 버리고 HR 값과 함께 새로 받아 둔다.
+    성과(발령 승진 횟수) · 근태·휴가(입사일·재직 상태) · 따로 보관한 기록(퇴사 되돌리기)은 저장이 바꿀 수 있어 새로 받아 넘긴다.
+    받는 동안 사유 창은 먼저 닫는다(endPageSave) — 저장은 이미 끝났다.
   */
   async function keepSavedLoads() {
     const id = member?.id;
     if (!id) return;
-    if (onLoadHrProfile) forgetHrProfile(onLoadHrProfile, id, { hard: true });
-    for (const scope of [leaveLoader, onLoadArchivedRecords]) if (scope) forgetHrProfile(scope, id, { hard: true });
-    for (const scope of [assetsLoader, perfLoader]) if (scope) keepLoadForCancel(scope, id);
-    const fetchInto = (load, keep) => (load ? Promise.resolve(load(id)).then(keep) : null);
+    /* 지급 자산은 [저장하기]가 바꾸지 않는다 — 지금 보이는 값을 넘긴다(다시 불러오는 중이면 넘기지 않는다) */
+    if (assetsState.status === 'ready' || assetsState.status === 'refreshing') handOffSection(assetsLoader, id, assetsState.view);
+    let open = true;
+    // 한도를 넘겨 늦게 온 응답은 버린다 — 그 사이 다음 저장이 시작됐을 수 있다
+    const fetchInto = (load, keep) => (load
+      ? Promise.resolve().then(() => load(id)).then((v) => { if (open) keep(v); })
+      : null);
     const loads = Promise.allSettled([
       fetchInto(onLoadHrProfile, (p) => keepHrProfile(onLoadHrProfile, id, p)),
       onLoadHrProfile ? fetchInto(hrRecordHandlers?.onLoadTrainings, (r) => keepHrTrainings(onLoadHrProfile, id, r)) : null,
-      fetchInto(leaveLoader, (v) => keepSection(leaveLoader, id, v)),
-      fetchInto(onLoadArchivedRecords, (v) => keepSection(onLoadArchivedRecords, id, v)),
+      fetchInto(perfLoader, (v) => handOffSection(perfLoader, id, v)),
+      fetchInto(leaveLoader, (v) => handOffSection(leaveLoader, id, v)),
+      fetchInto(onLoadArchivedRecords, (v) => handOffSection(onLoadArchivedRecords, id, v)),
     ]);
     let timer;
     await Promise.race([loads, new Promise((done) => { timer = setTimeout(done, SAVED_LOAD_WAIT_MS); })]);
     clearTimeout(timer);
+    open = false;
+  }
+  function dropSavedHandoffs(id) {
+    for (const loader of [assetsLoader, perfLoader, leaveLoader, onLoadArchivedRecords]) dropHandoff(loader, id);
   }
   /** 탭 · 이전/다음 · [목록으로] — 수정 중 바꾼 값이 있으면 먼저 묻는다(§3.2-D «저장 안 한 변경»). */
   const guardMove = (go) => {
@@ -6322,24 +6381,31 @@ function EmployeesEditPanel({
 
   async function submitCorrection(reason) {
     const pageSave = beginPageSave();
+    pageSaveRef.current = pageSave;
     try {
       await submitCorrectionInner(reason);
     } finally {
-      pageSave?.onPageSaveEnd?.(member.id);
+      if (pageSaveRef.current === pageSave) endPageSave();
     }
   }
 
   async function submitCorrectionInner(reason) {
     const payload = { correction: { reason }, changes: apptChanges };
+    forgetHrProfile(onLoadHrProfile, member?.id);
     if (identityDirty && onSaveIdentity) {
       await onSaveIdentity(member.id, identityPatch);
+      markWritten();
       setIdentity((prev) => ({ ...(prev || {}), ...identityDraft }));
     }
     if (affilChanged && onChangeAffiliations) {
       await onChangeAffiliations(member.id, pendingAffil, payload);
+      markWritten();
       setPendingAffil(null);
     }
-    if (Object.keys(patch).length > 1) await onSave([patch], payload);
+    if (Object.keys(patch).length > 1) {
+      await onSave([patch], payload);
+      markWritten();
+    }
     await finishSave();
   }
 
@@ -6387,8 +6453,14 @@ function EmployeesEditPanel({
 
   /* 페이지 [취소] — [수정]을 1분 넘게 켜 두어도 읽기 화면이 [수정] 전 값으로 바로 붙게 한다(keepLoadForCancel · pivit-work PW-2924) */
   function cancelPage() {
-    for (const scope of [onLoadHrProfile, assetsLoader, perfLoader, leaveLoader, onLoadArchivedRecords]) {
-      if (scope) keepLoadForCancel(scope, member?.id);
+    const id = member?.id;
+    if (onLoadHrProfile) keepLoadForCancel(onLoadHrProfile, id);
+    /* 묶음은 지금 보이는 값을 넘긴다. 이 [수정]에서 무엇이든 쓰였으면 저장이 바꿀 수 있는 묶음(성과 · 근태 · 보관 기록)은 넘기지 않는다 —
+       HR 값이 지워졌으면(서버에 쓰인 뒤) 쓰인 것이다. 다시 불러오는 중·실패인 묶음도 넘기지 않는다(자산 지급 뒤 등) */
+    const written = wroteRef.current || Boolean(onLoadHrProfile && !hasHrProfileEntry(onLoadHrProfile, id));
+    const live = [[assetsLoader, assetsState], ...(written ? [] : [[perfLoader, perfState], [leaveLoader, leaveState], [onLoadArchivedRecords, archive]])];
+    for (const [loader, st] of live) {
+      if (st.status === 'ready' || st.status === 'refreshing') handOffSection(loader, id, st.view);
     }
     page.onCancel();
   }
@@ -6408,9 +6480,9 @@ function EmployeesEditPanel({
       && !(member.employmentStatus === 'terminated' && draft.employmentStatus !== 'terminated');
     /* 묶음(한 트랜잭션)이 아니면 앞 몫만 저장되고 뒤 몫이 실패할 수 있다 — 무엇이든 «쓰인 뒤»에 지워, 그 뒤 [취소]가 저장 전 값을 되살리지 않게 한다.
        확인 창 [취소]·날짜 조건으로 아무것도 안 쓰인 채 막히면 만료로만 두어 [취소]가 [수정] 전 값으로 바로 그린다(기획서·디자이너 리뷰) */
-    let wrote = false;
-    const wroteOnce = () => { if (!batchable && !wrote) { wrote = true; forgetHrProfile(onLoadHrProfile, member?.id, { hard: true }); } };
+    const wroteOnce = markWritten;
     const pageSave = beginPageSave({ batchable });
+    pageSaveRef.current = pageSave;
     try {
       /* 날짜를 **먼저** 보낸다. 상태 저장이 성공한 뒤 날짜가 실패하면 「수습으로 바뀌었는데
          종료일은 안 들어간」 반쪽 상태가 남는데, 순서를 뒤집으면 그 조합이 안 생긴다.
@@ -6507,8 +6579,8 @@ function EmployeesEditPanel({
       }
       await finishSave();
     } finally {
-      pageSave?.onPageSaveEnd?.(member.id);
-      setSaving(false);
+      if (pageSaveRef.current === pageSave) endPageSave();
+      if (aliveRef.current) setSaving(false);
     }
   }
 
@@ -7538,6 +7610,7 @@ function EmployeesEditPanel({
             <HrProfileInline
               key={`${member.id}-${page.tab}-${page.editKey || 0}`}
               part={page.tab}
+              onWrote={() => { wroteRef.current = true; }}
               row={draft}
               labels={labels.records}
               archived={archivedNow}

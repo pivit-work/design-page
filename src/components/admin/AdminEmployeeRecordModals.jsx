@@ -806,12 +806,8 @@ function rememberLoad(scope, kind, memberId, value) {
 export const peekHrProfile = (scope, memberId) => recentLoad(scope, 'profile', memberId);
 export const keepHrProfile = (scope, memberId, value) => rememberLoad(scope, 'profile', memberId, value);
 export const keepHrTrainings = (scope, memberId, value) => rememberLoad(scope, 'trainings', memberId, Array.isArray(value) ? value : null);
-/**
- * 상세 페이지 묶음(성과 · 지급 자산 · 근태·휴가 · 따로 보관한 기록)도 [취소]·저장 뒤 새로 붙을 때 «불러오는 중»부터 그렸다
- * (pivit-work PW-2924 11-21 dev «확인 밖 2»). 칸은 그 묶음의 불러오는 함수(`scope`)마다 따로 둔다.
- */
-export const peekSection = (scope, memberId) => recentLoad(scope, 'section', memberId);
-export const keepSection = (scope, memberId, value) => rememberLoad(scope, 'section', memberId, value);
+/** 저장한 적이 있나 — [수정]을 열며 불러온 HR 값이 «서버에 쓰인 뒤» 지워졌으면 없다(만료와 다름 · pivit-work PW-2924) */
+export const hasHrProfileEntry = (scope, memberId) => Boolean(memberId && scopeOf(scope)?.profile?.has(memberId));
 /**
  * 페이지 [취소] 때 부른다 — [수정]을 열며 불러온 값을 «지금 불러온 값»으로 다시 친다(pivit-work PW-2924 11-21 되돌림).
  * [수정]을 1분 넘게 켜 두면 그 값이 위 1분을 넘겨, [취소] 뒤 읽기 화면이 다시 불러오는 몇 초 동안 본문이 비었다.
@@ -1559,6 +1555,8 @@ function identityPatchOf(draft, base, keys, bankRevealed) {
  */
 export function HrProfileInline({
   part, editable = false, registerFlush, onDirtyChange,
+  /* 서버에 한 건이라도 쓰일 때마다 — 상세 페이지가 [취소] 때 저장 전 값을 되살리지 않게(pivit-work PW-2924) */
+  onWrote,
   row, labels, onLoad, onSaveIdentity, today,
   onLoadTrainings, onAddTraining, onUpdateTraining, onDeleteTraining,
   onLoadBenefits, onSaveBenefits, confirmDelete,
@@ -1638,7 +1636,7 @@ export function HrProfileInline({
     let benefitsDone = !benefits;
     /* 서버에 한 건이라도 쓰인 «뒤»에만 [수정] 전 값을 지운다 — 사유 창 [취소]·첫 요청 거절처럼 아무것도 안 쓰인 채 끝나면
        페이지 [취소]가 그 값으로 바로 그린다(pivit-work PW-2924 11-21 16:53 dev 되돌림 · 묶음 저장은 성공해야 첫 응답이 온다) */
-    const wrote = () => forgetLoad(onLoad, memberId, { hard: true });
+    const wrote = () => { forgetLoad(onLoad, memberId, { hard: true }); onWrote?.(); };
     const send = async () => {
       forgetLoad(onLoad, memberId);
       try {
