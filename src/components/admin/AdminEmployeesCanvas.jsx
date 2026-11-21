@@ -27,7 +27,7 @@ import { ExportMenu, SalaryExportModal, IconLock } from './employeeExport.jsx';
 import {
   HrProfileModal, HrProfileInline, flushSalaryPending, SalaryHistoryModal, CeoConfirmModal, CeoBadge, IconSalary, IconCrown, fmtSalaryWithCurrency,
   serviceStartHintText, isoDay,
-  peekHrProfile, keepHrProfile, forgetLoad as forgetHrProfile,
+  peekHrProfile, keepHrProfile, forgetLoad as forgetHrProfile, keepLoadForCancel,
 } from './AdminEmployeeRecordModals.jsx';
 import { buildExportItems } from './employeeExportItems.js';
 import AdminInviteModal from './AdminInviteModal.jsx';
@@ -6334,8 +6334,14 @@ function EmployeesEditPanel({
     }
   }
 
+  /* 페이지 [취소] — [수정]을 1분 넘게 켜 두어도 읽기 화면이 [수정] 전 값으로 바로 붙게 한다(keepLoadForCancel · pivit-work PW-2924) */
+  function cancelPage() {
+    if (onLoadHrProfile) keepLoadForCancel(onLoadHrProfile, member?.id);
+    page.onCancel();
+  }
+
   async function handleSave() {
-    if (!dirty && !(page && inlineDirty)) { if (page) page.onCancel(); else onClose(); return; }
+    if (!dirty && !(page && inlineDirty)) { if (page) cancelPage(); else onClose(); return; }
     forgetHrProfile(onLoadHrProfile, member?.id);
     if (terminationProblem || terminationRuleError || leaveStartMissing || leaveReasonMissing) return;
     if (apptTypeMissing || (showAppointment && !apptDate)) return;
@@ -7706,7 +7712,7 @@ function EmployeesEditPanel({
         )}
         {(page ? true : panelTab === 'info') && (
           <div className="admin-emp-panel-footer">
-            <Button className="admin-emp-btn is-secondary admin-emp-btn-block" onClick={page ? page.onCancel : onClose} disabled={Boolean(page) && saving} data-testid="employees-panel-cancel">{labels.panel.cancel}</Button>
+            <Button className="admin-emp-btn is-secondary admin-emp-btn-block" onClick={page ? cancelPage : onClose} disabled={Boolean(page) && saving} data-testid="employees-panel-cancel">{labels.panel.cancel}</Button>
 
             {/* 발령 칸이 바뀐 창은 [임시저장] · [수정] · [발령] (PW-2349 · §6-2). 확정 없이 저장하는 길은 없다. */}
             {flowWired && appointmentFlow.onSaveDraft && (

@@ -799,6 +799,20 @@ function rememberLoad(scope, kind, memberId, value) {
 /** 구성원 상세 페이지 패널도 같은 값을 쓴다 — 읽기로 다시 붙을 때 먼저 그릴 값 / 불러온 값 */
 export const peekHrProfile = (scope, memberId) => recentLoad(scope, 'profile', memberId);
 export const keepHrProfile = (scope, memberId, value) => rememberLoad(scope, 'profile', memberId, value);
+/**
+ * 페이지 [취소] 때 부른다 — [수정]을 열며 불러온 값을 «지금 불러온 값»으로 다시 친다(pivit-work PW-2924 11-21 되돌림).
+ * [수정]을 1분 넘게 켜 두면 그 값이 위 1분을 넘겨, [취소] 뒤 읽기 화면이 다시 불러오는 몇 초 동안 본문이 비었다.
+ * [취소]는 «바꾼 값을 버리고 읽기»라 [수정] 전 값이 곧 보일 값이고, 뒤에서 다시 불러온 값으로 바뀐다.
+ */
+export function keepLoadForCancel(scope, memberId) {
+  const c = memberId ? scopeOf(scope) : null;
+  if (!c) return;
+  const now = Date.now();
+  for (const kind of ['profile', 'trainings']) {
+    const hit = c[kind].get(memberId);
+    if (hit) c[kind].set(memberId, { at: now, value: hit.value });
+  }
+}
 /** 보내기 시작하면 잊는다 — 저장 뒤 새로 붙은 화면이 저장 전 값을 잠깐이라도 보이지 않게 */
 export function forgetLoad(scope, memberId) {
   const c = scopeOf(scope);
@@ -1543,6 +1557,7 @@ export function HrProfileInline({
   const [data, setData] = useState(() => (editable ? null : recentLoad(onLoad, 'profile', memberId)));
   const [fresh, setFresh] = useState(false);
   const [loading, setLoading] = useState(() => data === null);
+  const shownRef = useRef(data !== null);
   const [error, setError] = useState(false);
   const [identityDraft, setIdentityDraft] = useState(null);
   const [seededId, setSeededId] = useState(null);
@@ -1558,7 +1573,8 @@ export function HrProfileInline({
     let alive = true;
     Promise.resolve(onLoad(memberId))
       .then((d) => { rememberLoad(onLoad, 'profile', memberId, d); if (alive) { setData(d); setFresh(true); } })
-      .catch(() => { if (alive) setError(true); })
+      // 먼저 그린 값이 있으면 그대로 둔다 — 페이지 머리와 같다(다음 [수정]·이동 때 다시 불러온다)
+      .catch(() => { if (alive && !shownRef.current) setError(true); })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
   }, [memberId, onLoad]);
@@ -2012,6 +2028,7 @@ function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelet
   const L = labels || {};
   // 읽기로 붙을 때는 방금 불러온 줄로 먼저 그린다(위 recentLoad · pivit-work PW-2924)
   const [rows, setRows] = useState(() => (deferred ? null : recentLoad(cacheScope, 'trainings', memberId)));
+  const shownRef = useRef(rows !== null);
   const [loadError, setLoadError] = useState(false);
   const [form, setForm] = useState(EMPTY_TRAINING);
   const [editingId, setEditingId] = useState(null);
@@ -2022,7 +2039,7 @@ function HrTrainingsSection({ memberId, labels, onLoad, onAdd, onUpdate, onDelet
     let alive = true;
     Promise.resolve(onLoad(memberId))
       .then((r) => { const list = Array.isArray(r) ? r : []; rememberLoad(cacheScope, 'trainings', memberId, list); if (alive) setRows(list); })
-      .catch(() => { if (alive) { setRows([]); setLoadError(true); } });
+      .catch(() => { if (alive && !shownRef.current) { setRows([]); setLoadError(true); } });
     return () => { alive = false; };
   }, [memberId, onLoad]);
 
