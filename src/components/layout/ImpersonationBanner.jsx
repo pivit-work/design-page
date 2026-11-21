@@ -86,6 +86,9 @@ export default function ImpersonationBanner({
     if (typeof ResizeObserver === 'undefined') return undefined;
     const ro = new ResizeObserver(mark);
     ro.observe(box);
+    // 줄바꿈을 넣으면 글 칸이 첫 줄 길이로 줄어 창을 넓혀도 글 칸 크기는 그대로다 — 띠 겉 상자도 지켜봐야 넓힐 때 다시 잰다
+    // (11-22 디자이너 리뷰: 1280 으로 좁혔다 1440 으로 넓혀도 세 줄로 남음).
+    if (box.parentElement) ro.observe(box.parentElement);
     return () => ro.disconnect();
   }, [stackedParts, message]);
   const startSet = lineStarts ? lineStarts.split(',').map(Number) : [];
