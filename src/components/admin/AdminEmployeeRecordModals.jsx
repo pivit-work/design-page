@@ -1007,7 +1007,8 @@ export async function flushSalaryPending(memberId, pending, { onAdd, onUpdate, o
       update: (id, body) => onUpdate(memberId, id, body),
       remove: (id) => onDelete(memberId, id),
     },
-    onProgress,
+    // 바깥에 알리는 모양은 그대로 «남은 버퍼» 하나(add 응답은 상세 페이지 안에서만 쓴다 · pivit-work PW-2924 7회차)
+    onProgress ? (left) => onProgress(left) : undefined,
   );
 }
 
