@@ -1998,8 +1998,12 @@ export default function DoneOneOnOneView({
       />
       </div>
 
-      {/* 푸터 (Figma 17590:23928) — brand 「다음 원온원 예약하기」 · 테두리 「Slack 알림 발송」 */}
+      {/* 푸터 (Figma 17590:23928) — brand 「다음 원온원 예약하기」 · 테두리 「Slack 알림 발송」
+          `booking={null}` 이면 예약 버튼을 그리지 않는다 — 지금은 담당이 아닌 팀원과의 지난 회차라 새로 잡을 수 없을 때(pivit-work PW-3103).
+          비활성으로 두지 않고 안내 글도 붙이지 않는다(매니저 화면 1on1 버튼과 같은 모양). 둘 다 없으면 빈 띠가 남지 않게 푸터째 뺀다. */}
+      {(booking !== null || slack) && (
       <div className="ono-done-footer">
+        {booking !== null && (<>
         <button
           type="button"
           className={`ono-done-book${booking?.done ? ' is-done' : ''}`}
@@ -2017,6 +2021,7 @@ export default function DoneOneOnOneView({
         {booking?.nextLine && !booking?.done && (
           <p className="tl-event-helper" data-testid="ono-done-book-next-line">{booking.nextLine}</p>
         )}
+        </>)}
 
         {slack && (
           <>
@@ -2051,6 +2056,7 @@ export default function DoneOneOnOneView({
           </>
         )}
       </div>
+      )}
     </div>
   );
 }
