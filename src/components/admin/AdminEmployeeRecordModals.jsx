@@ -813,16 +813,21 @@ export const keepHrTrainings = (scope, memberId, value) => rememberLoad(scope, '
 */
 const HANDOFF_ARM_MS = 10 * 1000;
 const armedLoads = new WeakMap();
+/* 들어올 때 · 이전/다음 · 목록으로 — 상세 페이지가 사람을 바꿀 때마다 올린다. 넘겨준 값은 같은 회차 안에서만 쓴다
+   (붙자마자 지우면 저장 뒤 목록 다시 받기로 패널이 한 번 더 붙을 때 받을 값이 없었다 · 6회차 브라우저 확인 66) */
+let handoffEpoch = 0;
+export const bumpHandoffEpoch = () => { handoffEpoch += 1; };
+export const currentHandoffEpoch = () => handoffEpoch;
 export function armLoad(scope, memberId) {
   if (typeof scope !== 'function' || !memberId) return;
   if (!armedLoads.has(scope)) armedLoads.set(scope, new Map());
-  armedLoads.get(scope).set(memberId, Date.now());
+  armedLoads.get(scope).set(memberId, { at: Date.now(), epoch: handoffEpoch });
 }
 /** 상세 페이지가 붙을 때 — 넘겨받은 것이 아니면(들어올 때 · 이전/다음) 칸을 비운다. 넘겨받았으면 표시만 쓴다(한 번) */
 export function settleLoadOnEnter(scope, memberId) {
   if (typeof scope !== 'function' || !memberId) return;
-  const at = armedLoads.get(scope)?.get(memberId);
-  if (at == null || Date.now() - at >= HANDOFF_ARM_MS) forgetLoad(scope, memberId, { hard: true });
+  const arm = armedLoads.get(scope)?.get(memberId);
+  if (!arm || arm.epoch !== handoffEpoch || Date.now() - arm.at >= HANDOFF_ARM_MS) forgetLoad(scope, memberId, { hard: true });
 }
 export function disarmLoad(scope, memberId) {
   if (typeof scope === 'function' && memberId) armedLoads.get(scope)?.delete(memberId);

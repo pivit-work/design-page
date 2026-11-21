@@ -28,7 +28,7 @@ import {
   HrProfileModal, HrProfileInline, flushSalaryPending, SalaryHistoryModal, CeoConfirmModal, CeoBadge, IconSalary, IconCrown, fmtSalaryWithCurrency,
   serviceStartHintText, isoDay,
   peekHrProfile, keepHrProfile, keepHrTrainings, forgetLoad as forgetHrProfile, keepLoadForCancel,
-  hasHrProfileEntry, armLoad, settleLoadOnEnter, disarmLoad,
+  hasHrProfileEntry, armLoad, settleLoadOnEnter, disarmLoad, bumpHandoffEpoch, currentHandoffEpoch,
 } from './AdminEmployeeRecordModals.jsx';
 import { buildExportItems } from './employeeExportItems.js';
 import AdminInviteModal from './AdminInviteModal.jsx';
@@ -734,11 +734,11 @@ const sectionHandoffs = new WeakMap();
 function handOffSection(loader, memberId, view) {
   if (typeof loader !== 'function' || !memberId || !view) return;
   if (!sectionHandoffs.has(loader)) sectionHandoffs.set(loader, new Map());
-  sectionHandoffs.get(loader).set(memberId, { at: Date.now(), view });
+  sectionHandoffs.get(loader).set(memberId, { at: Date.now(), view, epoch: currentHandoffEpoch() });
 }
 function peekHandoff(loader, memberId) {
   const hit = typeof loader === 'function' && memberId ? sectionHandoffs.get(loader)?.get(memberId) : null;
-  return hit && Date.now() - hit.at < SECTION_HANDOFF_MS ? hit.view : null;
+  return hit && hit.epoch === currentHandoffEpoch() && Date.now() - hit.at < SECTION_HANDOFF_MS ? hit.view : null;
 }
 function dropHandoff(loader, memberId) {
   if (typeof loader === 'function' && memberId) sectionHandoffs.get(loader)?.delete(memberId);
@@ -5756,7 +5756,6 @@ function EmployeesEditPanel({
   /* «근태·휴가» 묶음 (PW-2817) — 성과 묶음과 같은 불러오기 · [다시 시도]는 이 묶음만 */
   const leaveLoader = memberLeave?.onLoad;
   const [leaveState, setLeaveState] = useState(() => sectionFirst(leaveLoader));
-  /* 넘겨받은 값은 한 번만 쓴다 — 붙은 뒤 지워 다음 들어올 때 · 이전/다음이 옛 값을 쓰지 않게 */
   /* 저장 쪽 — 아래 markWritten · endPageSave · finishSave 가 쓴다(pivit-work PW-2924) */
   const wroteRef = useRef(false);
   const pageSaveRef = useRef(null);
@@ -5764,12 +5763,6 @@ function EmployeesEditPanel({
   useEffect(() => {
     aliveRef.current = true;
     return () => { aliveRef.current = false; };
-  }, []);
-  const handoffAtMount = useRef({ id: member?.id, hr: onLoadHrProfile, loaders: [assetsLoader, perfLoader, leaveLoader, onLoadArchivedRecords] });
-  useEffect(() => {
-    const { id, loaders, hr } = handoffAtMount.current;
-    for (const loader of loaders) dropHandoff(loader, id);
-    disarmLoad(hr, id);
   }, []);
   const [panelTab, setPanelTab] = useState('info');
   const [historyState, setHistoryState] = useState({ status: 'idle', page: null });
@@ -8311,6 +8304,12 @@ export default function AdminEmployeesCanvas({
   const [detailEditKey, setDetailEditKey] = useState(0);
   const detailSyncKey = detailId ? `${detailId}|${detailRoute.tab || ''}|${detailRoute.editToken || ''}` : null;
   const [detailSynced, setDetailSynced] = useState(null);
+  /* 사람이 바뀌면(들어올 때 · 이전/다음 · 목록으로) [취소]·저장이 넘겨준 값을 무효로 — «불러오는 중»부터(정책서 §4 · pivit-work PW-2924) */
+  const [handoffFor, setHandoffFor] = useState(detailId);
+  if (detailId !== handoffFor) {
+    setHandoffFor(detailId);
+    bumpHandoffEpoch();
+  }
   if (detailSyncKey !== detailSynced) {
     setDetailSynced(detailSyncKey);
     /* 탭 · 사람을 옮기면 수정이 끝난다 — 바꾼 값은 버린다(확인 창 [저장하지 않고 이동] · 정책서 §4) */
