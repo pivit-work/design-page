@@ -6520,7 +6520,7 @@ function EmployeesEditPanel({
       {primaryEntry.pathNames.slice(0, -1).map((n) => `${n}${ORG_PATH_SEP}`).join('')}
       <b>{primaryEntry.pathNames[primaryEntry.pathNames.length - 1]}</b>
     </span>
-  ) : (legacyDeptOf(member) || directLabelOf(member) || null);
+  ) : (legacyDeptOf(member) || directLabelOf(member) || labels.panel.orgNone);
   const orgAssignBlock = reading ? (<>
   <SectionLabel>{labels.panel.orgAssign}</SectionLabel>
   <div className="admin-emp-detail-read-grid" data-testid="employees-panel-org">
