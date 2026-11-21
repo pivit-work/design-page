@@ -683,6 +683,10 @@ function LoadingCanvas() {
   );
 }
 
+function hasText(line) {
+  return line !== null && line !== undefined && line !== false && !(typeof line === 'string' && line.trim() === '');
+}
+
 function asLines(text) {
   if (Array.isArray(text)) return text;
   return text ? [text] : [];
@@ -738,11 +742,16 @@ export default function AdminNotificationsCanvas({
       <StatStrip items={statItems} testId="admin-notif-summary" />
 
       {/* 안내 — 바탕 없는 줄, 문장마다 한 줄. 공용 안내 줄 틀은 두 단(기본 · 흐림)뿐이라
-          셋째 단(작고 옅게)은 디자이너 도움말 줄(.login-hint · .rsx-views-hint) 값으로 따로 그린다. */}
+          둘째 «보통»(--text-subtle)과 셋째 «작고 옅게»(--text-tertiary)는 따로 그린다 — 둘째를 틀의 흐림 단으로 그리면
+          셋째와 색이 같아 «옅게»가 안 보인다(시안 .nt-g2 / .nt-g3). */}
       <div className="admin-notif-guide" data-testid="admin-notif-guide">
         <NoticeLines lines={[leadLine]} />
-        <NoticeLines lines={[bodyLine]} tone="muted" />
-        {fineLines.filter(Boolean).map((line, i) => (
+        {hasText(bodyLine) && (
+          <p className="admin-notif-guide-body" data-testid="admin-notif-guide-body">
+            {bodyLine}
+          </p>
+        )}
+        {fineLines.filter(hasText).map((line, i) => (
           <p key={i} className="admin-notif-guide-fine" data-testid="admin-notif-guide-fine">
             {line}
           </p>
