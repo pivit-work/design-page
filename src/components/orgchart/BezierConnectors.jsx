@@ -10,7 +10,7 @@ const STAFF_STUB_Y = 34;
  * `data-self` 까지)을 회색 위에 한 번 더 긋는다. 대표 직속 곁가지 아래면 트렁크는 함께 쓰는 선이라 회색으로 둔다.
  *
  * `.org-node[data-faded="true"]` — 그 노드로 들어오는 선 · 그 노드 안 사람 카드로 내려가는 선 · 그 아래 하위로 가는 선을
- * 같은 회색에 불투명도 .6 으로 따로 긋는다(스쿼드 구조 그림의 완료·보관 스쿼드 · pivit-work PW-2957). 표시가 없는 화면은 그대로다.
+ * 보통 선과 같은 색(CSS)에 불투명도 .6 으로 따로 긋는다(스쿼드 구조 그림의 완료·보관 스쿼드 · pivit-work PW-2957). 표시가 없는 화면은 그대로다.
  * 직각 선이 형제의 진한 선과 겹치는 구간은 진한 선이 보인다(기획 v3.69 §5-6-B 가 허용).
  */
 const FADED_OPACITY = 0.6;
@@ -147,11 +147,15 @@ export default function BezierConnectors({ containerRef, scale, lineStyle = 'ort
       });
 
       svg.innerHTML = `<path d="${pathData}" fill="none" stroke="#d2d6db" stroke-width="1" stroke-linejoin="round"/>`
-        + (fadedPathData ? `<path class="connector-faded" d="${fadedPathData}" fill="none" style="stroke: var(--colors-grayNeutral-300)" stroke-width="1" stroke-linejoin="round" opacity="${FADED_OPACITY}"/>` : '')
         + (dashedPathData ? `<path class="connector-direct" d="${dashedPathData}" fill="none" stroke="#d2d6db" stroke-width="1" stroke-dasharray="4 3"/>` : '')
         // 강조선은 회색선 위에 — 나중에 넣는 것이 위에 그려진다.
         + (hiPathData ? `<path class="connector-highlight" d="${hiPathData}" fill="none" stroke-linejoin="round"/>` : '')
         + (hiDashedPathData ? `<path class="connector-highlight connector-direct" d="${hiDashedPathData}" fill="none" stroke-dasharray="4 3"/>` : '');
+      // 흐린 선은 맨 앞(보통 선 아래) — 형제와 같이 쓰는 구간은 진한 선이 위에 온다. 색은 적지 않고 보통 선과 같은
+      // CSS(.connector-svg path · 테마별 --border-primary)를 받는다(색을 박으면 다크 테마에서 흐린 선이 더 밝아진다).
+      if (fadedPathData) {
+        svg.insertAdjacentHTML('afterbegin', `<path class="connector-faded" d="${fadedPathData}" fill="none" stroke-width="1" stroke-linejoin="round" opacity="${FADED_OPACITY}"/>`);
+      }
       rafRef.current = requestAnimationFrame(draw);
     };
 
