@@ -282,14 +282,16 @@ const STATUS_META = {
  * 동료 리뷰 검수·AI 요약 확인이 남아 막히는 것은 «보내기»다 — 승인할 줄은 막지 않는다.
  */
 /**
- * PW-3054 — 보내기를 막는 줄. 동료 리뷰 검수 · AI 요약 확인이 남았거나, «종합 요약»을 만드는 중(hr §9.3-A)이다.
+ * PW-3054 — 보내기를 막는 줄. 동료 리뷰 검수 · AI 요약 확인이 남았거나, «종합 요약»을 만드는 중이거나 아직 미뤄 둔 상태다(hr §9.3-A).
+ * 미뤄 둔 채 검수 잔여가 0이면(끝남 알림을 놓침) 요약 없이 나가지 않게 막고, 줄에 [재생성]을 준다.
  * 줄 네모 · 고른 것 보내기 · 전체 발송이 같은 판정을 쓴다(서버 `sendReports` 도 같은 셋으로 거른다).
  */
 function isSendBlocked(row) {
   return (
     (row.unresolvedPeerRefinements ?? 0) > 0 ||
     (row.pendingAiSummaries ?? 0) > 0 ||
-    row.aiInsightState === 'generating'
+    row.aiInsightState === 'generating' ||
+    row.aiInsightState === 'waiting_peer_review'
   );
 }
 
@@ -1487,10 +1489,22 @@ function ReviewRow({
             {L.aiGenerating}
           </span>
         )}
-        {/* PW-3054 — 동료 리뷰 검수가 남아 «종합 요약»을 미뤘다(hr §9.3-A «기다리는 동안»). 누를 것은 없다 — 검수가 끝나면 저절로 만든다. */}
+        {/* PW-3054 — 동료 리뷰 검수가 남아 «종합 요약»을 미뤘다(hr §9.3-A «기다리는 동안»). 검수가 끝나면 저절로 만든다.
+            검수 잔여가 0인데 아직 미뤄 둔 채면(끝남 알림을 놓침) 그대로 두지 않게 [재생성]을 준다. */}
         {!excluded && aiState === 'waiting_peer_review' && (
           <span className="evrr-ai-state" data-testid={`evrr-ai-waiting-${row.memberId}`}>
             {L.aiWaitingPeer}
+            {(row.unresolvedPeerRefinements ?? 0) === 0 && canReject && onRegenerate && (
+              <button
+                type="button"
+                className="evc-link-btn evrr-regen-link"
+                disabled={regenBusy}
+                onClick={regenerate}
+                data-testid={`evrr-ai-regenerate-${row.memberId}`}
+              >
+                {L.aiRegenerate}
+              </button>
+            )}
           </span>
         )}
         {/* PW-3054 — 요약을 만든 뒤 동료가 답을 고쳐 냈다. 자동으로 다시 만들지 않고 인사담당자가 [재생성]을 고른다. */}
@@ -1624,7 +1638,8 @@ function ReviewRow({
     {trialRowNotice && (
       <div data-testid={`evrr-trial-notice-${row.memberId}`}>{trialRowNotice}</div>
     )}
-    {regenNotice && !trialRowNotice && (aiState === 'failed' || aiState === 'trial_exhausted') && (
+    {/* PW-3054 — «동료 글이 바뀜»·«검수 대기» 줄의 [재생성]도 같은 안내를 받는다(서버는 줄 상태를 바꾸기 전에 409 로 거절한다). */}
+    {regenNotice && !trialRowNotice && (aiState === 'failed' || aiState === 'trial_exhausted' || (aiState === 'ready' && row.aiInsightPeerChanged === true) || aiState === 'waiting_peer_review') && (
       <div data-testid={`evrr-ai-regenerate-notice-${row.memberId}`}>{regenNotice}</div>
     )}
     {goalsOpen && goalsMode && (
@@ -1867,7 +1882,7 @@ export default function EvalReportReviewCanvas({
   const aiExcludedCount = refinedRows.length - aiCheckedRows.length;
   // PW-3054 — «종합 요약»을 만드는 중인 사람은 끝날 때까지 빠진다(hr §9.3-A · 1인당 30초 이내).
   const approvedIds = aiCheckedRows
-    .filter((r) => r.aiInsightState !== 'generating')
+    .filter((r) => r.aiInsightState !== 'generating' && r.aiInsightState !== 'waiting_peer_review')
     .map((r) => r.memberId);
   // PW-1839 — HR 승인 전인 줄 전부(리더 작성 중·본부장 승인 대기·HR 검수 대기). 발송에서 빠진다.
   const c = q.counts ?? {};
