@@ -129,8 +129,11 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
       // 편집 중이면 입력 중인 글(저장 전)을 같이 넘긴다 — 선행 칸 판정과 생성이 같은 글을 본다.
       const byId = await onAiAutocomplete(rowId, editing ? fromDraft(rows, draft) : undefined);
       const base = editing ? draft : toDraft(rows);
-      setDraft(
+      // AI 가 도는 동안 편집 중인 칸에 쓴 글은 덮지 않는다 — 보낸 글(base)과 달라진 칸은 지금 글을 둔다 (PW-3055).
+      setDraft((prev) =>
         rows.map((row, i) => {
+          const now = prev ?? base;
+          if ((now[i] ?? '') !== (base[i] ?? '')) return now[i];
           if (rowId && row.id !== rowId) return base[i];
           return byId?.[row.id] ?? base[i];
         }),
@@ -184,7 +187,9 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
       {subTab === 'canvas' ? (
         <>
           <div className="okr-s-toolbar">
-            {editing || !canEdit ? <span /> : (
+            {/* 읽기·편집 두 모드 모두 그린다 — 디자이너 원본(b5d68b6c)·기획 okr-app.jsx·TC-OKR-003A 5.
+                편집 중이면 runAi 가 입력 중(저장 전) 글을 재료로 넘긴다 (PW-3055). */}
+            {!canEdit ? <span /> : (
               <button
                 className="okr-s-ai-btn"
                 onClick={() => runAi()}
