@@ -140,6 +140,9 @@ export default function DatePicker({
   );
 
   const scrolledRef = useRef(false);
+  // placement="below" 달력 바로 아래 빈 자리 — 스크롤 칸이 달력 아래 끝에서 멈추면 아래로 퍼지는 그림자가 잘린다.
+  // 달력 자신은 overflow:hidden 이라 그 안의 것은 스크롤 범위를 못 늘려, 형제로 둔다 (pivit-work PW-2992 3회차).
+  const roomRef = useRef(null);
   useLayoutEffect(() => {
     const el = popoverRef.current;
     if (!el) return;
@@ -150,12 +153,20 @@ export default function DatePicker({
     if (placement === 'below' && anchorEl) {
       // 앵커와 같은 offsetParent 안에서 바로 아래 4px 에 붙인다 — 스크롤 칸 안에 있으므로 그 칸이 달력만큼 늘어난다.
       el.style.left = `${anchorEl.offsetLeft}px`;
-      el.style.top = `${anchorEl.offsetTop + anchorEl.offsetHeight + 4}px`;
+      const top = anchorEl.offsetTop + anchorEl.offsetHeight + 4;
+      el.style.top = `${top}px`;
       el.style.opacity = '1';
+      const room = roomRef.current;
+      if (room) {
+        room.style.left = `${anchorEl.offsetLeft}px`;
+        room.style.top = `${top + el.offsetHeight}px`;
+      }
       // 처음 열 때만 굴린다 — 달을 넘길 때마다 다시 굴리면 위로 올려 본 창이 도로 끌려 내려간다.
       if (!scrolledRef.current) {
         scrolledRef.current = true;
+        // 달력 머리부터 그림자 자리까지 보이게 굴린다 — 그림자 자리가 없으면 달력만큼.
         el.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+        room?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
         // 스크롤 칸이 칸+달력보다 낮으면(낮은 화면) 달력 머리에 맞춰 칸이 위로 사라진다 — 그때는 칸을 위 끝에 둔다.
         const box = scrollBoxOf(anchorEl);
         if (box && anchorEl.getBoundingClientRect().top < box.getBoundingClientRect().top) {
@@ -299,143 +310,147 @@ export default function DatePicker({
     ].filter(Boolean).join(' ');
   const pad2 = (n) => String(n).padStart(2, '0');
 
+  const below = !inline && placement === 'below';
   return (
-    <div
-      {...rest}
-      ref={popoverRef}
-      className={['dp-datepicker', inline && 'is-inline', inline && flat && 'is-flat', !inline && placement === 'below' && 'is-below'].filter(Boolean).join(' ')}
-      style={{ left: 0, top: 0, opacity: 0 }}
-      role="dialog"
-      data-view={view}
-    >
-      <div className="dp-datepicker-content">
-        {/* 머리 글자 + chevron (흐린 톤) */}
-        <div className="dp-datepicker-month">
-          <button
-            type="button"
-            className="dp-datepicker-nav is-faint"
-            onClick={() => go(-1)}
-            disabled={!canGoPrev}
-            aria-label={navText[0]}
-          >
-            <ChevronLeftGlyph size={20} />
-          </button>
-          {view === 'year' ? (
-            <span className="dp-datepicker-label">{head}</span>
-          ) : (
+    <>
+      <div
+        {...rest}
+        ref={popoverRef}
+        className={['dp-datepicker', inline && 'is-inline', inline && flat && 'is-flat', below && 'is-below'].filter(Boolean).join(' ')}
+        style={{ left: 0, top: 0, opacity: 0 }}
+        role="dialog"
+        data-view={view}
+      >
+        <div className="dp-datepicker-content">
+          {/* 머리 글자 + chevron (흐린 톤) */}
+          <div className="dp-datepicker-month">
             <button
               type="button"
-              className="dp-datepicker-label is-button"
-              onClick={goUp}
-              aria-label={view === 'day' ? auto.toMonthView : auto.toYearView}
+              className="dp-datepicker-nav is-faint"
+              onClick={() => go(-1)}
+              disabled={!canGoPrev}
+              aria-label={navText[0]}
             >
-              {head}
-              <ChevronDownGlyph size={16} />
+              <ChevronLeftGlyph size={20} />
             </button>
+            {view === 'year' ? (
+              <span className="dp-datepicker-label">{head}</span>
+            ) : (
+              <button
+                type="button"
+                className="dp-datepicker-label is-button"
+                onClick={goUp}
+                aria-label={view === 'day' ? auto.toMonthView : auto.toYearView}
+              >
+                {head}
+                <ChevronDownGlyph size={16} />
+              </button>
+            )}
+            <button
+              type="button"
+              className="dp-datepicker-nav is-faint"
+              onClick={() => go(1)}
+              disabled={!canGoNext}
+              aria-label={navText[1]}
+            >
+              <ChevronRightGlyph size={20} />
+            </button>
+          </div>
+          {/* Today 버튼 row */}
+          <div className="dp-datepicker-today-row">
+            <button type="button" className="dp-datepicker-today" onClick={goToday}>{todayText}</button>
+          </div>
+          {view === 'year' && (
+            <div className="dp-datepicker-grid is-years">
+              {Array.from({ length: YEAR_PAGE }, (_, i) => pageStart + i).map((y) => {
+                const selected = !!selectedDate && selectedDate.getFullYear() === y;
+                const disabled = yearOff(y);
+                return (
+                  <button
+                    key={y}
+                    type="button"
+                    className={cellClass({ selected, isToday: today.getFullYear() === y, disabled })}
+                    disabled={disabled}
+                    aria-disabled={disabled || undefined}
+                    aria-pressed={selected}
+                    data-year={y}
+                    onClick={() => pickYear(y)}
+                  >
+                    {y}
+                  </button>
+                );
+              })}
+            </div>
           )}
-          <button
-            type="button"
-            className="dp-datepicker-nav is-faint"
-            onClick={() => go(1)}
-            disabled={!canGoNext}
-            aria-label={navText[1]}
-          >
-            <ChevronRightGlyph size={20} />
-          </button>
+          {view === 'month' && (
+            <div className="dp-datepicker-grid is-months">
+              {auto.monthsShort.map((name, m) => {
+                const selected =
+                  !!selectedDate &&
+                  selectedDate.getFullYear() === viewYear &&
+                  selectedDate.getMonth() === m;
+                const isToday = today.getFullYear() === viewYear && today.getMonth() === m;
+                const disabled = monthOff(viewYear, m);
+                return (
+                  <button
+                    key={m}
+                    type="button"
+                    className={cellClass({ selected, isToday, disabled })}
+                    disabled={disabled}
+                    aria-disabled={disabled || undefined}
+                    aria-pressed={selected}
+                    data-month={`${viewYear}-${pad2(m + 1)}`}
+                    onClick={() => pickMonth(m)}
+                  >
+                    {name}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {view === 'day' && (
+            <div className="dp-datepicker-grid">
+              {weekdays.map((w, wi) => (
+                <div key={`${w}-${wi}`} className="dp-datepicker-cell is-head">{w}</div>
+              ))}
+              {cells.map((c, i) => {
+                const selected =
+                  !c.outside &&
+                  (selectedDates ? selectedDates.some((d) => sameDay(c, d)) : sameDay(c, selectedDate));
+                // PW-528 ② — 종료일 달력은 시작일 이전을 고를 수 없다. 눌러도 값이 안
+                // 바뀌는 게 아니라 «눌리지 않는 것»으로 보여야 왜 안 되는지 알 수 있다.
+                const day = new Date(c.year, c.month, c.day);
+                const outOfRange = (!!min && day < min) || (!!max && day > max);
+                // PW-2547 — 범위 안의 주말 · 휴일도 같은 «눌리지 않는 칸». 누르면 골라진 것처럼 보이면 안 된다.
+                const blocked = !outOfRange && !!isDateDisabled && !!isDateDisabled(day);
+                const disabled = outOfRange || blocked;
+                // PW-2595 — 흐리게 그리되 누를 수 있는 날(지난 날을 받는 창의 앞 날). 막힌 칸 · 다른 달 칸은 이미 흐리다.
+                const muted = !disabled && !c.outside && !!isDateMuted && !!isDateMuted(day);
+                // PW-2637 — 반복 회차가 드는 날에 점(다른 달 칸 제외).
+                const marked = !c.outside && !!isDateMarked && !!isDateMarked(day);
+                // 까닭은 막힌 칸 전부에 — 범위 밖(지난 날 · 소멸일 뒤)도 부르는 쪽이 까닭을 줄 수 있다. disabledTitle 을 안 넘기면 전과 같다.
+                const title = disabled && !c.outside && disabledTitle ? disabledTitle(day) || undefined : undefined;
+                return (
+                  <button
+                    key={i}
+                    type="button"
+                    className={cellClass({ selected, isToday: sameDay(c, today), disabled, outside: c.outside, muted, marked })}
+                    disabled={disabled}
+                    aria-disabled={disabled || undefined}
+                    aria-pressed={selected}
+                    title={title}
+                    data-date={`${c.year}-${pad2(c.month + 1)}-${pad2(c.day)}`}
+                    onClick={() => onSelect(new Date(c.year, c.month, c.day))}
+                  >
+                    {c.day}
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
-        {/* Today 버튼 row */}
-        <div className="dp-datepicker-today-row">
-          <button type="button" className="dp-datepicker-today" onClick={goToday}>{todayText}</button>
-        </div>
-        {view === 'year' && (
-          <div className="dp-datepicker-grid is-years">
-            {Array.from({ length: YEAR_PAGE }, (_, i) => pageStart + i).map((y) => {
-              const selected = !!selectedDate && selectedDate.getFullYear() === y;
-              const disabled = yearOff(y);
-              return (
-                <button
-                  key={y}
-                  type="button"
-                  className={cellClass({ selected, isToday: today.getFullYear() === y, disabled })}
-                  disabled={disabled}
-                  aria-disabled={disabled || undefined}
-                  aria-pressed={selected}
-                  data-year={y}
-                  onClick={() => pickYear(y)}
-                >
-                  {y}
-                </button>
-              );
-            })}
-          </div>
-        )}
-        {view === 'month' && (
-          <div className="dp-datepicker-grid is-months">
-            {auto.monthsShort.map((name, m) => {
-              const selected =
-                !!selectedDate &&
-                selectedDate.getFullYear() === viewYear &&
-                selectedDate.getMonth() === m;
-              const isToday = today.getFullYear() === viewYear && today.getMonth() === m;
-              const disabled = monthOff(viewYear, m);
-              return (
-                <button
-                  key={m}
-                  type="button"
-                  className={cellClass({ selected, isToday, disabled })}
-                  disabled={disabled}
-                  aria-disabled={disabled || undefined}
-                  aria-pressed={selected}
-                  data-month={`${viewYear}-${pad2(m + 1)}`}
-                  onClick={() => pickMonth(m)}
-                >
-                  {name}
-                </button>
-              );
-            })}
-          </div>
-        )}
-        {view === 'day' && (
-          <div className="dp-datepicker-grid">
-            {weekdays.map((w, wi) => (
-              <div key={`${w}-${wi}`} className="dp-datepicker-cell is-head">{w}</div>
-            ))}
-            {cells.map((c, i) => {
-              const selected =
-                !c.outside &&
-                (selectedDates ? selectedDates.some((d) => sameDay(c, d)) : sameDay(c, selectedDate));
-              // PW-528 ② — 종료일 달력은 시작일 이전을 고를 수 없다. 눌러도 값이 안
-              // 바뀌는 게 아니라 «눌리지 않는 것»으로 보여야 왜 안 되는지 알 수 있다.
-              const day = new Date(c.year, c.month, c.day);
-              const outOfRange = (!!min && day < min) || (!!max && day > max);
-              // PW-2547 — 범위 안의 주말 · 휴일도 같은 «눌리지 않는 칸». 누르면 골라진 것처럼 보이면 안 된다.
-              const blocked = !outOfRange && !!isDateDisabled && !!isDateDisabled(day);
-              const disabled = outOfRange || blocked;
-              // PW-2595 — 흐리게 그리되 누를 수 있는 날(지난 날을 받는 창의 앞 날). 막힌 칸 · 다른 달 칸은 이미 흐리다.
-              const muted = !disabled && !c.outside && !!isDateMuted && !!isDateMuted(day);
-              // PW-2637 — 반복 회차가 드는 날에 점(다른 달 칸 제외).
-              const marked = !c.outside && !!isDateMarked && !!isDateMarked(day);
-              // 까닭은 막힌 칸 전부에 — 범위 밖(지난 날 · 소멸일 뒤)도 부르는 쪽이 까닭을 줄 수 있다. disabledTitle 을 안 넘기면 전과 같다.
-              const title = disabled && !c.outside && disabledTitle ? disabledTitle(day) || undefined : undefined;
-              return (
-                <button
-                  key={i}
-                  type="button"
-                  className={cellClass({ selected, isToday: sameDay(c, today), disabled, outside: c.outside, muted, marked })}
-                  disabled={disabled}
-                  aria-disabled={disabled || undefined}
-                  aria-pressed={selected}
-                  title={title}
-                  data-date={`${c.year}-${pad2(c.month + 1)}-${pad2(c.day)}`}
-                  onClick={() => onSelect(new Date(c.year, c.month, c.day))}
-                >
-                  {c.day}
-                </button>
-              );
-            })}
-          </div>
-        )}
       </div>
-    </div>
+      {below && <span ref={roomRef} className="dp-datepicker-below-room" aria-hidden="true" />}
+    </>
   );
 }

@@ -253,6 +253,24 @@
   overflow-y: auto;
 }
 
+/* 제목은 제자리에 두고 본문만 스크롤한다 (pivit-work PW-2992 외부 전사 가져오기·녹음 파일 올리기 창).
+   안쪽 전체를 굴리면 날짜 칸 아래로 연 달력을 보이려 굴릴 때 창 제목이 위로 밀려 안 보였다.
+   본문은 창 양옆 여백까지 넓혀 두어 달력 그림자가 본문 양옆에서 잘리지 않게 한다 — 보이는 자리는 그대로다. */
+.tl-group-modal-content.is-body-scroll {
+  overflow: hidden;
+  padding-bottom: 0;
+}
+.tl-group-modal-content.is-body-scroll > .tl-group-modal-header {
+  flex-shrink: 0;
+}
+.tl-group-modal-content.is-body-scroll > .tl-group-modal-scroll-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  margin: 0 calc(var(--spacing-3xl) * -2);
+  padding: 0 calc(var(--spacing-3xl) * 2) var(--spacing-3xl);
+}
+
 /* 누른 자리 옆에 붙어 뜨는 창(타임라인 회의·스니핏 보기)의 막 — 뒤를 어둡게 하지 않는다.
    닫히는 동작(Esc·바깥 누르기)만 다른 창과 같게 공용 바탕을 쓴다 (PW-1013). */
 .tl-modal-overlay.is-clear {

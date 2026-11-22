@@ -1908,4 +1908,4 @@ input.mtg-record-action-title::placeholder {
 .mtg-import-agree-sub { font-size: 12px; line-height: 18px; color: var(--text-subtle); }
 /* 창 높이는 내용만큼(최대 화면−48) — «그룹 추가» 창(.tl-group-modal)의 고정 높이 428 대신. 본문만 스크롤, 아래 버튼 줄은 제자리 */
 .tl-group-modal.mtg-import-shell { height: auto; max-height: calc(100vh - 48px); }
-.tl-group-modal.mtg-import-shell .tl-group-modal-content { overflow-y: auto; padding-bottom: var(--spacing-3xl); }
+/* 안쪽 스크롤은 modal-shell.css `.is-body-scroll` 이 본문에만 건다 — 창 제목은 제자리 (PW-2992 3회차) */
