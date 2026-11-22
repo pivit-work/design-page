@@ -182,7 +182,8 @@ export default function DatePicker({
       const place = () => {
         const a = anchorEl.getBoundingClientRect();
         // 본문을 손으로 굴려 칸이 본문 위 끝 밖으로 나가면 닫는다 — 띄운 달력이 칸 없이 남아 창 제목·설명 줄을 덮었다(PW-2992 3회차 리뷰)
-        if (box && a.bottom <= box.getBoundingClientRect().top) {
+        const boxRect = box?.getBoundingClientRect();
+        if (boxRect && (a.bottom <= boxRect.top || a.top >= boxRect.bottom)) {
           onCloseRef.current?.();
           return;
         }
@@ -190,13 +191,12 @@ export default function DatePicker({
         let left = a.left;
         if (left + el.offsetWidth > vw - MARGIN) left = vw - el.offsetWidth - MARGIN;
         if (left < MARGIN) left = MARGIN;
-        // 굴려도 자리가 모자라면(낮은 화면·연 채 창을 줄임) 화면 안에 들도록 끌어올린다 — 칸을 덮더라도 본문 위 끝(창 제목·설명 아래)보다는 안 올린다.
+        // 굴려도 자리가 모자라면(연 채 본문을 되굴림·창을 줄임) 화면 아래 여유까지 끌어올린다 — 칸은 덮을 수 있다.
+        // 1440×900·1280×800 에서는 본문 위 끝 아래에 머물러 창 제목·설명을 덮지 않는다. 그보다 낮은 화면(안쪽 약 700 이하)은
+        // 창 머리 아래에 달력이 다 들어갈 자리가 없어, 날짜를 누를 수 있게 화면 안에 넣는 쪽을 고른다(PW-2992 3회차 리뷰).
         let top = a.bottom + GAP;
         const vh = window.innerHeight;
-        if (top + el.offsetHeight > vh - MARGIN) {
-          const floor = box ? box.getBoundingClientRect().top : MARGIN;
-          top = Math.max(floor, vh - MARGIN - el.offsetHeight);
-        }
+        if (top + el.offsetHeight > vh - BOTTOM) top = Math.max(MARGIN, vh - BOTTOM - el.offsetHeight);
         el.style.left = `${left}px`;
         el.style.top = `${top}px`;
         el.style.opacity = '1';
