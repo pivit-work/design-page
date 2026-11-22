@@ -143,6 +143,11 @@ export default function DatePicker({
   // placement="below" 의 스크롤 길이 자리 — 칸 바로 아래에 달력 높이만큼 보이지 않는 자리를 두어, 창 본문이 짧아도
   // 칸을 위로 올려 달력이 화면 안에 들어오게 굴릴 수 있다. 달력 자신은 화면에 띄우므로 스크롤 길이를 못 늘린다 (pivit-work PW-2992 3회차).
   const roomRef = useRef(null);
+  // 본문 굴림에 걸어 둔 닫기는 마지막 onClose 를 부른다 — 부르는 쪽이 매번 새 함수를 넘겨도 자리 잡기를 다시 걸지 않게
+  const onCloseRef = useRef(onClose);
+  useLayoutEffect(() => {
+    onCloseRef.current = onClose;
+  });
   useLayoutEffect(() => {
     const el = popoverRef.current;
     if (!el) return;
@@ -176,12 +181,24 @@ export default function DatePicker({
       // 위로 뒤집지 않고 늘 칸 바로 아래 — 화면에 띄워 그리므로 창 본문·버튼 줄에 잘리지 않는다(버튼 줄 위로 겹친다).
       const place = () => {
         const a = anchorEl.getBoundingClientRect();
+        // 본문을 손으로 굴려 칸이 본문 위 끝 밖으로 나가면 닫는다 — 띄운 달력이 칸 없이 남아 창 제목·설명 줄을 덮었다(PW-2992 3회차 리뷰)
+        if (box && a.bottom <= box.getBoundingClientRect().top) {
+          onCloseRef.current?.();
+          return;
+        }
         const vw = window.innerWidth;
         let left = a.left;
         if (left + el.offsetWidth > vw - MARGIN) left = vw - el.offsetWidth - MARGIN;
         if (left < MARGIN) left = MARGIN;
+        // 굴려도 자리가 모자라면(낮은 화면·연 채 창을 줄임) 화면 안에 들도록 끌어올린다 — 칸을 덮더라도 본문 위 끝(창 제목·설명 아래)보다는 안 올린다.
+        let top = a.bottom + GAP;
+        const vh = window.innerHeight;
+        if (top + el.offsetHeight > vh - MARGIN) {
+          const floor = box ? box.getBoundingClientRect().top : MARGIN;
+          top = Math.max(floor, vh - MARGIN - el.offsetHeight);
+        }
         el.style.left = `${left}px`;
-        el.style.top = `${a.bottom + GAP}px`;
+        el.style.top = `${top}px`;
         el.style.opacity = '1';
       };
       place();
