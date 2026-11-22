@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 import { CloseGlyph } from '../shared/lineIcons.jsx';
 import Tabs from '../shared/Tabs.jsx';
@@ -45,6 +45,11 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
   const L = useMemo(() => makeOkrLabels(labels), [labels]);
   const [subTab, setSubTab] = useState('canvas');
   const [editing, setEditing] = useState(false);
+  // AI 응답이 올 «때»의 편집 여부 — 누른 뒤 [편집]을 눌러 쓴 글도 덮지 않으려고 (PW-3055).
+  const editingRef = useRef(editing);
+  useEffect(() => {
+    editingRef.current = editing;
+  }, [editing]);
   const [draft, setDraft] = useState(null);
   const [saving, setSaving] = useState(false);
   // { rowId: string | null, message } — rowId 가 있으면 그 행 안에, 없으면 도구 줄 아래에 뜬다. ×로 닫는다(okr-policy §5).
@@ -129,11 +134,13 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
       // 편집 중이면 입력 중인 글(저장 전)을 같이 넘긴다 — 선행 칸 판정과 생성이 같은 글을 본다.
       const byId = await onAiAutocomplete(rowId, editing ? fromDraft(rows, draft) : undefined);
       const base = editing ? draft : toDraft(rows);
-      // 편집 중에 눌렀으면 AI 가 도는 동안 칸에 쓴 글은 덮지 않는다 — 보낸 글(base)과 달라진 칸은 지금 글을 둔다.
-      // 읽기 모드에서 눌렀으면 지난 편집([취소]한 글)이 draft 에 남아 있어도 보지 않는다 (PW-3055).
+      // 응답이 온 때 편집 중이면 AI 가 도는 동안 칸에 쓴 글은 덮지 않는다 — 보낸 글(base)과 달라진 칸은 지금 글을 둔다.
+      // 편집 중이 아니면 지난 편집([취소]한 글)이 draft 에 남아 있어도 보지 않는다 (PW-3055).
+      // 갱신 함수 밖에서 읽는다 — 안에서 읽으면 아래 setEditing(true) 가 먼저 반영된 렌더에서 돈다.
+      const editingNow = editingRef.current;
       setDraft((prev) =>
         rows.map((row, i) => {
-          const now = editing && prev ? prev : base;
+          const now = editingNow && prev ? prev : base;
           if ((now[i] ?? '') !== (base[i] ?? '')) return now[i];
           if (rowId && row.id !== rowId) return base[i];
           return byId?.[row.id] ?? base[i];
