@@ -22,17 +22,13 @@
   position: relative;
   z-index: auto;
 }
-/* 칸 바로 아래에 붙여 그린다(placement="below" · pivit-work PW-2992) — 모양은 그대로, 자리만 앵커 기준.
-   스크롤 칸 안에서 위로 뒤집혀 창 제목을 덮지 않게 한다. left·top 은 DatePicker 가 앵커 offset 으로 넣는다. */
-.dp-datepicker.is-below {
-  position: absolute;
-}
-/* 달력 바로 아래 그림자 자리 — 스크롤 칸이 달력 아래 끝에서 멈추면 아래로 퍼지는 그림자가 잘린다(pivit-work PW-2992 3회차).
-   보이지 않고 눌리지 않는다. left·top 은 DatePicker 가 달력 아래 끝으로 넣는다. */
+/* 칸 바로 아래에 연다(placement="below" · pivit-work PW-2992) — 모양·화면에 띄우는 방식(fixed)은 기본과 같고, 위로 뒤집지 않는다.
+   창 본문이 짧으면 DatePicker 가 본문을 굴려 칸을 올리고, 달력은 버튼 줄 위로 겹쳐 그린다 — 창 제목을 덮지 않고 아래가 잘리지 않는다.
+   .dp-datepicker-below-room 은 칸 아래 달력 높이만큼의 보이지 않는 자리 — 본문이 짧아도 칸을 올릴 스크롤 길이를 만든다.
+   보이지 않고 눌리지 않는다. left·top·height 는 DatePicker 가 넣는다. */
 .dp-datepicker-below-room {
   position: absolute;
   width: 1px;
-  height: var(--spacing-4xl);
   pointer-events: none;
   visibility: hidden;
 }

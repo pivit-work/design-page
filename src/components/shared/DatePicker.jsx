@@ -18,9 +18,9 @@ import { ChevronDownGlyph, ChevronLeftGlyph, ChevronRightGlyph } from './lineIco
  * Props:
  *   anchorRect   클릭한 버튼의 DOMRect (inline 이면 쓰지 않는다)
  *   anchorEl     클릭한 버튼 element (outside-click 판정에서 제외)
- *   placement    'auto'(기본) | 'below' — 'below' 는 아래 자리가 모자라도 위로 뒤집지 않는다. 화면에 고정해 띄우지 않고
- *                앵커(anchorEl)의 형제로 그 바로 아래에 붙여(같은 offsetParent 기준) 그리고, 연 뒤 스크롤 칸을 굴려 달력 전체를
- *                보인다. 창 안쪽이 스크롤되는 창에서 위로 뒤집힌 달력이 창 제목을 덮을 때 쓴다 (pivit-work PW-2992 · 외부 전사 가져오기 창)
+ *   placement    'auto'(기본) | 'below' — 'below' 는 아래 자리가 모자라도 위로 뒤집지 않고 늘 칸 바로 아래에 띄운다. 모자라면
+ *                가장 가까운 스크롤 칸(창 본문)을 그만큼 굴려 칸을 올리고(칸이 그 칸 위 끝을 넘지는 않음), 남으면 버튼 줄 위로 겹친다.
+ *                창 제목은 본문 밖에 두는 창(ModalShell .is-body-scroll)에서 쓴다 — 위로 뒤집힌 달력이 창 제목을 덮지 않게 (pivit-work PW-2992)
  *   inline       boolean — true 면 띄우지 않고 놓인 자리(문서 흐름)에 그린다. 모양은 같다. 연 채 여러 날을 고르는 곳에서
  *                아래 줄(고른 날 · 안내)을 덮지 않고 밀어내며, 스크롤하면 자리와 함께 움직인다 (PW-2663 · 연차 사용 계획)
  *   flat         boolean — inline 과 함께. 창 안에 늘 펼쳐 둔 달력을 그림자 카드 대신 테두리 칸(1px · r12 · 폭 252)으로, 줄 30 ·
@@ -140,8 +140,8 @@ export default function DatePicker({
   );
 
   const scrolledRef = useRef(false);
-  // placement="below" 달력 바로 아래 빈 자리 — 스크롤 칸이 달력 아래 끝에서 멈추면 아래로 퍼지는 그림자가 잘린다.
-  // 달력 자신은 overflow:hidden 이라 그 안의 것은 스크롤 범위를 못 늘려, 형제로 둔다 (pivit-work PW-2992 3회차).
+  // placement="below" 의 스크롤 길이 자리 — 칸 바로 아래에 달력 높이만큼 보이지 않는 자리를 두어, 창 본문이 짧아도
+  // 칸을 위로 올려 달력이 화면 안에 들어오게 굴릴 수 있다. 달력 자신은 화면에 띄우므로 스크롤 길이를 못 늘린다 (pivit-work PW-2992 3회차).
   const roomRef = useRef(null);
   useLayoutEffect(() => {
     const el = popoverRef.current;
@@ -151,29 +151,45 @@ export default function DatePicker({
       return;
     }
     if (placement === 'below' && anchorEl) {
-      // 앵커와 같은 offsetParent 안에서 바로 아래 4px 에 붙인다 — 스크롤 칸 안에 있으므로 그 칸이 달력만큼 늘어난다.
-      el.style.left = `${anchorEl.offsetLeft}px`;
-      const top = anchorEl.offsetTop + anchorEl.offsetHeight + 4;
-      el.style.top = `${top}px`;
-      el.style.opacity = '1';
+      const GAP = 4;
+      const MARGIN = 8;
       const room = roomRef.current;
       if (room) {
         room.style.left = `${anchorEl.offsetLeft}px`;
-        room.style.top = `${top + el.offsetHeight}px`;
+        room.style.top = `${anchorEl.offsetTop + anchorEl.offsetHeight}px`;
+        room.style.height = `${GAP + el.offsetHeight + MARGIN}px`;
       }
       // 처음 열 때만 굴린다 — 달을 넘길 때마다 다시 굴리면 위로 올려 본 창이 도로 끌려 내려간다.
+      // 칸 아래 화면 자리가 모자라면 그만큼 본문을 굴려 칸을 올린다. 칸이 스크롤 칸 위 끝을 넘어가지는 않는다(낮은 화면).
+      const box = scrollBoxOf(anchorEl);
       if (!scrolledRef.current) {
         scrolledRef.current = true;
-        // 달력 머리부터 그림자 자리까지 보이게 굴린다 — 그림자 자리가 없으면 달력만큼.
-        el.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
-        room?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
-        // 스크롤 칸이 칸+달력보다 낮으면(낮은 화면) 달력 머리에 맞춰 칸이 위로 사라진다 — 그때는 칸을 위 끝에 둔다.
-        const box = scrollBoxOf(anchorEl);
-        if (box && anchorEl.getBoundingClientRect().top < box.getBoundingClientRect().top) {
-          anchorEl.scrollIntoView?.({ block: 'start', inline: 'nearest' });
+        if (box) {
+          const a = anchorEl.getBoundingClientRect();
+          const need = a.bottom + GAP + el.offsetHeight - (window.innerHeight - MARGIN);
+          const can = a.top - box.getBoundingClientRect().top;
+          if (need > 0 && can > 0) box.scrollTop += Math.min(need, can);
         }
       }
-      return;
+      // 위로 뒤집지 않고 늘 칸 바로 아래 — 화면에 띄워 그리므로 창 본문·버튼 줄에 잘리지 않는다(버튼 줄 위로 겹친다).
+      const place = () => {
+        const a = anchorEl.getBoundingClientRect();
+        const vw = window.innerWidth;
+        let left = a.left;
+        if (left + el.offsetWidth > vw - MARGIN) left = vw - el.offsetWidth - MARGIN;
+        if (left < MARGIN) left = MARGIN;
+        el.style.left = `${left}px`;
+        el.style.top = `${a.bottom + GAP}px`;
+        el.style.opacity = '1';
+      };
+      place();
+      // 본문을 손으로 굴리거나 화면 크기가 바뀌면 칸을 따라간다.
+      box?.addEventListener('scroll', place, { passive: true });
+      window.addEventListener('resize', place);
+      return () => {
+        box?.removeEventListener('scroll', place);
+        window.removeEventListener('resize', place);
+      };
     }
     if (!anchorRect) return;
     const m = el.getBoundingClientRect();
