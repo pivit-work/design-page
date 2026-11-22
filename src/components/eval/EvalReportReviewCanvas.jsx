@@ -226,6 +226,8 @@ const DEFAULT_LABELS = {
   aiGenerating: '리포트 생성 중',
   aiFailed: '생성 실패',
   aiRegenerate: '재생성',
+  aiWaitingPeer: '동료 리뷰 검수가 끝나면 만들어집니다',
+  aiPeerChanged: '요약을 만든 뒤 동료 글이 바뀌었습니다',
   aiRegenerateError: '리포트를 다시 만들지 못했습니다. 잠시 후 다시 시도해 주세요.',
   // PW-1458 — 발송에서 빠진 것과 실패한 것 (정책 §8.6 예외 처리)
   toastSkippedNotApproved: '미승인 {count}건은 제외됩니다',
@@ -279,6 +281,18 @@ const STATUS_META = {
  * 네모는 «보낼 수 있는 줄»(인사담당자 · 승인 완료)과 «내가 승인할 줄» 둘 다에 단다.
  * 동료 리뷰 검수·AI 요약 확인이 남아 막히는 것은 «보내기»다 — 승인할 줄은 막지 않는다.
  */
+/**
+ * PW-3054 — 보내기를 막는 줄. 동료 리뷰 검수 · AI 요약 확인이 남았거나, «종합 요약»을 만드는 중(hr §9.3-A)이다.
+ * 줄 네모 · 고른 것 보내기 · 전체 발송이 같은 판정을 쓴다(서버 `sendReports` 도 같은 셋으로 거른다).
+ */
+function isSendBlocked(row) {
+  return (
+    (row.unresolvedPeerRefinements ?? 0) > 0 ||
+    (row.pendingAiSummaries ?? 0) > 0 ||
+    row.aiInsightState === 'generating'
+  );
+}
+
 function rowCheckState(row, canSend, myUserId) {
   const excluded = row.excluded === true;
   const canApprove =
@@ -287,7 +301,7 @@ function rowCheckState(row, canSend, myUserId) {
       : row.leaderId === myUserId &&
         (row.status === 'pending' || row.status === 'leader_rejected') &&
         !excluded;
-  const blocked = (row.unresolvedPeerRefinements ?? 0) > 0 || (row.pendingAiSummaries ?? 0) > 0;
+  const blocked = isSendBlocked(row);
   const sendable = canSend && row.status === 'hr_approved' && !excluded;
   return { selectable: sendable || canApprove, locked: sendable && blocked && !canApprove };
 }
@@ -1473,6 +1487,29 @@ function ReviewRow({
             {L.aiGenerating}
           </span>
         )}
+        {/* PW-3054 — 동료 리뷰 검수가 남아 «종합 요약»을 미뤘다(hr §9.3-A «기다리는 동안»). 누를 것은 없다 — 검수가 끝나면 저절로 만든다. */}
+        {!excluded && aiState === 'waiting_peer_review' && (
+          <span className="evrr-ai-state" data-testid={`evrr-ai-waiting-${row.memberId}`}>
+            {L.aiWaitingPeer}
+          </span>
+        )}
+        {/* PW-3054 — 요약을 만든 뒤 동료가 답을 고쳐 냈다. 자동으로 다시 만들지 않고 인사담당자가 [재생성]을 고른다. */}
+        {!excluded && aiState === 'ready' && row.aiInsightPeerChanged === true && (
+          <span className="evrr-ai-state" data-testid={`evrr-ai-peer-changed-${row.memberId}`}>
+            {L.aiPeerChanged}
+            {canReject && onRegenerate && (
+              <button
+                type="button"
+                className="evc-link-btn evrr-regen-link"
+                disabled={regenBusy}
+                onClick={regenerate}
+                data-testid={`evrr-ai-regenerate-${row.memberId}`}
+              >
+                {L.aiRegenerate}
+              </button>
+            )}
+          </span>
+        )}
         {!excluded && (aiState === 'failed' || aiState === 'trial_exhausted') && (
           <span className="evrr-ai-state" data-testid={`evrr-ai-${aiState === 'failed' ? 'failed' : 'trial'}-${row.memberId}`}>
             {aiState === 'failed' && (
@@ -1826,10 +1863,12 @@ export default function EvalReportReviewCanvas({
   const refinedRows = approvedRows.filter((r) => (r.unresolvedPeerRefinements ?? 0) === 0);
   const excludedCount = approvedRows.length - refinedRows.length;
   // PW-2686 — «AI 요약으로만 공개» 블록 확인이 남은 사람은 따로 센다(서버 `aiSummaryBlocked` 와 같은 순서 · §9.2-A-1).
-  const approvedIds = refinedRows
-    .filter((r) => (r.pendingAiSummaries ?? 0) === 0)
+  const aiCheckedRows = refinedRows.filter((r) => (r.pendingAiSummaries ?? 0) === 0);
+  const aiExcludedCount = refinedRows.length - aiCheckedRows.length;
+  // PW-3054 — «종합 요약»을 만드는 중인 사람은 끝날 때까지 빠진다(hr §9.3-A · 1인당 30초 이내).
+  const approvedIds = aiCheckedRows
+    .filter((r) => r.aiInsightState !== 'generating')
     .map((r) => r.memberId);
-  const aiExcludedCount = refinedRows.length - approvedIds.length;
   // PW-1839 — HR 승인 전인 줄 전부(리더 작성 중·본부장 승인 대기·HR 검수 대기). 발송에서 빠진다.
   const c = q.counts ?? {};
   const notYetApproved =
@@ -1973,13 +2012,7 @@ export default function EvalReportReviewCanvas({
     // 고른 뒤에 막힌 사람이 생길 수 있다(동료가 리뷰를 고쳐 다시 내면 그 순간 막힌다).
     // 보내기 직전에 한 번 더 거른다 — 서버도 같은 판정으로 막지만 여기서 거르면
     // 「보냈다」 토스트가 실제로 나간 사람 수와 맞는다.
-    const blockedIds = new Set(
-      q.rows
-        .filter(
-          (r) => (r.unresolvedPeerRefinements ?? 0) > 0 || (r.pendingAiSummaries ?? 0) > 0,
-        )
-        .map((r) => r.memberId),
-    );
+    const blockedIds = new Set(q.rows.filter(isSendBlocked).map((r) => r.memberId));
     const ids = rawIds.filter((id) => !blockedIds.has(id) && !excludedIds.has(id));
     if (!ids.length) return;
     if (sendChannels) {
