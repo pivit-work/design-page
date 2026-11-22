@@ -129,10 +129,11 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
       // 편집 중이면 입력 중인 글(저장 전)을 같이 넘긴다 — 선행 칸 판정과 생성이 같은 글을 본다.
       const byId = await onAiAutocomplete(rowId, editing ? fromDraft(rows, draft) : undefined);
       const base = editing ? draft : toDraft(rows);
-      // AI 가 도는 동안 편집 중인 칸에 쓴 글은 덮지 않는다 — 보낸 글(base)과 달라진 칸은 지금 글을 둔다 (PW-3055).
+      // 편집 중에 눌렀으면 AI 가 도는 동안 칸에 쓴 글은 덮지 않는다 — 보낸 글(base)과 달라진 칸은 지금 글을 둔다.
+      // 읽기 모드에서 눌렀으면 지난 편집([취소]한 글)이 draft 에 남아 있어도 보지 않는다 (PW-3055).
       setDraft((prev) =>
         rows.map((row, i) => {
-          const now = prev ?? base;
+          const now = editing && prev ? prev : base;
           if ((now[i] ?? '') !== (base[i] ?? '')) return now[i];
           if (rowId && row.id !== rowId) return base[i];
           return byId?.[row.id] ?? base[i];
@@ -201,8 +202,9 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
             <div className="okr-s-toolbar-right">
               {editing ? (
                 <>
-                  <button className="okr-s-edit-btn" onClick={cancelEdit} disabled={saving}>{L('strategy.cancel')}</button>
-                  <button className="okr-s-save-btn" onClick={save} disabled={saving || !canEdit}>
+                  {/* AI 가 도는 동안 [취소]·[저장]을 막는다 — 누르면 응답이 와서 편집 모드가 다시 열린다 (PW-3055). */}
+                  <button className="okr-s-edit-btn" onClick={cancelEdit} disabled={saving || aiLoading !== false}>{L('strategy.cancel')}</button>
+                  <button className="okr-s-save-btn" onClick={save} disabled={saving || !canEdit || aiLoading !== false}>
                     {saving ? L('strategy.saving') : L('strategy.save')}
                   </button>
                 </>
