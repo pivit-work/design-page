@@ -4714,6 +4714,16 @@
   text-decoration: line-through;
 }
 
+/* 미해결 줄 «!» — 정책서 §17.3 «미해결(!)». ✓ 와 같은 글머리 자리, 색은 상자 머리 «N개 미해결»(.tl-weekly-blocker-count)과 같은 토큰.
+   줄 글자는 디자이너 .tl-weekly-note-list 그대로 */
+.tl-weekly-note-unresolved {
+  list-style-type: '!  ';
+}
+
+.tl-weekly-note-unresolved::marker {
+  color: var(--colors-foreground-fgErrorPrimary);
+}
+
 .tl-weekly-note-empty {
   margin: 0;
   font-size: 16px;
