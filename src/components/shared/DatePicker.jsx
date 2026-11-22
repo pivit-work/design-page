@@ -351,10 +351,11 @@ export default function DatePicker({
       <div
         {...rest}
         ref={popoverRef}
-        className={['dp-datepicker', inline && 'is-inline', inline && flat && 'is-flat', below && 'is-below'].filter(Boolean).join(' ')}
+        className={['dp-datepicker', inline && 'is-inline', inline && flat && 'is-flat'].filter(Boolean).join(' ')}
         style={{ left: 0, top: 0, opacity: 0 }}
         role="dialog"
         data-view={view}
+        data-placement={below ? 'below' : undefined}
       >
         <div className="dp-datepicker-content">
           {/* 머리 글자 + chevron (흐린 톤) */}
