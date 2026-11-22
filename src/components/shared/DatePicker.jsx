@@ -153,11 +153,13 @@ export default function DatePicker({
     if (placement === 'below' && anchorEl) {
       const GAP = 4;
       const MARGIN = 8;
+      // 화면 아래 끝 여유 — 달력 그림자(0 32px 64px)가 화면 끝에서 잘리지 않게 8 대신 32 (pivit-work PW-2992 3회차)
+      const BOTTOM = 32;
       const room = roomRef.current;
       if (room) {
         room.style.left = `${anchorEl.offsetLeft}px`;
         room.style.top = `${anchorEl.offsetTop + anchorEl.offsetHeight}px`;
-        room.style.height = `${GAP + el.offsetHeight + MARGIN}px`;
+        room.style.height = `${GAP + el.offsetHeight + BOTTOM}px`;
       }
       // 처음 열 때만 굴린다 — 달을 넘길 때마다 다시 굴리면 위로 올려 본 창이 도로 끌려 내려간다.
       // 칸 아래 화면 자리가 모자라면 그만큼 본문을 굴려 칸을 올린다. 칸이 스크롤 칸 위 끝을 넘어가지는 않는다(낮은 화면).
@@ -166,7 +168,7 @@ export default function DatePicker({
         scrolledRef.current = true;
         if (box) {
           const a = anchorEl.getBoundingClientRect();
-          const need = a.bottom + GAP + el.offsetHeight - (window.innerHeight - MARGIN);
+          const need = a.bottom + GAP + el.offsetHeight - (window.innerHeight - BOTTOM);
           const can = a.top - box.getBoundingClientRect().top;
           if (need > 0 && can > 0) box.scrollTop += Math.min(need, can);
         }
