@@ -3398,6 +3398,8 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
 /* 칸 여백·머리 행·구분선·줄 색·스크롤은 명단 표(roster-table.css)가 정한다 (PW-839). */
 .admin-snap-hist-date { font-family: var(--font-family-body); color: var(--text-secondary); }
 .admin-snap-hist-name { font-weight: 700; color: var(--text-primary); }
+/* 띄어쓰기 없는 긴 대상자 이름은 낱말 안에서도 꺾는다 — 앱 글자 규칙(word-break: keep-all)으로는 안 꺾여 칸을 넓히고 표가 틀을 넘었다(pivit-work PW-3002 리뷰) */
+.admin-snap-hist-name { overflow-wrap: anywhere; }
 .admin-snap-hist-mode { color: var(--text-secondary); }
 /* «수정» 줄의 발령 유형 자리 — 배지 없는 «—» (시안 admin-app.jsx: fontSize 12 · muted 글자) */
 .admin-snap-hist-type-empty { color: var(--text-secondary); }
@@ -3408,8 +3410,10 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
   transition: color 0.15s ease;
 }
 .admin-snap-hist-row:hover .admin-snap-hist-detaillink { color: var(--text-brand-secondary, #10774d); }
-/* 행 끝 칸 — 글자 링크 두세 개를 한 줄로(상세 창이 열려 표가 좁아져도 · PW-2597) */
-.admin-snap-hist-actions { white-space: nowrap; }
+/* 행 끝 칸 — 글자 링크 하나하나는 낱말 안에서 꺾지 않는다(«발효 전/취소» · PW-2597).
+   칸 전체를 한 줄로 막으면 긴 링크(«조직단위 설정에서 취소 →»)가 있는 줄에서 상세 창을 연 1280 표가 틀을 넘어,
+   자리가 모자랄 때만 링크와 링크 사이에서 다음 줄로 내린다(pivit-work PW-3002 리뷰). */
+.admin-snap-hist-actions .admin-snap-hist-detaillink { white-space: nowrap; }
 /* «처리 유형»·«처리자» 칸 글 — 상세 창이 열려 표가 좁아져도 한 줄, 넘치면 «…»(pivit-work PW-3002).
    명단 표 한 줄 칸(.rt-table.is-nowrap td)·구성원 목록 칸 글(.admin-emp-cell-clip)과 같은 세 값.
    칸 폭은 글 길이로 정해지는 표라 상자에 최대 폭을 둬야 «…»가 난다.
@@ -3428,6 +3432,8 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
    «처리 유형»은 정해진 짧은 글(«일괄 고치기» 62px)이라 그대로 둔다. */
 @container admin-snap-hist-table (max-width: 600px) {
   .admin-snap-hist-clip.is-by { max-width: 56px; }
+  /* 같은 좁은 틀에서 긴 행 끝 링크(«조직단위 설정에서 취소 →»)는 띄어쓰기 자리에서 꺾는다 — 낱말 안은 앱 글자 규칙(keep-all)대로 안 꺾인다 */
+  .admin-snap-hist-actions .admin-snap-hist-detaillink { white-space: normal; }
 }
 
 /* 예약 발령 (PW-1422 · org-snapshot-spec §2 · §4) */
