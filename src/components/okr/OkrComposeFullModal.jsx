@@ -27,7 +27,7 @@ import Spinner from '../shared/Spinner.jsx';
  * KR 담당자는 검색 드롭다운(OkrMemberPicker, okr-spec §3.8A).
  * KR 마다 실행 항목(Initiative) 편집 블록을 둔다 — okr-policy §4A · okr-spec §3.7 (PW-501).
  *
- * onSubmit(objectives): objectives = [{ id?, title, weight, comOkr?, krs: [{ id?,
+ * onSubmit(objectives): objectives = [{ id?, title, weight, ownerId?(showObjectiveOwner 일 때), comOkr?, krs: [{ id?,
  *   title, target, unit, inputType('percent'|'binary'|'count'), weight, parentKrIds? }] }]
  *
  * 상위 KR 참조는 **`parentKrIds: string[]`** 다 (0~다, N:M). 한 KR 이 상위 성과
@@ -109,6 +109,7 @@ const DEFAULT_LABELS = {
   krUnit: 'KR 단위',
   krWeight: 'KR 가중치',
   krOwner: 'KR 담당자',
+  objectiveOwner: 'Objective 담당자',
   // 담당자 고르기(OkrMemberPicker) 칸 — 비었을 때 글자·검색칸·결과 없음
   ownerPlaceholder: '담당자',
   ownerSearchPlaceholder: '이름 검색...',
@@ -189,6 +190,8 @@ function emptyObjective(linkedKr, selfId) {
     key: nextId(),
     title: '',
     weight: '',
+    // 담당자 칸은 연 사람으로 채워 둔다 — AI 초안도 같다(pivit-work PW-3056 ②).
+    ownerId: selfId ?? '',
     parentId: '',
     krs: linkedKr ? [emptyKr(linkedKr, selfId)] : [],
   };
@@ -205,6 +208,7 @@ function seedObjective(o) {
     id: o.id,
     title: o.title ?? '',
     weight: o.weight == null ? '' : String(o.weight),
+    ownerId: o.ownerId ?? '',
     parentId: o.parentOkrId ?? '',
     krs: (o.krs ?? []).map((k) => ({
       key: nextId(),
@@ -386,6 +390,9 @@ export default function OkrComposeFullModal({
   members = [],
   parentOptions = [],
   selfId = '',
+  // Objective 행에도 담당자 칸을 둔다(okr-policy §5.2B · pivit-work PW-3056). 끄면 종전 모양 — 개인 OKR 처럼
+  // 주인이 곧 쓰는 사람인 경로는 앱이 끈다.
+  showObjectiveOwner = false,
   initialObjectives,
   labels,
   showCompanyCard = true,
@@ -663,6 +670,8 @@ export default function OkrComposeFullModal({
       ...(o.id ? { id: o.id } : {}),
       title: o.title.trim(),
       weight: Number(o.weight) || 0,
+      // 칸을 보일 때만 싣는다 — 안 보이는 경로(개인)는 종전처럼 소비 측이 정한다.
+      ...(showObjectiveOwner && o.ownerId ? { ownerId: o.ownerId } : {}),
       parentOkrId: o.parentId || undefined,
       krs: o.krs.map((k) => ({
         ...(k.id ? { id: k.id } : {}),
@@ -890,6 +899,20 @@ export default function OkrComposeFullModal({
                       onChange={(e) => patchObjective(objective.key, { weight: e.target.value })}
                     />
                     <span className="okr-cf-unit">%</span>
+                    {showObjectiveOwner && members.length > 0 && (
+                      // KR 행과 같은 담당자 칸(OkrMemberPicker) — 같은 창의 디자이너 모양을 따른다.
+                      <OkrMemberPicker
+                        disabled={readOnly}
+                        ariaLabel={L.objectiveOwner}
+                        placeholder={L.ownerPlaceholder}
+                        searchPlaceholder={L.ownerSearchPlaceholder}
+                        searchAriaLabel={`${L.objectiveOwner} ${L.ownerSearchSuffix}`}
+                        noResultLabel={L.ownerNoResult}
+                        members={members}
+                        value={objective.ownerId}
+                        onChange={(id) => patchObjective(objective.key, { ownerId: id })}
+                      />
+                    )}
                     {parentOptions.length > 0 && (
                       // 이 창의 드롭다운 넷은 디자이너 펼친 목록(SearchSelect)이다 — 브라우저 기본 목록은
                       // 맥 회색 목록으로 뜨고 화면 녹화에 안 잡힌다(PW-1955). 닫힌 칸은 종전 클래스 그대로.
