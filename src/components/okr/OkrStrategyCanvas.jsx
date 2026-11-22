@@ -3,6 +3,7 @@ import Icon from '../shared/Icon.jsx';
 import { CloseGlyph } from '../shared/lineIcons.jsx';
 import Tabs from '../shared/Tabs.jsx';
 import Button from '../shared/Button.jsx';
+import Spinner from '../shared/Spinner.jsx';
 import { isNotifiedFailure } from '../shared/notifiedFailure.js';
 import OkrBoard from './OkrBoard.jsx';
 import OkrHistoryList from './OkrHistoryList.jsx';
@@ -232,7 +233,13 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
                 disabled={!onAiAutocomplete || aiLoading !== false}
                 aria-busy={aiLoading === true || undefined}
               >
-                {aiLoading === true ? L('strategy.aiAllRunning') : L('strategy.aiAll')}
+                {/* 기다리는 표시 — 정본표 «AI 기다리는 표시»(Spinner · .dp-busy-inline) · 기획 «<Spinner/>생성 중...» (PW-3055) */}
+                {aiLoading === true ? (
+                  <span className="dp-busy-inline">
+                    <Spinner size={14} />
+                    {L('strategy.aiAllRunning')}
+                  </span>
+                ) : L('strategy.aiAll')}
               </button>
             )}
             <div className="okr-s-toolbar-right">
