@@ -3410,18 +3410,24 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
 .admin-snap-hist-row:hover .admin-snap-hist-detaillink { color: var(--text-brand-secondary, #10774d); }
 /* 행 끝 칸 — 글자 링크 두세 개를 한 줄로(상세 창이 열려 표가 좁아져도 · PW-2597) */
 .admin-snap-hist-actions { white-space: nowrap; }
-/* 상세 창을 열어 표가 좁아져도 칸 글을 꺾지 않는다 — 조직 스냅샷(.is-framed, PW-3134)과 같은 규칙을 구성원 설정 › 발령 이력에도.
-   꺾이면 줄마다 높이가 달라진다(«발령일 · 승인 대기» 딱지가 아래로 내려감 · pivit-work PW-3002 1280 확인). 넘치면 표 틀 안에서 가로로 흐른다. */
-.admin-snap-hist-row td { white-space: nowrap; }
 /* «처리 유형»·«처리자» 칸 글 — 상세 창이 열려 표가 좁아져도 한 줄, 넘치면 «…»(pivit-work PW-3002).
    명단 표 한 줄 칸(.rt-table.is-nowrap td)·구성원 목록 칸 글(.admin-emp-cell-clip)과 같은 세 값.
-   칸 폭은 글 길이로 정해지는 표라 상자에 최대 폭을 둬야 «…»가 난다. */
+   칸 폭은 글 길이로 정해지는 표라 상자에 최대 폭을 둬야 «…»가 난다.
+   한 줄은 이 두 칸과 행 끝 링크(.admin-snap-hist-actions)에만 — 다른 칸은 꺾인다. 칸 전부를 한 줄로 막으면 상세 창을 연 1280 에서
+   표가 틀보다 넓어져 행 끝 «발효 전 취소 · 상세 ▸»가 잘렸다(pivit-work PW-3002 11-22 되돌림). */
+.admin-snap-hist-tablewrap,
+.admin-snap-hist-tablebox { container: admin-snap-hist-table / inline-size; }
 .admin-snap-hist-clip {
   display: block;
   max-width: 120px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+/* 표 틀이 좁을 때(조직 스냅샷 1280 + 상세 창 = 536px) «처리자» 상자가 120px 이면 긴 이름 하나로 표가 틀을 넘는다 — 이름만 더 일찍 «…».
+   «처리 유형»은 정해진 짧은 글(«일괄 고치기» 62px)이라 그대로 둔다. */
+@container admin-snap-hist-table (max-width: 600px) {
+  .admin-snap-hist-clip.is-by { max-width: 56px; }
 }
 
 /* 예약 발령 (PW-1422 · org-snapshot-spec §2 · §4) */
@@ -5216,9 +5222,9 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
 .admin-snap-hist-layout.is-framed.is-open { grid-template-columns: minmax(0, 1fr) 360px; }
 .is-framed .admin-snap-hist-toolbar { margin-bottom: 0; flex-wrap: wrap; row-gap: var(--spacing-md); }
 .is-framed .admin-snap-hist-tablebox { min-width: 0; }
-/* 상세를 열어 표가 좁아져도 칸 글을 꺾지 않는다 — 표가 판 안에서 가로로 흐른다(«구성원/상세» · «소/속» 꺾임) */
-.is-framed .admin-snap-hist-row td { white-space: nowrap; }
-.is-framed .admin-snap-hist-name { max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
+/* 칸 글 한 줄은 «처리 유형»·«처리자»(.admin-snap-hist-clip)·행 끝 링크(.admin-snap-hist-actions)에만 — 대상자 이름을 비롯한 다른 칸은 꺾인다.
+   칸 전부를 한 줄로 막으면 상세 창을 연 1280 에서 표가 판보다 넓어져 행 끝 «발효 전 취소 · 상세 ▸»가 잘렸다(pivit-work PW-3002 11-22 되돌림). */
+.is-framed .admin-snap-hist-name { max-width: 200px; }
 .is-framed .admin-snap-hist-outcome { margin-left: var(--spacing-sm); font-weight: 600; }
 .is-framed .admin-snap-hist-panel {
   position: sticky;
