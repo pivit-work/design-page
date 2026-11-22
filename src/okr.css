@@ -400,6 +400,8 @@ body:has(.okr-tab-header.is-actions-below) :is(.okr-header-actions, .okr-write-b
 .okr-s-save-btn:disabled,
 .okr-s-ai-btn:disabled:not([aria-busy='true']) { opacity: 0.5; cursor: not-allowed; }
 .okr-s-ai-btn[aria-busy='true'] { cursor: progress; }
+/* 도는 동안 넣는 돌아가는 표시가 글자 기준선에 놓여 버튼이 32→35px 로 커지지 않게 (PW-3055) */
+.okr-s-ai-btn .dp-busy-inline { vertical-align: top; }
 
 .okr-s-card { background: var(--bg-quaternary); border-radius: 16px; display: flex; flex-direction: column; }
 .okr-s-row { display: flex; align-items: center; gap: 24px; padding: 24px 32px; }
