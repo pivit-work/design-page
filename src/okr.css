@@ -395,6 +395,11 @@ body:has(.okr-tab-header.is-actions-below) :is(.okr-header-actions, .okr-write-b
 .okr-s-ai-btn { padding: 6px 14px; background: var(--utility-purple-500); border: none; border-radius: 8px; font-family: inherit; font-size: 13px; font-weight: 600; line-height: 20px; color: var(--text-white); cursor: pointer; }
 .okr-s-edit-btn { padding: 6px 14px; background: var(--alpha-black-3); border: none; border-radius: 8px; font-family: inherit; font-size: 13px; font-weight: 600; line-height: 20px; color: var(--text-secondary); cursor: pointer; }
 .okr-s-save-btn { padding: 6px 14px; background: var(--utility-purple-500); border: none; border-radius: 8px; font-family: inherit; font-size: 13px; font-weight: 600; line-height: 20px; color: var(--text-white); cursor: pointer; }
+/* 눌리지 않을 때 — 디자이너 버튼(button.css .dp-btn--*:disabled) 값. AI 가 도는 동안의 [전략 전체 AI 자동완성]은 흐리게 하지 않는다(aria-busy · PW-3055). */
+.okr-s-edit-btn:disabled,
+.okr-s-save-btn:disabled,
+.okr-s-ai-btn:disabled:not([aria-busy='true']) { opacity: 0.5; cursor: not-allowed; }
+.okr-s-ai-btn[aria-busy='true'] { cursor: progress; }
 
 .okr-s-card { background: var(--bg-quaternary); border-radius: 16px; display: flex; flex-direction: column; }
 .okr-s-row { display: flex; align-items: center; gap: 24px; padding: 24px 32px; }

@@ -66,6 +66,7 @@ export const OKR_LABELS = {
   'strategy.saveFailed': '전략 캔버스 저장에 실패했습니다. 잠시 후 다시 시도해주세요.',
   'strategy.missingFirst': '{{fields}}을(를) 먼저 입력해주세요.',
   'strategy.aiFailed': 'AI 자동완성에 실패했습니다. 잠시 후 다시 시도해주세요.',
+  'strategy.missionVisionFirst': 'Mission 또는 Vision을 먼저 입력해주세요.',
 
   // ── OKR 컨텍스트 설정 창 ──
   'context.title': 'OKR 컨텍스트 설정',

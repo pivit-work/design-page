@@ -23,7 +23,8 @@ import { OkrLabelsContext, makeOkrLabels } from './okr-labels.jsx';
  *   반환 Promise 가 reject 하면 편집 모드를 유지하고 인라인 에러를 띄운다 —
  *   작성 중 내용을 삼키지 않는다.
  * onAiAutocomplete(rowId?, draftRows?): '전략 전체 AI 자동완성'. 행 id → 텍스트 맵을 반환하면
- *   편집 모드로 들어가며 초안을 채운다(사용자가 확인·수정 후 [저장]).
+ *   편집 중이면 초안 칸을 채우고, 읽기 모드면 onSave 로 바로 반영한다(기획 okr-app.jsx · PW-3055).
+ *   던진 오류에 `inlineMessage` 가 있으면 그 글을 캔버스 위 빨간 줄로 쓴다.
  *   행별 [AI] 는 AI_PREREQUISITES 의 선행 칸이 비어 있으면 부르지 않고 그 행 안에
  *   「Mission을 먼저 입력해주세요.」를 띄운다(편집 중이면 입력 중인 글로 판정 · PW-1505).
  * historyEmptyLabel: 히스토리 0건 문구. 앱이 ko/en 을 넘긴다.
@@ -127,6 +128,14 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
         setError({ rowId, message: L('strategy.missingFirst', { fields: missing.join(', ') }) });
         return;
       }
+    } else {
+      // 전체 자동완성은 Mission·Vision 중 하나는 있어야 한다 — 캔버스 위 빨간 줄로(기획 okr-app.jsx aiGenerateAll · TC-OKR-003A 2 · PW-3055).
+      const current = editing ? draft : toDraft(rows);
+      const has = (id) => (current[rows.findIndex((row) => row.id === id)] ?? '').trim();
+      if (!has('mission') && !has('vision')) {
+        setError({ rowId: null, message: L('strategy.missionVisionFirst') });
+        return;
+      }
     }
     setAiLoading(rowId ?? true);
     setError(null);
@@ -134,23 +143,42 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
       // 편집 중이면 입력 중인 글(저장 전)을 같이 넘긴다 — 선행 칸 판정과 생성이 같은 글을 본다.
       const byId = await onAiAutocomplete(rowId, editing ? fromDraft(rows, draft) : undefined);
       const base = editing ? draft : toDraft(rows);
-      // 응답이 온 때 편집 중이면 AI 가 도는 동안 칸에 쓴 글은 덮지 않는다 — 보낸 글(base)과 달라진 칸은 지금 글을 둔다.
-      // 편집 중이 아니면 지난 편집([취소]한 글)이 draft 에 남아 있어도 보지 않는다 (PW-3055).
-      // 갱신 함수 밖에서 읽는다 — 안에서 읽으면 아래 setEditing(true) 가 먼저 반영된 렌더에서 돈다.
-      const editingNow = editingRef.current;
-      setDraft((prev) =>
+      const fill = (now) =>
         rows.map((row, i) => {
-          const now = editingNow && prev ? prev : base;
           if ((now[i] ?? '') !== (base[i] ?? '')) return now[i];
           if (rowId && row.id !== rowId) return base[i];
           return byId?.[row.id] ?? base[i];
-        }),
-      );
-      setEditing(true);
+        });
+      // 응답이 온 때 편집 중이면 AI 가 도는 동안 칸에 쓴 글은 덮지 않는다 — 보낸 글(base)과 달라진 칸은 지금 글을 둔다.
+      // 갱신 함수 밖에서 읽는다 — 안에서 읽으면 다른 상태 변경이 먼저 반영된 렌더에서 돈다 (PW-3055).
+      if (editingRef.current) {
+        setDraft((prev) => fill(prev ?? base));
+        return;
+      }
+      // 읽기 모드에서 눌렀으면 바로 반영한다(기획 okr-app.jsx aiGenerateField·aiGenerateAll «onChange» · TC-OKR-003A 4 · PW-3055).
+      // 지난 편집([취소]한 글)이 draft 에 남아 있어도 보지 않는다. 저장이 실패하면 받은 글을 편집 모드에 둬 잃지 않는다.
+      const next = fill(base);
+      if (!onSave) {
+        setDemoRows(fromDraft(rows, next));
+        return;
+      }
+      setSaving(true);
+      try {
+        await onSave(fromDraft(rows, next));
+      } catch (err) {
+        setDraft(next);
+        setEditing(true);
+        if (!isNotifiedFailure(err) && err?.response?.status !== 403) {
+          setError({ rowId: null, message: L('strategy.saveFailed') });
+        }
+      } finally {
+        setSaving(false);
+      }
     } catch (err) {
       // 앱이 이미 알린 실패(이용 정지 등 · `notified`)도 겹치지 않는다(PW-2907).
+      // 앱이 사유 글(`inlineMessage`)을 실어 던지면 그 글을 캔버스 위 빨간 줄로 쓴다 (PW-3055).
       if (!isNotifiedFailure(err) && err?.response?.status !== 403) {
-        setError({ rowId: null, message: L('strategy.aiFailed') });
+        setError({ rowId: null, message: err?.inlineMessage ?? L('strategy.aiFailed') });
       }
     } finally {
       setAiLoading(false);
@@ -202,6 +230,7 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
                 className="okr-s-ai-btn"
                 onClick={() => runAi()}
                 disabled={!onAiAutocomplete || aiLoading !== false}
+                aria-busy={aiLoading === true || undefined}
               >
                 {aiLoading === true ? L('strategy.aiAllRunning') : L('strategy.aiAll')}
               </button>
