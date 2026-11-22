@@ -288,6 +288,8 @@
   box-sizing: border-box;
   overflow: hidden;
 }
+/* 쓸 날이 아니었던 날(종일 휴가 · 시작 전) — 같은 칸을 점선으로만 (§11-A.1 «배경 없음 + 1px dashed» · PW-2376) */
+.snippet-trend-track.is-off { border-style: dashed; }
 .snippet-trend-bar { position: absolute; left: -1px; right: -1px; bottom: -1px; border-radius: 3px; }
 .snippet-trend-bar.is-good { background: var(--fg-success-secondary); }
 .snippet-trend-bar.is-warn { background: var(--fg-warning-secondary); }

@@ -73,7 +73,8 @@ function HealthTrendBars({ days = [] }) {
     <div className="snippet-trend" data-testid="snippet-health-trend">
       {days.map((d) => (
         <div className="snippet-trend-day" key={d.key} title={d.title}>
-          <span className="snippet-trend-track">
+          {/* off: 쓸 날이 아니었던 날(종일 휴가 · 시작 전) — 미작성 빈 칸과 가르는 점선 칸 (기획 스니핏 작성 §11-A.1 · §11-A.4 · PW-2376) */}
+          <span className={`snippet-trend-track${d.off ? ' is-off' : ''}`}>
             {d.score != null && (
               <span
                 className={`snippet-trend-bar is-${trendTier(d.score)}`}
