@@ -721,8 +721,6 @@ function merge(base, provided) {
 }
 
 const PAGE_SIZE = 20;
-/* 저장 뒤 읽기 화면이 먼저 그릴 값을 받아 두는 동안 기다리는 한도 — 넘으면 종전처럼 읽기 화면이 불러온다(pivit-work PW-2924) */
-const SAVED_LOAD_WAIT_MS = 8000;
 /*
   상세 페이지 묶음(성과 · 지급 자산 · 근태·휴가 · 따로 보관한 기록)의 «넘겨줄 값» (pivit-work PW-2924 6회차).
   페이지 [취소]·저장은 패널을 새로 붙여 묶음마다 «불러오는 중»부터 그렸다. [취소]·저장 직전에 지금 보이는(또는 저장 뒤 새로 받은)
@@ -6233,7 +6231,9 @@ function EmployeesEditPanel({
   /*
     저장이 끝나면 저장 전 HR 값을 버리고, 읽기 화면이 먼저 그릴 «저장 뒤 값»을 받아 둔 다음 읽기로 넘어간다 —
     받아 두지 않으면 읽기 화면이 다시 불러오는 동안 본문이 회색 빈 막대로 비었다(pivit-work PW-2924 11-21 dev 확인 밖 1 ·
-    정책서 §4 저장 → «읽기»). 늦으면(SAVED_LOAD_WAIT_MS) 기다리지 않고 넘어가 종전처럼 읽기 화면이 불러온다.
+    정책서 §4 저장 → «읽기»). 시간 한도 없이 응답까지 «저장 중»으로 기다린다 — 6회차의 8초 한도는 넘으면 읽기 화면이
+    회색 빈 막대로 다시 불러와, dev 응답 4~20초에서 새 줄·[수정]이 약 12초 사라졌다(pivit-work PW-2924 11-22 dev 확인 67 ·
+    정책서 §6 «저장 중 | … 응답까지 막힌다»). 실패한 불러오기는 넘기지 않아 읽기 화면이 스스로 불러온다(기존 실패 칸).
     성과(발령 승진 횟수) · 근태·휴가(입사일·재직 상태) · 따로 보관한 기록(퇴사 되돌리기)은 저장이 바꿀 수 있어 새로 받아 넘긴다.
     받는 동안 사유 창은 먼저 닫는다(endPageSave) — 저장은 이미 끝났다.
   */
@@ -6242,10 +6242,8 @@ function EmployeesEditPanel({
     if (!id) return;
     /* 지급 자산은 [저장하기]가 바꾸지 않는다 — 지금 보이는 값을 넘긴다(다시 불러오는 중이면 넘기지 않는다) */
     if (assetsState.status === 'ready' || assetsState.status === 'refreshing') handOffSection(assetsLoader, id, assetsState.view);
-    let open = true;
-    // 한도를 넘겨 늦게 온 응답은 버린다 — 그 사이 다음 저장이 시작됐을 수 있다
     const fetchInto = (load, keep) => (load
-      ? Promise.resolve().then(() => load(id)).then((v) => { if (open) keep(v); })
+      ? Promise.resolve().then(() => load(id)).then(keep)
       : null);
     const loads = Promise.allSettled([
       fetchInto(onLoadHrProfile, (p) => keepHrProfile(onLoadHrProfile, id, p)),
@@ -6256,10 +6254,7 @@ function EmployeesEditPanel({
       fetchInto(leaveLoader, (v) => handOffSection(leaveLoader, id, v)),
       fetchInto(onLoadArchivedRecords, (v) => handOffSection(onLoadArchivedRecords, id, v)),
     ]);
-    let timer;
-    await Promise.race([loads, new Promise((done) => { timer = setTimeout(done, SAVED_LOAD_WAIT_MS); })]);
-    clearTimeout(timer);
-    open = false;
+    await loads;
     if (onLoadHrProfile) armLoad(onLoadHrProfile, id);
   }
   function dropSavedHandoffs(id) {
