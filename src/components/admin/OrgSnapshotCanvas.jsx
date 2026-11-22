@@ -2253,7 +2253,8 @@ function AppointmentHistoryView({
                     onClick={() => { setRevision(null); setSelected(rec); }}
                   >
                     <RosterTable.Cell className="admin-snap-hist-date">
-                      {rec.date ?? '—'}
+                      {/* 날짜 글은 «-» 뒤에서 꺾지 않는다 — 딱지만 자리가 모자라면 아래로(pivit-work PW-3002) */}
+                      <span className="admin-snap-hist-datetext">{rec.date ?? '—'}</span>
                       {rec.scheduled && (
                         <StatusBadge className="admin-snap-type-badge is-gray admin-snap-sched-badge">{labels.historyScheduled}</StatusBadge>
                       )}
@@ -2320,7 +2321,7 @@ function AppointmentHistoryView({
                       {rec.scheduled && rec.reservation && onOpenReservation && (
                         <>
                           <Button
-                            className="admin-snap-hist-detaillink admin-snap-hist-cancel"
+                            className="admin-snap-hist-detaillink admin-snap-hist-cancel is-reservation"
                             onClick={(e) => { e.stopPropagation(); onOpenReservation(rec); }}
                             data-testid={`snap-hist-reservation-${rec.id}`}
                           >
@@ -2506,10 +2507,13 @@ function StructureRevisionTable({ revisions, error, selectedVersion, labels, onO
               data-testid={`snap-revision-row-${rev.version}`}
             >
               <RosterTable.Cell className="admin-snap-hist-name">#{rev.version}</RosterTable.Cell>
-              <RosterTable.Cell className="admin-snap-hist-date">{rev.savedAt ?? '—'}</RosterTable.Cell>
-              <RosterTable.Cell className="admin-snap-hist-mode">{rev.savedBy ?? '—'}</RosterTable.Cell>
+              {/* 발령 이력 표와 같은 줄 규칙 — 저장 시각·«상세 ▸»는 한 줄, 저장한 사람은 «처리자»처럼 «…» + 전체 title(pivit-work PW-3002) */}
+              <RosterTable.Cell className="admin-snap-hist-date"><span className="admin-snap-hist-datetext">{rev.savedAt ?? '—'}</span></RosterTable.Cell>
+              <RosterTable.Cell className="admin-snap-hist-mode">
+                <span className="admin-snap-hist-clip is-by" title={rev.savedBy ?? undefined}>{rev.savedBy ?? '—'}</span>
+              </RosterTable.Cell>
               <RosterTable.Cell className="admin-snap-hist-mode">{rev.changedUnits}</RosterTable.Cell>
-              <RosterTable.Cell><span className="admin-snap-hist-detaillink">{labels.historyDetail} ▸</span></RosterTable.Cell>
+              <RosterTable.Cell className="admin-snap-hist-actions"><span className="admin-snap-hist-detaillink">{labels.historyDetail} ▸</span></RosterTable.Cell>
             </RosterTable.Row>
           ))}
         </RosterTable.Body>

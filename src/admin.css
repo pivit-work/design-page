@@ -3398,8 +3398,11 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
 /* 칸 여백·머리 행·구분선·줄 색·스크롤은 명단 표(roster-table.css)가 정한다 (PW-839). */
 .admin-snap-hist-date { font-family: var(--font-family-body); color: var(--text-secondary); }
 .admin-snap-hist-name { font-weight: 700; color: var(--text-primary); }
-/* 띄어쓰기 없는 긴 대상자 이름은 낱말 안에서도 꺾는다 — 앱 글자 규칙(word-break: keep-all)으로는 안 꺾여 칸을 넓히고 표가 틀을 넘었다(pivit-work PW-3002 리뷰) */
-.admin-snap-hist-name { overflow-wrap: anywhere; }
+/* 띄어쓰기 없는 긴 대상자 이름은 낱말 안에서도 꺾는다 — 앱 글자 규칙(word-break: keep-all)으로는 안 꺾여 칸을 넓히고 표가 틀을 넘었다.
+   다만 네 글자 이름까지는 쪼개지 않게 칸 최소 폭을 둔다(«김철/수» 꺾임 · pivit-work PW-3002 리뷰 2회차). */
+.admin-snap-hist-name { overflow-wrap: anywhere; min-width: calc(4em + var(--spacing-3xl, 24px)); }
+/* 날짜 글은 «2026-03-/01»처럼 «-» 뒤에서 꺾지 않는다 */
+.admin-snap-hist-datetext { white-space: nowrap; }
 .admin-snap-hist-mode { color: var(--text-secondary); }
 /* «수정» 줄의 발령 유형 자리 — 배지 없는 «—» (시안 admin-app.jsx: fontSize 12 · muted 글자) */
 .admin-snap-hist-type-empty { color: var(--text-secondary); }
@@ -3432,8 +3435,8 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
    «처리 유형»은 정해진 짧은 글(«일괄 고치기» 62px)이라 그대로 둔다. */
 @container admin-snap-hist-table (max-width: 600px) {
   .admin-snap-hist-clip.is-by { max-width: 56px; }
-  /* 같은 좁은 틀에서 긴 행 끝 링크(«조직단위 설정에서 취소 →»)는 띄어쓰기 자리에서 꺾는다 — 낱말 안은 앱 글자 규칙(keep-all)대로 안 꺾인다 */
-  .admin-snap-hist-actions .admin-snap-hist-detaillink { white-space: normal; }
+  /* 같은 좁은 틀에서 긴 행 끝 단추(«조직단위 설정에서 취소 →»)만 띄어쓰기 자리에서 꺾는다 — «상세 ▸»·«발효 전 취소»는 한 줄 그대로 */
+  .admin-snap-hist-actions .admin-snap-hist-cancel.is-reservation { white-space: normal; }
 }
 
 /* 예약 발령 (PW-1422 · org-snapshot-spec §2 · §4) */
