@@ -362,7 +362,12 @@ export default function SnippetModal({
     Array.isArray(suggestedTags) && suggestedTags.length > 0
       ? suggestedTags
       : T.defaultSuggestedTags;
-  const tagSuggestionPool = [...new Set([...aiSuggestedTags, ...basePool])];
+  // AI 추천은 이미 붙은 태그를 빼고, 붙은 태그와 합쳐 TAG_LIMIT 를 넘지 않을 만큼만 보인다(ai-data-spec §1-B 응답 처리 · PW-3035).
+  // 회사 추천 칩(basePool)은 붙은 것을 흐리게 남기는 종전 모양 그대로다.
+  const aiShownTags = aiSuggestedTags
+    .filter((t) => !tags.includes(t))
+    .slice(0, Math.max(0, TAG_LIMIT - tags.length));
+  const tagSuggestionPool = [...new Set([...aiShownTags, ...basePool])];
 
   const contentRef = useRef(null);
 
