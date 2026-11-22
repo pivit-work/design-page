@@ -6241,11 +6241,17 @@ function EmployeesEditPanel({
     const id = member?.id;
     if (!id) return;
     /* 지급 자산은 [저장하기]가 바꾸지 않는다 — 지금 보이는 값을 넘긴다(다시 불러오는 중이면 넘기지 않는다) */
-    if (assetsState.status === 'ready' || assetsState.status === 'refreshing') handOffSection(assetsLoader, id, assetsState.view);
+    const assetsView = assetsState.status === 'ready' || assetsState.status === 'refreshing' ? assetsState.view : null;
+    /*
+      받은 값은 모두 받은 «뒤»에 한꺼번에 넘긴다 — 넘겨준 값의 유효 시간(SECTION_HANDOFF_MS 10초 · HR 칸 1분)은 넘긴 순간부터라,
+      받는 대로 넘기면 가장 느린 응답(dev HR 정보 4~20초)을 기다리는 사이 먼저 온 성과·지급 자산이 만료되어 읽기 화면에서
+      «불러오는 중»으로 비었다(pivit-work PW-2924 8회차 적대적 리뷰). 실패한 불러오기는 넘기지 않는다 — 읽기 화면이 스스로 불러온다.
+    */
+    const keeps = [];
     const fetchInto = (load, keep) => (load
-      ? Promise.resolve().then(() => load(id)).then(keep)
+      ? Promise.resolve().then(() => load(id)).then((v) => { keeps.push(() => keep(v)); })
       : null);
-    const loads = Promise.allSettled([
+    await Promise.allSettled([
       fetchInto(onLoadHrProfile, (p) => keepHrProfile(onLoadHrProfile, id, p)),
       onLoadHrProfile ? fetchInto(hrRecordHandlers?.onLoadTrainings, (r) => keepHrTrainings(onLoadHrProfile, id, r)) : null,
       // 복리후생(«보상» 탭)도 — 받아 두지 않으면 읽기 화면에서 «로딩 중...»으로 비었다(pivit-work PW-2924 7회차 브라우저 확인 77)
@@ -6254,7 +6260,10 @@ function EmployeesEditPanel({
       fetchInto(leaveLoader, (v) => handOffSection(leaveLoader, id, v)),
       fetchInto(onLoadArchivedRecords, (v) => handOffSection(onLoadArchivedRecords, id, v)),
     ]);
-    await loads;
+    // 기다리는 사이 화면을 떠났으면 넘기지 않는다 — 늦게 온 값이 그 뒤 다시 연 화면의 값을 덮지 않게
+    if (!aliveRef.current) return;
+    if (assetsView) handOffSection(assetsLoader, id, assetsView);
+    for (const keep of keeps) keep();
     if (onLoadHrProfile) armLoad(onLoadHrProfile, id);
   }
   function dropSavedHandoffs(id) {
