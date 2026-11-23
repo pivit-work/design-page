@@ -66,7 +66,7 @@ const DEFAULT_LABELS = {
   freePrice: '₩0',
   customPrice: '커스텀 견적',
   customPriceSuffix: (price) => `${won(price)}+ / 좌석 / 월 (약정 협의)`,
-  perSeatMonth: ' / 좌석 / 월',
+  perSeatMonth: '/ 좌석 / 월',
   annualPerSeatNote: '연간 35% 할인(확정) 적용 체감 단가',
   // 베타 출시 혜택 (pivit-work PW-2360 · spec-billing §2.7.3-A 3 · screen-billing-plans «(출시 혜택)» 행)
   launchBenefitPlanTag: (until) => `베타 출시 혜택 · ${until}까지 월간도 연간 단가`,
@@ -446,6 +446,19 @@ function QuoteCard({ quote, canEdit, onPay, billedSeats, seatsOverMax, labels, r
 }
 
 // ── 4티어 플랜 카드 ──────────────────────────────────────────
+/**
+ * 가격 뒤 단위 «/ 좌석 / 월» — 쪼개지지 않고 줄이 모자라면 통째로 다음 줄로 간다(PW-3143 · 기획 시안
+ * L. 결제-구독/billing-app.jsx 주석 ①). 가격과 단위 사이 띄어쓰기는 부르는 쪽이 span 밖에 둔다 — 공백까지
+ * 묶으면 줄을 바꿀 자리가 없어 216px 카드에서 가격 줄이 넘친다. 앞 공백을 붙여 넘기는 호스트 문구도 받는다.
+ */
+function PriceUnit({ text }) {
+  return (
+    <span style={{ fontSize: 13, fontWeight: 500, color: T.sub, whiteSpace: 'nowrap' }}>
+      {String(text ?? '').trimStart()}
+    </span>
+  );
+}
+
 /** 베타 출시 혜택 단가가 이 카드에 걸리나 — 월간 · 연간 단가가 있는 정가 요금제 · 혜택 기간 안(PW-2360). */
 function launchBenefitApplies(plan, interval, launchBenefitUntil) {
   return Boolean(launchBenefitUntil) && interval === 'monthly'
@@ -505,7 +518,7 @@ function PlanCard({ plan, isCurrent, isUpgrade = false, interval, onAction, canE
         <div>
           <div style={{ fontSize: 26, fontWeight: 800 }}>
             {won(negotiatedPrice)}
-            <span style={{ fontSize: 13, fontWeight: 500, color: T.sub }}>{labels.perSeatMonth}</span>
+            {' '}<PriceUnit text={labels.perSeatMonth} />
           </div>
           <div style={{ fontSize: 12, color: 'var(--text-brand-secondary)', fontWeight: 600, marginTop: 'var(--spacing-xxs)' }}>
             {labels.quoteNegotiatedTag}
@@ -524,7 +537,7 @@ function PlanCard({ plan, isCurrent, isUpgrade = false, interval, onAction, canE
         <div>
           <div style={{ fontSize: 26, fontWeight: 800 }}>
             {won(price)}
-            <span style={{ fontSize: 13, fontWeight: 500, color: T.sub }}>{labels.perSeatMonth}</span>
+            {' '}<PriceUnit text={labels.perSeatMonth} />
           </div>
           {interval === 'annual' && plan.seatPriceAnnual != null && (
             <div style={{ fontSize: 12, color: T.amber, marginTop: 2 }}>{labels.annualPerSeatNote}</div>
