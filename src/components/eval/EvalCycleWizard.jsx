@@ -4408,6 +4408,7 @@ export default function EvalCycleWizard({
     const key = slotKey(ph.id, rm.id, slot);
     const curSubject = conf.hasSubject ? cur.subject ?? '' : '';
     const curBody = cur[conf.field] ?? '';
+    const selfTargeted = isSelfTargetOn(rm.targets);
     markSet(setAiBusy, key, true);
     markSet(setAiError, key, false);
     setAiNotice((prev) => (prev[key] ? { ...prev, [key]: null } : prev));
@@ -4422,7 +4423,7 @@ export default function EvalCycleWizard({
         body: curBody,
         // PW-3075 ② — 당사자를 끈 리마인더는 리더·HR 이 받는 현황 보고다(§5.2.1-B). 알리지 않으면
         // AI 가 «미제출 N명» 글을 당사자 독촉으로 바꾼다.
-        selfTargeted: isSelfTargetOn(rm.targets),
+        selfTargeted,
       });
       if (!out) {
         markSet(setAiError, key, true);
@@ -4438,7 +4439,8 @@ export default function EvalCycleWizard({
         `${curSubject} ${curBody}`,
         `${conf.hasSubject ? out.subject ?? '' : ''} ${out.body ?? ''}`,
       );
-      setAiDraft((prev) => ({ ...prev, [key]: { ...out, slot, varsOk } }));
+      // PW-3075 — 누른 때의 «당사자» 켬/끔을 함께 적는다. 그 뒤 당사자를 바꾸면 그 초안은 다른 받는 사람에게 쓴 글이다.
+      setAiDraft((prev) => ({ ...prev, [key]: { ...out, slot, varsOk, selfTargeted } }));
     } catch (e) {
       // 🔴 AI 실패가 리마인더 저장·사이클 진행을 막지 않는다(§9 절대규칙).
       // 앱이 이미 알린 실패(이용 정지 등)는 글을 겹쳐 쓰지 않는다(PW-2907).
@@ -4548,7 +4550,12 @@ export default function EvalCycleWizard({
     const sfx = slot === 'email' ? '' : `-${slot}`;
     const msg = messageOf(rm);
     const value = msg[conf.field] ?? '';
-    const draft = aiDraft[key];
+    // PW-3075 — 다듬은 뒤 «당사자»를 바꿨으면 그 초안은 보이지 않는다(독촉 글이 현황 보고에 [적용]되지 않게). 되돌리면 다시 보인다.
+    const rawDraft = aiDraft[key];
+    const draft =
+      rawDraft && rawDraft.selfTargeted !== undefined && rawDraft.selfTargeted !== isSelfTargetOn(rm.targets)
+        ? null
+        : rawDraft;
     const busy = aiBusy.has(key);
     const canPolish = conf.hasSubject ? !!value || !!msg.subject : !!value;
     const slotVars = varsFor(rm.targets);
