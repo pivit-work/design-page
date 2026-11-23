@@ -4420,6 +4420,9 @@ export default function EvalCycleWizard({
         channel: slot,
         subject: curSubject,
         body: curBody,
+        // PW-3075 ② — 당사자를 끈 리마인더는 리더·HR 이 받는 현황 보고다(§5.2.1-B). 알리지 않으면
+        // AI 가 «미제출 N명» 글을 당사자 독촉으로 바꾼다.
+        selfTargeted: isSelfTargetOn(rm.targets),
       });
       if (!out) {
         markSet(setAiError, key, true);
