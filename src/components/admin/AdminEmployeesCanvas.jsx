@@ -5675,6 +5675,8 @@ function EmployeesEditPanel({
   const correcting = useRef(false);
   const [staleNotes, setStaleNotes] = useState({});
   const [syncedId, setSyncedId] = useState(member?.id);
+  /* 마지막으로 칸 값을 맞춘 저장값 — 상세 페이지 읽기 중 같은 사람의 저장값이 바뀌었나 보려고 (pivit-work PW-3153) */
+  const [syncedMember, setSyncedMember] = useState(member);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   /**
@@ -5776,6 +5778,7 @@ function EmployeesEditPanel({
     // 이전/다음 — 그 사람의 HR 칸은 «불러오는 중»부터(넘겨받은 것 없음)
     if (page && onLoadHrProfile) settleLoadOnEnter(onLoadHrProfile, member.id);
     setSyncedId(member.id);
+    setSyncedMember(member);
     setDraft(member);
     setPickerOpen(false);
     setPendingAffil(null);
@@ -5798,6 +5801,14 @@ function EmployeesEditPanel({
     setAssetsState({ status: assetsLoader ? 'loading' : 'idle', view: null });
     setPerfState({ status: perfLoader ? 'loading' : 'idle', view: null });
     setLeaveState({ status: leaveLoader ? 'loading' : 'idle', view: null });
+  } else if (member && page && !page.editing && member !== syncedMember) {
+    /* 상세 페이지는 [수정]을 눌러도 창을 다시 그리지 않는다 — 읽는 동안 같은 사람의 저장값이 바뀌면(목록을 다시 받음)
+       칸 값을 새 저장값으로 다시 잡는다(pivit-work PW-3153). 안 잡으면 직급이 옛 값 «선임»으로 열리고, 새 저장값 «팀장»을
+       고르면 «바뀐 것 없음»이 되어 «발령으로 남습니다» 묶음과 [수정]·[발령] 대신 [저장하기]만 남았다.
+       이미 불러온 발령안 값은 그 위에 다시 얹는다. 편집 중에는 손대지 않는다 — 입력이 되돌아가면 안 된다. */
+    setSyncedMember(member);
+    const loaded = appointmentFlow?.draftLoadFor?.(member.id);
+    setDraft(loaded && loaded.token === loadedToken ? { ...member, ...(loaded.values || {}) } : member);
   }
 
   const memberId = member?.id;
