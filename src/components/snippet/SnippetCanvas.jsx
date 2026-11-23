@@ -53,6 +53,9 @@ const DEFAULT_SNIPPET_CANVAS_LABELS = {
   emptyTitle: '아직 작성한 스니핏이 없습니다',
   emptyDesc: ['오늘의 스니핏을 작성하여 업무 맥락을 기록해보세요.', 'AI가 OKR 달성 근거로 자동 연결합니다.'],
   writeNow: '지금 작성하기',
+  // 목록 줄 오른쪽 끝 시각 — 타임라인 스니핏 상세 「{시각} 작성」과 같은 꼴 (pivit-work PW-3099)
+  stampWritten: (date) => `${date} 작성`,
+  stampUpdated: (date) => `${date} 수정`,
 };
 
 // 막대 높이 — 칸(26) 안에서 점수/10 비율, 아주 낮은 점수도 보이게 3 이상 (기획 스니핏 작성 §10-A.1).
@@ -323,6 +326,7 @@ export default function SnippetCanvas({
                 summary={s.summary}
                 timestamp={s.timestamp}
                 recent={s.recent}
+                stampText={s.recent ? L.stampUpdated(s.timestamp) : L.stampWritten(s.timestamp)}
                 highlight={searchQuery}
                 onClick={onSnippetClick ? () => onSnippetClick(s) : undefined}
               />
