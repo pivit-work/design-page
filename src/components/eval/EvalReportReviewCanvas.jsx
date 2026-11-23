@@ -1279,7 +1279,12 @@ function ReviewRow({
     try {
       // PW-1848 — `{ notice }` 를 돌려받으면 AI 를 부르지 않은 까닭(체험 AI 소진)을 줄 아래에 띄운다.
       const out = await onRegenerate(row.memberId);
-      if (out?.notice) setRegenNotice(out.notice);
+      // PW-3054 — 안내가 함수면 [닫기]를 이어 준다(`(close) => 안내`). 닫을 길이 없으면 줄 아래에 계속 남았다.
+      if (out?.notice) {
+        setRegenNotice(
+          typeof out.notice === 'function' ? out.notice(() => setRegenNotice(null)) : out.notice,
+        );
+      }
     } finally {
       setRegenBusy(false);
     }
@@ -1759,6 +1764,8 @@ export default function EvalReportReviewCanvas({
   /**
    * PW-1458 — AI 해설 [재생성] (정책 §8.1). `(memberId)` — 끝나면 호출부가 큐를 다시 읽는다.
    * 실패하면 throw 한다. 버튼은 `queue.canReject`(인사담당자) 일 때만 그린다.
+   * `{ notice }` 를 돌려주면 그 줄 아래에 띄운다. `notice` 가 `(close) => 안내` 함수면 안내의 [닫기]에 `close` 를 잇는다(PW-3054).
+   * 응답이 올 때까지 그 줄은 «리포트 생성 중»으로 보이고 발송에서 빠진다.
    */
   onRegenerate = null,
   /**
@@ -1784,7 +1791,22 @@ export default function EvalReportReviewCanvas({
   onSend,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
-  const q = queue ?? { rows: [], counts: { pending: 0, leaderApproved: 0, sent: 0 }, canSend: false, canApproveAsLeader: false };
+  /**
+   * PW-3054 — [재생성]을 누른 뒤 응답이 올 때까지(1인당 30초 이내) 그 줄을 «리포트 생성 중»으로 본다(hr §9.3-A «만드는 동안»).
+   * 서버는 만드는 동안 그 사람을 발송에서 빼는데, 목록은 응답 뒤에야 다시 읽는다 — 그사이 «생성 실패»가 남고 발송 네모가 풀려 있었다.
+   * 줄 딱지 · 발송 네모 · 고른 것 보내기 · 전체 발송이 모두 `aiInsightState` 하나를 보므로 여기서 덮는다.
+   */
+  const [regenerating, setRegenerating] = useState(() => new Set());
+  const q = useMemo(() => {
+    const base = queue ?? { rows: [], counts: { pending: 0, leaderApproved: 0, sent: 0 }, canSend: false, canApproveAsLeader: false };
+    if (regenerating.size === 0) return base;
+    return {
+      ...base,
+      rows: base.rows.map((r) =>
+        regenerating.has(r.memberId) ? { ...r, aiInsightState: 'generating', aiInsightPeerChanged: false } : r,
+      ),
+    };
+  }, [queue, regenerating]);
   /** PW-1839 — 단계 걸러보기. 처음에는 «전체». */
   const [stage, setStage] = useState(initialStage === 'objections' && !objectionTab ? 'all' : initialStage);
   const objectionsShown = stage === 'objections' && !!objectionTab;
@@ -2015,11 +2037,18 @@ export default function EvalReportReviewCanvas({
   };
 
   const handleRegenerate = async (memberId) => {
+    setRegenerating((prev) => new Set(prev).add(memberId));
     try {
       return await onRegenerate?.(memberId);
     } catch (e) {
       if (!isNotifiedFailure(e)) showToast(L.aiRegenerateError, 'error');
       return null;
+    } finally {
+      setRegenerating((prev) => {
+        const next = new Set(prev);
+        next.delete(memberId);
+        return next;
+      });
     }
   };
 
