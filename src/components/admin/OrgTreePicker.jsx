@@ -554,6 +554,12 @@ export default function OrgTreePicker({
               </span>
             )}
           </div>
+          {/* 버튼 줄 바로 위 «승인 안내»(pivit-work PW-3178) — 발 안에 둔다. 본문은 굴러가는 칸이라 거기 두면 고른 직후 화면 밖이다 */}
+          {approvalNote && (
+            <div className="admin-emp-manager-note" data-testid="org-tree-picker-approval-note" style={{ marginBottom: 12 }}>
+              {approvalNote}
+            </div>
+          )}
           <div className="adm-shell-foot-actions">
             {footerStart}
             {saveNotice && <span className="adm-shell-save-notice">{saveNotice}</span>}
@@ -810,13 +816,6 @@ export default function OrgTreePicker({
         )}
       </div>
       {extra}
-      {approvalNote && (
-        <div style={{ padding: '8px 20px 0' }}>
-          <div className="admin-emp-manager-note" data-testid="org-tree-picker-approval-note">
-            {approvalNote}
-          </div>
-        </div>
-      )}
 
     </ModalShell>
   );
