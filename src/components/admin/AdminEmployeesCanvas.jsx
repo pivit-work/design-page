@@ -5811,11 +5811,12 @@ function EmployeesEditPanel({
     const loadedVals = loadedNow && loadedNow.token === loadedToken ? (loadedNow.values || {}) : {};
     const before = { ...syncedMember, ...loadedVals };
     setSyncedMember(member);
+    /* 칸마다 가른다 — 저장 칸 목록 밖에서 창이 넣은 값(연봉 이력 창이 맞춘 «연봉» 요약 등)도 고친 칸으로 지킨다 */
+    const same = (a, b) => a === b || (typeof a !== 'object' && typeof b !== 'object' && String(a ?? '') === String(b ?? ''));
     setDraft((d) => {
       const next = { ...member };
-      for (const f of PANEL_PATCH_FIELDS) {
-        const untouched = String(d[f] ?? '') === String(before[f] ?? '');
-        next[f] = untouched ? (f in loadedVals ? loadedVals[f] : member[f]) : d[f];
+      for (const f of new Set([...Object.keys(d), ...Object.keys(member)])) {
+        next[f] = same(d[f], before[f]) ? (f in loadedVals ? loadedVals[f] : member[f]) : d[f];
       }
       return next;
     });
