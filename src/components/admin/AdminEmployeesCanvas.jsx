@@ -5801,14 +5801,24 @@ function EmployeesEditPanel({
     setAssetsState({ status: assetsLoader ? 'loading' : 'idle', view: null });
     setPerfState({ status: perfLoader ? 'loading' : 'idle', view: null });
     setLeaveState({ status: leaveLoader ? 'loading' : 'idle', view: null });
-  } else if (member && page && !page.editing && member !== syncedMember) {
-    /* 상세 페이지는 [수정]을 눌러도 창을 다시 그리지 않는다 — 읽는 동안 같은 사람의 저장값이 바뀌면(목록을 다시 받음)
-       칸 값을 새 저장값으로 다시 잡는다(pivit-work PW-3153). 안 잡으면 직급이 옛 값 «선임»으로 열리고, 새 저장값 «팀장»을
-       고르면 «바뀐 것 없음»이 되어 «발령으로 남습니다» 묶음과 [수정]·[발령] 대신 [저장하기]만 남았다.
-       이미 불러온 발령안 값은 그 위에 다시 얹는다. 편집 중에는 손대지 않는다 — 입력이 되돌아가면 안 된다. */
+  } else if (member && member !== syncedMember) {
+    /* 같은 사람의 저장값이 바뀌면(목록을 다시 받음) 사람이 안 건드린 칸만 새 저장값으로 다시 잡는다(pivit-work PW-3153).
+       상세 페이지는 [수정]을 눌러도 창을 다시 그리지 않아, 안 잡으면 직급이 옛 값 «선임»으로 열리고 새 저장값 «팀장»을
+       고르면 «바뀐 것 없음»이 되어 «발령으로 남습니다» 묶음과 [수정]·[발령] 대신 [저장하기]만 남았다. [수정]을 누른 뒤
+       목록이 늦게 와도 같다 — 그때 안 잡으면 «팀장 → 선임» 묶음이 저절로 뜬다. 고친 칸은 그대로 둔다(입력이 되돌아가면
+       안 된다). 이미 불러온 발령안 값은 «고친 칸»으로 본다. */
+    const loadedNow = appointmentFlow?.draftLoadFor?.(member.id);
+    const loadedVals = loadedNow && loadedNow.token === loadedToken ? (loadedNow.values || {}) : {};
+    const before = { ...syncedMember, ...loadedVals };
     setSyncedMember(member);
-    const loaded = appointmentFlow?.draftLoadFor?.(member.id);
-    setDraft(loaded && loaded.token === loadedToken ? { ...member, ...(loaded.values || {}) } : member);
+    setDraft((d) => {
+      const next = { ...member };
+      for (const f of PANEL_PATCH_FIELDS) {
+        const untouched = String(d[f] ?? '') === String(before[f] ?? '');
+        next[f] = untouched ? (f in loadedVals ? loadedVals[f] : member[f]) : d[f];
+      }
+      return next;
+    });
   }
 
   const memberId = member?.id;
