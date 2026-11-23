@@ -2335,7 +2335,7 @@
   border-radius: var(--radius-md, 10px);
   background: var(--componentColors-alpha-alphaBlack3, rgba(0, 0, 0, 0.03));
 }
-.tl-group-modal.adm-shell.admin-emp-sal-shell .tl-group-modal-close:hover {
+.tl-group-modal.adm-shell.admin-emp-sal-shell .tl-group-modal-close:hover:not(:disabled) {
   background: var(--componentColors-alpha-alphaBlack5, rgba(0, 0, 0, 0.05));
 }
 .tl-group-modal.adm-shell.admin-emp-sal-shell .tl-group-modal-close svg { width: 18px; height: 18px; }

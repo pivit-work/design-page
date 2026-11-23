@@ -87,8 +87,15 @@
   transition: background-color 0.15s;
 }
 
-.tl-group-modal-close:hover {
+.tl-group-modal-close:hover:not(:disabled) {
   background: var(--colors-background-bgPrimaryHover, #e6e8ea);
+}
+
+/* 창이 저장을 기다리는 동안(busy) X·위쪽 아이콘 버튼은 잠긴다 — 잠긴 모양은 같은 창 아래 버튼
+   `.tl-group-modal-btn:disabled`(디자이너 값)와 같게 흐림·금지 커서 (pivit-work PW-3095). */
+.tl-group-modal-close:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* Content — Figma Frame 220: pad 0/48, gap 48 vertical.
