@@ -80,6 +80,7 @@ const DEFAULT_LABELS = {
     withheld: '변경됨',
     none: '—',
     emptyValue: '(비어 있음)',
+    deletedValue: '(삭제됨)',
     adminManaged: '어드민 관리',
     noReason: '—',
     empty: '아직 기록된 변경이 없습니다.',
@@ -1685,7 +1686,9 @@ function HistoryTab({
                   <div className="msc-notif-sub msc-hist-values" data-testid={`history-values-${h.id}`}>
                     {h.state === 'purged' ? L.purged
                       : h.state === 'withheld' ? L.withheld
-                        : `${h.before || L.none} → ${h.after || (h.changeKind === 'update' ? L.emptyValue : L.none)}`}
+                        // 다건 줄 삭제는 `값 → (삭제됨)` — my-settings §4-F.3-A (pivit-work PW-3110). 라벨이 없는 옛 앱은 «—»
+                        : `${h.before || L.none} → ${h.after || (h.changeKind === 'update' ? L.emptyValue
+                          : h.changeKind === 'remove' ? (L.deletedValue || L.none) : L.none)}`}
                   </div>
                 </div>
                 {/* 사유는 본인 편집에서 선택 입력이라 비어 있을 수 있다 — 그때는 자리를 그리지 않는다.
