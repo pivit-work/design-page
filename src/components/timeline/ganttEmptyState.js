@@ -1,10 +1,12 @@
 // 간트의 빈 상태 판정 (pivit-work PW-2403 · 피드 정책 §9 빈 상태).
 // - 날짜 안내 «이 날은 기록이 없습니다»: 고른 날짜에 화면의 사람 누구에게도 그릴 블록(스니핏·회의·일정)이 없다.
 // - 팀 안내 «아직 이 팀의 기록이 없습니다»: 그룹 안 사람 모두가 받아 둔 기록(snippets·meetings 전체)에 하나도 없다.
+//   호스트가 화면에 받아 두지 않은 기간의 기록을 따로 알면 그 사람 id 를 recordMemberIds 로 넘긴다 — 그 사람도 «기록 있음»
+//   (pivit-work PW-3140 · 보이는 기간만 받게 되어 받아 둔 기록만으로는 그룹마다 가를 수 없다).
 // 두 문구는 같은 화면에 함께 뜨지 않는다 — 날이 비었으면 날짜 안내만(막 가입한 회사의 처음 며칠도 이쪽),
 // 날에 기록이 있으면 기록 없는 그룹에만 팀 안내.
 // NameColumn·TimelineGrid 가 같은 결과로 줄을 넣어야 좌우 높이가 맞아서, 판정은 이 함수 하나에 둔다.
-export function ganttEmptyState({ groups, members, snippets, meetings, targetDate }) {
+export function ganttEmptyState({ groups, members, snippets, meetings, targetDate, recordMemberIds }) {
   const memberIds = new Set((members ?? []).map((m) => m.id));
   const rowIds = new Set();
   (groups ?? []).forEach((g) => g.memberIds.forEach((id) => memberIds.has(id) && rowIds.add(id)));
@@ -20,7 +22,7 @@ export function ganttEmptyState({ groups, members, snippets, meetings, targetDat
       (mt) => mt.date === targetDate && (mt.participants ?? []).some((pid) => rowIds.has(pid)),
     );
 
-  const withRecord = new Set();
+  const withRecord = new Set(recordMemberIds ?? []);
   (snippets ?? []).forEach((s) => withRecord.add(s.memberId));
   (meetings ?? []).forEach((mt) => (mt.participants ?? []).forEach((pid) => withRecord.add(pid)));
 

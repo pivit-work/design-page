@@ -42,6 +42,8 @@ const TimelineGrid = forwardRef(function TimelineGrid(
     emptyGroupText,
     emptyDayText,
     emptyTeamText,
+    // 받아 두지 않은 기간에 기록이 있는 사람 id (PW-3140) — 팀 안내 판정에서 «기록 있음»으로 센다.
+    teamRecordMemberIds,
   // 「지금」 — 로컬 Date 그릇으로 돌려주는 함수(getHours()/getDate() 가 보여 줄 벽시계).
   // 없으면 브라우저 시계. 앱이 사용자 설정 시간대로 오늘·NOW 선을 그릴 때 넘긴다 (PW-781).
     now,
@@ -52,7 +54,7 @@ const TimelineGrid = forwardRef(function TimelineGrid(
   // 빈 상태 (PW-2403) — NameColumn 과 같은 판정이라 팀 안내 줄의 좌우 높이가 맞는다.
   const empty =
     emptyDayText || emptyTeamText
-      ? ganttEmptyState({ groups, members, snippets, meetings, targetDate })
+      ? ganttEmptyState({ groups, members, snippets, meetings, targetDate, recordMemberIds: teamRecordMemberIds })
       : null;
   // Build flat rows parallel to NameColumn — 접힌 그룹은 멤버 행을 생략해
   // NameColumn 과 동일한 Y 좌표를 유지한다(스크롤 미러·미팅 블록 정렬).

@@ -107,6 +107,9 @@ export default function TimelineCanvas({
   // 생략하면 안내를 그리지 않는다 — 호스트는 기록을 다 받기 전·조회 실패 때 넘기지 않는다(«아무도 안 썼다»로 읽히지 않게).
   emptyDayText,
   emptyTeamText,
+  // 팀 안내 판정에서 «기록 있음»으로 셀 사람 id 배열 (pivit-work PW-3140). 호스트가 보이는 기간만 받으면, 받아 둔 기록엔 없지만
+  // 다른 기간에 기록이 있는 사람이 생긴다 — 그 사람이 든 그룹엔 팀 안내를 달지 않는다. 생략하면 받아 둔 기록만 본다.
+  teamRecordMemberIds,
   // 필터 타입 controlled — 주입 시 외부 state 로 동기화되고 onFilterChange 로
   // 통지. 생략하면 내부 state (전체 선택) 로 자체 관리. 선택된 type 에 해당하는
   // meeting/event 만 간트·캘린더에 렌더된다.
@@ -825,6 +828,7 @@ export default function TimelineCanvas({
             onToggleCollapse={handleToggleCollapse}
             emptyGroupText={emptyGroupText}
             emptyTeamText={emptyTeamText}
+            teamRecordMemberIds={teamRecordMemberIds}
             targetDate={ganttDayDate ?? formatIsoDate(selectedDate)}
           />
           <TimelineGrid
@@ -846,6 +850,7 @@ export default function TimelineCanvas({
             emptyGroupText={emptyGroupText}
             emptyDayText={emptyDayText}
             emptyTeamText={emptyTeamText}
+            teamRecordMemberIds={teamRecordMemberIds}
           />
         </div>
       )}

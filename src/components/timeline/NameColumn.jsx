@@ -220,6 +220,8 @@ const NameColumn = forwardRef(function NameColumn(
     onToggleCollapse,
     emptyGroupText,
     emptyTeamText,
+    // 받아 두지 않은 기간에 기록이 있는 사람 id (PW-3140) — 팀 안내 판정에서 «기록 있음»으로 센다.
+    teamRecordMemberIds,
     targetDate,
   },
   ref
@@ -228,7 +230,7 @@ const NameColumn = forwardRef(function NameColumn(
   const { members, meetings, snippets } = useTimelineData();
   // 그룹 안 사람 모두가 기록이 없으면 사람 행 아래에 팀 안내 한 줄 (PW-2403) — TimelineGrid 도 같은 판정으로 빈 줄을 넣는다.
   const teamEmptyGroupIds = emptyTeamText
-    ? ganttEmptyState({ groups, members, snippets, meetings, targetDate }).teamEmptyGroupIds
+    ? ganttEmptyState({ groups, members, snippets, meetings, targetDate, recordMemberIds: teamRecordMemberIds }).teamEmptyGroupIds
     : null;
   // The dragged member is rendered with display:none so it collapses out of
   // layout (other rows shift up). The placeholder is inserted at dragOver.index
