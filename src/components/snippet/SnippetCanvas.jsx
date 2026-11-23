@@ -128,7 +128,8 @@ export default function SnippetCanvas({
   onWriteSnippet,
   onWriteNow,
   // 스니핏 리스트 — 비어 있으면 빈 상태, 있으면 리스트 렌더.
-  //   shape: { id, dateLabel, summary, timestamp, recent? }
+  //   shape: { id, dateLabel, summary, timestamp, recent?, edited? }
+  //   edited — 「… 수정」으로 쓸 줄(앱이 넘김, PW-3099). 안 주면 recent 를 따른다(미리보기).
   snippets = [],
   onSnippetClick,
   // 헤더·본문 대신 페이지 칸에 그릴 것(불러오기 실패 등). 없으면 평소 화면.
@@ -326,7 +327,7 @@ export default function SnippetCanvas({
                 summary={s.summary}
                 timestamp={s.timestamp}
                 recent={s.recent}
-                stampText={s.recent ? L.stampUpdated(s.timestamp) : L.stampWritten(s.timestamp)}
+                stampText={(s.edited ?? s.recent) ? L.stampUpdated(s.timestamp) : L.stampWritten(s.timestamp)}
                 highlight={searchQuery}
                 onClick={onSnippetClick ? () => onSnippetClick(s) : undefined}
               />
