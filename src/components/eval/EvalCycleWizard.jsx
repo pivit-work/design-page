@@ -4645,7 +4645,9 @@ export default function EvalCycleWizard({
             <div className="evc-rm-preview-body">
               {/* 슬랙 초안에는 제목 줄을 그리지 않는다 — 슬랙에 제목이 없어서
                   보낸 적도 받은 적도 없는 값이다. */}
-              {conf.hasSubject && (
+              {/* PW-3075 — 원문 제목이 비었으면 다듬기도 제목을 만들지 않는다. 빈 «제목» 머리만 남으면 본문이 제목처럼 읽힌다.
+                  원문에 제목이 있었는데 비어 돌아온 것은 [적용] 하면 지워지는 값이라 그대로 보인다. */}
+              {conf.hasSubject && (draft.subject || msg.subject) && (
                 <div><strong>{L.reminderEmailSubject}</strong> {draft.subject}</div>
               )}
               <div className="evc-rm-ai-draft-body">{draft.body}</div>
