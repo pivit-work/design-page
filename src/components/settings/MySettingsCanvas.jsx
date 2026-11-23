@@ -903,9 +903,18 @@ function FamilyTab({ family, today, labels, saveState, onSave, onAddDependent, o
   const fam = family || { emergencyContact: {}, dependents: [] };
   const [marital, setMarital] = useState(fam.maritalStatus || '');
   const [ec, setEc] = useState(fam.emergencyContact || {});
-  const [seed, setSeed] = useState(family);
-  if (family !== seed) {
-    setSeed(family);
+  // 칸은 «저장된 혼인 여부·비상연락처»가 바뀔 때만 다시 채운다 — 부양가족 줄만 바뀐 새 family 로는 덮지 않는다.
+  // 부양가족은 [변경사항 저장] 때 함께 저장하므로(pivit-work PW-3110 · my-settings §4-B 저장 정책) 앱이 줄을
+  // 고칠 때마다 family 를 새로 넘기는데, 예전처럼 family 가 바뀌면 다시 채우면 입력 중인 칸이 지워졌다.
+  const seedKey = family ? JSON.stringify([
+    fam.maritalStatus || '',
+    (fam.emergencyContact || {}).name || '',
+    (fam.emergencyContact || {}).relation || '',
+    (fam.emergencyContact || {}).phone || '',
+  ]) : null;
+  const [seed, setSeed] = useState(seedKey);
+  if (seedKey !== seed) {
+    setSeed(seedKey);
     setMarital(fam.maritalStatus || '');
     setEc(fam.emergencyContact || {});
   }
