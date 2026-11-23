@@ -824,7 +824,7 @@ const DEFAULT_LABELS = {
   rePeerAnonKicker: '익명 종합 · 작성자 비공개',
   reManagerTitle: '매니저 평가 요약',
   /** [pivit-work PW-3071 · summary §8.3·§8.4] 섹션 우상단 딥링크 — «매니저 평가 요약» → 하향 리뷰. */
-  reOpenSource: '원본 보기 →',
+  reOpenSource: '원본 보기',
   reCalibTitle: '캘리브레이션 결과',
   reManagerGrade: '매니저 부여 등급',
   reSelfEmpty: '아직 셀프 리뷰가 제출되지 않았습니다.',
@@ -4927,6 +4927,7 @@ export default function EvalCycleSummaryCanvas({
                           data-testid="evs-re-manager-source"
                         >
                           {L.reOpenSource}
+                          <ChevronRightIcon size={14} />
                         </Button>
                       )}
                     </div>
