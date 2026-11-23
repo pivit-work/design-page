@@ -1115,9 +1115,12 @@ function ReauthModal({ owner, me, labels, onClose, onConfirm }) {
             <OwnerAvatar name={owner.name} avatar={owner.avatar} size={44} />
             <div className="intg-person-main">
               <div className="intg-owner-name">{owner.name}</div>
-              <div className="intg-owner-sub">
-                {L.titleLabel}: {owner.title}
-              </div>
+              {/* 직함이 비면(퇴사·비활성 소유자 등) «직함:» 만 남지 않게 줄을 그리지 않는다 — 소유자·설치 칸과 같다(PW-3151). */}
+              {owner.title ? (
+                <div className="intg-owner-sub">
+                  {L.titleLabel}: {owner.title}
+                </div>
+              ) : null}
             </div>
           </div>
 
