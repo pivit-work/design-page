@@ -823,6 +823,8 @@ const DEFAULT_LABELS = {
   rePeerNamedKicker: 'AI 종합 · 실명 작성자 {names} · 그 밖의 답은 이름 없이 종합',
   rePeerAnonKicker: '익명 종합 · 작성자 비공개',
   reManagerTitle: '매니저 평가 요약',
+  /** [pivit-work PW-3071 · summary §8.3·§8.4] 섹션 우상단 딥링크 — «매니저 평가 요약» → 하향 리뷰. */
+  reOpenSource: '원본 보기 →',
   reCalibTitle: '캘리브레이션 결과',
   reManagerGrade: '매니저 부여 등급',
   reSelfEmpty: '아직 셀프 리뷰가 제출되지 않았습니다.',
@@ -3030,6 +3032,11 @@ export default function EvalCycleSummaryCanvas({
   onGenerateSummary,
   /** [PW-1466] [1차 검수 완료] — `(memberId) => Promise`. 확인 창은 부르는 쪽이 띄운다. */
   onCompleteSummaryReview,
+  /**
+   * [pivit-work PW-3071 · summary §8.3·§8.4 «원본 보기 → 항상 표시»] 통합 요약 «매니저 평가 요약» 칸의
+   * [원본 보기 →] — `(memberId) => void`. 하향 리뷰 화면으로 보낸다. 없으면 버튼을 그리지 않는다.
+   */
+  onOpenManagerSource,
   /** [PW-1466] 처음 열 탭. 없으면 전사 요약. */
   initialTab,
   /** [PW-1466] HR 조회 모드 — 생성·검수 버튼을 끈 채 «조직장만» 안내를 보인다(§8.6). */
@@ -4910,7 +4917,19 @@ export default function EvalCycleSummaryCanvas({
 
                   {/* C. 매니저 */}
                   <section className="evc-card evs-re-sec">
-                    <h3 className="evc-card-name evs-re-sec-manager">{L.reManagerTitle}</h3>
+                    <div className="evs-ov-head">
+                      <h3 className="evc-card-name evs-re-sec-manager">{L.reManagerTitle}</h3>
+                      {onOpenManagerSource && (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => onOpenManagerSource(memberDetail.memberId)}
+                          data-testid="evs-re-manager-source"
+                        >
+                          {L.reOpenSource}
+                        </Button>
+                      )}
+                    </div>
                     <AiSummaryText L={L} text={memberDetail.integratedSummary?.managerSummary} status={memberDetail.integratedSummary?.status} testId="evs-re-ai-manager" />
                     {/* [pivit-work PW-2784 · summary §8.3.C] 겸직 조직장마다의 AI 요약 — 주 소속 쪽 요약과 나란히, 머리는 그 칸의 «겸직 B팀» 꼬리표. */}
                     {(concurrentRoundsOf(memberDetail.manager, L) ?? []).map((c) => {
