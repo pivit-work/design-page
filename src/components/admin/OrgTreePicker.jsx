@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect, useLayoutEffect } from 'react';
 import { buildOrgTree, findOrgEntry, ORG_PATH_SEP } from './orgTree.js';
 import ModalShell from '../shared/ModalShell.jsx';
 import Tooltip from '../shared/Tooltip.jsx';
@@ -214,6 +214,16 @@ export default function OrgTreePicker({
   /** 안내 줄 아래 한 줄 더 — 여러 명 판의 대상 이름들 */
   descriptionExtra,
   /**
+   * multi 에서 고른 조직 · 주 소속이 바뀔 때마다(처음 열 때 한 번 포함) `({ unitIds, primaryUnitId })` — pivit-work PW-3178.
+   * 부르는 쪽이 고른 값으로 [적용]하면 무엇이 바뀌는지(승인 안내)를 다시 잰다.
+   */
+  onPickChange,
+  /**
+   * 버튼 줄 바로 위 한 줄 — pivit-work PW-3178 «승인 안내»(admin-spec §3.1 소속 팝업 줄 · 발령 이력 정책 §2).
+   * 구성원 창 묶음의 승인 안내 줄과 같은 모양(`admin-emp-manager-note`)으로 그린다. 미주입이면 줄이 없다.
+   */
+  approvalNote,
+  /**
    * 부르는 쪽 요청이 도는 중(pivit-work PW-2959 «소속 일괄 이동»의 «옮기는 중…») — [취소]를 잠그고
    * 닫기 X · Esc · 막 클릭을 받지 않는다(공용 창 틀 ModalShell `busy` 그대로). 기다리는 사이 창을 닫으면
    * 서버가 거절한 사람과 사유를 보여 줄 자리가 없어진다(admin-spec §3.1-G-1 ③ E10 «창에 남는다»).
@@ -245,6 +255,16 @@ export default function OrgTreePicker({
   const [primary, setPrimary] = useState(
     initialPrimary || initialMulti[0] || '',
   );
+  // 고른 값이 바뀔 때마다 부르는 쪽에 알린다(PW-3178 승인 안내). 콜백은 ref 로 — 매 렌더 새 함수여도 다시 부르지 않는다.
+  const onPickChangeRef = useRef(onPickChange);
+  useLayoutEffect(() => { onPickChangeRef.current = onPickChange; });
+  // 배열은 매 렌더 새 참조라 문자열 키로 굳혀 그 키만 본다(id 에는 ',' · '|' 가 없다 — uuid).
+  const pickKey = multi ? `${picked.join(',')}|${primary}` : '';
+  useEffect(() => {
+    if (!pickKey) return;
+    const [ids, pri] = pickKey.split('|');
+    onPickChangeRef.current?.({ unitIds: ids ? ids.split(',') : [], primaryUnitId: pri || null });
+  }, [pickKey]);
   const [query, setQuery] = useState('');
   const [collapsed, setCollapsed] = useState({});
   const [activeIdx, setActiveIdx] = useState(0);
@@ -790,6 +810,13 @@ export default function OrgTreePicker({
         )}
       </div>
       {extra}
+      {approvalNote && (
+        <div style={{ padding: '8px 20px 0' }}>
+          <div className="admin-emp-manager-note" data-testid="org-tree-picker-approval-note">
+            {approvalNote}
+          </div>
+        </div>
+      )}
 
     </ModalShell>
   );

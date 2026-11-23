@@ -1245,7 +1245,7 @@ function ManagerPicker({ candidates, labels, onPick, trigger, disabled = false }
 
 /* ── 탭 B: 미배정 관리 ──────────────────────────────────── */
 function UnassignedTab({
-  members, orgUnits, labels, renderAvatar, onAssignOrgUnit, onChangeAffiliations,
+  members, orgUnits, labels, renderAvatar, onAssignOrgUnit, onChangeAffiliations, affiliationApproval,
   leaderGaps = EMPTY_LEADER_GAPS, onGoAssignLeader, onGoAssignCeo,
   /* 조직단위 설정 화면을 열 수 없는 어드민(PW-2494 · admin-spec §3.3 «권한» 행) — 이 글이 오면
      [조직장 지정 →]을 비활성으로 두고 이 글을 툴팁으로 단다. 지정 자격이 아니라 «이동할 화면을
@@ -1337,7 +1337,11 @@ function UnassignedTab({
                           onApply={({ unitIds, primaryUnitId }) => (unitIds && unitIds.length > 0
                             ? onChangeAffiliations(m.id, { unitIds, primaryUnitId })
                             : undefined)}
-                          onClose={() => setPickerFor(null)}
+                          onClose={() => { affiliationApproval?.onPick(m.id, null); setPickerFor(null); }}
+                          // [적용] 위 승인 안내 — 목록 소속 팝업과 같다(pivit-work PW-3178 · admin-spec §3.3 섹션 2)
+                          onPickChange={affiliationApproval ? (pick) => affiliationApproval.onPick(m.id, pick) : undefined}
+                          approvalNote={affiliationApproval?.note}
+                          applyDisabled={!!affiliationApproval?.applyDisabled}
                           // 목록 소속 팝업과 같은 컴포넌트 · 같은 규칙(admin-spec §3.3 섹션 2) — 하단 안내도 같다(pivit-work PW-2999)
                           footerNote={labels.panel?.orgPickerFooter}
                         />
@@ -2863,7 +2867,7 @@ function ListManagerCell({ member, labels, candidates, onAssignManager, renderAv
 function EmployeesListView({
   members, orgUnits, labels, canEdit, pageSize, renderAvatar, jobAxis, valueLabels,
   canViewSalary, managerCandidates, optCols: providedOptCols, onOptColsChange,
-  leaderUnitIdsByMember, onToggleOrgLeader, onChangeAffiliations,
+  leaderUnitIdsByMember, onToggleOrgLeader, onChangeAffiliations, affiliationApproval,
   onOpenEdit: onOpenEditWithOrder, onDeactivate, onCancelOffboarding, onAssignManager, onCsvUpload,
   /* 스쿼드 원장(§1-5-b). **배정 값에는 이름이 없다**(`{ squadId, isLead }`) — 원장을
      못 받으면 스쿼드 열도 필터 목록도 통째로 빈다(PW-411 에서 발견). */
@@ -4690,7 +4694,11 @@ function EmployeesListView({
           footerNote={labels.panel?.orgPickerFooter}
           // 저장을 기다린다 — 거절되면(발령 충돌 등) 팝업이 고른 값 그대로 남는다(PW-2909). 닫기는 피커가 onClose 로.
           onApply={({ unitIds, primaryUnitId }) => onChangeAffiliations(deptPicker.id, { unitIds, primaryUnitId })}
-          onClose={() => setDeptPickerFor(null)}
+          // [적용] 위 승인 안내(pivit-work PW-3178) — 고를 때마다 부르는 쪽이 다시 잰다
+          onPickChange={affiliationApproval ? (pick) => affiliationApproval.onPick(deptPicker.id, pick) : undefined}
+          approvalNote={affiliationApproval?.note}
+          applyDisabled={!!affiliationApproval?.applyDisabled}
+          onClose={() => { affiliationApproval?.onPick(deptPicker.id, null); setDeptPickerFor(null); }}
           labels={labels.orgPicker}
         />
       )}
@@ -8024,6 +8032,13 @@ export default function AdminEmployeesCanvas({
    * 겸직을 다루는 화면이라면 반드시 이 prop 을 준다.
    */
   onChangeAffiliations,
+  /**
+   * 목록 «소속» 칸 · 미배정 «+ 조직 배정» 팝업의 [적용] 위 «승인 안내» (pivit-work PW-3178 · admin-spec §3.1 소속 팝업 줄).
+   * `{ onPick(memberId, { unitIds, primaryUnitId } | null), note, applyDisabled }` — 팝업이 고른 값을 알리면(닫을 때 null)
+   * 부르는 쪽이 재서 `note`(줄) · `applyDisabled`(승인자를 정하지 못함)를 돌려준다. 구성원 상세 팝업에는 넘기지 않는다
+   * — 그 화면의 확정은 묶음의 [발령] · [수정]이고 묶음에 같은 줄이 있다. 미주입이면 줄이 없다.
+   */
+  affiliationApproval,
   onCsvUpload,
   /* ⛔ `onManageTeams` 폐기 (PW-576) — 폐기된 시트의 「팀 관리로」 링크가 쓰던 것이다.
      목록 표에는 그 링크가 없고, 조직 편집은 소속 팝업 안내가 가리킨다. */
@@ -8667,6 +8682,7 @@ export default function AdminEmployeesCanvas({
             leaderUnitIdsByMember={leaderUnitIdsByMember}
             onToggleOrgLeader={canEdit ? onToggleOrgLeader : undefined}
             onChangeAffiliations={onChangeAffiliations}
+            affiliationApproval={canEdit ? affiliationApproval : undefined}
             /* 같은 사람을 다른 길로 고칠 때(PW-1333 · §3.1-G 권고 2) — 저장 전 칸이 있는 사람만 막는다 */
             onOpenEdit={(m, rows) => guardMember(m, () => {
               if (detailRoute) openDetail(m, rows);
@@ -8738,6 +8754,7 @@ export default function AdminEmployeesCanvas({
           renderAvatar={renderAvatar}
           onAssignOrgUnit={onAssignOrgUnit}
           onChangeAffiliations={onChangeAffiliations}
+          affiliationApproval={affiliationApproval}
           leaderGaps={leaderGaps}
           onGoAssignLeader={canEdit ? onGoAssignLeader : undefined}
           goOrgUnitsBlockedTip={goOrgUnitsBlockedTip}
