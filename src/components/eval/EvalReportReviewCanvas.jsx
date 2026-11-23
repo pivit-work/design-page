@@ -1933,7 +1933,10 @@ export default function EvalReportReviewCanvas({
   // PW-1839 — 고른 줄 중 «내가 승인할 줄»과 «보낼 줄»을 따로 센다(한 사람이 둘 다일 수는 없다).
   const approvableIds = new Set(q.rows.filter((r) => r.canApprove === true).map((r) => r.memberId));
   const selectedApprovable = [...selected].filter((id) => approvableIds.has(id));
-  const selectedSendable = [...selected].filter((id) => !approvableIds.has(id));
+  // PW-3054 — 고른 뒤 막힌 사람(종합 요약을 만드는 중 · [재생성] 응답 대기 · 검수 잔여)은 [선택 발송] 수에서 뺀다.
+  // 세어 두면 버튼은 눌리는데 보내기 직전 거름(`send`)에서 다 빠져 아무 일도 안 일어났다(hr §9.3-A «만드는 동안 발송 비활성»).
+  const sendBlockedIds = new Set(q.rows.filter(isSendBlocked).map((r) => r.memberId));
+  const selectedSendable = [...selected].filter((id) => !approvableIds.has(id) && !sendBlockedIds.has(id));
   const showToolbar = q.canSend || approvableIds.size > 0;
 
   /**
