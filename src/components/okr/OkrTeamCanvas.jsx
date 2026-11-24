@@ -7,6 +7,7 @@ import SegmentedControl from '../shared/SegmentedControl.jsx';
 import OkrTeamPicker, { TEAM_PICKER_MIN } from './OkrTeamPicker.jsx';
 import { OkrLabelsContext, makeOkrLabels } from './okr-labels.jsx';
 import OkrOrgPath from './OkrOrgPath.jsx';
+import EmptyState from '../shared/EmptyState.jsx';
 
 /**
  * OkrTeamCanvas — 팀 OKR 탭 콘텐츠.
@@ -39,8 +40,11 @@ import OkrOrgPath from './OkrOrgPath.jsx';
  *   같은 공용 Tabs 를 한 번 더 쓴다(새 부품 없음).
  * tabsFallback: 서브탭 줄 자리에 대신 놓는 것 — 조직 목록을 못 불러왔을 때의 실패 안내.
  * body: 주면 기간 칩 줄과 보드 대신 그린다 — 폴더만 있는 폴더의 안내, 구성원 개인 OKR 조회 전용 보기.
+ * emptyMessage: 주면 «지금» 탭의 상위 OKR + 보드 자리에만 그 문구를 점선 칸(공용 `EmptyState`)으로 그린다 — 고른 조직에
+ *   이번 기간 OKR 이 0건일 때(pivit-work PW-3149 · 기획 시안 okr-app.jsx 팀 화면 «Objective 0건 → 점선 상자»).
+ *   기간 칩 줄·권한 배지·히스토리 탭은 그대로다. 개인 캔버스의 같은 이름 prop 과 같은 모양. 안 주면 종전대로 보드를 그린다.
  */
-export default function OkrTeamCanvas({ data, icons, baseUrl = '', activeTeam, onTeamChange, onKrUpdate, onSubmitFeedback, onViewAllFeedback, onWriteFeedback, onRefreshInsights, onInsightAction, onCloseInsights, showInsights = true, onToggleInitiative, canEditInitiative = false, teamPickerLabels, notice = null, periodAside = null, focusKrId = null, focusObjectiveId = null, historyEmptyLabel, labels, path = null, pathLabel, teamItems = null, onFolderOpen, members = null, tabsFallback = null, body = null }) {
+export default function OkrTeamCanvas({ data, icons, baseUrl = '', activeTeam, onTeamChange, onKrUpdate, onSubmitFeedback, onViewAllFeedback, onWriteFeedback, onRefreshInsights, onInsightAction, onCloseInsights, showInsights = true, onToggleInitiative, canEditInitiative = false, teamPickerLabels, notice = null, periodAside = null, focusKrId = null, focusObjectiveId = null, historyEmptyLabel, labels, path = null, pathLabel, teamItems = null, onFolderOpen, members = null, tabsFallback = null, body = null, emptyMessage = null }) {
   // 화면 문구 — 소비자가 번역을 넘긴다(PW-2415). 안 넘기면 종전 한국어.
   const L = useMemo(() => makeOkrLabels(labels), [labels]);
   const { teams, periodLabel, links, parents, board, history } = data;
@@ -161,6 +165,8 @@ export default function OkrTeamCanvas({ data, icons, baseUrl = '', activeTeam, o
 
       {periodTab === 'history' ? (
         <OkrHistoryList history={history} icons={icons} baseUrl={baseUrl} emptyLabel={historyEmptyLabel} />
+      ) : emptyMessage ? (
+        <EmptyState title={emptyMessage} data-testid="okr-team-empty" />
       ) : (
         <>
           <OkrLinkedParents links={links} parents={parents} />
