@@ -35,6 +35,10 @@ import { CloseGlyph, PauseGlyph, PopOutGlyph } from '../shared/lineIcons.jsx';
  *   - title        : 제목 글자. 기본은 변형별로 「1on1 녹음 중...」 / mini 는 「원온원 녹음중...」,
  *                    일시정지면 「1on1 녹음 일시정지됨」.
  *   - onExpand     : mini 의 maximize 버튼 콜백. 없으면 버튼을 그리지 않는다.
+ *   - clock        : 녹음 줄을 그리지 않을 때(`recording` false) 그 자리에 회색으로 남길 세션 경과
+ *                    글자(예: «--:--»). 녹음 없이 진행하는 회차도 경과 자리를 감추지 않는다
+ *                    (pivit-specs policy §5.0 T4 · PW-2124). 파형·일시정지·종료는 그리지 않는다.
+ *                    없으면 그 줄을 그리지 않는다(종전).
  *   - expandLabel  : 그 버튼의 접근성 이름.
  *   - notice       : 녹음 바 아래에 한 줄로 덧붙일 안내(문자열 또는 노드). 없으면
  *                    그 줄 자체를 그리지 않는다. 문구·노출 조건은 소비처가 쥔다 —
@@ -179,6 +183,7 @@ export default function OneOnOneRecordingWidget({
   onExpand,
   expandLabel = '진행 화면으로 돌아가기',
   recording = true,
+  clock,
   guide = null,
   labels = {},
 }) {
@@ -329,6 +334,14 @@ export default function OneOnOneRecordingWidget({
           </button>
         </div>
         }
+        {/* 녹음 없는 회차의 세션 경과 (T4 · PW-2124) — 녹음 줄과 같은 칸에 시계만, 회색으로. */}
+        {!recording && clock && (
+          <div className="ono-start-rec-bar">
+            <div className="ono-start-rec-timer">
+              <span className="ono-start-rec-elapsed is-muted">{clock}</span>
+            </div>
+          </div>
+        )}
         {/* 아이콘만 바뀌면 녹음이 계속되는 줄 알고 자리를 뜬다 — 글로도 알린다. */}
         {recording && paused && (
           <p className="ono-start-rec-paused-note" role="status">

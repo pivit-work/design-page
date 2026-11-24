@@ -1753,6 +1753,10 @@ button.ono-add-modal-input { cursor: pointer; }
 .ono-start-rec-pip.has-collapse {
   right: 41px;
 }
+/* 녹음 없는 회차의 세션 경과(T4 · PW-2124) — 세지 않는 시계라 파랑 대신 회색. */
+.ono-start-rec-elapsed.is-muted {
+  color: var(--text-quaternary);
+}
 /* 일시정지 중: 경과 시간·파형이 "돌고 있다" 로 보이지 않게 amber 로 얼린다. */
 .ono-start-rec-mini.is-paused .ono-start-rec-elapsed {
   color: var(--componentColors-utility-warning-utilityWarning700);
