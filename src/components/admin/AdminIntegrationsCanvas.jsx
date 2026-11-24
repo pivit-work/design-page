@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import DpStatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
-import { isNotifiedFailure } from '../shared/notifiedFailure.js';
+import { failureText } from '../shared/notifiedFailure.js';
 import assetUrl from '../shared/assetUrl.js';
 import ModalShell from '../shared/ModalShell.jsx';
 import ConfirmModal from '../shared/ConfirmModal.jsx';
@@ -21,6 +21,7 @@ import {
 } from './AdminIntegrationsCatalog.jsx';
 import Select from '../shared/Select.jsx';
 import Button from '../shared/Button.jsx';
+import Spinner from '../shared/Spinner.jsx';
 import AdminIntegrationsLeaveCalendar from './AdminIntegrationsLeaveCalendar.jsx';
 import { LEAVE_CALENDAR_DEFAULT_LABELS } from './adminIntegrationsLeaveCalendarLabels.js';
 import { FormModal, FrameTable, NoticeLines, Panel, StatStrip } from '../frames/index.js';
@@ -65,7 +66,7 @@ const BASE_LABELS = {
   close: '닫기',
   status: {
     disconnected: '미연결',
-    connecting: '연결 중',
+    connecting: '연결 중…',
     connected: '연결됨',
     error: '오류',
     comingSoon: '준비 중',
@@ -128,8 +129,10 @@ const BASE_LABELS = {
     failed: '실패',
   },
   personalBanner: {
-    message: '개인 계정 연동은 내 설정에서 별도 진행합니다',
-    button: '내 설정으로 이동',
+    // policy §2-6 · 기획서 IntegrationsView 개인 연동 안내 (pivit-work PW-3126)
+    message: '개인 계정 연동은 개인 설정에서 별도 진행',
+    description: '어드민이 활성화하고 개인 연동을 허용한 툴만 본인 계정을 추가로 연결할 수 있습니다.',
+    button: '개인 설정으로',
   },
   /* screen-integrations.policy §11 「모든 서비스 미연동」 */
   emptyBanner: '연동할수록 AI 맥락이 풍부해져요',
@@ -178,12 +181,12 @@ const BASE_LABELS = {
     credentialAccount: '{{name}}의 Slack 계정',
     expiredBadge: '만료됨',
     // 수집 자격자가 Slack 워크스페이스 관리자일 때 이름 옆 배지 (screen-slack-transfer.policy §2.1)
-    slackAdminLabel: 'Slack Admin',
+    slackAdminLabel: 'Slack 관리자',
     expireToken: '토큰 만료',
     reauth: '재인증',
     tokenHistory: '토큰 이력',
     tokenHistoryFooter: '모든 토큰 이력은 감사 로그에 영구 보존됩니다.',
-    actionExpire: '만료',
+    actionExpire: '토큰 만료',
     actionReauth: '재인증',
     noLogs: '토큰 이력이 없습니다.',
     // 이력을 못 읽었을 때 — 빈 이력 문구 대신 그 자리에(pivit-work PW-3128)
@@ -196,8 +199,8 @@ const BASE_LABELS = {
     expireModal: {
       title: '토큰 만료',
       description: '토큰을 만료시키면 Slack 데이터 수집이 즉시 중단됩니다.',
-      warning:
-        '이 작업은 되돌릴 수 없습니다. 토큰 만료 후 데이터를 다시 수집하려면 재인증이 필요합니다.',
+      // 기획서 ExpireModal 빨간 상자 (pivit-work PW-3126)
+      warning: '토큰 만료 후 누군가 재인증 버튼을 눌러 본인 Slack 계정으로 인증을 완료해야 수집이 재개됩니다.',
       cancel: '취소',
       confirm: '토큰 만료 실행',
       error: '토큰 만료 처리 중 오류가 발생했습니다. 다시 시도해 주세요.',
@@ -208,6 +211,9 @@ const BASE_LABELS = {
       guide: '본인의 Slack 계정으로 인증합니다. 인증 완료 시 본인이 새 소유자가 됩니다.',
       // 지금 어드민이 Slack 워크스페이스 관리자가 아니면 인증 버튼을 잠그고 이 문장을 보인다 (§3.2 · §6)
       notSlackAdmin: 'Slack 워크스페이스에서 관리자 권한을 먼저 획득해야 인증할 수 있습니다.',
+      // 사람 칸 딱지 — 기획서 ReauthModal «Slack Admin ✓ / 없음»을 영어 없이 (pivit-work PW-3126)
+      slackAdminBadge: 'Slack 관리자',
+      notSlackAdminBadge: 'Slack 관리자 아님',
       // 현재 토큰을 인증한 계정과 다른 관리자가 재인증을 시도할 때 노출되는 경고.
       // 앞에 인증자 이름이 붙는다: "{이름}님이 인증한 상태입니다. …"
       differentOwnerWarning: '님이 인증한 상태입니다. 정말로 다시 인증하시겠습니까?',
@@ -338,6 +344,7 @@ function AppCard({ card, labels, baseUrl, onConnect, onDisconnect, onReconnect, 
   const isConnected = status === 'connected';
   const isError = status === 'error';
   const isConnecting = status === 'connecting';
+  const cardBusy = card.connectPending || isConnecting;
   const showRecords = typeof card.recordsLast7Days === 'number' && card.recordsLast7Days > 0;
   const dual = isConnected && app === 'slack' && card.tokenMode === 'dual';
   const delivery = card.slackDelivery;
@@ -412,7 +419,15 @@ function AppCard({ card, labels, baseUrl, onConnect, onDisconnect, onReconnect, 
   }
 
   return (
-    <section className="admin-card intg-app-card" data-testid={`intg-card-${app}`}>
+    <section className="admin-card intg-app-card" data-testid={`intg-card-${app}`} aria-busy={cardBusy || undefined}>
+      {/* «연결 중»이면 갈래 없이 카드 위 로딩 막 + 돌아가는 표시 — 연결 창이 열린 동안도, 토큰 만료 뒤의 «연결 중»도
+          (policy 상태 표 connecting «카드 로딩 오버레이 + 스피너» · pivit-work PW-3126).
+          아래 버튼 줄([다시 연결] · [취소])은 막 위에 남아 누를 수 있다. */}
+      {cardBusy && (
+        <div className="intg-card-busy" data-testid={`intg-card-busy-${app}`}>
+          <Spinner size={24} />
+        </div>
+      )}
       <div className="intg-app-head">
         <span className="intg-app-logo">
           <img src={assetUrl(baseUrl, logo)} alt={brandName} loading="lazy" />
@@ -1067,7 +1082,7 @@ function SlackUnmatchedModal({ modal, labels, onClose, onRetry }) {
 }
 
 /* 토큰 만료·재인증 확인 창 — 공용 확인 창(ConfirmModal · PW-836). 본문은 문장마다 줄(PW-3126). */
-function ExpireModal({ labels, onClose, onConfirm, error }) {
+function ExpireModal({ labels, onClose, onConfirm, error, busy }) {
   const L = labels.transfer.expireModal;
   const warning = sentences(L.warning);
   return (
@@ -1078,14 +1093,16 @@ function ExpireModal({ labels, onClose, onConfirm, error }) {
         <div className="intg-owner-view">
           <NoticeLines lines={sentences(L.description)} />
           <IntgBand tone="error" lines={warning} />
-          {error && <IntgBand tone="error" role="alert" lines={sentences(L.error)} testId="intg-expire-error" />}
+          {/* 서버 거절 사유가 있으면 그 문장, 없으면 고정 문구 — 빨간 줄은 하나(pivit-work PW-3126) */}
+          {error && <IntgBand tone="error" role="alert" lines={sentences(error)} testId="intg-expire-error" />}
         </div>
       }
       cancelLabel={L.cancel}
       confirmLabel={L.confirm}
       danger
+      busy={busy}
       zIndex={10000}
-      onCancel={onClose}
+      onCancel={() => { if (!busy) onClose(); }}
       onConfirm={onConfirm}
     />
   );
@@ -1099,6 +1116,7 @@ function ReauthModal({ owner, me, labels, onClose, onConfirm }) {
   // Slack 워크스페이스 관리자만 인증할 수 있다. 소비자가 «아니다»(false)를 확인했을 때만 잠근다 —
   // 모르면(undefined·null) 막지 않는다(서버가 다시 확인한다).
   const notSlackAdmin = me?.isSlackAdmin === false;
+  const person = me?.name ? { name: me.name, title: me.title, avatar: me.avatar } : owner;
   return (
     <ConfirmModal
       testId="intg-reauth-modal"
@@ -1110,18 +1128,26 @@ function ReauthModal({ owner, me, labels, onClose, onConfirm }) {
               <NoticeLines lines={sentences(L.guide)} />
             </div>
           )}
-          {/* 사람 칸 — 회색 상자 대신 흰 테두리 칸(PW-3126) */}
-          <div className="intg-modal-usercard is-outline">
-            <OwnerAvatar name={owner.name} avatar={owner.avatar} size={44} />
+          {/* 사람 칸 — 누르는 사람(나) · 아바타 · 이름 · 직함 + Slack 관리자 딱지(기획서 ReauthModal `me` · pivit-work PW-3126).
+              소비자가 me 이름을 안 주면 옛 동작대로 소유자를 그린다. */}
+          <div className="intg-modal-usercard is-outline" data-testid="intg-reauth-person">
+            <OwnerAvatar name={person.name} avatar={person.avatar} size={44} />
             <div className="intg-person-main">
-              <div className="intg-owner-name">{owner.name}</div>
-              {/* 직함이 비면(퇴사·비활성 소유자 등) «직함:» 만 남지 않게 줄을 그리지 않는다 — 소유자·설치 칸과 같다(PW-3151). */}
-              {owner.title ? (
+              <div className="intg-owner-name">{person.name}</div>
+              {/* 직함이 비면 «직함:» 만 남지 않게 줄을 그리지 않는다(PW-3151). */}
+              {person.title ? (
                 <div className="intg-owner-sub">
-                  {L.titleLabel}: {owner.title}
+                  {L.titleLabel}: {person.title}
                 </div>
               ) : null}
             </div>
+            {/* 딱지는 «나»의 것 — 이름을 몰라 소유자를 그릴 때는 붙이지 않는다(남의 이름 옆에 내 딱지가 붙지 않게) */}
+            {person !== owner && me?.isSlackAdmin === true && (
+              <DpStatusBadge className="admin-pill" tone="success" data-testid="intg-reauth-slack-admin">{L.slackAdminBadge}</DpStatusBadge>
+            )}
+            {person !== owner && notSlackAdmin && (
+              <DpStatusBadge className="admin-pill" tone="danger" data-testid="intg-reauth-not-slack-admin-badge">{L.notSlackAdminBadge}</DpStatusBadge>
+            )}
           </div>
 
           {isDifferentOwner && (
@@ -1155,20 +1181,31 @@ function ReauthModal({ owner, me, labels, onClose, onConfirm }) {
 function SlackOwnerView({ notices, transfer, card, labels, baseUrl, onBack, onExpireToken, onReauth, onRetryTokenLogs }) {
   const [showExpireModal, setShowExpireModal] = useState(false);
   const [showReauthModal, setShowReauthModal] = useState(false);
-  const [expireError, setExpireError] = useState(false);
+  // 창 안 실패 글(서버 사유 또는 고정 문구) — 빈 글이면 그리지 않는다.
+  const [expireError, setExpireError] = useState('');
+  // 요청이 도는 동안 확인을 잠근다 — 같은 틱의 두 번째 누름도 거른다(pivit-work PW-3126).
+  const [expireBusy, setExpireBusy] = useState(false);
+  const expireInFlight = useRef(false);
   const owner = transfer.owner;
   // 설치(기록)는 처음 설치한 관리자 — 재인증해도 안 바뀐다. 넘기지 않으면 수집 자격자와 같은 사람으로 본다.
   const installer = transfer.installer ?? owner;
   const app = transfer.app ?? 'slack';
 
   const handleExpireConfirm = async () => {
+    if (expireInFlight.current) return;
+    expireInFlight.current = true;
+    setExpireBusy(true);
     try {
-      setExpireError(false);
+      setExpireError('');
       await onExpireToken(app);
       setShowExpireModal(false);
     } catch (e) {
-      // 앱이 이미 알린 실패(이용 정지 등)는 창 안 글을 겹쳐 쓰지 않는다(PW-2907).
-      if (!isNotifiedFailure(e)) setExpireError(true);
+      // 앱이 이미 알린 실패(이용 정지 등)는 창 안 글을 겹쳐 쓰지 않는다(PW-2907) — failureText 가 빈 글.
+      // 앱이 실은 서버 사유(err.message)가 있으면 그 문장, 없으면 고정 문구(PW-3126).
+      setExpireError(failureText(e, labels.transfer.expireModal.error));
+    } finally {
+      expireInFlight.current = false;
+      setExpireBusy(false);
     }
   };
 
@@ -1245,7 +1282,7 @@ function SlackOwnerView({ notices, transfer, card, labels, baseUrl, onBack, onEx
               <div className="intg-owner-name">
                 {fmt(labels.transfer.credentialAccount, { name: owner.name })}
                 {transfer.isExpired && (
-                  <DpStatusBadge className="admin-pill" tone="danger" data-testid="intg-credential-expired">
+                  <DpStatusBadge className="admin-pill" tone="warning" data-testid="intg-credential-expired">
                     {labels.transfer.expiredBadge}
                   </DpStatusBadge>
                 )}
@@ -1283,7 +1320,7 @@ function SlackOwnerView({ notices, transfer, card, labels, baseUrl, onBack, onEx
             {(transfer.stats ?? []).map((stat) => (
               <div key={stat.label}>
                 <span className="intg-tri-label">{stat.label}</span>
-                <span className={`intg-tri-value${stat.muted ? ' is-muted' : ''}`}>{stat.value}</span>
+                <span className={`intg-tri-value${stat.muted ? ' is-muted' : ''}${stat.tone === 'warning' ? ' is-warning' : ''}`}>{stat.value}</span>
               </div>
             ))}
           </div>
@@ -1315,7 +1352,7 @@ function SlackOwnerView({ notices, transfer, card, labels, baseUrl, onBack, onEx
       </Panel>
 
       {showExpireModal && (
-        <ExpireModal labels={labels} onClose={() => setShowExpireModal(false)} onConfirm={handleExpireConfirm} error={expireError} />
+        <ExpireModal labels={labels} onClose={() => { setShowExpireModal(false); setExpireError(''); }} onConfirm={handleExpireConfirm} error={expireError} busy={expireBusy} />
       )}
       {showReauthModal && (
         <ReauthModal owner={owner} me={transfer.me} labels={labels} onClose={() => setShowReauthModal(false)} onConfirm={handleReauthConfirm} />
@@ -1486,7 +1523,7 @@ export default function AdminIntegrationsCanvas({
       <div className="intg-line">
         <UserGlyph size={20} aria-hidden />
         <div className="intg-line-text">
-          <NoticeLines lines={[<strong key="m">{labels.personalBanner.message}</strong>]} />
+          <NoticeLines lines={[<strong key="m">{labels.personalBanner.message}</strong>, labels.personalBanner.description]} />
           <PersonalChips tools={personalChips} labels={labels} />
         </div>
         <Button variant="secondary" size="sm" className="intg-btn" onClick={onPersonalIntegrationClick}>
@@ -1647,6 +1684,8 @@ export default function AdminIntegrationsCanvas({
           onRetryRequests={onRetryRequests}
         />
       )}
+      {/* 개인 연동 안내는 세 탭 모두 아래에(policy §2-6 «항상» · 기획서 탭 블록 밖 · pivit-work PW-3126) */}
+      {tab === 'admin' && adminTab && personalBanner}
 
       {slackUnmatchedModal && (
         <SlackUnmatchedModal
@@ -1674,6 +1713,7 @@ export default function AdminIntegrationsCanvas({
               ? <div className="intg-empty">{labels.loading}</div>
               : <SyncLogTable logs={syncLogs} labels={labels} baseUrl={baseUrl} onRetrySyncLog={onRetrySyncLog} />}
           </Panel>
+          {personalBanner}
         </div>
       )}
     </div>

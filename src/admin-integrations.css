@@ -358,3 +358,20 @@
 .intg-svc img { width: 16px; height: 16px; object-fit: contain; }
 .intg-picker-item.is-dim .intg-picker-item-name { color: var(--text-tertiary); }
 .intg-row-sub.is-warning { color: var(--text-warning-primary); }
+
+/* «연결 중» 카드 로딩 막 — policy 상태 표 connecting «카드 로딩 오버레이 + 스피너»(pivit-work PW-3126).
+   버튼 줄은 막 위에 남아 [다시 시도] · [취소]를 누를 수 있다. */
+.intg-app-card { position: relative; }
+.intg-card-busy {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--bg-primary) 72%, transparent);
+  color: var(--text-brand-secondary);
+}
+.intg-app-card .intg-actions { position: relative; z-index: 2; }
+.intg-tri-value.is-warning { color: var(--text-warning-primary); }

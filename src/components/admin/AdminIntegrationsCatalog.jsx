@@ -79,7 +79,9 @@ export function AdminCatalogPanel({
 
   const askStatus = (tool) => {
     const turningOff = tool.status === 'active';
-    if (turningOff && (tool.personalLinkCount || 0) > 0) { setOffConfirm({ kind: 'status', tool }); return; }
+    // 개인 연결이 0건이어도 끝줄이 있으면 띄운다 — 회의실 불러오기 연결이 있는 Google Calendar 등(policy §4-E-3 ② · pivit-work PW-3126).
+    const offLines = tool.offLines ?? [];
+    if (turningOff && ((tool.personalLinkCount || 0) > 0 || offLines.length > 0)) { setOffConfirm({ kind: 'status', tool }); return; }
     onToggleToolStatus(tool.id, turningOff ? 'inactive' : 'active');
   };
   const askPersonal = (tool, next) => {
@@ -251,8 +253,16 @@ export function AdminCatalogPanel({
           title={fmt(offConfirm.kind === 'status' ? L.confirmStatusTitle : L.confirmPersonalTitle, { name: offConfirm.tool.name })}
           body={
             <>
-              <NoticeLines lines={sentences(fmt(offConfirm.kind === 'status' ? L.confirmStatusBody : L.confirmPersonalBody, { n: offConfirm.tool.personalLinkCount }))} />
-              <NoticeLines tone="muted" lines={sentences(offConfirm.kind === 'status' ? L.confirmStatusNote : L.confirmPersonalNote)} />
+              {(offConfirm.kind !== 'status' || (offConfirm.tool.personalLinkCount || 0) > 0) && (
+                <>
+                  <NoticeLines lines={sentences(fmt(offConfirm.kind === 'status' ? L.confirmStatusBody : L.confirmPersonalBody, { n: offConfirm.tool.personalLinkCount }))} />
+                  <NoticeLines tone="muted" lines={sentences(offConfirm.kind === 'status' ? L.confirmStatusNote : L.confirmPersonalNote)} />
+                </>
+              )}
+              {/* 끝줄 — 소비자가 만든 글(기획서 admin-app.jsx offConfirm.rooms · .sheet) */}
+              {offConfirm.kind === 'status' && (offConfirm.tool.offLines ?? []).length > 0 && (
+                <NoticeLines tone="muted" lines={offConfirm.tool.offLines} testId="intg-catalog-off-lines" />
+              )}
             </>
           }
           confirmLabel={L.confirm}
