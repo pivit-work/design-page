@@ -6,6 +6,7 @@ import OkrFeedbackComposeModal from './OkrFeedbackComposeModal.jsx';
 import OkrKrUpdateModal from './OkrKrUpdateModal.jsx';
 import rowKey from './rowKey.js';
 import { useOkrLabels } from './okr-labels.jsx';
+import EmptyState from '../shared/EmptyState.jsx';
 
 /**
  * OkrBoard — AI 인사이트 + 전체달성률 + Objective 테이블 + 피드백/업데이트
@@ -30,6 +31,9 @@ import { useOkrLabels } from './okr-labels.jsx';
  *
  * focusKrId · focusObjectiveId — 알림을 눌러 들어온 소비처가 «그 KR(목표)» 를 가리킬 때 준다.
  * 그 KR 이 든 목표를 펼치고 그 줄까지 화면을 내린다. 모양은 바꾸지 않는다 (pivit-work PW-2016).
+ *
+ * emptyMessage — 주면 Objective 표(머리 줄 + 목표 줄) 자리에만 그 문구를 점선 칸(공용 `EmptyState`)으로 그린다.
+ * 위험 신호 카드·전체달성률은 그대로다 — 기획 시안 팀 화면 «Objective 0건 → 표 자리에 점선 상자»(pivit-work PW-3149).
  */
 export default function OkrBoard({
   board,
@@ -47,6 +51,7 @@ export default function OkrBoard({
   canEditInitiative = false,
   focusKrId = null,
   focusObjectiveId = null,
+  emptyMessage = null,
 }) {
   const { banner, insights, overall, theme, objectives } = board;
   const L = useOkrLabels();
@@ -69,6 +74,9 @@ export default function OkrBoard({
       )}
       <OkrOverallCard percent={overall.percent} status={overall.status} />
 
+      {emptyMessage ? (
+        <EmptyState title={emptyMessage} data-testid="okr-board-empty" />
+      ) : (<>
       <div className="okr-p-table-head">
         <span className="okr-p-theme">{theme}</span>
         <span className="okr-p-table-col is-weight">Weight</span>
@@ -95,6 +103,7 @@ export default function OkrBoard({
           />
         ))}
       </div>
+      </>)}
 
       {composeKr && (
         <OkrFeedbackComposeModal
