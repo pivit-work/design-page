@@ -8,6 +8,8 @@
  */
 export const RS_BAR_SCALE = 125;
 export const RS_BAR_CAP = 100;
+/** «내 입력» 합산 게이지 아래 눈금 글자의 값 — 그 값 자리(트랙 0 · 40% · 80%)에 둔다. 125 에는 글자가 없다(§5-9 «눈금 글자»). */
+export const RS_BAR_TICKS = [0, 50, RS_BAR_CAP];
 
 /** 흰 줄은 `--bg-quaternary`(#fff) — 이 앱의 `--bg-primary` 는 회색 바탕이라 흰색이 아니다(PW-3067 브라우저 확인과 같다). */
 export const RS_OVER_HATCH = 'repeating-linear-gradient(135deg, var(--utility-error-500) 0 2px, var(--bg-quaternary) 2px 4px)';

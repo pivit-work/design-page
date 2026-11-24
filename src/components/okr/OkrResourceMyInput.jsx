@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Icon from '../shared/Icon.jsx';
-import { RsStatCard, RsAiLabel, RsCommentThread } from './OkrResourcePieces.jsx';
+import { RsStatCard, RsAiLabel, RsCommentThread, RsStackBar } from './OkrResourcePieces.jsx';
+import { RS_BAR_TICKS, rsBarPct } from './okrResourceBar.js';
 import rowKey from './rowKey.js';
 import { OKR_RESOURCE_DEFAULT_LABELS, statusLabel } from './okrResourceLabels.js';
 import { entryProjectId } from './okrResourceEntries.js';
@@ -168,6 +169,12 @@ export default function OkrResourceMyInput({
     return Math.abs(entry.value - entry.estimate) >= ESTIMATE_GAP_PP ? M.estimateGap : null;
   };
   const total = entries.reduce((a, e) => a + e.value, 0);
+  // 게이지 조각 색은 호스트가 정한다(팀 현황 같은 사람 막대와 같은 항목 색) — 안 주면 항목마다 회색 조각.
+  const gaugeSegments = data.gaugeSegments ?? ((list) => list.filter((e) => e.value > 0).map((e) => ({
+    pct: e.value,
+    color: 'var(--utility-gray-400)',
+    label: `${e.name} ${e.value}%`,
+  })));
   const overLimit = maxTotal != null && total > maxTotal;
   // 100% 초과 경고는 입력 중인 합계로 정한다 — 저장한 값으로 정하면 160% 로 바꿔도 저장 전엔 안 뜬다(PW-2214).
   // 문구를 안 준 앱은 예전처럼 data.redFlag 를 쓴다.
@@ -325,6 +332,19 @@ export default function OkrResourceMyInput({
       ))}
 
       {entries.length === 0 && <p className="rsx-add-note">{readOnly ? M.readOnlyEmpty : M.emptyNotice}</p>}
+
+      {/* 합산 누적 게이지 — 투입 항목 아래 · Total 위, 합계 0 이어도 · 끝난 달에도 늘 그린다(pivit-work PW-3068 ·
+          기획 screen-resource-allocation.policy.md v1.35 §3-1 · §4-1 · §5-9). 입력 중인 값으로 그려 Total 숫자와 같다.
+          막대는 팀 현황 팀원 행과 같은 `RsStackBar`(125 눈금 · 100 넘은 몫 빗금), 아래 글자는 0 · 50 · 100 을 그 값 자리
+          (트랙 0 · 40% · 80%)에 — 트랙 끝(125)에는 글자가 없다(§5-9 «눈금 글자»). */}
+      <div className="rsx-gauge" data-testid="rsx-my-gauge">
+        <RsStackBar segments={gaugeSegments(entries)} total={total} />
+        <div className="rsx-gauge-ticks" aria-hidden="true">
+          {RS_BAR_TICKS.map((v) => (
+            <span key={v} className={v === 0 ? 'is-start' : undefined} style={{ left: `${rsBarPct(v)}%` }}>{v}%</span>
+          ))}
+        </div>
+      </div>
 
       <div className="rsx-total">
         <p className="rsx-total-label">Total</p>

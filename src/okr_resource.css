@@ -153,6 +153,13 @@
 .rsx-stackbar-fill { display: block; flex: none; height: 100%; }
 .rsx-stackbar-over { display: block; flex: 1; min-width: 0; height: 100%; }
 .rsx-stackbar-mark { position: absolute; top: -3px; bottom: -3px; width: 2px; transform: translateX(-50%); border-radius: 2px; background: var(--fg-error-secondary); pointer-events: none; }
+/* «내 입력» 합산 게이지(PW-3068 · §3-1 · §5-9) — 좌우는 아래 Total 블록 안쪽 여백(24)과 맞춰 막대 왼쪽 끝이 «Total» 글자와 줄을 맞춘다.
+   눈금 글자는 디자이너 보조 글자(.sq-pop-axis-caption · 12 · 400 · 줄 18 · text-tertiary), 막대와 4 사이(기획 시안). */
+.rsx-gauge { display: flex; flex-direction: column; gap: var(--spacing-xs); padding: 0 var(--spacing-3xl); }
+.rsx-gauge .rsx-stackbar { flex: none; }
+.rsx-gauge-ticks { position: relative; height: 18px; font-size: 12px; font-weight: 400; line-height: 18px; color: var(--text-tertiary); }
+.rsx-gauge-ticks span { position: absolute; top: 0; transform: translateX(-50%); white-space: nowrap; }
+.rsx-gauge-ticks span.is-start { transform: none; }
 .rsx-member-meta { flex: none; display: flex; flex-direction: column; gap: 4px; text-align: right; font-size: 12px; font-weight: 600; line-height: 18px; letter-spacing: -0.01em; color: var(--text-tertiary); }
 .rsx-bullets { margin: 0; padding: 8px 0 0 21px; display: flex; flex-direction: column; gap: 4px; }
 .rsx-bullets li { font-size: 14px; font-weight: 600; line-height: 20px; }
