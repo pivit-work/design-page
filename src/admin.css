@@ -1658,9 +1658,13 @@
   .admin-emp-detail-read-grid { grid-template-columns: minmax(0, 1fr); }
 }
 /* 수정 중 저장 줄 — 화면 아래 고정(§3.2-D «수정»). 안의 버튼 · 사유 · 발령 묶음은 종전 창 푸터 그대로다 */
+/* 스크롤 상자에 아래 여백이 있으면 sticky 는 그 여백 위에서 멈춰 줄 아래로 폼이 비친다 — 앱이 여백을 `--admin-scroll-pad-bottom` 으로 알리면
+   그만큼 내려 화면 바닥에 붙인다(pivit-work PW-3213 · 어드민 본문 상자 32px). 알리지 않는 곳은 0 — 종전 그대로 */
 .admin-emp-detail-savebar {
   position: sticky;
-  bottom: 0;
+  bottom: calc(-1 * var(--admin-scroll-pad-bottom, 0px));
+  /* 끝까지 내렸을 때도 — 바깥 여백을 같은 만큼 당기면 스크롤 끝(내용 끝 + 아래 여백)이 줄 아래와 같아져 바닥에 붙는다 */
+  margin-bottom: calc(-1 * var(--admin-scroll-pad-bottom, 0px));
   z-index: 2;
   background: var(--bg-primary);
   border-top: 1px solid var(--colors-border-borderTertiary);
