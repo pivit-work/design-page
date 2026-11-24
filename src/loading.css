@@ -30,6 +30,11 @@
    `Button` 을 못 쓰는 디자이너 버튼(창 아래 `.tl-group-modal-btn` · 평가 `.evc-btn`)에 붙인다 (pivit-work PW-3024). */
 .dp-busy-center {
   position: relative;
+}
+/* 두 번 쓴 클래스로 세기를 올린다 — 뒤에 읽히는 버튼 규칙(.evc-btn·.tl-group-modal-btn 의 cursor: pointer·:disabled 의
+   not-allowed)에 지지 않고 공용 Button pending 처럼 «기다림» 커서가 된다 (pivit-work PW-3024 디자이너 리뷰). */
+.dp-busy-center.dp-busy-center,
+.dp-busy-center.dp-busy-center:disabled {
   cursor: progress;
 }
 .dp-busy-center > .dp-busy-center__label {
