@@ -157,6 +157,7 @@ const DEFAULT_LABELS = {
     nameFunnel: '권한 · 추가된 날 거르기',
     nameFunnelOn: '권한 · 추가된 날 거르기 — {value} 적용 중',
     nameFunnelTip: '권한 · 추가된 날로 거르기',
+    optionsUnavailable: '선택지를 불러오지 못했어요 — 새로 고침해 주세요',
   },
   addedAtFilter: {
     start: '시작일',
@@ -2925,6 +2926,10 @@ function EmployeesListView({
   /* 스쿼드 원장(§1-5-b). **배정 값에는 이름이 없다**(`{ squadId, isLead }`) — 원장을
      못 받으면 스쿼드 열도 필터 목록도 통째로 빈다(PW-411 에서 발견). */
   squadOptions = [],
+  /* 깔때기 선택지를 따로 받는 목록의 실패(pivit-work PW-3188 · admin-spec §3.1-G-2 «늦거나 실패할 때») — 켜지면 그 깔때기 목록
+     자리에 «선택지를 불러오지 못했어요 — 새로 고침해 주세요». 스쿼드 = 스쿼드 원장 · 소속 = 조직 목록 · 직군 · 직렬 · 직무 = 필드 옵션.
+     나머지 깔때기는 이미 받은 구성원 목록 · 고정 값에서 만들어 따로 실패하지 않는다. */
+  squadsFailed = false, orgUnitsFailed = false, fieldOptionsFailed = false,
   /* 스쿼드 배정 편집(PW-438). 정본 §3.1 은 이 뷰에도 「셀 클릭 → SquadPicker」 를
      정해 뒀는데 시트에만 있었다 — 목록의 스쿼드 칸은 눌러도 아무 일이 없는 죽은
      자리였다. 미주입이면 셀은 **눌리지 않는 표기**로 남는다(소속 셀과 같은 규칙). */
@@ -3607,14 +3612,14 @@ function EmployeesListView({
      이름 머리 깔때기 한 목록에 두 묶음으로 간다(아래 `nameFilterChips` · «둘째 회차» 물음 1).
      🔴 적은 순서가 표의 열 순서다 — 칩 줄도 이 순서로 선다. 값 · 판정 · 1쪽 이동은 그대로다. */
   const headFilters = {
-    dept: { testId: 'list-filter-dept', menuLabel: labels.filters.dept, value: dept, all: LIST_ALL, options: depts, searchable: true, onChange: (v) => { setDept(v); setPage(1); } },
-    squads: { testId: 'list-filter-squads', menuLabel: labels.filters.squad, value: squad, all: LIST_ALL, options: squads, searchable: true, onChange: (v) => { setSquad(v); setPage(1); } },
+    dept: { testId: 'list-filter-dept', unavailable: orgUnitsFailed, menuLabel: labels.filters.dept, value: dept, all: LIST_ALL, options: depts, searchable: true, onChange: (v) => { setDept(v); setPage(1); } },
+    squads: { testId: 'list-filter-squads', unavailable: squadsFailed, menuLabel: labels.filters.squad, value: squad, all: LIST_ALL, options: squads, searchable: true, onChange: (v) => { setSquad(v); setPage(1); } },
     ...(optionalFields.job_category === true
       ? { jobCategory: { testId: 'list-filter-jobCategory', menuLabel: labels.filters.jobCategory, value: category, all: LIST_ALL, options: categories, searchable: true, onChange: (v) => { setCategory(v); setPage(1); } } }
       : {}),
-    jobFamily: { testId: 'list-filter-jobFamily', menuLabel: labels.filters.family, value: family, all: LIST_ALL, options: families, searchable: true, onChange: changeFamily },
-    jobTitle: { testId: 'list-filter-jobTitle', menuLabel: labels.filters.ladder, value: ladder, all: LIST_ALL, options: ladders, searchable: true, onChange: (v) => { setLadderCleared(false); changeLadder(v); } },
-    jobDuty: { testId: 'list-filter-jobDuty', menuLabel: labels.filters.duty, value: duty, all: LIST_ALL, options: duties, searchable: true, onChange: (v) => { setDuty(v); setPage(1); } },
+    jobFamily: { testId: 'list-filter-jobFamily', unavailable: fieldOptionsFailed, menuLabel: labels.filters.family, value: family, all: LIST_ALL, options: families, searchable: true, onChange: changeFamily },
+    jobTitle: { testId: 'list-filter-jobTitle', unavailable: fieldOptionsFailed, menuLabel: labels.filters.ladder, value: ladder, all: LIST_ALL, options: ladders, searchable: true, onChange: (v) => { setLadderCleared(false); changeLadder(v); } },
+    jobDuty: { testId: 'list-filter-jobDuty', unavailable: fieldOptionsFailed, menuLabel: labels.filters.duty, value: duty, all: LIST_ALL, options: duties, searchable: true, onChange: (v) => { setDuty(v); setPage(1); } },
     jobPosition: { testId: 'list-filter-jobPosition', menuLabel: labels.filters.position, value: position, all: LIST_ALL, options: positions, searchable: true, onChange: (v) => { setPosition(v); setPage(1); } },
     jobLevel: { testId: 'list-filter-jobLevel', menuLabel: labels.filters.level, value: level, all: LIST_ALL, options: levels, searchable: true, onChange: (v) => { setLevel(v); setPage(1); } },
     ...(optionalFields.business_title === true
@@ -4268,7 +4273,13 @@ function EmployeesListView({
           ? fill(labels.filters.funnelOn, { label: c.label, value: valueText })
           : fill(labels.filters.funnel, { label: c.label })}
       >
-        {(close) => (
+        {(close) => (f.unavailable ? (
+          /* 선택지를 못 받으면 목록 대신 한 줄 — 같은 목록의 «결과 없음» 줄 모양(§3.1-G-2 «늦거나 실패할 때»).
+             걸린 거르기는 칩 ✕ 로 푼다. «전체»만 남은 목록을 그리지 않는다(무엇이 빠졌는지 안 보인다). */
+          <div className="admin-emp-select-empty" role="status" data-testid={`${f.testId}-unavailable`}>
+            {labels.filters.optionsUnavailable}
+          </div>
+        ) : (
           <div role="listbox" aria-label={f.menuLabel} data-testid={`${f.testId}-menu`}>
             <FilterOptionList
               testId={f.testId}
@@ -4279,7 +4290,7 @@ function EmployeesListView({
               searchLabels={filterSearch}
             />
           </div>
-        )}
+        ))}
       </HeadFunnel>
     );
   }
@@ -8483,6 +8494,8 @@ export default function AdminEmployeesCanvas({
   fieldOptionsFailed = false,
   onRetryFieldOptions,
   orgUnitsFailed = false,
+  /* 스쿼드 원장을 못 받았다 — 목록 «스쿼드» 깔때기에 «선택지를 불러오지 못했어요»(pivit-work PW-3188). */
+  squadsFailed = false,
   onRetryOrgUnits,
   onSaveMembers,
   /* ⛔ `onDeleteMember` 폐기 (PW-576) — 행을 지우는 것은 폐기된 시트에만 있었다.
@@ -8941,6 +8954,10 @@ export default function AdminEmployeesCanvas({
             onCsvUpload={onCsvUpload}
             // 스쿼드 원장 — 배정 값에 이름이 없어 원장 없이는 열도 필터도 빈다(PW-411).
             squadOptions={squadOptions}
+            // 깔때기 선택지를 따로 받는 목록의 실패 — 그 깔때기 목록 자리에 안내 한 줄(pivit-work PW-3188)
+            squadsFailed={squadsFailed}
+            orgUnitsFailed={orgUnitsFailed}
+            fieldOptionsFailed={fieldOptionsFailed}
             // 스쿼드 배정 편집(PW-438) — 없으면 스쿼드 칸이 죽은 자리가 된다.
             onChangeSquads={onChangeSquads}
             instantSaveNotice={instantSaveNotice}
