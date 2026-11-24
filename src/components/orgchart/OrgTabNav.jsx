@@ -7,21 +7,24 @@ import { spanTabProps } from '../shared/tabRole.js';
  * 디자이너가 그린 `.tab-nav` 줄(org_chart.css · 30px 굵게, 고른 탭만 진한 글씨) 그대로다. 캔버스마다 같은
  * 줄을 따로 그려 와서, 탭 하나를 더하려면 네 곳을 고쳐야 했다 — 한 곳으로 모았다.
  *
+ * 셋째 «근무지»(pivit-work PW-3237 · 기획 screen-org-chart-place.policy.md §1 «탭») — 스쿼드 다음. 주소 `/org-chart/place`.
+ *
  * 「리스트」는 탭에서 빠졌다 — 조직도 탭 안의 보기(트리 ↔ 리스트 세그먼트, `OrgChartCanvas` `view`)가 됐다.
  * 옛 호스트가 넘기던 `showListTab` 은 받아도 아무 일도 하지 않는다.
  *
- * @param {'orgchart'|'project'|'squad'} active  지금 고른 탭
+ * @param {'orgchart'|'project'|'squad'|'place'} active  지금 고른 탭
  * @param {(tab: string) => void} [onSubTabChange]
  * @param {boolean} [showProjectTab]
  * @param {(key: string) => string} L  조직도 문구
  * @param {import('react').ReactNode} [help]  탭 줄 끝(마지막 탭 바로 뒤) «?» 튜토리얼 도움말 버튼 (pivit-work PW-2567). 안 주면 지금과 같다.
  */
 export default function OrgTabNav({ active, onSubTabChange, showProjectTab = false, L, help }) {
-  // 순서는 시안 — 조직도 · 스쿼드. 프로젝트는 호스트가 켤 때만 그 사이에.
+  // 순서는 시안 — 조직도 · 스쿼드 · 근무지. 프로젝트는 호스트가 켤 때만 조직도와 스쿼드 사이에.
   const tabs = [
     'orgchart',
     ...(showProjectTab ? ['project'] : []),
     'squad',
+    'place',
   ];
   return (
     <div className="tab-nav" role="tablist">

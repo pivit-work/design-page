@@ -25,6 +25,24 @@ export const ORGCHART_LABELS = {
   'tab.project': '프로젝트',
   'tab.squad': '스쿼드',
   'tab.list': '리스트',
+  'tab.place': '근무지',
+
+  // ── 근무지 탭 «지역» 보기 (pivit-work PW-3237 · 기획 screen-org-chart-place.policy.md §2) ──
+  'place.unitFilter': '조직 고르기',
+  'place.searchPlaceholder': '이름 · 직함 · 소속으로 찾기',
+  'place.resultTotal': '국가 {{countries}}곳 · 근무지 {{cities}}곳',
+  'place.resultMatched': '맞는 사람 {{count}}명',
+  'place.countryUnset': '국가 미지정',
+  'place.cityUnset': '근무지 미지정',
+  'place.countryMeta': '근무지 {{cities}}곳 · {{count}}명',
+  'place.cityCount': '{{count}}명',
+  'place.groupCount': '{{count}}명',
+  'place.groupHead': '{{name}} {{count}}명',
+  'place.unsetNote': '근무지(국가 · 도시)가 비어 있는 구성원 {{count}}명은 «미지정»에 모았습니다.',
+  'place.goMembers': '구성원 관리에서 근무지 넣기 ›',
+  'place.loadFailed': '근무지를 불러오지 못했습니다',
+  'place.retry': '다시 시도',
+  'place.emptyMatched': '맞는 사람이 없습니다',
 
   // ── 리스트 탭 (pivit-work PW-678 · pivit-specs org-chart-public-card-spec.md §3-D-1·§3-D-2) ──
   'list.col.name': '이름',

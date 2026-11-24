@@ -1,0 +1,193 @@
+/* ══════════════════════════════════════════════════
+   조직도 «근무지» 탭 — «지역» 보기 (pivit-work PW-3237 · 기획 screen-org-chart-place.policy.md v1.1 §2 · §5 #10)
+
+   틀은 다른 탭 것을 그대로 쓴다 — 머리 `pj-header`(org_project.css), 카드 `.canvas-area.is-embedded`(org_chart.css ·
+   트리와 같은 판), 툴바 · 조직 고르기 · 찾기 `ol-toolbar` · `ol-filter` · `ol-search`(org_list.css · 리스트 보기).
+   여기서는 국가 묶음 · 근무지 카드 · 사람 칸만 그린다. 값은 같은 판의 디자이너 값을 따른다:
+   - 판 안쪽 16 · 항목 사이 8 — 리스트 보기 툴바(.org-toolbar.ol-toolbar) · 툴바에서 첫 묶음까지 24
+   - 국가 머리 = 표 제목 .pj-table-title(20/30 · 700) + .pj-table-subtitle(14/20 · 600) · 아래 1px --border-secondary · 카드까지 12
+   - 격자 사이 = 카드 격자 .pj-cards-grid 10 · 줄 사이 32
+   - 근무지 카드 = 조직도 트리 부서 카드 .dept-card(안쪽 20/22 · r12 · 그림자) · .dept-name 18/28 · .dept-meta 16/24
+   - 미지정 카드 = 스쿼드 빈 자리 .sq-empty(점선 --border-primary · --bg-secondary · 그림자 없음)
+   - 펼친 카드 = 스쿼드 카드 .sq-card.is-focused(2px --border-brand)
+   - 비율 막대 = 스쿼드 배분 바(.sq-share-track 12 · r4 · 칸 사이 2 · 채움 45%) · 범례 = .sq-comp-legend · .sq-comp-item 그대로
+   - 사람 칸 = 리스트 이름 칸(.member-row 32 · .member-name 16/24 · 600) · 소속 줄 .ol-unit-path(12/16 · --text-tertiary) · 배지 .role-badge
+   ══════════════════════════════════════════════════ */
+
+.canvas-area.op-view {
+  height: auto;
+  min-height: 640px;
+  overflow: visible;
+  user-select: text;
+}
+.op-view .op-toolbar { flex-wrap: wrap; }
+.op-body { padding: var(--spacing-3xl) var(--spacing-xl) var(--spacing-xl); }
+
+/* 한 줄에 셋 — 국가는 자기 카드 수만큼(많아야 셋) 칸을 차지하고 다음 국가가 이어 선다(§2 «국가 묶음의 폭») */
+.op-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--spacing-4xl) calc(var(--spacing-md) + var(--spacing-xxs));
+  align-items: start;
+}
+.op-span-1 { grid-column: span 1; }
+.op-span-2 { grid-column: span 2; }
+.op-span-3, .op-span-full { grid-column: 1 / -1; }
+.op-skeleton { width: 100%; }
+
+.op-country-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-md);
+  padding-bottom: var(--spacing-md);
+  border-bottom: 1px solid var(--border-secondary);
+}
+.op-country-head .pj-table-subtitle { margin-top: 0; }
+.op-unset-text { color: var(--text-tertiary); }
+
+/* 국가 안 카드 줄 — 국가가 차지한 칸 수만큼 나눈다 · 칸 사이는 바깥 격자와 같아 국가가 달라도 카드 세로줄이 맞는다 */
+.op-cities {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: calc(var(--spacing-md) + var(--spacing-xxs));
+  margin-top: var(--spacing-lg);
+  align-items: start;
+}
+.op-span-1 .op-cities { grid-template-columns: minmax(0, 1fr); }
+.op-span-2 .op-cities { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+.op-city {
+  min-width: 0;
+  border-radius: var(--radius-lg);
+  background: var(--bg-quaternary);
+}
+.op-city.is-open { grid-column: 1 / -1; box-shadow: 0 0 0 2px var(--border-brand); }
+.op-city .op-city-head { min-width: 0; cursor: pointer; }
+.op-city .op-city-head:hover { cursor: pointer; }
+.op-city .op-city-head:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+.op-city.is-open .op-city-head { box-shadow: none; }
+.op-city.is-unset {
+  border: 1px dashed var(--border-primary);
+  background: var(--bg-secondary);
+}
+.op-city.is-unset .op-city-head { box-shadow: none; }
+.op-city-title { display: flex; align-items: baseline; gap: var(--spacing-md); min-width: 0; }
+.op-city-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.op-city-count { margin-left: auto; flex: none; color: var(--text-tertiary); }
+
+/* 최상위 조직 비율 막대 — 색은 조직 순서마다 돌려 쓴다(여덟 색 · §5 #9 와 같은 규칙) · 회사 · 미배정은 회색 */
+.op-bar {
+  display: flex;
+  gap: var(--spacing-xxs);
+  height: 12px;
+  margin-top: var(--spacing-lg);
+  overflow: hidden;
+  border-radius: var(--radius-xxs);
+  background: var(--alpha-black-3);
+}
+.op-bar-seg { display: flex; overflow: hidden; border-radius: var(--radius-xxs); }
+.op-bar-fill { flex: 1 1 auto; height: 100%; opacity: 0.45; }
+.op-legend { margin-top: var(--spacing-md); }
+
+.op-tone-0 { background: var(--utility-blue-500); }
+.op-tone-1 { background: var(--utility-pink-500); }
+.op-tone-2 { background: var(--utility-purple-500); }
+.op-tone-3 { background: var(--utility-green-500); }
+.op-tone-4 { background: var(--utility-orange-500); }
+.op-tone-5 { background: var(--utility-indigo-500); }
+.op-tone-6 { background: var(--utility-fuchsia-500); }
+.op-tone-7 { background: var(--utility-brand-500); }
+.op-tone-muted { background: var(--utility-gray-500); }
+
+/* 펼친 카드 — 조직마다 사람 칸 */
+.op-city-body { padding: 0 calc(var(--spacing-2xl) + var(--spacing-xxs)) var(--spacing-2xl); }
+.op-group + .op-group { margin-top: var(--spacing-lg); }
+.op-group-name {
+  padding: var(--spacing-sm) 0;
+  font-size: var(--font-size-text-sm, 14px);
+  line-height: 20px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+.op-people {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--spacing-xs) var(--spacing-md);
+}
+.op-person {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  min-width: 0;
+  padding: var(--spacing-md);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  cursor: pointer;
+}
+.op-person:hover { background: var(--bg-tertiary); }
+.op-person:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+.op-person-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  color: var(--text-white, var(--bg-quaternary));
+  font-size: 11px;
+  font-weight: 700;
+}
+.op-person-text { display: flex; flex-direction: column; min-width: 0; }
+.op-person-name {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  min-width: 0;
+  font-size: var(--font-size-text-md, 16px);
+  line-height: 24px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.op-person-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.op-person-badge { flex: none; }
+.op-person-sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-text-xs, 12px);
+  line-height: 16px;
+  color: var(--text-tertiary);
+}
+
+/* 목록 끝 안내 — 바탕 없는 한 줄 · 어드민 빈 상태에서는 그 줄 오른쪽에 바로가기 */
+.op-note-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-4xl);
+}
+.op-note {
+  margin: 0;
+  font-size: var(--font-size-text-xs, 12px);
+  line-height: 18px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+.op-empty { padding: var(--spacing-5xl) 0; }
+
+/* 좁은 화면(§5 #10) — 1024 미만이면 한 줄에 둘, 640 미만이면 하나 */
+@media (max-width: 1023px) {
+  .op-grid, .op-cities, .op-span-3 .op-cities { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .op-span-2, .op-span-3 { grid-column: 1 / -1; }
+}
+@media (max-width: 639px) {
+  .op-grid, .op-cities, .op-span-2 .op-cities, .op-span-3 .op-cities { grid-template-columns: minmax(0, 1fr); }
+  .op-span-1, .op-span-2, .op-span-3 { grid-column: 1 / -1; }
+}

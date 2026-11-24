@@ -152,6 +152,7 @@ export {
   AsOfButton,
   SquadCanvas,
   OrgMemberListCanvas,
+  OrgPlaceCanvas,
   SquadFormCard,
   SquadProjectSection,
   ProjectDetailCanvas,
