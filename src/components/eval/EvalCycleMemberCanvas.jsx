@@ -999,8 +999,9 @@ export default function EvalCycleMemberCanvas({
         const empty = !drafted.find((d) => d.index === fields.indexOf(only))?.textAnswer?.trim();
         setDraftEmpty((prev) => ({ ...prev, [only.key]: empty }));
       }
-      // 근거가 없어 빈 초안으로 돌아온 항목이 있으면 직접 쓰라고 알린다(spec §10).
-      setDraftShort(
+      // 근거가 없어 빈 초안으로 돌아온 항목이 있으면 직접 쓰라고 알린다(spec §10). [PW-3224] 항목별 단추는 위 칸 안내가
+      // 말하므로 맨 위 띠를 켜지도 끄지도 않는다 — 같은 말 두 번(구성원 정책 PW-2654)·동료 화면에 셀프 문장이 뜨던 것.
+      if (!only) setDraftShort(
         items.some(
           (it) => !drafted.find((d) => d.index === it.index)?.textAnswer?.trim(),
         ),
