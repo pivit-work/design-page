@@ -1131,6 +1131,10 @@
 .admin-emp-edit-error { color: var(--text-error-primary); }
 .admin-emp-edit-note { color: var(--text-tertiary); }
 .admin-emp-edit-readonly { cursor: help; }
+/* «상태 일괄 변경» 창의 거절 줄 — 사람마다 한 줄(pivit-work PW-3245 · «소속 일괄 이동» 거절 줄과 같은 꼴) */
+/* 띠는 창 본문 마지막 칸과 줄 사이 간격(Stack gap lg 12)만큼 띄운다 — 붙으면 입력칸의 오류 글처럼 읽힌다 */
+.admin-emp-bulk-failure { margin-top: var(--spacing-lg); }
+.admin-emp-bulk-failure-line { display: block; }
 /* 열 머리 — 발령 칸 표시(§3.1-C «발령 칸» ① 과 같은 회색 작은 글씨) · «한 번에 넣기» ▾ */
 .admin-emp-edit-head { display: inline-flex; align-items: center; gap: var(--spacing-xs); }
 .admin-emp-edit-head-mark { font-size: 11px; font-weight: 500; color: var(--text-tertiary); }

@@ -16,7 +16,7 @@ import SidePanelShell from '../shared/SidePanelShell.jsx';
 import Tabs from '../shared/Tabs.jsx';
 import Button from '../shared/Button.jsx';
 import LoadMoreButton from '../shared/LoadMoreButton.jsx';
-import { AdminButton } from './kit/CsvImportParts.jsx';
+import { AdminButton, AdminNotice } from './kit/CsvImportParts.jsx';
 import Switch from '../shared/Switch.jsx';
 import {
   buildOrgTree, findOrgEntry, primaryOrgEntry, matchesOrgSubtree, ORG_FILTER_UNASSIGNED, ORG_PATH_SEP,
@@ -259,6 +259,9 @@ const DEFAULT_LABELS = {
     statusReasonNote: '그중 재직 ↔ 수습 {count}명은 개인정보 변경 이력에 남아요',
     statusReasonLabel: '변경 사유',
     statusReasonApply: '바꾸기',
+    statusPending: '바꾸는 중…',
+    statusRetry: '다시 시도',
+    statusRetryError: '바꾸지 못했어요 — 고른 값은 그대로 있어요',
     leaveEndBeforeStart: '휴직 종료일은 시작일보다 앞설 수 없습니다',
     leaveFutureHint: '{date}에 휴직으로 바뀌어요. 그때까지 발령 이력에 예정으로 보이고, 발효 전에는 취소할 수 있어요',
     /* 「여러 칸 한 번에 고치기」 (PW-901). 스프레드시트 뷰가 폐기되며(PW-576) 함께
@@ -2298,7 +2301,7 @@ function BulkMenu({ count, items, labels, blockedReason = null }) {
  * 위에 뜨고 조상의 `overflow: hidden` 에도 안 잘린다(종전 `admin-notif-modal-root` 래퍼가
  * 하던 일). 창 이름표(testId)는 카드에 붙는다 — 본문·버튼 줄이 모두 그 안에 있다.
  */
-function BulkActionModal({ testId, title, subtitle, children, footer, onClose, closeLabel }) {
+function BulkActionModal({ testId, title, subtitle, children, footer, onClose, closeLabel, busy = false }) {
   return (
     <ModalShell
       title={title}
@@ -2310,10 +2313,43 @@ function BulkActionModal({ testId, title, subtitle, children, footer, onClose, c
       className="adm-shell"
       testId={testId}
       footer={footer}
+      /* 기다리는 동안 ✕ 를 흐리게 잠근다(pivit-work PW-3245) — [취소]와 같이 «지금은 닫을 수 없다»가 보이게 */
+      busy={busy}
     >
       {children}
     </ModalShell>
   );
+}
+
+/* «상태 일괄 변경» 세 창의 거절 줄 (pivit-work PW-3245 · admin-spec §3.1 «부분 실패 원칙»).
+   창을 닫지 않고 창 안에 남긴다 — 같은 메뉴 «소속 일괄 이동» 창(`org-move-failure`)과 같은 모양 · 같은 규칙.
+   `failure` 는 부르는 쪽이 `onApply` 의 돌려준 값으로 준다:
+     { lines: ['{이름}님은 바꾸지 못했어요 — {사유}', …] } — 사람마다 거절(일부만 거절이면 성공한 사람은 이미 바뀌었다)
+     { message } — 요청 전체가 업무 거절
+     { retry: true } — 연결 끊김 · 서버 오류: 아무도 안 바뀌었다 · 고른 값 그대로 [다시 시도] */
+function BulkStatusFailure({ failure, L, busy, onRetry, testId }) {
+  if (!failure) return null;
+  return (
+    <AdminNotice tone="error" testId={testId} role="alert" className="admin-emp-bulk-failure">
+      {failure.lines && failure.lines.map((line, i) => (
+        <span key={i} className="admin-emp-bulk-failure-line" data-testid={`${testId}-line`}>{line}</span>
+      ))}
+      {!failure.lines && failure.message}
+      {!failure.lines && !failure.message && failure.retry && (
+        <>
+          {L.statusRetryError}{' '}
+          {/* 쓰기를 다시 보내는 버튼이라 공용 Button — 모양은 «소속 일괄 이동» [다시 옮기기] 글자 버튼 그대로 */}
+          <Button className="admin-snap-hist-detaillink admin-snap-hist-cancel" disabled={busy}
+            data-testid={`${testId}-retry`} onClick={onRetry}>{L.statusRetry}</Button>
+        </>
+      )}
+    </AdminNotice>
+  );
+}
+
+/** `onApply` 가 돌려준 값에서 거절만 꺼낸다 — 값이 없거나 `failure` 가 없으면 성공(창을 닫는다). */
+function bulkFailureOf(result) {
+  return result && typeof result === 'object' && result.failure ? result.failure : null;
 }
 
 /**
@@ -2421,39 +2457,63 @@ function BulkManagerModal({ selectedRows, candidates, labels, onClose, onApply }
  */
 function BulkStatusModal({ selectedRows, labels, onClose, onApply }) {
   const [picked, setPicked] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [failure, setFailure] = useState(null);
   const L = labels.listBulk;
+  /* [바꾸기] 는 응답이 올 때까지 창을 연 채 기다린다(pivit-work PW-3245) — 종전엔 누르자마자 닫혀 기다리는 표시가 없었고,
+     «일괄 처리»가 켜진 채라 같은 변경을 다시 보낼 수 있었다. 다음 창(사유 · 휴직)으로 넘어가거나 다 바뀌면 닫는다. */
+  async function submit() {
+    if (!picked || busy) return;
+    setBusy(true);
+    setFailure(null);
+    let next = null;
+    try {
+      next = bulkFailureOf(await onApply(selectedRows.map((m) => m.id), picked));
+    } finally {
+      setBusy(false);
+    }
+    if (next) setFailure(next);
+    else onClose();
+  }
 
   return (
     <BulkActionModal
       testId="employees-list-bulk-status-modal"
+      busy={busy}
       title={L.statusChange}
       subtitle={fill(L.orgAppendSubtitle, { count: selectedRows.length })}
-      onClose={onClose}
+      onClose={busy ? () => {} : onClose}
       closeLabel={L.close}
       footer={(
         <>
-          <button type="button" className="tl-group-modal-btn tl-group-modal-btn-secondary" onClick={onClose}
-            data-testid="employees-list-bulk-status-cancel">{L.cancel}</button>
-          <button
-            type="button"
+          {/* 같은 메뉴 사유 창과 같은 창 아래 버튼 — 공용 Button 에 그 모양 클래스를 넘긴다(기다리는 표시 `pending`) */}
+          {/* 기다리는 동안 닫으면 응답 뒤 같은 변경을 다시 보낼 수 있다 — 응답이 올 때까지 [취소] · ✕ 를 막는다(PW-3245 리뷰) */}
+          <Button className="tl-group-modal-btn tl-group-modal-btn-secondary" onClick={onClose} disabled={busy}
+            data-testid="employees-list-bulk-status-cancel">{L.cancel}</Button>
+          <Button
             className="tl-group-modal-btn tl-group-modal-btn-primary"
             disabled={!picked}
+            pending={busy}
+            pendingLabel={L.statusPending}
             data-testid="employees-list-bulk-status-apply"
-            onClick={() => { onClose(); onApply(selectedRows.map((m) => m.id), picked); }}
+            onClick={submit}
           >
             {L.apply}
-          </button>
+          </Button>
         </>
       )}
     >
       <StatusRadios
         order={BULK_STATUS_ORDER}
         value={picked}
-        onPick={setPicked}
+        onPick={(v) => { setPicked(v); setFailure(null); }}
+        disabled={busy}
         name="bulkEmploymentStatus"
         labels={labels}
         testIdOf={(key) => `employees-list-bulk-status-${key}`}
       />
+      <BulkStatusFailure failure={failure} L={L} busy={busy} onRetry={submit}
+        testId="employees-list-bulk-status-failure" />
     </BulkActionModal>
   );
 }
@@ -2482,6 +2542,7 @@ function BulkLeaveModal({ split, labels, leaveAddon, today, onClose, onApply }) 
   const [end, setEnd] = useState('');
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
+  const [failure, setFailure] = useState(null);
   const endBad = Boolean(start && end && end < start);
   const disabled = busy || !start || endBad || (Boolean(leaveAddon) && !reason);
   const skips = [
@@ -2493,8 +2554,10 @@ function BulkLeaveModal({ split, labels, leaveAddon, today, onClose, onApply }) 
   async function submit() {
     if (disabled) return;
     setBusy(true);
+    setFailure(null);
     try {
-      await onApply({ leaveStartDate: start, leaveEndDate: end || null, leaveOfAbsenceReason: reason || null });
+      // 거절되면 부르는 쪽이 창을 열어 둔 채 `{ failure }` 를 돌려준다(pivit-work PW-3245) — 고른 날짜 · 사유는 그대로다.
+      setFailure(bulkFailureOf(await onApply({ leaveStartDate: start, leaveEndDate: end || null, leaveOfAbsenceReason: reason || null })));
     } finally {
       setBusy(false);
     }
@@ -2502,23 +2565,25 @@ function BulkLeaveModal({ split, labels, leaveAddon, today, onClose, onApply }) 
   return (
     <BulkActionModal
       testId="employees-list-bulk-leave-modal"
+      busy={busy}
       title={fill(L.leaveTitle, { count: split.targets })}
       subtitle={skips.length > 0 ? fill(L.leaveSkipSuffix, { list: skips.join(' · ') }) : undefined}
-      onClose={onClose}
+      onClose={busy ? () => {} : onClose}
       closeLabel={L.close}
       footer={(
         <>
-          <button type="button" className="tl-group-modal-btn tl-group-modal-btn-secondary" onClick={onClose}
-            data-testid="employees-list-bulk-leave-cancel">{L.cancel}</button>
-          <button
-            type="button"
+          <Button className="tl-group-modal-btn tl-group-modal-btn-secondary" onClick={onClose} disabled={busy}
+            data-testid="employees-list-bulk-leave-cancel">{L.cancel}</Button>
+          <Button
             className="tl-group-modal-btn tl-group-modal-btn-primary"
-            disabled={disabled}
+            disabled={disabled && !busy}
+            pending={busy}
+            pendingLabel={L.statusPending}
             data-testid="employees-list-bulk-leave-apply"
             onClick={submit}
           >
             {L.leaveApply}
-          </button>
+          </Button>
         </>
       )}
     >
@@ -2531,7 +2596,7 @@ function BulkLeaveModal({ split, labels, leaveAddon, today, onClose, onApply }) 
           hint={future ? fill(L.leaveFutureHint, { date: start }) : undefined}
         >
           <DateInput className="admin-emp-input" data-testid="employees-list-bulk-leave-start"
-            value={start} onChange={setStart} />
+            value={start} onChange={setStart} disabled={busy} />
         </FormField>
         <FormField
           className="admin-emp-field"
@@ -2541,7 +2606,7 @@ function BulkLeaveModal({ split, labels, leaveAddon, today, onClose, onApply }) 
           errorTestId="employees-list-bulk-leave-end-error"
         >
           <DateInput className="admin-emp-input" data-testid="employees-list-bulk-leave-end"
-            value={end} onChange={setEnd} />
+            value={end} onChange={setEnd} disabled={busy} />
         </FormField>
         <FormField
           className="admin-emp-field"
@@ -2550,9 +2615,11 @@ function BulkLeaveModal({ split, labels, leaveAddon, today, onClose, onApply }) 
           required={Boolean(leaveAddon)}
           hint={leaveReasonHint(reason, leaveAddon, P)}
         >
-          <LeaveReasonSelect value={reason} onChange={setReason} L={P} testId="employees-list-bulk-leave-reason" />
+          <LeaveReasonSelect value={reason} onChange={setReason} disabled={busy} L={P} testId="employees-list-bulk-leave-reason" />
         </FormField>
       </div>
+      <BulkStatusFailure failure={failure} L={L} busy={busy} onRetry={submit}
+        testId="employees-list-bulk-leave-failure" />
     </BulkActionModal>
   );
 }
@@ -2568,12 +2635,15 @@ function BulkStatusReasonModal({ pending, labels, onClose, onApply }) {
   const L = labels.listBulk;
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
+  const [failure, setFailure] = useState(null);
   const disabled = busy || !reason.trim();
   async function submit() {
     if (disabled) return;
     setBusy(true);
+    setFailure(null);
     try {
-      await onApply(reason.trim());
+      // 거절되면 부르는 쪽이 창을 열어 둔 채 `{ failure }` 를 돌려준다(pivit-work PW-3245)
+      setFailure(bulkFailureOf(await onApply(reason.trim())));
     } finally {
       setBusy(false);
     }
@@ -2581,16 +2651,18 @@ function BulkStatusReasonModal({ pending, labels, onClose, onApply }) {
   return (
     <BulkActionModal
       testId="employees-list-bulk-status-reason-modal"
+      busy={busy}
       title={fill(L.statusReasonTitle, { count: pending.count, status: labels.status[pending.status] ?? '' })}
       subtitle={fill(L.statusReasonNote, { count: pending.swaps })}
-      onClose={onClose}
+      onClose={busy ? () => {} : onClose}
       closeLabel={L.close}
       footer={(
         <>
           {/* 같은 메뉴 «휴직» 창과 같은 창 아래 버튼 모양 — 공용 Button 에 그 모양 클래스를 넘긴다 */}
-          <Button className="tl-group-modal-btn tl-group-modal-btn-secondary" onClick={onClose}
+          <Button className="tl-group-modal-btn tl-group-modal-btn-secondary" onClick={onClose} disabled={busy}
             data-testid="employees-list-bulk-status-reason-cancel">{L.cancel}</Button>
-          <Button className="tl-group-modal-btn tl-group-modal-btn-primary" disabled={disabled}
+          <Button className="tl-group-modal-btn tl-group-modal-btn-primary" disabled={disabled && !busy}
+            pending={busy} pendingLabel={L.statusPending}
             data-testid="employees-list-bulk-status-reason-apply" onClick={submit}>{L.statusReasonApply}</Button>
         </>
       )}
@@ -2599,10 +2671,13 @@ function BulkStatusReasonModal({ pending, labels, onClose, onApply }) {
         <TextInput
           className="admin-emp-input"
           data-testid="employees-list-bulk-status-reason-input"
+          disabled={busy}
           value={reason}
           onChange={(e) => setReason(e.target.value)}
         />
       </FormField>
+      <BulkStatusFailure failure={failure} L={L} busy={busy} onRetry={submit}
+        testId="employees-list-bulk-status-reason-failure" />
     </BulkActionModal>
   );
 }
