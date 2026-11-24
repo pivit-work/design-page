@@ -558,7 +558,9 @@ export default function SnippetModal({
   const tagLimitToastTimer = useRef(null);
   useEffect(() => () => clearTimeout(tagLimitToastTimer.current), []);
   const addTag = (t) => {
-    const v = t.trim();
+    // 칩 앞에 # 표시가 붙어 보여 «#블로커»로 치는 사람이 있다 — 앞의 #는 떼고 붙인다.
+    // 1on1 준비·아젠다가 «블로커» 한 이름으로 찾는다(기획 ai-data-spec §1-B · PW-3035).
+    const v = t.trim().replace(/^#+/, '').trim();
     if (!v || tags.includes(v) || tags.length >= TAG_LIMIT) return false;
     setTags((prev) => [...prev, v]);
     if (tags.length + 1 === TAG_LIMIT) {
