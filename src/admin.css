@@ -719,12 +719,6 @@
   color: var(--colors-text-textWarningPrimary, #dc6803);
   cursor: help;
 }
-/* 직함 열 머리 자물쇠 — 목록에서 못 고친다는 표시(admin-spec §3.1). */
-.admin-emp-head-locked {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
 
 /* 「불러오는 중」 글은 공용 `LoadingState`(src/loading.css)로 옮겼다 (PW-1010) */
 

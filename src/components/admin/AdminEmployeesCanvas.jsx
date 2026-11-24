@@ -22,7 +22,7 @@ import {
   buildOrgTree, findOrgEntry, primaryOrgEntry, matchesOrgSubtree, ORG_FILTER_UNASSIGNED, ORG_PATH_SEP,
 } from './orgTree.js';
 import SquadPicker, { SquadCell, isVisibleSquadStatus } from './SquadPicker.jsx';
-import { ExportMenu, SalaryExportModal, IconLock } from './employeeExport.jsx';
+import { ExportMenu, SalaryExportModal } from './employeeExport.jsx';
 /* 구성원 기록 창 3종 — 폐기된 스프레드시트에서 옮겨 왔다(PW-576). 코드는 그대로다. */
 import {
   HrProfileModal, HrProfileInline, flushSalaryPending, SalaryHistoryModal, CeoConfirmModal, CeoBadge, IconSalary, IconCrown, fmtSalaryWithCurrency,
@@ -194,7 +194,6 @@ const DEFAULT_LABELS = {
   // 직군을 바꿔 고른 직렬이 풀렸을 때 (admin-spec §3.1)
   ladderFilterCleared: '직렬 필터가 해제되었습니다',
   // 직함 열 머리 자물쇠의 말풍선 (admin-spec §3.1 ⚙ 정본표 「직함 🔒」)
-  businessTitleLocked: '목록에서 고칠 수 없습니다. 구성원 편집에서 고칩니다.',
   // 소속 칸의 주 소속 배지 · 검색/소속 필터 결과 수의 축 표기 (admin-spec §3.1 · PW-630).
   primaryBadge: '주',
   listCountAxis: '주·겸직 소속 {count}명',
@@ -4256,15 +4255,8 @@ function EmployeesListView({
     const spec = te?.columns[c.id];
     const headTip = te?.headTips?.[c.id];
     let text = c.label;
-    if (c.id === 'businessTitle') {
-      /* 직함은 목록에서 못 고친다는 표시 (admin-spec §3.1 ⚙ 정본표 「직함 🔒」). */
-      text = (
-        <span className="admin-emp-head-locked" title={labels.businessTitleLocked}>
-          {c.label}
-          <IconLock size={11} />
-        </span>
-      );
-    } else if (spec?.appointment) {
+    /* 직함 머리의 🔒 는 걷었다 — 어드민이 표에서 고치는 칸이고 발령 칸도 아니다(PW-3189 · admin-spec §3.1-G-3). */
+    if (spec?.appointment) {
       text = (
         <span className="admin-emp-edit-head">
           {c.label}
@@ -5272,7 +5264,8 @@ const PANEL_ROLE_OPTIONS = ['admin', 'member'];
  */
 const APPOINTMENT_PANEL_FIELDS = [
   'jobFamily', 'jobTitle', 'jobDuty', 'jobPosition', 'jobLevel', 'jobRank',
-  'employmentType', 'workCountry', 'workLocation', 'ftePercent', 'jobCategory', 'businessTitle',
+  'employmentType', 'workCountry', 'workLocation', 'ftePercent', 'jobCategory',
+  // 직함은 뺐다 — 발령 칸이 아니라 고치면 바로 바뀐다(PW-3189 · admin-spec §3.1-G-3 «구성원 상세»).
 ];
 
 /**
