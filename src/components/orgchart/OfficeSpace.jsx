@@ -228,6 +228,8 @@ export default function OfficeSpace({
     if (v === '2d' || status !== 'ready' || !canvas.current || (!floor && v !== 'bldg')) return undefined;
     let ctx = gl.current && gl.current.ctx;
     if (!ctx || ctx.canvas !== canvas.current) {
+      // 보기를 바꿔 캔버스가 새로 생겼으면 앞 캔버스의 연결을 거둔다(브라우저의 연결 수 한도)
+      if (ctx) { const l = ctx.getExtension('WEBGL_lose_context'); if (l) l.loseContext(); }
       ctx = canvas.current.getContext('webgl', { antialias: true, alpha: false });
       if (!ctx) { setNoGl(true); return undefined; }
       const sh = (ty, src) => { const s = ctx.createShader(ty); ctx.shaderSource(s, src); ctx.compileShader(s); return s; };
