@@ -190,3 +190,8 @@
   .op-grid, .op-cities, .op-span-2 .op-cities, .op-span-3 .op-cities { grid-template-columns: minmax(0, 1fr); }
   .op-span-1, .op-span-2, .op-span-3 { grid-column: 1 / -1; }
 }
+
+/* [PW-3238] 근무지 카드 아래 빌딩 단추 — 카드 안쪽 여백(.dept-card 20/22)에 맞춰 왼쪽을 맞춘다 */
+.op-buildings { display: flex; flex-wrap: wrap; gap: var(--spacing-xs); padding: 0 var(--spacing-lg) var(--spacing-lg); }
+/* [PW-3238] «빌딩 · 층» 보기 — 근무 공간 보기(office_space.css)가 판을 그린다 */
+.canvas-area.op-view.is-building .op-body { padding-top: var(--spacing-lg); }

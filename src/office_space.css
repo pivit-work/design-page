@@ -1,0 +1,340 @@
+/* ══════════════════════════════════════════════════
+   근무 공간 보기 OfficeSpace — 조직도 «근무지» 탭 «빌딩 · 층» · 회사 자산 «책상 배치» (pivit-work PW-3238)
+   기획 arch-office-space.md v1.1 · screen-org-chart-place.policy.md §3 · screen-admin-company-assets-layout.policy.md v1.5 §2 #17 ~ #19
+
+   design-page 에 같은 판의 디자이너 원본이 없다. 값은 이미 있는 디자이너 부품을 따른다(새 색 0 · 토큰만):
+   - 보기 전환 · 목록 갈래 = 전역 SegmentedControl(.seg-control) · 버튼 = 공용 Button · 고르기 = CustomSelect
+   - 왼쪽 판 · 오른쪽 판 = 조직도 트리 판 .canvas-area(흰 바탕 --bg-primary · r --radius-2xl · 테두리 --border-secondary)
+   - 목록 줄 = 근무지 «지역» 보기 사람 칸 .op-person(안쪽 8 · r sm · hover --bg-tertiary · 이름 13/18 600 · 둘째 줄 12/16 --text-tertiary)
+   - 층 줄 = 같은 판 근무지 카드 .dept-card 의 고른 테두리(--border-brand) · 바탕 --bg-brand-primary
+   - 조직 색 여덟 = 근무지 «지역» 보기 .op-tone-0 ~ 7 과 같은 토큰 · 배지 = 조직도 트리 .role-badge-*
+   - 범례 칩 = 스쿼드 구성 범례 .sq-comp-item(h28 · r8 · 13/18 600)
+   - 사람 카드 = 퍼블릭 카드 고정 카드(r --radius-2xl · 테두리 --border-secondary · 그림자 --shadows-shadow-md)
+   - 안내 줄(3D 못 그림 · 초안 경고) = 경고 바탕 --bg-warning-primary · 글자 --text-warning-primary
+   ══════════════════════════════════════════════════ */
+
+.osp {
+  display: flex;
+  gap: var(--spacing-lg);
+  align-items: stretch;
+  min-width: 0;
+}
+.osp-cut { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.osp-grow { flex: 1; }
+
+/* ── 왼쪽 — 빌딩 · 층 · 목록 */
+.osp-aside {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  width: 264px;
+  height: clamp(560px, calc(100vh - 300px), 760px);
+  overflow: hidden;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-2xl);
+}
+.osp-aside-top { padding: var(--spacing-lg) var(--spacing-lg) var(--spacing-md); }
+.osp-aside-top .custom-select, .osp-aside-top > * { width: 100%; }
+.osp-floors {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xxs);
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 0 var(--spacing-lg) var(--spacing-md);
+}
+.osp-floor {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 18px;
+}
+.osp-floor:hover { background: var(--bg-tertiary); }
+.osp-floor:focus-visible, .osp-row:focus-visible, .osp-chip:focus-visible, .osp-tag:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: -2px; }
+.osp-floor.is-on { border-color: var(--border-brand); background: var(--bg-brand-primary); }
+.osp-floor-name { font-weight: 700; color: var(--text-secondary); }
+.osp-floor.is-on .osp-floor-name { color: var(--text-brand-secondary); }
+.osp-floor-only { font-size: 11px; font-weight: 600; color: var(--text-tertiary); }
+.osp-floor-n { margin-left: auto; font-size: 12px; color: var(--text-tertiary); }
+.osp-aside-tabs { padding: 0 var(--spacing-lg) var(--spacing-md); }
+.osp-aside-search { padding: 0 var(--spacing-lg) var(--spacing-md); }
+.osp-search {
+  box-sizing: border-box;
+  width: 100%;
+  height: 36px;
+  padding: 0 var(--spacing-lg);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+  font: inherit;
+  font-size: 13px;
+  color: var(--text-primary);
+  outline: none;
+}
+.osp-search::placeholder { color: var(--text-placeholder); }
+.osp-search:focus { border-color: var(--border-brand); }
+.osp-list { flex: 1; overflow-y: auto; padding-bottom: var(--spacing-md); }
+.osp-unit-head { padding: var(--spacing-md) var(--spacing-lg) var(--spacing-xxs); font-size: 11px; font-weight: 700; color: var(--text-tertiary); }
+.osp-list-empty { padding: var(--spacing-2xl) var(--spacing-lg); font-size: 12px; color: var(--text-tertiary); text-align: center; }
+.osp-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  cursor: pointer;
+  text-align: left;
+}
+.osp-row:hover { background: var(--bg-tertiary); }
+.osp-row.is-on { background: var(--bg-brand-primary); }
+.osp-row-main { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.osp-row-name { display: flex; align-items: center; gap: var(--spacing-xs); min-width: 0; font-size: 13px; line-height: 18px; font-weight: 600; color: var(--text-primary); }
+.osp-row-sub { font-size: 11px; line-height: 15px; color: var(--text-tertiary); }
+.osp-row-side { flex: none; font-size: 11px; color: var(--text-tertiary); }
+.osp-badge { flex: none; }
+.osp-desk-name { flex: none; width: 54px; font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.osp-desk-name.is-wide { width: 84px; }
+.osp-desk-who { display: flex; align-items: center; gap: var(--spacing-xs); flex: 1; font-size: 12px; color: var(--text-secondary); }
+.osp-desk-who.is-empty { color: var(--text-tertiary); }
+.osp-desk-assets { flex: none; font-size: 11px; font-weight: 700; color: var(--text-tertiary); }
+.osp-desk-assets.has-assets { color: var(--text-brand-secondary); }
+.osp-area-name { flex: 1; font-size: 13px; color: var(--text-primary); }
+
+/* 사람 동그라미 · 조직 색 여덟(근무지 «지역» .op-tone-* 와 같은 토큰) */
+.osp-avatar {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-white);
+}
+.osp-avatar.is-lg { width: 40px; height: 40px; font-size: 13px; }
+.osp-tone-0, .osp-dot.osp-tone-0 { background: var(--utility-blue-500); }
+.osp-tone-1, .osp-dot.osp-tone-1 { background: var(--utility-pink-500); }
+.osp-tone-2, .osp-dot.osp-tone-2 { background: var(--utility-purple-500); }
+.osp-tone-3, .osp-dot.osp-tone-3 { background: var(--utility-green-500); }
+.osp-tone-4, .osp-dot.osp-tone-4 { background: var(--utility-orange-500); }
+.osp-tone-5, .osp-dot.osp-tone-5 { background: var(--utility-indigo-500); }
+.osp-tone-6, .osp-dot.osp-tone-6 { background: var(--utility-fuchsia-500); }
+.osp-tone-7, .osp-dot.osp-tone-7 { background: var(--utility-brand-500); }
+.osp-tone-muted, .osp-dot.osp-tone-muted { background: var(--utility-gray-500); }
+
+/* ── 오른쪽 — 머리 줄 · 무대 · 범례 */
+.osp-main {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  height: clamp(560px, calc(100vh - 300px), 760px);
+  overflow: hidden;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-2xl);
+}
+.osp-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-lg); padding: var(--spacing-lg) var(--spacing-xl); }
+.osp-title { min-width: 0; }
+.osp-title-main { font-size: 16px; line-height: 22px; font-weight: 700; color: var(--text-primary); }
+.osp-title-sub { font-size: 12px; line-height: 18px; color: var(--text-tertiary); }
+.osp-narrow-pick { display: none; gap: var(--spacing-md); }
+.osp-note {
+  margin: 0 var(--spacing-xl) var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  background: var(--bg-warning-primary);
+  color: var(--text-warning-primary);
+  font-size: 12px;
+  line-height: 18px;
+}
+.osp-body { position: relative; display: flex; flex: 1; flex-direction: column; min-height: 0; margin: 0 var(--spacing-xl); }
+.osp-stage { position: relative; flex: 1; min-height: 0; overflow: hidden; border-radius: var(--radius-xl); background: var(--bg-tertiary); }
+.osp-stage-msg {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-lg);
+  border-radius: var(--radius-xl);
+  background: var(--bg-secondary);
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+.osp-gl { position: absolute; inset: 0; overflow: hidden; outline: none; cursor: grab; touch-action: none; user-select: none; background: var(--border-secondary); }
+.osp-gl:focus-visible { box-shadow: inset 0 0 0 2px var(--focus-ring); }
+.osp-canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+
+/* 3D 이름표 — 자리는 그리기마다 transform 으로 옮긴다 */
+.osp-tag { position: absolute; left: 0; top: 0; transform-origin: center; will-change: transform; cursor: pointer; }
+.osp-tag[data-hidden='1'] { display: none; }
+.osp-tag:hover { z-index: 9000 !important; }
+.osp-tag-full { display: none; margin-top: var(--spacing-xxs); padding: var(--spacing-xxs) var(--spacing-sm); border-radius: var(--radius-sm); background: var(--bg-primary); box-shadow: var(--shadows-shadow-md); white-space: nowrap; text-align: center; }
+.osp-tag[data-near='1'] .osp-tag-full, .osp-tag[data-on='1'] .osp-tag-full, .osp-tag:hover .osp-tag-full { display: block; }
+.osp-tag-name { display: block; font-size: 11px; line-height: 15px; font-weight: 700; color: var(--text-primary); }
+.osp-tag-sub { display: block; font-size: 10px; line-height: 13px; color: var(--text-secondary); }
+.osp-desk-tag.is-dim { opacity: 0.25; }
+.osp-dot {
+  position: relative;
+  display: flex;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  margin: 0 auto;
+  border: 2px solid var(--bg-primary);
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadows-shadow-md);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-white);
+}
+.osp-dot.is-sm { width: 26px; height: 26px; }
+.osp-desk-tag.is-on .osp-dot { border-color: var(--text-primary); }
+.osp-dot-seated { background: var(--fg-brand-primary); }
+.osp-dot-empty { background: var(--bg-primary); border-color: var(--border-primary); }
+.osp-dot-resigned { background: var(--fg-warning-primary); }
+.osp-dot-count {
+  position: absolute;
+  top: -7px;
+  right: -8px;
+  min-width: 16px;
+  height: 16px;
+  border-radius: var(--radius-full);
+  background: var(--bg-primary);
+  box-shadow: var(--shadows-shadow-md);
+  font-size: 10px;
+  line-height: 16px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--text-primary);
+}
+/* 조직장 · 최상위 조직장 — 주황 점(정책 §3 «사람 표시») */
+.osp-dot-lead { position: absolute; right: -3px; bottom: -3px; box-sizing: border-box; width: 12px; height: 12px; border: 2px solid var(--bg-primary); border-radius: var(--radius-full); background: var(--utility-orange-500); }
+.osp-area-tag {
+  padding: var(--spacing-xxs) var(--spacing-md);
+  border: 1.5px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--bg-overlay);
+  color: var(--text-white);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.osp-area-tag.is-on { border-color: var(--border-brand); }
+.osp-floor-tag {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  background: var(--text-primary);
+  color: var(--text-white);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.osp-floor-tag-n { font-weight: 500; opacity: 0.75; }
+.osp-zoom { position: absolute; top: var(--spacing-lg); right: var(--spacing-lg); z-index: 9500; display: flex; flex-direction: column; align-items: flex-end; gap: var(--spacing-md); }
+.osp-zoom-btn { width: 36px; }
+
+/* 평면 2D(읽기 전용) — SVG 칸 색도 토큰 */
+.osp-plan { height: 100%; overflow: hidden; background: var(--bg-secondary); }
+.osp-plan-svg { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
+.osp-plan-svg text { pointer-events: none; font-family: inherit; }
+.osp-plan-hit { cursor: pointer; }
+.osp-plan-outline { fill: var(--bg-primary); stroke: var(--text-secondary); stroke-width: 4; }
+.osp-plan-area { fill: var(--bg-secondary); stroke: var(--text-tertiary); stroke-width: 2; }
+.osp-plan-area.is-open { fill: var(--bg-tertiary); stroke: none; }
+.osp-plan-area.is-zone { fill: var(--bg-primary); stroke-width: 1; stroke-dasharray: 5 4; }
+.osp-plan-area.is-on { stroke: var(--fg-brand-primary); stroke-width: 3; }
+.osp-plan-area-text { font-size: 12px; font-weight: 700; fill: var(--text-secondary); }
+.osp-plan-zone-text { font-size: 11px; font-weight: 700; fill: var(--text-tertiary); }
+.osp-plan-desk { fill: var(--bg-primary); stroke: var(--border-primary); stroke-width: 1; }
+.osp-plan-desk.is-room { fill: var(--bg-secondary); }
+.osp-plan-desk.is-on { stroke: var(--fg-brand-primary); stroke-width: 2.5; }
+.osp-plan-desk-name { font-size: 10px; fill: var(--text-tertiary); }
+.osp-plan-desk-who { font-size: 11px; fill: var(--text-tertiary); }
+.osp-plan-desk-who.is-seated { font-weight: 700; fill: var(--text-primary); }
+.osp-plan-desk-title { font-size: 10px; fill: var(--text-secondary); }
+.osp-plan-desk-assets { font-size: 10px; font-weight: 700; fill: var(--text-brand-secondary); }
+.osp-fill-0 { fill: var(--utility-blue-500); }
+.osp-fill-1 { fill: var(--utility-pink-500); }
+.osp-fill-2 { fill: var(--utility-purple-500); }
+.osp-fill-3 { fill: var(--utility-green-500); }
+.osp-fill-4 { fill: var(--utility-orange-500); }
+.osp-fill-5 { fill: var(--utility-indigo-500); }
+.osp-fill-6 { fill: var(--utility-fuchsia-500); }
+.osp-fill-7 { fill: var(--utility-brand-500); }
+.osp-fill-muted { fill: var(--utility-gray-500); }
+.osp-fill-disabled { fill: var(--fg-disabled-subtle); }
+.osp-fill-seated { fill: var(--fg-brand-primary); }
+.osp-fill-resigned { fill: var(--fg-warning-primary); }
+
+/* 그림이 없는 층 — 사람 칸 */
+.osp-plain { flex: 1; overflow-y: auto; padding: var(--spacing-2xl); border-radius: var(--radius-xl); background: var(--bg-secondary); }
+.osp-plain-note { margin: 0 0 var(--spacing-lg); font-size: 13px; line-height: 20px; color: var(--text-secondary); }
+.osp-plain-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: var(--spacing-md); }
+.osp-plain-card { overflow: hidden; border-radius: var(--radius-lg); background: var(--bg-primary); }
+
+/* 고른 사람 카드 */
+.osp-card {
+  position: absolute;
+  top: var(--spacing-lg);
+  left: var(--spacing-lg);
+  z-index: 9500;
+  box-sizing: border-box;
+  width: 260px;
+  padding: var(--spacing-xl);
+  border: 1px solid var(--border-secondary);
+  border-radius: var(--radius-2xl);
+  background: var(--bg-primary);
+  box-shadow: var(--shadows-shadow-md);
+  cursor: default;
+}
+.osp-card-head { display: flex; align-items: center; gap: var(--spacing-md); }
+.osp-card-who { display: flex; flex: 1; flex-direction: column; min-width: 0; }
+.osp-card-name { font-size: 15px; line-height: 20px; font-weight: 700; color: var(--text-primary); }
+.osp-card-title { font-size: 12px; line-height: 18px; color: var(--text-secondary); }
+.osp-card-rows { display: grid; grid-template-columns: 52px 1fr; row-gap: var(--spacing-xs); margin: var(--spacing-md) 0 0; font-size: 12px; line-height: 17px; }
+.osp-card-rows dt { color: var(--text-tertiary); }
+.osp-card-rows dd { margin: 0; color: var(--text-primary); word-break: keep-all; }
+.osp-card-actions { display: flex; gap: var(--spacing-sm); margin-top: var(--spacing-lg); }
+.osp-card-actions > * { flex: 1; }
+
+/* 범례 */
+.osp-legend { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-sm); padding: var(--spacing-md) var(--spacing-xl) var(--spacing-lg); }
+.osp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  height: 28px;
+  padding: 0 var(--spacing-md);
+  border-radius: var(--radius-md);
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+.osp-chip.is-on { background: var(--text-primary); color: var(--text-white); }
+.osp-swatch { display: inline-block; width: 9px; height: 9px; border-radius: var(--radius-full); }
+.osp-swatch.osp-dot-empty { border: 1px solid var(--border-primary); }
+.osp-legend-item { display: inline-flex; align-items: center; gap: var(--spacing-sm); margin-right: var(--spacing-sm); font-size: 12px; color: var(--text-secondary); }
+.osp-help { font-size: 12px; color: var(--text-tertiary); }
+
+/* 좁은 화면(1024 미만) — 왼쪽 목록을 접고 빌딩 · 층 고르기를 무대 위 한 줄로(정책 §5 #10) */
+@media (max-width: 1023px) {
+  .osp-aside { display: none; }
+  .osp-narrow-pick { display: flex; flex-basis: 100%; }
+}

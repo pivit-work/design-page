@@ -7,6 +7,8 @@ import StatusBadge from '../shared/StatusBadge.jsx';
 import CustomSelect from '../timeline/CustomSelect.jsx';
 import { isEnterKey } from '../shared/enterKey.js';
 import OrgTabNav from './OrgTabNav.jsx';
+import OfficeSpace from './OfficeSpace.jsx';
+import SegmentedControl from '../shared/SegmentedControl.jsx';
 import { OrgLabelsContext, makeOrgLabels } from './orgchart-labels.jsx';
 
 /**
@@ -19,7 +21,8 @@ import { OrgLabelsContext, makeOrgLabels } from './orgchart-labels.jsx';
  * 같은 `.canvas-area`(embedded), 툴바 · 조직 고르기 · 찾기 칸은 리스트 보기(`ol-toolbar` · `ol-filter` · `ol-search`) 그대로다.
  * 새로 그린 것은 국가 묶음 · 근무지 카드 · 사람 칸뿐이고 값은 org_place.css 머리 주석의 디자이너 값을 따른다.
  *
- * «지역 / 빌딩 · 층» 전환과 카드 아래 빌딩 단추는 그리지 않는다 — 빌딩 · 층 보기가 들어올 때 함께 단다(PW-3238).
+ * [PW-3238] 카드 왼쪽 위 «지역 / 빌딩 · 층» 전환(`placeView` · `onPlaceViewChange`)과 근무지 카드 아래 빌딩 단추(`city.buildings` ·
+ * `onOpenBuilding`). «빌딩 · 층» 보기는 근무 공간 보기 `OfficeSpace`(mode="org")를 `office` 그대로 받아 그린다(§3).
  *
  * @param {object} props
  * @param {'loading'|'failed'|'ready'} props.status
@@ -35,6 +38,10 @@ import { OrgLabelsContext, makeOrgLabels } from './orgchart-labels.jsx';
  * @param {import('react').ReactNode} [props.titleHelp]
  * @param {object|function} [props.labels]
  * @param {string} [props.baseUrl]
+ * @param {'region'|'building'} [props.placeView]  [PW-3238] 지금 보기(처음 «지역» · 주소에 싣지 않는다 — 정책 §1)
+ * @param {(v: 'region'|'building') => void} [props.onPlaceViewChange]
+ * @param {object} [props.office]  [PW-3238] «빌딩 · 층» 보기의 `OfficeSpace` props(mode 는 org)
+ * @param {(building: string) => void} [props.onOpenBuilding]  [PW-3238] 근무지 카드 아래 `{빌딩} ›`
  */
 export default function OrgPlaceCanvas({
   status,
@@ -50,6 +57,10 @@ export default function OrgPlaceCanvas({
   titleHelp,
   labels,
   baseUrl = '',
+  placeView = 'region',
+  onPlaceViewChange,
+  office = null,
+  onOpenBuilding,
 }) {
   const L = makeOrgLabels(labels);
   const [open, setOpen] = useState(null);
@@ -63,8 +74,23 @@ export default function OrgPlaceCanvas({
   }
 
   const unitSelected = unitFilter && unitFilter.value !== unitFilter.options?.[0]?.value;
-  const toolbar = (
+  const building = placeView === 'building';
+  const viewSwitch = onPlaceViewChange && (
+    <SegmentedControl
+      items={[
+        { value: 'region', label: L('place.viewRegion'), testId: 'org-place-view-region' },
+        { value: 'building', label: L('place.viewBuilding'), testId: 'org-place-view-building' },
+      ]}
+      value={placeView}
+      onChange={onPlaceViewChange}
+      ariaLabel={L('place.viewsAria')}
+    />
+  );
+  const toolbar = building ? (
+    <div className="org-toolbar org-toolbar-left ol-toolbar op-toolbar" data-testid="org-place-toolbar">{viewSwitch}</div>
+  ) : (
     <div className="org-toolbar org-toolbar-left ol-toolbar op-toolbar" data-testid="org-place-toolbar">
+      {viewSwitch}
       {unitFilter && (
         <span className={`ol-filter${unitSelected ? ' is-selected' : ''}`}>
           <CustomSelect
@@ -103,7 +129,11 @@ export default function OrgPlaceCanvas({
   );
 
   let body;
-  if (status === 'loading') {
+  if (building) {
+    // 소비자가 정한 key 로 층 보기를 새로 연다(빌딩 단추로 다른 빌딩에 들어올 때) — key 는 펼쳐 넘기지 않는다
+    const { key: officeKey, ...officeProps } = office || {};
+    body = <OfficeSpace key={officeKey} mode="org" labels={labels} {...officeProps} />;
+  } else if (status === 'loading') {
     body = (
       <div className="op-grid" aria-busy="true" data-testid="org-place-loading">
         {[0, 1, 2].map((i) => <Skeleton key={i} width="100%" height={120} radius="var(--radius-lg)" />)}
@@ -127,7 +157,7 @@ export default function OrgPlaceCanvas({
       <>
         <div className="op-grid" data-testid="org-place-grid">
           {region.countries.map((c) => (
-            <CountryGroup key={c.key} country={c} open={open} onToggle={setOpen} onOpenPerson={onOpenPerson} L={L} />
+            <CountryGroup key={c.key} country={c} open={open} onToggle={setOpen} onOpenPerson={onOpenPerson} onOpenBuilding={onOpenBuilding} L={L} />
           ))}
         </div>
         {!region.filtered && (region.unsetCount > 0 || (region.noValues && onGoMembers)) && (
@@ -157,7 +187,7 @@ export default function OrgPlaceCanvas({
             </div>
           </div>
           <div className="pj-body">
-            <div className="canvas-area is-embedded is-list op-view" data-place-view="region">
+            <div className={`canvas-area is-embedded is-list op-view${building ? ' is-building' : ''}`} data-place-view={building ? 'building' : 'region'}>
               {toolbar}
               <div className="op-body">{body}</div>
             </div>
@@ -169,7 +199,7 @@ export default function OrgPlaceCanvas({
 }
 
 /** 국가 하나 — 자기 카드 수만큼(많아야 셋) 칸을 차지한다. 카드를 펼친 국가는 한 줄을 다 쓴다(§2 «국가 묶음의 폭»). */
-function CountryGroup({ country, open, onToggle, onOpenPerson, L }) {
+function CountryGroup({ country, open, onToggle, onOpenPerson, onOpenBuilding, L }) {
   const wide = country.cities.some((ct) => ct.key === open);
   const span = wide ? 'full' : String(Math.min(3, Math.max(1, country.cities.length)));
   const name = country.name ?? L('place.countryUnset');
@@ -181,7 +211,7 @@ function CountryGroup({ country, open, onToggle, onOpenPerson, L }) {
       </div>
       <div className="op-cities">
         {country.cities.map((ct) => (
-          <CityCard key={ct.key} city={ct} on={ct.key === open} onToggle={() => onToggle(ct.key === open ? null : ct.key)} onOpenPerson={onOpenPerson} L={L} />
+          <CityCard key={ct.key} city={ct} on={ct.key === open} onToggle={() => onToggle(ct.key === open ? null : ct.key)} onOpenPerson={onOpenPerson} onOpenBuilding={onOpenBuilding} L={L} />
         ))}
       </div>
     </section>
@@ -198,7 +228,7 @@ const keyActivate = (fn) => (e) => {
   }
 };
 
-function CityCard({ city, on, onToggle, onOpenPerson, L }) {
+function CityCard({ city, on, onToggle, onOpenPerson, onOpenBuilding, L }) {
   const name = city.name ?? L('place.cityUnset');
   return (
     <article className={`op-city${city.name ? '' : ' is-unset'}${on ? ' is-open' : ''}`} data-city={name}>
@@ -232,6 +262,14 @@ function CityCard({ city, on, onToggle, onOpenPerson, L }) {
           ))}
         </span>
       </div>
+      {/* [PW-3238] 그 도시 사람들의 «근무 위치(빌딩)»마다 하나(가나다 · 정책 §2 «빌딩 단추» · §5 #7) */}
+      {onOpenBuilding && (city.buildings || []).length > 0 && (
+        <div className="op-buildings" data-testid="org-place-buildings">
+          {city.buildings.map((b) => (
+            <Button key={b} variant="ghost" size="sm" onClick={() => onOpenBuilding(b)} data-place-building={b}>{L('place.buildingButton', { name: b })}</Button>
+          ))}
+        </div>
+      )}
       {on && (
         <div className="op-city-body" data-testid="org-place-city-body">
           {city.groups.map((g) => (

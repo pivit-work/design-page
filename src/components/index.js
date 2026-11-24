@@ -153,6 +153,7 @@ export {
   SquadCanvas,
   OrgMemberListCanvas,
   OrgPlaceCanvas,
+  OfficeSpace,
   SquadFormCard,
   SquadProjectSection,
   ProjectDetailCanvas,

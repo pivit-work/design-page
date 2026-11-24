@@ -16,6 +16,7 @@
     "./styles/org-project.css": "./src/org_project.css",
     "./styles/org-list.css": "./src/org_list.css",
     "./styles/org-place.css": "./src/org_place.css",
+    "./styles/office-space.css": "./src/office_space.css",
     "./styles/org-squad.css": "./src/org_squad.css",
     "./styles/one-on-one.css": "./src/one_on_one.css",
     "./styles/recording-player.css": "./src/recording-player.css",
