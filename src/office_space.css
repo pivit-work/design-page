@@ -65,7 +65,7 @@
 .osp-floor.is-on .osp-floor-name { color: var(--text-brand-secondary); }
 .osp-floor-only { font-size: 11px; font-weight: 600; color: var(--text-tertiary); }
 .osp-floor-n { margin-left: auto; font-size: 12px; color: var(--text-tertiary); }
-.osp-aside-tabs { padding: 0 var(--spacing-lg) var(--spacing-md); }
+.osp-aside-switch { padding: 0 var(--spacing-lg) var(--spacing-md); }
 .osp-aside-search { padding: 0 var(--spacing-lg) var(--spacing-md); }
 .osp-search {
   box-sizing: border-box;

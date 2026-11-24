@@ -46,6 +46,10 @@ export const HOME_CSS = 'status-badge.css';
  * 🔴 이 목록은 **줄어들기만 한다.** 새 딱지를 여기 올려 검사를 피하지 않는다.
  */
 export const NOT_A_BADGE = {
+  'office_space.css|.osp-tag-full': '누르는 것의 일부 — 3D 판 책상 이름표(누르면 사람 카드) 안의 이름 · 직함 줄 (pivit-work PW-3238)',
+  'office_space.css|.osp-area-tag': '누르는 것 — 3D 판 공간 · 구역 이름표(누르면 그 공간을 고른다) (pivit-work PW-3238)',
+  'office_space.css|.osp-floor-tag': '누르는 것 — 건물 보기 층 이름표(누르면 그 층으로 간다) (pivit-work PW-3238)',
+  'office_space.css|.osp-chip': '누르는 것 — 범례 조직 거르기 버튼(aria-pressed) (pivit-work PW-3238)',
   'timeline.css|.tl-recurrence-weekdays .tl-event-radio-pill': '누르는 것 — 맞춤 반복 요일 고르기 버튼 (pivit-work PW-2989)',
   'timeline.css|.tl-recurrence-weekdays .tl-event-radio-pill.is-selected': '누르는 것 — 맞춤 반복 요일 고르기 버튼의 고른 모양 (pivit-work PW-2989)',
   'admin.css|.admin-snap-chip': '누르는 것 — 조직 시점 고르기 버튼',

@@ -589,7 +589,7 @@ export default function OfficeSpace({
           })}
         </div>
         {row && (
-          <div className="osp-aside-tabs">
+          <div className="osp-aside-switch">
             {/* 건물 보기는 갈래가 하나뿐(사람 · 책상)이라 고를 것이 없다 — 세그먼트 대신 그 수만 */}
             {listTabs.length > 1
               ? <SegmentedControl items={listTabs} value={curTab} onChange={setTab} ariaLabel={L('office.listAria')} block equal />
