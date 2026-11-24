@@ -244,6 +244,7 @@ function RetentionBox({ text, vars }) {
  * @property {{ tone: string, text: string }} [badge]
  * @property {string} [note] 값 아래 보조 줄
  * @property {'warning'} [noteTone] 보조 줄을 앰버로
+ * @property {string} [subNote] 보조 줄 아래 회색 한 줄 더 — 예 «과거 이력으로 넣은 부여분은 …»(정책 v1.47 §5-J · pivit-work PW-3187)
  *
  * @typedef {object} LeaveSettlementView
  * @property {'idle'|'loading'|'error'|'ready'} status
@@ -368,6 +369,9 @@ function LeaveSettlement({ view, labels }) {
                 </span>
                 {r.note && (
                   <span className={`admin-offb-leave-note${r.noteTone === 'warning' ? ' is-warning' : ''}`}>{r.note}</span>
+                )}
+                {r.subNote && (
+                  <span className="admin-offb-leave-note" data-testid={`offboarding-leave-subnote-${r.id}`}>{r.subNote}</span>
                 )}
                 {anchored(r.id).map((n) => (
                   <span
