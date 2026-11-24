@@ -150,7 +150,9 @@
 .dept-card-body { margin-top: var(--spacing-lg); padding: var(--spacing-md); border-radius: var(--radius-md); background: var(--bg-quaternary); cursor: default; }
 /* 접힌 카드의 접기 버튼에 하위 조직 수를 함께 보일 때 — 동그라미가 글자만큼 옆으로 늘어난다. */
 .dept-toggle.has-count { width: auto; min-width: 28px; gap: var(--spacing-xs); padding: 0 var(--spacing-md); font-family: var(--font-family-body); font-size: var(--font-size-text-xs); font-weight: 600; line-height: var(--line-height-text-xs); }
-.dept-name { font-size: 18px; font-weight: 700; line-height: 28px; color: var(--text-primary); }
+.dept-name { font-size: 18px; font-weight: 700; line-height: 28px; color: var(--text-primary);
+  /* 띄어쓰기 없는 긴 이름은 글자 사이에서 끊는다 — 앱 전체가 break-word 가 된 뒤(PW-3085) 이름 한 덩어리 폭으로 부서 카드가 138 → 150px 로 넓어졌다(발령 이력 조직도 미리 보기) */
+  overflow-wrap: anywhere; }
 /* 이름 줄 — 대표 직속 배지(§5.6)가 이름 옆에 붙는다. 배지는 줄지 않고 이름이 줄어든다. */
 .dept-title { display: flex; align-items: center; gap: 8px; min-width: 0; }
 /* 계층 이름·인원은 각각 한 덩어리다. 좁은 카드(파트)에 「직속 6명 +1 겸직」이 붙으면 한 줄

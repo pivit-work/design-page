@@ -138,7 +138,9 @@
 .rsx-member-head { display: flex; align-items: center; justify-content: space-between; }
 .rsx-member-who { display: flex; align-items: center; gap: 8px; }
 .rsx-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 0.75px solid var(--border-secondary-alt); }
-.rsx-member-name { font-family: var(--font-family-display, inherit); font-size: 24px; font-weight: 700; line-height: 32px; color: var(--text-primary); }
+.rsx-member-name { font-family: var(--font-family-display, inherit); font-size: 24px; font-weight: 700; line-height: 32px; color: var(--text-primary);
+  /* 띄어쓰기 없는 긴 이름은 글자 사이에서 끊는다 — 앱 전체가 break-word 가 된 뒤(PW-3085) 이름 한 덩어리 폭으로 옆 % 를 칸 밖으로 밀어냈다(PW-3085) */
+  overflow-wrap: anywhere; }
 .rsx-member-role { font-size: 14px; font-weight: 500; line-height: 24px; color: var(--text-tertiary); }
 .rsx-member-pct { font-family: var(--font-family-display, inherit); font-size: 24px; font-weight: 700; line-height: 32px; color: var(--text-primary); }
 .rsx-member-bar-row { display: flex; align-items: center; gap: 12px; padding-top: 12px; }
