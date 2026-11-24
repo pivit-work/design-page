@@ -5078,9 +5078,15 @@ const toDateInput = (v) => (typeof v === 'string' ? v.slice(0, 10) : '');
 function panelErrorOf(e) {
   const pe = e && typeof e === 'object' ? e.panelError : null;
   if (!pe || typeof pe.message !== 'string' || !pe.message) return null;
+  // 재지 못한 확정 직전 판정(발령 충돌 · 승인할 사람) — 문장 끝 «다시 시도»가 곧 버튼이고, 다시 재기 전까지 [발령]을 끈다
+  // (pivit-work PW-3230 · screen-admin-employees-appointments.policy.md §6 «[L] v1.5 발령 충돌 판정» «확정 버튼 비활성 + … 다시 시도»).
+  const retry = pe.retry && typeof pe.retry.lead === 'string' && typeof pe.retry.label === 'string'
+    ? { lead: pe.retry.lead, label: pe.retry.label }
+    : null;
   return {
     message: pe.message,
     fields: Array.isArray(pe.fields) ? pe.fields.filter((f) => typeof f === 'string') : [],
+    retry,
   };
 }
 
@@ -7775,7 +7781,19 @@ function EmployeesEditPanel({
             이 패널에 안 서 있으면(선택 적용 필드가 꺼짐 등) 여기로 온다. */}
         {(page ? true : panelTab === 'info') && saveError && !saveError.fields.some((k) => shownFieldKeys.has(k)) && (
           <div className="admin-emp-panel-save-error" role="alert" data-testid="employees-panel-save-error">
-            {saveError.message}
+            {saveError.retry ? (
+              <>
+                {saveError.retry.lead}{' '}
+                <Button
+                  className="admin-snap-hist-detaillink admin-snap-hist-cancel"
+                  onClick={handleSave}
+                  disabled={saving}
+                  data-testid="employees-panel-save-retry"
+                >
+                  {saveError.retry.label}
+                </Button>
+              </>
+            ) : saveError.message}
           </div>
         )}
         {(page ? true : panelTab === 'info') && showAppointment && (
@@ -7921,7 +7939,7 @@ function EmployeesEditPanel({
               type="button"
               className="admin-emp-btn is-primary admin-emp-btn-block"
               onClick={handleSave}
-              disabled={saving || !canEdit || !(dirty || (page && inlineDirty)) || Boolean(terminationProblem) || Boolean(terminationRuleError) || leaveStartMissing || leaveReasonMissing || axisIncomplete || apptTypeMissing || (showAppointment && !apptDate)}
+              disabled={saving || !canEdit || !(dirty || (page && inlineDirty)) || Boolean(terminationProblem) || Boolean(terminationRuleError) || leaveStartMissing || leaveReasonMissing || axisIncomplete || apptTypeMissing || (showAppointment && !apptDate) || Boolean(saveError?.retry)}
               data-testid="employees-panel-save"
             >
               {saving ? labels.panel.saving : flowWired ? labels.panel.appoint : labels.panel.save}
