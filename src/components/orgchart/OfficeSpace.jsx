@@ -111,7 +111,11 @@ export default function OfficeSpace({
     ];
     return bldgView ? rows.flatMap(of) : row ? of(row) : [];
   }, [row && row.key, rows, bldgView, personOf]);
-  const deskRows = bldgView ? drawnRows.flatMap((r) => r.desks.map((d) => ({ d, r }))) : floor ? floor.desks.map((d) => ({ d, r: floor })) : [];
+  // 책상 줄은 이름순(숫자는 수로 · «책상 2» 가 «책상 10» 앞) — 건물 보기는 층 줄 순서(높은 층부터) 안에서
+  const byDeskName = (a, b) => String(a.name).localeCompare(String(b.name), 'ko', { numeric: true });
+  const deskRows = bldgView
+    ? drawnRows.flatMap((r) => [...r.desks].sort(byDeskName).map((d) => ({ d, r })))
+    : floor ? [...floor.desks].sort(byDeskName).map((d) => ({ d, r: floor })) : [];
   const norm = (s) => String(s || '').trim().toLowerCase();
   const hitP = (x) => !norm(q) || [x.p.name, x.p.unit, x.p.unitPath, x.p.title, x.deskName].some((s) => norm(s).includes(norm(q)));
   const hitD = (d) => !norm(q) || [d.name, d.seatId && personOf(d.seatId) && personOf(d.seatId).name].some((s) => norm(s).includes(norm(q)));
@@ -277,10 +281,11 @@ export default function OfficeSpace({
     if (ro) ro.observe(el);
     return () => { el.removeEventListener('wheel', onWheel); if (ro) ro.disconnect(); };
   }, [v, status, row && row.key, building]);
+  // 사라질 때 예약한 그리기만 거둔다 — 예약 표시를 0 으로 되돌려야 다시 붙을 때(개발 모드의 미리 정리 포함) 그리기가 다시 돈다.
+  // WebGL 연결은 끊지 않는다: 같은 캔버스로 다시 붙으면 끊긴 연결을 받아 판이 검게 남는다(캔버스와 함께 거둬진다).
   useEffect(() => () => {
     cancelAnimationFrame(raf.current);
-    const g = gl.current;
-    if (g) { const l = g.ctx.getExtension('WEBGL_lose_context'); if (l) l.loseContext(); }
+    raf.current = 0;
   }, []);
   useEffect(() => { kick(); });
   const onKey = (e) => {
