@@ -10,6 +10,7 @@ export const CATALOG_DEFAULT_LABELS = {
       tool: { label: '작업 도구 (수집)', desc: '활동 데이터를 가져옵니다' },
       send: { label: '발송 채널', desc: '초대·알림·증명서를 보냅니다' },
       hr: { label: '인사 시스템', desc: '인사 데이터를 주고받습니다' },
+      workflow: { label: '워크플로우 기록', desc: '워크플로우 «시트에 기록» 단계가 회사 문서에 한 줄씩 적습니다' },
     },
     active: '활성화',
     inactive: '비활성화',
@@ -18,6 +19,8 @@ export const CATALOG_DEFAULT_LABELS = {
     companyOnly: '— 회사 단위 연결 (직원은 자기 계정만 연결)',
     companyOnlyOptOut: '— 회사 단위 연결 (직원은 받지 않기만)',
     companyChannel: '— 회사 채널 (해당 없음)',
+    /* 워크플로우 기록 묶음(구글 시트 · MS 엑셀) — 회사 연결만 있다(PW-3207 · 연동 정책 §2-9) */
+    companyRecord: '— 회사 연결 (해당 없음)',
     personalToggle: '{{name}} 개인 연동 허용',
     loading: '불러오는 중...',
     loadFailed: '툴 카탈로그를 불러오지 못했습니다.',

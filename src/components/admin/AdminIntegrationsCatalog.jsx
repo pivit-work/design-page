@@ -24,7 +24,7 @@ import Button from '../shared/Button.jsx';
  * - RequestToolModal   — 요청 창(툴 이름 2자·용도 5자·요청자 이메일 읽기 전용)
  *
  * 데이터·저장은 호스트가 한다. 이 파일이 가진 상태는 «끌 때 확인 창»과 요청 창의 입력뿐이다.
- * 카탈로그 행: `{ id, name, logo?, categoryLabel, group: 'tool'|'send'|'hr', status, allowPersonal,
+ * 카탈로그 행: `{ id, name, logo?, categoryLabel, group: 'tool'|'send'|'hr'|'workflow', status, allowPersonal,
  *   companyOnly, required, personalLinkCount }`
  * 요청 행: `{ id, toolName, purpose, requesterName, email, dateLabel, status }`
  */
@@ -34,7 +34,8 @@ function fmt(tpl, vars) {
   return resolveKoreanParticles(String(tpl ?? '').replace(/\{\{(\w+)\}\}/g, (_, k) => (vars[k] ?? '')));
 }
 
-const GROUP_ORDER = ['tool', 'send', 'hr'];
+/* 넷째 묶음 «워크플로우 기록»(구글 시트 · MS 엑셀 · pivit-work PW-3207 · 연동 정책 §2-10) */
+const GROUP_ORDER = ['tool', 'send', 'hr', 'workflow'];
 /* 요청 상태 딱지 — 대기 파랑 · 검토 중 주황 · 승인됨 초록 · 반려됨 빨강(PW-3126 · 대기가 초록이면 승인된 것처럼 보인다) */
 const REQUEST_TONE = { pending: 'info', reviewing: 'warning', approved: 'success', rejected: 'danger' };
 
@@ -165,7 +166,7 @@ export function AdminCatalogPanel({
                               onChange={(next) => askPersonal(t, next)}
                             />
                           ) : (
-                            <span className="intg-catalog-muted">{t.companyOnly ? (t.memberOptOutOnly ? L.companyOnlyOptOut : L.companyOnly) : L.companyChannel}</span>
+                            <span className="intg-catalog-muted">{t.group === 'workflow' ? L.companyRecord : t.companyOnly ? (t.memberOptOutOnly ? L.companyOnlyOptOut : L.companyOnly) : L.companyChannel}</span>
                           )}
                         </RosterTable.Cell>
                         <RosterTable.Cell>

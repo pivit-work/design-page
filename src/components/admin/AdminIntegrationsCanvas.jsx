@@ -1413,6 +1413,11 @@ export default function AdminIntegrationsCanvas({
   notices = [],
   /** 「회의실 불러오기」 블록 — 호스트가 그린 것을 앱 카드 바로 아래(기획서 순서)에 끼운다. 없으면 그리지 않는다 */
   roomImport = null,
+  /**
+   * 「시트에 기록 (워크플로우)」 블록(pivit-work PW-3207 · 연동 정책 §4-F-2) — 호스트가 그린 것을 «휴가 캘린더 기록» 칸 바로 아래에 끼운다.
+   * 자리는 회의실 불러오기 · 휴가 캘린더 기록 다음(§4-F-2 머리). 없으면 그리지 않는다
+   */
+  sheetRecord = null,
   labels: providedLabels,
   baseUrl = '',
   onTabChange,
@@ -1644,6 +1649,9 @@ export default function AdminIntegrationsCanvas({
               labels={{ ...LEAVE_CALENDAR_DEFAULT_LABELS, ...labels.leaveCalendar }}
             />
           )}
+
+          {/* 기획서 순서 — 회의실 불러오기 · 휴가 캘린더 기록 다음 «시트에 기록 (워크플로우)»(policy §4-F-2) */}
+          {sheetRecord}
 
           {settingsModal && (
             <SettingsModal

@@ -50,3 +50,43 @@ export function DescLines({ text }) {
     </Fragment>
   ));
 }
+
+/**
+ * 판 안 줄 묶음 · 줄 한 개 — 「회의실 불러오기」 · 「휴가 캘린더 기록」이 쓰는 `.intg-rows` · `.intg-row` 짜임을 그대로 꺼낸 것
+ * (pivit-work PW-3207 «시트에 기록 (워크플로우)» 블록이 앱 쪽에서 맨 태그 없이 쓰려고). 모양 값은 admin-integrations.css 그대로.
+ */
+export function IntgRows({ children }) {
+  return <div className="intg-rows">{children}</div>;
+}
+
+/**
+ * @param {object} props
+ * @param {import('react').ReactNode} [props.label] 줄 이름(왼쪽)
+ * @param {import('react').ReactNode} [props.account] 이름 아래 계정 메일(진하게)
+ * @param {{ key: string, text: import('react').ReactNode, testId?: string }[]} [props.subs] 이름 아래 옅은 줄들
+ * @param {import('react').ReactNode} [props.value] 오른쪽 값 · 버튼 자리
+ * @param {import('react').ReactNode} [props.band] 이름 대신 줄을 채우는 색 띠(IntgBand)
+ * @param {string} [props.testId]
+ * @param {string} [props.state] data-state
+ */
+export function IntgRow({ label, account, subs = [], value, band, testId, state }) {
+  return (
+    <div className="intg-row" data-testid={testId} data-state={state}>
+      {band ?? (
+        <span className="intg-row-label">
+          {label}
+          {account && <span className="intg-row-sub intg-row-account">{account}</span>}
+          {subs.map((s) => (
+            <span key={s.key} className="intg-row-sub" data-testid={s.testId}>{s.text}</span>
+          ))}
+        </span>
+      )}
+      {value && <span className="intg-row-value">{value}</span>}
+    </div>
+  );
+}
+
+/** 칸 아래 빨간 한 줄(`.intg-row-error`) — 창 안에서 서버가 거절한 사유를 보일 때. */
+export function IntgErrorLine({ children, testId }) {
+  return <span className="intg-row-error" role="alert" data-testid={testId}>{children}</span>;
+}
