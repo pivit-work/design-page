@@ -316,6 +316,11 @@ export default function BillingMethodsCanvas({
                           {expired && <span style={hasExp(card) ? ROW_EXPIRED_HINT_STYLE : { color: 'var(--text-warning-primary)' }}>{labels.expiredHint}</span>}
                         </div>
                       )}
+                      {/* [삭제]가 꺼진 까닭 — 마우스를 올리지 않아도 줄 안에서 읽힌다(툴팁은 그대로). 유효기간 줄과 같은 12/18 흐린 글
+                          (pivit-work PW-3159 · screen-billing-methods §4 «[삭제] 버튼(차단 상태) … + 카드 내 인라인 안내 텍스트») */}
+                      {blockDelete && (
+                        <div data-testid="billing-method-delete-blocked-hint" style={ROW_SUB_STYLE}>{labels.deleteBlockedTitle}</div>
+                      )}
                     </div>
 
                     {/* 줄 버튼 — 작게 */}
