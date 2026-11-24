@@ -556,7 +556,7 @@ export default function OrgTreePicker({
           </div>
           {/* 버튼 줄 바로 위 «승인 안내»(pivit-work PW-3178) — 발 안에 둔다. 본문은 굴러가는 칸이라 거기 두면 고른 직후 화면 밖이다 */}
           {approvalNote && (
-            <div className="admin-emp-manager-note" data-testid="org-tree-picker-approval-note" style={{ marginBottom: 12 }}>
+            <div className="admin-emp-manager-note" data-testid="org-tree-picker-approval-note" style={{ marginBottom: 'var(--spacing-lg)' }}>
               {approvalNote}
             </div>
           )}
