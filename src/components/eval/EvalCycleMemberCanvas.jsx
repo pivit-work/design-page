@@ -62,6 +62,9 @@ const DEFAULT_LABELS = {
   actPeriodNote: '현재 기간 데이터만 사용됩니다',
   // spec-eval-cycle §10 — 이 기간 스니핏·OKR 이 비었을 때(`dataShortage`) 또는 AI 가 일부 항목을 못 채웠을 때.
   dataShortage: '데이터가 부족하여 일부 항목은 직접 작성이 필요합니다',
+  // [PW-3224] 항목별 AI 초안이 근거가 없어 빈 글로 돌아왔을 때 그 항목 단추 자리에 남는 한 줄.
+  // 맨 위 띠(dataShortage)는 아래 항목을 누르면 화면 밖이라 «눌러도 아무 일 없음»으로 보였다. 앱이 리뷰 종류마다 문장을 넘긴다.
+  aiDraftItemEmpty: '데이터가 부족하여 일부 항목은 직접 작성이 필요합니다',
   // §4.2.1 OKR KR 달성률 수기입력
   actKrTitle: 'OKR 달성 현황 — KR별 달성률을 직접 입력하세요',
   actKrHint: 'AI 자동 산출은 제공하지 않습니다 · 매니저 화면에 실시간 반영',
@@ -636,6 +639,8 @@ export default function EvalCycleMemberCanvas({
   const [draftError, setDraftError] = useState(null);
   /** AI 가 근거가 없어 빈 초안을 돌려준 항목이 있었나 — 데이터 부족 안내를 띄운다. */
   const [draftShort, setDraftShort] = useState(false);
+  // [PW-3224] 항목별 단추로 만든 초안이 빈 글로 돌아온 항목. { [fieldKey]: true } — 그 칸에 안내를 남기고 단추를 감춘다.
+  const [draftEmpty, setDraftEmpty] = useState({});
   // [PW-1465] draftNeedsApply 일 때 아직 [사용] 하지 않은 초안. { [fieldKey]: text }
   const [pendingDraft, setPendingDraft] = useState({});
   const [draftRevisions, setDraftRevisions] = useState({});
@@ -989,6 +994,11 @@ export default function EvalCycleMemberCanvas({
         for (const d of drafted) if (fields[d.index] && d.textAnswer?.trim()) next[fields[d.index].key] = (next[fields[d.index].key] ?? 0) + 1;
         return next;
       });
+      // [PW-3224] 항목별 단추는 그 칸에서 알린다 — 누른 자리가 아래쪽이면 맨 위 띠는 화면 밖이다.
+      if (only) {
+        const empty = !drafted.find((d) => d.index === fields.indexOf(only))?.textAnswer?.trim();
+        setDraftEmpty((prev) => ({ ...prev, [only.key]: empty }));
+      }
       // 근거가 없어 빈 초안으로 돌아온 항목이 있으면 직접 쓰라고 알린다(spec §10).
       setDraftShort(
         items.some(
@@ -1502,7 +1512,12 @@ export default function EvalCycleMemberCanvas({
                           {aiDraftUnavailable}
                         </p>
                       )}
-                      {onAiDraft && !readOnly && f.aiDraftEnabled !== false && !aiDraftUnavailable && !state[f.key].textAnswer.trim() && !pendingDraft[f.key] && (
+                      {onAiDraft && !readOnly && f.aiDraftEnabled !== false && !aiDraftUnavailable && draftEmpty[f.key] && !state[f.key].textAnswer.trim() && !pendingDraft[f.key] && (
+                        <p className="evm-ai-draft-unavailable" data-testid={`evm-ai-draft-empty-${f.key}`}>
+                          {L.aiDraftItemEmpty}
+                        </p>
+                      )}
+                      {onAiDraft && !readOnly && f.aiDraftEnabled !== false && !aiDraftUnavailable && !draftEmpty[f.key] && !state[f.key].textAnswer.trim() && !pendingDraft[f.key] && (
                         <span className="evm-ai-item-draft" data-testid={`evm-ai-draft-item-${f.key}`}>
                           <MemberAiButton
                             label={draftBusy === f.key ? L.aiDrafting : L.aiDraftItem}
