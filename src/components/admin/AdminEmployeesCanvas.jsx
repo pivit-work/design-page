@@ -504,6 +504,7 @@ const DEFAULT_LABELS = {
     resignedAtHint: '재직 중이면 비워 두거나 퇴사 예정일·계약 종료일을 넣습니다. 넣어도 바로 퇴사로 바뀌지 않고, 퇴사일이 지나면 바뀝니다.',
     resignedAtRequired: '퇴사 상태에서는 퇴사일을 넣어야 저장할 수 있습니다.',
     leaveStartRequired: '휴직 상태에서는 휴직 시작일을 넣어야 저장할 수 있습니다.',
+    leaveStartNeeded: '휴직 시작일을 넣어 주세요',
     /* 휴직 사유 (pivit-work PW-2520 · admin-spec §3.2.1 «휴직 사유» 6종) — 휴가 메뉴가 켜진 회사는 필수다. */
     leaveReason: '휴직 사유',
     leaveReasonNone: '— 미지정 —',
@@ -5885,6 +5886,12 @@ function EmployeesEditPanel({
   const cachedIdentity = cachedHr ? identityFromProfile(cachedHr) : null;
   const [identity, setIdentity] = useState(cachedIdentity);
   const [identityDraft, setIdentityDraft] = useState(cachedIdentity);
+  /* 저장된 휴직 세 칸이 지금 이어지는 휴직(휴직 중 · 휴직 예정 발령 · 퇴사 직전이 휴직)의 것인가 — 서버가 HR 정보에 싣는다(pivit-work PW-3236).
+     거짓이면 «휴직»을 고를 때 세 칸을 빈 칸으로 연다(admin-spec §3.2.1 «PW-3236» ①④). 모르면(옛 서버 · 아직 못 받음) 거짓 */
+  const [leaveLive, setLeaveLive] = useState(() => Boolean(cachedHr?.leaveValuesLive));
+  /* 휴직 세 칸을 빈 칸으로 비워 둔 사람의 id(없으면 null) — HR 정보가 고른 뒤에 와도 빈 칸을 지키고, 되돌릴 때 저장된 값을 되살린다.
+     사람 id 로 들고 있어 다른 사람으로 갈아끼워도 따로 지울 필요가 없다 */
+  const leaveBlankRef = useRef(null);
   /**
    * 🔴 `loading` 으로 «바꾸는» 것은 효과 밖에서 한다 — 효과 본문에서 setState 를 부르면
    * 렌더가 연쇄한다. 패널이 열리는 순간과 다른 사람으로 갈아끼우는 순간이 곧 조회
@@ -5978,6 +5985,7 @@ function EmployeesEditPanel({
     setApptReason('');
     setIdentity(null);
     setIdentityDraft(null);
+    setLeaveLive(false);
     setIdentityState(onLoadHrProfile ? 'loading' : 'idle');
     setDateError('');
     setSaveError(null);
@@ -6086,10 +6094,18 @@ function EmployeesEditPanel({
         keepHrProfile(onLoadHrProfile, memberId, profile);
         if (!alive) return;
         const loaded = identityFromProfile(profile);
+        const live = Boolean(profile?.leaveValuesLive);
         setIdentity(loaded);
+        setLeaveLive(live);
+        // HR 정보가 오기 전에 «휴직»을 골라 빈 칸으로 둔 채면 — 이어지는 휴직이 아닐 때만 빈 칸을 지킨다(PW-3236)
+        if (live && leaveBlankRef.current === memberId) leaveBlankRef.current = null;
+        const keepBlank = leaveBlankRef.current === memberId;
         // 먼저 그린 값에서 그 사이 손댄 칸만 남기고, 안 건드린 칸은 새로 불러온 값으로 — 옛 값이 «바꾼 값»으로 저장돼
         // 그 사이 다른 곳(일괄 휴직 · CSV · 내 설정)이 바꾼 값을 덮지 않게(적대적 리뷰 Major)
-        setIdentityDraft((d) => (refreshing ? mergeRefreshedDraft(d, cachedIdentityRef.current, loaded) : loaded));
+        setIdentityDraft((d) => {
+          const next = refreshing ? mergeRefreshedDraft(d, cachedIdentityRef.current, loaded) : loaded;
+          return keepBlank ? { ...next, ...BLANK_LEAVE } : next;
+        });
         setBioText(profile?.identity?.bio ?? '');
         setIdentityState('ready');
       })
@@ -6181,6 +6197,22 @@ function EmployeesEditPanel({
     // 문제 칸을 고치기 시작하면 그 칸의 사유는 거둔다 — 고친 뒤에도 빨간 글이 남아 있으면
     // 「아직 틀렸다」로 읽힌다. 칸을 모르는 사유는 다시 저장할 때까지 둔다.
     setSaveError((prev) => (prev && prev.fields.includes(k) ? null : prev));
+  };
+  /* 재직 상태 라디오 (admin-spec §3.2.1 «PW-3236») — 끝난 휴직의 값이 새 휴직에 따라 들어가지 않게, 저장된 값이 이어지는 휴직의 것이
+     아니면 «휴직»을 고를 때 세 칸을 빈 칸으로 열고, 다른 상태로 되돌리면 저장된 값으로 돌린다(지난 휴직의 값은 지우지 않는다).
+     이어지는 휴직이면(이미 휴직 · 휴직 예정 발령 · 퇴사 직전이 휴직) 저장된 값 그대로 — 종전 동작 */
+  const leaveOpensBlank = member.employmentStatus !== 'on_leave' && !leaveLive;
+  const pickStatus = (key) => {
+    const from = draft.employmentStatus;
+    set('employmentStatus', key);
+    if (key === from || !leaveOpensBlank) return;
+    if (key === 'on_leave') {
+      leaveBlankRef.current = member.id;
+      setIdentityDraft((d) => (d ? { ...d, ...BLANK_LEAVE } : d));
+    } else if (leaveBlankRef.current === member.id) {
+      leaveBlankRef.current = null;
+      setIdentityDraft((d) => (d && identity ? { ...d, ...pickLeave(identity) } : d));
+    }
   };
 
   /* 칸이 읽는 선택지 — 이름 하나로 찾게 모아 둔다. `PANEL_FIELD_GROUPS` 의
@@ -6331,6 +6363,8 @@ function EmployeesEditPanel({
      이미 휴직인데 시작일이 빈 사람도 같다 — 다른 칸을 고쳐 저장하려면 날짜부터 넣는다. */
   const leaveStartMissing =
     dateFields.some((f) => f.field === 'leaveStartDate') && !ymdOf(identityDraft?.leaveStartDate);
+  /* 휴직이 아닌 사람을 «휴직»으로 고른 동안 — 빈 시작일 안내는 «휴직 시작일을 넣어 주세요»(admin-spec §3.2.1 «PW-3236» ③) */
+  const becomingLeave = member.employmentStatus !== 'on_leave' && draft.employmentStatus === 'on_leave';
   /* 휴직 사유 (pivit-work PW-2520 · §3.2.1) — 휴직 날짜 칸과 같은 자리·같은 경로다. 휴가 메뉴가 켜진 회사는 필수라
      비면 저장을 막는다 — 사유 없이 저장돼 있던 기존 휴직자도 같다(다른 칸을 고쳐 저장하려면 사유부터). */
   const showLeaveReason = dateFields.some((f) => f.field === 'leaveStartDate');
@@ -6720,11 +6754,38 @@ function EmployeesEditPanel({
          비우기를 막는다(pivit-work PW-3019). 날짜를 먼저 보내면 아직 휴직이라 거절되고 상태 변경까지 막힌다. */
       const leavingLeaveClearingStart = member.employmentStatus === 'on_leave' && draft.employmentStatus !== 'on_leave'
         && 'leaveStartDate' in identityPatch && !identityPatch.leaveStartDate;
+      /* 발령 충돌을 먼저 묻는다 — 무엇이든 쓰기 전에(창에서 [취소]하면 아무것도 저장되지 않게 · pivit-work PW-3236 리뷰). 소속과 다른 칸이 따로 나가므로, 하나씩 물으면 창이 두 번 뜨고 한쪽만 고른 채 반쯤 저장된다. */
+      if (appointmentPayload && onBeforeAppoint) {
+        try {
+          await onBeforeAppoint(member.id, {
+            affiliation: affilChanged ? pendingAffil : null,
+            appointment: appointmentPayload,
+          });
+        } catch (e) {
+          setSaveError(panelErrorOf(e));
+          return;
+        }
+      }
       const datesAfterStatus = revertingResignation || leavingLeaveClearingStart;
+      /* 휴직이 되는 저장의 날짜가 먼저 쓰였는데 뒤(소속 · 구성원 저장)가 막히면 — 상태는 그대로인데 지난 휴직 값만 빈 칸으로 지워진 채 남는다.
+         휴직 세 칸을 저장 전 값으로 되돌려 둔다(admin-spec §3.2.1 «PW-3236» ② «휴직이 아닌 상태로 저장해도 지난 휴직의 값은 지워지지 않는다») */
+      let leaveWritten = false;
+      const undoLeaveWrite = async () => {
+        if (!leaveWritten || !onSaveIdentity) return;
+        /* 먼저 보낸 칸 전부를 저장 전 값으로 — 칸이 같아야 앱이 같은 [저장하기]로 알아보고 받은 변경 사유를 싣는다(사유 창이 또 뜨지 않게) */
+        const back = Object.fromEntries(Object.keys(identityPatch).map((f) => [f, identity?.[f] || null]));
+        try {
+          await onSaveIdentity(member.id, back);
+          setIdentity(identity);
+        } catch {
+          /* 되돌리기도 실패하면 칸에 친 값은 남아 있으니 다시 저장할 수 있다 — 앞 실패의 알림을 덮지 않는다 */
+        }
+      };
       if (!datesAfterStatus && identityDirty && onSaveIdentity) {
         try {
           await onSaveIdentity(member.id, identityPatch);
           wroteOnce();
+          leaveWritten = becomingLeave && LEAVE_FIELDS.some((f) => f in identityPatch);
         } catch (e) {
           // 앱이 이미 알린 실패(이용 정지 등)는 날짜 옆 글을 겹쳐 쓰지 않는다(PW-2907).
           if (!isNotifiedFailure(e)) setDateError(labels.panel.statusDateSaveError);
@@ -6737,24 +6798,13 @@ function EmployeesEditPanel({
          닫히는 것» 을 막기 위해서다. 그러니 여기서 **받아서** 패널을 열어 둔다(방금 친
          값이 남는다). 받지 않고 흘려보내면 [저장] 클릭의 처리되지 않은 오류로 기록돼,
          사용자가 고른 [취소]까지 피드백 제보에 버그처럼 섞인다(PW-647). */
-      /* 발령 충돌을 먼저 묻는다 — 소속과 다른 칸이 따로 나가므로, 하나씩 물으면 창이 두 번 뜨고 한쪽만 고른 채 반쯤 저장된다. */
-      if (appointmentPayload && onBeforeAppoint) {
-        try {
-          await onBeforeAppoint(member.id, {
-            affiliation: affilChanged ? pendingAffil : null,
-            appointment: appointmentPayload,
-          });
-        } catch (e) {
-          setSaveError(panelErrorOf(e));
-          return;
-        }
-      }
       /* 소속을 먼저 보낸다 — 소속이 거절되면 직급 등은 아직 안 바뀐 채로 창이 열려 있다. */
       if (affilChanged && onChangeAffiliations) {
         try {
           await onChangeAffiliations(member.id, pendingAffil, appointmentPayload);
           wroteOnce();
         } catch (e) {
+          await undoLeaveWrite();
           setSaveError(panelErrorOf(e));
           return;
         }
@@ -6767,6 +6817,7 @@ function EmployeesEditPanel({
           else await onSave([patch]);
           wroteOnce();
         } catch (e) {
+          await undoLeaveWrite();
           /* 호출부가 확인 창에서 [닫기]를 받으면 되돌릴 칸을 알려 준다(PW-1336 퇴사 취소 —
              닫으면 재직 상태가 «퇴사» 그대로 보여야 한다). */
           /* 경고 창 [재입사로 진행] — 바꾼 값은 저장하지 않고 패널을 닫은 뒤 초대 창 재입사 모드를 연다 (pivit-work PW-2576 · 퇴사 정책 §5-L ① · E98) */
@@ -7548,7 +7599,7 @@ function EmployeesEditPanel({
           <StatusRadios
             order={statusOrder}
             value={draft.employmentStatus}
-            onPick={(key) => set('employmentStatus', key)}
+            onPick={pickStatus}
             name={`employmentStatus-${member.id}`}
             disabled={!canEdit}
             disabledKeys={terminatedLocked ? ['terminated'] : []}
@@ -7580,7 +7631,7 @@ function EmployeesEditPanel({
                   required={f.field === 'leaveStartDate'}
                   error={
                     f.field === 'leaveStartDate' && leaveStartMissing && identityReady
-                      ? labels.panel.leaveStartRequired
+                      ? (becomingLeave ? labels.panel.leaveStartNeeded || labels.panel.leaveStartRequired : labels.panel.leaveStartRequired)
                       : undefined
                   }
                   errorTestId={`employees-panel-date-${f.field}-error`}
@@ -9150,6 +9201,13 @@ function PanelApprovalNotice({ load }) {
       {text}
     </div>
   );
+}
+
+/** 휴직 세 칸 — «휴직»을 고를 때 빈 칸으로 여는 값과 되돌릴 때 저장된 값을 꺼내는 자리(pivit-work PW-3236) */
+const LEAVE_FIELDS = ['leaveStartDate', 'leaveEndDate', 'leaveOfAbsenceReason'];
+const BLANK_LEAVE = Object.fromEntries(LEAVE_FIELDS.map((f) => [f, '']));
+function pickLeave(identity) {
+  return Object.fromEntries(LEAVE_FIELDS.map((f) => [f, identity?.[f] ?? '']));
 }
 
 /** 상세 패널이 쓰는 신원 칸 — HR 프로필 응답에서 꺼낸다(처음 불러오기 · 먼저 그리기가 같은 모양) */
