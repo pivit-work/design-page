@@ -27,6 +27,36 @@
       "kind": "tabclass",
       "count": 1,
       "reason": "매니저 화면 맨 위 페이지 제목 크기의 전환 줄 — 화면 안 탭이 아니다"
+    },
+    {
+      "file": "components/eval/EvalShellNav.jsx",
+      "kind": "tablist",
+      "count": 1,
+      "reason": "원래부터 공용 Tabs 없이 그린 탭 줄 — 화면 읽기·E2E 용 role 을 달며 검사에 처음 보임(커트 11-24 (가)). 공용 Tabs 로 바꾸면 지운다"
+    },
+    {
+      "file": "components/manager/ManagerCanvas.jsx",
+      "kind": "tablist",
+      "count": 1,
+      "reason": "원래부터 공용 Tabs 없이 그린 탭 줄 — 화면 읽기·E2E 용 role 을 달며 검사에 처음 보임(커트 11-24 (가)). 공용 Tabs 로 바꾸면 지운다"
+    },
+    {
+      "file": "components/okr/OkrTabNav.jsx",
+      "kind": "tablist",
+      "count": 1,
+      "reason": "원래부터 공용 Tabs 없이 그린 탭 줄 — 화면 읽기·E2E 용 role 을 달며 검사에 처음 보임(커트 11-24 (가)). 공용 Tabs 로 바꾸면 지운다"
+    },
+    {
+      "file": "components/oneonone/OneOnOnePageHeader.jsx",
+      "kind": "tablist",
+      "count": 1,
+      "reason": "원래부터 공용 Tabs 없이 그린 탭 줄 — 화면 읽기·E2E 용 role 을 달며 검사에 처음 보임(커트 11-24 (가)). 공용 Tabs 로 바꾸면 지운다"
+    },
+    {
+      "file": "components/orgchart/OrgTabNav.jsx",
+      "kind": "tablist",
+      "count": 1,
+      "reason": "원래부터 공용 Tabs 없이 그린 탭 줄 — 화면 읽기·E2E 용 role 을 달며 검사에 처음 보임(커트 11-24 (가)). 공용 Tabs 로 바꾸면 지운다"
     }
   ]
 }
