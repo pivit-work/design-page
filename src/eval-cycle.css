@@ -4340,6 +4340,9 @@
   color: var(--text-secondary);
   font-size: var(--font-size-text-xs);
   font-weight: 600;
+  /* PW-3225 — 줄 높이를 감싸는 글에서 물려받지 않는다. 노란 «AI 초안 · 미확인» 블록(줄 높이 22.4px) 안에서는 배지가
+     25.2px 로 커져 옆 [사용]·[접기](20px)와 달랐다. 이미 20px 인 자리(확인 줄·셀프 리뷰)의 계산 값은 그대로다. */
+  line-height: normal;
   text-decoration: none;
   overflow-wrap: anywhere;
 }
