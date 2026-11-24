@@ -2737,7 +2737,9 @@ button.ono-add-modal-input { cursor: pointer; }
   max-width: none;
   margin: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 720px) minmax(var(--ono-my-widget-reserve, 0px), 1fr) var(--spacing-5xl);
+  /* 위젯이 없으면 자리 0 — 있으면 아래 .ono-my-view.has-widget 규칙이 덮는다 */
+  --ono-my-widget-reserve: 0px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 720px) minmax(var(--ono-my-widget-reserve), 1fr) var(--spacing-5xl);
   column-gap: 0;
 }
 .ono-mem:has(> .ono-my-view) > .ono-my-view { grid-column: 1 / 4; }
