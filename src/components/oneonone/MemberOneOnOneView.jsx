@@ -292,7 +292,7 @@ export default function MemberOneOnOneView({
   const recogSrc = recognition;
 
   return (
-    <div className="ono-my-view" data-testid="ono-my-view" data-phase={phase}>
+    <div className={`ono-my-view${widget ? ' has-widget' : ''}`} data-testid="ono-my-view" data-phase={phase}>
       {/* 녹음 상태 위젯 — 카드 오른쪽 위에 겹쳐 뜨고(Figma 17556:25155 · x 895 / y 12) 스크롤해도 위에 붙어
           있다. 매니저 화면의 오른쪽 기둥과 달리 본문 폭을 나누지 않는다 — 기둥에 세울 네비게이터가 없다. */}
       {widget}

@@ -2729,6 +2729,22 @@ button.ono-add-modal-input { cursor: pointer; }
   margin-left: auto;
   margin-right: auto;
 }
+/* 「내 원온원」 회차 화면(.ono-my-view)을 꽂으면 시안(OneOnOnePage bodyOverride)처럼 카드가 본문 폭을 다 쓰고
+   본문만 720 이다 — 앱이 이 캔버스 안에 꽂아 카드까지 720 으로 묶여, 따라오는 녹음 위젯이 칸 위에 얹혔다 (pivit-work PW-3174).
+   오른쪽은 지난 회차 목록과 같은 우측 거터 40. 형제(녹음 동의 띠)는 카드 안 본문과 같은 세 칸 가운데에 세워 왼쪽 선을 맞춘다
+   — 위젯 자리(--ono-my-widget-reserve)도 카드와 같이 비운다. */
+.ono-mem:has(> .ono-my-view) {
+  max-width: none;
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 720px) minmax(var(--ono-my-widget-reserve, 0px), 1fr) var(--spacing-5xl);
+  column-gap: 0;
+}
+.ono-mem:has(> .ono-my-view) > .ono-my-view { grid-column: 1 / 4; }
+.ono-mem:has(> .ono-my-view) > :not(.ono-my-view) {
+  grid-column: 2;
+  min-width: 0;
+}
 
 /* ── 단계 탭 ── 공용 Tabs 를 쓰고 탭 줄의 기본 바깥 여백(타임라인 머리 몫)만 바꾼다 (PW-836) */
 .tl-tabs-row.ono-mem-tabs-row { margin: 0 0 12px; }
@@ -5343,6 +5359,23 @@ button.ono-add-modal-input { cursor: pointer; }
   max-width: 720px;
   margin: 0 auto;
 }
+/* 따라오는 녹음 위젯(.ono-my-widget · 241)이 있으면 본문 칸 오른쪽에 위젯 자리를 비운다 (pivit-work PW-3174).
+   위젯은 아래로 굴려도 카드 오른쪽 위에 붙어 있어, 720 본문이 그 밑을 지나가면 편집 칸·버튼 오른쪽이 가려졌다.
+   카드를 세 칸으로 나눠 가운데 720 에 본문을 두고, 오른쪽 칸은 «위젯 폭 + 카드 끝 12 + 칸과 띄움 12 − 본문 옆 여백 48»
+   보다 좁아지지 않게 한다 — 넓은 창에서는 종전처럼 가운데, 좁은 창(1280)에서는 본문이 그만큼 왼쪽으로 비킨다.
+   위젯 모양·자리와 본문 폭(720)은 그대로다. */
+.ono-my-view.has-widget,
+.ono-mem:has(> .ono-my-view.has-widget) {
+  --ono-my-widget-reserve: calc(241px + var(--spacing-lg) * 2 - var(--spacing-5xl) - var(--spacing-md));
+}
+.ono-my-view.has-widget .ono-start-view-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 720px) minmax(var(--ono-my-widget-reserve), 1fr);
+}
+.ono-my-view.has-widget .ono-start-view-card > * {
+  grid-column: 2;
+  min-width: 0;
+}
 /* 녹음 고지 (Figma 17556:24394) — 「녹음 시작과 종료는 매니저 화면에서 진행됩니다」 */
 /* 「‹ 목록으로」 (Figma 17733:20287) — 카드 위 왼쪽, xs/Semibold text-primary · 꺾쇠 24 · 간격 6 · 위아래 6 */
 .ono-my-back {
@@ -5803,6 +5836,10 @@ button.ono-add-modal-input { cursor: pointer; }
   margin-bottom: -22px;
   box-sizing: border-box;
 }
+/* 앱은 이 화면을 팀원 캔버스(.ono-mem)에 꽂고 머리(.ono-page-header)가 위에 고정된다 — 12 에 붙으면 위젯 제목
+   «매니저가 미팅을 아직 시작하지 않았습니다»가 머리 밑으로 들어가 가려졌다. 제목 줄이 고정된 화면의 붙는 자리
+   (.ono-start-rec-wrap 120 — 매니저 진행 화면)를 그대로 쓴다 (pivit-work PW-3174). */
+.ono-mem > .ono-my-view > .ono-my-widget.is-overlay { top: 120px; }
 .ono-my-widget .ono-start-rec-mini {
   width: 241px;
   box-sizing: border-box;
