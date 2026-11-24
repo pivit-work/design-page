@@ -240,6 +240,7 @@ function RetentionBox({ text, vars }) {
  * @property {string} label
  * @property {string} value
  * @property {string} [valueSuffix] 값 뒤 회색 꼬리 — 예 «· 법정 부여끼리 비교 기준»(정책 v1.42 §5-J-0)
+ * @property {'error'} [valueTone] 값 글자를 붉게 — 줄어드는 값(«선부여 재정산 −6일» · 정책 v1.47 §5-J · pivit-work PW-3187)
  * @property {{ tone: string, text: string }} [badge]
  * @property {string} [note] 값 아래 보조 줄
  * @property {'warning'} [noteTone] 보조 줄을 앰버로
@@ -353,7 +354,13 @@ function LeaveSettlement({ view, labels }) {
               <dt className="admin-offb-leave-key">{r.label}</dt>
               <dd className="admin-offb-leave-val">
                 <span className="admin-offb-leave-value">
-                  {r.value}
+                  {r.valueTone === 'error' ? (
+                    <span className="admin-offb-leave-value-text is-error" data-testid={`offboarding-leave-value-${r.id}`}>
+                      {r.value}
+                    </span>
+                  ) : (
+                    r.value
+                  )}
                   {r.valueSuffix && (
                     <NoteText as="span" data-testid={`offboarding-leave-suffix-${r.id}`}>{r.valueSuffix}</NoteText>
                   )}

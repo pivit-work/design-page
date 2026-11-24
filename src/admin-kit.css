@@ -744,6 +744,8 @@
 }
 /* 값 뒤 회색 꼬리(«· 법정 부여끼리 비교 기준» — 정책 v1.42 §5-J-0) — 값의 굵기를 물려받지 않는다 */
 .admin-offb-leave-value .dp-note-text { font-weight: 400; }
+/* 줄어드는 값 붉게(pivit-work PW-3187 · 퇴사 정책 v1.47 §5-J «선부여 재정산 −N» · `valueTone: 'error'`) — 회색 꼬리 · 배지 색은 그대로 */
+.admin-offb-leave-value-text.is-error { color: var(--text-error-primary); }
 .admin-offb-leave-note { color: var(--text-tertiary); overflow-wrap: anywhere; }
 /* «맡은 폴더» 블록(pivit-work PW-2676 · 퇴사 정책 §2-C) — «휴가 정산» 줄과 같은 짜임 · 폴더 이름 12.5/600 ·
    새 관리자 칸은 공용 Select(섹션 4 입력과 같은 테두리) */
