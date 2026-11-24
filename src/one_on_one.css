@@ -1753,7 +1753,7 @@ button.ono-add-modal-input { cursor: pointer; }
 .ono-start-rec-pip.has-collapse {
   right: 41px;
 }
-/* 녹음 없는 회차의 세션 경과(T4 · PW-2124) — 세지 않는 시계라 파랑 대신 회색. */
+/* 녹음하지 않는 동안의 세션 경과(T4 · PW-2124) — 녹음 중 파랑·일시정지 앰버와 가르려 회색. */
 .ono-start-rec-elapsed.is-muted {
   color: var(--text-quaternary);
 }
