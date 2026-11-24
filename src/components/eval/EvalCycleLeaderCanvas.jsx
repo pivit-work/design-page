@@ -2174,17 +2174,16 @@ export default function EvalCycleLeaderCanvas({
 
             </div>
 
-            {!readOnlyView && (
+            {/* PW-3024 · leader §5.11-A 덧붙임 — 낸 리뷰에는 따로 저장하는 버튼을 두지 않는다. 위원회 전용 코멘트·
+                승진·보상 고려도 [다시 제출]로만 저장된다(고친 것은 «고친 채 나갈 때»가 센다). */}
+            {!readOnlyView && !submitted && (
             <div className="evc-card-buttons evlr-assess-foot">
               <Button
                 variant="secondary"
                 disabled={assessmentLocked}
-                onClick={async () => {
-                  // PW-3024 — 저장이 끝난 뒤에 «고친 것 없음» 기준을 옮긴다. 호출부가 false 를 돌려주면(저장 실패)
-                  // 기준을 두어, 고친 채 나갈 때 확인 창이 그대로 묻는다. 결과를 안 주는 호출부는 종전처럼 옮긴다.
-                  const snap = assessSnap;
-                  const saved = await onSaveAssessment?.(assessmentPayload());
-                  if (saved !== false) setAssessBaseline(snap);
+                onClick={() => {
+                  setAssessBaseline(assessSnap);
+                  onSaveAssessment?.(assessmentPayload());
                 }}
                 data-testid="evl-save-assessment"
               >
