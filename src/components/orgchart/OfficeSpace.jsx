@@ -6,6 +6,8 @@ import Tooltip from '../shared/Tooltip.jsx';
 import CustomSelect from '../timeline/CustomSelect.jsx';
 import { isEnterKey } from '../shared/enterKey.js';
 import { makeOrgLabels } from './orgchart-labels.jsx';
+import { OrgToolButton } from './OrgCanvasFrame.jsx';
+import { CloseGlyph, MinusGlyph, PlusGlyph } from '../shared/lineIcons.jsx';
 import {
   FOV, FS, GAP, M4, U, VS, WALK_FOV, blockedBy, boundsOf, buildScene, canDraw3d, centerOf, clampWalk, fitCam,
   floorNo, homeWalk, mix, readRgb, rectOf, solidsOf, toWorld, toneVar, unionOf,
@@ -70,7 +72,8 @@ export default function OfficeSpace({
     return [...buildingOrder.filter((b) => seen.includes(b)), ...seen.filter((b) => !buildingOrder.includes(b))];
   }, [buildingOrder, floors, plain]);
   const seatedN = (f) => f.desks.filter((d) => d.seatId && personOf(d.seatId)).length;
-  const most = (list) => [...list].sort((a, b) => seatedN(b) - seatedN(a))[0] || null;
+  // 빌딩을 고를 때 여는 층 — 조직도는 앉은 사람이 가장 많은 층(근무지 정책 §3), 회사 자산은 책상이 가장 많은 층(정책서 §4 «빌딩 고르기»)
+  const most = (list) => [...list].sort((a, b) => (org ? seatedN(b) - seatedN(a) : b.desks.length - a.desks.length))[0] || null;
   const plainKey = (f) => `x:${f.building}|${f.floor || ''}`;
   const firstRow = () => {
     const f = floors.find((x) => x.id === initialFloorKey);
@@ -100,6 +103,7 @@ export default function OfficeSpace({
   const [q, setQ] = useState('');
   const [sel, setSel] = useState(null);
   const [grp, setGrp] = useState(null);
+  const [listOpen, setListOpen] = useState(false);   // 좁은 화면에서 접힌 왼쪽 목록을 펼쳤나(§5 #10)
   const wrap = useRef(null), canvas = useRef(null), gl = useRef(null), cam = useRef(null), anim = useRef(null), tags = useRef({}), raf = useRef(0);
   const drawnRows = rows.filter((r) => r.drawn);
   const v = noGl && view !== '2d' ? '2d' : view;
@@ -478,7 +482,7 @@ export default function OfficeSpace({
       </div>
     );
   } else if (v === '2d') {
-    stage = <div className="osp-stage">{editor || <Plan2D key={row.key} floor={floor} personOf={personOf} org={org} assetsOf={assetsOf} sel={sel} dim={dim} hitD={hitD} toneOf={toneOfP} L={L} onPick={(id) => { const d = floor.desks.find((x) => x.id === id); if (d) pickDesk(d); else { const a = areas.find((x) => x.id === id); if (a) pickArea(a); } }} />}</div>;
+    stage = <div className="osp-stage">{editor || <Plan2D key={row.key} floor={floor} personOf={personOf} org={org} assetsOf={assetsOf} sel={sel} dim={dim} hitD={hitD} toneOf={toneOfP} L={L} onEmpty={() => setSel(null)} onPick={(id) => { const d = floor.desks.find((x) => x.id === id); if (d) pickDesk(d); else { const a = areas.find((x) => x.id === id); if (a) pickArea(a); } }} />}</div>;
   } else {
     stage = (
       <div className="osp-stage">
@@ -536,9 +540,9 @@ export default function OfficeSpace({
             );
           })}
           <div className="osp-zoom">
-            <Button variant="secondary" size="sm" className="osp-zoom-btn" onClick={() => zoomBy(0.8)} aria-label={L('office.zoomIn')} title={L('office.zoomIn')}>+</Button>
-            <Button variant="secondary" size="sm" className="osp-zoom-btn" onClick={() => zoomBy(1.25)} aria-label={L('office.zoomOut')} title={L('office.zoomOut')}>−</Button>
-            <Button variant="secondary" size="sm" onClick={fit} title={L('office.fitTip')} data-testid="office-fit">{L('office.fit')}</Button>
+            <OrgToolButton label={L('office.zoomIn')} onClick={() => zoomBy(0.8)} data-testid="office-zoom-in"><PlusGlyph size={20} /></OrgToolButton>
+            <OrgToolButton label={L('office.zoomOut')} onClick={() => zoomBy(1.25)} data-testid="office-zoom-out"><MinusGlyph size={20} /></OrgToolButton>
+            <OrgToolButton label={L('office.fit')} title={L('office.fitTip')} className="has-label" onClick={fit} data-testid="office-fit"><span>{L('office.fit')}</span></OrgToolButton>
           </div>
         </div>
       </div>
@@ -553,7 +557,7 @@ export default function OfficeSpace({
           <span className="osp-card-name osp-cut">{selPerson.name}</span>
           <span className="osp-card-title osp-cut">{selPerson.title}</span>
         </span>
-        <Button variant="ghost" size="sm" onClick={() => setSel(null)} aria-label={L('office.close')}>✕</Button>
+        <Button variant="ghost" size="sm" onClick={() => setSel(null)} aria-label={L('office.close')} data-testid="office-card-close"><CloseGlyph size={16} /></Button>
       </div>
       <dl className="osp-card-rows">
         <dt>{L('office.cardUnit')}</dt><dd>{selPerson.unitPath || selPerson.unit || L('office.unassigned')}</dd>
@@ -569,7 +573,7 @@ export default function OfficeSpace({
   );
 
   return (
-    <div className="osp" data-office-space={mode} data-view={v}>
+    <div className={`osp${listOpen ? ' is-list-open' : ''}`} data-office-space={mode} data-view={v}>
       <aside className="osp-aside" aria-label={L('office.listAria')}>
         <div className="osp-aside-top">{buildingSelect}</div>
         <div className="osp-floors">
@@ -578,7 +582,7 @@ export default function OfficeSpace({
             return (
               <div key={r.key} className={`osp-floor${on ? ' is-on' : ''}`} data-floor={floorName(r)} aria-pressed={on} role="button" tabIndex={0} onClick={() => pickFloor(r.key)} onKeyDown={onActKey}>
                 <span className="osp-floor-name">{floorName(r)}</span>
-                {!r.drawn && <span className="osp-floor-only">{L('office.listOnly')}</span>}
+                {!r.drawn && status === 'ready' && <span className="osp-floor-only">{L('office.listOnly')}</span>}
                 <span className="osp-floor-n">{cntOf(r)}</span>
               </div>
             );
@@ -586,7 +590,10 @@ export default function OfficeSpace({
         </div>
         {row && (
           <div className="osp-aside-tabs">
-            <SegmentedControl items={listTabs} value={curTab} onChange={setTab} ariaLabel={L('office.listAria')} block equal />
+            {/* 건물 보기는 갈래가 하나뿐(사람 · 책상)이라 고를 것이 없다 — 세그먼트 대신 그 수만 */}
+            {listTabs.length > 1
+              ? <SegmentedControl items={listTabs} value={curTab} onChange={setTab} ariaLabel={L('office.listAria')} block equal />
+              : <div className="osp-unit-head" data-testid="office-list-count">{listTabs[0].label}</div>}
           </div>
         )}
         {row && (
@@ -641,6 +648,9 @@ export default function OfficeSpace({
           {tools}
           {/* 좁은 화면 — 왼쪽 목록을 접고 빌딩 · 층 고르기를 무대 위 한 줄로(정책 §5 #10) */}
           <div className="osp-narrow-pick">
+            <Button variant="secondary" size="sm" aria-expanded={listOpen} onClick={() => setListOpen((o) => !o)} data-testid="office-list-toggle">
+              {listOpen ? L('office.listClose') : L('office.listOpen')}
+            </Button>
             {buildingSelect}
             {rows.length > 0 && (
               <CustomSelect value={row ? row.key : ''} onChange={(k) => pickFloor(k)} options={rows.map((r) => ({ value: r.key, label: `${floorName(r)} · ${cntOf(r) || L('office.listOnly')}` }))} ariaLabel={L('office.pickFloor')} size="sm" />
@@ -702,7 +712,7 @@ export default function OfficeSpace({
 }
 
 /** 평면 2D — 같은 배치를 위에서 본 그림(읽기 전용). 3D 를 못 그리는 기기의 기본 보기이기도 하다 */
-function Plan2D({ floor, personOf, org, assetsOf, sel, dim, hitD, toneOf, L, onPick }) {
+function Plan2D({ floor, personOf, org, assetsOf, sel, dim, hitD, toneOf, L, onPick, onEmpty }) {
   const b = boundsOf(floor), G = 20, pad = 1.5;
   const [vb, setVb] = useState({ x: (b.x - pad) * G, y: (b.y - pad) * G, w: (b.w + pad * 2) * G, h: (b.h + pad * 2) * G });
   const ref = useRef(null);
@@ -719,8 +729,18 @@ function Plan2D({ floor, personOf, org, assetsOf, sel, dim, hitD, toneOf, L, onP
   }, []);
   const down = (e) => {
     const sx = e.clientX, sy = e.clientY, o = vb, r = ref.current.getBoundingClientRect(), s = Math.max(o.w / r.width, o.h / r.height);
-    const mv = (ev) => setVb({ ...o, x: o.x - (ev.clientX - sx) * s, y: o.y - (ev.clientY - sy) * s });
-    const up = () => { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); };
+    let moved = false;
+    const mv = (ev) => {
+      if (!moved && Math.hypot(ev.clientX - sx, ev.clientY - sy) < 4) return;
+      moved = true;
+      setVb({ ...o, x: o.x - (ev.clientX - sx) * s, y: o.y - (ev.clientY - sy) * s });
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', mv);
+      window.removeEventListener('pointerup', up);
+      // 빈 곳을 누르면(끌지 않고) 고른 사람 카드를 닫는다 — 3D 와 같다(§3 «사람 고르기»)
+      if (!moved && onEmpty && !(e.target.closest && e.target.closest('[data-desk], [data-area]'))) onEmpty();
+    };
     window.addEventListener('pointermove', mv);
     window.addEventListener('pointerup', up);
   };

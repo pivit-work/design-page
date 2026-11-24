@@ -124,6 +124,8 @@ export const ORGCHART_LABELS = {
   'office.emptyDeskAria': '빈 책상 {{desk}}',
   'office.viewsAria': '보기',
   'office.listAria': '목록',
+  'office.listOpen': '목록 보기',
+  'office.listClose': '목록 닫기',
 
   // ── 리스트 탭 (pivit-work PW-678 · pivit-specs org-chart-public-card-spec.md §3-D-1·§3-D-2) ──
   'list.col.name': '이름',
