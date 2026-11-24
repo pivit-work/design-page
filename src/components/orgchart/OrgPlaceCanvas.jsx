@@ -106,7 +106,7 @@ export default function OrgPlaceCanvas({
   if (status === 'loading') {
     body = (
       <div className="op-grid" aria-busy="true" data-testid="org-place-loading">
-        {[0, 1, 2].map((i) => <Skeleton key={i} height={120} radius="var(--radius-lg)" className="op-skeleton" />)}
+        {[0, 1, 2].map((i) => <Skeleton key={i} width="100%" height={120} radius="var(--radius-lg)" />)}
       </div>
     );
   } else if (status === 'failed') {

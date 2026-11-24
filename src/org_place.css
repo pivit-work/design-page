@@ -33,7 +33,6 @@
 .op-span-1 { grid-column: span 1; }
 .op-span-2 { grid-column: span 2; }
 .op-span-3, .op-span-full { grid-column: 1 / -1; }
-.op-skeleton { width: 100%; }
 
 .op-country-head {
   display: flex;
