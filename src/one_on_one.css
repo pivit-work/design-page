@@ -5366,7 +5366,8 @@ button.ono-add-modal-input { cursor: pointer; }
    위젯 모양·자리와 본문 폭(720)은 그대로다. */
 .ono-my-view.has-widget,
 .ono-mem:has(> .ono-my-view.has-widget) {
-  --ono-my-widget-reserve: calc(241px + var(--spacing-lg) * 2 - var(--spacing-5xl) - var(--spacing-md));
+  /* 창이 앱 최소 폭(1280)보다 좁으면 위젯 틀(.ono-start-rec-wrap)이 모자란 폭만큼 위젯을 안쪽으로 당긴다 — 자리도 그만큼 더 비운다. */
+  --ono-my-widget-reserve: calc(241px + var(--spacing-lg) * 2 - var(--spacing-5xl) - var(--spacing-md) + max(0px, 1280px - 100vw));
 }
 .ono-my-view.has-widget .ono-start-view-card {
   display: grid;
