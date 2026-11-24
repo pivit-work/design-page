@@ -3446,7 +3446,7 @@ button.ono-add-modal-input { cursor: pointer; }
   box-sizing: border-box;
   width: 100%;
   padding: 12px;
-  border-radius: var(--radius-3xl, 20px);
+  border-radius: var(--radius-3xl);
   background: var(--bg-secondary);
   border: 1px solid var(--alpha-black-5);
   overflow: hidden;
@@ -3819,7 +3819,7 @@ button.ono-add-modal-input { cursor: pointer; }
   gap: 8px;
   padding: 22px 20px 20px;
   background: linear-gradient(to bottom, transparent 0, var(--bg-secondary) 22px);
-  border-radius: 0 0 var(--radius-3xl, 20px) var(--radius-3xl, 20px);
+  border-radius: 0 0 var(--radius-3xl) var(--radius-3xl);
 }
 .ono-guide-nav-prev,
 .ono-guide-nav-next {
