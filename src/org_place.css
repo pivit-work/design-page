@@ -78,7 +78,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.op-city-count { margin-left: auto; flex: none; color: var(--text-tertiary); }
+.op-city-count { margin-left: auto; flex: none; color: var(--text-secondary); }
 
 /* 최상위 조직 비율 막대 — 색은 조직 순서마다 돌려 쓴다(여덟 색 · §5 #9 와 같은 규칙) · 회사 · 미배정은 회색 */
 .op-bar {
