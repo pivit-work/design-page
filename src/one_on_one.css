@@ -1267,6 +1267,9 @@
 
 .ono-add-modal-input-text {
   flex: 1;
+  /* 띄어쓰기 없는 긴 회의실 이름도 칸 안에서 꺾는다 — 없으면 글이 칸 · 창 밖으로 밀려 [바꾸기]가 안 보인다(pivit-work PW-2989) */
+  min-width: 0;
+  overflow-wrap: anywhere;
   font-family: var(--font-family-body);
   font-weight: 600;
   font-size: var(--font-size-text-md);
