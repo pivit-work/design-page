@@ -9,6 +9,7 @@ const BADGE_LOOK = { success: 'is-green', warning: 'is-amber', danger: 'is-red',
 const badgeClass = (tone) => `admin-snap-type-badge ${BADGE_LOOK[tone] ?? 'is-gray'}`;
 import { SkeletonList } from '../shared/Skeleton.jsx';
 import EmptyState from '../shared/EmptyState.jsx';
+import { IconAlert } from '../admin/employeesIcons.jsx';
 
 /**
  * 조직 변경 승인 — 승인자 화면 (PW-2597 · screen-org-change-approval.policy.md).
@@ -21,10 +22,12 @@ import EmptyState from '../shared/EmptyState.jsx';
  * - state: 'loading' | 'error' | 'ready'
  * - notMine: 링크로 연 요청이 내 것이 아님 — 그 자리에 문구만(내용 없음)
  * - pending · done: 카드 목록 (아래 Card)
- * Card: { id, open, title, meta, badge: { text, tone }, count?, badges?, lines: Line[], reason?, result?, error?,
+ * Card: { id, open, title, meta, badge: { text, tone }, count?, badges?, lines: Line[], reason?, result?, error?, warning?,
  *         rejecting, reasonValue, reasonInvalid, actions: [{ key, label, variant, disabled, pending, testId }] }
  * Line: { id, title, notes: string[], people?: string[], moreLabel?, rejectLabel?, rejectChecked?, rejected?, closedText? }
  * closedBadge?: { text, tone } — 묶음 안에서 그 줄만 닫혔을 때 줄 머리 오른쪽 배지(«취소됨» — 흐림만으로는 까닭을 못 읽는다 · pivit-work PW-2597)
+ * warning: string[] — 승인하지 못한 까닭 · 할 일(첫 줄은 굵게) · 앰버 경고 띠(warningBg). 다시 눌러도 같은 실패라 빨간 «다시 시도» 대신 쓴다
+ *          (pivit-work PW-3016 · screen-org-change-approval.policy.md §3 «함께 바뀌는 값을 지금 넣을 수 없음»)
  * badges: [{ text, tone }] — 있으면 badge · count 대신 이 배지들을 나란히(처리함의 일부 승인 · 일부 거절 묶음 «승인 {A}명» · «거절 {R}명»)
  * 핸들러: onToggle(cardId) · onAction(cardId, key) · onReasonChange(cardId, text) · onToggleReject(cardId, lineId) ·
  *        onMore(cardId, lineId) · onRetry()
@@ -205,6 +208,15 @@ function RequestCard({ card, labels, onToggle, onAction, onReasonChange, onToggl
             </div>
           ) : null}
           {card.error && <p className="oca-error" data-testid={`oca-error-${card.id}`}>{card.error}</p>}
+          {card.warning?.length > 0 && (
+            <div className="admin-kit-notice is-warn has-title oca-warning" data-testid={`oca-warning-${card.id}`}>
+              <span className="admin-kit-notice-icon"><IconAlert size={14} /></span>
+              <div className="admin-kit-notice-text">
+                <p className="admin-kit-notice-title">{card.warning[0]}</p>
+                {card.warning.slice(1).map((w, i) => <p key={i} className="admin-kit-notice-desc">{w}</p>)}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

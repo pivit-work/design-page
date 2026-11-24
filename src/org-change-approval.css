@@ -42,4 +42,5 @@
 .oca-reason { font-size: 13px; line-height: 1.5; color: var(--text-primary); padding: var(--spacing-md); background: var(--bg-secondary); border-radius: var(--radius-sm, 8px); white-space: pre-wrap; }
 .oca-actions { display: flex; flex-wrap: wrap; gap: var(--spacing-md); justify-content: flex-end; margin-top: var(--spacing-md); }
 .oca-result { margin: var(--spacing-md) 0 0; font-size: var(--font-size-text-sm); color: var(--text-secondary); }
+.oca-warning { margin-top: var(--spacing-sm); }
 .oca-error { margin: var(--spacing-sm) 0 0; font-size: var(--font-size-text-xs); color: var(--text-error-primary); }
