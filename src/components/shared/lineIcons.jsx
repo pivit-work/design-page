@@ -175,6 +175,35 @@ export function ArrowRightGlyph(props) {
   );
 }
 
+/** 위 화살표 — 표 머리 오름차순 정렬 표시(PW-3188 · admin-spec §3.1-G-2 «↑ · ↓»). */
+export function ArrowUpGlyph(props) {
+  return (
+    <LineSvg {...props}>
+      <line x1="12" y1="19" x2="12" y2="5" />
+      <polyline points="6 11 12 5 18 11" />
+    </LineSvg>
+  );
+}
+
+/** 아래 화살표 — 표 머리 내림차순 정렬 표시. */
+export function ArrowDownGlyph(props) {
+  return (
+    <LineSvg {...props}>
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <polyline points="6 13 12 19 18 13" />
+    </LineSvg>
+  );
+}
+
+/** 깔때기 — 거르기를 여는 버튼(PW-3188 · §3.1-G-2). `filled` 면 안을 칠한다(거르기가 걸림). */
+export function FunnelGlyph({ filled = false, ...props }) {
+  return (
+    <LineSvg {...props} fill={filled ? 'currentColor' : 'none'}>
+      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+    </LineSvg>
+  );
+}
+
 export function ArrowLeftGlyph(props) {
   return (
     <LineSvg {...props}>

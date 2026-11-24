@@ -58,7 +58,7 @@ import {
 } from './employeesIcons.jsx';
 import useDismissLayer from '../shared/useDismissLayer.js';
 import { isEnterKey } from '../shared/enterKey.js';
-import { CalendarGlyph, ChevronDownGlyph, ChevronUpGlyph, PencilGlyph } from '../shared/lineIcons.jsx';
+import { ArrowDownGlyph, ArrowUpGlyph, CalendarGlyph, FunnelGlyph, PencilGlyph } from '../shared/lineIcons.jsx';
 import { filterSearchOptions } from '../shared/searchOptions.js';
 import Pagination from '../shared/Pagination.jsx';
 import { SkeletonList } from '../shared/Skeleton.jsx';
@@ -149,6 +149,14 @@ const DEFAULT_LABELS = {
     reset: '필터 초기화',
     /** 걸린 열 필터 칩의 ✕ 이름 (PW-1545) — `{label}` 은 열 이름. */
     chipRemove: '{label} 필터 풀기',
+    /* 열 머리 — 이름은 정렬, 깔때기는 거르기 (PW-3188 · admin-spec §3.1-G-2). */
+    sortTip: '누르면 정렬돼요 — 오름차순 → 내림차순 → 해제',
+    funnel: '{label} 거르기',
+    funnelOn: '{label} 거르기 — {value} 적용 중',
+    /* 이름 머리 깔때기 — 권한 · 추가된 날 두 묶음 (§3.1-G-2 «둘째 회차» 물음 1). */
+    nameFunnel: '권한 · 추가된 날 거르기',
+    nameFunnelOn: '권한 · 추가된 날 거르기 — {value} 적용 중',
+    nameFunnelTip: '권한 · 추가된 날로 거르기',
   },
   addedAtFilter: {
     start: '시작일',
@@ -215,6 +223,11 @@ const DEFAULT_LABELS = {
     selectRow: '이 사람 선택',
     selectPage: '이 쪽 전체 선택',
     trigger: '일괄 처리 ({count})',
+    /* 선택 바 (PW-3188 · §3.1-G-2) — 체크가 있을 때 표 바로 위. */
+    selected: '선택 {count}명',
+    selectedHidden: ' (지금 안 보이는 {hidden}명 포함)',
+    fill: '한 번에 넣기',
+    clear: '선택 해제',
     /* 「변경」이 아니라 「추가」다 — 교체를 허용하면 겸직인 사람의 나머지 소속이
        한 번에 사라진다(PW-326). 서버 계약에도 교체 파라미터가 없다. */
     orgAppend: '소속 일괄 추가',
@@ -285,6 +298,8 @@ const DEFAULT_LABELS = {
   listCols: {
     trigger: '컬럼',
     title: '표시할 열',
+    /* 거르기가 있는 열 항목 끝 작은 깔때기 (PW-3188 · §3.1-G-2 «숨긴 열의 거르기»). */
+    filterTip: '켜면 열 머리에서 거를 수 있어요',
     cols: {
       name: '이름',
       displayName: '표시 이름',
@@ -1486,7 +1501,7 @@ function FilterDropdown({ testId, label, value, options, onChange, searchable = 
   );
 }
 
-/* 필터 선택지 목록 — 필터 줄 버튼(`FilterDropdown`)과 열 머리 ▾(`HeadMenu`)가 **같은 목록**을 연다
+/* 필터 선택지 목록 — 필터 줄 버튼(`FilterDropdown`)과 열 머리 깔때기(`HeadFunnel`)가 **같은 목록**을 연다
  * (PW-1545 · admin-spec §3.1 «필터 자리» — «같은 선택 목록»). 둘이 따로 그리면 검색칸 · 묶음 머리 · 들여쓰기가 한쪽만 바뀐다. */
 function FilterOptionList({ testId, options, value, onPick, searchable = false, searchLabels }) {
   const [q, setQ] = useState('');
@@ -1553,82 +1568,56 @@ function filterOptionLabel(options, value) {
   return value;
 }
 
-/* ── 추가된 날 필터 ──────────────────────────────────────────
- * 다른 칩과 같은 겉모양(`admin-emp-select`)에, 펼치면 날짜 두 칸이 뜬다. 값은
- * `시작~끝` 문자열이고 규칙은 `addedAtFilter.js`. 알림에서 온 정확한 시각 범위는
- * 칩에 시각까지 보인다 — 날짜 칸으로 다시 고르면 하루 단위 범위로 바뀐다.
+/* ── 추가된 날 거르기 ──────────────────────────────────────────
+ * 이름 머리 깔때기 목록의 둘째 묶음이다(PW-3188 · admin-spec §3.1-G-2 «둘째 회차» 물음 1 ·
+ * 종전에는 필터 줄의 따로 선 칩이었다). 값은 `시작~끝` 문자열이고 규칙은 `addedAtFilter.js`.
+ * 알림에서 온 정확한 시각 범위는 칩에 시각까지 보인다 — 날짜 칸으로 다시 고르면 하루 단위 범위로 바뀐다(E18).
  * ------------------------------------------------------------ */
-function AddedAtFilter({ testId, label, labels, value, onChange }) {
-  const [open, setOpen] = useState(false);
+function AddedAtFields({ testId, label, labels, value, onChange, onDone }) {
   const [draft, setDraft] = useState(() => datesOfRange(value));
-  const ref = useRef(null);
-  useDismissLayer(() => setOpen(false), ref, null, open);
-
   const active = !!value;
-  const triggerText = active ? `${label} · ${formatAddedAtRange(value)}` : label;
-
-  function toggle() {
-    if (!open) setDraft(datesOfRange(value));
-    setOpen((o) => !o);
-  }
-
   return (
-    <div ref={ref} className={`admin-emp-select${open ? ' is-open' : ''}${active ? ' is-active' : ''}`}>
-      <button
-        type="button"
-        className="admin-emp-select-trigger"
-        data-testid={testId}
-        aria-haspopup="true"
-        aria-expanded={open}
-        onClick={toggle}
-      >
-        <span className="admin-emp-select-value">{triggerText}</span>
-        <span className="admin-emp-select-chevron"><IconChevronDown size={13} /></span>
-      </button>
-      {open && (
-        <div className="admin-emp-select-menu is-range" role="group" aria-label={label}>
-          {/* 창(모달)이 아니라 다른 칩과 같은 펼침 상자다 — 날짜 두 칸을 묶는 group. */}
-          <label className="admin-emp-range-field">
-            <span className="admin-emp-field-label">{labels.start}</span>
-            <DateInput
-              className="admin-emp-input"
-              data-testid={`${testId}-start`}
-              value={draft.start}
-              onChange={(v) => setDraft((d) => ({ ...d, start: v }))}
-            />
-          </label>
-          <label className="admin-emp-range-field">
-            <span className="admin-emp-field-label">{labels.end}</span>
-            <DateInput
-              className="admin-emp-input"
-              data-testid={`${testId}-end`}
-              value={draft.end}
-              onChange={(v) => setDraft((d) => ({ ...d, end: v }))}
-            />
-          </label>
-          <div className="admin-emp-range-actions">
-            {active && (
-              <button
-                type="button"
-                className="admin-emp-btn is-sm is-ghost"
-                data-testid={`${testId}-clear`}
-                onClick={() => { onChange(null); setOpen(false); }}
-              >
-                {labels.clear}
-              </button>
-            )}
-            <button
-              type="button"
-              className="admin-emp-btn is-sm is-primary"
-              data-testid={`${testId}-apply`}
-              disabled={!draft.start && !draft.end}
-              onClick={() => { onChange(rangeFromDates(draft.start, draft.end)); setOpen(false); }}
-            >
-              {labels.apply}
-            </button>
-          </div>
-        </div>
-      )}
+    <div className="admin-emp-head-range" role="group" aria-label={label} data-testid={`${testId}-fields`}>
+      <div className="admin-emp-select-title">{label}</div>
+      <label className="admin-emp-range-field">
+        <span className="admin-emp-field-label">{labels.start}</span>
+        <DateInput
+          className="admin-emp-input"
+          data-testid={`${testId}-start`}
+          value={draft.start}
+          onChange={(v) => setDraft((d) => ({ ...d, start: v }))}
+        />
+      </label>
+      <label className="admin-emp-range-field">
+        <span className="admin-emp-field-label">{labels.end}</span>
+        <DateInput
+          className="admin-emp-input"
+          data-testid={`${testId}-end`}
+          value={draft.end}
+          onChange={(v) => setDraft((d) => ({ ...d, end: v }))}
+        />
+      </label>
+      <div className="admin-emp-range-actions">
+        {active && (
+          <button
+            type="button"
+            className="admin-emp-btn is-sm is-ghost"
+            data-testid={`${testId}-clear`}
+            onClick={() => { onChange(null); onDone(); }}
+          >
+            {labels.clear}
+          </button>
+        )}
+        <button
+          type="button"
+          className="admin-emp-btn is-sm is-primary"
+          data-testid={`${testId}-apply`}
+          disabled={!draft.start && !draft.end}
+          onClick={() => { onChange(rangeFromDates(draft.start, draft.end)); onDone(); }}
+        >
+          {labels.apply}
+        </button>
+      </div>
     </div>
   );
 }
@@ -2660,37 +2649,35 @@ function BulkDeactivateModal({ selectedRows, labels, onClose, onApply }) {
  *   (필터를 잘못 건 채 누르면 의도하지 않은 사람 전원이 바뀐다).
  * 창은 body 직속(AnchoredLayer)이라 표 틀의 넘침에 잘리지 않는다.
  */
-function HeadMenu({ colId, title, filter, fill: spec, te, selectedIds, hiddenCount = 0, searchLabels }) {
+/* 열 머리 깔때기 (PW-3188 · admin-spec §3.1-G-2) — 이름 옆에서 그 열의 거르기 목록을 연다. 이름(정렬)과 서로 막지 않는다.
+   걸리면 안을 브랜드색으로 칠하고 오른쪽 위에 점을 단다. 종전 ▾ 는 거르기와 «한 번에 넣기»를 한 메뉴에 섞었다 —
+   한 번에 넣기는 선택 바로 갔다(`SelectionBar`). `children(close)` 가 목록을 그린다(이름 머리는 묶음 둘). */
+function HeadFunnel({ colId, testId, active, ariaLabel, tip, filterLabel, children }) {
   const [open, setOpen] = useState(false);
-  const [value, setValue] = useState('');
-  const [reverted, setReverted] = useState(null); // 날짜로 못 읽어 되돌린 친 글 — 표 칸과 같은 안내
   const triggerRef = useRef(null);
   const panelRef = useRef(null);
-  const close = () => { setOpen(false); setValue(''); setReverted(null); };
-  // 값 고르기 목록 · 달력은 body 직속 창이라 «바깥»에서 뺀다 — 안 빼면 값을 고르는 순간 이 창이 닫힌다.
+  const close = () => setOpen(false);
+  // 값 고르기 목록 · 달력은 body 직속 창이라 «바깥»에서 뺀다 — 안 빼면 날짜를 고르는 순간 이 창이 닫힌다.
   useDismissLayer(close, panelRef, [triggerRef, '.dp-search-select-menu', '.dp-datepicker'], open);
-  const count = selectedIds.size;
-  const L = te?.labels;
-  const opts = spec && spec.kind === 'select' ? te.options(null, spec.key) : [];
-  const filterOn = !!filter && filter.value !== filter.all;
-  const ariaLabel = filter
-    ? (spec ? `${title} — ${filter.menuLabel} · ${fill(L.fillTitle, { count })}` : `${title} — ${filter.menuLabel}`)
-    : `${title} — ${fill(L.fillTitle, { count })}`;
+  const trigger = (
+    <Button
+      ref={triggerRef}
+      className={`admin-emp-edit-fill-trigger admin-emp-funnel${active ? ' is-active' : ''}`}
+      aria-haspopup="dialog"
+      aria-expanded={open}
+      aria-label={ariaLabel}
+      data-testid={testId}
+      data-filter-on={active ? 'true' : undefined}
+      data-filter-label={filterLabel}
+      onClick={(e) => { e.stopPropagation(); setOpen((o) => !o); }}
+    >
+      <FunnelGlyph size={12} filled={active} />
+      {active && <span className="admin-emp-funnel-dot" aria-hidden="true" data-testid={`${testId}-dot`} />}
+    </Button>
+  );
   return (
     <>
-      <Button
-        ref={triggerRef}
-        className={`admin-emp-edit-fill-trigger${filterOn ? ' is-active' : ''}`}
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        aria-label={ariaLabel}
-        data-testid={filter ? filter.testId : `employees-fill-trigger-${colId}`}
-        data-filter-on={filterOn ? 'true' : undefined}
-        data-filter-label={filter ? filter.menuLabel : undefined}
-        onClick={(e) => { e.stopPropagation(); if (open) close(); else setOpen(true); }}
-      >
-        <IconChevronDown size={12} />
-      </Button>
+      {tip ? <Tooltip content={tip}>{trigger}</Tooltip> : trigger}
       {open && (
         <AnchoredLayer
           anchorRef={triggerRef}
@@ -2699,87 +2686,140 @@ function HeadMenu({ colId, title, filter, fill: spec, te, selectedIds, hiddenCou
           className="admin-emp-select-menu"
           data-testid={`list-head-menu-${colId}`}
         >
-          {filter && (
-            <div role="listbox" aria-label={filter.menuLabel} data-testid={`${filter.testId}-menu`}>
-              <FilterOptionList
-                testId={filter.testId}
-                options={filter.options}
-                value={filter.value}
-                onPick={(v) => { filter.onChange(v); close(); }}
-                searchable={filter.searchable}
-                searchLabels={searchLabels}
-              />
-            </div>
-          )}
-          {filter && spec && <div className="admin-emp-head-menu-divider" role="separator" />}
-          {spec && (
-            <div data-testid={`employees-fill-menu-${colId}`}>
-              {/* 체크는 필터를 바꿔도 남는다 — 가려진 사람이 있으면 수를 함께(PW-2814 · §3.1-G-1 ② · 앞서 체크한 사람을 잊고 넣지 않게) */}
-              <div className="admin-emp-select-title" data-testid={`employees-fill-title-${colId}`}>
-                {hiddenCount > 0 && L.fillTitleHidden
-                  ? fill(L.fillTitleHidden, { count, hidden: hiddenCount })
-                  : fill(L.fillTitle, { count })}
-              </div>
-              {count === 0 ? (
-                <div className="admin-emp-select-item-sub" data-testid={`employees-fill-needs-check-${colId}`}>{L.fillNeedsCheck}</div>
-              ) : (
-                <div className="admin-emp-edit-fill-body">
-                  {spec.kind === 'select' ? (
-                    <Select
-                      className="dp-input dp-select admin-emp-edit-fill-input"
-                      data-testid={`employees-fill-value-${colId}`}
-                      aria-label={title}
-                      value={value}
-                      placeholder={L.fillPlaceholder}
-                      options={[{ value: '', label: L.noValue }, ...(opts ?? [])]}
-                      onChange={(ev) => setValue(ev.target.value)}
-                    />
-                  ) : spec.kind === 'date' ? (
-                    <div>
-                      <DateInput
-                        className="dp-input admin-emp-edit-fill-input"
-                        data-testid={`employees-fill-value-${colId}`}
-                        aria-label={title}
-                        value={value}
-                        onChange={setValue}
-                        onFocus={() => setReverted(null)}
-                        onRevert={setReverted}
-                      />
-                      {reverted !== null && (
-                        <span className="admin-emp-edit-note" role="status" data-testid={`employees-fill-reverted-${colId}`}>
-                          {fill(L.dateReverted, { typed: reverted })}
-                        </span>
-                      )}
-                    </div>
-                  ) : (
-                    <TextInput
-                      className="dp-input admin-emp-edit-fill-input"
-                      data-testid={`employees-fill-value-${colId}`}
-                      aria-label={title}
-                      inputMode={spec.kind === 'number' ? 'numeric' : undefined}
-                      value={value}
-                      onChange={(e) => setValue(e.target.value)}
-                    />
-                  )}
-                  <Button
-                    size="sm"
-                    variant="primary"
-                    data-testid={`employees-fill-apply-${colId}`}
-                    onClick={() => { te.onFill(spec.key, value, [...selectedIds]); close(); }}
-                  >
-                    {L.fillAction}
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
+          {children(close)}
         </AnchoredLayer>
       )}
     </>
   );
 }
 
-function ColumnMenu({ cols, value, onChange, labels }) {
+/* 선택 바의 «한 번에 넣기» (PW-3188 · §3.1-G-2 «한 번에 넣기 — 고르는 순서») — 칸 고르기 → 값 고르기 → 넣기.
+   칸 목록은 지금 표에 보이는 열 가운데 한 번에 넣기 열을 표의 열 순서로(`fillCols`), 발령 칸이면 이름 뒤 « · 발령».
+   넣은 뒤는 종전 머리 ▾ 와 같다 — `te.onFill` 이 저장 전 칸 · 토스트 · 잠긴 줄 건너뜀을 맡는다. */
+/** «(고르지 않음)» 항목 값 — 공용 Select 는 '' 를 «안 고름»(placeholder)으로 그려 둘을 가르려고 따로 둔다. */
+const FILL_NO_VALUE = '__fill_no_value__';
+
+function FillMenu({ te, fillCols, selectedIds, hiddenCount, labels }) {
+  const [open, setOpen] = useState(false);
+  const [colId, setColId] = useState('');
+  const [value, setValue] = useState(null); // null = 아직 값을 고르지 않음(«넣기» 끔)
+  const [reverted, setReverted] = useState(null);
+  const triggerRef = useRef(null);
+  const panelRef = useRef(null);
+  const close = () => { setOpen(false); setColId(''); setValue(null); setReverted(null); };
+  useDismissLayer(close, panelRef, [triggerRef, '.dp-search-select-menu', '.dp-datepicker'], open);
+  const L = te.labels;
+  const count = selectedIds.size;
+  // ⚙ 로 고른 칸의 열을 끄면 칸 목록에서 빠진다(E16) — 고른 칸도 함께 비운다.
+  const col = fillCols.find((c) => c.id === colId) ?? null;
+  const spec = col ? te.columns[col.id] : null;
+  const opts = spec && spec.kind === 'select' ? te.options(null, spec.key) : [];
+  return (
+    <>
+      <AdminButton
+        ref={triggerRef}
+        tone="ghost"
+        size="sm"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        data-testid="employees-selbar-fill"
+        onClick={() => (open ? close() : setOpen(true))}
+      >
+        {labels.listBulk.fill}
+      </AdminButton>
+      {open && (
+        <AnchoredLayer
+          anchorRef={triggerRef}
+          panelRef={panelRef}
+          width={300}
+          className="admin-emp-select-menu"
+          data-testid="employees-fill-menu"
+        >
+          {/* 체크는 필터를 바꿔도 남는다 — 가려진 사람이 있으면 수를 함께(PW-2814 · §3.1-G-1 ②) */}
+          <div className="admin-emp-select-title" data-testid="employees-fill-title">
+            {hiddenCount > 0 && L.fillTitleHidden
+              ? fill(L.fillTitleHidden, { count, hidden: hiddenCount })
+              : fill(L.fillTitle, { count })}
+          </div>
+          <div className="admin-emp-edit-fill-body">
+            <Select
+              className="dp-input dp-select admin-emp-edit-fill-input"
+              data-testid="employees-fill-column"
+              aria-label={L.fillPickColumn}
+              value={col ? col.id : ''}
+              placeholder={L.fillPickColumn}
+              options={fillCols.map((c) => ({
+                value: c.id,
+                label: te.columns[c.id]?.appointment ? `${c.label} · ${L.appointmentMark}` : c.label,
+              }))}
+              onChange={(ev) => { setColId(ev.target.value); setValue(null); setReverted(null); }}
+            />
+            {!spec ? null : spec.kind === 'select' && (opts === null || (te.optionsLoading && L.optionsLoading)) ? (
+              /* 선택지를 못 불러왔거나 아직 오는 중이면 값을 고를 수 없다 — «(고르지 않음)» 하나만 남은 목록으로
+                 N명을 비우지 않게(§3.1-G «늦거나 실패할 때» · 붙여넣기도 같은 때 막는다). */
+              <span className="admin-emp-edit-note" role="status" data-testid="employees-fill-options-failed">
+                {opts === null ? L.optionsUnavailable : L.optionsLoading}
+              </span>
+            ) : spec.kind === 'select' ? (
+              <Select
+                className="dp-input dp-select admin-emp-edit-fill-input"
+                data-testid="employees-fill-value"
+                aria-label={L.fillPickValue}
+                /* 아직 안 골랐으면 «값 고르기»가 보인다 — «(고르지 않음)»은 «비운다»를 고른 것이라 따로 둔다. */
+                value={value === null ? '' : value === '' ? FILL_NO_VALUE : value}
+                placeholder={L.fillPickValue}
+                options={[{ value: FILL_NO_VALUE, label: L.noValue }, ...opts]}
+                onChange={(ev) => setValue(ev.target.value === FILL_NO_VALUE ? '' : ev.target.value)}
+              />
+            ) : spec.kind === 'date' ? (
+              <div>
+                <DateInput
+                  className="dp-input admin-emp-edit-fill-input"
+                  data-testid="employees-fill-value"
+                  aria-label={L.fillPickValue}
+                  value={value ?? ''}
+                  onChange={(v) => setValue(v ? v : null)}
+                  onFocus={() => setReverted(null)}
+                  onRevert={setReverted}
+                />
+                {reverted !== null && (
+                  <span className="admin-emp-edit-note" role="status" data-testid="employees-fill-reverted">
+                    {fill(L.dateReverted, { typed: reverted })}
+                  </span>
+                )}
+              </div>
+            ) : (
+              <TextInput
+                className="dp-input admin-emp-edit-fill-input"
+                data-testid="employees-fill-value"
+                aria-label={L.fillPickValue}
+                placeholder={L.fillPickValue}
+                inputMode={spec.kind === 'number' ? 'numeric' : undefined}
+                value={value ?? ''}
+                /* 쳤다가 다 지우면 다시 «안 고름» — 빈 글로 N명의 칸을 비우지 않는다(값까지 고르기 전 «넣기» 끔 · TC-ADM-583 4). */
+                onChange={(e) => setValue(e.target.value.trim() === '' ? null : e.target.value)}
+              />
+            )}
+            <div className="admin-emp-range-actions">
+              <Button size="sm" variant="ghost" data-testid="employees-fill-cancel" onClick={close}>{L.fillCancel}</Button>
+              <Button
+                size="sm"
+                variant="primary"
+                data-testid="employees-fill-apply"
+                disabled={!spec || value === null}
+                onClick={() => { te.onFill(spec.key, value, [...selectedIds]); close(); }}
+              >
+                {L.fillAction}
+              </Button>
+            </div>
+          </div>
+        </AnchoredLayer>
+      )}
+    </>
+  );
+}
+
+function ColumnMenu({ cols, value, onChange, labels, filterableIds = null }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   useDismissLayer(() => setOpen(false), ref, null, open);
@@ -2807,7 +2847,19 @@ function ColumnMenu({ cols, value, onChange, labels }) {
               checked={value[c.id] !== false}
               data-testid={`employees-list-col-${c.id}`}
               onChange={() => onChange({ ...value, [c.id]: value[c.id] === false })}
-              label={<span>{labels.listCols.cols[c.id] || c.id}</span>}
+              label={(
+                <span className="admin-emp-col-item">
+                  <span>{labels.listCols.cols[c.id] || c.id}</span>
+                  {/* 거르기가 있는 열 — ⚙ 에서 켜고 그 머리에서 거른다 (PW-3188 · §3.1-G-2 «숨긴 열의 거르기») */}
+                  {filterableIds?.has(c.id) && labels.listCols.filterTip && (
+                    <Tooltip content={labels.listCols.filterTip}>
+                      <span className="admin-emp-col-funnel" data-testid={`employees-list-col-${c.id}-funnel`}>
+                        <FunnelGlyph size={10} />
+                      </span>
+                    </Tooltip>
+                  )}
+                </span>
+              )}
             />
           ))}
         </div>
@@ -3438,6 +3490,14 @@ function EmployeesListView({
     || empType !== LIST_ALL || mgrFilter !== 'all' || status !== 'all'
     || roleFilter !== LIST_ALL || addedRange !== null;
 
+  /* 선택 적용을 끈 항목의 거르기는 함께 푼다 (PW-3188 · admin-spec §3.1-G-2 E19). 끄면 열 · ⚙ 항목 · 깔때기가
+     사라지는데 값만 남으면 «보이지 않는 거르기»로 목록이 좁혀진 채 이유가 안 보인다. 직종도 같은 꼴이라 함께 본다.
+     🔴 «꺼졌다»가 확실할 때(`=== false`)만 푼다 — 회사 설정을 아직 못 받았으면(값 없음) 다른 화면에 다녀와
+     되살린 거르기(PW-157)를 지우지 않는다. 그동안은 아래 칩이 남아 보이고 ✕ 로 풀 수 있다. */
+  // 렌더 중에 맞춘다(효과 안 setState 는 한 번 더 그린다) — 같은 컴포넌트의 조건부 setState 라 React 가 곧바로 다시 그린다.
+  if (optionalFields.business_title === false && bizTitle !== LIST_ALL) setBizTitle(LIST_ALL);
+  if (optionalFields.job_category === false && category !== LIST_ALL) setCategory(LIST_ALL);
+
   function resetFilters() {
     setQ(''); setDept(LIST_ALL); setSquad(LIST_ALL); setPosition(LIST_ALL); setLevel(LIST_ALL);
     setFamily(LIST_ALL); setLadder(LIST_ALL); setDuty(LIST_ALL); setLocation(LIST_ALL);
@@ -3540,13 +3600,13 @@ function EmployeesListView({
   // **보이는 열 폭의 합**으로 잡고, 넘치는 만큼은 가로 스크롤로 읽는다.
   const minWidth = cols.reduce((n, c) => n + c.width, 0);
 
-  /* 열 머리 ▾ 로 가는 필터 (PW-1545 · admin-spec §3.1 «필터 자리» · David «권고대로» 2026-10-14).
-     열 id → 필터. 그 열이 표에 보이면 머리 ▾ 에서 고르고, ⚙ 로 끈 열이면 필터 줄 버튼으로 돌아온다.
-     걸린 머리 필터는 필터 줄에 «{열}: {값} ✕» 칩으로도 보인다 — 표를 가로로 밀면 머리가 화면 밖으로 나간다.
-     소속 · 재직상태 · 권한 · 추가된 날은 늘 필터 줄이다(권한 · 추가된 날은 표에 열이 없다).
-     직함 · 국가 · 빌딩은 기획서 목록이 이 필터들보다 먼저 쓰였다 — «필터 줄에 남는 것»(검색 · 소속 · 재직상태 ·
-     열이 안 보이는 필터)에 들지 않으므로 같은 규칙으로 머리로 간다. 값 · 판정 · 1쪽 이동은 그대로다. */
+  /* 열 머리 깔때기의 거르기 (PW-3188 · admin-spec §3.1-G-2 · 종전 PW-1545 의 «머리 ▾ · 필터 줄» 두 자리를 하나로).
+     열 id → 거르기. 거르는 자리는 그 열 머리 깔때기 하나다 — 소속 · 재직상태도 머리로 왔고, ⚙ 로 끈 열은 ⚙ 에서 켠 뒤
+     머리에서 고른다(종전 «열이 안 보이는 필터는 필터 줄로 돌아온다»는 걷었다). 권한 · 추가된 날은 표에 열이 없어
+     이름 머리 깔때기 한 목록에 두 묶음으로 간다(아래 `nameFilterChips` · «둘째 회차» 물음 1).
+     🔴 적은 순서가 표의 열 순서다 — 칩 줄도 이 순서로 선다. 값 · 판정 · 1쪽 이동은 그대로다. */
   const headFilters = {
+    dept: { testId: 'list-filter-dept', menuLabel: labels.filters.dept, value: dept, all: LIST_ALL, options: depts, searchable: true, onChange: (v) => { setDept(v); setPage(1); } },
     squads: { testId: 'list-filter-squads', menuLabel: labels.filters.squad, value: squad, all: LIST_ALL, options: squads, searchable: true, onChange: (v) => { setSquad(v); setPage(1); } },
     ...(optionalFields.job_category === true
       ? { jobCategory: { testId: 'list-filter-jobCategory', menuLabel: labels.filters.jobCategory, value: category, all: LIST_ALL, options: categories, searchable: true, onChange: (v) => { setCategory(v); setPage(1); } } }
@@ -3559,14 +3619,57 @@ function EmployeesListView({
     ...(optionalFields.business_title === true
       ? { businessTitle: { testId: 'list-filter-businessTitle', menuLabel: labels.filters.businessTitle, value: bizTitle, all: LIST_ALL, options: bizTitles, searchable: true, onChange: (v) => { setBizTitle(v); setPage(1); } } }
       : {}),
+    employmentType: { testId: 'list-filter-employmentType', menuLabel: labels.filters.employmentType, value: empType, all: LIST_ALL, options: empTypes, searchable: true, onChange: (v) => { setEmpType(v); setPage(1); } },
+    employmentStatus: { testId: 'list-filter-employmentStatus', menuLabel: labels.filters.status, value: status, all: 'all', options: statusOpts, searchable: false, onChange: (v) => { setStatus(v); setPage(1); } },
     workCountry: { testId: 'list-filter-workCountry', menuLabel: labels.filters.workCountry, value: country, all: LIST_ALL, options: countries, searchable: true, onChange: (v) => { setCountry(v); setPage(1); } },
     workLocation: { testId: 'list-filter-workLocation', menuLabel: labels.filters.workLocation, value: location, all: LIST_ALL, options: locations, searchable: true, onChange: (v) => { setLocation(v); setPage(1); } },
     workBuilding: { testId: 'list-filter-workBuilding', menuLabel: labels.filters.workBuilding, value: building, all: LIST_ALL, options: buildings, searchable: true, onChange: (v) => { setBuilding(v); setPage(1); } },
-    employmentType: { testId: 'list-filter-employmentType', menuLabel: labels.filters.employmentType, value: empType, all: LIST_ALL, options: empTypes, searchable: true, onChange: (v) => { setEmpType(v); setPage(1); } },
     manager: { testId: 'list-filter-managerId', menuLabel: labels.filters.manager, value: mgrFilter, all: 'all', options: mgrOpts, searchable: true, onChange: (v) => { setMgrFilter(v); setPage(1); } },
   };
-  const shownColIds = new Set(cols.map((c) => c.id));
-  const headFilterEntries = Object.entries(headFilters);
+  /* ⚙ 메뉴의 작은 깔때기 — 거르기가 있는 열 항목에만(§3.1-G-2 «둘째 회차» 물음 3). */
+  const filterableColIds = new Set(Object.keys(headFilters));
+  /* 선택 바 «한 번에 넣기»의 칸 목록 — 지금 표에 보이는 열 가운데 한 번에 넣기 열을 표의 열 순서로(§3.1-G-2). */
+  const fillCols = tableEdit ? cols.filter((c) => tableEdit.columns[c.id]?.fill) : [];
+  /* 이름 머리 깔때기의 두 묶음 — 칩은 열 이름이 아니라 묶음 이름으로 따로 선다(«권한: 어드민 ✕» · «추가된 날: 9월 23일 ✕»). */
+  const nameFilterChips = [
+    ...(roleFilter !== LIST_ALL ? [{
+      key: 'orgRole', label: labels.filters.role, valueText: filterOptionLabel(roleOpts, roleFilter),
+      onRemove: () => { setRoleFilter(LIST_ALL); setPage(1); },
+    }] : []),
+    ...(addedRange ? [{
+      key: 'addedAt', label: labels.filters.addedAt, valueText: formatAddedAtRange(addedAt),
+      onRemove: () => { setAddedAt(LIST_ALL); setPage(1); },
+    }] : []),
+  ];
+  /* 걸린 거르기 칩 — 열이 보이든(가로로 밀려 머리가 화면 밖이어도 · E13) ⚙ 로 껐든(거르기가 남는다) 모두 선다.
+     칩 이름은 열 이름(⚙ 로 끈 열도 같은 이름 — 열 이름표에서), 없으면 거르기 이름. */
+  /* 칩 값 글 — 값이 id · 코드인 거르기(소속 · 스쿼드 · 재직상태 · 매니저)는 목록에 없으면(지운 조직 · 주소로 온
+     «대기») 그 id · 코드를 보이지 않는다(코드값 노출 금지 · 재직상태는 상태 이름표, 없으면 «—»).
+     나머지(근무지 · 직급 · 직함 …)는 값 자체가 이름이라 목록에 없어도 그대로 보인다 — 0명이어도 무엇으로 걸렀는지 안다. */
+  const CODE_VALUED_FILTERS = new Set(['dept', 'squads', 'employmentStatus', 'manager']);
+  function chipValueText(colId, f) {
+    const found = f.options.some((o) => (typeof o === 'object' ? !o.group && o.id === f.value : o === f.value));
+    if (found) return filterOptionLabel(f.options, f.value);
+    if (!CODE_VALUED_FILTERS.has(colId)) return f.value;
+    if (colId === 'employmentStatus' && labels.status?.[f.value]) return labels.status[f.value];
+    return '—';
+  }
+  const filterChips = [
+    ...nameFilterChips,
+    ...Object.entries(headFilters).filter(([, f]) => f.value !== f.all).map(([colId, f]) => ({
+      key: colId,
+      label: cl[colId] ?? f.menuLabel,
+      valueText: chipValueText(colId, f),
+      onRemove: () => f.onChange(f.all),
+    })),
+    /* 회사 설정을 아직 못 받아 머리 거르기에 없는 직종 · 직함도 값이 남아 있으면 칩으로 보인다 — 보이지 않는 거르기 0. */
+    ...(!headFilters.jobCategory && category !== LIST_ALL
+      ? [{ key: 'jobCategory', label: cl.jobCategory ?? labels.filters.jobCategory, valueText: category, onRemove: () => { setCategory(LIST_ALL); setPage(1); } }]
+      : []),
+    ...(!headFilters.businessTitle && bizTitle !== LIST_ALL
+      ? [{ key: 'businessTitle', label: cl.businessTitle ?? labels.filters.businessTitle, valueText: bizTitle, onRemove: () => { setBizTitle(LIST_ALL); setPage(1); } }]
+      : []),
+  ];
 
   /* ── 표에서 바로 고치기 (PW-1333 · admin-spec §3.1-G) ──────────────────────────────────────
    * `tableEdit`(TableEdit) — 부르는 쪽이 저장 전 칸과 판정을 들고, 이 뷰는 칸을 그리고 입력을 연다.
@@ -4057,11 +4160,12 @@ function EmployeesListView({
     return why ? <CellTip tip={why}>{inner}</CellTip> : inner;
   }
 
-  /* 열 머리 — 글자를 누르면 정렬(PW-1545 · §3.1 «정렬 · 고정 열»), ▾ 는 그 열의 필터 · «체크한 N명에게 한 번에 넣기»
-     (§3.1 «필터 자리» · §3.1-G 권고 4). 발령 칸 표시 · 소속/스쿼드 말풍선(§3.1-G «칸 모양» · 권고 3) · 직함 자물쇠는 글자 옆에 그대로. */
+  /* 열 머리 — 이름을 누르면 정렬(오름차순 → 내림차순 → 해제 · 방향 ↑ · ↓), 깔때기를 누르면 그 열의 거르기
+     (PW-3188 · admin-spec §3.1-G-2 · 종전 ▾ 는 거르기와 «한 번에 넣기»를 섞었다). 깔때기는 거르기가 있는 열에만 선다.
+     발령 칸 표시 · 직함 자물쇠는 글자 옆에 그대로. 소속 · 스쿼드 말풍선(§3.1-G 권고 3)은 정렬 툴팁과 한 말풍선에 둔다. */
   function headCell(c) {
     const spec = te?.columns[c.id];
-    const tip = te?.headTips?.[c.id];
+    const headTip = te?.headTips?.[c.id];
     let text = c.label;
     if (c.id === 'businessTitle') {
       /* 직함은 목록에서 못 고친다는 표시 (admin-spec §3.1 ⚙ 정본표 「직함 🔒」). */
@@ -4081,7 +4185,7 @@ function EmployeesListView({
     }
     const sortable = !LIST_NO_SORT_COLS.has(c.id);
     const active = sortable && sort?.col === c.id;
-    const Arrow = sort?.dir === 'desc' ? ChevronDownGlyph : ChevronUpGlyph;
+    const Arrow = sort?.dir === 'desc' ? ArrowDownGlyph : ArrowUpGlyph;
     let labelEl = sortable ? (
       <Button
         className={`admin-emp-sort${active ? ' is-active' : ''}`}
@@ -4092,24 +4196,90 @@ function EmployeesListView({
         {active && <Arrow size={12} aria-hidden data-testid={`list-sort-arrow-${c.id}`} data-dir={sort.dir} />}
       </Button>
     ) : text;
-    if (tip) labelEl = <Tooltip content={tip}>{labelEl}</Tooltip>;
-    const filter = shownColIds.has(c.id) ? headFilters[c.id] : undefined;
-    const fillSpec = spec?.fill ? spec : null;
-    if (!filter && !fillSpec) return labelEl;
+    const tipLines = [sortable ? labels.filters.sortTip : null, headTip].filter(Boolean);
+    if (tipLines.length > 0) {
+      labelEl = (
+        <Tooltip content={tipLines.length === 1 ? tipLines[0] : <span className="admin-emp-head-tip">{tipLines.map((l) => <span key={l}>{l}</span>)}</span>}>
+          {labelEl}
+        </Tooltip>
+      );
+    }
+    const funnel = headFunnelFor(c);
+    if (!funnel) return labelEl;
     return (
       <span className="admin-emp-edit-head">
         {labelEl}
-        <HeadMenu
-          colId={c.id}
-          title={c.label}
-          filter={filter}
-          fill={fillSpec}
-          te={te}
-          selectedIds={selectedIds}
-          hiddenCount={hiddenChecked}
-          searchLabels={filterSearch}
-        />
+        {funnel}
       </span>
+    );
+  }
+
+  /** 그 열의 깔때기 — 거르기가 없는 열이면 null(§3.1-G-2 «깔때기가 붙는 열» · 없는 것은 의도된 것). */
+  function headFunnelFor(c) {
+    if (c.id === 'name') {
+      const on = nameFilterChips.length > 0;
+      const onText = nameFilterChips.map((ch) => ch.valueText).join(' · ');
+      return (
+        <HeadFunnel
+          colId="name"
+          testId="list-filter-name"
+          active={on}
+          filterLabel={labels.filters.nameFunnel}
+          tip={labels.filters.nameFunnelTip}
+          ariaLabel={on ? fill(labels.filters.nameFunnelOn, { value: onText }) : labels.filters.nameFunnel}
+        >
+          {(close) => (
+            <>
+              <div role="listbox" aria-label={labels.filters.role} data-testid="list-filter-orgRole-menu">
+                <div className="admin-emp-select-title">{labels.filters.role}</div>
+                <FilterOptionList
+                  testId="list-filter-orgRole"
+                  options={roleOpts}
+                  value={roleFilter}
+                  onPick={(v) => { setRoleFilter(v); setPage(1); close(); }}
+                />
+              </div>
+              <div className="admin-emp-head-menu-divider" role="separator" />
+              <AddedAtFields
+                testId="list-filter-addedAt"
+                label={labels.filters.addedAt}
+                labels={labels.addedAtFilter}
+                value={addedRange ? addedAt : null}
+                onChange={(v) => { setAddedAt(v ?? LIST_ALL); setPage(1); }}
+                onDone={close}
+              />
+            </>
+          )}
+        </HeadFunnel>
+      );
+    }
+    const f = headFilters[c.id];
+    if (!f) return null;
+    const on = f.value !== f.all;
+    const valueText = on ? filterOptionLabel(f.options, f.value) : '';
+    return (
+      <HeadFunnel
+        colId={c.id}
+        testId={f.testId}
+        active={on}
+        filterLabel={f.menuLabel}
+        ariaLabel={on
+          ? fill(labels.filters.funnelOn, { label: c.label, value: valueText })
+          : fill(labels.filters.funnel, { label: c.label })}
+      >
+        {(close) => (
+          <div role="listbox" aria-label={f.menuLabel} data-testid={`${f.testId}-menu`}>
+            <FilterOptionList
+              testId={f.testId}
+              options={f.options}
+              value={f.value}
+              onPick={(v) => { f.onChange(v); close(); }}
+              searchable={f.searchable}
+              searchLabels={filterSearch}
+            />
+          </div>
+        )}
+      </HeadFunnel>
     );
   }
 
@@ -4507,10 +4677,8 @@ function EmployeesListView({
           </span>
         </div>
         <div className="admin-emp-toolbar-actions">
-          {/* 「일괄 처리 (N)」 — 고른 사람이 있을 때만 뜬다(§3.1). 시안과 같이 ⚙ 컬럼
-              **앞**이다: 고르는 동작의 결과라 선택 상태 가까이 있어야 읽힌다. */}
-          <BulkMenu count={selectedCount} items={bulkItems} labels={labels} blockedReason={te?.blockedReason ?? null} />
-          <ColumnMenu cols={optionalForMenu} value={optCols} onChange={setOptCols} labels={labels} />
+          {/* 「일괄 처리 (N)」 은 표 바로 위 선택 바로 옮겼다 (PW-3188 · §3.1-G-2 «일괄 처리»). */}
+          <ColumnMenu cols={optionalForMenu} value={optCols} onChange={setOptCols} labels={labels} filterableIds={filterableColIds} />
           {/* 「⚙ 컬럼」 과 「CSV 업로드」 **사이**다(정책 §2-1) — 업로드와 방향이
               헷갈리지 않게 라벨도 「명부 내보내기」 로 둔다. */}
           {onExportRoster && (
@@ -4537,49 +4705,32 @@ function EmployeesListView({
         </div>
       </div>
 
-      <div className="admin-emp-filterbar">
-        <FilterDropdown testId="list-filter-dept" searchable searchLabels={filterSearch} label={labels.filters.dept} value={dept} options={depts} onChange={(v) => { setDept(v); setPage(1); }} />
-        {/* 열이 안 보이는 머리 필터만 여기 버튼으로 선다 (PW-1545 · admin-spec §3.1 «필터 자리»). 열이 보이면 그 머리 ▾ 다.
-            🔴 순서는 표 열과 같은 «두 덩어리» 순서다 (PW-547) — `headFilters` 를 그 순서로 적었다. */}
-        {headFilterEntries.filter(([colId]) => !shownColIds.has(colId)).map(([colId, f]) => (
-          <FilterDropdown key={colId} testId={f.testId} searchable={f.searchable} searchLabels={filterSearch} label={f.menuLabel} value={f.value} options={f.options} onChange={f.onChange} />
-        ))}
-        {/* 바로 왼쪽 「매니저」와 재는 것이 다르다 — 매니저는 「이 사람에게 상급자가
-            정해져 있나」, 권한은 「이 사람이 무엇인가」다(PW-693 · PW-884 ③). */}
-        <FilterDropdown testId="list-filter-orgRole" label={labels.filters.role} value={roleFilter} options={roleOpts} onChange={(v) => { setRoleFilter(v); setPage(1); }} />
-        <FilterDropdown testId="list-filter-employmentStatus" label={labels.filters.status} value={status} options={statusOpts} onChange={(v) => { setStatus(v); setPage(1); }} />
-        <AddedAtFilter
-          testId="list-filter-addedAt"
-          label={labels.filters.addedAt}
-          labels={labels.addedAtFilter}
-          value={addedRange ? addedAt : null}
-          onChange={(v) => { setAddedAt(v ?? LIST_ALL); setPage(1); }}
-        />
-        {/* 걸린 머리 필터 — 표를 가로로 밀어 그 머리가 화면 밖이어도 무엇이 걸렸는지 보인다. ✕ 는 그 필터만 푼다 (§3.1 «걸린 열 필터»). */}
-        {headFilterEntries.filter(([colId, f]) => shownColIds.has(colId) && f.value !== f.all).map(([colId, f]) => {
-          const colLabel = cols.find((c) => c.id === colId)?.label ?? f.menuLabel;
-          return (
+      {/* 위 줄은 검색과 «적용 중» 칩만 (PW-3188 · admin-spec §3.1-G-2 «위 줄»). 값은 열 머리 깔때기에서 고르고,
+          칩은 «{열}: {값} ✕» 로 그 거르기만 푼다. 걸린 것이 없으면 이 줄을 그리지 않는다. */}
+      {(filterChips.length > 0 || ladderCleared) && (
+        <div className="admin-emp-filterbar" data-testid="list-filter-chips">
+          {filterChips.map((ch) => (
             <Chip
-              key={`on-${colId}`}
+              key={`on-${ch.key}`}
               selected
-              data-testid={`list-filter-chip-${colId}`}
-              onRemove={() => f.onChange(f.all)}
-              removeLabel={fill(labels.filters.chipRemove, { label: colLabel })}
-              removeProps={{ 'data-testid': `list-filter-chip-${colId}-remove` }}
+              data-testid={`list-filter-chip-${ch.key}`}
+              onRemove={ch.onRemove}
+              removeLabel={fill(labels.filters.chipRemove, { label: ch.label })}
+              removeProps={{ 'data-testid': `list-filter-chip-${ch.key}-remove` }}
             >
-              {colLabel}: {filterOptionLabel(f.options, f.value)}
+              {ch.label}: {ch.valueText}
             </Chip>
-          );
-        })}
-        {ladderCleared && (
-          <span className="admin-emp-filter-notice" role="status" data-testid="list-filter-ladder-cleared">
-            {labels.ladderFilterCleared}
-          </span>
-        )}
-        {hasFilter && (
-          <button type="button" className="admin-emp-filter-reset" onClick={resetFilters}>{labels.filters.reset}</button>
-        )}
-      </div>
+          ))}
+          {ladderCleared && (
+            <span className="admin-emp-filter-notice" role="status" data-testid="list-filter-ladder-cleared">
+              {labels.ladderFilterCleared}
+            </span>
+          )}
+          {filterChips.length > 0 && (
+            <Button className="admin-emp-filter-reset" data-testid="list-filter-reset" onClick={resetFilters}>{labels.filters.reset}</Button>
+          )}
+        </div>
+      )}
 
       {bulkFailure && failedIds.size > 0 && onDismissBulkFailure && (
         <div className="admin-emp-banner is-error" role="alert" data-testid="employees-list-bulk-failure">
@@ -4609,6 +4760,32 @@ function EmployeesListView({
               {labels.listBulk.failedDismiss}
             </Button>
           </div>
+        </div>
+      )}
+
+      {/* 선택 바 (PW-3188 · admin-spec §3.1-G-2 «한 번에 넣기» · «일괄 처리») — 하나라도 체크하면 표 바로 위.
+          체크한 사람이 모두 필터에 가려져도 남는다(E15 · 체크는 필터를 바꿔도 남는다). 세로로 스크롤해도 표 위에 붙어 있다. */}
+      {selectable && selectedCount > 0 && (
+        <div className="admin-emp-selbar" role="region" aria-label={fill(labels.listBulk.selected, { count: selectedCount })} data-testid="employees-selbar">
+          <span className="admin-emp-selbar-count" data-testid="employees-selbar-count">
+            {fill(labels.listBulk.selected, { count: selectedCount })}
+            {hiddenChecked > 0 && (
+              <span className="admin-emp-selbar-hidden">{fill(labels.listBulk.selectedHidden, { hidden: hiddenChecked })}</span>
+            )}
+          </span>
+          {te && fillCols.length > 0 && (
+            <FillMenu te={te} fillCols={fillCols} selectedIds={selectedIds} hiddenCount={hiddenChecked} labels={labels} />
+          )}
+          {/* 표에 저장 전 칸이 있으면 «일괄 처리»만 끈다 — «한 번에 넣기»는 켜 둔다(§3.1-G-2 «일괄 처리» · §3.1-G 권고 2). */}
+          <BulkMenu count={selectedCount} items={bulkItems} labels={labels} blockedReason={te?.blockedReason ?? null} />
+          <span className="admin-emp-selbar-spacer" />
+          <Button
+            className="admin-emp-filter-reset"
+            data-testid="employees-selbar-clear"
+            onClick={() => setSelectedIds(new Set())}
+          >
+            {labels.listBulk.clear}
+          </Button>
         </div>
       )}
 

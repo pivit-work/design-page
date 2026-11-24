@@ -1150,6 +1150,54 @@
 .admin-emp-edit-fill-trigger:hover { background: var(--bg-secondary); color: var(--text-secondary); }
 /* 걸린 머리 필터의 ▾ — 필터 줄의 걸린 버튼 화살표와 같은 브랜드색 (PW-1545 · admin-spec §3.1 «필터 자리») */
 .admin-emp-edit-fill-trigger.is-active { color: var(--text-brand-tertiary); }
+/* 열 머리 깔때기 (PW-3188 · admin-spec §3.1-G-2) — 종전 ▾ 자리 그대로(18px · 회색 · 걸리면 브랜드색).
+   걸리면 그림 안을 칠하고(FunnelGlyph filled) 오른쪽 위에 점을 단다. */
+.admin-emp-funnel { position: relative; }
+.admin-emp-funnel-dot {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-brand-tertiary);
+  box-shadow: 0 0 0 1px var(--bg-primary);
+}
+/* 정렬 툴팁과 소속 · 스쿼드 말풍선을 한 말풍선에 두 줄로 */
+.admin-emp-head-tip { display: flex; flex-direction: column; gap: var(--spacing-xxs); }
+/* 이름 머리 깔때기의 «추가된 날» 묶음 — 종전 필터 줄 펼침(`.admin-emp-select-menu.is-range`)과 같은 칸 */
+.admin-emp-head-range {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding: 0 var(--spacing-md) var(--spacing-md);
+}
+/* ⚙ 메뉴 — 거르기가 있는 열 항목 끝 작은 깔때기 */
+.admin-emp-col-item { display: inline-flex; align-items: center; gap: var(--spacing-xs); }
+.admin-emp-col-funnel { display: inline-flex; color: var(--text-tertiary); cursor: help; }
+/* 선택 바 (PW-3188 · §3.1-G-2) — 체크가 있을 때 표 바로 위. 툴바와 같은 줄 짜임(버튼 · 결과 수 글자)이고,
+   «고른 상태»라 브랜드 옅은 바탕이다. 세로로 스크롤해도 표 위에 붙는다. */
+.admin-emp-selbar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--border-secondary);
+  background: var(--bg-brand-primary);
+}
+.admin-emp-selbar-count {
+  font-size: var(--font-size-text-sm, 14px);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.admin-emp-selbar-hidden { font-weight: 400; color: var(--text-secondary); }
+.admin-emp-selbar-spacer { flex: 1; }
 /* 열 머리 ▾ 메뉴 — 필터 목록 아래 «한 번에 넣기» 앞 구분선 (§3.1-G 권고 4 «필터 아래 구분선 밑») */
 .admin-emp-head-menu-divider {
   height: 1px;
