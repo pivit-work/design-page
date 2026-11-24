@@ -44,6 +44,7 @@ import {
  * @param {string|null} [props.initialBuilding]
  * @param {string|null} [props.floorId]  밖에서 정한 층(회사 자산 · 배치도 추가 등)
  * @param {(floorId: string) => boolean|void} [props.onFloor]  층을 고를 때 — false 면 옮기지 않는다(초안 · AI 도는 중)
+ * @param {() => void} [props.onPlaceChange]  층 · 빌딩을 고른 뒤(조직도가 층 그림을 다시 받는다 — 근무지 정책 §5 #1)
  * @param {(q: string) => void} [props.onQuery]
  * @param {(view: string) => void} [props.onView]
  * @param {import('react').ReactNode} [props.tools]  머리 줄 맨 앞(회사 자산 위 줄)
@@ -57,7 +58,7 @@ import {
 export default function OfficeSpace({
   mode = 'org', status = 'ready', onRetry, buildings: buildingOrder, floors = [], plain = [], personOf = () => null,
   groups = [], tops = [], assetsOf, onOpenPerson, onOpenDesk, onPickDesk, onPickArea,
-  initialView, initialFloorKey = null, initialBuilding = null, floorId = null, onFloor = null, onQuery = null, onView = null,
+  initialView, initialFloorKey = null, initialBuilding = null, floorId = null, onFloor = null, onPlaceChange = null, onQuery = null, onView = null,
   tools = null, editor = null, summary = null, note = null, adminLink = null, noBuildingsLink = null, labels,
 }) {
   const L = makeOrgLabels(labels);
@@ -73,20 +74,22 @@ export default function OfficeSpace({
   const plainKey = (f) => `x:${f.building}|${f.floor || ''}`;
   const firstRow = () => {
     const f = floors.find((x) => x.id === initialFloorKey);
-    if (f) return { building: f.building, key: f.id };
+    if (f) return { building: f.building, key: f.id, floorName: f.floor || '' };
     const p = plain.find((x) => plainKey(x) === initialFloorKey);
-    if (p) return { building: p.building, key: plainKey(p) };
+    if (p) return { building: p.building, key: plainKey(p), floorName: p.floor || '' };
     const pool = initialBuilding ? floors.filter((x) => x.building === initialBuilding) : floors;
     const m = most(pool);
-    return { building: initialBuilding || (m ? m.building : buildings[0]), key: m ? m.id : null };
+    return { building: initialBuilding || (m ? m.building : buildings[0]), key: m ? m.id : null, floorName: m ? m.floor || '' : null };
   };
-  const [{ building, key: floorKey }, setPlace] = useState(firstRow);
+  const [{ building, key: floorKey, floorName: keptFloor }, setPlace] = useState(firstRow);
   const rows = useMemo(() => [
     ...floors.filter((f) => f.building === building).map((f) => ({ ...f, key: f.id, drawn: true })),
     ...plain.filter((f) => f.building === building).map((f) => ({ ...f, key: plainKey(f), drawn: false })),
   ].sort((a, b) => floorNo(b.floor) - floorNo(a.floor)), [floors, plain, building]);
   // 층 줄 — 처음 층이 정해지지 않았으면(그림이 없는 빌딩) 앉은 사람이 가장 많은 층, 아니면 맨 위
+  // 고른 층이 다시 받은 목록에 없으면(«조직도에 보이기»가 꺼져 그림 층이 «목록만»이 됨) 같은 층 글자로 다시 찾는다
   const row = rows.find((r) => r.key === floorKey)
+    || (keptFloor != null ? rows.find((r) => (r.floor || '') === keptFloor) : null)
     || (rows.length ? [...rows].sort((a, b) => rowHead(b) - rowHead(a))[0] : null);
   function rowHead(r) {
     return r.drawn ? seatedN(r) + (r.loose || []).filter((x) => personOf(x.id)).length : r.people.filter((x) => personOf(x.id)).length;
@@ -121,7 +124,9 @@ export default function OfficeSpace({
   const hitD = (d) => !norm(q) || [d.name, d.seatId && personOf(d.seatId) && personOf(d.seatId).name].some((s) => norm(s).includes(norm(q)));
   const keyOf = (p) => (bldgView ? p.top || p.group : p.group);
   const toneOfP = (p) => (bldgView ? (p.topTone !== undefined ? p.topTone : p.tone) : p.tone);
-  const dim = (p) => (grp && (!p || keyOf(p) !== grp)) || (norm(q) && org && p && !hitP({ p, deskName: null }));
+  // 흐림 — 목록 찾기와 같은 재료(이름 · 소속 · 직함 · 책상 이름)로 맞춘다
+  const deskNameOf = new Map(people.map((x) => [x.p.id, x.deskName]));
+  const dim = (p) => (grp && (!p || keyOf(p) !== grp)) || (norm(q) && org && p && !hitP({ p, deskName: deskNameOf.get(p.id) ?? null }));
   const selDesk = (floor && floor.desks.find((d) => d.id === sel)) || null;
   const selPerson = selDesk && selDesk.seatId ? personOf(selDesk.seatId) : null;
   const cntOf = (r) => (org ? L('office.countPeople', { count: rowHead(r) }) : r.drawn ? L('office.countDesks', { count: r.desks.length }) : '');
@@ -136,7 +141,7 @@ export default function OfficeSpace({
     setSeenOuter(outerKey);
     const f = floorId && floors.find((x) => x.id === floorId);
     if (f && f.id !== floorKey) {
-      setPlace({ building: f.building, key: f.id });
+      setPlace({ building: f.building, key: f.id, floorName: f.floor || '' });
       setSel(null);
       if (view === 'bldg') setView('3d');
     }
@@ -349,18 +354,21 @@ export default function OfficeSpace({
   };
   const pickFloor = (k, deskId = null) => {
     if (onFloor && k !== floorKey && rows.find((r) => r.key === k && r.drawn) && onFloor(k) === false) return;
-    setPlace({ building, key: k });
+    const target = rows.find((r) => r.key === k);
+    setPlace({ building, key: k, floorName: target ? target.floor || '' : null });
     setSel(deskId);
     setGrp(null);
     if (view === 'bldg') setView('3d');
+    if (onPlaceChange) onPlaceChange();
   };
   const pickBuilding = (n) => {
     const m = most(floors.filter((f) => f.building === n));
     if (onFloor && m && onFloor(m.id) === false) return;
-    setPlace({ building: n, key: m ? m.id : null });
+    setPlace({ building: n, key: m ? m.id : null, floorName: m ? m.floor || '' : null });
     setSel(null);
     setGrp(null);
     if (view === 'bldg' && floors.filter((f) => f.building === n).length === 0) setView('3d');
+    if (onPlaceChange) onPlaceChange();
   };
   const zoomBy = (k) => {
     const c = cam.current;
