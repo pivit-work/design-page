@@ -2113,7 +2113,7 @@ export default function EvalCycleLeaderCanvas({
                   <div className="evc-card-buttons">
                     {/* PW-3239 · leader §5.11-A «덧붙임 둘째» — 다시 연 리뷰에는 버튼 대신 회색 보조 문구. 잠긴 화면엔 둘 다 없다. */}
                     {!readOnlyView && reopenedEditing && !assessmentLocked && (
-                      <span className="evm-kr-hint" data-testid="evl-promo-resubmit-note">
+                      <span className="evl-promo-resubmit-note" data-testid="evl-promo-resubmit-note">
                         {L.promoReqResubmitNote}
                       </span>
                     )}

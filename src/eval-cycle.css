@@ -16230,6 +16230,8 @@ button.evmh-phase:focus-visible {
 }
 .evlr-assess-q > .evc-card-name > .dp-badge { display: inline-flex; align-items: center; gap: var(--spacing-xs); }
 .evlr-assess .evl-committee-hint { margin: 0; font-size: 13px; color: var(--text-subtle); }
+/* PW-3239 — 다시 연 리뷰의 요청서 버튼 자리 보조 문구. 같은 카드 보조 회색 글(위 줄 · 디자이너 값) 그대로. */
+.evlr-assess .evl-promo-resubmit-note { font-size: 13px; color: var(--text-subtle); }
 .evlr-assess .evm-field + .evm-field { margin-top: var(--spacing-xl); }
 .evlr-assess .evc-card-buttons.evlr-assess-foot { justify-content: flex-end; padding-top: var(--spacing-xl); }
 
