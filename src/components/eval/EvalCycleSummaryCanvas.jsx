@@ -1768,7 +1768,9 @@ function MiniSparklineChart({ trend, domain, emptyLabel = '—' }) {
   const max = Math.max(domain?.max ?? 3, min + 1);
   const W = 60;
   const H = 18;
-  const x = (i) => (scores.length > 1 ? (i / (scores.length - 1)) * W : W / 2);
+  // [PW-3182] 양 끝 점이 svg 밖으로 반쪽 잘리지 않게 점 반지름만큼 안쪽에 둔다 — 점이 하나만 끝 칸에 서면 거의 안 보였다.
+  const R = 2;
+  const x = (i) => (scores.length > 1 ? R + (i / (scores.length - 1)) * (W - R * 2) : W / 2);
   const y = (v) => H - ((v - min) / (max - min)) * (H - 4) - 2;
   const firstIdx = scores.findIndex((v) => v != null);
   const d = scores
@@ -1796,7 +1798,7 @@ function MiniSparklineChart({ trend, domain, emptyLabel = '—' }) {
       <path d={d} className="evs-cw-spark-line" fill="none" />
       {scores.map((v, i) =>
         v == null ? null : (
-          <circle key={i} cx={x(i)} cy={y(v)} r={2} className="evs-cw-spark-dot">
+          <circle key={i} cx={x(i)} cy={y(v)} r={R} className="evs-cw-spark-dot">
             <title>
               {pointText(trend[i], v)}
             </title>
