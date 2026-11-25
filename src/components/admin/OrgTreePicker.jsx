@@ -107,6 +107,7 @@ const DEFAULT_LABELS = {
   // 유지되는 상위 경로 — PW-404
   retainedBadge: '유지',
   retainedBadgeTitle: '하위 조직에 속해 있어 이 상위 조직은 그대로 유지됩니다. 따로 끌 수 없습니다',
+  lockedTitle: '회사 맨 위는 조직이 아니라 소속으로 고를 수 없습니다',
   retainedSuffix: '상위 경로 {count}곳 유지',
   // 추가 전용(`primarySelectable={false}`) 전용 — PW-373
   appendHint: '고른 조직이 더해집니다. 기존 소속과 주 소속은 그대로 남습니다.',
@@ -153,6 +154,12 @@ export default function OrgTreePicker({
    * 실제로 정리되므로, 그때는 유지라고 말하면 안 된다.
    */
   retainedIds = [],
+  /**
+   * 고를 수 없는 조직 id 배열 (pivit-work PW-3161). 미리 골라 두지 않고, 줄을 눌러도 골라지지 않는다 —
+   * 검색의 조상 줄(P5)과 같은 «선택 불가» 모양. 회사 맨 위처럼 조직이 아닌 자리를 넘긴다.
+   * 고른 조직의 조상이라 「유지」로 그려지는 동안은 유지 표시가 이긴다(PW-404).
+   */
+  lockedIds = [],
   /**
    * 조직장(매니저)인 조직 id 배열 (PW-400). `onToggleLeader` 와 짝이다.
    */
@@ -233,13 +240,19 @@ export default function OrgTreePicker({
   const labels = useMemo(() => ({ ...DEFAULT_LABELS, ...(providedLabels || {}) }), [providedLabels]);
   const tree = useMemo(() => buildOrgTree(units), [units]);
 
-  const initial = value != null ? String(value) : '';
+  // 고를 수 없는 조직 — 문자열 키로 굳혀 매 렌더 새 배열이어도 같은 집합으로 본다(PW-3161).
+  const lockedKey = (lockedIds || []).map(String).filter(Boolean).join(',');
+  const lockedSet = useMemo(() => new Set(lockedKey ? lockedKey.split(',') : []), [lockedKey]);
+  const rawInitial = value != null ? String(value) : '';
+  const initial = lockedSet.has(rawInitial) ? '' : rawInitial;
   // multi 의 초기값은 배열이라 `!==` 비교로는 매 렌더가 "바뀜" 이 된다 — 문자열 키로 굳힌다.
+  // 고를 수 없는 조직은 미리 골라 두지 않는다(PW-3161).
   const initialMulti = useMemo(
-    () => (selectedIds || []).map(String).filter(Boolean),
-    [selectedIds],
+    () => (selectedIds || []).map(String).filter((id) => id && !lockedSet.has(id)),
+    [selectedIds, lockedSet],
   );
-  const initialPrimary = primaryId != null ? String(primaryId) : '';
+  const rawPrimary = primaryId != null ? String(primaryId) : '';
+  const initialPrimary = lockedSet.has(rawPrimary) ? '' : rawPrimary;
   const syncKey = multi
     ? `m:${initialMulti.join(',')}|${initialPrimary}`
     : `s:${initial}`;
@@ -333,8 +346,8 @@ export default function OrgTreePicker({
 
   // 키보드 이동 대상 = 트리 행 + 미배정 행(마지막). 선택 불가(ghost)는 건너뛴다.
   const navRows = useMemo(
-    () => [...rows.filter((e) => !ghostIds.has(e.id)).map((e) => e.id), ''],
-    [rows, ghostIds],
+    () => [...rows.filter((e) => !ghostIds.has(e.id) && !lockedSet.has(e.id)).map((e) => e.id), ''],
+    [rows, ghostIds, lockedSet],
   );
 
   // 검색으로 행이 줄면 커서가 목록 밖을 가리킬 수 있다 — 렌더 시점에 클램프한다.
@@ -355,7 +368,7 @@ export default function OrgTreePicker({
    *  · 전부 해제하면 주 소속도 비운다(= 미배정)
    */
   const togglePick = (id) => {
-    if (!id) return;
+    if (!id || lockedSet.has(id)) return;
     setPicked((prev) => {
       const on = prev.includes(id);
       const next = on ? prev.filter((x) => x !== id) : [...prev, id];
@@ -626,7 +639,9 @@ export default function OrgTreePicker({
         style={{ flex: 1, minHeight: 120, overflowY: 'auto', padding: '8px 12px', outline: 'none' }}
       >
         {rows.map((e) => {
-          const ghost = ghostIds.has(e.id);
+          // 고를 수 없는 조직(PW-3161)도 검색 조상 줄과 같은 «선택 불가» — 단 「유지」로 그려지는 동안은 유지 표시
+          const locked = lockedSet.has(e.id) && !retainedActive.has(e.id);
+          const ghost = ghostIds.has(e.id) || locked;
           const selected = sel === e.id;
           const navIdx = navRows.indexOf(e.id);
           return (
@@ -684,7 +699,8 @@ export default function OrgTreePicker({
                   else pickSingle(e.id);
                   if (navIdx >= 0) setActiveIdx(navIdx);
                 }}
-                title={e.pathLabel}
+                // 왜 못 고르는지 말한다(PW-3161) — 흐린 줄만 두면 고장으로 읽힌다
+                title={locked ? `${e.pathLabel} — ${labels.lockedTitle}` : e.pathLabel}
                 style={{
                   ...rowStyle(selected, ghost),
                   flex: 1,

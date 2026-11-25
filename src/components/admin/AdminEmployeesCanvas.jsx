@@ -1266,6 +1266,7 @@ function ManagerPicker({ candidates, labels, onPick, trigger, disabled = false }
 /* ── 탭 B: 미배정 관리 ──────────────────────────────────── */
 function UnassignedTab({
   members, orgUnits, labels, renderAvatar, onAssignOrgUnit, onChangeAffiliations, affiliationApproval,
+  affiliationLockedIds,
   leaderGaps = EMPTY_LEADER_GAPS, onGoAssignLeader, onGoAssignCeo,
   /* 조직단위 설정 화면을 열 수 없는 어드민(PW-2494 · admin-spec §3.3 «권한» 행) — 이 글이 오면
      [조직장 지정 →]을 비활성으로 두고 이 글을 툴팁으로 단다. 지정 자격이 아니라 «이동할 화면을
@@ -1352,6 +1353,8 @@ function UnassignedTab({
                           subtitle={m.displayName || m.name}
                           selectedIds={selected}
                           retainedIds={retainedOrgIds(m, selected)}
+                          // 고를 수 없는 조직(회사 맨 위 · pivit-work PW-3161) — 미리 고르지 않고 못 고른다
+                          lockedIds={affiliationLockedIds?.(m)}
                           labels={labels.orgPicker}
                           // 저장을 기다린다 — 거절되면 팝업이 남는다(PW-2909). 닫기는 피커가 onClose 로.
                           onApply={({ unitIds, primaryUnitId }) => (unitIds && unitIds.length > 0
@@ -1372,6 +1375,7 @@ function UnassignedTab({
                       units={orgUnits}
                       value=""
                       subtitle={m.name}
+                      lockedIds={affiliationLockedIds?.(m)}
                       labels={labels.orgPicker}
                       onApply={(unitId) => (unitId ? onAssignOrgUnit(m.id, unitId) : undefined)}
                       onClose={() => setPickerFor(null)}
@@ -2996,7 +3000,7 @@ function ListManagerCell({ member, labels, candidates, onAssignManager, renderAv
 function EmployeesListView({
   members, orgUnits, labels, canEdit, pageSize, renderAvatar, jobAxis, valueLabels,
   canViewSalary, managerCandidates, optCols: providedOptCols, onOptColsChange,
-  leaderUnitIdsByMember, onToggleOrgLeader, onChangeAffiliations, affiliationApproval,
+  leaderUnitIdsByMember, onToggleOrgLeader, onChangeAffiliations, affiliationApproval, affiliationLockedIds,
   onOpenEdit: onOpenEditWithOrder, onDeactivate, onCancelOffboarding, onAssignManager, onCsvUpload,
   /* 스쿼드 원장(§1-5-b). **배정 값에는 이름이 없다**(`{ squadId, isLead }`) — 원장을
      못 받으면 스쿼드 열도 필터 목록도 통째로 빈다(PW-411 에서 발견). */
@@ -4945,6 +4949,8 @@ function EmployeesListView({
           selectedIds={deptPickerSelected}
           primaryId={deptPickerPrimary}
           retainedIds={deptPickerRetained}
+          // 고를 수 없는 조직(회사 맨 위 · pivit-work PW-3161) — 미배정 [조직 배정] 팝업과 같은 규칙
+          lockedIds={affiliationLockedIds?.(deptPicker)}
           leaderUnitIds={(leaderUnitIdsByMember || {})[deptPicker.id] || []}
           // 조직장 지정은 서버 한 번의 변경이라 「적용」 을 기다리지 않고 그 자리에서 보낸다 —
           // 소속 선택과 묶으면 취소를 눌렀을 때 무엇이 되돌아가는지가 흐려진다.
@@ -8371,6 +8377,12 @@ export default function AdminEmployeesCanvas({
    * — 그 화면의 확정은 묶음의 [발령] · [수정]이고 묶음에 같은 줄이 있다. 미주입이면 줄이 없다.
    */
   affiliationApproval,
+  /**
+   * 소속 팝업에서 고를 수 없는 조직 id (pivit-work PW-3161). `(member) => string[]` — 목록 «소속» 칸 · 미배정
+   * «+ 조직 배정» 팝업이 사람마다 부른다. 회사 맨 위처럼 주 소속으로 두면 미배정으로 남는 자리를 넘긴다 —
+   * 누구에게 잠글지(대표 · 직속 칸은 빼는 등)는 부르는 쪽 판정이다. 미주입이면 잠그지 않는다(종전).
+   */
+  affiliationLockedIds,
   onCsvUpload,
   /* ⛔ `onManageTeams` 폐기 (PW-576) — 폐기된 시트의 「팀 관리로」 링크가 쓰던 것이다.
      목록 표에는 그 링크가 없고, 조직 편집은 소속 팝업 안내가 가리킨다. */
@@ -9017,6 +9029,7 @@ export default function AdminEmployeesCanvas({
             onToggleOrgLeader={canEdit ? onToggleOrgLeader : undefined}
             onChangeAffiliations={onChangeAffiliations}
             affiliationApproval={canEdit ? affiliationApproval : undefined}
+            affiliationLockedIds={affiliationLockedIds}
             /* 같은 사람을 다른 길로 고칠 때(PW-1333 · §3.1-G 권고 2) — 저장 전 칸이 있는 사람만 막는다 */
             onOpenEdit={(m, rows) => guardMember(m, () => {
               if (detailRoute) openDetail(m, rows);
@@ -9093,6 +9106,7 @@ export default function AdminEmployeesCanvas({
           onAssignOrgUnit={onAssignOrgUnit}
           onChangeAffiliations={onChangeAffiliations}
           affiliationApproval={affiliationApproval}
+          affiliationLockedIds={affiliationLockedIds}
           leaderGaps={leaderGaps}
           onGoAssignLeader={canEdit ? onGoAssignLeader : undefined}
           goOrgUnitsBlockedTip={goOrgUnitsBlockedTip}
