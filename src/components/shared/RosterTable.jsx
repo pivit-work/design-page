@@ -183,7 +183,7 @@ function RosterHead({ children, groups }) {
   return (
     <thead>
       {groups && (
-        <tr className="rt-head-groups">
+        <tr data-rt-head-groups="">
           {groups.map((g, i) =>
             g.label == null ? (
               <th key={i} colSpan={g.span ?? 1} className="rt-head-gap" aria-hidden="true" />
