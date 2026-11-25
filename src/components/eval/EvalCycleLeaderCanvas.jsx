@@ -1208,7 +1208,8 @@ export default function EvalCycleLeaderCanvas({
         ...(assessmentLocked ? {} : { assessment: assessmentPayload() }),
         ...(leaderCommentOn && leaderCommentWritable ? { leaderComment: lc } : {}),
         // PW-3239 · leader §5.11-A «덧붙임 둘째» — 다시 연 리뷰는 요청서 네 칸을 [다시 제출]에 함께 싣는다(한 트랜잭션).
-        // 고쳤는지는 서버가 이미 낸 요청서와 맞대 본다. 제출 전 리뷰는 종전대로 [승진 요청서 제출]로 따로 낸다.
+        // 화면을 열 때의 네 칸(promoSeed)과 달라졌을 때만 싣는다 — 지우면 손대지 않은 [다시 제출]이 그 사이 다른 평가자가
+        // 고친 요청서를 옛 글로 덮는다. 서버도 이미 낸 요청서와 한 번 더 맞대 본다. 제출 전 리뷰는 종전대로 따로 낸다.
         ...(submitted && !assessmentLocked && promoReqOn && JSON.stringify(promoForm) !== JSON.stringify(promoSeed)
           ? { promotionRequest: promoForm }
           : {}),
