@@ -2709,6 +2709,13 @@ export default function MySettingsCanvas({
                               {item.lockedNote}
                             </div>
                           )}
+                          {/* 한 스위치가 덮는 알림 가운데 일부만 회사가 필수로 올렸을 때 (pivit-work PW-3258 · my-settings-spec §6.1-O) —
+                              스위치는 열어 두고, 끄더라도 계속 오는 알림을 하나씩 같은 설명 줄로 알린다. */}
+                          {!item.locked && Array.isArray(item.policyNotes) && item.policyNotes.map((note, i) => (
+                            <div key={i} className="msc-notif-sub" data-testid={`notification-policy-note-${item.key}`}>
+                              {note}
+                            </div>
+                          ))}
                         </div>
                         <Switch
                           checked={Boolean(item.on)}

@@ -61,6 +61,9 @@ import { FormModal } from '../frames/FormModal.jsx';
  *    enabled: bool,
  *    alwaysOn?: bool,                   // 회사도 끌 수 없는 규칙(PW-2597). 줄 스위치 자리와 수정 창 «이 알림 활성화» 자리에
  *                                       // «끌 수 없음»을 둔다(기획서 admin-app.jsx RuleRow · EditRuleModal · PW-3125)
+ *    mandatoryControl?: 'open'|'fixed', // 회사가 줄마다 필수로 올리는 칸(pivit-work PW-3258 · admin-spec §6.3-A). 'open' = 수정 창
+ *                                       // «필수 알림» 스위치 · 'fixed' = 처음부터 필수(스위치 대신 labels.modal.mandatoryFixed) · 없으면 칸 없음
+ *    mandatory?: bool,                  // 지금 필수인가. 참이면 줄 이름 바로 뒤 배지 labels.mandatoryBadge. 'open' 줄은 저장 때 onSave 로 함께 간다
  *    recipientsFixed?: string,          // 받는 사람만 정해진 규칙의 안내(PW-2099 · spec-eval-cycle §14.4 N-2). 있으면
  *                                       // 수정 창의 받는 사람 칸은 잠금 안내, 채널은 그대로 체크로 고르고, 목록 행은
  *                                       // 역할 칩 대신 이 안내 + 채널을 보인다
@@ -98,6 +101,7 @@ const DEFAULT_LABELS = {
   filterAll: '전체',
   groupActiveSuffix: '활성', // "N / M 활성"
   editableBadge: '조건 편집 가능',
+  mandatoryBadge: '필수', // 회사가 올렸거나 처음부터 필수인 줄(pivit-work PW-3258 · admin-spec §6.3-A)
   alwaysOn: '끌 수 없음',
   editBtn: '수정',
   enableAll: '전체 알림 활성화',
@@ -107,6 +111,10 @@ const DEFAULT_LABELS = {
   modal: {
     enableThis: '이 알림 활성화',
     alwaysOn: '끌 수 없음 — 채널만 바꿀 수 있어요',
+    mandatory: '필수 알림',
+    mandatoryDesc: '켜면 구성원이 내 설정 › 알림에서 끌 수 없습니다. 이메일 알림을 끈 사람과 집중 시간인 사람에게도 보냅니다.',
+    mandatoryFixed: '늘 필수 — 바꿀 수 없어요',
+    mandatoryOffNote: '지금은 이 알림이 꺼져 있어 아무에게도 가지 않습니다',
     perRuleFixed: '알림마다 고정', // 받는 사람이 알림마다 정해진 칸의 딱지
     stageColumn: '단계',
     channelLockedNote: '자물쇠가 붙은 채널은 이 알림에서 끌 수 없습니다.',
@@ -389,6 +397,8 @@ function Preview({ label, text, baseUrl }) {
 /* ── 규칙 수정 모달 ───────────────────────────────────── */
 function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatCooldown, onClose, onSave, baseUrl, validateRule, busy = false }) {
   const [enabled, setEnabled] = useState(rule.enabled);
+  // 필수 알림(pivit-work PW-3258) — 다른 칸처럼 [저장]할 때만 반영된다
+  const [mandatory, setMandatory] = useState(Boolean(rule.mandatory));
   const [conditionValues, setConditionValues] = useState(
     rule.conditionValues ? { ...rule.conditionValues } : null,
   );
@@ -458,7 +468,7 @@ function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatC
             onClick={async () => {
               // [PW-2079] 부르는 쪽이 확인 창에서 취소하면 `false` 를 돌려준다 — 그때는 창을 닫지 않아
               // 고친 값이 그대로 남는다(admin-spec §6.1-B «취소하면»). 그 밖의 값이면 종전대로 닫는다.
-              const ok = await onSave({ ...rule, enabled: savedEnabled, conditionValues, cooldown, recipients, channels: savedChannels, ...(stageChannels ? { stageChannels } : {}) });
+              const ok = await onSave({ ...rule, enabled: savedEnabled, conditionValues, cooldown, recipients, channels: savedChannels, ...(stageChannels ? { stageChannels } : {}), ...(rule.mandatoryControl === 'open' ? { mandatory } : {}) });
               if (ok !== false) onClose();
             }}
           >
@@ -467,6 +477,8 @@ function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatC
         </>
       }
     >
+        {/* 활성화와 필수 알림은 한 짝 — 본문 칸 사이(24)보다 좁게 12 로 붙인다(pivit-work PW-3258 · 기획 시안 «위 칸과 붙여 둔다») */}
+        <div className="admin-notif-enable-group">
         {/* 활성화 — 끌 수 없는 알림이면 스위치 자리에 안내(기획서 EditRuleModal · PW-3125) */}
         <div className="admin-notif-enable-row">
           <span className="admin-notif-enable-label">{labels.modal.enableThis}</span>
@@ -475,6 +487,26 @@ function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatC
           ) : (
             <Switch checked={enabled} onChange={setEnabled} label={labels.modal.enableThis} />
           )}
+        </div>
+
+        {/* 필수 알림(pivit-work PW-3258 · admin-spec §6.3-A) — 바로 위 «이 알림 활성화»와 같은 상자를 붙여 둔다.
+            처음부터 필수인 줄은 스위치 자리에 고정 글, 칸을 두지 않는 줄은 그리지 않는다. */}
+        {rule.mandatoryControl && (
+          <div className="admin-notif-mandatory" data-testid="notif-mandatory">
+            <div className="admin-notif-mandatory-head">
+              <span className="admin-notif-enable-label">{labels.modal.mandatory}</span>
+              {rule.mandatoryControl === 'fixed' ? (
+                <span className="admin-notif-enable-locked" data-testid="notif-mandatory-fixed">{labels.modal.mandatoryFixed}</span>
+              ) : (
+                <Switch checked={mandatory} onChange={setMandatory} label={labels.modal.mandatory} />
+              )}
+            </div>
+            <div className="admin-notif-mandatory-desc">{labels.modal.mandatoryDesc}</div>
+            {!savedEnabled && (
+              <div className="admin-notif-mandatory-off" data-testid="notif-mandatory-off">{labels.modal.mandatoryOffNote}</div>
+            )}
+          </div>
+        )}
         </div>
 
         {/* 발동 조건 */}
@@ -633,6 +665,12 @@ function RuleRow({ rule, labels, formatCondition, formatCooldown, onEdit, onTogg
       <div className="admin-notif-rule-main">
         <div className="admin-notif-rule-head">
           <span className="admin-notif-rule-label">{rule.label}</span>
+          {/* 필수 — 이름 바로 뒤 · «조건 편집 가능» 앞, 같은 크기(pivit-work PW-3258 · admin-spec §6.3-A). 꺼진 줄에도 남는다 */}
+          {rule.mandatory && (
+            <StatusBadge tone="neutral" className="admin-notif-tag admin-notif-editable-badge" data-testid="notif-rule-mandatory">
+              {labels.mandatoryBadge}
+            </StatusBadge>
+          )}
           {rule.conditionSchema && (
             <StatusBadge tone="neutral" className="admin-notif-tag admin-notif-editable-badge">
               <Icon src={ICON_EDIT} size={12} color="var(--text-tertiary)" baseUrl={baseUrl} />
