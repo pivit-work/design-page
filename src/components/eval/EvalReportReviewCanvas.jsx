@@ -229,7 +229,7 @@ const DEFAULT_LABELS = {
   aiWaitingPeer: '동료 리뷰 검수가 끝나면 만들어집니다',
   aiPeerChanged: '요약을 만든 뒤 동료 글이 바뀌었습니다',
   // PW-3228 — 앞 요약이 있는 사람의 다시 만들기 실패(요약 정책 §8.5 «생성 실패» — 앞 요약과 그 상태는 그대로).
-  aiRegenFailed: '종합 요약을 다시 만들지 못했습니다. 다시 시도해 주세요.',
+  aiRegenFailed: '요약을 다시 만들지 못했습니다',
   aiRegenerateError: '리포트를 다시 만들지 못했습니다. 잠시 후 다시 시도해 주세요.',
   // PW-1458 — 발송에서 빠진 것과 실패한 것 (정책 §8.6 예외 처리)
   toastSkippedNotApproved: '미승인 {count}건은 제외됩니다',
