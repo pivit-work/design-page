@@ -228,6 +228,8 @@ const DEFAULT_LABELS = {
   aiRegenerate: '재생성',
   aiWaitingPeer: '동료 리뷰 검수가 끝나면 만들어집니다',
   aiPeerChanged: '요약을 만든 뒤 동료 글이 바뀌었습니다',
+  // PW-3228 — 앞 요약이 있는 사람의 다시 만들기 실패(요약 정책 §8.5 «생성 실패» — 앞 요약과 그 상태는 그대로).
+  aiRegenFailed: '종합 요약을 다시 만들지 못했습니다. 다시 시도해 주세요.',
   aiRegenerateError: '리포트를 다시 만들지 못했습니다. 잠시 후 다시 시도해 주세요.',
   // PW-1458 — 발송에서 빠진 것과 실패한 것 (정책 §8.6 예외 처리)
   toastSkippedNotApproved: '미승인 {count}건은 제외됩니다',
@@ -1531,7 +1533,14 @@ function ReviewRow({
         )}
         {!excluded && (aiState === 'failed' || aiState === 'trial_exhausted') && (
           <span className="evrr-ai-state" data-testid={`evrr-ai-${aiState === 'failed' ? 'failed' : 'trial'}-${row.memberId}`}>
-            {aiState === 'failed' && (
+            {/* PW-3228 — 앞서 만든 요약이 있으면(이름 옆 «AI 생성») 그 요약과 딱지는 그대로 두고 실패는 안내 한 줄로만 —
+                빨간 «생성 실패» 딱지를 같이 달면 한 줄에 «만들었다»와 «실패했다»가 함께 읽힌다(hr §9.2-A-1 · 요약 §8.5). */}
+            {aiState === 'failed' && row.aiGenerated === true && (
+              <span className="evrr-ai-regen-failed" data-testid={`evrr-ai-regen-failed-${row.memberId}`}>
+                {L.aiRegenFailed}
+              </span>
+            )}
+            {aiState === 'failed' && row.aiGenerated !== true && (
               <StatusBadge className="evrr-badge is-failed">{L.aiFailed}</StatusBadge>
             )}
             {canReject && onRegenerate && (
