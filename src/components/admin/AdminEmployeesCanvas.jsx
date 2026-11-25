@@ -1344,7 +1344,10 @@ function UnassignedTab({
                     // 주 소속만 잃은 사람은 남은 겸직이 미리 골라져 있다. 다중 저장 경로가
                     // 없는 소비자에게는 종전 단일 선택으로 연다.
                     onChangeAffiliations ? (() => {
-                      const selected = Array.isArray(m.orgUnitIds) ? m.orgUnitIds : [];
+                      // 고를 수 없는 조직(회사 맨 위 · pivit-work PW-3161)은 선택에서 빼 «유지» 후보로 넘긴다 — 팀을 고르면
+                      // 서버가 그 상위 행을 남기므로 팝업도 «유지»로 말한다(PW-404).
+                      const locked = affiliationLockedIds?.(m) ?? [];
+                      const selected = (Array.isArray(m.orgUnitIds) ? m.orgUnitIds : []).filter((id) => !locked.includes(id));
                       return (
                         <OrgTreePicker
                           open
@@ -1354,7 +1357,7 @@ function UnassignedTab({
                           selectedIds={selected}
                           retainedIds={retainedOrgIds(m, selected)}
                           // 고를 수 없는 조직(회사 맨 위 · pivit-work PW-3161) — 미리 고르지 않고 못 고른다
-                          lockedIds={affiliationLockedIds?.(m)}
+                          lockedIds={locked}
                           labels={labels.orgPicker}
                           // 저장을 기다린다 — 거절되면 팝업이 남는다(PW-2909). 닫기는 피커가 onClose 로.
                           onApply={({ unitIds, primaryUnitId }) => (unitIds && unitIds.length > 0
@@ -4536,9 +4539,11 @@ function EmployeesListView({
   const deptFallbackPrimary = deptPicker
     ? (primaryOrgEntry(orgTree, deptPicker.orgUnitIds)?.id ?? '')
     : '';
-  const deptPickerSelected = deptChips.length > 0
+  // 고를 수 없는 조직(회사 맨 위 · pivit-work PW-3161)은 선택에서 빼 «유지» 후보로 둔다 — 미배정 팝업과 같다
+  const deptPickerLocked = deptPicker ? (affiliationLockedIds?.(deptPicker) ?? []) : [];
+  const deptPickerSelected = (deptChips.length > 0
     ? deptChips.map((d) => d.orgUnitId)
-    : (deptFallbackPrimary ? [deptFallbackPrimary] : []);
+    : (deptFallbackPrimary ? [deptFallbackPrimary] : [])).filter((id) => !deptPickerLocked.includes(id));
   const deptPickerPrimary = deptChips.find((d) => d.isPrimary)?.orgUnitId || deptFallbackPrimary;
   /* 선택에 안 나오는 배정 행 = 서버가 접은 상위 경로 (PW-404). 팝업이 「유지」로 말한다 —
      안 말하면 「선택 2곳」인데 서버는 3행이라, 적용하면 상위 소속이 떨어지는 줄 안다. */
@@ -4950,7 +4955,7 @@ function EmployeesListView({
           primaryId={deptPickerPrimary}
           retainedIds={deptPickerRetained}
           // 고를 수 없는 조직(회사 맨 위 · pivit-work PW-3161) — 미배정 [조직 배정] 팝업과 같은 규칙
-          lockedIds={affiliationLockedIds?.(deptPicker)}
+          lockedIds={deptPickerLocked}
           leaderUnitIds={(leaderUnitIdsByMember || {})[deptPicker.id] || []}
           // 조직장 지정은 서버 한 번의 변경이라 「적용」 을 기다리지 않고 그 자리에서 보낸다 —
           // 소속 선택과 묶으면 취소를 눌렀을 때 무엇이 되돌아가는지가 흐려진다.
