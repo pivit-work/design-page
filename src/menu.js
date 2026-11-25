@@ -120,4 +120,7 @@ export const ADMIN_MENU = [
   // ⚠️ 기획 정본 arch-nav-routing-policy §1-A 에는 아직 이 행이 없다 — 기획 등재 대기.
   { id: 'audit-log',     icon: '/icons-solid/clock-rewind.svg',        label: '감사 로그',        group: 'system' },
   { id: 'ai-tuning',     icon: '/icons-solid/ai-chat-01.svg',          label: 'AI 프롬프트 설정', group: 'system' },
+  // 튜토리얼 매뉴얼 — 기능별 PDF 매뉴얼을 받는 화면 (pivit-work PW-3261 · arch-nav-routing-policy §1-A v2.12
+  // «⑤ 시스템 /admin/manuals» · screen-tutorial-manual-list.policy.md §2 «시스템 맨 끝 · 책 아이콘»).
+  { id: 'manuals',       icon: '/icons-solid/book-open-01.svg',        label: '튜토리얼 매뉴얼', group: 'system' },
 ];
