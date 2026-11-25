@@ -86,7 +86,7 @@ export default function MemberPerformanceSection({ state, labels, archivedNote =
                   {fill(L.released, { date: r.releasedAt })}
                 </span>
               ) : (
-                <StatusBadge tone="warning" className="admin-emp-perf-side" data-testid="employees-detail-performance-unreleased">
+                <StatusBadge tone="warning" className="admin-emp-role-pill admin-emp-perf-side" data-testid="employees-detail-performance-unreleased">
                   {L.unreleased}
                 </StatusBadge>
               )}
