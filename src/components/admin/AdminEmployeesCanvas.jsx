@@ -4992,6 +4992,9 @@ function EmployeesListView({
           primarySelectable={false}
           units={orgUnits}
           selectedIds={[]}
+          // 회사 맨 위는 더할 조직이 아니다 — 소속 없는 사람이면 주 소속으로 승계돼 미배정으로 남는다(pivit-work PW-3161).
+          // 사람마다 다르지 않아 빈 사람으로 묻는다(대표 · 직속 예외는 한 사람을 볼 때만 뜻이 있다).
+          lockedIds={affiliationLockedIds?.({})}
           subtitle={fill(labels.listBulk.orgAppendSubtitle, { count: selectedCount })}
           onApply={({ unitIds }) => applyBulkOrgAppend(unitIds)}
           onClose={() => setBulkOrgOpen(false)}
