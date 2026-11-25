@@ -5859,6 +5859,8 @@ function EmployeesEditPanel({
   managerRow,
   onRehireMember,
   member, orgUnits, labels, renderAvatar, canEdit,
+  /* 소속 팝업에서 고를 수 없는 조직(회사 맨 위 · pivit-work PW-3161) — 목록 · 미배정 팝업과 같은 `(member) => string[]` */
+  affiliationLockedIds,
   gradeOptions, positionOptions, onClose, onSave, onChangeAffiliations,
   onLoadHrProfile, onSaveIdentity,
   today,
@@ -6432,8 +6434,11 @@ function EmployeesEditPanel({
     primaryUnitId !== savedPrimaryUnitId
     || [...selectedIds].sort().join(',') !== [...savedSelectedIds].sort().join(',')
   );
+  /* 고를 수 없는 조직은 팝업에서 미리 고르지 않고 «유지» 후보로 둔다 — 목록 · 미배정 팝업과 같다(pivit-work PW-3161). */
+  const lockedIds = affiliationLockedIds?.(member) ?? [];
+  const pickerSelectedIds = selectedIds.filter((id) => !lockedIds.includes(id));
   /* 목록 행 팝업과 같은 계산 — 두 자리가 다른 말을 하면 안 된다 (PW-404). */
-  const retainedIds = retainedOrgIds(member, selectedIds);
+  const retainedIds = retainedOrgIds(member, pickerSelectedIds);
   const primaryEntry = primaryUnitId ? findOrgEntry(orgTree, primaryUnitId) : null;
 
   /* 지금 고른 상태가 데리고 오는 날짜 칸 (§3.2.1). `active` 는 빈 배열이라 아무것도
@@ -7042,9 +7047,10 @@ function EmployeesEditPanel({
         open
         units={orgUnits}
         multi
-        selectedIds={selectedIds}
+        selectedIds={pickerSelectedIds}
         primaryId={primaryUnitId}
         retainedIds={retainedIds}
+        lockedIds={lockedIds}
         subtitle={draft.name}
         labels={labels.orgPicker}
         onApply={(payload) => (appointmentWired
@@ -8887,6 +8893,7 @@ export default function AdminEmployeesCanvas({
             key={extra.key}
             page={extra.page}
             member={target}
+            affiliationLockedIds={affiliationLockedIds}
             managerRow={extra.page && target.managerId ? members.find((m) => m.id === target.managerId) : undefined}
             positionHelp={positionHelp}
             historyHelp={historyHelp}
