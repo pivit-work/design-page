@@ -304,6 +304,8 @@ const DEFAULT_LABELS = {
   promoReqNotes: '④ 추가 사항',
   promoReqSubmit: '승진 요청서 제출',
   promoReqSaved: '제출됨',
+  // PW-3239 · leader §5.11-A «덧붙임 둘째» — 다시 연 리뷰에는 [승진 요청서 제출] 대신 이 문구(요청서는 [다시 제출]로만 저장).
+  promoReqResubmitNote: '승진 요청서는 다시 제출할 때 함께 제출됩니다.',
   saveAssessment: '부가 평가 저장',
 };
 
@@ -935,6 +937,8 @@ export default function EvalCycleLeaderCanvas({
   // 호출부에 알리는 값 — 다시 연 리뷰에서 고친 것도 센다(나갈 때 묻게). 다시 연 리뷰는 [다시 제출]이
   // 부가 평가도 함께 저장하므로 부가 평가만 고친 것도 센다([부가 평가 저장]을 누르면 그 값이 기준이 된다).
   const reopenedEditing = active && !formLocked && submitted && !showCompletion;
+  // PW-3239 — 다시 연 리뷰의 승진 요청서 네 칸도 [다시 제출]로만 저장되므로 «고친 것»으로 센다(«대상임»일 때만 보이는 칸).
+  const promoReqOn = promotionStatus === 'recommended' && !!onSubmitPromotion;
   const assessSnap = assessmentLocked
     ? ''
     : JSON.stringify([
@@ -943,6 +947,7 @@ export default function EvalCycleLeaderCanvas({
         promotionStatus ? promotionReason : null,
         compensationStatus,
         compensationStatus ? compensationReason : null,
+        promoReqOn ? promoForm : null,
       ]);
   const [assessBaseline, setAssessBaseline] = useState(assessSnap);
   const unsaved =
@@ -1199,6 +1204,9 @@ export default function EvalCycleLeaderCanvas({
       await onSubmit?.(toItems(), grade, {
         ...(assessmentLocked ? {} : { assessment: assessmentPayload() }),
         ...(leaderCommentOn && leaderCommentWritable ? { leaderComment: lc } : {}),
+        // PW-3239 · leader §5.11-A «덧붙임 둘째» — 다시 연 리뷰는 요청서 네 칸을 [다시 제출]에 함께 싣는다(한 트랜잭션).
+        // 고쳤는지는 서버가 이미 낸 요청서와 맞대 본다. 제출 전 리뷰는 종전대로 [승진 요청서 제출]로 따로 낸다.
+        ...(submitted && !assessmentLocked && promoReqOn ? { promotionRequest: promoForm } : {}),
       });
     } catch {
       // 실패 알림은 호출부 몫이다 — 버튼만 다시 연다.
@@ -2103,7 +2111,13 @@ export default function EvalCycleLeaderCanvas({
                     </div>
                   ))}
                   <div className="evc-card-buttons">
-                    {promoSaved && (
+                    {/* PW-3239 · leader §5.11-A «덧붙임 둘째» — 다시 연 리뷰에는 버튼 대신 회색 보조 문구. 잠긴 화면엔 둘 다 없다. */}
+                    {!readOnlyView && reopenedEditing && !assessmentLocked && (
+                      <span className="evm-kr-hint" data-testid="evl-promo-resubmit-note">
+                        {L.promoReqResubmitNote}
+                      </span>
+                    )}
+                    {!submitted && promoSaved && (
                       <span
                         className="evm-kr-saved"
                         data-testid="evl-promo-saved"
@@ -2112,7 +2126,7 @@ export default function EvalCycleLeaderCanvas({
                       </span>
                     )}
                     {/* PW-2440 — 읽기 전용 화면에는 쓰는 버튼을 세우지 않는다(리더 정책 §2 ②) — 요청서 글은 보인다. */}
-                    {!readOnlyView && (
+                    {!readOnlyView && !submitted && (
                     <button
                       type="button"
                       className="evc-btn is-ghost"
