@@ -79,6 +79,7 @@ import {
 } from './evalTemplateGradeRules.js';
 import { useHandleReorder } from './useHandleReorder.js';
 import { gradeKeywordsForSave } from './evalGradeKeywords.js';
+import { draftDirtyKey } from './evalDraftDirtyKey.js';
 import EvalSheetBody from './EvalSheetBody.jsx';
 import EvalWizardChipPicker from './EvalWizardChipPicker.jsx';
 import { CHIP_PICKER_SEARCH_MIN, filterByQuery } from './chipPickerFilter.js';
@@ -7936,15 +7937,18 @@ export default function EvalCycleWizard({
     isDraftResume ? draftShapeChanged(D, collectDraft()) : false,
   );
 
-  /* 저장 상태. `savedSnapshot` 은 마지막으로 서버에 보낸 초안의 JSON 이다 —
+  /* 저장 상태. `savedDraft` 는 마지막으로 서버에 보낸(이어쓰기면 서버가 돌려준) 초안이다 —
      「저장 이후 바뀐 것이 있나」를 값으로 판정한다(플래그로 두면 되돌린 편집까지
-     «변경»으로 세어, 아무것도 안 바뀌었는데 이탈할 때마다 묻게 된다). */
+     «변경»으로 세어, 아무것도 안 바뀌었는데 이탈할 때마다 묻게 된다).
+     [PW-3175] 견줄 때는 `draftDirtyKey` 로 — 칸 순서 · 지금 보고 있는 템플릿 유형 · 「대상 N명」 요약은 변경이 아니다. */
   const [draftSavedAt, setDraftSavedAt] = useState(
     () => (isDraftResume ? draftSavedAtProp : null),
   );
-  const [savedSnapshot, setSavedSnapshot] = useState(() =>
-    isDraftResume && draftState ? JSON.stringify(draftState) : null,
+  const [savedDraft, setSavedDraft] = useState(() =>
+    isDraftResume && draftState ? draftState : null,
   );
+  /* [PW-3175] 응답을 기다리는 저장 — 그 사이 닫으면 같은 내용을 다시 묻지 않고 응답을 기다린다. */
+  const [pendingSave, setPendingSave] = useState(null);
   const [draftSaving, setDraftSaving] = useState(false);
   const [draftError, setDraftError] = useState(false);
   /* PW-1459 §5.1-A-6 — 연달아 실패한 횟수. 3회부터는 푸터 한 줄로는 놓치므로 위쪽에
@@ -7956,9 +7960,14 @@ export default function EvalCycleWizard({
   /* 이탈 확인 다이얼로그. null 이면 안 떠 있다. */
   const [leaveAsk, setLeaveAsk] = useState(false);
 
-  const draftSnapshot = draftEnabled ? JSON.stringify(collectDraft()) : null;
+  /** [PW-3175 · J-10] 템플릿 칸을 처음 열 때 채워지는 내용 — 이와 같으면 «고친 것» 이 아니다. */
+  const defaultSlotOf = (key) =>
+    confirmedBufferOf(key) ??
+    (leaderRoundOf(key) > 1 ? emptyRoundBuffer() : presetBufferFor(phaseBaseId(key)));
+  const dirtyKeyOf = (draft) => draftDirtyKey(draft, defaultSlotOf);
+  const draftSnapshot = draftEnabled ? dirtyKeyOf(collectDraft()) : null;
   /* 저장 이후 바뀐 것이 있나. 한 번도 저장 안 했으면 「입력이 있으면 변경」으로 본다. */
-  const draftDirty = draftEnabled && draftSnapshot !== savedSnapshot;
+  const draftDirty = draftEnabled && draftSnapshot !== dirtyKeyOf(savedDraft);
 
   /**
    * PW-1388 — 관리 모드엔 초안이 없어 위 판정이 늘 거짓이라, 템플릿을 불러온 뒤 Esc 로
@@ -8009,7 +8018,6 @@ export default function EvalCycleWizard({
   const saveDraft = async (overrides, lock, opts) => {
     if (!draftEnabled) return null;
     const payload = { ...collectDraft(), ...(overrides ?? {}) };
-    const snapshot = JSON.stringify(payload);
     const failed = () => {
       setDraftError(true);
       setDraftFailStreak((n) => n + 1);
@@ -8017,37 +8025,43 @@ export default function EvalCycleWizard({
     };
     setDraftSaving(true);
     setDraftError(false);
-    try {
-      const result = await onSaveDraft({
-        draftState: payload,
-        draftStep: clampStep(payload.step),
-        name: payload.name,
-        ...(lock ?? {}),
-      });
-      if (result?.conflict) {
-        setDraftConflict(result.conflict);
+    const run = (async () => {
+      try {
+        const result = await onSaveDraft({
+          draftState: payload,
+          draftStep: clampStep(payload.step),
+          name: payload.name,
+          ...(lock ?? {}),
+        });
+        if (result?.conflict) {
+          setDraftConflict(result.conflict);
+          return failed();
+        }
+        if (!result) return failed();
+        // PW-1845 — 방금 만든 초안이 목록에 같은 이름으로 다시 들어와도 «자기 자신»으로 알아본다.
+        if (result.cycleId) setSelfCycleId(result.cycleId);
+        setDraftSavedAt(result.savedAt ?? null);
+        setSavedDraft(payload);
+        setDraftFailStreak(0);
+        setDraftConflict(null);
+        return result;
+      } catch (e) {
+        // 저장 실패가 위자드를 닫으면 작성 중이던 설정이 통째로 날아간다 — 이 카드가
+        // 없애려는 바로 그 일이다. 사유만 푸터에 남기고 화면은 유지한다.
+        // 앱이 이미 알린 실패(이용 정지 등)는 푸터 글을 겹쳐 쓰지 않는다(PW-2907).
+        if (isNotifiedFailure(e)) {
+          if (opts?.throwNotified) throw e;
+          return null;
+        }
         return failed();
+      } finally {
+        setDraftSaving(false);
       }
-      if (!result) return failed();
-      // PW-1845 — 방금 만든 초안이 목록에 같은 이름으로 다시 들어와도 «자기 자신»으로 알아본다.
-      if (result.cycleId) setSelfCycleId(result.cycleId);
-      setDraftSavedAt(result.savedAt ?? null);
-      setSavedSnapshot(snapshot);
-      setDraftFailStreak(0);
-      setDraftConflict(null);
-      return result;
-    } catch (e) {
-      // 저장 실패가 위자드를 닫으면 작성 중이던 설정이 통째로 날아간다 — 이 카드가
-      // 없애려는 바로 그 일이다. 사유만 푸터에 남기고 화면은 유지한다.
-      // 앱이 이미 알린 실패(이용 정지 등)는 푸터 글을 겹쳐 쓰지 않는다(PW-2907).
-      if (isNotifiedFailure(e)) {
-        if (opts?.throwNotified) throw e;
-        return null;
-      }
-      return failed();
-    } finally {
-      setDraftSaving(false);
-    }
+    })();
+    const pending = { key: dirtyKeyOf(payload), promise: run };
+    setPendingSave(pending);
+    run.finally(() => setPendingSave((cur) => (cur === pending ? null : cur)));
+    return run;
   };
 
   /** PW-1459 충돌 창의 세 선택. 실패하면 창을 연 채 둔다(푸터에 실패가 남는다). */
@@ -8158,6 +8172,15 @@ export default function EvalCycleWizard({
    * 묻는 것은 거짓이다(§5.1-A-5).
    */
   const requestClose = () => {
+    /* [PW-3175] [임시저장] 응답을 기다리는 중이고 그 뒤로 고친 것이 없으면, 묻지 않고 응답을 기다린다 —
+       저장되면 그대로 닫고(«초안이 저장되어 있습니다»), 실패하면 그때 묻는다(§5.1-A-5 마지막 행). */
+    if (draftEnabled && !manageDirty && pendingSave && pendingSave.key === draftSnapshot) {
+      pendingSave.promise.then((result) => {
+        if (result) onCancel?.();
+        else setLeaveAsk(true);
+      });
+      return;
+    }
     if ((draftEnabled && draftDirty) || manageDirty) {
       setLeaveAsk(true);
       return;
