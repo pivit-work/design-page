@@ -566,8 +566,11 @@ export default function AdminOffboardingCanvas({
      대상자가 «사용 중»으로 지급받은 자산(책상에 둔 것 제외)을 소비자가 넘긴다. 없거나 0건이거나 못 불러왔으면 줄이 없다.
      실행 조건(§5-A)에 들지 않는다 — 막지 않고 알린다. */
   unreturnedAssets = null,
+  /* 그리지 않을 영역 id — 그 기능이 아직 공개 전인 환경(pivit-work PW-3273 광장 «praise»). 안 주면 영역 전부. */
+  hiddenAreas = [],
 }) {
   const labels = merge(ADMIN_OFFBOARDING_DEFAULT_LABELS, providedLabels);
+  const areas = OFFBOARDING_AREAS.filter((a) => !hiddenAreas.includes(a.id));
   const sep = labels.listSeparator;
 
   const [type, setType] = useState(OFFBOARDING_TYPE_IDS[0]);
@@ -795,7 +798,7 @@ export default function AdminOffboardingCanvas({
           />
         )}
         <div className="admin-offb-areas">
-          {OFFBOARDING_AREAS.map((area) => {
+          {areas.map((area) => {
             const key = area.choice?.key;
             return (
               <AreaCard

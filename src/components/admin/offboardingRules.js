@@ -8,7 +8,7 @@
 export const OFFBOARDING_TYPE_IDS = ['voluntary', 'involuntary', 'contract_end', 'etc'];
 
 /**
- * 데이터 처리 영역 8개 — 이 표는 «이 화면이 정하는 것»이 아니라 각 폴더 정본의 **인용**이다(§3).
+ * 데이터 처리 영역 9개(2026-11-25 칭찬 · PW-3273) — 이 표는 «이 화면이 정하는 것»이 아니라 각 폴더 정본의 **인용**이다(§3).
  * 문구는 라벨(`areas.<id>`)에 있고, 여기에는 모양(상태·재확인·고를 자리)만 둔다.
  *   state 'fixed'  — 정본이 정했고 고를 수 없다
  *   state 'choice' — 고를 수 있는 자리가 하나 있다(`choice` 키 · 선택지 id)
@@ -23,6 +23,8 @@ export const OFFBOARDING_AREAS = [
   { id: 'personal', state: 'fixed' },
   { id: 'meeting', state: 'fixed' },
   { id: 'billing', state: 'fixed' },
+  // 9 — 광장 칭찬(퇴사 처리 정책 v1.51 §3 표 9행 · §3-D · pivit-work PW-3273). 광장이 공개 전인 환경은 소비자가 `hiddenAreas` 로 뺀다.
+  { id: 'praise', state: 'fixed' },
 ];
 
 /** 고를 자리가 있는 영역만 — 선택값·사유의 키가 여기서 나온다. */
@@ -119,6 +121,11 @@ export const ADMIN_OFFBOARDING_DEFAULT_LABELS = {
       label: '좌석 · 구독',
       rule: '퇴사로 바뀌는 날(예약이면 퇴사일 당일) 활성 좌석에서 빠지고 다음 청구일에 반영됩니다. 환불은 없습니다.',
       detail: '약정 최소 좌석이 있는 계약이면 좌석이 줄어도 청구 금액이 낮아지지 않습니다.',
+    },
+    praise: {
+      label: '칭찬',
+      rule: '칭찬 카드와 축하 한마디는 그대로 남기고, 구성원 화면에서 보낸 사람·받은 사람·축하한 사람의 이름만 「퇴사한 구성원」으로 가립니다.',
+      detail: '카드를 지우면 사라지는 것은 퇴사자의 기록이 아니라 남은 사람이 주고받은 기록입니다. 어드민 «광장»의 현황·시상·신고와 감사 로그는 이름을 가리지 않습니다.',
     },
   },
   choices: {
