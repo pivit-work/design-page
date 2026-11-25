@@ -57,8 +57,13 @@ function splitDraft(draft) {
     ...rest
   } = draft;
   const slots = {};
+  const templateMap = rest.templateMap ?? {};
   // 내려 둔 유형 칸 — 하향이면 1차 공유 칸이다.
+  // 내려 둔 뒤 그 유형의 확정이 바뀌었으면 [이 유형 편집]이 그 칸을 버리고 새 확정본을 연다
+  // (`EvalCycleWizard.jsx` `parkedTypeBuffer` · J-10) — 비교에서도 «아직 안 연 칸»으로 본다.
+  // 안 그러면 하향을 편집하다 셀프 템플릿을 고르고 저장한 초안이 셀프를 열자마자 «바뀜»이 된다(11-25 dev 되돌림).
   for (const [type, b] of Object.entries(tplTypeBuffers ?? {})) {
+    if ((b?.confirmedId || '') !== (templateMap[type] || '')) continue;
     slots[type === 'leader' ? leaderPhaseId(1) : type] = b;
   }
   // 내려 둔 하향 차수 칸.
