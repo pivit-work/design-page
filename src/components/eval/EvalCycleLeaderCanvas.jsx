@@ -890,6 +890,9 @@ export default function EvalCycleLeaderCanvas({
     levelRoleExamples: promotionRequest?.levelRoleExamples ?? '',
     additionalNotes: promotionRequest?.additionalNotes ?? '',
   });
+  // PW-3239 — 화면을 열 때의 네 칸. 다시 연 리뷰의 [다시 제출]은 이것과 달라졌을 때만 요청서를 싣는다 — 그 사이
+  // 다른 차수 평가자가 같은 요청서를 고쳤어도 손대지 않은 칸이 옛 글로 덮지 않게(§5.11-A «고치지 않았으면 그대로»).
+  const [promoSeed] = useState(promoForm);
   const [promoBusy, setPromoBusy] = useState(false);
   // PW-3024 — [제출하기]·[다시 제출] 응답을 기다리는 중(아래 submitNow).
   const submittingRef = useRef(false);
@@ -1206,7 +1209,9 @@ export default function EvalCycleLeaderCanvas({
         ...(leaderCommentOn && leaderCommentWritable ? { leaderComment: lc } : {}),
         // PW-3239 · leader §5.11-A «덧붙임 둘째» — 다시 연 리뷰는 요청서 네 칸을 [다시 제출]에 함께 싣는다(한 트랜잭션).
         // 고쳤는지는 서버가 이미 낸 요청서와 맞대 본다. 제출 전 리뷰는 종전대로 [승진 요청서 제출]로 따로 낸다.
-        ...(submitted && !assessmentLocked && promoReqOn ? { promotionRequest: promoForm } : {}),
+        ...(submitted && !assessmentLocked && promoReqOn && JSON.stringify(promoForm) !== JSON.stringify(promoSeed)
+          ? { promotionRequest: promoForm }
+          : {}),
       });
     } catch {
       // 실패 알림은 호출부 몫이다 — 버튼만 다시 연다.
