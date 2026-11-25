@@ -79,7 +79,7 @@ import {
 } from './evalTemplateGradeRules.js';
 import { useHandleReorder } from './useHandleReorder.js';
 import { gradeKeywordsForSave } from './evalGradeKeywords.js';
-import { draftDirtyKey } from './evalDraftDirtyKey.js';
+import { draftsDiffer } from './evalDraftsDiffer.js';
 import EvalSheetBody from './EvalSheetBody.jsx';
 import EvalWizardChipPicker from './EvalWizardChipPicker.jsx';
 import { CHIP_PICKER_SEARCH_MIN, filterByQuery } from './chipPickerFilter.js';
@@ -7940,7 +7940,7 @@ export default function EvalCycleWizard({
   /* 저장 상태. `savedDraft` 는 마지막으로 서버에 보낸(이어쓰기면 서버가 돌려준) 초안이다 —
      「저장 이후 바뀐 것이 있나」를 값으로 판정한다(플래그로 두면 되돌린 편집까지
      «변경»으로 세어, 아무것도 안 바뀌었는데 이탈할 때마다 묻게 된다).
-     [PW-3175] 견줄 때는 `draftDirtyKey` 로 — 칸 순서 · 지금 보고 있는 템플릿 유형 · 「대상 N명」 요약은 변경이 아니다. */
+     [PW-3175] 견줄 때는 `draftsDiffer` 로 — 칸 순서 · 지금 보고 있는 템플릿 유형 · 「대상 N명」 요약은 변경이 아니다. */
   const [draftSavedAt, setDraftSavedAt] = useState(
     () => (isDraftResume ? draftSavedAtProp : null),
   );
@@ -7970,10 +7970,10 @@ export default function EvalCycleWizard({
     (leaderRoundOf(key) > 1
       ? { ...emptyRoundBuffer(), version }
       : presetBufferFor(phaseBaseId(key), version));
-  const dirtyKeyOf = (draft) => draftDirtyKey(draft, defaultSlotOf);
-  const draftSnapshot = draftEnabled ? dirtyKeyOf(collectDraft()) : null;
+  const differs = (a, b) => draftsDiffer(a, b, defaultSlotOf);
+  const currentDraft = draftEnabled ? collectDraft() : null;
   /* 저장 이후 바뀐 것이 있나. 한 번도 저장 안 했으면 「입력이 있으면 변경」으로 본다. */
-  const draftDirty = draftEnabled && draftSnapshot !== dirtyKeyOf(savedDraft);
+  const draftDirty = draftEnabled && differs(currentDraft, savedDraft);
 
   /**
    * PW-1388 — 관리 모드엔 초안이 없어 위 판정이 늘 거짓이라, 템플릿을 불러온 뒤 Esc 로
@@ -8006,7 +8006,7 @@ export default function EvalCycleWizard({
   );
   /* [PW-3175] 초안과 같은 열쇠로 견준다 — [이 유형 편집]으로 유형만 옮긴 것은 변경이 아니다. */
   const manageDirty =
-    manageBaseline !== null && dirtyKeyOf(collectManageSnapshot()) !== dirtyKeyOf(manageBaseline);
+    manageBaseline !== null && differs(collectManageSnapshot(), manageBaseline);
 
   /**
    * PW-440 ① — 초안 저장. 저장 계기는 셋이다: 단계 이동(자동) · `임시저장`(수동) ·
@@ -8066,7 +8066,7 @@ export default function EvalCycleWizard({
         setDraftSaving(false);
       }
     })();
-    const pending = { key: dirtyKeyOf(payload), promise: run };
+    const pending = { payload, promise: run };
     setPendingSave(pending);
     run
       .finally(() => setPendingSave((cur) => (cur === pending ? null : cur)))
@@ -8098,9 +8098,9 @@ export default function EvalCycleWizard({
      저장 이후 바뀐 것이 있거나 마지막 저장이 실패했을 때만 건다. */
   /* 연 순간의 값 — 아무것도 안 고쳤으면 「바뀜」이 아니다. 한 번도 저장 안 한 새 위자드는
      `draftDirty` 가 늘 참이라 그것만 보면 열자마자 브라우저가 묻는다. */
-  const [openSnapshot] = useState(draftSnapshot);
+  const [openDraft] = useState(currentDraft);
   const unloadArmed =
-    draftEnabled && (draftError || (draftDirty && draftSnapshot !== openSnapshot));
+    draftEnabled && (draftError || (draftDirty && differs(currentDraft, openDraft)));
   useEffect(() => {
     if (!unloadArmed || typeof window === 'undefined') return undefined;
     const onBeforeUnload = (e) => {
@@ -8184,7 +8184,7 @@ export default function EvalCycleWizard({
   const requestClose = () => {
     /* [PW-3175] [임시저장] 응답을 기다리는 중이고 그 뒤로 고친 것이 없으면, 묻지 않고 응답을 기다린다 —
        저장되면 그대로 닫고(«초안이 저장되어 있습니다»), 실패하면 그때 묻는다(§5.1-A-5 마지막 행). */
-    if (draftEnabled && !manageDirty && pendingSave && pendingSave.key === draftSnapshot) {
+    if (draftEnabled && !manageDirty && pendingSave && !differs(currentDraft, pendingSave.payload)) {
       setCloseAfterSave(true);
       return;
     }
