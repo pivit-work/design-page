@@ -2702,9 +2702,17 @@ export default function MySettingsCanvas({
                         <div className="msc-notification-copy">
                           <div className="msc-notif-label">{item.label}</div>
                           <div className="msc-notif-sub">{item.sub}</div>
+                          {/* 회사가 필수로 올린 알림 (pivit-work PW-3181) — 스위치를 잠그고 설명 아래 한 줄로 까닭을 알린다.
+                              모양은 «개인 연동» 세부 줄의 잠긴 스위치 + 설명 아래 줄과 같다. */}
+                          {item.locked && item.lockedNote && (
+                            <div className="msc-notif-sub" data-testid={`notification-locked-${item.key}`}>
+                              {item.lockedNote}
+                            </div>
+                          )}
                         </div>
                         <Switch
                           checked={Boolean(item.on)}
+                          disabled={Boolean(item.locked)}
                           onChange={(next) => onToggleNotif && onToggleNotif(item.key, next)}
                           label={item.label}
                         />
