@@ -91,6 +91,9 @@
 /* 묶음이 여럿인 표 — 묶음 끝마다 선이 사라지면 다음 묶음 머리와 붙어 보인다. */
 .rt-table tbody:not(:last-child) tr:last-child td { border-bottom: 1px solid var(--bg-secondary); }
 
+/* 묶음 이름 줄(Head `groups`) — 묶음 없는 열은 위 칸의 밑줄을 지워 아래 머리 칸과 한 칸으로 읽힌다. */
+.rt-table th.rt-head-gap { border-bottom: 0; }
+
 .rt-table th.is-right,
 .rt-table td.is-right { text-align: right; }
 .rt-table th.is-center,

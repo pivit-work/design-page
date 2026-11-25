@@ -174,10 +174,27 @@ const stickyClass = (left, right) => (left != null ? 'is-sticky' : right != null
 const stickyStyle = (left, right, style) =>
   (left != null ? { left, ...style } : right != null ? { right, ...style } : style);
 
-/** 머리 행. 머리 칸(`RosterTable.HeadCell`)을 늘어놓는다. */
-function RosterHead({ children }) {
+/**
+ * 머리 행. 머리 칸(`RosterTable.HeadCell`)을 늘어놓는다.
+ * `groups` 를 주면 그 위에 묶음 이름 줄을 하나 더 그린다 — `[{ label, span }]` 을 왼쪽 열부터 차례로, `label` 이
+ * 비면(null) 그 열은 묶음 없이 아래 머리 칸만 보인다(PW-2853 과거 이력 검증 표 «올린 파일 / 시스템에 있던 값»).
+ */
+function RosterHead({ children, groups }) {
   return (
     <thead>
+      {groups && (
+        <tr className="rt-head-groups">
+          {groups.map((g, i) =>
+            g.label == null ? (
+              <th key={i} colSpan={g.span ?? 1} className="rt-head-gap" aria-hidden="true" />
+            ) : (
+              <th key={i} scope="colgroup" colSpan={g.span ?? 1} className="is-center">
+                {g.label}
+              </th>
+            ),
+          )}
+        </tr>
+      )}
       <tr>{children}</tr>
     </thead>
   );
