@@ -89,11 +89,19 @@ export function AdminCatalogPanel({
     if (!next && (tool.personalLinkCount || 0) > 0) { setOffConfirm({ kind: 'personal', tool }); return; }
     onTogglePersonal(tool.id, next);
   };
-  const confirmOff = () => {
+  // 호스트가 Promise 를 돌려주면 답을 기다리는 동안 창을 잠그고, 거절(false · 예외)이면 창을 남겨 [취소]로 닫게 한다.
+  // 답 전에 닫으면 거절 알림 뒤 «내리지 않았다»가 창 없이 토글로만 남는다(pivit-work PW-3207 · PW-3126 확인 19).
+  const [offBusy, setOffBusy] = useState(false);
+  const confirmOff = async () => {
+    if (offBusy) return;
     const { kind, tool } = offConfirm;
-    setOffConfirm(null);
-    if (kind === 'status') onToggleToolStatus(tool.id, 'inactive');
-    else onTogglePersonal(tool.id, false);
+    const res = kind === 'status' ? onToggleToolStatus(tool.id, 'inactive') : onTogglePersonal(tool.id, false);
+    if (!res || typeof res.then !== 'function') { setOffConfirm(null); return; }
+    setOffBusy(true);
+    let ok = false;
+    try { ok = (await res) !== false; } catch { ok = false; }
+    setOffBusy(false);
+    if (ok) setOffConfirm(null);
   };
 
   const requiredOff = catalog.some((t) => t.required && t.status !== 'active');
@@ -268,8 +276,9 @@ export function AdminCatalogPanel({
           }
           confirmLabel={L.confirm}
           cancelLabel={L.cancel}
+          busy={offBusy}
           onConfirm={confirmOff}
-          onCancel={() => setOffConfirm(null)}
+          onCancel={() => { if (!offBusy) setOffConfirm(null); }}
         />
       )}
     </div>
