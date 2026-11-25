@@ -5847,6 +5847,20 @@ button.ono-add-modal-input { cursor: pointer; }
   width: 241px;
   box-sizing: border-box;
 }
+/* [펼치기]·[닫기] 묶음 — 펼치기 하나일 때의 자리(.ono-start-rec-expand 위 13 · 오른쪽 13)에 붙여 나란히 세운다.
+   [닫기]가 맨 오른쪽 모서리, [펼치기]는 그 왼쪽 (pivit-work PW-3283 · policy §3.4). 버튼 모양은 펼치기 그대로.
+   두 버튼 사이는 매니저 녹음 위젯 모서리의 [접기]·[미니 창 띄우기] 사이(오른쪽 13 · 41 → 20 버튼 + 8)와 같다. */
+.ono-my-widget .ono-my-widget-actions {
+  position: absolute;
+  top: 13px;
+  right: 13px;
+  display: flex;
+  gap: var(--spacing-md);
+}
+.ono-my-widget .ono-my-widget-actions .ono-start-rec-expand { position: static; }
+/* 제목이 버튼 밑으로 들어가지 않게 — 버튼 묶음 끝(모서리 13 + 버튼 20, 둘이면 + 8 + 20)에서 머리 안쪽(12 + 10)을 뺀 만큼 비운다. */
+.ono-my-widget .ono-start-rec-mini.has-actions-1 .ono-start-rec-title { padding-right: var(--spacing-lg); }
+.ono-my-widget .ono-start-rec-mini.has-actions-2 .ono-start-rec-title { padding-right: calc(var(--spacing-4xl) + var(--spacing-md)); }
 /* 겹쳐 뜨는 위젯은 끌어서 옮긴다 — 안내 줄을 덮으면 사용자가 치운다 (2026-10-23).
    끌기 시작하면 body 로 띄워(`is-floating`) 상단 바·사이드바 위로도 자유롭게 옮긴다 — 미니 위젯과 같은 겹침 순서(1100). */
 .ono-my-widget.is-overlay.is-floating {

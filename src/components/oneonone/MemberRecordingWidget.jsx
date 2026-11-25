@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import { MaximizeIcon } from './OneOnOneRecordingWidget.jsx';
+import { CloseGlyph } from '../shared/lineIcons.jsx';
 
 /**
  * 멤버(대상자) 쪽 녹음 상태 위젯 — Figma 17556:25936 (네 단계).
  *
- * 매니저 위젯(`OneOnOneRecordingWidget`)과 같은 틀이지만 **누르는 것이 없다.** 녹음의 시작·일시정지·
+ * 매니저 위젯(`OneOnOneRecordingWidget`)과 같은 틀이지만 **녹음을 바꾸는 버튼이 없다**(누를 것은 펼치기·닫기뿐). 녹음의 시작·일시정지·
  * 종료는 매니저(퍼실리테이터)만 할 수 있고 멤버에게는 「녹취 중」 표시만 보인다
  * (policy §11.1 · §5.3). 그래서 종료·일시정지 버튼을 prop 으로도 받지 않는다 — 받으면 그 버튼이
  * 멤버 화면에 새어 나온다.
@@ -19,6 +20,9 @@ import { MaximizeIcon } from './OneOnOneRecordingWidget.jsx';
  *
  * variant: 'overlay'(기본 · 본문 카드 오른쪽 위에 겹쳐 뜸) | 'mini'(다른 탭·페이지로 갔을 때 오른쪽 아래 · body 포털).
  * `onExpand` 가 있으면 우상단 펼치기를 그린다 — 매니저 미니 위젯과 같은 모서리·같은 모양.
+ * `onClose` 가 있으면 우상단에 [닫기](×)를 그린다 — 펼치기가 있으면 그 오른쪽에 나란히, 없으면 그 자리에 하나만.
+ * 크기·색은 펼치기와 같다. 카드(표시)만 닫는 버튼이라 녹음·동의는 건드리지 않는다 — 다시 띄울지는 앱이 정한다
+ * (pivit-work PW-3283 · policy §3.4 «팀원 녹음 상태 카드의 [닫기]»). Esc 로는 닫지 않는다(글을 쓰다 누른 Esc).
  *
  * overlay 는 **끌어서 옮길 수 있다.** 본문 카드 오른쪽 위에 겹쳐 뜨는 구조라 「준비완료」 안내 줄 뒷부분을
  * 덮는데(1280·1440 모두), 자리를 바꾸는 대신 사용자가 치우게 한다(Jira 1on1 위젯 최소화 티켓 · 2026-10-23).
@@ -43,6 +47,7 @@ const DEFAULT_LABELS = {
   savedNote: '잠시 후 AI 요약 및 액션아이템이 생성되어 완료 화면에 표시됩니다.',
   noClock: '--:--',
   expand: '내 원온원으로 돌아가기',
+  close: '닫기',
 };
 
 export default function MemberRecordingWidget({
@@ -53,6 +58,7 @@ export default function MemberRecordingWidget({
   recordedAt,
   variant = 'overlay',
   onExpand,
+  onClose,
   labels: providedLabels,
 }) {
   const L = { ...DEFAULT_LABELS, ...(providedLabels ?? {}) };
@@ -106,13 +112,22 @@ export default function MemberRecordingWidget({
       data-status={status}
     >
       <div
-        className={`ono-start-rec-mini${draggable ? ' is-draggable' : ''}${dragging ? ' is-dragging' : ''}`}
+        className={`ono-start-rec-mini${draggable ? ' is-draggable' : ''}${dragging ? ' is-dragging' : ''}${onClose ? (onExpand ? ' has-actions-2' : ' has-actions-1') : ''}`}
         onPointerDown={draggable ? onPointerDown : undefined}
       >
-        {onExpand && (
-          <button type="button" className="ono-start-rec-expand" aria-label={L.expand} title={L.expand} onClick={onExpand}>
-            <MaximizeIcon />
-          </button>
+        {(onExpand || onClose) && (
+          <div className="ono-my-widget-actions">
+            {onExpand && (
+              <button type="button" className="ono-start-rec-expand" aria-label={L.expand} title={L.expand} onClick={onExpand}>
+                <MaximizeIcon />
+              </button>
+            )}
+            {onClose && (
+              <button type="button" className="ono-start-rec-expand" aria-label={L.close} title={L.close} onClick={onClose}>
+                <CloseGlyph size={20} />
+              </button>
+            )}
+          </div>
         )}
         <div className="ono-start-rec-head">
           <p className="ono-start-rec-title">{title}</p>

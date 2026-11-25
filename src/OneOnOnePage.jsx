@@ -498,7 +498,10 @@ export default function OneOnOnePage({ icons, baseUrl, active = true, onActivate
   const memberWidgetTime = memberView && (memberView.widget === 'waiting' || memberView.widget === 'recording')
     ? MEMBER_MEETING.widgetTime
     : MEMBER_MEETING.widgetTimeEnded;
-  const memberWidget = memberView
+  // [닫기]를 누르면 이 미리보기에서는 카드를 걷는다 — 다시 띄우는 때(녹음 시작·재개)는 앱이 정한다 (PW-3283).
+  // 닫은 보기(knob)만 기억한다 — 보기를 바꾸면 그 상태의 카드가 다시 보인다(카드가 있는 보기 member-ready·recorded·saved 를 차례로 본다).
+  const [memberWidgetClosedView, setMemberWidgetClosedView] = useState(null);
+  const memberWidget = memberView?.widget && memberWidgetClosedView !== knobs.view
     ? (variant, onExpand) => (
         <MemberRecordingWidget
           variant={variant}
@@ -508,11 +511,12 @@ export default function OneOnOnePage({ icons, baseUrl, active = true, onActivate
           elapsed={fmtElapsed(memberElapsedSec)}
           recordedAt={MEMBER_MEETING.recordedAt}
           onExpand={onExpand}
+          onClose={() => setMemberWidgetClosedView(knobs.view)}
         />
       )
     : null;
   // 「내 원온원」 화면이 안 보이는 때(다른 탭·다른 페이지) → 우하단 미니 위젯. 매니저 쪽과 같은 자리다.
-  const showMemberMini = !!memberView && (tab !== 'mine' || !active || memberOnList);
+  const showMemberMini = !!memberWidget && (tab !== 'mine' || !active || memberOnList);
   // 데모: 진행 스크립트 생성 stub — 0.6초 뒤 DEMO_GUIDE 를 내려준다. 재생성은 generatedAt 만 바꾼다.
   const [guide, setGuide] = useState(() => (liveKnob ? DEMO_GUIDE : null));
   const [guideLoading, setGuideLoading] = useState(false);
@@ -659,7 +663,7 @@ export default function OneOnOnePage({ icons, baseUrl, active = true, onActivate
               onReady={() => setKnob('view', 'member-ready')}
               /* 다른 탭·페이지에서 미니 위젯이 뜨는 동안은 겹침 위젯을 내린다 — 끌어서 body 에 띄운(is-floating)
                  겹침 위젯이 숨긴 페이지 밖에서 미니 위젯과 겹쳐 보이지 않게. 돌아오면 카드 오른쪽 위로 되돌아온다. */
-              widget={showMemberMini ? null : memberWidget('overlay')}
+              widget={showMemberMini || !memberWidget ? null : memberWidget('overlay')}
               onBack={() => setMemberSessionOpen(false)}
               baseUrl={baseUrl}
             />
