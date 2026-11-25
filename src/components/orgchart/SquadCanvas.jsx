@@ -246,6 +246,9 @@ export default function SquadCanvas({
   /* 기준일(pivit-work PW-2697) — 그림 보기 «구조» 툴바의 [기준일]. { value, min, max, onChange, label?, locale?, note?, outOfRange? }.
      지난 날짜는 «구조»에서만 그린다 — 카드·한눈에 보기로 가면 오늘로 돌린다(onChange(max)). 안 주면 버튼이 없다. */
   structureAsOf,
+  /* 머리 서브라인의 인원(pivit-work PW-3237) — 조직도 · 근무지 탭과 같은 «N명 +M 겸직» 글자.
+     세 탭이 같은 줄 «전체 인원 ∙ …»을 보인다(근무지 화면 정책 §1 «서브라인»). 호스트가 조직도 탭 값을 그대로 넘긴다. */
+  headcount,
   onSubTabChange,
   /**
    * ── 담당 프로젝트 칸 (PW-1428) ──
@@ -1079,9 +1082,9 @@ export default function SquadCanvas({
           <div className="sq-header-main">
             {tabStrip}
             <div className="header-subtitle">
-              <b>{L('squad.title')}</b>
+              <b>{L('org.totalHeadcount')}</b>
               <span className="dot">&#8729;</span>
-              <span className="brand-count">{L('squad.count', { count: squads.length })}</span>
+              <span className="brand-count" data-testid="squad-headcount">{headcount}</span>
               {/* 지난 날짜를 보는 중이면 그 사실을 인원 줄에 잇는다 — 조직도 트리 탭 기준일과 같은 자리(OrgChartCanvas) */}
               {showGraph && structureAsOf?.note && (
                 <>

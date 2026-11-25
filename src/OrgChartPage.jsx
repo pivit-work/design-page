@@ -371,6 +371,7 @@ export default function OrgChartPage({ icons, statIcons, baseUrl, subTab, onSubT
       <>
         <SquadCanvas
           key={knobKey(knobs)}
+          headcount={orgData.summaryCount ?? orgData.count ?? ''}
           people={SQUAD_PEOPLE}
           projectOptions={PROJECT_OPTIONS}
           canManageLedger
