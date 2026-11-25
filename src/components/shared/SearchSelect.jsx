@@ -30,6 +30,7 @@ const WORDS = {
  *  - options: [{ value, label, subLabel?, depth?, pathLabel?, searchText?, group?, disabled?, keep? }]
  *      searchText — 보이지 않고 찾기에만 쓰는 글(searchOptions.js).
  *      subLabel — 이름 옆에 옅게 붙는 보조 글(타임라인 드롭다운에서 왔다).
+ *      description — 이름 «아래» 옅은 한 줄(휴가 종류 «한 줄 설명» · pivit-work PW-2862). 찾기에도 쓰려면 searchText 에 같이 넣는다.
  *      depth — 계층 들여쓰기(한 단계 12px). 검색 중에는 들여쓰지 않고 `pathLabel`(있으면)을 보인다.
  *      group — 고를 수 없는 묶음 머리. 검색 중엔 아래 남은 것이 있을 때만 남는다.
  *  - onChange(value) — 이벤트가 아니라 값을 받는다.
@@ -277,7 +278,10 @@ export default function SearchSelect({
                   onMouseEnter={at >= 0 ? () => setActive(at) : undefined}
                   onClick={() => pick(o)}
                 >
-                  <span className="dp-search-select-item-label">{label}</span>
+                  <span className="dp-search-select-item-label">
+                    {label}
+                    {o.description && <span className="dp-search-select-item-desc">{o.description}</span>}
+                  </span>
                   {o.subLabel && <span className="dp-search-select-item-sub">{o.subLabel}</span>}
                   {isSel && <span className="dp-search-select-item-check"><CheckGlyph size={15} /></span>}
                 </button>

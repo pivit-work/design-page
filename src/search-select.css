@@ -93,6 +93,8 @@
 .dp-search-select-item-label { flex: 1; }
 /* 이름 옆 보조 글 — 타임라인 드롭다운 항목(.tl-select-item-sub, timeline.css)의 값 그대로 (PW-1954). */
 .dp-search-select-item-sub { color: var(--text-tertiary); font-weight: 400; }
+/* 이름 아래 옅은 한 줄(description) — 보조 글(-sub)과 같은 색 · 한 단계 작은 12/18 */
+.dp-search-select-item-desc { display: block; font-size: 12px; line-height: 18px; color: var(--text-tertiary); font-weight: 400; }
 .dp-search-select-item-check { display: inline-flex; color: var(--text-brand-tertiary); }
 .dp-search-select-group {
   padding: 8px 10px 4px;
