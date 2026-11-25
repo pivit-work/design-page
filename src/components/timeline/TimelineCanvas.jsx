@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 import NameColumn from './NameColumn.jsx';
 import TimelineGrid from './TimelineGrid.jsx';
@@ -319,14 +319,64 @@ export default function TimelineCanvas({
   // 캘린더 이벤트 데이터를 미팅 shape 로 어댑트. width 410.
   // 참석자/주최자/알림은 caller 가 ev 에 실어 보내면 그 값을, 없으면(디자인
   // 프리뷰의 mock 이벤트) mock 멤버로 폴백한다.
-  // ── 캘린더 일정 호버 카드 (PW-1515 · 기획서 §13.3) ─────────────────────────
-  // 칸에 0.3초 머물면 뜨고, 칸을 벗어나면 바로 닫힌다. 누르면 카드는 닫고 누른 동작을 한다.
+  // ── 캘린더 일정 호버 카드 (PW-1515 · 기획서 §13.3 · §13.3-A) ─────────────────
+  // 칸에 0.3초 머물면 뜨고, 누르면 카드는 닫고 누른 동작을 한다.
+  // 회의록 링크가 없는 카드는 칸을 벗어나면 바로 닫힌다(마우스가 걸리지 않는다).
+  // 회의록 링크가 있는 카드만 마우스가 칸이나 카드 위에 있는 동안 남고, 둘 다 벗어나 0.3초가 지나면 닫힌다 —
+  // 칸에서 떨어져 뜬 카드로 건너가 링크를 누를 수 있게 (pivit-work PW-3210 · 기획서 §13.3-A). 카드는 늘 하나다.
   const [hoverEvent, setHoverEvent] = useState(null); // { ev, rect } | { meeting, rect } | null
-  const hoverTimerRef = useRef(null);
-  const endCalendarEventHover = () => {
+  const hoverTimerRef = useRef(null); // 여는 0.3초
+  const hoverCloseTimerRef = useRef(null); // 링크 있는 카드를 닫는 0.3초
+  const hoverShownRef = useRef({ key: null, sticky: false }); // 지금 떠 있는 카드 — 아래 liveHoverCard 를 그릴 때 적는다
+  const HOVER_DELAY_MS = 300;
+  const hoverKeyOf = (item) => (item.ev ? `ev:${item.ev.id}:${item.ev.date}` : `mt:${item.meeting.id}`);
+  // ref 와 setState 만 써서 늘 같은 함수다 — 아래 닫기 효과들의 의존 값으로 써도 다시 돌지 않는다
+  const endCalendarEventHover = useCallback(() => {
+    clearTimeout(hoverTimerRef.current);
+    clearTimeout(hoverCloseTimerRef.current);
+    hoverTimerRef.current = null;
+    hoverCloseTimerRef.current = null;
+    setHoverEvent(null);
+  }, []);
+  const startHover = (item) => {
+    clearTimeout(hoverTimerRef.current);
+    // 칸 → 카드 → 같은 칸: 떠 있는 그 카드 그대로 — 깜빡이지 않고 0.3초를 다시 기다리지 않는다
+    if (hoverShownRef.current.key === hoverKeyOf(item)) {
+      hoverTimerRef.current = null;
+      clearTimeout(hoverCloseTimerRef.current);
+      hoverCloseTimerRef.current = null;
+      return;
+    }
+    // 다른 칸 — 0.3초 머물면 그 칸의 카드로 바뀐다. 스치기만 하면(그 전에 떠나면) 떠 있던 카드 그대로.
+    // 떠 있던 카드의 닫힘 0.3초는 건드리지 않는다 — 지나가는 칸이 닫힘을 늦추지 않는다(기획 시안 timeline-app.jsx 와 같다)
+    hoverTimerRef.current = setTimeout(() => {
+      hoverTimerRef.current = null;
+      clearTimeout(hoverCloseTimerRef.current);
+      hoverCloseTimerRef.current = null;
+      setHoverEvent(item);
+    }, HOVER_DELAY_MS);
+  };
+  // 칸·카드를 벗어날 때 — 링크 있는 카드는 0.3초 뒤에, 없는 카드는 바로 닫는다.
+  // 이미 재고 있으면 다시 세지 않는다 — 건너가다 스친 칸을 떠나도 0.3초가 늘지 않는다
+  const leaveHover = () => {
     clearTimeout(hoverTimerRef.current);
     hoverTimerRef.current = null;
-    setHoverEvent(null);
+    if (!hoverShownRef.current.sticky) {
+      endCalendarEventHover();
+      return;
+    }
+    if (hoverCloseTimerRef.current) return;
+    // 닫힘만 한다 — 그사이 다른 칸에서 걸어 둔 여는 0.3초는 그대로 두어 그 칸의 카드가 뜬다
+    hoverCloseTimerRef.current = setTimeout(() => {
+      hoverCloseTimerRef.current = null;
+      setHoverEvent(null);
+    }, HOVER_DELAY_MS);
+  };
+  const enterHoverCard = () => {
+    clearTimeout(hoverTimerRef.current);
+    clearTimeout(hoverCloseTimerRef.current);
+    hoverTimerRef.current = null;
+    hoverCloseTimerRef.current = null;
   };
   // 호버 카드에 싣는 칸 — 그리는 순간의 «지금» 일정으로 만든다(아래 liveHoverCard · PW-2501 A30).
   const toEventCard = (ev) => ({
@@ -336,15 +386,14 @@ export default function TimelineCanvas({
     participants: ev.participants,
     typeLabel: ev.typeLabel,
     minutesLabel: ev.minutesLabel,
+    // «회의록 있음» 딱지가 곧 회의록 링크 — 앱이 회의록 id 를 실은 일정만 (pivit-work PW-3210 · 기획서 §13.3-A)
+    minutesId: ev.minutesLabel && !ev.noOpen ? ev.minutesId : undefined,
     // 회의실 이름 · 반복 줄 (pivit-work PW-2637 · 정책서 §7.6 B · §7.8 C) — 넘기지 않아 호버 카드에 안 나왔다
     roomHoverLabel: ev.roomHoverLabel,
     roomGone: ev.roomGone === true,
     recurrenceLabel: ev.recurrenceLabel,
   });
-  const handleCalendarEventHover = (ev, rect) => {
-    clearTimeout(hoverTimerRef.current);
-    hoverTimerRef.current = setTimeout(() => setHoverEvent({ ev, rect }), 300);
-  };
+  const handleCalendarEventHover = (ev, rect) => startHover({ ev, rect });
   // 간트 막대 제목에 0.3초 머물면 같은 호버 카드 (기획서 §13.3 · pivit-work PW-2798). 동료의 «비공개» 일정(«바쁨»)은
   // 시각과 «바쁨»만 — 참석자·딱지를 싣지 않는다 (기획서 §13.10).
   const toMeetingCard = (meeting) => {
@@ -356,21 +405,23 @@ export default function TimelineCanvas({
       participants: busy ? [] : meeting.participants,
       typeLabel: busy ? undefined : meeting.typeLabel,
       minutesLabel: busy ? undefined : meeting.minutesLabel,
+      // 막대의 회의록 뱃지와 같은 회의록 (pivit-work PW-3210 · 기획서 §13.3-A)
+      minutesId: !busy && meeting.minutesLabel ? (meeting.minutes?.id ?? meeting.minutesId) : undefined,
       // 간트 호버 카드도 캘린더와 같은 회의실 이름 · 반복 줄 (pivit-work PW-2637 · 정책서 §7.6 B · §7.8 C)
       roomHoverLabel: busy ? undefined : meeting.roomHoverLabel,
       roomGone: !busy && meeting.roomGone === true,
       recurrenceLabel: busy ? undefined : meeting.repeatLabel || undefined,
     };
   };
-  const handleMeetingHover = (meeting, rect) => {
-    clearTimeout(hoverTimerRef.current);
-    hoverTimerRef.current = setTimeout(() => setHoverEvent({ meeting, rect }), 300);
-  };
+  const handleMeetingHover = (meeting, rect) => startHover({ meeting, rect });
   const handleMinutesClick = (meeting) => {
     endCalendarEventHover();
     if (meeting.minutes) onMinutesOpen?.(meeting.minutes.id);
   };
-  useEffect(() => () => clearTimeout(hoverTimerRef.current), []);
+  useEffect(() => () => {
+    clearTimeout(hoverTimerRef.current);
+    clearTimeout(hoverCloseTimerRef.current);
+  }, []);
 
   const handleCalendarEventClick = (ev, rect) => {
     endCalendarEventHover();
@@ -533,6 +584,53 @@ export default function TimelineCanvas({
     : hoverEvent.ev
       ? toEventCard(findLiveEvent(hoverEvent.ev))
       : toMeetingCard((meetings ?? []).find((m) => m.id === hoverEvent.meeting.id) ?? hoverEvent.meeting);
+  // 카드가 뜬 사이 그 일정이 지워지거나 화면에서 사라지면 카드도 닫는다 (pivit-work PW-3210 · 기획서 §13.3-A 엣지).
+  // 열린 상세 창(위 liveOpenMeeting)은 연 모습 그대로 두지만, 호버 카드는 가리킬 칸이 없어졌다.
+  const hoverItemGone = !hoverEvent
+    ? false
+    : hoverEvent.ev
+      ? !!getEventsForDate && !(getEventsForDate(hoverEvent.ev.date) ?? []).some((e) => e.id === hoverEvent.ev.id)
+      : !!meetings && !meetings.some((m) => m.id === hoverEvent.meeting.id);
+  const hoverShownKey = hoverEvent && !hoverItemGone ? hoverKeyOf(hoverEvent) : null;
+  const hoverSticky = !!hoverShownKey && !!liveHoverCard?.minutesId;
+  useEffect(() => {
+    hoverShownRef.current = { key: hoverShownKey, sticky: hoverSticky };
+  }, [hoverShownKey, hoverSticky]);
+  useEffect(() => {
+    if (hoverItemGone) endCalendarEventHover();
+  }, [hoverItemGone, endCalendarEventHover]);
+  // 카드가 떠 있는 동안 바로 닫히는 때 — Esc · 스크롤 · 창 크기 변경 (기획서 §13.3-A «바로 닫히는 때»).
+  // Esc 는 «+N more» 목록보다 먼저 받아 카드만 닫는다 — 한 번 더 누르면 목록이 닫힌다.
+  const hoverOpen = !!hoverEvent;
+  useEffect(() => {
+    if (!hoverOpen) return undefined;
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return;
+      e.stopImmediatePropagation();
+      e.stopPropagation();
+      endCalendarEventHover();
+    };
+    const onScrollOrResize = () => endCalendarEventHover();
+    window.addEventListener('keydown', onKey, true);
+    window.addEventListener('scroll', onScrollOrResize, true);
+    window.addEventListener('resize', onScrollOrResize);
+    return () => {
+      window.removeEventListener('keydown', onKey, true);
+      window.removeEventListener('scroll', onScrollOrResize, true);
+      window.removeEventListener('resize', onScrollOrResize);
+    };
+  }, [hoverOpen, endCalendarEventHover]);
+  // 보기 · 탭 · 날짜를 바꾸거나 다른 창이 열리면 바로 닫는다 (기획서 §13.3-A «바로 닫히는 때»)
+  const otherWindowOpen = !!openMeeting || !!openSnippet || !!cellPicker;
+  const dayPopoverDate = dayPopover ? dayPopover.dateIso : null;
+  useEffect(() => {
+    endCalendarEventHover();
+  }, [currentTab, calViewUnit, selectedIsoDate, otherWindowOpen, dayPopoverDate, endCalendarEventHover]);
+  const handleHoverMinutesOpen = () => {
+    const minutesId = liveHoverCard?.minutesId;
+    endCalendarEventHover();
+    if (minutesId) onMinutesOpen?.(minutesId);
+  };
 
   // ── 그룹 / 내부·외부 직원 / 이벤트 모달 — parent callback 없을 때 내부 fallback
   const [groupAddOpen, setGroupAddOpen] = useState(false);
@@ -790,7 +888,7 @@ export default function TimelineCanvas({
               onEventClick={handleCalendarEventClick}
               onMoreClick={handleMoreClick}
               onEventHover={handleCalendarEventHover}
-              onEventHoverEnd={endCalendarEventHover}
+              onEventHoverEnd={leaveHover}
             />
           ) : (
             <CalendarWeekView
@@ -800,7 +898,7 @@ export default function TimelineCanvas({
               onMoreClick={handleMoreClick}
               onEventClick={handleCalendarEventClick}
               onEventHover={handleCalendarEventHover}
-              onEventHoverEnd={endCalendarEventHover}
+              onEventHoverEnd={leaveHover}
             />
           )}
         </div>
@@ -838,7 +936,7 @@ export default function TimelineCanvas({
             groups={groups}
             onMeetingClick={handleMeetingClick}
             onMeetingHover={handleMeetingHover}
-            onMeetingHoverEnd={endCalendarEventHover}
+            onMeetingHoverEnd={leaveHover}
             onMinutesClick={handleMinutesClick}
             onSnippetClick={handleSnippetBlockClick}
             spacerH={spacerH}
@@ -864,7 +962,7 @@ export default function TimelineCanvas({
           onClose={handleCloseDayPopover}
           onEventClick={handleDayPopoverEventClick}
           onEventHover={handleCalendarEventHover}
-          onEventHoverEnd={endCalendarEventHover}
+          onEventHoverEnd={leaveHover}
         />
       )}
 
@@ -909,6 +1007,11 @@ export default function TimelineCanvas({
           event={liveHoverCard}
           anchorRect={hoverEvent.rect}
           aboveDayPopover={!!dayPopover}
+          // 회의록 링크가 있는 카드만 마우스를 받는다 — 칸에서 건너와 «회의록 있음»을 누른다 (pivit-work PW-3210 · 기획서 §13.3-A)
+          interactive={hoverSticky}
+          onMinutesOpen={handleHoverMinutesOpen}
+          onMouseEnter={enterHoverCard}
+          onMouseLeave={leaveHover}
           attendeesLabel={
             calendarEventLabels?.attendees
               ? calendarEventLabels.attendees((liveHoverCard.participants || []).length)
