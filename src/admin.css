@@ -4452,6 +4452,16 @@ p.dp-field-error.admin-snap-error { margin: var(--spacing-md) 0; }
   overflow-wrap: anywhere;
 }
 
+/* 휴가 영향 한 줄(pivit-work PW-2852 · 이력 정책서 §2-2) — 사유 아래 회색 작은 글자 한 줄. 인용 선은 사유 몫이라 긋지 않는다 */
+.admin-emp-hist-leave {
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--text-tertiary);
+  margin-top: var(--spacing-xxs);
+  overflow-wrap: anywhere;
+}
+.admin-emp-hist-table .admin-emp-hist-leave { font-size: 12px; }
+
 .admin-emp-hist-empty {
   padding: 28px 0;
   text-align: center;

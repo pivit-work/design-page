@@ -5480,6 +5480,10 @@ function PersonalHistoryList({
   } else {
     const { items, nextCursor } = state.page;
     /* 한 건을 이루는 조각 — 창은 상자 3줄, 상세 페이지는 표 한 줄(PW-2895 시안)이 같은 조각을 놓는다 */
+    /* 휴가 영향 한 줄(pivit-work PW-2852 · 이력 정책서 §2-2) — 날짜·일수가 값이라 값을 가린 행(파기·따로 보관·파기 예정·안 남김)에는 그리지 않는다 */
+    const leaveOf = (h) => (h.leaveLine && !['purged', 'separated', 'purge_pending', 'withheld'].includes(h.state)
+      ? <div className="admin-emp-hist-leave" data-testid={`employees-history-leave-${h.id}`}>{h.leaveLine}</div>
+      : null);
     const partsOf = (h) => {
       const cleared = h.changeKind === 'update' && !h.after && Boolean(h.before);
       const afterText = h.after
@@ -5529,7 +5533,9 @@ function PersonalHistoryList({
         </div>
       );
       const reason = h.reason && <div className="admin-emp-hist-reason">{h.reason}</div>;
-      return { field, kindChips, source, values, who, reason };
+      /* 휴가 영향 한 줄(pivit-work PW-2852 · 이력 정책서 §2-2) — 사유 아래, 사유가 없으면 값 아래. 날짜·일수가 값이라 값을 가린 행에는 없다 */
+      const leave = leaveOf(h);
+      return { field, kindChips, source, values, who, reason, leave };
     };
     if (asTable) {
       body = (
@@ -5555,8 +5561,9 @@ function PersonalHistoryList({
               const p = partsOf(h);
               if (col.key === 'when') return <span className="admin-emp-hist-when">{h.changedAt}</span>;
               if (col.key === 'field') return <span className="admin-emp-hist-head">{p.field}{p.kindChips}</span>;
-              if (col.key === 'value') return p.values;
-              if (col.key === 'reason') return h.reason && h.reason.trim() ? <span className="admin-emp-hist-reason-cell">{h.reason.trim()}</span> : null;
+              const hasReason = !!(h.reason && h.reason.trim());
+              if (col.key === 'value') return hasReason ? p.values : <>{p.values}{p.leave}</>;
+              if (col.key === 'reason') return hasReason ? <><span className="admin-emp-hist-reason-cell">{h.reason.trim()}</span>{p.leave}</> : null;
               if (col.key === 'who') return p.who;
               return <span className="admin-emp-hist-src">{p.source}</span>;
             }}
@@ -5615,6 +5622,8 @@ function PersonalHistoryList({
                           </>
                         )}
                   </div>
+                  {/* 휴가 영향 한 줄(pivit-work PW-2852 · 이력 정책서 §2-2) — 사유 아래, 사유가 없으면 바뀐 값 바로 아래 */}
+                  {!h.reason && leaveOf(h)}
                   <div className={`admin-emp-hist-who${h.actor && h.actor.resigned ? ' is-resigned' : ''}`}
                     data-testid={`employees-history-who-${h.id}`}>
                     {h.actor && h.actor.name ? h.actor.name : L.historyNone}
@@ -5624,6 +5633,7 @@ function PersonalHistoryList({
                   </div>
                   {/* 사유가 없으면 줄 자체를 그리지 않는다 — 「사유 없음」을 매 행에 반복하지 않는다. */}
                   {h.reason && <div className="admin-emp-hist-reason">{h.reason}</div>}
+                  {h.reason && leaveOf(h)}
                 </div>
               </div>
             );
