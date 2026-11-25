@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import StatusBadge from '../shared/StatusBadge.jsx';
+import Button from '../shared/Button.jsx';
 import Icon from '../shared/Icon.jsx';
 import Avatar from '../shared/Avatar.jsx';
 import PhotoOr from './PhotoOr.jsx';
@@ -118,7 +119,7 @@ function PerformanceRow({ row }) {
   );
 }
 
-export default function ProfileModal({ member, onClose, statIcons, baseUrl = '', renderAvatar, resolvePhoto, adminMode = false, findSubordinates, showSubordinates = true, subordinatesTitle, directReportChipLabel, onFeedbackClick, onMeetingClick, isSelf = false, labels, actions, hideFeedback = false, slackDmUrl, managerHistory, asOf, onEditVisibility, editVisibilityLabel, workHours, cardStatus, cardError, icons, onAiBriefingGenerate, onAiBriefingReload, aiBriefingNotice, onSnippetsMore, onActionItemsMore, onOneOnOneRetry, onHrProfileRetry, onHrRowAction, initialTab = 'hr', showSingleTab = false, onTabChange, onOneOnOneSchedule }) {
+export default function ProfileModal({ member, onClose, statIcons, baseUrl = '', renderAvatar, resolvePhoto, adminMode = false, findSubordinates, showSubordinates = true, subordinatesTitle, directReportChipLabel, onFeedbackClick, onMeetingClick, isSelf = false, labels, actions, hideFeedback = false, slackDmUrl, managerHistory, asOf, onEditVisibility, editVisibilityLabel, workHours, cardStatus, cardError, icons, onAiBriefingGenerate, onAiBriefingReload, aiBriefingNotice, onSnippetsMore, onActionItemsMore, onOneOnOneRetry, onHrProfileRetry, onHrRowAction, initialTab = 'hr', showSingleTab = false, onTabChange, onOneOnOneSchedule, praiseRibbon, praiseSection }) {
   // 화면 문구 — 조직도 캔버스 안에서 열리면 캔버스가 받은 번역을 쓰고, 캔버스 밖(소비자가
   // 따로 띄우는 카드)에서는 `labels` 로 받는다(PW-705). 둘 다 없으면 한국어 기본값.
   // `subordinatesTitle`·`directReportChipLabel`(PW-546)은 주면 그것이 이긴다.
@@ -132,6 +133,22 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
   );
   const scrollWrapRef = useRef(null);
   const [activeTab, setActiveTab] = useState(initialTab);
+  // 광장 «받은 칭찬» 구역(pivit-work PW-3273 · 기획 U. 광장/screen-praise-public-card.policy.md §2 · §4).
+  // 리본을 누르면 «인사정보» 탭으로 와서 구역까지 내려가고 구역이 잠깐 밝아진다 — 동작 줄이기면 바로 옮기고 밝아지지 않는다.
+  const praiseRef = useRef(null);
+  const [praiseJump, setPraiseJump] = useState(0);
+  useEffect(() => {
+    if (!praiseJump || !praiseRef.current) return undefined;
+    const el = praiseRef.current;
+    const reduce = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    el.scrollIntoView?.({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+    if (reduce) return undefined;
+    el.classList.remove('is-glow');
+    void el.offsetWidth;
+    el.classList.add('is-glow');
+    const t = setTimeout(() => el.classList.remove('is-glow'), 1200);
+    return () => clearTimeout(t);
+  }, [praiseJump]);
   // 다른 사람으로 열리면 처음 탭으로 — 앞사람에서 고른 탭을 끌고 오지 않는다(렌더 중 갱신 · 아래 displayMember 와 같은 방식).
   const openId = member?.id ?? null;
   const [tabFor, setTabFor] = useState(openId);
@@ -268,6 +285,21 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
             </li>
           ))}
         </ul>
+      )}
+      // 광장 리본 — 최근 7일 안에 받은 칭찬이 있을 때만 소비자가 `praiseRibbon`({ label, icon })을 준다(pivit-work PW-3273).
+      beforeNote={praiseRibbon && praiseSection && (
+        <Button
+          className="profile-praise-ribbon"
+          data-testid="profile-praise-ribbon"
+          onClick={() => {
+            setActiveTab('hr');
+            onTabChange?.('hr');
+            setPraiseJump((n) => n + 1);
+          }}
+        >
+          {praiseRibbon.icon}
+          <span>{praiseRibbon.label}</span>
+        </Button>
       )}
       note={profile.bio}
       // 헬스체크 점수 칩 — 카드 주인이 공개를 켰고 점수가 있을 때만 소비자가 `profile.healthChip`
@@ -498,6 +530,12 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
               }}
             />
             </div>
+          )}
+          {/* 광장 «받은 칭찬» — «자기소개»(왼쪽 머리) 다음 · «스킬»(인사정보 첫 줄) 앞이라 인사정보 탭 맨 위에 둔다(PW-3273). */}
+          {tab === 'hr' && praiseSection && (
+            <section ref={praiseRef} className="profile-praise-sec" data-testid="profile-praise-section">
+              {praiseSection}
+            </section>
           )}
           {tab === 'hr' && (
             <HrInfoTab

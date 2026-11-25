@@ -35,6 +35,7 @@ export default function ProfileCardHeader({
   closeLabel = '닫기',
   title,
   afterTitle,
+  beforeNote,
   note,
   noteTone,
   badge,
@@ -78,7 +79,8 @@ export default function ProfileCardHeader({
           {title && <div className="profile-title">{title}</div>}
           {afterTitle}
         </div>
-        {note && <div className={`profile-bio ${noteTone === 'ai' ? 'is-ai' : ''}`.trim()}>{note}</div>}
+        {beforeNote}
+        {note &&<div className={`profile-bio ${noteTone === 'ai' ? 'is-ai' : ''}`.trim()}>{note}</div>}
         {badge}
         {afterBadge}
       </div>

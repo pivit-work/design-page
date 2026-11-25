@@ -1189,3 +1189,42 @@
   color: var(--text-tertiary);
   text-align: center;
 }
+
+/* ── 광장 «받은 칭찬» (pivit-work PW-3273 · 기획 U. 광장/screen-praise-public-card.policy.md) ──
+   리본 — 이름 줄 아래 · 소개 위. 알약 28 · 12/700 · 브랜드 연바탕(같은 카드 근무 상태 알약과 같은 자리 크기).
+   구역 — 인사정보 탭 맨 위 · 탭 본문과 같은 옆 8 · 아래 줄들과 24. 리본으로 내려오면 잠깐 브랜드 테두리. */
+.profile-praise-ribbon {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  height: 28px;
+  padding: 0 var(--spacing-lg);
+  border: 0;
+  border-radius: 9999px;
+  background: var(--bg-brand-secondary);
+  color: var(--text-brand-secondary);
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-text-xs);
+  font-weight: 700;
+  cursor: pointer;
+}
+.profile-praise-ribbon svg { color: var(--text-brand-tertiary); flex: none; }
+.profile-praise-sec {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  padding: 0 var(--spacing-md);
+  margin-bottom: var(--spacing-3xl);
+  border-radius: var(--radius-lg);
+  scroll-margin-top: var(--spacing-xl);
+}
+.profile-praise-sec.is-glow { animation: profile-praise-glow 1.2s ease; }
+@keyframes profile-praise-glow {
+  0% { box-shadow: 0 0 0 0 transparent; }
+  30% { box-shadow: 0 0 0 3px var(--border-brand); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .profile-praise-sec.is-glow { animation: none; }
+}
