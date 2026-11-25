@@ -1083,8 +1083,13 @@ export default function SquadCanvas({
             {tabStrip}
             <div className="header-subtitle">
               <b>{L('org.totalHeadcount')}</b>
-              <span className="dot">&#8729;</span>
-              <span className="brand-count" data-testid="squad-headcount">{headcount}</span>
+              {/* 지난 날짜 인원을 받는 동안은 비어 온다 — 빈 칸 앞 점만 남지 않게 함께 뺀다 */}
+              {headcount ? (
+                <>
+                  <span className="dot">&#8729;</span>
+                  <span className="brand-count" data-testid="squad-headcount">{headcount}</span>
+                </>
+              ) : null}
               {/* 지난 날짜를 보는 중이면 그 사실을 인원 줄에 잇는다 — 조직도 트리 탭 기준일과 같은 자리(OrgChartCanvas) */}
               {showGraph && structureAsOf?.note && (
                 <>
