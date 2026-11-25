@@ -39,7 +39,8 @@ const slotContent = (b) => ({
 
 /**
  * @param {object|null} draft  `collectDraft()` 모양의 초안(서버 원문도 같은 모양)
- * @param {(slotKey: string) => object|null} defaultSlotOf  그 칸을 처음 열 때 채워지는 내용. 없으면 null
+ * @param {(slotKey: string, version: string) => object|null} defaultSlotOf  그 칸을 처음 열 때 채워지는 내용
+ *   (`version` 은 그 초안의 편집 칸 버전 — 프리셋을 만들 때 쓴다). 없으면 null
  * @returns {string|null}
  */
 export function draftDirtyKey(draft, defaultSlotOf) {
@@ -84,7 +85,7 @@ export function draftDirtyKey(draft, defaultSlotOf) {
   const edited = {};
   for (const [key, b] of Object.entries(slots)) {
     const mine = stableStringify(slotContent(b));
-    const base = defaultSlotOf ? defaultSlotOf(key) : null;
+    const base = defaultSlotOf ? defaultSlotOf(key, tplVersion ?? 'standard') : null;
     if (base && stableStringify(slotContent(base)) === mine) continue;
     edited[key] = slotContent(b);
   }

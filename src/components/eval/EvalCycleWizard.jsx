@@ -7949,6 +7949,8 @@ export default function EvalCycleWizard({
   );
   /* [PW-3175] 응답을 기다리는 저장 — 그 사이 닫으면 같은 내용을 다시 묻지 않고 응답을 기다린다. */
   const [pendingSave, setPendingSave] = useState(null);
+  /* [PW-3175] 응답을 기다리는 중에 닫기를 눌렀다 — 응답이 오면 그때 화면으로 다시 판정한다. */
+  const [closeAfterSave, setCloseAfterSave] = useState(false);
   const [draftSaving, setDraftSaving] = useState(false);
   const [draftError, setDraftError] = useState(false);
   /* PW-1459 §5.1-A-6 — 연달아 실패한 횟수. 3회부터는 푸터 한 줄로는 놓치므로 위쪽에
@@ -7961,9 +7963,13 @@ export default function EvalCycleWizard({
   const [leaveAsk, setLeaveAsk] = useState(false);
 
   /** [PW-3175 · J-10] 템플릿 칸을 처음 열 때 채워지는 내용 — 이와 같으면 «고친 것» 이 아니다. */
-  const defaultSlotOf = (key) =>
+  /* 프리셋은 그 초안 쪽의 버전으로 만든다 — 지금 칸의 버전으로 만들면, 다른 유형에서 버전을 바꿔도
+     저장본 쪽 기본이 함께 바뀌어 «변경 없음»이 된다. */
+  const defaultSlotOf = (key, version) =>
     confirmedBufferOf(key) ??
-    (leaderRoundOf(key) > 1 ? emptyRoundBuffer() : presetBufferFor(phaseBaseId(key)));
+    (leaderRoundOf(key) > 1
+      ? { ...emptyRoundBuffer(), version }
+      : presetBufferFor(phaseBaseId(key), version));
   const dirtyKeyOf = (draft) => draftDirtyKey(draft, defaultSlotOf);
   const draftSnapshot = draftEnabled ? dirtyKeyOf(collectDraft()) : null;
   /* 저장 이후 바뀐 것이 있나. 한 번도 저장 안 했으면 「입력이 있으면 변경」으로 본다. */
@@ -7989,16 +7995,18 @@ export default function EvalCycleWizard({
       leaderConfirmShape: _ls,
       ...rest
     } = collectDraft();
-    return JSON.stringify({
+    return {
       ...rest,
       orgSelEdit: orgSelEdit ? [...orgSelEdit] : null,
       manualExcludedEdit,
-    });
+    };
   };
   const [manageBaseline] = useState(() =>
     isManage ? collectManageSnapshot() : null,
   );
-  const manageDirty = manageBaseline !== null && collectManageSnapshot() !== manageBaseline;
+  /* [PW-3175] 초안과 같은 열쇠로 견준다 — [이 유형 편집]으로 유형만 옮긴 것은 변경이 아니다. */
+  const manageDirty =
+    manageBaseline !== null && dirtyKeyOf(collectManageSnapshot()) !== dirtyKeyOf(manageBaseline);
 
   /**
    * PW-440 ① — 초안 저장. 저장 계기는 셋이다: 단계 이동(자동) · `임시저장`(수동) ·
@@ -8060,7 +8068,9 @@ export default function EvalCycleWizard({
     })();
     const pending = { key: dirtyKeyOf(payload), promise: run };
     setPendingSave(pending);
-    run.finally(() => setPendingSave((cur) => (cur === pending ? null : cur)));
+    run
+      .finally(() => setPendingSave((cur) => (cur === pending ? null : cur)))
+      .catch(() => {});
     return run;
   };
 
@@ -8175,10 +8185,7 @@ export default function EvalCycleWizard({
     /* [PW-3175] [임시저장] 응답을 기다리는 중이고 그 뒤로 고친 것이 없으면, 묻지 않고 응답을 기다린다 —
        저장되면 그대로 닫고(«초안이 저장되어 있습니다»), 실패하면 그때 묻는다(§5.1-A-5 마지막 행). */
     if (draftEnabled && !manageDirty && pendingSave && pendingSave.key === draftSnapshot) {
-      pendingSave.promise.then((result) => {
-        if (result) onCancel?.();
-        else setLeaveAsk(true);
-      });
+      setCloseAfterSave(true);
       return;
     }
     if ((draftEnabled && draftDirty) || manageDirty) {
@@ -8188,12 +8195,28 @@ export default function EvalCycleWizard({
     onCancel?.();
   };
 
+  /* 응답이 온 뒤의 판정 — 그 사이 더 고쳤거나 저장이 실패했으면 묻고, 아니면 닫는다(그때의 onCancel 로 —
+     첫 저장이면 앱이 그제야 초안을 알아 «초안이 저장되어 있습니다»를 띄운다). 충돌이면 충돌 창이 먼저다. */
+  const closeSettled = closeAfterSave && !pendingSave && !draftConflict;
+  const askAfterSave = closeSettled && (draftError || draftDirty);
+  useEffect(() => {
+    if (closeSettled && !askAfterSave) onCancel?.();
+  }, [closeSettled, askAfterSave, onCancel]);
+  /** 이탈 창을 내린다 — 응답 뒤 띄운 창이면 그 표시도 함께 내린다. */
+  const dismissLeaveAsk = () => {
+    setLeaveAsk(false);
+    setCloseAfterSave(false);
+  };
+
   const leaveWithSave = async () => {
+    // 응답 뒤 띄운 창이면 저장하는 동안에도 창을 그대로 둔다(이 버튼이 닫기를 맡는다).
+    setLeaveAsk(true);
+    setCloseAfterSave(false);
     const result = await saveDraft();
     // 🔴 실패하면 다이얼로그도 위자드도 닫지 않는다. 닫으면 입력이 사라지는데,
     // 사용자는 「임시저장하고 나가기」를 눌렀으니 저장된 줄 안다 — 가장 나쁜 실패다.
     if (!result) return;
-    setLeaveAsk(false);
+    dismissLeaveAsk();
     onCancel?.();
   };
 
@@ -12730,7 +12753,7 @@ export default function EvalCycleWizard({
         </ModalShell>
       )}
 
-      {leaveAsk && (
+      {(leaveAsk || askAfterSave) && (
         <ModalShell
           title={
             isManage
@@ -12741,7 +12764,7 @@ export default function EvalCycleWizard({
           }
           titleId="evc-wiz-leave-title"
           closeLabel={L.close}
-          onClose={() => setLeaveAsk(false)}
+          onClose={dismissLeaveAsk}
           busy={draftSaving}
           zIndex={1000}
           className="evc-shell is-wide"
@@ -12751,7 +12774,7 @@ export default function EvalCycleWizard({
               <button
                 type="button"
                 className="tl-group-modal-btn tl-group-modal-btn-secondary"
-          onClick={() => setLeaveAsk(false)}
+          onClick={dismissLeaveAsk}
                 data-testid="evc-wiz-leave-cancel"
         >
                 {L.cancel}
@@ -12760,7 +12783,7 @@ export default function EvalCycleWizard({
                 type="button"
                 className="tl-group-modal-btn tl-group-modal-btn-secondary"
                 onClick={() => {
-                  setLeaveAsk(false);
+                  dismissLeaveAsk();
                   onCancel?.();
                 }}
                 data-testid="evc-wiz-leave-discard"
