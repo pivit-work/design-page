@@ -1742,6 +1742,14 @@ function DetailSectionHead({ open, onToggle, testId, children }) {
    «등급을 받은 적 없음»으로 읽히므로 그래프 아래에 그 사실을 한 줄 단다. */
 function MiniSparkline({ archivedPrior = false, archivedLabel, ...rest }) {
   if (!archivedPrior) return <MiniSparklineChart {...rest} />;
+  // [PW-3182 · 정책 §16.4] 점이 하나도 없으면 «이력 없음» 대신 보관 안내만 — 둘을 함께 적으면 «받은 적 없음»으로 읽힌다.
+  if (!(rest.trend ?? []).some((t) => t && t.score != null)) {
+    return (
+      <span className="evs-cw-spark-cell">
+        <span className="evs-cw-spark-archived" data-testid="evs-cw-spark-archived">{archivedLabel}</span>
+      </span>
+    );
+  }
   return (
     <span className="evs-cw-spark-cell">
       <MiniSparklineChart {...rest} />
@@ -1753,13 +1761,14 @@ function MiniSparkline({ archivedPrior = false, archivedLabel, ...rest }) {
 function MiniSparklineChart({ trend, domain, emptyLabel = '—' }) {
   const scores = (trend ?? []).map((t) => (t == null ? null : t.score));
   const valid = scores.filter((s) => s != null);
-  // §14 — 추이는 이번 사이클을 포함하므로 점이 둘 미만이면 지난 이력이 없는 것이다 → 「이력 없음」.
-  if (valid.length < 2) return <span className="evs-cw-spark-empty" data-testid="evs-cw-spark-empty">{emptyLabel}</span>;
+  // [PW-3182 · arch-eval-cycle-data-model «평가 등급 이력»] 추이는 지금 사이클보다 앞선 확정 사이클 최근 N회다(지금 사이클은 없다).
+  // 그 사람의 점이 하나도 없을 때만 「이력 없음」 — 하나면 선 없이 점만 그린다. 등급이 없는 사이클은 null 로 와 건너뛰고 잇는다.
+  if (valid.length === 0) return <span className="evs-cw-spark-empty" data-testid="evs-cw-spark-empty">{emptyLabel}</span>;
   const min = domain?.min ?? 1;
   const max = Math.max(domain?.max ?? 3, min + 1);
   const W = 60;
   const H = 18;
-  const x = (i) => (scores.length > 1 ? (i / (scores.length - 1)) * W : 0);
+  const x = (i) => (scores.length > 1 ? (i / (scores.length - 1)) * W : W / 2);
   const y = (v) => H - ((v - min) / (max - min)) * (H - 4) - 2;
   const firstIdx = scores.findIndex((v) => v != null);
   const d = scores
@@ -1768,10 +1777,12 @@ function MiniSparklineChart({ trend, domain, emptyLabel = '—' }) {
     )
     .filter(Boolean)
     .join(' ');
-  // TC-077/167 호버 툴팁 — 각 점(사이클명: 점수)과 전체 추이를 네이티브 SVG title 로 노출.
+  // TC-077/167 호버 툴팁 — 각 점(기간 레이블: 등급)과 전체 추이를 네이티브 SVG title 로 노출.
+  // 정책 «호버 시 각 사이클 레이블·등급 툴팁» — 등급 이름(gradeLabel)이 없는 옛 응답이면 점수로.
+  const pointText = (t, v) => (t?.cycleName ? `${t.cycleName}: ${t.gradeLabel ?? v}` : String(t?.gradeLabel ?? v));
   const summary = (trend ?? [])
     .filter((t) => t && t.score != null)
-    .map((t) => `${t.cycleName}: ${t.score}`)
+    .map((t) => pointText(t, t.score))
     .join('  ·  ');
   return (
     <svg
@@ -1787,7 +1798,7 @@ function MiniSparklineChart({ trend, domain, emptyLabel = '—' }) {
         v == null ? null : (
           <circle key={i} cx={x(i)} cy={y(v)} r={2} className="evs-cw-spark-dot">
             <title>
-              {trend[i]?.cycleName ? `${trend[i].cycleName}: ${v}` : String(v)}
+              {pointText(trend[i], v)}
             </title>
           </circle>
         ),
