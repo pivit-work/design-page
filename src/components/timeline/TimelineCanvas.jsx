@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Icon from '../shared/Icon.jsx';
 import NameColumn from './NameColumn.jsx';
 import TimelineGrid from './TimelineGrid.jsx';
@@ -329,13 +329,17 @@ export default function TimelineCanvas({
   const hoverCloseTimerRef = useRef(null); // 링크 있는 카드를 닫는 0.3초
   const hoverShownRef = useRef({ key: null, sticky: false }); // 지금 떠 있는 카드 — 아래 liveHoverCard 를 그릴 때 적는다
   const HOVER_DELAY_MS = 300;
-  const hoverKeyOf = (item) => (item.ev ? `ev:${item.ev.id}:${item.ev.date}` : `mt:${item.meeting.id}`);
+  // 같은 일정이라도 칸이 다르면(두 그룹에 걸친 회의 막대 · 날짜 칸과 «+N more» 목록) 다른 카드다 — 자리까지 넣는다
+  const hoverKeyOf = (item) =>
+    `${item.ev ? `ev:${item.ev.id}:${item.ev.date}` : `mt:${item.meeting.id}`}@${Math.round(item.rect?.left ?? 0)},${Math.round(item.rect?.top ?? 0)}`;
   // ref 와 setState 만 써서 늘 같은 함수다 — 아래 닫기 효과들의 의존 값으로 써도 다시 돌지 않는다
   const endCalendarEventHover = useCallback(() => {
     clearTimeout(hoverTimerRef.current);
     clearTimeout(hoverCloseTimerRef.current);
     hoverTimerRef.current = null;
     hoverCloseTimerRef.current = null;
+    // 다시 그리기 전에 바로 비운다 — 닫힌 직후 같은 칸에 들어와도 «떠 있는 그 카드»로 보지 않게
+    hoverShownRef.current = { key: null, sticky: false };
     setHoverEvent(null);
   }, []);
   const startHover = (item) => {
@@ -369,6 +373,7 @@ export default function TimelineCanvas({
     // 닫힘만 한다 — 그사이 다른 칸에서 걸어 둔 여는 0.3초는 그대로 두어 그 칸의 카드가 뜬다
     hoverCloseTimerRef.current = setTimeout(() => {
       hoverCloseTimerRef.current = null;
+      hoverShownRef.current = { key: null, sticky: false };
       setHoverEvent(null);
     }, HOVER_DELAY_MS);
   };
@@ -593,31 +598,54 @@ export default function TimelineCanvas({
       : !!meetings && !meetings.some((m) => m.id === hoverEvent.meeting.id);
   const hoverShownKey = hoverEvent && !hoverItemGone ? hoverKeyOf(hoverEvent) : null;
   const hoverSticky = !!hoverShownKey && !!liveHoverCard?.minutesId;
-  useEffect(() => {
+  // 그린 직후(화면에 보이기 전) 적는다 — 카드가 막 뜬 순간 벗어나도 링크 카드의 0.3초를 지킨다
+  useLayoutEffect(() => {
     hoverShownRef.current = { key: hoverShownKey, sticky: hoverSticky };
   }, [hoverShownKey, hoverSticky]);
   useEffect(() => {
     if (hoverItemGone) endCalendarEventHover();
   }, [hoverItemGone, endCalendarEventHover]);
-  // 카드가 떠 있는 동안 바로 닫히는 때 — Esc · 스크롤 · 창 크기 변경 (기획서 §13.3-A «바로 닫히는 때»).
+  // 카드가 떠 있는 동안 바로 닫히는 때 — Esc · 스크롤 · 창 크기 변경 · 다른 창이 열림 (기획서 §13.3-A «바로 닫히는 때»).
   // Esc 는 «+N more» 목록보다 먼저 받아 카드만 닫는다 — 한 번 더 누르면 목록이 닫힌다.
+  // 스크롤은 사람이 굴린 것만 본다(휠 · 터치 · 스크롤 키). 화면이 스스로 옮기는 스크롤(주 보기가 분마다 «지금 시각»으로
+  // 맞추는 것 등)에 카드가 뜨자마자 닫히지 않게 — scroll 이벤트는 누가 움직였는지 가리지 못한다.
   const hoverOpen = !!hoverEvent;
   useEffect(() => {
     if (!hoverOpen) return undefined;
+    const SCROLL_KEYS = new Set(['PageUp', 'PageDown', 'Home', 'End', 'ArrowUp', 'ArrowDown', ' ']);
     const onKey = (e) => {
-      if (e.key !== 'Escape') return;
-      e.stopImmediatePropagation();
-      e.stopPropagation();
-      endCalendarEventHover();
+      if (e.key === 'Escape') {
+        e.stopImmediatePropagation();
+        e.stopPropagation();
+        endCalendarEventHover();
+      } else if (SCROLL_KEYS.has(e.key)) {
+        endCalendarEventHover();
+      }
     };
-    const onScrollOrResize = () => endCalendarEventHover();
+    const close = () => endCalendarEventHover();
+    // 앱 · design-page 의 창은 body 에 막(.tl-modal-overlay)이나 role="dialog" · aria-modal 로 붙는다 — 그것이 생기면 닫는다
+    const DIALOG = '.tl-modal-overlay, [role="dialog"], [aria-modal="true"]';
+    const observer = typeof MutationObserver === 'undefined' ? null : new MutationObserver((records) => {
+      for (const r of records) {
+        for (const n of r.addedNodes) {
+          if (n.nodeType === 1 && (n.matches?.(DIALOG) || n.querySelector?.(DIALOG))) {
+            endCalendarEventHover();
+            return;
+          }
+        }
+      }
+    });
+    observer?.observe(document.body, { childList: true, subtree: true });
     window.addEventListener('keydown', onKey, true);
-    window.addEventListener('scroll', onScrollOrResize, true);
-    window.addEventListener('resize', onScrollOrResize);
+    window.addEventListener('wheel', close, { capture: true, passive: true });
+    window.addEventListener('touchmove', close, { capture: true, passive: true });
+    window.addEventListener('resize', close);
     return () => {
+      observer?.disconnect();
       window.removeEventListener('keydown', onKey, true);
-      window.removeEventListener('scroll', onScrollOrResize, true);
-      window.removeEventListener('resize', onScrollOrResize);
+      window.removeEventListener('wheel', close, { capture: true });
+      window.removeEventListener('touchmove', close, { capture: true });
+      window.removeEventListener('resize', close);
     };
   }, [hoverOpen, endCalendarEventHover]);
   // 보기 · 탭 · 날짜를 바꾸거나 다른 창이 열리면 바로 닫는다 (기획서 §13.3-A «바로 닫히는 때»)

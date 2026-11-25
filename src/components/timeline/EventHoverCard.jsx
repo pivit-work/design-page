@@ -74,14 +74,12 @@ export default function EventHoverCard({
       style={{ left: pos.left, top: pos.top, opacity: pos.opacity }}
       role="tooltip"
       data-testid="calendar-event-hover-card"
-      {...(interactive
-        ? {
-            onMouseEnter,
-            onMouseLeave,
-            onClick: (e) => e.stopPropagation(),
-            onMouseDown: (e) => e.stopPropagation(),
-          }
-        : {})}
+      // 마우스 드나듦은 늘 단다 — 링크가 빠져 마우스를 안 받는 카드로 바뀌는 순간에도 떠남을 받아 닫히게.
+      // 마우스를 받지 않는 카드(pointer-events: none)에는 오지 않으니 종전 동작은 그대로다.
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      onClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
     >
       <div className="tl-meeting-modal-header" />
       <div className="tl-meeting-modal-body">
