@@ -5840,7 +5840,7 @@ button.ono-add-modal-input { cursor: pointer; }
   box-sizing: border-box;
 }
 /* 앱은 이 화면을 팀원 캔버스(.ono-mem)에 꽂고 머리(.ono-page-header)가 위에 고정된다 — 12 에 붙으면 위젯 제목
-   «매니저가 미팅을 아직 시작하지 않았습니다»가 머리 밑으로 들어가 가려졌다. 제목 줄이 고정된 화면의 붙는 자리
+   (그때 문구 «매니저가 미팅을 아직 시작하지 않았습니다» — 지금은 준비 단계에 카드가 없고 녹음 전 문구는 «현재 녹음하고 있지 않습니다»)가 머리 밑으로 들어가 가려졌다. 제목 줄이 고정된 화면의 붙는 자리
    (.ono-start-rec-wrap 120 — 매니저 진행 화면)를 그대로 쓴다 (pivit-work PW-3174). */
 .ono-mem > .ono-my-view > .ono-my-widget.is-overlay { top: 120px; }
 .ono-my-widget .ono-start-rec-mini {

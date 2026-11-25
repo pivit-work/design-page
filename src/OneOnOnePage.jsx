@@ -373,7 +373,8 @@ const SEARCH_PLACEHOLDER = '팀명으로 검색 해보세요.';
    (Figma 17416:27949 · 17556:23830 · 17556:25936). 녹음 시작·종료는 매니저만 하므로(policy §11.1)
    이 화면의 위젯은 상태만 보여 준다. */
 const MEMBER_VIEWS = {
-  'member-prep': { phase: 'prep', widget: 'waiting' },
+  // 준비 단계(미팅 시작 전)에는 녹음 상태 카드를 그리지 않는다 — 알릴 녹음이 없다 (pivit-work PW-3254 · policy §3.4).
+  'member-prep': { phase: 'prep', widget: null },
   'member-ready': { phase: 'ready', widget: 'recording' },
   'member-recorded': { phase: 'ready', widget: 'recorded' },
   'member-saved': { phase: 'ready', widget: 'saved' },

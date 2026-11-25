@@ -13,7 +13,7 @@ import { CloseGlyph } from '../shared/lineIcons.jsx';
  * 멤버 화면에 새어 나온다.
  *
  * 단계(`status`):
- *  - waiting   매니저가 아직 시작하지 않음 — 시계 `--:--` · 납작한 파형
+ *  - waiting   미팅은 시작됐고 아직 녹음 전 — 시계 `--:--` · 납작한 파형 (준비 단계에는 카드를 그리지 않는다 · pivit-work PW-3254)
  *  - recording 녹음 중 — 경과 시계 · 정지 파형(멤버에게는 마이크가 없어 실시간 파형을 그리지 않는다)
  *  - recorded  녹음 끝 · 매니저가 완료 처리 중 — 파란 안내
  *  - saved     녹음 저장 끝 · AI 분석 중 — 초록 안내
@@ -37,8 +37,10 @@ const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 const WAVE_FLAT = [5, 5, 5, 5, 5, 5];
 const WAVE_RECORDING = [5, 20, 14, 10, 7, 5];
 
+// waiting 은 «미팅은 시작됐고 아직 녹음 전»이다 — 준비 단계(미팅 시작 전)에는 이 카드를 그리지 않는다
+// (pivit-work PW-3254 · policy §3.4 «준비 단계에는 팀원 녹음 표시를 보이지 않는다»).
 const DEFAULT_LABELS = {
-  waitingTitle: '매니저가 미팅을 아직 시작하지 않았습니다',
+  waitingTitle: '현재 녹음하고 있지 않습니다',
   recordingTitle: '원온원 녹음 중',
   recordedTitle: '녹음 완료',
   savedTitle: '녹음 저장 완료 - AI 분석 중',
