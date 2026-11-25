@@ -655,7 +655,8 @@
 .mgr-ts-roster-row.is-all { min-height: 28px; box-sizing: border-box; }  /* 아바타가 없어 글자 줄(20)만 — 28 */
 .mgr-ts-roster-row.is-selected { background: var(--bg-quaternary); box-shadow: inset 0 0 0 0.5px var(--fg-quaternary), var(--shadows-shadow-md); }
 .mgr-ts-roster-row img { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; box-sizing: border-box; border: 0.5px solid var(--alpha-black-10); }
-.mgr-ts-roster-name { flex: 1; font-size: 14px; font-weight: 700; line-height: 20px; color: var(--text-primary); }
+/* min-width 0 — 띄어쓰기 없는 긴 이름 한 덩어리가 줄 폭을 키워 오른쪽 표시·옆 칸 밖으로 밀지 않고 이 칸 안에서 끊긴다(앱 전체 break-word · pivit-work PW-3085) */
+.mgr-ts-roster-name { flex: 1; min-width: 0; font-size: 14px; font-weight: 700; line-height: 20px; color: var(--text-primary); }
 .mgr-ts-roster-status { display: flex; align-items: center; gap: 12px; }
 /* 안 쓴 까닭(«—»·«휴가»)·주말 «세지 않아요» — 같은 탭 카드의 제출 시각 글자(.mgr-ts-card-submit)와 같은 크기·회색 (PW-2296) */
 .mgr-ts-note { font-size: 12px; font-weight: 400; line-height: 18px; color: var(--text-secondary); }
@@ -665,7 +666,7 @@
 .mgr-ts-health-head { padding: 4px 16px 8px; font-size: 14px; font-weight: 700; line-height: 20px; color: var(--text-secondary); }
 .mgr-ts-health-row { display: flex; align-items: center; gap: 12px; padding: 4px 16px; }
 .mgr-ts-health-row img { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; box-sizing: border-box; border: 0.5px solid var(--alpha-black-10); }
-.mgr-ts-health-name { flex: 1; font-size: 14px; font-weight: 700; color: var(--text-primary); }
+.mgr-ts-health-name { flex: 1; min-width: 0; font-size: 14px; font-weight: 700; color: var(--text-primary); }
 .mgr-ts-dots { display: flex; gap: 4px; }
 .mgr-ts-dot { width: 12px; height: 12px; border-radius: 4px; display: inline-block; box-sizing: border-box; }
 .mgr-ts-dot.is-good { background: var(--fg-success-secondary); }
@@ -755,7 +756,7 @@
 .mgr-ts-krgroup-avatars { display: flex; }
 .mgr-ts-krgroup-avatars img { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; border: 0.5px solid var(--border-secondary-alt); box-shadow: 0 0 0 1.5px var(--bg-quaternary); margin-left: -4px; }
 .mgr-ts-krgroup-avatars img:first-child { margin-left: 0; }
-.mgr-ts-krgroup-members { flex: 1; }
+.mgr-ts-krgroup-members { flex: 1; min-width: 0; }
 .mgr-ts-krsnippet { background: var(--bg-secondary); border-radius: 8px; padding: 12px 16px; display: flex; align-items: flex-start; gap: 12px; }
 /* 누르면 스니핏 전체를 여는 카드(onOpenSnippet 을 준 때만) — 손가락 커서만 준다. 모양은 그대로. */
 .mgr-ts-card[data-clickable], .mgr-ts-krsnippet[data-clickable] { cursor: pointer; }
@@ -765,6 +766,12 @@
 .mgr-ts-krsnippet-name { font-size: 14px; font-weight: 700; line-height: 20px; color: var(--text-primary); }
 .mgr-ts-krsnippet-date { font-size: 12px; font-weight: 400; line-height: 18px; color: var(--text-tertiary); }
 .mgr-ts-krsnippet .mgr-ts-score { min-width: 0; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 500; line-height: 18px; }
+/* 띄어쓰기 없는 긴 이름(pivit-work PW-3085) — 높이 28 은 한 줄 이름 기준이라 여러 줄이면 머리가 자라 본문을 덮지 않고,
+   이름 칸만 줄어 칸 안에서 끊기며 날짜·점수는 이름에 밀려 꺾이지 않는다. 한 줄 이름에서는 위 디자이너 값 그대로. */
+.mgr-ts-krsnippet-head { height: auto; min-height: 28px; }
+.mgr-ts-krsnippet-name { min-width: 0; }
+.mgr-ts-krsnippet-date { flex-shrink: 0; }
+.mgr-ts-krsnippet .mgr-ts-score { flex-shrink: 0; }
 .mgr-ts-krsnippet .mgr-ts-score.is-good { border: 1px solid var(--utility-success-200); color: var(--utility-success-700); }
 .mgr-ts-krsnippet .mgr-ts-score.is-warn { border: 1px solid var(--utility-warning-200); color: var(--utility-warning-700); }
 .mgr-ts-krsnippet .mgr-ts-score.is-bad { border: 1px solid var(--utility-error-200); color: var(--utility-error-700); }
