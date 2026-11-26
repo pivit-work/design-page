@@ -127,16 +127,18 @@ function SourceRow({ source, labels, onRemove, delayed, onRefresh }) {
   // 처리 중이면 "문서를 읽고 있어요…"(지연이면 지연 안내), 실패면 서버가 준 사유를 따로 빨간 글자로.
   const note = (stalled && labels.statusDelayed) || (status === 'processing' && labels.statusProcessingHint) || null;
   const typeLabel = labels[TYPE_LABEL_KEY[source.type]];
+  // 제목을 비워 등록한 옛 링크는 서버가 주소 전체를 제목으로 저장했다 — 자동 제목은 호스트(§3-2 · PW-3279)라 그 줄도 호스트로.
+  const title = source.type === 'url' && source.title && source.title === source.url ? urlDomain(source.url) : source.title;
   return (
     <div
-      // 읽기 실패 줄은 테두리도 빨강(정책서 §3-1 «행 보더 error» · PW-3279). 다른 상태 줄은 그대로.
+      // 읽기 실패 줄은 테두리도 빨강(정책서 §3-2 «행 보더 error» · PW-3279). 다른 상태 줄은 그대로.
       className={['okr-p-linked-card', failed && 'is-error'].filter(Boolean).join(' ')}
       data-testid={`okr-context-source-${source.id}`}
       data-status={status}
     >
       <div className="okr-p-linked-head">
         <div className="okr-ctx-source-main">
-          <span className="okr-p-linked-name">{source.title}</span>
+          <span className="okr-p-linked-name">{title}</span>
           <span
             className={['okr-status-text', meta.tone, status === 'processing' && 'dp-busy-inline'].filter(Boolean).join(' ')}
             data-testid={`okr-context-status-${source.id}`}
@@ -150,7 +152,7 @@ function SourceRow({ source, labels, onRemove, delayed, onRefresh }) {
           <button
             type="button"
             className="okr-icon-btn"
-            aria-label={`${source.title} ${labels.remove}`}
+            aria-label={`${title} ${labels.remove}`}
             data-testid={`okr-context-remove-${source.id}`}
             onClick={() => onRemove(source.id)}
           >
