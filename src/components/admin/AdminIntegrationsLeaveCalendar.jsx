@@ -43,6 +43,8 @@ export default function AdminIntegrationsLeaveCalendar({
   const setOn = (next) => (controlled ? onDraftChange?.(next) : setOwnOn(next));
   const [picked, setPicked] = useState(state.calendarId ?? '');
   const [confirmOff, setConfirmOff] = useState(false);
+  // 해제 답을 기다리는 동안 창을 잠근다 — 호스트가 false 를 돌려주면(거절) 창을 남겨 [취소]로 닫게 한다(pivit-work PW-3126)
+  const [offBusy, setOffBusy] = useState(false);
 
   const showPicker = isAdmin && on && !!account;
   useEffect(() => {
@@ -196,9 +198,15 @@ export default function AdminIntegrationsLeaveCalendar({
           confirmLabel={L.disconnect}
           cancelLabel={L.cancel}
           danger
-          onCancel={() => setConfirmOff(false)}
+          busy={offBusy}
+          onCancel={() => { if (!offBusy) setConfirmOff(false); }}
           onConfirm={async () => {
-            await onDisconnect();
+            if (offBusy) return;
+            setOffBusy(true);
+            let ok = false;
+            try { ok = (await onDisconnect()) !== false; } catch { ok = false; }
+            setOffBusy(false);
+            if (!ok) return;
             setConfirmOff(false);
             setOn(false);
           }}
