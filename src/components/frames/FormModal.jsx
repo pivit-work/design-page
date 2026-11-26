@@ -78,7 +78,7 @@ function FormModalField({ label, hint, error, required, group, testId, children 
       group={group}
       className="tl-group-modal-field"
       labelClassName="tl-group-modal-label"
-      hintClassName="tl-event-modal-subtitle"
+      hintClassName="tl-event-modal-subtitle dp-form-modal-hint"
       data-testid={testId}
     >
       {children}
