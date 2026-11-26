@@ -7738,7 +7738,9 @@ function EmployeesEditPanel({
                   className="admin-emp-field"
                   labelClassName="admin-emp-field-label"
                   label={labels.panel[f.label]}
-                  required={f.field === 'leaveStartDate'}
+                  /* 별표는 휴직이 아닌 사람을 «휴직»으로 고른 동안만(구성원 상세 정책서 v1.2 §3 «휴직 세 칸» · pivit-work PW-3250).
+                     이미 휴직인 사람은 저장된 값으로 열려 별표가 없다 — 시작일을 비우면 막는 규칙(아래 error)은 그대로다. */
+                  required={f.field === 'leaveStartDate' && becomingLeave}
                   error={
                     f.field === 'leaveStartDate' && leaveStartMissing && identityReady
                       ? (becomingLeave ? labels.panel.leaveStartNeeded || labels.panel.leaveStartRequired : labels.panel.leaveStartRequired)
