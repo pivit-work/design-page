@@ -158,10 +158,9 @@
 }
 
 /* 필터 row — 기간 segmented + 날짜 버튼 + 검색 */
-/* 목록 맨 위 안내 한 줄 (pivit-work PW-3260) — 작성 창 계정 연결 안내와 같은 브랜드 옅은 띠 */
 /* 지난 스니핏 읽기 전용 한 줄 (pivit-work PW-3260) — 디자이너 원본이 없어 디자이너의 안내 상자 `.login-notice`
    (stesslee · Figma 17767:40732 — alpha-black-3 바탕 · 테두리 없음 · 모서리 10 · 12/400/18 text-secondary)를 따른다.
-   한 줄이라 안쪽은 8/12, 글과 버튼 사이 12. 간격은 단위가 붙은 토큰(index.css --spacing-md/lg)을 쓴다 —
+   안쪽은 .login-notice 와 같은 12/14, 글과 버튼 사이 12. 간격은 단위가 붙은 토큰(index.css --spacing-lg)을 쓴다 —
    tokens.css 의 --spacing-2-8px 같은 값은 단위 없는 숫자라 padding 에 넣으면 무시돼 0 이 됐다. */
 .snippet-notice {
   display: flex;
