@@ -609,6 +609,11 @@ export default function BillingOverviewCanvas({
   /** [변경된 요금에 동의] — 창 본문에 보인 글을 그대로 넘긴다(서버가 «그때 보인 문안»으로 남긴다). */
   onConsentPriceChange,
   /**
+   * 가격이 정해지기 전이라 새 가격에 동의를 막을 때 그 이유 글 (pivit-work PW-3291). 있으면 요금 변경 창의
+   * [변경된 요금에 동의]를 끄고 마우스를 올리면 띄운다 — 금액이 가려진 글에 동의가 남지 않게.
+   */
+  newPaymentBlockedHint = null,
+  /**
    * 요금제 변경 뒤의 상태 (pivit-work PW-2475 · 서버 구독 응답 값 그대로) —
    * `{ scheduled: { interval: 'annual'|'monthly', seatPrice } | null,
    *    carriedDiff: { from, to, changedOn, days, amount } | null,
@@ -1467,11 +1472,17 @@ export default function BillingOverviewCanvas({
                 {labels.priceChangeCancelSubscription}
               </Button>
             )}
-            <Button className="tl-group-modal-btn tl-group-modal-btn-primary"
-              data-testid="billing-price-change-agree" pending={priceChangeSaving}
-              onClick={() => onConsentPriceChange?.(priceChangeBodyRef.current?.innerText ?? '')}>
-              {labels.priceChangeAgree}
-            </Button>
+            {(() => {
+              const agree = (
+                <Button className="tl-group-modal-btn tl-group-modal-btn-primary"
+                  data-testid="billing-price-change-agree" pending={priceChangeSaving}
+                  disabled={Boolean(newPaymentBlockedHint)}
+                  onClick={() => onConsentPriceChange?.(priceChangeBodyRef.current?.innerText ?? '')}>
+                  {labels.priceChangeAgree}
+                </Button>
+              );
+              return newPaymentBlockedHint ? <Tooltip content={newPaymentBlockedHint}>{agree}</Tooltip> : agree;
+            })()}
           </>}
         >
           <div ref={priceChangeBodyRef}>

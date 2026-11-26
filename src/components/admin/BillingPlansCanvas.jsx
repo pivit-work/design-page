@@ -437,7 +437,7 @@ function QuoteCard({ quote, canEdit, onPay, billedSeats, seatsOverMax, labels, r
       </div>
 
       <div style={{ marginTop: 12 }}>
-        <Btn onClick={onPay} disabled={!canEdit || locked} hint={newPaymentBlockedHint}>
+        <Btn onClick={onPay} disabled={!canEdit || locked} hint={canEdit && !locked ? newPaymentBlockedHint : null}>
           {quote.isRenewal ? labels.quoteAcceptRenewalCta : labels.quotePayCta}
         </Btn>
         {locked && (
@@ -589,7 +589,8 @@ function PlanCard({ plan, isCurrent, isUpgrade = false, interval, onAction, canE
             disabled={!canEdit || isCurrent}
             // 새 가격으로 결제·구독이 시작되는 변경만 막는다 — 지금 플랜 · Free 로 내리기 · [영업팀 문의]는 그대로 (PW-3291)
             hint={
-              newPaymentBlockedHint && !isCurrent && (plan.tierRank ?? 0) > 0 && !(isCustomCta && negotiatedPrice == null)
+              // 권한·상태로 이미 꺼진 버튼에는 가격 이유를 대지 않는다
+              newPaymentBlockedHint && canEdit && !isCurrent && (plan.tierRank ?? 0) > 0 && !(isCustomCta && negotiatedPrice == null)
                 ? newPaymentBlockedHint
                 : null
             }
@@ -681,13 +682,13 @@ function AddonCard({ addon, interval, canEdit, highlight, labels, onTrial, onBuy
     action = (
       <div style={{ display: 'flex', gap: 'var(--spacing-md)', flexWrap: 'wrap' }}>
         <Btn onClick={onTrial} disabled={disabled}>{labels.addonTrialCta(addon.trialDays)}</Btn>
-        <Btn kind="secondary" onClick={onBuy} disabled={disabled} hint={newPaymentBlockedHint}>{labels.addonBuyNowCta}</Btn>
+        <Btn kind="secondary" onClick={onBuy} disabled={disabled} hint={canEdit ? newPaymentBlockedHint : null}>{labels.addonBuyNowCta}</Btn>
       </div>
     );
   } else if (addon.phase !== 'cancel_scheduled') {
     action = (
       <Btn kind={addon.phase === 'trial' ? 'secondary' : 'primary'} onClick={onBuy}
-        disabled={disabled || Boolean(addon.purchaseBlock)} hint={newPaymentBlockedHint}>
+        disabled={disabled || Boolean(addon.purchaseBlock)} hint={canEdit && !addon.purchaseBlock ? newPaymentBlockedHint : null}>
         {labels.addonBuyCta}
       </Btn>
     );
