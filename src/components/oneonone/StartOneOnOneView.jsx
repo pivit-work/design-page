@@ -442,6 +442,12 @@ export default function StartOneOnOneView({
   onStartBlocked,
   /** 「시작하기」 글 뒤 노드 — 요금제 자물쇠 배지(pivit-work PW-3260 · 무료 1on1 을 다 씀). 안 넘기면 지금과 같다. */
   startBadge = null,
+  /**
+   * 요금제로 시작할 수 없다(pivit-work PW-3260 · 무료 1on1 을 다 씀 · 1on1 policy §21.4). 「시작하기」를 `startBadge` 와 함께
+   * 그대로 보이고 누르면 시작하지 않고 `onStartBlocked()` 만 부른다. 회의 녹음 잠금 · 준비도(0/4) 문구보다 **먼저** 보인다 —
+   * 그것들을 풀어도 시작할 수 없기 때문이다. 안 넘기면 지금과 같다.
+   */
+  startTierLocked = false,
   busy = false,
   busyLabel = null,
   // 화면 문구 묶음 — 키는 `DEFAULT_START_LABELS`. 빠진 키는 기본 한국어 (PW-2216).
@@ -651,6 +657,10 @@ export default function StartOneOnOneView({
     // 회의록 녹음이 돌고 있으면 아무 일도 일어나지 않는다 (PW-579 · policy §5.8 X3).
     // 버튼이 이미 `disabled` 지만, 프로그램적 호출·키보드 경로까지 여기서 막는다 —
     // 뚫리면 두 녹음이 같은 소리를 두 기록에 쌓는다.
+    if (startTierLocked) {
+      onStartBlocked?.();
+      return;
+    }
     if (startLocked) return;
     // 스크립트를 안 만든 채 시작하려는 경우 — 소비처가 안내를 띄운다 (policy §5.1).
     // 여기서 녹음 상태를 먼저 켜면 안내 뒤에 녹음 위젯이 이미 떠 있게 된다.
@@ -1211,6 +1221,9 @@ export default function StartOneOnOneView({
             </button>
           ) : recording ? (
             <button type="button" className="ono-add-modal-btn ono-start-footer-end" onClick={endMeeting}>{L.endMeeting}</button>
+          ) : startTierLocked ? (
+            /* 요금제 자물쇠(pivit-work PW-3260) — 아래 두 잠금보다 먼저. 흐리게 두지 않고 자물쇠를 붙여 누르게 한다. */
+            <button type="button" className="ono-add-modal-btn ono-add-modal-btn-primary" data-testid="ono-start-tier-locked" onClick={startMeeting}>{L.startMeeting}{startBadge && <span data-testid="ono-btn-badge" style={{ display: 'inline-flex', marginLeft: 'var(--spacing-xs)' }}>{startBadge}</span>}</button>
           ) : startLocked ? (
             /* 🔴 준비도(0/4) 분기보다 **위**에 있어야 한다 (policy §5.8.3). 준비도는 이
                화면에서 채울 수 있지만 이 잠금은 다른 화면에서 끝내고 와야 풀리므로,

@@ -54,13 +54,28 @@ export default function RecurrencePicker({
   onMonthModeChange,
   notices = [],
   testId = 'recurrence',
+  // 반복을 고를 수 없는 요금제의 자물쇠 배지(pivit-work PW-3260 · 1on1 policy §21.5) — 닫힌 칸 «반복 안 함» 뒤와
+  // «반복 안 함»이 아닌 줄마다 붙인다. 고를지 말지는 `onKindChange` 가 정한다. 안 넘기면 지금과 같다.
+  kindLockBadge = null,
 }) {
   const repeating = kind !== 'none';
+  const withBadge = (label) => (
+    <>
+      {label}
+      <span data-testid={`${testId}-lock-badge`} style={{ display: 'inline-flex', marginLeft: 'var(--spacing-xs)', verticalAlign: 'middle' }}>{kindLockBadge}</span>
+    </>
+  );
+  const shownKindOptions = kindLockBadge
+    ? kindOptions.map((o) => (o.value === 'none' ? o : { ...o, label: withBadge(o.label) }))
+    : kindOptions;
+  const kindValueText = kindLockBadge
+    ? withBadge(kindOptions.find((o) => o.value === kind)?.label ?? '')
+    : undefined;
   return (
     <div className="tl-recurrence" data-testid={testId}>
       <div className="tl-recurrence-row">
         <span className="tl-event-label tl-recurrence-label">{labels.repeat}</span>
-        <CustomSelect id={`${testId}-kind`} size="md" ariaLabel={labels.repeat} value={kind} onChange={onKindChange} options={kindOptions} />
+        <CustomSelect id={`${testId}-kind`} size="md" ariaLabel={labels.repeat} value={kind} onChange={onKindChange} options={shownKindOptions} valueText={kindValueText} />
         {repeating && (
           <>
             <span className="tl-event-label tl-recurrence-label">{labels.end}</span>

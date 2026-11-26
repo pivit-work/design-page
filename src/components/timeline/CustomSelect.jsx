@@ -23,6 +23,7 @@ import { ChevronDownGlyph } from '../shared/lineIcons.jsx';
  *     ariaLabel?
  *     emptyLabel?       // 옵션이 0개일 때 메뉴 안 문구 (기본 '옵션이 없습니다')
  *     searchable?       // 검색칸 (기본 끔)
+ *     valueText?        // 닫힌 칸에 고른 값 이름 대신 보일 글·노드(SearchSelect 와 같다 · pivit-work PW-3260 반복 칸 자물쇠)
  *   />
  */
 export default function CustomSelect({
@@ -36,6 +37,7 @@ export default function CustomSelect({
   ariaLabel,
   emptyLabel = '옵션이 없습니다',
   searchable = false,
+  valueText,
 }) {
   const [isOpen, setIsOpen] = useState(false);
   return (
@@ -50,6 +52,7 @@ export default function CustomSelect({
         aria-label={ariaLabel}
         emptyLabel={emptyLabel}
         searchable={searchable}
+        valueText={valueText}
         className="tl-select-trigger"
         valueClassName="tl-select-value"
         chevronClassName="tl-select-chevron"

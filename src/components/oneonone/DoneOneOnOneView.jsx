@@ -2016,6 +2016,10 @@ export default function DoneOneOnOneView({
           {/* 기획 «📅 다음 1on1 …»의 달력 표시 — 이모지 대신 같은 화면 아이콘 묶음의 달력(pivit-work PW-2638). */}
           <Icon src={booking?.done ? I.check : I.calendar} size={16} color="currentColor" baseUrl={baseUrl} />
           {booking?.done ? L.bookNextDone : booking?.nextLine ? L.bookNextSeparate : L.bookNext}
+          {/* 요금제 자물쇠 배지(pivit-work PW-3260 · 무료 1on1 을 다 씀 · 1on1 policy §21.4) — 누르면 무엇을 할지는 `onBook` 이 정한다. 안 넘기면 지금과 같다. */}
+          {booking?.badge && !booking?.done && (
+            <span data-testid="ono-done-book-badge" style={{ display: 'inline-flex', marginLeft: 'var(--spacing-xs)' }}>{booking.badge}</span>
+          )}
         </button>
         {/* 반복으로 다음 회차가 이미 잡혀 있으면 버튼 아래 회색 한 줄 (pivit-work PW-2638 · oneonone-spec §13-3 «DONE 다음 단계»). */}
         {booking?.nextLine && !booking?.done && (
