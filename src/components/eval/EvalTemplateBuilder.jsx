@@ -15,7 +15,7 @@ import {
   isNoteItem,
   scaleMaxOf,
   sectionDisplayName,
-  shownIdentity, isAiDraftOn } from './evalTemplateItemModel.js';
+  shownIdentity, isAiDraftOn, supportsGrowthType } from './evalTemplateItemModel.js';
 
 /**
  * [PW-602 ④] 설명 항목의 행 제목. 제목은 «선택»이라 비어 있을 수 있는데, 그때 행이
@@ -477,6 +477,12 @@ export function EvalTemplateItemRow({
       {q.description && !isNoteItem(q) && (q.descriptionDisplay || 'tooltip') !== 'hidden' && (
         <StatusBadge className="evc-tpl-item-badge" data-testid={`evc-tpl-badge-guide-${q.id}`}>
           {L.guideBadge}
+        </StatusBadge>
+      )}
+      {/* [PW-3158 · hr §5.11-G «행 요약 배지»] 리포트 칸을 고른 셀프 서술형 — «리포트 · 강점» 등. 라벨이 없는 호출부엔 띄우지 않는다. */}
+      {q.growthType && supportsGrowthType(q, reviewType) && L[`growthBadge_${q.growthType}`] && (
+        <StatusBadge className="evc-tpl-item-badge" data-testid={`evc-tpl-badge-growth-${q.id}`}>
+          {L[`growthBadge_${q.growthType}`]}
         </StatusBadge>
       )}
       {/* [PW-3076 · hr §5.11-C] 항목 설정 «AI 초안»이 켜진 서술형 — 패널을 열지 않아도 읽히게.

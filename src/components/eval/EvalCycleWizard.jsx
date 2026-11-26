@@ -1658,9 +1658,9 @@ function AddQuestionRow({ onAdd, reviewType, labels: L }) {
       {/* [PW-3158] 기획 시안 항목 추가 폼의 «리포트 칸» 줄(셀프 서술형만) — 시안 순서대로 «AI 초안» 줄 위. */}
       {showGrowth && (
         <div className="evc-tpl-additem-ai" data-testid="evc-tpl-add-growth">
-          <span className="evc-tpl-set-title">{L.growthTypeTitle}</span>
+          <span className="evc-tpl-set-title">{L.addRowGrowthTitle ?? L.growthTypeTitle}</span>
           <SegmentedControl
-            ariaLabel={L.growthTypeTitle}
+            ariaLabel={L.addRowGrowthTitle ?? L.growthTypeTitle}
             items={GROWTH_TYPE_OPTIONS.map((o) => ({
               value: o.id ?? 'none',
               label: L[o.labelKey],
@@ -1669,7 +1669,8 @@ function AddQuestionRow({ onAdd, reviewType, labels: L }) {
             value={growthType ?? 'none'}
             onChange={(v) => setGrowthType(v === 'none' ? null : v)}
           />
-          <span className="evc-tpl-set-note">{L.growthTypeHelp}</span>
+          {/* hr §5.11-G 자리 ① 글 그대로 — «리포트 칸» · 고정 문구. */}
+          <span className="evc-tpl-set-note">{L.addRowGrowthHelp ?? L.growthTypeHelp}</span>
         </div>
       )}
       {showAi && (
