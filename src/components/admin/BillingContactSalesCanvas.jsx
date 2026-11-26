@@ -33,7 +33,8 @@ const T = {
 };
 
 // 관심 기능 옵션 (Pro·Enterprise 차별 기능) — 다중 선택. 보내는 값은 id, 보이는 이름은 labels.interestOptions[id]
-const INTEREST_IDS = ['sso', 'rbac', 'ai', 'aichat', 'eval', 'support', 'contract', 'etc'];
+// «고급 권한·가시성»(rbac)은 뺐다 — 접근 권한은 모든 요금제가 쓴다(앱 PW-3286). 이미 받은 문의의 값은 서버에 그대로 남는다.
+const INTEREST_IDS = ['sso', 'ai', 'aichat', 'eval', 'support', 'contract', 'etc'];
 
 // 희망 도입 시기 — 단일 선택. value 는 영업팀 문의에 그대로 저장되는 값이라 화면 언어와 상관없이 한국어로 둔다
 // (앱 PW-2548). 보이는 이름은 labels.timingOptions[id] — 영어 화면은 앱이 영어 이름을 넘긴다.
@@ -69,7 +70,7 @@ const DEFAULT_LABELS = {
   planBadge: 'Pro · Enterprise',
   pageTitle: '영업팀 문의',
   pageSubtitle:
-    '100인+ 조직·엔터프라이즈 요건(SSO·고급 권한·전용 AI 한도·약정 할인)에 맞춰 커스텀 견적을 제공합니다. 아래 정보를 남겨주시면 영업팀이 연락드립니다.',
+    '100인+ 조직·엔터프라이즈 요건(SSO(출시 예정)·전용 AI 한도·약정 할인)에 맞춰 커스텀 견적을 제공합니다. 아래 정보를 남겨주시면 영업팀이 연락드립니다.',
 
   wsContext: (name, seats) => (
     <>회사 <b style={{ color: 'var(--text-primary)' }}>{name}</b> · 현재 활성 좌석 <b style={{ color: 'var(--text-primary)' }}>{seats}명</b></>
@@ -99,7 +100,6 @@ const DEFAULT_LABELS = {
   // 고르는 칸의 보이는 이름 (앱 PW-2548 — 영어 화면에서 앱이 덮는다)
   interestOptions: {
     sso: 'SSO / 보안 정책',
-    rbac: '고급 권한·가시성',
     ai: '전용 AI 한도',
     aichat: 'AI Chat',
     eval: '성과평가 운영',

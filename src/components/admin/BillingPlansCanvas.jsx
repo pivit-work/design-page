@@ -117,7 +117,7 @@ const DEFAULT_LABELS = {
   estimateQuoteRetry: '다시 시도',
   estimateFootnote: '* 표시 금액은 현재 좌석 기준 예상치입니다. 실제 청구 금액은 청구일 서버 재계산값이 적용됩니다.',
   proCardTitle: 'Pro · Enterprise — 커스텀 견적',
-  proCardBody: 'Pro 플랜은 100인+ 조직 및 엔터프라이즈 요건에 맞춰 커스텀 견적을 제공합니다. SSO·고급 권한·전용 AI 한도·약정 협의 할인이 포함됩니다.',
+  proCardBody: 'Pro 플랜은 100인+ 조직 및 엔터프라이즈 요건에 맞춰 커스텀 견적을 제공합니다. SSO(출시 예정)·전용 AI 한도·약정 협의 할인이 포함됩니다.',
   proCardCta: '영업팀 문의하기',
   readOnlyNotice: '플랜 변경은 Owner 또는 billing_admin만 가능합니다.',
   cancelReservedNotice: '이미 해지 예약 중입니다 — 구독 현황에서 해지를 취소할 수 있습니다.',
@@ -917,7 +917,7 @@ function FeatureCompareTable({ plans, featureKeys, featureLabelMap, currentPlanC
     {
       key: 'feature',
       header: labels.compareFeatureHeader,
-      // 긴 기능 이름(«고급 권한 · 가시성 · SSO (출시 예정)»)은 두 줄까지 보인다 — 한 줄이면 «…»로 잘렸다(PW-3132 브라우저 확인).
+      // 긴 기능 이름(«평가 (정기 + AI 초안)»)은 두 줄까지 보인다 — 한 줄이면 «…»로 잘렸다(PW-3132 브라우저 확인).
       lines: 2,
       render: (row) =>
         row.kind === 'feature'

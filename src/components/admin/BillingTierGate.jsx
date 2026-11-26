@@ -66,7 +66,7 @@ const DEFAULT_FEATURE_LABEL = {
   report: '리포트',
   eval: '평가',
   aichat: 'AI Chat',
-  advperm: '고급 권한·SSO',
+  advperm: 'SSO', // 키는 옛 이름 그대로 — 고급 권한 · 가시성은 모든 요금제의 접근 권한이 됐다(앱 PW-3286)
 };
 
 /** 현재 티어가 필요 티어 이상인지. */
