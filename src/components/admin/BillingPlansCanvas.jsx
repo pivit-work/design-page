@@ -20,6 +20,7 @@ import {
 import { noticeSentences } from './kit/noticeSentences.js';
 import { BILLING_PAGE_WIDTH } from './kit/billingPageWidth.js';
 import { failureText, isNotifiedFailure } from '../shared/notifiedFailure.js';
+import { won } from '../shared/money.js';
 
 // ─────────────────────────────────────────────────────────────
 // BillingPlansCanvas — 결제·구독 "플랜 선택" Pure 컴포넌트.
@@ -46,7 +47,6 @@ const T = {
   purple: '#7C3AED', purpleBg: '#F5F3FF',
 };
 
-const won = (n) => '₩' + Number(n || 0).toLocaleString('ko-KR');
 
 const DEFAULT_LABELS = {
   back: '← 구독 현황으로',

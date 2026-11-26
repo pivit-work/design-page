@@ -64,6 +64,7 @@ import Pagination from '../shared/Pagination.jsx';
 import { SkeletonList } from '../shared/Skeleton.jsx';
 import LoadingState from '../shared/LoadingState.jsx';
 import { resolveKoreanParticles } from '../shared/koreanParticle.js';
+import { won } from '../shared/money.js';
 
 /**
  * AdminEmployeesCanvas — 어드민 "직원 관리" 화면 Pure 컴포넌트.
@@ -91,7 +92,7 @@ const DEFAULT_LABELS = {
     billedValue: (seats) => `${seats}명`,
     underMinReason: (min) => `(약정 하한 ${min}좌석으로 청구)`,
     overMax: (max, unit) =>
-      `계약 좌석 범위(${max}명)를 초과했습니다. 구성원 추가는 계속 가능하며, 초과분은 ₩${Number(unit || 0).toLocaleString('ko-KR')} 단가로 청구되고 영업팀에 통지됩니다.`,
+      `계약 좌석 범위(${max}명)를 초과했습니다. 구성원 추가는 계속 가능하며, 초과분은 ${won(unit)} 단가로 청구되고 영업팀에 통지됩니다.`,
   },
   /**
    * 목록 위 좌석·청구 요약 (admin-spec §3.1·§3.7·§3.7-A). 좌석 증감이 언제 청구되는지를
@@ -103,7 +104,7 @@ const DEFAULT_LABELS = {
     // 활성 좌석 중 가입 전인 사람 — 좌석에서 빼지 않고 «그중»으로 보인다 (admin-spec §3.7 · PW-2059)
     unjoinedSeats: (n) => `(그중 미가입 ${n}명)`,
     unjoinedSeatsHint: '가입 전이어도 등록된 재직·수습 구성원은 좌석이에요',
-    perSeat: (price) => `좌석당 ₩${Number(price || 0).toLocaleString('ko-KR')}/월`,
+    perSeat: (price) => `좌석당 ${won(price)}/월`,
     firstCycle: (days) =>
       days == null
         ? '첫 주기라 좌석 추가분은 즉시 일할 청구됩니다'

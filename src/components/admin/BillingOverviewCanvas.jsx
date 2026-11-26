@@ -18,6 +18,7 @@ import {
 import { NoticeLines, Panel } from '../frames/index.js';
 import { BillingInlineNote, BillingNotice, BillingPage, BillingPageHead } from './kit/BillingSurface.jsx';
 import { BILLING_PAGE_WIDTH } from './kit/billingPageWidth.js';
+import { won } from '../shared/money.js';
 
 // ─────────────────────────────────────────────────────────────
 // 결제·구독 — 구독 현황 (BillingOverviewCanvas)  /admin/billing
@@ -33,7 +34,6 @@ import { BILLING_PAGE_WIDTH } from './kit/billingPageWidth.js';
 //     (리소스 «팀 현황» — 한 대상 = 흰 판 하나). 전에는 판 다섯 장에 흩어졌고 녹음 사용량 · [결제수단 관리]는 판 밖에 있었다.
 // ─────────────────────────────────────────────────────────────
 
-const won = (n) => '₩' + Number(n || 0).toLocaleString('ko-KR');
 
 /** 상태 딱지의 뜻 — 색은 공용 딱지 표(statusBadgeTones.js)가 정한다. 체험은 플랜 화면과 같은 브랜드(accent). */
 const STATUS_TONE = {

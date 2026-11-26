@@ -9,6 +9,7 @@ import { FileTextGlyph } from '../shared/lineIcons.jsx';
 import { FrameTable, NoticeLines, Panel, StatStrip } from '../frames/index.js';
 import { BillingPage, BillingPageHead } from './kit/BillingSurface.jsx';
 import { BILLING_PAGE_WIDTH } from './kit/billingPageWidth.js';
+import { won } from '../shared/money.js';
 
 // ─────────────────────────────────────────────────────────────
 // 결제·구독 — 청구 내역·영수증(카드매출전표) (BillingHistoryCanvas)  /admin/billing/history
@@ -19,7 +20,6 @@ import { BILLING_PAGE_WIDTH } from './kit/billingPageWidth.js';
 // 소유). 캔버스는 인라인 스타일로 자기 완결적으로 렌더한다.
 // ─────────────────────────────────────────────────────────────
 
-const won = (n) => '₩' + Number(n || 0).toLocaleString('ko-KR');
 
 const DEFAULT_LABELS = {
   viewOnly: '조회 전용',
