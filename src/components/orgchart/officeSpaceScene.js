@@ -80,6 +80,22 @@ export const TONE_VARS = [
   '--colors-grayBlue-500',
   '--colors-greenLight-600',
 ];
+/**
+ * 색 자리 — 지금 보이는 사람의 조직을 범례와 같은 셈(많은 순 · 같으면 `order` 순)으로 세워 0, 1, 2 … 를 준다.
+ * `shown` 이 거짓인 사람(건물 보기의 «목록만» 층)은 범례에 안 세므로 그 조직은 범례 조직 뒤에 둔다 —
+ * 그래야 범례가 여덟 이하면 범례 · 3D · 목록 색이 겹치지 않는다(정책 §3 «범례» · §5 #9).
+ * @param {Array<{key: string, shown: boolean}>} people  색이 있는 사람만(미배정 · 회사 회색은 넣지 않는다)
+ * @param {string[]} order  조직 순서(트리 순)
+ * @returns {Map<string, number>}
+ */
+export function toneSlots(people, order) {
+  const n = new Map(), all = new Set();
+  people.forEach(({ key, shown }) => { all.add(key); if (shown) n.set(key, (n.get(key) || 0) + 1); });
+  const at = (k) => { const i = order.indexOf(k); return i < 0 ? order.length : i; };
+  const slot = new Map();
+  [...all].sort((a, b) => (n.get(b) || 0) - (n.get(a) || 0) || at(a) - at(b)).forEach((k, i) => slot.set(k, i));
+  return slot;
+}
 export const toneVar = (tone) => (tone == null ? '--utility-gray-500' : TONE_VARS[((tone % 8) + 8) % 8]);
 
 // ── 행렬(열 우선)
