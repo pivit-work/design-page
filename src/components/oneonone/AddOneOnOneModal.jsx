@@ -232,7 +232,7 @@ function weekdayLabels(locale) {
 // 상세(열람모드) 모달도 같은 시간 옵션·데이트피커를 쓴다 — export 해 공유.
 export const TIME_OPTIONS = TIME_SLOTS.map((slot) => formatTime(slot));
 
-export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, member, icons, baseUrl = '', members, defaultDate, defaultTime, locale = 'ko', labels, startNow, initialWhen = 'later', isPastStart = isPastLocal, keepPrefilledPast = false, defaultDuration, schedule, scope, onWhenChange, onMemberPick }) {
+export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, member, icons, baseUrl = '', members, defaultDate, defaultTime, locale = 'ko', labels, startNow, initialWhen = 'later', isPastStart = isPastLocal, keepPrefilledPast = false, defaultDuration, schedule, scope, onWhenChange, onMemberPick, footerNote }) {
   const L = { ...DEFAULT_LABELS, ...(labels || {}) };
   const memberList = useMemo(
     () => (Array.isArray(members) ? members : DEMO_MEMBERS).map(toMemberOption),
@@ -701,6 +701,8 @@ export default function AddOneOnOneModal({ open, onClose, onSubmit, onDelete, me
             {submitError}
           </p>
         )}
+        {/* [취소] · [예약 완료] 바로 위 한 줄 — 호스트가 넘긴 노드(pivit-work PW-3260 · 무료 1on1 남은 횟수). 안 넘기면 지금과 같다. */}
+        {footerNote}
       </div>
     </ModalShell>
   );

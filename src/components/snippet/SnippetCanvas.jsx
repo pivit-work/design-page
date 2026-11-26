@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Icon from '../shared/Icon.jsx';
+import Button from '../shared/Button.jsx';
 import LoadMoreButton from '../shared/LoadMoreButton.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
 import SnippetMemberAvatars from './SnippetMemberAvatars.jsx';
@@ -144,6 +145,10 @@ export default function SnippetCanvas({
   // true 면 호스트가 검색어로 찾아 온 행을 그대로 그린다 (pivit-work PW-2445) — 서버가 본문까지 찾아 온 행을
   // 여기서 요약·날짜·태그로 다시 걸러 지우지 않게. 검색 중에도 [더 보기]를 그린다.
   searchOnHost = false,
+  // 목록 맨 위(헤더 아래 · 기간 필터 위) 안내 한 줄 (pivit-work PW-3260 · spec-billing §6.3.10 ①) — 닫기 없음.
+  //   { text, actionLabel?, onAction?, trailingText? } — actionLabel + onAction 이면 끝에 글자 버튼, 아니면 trailingText 한 마디.
+  //   안 주면 지금과 같다.
+  notice,
 }) {
   const L = labels ? { ...DEFAULT_SNIPPET_CANVAS_LABELS, ...labels } : DEFAULT_SNIPPET_CANVAS_LABELS;
   const periodItems = PERIOD_KEYS.map((value) => ({
@@ -217,6 +222,19 @@ export default function SnippetCanvas({
             selectedId={selectedMemberId}
             onSelect={onSelectMember}
           />
+        )}
+
+        {notice && (
+          <div className="snippet-notice" role="note" data-testid="snippet-notice">
+            <span>{notice.text}</span>
+            {notice.actionLabel && notice.onAction ? (
+              <Button className="snippet-notice-action" onClick={notice.onAction}>
+                {notice.actionLabel}
+              </Button>
+            ) : (
+              notice.trailingText && <span className="snippet-notice-tail">{notice.trailingText}</span>
+            )}
+          </div>
         )}
 
         {/* 필터 row — 기간 segmented + 날짜 범위 + 검색 */}

@@ -9,6 +9,7 @@ import Stack from '../shared/Stack.jsx';
 import { ArrowRightGlyph, ChevronDownGlyph, CloseGlyph } from '../shared/lineIcons.jsx';
 import StepNavButton from '../shared/StepNav.jsx';
 import Toast from '../shared/Toast.jsx';
+import { LockBadge } from '../admin/BillingTierGate.jsx';
 import assetUrl from '../shared/assetUrl.js';
 import { healthTier, healthLabel } from './snippetHealth.js';
 import { isEnterKey } from '../shared/enterKey.js';
@@ -264,6 +265,13 @@ const DEFAULT_SNIPPET_MODAL_LABELS = {
 //   ‹ › 는 공용 StepNavButton 그대로다. 날짜를 옮겨도 이 모달은 prefill 을 마운트 때만 읽으므로
 //   호스트가 `key` 를 날짜로 바꿔 다시 마운트한다.
 //
+// 요금제로 막힌 지난 날짜 (pivit-work PW-3260 · spec-billing §6.3.10 ① · 정책서 §10-B.3) — optional:
+//   lockedPast?: { requiredTier, tierLabels?, lockTitle?, editLabel, writePastLabel, writeTodayLabel, onLocked, onWriteToday }
+//     readOnly 와 함께 주면 «읽기 전용 창»이다 — 쓴 칸만 그리고(빈 칸 · 진행 바 없음), 아래 바에
+//     [editLabel + 자물쇠] · [writeTodayLabel] 를 둔다. closedNotice 와 함께 주면(쓴 것이 없는 지난 날짜) 안내 밑에
+//     [writePastLabel + 자물쇠], 아래 바에 [writeTodayLabel]. 자물쇠 버튼은 onLocked 만 부른다(업셀 안내는 호스트).
+//     안 주면 지금과 같다.
+//
 // 새로 쓸 수 없는 날짜 (PW-1421 · §7-B.4):
 //   closedNotice?: string   주면 머리 날짜(와 ‹ ›) 아래에 이 안내 한 줄만 그린다 —
 //                           입력 칸·초안·초기화·자동저장 표시를 그리지 않는다.
@@ -296,6 +304,7 @@ export default function SnippetModal({
   nextDateDisabled = false,
   dateNavLabels,
   closedNotice,
+  lockedPast,
   aiUsageNotice,
   labels,
 }) {
@@ -328,6 +337,21 @@ export default function SnippetModal({
           return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
         })();
   const effectiveSaveStatus = saveStatus ?? (savedAt == null ? 'idle' : 'saved');
+  // 요금제로 막힌 지난 스니핏 읽기 창 — 쓴 칸만 그린다(pivit-work PW-3260).
+  const compactRead = readOnly && !!lockedPast;
+  const shows = (key) => {
+    if (!compactRead) return true;
+    if (key === 'summary') return summary.trim() !== '';
+    if (key === 'tags') return tags.length > 0;
+    if (key === 'health') return healthScore != null || healthNote.trim() !== '';
+    return (sectionTexts[key] ?? '').trim() !== '';
+  };
+  const lockedButton = (label) => (
+    <Button className="tl-snippet-reset-btn" onClick={lockedPast?.onLocked} data-testid="tl-snippet-locked-btn">
+      {label}
+      <LockBadge requiredTier={lockedPast?.requiredTier} labels={lockedPast?.tierLabels} title={lockedPast?.lockTitle} />
+    </Button>
+  );
   const autosaveText =
     effectiveSaveStatus === 'saving'
       ? L.saving
@@ -775,9 +799,18 @@ export default function SnippetModal({
           </div>
 
           {closedNotice ? (
+            lockedPast ? (
+              <Stack gap="lg" className="tl-snippet-past-empty">
+                <p className="tl-snippet-closed-notice" role="note">
+                  {closedNotice}
+                </p>
+                {lockedButton(lockedPast.writePastLabel)}
+              </Stack>
+            ) : (
             <p className="tl-snippet-closed-notice" role="note">
               {closedNotice}
             </p>
+            )
           ) : (
           <>
 
@@ -929,6 +962,7 @@ export default function SnippetModal({
 
           {/* Progress bar — 섹션 채움 수만큼 active bar 가 그라디언트로 확장.
               Figma Frame 205, r=6, active bar r=6, 5등분. */}
+          {!compactRead && (
           <div
             className="tl-snippet-progress"
             role="progressbar"
@@ -953,12 +987,13 @@ export default function SnippetModal({
               );
             })}
           </div>
+          )}
 
           <div className="tl-snippet-body">
             {/* Figma 순서: 5 섹션 (What/Why/Value/Highlights/Lowlights) → Summary → Tags */}
 
             {/* What / Why / Value / Highlights / Lowlights */}
-            {SECTIONS.map((s) => (
+            {SECTIONS.filter((s) => shows(s.key)).map((s) => (
               <div
                 className="tl-snippet-field"
                 key={s.key}
@@ -1000,6 +1035,7 @@ export default function SnippetModal({
             ))}
 
             {/* Health Check — 1~10 점수 + 영향 요인 textarea (Figma 16627:58459) */}
+            {shows('health') && (
             <div
               className="tl-snippet-field"
               ref={(el) => {
@@ -1047,6 +1083,7 @@ export default function SnippetModal({
                   })}
                 </div>
               </div>
+              {(!compactRead || healthNote.trim() !== '') && (
               <textarea
                 className="tl-snippet-textarea"
                 placeholder={readOnly ? undefined : T.healthReasonPlaceholder}
@@ -1057,9 +1094,12 @@ export default function SnippetModal({
                 onCompositionEnd={handleCompositionEnd}
                 onBlur={handleFieldBlur}
               />
+              )}
             </div>
+            )}
 
             {/* Summary */}
+            {shows('summary') && (
             <div
               className="tl-snippet-field"
               ref={(el) => {
@@ -1131,8 +1171,10 @@ export default function SnippetModal({
               </div>
               )}
             </div>
+            )}
 
             {/* Tags */}
+            {shows('tags') && (
             <div
               className="tl-snippet-field"
               ref={(el) => {
@@ -1240,6 +1282,7 @@ export default function SnippetModal({
               </div>
               )}
             </div>
+            )}
           </div>
           </>
           )}
@@ -1277,6 +1320,14 @@ export default function SnippetModal({
           )}
           </div>
           )}
+        </div>
+        )}
+        {lockedPast && (readOnly || closedNotice) && (
+        <div className="tl-snippet-modal-actions" data-testid="tl-snippet-past-actions">
+          {readOnly ? lockedButton(lockedPast.editLabel) : <span />}
+          <Button variant="primary" onClick={lockedPast.onWriteToday} data-testid="tl-snippet-write-today">
+            {lockedPast.writeTodayLabel}
+          </Button>
         </div>
         )}
       </form>

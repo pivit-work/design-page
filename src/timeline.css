@@ -3199,6 +3199,10 @@
 }
 
 /* 새로 쓸 수 없는 날짜의 안내 한 줄 (PW-1421) — 같은 창 안내 글씨 .tl-snippet-label-hint (13/20 500 tertiary) */
+/* 요금제로 막힌 빈 지난 날짜 — 안내 밑 [지난 날짜에 쓰기 🔒] 는 제 너비만 (pivit-work PW-3260) */
+.tl-snippet-past-empty {
+  align-items: flex-start;
+}
 .tl-snippet-closed-notice {
   margin: 0;
   font-size: 13px;

@@ -440,6 +440,8 @@ export default function StartOneOnOneView({
   canConfirm,
   startBlocked = false,
   onStartBlocked,
+  /** 「시작하기」 글 뒤 노드 — 요금제 자물쇠 배지(pivit-work PW-3260 · 무료 1on1 을 다 씀). 안 넘기면 지금과 같다. */
+  startBadge = null,
   busy = false,
   busyLabel = null,
   // 화면 문구 묶음 — 키는 `DEFAULT_START_LABELS`. 빠진 키는 기본 한국어 (PW-2216).
@@ -1223,7 +1225,7 @@ export default function StartOneOnOneView({
               </button>
             </Tooltip>
           ) : allConfirmed ? (
-            <button type="button" className="ono-add-modal-btn ono-add-modal-btn-primary" onClick={startMeeting}>{L.startMeeting}</button>
+            <button type="button" className="ono-add-modal-btn ono-add-modal-btn-primary" onClick={startMeeting}>{L.startMeeting}{startBadge && <span data-testid="ono-btn-badge" style={{ display: 'inline-flex', marginLeft: 'var(--spacing-xs)' }}>{startBadge}</span>}</button>
           ) : (
             <button type="button" className="ono-add-modal-btn ono-start-footer-disabled" disabled>
               {fill(L.startAfterConfirm, { confirmed: confirmedCount, total: activeTotal })}

@@ -119,6 +119,14 @@ export default function OneOnOneCanvasV2({
   icons,
   baseUrl = '',
   onAddClick,
+  /**
+   * 헤더 [1on1 일정 추가]가 잠겼을 때 (pivit-work PW-3260 · Free · Work 의 무료 1on1 을 다 씀). 넘기면 창을 열지 않고 이것을 부른다.
+   * `addBadge` 는 버튼 글 뒤에 붙일 노드(자물쇠 배지). 둘 다 안 넘기면 지금과 같다.
+   */
+  onAddLocked,
+  addBadge,
+  /** 제목 줄과 AI 브리핑 사이 한 줄 안내 노드 (pivit-work PW-3260 · 무료 1on1 남은 횟수). 대시보드일 때만 그린다. */
+  planNotice,
   onScheduleSubmit,
   bookingModal,
   members,
@@ -220,6 +228,7 @@ export default function OneOnOneCanvasV2({
     if (m.detail) setDetailMember(m);
   };
   const handleAdd = () => {
+    if (onAddLocked) { onAddLocked(); return; }
     onAddClick?.();
     setAddOpen(true);
   };
@@ -283,6 +292,7 @@ export default function OneOnOneCanvasV2({
           <button type="button" className="ono-add-btn" onClick={handleAdd}>
             <Icon src={icons?.plus} size={20} color="var(--text-white)" baseUrl={baseUrl} />
             <span>{L.addSchedule}</span>
+            {addBadge && <span data-testid="ono-btn-badge" style={{ display: 'inline-flex', marginLeft: 'var(--spacing-xs)' }}>{addBadge}</span>}
           </button>
         )}
       </OneOnOnePageHeader>
@@ -342,6 +352,8 @@ export default function OneOnOneCanvasV2({
             startNow={scheduleStartNow}
             isPastStart={scheduleIsPastStart}
           />
+
+          {planNotice && <div style={{ marginTop: 'var(--spacing-xl)' }}>{planNotice}</div>}
 
           {briefing && (
             <BriefingBar briefing={briefing} icons={icons} baseUrl={baseUrl} labels={L} />
@@ -691,6 +703,8 @@ function MemberCard({ member, tone, icons, baseUrl, onAction, onCardClick, rende
                 onClick={(e) => { e.stopPropagation(); if (!a.disabled) onAction?.(member, a); }}
               >
                 {a.label}
+                {/* 글 뒤 노드 — 요금제 자물쇠 배지(pivit-work PW-3260). 안 넘기면 지금과 같다. */}
+                {a.badge && <span data-testid="ono-btn-badge" style={{ display: 'inline-flex', marginLeft: 'var(--spacing-xs)' }}>{a.badge}</span>}
               </button>
             );
             /* 시각이 안 된 [1on1 진행]처럼 «보이되 눌리지 않는» 액션 — 왜 잠겼는지를 말풍선이 말한다

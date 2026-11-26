@@ -158,6 +158,37 @@
 }
 
 /* 필터 row — 기간 segmented + 날짜 버튼 + 검색 */
+/* 목록 맨 위 안내 한 줄 (pivit-work PW-3260) — 작성 창 계정 연결 안내와 같은 브랜드 옅은 띠 */
+.snippet-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3-12px);
+  flex-shrink: 0;
+  padding: var(--spacing-2-8px) var(--spacing-3-12px);
+  border: 1px solid var(--colors-brand-200);
+  border-radius: 8px;
+  background: var(--colors-brand-50);
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 500;
+  color: var(--colors-brand-700);
+}
+.snippet-notice-action {
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 700;
+  color: var(--colors-brand-700);
+  cursor: pointer;
+}
+.snippet-notice-tail {
+  flex-shrink: 0;
+}
 .snippet-filter-row {
   display: flex;
   align-items: center;

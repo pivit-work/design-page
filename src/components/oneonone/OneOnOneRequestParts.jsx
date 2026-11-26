@@ -51,6 +51,8 @@ export function MemberRequestHeaderSlot({
   pendings,
   canRequest = false,
   onOpen,
+  /** [1on1 신청] 글 뒤 노드 — 요금제 자물쇠 배지(pivit-work PW-3260). 안 넘기면 지금과 같다. */
+  requestBadge,
   onCancel,
   cancelling = false,
   error = '',
@@ -93,6 +95,7 @@ export function MemberRequestHeaderSlot({
           <button type="button" className="ono-add-btn" onClick={onOpen} data-testid="ono-request-open">
             <Icon src={icons?.plus} size={20} color="var(--text-white)" baseUrl={baseUrl} />
             <span>{L.requestButton}</span>
+            {requestBadge && <span data-testid="ono-btn-badge" style={{ display: 'inline-flex', marginLeft: 'var(--spacing-xs)' }}>{requestBadge}</span>}
           </button>
         )}
       </>
@@ -103,6 +106,7 @@ export function MemberRequestHeaderSlot({
       <button type="button" className="ono-add-btn" onClick={onOpen} data-testid="ono-request-open">
         <Icon src={icons?.plus} size={20} color="var(--text-white)" baseUrl={baseUrl} />
         <span>{L.requestButton}</span>
+        {requestBadge && <span data-testid="ono-btn-badge" style={{ display: 'inline-flex', marginLeft: 'var(--spacing-xs)' }}>{requestBadge}</span>}
       </button>
     );
   }
@@ -158,6 +162,8 @@ export function OneOnOneRequestRow({
   request,
   canAdd,
   onBook,
+  /** [일정 잡기] 글 뒤 노드 — 요금제 자물쇠 배지(pivit-work PW-3260). 안 넘기면 지금과 같다. */
+  bookBadge,
   onAdd,
   onDecline,
   onDeclineCancel,
@@ -231,6 +237,7 @@ export function OneOnOneRequestRow({
         <div className="ono-member-request-actions">
           <Button variant="primary" size="sm" disabled={!!busy} onClick={onBook} data-testid="ono-member-request-book">
             {L.book}
+            {bookBadge && <span data-testid="ono-btn-badge" style={{ display: 'inline-flex', marginLeft: 'var(--spacing-xs)' }}>{bookBadge}</span>}
           </Button>
           {canAdd && (
             <Button
