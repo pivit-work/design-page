@@ -333,6 +333,8 @@ export default function StartOneOnOneView({
   titleHelp = null,
   /** 팀원 이름 줄 끝 단계 딱지(진행 중 «미팅 중» — 앱이 그려 넘긴다 · pivit-work PW-2937 · TC-1ON1-011). 없으면 종전 그대로. */
   stageBadge = null,
+  /** 회사 요금제에 OKR 이 없다 — «OKR 자가 평가» 칸을 통째로 그리지 않는다(pivit-work PW-3260 · spec-billing §6.3.8 ①). */
+  okrHidden = false,
   /** 팀원 자가진단 역량 점수 `{ expertise: 3, … }` — «차이 표시»(policy §4.1.5)에만 쓴다. 매니저 점수의 처음 값으로는
       쓰지 않는다(PW-2517 비워서 시작 · pivit-work PW-2937). 없으면 차이를 그리지 않는다. */
   memberSelfCaps = null,
@@ -936,7 +938,8 @@ export default function StartOneOnOneView({
               )}
             </div>
 
-            <div className="ono-start-briefing-block">
+            {!okrHidden && (
+            <div className="ono-start-briefing-block" data-testid="ono-start-okr-self">
               <span className="ono-start-briefing-subtitle">{L.okrSelf}</span>
               {okrSelf.length > 0 ? (
                 <div className="ono-start-okr">
@@ -980,6 +983,7 @@ export default function StartOneOnOneView({
                 <p className="ono-start-empty-hint">{L.emptyHint}</p>
               )}
             </div>
+            )}
           </div>
 
           {/* 매니저 관점 */}

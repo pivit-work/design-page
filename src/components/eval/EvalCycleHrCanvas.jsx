@@ -1686,6 +1686,8 @@ export default function EvalCycleHrCanvas({
   onExclusionRulesChange,
   loading = false,
   labels: providedLabels,
+  /** 요금제를 내려 평가가 읽기 전용 — [새 평가 사이클] · [저장한 설정 불러오기]를 그리지 않는다(pivit-work PW-3260 · spec-billing §6.3.8 ①). */
+  createDisabled = false,
   onCreateCycle,
   /**
    * 준비 중 사이클 오픈. `(id) => Promise`. [PW-637] 카드의 「오픈」은 확인 창을 거쳐 이걸
@@ -2390,7 +2392,7 @@ export default function EvalCycleHrCanvas({
         <div className="evc-header-actions">
           {/* PW-1461 · 정책 §4.1-A — 새 위자드를 불러오기 목록(§5.9)이 열린 채로 연다.
               불러올 길이 없으면(소비 측이 콜백을 안 넘기면) 숨긴다 — 열어도 빈 창이다. */}
-          {(onLoadCyclePreset || onLoadCycleSettings) && (
+          {!createDisabled && (onLoadCyclePreset || onLoadCycleSettings) && (
             <button
               type="button"
               className="evc-btn is-ghost"
@@ -2403,9 +2405,11 @@ export default function EvalCycleHrCanvas({
               {L.loadSavedTemplate}
             </button>
           )}
-          <button type="button" className="evc-btn is-primary" onClick={() => setShowCreate(true)} data-testid="evc-new-cycle">
-            + {L.newCycle}
-          </button>
+          {!createDisabled && (
+            <button type="button" className="evc-btn is-primary" onClick={() => setShowCreate(true)} data-testid="evc-new-cycle">
+              + {L.newCycle}
+            </button>
+          )}
         </div>
       </header>
 
@@ -2417,14 +2421,16 @@ export default function EvalCycleHrCanvas({
           <p className="evc-empty-title" data-testid="evc-empty-text">
             {[L.emptyTitle, L.emptySub].filter(Boolean).join(' ')}
           </p>
-          <button
-            type="button"
-            className="evc-btn is-primary"
-            onClick={() => setShowCreate(true)}
-            data-testid="evc-empty-new-cycle"
-          >
-            {L.newCycle}
-          </button>
+          {!createDisabled && (
+            <button
+              type="button"
+              className="evc-btn is-primary"
+              onClick={() => setShowCreate(true)}
+              data-testid="evc-empty-new-cycle"
+            >
+              {L.newCycle}
+            </button>
+          )}
         </div>
       ) : (
         <div className="evc-list">

@@ -25,6 +25,8 @@ const T = {
 /** 티어 서열 (숫자가 클수록 상위 — 추가형 사다리). */
 export const TIER_RANK = {
   free: 0,
+  // Work — 성과관리 없는 운영 요금제. 요금제 기능은 Free 와 같다(pivit-work PW-3260 · spec-billing §2.4-E ①).
+  work: 0,
   starter: 1,
   growth: 2,
   pro: 3,
@@ -47,6 +49,7 @@ export const FEATURE_TIER = {
 
 const TIER_LABEL = {
   free: 'Free',
+  work: 'Work',
   starter: 'Starter',
   growth: 'Growth',
   pro: 'Pro',
