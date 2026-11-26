@@ -1588,16 +1588,24 @@ function AddQuestionRow({ onAdd, labels: L }) {
   const [section, setSection] = useState(ADD_ROW_INITIAL_SECTION);
   const [text, setText] = useState('');
   const [type, setType] = useState(ADD_ROW_INITIAL_TYPE);
+  // [PW-3158 · J-11] 추가 줄의 «AI 초안» — 처음 끔. 서술형에만 값이 쓰여(항목 설정 칸도 서술형에만) 다른 유형이면 끈다.
+  const [ai, setAi] = useState(false);
   const isNote = type === NOTE_KIND;
+  const showAi = !!L.aiDraftLabel && type === 'textarea';
   // 설명은 제목이 «선택»이라 비어 있어도 추가된다 — 본문은 설정 패널에서 적는다.
   const canAdd = isNote || !!text.trim();
+  const changeType = (next) => {
+    setType(next);
+    if (next !== 'textarea') setAi(false);
+  };
   const submit = () => {
     if (!canAdd) return;
-    onAdd(section, text, type);
+    onAdd(section, text, type, showAi && ai);
     // [PW-1831 J-11 · HR §5.10-E] 추가하면 줄이 처음 값으로 돌아간다 — 직전 유형(설명 등)이 남아 다음 항목에 따라오지 않게.
     setSection(ADD_ROW_INITIAL_SECTION);
     setText('');
     setType(ADD_ROW_INITIAL_TYPE);
+    setAi(false);
   };
   return (
     <div className="evc-tpl-additem">
@@ -1618,7 +1626,7 @@ function AddQuestionRow({ onAdd, labels: L }) {
       <Select
         className="evc-input"
         value={type}
-        onChange={(e) => setType(e.target.value)}
+        onChange={(e) => changeType(e.target.value)}
         aria-label={L.templateItemTypeLabel}
         data-testid="evc-tpl-add-type"
       >
@@ -1636,6 +1644,19 @@ function AddQuestionRow({ onAdd, labels: L }) {
       >
         {L.templateAddItem}
       </button>
+      {/* [PW-3158] 기획 시안 항목 추가 폼(newQuestion)의 «AI 초안» 줄 — 이름표 → 체크 칸 순서.
+          체크 칸 글은 [항목 설정] «AI 초안» 칸과 같은 값을 켜므로 같은 글을 쓴다. */}
+      {showAi && (
+        <div className="evc-tpl-additem-ai" data-testid="evc-tpl-add-ai">
+          <span className="evc-tpl-set-title">{L.aiDraftTitle}</span>
+          <Checkbox
+            checked={ai}
+            onChange={(e) => setAi(e.target.checked)}
+            data-testid="evc-tpl-add-ai-check"
+            label={L.aiDraftLabel}
+          />
+        </div>
+      )}
       {/* [PW-602 ①] policy §5.11-E — 유형은 «여기서만» 정해진다. */}
       <span className="evc-tpl-set-note" data-testid="evc-tpl-add-type-fixed-note">
         {L.responseTypeChooseNowNote}
@@ -6119,7 +6140,7 @@ export default function EvalCycleWizard({
     );
   const removeQuestion = (id) =>
     setTplQuestions((qs) => qs.filter((q) => q.id !== id));
-  const addQuestion = (section, text, type) => {
+  const addQuestion = (section, text, type, ai = false) => {
     // [PW-602 ④] 설명 항목은 제목이 «선택»이다 — 본문(설정 패널)이 실체다.
     const isNote = type === NOTE_KIND;
     if (!isNote && !text.trim()) return;
@@ -6141,7 +6162,8 @@ export default function EvalCycleWizard({
         text: text.trim(),
         type,
         // [PW-3076 · J-11] 손으로 더한 항목은 «AI 초안» 끔으로 태어난다 — 초안이 만든 서술형만 켬.
-        ai: false,
+        // [PW-3158] 추가 줄에서 체크하고 더한 서술형만 켬(줄이 서술형에만 체크 칸을 두고 넘긴다).
+        ai: type === 'textarea' && !!ai,
         /*
          * PW-433 ③ — 새 체크박스는 **빈 선택지 목록을 실제로 들고** 태어난다.
          * 🔴 `options` 를 비워 두면(undefined) 저장 페이로드에도 안 실려, 서버가
