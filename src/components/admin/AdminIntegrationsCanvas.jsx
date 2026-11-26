@@ -1091,7 +1091,8 @@ function ExpireModal({ labels, onClose, onConfirm, error, busy }) {
       title={L.title}
       body={
         <div className="intg-owner-view">
-          <NoticeLines lines={sentences(L.description)} />
+          {/* 줄 배열이면 그대로 — 기획서 ExpireModal 은 둘째 줄에 두 문장을 한 줄로 둔다(pivit-work PW-3126). 문자열이면 문장마다 */}
+          <NoticeLines lines={Array.isArray(L.description) ? L.description : sentences(L.description)} />
           <IntgBand tone="error" lines={warning} />
           {/* 서버 거절 사유가 있으면 그 문장, 없으면 고정 문구 — 빨간 줄은 하나(pivit-work PW-3126) */}
           {error && <IntgBand tone="error" role="alert" lines={sentences(error)} testId="intg-expire-error" />}
