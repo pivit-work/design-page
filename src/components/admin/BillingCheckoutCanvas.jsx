@@ -477,7 +477,7 @@ export default function BillingCheckoutCanvas({
                   </div>
                 )}
               </div>
-              <div style={{ fontSize: 'var(--font-size-text-sm)', color: 'var(--text-tertiary)' }}>
+              <div style={{ fontSize: 'var(--font-size-text-sm)', color: 'var(--text-secondary)' }}>
                 {labels.successReceiptNote}
               </div>
               <Button variant="primary" onClick={onSuccessGoOverview}>{labels.successGoOverview}</Button>
@@ -543,7 +543,7 @@ export default function BillingCheckoutCanvas({
                       planChange.lastDay, planChange.remainingDays)}
                     value={won(planChange.diffSubtotal)}
                   />
-                  <div style={{ fontSize: 'var(--font-size-text-xs)', color: 'var(--text-tertiary)' }}>
+                  <div style={{ fontSize: 'var(--font-size-text-xs)', color: 'var(--text-secondary)' }}>
                     {labels.planChangeFormula(planChange.seats, planChange.toUnitPrice,
                       planChange.fromUnitPrice, planChange.months,
                       planChange.remainingDays, planChange.periodDays)}
@@ -826,7 +826,7 @@ const AGREE_ROW_STYLE = { display: 'flex', gap: 'var(--spacing-md)', alignItems:
 const PAY_NOTE_STYLE = {
   textAlign: 'center',
   fontSize: 'var(--font-size-text-xs)',
-  color: 'var(--text-tertiary)',
+  color: 'var(--text-secondary)',
 };
 /** 동의를 아직 안 했을 때 — 주황 안내(경고 글). */
 const PAY_HINT_STYLE = { ...PAY_NOTE_STYLE, color: 'var(--text-warning-primary)' };

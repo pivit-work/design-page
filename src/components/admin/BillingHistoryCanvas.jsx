@@ -188,7 +188,7 @@ const SMALL_STYLE = {
   fontSize: 'var(--font-size-text-xs)',
   lineHeight: 'var(--line-height-text-xs)',
   fontWeight: 500,
-  color: 'var(--text-tertiary)',
+  color: 'var(--text-secondary)',
 };
 const NOTE_STYLE = { ...SMALL_STYLE, whiteSpace: 'normal', overflowWrap: 'break-word', wordBreak: 'keep-all', maxWidth: 220 };
 const CELL_STACK_STYLE = { display: 'flex', flexDirection: 'column', gap: 'var(--spacing-xs)', alignItems: 'flex-start', minWidth: 0 };
@@ -288,7 +288,7 @@ const FILTER_COUNT_STYLE = {
 /** 판 가운데 안내(불러오기 실패 · 빈 내역 · 필터 결과 없음) — 모양은 전과 같다(시안 ㊵ «그대로»). */
 const CENTER_STYLE = { display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 'var(--spacing-md)' };
 const CENTER_TITLE_STYLE = { fontSize: 'var(--font-size-text-md)', lineHeight: 'var(--line-height-text-md)', fontWeight: 700, color: 'var(--text-primary)' };
-const CENTER_DESC_STYLE = { fontSize: 'var(--font-size-text-sm)', lineHeight: 'var(--line-height-text-sm)', color: 'var(--text-tertiary)', marginBottom: 'var(--spacing-lg)' };
+const CENTER_DESC_STYLE = { fontSize: 'var(--font-size-text-sm)', lineHeight: 'var(--line-height-text-sm)', color: 'var(--text-secondary)', marginBottom: 'var(--spacing-lg)' };
 // 청구번호는 «INV-2026-00001»(14자)라 칸에 들어가지만, 그보다 긴 번호(옛 시드 «INV-SEED-…»)는 옆 칸으로 넘치지 않고 칸 안에서 꺾는다.
 const NO_NUM_STYLE = {
   fontWeight: 600,

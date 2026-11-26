@@ -228,7 +228,7 @@
 .manager-team-empty .manager-team-empty-desc {
   font-weight: 500;
   line-height: var(--line-height-text-md);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   overflow-wrap: anywhere;
 }
 
@@ -259,7 +259,7 @@
   font-family: var(--font-family-body);
   font-weight: 500;
   font-size: var(--font-size-text-sm);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .manager-section-subtitle {
@@ -593,11 +593,11 @@
    로딩 스켈레톤 · 차트 실패 폴백. 비선택 카드는 시안(17026:24830)대로 머리줄만 그린다.
    상태 클래스는 요소 자신에 붙인다 — 부모(.is-selected) 스코프로 쓰면 카드를 다른
    목록에 재사용할 때 표시가 통째로 사라진다. */
-.mgr-krm-empty { font-size: 12px; font-weight: 500; color: var(--text-tertiary); }
+.mgr-krm-empty { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
 
 /* 자리 표시는 공용 `Skeleton`(src/loading.css · PW-1010). 스켈레톤/에러는 실제 추이 차트와 같은 자리·높이를 차지해 선택 전환 시 레이아웃이 튀지 않는다. */
 .mgr-kr-trend-error { min-height: 128px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; border: 1px dashed var(--border-secondary); border-radius: 12px; }
-.mgr-kr-trend-error-text { font-size: 13px; font-weight: 500; color: var(--text-tertiary); }
+.mgr-kr-trend-error-text { font-size: 13px; font-weight: 500; color: var(--text-secondary); }
 /* [다시 시도] 는 공용 보조 작은 버튼(Button variant="secondary" size="sm") — 클래스 이름은 찾는 데만 남긴다. */
 /* 빈 상태 — 이 KR 에 팀원 없음은 매니저 화면군의 빈 안내(.manager-modal-empty, stesslee c4d2e402),
    팀 KR 자체가 없어 탭이 통째로 빈 때는 매니저 탭 자리 안내(.manager-tab-placeholder, stesslee 60b1ece6) 값 그대로. */
@@ -807,4 +807,4 @@
    pivit-work 가 직접 칠하던 값을 옮겼다 (PW-766). 빈 문구는 매니저 시안의 「해당하는 스니핏이 없습니다」 자리. */
 .mgr-ts-feedcol { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
 /* 빈 문구 — 같은 화면 팀원 창의 빈 목록 문구(.manager-modal-empty, stesslee c4d2e402) 값 그대로 */
-.mgr-ts-empty { margin: 0; width: 100%; padding: 60px 0; text-align: center; font-family: var(--font-family-body); font-weight: 500; font-size: var(--font-size-text-sm); color: var(--text-tertiary); }
+.mgr-ts-empty { margin: 0; width: 100%; padding: calc(var(--spacing-5xl) + var(--spacing-2xl)) 0; text-align: center; font-family: var(--font-family-body); font-weight: 500; font-size: var(--font-size-text-sm); color: var(--text-secondary); }

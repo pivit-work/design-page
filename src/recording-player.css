@@ -122,7 +122,7 @@
    「불러오는 중」. 자리를 없애지 않는 것이 기획서가 정한 것이라(§19.4), 같은
    높이의 상자를 그대로 두고 글만 바꾼다. */
 .rec-player.is-notice {
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   font-size: 12px;
   font-weight: 500;
   line-height: 18px;

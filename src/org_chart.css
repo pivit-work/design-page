@@ -507,7 +507,7 @@
 }
 .modal-wh-item-date { font-weight: 600; }
 .modal-wh-item-time { font-variant-numeric: tabular-nums; }
-.modal-wh-item-memo { color: var(--text-tertiary); overflow-wrap: anywhere; }
+.modal-wh-item-memo { color: var(--text-secondary); overflow-wrap: anywhere; }
 .modal-wh-delete {
   flex-shrink: 0;
   display: flex;

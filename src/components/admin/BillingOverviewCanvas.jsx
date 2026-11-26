@@ -386,7 +386,7 @@ function UsageBanner({ banner, canEdit, testId }) {
 
 /** 판 안 작은 글 — 13·12 크기, 뜻은 색으로만. */
 const TEXT_SM = { margin: 0, fontSize: 'var(--font-size-text-sm)', lineHeight: 'var(--line-height-text-sm)', color: 'var(--text-secondary)' };
-const TEXT_XS = { margin: 0, fontSize: 'var(--font-size-text-xs)', lineHeight: 'var(--line-height-text-xs)', color: 'var(--text-tertiary)' };
+const TEXT_XS = { margin: 0, fontSize: 'var(--font-size-text-xs)', lineHeight: 'var(--line-height-text-xs)', color: 'var(--text-secondary)' };
 const TONE_COLOR = {
   warn: 'var(--text-warning-primary)',
   bad: 'var(--text-error-primary)',
@@ -417,13 +417,13 @@ const AMOUNT = {
 const METHOD = { margin: 'var(--spacing-md) 0 0', ...ROW_VALUE };
 /** 창 안 선택지 — 칸 이름(FormModal.Field `.tl-group-modal-label` 18/28) + 설명 줄 + 버튼. 상자 없이. */
 const OPTION = { display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 'var(--spacing-md)' };
-const OPTION_TAG = { marginLeft: 'var(--spacing-sm)', fontSize: 'var(--font-size-text-xs)', fontWeight: 600, color: 'var(--text-tertiary)' };
+const OPTION_TAG = { marginLeft: 'var(--spacing-sm)', fontSize: 'var(--font-size-text-xs)', fontWeight: 600, color: 'var(--text-secondary)' };
 /** 창 안 «이름 — 값» 줄 (청약철회 · 요금 변경 창). */
 const KV_ROW = {
   display: 'flex', justifyContent: 'space-between', gap: 'var(--spacing-xl)',
   padding: 'var(--spacing-md) 0', borderBottom: '1px solid var(--border-secondary)', ...TEXT_SM,
 };
-const KV_KEY = { flex: 'none', color: 'var(--text-tertiary)' };
+const KV_KEY = { flex: 'none', color: 'var(--text-secondary)' };
 const KV_VALUE = { color: 'var(--text-primary)', fontWeight: 600, textAlign: 'right' };
 
 // 구독 현황 «전자결재 · 휴가 패키지» 한 줄 (pivit-work PW-2782 · overview «애드온 줄» 행). 사고 해지하는 곳은 플랜 화면 카드다 —

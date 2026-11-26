@@ -28,7 +28,7 @@
 /* 섹션 라벨 옆 보조 설명(어드민 관리·민감 등) */
 .mp-section-sub {
   font-weight: 500;
-  color: var(--text-quaternary);
+  color: var(--text-secondary);
 }
 
 /* 보상 카드 헤더(라벨 + 보기 토글) */
@@ -41,14 +41,14 @@
 
 /* bio 미작성 안내 문구 — 회색 처리 */
 .mp-bio-empty {
-  color: var(--text-quaternary);
+  color: var(--text-secondary);
 }
 
 /* 보상 SSOT 안내 */
 .mp-comp-note {
   margin: 8px 0 0;
   font-size: 11px;
-  color: var(--text-quaternary);
+  color: var(--text-secondary);
 }
 
 @media (max-width: 560px) {

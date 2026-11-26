@@ -599,7 +599,7 @@
 .ono-team-empty .dp-empty__desc {
   font-weight: 500;
   line-height: var(--line-height-text-md);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   overflow-wrap: anywhere;
 }
 
@@ -680,7 +680,7 @@
   font-weight: 600;
   font-size: var(--font-size-text-sm);
   line-height: var(--line-height-text-sm);
-  color: var(--colors-text-textTertiaryHover);
+  color: var(--text-secondary);
 }
 
 /* ── Top message ── */
@@ -2430,7 +2430,7 @@ button.ono-add-modal-input { cursor: pointer; }
   font-size: 11px;
   font-weight: 500;
   line-height: 18px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   overflow-wrap: anywhere;
 }
 
@@ -2541,7 +2541,7 @@ button.ono-add-modal-input { cursor: pointer; }
   margin: 4px 0 0;
   padding: 12px 14px;
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   background: var(--bg-secondary);
   border: 1px dashed var(--border-secondary);
   border-radius: 8px;
@@ -2944,7 +2944,7 @@ button.ono-add-modal-input { cursor: pointer; }
   margin: 6px 0 0;
   font-size: 12px;
   line-height: 18px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   text-align: center;
 }
 .ono-mem-feedback-text {
@@ -2973,7 +2973,7 @@ button.ono-add-modal-input { cursor: pointer; }
   cursor: pointer;
 }
 .ono-mem-evidence-body { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
-.ono-mem-evidence-caption { margin: 0; font-size: 10px; color: var(--text-tertiary); }
+.ono-mem-evidence-caption { margin: 0; font-size: 10px; color: var(--text-secondary); }
 .ono-mem-evidence-row {
   padding: 8px 10px;
   border: 1px solid var(--border-secondary);
@@ -3014,7 +3014,7 @@ button.ono-add-modal-input { cursor: pointer; }
   color: var(--text-tertiary);
   cursor: default;
 }
-.ono-mem-evidence-status { margin: 10px 0 0; font-size: 11px; color: var(--text-tertiary); }
+.ono-mem-evidence-status { margin: calc(var(--spacing-md) + var(--spacing-xxs)) 0 0; font-size: 11px; color: var(--text-secondary); }
 
 /* ── 대화 원문 (STT 스크립트) — 회의록 풀버전 (PW-81) ── */
 .ono-mem-transcript {
@@ -3054,7 +3054,7 @@ button.ono-add-modal-input { cursor: pointer; }
   text-align: center;
   font-size: 12px;
   line-height: 1.6;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .ono-mem-transcript-line {
   padding: 8px 10px;
@@ -3153,7 +3153,7 @@ button.ono-add-modal-input { cursor: pointer; }
 .ono-mem-btn.is-ok { background: var(--utility-green-600); }
 /* PW-1934 — 「취소」처럼 물러나는 버튼. 디자이너의 .ono-add-modal-btn-secondary 와 같은 값 */
 .ono-mem-btn.is-secondary { background: var(--bg-quaternary); border: 1px solid var(--border-secondary); color: var(--text-secondary); }
-.ono-mem-hint { font-size: 11px; color: var(--text-tertiary); }
+.ono-mem-hint { font-size: 11px; color: var(--text-secondary); }
 
 /* ── 히스토리 타임라인 ── */
 .ono-mem-timeline { position: relative; display: flex; flex-direction: column; gap: 12px; }
@@ -4964,7 +4964,7 @@ button.ono-add-modal-input { cursor: pointer; }
 /* 칸 바로 아래 줄 — 왼쪽 글자 수, 오른쪽 저장 상태. 상태만 있으면 오른쪽에 붙는다. */
 .omn-field-foot { display: flex; align-items: center; gap: 12px; min-height: 18px; }
 .omn-field-foot .omn-status { margin-left: auto; }
-.omn-placeholder { font-size: 14px; font-weight: 500; line-height: 20px; color: var(--text-tertiary); }
+.omn-placeholder { font-size: 14px; font-weight: 500; line-height: 20px; color: var(--text-secondary); }
 .omn-error { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--utility-error-200); border-radius: var(--radius-lg); background: var(--utility-error-50); font-size: 14px; font-weight: 500; line-height: 20px; color: var(--utility-error-700); }
 .omn-error-retry { flex: none; padding: 6px 12px; border: none; border-radius: var(--radius-sm); background: var(--colors-background-bgErrorSolid); color: var(--text-white); font-family: inherit; font-size: 12px; font-weight: 600; line-height: 18px; cursor: pointer; }
 .omn-limit { font-size: 12px; font-weight: 500; line-height: 18px; color: var(--utility-error-700); }

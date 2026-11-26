@@ -85,7 +85,7 @@
    "font-size": "10px",
    "font-weight": "700",
    "background": "#f3f4f6 / 어두운 화면 #0c0e12",
-   "color": "#b1b6be / 어두운 화면 #85888e",
+   "color": "#687079 / 어두운 화면 #cecfd2",
    "border": "1px solid var(--border-primary)",
    "box-sizing": "border-box",
    "overflow-wrap": "anywhere",
@@ -877,11 +877,11 @@
   },
   "okr.css|.okr-readonly-badge": {
    "border-radius": "8px",
-   "padding": "8px 14px",
+   "padding": "8px calc(12px + 2px)",
    "font-size": "14px",
    "font-weight": "600",
    "background": "#f9fafb / 어두운 화면 #22262f",
-   "color": "#b1b6be / 어두운 화면 #85888e",
+   "color": "#687079 / 어두운 화면 #cecfd2",
    "display": "flex",
    "align-items": "center",
    "line-height": "20px",
@@ -1308,7 +1308,7 @@
    "padding": "2px 9px",
    "font-size": "12px",
    "background": "#f3f4f6 / 어두운 화면 #0c0e12",
-   "color": "#b1b6be / 어두운 화면 #85888e",
+   "color": "#687079 / 어두운 화면 #cecfd2",
    "border": "1px solid var(--border-primary)"
   },
   "settings.css|.msc-vis-badge": {
@@ -1709,7 +1709,7 @@
    "padding": "24px",
    "font-size": "14px",
    "background": "#f3f4f6 / 어두운 화면 #0c0e12",
-   "color": "#b1b6be / 어두운 화면 #85888e",
+   "color": "#687079 / 어두운 화면 #cecfd2",
    "line-height": "20px",
    "border": "1px solid var(--border-secondary)",
    "box-shadow": "var(--shadows-shadow-md)",
@@ -1787,7 +1787,7 @@
    "border-radius": "14px",
    "font-size": "13px",
    "background": "#f9fafb / 어두운 화면 #22262f",
-   "color": "#b1b6be / 어두운 화면 #85888e",
+   "color": "#687079 / 어두운 화면 #cecfd2",
    "display": "flex",
    "align-items": "center",
    "justify-content": "center",
@@ -2561,7 +2561,7 @@
   "org_squad.css|.dp-btn.sq-pillar-go.is-head span": {
    "font-size": "12px",
    "font-weight": "400",
-   "color": "#b1b6be / 어두운 화면 #85888e",
+   "color": "#687079 / 어두운 화면 #cecfd2",
    "display": "block",
    "line-height": "18px"
   },

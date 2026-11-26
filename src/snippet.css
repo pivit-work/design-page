@@ -271,7 +271,7 @@
 .snippet-stat-caption {
   font-size: 12px;
   font-weight: 400;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

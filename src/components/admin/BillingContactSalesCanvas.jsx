@@ -173,13 +173,13 @@ const DONE_ICON_STYLE = {
 };
 const DONE_TITLE_STYLE = { fontSize: 'var(--font-size-text-lg)', lineHeight: 'var(--line-height-text-lg)', fontWeight: 700, color: 'var(--text-primary)' };
 const DONE_TEXT_STYLE = { fontSize: 'var(--font-size-text-sm)', lineHeight: 'var(--line-height-text-sm)', color: 'var(--text-secondary)' };
-const DONE_NOTE_STYLE = { ...DONE_TEXT_STYLE, color: 'var(--text-tertiary)' };
+const DONE_NOTE_STYLE = { ...DONE_TEXT_STYLE, color: 'var(--text-secondary)' };
 
 const SUBMIT_NOTE_STYLE = {
   textAlign: 'center',
   fontSize: 'var(--font-size-text-xs)',
   lineHeight: 'var(--line-height-text-xs)',
-  color: 'var(--text-tertiary)',
+  color: 'var(--text-secondary)',
   marginTop: 'var(--spacing-md)',
 };
 

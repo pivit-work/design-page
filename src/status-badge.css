@@ -580,7 +580,7 @@
   border-radius: var(--radius-full, 99px);
   background: var(--bg-primary);
   border: 1px solid var(--border-primary);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   box-sizing: border-box;
   overflow-wrap: anywhere;
   /* 이름 길이를 가정하지 않고 흘려 줄바꿈 — 공용 딱지의 «한 줄» 기본값을 푼다 (PW-2872) */
@@ -1580,7 +1580,7 @@
   border-radius: var(--radius-full);
   background: var(--bg-primary);
   border: 1px solid var(--border-primary);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 /* 배지는 폭이 고정이 아니다 — 항목 이름·사유는 사람이 넣는 값이라 길이를 가정하지

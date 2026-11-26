@@ -1371,7 +1371,7 @@
   font-size: 12px;
   font-weight: 400;
   line-height: 18px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 /* 구분선 — stesslee .tl-tabs-row 아래 긴 선(1px border-secondary), 위아래는 메뉴 여백 4 */
@@ -1421,7 +1421,7 @@
   font-size: 12px;
   font-weight: 400;
   line-height: 18px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 /* ===========================
@@ -2192,7 +2192,7 @@
   font-size: 14px;
   font-weight: 600;
   line-height: 20px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .tl-snippet-detail-note {
@@ -3204,7 +3204,7 @@
   font-size: 13px;
   font-weight: 500;
   line-height: 20px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 /* 날짜 타이틀 — 30/38 Bold */
@@ -3943,7 +3943,7 @@
   font-size: 13px;
   font-weight: 500;
   line-height: 20px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .tl-snippet-draft-note.is-error {
@@ -3961,7 +3961,7 @@
   font-size: 13px;
   font-weight: 500;
   line-height: 20px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 /* 칸 머리 표시 — .tl-snippet-label-hint 글씨. 「확인」 버튼만 AI 버튼 모양. */
@@ -3973,7 +3973,7 @@
   font-size: 13px;
   font-weight: 500;
   line-height: 20px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .tl-snippet-draft-mark.is-confirmed {
@@ -4737,7 +4737,7 @@
   font-size: 16px;
   line-height: 24px;
   font-weight: 500;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 /* Figma "AI 제안" — Text lg/Bold 18/28, utility-blue-500 */

@@ -136,6 +136,8 @@ const ROW_SUB_STYLE = {
   lineHeight: 'var(--line-height-text-xs)',
   color: 'var(--text-tertiary)',
 };
+// 지울 수 없는 까닭 — 유효기간(덧붙임)과 같은 12/18 이지만 꼭 읽을 안내라 설명 글 색
+const ROW_HINT_STYLE = { ...ROW_SUB_STYLE, color: 'var(--text-secondary)' };
 const ROW_EXPIRED_HINT_STYLE = { color: 'var(--text-warning-primary)', marginLeft: 'var(--spacing-md)' };
 const ROW_ACTIONS_STYLE = { flex: 'none', display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)' };
 
@@ -143,14 +145,14 @@ const ROW_ACTIONS_STYLE = { flex: 'none', display: 'flex', alignItems: 'center',
 const EMPTY_STYLE = { display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 'var(--spacing-md)' };
 const EMPTY_ICON_STYLE = { display: 'flex', color: 'var(--text-tertiary)', marginBottom: 'var(--spacing-md)' };
 const EMPTY_TITLE_STYLE = { fontSize: 'var(--font-size-text-md)', lineHeight: 'var(--line-height-text-md)', fontWeight: 700, color: 'var(--text-primary)' };
-const EMPTY_DESC_STYLE = { fontSize: 'var(--font-size-text-sm)', lineHeight: 'var(--line-height-text-sm)', color: 'var(--text-tertiary)', marginBottom: 'var(--spacing-lg)' };
+const EMPTY_DESC_STYLE = { fontSize: 'var(--font-size-text-sm)', lineHeight: 'var(--line-height-text-sm)', color: 'var(--text-secondary)', marginBottom: 'var(--spacing-lg)' };
 
 /** 보안 안내 한 줄 — 가운데 12px 흐린 글(시안 ㉝ «그대로»). */
 const SECURITY_NOTE_STYLE = {
   textAlign: 'center',
   fontSize: 'var(--font-size-text-xs)',
   lineHeight: 'var(--line-height-text-xs)',
-  color: 'var(--text-tertiary)',
+  color: 'var(--text-secondary)',
 };
 
 /** 불러오는 중 — 한 판 안 줄 둘(카드 이름 · 유효기간 막대 + 버튼 자리 막대). */
@@ -319,7 +321,7 @@ export default function BillingMethodsCanvas({
                       {/* [삭제]가 꺼진 까닭 — 마우스를 올리지 않아도 줄 안에서 읽힌다(툴팁은 그대로). 유효기간 줄과 같은 12/18 흐린 글
                           (pivit-work PW-3159 · screen-billing-methods §4 «[삭제] 버튼(차단 상태) … + 카드 내 인라인 안내 텍스트») */}
                       {blockDelete && (
-                        <div data-testid="billing-method-delete-blocked-hint" style={ROW_SUB_STYLE}>{labels.deleteBlockedTitle}</div>
+                        <div data-testid="billing-method-delete-blocked-hint" style={ROW_HINT_STYLE}>{labels.deleteBlockedTitle}</div>
                       )}
                     </div>
 

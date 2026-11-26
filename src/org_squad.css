@@ -184,7 +184,7 @@
 .sq-banner-note {
   font-size: 12px;
   line-height: 18px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   margin-top: 4px;
 }
 /* 매트릭스 카드 안에 꽉 차게 붙는 변형 — 카드 모서리와 겹치지 않게 테두리를 아래만 둔다 */
@@ -219,7 +219,7 @@
 .sq-empty-desc {
   font-size: 14px;
   font-weight: 600;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   line-height: 20px;
   margin-top: 4px;
 }
@@ -370,7 +370,7 @@
   font-size: 11px;
   font-weight: 400;
   line-height: 16px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   white-space: normal;
   overflow-wrap: anywhere;
 }
@@ -508,7 +508,7 @@
 .sq-chip-empty {
   font-size: 12px;
   line-height: 18px;
-  color: var(--text-quaternary);
+  color: var(--text-secondary);
 }
 
 /* ③ 배정 권한이 없는 스쿼드 — 「팀원 추가」 버튼 대신 서는 캡션(정본 :175).
@@ -517,7 +517,7 @@
   margin: 0;
   font-size: 12px;
   line-height: 18px;
-  color: var(--text-quaternary);
+  color: var(--text-secondary);
 }
 
 /* ── 팀원 추가 겹창 (시안 17765:40299) ──
@@ -655,7 +655,7 @@
 .sq-add-none {
   padding: 12px;
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 /* 추천 팀원 (§5-5 · PW-1155) — hr_admin 은 추천 영역이 위에 붙으므로 목록 높이를 늘린다.
@@ -730,7 +730,7 @@
   font-size: 12px;
   font-weight: 500;
   line-height: 18px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 /* 배분 바 (스쿼드 100 기준 · 17757:30021) — 24 높이 흐린 검정 트랙 · 토막 사이 2 · r4.
@@ -797,7 +797,7 @@
 }
 .sq-comp-none {
   font-size: 12px;
-  color: var(--text-quaternary);
+  color: var(--text-secondary);
 }
 
 /* ── Capacity gauge ──
@@ -1119,7 +1119,7 @@
   font-size: 12px;
   font-weight: 500;
   line-height: 18px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 .sq-cap-note.is-over { color: var(--text-error-primary); }
@@ -1128,7 +1128,7 @@
   padding: 32px 24px;
   text-align: center;
   font-size: 14px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 
@@ -1187,7 +1187,7 @@
 .sq-pop-desc {
   font-size: 14px;
   font-weight: 500;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   line-height: 24px;
   margin: 4px 0 24px;
 }
@@ -1255,7 +1255,7 @@
 }
 .sq-pop-note {
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   line-height: 18px;
   margin: 0 0 0 32px;
 }
@@ -1330,9 +1330,9 @@
   font-size: 12px;
   color: var(--text-quaternary);
 }
-.sq-mycap-note { font-size: 12px; color: var(--text-tertiary); }
+.sq-mycap-note { font-size: 12px; color: var(--text-secondary); }
 .sq-mycap-unset { color: var(--utility-warning-700); font-weight: 600; }
-.sq-mycap-owner { margin-left: auto; font-size: 12px; color: var(--text-tertiary); }
+.sq-mycap-owner { margin-left: auto; font-size: 12px; color: var(--text-secondary); }
 .sq-mycap-owner b { color: var(--text-secondary); font-weight: 600; }
 /* 공통 자리(보기 전환 아래 · v3.48) — 표 상자 밖이라 제 테두리를 갖는다 */
 .sq-mycap.sq-mycap-common { margin-bottom: var(--spacing-xl); border: 1px solid var(--border-secondary); border-radius: 12px; }
@@ -1404,7 +1404,7 @@
   color: var(--text-tertiary);
   line-height: 18px;
 }
-.sq-hist-msg { font-size: 12px; color: var(--text-tertiary); }
+.sq-hist-msg { font-size: 12px; color: var(--text-secondary); }
 .sq-hist-msg.is-error { color: var(--text-error-primary); }
 
 /* ── 확인 창 (삭제 · 상태 전환) ──
@@ -1417,7 +1417,7 @@
 }
 .sq-modal-note {
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   line-height: 18px;
   margin-top: 12px;
 }
@@ -1494,7 +1494,7 @@
 }
 .sq-warnbox-note {
   font-size: 12px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   margin-top: 6px;
 }
 
@@ -1594,12 +1594,12 @@
 }
 .sq-lead-item:hover { background: var(--bg-secondary); }
 .sq-lead-item-meta { color: var(--text-tertiary); font-size: 12px; }
-.sq-lead-none { padding: 7px 12px; font-size: 12px; color: var(--text-quaternary); }
+.sq-lead-none { padding: var(--spacing-sm) var(--spacing-lg); font-size: 12px; color: var(--text-secondary); }
 
 .sq-form-note {
   font-size: 12px;
   line-height: 18px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   margin-top: var(--spacing-3xl);
 }
 .sq-form-actions { display: flex; gap: 8px; margin-top: 16px; }
@@ -1917,7 +1917,7 @@
   font-size: 12px;
   font-weight: 500;
   line-height: 18px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -1987,7 +1987,7 @@
 .sq-group-row { display: flex; align-items: center; gap: var(--spacing-lg); padding: var(--spacing-md) 0; border-bottom: 1px solid var(--border-secondary); }
 .sq-group-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
 .sq-group-row-name { min-width: 80px; max-width: 200px; font-size: 14px; font-weight: 600; line-height: 20px; color: var(--text-primary); }
-.sq-group-row-meta { font-size: 12px; line-height: 18px; color: var(--text-tertiary); white-space: nowrap; }
+.sq-group-row-meta { font-size: 12px; line-height: 18px; color: var(--text-secondary); white-space: nowrap; }
 .sq-group-row-actions { display: flex; gap: var(--spacing-sm); margin-left: auto; }
 .sq-group-add { align-self: flex-start; }
 .sq-group-editor { display: flex; flex-direction: column; gap: var(--spacing-md); padding: var(--spacing-lg); border: 1px solid var(--border-secondary); border-radius: 12px; }
@@ -2011,7 +2011,7 @@
 .sq-pillar-results .dp-btn { all: unset; box-sizing: border-box; display: block; width: 100%; padding: var(--spacing-sm) var(--spacing-md); border-radius: 6px; cursor: pointer; font-size: 12px; line-height: 18px; color: var(--text-tertiary); }
 .sq-pillar-results .dp-btn b { display: block; font-size: 14px; line-height: 20px; font-weight: 600; color: var(--text-primary); }
 .sq-pillar-results .dp-btn.is-on, .sq-pillar-results .dp-btn:hover { background: var(--alpha-black-5); }
-.sq-pillar-empty { padding: var(--spacing-md); font-size: 13px; line-height: 20px; color: var(--text-tertiary); }
+.sq-pillar-empty { padding: var(--spacing-md); font-size: 13px; line-height: 20px; color: var(--text-secondary); }
 .sq-pillar-tools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-md); padding: 0 var(--spacing-3xl) var(--spacing-lg); }
 .sq-pillar-tools-label { font-size: 12px; font-weight: 700; color: var(--text-tertiary); margin-right: var(--spacing-xxs); }
 .dp-btn.sq-pillar-chip { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: var(--spacing-sm); height: 28px; padding: 0 var(--spacing-md); border-radius: 8px; background: var(--alpha-black-5); color: var(--text-tertiary); font-size: 13px; line-height: 18px; font-weight: 600; }
@@ -2033,7 +2033,7 @@
 .sq-pillar-token:focus-visible { outline: none; }
 .sq-pillar-token:focus-visible > :first-child { stroke: var(--border-brand); }
 .sq-pillar.is-far .sq-pillar-tag.is-name:not(.is-lit) { display: none; }
-.sq-pillar-dock { position: absolute; z-index: 3; top: 12px; left: 12px; width: 340px; max-height: calc(100% - 24px); overflow: auto; padding: var(--spacing-3xl); border: 1px solid var(--border-secondary); border-radius: 16px; background: var(--bg-primary); box-shadow: var(--shadows-shadow-md); font-size: 14px; line-height: 20px; color: var(--text-tertiary); }
+.sq-pillar-dock { position: absolute; z-index: 3; top: 12px; left: 12px; width: 340px; max-height: calc(100% - 24px); overflow: auto; padding: var(--spacing-3xl); border: 1px solid var(--border-secondary); border-radius: 16px; background: var(--bg-primary); box-shadow: var(--shadows-shadow-md); font-size: 14px; line-height: 20px; color: var(--text-secondary); }
 .sq-pillar-dock[hidden] { display: none; }
 .dp-btn.sq-pillar-dock-x { all: unset; cursor: pointer; position: absolute; top: 16px; right: 16px; width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; color: var(--text-tertiary); }
 .dp-btn.sq-pillar-dock-x:hover { background: var(--alpha-black-5); }
@@ -2055,7 +2055,7 @@
 .dp-btn.sq-pillar-go:hover, .dp-btn.sq-pillar-go:focus-visible { background: var(--alpha-black-5); }
 .dp-btn.sq-pillar-go b { font-weight: 600; color: var(--text-primary); }
 .dp-btn.sq-pillar-go.is-head { margin-top: var(--spacing-lg); font-weight: 600; color: var(--text-primary); }
-.dp-btn.sq-pillar-go.is-head span { display: block; font-size: 12px; line-height: 18px; font-weight: 400; color: var(--text-tertiary); }
+.dp-btn.sq-pillar-go.is-head span { display: block; font-size: 12px; line-height: 18px; font-weight: 400; color: var(--text-secondary); }
 .sq-pillar-line2 { display: flex; align-items: center; gap: var(--spacing-sm); margin-top: var(--spacing-xxs); font-size: 12px; line-height: 18px; }
 .sq-pillar-notes { display: grid; gap: var(--spacing-xs); }
 .sq-pillar-legend { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-md) var(--spacing-2xl); padding: var(--spacing-lg) var(--spacing-3xl) var(--spacing-xl); font-size: 12px; line-height: 18px; color: var(--text-tertiary); }
@@ -2080,4 +2080,4 @@
 .sq-pillar-capline b { font-size: 14px; line-height: 20px; font-weight: 700; color: var(--text-primary); }
 .sq-pillar-capline.is-over, .sq-pillar-capline.is-over b { color: var(--text-error-primary); }
 .sq-pillar-capmax { color: var(--text-quaternary); }
-.sq-pillar-note { margin-top: var(--spacing-md); font-size: 12px; line-height: 18px; color: var(--text-quaternary); }
+.sq-pillar-note { margin-top: var(--spacing-md); font-size: 12px; line-height: 18px; color: var(--text-secondary); }

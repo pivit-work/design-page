@@ -692,7 +692,7 @@
   line-height: var(--line-height-text-sm);
   color: var(--text-secondary);
 }
-.admin-offb-choice-why { margin: 0; font-size: var(--font-size-text-xs); line-height: 16px; color: var(--text-tertiary); }
+.admin-offb-choice-why { margin: 0; font-size: var(--font-size-text-xs); line-height: 16px; color: var(--text-secondary); }
 .admin-offb-stack { display: flex; flex-direction: column; gap: 12px; }
 /* 섹션 1 끝 «휴가 정산» 칸 (pivit-work PW-2375 · 정책 v1.27 §2-B) — 위 칸들과 구분선으로 가른다.
    머리 글씨는 위 칸 이름표(.admin-offb .dp-field-label), 값 줄 글씨는 섹션 3 목록(.admin-offb-effects 12px)과 맞춘다. */
@@ -746,7 +746,7 @@
 .admin-offb-leave-value .dp-note-text { font-weight: 400; }
 /* 줄어드는 값 붉게(pivit-work PW-3187 · 퇴사 정책 v1.47 §5-J «선부여 재정산 −N» · `valueTone: 'error'`) — 회색 꼬리 · 배지 색은 그대로 */
 .admin-offb-leave-value-text.is-error { color: var(--text-error-primary); }
-.admin-offb-leave-note { color: var(--text-tertiary); overflow-wrap: anywhere; }
+.admin-offb-leave-note { color: var(--text-secondary); overflow-wrap: anywhere; }
 /* «맡은 폴더» 블록(pivit-work PW-2676 · 퇴사 정책 §2-C) — «휴가 정산» 줄과 같은 짜임 · 폴더 이름 12.5/600 ·
    새 관리자 칸은 공용 Select(섹션 4 입력과 같은 테두리) */
 .admin-offb-folder-name { font-size: 12.5px; font-weight: 600; color: var(--text-primary); }
@@ -779,7 +779,7 @@
 /* 진한 첫 조각 = 시안 «text-strong»(#2c3744) — 앱 토큰은 fgPrimary */
 .admin-offb-split-lead { font-weight: 600; color: var(--colors-foreground-fgPrimary); overflow-wrap: anywhere; }
 .admin-offb-split-text { color: var(--text-secondary); overflow-wrap: anywhere; }
-.admin-offb-split-muted { color: var(--text-tertiary); overflow-wrap: anywhere; }
+.admin-offb-split-muted { color: var(--text-secondary); overflow-wrap: anywhere; }
 .admin-offb-graybox {
   border: 1px solid var(--border-secondary);
   border-radius: 10px;
@@ -828,7 +828,7 @@
 /* 섹션 2 설명 세 줄 — 첫 줄 진하게 · 끝 줄 옅게 */
 .admin-offb-section-desc.is-split { display: flex; flex-direction: column; gap: var(--spacing-xxs); }
 .admin-offb-section-desc.is-split .is-lead { font-weight: 600; color: var(--text-primary); }
-.admin-offb-section-desc.is-split .is-muted { color: var(--text-tertiary); }
+.admin-offb-section-desc.is-split .is-muted { color: var(--text-secondary); }
 /* 섹션 3 보존 안내 — 네 줄, 줄 사이 가는 선 */
 .admin-offb-retain {
   display: flex;

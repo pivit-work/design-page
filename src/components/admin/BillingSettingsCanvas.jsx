@@ -172,7 +172,7 @@ const FIELD_INPUT_DISABLED_STYLE = { background: 'var(--bg-secondary)', color: '
 /** 칸 아래 도움말 · 잘못 넣은 값 안내 — 12/18(시안 ㊸ · ㊺ «그대로»). */
 const FIELD_HELP_STYLE = {
   fontSize: 'var(--font-size-text-xs)', lineHeight: 'var(--line-height-text-xs)',
-  color: 'var(--text-tertiary)', marginTop: 'var(--spacing-xs)',
+  color: 'var(--text-secondary)', marginTop: 'var(--spacing-xs)',
 };
 const FIELD_ERROR_STYLE = { ...FIELD_HELP_STYLE, color: 'var(--colors-text-textErrorPrimary)' };
 

@@ -210,7 +210,7 @@
   font-size: 14px;
   line-height: 20px;
   font-weight: 500;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   flex-shrink: 0;
 }
 /* 생성 실패 — 생성 중과 같은 자리·타이포, 색만 error 로. */
@@ -232,7 +232,7 @@
   font-size: 14px;
   line-height: 20px;
   font-weight: 500;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   flex-shrink: 1;
   min-width: 0;
   max-width: 45%;
@@ -590,7 +590,7 @@
 .mtg-record-readonly:focus { outline: none; }
 /* 섹션이 비었을 때 회색 칸 안 안내 (PW-1511) — 빈 입력칸 안내 글씨와 같은 색 */
 /* 두 클래스로 건다 — 뒤에 읽히는 timeline.css 의 .tl-snippet-textarea 글자색을 이겨야 한다 */
-.mtg-record-readonly.mtg-record-empty { color: var(--text-tertiary); }
+.mtg-record-readonly.mtg-record-empty { color: var(--text-secondary); }
 /* 요약 아래 「참고한 자료」 한 줄 (PW-1705) */
 .mtg-record-summary-note {
   margin: 6px 0 0;
@@ -1028,6 +1028,10 @@ input.mtg-record-action-title::placeholder {
   line-height: 20px;
   color: var(--text-tertiary);
 }
+/* 직책은 덧붙임이라 흐리게 두고, «메일 주소 없음»은 이 사람이 메일을 못 받는다는 꼭 읽을 안내라 설명 글 색 */
+.mtg-share-member-row.is-unreachable .mtg-share-member-role {
+  color: var(--text-secondary);
+}
 
 /* 체크박스 */
 .mtg-share-checkbox {
@@ -1062,7 +1066,7 @@ input.mtg-record-action-title::placeholder {
 .mtg-share-hint {
   font-size: 13px;
   line-height: 18px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 /* 참석자 행 — 메일 주소가 없는 사람은 체크를 막는다 (PW-1418 · share.policy §5.2) */
@@ -1197,7 +1201,7 @@ input.mtg-record-action-title::placeholder {
 .mtg-share-dropdown-empty {
   padding: 10px 14px;
   font-size: 13px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .mtg-share-warning {
   margin: 0;
@@ -1340,14 +1344,14 @@ input.mtg-record-action-title::placeholder {
   font-size: 13px;
   line-height: 18px;
   font-weight: 400;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .mtg-method-footnote {
   margin: 4px 0 0;
   font-size: 13px;
   line-height: 18px;
   font-weight: 400;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 /* 마이크 선택 — 장치 · 입력 음량 · 안내 */
@@ -1414,7 +1418,7 @@ input.mtg-record-action-title::placeholder {
   font-size: 14px;
   line-height: 20px;
   font-weight: 500;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 .mtg-mic-error {
   margin-top: 8px;
@@ -1434,7 +1438,7 @@ input.mtg-record-action-title::placeholder {
   font-size: 13px;
   line-height: 18px;
   font-weight: 400;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 /* ─── AI 회의록 생성 실패 안내 + 재시도 (MeetingRecordContent 의 headerExtra 자리) ───
@@ -1619,7 +1623,7 @@ input.mtg-record-action-title::placeholder {
 .mtg-empty-hint {
   font-size: 13px;
   line-height: 20px;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   max-width: 420px;
 }
 
@@ -1841,7 +1845,7 @@ input.mtg-record-action-title::placeholder {
   font-variant-numeric: tabular-nums;
   color: var(--text-tertiary);
 }
-.mtg-transcript-empty { margin: 12px 0; font-size: 13px; color: var(--text-tertiary); }
+.mtg-transcript-empty { margin: var(--spacing-lg) 0; font-size: 13px; color: var(--text-secondary); }
 /* 다시 모인 회의·다시 켠 녹취의 경계 (PW-2391) — 로그인 «또는» 구분선(.login-divider)의 선·글자·선 모양에
    글씨는 이 목록의 발언 시각(.mtg-transcript-time) 크기·색으로. 위아래 8px — 앞뒤 묶음의 10px 여백과 더해 묶음 사이보다 조금 넓다. */
 .mtg-transcript-divider { display: flex; align-items: center; gap: var(--spacing-md); padding: var(--spacing-md) 0; }

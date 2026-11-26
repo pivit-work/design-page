@@ -169,7 +169,7 @@
   gap: var(--spacing-xs);
   font-size: var(--font-size-text-xs);
   line-height: var(--line-height-text-xs);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .leave-legend-end {
@@ -177,7 +177,7 @@
 }
 
 .leave-legend-item.is-used {
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .leave-legend-item.is-planned {
@@ -254,7 +254,7 @@
 }
 
 .leave-name-fold-note {
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 .leave-name-fold-items {
@@ -271,7 +271,7 @@
 .dp-empty.leave-empty .dp-empty__desc {
   font-size: var(--font-size-text-sm);
   font-weight: 500;
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
 }
 
 /* ── 칸으로 나뉜 휴가 카드 — 연차 사용 촉진 카드(pivit-work PW-2688). 상자는 위 .leave-card 그대로, 안을 칸으로 나눈다. ── */
@@ -365,7 +365,7 @@
 .leave-count {
   font-size: var(--font-size-text-sm);
   line-height: var(--line-height-text-sm);
-  color: var(--text-tertiary);
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
@@ -809,7 +809,7 @@ div.dp-field.lv-bal-fr > .dp-field-hint { font-size: 12px; line-height: 18px; co
 .lv-set-ellipsis { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* 빈 안내 — 매니저 창 빈 안내 .manager-modal-empty(가운데 14/500 옅게) */
-.lv-set-empty { padding: var(--spacing-4xl) 0; text-align: center; font-size: 14px; line-height: 20px; font-weight: 500; color: var(--text-tertiary); }
+.lv-set-empty { padding: var(--spacing-4xl) 0; text-align: center; font-size: 14px; line-height: 20px; font-weight: 500; color: var(--text-secondary); }
 .lv-set-empty-sub { display: block; margin-top: var(--spacing-xs); font-size: 13px; font-weight: 400; }
 
 /* 잠긴 값 딱지 — 옅은 회색 26 높이(시안 .lock) */
@@ -879,7 +879,7 @@ div.dp-field.lv-bal-fr > .dp-field-hint { font-size: 12px; line-height: 18px; co
 .lv-cal-guide { display: flex; align-items: center; flex-wrap: wrap; gap: var(--spacing-xs) var(--spacing-xl); font-size: 13px; line-height: 20px; color: var(--text-subtle); }
 .lv-cal-legend { display: inline-flex; align-items: center; gap: var(--spacing-sm); font-size: 12px; line-height: 18px; color: var(--text-tertiary); }
 .lv-cal-legend-chip { width: 18px; height: 12px; border: 1px dashed var(--colors-warning-400); border-radius: var(--radius-xs, 4px); background: var(--bg-quaternary); }
-.lv-cal-empty { margin-left: auto; font-size: 13px; color: var(--text-tertiary); }
+.lv-cal-empty { margin-left: auto; font-size: 13px; color: var(--text-secondary); }
 
 /* 오른쪽 패널 — 폭 440(기획서 RequestDetail · PlanConfirmPanel) · 제목 18 · 오른쪽 위 닫기(✕) */
 .pw-side-panel.lv-pnl { width: 440px; }

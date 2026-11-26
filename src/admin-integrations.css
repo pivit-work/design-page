@@ -145,7 +145,7 @@
 .intg-picker-item-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .intg-picker-item-meta { flex: none; font-size: 12px; color: var(--text-tertiary); white-space: nowrap; }
 .intg-picker-message { padding: 14px 12px; font-size: 13px; color: var(--text-secondary); }
-.intg-picker-hint { margin-top: 8px; font-size: 12px; line-height: 1.5; color: var(--text-tertiary); }
+.intg-picker-hint { margin-top: var(--spacing-md); font-size: 12px; line-height: 1.5; color: var(--text-secondary); }
 /* 저장 직후 [저장] 자리에 2초 보이는 「✓ 저장됨」(연동 화면 기획 §6). */
 .intg-saved { display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
 .intg-setting-text { font-size: 13px; color: var(--text-secondary); }
@@ -299,7 +299,7 @@
 .intg-row:first-child { border-top: 0; }
 .intg-row-label { flex: 1; min-width: 0; font-size: var(--font-size-text-sm); line-height: var(--line-height-text-sm); font-weight: 500; color: var(--text-primary); }
 .intg-row-label.is-muted { color: var(--text-tertiary); }
-.intg-row-sub { display: block; font-weight: 400; color: var(--text-tertiary); }
+.intg-row-sub { display: block; font-weight: 400; color: var(--text-secondary); }
 .intg-row-value { flex: none; display: flex; align-items: center; gap: var(--spacing-md); }
 .intg-row-account { font-weight: 600; color: var(--text-primary); }
 .intg-row-error { font-size: var(--font-size-text-xs); line-height: var(--line-height-text-xs); color: var(--text-error-primary); }
@@ -315,7 +315,7 @@
 /* 상태 글자(동기화 로그 · 토큰 이력) — 매니저 KR `.mgr-kr-status` 12/18 · 사유는 아래 줄 */
 .intg-state { display: flex; flex-direction: column; gap: var(--spacing-xxs); min-width: 0; }
 .intg-state-reason {
-  font-size: var(--font-size-text-xs); line-height: var(--line-height-text-xs); color: var(--text-tertiary);
+  font-size: var(--font-size-text-xs); line-height: var(--line-height-text-xs); color: var(--text-secondary);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .intg-muted { color: var(--text-tertiary); }
@@ -324,7 +324,7 @@
 .intg-empty {
   display: flex; flex-direction: column; align-items: center; gap: var(--spacing-md);
   padding: var(--spacing-5xl) 0; text-align: center;
-  font-size: var(--font-size-text-sm); color: var(--text-tertiary);
+  font-size: var(--font-size-text-sm); color: var(--text-secondary);
 }
 .intg-empty-title { font-size: var(--font-size-text-md); font-weight: 700; color: var(--text-primary); }
 
@@ -336,7 +336,7 @@
 .intg-tri { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--border-secondary); border-radius: var(--radius-md); }
 .intg-tri > div { display: flex; flex-direction: column; gap: var(--spacing-xxs); padding: var(--spacing-md) var(--spacing-xl); min-width: 0; }
 .intg-tri > div + div { border-left: 1px solid var(--border-secondary); }
-.intg-tri-label { font-size: var(--font-size-text-xs); line-height: var(--line-height-text-xs); color: var(--text-tertiary); }
+.intg-tri-label { font-size: var(--font-size-text-xs); line-height: var(--line-height-text-xs); color: var(--text-secondary); }
 .intg-tri-value { font-size: var(--font-size-text-md); line-height: var(--line-height-text-md); font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; }
 .intg-tri-value.is-muted { color: var(--text-tertiary); }
 .intg-token-log { display: flex; align-items: center; gap: var(--spacing-xl); min-height: var(--spacing-5xl); border-bottom: 1px solid var(--border-secondary); font-size: var(--font-size-text-sm); }
