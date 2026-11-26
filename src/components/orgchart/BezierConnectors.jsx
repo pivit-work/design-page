@@ -146,15 +146,19 @@ export default function BezierConnectors({ containerRef, scale, lineStyle = 'ort
         });
       });
 
-      svg.innerHTML = `<path d="${pathData}" fill="none" stroke="#d2d6db" stroke-width="1" stroke-linejoin="round"/>`
+      // 굵기 — 회색 2px · 강조 3px, 줄여도 화면에서 그 굵기 아래로 안 내려가고 키우면 함께 굵어진다
+      // (pivit-specs org-chart-public-card-spec.md §5.1 · §5.4-B · 2026-11-26 · pivit-work PW-3285). 직속 점선은 1px 그대로.
+      const keep = 1 / Math.min(1, s);
+      const solid = `style="stroke-width:${2 * keep}px"`;
+      svg.innerHTML = `<path d="${pathData}" fill="none" stroke="#d2d6db" ${solid} stroke-linejoin="round"/>`
         + (dashedPathData ? `<path class="connector-direct" d="${dashedPathData}" fill="none" stroke="#d2d6db" stroke-width="1" stroke-dasharray="4 3"/>` : '')
         // 강조선은 회색선 위에 — 나중에 넣는 것이 위에 그려진다.
-        + (hiPathData ? `<path class="connector-highlight" d="${hiPathData}" fill="none" stroke-linejoin="round"/>` : '')
+        + (hiPathData ? `<path class="connector-highlight" d="${hiPathData}" fill="none" style="stroke-width:${3 * keep}px" stroke-linejoin="round"/>` : '')
         + (hiDashedPathData ? `<path class="connector-highlight connector-direct" d="${hiDashedPathData}" fill="none" stroke-dasharray="4 3"/>` : '');
       // 흐린 선은 맨 앞(보통 선 아래) — 형제와 같이 쓰는 구간은 진한 선이 위에 온다. 색은 적지 않고 보통 선과 같은
       // CSS(.connector-svg path · 테마별 --border-primary)를 받는다(색을 박으면 다크 테마에서 흐린 선이 더 밝아진다).
       if (fadedPathData) {
-        svg.insertAdjacentHTML('afterbegin', `<path class="connector-faded" d="${fadedPathData}" fill="none" stroke-width="1" stroke-linejoin="round" opacity="${FADED_OPACITY}"/>`);
+        svg.insertAdjacentHTML('afterbegin', `<path class="connector-faded" d="${fadedPathData}" fill="none" ${solid} stroke-linejoin="round" opacity="${FADED_OPACITY}"/>`);
       }
       rafRef.current = requestAnimationFrame(draw);
     };

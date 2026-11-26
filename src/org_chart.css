@@ -131,9 +131,13 @@
 
 /* SVG connector overlay */
 .connector-svg { position: absolute; top: 0; left: 0; pointer-events: none; overflow: visible; }
-.connector-svg path { fill: none; stroke: var(--border-primary); stroke-width: 1; }
-/* 내 소속 연결선 강조 — pivit-specs org-chart-public-card-spec.md §5.4-B (P.color.brand · 2) */
-.connector-svg path.connector-highlight { stroke: var(--bg-brand-solid); stroke-width: 2; }
+/* 굵기 — 회색 2 · 강조 3(§5.1 · §5.4-B 2026-11-26 · pivit-work PW-3285). 축소 보정은 BezierConnectors 가 path 의 style 로 덮는다.
+   직속 칸 점선(.connector-direct)은 보고선이라 1 그대로다. */
+.connector-svg path { fill: none; stroke: var(--border-primary); stroke-width: 2; }
+.connector-svg path.connector-direct { stroke-width: 1; }
+/* 내 소속 연결선 강조 — pivit-specs org-chart-public-card-spec.md §5.4-B (P.color.brand · 3) */
+.connector-svg path.connector-highlight { stroke: var(--bg-brand-solid); stroke-width: 3; }
+.connector-svg path.connector-highlight.connector-direct { stroke-width: 2; }
 
 /* ── Dept Card ── */
 .dept-card { position: relative; min-width: 138px; padding: 20px 22px; border-radius: 12px; box-shadow: 0 1px 3px rgba(10,13,18,0.1), 0 1px 2px rgba(10,13,18,0.1); display: flex; flex-direction: column; gap: 1px; cursor: pointer; transition: box-shadow 0.2s; }
