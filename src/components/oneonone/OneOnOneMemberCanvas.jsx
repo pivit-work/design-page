@@ -354,6 +354,14 @@ function ElapsedTimer({ from }) {
   );
 }
 
+/** 브리핑 칸에 그릴 것이 있나 — 요약 문장 · (시그널을 그리는 칸이면) 시그널 · 막힌 일 중 하나라도. */
+function hasBriefingContent(briefing, { signals }) {
+  if (!briefing) return false;
+  return !!briefing.summary?.trim()
+    || (signals && briefing.signals?.length > 0)
+    || briefing.unresolvedBlockers?.length > 0;
+}
+
 function Blockers({ items, L, icons, baseUrl }) {
   if (!items?.length) return null;
   return (
@@ -1373,11 +1381,14 @@ function PrepScreen({ session, manager, avatar, okrStatus, readinessPct, healthH
         </Section>
       )}
 
-      {session.aiBriefing && (
+      {/* 요약 문장이 비면 글 상자를, 시그널 · 막힌 일도 없으면 칸을 그리지 않는다 — 안내 없음 (pivit-work PW-3244 · policy §4.2.5-A) */}
+      {hasBriefingContent(session.aiBriefing, { signals: true }) && (
         <Section title={L.aiSummary} icon={icons.aiSummary} icons={icons} baseUrl={baseUrl}>
-          <div className="ono-start-briefing-text-box">
-            <p className="ono-start-briefing-text">{session.aiBriefing.summary}</p>
-          </div>
+          {session.aiBriefing.summary?.trim() && (
+            <div className="ono-start-briefing-text-box">
+              <p className="ono-start-briefing-text">{session.aiBriefing.summary}</p>
+            </div>
+          )}
           {session.aiBriefing.signals?.length > 0 && (
             <div className="ono-start-briefing-badges">
               {session.aiBriefing.signals.map((s, i) => (
@@ -1540,11 +1551,13 @@ function MeetingScreen({ session, manager, avatar, L, icons, baseUrl, onSaveNote
         }
       />
 
-      {session.aiBriefing && (
+      {hasBriefingContent(session.aiBriefing, { signals: false }) && (
         <Section title={L.prepSummary} icon={icons.aiSummary} icons={icons} baseUrl={baseUrl}>
-          <div className="ono-start-briefing-text-box">
-            <p className="ono-start-briefing-text">{session.aiBriefing.summary}</p>
-          </div>
+          {session.aiBriefing.summary?.trim() && (
+            <div className="ono-start-briefing-text-box">
+              <p className="ono-start-briefing-text">{session.aiBriefing.summary}</p>
+            </div>
+          )}
           <Blockers items={session.aiBriefing.unresolvedBlockers} L={L} icons={icons} baseUrl={baseUrl} />
         </Section>
       )}
