@@ -924,7 +924,16 @@ function FeatureCompareTable({ plans, featureKeys, featureLabelMap, currentPlanC
       render: (row) => {
         if (row.kind === 'recording') return (p.recordingNote || '').split(' (')[0];
         if (row.kind === 'aiRuns') return p.aiRunsNote;
-        return <FeatureIcon status={p.featureStatus ? p.featureStatus[row.key] : false} />;
+        const st = p.featureStatus ? p.featureStatus[row.key] : false;
+        // ◑ 만으로 뜻이 서지 않는 칸 — 아래 작은 글(Free · Work 의 «1on1 3회 · 지난 스니핏 보기», pivit-work PW-3260 · plans 정책 §2-B).
+        const compareNote = st === 'partial' ? (p.features || []).find((f) => f.key === row.key)?.compareNote : null;
+        if (!compareNote) return <FeatureIcon status={st} />;
+        return (
+          <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--spacing-xxs)' }}>
+            <FeatureIcon status={st} />
+            <span data-testid="compare-cell-note" style={{ fontSize: 11, color: T.sub }}>{compareNote}</span>
+          </span>
+        );
       },
     })),
   ];
