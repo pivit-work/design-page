@@ -2,7 +2,7 @@ import { useId, useState } from 'react';
 import Checkbox from '../shared/Checkbox.jsx';
 import StatusBadge from '../shared/StatusBadge.jsx';
 import Stack from '../shared/Stack.jsx';
-import { AlertCircleGlyph, AlertTriangleGlyph, CheckGlyph } from '../shared/lineIcons.jsx';
+import { AlertCircleGlyph, AlertTriangleGlyph, CheckGlyph, InfoGlyph } from '../shared/lineIcons.jsx';
 import { NoticeLines, Panel } from '../frames/index.js';
 import { BillingCheckoutSteps, BillingNotice, BillingPage, BillingPageHead } from './kit/BillingSurface.jsx';
 import { BILLING_PAGE_WIDTH } from './kit/billingPageWidth.js';
@@ -84,6 +84,13 @@ const DEFAULT_LABELS = {
   payProcessingSavedCard: '결제하는 중...',
   payConfirming: '결제 확인 중...',
   payRetry: '다시 시도',
+  // 카드 자동결제 1회 상한 안내 (pivit-work PW-3259 · checkout policy «토스페이먼츠 1,000만 원 초과 안내» 행).
+  // 결제대행사 이름을 쓰지 않는 규칙(PW-710)의 유일한 예외 — David 지시 문구 그대로다.
+  cardLimitNote: '1,000만 원을 초과하는 상품/플랜의 경우 토스페이먼츠 결제창이 연동되지 않습니다.',
+  cardLimitAmount: (total) => `지금 결제하실 금액은 ${won(total)}(부가세 포함)입니다.`,
+  cardLimitContactSales: '결제 방법은 영업팀에 문의해 주세요.',
+  cardLimitContactCta: '영업팀 문의',
+  payBlockedOverLimit: '결제할 수 없습니다',
   payCta: (total) => `카드 등록하고 ${won(total)} 결제하기`,
   payCtaSavedCard: (card, total) => `등록된 카드(${card.brand} •••• ${card.last4})로 ${won(total)} 결제하기`,
   cardWindowNote: '카드 인증 창이 열립니다. 인증을 마치면 이 화면으로 돌아와 바로 결제됩니다.',
@@ -273,8 +280,13 @@ export default function BillingCheckoutCanvas({
   quote = null,
   /** [새 조건으로 다시 결제] — 변경된 견적의 새 견적으로 결제를 다시 시작한다. */
   onRetryWithNewQuote,
-  /** [영업팀 문의] — 만료·변경 카드에서 영업 문의로 보낸다. */
+  /** [영업팀 문의] — 만료·변경 카드 · 1,000만 원 초과 안내에서 영업 문의로 보낸다. */
   onContactSales,
+  /**
+   * 카드 자동결제 1회 상한(부가세 포함 · pivit-work PW-3259) — 서버 결제 세션 값. 주면 결제 버튼 바로 위에 안내 상자를 늘
+   * 그리고, 지금 결제 금액이 이 값을 «초과»하면 빨간 톤 + 금액 · 영업팀 문의로 바꾸고 결제 버튼을 끈다. 정각은 결제된다.
+   */
+  cardPayLimit = null,
   /**
    * 청구 기준일 미리보기 — 서버 결제 세션 값 `{ chargeDate: 'YYYY-MM-DD', anchorDay, firstCycle }`.
    * 없으면 기준일 문장을 그리지 않는다(화면이 브라우저 시계로 따로 세지 않는다).
@@ -369,8 +381,10 @@ export default function BillingCheckoutCanvas({
     : [0, 0, 0];
 
   const busy = payState === 'processing' || payState === 'confirming';
+  // 상한을 넘으면 결제창을 열지 않는다 — 지금 열린 결제 방법이 카드 자동결제뿐이라 결제할 길이 없다(TC-BILL-259).
+  const overCardLimit = cardPayLimit != null && total > cardPayLimit;
   const blocked = !hasProfile || !agreeRefund || busy
-    || (needCommitment && !agreeCommitment);
+    || (needCommitment && !agreeCommitment) || overCardLimit;
 
   if (!canEdit) {
     return <div style={{ fontFamily: T.font, padding: 40 }}>{labels.noPermission}</div>;
@@ -742,9 +756,27 @@ export default function BillingCheckoutCanvas({
 
             {/* 결제 버튼 — 공용 주 버튼. 동의 전 꺼짐은 디자이너 꺼진 버튼(같은 초록 50%) (pivit-work PW-3132) */}
             <Stack gap="md">
+            {/* 카드 1회 상한 안내 — 결제 버튼 바로 위 · 늘 보인다 (pivit-work PW-3259). 넘으면 결제 실패 안내와 같은 빨간 띠 */}
+            {cardPayLimit != null && (
+              <BillingNotice
+                tone={overCardLimit ? 'bad' : 'info'}
+                icon={overCardLimit ? <AlertCircleGlyph size={16} /> : <InfoGlyph size={16} />}
+                testId="checkout-card-limit"
+                role={overCardLimit ? 'alert' : undefined}
+                title={labels.cardLimitNote}
+                lines={overCardLimit ? [labels.cardLimitAmount(total), labels.cardLimitContactSales] : []}
+                actions={overCardLimit && onContactSales ? (
+                  <Button variant="secondary" size="sm" onClick={onContactSales}
+                    data-testid="checkout-card-limit-contact">
+                    {labels.cardLimitContactCta}
+                  </Button>
+                ) : undefined}
+              />
+            )}
             <Button variant="primary" onClick={() => { if (!blocked) onPay?.(); }} disabled={blocked}
               data-testid="checkout-pay" style={{ width: '100%' }}>
-              {payState === 'processing' ? (opensCardWindow ? labels.payProcessing : labels.payProcessingSavedCard)
+              {overCardLimit && !busy ? labels.payBlockedOverLimit
+                : payState === 'processing' ? (opensCardWindow ? labels.payProcessing : labels.payProcessingSavedCard)
                 : payState === 'confirming' ? labels.payConfirming
                 : payState === 'fail' ? labels.payRetry
                 : planChangeNoCharge ? labels.payCtaPlanChangeNoCharge
@@ -752,7 +784,7 @@ export default function BillingCheckoutCanvas({
                 : labels.payCtaSavedCard(savedCard, total)}
             </Button>
             {/* 다음에 무엇이 일어나는지 (PW-2110) — 카드 인증 창은 페이지를 떠났다가 돌아온다 */}
-            {opensCardWindow && (payState === 'idle' || payState === 'fail') && (
+            {opensCardWindow && !overCardLimit && (payState === 'idle' || payState === 'fail') && (
               <div data-testid="checkout-card-window-note" style={{ ...PAY_NOTE_STYLE, color: 'var(--text-secondary)' }}>
                 {labels.cardWindowNote}
               </div>
