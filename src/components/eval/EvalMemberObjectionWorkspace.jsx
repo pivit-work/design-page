@@ -212,7 +212,7 @@ function AssignJudge({ item, onAssignJudge, L }) {
           testId="evrr-obj-assign-dialog"
           body={
             <Stack gap="md">
-              <NoteText>{L.assignHint}</NoteText>
+              <NoteText tone="read">{L.assignHint}</NoteText>
               {(item.judgeCandidates ?? []).length ? (
                 item.judgeCandidates.map((c) => (
                   <Radio
@@ -226,7 +226,7 @@ function AssignJudge({ item, onAssignJudge, L }) {
                   />
                 ))
               ) : (
-                <NoteText>{L.assignNone}</NoteText>
+                <NoteText tone="read">{L.assignNone}</NoteText>
               )}
             </Stack>
           }
@@ -284,7 +284,7 @@ function RouteSection({ item, fmtDateTime, L }) {
       <div className="evs-cw-review-k">{L.routeTitle}</div>
       <Stack gap="xs">
         {item.judgeMissing ? (
-          <NoteText data-testid="evrr-obj-judge-missing-note">{L.judgeMissingNote}</NoteText>
+          <NoteText tone="read" data-testid="evrr-obj-judge-missing-note">{L.judgeMissingNote}</NoteText>
         ) : (
           <div className="evs-cw-review-v" data-testid="evrr-obj-judge">
             {item.judgeRound != null
@@ -416,7 +416,7 @@ function Panel({
         </div>
 
         {withdrawn ? (
-          <NoteText data-testid="evrr-obj-withdrawn">
+          <NoteText tone="read" data-testid="evrr-obj-withdrawn">
             {fill(L.withdrawn, { date: item.withdrawnAt ? fmtDateTime(item.withdrawnAt) : '' })}
           </NoteText>
         ) : null}
@@ -444,7 +444,7 @@ function Panel({
                 {item.aiSummary}
               </div>
             </div>
-            <NoteText>{L.aiSummaryHint}</NoteText>
+            <NoteText tone="read">{L.aiSummaryHint}</NoteText>
           </div>
         ) : null}
 

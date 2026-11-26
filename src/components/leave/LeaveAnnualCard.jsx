@@ -39,7 +39,7 @@ export default function LeaveAnnualCard({
       <div className="leave-card-head">
         <SectionTitle as="h2">{title}</SectionTitle>
         {aside && (
-          <NoteText className="leave-card-aside" data-testid={asideTestId}>
+          <NoteText tone="read" className="leave-card-aside" data-testid={asideTestId}>
             {aside}
           </NoteText>
         )}

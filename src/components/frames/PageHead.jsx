@@ -7,7 +7,7 @@ import { NoticeLines } from './NoticeLines.jsx';
  * 값:
  *   - 제목 24/32 굵게 `--fg-primary` — 디자이너 흰 판 제목(`.okr-h-label`). 카드 본문이 정한 크기(24/32)와 같은 디자이너 클래스.
  *     디자이너 페이지 제목(`.tab-nav` · `.manager-tabs` 30/38)은 탭을 겸한 제목이라 쓰지 않았다(design-review).
- *   - 설명 14/20 — 안내 줄 틀의 «흐림»(`NoticeLines tone="muted"` = 디자이너 일정 창 부제 `.tl-event-modal-subtitle`).
+ *   - 설명 14/20 — 안내 줄 틀의 «흐림»(`NoticeLines tone="muted"` = 디자이너 일정 창 부제 `.tl-event-modal-subtitle` 의 크기 · 굵기에 설명 글 색 `--text-secondary`).
  *     문장마다 한 줄. 제목 ↔ 설명 4(`--spacing-xs` — 안내 줄 사이와 같게).
  *   - 제목 ↔ 버튼 12(`--spacing-lg`) · 버튼끼리 8 — 디자이너 페이지 머리에 버튼이 없어 개발이 정했다(design-review).
  * 제목은 짧은 글이라 한 줄 · 넘치면 «…». 버튼 자리는 줄어들지 않고, 모자라면 다음 줄로 내린다.

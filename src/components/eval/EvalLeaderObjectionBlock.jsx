@@ -69,7 +69,7 @@ export default function EvalLeaderObjectionBlock({ objection }) {
     return (
       <section className="evc-card" role="alert" data-testid="evl-objection-failed">
         <Stack gap="md">
-          <NoteText>{L.loadFailed}</NoteText>
+          <NoteText tone="read">{L.loadFailed}</NoteText>
           {onRetry ? (
             <div className="evc-card-buttons">
               <Button className="evc-btn is-ghost" onClick={onRetry} data-testid="evl-objection-retry">
@@ -113,9 +113,9 @@ export default function EvalLeaderObjectionBlock({ objection }) {
           {open ? <DueLine view={view} L={L} fmtDate={fmtDate} /> : null}
         </div>
         {withdrawn ? (
-          <NoteText data-testid="evl-objection-withdrawn">{L.withdrawn}</NoteText>
+          <NoteText tone="read" data-testid="evl-objection-withdrawn">{L.withdrawn}</NoteText>
         ) : path ? (
-          <NoteText data-testid="evl-objection-path">{path}</NoteText>
+          <NoteText tone="read" data-testid="evl-objection-path">{path}</NoteText>
         ) : null}
         <ObjectionContent
           item={view}

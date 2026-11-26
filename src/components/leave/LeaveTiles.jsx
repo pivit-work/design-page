@@ -41,7 +41,7 @@ export default function LeaveTiles({ tiles = [], layout = 'band', testId }) {
             </p>
             {/* 설명 줄이 없는 칸도 그 줄 자리를 둔다 — 같은 화면 «연차» 칸(설명 줄 있음)과 높이가 같게(PW-2688 시안). */}
             {x.sub ? (
-              <NoteText data-testid={x.subTestId}>{x.sub}</NoteText>
+              <NoteText tone="read" data-testid={x.subTestId}>{x.sub}</NoteText>
             ) : (
               <NoteText aria-hidden="true">{'\u00a0'}</NoteText>
             )}

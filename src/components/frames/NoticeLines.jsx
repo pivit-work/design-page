@@ -7,7 +7,9 @@ import { FRAME_TEXT_WRAP } from './frameValues.js';
  * 문장을 « — »·마침표로 한 문단에 잇지 않는다 — 부르는 쪽이 문장 목록을 넘기면 틀이 줄로 나눈다.
  * 위계는 둘뿐이다 — 디자이너(stesslee) 창 머리 설명 줄에서 꺼냈다:
  *   - 기본 `.tl-group-modal-desc` 14/20 · 600 · `--text-secondary`(«그룹 추가» 창 설명)
- *   - 흐림 `.tl-event-modal-subtitle` 14/20 · 500 · `--text-tertiary`(일정 창 부제)
+ *   - 흐림 `.tl-event-modal-subtitle` 14/20 · 500(일정 창 부제) — 색만 `--text-secondary`(`.dp-frame-notice-muted`).
+ *     이 틀이 그리는 줄은 페이지 설명 · 칸 설명 · 창 아래 안내처럼 늘 꼭 읽을 글이라, 디자이너가 날짜 같은 덧붙임에 쓰는
+ *     흐린 회색(--text-tertiary · 흰 바탕 대비 약 2:1)이 아니라 설명 글 색을 쓴다(2026-11-26). 기본과는 굵기(600 · 500)로 갈린다.
  * 바탕 · 테두리 · 점 목록은 없다. 긴 문장은 낱말 단위로 줄을 바꾸고 한 글자씩 꺾지 않는다.
  * 모양을 덮어쓰는 길(className · style)은 두지 않는다.
  *
@@ -26,7 +28,7 @@ export function NoticeLines({ lines, tone = 'default', divided = false, testId }
       line !== null && line !== undefined && line !== false && line !== 0 && !(typeof line === 'string' && line.trim() === ''),
   );
   if (shown.length === 0) return null;
-  const lineClass = tone === 'muted' ? 'tl-event-modal-subtitle' : 'tl-group-modal-desc';
+  const lineClass = tone === 'muted' ? 'tl-event-modal-subtitle dp-frame-notice-muted' : 'tl-group-modal-desc';
   return (
     <ul style={divided ? DIVIDED_LIST_STYLE : LIST_STYLE} data-testid={testId} data-tone={tone} data-divided={divided || undefined}>
       {shown.map((line, i) => (

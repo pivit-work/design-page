@@ -20,7 +20,7 @@ export default function OkrSelectMenu({ options, selected, onSelect, icons, base
             {option.description ? (
               <span className="okr-select-item-text">
                 <span>{option.label}</span>
-                <NoteText as="span">{option.description}</NoteText>
+                <NoteText tone="read" as="span">{option.description}</NoteText>
               </span>
             ) : (
               <span>{option.label}</span>

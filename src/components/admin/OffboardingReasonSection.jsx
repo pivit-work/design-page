@@ -238,7 +238,7 @@ export default function OffboardingReasonSection({ state, typeOnly = false, onRe
             />
             )}
             {!summary.typeOnly && (
-            <NoteText>
+            <NoteText tone="read">
               {L.noteHint} · {fill(L.noteCount, { count: eNote.length, max: OFFBOARDING_NOTE_MAX })}
             </NoteText>
             )}

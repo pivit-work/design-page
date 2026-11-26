@@ -36,6 +36,12 @@
   overflow-wrap: anywhere;
 }
 
+/* 작은 보조 글씨 · 꼭 읽을 글(NoteText tone="read") — 크기는 그대로, 색만 디자이너 설명 글 색(snippet .snippet-subtitle · timeline .tl-meta-label).
+   흐린 회색은 번호 · 날짜 · 개수 같은 덧붙임 글에만 쓴다(2026-11-26). */
+.dp-note-text.dp-note-text--read {
+  color: var(--text-secondary);
+}
+
 /* 회색 칸 (.tl-snippet-textarea + .mtg-record-readonly — 회의록 「요약」·「결정 사항」 읽기 전용 칸) */
 .dp-readonly-box {
   width: 100%;

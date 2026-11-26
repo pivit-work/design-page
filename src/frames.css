@@ -33,6 +33,11 @@
 }
 .dp-frame-stat:not(:last-child) { border-right: 1px solid var(--border-secondary); }
 
+/* 안내 줄 «흐림»(NoticeLines muted · PageHead 설명) — 크기 · 굵기는 디자이너 일정 창 부제(timeline.css .tl-event-modal-subtitle 14/20 · 500)
+   그대로, 색만 설명 글 색. 이 틀의 줄은 늘 꼭 읽을 설명 · 안내라 덧붙임용 흐린 회색(--text-tertiary · 대비 약 2:1)을 쓰지 않는다(2026-11-26).
+   두 클래스를 함께 써 .tl-event-modal-subtitle 의 색만 덮는다. */
+.tl-event-modal-subtitle.dp-frame-notice-muted { color: var(--text-secondary); }
+
 /* 안내 줄 사이 선(NoticeLines divided · PW-3111) — 판 안 구역 선과 같은 디자이너 선(okr.css .okr-h-quarter + .okr-h-quarter: 1px --border-secondary).
    선 위 · 아래 8 은 전후 비교 시안(경고 줄 padding 8)대로. «앞 줄이 있을 때만» 긋는다 — 첫 줄 위 · 끝 줄 아래는 끈 때와 같다. */
 .dp-frame-notice-divided + .dp-frame-notice-divided {

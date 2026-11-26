@@ -70,7 +70,7 @@ export function LeaveSectionHead({ title, aside, testId }) {
 export function LeaveCardFoot({ note, noteTestId, testId, children }) {
   return (
     <div className="leave-card-foot-band" data-testid={testId}>
-      <NoteText as="span" className="leave-card-foot-note" data-testid={noteTestId}>
+      <NoteText tone="read" as="span" className="leave-card-foot-note" data-testid={noteTestId}>
         {note}
       </NoteText>
       {children && <div className="leave-card-foot-actions">{children}</div>}

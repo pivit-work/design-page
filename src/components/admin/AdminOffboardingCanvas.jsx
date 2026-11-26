@@ -279,7 +279,7 @@ function FolderHandoff({ view }) {
         <span className="admin-offb-leave-title">{view.title}</span>
         <DpStatusBadge tone="neutral" className="admin-pill">{view.badge}</DpStatusBadge>
       </div>
-      <NoteText data-testid="offboarding-folders-desc">{view.description}</NoteText>
+      <NoteText tone="read" data-testid="offboarding-folders-desc">{view.description}</NoteText>
       {view.error ? (
         <Notice tone="error" testId="offboarding-folders-error" role="alert">{view.error}</Notice>
       ) : (
@@ -333,8 +333,8 @@ function LeaveSettlement({ view, labels }) {
           <span className="admin-offb-leave-basis" data-testid="offboarding-leave-basis">{view.basis}</span>
         )}
       </div>
-      {view.description && <NoteText data-testid="offboarding-leave-desc">{view.description}</NoteText>}
-      {view.guide && <NoteText data-testid="offboarding-leave-guide">{view.guide}</NoteText>}
+      {view.description && <NoteText tone="read" data-testid="offboarding-leave-desc">{view.description}</NoteText>}
+      {view.guide && <NoteText tone="read" data-testid="offboarding-leave-guide">{view.guide}</NoteText>}
       {view.message && (
         <Notice tone="neutral" testId="offboarding-leave-message">{view.message}</Notice>
       )}

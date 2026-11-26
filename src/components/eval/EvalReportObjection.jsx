@@ -234,7 +234,7 @@ export function ObjectionPanel({
                       label={
                         <Stack gap="xs" as="span">
                           <span>{stageText(l, L)}</span>
-                          <NoteText as="span" data-testid={`evr-objection-line-note-${l.round}`}>
+                          <NoteText tone="read" as="span" data-testid={`evr-objection-line-note-${l.round}`}>
                             {fill(L.objectionLineSees, { names: sees })}
                             {hidden ? ` · ${fill(L.objectionLineHidden, { names: hidden })}` : ''}
                           </NoteText>
@@ -289,14 +289,14 @@ export function ObjectionPanel({
                   data-testid="evr-objection-file-input"
                 />
               </div>
-              <NoteText>{L.objectionFileRule}</NoteText>
+              <NoteText tone="read">{L.objectionFileRule}</NoteText>
               {fileError ? <FieldError data-testid="evr-objection-file-error">{fileError}</FieldError> : null}
             </Stack>
           </FormField>
           <Stack gap="xs" data-testid="evr-objection-notice">
-            <NoteText>{L.objectionNoticeSafe}</NoteText>
-            <NoteText>{fill(L.objectionNoticeScope, { judge })}</NoteText>
-            <NoteText>{resolveKoreanParticles(fill(L.objectionReplyNotice, { judge, days: objection.replyDays }))}</NoteText>
+            <NoteText tone="read">{L.objectionNoticeSafe}</NoteText>
+            <NoteText tone="read">{fill(L.objectionNoticeScope, { judge })}</NoteText>
+            <NoteText tone="read">{resolveKoreanParticles(fill(L.objectionReplyNotice, { judge, days: objection.replyDays }))}</NoteText>
           </Stack>
           {error ? <FieldError data-testid="evr-objection-error">{error}</FieldError> : null}
           <div className="evc-card-buttons">
@@ -373,7 +373,7 @@ export function ObjectionPanel({
             </NoteText>
           </div>
           {gradeChanged ? (
-            <NoteText data-testid="evr-objection-changed-grade">
+            <NoteText tone="read" data-testid="evr-objection-changed-grade">
               <BoldFill
                 template={L.objectionChangedGrade}
                 boldKey="after"
@@ -392,7 +392,7 @@ export function ObjectionPanel({
               <ReadonlyBox data-testid="evr-objection-ai">{d.aiExplanation}</ReadonlyBox>
             </Stack>
           ) : null}
-          <NoteText>{L.objectionDecidedFollowup}</NoteText>
+          <NoteText tone="read">{L.objectionDecidedFollowup}</NoteText>
         </Stack>
       </section>
     );
@@ -427,11 +427,11 @@ export function ObjectionPanel({
           ) : null}
         </div>
         {item.overdue ? (
-          <NoteText data-testid="evr-objection-overdue">{fill(L.objectionOverdue, { judge })}</NoteText>
+          <NoteText tone="read" data-testid="evr-objection-overdue">{fill(L.objectionOverdue, { judge })}</NoteText>
         ) : null}
         <Stack gap="xs">
           <MetaLabel>{L.objectionYourTargets}</MetaLabel>
-          <NoteText data-testid="evr-objection-targets">{targetText}</NoteText>
+          <NoteText tone="read" data-testid="evr-objection-targets">{targetText}</NoteText>
         </Stack>
         <Stack gap="xs">
           <MetaLabel>{L.objectionYourReason}</MetaLabel>
@@ -483,7 +483,7 @@ export function ObjectionPanel({
                   data-testid={`evr-objection-widen-${l.round}`}
                 />
               ))}
-              <NoteText data-testid="evr-objection-widen-body">{fill(L.objectionWidenBody, { names: newcomers })}</NoteText>
+              <NoteText tone="read" data-testid="evr-objection-widen-body">{fill(L.objectionWidenBody, { names: newcomers })}</NoteText>
               {widenFailed ? (
                 <FieldError data-testid="evr-objection-widen-error">{L.objectionWidenFailed}</FieldError>
               ) : null}

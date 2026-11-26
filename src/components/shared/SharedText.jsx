@@ -34,9 +34,15 @@ export function MetaLabel(props) {
   return renderText('dp-meta-label', 'span', props);
 }
 
-/** 작은 보조 글씨 — 12/18 흐린 글씨, 긴 낱말도 줄바꿈 (`.mtg-record-summary-note`). */
-export function NoteText(props) {
-  return renderText('dp-note-text', 'p', props);
+/**
+ * 작은 보조 글씨 — 12/18 흐린 글씨, 긴 낱말도 줄바꿈 (`.mtg-record-summary-note`).
+ * 흐린 회색(--text-tertiary · 흰 바탕 대비 약 2:1)은 번호 · 날짜 · 개수 같은 덧붙임 글에만 쓴다.
+ * 읽어야 다음에 할 일을 아는 글(안내 · 까닭 · 실패 · 빈 목록 · 받는 사람)은 `tone="read"` — 크기는 그대로, 색만
+ * 디자이너가 설명 글에 쓰는 2단계 글씨(--text-secondary · snippet `.snippet-subtitle`)로 (2026-11-26).
+ * @param {{ tone?: 'faint' | 'read' }} props
+ */
+export function NoteText({ tone = 'faint', ...props }) {
+  return renderText(tone === 'read' ? 'dp-note-text dp-note-text--read' : 'dp-note-text', 'p', props);
 }
 
 /** 회색 칸 — 읽기 전용 글 칸, 줄바꿈 보존 (`.tl-snippet-textarea` + `.mtg-record-readonly`). */

@@ -54,7 +54,7 @@ test('페이지 머리 — 제목 · 설명 문장마다 한 줄 · 오른쪽 �
     h(frames.PageHead, { title: '권한 기준정보', description: ['첫 문장.', '둘째 문장.'], actions: h('button', { type: 'button' }, '내보내기') }),
   );
   assert.match(html, /<h1 class="okr-h-label"[^>]*title="권한 기준정보"/);
-  assert.equal((html.match(/class="tl-event-modal-subtitle"/g) || []).length, 2);
+  assert.equal((html.match(/class="tl-event-modal-subtitle dp-frame-notice-muted"/g) || []).length, 2);
   assert.match(html, /내보내기/);
   const withAside = renderToStaticMarkup(h(frames.PageHead, { title: '권한 기준정보', titleAside: h('button', { type: 'button' }, '?') }));
   assert.match(withAside, /<div style="display:flex;align-items:center;gap:var\(--spacing-md\);min-width:0"><h1 class="okr-h-label"/);

@@ -311,7 +311,7 @@ export default function EvalCycleReportSettings({
               >
                 <Stack gap="md">
                   {calibrationEnabled ? null : (
-                    <NoteText data-testid="evrs-objection-decider-off">{L.objectionDeciderNoCalibration}</NoteText>
+                    <NoteText tone="read" data-testid="evrs-objection-decider-off">{L.objectionDeciderNoCalibration}</NoteText>
                   )}
                   {[
                     { value: 'chair', label: L.objectionDeciderChair },
@@ -331,7 +331,7 @@ export default function EvalCycleReportSettings({
                 </Stack>
               </FormField>
             ) : null}
-            <NoteText data-testid="evrs-objection-grade-notice">{L.objectionGradeChangeNotice}</NoteText>
+            <NoteText tone="read" data-testid="evrs-objection-grade-notice">{L.objectionGradeChangeNotice}</NoteText>
           </Stack>
         </section>
       )}

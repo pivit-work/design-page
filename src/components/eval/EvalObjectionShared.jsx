@@ -119,7 +119,7 @@ export function ObjectionContent({
             ) : null}
             {showLine
               ? item.line.map((l) => (
-                  <NoteText key={l.round} data-testid={`evobj-line-${l.round}`}>
+                  <NoteText tone="read" key={l.round} data-testid={`evobj-line-${l.round}`}>
                     {fill(L.lineItem, { round: l.round, name: l.name })} · {l.sees ? L.lineSees : L.lineHidden}
                   </NoteText>
                 ))
@@ -130,7 +130,7 @@ export function ObjectionContent({
       <div>
         <div className="evs-cw-review-k">{L.opinionsTitle}</div>
         <Stack gap="md">
-          <NoteText>{L.opinionsHint}</NoteText>
+          <NoteText tone="read">{L.opinionsHint}</NoteText>
           {item.opinions?.length ? (
             item.opinions.map((op) => (
               <div key={op.id} className="evs-cw-review-reason" data-testid="evobj-opinion">
@@ -141,7 +141,7 @@ export function ObjectionContent({
               </div>
             ))
           ) : (
-            <NoteText data-testid="evobj-opinions-empty">{L.opinionsEmpty}</NoteText>
+            <NoteText tone="read" data-testid="evobj-opinions-empty">{L.opinionsEmpty}</NoteText>
           )}
           {opinionSlot}
         </Stack>
@@ -170,7 +170,7 @@ export function ObjectionOpinionInput({ onSubmit, maxLength, labels }) {
         onChange={(e) => setText(e.target.value)}
         data-testid="evobj-opinion-input"
       />
-      <NoteText>{L.opinionInputHint}</NoteText>
+      <NoteText tone="read">{L.opinionInputHint}</NoteText>
       {failed ? <FieldError data-testid="evobj-opinion-error">{L.opinionFailed}</FieldError> : null}
       <div className="evc-card-buttons">
         <Button
@@ -246,7 +246,7 @@ export function ObjectionDecisionForm({
     <div className="evs-cw-review-form" data-testid="evobj-decision-form">
       <Stack gap="lg">
         <div className="evs-cw-review-k">{L.decisionTitle}</div>
-        {intro ? <NoteText data-testid="evobj-decision-intro">{intro}</NoteText> : null}
+        {intro ? <NoteText tone="read" data-testid="evobj-decision-intro">{intro}</NoteText> : null}
         <FormField label={L.resultLabel} required group>
           <Stack gap="md">
             {['accepted', 'rejected'].map((r) => (
@@ -351,11 +351,11 @@ export function ObjectionDecisionForm({
           body={
             <Stack gap="md">
               <span>{confirmBody ?? L.confirmBody}</span>
-              <NoteText data-testid="evobj-confirm-summary">
+              <NoteText tone="read" data-testid="evobj-confirm-summary">
                 {result === 'accepted' ? L.resultAccepted : L.resultRejected}
                 {changed ? ` · ${gradeLabel(item.currentGradeKey)} → ${gradeLabel(grade)}` : ''}
               </NoteText>
-              <NoteText>{fill(L.confirmRecipients, { n: share.length })}</NoteText>
+              <NoteText tone="read">{fill(L.confirmRecipients, { n: share.length })}</NoteText>
               {failed ? <FieldError data-testid="evobj-confirm-error">{failed}</FieldError> : null}
             </Stack>
           }

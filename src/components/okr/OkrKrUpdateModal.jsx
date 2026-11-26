@@ -194,7 +194,7 @@ export default function OkrKrUpdateModal({ detail, icons, baseUrl = '', onClose,
       ) : null}
 
       {history?.kind === 'loading' && <LoadingState size="inline">{L.historyLoading}</LoadingState>}
-      {history?.kind === 'failed' && <NoteText data-testid="okr-kru-history-failed">{L.historyFailed}</NoteText>}
+      {history?.kind === 'failed' && <NoteText tone="read" data-testid="okr-kru-history-failed">{L.historyFailed}</NoteText>}
       {history?.kind === 'ready' && history.total > 0 && (
         <div>
           <Button
