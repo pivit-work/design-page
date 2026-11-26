@@ -91,6 +91,7 @@ import {
   DEFAULT_MIN_RESPONSES,
   NOTE_KIND,
   QUESTION_TYPES,
+  GROWTH_TYPE_OPTIONS,
   fill,
   filledOptions,
   isAiDraftOn,
@@ -100,6 +101,7 @@ import {
   sectionColor,
   sectionDisplayName,
   SECTION_WORK,
+  supportsGrowthType,
 } from './evalTemplateItemModel.js';
 import Switch from '../shared/Switch.jsx';
 import Skeleton from '../shared/Skeleton.jsx';
@@ -1584,28 +1586,35 @@ const ADD_ROW_INITIAL_SECTION = SECTION_WORK;
 /** [PW-1831 J-13] 최종 등급 섹션 이름 — 프리셋(`evalTemplatePresets.js`)의 섹션 문자열과 같다. */
 const FINAL_GRADE_SECTION = '최종 등급 결정';
 const ADD_ROW_INITIAL_TYPE = 'textarea';
-function AddQuestionRow({ onAdd, labels: L }) {
+function AddQuestionRow({ onAdd, reviewType, labels: L }) {
   const [section, setSection] = useState(ADD_ROW_INITIAL_SECTION);
   const [text, setText] = useState('');
   const [type, setType] = useState(ADD_ROW_INITIAL_TYPE);
   // [PW-3158 · J-11] 추가 줄의 «AI 초안» — 처음 끔. 서술형에만 값이 쓰여(항목 설정 칸도 서술형에만) 다른 유형이면 끈다.
   const [ai, setAi] = useState(false);
+  // [PW-3158 · hr §5.11-G 자리 ①] 셀프 서술형의 «리포트 칸» — 처음 «해당 없음». 항목 설정 칸과 같은 판정·같은 부품.
+  const [growthType, setGrowthType] = useState(null);
   const isNote = type === NOTE_KIND;
   const showAi = !!L.aiDraftLabel && type === 'textarea';
+  const showGrowth = !!L.growthTypeTitle && supportsGrowthType({ type }, reviewType);
   // 설명은 제목이 «선택»이라 비어 있어도 추가된다 — 본문은 설정 패널에서 적는다.
   const canAdd = isNote || !!text.trim();
   const changeType = (next) => {
     setType(next);
-    if (next !== 'textarea') setAi(false);
+    if (next !== 'textarea') {
+      setAi(false);
+      setGrowthType(null);
+    }
   };
   const submit = () => {
     if (!canAdd) return;
-    onAdd(section, text, type, showAi && ai);
+    onAdd(section, text, type, { ai: showAi && ai, growthType: showGrowth ? growthType : null });
     // [PW-1831 J-11 · HR §5.10-E] 추가하면 줄이 처음 값으로 돌아간다 — 직전 유형(설명 등)이 남아 다음 항목에 따라오지 않게.
     setSection(ADD_ROW_INITIAL_SECTION);
     setText('');
     setType(ADD_ROW_INITIAL_TYPE);
     setAi(false);
+    setGrowthType(null);
   };
   return (
     <div className="evc-tpl-additem">
@@ -1646,6 +1655,23 @@ function AddQuestionRow({ onAdd, labels: L }) {
       </button>
       {/* [PW-3158] 기획 시안 항목 추가 폼(newQuestion)의 «AI 초안» 줄 — 이름표 → 체크 칸 순서.
           체크 칸 글은 [항목 설정] «AI 초안» 칸과 같은 값을 켜므로 같은 글을 쓴다. */}
+      {/* [PW-3158] 기획 시안 항목 추가 폼의 «리포트 칸» 줄(셀프 서술형만) — 시안 순서대로 «AI 초안» 줄 위. */}
+      {showGrowth && (
+        <div className="evc-tpl-additem-ai" data-testid="evc-tpl-add-growth">
+          <span className="evc-tpl-set-title">{L.growthTypeTitle}</span>
+          <SegmentedControl
+            ariaLabel={L.growthTypeTitle}
+            items={GROWTH_TYPE_OPTIONS.map((o) => ({
+              value: o.id ?? 'none',
+              label: L[o.labelKey],
+              testId: `evc-tpl-add-growth-${o.id ?? 'none'}`,
+            }))}
+            value={growthType ?? 'none'}
+            onChange={(v) => setGrowthType(v === 'none' ? null : v)}
+          />
+          <span className="evc-tpl-set-note">{L.growthTypeHelp}</span>
+        </div>
+      )}
       {showAi && (
         <div className="evc-tpl-additem-ai" data-testid="evc-tpl-add-ai">
           <span className="evc-tpl-set-title">{L.aiDraftTitle}</span>
@@ -6140,7 +6166,8 @@ export default function EvalCycleWizard({
     );
   const removeQuestion = (id) =>
     setTplQuestions((qs) => qs.filter((q) => q.id !== id));
-  const addQuestion = (section, text, type, ai = false) => {
+  const addQuestion = (section, text, type, extra = {}) => {
+    const { ai = false, growthType = null } = extra;
     // [PW-602 ④] 설명 항목은 제목이 «선택»이다 — 본문(설정 패널)이 실체다.
     const isNote = type === NOTE_KIND;
     if (!isNote && !text.trim()) return;
@@ -6164,6 +6191,8 @@ export default function EvalCycleWizard({
         // [PW-3076 · J-11] 손으로 더한 항목은 «AI 초안» 끔으로 태어난다 — 초안이 만든 서술형만 켬.
         // [PW-3158] 추가 줄에서 체크하고 더한 서술형만 켬(줄이 서술형에만 체크 칸을 두고 넘긴다).
         ai: type === 'textarea' && !!ai,
+        // [PW-3158 · hr §5.11-G 자리 ①] 추가 줄에서 고른 리포트 칸(셀프 서술형만 — 줄이 그때만 넘긴다).
+        ...(type === 'textarea' && growthType ? { growthType } : null),
         /*
          * PW-433 ③ — 새 체크박스는 **빈 선택지 목록을 실제로 들고** 태어난다.
          * 🔴 `options` 를 비워 두면(undefined) 저장 페이로드에도 안 실려, 서버가
@@ -10169,7 +10198,7 @@ export default function EvalCycleWizard({
                   {fill(L.tplFinalGradeDupWarn ?? '', { count: finalGradeItemCount })}
                 </p>
               )}
-              <AddQuestionRow onAdd={addQuestion} labels={L} />
+              <AddQuestionRow onAdd={addQuestion} reviewType={tplType} labels={L} />
 
               <div className="evc-tpl-lib">
                 {/* PW-434 ⑤ 하단에는 «저장» 만 남는다 — 저장은 «다 만든 뒤» 의 행위다.
