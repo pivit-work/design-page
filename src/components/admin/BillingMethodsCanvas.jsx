@@ -9,6 +9,7 @@ import { AlertTriangleGlyph, CreditCardGlyph } from '../shared/lineIcons.jsx';
 import { Panel } from '../frames/index.js';
 import { BillingNotice, BillingPage, BillingPageHead } from './kit/BillingSurface.jsx';
 import { BILLING_PAGE_WIDTH } from './kit/billingPageWidth.js';
+import { won } from '../shared/money.js';
 
 // ─────────────────────────────────────────────────────────────
 // 결제·구독 — 결제수단 관리 (BillingMethodsCanvas)  /admin/billing/methods
@@ -45,7 +46,7 @@ const DEFAULT_LABELS = {
   pastDueDesc: '새 카드를 등록하면 결제되지 않은 청구서 1건이 바로 결제되고, 결제한 날이 새 청구일이 됩니다. 결제 미완료 시 유료 기능이 잠금됩니다.',
   arrearsTitle: '결제되지 않은 청구서가 있습니다',
   arrearsDesc: (billedOn, amount) =>
-    `새 카드를 등록하면 ${billedOn} 청구 ₩${Number(amount).toLocaleString('ko-KR')}(부가세 포함)이 바로 결제됩니다. 결제해도 구독은 Free 그대로이고, 그 뒤 플랜 화면에서 요금제를 고르실 수 있습니다.`,
+    `새 카드를 등록하면 ${billedOn} 청구 ${won(amount)}(부가세 포함)이 바로 결제됩니다. 결제해도 구독은 Free 그대로이고, 그 뒤 플랜 화면에서 요금제를 고르실 수 있습니다.`,
   viewHistory: '청구 내역 보기',
 
   emptyTitle: '등록된 결제수단이 없습니다',

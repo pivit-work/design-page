@@ -8,6 +8,7 @@ import { BillingCheckoutSteps, BillingNotice, BillingPage, BillingPageHead } fro
 import { BILLING_PAGE_WIDTH } from './kit/billingPageWidth.js';
 import Spinner from '../shared/Spinner.jsx';
 import Button from '../shared/Button.jsx';
+import { won } from '../shared/money.js';
 
 // ─────────────────────────────────────────────────────────────
 // 결제·구독 — 체크아웃 (BillingCheckoutCanvas)  /admin/billing/checkout
@@ -34,7 +35,6 @@ const T = {
   red: '#DC2626', redBg: '#FEF2F2',
 };
 
-const won = (n) => '₩' + Number(n || 0).toLocaleString('ko-KR');
 
 const DEFAULT_LABELS = {
   noPermission: '접근 권한이 없습니다.',

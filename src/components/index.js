@@ -19,6 +19,7 @@ export { TONES, TONE_NAMES, STATUS_TONE, toneForStatus } from './shared/statusBa
 export { default as Toast } from './shared/Toast.jsx';
 // 마우스를 올리면 0.3초 뒤 뜨는 설명 말풍선 (PW-1123). 스타일은 tooltip.css(index.css 가 끌어온다)
 export { default as Tooltip } from './shared/Tooltip.jsx';
+export { setMoneyFormat } from './shared/money.js';
 export { TOOLTIP_DELAY } from './shared/tooltipGroup.js';
 // 기능 화면 «?» 튜토리얼 도움말 버튼·말풍선과 오른쪽 아래 영상 창 (pivit-work PW-2430). 스타일은 tutorial-help.css
 export { default as TutorialHelpButton } from './shared/TutorialHelpButton.jsx';
