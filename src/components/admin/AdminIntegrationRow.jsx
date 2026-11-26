@@ -31,7 +31,8 @@ function resolveLogo(integration) {
   return BRAND_LOGOS[key] || null;
 }
 
-export default function AdminIntegrationRow({ integration, labels, baseUrl = '', onConnect }) {
+/* readOnly — 참이면 [연결] 버튼을 그리지 않는다(pivit-work PW-3286 «접근 권한» 연동 «보기»만 받은 사람). 기본은 지금 그대로. */
+export default function AdminIntegrationRow({ integration, labels, baseUrl = '', onConnect, readOnly = false }) {
   const logo = resolveLogo(integration);
   const initial = integration.name.slice(0, 1);
   const tileStyle = integration.color ? { background: integration.color } : undefined;
@@ -55,7 +56,7 @@ export default function AdminIntegrationRow({ integration, labels, baseUrl = '',
             {labels.connected}
           </span>
         </>
-      ) : (
+      ) : readOnly ? null : (
         <button
           type="button"
           className="admin-integration-connect"

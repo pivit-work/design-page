@@ -107,6 +107,12 @@ export default function AdminDashboardCanvas({
   // 모든 기능이 동작한다(arch-core-data-model.md §1-3-c R2).
   // 배너는 showCeoBanner 가 true 이고 onAssignCeo 가 있을 때만(=어드민) 뜬다.
   showCeoBanner = false,
+  /* pivit-work PW-3286 «접근 권한» — 어드민이 아닌 사람이 역할로 이 화면을 열 때 그 사람이 못 쓰는 자리를 거둔다.
+     셋 다 기본은 참(지금 모양 그대로). canInvite=false 면 [구성원 초대] 없음, canManageIntegrations=false 면
+     [연동 설정 →]·[연결] 없음, showIntegrations=false 면 연동 카드 통째로 없음. */
+  canInvite = true,
+  canManageIntegrations = true,
+  showIntegrations = true,
   onAssignCeo,
   onDismissCeoBanner,
   /* 팀원 현황 표 한 쪽의 줄 수. 구성원 설정 목록과 같은 20줄이 기본이다. */
@@ -139,9 +145,11 @@ export default function AdminDashboardCanvas({
         </div>
         <div className="admin-header-actions">
           {dateLabel && <span className="admin-header-date">{dateLabel}</span>}
-          <Button variant="primary" className="admin-invite-button" onClick={onInvite}>
-            {labels.inviteButton}
-          </Button>
+          {canInvite && (
+            <Button variant="primary" className="admin-invite-button" onClick={onInvite}>
+              {labels.inviteButton}
+            </Button>
+          )}
         </div>
       </header>
 
@@ -237,10 +245,13 @@ export default function AdminDashboardCanvas({
             onSendReminder={onSendReminder}
           />
 
+          {showIntegrations && (
           <Card>
             <div className="admin-section-header">
               <SectionLabel>{labels.integrationsSectionTitle}</SectionLabel>
-              <LinkButton onClick={onManageIntegrations}>{labels.manageIntegrations}</LinkButton>
+              {canManageIntegrations && (
+                <LinkButton onClick={onManageIntegrations}>{labels.manageIntegrations}</LinkButton>
+              )}
             </div>
             <div className="admin-integration-list">
               {integrations.map((intg) => (
@@ -250,10 +261,12 @@ export default function AdminDashboardCanvas({
                   labels={{ connected: labels.connected, connectAction: labels.connectAction }}
                   baseUrl={baseUrl}
                   onConnect={onConnectIntegration}
+                  readOnly={!canManageIntegrations}
                 />
               ))}
             </div>
           </Card>
+          )}
         </div>
       </div>
 
