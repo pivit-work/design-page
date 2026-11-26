@@ -360,7 +360,8 @@ export default function BillingMethodsCanvas({
           body={
             <>
               {labels.deleteModalDesc}
-              {deleteTargetCard?.isDefault && (
+              {/* 남은 카드가 있을 때만 «다른 카드가 기본으로» — 마지막 카드를 지우면 넘겨받을 카드가 없다 (pivit-work PW-3251) */}
+              {deleteTargetCard?.isDefault && cards.length > 1 && (
                 <span style={{ display: 'block', marginTop: 'var(--spacing-md)', color: 'var(--text-warning-primary)' }}>
                   {labels.deleteModalDefaultWarning}
                 </span>
