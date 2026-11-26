@@ -109,8 +109,10 @@ export default function AdminDashboardCanvas({
   showCeoBanner = false,
   /* pivit-work PW-3286 «접근 권한» — 어드민이 아닌 사람이 역할로 이 화면을 열 때 그 사람이 못 쓰는 자리를 거둔다.
      셋 다 기본은 참(지금 모양 그대로). canInvite=false 면 [구성원 초대] 없음, canManageIntegrations=false 면
-     [연동 설정 →]·[연결] 없음, showIntegrations=false 면 연동 카드 통째로 없음. */
+     [연동 설정 →]·[연결] 없음, showIntegrations=false 면 연동 카드 통째로 없음,
+     canOpenEmployees=false 면 팀원 현황의 [구성원 관리 →] 없음. */
   canInvite = true,
+  canOpenEmployees = true,
   canManageIntegrations = true,
   showIntegrations = true,
   onAssignCeo,
@@ -192,7 +194,9 @@ export default function AdminDashboardCanvas({
         <Card>
           <div className="admin-section-header">
             <SectionLabel>{labels.teamSectionTitle}</SectionLabel>
-            <LinkButton onClick={onManageEmployees}>{labels.manageEmployees}</LinkButton>
+            {canOpenEmployees && (
+              <LinkButton onClick={onManageEmployees}>{labels.manageEmployees}</LinkButton>
+            )}
           </div>
           <RosterTable>
             <RosterTable.Head>
