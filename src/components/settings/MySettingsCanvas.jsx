@@ -140,11 +140,11 @@ const DEFAULT_LABELS = {
     saving: '저장 중…',
     saved: '✓ 저장됐습니다',
     saveFailed: '저장 실패 — 다시 시도',
-    addFailed: '부양가족을 추가하지 못했습니다. 입력을 확인하고 다시 시도해 주세요.',
+    addFailed: '부양가족을 추가하지 못했습니다. 이름은 최대 80자까지 입력할 수 있습니다.',
     dependentIsDependent: '부양 여부',
     edit: '고치기',
     saveEdit: '저장',
-    editFailed: '부양가족을 고치지 못했습니다. 입력을 확인하고 다시 시도해 주세요.',
+    editFailed: '부양가족을 고치지 못했습니다. 이름은 최대 80자까지 입력할 수 있습니다.',
   },
   org: {
     current: '현재 조직',
