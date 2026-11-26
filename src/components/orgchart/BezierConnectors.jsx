@@ -150,7 +150,8 @@ export default function BezierConnectors({ containerRef, scale, lineStyle = 'ort
       // (pivit-specs org-chart-public-card-spec.md §5.1 · §5.4-B · 2026-11-26 · pivit-work PW-3285). 직속 점선은 1px 그대로.
       const keep = 1 / Math.min(1, s);
       const solid = `style="stroke-width:${2 * keep}px"`;
-      svg.innerHTML = `<path d="${pathData}" fill="none" stroke="#d2d6db" ${solid} stroke-linejoin="round"/>`
+      // 색은 CSS(.connector-svg path · --border-primary)가 칠한다 — 값을 박지 않는다(check:direct-paint)
+      svg.innerHTML = `<path d="${pathData}" fill="none" ${solid} stroke-linejoin="round"/>`
         + (dashedPathData ? `<path class="connector-direct" d="${dashedPathData}" fill="none" stroke="#d2d6db" stroke-width="1" stroke-dasharray="4 3"/>` : '')
         // 강조선은 회색선 위에 — 나중에 넣는 것이 위에 그려진다.
         + (hiPathData ? `<path class="connector-highlight" d="${hiPathData}" fill="none" style="stroke-width:${3 * keep}px" stroke-linejoin="round"/>` : '')
