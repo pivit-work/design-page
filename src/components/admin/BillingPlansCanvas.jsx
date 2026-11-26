@@ -1033,6 +1033,11 @@ export default function BillingPlansCanvas({
    */
   trialPlan = null,
   /**
+   * Pro 를 무상으로 쓰는 중(체험 · 베타)인데 그 카드가 목록에 없을 때 카드 위 한 줄 (pivit-work PW-3277 · plans §2-C
+   * «무상으로 쓰는 Pro» 행). 앱이 다 만든 글을 넘긴다 — 없으면 그리지 않는다.
+   */
+  freeProNote = null,
+  /**
    * 결제 문제 안내 띠 (pivit-work PW-2526 · plans «결제 문제 안내 띠» 행) — 결제 실패 회사·미납이 남은 해지 회사에 앱이
    * `{ title, body, action }` 을 넘긴다. 뜨는 동안 요금제 카드 버튼은 Free·Pro·견적 결제까지 모두 비활성이다.
    */
@@ -1384,6 +1389,16 @@ export default function BillingPlansCanvas({
                 ? onAcceptQuoteRenewal(validQuote.quoteId)
                 : onQuoteCheckout(validQuote.quoteId)
             }
+          />
+        )}
+
+        {/* Pro 를 무상으로 쓰는 중 — «현재 플랜» 배지가 붙을 카드가 없어 한 줄로 말한다 (pivit-work PW-3277) */}
+        {freeProNote && (
+          <BillingNotice
+            tone="info"
+            icon={NOTICE_ICON.info}
+            testId="billing-plans-free-pro-note"
+            title={freeProNote}
           />
         )}
 
