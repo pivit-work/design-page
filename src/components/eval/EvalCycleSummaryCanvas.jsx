@@ -719,6 +719,8 @@ const DEFAULT_LABELS = {
   // PW-1047 ③ 「이전 사이클 비교」 상자 대신 등급 분포 막대 위 눈금 + 범례
   distPrevLegend: '지난 평가',
   distMoversLabel: '크게 움직인 등급:',
+  // [PW-3271] 정책 §4.A.3 «이전 사이클 없음» — 비교할 확정 직전 사이클이 없으면 범례 줄에 안내(«지난 평가» 줄은 안 그린다)
+  distPrevEmpty: '이전 사이클 데이터가 없습니다',
   // §4.A 리더별 제출 현황
   leaderTitle: '리더별 제출 현황',
   leaderColLeader: '리더',
@@ -4091,12 +4093,19 @@ export default function EvalCycleSummaryCanvas({
                 </div>
                 {gradeDistribution.length > 0 && (
                   <>
-                    {(hasDistGuide || distMovers.length > 0) && (
+                    {(hasDistGuide || distMovers.length > 0 || !previousCycle) && (
                       <p className="evs-chart-legend evs-head-legend" data-testid="evs-dist-legend">
                         {hasDistGuide && (
                           <span className="evs-chart-legend-item">
                             <span className="evs-legend-guide" aria-hidden />
                             {L.guidelineLabel}
+                          </span>
+                        )}
+                        {/* [PW-3271] 정책 §4.A.3 — 확정된 직전 사이클이 없으면(서버 previousCycle null) «지난 평가» 줄 대신 안내.
+                            «크게 움직인 등급»과 같은 자리(비교 설명)라 그 항목 모양 그대로. */}
+                        {!previousCycle && (
+                          <span className="evs-chart-legend-item" data-testid="evs-dist-prev-empty">
+                            {L.distPrevEmpty}
                           </span>
                         )}
                         {distMovers.length > 0 && (
