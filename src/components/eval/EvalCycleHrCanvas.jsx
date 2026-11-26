@@ -1441,9 +1441,10 @@ function isStaleDraft(cycle) {
   return Number.isFinite(t) && Date.now() - t >= STALE_DRAFT_MS;
 }
 
-function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, advancing = false, onViewResults, onHold, onResume, onEditSchedule, onResumeDraft, onDeleteDraft, onOpenStage, readOnly = false }) {
+function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, advancing = false, onViewResults, onHold, onResume, onEditSchedule, onResumeDraft, onDeleteDraft, onOpenStage, readOnly = false, draftManageHidden = false }) {
   // 요금제를 내려 평가가 읽기 전용이면 바꾸는 버튼(재개 · 이어 쓰기 · 초안 삭제 · 오픈 · 일시 중단 · 다음 단계)을 그리지 않는다 — 보기 · 결과 · 관리는 남는다
-  // (pivit-work PW-3260 · spec-billing §6.3.8 ①).
+  // (pivit-work PW-3260 · spec-billing §6.3.8 ①). 접근 권한 «보기» 단계(pivit-work PW-3286)도 같은 readOnly 로 들어오고,
+  // 그때는 준비 중 사이클의 [관리](설정 고치기 창)까지 숨긴다(draftManageHidden).
   const isDraft = cycle.status === 'draft';
   /**
    * PW-440 — 「작성하다 만 초안」인가.
@@ -1607,7 +1608,9 @@ function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, advancing = 
           ) : (
             /* PW-440 — 작성 중 초안에서 「관리」는 「이어서 작성」과 이름만 다른 같은
                동작이다. 둘을 나란히 두면 어느 쪽이 이어쓰기인지 가릴 수 없다. */
-            !isWizardDraft && (
+            /* 접근 권한 «보기»(PW-3286)면 준비 중 사이클의 [관리](설정 고치기 창)는 두지 않는다 — 진행 중 · 중단은 진행 현황으로 가기만 한다.
+               요금제 읽기 전용(PW-3260)은 관리가 남는다. */
+            !isWizardDraft && !(draftManageHidden && isDraft) && (
               <button type="button" className="evc-btn is-ghost" onClick={() => onManage(cycle)} data-testid="evc-manage">
                 {L.manage}
               </button>
@@ -1766,6 +1769,12 @@ export default function EvalCycleHrCanvas({
   onLoadCyclePreset,
   /** PW-789 — 프리셋 삭제. (presetId) => Promise, 실패는 던진다. */
   onDeleteCyclePreset,
+  /**
+   * pivit-work PW-3286 — 읽기만(«접근 권한» 보기). 참이면 [+ 새 평가 사이클] · [저장된 설정 불러오기] · 빈 화면 버튼 ·
+   * 카드의 이어서 작성 · 초안 삭제 · 오픈 · 일시 중단 · 재개 · 일정 수정 · 다음 단계로 · 준비 중 [관리]를 그리지 않는다.
+   * 결과 보기 · 진행 중 [관리](진행 현황으로 가기) · 단계 눌러 가기는 남는다. 거짓(기본)이면 지금과 같다.
+   */
+  readOnly = false,
   /**
    * 준비 중(draft) 사이클 설정 수정 (정책 §4.3 관리 모드).
    * (id, payload) => Promise. 넘기면 draft 카드의 '관리'가 편집 위자드를 연다.
@@ -2396,7 +2405,7 @@ export default function EvalCycleHrCanvas({
         <div className="evc-header-actions">
           {/* PW-1461 · 정책 §4.1-A — 새 위자드를 불러오기 목록(§5.9)이 열린 채로 연다.
               불러올 길이 없으면(소비 측이 콜백을 안 넘기면) 숨긴다 — 열어도 빈 창이다. */}
-          {!createDisabled && (onLoadCyclePreset || onLoadCycleSettings) && (
+          {!createDisabled && !readOnly && (onLoadCyclePreset || onLoadCycleSettings) && (
             <button
               type="button"
               className="evc-btn is-ghost"
@@ -2409,7 +2418,7 @@ export default function EvalCycleHrCanvas({
               {L.loadSavedTemplate}
             </button>
           )}
-          {!createDisabled && (
+          {!createDisabled && !readOnly && (
             <button type="button" className="evc-btn is-primary" onClick={() => setShowCreate(true)} data-testid="evc-new-cycle">
               + {L.newCycle}
             </button>
@@ -2425,7 +2434,7 @@ export default function EvalCycleHrCanvas({
           <p className="evc-empty-title" data-testid="evc-empty-text">
             {[L.emptyTitle, L.emptySub].filter(Boolean).join(' ')}
           </p>
-          {!createDisabled && (
+          {!createDisabled && !readOnly && (
             <button
               type="button"
               className="evc-btn is-primary"
@@ -2471,7 +2480,6 @@ export default function EvalCycleHrCanvas({
           )}
           {freshCycles.map((cycle) => (
             <CycleCard
-                readOnly={createDisabled}
               key={cycle.id}
               cycle={cycle}
               labels={L}
@@ -2488,6 +2496,8 @@ export default function EvalCycleHrCanvas({
               onResumeDraft={onSaveDraft ? handleResumeDraft : undefined}
               onDeleteDraft={requestDeleteDraft}
               onOpenStage={onOpenCycleStage ? (c, st) => onOpenCycleStage(c.id, st, c.reviewPhase) : undefined}
+              readOnly={readOnly || createDisabled}
+              draftManageHidden={readOnly}
             />
           ))}
           {freshLeft > 0 && (
@@ -2513,7 +2523,6 @@ export default function EvalCycleHrCanvas({
           {showStaleDrafts &&
             staleDrafts.map((cycle) => (
               <CycleCard
-                readOnly={createDisabled}
                 key={cycle.id}
                 cycle={cycle}
                 labels={L}
@@ -2528,12 +2537,14 @@ export default function EvalCycleHrCanvas({
                 onResumeDraft={onSaveDraft ? handleResumeDraft : undefined}
                 onDeleteDraft={requestDeleteDraft}
                 onOpenStage={onOpenCycleStage ? (c, st) => onOpenCycleStage(c.id, st, c.reviewPhase) : undefined}
+                readOnly={readOnly || createDisabled}
+                draftManageHidden={readOnly}
               />
             ))}
         </div>
       )}
 
-      {showCreate && (
+      {!readOnly && showCreate && (
         <EvalCycleWizard
           titleHelp={wizardTitleHelp}
           existingCycles={cycles}

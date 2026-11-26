@@ -646,7 +646,7 @@ function EditRuleModal({ rule, labels, cooldownOptions, formatCondition, formatC
 const STAGE_CHANNEL_COLUMN_WIDTH = 88;
 
 /* ── 규칙 행 — 이름 / 조건 / 받는 사람·채널 세 줄 ─────────── */
-function RuleRow({ rule, labels, formatCondition, formatCooldown, onEdit, onToggle, baseUrl, busy = false }) {
+function RuleRow({ rule, labels, formatCondition, formatCooldown, onEdit, onToggle, baseUrl, busy = false, readOnly = false }) {
   const conditionText = formatCondition(rule.id, rule.conditionValues, rule.conditionFixed);
   const fixedTargets = rule.stageChannels || rule.targetsFixed ? rule.targetsFixed : rule.recipientsFixed;
   const fixedTestId = rule.stageChannels || rule.targetsFixed ? 'notif-rule-targets-fixed' : 'notif-rule-recipients-fixed';
@@ -660,7 +660,7 @@ function RuleRow({ rule, labels, formatCondition, formatCooldown, onEdit, onTogg
           {labels.alwaysOn}
         </StatusBadge>
       ) : (
-        <Switch checked={rule.enabled} onChange={() => onToggle(rule.id)} label={rule.label} disabled={busy} />
+        <Switch checked={rule.enabled} onChange={() => onToggle(rule.id)} label={rule.label} disabled={busy || readOnly} />
       )}
       <div className="admin-notif-rule-main">
         <div className="admin-notif-rule-head">
@@ -697,9 +697,11 @@ function RuleRow({ rule, labels, formatCondition, formatCooldown, onEdit, onTogg
         </div>
       </div>
       <span className="admin-notif-rule-cooldown">{formatCooldown(rule.cooldown)}</span>
-      <Button variant="secondary" size="sm" className="admin-notif-btn" onClick={() => onEdit(rule)} data-testid="edit-rule-btn">
-        {labels.editBtn}
-      </Button>
+      {!readOnly && (
+        <Button variant="secondary" size="sm" className="admin-notif-btn" onClick={() => onEdit(rule)} data-testid="edit-rule-btn">
+          {labels.editBtn}
+        </Button>
+      )}
     </div>
   );
 }
@@ -749,6 +751,11 @@ export default function AdminNotificationsCanvas({
   busy = false,
   /** 회사 설정을 받는 중 — 숫자 칸 · 판 자리에 회색 막대만 그린다(PW-3125). */
   loading = false,
+  /**
+   * pivit-work PW-3286 — 읽기만(«접근 권한» 보기). 참이면 줄 [편집] · 일괄 켜기/끄기를 그리지 않고 스위치를 잠근다.
+   * 거짓(기본)이면 지금과 같다.
+   */
+  readOnly = false,
 }) {
   const labels = merge(DEFAULT_LABELS, providedLabels);
   const [editTarget, setEditTarget] = useState(null);
@@ -841,6 +848,7 @@ export default function AdminNotificationsCanvas({
                 onEdit={setEditTarget}
                 onToggle={onToggleRule}
                 busy={busy}
+                readOnly={readOnly}
                 baseUrl={baseUrl}
               />
             ))}
@@ -849,16 +857,18 @@ export default function AdminNotificationsCanvas({
       ))}
 
       {/* 전체 on/off — 목록 맨 아래(기획서 자리) · 작은 버튼 둘 오른쪽 · 끄기만 위험 모양 */}
-      <div className="admin-notif-bulk">
-        <Button variant="secondary" size="sm" disabled={busy} onClick={() => onBulkSet && onBulkSet(true)} data-testid="enable-all-btn">
-          {labels.enableAll}
-        </Button>
-        <Button variant="danger-ghost" size="sm" disabled={busy} onClick={() => onBulkSet && onBulkSet(false)} data-testid="disable-all-btn">
-          {labels.disableAll}
-        </Button>
-      </div>
+      {!readOnly && (
+        <div className="admin-notif-bulk">
+          <Button variant="secondary" size="sm" disabled={busy} onClick={() => onBulkSet && onBulkSet(true)} data-testid="enable-all-btn">
+            {labels.enableAll}
+          </Button>
+          <Button variant="danger-ghost" size="sm" disabled={busy} onClick={() => onBulkSet && onBulkSet(false)} data-testid="disable-all-btn">
+            {labels.disableAll}
+          </Button>
+        </div>
+      )}
 
-      {editTarget && (
+      {!readOnly && editTarget && (
         <EditRuleModal
           rule={editTarget}
           labels={labels}

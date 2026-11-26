@@ -276,6 +276,8 @@ function AtRiskMembers({ atRisk, L, onNudge, isSent }) {
                 </span>
                 <span style={{ fontSize: 12, color: C.sub, width: 180, flexShrink: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={m.managerName || undefined}>{m.managerName ? `${L.managerName} ${m.managerName}` : ''}</span>
                 {/* 못 누르는 이유를 말풍선으로 (정책 §3.3·§8-1). */}
+                {/* 읽기만(pivit-work PW-3286)이면 onNudge 를 받지 않아 [작성 요청]을 그리지 않는다 */}
+                {onNudge && (
                 <Tooltip content={!m.managerName ? L.noManagerTooltip : sent ? L.sentTooltip : null}>
                   <Button
                     type="button"
@@ -288,6 +290,7 @@ function AtRiskMembers({ atRisk, L, onNudge, isSent }) {
                     {!m.managerName ? L.noManager : sent ? L.sent : L.nudgeManager}
                   </Button>
                 </Tooltip>
+                )}
               </div>
             );
           })}
@@ -330,7 +333,7 @@ function ManagerActivity({ rows, L, onNudge, isSent, notice }) {
               <span style={{ marginLeft: 'auto', width: 44, height: 44, borderRadius: '50%', border: `3px solid ${scoreColor(r.activityScore)}`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--font-size-text-sm)', fontWeight: 800, color: scoreColor(r.activityScore) }}>
                 {r.activityScore}
               </span>
-              {r.activityScore < 70 && (
+              {onNudge && r.activityScore < 70 && (
                 <Tooltip content={sent ? L.sentTooltip : null}>
                   <Button
                     type="button"
@@ -439,6 +442,11 @@ export default function EvalFeedbackHrCanvas({
   onExport,
   /** 「매니저별 피드백 활동」 안내문 아래에 거는 안내(ReactNode) — 체험 AI 소진 때 앱이 결제 안내를 넣는다 (PW-1848). */
   managerActivityNotice = null,
+  /**
+   * pivit-work PW-3286 — 읽기만(«접근 권한» 보기). 참이면 [작성 요청] · [독려]와 보내기 창을 그리지 않는다.
+   * [CSV 내보내기]는 남는다. 거짓(기본)이면 지금과 같다.
+   */
+  readOnly = false,
 }) {
   const L = useMemo(() => mergeLabels(DEFAULT_LABELS, providedLabels), [providedLabels]);
   const kpi = dashboard?.kpi ?? { total: 0, covered: 0, coveragePct: null, avgInterval: 0, reactionRate: null };
@@ -570,12 +578,12 @@ export default function EvalFeedbackHrCanvas({
           : <TeamCoverage teams={teams} L={L} />}
         {view.atRisk === 'loading' ? <SectionLoading testId="fbhr-atrisk-loading" />
           : view.atRisk === 'error' ? <SectionError L={L} onRetry={retry('atRisk')} testId="fbhr-atrisk-error" />
-          : <AtRiskMembers atRisk={atRisk} L={L} onNudge={openNudge} isSent={isSent} />}
+          : <AtRiskMembers atRisk={atRisk} L={L} onNudge={readOnly ? null : openNudge} isSent={isSent} />}
         {view.managerActivity === 'loading' ? <SectionLoading testId="fbhr-managers-loading" />
           : view.managerActivity === 'error' ? <SectionError L={L} onRetry={retry('managerActivity')} testId="fbhr-managers-error" />
-          : <ManagerActivity rows={managerActivity} L={L} onNudge={openNudge} isSent={isSent} notice={managerActivityNotice} />}
+          : <ManagerActivity rows={managerActivity} L={L} onNudge={readOnly ? null : openNudge} isSent={isSent} notice={managerActivityNotice} />}
       </div>
-      {nudgeTarget && (
+      {!readOnly && nudgeTarget && (
         <NudgeModal target={nudgeTarget} channels={channels} L={L} onConfirm={handleNudgeConfirm} onClose={() => setNudgeTarget(null)} />
       )}
     </div>

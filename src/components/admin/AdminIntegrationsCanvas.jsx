@@ -313,7 +313,7 @@ function OwnerAvatar({ name, avatar, size = 40 }) {
 
 /* ── 앱 카드 ────────────────────────────────────────────────────────── */
 
-function AppCard({ card, labels, baseUrl, onConnect, onDisconnect, onReconnect, onCancelConnecting, onTriggerSync, onOpenSettings, onOpenSlackUnmatched, onOpenOwner }) {
+function AppCard({ card, labels, baseUrl, onConnect, onDisconnect, onReconnect, onCancelConnecting, onTriggerSync, onOpenSettings, onOpenSlackUnmatched, onOpenOwner, readOnly = false }) {
   const { app, brandName, logo, description, usage, status } = card;
   const usageText = (usage ?? []).join(' · ');
 
@@ -448,9 +448,11 @@ function AppCard({ card, labels, baseUrl, onConnect, onDisconnect, onReconnect, 
           tone="warning"
           lines={sentences(labels.adminToken.expiredWarning)}
           actions={
-            <Button variant="secondary" size="sm" className="intg-btn" onClick={() => onReconnect(app)}>
-              {labels.adminToken.reconnectAdmin}
-            </Button>
+            readOnly ? null : (
+              <Button variant="secondary" size="sm" className="intg-btn" onClick={() => onReconnect(app)}>
+                {labels.adminToken.reconnectAdmin}
+              </Button>
+            )
           }
           testId="intg-admin-token-expired"
         />
@@ -462,9 +464,11 @@ function AppCard({ card, labels, baseUrl, onConnect, onDisconnect, onReconnect, 
           tone="info"
           lines={[card.notice.text]}
           actions={
-            <Button variant="secondary" size="sm" className="intg-btn" onClick={() => onReconnect(app)}>
-              {card.notice.actionLabel}
-            </Button>
+            readOnly ? null : (
+              <Button variant="secondary" size="sm" className="intg-btn" onClick={() => onReconnect(app)}>
+                {card.notice.actionLabel}
+              </Button>
+            )
           }
           testId={`intg-notice-${app}`}
         />
@@ -502,6 +506,8 @@ function AppCard({ card, labels, baseUrl, onConnect, onDisconnect, onReconnect, 
         </div>
       )}
 
+      {/* 읽기만(pivit-work PW-3286 «접근 권한» 보기)이면 연결 · 설정 · 수집 · 해제 · 재연결 줄을 그리지 않는다 */}
+      {!readOnly && (
       <div className="intg-actions">
         {status === 'disconnected' && (
           <Button variant="primary" size="sm" className="intg-btn" onClick={() => onConnect(app)}>
@@ -550,6 +556,7 @@ function AppCard({ card, labels, baseUrl, onConnect, onDisconnect, onReconnect, 
           </>
         )}
       </div>
+      )}
     </section>
   );
 }
@@ -1439,6 +1446,11 @@ export default function AdminIntegrationsCanvas({
   onRetryTokenLogs,
   onRetryLoad = () => {},
   /**
+   * pivit-work PW-3286 — 읽기만(«접근 권한» 보기). 참이면 앱 카드의 연결 · 설정 · 수집 · 해제 · 재연결 단추와
+   * 설정 창을 그리지 않는다. 거짓(기본)이면 지금과 같다.
+   */
+  readOnly = false,
+  /**
    * 「어드민 관리」 탭(policy §2-9). `null` 이면 탭을 그리지 않는다.
    * `{ catalog, catalogState, requests, requestsState, busyToolIds, busyRequestIds }`
    * — 행 모양은 AdminIntegrationsCatalog.jsx 머리 주석.
@@ -1636,6 +1648,7 @@ export default function AdminIntegrationsCanvas({
                 onOpenSettings={onOpenSettings}
                 onOpenSlackUnmatched={onOpenSlackUnmatched}
                 onOpenOwner={openOwner}
+                readOnly={readOnly}
               />
             ))}
           </div>
@@ -1654,7 +1667,7 @@ export default function AdminIntegrationsCanvas({
           {/* 기획서 순서 — 회의실 불러오기 · 휴가 캘린더 기록 다음 «시트에 기록 (워크플로우)»(policy §4-F-2) */}
           {sheetRecord}
 
-          {settingsModal && (
+          {!readOnly && settingsModal && (
             <SettingsModal
               key={settingsModal.app}
               modal={settingsModal}
