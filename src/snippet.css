@@ -169,7 +169,7 @@
   gap: var(--spacing-lg);
   flex-shrink: 0;
   /* 디자이너 안내 상자 .login-notice 와 같은 안쪽 12/14 (login.css) */
-  padding: var(--spacing-lg) 14px;
+  padding: var(--spacing-lg) calc(var(--spacing-sm) + var(--spacing-md));
   border-radius: 10px;
   background: var(--alpha-black-3);
   font-size: 12px;

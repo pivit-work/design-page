@@ -357,9 +357,22 @@ export function UpsellSkeleton({ inline = false }) {
     </div>
   );
   if (inline) return lines;
+  return <UpsellColumn>{lines}</UpsellColumn>;
+}
+
+/** 본문 칸 안 가운데 680px 폭 — 업셀 카드와 그 빈 틀이 같은 자리에 그려지게 한 곳에서 잡는다. 위아래 40 · 옆 16. */
+function UpsellColumn({ children }) {
   return (
     <div className="content-area">
-      <div style={{ maxWidth: 680, margin: '0 auto', padding: '40px 16px' }}>{lines}</div>
+      <div
+        style={{
+          maxWidth: 680,
+          margin: '0 auto',
+          padding: 'calc(var(--spacing-4xl) + var(--spacing-md)) var(--spacing-xl)',
+        }}
+      >
+        {children}
+      </div>
     </div>
   );
 }
@@ -372,11 +385,9 @@ export function UpsellSkeleton({ inline = false }) {
  */
 export function UpsellScreen(props) {
   return (
-    <div className="content-area">
-      <div style={{ maxWidth: 680, margin: '0 auto', padding: '40px 16px' }}>
-        <UpsellCard {...props} />
-      </div>
-    </div>
+    <UpsellColumn>
+      <UpsellCard {...props} />
+    </UpsellColumn>
   );
 }
 
