@@ -66,16 +66,18 @@ export const readRgb = (css) => {
 };
 export const mix = (a, b, t) => a.map((x, i) => x + (b[i] - x) * t);
 
-/** 사람 색 여덟 — 근무지 «지역» 보기의 조직 색(org_place.css `.op-tone-0~7`)과 같은 토큰. 넘치면 돌려 쓴다(정책 §5 #9) */
+/** 사람 색 여덟 — 조직장 주황 점(--utility-orange-500)과 멀고 서로 덜 닮은 여덟(Lab 거리 최소 27 · 주황과 91 이상).
+ *  앞 판(근무지 «지역» .op-tone 과 같은 여덟)은 초록 · 브랜드 초록이 12 로 거의 같고 주황이 조직장 점과 같았다(PW-3238 11-25 되돌림).
+ *  자리는 화면마다 많은 조직부터 0, 1, 2 … 로 준다(OfficeSpace toneSlot) · 넘치면 돌려 쓴다(정책 §5 #9) */
 export const TONE_VARS = [
   '--utility-blue-500',
   '--utility-pink-500',
-  '--utility-purple-500',
   '--utility-green-500',
-  '--utility-orange-500',
-  '--utility-indigo-500',
+  '--utility-purple-500',
+  '--colors-teal-500',
   '--utility-fuchsia-500',
-  '--utility-brand-500',
+  '--colors-grayBlue-500',
+  '--colors-greenLight-500',
 ];
 export const toneVar = (tone) => (tone == null ? '--utility-gray-500' : TONE_VARS[((tone % 8) + 8) % 8]);
 

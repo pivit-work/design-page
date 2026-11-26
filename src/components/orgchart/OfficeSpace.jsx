@@ -127,7 +127,20 @@ export default function OfficeSpace({
   const hitP = (x) => !norm(q) || [x.p.name, x.p.unit, x.p.unitPath, x.p.title, x.deskName].some((s) => norm(s).includes(norm(q)));
   const hitD = (d) => !norm(q) || [d.name, d.seatId && personOf(d.seatId) && personOf(d.seatId).name].some((s) => norm(s).includes(norm(q)));
   const keyOf = (p) => (bldgView ? p.top || p.group : p.group);
-  const toneOfP = (p) => (bldgView ? (p.topTone !== undefined ? p.topTone : p.tone) : p.tone);
+  const baseTone = (p) => (bldgView ? (p.topTone !== undefined ? p.topTone : p.tone) : p.tone);
+  // 색 자리 — 지금 보이는 조직(층 보기 = 소속 조직 · 건물 보기 = 최상위 조직)을 많은 순으로 세워 여덟 색을 차례로 준다.
+  // 회사 전체 순번으로 주면 조직 둘뿐인 층에서도 같은 색이 나온다 — 여덟까지는 한 화면에서 겹치지 않고, 넘치면 돌려 쓴다(정책 §5 #9).
+  // 미배정 · 회사(대표 · 대표 직속)는 회색 그대로.
+  const toneSlot = useMemo(() => {
+    const n = new Map();
+    people.forEach((x) => { if (baseTone(x.p) != null) n.set(keyOf(x.p), (n.get(keyOf(x.p)) || 0) + 1); });
+    const order = (bldgView ? tops : groups).map((g) => g.key);
+    const at = (k) => { const i = order.indexOf(k); return i < 0 ? order.length : i; };
+    const slot = new Map();
+    [...n.keys()].sort((a, b) => n.get(b) - n.get(a) || at(a) - at(b)).forEach((k, i) => slot.set(k, i));
+    return slot;
+  }, [people, bldgView, groups, tops]);
+  const toneOfP = (p) => (baseTone(p) == null ? null : toneSlot.get(keyOf(p)) ?? null);
   // 흐림 — 목록 찾기와 같은 재료(이름 · 소속 · 직함 · 책상 이름)로 맞춘다
   const deskNameOf = new Map(people.map((x) => [x.p.id, x.deskName]));
   const dim = (p) => (grp && (!p || keyOf(p) !== grp)) || (norm(q) && org && p && !hitP({ p, deskName: deskNameOf.get(p.id) ?? null }));
@@ -626,7 +639,7 @@ export default function OfficeSpace({
                 <span className={`osp-desk-name osp-cut${bldgView ? ' is-wide' : ''}`}>{bldgView ? `${floorName(r)} ${d.name}` : d.name}</span>
                 <span className={`osp-desk-who osp-cut${p ? '' : ' is-empty'}`}>
                   {p ? p.name : L('office.emptyDesk')}
-                  {a.resigned && <StatusBadge tone="warning" className="osp-badge">{L('office.resigned')}</StatusBadge>}
+                  {a.resigned && <StatusBadge tone="warning" className="admin-pill osp-badge">{L('office.resigned')}</StatusBadge>}
                 </span>
                 <span className={`osp-desk-assets${a.count ? ' has-assets' : ''}`}>{L('office.assetCount', { count: a.count })}</span>
               </div>
@@ -692,7 +705,7 @@ export default function OfficeSpace({
                 const on = grp === g.key;
                 return (
                   <div key={g.key} className={`osp-chip${on ? ' is-on' : ''}`} aria-pressed={on} data-legend={g.name} role="button" tabIndex={0} onClick={() => setGrp(on ? null : g.key)} onKeyDown={onActKey}>
-                    <span className={`osp-swatch ${tone(g.tone)}`} aria-hidden="true" />
+                    <span className={`osp-swatch ${tone(g.tone == null ? null : toneSlot.get(g.key) ?? null)}`} aria-hidden="true" />
                     {g.name} {g.n}
                   </div>
                 );
