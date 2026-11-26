@@ -161,7 +161,12 @@ function SourceRow({ source, labels, onRemove, delayed, onRefresh }) {
         )}
       </div>
       <div className="okr-ctx-source-body">
-        <p className="okr-p-linked-sub">
+        {/* 링크는 도메인만 보이므로 같은 사이트 링크끼리 가를 수 있게 올리면 주소 전체(PW-3279) */}
+        <p
+          className="okr-p-linked-sub"
+          title={source.type === 'url' && source.url ? source.url : undefined}
+          data-testid={`okr-context-sub-${source.id}`}
+        >
           {/* 종류 이름은 부가 정보 앞에 — 「텍스트 · 67자」(§3-2 · PW-1507) */}
           {typeLabel && (
             <span data-testid={`okr-context-type-badge-${source.id}`}>
