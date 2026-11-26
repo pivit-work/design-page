@@ -8382,6 +8382,8 @@ export default function AdminEmployeesCanvas({
   loading = false,
   labels: providedLabels,
   canEdit = true,
+  /** pivit-work PW-3286 — 거짓이면 초대 창의 권한 고르기에 «어드민»이 없다(역할로 초대하는 사람). 기본 참(지금 그대로). */
+  canInviteAdmin = true,
   renderAvatar,
   onAssignOrgUnit,
   /**
@@ -9226,6 +9228,7 @@ export default function AdminEmployeesCanvas({
       {inviteOpen && canInvite && (
         <AdminInviteModal
           open
+          canInviteAdmin={canInviteAdmin}
           onClose={() => { setInviteOpen(false); setRehireOf(null); }}
           onSend={onSendInvites}
           orgUnits={orgUnits}

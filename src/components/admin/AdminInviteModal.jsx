@@ -609,6 +609,8 @@ export default function AdminInviteModal({
   open = false,
   onClose,
   onSend,
+  /** pivit-work PW-3286 «접근 권한» — 거짓이면 권한 고르기에 «어드민»이 없다(어드민이 아닌 사람이 역할로 초대할 때). 기본은 참(지금 그대로). */
+  canInviteAdmin = true,
   orgUnits = [],
   /** 이미 워크스페이스 멤버인 이메일 (V5) */
   existingEmails = [],
@@ -772,6 +774,7 @@ export default function AdminInviteModal({
   prepareCsvOptions = null,
   labels: providedLabels,
 }) {
+  const roleIds = canInviteAdmin ? ROLE_IDS : ROLE_IDS.filter((id) => id !== 'admin');
   const labels = useMemo(
     () => ({ ...DEFAULT_LABELS, ...(providedLabels || {}) }),
     [providedLabels],
@@ -1360,7 +1363,7 @@ export default function AdminInviteModal({
           value={bulk.role}
           onChange={(e) => setBulk({ ...bulk, role: e.target.value })}
         >
-          {ROLE_IDS.map((id) => (
+          {roleIds.map((id) => (
             <option key={id} value={id}>
               {labels[`role${id[0].toUpperCase()}${id.slice(1)}`]}
             </option>
@@ -1761,7 +1764,7 @@ export default function AdminInviteModal({
                       data-testid="admin-invite-role"
                       onChange={(e) => patch(r.key, { role: e.target.value })}
                     >
-                      {ROLE_IDS.map((id) => (
+                      {roleIds.map((id) => (
                         <option key={id} value={id}>
                           {labels[`role${id[0].toUpperCase()}${id.slice(1)}`]}
                         </option>
