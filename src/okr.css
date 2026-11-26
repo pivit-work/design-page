@@ -654,6 +654,8 @@ body:has(.okr-ctx-banner-flag) .tl-group-modal.okr-wz-modal { height: min(1118px
 .okr-ctx-source-list { display: flex; flex-direction: column; gap: 8px; }
 /* PW-3279: «읽기 실패» 줄만 테두리 빨강(정책서 §3-1 «행 보더 error») — 디자이너 오류 테두리(manager.css .mgr-ts-score.is-bad)
    값. 테두리만큼 안쪽(디자이너 카드 12)을 줄여 줄 크기는 다른 줄과 같다. */
+/* PW-3279: «처리 중» 상태 글자는 회색(정책서 §3-2 153행) — 디자이너 흐린 글자 .okr-p-col-weight.is-muted 값. 스피너도 이 색을 따른다. */
+.okr-ctx-source-list .okr-status-text.is-muted { color: var(--text-tertiary); }
 .okr-ctx-source-list .okr-p-linked-card.is-error { border: 1px solid var(--utility-error-200); padding: calc(var(--spacing-lg) - var(--spacing-xxs) / 2); }
 .okr-ctx-source-main { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; flex: 1; min-width: 0; overflow-wrap: anywhere; }
 /* 텍스트 소스 본문 미리보기는 두 줄까지(§3-2) — 지금 값 그대로 */

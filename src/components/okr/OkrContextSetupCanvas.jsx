@@ -79,10 +79,10 @@ const URL_PATTERN = /^https?:\/\/.+/i;
  * 소스 추출 상태(§3-2 · 데이터 모델 `ContextSource.status`).
  * 등록만으로는 "끝났다" 를 알 수 없으므로 행이 상태를 말해 준다.
  * 알 수 없는 값(구버전 응답 등)은 `ready` 로 본다 — 코드값이 화면에 새지 않게.
- * 글자색은 디자이너 상태 글자(.okr-status-text) — 준비됨 초록 · 실패 빨강 · 처리 중 기본 글자색.
+ * 글자색은 디자이너 상태 글자(.okr-status-text) — 준비됨 초록 · 실패 빨강 · 처리 중 회색(§3-2 153행 «회색 + 스피너» · PW-3279).
  */
 const STATUS_META = {
-  processing: { labelKey: 'statusProcessing', tone: '' },
+  processing: { labelKey: 'statusProcessing', tone: 'is-muted' },
   ready: { labelKey: 'statusReady', tone: 'is-success' },
   failed: { labelKey: 'statusFailed', tone: 'is-error' },
 };
