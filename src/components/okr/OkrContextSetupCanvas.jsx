@@ -119,7 +119,8 @@ function SourceRow({ source, labels, onRemove, delayed, onRefresh }) {
   const typeLabel = labels[TYPE_LABEL_KEY[source.type]];
   return (
     <div
-      className="okr-p-linked-card"
+      // 읽기 실패 줄은 테두리도 빨강(정책서 §3-1 «행 보더 error» · PW-3279). 다른 상태 줄은 그대로.
+      className={['okr-p-linked-card', failed && 'is-error'].filter(Boolean).join(' ')}
       data-testid={`okr-context-source-${source.id}`}
       data-status={status}
     >
