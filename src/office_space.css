@@ -128,10 +128,10 @@
 .osp-tone-1, .osp-dot.osp-tone-1 { background: var(--utility-pink-500); }
 .osp-tone-2, .osp-dot.osp-tone-2 { background: var(--utility-green-500); }
 .osp-tone-3, .osp-dot.osp-tone-3 { background: var(--utility-purple-500); }
-.osp-tone-4, .osp-dot.osp-tone-4 { background: var(--colors-teal-500); }
+.osp-tone-4, .osp-dot.osp-tone-4 { background: var(--colors-teal-600); }
 .osp-tone-5, .osp-dot.osp-tone-5 { background: var(--utility-fuchsia-500); }
 .osp-tone-6, .osp-dot.osp-tone-6 { background: var(--colors-grayBlue-500); }
-.osp-tone-7, .osp-dot.osp-tone-7 { background: var(--colors-greenLight-500); }
+.osp-tone-7, .osp-dot.osp-tone-7 { background: var(--colors-greenLight-600); }
 .osp-tone-muted, .osp-dot.osp-tone-muted { background: var(--utility-gray-500); }
 
 /* ── 오른쪽 — 머리 줄 · 무대 · 범례 */
@@ -273,10 +273,10 @@
 .osp-fill-1 { fill: var(--utility-pink-500); }
 .osp-fill-2 { fill: var(--utility-green-500); }
 .osp-fill-3 { fill: var(--utility-purple-500); }
-.osp-fill-4 { fill: var(--colors-teal-500); }
+.osp-fill-4 { fill: var(--colors-teal-600); }
 .osp-fill-5 { fill: var(--utility-fuchsia-500); }
 .osp-fill-6 { fill: var(--colors-grayBlue-500); }
-.osp-fill-7 { fill: var(--colors-greenLight-500); }
+.osp-fill-7 { fill: var(--colors-greenLight-600); }
 .osp-fill-muted { fill: var(--utility-gray-500); }
 .osp-fill-disabled { fill: var(--fg-disabled-subtle); }
 .osp-fill-seated { fill: var(--fg-brand-primary); }

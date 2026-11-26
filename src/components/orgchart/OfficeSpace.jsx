@@ -132,12 +132,18 @@ export default function OfficeSpace({
   // 회사 전체 순번으로 주면 조직 둘뿐인 층에서도 같은 색이 나온다 — 여덟까지는 한 화면에서 겹치지 않고, 넘치면 돌려 쓴다(정책 §5 #9).
   // 미배정 · 회사(대표 · 대표 직속)는 회색 그대로.
   const toneSlot = useMemo(() => {
-    const n = new Map();
-    people.forEach((x) => { if (baseTone(x.p) != null) n.set(keyOf(x.p), (n.get(keyOf(x.p)) || 0) + 1); });
+    // 범례와 같은 셈(건물 보기는 그림 있는 층 사람)으로 먼저 세우고, 범례에 없는 조직(«목록만» 층에만 있음)은 그 뒤에 둔다
+    const n = new Map(), all = new Map();
+    people.forEach((x) => {
+      if (baseTone(x.p) == null) return;
+      const k = keyOf(x.p);
+      all.set(k, (all.get(k) || 0) + 1);
+      if (!bldgView || x.row.drawn) n.set(k, (n.get(k) || 0) + 1);
+    });
     const order = (bldgView ? tops : groups).map((g) => g.key);
     const at = (k) => { const i = order.indexOf(k); return i < 0 ? order.length : i; };
     const slot = new Map();
-    [...n.keys()].sort((a, b) => n.get(b) - n.get(a) || at(a) - at(b)).forEach((k, i) => slot.set(k, i));
+    [...all.keys()].sort((a, b) => (n.get(b) || 0) - (n.get(a) || 0) || at(a) - at(b)).forEach((k, i) => slot.set(k, i));
     return slot;
   }, [people, bldgView, groups, tops]);
   const toneOfP = (p) => (baseTone(p) == null ? null : toneSlot.get(keyOf(p)) ?? null);
@@ -661,7 +667,7 @@ export default function OfficeSpace({
           {tools}
           {/* 좁은 화면 — 왼쪽 목록을 접고 빌딩 · 층 고르기를 무대 위 한 줄로(정책 §5 #10) */}
           <div className="osp-narrow-pick">
-            <Button variant="secondary" size="sm" aria-expanded={listOpen} onClick={() => setListOpen((o) => !o)} data-testid="office-list-toggle">
+            <Button variant="secondary" size="md" aria-expanded={listOpen} onClick={() => setListOpen((o) => !o)} data-testid="office-list-toggle">
               {listOpen ? L('office.listClose') : L('office.listOpen')}
             </Button>
             {buildingSelect}
