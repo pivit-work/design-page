@@ -219,10 +219,11 @@ export default function BillingMethodsCanvas({
   const labels = mergeLabels(providedLabels);
   const [deleteTarget, setDeleteTarget] = useState(null); // 삭제 확인 모달 대상 card id (null=닫힘)
 
-  const hasActiveSub = subscriptionStatus === 'active' || subscriptionStatus === 'past_due';
+  // «이용 중»만 — «결제 실패»(past_due)는 마지막 카드도 지울 수 있다 (pivit-work PW-3251 · screen-billing-methods §2 «그 외»)
+  const hasActiveSub = subscriptionStatus === 'active';
   const addBusy = addState === 'processing' || addState === 'confirming';
 
-  // 마지막 1개 카드 + active/past_due 구독 시 삭제 차단
+  // 마지막 1개 카드 + «이용 중» 구독 시 삭제 차단
   const canDelete = (card) => {
     void card;
     if (cards.length === 1 && hasActiveSub) return false;
