@@ -8,6 +8,7 @@ import { BillingCheckoutSteps, BillingNotice, BillingPage, BillingPageHead } fro
 import { BILLING_PAGE_WIDTH } from './kit/billingPageWidth.js';
 import Spinner from '../shared/Spinner.jsx';
 import Button from '../shared/Button.jsx';
+import Tooltip from '../shared/Tooltip.jsx';
 import { won } from '../shared/money.js';
 
 // ─────────────────────────────────────────────────────────────
@@ -244,6 +245,11 @@ const ROW_STRONG_STYLE = {
 export default function BillingCheckoutCanvas({
   /** 결제 단계 표시 줄 끝 «?» 튜토리얼 도움말 버튼 (pivit-work PW-2567). 안 주면 지금과 같다. */
   stepsHelp,
+  /**
+   * 가격이 정해지기 전이라 새 결제를 막을 때 그 이유 글 (pivit-work PW-3291). 있으면 [결제하기]를 끄고 마우스를 올리면 띄운다.
+   * 밀린 요금을 내는 재진입 결제에서는 앱이 넘기지 않는다.
+   */
+  newPaymentBlockedHint = null,
   order = { planCode: 'growth', planLabel: 'Growth', unitPrice: 15000, interval: 'monthly', seatCount: 1 },
   profile = null,
   amounts = null,
@@ -384,7 +390,7 @@ export default function BillingCheckoutCanvas({
   // 상한을 넘으면 결제창을 열지 않는다 — 지금 열린 결제 방법이 카드 자동결제뿐이라 결제할 길이 없다(TC-BILL-259).
   const overCardLimit = cardPayLimit != null && total > cardPayLimit;
   const blocked = !hasProfile || !agreeRefund || busy
-    || (needCommitment && !agreeCommitment) || overCardLimit;
+    || (needCommitment && !agreeCommitment) || overCardLimit || Boolean(newPaymentBlockedHint);
 
   if (!canEdit) {
     return <div style={{ fontFamily: T.font, padding: 40 }}>{labels.noPermission}</div>;
@@ -773,16 +779,24 @@ export default function BillingCheckoutCanvas({
                 ) : undefined}
               />
             )}
-            <Button variant="primary" onClick={() => { if (!blocked) onPay?.(); }} disabled={blocked}
-              data-testid="checkout-pay" style={{ width: '100%' }}>
-              {overCardLimit && !busy ? labels.payBlockedOverLimit
-                : payState === 'processing' ? (opensCardWindow ? labels.payProcessing : labels.payProcessingSavedCard)
-                : payState === 'confirming' ? labels.payConfirming
-                : payState === 'fail' ? labels.payRetry
-                : planChangeNoCharge ? labels.payCtaPlanChangeNoCharge
-                : opensCardWindow ? labels.payCta(total)
-                : labels.payCtaSavedCard(savedCard, total)}
-            </Button>
+            {/* 가격 확정 전 새 결제 막기(pivit-work PW-3291) — 막을 때만 말풍선 두름을 씌운다. 평소 버튼 자리는 그대로 */}
+            {(() => {
+              const payButton = (
+                <Button variant="primary" onClick={() => { if (!blocked) onPay?.(); }} disabled={blocked}
+                  data-testid="checkout-pay" style={{ width: '100%' }}>
+                  {overCardLimit && !busy ? labels.payBlockedOverLimit
+                    : payState === 'processing' ? (opensCardWindow ? labels.payProcessing : labels.payProcessingSavedCard)
+                    : payState === 'confirming' ? labels.payConfirming
+                    : payState === 'fail' ? labels.payRetry
+                    : planChangeNoCharge ? labels.payCtaPlanChangeNoCharge
+                    : opensCardWindow ? labels.payCta(total)
+                    : labels.payCtaSavedCard(savedCard, total)}
+                </Button>
+              );
+              return newPaymentBlockedHint
+                ? <Tooltip content={newPaymentBlockedHint} className="is-block">{payButton}</Tooltip>
+                : payButton;
+            })()}
             {/* 다음에 무엇이 일어나는지 (PW-2110) — 카드 인증 창은 페이지를 떠났다가 돌아온다 */}
             {opensCardWindow && !overCardLimit && (payState === 'idle' || payState === 'fail') && (
               <div data-testid="checkout-card-window-note" style={{ ...PAY_NOTE_STYLE, color: 'var(--text-secondary)' }}>

@@ -260,13 +260,18 @@ function mergeLabels(provided) {
 const fireOnly = (onClick) => (onClick ? (e) => { onClick(e); } : undefined);
 // 버튼은 공용 Button(디자이너 어드민 버튼과 같은 값)으로 그린다 (pivit-work PW-2938). 손으로 칠한 값을 두지 않는다.
 // 위험(danger)은 되돌릴 수 있는 자리라 흰 바탕 빨간 테두리(danger-ghost) — 전과 같은 생김새.
-function Btn({ children, onClick, kind = 'primary', disabled, fullWidth }) {
-  return (
-    <Button variant={kind === 'danger' ? 'danger-ghost' : kind} onClick={fireOnly(onClick)} disabled={disabled}
+// `hint` 가 있으면 버튼을 끄고 마우스를 올리면 그 글을 말풍선으로 띄운다 (pivit-work PW-3291 — 가격 확정 전 새 결제 막기).
+// 없으면 두름 없이 전과 같은 버튼이다.
+function Btn({ children, onClick, kind = 'primary', disabled, fullWidth, hint = null }) {
+  const button = (
+    <Button variant={kind === 'danger' ? 'danger-ghost' : kind} onClick={fireOnly(onClick)}
+      disabled={Boolean(hint) || disabled}
       style={fullWidth ? { width: '100%' } : undefined}>
       {children}
     </Button>
   );
+  if (!hint) return button;
+  return <Tooltip content={hint} className={fullWidth ? 'is-block' : undefined}>{button}</Tooltip>;
 }
 
 /** 가는 선 — 판 안 구역 사이 선(`Panel.Section`)과 같은 색. */
@@ -345,7 +350,7 @@ function FeatureIcon({ status }) {
 //
 // 취소선은 참조 정가가 있고 **협의 단가가 그보다 쌀 때만** 쓴다. 인상 계약에 취소선·
 // 「할인」 문구를 붙이면 계약 조건을 잘못 말하는 것이 된다.
-function QuoteCard({ quote, canEdit, onPay, billedSeats, seatsOverMax, labels, renewalLocked = false }) {
+function QuoteCard({ quote, canEdit, onPay, billedSeats, seatsOverMax, labels, renewalLocked = false, newPaymentBlockedHint = null }) {
   // 갱신 동의만 잠근다 — 새 견적 [결제하기]는 서버가 따로 막고, 해지된 회사에는 갱신 견적이 오지 않는다.
   const locked = Boolean(quote.isRenewal && renewalLocked);
   const dLeft = quote.daysUntilValidUntil;
@@ -432,7 +437,7 @@ function QuoteCard({ quote, canEdit, onPay, billedSeats, seatsOverMax, labels, r
       </div>
 
       <div style={{ marginTop: 12 }}>
-        <Btn onClick={onPay} disabled={!canEdit || locked}>
+        <Btn onClick={onPay} disabled={!canEdit || locked} hint={newPaymentBlockedHint}>
           {quote.isRenewal ? labels.quoteAcceptRenewalCta : labels.quotePayCta}
         </Btn>
         {locked && (
@@ -465,7 +470,7 @@ function launchBenefitApplies(plan, interval, launchBenefitUntil) {
     && plan != null && !plan.isCustom && plan.seatPriceAnnual != null;
 }
 
-function PlanCard({ plan, isCurrent, isUpgrade = false, interval, onAction, canEdit, isCustomCta, featureKeys, featureLabelMap, labels, negotiatedPrice, launchBenefitUntil = null, trialNote = null }) {
+function PlanCard({ plan, isCurrent, isUpgrade = false, interval, onAction, canEdit, isCustomCta, featureKeys, featureLabelMap, labels, negotiatedPrice, launchBenefitUntil = null, trialNote = null, newPaymentBlockedHint = null }) {
   const isFree = !plan.isCustom && !plan.seatPrice;
   // 베타 출시 혜택(PW-2360) — 기간 안이면 월간도 연간 단가. 연간은 원래 연간 단가라 겹쳐 주지 않고, 커스텀(Pro)은 대상이 아니다.
   const benefit = launchBenefitApplies(plan, interval, launchBenefitUntil);
@@ -582,6 +587,12 @@ function PlanCard({ plan, isCurrent, isUpgrade = false, interval, onAction, canE
         <div style={{ marginTop: 'auto' }}>
           <Btn onClick={onAction} fullWidth
             disabled={!canEdit || isCurrent}
+            // 새 가격으로 결제·구독이 시작되는 변경만 막는다 — 지금 플랜 · Free 로 내리기 · [영업팀 문의]는 그대로 (PW-3291)
+            hint={
+              newPaymentBlockedHint && !isCurrent && (plan.tierRank ?? 0) > 0 && !(isCustomCta && negotiatedPrice == null)
+                ? newPaymentBlockedHint
+                : null
+            }
             // 주 동작만 초록(pivit-work PW-3132) — 올라가는 길(결제 · 영업팀 문의)만 primary, 내려가는 변경 · 지금 플랜은 보조
             kind={!isCurrent && isUpgrade ? 'primary' : 'secondary'}>
             {isCurrent
@@ -641,7 +652,7 @@ function addonBlockMessage(addon, labels) {
 }
 
 function AddonCard({ addon, interval, canEdit, highlight, labels, onTrial, onBuy, onCancel, onUndoCancel,
-  onViewPlans, onManageMethods, busy }) {
+  onViewPlans, onManageMethods, busy, newPaymentBlockedHint = null }) {
   const ref = useRef(null);
   const [flash, setFlash] = useState(Boolean(highlight));
   useEffect(() => {
@@ -670,13 +681,13 @@ function AddonCard({ addon, interval, canEdit, highlight, labels, onTrial, onBuy
     action = (
       <div style={{ display: 'flex', gap: 'var(--spacing-md)', flexWrap: 'wrap' }}>
         <Btn onClick={onTrial} disabled={disabled}>{labels.addonTrialCta(addon.trialDays)}</Btn>
-        <Btn kind="secondary" onClick={onBuy} disabled={disabled}>{labels.addonBuyNowCta}</Btn>
+        <Btn kind="secondary" onClick={onBuy} disabled={disabled} hint={newPaymentBlockedHint}>{labels.addonBuyNowCta}</Btn>
       </div>
     );
   } else if (addon.phase !== 'cancel_scheduled') {
     action = (
       <Btn kind={addon.phase === 'trial' ? 'secondary' : 'primary'} onClick={onBuy}
-        disabled={disabled || Boolean(addon.purchaseBlock)}>
+        disabled={disabled || Boolean(addon.purchaseBlock)} hint={newPaymentBlockedHint}>
         {labels.addonBuyCta}
       </Btn>
     );
@@ -1061,6 +1072,11 @@ export default function BillingPlansCanvas({
   addonLoadFailed = false,
   addonHighlight = false,
   addonBusy = false,
+  /**
+   * 가격이 정해지기 전이라 새 결제를 막을 때 그 이유 글 (pivit-work PW-3291). 있으면 [이 플랜으로 변경](유료로 가는 것)·
+   * 견적 [결제하기]·애드온 [구매]를 끄고 마우스를 올리면 이 글을 띄운다. 밀린 요금 결제·해지·Free 로 내리기는 막지 않는다.
+   */
+  newPaymentBlockedHint = null,
   onAddonRetry = () => {},
   onAddonTrial = () => {},
   onAddonPreview = () => Promise.resolve(null),
@@ -1393,6 +1409,7 @@ export default function BillingPlansCanvas({
             seatsOverMax={quoteSeatsOverMax}
             labels={labels}
             renewalLocked={renewalLocked}
+            newPaymentBlockedHint={newPaymentBlockedHint}
             onPay={() =>
               validQuote.isRenewal
                 ? onAcceptQuoteRenewal(validQuote.quoteId)
@@ -1442,6 +1459,7 @@ export default function BillingPlansCanvas({
               }
               launchBenefitUntil={launchBenefitUntil}
               trialNote={!suspension && trialPlan && trialPlan.planCode === plan.code ? trialPlan : null}
+              newPaymentBlockedHint={newPaymentBlockedHint}
               onAction={() => onPlanAction(plan)}
             />
           ))}
@@ -1465,6 +1483,7 @@ export default function BillingPlansCanvas({
             canEdit={canEdit}
             highlight={addonHighlight}
             busy={addonBusy}
+            newPaymentBlockedHint={newPaymentBlockedHint}
             labels={labels}
             onTrial={onAddonTrial}
             onBuy={openAddonBuy}
@@ -1697,7 +1716,7 @@ export default function BillingPlansCanvas({
           </ModalShell>
         )}
 
-        {addonModal === 'buy' && addon && (
+        {addonModal === 'buy' && addon && !newPaymentBlockedHint && (
           <AddonBuyModal
             preview={addonPreview}
             previewFailed={addonPreviewFailed}
