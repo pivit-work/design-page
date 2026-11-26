@@ -88,7 +88,7 @@ export default function MemberCard({ member: rawMember, parentId, index, showWor
     updatePosition(memberId, { x: 0, y: 0 });
   }, [memberId, parentId, index, positions, moveMember, updatePosition, findDropTarget, setDropTarget, editMode]);
 
-  const { isDragging, onDown, style } = useDrag(memberId, handleDrop, handleDragMove);
+  const { isDragging, onDown, style, didDragRef } = useDrag(memberId, handleDrop, handleDragMove);
 
   const handleMouseDown = (e) => {
     dragStartPos.current = { x: e.clientX, y: e.clientY };
@@ -96,6 +96,9 @@ export default function MemberCard({ member: rawMember, parentId, index, showWor
   };
 
   const handleClick = (e) => {
+    // 4px 넘게 끌었다가 누른 자리 가까이 돌아와 놓아도 끌기다 — 격자에 붙어 제자리로 돌아가도
+    // 클릭으로 치지 않는다(§5.4-D «격자에 붙기» · PW-2009). 조직 카드(OrgNode)와 같은 판정.
+    if (didDragRef.current) return;
     const dx = Math.abs(e.clientX - dragStartPos.current.x);
     const dy = Math.abs(e.clientY - dragStartPos.current.y);
     if (dx < 5 && dy < 5) {
