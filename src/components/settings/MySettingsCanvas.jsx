@@ -967,7 +967,9 @@ function FamilyTab({ family, today, labels, saveState, onSave, onAddDependent, o
     <RecordForm testId={testId}>
       <RecordGrid cols={3}>
         <RecordField label={L.dependentName}>
-          <TextInput className="admin-emp-input" placeholder={L.dependentName} value={dep.name}
+          {/* 기획서 arch-core-data-model §2-B-4 «최대 80자» — 어드민 HR 기록 성명 칸·서버와 같다(PW-3266).
+              옛 81자 넘는 이름은 그대로 보이고 지울 수만 있다(브라우저 maxLength 동작). */}
+          <TextInput className="admin-emp-input" placeholder={L.dependentName} value={dep.name} maxLength={80}
             onChange={(e) => setDep((p) => ({ ...p, name: e.target.value }))} aria-label={L.dependentName} />
         </RecordField>
         <RecordField label={L.dependentRelation}>

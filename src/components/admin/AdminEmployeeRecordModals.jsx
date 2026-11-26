@@ -1024,7 +1024,7 @@ function hrRecordDefs(L, todayIso) {
       testId: 'hr-dependents',
       title: L.hrDependents || '부양가족',
       fields: [
-        { key: 'name', label: L.hrDepName || '성명', required: true, maxLength: 80 }, // 기획서 arch-core-data-model §2-B-4 «최대 80자»(서버는 100)
+        { key: 'name', label: L.hrDepName || '성명', required: true, maxLength: 80 }, // 기획서 arch-core-data-model §2-B-4 «최대 80자»(서버도 80 · PW-3266)
         { key: 'relation', label: L.hrDepRelation || '관계', required: true, options: optionsOf(L.hrRelation) },
         { key: 'dateOfBirth', label: L.hrDepBirth || '생년월일', kind: 'date', startView: 'year', max: todayIso, today: todayIso },
         // 처음부터 «부양중» — 서버도 값이 없으면 부양중으로 저장하고, 내 설정 부양가족 추가도 부양중으로 연다.
