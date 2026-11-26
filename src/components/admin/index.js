@@ -45,6 +45,7 @@ export {
   TierGate,
   UpsellCard,
   UpsellScreen,
+  UpsellSkeleton,
   SuspendedNoticeCard,
   SuspendedNoticeDialog,
   LockBadge,

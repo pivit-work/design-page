@@ -26,6 +26,21 @@
   background-image: linear-gradient(178.09deg, rgb(247, 79, 172) 0%, rgb(252, 178, 79) 100%);
 }
 
+/* 결제 잠금 · 유예 · 정보 — 옅은 바탕 + 진한 글 (pivit-work PW-3260 · 시안 screen-billing-entitlement `.strip`). 모양 · 크기는 위 공지 띠와 같다. */
+.broadcast-bar.is-error {
+  background: var(--bg-error-primary);
+  color: var(--text-error-primary);
+}
+.broadcast-bar.is-caution {
+  background: var(--bg-warning-primary);
+  color: var(--text-warning-primary);
+}
+.broadcast-bar.is-neutral {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+.broadcast-bar:is(.is-error, .is-caution, .is-neutral) .broadcast-link:focus-visible { outline-color: currentColor; }
+
 /* 공지 글 — 14/24 Medium 흰 글씨. 한 줄을 넘치면 말줄임(전체 글은 title). */
 .broadcast-message {
   margin: 0;

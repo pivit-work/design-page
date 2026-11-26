@@ -7,6 +7,7 @@
 
 import Tooltip from '../shared/Tooltip.jsx';
 import Button from '../shared/Button.jsx';
+import Skeleton from '../shared/Skeleton.jsx';
 import ModalLayer from '../shared/ModalLayer.jsx';
 import { resolveKoreanParticles } from '../shared/koreanParticle.js';
 
@@ -122,7 +123,12 @@ export function LockBadge({ requiredTier, size = 'sm', labels, title }) {
  * feature: FEATURE_TIER 키 / requiredTier: 필요 최소 티어 / onNavigate: 플랜 보기 CTA
  * labels: { featureLabels?, tierLabels?, title?, desc?, badge?, cta?, footer? } (선택)
  */
-export function UpsellCard({ feature, requiredTier, onNavigate, labels }) {
+/**
+ * contactNote — 결제 화면을 못 여는 사람(구성원 · 조직장 · 폴더 관리자)에게 버튼 대신 그리는 한 줄
+ * («관리자에게 문의해 주세요» · pivit-work PW-3260 · screen-billing-entitlement.policy §4 «누를 것이 없다» · §6).
+ * 주면 [플랜 보기]와 그 아래 작은 글을 그리지 않는다. 없으면 종전 그대로.
+ */
+export function UpsellCard({ feature, requiredTier, onNavigate, labels, contactNote }) {
   const featureLabel =
     labels?.featureLabels?.[feature] ??
     DEFAULT_FEATURE_LABEL[feature] ??
@@ -229,12 +235,20 @@ export function UpsellCard({ feature, requiredTier, onNavigate, labels }) {
         {labels?.badge ? labels.badge(tierLabel) : `${tierLabel}+ 전용 기능`}
       </div>
 
-      <Button variant="primary" onClick={() => onNavigate?.('/admin/billing/plans')}>
-        {labels?.cta ?? '플랜 보기'}
-      </Button>
-      <div style={{ fontSize: 11, color: T.muted }}>
-        {labels?.footer ?? '업그레이드 후 즉시 활성화됩니다'}
-      </div>
+      {contactNote ? (
+        <div data-testid="upsell-contact-note" style={{ fontSize: 13, color: T.sub, lineHeight: 1.7 }}>
+          {contactNote}
+        </div>
+      ) : (
+        <>
+          <Button variant="primary" onClick={() => onNavigate?.('/admin/billing/plans')}>
+            {labels?.cta ?? '플랜 보기'}
+          </Button>
+          <div style={{ fontSize: 11, color: T.muted }}>
+            {labels?.footer ?? '업그레이드 후 즉시 활성화됩니다'}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -323,6 +337,27 @@ export function SuspendedNoticeDialog({ onClose, ...cardProps }) {
         <SuspendedNoticeCard {...cardProps} />
       </div>
     </ModalLayer>
+  );
+}
+
+/**
+ * UpsellSkeleton — 요금제를 불러오는 동안 잠길 수 있는 본문 자리에 그리는 빈 틀 (pivit-work PW-3260 ·
+ * screen-billing-entitlement.policy §3 «불러오는 중 — 잠길 회사에서 숫자가 비치지 않게 잠긴 쪽으로 그린다»).
+ * 시안 `.skel` 줄 넷(70 · 92 · 84 · 60%). `inline` 이면 탭 한 칸 안에 줄만, 아니면 UpsellScreen 과 같은 칸 · 폭.
+ */
+export function UpsellSkeleton({ inline = false }) {
+  const lines = (
+    <div aria-busy="true" data-testid="plan-loading-skeleton" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-lg)' }}>
+      {['70%', '92%', '84%', '60%'].map((w) => (
+        <Skeleton key={w} width={w} />
+      ))}
+    </div>
+  );
+  if (inline) return lines;
+  return (
+    <div className="content-area">
+      <div style={{ maxWidth: 680, margin: '0 auto', padding: '40px 16px' }}>{lines}</div>
+    </div>
   );
 }
 

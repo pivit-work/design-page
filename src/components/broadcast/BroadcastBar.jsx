@@ -13,7 +13,7 @@ import { BROADCAST_KINDS } from './constants.js';
  * 호스트가 정한다. design-page 는 `--broadcast-bar-h`(App.css) 로 사이드바·머리 줄·본문을 내린다.
  * 공지 글이 한 줄을 넘치면 말줄임으로 자르고 전체 글은 `title` 로 보인다 — 띠 높이는 늘 48 이다.
  *
- * @param {'notice'|'warning'} [kind='notice']  공지 종류
+ * @param {'notice'|'warning'|'error'|'caution'|'neutral'} [kind='notice']  공지 종류(error·caution·neutral 은 옅은 바탕 + 진한 글)
  * @param {string} message  공지 글
  * @param {{ label: string, href?: string, onClick?: () => void, external?: boolean }[]} [actions]
  *   오른쪽 링크들 — 「자세히」 「변경안내」. `href` 가 있으면 <a>, 없으면 <button>. `external` 이면 새 탭.
@@ -35,7 +35,7 @@ export default function BroadcastBar({
   return (
     <div
       className={`broadcast-bar is-${tone}`}
-      role={tone === 'warning' ? 'alert' : 'status'}
+      role={tone === 'warning' || tone === 'error' ? 'alert' : 'status'}
       data-testid={testId}
       data-kind={tone}
     >
