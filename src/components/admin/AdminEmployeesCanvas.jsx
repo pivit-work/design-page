@@ -7436,7 +7436,10 @@ function EmployeesEditPanel({
               </span>
             </DetailReadField>
   );
-  const pageTabs = page ? DETAIL_TABS.filter((t) => t !== 'comp' || page.canViewComp) : [];
+  // «변경 이력»은 불러올 길이 있을 때만 — 오른쪽 창(아래 `!page && onLoadPersonalHistory`)과 같게(pivit-work PW-3286 역할 보유자에게는 열지 않음)
+  const pageTabs = page
+    ? DETAIL_TABS.filter((t) => (t !== 'comp' || page.canViewComp) && (t !== 'history' || !!onLoadPersonalHistory))
+    : [];
   const deptText = page
     ? `${primaryEntry?.name || legacyDeptOf(member) || directLabelOf(member) || labels.panel.orgNone}${selectedIds.length > 1 ? ` ${String(detailL.concurrentMore || '외 {count}').split('{count}').join(String(selectedIds.length - 1))}` : ''}`
     : '';
