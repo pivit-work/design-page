@@ -45,6 +45,8 @@ export default function ReportStatsRow({
       {isCurrent ? (
         <>
           <div className="report-mrow-empty">{emptyText}</div>
+          {/* 누를 손잡이가 없으면(읽기 전용 리포트 · pivit-work PW-3260) 죽은 버튼을 그리지 않는다. */}
+          {onGenerate && (
           <div className="report-mrow-actions">
             <button
               type="button"
@@ -61,6 +63,7 @@ export default function ReportStatsRow({
               <span>{generateLabel}</span>
             </button>
           </div>
+          )}
         </>
       ) : (
         <>

@@ -1441,7 +1441,9 @@ function isStaleDraft(cycle) {
   return Number.isFinite(t) && Date.now() - t >= STALE_DRAFT_MS;
 }
 
-function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, advancing = false, onViewResults, onHold, onResume, onEditSchedule, onResumeDraft, onDeleteDraft, onOpenStage }) {
+function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, advancing = false, onViewResults, onHold, onResume, onEditSchedule, onResumeDraft, onDeleteDraft, onOpenStage, readOnly = false }) {
+  // 요금제를 내려 평가가 읽기 전용이면 바꾸는 버튼(재개 · 이어 쓰기 · 초안 삭제 · 오픈 · 일시 중단 · 다음 단계)을 그리지 않는다 — 보기 · 결과 · 관리는 남는다
+  // (pivit-work PW-3260 · spec-billing §6.3.8 ①).
   const isDraft = cycle.status === 'draft';
   /**
    * PW-440 — 「작성하다 만 초안」인가.
@@ -1522,9 +1524,11 @@ function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, advancing = 
         <div className="evc-onhold-banner" data-testid="evc-onhold-banner">
           <span className="evc-onhold-icon"><PauseIcon size={14} /></span>
           <span className="evc-onhold-text">{L.onHoldBanner}</span>
-          <button type="button" className="evc-btn is-resume" onClick={() => onResume(cycle)} data-testid="evc-resume">
-            <PlayIcon size={14} /> {L.resume}
-          </button>
+          {!readOnly && (
+            <button type="button" className="evc-btn is-resume" onClick={() => onResume(cycle)} data-testid="evc-resume">
+              <PlayIcon size={14} /> {L.resume}
+            </button>
+          )}
         </div>
       )}
 
@@ -1552,7 +1556,7 @@ function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, advancing = 
           )
         )}
         <div className="evc-card-buttons">
-          {isWizardDraft && (
+          {isWizardDraft && !readOnly && (
             <>
               <button
                 type="button"
@@ -1572,14 +1576,14 @@ function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, advancing = 
               </button>
             </>
           )}
-          {isDraft && !isWizardDraft && (
+          {isDraft && !isWizardDraft && !readOnly && (
             <button type="button" className="evc-btn is-primary" onClick={() => onOpen(cycle)} data-testid="evc-open">
               {L.open}
             </button>
           )}
           {/* [PW-2063 · 정책 §A·§5.7.2 R1] 위자드를 다 마친 초안(회수해 돌아온 사이클 포함)도 초안이라
               「초안 삭제」가 있다 — 고치려면 [관리], 다시 열려면 [오픈], 치우려면 이 버튼. */}
-          {isDraft && !isWizardDraft && onDeleteDraft && (
+          {isDraft && !isWizardDraft && onDeleteDraft && !readOnly && (
             <button
               type="button"
               className="evc-btn is-ghost"
@@ -1590,7 +1594,7 @@ function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, advancing = 
             </button>
           )}
           {/* PW-2683 — 시안 admin_cycles: 다음 단계로 넘기는 초록 버튼이 줄 맨 오른쪽(가장 마지막에 읽힘), 일시 중단이 맨 왼쪽. */}
-          {isActive && (
+          {isActive && !readOnly && (
             /* PW-2115 — 카드마다 주황이 반복되지 않게 다른 버튼과 같은 흰 버튼. 멈춘다는 무게는 누른 뒤 빨간 확인 창이 진다. */
             <button type="button" className="evc-btn is-ghost" onClick={() => onHold(cycle)} data-testid="evc-hold">
               <PauseIcon size={14} /> {L.hold}
@@ -1609,7 +1613,7 @@ function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, advancing = 
               </button>
             )
           )}
-          {(isActive || isOnHold) && cycle.reviewSequence && (
+          {(isActive || isOnHold) && cycle.reviewSequence && !readOnly && (
             <button
               type="button"
               className="evc-btn is-ghost"
@@ -1621,7 +1625,7 @@ function CycleCard({ cycle, labels: L, onManage, onOpen, onAdvance, advancing = 
           )}
           {/* 오픈된 사이클을 다음 단계로 — 이 버튼이 없어 사이클이 첫 단계에 영구 정체했다.
               nextStatus 는 서버가 계산(리뷰 종류·단계 ON/OFF 반영). 마지막 단계면 숨긴다. */}
-          {isActive && cycle.nextStatus && (
+          {isActive && cycle.nextStatus && !readOnly && (
             // [PW-1007] 잠금은 캔버스가 쥔다(`advancing`) — 어필 확인 창을 거쳐 넘길 때는 이
             // 버튼이 아니라 창의 버튼이 요청을 내므로, 버튼이 스스로 잠그는 길로는 못 막는다.
             <Button
@@ -2467,6 +2471,7 @@ export default function EvalCycleHrCanvas({
           )}
           {freshCycles.map((cycle) => (
             <CycleCard
+                readOnly={createDisabled}
               key={cycle.id}
               cycle={cycle}
               labels={L}
@@ -2508,6 +2513,7 @@ export default function EvalCycleHrCanvas({
           {showStaleDrafts &&
             staleDrafts.map((cycle) => (
               <CycleCard
+                readOnly={createDisabled}
                 key={cycle.id}
                 cycle={cycle}
                 labels={L}
