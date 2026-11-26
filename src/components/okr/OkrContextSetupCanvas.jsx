@@ -97,13 +97,23 @@ function formatSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 }
 
+function urlDomain(url) {
+  if (!url) return '';
+  try {
+    return new URL(url).hostname || url;
+  } catch {
+    return url;
+  }
+}
+
 function sourceSubtitle(s, labels) {
   if (s.type === 'file') {
     // PDF 는 쪽 수를 크기 앞에 적는다(§3-2 「파일=페이지 수」). 모르면(Word·옛 파일) 크기만.
     const pages = s.pageCount ? (labels.pageCount || '{{count}}p').replace('{{count}}', String(s.pageCount)) : null;
     return [s.fileName, pages, formatSize(s.fileSize)].filter(Boolean).join(' · ');
   }
-  if (s.type === 'url') return s.url || '';
+  // 링크는 도메인만(§3-2 154행 «URL=도메인» · PW-3279). 주소로 못 읽으면 받은 글 그대로.
+  if (s.type === 'url') return urlDomain(s.url);
   const len = (s.body || '').length;
   return labels.charCount ? labels.charCount.replace('{{count}}', String(len)) : `${len}`;
 }
@@ -128,9 +138,11 @@ function SourceRow({ source, labels, onRemove, delayed, onRefresh }) {
         <div className="okr-ctx-source-main">
           <span className="okr-p-linked-name">{source.title}</span>
           <span
-            className={['okr-status-text', meta.tone].filter(Boolean).join(' ')}
+            className={['okr-status-text', meta.tone, status === 'processing' && 'dp-busy-inline'].filter(Boolean).join(' ')}
             data-testid={`okr-context-status-${source.id}`}
           >
+            {/* 처리 중은 «회색 + 스피너»(정책서 §3-2 153행 · PW-3279) — 분석 중 표시와 같은 Spinner 12 */}
+            {status === 'processing' && <Spinner size={12} />}
             {labels[meta.labelKey]}
           </span>
         </div>
