@@ -83,6 +83,21 @@ export function usePositions() {
 // 손떨림으로 1~2px 움직인 클릭까지 드래그로 처리하면 카드 클릭이 통째로 죽는다.
 const DRAG_THRESHOLD_PX = 4;
 
+// 끌어 놓은 카드가 붙는 칸 간격(배율 100% 기준 · 캔버스 바탕 점 무늬와 같은 20).
+export const GRID_STEP = 20;
+
+/**
+ * 격자에 붙기 (pivit-specs org-chart-public-card-spec.md §5.4-D · PW-2009).
+ * 카드 모서리를 바탕 점에 맞추는 것이 아니라 **자동 배치 자리에서 옮긴 거리**(= 저장하는 x·y)를
+ * 가로·세로 따로 20 의 배수 가운데 가장 가까운 값으로 맞춘다 — 그래야 옮기지 않은 옆 카드와
+ * 늘 0 · 20 · 40 … 차이로 줄이 맞는다. x·y 는 이미 배율로 나눈 캔버스 좌표라 배율과 무관하다.
+ * 반올림은 0 을 사이에 두고 대칭(±10 → ±20)이고, -0 은 0 으로 적는다.
+ */
+export function snapToGrid(pos) {
+  const snap = (v) => (Math.sign(v) * Math.round(Math.abs(v) / GRID_STEP) * GRID_STEP) || 0;
+  return { x: snap(pos.x), y: snap(pos.y) };
+}
+
 export function useDrag(nodeId, onDrop, onDragMove) {
   // scale 은 캔버스 배율. 카드의 translate 는 `scale(s)` 가 걸린 `.canvas-inner`
   // **안쪽** 좌표계라, 화면에서 잰 마우스 이동량(px)을 그대로 넣으면 카드는
@@ -99,6 +114,8 @@ export function useDrag(nodeId, onDrop, onDragMove) {
 
   const startMouse = useRef({ x: 0, y: 0 });
   const startPos = useRef({ x: 0, y: 0 });
+  // 마지막으로 커서를 따라간 자리 — 놓는 순간 이 자리를 격자에 붙인다(PW-2009).
+  const lastPos = useRef({ x: 0, y: 0 });
   // 직전 조작이 드래그였는지 — mouseup 다음에 오는 click 핸들러가 읽는다.
   // (브라우저는 드래그로 카드를 옮긴 뒤에도 click 을 발화하므로, 이 플래그가
   //  없으면 카드를 옮길 때마다 토글이 같이 걸린다.)
@@ -120,6 +137,7 @@ export function useDrag(nodeId, onDrop, onDragMove) {
     e.stopPropagation();
     startMouse.current = { x: e.clientX, y: e.clientY };
     startPos.current = { ...current };
+    lastPos.current = { ...current };
     didDragRef.current = false;
     setDragPos(current);
 
@@ -133,6 +151,7 @@ export function useDrag(nodeId, onDrop, onDragMove) {
       const nx = startPos.current.x + dx / s;
       const ny = startPos.current.y + dy / s;
       const pos = { x: nx, y: ny };
+      lastPos.current = pos;
       setDragPos(pos);
       updatePosition(nodeId, pos);
       if (onDragMoveRef.current) onDragMoveRef.current(ev, pos);
@@ -140,7 +159,12 @@ export function useDrag(nodeId, onDrop, onDragMove) {
     const onUp = (ev) => {
       setDragPos(null);
       // 4px 안에서 끝난 것은 클릭이다 — 손떨림만큼 옮긴 자리를 남기면 «자동 정렬»이 옮긴 카드로 센다(§5.4-D · PW-2347).
+      // 끌기였으면 놓는 순간 격자에 붙는다(PW-2009). 끄는 동안은 커서를 그대로 따라간다.
+      // 가장 가까운 칸이 0 이면 제자리로 돌아가고, 클릭으로 치지 않는다(didDragRef 는 true 그대로).
       if (!didDragRef.current) updatePosition(nodeId, startPos.current);
+      else {
+        updatePosition(nodeId, snapToGrid(lastPos.current));
+      }
       if (onDropRef.current) onDropRef.current(ev);
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
