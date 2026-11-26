@@ -1325,7 +1325,8 @@ export default function SnippetModal({
         {lockedPast && (readOnly || closedNotice) && (
         <div className="tl-snippet-modal-actions" data-testid="tl-snippet-past-actions">
           {readOnly ? lockedButton(lockedPast.editLabel) : <span />}
-          <Button variant="primary" onClick={lockedPast.onWriteToday} data-testid="tl-snippet-write-today">
+          {/* 아래 줄 버튼은 디자이너 [초기화](.tl-snippet-reset-btn · 46) 한 모양 — 초록 36 을 섞지 않는다 (pivit-work PW-3260) */}
+          <Button className="tl-snippet-reset-btn" onClick={lockedPast.onWriteToday} data-testid="tl-snippet-write-today">
             {lockedPast.writeTodayLabel}
           </Button>
         </div>

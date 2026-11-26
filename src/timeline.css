@@ -3685,6 +3685,11 @@
 .tl-snippet-modal-actions > .tl-snippet-reset-btn {
   flex-shrink: 0;
 }
+/* 요금제로 막힌 지난 스니핏 창의 [고치기] · [지난 날짜에 쓰기] 자물쇠 딱지 (pivit-work PW-3260) — 딱지가 버튼의 줄 높이 24 를
+   물려받아 28 로 커지며 버튼을 46 → 50 으로 키웠다. 딱지 줄 높이만 글씨에 맞춰 디자이너 버튼 높이 46 을 지킨다. */
+.tl-snippet-reset-btn .dp-btn__label > span {
+  line-height: 12px;
+}
 .tl-snippet-autosave.is-note {
   white-space: normal;
   text-align: right;

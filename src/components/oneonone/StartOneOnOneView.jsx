@@ -1223,7 +1223,7 @@ export default function StartOneOnOneView({
             <button type="button" className="ono-add-modal-btn ono-start-footer-end" onClick={endMeeting}>{L.endMeeting}</button>
           ) : startTierLocked ? (
             /* 요금제 자물쇠(pivit-work PW-3260) — 아래 두 잠금보다 먼저. 흐리게 두지 않고 자물쇠를 붙여 누르게 한다. */
-            <button type="button" className="ono-add-modal-btn ono-add-modal-btn-primary" data-testid="ono-start-tier-locked" onClick={startMeeting}>{L.startMeeting}{startBadge && <span data-testid="ono-btn-badge" style={{ display: 'inline-flex', marginLeft: 'var(--spacing-xs)' }}>{startBadge}</span>}</button>
+            <button type="button" className="ono-add-modal-btn ono-add-modal-btn-primary" data-testid="ono-start-tier-locked" onClick={startMeeting}>{L.startMeeting}{startBadge && <span data-testid="ono-btn-badge" style={{ display: 'inline-flex', marginLeft: 'var(--spacing-xs)', lineHeight: 1 }}>{startBadge}</span>}</button>
           ) : startLocked ? (
             /* 🔴 준비도(0/4) 분기보다 **위**에 있어야 한다 (policy §5.8.3). 준비도는 이
                화면에서 채울 수 있지만 이 잠금은 다른 화면에서 끝내고 와야 풀리므로,
@@ -1238,7 +1238,7 @@ export default function StartOneOnOneView({
               </button>
             </Tooltip>
           ) : allConfirmed ? (
-            <button type="button" className="ono-add-modal-btn ono-add-modal-btn-primary" onClick={startMeeting}>{L.startMeeting}{startBadge && <span data-testid="ono-btn-badge" style={{ display: 'inline-flex', marginLeft: 'var(--spacing-xs)' }}>{startBadge}</span>}</button>
+            <button type="button" className="ono-add-modal-btn ono-add-modal-btn-primary" onClick={startMeeting}>{L.startMeeting}{startBadge && <span data-testid="ono-btn-badge" style={{ display: 'inline-flex', marginLeft: 'var(--spacing-xs)', lineHeight: 1 }}>{startBadge}</span>}</button>
           ) : (
             <button type="button" className="ono-add-modal-btn ono-start-footer-disabled" disabled>
               {fill(L.startAfterConfirm, { confirmed: confirmedCount, total: activeTotal })}

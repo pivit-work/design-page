@@ -95,7 +95,7 @@ export function MemberRequestHeaderSlot({
           <button type="button" className="ono-add-btn" onClick={onOpen} data-testid="ono-request-open">
             <Icon src={icons?.plus} size={20} color="var(--text-white)" baseUrl={baseUrl} />
             <span>{L.requestButton}</span>
-            {requestBadge && <span data-testid="ono-btn-badge" style={{ display: 'inline-flex', marginLeft: 'var(--spacing-xs)' }}>{requestBadge}</span>}
+            {requestBadge && <span data-testid="ono-btn-badge" style={{ display: 'inline-flex', marginLeft: 'var(--spacing-xs)', lineHeight: 1 }}>{requestBadge}</span>}
           </button>
         )}
       </>
@@ -106,7 +106,7 @@ export function MemberRequestHeaderSlot({
       <button type="button" className="ono-add-btn" onClick={onOpen} data-testid="ono-request-open">
         <Icon src={icons?.plus} size={20} color="var(--text-white)" baseUrl={baseUrl} />
         <span>{L.requestButton}</span>
-        {requestBadge && <span data-testid="ono-btn-badge" style={{ display: 'inline-flex', marginLeft: 'var(--spacing-xs)' }}>{requestBadge}</span>}
+        {requestBadge && <span data-testid="ono-btn-badge" style={{ display: 'inline-flex', marginLeft: 'var(--spacing-xs)', lineHeight: 1 }}>{requestBadge}</span>}
       </button>
     );
   }
@@ -237,7 +237,7 @@ export function OneOnOneRequestRow({
         <div className="ono-member-request-actions">
           <Button variant="primary" size="sm" disabled={!!busy} onClick={onBook} data-testid="ono-member-request-book">
             {L.book}
-            {bookBadge && <span data-testid="ono-btn-badge" style={{ display: 'inline-flex', marginLeft: 'var(--spacing-xs)' }}>{bookBadge}</span>}
+            {bookBadge && <span data-testid="ono-btn-badge" style={{ display: 'inline-flex', marginLeft: 'var(--spacing-xs)', lineHeight: 1 }}>{bookBadge}</span>}
           </Button>
           {canAdd && (
             <Button

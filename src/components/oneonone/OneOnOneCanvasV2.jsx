@@ -292,7 +292,7 @@ export default function OneOnOneCanvasV2({
           <button type="button" className="ono-add-btn" onClick={handleAdd}>
             <Icon src={icons?.plus} size={20} color="var(--text-white)" baseUrl={baseUrl} />
             <span>{L.addSchedule}</span>
-            {addBadge && <span data-testid="ono-btn-badge" style={{ display: 'inline-flex', marginLeft: 'var(--spacing-xs)' }}>{addBadge}</span>}
+            {addBadge && <span data-testid="ono-btn-badge" style={{ display: 'inline-flex', marginLeft: 'var(--spacing-xs)', lineHeight: 1 }}>{addBadge}</span>}
           </button>
         )}
       </OneOnOnePageHeader>
@@ -704,7 +704,7 @@ function MemberCard({ member, tone, icons, baseUrl, onAction, onCardClick, rende
               >
                 {a.label}
                 {/* 글 뒤 노드 — 요금제 자물쇠 배지(pivit-work PW-3260). 안 넘기면 지금과 같다. */}
-                {a.badge && <span data-testid="ono-btn-badge" style={{ display: 'inline-flex', marginLeft: 'var(--spacing-xs)' }}>{a.badge}</span>}
+                {a.badge && <span data-testid="ono-btn-badge" style={{ display: 'inline-flex', marginLeft: 'var(--spacing-xs)', lineHeight: 1 }}>{a.badge}</span>}
               </button>
             );
             /* 시각이 안 된 [1on1 진행]처럼 «보이되 눌리지 않는» 액션 — 왜 잠겼는지를 말풍선이 말한다
