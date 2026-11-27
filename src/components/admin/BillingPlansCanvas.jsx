@@ -611,7 +611,8 @@ function PlanCard({ plan, isCurrent, isUpgrade = false, interval, onAction, canE
           </div>
         </div>
       ) : isFree ? (
-        <div style={{ fontSize: 26, fontWeight: 800, marginBottom: 4 }}>{labels.freePrice}</div>
+        // 가린 동안은 Free 의 «₩0»도 안내 글이 된다 — 값 글자와 같은 본문 크기(pivit-work PW-3295 · 카드 여섯 1440 에서 두 줄로 꺾임)
+        <div style={moneyHidden() ? { fontSize: 'var(--font-size-text-md)', fontWeight: 700, marginBottom: 'var(--spacing-xs)' } : { fontSize: 26, fontWeight: 800, marginBottom: 'var(--spacing-xs)' }}>{labels.freePrice}</div>
       ) : plan.isCustom ? (
         <div>
           <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 2 }}>{labels.customPrice}</div>
@@ -621,11 +622,21 @@ function PlanCard({ plan, isCurrent, isUpgrade = false, interval, onAction, canE
         </div>
       ) : (
         <div>
-          <div style={{ fontSize: 26, fontWeight: 800 }}>
-            {/* 숫자 가운데서 꺾이지 않게(«₩14,90 / 0» · pivit-work PW-3295 폭 1280 카드 여섯) — 단위만 통째로 다음 줄로 */}
-            <span style={{ whiteSpace: moneyHidden() ? 'normal' : 'nowrap' }}>{won(price)}</span>
-            {' '}<PriceUnit text={labels.perSeatMonth} />
-          </div>
+          {/* 금액을 가린 동안(«가격 추후 안내»)은 값 글자를 본문 크기로 — 카드 여섯(Pro 보임)에서 26px 글이 두 줄로 꺾였다(pivit-work PW-3295) */}
+          {moneyHidden() ? (
+            // 금액을 가린 동안(«가격 추후 안내»)은 값 글자를 본문 크기로 · 단위는 아래 따로 한 줄 — 카드 여섯(Pro 보임)에서
+            // 26px 글이 두 줄로 꺾였다(pivit-work PW-3295)
+            <div>
+              <div style={{ fontSize: 'var(--font-size-text-md)', fontWeight: 700 }}>{won(price)}</div>
+              <div><PriceUnit text={labels.perSeatMonth} /></div>
+            </div>
+          ) : (
+            <div style={{ fontSize: 26, fontWeight: 800 }}>
+              {/* 숫자 가운데서 꺾이지 않게(«₩14,90 / 0» · pivit-work PW-3295 폭 1280 카드 여섯) — 단위만 통째로 다음 줄로 */}
+              <span style={{ whiteSpace: 'nowrap' }}>{won(price)}</span>
+              {' '}<PriceUnit text={labels.perSeatMonth} />
+            </div>
+          )}
           {savings && savings.apart > 0 && (
             <div data-testid={`billing-plan-savings-${plan.code}`}
               style={{ fontSize: 12, color: T.green, fontWeight: 700, marginTop: 'var(--spacing-xxs)' }}>
@@ -671,10 +682,11 @@ function PlanCard({ plan, isCurrent, isUpgrade = false, interval, onAction, canE
         {cardLines.map((line) => (
           <li key={line.key} style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--spacing-md)' }}>
             <FeatureIcon status={line.status} />
-            <span style={{ fontSize: 13, color: line.status ? T.text : T.muted }}>
-              {line.label}
-              {line.note && <span style={{ color: T.sub, fontSize: 12 }}> — {line.note}</span>}
-            </span>
+            {/* 덧붙임은 이름 아래 따로 한 줄 — 좁은 카드(여섯)에서 «— + 기본 AI 할당»이 이름 뒤에서 두 줄로 꺾였다(pivit-work PW-3295) */}
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: 13, color: line.status ? T.text : T.muted }}>{line.label}</div>
+              {line.note && <div style={{ color: T.sub, fontSize: 12 }}>{line.note}</div>}
+            </div>
           </li>
         ))}
       </ul>
