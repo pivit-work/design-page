@@ -141,7 +141,8 @@ const DEFAULT_LABELS = {
   proCardCta: '영업팀 문의하기',
   readOnlyNotice: '플랜 변경은 Owner 또는 billing_admin만 가능합니다.',
   cancelReservedNotice: '이미 해지 예약 중입니다 — 구독 현황에서 해지를 취소할 수 있습니다.',
-  confirmDowngradeTitle: (label) => `${label} 플랜으로 다운그레이드할까요?`,
+  // «○○ 플랜으로»가 «목표 패키지 플랜으로»가 되지 않게 이름 뒤에 바로 조사(pivit-work PW-3295)
+  confirmDowngradeTitle: (label) => kp(`${label}(으)로 내릴까요?`),
   confirmChangeTitle: (label) => `${label} 플랜으로 변경할까요?`,
   confirmDowngradeBody: '현재 청구 기간 종료 후 전환됩니다. 상위 기능 데이터는 보존(읽기 전용)되며 신규 생성이 차단됩니다.',
   confirmChangeBody: '다음 청구일에 변경된 플랜과 요금이 적용됩니다.',
@@ -161,7 +162,7 @@ const DEFAULT_LABELS = {
   confirmChangeCta: '변경 확인',
   // 같은 값끼리 바꾸기(워크 ↔ 목표 · pivit-work PW-3295 · plans §2-D «버튼 — 워크 ↔ 목표»)
   confirmSameTitle: (label) => kp(`${label}(으)로 바꿀까요?`),
-  confirmSameBody: (label, lost) => kp(`${label}(으)로 바꿉니다 — 확인하는 즉시 바뀌고 오가는 돈은 없습니다. 지금 패키지에만 있는 ${lost}(은)는 새로 쓸 수 없고 기록은 읽기 전용으로 남습니다.`),
+  confirmSameBody: (label, lost) => kp(`${label}(으)로 바꿉니다 — 확인하는 즉시 바뀌고 오가는 돈은 없습니다. 지금 패키지에만 있는 `) + (lost == null || lost === '' ? '은(는)' : kp(`${lost}은(는)`)) + ' 새로 쓸 수 없고 기록은 읽기 전용으로 남습니다.',
   confirmSameBothHint: (label) => kp(`둘 다 쓰시려면 ${label}(으)로 바꾸세요.`),
   confirmSameBothCta: (label) => kp(`${label}(으)로`),
   confirmSameCta: '바꾸기',
@@ -169,7 +170,7 @@ const DEFAULT_LABELS = {
   confirmUpgradeTitle: (label) => kp(`${label}(으)로 올릴까요?`),
   confirmUpgradeBody: '결제 화면에서 오늘 낼 차액을 확인한 뒤 결제합니다. 결제가 성공하는 순간 바뀝니다.',
   confirmUpgradeLimitedNote: '1on1 은 회사 전체로 3회까지, 스니핏은 오늘 것만 쓸 수 있게 됩니다. 지난 기록은 읽기 전용으로 남습니다.',
-  confirmUpgradeAddonEndsNote: (name, label) => kp(`사 두신 ${name}(은)는 바꾸는 날 끝납니다 — ${label}에 들어 있습니다(환불 없음).`),
+  confirmUpgradeAddonEndsNote: (name, label) => kp(`사 두신 ${name}은(는) 바꾸는 날 끝납니다 — ${label}에 들어 있습니다(환불 없음).`),
   confirmUpgradeCta: '결제 화면으로',
   // 변경 요청이 실패하면 창을 닫지 않고 확인 버튼이 다시 시도가 된다(screen-billing-plans §3).
   confirmRetryCta: '다시 시도',
