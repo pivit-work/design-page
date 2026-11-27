@@ -57,8 +57,9 @@ const DEFAULT_LABELS = {
   subtotal: '소계',
   vat: (rate) => `부가세 (${Math.round(rate * 100)}%)`,
   payNow: '지금 결제',
-  intervalNoteAnnual: '1년분을 선결제하며, 다음 갱신일에 자동 결제됩니다.',
-  intervalNoteMonthly: '1개월분을 선결제하며, 다음 청구일부터 매월 자동 결제됩니다.',
+  // 주기 글자를 앞에 둔다(pivit-work PW-3295 · TC-BILL-330 «주기 «연간»»)
+  intervalNoteAnnual: '연간 결제 — 1년분을 선결제하며, 다음 갱신일에 자동 결제됩니다.',
+  intervalNoteMonthly: '월간 결제 — 1개월분을 선결제하며, 다음 청구일부터 매월 자동 결제됩니다.',
   seatBasisNote: '금액은 결제일 기준 활성 좌석 수로 산정됩니다.',
 
   billingInfo: '청구 정보',
@@ -67,7 +68,7 @@ const DEFAULT_LABELS = {
   billingInfoNeeded: '청구 정보가 필요합니다',
   goInputProfile: '입력하러 가기',
 
-  payFailTitle: '결제 실패',
+  payFailTitle: '결제하지 못했습니다', // TC-BILL-326 ④ (pivit-work PW-3295)
 
   refundAgreeIntro: '해지·환불 정책',
   refundAgreeSuffix: '에 동의합니다.',
