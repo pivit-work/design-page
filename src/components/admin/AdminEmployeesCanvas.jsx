@@ -5299,7 +5299,9 @@ function ContractHistoryLines({ memberId, load, L, pending }) {
       const before = ymdOf(h.before);
       const after = ymdOf(h.after);
       const kind = contractChangeKind(before, after);
-      const meta = [String(h.changedAt || '').slice(0, 10), h.actor?.name, (h.reason || '').trim()].filter(Boolean).join(' ');
+      // 줄 모양 «{바꾼 날} {바꾼 사람} · {변경 사유}»(admin-spec §3.2.2 «계약 연장 이력») — 날짜와 사람은 띄어 쓰고 사유 앞에 « · »
+      const who = [String(h.changedAt || '').slice(0, 10), h.actor?.name].filter(Boolean).join(' ');
+      const meta = [who, (h.reason || '').trim()].filter(Boolean).join(' · ');
       return { id: h.id || `${h.changedAt}-${before}-${after}`, text: fill(L.historyLine, { before, after: after || L.historyCleared, kind: L.kinds?.[kind] || kind }), meta };
     });
   return (
