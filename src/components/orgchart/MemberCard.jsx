@@ -173,10 +173,11 @@ export default function MemberCard({ member: rawMember, parentId, index, showWor
         {Array.isArray(member.changeLines) && member.changeLines.map((line, i) => (
           <div key={i} className="member-grade" data-testid="org-member-change-line">{line}</div>
         ))}
-        {/* 휴가 한 줄 (pivit-work PW-3190 · 조직도 정본 §7 compact — «휴가 중» · «휴가 중 · ~18:00» · «3일 후 휴가»). 호출부가 글자를 만들어 넘긴다.
-            줄 모양은 위 바뀐 칸 줄과 같은 직급 줄, 꼭 읽을 글이라 글자색만 secondary. 없으면 그리지 않는다 */}
+        {/* 휴가 한 줄 (pivit-work PW-3190 · 조직도 정본 §7 compact — «휴가 중» · «휴가 중 · 휴가 14:00–18:00» · «3일 후 휴가»). 호출부가 글자를 만들어 넘긴다.
+            줄 모양은 위 바뀐 칸 줄과 같은 직급 줄, 꼭 읽을 글이라 글자색만 secondary. 없으면 그리지 않는다.
+            vacationNoteTitle — 앞날 휴가의 기간 · 라벨(«12/3 – 12/3 · 휴가 10:00–12:00»)을 줄의 툴팁으로(TC-ORG-133 4 · 7) */}
         {showVacation && member.vacationNote && (
-          <div className="member-grade" style={{ color: 'var(--text-secondary)' }} data-testid="org-member-vacation">{member.vacationNote}</div>
+          <div className="member-grade" style={{ color: 'var(--text-secondary)' }} title={member.vacationNoteTitle || undefined} data-testid="org-member-vacation">{member.vacationNote}</div>
         )}
         {showWorkHours && member.workHours && (
           <>
