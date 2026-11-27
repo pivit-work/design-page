@@ -928,6 +928,8 @@
 .admin-kit-link.is-plain > * { text-decoration: underline; text-underline-offset: 2px; }
 .admin-kit-link:disabled { color: var(--text-disabled, var(--text-tertiary)); cursor: not-allowed; }
 .admin-kit-link.is-gap { margin-left: var(--spacing-sm); }
+/* is-shrink: 한 줄 칸 안에서 글이 길면 칸 폭까지만 — 안쪽 글이 말줄임(…)할 수 있게 버튼이 칸 밖으로 늘어나지 않는다(pivit-work PW-2852 접힌 줄). 모양은 그대로 */
+.admin-kit-link.is-shrink { min-width: 0; max-width: 100%; }
 
 /* CSV 올리기 ② 표 열 머리 — 누르면 열 메뉴가 열리는 머리 칸 전체(열 이름 + «넣을 항목·값으로» 줄). 머리 칸 글 모양을 그대로 두고 버튼 틀만 걷는다 */
 .admin-kit-csv-head-btn {
