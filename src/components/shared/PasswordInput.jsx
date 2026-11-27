@@ -56,7 +56,14 @@ function measureGlyph(cs) {
   const width = probe.scrollWidth / 100;
   probe.remove();
   // 글꼴이 아직 안 왔거나(0) 잴 수 없는 환경이면 저장하지 않고 다음에 다시 잰다.
-  if (width > 0) glyphCache.set(key, width);
+  // 글꼴을 아직 받는 중이면 대신 그린 글꼴의 폭이다 — 저장하지 않고, 받은 뒤(loadingdone) 다시 잰다.
+  let fontReady = true;
+  try {
+    fontReady = !document.fonts || document.fonts.check(cs.font);
+  } catch {
+    fontReady = true;
+  }
+  if (width > 0 && fontReady) glyphCache.set(key, width);
   return width;
 }
 
@@ -177,8 +184,14 @@ export default function PasswordInput({
     document.fonts.ready.then(() => {
       if (alive) measure();
     });
+    const onLoaded = () => {
+      if (alive) measure();
+    };
+    const fonts = document.fonts;
+    fonts.addEventListener?.('loadingdone', onLoaded);
     return () => {
       alive = false;
+      fonts.removeEventListener?.('loadingdone', onLoaded);
     };
   }, [measure]);
 
@@ -237,6 +250,7 @@ export default function PasswordInput({
   };
   const handleFocus = (e) => {
     syncFromDom();
+    measure();
     syncScroll();
     onFocus?.(e);
   };
