@@ -77,11 +77,16 @@ export const ORG_VIEW_ATTR = 'data-org-view';
  * 이 휠이 «조직도 본문»에서 굴린 것인가 — 머리 · 탭 줄 · 보기 · 둘레 여백(§5.1 «캔버스 밖(탭 줄 · 여백)»).
  * 빼는 곳: 트리 캔버스 안(따로 맡는다) · 왼쪽 메뉴 · 창(모달) · 펼친 메뉴 · 고르기 목록(제 스크롤이 있다).
  */
-const NOT_BODY = '.sidebar, [role="dialog"], [aria-modal="true"], [role="menu"], [role="listbox"]';
+// 제 스크롤이 있는 펼친 목록 — 본문 안에 바로 그려지는 것도 있다(근무지 빌딩 · 층 고르기 .dp-search-select-menu ·
+// «한눈에» 찾기 결과 .sq-pillar-results). 앱 상단 공지 띠의 펼친 본문(.pw-announcement-banner__body)도 제 스크롤이다
+const NOT_BODY = [
+  '.sidebar', '[role="dialog"]', '[aria-modal="true"]', '[role="menu"]', '[role="listbox"]',
+  '.dp-search-select-menu', '.sq-pillar-results', '.pw-announcement-banner__body',
+].join(', ');
 export function isOrgBodyWheelTarget(t) {
   if (t.closest(`[${ORG_TREE_CANVAS_ATTR}]`)) return false;
+  if (t.closest(NOT_BODY)) return false;   // 빼는 것을 먼저 — 본문 표지 안에 펼쳐진 목록도 뺀다
   if (t.closest(`[${ORG_VIEW_ATTR}]`)) return true;
-  if (t.closest(NOT_BODY)) return false;
   // 보기 둘레 여백 — 고정 자리 부품 사이로 비친 앱 바탕(본문 감싸개)
   return !!t.closest('.app, #root') || t === document.body || t === document.documentElement;
 }
@@ -173,10 +178,11 @@ export function useChromeShiftRect(ref, onChange, { key = '', enabled = true } =
   useEffect(() => {
     const el = ref.current;
     if (!enabled || !el || typeof window === 'undefined') return undefined;
+    // 화면 자리 그대로 잰다 — 창이 움직이는 동안 판이 움직인 것은 모두 창 탓이다. 페이지가 줄며 브라우저가 스크롤을 당긴 것도
+    // (낮은 화면에서 접으면 칸 내용이 화면보다 짧아져 스크롤이 0 으로 돌아간다 · 1440×700 에서 3px 밀림) 되돌릴 몫이다
     const read = () => {
       const r = el.getBoundingClientRect();
-      const sp = scrollParent(el);
-      return { top: r.top + (sp ? sp.scrollTop : 0), h: r.height, w: r.width };
+      return { top: r.top, h: r.height, w: r.width };
     };
     let last = read();
     let until = 0;
@@ -318,6 +324,8 @@ export function treeWheelAction(w) {
     }
   }
   if (Math.abs(dy) < Math.abs(w.deltaX || 0) || !dy) return { type: 'hold' };
+  // 창이 보일 때 내림은 트리를 스크롤하지 않는다 — 트랙패드가 처음 보내는 1~3 짜리도(창이 접히기 전에 트리가 먼저 움직였다 · TC-ORG-209 Fail)
+  if (dy > 0 && !w.hidden) return { type: 'hold' };
   if (dy > 0) {
     const room = Math.max(0, w.innerBottom - w.areaBottom);
     return room > 0 ? { type: 'scroll', dy: -Math.min(dy, room) } : { type: 'hold' };

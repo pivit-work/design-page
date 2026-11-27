@@ -28,6 +28,11 @@
 .op-view.is-building .osp { flex: 1; min-height: 0; }
 .op-view.is-building .osp-aside,
 .op-view.is-building .osp-main { height: auto; }
+/* 좁은 화면(1024 미만) — 목록이 접히고 위아래로 쌓인다(office_space.css 같은 폭 규칙). 층 그림 판이 남은 높이를 채운다 —
+   그쪽의 flex: none 에 높이 auto 가 겹치면 무대가 0 이 된다(PW-3238 11-25 되돌림과 같은 결함) */
+@media (max-width: 1023px) {
+  .op-view.is-building .osp-main { flex: 1 0 auto; min-height: max(560px, calc(100vh - 300px)); }
+}
 .op-body { padding: var(--spacing-3xl) var(--spacing-xl) var(--spacing-xl); }
 
 /* 한 줄에 셋 — 국가는 자기 카드 수만큼(많아야 셋) 칸을 차지하고 다음 국가가 이어 선다(§2 «국가 묶음의 폭») */
