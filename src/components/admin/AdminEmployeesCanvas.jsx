@@ -6362,6 +6362,8 @@ function EmployeesEditPanel({
       ? PAGE_FIELD_GROUPS.filter((g) => inTab(g.tab)).flatMap((g) => g.fields.filter(fieldOn).map((f) => f.key))
       : PANEL_FIELD_GROUPS.flatMap((g) => g.fields.filter(fieldOn).map((f) => f.key)),
   );
+  /* 퇴사일 칸은 위 칸 목록 밖(재직 상태 묶음)에 늘 선다 — 서버가 이 칸을 짚은 거절(입사일보다 앞 · pivit-work PW-3311)도 칸 아래에 붙는다 */
+  if (inTab('work')) shownFieldKeys.add('terminationDate');
 
   const optionsFor = (f) => {
     if (!f.narrowBy) return catalogs[f.catalog] || [];
@@ -7795,7 +7797,7 @@ function EmployeesEditPanel({
                   terminationProblem === 'missing'
                     ? (draft.employmentStatus === 'terminated' ? 'resignedAtRequired' : 'resignedAtScheduled')
                     : 'resignedAtBeforeLastDay'
-                ] : undefined)}
+                ] : (saveError && saveError.fields.includes('terminationDate') ? saveError.message : undefined))}
                 errorTestId="employees-panel-date-terminationDate-error"
                 hint={
                   /* 아직 퇴사일이 없는 본인 · 마지막 어드민이면 칸을 잠그고 사유 한 줄
