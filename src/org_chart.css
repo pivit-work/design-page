@@ -578,7 +578,13 @@
   .org-tree-page > .drag-hint.org-drag-hint { left: auto; }
   .org-tree-page .canvas-area.org-view-canvas { bottom: auto; height: max(560px, calc(100vh - 300px)); }
   .org-tree-page::after { content: ''; position: absolute; left: 0; top: calc(131px + max(560px, calc(100vh - 300px))); height: 20px; width: 1px; }
+  /* 접히면 머리(131)만큼 보기가 커져 화면 아래 20 까지 — 그래도 최소 560 */
+  :root[data-org-chrome='hidden'] .org-tree-page .canvas-area.org-view-canvas { height: max(560px, calc(100vh - 20px)); }
+  :root[data-org-chrome='hidden'] .org-tree-page::after { top: max(560px, calc(100vh - 20px)); }
 }
+/* 스쿼드 머리 — 제목 줄이 한 줄(38)이 되며 오른쪽 단추 묶음(44)이 더 높아져, 단추가 있는 «카드» 보기만 머리가 6 커지고
+   보기를 바꿀 때 탭 줄이 뛰었다. 단추 묶음이 머리 높이를 정하지 않게 위아래 3 씩 겹쳐 둔다(단추 모양 · 자리는 그대로) */
+.pj-header.sq-header.org-head .sq-header-actions { margin-block: calc(var(--spacing-xs) * -0.75); }
 /* 스쿼드 «한눈에» — 위 줄 · 살펴보기 칩 · 판 · 범례의 좌우 24 들여쓰기를 걷는다(§5.1 «폭» · 바탕이 투명이라 빈 자리였다) */
 .org-view-page .sq-pillar-tools,
 .org-view-page .sq-pillar-legend { padding-left: 0; padding-right: 0; }
