@@ -81,6 +81,10 @@ const EMPTY_PROFILE = { title: '', dept: '', bio: '', skills: '', contacts: '', 
 //   note — 조정 메모. 값에 마우스를 올리면 뜬다 · onEdit — 본인 카드(isSelf)에서만 값이 눌리고 연필이 붙는다
 //   editDisabled — 오늘 휴가처럼 고칠 수 없을 때 · editing — 창이 열려 칸을 강조 · panel — 칸 아래 펼칠 창(WorkHoursAdjustPanel)
 //   absent — 오늘 휴가라 value 자리에 근무시간 대신 «부재중»을 회색으로 보인다(pivit-work PW-2210 · 정책서 §3 「당일 휴가」)
+//   hidden — 오늘 종일 휴가라 근무시간 칸을 통째로 두지 않는다(pivit-work PW-3190 · 근무시간 정책 §3 K13 · 공개 카드 정책 §3-2)
+// member.vacationStatusLabel — 지금 «휴가 중»이면 근무 상태 알약에 재직 상태 대신 보일 문구(pivit-work PW-3190 · 공개 카드 정책 §3-1).
+// member.vacationLabel — 알약 오른쪽 휴가 한 줄(VacationLabel · 공개 카드 정책 §3-3) — «연차» · «오후 휴가 · 14:00–18:00» · «휴가 4시간».
+//   둘 다 소비자가 번역 · 조립해서 준다. 안 주면 지금까지 그대로다.
 // cardStatus — 'loading' | 'error'. 소비자가 카드 칸을 받는 중·못 받았을 때 준다(pivit-work PW-2665). 주면 member 가 없어도 창이 열리고
 //   카드 자리 전체를 스켈레톤(loading) 또는 cardError(error)로 바꾼다. 닫기 X·바깥 누르기는 그대로. 안 주면 지금까지 그대로다.
 // cardError — error 일 때 카드 자리에 놓을 안내(번역된 문구 + 다시 시도 버튼). 소비자가 그려 준다.
@@ -193,8 +197,14 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
   const isOpen = !!member || !!cardStatus;
 
   const statusBadge = (
-    <StatusBadge className="modal-status-badge">{L(`member.status.${MEMBER_STATUSES[displayMember?.status] ? displayMember.status : 'working'}`)}</StatusBadge>
+    <StatusBadge className="modal-status-badge" data-testid="profile-status-badge">
+      {displayMember?.vacationStatusLabel || L(`member.status.${MEMBER_STATUSES[displayMember?.status] ? displayMember.status : 'working'}`)}
+    </StatusBadge>
   );
+  /* 휴가 한 줄(VacationLabel) — 알약 오른쪽 같은 줄(공개 카드 정책 §3-3 «StatusBadge 우측 인라인» · pivit-work PW-3190) */
+  const vacationLabel = displayMember?.vacationLabel ? (
+    <span className="profile-vacation-label" data-testid="profile-vacation-label">{displayMember.vacationLabel}</span>
+  ) : null;
 
   // ── 왼쪽 머리 칸 ──
   const stats = [
@@ -217,12 +227,13 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
         noteTestId: 'profile-rank-note',
       },
     ] : []),
-    {
+    /* 오늘 종일 휴가면 근무시간 칸을 두지 않는다 — 휴가는 알약 옆 한 줄이 말한다(pivit-work PW-3190) */
+    ...(workHours?.hidden ? [] : [{
       key: 'workHours',
       icon: <Icon src="/icons-solid/clock.svg" size={24} color="var(--fg-primary)" baseUrl={baseUrl} />,
       label: L('profile.workHours'),
       value: <WorkHoursValue value={shown(workHours?.value ?? profile.workHours)} workHours={workHours} isSelf={isSelf} />,
-    },
+    }]),
   ];
 
   let actionButtons;
@@ -311,12 +322,15 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
       // 헬스체크 점수 칩 — 카드 주인이 공개를 켰고 점수가 있을 때만 소비자가 `profile.healthChip`
       // (`{ value, tone }`)을 준다. 근무 상태 배지 옆 같은 알약 모양, 색은 뜻(tone)이 정한다
       // (pivit-work PW-2226 · 기획 조직도 screen-member §2-3). 없으면 배지만 종전 그대로 그린다.
-      badge={profile.healthChip ? (
+      badge={profile.healthChip || vacationLabel ? (
         <div className="profile-badge-row">
           {statusBadge}
-          <StatusBadge tone={profile.healthChip.tone} className="modal-health-chip" data-testid="profile-health-chip">
-            {L('profile.healthCheck')} {profile.healthChip.value}
-          </StatusBadge>
+          {vacationLabel}
+          {profile.healthChip && (
+            <StatusBadge tone={profile.healthChip.tone} className="modal-health-chip" data-testid="profile-health-chip">
+              {L('profile.healthCheck')} {profile.healthChip.value}
+            </StatusBadge>
+          )}
         </div>
       ) : statusBadge}
       // 현지 시간 — 카드 주인이 공개했고 시간대가 있을 때만 소비자가 `profile.localTime` 을 준다.

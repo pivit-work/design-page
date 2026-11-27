@@ -234,6 +234,14 @@
   flex-wrap: wrap;
   gap: var(--spacing-xs);
 }
+/* 휴가 한 줄 VacationLabel (pivit-work PW-3190 · 공개 카드 정책 §3-3 «StatusBadge 우측 인라인 · 텍스트만») — 옆 알약 글씨(.modal-status-badge 12/18 · 500)와
+   같은 크기, 색은 꼭 읽을 글이라 secondary. 디자이너 원본 없음 → design-review */
+.profile-vacation-label {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  color: var(--text-secondary);
+}
 /* 현지 시간 (PW-1217) */
 .profile-local-time {
   display: flex;

@@ -6411,6 +6411,9 @@ function EmployeesEditPanel({
     else delete inlineFlushes.current[part];
   }, []);
   const inlineDirtyOf = useCallback((part) => (v) => setInlineDirtyParts((p) => (Boolean(p[part]) === Boolean(v) ? p : { ...p, [part]: Boolean(v) })), []);
+  /* 탭 안 HR 칸에 고쳐야 저장할 수 있는 값이 있나 — 1일 소정근로시간 범위 밖이면 [저장] · [수정]을 잠근다(pivit-work PW-3190) */
+  const [inlineInvalidParts, setInlineInvalidParts] = useState({});
+  const inlineInvalidOf = useCallback((part) => (v) => setInlineInvalidParts((p) => (Boolean(p[part]) === Boolean(v) ? p : { ...p, [part]: Boolean(v) })), []);
   /* 보상 이력 창에서 수정 중 더하고 고치고 지운 줄 — 페이지 [저장] 때 보낸다(§3.2-D «보상 탭» · 정책서 §5) */
   const [salaryPending, setSalaryPending] = useState(null);
   const [reportedDirty, setReportedDirty] = useState(false);
@@ -6721,6 +6724,7 @@ function EmployeesEditPanel({
     ? salaryPending.adds.length + salaryPending.deletes.length + Object.keys(salaryPending.updates || {}).length
     : 0;
   const inlineDirty = Object.values(inlineDirtyParts).some(Boolean) || salaryPendingCount > 0;
+  const inlineInvalid = Boolean(page) && Object.values(inlineInvalidParts).some(Boolean);
   const pageDirty = dirty || inlineDirty;
   const wantDirty = Boolean(page?.editing) && pageDirty;
   if (wantDirty !== reportedDirty) setReportedDirty(wantDirty);
@@ -8361,6 +8365,8 @@ function EmployeesEditPanel({
               editable={Boolean(page.editing) && canEdit}
               registerFlush={registerInline(page.tab)}
               onDirtyChange={inlineDirtyOf(page.tab)}
+              dailyWork={labels.panel.dailyWork}
+              onInvalidChange={inlineInvalidOf(page.tab)}
               onSaveIdentity={canEdit ? onSaveIdentity : undefined}
               renderNames={inlineNames ? ({ lastName, nicknameEn }) => renderGroup(PAGE_FIELD_GROUPS[0], {
                 nickname: lastName.onChange ? (
@@ -8617,7 +8623,7 @@ function EmployeesEditPanel({
               <Button
                 className="admin-emp-btn is-secondary admin-emp-btn-block"
                 onClick={handleCorrect}
-                disabled={saving || !canEdit || Boolean(terminationProblem) || Boolean(terminationRuleError) || leaveStartMissing || leaveReasonMissing || contractBlocked || axisIncomplete}
+                disabled={saving || !canEdit || Boolean(terminationProblem) || Boolean(terminationRuleError) || leaveStartMissing || leaveReasonMissing || contractBlocked || axisIncomplete || inlineInvalid}
                 data-testid="employees-panel-correct"
               >
                 {labels.panel.correct}
@@ -8627,7 +8633,7 @@ function EmployeesEditPanel({
               type="button"
               className="admin-emp-btn is-primary admin-emp-btn-block"
               onClick={handleSave}
-              disabled={saving || !canEdit || !(dirty || (page && inlineDirty)) || Boolean(terminationProblem) || Boolean(terminationRuleError) || leaveStartMissing || leaveReasonMissing || contractBlocked || axisIncomplete || apptTypeMissing || (showAppointment && !apptDate) || Boolean(saveError?.retry)}
+              disabled={saving || !canEdit || !(dirty || (page && inlineDirty)) || Boolean(terminationProblem) || Boolean(terminationRuleError) || leaveStartMissing || leaveReasonMissing || contractBlocked || axisIncomplete || apptTypeMissing || (showAppointment && !apptDate) || Boolean(saveError?.retry) || inlineInvalid}
               data-testid="employees-panel-save"
             >
               {saving ? labels.panel.saving : flowWired ? labels.panel.appoint : labels.panel.save}

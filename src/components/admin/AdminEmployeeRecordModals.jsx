@@ -14,6 +14,7 @@
 import { createContext, useContext, useState, useEffect, useLayoutEffect, useMemo, useId, useRef } from 'react';
 import Checkbox from '../shared/Checkbox.jsx';
 import DateInput from '../shared/DateInput.jsx';
+import TextInput from '../shared/TextInput.jsx';
 import { todayIsoInZone } from '../shared/calendarDate.js';
 import { educationRuleError, educationFormatError, normalizeEducationForm, educationSentValue, EDUCATION_RULE_KEYS } from './educationRecordRules.js';
 import { IconLock } from './employeeExport.jsx';
@@ -417,6 +418,49 @@ function HrEditPairError({ children }) {
   );
 }
 
+/* HrEditPairError 와 같은 자리(이름 칸 아래 · 칸 왼쪽 끝에서 시작)의 회색 안내 · 버튼 줄 — 글씨는 구성원 창 칸 아래 안내(.admin-emp-manager-note) */
+function HrEditPairNote({ children, testId }) {
+  return (
+    <div style={{ display: 'flex', gap: 'var(--spacing-md)', paddingTop: 'var(--spacing-xxs)' }}>
+      <span className="adm-hr-pair-k" aria-hidden="true" />
+      <span className="admin-emp-manager-note" style={{ flex: 1, minWidth: 0 }} data-testid={testId}>{children}</span>
+    </div>
+  );
+}
+
+/**
+ * 1일 소정근로시간 (pivit-work PW-3190 · admin-spec §3.2.2 «PW-3190 · PW-3194») — 값은 분 · null 이면 회사 1일 근무시간.
+ * 두 칸 → 분: 둘 다 비면 «비움»(null) · 시간만이면 0분 · 분만이면 0시간 · 분은 0 ~ 59 · 합은 0분보다 길고 24시간까지.
+ * 앱 `lib/dailyWorkMinutes.ts` · 서버 검사와 같은 판정이다.
+ */
+export const DAILY_WORK_MINUTES_MAX = 1440;
+export function parseDailyWorkParts(hours, minutes) {
+  const h = String(hours ?? '').trim();
+  const m = String(minutes ?? '').trim();
+  if (h === '' && m === '') return { ok: true, minutes: null };
+  if ((h !== '' && !/^\d+$/.test(h)) || (m !== '' && !/^\d+$/.test(m))) return { ok: false };
+  const mn = m === '' ? 0 : Number(m);
+  if (mn > 59) return { ok: false };
+  const total = (h === '' ? 0 : Number(h)) * 60 + mn;
+  if (total <= 0 || total > DAILY_WORK_MINUTES_MAX) return { ok: false };
+  return { ok: true, minutes: total };
+}
+/** 분 → 두 칸 글자. 0분이면 분 칸은 비운다. */
+export function splitDailyWorkMinutes(minutes) {
+  if (typeof minutes !== 'number' || !Number.isFinite(minutes)) return { hours: '', minutes: '' };
+  const m = minutes % 60;
+  return { hours: String(Math.floor(minutes / 60)), minutes: m === 0 ? '' : String(m) };
+}
+/** 읽기 값 — «6시간» · «6시간 30분» · «30분», 비면 «—». 단위 낱말은 칸 이름표(시간 · 분)를 쓴다. */
+export function dailyWorkText(D, minutes) {
+  if (typeof minutes !== 'number' || !Number.isFinite(minutes) || minutes <= 0) return '—';
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  const hu = D?.hours || '시간';
+  const mu = D?.minutes || '분';
+  return [h > 0 ? `${h}${hu}` : '', m > 0 ? `${m}${mu}` : ''].filter(Boolean).join(' ');
+}
+
 /**
  * 기산일 칸 아래 안내 (pivit-work PW-2460 · admin-spec §3.2.10 «PW-2418» ① · 시안 admin-app.jsx 기산일 Field).
  * 비어 있으면 입사일을 따른다는 것을 늘 보이고, 값이 있으면 [비우기 — 입사일 따르기],
@@ -443,12 +487,13 @@ export function serviceStartHintText(L, serviceStartDate, hireDate) {
  * `card` — 추가 칸(.adm-hr-add) 안의 줄. 칸 높이·글씨는 그 카드의 클래스가 정한다(36px 흰 칸 · pivit-work PW-2693).
  * 안 주면 지금 그대로(신원·인사 편집 줄).
  */
-function HrEditPair({ k, value, onChange, type = 'text', date = false, options, clearable = true, inputMode, startView, max, today, disabled = false, placeholder, card = false, maxLength }) {
+function HrEditPair({ k, value, onChange, type = 'text', date = false, options, clearable = true, inputMode, startView, max, today, disabled = false, placeholder, card = false, maxLength, children }) {
   const fieldStyle = card ? undefined : { flex: 1, height: 30, fontSize: 12 };
+  /* `children` — 입력칸 한 개 대신 그 자리에 놓을 칸들(1일 소정근로시간의 시간 · 분 두 칸 · pivit-work PW-3190) */
   const parts = (
     <>
       <span className="adm-hr-pair-k">{k}</span>
-      {options ? (
+      {children ?? (options ? (
         <Select
           className="admin-emp-input"
           value={value ?? ''}
@@ -487,7 +532,7 @@ function HrEditPair({ k, value, onChange, type = 'text', date = false, options, 
           disabled={disabled}
           style={fieldStyle}
         />
-      )}
+      ))}
     </>
   );
   if (card) return <div className="adm-hr-add-pair">{parts}</div>;
@@ -1587,6 +1632,8 @@ const INLINE_PARTS = {
   ],
   work: [
     'firstHireDate', 'isRehire', 'employmentTypeStartDate', 'lastWorkingDate', 'workSchedule',
+    /* 1일 소정근로시간(pivit-work PW-3190) — 부르는 쪽이 `dailyWork` 문구를 줄 때만 칸이 선다 */
+    'dailyWorkMinutes',
   ],
   /* 포괄 계약 시간은 §3.2.2 «보상 정보» 칸이라 보상 탭(§3.2-D «탭별 칸») */
   comp: ['payType', 'payCycle', 'contractOvertime', 'contractHoliday', 'contractNight', 'targetBonus', 'targetBonusStart', 'targetBonusEnd', 'bankName', 'bankAccount'],
@@ -1631,6 +1678,9 @@ function identityPatchOf(draft, base, keys, bankRevealed) {
  *   [저장] 한 번을 통째로 맡긴다 — 보내기 «전에» 이번 저장에 실릴 기록 줄 목록(표시 이름 · 앞 값 · 뒤 값)을 넘기고, `send` 로 보낸다.
  *   부르는 쪽이 사유 창을 저장 1회에 한 번만 띄우고 받은 사유를 모든 요청에 싣는다(pivit-work PW-2924 · 개인정보 변경 이력 정책서 §2-5).
  *   없으면 종전처럼 바로 보낸다.
+ * @param {object} [props.dailyWork] «근무·고용» 1일 소정근로시간 칸 문구(pivit-work PW-3190) — `label` · `hours` · `minutes` · `hint` ·
+ *   `emptyHint`(비었을 때 뒤에 붙는 말) · `changeNotice`(값을 바꾼 동안 · 없으면 안 보임) · `range`(범위 밖 오류) · `clear`. 없으면 칸을 두지 않는다.
+ * @param {(invalid: boolean) => void} [props.onInvalidChange] 고쳐야 저장할 수 있는 칸이 생기거나 없어질 때 — 페이지가 [저장]을 잠근다.
  * 버리기는 부모가 key 를 바꿔 다시 붙인다.
  */
 export function HrProfileInline({
@@ -1644,6 +1694,7 @@ export function HrProfileInline({
   onSaveRecord, onDeleteRecord, onUploadDocument, onDownloadDocument, onSaveSession,
   archived = false,
   renderNames, namesTail, phone,
+  dailyWork, onInvalidChange,
 }) {
   const L = labels || {};
   const memberId = row?.id;
@@ -1676,6 +1727,8 @@ export function HrProfileInline({
   const trReloadUpTo = useRef({});
   const [benefits, setBenefits] = useState(null);
   const [benefitsSaved, setBenefitsSaved] = useState(null);
+  /* 1일 소정근로시간 두 칸에 친 글자 — 손대기 전(null)에는 저장된 분에서 만든다(pivit-work PW-3190) */
+  const [dwText, setDwText] = useState(null);
 
   useEffect(() => {
     let alive = true;
@@ -1717,6 +1770,21 @@ export function HrProfileInline({
   const rehireDateBad = part === 'work' && rehireFirstHireNotBefore(idDraft.isRehire, idDraft.firstHireDate, row?.hireDate);
   const targetBonusText = String(idDraft.targetBonus ?? '').replace(/[\s₩]|원$/g, '');
   const targetBonusBad = part === 'comp' && editable && targetBonusText !== '' && !isMoneyCellText(targetBonusText);
+  /* 1일 소정근로시간 — 못 읽는 값이면 신원 고침에 싣지 않고(마지막으로 읽힌 값 그대로) [저장]을 잠근다 */
+  const dwShown = dwText ?? splitDailyWorkMinutes(idDraft.dailyWorkMinutes);
+  const dwParsed = parseDailyWorkParts(dwShown.hours, dwShown.minutes);
+  const dailyWorkBad = part === 'work' && editable && Boolean(dailyWork) && !dwParsed.ok;
+  const dwChanged = dwText !== null && (!dwParsed.ok || dwParsed.minutes !== (typeof flat.dailyWorkMinutes === 'number' ? flat.dailyWorkMinutes : null));
+  const setDailyWork = (next) => {
+    setDwText(next);
+    const p = parseDailyWorkParts(next.hours, next.minutes);
+    if (p.ok) setIdField('dailyWorkMinutes')(p.minutes);
+  };
+  /* 부르는 쪽 손잡이는 렌더마다 새 함수라 ref 로 들고, 값이 바뀔 때만 알린다 — 떨어질 때 잠금을 푼다 */
+  const invalidRef = useRef(onInvalidChange);
+  useEffect(() => { invalidRef.current = onInvalidChange; });
+  useEffect(() => { invalidRef.current?.(dailyWorkBad); }, [dailyWorkBad]);
+  useEffect(() => () => invalidRef.current?.(false), []);
 
   const dirty = Boolean(identityPatch)
     || RECORD_KINDS.some((k) => pendingSize(recPending[k]) > 0)
@@ -1725,7 +1793,7 @@ export function HrProfileInline({
   useEffect(() => { onDirtyChange?.(dirty); }, [dirty, onDirtyChange]);
 
   const flush = async () => {
-    if (identityPatch && (lastDayAfterResign || rehireDateBad || targetBonusBad)) {
+    if (dailyWorkBad || (identityPatch && (lastDayAfterResign || rehireDateBad || targetBonusBad))) {
       throw new Error(L.hrInlineInvalid || '고쳐야 할 칸이 있어 저장하지 못했습니다.');
     }
     if (benefits?.invalid) throw new Error(L.hrPensionContributionInvalid || '금액은 소수점·단위 없는 정수로 적어 주세요.');
@@ -2014,9 +2082,69 @@ export function HrProfileInline({
   );
 
   /* «근무·고용» 고용 정보의 뒷부분 — 부르는 쪽 «고용 정보» 묶음(기산일 · 사번 · 고용형태 · 담당 HRBP) 바로 아래에 제목 없이 이어 붙는다 */
+  /* 1일 소정근로시간 (pivit-work PW-3190 · admin-spec §3.2.2 «PW-3190 · PW-3194») — §3.2.2 표에서 기산일 다음 · 최초 입사일 앞이라
+     이 묶음 맨 앞. 줄은 HrEditPair · 오류는 HrEditPairError 그대로, 두 칸은 같은 입력칸(.admin-emp-input). 읽기는 «6시간 30분» · 빈 값 «—». */
+  const dailyWorkRow = () => {
+    const D = dailyWork;
+    if (!D) return null;
+    const label = D.label || '1일 소정근로시간';
+    if (archived) return <HrArchivedPair key="dailyWorkMinutes" k={label} text={archivedText} />;
+    if (!editable) {
+      return <HrPair key="dailyWorkMinutes" k={label} v={dailyWorkText(D, flat.dailyWorkMinutes)} />;
+    }
+    const hasText = dwShown.hours !== '' || dwShown.minutes !== '';
+    const empty = dwParsed.ok && dwParsed.minutes === null;
+    const hint = [D.hint || '휴게를 뺀 하루 근무시간입니다. 휴가의 하루를 시간으로 바꿀 때 씁니다.', empty ? D.emptyHint || '비어 있으면 회사 1일 근무시간을 씁니다' : '']
+      .filter(Boolean).join(' ');
+    const box = { width: 72, height: 30, fontSize: 12 };
+    return (
+      <div key="dailyWorkMinutes" data-testid="hr-daily-work">
+        <HrEditPair k={label}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-xs)', flex: 1, minWidth: 0 }}>
+            <TextInput
+              className="admin-emp-input"
+              inputMode="numeric"
+              value={dwShown.hours}
+              invalid={dailyWorkBad}
+              aria-label={`${label} ${D.hours || '시간'}`}
+              data-testid="hr-daily-work-hours"
+              onChange={(e) => setDailyWork({ ...dwShown, hours: e.target.value.trim() })}
+              style={box}
+            />
+            <span className="admin-emp-manager-note">{D.hours || '시간'}</span>
+            <TextInput
+              className="admin-emp-input"
+              inputMode="numeric"
+              value={dwShown.minutes}
+              invalid={dailyWorkBad}
+              aria-label={`${label} ${D.minutes || '분'}`}
+              data-testid="hr-daily-work-minutes"
+              onChange={(e) => setDailyWork({ ...dwShown, minutes: e.target.value.trim() })}
+              style={box}
+            />
+            <span className="admin-emp-manager-note">{D.minutes || '분'}</span>
+          </span>
+        </HrEditPair>
+        {dailyWorkBad && (
+          <HrEditPairError><span data-testid="hr-daily-work-error">{D.range || '0분보다 길고 24시간까지 넣을 수 있습니다'}</span></HrEditPairError>
+        )}
+        <HrEditPairNote testId="hr-daily-work-hint">{hint}</HrEditPairNote>
+        {dwChanged && D.changeNotice && <HrEditPairNote testId="hr-daily-work-change">{D.changeNotice}</HrEditPairNote>}
+        {hasText && (
+          <HrEditPairNote>
+            <Button variant="ghost" size="sm" data-testid="hr-daily-work-clear" onClick={() => setDailyWork({ hours: '', minutes: '' })}>
+              {D.clear || '비우기 — 회사 1일 근무시간 쓰기'}
+            </Button>
+          </HrEditPairNote>
+        )}
+      </div>
+    );
+  };
+
   const renderWork = () => (
     <>
       <HrSection>
+        {dailyWorkRow()}
         {field('firstHireDate', L.hrFirstHireDate || '최초 입사일', { edit: { date: true } })}
         {yesNoField('isRehire', L.hrIsRehire || '재입사 여부')}
         {rehireDateBad && (
