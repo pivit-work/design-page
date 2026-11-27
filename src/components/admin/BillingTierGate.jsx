@@ -29,6 +29,8 @@ export const TIER_RANK = {
   work: 0,
   starter: 1,
   growth: 2,
+  // 목표 + 워크 — 목표 패키지(growth) 기능 전부 + 휴가 · 전자결재 · 워크플로우(pivit-work PW-3295 · spec-billing §2.4-F ①).
+  growth_work: 2,
   pro: 3,
 };
 
@@ -51,7 +53,8 @@ const TIER_LABEL = {
   free: 'Free',
   work: 'Work',
   starter: 'Starter',
-  growth: 'Growth',
+  growth: '목표 패키지',
+  growth_work: '목표 + 워크',
   pro: 'Pro',
 };
 
@@ -95,7 +98,7 @@ export function LockBadge({ requiredTier, size = 'sm', labels, title }) {
   const isSm = size === 'sm';
   const tierLabel = labels?.[requiredTier] ?? TIER_LABEL[requiredTier];
   return (
-    <Tooltip content={title ?? `${tierLabel} 플랜부터 제공`}>
+    <Tooltip content={title ?? `${tierLabel}부터 제공`}>
     <span
       style={{
         display: 'inline-flex',
@@ -209,7 +212,7 @@ export function UpsellCard({ feature, requiredTier, onNavigate, labels, contactN
         >
           {labels?.title
             ? labels.title(featureLabel, tierLabel)
-            : resolveKoreanParticles(`${featureLabel}은(는) ${tierLabel} 플랜부터 제공됩니다`)}
+            : resolveKoreanParticles(`${featureLabel}은(는) ${tierLabel}부터 제공됩니다`)}
         </div>
         <div
           style={{ fontSize: 13, color: T.sub, lineHeight: 1.7, maxWidth: 360 }}

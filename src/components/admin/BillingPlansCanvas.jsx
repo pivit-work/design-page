@@ -20,7 +20,8 @@ import {
 import { noticeSentences } from './kit/noticeSentences.js';
 import { BILLING_PAGE_WIDTH } from './kit/billingPageWidth.js';
 import { failureText, isNotifiedFailure } from '../shared/notifiedFailure.js';
-import { won } from '../shared/money.js';
+import { won, moneyHidden } from '../shared/money.js';
+import { resolveKoreanParticles as kp } from '../shared/koreanParticle.js';
 
 // ─────────────────────────────────────────────────────────────
 // BillingPlansCanvas — 결제·구독 "플랜 선택" Pure 컴포넌트.
@@ -52,7 +53,7 @@ const DEFAULT_LABELS = {
   back: '← 구독 현황으로',
   pageTitle: '플랜 선택',
   readOnlyBadge: '조회 전용',
-  pageSubtitle: '회사에 적용할 플랜을 선택합니다. 상위 플랜은 하위 기능을 모두 포함합니다.',
+  pageSubtitle: '회사에 적용할 요금제를 고릅니다.',
   cancelReservedTitle: '해지 예약 중',
   cancelReservedBodyPre: '청구 기간 종료 후 Free 플랜으로 전환될 예정입니다. 플랜을 유지하려면 ',
   cancelReservedBodyStrong: '구독 현황',
@@ -62,7 +63,7 @@ const DEFAULT_LABELS = {
   annual: '연간',
   annualToggleNote: '연간 35% 할인(확정) — 체감 단가로 표시',
   currentPlanBadge: '현재 플랜',
-  recommendedBadge: '추천 · Core',
+  recommendedBadge: '추천',
   freePrice: '₩0',
   customPrice: '커스텀 견적',
   customPriceSuffix: (price) => `${won(price)}+ / 좌석 / 월 (약정 협의)`,
@@ -76,12 +77,31 @@ const DEFAULT_LABELS = {
   ctaCurrentPlan: '현재 플랜',
   ctaContactSales: '영업팀 문의',
   ctaChangePlan: '이 플랜으로 변경',
-  compareTitle: '기능 비교 (추가형)',
+  // Free 회사가 유료 카드를 누르면 곧바로 결제다 (pivit-work PW-3295 · plans §2-D «버튼 — 상위»)
+  ctaPayPlan: '이 플랜으로 결제',
+  // 묶음 카드(목표 + 워크)를 그 안의 패키지 하나를 쓰는 회사가 볼 때 — «워크 패키지 더하기»
+  ctaAddPackage: (label) => `${label} 더하기`,
+  // 카드 값 아래 작은 줄 — 다른 주기의 값 (plans §2-D «카드 값»)
+  cycleNoteAnnual: (monthly) => `연간 결제 · 월간 결제 시 ${won(monthly)}`,
+  cycleNoteMonthly: (annual) => `월간 결제 · 연간 결제 시 ${won(annual)}`,
+  // 묶음 절감 줄 (plans §2-D «‹목표 + 워크› 절감 줄»)
+  bundleSavingsPre: '따로 사면',
+  bundleSavingsPct: (pct) => `${pct}% 절감`,
+  compareTitle: '패키지별 기능',
   compareFeatureHeader: '기능',
   compareRecommendedTag: '추천',
   recordingRowLabel: '녹음시간 한도',
   aiRunsRowLabel: 'AI 실행',
-  compareLegend: '✓ 포함  ◑ 제한적 포함  – 미포함  |  상위 티어는 하위 기능을 모두 포함합니다 (추가형).',
+  compareLegend: '✓ 포함  ◑ 제한적 포함  — 미포함',
+  // 더 보기 — 기능별로 보기 (pivit-work PW-3295 · plans §2-D · 단독 값은 보기만)
+  moreToggle: '더 보기 — 기능별로 보기',
+  moreCollapse: '접기',
+  moreTitle: '기능별로 보기',
+  moreIntro: (apart, pkg, annual) => `워크 패키지 기능을 따로 사면 ${won(apart)} · 워크 패키지는 ${won(pkg)} 입니다(좌석 / 월 · ${annual ? '연간' : '월간'} 결제).`,
+  moreFeatureHeader: '기능',
+  morePackageHeader: '들어 있는 패키지',
+  moreSingleHeader: '단독으로 사면',
+  moreFootnote: '기능을 하나씩 사실 수는 없습니다 — 패키지로 결제합니다.',
   seatCardTitle: '결제 좌석 수',
   seatTooltip: '예상 비용 산정용 인원입니다. 기본값은 현재 재직 구성원 수이며, 조정해 예상 청구액을 미리 볼 수 있습니다. 실제 청구는 청구일의 재직(활성) 좌석으로 확정됩니다(좌석 선구매·약정 쿼터 없음). 기간 요금은 선결제(월간 1개월분/연간 1년분).',
   seatDecreaseAria: '좌석 감소',
@@ -139,6 +159,18 @@ const DEFAULT_LABELS = {
   close: '닫기',
   confirmDowngradeCta: '다운그레이드 확인',
   confirmChangeCta: '변경 확인',
+  // 같은 값끼리 바꾸기(워크 ↔ 목표 · pivit-work PW-3295 · plans §2-D «버튼 — 워크 ↔ 목표»)
+  confirmSameTitle: (label) => kp(`${label}(으)로 바꿀까요?`),
+  confirmSameBody: (label, lost) => kp(`${label}(으)로 바꿉니다 — 확인하는 즉시 바뀌고 오가는 돈은 없습니다. 지금 패키지에만 있는 ${lost}(은)는 새로 쓸 수 없고 기록은 읽기 전용으로 남습니다.`),
+  confirmSameBothHint: (label) => kp(`둘 다 쓰시려면 ${label}(으)로 바꾸세요.`),
+  confirmSameBothCta: (label) => kp(`${label}(으)로`),
+  confirmSameCta: '바꾸기',
+  // 유료 회사가 올릴 때 (plans §2-D «버튼 — 상위» — 확인 창 → 결제 화면)
+  confirmUpgradeTitle: (label) => kp(`${label}(으)로 올릴까요?`),
+  confirmUpgradeBody: '결제 화면에서 오늘 낼 차액을 확인한 뒤 결제합니다. 결제가 성공하는 순간 바뀝니다.',
+  confirmUpgradeLimitedNote: '1on1 은 회사 전체로 3회까지, 스니핏은 오늘 것만 쓸 수 있게 됩니다. 지난 기록은 읽기 전용으로 남습니다.',
+  confirmUpgradeAddonEndsNote: (name, label) => kp(`사 두신 ${name}(은)는 바꾸는 날 끝납니다 — ${label}에 들어 있습니다(환불 없음).`),
+  confirmUpgradeCta: '결제 화면으로',
   // 변경 요청이 실패하면 창을 닫지 않고 확인 버튼이 다시 시도가 된다(screen-billing-plans §3).
   confirmRetryCta: '다시 시도',
   confirmBusyCta: '변경 중...',
@@ -194,6 +226,8 @@ const DEFAULT_LABELS = {
   suspendedBackToOverview: '구독 현황으로',
   // ── «전자결재 · 휴가 패키지» 카드 (pivit-work PW-2782 · spec-billing §2.4-A·§2.4-C · plans «애드온» 행) ──
   addonSectionTitle: '애드온',
+  // 새로 팔지 않는다 — 이미 산 회사의 카드에만 (pivit-work PW-3295 · plans §2-D «애드온 카드»)
+  addonSaleClosedNote: '새로 사거나 바꿀 수는 없습니다 — 휴가 · 전자결재 · 워크플로우를 계속 쓰시려면 워크 패키지나 목표 + 워크로 바꾸세요.',
   addonName: '전자결재 · 휴가 패키지',
   addonDesc: '전자결재 · 워크플로우 + 휴가 · 연차 — 함께 켜고 함께 끕니다',
   addonPrice: (price) => `좌석당 ${won(price)} / 월`,
@@ -340,7 +374,10 @@ const MODAL_BTN_DANGER = 'tl-group-modal-btn adm-btn-danger-ghost';
 function FeatureIcon({ status }) {
   if (status === true) return <span style={{ color: T.green, fontWeight: 800, fontSize: 15 }}>✓</span>;
   if (status === 'partial') return <span style={{ color: T.amber, fontWeight: 800, fontSize: 15 }}>◑</span>;
-  return <span style={{ color: T.muted, fontSize: 15 }}>–</span>;
+  // 출시 예정 · 설계 중 — 흐린 ◑ + 칸 아래 작은 글(pivit-work PW-3295 · 시안 FeatureIcon «soon» · «design»)
+  if (status === 'soon' || status === 'design') return <span style={{ color: T.muted, fontWeight: 700, fontSize: 15 }}>◑</span>;
+  // 미포함은 «—»(정책서 §2-D «— 미포함» 글자 그대로 · 종전 «–»)
+  return <span style={{ color: T.muted, fontSize: 15 }}>—</span>;
 }
 
 // ── 협의 단가 카드 (PW-344) ─────────────────────────────────
@@ -464,13 +501,27 @@ function PriceUnit({ text }) {
   );
 }
 
+/**
+ * 요금제의 «값 순서» — 상위 · 같은 값 · 하위를 가른다(pivit-work PW-3295 · Free < Starter < 워크 = 목표 < 목표 + 워크 < Pro).
+ * 서버가 `priceOrder` 를 주면 그것, 옛 응답이면 `tierRank`(사다리 시절 값).
+ */
+function rankOf(plan) {
+  if (!plan) return 0;
+  return plan.priceOrder ?? plan.tierRank ?? 0;
+}
+
+/** 이 회사가 패키지를 «산» 상태인가 — 사용 중 · 해지 예정 · 결제 실패로 잠김. 체험 · 요금제에 들어 있음 · 꺼짐은 아니다. */
+function addonOwned(addon) {
+  return Boolean(addon) && ['active', 'cancel_scheduled', 'locked'].includes(addon.phase);
+}
+
 /** 베타 출시 혜택 단가가 이 카드에 걸리나 — 월간 · 연간 단가가 있는 정가 요금제 · 혜택 기간 안(PW-2360). */
 function launchBenefitApplies(plan, interval, launchBenefitUntil) {
   return Boolean(launchBenefitUntil) && interval === 'monthly'
     && plan != null && !plan.isCustom && plan.seatPriceAnnual != null;
 }
 
-function PlanCard({ plan, isCurrent, isUpgrade = false, interval, onAction, canEdit, isCustomCta, featureKeys, featureLabelMap, labels, negotiatedPrice, launchBenefitUntil = null, trialNote = null, newPaymentBlockedHint = null }) {
+function PlanCard({ plan, isCurrent, isUpgrade = false, interval, onAction, canEdit, isCustomCta, featureKeys, featureLabelMap, labels, negotiatedPrice, launchBenefitUntil = null, trialNote = null, newPaymentBlockedHint = null, ctaLabel = null, highlight = false }) {
   const isFree = !plan.isCustom && !plan.seatPrice;
   // 베타 출시 혜택(PW-2360) — 기간 안이면 월간도 연간 단가. 연간은 원래 연간 단가라 겹쳐 주지 않고, 커스텀(Pro)은 대상이 아니다.
   const benefit = launchBenefitApplies(plan, interval, launchBenefitUntil);
@@ -480,12 +531,42 @@ function PlanCard({ plan, isCurrent, isUpgrade = false, interval, onAction, canE
   // 체험으로 받은 요금제(pivit-work PW-2657) — «현재 플랜» 표시는 붙이되 버튼은 끄지 않는다.
   // 체험이 끝나기 전에 그 요금제로 결제할 수 있어야 한다.
   const markedCurrent = isCurrent || Boolean(trialNote);
+  // 주소 `?addon=` 로 들어오면 이 카드로 스크롤하고 테두리를 한 번 강조한다(pivit-work PW-3295 · plans §2-D «주소 ?addon=» 행).
+  // 애드온 카드(AddonCard)의 강조와 같은 시간 · 같은 색이다.
+  const cardRef = useRef(null);
+  const [flash, setFlash] = useState(Boolean(highlight));
+  useEffect(() => {
+    if (!highlight || !cardRef.current) return undefined;
+    cardRef.current.scrollIntoView?.({ block: 'center' });
+    setFlash(true);
+    const t = setTimeout(() => setFlash(false), 2400);
+    return () => clearTimeout(t);
+  }, [highlight]);
+  // 카드에 보이는 줄 — 앱이 «들어 있는 것»만 따로 넘기면 그것(pivit-work PW-3295 · 시안 «패키지 카드는 들어 있는 줄만»),
+  // 아니면 종전대로 모든 기능 줄에 ✓/— 를 단다.
+  const cardLines = plan.cardFeatures
+    ? plan.cardFeatures.map((f) => ({ key: f.key ?? f.label, status: f.status ?? true, label: f.label, note: f.note }))
+    : featureKeys.map((key) => ({
+      key,
+      status: plan.featureStatus ? plan.featureStatus[key] : false,
+      label: featureLabelMap[key],
+      note: (plan.features || []).find((f) => f.key === key)?.note,
+    }));
+  // 다른 주기의 값(작은 줄) — 두 주기 값이 다 있는 정가 요금제만
+  const otherCyclePrice = plan.seatPriceAnnual != null && plan.seatPrice
+    ? (interval === 'annual' ? plan.seatPrice : plan.seatPriceAnnual)
+    : null;
+  // 묶음 절감 줄 — 따로 산 값은 앱이 넘긴다(`bundleSavings.apart` · 주기마다). 금액을 가린 동안은 두 금액이 같은 글이 되어 «N% 절감»만 남긴다.
+  const savings = plan.bundleSavings
+    ? { apart: interval === 'annual' ? plan.bundleSavings.apartAnnual : plan.bundleSavings.apartMonthly, pct: plan.bundleSavings.pct }
+    : null;
 
   return (
-    <div style={{
+    <div ref={cardRef} data-testid={`billing-plan-card-${plan.code}`} style={{
       background: T.card,
       // 지금 플랜만 브랜드 테두리(시안 .bl-on) — «추천»은 딱지 글만 남기고 보라 테두리를 뺀다(보라는 AI 뜻)
-      border: `2px solid ${markedCurrent ? T.accent : T.border}`,
+      border: `2px solid ${markedCurrent || flash ? T.accent : T.border}`,
+      transition: 'border-color .4s',
       borderRadius: 16,
       padding: 24,
       position: 'relative',
@@ -544,6 +625,24 @@ function PlanCard({ plan, isCurrent, isUpgrade = false, interval, onAction, canE
             {won(price)}
             {' '}<PriceUnit text={labels.perSeatMonth} />
           </div>
+          {savings && savings.apart > 0 && (
+            <div data-testid={`billing-plan-savings-${plan.code}`}
+              style={{ fontSize: 12, color: T.green, fontWeight: 700, marginTop: 'var(--spacing-xxs)' }}>
+              {moneyHidden() ? labels.bundleSavingsPct(savings.pct) : (
+                <>
+                  {labels.bundleSavingsPre}{' '}
+                  <span style={{ color: T.muted, fontWeight: 500, textDecoration: 'line-through' }}>{won(savings.apart)}</span>
+                  {' → '}{won(price)}{' · '}{labels.bundleSavingsPct(savings.pct)}
+                </>
+              )}
+            </div>
+          )}
+          {otherCyclePrice != null && !benefit && (
+            <div data-testid={`billing-plan-cycle-note-${plan.code}`}
+              style={{ fontSize: 12, color: T.sub, marginTop: 'var(--spacing-xxs)' }}>
+              {interval === 'annual' ? labels.cycleNoteAnnual(otherCyclePrice) : labels.cycleNoteMonthly(otherCyclePrice)}
+            </div>
+          )}
           {interval === 'annual' && plan.seatPriceAnnual != null && (
             <div style={{ fontSize: 12, color: T.amber, marginTop: 2 }}>{labels.annualPerSeatNote}</div>
           )}
@@ -568,19 +667,15 @@ function PlanCard({ plan, isCurrent, isUpgrade = false, interval, onAction, canE
       <Divider />
 
       <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 16px', display: 'flex', flexDirection: 'column', gap: 7, flex: 1 }}>
-        {featureKeys.map((key) => {
-          const st = plan.featureStatus ? plan.featureStatus[key] : false;
-          const feat = (plan.features || []).find((f) => f.key === key);
-          return (
-            <li key={key} style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-              <FeatureIcon status={st} />
-              <span style={{ fontSize: 13, color: st ? T.text : T.muted }}>
-                {featureLabelMap[key]}
-                {feat?.note && <span style={{ color: T.sub, fontSize: 12 }}> — {feat.note}</span>}
-              </span>
-            </li>
-          );
-        })}
+        {cardLines.map((line) => (
+          <li key={line.key} style={{ display: 'flex', alignItems: 'flex-start', gap: 'var(--spacing-md)' }}>
+            <FeatureIcon status={line.status} />
+            <span style={{ fontSize: 13, color: line.status ? T.text : T.muted }}>
+              {line.label}
+              {line.note && <span style={{ color: T.sub, fontSize: 12 }}> — {line.note}</span>}
+            </span>
+          </li>
+        ))}
       </ul>
 
       {onAction && (
@@ -603,7 +698,7 @@ function PlanCard({ plan, isCurrent, isUpgrade = false, interval, onAction, canE
                      [결제하기] 로 바뀐다 (PW-344 ④). 견적이 없거나 만료·대체됐으면
                      종전 그대로다 — 결제할 방법이 없는데 결제 버튼을 두면 안 된다. */
                   (negotiatedPrice != null ? labels.quotePayCta : labels.ctaContactSales)
-                : labels.ctaChangePlan}
+                : (ctaLabel ?? labels.ctaChangePlan)}
           </Btn>
         </div>
       )}
@@ -678,6 +773,9 @@ function AddonCard({ addon, interval, canEdit, highlight, labels, onTrial, onBuy
     action = <Btn kind="danger" onClick={onCancel} disabled={disabled}>{labels.addonCancelCta}</Btn>;
   } else if (addon.phase === 'cancel_scheduled' && addon.cancelScheduledByAddon) {
     action = <Btn kind="secondary" onClick={onUndoCancel} disabled={disabled}>{labels.addonUndoCancelCta}</Btn>;
+  } else if (addon.purchaseBlock === 'sale_closed') {
+    // 새로 팔지 않는다 — 산 회사의 [해지] · [해지 취소]만 남는다(pivit-work PW-3295 · plans §2-D «애드온 카드»).
+    action = null;
   } else if (addon.canStartTrial) {
     action = (
       <div style={{ display: 'flex', gap: 'var(--spacing-md)', flexWrap: 'wrap' }}>
@@ -715,6 +813,9 @@ function AddonCard({ addon, interval, canEdit, highlight, labels, onTrial, onBuy
             {addon.state === 'lapsed' && (
               <div style={{ fontSize: 12, color: T.sub, marginTop: 'var(--spacing-md)' }}>{labels.addonLapsedNote}</div>
             )}
+            {addon.purchaseBlock === 'sale_closed' || addon.saleClosed ? (
+              <div data-testid="billing-addon-sale-closed" style={{ fontSize: 12, color: T.sub, marginTop: 'var(--spacing-md)' }}>{labels.addonSaleClosedNote}</div>
+            ) : null}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 'var(--spacing-sm)' }}>
             {action}
@@ -907,22 +1008,33 @@ function AddonCancelModal({ addon, labels, onClose, onSubmit, onRefundQuote, onR
  * 기능 비교 표 — 흰 판 + 공용 표 틀(FrameTable · 조직도 명단 표 값) (pivit-work PW-3132).
  * 머리의 «추천»은 12 브랜드 글 하나. 지금 플랜 머리는 브랜드 글(체험으로 받은 요금제 포함).
  */
-function FeatureCompareTable({ plans, featureKeys, featureLabelMap, currentPlanCode, labels }) {
-  const rows = [
-    ...featureKeys.map((key) => ({ key, kind: 'feature' })),
-    { key: '__recording', kind: 'recording' },
-    { key: '__aiRuns', kind: 'aiRuns' },
-  ];
+function FeatureCompareTable({ plans, featureKeys, featureLabelMap, currentPlanCode, labels, featureGroups = null }) {
+  // 묶음 줄(«기본» · «성과관리» · «운영» · «AI · 보안 · 한도» …)을 앱이 넘기면 묶음 머리 줄 + 그 줄들(pivit-work PW-3295 · plans §2-D
+  // «패키지별 기능» 표). 한도 줄(녹음 · AI 실행 · 좌석)은 칸에 아이콘 대신 요금제마다의 글(`limitNotes`)을 쓴다.
+  // 묶음이 없으면 종전대로 기능 줄 + 녹음 · AI 실행 줄.
+  const rows = featureGroups
+    ? featureGroups.flatMap((g) => [
+      { key: `__group_${g.label}`, kind: 'group', label: g.label },
+      ...g.rows.map((r) => ({ key: r.key, kind: r.limit ? 'limit' : 'feature', label: r.label })),
+    ])
+    : [
+      ...featureKeys.map((key) => ({ key, kind: 'feature' })),
+      { key: '__recording', kind: 'recording' },
+      { key: '__aiRuns', kind: 'aiRuns' },
+    ];
   const columns = [
     {
       key: 'feature',
       header: labels.compareFeatureHeader,
       // 긴 기능 이름(«평가 (정기 + AI 초안)»)은 두 줄까지 보인다 — 한 줄이면 «…»로 잘렸다(PW-3132 브라우저 확인).
       lines: 2,
-      render: (row) =>
-        row.kind === 'feature'
+      render: (row) => {
+        if (row.kind === 'group') return <span style={COMPARE_GROUP_STYLE}>{row.label}</span>;
+        if (row.label) return row.label;
+        return row.kind === 'feature'
           ? featureLabelMap[row.key]
-          : row.kind === 'recording' ? labels.recordingRowLabel : labels.aiRunsRowLabel,
+          : row.kind === 'recording' ? labels.recordingRowLabel : labels.aiRunsRowLabel;
+      },
     },
     ...plans.map((p) => ({
       key: p.code,
@@ -934,16 +1046,21 @@ function FeatureCompareTable({ plans, featureKeys, featureLabelMap, currentPlanC
         </span>
       ),
       render: (row) => {
+        if (row.kind === 'group') return null;
         if (row.kind === 'recording') return (p.recordingNote || '').split(' (')[0];
         if (row.kind === 'aiRuns') return p.aiRunsNote;
+        if (row.kind === 'limit') return <span style={COMPARE_LIMIT_STYLE}>{p.limitNotes?.[row.key] ?? ''}</span>;
         const st = p.featureStatus ? p.featureStatus[row.key] : false;
-        // ◑ 만으로 뜻이 서지 않는 칸 — 아래 작은 글(Free · Work 의 «1on1 3회 · 지난 스니핏 보기», pivit-work PW-3260 · plans 정책 §2-B).
-        const compareNote = st === 'partial' ? (p.features || []).find((f) => f.key === row.key)?.compareNote : null;
-        if (!compareNote) return <FeatureIcon status={st} />;
+        // ◑ 만으로 뜻이 서지 않는 칸 — 아래 작은 글(워크의 «회사당 3회» · «오늘 쓰기 · 지난 기록 보기» · plans 정책 §2-D).
+        // featureNote 를 먼저, 없으면 예전 모양 features[].compareNote(pivit-work PW-3260)를 쓴다.
+        const note = st && st !== true
+          ? (p.featureNote?.[row.key] ?? (st === 'partial' ? (p.features || []).find((f) => f.key === row.key)?.compareNote : null))
+          : null;
+        if (!note) return <FeatureIcon status={st} />;
         return (
           <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--spacing-xxs)' }}>
             <FeatureIcon status={st} />
-            <span data-testid="compare-cell-note" style={{ fontSize: 11, color: T.sub }}>{compareNote}</span>
+            <span data-testid="compare-cell-note" style={{ fontSize: 11, color: T.sub }}>{note}</span>
           </span>
         );
       },
@@ -954,6 +1071,40 @@ function FeatureCompareTable({ plans, featureKeys, featureLabelMap, currentPlanC
       <FrameTable columns={columns} rows={rows} rowKey={(row) => row.key} empty={null} />
       <BillingInlineNote>{labels.compareLegend}</BillingInlineNote>
     </Panel>
+  );
+}
+
+/** 묶음 머리 줄 — 같은 표 칸 글을 굵게 · 읽을 글 색(pivit-work PW-3295). */
+const COMPARE_GROUP_STYLE = { fontWeight: 600, color: 'var(--text-secondary)' };
+/** 한도 칸 글 — 비교표 녹음 · AI 실행 칸과 같은 크기. */
+const COMPARE_LIMIT_STYLE = { fontSize: 'var(--font-size-text-xs)', color: 'var(--text-secondary)' };
+
+/**
+ * 더 보기 — 기능별로 보기 (pivit-work PW-3295 · plans §2-D · spec-billing §2.4-F ②). 단독 값은 «보기만» — 구매 · 문의 버튼이 없다.
+ * 모양은 위 «패키지별 기능» 표와 같은 흰 판 + 표 틀(새 시각 언어 0). `more` = { rows: [{ key, label, inPackage, single: { monthly, annual } | null }],
+ * packagePrice: { monthly, annual } } — 값은 앱이 넘긴다.
+ */
+function MoreByFeature({ more, interval, labels }) {
+  const annual = interval === 'annual';
+  const pick = (v) => (v == null ? null : annual ? v.annual : v.monthly);
+  const apart = more.rows.reduce((n, r) => n + (pick(r.single) ?? 0), 0);
+  const columns = [
+    { key: 'feature', header: labels.moreFeatureHeader, lines: 2, render: (r) => r.label },
+    { key: 'in', header: labels.morePackageHeader, render: (r) => r.inPackage },
+    { key: 'single', header: labels.moreSingleHeader, align: 'right', render: (r) => (r.single ? won(pick(r.single)) : '—') },
+  ];
+  return (
+    <div data-testid="billing-plans-more">
+      <Panel title={labels.moreTitle}>
+        <Stack gap="lg">
+          <div style={{ fontSize: 'var(--font-size-text-sm)', color: 'var(--text-secondary)' }}>
+            {labels.moreIntro(apart, pick(more.packagePrice), annual)}
+          </div>
+          <FrameTable columns={columns} rows={more.rows} rowKey={(r) => r.key} empty={null} />
+        </Stack>
+        <BillingInlineNote>{labels.moreFootnote}</BillingInlineNote>
+      </Panel>
+    </div>
   );
 }
 
@@ -1088,11 +1239,20 @@ export default function BillingPlansCanvas({
   onAddonRefund = () => Promise.resolve(),
   onAddonUndoCancel = () => {},
   onNavigateMethods = () => {},
+  /**
+   * «패키지별 기능» 표의 묶음 줄 (pivit-work PW-3295 · plans §2-D) — `[{ label, rows: [{ key, label, limit? }] }]`.
+   * 보이는 카드 어느 것도 주지 않는 줄은 앱이 빼고 넘긴다. 없으면 종전 비교표.
+   */
+  featureGroups = null,
+  /** [더 보기 — 기능별로 보기]에 펼칠 값 (pivit-work PW-3295 · `MoreByFeature`). 없으면 버튼도 없다. */
+  moreByFeature = null,
 }) {
   const seatConfirmId = useId();
   const labels = mergeLabels(providedLabels);
 
-  const [intervalState, setIntervalState] = useState('monthly'); // monthly | annual
+  // 처음 열면 «연간» — 지금 구독이 월간이어도 같다(pivit-work PW-3295 · plans §2-D «청구 주기 토글 처음 값» · 종전 'monthly').
+  const [intervalState, setIntervalState] = useState('annual'); // monthly | annual
+  const [moreOpen, setMoreOpen] = useState(false);
   const [seatsState, setSeatsState] = useState(activeSeats);
   const [confirmTarget, setConfirmTargetState] = useState(null);
   const [confirmBusy, setConfirmBusy] = useState(false);
@@ -1122,7 +1282,7 @@ export default function BillingPlansCanvas({
   // 청구 주기·좌석 수는 onIntervalChange/onSeatsChange 주입 시 controlled(위임),
   // 아니면 내부 state.
   // 호스트가 위임받으면 화면을 떠났다 돌아와도 사용자의 선택이 유지된다.
-  const interval = onIntervalChange ? (intervalProp ?? 'monthly') : intervalState;
+  const interval = onIntervalChange ? (intervalProp ?? 'annual') : intervalState;
   const setInterval = (v) => {
     if (onIntervalChange) onIntervalChange(v);
     else setIntervalState(v);
@@ -1149,12 +1309,12 @@ export default function BillingPlansCanvas({
 
   const currentPlan = plans.find((p) => p.code === subscription.planCode);
   // 이용 정지면 지금 결제된 요금제가 없다 — 모든 유료 카드가 «결제»다 (PW-2549).
-  const currentRank = suspension ? 0 : (currentPlan?.tierRank ?? 0);
-  const isCurrentFree = suspension ? true : (currentPlan?.tierRank ?? 0) === 0;
+  const currentRank = suspension ? 0 : rankOf(currentPlan);
+  const isCurrentFree = suspension ? true : rankOf(currentPlan) === 0;
 
   const lowestPaidPlan = plans
-    .filter((p) => (p.tierRank ?? 0) > 0 && !p.isCustom)
-    .sort((a, b) => (a.tierRank ?? 0) - (b.tierRank ?? 0))[0];
+    .filter((p) => rankOf(p) > 0 && !p.isCustom)
+    .sort((a, b) => rankOf(a) - rankOf(b))[0];
 
   // 결제할 수 있는 협의 견적이 있으면 그 플랜이 기본 미리보기다 (PW-1620 · screen-billing-plans §7).
   // 견적 플랜 카드의 버튼은 곧장 결제로 넘어가 미리보기를 고를 틈이 없다 — 기본을 지금 요금제로 두면
@@ -1178,10 +1338,10 @@ export default function BillingPlansCanvas({
   const vat = Math.round(subtotal * vatRate);
   const total = subtotal + vat;
 
-  const onPlanAction = (plan) => {
+  const onPlanAction = (plan, { skipConfirm = false } = {}) => {
     if (!canEdit) return;
     setPreviewPlanCode(plan.code);
-    const targetRank = plan.tierRank ?? 0;
+    const targetRank = rankOf(plan);
 
     // Pro·Enterprise: 유효 견적이 있으면 **결제 경로**, 없으면 종전대로 영업팀 문의.
     // 이 갈림길이 이 카드의 핵심이다 — 견적이 없으면 결제할 방법이 없어 운영이 콘솔
@@ -1206,6 +1366,13 @@ export default function BillingPlansCanvas({
     }
 
     if (targetRank > currentRank) {
+      // 이미 결제한 회사가 올릴 때는 확인 창이 먼저 — 빠지는 기능 · 끝나는 패키지를 말하고 결제 화면으로(pivit-work PW-3295 ·
+      // plans §2-D «버튼 — 상위»). Free · 체험 · 이용 정지 회사는 종전대로 곧바로 결제 화면이다.
+      if (!isCurrentFree && !trialPlan && !skipConfirm) {
+        setDowngradeChecked(false);
+        setConfirmTarget(plan);
+        return;
+      }
       // 업그레이드 → checkout 위임
       onSelectPlanUpgrade(plan.code, interval, seats);
       onNavigateCheckout();
@@ -1221,6 +1388,13 @@ export default function BillingPlansCanvas({
   const handleConfirm = async () => {
     if (!confirmTarget || confirmBusy) return;
     const target = confirmTarget;
+    // 올리는 확인 창은 결제 화면으로 넘긴다 — 바꾸는 것은 결제가 성공하는 순간이다.
+    if (confirmKind === 'upgrade') {
+      setConfirmTarget(null);
+      onSelectPlanUpgrade(target.code, interval, seats);
+      onNavigateCheckout();
+      return;
+    }
     setConfirmBusy(true);
     try {
       await onConfirmChange(target.code, interval, seats);
@@ -1233,9 +1407,39 @@ export default function BillingPlansCanvas({
     }
   };
 
-  const isDowngrade = confirmTarget ? (confirmTarget.tierRank ?? 0) < currentRank : false;
+  // 확인 창 갈래 — 올림(결제 화면으로) · 같은 값(워크 ↔ 목표 · 즉시 · 돈 없음) · 내림 · 그 밖의 변경(pivit-work PW-3295).
+  const confirmKind = !confirmTarget
+    ? null
+    : rankOf(confirmTarget) > currentRank
+      ? 'upgrade'
+      : rankOf(confirmTarget) === currentRank && currentPlan && confirmTarget.code !== currentPlan.code
+        ? 'same'
+        : rankOf(confirmTarget) < currentRank ? 'downgrade' : 'change';
+  const isDowngrade = confirmKind === 'downgrade';
+  // 지금 요금제에만 있는 기능 이름 — 같은 값 · 내림 창 본문의 {기능 목록}. 칸이 ✓/◑ 인데 새 요금제에는 없는 줄.
+  const lostFeatureText = (() => {
+    if (!confirmTarget || !currentPlan || !featureGroups) return '';
+    const names = [];
+    featureGroups.forEach((g) => g.rows.forEach((r) => {
+      if (r.limit) return;
+      if (currentPlan.featureStatus?.[r.key] && !confirmTarget.featureStatus?.[r.key]) names.push(r.label);
+    }));
+    return names.join(' · ');
+  })();
+  // 둘 다 든 묶음 요금제(목표 + 워크) — 같은 값 창의 [목표 + 워크로]
+  const bundlePlan = plans.find((p) => p.bundleSavings);
+  // 올리는 창의 덧붙임 줄 — 1on1 · 스니핏이 Free 만큼으로 줄어드는 길(Starter → 워크) · 사 둔 패키지가 끝나는 길(→ 세 기능 든 요금제)
+  const ownedAddon = addonOwned(addon);
+  const upgradeNotes = confirmKind === 'upgrade'
+    ? [
+      currentPlan?.featureStatus?.oneon1 === true && confirmTarget.featureStatus?.oneon1 && confirmTarget.featureStatus.oneon1 !== true
+        ? labels.confirmUpgradeLimitedNote : null,
+      ownedAddon && confirmTarget.includesOps
+        ? labels.confirmUpgradeAddonEndsNote(labels.addonName, confirmTarget.label) : null,
+    ].filter(Boolean)
+    : [];
   const freeLimit = confirmTarget?.seatLimit;
-  const isFreeTarget = isDowngrade && (confirmTarget?.tierRank ?? 0) === 0;
+  const isFreeTarget = isDowngrade && rankOf(confirmTarget) === 0;
   // 한도 초과는 «지금 활성 구성원»으로 본다 — 좌석 스테퍼 값은 결제할 좌석이라 Free 전환과 무관하다.
   const seatOverLimit = isFreeTarget
     && freeLimit != null
@@ -1246,7 +1450,7 @@ export default function BillingPlansCanvas({
   const downgradeBody = isFreeTarget && labels.confirmDowngradeFreeBody
     ? labels.confirmDowngradeFreeBody
     : typeof labels.confirmDowngradeBody === 'function'
-      ? labels.confirmDowngradeBody(confirmTarget?.label ?? '', switchedInterval)
+      ? labels.confirmDowngradeBody(confirmTarget?.label ?? '', switchedInterval, lostFeatureText)
       : labels.confirmDowngradeBody;
 
 
@@ -1279,12 +1483,32 @@ export default function BillingPlansCanvas({
   // 커스텀(Pro)은 결제 · 영업팀 문의, 지금보다 높은 단(tierRank)은 결제로 간다. 나머지는 변경 확인 창(내려가는 변경).
   // 체험으로 받은 요금제가 있으면 세기의 기준은 그 요금제다 — 체험 중 Growth 회사에 Starter 는 «내려가는 변경»(시안 · 카드 본문).
   // 결제 흐름(onPlanAction)은 그대로 지금 구독(체험이면 Free)을 따르고, 체험 요금제 자신은 결제로 이어 가는 길이라 초록이다.
-  const trialRank = !suspension && trialPlan ? (plans.find((p) => p.code === trialPlan.planCode)?.tierRank ?? null) : null;
+  const trialPlanMeta = !suspension && trialPlan ? plans.find((p) => p.code === trialPlan.planCode) : null;
+  const trialRank = trialPlanMeta ? rankOf(trialPlanMeta) : null;
   const isUpgradePlan = (plan) =>
     Boolean(plan.isCustom) ||
     (trialRank != null
-      ? plan.code === trialPlan.planCode || (plan.tierRank ?? 0) > trialRank
-      : (plan.tierRank ?? 0) > currentRank);
+      ? plan.code === trialPlan.planCode || rankOf(plan) > trialRank
+      : rankOf(plan) > currentRank);
+  // 카드 버튼 글(pivit-work PW-3295 · plans §2-D «버튼 — 상위») — Free 회사가 올리면 [이 플랜으로 결제],
+  // 묶음 카드를 그 안의 패키지 하나를 쓰는 회사가 보면 [나머지 패키지 더하기].
+  const ctaLabelOf = (plan) => {
+    if (plan.isCustom || !isUpgradePlan(plan)) return null;
+    if (plan.bundleSavings && currentPlan && !suspension && (plan.bundleOf ?? []).includes(currentPlan.code)) {
+      const other = (plan.bundleOf ?? []).find((c) => c !== currentPlan.code);
+      const otherPlan = plans.find((p) => p.code === other);
+      if (otherPlan) return labels.ctaAddPackage(otherPlan.label);
+    }
+    return isCurrentFree && !trialPlan ? labels.ctaPayPlan : null;
+  };
+  // 주소 `?addon=` 진입 — 산 회사는 애드온 카드(AddonCard 가 강조), 산 적 없는 회사는 세 기능이 든 카드로(pivit-work PW-3295 ·
+  // plans §2-D). 지금 요금제에 세 기능이 들었으면 그 «현재 플랜» 카드, 아니면 워크 패키지 카드(세 기능 · 묶음 아님 · 정가).
+  // 그런 카드가 없으면(판매 전) 강조 없이 화면 맨 위.
+  const highlightPlanCode = addonHighlight && !ownedAddon
+    ? (currentPlan?.includesOps && !suspension
+      ? currentPlan.code
+      : plans.find((p) => p.includesOps && !p.bundleSavings && !p.isCustom)?.code ?? null)
+    : null;
 
   return (
     <BillingPage width={BILLING_PAGE_WIDTH.plans}>
@@ -1443,9 +1667,9 @@ export default function BillingPlansCanvas({
                 !subscriptionUnavailable &&
                 !payBlock &&
                 // 이용 정지면 Free 로 가는 결제는 없다 — 해지는 구독 현황의 [해지 신청] (띠 둘째 문장이 이유를 말한다)
-                !(suspension && (plan.tierRank ?? 0) === 0) &&
+                !(suspension && rankOf(plan) === 0) &&
                 // 체험 중 Free 카드 — 지금 Free 를 쓰는 것이 아니지만 Free 로 바꾸는 길도 없다 (PW-2657)
-                !(trialPlan && !suspension && (plan.tierRank ?? 0) === 0) &&
+                !(trialPlan && !suspension && rankOf(plan) === 0) &&
                 !subscription.cancelAtPeriodEnd &&
                 !(commitment?.lockedPlanCodes ?? []).includes(plan.code)
               }
@@ -1461,6 +1685,8 @@ export default function BillingPlansCanvas({
               launchBenefitUntil={launchBenefitUntil}
               trialNote={!suspension && trialPlan && trialPlan.planCode === plan.code ? trialPlan : null}
               newPaymentBlockedHint={newPaymentBlockedHint}
+              ctaLabel={ctaLabelOf(plan)}
+              highlight={highlightPlanCode === plan.code}
               onAction={() => onPlanAction(plan)}
             />
           ))}
@@ -1477,12 +1703,13 @@ export default function BillingPlansCanvas({
         {/* «전자결재 · 휴가 패키지» — 기능 비교표 위 (pivit-work PW-2782 · plans «애드온 카드» 행). 판매 전이면 없다. */}
         {addonLoadFailed ? (
           <AddonLoadFailed labels={labels} onRetry={onAddonRetry} />
-        ) : addon?.onSale ? (
+        ) : addon?.onSale && (addonOwned(addon) || addon.purchaseBlock !== 'sale_closed') ? (
+          // 새로 팔지 않는다 — 산 회사에만 카드가 남는다(pivit-work PW-3295 · plans §2-D «애드온 카드»)
           <AddonCard
             addon={addon}
             interval={interval}
             canEdit={canEdit}
-            highlight={addonHighlight}
+            highlight={addonHighlight && addonOwned(addon)}
             busy={addonBusy}
             newPaymentBlockedHint={newPaymentBlockedHint}
             labels={labels}
@@ -1502,7 +1729,20 @@ export default function BillingPlansCanvas({
           featureLabelMap={featureLabelMap}
           currentPlanCode={suspension ? null : (trialPlan?.planCode ?? subscription.planCode)}
           labels={labels}
+          featureGroups={featureGroups}
         />
+
+        {/* 더 보기 — 기능별로 보기 (pivit-work PW-3295 · 단독 값은 보기만) */}
+        {moreByFeature && (
+          <div style={{ alignSelf: 'flex-start' }}>
+            <Btn kind="secondary" onClick={() => setMoreOpen((v) => !v)}>
+              <span data-testid="billing-plans-more-toggle">{moreOpen ? labels.moreCollapse : labels.moreToggle}</span>
+            </Btn>
+          </div>
+        )}
+        {moreByFeature && moreOpen && (
+          <MoreByFeature more={moreByFeature} interval={interval} labels={labels} />
+        )}
 
         {/* 결제 좌석 수 · 예상 청구액 — 같은 계산(좌석 → 금액)이라 흰 판 하나에 두 구역 (pivit-work PW-3132) */}
         <Panel>
@@ -1656,9 +1896,13 @@ export default function BillingPlansCanvas({
             사이드바(App.css `.sidebar` = 100)까지 덮는다. 겹침 순서는 종전 값 1000. */}
         {confirmTarget && (
           <ModalShell
-            title={isDowngrade
-              ? labels.confirmDowngradeTitle(confirmTarget.label)
-              : labels.confirmChangeTitle(confirmTarget.label)}
+            title={confirmKind === 'upgrade'
+              ? labels.confirmUpgradeTitle(confirmTarget.label)
+              : confirmKind === 'same'
+                ? labels.confirmSameTitle(confirmTarget.label)
+                : isDowngrade
+                  ? labels.confirmDowngradeTitle(confirmTarget.label)
+                  : labels.confirmChangeTitle(confirmTarget.label)}
             titleId="billing-plan-confirm-title"
             closeLabel={labels.close}
             onClose={() => setConfirmTarget(null)}
@@ -1671,6 +1915,15 @@ export default function BillingPlansCanvas({
                   onClick={() => setConfirmTarget(null)}>
                   {labels.cancelButton}
                 </button>
+                {confirmKind === 'same' && bundlePlan && (
+                  <button type="button" className="tl-group-modal-btn tl-group-modal-btn-secondary"
+                    data-testid="billing-plan-confirm-bundle"
+                    disabled={confirmBusy}
+                    // 그 자리에서 목표 + 워크로 올리는 결제 화면으로(plans §2-D · TC-BILL-325 ②)
+                    onClick={() => { setConfirmTarget(null); onPlanAction(bundlePlan, { skipConfirm: true }); }}>
+                    {labels.confirmSameBothCta(bundlePlan.label)}
+                  </button>
+                )}
                 <button type="button"
                   className={`tl-group-modal-btn ${isDowngrade ? 'adm-btn-danger-ghost' : 'tl-group-modal-btn-primary'}`}
                   onClick={() => void handleConfirm()}
@@ -1680,14 +1933,27 @@ export default function BillingPlansCanvas({
                     ? labels.confirmBusyCta
                     : confirmFailed
                       ? labels.confirmRetryCta
-                      : isDowngrade ? labels.confirmDowngradeCta : labels.confirmChangeCta}
+                      : confirmKind === 'upgrade'
+                        ? labels.confirmUpgradeCta
+                        : confirmKind === 'same'
+                          ? labels.confirmSameCta
+                          : isDowngrade ? labels.confirmDowngradeCta : labels.confirmChangeCta}
                 </button>
               </>
             }
           >
             {/* 안은 바탕 없는 줄 (pivit-work PW-3132) — 설명 / 좌석 한도 초과(경고 칸 이름 + 설명 + 체크칸) / 데이터 보존 안내 */}
             <Stack gap="xl">
-              <NoticeLines lines={[isDowngrade ? downgradeBody : labels.confirmChangeBody]} />
+              <NoticeLines lines={
+                confirmKind === 'upgrade'
+                  ? [labels.confirmUpgradeBody, ...upgradeNotes]
+                  : confirmKind === 'same'
+                    ? [
+                      labels.confirmSameBody(confirmTarget.label, lostFeatureText),
+                      bundlePlan ? labels.confirmSameBothHint(bundlePlan.label) : null,
+                    ]
+                    : [isDowngrade ? downgradeBody : labels.confirmChangeBody]
+              } />
 
               {/* Free 다운그레이드 — 좌석 상한 초과 경고 */}
               {seatOverLimit && (

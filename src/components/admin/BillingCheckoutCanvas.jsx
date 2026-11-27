@@ -173,8 +173,9 @@ const DEFAULT_LABELS = {
   // ── 요금제 변경 모드 (pivit-work PW-2475 · screen-billing-checkout §2 · spec-billing §3.1) ──
   // 이용 중 구독이 상위 요금제로 올릴 때 — 오늘은 남은 기간의 차액만, 청구 기준일·다음 청구일은 그대로.
   planChangeDiffLine: (fromLabel, toLabel, lastDay, days) => `${fromLabel} → ${toLabel} 차액 · 오늘 ~ ${lastDay} ${days}일분`,
-  planChangeFormula: (seats, toUnit, fromUnit, months, days, periodDays) =>
-    `${seats}좌석 × (${won(toUnit)} − ${won(fromUnit)})${months > 1 ? ` × ${months}개월` : ''} × ${days}/${periodDays}`,
+  // 사 둔 패키지가 그날 끝나면 그 보유 단가도 뺀다(pivit-work PW-3295 · spec-billing §2.4-F ⑥) — 없으면 종전 글 그대로
+  planChangeFormula: (seats, toUnit, fromUnit, months, days, periodDays, addonUnit) =>
+    `${seats}좌석 × (${won(toUnit)} − ${won(fromUnit)}${addonUnit ? ` − ${won(addonUnit)}` : ''})${months > 1 ? ` × ${months}개월` : ''} × ${days}/${periodDays}`,
   planChangeCarryNote: (diff) => `오늘 결제 없음 · 차액 ${won(diff)}은 다음 청구일에 함께 청구됩니다`,
   planChangeNoneNote: '오늘 결제 없음 · 낼 차액이 없어 결제 없이 바뀝니다',
   planChangeNextMonthly: (date, seats, unit, day) => (
@@ -568,7 +569,7 @@ export default function BillingCheckoutCanvas({
                   <div style={{ fontSize: 'var(--font-size-text-xs)', color: 'var(--text-secondary)' }}>
                     {labels.planChangeFormula(planChange.seats, planChange.toUnitPrice,
                       planChange.fromUnitPrice, planChange.months,
-                      planChange.remainingDays, planChange.periodDays)}
+                      planChange.remainingDays, planChange.periodDays, planChange.fromAddonUnitPrice ?? 0)}
                   </div>
                 </div>
               )}
@@ -606,6 +607,8 @@ export default function BillingCheckoutCanvas({
                         : labels.planChangeNextMonthly(planChange.nextBillingDate, planChange.seats,
                           planChange.nextUnitPrice, planChange.anchorDay),
                       planChange.intervalSwitch && labels.planChangeIntervalSwitch(nextAnnual),
+                      // 앱이 만든 안내 줄 — 워크 → 목표 + 워크 «세 기능은 그대로 · 목표 기능이 더해짐» · 끝나는 패키지 (pivit-work PW-3295)
+                      ...(planChange.notes ?? []),
                     ]}
                   />
                   {planChange.firstCycle && (

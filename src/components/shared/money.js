@@ -11,3 +11,8 @@ export function won(n) {
   const value = Number(n || 0);
   return formatter ? formatter(value) : '₩' + value.toLocaleString('ko-KR');
 }
+
+/** 금액을 바꿔 끼운 상태인가(가격 추후 안내 등) — 금액 둘을 견주는 줄(«따로 사면 ₩A → ₩B»)이 같은 글 둘이 되지 않게 묻는다. */
+export function moneyHidden() {
+  return formatter != null;
+}
