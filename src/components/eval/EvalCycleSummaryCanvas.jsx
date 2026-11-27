@@ -156,6 +156,8 @@ const DEFAULT_LABELS = {
   // §4.5 상세 요약 칩 — 사이클 기간 개인 OKR 진행률 평균.
   cwOkrChip: 'OKR 달성률 {pct}',
   cwOkrLabel: 'OKR 달성률',
+  // PW-3289 — 공개 범위로 못 보는 팀원의 OKR 달성률 자리(OKR 화면 블라인드와 같은 말)
+  cwOkrHidden: '비공개',
   // PW-2655 — 펼친 상세 답 묶음 이름. 평가지에 사람이 지은 분류 이름이 있으면 그 이름이 이긴다.
   cwCatNames: { work_achievement: '성과', competency: '역량', growth: '성장' },
   cwExpandAll: '모두 펼치기',
@@ -1204,13 +1206,20 @@ function answerSummary(answers, max = 140, L = DEFAULT_LABELS) {
 }
 
 /**
+ * 대상자 «OKR 달성률» 값 글 — 보는 사람이 그 팀원의 개인 OKR 을 공개 범위로 못 보면(`okrAchievementHidden`)
+ * 값 자리에 «비공개»(PW-3289 · spec-calibration §4.5 «중» PW-3246 줄). 없음은 «—» — 둘이 같은 모습이면 안 된다.
+ */
+function okrPctText(row, L) {
+  if (row.okrAchievementHidden) return L.cwOkrHidden;
+  return row.okrAchievementPct == null ? '—' : `${row.okrAchievementPct}%`;
+}
+
+/**
  * §10.G.4 행 호버 팝오버 — 셀프 요약 · 매니저 코멘트 요약 · 최종 OKR 달성률.
  * 상세는 소비처가 불러온다(`onPreviewCalibRow`). 오기 전에는 「불러오는 중」, 못 받으면 그렇다고 말한다.
  */
 function CalibRowPreview({ row, detail, failed, L }) {
-  const okr = fmt(L.cwHoverOkr, {
-    pct: row.okrAchievementPct == null ? '—' : `${row.okrAchievementPct}%`,
-  });
+  const okr = fmt(L.cwHoverOkr, { pct: okrPctText(row, L) });
   return (
     <div className="evs-cw-preview" data-testid="evs-cw-row-preview">
       <div className="evs-cw-preview-name">{row.name}</div>
@@ -6563,7 +6572,9 @@ export default function EvalCycleSummaryCanvas({
                                             )}
                                             <div data-testid="evs-cw-detail-chip-okr">
                                               <dt>{L.cwOkrLabel}</dt>
-                                              <dd>{row.okrAchievementPct == null ? '—' : `${row.okrAchievementPct}%`}</dd>
+                                              <dd className={row.okrAchievementHidden ? 'evs-cw-okr-hidden' : undefined}>
+                                                {okrPctText(row, L)}
+                                              </dd>
                                             </div>
                                           </dl>
                                           {/* R5b 직급·레벨 변동 타임라인 — PW-520 선택 칸 */}

@@ -8551,6 +8551,10 @@ button.evm-ai-source {
   padding: 0 10px 12px 10px !important;
   background: var(--bg-secondary);
 }
+/* PW-3289 — 공개 범위로 못 보는 «OKR 달성률» 자리 «비공개»(회색 · 꺼진 값) */
+.evs-cw-detail dd.evs-cw-okr-hidden {
+  color: var(--text-tertiary);
+}
 .evs-cw-detail {
   background: var(--bg-primary);
   border: 1px solid var(--border-primary);
