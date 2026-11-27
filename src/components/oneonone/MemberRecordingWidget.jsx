@@ -41,6 +41,8 @@ const WAVE_RECORDING = [5, 20, 14, 10, 7, 5];
 // (pivit-work PW-3254 · policy §3.4 «준비 단계에는 팀원 녹음 표시를 보이지 않는다»).
 const DEFAULT_LABELS = {
   waitingTitle: '현재 녹음하고 있지 않습니다',
+  // 녹음 전 둘째 줄 — 녹음 완료·저장 상태가 쓰는 부제 줄에 그린다 (pivit-work PW-3254 · policy §3.4 표 «매니저가 시작함 — 녹음 전»)
+  waitingSub: '매니저가 녹음을 시작하면 자동으로 상태가 업데이트됩니다.',
   recordingTitle: '원온원 녹음 중',
   recordedTitle: '녹음 완료',
   savedTitle: '녹음 저장 완료 - AI 분석 중',
@@ -134,6 +136,7 @@ export default function MemberRecordingWidget({
         <div className="ono-start-rec-head">
           <p className="ono-start-rec-title">{title}</p>
           {!isClock && <p className="ono-my-widget-sub">{L.finishingSub}</p>}
+          {status === 'waiting' && L.waitingSub && <p className="ono-my-widget-sub">{L.waitingSub}</p>}
           <div className="ono-start-rec-member">
             <div className="ono-start-rec-avatar">{manager?.avatar && <img src={manager.avatar} alt="" />}</div>
             <div className="ono-start-rec-member-info">
