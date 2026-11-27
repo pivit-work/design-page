@@ -5206,8 +5206,126 @@ function terminationDateProblem(draft, savedLastWorkingDate, offboardingSchedule
   return null;
 }
 
+/**
+ * 계약 칸 (pivit-work PW-3194 · admin-spec §3.2.2 «PW-3190 · PW-3194») — 계약 시작일 · 계약 종료일(마지막 근무일).
+ * 고용형태가 계약직 · 인턴인 사람에게만 보이고, 값은 HR 정보에서 읽어 신원 저장 경로로 나간다(퇴사일 · 고용형태와 같은 [저장]).
+ */
+const CONTRACT_FIELDS = ['contractStartDate', 'contractEndDate'];
+/** 계약 기간이 있는 고용형태 — 서버 `CONTRACT_EMPLOYMENT_TYPES` 와 같은 두 값(코어 §1-3-a 4종 중 둘). */
+const CONTRACT_EMPLOYMENT_TYPES = ['계약직', '인턴'];
+const isContractEmploymentType = (t) => CONTRACT_EMPLOYMENT_TYPES.includes(String(t ?? '').trim());
+/** `YYYY-MM-DD` 의 다음 날 — 날짜만 센다(시간대에 흔들리지 않게 UTC 로). 날짜가 아니면 ''. */
+function dayAfterYmd(d) {
+  const day = ymdOf(d);
+  if (!day) return '';
+  const x = new Date(`${day}T00:00:00Z`);
+  if (Number.isNaN(x.getTime())) return '';
+  x.setUTCDate(x.getUTCDate() + 1);
+  return x.toISOString().slice(0, 10);
+}
+/** 비어 있는 계약 시작일이 따르는 날 — 입사일과 현 고용형태 시작일 중 늦은 날(같으면 입사일). `from` 은 안내 문구 갈래. */
+function contractStartBasis(hireDate, employmentTypeStartDate) {
+  const hire = ymdOf(hireDate);
+  const typeStart = ymdOf(employmentTypeStartDate);
+  return typeStart && typeStart > hire ? { date: typeStart, from: 'typeStart' } : { date: hire, from: 'hire' };
+}
+/** 계약 기간이 2년을 넘나 — 종료일이 시작일의 2년 뒤 같은 날이거나 그 뒤(2026-01-01 ~ 2027-12-31 은 딱 2년이라 아니다). */
+function contractOverTwoYears(start, end) {
+  const s = ymdOf(start);
+  const e = ymdOf(end);
+  if (!s || !e) return false;
+  return e >= `${Number(s.slice(0, 4)) + 2}${s.slice(4)}`;
+}
+/** 바뀐 계약 종료일의 갈래 — 연장 · 앞당김 · 지움(계약 연장 이력 줄 · «저장하면 한 줄 남습니다»). */
+const contractChangeKind = (before, after) => (!after ? 'cleared' : after > before ? 'extended' : 'shortened');
+/** 계약 칸 문구 기본값 — 소비자가 `labels.panel.contract` 로 덮는다. `{date}` 등은 캔버스가 채운다. */
+const CONTRACT_DEFAULT_LABELS = {
+  startLabel: '계약 시작일',
+  endLabel: '계약 종료일(마지막 근무일)',
+  historyLabel: '계약 연장 이력',
+  startFollowsHire: '비어 있으면 입사일({date})을 따릅니다',
+  startFollowsTypeStart: '비어 있으면 현 고용형태 시작일({date})을 따릅니다',
+  startFollowsNone: '비어 있으면 입사일을 따릅니다',
+  startClearHire: '비우기 — 입사일 따르기',
+  startClearTypeStart: '비우기 — 현 고용형태 시작일 따르기',
+  startReadHire: '{date} (입사일을 따름)',
+  startReadTypeStart: '{date} (현 고용형태 시작일을 따름)',
+  endHint: '마지막으로 일하는 날입니다',
+  endHintLeave: '마지막으로 일하는 날입니다. 연차 정책에서 «계약 기간에 맞춰 줍니다»를 켠 회사는 이 기간의 개월 수로 연차를 줍니다',
+  endBeforeStart: '계약 종료일은 계약 시작일({date})보다 앞설 수 없습니다',
+  overTwoYears: '계약 기간이 2년을 넘습니다({start} ~ {end}) — 기간의 정함이 없는 계약으로 보는지 노무 담당과 확인해 주세요',
+  resignFill: '퇴사일을 {date}(으)로 함께 채웁니다(위 퇴사일 칸에서 고칠 수 있습니다). 그날 퇴사 처리가 자동 실행되고, 만료 1개월 전 알림도 퇴사일을 따릅니다',
+  resignChange: '퇴사일을 {before} → {after}(으)로 함께 고칩니다(위 퇴사일 칸에서 고칠 수 있습니다). 그날 퇴사 처리가 자동 실행되고, 만료 1개월 전 알림도 퇴사일을 따릅니다',
+  resignClear: '퇴사일({date})도 함께 비웁니다',
+  resignPast: '계약 종료일 다음 날이 오늘이거나 지나서 퇴사일은 채우지 않습니다 — 퇴사했으면 목록 행 ⋯ > 비활성화에서 처리하세요',
+  resignScheduled: '퇴사 예약({date})이 걸려 있어 퇴사일은 그대로 둡니다 — 계속 일하면 목록 행 메뉴에서 퇴사 예약을 취소하세요',
+  resignGuarded: '퇴사일 칸이 잠겨 있어 퇴사일은 채우지 않습니다',
+  resignMismatch: '퇴사일({term})이 계약 종료일 다음 날({next})이 아닙니다 — 마지막 근무일이 계약 종료일이면 퇴사일은 {next}입니다',
+  extendAsk: '계약을 연장했는데 퇴사일({date})이 새 계약 종료일까지 오지 않습니다 — 그날 퇴사 처리가 자동 실행됩니다. 퇴사일을 어떻게 할지 골라 주세요',
+  resignSetNext: '퇴사일을 {date}(으)로 바꾸기',
+  resignKeep: '퇴사일 그대로 두기',
+  resignKept: '퇴사일을 그대로 둡니다',
+  typeLeaveCleared: '계약 종료일 다음 날이던 퇴사일({date})을 비웁니다 — 남겨 두면 그날 퇴사 처리가 자동 실행됩니다',
+  typeLeaveRemains: '퇴사일({date})이 남아 있습니다 — 그날 퇴사 처리가 자동 실행됩니다. 계속 일하면 퇴사일을 비워 주세요',
+  typeLeaveScheduled: '퇴사 예약({date})이 걸려 있습니다 — 계속 일하면 목록 행 메뉴에서 퇴사 예약을 취소하세요',
+  typeLeaveRestore: '퇴사일 되돌리기',
+  resignHint: '재직 중이면 비워 두거나 퇴사 예정일을 넣습니다. 아래 계약 종료일을 넣으면 그 다음 날로 채웁니다. 넣어도 바로 퇴사로 바뀌지 않고, 퇴사일이 되면 회사 기본값으로 퇴사 처리가 자동 실행됩니다.',
+  historyLine: '{before} → {after} · {kind}',
+  historyPending: '저장하면 한 줄 남습니다 — {before} → {after} · {kind}',
+  historyCleared: '(비움)',
+  historyLoading: '불러오는 중…',
+  historyLoadError: '계약 연장 이력을 불러오지 못했습니다',
+  kinds: { extended: '연장', shortened: '앞당김', cleared: '지움' },
+};
+
+/**
+ * 계약 연장 이력 (pivit-work PW-3194 · admin-spec §3.2.2 «계약 연장 이력») — 따로 쌓는 기록이 아니라 개인정보 변경 이력의
+ * «계약 종료일» 줄을 골라 보인다. 값이 있던 종료일이 바뀐 저장마다 한 줄 · 새 것이 위 · 빈 칸에 처음 넣은 저장은 줄이 없다.
+ * `load(memberId, { field })` 는 변경 이력 탭과 같은 조회(첫 쪽만). 미주입이면 `—`.
+ */
+function ContractHistoryLines({ memberId, load, L, pending }) {
+  const [state, setState] = useState(load ? { status: 'loading', items: [] } : { status: 'ready', items: [] });
+  useEffect(() => {
+    if (!load) return undefined;
+    let alive = true;
+    Promise.resolve(load(memberId, { field: 'contractEndDate' }))
+      .then((page) => { if (alive) setState({ status: 'ready', items: page?.items || [] }); })
+      .catch(() => { if (alive) setState({ status: 'error', items: [] }); });
+    return () => { alive = false; };
+  }, [memberId, load]);
+  const lines = state.items
+    .filter((h) => (!h.field || h.field === 'contractEndDate') && ymdOf(h.before))
+    .map((h) => {
+      const before = ymdOf(h.before);
+      const after = ymdOf(h.after);
+      const kind = contractChangeKind(before, after);
+      const meta = [String(h.changedAt || '').slice(0, 10), h.actor?.name, (h.reason || '').trim()].filter(Boolean).join(' ');
+      return { id: h.id || `${h.changedAt}-${before}-${after}`, text: fill(L.historyLine, { before, after: after || L.historyCleared, kind: L.kinds?.[kind] || kind }), meta };
+    });
+  return (
+    <span data-testid="employees-panel-contract-history">
+      {pending && <div className="admin-emp-manager-note" data-testid="employees-panel-contract-history-pending">{pending}</div>}
+      {state.status === 'loading' && <div className="admin-emp-manager-note">{L.historyLoading}</div>}
+      {state.status === 'error' && <div className="admin-emp-manager-note" role="alert">{L.historyLoadError}</div>}
+      {state.status === 'ready' && lines.length === 0 && !pending && <div>—</div>}
+      {lines.map((ln) => (
+        <div key={ln.id} data-testid="employees-panel-contract-history-line">
+          {ln.text}
+          {ln.meta && <span className="admin-emp-manager-note"> · {ln.meta}</span>}
+        </div>
+      ))}
+    </span>
+  );
+}
+
+/** 이 컴퓨터의 오늘(`YYYY-MM-DD`) — 소비자가 `today` 를 넘기지 않았을 때만. */
+function localTodayYmd() {
+  const n = new Date();
+  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
+}
+
 /** 신원 저장 경로가 들고 있는 날짜 칸 — 패널이 따로 불러와야 하는 값들. */
-const IDENTITY_DATE_FIELDS = ['probationEndDate', 'leaveStartDate', 'leaveEndDate'];
+const IDENTITY_DATE_FIELDS = ['probationEndDate', 'leaveStartDate', 'leaveEndDate', ...CONTRACT_FIELDS];
 /** 신원 저장 경로로 나가는 글자 칸 — 휴직 사유(pivit-work PW-2520). 날짜처럼 다듬지 않고 그대로 싣는다. */
 const IDENTITY_TEXT_FIELDS = ['leaveOfAbsenceReason'];
 
@@ -6011,6 +6129,9 @@ function EmployeesEditPanel({
   /* «먼저 그린 값으로 다시 불러오는 중»은 칸을 다루는 데 «준비됨»과 같다 */
   const identityReady = identityState === 'ready' || identityState === 'refreshing';
   const [dateError, setDateError] = useState('');
+  /* 계약을 연장했는데 따라가지 않은 퇴사일이 새 종료일까지 오지 않을 때 [퇴사일 그대로 두기]를 고른 조합 `종료일|퇴사일`
+     (pivit-work PW-3194 · admin-spec §3.2.2 «연장»). 둘 중 하나라도 바뀌면 다시 고른다 */
+  const [contractKeep, setContractKeep] = useState('');
   /**
    * 서버가 구성원 저장을 거절한 사유(PW-727) — `{ message, fields }` 또는 `null`.
    * 알림은 몇 초 뒤 사라지므로, 창을 열어 둔 채 **문제 칸 아래**(칸을 모르면 저장 줄
@@ -6320,6 +6441,47 @@ function EmployeesEditPanel({
       setIdentityDraft((d) => (d && identity ? { ...d, ...pickLeave(identity) } : d));
     }
   };
+  /* 계약 칸 (pivit-work PW-3194 · admin-spec §3.2.2 «PW-3190 · PW-3194») — 퇴사일을 이끄는 두 동작.
+     퇴사일을 건드리지 않는 사람: 퇴사 예약 중 · 퇴사자(저장값 · 고른 값) · 퇴사일 칸이 잠긴 사람(본인 · 마지막 어드민). */
+  const todayYmd = ymdOf(today) || localTodayYmd();
+  const contractResignLocked = () =>
+    Boolean(member.adminGuard?.terminationDate) || Boolean(member.offboardingScheduled)
+    || member.employmentStatus === 'terminated' || draft.employmentStatus === 'terminated';
+  const savedTermination = member.terminationDate ?? '';
+  /* 계약 종료일을 넣거나 바꾸는 순간 퇴사일을 채워 보인다(«퇴사일을 이끈다»). 따라가는 퇴사일은 비었거나 바꾸기 전 종료일의 다음 날인 것뿐 —
+     그 밖의 퇴사일은 사람이 따로 정한 날이라 두고, 저장된 종료일로 되돌리거나 다음 날이 오늘이거나 지났으면 저장된 퇴사일로 둔다(E-1 · «채우지 않는 때» ①) */
+  const setContractEnd = (v) => {
+    const prevEnd = identityDraft?.contractEndDate ?? '';
+    setIdentityDraft((d) => ({ ...(d || {}), contractEndDate: v }));
+    setSaveError((prev) => (prev && prev.fields.includes('contractEndDate') ? null : prev));
+    if (contractResignLocked()) return;
+    const term = ymdOf(draft.terminationDate);
+    if (term && term !== dayAfterYmd(prevEnd)) return;
+    const follow = dayAfterYmd(v);
+    const backToSaved = (v || '') === (identity?.contractEndDate ?? '') || (v && follow <= todayYmd);
+    set('terminationDate', backToSaved ? savedTermination : follow);
+  };
+  /* 고용형태 (§3.2.2 «고용형태가 바뀔 때») — 계약직 · 인턴이 되면 지난 계약의 값이 따라오지 않게 두 칸을 빈 칸으로 열고
+     (원래 계약직 · 인턴이면 저장값으로 되돌린다), 계약직 · 인턴에서 나가면 «계약 종료일 다음 날»이던 퇴사일을 비워 보인다.
+     계약 칸 저장값은 지우지 않는다. 계약직 ↔ 인턴은 아무것도 하지 않는다 */
+  const pickEmploymentType = (v) => {
+    const was = isContractEmploymentType(draft.employmentType);
+    const now = isContractEmploymentType(v);
+    set('employmentType', v);
+    if (was === now || !identity) return;
+    const savedWasContract = isContractEmploymentType(member.employmentType);
+    const savedContract = Object.fromEntries(CONTRACT_FIELDS.map((f) => [f, identity[f] ?? '']));
+    const locked = contractResignLocked();
+    const term = ymdOf(draft.terminationDate);
+    if (now) {
+      setIdentityDraft((d) => ({ ...(d || {}), ...(savedWasContract ? savedContract : { contractStartDate: '', contractEndDate: '' }) }));
+      if (savedWasContract && !locked && !term) set('terminationDate', savedTermination);
+    } else {
+      const followed = Boolean(term) && term === dayAfterYmd(identityDraft?.contractEndDate);
+      setIdentityDraft((d) => ({ ...(d || {}), ...savedContract }));
+      if (!locked && followed) set('terminationDate', savedWasContract ? '' : savedTermination);
+    }
+  };
 
   /* 칸이 읽는 선택지 — 이름 하나로 찾게 모아 둔다. `PANEL_FIELD_GROUPS` 의
      `catalog` 가 이 키를 가리킨다. */
@@ -6481,6 +6643,26 @@ function EmployeesEditPanel({
   const showLeaveReason = dateFields.some((f) => f.field === 'leaveStartDate');
   const leaveReasonMissing =
     showLeaveReason && Boolean(leaveAddon) && identityReady && !identityDraft?.leaveOfAbsenceReason;
+  /* 계약 칸 (pivit-work PW-3194 · admin-spec §3.2.2 «PW-3190 · PW-3194») — 상세 페이지 «근무·고용» 고용 정보에만 선다.
+     HR 정보를 부를 수 없는 화면(어드민 아님)에는 칸이 없다 — 읽을 수도 저장할 수도 없는 값이다. */
+  const contractNow = isContractEmploymentType(draft.employmentType);
+  const contractWas = isContractEmploymentType(member.employmentType);
+  const contractShown = Boolean(page) && Boolean(onLoadHrProfile) && contractNow;
+  const contractEnd = ymdOf(identityDraft?.contractEndDate);
+  const contractSavedEnd = ymdOf(identity?.contractEndDate);
+  const contractOwnStart = ymdOf(identityDraft?.contractStartDate);
+  const contractBasis = contractStartBasis(draft.hireDate, identity?.employmentTypeStartDate);
+  const contractStart = contractOwnStart || contractBasis.date;
+  const contractNext = dayAfterYmd(contractEnd);
+  const contractTerm = ymdOf(draft.terminationDate);
+  const contractLocked = contractResignLocked();
+  /* 종료일 < 시작일(따르는 날 포함) — 칸 테두리 빨강 + [저장] 비활성. 같은 날은 된다 */
+  const contractRangeError = contractShown && identityReady && Boolean(contractEnd) && Boolean(contractStart) && contractEnd < contractStart;
+  /* 연장했는데 따라가지 않은 퇴사일이 새 종료일보다 앞이거나 같은 날 — 고르기 전에는 [저장]이 눌리지 않는다(«연장») */
+  const contractExtendAsk = contractShown && Boolean(page?.editing) && !contractLocked && Boolean(contractSavedEnd)
+    && Boolean(contractEnd) && contractEnd > contractSavedEnd && Boolean(contractTerm) && contractTerm <= contractEnd;
+  const contractExtendMissing = contractExtendAsk && contractKeep !== `${contractEnd}|${contractTerm}`;
+  const contractBlocked = contractRangeError || contractExtendMissing;
   /* 퇴사는 퇴사 처리 화면(목록 ⋯ › 비활성화)에서만 한다(PW-1081) — 여기서 라디오로 바꾸면
      데이터 처분 없이 퇴사자가 생긴다. 이미 퇴사인 사람은 그 값이 그대로 보여야 하므로 연다. */
   const terminatedLocked = member.employmentStatus !== 'terminated';
@@ -6840,7 +7022,7 @@ function EmployeesEditPanel({
   async function handleSave() {
     if (!dirty && !(page && inlineDirty)) { if (page) cancelPage(); else onClose(); return; }
     forgetHrProfile(onLoadHrProfile, member?.id);
-    if (terminationProblem || terminationRuleError || leaveStartMissing || leaveReasonMissing) return;
+    if (terminationProblem || terminationRuleError || leaveStartMissing || leaveReasonMissing || contractBlocked) return;
     if (apptTypeMissing || (showAppointment && !apptDate)) return;
     setSaving(true);
     setDateError('');
@@ -7309,7 +7491,8 @@ function EmployeesEditPanel({
               value={draft[f.key] || ''}
               disabled={!canEdit}
               data-testid={`employees-panel-${f.key}`}
-              onChange={(e) => set(f.key, e.target.value)}
+              /* 고용형태는 계약 칸 · 퇴사일을 함께 다룬다(pivit-work PW-3194 · §3.2.2 «고용형태가 바뀔 때») */
+              onChange={(e) => (f.key === 'employmentType' ? pickEmploymentType(e.target.value) : set(f.key, e.target.value))}
             >
               <option value="">{labels.panel.none}</option>
               {/* 저장된 값이 카탈로그에서 사라졌어도 선택지에 남긴다 —
@@ -7417,6 +7600,161 @@ function EmployeesEditPanel({
       </div>
     );
   };
+
+  /* «고용 정보» 계약 칸 셋 · 고용형태 아래 안내 (pivit-work PW-3194 · admin-spec §3.2.2 «PW-3190 · PW-3194»).
+     모양은 같은 묶음의 기산일 칸 그대로 — 날짜 칸(DateInput) · 칸 아래 안내(admin-emp-manager-note) · 앰버 줄(axis notice is-warn) · ghost 작은 버튼 */
+  const contractParts = () => {
+    if (!page || !onLoadHrProfile) return {};
+    const CL = { ...CONTRACT_DEFAULT_LABELS, ...(labels.panel.contract || {}) };
+    const editing = Boolean(page.editing) && canEdit;
+    const warn = (testId, text, extra = null) => (
+      <span key={testId} className="admin-emp-manager-note admin-emp-axis-notice is-warn" role="status" data-testid={testId}>
+        {text}
+        {extra}
+      </span>
+    );
+    const smallBtn = (testId, text, onClick, pressed) => (
+      <div key={testId}>
+        <Button variant="ghost" size="sm" data-testid={testId} aria-pressed={pressed} onClick={onClick}>{text}</Button>
+      </div>
+    );
+    const out = {};
+    /* 계약직 · 인턴에서 나가는 동안 — 퇴사일을 비웠는지 · 남았는지(«고용형태가 바뀔 때») */
+    if (editing && contractWas && !contractNow && member.employmentStatus !== 'terminated' && (ymdOf(savedTermination) || contractTerm)) {
+      out.employmentType = offboardingScheduled
+        ? warn('employees-panel-contract-type-note', fill(CL.typeLeaveScheduled, { date: contractTerm }))
+        : contractTerm
+          ? warn('employees-panel-contract-type-note', fill(CL.typeLeaveRemains, { date: contractTerm }))
+          : (<Fragment key="type-note">
+              {warn('employees-panel-contract-type-note', fill(CL.typeLeaveCleared, { date: ymdOf(savedTermination) }))}
+              {smallBtn('employees-panel-contract-restore-resign', CL.typeLeaveRestore, () => set('terminationDate', savedTermination))}
+            </Fragment>);
+    }
+    if (!contractShown) return out;
+    const overTwo = !contractRangeError && contractOverTwoYears(contractStart, contractEnd);
+    const overTwoNote = overTwo && warn('employees-panel-contract-over-two-years', fill(CL.overTwoYears, { start: contractStart, end: contractEnd }));
+    const pendingKind = contractSavedEnd && contractEnd !== contractSavedEnd ? contractChangeKind(contractSavedEnd, contractEnd) : null;
+    const history = (
+      <ContractHistoryLines
+        key={`${member.id}-${contractSavedEnd}`}
+        memberId={member.id}
+        load={onLoadPersonalHistory}
+        L={CL}
+        pending={editing && pendingKind ? fill(CL.historyPending, {
+          before: contractSavedEnd, after: contractEnd || CL.historyCleared, kind: CL.kinds?.[pendingKind] || pendingKind,
+        }) : null}
+      />
+    );
+    if (archivedNow) {
+      out.hrbpId = [['start', CL.startLabel], ['end', CL.endLabel], ['history', CL.historyLabel]].map(([k, label]) => (
+        <FormField key={`contract-${k}`} className="admin-emp-field" labelClassName="admin-emp-field-label" label={label}>
+          <ArchivedNote text={archivedLabels.note} testId={`employees-panel-archived-contract-${k}`} />
+        </FormField>
+      ));
+      return out;
+    }
+    if (!editing) {
+      const startText = contractOwnStart
+        || (contractBasis.date ? fill(contractBasis.from === 'typeStart' ? CL.startReadTypeStart : CL.startReadHire, { date: contractBasis.date }) : '');
+      out.hrbpId = (
+        <Fragment key="contract-read">
+          <DetailReadField label={CL.startLabel} value={identityReady ? startText : ''} testId="employees-detail-read-contractStartDate" />
+          <DetailReadField label={CL.endLabel} testId="employees-detail-read-contractEndDate" value={contractEnd}>
+            {contractEnd && overTwo ? (<>{contractEnd}{overTwoNote}</>) : undefined}
+          </DetailReadField>
+          <DetailReadField label={CL.historyLabel} full testId="employees-detail-read-contractHistory">{history}</DetailReadField>
+        </Fragment>
+      );
+      return out;
+    }
+    const busy = !identityReady;
+    const startHint = contractOwnStart
+      ? ''
+      : contractBasis.date
+        ? fill(contractBasis.from === 'typeStart' ? CL.startFollowsTypeStart : CL.startFollowsHire, { date: contractBasis.date })
+        : CL.startFollowsNone;
+    const notes = [];
+    const changed = contractEnd !== contractSavedEnd;
+    const savedTerm = ymdOf(savedTermination);
+    if (!contractRangeError && changed && !contractLocked && contractTerm !== savedTerm) {
+      notes.push(warn('employees-panel-contract-resign-follow', !contractTerm
+        ? fill(CL.resignClear, { date: savedTerm })
+        : savedTerm
+          ? fill(CL.resignChange, { before: savedTerm, after: contractTerm })
+          : fill(CL.resignFill, { date: contractTerm })));
+    }
+    if (contractEnd && !contractTerm && !contractLocked && contractNext <= todayYmd) {
+      notes.push(warn('employees-panel-contract-resign-past', CL.resignPast));
+    }
+    if (contractEnd && member.adminGuard?.terminationDate) {
+      notes.push(<span key="guard" className="admin-emp-manager-note" data-testid="employees-panel-contract-resign-guarded">{CL.resignGuarded}</span>);
+    }
+    if (contractEnd && offboardingScheduled && contractTerm !== contractNext) {
+      notes.push(warn('employees-panel-contract-resign-scheduled', fill(CL.resignScheduled, { date: contractTerm })));
+    }
+    if (!contractRangeError && contractEnd && contractTerm && !contractLocked && contractTerm !== contractNext) {
+      notes.push(warn(
+        'employees-panel-contract-resign-mismatch',
+        contractExtendAsk ? fill(CL.extendAsk, { date: contractTerm }) : fill(CL.resignMismatch, { term: contractTerm, next: contractNext }),
+      ));
+      if (contractNext > todayYmd) {
+        notes.push(smallBtn('employees-panel-contract-resign-set-next', fill(CL.resignSetNext, { date: contractNext }), () => set('terminationDate', contractNext)));
+      }
+      if (contractExtendAsk) {
+        notes.push(smallBtn(
+          'employees-panel-contract-resign-keep',
+          contractExtendMissing ? CL.resignKeep : CL.resignKept,
+          () => setContractKeep(`${contractEnd}|${contractTerm}`),
+          !contractExtendMissing,
+        ));
+      }
+    }
+    const endError = contractRangeError
+      ? fill(CL.endBeforeStart, { date: contractStart })
+      : saveError && saveError.fields.includes('contractEndDate') ? saveError.message : null;
+    out.hrbpId = (
+      <Fragment key="contract-edit">
+        <FormField className="admin-emp-field" labelClassName="admin-emp-field-label" label={CL.startLabel}>
+          <DateInput
+            className="admin-emp-input"
+            value={identityDraft?.contractStartDate ?? ''}
+            disabled={busy}
+            data-testid="employees-panel-contractStartDate"
+            onChange={(v) => setIdentityDraft((d) => ({ ...(d || {}), contractStartDate: v }))}
+          />
+          {!busy && startHint && <span className="admin-emp-manager-note" data-testid="employees-panel-contractStartDate-hint">{startHint}</span>}
+          {!busy && contractOwnStart && smallBtn(
+            'employees-panel-contractStartDate-clear',
+            contractBasis.from === 'typeStart' && contractBasis.date ? CL.startClearTypeStart : CL.startClearHire,
+            () => setIdentityDraft((d) => ({ ...(d || {}), contractStartDate: '' })),
+          )}
+        </FormField>
+        <FormField
+          className="admin-emp-field"
+          labelClassName="admin-emp-field-label"
+          label={CL.endLabel}
+          error={endError}
+          errorTestId="employees-panel-error-contractEndDate"
+        >
+          <DateInput
+            className="admin-emp-input"
+            value={identityDraft?.contractEndDate ?? ''}
+            disabled={busy}
+            data-testid="employees-panel-contractEndDate"
+            onChange={setContractEnd}
+          />
+          {!busy && <span className="admin-emp-manager-note" data-testid="employees-panel-contractEndDate-hint">{leaveAddon ? CL.endHintLeave : CL.endHint}</span>}
+          {overTwoNote}
+          {notes}
+        </FormField>
+        <FormField className="admin-emp-field" labelClassName="admin-emp-field-label" label={CL.historyLabel}>
+          {history}
+        </FormField>
+      </Fragment>
+    );
+    return out;
+  };
+  if (contractShown) shownFieldKeys.add('contractEndDate');
 
   const frame = (children) => (page ? (
     <div className={`admin-emp-detail${page.editing ? ' is-editing' : ''}`} data-testid="employees-detail-page">{children}</div>
@@ -7809,7 +8147,10 @@ function EmployeesEditPanel({
                     ? member.adminGuard.terminationDate
                     : offboardingScheduled
                       ? labels.panel.resignedAtScheduled
-                      : terminationRequired ? undefined : labels.panel.resignedAtHint
+                      : terminationRequired
+                        ? undefined
+                        /* 계약직 · 인턴은 아래 계약 종료일이 퇴사일을 채운다는 것까지(pivit-work PW-3194 · §3.2.1 «퇴사일» 덧붙임) */
+                        : contractShown ? (labels.panel.contract?.resignHint || CONTRACT_DEFAULT_LABELS.resignHint) : labels.panel.resignedAtHint
                 }
               >
                 <DateInput
@@ -8003,7 +8344,7 @@ function EmployeesEditPanel({
           )}
           </>)}
           {/* «근무·고용» 고용 정보 — 재직 상태 · 따로 보관한 기록 다음, HR 칸(최초 입사일 · 근무 일정 …) 바로 위(§3.2-D «탭별 칸») */}
-          {page && inTab('work') && renderGroup(PAGE_EMPLOY_GROUP)}
+          {page && inTab('work') && renderGroup(PAGE_EMPLOY_GROUP, contractParts())}
           {/* HR 기록 창에 있던 칸을 탭 안에 펼친다(§3.2-D «탭별 칸» · «HR 기록 탭») — 수정 중 바꾼 것은 페이지 [저장] 때 보낸다 */}
           {page && onLoadHrProfile && ['person', 'work', 'comp', 'records'].includes(page.tab) && (page.tab !== 'comp' || canViewSalary) && (
             <HrProfileInline
@@ -8274,7 +8615,7 @@ function EmployeesEditPanel({
               <Button
                 className="admin-emp-btn is-secondary admin-emp-btn-block"
                 onClick={handleCorrect}
-                disabled={saving || !canEdit || Boolean(terminationProblem) || Boolean(terminationRuleError) || leaveStartMissing || leaveReasonMissing || axisIncomplete}
+                disabled={saving || !canEdit || Boolean(terminationProblem) || Boolean(terminationRuleError) || leaveStartMissing || leaveReasonMissing || contractBlocked || axisIncomplete}
                 data-testid="employees-panel-correct"
               >
                 {labels.panel.correct}
@@ -8284,7 +8625,7 @@ function EmployeesEditPanel({
               type="button"
               className="admin-emp-btn is-primary admin-emp-btn-block"
               onClick={handleSave}
-              disabled={saving || !canEdit || !(dirty || (page && inlineDirty)) || Boolean(terminationProblem) || Boolean(terminationRuleError) || leaveStartMissing || leaveReasonMissing || axisIncomplete || apptTypeMissing || (showAppointment && !apptDate) || Boolean(saveError?.retry)}
+              disabled={saving || !canEdit || !(dirty || (page && inlineDirty)) || Boolean(terminationProblem) || Boolean(terminationRuleError) || leaveStartMissing || leaveReasonMissing || contractBlocked || axisIncomplete || apptTypeMissing || (showAppointment && !apptDate) || Boolean(saveError?.retry)}
               data-testid="employees-panel-save"
             >
               {saving ? labels.panel.saving : flowWired ? labels.panel.appoint : labels.panel.save}
@@ -9352,6 +9693,8 @@ function identityFromProfile(profile) {
   for (const f of IDENTITY_DATE_FIELDS) loaded[f] = toDateInput(src[f]);
   for (const f of IDENTITY_TEXT_FIELDS) loaded[f] = src[f] ?? '';
   loaded[SERVICE_START_FIELD] = toDateInput(src[SERVICE_START_FIELD]);
+  /* 현 고용형태 시작일 — 계약 시작일이 따르는 날을 셀 때만 읽는다(PW-3194). 고치는 칸은 HR 칸(HrProfileInline)이라 이 패널은 보내지 않는다 */
+  loaded.employmentTypeStartDate = toDateInput(src.employmentTypeStartDate);
   return loaded;
 }
 
