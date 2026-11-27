@@ -6650,6 +6650,8 @@ export default function EvalCycleWizard({
     !orgSelSaved.has(companyRootId)
       ? new Set([...orgSelSaved, companyRootId])
       : orgSelSaved;
+  /** 대상 조직이 아직 임시값인가 — 손대지 않았고(파생값) 후보·조직 트리가 오는 중이다. 이때의 `orgIds` 는 저장하지 않는다(`deferredStepSave`). */
+  const orgScopeProvisional = !isManage && orgSelEdit === null && targetsLoading;
   const manualExcludedIds =
     manualExcludedEdit ?? legacyScope?.manualExclude ?? EMPTY_IDS;
   const keptIds = keptEdit ?? EMPTY_IDS;
@@ -8003,6 +8005,12 @@ export default function EvalCycleWizard({
   const [pendingSave, setPendingSave] = useState(null);
   /* [PW-3175] 응답을 기다리는 중에 닫기를 눌렀다 — 응답이 오면 그때 화면으로 다시 판정한다. */
   const [closeAfterSave, setCloseAfterSave] = useState(false);
+  /* [pivit-work 11-27 배포 검사] 단계 이동 자동 저장을 대상자 후보·조직 트리가 도착한 뒤로 미룬 것 — 미룬 저장의 덮어쓸 값(`{ step }`).
+     새 사이클의 대상 조직(`orgIds`)은 손대기 전까지 «트리가 아는 단위 전부»라는 파생값이다. 조직 트리가 오기 전에는 후보의
+     소속 이름(`dept:…`)으로 만든 임시 트리라, 그때 저장하면 ① 트리가 도착해 단위 id 로 바뀌는 순간 아무것도 안 고친 초안이
+     «저장 안 된 변경»이 되어 닫을 때 «임시저장할까요?»를 묻고(§5.1-A-5), ② 저장본에는 지금 트리에 없는 이름이 남아 이어 열면
+     대상 조직이 하나도 안 켜진다. 그래서 손대지 않은 대상 조직이 임시값인 동안의 단계 이동 저장은 도착한 렌더에서 보낸다. */
+  const [deferredStepSave, setDeferredStepSave] = useState(null);
   const [draftSaving, setDraftSaving] = useState(false);
   const [draftError, setDraftError] = useState(false);
   /* PW-1459 §5.1-A-6 — 연달아 실패한 횟수. 3회부터는 푸터 한 줄로는 놓치므로 위쪽에
@@ -8077,6 +8085,8 @@ export default function EvalCycleWizard({
    */
   const saveDraft = async (overrides, lock, opts) => {
     if (!draftEnabled) return null;
+    // 미뤄 둔 단계 이동 저장(`deferredStepSave`)은 이 저장이 대신한다 — 지금 화면을 그대로 싣는다.
+    setDeferredStepSave(null);
     const payload = { ...collectDraft(), ...(overrides ?? {}) };
     const failed = () => {
       setDraftError(true);
@@ -8196,8 +8206,16 @@ export default function EvalCycleWizard({
     if (target > step) setAiUnconfirmedSteps((prev) => prev.filter((s) => s !== step));
     setStep(target);
     // 이동한 «최종» 단계를 담는다 — `step` 은 이 렌더의 값이라 아직 예전 단계다.
-    if (draftEnabled) void saveDraft({ step: target });
+    if (!draftEnabled) return;
+    if (orgScopeProvisional) setDeferredStepSave({ step: target });
+    else void saveDraft({ step: target });
   };
+  /* 미룬 단계 이동 저장 — 대상 조직이 제값이 된 렌더에서 그때의 화면(`collectDraft()`)으로 보낸다. 그 사이 고친 것도 함께 실린다.
+     미룬 표시는 `saveDraft` 가 지운다 — 어느 저장이든 그때 화면을 싣으니 미룬 저장을 대신한다. */
+  const deferredStepSaveReady = !!deferredStepSave && !orgScopeProvisional;
+  useEffect(() => {
+    if (deferredStepSaveReady) void saveDraft(deferredStepSave);
+  });
 
   /**
    * [PW-441] 3단계·6단계에서 2단계로 되돌려 보낼 때. **단계만 옮기고 유형을 안 맞추면
@@ -8240,6 +8258,11 @@ export default function EvalCycleWizard({
       setCloseAfterSave(true);
       return;
     }
+    /* 단계 이동 저장을 조직 트리 도착 뒤로 미뤄 둔 사이 — 위와 같이 묻지 않고 그 저장을 기다린다(저장은 그때 화면으로 간다). */
+    if (draftEnabled && !manageDirty && deferredStepSave) {
+      setCloseAfterSave(true);
+      return;
+    }
     if ((draftEnabled && draftDirty) || manageDirty) {
       setLeaveAsk(true);
       return;
@@ -8249,7 +8272,7 @@ export default function EvalCycleWizard({
 
   /* 응답이 온 뒤의 판정 — 그 사이 더 고쳤거나 저장이 실패했으면 묻고, 아니면 닫는다(그때의 onCancel 로 —
      첫 저장이면 앱이 그제야 초안을 알아 «초안이 저장되어 있습니다»를 띄운다). 충돌이면 충돌 창이 먼저다. */
-  const closeSettled = closeAfterSave && !pendingSave && !draftConflict;
+  const closeSettled = closeAfterSave && !pendingSave && !deferredStepSave && !draftConflict;
   const askAfterSave = closeSettled && (draftError || draftDirty);
   useEffect(() => {
     if (closeSettled && !askAfterSave) onCancel?.();
