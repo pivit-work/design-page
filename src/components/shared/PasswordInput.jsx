@@ -246,6 +246,9 @@ export default function PasswordInput({
 
   const handleBlur = (e) => {
     hideAll();
+    // 칸을 나가면 브라우저가 긴 값을 맨 앞으로 되돌린다 — 그 스크롤 이벤트가 안 올 때도 별표 줄을 맞춘다
+    syncScroll();
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(syncScroll);
     onBlur?.(e);
   };
   const handleKeyDown = (e) => {
@@ -292,6 +295,7 @@ export default function PasswordInput({
         <span
           className="dp-pw-mask"
           aria-hidden="true"
+          translate="no"
           data-testid="password-mask"
           style={{
             left: box.left,

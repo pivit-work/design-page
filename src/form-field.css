@@ -84,6 +84,8 @@ p.dp-field-error {
 .dp-pw { position: relative; display: block; min-width: 0; }
 .dp-pw > input { -webkit-text-fill-color: transparent; }
 .dp-pw > input::placeholder { -webkit-text-fill-color: currentColor; }
+/* Edge 가 비밀번호 칸에 스스로 붙이는 눈 버튼 — 눌러도 겹친 «*» 줄이 덮어 평문이 안 보이는 죽은 버튼이 되어 숨긴다(앱 칸엔 [보기] 전환이 없다) */
+.dp-pw > input::-ms-reveal { display: none; }
 .dp-pw.is-native > input { -webkit-text-fill-color: currentColor; }
 .dp-pw.is-native > .dp-pw-mask { display: none; }
 .dp-pw > input:autofill { animation-name: dp-pw-autofill; animation-duration: 1ms; }
