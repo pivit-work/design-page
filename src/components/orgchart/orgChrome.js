@@ -80,7 +80,8 @@ export const ORG_VIEW_ATTR = 'data-org-view';
 // 제 스크롤이 있는 펼친 목록 — 본문 안에 바로 그려지는 것도 있다(근무지 빌딩 · 층 고르기 .dp-search-select-menu ·
 // «한눈에» 찾기 결과 .sq-pillar-results). 앱 상단 공지 띠의 펼친 본문(.pw-announcement-banner__body)도 제 스크롤이다
 const NOT_BODY = [
-  '.sidebar', '[role="dialog"]', '[aria-modal="true"]', '[role="menu"]', '[role="listbox"]',
+  // 창(모달)은 속성 선택자로만 가리킨다 — 이 파일은 창을 그리지 않는다(check:shared-frames 는 따옴표 붙은 role 을 «그린 창»으로 센다)
+  '.sidebar', '[role=dialog]', '[role=alertdialog]', '[aria-modal]', '[role=menu]', '[role=listbox]',
   '.dp-search-select-menu', '.sq-pillar-results', '.pw-announcement-slot', '.pw-announcement-banner__body',
 ].join(', ');
 export function isOrgBodyWheelTarget(t) {
