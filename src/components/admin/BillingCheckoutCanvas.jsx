@@ -391,6 +391,8 @@ export default function BillingCheckoutCanvas({
   const overCardLimit = cardPayLimit != null && total > cardPayLimit;
   const blocked = !hasProfile || !agreeRefund || busy
     || (needCommitment && !agreeCommitment) || overCardLimit || Boolean(newPaymentBlockedHint);
+  // 동의와 상관없이 버튼이 꺼진 채인 이유 — 이때는 «동의해 주세요» 안내가 거짓 약속이 된다.
+  const consentCannotUnlock = overCardLimit || Boolean(newPaymentBlockedHint);
 
   if (!canEdit) {
     return <div style={{ fontFamily: T.font, padding: 40 }}>{labels.noPermission}</div>;
@@ -803,13 +805,13 @@ export default function BillingCheckoutCanvas({
                 {labels.cardWindowNote}
               </div>
             )}
-            {/* 상한을 넘어 버튼이 꺼졌으면 동의해도 결제할 수 없다 — 풀어도 못 누르는 «동의해 주세요»는 숨긴다(pivit-work PW-3259) */}
-            {hasProfile && !overCardLimit && !agreeRefund && payState === 'idle' && (
+            {/* 상한을 넘었거나 가격 확정 전이라 버튼이 꺼졌으면 동의해도 결제할 수 없다 — 풀어도 못 누르는 «동의해 주세요»는 숨긴다(pivit-work PW-3259) */}
+            {hasProfile && !consentCannotUnlock && !agreeRefund && payState === 'idle' && (
               <div style={PAY_HINT_STYLE}>
                 {labels.agreeRefundHint}
               </div>
             )}
-            {hasProfile && !overCardLimit && agreeRefund && needCommitment && !agreeCommitment && payState === 'idle' && (
+            {hasProfile && !consentCannotUnlock && agreeRefund && needCommitment && !agreeCommitment && payState === 'idle' && (
               <div style={PAY_HINT_STYLE}>
                 {labels.agreeCommitmentHint}
               </div>
