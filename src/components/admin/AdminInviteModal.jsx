@@ -192,6 +192,7 @@ const DEFAULT_LABELS = {
   failTerminatedMember: '퇴사한 구성원에게는 초대를 보낼 수 없어요',
   failRehireHireDate: '재입사는 새 입사일이 필요해요',
   failHireAfterTermination: '입사일은 퇴사일보다 늦을 수 없어요',
+  failTerminationBeforeHire: '퇴사일은 입사일보다 빠를 수 없어요',
   failPendingExists: '이미 초대 대기 중입니다',
   failSeatLimit: '좌석이 부족합니다',
   failPrimaryTeam: '주 소속을 지정해주세요',
