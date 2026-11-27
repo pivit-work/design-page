@@ -39,8 +39,9 @@ export default function BezierConnectors({ containerRef, scale, lineStyle = 'ort
       let fadedPathData = '';
       const isFaded = el => !!el && el.dataset.faded === 'true';
       const isOn = el => !!(hi && el && hi.has(el.dataset.nodeId));
-      // 강조 길이 이 노드에서 아래로 이어지나 — 하위 줄이나 곁가지 중 하나가 길 위에 있다.
-      const childOnPath = el => isOn(el) && [...el.querySelectorAll(':scope > .children-row > .child-branch > .org-node, :scope > .staff-branches > .staff-branch > .org-node')].some(isOn);
+      // 강조 길이 이 노드에서 트렁크를 타고 아래 하위 줄로 이어지나. 대표 직속 곁가지(staff-branch)로 가는 길은 세지 않는다 —
+      // 그 길이면 카드 아래 인원 줄 · 직속 칸 점선 · 트렁크는 회색이고 곁가지만 강조한다(§5.4-B · TC-ORG-124 5 · pivit-work PW-3285).
+      const childOnPath = el => isOn(el) && [...el.querySelectorAll(':scope > .children-row > .child-branch > .org-node')].some(isOn);
 
       const orgNodes = container.querySelectorAll('.org-node');
       orgNodes.forEach(parentNode => {
