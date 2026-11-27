@@ -7,6 +7,7 @@ import CustomSelect from '../timeline/CustomSelect.jsx';
 import { isEnterKey } from '../shared/enterKey.js';
 import { makeOrgLabels } from './orgchart-labels.jsx';
 import { OrgToolButton } from './OrgCanvasFrame.jsx';
+import { useChromeShiftRect } from './orgChrome.js';
 import { CloseGlyph, MinusGlyph, PlusGlyph } from '../shared/lineIcons.jsx';
 import {
   FOV, FS, GAP, M4, U, VS, WALK_FOV, blockedBy, boundsOf, buildScene, canDraw3d, centerOf, clampWalk, fitCam,
@@ -105,6 +106,8 @@ export default function OfficeSpace({
   const [grp, setGrp] = useState(null);
   const [listOpen, setListOpen] = useState(false);   // 좁은 화면에서 접힌 왼쪽 목록을 펼쳤나(§5 #10)
   const wrap = useRef(null), canvas = useRef(null), gl = useRef(null), cam = useRef(null), anim = useRef(null), tags = useRef({}), raf = useRef(0);
+  // 창 접힘 렌즈 — k: 시야 tan 배수 · oy: 화면 중심 세로 옮김(NDC). 보기 · 층을 바꾸면 처음으로(그때 카메라도 처음 자리로 간다)
+  const lens = useRef({ k: 1, oy: 0 });
   const drawnRows = rows.filter((r) => r.drawn);
   const v = noGl && view !== '2d' ? '2d' : view;
   const bldgView = v === 'bldg';
@@ -207,7 +210,13 @@ export default function OfficeSpace({
     x.clearColor(g.bg[0], g.bg[1], g.bg[2], 1);
     x.clear(x.COLOR_BUFFER_BIT | x.DEPTH_BUFFER_BIT);
     const ey = eye();
-    const m = M4.mul(M4.persp(c.walk ? WALK_FOV : c.orbit.fov || FOV, W / Math.max(1, H), c.walk ? 0.12 : Math.max(0.2, c.orbit.dist * 0.12), c.walk ? 90 : c.orbit.dist * 2 + 60), M4.look(ey.e, ey.t));
+    // 렌즈(lens) — 판이 창 접힘으로 커지고 움직인 만큼 시야를 넓히고 중심을 옮겨 그림을 화면 제자리 · 같은 크기로 둔다(아래 useChromeShiftRect).
+    // 둘러보기(1인칭)는 판 높이에 따라 시야가 바뀌는 것이 정본이라(§5.1 «예외») 쓰지 않는다
+    const ln = c.walk ? { k: 1, oy: 0 } : lens.current;
+    const fov0 = c.walk ? WALK_FOV : c.orbit.fov || FOV;
+    const proj = M4.persp(ln.k === 1 ? fov0 : 2 * Math.atan(Math.tan(fov0 / 2) * ln.k), W / Math.max(1, H), c.walk ? 0.12 : Math.max(0.2, c.orbit.dist * 0.12), c.walk ? 90 : c.orbit.dist * 2 + 60);
+    proj[9] = -ln.oy;
+    const m = M4.mul(proj, M4.look(ey.e, ey.t));
     x.useProgram(g.prog);
     x.uniformMatrix4fv(g.u, false, m);
     const draw = (buf, n, blend) => {
@@ -284,6 +293,7 @@ export default function OfficeSpace({
   useEffect(() => {
     if (v === '2d' || status !== 'ready' || (!floor && v !== 'bldg')) return undefined;
     cam.current = v === 'walk' ? { walk: homeWalk(floor) } : { orbit: homeCam() };
+    lens.current = { k: 1, oy: 0 };
     anim.current = null;
     kick();
     const el = wrap.current;
@@ -300,6 +310,15 @@ export default function OfficeSpace({
     if (ro) ro.observe(el);
     return () => { el.removeEventListener('wheel', onWheel); if (ro) ro.disconnect(); };
   }, [v, status, row && row.key, building]);
+  // 조직도 «근무지»에서 머리 · 탭 줄이 접히고 펴져 판이 커지고 움직여도 3D 그림은 화면 제자리 · 같은 크기(pivit-work PW-3314 · 기획 §5.1).
+  // 화면 px 당 크기 = 판 높이 × 1/tan(시야/2) 라 높이가 바뀐 만큼 시야 tan 을 늘리고, 광축이 화면의 같은 자리에 오게 중심을 옮긴다
+  useChromeShiftRect(canvas, (prev, cur) => {
+    const l0 = lens.current;
+    if (!prev.h || !cur.h) return;
+    const axisY = prev.top + (prev.h / 2) * (1 - l0.oy);
+    lens.current = { k: l0.k * (cur.h / prev.h), oy: 1 - (2 * (axisY - cur.top)) / cur.h };
+    kick();
+  }, { key: `${v}|${status}` });
   // 사라질 때 예약한 그리기만 거둔다 — 예약 표시를 0 으로 되돌려야 다시 붙을 때(개발 모드의 미리 정리 포함) 그리기가 다시 돈다.
   // WebGL 연결은 끊지 않는다: 같은 캔버스로 다시 붙으면 끊긴 연결을 받아 판이 검게 남는다(캔버스와 함께 거둬진다).
   useEffect(() => () => {
@@ -735,6 +754,16 @@ function Plan2D({ floor, personOf, org, assetsOf, sel, dim, hitD, toneOf, L, onP
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);
   }, []);
+  // 조직도 «근무지»에서 머리 · 탭 줄이 접히고 펴져 판이 커지고 움직여도 층 그림은 화면 제자리 · 배율 그대로(pivit-work PW-3314 · 기획 §5.1).
+  // 그림은 판 가운데 맞춤(meet)이라, 바뀌기 전 배율(화면 px / 그림 단위)을 지키는 보기 상자를 새 판 비율로 다시 잡는다 — 넓어진 만큼 둘레가 더 보인다
+  useChromeShiftRect(ref, (prev, cur) => {
+    setVb((o) => {
+      const s = Math.min(prev.w / o.w, prev.h / o.h);
+      if (!s || !cur.w || !cur.h) return o;
+      const left0 = (prev.w - o.w * s) / 2, top0 = prev.top + (prev.h - o.h * s) / 2;
+      return { x: o.x - left0 / s, y: o.y - (top0 - cur.top) / s, w: cur.w / s, h: cur.h / s };
+    });
+  });
   const down = (e) => {
     const sx = e.clientX, sy = e.clientY, o = vb, r = ref.current.getBoundingClientRect(), s = Math.max(o.w / r.width, o.h / r.height);
     let moved = false;

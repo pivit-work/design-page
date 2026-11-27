@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
+import { useOrgChrome, useFillToBottom, ORG_VIEW_ATTR } from './orgChrome.js';
 import Icon from '../shared/Icon.jsx';
 import Button from '../shared/Button.jsx';
 import EmptyState from '../shared/EmptyState.jsx';
@@ -128,6 +129,12 @@ export default function OrgPlaceCanvas({
     </div>
   );
 
+  // 보기 영역 — 화면 아래 끝까지(§5.1 «보기 영역» · 정책 place §1). «지역»은 카드가 그보다 길면 늘어나고(최소 높이),
+  // «빌딩 · 층»은 왼쪽 목록과 오른쪽 층 그림이 그 높이를 채운다(높이). 머리 · 탭 줄은 휠로 접힌다(PW-3314)
+  const viewRef = useRef(null);
+  useOrgChrome();
+  useFillToBottom(viewRef, { prop: building ? 'height' : 'minHeight', key: building ? 'building' : 'region' });
+
   let body;
   if (building) {
     // 소비자가 정한 key 로 층 보기를 새로 연다(빌딩 단추로 다른 빌딩에 들어올 때) — key 는 펼쳐 넘기지 않는다
@@ -176,9 +183,9 @@ export default function OrgPlaceCanvas({
 
   return (
     <OrgLabelsContext.Provider value={L}>
-      <div className="content-area pj-content-area" data-testid="org-place-canvas">
+      <div className="content-area pj-content-area org-view-page" data-testid="org-place-canvas" {...{ [ORG_VIEW_ATTR]: '' }}>
         <div className="content-canvas">
-          <div className="pj-header">
+          <div className="pj-header org-head org-title-row">
             <OrgTabNav active="place" onSubTabChange={onSubTabChange} showProjectTab={showProjectTab} L={L} help={titleHelp} />
             <div className="header-subtitle">
               <b>{L('org.totalHeadcount')}</b>
@@ -187,7 +194,7 @@ export default function OrgPlaceCanvas({
             </div>
           </div>
           <div className="pj-body">
-            <div className={`canvas-area is-embedded is-list op-view${building ? ' is-building' : ''}`} data-place-view={building ? 'building' : 'region'}>
+            <div ref={viewRef} className={`canvas-area is-embedded is-list op-view${building ? ' is-building' : ''}`} data-place-view={building ? 'building' : 'region'}>
               {toolbar}
               <div className="op-body">{body}</div>
             </div>

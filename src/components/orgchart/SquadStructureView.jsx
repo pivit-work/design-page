@@ -38,8 +38,8 @@ import DeptCard from './DeptCard.jsx';
 import PhotoOr from './PhotoOr.jsx';
 import BezierConnectors from './BezierConnectors.jsx';
 import { isEnterKey } from '../shared/enterKey.js';
+import { useFillToBottom, useHoldInPlace } from './orgChrome.js';
 import {
-  STRUCT_CANVAS_MAX_H,
   STRUCT_DRAG_THRESHOLD,
   STRUCT_VIEW_ALL,
   STRUCT_WHEEL_RATE,
@@ -263,6 +263,19 @@ function StructureCanvas({
   // 휠로 바꾼 배율 — 그 자리(트리 좌표)와 판 안 마우스 위치. 다시 그린 뒤 그 점이 마우스 아래 남게 스크롤을 옮긴다.
   const wheelAnchor = useRef(null);
   useLayoutEffect(() => { zoomRef.current = zoom; }, [zoom]);
+
+  // ── 보기 영역 · 창이 움직여도 그림은 제자리 (pivit-work PW-3314 · 기획 §5.1) ──
+  // 페이지 판(전체 화면 창 아님)은 화면 아래 끝까지 찬다. 머리 · 탭 줄이 접히고 펴져 판 윗변이 움직이면 그만큼 판의 위 여백으로
+  // 그림을 되돌린다(위에 붙어 그려지는 그림 · 휠 확대의 자리 계산이 sizer.offsetTop 으로 이 여백을 함께 센다). 배율은 그대로다.
+  // 종전 최대 높이 760(STRUCT_CANVAS_MAX_H)은 걷었다 — 높이는 useFillToBottom 이 준다(기획 squad v3.76)
+  useFillToBottom(scrollRef, { enabled: !expanded });
+  const holdPad = useRef(0);
+  useHoldInPlace(scrollRef, (dy) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    holdPad.current = Math.max(0, holdPad.current + dy);
+    el.style.paddingTop = holdPad.current > 0.3 ? `${holdPad.current}px` : '';
+  }, { enabled: !expanded });
 
   // 트리 크기는 흐름 배치가 정한다 — 그린 뒤 재서 스크롤 판(배율만큼) 크기를 맞춘다.
   // 처음 · 쪽을 바꿀 때 · ⊞ ⊟ · 버튼으로 배율을 바꿀 때 회사 카드가 가로 가운데 · 맨 위(§5-6-B «큰 조직» ①).
@@ -657,7 +670,6 @@ function StructureCanvas({
       <div
         ref={scrollRef}
         className="sq-struct-scroll"
-        style={expanded ? undefined : { maxHeight: STRUCT_CANVAS_MAX_H }}
         data-testid={expanded ? 'squad-struct-scroll-expanded' : 'squad-struct-scroll'}
         onMouseDown={onDown}
         onMouseMove={onMove}

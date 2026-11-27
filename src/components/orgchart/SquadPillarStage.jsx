@@ -19,6 +19,7 @@ import { useOrgLabels } from './orgchart-labels.jsx';
 import { LeadTag, WarningIcon } from './squadIcons.jsx';
 import { GAUGE_SCALE, OVER_HATCH, gaugeSegWidth, gaugeSegs } from './squad-constants.js';
 import Tooltip from '../shared/Tooltip.jsx';
+import { useFillToBottom, useHoldInPlace, ORG_CHROME_SHIFT_EVENT } from './orgChrome.js';
 import {
   PILLAR,
   PILLAR_CHIPS,
@@ -305,6 +306,8 @@ export default function SquadPillarStage({
   side, playFrom = null,
   squads, people, orgUnits = [], groupLevelNames = [], squadGroups = [],
   currentUserId = null, onOpenMine, onOpenProfile, onDone, focusMine = null,
+  // fill — 판을 화면 아래 끝까지 채운다(스쿼드 탭 «한눈에» · pivit-work PW-3314 · 기획 §5.1 «보기 영역»). 안 주면 종전 높이
+  fill = false,
 }) {
   const L = useOrgLabels();
   const uid = useId().replace(/:/g, '');
@@ -387,7 +390,35 @@ export default function SquadPillarStage({
     el.scrollLeft = (el.scrollWidth - el.clientWidth) / 2;
     el.scrollTop = (el.scrollHeight - el.clientHeight) / 2;
   });
-  const setZoomCentered = (v) => { flyRef.current++; recenter.current = true; setSlack(null); setZoom(v); };
+  const setZoomCentered = (v) => { flyRef.current++; recenter.current = true; setSlack(null); resetHold(); setZoom(v); };
+
+  // ── 창(머리 · 탭 줄)이 접히고 펴져도 무대 그림은 화면 제자리 · 배율 그대로 (pivit-work PW-3314 · 기획 §5.1) ──
+  // 판 높이가 바뀌면 «맞춤» 배율이 따라 바뀌므로, 창이 움직이기 직전 지금 배율로 묶는다(멈춘 뒤에도 다시 맞추지 않는다).
+  // 그림은 판 가운데(margin auto) 또는 위에 붙어 있어, 판 윗변 · 높이가 바뀐 만큼 svg 를 세로로 되돌린다. [맞춤]을 누르면 풀린다
+  useFillToBottom(scrollRef, { enabled: fill });
+  const zNowRef = useRef(z);
+  const zoomNowRef = useRef(zoom);
+  useLayoutEffect(() => { zNowRef.current = z; zoomNowRef.current = zoom; });
+  useEffect(() => {
+    const onShift = () => { if (zoomNowRef.current == null) setZoom(zNowRef.current); };
+    window.addEventListener(ORG_CHROME_SHIFT_EVENT, onShift);
+    return () => window.removeEventListener(ORG_CHROME_SHIFT_EVENT, onShift);
+  }, []);
+  const holdY = useRef(0);
+  function resetHold() {
+    holdY.current = 0;
+    if (svgRef.current) svgRef.current.style.transform = '';
+  }
+  useHoldInPlace(scrollRef, (dy) => {
+    const s = svgRef.current;
+    if (!s) return;
+    holdY.current += dy;
+    s.style.transform = Math.abs(holdY.current) > 0.3 ? `translateY(${holdY.current}px)` : '';
+  }, {
+    // 판보다 작으면 가운데에 놓여 높이 변화의 절반만큼도 움직인다
+    center: () => !!svgRef.current && !!scrollRef.current
+      && svgRef.current.getBoundingClientRect().height <= scrollRef.current.clientHeight,
+  });
 
   // ── 재생: 기둥이 떠올라 포물선으로 날아 도착 판에 내려앉는다 ──
   const finish = useCallback(() => {

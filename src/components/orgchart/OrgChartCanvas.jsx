@@ -9,6 +9,10 @@ import ProfileModal from './ProfileModal.jsx';
 import { PositionsContext, ModalContext, MoveContext, DragContext, MemberPatchContext } from './contexts.js';
 import { loadPositions, savePositions, collapsedStorageKey, loadCollapsed } from './hooks.js';
 import { OrgLabelsContext, makeOrgLabels } from './orgchart-labels.jsx';
+import { useOrgChrome, ORG_VIEW_ATTR } from './orgChrome.js';
+
+/** 조직도 본문 표지 — 이 안에서 굴린 세로 휠로 머리 · 탭 줄이 접히고 펴진다(orgChrome.js · pivit-work PW-3314). */
+const orgView = { [ORG_VIEW_ATTR]: '' };
 
 // 조직 축 탭 노출 여부. 소비처가 아직 구현이 끝나지 않은 축을 닫을 수 있게 한다
 // (pivit-work PW-249 — 프로젝트 축 phase 게이트). 기본값은 노출이라 기존 화면은 그대로다.
@@ -181,6 +185,9 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
     onDownloadImage,
   };
 
+  // 열 때 · 탭을 바꿀 때 머리 · 탭 줄이 보이는 채로 열고, 본문 휠로 접고 편다(§5.1 «탭 줄 숨김»)
+  useOrgChrome();
+
   return (
     // scale 은 카드 드래그가 화면 좌표를 캔버스 로컬 좌표로 되돌릴 때 쓴다(PW-248) — 뷰포트가 넣는다.
     <OrgLabelsContext.Provider value={L}>
@@ -191,7 +198,10 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
     <DragContext.Provider value={{ dropTarget, setDropTarget }}>
       {!onMemberClick && <ProfileModal member={selectedMember} onClose={closeModal} statIcons={statIcons} baseUrl={baseUrl} renderAvatar={renderAvatar} adminMode={adminMode} findSubordinates={findSubordinates} />}
 
-      <div className="content-header">
+      {/* 조직도 탭 본문 — 평소엔 상자 없이 고정 자리 부품들을 묶기만 하고, 화면이 낮으면 스크롤 칸이 된다(org_chart.css · PW-3314) */}
+      <div className="org-tree-page">
+      {/* 제목 줄 — 탭 오른쪽 같은 줄에 서브라인(§5.1 «제목 줄» · PW-3314) */}
+      <div className="content-header org-head org-title-row" {...orgView}>
         <OrgTabNav active="orgchart" onSubTabChange={goTab} showProjectTab={showProjectTab} L={L} help={titleHelp} />
         <div className="header-subtitle">
           <b>{L('org.totalHeadcount')}</b>
@@ -211,7 +221,7 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
 
       {/* 끌기 안내 — 시안(16596:49052)은 머리글 줄 오른쪽 끝, 캔버스 위에 둔다. 끌 것이 없는 리스트 보기에는 없다. */}
       {view === 'tree' && (
-        <div className="drag-hint org-drag-hint">
+        <div className="drag-hint org-drag-hint" {...orgView}>
           <Icon src={icons.expand} size={14} color="var(--text-brand-tertiary)" baseUrl={baseUrl} />
           <span>{L('org.dragHint')}</span>
         </div>
@@ -219,7 +229,7 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
 
       {view === 'iso' && renderIso ? (
         // 입체 보기 — 기둥 무대의 조직도 쪽(보기 전용). 트리·리스트와 같은 카드 자리(.canvas-area 고정 자리)에 선다
-        <div className="canvas-area is-iso" data-testid="org-canvas-iso">
+        <div className="canvas-area is-iso org-view-canvas" data-testid="org-canvas-iso" {...orgView}>
           <div className="org-toolbar ol-toolbar org-iso-toolbar">{viewSwitch}</div>
           {renderIso(viewSwitch)}
         </div>
@@ -227,7 +237,7 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
         <div className={`org-lie-wrap${lying ? ' is-lying' : ''}`} data-testid="org-lie-wrap">
           {view === 'list' ? (
             // 리스트 보기 — 트리와 같은 카드 자리(.canvas-area)에 표를 편다. 팬·줌은 없다.
-            <div className="canvas-area is-list" data-testid="org-canvas-list">
+            <div className="canvas-area is-list org-view-canvas" data-testid="org-canvas-list" {...orgView}>
               {renderList ? renderList(viewSwitch) : (
                 <OrgListView
                   orgData={orgData}
@@ -241,10 +251,11 @@ export default function OrgChartCanvas({ orgData: initialOrgData, icons, statIco
               )}
             </div>
           ) : (
-            <OrgChartViewport {...viewportProps} toolbarLeading={viewSwitch} onExpandView={expandable ? () => setExpanded(true) : undefined} />
+            <OrgChartViewport {...viewportProps} pageView toolbarLeading={viewSwitch} onExpandView={expandable ? () => setExpanded(true) : undefined} />
           )}
         </div>
       )}
+      </div>
 
       {expanded && view === 'tree' && (
         <ModalShell

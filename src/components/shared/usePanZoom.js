@@ -96,6 +96,8 @@ export default function usePanZoom({ ignoreSelector, minScale = 0.2, maxScale = 
     zoomIn,
     zoomOut,
     resetView,
+    // 앵커(캔버스 좌표) 기준 배율 바꾸기 — 휠을 따로 맡는 소비 측(조직도 트리 «창 먼저» · PW-3314)이 Ctrl+휠 확대에 쓴다.
+    zoomAt,
     // 초기 카메라 정렬 등에서 소비 측이 배율/이동을 직접 지정할 때 사용.
     setView: applyView,
   };

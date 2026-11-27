@@ -21,6 +21,13 @@
   user-select: text;
 }
 .op-view .op-toolbar { flex-wrap: wrap; }
+/* «빌딩 · 층» — 판 높이(화면 아래 끝까지 · OrgPlaceCanvas useFillToBottom)를 왼쪽 목록과 오른쪽 층 그림이 채운다(pivit-work PW-3314 ·
+   정책 place §1 «보기 영역»). 회사 자산 «책상 배치»(같은 OfficeSpace)는 이 판 밖이라 종전 clamp 그대로다 */
+.canvas-area.op-view.is-building { display: flex; flex-direction: column; }
+.op-view.is-building .op-body { display: flex; flex: 1; flex-direction: column; min-height: 0; }
+.op-view.is-building .osp { flex: 1; min-height: 0; }
+.op-view.is-building .osp-aside,
+.op-view.is-building .osp-main { height: auto; }
 .op-body { padding: var(--spacing-3xl) var(--spacing-xl) var(--spacing-xl); }
 
 /* 한 줄에 셋 — 국가는 자기 카드 수만큼(많아야 셋) 칸을 차지하고 다음 국가가 이어 선다(§2 «국가 묶음의 폭») */

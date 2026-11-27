@@ -6,6 +6,10 @@ import {
   AutoArrangeGlyph,
 } from '../shared/lineIcons.jsx';
 import usePanZoom from '../shared/usePanZoom.js';
+import {
+  useHoldInPlace, treeWheelAction, isOrgChromeHidden, isOrgChromeMoving, setOrgChromeHidden,
+  ORG_TREE_CANVAS_ATTR, ORG_VIEW_ATTR,
+} from './orgChrome.js';
 import OrgNode from './OrgNode.jsx';
 import OrgCanvasFrame, { OrgToolButton, OrgToolbarGroup, OrgZoomButtons, OrgLineStyleToggle, OrgExpandAllToggle } from './OrgCanvasFrame.jsx';
 import BezierConnectors from './BezierConnectors.jsx';
@@ -87,6 +91,10 @@ export default function OrgChartViewport({
   // 캔버스는 스크롤이 아니라 이동(translate)으로 움직여 브라우저 scrollIntoView 가 닿지 않는다
   // (pivit-work PW-2349 조직도 미리 보기 «바뀌는 사람» 누르기).
   focusTarget,
+  // pageView — 조직도 탭 페이지의 트리 캔버스(전체 화면 창 · 어드민 미리보기 · 구성원 화면 트리는 아니다).
+  // 화면 끝까지 차는 자리(.org-view-canvas)에 서고, 휠은 «창 먼저, 그다음 트리»(orgChrome.js · pivit-work PW-3314)를 따른다 —
+  // 확대 · 축소는 [+] · [−] 와 Ctrl + 휠(트랙패드 집기)로.
+  pageView = false,
 }) {
   const canvasInnerRef = useRef(null);
   const setInnerRef = useCallback((el) => {
@@ -125,8 +133,10 @@ export default function OrgChartViewport({
   const belowRoot = useMemo(() => collapsedBelowRoot(orgData), [orgData]);
   const allCollapsed = belowRoot.size > 0 && [...belowRoot].every((id) => collapsedIds.has(id));
 
-  const { canvasRef, scale, translate, isDragging, canvasProps, zoomIn, zoomOut, setView } = usePanZoom({
+  const chromeWheel = pageView && !expanded;
+  const { canvasRef, scale, translate, isDragging, canvasProps, zoomIn, zoomOut, setView, zoomAt } = usePanZoom({
     ignoreSelector: '.org-toolbar, .member-node, .dept-card',
+    wheelZoom: !chromeWheel,
   });
 
   // 첫 화면 위치 — 회사 카드를 캔버스 가로 가운데 · 맨 위에 둔다. **줌 배율은 바꾸지 않는다**
@@ -138,6 +148,66 @@ export default function OrgChartViewport({
   // 지금 배율·이동값은 ref 로 읽는다 — effect 의존성에 넣으면 끌 때마다 다시 맞춰 버린다.
   const viewRef = useRef({ scale, translate });
   useEffect(() => { viewRef.current = { scale, translate }; }, [scale, translate]);
+
+  // 창이 움직여도 트리는 화면 제자리 (§5.1) — 캔버스 윗변이 올라간 만큼 트리를 내려 놓는다. 배율 그대로 · 멈춘 뒤 다시 맞추지 않음
+  // 매 프레임 React 로 트리 전체를 다시 그리면 한두 프레임 늦어 창이 움직이는 동안 트리가 60px 가까이 끌려갔다(로컬 1440×900 실측) —
+  // 이동 상자(data-canvas-pan)에 바로 쓰고, 움직임이 멎으면(80ms) 한 번만 상태로 넘긴다
+  const commitTimer = useRef(0);
+  useEffect(() => () => clearTimeout(commitTimer.current), []);
+  const holdTree = useCallback((dy) => {
+    const { scale: s, translate: t } = viewRef.current;
+    const next = { x: t.x, y: t.y + dy };
+    viewRef.current = { scale: s, translate: next };
+    const pan = canvasRef.current?.querySelector(':scope > [data-canvas-pan]');
+    if (pan) pan.style.transform = `translate(${next.x}px, ${next.y}px)`;
+    clearTimeout(commitTimer.current);
+    commitTimer.current = setTimeout(() => setView(viewRef.current.scale, viewRef.current.translate), 80);
+  }, [setView, canvasRef]);
+  // 끌기 · 확대가 시작되기 전에 아직 안 넘긴 이동을 넘긴다 — 판 훅(usePanZoom)은 자기 값에서 출발한다
+  const flushHold = useCallback(() => {
+    if (!commitTimer.current) return;
+    clearTimeout(commitTimer.current);
+    commitTimer.current = 0;
+    setView(viewRef.current.scale, viewRef.current.translate);
+  }, [setView]);
+  useHoldInPlace(canvasRef, holdTree, { enabled: chromeWheel });
+
+  // «창 먼저, 그다음 트리» (§5.1) — 트리 캔버스 안의 휠. 판정은 treeWheelAction(orgChrome.js) 한 곳
+  useEffect(() => {
+    if (!chromeWheel) return undefined;
+    const area = canvasRef.current;
+    if (!area) return undefined;
+    const onWheel = (e) => {
+      e.preventDefault();
+      const rect = area.getBoundingClientRect();
+      if (e.ctrlKey) {   // 트랙패드 집기 · Ctrl + 휠 — 확대 · 축소(가리킨 자리 그대로)
+        flushHold();
+        zoomAt(e.clientX - rect.left, e.clientY - rect.top, viewRef.current.scale - e.deltaY * 0.002);
+        return;
+      }
+      const inner = canvasInnerRef.current;
+      if (!inner) return;
+      const ir = inner.getBoundingClientRect();
+      const root = inner.querySelector(':scope > .org-node > .dept-card');
+      const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? rect.height : 1;
+      const act = treeWheelAction({
+        deltaY: e.deltaY * unit,
+        deltaX: e.deltaX * unit,
+        hidden: isOrgChromeHidden(),
+        moving: isOrgChromeMoving(),
+        areaTop: rect.top,
+        areaBottom: rect.bottom,
+        innerTop: ir.top,
+        innerBottom: ir.bottom,
+        rootTop: root ? root.getBoundingClientRect().top : null,
+      });
+      if (act.type === 'hide') setOrgChromeHidden(true);
+      else if (act.type === 'show') setOrgChromeHidden(false);
+      else if (act.type === 'scroll') holdTree(act.dy);
+    };
+    area.addEventListener('wheel', onWheel, { passive: false });
+    return () => area.removeEventListener('wheel', onWheel);
+  }, [chromeWheel, canvasRef, zoomAt, holdTree, flushHold]);
   useLayoutEffect(() => {
     const anchor = toggleAnchorRef.current;
     if (!anchor) return;
@@ -278,12 +348,17 @@ export default function OrgChartViewport({
     <CollapseContext.Provider value={collapseContext}>
       <OrgCanvasFrame
         canvasRef={canvasRef}
-        canvasProps={canvasProps}
+        canvasProps={chromeWheel ? {
+          ...canvasProps,
+          onMouseDown: (e) => { flushHold(); canvasProps.onMouseDown(e); },
+          [ORG_VIEW_ATTR]: '',
+          [ORG_TREE_CANVAS_ATTR]: '',
+        } : canvasProps}
         isDragging={isDragging}
         scale={scale}
         translate={translate}
         innerRef={setInnerRef}
-        className={expanded ? 'is-expanded' : ''}
+        className={expanded ? 'is-expanded' : chromeWheel ? 'org-view-canvas' : ''}
         testId={expanded ? 'org-canvas-expanded' : 'org-canvas'}
         // 왼쪽 툴바 — (트리/리스트) · 보이는 정보 양 · 기준일 (Figma 17755:26880 · 17788:33261)
         toolbarLeft={toolbars && (<>

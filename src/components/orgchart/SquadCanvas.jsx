@@ -81,6 +81,7 @@ import { todayIsoInZone } from '../shared/calendarDate.js';
 import { clampToToday } from './squadEffectiveDate.js';
 import LoadingState from '../shared/LoadingState.jsx';
 import Skeleton from '../shared/Skeleton.jsx';
+import { useOrgChrome, ORG_VIEW_ATTR } from './orgChrome.js';
 
 /**
  * 셀 툴팁의 마지막 줄 — 이 셀을 눌렀을 때 무엇을 할 수 있는지.
@@ -1051,6 +1052,9 @@ export default function SquadCanvas({
   // 생성 폼 팀장 후보 — 비활성(퇴사·휴직) 구성원은 제외한다(서버도 422 로 재검증)
   const leadCandidates = people.filter(isAssignable);
 
+  // 열 때 · 탭을 바꿀 때 머리 · 탭 줄이 보이는 채로 열고, 본문 휠로 접고 편다(pivit-work PW-3314 · 기획 §5.1 «탭 줄 숨김»)
+  useOrgChrome();
+
   const tabStrip = (
     <OrgTabNav active="squad" onSubTabChange={onTopTab} showProjectTab={showProjectTab} L={L} help={titleHelp} />
   );
@@ -1075,11 +1079,12 @@ export default function SquadCanvas({
    */
   return (
     <OrgLabelsContext.Provider value={L}>
-    <div className="content-area pj-content-area" data-testid="squad-canvas">
+    <div className="content-area pj-content-area org-view-page" data-testid="squad-canvas" {...{ [ORG_VIEW_ATTR]: '' }}>
       <div className="content-canvas">
-        {/* 머리 줄(Figma 17590:23957) — 탭·인원수는 왼쪽, 「스쿼드 만들기」는 오른쪽 아래 맞춤 */}
-        <div className="pj-header sq-header">
-          <div className="sq-header-main">
+        {/* 머리 줄(Figma 17590:23957) — 탭·인원수는 왼쪽, 「스쿼드 만들기」는 오른쪽 아래 맞춤.
+            인원수는 탭 오른쪽 같은 줄(기획 §5.1 «제목 줄» · PW-3314) · 휠을 내리면 줄째 위로 접힌다 */}
+        <div className="pj-header sq-header org-head">
+          <div className="sq-header-main org-title-row">
             {tabStrip}
             <div className="header-subtitle">
               <b>{L('org.totalHeadcount')}</b>
@@ -1324,6 +1329,7 @@ export default function SquadCanvas({
               {/* 그림 보기(PW-2356) — 카드 그리드·매트릭스 자리에 선다. 같은 스쿼드 응답으로 그린다 */}
               {showStage && (
                 <SquadPillarStage
+                  fill
                   key={`squad-${stageRun}`}
                   side="squad"
                   playFrom={stagePlay ? 'org' : null}

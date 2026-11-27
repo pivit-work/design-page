@@ -61,6 +61,9 @@
 /* ── Top Nav ── */
 /* 머리 줄 — 2026-10-25 시안(타임라인 16621:1627 기준, 전 화면 공통): 왼쪽 여백 0 · 위 20 · 오른쪽 32 → 높이 72 */
 .top-nav { position: fixed; top: var(--broadcast-bar-h, 0px); left: 240px; right: 0; padding: 20px 32px 12px 0; display: flex; align-items: center; justify-content: space-between; background: var(--bg-primary); z-index: 90; gap: 20px; }
+/* 조직도 세 탭에서 휠을 내리면 머리 줄도 함께 위로 접힌다(pivit-work PW-3314 · orgChrome.js · 조직도 밖 화면에는 이 표지가 없다) */
+:root[data-org-chrome] .top-nav { transition: transform 0.22s ease, opacity 0.18s ease; }
+:root[data-org-chrome='hidden'] .top-nav { transform: translateY(-100%); opacity: 0; pointer-events: none; }
 .nav-links { display: flex; align-items: center; gap: 28px; }
 .nav-link { font-size: 14px; font-weight: 600; color: var(--text-tertiary); cursor: pointer; letter-spacing: -0.04em; position: relative; }
 .nav-link:hover { color: var(--text-secondary); }
