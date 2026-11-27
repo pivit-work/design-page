@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useOrgChrome, useFillToBottom, ORG_VIEW_ATTR } from './orgChrome.js';
 import Icon from '../shared/Icon.jsx';
 import Button from '../shared/Button.jsx';
@@ -129,11 +129,15 @@ export default function OrgPlaceCanvas({
     </div>
   );
 
-  // 보기 영역 — 화면 아래 끝까지(§5.1 «보기 영역» · 정책 place §1). «지역»은 카드가 그보다 길면 늘어나고(최소 높이),
-  // «빌딩 · 층»은 왼쪽 목록과 오른쪽 층 그림이 그 높이를 채운다(높이). 머리 · 탭 줄은 휠로 접힌다(PW-3314)
+  // 보기 영역 — 화면 아래 끝까지(§5.1 «보기 영역» · 정책 place §1). 머리 · 탭 줄은 휠로 접힌다(PW-3314)
+  //   «지역» — 최소 높이(카드가 길면 늘어난다)
+  //   «빌딩 · 층» 넓은 화면 — 높이(왼쪽 목록 · 오른쪽 층 그림이 그 높이를 채운다 · 층 그림은 제 크기가 커서 최소 높이면 판 밖으로 자란다)
+  //   «빌딩 · 층» 좁은 화면(1024 미만 · 위아래로 쌓임) — 최소 높이([목록 보기]로 목록이 위에 서면 판이 늘고 페이지가 스크롤된다)
   const viewRef = useRef(null);
+  const narrow = useNarrowPlace();
   useOrgChrome();
-  useFillToBottom(viewRef, { prop: building ? 'height' : 'minHeight', key: building ? 'building' : 'region' });
+  const fixedH = building && !narrow;
+  useFillToBottom(viewRef, { prop: fixedH ? 'height' : 'minHeight', key: building ? `building|${narrow}` : 'region' });
 
   let body;
   if (building) {
@@ -203,6 +207,20 @@ export default function OrgPlaceCanvas({
       </div>
     </OrgLabelsContext.Provider>
   );
+}
+
+/** 좁은 화면(office_space.css · org_place.css 의 max-width 1023 과 같은 경계)인가 — 창 폭이 바뀌면 다시 묻는다. */
+const NARROW_PLACE = '(max-width: 1023px)';
+function useNarrowPlace() {
+  const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia(NARROW_PLACE).matches);
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return undefined;
+    const mq = window.matchMedia(NARROW_PLACE);
+    const on = () => setNarrow(mq.matches);
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
+  return narrow;
 }
 
 /** 국가 하나 — 자기 카드 수만큼(많아야 셋) 칸을 차지한다. 카드를 펼친 국가는 한 줄을 다 쓴다(§2 «국가 묶음의 폭»). */

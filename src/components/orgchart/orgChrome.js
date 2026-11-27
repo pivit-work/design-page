@@ -81,7 +81,7 @@ export const ORG_VIEW_ATTR = 'data-org-view';
 // «한눈에» 찾기 결과 .sq-pillar-results). 앱 상단 공지 띠의 펼친 본문(.pw-announcement-banner__body)도 제 스크롤이다
 const NOT_BODY = [
   '.sidebar', '[role="dialog"]', '[aria-modal="true"]', '[role="menu"]', '[role="listbox"]',
-  '.dp-search-select-menu', '.sq-pillar-results', '.pw-announcement-banner__body',
+  '.dp-search-select-menu', '.sq-pillar-results', '.pw-announcement-slot', '.pw-announcement-banner__body',
 ].join(', ');
 export function isOrgBodyWheelTarget(t) {
   if (t.closest(`[${ORG_TREE_CANVAS_ATTR}]`)) return false;
@@ -178,26 +178,35 @@ export function useChromeShiftRect(ref, onChange, { key = '', enabled = true } =
   useEffect(() => {
     const el = ref.current;
     if (!enabled || !el || typeof window === 'undefined') return undefined;
-    // 화면 자리 그대로 잰다 — 창이 움직이는 동안 판이 움직인 것은 모두 창 탓이다. 페이지가 줄며 브라우저가 스크롤을 당긴 것도
-    // (낮은 화면에서 접으면 칸 내용이 화면보다 짧아져 스크롤이 0 으로 돌아간다 · 1440×700 에서 3px 밀림) 되돌릴 몫이다
+    // 화면 자리와 페이지 스크롤을 함께 잰다. 페이지 스크롤이 바뀐 몫은 그 사이 사용자가 휠로 페이지를 굴렸을 때만 «사용자가 옮긴 것»으로
+    // 빼고(§5.1 «예외»), 아니면 창 탓으로 본다 — 접혀 칸 내용이 화면보다 짧아지면 브라우저가 스크롤을 당긴다(1440×700 에서 3px 밀림).
+    // 창을 접고 펴는 휠 · 트리를 스크롤하는 휠은 막힌(preventDefault) 휠이라 페이지를 굴리지 않는다 — 세지 않는다
     const read = () => {
       const r = el.getBoundingClientRect();
-      return { top: r.top, h: r.height, w: r.width };
+      const sp = scrollParent(el);
+      return { top: r.top, scroll: sp ? sp.scrollTop : 0, h: r.height, w: r.width };
     };
     let last = read();
     let until = 0;
     let quiet = 0;
+    // 휠이 오고 페이지가 실제로 굴러가기까지 한두 화면 걸린다(부드러운 스크롤) — 막히지 않은 휠 뒤 0.15초 동안을 «사용자가 굴림»으로 본다
+    let userWheelUntil = 0;
+    const onUserWheel = (e) => { if (!e.defaultPrevented) userWheelUntil = now() + 150; };
     const check = () => {
       const cur = read();
       const prev = last;
       last = cur;
+      const wheeled = now() < userWheelUntil;
       if (now() > until) return false;   // 창이 움직이는 때가 아니다 — 기준만 새로
-      if (Math.abs(cur.top - prev.top) > 0.3 || Math.abs(cur.h - prev.h) > 0.3) {
-        fnRef.current(prev, cur);
+      const prevTop = wheeled ? prev.top + prev.scroll : prev.top;
+      const curTop = wheeled ? cur.top + cur.scroll : cur.top;
+      if (Math.abs(curTop - prevTop) > 0.3 || Math.abs(cur.h - prev.h) > 0.3) {
+        fnRef.current({ top: prevTop, h: prev.h, w: prev.w }, { top: curTop, h: cur.h, w: cur.w });
         return true;
       }
       return false;
     };
+    window.addEventListener('wheel', onUserWheel, { passive: true });
     const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(check) : null;
     if (ro) ro.observe(el);
     let raf = 0;
@@ -221,6 +230,7 @@ export function useChromeShiftRect(ref, onChange, { key = '', enabled = true } =
       if (ro) ro.disconnect();
       cancelAnimationFrame(raf);
       window.removeEventListener(ORG_CHROME_SHIFT_EVENT, onShift);
+      window.removeEventListener('wheel', onUserWheel);
     };
   }, [ref, key, enabled]);
 }

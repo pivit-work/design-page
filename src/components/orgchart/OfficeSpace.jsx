@@ -758,13 +758,18 @@ function Plan2D({ floor, personOf, org, assetsOf, sel, dim, hitD, toneOf, L, onP
   }, []);
   // 조직도 «근무지»에서 머리 · 탭 줄이 접히고 펴져 판이 커지고 움직여도 층 그림은 화면 제자리 · 배율 그대로(pivit-work PW-3314 · 기획 §5.1).
   // 그림은 판 가운데 맞춤(meet)이라, 바뀌기 전 배율(화면 px / 그림 단위)을 지키는 보기 상자를 새 판 비율로 다시 잡는다 — 넓어진 만큼 둘레가 더 보인다
+  // 다음 그리기를 기다리지 않고 svg 에 바로 쓴다 — React 를 거치면 판이 움직이는 동안 한 화면씩 늦어 그림이 4px 가까이 흔들렸다
+  const vbNow = useRef(vb);
+  useEffect(() => { vbNow.current = vb; }, [vb]);
   useChromeShiftRect(ref, (prev, cur) => {
-    setVb((o) => {
-      const s = Math.min(prev.w / o.w, prev.h / o.h);
-      if (!s || !cur.w || !cur.h) return o;
-      const left0 = (prev.w - o.w * s) / 2, top0 = prev.top + (prev.h - o.h * s) / 2;
-      return { x: o.x - left0 / s, y: o.y - (top0 - cur.top) / s, w: cur.w / s, h: cur.h / s };
-    });
+    const o = vbNow.current;
+    const s = Math.min(prev.w / o.w, prev.h / o.h);
+    if (!s || !cur.w || !cur.h) return;
+    const left0 = (prev.w - o.w * s) / 2, top0 = prev.top + (prev.h - o.h * s) / 2;
+    const next = { x: o.x - left0 / s, y: o.y - (top0 - cur.top) / s, w: cur.w / s, h: cur.h / s };
+    vbNow.current = next;
+    if (ref.current) ref.current.setAttribute('viewBox', `${next.x} ${next.y} ${next.w} ${next.h}`);
+    setVb(next);
   });
   const down = (e) => {
     const sx = e.clientX, sy = e.clientY, o = vb, r = ref.current.getBoundingClientRect(), s = Math.max(o.w / r.width, o.h / r.height);

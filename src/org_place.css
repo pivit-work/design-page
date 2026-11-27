@@ -31,7 +31,9 @@
 /* 좁은 화면(1024 미만) — 목록이 접히고 위아래로 쌓인다(office_space.css 같은 폭 규칙). 층 그림 판이 남은 높이를 채운다 —
    그쪽의 flex: none 에 높이 auto 가 겹치면 무대가 0 이 된다(PW-3238 11-25 되돌림과 같은 결함) */
 @media (max-width: 1023px) {
-  .op-view.is-building .osp-main { flex: 1 0 auto; min-height: max(560px, calc(100vh - 300px)); }
+  /* 바탕 0 에서 남은 높이를 받되(내용 높이를 바탕으로 잡으면 1000×800 에서 292px 넘쳤다) 최소 높이는 지킨다 —
+     [목록 보기]로 목록(최대 420)이 위에 서면 판이 늘고 페이지가 스크롤된다(판은 최소 높이 · OrgPlaceCanvas) */
+  .op-view.is-building .osp-main { flex: 1 1 0; min-height: max(560px, calc(100vh - 300px)); }
 }
 .op-body { padding: var(--spacing-3xl) var(--spacing-xl) var(--spacing-xl); }
 
