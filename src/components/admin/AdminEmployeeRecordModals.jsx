@@ -2096,7 +2096,8 @@ export function HrProfileInline({
     const empty = dwParsed.ok && dwParsed.minutes === null;
     const hint = [D.hint || '휴게를 뺀 하루 근무시간입니다. 휴가의 하루를 시간으로 바꿀 때 씁니다.', empty ? D.emptyHint || '비어 있으면 회사 1일 근무시간을 씁니다' : '']
       .filter(Boolean).join(' ');
-    const box = { width: 72, height: 30, fontSize: 12 };
+    // 높이 · 글씨는 같은 창의 다른 칸(.admin-emp-input 42 · 14)과 같다 — 폭만 두 자리 숫자 칸으로 좁힌다
+    const box = { width: 72 };
     return (
       <div key="dailyWorkMinutes" data-testid="hr-daily-work">
         <HrEditPair k={label}>
