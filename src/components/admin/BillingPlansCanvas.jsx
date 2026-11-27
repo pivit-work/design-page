@@ -12,7 +12,6 @@ import { FrameTable, NoticeLines, Panel } from '../frames/index.js';
 import {
   BillingCard as Card,
   BillingBadge as Badge,
-  BillingInlineNote,
   BillingNotice,
   BillingPage,
   BillingPageHead,
@@ -623,7 +622,8 @@ function PlanCard({ plan, isCurrent, isUpgrade = false, interval, onAction, canE
       ) : (
         <div>
           <div style={{ fontSize: 26, fontWeight: 800 }}>
-            {won(price)}
+            {/* 숫자 가운데서 꺾이지 않게(«₩14,90 / 0» · pivit-work PW-3295 폭 1280 카드 여섯) — 단위만 통째로 다음 줄로 */}
+            <span style={{ whiteSpace: moneyHidden() ? 'normal' : 'nowrap' }}>{won(price)}</span>
             {' '}<PriceUnit text={labels.perSeatMonth} />
           </div>
           {savings && savings.apart > 0 && (
@@ -1070,7 +1070,8 @@ function FeatureCompareTable({ plans, featureKeys, featureLabelMap, currentPlanC
   return (
     <Panel title={labels.compareTitle}>
       <FrameTable columns={columns} rows={rows} rowKey={(row) => row.key} empty={null} />
-      <BillingInlineNote>{labels.compareLegend}</BillingInlineNote>
+      {/* 범례는 읽을 글 — 읽을 글 색(pivit-work PW-3295 · 흐린 회색 금지) */}
+      <div style={{ fontSize: 'var(--font-size-text-xs)', color: 'var(--text-secondary)', marginTop: 'var(--spacing-md)' }}>{labels.compareLegend}</div>
     </Panel>
   );
 }
@@ -1103,7 +1104,7 @@ function MoreByFeature({ more, interval, labels }) {
           </div>
           <FrameTable columns={columns} rows={more.rows} rowKey={(r) => r.key} empty={null} />
         </Stack>
-        <BillingInlineNote>{labels.moreFootnote}</BillingInlineNote>
+        <div style={{ fontSize: 'var(--font-size-text-xs)', color: 'var(--text-secondary)', marginTop: 'var(--spacing-md)' }}>{labels.moreFootnote}</div>
       </Panel>
     </div>
   );
@@ -1247,6 +1248,8 @@ export default function BillingPlansCanvas({
   featureGroups = null,
   /** [더 보기 — 기능별로 보기]에 펼칠 값 (pivit-work PW-3295 · `MoreByFeature`). 없으면 버튼도 없다. */
   moreByFeature = null,
+  /** 호스트가 주기를 갖고 있을 때(onIntervalChange) 사용자가 이미 토글을 골랐나 — 다른 화면에 갔다 와도 «직접 고름»을 잇는다(PW-3295). */
+  intervalChosen = false,
 }) {
   const seatConfirmId = useId();
   const labels = mergeLabels(providedLabels);
@@ -1254,6 +1257,9 @@ export default function BillingPlansCanvas({
   // 처음 열면 «연간» — 지금 구독이 월간이어도 같다(pivit-work PW-3295 · plans §2-D «청구 주기 토글 처음 값» · 종전 'monthly').
   const [intervalState, setIntervalState] = useState('annual'); // monthly | annual
   const [moreOpen, setMoreOpen] = useState(false);
+  // 이번에 토글을 직접 눌렀나 — 처음 «연간»은 보여 주기 값이라, 누르지 않은 채 같은 값 · 내림 창을 확인하면 지금 구독 주기를
+  // 그대로 보낸다(월간 회사가 [바꾸기]만 눌렀는데 다음 청구부터 1년분 선결제로 예약되지 않게 · pivit-work PW-3295 로컬 확인 15).
+  const [intervalTouched, setIntervalTouched] = useState(false);
   const [seatsState, setSeatsState] = useState(activeSeats);
   const [confirmTarget, setConfirmTargetState] = useState(null);
   const [confirmBusy, setConfirmBusy] = useState(false);
@@ -1285,6 +1291,7 @@ export default function BillingPlansCanvas({
   // 호스트가 위임받으면 화면을 떠났다 돌아와도 사용자의 선택이 유지된다.
   const interval = onIntervalChange ? (intervalProp ?? 'annual') : intervalState;
   const setInterval = (v) => {
+    setIntervalTouched(true);
     if (onIntervalChange) onIntervalChange(v);
     else setIntervalState(v);
   };
@@ -1398,7 +1405,7 @@ export default function BillingPlansCanvas({
     }
     setConfirmBusy(true);
     try {
-      await onConfirmChange(target.code, interval, seats);
+      await onConfirmChange(target.code, changeInterval, seats);
       setConfirmTarget(null);
     } catch (e) {
       // 앱이 이미 알린 실패(이용 정지 등)는 버튼을 «다시 시도»로 바꾸지 않는다(PW-2907).
@@ -1447,7 +1454,9 @@ export default function BillingPlansCanvas({
     && activeSeats > freeLimit;
   // 유료→유료 본문은 함수로도 받는다 (pivit-work PW-2475 · screen-billing-plans §4) — 낮출 요금제 이름과,
   // 지금 구독(`subscription.interval`)과 다른 청구 주기를 골랐을 때 그 주기(아니면 null)를 넘긴다.
-  const switchedInterval = subscription.interval && interval !== subscription.interval ? interval : null;
+  // 바꾸기 요청에 실을 주기 — 토글을 누르지 않았으면 지금 구독 주기(위 intervalTouched)
+  const changeInterval = intervalTouched || intervalChosen || !subscription.interval ? interval : subscription.interval;
+  const switchedInterval = subscription.interval && changeInterval !== subscription.interval ? changeInterval : null;
   const downgradeBody = isFreeTarget && labels.confirmDowngradeFreeBody
     ? labels.confirmDowngradeFreeBody
     : typeof labels.confirmDowngradeBody === 'function'
@@ -1704,7 +1713,7 @@ export default function BillingPlansCanvas({
         {/* «전자결재 · 휴가 패키지» — 기능 비교표 위 (pivit-work PW-2782 · plans «애드온 카드» 행). 판매 전이면 없다. */}
         {addonLoadFailed ? (
           <AddonLoadFailed labels={labels} onRetry={onAddonRetry} />
-        ) : addon?.onSale && (addonOwned(addon) || addon.purchaseBlock !== 'sale_closed') ? (
+        ) : addon?.onSale && (addonOwned(addon) || !(addon.saleClosed || addon.purchaseBlock === 'sale_closed')) ? (
           // 새로 팔지 않는다 — 산 회사에만 카드가 남는다(pivit-work PW-3295 · plans §2-D «애드온 카드»)
           <AddonCard
             addon={addon}
@@ -1951,6 +1960,7 @@ export default function BillingPlansCanvas({
                   : confirmKind === 'same'
                     ? [
                       labels.confirmSameBody(confirmTarget.label, lostFeatureText),
+                      switchedInterval && labels.confirmIntervalSwitch ? labels.confirmIntervalSwitch(switchedInterval) : null,
                       bundlePlan ? labels.confirmSameBothHint(bundlePlan.label) : null,
                     ]
                     : [isDowngrade ? downgradeBody : labels.confirmChangeBody]
