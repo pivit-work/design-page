@@ -29,6 +29,7 @@ export const MASK_CHAR = '*';
 
 const SINGLE_INPUT_TYPES = new Set(['insertText', 'insertCompositionText']);
 const AUTOFILL_ANIMATION = 'dp-pw-autofill';
+const MASK_PROBE_TEXT = '\u2022\u25CF';
 
 /** 같은 글꼴로 그린 비밀번호 가림 글자 하나의 폭 — 숨은 비밀번호 칸 100자의 폭으로 잰다. */
 const glyphCache = new Map();
@@ -57,9 +58,12 @@ function measureGlyph(cs) {
   probe.remove();
   // 글꼴이 아직 안 왔거나(0) 잴 수 없는 환경이면 저장하지 않고 다음에 다시 잰다.
   // 글꼴을 아직 받는 중이면 대신 그린 글꼴의 폭이다 — 저장하지 않고, 받은 뒤(loadingdone) 다시 잰다.
+  // 글꼴이 글자 범위별 파일로 나뉘어 있으면(Pretendard) «글꼴 받음»이어도 검은 점이 든 파일은 아직일 수 있어
+  // 검은 점 글자(크롬 • · 파이어폭스 ●)로 묻고, 없으면 그 글자를 받게 한다.
   let fontReady = true;
   try {
-    fontReady = !document.fonts || document.fonts.check(cs.font);
+    fontReady = !document.fonts || document.fonts.check(cs.font, MASK_PROBE_TEXT);
+    if (!fontReady) document.fonts.load(cs.font, MASK_PROBE_TEXT).catch(() => {});
   } catch {
     fontReady = true;
   }
