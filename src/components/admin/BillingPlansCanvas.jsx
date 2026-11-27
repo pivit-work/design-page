@@ -242,7 +242,7 @@ const DEFAULT_LABELS = {
   addonTrialCta: (days) => `${days ?? 30}일 무료로 써 보기`,
   addonBuyNowCta: '바로 구매',
   addonBuyCta: '애드온 구매',
-  addonCancelCta: '애드온 해지',
+  addonCancelCta: '해지', // 정책서 §2-D · TC-BILL-324 ② «[해지]» (pivit-work PW-3295 · 종전 «애드온 해지»)
   addonUndoCancelCta: '해지 취소',
   addonViewPlansCta: '플랜 보기',
   addonManageMethodsCta: '결제수단 관리',
@@ -1374,6 +1374,8 @@ export default function BillingPlansCanvas({
     }
 
     if (targetRank > currentRank) {
+      // 확인 창 없이 곧바로 가는 결제한 회사(같은 값 창의 [목표 + 워크로])도 고르지 않은 주기는 지금 주기 그대로
+      const upInterval = !isCurrentFree && !trialPlan ? changeInterval : interval;
       // 이미 결제한 회사가 올릴 때는 확인 창이 먼저 — 빠지는 기능 · 끝나는 패키지를 말하고 결제 화면으로(pivit-work PW-3295 ·
       // plans §2-D «버튼 — 상위»). Free · 체험 · 이용 정지 회사는 종전대로 곧바로 결제 화면이다.
       if (!isCurrentFree && !trialPlan && !skipConfirm) {
@@ -1382,7 +1384,7 @@ export default function BillingPlansCanvas({
         return;
       }
       // 업그레이드 → checkout 위임
-      onSelectPlanUpgrade(plan.code, interval, seats);
+      onSelectPlanUpgrade(plan.code, upInterval, seats);
       onNavigateCheckout();
     } else {
       // 다운그레이드/변경 → 확인 모달
@@ -1399,7 +1401,8 @@ export default function BillingPlansCanvas({
     // 올리는 확인 창은 결제 화면으로 넘긴다 — 바꾸는 것은 결제가 성공하는 순간이다.
     if (confirmKind === 'upgrade') {
       setConfirmTarget(null);
-      onSelectPlanUpgrade(target.code, interval, seats);
+      // 결제한 회사 — 토글을 고르지 않았으면 지금 주기 그대로(같은 값 · 내림과 같은 규칙 · 리뷰 «올림만 반대»)
+      onSelectPlanUpgrade(target.code, changeInterval, seats);
       onNavigateCheckout();
       return;
     }
@@ -1961,6 +1964,8 @@ export default function BillingPlansCanvas({
                     ? [
                       labels.confirmSameBody(confirmTarget.label, lostFeatureText),
                       switchedInterval && labels.confirmIntervalSwitch ? labels.confirmIntervalSwitch(switchedInterval) : null,
+                      // 사 둔 패키지는 세 기능이 든 요금제로 바꾸는 날 끝난다 — 같은 값(목표 → 워크)도 서버가 끝낸다(정책서 §2-B «→ Work 확인 창» · 시안 confirmAddonEnd)
+                      ownedAddon && confirmTarget.includesOps ? labels.confirmUpgradeAddonEndsNote(labels.addonName, confirmTarget.label) : null,
                       bundlePlan ? labels.confirmSameBothHint(bundlePlan.label) : null,
                     ]
                     : [isDowngrade ? downgradeBody : labels.confirmChangeBody]
