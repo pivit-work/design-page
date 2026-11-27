@@ -1,4 +1,5 @@
 import TextInput from '../shared/TextInput.jsx';
+import PasswordInput from '../shared/PasswordInput.jsx';
 import LoginShell from './LoginShell.jsx';
 import { CheckGlyph } from '../shared/lineIcons.jsx';
 import { FieldError } from '../shared/FormField.jsx';
@@ -119,10 +120,10 @@ export default function PasswordResetCanvas({
         {stage === 'reset' && (
           <>
             <SignupField label={l.newPassword} error={errors.password} hint={l.policy}>
-              <TextInput className="login-input" type="password" autoComplete="new-password" autoFocus value={password} onChange={onPasswordChange} data-testid={testIds.password} />
+              <PasswordInput className="login-input" autoComplete="new-password" autoFocus value={password} onChange={onPasswordChange} data-testid={testIds.password} />
             </SignupField>
             <SignupField label={l.confirmPassword} error={errors.confirm}>
-              <TextInput className="login-input" type="password" autoComplete="new-password" value={confirm} onChange={onConfirmChange} data-testid={testIds.confirm} />
+              <PasswordInput className="login-input" autoComplete="new-password" value={confirm} onChange={onConfirmChange} data-testid={testIds.confirm} />
             </SignupField>
             {formErrorLine}
             <SignupSubmit pending={pending} disabled={submitDisabled} testId={testIds.submit}>{l.resetSubmit}</SignupSubmit>

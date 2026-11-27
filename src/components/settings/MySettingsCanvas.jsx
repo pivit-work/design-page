@@ -9,6 +9,7 @@ import TimeInput from '../shared/TimeInput.jsx';
 import ModalShell from '../shared/ModalShell.jsx';
 import FormField from '../shared/FormField.jsx';
 import TextInput from '../shared/TextInput.jsx';
+import PasswordInput from '../shared/PasswordInput.jsx';
 import TextArea from '../shared/TextArea.jsx';
 import Select from '../shared/Select.jsx';
 import SegmentedControl from '../shared/SegmentedControl.jsx';
@@ -3114,9 +3115,8 @@ export default function MySettingsCanvas({
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {needsCurrentPw && (
                     <Field label={labels.security.currentPassword}>
-                      <TextInput
+                      <PasswordInput
                         className="admin-emp-input"
-                        type="password"
                         value={currentPw}
                         onChange={(e) => setCurrentPw(e.target.value)}
                         placeholder={labels.security.currentPwPlaceholder}
@@ -3130,9 +3130,8 @@ export default function MySettingsCanvas({
                     error={newPwError}
                     errorTestId="pw-policy"
                   >
-                    <TextInput
+                    <PasswordInput
                       className="admin-emp-input"
-                      type="password"
                       value={newPw}
                       onChange={(e) => setNewPw(e.target.value)}
                       placeholder={labels.security.newPwPlaceholder}
@@ -3144,9 +3143,8 @@ export default function MySettingsCanvas({
                     error={confirmPw && newPw !== confirmPw ? labels.security.pwMismatch : null}
                     errorTestId="pw-mismatch"
                   >
-                    <TextInput
+                    <PasswordInput
                       className="admin-emp-input"
-                      type="password"
                       value={confirmPw}
                       onChange={(e) => setConfirmPw(e.target.value)}
                       placeholder={labels.security.confirmPwPlaceholder}

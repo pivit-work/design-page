@@ -77,6 +77,31 @@ p.dp-field-error {
   box-shadow: inset 0 0 0 1px var(--colors-border-borderError, #f04438);
 }
 
+/* ── 비밀번호 칸(PasswordInput · PW-3315) — 방금 친 한 글자만 잠깐 보이고 곧 «*» ──
+   칸은 진짜 값을 담은 그대로의 비밀번호 칸이다. 칸의 원래 글자(검은 점)만 투명하게 칠하고 그 위에
+   `*` 줄(.dp-pw-mask)을 겹친다. 줄의 자리·글꼴·색은 부품이 칸에서 재어 넣는다 — 여기엔 새 값이 없다.
+   자리표시 글은 원래 색 그대로. 미리 채워져 값을 못 읽는 동안(.is-native)은 브라우저 원래 글자를 보인다. */
+.dp-pw { position: relative; display: block; min-width: 0; }
+.dp-pw > input { -webkit-text-fill-color: transparent; }
+.dp-pw > input::placeholder { -webkit-text-fill-color: currentColor; }
+.dp-pw.is-native > input { -webkit-text-fill-color: currentColor; }
+.dp-pw.is-native > .dp-pw-mask { display: none; }
+.dp-pw > input:autofill { animation-name: dp-pw-autofill; animation-duration: 1ms; }
+.dp-pw > input:-webkit-autofill { animation-name: dp-pw-autofill; animation-duration: 1ms; }
+@keyframes dp-pw-autofill { from { opacity: 1; } to { opacity: 1; } }
+.dp-pw-mask {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  white-space: pre;
+  pointer-events: none;
+  user-select: none;
+}
+.dp-pw-mask-line { display: flex; flex: none; }
+.dp-pw-ch { display: inline-block; flex: none; text-align: center; letter-spacing: 0; }
+.dp-pw-ch.is-shown { overflow: visible; }
+
 /* ── 검색칸 ── */
 :where(.dp-search) { position: relative; display: flex; align-items: center; min-width: 0; }
 :where(.dp-search-icon) {

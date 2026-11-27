@@ -1,6 +1,7 @@
 import LoginShell from './LoginShell.jsx';
 import FormField, { FieldError } from '../shared/FormField.jsx';
 import TextInput from '../shared/TextInput.jsx';
+import PasswordInput from '../shared/PasswordInput.jsx';
 import Button from '../shared/Button.jsx';
 import assetUrl from '../shared/assetUrl.js';
 
@@ -115,9 +116,8 @@ export default function LoginCanvas({
           />
         </FormField>
         <FormField label={l.password} error={passwordError} className="login-field" labelClassName="login-label">
-          <TextInput
+          <PasswordInput
             className="login-input"
-            type="password"
             name="password"
             autoComplete="current-password"
             placeholder={l.passwordPlaceholder}

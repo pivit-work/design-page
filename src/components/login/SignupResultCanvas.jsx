@@ -1,4 +1,5 @@
 import TextInput from '../shared/TextInput.jsx';
+import PasswordInput from '../shared/PasswordInput.jsx';
 import { SignupFrame, SignupCard, SignupField, SignupSubmit, SignupNotice } from './SignupPieces.jsx';
 import { SIGNUP_LABELS, DEFAULT_SIGNUP_STEPS, fill } from './signupLabels.js';
 
@@ -45,10 +46,10 @@ export default function SignupResultCanvas({
           <TextInput className="login-input is-readonly" type="email" value={email} readOnly tabIndex={-1} />
         </SignupField>
         <SignupField label={l.passwordLabel} error={errors.password} hint={l.pwHint}>
-          <TextInput className="login-input" type="password" autoComplete="new-password" autoFocus placeholder={l.passwordPlaceholder} value={password} onChange={onPasswordChange} data-testid={testIds.password} />
+          <PasswordInput className="login-input" autoComplete="new-password" autoFocus placeholder={l.passwordPlaceholder} value={password} onChange={onPasswordChange} data-testid={testIds.password} />
         </SignupField>
         <SignupField label={l.confirmPwLabel} error={errors.confirm}>
-          <TextInput className="login-input" type="password" autoComplete="new-password" placeholder={l.confirmPwPlaceholder} value={confirm} onChange={onConfirmChange} data-testid={testIds.confirm} />
+          <PasswordInput className="login-input" autoComplete="new-password" placeholder={l.confirmPwPlaceholder} value={confirm} onChange={onConfirmChange} data-testid={testIds.confirm} />
         </SignupField>
         {domain && (
           <SignupNotice>
