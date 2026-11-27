@@ -69,6 +69,7 @@ export const ADMIN_OFFBOARDING_DEFAULT_LABELS = {
   noteCount: '{count}/{max}',
   resignationDate: '퇴사일',
   resignationDateRequired: '퇴사일을 넣어야 실행할 수 있습니다',
+  resignationBeforeHire: '퇴사일은 입사일보다 앞설 수 없어요',
   lastDay: '마지막 출근일',
   lastDayHint: '남은 휴가를 쓰면 퇴사일보다 앞설 수 있습니다',
   lastDayAfterResignation: '퇴사일보다 늦을 수 없습니다',
@@ -166,18 +167,28 @@ export const ADMIN_OFFBOARDING_DEFAULT_LABELS = {
 };
 
 /**
+ * 퇴사일이 입사일보다 앞인가 — 같은 날은 된다 · 입사일이 없으면 막지 않는다 (pivit-work PW-3320 · PW-3311 과 같은 규칙).
+ * 날짜는 'YYYY-MM-DD' 앞 10자로 견준다.
+ */
+export function resignationBeforeHire(resignationDate, hireDate) {
+  if (!resignationDate || !hireDate) return false;
+  return resignationDate < String(hireDate).slice(0, 10);
+}
+
+/**
  * 실행 버튼 활성 조건 — 정책 §5-A 의 단일 정의.
  *
- *   이름 정확 일치(앞뒤 공백 무시 · E4) && 퇴사일 있음(E12) && 마지막 출근일 ≤ 퇴사일(E13 · 같은 날 허용)
+ *   이름 정확 일치(앞뒤 공백 무시 · E4) && 퇴사일 있음(E12) && 퇴사일 ≥ 입사일(입사일 있을 때 · PW-3320) && 마지막 출근일 ≤ 퇴사일(E13 · 같은 날 허용)
  *   && 기본값을 덮어쓴 항목마다 사유가 비어 있지 않다(§4-A · 공백만이면 미입력)
  *
  * 「재확인 대기」 영역은 실행을 막지 않는다 — 막으면 퇴사 처리 자체가 불가능해진다.
  */
 export function offboardingCanRun({
-  memberName, typedName, resignationDate, lastDay, picks, defaults, reasons,
+  memberName, typedName, resignationDate, lastDay, picks, defaults, reasons, hireDate,
 }) {
   if ((typedName ?? '').trim() !== memberName) return false;
   if (!resignationDate) return false;
+  if (resignationBeforeHire(resignationDate, hireDate)) return false;
   if (lastDay && lastDay > resignationDate) return false;
   const p = picks || {};
   const d = defaults || {};

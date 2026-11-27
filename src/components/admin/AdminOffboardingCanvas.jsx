@@ -18,6 +18,7 @@ import {
   OFFBOARDING_CHOICE_AREAS as CHOICE_AREAS,
   OFFBOARDING_TYPE_IDS,
   offboardingCanRun,
+  resignationBeforeHire,
 } from './offboardingRules.js';
 
 /** 세부 사유 최대 길이 — 서버(pivit-work `OFFBOARDING_NOTE_MAX`)와 같은 수다 (PW-1693 · 정책 v1.26 §5-I). */
@@ -517,7 +518,8 @@ function AreaCard({
 /**
  * @param {object} props
  * @param {{ id: string, name: string, email?: string, avatarUrl?: string, department?: string,
- *   position?: string, resignedAt?: string|null, lastWorkingDate?: string|null, leaderOf?: string[] }} props.member
+ *   position?: string, resignedAt?: string|null, lastWorkingDate?: string|null, leaderOf?: string[],
+ *   hireDate?: string|null }} props.member  `hireDate`('YYYY-MM-DD') 가 있으면 그보다 앞 퇴사일은 칸 아래 이유 글 + 실행 막힘(같은 날은 됨 · pivit-work PW-3320)
  * @param {string} props.today 'YYYY-MM-DD' — 조직 시간대의 오늘. 캔버스는 시계를 읽지 않는다
  * @param {{ okrPersonal: string, evalDrafts: string }} props.defaults 워크스페이스 퇴사 처리 기본값
  * @param {{ active: number, minimum?: number|null }} props.seats
@@ -605,9 +607,11 @@ export default function AdminOffboardingCanvas({
 
   const nameOk = typedName.trim() === member.name;
   const lastDayAfter = Boolean(lastDay && resignationDate && lastDay > resignationDate);
+  const beforeHire = resignationBeforeHire(resignationDate, member.hireDate);
   const due = today >= resignationDate;
   const canRun = offboardingCanRun({
     memberName: member.name, typedName, resignationDate, lastDay, picks, defaults, reasons,
+    hireDate: member.hireDate,
   });
 
   const activeSeats = Number(seats?.active) || 0;
@@ -746,7 +750,13 @@ export default function AdminOffboardingCanvas({
             className="dp-field admin-offb-field"
             label={labels.resignationDate}
             required
-            error={resignationDate ? undefined : labels.resignationDateRequired}
+            error={
+              !resignationDate
+                ? labels.resignationDateRequired
+                : beforeHire
+                  ? labels.resignationBeforeHire
+                  : undefined
+            }
           >
             <span className="admin-offb-date">
               <CalendarGlyph size={20} className="admin-offb-date-icon" />
