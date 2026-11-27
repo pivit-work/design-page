@@ -15,10 +15,13 @@ import Icon from '../shared/Icon.jsx';
  * `selectedMember`·`onSelectMember` 의 값이 id 가 된다. 이름은 유일하지 않아서
  * (동명이인, 퇴사자를 한 이름으로 가린 경우) 이름으로 고르면 뒷사람을 고를 수 없다
  * (pivit-work PW-1373). `id` 가 없으면 지금처럼 이름이 그 값이다.
+ *
+ * 팀원 줄 오른쪽(안 쓴 사람): `statusNote` 가 있으면 그 글(«—»·«휴가»), 없고 `missing` 이 참이면 회색 점 «미제출»
+ * (`missingLabel` 이 말풍선·화면 읽기 이름). 못 불러온 사람처럼 모르는 줄은 `missing` 을 안 넘겨 비워 둔다 (pivit-work PW-3318).
  */
 const memberKey = (member) => member.id ?? member.name;
 
-export default function TeamSnippetSidebar({ members, weekHealth, aiSummary, selectedMember, onSelectMember, icons, baseUrl = '' }) {
+export default function TeamSnippetSidebar({ members, weekHealth, aiSummary, selectedMember, onSelectMember, icons, baseUrl = '', missingLabel = '미제출' }) {
   return (
     <div className="mgr-ts-side">
       <div className="mgr-ts-roster">
@@ -46,6 +49,13 @@ export default function TeamSnippetSidebar({ members, weekHealth, aiSummary, sel
               {/* 안 쓴 사람의 까닭 — 토·일요일 «—» · 평일 종일 휴가 «휴가» (manager-view §3-3 W3 · PW-2296) */}
               {!member.submitted && member.statusNote && (
                 <span className="mgr-ts-note">{member.statusNote}</span>
+              )}
+              {/* 평일에 쓸 날인데 안 쓴 사람 — 회색 점 «미제출» (manager-view §3-3 평일 행 · EC-71 · pivit-work PW-3318).
+                  점은 같은 상자 «이번 주 헬스» 범례 점(.mgr-ts-dot 8px)을 ✓ 와 같은 16px 칸 가운데에 둔다 */}
+              {!member.submitted && !member.statusNote && member.missing && (
+                <span className="mgr-ts-missing" role="img" aria-label={missingLabel} title={missingLabel}>
+                  <i className="mgr-ts-dot is-missing" />
+                </span>
               )}
             </span>
           </div>

@@ -673,6 +673,10 @@
 .mgr-ts-dot.is-warn { background: var(--fg-warning-secondary); }
 .mgr-ts-dot.is-bad { background: var(--fg-error-primary); }
 .mgr-ts-dot.is-empty { background: transparent; border: 1px solid var(--border-secondary); }
+/* 팀원 줄 «미제출» 회색 점 — 범례 점과 같은 8px 동그라미를 ✓(16px) 칸 가운데에. 회색은 어드민 «구성원 현황» 미제출 점과 같은 값 (pivit-work PW-3318) */
+.mgr-ts-missing { width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.mgr-ts-missing .mgr-ts-dot { width: 8px; height: 8px; border-radius: 4px; }
+.mgr-ts-dot.is-missing { background: var(--border-primary); }
 .mgr-ts-health-divider { height: 1px; background: var(--border-secondary); margin: 0 0 -1px; }  /* 시안의 0높이 선 — 카드 286 */
 .mgr-ts-health-legend { display: flex; gap: 9px; padding: 16px; font-size: 12px; font-weight: 400; line-height: 18px; color: var(--text-tertiary); }
 .mgr-ts-health-legend span { display: inline-flex; align-items: center; gap: 7px; }

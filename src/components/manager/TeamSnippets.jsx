@@ -32,11 +32,13 @@ import LoadingState from '../shared/LoadingState.jsx';
  * labels: { redFlag, todayStatus, submittedTotal, submittedNote, loading } — 안 넘기면 한국어 기본값.
  *   submittedNote 가 있으면 «done / total» 대신 «done» 옆에 그 글을 작게 둔다 — 토·일요일 «주말에는 세지 않아요»
  *   (pivit-work PW-2296 · 기획 manager-view §3-3).
+ *   missing — 팀원 줄 회색 점(`members[].missing`)의 말풍선·화면 읽기 이름. 기본 «미제출» (pivit-work PW-3318).
  * testIds: { redFlag, submitted, empty } — 소비자 테스트가 잡는 자리.
  */
 const DEFAULT_LABELS = {
   redFlag: '레드 플래그',
   todayStatus: '오늘 제출 현황',
+  missing: '미제출',
 };
 
 const periodId = (p) => (typeof p === 'string' ? p : p.id);
@@ -121,6 +123,7 @@ export default function TeamSnippets({
             onSelectMember={setMemberFilter}
             icons={icons}
             baseUrl={baseUrl}
+            missingLabel={labels.missing}
           />
           <div className="mgr-ts-feedcol">
             {feedNotice}

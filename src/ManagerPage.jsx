@@ -31,7 +31,7 @@ const TEAM_SNIPPETS = {
   members: [
     { name: '김시윤', avatar: TS_AVATARS.김시윤, submitted: true, flagged: true },
     { name: '어니스트', avatar: TS_AVATARS.어니스트, submitted: true },
-    { name: '윤서율', avatar: TS_AVATARS.윤서율, submitted: false },
+    { name: '윤서율', avatar: TS_AVATARS.윤서율, submitted: false, missing: true },
     { name: '박민준', avatar: TS_AVATARS.박민준, submitted: true },
     { name: '정다은', avatar: TS_AVATARS.정다은, submitted: true },
   ],
