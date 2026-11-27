@@ -653,8 +653,9 @@ export default function OfficeSpace({
             return (
               <div key={d.id} className={`osp-row${d.id === sel ? ' is-on' : ''}`} data-desk-row={d.name} role="button" tabIndex={0} onClick={() => { if (bldgView) pickFloor(r.key, d.id); else pickDesk(d); }} onKeyDown={onActKey}>
                 <span className={`osp-desk-name osp-cut${bldgView ? ' is-wide' : ''}`}>{bldgView ? `${floorName(r)} ${d.name}` : d.name}</span>
-                <span className={`osp-desk-who osp-cut${p ? '' : ' is-empty'}`}>
-                  {p ? p.name : L('office.emptyDesk')}
+                {/* 이름만 «…»로 자른다 — 감싼 줄이 자르면 «퇴사» 딱지 위아래도 잘린다(pivit-work PW-3317) */}
+                <span className={`osp-desk-who${p ? '' : ' is-empty'}`}>
+                  <span className="osp-cut">{p ? p.name : L('office.emptyDesk')}</span>
                   {a.resigned && <StatusBadge tone="warning" className="admin-pill osp-badge">{L('office.resigned')}</StatusBadge>}
                 </span>
                 <span className={`osp-desk-assets${a.count ? ' has-assets' : ''}`}>{L('office.assetCount', { count: a.count })}</span>

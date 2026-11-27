@@ -104,7 +104,9 @@
 .osp-badge { flex: none; }
 .osp-desk-name { flex: none; width: 54px; font-size: 13px; font-weight: 600; color: var(--text-primary); }
 .osp-desk-name.is-wide { width: 84px; }
-.osp-desk-who { display: flex; align-items: center; gap: var(--spacing-xs); flex: 1; font-size: 12px; color: var(--text-secondary); }
+.osp-desk-who { display: flex; align-items: center; gap: var(--spacing-xs); flex: 1; min-width: 0; font-size: 12px; color: var(--text-secondary); }
+/* «퇴사» 딱지(.admin-pill 높이 22)가 줄을 키우지 않게 — 딱지 모양은 그대로, 줄 높이는 딱지 없는 줄과 같다(pivit-work PW-3317) */
+.osp-desk-who .osp-badge { margin-block: calc(var(--spacing-xs) * -1); }
 .osp-desk-who.is-empty { color: var(--text-tertiary); }
 .osp-desk-assets { flex: none; font-size: 11px; font-weight: 700; color: var(--text-tertiary); }
 .osp-desk-assets.has-assets { color: var(--text-brand-secondary); }
