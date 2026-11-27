@@ -20,6 +20,7 @@ export const FAIL_LABEL_KEY = {
   ALREADY_MEMBER: 'failAlreadyMember',
   TERMINATED_MEMBER: 'failTerminatedMember', // PW-1331 — 퇴사자에게는 보내지 않는다
   REHIRE_HIRE_DATE_REQUIRED: 'failRehireHireDate', // PW-1355 — 재입사 초대에 새 입사일이 없다
+  HIRE_DATE_AFTER_TERMINATION: 'failHireAfterTermination', // pivit-work PW-3311 — 입사일이 퇴사일보다 뒤
   PENDING_INVITE_EXISTS: 'failPendingExists',
   SEAT_LIMIT_EXCEEDED: 'failSeatLimit',
   PRIMARY_TEAM_REQUIRED: 'failPrimaryTeam',
