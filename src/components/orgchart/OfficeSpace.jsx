@@ -317,7 +317,9 @@ export default function OfficeSpace({
     if (!prev.h || !cur.h) return;
     const axisY = prev.top + (prev.h / 2) * (1 - l0.oy);
     lens.current = { k: l0.k * (cur.h / prev.h), oy: 1 - (2 * (axisY - cur.top)) / cur.h };
-    kick();
+    // 다음 화면을 기다리지 않고 지금 그린다 — 기다리면 이름표가 판보다 한두 화면 늦게 따라와 움직이는 동안 흔들렸다(로컬 확인 18)
+    cancelAnimationFrame(raf.current);
+    frame(performance.now());
   }, { key: `${v}|${status}` });
   // 사라질 때 예약한 그리기만 거둔다 — 예약 표시를 0 으로 되돌려야 다시 붙을 때(개발 모드의 미리 정리 포함) 그리기가 다시 돈다.
   // WebGL 연결은 끊지 않는다: 같은 캔버스로 다시 붙으면 끊긴 연결을 받아 판이 검게 남는다(캔버스와 함께 거둬진다).

@@ -160,6 +160,8 @@ export function useHoldInPlace(ref, apply, { center = false, key = '', enabled =
 
 /** 창이 접히고 펴진 뒤 이만큼(ms) 판의 자리 변화를 «창이 움직인 것»으로 센다 — CSS 0.22초 + 여유. */
 export const ORG_CHROME_SETTLE_MS = 450;
+/** 판이 계속 움직여도 이 뒤로는 세지 않는다. */
+export const ORG_CHROME_MAX_MS = 1500;
 
 /**
  * 창이 움직이는 동안 판의 자리 · 크기가 바뀔 때마다 onChange(전, 후)를 부른다 — {top(페이지 안 · 스크롤 0 기준), h, w}.
@@ -178,12 +180,17 @@ export function useChromeShiftRect(ref, onChange, { key = '', enabled = true } =
     };
     let last = read();
     let until = 0;
+    let quiet = 0;
     const check = () => {
       const cur = read();
       const prev = last;
       last = cur;
-      if (now() > until) return;   // 창이 움직이는 때가 아니다 — 기준만 새로
-      if (Math.abs(cur.top - prev.top) > 0.3 || Math.abs(cur.h - prev.h) > 0.3) fnRef.current(prev, cur);
+      if (now() > until) return false;   // 창이 움직이는 때가 아니다 — 기준만 새로
+      if (Math.abs(cur.top - prev.top) > 0.3 || Math.abs(cur.h - prev.h) > 0.3) {
+        fnRef.current(prev, cur);
+        return true;
+      }
+      return false;
     };
     const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(check) : null;
     if (ro) ro.observe(el);
@@ -191,9 +198,14 @@ export function useChromeShiftRect(ref, onChange, { key = '', enabled = true } =
     const onShift = () => {
       cancelAnimationFrame(raf);
       last = read();
-      until = now() + ORG_CHROME_SETTLE_MS;
+      const t0 = now();
+      until = t0 + ORG_CHROME_MAX_MS;
+      quiet = 0;
+      // 0.45초가 지나도 판이 아직 움직이면(화면이 느리게 그려질 때) 멎을 때까지 — 다섯 화면 잇달아 그대로면 끝(최대 1.5초).
+      // 일찍 끊으면 남은 이동을 못 되돌려 접고 펼 때마다 그림이 조금씩 밀렸다(로컬 확인 16 · 느린 그리기)
       const loop = () => {
-        check();
+        quiet = check() ? 0 : quiet + 1;
+        if (now() - t0 >= ORG_CHROME_SETTLE_MS && quiet >= 5) { until = 0; return; }
         if (now() < until) raf = requestAnimationFrame(loop);
       };
       raf = requestAnimationFrame(loop);
@@ -252,16 +264,22 @@ export function useFillToBottom(ref, { enabled = true, key = '', prop = 'height'
       const below = sp ? spaceBelow(el, sp) : ORG_VIEW_BOTTOM_GAP;
       const bottom = sp ? sp.getBoundingClientRect().bottom : vh;
       const h = Math.max(orgViewMinHeight(vh), Math.floor(bottom - below - topAtZero));
-      if (el.style[prop] !== `${h}px`) el.style[prop] = `${h}px`;
+      if (el.style[prop] === `${h}px`) return false;
+      el.style[prop] = `${h}px`;
+      return true;
     };
     fit();
     let raf = 0;
     const onShift = () => {
       cancelAnimationFrame(raf);
       const t0 = now();
+      let quiet = 0;
+      // 창이 멎을 때까지 다시 잰다 — 0.45초 뒤 다섯 화면 잇달아 그대로면 끝(최대 1.5초 · useChromeShiftRect 와 같다)
       const loop = () => {
-        fit();
-        if (now() - t0 < 450) raf = requestAnimationFrame(loop);
+        quiet = fit() ? 0 : quiet + 1;
+        const t = now() - t0;
+        if ((t >= ORG_CHROME_SETTLE_MS && quiet >= 5) || t >= ORG_CHROME_MAX_MS) return;
+        raf = requestAnimationFrame(loop);
       };
       raf = requestAnimationFrame(loop);
     };
