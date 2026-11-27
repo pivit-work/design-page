@@ -800,7 +800,7 @@ export default function BillingCheckoutCanvas({
                 : payButton;
             })()}
             {/* 다음에 무엇이 일어나는지 (PW-2110) — 카드 인증 창은 페이지를 떠났다가 돌아온다 */}
-            {opensCardWindow && !overCardLimit && (payState === 'idle' || payState === 'fail') && (
+            {opensCardWindow && !consentCannotUnlock && (payState === 'idle' || payState === 'fail') && (
               <div data-testid="checkout-card-window-note" style={{ ...PAY_NOTE_STYLE, color: 'var(--text-secondary)' }}>
                 {labels.cardWindowNote}
               </div>
