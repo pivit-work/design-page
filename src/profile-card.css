@@ -1245,7 +1245,10 @@
     max-width: calc(100vw - 2 * var(--spacing-xl));
     height: auto;
     margin: var(--spacing-xl) auto;
-    padding: 48px var(--spacing-2xl) var(--spacing-2xl); /* TODO: token 없음 — 위 48 은 넓은 창과 같은 값 */
+    /* 위 48 은 넓은 창 값 그대로 두고 좌우·아래만 머리 칸 자기 여백 20 으로 */
+    padding-right: var(--spacing-2xl);
+    padding-bottom: var(--spacing-2xl);
+    padding-left: var(--spacing-2xl);
     overflow: visible;
   }
   .profile-card.is-split.is-status { padding-left: var(--spacing-2xl); }
