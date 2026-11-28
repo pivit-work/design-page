@@ -176,15 +176,15 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
     ? (resolved?.for === displayMember ? resolved.src : null)
     : (displayMember?.avatar || null);
 
-  // 새 멤버로 열릴 때 스크롤 위치 초기화.
+  // 새 멤버로 열릴 때 스크롤 위치 초기화 — 사람(id)이 바뀔 때만. 소비자가 렌더마다 새 member 객체를 만들어 넘기면
+  // (매니저 줄 · 탭을 바꿀 때) 값으로 보면 리본이 «받은 칭찬»으로 내린 직후 맨 위로 튀었다(pivit-work PW-3273 · 매니저 창 PW-1531 과 같은 까닭).
   useEffect(() => {
-    if (member && scrollWrapRef.current) {
-      scrollWrapRef.current.scrollTop = 0;
-      // 좁은 화면에서는 탭 칸이 아니라 바깥 막이 내린다(profile-card.css «좁은 화면» · pivit-work PW-3273)
-      const wrap = scrollWrapRef.current.closest?.('.profile-card-wrap');
-      if (wrap) wrap.scrollTop = 0;
-    }
-  }, [member]);
+    if (openId == null || !scrollWrapRef.current) return;
+    scrollWrapRef.current.scrollTop = 0;
+    // 좁은 화면에서는 탭 칸이 아니라 바깥 막이 내린다(profile-card.css «좁은 화면» · pivit-work PW-3273)
+    const wrap = scrollWrapRef.current.closest?.('.profile-card-wrap');
+    if (wrap) wrap.scrollTop = 0;
+  }, [openId]);
   const profile = displayMember?.profile || EMPTY_PROFILE;
   // 카드 칸을 받는 중·못 받았을 때도 창은 연다 — 카드 자리는 CardStatusBlock 이 대신한다(pivit-work PW-2665).
   const isOpen = !!member || !!cardStatus;
