@@ -1234,20 +1234,26 @@
    «인사정보» 탭(«받은 칭찬» 구역)이 안 보였다. 탭 칸이 300 아래로 줄어드는 폭(800)부터는 머리 칸 위 · 탭 칸 아래로 쌓고,
    창 높이를 내용만큼 두어 바깥 막(.profile-card-wrap)이 내린다 — 탭 줄은 그 안에서 위에 붙는다.
    801 이상은 디자이너 두 단(17873:33194) 그대로다. 좁은 화면 원본이 없어 myprofile.css · settings.css 의 «두 단 → 한 단» 선례를 따랐다.
-   탭 칸이 있는 창(.profile-main 을 가진 ProfileCardFrame)만 쌓는다 — 머리 칸만 그리는 간단 카드(pivit-work SimpleMemberCard)는 제 모양 그대로.
+   탭 칸이 있는 창(ProfileCardFrame 이 붙이는 .is-split)만 쌓는다 — 머리 칸만 그리는 간단 카드(pivit-work SimpleMemberCard)는 제 모양 그대로.
    창이 통째로 내리니 닫기 X · 공개 범위 톱니는 화면에 붙여 둔다(창 둘레 16 + 8 — 맨 위에서는 지금 자리와 같다). */
+@keyframes profileCardFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 @media (max-width: 800px) {
-  .profile-card:has(> .profile-main) > .profile-close {
+  .profile-card.is-split > .profile-close {
     position: fixed;
     top: calc(var(--spacing-xl) + var(--spacing-md));
     right: calc(var(--spacing-xl) + var(--spacing-md));
     background: var(--bg-quaternary);
   }
-  .profile-card:has(> .profile-main) > .profile-visibility {
+  .profile-card.is-split > .profile-visibility {
     left: calc(var(--spacing-xl) + var(--spacing-md));
     right: auto;
   }
-  .profile-card:has(> .profile-main) {
+  .profile-card.is-split {
+    /* 등장 때 transform 을 쓰면 그동안 카드가 fixed X 의 기준이 돼 X 가 튄다 — 좁은 화면은 흐려졌다 나타나기만 */
+    animation-name: profileCardFadeIn;
     flex-direction: column;
     align-items: stretch;
     gap: var(--spacing-4xl);
@@ -1257,8 +1263,8 @@
     padding: 48px var(--spacing-2xl) var(--spacing-2xl); /* TODO: token 없음 — 위 48 은 넓은 창과 같은 값 */
     overflow: visible;
   }
-  .profile-card.is-status:has(> .profile-main) { padding-left: var(--spacing-2xl); }
-  .profile-card:has(> .profile-main) > .profile-head {
+  .profile-card.is-split.is-status { padding-left: var(--spacing-2xl); }
+  .profile-card.is-split > .profile-head {
     flex: none;
     width: 100%;
     max-height: none;

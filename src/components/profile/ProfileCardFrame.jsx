@@ -20,7 +20,7 @@ export default function ProfileCardFrame({ open, onClose, closeLabel = '닫기',
   return (
     <ModalLayer open={open} keepMounted onClose={() => onClose?.()}>
       <div className="profile-card-wrap" onClick={onClose}>
-        <div className={`profile-card ${className}`.trim()} onClick={(e) => e.stopPropagation()} data-testid={testId}>
+        <div className={`profile-card is-split ${className}`.trim()} onClick={(e) => e.stopPropagation()} data-testid={testId}>
           <button type="button" className="profile-close" onClick={onClose} aria-label={closeLabel} data-testid="profile-close">
             <CloseGlyph size={20} strokeWidth={2.4} />
           </button>
