@@ -68,7 +68,11 @@ export default function ProfileModal({
   // 만들어 넘긴다. 값 자체를 보면 버튼을 누를 때마다 창이 맨 위로 튄다 (pivit-work PW-1531).
   const openMemberId = member?.id ?? null;
   useEffect(() => {
-    if (openMemberId != null && scrollWrapRef.current) scrollWrapRef.current.scrollTop = 0;
+    if (openMemberId == null || !scrollWrapRef.current) return;
+    scrollWrapRef.current.scrollTop = 0;
+    // 좁은 화면에서는 탭 칸이 아니라 바깥 막이 내린다(profile-card.css «좁은 화면» · pivit-work PW-3273)
+    const wrap = scrollWrapRef.current.closest?.('.profile-card-wrap');
+    if (wrap) wrap.scrollTop = 0;
   }, [openMemberId]);
 
   const isOpen = !!member;

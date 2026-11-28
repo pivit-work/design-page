@@ -180,6 +180,9 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
   useEffect(() => {
     if (member && scrollWrapRef.current) {
       scrollWrapRef.current.scrollTop = 0;
+      // 좁은 화면에서는 탭 칸이 아니라 바깥 막이 내린다(profile-card.css «좁은 화면» · pivit-work PW-3273)
+      const wrap = scrollWrapRef.current.closest?.('.profile-card-wrap');
+      if (wrap) wrap.scrollTop = 0;
     }
   }, [member]);
   const profile = displayMember?.profile || EMPTY_PROFILE;
