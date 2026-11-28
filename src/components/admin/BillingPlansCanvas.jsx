@@ -781,7 +781,10 @@ function AddonCard({ addon, interval, canEdit, highlight, labels, onTrial, onBuy
   }, [highlight]);
 
   const badge = addonBadgeOf(addon, labels);
-  const block = addonBlockMessage(addon, labels);
+  // 산 회사(사용 중 · 해지 예정 · 결제 실패로 잠김) 카드에는 «구매»를 막는 사유를 달지 않는다 — 새로 사는 길이 닫혀 있다
+  // (pivit-work PW-3281 · 기획 시안 billing-app.jsx «운영 애드온 — 이미 산 회사에만»: 배지 + 버튼 + «새로 사거나 바꿀 수는 없습니다»만)
+  const owned = addonOwned(addon);
+  const block = owned ? null : addonBlockMessage(addon, labels);
   const price = interval === 'annual' ? addon.priceAnnual : addon.priceMonthly;
   const disabled = !canEdit || busy;
 
@@ -831,7 +834,7 @@ function AddonCard({ addon, interval, canEdit, highlight, labels, onTrial, onBuy
               )}
             </div>
             <div style={{ fontSize: 12, color: T.sub, marginTop: 'var(--spacing-xs)' }}>{labels.addonSeatsNote(addon.seats)}</div>
-            {addon.state === 'lapsed' && (
+            {addon.state === 'lapsed' && addon.phase !== 'locked' && (
               <div style={{ fontSize: 12, color: T.sub, marginTop: 'var(--spacing-md)' }}>{labels.addonLapsedNote}</div>
             )}
             {addon.purchaseBlock === 'sale_closed' || addon.saleClosed ? (
