@@ -555,7 +555,8 @@ export default function BillingCheckoutCanvas({
                 <div data-testid="checkout-launch-benefit"
                   style={{ fontSize: 12, color: T.accentText, fontWeight: 700 }}>
                   {labels.launchBenefitTag(launchBenefit.until)}
-                  <div style={{ fontWeight: 500, color: T.muted }}>{labels.launchBenefitAfter(launchBenefit.monthlyListPrice)}</div>
+                  {/* 혜택 뒤 안내는 읽을 설명 — 플랜 카드의 같은 문장과 같은 설명 글 색(pivit-work PW-3302) */}
+                  <div style={{ fontWeight: 500, color: 'var(--text-secondary)' }}>{labels.launchBenefitAfter(launchBenefit.monthlyListPrice)}</div>
                 </div>
               )}
               {/* 요금제 변경 차액 줄 (PW-2475 · screen-billing-checkout §2) — 아래 소계·부가세와 같은 Row,
