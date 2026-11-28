@@ -412,8 +412,7 @@ export default function OkrComposeFullModal({
   aiNotice = null,
 }) {
   const L = { ...DEFAULT_LABELS, ...(labels ?? {}) };
-  // 소비자가 실패를 안내로 대신했나 — 권한 거절·앱이 알린 실패는 그 전에 걸러 부르지 않는다.
-  const handledAsNotice = (at, error, key) => isForbidden(error) || Boolean(onAiError?.(at, error, key));
+  // AI 실패는 권한 거절·앱이 알린 실패(isForbidden)를 먼저 거르고, 그다음 소비자가 안내로 대신했나(onAiError)를 본다.
   const aiNoticeAt = (at, key) =>
     aiNotice && aiNotice.at === at && (key === undefined || aiNotice.key === key) ? (
       <div className="okr-wz-ai-notice" data-testid={`okr-cf-ai-notice-${at}`}>{aiNotice.content}</div>
@@ -485,7 +484,7 @@ export default function OkrComposeFullModal({
     } catch (error) {
       // 권한 거절(403)은 소비자가 토스트로 알리고 창을 readOnly 로 내린다 — 실패 문구를 겹치지 않는다(pivit-work PW-1508).
       // AI 한도 소진처럼 소비자가 그 자리 안내로 대신하면 빨간 실패 문구를 겹치지 않는다(PW-3300).
-      if (!handledAsNotice('objectives', error)) setGenError(L.genObjectivesFailed);
+      if (!isForbidden(error) && !onAiError?.('objectives', error)) setGenError(L.genObjectivesFailed);
     } finally { setGenLoading(false); }
   };
 
@@ -527,7 +526,7 @@ export default function OkrComposeFullModal({
         }),
       });
     } catch (error) {
-      if (!handledAsNotice('krs', error, objective.key)) setGenKrError({ key: objective.key, message: L.genKrsFailed });
+      if (!isForbidden(error) && !onAiError?.('krs', error, objective.key)) setGenKrError({ key: objective.key, message: L.genKrsFailed });
     } finally {
       setGenKrKey(null);
     }
@@ -604,7 +603,7 @@ export default function OkrComposeFullModal({
       // 필드도 바뀌지 않는다. 알림은 그 KR 블록 안에서만 한다(INV-R2). 권한 거절은 소비자 토스트.
       // 한도 안내 자리는 그 Objective 카드 아래(KR 생성·개선 공용 · okr-policy §5.5A «시각») — 그래서 Objective key 를 넘긴다.
       // 빨간 실패 문구는 그대로 그 KR 줄 안이다(§5.3 INV-R2).
-      if (!handledAsNotice('refine', error, objKey)) setRefineError({ key: kr.key, message: L.refineKrFailed });
+      if (!isForbidden(error) && !onAiError?.('refine', error, objKey)) setRefineError({ key: kr.key, message: L.refineKrFailed });
     } finally {
       setRefiningKey(null);
     }
