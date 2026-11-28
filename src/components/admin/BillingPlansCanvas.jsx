@@ -570,7 +570,10 @@ function PlanCard({ plan, isCurrent, isUpgrade = false, interval, onAction, canE
       background: T.card,
       // 지금 플랜만 브랜드 테두리(시안 .bl-on) — «추천»은 딱지 글만 남기고 보라 테두리를 뺀다(보라는 AI 뜻)
       border: `2px solid ${markedCurrent || flash ? T.accent : T.border}`,
-      transition: 'border-color .4s',
+      // 도착 강조는 테두리 밖 옅은 브랜드 고리도 함께 — «현재 플랜» 카드는 테두리가 이미 브랜드색이라 색만 바꾸면 안 보인다
+      // (pivit-work PW-3321 · 기획 시안 billing-app.jsx BillingPlans flashId «0 0 0 4px brandFaint»)
+      boxShadow: flash ? '0 0 0 4px var(--bg-brand-secondary)' : 'none',
+      transition: 'border-color .4s, box-shadow .4s',
       borderRadius: 16,
       padding: 24,
       position: 'relative',
@@ -813,7 +816,7 @@ function AddonCard({ addon, interval, canEdit, highlight, labels, onTrial, onBuy
   return (
     <div ref={ref} id="addon-approval_leave" data-testid="billing-addon-card">
       <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 'var(--spacing-lg)' }}>{labels.addonSectionTitle}</div>
-      <Card style={{ border: `1px solid ${flash ? T.accent : T.border}`, transition: 'border-color .4s' }}>
+      <Card style={{ border: `1px solid ${flash ? T.accent : T.border}`, boxShadow: flash ? '0 0 0 4px var(--bg-brand-secondary)' : 'none', transition: 'border-color .4s, box-shadow .4s' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--spacing-xl)', flexWrap: 'wrap' }}>
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)', flexWrap: 'wrap', marginBottom: 'var(--spacing-sm)' }}>
