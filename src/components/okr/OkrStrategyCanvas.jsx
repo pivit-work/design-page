@@ -28,6 +28,15 @@ import { OkrLabelsContext, makeOkrLabels } from './okr-labels.jsx';
  *   던진 오류에 `inlineMessage` 가 있으면 그 글을 캔버스 위 빨간 줄로 쓴다.
  *   행별 [AI] 는 AI_PREREQUISITES 의 선행 칸이 비어 있으면 부르지 않고 그 행 안에
  *   「Mission을 먼저 입력해주세요.」를 띄운다(편집 중이면 입력 중인 글로 판정 · PW-1505).
+ *   던진 오류에 `inlineRowId` 도 있으면 그 글을 캔버스 위가 아니라 그 행 안에 쓴다.
+ * AI 한도 안내 (선택 · screen-tier-gating §6.6·§6.8 · okr-policy §5.5A — pivit-work PW-3343):
+ *  - checkPrerequisites — 기본 true. false 면 위 두 «먼저 입력» 판정을 여기서 하지 않고 늘 onAiAutocomplete 를 부른다.
+ *      AI 한도를 다 쓴 회사에는 «먼저 입력»보다 한도 안내가 먼저라(§5.5A 엣지), 한도를 아는 소비자(서버)가 판정하고
+ *      모자라면 `inlineMessage`(·`inlineRowId`)를 실어 던진다.
+ *  - onAiError(rowId, error) — AI 가 실패하면 먼저 부른다(rowId = 행별 [AI] 의 행 · 전체면 null).
+ *      `true` 를 돌려주면 소비자가 그 실패를 안내로 대신한 것이라 빨간 실패 줄을 띄우지 않는다.
+ *  - aiNotice — 노드 | null. 캔버스 오류 줄 자리(도구 줄 아래)에 그린다. 행별 [AI] 의 안내도 이 한 자리다(§5.5A «시각»).
+ *  버튼은 숨기지도 잠그지도 않는다 — 직접 입력·저장은 그대로다. OkrComposeFullModal·OkrSetupWizardModal 과 같은 약속이다.
  * historyEmptyLabel: 히스토리 0건 문구. 앱이 ko/en 을 넘긴다.
  * toolbarAside: 서브탭 아래 도구 줄 오른쪽 끝에 놓는 것 — 전사 OKR 을 쓸 수 있는지(「작성 가능」·「읽기 전용」).
  *   기획 시안 전사 화면의 «권한 배지 줄» 자리다. 권한은 서브탭과 상관없이 전사 탭 전체라, 도구 줄이 없는
@@ -42,7 +51,7 @@ import { OkrLabelsContext, makeOkrLabels } from './okr-labels.jsx';
  *   화면이 바뀌는** 가짜 성공을 본다(PW-106 에서 실제로 그랬다). 새로고침하면
  *   되돌아간다. 데모 모드와 권한은 별개 축이라 prop 을 나눈다.
  */
-export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, history, icons, baseUrl = '', onKrUpdate, onSubmitFeedback, onViewAllFeedback, onWriteFeedback, onSave, onAiAutocomplete, canEdit = true, onRefreshInsights, onInsightAction, onCloseInsights, showInsights = true, onToggleInitiative, canEditInitiative = false , focusKrId = null, focusObjectiveId = null, historyEmptyLabel, toolbarAside = null, labels }) {
+export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, history, icons, baseUrl = '', onKrUpdate, onSubmitFeedback, onViewAllFeedback, onWriteFeedback, onSave, onAiAutocomplete, canEdit = true, onRefreshInsights, onInsightAction, onCloseInsights, showInsights = true, onToggleInitiative, canEditInitiative = false , focusKrId = null, focusObjectiveId = null, historyEmptyLabel, toolbarAside = null, labels, checkPrerequisites = true, onAiError, aiNotice = null }) {
   // 화면 문구 — 소비자가 번역을 넘긴다(PW-2415). 안 넘기면 종전 한국어.
   const L = useMemo(() => makeOkrLabels(labels), [labels]);
   const [subTab, setSubTab] = useState('canvas');
@@ -123,13 +132,14 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
 
   const runAi = async (rowId) => {
     if (!onAiAutocomplete) return;
-    if (rowId) {
+    // checkPrerequisites 가 false 면 소비자(서버)가 판정한다 — «먼저 입력»은 여기서 건너뛴다(PW-3343).
+    if (checkPrerequisites && rowId) {
       const missing = missingPrerequisites(rowId);
       if (missing.length > 0) {
         setError({ rowId, message: L('strategy.missingFirst', { fields: missing.join(', ') }) });
         return;
       }
-    } else {
+    } else if (checkPrerequisites) {
       // 전체 자동완성은 Mission·Vision 중 하나는 있어야 한다 — 캔버스 위 빨간 줄로(기획 okr-app.jsx aiGenerateAll · TC-OKR-003A 2 · PW-3055).
       const current = editing ? draft : toDraft(rows);
       const has = (id) => (current[rows.findIndex((row) => row.id === id)] ?? '').trim();
@@ -178,8 +188,13 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
     } catch (err) {
       // 앱이 이미 알린 실패(이용 정지 등 · `notified`)도 겹치지 않는다(PW-2907).
       // 앱이 사유 글(`inlineMessage`)을 실어 던지면 그 글을 캔버스 위 빨간 줄로 쓴다 (PW-3055).
-      if (!isNotifiedFailure(err) && err?.response?.status !== 403) {
-        setError({ rowId: null, message: err?.inlineMessage ?? L('strategy.aiFailed') });
+      // AI 한도 소진처럼 소비자가 그 자리 안내로 대신하면 빨간 실패 줄을 겹치지 않는다(PW-3343).
+      // 사유 글에 행(`inlineRowId`)이 실려 오면 그 행 안에 쓴다 — 행별 [AI] 의 «먼저 입력»(PW-3343).
+      if (!isNotifiedFailure(err) && err?.response?.status !== 403 && !onAiError?.(rowId ?? null, err)) {
+        setError({
+          rowId: err?.inlineMessage ? (err?.inlineRowId ?? null) : null,
+          message: err?.inlineMessage ?? L('strategy.aiFailed'),
+        });
       }
     } finally {
       setAiLoading(false);
@@ -257,6 +272,7 @@ export default function OkrStrategyCanvas({ rows: initialRows, companyBoard, his
               {toolbarAside}
             </div>
           </div>
+          {aiNotice && <div data-testid="okr-s-ai-notice">{aiNotice}</div>}
           {error && !error.rowId && errorBanner}
 
           <div className="okr-s-card">
