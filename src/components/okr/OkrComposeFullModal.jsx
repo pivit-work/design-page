@@ -44,6 +44,13 @@ import Spinner from '../shared/Spinner.jsx';
  * `labels` 로 계층 문구를 바꿔 끼울 수 있다(PW-268). 이 모달은 개인 OKR 기준 문구가
  * 박혀 있어, 조직 단위(본부·부서·팀) 탭에서 열면 "개인 OKR을 시작해보세요" 처럼
  * 화면과 어긋난 안내가 떴다. 미주입 시 아래 기본값 그대로라 기존 화면은 불변이다.
+ *
+ * AI 버튼 자리 안내 (선택 · screen-tier-gating §6.6·§6.8 · AI 한도 소진 — pivit-work PW-3300):
+ *  - onAiError(at, error, key) — AI 콜백이 실패하면 먼저 부른다. at = 'objectives'([✦ AI로 Objective 생성]) |
+ *      'krs'(그 Objective 카드의 [✦ AI로 KR 생성] · key = Objective key) | 'refine'(KR 줄 [✦ 개선] · key = KR key).
+ *      `true` 를 돌려주면 소비자가 그 실패를 안내로 대신한 것이라 빨간 실패 문구를 띄우지 않는다.
+ *  - aiNotice — { at, key, content } | null. 그 버튼의 실패 문구 자리에 content(노드)를 그린다. 한 번에 하나다.
+ *  버튼은 숨기지도 잠그지도 않는다 — 직접 입력·저장은 그대로다. OkrSetupWizardModal 과 같은 약속이다.
  */
 const DEFAULT_LABELS = {
   eyebrow: '팀 OKR 미니맵',
@@ -400,8 +407,16 @@ export default function OkrComposeFullModal({
   objectiveTitleMaxLength,
   krTitleMaxLength,
   initiativeTitleMaxLength,
+  onAiError,
+  aiNotice = null,
 }) {
   const L = { ...DEFAULT_LABELS, ...(labels ?? {}) };
+  // 소비자가 실패를 안내로 대신했나 — 권한 거절·앱이 알린 실패는 그 전에 걸러 부르지 않는다.
+  const handledAsNotice = (at, error, key) => isForbidden(error) || Boolean(onAiError?.(at, error, key));
+  const aiNoticeAt = (at, key) =>
+    aiNotice && aiNotice.at === at && (key === undefined || aiNotice.key === key) ? (
+      <div className="okr-wz-ai-notice" data-testid={`okr-cf-ai-notice-${at}`}>{aiNotice.content}</div>
+    ) : null;
   // 미니맵은 **나보다 위** 를 보여주는 자리다. 전사 OKR 처럼 위가 없는 작성 경로에서는
   // 회사 카드가 곧 "지금 쓰고 있는 것" 이라, 고를 수 없는 상위 후보처럼 보인다.
   // 기본값은 지금 동작(그린다)이라 다른 화면의 시안은 그대로다.
@@ -468,7 +483,8 @@ export default function OkrComposeFullModal({
       })));
     } catch (error) {
       // 권한 거절(403)은 소비자가 토스트로 알리고 창을 readOnly 로 내린다 — 실패 문구를 겹치지 않는다(pivit-work PW-1508).
-      if (!isForbidden(error)) setGenError(L.genObjectivesFailed);
+      // AI 한도 소진처럼 소비자가 그 자리 안내로 대신하면 빨간 실패 문구를 겹치지 않는다(PW-3300).
+      if (!handledAsNotice('objectives', error)) setGenError(L.genObjectivesFailed);
     } finally { setGenLoading(false); }
   };
 
@@ -510,7 +526,7 @@ export default function OkrComposeFullModal({
         }),
       });
     } catch (error) {
-      if (!isForbidden(error)) setGenKrError({ key: objective.key, message: L.genKrsFailed });
+      if (!handledAsNotice('krs', error, objective.key)) setGenKrError({ key: objective.key, message: L.genKrsFailed });
     } finally {
       setGenKrKey(null);
     }
@@ -585,7 +601,7 @@ export default function OkrComposeFullModal({
     } catch (error) {
       // 실패는 상태를 만들지 않는다(INV-R1) — 위 patchKr 에 닿지 못하므로 어떤
       // 필드도 바뀌지 않는다. 알림은 그 KR 블록 안에서만 한다(INV-R2). 권한 거절은 소비자 토스트.
-      if (!isForbidden(error)) setRefineError({ key: kr.key, message: L.refineKrFailed });
+      if (!handledAsNotice('refine', error, kr.key)) setRefineError({ key: kr.key, message: L.refineKrFailed });
     } finally {
       setRefiningKey(null);
     }
@@ -856,6 +872,7 @@ export default function OkrComposeFullModal({
             </div>
           </div>
           {genError && <p className="okr-status-text is-error" role="alert">{genError}</p>}
+          {aiNoticeAt('objectives')}
 
           {objectives.length === 0 ? (
             <div className="okr-cf-empty">
@@ -960,6 +977,7 @@ export default function OkrComposeFullModal({
                       {refineError?.key === kr.key && (
                         <p className="okr-status-text is-error" role="alert">{refineError.message}</p>
                       )}
+                      {aiNoticeAt('refine', kr.key)}
                       <div className="okr-cf-methods">
                         {METHODS.map((method) => (
                           <button disabled={readOnly}
@@ -1165,6 +1183,7 @@ export default function OkrComposeFullModal({
                   {genKrError?.key === objective.key && (
                     <p className="okr-status-text is-error" role="alert">{genKrError.message}</p>
                   )}
+                  {aiNoticeAt('krs', objective.key)}
                 </div>
               );
             })
