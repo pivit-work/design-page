@@ -509,6 +509,7 @@ const DEFAULT_LABELS = {
     resignedAtRequired: '퇴사 상태에서는 퇴사일을 넣어야 저장할 수 있습니다.',
     leaveStartRequired: '휴직 상태에서는 휴직 시작일을 넣어야 저장할 수 있습니다.',
     leaveStartNeeded: '휴직 시작일을 넣어 주세요',
+    leaveFutureHint: '{date}에 휴직으로 바뀌어요. 그때까지 발령 이력에 예정으로 보이고, 발효 전에는 취소할 수 있어요',
     /* 휴직 사유 (pivit-work PW-2520 · admin-spec §3.2.1 «휴직 사유» 6종) — 휴가 메뉴가 켜진 회사는 필수다. */
     leaveReason: '휴직 사유',
     leaveReasonNone: '— 미지정 —',
@@ -6643,6 +6644,13 @@ function EmployeesEditPanel({
     dateFields.some((f) => f.field === 'leaveStartDate') && !ymdOf(identityDraft?.leaveStartDate);
   /* 휴직이 아닌 사람을 «휴직»으로 고른 동안 — 빈 시작일 안내는 «휴직 시작일을 넣어 주세요»(admin-spec §3.2.1 «PW-3236» ③) */
   const becomingLeave = member.employmentStatus !== 'on_leave' && draft.employmentStatus === 'on_leave';
+  /* 재직 · 수습인 사람을 «휴직»으로 고르고 시작일이 오늘 뒤면 예약 발령 «휴직»이다 — 시작일 칸 아래에 상태 일괄 변경과 같은 안내
+     (pivit-work PW-3327 · 구성원 상세 정책서 §8 E20). 문구는 소비자가 넘긴다(`labels.panel.leaveFutureHint` · `{date}`). 퇴사 취소는 아니다.
+     휴직 예정이 이미 걸린 재직자(`leaveLive`) · 계정을 끈 사람은 서버가 예약하지 않고 지금 저장한다(정하지 않은 자리 ⓐ · `isEmployedMember`) — 안내를 붙이지 않는다. */
+  const leaveFutureStart = becomingLeave && member.employmentStatus !== 'terminated' && member.isActive !== false && !leaveLive
+    && ymdOf(identityDraft?.leaveStartDate) > todayYmd
+    ? ymdOf(identityDraft?.leaveStartDate)
+    : null;
   /* 휴직 사유 (pivit-work PW-2520 · §3.2.1) — 휴직 날짜 칸과 같은 자리·같은 경로다. 휴가 메뉴가 켜진 회사는 필수라
      비면 저장을 막는다 — 사유 없이 저장돼 있던 기존 휴직자도 같다(다른 칸을 고쳐 저장하려면 사유부터). */
   const showLeaveReason = dateFields.some((f) => f.field === 'leaveStartDate');
@@ -7154,6 +7162,8 @@ function EmployeesEditPanel({
           return;
         }
       }
+      /* 예약 «휴직»을 건 저장 — 이 사람은 이제 휴직 예정이 걸린 재직자다. 창을 닫지 않고 다시 고치면 예약 안내를 붙이지 않는다(pivit-work PW-3327 리뷰 2) */
+      if (leaveFutureStart) setLeaveLive(true);
       await finishSave();
     } finally {
       if (pageSaveRef.current === pageSave) endPageSave();
@@ -8090,6 +8100,9 @@ function EmployeesEditPanel({
                   /* 별표는 휴직이 아닌 사람을 «휴직»으로 고른 동안만(구성원 상세 정책서 v1.2 §3 «휴직 세 칸» · pivit-work PW-3250).
                      이미 휴직인 사람은 저장된 값으로 열려 별표가 없다 — 시작일을 비우면 막는 규칙(아래 error)은 그대로다. */
                   required={f.field === 'leaveStartDate' && becomingLeave}
+                  hint={f.field === 'leaveStartDate' && leaveFutureStart && labels.panel.leaveFutureHint
+                    ? fill(labels.panel.leaveFutureHint, { date: leaveFutureStart })
+                    : undefined}
                   error={
                     f.field === 'leaveStartDate' && leaveStartMissing && identityReady
                       ? (becomingLeave ? labels.panel.leaveStartNeeded || labels.panel.leaveStartRequired : labels.panel.leaveStartRequired)
