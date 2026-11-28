@@ -141,6 +141,9 @@ export default function ProfileModal({ member, onClose, statIcons, baseUrl = '',
     if (!praiseJump || !praiseRef.current) return undefined;
     const el = praiseRef.current;
     const reduce = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    // 위에 붙는 탭 줄(.profile-seg-dock)이 있으면 그 높이만큼 더 띄운다 — 안 띄우면 구역 제목 줄이 탭 줄 밑에 가린다(pivit-work PW-3273).
+    const dock = el.closest?.('.profile-main')?.querySelector?.('.profile-seg-dock');
+    el.style.scrollMarginTop = dock ? `calc(var(--spacing-xl) + ${dock.offsetHeight}px)` : '';
     el.scrollIntoView?.({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
     if (reduce) return undefined;
     el.classList.remove('is-glow');
