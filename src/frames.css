@@ -45,3 +45,20 @@
   margin-top: var(--spacing-md);
   padding-top: var(--spacing-md);
 }
+
+/* 표 틀(FrameTable) — 칸 이름 줄 · 칸의 여백 · 글 색 · 아래 선은 디자이너 조직도 명단 표(org_list.css .ol-table th · td) 값이다.
+   표는 공용 명단 표(.rt-table)와 .ol-table 을 함께 달아, 같은 칸에 거는 두 규칙(여백 9 12 · 흐린 회색 머리 글 · 다른 선 색)이
+   CSS 가 실린 순서로 갈렸다 — 어드민 화면(로그인 보안 · 계약 · 약관 «이전 체결 기록» · 조직 스냅샷 등)에서는 .rt-table 이 이겨
+   꼭 읽을 칸 이름이 흐린 회색으로 나왔다(pivit-work PW-3345). 여기서 .ol-table 값을 순서와 상관없이 세운다.
+   크기 · 굵기 · 줄 높이 · 머리 40 · 줄 48 은 두 규칙이 같거나 .ol-table 만 정해 그대로다. */
+.rt-table.dp-frame-table th {
+  padding: 0 var(--spacing-2xl);
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-secondary);
+}
+/* 빈 안내 칸(.rt-empty · 위아래 32)은 명단 표 값 그대로 둔다. 마지막 줄 아래 선 없음은 위 줄보다 세게 다시 적는다. */
+.rt-table.dp-frame-table td:not(.rt-empty) {
+  padding: 0 var(--spacing-2xl);
+  border-bottom: 1px solid var(--border-secondary);
+}
+.rt-table.dp-frame-table tbody tr:last-child td:not(.rt-empty) { border-bottom: none; }

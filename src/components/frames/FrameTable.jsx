@@ -7,6 +7,8 @@ import { FRAME_TEXT_CLAMP_TWO, FRAME_TABLE } from './frameValues.js';
  *
  * 모양은 디자이너 조직도 명단 표(`org_list.css .ol-table` · stesslee)가 정한다 — 머리 40 · 줄 48 · 머리 글 12/600 ·
  * 칸 글 14/500. 뼈대(구분선 · 가로 스크롤 · 붙는 머리)는 공용 명단 표 `RosterTable` 이다.
+ * 두 클래스가 같은 칸에 걸면(여백 · 머리 글 색 · 아래 선) CSS 가 실린 순서로 갈려 어드민 화면에서 `.rt-table` 이 이겼다 —
+ * `dp-frame-table`(frames.css)이 디자이너 값을 순서와 상관없이 세운다(pivit-work PW-3345).
  *
  * 부르는 쪽은 열과 칸 안 내용만 정한다. 모양을 덮어쓰는 길(className · style)은 두지 않는다 — 다음 화면에서 숫자를
  * 다시 적을 자리가 생기지 않게. 고르기는 정해 둔 것만:
@@ -49,7 +51,7 @@ export function FrameTable({ columns, rows, rowKey, empty, maxRows, ariaLabel, t
       empty={empty}
       scroll={scroll}
       maxHeight={maxHeight}
-      tableClassName="ol-table"
+      tableClassName="ol-table dp-frame-table"
       ariaLabel={ariaLabel}
       testId={testId}
     />
