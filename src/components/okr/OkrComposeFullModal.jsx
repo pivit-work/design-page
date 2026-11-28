@@ -47,7 +47,8 @@ import Spinner from '../shared/Spinner.jsx';
  *
  * AI 버튼 자리 안내 (선택 · screen-tier-gating §6.6·§6.8 · AI 한도 소진 — pivit-work PW-3300):
  *  - onAiError(at, error, key) — AI 콜백이 실패하면 먼저 부른다. at = 'objectives'([✦ AI로 Objective 생성]) |
- *      'krs'(그 Objective 카드의 [✦ AI로 KR 생성] · key = Objective key) | 'refine'(KR 줄 [✦ 개선] · key = KR key).
+ *      'krs'(그 Objective 카드의 [✦ AI로 KR 생성] · key = Objective key) | 'refine'(KR 줄 [✦ 개선] · key = 그 KR 의 Objective key).
+ *      안내 자리는 기능 단위 하나다 — 'krs'·'refine' 모두 그 Objective 카드 아래(okr-policy §5.5A «시각» · KR 생성·개선 공용).
  *      `true` 를 돌려주면 소비자가 그 실패를 안내로 대신한 것이라 빨간 실패 문구를 띄우지 않는다.
  *  - aiNotice — { at, key, content } | null. 그 버튼의 실패 문구 자리에 content(노드)를 그린다. 한 번에 하나다.
  *  버튼은 숨기지도 잠그지도 않는다 — 직접 입력·저장은 그대로다. OkrSetupWizardModal 과 같은 약속이다.
@@ -601,7 +602,9 @@ export default function OkrComposeFullModal({
     } catch (error) {
       // 실패는 상태를 만들지 않는다(INV-R1) — 위 patchKr 에 닿지 못하므로 어떤
       // 필드도 바뀌지 않는다. 알림은 그 KR 블록 안에서만 한다(INV-R2). 권한 거절은 소비자 토스트.
-      if (!handledAsNotice('refine', error, kr.key)) setRefineError({ key: kr.key, message: L.refineKrFailed });
+      // 한도 안내 자리는 그 Objective 카드 아래(KR 생성·개선 공용 · okr-policy §5.5A «시각») — 그래서 Objective key 를 넘긴다.
+      // 빨간 실패 문구는 그대로 그 KR 줄 안이다(§5.3 INV-R2).
+      if (!handledAsNotice('refine', error, objKey)) setRefineError({ key: kr.key, message: L.refineKrFailed });
     } finally {
       setRefiningKey(null);
     }
@@ -977,7 +980,6 @@ export default function OkrComposeFullModal({
                       {refineError?.key === kr.key && (
                         <p className="okr-status-text is-error" role="alert">{refineError.message}</p>
                       )}
-                      {aiNoticeAt('refine', kr.key)}
                       <div className="okr-cf-methods">
                         {METHODS.map((method) => (
                           <button disabled={readOnly}
@@ -1184,6 +1186,7 @@ export default function OkrComposeFullModal({
                     <p className="okr-status-text is-error" role="alert">{genKrError.message}</p>
                   )}
                   {aiNoticeAt('krs', objective.key)}
+                  {aiNoticeAt('refine', objective.key)}
                 </div>
               );
             })
