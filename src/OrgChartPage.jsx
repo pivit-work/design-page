@@ -376,6 +376,7 @@ export default function OrgChartPage({ icons, statIcons, baseUrl, subTab, onSubT
           projectOptions={PROJECT_OPTIONS}
           canManageLedger
           canEditAssignments
+          canAddFromEmptyCard
           canLinkProjects
           canCreateProject
           onSubTabChange={onSubTabChange}

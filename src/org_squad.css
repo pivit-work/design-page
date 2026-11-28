@@ -505,6 +505,18 @@
   color: var(--text-brand-tertiary);
 }
 .sq-chip-remove:hover { color: var(--text-error-primary); }
+/* 읽기 모드 0명 카드의 [+ 멤버를 추가하세요](PW-3330) — 위 「팀원 추가」 알약을 카드 폭으로 늘린 것.
+   인원 줄과의 사이는 편집 모드 칩 줄 ↔ 「팀원 추가」(.sq-members-edit)와 같다. */
+.sq-members-empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+.sq-add-member-btn.is-block {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+}
 .sq-chip-empty {
   font-size: 12px;
   line-height: 18px;

@@ -363,6 +363,7 @@ export const ORGCHART_LABELS = {
   'squad.card.noCandidates': '추가할 수 있는 구성원이 없습니다',
   'squad.card.noCandidatesOutOfScope': '추가할 수 있는 구성원이 없습니다 (내 조직 범위 밖)',
   'squad.card.addMember': '팀원 추가',
+  'squad.card.addFirstMember': '멤버를 추가하세요',
   'squad.card.moreMembers': '더 보기 +{{count}}',
   'squad.card.foldMembers': '접기',
   // ── 스쿼드: 추천 팀원 (§5-5 · §4 · PW-1155) ──
@@ -611,7 +612,7 @@ export const ORGCHART_LABELS = {
   'squad.matrix.noteUnassigned': '미배정',
   'squad.matrix.noteOver': '초과 {{diff}}%p · {{count}}개',
   'squad.matrix.noteSlack': '여유 {{diff}}%p · {{count}}개',
-  'squad.matrix.emptyRow': '배정된 팀원이 없습니다 — 「할당 편집」에서 배정해보세요',
+  'squad.matrix.emptyRow': '배정된 팀원이 없습니다 — 「편집」에서 배정해보세요',
   'squad.mycap.label': '내 캐파 사용',
   'squad.mycap.over': '초과 {{diff}}%p',
   'squad.mycap.slack': '여유 {{diff}}%p',

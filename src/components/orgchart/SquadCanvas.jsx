@@ -142,6 +142,11 @@ export default function SquadCanvas({
   /** 할당 편집 버튼 노출 여부 (hr_admin·manager). */
   canEditAssignments = false,
   /**
+   * 읽기 모드의 멤버 0명 카드에 [+ 멤버를 추가하세요]를 둘지 — hr_admin · manager 만(조직도 스쿼드 정책서 §4 · §6 · PW-3330).
+   * 누르면 툴바 [편집]과 같이 편집 모드로 들어간다. 0명 스쿼드엔 리드가 없어 리드 자격으로는 열리지 않는다.
+   */
+  canAddFromEmptyCard = false,
+  /**
    * manager 의 편집 범위 — 배정 대상 **구성원**의 id 목록.
    * `null` 이면 전체 편집 가능(hr_admin). 빈 배열이면 편집 대상 없음.
    */
@@ -572,6 +577,24 @@ export default function SquadCanvas({
   const toggleEditMode = () => {
     if (!editMode) setEffectiveDate(todayIsoInZone(timeZone));
     setEditMode((v) => !v); setPopover(null); setAddTarget(null); setProjTarget(null);
+  };
+  /* 읽기 모드 0명 카드의 [+ 멤버를 추가하세요](정책서 §4 · §6 · PW-3330) — 인원 줄 아래 카드 폭 전체.
+     모양은 같은 카드 편집 모드의 「팀원 추가」 점선 알약(디자이너 10-26)을 폭만 늘린 것이고,
+     인원 줄과의 사이도 편집 모드 칩 줄 ↔ 「팀원 추가」 와 같은 12 다. 누르면 툴바 [편집]과 같다. */
+  const withEmptyAdd = (sq, isEmpty, row) => {
+    if (!(isEmpty && canAddFromEmptyCard && canEditAssignments)) return row;
+    return (
+      <div className="sq-members-empty">
+        {row}
+        <button
+          type="button" data-testid={`squad-empty-add-${sq.id}`}
+          className="sq-add-member-btn is-block"
+          onClick={() => { if (!editMode) toggleEditMode(); }}
+        >
+          <PlusIcon size={20} /> {L('squad.card.addFirstMember')}
+        </button>
+      </div>
+    );
   };
   /** 프로젝트 칸 편집 — 「할당 편집」 이 켜져 있고, 이 스쿼드에 대해 자격이 있을 때 (PW-1428). */
   const canLinkProjectsOf = (squadId) => isEditing
@@ -1552,7 +1575,7 @@ export default function SquadCanvas({
                       {/* 팀원 리소스 구성 — 스쿼드 100 기준 (매트릭스의 캐파 기준값과 분모가 다름) */}
                       <SquadComposition squad={sq} members={members} personOf={personOf} />
 
-                      {!isEditing ? (
+                      {!isEditing ? withEmptyAdd(sq, members.length === 0,
                         <div className="pj-card-members sq-members">
                           {/* 사진 32px 을 겹치지 않고 나란히(이름 글자 동그라미가 섞인다) · 오른쪽은 인원수.
                               리드는 위 기간 줄에 이름으로 서므로 여기서 다시 표시하지 않는다(Figma 16606:25737). */}
@@ -1575,7 +1598,7 @@ export default function SquadCanvas({
                             })}
                           </div>
                           <span className="pj-member-count">{L('squad.card.memberCount', { count: members.length })}</span>
-                        </div>
+                        </div>,
                       ) : (
                         <div className="sq-members-edit">
                           {/* 편집 중 팀원 줄(시안 17764:36918) — 흰 알약 칩(사진 32 · 이름 · x)이 4 간격으로
