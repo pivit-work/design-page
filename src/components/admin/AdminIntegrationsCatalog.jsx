@@ -126,8 +126,9 @@ export function AdminCatalogPanel({
           </div>
         )}
         {catalogState === 'ready' && (
-          // 표 모양은 공용 표 틀과 같은 `ol-table`. 묶음 머리 줄(세 묶음)은 표 틀이 못 담아 명단 표를 그대로 쓴다(PW-3126 카드 메모).
-          <RosterTable tableClassName="ol-table intg-catalog-table" testId="intg-catalog-table">
+          // 표 모양은 공용 표 틀과 같은 `ol-table` + `dp-frame-table`(칸 이름 색 · 칸 여백이 CSS 실린 순서로 흐려지지 않게 · PW-3345).
+          // 묶음 머리 줄(세 묶음)은 표 틀이 못 담아 명단 표를 그대로 쓴다(PW-3126 카드 메모).
+          <RosterTable tableClassName="ol-table dp-frame-table intg-catalog-table" testId="intg-catalog-table">
             <RosterTable.Head>
               <RosterTable.HeadCell>{L.columns.tool}</RosterTable.HeadCell>
               <RosterTable.HeadCell>{L.columns.category}</RosterTable.HeadCell>
