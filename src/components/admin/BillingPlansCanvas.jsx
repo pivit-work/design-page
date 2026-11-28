@@ -16,6 +16,7 @@ import {
   BillingPage,
   BillingPageHead,
 } from './kit/BillingSurface.jsx';
+import { billingReadableHeads } from './kit/billingReadableHeads.jsx';
 import { noticeSentences } from './kit/noticeSentences.js';
 import { BILLING_PAGE_WIDTH } from './kit/billingPageWidth.js';
 import { failureText, isNotifiedFailure } from '../shared/notifiedFailure.js';
@@ -387,6 +388,9 @@ function FeatureIcon({ status }) {
 //
 // 취소선은 참조 정가가 있고 **협의 단가가 그보다 쌀 때만** 쓴다. 인상 계약에 취소선·
 // 「할인」 문구를 붙이면 계약 조건을 잘못 말하는 것이 된다.
+/** 견적 칸 값 밑 안내(«최소 N명은 청구 하한» 등) — 읽을 설명이라 설명 글 색(pivit-work PW-3302 · 흐린 회색 금지). 크기는 전과 같다. */
+const QUOTE_NOTE_STYLE = { fontSize: 11, color: 'var(--text-secondary)' };
+
 function QuoteCard({ quote, canEdit, onPay, billedSeats, seatsOverMax, labels, renewalLocked = false, newPaymentBlockedHint = null }) {
   // 갱신 동의만 잠근다 — 새 견적 [결제하기]는 서버가 따로 막고, 해지된 회사에는 갱신 견적이 오지 않는다.
   const locked = Boolean(quote.isRenewal && renewalLocked);
@@ -426,12 +430,12 @@ function QuoteCard({ quote, canEdit, onPay, billedSeats, seatsOverMax, labels, r
           <div style={{ fontWeight: 700 }}>
             {labels.quoteContractSeatsValue(quote.minSeats, quote.maxSeats)}
           </div>
-          <div style={{ fontSize: 11, color: T.muted }}>{labels.quoteMinSeatsNote(quote.minSeats)}</div>
+          <div style={QUOTE_NOTE_STYLE}>{labels.quoteMinSeatsNote(quote.minSeats)}</div>
         </div>
         <div>
           <div style={{ color: T.sub, marginBottom: 2 }}>{labels.quoteContractPeriod}</div>
           <div style={{ fontWeight: 700 }}>{quote.contractStart} ~ {quote.contractEnd}</div>
-          <div style={{ fontSize: 11, color: T.muted }}>{labels.quoteContractPeriodNote}</div>
+          <div style={QUOTE_NOTE_STYLE}>{labels.quoteContractPeriodNote}</div>
         </div>
         <div>
           <div style={{ color: T.sub, marginBottom: 2 }}>{labels.quoteInterval}</div>
@@ -451,7 +455,7 @@ function QuoteCard({ quote, canEdit, onPay, billedSeats, seatsOverMax, labels, r
             <div style={{ color: T.sub, marginBottom: 'var(--spacing-xxs)' }}>{labels.quoteRecording}</div>
             <div style={{ fontWeight: 700 }}>{labels.quoteRecordingValue(quote.recordHoursPerSeat)}</div>
             {quote.planRecordHoursPerSeat != null && quote.recordHoursPerSeat > quote.planRecordHoursPerSeat && (
-              <div style={{ fontSize: 11, color: T.muted }}>{labels.quoteRecordingExtendedNote}</div>
+              <div style={QUOTE_NOTE_STYLE}>{labels.quoteRecordingExtendedNote}</div>
             )}
           </div>
         )}
@@ -659,20 +663,21 @@ function PlanCard({ plan, isCurrent, isUpgrade = false, interval, onAction, canE
             <div style={{ fontSize: 12, color: T.amber, marginTop: 2 }}>{labels.annualPerSeatNote}</div>
           )}
           {interval === 'annual' && plan.seatPriceAnnual == null && (
-            <div style={{ fontSize: 12, color: T.muted, marginTop: 2 }}>{labels.annualComingSoon}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 'var(--spacing-xxs)' }}>{labels.annualComingSoon}</div>
           )}
           {benefit && (
             <div data-testid={`billing-plan-launch-benefit-${plan.code}`}
               style={{ fontSize: 12, color: T.accentText, fontWeight: 700, marginTop: 'var(--spacing-xxs)' }}>
               {/* 날짜가 «2027-02-» / «07까지»로 끊기지 않게 줄바꿈 없는 하이픈으로 (PW-2360) */}
               {labels.launchBenefitPlanTag(launchBenefitUntil.replace(/-/g, '\u2011'))}
-              <div style={{ fontWeight: 500, color: T.muted }}>{labels.launchBenefitPlanAfter(plan.seatPrice)}</div>
+              <div style={{ fontWeight: 500, color: 'var(--text-secondary)' }}>{labels.launchBenefitPlanAfter(plan.seatPrice)}</div>
             </div>
           )}
         </div>
       )}
 
-      <div style={{ fontSize: 12, color: T.muted, marginBottom: 14, marginTop: 4 }}>
+      {/* 녹음 안내는 읽을 설명 — 설명 글 색(PW-3302). 위 4 · 아래 14 는 전과 같은 값을 토큰으로(12 + 2) */}
+      <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 'calc(var(--spacing-lg) + var(--spacing-xxs))', marginTop: 'var(--spacing-xs)' }}>
         {plan.recordingNote}
       </div>
 
@@ -1081,7 +1086,7 @@ function FeatureCompareTable({ plans, featureKeys, featureLabelMap, currentPlanC
   ];
   return (
     <Panel title={labels.compareTitle}>
-      <FrameTable columns={columns} rows={rows} rowKey={(row) => row.key} empty={null} />
+      <FrameTable columns={billingReadableHeads(columns)} rows={rows} rowKey={(row) => row.key} empty={null} />
       {/* 범례는 읽을 글 — 읽을 글 색(pivit-work PW-3295 · 흐린 회색 금지) */}
       <div style={{ fontSize: 'var(--font-size-text-xs)', color: 'var(--text-secondary)', marginTop: 'var(--spacing-md)' }}>{labels.compareLegend}</div>
     </Panel>
@@ -1114,7 +1119,7 @@ function MoreByFeature({ more, interval, labels }) {
           <div style={{ fontSize: 'var(--font-size-text-sm)', color: 'var(--text-secondary)' }}>
             {labels.moreIntro(apart, pick(more.packagePrice), annual)}
           </div>
-          <FrameTable columns={columns} rows={more.rows} rowKey={(r) => r.key} empty={null} />
+          <FrameTable columns={billingReadableHeads(columns)} rows={more.rows} rowKey={(r) => r.key} empty={null} />
         </Stack>
         <div style={{ fontSize: 'var(--font-size-text-xs)', color: 'var(--text-secondary)', marginTop: 'var(--spacing-md)' }}>{labels.moreFootnote}</div>
       </Panel>

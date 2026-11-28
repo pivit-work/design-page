@@ -1946,6 +1946,10 @@ button.dp-chip {
 .ono-stage-badge.is-done { background: var(--utility-success-50); color: var(--utility-success-700); }
 .ono-stage-badge-dot { width: 6px; height: 6px; border-radius: var(--radius-full); background: currentColor; flex: none; animation: ono-mem-pulse 1.5s infinite; }
 .ono-done-badge.is-pill { padding: var(--spacing-xxs) var(--spacing-md); border-radius: var(--radius-full); }
+/* 결제·구독 › 청구 내역 표의 회색 딱지(«첫 결제» · «정기결제» · 환불 완료 · 무효)는 어드민이 읽어야 할 분류라 설명 글 색 —
+   디자이너 회색 딱지(.modal-status-badge · .admin-emp-status.is-on-leave: bg-secondary 바탕 / text-secondary 글)와 같은 값.
+   공용 중립 색(--dp-badge-neutral-fg)은 다른 화면도 쓰니 그대로 둔다 (pivit-work PW-3302 · 흐린 회색 금지). */
+.ono-done-badge.bill-hist-badge.dp-badge--tone-neutral { color: var(--text-secondary); }
 
 /* ══ 마감 표시 — DueBadge (PW-2471) ═══════════════════════════════════════════════════
    회의록 › 액션 아이템 화면의 마감 칩 모양을 그대로 옮겨 1on1 끝난 화면·지난 회의록과 함께 쓴다.

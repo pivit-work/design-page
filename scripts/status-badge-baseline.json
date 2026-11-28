@@ -2586,6 +2586,9 @@
    "background": "rgba(0, 0, 0, 0.03) / 어두운 화면 rgba(255, 255, 255, 0.03)",
    "color": "#858b95"
   },
+  "status-badge.css|.ono-done-badge.bill-hist-badge.dp-badge--tone-neutral": {
+   "color": "#687079 / 어두운 화면 #cecfd2"
+  },
   "timeline.css|.tl-recurrence-weekdays .tl-event-radio-pill": {
    "border-radius": "pill",
    "padding": "0",

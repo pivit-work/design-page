@@ -8,6 +8,7 @@ import Tooltip from '../shared/Tooltip.jsx';
 import { FileTextGlyph } from '../shared/lineIcons.jsx';
 import { FrameTable, NoticeLines, Panel, StatStrip } from '../frames/index.js';
 import { BillingPage, BillingPageHead } from './kit/BillingSurface.jsx';
+import { billingReadableHeads } from './kit/billingReadableHeads.jsx';
 import { BILLING_PAGE_WIDTH } from './kit/billingPageWidth.js';
 import { won } from '../shared/money.js';
 
@@ -225,7 +226,7 @@ function RefundStatusLines({ refund, labels }) {
   const rl = labels.refundLabels[refundMetaKey(refund)] || '';
   return (
     <>
-      <StatusBadge className="ono-done-badge" tone={tone}>
+      <StatusBadge className="ono-done-badge bill-hist-badge" tone={tone}>
         {/* 사유 문구 표에 없는 값(DB 에 손으로 넣은 줄 등)은 코드값을 보이지 않고 상태만 — «환불 승인» 딱지와 같다 (pivit-work PW-3131) */}
         {[rl, refundReasonText(labels, refund.reason)].filter(Boolean).join(' · ')}
       </StatusBadge>
@@ -403,7 +404,7 @@ export default function BillingHistoryCanvas({
       // 청구번호(굵게) + 그 밑 한 줄 청구 사유 딱지 (무엇에 대한 청구인지 식별 — PW-324)
       render: (inv) => {
         const rk = reasonKey(inv);
-        const badge = <StatusBadge className="ono-done-badge" tone={REASON_TONE[rk]}>{labels.billingReasons[rk]}</StatusBadge>;
+        const badge = <StatusBadge className="ono-done-badge bill-hist-badge" tone={REASON_TONE[rk]}>{labels.billingReasons[rk]}</StatusBadge>;
         return (
           <div style={CELL_STACK_STYLE}>
             <span style={NO_NUM_STYLE}>{inv.invoice_no}</span>
@@ -482,7 +483,7 @@ export default function BillingHistoryCanvas({
         const approvalBlocked = approval?.receivable === false;
         return (
           <div style={CELL_STACK_STYLE}>
-            {!fullyRefunded && <StatusBadge className="ono-done-badge" tone={tone}>{statusLabel}</StatusBadge>}
+            {!fullyRefunded && <StatusBadge className="ono-done-badge bill-hist-badge" tone={tone}>{statusLabel}</StatusBadge>}
             {refunds.map((r, i) => (
               <RefundStatusLines key={i} refund={r} labels={labels} />
             ))}
@@ -608,7 +609,7 @@ export default function BillingHistoryCanvas({
         <FrameTable
           testId="billing-history-table"
           ariaLabel={labels.pageTitle}
-          columns={columns}
+          columns={billingReadableHeads(columns)}
           rows={filteredInvoices}
           rowKey={(inv) => inv.id}
           empty={labels.noFilterResult}
